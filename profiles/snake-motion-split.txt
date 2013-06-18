@@ -1,0 +1,1353 @@
+known=0, unknown=1 
+known=1, unknown=1 
+known=2, unknown=1 
+known=3, unknown=1 
+known=4, unknown=1 
+known=5, unknown=1 
+known=6, unknown=1 
+known=7, unknown=1 
+known=8, unknown=1 
+known=9, unknown=1 
+known=10, unknown=1 
+known=11, unknown=1 
+known=12, unknown=1 
+known=13, unknown=1 1 
+known=15, unknown=1 1 
+known=17, unknown=1 1 
+known=19, unknown=1 1 
+known=21, unknown=1 1 
+known=23, unknown=1 1 1 
+known=26, unknown=1 1 1 
+known=29, unknown=1 1 1 1 
+known=33, unknown=1 1 1 1 
+known=37, unknown=1 1 1 1 
+known=41, unknown=1 1 1 1 
+known=45, unknown=1 1 1 1 
+known=49, unknown=1 1 1 1 
+known=53, unknown=1 1 1 
+known=56, unknown=1 1 1 
+known=59, unknown=1 1 1 
+known=62, unknown=1 1 
+known=64, unknown=1 1 
+known=66, unknown=1 1 
+known=68, unknown=1 1 
+known=70, unknown=1 
+known=71, unknown=1 1 
+known=73, unknown=1 1 
+known=75, unknown=1 1 1 
+known=78, unknown=1 1 1 
+known=81, unknown=1 1 1 
+known=84, unknown=1 1 1 
+known=87, unknown=1 1 1 
+known=90, unknown=1 1 1 
+known=93, unknown=1 1 1 
+known=96, unknown=1 1 1 
+known=99, unknown=1 1 1 
+known=102, unknown=1 
+known=103, unknown=1 
+known=104, unknown=1 
+known=105, unknown=1 
+known=106, unknown=1 
+known=107, unknown=1 
+known=108, unknown=1 1 
+known=110, unknown=1 1 
+known=112, unknown=1 1 
+known=114, unknown=1 
+known=115, unknown=1 
+known=116, unknown=1 
+known=117, unknown=1 
+known=118, unknown=1 
+known=119, unknown=1 
+known=120, unknown=1 
+known=121, unknown=1 
+known=122, unknown=1 
+known=123, unknown=1 
+known=124, unknown=1 
+known=125, unknown=1 1 
+known=127, unknown=1 1 
+known=129, unknown=1 
+known=130, unknown=1 
+known=131, unknown=1 
+known=132, unknown=1 
+known=133, unknown=1 
+known=134, unknown=1 
+known=135, unknown=1 
+known=136, unknown=1 
+known=137, unknown=1 
+known=138, unknown=1 
+known=139, unknown=1 
+known=140, unknown=1 
+known=141, unknown=1 
+known=142, unknown=1 
+known=143, unknown=1 
+known=144, unknown=1 
+known=145, unknown=1 
+known=146, unknown=1 1 
+known=148, unknown=1 1 
+known=150, unknown=1 1 
+known=152, unknown=1 1 
+known=154, unknown=1 1 
+known=156, unknown=1 1 
+known=158, unknown=1 1 
+known=160, unknown=1 1 
+known=162, unknown=1 1 
+known=164, unknown=1 1 
+known=166, unknown=1 1 
+known=168, unknown=1 1 
+known=170, unknown=1 1 
+known=172, unknown=1 1 
+known=174, unknown=1 1 1 
+known=177, unknown=1 1 1 
+known=180, unknown=1 1 
+known=182, unknown=1 1 
+known=184, unknown=1 1 
+known=186, unknown=1 1 
+known=188, unknown=1 1 
+known=190, unknown=1 1 
+known=192, unknown=1 1 
+known=194, unknown=1 1 
+known=196, unknown=1 1 
+known=198, unknown=1 1 
+known=200, unknown=1 1 
+known=202, unknown=1 1 
+known=204, unknown=1 1 1 
+known=207, unknown=1 1 1 
+known=210, unknown=1 1 1 
+known=213, unknown=1 1 
+known=215, unknown=1 1 
+known=217, unknown=1 1 
+known=219, unknown=1 1 
+known=221, unknown=1 1 
+known=223, unknown=1 1 
+known=225, unknown=1 1 1 
+known=228, unknown=1 1 
+known=230, unknown=1 1 
+known=232, unknown=1 1 
+known=234, unknown=1 
+known=235, unknown=1 
+known=236, unknown=1 
+known=237, unknown=1 
+known=238, unknown=1 
+known=239, unknown=1 
+known=240, unknown=1 
+known=241, unknown=1 
+known=242, unknown=1 
+known=243, unknown=1 
+known=244, unknown=1 
+known=245, unknown=1 
+known=246, unknown=1 
+known=247, unknown=1 
+known=248, unknown=1 
+known=249, unknown=1 
+known=250, unknown=1 
+known=251, unknown=1 
+known=252, unknown=1 1 
+known=254, unknown=1 1 
+known=256, unknown=1 1 
+known=258, unknown=1 1 
+known=260, unknown=1 1 
+known=262, unknown=1 1 
+known=264, unknown=1 1 
+known=266, unknown=1 1 
+known=268, unknown=1 1 
+known=270, unknown=1 1 
+known=272, unknown=1 1 1 
+known=275, unknown=1 1 
+known=277, unknown=1 1 
+known=279, unknown=1 1 
+known=281, unknown=1 1 1 
+known=284, unknown=1 1 
+known=286, unknown=1 1 
+known=288, unknown=1 1 
+known=290, unknown=1 1 
+known=292, unknown=1 1 
+known=294, unknown=1 1 
+known=296, unknown=1 1 
+known=298, unknown=1 1 
+known=300, unknown=1 1 1 
+known=303, unknown=1 1 1 
+known=306, unknown=1 1 1 
+known=309, unknown=1 1 
+known=311, unknown=1 1 
+known=313, unknown=1 1 
+known=315, unknown=1 1 
+known=317, unknown=1 1 
+known=319, unknown=1 1 
+known=321, unknown=1 1 
+known=323, unknown=1 1 1 
+known=326, unknown=1 1 
+known=328, unknown=1 1 
+known=330, unknown=1 1 
+known=332, unknown=1 1 
+known=334, unknown=1 1 
+known=336, unknown=1 1 
+known=338, unknown=1 1 
+known=340, unknown=1 1 
+known=342, unknown=1 1 
+known=344, unknown=1 1 
+known=346, unknown=1 1 
+known=348, unknown=1 1 
+known=350, unknown=1 1 
+known=352, unknown=1 1 
+known=354, unknown=1 1 
+known=356, unknown=1 
+known=357, unknown=1 
+known=358, unknown=1 
+known=359, unknown=1 
+known=360, unknown=1 
+known=361, unknown=1 
+known=362, unknown=1 
+known=363, unknown=1 
+known=364, unknown=1 
+known=365, unknown=1 
+known=366, unknown=1 
+known=367, unknown=1 
+known=368, unknown=1 
+known=369, unknown=1 
+known=370, unknown=1 
+known=371, unknown=1 
+known=372, unknown=1 
+known=373, unknown=1 
+known=374, unknown=1 
+known=375, unknown=1 
+known=376, unknown=1 
+known=377, unknown=1 
+known=378, unknown=1 
+known=379, unknown=1 
+known=380, unknown=1 
+known=381, unknown=1 
+known=382, unknown=1 
+known=383, unknown=1 
+known=384, unknown=1 
+known=385, unknown=1 
+known=386, unknown=1 
+known=387, unknown=1 
+known=388, unknown=1 
+known=389, unknown=1 
+known=390, unknown=1 
+known=391, unknown=1 
+known=392, unknown=1 
+known=393, unknown=1 
+known=394, unknown=1 
+known=395, unknown=1 
+known=396, unknown=1 
+known=397, unknown=1 
+known=398, unknown=1 
+known=399, unknown=1 
+known=400, unknown=1 
+known=401, unknown=1 
+known=402, unknown=1 
+known=403, unknown=1 
+known=404, unknown=1 
+known=405, unknown=1 
+known=406, unknown=1 
+known=407, unknown=1 
+known=408, unknown=1 
+known=409, unknown=1 
+known=410, unknown=1 
+known=411, unknown=1 
+known=412, unknown=1 
+known=413, unknown=1 
+known=414, unknown=1 1 
+known=416, unknown=1 1 
+known=418, unknown=1 1 
+known=420, unknown=1 1 
+known=422, unknown=1 1 
+known=424, unknown=1 1 
+known=426, unknown=1 1 
+known=428, unknown=1 1 
+known=430, unknown=1 1 
+known=432, unknown=1 1 
+known=434, unknown=1 1 
+known=436, unknown=1 1 
+known=438, unknown=1 1 
+known=440, unknown=1 1 
+known=442, unknown=1 1 
+known=444, unknown=1 1 
+known=446, unknown=1 1 
+known=448, unknown=1 1 
+known=450, unknown=1 1 
+known=452, unknown=1 1 
+known=454, unknown=1 1 
+known=456, unknown=1 1 
+known=458, unknown=1 1 
+known=460, unknown=1 1 
+known=462, unknown=1 1 
+known=464, unknown=1 1 
+known=466, unknown=1 1 
+known=468, unknown=1 1 
+known=470, unknown=1 1 
+known=472, unknown=1 1 
+known=474, unknown=1 1 
+known=476, unknown=1 1 
+known=478, unknown=1 1 
+known=480, unknown=1 1 
+known=482, unknown=1 1 
+known=484, unknown=1 1 
+known=486, unknown=1 1 
+known=488, unknown=1 1 
+known=490, unknown=1 1 
+known=492, unknown=1 1 
+known=494, unknown=1 1 
+known=496, unknown=1 1 1 1 1 
+known=501, unknown=1 1 1 1 1 
+known=506, unknown=1 1 1 1 1 
+known=511, unknown=1 1 1 1 1 
+known=516, unknown=1 1 1 1 1 
+known=521, unknown=1 1 1 1 1 
+known=526, unknown=1 1 1 1 1 
+known=531, unknown=1 1 1 1 1 
+known=536, unknown=1 1 1 1 1 
+known=541, unknown=1 1 1 1 1 
+known=546, unknown=1 1 1 1 1 
+known=551, unknown=1 1 1 1 1 
+known=556, unknown=1 1 1 1 1 
+known=561, unknown=1 1 1 1 1 
+known=566, unknown=1 1 1 1 1 
+known=571, unknown=1 1 1 1 1 
+known=576, unknown=1 1 1 1 1 1 1 1 
+known=584, unknown=1 1 1 1 1 1 1 1 
+known=592, unknown=1 1 1 1 1 1 1 1 
+known=600, unknown=1 1 1 1 1 1 1 1 
+known=608, unknown=1 1 1 1 1 1 1 1 
+known=616, unknown=1 1 1 1 1 1 1 1 
+known=624, unknown=1 1 1 1 1 1 1 1 
+known=632, unknown=1 1 1 1 1 1 1 1 
+known=640, unknown=1 1 1 1 1 1 1 1 
+known=648, unknown=1 1 1 1 1 1 1 1 
+known=656, unknown=1 1 1 1 1 1 1 1 
+known=664, unknown=1 1 1 1 1 1 1 1 
+known=672, unknown=1 1 1 1 1 1 1 1 
+known=680, unknown=1 1 1 1 1 1 1 1 
+known=688, unknown=1 1 1 1 1 1 1 1 
+known=696, unknown=1 1 1 1 1 1 1 1 
+known=704, unknown=1 1 1 1 1 1 1 1 
+known=712, unknown=1 1 1 1 1 1 1 1 
+known=720, unknown=1 1 1 1 1 1 1 1 
+known=728, unknown=1 1 1 1 1 1 1 1 
+known=736, unknown=1 1 1 1 1 1 1 1 
+known=744, unknown=1 1 1 1 1 1 1 1 
+known=752, unknown=1 1 1 1 1 1 1 1 
+known=760, unknown=1 1 1 1 1 1 1 1 
+known=768, unknown=1 1 1 1 1 1 1 1 
+known=776, unknown=1 1 1 1 1 1 1 1 
+known=784, unknown=1 1 1 1 1 1 1 1 
+known=792, unknown=1 1 1 1 1 1 1 1 
+known=800, unknown=1 1 1 1 1 1 1 1 
+known=808, unknown=1 1 1 1 1 1 1 1 
+known=816, unknown=1 1 1 1 1 1 1 1 
+known=824, unknown=1 1 1 1 1 1 1 1 
+known=832, unknown=1 1 1 1 1 1 1 1 
+known=840, unknown=1 1 1 1 1 1 1 1 
+known=848, unknown=1 1 1 1 1 1 1 1 
+known=856, unknown=1 1 1 1 1 1 1 1 
+known=864, unknown=1 1 1 1 1 1 1 1 
+known=872, unknown=1 1 1 1 1 1 1 1 
+known=880, unknown=1 1 1 1 1 1 1 1 
+known=888, unknown=1 1 1 1 1 1 1 1 
+known=896, unknown=1 1 1 1 1 1 1 1 
+known=904, unknown=1 1 1 1 1 1 1 1 
+known=912, unknown=1 1 1 1 1 1 1 1 
+known=920, unknown=1 1 1 1 1 1 1 1 
+known=928, unknown=1 1 1 1 1 1 1 1 
+known=936, unknown=1 1 1 1 1 1 1 1 
+known=944, unknown=1 1 1 1 1 1 1 1 
+known=952, unknown=1 1 1 1 1 1 1 1 
+known=960, unknown=1 1 1 1 1 1 1 1 
+known=968, unknown=1 1 1 1 1 1 1 1 
+known=976, unknown=1 1 1 1 1 1 1 1 
+known=984, unknown=1 1 1 1 1 1 1 1 
+known=992, unknown=1 1 1 1 1 1 1 1 
+known=1000, unknown=1 1 1 1 1 1 1 1 
+known=1008, unknown=1 1 1 1 1 1 1 1 
+known=1016, unknown=1 1 1 1 1 1 1 1 
+known=1024, unknown=1 1 1 1 1 1 1 1 
+known=1032, unknown=1 1 1 1 1 1 1 1 
+known=1040, unknown=1 1 1 1 1 1 1 1 
+known=1048, unknown=1 1 1 1 1 1 1 1 
+known=1056, unknown=1 1 1 1 1 1 1 1 
+known=1064, unknown=1 1 1 1 1 1 1 1 
+known=1072, unknown=1 1 1 1 1 1 1 1 
+known=1080, unknown=1 1 1 1 1 1 1 1 
+known=1088, unknown=1 1 1 1 1 1 1 1 
+known=1096, unknown=1 1 1 1 1 1 1 1 
+known=1104, unknown=1 1 1 1 1 1 1 1 
+known=1112, unknown=1 1 1 1 1 1 1 1 
+known=1120, unknown=1 1 1 1 1 1 1 1 
+known=1128, unknown=1 1 1 1 1 1 1 1 
+known=1136, unknown=1 1 1 1 1 1 1 1 
+known=1144, unknown=1 1 1 1 1 1 1 1 
+known=1152, unknown=1 1 1 1 1 1 1 1 
+known=1160, unknown=1 1 1 1 1 1 1 1 
+known=1168, unknown=1 1 1 1 1 1 1 1 
+known=1176, unknown=1 1 1 1 1 1 1 1 
+known=1184, unknown=1 1 1 1 1 1 1 1 
+known=1192, unknown=1 1 1 1 1 1 1 1 
+known=1200, unknown=1 1 1 1 1 1 1 1 
+known=1208, unknown=1 1 1 1 1 1 1 1 
+known=1216, unknown=1 1 1 1 1 1 1 1 
+known=1224, unknown=1 1 1 1 1 1 1 1 
+known=1232, unknown=1 1 1 1 1 1 1 1 
+known=1240, unknown=1 1 1 1 1 1 1 1 
+known=1248, unknown=1 1 1 1 1 1 1 1 
+known=1256, unknown=1 1 1 1 1 1 1 1 
+known=1264, unknown=1 1 1 1 1 1 1 1 
+known=1272, unknown=1 1 1 1 1 1 1 1 
+known=1280, unknown=1 1 1 1 1 1 1 1 
+known=1288, unknown=1 1 1 1 1 1 1 1 
+known=1296, unknown=1 1 1 1 1 1 1 1 
+known=1304, unknown=1 1 1 1 1 1 1 1 
+known=1312, unknown=1 1 1 1 1 1 1 1 
+known=1320, unknown=1 1 1 1 1 1 1 1 
+known=1328, unknown=1 1 1 1 1 1 1 1 
+known=1336, unknown=1 1 1 1 1 1 1 1 
+known=1344, unknown=1 1 1 1 1 1 1 1 
+known=1352, unknown=1 1 1 1 1 1 1 1 
+known=1360, unknown=1 1 1 1 1 1 1 1 
+known=1368, unknown=1 1 1 1 1 1 1 1 
+known=1376, unknown=1 1 1 1 1 1 1 1 
+known=1384, unknown=1 1 1 1 1 1 1 1 
+known=1392, unknown=1 1 1 1 1 1 1 1 
+known=1400, unknown=1 1 1 1 1 1 1 1 
+known=1408, unknown=1 1 1 1 1 1 1 1 
+known=1416, unknown=1 1 1 1 1 1 1 1 
+known=1424, unknown=1 1 1 1 1 1 1 1 
+known=1432, unknown=1 1 1 1 1 1 1 1 
+known=1440, unknown=1 1 1 1 1 1 1 1 
+known=1448, unknown=1 1 1 1 1 1 1 1 
+known=1456, unknown=1 1 1 1 1 1 1 1 
+known=1464, unknown=1 1 1 1 1 1 1 1 
+known=1472, unknown=1 1 1 1 1 1 1 1 
+known=1480, unknown=1 1 1 1 1 1 1 1 
+known=1488, unknown=1 1 1 1 1 1 1 1 
+known=1496, unknown=1 1 1 1 1 1 1 1 
+known=1504, unknown=1 1 1 1 1 1 1 1 
+known=1512, unknown=1 1 1 1 1 1 1 1 
+known=1520, unknown=1 1 1 1 1 1 1 1 
+known=1528, unknown=1 1 1 1 1 1 1 1 
+known=1536, unknown=1 1 1 1 1 1 1 1 
+known=1544, unknown=1 1 1 1 1 1 1 1 
+known=1552, unknown=1 1 1 1 1 1 1 1 
+known=1560, unknown=1 1 1 1 1 1 1 1 
+known=1568, unknown=1 1 1 1 1 1 1 1 
+known=1576, unknown=1 1 1 1 1 1 1 1 
+known=1584, unknown=1 1 1 1 1 1 1 1 
+known=1592, unknown=1 1 1 1 1 1 1 1 
+known=1600, unknown=1 1 1 1 1 1 1 1 
+known=1608, unknown=1 1 1 1 1 1 1 1 
+known=1616, unknown=1 1 1 1 1 1 1 1 
+known=1624, unknown=1 1 1 1 1 1 1 1 
+known=1632, unknown=1 1 1 1 1 1 1 1 
+known=1640, unknown=1 1 1 1 1 1 1 1 1 1 
+known=1650, unknown=1 1 1 1 1 1 1 1 1 1 
+known=1660, unknown=1 1 1 1 1 1 1 1 1 1 
+known=1670, unknown=1 1 1 1 1 1 1 1 1 1 
+known=1680, unknown=1 1 1 1 1 1 1 1 1 1 
+known=1690, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=1701, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=1712, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=1724, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=1736, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=1748, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=1760, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=1772, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=1784, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=1795, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=1806, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1819, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1832, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1845, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1861, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1877, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1896, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1915, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1934, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1954, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1974, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=1995, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2013, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2031, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2046, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2059, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2072, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2086, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2100, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2115, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2130, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2145, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2160, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2175, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2190, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2204, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2218, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2230, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2242, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2254, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2266, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2278, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2290, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2302, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2314, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2326, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2338, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2350, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2362, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2374, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2387, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2399, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2411, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2423, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2435, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2447, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2459, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2471, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2483, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2495, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2507, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2519, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2531, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2543, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2555, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2568, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2580, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2592, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2604, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2616, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2628, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2640, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2652, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2665, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2677, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=2690, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2702, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2714, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2726, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2738, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2750, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2762, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2774, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2786, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2798, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2810, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2822, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2834, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2846, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2858, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2870, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2882, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2894, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2906, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2918, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2930, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2942, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2954, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2966, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2978, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=2990, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3002, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3014, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3026, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3038, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3050, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3062, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3074, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3086, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3098, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3110, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3122, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3134, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3146, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3158, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3170, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3182, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3194, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3206, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=3218, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3231, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3244, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3257, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3270, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3283, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3296, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3309, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3322, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3335, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3348, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3361, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3374, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3387, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3400, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3413, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3426, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3439, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3452, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3465, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3478, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3491, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3504, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3517, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3530, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3543, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3556, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3569, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3582, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3595, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3608, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3622, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3636, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3650, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3664, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3678, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3692, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3706, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3720, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3734, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3748, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3762, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3776, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3790, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3804, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3818, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3832, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3846, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3860, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3874, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3888, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3902, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3915, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3928, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3942, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3956, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3970, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3984, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=3998, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4012, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4026, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4040, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4054, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4068, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4082, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4097, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4112, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4127, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4142, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4157, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4172, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4187, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4202, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4217, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4232, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4247, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4262, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4277, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4292, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4307, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4322, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4337, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4351, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4365, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4379, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4393, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4407, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4421, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4435, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4449, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4463, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4477, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4491, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4505, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4519, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4533, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4547, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4561, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4575, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4589, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4603, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4617, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4631, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4645, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4659, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4672, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4685, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4698, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4711, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4724, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4737, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4750, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4763, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4776, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4789, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=4802, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4814, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4826, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4838, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4850, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4862, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4874, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4886, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4898, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4910, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4922, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4934, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4946, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4958, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4970, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4982, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=4994, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5006, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5018, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5030, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5042, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5054, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5066, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5078, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5090, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5102, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=5114, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5127, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5140, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5153, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5166, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5179, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5192, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5205, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5218, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5231, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5244, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5257, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5270, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5283, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5296, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5309, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5322, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5335, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5348, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5361, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5374, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5387, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5400, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5413, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5426, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5439, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5452, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5465, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5478, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5491, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5504, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5517, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5530, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5543, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5556, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5569, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5582, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5595, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5608, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5621, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5634, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5647, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5660, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5673, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5686, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5699, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5713, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5727, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5741, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5755, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5769, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5783, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5796, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5809, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5822, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5835, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5848, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5861, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5874, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5887, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5900, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5913, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5926, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5939, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5952, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5965, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5978, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=5991, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6004, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6017, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6030, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6043, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6056, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6069, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6082, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6095, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6108, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6121, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6134, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6147, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6160, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6173, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6186, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6199, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6213, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6227, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6241, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6255, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6269, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6283, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6297, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6311, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6325, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6339, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6353, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6367, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6381, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6394, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6407, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6420, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6433, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6446, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6459, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6472, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6486, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6500, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6514, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6528, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6542, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6556, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6570, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6584, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6598, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6612, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6626, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6640, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6654, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6668, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6682, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6696, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6710, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6724, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6738, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6752, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6766, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6780, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6794, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6808, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6822, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6836, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6850, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6864, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6878, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6892, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6906, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6919, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6932, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6945, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6958, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6971, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6984, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=6997, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7011, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7025, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7040, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7055, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7070, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7085, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7100, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7115, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7129, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7143, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7157, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7170, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7183, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7196, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7209, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7223, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7237, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7251, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7265, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7279, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7293, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7306, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7319, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7332, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7345, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7358, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7373, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7388, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7405, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7422, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7439, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7456, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7473, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7490, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7505, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7520, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7535, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7547, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7559, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7572, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7585, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7599, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7613, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7627, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7641, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7655, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7669, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7682, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7695, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7708, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7720, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7732, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7745, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7758, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7772, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7786, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7800, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7814, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7828, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7842, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7855, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=7868, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=7879, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7891, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7903, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7915, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7927, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7939, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7951, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7963, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7975, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7987, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=7999, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8011, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8023, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8036, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8049, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8063, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8077, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8091, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8105, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8119, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8133, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8146, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8159, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8171, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8183, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8195, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8208, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8221, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8235, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8249, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8263, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8277, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8291, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8305, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8318, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8331, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8343, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8355, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8367, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8380, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8393, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8407, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8421, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8435, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8449, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8463, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8477, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8490, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8503, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8514, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8525, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8536, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8546, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8556, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8566, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8576, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8586, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8596, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8606, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8616, unknown=1 1 1 1 1 1 1 1 1 1 
+known=8626, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8637, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8648, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8659, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8670, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8681, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8692, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8703, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8714, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8725, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8736, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8747, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8758, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8769, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8780, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8791, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8802, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8813, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8824, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8835, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8846, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8858, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8870, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8883, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8896, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8909, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8922, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8935, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=8948, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8960, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=8972, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8983, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=8994, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9005, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9017, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9029, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9042, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9055, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9068, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9081, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9094, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9107, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9119, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9131, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9143, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9155, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9167, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9181, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9195, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9211, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9227, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9243, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9258, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9273, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9289, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9303, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9317, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9328, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9339, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9351, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9364, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9378, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9393, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9408, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9423, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9438, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9453, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9467, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9480, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9492, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9502, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9512, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9523, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9534, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9546, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9558, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9570, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9582, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9594, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9606, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9617, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9628, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9638, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9649, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=9660, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9672, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9684, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9697, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9710, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9723, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9736, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9749, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=9762, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9774, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=9786, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9796, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9806, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9816, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9826, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9836, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9846, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9856, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9866, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9876, unknown=1 1 1 1 1 1 1 1 1 1 
+known=9886, unknown=1 1 1 1 1 1 1 1 1 
+known=9895, unknown=1 1 1 1 1 1 1 1 1 
+known=9904, unknown=1 1 1 1 1 1 1 1 1 
+known=9913, unknown=1 1 1 1 1 1 1 1 1 
+known=9922, unknown=1 1 1 1 1 1 1 1 1 
+known=9931, unknown=1 1 1 1 1 1 1 1 1 
+known=9940, unknown=1 1 1 1 1 1 1 1 1 
+known=9949, unknown=1 1 1 1 1 1 1 1 1 
+known=9958, unknown=1 1 1 1 1 1 1 1 1 
+known=9967, unknown=1 1 1 1 1 1 1 1 1 
+known=9976, unknown=1 1 1 1 1 1 1 1 1 
+known=9985, unknown=1 1 1 1 1 1 1 1 1 
+known=9994, unknown=1 1 1 1 1 1 1 1 1 
+known=10003, unknown=1 1 1 1 1 1 1 1 1 
+known=10012, unknown=1 1 1 1 1 1 1 1 1 
+known=10021, unknown=1 1 1 1 1 1 1 1 1 
+known=10030, unknown=1 1 1 1 1 1 1 1 1 
+known=10039, unknown=1 1 1 1 1 1 1 1 1 
+known=10048, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10058, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10068, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10078, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10088, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10098, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10108, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10118, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10128, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10138, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10148, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10158, unknown=1 1 1 1 1 1 1 1 1 
+known=10167, unknown=1 1 1 1 1 1 1 1 1 
+known=10176, unknown=1 1 1 1 1 1 1 1 1 
+known=10185, unknown=1 1 1 1 1 1 1 1 1 
+known=10194, unknown=1 1 1 1 1 1 1 1 1 
+known=10203, unknown=1 1 1 1 1 1 1 1 1 
+known=10212, unknown=1 1 1 1 1 1 1 1 1 
+known=10221, unknown=1 1 1 1 1 1 1 1 1 
+known=10230, unknown=1 1 1 1 1 1 1 1 1 
+known=10239, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10249, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10259, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10270, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10281, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10292, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10303, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10314, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10325, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10335, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10345, unknown=1 1 1 1 1 1 1 1 1 
+known=10354, unknown=1 1 1 1 1 1 1 1 1 
+known=10363, unknown=1 1 1 1 1 1 1 1 1 
+known=10372, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10382, unknown=1 1 1 1 1 1 1 1 1 1 
+known=10392, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10403, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10414, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10425, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10436, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10447, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10458, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10469, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10480, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10491, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10502, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10513, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=10525, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=10537, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10550, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=10562, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=10574, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10585, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10596, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10607, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=10619, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=10631, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10644, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10657, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10670, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10684, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10698, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10713, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10726, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10739, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10752, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10765, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10778, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10794, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10810, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10828, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10846, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10864, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10882, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10900, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10918, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10933, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=10948, unknown=1 1 1 1 1 1 1 1 1 
+known=10957, unknown=1 1 1 1 1 1 1 1 1 
+known=10966, unknown=1 1 1 1 1 1 1 1 1 
+known=10975, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10986, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=10997, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11010, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11023, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11036, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11049, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11062, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11075, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=11086, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=11097, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=11109, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=11121, unknown=1 1 1 1 1 1 1 1 1 1 1 1 
+known=11133, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11150, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11167, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11190, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11213, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11237, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11261, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11285, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11309, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11328, unknown=1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+known=11347, unknown=1 1 1 1 1 1 1 1 
+known=11355, unknown=1 1 1 1 1 1 1 1 
+known=11363, unknown=1 1 1 1 1 1 1 
+known=11370, unknown=1 1 1 1 1 1 1 
+known=11377, unknown=1 1 1 1 1 1 1 
+known=11384, unknown=1 1 1 1 1 1 1 1 
+known=11392, unknown=1 1 1 1 1 1 1 1 
+known=11400, unknown=1 1 1 1 1 1 1 1 1 
+known=11409, unknown=1 1 1 1 1 1 1 1 1 
+known=11418, unknown=1 1 1 1 1 1 1 1 1 
+known=11427, unknown=1 1 1 1 1 1 1 1 1 
+known=11436, unknown=1 1 1 1 1 1 1 1 1 
+known=11445, unknown=1 1 1 1 1 1 1 1 1 
+known=11454, unknown=1 1 1 1 1 1 1 1 1 
+known=11463, unknown=1 1 1 1 1 1 1 1 1 
+known=11472, unknown=1 1 1 1 1 1 1 1 
+known=11480, unknown=1 1 1 1 1 1 1 1 
+known=11488, unknown=1 1 1 1 1 1 1 1 
+known=11496, unknown=1 1 1 1 1 1 1 1 
+known=11504, unknown=1 1 1 1 1 1 1 1 
+known=11512, unknown=1 1 1 1 1 1 1 1 
+known=11520, unknown=1 1 1 1 1 1 1 
+known=11527, unknown=1 1 1 1 1 1 1 
+known=11534, unknown=1 1 1 1 1 
+known=11539, unknown=1 1 1 1 1 
+known=11544, unknown=1 1 1 1 1 
+known=11549, unknown=1 1 1 1 1 1 
+known=11555, unknown=1 1 1 1 1 1 
+known=11561, unknown=1 1 1 1 1 1 1 
+known=11568, unknown=1 1 1 1 1 1 1 
+known=11575, unknown=1 1 1 1 1 1 1 
+known=11582, unknown=1 1 1 1 1 1 1 
+known=11589, unknown=1 1 1 1 1 1 1 
+known=11596, unknown=1 1 1 1 1 1 1 
+known=11603, unknown=1 1 1 1 1 1 
+known=11609, unknown=1 1 1 1 1 1 
+known=11615, unknown=1 1 1 1 1 
+known=11620, unknown=1 1 1 1 1 
+known=11625, unknown=1 1 1 1 1 
+known=11630, unknown=1 1 1 1 1 1 
+known=11636, unknown=1 1 1 1 1 1 1 
+known=11643, unknown=1 1 1 1 1 1 1 1 
+known=11651, unknown=1 1 1 1 1 1 1 1 
+known=11659, unknown=1 1 1 1 1 1 1 1 
+known=11667, unknown=1 1 1 1 1 1 1 1 
+known=11675, unknown=1 1 1 1 1 1 1 1 
+known=11683, unknown=1 1 1 1 1 1 1 1 
+known=11691, unknown=1 1 1 1 1 1 1 
+known=11698, unknown=1 1 1 1 1 1 1 
+known=11705, unknown=1 1 1 1 1 
+known=11710, unknown=1 1 1 1 1 
+known=11715, unknown=1 1 1 1 1 
+known=11720, unknown=1 1 1 1 1 
+known=11725, unknown=1 1 1 1 1 
+known=11730, unknown=1 1 1 1 1 
+known=11735, unknown=1 1 1 1 1 
+known=11740, unknown=1 1 1 1 1 
+known=11745, unknown=1 1 1 1 1 
+known=11750, unknown=1 1 1 1 1 
+known=11755, unknown=1 1 1 1 1 
+known=11760, unknown=1 1 1 1 1 1 
+known=11766, unknown=1 1 1 1 1 1 
+known=11772, unknown=1 1 1 1 1 1 1 
+known=11779, unknown=1 1 1 1 1 1 1 
+known=11786, unknown=1 1 1 1 1 1 1 
+known=11793, unknown=1 1 1 1 1 1 1 
+known=11800, unknown=1 1 1 1 1 1 1 
+known=11807, unknown=1 1 1 1 1 1 1 
+known=11814, unknown=1 1 1 1 1 1 
+known=11820, unknown=1 1 1 1 1 1 
+known=11826, unknown=1 1 1 1 1 
+known=11831, unknown=1 1 1 1 1 
+known=11836, unknown=1 1 1 1 1 
+known=11841, unknown=1 1 1 1 1 1 
+known=11847, unknown=1 1 1 1 1 1 
+known=11853, unknown=1 1 1 1 1 1 1 
+known=11860, unknown=1 1 1 1 1 1 1 
+known=11867, unknown=1 1 1 1 1 1 1 
+known=11874, unknown=1 1 1 1 1 1 1 1 
+known=11882, unknown=1 1 1 1 1 1 1 1 
+known=11890, unknown=1 1 1 1 1 1 1 1 
+known=11898, unknown=1 1 1 1 1 1 1 1 
+known=11906, unknown=1 1 1 1 1 1 1 1 
+known=11914, unknown=1 1 1 1 1 1 1 1 
+known=11922, unknown=1 1 1 1 1 1 1 1 
+known=11930, unknown=1 1 1 1 1 1 1 1 
+known=11938, unknown=1 1 1 1 1 1 1 1 1 
+known=11947, unknown=1 1 1 1 1 1 1 1 1 
+known=11956, unknown=1 1 1 1 1 1 1 1 1 1 
+known=11966, unknown=1 1 1 1 1 1 1 1 1 
+known=11975, unknown=1 1 1 1 1 1 1 1 1 
+known=11984, unknown=1 1 1 1 1 1 1 
+known=11991, unknown=1 1 1 1 1 1 1 
+known=11998, unknown=1 1 1 1 1 1 1 
+known=12005, unknown=1 1 1 1 1 1 1 
+known=12012, unknown=1 1 1 1 1 1 1 
+known=12019, unknown=1 1 1 1 1 1 
+known=12025, unknown=1 1 1 1 1 1 
+known=12031, unknown=1 1 1 1 1 1 1 
+known=12038, unknown=1 1 1 1 1 1 1 
+known=12045, unknown=1 1 1 1 1 1 1 1 
+known=12053, unknown=1 1 1 1 1 1 1 1 
+known=12061, unknown=1 1 1 1 1 1 1 
+known=12068, unknown=1 1 1 1 1 1 1 
+known=12075, unknown=1 1 1 1 1 1 1 
+known=12082, unknown=1 1 1 1 1 1 1 
+known=12089, unknown=1 1 1 1 1 1 
+known=12095, unknown=1 1 1 1 1 1 1 1 
+known=12103, unknown=1 1 1 1 1 1 1 
+known=12110, unknown=1 1 1 1 1 1 1 1 1 
+known=12119, unknown=1 1 1 1 1 1 1 1 1 
+known=12128, unknown=1 1 1 1 1 1 1 1 1 1 
+known=12138, unknown=1 1 1 1 1 1 1 1 1 1 
+known=12148, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=12159, unknown=1 1 1 1 1 1 1 1 1 1 1 
+known=12170, unknown=1 1 1 1 1 1 1 1 1 
+known=12179, unknown=1 1 1 1 1 1 1 1 1 
+known=12188, unknown=1 1 1 1 1 1 
+known=12194, unknown=1 1 1 1 1 1 
+known=12200, unknown=1 1 1 1 1 1 
+known=12206, unknown=1 1 1 1 1 1 1 
+known=12213, unknown=1 1 1 1 1 1 
+known=12219, unknown=1 1 1 1 1 1 1 
+known=12226, unknown=1 1 1 1 1 1 1 
+known=12233, unknown=1 1 1 1 1 1 1 
+known=12240, unknown=1 1 1 1 1 1 1 
+known=12247, unknown=1 1 1 1 1 1 1 
+known=12254, unknown=1 1 1 1 1 1 
+known=12260, unknown=1 1 1 1 1 
+known=12265, unknown=1 1 1 
+known=12268, unknown=1 
+known=12269, unknown=1 
+known=12270, unknown=1 1 
+known=12272, unknown=1 1 
+known=12274, unknown=1 1 1 
+known=12277, unknown=1 1 1 
+known=12280, unknown=1 1 1 
+known=12283, unknown=1 1 1 
+known=12286, unknown=1 1 1 
+known=12289, unknown=1 1 1 
+known=12292, unknown=1 1 
+known=12294, unknown=1 1 
+known=12296, unknown=1 
+known=12297, unknown=1 
+known=12298, unknown=1 
+known=12299, unknown=1 1 
+known=12301, unknown=1 1 
+known=12303, unknown=1 1 1 
+known=12306, unknown=1 1 1 
+known=12309, unknown=1 1 1 
+known=12312, unknown=1 1 1 
+known=12315, unknown=1 1 1 
+known=12318, unknown=1 1 1 
+known=12321, unknown=1 1 
+known=12323, unknown=1 1 
+
+1349
+
+cpu time: 6329 real time: 6327 gc time: 36
