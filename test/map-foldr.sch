@@ -1,4 +1,4 @@
-(module list
+(module map-foldr
   (provide
    [foldr ((any any . -> . any) any (listof any) . -> . any)]
    [map ((any . -> . any) (listof any) . -> . (listof any))])
@@ -8,5 +8,5 @@
   (define (map f xs)
     (foldr (λ (x ys) (cons (f x) ys)) empty xs)))
 
-(require list)
+(require map-foldr)
 (map • •)
