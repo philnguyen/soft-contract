@@ -20,79 +20,66 @@
     
     ; partial predicates
     [([op 'zero?] `[,V])
-     (match/nd
-      (Δ 'Δ σ [op 'num?] Vs)
-      [(cons σ1 (val #t _)) (check-p σ1 V [op 'zero?])]
-      [(cons σ1 (val #f _)) (cons σ1 (Blm l 'zero?))])]
+     (match/nd (Δ 'Δ σ [op 'num?] Vs)
+       [(cons σ1 (val #t _)) (check-p σ1 V [op 'zero?])]
+       [(cons σ1 (val #f _)) (cons σ1 (Blm l 'zero?))])]
     [([op (and name [or 'positive? 'negative?])] `[,V])
-     (match/nd
-      (Δ 'Δ σ [op 'real?] Vs)
-      [(cons σ1 (val #t _)) (check-p σ1 V [op name])]
-      [(cons σ1 (val #f _)) (cons σ1 (Blm l name))])]
+     (match/nd (Δ 'Δ σ [op 'real?] Vs)
+       [(cons σ1 (val #t _)) (check-p σ1 V [op name])]
+       [(cons σ1 (val #f _)) (cons σ1 (Blm l name))])]
     
     ; accessors
     [([struct-ac t _ i] `[,(val [Struct t Vs] _)]) (cons σ (list-ref Vs i))]
     [([struct-ac t n i] `[,V])
-     (match/nd
-      (Δ 'Δ σ [struct-p t n] Vs)
-      [(cons σ1 (val #t _)) (match V
-                              [(val (•) _) (cons σ1 ★)]
-                              [(? L? l) (match-let ([(val (Struct t Vs) _) (σ@ σ1 l)])
-                                          (cons σ1 (list-ref Vs i)))])]
-      [(cons σ1 (val #f _)) (cons σ1 (Blm l t))])]
+     (match/nd (Δ 'Δ σ [struct-p t n] Vs)
+       ; not struct but can be struct -> must be label
+       [(cons σ1 (val #t _)) (match-let* ([(? L? L) V]
+                                          [(val (Struct t Vs) _) (σ@ σ1 L)])
+                               (cons σ1 (list-ref Vs i)))]
+       [(cons σ1 (val #f _)) (cons σ1 (Blm l t))])]
     
     ; arithmetics
     [([op '=] `[,V1 ,V2])
-     (match/nd
-      (Δ 'Δ σ [op 'num?] `[,V1])
-      [(cons σ1 (val #t _))
-       (match/nd
-        (Δ 'Δ σ1 [op 'num?] `[,V2])
-        [(cons σ2 (val #t _)) (Δ 'Δ σ2 [op 'equal?] `[,V1 ,V2])]
-        [(cons σ2 (val #f _)) (cons σ2 [Blm l '=])])]
-      [(cons σ1 (val #f _)) (cons σ1 [Blm l '=])])]
+     (match/nd (Δ 'Δ σ [op 'num?] `[,V1])
+       [(cons σ1 (val #t _))
+        (match/nd (Δ 'Δ σ1 [op 'num?] `[,V2])
+          [(cons σ2 (val #t _)) (Δ 'Δ σ2 [op 'equal?] `[,V1 ,V2])]
+          [(cons σ2 (val #f _)) (cons σ2 [Blm l '=])])]
+       [(cons σ1 (val #f _)) (cons σ1 [Blm l '=])])]
     [([op (and name (or 'add1 'sub1))] `[,_])
-     (match/nd
-      (Δ 'Δ σ [op 'num?] Vs)
-      [(cons σ1 (val #t _)) (cons σ1 [δ name (map [curry σ@* σ1] Vs)])]
-      [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
+     (match/nd (Δ 'Δ σ [op 'num?] Vs)
+       [(cons σ1 (val #t _)) (cons σ1 [δ name (map [curry σ@* σ1] Vs)])]
+       [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
     [([op (and name (or '+ '- '* '≠))] `[,V1 ,V2])
-     (match/nd
-      (Δ 'Δ σ [op 'num?] `[,V1])
-      [(cons σ1 (val #t _))
-       (match/nd
-        (Δ 'Δ σ1 [op 'num?] `[,V2])
-        [(cons σ2 (val #t _)) (cons σ2 [δ name (map [curry σ@* σ2] Vs)])]
-        [(cons σ2 (val #f _)) (cons σ2 [Blm l name])])]
-      [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
+     (match/nd (Δ 'Δ σ [op 'num?] `[,V1])
+       [(cons σ1 (val #t _))
+        (match/nd (Δ 'Δ σ1 [op 'num?] `[,V2])
+          [(cons σ2 (val #t _)) (cons σ2 [δ name (map [curry σ@* σ2] Vs)])]
+          [(cons σ2 (val #f _)) (cons σ2 [Blm l name])])]
+       [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
     [([op '/] `[,V1 ,V2])
-     (match/nd
-      (Δ 'Δ σ [op 'num?] `[,V1])
-      [(cons σ1 (val #t _))
-       (match/nd
-        (Δ 'Δ σ1 [op 'num?] `[,V2])
-        [(cons σ2 [val #t _])
-         (match/nd
-          (Δ 'Δ σ2 [op 'zero?] `[,V2])
-          [(cons σ3 [val #t _]) (cons σ3 [Blm l '/])]
-          [(cons σ3 [val #f _]) (cons σ3 [δ '/ (map [curry σ@* σ3] Vs)])]
-          [_ ∅])]  ; ignore error from zero?
-        [(cons σ2 [val #f _]) (cons σ2 [Blm l '/])])]
-      [(cons σ1 (val #f _)) (cons σ1 [Blm l '/])])]
+     (match/nd (Δ 'Δ σ [op 'num?] `[,V1])
+       [(cons σ1 (val #t _))
+        (match/nd (Δ 'Δ σ1 [op 'num?] `[,V2])
+          [(cons σ2 [val #t _])
+           (match/nd
+               (Δ 'Δ σ2 [op 'zero?] `[,V2])
+             [(cons σ3 [val #t _]) (cons σ3 [Blm l '/])]
+             [(cons σ3 [val #f _]) (cons σ3 [δ '/ (map [curry σ@* σ3] Vs)])]
+             [_ ∅])]  ; ignore error from zero?
+          [(cons σ2 [val #f _]) (cons σ2 [Blm l '/])])]
+       [(cons σ1 (val #f _)) (cons σ1 [Blm l '/])])]
     [([op (and name (or '> '< '<= '≤ '>= '≥))] `[,V1 ,V2])
-     (match/nd
-      (Δ 'Δ σ [op 'real?] `[,V1])
-      [(cons σ1 (val #t _))
-       (match/nd
-        (Δ 'Δ σ1 [op 'real?] `[,V2])
-        [(cons σ2 (val #t _)) (cons σ2 [δ name (map [curry σ@* σ2] Vs)])]
-        [(cons σ2 (val #f _)) (cons σ2 [Blm l name])])]
-      [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
+     (match/nd (Δ 'Δ σ [op 'real?] `[,V1])
+       [(cons σ1 (val #t _))
+        (match/nd (Δ 'Δ σ1 [op 'real?] `[,V2])
+          [(cons σ2 (val #t _)) (cons σ2 [δ name (map [curry σ@* σ2] Vs)])]
+          [(cons σ2 (val #f _)) (cons σ2 [Blm l name])])]
+       [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
     [([op 'str-len] `[,_])
-     (match/nd
-      (Δ 'Δ σ [op 'str?] Vs)
-      [(cons σ1 (val #t _)) (cons σ1 [δ 'str-len (map [curry σ@* σ1] Vs)])]
-      [(cons σ1 (val #f _)) (cons σ1 [Blm l 'str-len])])]
+     (match/nd (Δ 'Δ σ [op 'str?] Vs)
+       [(cons σ1 (val #t _)) (cons σ1 [δ 'str-len (map [curry σ@* σ1] Vs)])]
+       [(cons σ1 (val #f _)) (cons σ1 [Blm l 'str-len])])]
     [([op 'equal?] `[,V1 ,V2]) (V-equal? σ V1 V2)]
     
     ;; constructor
@@ -108,38 +95,38 @@
 ;; maps op name and (assumed valid) arguments to answer value
 (define δ
   (match-lambda**
-   
-   ; concrete, precise values
-   [('add1 `(,[val (? number? x) _])) (val (add1 x) ∅)]
-   [('sub1 `(,[val (? number? x) _])) (val (sub1 x) ∅)]
-   [([and name (or '+ '- '* '/ '≠)] `(,[val (? number? x) _] ,[val (? number? y) _]))
-    (val ((match name ['+ +] ['- -] ['* *] ['/ /]) x y) ∅)]
-   [([and name (or '> '< '>= '<=)] `(,[val (? real? x) _] ,[val (? real? y) _]))
-    (val ((match name ['< <] ['> >] [>= >=] [<= <=]) x y) ∅)]
-   [('str-len `(,[val (? string? x) _])) (val (string-length x) ∅)]
-   
-   ; semi-precise values
-   [('* (or `(,[val 0 _] ,_) `(,_ ,[val 0 _]))) (val 0 ∅)]
-   [('/ `(,[val 0 _] ,_)) (val 0 ∅)]
-   [('/ `(,[val (? real?) _] ,_))
-    (val (•) {set (close [op 'real?] ρ0) (close [¬ (op 'zero?)] ρ0)})]
-   [('/ `(,[val (? number?) _] ,_))
-    (val (•) {set (close [op 'num?] ρ0) (close [¬ (op 'zero?)] ρ0)})]
-   [('/ Vs)
-    (match (map (λ (vi) (prove? σ0 vi [close (op 'real?) ρ0])) Vs)
-      [`(Proved ...) (val [•] {set (close [op 'real?] ρ0)})]
-      [_ (val [•] {set (close [op 'num?] ρ0)})])]
-   [([or '+ '- '* 'add1 'sub1] Vs)
-    (match (map (λ (vi) (prove? σ0 vi [close (op 'int?) ρ0])) Vs)
-      [`(Proved ...) (val [•] {set (close [op 'int?] ρ0)})]
-      [_ (match (map (λ (vi) (prove? σ0 vi [close (op 'real?) ρ0])) Vs)
-           [`(Proved ...) (val [•] {set (close [op 'real?] ρ0)})]
-           [_ (val [•] {set (close [op 'num?] ρ0)})])])]
-   
-   
-   ; abstract result...
-   [('str-len _) (val (•) {set (close [op 'int?] ρ0)})]
-   [([or '> '< '>= '<=] _) (val (•) {set (close [op 'bool?] ρ0)})]))
+      
+      ; concrete, precise values
+      [('add1 `(,[val (? number? x) _])) (val (add1 x) ∅)]
+    [('sub1 `(,[val (? number? x) _])) (val (sub1 x) ∅)]
+    [([and name (or '+ '- '* '/ '≠)] `(,[val (? number? x) _] ,[val (? number? y) _]))
+     (val ((match name ['+ +] ['- -] ['* *] ['/ /]) x y) ∅)]
+    [([and name (or '> '< '>= '<=)] `(,[val (? real? x) _] ,[val (? real? y) _]))
+     (val ((match name ['< <] ['> >] [>= >=] [<= <=]) x y) ∅)]
+    [('str-len `(,[val (? string? x) _])) (val (string-length x) ∅)]
+    
+    ; semi-precise values
+    [('* (or `(,[val 0 _] ,_) `(,_ ,[val 0 _]))) (val 0 ∅)]
+    [('/ `(,[val 0 _] ,_)) (val 0 ∅)]
+    [('/ `(,[val (? real?) _] ,_))
+     (val (•) {set (close [op 'real?] ρ0) (close [¬ (op 'zero?)] ρ0)})]
+    [('/ `(,[val (? number?) _] ,_))
+     (val (•) {set (close [op 'num?] ρ0) (close [¬ (op 'zero?)] ρ0)})]
+    [('/ Vs)
+     (match (map (λ (vi) (prove? σ0 vi [close (op 'real?) ρ0])) Vs)
+       [`(Proved ...) (val [•] {set (close [op 'real?] ρ0)})]
+       [_ (val [•] {set (close [op 'num?] ρ0)})])]
+    [([or '+ '- '* 'add1 'sub1] Vs)
+     (match (map (λ (vi) (prove? σ0 vi [close (op 'int?) ρ0])) Vs)
+       [`(Proved ...) (val [•] {set (close [op 'int?] ρ0)})]
+       [_ (match (map (λ (vi) (prove? σ0 vi [close (op 'real?) ρ0])) Vs)
+            [`(Proved ...) (val [•] {set (close [op 'real?] ρ0)})]
+            [_ (val [•] {set (close [op 'num?] ρ0)})])])]
+    
+    
+    ; abstract result...
+    [('str-len _) (val (•) {set (close [op 'int?] ρ0)})]
+    [([or '> '< '>= '<=] _) (val (•) {set (close [op 'bool?] ρ0)})]))
 
 (define (o-range o)
   (match o
@@ -154,15 +141,13 @@
   (match* (V1 V2)
     [([? L? l] [? L? l]) (cons σ [val #t ∅])]
     [([? L? l] [not (? opaque?)])
-     (match/nd
-      (V-equal? σ [σ@ σ l] V2)
-      [(cons σ [val #t _]) (cons [σ-set σ l V2] TT)]
-      [a a])]
+     (match/nd (V-equal? σ [σ@ σ l] V2)
+       [(cons σ [val #t _]) (cons [σ-set σ l V2] TT)]
+       [a a])]
     [([not (? opaque?)] [? L? l])
-     (match/nd
-      (V-equal? σ V1 [σ@ σ l])
-      [(cons σ [val #t _]) (cons [σ-set σ l V1] TT)]
-      [a a])]
+     (match/nd (V-equal? σ V1 [σ@ σ l])
+       [(cons σ [val #t _]) (cons [σ-set σ l V1] TT)]
+       [a a])]
     [(_ [? L? l]) (V-equal? σ V1 [σ@ σ l])]
     [([? L? l] _) (V-equal? σ [σ@ σ l] V2)]
     [(_ [val (•) _]) {set (cons σ TT) (cons σ FF)}]
@@ -173,10 +158,9 @@
            (match* (Vs1 Vs2)
              [('() '()) (cons σ TT)]
              [([cons V1 Vs1] [cons V2 Vs2])
-              (match/nd
-               (V-equal? σ V1 V2)
-               [(cons σ1 [val #t _]) (loop σ1 Vs1 Vs2)]
-               [a a])]))
+              (match/nd (V-equal? σ V1 V2)
+                [(cons σ1 [val #t _]) (loop σ1 Vs1 Vs2)]
+                [a a])]))
          (cons σ FF))]
     [([val u1 _] (val u2 _)) (cons σ (val (equal? u1 u2) ∅))]))
 
@@ -241,9 +225,11 @@
                            (loop σ′ [cons Vi′ Us] Vs′ cs′))]))])
          (cons σ′ [val (Struct t Us) Cs]))]
       [([val (•) Cs] [struct-c t cs])
-       (refine (cons σ0 [val (Struct t (make-list (length cs) ★)) Cs]) C0)]
+       (match-let ([(cons σ1 Ls) (σ++ σ0 (length cs))])
+         (refine (cons σ1 (val (Struct t Ls) Cs)) C0))]
       [([val (•) Cs] [struct-p t n])
-       (cons σ0 [val (Struct t [make-list n ★]) Cs])]
+       (match-let ([(cons σ1 Ls) (σ++ σ0 n)])
+         (cons σ1 (val (Struct t Ls) ∅)))]
       [([? L? l] _) (match-let ([(cons σ1 V1) (refine [cons σ0 (σ@ σ0 l)] C0)])
                       (cons [σ-set σ1 l V1] l))]
       
@@ -261,7 +247,9 @@
             [(cons σ2 u′)
              (match Ck
                [#f (cons σ0 u)]
-               [(close (struct-p t n) _) (cons σ0 (Struct t (make-list n ★)))]
+               [(close (struct-p t n) _)
+                (match-let ([(cons σ1 Ls) (σ++ σ0 n)])
+                  (cons σ1 (Struct t Ls)))]
                [(close (struct-c t cs) ρc)
                 (match-let ([(cons σ1 Ls) (σ++ σ0 (length cs))])
                   (cons
