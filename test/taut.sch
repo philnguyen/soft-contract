@@ -1,10 +1,13 @@
 (module taut
   (provide
-   [taut ([μ X (or/c (or/c true? false?) [bool? . -> . X])] . -> . bool?)])
+   [taut ([μ X (or/c bool? [bool? . -> . X])] . -> . bool?)])
   (define (taut b)
     (cond
       [(bool? b) b]
       [else (and (taut (b #t)) (taut (b #f)))])))
 
 (require taut)
-(taut •)
+(amb (if (bool? (taut •)) "good" "bad")
+     (if (taut #t) "good" "bad")
+     (if (taut false?) "bad" "good")
+     (if (taut (λ (x) (λ (y) (and x y)))) "bad" "good"))

@@ -1,7 +1,6 @@
 (module flatten
   (provide
    [append ((listof any) (listof any) . -> . (listof any))]
-   ; I could *almost* do (and/c ¬empty? ¬cons?) ...
    [flatten (any . -> . (listof any))])
   (define (append xs ys)
     (if (empty? xs) ys
