@@ -1,10 +1,9 @@
 #lang racket
 (require "lang.rkt" "prim.rkt" "syntax.rkt")
-(provide Δ refine o-range
+(provide Δ refine
          #;(contract-out
             [Δ (l? σ? o? [listof V?] . -> . σA*?)]
-            [refine ([cons/c σ? V?] C? . -> . [cons/c σ? V?])]
-            [o-range (o? . -> . V?)])
+            [refine ([cons/c σ? V?] C? . -> . [cons/c σ? V?])])
          σA*?)
 
 (define σA*? (nd/c (cons/c σ? A?)))
@@ -127,15 +126,6 @@
     ; abstract result...
     [('str-len _) (val (•) {set (close [op 'int?] ρ0)})]
     [([or '> '< '>= '<=] _) (val (•) {set (close [op 'bool?] ρ0)})]))
-
-(define (o-range o)
-  (match o
-    [(struct-mk t n) (val [Struct t (make-list n ★)] ∅)]
-    [(or [? pred?] [op (or '= '> '< '<= '>= 'equal?)])
-     (val (•) {set (close [op 'bool?] ρ0)})]
-    [(op (or 'add1 'sub1 '+ '- '* '/ 'str-len))
-     (val (•) {set (close [op 'num?] ρ0)})]
-    [_ ★]))
 
 (define (V-equal? σ V1 V2)
   (match* (V1 V2)
