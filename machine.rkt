@@ -81,19 +81,18 @@
                                ; FIXME: use indie!!!
                                [mon/k1 l+ l- lo (close-c cy [ρ++ ρc Vx]) k]])
               (ς (Blm l lo) σ1 'mt))]
-         [_ (match/nd
-             (Δ 'Δ σ1 [op 'proc?] `[,Vf])
-             [(cons σ2 [val #t _])
-              (match (arity-ok? [σ@* σ2 Vf] (length Vx))
-                [(or 'Y '?)
-                 (match-let
-                     ([havocs (for/fold ([acc ∅]) ([Vi Vx])
-                                (set-add acc (havoc Vi σ1)))]
-                      [(cons σ3 V3) (for/fold ([σV (σ+ σ2)]) ([Ci (C-ranges Vx Cs)])
-                                      (refine σV Ci))])
-                   (set-add havocs [ς V3 σ3 k]))]
-                ['N (ς [Blm l 'Δ] σ2 'mt)])]
-             [(cons σ2 [val #f _]) (ς [Blm l 'Δ] σ1 'mt)])])]
+         [_ (match/nd (Δ 'Δ σ1 [op 'proc?] `[,Vf])
+              [(cons σ2 [val #t _])
+               (match (arity-ok? [σ@* σ2 Vf] (length Vx))
+                 [(or 'Y '?)
+                  (match-let
+                      ([havocs (for/fold ([acc ∅]) ([Vi Vx])
+                                 (set-add acc (havoc Vi σ1)))]
+                       [(cons σ3 V3) (for/fold ([σV (σ+ σ2)]) ([Ci (C-ranges Vx Cs)])
+                                       (refine σV Ci))])
+                    (set-add havocs [ς V3 σ3 k]))]
+                 ['N (ς [Blm l 'Δ] σ2 'mt)])]
+              [(cons σ2 [val #f _]) (ς [Blm l 'Δ] σ1 'mt)])])]
       ; TODO: no need to remember whether σ[l] is function or not?
       [(? L? lab) (step-@ l σ1 [σ@ σ1 lab] Vx k)]))
   
@@ -156,15 +155,16 @@
                [(struct-c t cs)
                 ;; FIXME shameless code duplicate...
                 (let ([n (length cs)])
-                  (match/nd
-                   (Δ 'Δ σ0 [struct-p t n] `[,V0])
-                   [(cons σ1 [val #t _])
-                    (let ([Vs (match V0
-                                [(val (Struct t Vs) _) Vs]
-                                [(? L? l) (match-let ([(val (Struct t Vs) _) (σ@ σ1 l)]) Vs)]
-                                [_ (make-list n ★)])])
-                      (ς [val #t ∅] σ1 [AND-FMON lo cs ρc Vs k]))]
-                   [(cons σ1 [val #f _]) (ς [val #f ∅] σ1 k)]))]
+                  (match/nd (Δ 'Δ σ0 [struct-p t n] `[,V0])
+                    [(cons σ1 [val #t _])
+                     (let ([Vs (match V0
+                                 [(val (Struct t Vs) _) Vs]
+                                 [(? L? l) (match (σ@ σ1 l)
+                                             [(val (Struct t Vs) _) Vs]
+                                             [_ (make-list n ★)]
+                                             [_ (make-list n ★)])])])
+                       (ς [val #t ∅] σ1 [AND-FMON lo cs ρc Vs k]))]
+                    [(cons σ1 [val #f _]) (ς [val #f ∅] σ1 k)]))]
                [(? v? v)
                 (maybe-@ m lo σ0 [close-v v ρc] (list V0) k)]))])))
   
@@ -190,35 +190,33 @@
         [(μ-c x c1) (step-mon l+ l- lo [close-c (subst/c c1 x c0) ρc] V σ k)]
         [(struct-c t cs)
          (let ([n (length cs)])
-           (match/nd
-            (Δ 'Δ σ [struct-p t n] `[,V])
-            [(cons σ1 [val #t _])
-             (let ([Vs (match V
-                         [(Struct t Vs) Vs]
-                         [(? L? l) (match-let ([(Struct t Vs) (σ@ σ1 l)]) Vs)]
-                         [_ (make-list n ★)])])
-               (ς (val [struct-mk t n] ∅) σ1
-                  [vmon/k l+ l- lo '()
-                          (map (λ (ci) (close-c ci ρc)) cs) Vs k]))]
-            [(cons σ1 [val #f _]) (ς [Blm l+ lo] σ1 'mt)]))]
+           (match/nd (Δ 'Δ σ [struct-p t n] `[,V])
+             [(cons σ1 [val #t _])
+              (let ([Vs (match V
+                          [(Struct t Vs) Vs]
+                          [(? L? l) (match-let ([(Struct t Vs) (σ@ σ1 l)]) Vs)]
+                          [_ (make-list n ★)])])
+                (ς (val [struct-mk t n] ∅) σ1
+                   [vmon/k l+ l- lo '()
+                           (map (λ (ci) (close-c ci ρc)) cs) Vs k]))]
+             [(cons σ1 [val #f _]) (ς [Blm l+ lo] σ1 'mt)]))]
         [(and [func-c cx cy v?] [? func-c? fc])
-         (match/nd
-          (Δ 'Δ σ [op 'proc?] `[,V])
-          [(cons σ1 [val #t _])
-           (let ([m (length cx)]
-                 [ς-ok (ς (val [Arr l+ l- lo (close fc ρc) V] ∅) σ1 k)]
-                 [ς-er (ς [Blm l+ lo] σ1 'mt)])
-             (cond
-               [v? (match (min-arity-ok? [σ@* σ1 V] [sub1 m])
-                     ['Y ς-ok]
-                     ['N ς-er]
-                     ['? {set ς-ok ς-er}])]
-               [else (match (arity-ok? [σ@* σ1 V] m)
-                       ['Y ς-ok]
-                       ['N ς-er]
-                       ['? {set ς-ok ς-er}])]))]
-          [(cons σ1 [val #f _]) (ς [Blm l+ lo] σ1 'mt)]
-          )])))
+         (match/nd (Δ 'Δ σ [op 'proc?] `[,V])
+           [(cons σ1 [val #t _])
+            (let ([m (length cx)]
+                  [ς-ok (ς (val [Arr l+ l- lo (close fc ρc) V] ∅) σ1 k)]
+                  [ς-er (ς [Blm l+ lo] σ1 'mt)])
+              (cond
+                [v? (match (min-arity-ok? [σ@* σ1 V] [sub1 m])
+                      ['Y ς-ok]
+                      ['N ς-er]
+                      ['? {set ς-ok ς-er}])]
+                [else (match (arity-ok? [σ@* σ1 V] m)
+                        ['Y ς-ok]
+                        ['N ς-er]
+                        ['? {set ς-ok ς-er}])]))]
+           [(cons σ1 [val #f _]) (ς [Blm l+ lo] σ1 'mt)]
+           )])))
   
   (define (step-E m E σ k)
     (Memo? E? σ? κ? . -> . (nd/c ς?))
@@ -252,10 +250,9 @@
     (Memo? V? σ? κ? . -> . (nd/c ς?))
     (match k
       [(if/k E1 E2 k1) 
-       (match/nd
-        (Δ 'Δ σ [op 'false?] (list V0))
-        [(cons σ1 [val #f _]) (ς E1 σ1 k1)]
-        [(cons σ1 [val #t _]) (ς E2 σ1 k1)])]
+       (match/nd (Δ 'Δ σ [op 'false?] (list V0))
+         [(cons σ1 [val #f _]) (ς E1 σ1 k1)]
+         [(cons σ1 [val #t _]) (ς E2 σ1 k1)])]
       [(@/k l Vs [cons Ei Es] k1) (ς Ei σ [@/k l (cons V0 Vs) Es k1])]
       [(@/k l Vs '() k1) (match-let ([(cons Vf Vx) (reverse (cons V0 Vs))])
                            (maybe-@ m l σ Vf Vx k1))]
