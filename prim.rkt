@@ -146,23 +146,22 @@
            [(_ _) 'Neither]))])))
 
 ;; checks whether first predicate implies second
-(define p-prove?
-  (match-lambda**
-   [(_ [op 'any]) 'Proved]
-   [(o o) 'Proved]
-   [([op 'any] _) 'Neither]
-   [([op p1] [op p2])
-    (match* (p1 p2)
-      [([or 'true? 'false?] 'bool?) 'Proved]
-      [([or 'real? 'positive? 'negative? 'int? 'zero?] 'num?) 'Proved]
-      [([or 'positive? 'negative? 'int? 'zero?] 'real?) 'Proved]
-      [('zero? 'int?) 'Proved]
-      [('bool? [or 'true? 'false?]) 'Neither]
-      [('num? [or 'real? 'positive? 'negative? 'int? 'zero?]) 'Neither]
-      [('real? [or 'positive? 'negative? 'int? 'zero?]) 'Neither]
-      [('int? 'zero?) 'Neither]
-      [(_ _) 'Refuted])]
-   [(_ _) 'Refuted]))
+(define/match (p-prove? P1 P2)
+  [(_ [op 'any]) 'Proved]
+  [(o o) 'Proved]
+  [([op 'any] _) 'Neither]
+  [([op p1] [op p2])
+   (match* (p1 p2)
+     [([or 'true? 'false?] 'bool?) 'Proved]
+     [([or 'real? 'positive? 'negative? 'int? 'zero?] 'num?) 'Proved]
+     [([or 'positive? 'negative? 'int? 'zero?] 'real?) 'Proved]
+     [('zero? 'int?) 'Proved]
+     [('bool? [or 'true? 'false?]) 'Neither]
+     [('num? [or 'real? 'positive? 'negative? 'int? 'zero?]) 'Neither]
+     [('real? [or 'positive? 'negative? 'int? 'zero?]) 'Neither]
+     [('int? 'zero?) 'Neither]
+     [(_ _) 'Refuted])]
+  [(_ _) 'Refuted])
 
 (define-syntax ∨
   (syntax-rules ()
@@ -184,6 +183,7 @@
                                 ['Refuted 'Refuted]
                                 [_ 'Neither])])]))
 
-(define ¬
-  (match-lambda
-    ['Proved 'Refuted] ['Refuted 'Proved] ['Neither 'Neither]))
+(define/match (¬ _)
+  [('Proved) 'Refuted]
+  [('Refuted) 'Proved]
+  [('Neither) 'Neither])

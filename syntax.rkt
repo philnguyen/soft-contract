@@ -1,5 +1,5 @@
 #lang racket
-(provide ∅ nd/c non-det non-det: if/nd match/nd)
+(provide ∅ nd/c non-det non-det: if/nd match/nd match?)
 
 ;;;;; syntactic sugar for non-determinism
 
@@ -29,3 +29,6 @@
 (define-syntax match/nd
   (syntax-rules ()
     [(_ v [p e ...] ...) (non-det (match-lambda [p e ...] ...) v)]))
+
+(define-syntax-rule (match? v p ...)
+  (match v [p #t] ... [_ #f]))

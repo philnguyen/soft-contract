@@ -4,64 +4,64 @@
 (provide
  (all-defined-out)
  #;(combine-out ; contract-wrapped version
-  (contract-out
-   [struct p ([ms (hash/c l? m?)] [e e?])]
-   [struct m ([decs (hash/c l? c?)] [defs (hash/c l? v?)])]
-   [struct • ()]
-   [struct f ([arity int?] [e e?] [var? boolean?])]
-   [struct op ([name o-name?])]
-   [struct struct-mk ([name l?] [arity int?])]
-   [struct struct-p ([name l?] [arity int?])]
-   [struct struct-ac ([name l?] [arity int?] [index int?])]
-   [struct x ([sd int?])]
-   [struct ref ([from l?] [to l?] [x l?])]
-   [struct @ ([ctx l?] [f e?] [xs (listof e?)])]
-   [struct if/ ([test e?] [then e?] [else e?])]
-   [struct amb ([e (listof e?)])]
-   [struct func-c ([xs (listof c?)] [y c?] [var? boolean?])]
-   [struct and-c ([l c?] [r c?])]
-   [struct or-c ([l c?] [r c?])]
-   [struct struct-c ([name l?] [fields (listof c?)])]
-   [struct μ-c ([x l?] [c c?])]
-   
-   [subst/c (c? x-c? c? . -> . c?)]
-   [FV ([e?] [int?] . ->* . [set/c int?])]
-   [FV-c ([c?] [int?] . ->* . [set/c int?])]
-   [flat? (c? . -> . any/c)]
-   [with-havoc (p? . -> . p?)]
-   
-   [struct ρ ([m (hash/c int? V?)] [len integer?])]
-   [ρ+ (ρ? V? . -> . ρ?)]
-   [ρ++ (ρ? (listof V?) . -> . ρ?)]
-   [ρ@ (ρ? (or/c x? int?) . -> . V?)]
-   [ρ-has? (ρ? (or/c x? int?) . -> . any/c)]
-   [ρ-restrict (ρ? (set/c int?) . -> . ρ?)]
-   
-   [struct σ ([m (hash/c L? V?)] [next L?])]
-   [σ@ (σ? L? . -> . V?)]
-   [σ@* (σ? V? . -> . V?)]
-   [σ+ (σ? . -> . (cons/c σ? L?))]
-   [σ++ (σ? integer? . -> . (cons/c σ? [listof L?]))]
-   [σ-set (σ? L? V? . -> . σ?)]
-   
-   [struct close ([x any/c] [ρ ρ?])]
-   [struct val ([pre any/c] [refinements (set/c C?)])]
-   [struct Arr ([f+ l?] [f- l?] [fo l?] [C (close/c func-c?)] [V V?])]
-   [struct Struct ([name l?] [fields (listof V?)])]
-   [struct Blm ([f+ l?] [fo l?])]
-   [struct Mon ([l+ l?] [l- l?] [lo l?] [c C?] [e E?])]
-   [struct Fmon ([lo l?] [c C?] [v V?])]
-   [struct Assume ([v V?] [c C?])]
-   
-   [arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
-   [min-arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
-   [opaque? ([E?] [integer?] . ->* . any/c)]
-   
-   [m0 hash?] [ρ0 ρ?] [∅ set?] [σ0 σ?] [★ val?]
-   [prim (symbol? . -> . [or/c e? #f])])
-  l? e? c? v? b? o? c? flat-c? x-c? V? L? U? F? A? C? E?
-  int? o-name? p-name? p-name-total? pred? total-pred?
-  close/c val/c))
+    (contract-out
+     [struct p ([ms (hash/c l? m?)] [e e?])]
+     [struct m ([decs (hash/c l? c?)] [defs (hash/c l? v?)])]
+     [struct • ()]
+     [struct f ([arity int?] [e e?] [var? boolean?])]
+     [struct op ([name o-name?])]
+     [struct struct-mk ([name l?] [arity int?])]
+     [struct struct-p ([name l?] [arity int?])]
+     [struct struct-ac ([name l?] [arity int?] [index int?])]
+     [struct x ([sd int?])]
+     [struct ref ([from l?] [to l?] [x l?])]
+     [struct @ ([ctx l?] [f e?] [xs (listof e?)])]
+     [struct if/ ([test e?] [then e?] [else e?])]
+     [struct amb ([e (listof e?)])]
+     [struct func-c ([xs (listof c?)] [y c?] [var? boolean?])]
+     [struct and-c ([l c?] [r c?])]
+     [struct or-c ([l c?] [r c?])]
+     [struct struct-c ([name l?] [fields (listof c?)])]
+     [struct μ-c ([x l?] [c c?])]
+     
+     [subst/c (c? x-c? c? . -> . c?)]
+     [FV ([e?] [int?] . ->* . [set/c int?])]
+     [FV-c ([c?] [int?] . ->* . [set/c int?])]
+     [flat? (c? . -> . any/c)]
+     [with-havoc (p? . -> . p?)]
+     
+     [struct ρ ([m (hash/c int? V?)] [len integer?])]
+     [ρ+ (ρ? V? . -> . ρ?)]
+     [ρ++ (ρ? (listof V?) . -> . ρ?)]
+     [ρ@ (ρ? (or/c x? int?) . -> . V?)]
+     [ρ-has? (ρ? (or/c x? int?) . -> . any/c)]
+     [ρ-restrict (ρ? (set/c int?) . -> . ρ?)]
+     
+     [struct σ ([m (hash/c L? V?)] [next L?])]
+     [σ@ (σ? L? . -> . V?)]
+     [σ@* (σ? V? . -> . V?)]
+     [σ+ (σ? . -> . (cons/c σ? L?))]
+     [σ++ (σ? integer? . -> . (cons/c σ? [listof L?]))]
+     [σ-set (σ? L? V? . -> . σ?)]
+     
+     [struct close ([x any/c] [ρ ρ?])]
+     [struct val ([pre any/c] [refinements (set/c C?)])]
+     [struct Arr ([f+ l?] [f- l?] [fo l?] [C (close/c func-c?)] [V V?])]
+     [struct Struct ([name l?] [fields (listof V?)])]
+     [struct Blm ([f+ l?] [fo l?])]
+     [struct Mon ([l+ l?] [l- l?] [lo l?] [c C?] [e E?])]
+     [struct Fmon ([lo l?] [c C?] [v V?])]
+     [struct Assume ([v V?] [c C?])]
+     
+     [arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
+     [min-arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
+     [opaque? ([E?] [integer?] . ->* . any/c)]
+     
+     [m∅ hash?] [ρ∅ ρ?] [σ∅ σ?] [★ val?]
+     [prim (symbol? . -> . [or/c e? #f])])
+    l? e? c? v? b? o? c? flat-c? x-c? V? L? U? F? A? C? E?
+    int? o-name? p-name? p-name-total? pred? total-pred?
+    close/c val/c))
 
 (define l? symbol?)
 (define int? integer?)
@@ -91,14 +91,10 @@
   (or (p-name-total? x) (hash-has-key? partial-preds x)))
 (define (p-name-total? x) ; checks for total predicate's name
   (hash-has-key? total-preds x))
-(define pred? ; checks for predicate
-  (match-lambda
-    [(or [? struct-p?] [op (? p-name?)]) #t]
-    [_ #f]))
-(define total-pred? ; checks for total predicate
-  (match-lambda
-    [(or [? struct-p?] [op (? p-name-total?)]) #t]
-    [_ #f]))
+(define (pred? v) ; checks for predicate
+  (match? v [? struct-p?] [op (? p-name?)]))
+(define (total-pred? v) ; checks for total predicate
+  (match? v [? struct-p?] [op (? p-name-total?)]))
 
 ; struct primitive ops
 (struct struct-mk (name arity) #:transparent)
@@ -200,14 +196,13 @@
 
 ;; checks whether a contract is flat
 (define (flat? c)
-  (match c
-    [(or (and-c (? flat?) (? flat?))
-         (or-c (? flat?) (? flat?))
-         (struct-c _ (list (? flat?) ...))
-         (μ-c _ (? flat?))
-         (? flat-c?)
-         (? x-c?)) #t]
-    [_ #f]))
+  (match? c
+    (and-c (? flat?) (? flat?))
+    (or-c (? flat?) (? flat?))
+    (struct-c _ (list (? flat?) ...))
+    (μ-c _ (? flat?))
+    (? flat-c?)
+    (? x-c?)))
 
 ;; generate havoc function for a program
 (define (with-havoc prog)
@@ -216,9 +211,7 @@
   (define all-acs
     (set->list ; collect all public accessors
      (for*/fold ([acc {set (prim 'car) (prim 'cdr)}])
-       ([(_ m) ms] [(_ c) (m-decs m)] #:when (match c
-                                               [(func-c _ (? struct-c?) #f) #t]
-                                               [_ #f]))
+       ([(_ m) ms] [(_ c) (m-decs m)] #:when (match? c (func-c _ (? struct-c?) #f)))
        (match-let* ([(func-c _ (struct-c t cs) _) c]
                     [n (length cs)])
          (for/fold ([acc acc]) ([i n])
@@ -234,7 +227,7 @@
                               (@ '☠ (ref '☠ '☠ 'havoc)
                                  (list [@ '☠ ac (list [x 0])])))))
                #f)])
-       (p (hash-set ms '☠ (m m0 (hash-set m0 'havoc havoc))) e†))]))
+       (p (hash-set ms '☠ (m m∅ (hash 'havoc havoc))) e†))]))
 
 
 ;;;;; ENVIRONMENT
@@ -282,7 +275,7 @@
 ; restrict environment's domain to given set of static distances
 (define (ρ-restrict ρ1 xs)
   (match-let* ([(ρ m len) ρ1]
-               [m′ (for/fold ([acc m0]) ([sd (in-set xs)])
+               [m′ (for/fold ([acc m∅]) ([sd (in-set xs)])
                      (let ([i (- len sd 1)])
                        (hash-set acc i (hash-ref m i))))])
     (ρ m′ len)))
@@ -322,28 +315,20 @@
 
 ; closed 'thing'
 (struct close (x ρ) #:transparent)
-(define (close/c p)
-  (match-lambda
-    [(close [? p] _) #t] ; just a partial check
-    [_ #f]))
+(define ((close/c p) x)
+  (match? x (close [? p] _))) ; just a partial check
 
 ; closed value
-(define V?
-  (match-lambda
-    [(or [? L?] [val (? U?) _]) #t]
-    [_ #f]))
+(define (V? x)
+  (match? x [? L?] [val (? U?) _]))
 (define L? int?) ; heap label
 (struct val (pre refinements) #:transparent)
-(define (val/c p)
-  (match-lambda
-    [(val [? p] _) #t]
-    [_ #f]))
+(define ((val/c p) x)
+  (match? x (val [? p] _)))
 
 ; pre-value
-(define U?
-  (match-lambda
-    [(or [? b?] [close (? f?) _] (•) [? Arr?] [? Struct?]) #t]
-    [_ #f]))
+(define (U? x)
+  (match? x [? b?] [close (? f?) _] (•) [? Arr?] [? Struct?]))
 (struct Arr (f+ f- fo C V) #:transparent)
 (struct Struct (name fields) #:transparent)
 
@@ -414,9 +399,9 @@
     [_ #f]))
 
 ; empty values, for re-use if possible
-(define m0 (hash))
-(define ρ0 (ρ m0 0))
-(define σ0 (σ m0 0))
+(define m∅ (hash))
+(define ρ∅ (ρ m∅ 0))
+(define σ∅ (σ m∅ 0))
 (define ★ (val (•) ∅))
 
 ;; maps a primitive's name to the corresponding operator

@@ -1,5 +1,7 @@
 #lang racket
-(require redex "lang.rkt" "syntax.rkt")
+(require (only-in redex variable-not-in)
+         "lang.rkt"
+         "syntax.rkt")
 (provide
  (contract-out
   [read (any/c . -> . p?)]
@@ -196,10 +198,7 @@
 
 ;(: index-of (Symbol [Listof Symbol] → Int))
 (define (index-of x xs)
-  (let loop ([xs xs] [i 0])
-    (match xs
-      ['() #f]
-      [(cons z zs) (if (equal? x z) i (loop zs (add1 i)))])))
+  (for/first ([xi xs] [i (in-naturals)] #:when (equal? x xi)) i))
 
 (define (gen-ac t a)
   (string->symbol (string-append (symbol->string t) "-" (symbol->string a))))

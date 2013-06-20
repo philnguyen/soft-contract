@@ -92,40 +92,37 @@
     ))
 
 ;; maps op name and (assumed valid) arguments to answer value
-(define δ
-  (match-lambda**
-      
-      ; concrete, precise values
-      [('add1 `(,[val (? number? x) _])) (val (add1 x) ∅)]
-    [('sub1 `(,[val (? number? x) _])) (val (sub1 x) ∅)]
-    [([and name (or '+ '- '* '/ '≠)] `(,[val (? number? x) _] ,[val (? number? y) _]))
-     (val ((match name ['+ +] ['- -] ['* *] ['/ /]) x y) ∅)]
-    [([and name (or '> '< '>= '<=)] `(,[val (? real? x) _] ,[val (? real? y) _]))
-     (val ((match name ['< <] ['> >] [>= >=] [<= <=]) x y) ∅)]
-    [('str-len `(,[val (? string? x) _])) (val (string-length x) ∅)]
-    
-    ; semi-precise values
-    [('* (or `(,[val 0 _] ,_) `(,_ ,[val 0 _]))) (val 0 ∅)]
-    [('/ `(,[val 0 _] ,_)) (val 0 ∅)]
-    [('/ `(,[val (? real?) _] ,_))
-     (val (•) {set (close [op 'real?] ρ0) (close [¬ (op 'zero?)] ρ0)})]
-    [('/ `(,[val (? number?) _] ,_))
-     (val (•) {set (close [op 'num?] ρ0) (close [¬ (op 'zero?)] ρ0)})]
-    [('/ Vs)
-     (match (map (λ (vi) (prove? σ0 vi [close (op 'real?) ρ0])) Vs)
-       [`(Proved ...) (val [•] {set (close [op 'real?] ρ0)})]
-       [_ (val [•] {set (close [op 'num?] ρ0)})])]
-    [([or '+ '- '* 'add1 'sub1] Vs)
-     (match (map (λ (vi) (prove? σ0 vi [close (op 'int?) ρ0])) Vs)
-       [`(Proved ...) (val [•] {set (close [op 'int?] ρ0)})]
-       [_ (match (map (λ (vi) (prove? σ0 vi [close (op 'real?) ρ0])) Vs)
-            [`(Proved ...) (val [•] {set (close [op 'real?] ρ0)})]
-            [_ (val [•] {set (close [op 'num?] ρ0)})])])]
-    
-    
-    ; abstract result...
-    [('str-len _) (val (•) {set (close [op 'int?] ρ0)})]
-    [([or '> '< '>= '<=] _) (val (•) {set (close [op 'bool?] ρ0)})]))
+(define/match (δ o Vs)
+  ; concrete, precise values
+  [('add1 `(,[val (? number? x) _])) (val (add1 x) ∅)]
+  [('sub1 `(,[val (? number? x) _])) (val (sub1 x) ∅)]
+  [([and name (or '+ '- '* '/ '≠)] `(,[val (? number? x) _] ,[val (? number? y) _]))
+   (val ((match name ['+ +] ['- -] ['* *] ['/ /]) x y) ∅)]
+  [([and name (or '> '< '>= '<=)] `(,[val (? real? x) _] ,[val (? real? y) _]))
+   (val ((match name ['< <] ['> >] [>= >=] [<= <=]) x y) ∅)]
+  [('str-len `(,[val (? string? x) _])) (val (string-length x) ∅)]
+  
+  ; semi-precise values
+  [('* (or `(,[val 0 _] ,_) `(,_ ,[val 0 _]))) (val 0 ∅)]
+  [('/ `(,[val 0 _] ,_)) (val 0 ∅)]
+  [('/ `(,[val (? real?) _] ,_))
+   (val (•) {set (close [op 'real?] ρ∅) (close [¬ (op 'zero?)] ρ∅)})]
+  [('/ `(,[val (? number?) _] ,_))
+   (val (•) {set (close [op 'num?] ρ∅) (close [¬ (op 'zero?)] ρ∅)})]
+  [('/ Vs)
+   (match (map (λ (vi) (prove? σ∅ vi [close (op 'real?) ρ∅])) Vs)
+     [`(Proved ...) (val [•] {set (close [op 'real?] ρ∅)})]
+     [_ (val [•] {set (close [op 'num?] ρ∅)})])]
+  [([or '+ '- '* 'add1 'sub1] Vs)
+   (match (map (λ (vi) (prove? σ∅ vi [close (op 'int?) ρ∅])) Vs)
+     [`(Proved ...) (val [•] {set (close [op 'int?] ρ∅)})]
+     [_ (match (map (λ (vi) (prove? σ∅ vi [close (op 'real?) ρ∅])) Vs)
+          [`(Proved ...) (val [•] {set (close [op 'real?] ρ∅)})]
+          [_ (val [•] {set (close [op 'num?] ρ∅)})])])]
+  
+  ; abstract result...
+  [('str-len _) (val (•) {set (close [op 'int?] ρ∅)})]
+  [([or '> '< '>= '<=] _) (val (•) {set (close [op 'bool?] ρ∅)})])
 
 (define (V-equal? σ V1 V2)
   (match* (V1 V2)
@@ -156,11 +153,11 @@
 
 ;; checks whether value satisfies predicate
 (define (check-p σ0 V0 p)
-  (match (prove? σ0 V0 [close p ρ0])
+  (match (prove? σ0 V0 [close p ρ∅])
     ['Proved (cons σ0 TT)]
     ['Refuted (cons σ0 FF)]
-    ['Neither (match-let ([(cons σ1 _) (refine (cons σ0 V0) (close p ρ0))]
-                          [(cons σ2 _) (refine (cons σ0 V0) (close [¬ p] ρ0))])
+    ['Neither (match-let ([(cons σ1 _) (refine (cons σ0 V0) (close p ρ∅))]
+                          [(cons σ2 _) (refine (cons σ0 V0) (close [¬ p] ρ∅))])
                 {set (cons σ1 TT) (cons σ2 FF)})]))
 
 (define (refine σV C0)
@@ -231,8 +228,7 @@
            ([Cs1 (intersect-Cs Cs C0)]
             [Ck (for/or ([Ci Cs1]
                          #:when
-                         (match-let ([(close ci _) Ci])
-                           (or (struct-c? ci) (struct-p? ci))))
+                         (match? Ci (close (or (? struct-c?) (? struct-p?)) _)))
                   Ci)]
             [(cons σ2 u′)
              (match Ck

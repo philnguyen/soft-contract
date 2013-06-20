@@ -22,7 +22,7 @@
   (define (ms-ref-v m-name v-name)
     (l? l? . -> . v?)
     (match-let ([(m _ defs) (hash-ref ms m-name)])
-      (hash-ref defs v-name (λ () (•)))))
+      (hash-ref defs v-name (const (•)))))
   
   ; looks up contract from module reference
   (define (ms-ref-c m-name c-name)
@@ -40,21 +40,19 @@
   (define (module-opaque? f)
     (match-let ([(m decs defs) (hash-ref ms f)])
       (for/or ([x (in-hash-keys decs)])
-        (match (hash-ref defs x (thunk (•)))
-          [(•) #t]
-          [_ #f]))))
+        (match? (hash-ref defs x (const (•))) (•)))))
   
   ; HACK. returns contracts that monitors value
   (define (v→c l v)
     (l? v? . -> . (or/c #f c?))
     (match-let ([(m decs defs) (hash-ref ms l)])
       (for/first ([(ki vi) (in-hash defs)] #:when (eq? #|FIXME hack|# v vi))
-        (hash-ref decs ki (λ () #f)))))
+        (hash-ref decs ki (const #f)))))
   
   ; returns machine state for havoc-ing given value
   (define (havoc V σ)
     (V? σ? . -> . ς?)
-    (ς V σ (@/k '☠ `(,[close-v (ms-ref-v '☠ 'havoc) ρ0]) '() 'mt)))
+    (ς V σ (@/k '☠ `(,[close-v (ms-ref-v '☠ 'havoc) ρ∅]) '() 'mt)))
   
   ; steps an application state
   (define (step-@ l σ1 Vf Vx k)
@@ -99,7 +97,7 @@
   (define (maybe-@ m l σ1 Vf Vx k)
     (Memo? l? σ? V? (listof V?) κ? . -> . (nd/c ς?))
     #;(printf "ABOUT to apply:~n~nf: ~a~n~nxs: ~a~n~nk: ~n~n~n" Vf Vx k)
-    (or (for/or ([r (hash-ref m [cons l Vf] (λ () empty))])
+    (or (for/or ([r (hash-ref m [cons l Vf] (const empty))])
           (match-let ([(list Vz σi ki) r])
             (cond
               [(not (κ-prefix? ki k)) #f]
@@ -122,7 +120,7 @@
                      #;(printf "APPROX by contract~n")
                      (match-let ([(cons σa Va)
                                   (for/fold
-                                      ([σVa (σ+ σ1)]) ([Ci (C-ranges Vx {set (close c ρ0)})])
+                                      ([σVa (σ+ σ1)]) ([Ci (C-ranges Vx {set (close c ρ∅)})])
                                     (refine σVa Ci))])
                        (ς Va σa k))])]
                  #;[(val [? o? o] _)
@@ -134,7 +132,7 @@
   
   (define (step-fmon m lo C0 V0 σ0 k)
     (Memo? l? C? V? σ? κ? . -> . (nd/c ς?))
-    (or (for/or ([r (hash-ref m C0 (λ () empty))])
+    (or (for/or ([r (hash-ref m C0 (const empty))])
           (match-let ([(list `[,Vi] σi ki) r])
             (if (and (κ-prefix? ki k) (E/σ-equal? V0 σ0 Vi σi))
                 (ς [val #t ∅] σ0 k)
@@ -234,11 +232,11 @@
          [(ref ctx src x) 
           (let* ([vx (ms-ref-v src x)]
                  [cx (ms-ref-c src x)]
-                 [Cx (close-c cx ρ0)])
+                 [Cx (close-c cx ρ∅)])
             (match vx
               [(? •? v•) (match-let ([(cons σ1 l) (refine (σ+ σ) Cx)])
                            (ς l σ1 [mon/k1 src ctx src Cx k]))]
-              [_ (ς [close-v vx ρ0] σ [mon/k1 src ctx src Cx k])]))])]
+              [_ (ς [close-v vx ρ∅] σ [mon/k1 src ctx src Cx k])]))])]
       
       [(and bl (Blm l+ lo)) (ς bl σ 'mt)]
       [(Mon l+ l- lo C0 E0) (ς E0 σ [mon/k1 l+ l- lo C0 k])]
@@ -294,11 +292,11 @@
                          (match-let ([(cons Vf Vx) (reverse (cons Vn Vs))])
                            (hash-update m [cons l Vf]
                                         (λ (r) (cons [list Vx σi ki] r))
-                                        (λ () empty)))]
+                                        (const empty)))]
                         [(ς [Fmon _ Ci Vi] σi ki)
                          (hash-update m Ci
                                       (λ (r) (cons [list `(,Vi) σi ki] r))
-                                      (λ () empty))]
+                                      (const empty))]
                         [_ m])])
               (match (step s m)
                 [(? ς? s1) (visit s1 m1)]
@@ -383,10 +381,10 @@
   (match V
     [(val u Cs)
      (match u
-       [(? integer?) (val (•) (set-add Cs (close [op 'int?] ρ0)))]
-       [(? real?) (val (•) (set-add Cs (close [op 'real?] ρ0)))]
-       [(? number?) (val (•) (set-add Cs (close [op 'num?] ρ0)))]
-       [(? string?) (val (•) (set-add Cs (close [op 'str?] ρ0)))]
+       [(? integer?) (val (•) (set-add Cs (close [op 'int?] ρ∅)))]
+       [(? real?) (val (•) (set-add Cs (close [op 'real?] ρ∅)))]
+       [(? number?) (val (•) (set-add Cs (close [op 'num?] ρ∅)))]
+       [(? string?) (val (•) (set-add Cs (close [op 'str?] ρ∅)))]
        [(Struct t Vs) (if (zero? d) ★
                           (val (Struct t (for/list ([Vi Vs])
                                            (V-approx Vi (sub1 d))))
@@ -432,7 +430,7 @@
 (define (close-e e ρ)
   (e? ρ? . -> . E?)
   (match e
-    [(•) (close e ρ0)]
+    [(•) (close e ρ∅)]
     [(? v? v) (close-v v ρ)]
     [_ (close e (ρ-restrict ρ (FV e)))]))
 
@@ -448,13 +446,11 @@
 
 (define (inj e)
   (e? . -> . ς?)
-  (ς [close e ρ0] σ0 'mt))
+  (ς [close e ρ∅] σ∅ 'mt))
 
 (define (ς-final? s)
   (ς? . -> . boolean?)
-  (match s
-    [(ς [? A?] _ 'mt) #t]
-    [_ #f]))
+  (match? s (ς [? A?] _ 'mt)))
 
 ;; readable evaluation answer
 (define (A→EA σ a)
@@ -471,85 +467,72 @@
               ['() '•]
               [cs (cons '• cs)])])]))
 
-(define (C→EC C)
-  ((or/c C? c?) . -> . any/c)
-  (match C
-    [(close c ρ) (C→EC c)]
-    [(and-c c1 c2) `(,[C→EC c1] ∧ ,[C→EC c2])]
-    [(or-c c1 c2) `(,[C→EC c1] ∨ ,[C→EC c2])]
-    [(μ-c x c) `(μ ,x ,[C→EC c])]
-    [(func-c cx cy _) `(,@ (map C→EC cx) ↦ ,(C→EC cy))]
-    [(struct-c t cs)
-     `(,(string->symbol (string-append (symbol->string t) "/c")) ,@ [map C→EC cs])]
-    [(op name) name]
-    [(struct-p t _) (gen-p t)]
-    [(f 1 (@ _ [op 'false?] (list [@ _ o (list [x 0])])) #f)
-     `(¬ ,(match o
-            [(op name) name]
-            [(struct-p t _) t]))]
-    [(f 1 (@ _ [ref _ _ name] (list (x 0))) #f) name]
-    [v v]))
+(define/match (C→EC C)
+  ;((or/c C? c?) . -> . any/c)
+  [((close c ρ)) (C→EC c)]
+  [((and-c c1 c2)) `(,[C→EC c1] ∧ ,[C→EC c2])]
+  [((or-c c1 c2)) `(,[C→EC c1] ∨ ,[C→EC c2])]
+  [((μ-c x c)) `(μ ,x ,[C→EC c])]
+  [((func-c cx cy _)) `(,@ (map C→EC cx) ↦ ,(C→EC cy))]
+  [((struct-c t cs))
+   `(,(string->symbol (string-append (symbol->string t) "/c")) ,@ [map C→EC cs])]
+  [((op name)) name]
+  [((struct-p t _)) (gen-p t)]
+  [((f 1 (@ _ [op 'false?] (list [@ _ o (list [x 0])])) #f))
+   `(¬ ,(match o
+          [(op name) name]
+          [(struct-p t _) t]))]
+  [((f 1 (@ _ [ref _ _ name] (list (x 0))) #f)) name]
+  [(v) v])
 
 
 ;; pretty printing for debugging
-(define show-ς
-  (match-lambda
-    [(ς E σ k) `(,(show-E E) ,σ ,(show-κ k))]))
-(define show-κ
-  (match-lambda
-    ['mt 'mt]
-    [(if/k E1 E2 k) `(IF/K ,(show-E E1) ,(show-E E2) ,(show-κ k))]
-    [(@/k _ Vs Es k) `(@/K ,(map show-E Vs) ,(map show-E Es) ,(show-κ k))]
-    [(mon/k _ _ _ C k) `(MON/K ,(show-C C) ,(show-κ k))]
-    [(vmon/k _ _ _ _ Cs Us k) `(VMON/K ,(map show-C Cs) ,(map show-E Us) ,(show-κ k))]))
-(define show-E
-  (match-lambda
-    [(close e _) (show-e e)]
-    [(val U _) (show-U U)]
-    [(Blm l+ lo) `(Blame ,l+ ,lo)]
-    [(? L? l) `(L ,l)]
-    [(Mon _ _ _ C E) `(MON ,(show-C C) ,(show-E E))]
-    [(Fmon _ C V) `(FMON ,(show-C C) ,(show-E V))]
-    [(Assume V C) `(ASSUME ,(show-E V) ,(show-C C))]))
-
-(define show-U
-  (match-lambda
-    [(close f _) (show-e f)]
-    [(•) `•]
-    [(Struct t Vs) `(,t ,@ (map show-E Vs))]
-    [(Arr _ _ _ C V) `(=> ,(show-C C) ,(show-E V))]
-    [(? b? b) (show-b b)]))
-
-(define show-C
-  (match-lambda [(close c _) (show-c c)]))
-
-(define show-c
-  (match-lambda
-    [(func-c xs y _) `(,@ (map show-c xs) ↦ ,(show-c y))]
-    [(and-c c1 c2) `(and/c ,(show-c c1) ,(show-c c2))]
-    [(or-c c1 c2) `(or/c ,(show-c c1) ,(show-c c2))]
-    [(struct-c t cs)
-     `(,(string->symbol (string-append (symbol->string t) "/c")) ,@ (map show-c cs))]
-    [(μ-c x c) `(μ ,x ,(show-c c))]
-    [(? v? v) (show-e v)]))
-
-(define show-e
-  (match-lambda
-    [(f n e _) `(λ ,n ,(show-e  e))]
-    [(•) '•]
-    [(x sd) `(x ,sd)]
-    [(ref _ _ x) x]
-    [(@ _ f xs) `(,(show-e f) ,@ (map show-e xs))]
-    [(if/ e1 e2 e3) `(if ,(show-e e1) ,(show-e e2) ,(show-e e3))]
-    [(amb _) 'amb]
-    [(? b? b) (show-b b)]))
-
-(define show-b
-  (match-lambda
-    [(op name) name]
-    [(struct-mk t _) t]
-    [(struct-p t _)
-     (string->symbol (string-append (symbol->string t) "?"))]
-    [(struct-ac t n i)
-     (string->symbol (string-append (symbol->string t) "-" (number->string i)))]
-    [b b]))
+(define/match (show-ς s)
+  [((ς E σ k)) `(,(show-E E) ,σ ,(show-κ k))])
+(define/match (show-κ k)
+  [('mt) 'mt]
+  [((if/k E1 E2 k)) `(IF/K ,(show-E E1) ,(show-E E2) ,(show-κ k))]
+  [((@/k _ Vs Es k)) `(@/K ,(map show-E Vs) ,(map show-E Es) ,(show-κ k))]
+  [((mon/k _ _ _ C k)) `(MON/K ,(show-C C) ,(show-κ k))]
+  [((vmon/k _ _ _ _ Cs Us k)) `(VMON/K ,(map show-C Cs) ,(map show-E Us) ,(show-κ k))])
+(define/match (show-E E)
+  [((close e _)) (show-e e)]
+  [((val U _)) (show-U U)]
+  [((Blm l+ lo)) `(Blame ,l+ ,lo)]
+  [((? L? l)) `(L ,l)]
+  [((Mon _ _ _ C E)) `(MON ,(show-C C) ,(show-E E))]
+  [((Fmon _ C V)) `(FMON ,(show-C C) ,(show-E V))]
+  [((Assume V C)) `(ASSUME ,(show-E V) ,(show-C C))])
+(define/match (show-U U)
+  [((close f _)) (show-e f)]
+  [((•)) `•]
+  [((Struct t Vs)) `(,t ,@ (map show-E Vs))]
+  [((Arr _ _ _ C V)) `(=> ,(show-C C) ,(show-E V))]
+  [((? b? b)) (show-b b)])
+(define/match (show-C C)
+  [((close c _)) (show-c c)])
+(define/match (show-c c)
+  [((func-c xs y _)) `(,@ (map show-c xs) ↦ ,(show-c y))]
+  [((and-c c1 c2)) `(and/c ,(show-c c1) ,(show-c c2))]
+  [((or-c c1 c2)) `(or/c ,(show-c c1) ,(show-c c2))]
+  [((struct-c t cs))
+   `(,(string->symbol (string-append (symbol->string t) "/c")) ,@ (map show-c cs))]
+  [((μ-c x c)) `(μ ,x ,(show-c c))]
+  [((? v? v)) (show-e v)])
+(define/match (show-e e)
+  [((f n e _)) `(λ ,n ,(show-e  e))]
+  [((•)) '•]
+  [((x sd)) `(x ,sd)]
+  [((ref _ _ x)) x]
+  [((@ _ f xs)) `(,(show-e f) ,@ (map show-e xs))]
+  [((if/ e1 e2 e3)) `(if ,(show-e e1) ,(show-e e2) ,(show-e e3))]
+  [((amb _)) 'amb]
+  [((? b? b)) (show-b b)])
+(define/match (show-b b)
+  [((op name)) name]
+  [((struct-mk t _)) t]
+  [((struct-p t _))
+   (string->symbol (string-append (symbol->string t) "?"))]
+  [((struct-ac t n i))
+   (string->symbol (string-append (symbol->string t) "-" (number->string i)))]
+  [(b) b])
