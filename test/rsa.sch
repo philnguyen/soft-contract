@@ -9,5 +9,10 @@
 (module prime?
   (provide [prime? (any . -> . any)]))
 
-(require keygen rsa)
-(rsa (keygen #t) "Plaintext")
+(module enc
+  (provide [enc (any . -> . any)])
+  (require rsa keygen)
+  (define (enc x) (rsa (keygen #t) x)))
+
+(require enc)
+(enc •)
