@@ -140,7 +140,7 @@
            [`(let ([,x ,ex] ...) ,e) (go `((λ ,x ,e) ,@ ex))]
            [`(let [,x ,ex] ,e) (go `((λ (,x) ,e) ,ex))]
            [`(let* ([,x ,ex]) ,e) (go `((λ (,x) ,e) ,ex))]
-           [`(let* ([,x ,ex] ,p ...) ,e) (go `(let [,x ,ex] (let* (,p) ,e)))]
+           [`(let* ([,x ,ex] ,p ...) ,e) (go `(let [,x ,ex] (let* ,p ,e)))]
            
            ; real language constructs
            [`(if ,e1 ,e2 ,e3) (if/ [go e1] [go e2] [go e3])]
