@@ -1,12 +1,9 @@
 #lang racket
 (require "lang.rkt" "prim.rkt" "syntax.rkt")
-(provide Δ refine
+(provide (combine-out Δ refine)
          #;(contract-out
-            [Δ (l? σ? o? [listof V?] . -> . σA*?)]
-            [refine ([cons/c σ? V?] C? . -> . [cons/c σ? V?])])
-         σA*?)
-
-(define σA*? (nd/c (cons/c σ? A?)))
+            [Δ (l? σ? o? [listof V?] . -> . (nd/c (cons/c σ? A?)))]
+            [refine ((cons/c σ? V?) C? . -> . (cons/c σ? V?))]))
 
 (define TT (val #t ∅))
 (define FF (val #f ∅))
@@ -32,9 +29,12 @@
     [([struct-ac t n i] `[,V])
      (match/nd (Δ 'Δ σ [struct-p t n] Vs)
        ; not struct but can be struct -> must be label
-       [(cons σ1 (val #t _)) (match-let* ([(? L? L) V]
-                                          [(val (Struct t Vs) _) (σ@ σ1 L)])
-                               (cons σ1 (list-ref Vs i)))]
+       [(cons σ1 (val #t _))
+        (match V
+          [(? L? L) (match (σ@ σ1 L)
+                      [(val (Struct t Vs) _) (cons σ1 (list-ref Vs i))]
+                      [_ (cons σ1 ★)])]
+          [(val (•) Cs) (cons σ1 ★)])]
        [(cons σ1 (val #f _)) (cons σ1 (Blm l t))])]
     
     ; arithmetics

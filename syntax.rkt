@@ -1,5 +1,5 @@
 #lang racket
-(provide ∅ nd/c non-det non-det: if/nd match/nd match?)
+(provide ∅ nd/c non-det non-det: if/nd match/nd match? ∪)
 
 ;;;;; syntactic sugar for non-determinism
 
@@ -32,3 +32,7 @@
 
 (define-syntax-rule (match? v p ...)
   (match v [p #t] ... [_ #f]))
+
+(define (∪ . xs)
+  (for/fold ([acc ∅]) ([xi xs])
+    ((if (set? xi) set-union set-add) acc xi)))
