@@ -1,5 +1,5 @@
 #lang racket
-(require "../machine.rkt")
+(require "../machine.rkt" "../syntax.rkt")
 
 (define verbose? #f)
 
@@ -20,5 +20,7 @@
                (printf "~a: ~a lines~n" name lines)
                (for ([a (time (ev prog))]) (printf "-- ~a~n" a))
                (printf "~n"))
-             (let-values ([(_r time _1 _2) (time-apply ev (list prog))])
-               (printf "~a & ~a & ~a \\\\ ~n" name lines time))))))))
+             (let-values ([(r time _1 _2) (time-apply ev (list prog))])
+               (let ([blames (for/sum ([ri (in-set (first r))]
+                                       #:when (match? ri `(blame ,_ ,_))) 1)])
+                 (printf "~a & ~a & ~a & ~a\\\\~n" name lines time blames)))))))))
