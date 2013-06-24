@@ -1,5 +1,5 @@
 #lang racket
-(require "syntax.rkt" "lang.rkt" "prim.rkt" "delta.rkt" "read.rkt")
+(require "syntax.rkt" "lang.rkt" "prim.rkt" "delta-dumb.rkt" "read.rkt")
 (provide run ev)
 
 (define (κ? x) ([or/c 'mt if/k? @/k? mon/k? vmon/k?] x))
@@ -80,11 +80,10 @@
               [(cons σ2 [val #t _])
                (match (arity-ok? [σ@* σ2 Vf] (length Vx))
                  [(or 'Y '?)
-                  (match-let
-                      ([havocs (for/set ([Vi Vx]) (havoc Vi σ1))]
-                       [(cons σ3 V3) (for/fold ([σV (σ+ σ2)]) ([Ci (C-ranges Vx Cs)])
-                                       (refine σV Ci))])
-                    (set-add havocs [ς V3 σ3 k]))]
+                  (∪ (for/set ([Vi Vx]) (havoc Vi σ2))
+                     (match/nd (for/fold ([σV (σ+ σ2)]) ([C (C-ranges Vx Cs)])
+                                 (non-det (λ (σV) (refine σV C)) σV))
+                       [(cons σ3 V3) (ς V3 σ3 k)]))]
                  ['N (ς [Blm l 'Δ] σ2 'mt)])]
               [(cons σ2 [val #f _]) (ς [Blm l 'Δ] σ1 'mt)])])]
       ; TODO: no need to remember whether σ[l] is function or not?
@@ -114,10 +113,9 @@
                     [#f #f]
                     [c
                      #;(printf "APPROX by contract~n")
-                     (match-let ([(cons σa Va)
-                                  (for/fold ([σVa (σ+ σ1)]) ([Ci (C-ranges Vx {set (close c ρ∅)})])
-                                    (refine σVa Ci))])
-                       (ς Va σa k))])]
+                     (match/nd (for/fold ([σV (σ+ σ1)]) ([C (C-ranges Vx {set (close c ρ∅)})])
+                                    (non-det (λ (σV) (refine σV C)) σV))
+                       [(cons σa Va) (ς Va σa k)])])]
                  #;[(val [? o? o] _)
                     (printf "APPROX by prim op's range~n")
                     (ς [o-range o] σ1 k)]
@@ -229,15 +227,15 @@
                  [cx (ref-c src x)]
                  [Cx (close-c cx ρ∅)])
             (match vx
-              [(? •? v•) (match-let ([(cons σ1 l) (refine (σ+ σ) Cx)])
-                           (ς l σ1 [mon/k1 src ctx src Cx k]))]
+              [(? •? v•) (match/nd (refine (σ+ σ) Cx)
+                           [(cons σ1 l) (ς l σ1 [mon/k1 src ctx src Cx k])])]
               [_ (ς [close-v vx ρ∅] σ [mon/k1 src ctx src Cx k])]))])]
       
       [(and bl (Blm l+ lo)) (ς bl σ 'mt)]
       [(Mon l+ l- lo C0 E0) (ς E0 σ [mon/k1 l+ l- lo C0 k])]
       [(Fmon lo C0 V0) (step-fmon m lo C0 V0 σ k)]
-      [(Assume V0 C0) (match-let ([(cons σ1 V1) (refine [cons σ V0] C0)])
-                        (ς V1 σ1 k))]))
+      [(Assume V0 C0) (match/nd (refine [cons σ V0] C0)
+                        [(cons σ1 V1) (ς V1 σ1 k)])]))
   
   (define (step-V m V0 σ k)
     (Memo? V? σ? κ? . -> . (nd/c ς?))
