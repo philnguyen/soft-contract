@@ -23,6 +23,7 @@
      [struct or-c ([l c?] [r c?])]
      [struct struct-c ([name l?] [fields (listof c?)])]
      [struct μ-c ([x l?] [c c?])]
+     [stx-depth-more-than? (int? e? . -> . int?)]
      
      [subst/c (c? x-c? c? . -> . c?)]
      [FV ([e?] [int?] . ->* . [set/c int?])]
@@ -229,6 +230,15 @@
                #f)])
        (p (hash-set ms '☠ (m m∅ (hash 'havoc havoc))) e†))]))
 
+;; rough estimate of syntax depth by #nested lambdas
+(define (stx-depth-more-than? n e)
+  (if (<= n 0) #t
+      (let ([go (curry stx-depth-more-than? n)])
+        (match e
+          [(f _ e1 _) (stx-depth-more-than? (- n 1) e1)]
+          [(@ _ f xs) (or (go f) (ormap go xs))]
+          [(if/ e0 e1 e2) (or (go e0) (go e1) (go e2))]
+          [_ #f]))))
 
 ;;;;; ENVIRONMENT
 
