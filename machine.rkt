@@ -19,22 +19,19 @@
   (match-define (p ms e†) prog)
   
   ; looks up value from module reference
-  (define (ms-ref-v m-name v-name)
+  (define (ref-v m-name v-name)
     (l? l? . -> . v?)
-    (match-let ([(m _ defs) (hash-ref ms m-name)])
-      (hash-ref defs v-name (const (•)))))
+    (hash-ref (m-defs (hash-ref ms m-name)) v-name (const (•))))
   
   ; looks up contract from module reference
-  (define (ms-ref-c m-name c-name)
+  (define (ref-c m-name c-name)
     (l? l? . -> . c?)
-    (match-let ([(m decs _) (hash-ref ms m-name)])
-      (hash-ref decs c-name)))
+    (hash-ref (m-decs (hash-ref ms m-name)) c-name))
   
   ; checks whether module exports given name
-  (define (ms-has-c? f x)
+  (define (name-exported? f x)
     (l? l? . -> . boolean?)
-    (match-let ([(m decs _) (hash-ref ms f)])
-      (hash-has-key? decs x)))
+    (hash-has-key? (m-decs (hash-ref ms f)) x))
   
   ; checks whether module is opaque
   (define (module-opaque? f)
@@ -43,7 +40,7 @@
         (match? (hash-ref defs x (const (•))) (•)))))
   
   ; HACK. returns contracts that monitors value
-  (define (v→c l v)
+  (define (v->c l v)
     (l? v? . -> . (or/c #f c?))
     (match-let ([(m decs defs) (hash-ref ms l)])
       (for/first ([(ki vi) (in-hash defs)] #:when (eq? #|FIXME hack|# v vi))
@@ -52,7 +49,7 @@
   ; returns machine state for havoc-ing given value
   (define (havoc V σ)
     (V? σ? . -> . ς?)
-    (ς V σ (@/k '☠ `(,[close-v (ms-ref-v '☠ 'havoc) ρ∅]) '() 'mt)))
+    (ς V σ [@/k '☠ `(,(close-v (ref-v '☠ 'havoc) ρ∅)) '() 'mt]))
   
   ; steps an application state
   (define (step-@ l σ1 Vf Vx k)
@@ -84,8 +81,7 @@
                (match (arity-ok? [σ@* σ2 Vf] (length Vx))
                  [(or 'Y '?)
                   (match-let
-                      ([havocs (for/fold ([acc ∅]) ([Vi Vx])
-                                 (set-add acc (havoc Vi σ1)))]
+                      ([havocs (for/set ([Vi Vx]) (havoc Vi σ1))]
                        [(cons σ3 V3) (for/fold ([σV (σ+ σ2)]) ([Ci (C-ranges Vx Cs)])
                                        (refine σV Ci))])
                     (set-add havocs [ς V3 σ3 k]))]
@@ -114,13 +110,12 @@
               [(Es/σ-equal? Vx σ1 Vz σi)
                (match Vf
                  [(val (close (? f? f) _) _)
-                  (match (v→c l f)
+                  (match (v->c l f)
                     [#f #f]
                     [c
                      #;(printf "APPROX by contract~n")
                      (match-let ([(cons σa Va)
-                                  (for/fold
-                                      ([σVa (σ+ σ1)]) ([Ci (C-ranges Vx {set (close c ρ∅)})])
+                                  (for/fold ([σVa (σ+ σ1)]) ([Ci (C-ranges Vx {set (close c ρ∅)})])
                                     (refine σVa Ci))])
                        (ς Va σa k))])]
                  #;[(val [? o? o] _)
@@ -228,10 +223,10 @@
           (ς [close-e ef ρ] σ [@/k l '() (for/list ([ei exs]) (close-e ei ρ)) k])]
          [(if/ e e1 e2) (ς [close-e e ρ] σ [if/k (close-e e1 ρ) (close-e e2 ρ) k])]
          [(amb es) (for/set ([ei es]) (ς (close-e ei ρ) σ k))]
-         [(ref ctx ctx x) (ς [close-e (ms-ref-v ctx x) ρ] σ k)]
+         [(ref ctx ctx x) (ς [close-e (ref-v ctx x) ρ] σ k)]
          [(ref ctx src x) 
-          (let* ([vx (ms-ref-v src x)]
-                 [cx (ms-ref-c src x)]
+          (let* ([vx (ref-v src x)]
+                 [cx (ref-c src x)]
                  [Cx (close-c cx ρ∅)])
             (match vx
               [(? •? v•) (match-let ([(cons σ1 l) (refine (σ+ σ) Cx)])
@@ -304,10 +299,9 @@
     #;(printf "#states: ~a~n" (+ (set-count seen) (set-count finals)))
     finals)
   
-  
-  (for/fold ([acc ∅]) ([s (step* (inj e†))])
+  (for/set ([s (step* (inj e†))])
     (match-let ([(ς A0 σ _) s])
-      (set-add acc (A→EA σ A0)))))
+      (A→EA σ A0))))
 
 (define (ev p) (run (read p)))
 
@@ -403,10 +397,10 @@
 ;; collects range components of contracts
 (define (C-ranges Vx Cs)
   ((listof V?) (set/c C?) . -> . (listof C?))
-  (for/fold ([acc '()]) ([Ci (in-set Cs)])
-    (match Ci
-      [(close [func-c cx cy #f] ρc) (cons (close-c cy [ρ++ ρc Vx]) acc)]
-      [_ acc])))
+  (for/list ([Ci (in-set Cs)]
+             #:when (match? Ci (close (? func-c?) _)))
+    (match-let ([(close (func-c cx cy _) ρc) Ci])
+      (close-c cy (ρ++ ρc Vx)))))
 
 ;; bind arguments for var-args function
 (define MT (val [Struct 'empty '()] ∅))
