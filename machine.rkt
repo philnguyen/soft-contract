@@ -1,5 +1,5 @@
 #lang racket
-(require "syntax.rkt" "lang.rkt" "prim.rkt" "delta-dumb.rkt" "read.rkt")
+(require "syntax.rkt" "lang.rkt" "prim.rkt" "delta.rkt" "read.rkt")
 (provide run ev)
 
 (define (κ? x) ([or/c 'mt if/k? @/k? mon/k? vmon/k?] x))
@@ -125,39 +125,39 @@
   
   (define (step-fmon m lo C0 V0 σ0 k)
     (Memo? l? C? V? σ? κ? . -> . (nd/c ς?))
-    (or (for/or ([r (hash-ref m C0 (const empty))])
-          (match-let ([(list `[,Vi] σi ki) r])
-            (if (and (κ-prefix? ki k) (E/σ-equal? V0 σ0 Vi σi))
-                (ς [val #t ∅] σ0 k)
-                #f)))
-        (match (prove? σ0 V0 C0)
-          ['Proved (ς [val #t ∅] σ0 k)]
-          ['Refuted (ς [val #f ∅] σ0 k)]
-          [_
-           (match-let ([(close c0 ρc) C0])
-             (match c0
-               [(and-c c1 c2)
-                (ς [Fmon lo (close-c c1 ρc) V0] σ0
-                   [if/k (Fmon lo (close-c c2 ρc) V0) (val #f ∅) k])]
-               [(or-c c1 c2)
-                (ς [Fmon lo (close-c c1 ρc) V0] σ0
-                   [if/k (val #t ∅) (Fmon lo (close-c c2 ρc) V0) k])]
-               [(μ-c x c1) (ς [Fmon lo (close-c [subst/c c1 x c0] ρc) V0] σ0 k)]
-               [(struct-c t cs)
-                ;; FIXME shameless code duplicate...
-                (let ([n (length cs)])
-                  (match/nd (Δ 'Δ σ0 [struct-p t n] `[,V0])
-                    [(cons σ1 [val #t _])
-                     (let ([Vs (match V0
-                                 [(val (Struct t Vs) _) Vs]
-                                 [(? L? l) (match (σ@ σ1 l)
-                                             [(val (Struct t Vs) _) Vs]
-                                             [_ (make-list n ★)])]
-                                 [_ (make-list n ★)])])
-                       (ς [val #t ∅] σ1 [AND-FMON lo cs ρc Vs k]))]
-                    [(cons σ1 [val #f _]) (ς [val #f ∅] σ1 k)]))]
-               [(? v? v)
-                (maybe-@ m lo σ0 [close-v v ρc] (list V0) k)]))])))
+    (match (prove? σ0 V0 C0)
+      ['Proved (ς [val #t ∅] σ0 k)]
+      ['Refuted (ς [val #f ∅] σ0 k)]
+      [_
+       (match-let ([(close c0 ρc) C0])
+         (match c0
+           [(and-c c1 c2)
+            (ς [Fmon lo (close-c c1 ρc) V0] σ0
+               [if/k (Fmon lo (close-c c2 ρc) V0) (val #f ∅) k])]
+           [(or-c c1 c2)
+            (ς [Fmon lo (close-c c1 ρc) V0] σ0
+               [if/k (val #t ∅) (Fmon lo (close-c c2 ρc) V0) k])]
+           [(μ-c x c1)
+            (match (prove? σ0 V0 C0)
+              ['Proved (ς (val #t ∅) σ0 k)]
+              ['Refuted (ς (val #f ∅) σ0 k)]
+              [_ {∪ (ς (val #f ∅) σ0 k)
+                    (match/nd (refine (cons σ0 V0) C0)
+                      [(cons σ1 V1) (ς [Fmon lo (close (subst/c c1 x c0) ρc) V1] σ1 k)])}])]
+           [(struct-c t cs)
+            ;; FIXME shameless code duplicate...
+            (let ([n (length cs)])
+              (match/nd (Δ 'Δ σ0 [struct-p t n] `[,V0])
+                [(cons σ1 [val #t _])
+                 (let ([Vs (match V0
+                             [(val (Struct t Vs) _) Vs]
+                             [(? L? l) (match (σ@ σ1 l)
+                                         [(val (Struct t Vs) _) Vs]
+                                         [_ (make-list n ★)])]
+                             [_ (make-list n ★)])])
+                   (ς [val #t ∅] σ1 [AND-FMON lo cs ρc Vs k]))]
+                [(cons σ1 [val #f _]) (ς [val #f ∅] σ1 k)]))]
+           [(? v? v) (maybe-@ m lo σ0 [close-v v ρc] (list V0) k)]))]))
   
   (define (step-mon l+ l- lo C V σ k)
     (l? l? l? C? V? σ? κ? . -> . (nd/c ς?))
@@ -175,8 +175,7 @@
          (match (prove? σ V C)
            ['Proved (ς V σ k)]
            ['Refuted (ς [Blm l+ lo] σ 'mt)]
-           ['Neither
-            (ς (Fmon lo C V) σ [if/k (Assume V C) (Blm l+ lo) k])])]
+           ['Neither (ς (Fmon lo C V) σ [if/k (Assume V C) (Blm l+ lo) k])])]
         
         [(μ-c x c1) (step-mon l+ l- lo [close-c (subst/c c1 x c0) ρc] V σ k)]
         [(struct-c t cs)
@@ -273,9 +272,8 @@
       (if (ς-final? s)
           (begin
             #;(printf "FINAL:~n~a~n~n" (show-ς s))
-            (when (match s ; omit blaming top, havoc, and opaque modules
-                    [(ς (Blm (or '† '☠ (? module-opaque?)) _) _ _) #f]
-                    [_ #t])
+            ; omit blaming top, havoc, and opaque modules
+            (unless (match? s (ς [Blm (or '† '☠ (? module-opaque?)) _] _ _))
               (set! finals (set-add finals s))))
           (begin
             #;(printf "NON-FINAL:~n~a~n~n" (show-ς s))
@@ -286,10 +284,6 @@
                            (hash-update m [cons l Vf]
                                         (λ (r) (cons [list Vx σi ki] r))
                                         (const empty)))]
-                        [(ς [Fmon _ Ci Vi] σi ki)
-                         (hash-update m Ci
-                                      (λ (r) (cons [list `(,Vi) σi ki] r))
-                                      (const empty))]
                         [_ m])])
               (match (step s m)
                 [(? ς? s1) (visit s1 m1)]

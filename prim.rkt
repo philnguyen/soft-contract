@@ -19,8 +19,9 @@
       
       ; break apart/unroll composite contract
       [(_ [and-c c1 c2]) (∧ [prove? σ V (close c1 ρ)] [prove? σ V (close c2 ρ)])]
-      [(_ [or-c c1 c2]) (∨ [prove? σ V (close c1 ρ)] [prove? σ V (close c2 ρ)])]
-      #;[(_ [μ-c x c′]) (prove? σ V (close (subst/c c′ x c) ρ))]
+      [([val _ Cs] [or-c c1 c2])
+       (∨ [Cs-prove? Cs C] [prove? σ V (close c1 ρ)] [prove? σ V (close c2 ρ)])]
+      [([val _ Cs] [μ-c x c′]) (∨ (Cs-prove? Cs C) (prove? σ V (close (subst/c c′ x c) ρ)))]
       
       ; on struct contract
       [([val (Struct t Vs) _] [struct-c t cs])
