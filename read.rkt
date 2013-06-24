@@ -114,7 +114,7 @@
               [else (match (resolve-ref l z)
                       [(and (ref _ _ _) r) (f 1 (@ l r (list [x 0])) #f)]
                       [#f (match (prim z)
-                            [#f (error "Unexpected symbol" z)]
+                            [#f (error (format "Unexpected symbol ~a" z))]
                             [o o])])])]
            [pred (read-e l xs pred)]))
        
@@ -158,7 +158,7 @@
               [#f (match (resolve-ref l s)
                     [(and (ref _ _ _) r) r]
                     [#f (match (prim s)
-                          [#f (error "Unresolved symbol" s "in module" l)]
+                          [#f (error (format "Unexpected symbol ~a in module ~a" s l))]
                           [o o])])])]
            [weird (error "Invalid expression syntax" weird)]))
        
