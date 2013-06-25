@@ -75,76 +75,88 @@
     (cond
       [(equal? C1 C2) 'Proved]
       [(set-member? assumptions (cons C1 C2)) 'Proved]
+      [else (match-let ([(close c1 ρ1) C1]
+                        [(close c2 ρ2) C2])
+              (cond
+                [(and (equal? ρ∅ ρ1) (equal? ρ∅ ρ1)) (c-prove? c1 c2)]
+                [else 'Neither]))])))
+
+(define (c-prove? c d)
+  (c? c? . -> . c?)
+  (let go ([c c] [d d] [assume ∅])
+    (cond
+      [(set-member? assume (cons c d)) 'Proved]
       [else
-       (match-let ([(close c1 ρ1) C1]
-                   [(close c2 ρ2) C2])
-         (match* (c1 c2)
-           [(_ (op 'any)) 'Proved]
-           
-           ; primitive, type-like contracts
-           [([? pred? o1] [? pred? o2]) (p-prove? o1 o2)]
-           [([f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o1) `(,[x 0])])) #f]
-             [? pred? o2])
-            (match (p-prove? o2 o1)
-              ['Proved 'Refuted]
-              [_ 'Neither])]
-           [([? pred? o1] [f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o1) `(,[x 0])])) #f]) 'Refuted]
-           [([f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o1) `(,[x 0])])) #f]
-             [f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o2) `(,[x 0])])) #f])
-            (p-prove? o2 o1)]
-           
-           ; struct contract
-           [([struct-c t _] [struct-p t _]) 'Proved]
-           [([struct-c t cs1] [struct-c t cs2])
-            (for/fold ([a 'Proved]) ([d1 cs1] [d2 cs2])
-              (match a
-                ['Refuted 'Refuted]
-                [_ (match (go (close d1 ρ1) (close d2 ρ2) assumptions)
-                     ['Proved a]
-                     [(and r (or 'Refuted 'Neither)) r])]))]
-           [([? struct-c?] [or (? pred?) (? struct-c?)]) 'Refuted] ; different tag/type
-           [([? struct-c?] [? func-c?]) 'Refuted]
-           [([struct-p t _] [struct-c t _]) 'Neither] ; e.g. cons? ⇒ (cons/c _ _)
-           [([? struct-p?] [? struct-c?]) 'Refuted] ; different tag
-           [([? struct-p?] [? func-c?]) 'Refuted]
-           
-           ; func contract
-           [([? func-c?] [op 'proc?]) 'Proved]
-           [([? func-c?] [? pred? o1]) (p-prove? [op 'proc?] o1)]
-           [([func-c cx1 cy1 v1?] [func-c cx2 cy2 v2?])
-            (if (and (equal? (length cx1) (length cx2))
-                     (equal? v1? v2?))
-                (match (go [close cy1 ρ1] [close cy2 ρ2] assumptions) ; FIXME: wrong close!!
-                  ['Refuted 'Refuted]
-                  [_ 'Neither])
-                'Refuted)]
-           [([op 'proc?] [? func-c?]) 'Neither]
-           [([op 'proc?] [? struct-c?]) 'Refuted]
-           
-           
-           ; break apart/unroll composite contracts
-           ; this shouldn't happen often though
-           [(_ [and-c c2a c2b]) (∧ (go C1 [close c2a ρ2] assumptions)
-                                   (go C1 [close c2b ρ2] assumptions))]
-           [(_ [or-c c2a c2b]) (∨ (go C1 [close c2a ρ2] assumptions)
-                                  (go C1 [close c2b ρ2] assumptions))]
-           [([and-c c1a c1b] _)
-            (match* ((go [close c1a ρ1] C2 assumptions)
-                     (go [close c1b ρ1] C2 assumptions))
-              [('Proved _) 'Proved]
-              [(_ 'Proved) 'Proved]
-              [('Refuted 'Refuted) 'Refuted]
-              [(_ _) 'Neither])]
-           [([or-c c1a c1b] _)
-            (match* ((go [close c1a ρ1] C2 assumptions)
-                     (go [close c1b ρ1] C2 assumptions))
-              [('Proved 'Proved) 'Proved]
-              [('Refuted 'Refuted) 'Refuted]
-              [(_ _) 'Neither])]
-           [([μ-c x c1′] _)
-            (go (close [subst/c c1′ x c1] ρ1) C2 (set-add assumptions [cons C1 C2]))]
-           [(_ [μ-c x c2′]) (go C1 (close [subst/c c2′ x c2] ρ2) assumptions)]
-           [(_ _) 'Neither]))])))
+       (match* (c d)
+         [(_ (op 'any)) 'Proved]
+         
+         ; primitive, type-like contracts
+         [([? pred? o1] [? pred? o2]) (p-prove? o1 o2)]
+         [([f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o1) `(,[x 0])])) #f] [? pred? o2])
+          (match (p-prove? o2 o1)
+            ['Proved 'Refuted]
+            [_ 'Neither])]
+         [([? pred? o1] [f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o1) `(,[x 0])])) #f]) 'Refuted]
+         [([f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o1) `(,[x 0])])) #f]
+           [f 1 (@ _ [op 'false?] `(,[@ _ (? pred? o2) `(,[x 0])])) #f])
+          (p-prove? o2 o1)]
+         
+         ; struct contract
+         [([struct-c t _] [struct-p t _]) 'Proved]
+         [([struct-c t cs] [struct-c t ds])
+          (for/fold ([a 'Proved]) ([ci cs] [di ds])
+            (match a
+              ['Refuted 'Refuted]
+              [_ (match (go ci di assume)
+                   ['Proved a]
+                   [r r])]))]
+         [([? struct-c?] [or (? pred?) (? struct-c?)]) 'Refuted] ; different tag/type
+         [([? struct-c?] [? func-c?]) 'Refuted]
+         [([struct-p t _] [struct-c t _]) 'Neither] ; e.g. cons? ⇒ (cons/c _ _)
+         [([? struct-p?] [? struct-c?]) 'Refuted] ; different tag
+         [([? struct-p?] [? func-c?]) 'Refuted]
+         [([op _] [? struct-c?]) 'Refuted]
+         [([? struct-c?] [op _]) 'Refuted]
+         
+         ; func contract
+         [([? func-c?] [op 'proc?]) 'Proved]
+         [([? func-c?] [? pred? o1]) (p-prove? [op 'proc?] o1)]
+         [([func-c cx cy vc?] [func-c dx dy vd?])
+          (if (and (equal? (length cx) (length dx)) (equal? vc? vd?))
+              (∧ (for/fold ([a 'Proved]) ([cxi cx] [dxi dx])
+                   (match a
+                     ['Refuted 'Refuted]
+                     [_ (match (go dxi cxi assume)
+                          ['Proved a]
+                          [r r])]))
+                 (go cy dy assume))
+              'Refuted)]
+         [([op 'proc?] [? func-c?]) 'Neither]
+         [([op 'proc?] [? struct-c?]) 'Refuted]
+         [([op _] [? func-c?]) 'Refuted]
+         [([? func-c?] [op _]) 'Refuted]
+         
+         [((μ-c x c1) (μ-c z d1))
+          (go (subst/c c1 x c) (subst/c d1 z d) (set-add assume (cons c d)))]
+         [((μ-c x c1) _) (go (subst/c c1 x c) d (set-add assume (cons c d)))]
+         [(_ (μ-c x d1)) (go c (subst/c d1 x d) (set-add assume (cons c d)))]
+         
+         ; break apart/unroll composite contracts
+         ; this shouldn't happen often though
+         [([or-c c1 c2] _)
+          (match* ((go c1 d assume) (go c2 d assume))
+            [('Proved 'Proved) 'Proved]
+            [('Refuted 'Refuted) 'Refuted]
+            [(_ _) 'Neither])]
+         [(_ [and-c d1 d2]) (∧ (go c d1 assume) (go c d2 assume))]
+         [(_ [or-c d1 d2]) (∨ (go c d1 assume) (go c d2 assume))]
+         [([and-c c1 c2] _)
+          (match* ((go c1 d assume) (go c2 d assume))
+            [('Proved _) 'Proved]
+            [(_ 'Proved) 'Proved]
+            [('Refuted 'Refuted) 'Refuted]
+            [(_ _) 'Neither])]
+         [(_ _) (if (equal? c d) 'Proved 'Neither)])])))
 
 ;; checks whether first predicate implies second
 (define/match (p-prove? P1 P2)
