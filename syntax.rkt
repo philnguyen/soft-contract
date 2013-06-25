@@ -1,5 +1,5 @@
 #lang racket
-(provide ∅ nd/c non-det if/nd match/nd match? ∪)
+(provide ∅ nd/c non-det if/nd match/nd match? ∪ within-time)
 
 (define ∅ (set))
 
@@ -33,3 +33,13 @@
 ;; (Setof X) X* -> (Setof X)
 (define (∪1 xs x*)
   ((if (set? x*) set-union set-add) xs x*))
+
+;; evaluate a expression within given number of seconds
+;; return singleton list of value or #f
+(define-syntax-rule (within-time n e ...)
+  (let ([c (make-channel)])
+    (let ([t1 (thread (λ () (channel-put c (list (begin e ...)))))]
+          [t2 (thread (λ () (sleep n) (channel-put c #f)))])
+      (match (channel-get c)
+        [(and ans (list a)) (kill-thread t2) ans]
+        [#f (kill-thread t1) #f]))))
