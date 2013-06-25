@@ -112,7 +112,8 @@
                    [r r])]))]
          [([? struct-c?] [or (? pred?) (? struct-c?)]) 'Refuted] ; different tag/type
          [([? struct-c?] [? func-c?]) 'Refuted]
-         [([struct-p t _] [struct-c t _]) 'Neither] ; e.g. cons? ⇒ (cons/c _ _)
+         [([struct-p t n] [struct-c t _])
+          (if (= n 0) 'Proved 'Neither)] ; e.g. cons? ⇒ (cons/c _ _)
          [([? struct-p?] [? struct-c?]) 'Refuted] ; different tag
          [([? struct-p?] [? func-c?]) 'Refuted]
          [([op _] [? struct-c?]) 'Refuted]
