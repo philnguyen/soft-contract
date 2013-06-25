@@ -105,8 +105,6 @@
   ; semi-precise values
   [('* (or `(,[val 0 _] ,_) `(,_ ,[val 0 _]))) (val 0 ∅)]
   [('/ `(,[val 0 _] ,_)) (val 0 ∅)]
-  [('/ `(,[val (? real?) _] ,_))
-   (val (•) {set (close [op 'real?] ρ∅) (close [¬ (op 'zero?)] ρ∅)})]
   [('/ `(,[val (? number?) _] ,_))
    (val (•) {set (close [op 'num?] ρ∅) (close [¬ (op 'zero?)] ρ∅)})]
   [('/ Vs)
