@@ -1,5 +1,5 @@
 #lang racket
-(require "../machine-dumb.rkt" "../syntax.rkt")
+(require "../machine.rkt" "../syntax.rkt")
 
 (define verbose? #f)
 (define files '())
@@ -20,7 +20,7 @@
   (let ([lines (length (file->lines filename))]
         [name (string-trim filename ".sch")]
         [prog (file->list filename)])
-    (match (within-time 10 (exec prog))
+    (match (within-time 60 (exec prog))
       [#f (if verbose? (printf "~a: ~a lines, timeout~n~n" name lines)
               (printf "~a & ~a & - & -\\\\~n" name lines))]
       [(list (list r t1 t2 t3))
