@@ -375,9 +375,9 @@
                           (val (Struct t (for/list ([Vi Vs])
                                            (V-approx Vi (sub1 d))))
                                Cs))]
-       [(close (? f? f) _) (if (stx-depth-more-than? 2 f)
-                               (val (•) {set (close (op 'proc?) ρ∅)})
-                               V)]
+       [(close (? f? f) _)  (if (clo-depth-more-than? 1 V)
+                                (val (•) {set (close (op 'proc?) ρ∅)})
+                                V)]
        [_ V])]
     [_ V]))
 

@@ -23,7 +23,7 @@
      [struct or-c ([l c?] [r c?])]
      [struct struct-c ([name l?] [fields (listof c?)])]
      [struct μ-c ([x l?] [c c?])]
-     [stx-depth-more-than? (int? e? . -> . int?)]
+     [clo-depth-more-than? (int? V? . -> . boolean?)]
      
      [subst/c (c? x-c? c? . -> . c?)]
      [FV ([e?] [int?] . ->* . [set/c int?])]
@@ -57,6 +57,7 @@
      [arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
      [min-arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
      [opaque? ([E?] [integer?] . ->* . any/c)]
+     [clo-depth (V? . -> . int?)]
      
      [m∅ hash?] [ρ∅ ρ?] [σ∅ σ?] [★ val?]
      [prim (symbol? . -> . [or/c e? #f])])
@@ -230,15 +231,13 @@
                #f)])
        (p (hash-set ms '☠ (m m∅ (hash 'havoc havoc))) e†))]))
 
-;; rough estimate of syntax depth by #nested lambdas
-(define (stx-depth-more-than? n e)
-  (if (<= n 0) #t
-      (let ([go (curry stx-depth-more-than? n)])
-        (match e
-          [(f _ e1 _) (stx-depth-more-than? (- n 1) e1)]
-          [(@ _ f xs) (or (go f) (ormap go xs))]
-          [(if/ e0 e1 e2) (or (go e0) (go e1) (go e2))]
-          [_ #f]))))
+(define (clo-depth-more-than? n V)
+  (or (<= n 0)
+      (match V
+        [(val (close _ (ρ m _)) _)
+         (for/or ([Vi (in-hash-values m)])
+           (clo-depth-more-than? (- n 1) Vi))]
+        [_ #f])))
 
 ;;;;; ENVIRONMENT
 
