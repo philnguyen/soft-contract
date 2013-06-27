@@ -41,5 +41,5 @@
     (let ([t1 (thread (λ () (channel-put c (list (begin e ...)))))]
           [t2 (thread (λ () (sleep n) (channel-put c #f)))])
       (match (channel-get c)
-        [(and ans (list a)) (kill-thread t2) ans]
-        [#f (kill-thread t1) #f]))))
+        [#f (kill-thread t1) #f]
+        [ans (kill-thread t2) ans]))))
