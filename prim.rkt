@@ -1,13 +1,18 @@
 #lang racket
 (require "lang.rkt" "syntax.rkt")
 (provide
- (combine-out R? prove? Cs-prove? C-prove? p-prove? simplify-C)
+ (combine-out R? prove? Cs-prove? C-prove? p-prove? simplify-C
+              all-prove? all-refute? some-proves? some-refutes?)
  #;(contract-out
   [prove? (σ? V? C? . -> . R?)]
   [Cs-prove? ([set/c C?] C? . -> . R?)]
   [C-prove? (C? C? . -> . R?)]
   [p-prove? (pred? pred? . -> . R?)]
-  [simplify-C (C? . -> . C?)]))
+  [simplify-C (C? . -> . C?)]
+  [all-prove? (σ? (listof V?) C? . -> . any/c)]
+  [all-refute? (σ? (listof V?) C? . -> . any/c)]
+  [some-proves? (σ? (listof V?) C? . -> . any/c)]
+  [some-refutes? (σ? (listof V?) C? . -> . any/c)]))
 
 (define R? (or/c 'Proved 'Refuted 'Neither))
 
@@ -21,8 +26,13 @@
       ; break apart/unroll composite contract
       [(_ [and-c c1 c2]) (∧ [prove? σ V (close c1 ρ)] [prove? σ V (close c2 ρ)])]
       [([val _ Cs] [or-c c1 c2])
-       (∨ [Cs-prove? Cs C] [prove? σ V (close c1 ρ)] [prove? σ V (close c2 ρ)])]
-      [([val _ Cs] [μ-c x c′]) (∨ (Cs-prove? Cs C) (prove? σ V (close (subst/c c′ x c) ρ)))]
+       (match (Cs-prove? Cs C)
+         ['Neither (∨ [prove? σ V (close c1 ρ)] [prove? σ V (close c2 ρ)])]
+         [ans ans])]
+      [([val _ Cs] [μ-c x c′])
+       (match (Cs-prove? Cs C)
+         ['Neither (prove? σ V (close (subst/c c′ x c) ρ))]
+         [ans ans])]
       
       ; on struct contract
       [([val (Struct t Vs) _] [struct-c t cs])
@@ -62,6 +72,16 @@
       
       ; on opaque value
       [([val _ Cs] _) (Cs-prove? Cs C)])))
+
+;; checks whether all/some value(s) satisfy/refute contract
+(define (all-prove? σ Vs C)
+  (for/and ([V Vs]) (equal? 'Proved (prove? σ V C))))
+(define (all-refute? σ Vs C)
+  (for/and ([V Vs]) (equal? 'Refuted (prove? σ V C))))
+(define (some-proves? σ Vs C)
+  (for/or ([V Vs]) (equal? 'Proved (prove? σ V C))))
+(define (some-refutes? σ Vs C)
+  (for/or ([V Vs]) (equal? 'Refuted (prove? σ V C))))
 
 ;; checks whether given set of contracts can prove new one
 (define (Cs-prove? Cs C)
@@ -167,10 +187,11 @@
      [([or 'real? 'positive? 'negative? 'int? 'zero?] 'num?) 'Proved]
      [([or 'positive? 'negative? 'int? 'zero?] 'real?) 'Proved]
      [('zero? 'int?) 'Proved]
+     [([or 'positive? 'negative?] 'int?) 'Neither]
      [('bool? [or 'true? 'false?]) 'Neither]
      [('num? [or 'real? 'positive? 'negative? 'int? 'zero?]) 'Neither]
      [('real? [or 'positive? 'negative? 'int? 'zero?]) 'Neither]
-     [('int? 'zero?) 'Neither]
+     [('int? [or 'positive? 'negative? 'zero?]) 'Neither]
      [(_ _) 'Refuted])]
   [(_ _) 'Refuted])
 

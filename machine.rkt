@@ -365,11 +365,20 @@
 (define (V-approx V [d 7])
   ((V?) (int?) . ->* . V?)
   (match V
+    [(val 0 Cs) V]
     [(val u Cs)
      (match u
-       [(? integer?) (val (•) (set-add Cs (close [op 'int?] ρ∅)))]
-       [(? real?) (val (•) (set-add Cs (close [op 'real?] ρ∅)))]
-       [(? number?) (val (•) (set-add Cs (close [op 'num?] ρ∅)))]
+       [(? number?)
+        (val (•) (∪
+                  Cs
+                  (close (op (cond
+                               [(integer? u) 'int?]
+                               [(real? u) 'real?]
+                               [else 'num?]))
+                         ρ∅)
+                  (if (real? u)
+                      (close (op (if (positive? u) 'positive? 'negative?)) ρ∅)
+                      ∅)))]
        [(? string?) (val (•) (set-add Cs (close [op 'str?] ρ∅)))]
        [(Struct t Vs) (if (zero? d) ★
                           (val (Struct t (for/list ([Vi Vs])

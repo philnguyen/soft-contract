@@ -88,8 +88,7 @@
     
     ;; anything else is an error
     [([struct-ac t _ _] _) (cons σ [Blm l t])]
-    [([op name] _) (cons σ [Blm l name])]
-    ))
+    [([op name] _) (cons σ [Blm l name])]))
 
 ;; maps op name and (assumed valid) arguments to answer value
 (define/match (δ o Vs)
@@ -108,15 +107,34 @@
   [('/ `(,[val (? number?) _] ,_))
    (val (•) {set (close [op 'num?] ρ∅) (close [¬ (op 'zero?)] ρ∅)})]
   [('/ Vs)
-   (match (map (λ (vi) (prove? σ∅ vi [close (op 'real?) ρ∅])) Vs)
-     [`(Proved ...) (val [•] {set (close [op 'real?] ρ∅)})]
-     [_ (val [•] {set (close [op 'num?] ρ∅)})])]
-  [([or '+ '- '* 'add1 'sub1] Vs)
-   (match (map (λ (vi) (prove? σ∅ vi [close (op 'int?) ρ∅])) Vs)
-     [`(Proved ...) (val [•] {set (close [op 'int?] ρ∅)})]
-     [_ (match (map (λ (vi) (prove? σ∅ vi [close (op 'real?) ρ∅])) Vs)
-          [`(Proved ...) (val [•] {set (close [op 'real?] ρ∅)})]
-          [_ (val [•] {set (close [op 'num?] ρ∅)})])])]
+   (val (•) {set (close
+                  (op (if (all-prove? σ∅ Vs (close (op 'real?) ρ∅)) 'real? 'num?))
+                  ρ∅)})]
+  [([or '+ 'add1] Vs)
+   (val (•)
+        (∪ ∅
+           (cond ; try to preserve int/real-ness
+             [(all-prove? σ∅ Vs (close (op 'int?) ρ∅)) (close (op 'int?) ρ∅)]
+             [(all-prove? σ∅ Vs (close (op 'real?) ρ∅)) (close (op 'real?) ρ∅)]
+             [else (close (op 'num?) ρ∅)])
+           (cond ; try to preserve sign
+             [(all-prove? σ∅ Vs (close (op 'zero?) ρ∅)) (close (op 'zero?) ρ∅)]
+             [(all-prove? σ∅ Vs (close (or-c (op 'zero?) (op 'positive?)) ρ∅))
+              (if (some-proves? σ∅ Vs (close (op 'positive?) ρ∅))
+                  (close (op 'positive?) ρ∅)
+                  (close (or-c (op 'zero?) (op 'positive?)) ρ∅))]
+             [(all-prove? σ∅ Vs (close (or-c (op 'zero?) (op 'negative?)) ρ∅))
+              (if (some-proves? σ∅ Vs (close (op 'negative?) ρ∅))
+                  (close (op 'negative?) ρ∅)
+                  (close (or-c (op 'zero?) (op 'negative?)) ρ∅))]
+             [else ∅])))]
+  [([or '- '* 'sub1] Vs)
+   (val (•)
+        {set (close (op (cond
+                          [(all-prove? σ∅ Vs (close (op 'int?) ρ∅)) 'int?]
+                          [(all-prove? σ∅ Vs (close (op 'real?) ρ∅)) 'real?]
+                          [else 'num?]))
+                    ρ∅)})]
   
   ; abstract result...
   [('str-len _) (val (•) {set (close [op 'int?] ρ∅)})]
