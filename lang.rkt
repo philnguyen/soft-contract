@@ -37,6 +37,7 @@
      [ρ@ (ρ? (or/c x? int?) . -> . V?)]
      [ρ-has? (ρ? (or/c x? int?) . -> . any/c)]
      [ρ-restrict (ρ? (set/c int?) . -> . ρ?)]
+     [ρ-set (ρ? (or/c x? int?) V? . -> . ρ?)]
      
      [struct σ ([m (hash/c L? V?)] [next L?])]
      [σ@ (σ? L? . -> . V?)]
@@ -57,7 +58,6 @@
      [arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
      [min-arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
      [opaque? ([E?] [integer?] . ->* . any/c)]
-     [clo-depth (V? . -> . int?)]
      
      [m∅ hash?] [ρ∅ ρ?] [σ∅ σ?] [★ val?]
      [prim (symbol? . -> . [or/c e? #f])])
@@ -272,13 +272,19 @@
 ; access environment at given static distance
 (define (ρ@ ρ1 x1)
   (match-let ([(ρ m l) ρ1]
-              [sd (match x1 [(x sd) sd] [(? int? sd) sd])])
+              [sd (match x1 [(x sd) sd] [_ x1])])
     (hash-ref m (- l sd 1))))
+
+;; modify environment at given static distance
+(define (ρ-set ρ1 x1 V)
+  (match-let ([(ρ m l) ρ1]
+              [sd (match x1 [(x sd) sd] [_ x1])])
+    (ρ (hash-set m (- l sd 1) V) l)))
 
 ;; checks whether given static distance is in environment's domain
 (define (ρ-has? ρ1 x1)
   (match-let ([(ρ m l) ρ1]
-              [sd (match x1 [(x sd) sd] [(? int? sd) sd])])
+              [sd (match x1 [(x sd) sd] [_ x1])])
     (hash-has-key? m (- l sd 1))))
 
 ; restrict environment's domain to given set of static distances

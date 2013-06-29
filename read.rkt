@@ -3,14 +3,15 @@
          "lang.rkt"
          "syntax.rkt")
 (provide
+ #;(combine-out read-p read-e gen-ac gen-p opaque)
  (contract-out
-  [read (any/c . -> . p?)]
+  [read-p (any/c . -> . p?)]
   [read-e (any/c . -> . p?)]
   [gen-ac (symbol? symbol? . -> . symbol?)]
   [gen-p (symbol? . -> . symbol?)]
   [opaque (any/c . -> . any/c)]))
 
-(define (read prog)
+(define (read-p prog)
   (define abbrevs (make-hash))
   (match prog
     [`((abbrev/c ,from ,to) ... ,ms ... (require ,main-reqs ...) ,e)
@@ -168,10 +169,10 @@
                       (match-let ([`(module ,l ,ds ...) m])
                         (hash-set mods l (read-m l ds))))
                     (read-e '† '() e))))]
-    [`(,ms ... ,e) (read `(,@ ms (require) ,e))]))
+    [`(,ms ... ,e) (read-p `(,@ ms (require) ,e))]))
 
 (define (read-e e)
-  (read (list e)))
+  (read-p (list e)))
 
 ;; opaque : S-exp -> S-exp
 (define opaque

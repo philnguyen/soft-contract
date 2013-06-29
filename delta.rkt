@@ -150,42 +150,42 @@
     [([val u1 _] (val u2 _)) (cons σ (val (equal? u1 u2) ∅))]))
 
 ;; checks whether value satisfies predicate
-(define (check-p σ0 V0 p)
-  (match (prove? σ0 V0 [close p ρ∅])
-    ['Proved (cons σ0 TT)]
-    ['Refuted (cons σ0 FF)]
-    ['Neither (match-let ([(cons σ1 _) (refine (cons σ0 V0) (close p ρ∅))]
-                          [(cons σ2 _) (refine (cons σ0 V0) (close [¬ p] ρ∅))])
+(define (check-p σ V p)
+  (match (prove? σ V [close p ρ∅])
+    ['Proved (cons σ TT)]
+    ['Refuted (cons σ FF)]
+    ['Neither (match-let ([(cons σ1 _) (refine (cons σ V) (close p ρ∅))]
+                          [(cons σ2 _) (refine (cons σ V) (close (¬ p) ρ∅))])
                 {set (cons σ1 TT) (cons σ2 FF)})]))
 
-(define (refine σV C0)
-  (match-let ([(close c0 ρ) C0]
-              [(cons σ0 V0) σV])
-    (match* (V0 c0)
+(define (refine σV C)
+  (match-let ([(close c ρ) C]
+              [(cons σ V) σV])
+    (match* (V c)
       [(_ [op 'any]) σV]
       [(_ [and-c c1 c2]) (refine (refine σV [close c1 ρ]) [close c2 ρ])]
       [(_ [or-c c1 c2]) ; we used to split here. But let's be lazy now...
        (let ([C1 (close c1 ρ)]
              [C2 (close c2 ρ)])
-         (match* ([prove? σ0 V0 C1] [prove? σ0 V0 C2])
+         (match* ([prove? σ V C1] [prove? σ V C2])
            [('Refuted 'Refuted) (error "WTF??")]
            [(_ 'Refuted) (refine σV C1)]
            [('Refuted _) (refine σV C2)]
-           [(_ _) (match V0
-                    [(val u Cs) (cons σ0 (val u [intersect-Cs Cs C0]))]
-                    [(? L? l) (match-let* ([(val u Cs) (σ@ σ0 l)]
-                                           [V′ (val u [intersect-Cs Cs C0])])
-                                (cons [σ-set σ0 l V′] l))])]))]
-      [(_ [μ-c x c′]) (refine σV [close (subst/c c′ x c0) ρ])]
+           [(_ _) (match V
+                    [(val u Cs) (cons σ (val u [intersect-Cs Cs C]))]
+                    [(? L? l) (match-let* ([(val u Cs) (σ@ σ l)]
+                                           [V′ (val u [intersect-Cs Cs C])])
+                                (cons [σ-set σ l V′] l))])]))]
+      [(_ [μ-c x c1]) (refine σV [close (subst/c c1 x c) ρ])]
       [([? L? l] [struct-c t cs])
-       (match (σ@ σ0 l)
+       (match (σ@ σ l)
          [(val (•) Cs) (match-let*
-                           ([(cons σ1 ls) (σ++ σ0 (length cs))]
+                           ([(cons σ1 ls) (σ++ σ (length cs))]
                             [V′ (val (Struct t ls) Cs)])
-                         (refine [cons (σ-set σ1 l V′) l] C0))]
+                         (refine [cons (σ-set σ1 l V′) l] C))]
          [(val (Struct t Vs) Cs)
           (match-let ([(cons σ′ Us)
-                       (let loop ([σi σ0] [Us '()] [Vs Vs] [cs cs])
+                       (let loop ([σi σ] [Us '()] [Vs Vs] [cs cs])
                          (match* (Vs cs)
                            [('() '()) (cons σi (reverse Us))]
                            [([cons Vi Vs′] [cons ci cs′])
@@ -194,15 +194,16 @@
             (let ([V′ (val (Struct t Us) Cs)])
               (cons [σ-set σ′ l V′] l)))])]
       [([? L? l] [struct-p t n])
-       (match (σ@ σ0 l)
+       (match (σ@ σ l)
          [(val (•) Cs) (match-let*
-                           ([(cons σ1 ls) (σ++ σ0 n)]
-                            [V′ (val (Struct t ls) Cs)])
-                         (cons (σ-set σ1 l V′) l))]
+                           ([(cons σ1 ls) (σ++ σ n)]
+                            [V′ (val (Struct t ls) ∅)])
+                         (for/fold ([σV (cons (σ-set σ1 l V′) l)]) ([C Cs])
+                           (refine σV C)))]
          [_ σV])]
       [([val [Struct t Vs] Cs] [struct-c t cs])
        (match-let ([(cons σ′ Us)
-                    (let loop ([σi σ0] [Us '()] [Vs Vs] [cs cs])
+                    (let loop ([σi σ] [Us '()] [Vs Vs] [cs cs])
                       (match* (Vs cs)
                         [('() '()) (cons σi (reverse Us))]
                         [([cons Vi Vs′] [cons ci cs′])
@@ -210,32 +211,32 @@
                            (loop σ′ [cons Vi′ Us] Vs′ cs′))]))])
          (cons σ′ [val (Struct t Us) Cs]))]
       [([val (•) Cs] [struct-c t cs])
-       (match-let ([(cons σ1 Ls) (σ++ σ0 (length cs))])
-         (refine (cons σ1 (val (Struct t Ls) Cs)) C0))]
+       (match-let ([(cons σ1 Ls) (σ++ σ (length cs))])
+         (refine (cons σ1 (val (Struct t Ls) Cs)) C))]
       [([val (•) Cs] [struct-p t n])
-       (match-let ([(cons σ1 Ls) (σ++ σ0 n)])
+       (match-let ([(cons σ1 Ls) (σ++ σ n)])
          (cons σ1 (val (Struct t Ls) ∅)))]
-      [([? L? l] _) (match-let ([(cons σ1 V1) (refine [cons σ0 (σ@ σ0 l)] C0)])
+      [([? L? l] _) (match-let ([(cons σ1 V1) (refine [cons σ (σ@ σ l)] C)])
                       (cons [σ-set σ1 l V1] l))]
       
       ; rematerialize for singleton predicates
       [([val u Cs] [op (and p (or 'zero? 'false? 'true?))])
-       (cons σ0 [val (match p ['zero? 0] ['false? #f] ['true? #t]) Cs])]
+       (cons σ [val (match p ['zero? 0] ['false? #f] ['true? #t]) Cs])]
       [([val u Cs] _)
        (match-let*
-           ([Cs1 (intersect-Cs Cs C0)]
+           ([Cs1 (intersect-Cs Cs C)]
             [Ck (for/or ([Ci Cs1]
                          #:when
                          (match? Ci (close (or (? struct-c?) (? struct-p?)) _)))
                   Ci)]
             [(cons σ2 u′)
              (match Ck
-               [#f (cons σ0 u)]
+               [#f (cons σ u)]
                [(close (struct-p t n) _)
-                (match-let ([(cons σ1 Ls) (σ++ σ0 n)])
+                (match-let ([(cons σ1 Ls) (σ++ σ n)])
                   (cons σ1 (Struct t Ls)))]
                [(close (struct-c t cs) ρc)
-                (match-let ([(cons σ1 Ls) (σ++ σ0 (length cs))])
+                (match-let ([(cons σ1 Ls) (σ++ σ (length cs))])
                   (cons
                    (let loop ([σi σ1] [Ls Ls] [cs cs])
                      (match* (Ls cs)

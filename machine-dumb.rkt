@@ -320,7 +320,7 @@
     (match-let ([(ς A0 σ _) s])
       (A→EA σ A0))))
 
-(define (ev p) (run (read p)))
+(define (ev p) (run (read-p p)))
 
 (define (ρ/σ-equal? ρ1 σ1 ρ2 σ2) ; they close the same expression, so must have same dom
   (ρ? σ? ρ? σ? . -> . boolean?)
@@ -400,7 +400,7 @@
                           (val (Struct t (for/list ([Vi Vs])
                                            (V-approx Vi (sub1 d))))
                                Cs))]
-       [(close (? f? f) _) (if (stx-depth-more-than? 2 f)
+       [(close (? f? f) _) (if (clo-depth-more-than? 1 V)
                                (val (•) {set (close (op 'proc?) ρ∅)})
                                V)]
        [_ V])]
