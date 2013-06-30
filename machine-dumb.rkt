@@ -2,17 +2,16 @@
 (require "syntax.rkt" "lang.rkt" "prim.rkt" "delta.rkt" "read.rkt")
 (provide run ev)
 
-(define (κ? x) ([or/c 'mt if/k? @/k? mon/k? vmon/k?] x))
+(define (κ? x) ([or/c 'mt if/k? @/k? mon/k? mon*/k? col/k?] x))
 (struct if/k (e1 e2 k) #:transparent)
 (struct @/k (l vs es k) #:transparent)
 (struct mon/k (l+ l- lo c k) #:transparent)
-(struct vmon/k (l+ l- lo Vs C Us k) #:transparent)
+(struct mon*/k (l+ l- lo Vs C Us k) #:transparent)
+(struct col/k (f xs σ k) #:transparent)
 
 (struct ς (e σ k) #:transparent)
 
-(define ς+? (or/c ς? (set/c ς?)))
-(define MemoRec? (listof [list/c (listof V?) σ? κ?]))
-(define Memo? (hash/c [or/c (cons/c l? V?) C?] MemoRec?))
+(define ς*? (nd/c ς?))
 
 (define (run prog)
   (p? . -> . any/c)
@@ -47,117 +46,120 @@
         (hash-ref decs ki (const #f)))))
   
   ; returns machine state for havoc-ing given value
-  (define (havoc V σ)
+  (define (havoc V σ k)
     (V? σ? . -> . ς?)
-    (ς V σ [@/k '☠ `(,(close-v (ref-v '☠ 'havoc) ρ∅)) '() 'mt]))
+    (ς V σ [@/k '☠ `(,(close-v (ref-v '☠ 'havoc) ρ∅)) '() k]))
+  
+  (define (accel-@ l σ Vf Vx k k0)
+    (l? σ? V? (listof V?) κ? κ? . -> . ς*?)
+    
+    (define (tail? k kr)
+      (or (eq? k kr)
+          (match k
+            [(col/k _ _ _ k1) (tail? k1 kr)]
+            [_ #f])))
+    
+    (match-let ([(val (close (f n e v?) ρ) Cs) Vf]
+                [(col/k Vg Vz σ1 _) k0])
+      #;(printf "old:~a~n~nnew:~a~n~n" (map (curry σ@* σ1) Vz) (map (curry σ@* σ) Vx))
+      (cond
+        [(E*⊑ Vx σ Vz σ1)
+         #;(printf "sumsubed~n~n")
+         (if (tail? k k0) ∅
+             (match-let ([(val (close v _) _) Vf])
+               (match (v->c l v)
+                 [#f (ς ★ σ k)]
+                 [(func-c cx cy v?)
+                  (match-let ([(cons σn L)
+                               (refine
+                                (σ+ σ)
+                                (close-c cy (ρ++ ρ∅ Vx (if v? (sub1 (length cx)) #f))))])
+                    #;(printf "non-tail, approxed to ~a~n~n" (σ@ σn L))
+                    (ς L σn k))])))]
+        [else (let ([Wx (map V-approx Vx)])
+                #;(printf "accel args to ~a~n~n" (map (compose show-E (curry σ@* σ)) Wx))
+                (match v? ; proceed with approximate arguments
+                  [#f (if (= (length Vx) n)
+                          (ς [close e (ρ++ ρ Wx)] σ [col/k Vf Wx σ k])
+                          (ς [Blm l 'Δ] σ 'mt))]
+                  [#t (if (>= (length Vx) (sub1 n))
+                          (ς [close e (ρ++ ρ Wx (sub1 n))] σ [col/k Vf Wx σ k])
+                          (ς [Blm l 'Δ] σ 'mt))]))])))
   
   ; steps an application state
-  (define (step-@ l σ1 Vf Vx k)
-    (l? σ? V? (listof V?) κ? . -> . ς+?)
+  (define (step-@ l σ Vf Vx k)
+    (l? σ? V? (listof V?) κ? . -> . ς*?)
     (match Vf
       [(val u Cs)
        (match u
-         [(? o? o) (match/nd (Δ l σ1 o Vx) [(cons σ2 A) (ς A σ2 k)])]
-         [(close (f n e1 #f) ρf) (if (= n (length Vx))
-                                     (ς [close e1 (ρ++ ρf Vx)] σ1 k)
-                                     (ς [Blm l 'Δ] σ1 'mt))]
-         [(close (f n e1 #t) ρf) (if (<= [sub1 n] (length Vx))
-                                     (ς [close e1 (bind-vars ρf Vx [sub1 n])] σ1 k)
-                                     (ς [Blm l 'Δ] σ1 'mt))]
-         [(Arr l+ l- lo [close (func-c cx cy #f) ρc] Vg)
-          (if (= (length cx) (length Vx))
-              (ς Vg σ1 [vmon/k l- l+ lo '() (map (λ (ci) (close-c ci ρc)) cx) Vx
-                               ; FIXME: use indie!!!
-                               [mon/k1 l+ l- lo (close-c cy [ρ++ ρc Vx]) k]])
-              (ς (Blm l lo) σ1 'mt))]
-         [(Arr l+ l- lo [close (func-c cx cy #t) ρc] Vg)
-          (if (<= (length cx) (length Vx))
-              (ς Vg σ1 [vmon/k l- l+ lo '() (map (λ (ci) (close-c ci ρc)) cx) Vx
-                               ; FIXME: use indie!!!
-                               [mon/k1 l+ l- lo (close-c cy [ρ++ ρc Vx]) k]])
-              (ς (Blm l lo) σ1 'mt))]
-         [_ (match/nd (Δ 'Δ σ1 [op 'proc?] `[,Vf])
-              [(cons σ2 [val #t _])
-               (match (arity-ok? [σ@* σ2 Vf] (length Vx))
+         [(? o? o) (match/nd (Δ l σ o Vx) [(cons σ1 A) (ς A σ1 k)])]
+         [(close (f n e1 v?) ρf)
+          (match (find-previous-call σ Vf Vx k)
+            [#f (match v?
+                  [#f (if (= (length Vx) n)
+                          (ς [close-e e1 (ρ++ ρf Vx)] σ [col/k Vf Vx σ k])
+                          (ς [Blm l 'Δ] σ 'mt))]
+                  [#t (if (>= (length Vx) (sub1 n))
+                          (ς [close-e e1 (ρ++ ρf Vx (sub1 n))] σ [col/k Vf Vx σ k])
+                          (ς [Blm l 'Δ] σ 'mt))])]
+            [k0 (accel-@ l σ Vf Vx k k0)])]
+         [(Arr l+ l- lo (close (func-c cx cy v?) ρc) Vg)
+          (let ([V-len (length Vx)]
+                [c-len (length cx)])
+            (if (if v? (>= V-len c-len) (= V-len c-len))
+                (ς Vg σ [mon*/k l- l+ lo '() (map (λ (c) (close-c c ρc)) cx) Vx
+                                (mon/k1 l+ l- lo (close-c cy [ρ++ ρc Vx])
+                                        (col/k Vf Vx σ k))])
+                (ς (Blm l lo) σ 'mt)))]
+         [_ (match/nd (Δ 'Δ σ (op 'proc?) `(,Vf))
+              [(cons σ1 (val #t _))
+               (match (arity-ok? (σ@* σ1 Vf) (length Vx))
                  [(or 'Y '?)
-                  (∪ (for/set ([Vi Vx]) (havoc Vi σ2))
-                     (match/nd (for/fold ([σV (σ+ σ2)]) ([C (C-ranges Vx Cs)])
-                                 (non-det (λ (σV) (refine σV C)) σV))
-                       [(cons σ3 V3) (ς V3 σ3 k)]))]
-                 ['N (ς [Blm l 'Δ] σ2 'mt)])]
-              [(cons σ2 [val #f _]) (ς [Blm l 'Δ] σ1 'mt)])])]
+                  (match-let
+                      ([havocs (for/set ([Vi Vx]) (havoc Vi σ k))]
+                       [(cons σ2 V2) (for/fold ([σV (σ+ σ1)]) ([Ci (C-ranges Vx Cs)])
+                                       (refine σV Ci))])
+                    (set-add havocs (ς V2 σ2 k)))]
+                 ['N (ς [Blm l 'Δ] σ1 'mt)])]
+              [(cons σ1 (val #f _)) (ς [Blm l 'Δ] σ 'mt)])])]
       ; TODO: no need to remember whether σ[l] is function or not?
-      [(? L? lab) (step-@ l σ1 [σ@ σ1 lab] Vx k)]))
+      [(? L? L) (step-@ l σ (σ@ σ L) Vx k)]))
   
-  (define (maybe-@ m l σ1 Vf Vx k)
-    (Memo? l? σ? V? (listof V?) κ? . -> . (nd/c ς?))
-    #;(printf "ABOUT to apply:~n~nf: ~a~n~nxs: ~a~n~nk: ~n~n~n" Vf Vx k)
-    (or (for/or ([r (hash-ref m [cons l Vf] (const empty))])
-          (match-let ([(list Vz σi ki) r])
-            (cond
-              [(not (κ-prefix? ki k)) #f]
-              [(equal? k ki)
-               (cond
-                 [(and (Es/σ-equal? Vx σ1 Vz σi) (κ/σ-equal? ki σi k σ1))
-                  #;(printf "IGNORE repeated state with garbage~n")
-                  ∅] ; old state with more garbage
-                 [(ormap opaque? Vx)
-                  #;(printf "WIDEN arguments for recursive tail call~nf: ~a~n~nxs: ~a~n~nxs′: ~a~n~n~n"
-                            Vf Vx (map V-approx Vx))
-                  (step-@ l σ1 Vf (map V-approx Vx) k)]
-                 [else #f])]
-              [(Es/σ-equal? Vx σ1 Vz σi)
-               (match Vf
-                 [(val (close (? f? f) _) _)
-                  (match (v->c l f)
-                    [#f #f]
-                    [c
-                     #;(printf "APPROX by contract~n")
-                     (match/nd (for/fold ([σV (σ+ σ1)]) ([C (C-ranges Vx {set (close c ρ∅)})])
-                                    (non-det (λ (σV) (refine σV C)) σV))
-                       [(cons σa Va) (ς Va σa k)])])]
-                 #;[(val [? o? o] _)
-                    (printf "APPROX by prim op's range~n")
-                    (ς [o-range o] σ1 k)]
-                 [_ #f])]
-              [else #f])))
-        (step-@ l σ1 Vf Vx k)))
-  
-  (define (step-fmon m lo C0 V0 σ0 k)
-    (Memo? l? C? V? σ? κ? . -> . (nd/c ς?))
-    (match (prove? σ0 V0 C0)
-      ['Proved (ς [val #t ∅] σ0 k)]
-      ['Refuted (ς [val #f ∅] σ0 k)]
+  (define (step-fc lo C V σ k)
+    (l? C? V? σ? κ? . -> . ς*?)
+    (match (prove? σ V C)
+      ['Proved (ς [val #t ∅] σ k)]
+      ['Refuted (ς [val #f ∅] σ k)]
       [_
-       (match-let ([(close c0 ρc) C0])
+       (match-let ([(close c0 ρc) C])
          (match c0
            [(and-c c1 c2)
-            (ς [Fmon lo (close-c c1 ρc) V0] σ0
-               [if/k (Fmon lo (close-c c2 ρc) V0) (val #f ∅) k])]
+            (ς [FC lo (close-c c1 ρc) V] σ
+               [if/k (FC lo (close-c c2 ρc) V) (val #f ∅) k])]
            [(or-c c1 c2)
-            (ς [Fmon lo (close-c c1 ρc) V0] σ0
-               [if/k (val #t ∅) (Fmon lo (close-c c2 ρc) V0) k])]
+            (ς [FC lo (close-c c1 ρc) V] σ
+               [if/k (val #t ∅) (FC lo (close-c c2 ρc) V) k])]
            [(μ-c x c1)
-            (match (prove? σ0 V0 C0)
-              ['Proved (ς (val #t ∅) σ0 k)]
-              ['Refuted (ς (val #f ∅) σ0 k)]
-              [_ {∪ (ς (val #f ∅) σ0 k)
-                    (match/nd (refine (cons σ0 V0) C0)
-                      [(cons σ1 V1) (ς [Fmon lo (close (subst/c c1 x c0) ρc) V1] σ1 k)])}])]
+            (match (prove? σ V C)
+              ['Proved (ς (val #t ∅) σ k)]
+              ['Refuted (ς (val #f ∅) σ k)]
+              [_ {∪ (ς (val #f ∅) σ k)
+                    (match/nd (refine (cons σ V) C)
+                      [(cons σ1 V1) (ς [FC lo (close (subst/c c1 x c0) ρc) V1] σ1 k)])}])]
            [(struct-c t cs)
             ;; FIXME shameless code duplicate...
             (let ([n (length cs)])
-              (match/nd (Δ 'Δ σ0 [struct-p t n] `[,V0])
+              (match/nd (Δ 'Δ σ [struct-p t n] `[,V])
                 [(cons σ1 [val #t _])
-                 (let ([Vs (match V0
+                 (let ([Vs (match V
                              [(val (Struct t Vs) _) Vs]
                              [(? L? l) (match (σ@ σ1 l)
                                          [(val (Struct t Vs) _) Vs]
                                          [_ (make-list n ★)])]
                              [_ (make-list n ★)])])
-                   (ς [val #t ∅] σ1 [AND-FMON lo cs ρc Vs k]))]
+                   (ς [val #t ∅] σ1 [AND-FC lo cs ρc Vs k]))]
                 [(cons σ1 [val #f _]) (ς [val #f ∅] σ1 k)]))]
-           [(? v? v) (maybe-@ m lo σ0 [close-v v ρc] (list V0) k)]))]))
+           [(? v? v) (step-@ lo σ [close-v v ρc] (list V) k)]))]))
   
   (define (step-mon l+ l- lo C V σ k)
     (l? l? l? C? V? σ? κ? . -> . (nd/c ς?))
@@ -167,7 +169,7 @@
          (ς V σ [mon/k1 l+ l- lo (close-c c1 ρc)
                         [mon/k1 l+ l- lo (close-c c2 ρc) k]])]
         [(or-c c1 c2)
-         (ς (Fmon lo [close-c c1 ρc] V) σ
+         (ς (FC lo [close-c c1 ρc] V) σ
             (if/k (Assume V [close-c c1 ρc])
                   (Mon l+ l- lo [close-c c2 ρc] V)
                   k))]
@@ -175,7 +177,7 @@
          (match (prove? σ V C)
            ['Proved (ς V σ k)]
            ['Refuted (ς [Blm l+ lo] σ 'mt)]
-           ['Neither (ς (Fmon lo C V) σ [if/k (Assume V C) (Blm l+ lo) k])])]
+           ['Neither (ς (FC lo C V) σ [if/k (Assume V C) (Blm l+ lo) k])])]
         
         [(μ-c x c1) (step-mon l+ l- lo [close-c (subst/c c1 x c0) ρc] V σ k)]
         [(struct-c t cs)
@@ -187,7 +189,7 @@
                           [(? L? l) (match-let ([(Struct t Vs) (σ@ σ1 l)]) Vs)]
                           [_ (make-list n ★)])])
                 (ς (val [struct-mk t n] ∅) σ1
-                   [vmon/k l+ l- lo '()
+                   [mon*/k l+ l- lo '()
                            (map (λ (ci) (close-c ci ρc)) cs) Vs k]))]
              [(cons σ1 [val #f _]) (ς [Blm l+ lo] σ1 'mt)]))]
         [(and [func-c cx cy v?] [? func-c? fc])
@@ -205,20 +207,19 @@
                         ['Y ς-ok]
                         ['N ς-er]
                         ['? {set ς-ok ς-er}])]))]
-           [(cons σ1 [val #f _]) (ς [Blm l+ lo] σ1 'mt)]
-           )])))
+           [(cons σ1 [val #f _]) (ς [Blm l+ lo] σ1 'mt)])])))
   
-  (define (step-E m E σ k)
-    (Memo? E? σ? κ? . -> . (nd/c ς?))
+  (define (step-E E σ k)
+    (E? σ? κ? . -> . (nd/c ς?))
     (match E
-      [(close e0 ρ)
-       (match e0
+      [(close e ρ)
+       (match e
          [(? x? x) (ς [ρ@ ρ x] σ k)]
          [(•) (match-let ([(cons σ1 l) (σ+ σ)]) (ς l σ1 k))]
          [(? v? v) (ς [close-v v ρ] σ k)]
          [(@ l ef exs)
           (ς [close-e ef ρ] σ [@/k l '() (for/list ([ei exs]) (close-e ei ρ)) k])]
-         [(if/ e e1 e2) (ς [close-e e ρ] σ [if/k (close-e e1 ρ) (close-e e2 ρ) k])]
+         [(if/ e0 e1 e2) (ς [close-e e0 ρ] σ [if/k (close-e e1 ρ) (close-e e2 ρ) k])]
          [(amb es) (for/set ([ei es]) (ς (close-e ei ρ) σ k))]
          [(ref ctx ctx x) (ς [close-e (ref-v ctx x) ρ] σ k)]
          [(ref ctx src x) 
@@ -231,39 +232,37 @@
               [_ (ς [close-v vx ρ∅] σ [mon/k1 src ctx src Cx k])]))])]
       
       [(and bl (Blm l+ lo)) (ς bl σ 'mt)]
-      [(Mon l+ l- lo C0 E0) (ς E0 σ [mon/k1 l+ l- lo C0 k])]
-      [(Fmon lo C0 V0) (step-fmon m lo C0 V0 σ k)]
-      [(Assume V0 C0) (match/nd (refine [cons σ V0] C0)
-                        [(cons σ1 V1) (ς V1 σ1 k)])]))
+      [(Mon l+ l- lo C E1) (ς E1 σ [mon/k1 l+ l- lo C k])]
+      [(FC lo C V) (step-fc lo C V σ k)]
+      [(Assume V C) (match/nd (refine [cons σ V] C)
+                      [(cons σ1 V1) (ς V1 σ1 k)])]))
   
-  (define (step-V m V0 σ k)
-    (Memo? V? σ? κ? . -> . (nd/c ς?))
+  (define (step-V V σ k)
+    (V? σ? κ? . -> . (nd/c ς?))
     (match k
       [(if/k E1 E2 k1) 
-       (match/nd (Δ 'Δ σ [op 'false?] (list V0))
+       (match/nd (Δ 'Δ σ [op 'false?] (list V))
          [(cons σ1 [val #f _]) (ς E1 σ1 k1)]
          [(cons σ1 [val #t _]) (ς E2 σ1 k1)])]
-      [(@/k l Vs [cons Ei Es] k1) (ς Ei σ [@/k l (cons V0 Vs) Es k1])]
-      [(@/k l Vs '() k1) (match-let ([(cons Vf Vx) (reverse (cons V0 Vs))])
-                           (maybe-@ m l σ Vf Vx k1))]
-      [(mon/k l+ l- lo C k1) (step-mon l+ l- lo C V0 σ k1)]
-      [(vmon/k l+ l- lo Vs [cons Ci '()] [cons Vi Vs1] k) 
+      [(@/k l Vs [cons Ei Es] k1) (ς Ei σ [@/k l (cons V Vs) Es k1])]
+      [(@/k l Vs '() k1) (match-let ([(cons Vf Vx) (reverse (cons V Vs))])
+                           (step-@ l σ Vf Vx k1))]
+      [(mon/k l+ l- lo C k1) (step-mon l+ l- lo C V σ k1)]
+      [(mon*/k l+ l- lo Vs [cons Ci '()] [cons Vi Vs1] k1) 
        ; repeat last contract to handle var-args
-       (ς Vi σ [mon/k1 l+ l- lo Ci [vmon/k l+ l- lo (cons V0 Vs) [cons Ci '()] Vs1 k]])]
-      [(vmon/k l+ l- lo Vs [cons Ci Cs] [cons Vi Vs1] k) 
-       (ς Vi σ [mon/k1 l+ l- lo Ci [vmon/k l+ l- lo (cons V0 Vs) Cs Vs1 k]])]
-      [(vmon/k l+ l- lo Vs _ '() k) 
-       (match-let ([(cons Vf Vx) (reverse (cons V0 Vs))])
-         (maybe-@ m l- σ Vf Vx k))]))
+       (ς Vi σ [mon/k1 l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) [cons Ci '()] Vs1 k1)])]
+      [(mon*/k l+ l- lo Vs [cons Ci Cs] [cons Vi Vs1] k1) 
+       (ς Vi σ [mon/k1 l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) Cs Vs1 k1)])]
+      [(mon*/k l+ l- lo Vs _ '() k1) 
+       (match-let ([(cons Vf Vx) (reverse (cons V Vs))])
+         (step-@ l- σ Vf Vx k1))]
+      [(col/k _ _ _ k1) (ς V σ k1)]))
   
-  (define (step s m)
-    (ς? Memo? . -> . (nd/c ς?))
+  (define (step s)
+    (ς? . -> . ς*?)
     (match s
-      [(ς [? V? V] σ k) (step-V m V σ k)]
-      [(ς E σ k) (step-E m E σ k)]))
-  
-  (define (step1 s m)
-    (non-det (λ (s) (step s m)) (dumbize s)))
+      [(ς [? V? V] σ k) (step-V V σ k)]
+      [(ς E σ k) (step-E E σ k)]))
   
   (define/match (dumbize s)
     [((ς [? V? V] σ k))
@@ -287,98 +286,78 @@
           [(cons σ1 V1) (ς V1 σ1 k)])])]
     [(_) s])
   
-  
   (define (step* s)
     (ς? . -> . (set/c ς?))
-    #;(define: seen : [Setof ς] ∅)
-    (define finals ∅)
-    
-    (let visit ([s s] [m #hash()])
-      (if (ς-final? s)
-          (begin
-            #;(printf "FINAL:~n~a~n~n" (show-ς s))
+    (let ([finals ∅])
+      (let visit ([s s])
+        (if (ς-final? s)
             ; omit blaming top, havoc, and opaque modules
             (unless (match? s (ς [Blm (or '† '☠ (? module-opaque?)) _] _ _))
-              (set! finals (set-add finals s))))
-          (begin
-            #;(printf "NON-FINAL:~n~a~n~n" (show-ς s))
-            #;(set! seen (set-add seen s))
-            (let ([m1 (match s
-                        [(ς [? V? Vn] σi [@/k l Vs '() ki])
-                         (match-let ([(cons Vf Vx) (reverse (cons Vn Vs))])
-                           (hash-update m [cons l Vf]
-                                        (λ (r) (cons [list Vx σi ki] r))
-                                        (const empty)))]
-                        [_ m])])
-              (match (step1 s m)
-                [(? ς? s1) (visit s1 m1)]
-                [(? set? ss) (for ([si (in-set ss)]) (visit si m1))])))))
-    #;(printf "#states: ~a~n" (+ (set-count seen) (set-count finals)))
-    finals)
+              (set! finals (set-add finals s)))
+            (non-det visit (non-det dumbize (step s)))))
+      finals))
   
   (for/set ([s (step* (inj e†))])
-    (match-let ([(ς A0 σ _) s])
-      (A→EA σ A0))))
+    (match-let ([(ς A σ _) s])
+      (A→EA σ A))))
 
 (define (ev p) (run (read-p p)))
 
-(define (ρ/σ-equal? ρ1 σ1 ρ2 σ2) ; they close the same expression, so must have same dom
-  (ρ? σ? ρ? σ? . -> . boolean?)
+(define (find-previous-call σ Vf Vx k)
+  (σ? V? (listof V?) κ? . -> . (or/c #f col/k?))
+  (define go (curry find-previous-call σ Vf Vx))
+  (match k
+    [(col/k (and Vg (val (close g _) _)) _ σ1 k1) (if (E⊑ Vf σ Vg σ1) k (go k1))]
+    [(or (col/k _ _ _ k1) (if/k _ _ k1) (@/k _ _ _ k1)
+         (mon/k _ _ _ _ k1) (mon*/k _ _ _ _ _ _ k1)) (go k1)]
+    ['mt #f]))
+
+
+;; determine approximation between closures
+(define (E⊑ E1 σ1 E2 σ2)
+  (E? σ? E? σ? . -> . boolean?)
+  (match* (E1 E2)
+    [((close e1 ρ1) (close e2 ρ2)) (and (e⊑ e1 e2) (ρ⊑ ρ1 σ1 ρ2 σ2))]
+    [((val U1 Cs) (val U2 Cs)) (U⊑ U1 σ1 U2 σ2)]
+    [((Mon f g h C1 E1p) (Mon f g h C2 E2p))
+     (and (C⊑ C1 σ1 C2 σ2) (E⊑ E1p σ1 E2p σ2))]
+    [((FC l C1 V1) (FC l C2 V2)) (and (C⊑ C1 σ1 C2 σ2) (E⊑ V1 σ1 V2 σ2))]
+    [((Assume V1 C1) (Assume V2 C2)) (and (C⊑ C1 σ1 C2 σ2) (E⊑ E1 σ1 E2 σ2))]
+    [((and V (val U Cs1)) (val (•) Cs2))
+     (for/and ([C Cs2]) (equal? 'Proved (prove? σ1 V C)))]
+    [((val U1 _) (val U2 _)) (U⊑ U1 σ1 U2 σ2)]
+    [((? L? L) _) (E⊑ (σ@ σ1 L) σ1 E2 σ2)]
+    [(_ (? L? L)) (E⊑ E1 σ1 (σ@ σ2 L) σ2)]
+    [(_ _) (equal? E1 E2)]))
+(define (E*⊑ Es1 σ1 Es2 σ2)
+  ((listof E?) σ? (listof E?) σ? . -> . boolean?)
+  (for/and ([E1 Es1] [E2 Es2]) (E⊑ E1 σ1 E2 σ2)))
+
+;; determine approximation between contracts
+(define (C⊑ C1 σ1 C2 σ2)
+  (match-let ([(close c1 ρ1) C1]
+              [(close c2 ρ2) C2])
+    (and (equal? c1 c2) (ρ⊑ ρ1 σ1 ρ2 σ2))))
+
+;; determine approximation between environments
+(define (ρ⊑ ρ1 σ1 ρ2 σ2)
   (match-let ([(ρ m1 len1) ρ1]
               [(ρ m2 len2) ρ2])
     (for/and ([sd (in-range 0 (min len1 len2))] #:when (ρ-has? ρ1 sd))
-      (E/σ-equal? (ρ@ ρ1 sd) σ1 (ρ@ ρ2 sd) σ2))))
+      (E⊑ (ρ@ ρ1 sd) σ1 (ρ@ ρ2 sd) σ2))))
 
-(define (E/σ-equal? E1 σ1 E2 σ2)
-  (E? σ? E? σ? . -> . boolean?)
-  (match* (E1 E2)
-    [([close e ρ1] [close e ρ2]) (ρ/σ-equal? ρ1 σ1 ρ2 σ2)]
-    [([val u1 Cs] [val u2 Cs])
-     (match* (u1 u2)
-       [([close f ρ1] [close f ρ2]) (ρ/σ-equal? ρ1 σ1 ρ2 σ2)]
-       [([Arr f g h C V1] [Arr f g h C V2]) (E/σ-equal? V1 σ1 V2 σ2)]
-       [([Struct t Vs1] [Struct t Vs2]) (for/and ([V1 Vs1] [V2 Vs2])
-                                          (E/σ-equal? V1 σ1 V2 σ2))]
-       [(_ _) (equal? u1 u2)])]
-    [([Mon f g h C E1′] [Mon f g h C E2′]) (E/σ-equal? E1′ σ1 E2′ σ2)]
-    [([Fmon l C V1] [Fmon l C V2]) (E/σ-equal? V1 σ1 V2 σ2)]
-    [([Assume V1 C] [Assume V2 C]) (E/σ-equal? V1 σ1 V2 σ2)]
-    [([? L? l1] E2′) (E/σ-equal? [σ@ σ1 l1] σ1 E2′ σ2)]
-    [(E1 [? L? l2]) (E/σ-equal? E1 σ1 [σ@ σ2 l2] σ2)]
-    [(_ _) (equal? E1 E2)]))
+;; determine approximation between prevalues
+(define (U⊑ U1 σ1 U2 σ2)
+  (match* (U1 U2)
+    [((Struct t Vs1) (Struct t Vs2)) (E*⊑ Vs1 σ1 Vs2 σ2)]
+    [((close f ρ1) (close f ρ2)) (ρ⊑ ρ1 σ1 ρ2 σ2)]
+    [((Arr f g h C1 V1) (Arr f g h C2 V2)) (and (C⊑ C1 σ1 C2 σ2) (E⊑ V1 σ1 V2 σ2))]
+    [(_ (•)) #t]
+    [(_ _) (equal? U1 U2)]))
 
-(define (Es/σ-equal? Es1 σ1 Es2 σ2)
-  ((listof E?) σ? (listof E?) σ? . -> . boolean?)
-  (for/and ([E1 Es1] [E2 Es2])
-    (E/σ-equal? E1 σ1 E2 σ2)))
+;; determine approximation between expressions
+(define (e⊑ e1 e2) (or (•? e2) (equal? e1 e2)))
 
-(define (κ/σ-equal? k1 σ1 k2 σ2)
-  (κ? σ? κ? σ? . -> . boolean?)
-  (match* (k1 k2)
-    [('mt 'mt) #t]
-    [([if/k E1a E1b k1′] [if/k E2a E2b k2′])
-     (and [E/σ-equal? E1a σ1 E2a σ2]
-          [E/σ-equal? E1b σ1 E2b σ2]
-          [κ/σ-equal? k1′ σ1 k2′ σ2])]
-    [([@/k _ vs1 es1 k1′] [@/k _ vs2 es2 k2′])
-     (and [Es/σ-equal? vs1 σ1 vs2 σ2]
-          [Es/σ-equal? es1 σ1 es2 σ2]
-          [κ/σ-equal? k1′ σ1 k2′ σ2])]
-    [([mon/k _ _ _ C k1′] [mon/k _ _ _ C k2′]) (κ/σ-equal? k1′ σ1 k2′ σ2)]
-    [([vmon/k _ _ _ Vs1 Cs Us1 k1′] [vmon/k _ _ _ Vs2 Cs Us2 k2′])
-     (and [Es/σ-equal? Vs1 σ1 Vs2 σ2]
-          [Es/σ-equal? Us1 σ1 Us2 σ2]
-          [κ/σ-equal? k1′ σ1 k2′ σ2])]
-    [(_ _) #f]))
-
-;; checks whether the first kontinuation is a prefix of the second one
-(define (κ-prefix? k1 k2)
-  (κ? κ? . -> . boolean?)
-  (or (equal? k1 k2)
-      (match k2
-        ['mt #f]
-        [(or [if/k _ _ k] [@/k _ _ _ k] [mon/k _ _ _ _ k] [vmon/k _ _ _ _ _ _ k])
-         (κ-prefix? k1 k)])))
 
 (define (ρ-approx ρ1)
   (ρ? . -> . ρ?)
@@ -390,29 +369,36 @@
 (define (V-approx V [d 7])
   ((V?) (int?) . ->* . V?)
   (match V
-    [(val u Cs)
-     (match u
-       [(? integer?) (val (•) (set-add Cs (close [op 'int?] ρ∅)))]
-       [(? real?) (val (•) (set-add Cs (close [op 'real?] ρ∅)))]
-       [(? number?) (val (•) (set-add Cs (close [op 'num?] ρ∅)))]
+    [(val U Cs)
+     (match U
+       [0 V]
+       [(? number?) (val (•) (∪
+                              Cs
+                              (close (op (cond
+                                           [(integer? U) 'int?]
+                                           [(real? U) 'real?]
+                                           [else 'num?]))
+                                     ρ∅)
+                              (if (real? U)
+                                  (close (op (if (positive? U) 'positive? 'negative?)) ρ∅)
+                                  ∅)))]
        [(? string?) (val (•) (set-add Cs (close [op 'str?] ρ∅)))]
        [(Struct t Vs) (if (zero? d) ★
                           (val (Struct t (for/list ([Vi Vs])
                                            (V-approx Vi (sub1 d))))
                                Cs))]
-       [(close (? f? f) _) (if (clo-depth-more-than? 1 V)
-                               (val (•) {set (close (op 'proc?) ρ∅)})
-                               V)]
+       [(close (? f? f) _)  (if (clo-circular? V)
+                                (val (•) {set (close (op 'proc?) ρ∅)})
+                                V)]
        [_ V])]
     [_ V]))
 
-(define (AND-FMON lo cs ρ Vs k)
+(define (AND-FC lo cs ρ Vs k)
   (l? (listof c?) ρ? (listof V?) κ? . -> . κ?)
   (match* (cs Vs)
     [('() '()) k]
     [([cons ci cs] [cons Vi Vs])
-     (let ([k1 (AND-FMON lo cs ρ Vs k)])
-       (if/k (Fmon lo [close-c ci ρ] Vi) [val #f ∅] k1))]))
+     (if/k (FC lo [close-c ci ρ] Vi) [val #f ∅] (AND-FC lo cs ρ Vs k))]))
 
 ;; collects range components of contracts
 (define (C-ranges Vx Cs)
@@ -421,14 +407,6 @@
              #:when (match? Ci (close (? func-c?) _)))
     (match-let ([(close (func-c cx cy _) ρc) Ci])
       (close-c cy (ρ++ ρc Vx)))))
-
-;; bind arguments for var-args function
-(define MT (val [Struct 'empty '()] ∅))
-(define (bind-vars ρ1 Vx n)
-  (ρ? (listof V?) int? . -> . ρ?)
-  (cond
-    [(zero? n) (ρ+ ρ1 [foldr (λ (X Xs) (val [Struct 'cons (list X Xs)] ∅)) MT Vx])]
-    [else (bind-vars [ρ+ ρ1 (car Vx)] [cdr Vx] [sub1 n])]))
 
 ;; add monitoring frame and removes redundant ones below
 (define (mon/k1 l+ l- lo Cn kn)
@@ -508,14 +486,14 @@
   [((if/k E1 E2 k)) `(IF/K ,(show-E E1) ,(show-E E2) ,(show-κ k))]
   [((@/k _ Vs Es k)) `(@/K ,(map show-E Vs) ,(map show-E Es) ,(show-κ k))]
   [((mon/k _ _ _ C k)) `(MON/K ,(show-C C) ,(show-κ k))]
-  [((vmon/k _ _ _ _ Cs Us k)) `(VMON/K ,(map show-C Cs) ,(map show-E Us) ,(show-κ k))])
+  [((mon*/k _ _ _ _ Cs Us k)) `(MON*/k ,(map show-C Cs) ,(map show-E Us) ,(show-κ k))])
 (define/match (show-E E)
   [((close e _)) (show-e e)]
   [((val U _)) (show-U U)]
   [((Blm l+ lo)) `(Blame ,l+ ,lo)]
   [((? L? l)) `(L ,l)]
   [((Mon _ _ _ C E)) `(MON ,(show-C C) ,(show-E E))]
-  [((Fmon _ C V)) `(FMON ,(show-C C) ,(show-E V))]
+  [((FC _ C V)) `(FC ,(show-C C) ,(show-E V))]
   [((Assume V C)) `(ASSUME ,(show-E V) ,(show-C C))])
 (define/match (show-U U)
   [((close f _)) (show-e f)]

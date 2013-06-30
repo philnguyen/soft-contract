@@ -23,7 +23,7 @@
      [struct or-c ([l c?] [r c?])]
      [struct struct-c ([name l?] [fields (listof c?)])]
      [struct μ-c ([x l?] [c c?])]
-     [clo-depth-more-than? (int? V? . -> . boolean?)]
+     [clo-circular? (V? . -> . boolean?)]
      
      [subst/c (c? x-c? c? . -> . c?)]
      [FV ([e?] [int?] . ->* . [set/c int?])]
@@ -33,7 +33,7 @@
      
      [struct ρ ([m (hash/c int? V?)] [len integer?])]
      [ρ+ (ρ? V? . -> . ρ?)]
-     [ρ++ (ρ? (listof V?) . -> . ρ?)]
+     [ρ++ ((ρ? (listof V?)) ((or/c #f int?)) . ->* . ρ?)]
      [ρ@ (ρ? (or/c x? int?) . -> . V?)]
      [ρ-has? (ρ? (or/c x? int?) . -> . any/c)]
      [ρ-restrict (ρ? (set/c int?) . -> . ρ?)]
@@ -52,7 +52,7 @@
      [struct Struct ([name l?] [fields (listof V?)])]
      [struct Blm ([f+ l?] [fo l?])]
      [struct Mon ([l+ l?] [l- l?] [lo l?] [c C?] [e E?])]
-     [struct Fmon ([lo l?] [c C?] [v V?])]
+     [struct FC ([lo l?] [c C?] [v V?])]
      [struct Assume ([v V?] [c C?])]
      
      [arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
@@ -239,6 +239,18 @@
            (clo-depth-more-than? (- n 1) Vi))]
         [_ #f])))
 
+(define (clo-circular? V)
+  (match V
+    [(val (close e (ρ m _)) _)
+     (define (circ? V1)
+       (match V1
+         [(val (close e1 (ρ m1 _)) _)
+          (or (eq? e1 e)
+              (for/or ([Vi (in-hash-values m1)]) (circ? Vi)))]
+         [_ #f]))
+     (for/or ([V (in-hash-values m)]) (circ? V))]
+    [_ #f]))
+
 ;;;;; ENVIRONMENT
 
 ; run-time environment mapping static distances to closures
@@ -265,9 +277,14 @@
 (define (ρ+ ρ1 V)
   (match-let ([(ρ m l) ρ1])
     (ρ (hash-set m l V) (add1 l))))
-(define (ρ++ ρ1 Vs)
-  (for/fold ([ρi ρ1]) ([V Vs])
-    (ρ+ ρi V)))
+
+(define (ρ++ ρ1 V* [varargs? #f])
+  (define MT (val [Struct 'empty '()] ∅))
+  (match varargs?
+    [#f (for/fold ([ρi ρ1]) ([V V*])
+          (ρ+ ρi V))]
+    [0 (ρ+ ρ1 (foldr (λ (Vi Vr) (val (Struct 'cons (list Vi Vr)) ∅)) MT V*))]
+    [n (ρ++ (ρ+ ρ1 (car V*)) (cdr V*) (- n 1))]))
 
 ; access environment at given static distance
 (define (ρ@ ρ1 x1)
@@ -358,9 +375,9 @@
 (define C? (close/c c?))
 
 ; closed expression
-(define (E? x) ([or/c [close/c e?] A? Mon? Fmon? Assume?] x))
+(define (E? x) ([or/c [close/c e?] A? Mon? FC? Assume?] x))
 (struct Mon (l+ l- lo c e) #:transparent)
-(struct Fmon (lo c v) #:transparent)
+(struct FC (lo c v) #:transparent)
 (struct Assume (v c) #:transparent)
 
 ; checks whether the closed function handles given arity
