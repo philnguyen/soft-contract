@@ -63,6 +63,8 @@
       [([val (close [? f?] _) _] [op 'proc?]) 'Proved]
       [([val [? o?] _] [op 'proc?]) 'Proved]
       [([val [? Arr?] _] [op 'proc?]) 'Proved]
+      [([val (Arr _ _ _ (close c ρ1) _) _] [? func-c? d])
+       (if (and (equal? c d) (equal? ρ ρ1)) 'Proved 'Neither)]
       [([val [Struct t _] _] [struct-p t _]) 'Proved]
       [([val [not (? •?)] _] [? pred?]) 'Refuted]
       

@@ -70,12 +70,17 @@
                (match (v->c l v)
                  [#f (ς ★ σ k)]
                  [(func-c cx cy v?)
-                  (match-let ([(cons σn L)
-                               (refine
-                                (σ+ σ)
-                                (close-c cy (ρ++ ρ∅ Vx (if v? (sub1 (length cx)) #f))))])
-                    #;(printf "non-tail, approxed to ~a~n~n" (σ@ σn L))
-                    (ς L σn k))])))]
+                  ; only approximate by function's range if argument satisfies domain
+                  ; otherwise • is the only safe thing
+                  (if (for/and ([Vxi Vx] [cxi cx])
+                        (equal? 'Proved (prove? σ Vxi (close cxi ρ∅))))
+                      (match-let ([(cons σn L)
+                                   (refine
+                                    (σ+ σ)
+                                    (close-c cy (ρ++ ρ∅ Vx (if v? (sub1 (length cx)) #f))))])
+                        #;(printf "non-tail, approxed to ~a~n~n" (σ@ σn L))
+                        (ς L σn k))
+                      (ς ★ σ k))])))]
         [else (let ([Wx (map V-approx Vx)])
                 #;(printf "accel args to ~a~n~n" (map (compose show-E (curry σ@* σ)) Wx))
                 (match v? ; proceed with approximate arguments
@@ -337,15 +342,7 @@
 ;; determine approximation between expressions
 (define (e⊑ e1 e2) (or (•? e2) (equal? e1 e2)))
 
-
-(define (ρ-approx ρ1)
-  (ρ? . -> . ρ?)
-  (match-let ([(ρ m len) ρ1])
-    (ρ (for/hash ([(k v) (in-hash m)])
-         (values k [V-approx v]))
-       len)))
-
-(define (V-approx V [d 7])
+(define (V-approx V [d 4])
   ((V?) (int?) . ->* . V?)
   (match V
     [(val U Cs)
