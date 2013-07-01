@@ -262,9 +262,10 @@
   [(define (equal-proc ρ1 ρ2 equal?-rec)
      (match* (ρ1 ρ2)
        [([ρ m1 l1] [ρ m2 l2])
-        (for/and ([sd (in-range 0 (min l1 l2)) #|max static distance|#])
-          (implies (ρ-has? ρ1 sd)
-                   (and (ρ-has? ρ2 sd) (equal?-rec (ρ@ ρ1 sd) (ρ@ ρ2 sd)))))]
+        (for/and ([sd (in-range 0 (max l1 l2)) #|max static distance|#])
+          (if (ρ-has? ρ1 sd)
+              (and (ρ-has? ρ2 sd) (equal?-rec (ρ@ ρ1 sd) (ρ@ ρ2 sd)))
+              (not (ρ-has? ρ2 sd))))]
        [(_ _) #f]))
    (define (hash-proc a hash-rec)
      (match-let ([(ρ m _) a])
