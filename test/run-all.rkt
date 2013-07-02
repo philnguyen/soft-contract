@@ -5,6 +5,7 @@
 
 (define verbose? #f)
 (define files '())
+(define TIMEOUT 300)
 
 (command-line 
  #:once-each [("-v" "--verbose") "Verbose mode" (set! verbose? #t)]
@@ -31,14 +32,14 @@
         [prog (file->list filename)])
     (if verbose?
         ; only run the 'normal' evaluator for verbose mode
-        (match (within-time 60 (exec ev prog))
+        (match (within-time TIMEOUT (exec ev prog))
           [#f (printf "~a: ~a lines, timeout~n~n" name lines)]
           [(list (list r t1 t2 t3))
            (printf "~a: ~a lines~ncpu time: ~a, real time: ~a, gc time: ~a~n" name lines t1 t2 t3)
            (for ([a (in-set r)]) (printf "-- ~a~n" a))
            (printf "~n")])
         ; compare with dumb-ized interpreter, dump table in latex format
-        (let ([a1 (within-time 60 (exec ev prog))]
-              [a2 (within-time 60 (exec ev1 prog))])
+        (let ([a1 (within-time TIMEOUT (exec ev prog))]
+              [a2 (within-time TIMEOUT (exec ev1 prog))])
           (printf "~a & ~a & ~a / ~a & ~a / ~a\\\\~n"
                   name lines (a->time a1) (a->time a2) (a->blames a1) (a->blames a2))))))
