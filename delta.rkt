@@ -98,7 +98,7 @@
   [([and name (or '+ '- '* '/ '≠)] `(,[val (? number? x) _] ,[val (? number? y) _]))
    (val ((match name ['+ +] ['- -] ['* *] ['/ /]) x y) ∅)]
   [([and name (or '> '< '>= '<=)] `(,[val (? real? x) _] ,[val (? real? y) _]))
-   (val ((match name ['< <] ['> >] [>= >=] [<= <=]) x y) ∅)]
+   (val ((match name ['< <] ['> >] ['>= >=] ['<= <=]) x y) ∅)]
   [('str-len `(,[val (? string? x) _])) (val (string-length x) ∅)]
   
   ; semi-precise values
