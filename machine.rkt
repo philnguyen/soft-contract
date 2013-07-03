@@ -2,12 +2,12 @@
 (require "syntax.rkt" "lang.rkt" "prim.rkt" "delta.rkt" "read.rkt")
 (provide run ev)
 
-(define (κ? x) ([or/c 'mt if/k? @/k? mon/k? mon*/k? col/k?] x))
+(define (κ? x) ([or/c 'mt if/k? @/k? mon/k? mon*/k? lam/k?] x))
 (struct if/k (e1 e2 k) #:transparent)
 (struct @/k (l vs es k) #:transparent)
 (struct mon/k (l+ l- lo c k) #:transparent)
 (struct mon*/k (l+ l- lo Vs C Us k) #:transparent)
-(struct col/k (f xs σ k) #:transparent)
+(struct lam/k (f xs σ k) #:transparent)
 
 (struct ς (e σ k) #:transparent)
 
@@ -53,43 +53,57 @@
   (define (accel-@ l σ Vf Vx k k0)
     (l? σ? V? (listof V?) κ? κ? . -> . ς*?)
     
+    ; checks whether recursive application is in tail-call position
+    ; (ignoring lam/k frames)
     (define (tail? k kr)
-      (or (eq? k kr)
-          (match k
-            [(col/k _ _ _ k1) (tail? k1 kr)]
-            [_ #f])))
+      (or (eq? k kr) (match k
+                       [(lam/k _ _ _ k1) (tail? k1 kr)]
+                       [_ #f])))
+    
+    (define fc (match-let ([(val (close v _) _) Vf]) (v->c l v)))
     
     (match-let ([(val (close (f n e v?) ρ) Cs) Vf]
-                [(col/k Vg Vz σ1 _) k0])
-      #;(printf "old:~a~n~nnew:~a~n~n" (map (curry σ@* σ1) Vz) (map (curry σ@* σ) Vx))
+                [(lam/k Vg Vz σ1 _) k0])
       (cond
-        [(E*⊑ Vx σ Vz σ1)
-         #;(printf "sumsubed~n~n")
-         (if (tail? k k0) ∅
-             (match-let ([(val (close v _) _) Vf])
-               (match (v->c l v)
-                 [#f (ς ★ σ k)]
-                 [(func-c cx cy v?)
-                  ; only approximate by function's range if argument satisfies domain
-                  ; otherwise • is the only safe thing
-                  (if (for/and ([Vxi Vx] [cxi cx])
-                        (equal? 'Proved (prove? σ Vxi (close cxi ρ∅))))
-                      (match-let ([(cons σn L)
-                                   (refine
-                                    (σ+ σ)
-                                    (close-c cy (ρ++ ρ∅ Vx (if v? (sub1 (length cx)) #f))))])
-                        #;(printf "non-tail, approxed to ~a~n~n" (σ@ σn L))
-                        (ς L σn k))
-                      (ς ★ σ k))])))]
-        [else (let ([Wx (map V-approx Vx)])
-                #;(printf "accel args to ~a~n~n" (map (compose show-E (curry σ@* σ)) Wx))
-                (match v? ; proceed with approximate arguments
-                  [#f (if (= (length Vx) n)
-                          (ς [close e (ρ++ ρ Wx)] σ [col/k Vf Wx σ k])
-                          (ς [Blm l 'Δ] σ 'mt))]
-                  [#t (if (>= (length Vx) (sub1 n))
-                          (ς [close e (ρ++ ρ Wx (sub1 n))] σ [col/k Vf Wx σ k])
-                          (ς [Blm l 'Δ] σ 'mt))]))])))
+        [(E*⊑ Vx σ Vz σ1) ; recursive call by previous application subsuming it
+         (if (tail? k k0) ∅ ; ignore unproductive tail calls
+             (match fc
+               [#f (ς ★ σ k)]
+               [(func-c cx cy v?)
+                ; only approximate by function's range if argument satisfies domain
+                ; otherwise ⊤ is the only safe thing
+                (if (for/and ([Vxi Vx] [cxi cx])
+                      (equal? 'Proved (prove? σ Vxi (close cxi ρ∅))))
+                    (match-let ([(cons σL L)
+                                 (refine
+                                  (σ+ σ)
+                                  (close-c cy (ρ++ ρ∅ Vx (if v? (sub1 (length cx)) #f))))])
+                      (ς L σL k))
+                    (ς ★ σ k))]))]
+        [else ; proceed with widened arguments
+         (let-values ([(σn Wx)
+                       (match fc
+                         [#f (values σ (map widen Vx))]
+                         [(func-c cx cy v?)
+                          (let-values
+                              ([(σ2 Wx-rev)
+                                (for/fold ([σ σ] [Wx empty]) ([Vxi Vx] [Vzi Vz] [cxi cx])
+                                  (if (E⊑ Vxi σ Vzi σ1) (values σ (cons Vxi Wx))
+                                      (let ([Ci (close cxi ρ∅)])
+                                        (match (prove? σ Vxi Ci)
+                                          ['Proved
+                                           (match-let ([(cons σi Wi)
+                                                        (refine (cons σ (widen Vxi 1)) Ci)])
+                                             (values σi (cons Wi Wx)))]
+                                          [_ (values σ (cons (widen Vxi) Wx))]))))])
+                            (values σ2 (reverse Wx-rev)))])])
+           (match v? ; proceed with approximate arguments
+             [#f (if (= (length Vx) n)
+                     (ς [close e (ρ++ ρ Wx)] σn [lam/k Vf Wx σn k])
+                     (ς [Blm l 'Δ] σn 'mt))]
+             [#t (if (>= (length Vx) (sub1 n))
+                     (ς [close e (ρ++ ρ Wx (sub1 n))] σn [lam/k Vf Wx σn k])
+                     (ς [Blm l 'Δ] σn 'mt))]))])))
   
   ; steps an application state
   (define (step-@ l σ Vf Vx k)
@@ -102,10 +116,10 @@
           (match (find-previous-call σ Vf Vx k)
             [#f (match v?
                   [#f (if (= (length Vx) n)
-                          (ς [close-e e1 (ρ++ ρf Vx)] σ [col/k Vf Vx σ k])
+                          (ς [close-e e1 (ρ++ ρf Vx)] σ [lam/k Vf Vx σ k])
                           (ς [Blm l 'Δ] σ 'mt))]
                   [#t (if (>= (length Vx) (sub1 n))
-                          (ς [close-e e1 (ρ++ ρf Vx (sub1 n))] σ [col/k Vf Vx σ k])
+                          (ς [close-e e1 (ρ++ ρf Vx (sub1 n))] σ [lam/k Vf Vx σ k])
                           (ς [Blm l 'Δ] σ 'mt))])]
             [k0 (accel-@ l σ Vf Vx k k0)])]
          [(Arr l+ l- lo (close (func-c cx cy v?) ρc) Vg)
@@ -114,7 +128,7 @@
             (if (if v? (>= V-len c-len) (= V-len c-len))
                 (ς Vg σ [mon*/k l- l+ lo '() (map (λ (c) (close-c c ρc)) cx) Vx
                                 (mon/k1 l+ l- lo (close-c cy [ρ++ ρc Vx])
-                                        (col/k Vf Vx σ k))])
+                                        (lam/k Vf Vx σ k))])
                 (ς (Blm l lo) σ 'mt)))]
          [_ (match/nd (Δ 'Δ σ (op 'proc?) `(,Vf))
               [(cons σ1 (val #t _))
@@ -232,11 +246,11 @@
                  [cx (ref-c src x)]
                  [Cx (close-c cx ρ∅)])
             (match vx
-              [(? •? v•) (match/nd (refine (σ+ σ) Cx)
-                           [(cons σ1 l) (ς l σ1 [mon/k1 src ctx src Cx k])])]
+              [(•) (match/nd (refine (σ+ σ) Cx)
+                     [(cons σ1 l) (ς l σ1 [mon/k1 src ctx src Cx k])])]
               [_ (ς [close-v vx ρ∅] σ [mon/k1 src ctx src Cx k])]))])]
       
-      [(and bl (Blm l+ lo)) (ς bl σ 'mt)]
+      [(? Blm? bl) (ς bl σ 'mt)]
       [(Mon l+ l- lo C E1) (ς E1 σ [mon/k1 l+ l- lo C k])]
       [(FC lo C V) (step-fc lo C V σ k)]
       [(Assume V C) (match/nd (refine [cons σ V] C)
@@ -261,7 +275,7 @@
       [(mon*/k l+ l- lo Vs _ '() k1) 
        (match-let ([(cons Vf Vx) (reverse (cons V Vs))])
          (step-@ l- σ Vf Vx k1))]
-      [(col/k _ _ _ k1) (ς V σ k1)]))
+      [(lam/k _ _ _ k1) (ς V σ k1)]))
   
   (define (step s)
     (ς? . -> . ς*?)
@@ -288,11 +302,11 @@
 (define (ev p) (run (read-p p)))
 
 (define (find-previous-call σ Vf Vx k)
-  (σ? V? (listof V?) κ? . -> . (or/c #f col/k?))
+  (σ? V? (listof V?) κ? . -> . (or/c #f lam/k?))
   (define go (curry find-previous-call σ Vf Vx))
   (match k
-    [(col/k (and Vg (val (close g _) _)) _ σ1 k1) (if (E⊑ Vf σ Vg σ1) k (go k1))]
-    [(or (col/k _ _ _ k1) (if/k _ _ k1) (@/k _ _ _ k1)
+    [(lam/k (and Vg (val (close g _) _)) _ σ1 k1) (if (E⊑ Vf σ Vg σ1) k (go k1))]
+    [(or (lam/k _ _ _ k1) (if/k _ _ k1) (@/k _ _ _ k1)
          (mon/k _ _ _ _ k1) (mon*/k _ _ _ _ _ _ k1)) (go k1)]
     ['mt #f]))
 
@@ -342,7 +356,7 @@
 ;; determine approximation between expressions
 (define (e⊑ e1 e2) (or (•? e2) (equal? e1 e2)))
 
-(define (V-approx V [d 4])
+(define (widen V [d 4])
   ((V?) (int?) . ->* . V?)
   (match V
     [(val U Cs)
@@ -361,7 +375,7 @@
        [(? string?) (val (•) (set-add Cs (close [op 'str?] ρ∅)))]
        [(Struct t Vs) (if (zero? d) ★
                           (val (Struct t (for/list ([Vi Vs])
-                                           (V-approx Vi (sub1 d))))
+                                           (widen Vi (sub1 d))))
                                Cs))]
        [(close (? f? f) _)  (if (clo-circular? V)
                                 (val (•) {set (close (op 'proc?) ρ∅)})

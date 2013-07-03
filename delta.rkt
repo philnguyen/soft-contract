@@ -72,7 +72,8 @@
      (match/nd (Δ 'Δ σ [op 'real?] `[,V1])
        [(cons σ1 (val #t _))
         (match/nd (Δ 'Δ σ1 [op 'real?] `[,V2])
-          [(cons σ2 (val #t _)) (cons σ2 [δ name (map [curry σ@* σ2] Vs)])]
+          [(cons σ2 (val #t _)) (match/nd (δ name (map (curry σ@* σ2) Vs))
+                                  [A (cons σ2 A)])]
           [(cons σ2 (val #f _)) (cons σ2 [Blm l name])])]
        [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
     [([op 'str-len] `[,_])
@@ -98,7 +99,7 @@
   [([and name (or '+ '- '* '/ '≠)] `(,[val (? number? x) _] ,[val (? number? y) _]))
    (val ((match name ['+ +] ['- -] ['* *] ['/ /]) x y) ∅)]
   [([and name (or '> '< '>= '<=)] `(,[val (? real? x) _] ,[val (? real? y) _]))
-   (val ((match name ['< <] ['> >] [>= >=] [<= <=]) x y) ∅)]
+   (val ((match name ['< <] ['> >] ['>= >=] ['<= <=]) x y) ∅)]
   [('str-len `(,[val (? string? x) _])) (val (string-length x) ∅)]
   
   ; semi-precise values
@@ -138,7 +139,7 @@
   
   ; abstract result...
   [('str-len _) (val (•) {set (close [op 'int?] ρ∅)})]
-  [([or '> '< '>= '<=] _) (val (•) {set (close [op 'bool?] ρ∅)})])
+  [([or '> '< '>= '<=] _) {set TT FF}])
 
 (define (V-equal? σ V1 V2)
   (match* (V1 V2)
