@@ -11,7 +11,7 @@
     (and (not (empty? y))
          (or (empty? x) (shorter? (cdr x) (cdr y)))))
   
-  (define (mas x y z)
+  (define (mas x y z) ; blame is real, e.g. (mas (1) () ())
     (if (not (shorter? y x)) z
         (mas (mas (cdr x) y z)
              (mas (cdr y) z x)
