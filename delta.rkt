@@ -1,5 +1,5 @@
 #lang racket
-(require "lang.rkt" "prim.rkt" "syntax.rkt")
+(require "lang.rkt" "prim.rkt" "syntax.rkt" "show.rkt")
 (provide (combine-out Δ refine)
          #;(contract-out
             [Δ (l? σ? o? [listof V?] . -> . (nd/c (cons/c σ? A?)))]
@@ -18,11 +18,11 @@
     [([op 'zero?] `[,V])
      (match/nd (Δ 'Δ σ [op 'num?] Vs)
        [(cons σ1 (val #t _)) (check-p σ1 V [op 'zero?])]
-       [(cons σ1 (val #f _)) (cons σ1 (Blm l 'zero?))])]
+       [(cons σ1 (val #f _)) (cons σ1 (bl l 'zero? "Expect number, given ~a" (show-E (σ@* σ1 V))))])]
     [([op (and name [or 'positive? 'negative?])] `[,V])
      (match/nd (Δ 'Δ σ [op 'real?] Vs)
        [(cons σ1 (val #t _)) (check-p σ1 V [op name])]
-       [(cons σ1 (val #f _)) (cons σ1 (Blm l name))])]
+       [(cons σ1 (val #f _)) (cons σ1 (bl l name "Expect real, given ~a" (show-E (σ@* σ1 V))))])]
     
     ; accessors
     [([struct-ac t _ i] `[,(val [Struct t Vs] _)]) (cons σ (list-ref Vs i))]
@@ -35,7 +35,9 @@
                       [(val (Struct t Vs) _) (cons σ1 (list-ref Vs i))]
                       [_ (cons σ1 ★)])]
           [(val (•) Cs) (cons σ1 ★)])]
-       [(cons σ1 (val #f _)) (cons σ1 (Blm l t))])]
+       [(cons σ1 (val #f _))
+        (cons σ1 (bl l t "Access ~a field of ~a ~a, given ~a"
+                     (ord (add1 i)) (artcl t) t (show-E (σ@* σ1 V))))])]
     
     ; arithmetics
     [([op '=] `[,V1 ,V2])
@@ -43,53 +45,52 @@
        [(cons σ1 (val #t _))
         (match/nd (Δ 'Δ σ1 [op 'num?] `[,V2])
           [(cons σ2 (val #t _)) (Δ 'Δ σ2 [op 'equal?] `[,V1 ,V2])]
-          [(cons σ2 (val #f _)) (cons σ2 [Blm l '=])])]
-       [(cons σ1 (val #f _)) (cons σ1 [Blm l '=])])]
+          [(cons σ2 (val #f _)) (cons σ2 [bl l '= "Expect real, given ~a" (show-E (σ@* σ2 V2))])])]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l '= "Expect real, given ~a" (show-E (σ@* σ1 V1))])])]
     [([op (and name (or 'add1 'sub1))] `[,_])
      (match/nd (Δ 'Δ σ [op 'num?] Vs)
        [(cons σ1 (val #t _)) (cons σ1 [δ name (map [curry σ@* σ1] Vs)])]
-       [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l name "Expect number, given ~a" (show-E (σ@* σ1 (first Vs)))])])]
     [([op (and name (or '+ '- '* '≠))] `[,V1 ,V2])
      (match/nd (Δ 'Δ σ [op 'num?] `[,V1])
        [(cons σ1 (val #t _))
         (match/nd (Δ 'Δ σ1 [op 'num?] `[,V2])
           [(cons σ2 (val #t _)) (cons σ2 [δ name (map [curry σ@* σ2] Vs)])]
-          [(cons σ2 (val #f _)) (cons σ2 [Blm l name])])]
-       [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
+          [(cons σ2 (val #f _)) (cons σ2 [bl l name "Expect number, given ~a" (show-E (σ@* σ2 V2))])])]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l name "Expect number, given ~a" (show-E (σ@* σ1 V1))])])]
     [([op '/] `[,V1 ,V2])
      (match/nd (Δ 'Δ σ [op 'num?] `[,V1])
        [(cons σ1 (val #t _))
         (match/nd (Δ 'Δ σ1 [op 'num?] `[,V2])
           [(cons σ2 [val #t _])
-           (match/nd
-               (Δ 'Δ σ2 [op 'zero?] `[,V2])
-             [(cons σ3 [val #t _]) (cons σ3 [Blm l '/])]
+           (match/nd (Δ 'Δ σ2 [op 'zero?] `[,V2])
+             [(cons σ3 [val #t _]) (cons σ3 [bl l '/ "Div by 0"])]
              [(cons σ3 [val #f _]) (cons σ3 [δ '/ (map [curry σ@* σ3] Vs)])]
              [_ ∅])]  ; ignore error from zero?
-          [(cons σ2 [val #f _]) (cons σ2 [Blm l '/])])]
-       [(cons σ1 (val #f _)) (cons σ1 [Blm l '/])])]
+          [(cons σ2 [val #f _]) (cons σ2 [bl l '/ "Expect non-0 number, given ~a" (show-E (σ@* σ2 V2))])])]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l '/ "Expect number, given ~a" (show-E (σ@* σ1 V1))])])]
     [([op (and name (or '> '< '<= '≤ '>= '≥))] `[,V1 ,V2])
      (match/nd (Δ 'Δ σ [op 'real?] `[,V1])
        [(cons σ1 (val #t _))
         (match/nd (Δ 'Δ σ1 [op 'real?] `[,V2])
           [(cons σ2 (val #t _)) (match/nd (δ name (map (curry σ@* σ2) Vs))
                                   [A (cons σ2 A)])]
-          [(cons σ2 (val #f _)) (cons σ2 [Blm l name])])]
-       [(cons σ1 (val #f _)) (cons σ1 [Blm l name])])]
+          [(cons σ2 (val #f _)) (cons σ2 [bl l name "Expect real, given ~a" (show-E (σ@* σ2 V2))])])]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l name "Expect real, given ~a" (show-E (σ@* σ1 V1))])])]
     [([op 'str-len] `[,_])
      (match/nd (Δ 'Δ σ [op 'str?] Vs)
        [(cons σ1 (val #t _)) (cons σ1 [δ 'str-len (map [curry σ@* σ1] Vs)])]
-       [(cons σ1 (val #f _)) (cons σ1 [Blm l 'str-len])])]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l 'str-len "Expect string, given ~a" (show-E (σ@* σ1 (first Vs)))])])]
     [([op 'equal?] `[,V1 ,V2]) (V-equal? σ V1 V2)]
     
     ;; constructor
     [([struct-mk t n] _) (if (= (length Vs) n)
                              (cons σ [val (Struct t Vs) ∅])
-                             (cons σ [Blm l t]))]
+                             (cons σ [bl l t "Constructor ~a expects ~a fields, given ~a" t n (length Vs)]))]
     
     ;; anything else is an error
-    [([struct-ac t _ _] _) (cons σ [Blm l t])]
-    [([op name] _) (cons σ [Blm l name])]))
+    [([struct-ac t _ _] _) (cons σ [bl l t "Illegal use of accessor ~a" t])]
+    [([op name] _) (cons σ [bl l name "Illegal use of operator ~a" name])]))
 
 ;; maps op name and (assumed valid) arguments to answer value
 (define/match (δ o Vs)
@@ -300,21 +301,32 @@
        [(_ _) {set Ca Cb}])]))
 
 ; prunes off all branches of disjunction that are excluded by given contract
-(define (truncate C1 C2)
-  (match-let ([(close c1 ρ1) C1]
-              [(close c2 ρ2) C2])
-    (match c1
-      [(or-c c1l c1r)
-       (let ([C1L (close c1l ρ1)]
-             [C1R (close c1r ρ1)])
-         (match* ([C-prove? C2 C1L] [C-prove? C2 C1R])
+(define (truncate C D)
+  (match-let ([(close c ρc) C]
+              [(close d ρd) D])
+    (match c
+      [(or-c c1 c2)
+       (let ([C1 (close c1 ρc)]
+             [C2 (close c2 ρc)])
+         (match* ([C-prove? D C1] [C-prove? D C2])
            [('Refuted 'Refuted) (error "WTF??")]
-           [(_ 'Refuted) (truncate C1L C2)]
-           [('Refuted _) (truncate C1R C2)]
-           [(_ _) (match-let ([(close c1l′ _) (truncate C1L C2)]
-                              [(close c1r′ _) (truncate C1R C2)])
-                    (close (or-c c1l′ c1r′) ρ1))]))]
-      [_ C1])))
+           [(_ 'Refuted) (truncate C1 D)]
+           [('Refuted _) (truncate C2 D)]
+           [(_ _) (match-let ([(close c1p _) (truncate C1 D)]
+                              [(close c2p _) (truncate C2 D)])
+                    (close (or-c c1p c2p) ρc))]))]
+      [_ C])))
 
 (define (¬ v)
   (f 1 (@ 'Δ [op 'false?] [list (@ 'Δ v [list (x 0)])]) #f))
+
+(define (ord k)
+  (format "~a~a" k
+          (match k
+            [(or 11 12 13) 'th]
+            [_ (match (remainder k 10) [1 'st] [2 'nd] [3 'rd] [_ 'th])])))
+
+(define/match (artcl w)
+  [((? symbol? s)) (artcl (symbol->string w))]
+  [((regexp #rx"^(a|e|i|o|u)")) 'an]
+  [(_) 'a])
