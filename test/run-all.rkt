@@ -24,7 +24,11 @@
 
 (define/match (a->blames ans)
   [(#f) "-"]
-  [((list (list as _ _ _))) (for/sum ([a as] #:when (match? a `(blame ,_ ,_))) 1)])
+  [((list (list as _ _ _)))
+   ; ignore error message,
+   ; otherwise may get weird result where improved machine gets blamed more 
+   (set-count (for/set ([a as] #:when (match? a `(blame ,_ ...)))
+                (match-let ([(list _ l+ lo _) a]) (cons l+ lo))))])
 
 (for ([filename files] #:when (regexp-match? #rx"sch$" filename))
   (let ([lines (length (file->lines filename))]
