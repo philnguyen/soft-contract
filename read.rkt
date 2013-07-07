@@ -6,7 +6,7 @@
  #;(combine-out read-p read-e gen-ac gen-p opaque)
  (contract-out
   [read-p (any/c . -> . p?)]
-  [read-e (any/c . -> . p?)]
+  [read-e (any/c . -> . e?)]
   [gen-ac (symbol? symbol? . -> . symbol?)]
   [gen-p (symbol? . -> . symbol?)]
   [opaque (any/c . -> . any/c)]))
@@ -132,6 +132,7 @@
             (let ([x (variable-not-in e′ 'tmp)])
               (go `(let [,x ,e1]
                      (if ,x ,x (or ,@ e′)))))]
+           [`(implies ,e1 ,e2) (go `(if ,e1 ,e2 #t))]
            [`(begin ,e′) (go e′)]
            [`(begin ,e1 ,e′ ...)
             (let ([x (variable-not-in e′ '_)])
@@ -172,7 +173,7 @@
     [`(,ms ... ,e) (read-p `(,@ ms (require) ,e))]))
 
 (define (read-e e)
-  (read-p (list e)))
+  (p-e (read-p (list e))))
 
 ;; opaque : S-exp -> S-exp
 (define opaque
