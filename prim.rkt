@@ -148,6 +148,14 @@
            [([μ-c x c1] _) (go (close (subst/c c1 x c) ρc) D (set-add assume (cons C D)))]
            [(_ [μ-c x d1]) (go C (close (subst/c d1 x d) ρd) (set-add assume (cons C D)))]
            
+           ; (¬C refutes D) if (D proves C)
+           [([f 1 (@ _ (op 'false?) (list (@ _ g (list (x 0))))) #f] _)
+            (if (set-empty? (FV g))
+                (match (C-prove? D (close g ρc))
+                  ['Proved 'Refuted]
+                  [_ 'Neither])
+                'Neither)]
+           
            ; break apart/unroll composite contracts
            ; this shouldn't happen often though
            [([or-c c1 c2] _)
