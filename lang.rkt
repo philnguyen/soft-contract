@@ -60,7 +60,8 @@
    [opaque? ([E?] [integer?] . ->* . any/c)]
    
    [m∅ hash?] [ρ∅ ρ?] [σ∅ σ?] [★ val?]
-   [prim (symbol? . -> . [or/c e? #f])])
+   [prim (symbol? . -> . [or/c e? #f])]
+   [checks# ((or/c p? e? c? m?) . -> . int?)])
   l? e? c? v? b? o? c? flat-c? x-c? V? L? U? F? A? C? E?
   int? o-name? p-name? p-name-total? pred? total-pred?
   close/c val/c bl))
@@ -372,7 +373,7 @@
 (define (A? x) ([or/c V? Blm?] x))
 (struct Blm (f+ fo msg) #:transparent)
 (define-syntax-rule (bl l+ lo s a ...)
-  (Blm l+ lo (format (string-append "(" s ")") a ...)))
+  (Blm l+ lo (format (string-append "[" s "]") a ...)))
 
 ; closed contract
 (define C? (close/c c?))
@@ -460,3 +461,22 @@
   (or (hash-ref total-preds name (λ () #f))
       (hash-ref partial-preds name (λ () #f))
       (hash-ref non-preds name (λ () #f))))
+
+;; rough estimate the number of unsafe operations that need dynamic checks
+;; -- each application site contributes 1
+;; -- each partial primitive operation contributes 1, regardless of arity
+(define/match (checks# x)
+  [((list x ...)) (for/sum ([xi x]) (checks# xi))]
+  [((p ms e)) (+ (for/sum ([(l mi) (in-hash ms)] #:unless (equal? l '☠)) (checks# mi))
+                 (checks# e))]
+  [((m decs defs)) (+ (checks# (hash-values decs)) (checks# (hash-values defs)))]
+  [((f _ e _)) (checks# e)]
+  [((@ _ f xs)) (+ 1 #|for proc?|# (checks# f) (checks# xs))]
+  [((if/ e0 e1 e2)) (+ (checks# e0) (checks# e1) (checks# e2))]
+  [((amb es)) (checks# es)]
+  [((or (and-c c d) (or-c c d))) (+ (checks# c) (checks# d))]
+  [((μ-c _ c)) (checks# c)]
+  [((func-c cx d _)) (+ (checks# cx) (checks# d))]
+  [((or (? struct-mk?) (? total-pred?) (op 'equal?))) 0]
+  [((? o?)) 1]
+  [(_) 0])
