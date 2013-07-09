@@ -24,10 +24,9 @@
          (= (posn-y p1) (posn-y p2)))))
 
 (module consts
-  (provide
-   [block-size int?]
-   [board-width int?]
-   [board-height int?])
+  (provide [block-size int?]
+           [board-width int?]
+           [board-height int?])
   (define block-size 20)
   (define board-height 20)
   (define board-width 10))
@@ -450,16 +449,10 @@
  (block-y •)
  (elim-row • • •)
  (eliminate-full-rows •)
- #;(tetra-move • • •)
- #;(tetra-rotate-ccw •)
- #;(tetra-rotate-cw •)
  (tetra-overlaps-blocks? • •)
- (build-tetra-blocks • • • • • • • • • • •)
- #;(tetra-change-color • •)
+ (build-tetra-blocks • • • • • • • • • • •) 
  (world->image •)
  (blocks->image •)
- #;(block->image •)
- #;(place-block • •)
  (world-key-move • •)
  (next-world •)
  (ghost-blocks •))
