@@ -18,14 +18,15 @@
   [show-C (C? . -> . any)]
   [show-c (c? . -> . any)]
   [show-e (e? . -> . any)]
-  [show-b (b? . -> . any)]))
+  [show-b (b? . -> . any)]
+  [show-ρ (ρ? . -> . any)]))
 
 (define/match (show-E E)
   [((close e _)) (show-e e)]
   [((val U Cs)) (match U
                   [(•) (cons '• (for/list ([C Cs]) (show-C C)))]
                   [_ (show-U U)])]
-  [((Blm l+ lo s)) `(Blame ,l+ ,lo ,s)]
+  [((Blm l+ lo s)) `(blame ,l+ ,lo ,s)]
   [((? L? l)) `(L ,l)]
   [((Mon _ _ _ C E)) `(MON ,(show-C C) ,(show-E E))]
   [((FC _ C V)) `(FC ,(show-C C) ,(show-E V))]
@@ -54,6 +55,7 @@
 
 (define (show-e e [ctx '()])
   (match e
+    [(f 1 (@ _ (op 'false?) (list (@ _ (? v? v) (list (x 0))))) #f) `(¬ ,(show-e v))]
     [(f n e _) (let ([xs (vars-not-in n ctx)])
                  `(λ ,xs ,(show-e e (append xs ctx))))]
     [(•) '•]
@@ -79,3 +81,9 @@
   [((struct-ac t n i)) (string->symbol (string-append (symbol->string t) "-" (number->string i)))]
   [((? string? s)) (string-append "\"" s "\"")]
   [(b) b])
+
+(define (show-ρ ρ1)
+  (match-let ([(ρ m l) ρ1])
+    (for/list ([(i V) (in-hash m)])
+      (let ([sd (- l i 1)])
+        (list sd '↦ (show-E V))))))

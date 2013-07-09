@@ -111,6 +111,8 @@
   ; steps an application state
   (define (step-@ l σ Vf Vx k)
     (l? σ? V? (listof V?) κ? . -> . ς*?)
+    #;(printf "module ~a~n" l)
+    #;(printf "Apply ~a~n" (show-E Vf) #;(map show-E Vx))
     (match Vf
       [(val u Cs)
        (match u
@@ -306,7 +308,7 @@
   
   (for/set ([s (step* (inj e†))])
     (match-let ([(ς A σ _) s])
-      (A→EA σ A))))
+      (A->EA σ A))))
 
 (define (ev p) (run (read-p p)))
 
@@ -387,9 +389,17 @@
          [(Struct t Vs) (if (zero? d) (σ+ σ)
                             (let-values ([(σW Ws) (widen* σ Vs (sub1 d))])
                               (cons σW (val (Struct t Ws) Cs))))]
-         [(close (? f? f) _) (cons σ (if (clo-circular? V)
-                                         (val (•) {set (close (op 'proc?) ρ∅)})
-                                         V))]
+         [(close (f n _ v?) ρ) (cons σ (if (clo-circular? V)
+                                           #;(val (close (f n (•) v?) ρ∅) Cs)
+                                           (val
+                                            (•)
+                                            {set-add Cs (close (op 'proc?) ρ∅)
+                                                     #;(close                                                      
+                                                        (func-c (make-list n (f 1 (@ 'Δ (op 'false?) (list (x 0))) #f))
+                                                                (op 'any)
+                                                                v?)
+                                                        ρ∅)})
+                                           V))]
          [_ σV])]
       [_ σV])))
 (define (widen* σ V* [d 4])
@@ -451,38 +461,18 @@
   (match? s (ς [? A?] _ 'mt)))
 
 ;; readable evaluation answer
-(define (A→EA σ a)
-  (σ? A? . -> . any/c)
+(define (A->EA σ a)
   (match a
-    [(? L? l) (A→EA σ [σ@ σ l])]
-    [(Blm f+ fo s) `(blame ,f+ ,fo ,s)]
-    [(val w cs)
+    [(? L? l) (A->EA σ [σ@ σ l])]
+    [(Blm f+ fo s) (show-E a)]
+    [(val w Cs)
      (match w
-       [(and b (or [? number?] [? boolean?] [? string?] [? symbol?])) b]
+       [(and b (or [? number?] [? boolean?] [? string?] [? symbol?])) (show-b b)]
        [(or [? Arr?] [? o?] [close [? f?] _]) 'function]
-       [(Struct t Vs) `(,t ,@ (map (curry A→EA σ) Vs))]
-       [(•) (match (map C→EC (set->list cs))
+       [(Struct t Vs) `(,t ,@ (map (curry A->EA σ) Vs))]
+       [(•) (match (for/list ([C (in-set Cs)]) (show-C C))
               ['() '•]
-              [cs (cons '• cs)])])]))
-
-(define/match (C→EC C)
-  ;((or/c C? c?) . -> . any/c)
-  [((close c ρ)) (C→EC c)]
-  [((and-c c1 c2)) `(,[C→EC c1] ∧ ,[C→EC c2])]
-  [((or-c c1 c2)) `(,[C→EC c1] ∨ ,[C→EC c2])]
-  [((μ-c x c)) `(μ ,x ,[C→EC c])]
-  [((func-c cx cy _)) `(,@ (map C→EC cx) ↦ ,(C→EC cy))]
-  [((struct-c t cs))
-   `(,(string->symbol (string-append (symbol->string t) "/c")) ,@ [map C→EC cs])]
-  [((op name)) name]
-  [((struct-p t _)) (gen-p t)]
-  [((f 1 (@ _ [op 'false?] (list [@ _ o (list [x 0])])) #f))
-   `(¬ ,(match o
-          [(op name) name]
-          [(struct-p t _) t]))]
-  [((f 1 (@ _ [ref _ _ name] (list (x 0))) #f)) name]
-  [(v) v])
-
+              [Cs (cons '• Cs)])])]))
 
 ;; pretty printing for debugging
 (define/match (show-ς s)
@@ -492,4 +482,5 @@
   [((if/k E1 E2 k)) `(IF/K ,(show-E E1) ,(show-E E2) ,(show-κ k))]
   [((@/k _ Vs Es k)) `(@/K ,(map show-E Vs) ,(map show-E Es) ,(show-κ k))]
   [((mon/k _ _ _ C k)) `(MON/K ,(show-C C) ,(show-κ k))]
-  [((mon*/k _ _ _ _ Cs Us k)) `(MON*/k ,(map show-C Cs) ,(map show-E Us) ,(show-κ k))])
+  [((mon*/k _ _ _ _ Cs Us k)) `(MON*/k ,(map show-C Cs) ,(map show-E Us) ,(show-κ k))]
+  [((lam/k f xs _ k)) `(LAM/K ,(show-E f) ,(map show-E xs) ,(show-κ k))])

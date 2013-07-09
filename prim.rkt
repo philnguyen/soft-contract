@@ -103,6 +103,8 @@
                    [(close d ρd) D])
          (match* (c d)
            [(_ (op 'any)) 'Proved]
+           [((f 1 (@ _ (op 'false?) (list (x 0))) #f) _) 'Proved]
+           [(_ (f 1 (@ _ (op 'false?) (list (x 0))) #f)) 'Refuted]
            
            ; primitive, type-like contracts
            [([? pred? o1] [? pred? o2]) (p-prove? o1 o2)]
@@ -134,8 +136,15 @@
            [([? func-c?] [op 'proc?]) 'Proved]
            [([? func-c?] [? pred? o1]) (p-prove? [op 'proc?] o1)]
            [([func-c cx* cy vc?] [func-c dx* dy vd?])
-            (if (and (equal? (length cx*) (length dx*)) (equal? vc? vd?))
-                (match (go (close cy ρc) (close dy ρd) assume) ; FIXME: wrong close!!
+            (if (and (equal? vc? vd?) (equal? (length cx*) (length dx*)))
+                (∧ (for/fold ([a 'Proved]) ([cx cx*] [dx dx*])
+                     (match a
+                       ['Refuted 'Refuted]
+                       [_ (match (C-prove? (close dx ρd) (close cx ρc))
+                            ['Refuted 'Refuted]
+                            [ans ans])]))
+                   (C-prove? (close cy ρc) (close dy ρd)))  ; FIXME: wrong close!!
+                #;(match (go (close cy ρc) (close dy ρd) assume) ; FIXME: wrong close!!
                   ['Refuted 'Refuted]
                   [_ 'Neither])
                 'Refuted)]
