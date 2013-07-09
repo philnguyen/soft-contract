@@ -130,7 +130,22 @@
                   (close (op 'negative?) ρ∅)
                   (close (or-c (op 'zero?) (op 'negative?)) ρ∅))]
              [else ∅])))]
-  [([or '- '* 'sub1] Vs)
+  [('- `(,V0 ,V1))
+   (val (•) {∪
+             (close (op (cond
+                          [(all-prove? σ∅ Vs (close (op 'int?) ρ∅)) 'int?]
+                          [(all-prove? σ∅ Vs (close (op 'real?) ρ∅)) 'real?]
+                          [else 'num?]))
+                    ρ∅)
+             (match* ((prove? σ∅ V0 (close (op 'zero?) ρ∅))
+                      (prove? σ∅ V1 (close (op 'positive?) ρ∅)))
+               [('Proved 'Proved) (close (op 'negative?) ρ∅)]
+               [(_ _) ∅])
+             (match* ((prove? σ∅ V0 (close (op 'zero?) ρ∅))
+                      (prove? σ∅ V1 (close (op 'negative?) ρ∅)))
+               [('Proved 'Proved) (close (op 'positive?) ρ∅)]
+               [(_ _) ∅])})]
+  [([or '* 'sub1] Vs)
    (val (•)
         {set (close (op (cond
                           [(all-prove? σ∅ Vs (close (op 'int?) ρ∅)) 'int?]
