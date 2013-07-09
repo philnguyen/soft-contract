@@ -1,2 +1,15 @@
-to run all tests and print out results:
+Each test is given 5 minutes to run.
+
+To run all tests and print out results, run:
 > racket run-all.rkt
+
+To run only the enhanced interpreter with heap refinements
+and see elaborate results, run:
+> racket run-all.rkt -v
+In pretty-printed results, elipses (...) stand for free variables,
+and (L n) stands for a label named n.
+
+To run only specific tests, for example, only foldr and foldl, run:
+> racket run-all.rkt foldl.sch foldr.sch
+or in verbose mode:
+> racket run-all.rkt -v foldl.sch foldr.sch
