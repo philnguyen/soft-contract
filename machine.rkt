@@ -81,23 +81,24 @@
                       (ς L σL k))
                     (ς ★ σ k))]))]
         [else ; proceed with widened arguments
-         (let-values ([(σn Wx)
-                       (match fc
-                         [#f (widen* σ Vx)]
-                         [(func-c cx cy v?)
-                          (let-values
-                              ([(σ2 Wx-rev)
-                                (for/fold ([σ σ] [Wx empty]) ([Vxi Vx] [Vzi Vz] [cxi cx])
-                                  (if (E⊑ Vxi σ Vzi σ1) (values σ (cons Vxi Wx))
-                                      (let ([Ci (close cxi ρ∅)])
-                                        (match (prove? σ Vxi Ci)
-                                          ['Proved
-                                           (match-let ([(cons σi Wi)
-                                                        (refine (widen (cons σ Vxi) 1) Ci)])
-                                             (values σi (cons Wi Wx)))]
-                                          [_ (match-let ([(cons σi Wi) (widen (cons σ Vxi))])
-                                               (values σi (cons Wi Wx)))]))))])
-                            (values σ2 (reverse Wx-rev)))])])
+         (let-values
+             ([(σn Wx)
+               (match fc
+                 [#f (widen* σ Vx)]
+                 [(func-c cx cy v?)
+                  (let-values
+                      ([(σ2 Wx-rev)
+                        (for/fold ([σ σ] [Wx empty]) ([Vxi Vx] [Vzi Vz] [cxi cx])
+                          (if (or (E⊑ Vxi σ Vzi σ1) (V∈ Vxi σ1 Vzi)) (values σ (cons Vxi Wx))
+                              (let ([Ci (close cxi ρ∅)])
+                                (match (prove? σ Vxi Ci)
+                                  ['Proved
+                                   (match-let ([(cons σi Wi)
+                                                (refine (widen (cons σ Vxi) 1) Ci)])
+                                     (values σi (cons Wi Wx)))]
+                                  [_ (match-let ([(cons σi Wi) (widen (cons σ Vxi))])
+                                       (values σi (cons Wi Wx)))]))))])
+                    (values σ2 (reverse Wx-rev)))])])
            (match v? ; proceed with approximate arguments
              [#f (if (= (length Vx) n)
                      (ς [close e (ρ++ ρ Wx)] σn [lam/k Vf Wx σn k])
@@ -321,6 +322,12 @@
          (mon/k _ _ _ _ k1) (mon*/k _ _ _ _ _ _ k1)) (go k1)]
     ['mt #f]))
 
+(define (V∈ V1 σ0 V0)
+  (or (eq? V1 V0)
+      (match V0
+        [(val (Struct _ Vs) _) (for/or ([Vi Vs]) (V∈ V1 σ0 Vi))]
+        [(? L? L) (V∈ V1 σ0 (σ@ σ0 L))]
+        [_ #f])))
 
 ;; determine approximation between closures
 (define (E⊑ E1 σ1 E2 σ2)

@@ -96,6 +96,7 @@
            [`(cons/c ,c1 ,c2) (struct-c 'cons (list [go c1] [go c2]))]
            [`(μ ,x ,c′) (μ-c x (read-c l xs (cons x xcs) c′))]
            [`(listof ,c1) (go `(μ X (or/c empty? (cons/c ,c1 X))))]
+           [`(list/c ,c* ...) (go (foldr (λ (ci acc) `(cons/c ,ci ,acc)) 'empty? c*))]
            [`(nelistof ,c1) (go `(cons/c ,c1 (μ X (or/c empty? (cons/c ,c1 X)))))]
            [`(-> [,x : ,cx] ... ,cy)
             (func-c (map go cx) (read-c l (push x xs) xcs cy) #f)]
@@ -143,6 +144,7 @@
            [`(let [,x ,ex] ,e) (go `((λ (,x) ,e) ,ex))]
            [`(let* ([,x ,ex]) ,e) (go `((λ (,x) ,e) ,ex))]
            [`(let* ([,x ,ex] ,p ...) ,e) (go `(let [,x ,ex] (let* ,p ,e)))]
+           [`(list ,e* ...) (go (foldr (λ (ei acc) `(cons ,ei ,acc)) 'empty e*))]
            
            ; real language constructs
            [`(if ,e1 ,e2 ,e3) (if/ [go e1] [go e2] [go e3])]
