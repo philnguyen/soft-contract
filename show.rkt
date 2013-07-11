@@ -56,6 +56,7 @@
 (define (show-e e [ctx '()])
   (match e
     [(f 1 (@ _ (op 'false?) (list (@ _ (? v? v) (list (x 0))))) #f) `(¬ ,(show-e v))]
+    [(f 1 (@ _ e1 (list (x 0))) #f) (show-e e1)]
     [(f n e _) (let ([xs (vars-not-in n ctx)])
                  `(λ ,xs ,(show-e e (append xs ctx))))]
     [(•) '•]
