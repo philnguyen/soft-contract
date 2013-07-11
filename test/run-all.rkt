@@ -21,7 +21,7 @@
     (list (first r) t1 t2 t3)))
 
 (define/match (a->time ans)
-  [(#f) "-"]
+  [(#f) "$\\infty$"]
   [((list (list _ t _ _))) t])
 
 (define/match (a->blames ans)
@@ -32,7 +32,11 @@
    (set-count (for/set ([a as] #:when (match? a `(blame ,_ ...)))
                 (match-let ([(list _ l+ lo _) a]) (cons l+ lo))))])
 
-(unless verbose? (printf "Program & Lines & Checks & Time (ms) & False Blames\\\\ \\hline \\hline~n"))
+(define-syntax-rule (+! x v)
+  (when (number? v) (set! x (+ x v))))
+
+(unless verbose? (printf "Program & Lines & Checks & T1 & B1 & T2 & B2\\\\ \\hline \\hline~n"))
+(define-values (L C T1 T2 B1 B2) (values 0 0 0 0 0 0))
 (for ([filename files] #:when (regexp-match? #rx"sch$" filename))
   (let* ([lines (for/sum ([s (file->lines filename)] #:unless (regexp-match? #rx"^( *)(;.*)*( *)$" s)) 1)]
          [name (string-trim filename ".sch")]
@@ -49,5 +53,14 @@
         ; compare with dumb-ized interpreter, dump table in latex format
         (let ([a1 (within-time TIMEOUT (exec run prog))]
               [a2 (within-time TIMEOUT (exec run1 prog))])
-          (printf "~a & ~a & ~a & ~a / ~a & ~a / ~a\\\\~n"
-                  name lines checks (a->time a1) (a->time a2) (a->blames a1) (a->blames a2))))))
+          (let ([t1 (a->time a1)]
+                [t2 (a->time a2)]
+                [b1 (a->blames a1)]
+                [b2 (a->blames a2)])
+            (+! L lines) (+! C checks)
+            (+! T1 t1) (+! T2 t2) (+! B1 b1) (+! B2 b2)
+            (printf "~a & ~a & ~a & ~a & ~a & ~a & ~a\\\\~n" name lines checks t1 b1 t2 b2))))))
+(unless verbose?
+  (begin
+    (printf "\\hline~n")
+    (printf "TOTAL & ~a & ~a & ~a & ~a & ~a & ~a~n" L C T1 B1 T2 B2)))
