@@ -10,14 +10,12 @@ ASSERT lADD1Q = lQ + 1;
 
 %% Assertions from dependent contract running
 
-lX, lZ, lSUB1Z : INT;
+lSUB1Z : INT;
 lEQ : BOOLEAN;
 
-ASSERT lX = lQ;
-ASSERT lZ = lADD1Q;
-ASSERT lX = lZ - 1;
+ASSERT lSUB1Z = lADD1Q - 1;
 
-ASSERT lEQ = (lX = lSUB1Z);
+ASSERT lEQ = (lQ = lSUB1Z);
 
 %% Assert the predicate holds
 ASSERT lEQ = TRUE;
