@@ -60,7 +60,8 @@
     [(f n e _) (let ([xs (vars-not-in n ctx)])
                  `(λ ,xs ,(show-e e (append xs ctx))))]
     [(•) '•]
-    [(x sd) (if (< sd (length ctx)) (list-ref ctx sd) '⋯)]
+    [(x sd) (if (< sd (length ctx)) (list-ref ctx sd)
+                (string-append "⋯" (num-subscript sd)))]
     [(ref _ _ x) x]
     [(@ _ (f 1 (if/ (x 0) (x 0) e2) #f) (list e1))
      `(,(show-e e1 ctx) ∨ ,(show-e e2 ctx))]
@@ -88,3 +89,11 @@
     (for/list ([(i V) (in-hash m)])
       (let ([sd (- l i 1)])
         (list sd '↦ (show-E V))))))
+
+(define (num-subscript n)
+  ((and/c integer? (not/c negative?)) . -> . string?)
+  (match n
+    [0 "₀"] [1 "₁"] [2 "₂"] [3 "₃"] [4 "₄"]
+    [5 "₅"] [6 "₆"] [7 "₇"] [8 "₈"] [9 "₉"]
+    [(? positive?) (string-append (num-subscript (quotient n 10))
+                                  (num-subscript (remainder n 10)))]))
