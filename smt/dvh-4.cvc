@@ -1,0 +1,35 @@
+%; Demonstrates shortcoming in Phil's email from 7/13
+%(module dvh-4
+%  (provide
+%   [phil  ([l1 : num?] . -> . 
+%           ([l2 : num?] . -> .
+%            ([l3 : (and/c num? 
+%			  (and/c (lambda (m) (not (zero? m)))
+%				 (lambda (n) (= n (* l1 l2)))))] . -> . 
+%				 (lambda (r) (not (zero? r))))))])
+
+%  (define phil
+%    (lambda (l1)
+%      (lambda (l2)
+%        (lambda (l3)
+%          l1)))))
+
+%(require dvh-4)
+%(((phil •) •) •)
+
+l1, l2, l3 : INT;
+lZEROM, lNOTZEROM : BOOLEAN;
+
+ASSERT lZEROM = (l3 = 0);
+ASSERT lNOTZEROM = (NOT lZEROM);
+
+ASSERT l3 = (l1 * l2);
+
+lZEROR : BOOLEAN;
+lZEROR, lNOTZEROR : BOOLEAN;
+
+ASSERT lZEROR = (l1 = 0);
+ASSERT lNOTZEROR = (NOT lZEROR);
+
+ASSERT lNOTZEROR = TRUE;
+CHECKSAT; %% Non-linear
