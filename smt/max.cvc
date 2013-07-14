@@ -1,0 +1,65 @@
+%(module max
+%  (provide [max ((int? int? . -> . int?) int? int? int? . -> . int?)])
+%  (define (max max2 x y z) (max2 (max2 x y) z)))
+
+%(module f (provide [f (int? int? . -> . int?)])
+%  (define (f x y) (if (>= x y) x y)))
+
+%(module main
+%  (provide [main ([x : int?] [y : int?] [z : int?]
+%                             . -> . (and/c int? (λ (m) (= (f x m) m))))])
+%  (require max f)
+%  (define (main x y z)
+%    (max f x y z)))
+
+%(require main)
+%(main • • •)
+
+lX, lY, lZ : INT;
+
+lXGTEY, lXGTEZ : BOOLEAN;
+
+ASSERT lXGTEY = (lX >= lY);
+
+% now have choice to make
+
+%  QUERY lXGTEY = TRUE;  % true and false invalid, so choose both
+ 
+ASSERT lXGTEY = TRUE; %% Still missing FALSE case.
+
+ASSERT lXGTEZ = (lX >= lZ);
+
+% QUERY lXGTEZ = TRUE;  % true and false invalid, so choose both
+
+PUSH;
+ASSERT lXGTEZ = FALSE;
+
+lXGTEZ2 : BOOLEAN;
+ASSERT lXGTEZ2 = (lX >= lZ);
+
+QUERY lXGTEZ2 = TRUE;
+QUERY lXGTEZ2 = FALSE; % valid, so only false branch can be taken
+
+lEQFXMM : BOOLEAN;
+
+ASSERT lEQFXMM = (lZ = lZ);
+
+CHECKSAT;
+POP;
+
+PUSH;
+ASSERT lXGTEZ = TRUE;
+
+lXGTEX : BOOLEAN;
+ASSERT lXGTEX = (lX >= lX);
+
+QUERY lXGTEX = TRUE; % valid, so only true branch can be taken
+QUERY lXGTEX = FALSE;
+
+lEQFXMM : BOOLEAN;
+
+ASSERT lEQFXMM = (lX = lX);
+
+CHECKSAT;
+POP;
+
