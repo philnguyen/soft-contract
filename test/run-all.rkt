@@ -56,7 +56,7 @@
           (for ([a (in-set r)])
             (match-let ([(cons σ A) a])
               (match mode
-                ['verbose (printf "-- a~n" (show-A σ A))]
+                ['verbose (printf "-- ~a~n" (show-A σ A))]
                 ['overbose (match-let ([(cons ans σns) (show-σA σ A)])
                              (printf "-- ~a~n   ~a~n" ans σns))])))
           (printf "~n")])]
