@@ -32,8 +32,8 @@
   [((list (list as _ _ _)))
    ; ignore error message,
    ; otherwise may get weird result where improved machine gets blamed more 
-   (set-count (for/set ([a as] #:when (Blm? a))
-                (match-let ([(Blm l+ lo _) a]) (cons l+ lo))))])
+   (set-count (for/set ([a as] #:when (match? a (cons _ (? Blm?))))
+                (match-let ([(cons _ (Blm l+ lo _)) a]) (cons l+ lo))))])
 
 (define-syntax-rule (+! x v)
   (when (number? v) (set! x (+ x v))))
