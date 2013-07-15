@@ -1,6 +1,10 @@
 #lang racket
 (require "syntax.rkt" "lang.rkt" "prim.rkt" "delta.rkt" "read.rkt" "show.rkt")
-(provide run ev)
+(provide
+ #;(combine-out run ev)
+ (contract-out
+  [run (p? . -> . (set/c (cons/c σ? A?)))]
+  [ev (any/c . -> . (set/c (cons/c σ? A?)))]))
 
 (define (κ? x) ([or/c 'mt if/k? @/k? mon/k? mon*/k? lam/k?] x))
 (struct if/k (e1 e2 k) #:transparent)
@@ -309,7 +313,7 @@
   
   (for/set ([s (step* (inj e†))])
     (match-let ([(ς A σ _) s])
-      (A->EA σ A))))
+      (cons σ A))))
 
 (define (ev p) (run (read-p p)))
 
@@ -466,20 +470,6 @@
 (define (ς-final? s)
   (ς? . -> . boolean?)
   (match? s (ς [? A?] _ 'mt)))
-
-;; readable evaluation answer
-(define (A->EA σ a)
-  (match a
-    [(? L? l) (A->EA σ [σ@ σ l])]
-    [(Blm f+ fo s) (show-E a)]
-    [(val w Cs)
-     (match w
-       [(and b (or [? number?] [? boolean?] [? string?] [? symbol?])) (show-b b)]
-       [(or [? Arr?] [? o?] [close [? f?] _]) 'function]
-       [(Struct t Vs) `(,t ,@ (map (curry A->EA σ) Vs))]
-       [(•) (match (for/list ([C (in-set Cs)]) (show-C C))
-              ['() '•]
-              [Cs (cons '• Cs)])])]))
 
 ;; pretty printing for debugging
 (define/match (show-ς s)

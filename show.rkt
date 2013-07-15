@@ -13,6 +13,8 @@
 (provide
  #;(all-defined-out)
  (contract-out
+  [show-A (σ? A? . -> . any)]
+  [show-σA (σ? A? . -> . (cons/c any/c any/c))]
   [show-E (E? . -> . any)]
   [show-U (U? . -> . any)]
   [show-C (C? . -> . any)]
@@ -21,13 +23,33 @@
   [show-b (b? . -> . any)]
   [show-ρ (ρ? . -> . any)]))
 
+;; readable evaluation answer
+(define (show-A σ a)
+  (match a
+    [(? L? l) (show-A σ [σ@ σ l])]
+    [(Blm f+ fo s) (show-E a)]
+    [(val w Cs)
+     (match w
+       [(? b? b) (show-b b)]
+       [(or [? Arr?] [? o?] [close [? f?] _]) 'function]
+       [(Struct t Vs) `(,t ,@ (map (curry show-A σ) Vs))]
+       [(•) (match (for/list ([C (in-set Cs)]) (show-C C))
+              ['() '•]
+              [Cs (cons '• Cs)])])]))
+
+;; full final state with heap
+(define (show-σA σ1 a)
+  (cons (show-E a) (match-let ([(σ m l) σ1])
+                     (for/list ([L (range 0 l)])
+                       (list (show-E L) '↦ (show-E (hash-ref m L)))))))
+
 (define/match (show-E E)
   [((close e _)) (show-e e)]
   [((val U Cs)) (match U
                   [(•) (cons '• (for/list ([C Cs]) (show-C C)))]
                   [_ (show-U U)])]
   [((Blm l+ lo s)) `(blame ,l+ ,lo ,s)]
-  [((? L? l)) `(L ,l)]
+  [((? L? l)) (string->symbol (string-append "L" (num-subscript l)))]
   [((Mon _ _ _ C E)) `(MON ,(show-C C) ,(show-E E))]
   [((FC _ C V)) `(FC ,(show-C C) ,(show-E V))]
   [((Assume V C)) `(ASSUME ,(show-E V) ,(show-C C))])
