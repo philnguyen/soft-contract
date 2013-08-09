@@ -189,17 +189,17 @@
 (define (not-C C)
   (match-let ([(close c ρ) C]) (close (not-c c) ρ)))
 
-(define (rel-C R V)
+(define (rel/C R V)
   (match V
     [(val (? number? n) _) (close (f 1 (@ 'Δ R (list (x 0) n)) #f) ρ∅)]
     [_ (close (f 1 (@ 'Δ R (list (x 0) (x 1))) #f) (ρ+ ρ∅ V))]))
-(define (>/C V) (rel-C (op '>) V))
-(define (≥/C V) (rel-C (op '>=) V))
-(define (</C V) (rel-C (op '<) V))
-(define (≤/C V) (rel-C (op '<=) V))
-(define (=/C V) (rel-C (op 'equal?) V))
-(define (≠/C V) (not-C (rel-C (op 'equal?) V)))
-(define (rel-C2 f U V)
+(define (>/C V) (rel/C (op '>) V))
+(define (≥/C V) (rel/C (op '>=) V))
+(define (</C V) (rel/C (op '<) V))
+(define (≤/C V) (rel/C (op '<=) V))
+(define (=/C V) (rel/C (op 'equal?) V))
+(define (≠/C V) (not-C (rel/C (op 'equal?) V)))
+(define (rel2/C f U V)
   (match* (U V)
     [((val (? number? m) _) (val (? number? n) _))
      (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list m n)))) #f) ρ∅)]
@@ -212,8 +212,8 @@
     [(_ _)
      (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list (x 1) (x 2))))) #f)
             (ρ++ ρ∅ (list V U)))]))
-(define (sum/C U V) (rel-C2 (op '+) U V))
-(define (dif/C U V) (rel-C2 (op '-) U V))
+(define (sum/C U V) (rel2/C (op '+) U V))
+(define (dif/C U V) (rel2/C (op '-) U V))
 
 ; substitute contract
 (define (subst/c c1 x c2)

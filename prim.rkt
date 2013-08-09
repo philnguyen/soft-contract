@@ -1,5 +1,5 @@
 #lang racket
-(require "lang.rkt" "syntax.rkt")
+(require "lang.rkt" "syntax.rkt" "query-helper.rkt")
 (provide
  (combine-out R? prove? Cs-prove? C-prove? p-prove? simplify-C
               all-prove? all-refute? some-proves? some-refutes?)
@@ -20,6 +20,12 @@
 (define (prove? σ V C)
   (match-let ([(close c ρ) C])
     (match* (V c)
+      [(V (f 1 (@ _ (op (or 'equal? '= '< '> '>= '<=)) (list (x 0) _)) #f)) (query σ V C)]
+      [((? L?) (op 'positive?)) ; FIXME just for now
+       (prove? σ V (close (f 1 (@ 'Δ (op '>) (list (x 0) 0)) #f) ρ∅))]
+      [((? L?) (op 'negative?)) ; FIXME just for now
+       (prove? σ V (close (f 1 (@ 'Δ (op '<) (list (x 0) 0)) #f) ρ∅))]
+      
       ; look up
       [([? L? l] _) (prove? σ [σ@ σ l] C)]
       

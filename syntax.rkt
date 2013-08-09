@@ -1,12 +1,16 @@
 #lang racket
-(provide ∅ nd/c non-det if/nd match/nd match? ∪ within-time)
+(provide ∅ nd/c nd# non-det if/nd match/nd match? ∪ within-time define/memo debug)
 
 (define ∅ (set))
 
-;; ∀X,Y, X ≠ (Set Y), X* = X ∪ (Setof X)
+;; ∀X ≠ Set, X* = X ∪ (Setof X)
 (define ((nd/c p) x)
   (if (p x) (not (set? x)) ((set/c p) x)))
 
+;; X* -> Integer
+(define (nd# x*)
+  (if (set? x*) (set-count x*) 1))
+ 
 ;; (X -> Y*) X* -> Y*
 (define (non-det f x*)
   (cond
@@ -43,3 +47,12 @@
       (match (channel-get c)
         [#f (kill-thread t1) #f]
         [ans (kill-thread t2) ans]))))
+
+(define-syntax-rule (define/memo (f x ...) e ...)
+  (define f
+    (let ([m (make-hash)])
+      (λ (x ...) (hash-ref! m (list x ...) (λ () e ...))))))
+
+(define-syntax-rule (debug f s ...)
+  (printf f s ...)
+  #;(void))
