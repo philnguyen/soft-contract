@@ -2,8 +2,8 @@
 (require racket "syntax.rkt")
 
 (provide
- (all-defined-out)
- #;(combine-out ; contract-wrapped version
+ #;(all-defined-out)
+ (combine-out ; contract-wrapped version
   (contract-out
    [struct p ([ms (hash/c l? m?)] [e e?])]
    [struct m ([decs (hash/c l? c?)] [defs (hash/c l? v?)])]
@@ -24,6 +24,19 @@
    [struct struct-c ([name l?] [fields (listof c?)])]
    [struct μ-c ([x l?] [c c?])]
    [clo-circular? (V? . -> . boolean?)]
+   
+   [pred/c ((or/c c? p-name?) . -> . c?)]
+   [pred/C ((or/c c? p-name?) . -> . C?)]
+   [>/C (V? . -> . C?)]
+   [≥/C (V? . -> . C?)]
+   [</C (V? . -> . C?)]
+   [≤/C (V? . -> . C?)]
+   [=/C (V? . -> . C?)]
+   [≠/C (V? . -> . C?)]
+   [not-c (c? . -> . c?)]
+   [not-C (C? . -> . C?)]
+   [sum/C (V? V? . -> . C?)]
+   [dif/C (V? V? . -> . C?)]
    
    [subst/c (c? x-c? c? . -> . c?)]
    [FV ([e?] [int?] . ->* . [set/c int?])]
@@ -155,6 +168,52 @@
 (struct μ-c (x c) #:transparent)
 (define x-c? symbol?)
 (define c? (or/c flat-c? func-c? and-c? or-c? struct-c? μ-c? x-c?))
+
+(define not-c
+  (match-lambda
+    [(and-c l r) (or-c (not-c l) (not-c r))]
+    [(or-c l r) (and-c (not-c l) (not-c r))]
+    [(f 1 e #f) (f 1 (@ 'Δ (op 'false?) (list e)) #f)]
+    [(? pred? p) (f 1 (@ 'Δ (op 'false?) (list (@ 'Δ p (list (x 0))))) #f)]
+    [_ (error "not-c not valid for func/c, and not supported for struct/c, μ/c yet")]))
+
+(define pred/c
+  (match-lambda
+    [(? c? c) c]
+    [(? p-name? n) (prim p)]))
+(define pred/C
+  (match-lambda
+    [(? c? c) (close c ρ∅)]
+    [(? p-name? n) (close (prim p) ρ∅)]))
+
+(define (not-C C)
+  (match-let ([(close c ρ) C]) (close (not-c c) ρ)))
+
+(define (rel-C R V)
+  (match V
+    [(val (? number? n) _) (close (f 1 (@ 'Δ R (list (x 0) n)) #f) ρ∅)]
+    [_ (close (f 1 (@ 'Δ R (list (x 0) (x 1))) #f) (ρ+ ρ∅ V))]))
+(define (>/C V) (rel-C (op '>) V))
+(define (≥/C V) (rel-C (op '>=) V))
+(define (</C V) (rel-C (op '<) V))
+(define (≤/C V) (rel-C (op '<=) V))
+(define (=/C V) (rel-C (op 'equal?) V))
+(define (≠/C V) (not-C (rel-C (op 'equal?) V)))
+(define (rel-C2 f U V)
+  (match* (U V)
+    [((val (? number? m) _) (val (? number? n) _))
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list m n)))) #f) ρ∅)]
+    [((val (? number? m) _) _)
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list m (x 1))))) #f)
+            (ρ+ ρ∅ V))]
+    [(_ (val (? number? n) _))
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list (x 1) n)))) #f)
+            (ρ+ ρ∅ U))]
+    [(_ _)
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list (x 1) (x 2))))) #f)
+            (ρ++ ρ∅ (list V U)))]))
+(define (sum/C U V) (rel-C2 (op '+) U V))
+(define (dif/C U V) (rel-C2 (op '-) U V))
 
 ; substitute contract
 (define (subst/c c1 x c2)
