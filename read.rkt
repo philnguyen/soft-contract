@@ -91,8 +91,10 @@
        (define (read-c l xs xcs c)
          (define go (curry read-c l xs xcs))
          (match c
-           [`(and/c ,c1 ,c2) (and-c [go c1] [go c2])]
-           [`(or/c ,c1 ,c2) (or-c [go c1] [go c2])]
+           [`(and/c) (pred/c 'any)]
+           [`(and/c ,ci ... ,cn) (foldr (λ (cj dn) (and-c (go cj) dn)) (go cn) ci)]
+           [`(or/c) (pred/c (f 1 #f #f))]
+           [`(or/c ,ci ... ,cn) (foldr (λ (cj dn) (or-c (go cj) dn)) (go cn) ci)]
            [`(cons/c ,c1 ,c2) (struct-c 'cons (list [go c1] [go c2]))]
            [`(μ ,x ,c′) (μ-c x (read-c l xs (cons x xcs) c′))]
            [`(listof ,c1) (go `(μ X (or/c empty? (cons/c ,c1 X))))]
@@ -100,15 +102,14 @@
            [`(nelistof ,c1) (go `(cons/c ,c1 (μ X (or/c empty? (cons/c ,c1 X)))))]
            [`(-> [,x : ,cx] ... ,cy)
             (func-c (map go cx) (read-c l (push x xs) xcs cy) #f)]
-           [`(-> ,cx ... ,cy) (go `(-> ,@ (map (λ (c) `[☠ : ,c]) cx) ,cy))]
+           [`(-> ,cx ... ,cy) (go `(-> ,@ (map (λ (c) `[♦ : ,c]) cx) ,cy))]
            [`(->* [,x : ,cx] ... [,z : ,cz] ,cy)
             (func-c (append [map go cx] [list (go cz)])
                     (read-c l (cons z (push x xs)) xcs cy) #t)]
-           [`(->* ,cx ... ,cy) (go `(->* ,@ (map (λ (c) `[☠ : ,c]) cx) ,cy))]
+           [`(->* ,cx ... ,cy) (go `(->* ,@ (map (λ (c) `[♦ : ,c]) cx) ,cy))]
            [`(struct/c ,t ,cs) (struct-c t (map go cs))]
-           [`(one-of/c ,v) (read-c l xs xcs `(λ (♦) (equal? ♦ ,v)))]
-           [`(one-of/c ,v1 ,vi ...) (or-c (read-c l xs xcs `(λ (♦) (equal? ♦ ,v1)))
-                                          (read-c l xs xcs `(one-of/c ,@ vi)))]
+           [`(one-of/c ,v ...)
+            (go `(or/c ,@ (for/list ([vi v]) `(λ (♦) (equal? ♦ ,vi)))))]
            [(? symbol? z)
             (cond
               [(hash-has-key? abbrevs z) (go (hash-ref abbrevs z))]
@@ -153,9 +154,8 @@
            [`(,[or 'lambda* 'λ*] (,x ... ,var) ,e′)
             (f [add1 (length x)] [read-e l (cons var (push x xs)) e′] #t)]
            [`• (•)]
-           [`(quote ,x) x]
-           [`(,func ,args ...) (@ l [go func] [map go args])]
-           [(or [? number? x] [? boolean? x] [? string? x]) x]
+           [(or (? number? x) (? boolean? x) (? string? x) `(quote ,x)) x]
+           [`(,f ,xs ...) (@ l (go f) (map go xs))]
            [(? symbol? s)
             (match (index-of s xs)
               [(? number? i) (x i)]
