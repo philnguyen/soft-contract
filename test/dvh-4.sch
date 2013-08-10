@@ -3,10 +3,7 @@
   (provide
    [phil  ([l1 : num?] . -> . 
            ([l2 : num?] . -> .
-            ([l3 : (and/c num? 
-			  (and/c (lambda (m) (not (zero? m)))
-				 (lambda (n) (= n (* l1 l2)))))] . -> . 
-				 (lambda (r) (not (zero? r))))))])
+            ([l3 : (and/c num? (not/c zero?) (=/c (* l1 l2)))] . -> . (not/c zero?))))])
 
   (define phil
     (lambda (l1)

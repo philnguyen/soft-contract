@@ -3,7 +3,7 @@
 
 (module id
   (provide
-   [f ([x : num?] . -> . (λ (y) (= x y)))])
+   [f ([x : num?] . -> . (=/c x))])
   (define (f x) x))
 
 (require opaque id)

@@ -1,6 +1,6 @@
 (module dvh-1
   (provide
-   [main ([z : (and/c num? (lambda (q) (= q 5)))] . -> . (lambda (y) (= y z)))])
+   [main ([z : (and/c num? (=/c 5))] . -> . (=/c z))])
 
   (define (main x) (- (+ x x) x)))
 

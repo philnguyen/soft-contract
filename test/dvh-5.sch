@@ -3,11 +3,8 @@
 ; verify: (not (zero? L1))
 (module dvh-5
   (provide
-   [phil  ([l1 : num?] . -> . 
-	   ([l3 : (and/c num? 
-			 (and/c (lambda (m) (not (zero? m)))
-				(lambda (n) (= n (* l1 l1)))))] . -> . 
-				(lambda (r) (not (zero? r)))))])
+   [phil ([l1 : num?] . -> . 
+         ([l3 : (and/c num? (not/c zero?) (=/c (* l1 l1)))] . -> . (not/c zero?)))])
 
   (define phil
     (lambda (l1)
