@@ -83,17 +83,9 @@
 (define/contract (δ σ o Vs)
   (σ? o-name? (listof V?) . -> . (nd/c (cons/c σ? V?)))
   (match* (o Vs)
-    [('add1 (list V)) (δ σ '+ (list V (val 1 ∅)))]
-    [('sub1 (list V)) (δ σ '- (list V (val 1 ∅)))]
+    [('add1 (list V)) (δ σ '+ (list V ONE))]
+    [('sub1 (list V)) (δ σ '- (list V ONE))]
     
-    ; concrete, precise values
-    [([and name (or '+ '- '* '/)] `(,[val (? number? x) _] ,[val (? number? y) _]))
-     (cons σ (val ((match name ['+ +] ['- -] ['* *] ['/ /]) x y) ∅))]
-    [([and name (or '> '< '>= '<=)] `(,[val (? real? x) _] ,[val (? real? y) _]))
-     (cons σ (val ((match name ['< <] ['> >] ['>= >=] ['<= <=]) x y) ∅))]
-    [('str-len `(,[val (? string? x) _])) (cons σ (val (string-length x) ∅))]
-    
-    ; semi-precise values
     [('* (list V1 V2))
      ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
      (match (map (curry σ@* σ) Vs)
@@ -114,19 +106,19 @@
                        [else NUM/C])
                      (prd/C X1 X2))]))])]
     [('/ (list V1 V2))
-     (cond
-       [(equal? 'Proved (prove? σ V1 ZERO/C)) (cons σ ZERO)]
-       [else (refine (σ+ σ)
-                     (cond ; preserve class
-                       [(all-prove? σ Vs REAL/C) REAL/C]
-                       [else NUM/C])
-                     (cond ; preserve sign
-                       [(all-prove? σ Vs POS/C) POS/C]
-                       [(all-prove? σ Vs NEG/C) POS/C]
-                       [(and (some-proves? σ Vs POS/C)
-                             (some-proves? σ Vs NEG/C)) NEG/C]
-                       [(all-prove? σ Vs NON-ZERO/C) NON-ZERO/C]
-                       [else ANY/C]))])]
+     ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
+     (match (map (curry σ@* σ) Vs)
+       [(list (val (? number? m) _) (val (? number? n) _)) (cons σ (val (/ m n) ∅))]
+       [(list (and W1 (val U1 _)) (and W2 (val U2 _)))
+        (let ([X1 (if (number? U1) W1 V1)]
+              [X2 (if (number? U2) W2 V2)])
+          (cond
+            [(equal? 'Proved (prove? σ X1 ZERO/C)) (cons σ ZERO)]
+            [else (refine (σ+ σ)
+                          (cond ; preserve class
+                            [(all-prove? σ Vs REAL/C) REAL/C]
+                            [else NUM/C])
+                          (rat/C X1 X2))]))])]
     [('+ (list V1 V2))
      ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
      (match (map (curry σ@* σ) Vs)
@@ -137,28 +129,12 @@
           (cond
             [(equal? 'Proved (prove? σ X1 ZERO/C)) (cons σ X2)]
             [(equal? 'Proved (prove? σ X2 ZERO/C)) (cons σ X1)]
-            [else
-             (refine (σ+ σ)
-                     (cond ; preserve class
-                       [(all-prove? σ Vs INT/C) INT/C]
-                       [(all-prove? σ Vs REAL/C) REAL/C]
-                       [else NUM/C])
-                     ; preserve sign/bound for real numbers
-                     (if (all-prove? σ Vs REAL/C)
-                         (∪
-                          (cond
-                            [(equal? 'Proved (prove? σ X1 POS/C)) (>/C X2)]
-                            [(equal? 'Proved (prove? σ X1 NON-NEG/C)) (≥/C X2)]
-                            [(equal? 'Proved (prove? σ X1 NEG/C)) (</C X2)]
-                            [(equal? 'Proved (prove? σ X1 NON-POS/C)) (≤/C X2)]
-                            [else ∅])
-                          (cond
-                            [(equal? 'Proved (prove? σ X2 POS/C)) (>/C X1)]
-                            [(equal? 'Proved (prove? σ X2 NON-NEG/C)) (≥/C X1)]
-                            [(equal? 'Proved (prove? σ X2 NEG/C)) (</C X1)]
-                            [(equal? 'Proved (prove? σ X2 NON-POS/C)) (≤/C X1)]
-                            [else ∅]))
-                         ANY/C))]))])]
+            [else (refine (σ+ σ)
+                          (cond ; preserve class
+                            [(all-prove? σ Vs INT/C) INT/C]
+                            [(all-prove? σ Vs REAL/C) REAL/C]
+                            [else NUM/C])
+                          (sum/C X1 X2))]))])]
     [('- (list V1 V2))
      ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
      (match (map (curry σ@* σ) Vs)
@@ -168,68 +144,58 @@
               [X2 (if (number? U2) W2 V2)])
           (cond
             [(equal? 'Proved (prove? σ X2 ZERO/C)) (cons σ X1)]
-            [else
-             (refine (σ+ σ)
-                     (cond ; preserve class
-                       [(all-prove? σ Vs INT/C) INT/C]
-                       [(all-prove? σ Vs REAL/C) REAL/C]
-                       [else NUM/C])
-                     ; preserve sign/bound for real numbers
-                     (if (all-prove? σ Vs REAL/C)
-                         (cond
-                           [(equal? 'Proved (prove? σ X2 POS/C)) (</C X1)]
-                           [(equal? 'Proved (prove? σ X2 NON-NEG/C)) (≤/C X1)]
-                           [(equal? 'Proved (prove? σ X2 NEG/C)) (>/C X1)]
-                           [(equal? 'Proved (prove? σ X2 NON-POS/C)) (≥/C X1)]
-                           [else ANY/C])
-                         ANY/C))]))])]
+            [else (refine (σ+ σ)
+                          (cond ; preserve class
+                            [(all-prove? σ Vs INT/C) INT/C]
+                            [(all-prove? σ Vs REAL/C) REAL/C]
+                            [else NUM/C])
+                          (dif/C X1 X2))]))])]
     
-    [('str-len _) (refine (σ+ σ) (pred/C 'int?) NON-NEG/C)]
+    [('str-len (list V))
+     (match (σ@* σ V)
+       [(val (? string? s) _) (cons σ (val (string-length s) ∅))]
+       [_ (refine (σ+ σ) INT/C NON-NEG/C)] #|TODO improve|#)]
     [('= `(,V1 ,V2))
      #;(debug "-- ~a ~a~n~n" (show-E V1) (show-E V2))
+     ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
      (match (map (curry σ@* σ) Vs)
        [(list (val (? number? m) _) (val (? number? n) _)) (cons σ (val (= m n) ∅))]
-       [(list (val (? number? n) _) _)
-        (match-let ([σ1 (if (L? V2) (σ-set σ V2 V1) σ)]
-                    [(cons σ2 _) (refine1 (cons σ V2) (≠/C V1))])
-          (match (prove? σ V2 (=/C V1))
-            ['Proved (cons σ1 TT)]
-            ['Refuted (cons σ2 FF)]
-            ['Neither {set (cons σ1 TT) (cons σ2 FF)}]))]
-       [(list _ (val (? number? n) _))
-        (match-let ([σ1 (if (L? V1) (σ-set σ V1 V2) σ)]
-                    [(cons σ2 _) (refine1 (cons σ V1) (≠/C V2))])
-          (match (prove? σ V1 (=/C V2))
-            ['Proved (cons σ1 TT)]
-            ['Refuted (cons σ2 FF)]
-            ['Neither {set (cons σ1 TT) (cons σ2 FF)}]))]
-       [_ (match (prove? σ V1 (=/C V2))
+       [(list (and W1 (val U1 _)) (and W2 (val U2 _)))
+        (let ([X1 (if (number? U1) W1 V1)]
+              [X2 (if (number? U2) W2 V2)])
+          (match (prove? σ X1 (=/C X2))
             ['Proved (cons σ TT)]
             ['Refuted (cons σ FF)]
             ['Neither
-             (match (prove? σ V2 (=/C V1))
+             (match (prove? σ X2 (=/C X1))
                ['Proved (cons σ TT)]
                ['Refuted (cons σ FF)]
                ['Neither
-                (match-let* ([(cons σT _) (refine1 (cons σ V1) (=/C V2))]
-                             [(cons σT _) (refine1 (cons σT V2) (=/C V1))]
-                             [(cons σF _) (refine1 (cons σ V1) (≠/C V2))]
-                             [(cons σF _) (refine1 (cons σF V2) (≠/C V1))])
-                  {set (cons σT TT) (cons σF FF)})])])])]
+                (match-let* ([(cons σT _) (refine1 (cons σ V1) (=/C X2))]
+                             [(cons σT _) (refine1 (cons σT V2) (=/C X1))]
+                             [(cons σF _) (refine1 (cons σ V1) (≠/C X2))]
+                             [(cons σF _) (refine1 (cons σF V2) (≠/C X1))])
+                  {set (cons σT TT) (cons σF FF)})])]))])]
     [('< (list V1 V2))
-     (match (prove? σ V1 (</C V2))
-       ['Proved (cons σ TT)]
-       ['Refuted (cons σ FF)]
-       ['Neither
-        (match (prove? σ V2 (>/C V1))
-          ['Proved (cons σ TT)]
-          ['Refuted (cons σ FF)]
-          ['Neither
-           (match-let* ([(cons σT _) (refine1 (cons σ V1) (</C V2))]
-                        [(cons σT _) (refine1 (cons σT V2) (>/C V1))]
-                        [(cons σF _) (refine1 (cons σ V1) (≥/C V2))]
-                        [(cons σF _) (refine1 (cons σF V2) (≤/C V1))])
-             {set (cons σT TT) (cons σF FF)})])])]
+     ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
+     (match (map (curry σ@* σ) Vs)
+       [(list (val (? number? m) _) (val (? number? n) _)) (cons σ (val (< m n) ∅))]
+       [(list (and W1 (val U1 _)) (and W2 (val U2 _)))
+        (let ([X1 (if (number? U1) W1 V1)]
+              [X2 (if (number? U2) W2 V2)])
+          (match (prove? σ X1 (</C X2))
+            ['Proved (cons σ TT)]
+            ['Refuted (cons σ FF)]
+            ['Neither
+             (match (prove? σ X2 (>/C X1))
+               ['Proved (cons σ TT)]
+               ['Refuted (cons σ FF)]
+               ['Neither
+                (match-let* ([(cons σT _) (refine1 (cons σ V1) (</C X2))]
+                             [(cons σT _) (refine1 (cons σT V2) (>/C X1))]
+                             [(cons σF _) (refine1 (cons σ V1) (≥/C X2))]
+                             [(cons σF _) (refine1 (cons σF V2) (≤/C X1))])
+                  {set (cons σT TT) (cons σF FF)})])]))])]
     [('> (list V1 V2)) (δ σ '< (list V2 V1))]
     [('>= (list V1 V2)) (match/nd (δ σ '< (list V1 V2))
                           [(cons σ1 (val #t _)) (cons σ1 FF)]
@@ -302,9 +268,9 @@
                 [(_ 'Refuted) (refine1 σV C1)]
                 [('Refuted _) (refine1 σV C2)]
                 [(_ _) (match V ; existing refinements can prune off one branch
-                         [(val u Cs) (cons σ (val u [intersect-Cs Cs C]))]
+                         [(val u Cs) (cons σ (val u [intersect-Cs σ Cs C]))]
                          [(? L? l) (match-let* ([(val u Cs) (σ@ σ l)]
-                                                [V′ (val u [intersect-Cs Cs C])])
+                                                [V′ (val u [intersect-Cs σ Cs C])])
                                      (cons [σ-set σ l V′] l))])]))]
            [(_ [μ-c x c1]) (refine1 σV [close (subst/c c1 x c) ρ])] ; FIXME no need?
            
@@ -338,7 +304,7 @@
            
            [([val u Cs] _)
             (match-let*
-                ([Cs1 (intersect-Cs Cs C)]
+                ([Cs1 (intersect-Cs σ Cs C)]
                  [Ck (for/or ([Ci Cs1]
                               #:when
                               (match? Ci (close (or (? struct-c?) (? struct-p?)) _)))
@@ -364,30 +330,31 @@
                         [(and Ck (close _ _)) (set-remove Cs1 Ck)])])
               (cons σ2 (val u′ Cs2)))])]))))
 
-(define (intersect-Cs Cs Cn)
+(define (intersect-Cs σ Cs Cn)
   (if (set-empty? Cs) {set Cn}
       (for/fold ([acc ∅]) ([Ci (in-set Cs)])
-        (∪ acc (intersect-C Ci Cn)))))
+        (∪ acc (intersect-C σ Ci Cn)))))
 
-(define (intersect-C C D)
+(define (intersect-C σ C D)
+  (define go (curry intersect-C σ))
   (cond
-    [(equal? 'Proved (C-prove? C D)) C]
-    [(equal? 'Proved (C-prove? D C)) D]
+    [(equal? 'Proved (C-prove? σ C D)) C]
+    [(equal? 'Proved (C-prove? σ D C)) D]
     [else
      (match-let ([(close c ρc) C]
                  [(close d ρd) D])
        (match* (c d)
          ; unroll recursive ones
-         [(_ (μ-c x d1)) (intersect-C C (close (subst/c d1 x d) ρd))]
-         [((μ-c x c1) _) (intersect-C (close (subst/c c1 x c) ρc) D)]
+         [(_ (μ-c x d1)) (go C (close (subst/c d1 x d) ρd))]
+         [((μ-c x c1) _) (go (close (subst/c c1 x c) ρc) D)]
          ; break conjunctive ones
-         [(_ (and-c d1 d2)) (set-union (intersect-C C (close d1 ρd)) (intersect-C C (close d2 ρd)))]
-         [((and-c c1 c2) _) (set-union (intersect-C (close c1 ρc) D) (intersect-C (close c2 ρc) D))]
+         [(_ (and-c d1 d2)) (set-union (go C (close d1 ρd)) (go C (close d2 ρd)))]
+         [((and-c c1 c2) _) (set-union (go (close c1 ρc) D) (go (close c2 ρc) D))]
          ; prune stuff in disjunctive ones if possible
-         [(_ (? or-c?)) (let ([D′ (truncate D C)])
-                          (if (equal? D D′) {set C D} (intersect-C C D′)))]
-         [((? or-c?) _) (let ([C′ (truncate C D)])
-                          (if (equal? C C′) {set C D} (intersect-C C′ D)))]
+         [(_ (? or-c?)) (let ([D′ (truncate σ D C)])
+                          (if (equal? D D′) {set C D} (go C D′)))]
+         [((? or-c?) _) (let ([C′ (truncate σ C D)])
+                          (if (equal? C C′) {set C D} (go C′ D)))]
          ; special rules for contracts on reals
          [((f 1 (@ l (op '>=) (list e1 e2)) #f)
            (f 1 (@ _ (op 'false?)
@@ -416,19 +383,20 @@
          [(_ _) {set C D}]))]))
 
 ; prunes off all branches of disjunction that are excluded by given contract
-(define (truncate C D)
+(define (truncate σ C D)
+  (define go (curry truncate σ))
   (match-let ([(close c ρc) C]
               [(close d ρd) D])
     (match c
       [(or-c c1 c2)
        (let ([C1 (close c1 ρc)]
              [C2 (close c2 ρc)])
-         (match* ([C-prove? D C1] [C-prove? D C2])
+         (match* ([C-prove? σ D C1] [C-prove? σ D C2])
            [('Refuted 'Refuted) (error "WTF??")]
-           [(_ 'Refuted) (truncate C1 D)]
-           [('Refuted _) (truncate C2 D)]
-           [(_ _) (match-let ([(close c1p _) (truncate C1 D)]
-                              [(close c2p _) (truncate C2 D)])
+           [(_ 'Refuted) (go C1 D)]
+           [('Refuted _) (go C2 D)]
+           [(_ _) (match-let ([(close c1p _) (go C1 D)]
+                              [(close c2p _) (go C2 D)])
                     (close (or-c c1p c2p) ρc))]))]
       [_ C])))
 

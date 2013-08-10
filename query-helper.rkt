@@ -88,7 +88,7 @@
   [(_) o])
 
 (define (call query)
-  (debug "Called with:~n~a~n~n" query)
+  #;(debug "Called with:~n~a~n~n" query)
   (match (system/exit-code (format "echo \"~a\" | cvc4 -q > /dev/null" query))
     [20 'Proved]
     [_ 'Neither]))

@@ -83,7 +83,7 @@
    [prim (symbol? . -> . [or/c e? #f])]
    [checks# ((or/c p? e? c? m?) . -> . int?)]
    
-   [TT val?] [FF val?] [ZERO val?]
+   [TT val?] [FF val?] [ZERO val?] [ONE val?]
    [POS/C C?] [NEG/C C?] [NON-ZERO/C C?] [NON-NEG/C C?] [NON-POS/C C?]
    [NUM/C C?] [REAL/C C?] [INT/C C?]
    [ZERO/C C?] [ONE/C C?] [ANY/C C?])
@@ -214,15 +214,15 @@
 (define (rel2/C R2 U V)
   (match* (U V)
     [((val (? number? m) _) (val (? number? n) _))
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list m n)))) #f) ρ∅)]
+     (close (f 1 (@ 'Δ (op '=) (list (x 0) (@ 'Δ R2 (list m n)))) #f) ρ∅)]
     [((val (? number? m) _) _)
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list m (x 1))))) #f)
+     (close (f 1 (@ 'Δ (op '=) (list (x 0) (@ 'Δ R2 (list m (x 1))))) #f)
             (ρ+ ρ∅ V))]
     [(_ (val (? number? n) _))
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list (x 1) n)))) #f)
+     (close (f 1 (@ 'Δ (op '=) (list (x 0) (@ 'Δ R2 (list (x 1) n)))) #f)
             (ρ+ ρ∅ U))]
     [(_ _)
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list (x 1) (x 2))))) #f)
+     (close (f 1 (@ 'Δ (op '=) (list (x 0) (@ 'Δ R2 (list (x 1) (x 2))))) #f)
             (ρ++ ρ∅ (list V U)))]))
 (define (sum/C U V) (rel2/C (op '+) U V))
 (define (dif/C U V) (rel2/C (op '-) U V))
@@ -577,6 +577,7 @@
 (define TT (val #t ∅))
 (define FF (val #f ∅))
 (define ZERO (val 0 ∅))
+(define ONE (val 1 ∅))
 (define ZERO/C (=/C (val 0 ∅)))
 (define ONE/C (=/C (val 1 ∅)))
 (define POS/C (>/C (val 0 ∅)))

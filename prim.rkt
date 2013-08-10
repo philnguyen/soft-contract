@@ -5,8 +5,8 @@
               all-prove? all-refute? some-proves? some-refutes?)
  (contract-out
   [prove? (σ? V? C? . -> . R?)]
-  [Cs-prove? ([set/c C?] C? . -> . R?)]
-  [C-prove? (C? C? . -> . R?)]
+  [Cs-prove? (σ? [set/c C?] C? . -> . R?)]
+  [C-prove? (σ? C? C? . -> . R?)]
   [p-prove? (pred? pred? . -> . R?)]
   [simplify-C (C? . -> . C?)]
   [all-prove? (σ? (listof V?) C? . -> . any/c)]
@@ -22,14 +22,19 @@
     (match* (V c)
       [(_ (op 'any)) 'Proved]
       
-      ; defer predicates on real numbers to CVC4
-      #;[(V (f 1 (@ _ (op (or 'equal? '= '< '> '>= '<=)) (list (x 0) _)) #f)) (query σ V C)]
+      ; resort to external solver for complex arithmetics
+      [((? L? L) (f 1 (@ _ (op (or 'equal? '= '< '> '>= '<=)) (list (x 0) _)) #f))
+       (match (prove? σ (σ@ σ L) C)
+         ['Neither (query σ V C)]
+         [ans ans])]
       
-      ; look up. Important not to lookup before querying CVC4
-      [([? L? l] _) (prove? σ [σ@ σ l] C)]
-      [((val (•) Cs) _) (Cs-prove? Cs C)]
+      ; look up
+      [([? L? L] _) (prove? σ [σ@ σ L] C)]
+      [((val (•) Cs) _) (Cs-prove? σ Cs C)]
+      
+      ; try pre-value first
       [((val U Cs) _) (match (U-prove? σ U C)
-                        ['Neither (Cs-prove? Cs C)]
+                        ['Neither (Cs-prove? σ Cs C)]
                         [r r])])))
 
 (define (U-prove? σ U C) ; U ≠ •
@@ -106,15 +111,15 @@
   (for/or ([V Vs]) (equal? 'Refuted (prove? σ V C))))
 
 ;; checks whether given set of contracts can prove new one
-(define (Cs-prove? Cs C)
+(define (Cs-prove? σ Cs C)
   (or (for*/first ([Ci (in-set Cs)]
-                   [r (in-value (C-prove? Ci C))]
+                   [r (in-value (C-prove? σ Ci C))]
                    #:when (match? r 'Proved 'Refuted))
         r)
       'Neither))
 
 ;; checks whether first contract proves second
-(define (C-prove? C D)
+(define (C-prove? σ C D)
   (let go ([C C] [D D] [assume ∅])
     (let ([C (simplify-C C)] [D (simplify-C D)])
       (cond
@@ -182,6 +187,120 @@
              [((f 1 (@ _ (op '<) (list (x 0) (? real? r1))) #f)
                (f 1 (@ _ (op (or '= '> '>=)) (list (x 0) (? real? r2))) #f))
               (if (<= r1 r2) 'Refuted 'Neither)]
+             
+             ; special rules for sums
+             [((f 1 (@ _ (op '=)
+                       (list (x 0)
+                             (@ _ (op (and o (or '+ '- '* '/)))
+                                (list (and x1 (or (? x?) (? number?)))
+                                      (and x2 (or (? x?) (? number?))))))) #f) _)
+              (match-let* ([ρ@* (match-lambda
+                                  [(x (? positive? sd)) (ρ@ ρc (- sd 1))]
+                                  [(? number? n) (val n ∅)])]
+                           [(and Vs (list V1 V2)) (list (ρ@* x1) (ρ@* x2))])
+                (match d
+                  [(op 'num?) 'Proved]
+                  [(op 'real?) (if (all-prove? σ Vs REAL/C) 'Proved 'Neither)]
+                  [(op 'int?) (cond
+                                [(equal? o '/) 'Neither]
+                                [(all-prove? σ Vs INT/C) 'Proved]
+                                [else 'Neither])]
+                  [(? pred?) 'Refuted]
+                  [(f 1 (@ _ (op (or '= 'equal?)) (list (x 0) 0)) #f) ; positive
+                   (match o
+                     ['+ (cond
+                           [(all-prove? σ Vs ZERO/C) 'Proved]
+                           [(all-prove? σ Vs NON-ZERO/C) 'Refuted]
+                           [else 'Neither])]
+                     ['- (cond
+                           [(all-prove? σ Vs ZERO/C) 'Proved]
+                           [else (match (prove? σ V1 (=/C V2))
+                                   ['Neither (prove? σ V2 (=/C V1))]
+                                   [ans ans])])]
+                     ['* (cond
+                           [(some-proves? σ Vs ZERO/C) 'Proved]
+                           [(all-prove? σ Vs NON-ZERO/C) 'Refuted]
+                           [else 'Neither])]
+                     [_ 'Neither])]
+                  [(f 1 (@ _ (op '>) (list (x 0) 0)) #f) ; positive
+                   (match o
+                     ['+ (cond
+                           [(all-prove? σ Vs POS/C) 'Proved]
+                           [(all-prove? σ Vs NON-POS/C) 'Refuted]
+                           [else 'Neither])]
+                     ['- (match* ((prove? σ V1 NON-NEG/C) (prove? σ V2 NON-POS/C))
+                           [('Proved 'Proved) (if (some-proves? σ Vs NON-ZERO/C)
+                                                  'Proved 'Neither)]
+                           [(_ _)
+                            (match* ((prove? σ V1 NON-POS/C) (prove? σ V2 NON-NEG/C))
+                              [('Proved 'Proved) 'Refuted]
+                              [(_ _) 'Neither])])]
+                     ['* (cond
+                           [(all-prove? σ Vs POS/C) 'Proved]
+                           [(all-prove? σ Vs NEG/C) 'Proved] ; be careful with varargs
+                           [(and (some-proves? σ Vs NON-POS/C)
+                                 (some-proves? σ Vs NON-NEG/C)) 'Refuted] ; be careful with varargs
+                           [else 'Neither])]
+                     [_ 'Neither])]
+                  [(f 1 (@ _ (op '<) (list (x 0) 0)) #f) ; negative
+                   (match o
+                     ['+ (cond
+                           [(all-prove? σ Vs NEG/C) 'Proved]
+                           [(all-prove? σ Vs NON-NEG/C) 'Refuted]
+                           [else 'Neither])]
+                     ['- (match* ((prove? σ V1 NON-POS/C) (prove? σ V2 NON-NEG/C))
+                           [('Proved 'Proved) (if (some-proves? σ Vs NON-ZERO/C)
+                                                  'Proved 'Neither)]
+                           [(_ _)
+                            (match* ((prove? σ V1 NON-NEG/C) (prove? σ V2 NON-POS/C))
+                              [('Proved 'Proved) 'Refuted]
+                              [(_ _) 'Neither])])]
+                     ['* (cond
+                           [(all-prove? σ Vs NON-POS/C) 'Refuted] ; be careful with varargs
+                           [(all-prove? σ Vs NON-NEG/C) 'Refuted] 
+                           [(and (some-proves? σ Vs POS/C)
+                                 (some-proves? σ Vs NEG/C)) 'Proved] ; be careful with varargs
+                           [else 'Neither])]
+                     [_ 'Neither])]
+                  [(f 1 (@ _ (op '>=) (list (x 0) 0)) #f) ; positive
+                   (match o
+                     ['+ (cond
+                           [(all-prove? σ Vs NON-NEG/C) 'Proved]
+                           [(all-prove? σ Vs NEG/C) 'Refuted]
+                           [else 'Neither])]
+                     ['- (match* ((prove? σ V1 NON-NEG/C) (prove? σ V2 NON-POS/C))
+                           [('Proved 'Proved) 'Proved]
+                           [(_ _)
+                            (match* ((prove? σ V1 NON-POS/C) (prove? σ V2 NON-NEG/C))
+                              [('Proved 'Proved) (if (some-proves? σ Vs NON-ZERO/C) 'Refuted 'Neither)]
+                              [(_ _) 'Neither])])]
+                     ['* (cond
+                           [(all-prove? σ Vs NON-NEG/C) 'Proved]
+                           [(all-prove? σ Vs NON-POS/C) 'Proved] ; be careful with varargs
+                           [(and (some-proves? σ Vs POS/C)
+                                 (some-proves? σ Vs NEG/C)) 'Refuted] ; be careful with varargs
+                           [else 'Neither])]
+                     [_ 'Neither])]
+                  [(f 1 (@ _ (op '<=) (list (x 0) 0)) #f) ; positive
+                   (match o
+                     ['+ (cond
+                           [(all-prove? σ Vs NON-POS/C) 'Proved]
+                           [(all-prove? σ Vs POS/C) 'Refuted]
+                           [else 'Neither])]
+                     ['- (match* ((prove? σ V1 NON-POS/C) (prove? σ V2 NON-NEG/C))
+                           [('Proved 'Proved) 'Proved]
+                           [(_ _)
+                            (match* ((prove? σ V1 NON-NEG/C) (prove? σ V2 NON-POS/C))
+                              [('Proved 'Proved) (if (some-proves? σ Vs NON-ZERO/C) 'Refuted 'Neither)]
+                              [(_ _) 'Neither])])]
+                     ['* (cond
+                           [(all-prove? σ Vs NEG/C) 'Refuted] ; be careful with varargs
+                           [(all-prove? σ Vs POS/C) 'Refuted]
+                           [(and (some-proves? σ Vs NON-POS/C)
+                                 (some-proves? σ Vs NON-NEG/C)) 'Proved] ; be careful with varargs
+                           [else 'Neither])]
+                     [_ 'Neither])]
+                  [_ 'Neither]))]
              
              ; struct contract
              [([struct-c t _] [struct-p t _]) 'Proved]

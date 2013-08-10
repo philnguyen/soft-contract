@@ -131,7 +131,7 @@
                 [c-len (length cx)])
             (if (if v? (>= V-len c-len) (= V-len c-len))
                 (ς Vg σ [mon*/k l- l+ lo '() (map (λ (c) (close-c c ρc)) cx) Vx
-                                (mon/k1 l+ l- lo (close-c cy [ρ++ ρc Vx])
+                                (mon/k1 σ l+ l- lo (close-c cy [ρ++ ρc Vx])
                                         (lam/k Vf Vx σ k))])
                 (ς [bl l lo "Wrong arity"] σ 'mt)))]
          [_ (match/nd (Δ 'Δ σ (op 'proc?) `(,Vf))
@@ -188,8 +188,8 @@
     (match-let ([(close c0 ρc) C])
       (match c0
         [(and-c c1 c2)
-         (ς V σ [mon/k1 l+ l- lo (close-c c1 ρc)
-                        [mon/k1 l+ l- lo (close-c c2 ρc) k]])]
+         (ς V σ [mon/k1 σ l+ l- lo (close-c c1 ρc)
+                        [mon/k1 σ l+ l- lo (close-c c2 ρc) k]])]
         [(or-c c1 c2)
          (ς (FC lo [close-c c1 ρc] V) σ
             (if/k (Assume V [close-c c1 ρc])
@@ -254,11 +254,11 @@
                  [Cx (close-c cx ρ∅)])
             (match vx
               [(•) (match/nd (refine (σ+ σ) Cx)
-                     [(cons σ1 l) (ς l σ1 [mon/k1 src ctx src Cx k])])]
-              [_ (ς [close-v vx ρ∅] σ [mon/k1 src ctx src Cx k])]))])]
+                     [(cons σ1 l) (ς l σ1 [mon/k1 σ src ctx src Cx k])])]
+              [_ (ς [close-v vx ρ∅] σ [mon/k1 σ src ctx src Cx k])]))])]
       
       [(? Blm? bl) (ς bl σ 'mt)]
-      [(Mon l+ l- lo C E1) (ς E1 σ [mon/k1 l+ l- lo C k])]
+      [(Mon l+ l- lo C E1) (ς E1 σ [mon/k1 σ l+ l- lo C k])]
       [(FC lo C V) (step-fc lo C V σ k)]
       [(Assume V C) (match/nd (refine [cons σ V] C)
                       [(cons σ1 V1) (ς V1 σ1 k)])]))
@@ -276,9 +276,9 @@
       [(mon/k l+ l- lo C k1) (step-mon l+ l- lo C V σ k1)]
       [(mon*/k l+ l- lo Vs [cons Ci '()] [cons Vi Vs1] k1) 
        ; repeat last contract to handle var-args
-       (ς Vi σ [mon/k1 l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) [cons Ci '()] Vs1 k1)])]
+       (ς Vi σ [mon/k1 σ l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) [cons Ci '()] Vs1 k1)])]
       [(mon*/k l+ l- lo Vs [cons Ci Cs] [cons Vi Vs1] k1) 
-       (ς Vi σ [mon/k1 l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) Cs Vs1 k1)])]
+       (ς Vi σ [mon/k1 σ l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) Cs Vs1 k1)])]
       [(mon*/k l+ l- lo Vs _ '() k1) 
        (match-let ([(cons Vf Vx) (reverse (cons V Vs))])
          (step-@ l- σ Vf Vx k1))]
@@ -443,11 +443,11 @@
       (close-c cy (ρ++ ρc Vx)))))
 
 ;; add monitoring frame and removes redundant ones below
-(define (mon/k1 l+ l- lo Cn kn)
+(define (mon/k1 σ l+ l- lo Cn kn)
   (l? l? l? C? κ? . -> . κ?)
   (define (rm-mon k)
     (match k
-      [(mon/k f g h Ci ki) (if (equal? 'Proved (C-prove? Cn Ci))
+      [(mon/k f g h Ci ki) (if (equal? 'Proved (C-prove? σ Cn Ci))
                                (rm-mon ki)
                                (mon/k f g h Ci (rm-mon ki)))]
       [_ k]))
