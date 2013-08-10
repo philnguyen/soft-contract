@@ -1,0 +1,13 @@
+I initially wanted to enhance proof system's handling of easy arithmetic cases to reduce IO cost,
+only querying cvc4 on "Neither".
+This didn't improve things much because the first few queries are always Neither anyway,
+most of them look something like:
+  L0, L1 : Real;
+  ASSERT L0 > L1;
+So if performance is really importance, it might be useful to distinguish between
+"definitely neither" and "maybe neither".
+
+TODO:
+intros 1 2 3, dvh-1,3, max can now be verified but with longer run-time (still under 1s though)
+dvh-2 and sum were regressions, need fixing
+improve + clean up ⊑
