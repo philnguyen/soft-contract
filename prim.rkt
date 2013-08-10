@@ -135,7 +135,9 @@
              
              ; eliminate negation
              [((f 1 (@ _ (op 'false?) (list ec)) #f) (f 1 (@ _ (op 'false?) (list ed)) #f))
-              (go (close (f 1 ed #f) ρd) (close (f 1 ec #f) ρc) assume)]
+              (match (go (close (f 1 ed #f) ρd) (close (f 1 ec #f) ρc) assume)
+                ['Proved 'Proved]
+                [_ 'Neither])]
              [((f 1 (@ _ (op 'false?) (list ec)) #f) _)
               (match (go D (close (f 1 ec #f) ρc) assume)
                 ['Proved 'Refuted]

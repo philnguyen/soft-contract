@@ -256,7 +256,7 @@
                 [(cons σ V) σV])
       (match (prove? σ V C)
         ['Proved σV]
-        ['Refuted (error (format "refine: Value definitely refutes contract;~nValue: ~a~nContract:~a~n" (show-E V) (show-C C)))]
+        ['Refuted (error (format "refine: Value definitely refutes contract;~nValue and heap: ~a~nContract:~a~n" (show-σA σ V) (show-C C)))]
         ['Neither
          (match* (V c)
            [(_ [and-c c1 c2]) (refine1 (refine1 σV [close c1 ρ]) [close c2 ρ])]
