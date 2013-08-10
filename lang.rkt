@@ -25,6 +25,10 @@
    [struct μ-c ([x l?] [c c?])]
    [clo-circular? (V? . -> . boolean?)]
    
+   [close-e (e? ρ? . -> . E?)]
+   [close-v ((or/c b? f?) ρ? . -> . val?)]
+   [close-c (c? ρ? . -> . C?)]
+   
    [pred/c ((or/c c? p-name?) . -> . c?)]
    [pred/C ((or/c c? p-name?) . -> . C?)]
    [>/C (V? . -> . C?)]
@@ -41,6 +45,7 @@
    [subst/c (c? x-c? c? . -> . c?)]
    [FV ([e?] [int?] . ->* . [set/c int?])]
    [FV-c ([c?] [int?] . ->* . [set/c int?])]
+   [closed? (e? . -> . any)]
    [flat? (c? . -> . any/c)]
    [with-havoc (p? . -> . p?)]
    
@@ -52,7 +57,7 @@
    [ρ-restrict (ρ? (set/c int?) . -> . ρ?)]
    [ρ-set (ρ? (or/c x? int?) V? . -> . ρ?)]
    
-   [struct σ ([m (hash/c L? V?)] [next L?])]
+   [struct σ ([m (hash/c L? val?)] [next L?])]
    [σ@ (σ? L? . -> . V?)]
    [σ@* (σ? V? . -> . V?)]
    [σ+ (σ? . -> . (cons/c σ? L?))]
@@ -160,13 +165,13 @@
 (struct amb (e) #:transparent)
 
 ; contract
-(define flat-c? v?)
+(define flat-c? (or/c pred? f?))
 (struct func-c (xs y var?) #:transparent)
 (struct and-c (l r) #:transparent)
 (struct or-c (l r) #:transparent)
 (struct struct-c (name fields) #:transparent)
 (struct μ-c (x c) #:transparent)
-(define x-c? symbol?)
+(define x-c? (and/c symbol? (not/c o-name?)))
 (define c? (or/c flat-c? func-c? and-c? or-c? struct-c? μ-c? x-c?))
 
 (define not-c
@@ -179,12 +184,12 @@
 
 (define pred/c
   (match-lambda
-    [(? c? c) c]
-    [(? p-name? n) (prim p)]))
+    [(? p-name? n) (prim n)]
+    [(? c? c) c]))
 (define pred/C
   (match-lambda
-    [(? c? c) (close c ρ∅)]
-    [(? p-name? n) (close (prim p) ρ∅)]))
+    [(? p-name? n) (close (prim n) ρ∅)]
+    [(? c? c) (close c ρ∅)]))
 
 (define (not-C C)
   (match-let ([(close c ρ) C]) (close (not-c c) ρ)))
@@ -197,8 +202,8 @@
 (define (≥/C V) (rel/C (op '>=) V))
 (define (</C V) (rel/C (op '<) V))
 (define (≤/C V) (rel/C (op '<=) V))
-(define (=/C V) (rel/C (op 'equal?) V))
-(define (≠/C V) (not-C (rel/C (op 'equal?) V)))
+(define (=/C V) (rel/C (op '=) V))
+(define (≠/C V) (not-C (rel/C (op '=) V)))
 (define (rel2/C f U V)
   (match* (U V)
     [((val (? number? m) _) (val (? number? n) _))
@@ -255,6 +260,8 @@
     [(μ-c _ c1) (FV-c c1 depth)]
     [(? symbol?) ∅]
     [(? v? v) (FV v depth)]))
+
+(define (closed? e) (set-empty? (FV e)))
 
 ;; checks whether a contract is flat
 (define (flat? c)
@@ -437,6 +444,20 @@
 ; closed contract
 (define C? (close/c c?))
 
+(define (close-e e ρ)
+  (match e
+    [(•) (close e ρ∅)]
+    [(? v? v) (close-v v ρ)]
+    [_ (close e (ρ-restrict ρ (FV e)))]))
+
+(define (close-v v ρ)
+  (match v
+    [(? b? b) (val b ∅)]
+    [(? f? lam) (val [close lam (ρ-restrict ρ (FV lam))] ∅)]))
+
+(define (close-c c ρ)
+  (close c [ρ-restrict ρ (FV-c c)]))
+
 ; closed expression
 (define (E? x) ([or/c [close/c e?] A? Mon? FC? Assume?] x))
 (struct Mon (l+ l- lo c e) #:transparent)
@@ -501,20 +522,23 @@
 
 ;; maps a primitive's name to the corresponding operator
 (define total-preds
-  (for/hash ([n '(any num? real? int? true? false? bool? str? symbol? proc?)])
-    (values n (op n))))
+  (hash-set* (for/hash ([n '(any num? real? int? true? false? bool? str? symbol? proc?)])
+               (values n (op n)))
+             'cons? (struct-p 'cons 2)
+             'empty? (struct-p 'empty 0)))
 (define partial-preds
-  (for/hash ([n '(zero? positive? negative?)])
-    (values n (op n))))
+  ; for uniform handling of =,>,<
+  (hash ;'zero? (f 1 (@ 'Δ (op 'equal?) (list (x 0) 0)) #f)
+        ;'positive? (f 1 (@ 'Δ (op '>) (list (x 0) 0)) #f)
+        ;'negative? (f 1 (@ 'Δ (op '<) (list (x 0) 0)) #f)
+   ))
 (define non-preds
   (hash-set* (for/hash ([n '(add1 sub1 + - * / str-len equal? = > < <= >=)])
                (values n (op n)))
              'cons (struct-mk 'cons 2)
              'car (struct-ac 'cons 2 0)
              'cdr (struct-ac 'cons 2 1)
-             'cons? (struct-p 'cons 2)
              'empty #|hack|# (@ 'Δ (struct-mk 'empty 0) '())
-             'empty? (struct-p 'empty 0)
              'not (op 'false?)))
 (define (prim name)
   (or (hash-ref total-preds name (λ () #f))

@@ -446,23 +446,6 @@
       [_ k]))
   (mon/k l+ l- lo Cn (rm-mon kn)))
 
-(define (close-e e ρ)
-  (e? ρ? . -> . E?)
-  (match e
-    [(•) (close e ρ∅)]
-    [(? v? v) (close-v v ρ)]
-    [_ (close e (ρ-restrict ρ (FV e)))]))
-
-(define (close-v v ρ)
-  (v? ρ? . -> . V?)
-  (match v
-    [(? b? b) (val b ∅)]
-    [(? f? lam) (val [close lam (ρ-restrict ρ (FV lam))] ∅)]))
-
-(define (close-c c ρ)
-  (c? ρ? . -> . C?)
-  (close c [ρ-restrict ρ (FV-c c)]))
-
 (define (inj e)
   (e? . -> . ς?)
   (ς [close e ρ∅] σ∅ 'mt))
