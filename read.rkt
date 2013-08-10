@@ -80,17 +80,29 @@
                            [_ (values decs defs)]))])
            (m decs defs)))
        
-       (define (resolve-ref from x)
-         (if (or [set-member? (hash-ref all from) x]
-                 [set-member? (hash-ref outs from) x])
-             (ref from from x)
-             (for/first ([to (hash-ref reqs from)]
-                         #:when (set-member? (hash-ref outs to) x))
-               (ref from to x))))
+       (define/contract (resolve-ref from name)
+         (symbol? symbol? . -> . (or/c o? ref? f? #f))
+         (if (or [set-member? (hash-ref all from) name]
+                 [set-member? (hash-ref outs from) name])
+             (ref from from name)
+             (or (for/first ([to (hash-ref reqs from)]
+                             #:when (set-member? (hash-ref outs to) name))
+                   (ref from to name))
+                 (match name
+                   ['zero? (f 1 (@ from (op '=) (list (x 0) 0)) #f)]
+                   ['positive? (f 1 (@ from (op '>) (list (x 0) 0)) #f)]
+                   ['negative? (f 1 (@ from (op '<) (list (x 0) 0)) #f)]
+                   [_ (prim name)]))))
        
        (define (read-c l xs xcs c)
          (define go (curry read-c l xs xcs))
          (match c
+           [`(>=/c ,e) (go `(λ (♦) (>= ♦ ,e)))]
+           [`(>/c ,e) (go `(λ (♦) (> ♦ ,e)))]
+           [`(<=/c ,e) (go `(λ (♦) (<= ♦ ,e)))]
+           [`(</c ,e) (go `(λ (♦) (< ♦ ,e)))]
+           [`(=/c ,e) (go `(λ (♦) (= ♦ ,e)))]
+           [`(not/c ,d) (not-c (go d))]
            [`(and/c) (pred/c 'any)]
            [`(and/c ,ci ... ,cn) (foldr (λ (cj dn) (and-c (go cj) dn)) (go cn) ci)]
            [`(or/c) (pred/c (f 1 #f #f))]
@@ -115,10 +127,9 @@
               [(hash-has-key? abbrevs z) (go (hash-ref abbrevs z))]
               [(member z xcs) z]
               [else (match (resolve-ref l z)
-                      [(and (ref _ _ _) r) (f 1 (@ l r (list [x 0])) #f)]
-                      [#f (match (prim z)
-                            [#f (error (format "Parsing error: Unexpected symbol ~a" z))]
-                            [o o])])])]
+                      [(? ref? r) (f 1 (@ l r (list [x 0])) #f)]
+                      [(? v? v) v]
+                      [#f (error (format "Parsing error: Unexpected symbol ~a" z))])])]
            [pred (read-e l xs pred)]))
        
        (define (read-e l xs e)
@@ -160,10 +171,8 @@
             (match (index-of s xs)
               [(? number? i) (x i)]
               [#f (match (resolve-ref l s)
-                    [(and (ref _ _ _) r) r]
-                    [#f (match (prim s)
-                          [#f (error (format "Parsing error: Unexpected symbol ~a in module ~a" s l))]
-                          [o o])])])]
+                    [(? e? e) e]
+                    [#f (error (format "Parsing error: Unexpected symbol ~a in module ~a" s l))])])]
            [weird (error "Parsing error: Invalid expression syntax" weird)]))
        
        ; read each module
