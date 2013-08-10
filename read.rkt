@@ -92,7 +92,9 @@
                    ['zero? (f 1 (@ from (op '=) (list (x 0) 0)) #f)]
                    ['positive? (f 1 (@ from (op '>) (list (x 0) 0)) #f)]
                    ['negative? (f 1 (@ from (op '<) (list (x 0) 0)) #f)]
-                   [_ (prim name)]))))
+                   [_ (match (prim name)
+                        [#f (error (format "Parsing error: Unexpected symbol ~a in module ~a" name from))]
+                        [o o])]))))
        
        (define (read-c l xs xcs c)
          (define go (curry read-c l xs xcs))
@@ -128,8 +130,7 @@
               [(member z xcs) z]
               [else (match (resolve-ref l z)
                       [(? ref? r) (f 1 (@ l r (list [x 0])) #f)]
-                      [(? v? v) v]
-                      [#f (error (format "Parsing error: Unexpected symbol ~a" z))])])]
+                      [(? v? v) v])])]
            [pred (read-e l xs pred)]))
        
        (define (read-e l xs e)
@@ -170,9 +171,7 @@
            [(? symbol? s)
             (match (index-of s xs)
               [(? number? i) (x i)]
-              [#f (match (resolve-ref l s)
-                    [(? e? e) e]
-                    [#f (error (format "Parsing error: Unexpected symbol ~a in module ~a" s l))])])]
+              [#f (resolve-ref l s)])]
            [weird (error "Parsing error: Invalid expression syntax" weird)]))
        
        ; read each module
