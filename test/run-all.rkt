@@ -53,12 +53,14 @@
          [(list (list r t1 t2 t3))
           (printf "~a: ~a lines, ~a checks~ncpu time: ~a, real time: ~a, gc time: ~a~n"
                   name lines checks t1 t2 t3)
-          (for ([a (in-set r)])
-            (match-let ([(cons σ A) a])
-              (match mode
-                ['verbose (printf "-- ~a~n" (show-A σ A))]
-                ['overbose (match-let ([(cons ans σns) (show-σA σ A)])
-                             (printf "-- ~a~n   ~a~n" ans σns))])))
+          (match mode
+            ['verbose (for ([ans (for/set ([a (in-set r)])
+                                 (match-let ([(cons σ A) a]) (show-A σ A)))])
+                        (printf "-- ~a~n" ans))]
+            ['overbose (for ([a (in-set r)])
+                         (match-let* ([(cons σ A) a]
+                                      [(cons ans σns) (show-σA σ A)])
+                           (printf "-- ~a~n   ~a~n" ans σns)))])
           (printf "~n")])]
       ['tex
        ; compare with dumb-ized interpreter, dump table in latex format
