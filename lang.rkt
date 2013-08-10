@@ -41,6 +41,8 @@
    [not-C (C? . -> . C?)]
    [sum/C (V? V? . -> . C?)]
    [dif/C (V? V? . -> . C?)]
+   [prd/C (V? V? . -> . C?)]
+   [rat/C (V? V? . -> . C?)]
    
    [subst/c (c? x-c? c? . -> . c?)]
    [FV ([e?] [int?] . ->* . [set/c int?])]
@@ -79,7 +81,12 @@
    
    [m∅ hash?] [ρ∅ ρ?] [σ∅ σ?] [★ val?]
    [prim (symbol? . -> . [or/c e? #f])]
-   [checks# ((or/c p? e? c? m?) . -> . int?)])
+   [checks# ((or/c p? e? c? m?) . -> . int?)]
+   
+   [TT val?] [FF val?] [ZERO val?]
+   [POS/C C?] [NEG/C C?] [NON-ZERO/C C?] [NON-NEG/C C?] [NON-POS/C C?]
+   [NUM/C C?] [REAL/C C?] [INT/C C?]
+   [ZERO/C C?] [ONE/C C?] [ANY/C C?])
   l? e? c? v? b? o? c? flat-c? x-c? V? L? U? F? A? C? E?
   int? o-name? p-name? p-name-total? pred? total-pred?
   close/c val/c bl))
@@ -204,21 +211,23 @@
 (define (≤/C V) (rel/C (op '<=) V))
 (define (=/C V) (rel/C (op '=) V))
 (define (≠/C V) (not-C (rel/C (op '=) V)))
-(define (rel2/C f U V)
+(define (rel2/C R2 U V)
   (match* (U V)
     [((val (? number? m) _) (val (? number? n) _))
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list m n)))) #f) ρ∅)]
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list m n)))) #f) ρ∅)]
     [((val (? number? m) _) _)
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list m (x 1))))) #f)
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list m (x 1))))) #f)
             (ρ+ ρ∅ V))]
     [(_ (val (? number? n) _))
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list (x 1) n)))) #f)
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list (x 1) n)))) #f)
             (ρ+ ρ∅ U))]
     [(_ _)
-     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ f (list (x 1) (x 2))))) #f)
+     (close (f 1 (@ 'Δ (op 'equal?) (list (x 0) (@ 'Δ R2 (list (x 1) (x 2))))) #f)
             (ρ++ ρ∅ (list V U)))]))
 (define (sum/C U V) (rel2/C (op '+) U V))
 (define (dif/C U V) (rel2/C (op '-) U V))
+(define (prd/C U V) (rel2/C (op '*) U V))
+(define (rat/C U V) (rel2/C (op '/) U V))
 
 ; substitute contract
 (define (subst/c c1 x c2)
@@ -563,3 +572,19 @@
   [((or (? struct-mk?) (? total-pred?) (op 'equal?))) 0]
   [((? o?)) 1]
   [(_) 0])
+
+;; convenient constants
+(define TT (val #t ∅))
+(define FF (val #f ∅))
+(define ZERO (val 0 ∅))
+(define ZERO/C (=/C (val 0 ∅)))
+(define ONE/C (=/C (val 1 ∅)))
+(define POS/C (>/C (val 0 ∅)))
+(define NEG/C (</C (val 0 ∅)))
+(define NON-ZERO/C (≠/C (val 0 ∅)))
+(define NON-NEG/C (≥/C (val 0 ∅)))
+(define NON-POS/C (≤/C (val 0 ∅)))
+(define ANY/C (pred/C 'any))
+(define NUM/C (pred/C 'num?))
+(define INT/C (pred/C 'int?))
+(define REAL/C (pred/C 'real?))
