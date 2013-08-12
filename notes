@@ -8,6 +8,8 @@ So if performance is really importance, it might be useful to distinguish betwee
 "definitely neither" and "maybe neither".
 
 TODO:
-intros 1 2 3, dvh-1,3, max can now be verified but with longer run-time (still under 1s though)
-dvh-2 and sum were regressions, need fixing
+
+intros 1 2 3, dvh 1 2 3, sum, max can now be verified but with longer run-time (still under 1s though)
+
+mult won't be easily solved because the contract is at "sqr" while the invariant should have been maintained at "mult". Simply adding (>=/c 0) to mult's range contract makes the verification go through though.
 improve + clean up ⊑
