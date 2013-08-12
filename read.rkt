@@ -81,7 +81,7 @@
            (m decs defs)))
        
        (define/contract (resolve-ref from name)
-         (symbol? symbol? . -> . (or/c o? ref? f? #f))
+         (symbol? symbol? . -> . (or/c o? ref? f? @? #f))
          (if (or [set-member? (hash-ref all from) name]
                  [set-member? (hash-ref outs from) name])
              (ref from from name)

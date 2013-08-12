@@ -76,25 +76,33 @@
   [((? v? v)) (show-e v)])
 
 (define (show-e e [ctx '()])
+  (define (go e) (show-e e ctx))
   (match e
-    [(f 1 (@ _ (op 'false?) (list (@ _ (? v? v) (list (x 0))))) #f) `(¬ ,(show-e v))]
-    [(f 1 (@ _ e1 (list (x 0))) #f) (show-e e1)]
+    [(f 1 (@ _ (op '=) (list (x 0) e1)) #f) `(=/c ,(go e1))]
+    [(f 1 (@ _ (op '>) (list (x 0) e1)) #f) `(>/c ,(go e1))]
+    [(f 1 (@ _ (op '<) (list (x 0) e1)) #f) `(</c ,(go e1))]
+    [(f 1 (@ _ (op '>=) (list (x 0) e1)) #f) `(≥/c ,(go e1))]
+    [(f 1 (@ _ (op '<=) (list (x 0) e1)) #f) `(≤/c ,(go e1))]
+    [(f 1 (@ _ (op 'false?) (list (@ _ (op '=) (list (x 0) e1)))) #f) `(≠/c ,(go e1))]
+    [(f 1 (@ _ (op 'false?) (list (@ _ (and (? v? v) (? closed?)) (list (x 0))))) #f)
+     `(¬/c ,(go v))]
+    [(f 1 (@ _ (? closed? e1) (list (x 0))) #f) (go e1)]
     [(f n e _) (let ([xs (vars-not-in n ctx)])
                  `(λ ,xs ,(show-e e (append xs ctx))))]
     [(•) '•]
     [(x sd) (if (< sd (length ctx)) (list-ref ctx sd)
                 (string->symbol (string-append "⋯" (num-subscript sd))))]
     [(ref _ _ x) x]
-    [(@ _ (f 1 (if/ (x 0) (x 0) e2) #f) (list e1))
-     `(,(show-e e1 ctx) ∨ ,(show-e e2 ctx))]
-    [(@ _ (f n ey #f) (list ex ...))
+    [(@ _ (f 1 (if/ (x 0) (x 0) (? closed? e2)) #f) (list e1))
+     `(,(go e1) ∨ ,(go e2))]
+    [(@ _ (f n ey #f) ex)
      (let ([xs (vars-not-in n ctx)])
-       `(let ,(for/list ([x (reverse xs)] [e ex]) `[,x ,(show-e e ctx)])
+       `(let ,(for/list ([x (reverse xs)] [e ex]) `[,x ,(go e)])
           ,(show-e ey (append xs ctx))))]
-    [(@ _ f xs) `(,(show-e f ctx) ,@ (for/list ([x xs]) (show-e x ctx)))]
-    [(if/ e1 e2 #t) `(,(show-e e1 ctx) ⇒ ,(show-e e2 ctx))]
-    [(if/ e1 e2 #f) `(,(show-e e1 ctx) ∧ ,(show-e e2 ctx))]
-    [(if/ e1 e2 e3) `(if ,(show-e e1 ctx) ,(show-e e2 ctx) ,(show-e e3 ctx))]
+    [(@ _ f xs) `(,(go f) ,@ (for/list ([x xs]) (go x)))]
+    [(if/ e1 e2 #t) `(,(go e1) ⇒ ,(go e2))]
+    [(if/ e1 e2 #f) `(,(go e1) ∧ ,(go e2))]
+    [(if/ e1 e2 e3) `(if ,(go e1) ,(go e2) ,(go e3))]
     [(amb _) 'amb]
     [(? b? b) (show-b b)]))
 
