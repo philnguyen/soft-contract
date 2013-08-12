@@ -280,8 +280,10 @@
             (match e
               [(? b? b) (cons σ (val b Cs))]
               [(and (? f? f) (? closed?)) (val (close f ρ∅) Cs)]
-              [(x sd) (match-let ([V1 (σ@* σ (ρ@ ρ (- sd 1)))])
-                        (refine (cons σ V1) Cs))]
+              [(x sd) (match (ρ@ ρ (- sd 1))
+                        [(? L? L) (match-let ([(val U Ds) (σ@ σ L)])
+                                    (cons σ (val U (∪ Cs Ds C))))]
+                        [(val U Ds) (cons σ (val U (∪ Cs Ds)))])]
               [_ (cons σ (val (•) (set-add Cs C)))])]
            
            ; struct contracts
