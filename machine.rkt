@@ -139,7 +139,7 @@
                 [c-len (length cx)])
             (if (if v? (>= V-len c-len) (= V-len c-len))
                 (ς Vg σ [mon*/k l- l+ lo '() (map (λ (c) (close-c c ρc)) cx) Vx
-                                (mon/k1 σ l+ l- lo (close-c cy [ρ++ ρc Vx])
+                                (mon/k1 l+ l- lo (close-c cy [ρ++ ρc Vx])
                                         (lam/k Vf Vx σ k))])
                 (ς [bl l lo "Wrong arity"] σ 'mt)))]
          [_ (match/nd (Δ 'Δ σ (op 'proc?) `(,Vf))
@@ -197,8 +197,8 @@
     (match-let ([(close c0 ρc) C])
       (match c0
         [(and-c c1 c2)
-         (ς V σ [mon/k1 σ l+ l- lo (close-c c1 ρc)
-                        [mon/k1 σ l+ l- lo (close-c c2 ρc) k]])]
+         (ς V σ [mon/k1 l+ l- lo (close-c c1 ρc)
+                        [mon/k1 l+ l- lo (close-c c2 ρc) k]])]
         [(or-c c1 c2)
          (ς (FC lo [close-c c1 ρc] V) σ
             (if/k (Assume V [close-c c1 ρc])
@@ -263,11 +263,11 @@
                  [Cx (close-c cx ρ∅)])
             (match vx
               [(•) (match/nd (refine (σ+ σ) Cx)
-                     [(cons σ1 l) (ς l σ1 [mon/k1 σ src ctx src Cx k])])]
-              [_ (ς [close-v vx ρ∅] σ [mon/k1 σ src ctx src Cx k])]))])]
+                     [(cons σ1 l) (ς l σ1 [mon/k1 src ctx src Cx k])])]
+              [_ (ς [close-v vx ρ∅] σ [mon/k1 src ctx src Cx k])]))])]
       
       [(? Blm? bl) (ς bl σ 'mt)]
-      [(Mon l+ l- lo C E1) (ς E1 σ [mon/k1 σ l+ l- lo C k])]
+      [(Mon l+ l- lo C E1) (ς E1 σ [mon/k1 l+ l- lo C k])]
       [(FC lo C V) (step-fc lo C V σ k)]
       [(Assume V C) (match/nd (refine [cons σ V] C)
                       [(cons σ1 V1) (ς V1 σ1 k)])]))
@@ -285,9 +285,9 @@
       [(mon/k l+ l- lo C k1) (step-mon l+ l- lo C V σ k1)]
       [(mon*/k l+ l- lo Vs [cons Ci '()] [cons Vi Vs1] k1) 
        ; repeat last contract to handle var-args
-       (ς Vi σ [mon/k1 σ l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) [cons Ci '()] Vs1 k1)])]
+       (ς Vi σ [mon/k1 l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) [cons Ci '()] Vs1 k1)])]
       [(mon*/k l+ l- lo Vs [cons Ci Cs] [cons Vi Vs1] k1) 
-       (ς Vi σ [mon/k1 σ l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) Cs Vs1 k1)])]
+       (ς Vi σ [mon/k1 l+ l- lo Ci (mon*/k l+ l- lo (cons V Vs) Cs Vs1 k1)])]
       [(mon*/k l+ l- lo Vs _ '() k1) 
        (match-let ([(cons Vf Vx) (reverse (cons V Vs))])
          (step-@ l- σ Vf Vx k1))]
@@ -333,51 +333,6 @@
         [(? L? L) (V∈ V1 σ0 (σ@ σ0 L))]
         [_ #f])))
 
-;; determine approximation between closures
-(define (E⊑ E1 σ1 E2 σ2)
-  (E? σ? E? σ? . -> . boolean?)
-  (match* (E1 E2)
-    [((close e1 ρ1) (close e2 ρ2)) (and (e⊑ e1 e2) (ρ⊑ ρ1 σ1 ρ2 σ2))]
-    [((val U1 Cs) (val U2 Cs)) (U⊑ U1 σ1 U2 σ2)]
-    [((Mon f g h C1 E1p) (Mon f g h C2 E2p))
-     (and (C⊑ C1 σ1 C2 σ2) (E⊑ E1p σ1 E2p σ2))]
-    [((FC l C1 V1) (FC l C2 V2)) (and (C⊑ C1 σ1 C2 σ2) (E⊑ V1 σ1 V2 σ2))]
-    [((Assume V1 C1) (Assume V2 C2)) (and (C⊑ C1 σ1 C2 σ2) (E⊑ E1 σ1 E2 σ2))]
-    [((and V (val U Cs1)) (val (•) Cs2))
-     (for/and ([C Cs2]) (equal? 'Proved (prove? σ1 V C)))]
-    [((val U1 _) (val U2 _)) (U⊑ U1 σ1 U2 σ2)]
-    [((? L? L) _) (E⊑ (σ@ σ1 L) σ1 E2 σ2)]
-    [(_ (? L? L)) (E⊑ E1 σ1 (σ@ σ2 L) σ2)]
-    [(_ _) (equal? E1 E2)]))
-(define (E*⊑ Es1 σ1 Es2 σ2)
-  ((listof E?) σ? (listof E?) σ? . -> . boolean?)
-  (for/and ([E1 Es1] [E2 Es2]) (E⊑ E1 σ1 E2 σ2)))
-
-;; determine approximation between contracts
-(define (C⊑ C1 σ1 C2 σ2)
-  (match-let ([(close c1 ρ1) C1]
-              [(close c2 ρ2) C2])
-    (and (equal? c1 c2) (ρ⊑ ρ1 σ1 ρ2 σ2))))
-
-;; determine approximation between environments
-(define (ρ⊑ ρ1 σ1 ρ2 σ2)
-  (match-let ([(ρ m1 len1) ρ1]
-              [(ρ m2 len2) ρ2])
-    (for/and ([sd (in-range 0 (min len1 len2))] #:when (ρ-has? ρ1 sd))
-      (E⊑ (ρ@ ρ1 sd) σ1 (ρ@ ρ2 sd) σ2))))
-
-;; determine approximation between prevalues
-(define (U⊑ U1 σ1 U2 σ2)
-  (match* (U1 U2)
-    [((Struct t Vs1) (Struct t Vs2)) (E*⊑ Vs1 σ1 Vs2 σ2)]
-    [((close f ρ1) (close f ρ2)) (ρ⊑ ρ1 σ1 ρ2 σ2)]
-    [((Arr f g h C1 V1) (Arr f g h C2 V2)) (and (C⊑ C1 σ1 C2 σ2) (E⊑ V1 σ1 V2 σ2))]
-    [(_ (•)) #t]
-    [(_ _) (equal? U1 U2)]))
-
-;; determine approximation between expressions
-(define (e⊑ e1 e2) (or (•? e2) (equal? e1 e2)))
-
 (define (widen σV [d 4])
   (((cons/c σ? V?)) (int?) . ->* . (cons/c σ? V?))
   (match-let ([(cons σ V) σV])
@@ -386,16 +341,13 @@
        (match U
          [0 σV]
          [(? number?)
-          (cons σ (val (•) (∪
-                            Cs
-                            (close (op (cond
-                                         [(integer? U) 'int?]
-                                         [(real? U) 'real?]
-                                         [else 'num?]))
-                                   ρ∅)
-                            (if (real? U)
-                                (close (op (if (positive? U) 'positive? 'negative?)) ρ∅)
-                                ∅))))]
+          (refine (σ+ σ)
+                  (cond
+                    [(integer? U) INT/C]
+                    [(real? U) REAL/C]
+                    [else NUM/C])
+                  (if (real? U) (if (positive? U) POS/C NEG/C) ANY/C)
+                  Cs)]
          [(? string?) (cons σ (val (•) (set-add Cs (close [op 'str?] ρ∅))))]
          [(Struct t Vs) (if (zero? d) (σ+ σ)
                             (let-values ([(σW Ws) (widen* σ Vs (sub1 d))])
@@ -436,11 +388,11 @@
       (close-c cy (ρ++ ρc Vx)))))
 
 ;; add monitoring frame and removes redundant ones below
-(define (mon/k1 σ l+ l- lo Cn kn)
+(define (mon/k1 l+ l- lo Cn kn)
   (l? l? l? C? κ? . -> . κ?)
   (define (rm-mon k)
     (match k
-      [(mon/k f g h Ci ki) (if (equal? 'Proved (C-prove? σ Cn Ci))
+      [(mon/k f g h Ci ki) (if (equal? 'Proved (C-prove? Cn Ci))
                                (rm-mon ki)
                                (mon/k f g h Ci (rm-mon ki)))]
       [_ k]))

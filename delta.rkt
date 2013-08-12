@@ -118,7 +118,8 @@
                           (cond ; preserve class
                             [(all-prove? σ Vs REAL/C) REAL/C]
                             [else NUM/C])
-                          (rat/C X1 X2))]))])]
+                          (rat/C X1 X2)
+                          (if (equal? 'Proved (prove? σ X1 NON-ZERO/C)) NON-ZERO/C ∅))]))])]
     [('+ (list V1 V2))
      ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
      (match (map (curry σ@* σ) Vs)
@@ -143,6 +144,7 @@
         (let ([X1 (if (number? U1) W1 V1)]
               [X2 (if (number? U2) W2 V2)])
           (cond
+            [(and (L? X1) (L? X2) (= X1 X2)) (cons σ ZERO)]
             [(equal? 'Proved (prove? σ X2 ZERO/C)) (cons σ X1)]
             [else (refine (σ+ σ)
                           (cond ; preserve class
@@ -268,9 +270,9 @@
                 [(_ 'Refuted) (refine1 σV C1)]
                 [('Refuted _) (refine1 σV C2)]
                 [(_ _) (match V ; existing refinements can prune off one branch
-                         [(val u Cs) (cons σ (val u [intersect-Cs σ Cs C]))]
+                         [(val u Cs) (cons σ (val u [intersect-Cs Cs C]))]
                          [(? L? l) (match-let* ([(val u Cs) (σ@ σ l)]
-                                                [V′ (val u [intersect-Cs σ Cs C])])
+                                                [V′ (val u [intersect-Cs Cs C])])
                                      (cons [σ-set σ l V′] l))])]))]
            [(_ [μ-c x c1]) (refine1 σV [close (subst/c c1 x c) ρ])] ; FIXME no need?
            
@@ -304,7 +306,7 @@
            
            [([val u Cs] _)
             (match-let*
-                ([Cs1 (intersect-Cs σ Cs C)]
+                ([Cs1 (intersect-Cs Cs C)]
                  [Ck (for/or ([Ci Cs1]
                               #:when
                               (match? Ci (close (or (? struct-c?) (? struct-p?)) _)))
@@ -330,31 +332,30 @@
                         [(and Ck (close _ _)) (set-remove Cs1 Ck)])])
               (cons σ2 (val u′ Cs2)))])]))))
 
-(define (intersect-Cs σ Cs Cn)
+(define (intersect-Cs Cs Cn)
   (if (set-empty? Cs) {set Cn}
       (for/fold ([acc ∅]) ([Ci (in-set Cs)])
-        (∪ acc (intersect-C σ Ci Cn)))))
+        (∪ acc (intersect-C Ci Cn)))))
 
-(define (intersect-C σ C D)
-  (define go (curry intersect-C σ))
+(define (intersect-C C D)
   (cond
-    [(equal? 'Proved (C-prove? σ C D)) C]
-    [(equal? 'Proved (C-prove? σ D C)) D]
+    [(equal? 'Proved (C-prove? C D)) C]
+    [(equal? 'Proved (C-prove? D C)) D]
     [else
      (match-let ([(close c ρc) C]
                  [(close d ρd) D])
        (match* (c d)
          ; unroll recursive ones
-         [(_ (μ-c x d1)) (go C (close (subst/c d1 x d) ρd))]
-         [((μ-c x c1) _) (go (close (subst/c c1 x c) ρc) D)]
+         [(_ (μ-c x d1)) (intersect-C C (close (subst/c d1 x d) ρd))]
+         [((μ-c x c1) _) (intersect-C (close (subst/c c1 x c) ρc) D)]
          ; break conjunctive ones
-         [(_ (and-c d1 d2)) (set-union (go C (close d1 ρd)) (go C (close d2 ρd)))]
-         [((and-c c1 c2) _) (set-union (go (close c1 ρc) D) (go (close c2 ρc) D))]
+         [(_ (and-c d1 d2)) (set-union (intersect-C C (close d1 ρd)) (intersect-C C (close d2 ρd)))]
+         [((and-c c1 c2) _) (set-union (intersect-C (close c1 ρc) D) (intersect-C (close c2 ρc) D))]
          ; prune stuff in disjunctive ones if possible
          [(_ (? or-c?)) (let ([D′ (truncate σ D C)])
-                          (if (equal? D D′) {set C D} (go C D′)))]
+                          (if (equal? D D′) {set C D} (intersect-C C D′)))]
          [((? or-c?) _) (let ([C′ (truncate σ C D)])
-                          (if (equal? C C′) {set C D} (go C′ D)))]
+                          (if (equal? C C′) {set C D} (intersect-C C′ D)))]
          ; special rules for contracts on reals
          [((f 1 (@ l (op '>=) (list e1 e2)) #f)
            (f 1 (@ _ (op 'false?)
@@ -391,7 +392,7 @@
       [(or-c c1 c2)
        (let ([C1 (close c1 ρc)]
              [C2 (close c2 ρc)])
-         (match* ([C-prove? σ D C1] [C-prove? σ D C2])
+         (match* ([C-prove? D C1] [C-prove? D C2])
            [('Refuted 'Refuted) (error "WTF??")]
            [(_ 'Refuted) (go C1 D)]
            [('Refuted _) (go C2 D)]

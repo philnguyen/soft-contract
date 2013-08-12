@@ -37,7 +37,13 @@
       (debug "C: ~a~n" C))
     (string-append
      (apply string-append
-            (for/list ([L seen] #:when (L? L)) (format "~a : REAL;~n" (->L L))))
+            (for/list ([L seen] #:when (L? L))
+              (format "~a : ~a;~n"
+                      (->L L)
+                      (match-let ([(val _ Cs) (σ@ σ L)])
+                        (or (for/first ([C Cs] #:when (match? C (close (op 'int?) _)))
+                              'INT)
+                            'REAL)))))
      #;(format "~a : REAL;~n" ; cvc4 has problem with really long declaration lines
              (string-join (for/list ([L seen] #:when (L? L)) (->L L)) ","))
      (apply string-append (for/list ([q queries]) (format "ASSERT ~a;~n" q)))
