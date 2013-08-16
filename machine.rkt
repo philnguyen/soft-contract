@@ -375,15 +375,15 @@
          (cons
           (σ-set
            σ L
-           (val (•)
+           (val U
                 (apply
                  ∪
                  ∅
                  (for/list ([C Cs])
-                   (match-let ([(close c ρ) C])
-                     (match c
-                       [(f _ (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op (or '+ '- '* '/)) _))) _) ANY/C]
-                       [_ C]))))))
+                  (match-let ([(close c ρ) C])
+                    (match c
+                      [(f _ (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op (or '+ '- '* '/)) _))) _) ∅ #|TODO|#]
+                      [_ C]))))))
           L))])))
 (define (widen* σ V* [d 4])
   (let-values ([(σW W*-rev)
