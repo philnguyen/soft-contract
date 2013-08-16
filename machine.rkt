@@ -85,6 +85,12 @@
                       (ς L σL k))
                     (ς ★ σ k))]))]
         [else ; proceed with widened arguments
+         #;(begin
+           (printf "Vf: ~a~n" (show-E Vf))
+           (let ([Vxi (first Vx)] [Vzi (first Vz)])
+             (unless (E⊑ Vxi σ Vzi σ1)
+               (printf "V-new : ~a~nσ-new : ~a~nV-old : ~a~nσ-old : ~a~n~n" Vxi σ Vzi σ1)
+               (error "stop"))))
          (let-values
              ([(σn Wx)
                (match fc
@@ -364,7 +370,21 @@
                                                         ρ∅)})
                                            V))]
          [_ σV])]
-      [_ σV])))
+      [(? L? L)
+       (match-let ([(val U Cs) (σ@ σ L)])
+         (cons
+          (σ-set
+           σ L
+           (val (•)
+                (apply
+                 ∪
+                 ∅
+                 (for/list ([C Cs])
+                   (match-let ([(close c ρ) C])
+                     (match c
+                       [(f _ (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op (or '+ '- '* '/)) _))) _) ANY/C]
+                       [_ C]))))))
+          L))])))
 (define (widen* σ V* [d 4])
   (let-values ([(σW W*-rev)
                 (for/fold ([σ σ] [W*-rev empty]) ([V V*])
