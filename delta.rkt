@@ -173,10 +173,16 @@
                ['Proved (cons σ TT)]
                ['Refuted (cons σ FF)]
                ['Neither
-                (match-let* ([(cons σT _) (refine1 (cons σ V1) (=/C X2))]
-                             [(cons σT _) (refine1 (cons σT V2) (=/C X1))]
-                             [(cons σF _) (refine1 (cons σ V1) (≠/C X2))]
-                             [(cons σF _) (refine1 (cons σF V2) (≠/C X1))])
+                (match-let* ([(cons σT _) (match* (X1 X2)
+                                            [((? L? L1) (? L? L2)) (refine1 (cons σ (max L1 L2)) (=/C (min L1 L2)))]
+                                            [((? L? L) _) (refine1 (cons σ L) (=/C X2))]
+                                            [(_ (? L? L)) (refine1 (cons σ L) (=/C X1))]
+                                            [(_ _) (cons σ 'ignore)])]
+                             [(cons σF _) (match* (X1 X2)
+                                            [((? L? L1) (? L? L2)) (refine1 (cons σ (max L1 L2)) (≠/C (min L1 L2)))]
+                                            [((? L? L) _) (refine1 (cons σ L) (≠/C X2))]
+                                            [(_ (? L? L)) (refine1 (cons σ L) (≠/C X1))]
+                                            [(_ _) (cons σ 'ignore)])])
                   {set (cons σT TT) (cons σF FF)})])]))])]
     [('< (list V1 V2))
      ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
@@ -193,10 +199,18 @@
                ['Proved (cons σ TT)]
                ['Refuted (cons σ FF)]
                ['Neither
-                (match-let* ([(cons σT _) (refine1 (cons σ V1) (</C X2))]
-                             [(cons σT _) (refine1 (cons σT V2) (>/C X1))]
-                             [(cons σF _) (refine1 (cons σ V1) (≥/C X2))]
-                             [(cons σF _) (refine1 (cons σF V2) (≤/C X1))])
+                (match-let* ([(cons σT _) (match* (X1 X2)
+                                            [((? L? L1) (? L? L2))
+                                             (if (> L1 L2) (refine1 (cons σ L1) (</C L2)) (refine1 (cons σ L2) (>/C L1)))]
+                                            [((? L? L) _) (refine1 (cons σ L) (</C X2))]
+                                            [(_ (? L? L)) (refine (cons σ L) (>/C X1))]
+                                            [(_ _) (cons σ 'ignore)])]
+                             [(cons σF _) (match* (X1 X2)
+                                            [((? L? L1) (? L? L2))
+                                             (if (> L1 L2) (refine1 (cons σ L1) (≥/C L2)) (refine1 (cons σ L2) (≤/C L1)))]
+                                            [((? L? L) _) (refine1 (cons σ L) (≥/C X2))]
+                                            [(_ (? L? L)) (refine (cons σ L) (≤/C X1))]
+                                            [(_ _) (cons σ 'ignore)])])
                   {set (cons σT TT) (cons σF FF)})])]))])]
     [('> (list V1 V2)) (δ σ '< (list V2 V1))]
     [('>= (list V1 V2)) (match/nd (δ σ '< (list V1 V2))
@@ -256,83 +270,80 @@
   (let ([C (simplify-C C)])
     (match-let ([(close c ρ) C]
                 [(cons σ V) σV])
-      (match (prove? σ V C)
-        ['Proved σV]
-        ['Refuted (error (format "refine: Value definitely refutes contract;~nValue and heap: ~a~nContract:~a~n" (show-σA σ V) (show-C C)))]
-        ['Neither
-         (match* (V c)
-           [(_ [and-c c1 c2]) (refine1 (refine1 σV [close c1 ρ]) [close c2 ρ])]
-           [(_ [or-c c1 c2]) ; we used to split here. But let's be lazy now...
-            (let ([C1 (close c1 ρ)]
-                  [C2 (close c2 ρ)])
-              (match* ([prove? σ V C1] [prove? σ V C2])
-                [('Refuted 'Refuted) (printf "C1: ~a~nC2:~a~n" C1 C2) (error "WTF??")]
-                [(_ 'Refuted) (refine1 σV C1)]
-                [('Refuted _) (refine1 σV C2)]
-                [(_ _) (match V ; existing refinements can prune off one branch
-                         [(val u Cs) (cons σ (val u [intersect-Cs Cs C]))]
-                         [(? L? l) (match-let* ([(val u Cs) (σ@ σ l)]
-                                                [V′ (val u [intersect-Cs Cs C])])
-                                     (cons [σ-set σ l V′] l))])]))]
-           [(_ [μ-c x c1]) (refine1 σV [close (subst/c c1 x c) ρ])] ; FIXME no need?
-           
-           [((val (•) Cs) (f 1 (@ _ (op (or 'equal? '=)) (list (x 0) e)) #f))
-            (match e
-              [(? b? b) (cons σ (val b Cs))]
-              [(and (? f? f) (? closed?)) (val (close f ρ∅) Cs)]
-              [(x sd) (match (ρ@ ρ (- sd 1))
-                        [(? L? L) (match-let ([(val U Ds) (σ@ σ L)])
-                                    (cons σ (val U (∪ Cs Ds C))))]
-                        [(val U Ds) (cons σ (val U (∪ Cs Ds)))])]
-              [_ (cons σ (val (•) (set-add Cs C)))])]
-           
-           ; struct contracts
-           [((val (Struct t Vs) Cs) (struct-c t cs))
-            (match-let ([(cons σ1 Vs) (refine* σ Vs cs ρ)])
-              (cons σ1 (val (Struct t Vs) Cs)))]
-           [((val (•) Cs) (struct-c t cs))
-            (match-let ([(cons σ1 Ls) (σ++ σ (length cs))])
-              (refine1 (cons σ1 (val (Struct t Ls) Cs)) C))]
-           [((val (•) Cs) (struct-p t n))
-            (match-let* ([(cons σ1 Ls) (σ++ σ n)]
-                         [V1 (val (Struct t Ls) Cs)])
-              ; might be useful to redistribute contracts in current refinement set
-              (for/fold ([σV (cons σ1 V1)]) ([C Cs])
-                (refine1 σV C)))]
-           [((? L? L) _) (match-let ([(cons σ1 V1) (refine1 (cons σ (σ@ σ L)) C)])
-                           (cons (σ-set σ1 L V1) L))]
-           
-           ; rematerialize for singleton predicates
-           [([val u Cs] [op (and p (or 'false? 'true?))])
-            (cons σ [val (match p ['false? #f] ['true? #t]) Cs])]
-           
-           [([val u Cs] _)
-            (match-let*
-                ([Cs1 (intersect-Cs Cs C)]
-                 [Ck (for/or ([Ci Cs1]
-                              #:when
-                              (match? Ci (close (or (? struct-c?) (? struct-p?)) _)))
-                       Ci)]
-                 [(cons σ2 u′)
-                  (match Ck
-                    [#f (cons σ u)]
-                    [(close (struct-p t n) _)
-                     (match-let ([(cons σ1 Ls) (σ++ σ n)])
-                       (cons σ1 (Struct t Ls)))]
-                    [(close (struct-c t cs) ρc)
-                     (match-let ([(cons σ1 Ls) (σ++ σ (length cs))])
-                       (cons
-                        (let loop ([σi σ1] [Ls Ls] [cs cs])
-                          (match* (Ls cs)
-                            [('() '()) σi]
-                            [([cons Li Ls′] [cons ci cs′])
-                             (match-let ([(cons σ′ _) (refine1 (cons σi Li) (close ci ρc))])
-                               (loop σ′ Ls′ cs′))]))
-                        (Struct t Ls)))])]
-                 [Cs2 (match Ck
-                        [#f Cs1]
-                        [(and Ck (close _ _)) (set-remove Cs1 Ck)])])
-              (cons σ2 (val u′ Cs2)))])]))))
+      (match* (V c)
+        [(_ (op 'any)) σV]
+        [(_ [and-c c1 c2]) (refine1 (refine1 σV [close c1 ρ]) [close c2 ρ])]
+        [(_ [or-c c1 c2]) ; we used to split here. But let's be lazy now...
+         (let ([C1 (close c1 ρ)]
+               [C2 (close c2 ρ)])
+           (match* ([prove? σ V C1] [prove? σ V C2])
+             [('Refuted 'Refuted) (printf "C1: ~a~nC2:~a~n" C1 C2) (error "WTF??")]
+             [(_ 'Refuted) (refine1 σV C1)]
+             [('Refuted _) (refine1 σV C2)]
+             [(_ _) (match V ; existing refinements can prune off one branch
+                      [(val u Cs) (cons σ (val u [intersect-Cs Cs C]))]
+                      [(? L? l) (match-let* ([(val u Cs) (σ@ σ l)]
+                                             [V′ (val u [intersect-Cs Cs C])])
+                                  (cons [σ-set σ l V′] l))])]))]
+        [(_ [μ-c x c1]) (refine1 σV [close (subst/c c1 x c) ρ])] ; FIXME no need?
+        
+        [((val (•) Cs) (f 1 (@ _ (op (or 'equal? '=)) (list (x 0) e)) #f))
+         (match e
+           [(? b? b) (cons σ (val b Cs))]
+           [(and (? f? f) (? closed?)) (val (close f ρ∅) Cs)]
+           [(x sd) (match (ρ@ ρ (- sd 1))
+                     [(? L? L) (match-let ([(val U Ds) (σ@ σ L)])
+                                 (cons σ (val U (∪ Cs Ds C))))]
+                     [(val U Ds) (cons σ (val U (∪ Cs Ds)))])]
+           [_ (cons σ (val (•) (set-add Cs C)))])]
+        
+        ; struct contracts
+        [((val (Struct t Vs) Cs) (struct-c t cs))
+         (match-let ([(cons σ1 Vs) (refine* σ Vs cs ρ)])
+           (cons σ1 (val (Struct t Vs) Cs)))]
+        [((val (•) Cs) (struct-c t cs))
+         (match-let ([(cons σ1 Ls) (σ++ σ (length cs))])
+           (refine1 (cons σ1 (val (Struct t Ls) Cs)) C))]
+        [((val (•) Cs) (struct-p t n))
+         (match-let* ([(cons σ1 Ls) (σ++ σ n)]
+                      [V1 (val (Struct t Ls) Cs)])
+           ; might be useful to redistribute contracts in current refinement set
+           (for/fold ([σV (cons σ1 V1)]) ([C Cs])
+             (refine1 σV C)))]
+        [((? L? L) _) (match-let ([(cons σ1 V1) (refine1 (cons σ (σ@ σ L)) C)])
+                        (cons (σ-set σ1 L V1) L))]
+        
+        ; rematerialize for singleton predicates
+        [([val u Cs] [op (and p (or 'false? 'true?))])
+         (cons σ [val (match p ['false? #f] ['true? #t]) Cs])]
+        
+        [([val u Cs] _)
+         (match-let*
+             ([Cs1 (intersect-Cs Cs C)]
+              [Ck (for/or ([Ci Cs1]
+                           #:when
+                           (match? Ci (close (or (? struct-c?) (? struct-p?)) _)))
+                    Ci)]
+              [(cons σ2 u′)
+               (match Ck
+                 [#f (cons σ u)]
+                 [(close (struct-p t n) _)
+                  (match-let ([(cons σ1 Ls) (σ++ σ n)])
+                    (cons σ1 (Struct t Ls)))]
+                 [(close (struct-c t cs) ρc)
+                  (match-let ([(cons σ1 Ls) (σ++ σ (length cs))])
+                    (cons
+                     (let loop ([σi σ1] [Ls Ls] [cs cs])
+                       (match* (Ls cs)
+                         [('() '()) σi]
+                         [([cons Li Ls′] [cons ci cs′])
+                          (match-let ([(cons σ′ _) (refine1 (cons σi Li) (close ci ρc))])
+                            (loop σ′ Ls′ cs′))]))
+                     (Struct t Ls)))])]
+              [Cs2 (match Ck
+                     [#f Cs1]
+                     [(and Ck (close _ _)) (set-remove Cs1 Ck)])])
+           (cons σ2 (val u′ Cs2)))]))))
 
 (define (intersect-Cs Cs Cn)
   (if (set-empty? Cs) {set Cn}
