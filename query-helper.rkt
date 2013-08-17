@@ -1,109 +1,103 @@
 #lang racket
-(require "lang.rkt" "syntax.rkt")
+(require "lang.rkt" "syntax.rkt" "show.rkt")
 (provide
  (contract-out
   [query (σ? V? C? . -> . (or/c 'Proved 'Refuted 'Neither))]))
 
+;; queries external solver for provability relation
 (define (query σ V C)
-  (match V
-    [(? L? L) (call (gen-queries σ L C))]
-    [_ 'Neither]))
+  (let*-values ([(σ1 L) (if (L? V) (values σ V)
+                            (values (σ-set σ -1 V) -1) #|HACK|#)]
+                [(Qs Ls) (explore σ (∪ L (C->Ls C)))])
+    (cond
+      [(set-empty? Qs) 'Neither] ; avoid I/O on absolutely no information
+      [else (call-with
+             (string-append*
+              (for/list ([L Ls])
+                (format "~a:~a;~n"
+                        (V->lab L)
+                        (match-let ([(val _ Cs) (σ@ σ L)])
+                          (or (for/first ([C Cs] #:when (match? C (close (op 'int?) _))) 'INT)
+                              'REAL)))))
+             (string-append* (for/list ([q Qs]) (format "ASSERT ~a;~n" q)))
+             (let-values ([(q _) (gen L C)]) q))])))
 
-(define/contract (gen-queries σ L C)
-  (σ? L? C? . -> . string?)
+;; generates all possible assertions spanned by given set of labels
+;; returns set of assertions as well as set of labels involved
+(define (explore σ Ls)
+  (define-values (asserts seen) (values ∅ ∅))
   
-  ;; generate assertions and labels
-  (define seen ∅)
-  (define queries ∅)
+  ; L -> Void
   (define (visit L)
-    (when (and (not (set-member? seen L)) (L? L))
-      (define Ls ∅)
-      (match-let ([(val U Cs) (σ@ σ L)])
+    (unless (set-member? seen L)
+      (match-let ([(and V (val U Ds)) (σ@ σ L)]
+                  [queue ∅])
         (when (real? U)
-          (∪! queries (format "~a = ~a" (->L L) U)))
-        (for ([Ci Cs])
-          (let-values ([(qs1 Ls1) (gen L Ci)])
-            (∪! queries qs1)
-            (∪! Ls Ls1))))
-      (∪! seen L)
-      (for ([L Ls]) (visit L))))
+          (∪! asserts (format "~a = ~a" (V->lab L) (V->lab V))))
+        (for ([D Ds])
+          (let-values ([(q1 Ls1) (gen L D)])
+            (∪! queue Ls1)
+            (∪! asserts q1)))
+        (∪! seen L)
+        (for ([Lq queue]) (visit Lq)))))
   
-  (visit L)
-  
-  (let-values ([(qn Ln) (gen L C)])
-    (for ([L Ln]) (visit L))
-    #;(begin
-      (debug "qn: ~a~n" qn)
-      (debug "C: ~a~n" C))
-    (string-append
-     (apply string-append
-            (for/list ([L seen] #:when (L? L))
-              (format "~a : ~a;~n"
-                      (->L L)
-                      (match-let ([(val _ Cs) (σ@ σ L)])
-                        (or (for/first ([C Cs] #:when (match? C (close (op 'int?) _)))
-                              'INT)
-                            'REAL)))))
-     #;(format "~a : REAL;~n" ; cvc4 has problem with really long declaration lines
-             (string-join (for/list ([L seen] #:when (L? L)) (->L L)) ","))
-     (apply string-append (for/list ([q queries]) (format "ASSERT ~a;~n" q)))
-     (format "QUERY ~a;" qn))))
+  (for ([L Ls]) (visit L))
+  (values asserts seen))
 
+;; generates statement expressing relationship between L and C
+;; e.g. [L0 ↦ (sum/c 1 2))  gives  "L0 = 1 + 2"
 (define (gen L C)
   (match-let ([(close c ρ) C])
-    (match c
-      [(f 1 (@ _ (op o) (list (x 0) (? number? n))) #f)
-       (values (format "~a ~a ~a" (->L L) (->o o) n) ∅)]
-      [(f 1 (@ _ (op o) (list (x 0) (x sd))) #f)
-       (match (ρ@ ρ (- sd 1))
-         [V2
-          (values (format "~a ~a ~a" (->L L) (->o o) (->V V2))
-                  {set V2})]
-         [_ (values ∅ ∅)])]
-      [(f 1 (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op o+) (list (x sd1) (x sd2))))) #f)
-       (match* ((ρ@ ρ (- sd1 1)) (ρ@ ρ (- sd2 1)))
-         [(V1 V2)
-          (values (format "~a = ~a ~a ~a" (->L L) (->V V1) (->o o+) (->V V2)) {set V1 V2})])]
-      [(f 1 (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op o+) (list (x sd1) (? number? n))))) #f)
-       (match (ρ@ ρ (- sd1 1))
-         [V1 (values (format "~a = ~a ~a ~a" (->L L) (->V V1) (->o o+) n) {set V1})])]
-      [(f 1 (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op o+) (list (? number? n) (x sd2))))) #f)
-       (match (ρ@ ρ (- sd2 1))
-         [V2 (values (format "~a = ~a ~a ~a" (->L L) n (->o o+) (->V V2)) {set V2})])]
-      [(f 1 (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op 'add1) (list v)))) #f)
-       (gen L (close (f 1 (@ 'Δ (op (or '= 'equal?)) (list (x 0) (@ 'Δ (op '+) (list v 1)))) #f) ρ))]
-      [(f 1 (@ _ (op (or '= 'equal?)) (list (x 0) (@ _ (op 'sub1) (list v)))) #f)
-       (gen L (close (f 1 (@ 'Δ (op (or '= 'equal?)) (list (x 0) (@ 'Δ (op '-) (list v 1)))) #f) ρ))]
-      [(op 'positive?) (values (format "~a > 0" (->L L)) ∅)]
-      [(op 'negative?) (values (format "~a < 0" (->L L)) ∅)]
-      [(f 1 (@ _ (op 'false?) (list (@ _ (op 'positive?) (list (x 0))))) #f)
-       (values (format "~a <= 0" (->L L)) ∅)]
-      [(f 1 (@ _ (op 'false?) (list (@ _ (op 'negative?) (list (x 0))))) #f)
-       (values (format "~a >= 0" (->L L)) ∅)]
-      [_ (values ∅ ∅)])))
+    (let ([ρ@* (match-lambda
+                 [(? number? n) (val n ∅)]
+                 [(x sd) (ρ@ ρ (- sd 1))])])
+      (match c
+        [(f 1 (@ _ (op o) (list (x 0) (and e (or (? x?) (? number?))))) #f)
+         (let ([X (ρ@* e)])
+           (values (format "~a ~a ~a" (V->lab L) (->o o) (V->lab X))
+                   (take-labels L X)))]
+        [(f 1 (@ _ (op (or '= 'equal?))
+                 (list (x 0) (@ _ (op o)
+                                (list (and e1 (or (? x?) (? number?)))
+                                      (and e2 (or (? x?) (? number?))))))) #f)
+         (let ([X1 (ρ@* e1)] [X2 (ρ@* e2)])
+           (values (format "~a = ~a ~a ~a" (V->lab L) (V->lab X1) (->o o) (V->lab X2))
+                   (take-labels X1 X2)))]
+        [(f 1 (@ _ (op 'false?) (list e)) #f)
+         (let-values ([(q Ls) (gen L (close (f 1 e #f) ρ))])
+           (values (match/nd q [(? string? s) (format "NOT (~a)" s)]) Ls))]
+        [_ #;(printf "misc: ~a~n~n" C) (values ∅ ∅)]))))
 
-(define/match (->V V)
-  [((? L? L)) (->L L)]
-  [((val (? number? n) _)) n])
+;; perform query/ies with given declarations, assertions, and conclusion,
+;; trying to decide whether value definitely proves or refutes predicate
+(define (call-with decs asserts concl)
+  (match (call (string-append decs asserts (format "QUERY ~a;~n" concl)))
+    [20 'Proved] ; (asserts => concl) is valid
+    [10 (match (call (string-append decs asserts (format "ASSERT ~a; CHECKSAT;" concl)))
+          [20 'Refuted] ; (asserts ∧ concl) is unsat
+          [_ 'Neither])]
+    [_ 'Neither]))
 
-(define (->L L)
-  (string-append "L" (number->string L)))
+;; performs system call to external solver with given query
+(define (call query)
+  #;(debug "Called with:~n~a~n~n" query)
+  (system/exit-code (format "echo \"~a\" | cvc4 -q > /dev/null" query)))
 
+;; generates printable/readable element for given value/label
+(define/match (V->lab V)
+  [((val (? real? n) _)) n]
+  [((? L? L)) (if (>= L 0) (format "L~a" L) (format "X~a" (- L 1)))])
+
+;; generates printable element for given operator name
 (define/match (->o o)
   [('equal?) '=]
   [(_) o])
 
-(define (call query)
-  #;(debug "Called with:~n~a~n~n" query)
-  (match (system/exit-code (format "echo \"~a\" | cvc4 -q > /dev/null" query))
-    [20 'Proved]
-    [_ 'Neither]))
+;; extracts all labels in contract
+(define (C->Ls C)
+  (match-let ([(close _ (ρ m _)) C])
+    (for/set ([L (in-hash-values m)] #:when (L? L)) L)))
 
-(define/match (->label l)
-  [((list (? L? L))) (string-append "L" (number->string L))]
-  [((? number? n)) n]
-  [((? string? s)) (string-append "L" s)]
-  [((? symbol? s)) (string-append "L" (symbol->string s))])
-
-(define-syntax-rule (∪! s x)
-  (set! s (∪ s x)))
+;; syntactic sugar
+(define-syntax-rule (∪! s x) (set! s (∪ s x)))
+(define (take-labels . xs) (for/set ([x xs] #:when (L? x)) x))

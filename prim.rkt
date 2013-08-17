@@ -24,7 +24,7 @@
       [(_ (op 'any)) 'Proved]
       
       ; resort to external solver for complex arithmetics
-      [((? L? L) (f 1 (@ _ (op (or 'equal? '= '< '> '>= '<=)) (list (x 0) _)) #f))
+      [((? L? L) (f 1 (@ _ (op (or '= '< '> '>= '<=)) (list (x 0) _)) #f))
        (match (prove? σ (σ@ σ L) C)
          ['Neither (query σ V C)]
          [ans ans])]
@@ -252,6 +252,12 @@
          [_ C])]
       [(f 1 (@ _ (? v? v) (list (x 0))) #f)
        (if (set-empty? (FV v)) (simplify-C (close v ρ∅)) C)]
+      
+      ; desugar add1 and sub1
+      [(f 1 (@ l o (list (x 0) (@ h (op 'add1) (list e)))) #f)
+       (close (f 1 (@ l o (list (x 0) (@ h (op '+) (list e 1)))) #f) ρ)]
+      [(f 1 (@ l o (list (x 0) (@ h (op 'sub1) (list e)))) #f)
+       (close (f 1 (@ l o (list (x 0) (@ h (op '-) (list e 1)))) #f) ρ)]
       
       ; inline base values in simple contracts
       [(f 1 (@ l e (list x1 x2)) #f)
