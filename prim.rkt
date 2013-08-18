@@ -81,6 +81,55 @@
       [((or (close (? f?) _) (? Arr?) (? o?)) (op 'proc?)) 'Proved]
       [((Arr _ _ _ (close d ρ1) _) (? func-c?))
        (if (and (equal? c d) (equal? ρ1 ρ)) 'Proved 'Neither)]
+      
+      ; prim op's arities
+      [((or (? pred?) (? struct-ac?) (op (or 'add1 'sub1 'str-len)))
+        (f 1 (@ _ (op (or 'arity=? 'arity-includes?)) (list (x 0) n)) #f))
+       (if (= n 1) 'Proved 'Refuted)]
+      [((op (or '+ '- '* '/ 'equal? '= '> '< '>= '<= 'arity=? 'arity>=? 'arity-includes?))
+        (f 1 (@ _ (op (or 'arity=? 'arity-includes?)) (list (x 0) n)) #f))
+       (if (= n 2) 'Proved 'Refuted)]
+      [((struct-mk _ m)
+        (f 1 (@ _ (op (or 'arity=? 'arity-includes?)) (list (x 0) n)) #f))
+       (if (= m n) 'Proved 'Refuted)]
+      [((? o?) (f 1 (@ _ (op 'arity>=?) (list (x 0) _)) #f)) 'Refuted]
+      
+      ; arity includes
+      [((close (f m _ v?) _)
+        (f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? n))) #f))
+       (match v?
+         [#t (if (>= n (- m 1)) 'Proved 'Refuted)]
+         [#f (if (= m n) 'Proved 'Refuted)])]
+      [((Arr _ _ _ (close (func-c cx _ v?) _) _)
+        (f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? n))) #f))
+       (match v?
+         [#t (if (>= n (- (length cx) 1)) 'Proved 'Refuted)]
+         [#f (if (= n (length cx)) 'Proved 'Refuted)])]
+      
+      ; arity at-least
+      [((close (f m _ v?) _)
+        (f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? n))) #f))
+       (match v?
+         [#t (if (>= n (- m 1)) 'Proved 'Refuted)]
+         [#f 'Refuted])]
+      [((Arr _ _ _ (close (func-c cx _ v?) _) _)
+        (f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? n))) #f))
+       (match v?
+         [#t (if (>= n (- (length cx) 1)) 'Proved 'Refuted)]
+         [#f 'Refuted])]
+      
+      ; arity exact
+      [((close (f m _ v?) _)
+        (f 1 (@ _ (op 'arity=?) (list (x 0) (? number? n))) #f))
+       (match v?
+         [#t 'Refuted]
+         [#f (if (= m n) 'Proved 'Refuted)])]
+      [((Arr _ _ _ (close (func-c cx _ v?) _) _)
+        (f 1 (@ _ (op 'arity=?) (list (x 0) (? number? n))) #f))
+       (match v?
+         [#t 'Refuted]
+         [#f (if (= (length cx) n) 'Proved 'Refuted)])]
+      
       ; structs
       [((Struct t _) (struct-p t _)) 'Proved]
       [((Struct t Vs) (struct-c t cs))
@@ -225,6 +274,50 @@
                                           (set-add assume (cons C D)))]
              [([μ-c x c1] _) (go (close (subst/c c1 x c) ρc) D (set-add assume (cons C D)))]
              [(_ [μ-c x d1]) (go C (close (subst/c d1 x d) ρd) (set-add assume (cons C D)))]
+             
+             ; arity exact
+             [((f 1 (@ _ (op 'arity=?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity=?) (list (x 0) (? number? n))) #f))
+              (if (= m n) 'Proved 'Refuted)]
+             [((f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity=?) (list (x 0) (? number? n))) #f))
+              'Refuted]
+             [((f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity=?) (list (x 0) (? number? n))) #f))
+              (if (= m n) 'Neither 'Refuted)]
+             [((func-c cx _ v?) (f 1 (@ _ (op 'arity=?) (list (x 0) (? number? n))) #f))
+              (cond
+                [v? 'Refuted]
+                [(= (length cx) n) 'Proved]
+                [else 'Refuted])]
+             
+             ; arity at-least
+             [((f 1 (@ _ (op 'arity=?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? n))) #f))
+              'Refuted]
+             [((f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? n))) #f))
+              (if (>= n m) 'Proved 'Neither)]
+             [((f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? n))) #f))
+              'Neither]
+             [((func-c cx _ v?) (f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? n))) #f))
+              (if (and v? (>= n (- (length cx) 1))) 'Proved 'Refuted)]
+             
+             ; arity includes
+             [((f 1 (@ _ (op 'arity=?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? n))) #f))
+              (if (= m n) 'Proved 'Refuted)]
+             [((f 1 (@ _ (op 'arity>=?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? n))) #f))
+              (if (>= n m) 'Proved 'Neither)]
+             [((f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? m))) #f)
+               (f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? n))) #f))
+              (if (= m n) 'Proved 'Neither)]
+             [((func-c cx _ v?) (f 1 (@ _ (op 'arity-includes?) (list (x 0) (? number? n))) #f))
+              (cond
+                [v? (if (>= n (- (length cx) 1)) 'Proved 'Refuted)]
+                [else (if (= n (length cx)) 'Proved 'Refuted)])]
              
              ; break apart/unroll composite contracts
              ; this shouldn't happen often though

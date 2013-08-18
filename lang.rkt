@@ -37,6 +37,9 @@
    [≤/C (V? . -> . C?)]
    [=/C (V? . -> . C?)]
    [≠/C (V? . -> . C?)]
+   [arity=/C (V? . -> . C?)]
+   [arity≥/C (V? . -> . C?)]
+   [arity-incl/C (V? . -> . C?)]
    [not-c (c? . -> . c?)]
    [not-C (C? . -> . C?)]
    [sum/C (V? V? . -> . C?)]
@@ -74,9 +77,6 @@
    [struct Mon ([l+ l?] [l- l?] [lo l?] [c C?] [e E?])]
    [struct FC ([lo l?] [c C?] [v V?])]
    [struct Assume ([v V?] [c C?])]
-   
-   [arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
-   [min-arity-ok? (V? integer? . -> . [or/c 'Y 'N '?])]
    [opaque? ([E?] [integer?] . ->* . any/c)]
    
    [m∅ hash?] [ρ∅ ρ?] [σ∅ σ?] [★ val?]
@@ -228,6 +228,19 @@
 (define (dif/C U V) (rel2/C (op '-) U V))
 (define (prd/C U V) (rel2/C (op '*) U V))
 (define (rat/C U V) (rel2/C (op '/) U V))
+
+(define (arity=/C V)
+  (match V
+    [(val (? number? n) _) (close (f 1 (@ 'Δ (op 'arity=?) (list (x 0) n)) #f) ρ∅)]
+    [_ (close (f 1 (@ 'Δ (op 'arity=?) (list (x 0) (x 1))) #f) (ρ+ ρ∅ V))]))
+(define (arity≥/C V)
+  (match V
+    [(val (? number? n) _) (close (f 1 (@ 'Δ (op 'arity>=?) (list (x 0) n)) #f) ρ∅)]
+    [_ (close (f 1 (@ 'Δ (op 'arity>=?) (list (x 0) (x 1))) #f) (ρ+ ρ∅ V))]))
+(define (arity-incl/C V)
+  (match V
+    [(val (? number? n) _) (close (f 1 (@ 'Δ (op 'arity-includes?) (list (x 0) n)) #f) ρ∅)]
+    [_ (close (f 1 (@ 'Δ (op 'arity-includes?) (list (x 0) (x 1))) #f) (ρ+ ρ∅ V))]))
 
 ; substitute contract
 (define (subst/c c1 x c2)
@@ -473,46 +486,6 @@
 (struct FC (lo c v) #:transparent)
 (struct Assume (v c) #:transparent)
 
-; checks whether the closed function handles given arity
-; returns (Y|N|?)
-(define (arity-ok? F n)
-  (match F
-    [(val [close (f m _ #f) _] _) (if (= m n) 'Y 'N)]
-    [(val [close (f m _ #t) _] _) (if (<= [sub1 m] n) 'Y 'N)]
-    [(val [Arr _ _ _ (close (func-c cx _ v?) _) _] _)
-     (let ([m (length cx)])
-       (if (if v? [<= (sub1 m) n] [= m n]) 'Y 'N))]
-    [(val [or (? struct-ac?) (op (or 'add1 'sub1 'str-len)) (? pred?)] _)
-     (if (= n 1) 'Y 'N)]
-    [(val [op (or '+ '- '* '/ 'equal? '= '> '< '<= '>=)] _)
-     (if (= n 2) 'Y 'N)]
-    [(val [struct-mk _ m] _) (if (= m n) 'Y 'N)]
-    [(val (•) Cs)
-     (or (for/first ([Ci Cs] #:when (match Ci
-                                      [(close [? func-c?] _) #t]
-                                      [_ #f]))
-           (match-let ([(close [func-c cx _ v?] _) Ci])
-             (let ([m (length cx)])
-               (if (if v? (<= [sub1 m] n) (= m n)) 'Y 'N))))
-         '?)]
-    [_ 'N]))
-
-; checks whether the closed function handles given arity or higher
-(define (min-arity-ok? F n)
-  (match F
-    [(val [close (f m _ #t) _] _) (if (<= [sub1 m] n) 'Y 'N)]
-    [(val [Arr _ _ _ (close [func-c cx _ #t] _) _] _)
-     (if (<= [sub1 (length cx)] n) 'Y 'N)]
-    [(val (•) Cs)
-     (or (for/first ([Ci Cs] #:when (match Ci
-                                      [(close [? func-c?] _) #t]
-                                      [_ #f]))
-           ; TODO wrong
-           (match-let ([(close [func-c cx _ v?] _) Ci])
-             (if v? (if (<= [sub1 (length cx)] n) 'Y 'N) 'N)))
-         '?)]
-    [_ 'N]))
-
 ; check whether the closure is opaque up to given depth
 (define (opaque? v [d 2])
   (match v
@@ -542,7 +515,8 @@
         ;'negative? (f 1 (@ 'Δ (op '<) (list (x 0) 0)) #f)
    ))
 (define non-preds
-  (hash-set* (for/hash ([n '(add1 sub1 + - * / str-len equal? = > < <= >=)])
+  (hash-set* (for/hash ([n '(add1 sub1 + - * / str-len equal? = > < <= >=
+                                  arity=? arity>=? arity-includes?)])
                (values n (op n)))
              'cons (struct-mk 'cons 2)
              'car (struct-ac 'cons 2 0)

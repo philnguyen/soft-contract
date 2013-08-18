@@ -10,7 +10,7 @@
   (match* (o Vs)
     
     ; total predicates
-    [([? total-pred? p] `[,V]) (check-p σ V p)]
+    [([? total-pred? p] `[,V]) (check-C σ V (pred/C p))]
     
     ; accessors
     [([struct-ac t _ i] `[,(val [Struct t Vs] _)]) (cons σ (list-ref Vs i))]
@@ -68,7 +68,22 @@
      (match/nd (Δ 'Δ σ [op 'str?] Vs)
        [(cons σ1 (val #t _)) (δ σ1 'str-len Vs)]
        [(cons σ1 (val #f _)) (cons σ1 [bl l 'str-len "Expect str?, given ~a" (show-E (σ@* σ1 (first Vs)))])])]
+    
     [([op 'equal?] `[,V1 ,V2]) (V-equal? σ V1 V2)]
+    
+    ; arity check
+    [((op 'arity=?) (list V1 V2))
+     (match/nd (Δ 'Δ σ (op 'proc?) (list V1))
+       [(cons σ1 (val #t _)) (check-C σ1 V1 (arity=/C V2))]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l 'arity=? "Expect proc?, given ~a" (show-E (σ@* σ1 V1))])])]
+    [((op 'arity>=?) (list V1 V2))
+     (match/nd (Δ 'Δ σ (op 'proc?) (list V1))
+       [(cons σ1 (val #t _)) (check-C σ1 V1 (arity≥/C V2))]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l 'arity≥? "Expect proc?, given ~a" (show-E (σ@* σ1 V1))])])]
+    [((op 'arity-includes?) (list V1 V2))
+     (match/nd (Δ 'Δ σ (op 'proc?) (list V1))
+       [(cons σ1 (val #t _)) (check-C σ1 V1 (arity-incl/C V2))]
+       [(cons σ1 (val #f _)) (cons σ1 [bl l 'arity-includes? "Expect proc?, given ~a" (show-E (σ@* σ1 V1))])])]
     
     ;; constructor
     [([struct-mk t n] _) (if (= (length Vs) n)
@@ -261,13 +276,13 @@
          (cons σ FF))]
     [([val u1 _] (val u2 _)) (cons σ (val (equal? u1 u2) ∅))]))
 
-;; checks whether value satisfies predicate
-(define (check-p σ V p)
-  (match (prove? σ V [close p ρ∅])
+;; checks whether value satisfies predicate and remembers decision
+(define (check-C σ V C)
+  (match (prove? σ V C)
     ['Proved (cons σ TT)]
     ['Refuted (cons σ FF)]
-    ['Neither (match-let ([(cons σ1 _) (refine1 (cons σ V) (close p ρ∅))]
-                          [(cons σ2 _) (refine1 (cons σ V) (close (¬ p) ρ∅))])
+    ['Neither (match-let ([(cons σ1 _) (refine1 (cons σ V) C)]
+                          [(cons σ2 _) (refine1 (cons σ V) (not-C C))])
                 {set (cons σ1 TT) (cons σ2 FF)})]))
 
 (define (refine σV . C*)
