@@ -66,6 +66,22 @@
         [(f 1 (@ _ (op 'false?) (list e)) #f)
          (let-values ([(q Ls) (gen L (close (f 1 e #f) ρ))])
            (values (match/nd q [(? string? s) (format "NOT (~a)" s)]) Ls))]
+        [(or-c c1 c2)
+         (let-values ([(q1 Ls1) (gen L (close c1 ρ))]
+                      [(q2 Ls2) (gen L (close c2 ρ))])
+           (values (match/nd q1
+                     [(? string? s1)
+                      (match/nd q2
+                        [(? string? s2) (format "~a OR ~a" s1 s2)])])
+                   (set-union Ls1 Ls2)))]
+        [(and-c c1 c2)
+         (let-values ([(q1 Ls1) (gen L (close c1 ρ))]
+                      [(q2 Ls2) (gen L (close c2 ρ))])
+           (values (match/nd q1
+                     [(? string? s1)
+                      (match/nd q2
+                        [(? string? s2) (format "~a AND ~a" s1 s2)])])
+                   (set-union Ls1 Ls2)))]
         [_ #;(printf "misc: ~a~n~n" C) (values ∅ ∅)]))))
 
 ;; perform query/ies with given declarations, assertions, and conclusion,
