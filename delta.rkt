@@ -135,6 +135,11 @@
                             [(all-prove? σ Vs INT/C) INT/C]
                             [(all-prove? σ Vs REAL/C) REAL/C]
                             [else NUM/C])
+                          ; preserve sign
+                          (cond
+                            [(all-prove? σ Vs NON-NEG/C) (if (some-proves? σ Vs POS/C) POS/C NON-NEG/C)]
+                            [(all-prove? σ Vs NON-POS/C) (if (some-proves? σ Vs NEG/C) NEG/C NON-POS/C)]
+                            [else ANY/C])
                           (sum/C X1 X2))]))])]
     [('- (list V1 V2))
      ; Ws are most looked-up, Xs are most looked-up without sacrificing precision
@@ -151,6 +156,17 @@
                             [(all-prove? σ Vs INT/C) INT/C]
                             [(all-prove? σ Vs REAL/C) REAL/C]
                             [else NUM/C])
+                          ; preserve sign
+                          (cond
+                            [(and (equal? 'Proved (prove? σ X1 POS/C))
+                                  (equal? 'Proved (prove? σ X2 NEG/C))) POS/C]
+                            [(and (equal? 'Proved (prove? σ X1 NEG/C))
+                                  (equal? 'Proved (prove? σ X2 POS/C))) NEG/C]
+                            [(and (equal? 'Proved (prove? σ X1 NON-NEG/C))
+                                  (equal? 'Proved (prove? σ X2 NON-POS/C))) NON-NEG/C]
+                            [(and (equal? 'Proved (prove? σ X1 NON-POS/C))
+                                  (equal? 'Proved (prove? σ X2 NON-NEG/C))) NON-POS/C]
+                            [else ANY/C])
                           (dif/C X1 X2))]))])]
     
     [('str-len (list V))
