@@ -35,13 +35,13 @@
 (module g (provide [g (int? any STATE/C . -> . any)])
   (require f next)
   (define (g b3 x st)
-    (if (positive? b3) (f x #t (next st)) (f x #f st))))
+    (if (> b3 0) (f x #t (next st)) (f x #f st))))
 
 (module main (provide [main (int? int? . -> . any)])
   (require g)
   (define (main b2 b3)
     (begin
-      (if (positive? b2) (g b3 #t 'opened) (g b3 #f 'init))
+      (if (> b2 0) (g b3 #t 'opened) (g b3 #f 'init))
       'unit)))
 
 (require main)

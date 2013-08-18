@@ -5,7 +5,7 @@
 (module main (provide [main (int? . -> . any)])
   (require f h)
   (define (main n)
-    (if (or (zero? n) (positive? n)) (f n (h n)) 'unit)))
+    (if (>= n 0) (f n (h n)) 'unit)))
 
 (require main)
 (main •)

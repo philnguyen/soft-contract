@@ -1,7 +1,7 @@
 (abbrev/c TREE/C (μ X (or/c (struct/c leaf ()) (struct/c node (X X)))))
 
 (module tree-depth
-  (provide [depth (TREE/C . -> . (and/c int? (or/c zero? positive?)))])
+  (provide [depth (TREE/C . -> . (and/c int? (>=/c 0)))])
   (struct leaf ())
   (struct node (l r))
   (define (depth t)

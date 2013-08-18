@@ -10,9 +10,9 @@
   (define (foldl f z l)
     (if (empty? l) z (foldl f (f z (car l)) (cdr l))))
   (define (randpos)
-    (let [n (rand)] (if (positive? n) n (randpos))))
+    (let [n (rand)] (if (> n 0) n (randpos))))
   (define (mk-list n)
-    (if (or (zero? n) (negative? n)) empty
+    (if (<= n 0) empty
         (cons (randpos) (mk-list (- n 1)))))
   (define (main n m) (foldl / m (mk-list n))))
 

@@ -10,7 +10,7 @@
 (module f (provide [f (int? (int? . -> . any) int? . -> . any)])
   (require a b)
   (define (f n x q)
-    (if (or (zero? n) (negative? n)) (x q)
+    (if (<= n 0) (x q)
         (a x (λ (p) (f (- n 1) (λ (_) (b x _)) p)) q))))
 
 (module s (provide [s (int? int? . -> . any)])

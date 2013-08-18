@@ -8,8 +8,8 @@
   (provide [f (int? int? . -> . int?)]
            [g (int? int? . -> . int?)])
   (require lock)
-  (define (f n st) (if (positive? n) (lock st) st))
-  (define (g n st) (if (positive? n) (unlock st) st)))
+  (define (f n st) (if (> n 0) (lock st) st))
+  (define (g n st) (if (> n 0) (unlock st) st)))
 
 (module main
   (provide [main (int? . -> . (one-of/c 0))])

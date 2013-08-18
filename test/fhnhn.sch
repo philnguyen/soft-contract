@@ -2,7 +2,7 @@
   (provide [f ([x : (any . -> . int?)]
                . -> .
                ((and/c (any . -> . int?)
-                       (λ (y) (not (and (positive? (x #f)) (negative? (x #f)))))) . -> . int?))]))
+                       (λ (y) (not (and (> (x #f) 0) (< (y #f) 0))))) . -> . int?))]))
 
 (module h (provide [h (int? . -> . (any . -> . int?))])
   (define (h x) (λ (_) x)))

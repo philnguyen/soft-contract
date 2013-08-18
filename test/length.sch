@@ -1,9 +1,8 @@
 (module len
   (provide
    [len ([l : (listof any)] . -> . (and/c
-                                    int?
-                                    (or/c zero? positive?)
-                                    (λ (n) (equal? (empty? l) (zero? n)))))])
+                                    int? (>=/c 0)
+                                    (λ (n) (equal? (empty? l) (= n 0)))))])
   (define (len xs)
     (if (empty? xs) 0
         (+ 1 (len (cdr xs))))))

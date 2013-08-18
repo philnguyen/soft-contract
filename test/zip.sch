@@ -9,7 +9,7 @@
       [(and (cons? xs) (cons? ys)) (cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))]
       [else (/ 1 0 #|FAIL|#)]))
   (define (mk-list n)
-    (if (negative? n) empty (cons n (mk-list (- n 1)))))
+    (if (< n 0) empty (cons n (mk-list (- n 1)))))
   (define (main n)
     (let [xs (mk-list n)] (zip xs xs))))
 
