@@ -24,10 +24,15 @@
       [(_ (op 'any)) 'Proved]
       
       ; resort to external solver for complex arithmetics
-      [((? L? L) (f 1 (@ _ (op (or '= '< '> '>= '<=)) (list (x 0) _)) #f))
-       (match (prove? σ (σ@ σ L) C)
-         ['Neither (query σ V C)]
-         [ans ans])]
+      [((? L? L) (f 1 (@ _ (op (and o (or '= '< '> '>= '<=))) (list (x 0) e)) #f))
+       (cond ; same label
+         [(and (match? o '= 'equal?)
+               (match? e (x _))
+               (match-let ([(x sd) e]) (equal? L (ρ@ ρ (- sd 1)))))
+          'Proved]
+         [else (match (prove? σ (σ@ σ L) C)
+                 ['Neither (query σ V C)]
+                 [ans ans])])]
       
       ; look up
       [([? L? L] _) (prove? σ [σ@ σ L] C)]
