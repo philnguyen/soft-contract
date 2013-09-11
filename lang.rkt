@@ -20,7 +20,7 @@
    [struct amb ([e (listof e?)])]
    [struct func-c ([xs (listof c?)] [y c?] [var? boolean?])]
    [struct and-c ([l c?] [r c?])]
-   [struct or-c ([l c?] [r c?])]
+   [struct or-c ([l (and/c c? flat?)] [r c?])]
    [struct struct-c ([name l?] [fields (listof c?)])]
    [struct μ-c ([x l?] [c c?])]
    [clo-circular? (V? . -> . boolean?)]
@@ -40,7 +40,8 @@
    [arity=/C (V? . -> . C?)]
    [arity≥/C (V? . -> . C?)]
    [arity-incl/C (V? . -> . C?)]
-   [not-c (c? . -> . c?)]
+   [not-c ((and/c c? flat?) . -> . c?)]
+   [implies-c ((and/c c? flat?) c? . -> . c?)]
    [not-C (C? . -> . C?)]
    [sum/C (V? V? . -> . C?)]
    [dif/C (V? V? . -> . C?)]
@@ -180,6 +181,9 @@
 (struct μ-c (x c) #:transparent)
 (define x-c? (and/c symbol? (not/c o-name?)))
 (define c? (or/c flat-c? func-c? and-c? or-c? struct-c? μ-c? x-c?))
+
+(define (implies-c c1 c2)
+  (or-c (not-c c1) c2))
 
 (define not-c
   (match-lambda

@@ -109,6 +109,7 @@
            [`(and/c ,ci ... ,cn) (foldr (λ (cj dn) (and-c (go cj) dn)) (go cn) ci)]
            [`(or/c) (pred/c (f 1 #f #f))]
            [`(or/c ,ci ... ,cn) (foldr (λ (cj dn) (or-c (go cj) dn)) (go cn) ci)]
+           [`(=>/c ,c ,d) (implies-c (go c) (go d))]
            [`(cons/c ,c1 ,c2) (struct-c 'cons (list [go c1] [go c2]))]
            [`(μ ,x ,c′) (μ-c x (read-c l xs (cons x xcs) c′))]
            [`(listof ,c1) (go `(μ X (or/c empty? (cons/c ,c1 X))))]
