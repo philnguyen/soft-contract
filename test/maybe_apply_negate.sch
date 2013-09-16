@@ -1,12 +1,10 @@
 (module negate
-  (provide
-   [negate ((or/c int? bool?) . -> . (or/c int? bool?))])
+  (provide [negate ((or/c int? bool?) . -> . (or/c int? bool?))])
   (define (negate x)
     (if (int? x) (- 0 x) (not x))))
 
 (module maybe-apply
-  (provide
-   [maybe-apply (int? (or/c false? (int? . -> . int?)) . -> . int?)])
+  (provide [maybe-apply (int? (or/c false? (int? . -> . int?)) . -> . int?)])
   (define (maybe-apply x f)
     (if (false? f) x (f x))))
 
