@@ -16,10 +16,8 @@
   [(\\ any_* (any any_r ...)) (\\ any_* (any_r ...))])
 
 (define-metafunction MT
-  ∪ : any* any* -> any*
-  [(∪ any {}) any]
-  [(∪ {any_1 ... any any_i ...} {any any_r ...}) (∪ {any_1 ... any any_i ...} {any_r ...})]
-  [(∪ {any_1 ...} {any_i any_r ...}) (∪ {any_1 ... any_i} {any_r ...})])
+  ∪ : any* ... -> any*
+  [(∪ {any ...} ...) ,(set->list (list->set (apply append (term ((any ...) ...)))))])
 
 
 ;; generic environment operations
