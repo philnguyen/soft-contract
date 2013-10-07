@@ -22,9 +22,7 @@
   
   ; run-time configuration
   [P (m ... E)]
-  [E A (: e ρ) (E E) (o E ...) (if E E E) (rt V V E) (blur V E)
-     (wait V V)
-     (H* (in-hole H ◇) E) (H+ (in-hole H ◇) (in-hole H ◇) (in-hole H ◇) ... E)]
+  [E A (: e ρ) (E E) (o E ...) (if E E E) (rt V V E) (blur V E) (wait V V)]
   [A (in-hole H Err) V]
   [A* (A ...)]
   [V (⇓ (λ (x) e) ρ) (Cons V V) b ⊤ ⊥ (! X) (μ (X) V*)]
@@ -33,8 +31,7 @@
   [ac* (ac ...)]
   
   ; evaluation context
-  [H hole (H E) (V H) (o V ... H E ...) (if H E E) (rt V V H) (blur V H)
-     (H* (in-hole H ◇) H) (H+ (in-hole H ◇) (in-hole H ◇) (in-hole H ◇) ... H)]
+  [H hole (H E) (V H) (o V ... H E ...) (if H E E) (rt V V H) (blur V H)]
   [Q (m ... H)]
   
   [P+Q P Q]
@@ -44,19 +41,45 @@
   (list->set (map last (apply-reduction-relation* ↦ (term (inj ,t)) #:cache-all? #t))))
 (define (ev∘ t)
   (list->set (map last (apply-reduction-relation* ↦∘ (term (inj ,t)) #:cache-all? #t))))
-(define (ev∘* t)
-  (list->set (map last (apply-reduction-relation* ↦∘* (term (inj ,t)) #:cache-all? #t))))
 
 (define (viz t)
   (traces ↦ (term (inj ,t))))
 (define (viz∘ t)
   (traces ↦∘ (term (inj ,t))))
-(define (viz∘* t)
-  (traces ↦∘* (term (inj ,t))))
+
+(define-metafunction L
+  AMB : e e ... -> e
+  [(AMB e) e]
+  [(AMB e_1 e ...) (if ⊤ e_1 (AMB e ...))])
+
+(define-metafunction L
+  COND : [e e] ... [ELSE e] -> e
+  [(COND [ELSE e]) e]
+  [(COND [e_1 e_2] any ...) (if e_1 e_2 (COND any ...))])
+
+(define-metafunction L
+  AND : e ... -> e
+  [(AND) #t]
+  [(AND e) e]
+  [(AND e_1 e ...) (if e_1 (AND e ...) #f)])
+
+(define-metafunction L
+  OR : e ... -> e
+  [(OR) #f]
+  [(OR e) e]
+  [(OR e_1 e ...) (if e_1 #t (OR e ...))])
+
+(define-metafunction L
+  LET* : ([x e] ...) e -> e
+  [(LET* () e) e]
+  [(LET* ([x e_x] any ...) e) ((λ (x) (LET* (any ...) e)) e_x)])
 
 (define-metafunction L
   inj : p -> P
-  [(inj (m ... e)) (m ... (: e {}))])
+  [(inj (m ... e))
+   (m ...
+    (def havoc (λ (x) (AMB (havoc (x ⊤)) (havoc (car x)) (havoc (cdr x)))))
+    (: e {}))])
 
 (define ↦
   (reduction-relation
@@ -86,6 +109,18 @@
    [==> (rt V_f V_x V) V
         rt]
    [==> ((⇓ (λ (x) e) ρ) V) (: e (ρ+ ρ x V))  β]
+   [==> (V V_x) Err
+        app-err
+        (where (any_1 ... #f any_i ...) (δ proc? V))]
+   [==> (V V_x) ⊤
+        app-opq
+        (where (any_1 ... #t any_i ...) (δ proc? V))
+        (side-condition (not (redex-match? L (⇓ any_v any_ρ) (term V))))]
+   [==> (V V_x) ((: havoc {}) V_x)
+        havoc
+        (where (any_1 ... #t any_i ...) (δ proc? V))
+        (side-condition (not (redex-match? L (⇓ any_v any_ρ) (term V))))]
+   
    
    with
    [(--> (in-hole Q E_1) (in-hole Q E_2)) (==> E_1 E_2)]))
@@ -112,61 +147,9 @@
    
    [--> (in-hole Q (blur V_0 V_1))
         (in-hole Q (+: V_0 V_1))
-        blur]
-   [--> (in-hole Q (H* (in-hole H ◇) V))
-        (in-hole Q V)
-        H*-0]
-   [--> (in-hole Q (H* (in-hole H ◇) V))
-        (in-hole Q (mk-H* H (blur V (in-hole H V))))
-        H*-1]
-   [--> (in-hole Q (H+ any ... (in-hole H ◇) any_1 ... V))
-        (in-hole Q (in-hole H V))
-        H+]))
-
-(define-metafunction L
-  mk-H* : H E -> E
-  [(mk-H* H E)
-   (H* (in-hole H_1 ◇) E)
-   (where (H_1) (break H))]
-  [(mk-H* H E)
-   (H* (in-hole (mk-H+ H_i ...) ◇) E)
-   (where (H_i ...) (break H))])
-(define-metafunction L
-  break : H -> (H ...)
-  [(break (in-hole H_1 (H* (in-hole H_2 ◇) H_3)))
-   (∪ (H_1b ... H_2b ... H_3b ...))
-   (where (H_1b ...) (break H_1))
-   (where (H_2b ...) (break H_2))
-   (where (H_3b ...) (break H_3))]
-  [(break (in-hole H_1 (H+ (in-hole H_i ◇) ... H_2)))
-   (∪ (H_1b ...) (H_ib ...) ... (H_2b ...))
-   (where (H_1b ...) (break H_1))
-   (where ((H_ib ...) ...) ((break H_i) ...))
-   (where (H_2b ...) (break H_2))]
-  [(break H) (H)])
-(define-metafunction L
-  mk-H+ : H H ... -> H
-  [(mk-H+ H_1 ... (H+ (in-hole H_2 ◇) ... hole) H_3 ...) (mk-H+ H_1 ... H_2 ... H_3 ...)]
-  [(mk-H+ H ...)
-   H_1
-   (where (H_1) (∪ (H ...)))]
-  [(mk-H+ H ...)
-   (H+ (in-hole H_i ◇) ... hole)
-   (where (H_i ...) (∪ (H ...)))])
-
-(define ↦∘*
-  (union-reduction-relations
-   ↦∘
-   (reduction-relation
-    L
-    #:domain P+Q
-    [--> (m ... (in-hole H (rt V_f V_x E)))
-         (m ... (in-hole H (rt V_f V_x (mk-H* H_k V))))
-         jump
-         (where (P+Q ...)
-                ,(apply-reduction-relation* ↦∘ (term (m ... (rt V_f V_x E)))))
-         (where (any_1 ... (m ... V) any_2 ...) (P+Q ...))
-         (where (any_3 ... (m ... (in-hole H_k (wait V_f V_x))) any_4 ...) (P+Q ...))])))
+        #;(where any ,(printf "~a  +:  ~a  =  ~a~n~n"
+                              (term V_0) (term V_1) (term (+: V_0 V_1))))
+        blur]))
 
 (define (ev* t)
   ; extract modules (m ...)
@@ -185,7 +168,9 @@
   
   ; returns next states from 1-step reduction
   (define (step E)
-    (apply-reduction-relation ↦∘ E))
+    (let ([Es (apply-reduction-relation ↦∘ E)])
+      #;(printf "Es:~n~a~n~n" Es)
+      Es))
   
   (define (final? E)
     (redex-match? L (m ... A) E))
@@ -224,7 +209,7 @@
   ; plug function's result into the hole expecting it
   (define (recombine H H_k V_f V_x V_fx)
     (term (,@m (in-hole ,H (rt ,V_f ,V_x (blur ,V_fx (in-hole ,H_k ,V_fx)))))))
- 
+  
   ; main loop
   (let ([front (make-hash (list (cons (term (inj ,t)) #f)))]
         [seen (make-hash)]
@@ -279,9 +264,7 @@
   [(app-seen? (in-hole H (V_f hole)) V) (app-seen? H V)]
   [(app-seen? (in-hole H (o E ... hole E_1 ...)) V) (app-seen? H V)]
   [(app-seen? (in-hole H (if hole E_1 E_2)) V) (app-seen? H V)]
-  [(app-seen? (in-hole H (blur V_0 hole)) V) (app-seen? H V)]
-  [(app-seen? (in-hole H (H* any hole)) V) (app-seen? H V)]
-  [(app-seen? (in-hole H (H+ any ... hole)) V) (app-seen? H V)])
+  [(app-seen? (in-hole H (blur V_0 hole)) V) (app-seen? H V)])
 
 ;; biased approximation
 (define-metafunction L
@@ -290,7 +273,7 @@
   [(+: V ⊥) V]
   [(+: V V) V]
   [(+: n•_1 n•_2) INT]
-  [(+: (Cons V_1 V_2) (Cons V_3 V_4)) (Cons (+: V_1 V_2) (+: V_3 V_4))]
+  [(+: (Cons V_1 V_2) (Cons V_3 V_4)) (Cons (+: V_1 V_3) (+: V_2 V_4))]
   [(+: (μ (X) V*) (μ (Y) {V ...})) (μ! (X) (+:: V*_1 {(V// V (! Y) (! X)) ...}))]
   [(+: (μ (X) V*) V) (μ! (X) (+:: V* {(V// V (μ (X) V*) (! X))}))]
   [(+: V_0 V_1)
@@ -298,11 +281,19 @@
    (where X ,(variable-not-in (term (V_0 V_1)) (term X)))
    (where V_i (V// V_1 V_0 (! X)))
    (side-condition (term (≠ V_i V_1)))]
+  [(+: (⇓ v ρ_1) (⇓ v ρ_2)) (⇓ v (ρ+: ρ_1 ρ_2))]
+  [(+: PROC•_1 PROC•_2) PROC]
   [(+: V_0 V_1) ⊤])
 
 (define-metafunction L
+  ρ+: : ρ ρ -> ρ
+  [(ρ+: ρ {}) ρ]
+  [(ρ+: (any_1 ... [x ↦ V_0] any_2 ...) ([x ↦ V_1] any ...))
+   (ρ+: (any_1 ... [x ↦ (+: V_0 V_1)] any_2 ...) (any ...))])
+
+(define-metafunction L
   μ! : (X) V* -> V
-  [(μ! (X) {any ... ⊤ any_1}) ⊤]
+  [(μ! (X) {any ... ⊤ any_1 ...}) ⊤]
   [(μ! (X) V*) (μ (X) V*)])
 
 (define-metafunction L
@@ -383,7 +374,8 @@
   
   [(δ o V ...) {Err}])
 
-;; Examples
+
+;;;;; EXAMPLES
 (define p-fac
   (term
    ((def factorial
@@ -426,3 +418,80 @@
           (if (empty? xs) ys
               (cons (car xs) ((append (cdr xs)) ys))))))
     ((append ⊤) empty))))
+(define p-mutual
+  (term
+   ((def f
+      (λ (x) (if ⊤ 1 (if ⊤ (+ 2 (f x)) (+ 3 (g x))))))
+    (def g
+      (λ (x) (if ⊤ 4 (if ⊤ (+ 5 (+ (f x) (g x))) (+ 6 (g x))))))
+    (f ⊤))))
+(define p-mutual-cons
+  (term
+   ((def f
+      (λ (x) (if (= x 0) #f (cons (- x 1) (g (- x 1))))))
+    (def g
+      (λ (x) (if (= x 0) #t (cons (- x 1) (f (- x 1))))))
+    (f INT))))
+(define p-map
+  (term
+   ((def map
+      (λ (f)
+        (λ (xs)
+          (if (empty? xs) empty
+              (cons (f (car xs)) ((map f) (cdr xs)))))))
+    ((map ⊤) ⊤))))
+(define p-diverge
+  (term
+   ((def f (λ (x) (f (f x))))
+    (f ⊤))))
+(define p-with-many
+  (term
+   ((def with-many
+      (λ (wf)
+        (λ (l)
+          (λ (f)
+            (COND
+             [(empty? l) (f l)]
+             [ELSE (LET* ([x (car l)]
+                          [xs (cdr l)])
+                         ((wf x) (λ (x1) (((with-many wf) xs) (λ (xs1) (f (cons x1 xs1)))))))])))))
+    (((with-many ⊤) ⊤) ⊤))))
+(define p-takl
+  (term
+   ((def listn
+      (λ (n) (if (= n 0) empty (cons n (listn (- n 1))))))
+    (def shorter?
+      (λ (x)
+        (λ (y)
+          (AND (false? (empty? y))
+               (OR (empty? x) ((shorter? (cdr x)) (cdr y)))))))
+    (def mas
+      (λ (x)
+        (λ (y)
+          (λ (z)
+            (if (false? ((shorter? y) x)) z
+                (((mas (((mas (cdr x)) y) z))
+                  (((mas (cdr y)) z) x))
+                 (((mas (cdr z)) x) y)))))))
+    (((mas ⊤) ⊤) ⊤))))
+(define p-tak-cps
+  (term
+   ((def tak
+      (λ (x)
+        (λ (y)
+          (λ (z)
+            (λ (k)
+              (AMB (k z)
+                   ((((tak (- x 1))
+                        y)
+                        z)
+                        (λ (v1)
+                          ((((tak (- y 1))
+                               z)
+                               x)
+                               (λ (v2)
+                                 ((((tak (- z 1))
+                                      x)
+                                      y)
+                                      (λ (v3) ((((tak v1) v2) v3) k)))))))))))))
+    ((((tak INT) INT) INT) (λ (x) x)))))
