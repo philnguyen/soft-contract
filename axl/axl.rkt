@@ -23,6 +23,7 @@
   ; run-time configuration
   [P (m ... E)]
   [E A (: e ρ) (E E) (o E ...) (if E E E) (rt V V E) (blur V E)
+     (wait V V)
      (H* (in-hole H ◇) E) (H+ (in-hole H ◇) (in-hole H ◇) (in-hole H ◇) ... E)]
   [A (in-hole H Err) V]
   [A* (A ...)]
@@ -104,7 +105,7 @@
         (where V_n (+: V_o V))
         (side-condition (term (≠ V_o V_n)))]
    [--> (m ... (in-hole H ((⇓ (λ (x) e) ρ) V)))
-        (m ... (in-hole H (rt (⇓ (λ (x) e) ρ) V_o hole)))
+        (m ... (in-hole H (wait (⇓ (λ (x) e) ρ) V_o)))
         β-wait
         (where V_o (app-seen? H (⇓ (λ (x) e) ρ)))
         (where V_o (+: V_o V))]
@@ -165,7 +166,99 @@
          (where (P+Q ...)
                 ,(apply-reduction-relation* ↦∘ (term (m ... (rt V_f V_x E)))))
          (where (any_1 ... (m ... V) any_2 ...) (P+Q ...))
-         (where (any_3 ... (m ... (in-hole H_k (rt V_f V_x hole))) any_4 ...) (P+Q ...))])))
+         (where (any_3 ... (m ... (in-hole H_k (wait V_f V_x))) any_4 ...) (P+Q ...))])))
+
+(define (ev* t)
+  ; extract modules (m ...)
+  (match-define `(,m ... ,_) t)
+  
+  ; helper functions for queues
+  (define (push! h k) (hash-set! h k #f))
+  (define (map-add! h k v)
+    (hash-update! h k (λ (s) (set-add s v)) {set}))
+  (define (mem? h k) (hash-has-key? h k))
+  (define (mt? h) (zero? (hash-count h)))
+  (define (pop! h)
+    (let ([k (for/first ([k (in-hash-keys h)]) k)])
+      (hash-remove! h k)
+      k))
+  
+  ; returns next states from 1-step reduction
+  (define (step E)
+    (apply-reduction-relation ↦∘ E))
+  
+  (define (final? E)
+    (redex-match? L (m ... A) E))
+  
+  ; checks for state of form (return ...)
+  (define (match-rt E)
+    (match (redex-match L (m ... (in-hole H (rt V_f V_x V))) E)
+      [(list m)
+       (let ([bs (match-bindings m)])
+         (define-values (Vf Vx V) (values #f #f #f))
+         (for ([b (in-list bs)])
+           (match (bind-name b)
+             ['V_f (set! Vf (bind-exp b))]
+             ['V_x (set! Vx (bind-exp b))]
+             ['V (set! V (bind-exp b))]
+             [_ (void)]))
+         (list Vf Vx V))]
+      [#f #f]))
+  
+  ; checks for state of form (wait ...)
+  (define (match-wt E)
+    (match (redex-match L (m ... (in-hole H (rt V_f V_x (in-hole H_k (wait V_f V_x))))) E)
+      [(list m)
+       (let ([bs (match-bindings m)])
+         (define-values (H Vf Vx Hk) (values #f #f #f #f))
+         (for ([b (in-list bs)])
+           (match (bind-name b)
+             ['H (set! H (bind-exp b))]
+             ['V_f (set! Vf (bind-exp b))]
+             ['V_x (set! Vx (bind-exp b))]
+             ['H_k (set! Hk (bind-exp b))]
+             [_ (void)]))
+         (list H Vf Vx Hk))]
+      [#f #f]))
+  
+  ; plug function's result into the hole expecting it
+  (define (recombine H H_k V_f V_x V_fx)
+    (term (,@m (in-hole ,H (rt ,V_f ,V_x (blur ,V_fx (in-hole ,H_k ,V_fx)))))))
+ 
+  ; main loop
+  (let ([front (make-hash (list (cons (term (inj ,t)) #f)))]
+        [seen (make-hash)]
+        [finals (make-hash)]
+        [returns (make-hash)]
+        [waits (make-hash)])
+    (let loop ()
+      (unless (mt? front)
+        (let ([E (pop! front)])
+          (for ([Ei (step E)])
+            (cond
+              [(final? Ei) (push! finals Ei)]
+              [(not (mem? seen Ei))
+               (push! front Ei)
+               (match (match-rt Ei)
+                 [(list Vf Vx V)
+                  (map-add! returns (list Vf Vx) V)
+                  (for ([ctx (hash-ref waits (list Vf Vx) (λ () {set}))])
+                    (match-let* ([(list H Hk) ctx]
+                                 [Ej (recombine H Hk Vf Vx V)])
+                      (unless (mem? seen Ej) (push! front Ej))))]
+                 [#f (void)])
+               (match (match-wt Ei)
+                 [(list H Vf Vx Hk)
+                  (map-add! waits (list Vf Vx) (list H Hk))
+                  (for ([V0 (hash-ref returns (list Vf Vx) (λ () {set}))])
+                    (let ([Ej (recombine H Hk Vf Vx V0)])
+                      (unless (mem? seen Ej) (push! front Ej))))]
+                 [#f (void)])]
+              [else (void)]))
+          (push! seen E))
+        (loop)))
+    (for/set ([P (in-hash-keys finals)])
+      (match-let ([`(,m ... ,E) P]) E))))
 
 ;; ρ operations
 (define-metafunction L
@@ -295,13 +388,20 @@
   (term
    ((def factorial
       (λ (n) (if (= n 0) 1 (* n (factorial (- n 1))))))
-    (factorial ⊤))))
+    (factorial INT))))
 (define p-fg
   (term
    ((def f
       (λ (n) (if ⊤ 1 (+ (g n) (f n)))))
     (def g
       (λ (n) (if ⊤ 2 (+ (f n) (g n)))))
+    (f ⊤))))
+(define p-fgf
+  (term
+   ((def f
+      (λ (x) (if ⊤ 1 (+ (g x) (+ (f x) (g x))))))
+    (def g
+      (λ (z) (if ⊤ 2 (+ (f z) (+ (g z) (f z))))))
     (f ⊤))))
 (define p-ack
   (term
@@ -311,13 +411,13 @@
           (if (= m 0) (+ n 1)
               (if (= n 0) ((ackermann (- m 1)) 1)
                   ((ackermann (- m 1)) ((ackermann m) (- n 1))))))))
-    ((ackermann ⊤) ⊤))))
+    ((ackermann INT) INT))))
 (define p-fib
   (term
    ((def fib
       (λ (n)
         (if ⊤ 1 (+ (fib (- n 1)) (fib (- n 2))))))
-    (fib ⊤))))
+    (fib INT))))
 (define p-app
   (term
    ((def append
