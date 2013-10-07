@@ -1,25 +1,10 @@
 #lang racket
-(require redex "utils.rkt")
+(require redex "lang.rkt")
 
-(define-extended-language L MT
-  ; source program syntax
-  [(p q) (m ... e)]
-  [m (def x v)]
-  [e v x (e e) (o e ...) (if e e e)]
-  [v (λ (x) e) b ⊤]
-  [b #t #f n empty INT PROC]
-  [o o1 o2]
-  [o1 o? ac add1]
-  [o2 cons * + - =]
-  [o? int? false? cons? empty? proc? tt]
-  [ac car cdr]
-  [n integer]
-  [(x y z X Y Z) variable-not-otherwise-mentioned]
-  [(x* y* z* f* l*) (x ...)]
-  [n• n INT]
-  [n+⊤ n• ⊤]
-  [PROC• PROC (⇓ (λ (x) e) ρ)]
-  
+(provide ev ev∘ ev* viz viz∘
+         p-fac p-fib p-ack p-fg p-fgf p-app p-map p-tak-cps p-mutual p-mutual-cons)
+
+(define-extended-language L∘ L
   ; run-time configuration
   [P (m ... E)]
   [E A (: e ρ) (E E) (o E ...) (if E E E) (rt V V E) (blur V E) (wait V V)]
@@ -32,10 +17,7 @@
   
   ; evaluation context
   [H hole (H E) (V H) (o V ... H E ...) (if H E E) (rt V V H) (blur V H)]
-  [Q (m ... H)]
-  
-  [P+Q P Q]
-  [B #t #f])
+  [Q (m ... H)])
 
 (define (ev t)
   (list->set (map last (apply-reduction-relation* ↦ (term (inj ,t)) #:cache-all? #t))))
@@ -47,34 +29,34 @@
 (define (viz∘ t)
   (traces ↦∘ (term (inj ,t))))
 
-(define-metafunction L
+(define-metafunction L∘
   AMB : e e ... -> e
   [(AMB e) e]
   [(AMB e_1 e ...) (if ⊤ e_1 (AMB e ...))])
 
-(define-metafunction L
+(define-metafunction L∘
   COND : [e e] ... [ELSE e] -> e
   [(COND [ELSE e]) e]
   [(COND [e_1 e_2] any ...) (if e_1 e_2 (COND any ...))])
 
-(define-metafunction L
+(define-metafunction L∘
   AND : e ... -> e
   [(AND) #t]
   [(AND e) e]
   [(AND e_1 e ...) (if e_1 (AND e ...) #f)])
 
-(define-metafunction L
+(define-metafunction L∘
   OR : e ... -> e
   [(OR) #f]
   [(OR e) e]
   [(OR e_1 e ...) (if e_1 #t (OR e ...))])
 
-(define-metafunction L
+(define-metafunction L∘
   LET* : ([x e] ...) e -> e
   [(LET* () e) e]
   [(LET* ([x e_x] any ...) e) ((λ (x) (LET* (any ...) e)) e_x)])
 
-(define-metafunction L
+(define-metafunction L∘
   inj : p -> P
   [(inj (m ... e))
    (m ...
@@ -83,7 +65,7 @@
 
 (define ↦
   (reduction-relation
-   L
+   L∘
    #:domain P
    [==> (: v ρ) (close v ρ)  v]
    [==> (: x ρ) V
@@ -115,11 +97,11 @@
    [==> (V V_x) ⊤
         app-opq
         (where (any_1 ... #t any_i ...) (δ proc? V))
-        (side-condition (not (redex-match? L (⇓ any_v any_ρ) (term V))))]
+        (side-condition (not (redex-match? L∘ (⇓ any_v any_ρ) (term V))))]
    [==> (V V_x) ((: havoc {}) V_x)
         havoc
         (where (any_1 ... #t any_i ...) (δ proc? V))
-        (side-condition (not (redex-match? L (⇓ any_v any_ρ) (term V))))]
+        (side-condition (not (redex-match? L∘ (⇓ any_v any_ρ) (term V))))]
    
    
    with
@@ -127,8 +109,8 @@
 
 (define ↦∘
   (extend-reduction-relation
-   ↦ L
-   #:domain P+Q
+   ↦ L∘
+   #:domain P
    [--> (m ... (in-hole H ((⇓ (λ (x) e) ρ) V)))
         (m ... (in-hole H (rt (⇓ (λ (x) e) ρ) V (: e (ρ+ ρ x V)))))
         β
@@ -173,11 +155,11 @@
       Es))
   
   (define (final? E)
-    (redex-match? L (m ... A) E))
+    (redex-match? L∘ (m ... A) E))
   
   ; checks for state of form (return ...)
   (define (match-rt E)
-    (match (redex-match L (m ... (in-hole H (rt V_f V_x V))) E)
+    (match (redex-match L∘ (m ... (in-hole H (rt V_f V_x V))) E)
       [(list m)
        (let ([bs (match-bindings m)])
          (define-values (Vf Vx V) (values #f #f #f))
@@ -192,7 +174,7 @@
   
   ; checks for state of form (wait ...)
   (define (match-wt E)
-    (match (redex-match L (m ... (in-hole H (rt V_f V_x (in-hole H_k (wait V_f V_x))))) E)
+    (match (redex-match L∘ (m ... (in-hole H (rt V_f V_x (in-hole H_k (wait V_f V_x))))) E)
       [(list m)
        (let ([bs (match-bindings m)])
          (define-values (H Vf Vx Hk) (values #f #f #f #f))
@@ -242,20 +224,33 @@
               [else (void)]))
           (push! seen E))
         (loop)))
+    #;(printf "~a states, ~a \"base cases\", ~a stepping contexts~n~n"
+            (+ (hash-count seen) (hash-count finals))
+            (for/sum ([s (in-hash-values returns)]) (set-count s))
+            (for/sum ([s (in-hash-values waits)]) (set-count s)))
+    #;(begin (printf "\"base cases\":~n")
+           (for ([(app ans) (in-hash returns)])
+             (printf "~a  :  ~a~n" app ans)))
+    #;(begin (printf "stepping contexts:~n")
+           (for ([(app ans*) (in-hash waits)])
+             (printf "~a:~n" app)
+             (for ([ans ans*])
+               (printf "  -> ~a~n" ans))
+             (printf "~n")))
     (for/set ([P (in-hash-keys finals)])
       (match-let ([`(,m ... ,E) P]) E))))
 
 ;; ρ operations
-(define-metafunction L
+(define-metafunction L∘
   ρ+ : ρ x V -> ρ
   [(ρ+ ρ x V) (env+ ρ x V)])
-(define-metafunction L
+(define-metafunction L∘
   close : v ρ -> V
   [(close (λ (x) e) ρ) (⇓ (λ (x) e) ρ)]
   [(close v ρ) v])
 
 ;; checks whether current context results from given application
-(define-metafunction L
+(define-metafunction L∘
   app-seen? : H V -> [#f] or V
   [(app-seen? hole V) (#f)]
   [(app-seen? (in-hole H (rt V V_x hole)) V) V_x]
@@ -267,7 +262,7 @@
   [(app-seen? (in-hole H (blur V_0 hole)) V) (app-seen? H V)])
 
 ;; biased approximation
-(define-metafunction L
+(define-metafunction L∘
   +: : V V -> V
   [(+: ⊥ V) V]
   [(+: V ⊥) V]
@@ -285,24 +280,24 @@
   [(+: PROC•_1 PROC•_2) PROC]
   [(+: V_0 V_1) ⊤])
 
-(define-metafunction L
+(define-metafunction L∘
   ρ+: : ρ ρ -> ρ
   [(ρ+: ρ {}) ρ]
   [(ρ+: (any_1 ... [x ↦ V_0] any_2 ...) ([x ↦ V_1] any ...))
    (ρ+: (any_1 ... [x ↦ (+: V_0 V_1)] any_2 ...) (any ...))])
 
-(define-metafunction L
+(define-metafunction L∘
   μ! : (X) V* -> V
   [(μ! (X) {any ... ⊤ any_1 ...}) ⊤]
   [(μ! (X) V*) (μ (X) V*)])
 
-(define-metafunction L
+(define-metafunction L∘
   +:: : V* V* -> V*
   [(+:: (V_1 ...) (V_2 ...))
    ,(match (term (+:* V_1 ... V_2 ...))
       [(list _ ... '⊤ _ ...) (term {⊤})]
       [V* (set->list (list->set V*))])])
-(define-metafunction L
+(define-metafunction L∘
   +:* : V ... -> V*
   [(+:* (V_a ... ⊤ V_b ...)) {⊤}]
   [(+:* V) {V}]
@@ -327,14 +322,14 @@
    (where (V_r ...) (+:* V_a ... V_b ...))])
 
 ;; closure substitution
-(define-metafunction L
+(define-metafunction L∘
   V// : V V V -> V
   [(V// V_X V_X V_Y) V_Y]
   [(V// (μ (X) any) X V) (μ (X) any)]
   [(V// (Cons V_1 V_2) V_X V_Y) (Cons (V// V_1 V_X V_Y) (V// V_2 V_X V_Y))]
   [(V// V_Z V_X V_Y) V_Z])
 
-(define-metafunction L
+(define-metafunction L∘
   δ : o V ... -> A*
   ; predicate
   [(δ tt V) {#t}]
