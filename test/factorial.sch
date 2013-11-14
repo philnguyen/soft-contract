@@ -1,8 +1,8 @@
-(module fac
+(module factorial
   (provide
-   [fac (int? . -> . int?)])
-  (define (fac n)
-    (if (zero? n) 1 (* n (fac (sub1 n))))))
+   [factorial (int? . -> . int?)])
+  (define (factorial n)
+    (if (zero? n) 1 (* n (factorial (sub1 n))))))
 
-(require fac)
-(fac •)
+(require factorial)
+(factorial •)

@@ -1,6 +1,6 @@
 (module taut
   (provide
-   [taut ([μ X (or/c bool? [bool? . -> . X])] . -> . bool?)])
+   [taut ([μ/c (X) (or/c bool? [bool? . -> . X])] . -> . bool?)])
   (define (taut b)
     (cond
       [(bool? b) b]

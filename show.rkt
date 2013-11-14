@@ -1,8 +1,12 @@
-#lang racket
-(require
- "lang.rkt"
- (only-in redex variables-not-in))
+#lang typed/racket
+(require "utils.rkt" "lang.rkt" "closure.rkt")
+(require/typed
+ redex
+ [variables-not-in (Any Any → (Listof Sym))])
 
+(provide (all-defined-out))
+
+(: vars-not-in : Int (Listof Sym) → (Listof Sym))
 (define vars-not-in
   (let* ([pool '(x y z u v w a b c)]
          [N (length pool)])
@@ -10,120 +14,127 @@
       (reverse ; just for nice order
        (variables-not-in t (if (<= n N) (take pool n) (make-list n 'x1)))))))
 
-(provide
- #;(all-defined-out)
- (contract-out
-  [show-A (σ? A? . -> . any)]
-  [show-σA (σ? A? . -> . (cons/c any/c any/c))]
-  [show-E (E? . -> . any)]
-  [show-U (U? . -> . any)]
-  [show-C (C? . -> . any)]
-  [show-c (c? . -> . any)]
-  [show-e (e? . -> . any)]
-  [show-b (b? . -> . any)]
-  [show-ρ (ρ? . -> . any)]))
+(: show-Ans : (case→ [.Ans → (Pairof Any Any)] [.σ .A → (Pairof Any Any)]))
+(define show-Ans
+  (case-lambda
+    [(σ A) (cons (show-E σ A) (show-σ σ))]
+    [(Ans) (show-Ans (car Ans) (cdr Ans))]))
 
-;; readable evaluation answer
-(define (show-A σ a)
-  (match a
-    [(? L? l) (show-A σ [σ@ σ l])]
-    [(Blm f+ fo s) (show-E a)]
-    [(val w Cs)
-     (match w
-       [(? b? b) (show-b b)]
-       [(or [? Arr?] [? o?] [close [? f?] _]) 'function]
-       [(Struct t Vs) `(,t ,@ (map (curry show-A σ) Vs))]
-       [(•) (match (for/list ([C (in-set Cs)]) (show-C C))
-              ['() '•]
-              [Cs (cons '• Cs)])])]))
+(: show-A : .σ .A → Any)
+(define (show-A σ A)
+  (match A    
+    [(.blm l+ lo V C) `(blm ,l+ ,lo ,(show-V σ V) ,(show-V σ C))]
+    [(? .V? V) (show-V σ V)]))
 
-;; full final state with heap
-(define (show-σA σ1 a)
-  (cons (show-E a) (match-let ([(σ m l) σ1])
-                     (for/list ([L (range 0 l)])
-                       (list (show-E L) '↦ (show-E (hash-ref m L)))))))
+(: show-V : (case→ [.σ .V → Any]
+                   [.σ (Listof .V) → (Listof Any)]))
+(define (show-V σ V)
+  (match V
+    [(.L i) (show-V σ (σ@ σ i))]
+    [(.// U C*)
+     (match U
+       [(.b b) (show-b b)]
+       [(.•) (if (set-empty? C*) '• `(• ,@(for/list: : (Listof Any) ([C C*]) (show-V σ C))))]
+       #;[(or (? .Ar?) (.o) (? .λ↓?)) 'function]
+       [(? .o? o) (name o)]
+       [(.λ↓ f _) (show-e f)]
+       [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
+       [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) e) _) _) _) _))) `(≠/c ,(show-e e))]
+       [(.St (and n (or 'and/c 'or/c '¬/c)) V*) `(,n ,@(show-V σ V*))]
+       [(.St t V*) `(,t ,@(show-V σ V*))]
+       [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
+       [(.St/C t V*) `(,(str→sym (str++ (sym→str t) "/c")) ,@(show-V σ V*))]
+       [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
+       [(.X/C x) x])]
+    [(.X/V x) x]
+    [(.μ/V x V*) `(μ (,x) ,(for/list: : (Listof Any) ([V V*]) (show-V σ V)))]
+    [(? list? V*) (map (curry show-V σ) V*)]))
 
-(define/match (show-E E)
-  [((close e _)) (show-e e)]
-  [((val U Cs)) (match U
-                  [(•) (cons '• (for/list ([C Cs]) (show-C C)))]
-                  [_ (show-U U)])]
-  [((Blm l+ lo s)) `(blame ,l+ ,lo ,s)]
-  [((? L? l)) (string->symbol (string-append "L" (num-subscript l)))]
-  [((Mon _ _ _ C E)) `(MON ,(show-C C) ,(show-E E))]
-  [((FC _ C V)) `(FC ,(show-C C) ,(show-E V))]
-  [((Assume V C)) `(ASSUME ,(show-E V) ,(show-C C))])
+(: show-ρ : .σ .ρ → Any)
+(define (show-ρ σ ρ)
+  (match-let ([(.ρ m l) ρ])
+    (for/list: : (Listof Any) ([x (in-hash-keys m)])
+      (cond
+        [(sym? x) `(,x ↦ ,(show-V σ (hash-ref m x)))]
+        [(int? x) `(,(str++ "sd" (n-sub (- l x 1))) ↦ ,(show-V σ (hash-ref m x)))]))))
 
-(define/match (show-U U)
-  [((close f _)) (show-e f)]
-  [((•)) `•]
-  [((Struct t Vs)) (match (length Vs)
-                     [0 t]
-                     [_ `(,t ,@ (map show-E Vs))])]
-  [((Arr _ _ _ C V)) `(=> ,(show-C C) ,(show-E V))]
-  [((? b? b)) (show-b b)])
+(: show-E : .σ .E → Any)
+(define (show-E σ E)
+  (match E
+    [(.L i) (str→sym (str++ "L" (n-sub i)))]
+    [(? .A? A) (show-A σ A)]
+    [(.↓ e ρ) (show-e e)]
+    [(.FC C V _) `(FC ,(show-E σ C) ,(show-E σ V))]
+    [(.Mon C E _) `(▹ ,(show-E σ C) ,(show-E σ E))]
+    [(.Assume V C) `(Asm ,(show-E σ V) ,(show-E σ C))]))
 
-(define/match (show-C C)
-  [((close c _)) (show-c c)])
+(: show-e : .e → Any)
+(define (show-e e)
+  (let: go ([ctx : (Listof Sym) '()] [e e])
+    (match e
+      ; syntactic sugar
+      [(.λ 1 (.@ (.=) (list (.x 0) e′) _) _) `(=/c ,(go ctx e′))]
+      [(.λ 1 (.@ (.equal?) (list (.x 0) e′) _) _) `(≡/c ,(go ctx e′))]
+      [(.λ 1 (.@ (.>) (list (.x 0) e′) _) _) `(>/c ,(go ctx e′))]
+      [(.λ 1 (.@ (.<) (list (.x 0) e′) _) _) `(</c ,(go ctx e′))]
+      [(.λ 1 (.@ (.≥) (list (.x 0) e′) _) _) `(≥/c ,(go ctx e′))]
+      [(.λ 1 (.@ (.≤) (list (.x 0) e′) _) _) `(≤/c ,(go ctx e′))]
+      [(.λ 1 (.@ (? closed? f) (list (.x 0)) _) _) (go '() f)]
+      [(.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b x)) _) #f) `(arity-includes/c ,x)]
+      [(.λ 1 (.@ (.arity=?) (list (.x 0) (.b x)) _) #f) `(arity=/c ,x)]
+      [(.λ 1 (.@ (.arity≥?) (list (.x 0) (.b x)) _) #f) `(arity≥/c ,x)]
+      [(.@ (.st-mk 'or/c _) (list (.@ (.st-mk '¬/c _) (list c) _) d) _)
+       `(⇒/c ,(go ctx c) ,(go ctx d))]
+      [(.@ (.st-mk (and n 'and/c 'or/c '¬/c) _) c* _) `(,n ,@(map (curry go ctx) c*))]
+      [(.@ (.λ n e #f) ex _) (let ([x* (vars-not-in n ctx)])
+                               `(let ,(for/list: : (Listof Any) ([x (reverse x*)] [ei ex])
+                                        `(,x ,(go ctx ei)))
+                                  ,(go (append x* ctx) e)))]
+      [(.if a b (.b #f)) `(∧ ,(go ctx a) ,(go ctx b))]
+      [(.if a b (.b #t)) `(⇒ ,(go ctx a) ,(go ctx b))]
+      [(.@ (.λ 1 (.if (.x 0) (.x 0) (? closed? b)) #f) (list a) _)
+       `(∨ ,(go ctx a) ,(go ctx b))]
+      
+      [(.λ n e v?) (let ([x* (vars-not-in n ctx)])
+                     `(,(if v? 'λ* 'λ) ,x* ,(go (append x* ctx) e)))]
+      [(.•) '•]
+      [(.b b) (show-b b)]
+      [(.st-mk t _) t]
+      [(.st-ac 'cons _ 0) 'car]
+      [(.st-ac 'cons _ 1) 'cdr]
+      [(.st-ac t _ i) (str→sym (str++ (sym→str t) "@" (num→str i)))]
+      [(.st-p t _) (str→sym (str++ (sym→str t) "?"))]
+      [(? .o? o) (name o)]
+      [(.x i) (ctx-ref ctx i)]
+      [(.ref x _ _) x]
+      [(.@ f xs _) `(,(go ctx f) ,@(map (curry go ctx) xs))]
+      [(.if i t e) `(,(go ctx i) ,(go ctx t) ,(go ctx e))]
+      [(.amb e*) `(amb ,@(for/list: : (Listof Any) ([e e*]) (go ctx e)))]
+      [(.μ/c x c) `(μ/c (,x) ,(go ctx c))]
+      [(.λ/c c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
+      [(.x/c x) x]
+      [(.struct/c t cs) `(,(str→sym (str++ (sym→str t) "/c")) ,@(map (curry go ctx) cs))])))
 
-(define/match (show-c c)
-  [((func-c xs y v?)) `(,@ (map show-c xs) ,(if v? '↦* '↦) ,(show-c y))]
-  [((and-c c1 c2)) `(and/c ,(show-c c1) ,(show-c c2))]
-  [((or-c c1 c2)) `(or/c ,(show-c c1) ,(show-c c2))]
-  [((struct-c t cs))
-   `(,(string->symbol (string-append (symbol->string t) "/c")) ,@ (map show-c cs))]
-  [((μ-c x c)) `(μ ,x ,(show-c c))]
-  [((? v? v)) (show-e v)])
+(: show-b : (U Num Str Bool Sym) → Any)
+(define (show-b x)
+  (if (str? x) (str++ "\"" x "\"") x))
 
-(define (show-e e [ctx '()])
-  (define (go e) (show-e e ctx))
-  (match e
-    [(f 1 (@ _ (op '=) (list (x 0) e1)) #f) `(=/c ,(go e1))]
-    [(f 1 (@ _ (op '>) (list (x 0) e1)) #f) `(>/c ,(go e1))]
-    [(f 1 (@ _ (op '<) (list (x 0) e1)) #f) `(</c ,(go e1))]
-    [(f 1 (@ _ (op '>=) (list (x 0) e1)) #f) `(≥/c ,(go e1))]
-    [(f 1 (@ _ (op '<=) (list (x 0) e1)) #f) `(≤/c ,(go e1))]
-    [(f 1 (@ _ (op 'false?) (list (@ _ (op '=) (list (x 0) e1)))) #f) `(≠/c ,(go e1))]
-    [(f 1 (@ _ (op 'false?) (list (@ _ (and (? v? v) (? closed?)) (list (x 0))))) #f)
-     `(¬/c ,(go v))]
-    [(f 1 (@ _ (? closed? e1) (list (x 0))) #f) (go e1)]
-    [(f n e _) (let ([xs (vars-not-in n ctx)])
-                 `(λ ,xs ,(show-e e (append xs ctx))))]
-    [(•) '•]
-    [(x sd) (if (< sd (length ctx)) (list-ref ctx sd)
-                (string->symbol (string-append "⋯" (num-subscript sd))))]
-    [(ref _ _ x) x]
-    [(@ _ (f 1 (if/ (x 0) (x 0) (? closed? e2)) #f) (list e1))
-     `(,(go e1) ∨ ,(go e2))]
-    [(@ _ (f n ey #f) ex)
-     (let ([xs (vars-not-in n ctx)])
-       `(let ,(for/list ([x (reverse xs)] [e ex]) `[,x ,(go e)])
-          ,(show-e ey (append xs ctx))))]
-    [(@ _ f xs) `(,(go f) ,@ (for/list ([x xs]) (go x)))]
-    [(if/ e1 e2 #t) `(,(go e1) ⇒ ,(go e2))]
-    [(if/ e1 e2 #f) `(,(go e1) ∧ ,(go e2))]
-    [(if/ e1 e2 e3) `(if ,(go e1) ,(go e2) ,(go e3))]
-    [(amb _) 'amb]
-    [(? b? b) (show-b b)]))
+(: show-σ : .σ → (Listof Any))
+(define (show-σ σ)
+  (match-let ([(.σ m l) σ])
+    (for/list ([i (in-range 0 l)])
+      `(,(str++ "L" (n-sub i)) ↦ ,(show-E σ (hash-ref m i))))))
 
-(define/match (show-b b)
-  [((op name)) (match name ['false? '¬] ['<= '≤] ['>= '≥] [_ name])]
-  [((struct-mk t _)) t]
-  [((struct-p t _)) (string->symbol (string-append (symbol->string t) "?"))]
-  [((struct-ac t n i)) (string->symbol (string-append (symbol->string t) "-" (number->string i)))]
-  [((? string? s)) (string-append "\"" s "\"")]
-  [(b) b])
+(: ctx-ref : (Listof Sym) Int → Sym)
+(define (ctx-ref xs i)
+  (let go ([xs xs] [i i])
+    (match* (xs i)
+      [('() _) (str→sym (str++ (sym→str '⋯) (n-sub i)))]
+      [((cons x _) 0) x]
+      [((cons _ xr) i) (go xr (- i 1))])))
 
-(define (show-ρ ρ1)
-  (match-let ([(ρ m l) ρ1])
-    (for/list ([(i V) (in-hash m)])
-      (let ([sd (- l i 1)])
-        (list sd '↦ (show-E V))))))
-
-(define (num-subscript n)
-  ((and/c integer? (not/c negative?)) . -> . string?)
-  (match n
-    [0 "₀"] [1 "₁"] [2 "₂"] [3 "₃"] [4 "₄"]
-    [5 "₅"] [6 "₆"] [7 "₇"] [8 "₈"] [9 "₉"]
-    [_ (string-append (num-subscript (quotient n 10))
-                      (num-subscript (remainder n 10)))]))
+(: n-sub : Int → String)
+(define (n-sub n)
+  (cond
+    [(<= 0 n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
+    [else (str++ (n-sub (quotient n 10)) (n-sub (remainder n 10)))]))

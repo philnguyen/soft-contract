@@ -1,5 +1,5 @@
 (module ack
-  (provide [ack ([_ : int?] [n : int?] . -> . (and/c int? (>/c n)))])
+  (provide [ack (int? int? . -> . int?)])
   (define (ack m n)
     (cond
       [(= m 0) (+ n 1)]

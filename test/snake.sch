@@ -1,22 +1,27 @@
-; temporary hack. Lo-tech macros b/c we don't have 1st class contracts yet
-(abbrev/c DIR/C (one-of/c "up" "down" "left" "right"))
-(abbrev/c POSN/C (struct/c posn [real? real?]))
-(abbrev/c SNAKE/C (struct/c snake [DIR/C (nelistof POSN/C)]))
-(abbrev/c WORLD/C (struct/c world [SNAKE/C POSN/C]))
-
 (module image
   (provide
-   [image? (any . -> . bool?)]
-   [circle (real? str? str? . -> . image?)]
-   [empty-scene (real? real? . -> . image?)]
-   [place-image (image? real? real? image? . -> . image?)]))
+   [image/c any]
+   [circle (real? str? str? . -> . image/c)]
+   [empty-scene (real? real? . -> . image/c)]
+   [place-image (image/c real? real? image/c . -> . image/c)])
+  (define image/c (λ (x) (image? x)))
+  (define (image? x) •))
 
 (module data
   (provide
    [struct posn ([x real?] [y real?])]
    [posn=? (POSN/C POSN/C . -> . bool?)]
    [struct snake ([dir DIR/C] [segs (nelistof POSN/C)])]
-   [struct world ([snake SNAKE/C] [food POSN/C])])
+   [struct world ([snake SNAKE/C] [food POSN/C])]
+   [DIR/C any]
+   [POSN/C any]
+   [SNAKE/C any]
+   [WORLD/C any])
+  
+  (define DIR/C (one-of/c "up" "down" "left" "right"))
+  (define POSN/C (struct/c posn real? real?))
+  (define SNAKE/C (struct/c snake DIR/C (nelistof POSN/C)))
+  (define WORLD/C (struct/c world SNAKE/C POSN/C))
   
   (struct posn (x y))
   (define (posn=? p1 p2)
@@ -29,9 +34,9 @@
 (module const
   (provide
    [WORLD (-> WORLD/C)]
-   [BACKGROUND (-> image?)]
-   [FOOD-IMAGE (-> image?)]
-   [SEGMENT-IMAGE (-> image?)]
+   [BACKGROUND (-> image/c)]
+   [FOOD-IMAGE (-> image/c)]
+   [SEGMENT-IMAGE (-> image/c)]
    [GRID-SIZE real?]
    [BOARD-HEIGHT-PIXELS (-> real?)]
    [BOARD-WIDTH real?]
@@ -183,12 +188,12 @@
 (module scenes
   
   (provide
-   [world->scene (WORLD/C . -> . image?)]
-   [food+scene (POSN/C image? . -> . image?)]
-   [place-image-on-grid (image? real? real? image? . -> . image?)]
-   [snake+scene (SNAKE/C image? . -> . image?)]
-   [segments+scene ((listof POSN/C) image? . -> . image?)]
-   [segment+scene (POSN/C image? . -> . image?)])
+   [world->scene (WORLD/C . -> . image/c)]
+   [food+scene (POSN/C image/c . -> . image/c)]
+   [place-image-on-grid (image/c real? real? image/c . -> . image/c)]
+   [snake+scene (SNAKE/C image/c . -> . image/c)]
+   [segments+scene ((listof POSN/C) image/c . -> . image/c)]
+   [segment+scene (POSN/C image/c . -> . image/c)])
   (require data const image)
   
   ;; world->scene : World -> Image
@@ -235,10 +240,10 @@
  (BACKGROUND)
  (FOOD-IMAGE)
  (SEGMENT-IMAGE)
- (GRID-SIZE)
+ GRID-SIZE
  (BOARD-HEIGHT-PIXELS)
- (BOARD-WIDTH)
- (BOARD-HEIGHT)
+ BOARD-WIDTH
+ BOARD-HEIGHT
  (cut-tail •)
  (posn • •)
  (posn? •)

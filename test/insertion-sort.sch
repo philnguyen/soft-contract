@@ -1,8 +1,8 @@
-(abbrev/c SORTED/C (or/c empty? (and/c (nelistof int?) ne-sorted?)))
-
 (module opaque
   (provide [insert (int? SORTED/C . -> . (and/c (nelistof int?) ne-sorted?))]
-           [ne-sorted? ((nelistof int?) . -> . bool?)]))
+           [ne-sorted? ((nelistof int?) . -> . bool?)]
+           [SORTED/C any])
+  (define SORTED/C (or/c empty? (and/c (nelistof int?) ne-sorted?))))
 
 (module insertion-sort
   (require opaque)
