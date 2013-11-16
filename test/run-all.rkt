@@ -1,6 +1,6 @@
 #lang racket
-(require (only-in "../machine.rkt" run)
-         (only-in "../machine-dumb.rkt" [run run1])
+(require (only-in "../machine.rkt" [run run-full])
+         (only-in "../machine-dumb.rkt" [run run-simple])
          (only-in "../read.rkt" read-p)
          (only-in "../show.rkt" show-A show-σA)
          (only-in "../lang.rkt" checks# Blm Blm?)
@@ -8,7 +8,7 @@
 
 (define mode 'tex)
 (define files '())
-(define TIMEOUT 60)
+(define TIMEOUT 300)
 
 (command-line 
  #:once-each
@@ -48,7 +48,7 @@
     (match mode
       [(or 'verbose 'overbose)
        ; only run the 'normal' evaluator for verbose mode
-       (match (within-time TIMEOUT (exec run prog))
+       (match (within-time TIMEOUT (exec run-full prog))
          [#f (printf "~a: ~a lines, ~a checks, timeout~n~n" name lines checks)]
          [(list (list r t1 t2 t3))
           (printf "~a: ~a lines, ~a checks~ncpu time: ~a, real time: ~a, gc time: ~a~n"
@@ -64,8 +64,8 @@
           (printf "~n")])]
       ['tex
        ; compare with dumb-ized interpreter, dump table in latex format
-       (let ([a1 (within-time TIMEOUT (exec run prog))]
-             [a2 (within-time TIMEOUT (exec run1 prog))])
+       (let ([a1 (within-time TIMEOUT (exec run-simple prog))]
+             [a2 (within-time TIMEOUT (exec run-full prog))])
          (let ([t1 (a->time a1)]
                [t2 (a->time a2)]
                [b1 (a->blames a1)]
