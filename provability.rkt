@@ -121,7 +121,8 @@
             [(.λ↓ (.λ m _ v?) _) (if v? (decide-R (>= n (- m 1))) (decide-R (= m n)))]
             [(.Ar (.// (.Λ/C Cx _ v?) _) _ _)
              (if v? (decide-R (>= n (- (length Cx) 1))) (decide-R (= n (length Cx))))]
-            [(or (? .st-p?) (? .st-ac?)) (decide-R (= n 1))]
+            [(.o1) (decide-R (= n 1))]
+            [(.o2) (decide-R (= n 2))]
             [(.st-mk _ m) (decide-R (= m n))]
             [_ 'Neither])]
          ; arity at least
@@ -136,7 +137,8 @@
           (match U
             [(.λ↓ (.λ m _ v?) _) (if v? 'Refuted (decide-R (= m n)))]
             [(.Ar (.// (.Λ/C Cx _ v?) _) _ _) (if v? 'Refuted (decide-R (= (length Cx) n)))]
-            [(or (? .st-p?) (? .st-ac?)) (decide-R (= n 1))]
+            [(.o1) (decide-R (= n 1))]
+            [(.o2) (decide-R (= n 2))]
             [(.st-mk _ m) (decide-R (= m n))]
             [_ 'Neither])]
          

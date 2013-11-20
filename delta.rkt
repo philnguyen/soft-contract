@@ -491,7 +491,7 @@
                        V′)]))]
              [((.Ar C V0 l) (.Ar C V1 l))
               (.// (.Ar C (⊕ V0 V1) l) (set-intersect C* D*))]
-             #;[(_ (or (? .Ar?) (? .λ↓?))) V1]
+             [(_ (or (? .Ar?) (? .λ↓?))) V1]
              [(U U) (.// U (set-intersect C* D*))]
              [((.St t V0*) (.St t V1*)) (.// (.St t (⊕ V0* V1*)) (set-intersect C* D*))]
              [(_ (.St t V1*))
@@ -514,6 +514,7 @@
                       (cond [(and (int? b0) (int? b1)) INT/C]
                             [(and (real? b0) (real? b1)) REAL/C]
                             [else NUM/C])))]
+             [(_ (? .o? o)) V1]
              [(_ _) (.// • (set-intersect (set-union C* (U^ U0)) (set-union D* (U^ U1))))])]
           [((.μ/V x V0*) (.μ/V y V1*)) (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
           [((.μ/V x V0*) _)
