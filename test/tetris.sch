@@ -1,18 +1,22 @@
-; temporary hack. Lo-tech macros b/c we don't have 1st class contracts yet
-(abbrev/c COLOR/C symbol?)
-(abbrev/c POSN/C (struct/c posn (real? real?)))
-(abbrev/c BLOCK/C (struct/c block (real? real? COLOR/C)))
-(abbrev/c BSET/C (listof BLOCK/C))
-(abbrev/c TETRA/C (struct/c tetra (POSN/C BSET/C)))
-(abbrev/c WORLD/C (struct/c world (TETRA/C BSET/C)))
-
 (module data
   (provide
    [struct block ([x real?] [y real?] [color COLOR/C])]
    [struct posn ([x real?] [y real?])]
    [struct tetra ([center POSN/C] [blocks BSET/C])]
    [struct world ([tetra TETRA/C] [blocks BSET/C])]
-   [posn=? (POSN/C POSN/C . -> . bool?)])
+   [posn=? (POSN/C POSN/C . -> . bool?)]
+   [COLOR/C any]
+   [POSN/C any]
+   [BLOCK/C any]
+   [TETRA/C any]
+   [WORLD/C any]
+   [BSET/C any])
+  (define BSET/C (listof BLOCK/C))
+  (define COLOR/C symbol?)
+  (define POSN/C (struct/c posn real? real?))
+  (define BLOCK/C (struct/c block real? real? COLOR/C))
+  (define TETRA/C (struct/c tetra POSN/C BSET/C))
+  (define WORLD/C (struct/c world TETRA/C BSET/C))
   
   (struct posn (x y))
   (struct block (x y color))
@@ -74,7 +78,7 @@
    [append (BSET/C BSET/C . -> . BSET/C)]
    [length ((listof any) . -> . int?)]
    [foldr ([BLOCK/C BSET/C . -> . BSET/C] BSET/C BSET/C . -> . BSET/C)]
-   [foldr-i ([BLOCK/C image? . -> . image?] image? BSET/C . -> . image?)]
+   [foldr-i ([BLOCK/C image/c . -> . image/c] image/c BSET/C . -> . image/c)]
    [foldr-n ((BLOCK/C real? . -> . real?) real? BSET/C . -> . real?)])
   (require image data))
 
@@ -354,12 +358,15 @@
 
 (module image
   (provide
-   [image? (any . -> . bool?)]
-   [overlay (image? image? int? COLOR/C COLOR/C . -> . image?)]
-   [circle (int? str? str? . -> . image?)]
-   [rectangle (int? int? COLOR/C COLOR/C . -> . image?)]
-   [place-image (image? int? int? image? . -> . image?)]
-   [empty-scene (int? int? . -> . image?)]))
+   [image/c any]
+   [overlay (image/c image/c int? COLOR/C COLOR/C . -> . image/c)]
+   [circle (int? str? str? . -> . image/c)]
+   [rectangle (int? int? COLOR/C COLOR/C . -> . image/c)]
+   [place-image (image/c int? int? image/c . -> . image/c)]
+   [empty-scene (int? int? . -> . image/c)])
+  (require data)
+  (define (image/c x) (image? x))
+  (define (image? x) •))
 
 (module aux
   (require data)
@@ -370,10 +377,10 @@
 
 (module visual
   (provide
-   [world->image (WORLD/C . -> . image?)]
-   [blocks->image (BSET/C . -> . image?)]
-   [block->image (BLOCK/C . -> . image?)]
-   [place-block (BLOCK/C image? . -> . image?)])
+   [world->image (WORLD/C . -> . image/c)]
+   [blocks->image (BSET/C . -> . image/c)]
+   [block->image (BLOCK/C . -> . image/c)]
+   [place-block (BLOCK/C image/c . -> . image/c)])
   (require image data consts world list-fun aux)
   
   ;; Visualize whirled peas

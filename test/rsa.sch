@@ -1,10 +1,10 @@
 (module keygen
   (require prime?)
-  (provide [keygen (any . -> . prime?)]))
+  (provide [keygen (any . -> . (λ (x) (prime? x)))]))
 
 (module rsa
   (require prime?)
-  (provide [rsa (prime? any . -> . any)]))
+  (provide [rsa ((λ (x) (prime? x)) any . -> . any)]))
 
 (module prime?
   (provide [prime? (any . -> . any)]))

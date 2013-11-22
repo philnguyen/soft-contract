@@ -11,8 +11,8 @@
         (unzip (- x 1) (f k))))
   (define (zip x y)
     (if (= x 0)
-        (if (= y 0) 0 (/ 1 0 #|FAIL|#))
-        (if (= y 0) (/ 1 0 #|FAIL|#)
+        (if (= y 0) 0 'fail)
+        (if (= y 0) 'fail
             (+ 1 (zip (- x 1) (- y 1))))))
   (define (main n)
     (unzip n zip)))
