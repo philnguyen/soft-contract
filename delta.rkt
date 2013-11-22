@@ -499,8 +499,8 @@
                            [Vi* (V/ V1* V0 (.X/V x))]
                            [(cons Vi* Vs) (extract x Vi*)])
                 (if (equal? Vi* V1*) (.// • (set-intersect C* D*))
-                    #;(μV x (compact {set V0 (.// (.St t Vi*) D*)} Vs))
-                    (.// (.St t (V/ Vi* (.X/V x) (μV x (compact {set V0 (.// (.St t Vi*) ∅)} Vs)))) D*)))]
+                    (μV x (compact {set V0 (.// (.St t Vi*) D*)} Vs))
+                    #;(.// (.St t (V/ Vi* (.X/V x) (μV x (compact {set V0 (.// (.St t Vi*) ∅)} Vs)))) D*)))]
              [((.b (? num? b0)) (.b (? num? b1)))
               (.// • (set-add
                       (cond [(and (real? b0) (real? b1))
