@@ -64,15 +64,18 @@
          [(list (list r t1 t2 t3))
           (printf "~a: ~a lines, ~a checks~ncpu time: ~a, real time: ~a, gc time: ~a~n"
                   name lines checks t1 t2 t3)
-          (match mode
-            ['verbose (for ([r (for/set: Any ([ς r])
-                                 (match-let ([(.ς (? .A? A) σ _) ς])
-                                   (show-A σ A)))])
-                        (printf "-- ~a~n" r))]
-            ['overbose (for ([r (for/set: (Pairof Any Any) ([ς r])
-                                  (match-let* ([(.ς (? .A? A) σ _) ς])
-                                    (show-Ans σ A)))])
-                         (printf "-- ~a~n   ~a~n" (car r) (cdr r)))])
+          (cond
+            [(set-empty? r) (printf "   (NOTHING)~n")]
+            [else
+             (match mode
+               ['verbose (for ([r (for/set: Any ([ς r])
+                                    (match-let ([(.ς (? .A? A) σ _) ς])
+                                      (show-A σ A)))])
+                           (printf "-- ~a~n" r))]
+               ['overbose (for ([r (for/set: (Pairof Any Any) ([ς r])
+                                     (match-let* ([(.ς (? .A? A) σ _) ς])
+                                       (show-Ans σ A)))])
+                            (printf "-- ~a~n   ~a~n" (car r) (cdr r)))])])
           (printf "~n")])]
       ['tex
        ; compare with disabled interpreter, dump table in latex format
