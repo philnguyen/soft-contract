@@ -711,5 +711,5 @@
        [(.X/C x) (.X/V x)]
        [(.st-p t n) (→V (.St t (make-list n ♦)))]
        [(.λ↓ (.λ 1 (.b #t) #f) _) ♦]
-       [_ (.// • {set C})])]))
+       [_ (.// • {set (simplify C)})])]))
 
