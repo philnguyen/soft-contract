@@ -10,7 +10,7 @@
 
 (define: mode : Mode 'tex)
 (define: files : (Listof String) '())
-(define TIMEOUT 30)
+(define TIMEOUT 10)
 
 (command-line
  #:once-each
@@ -23,11 +23,6 @@
 
 (define time-app (cast time-apply ((.p → .ς+) (List .p) → (Values (List .ς+) N N N))))
 
-(: exec : (.p → .ς+) .p → Bm-Result)
-(define (exec r p)
-  (let-values: ([([r : (List .ς+)] [t1 : N] [t2 : N] [t3 : N]) (time-app r (list p))])
-    (list (first r) t1 t2 t3)))
-
 (: a→time : (U #f (List Bm-Result)) → (U Str N))
 (define a→time (match-lambda [#f "$\\infty$"]
                              [(list (list _ t _ _)) t]))
@@ -37,12 +32,16 @@
   (match-lambda
     [#f "-"]
     [(list (list as _ _ _))
-     #;(for/sum: : N ([a as] #:when (match? a (.ς (? .blm?) _ _))) 1)
      (set-count (for/set: Any ([a as] #:when (match? a (.ς (? .blm?) _ _))) (.ς-e a)))]))
 
 (: benchmark : (.p → .ς+) .p → (U #f (List Bm-Result)))
 (define (benchmark ev p)
-  (within-time: Bm-Result TIMEOUT (exec ev p)))
+  (collect-garbage)
+  (within-time: Bm-Result
+                TIMEOUT
+                (let-values: ([([r : (List .ς+)] [t1 : N] [t2 : N] [t3 : N])
+                               (time-app ev (list p))])
+                  (list (first r) t1 t2 t3))))
 
 (define-syntax-rule (+! x v) (when (number? v) (set! x (+ x v))))
 
