@@ -480,6 +480,8 @@
         (match* (V0 V1)
           [((.// U0 C*) (.// U1 D*))
            (match* (U0 U1)
+             ; keep around certain values from built-in, finite sets
+             [(_ (or (? .o?) (.b #t) (.b #f) (.St _ '()))) V1]
              ; cannot blur higher order value
              [(_ (.λ↓ f ρ))
               (let ([repeated (trace-cycle f ρ)])
@@ -492,7 +494,6 @@
              [((.Ar C V0 l) (.Ar C V1 l))
               (.// (.Ar C (⊕ V0 V1) l) (set-intersect C* D*))]
              [(_ (or (? .Ar?) (? .λ↓?))) V1]
-             [(U U) (.// U (set-intersect C* D*))]
              [((.St t V0*) (.St t V1*)) (.// (.St t (⊕ V0* V1*)) (set-intersect C* D*))]
              [(_ (.St t V1*))
               (match-let* ([x 'X #;(fresh V1*)]
@@ -513,9 +514,12 @@
                         [else ∅])
                       (cond [(and (int? b0) (int? b1)) INT/C]
                             [(and (real? b0) (real? b1)) REAL/C]
-                            [else NUM/C])))]
-             [(_ (? .o? o)) V1]
-             [(_ _) (.// • (set-intersect (set-union C* (U^ U0)) (set-union D* (U^ U1))))])]
+                            [else NUM/C])))]             
+             [(_ _)
+              (let ([C* (set-union C* (U^ U0))])
+                (.// • (for/set: .V ([D (set-union D* (U^ U1))]
+                                     #:when (eq? 'Proved (C*⇒C C* D)))
+                         D)))])]
           [((.μ/V x V0*) (.μ/V y V1*)) (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
           [((.μ/V x V0*) _)
            (match-let ([(cons V1′ Vs) (extract x (V/ V1 V0 (.X/V x)))])

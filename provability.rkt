@@ -166,11 +166,13 @@
 
 (: C*⇒C : (Setof .V) .V → .R)
 (define (C*⇒C C* C)
-  (for*/fold: ([R : .R 'Neither]) ([Ci C*])
-    (match (C⇒C (simplify Ci) C) ; FIXME: can't use for/first with #:when
-      ['Proved 'Proved]
-      ['Refuted 'Refuted]
-      ['Neither R])))
+  (match C
+    [(.// (.St 'and/c (list C1 C2)) _) (∧R (C*⇒C C* C1) (C*⇒C C* C2))]
+    [_ (for*/fold: ([R : .R 'Neither]) ([Ci C*])
+         (match (C⇒C (simplify Ci) C) ; FIXME: can't use for/first with #:when
+           ['Proved 'Proved]
+           ['Refuted 'Refuted]
+           ['Neither R]))]))
 
 ; checks whether first contract proves second
 (: C⇒C : .V .V → .R)

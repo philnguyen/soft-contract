@@ -61,7 +61,7 @@
   (memoize
    #:eq? #t
    (match-lambda
-     ['mt MT]
+     [(or 'mt 'empty) MT]
      [(and (or (? sym?) (? num?) (? str?) #t #f) name)
       (match (prim name)
         [(? .prim? b) (.// b ∅)]
