@@ -20,6 +20,10 @@
          ; skip querying when the set of labels spanned by premises does not cover
          ; that spanned by conclusion
          [(not (subset? j* i*)) 'Neither]
+         ; skip querying when the set of labels spanned by premises only contains
+         ; the single label we ask about (relies on local provability relation
+         ; being precise enough)
+         [(equal? i* {set i}) 'Neither]
          ; skip querying when could not generate conclusion
          [(false? q) 'Neither]
          [else
