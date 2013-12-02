@@ -232,8 +232,8 @@
                    C))])] ; FIXME: ok to ignore other forms??
       [(? .V? V) V]
       [(? list? V*) (map go V*)]
-      [(.ρ m l) (.ρ (for/fold ([m′ m]) ([x (in-hash-keys m)])
-                      (hash-set m′ x (go (hash-ref m x)))) l)]))
+      [(.ρ m l) (.ρ (for/fold ([m′ m]) ([(i V) (in-hash m)])
+                      (hash-set m′ i (go V))) l)]))
   (go V*))
 
 (define**
