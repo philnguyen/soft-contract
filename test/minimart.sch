@@ -1,6 +1,7 @@
 (module base•
   (provide [handle-evt (any any . -> . any #|TODO|#)]
-           [system-idle-evt (-> any)]))
+           [system-idle-evt (-> any)]
+           [max (real? real? . -> . real?)]))
 
 (module hash
   (provide
@@ -62,7 +63,11 @@
     (cond
       [(empty? x) empty]
       [(cons? x) (append [flatten (car x)] [flatten (cdr x)])]
-      [else (cons x empty)])))
+      [else (cons x empty)]))
+  
+  (define (ormap p? xs)
+    (if (empty? xs) #f
+        (or (p? (car xs)) (ormap p? (cdr xs))))))
 
 (module functional-queue
   (provide
@@ -192,8 +197,10 @@
    [transition-bind ((any . -> . transition?) transition? . -> . transition?)]
    [sequence-transitions (transition? (listof (any . -> . transition?)) . -> . transition?)]
    [log-events-and-actions? (-> bool?)]
+   
    [action? (any . -> . bool?)]
-   [event? (any . -> . bool?)])
+   [event? (any . -> . bool?)]
+   [transition/c any])
   
   (require pattern functional-queue list hash core•)
   
@@ -215,6 +222,7 @@
   
   ; Behavior : maybe-event * state -> transition
   (struct transition (state actions))
+  (define transition/c (struct/c transition any (listof any)))
   
   (struct trigger-guard (process downward-routes))
   
@@ -290,8 +298,8 @@
   (define (spawn-world boot-actions)
     (spawn world-handle-event
            (enqueue-actions (world 0 (make-queue) (hash) empty (make-queue))
-                                   -1
-                                   boot-actions)
+                            -1
+                            boot-actions)
            empty))
   
   (define (event? x) (or (routing-update? x) (message? x)))
@@ -599,10 +607,14 @@
 (module presence-detector
   (provide
    [struct presence-detector ([route-set (listof any #|TODO|#)])]
-   [presence-detector-update (presence-detector? (listof route?) . -> . (list/c presence-detector? (listof route?) (listof route?)))]
-   [presence-detector-routes (presence-detector? . -> . (listof route?))])
-  (require core pattern presence-detector•) 
+   [presence-detector-update (presence-detector/c (listof route?) . -> . (list/c presence-detector/c (listof route?) (listof route?)))]
+   [presence-detector-routes (presence-detector/c . -> . (listof route?))]
+   [presence-detector/c any])
+  (require core pattern presence-detector•)
+  
   (struct presence-detector (route-set))
+  (define presence-detector/c (struct/c presence-detector (listof route?)))
+  
   (define (presence-detector-update p rs)
     (let* ([old-route-set (presence-detector-route-set p)]
            [new-route-set (list->set rs)])
@@ -612,7 +624,163 @@
   (define (presence-detector-routes p)
     (set->list (presence-detector-route-set p))))
 
-(require functional-queue core ground presence-detector)
+(module demand-matcher
+  (provide
+   [struct demand-matcher ([demand-is-subscription? bool?]
+                           [pattern pattern?]
+                           [meta-level int?]
+                           [demand-level int?]
+                           [supply-level int?]
+                           [increase-handler (any any . -> . any) #|FIXME|#]
+                           [decrease-handler (any any . -> . any) #|FIXME|#]
+                           [state any])]
+   [demand-matcher-update
+    (demand-matcher/c any (listof route?) . -> . (cons/c demand-matcher/c any))]
+   [spawn-demand-matcher (pattern?
+                          (any . -> . any) ;FIXME
+                          (any . -> . any) ;FIXME
+                          bool?
+                          int?
+                          int?
+                          int?)]
+   [demand-matcher/c any])
+  (require base• list pattern core presence-detector)
+  (define demand-matcher/c
+    (struct/c demand-matcher bool? pattern? int? int? int? any #|FIXME|# any #|FIXME|# any))
+  (struct demand-matcher (demand-is-subscription?
+                          pattern
+                          meta-level
+                          demand-level
+                          supply-level
+                          increase-handler
+                          decrease-handler
+                          state))
+  
+  (define (unexpected-supply-decrease r) empty)
+  
+  (define (default-decrease-handler removed state) state)
+  
+  (define (make-demand-matcher demand-is-subscription?
+                               pattern
+                               meta-level
+                               demand-level
+                               supply-level
+                               increase-handler
+                               decrease-handler)
+    (demand-matcher demand-is-subscription?
+                    pattern
+                    meta-level
+                    demand-level
+                    supply-level
+                    increase-handler
+                    decrease-handler
+                    (presence-detector empty)))
+  
+  (define (compute-detector demand? d)
+    (route (if (demand-matcher-demand-is-subscription? d) (not demand?) demand?)
+           (demand-matcher-pattern d)
+           (demand-matcher-meta-level d)
+           (+ 1 (max (demand-matcher-demand-level d)
+                     (demand-matcher-supply-level d)))))
+  
+  (define (incorporate-delta arrivals? routes d state)
+    (let* ([relevant-change-detector (compute-detector arrivals? d)]
+           [expected-change-level
+            (if arrivals? (demand-matcher-demand-level d) (demand-matcher-supply-level d))]
+           [expected-peer-level
+            (if arrivals? (demand-matcher-supply-level d) (demand-matcher-demand-level d))])
+      (incorporate-delta/fold arrivals?
+                              d
+                              relevant-change-detector
+                              expected-change-level
+                              expected-peer-level
+                              state
+                              routes)))
+  
+  (define (incorporate-delta/fold arrivals?
+                                  d
+                                  relevant-change-detector
+                                  expected-change-level
+                                  expected-peer-level
+                                  s
+                                  routes)
+    (cond
+      [(empty? routes) s]
+      [else (let ([changed (car routes)])
+              (incorporate-delta/fold
+               arrivals?
+               d
+               relevant-change-detector
+               expected-change-level
+               expected-peer-level
+               (if (= (route-level changed) expected-change-level)
+                   (let ([ans (intersect-routes (list changed) (list relevant-change-detector))])
+                     (cond
+                       [(empty? ans) s]
+                       [else
+                        (let ([relevant-changed-route (car ans)])
+                          (let* ([peer-detector (route (route-subscription? relevant-changed-route)
+                                                       (route-pattern relevant-changed-route)
+                                                       (route-meta-level relevant-changed-route)
+                                                       (+ 1 expected-peer-level))]
+                                 [peer-exists?
+                                  (ormap (λ (r) (= (route-level r) expected-peer-level))
+                                         (intersect-routes (presence-detector-routes (demand-matcher-state d))
+                                                           (list peer-detector)))])
+                            (cond
+                              [(and arrivals? (not peer-exists?))
+                               ((demand-matcher-increase-handler d) relevant-changed-route s)]
+                              [(and (not arrivals?) peer-exists?)
+                               ((demand-matcher-decrease-handler d) relevant-changed-route s)]
+                              [else s])))]))
+                   s)
+               (cdr routes)))]))
+  
+  (define (demand-matcher-update d state0 rs)
+    (let* ([ans (presence-detector-update (demand-matcher-state d) rs)]
+           [new-state (car ans)]
+           [added (car (cdr ans))]
+           [removed (car (cdr (cdr ans)))]
+           [new-d (demand-matcher (demand-matcher-demand-is-subscription? d)
+                                  (demand-matcher-pattern d)
+                                  (demand-matcher-meta-level d)
+                                  (demand-matcher-demand-level d)
+                                  (demand-matcher-supply-level d)
+                                  (demand-matcher-increase-handler d)
+                                  (demand-matcher-decrease-handler d)
+                                  new-state)]
+           [state1 (incorporate-delta #t added new-d state0)]
+           [state2 (incorporate-delta #f removed new-d state1)])
+      (cons new-d state2)))
+  
+  (define (demand-matcher-handle-event e d)
+    (cond
+      [(routing-update? e)
+       (let ([routes (routing-update-routes e)])
+         (let ([ans (demand-matcher-update d empty routes)])
+           (transition (car ans) (cdr ans))))]
+      [else #f]))
+  
+  (define (spawn-demand-matcher pattern
+                                increase-handler
+                                decrease-handler
+                                demand-is-subscription?
+                                meta-level
+                                demand-level
+                                supply-level)
+    (let ([d (make-demand-matcher demand-is-subscription?
+                                  pattern
+                                  meta-level
+                                  demand-level
+                                  supply-level
+                                  (λ (r actions) (cons (increase-handler r) actions))
+                                  (λ (r actions) (cons (decrease-handler r) actions)))])
+      (spawn demand-matcher-handle-event
+             d
+             (list (compute-detector #t d)
+                   (compute-detector #f d))))))
+
+(require functional-queue core ground presence-detector demand-matcher)
 (amb
  ; functional-queue
  (queue? •)
@@ -661,6 +829,20 @@
  ; ground
  #;(run-ground •) ; ⊕ broken
  ; presence-detector
+ (presence-detector •)
+ (presence-detector? •)
+ (presence-detector-route-set •)
  (presence-detector-update • •) ;FIXME weird blame
  (presence-detector-routes •) ;FIXME weird blame
- )
+ ; demand-matcher
+ (demand-matcher • • • • • • • •) (demand-matcher? •)
+ (demand-matcher-demand-is-subscription? •)
+ (demand-matcher-pattern •)
+ (demand-matcher-meta-level •)
+ (demand-matcher-demand-level •)
+ (demand-matcher-supply-level •)
+ (demand-matcher-increase-handler •)
+ (demand-matcher-decrease-handler •)
+ (demand-matcher-state •)
+ #;(demand-matcher-update • • •) ; FIXME ⊕ broken
+ (spawn-demand-matcher • • • • • • •))
