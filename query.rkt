@@ -115,8 +115,8 @@
     [20 'Proved]
     [10 (match (call (str++ decs asserts (format "CHECKSAT ~a;" concl)))
           [20 'Refuted]
-          [_ 'Neither])]
-    [_ 'Neither]))
+          [_ #;(printf "Neither~n") 'Neither])]
+    [_ #;(printf "Neither~n")'Neither]))
 
 ; performs system call to solver with given query
 (: call : String → Int)

@@ -476,12 +476,13 @@
      #;(printf "⊕:~n~a~nand~n~a~n~n" (show-E σ∅ V0) (show-E σ∅ V1))
      (cond
        [(V∈ V1 V0) V1] ; postpone approximation if value shrinks
+       [(and (.//? V1) (.•? (.//-pre V1)) (= 1 (set-count (.//-refine V1)))) V1]
        [else
         (match* (V0 V1)
           [((.// U0 C*) (.// U1 D*))
            (match* (U0 U1)
              ; keep around certain values from built-in, finite sets
-             [(_ (or (? .o?) (.b #t) (.b #f) (.St _ '()))) V1]
+             [(_ (or (? .o?) (.b 0) (.b 1) (.b #t) (.b #f) (.St _ '()))) V1]
              ; cannot blur higher order value
              [(_ (.λ↓ f ρ))
               (let ([repeated (trace-cycle f ρ)])
