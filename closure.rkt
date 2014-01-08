@@ -49,7 +49,7 @@
     [(? .λ? v) (→V (.λ↓ v (restrict ρ (FV v))))]
     [(? .prim? p) (→V p)]))
 
-(: →V : (case→ [.U → .//]))
+(: →V : .U → .//)
 (define (→V U) (.// U ∅))
 
 (define-type .F (Setof (Pairof .L .L)))
@@ -75,6 +75,7 @@
   [INT/C (Prim 'int?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'num?)]
   [STR/C (Prim 'str?)] [PROC/C (Prim 'proc?)])
 
+
 ;;;;; ENVIRONMENT
 
 ;; environment maps static distances (HACK: or symbols) to values
@@ -83,7 +84,7 @@
 
 (: restrict : .ρ (Setof Int) → .ρ)
 (define (restrict ρ sd*)
-  (if (set-empty? sd*) ρ∅ ; common case, reused instance
+  (if (set-empty? sd*) ρ∅ ; common case, reuse instance
       (match-let* ([(.ρ m l) ρ]
                    [m′ (for/fold: : (Map (U Int Sym) .V) ([acc m∅]) ([sd sd*])
                          (let ([i (- l sd 1)])
@@ -375,8 +376,9 @@
       [(? .Λ/C?) #f]
       [_ #t])))
 
-(: trace-cycle : .λ .ρ → (Setof .V))
-(define (trace-cycle e ρ)
+;; return all sub-values as lambdas with similar function body
+(: repeated-lambdas : .λ .ρ → (Setof .V))
+(define (repeated-lambdas e ρ)
   (define-set: ac : .V [_ add!])
   (: go-V : .V → Void)
   (define (go-V V)

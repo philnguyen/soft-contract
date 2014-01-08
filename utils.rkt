@@ -34,21 +34,21 @@
   (syntax-rules (→)
     [(_ (α → β) v [p e ...] ...)
      (let: ([x v]
-            [f : (α → (U β (Setof β))) (match-lambda [p e ...] ... [x (error "unmatched: " x)])])
+            [f : (α → (U β (Setof β))) (match-lambda [p e ...] ... [x (error "match/nd unmatched: " x)])])
        (if (set? x)
            (for/fold: : (Setof β) ([acc : (Setof β) ∅]) ([xi x])
              (let ([y (f xi)])
                (if (set? y) (set-union acc y) (set-add acc y))))
            (f x)))]))
 
-;; define the same type for a series of identifiers
+;; define the same type for multiple identifiers
 (define-syntax :*
   (syntax-rules (:)
     [(_ (id ...) : rest ...) (begin (: id : rest ...) ...)]))
 
 (define-syntax-rule (define** [id v] ...) (define-values (id ...) (values v ...)))
 
-;;Abbreviations
+;; Abbreviations
 (define: ∅ : (Setof Nothing) (set))
 (define-type Int Integer)
 (define-type Map HashTable)
@@ -81,10 +81,14 @@
   (hash-update m x (λ: ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
 
 (define-syntax-rule (dbg n (f x ...))
-  (let ([y (f x ...)])
-    (printf "~a:~a~nof~n~a~nis~n~a~n~n" n 'f (list x ...) y)
-    y))
-
+  (begin
+    (printf "~a:~a~nof~n~a~n" n 'f (list x ...))
+    (let ([y (f x ...)])
+      (printf "is~n~a~n~n" y)
+      y))
+  #;(let ([y (f x ...)])
+      (printf "~a:~a~nof~n~a~nis~n~a~n~n" n 'f (list x ...) y)
+      y))
 (define-syntax-rule (dbg/off n (f x ...)) (f x ...))
 
 (define-syntax-rule (define-set: s : τ [in? add!])

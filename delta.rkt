@@ -469,8 +469,7 @@
   #;(printf "⊕:~n~n~a~n~nand~n~n~a~n~n~n" V0 V1)
   (match* (V0 V1)
     ; same-length lists expected
-    [((? list? V0) (? list? V1))
-     (map ⊕ V0 V1)]
+    [((? list? V0) (? list? V1)) (map ⊕ V0 V1)]
     ; values
     [((? .V? V0) (? .V? V1))
      #;(printf "⊕:~n~a~nand~n~a~n~n" (show-E σ∅ V0) (show-E σ∅ V1))
@@ -485,24 +484,28 @@
              [(_ (or (? .o?) (.b 0) (.b 1) (.b #t) (.b #f) (.St _ '()))) V1]
              ; cannot blur higher order value
              [(_ (.λ↓ f ρ))
-              (let ([repeated (trace-cycle f ρ)])
+              (let ([repeated (repeated-lambdas f ρ)])
+                #;(printf "case0~n")
+                #;(printf "repeated: ~a~n~n" repeated)
                 (match (set-count repeated)
                   [0 V1]
+                  ; TODO: μ introduced outside here. Am i sure there's none inside?
                   [_ (let ([V′ (.μ/V 'X (set-add repeated (for/fold: ([V1 : .V V1]) ([Vi repeated])
-                                                  (V/ V1 Vi (.X/V 'X)))))])
+                                                            (V/ V1 Vi (.X/V 'X)))))])
                        #;(printf "~a~n⇒⊕~n~a~n~n" V1 V′)
                        V′)]))]
              [((.Ar C V0 l) (.Ar C V1 l))
               (.// (.Ar C (⊕ V0 V1) l) (set-intersect C* D*))]
              [(_ (or (? .Ar?) (? .λ↓?))) V1]
              [((.St t V0*) (.St t V1*)) (.// (.St t (⊕ V0* V1*)) (set-intersect C* D*))]
-             [(_ (.St t V1*))
+             [(_ (.St t V1*)) #;(printf "case1~n")
+              #;(printf "⊕:~n~a~nand~n~a~n~n" (show-E σ∅ V0) (show-E σ∅ V1))
               (match-let* ([x 'X #;(fresh V1*)]
                            [Vi* (V/ V1* V0 (.X/V x))]
-                           [(cons Vi* Vs) (extract x Vi*)])
+                           [(cons Vi* Vs) (elim-μ x Vi*)])
                 (if (equal? Vi* V1*) (.// • (set-intersect C* D*))
-                    (μV x (compact {set V0 (.// (.St t Vi*) D*)} Vs))
-                    #;(.// (.St t (V/ Vi* (.X/V x) (μV x (compact {set V0 (.// (.St t Vi*) ∅)} Vs)))) D*)))]
+                    #;(μV x (compact {set V0 (.// (.St t Vi*) D*)} Vs))
+                    (.// (.St t (V/ Vi* (.X/V x) (μV x (compact {set V0 (.// (.St t Vi*) ∅)} Vs)))) D*)))]
              [((.b (? num? b0)) (.b (? num? b1)))
               (.// • (set-add
                       (cond [(and (real? b0) (real? b1))
@@ -521,12 +524,12 @@
                 (.// • (for/set: .V ([D (set-union D* (U^ U1))]
                                      #:when (eq? 'Proved (C*⇒C C* D)))
                          D)))])]
-          [((.μ/V x V0*) (.μ/V y V1*)) (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
-          [((.μ/V x V0*) _)
-           (match-let ([(cons V1′ Vs) (extract x (V/ V1 V0 (.X/V x)))])
-             (μV x (compact (compact V0* {set V1′}) Vs)))]
-          [(_ (.μ/V x V1*))
-           (match-let ([(cons V0′ Vs) (extract x (V/ V0 V1 (.X/V x)))])
+          [((.μ/V x V0*) (.μ/V y V1*)) #;(printf "case2~n") (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
+          [((.μ/V x V0*) _) #;(printf "case3~n")
+           (match-let ([(cons V1′ Vs) (dbg/off 'case3 (elim-μ x (V/ V1 V0 (.X/V x))))])
+             (μV x (dbg/off 'compact1 (compact (dbg/off 'compact0 (compact V0* {set V1′})) Vs))))]
+          [(_ (.μ/V x V1*)) #;(printf "case4~n")
+           (match-let ([(cons V0′ Vs) (elim-μ x (V/ V0 V1 (.X/V x)))])
              (μV x (compact (compact {set V0′} Vs) V1*)))]
           [((? .X/V? x) _) x]
           [(_ (? .X/V? x)) x])])]
@@ -545,9 +548,10 @@
                  (hash-set m k (hash-ref m1 k)))])
        (.ρ m l))]))
 
-(: extract : (case→ [Sym .V → (Pairof .V (Setof .V))]
-                    [Sym (Listof .V) → (Pairof (Listof .V) (Setof .V))]))
-(define (extract x V)
+;; remove all sub-μ. TODO: generalize allowed μ-depth
+(: elim-μ : (case→ [Sym .V → (Pairof .V (Setof .V))]
+                   [Sym (Listof .V) → (Pairof (Listof .V) (Setof .V))]))
+(define (elim-μ x V)
   (define-set: body* : .V [_ add!])
   (: go : (case→ [.V → .V] [(Listof .V) → (Listof .V)]))
   (define go
@@ -559,6 +563,7 @@
          [(.St t V*) (.// (.St t (map go V*)) C*)]
          [(.Ar C V l) (.// (.Ar C (go V) l) C*)]
          [(.λ↓ f (and ρ (.ρ m l)))
+          #;(printf "elim-μ: ρ:~n~a~n~n" m)
           (let ([m′ (for/fold: ([m′ : (Map (U Int Sym) .V) m∅]) ([x (in-hash-keys m)])
                       (hash-set m′ x (go (hash-ref m x))))])
             (if (equal? m′ m) V (.// (.λ↓ f (.ρ m′ l)) C*)))]
@@ -567,7 +572,7 @@
       [(.X/V _) (.X/V x)]))
   
   (let ([V′ (go V)])
-    #;(printf "extract depth ~a → ~a~n~n" (μ-depth V) (μ-depth V′))
+    #;(printf "elim-μ depth ~a → ~a~n~n" (μ-depth V) (μ-depth V′))
     (cons V′ body*)))
 
 ; remove redundant variable
@@ -587,11 +592,13 @@
 ; group values together by top constructors
 (: compact : (Setof .V) (Setof .V) → (Setof .V))
 (define (compact V0s V1s)
+  #;(printf "compact:~n~n~a~nand~n~a~n~n~n" V0s V1s)
   #;(printf "depth: ~a, ~a~n~n"
           (for/list: : (Listof Int) ([V V0s]) (μ-depth V))
           (for/list: : (Listof Int) ([V V1s]) (μ-depth V)))
   (: collect : (Setof .V) → (Values (Map Any .V) (Setof .X/V)))
   (define (collect Vs)
+    #;(printf "collect:~n~a~n~n" Vs)
     (for/fold: ([m : (Map Any .V) (hash)] [xs : (Setof .X/V) ∅]) ([V Vs])
       (match V
         [(.// U C*)
@@ -612,10 +619,10 @@
                          xs)]
            [(or (? .Ar?) (? .λ↓?) (.o)) (values (hash-set m 'proc? V) xs)] ; TODO: by arity also?
            [(.St t _) (values (hash-set m `(struct ,t) V) xs)])]
-        [(? .μ/V? V) (error "weird")(values (hash-set m 'μ V) xs)]
+        [(? .μ/V? V) (error "weird") (values (hash-set m 'μ V) xs)]
         [(? .X/V? x) (values m (set-add xs x))])))
   
-  (: merge : (.V .V → (cons .V (Setof .V))))
+  (: merge : (.V .V → (Pairof .V (Setof .V))))
   (define (merge V0 V1)
     (match* (V0 V1)
       [((? .X/V? x) V1) (cons x (match V1 [(.X/V _) ∅] [_ {set V1}]))]
@@ -625,7 +632,9 @@
                        (match-let ([(cons V′ q′) (merge Vi Vj)])
                          (values (set-union q q′) (cons V′ V*))))])
          (cons (.// (.St t (reverse V*)) (set-intersect C* D*)) q))]
-      [(_ _) (cons (⊕ V0 V1) ∅)]))  
+      [(_ _) (match (⊕ V0 V1) ; FIXME hack
+               [(and V (.μ/V x V*)) (elim-μ x V)]
+               [V (cons V ∅)])]))  
   
   (: go : (Setof .V) (Setof .V) → (Setof .V))
   (define (go V0s V1s)
@@ -637,14 +646,13 @@
                     (let ([V0 (hash-ref m0 k)])
                       (match (hash-ref m1 k (λ () #f))
                         [#f V0]
-                        [(? .V? V1) (match-let ([(cons V′ q′) (merge V0 V1)])
+                        [(? .V? V1) (match-let ([(cons V′ q′) (dbg/off 'go (merge V0 V1))])
                                       (set! q (set-union q q′))
                                       V′)])))]
               [s1 (for/set: .V ([k (in-hash-keys m1)] #:unless (hash-has-key? m0 k))
                     (hash-ref m1 k))])
-          (let* ([s (set-union s0 s1)]
-                 [q (set-subtract q s)])
-            (if (set-empty? q) s
+          (let* ([s (set-union s0 s1)])
+            (if (subset? q s) s
                 (begin #;(printf "q: ~a~n~ns:~a~n~n"
                                (for/set: Any ([x q]) (show-V σ∅ x))
                                (for/set: Any ([x s]) (show-V σ∅ x)))

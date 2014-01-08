@@ -58,7 +58,7 @@
                                      (for/fold ([decs (hash-set*
                                                        decs
                                                        t (.λ/c field-cs strct-c #f)
-                                                       (gen-p t) pred-c)])
+                                                       (gen-p t) .pred/c)])
                                        ([field field*] [field-c field-cs])
                                        (hash-set decs (gen-ac t field) (.λ/c (list strct-c) field-c #f))))]
                                   [`(,x ,c) (hash-set decs x (read-e syms l '() c))]))
@@ -90,9 +90,9 @@
                    (values (hash-set m l (cons • c)) (cons l ro)))])
     (.m (reverse ro) m2)))
 
-;; assume ♣ never appears in source code
 (define (read-e syms l xs e)
   (define (go ei) (read-e syms l xs ei))
+  ; assume ♣ never appears in source code
   (match e
     ;; syntactic sugar
     [`(and) .tt]

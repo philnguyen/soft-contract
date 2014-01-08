@@ -165,7 +165,7 @@
                  (string->symbol (string-append (symbol->string t) "@" (number->string i)))]
                 [(.st-p t _) (string->symbol (string-append (symbol->string t) "?"))]))
 
-(define pred-c (.λ/c (list .any/c) .bool/c #f))
+(define .pred/c (.λ/c (list .any/c) .bool/c #f))
 
 (: ¬l : Sym^3 → Sym^3)
 (define ¬l
