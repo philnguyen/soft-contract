@@ -125,7 +125,7 @@
                       ((((zombies 'eat-brains)) 'move-toward) ((player 'posn)))))]
         [(equal? msg 'to-draw)
          (λ ()
-           ((player 'draw-one) ((zombies 'draw-on) MT-SCENE)))]
+           ((player 'draw-on) ((zombies 'draw-on) MT-SCENE)))]
         [(equal? msg 'stop-when)
          (λ ()
            ((zombies 'touching?) ((player 'posn))))]
@@ -261,4 +261,10 @@
 
 (require zombie)
 
-new-posn
+(amb (• new-posn)
+     (• new-player)
+     (• new-zombie)
+     (• new-cons-zombies)
+     (• new-mt-zombies)
+     (• new-horde)
+     (• new-world))

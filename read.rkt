@@ -159,6 +159,7 @@
     [(or '• 'OPQ) •]
     [`(quote ,x) (.b x)]
     [(or (? num? x) (? bool? x) (? str? x)) (prim x)]
+    #;[`(apply ,f ,xs) (.apply (go f) (go xs) l)]
     [`(,f ,xs ...) (.@ (go f) (map go xs) l)]
     [(? sym? s)
      (or (var xs s)

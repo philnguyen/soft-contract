@@ -30,6 +30,8 @@
   (.x [sd : Int]) ; static distance
   (.ref [name : Sym] [in : Sym] [ctx : Sym])
   (.@ [f : .e] [xs : (Listof .e)] [ctx : Sym])
+  (.@-havoc [x : .x]) ; hack for havoc
+  #;(.apply [f : .e] [xs : .e] [ctx : Sym])
   (.if [i : .e] [t : .e] [e : .e])
   (.amb [e* : (Setof .e)])
   ; contract stuff
@@ -41,14 +43,16 @@
   #;(.or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
 
-(: FV (case→ [.e → (Setof Int)]
-             [.e Int → (Setof Int)]))
+(: FV : (case→ [.e → (Setof Int)]
+               [.e Int → (Setof Int)]))
 (define (FV e [d 0])
   (match e
     [(.x sd) (if (>= sd d) {set (- sd d)} ∅)]
     [(.λ n e _) (FV e (+ d n))]
     [(.@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
                    (set-union FVs (FV x d)))]
+    [(.@-havoc x) (FV x d)]
+    #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
     [(.amb e*) (for/fold: ([FVs : (Setof Int) ∅]) ([e e*])
                  (set-union FVs (FV e d)))]
@@ -75,6 +79,8 @@
                      (+ (checks# e) (match c [(? .e? c) (checks# c)] [_ 0]))))]
     [(.λ _ e _) (checks# e)]
     [(.@ f xs _) (+ 1 (checks# f) (checks# xs))]
+    [(.@-havoc x) 1]
+    #;[(.apply f xs _) (+ 1 (checks# f) (checks# xs))]
     [(.if e e1 e2) (+ (checks# e) (checks# e1) (checks# e2))]
     [(.amb e*) (for/sum ([e e*]) (checks# e))]
     [(.μ/c _ e) (checks# e)]
@@ -193,7 +199,7 @@
                            (.@ (.ref 'havoc '☠ '☠)
                                (list (.@ ac (list (.x 0)) '☠)) '☠))
                          (.@ (.ref 'havoc '☠ '☠)
-                          (list (.@ (.x 0) (list •) '☠)) '☠))) #f))
+                             (list (.@-havoc (.x 0))) '☠))) #f))
   
   (define ☠ (.m (list 'havoc)
                 (hash-set (ann #hash() (Map Sym (Pairof .e (U #f .e))))

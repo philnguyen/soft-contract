@@ -476,6 +476,7 @@
      (cond
        [(V∈ V1 V0) V1] ; postpone approximation if value shrinks
        [(and (.//? V1) (.•? (.//-pre V1)) (= 1 (set-count (.//-refine V1)))) V1]
+       [(equal? V0 ♦) ♦]
        [else
         (match* (V0 V1)
           [((.// U0 C*) (.// U1 D*))
@@ -485,7 +486,6 @@
              ; cannot blur higher order value
              [(_ (.λ↓ f ρ))
               (let ([repeated (repeated-lambdas f ρ)])
-                #;(printf "case0~n")
                 #;(printf "repeated: ~a~n~n" repeated)
                 (match (set-count repeated)
                   [0 V1]
@@ -496,7 +496,7 @@
                        V′)]))]
              [((.Ar C V0 l) (.Ar C V1 l))
               (.// (.Ar C (⊕ V0 V1) l) (set-intersect C* D*))]
-             [(_ (or (? .Ar?) (? .λ↓?))) V1]
+             [(_ (or (? .λ?) (? .Ar?))) V1]
              [((.St t V0*) (.St t V1*)) (.// (.St t (⊕ V0* V1*)) (set-intersect C* D*))]
              [(_ (.St t V1*)) #;(printf "case1~n")
               #;(printf "⊕:~n~a~nand~n~a~n~n" (show-E σ∅ V0) (show-E σ∅ V1))

@@ -108,6 +108,8 @@
       [(.x i) (ctx-ref ctx i)]
       [(.ref x _ _) x]
       [(.@ f xs _) `(,(go ctx f) ,@(map (curry go ctx) xs))]
+      [(.@-havoc x) `(apply ,(go ctx x) •)]
+      #;[(.apply f xs _) `(@ ,(go ctx f) ,(go ctx xs))]
       [(.if i t e) `(,(go ctx i) ,(go ctx t) ,(go ctx e))]
       [(.amb e*) `(amb ,@(for/list: : (Listof Any) ([e e*]) (go ctx e)))]
       [(.μ/c x c) `(μ/c (,x) ,(go ctx c))]

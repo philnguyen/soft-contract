@@ -306,7 +306,21 @@
         (match V
           [(.// (.St _ V*) _) (ormap go V*)]
           [(.// (.Ar _ V′ _) _) (go V′)]
+          #;[(.// (.λ↓ F _) _)
+           (match v
+             [(.// (.λ↓ f _) _) (e∈ f F)]
+             [_ #f])]
           [(.μ/V _ V*) (for/or ([V V*]) (go V))]
+          [_ #f]))))
+#;(: e∈ : .e .e → Bool)
+#;(define (e∈ e E)
+  (let go ([E E])
+    (or (equal? e E)
+        (match E
+          [(.λ _ E′ _) (go E′)]
+          [(.@ f xs _) (or (go f) (ormap go xs))]
+          [(.if E0 E1 E2) (or (go E0) (go E1) (go E2))]
+          [(.amb Es) (for/or ([E Es]) (go E))]
           [_ #f]))))
 
 (: unroll/C : .μ/C → .V)

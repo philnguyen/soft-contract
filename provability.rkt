@@ -391,6 +391,8 @@
     [((.λ n e1 v?) (.λ n e2 v?)) (C≃ e1 e2)]
     [((.ref x m _) (.ref x m _)) #t]
     [((.@ f xs _) (.@ g ys _)) (and (C≃ f g) (andmap C≃ xs ys))]
+    [((.@-havoc x) (.@-havoc y)) (equal? x y)]
+    #;[((.apply f xs _) (.apply g ys _)) (and (C≃ f g) (C≃ xs ys))]
     [((.if i1 t1 e1) (.if i2 t2 e2)) (and (C≃ i1 i2) (C≃ t1 t2) (C≃ e1 e2))]
     [((.μ/c x c) (.μ/c x d)) (C≃ c d)]
     [((.λ/c xs y1 v?) (.λ/c zs y2 v?))
