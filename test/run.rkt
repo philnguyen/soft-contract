@@ -10,7 +10,7 @@
 
 (define: mode : Mode 'tex)
 (define: files : (Listof String) '())
-(define TIMEOUT 10)
+(define TIMEOUT 30)
 
 (command-line
  #:once-each
