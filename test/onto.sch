@@ -2,8 +2,10 @@
   (provide
    [onto ([callbacks : (listof proc?)] . -> .
          ([f : (or/c false? str? (any . -> . any))] . -> .
-         ([obj : (and/c (=>/c (λ (_) (false? f)) (any . -> . any))
-                        (=>/c (λ (_) (str? f)) (str? . -> . (any . -> . any))))]
+         ([obj : (cond
+                   [(false? f) (any . -> . any)]
+                   [(str? f) (str? . -> . (any . -> . any))]
+                   [else any])]
           . -> . (listof proc?))))])
   (define (onto callbacks)
     (λ (f)
