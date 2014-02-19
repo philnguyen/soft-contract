@@ -22,7 +22,7 @@
             (.st-p [tag : Sym] [arity : Int])
             (.num?) (.real?) (.int?) (.true?) (.false?) (.bool?) (.str?) (.symbol?) (.proc?))
           (.st-ac [tag : Sym] [arity : Int] [index : Int])
-          (.add1) (.sub1) (.str-len))
+          (.add1) (.sub1) (.str-len) (.sqrt))
         (subset: (.o2)
           (.equal?) (.=) (.>) (.<) (.≥) (.≤) (.+) (.-) (.*) (./)
           (.arity=?) (.arity≥?) (.arity-includes?))
@@ -127,7 +127,7 @@
   (memoize
    #:eq? #t
    (match-lambda
-     ['add1 (.add1)] ['sub1 (.sub1)] ['+ (.+)] ['- (.-)] ['* (.*)] ['/ (./)]
+     ['add1 (.add1)] ['sub1 (.sub1)] ['sqrt (.sqrt)] ['+ (.+)] ['- (.-)] ['* (.*)] ['/ (./)]
      ['str-len (.str-len)]
      ['num? (.num?)] ['real? (.real?)] ['int? (.int?)]
      ['true? (.true?)] [(or 'false? 'not) (.false?)] ['bool? (.bool?)]
@@ -158,7 +158,7 @@
 
 (: name : .o → Sym)
 (define name
-  (match-lambda [(.add1) 'add1] [(.sub1) 'sub1] [(.+) '+] [(.-) '-] [(.*) '*] [(./) '/]
+  (match-lambda [(.add1) 'add1] [(.sub1) 'sub1] [(.sqrt) 'sqrt] [(.+) '+] [(.-) '-] [(.*) '*] [(./) '/]
                 [(.str-len) 'str-len] [(.equal?) 'equal?]
                 [(.=) '=] [(.>) '>] [(.<) '<] [(.≥) '≥] [(.≤) '≤]
                 [(.arity=?) 'arity=?] [(.arity≥?) 'arity≥?] [(.arity-includes?) 'arity-includes?]

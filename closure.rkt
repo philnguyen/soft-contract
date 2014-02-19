@@ -257,6 +257,13 @@
 (define (*/C V1 V2) (→C (.*) #:1st V1 #:2nd V2))
 (define (÷/C V1 V2) (→C (./) #:1st V1 #:2nd V2))
 
+(: sqrt/C : .V → .V)
+(define (sqrt/C V)
+  (→V
+   (match V
+     [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ (.sqrt) (list b) 'Λ)) 'Λ) #f) ρ∅)]
+     [_ (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ (.sqrt) (list (.x 1)) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V))])))
+ 
 (:* [</C >/C ≥/C ≤/C =/C ≠/C] : .V → .V)
 (define (</C V) (→C (.<) #:2nd V))
 (define (>/C V) (→C (.>) #:2nd V))

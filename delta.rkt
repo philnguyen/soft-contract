@@ -62,6 +62,10 @@
        [(cons σt (.// (.b #t) _)) (Δ σt (.str-len) V*)]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l 'str-len V STR/C))])]
     [((.equal?) (list V1 V2)) (V=? σ V1 V2)]
+    [((.sqrt) (list V))
+     (match/Ans* (δ σ (.real?) (list V) 'Λ)
+       [(cons σt (.// (.b #t) _)) (Δ σt (.sqrt) V*)]
+       [(cons σf (.// (.b #f) _)) (cons σf (.blm l 'sqrt V REAL/C))])]
     
     ; arity check
     [((or (.arity=?) (.arity≥?) (.arity-includes?)) (list V1 V2))
@@ -153,6 +157,19 @@
                             [(all-prove? σ V* REAL/C) REAL/C]
                             [else NUM/C])
                       (-/C X1 X2))]))])]
+    [((.sqrt) (list V))
+     (match (map (curry σ@ σ) V*)
+       [(list (.// (.b (? real? x)) _)) (cons σ (Prim (sqrt x)))]
+       [(list (and W (.// U _)))
+        (let ([X (if (.•? U) V W)])
+          (cond
+            [(eq? 'Proved (⊢′ σ X ZERO/C)) (cons σ ZERO)]
+            [else (σ+ σ
+                      (cond [(equal? 'Proved (⊢ σ V POS/C)) {set REAL/C POS/C}]
+                            [(equal? 'Proved (⊢ σ V NON-NEG/C)) {set REAL/C NON-NEG/C}]
+                            [(equal? 'Proved (⊢ σ V NEG/C)) {set NUM/C (.¬/C REAL/C)}]
+                            [else NUM/C])
+                      (sqrt/C V))]))])]
     
     [((.<) (list V1 V2))
      (match (map (curry σ@ σ) V*)
