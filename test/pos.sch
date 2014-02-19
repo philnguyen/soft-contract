@@ -21,7 +21,7 @@
         [(equal? m 'dist0) (let ([x (pos 'x)]
                                  [y (pos 'y)])
                              (sqrt (+ (* x x) (* y y))))]
-        [else (pos 'x)]))))
+        [else (pos m)]))))
 
 (require posd)
 (• mk-posd)
