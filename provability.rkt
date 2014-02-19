@@ -1,5 +1,5 @@
 #lang typed/racket
-(require "utils.rkt" "lang.rkt" "closure.rkt" "query.rkt")
+(require "utils.rkt" "lang.rkt" "closure.rkt" "query-z3.rkt" #;"query.rkt")
 (provide (all-defined-out))
 
 (:* [all-prove? all-refute? some-proves? some-refutes?] : .σ (Listof .V) .V → Bool)
