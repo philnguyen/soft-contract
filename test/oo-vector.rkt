@@ -34,11 +34,13 @@
         [msg (v msg)]))))
 (define/contract extend/checked mixin/c extend)
 
-(define (bm mk-vec mixin [n 1000])
-  (for ([i n])
+(define (bm mk-vec mixin [n 100000])
+  (for/sum ([i (in-range n)])
     (let ([mk-ext-vec (mixin mk-vec)])
       ((mk-ext-vec (random) (random)) 'len))))
 
 ;; measure overhead of contracts
+(collect-garbage) (collect-garbage) (collect-garbage)
 (time (bm mk-vec extend))
+(collect-garbage) (collect-garbage) (collect-garbage)
 (time (bm mk-vec/checked extend/checked))
