@@ -572,10 +572,11 @@
         (time-apply f empty))
       cpu))
   
-  (values ; JUST PROFILE UNSAFE FOR NOW
-   #;(bench (λ () (replay w1 h)))
-   (bench (λ () (replay unsafe:w1 h)))))
+  (define con (bench (λ () (replay w1 h))))
+  (define ver (bench (λ () (replay unsafe:w1 h))))
+  (printf "contract (~a runs): ~a~n" i con)
+  (printf "verified (~a runs): ~a~n" i ver)
+  (printf "speedup:            ~a~n" (* 1. (/ con ver))))
 
-(require profile)
-(profile-thunk (λ ()
-                 (run-it 50)))
+
+(run-it 50)
