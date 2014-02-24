@@ -2,10 +2,10 @@
   (provide
    [image/c any]
    [empty-scene (real? real? . -> . image/c)]
-   [place-image (image/c real? real? . -> . image/c)]
+   [place-image (image/c real? real? image/c . -> . image/c)]
    [circle (real? str? str? . -> . image/c)])
-  (define (image/c x) •)
-  (define image/c (λ (x) (image/c x))))
+  (define (image? x) •)
+  (define image/c (λ (x) (image? x))))
 
 (module math
   (provide
