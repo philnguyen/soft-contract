@@ -1,14 +1,18 @@
 #lang racket
 
 (module unsafe-image racket
-  (require 2htdp/image)
   (provide empty-scene
            place-image
-           circle))
+           circle)
+
+  (define (empty-scene x y) 'empty-scene)
+  (define (place-image a b c d) empty-scene)
+  (define (circle a b c) empty-scene))
   
   
 (module image racket
-  (require 2htdp/image)
+  (require (submod ".." unsafe-image))
+  (define (image? x) true)
   (define image/c (λ (x) (image? x)))
   (provide/contract
    [image/c (λ (x) true)]
@@ -496,23 +500,25 @@
 (start/record w0) 
 
 (define (replay w0 hist)
-  (let loop ((w w0) (h (reverse hist)))
+  (let loop ((w w0) (h hist))
     (if (empty? h)
         w
         (let ()
-          (define m (first (first h)))
-          (define as (rest (first h)))
+          (define m (caar h))
+          (define as (cdar h))
           (define r (apply (w m) as))
           (loop (case m
                   [(to-draw stop-when) w]
                   [else r])
                 (rest h))))))
 
+(define h (reverse (with-input-from-file "zombie-hist-1.txt" read)))
+
 (collect-garbage)
 (collect-garbage)
-(time (replay w0 (with-input-from-file "zombie-hist-1.txt" read)))
+(time (replay w0 h))
 
 
 (collect-garbage)
 (collect-garbage)
-(time (replay unsafe:w0 (with-input-from-file "zombie-hist-1.txt" read)))
+(time (replay unsafe:w0 h))
