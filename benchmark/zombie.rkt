@@ -1,18 +1,16 @@
 #lang racket
 
+
+
 (module unsafe-image racket
+  (require 2htdp/image)
   (provide empty-scene
            place-image
-           circle)
+           circle
+	   image?))
 
-  (define (empty-scene x y) 'empty-scene)
-  (define (place-image a b c d) empty-scene)
-  (define (circle a b c) empty-scene))
-  
-  
 (module image racket
-  (require (submod ".." unsafe-image))
-  (define (image? x) true)
+  (require (submod ".." unsafe-image))  
   (define image/c (λ (x) (image? x)))
   (provide/contract
    [image/c (λ (x) true)]
@@ -45,6 +43,7 @@
   (require (submod ".." unsafe-image)
            (submod ".." unsafe-math))
   
+  (random-seed 761234)
   (define WIDTH 400)
   (define HEIGHT 400)
   (define MT-SCENE (empty-scene WIDTH HEIGHT))
@@ -187,7 +186,22 @@
            (λ (p)
              (sqrt (+ (sqr (- ((p 'y)) y))
                       (sqr (- ((p 'x)) x)))))]
-          [else "unknown message"]))))
+          [else "unknown message"]))))  
+       
+  (define (build-zombies i)
+    (foldr new-cons-zombies
+           (new-mt-zombies)
+           (build-list i
+                       (λ (_)
+                         (new-zombie (new-posn (random WIDTH)
+                                               (random HEIGHT)))))))
+  
+  (define w1
+    (new-world 
+     (new-player (new-posn WIDTH 0))
+     (new-posn 0 0)
+     (new-horde (build-zombies 20)
+                (new-mt-zombies))))
   
   (define w0
     (new-world
@@ -203,6 +217,8 @@
        (new-zombie (new-posn 200 200))
        (new-mt-zombies)))))
   
+  
+  
   (provide
    new-world
    new-player
@@ -211,13 +227,15 @@
    new-mt-zombies
    new-zombie
    new-posn
-   w0))
+   w0
+   w1))
 
 
 (module zombie racket
   (require (submod ".." image)
            (submod ".." math))
   
+  (random-seed 761234)
   (define WIDTH 400)
   (define HEIGHT 400)
   (define MT-SCENE (empty-scene WIDTH HEIGHT))
@@ -431,6 +449,21 @@
                       (sqr (- ((p 'x)) x)))))]
           [else "unknown message"]))))
   
+  (define (build-zombies i)
+    (foldr new-cons-zombies
+           (new-mt-zombies)
+           (build-list i
+                       (λ (_)
+                         (new-zombie (new-posn (random WIDTH)
+                                               (random HEIGHT)))))))
+  
+  (define w1
+    (new-world 
+     (new-player (new-posn WIDTH 0))
+     (new-posn 0 0)
+     (new-horde (build-zombies 20)
+                (new-mt-zombies))))
+  
   (define w0
     (new-world
      (new-player (new-posn 0 0))
@@ -460,7 +493,8 @@
    [new-mt-zombies (-> zombies/c)]
    [new-zombie (posn/c . -> . zombie/c)]
    [new-posn (real? real? . -> . posn/c)]
-   [w0 world/c]))
+   [w0 world/c]
+   [w1 world/c]))
 
 (require 'zombie)
 (require (prefix-in unsafe: 'unsafe-zombie))
@@ -496,8 +530,10 @@
    [to-draw   (λ (w0) ((w0 'to-draw)))]
    [stop-when (λ (w0) ((w0 'stop-when)))]))
 
-#;
-(start/record w0) 
+
+;(start w1)
+
+;(with-output-to-file "zombie-hist-3.txt" (lambda () (start/record unsafe:w1) (write history)))
 
 (define (replay w0 hist)
   (let loop ((w w0) (h hist))
@@ -506,19 +542,40 @@
         (let ()
           (define m (caar h))
           (define as (cdar h))
-          (define r (apply (w m) as))
-          (loop (case m
-                  [(to-draw stop-when) w]
-                  [else r])
-                (rest h))))))
+	  (case m
+	    ;; no rendering
+	    [(to-draw) (loop w (cdr h))]
+	    [else
+	     (define r (apply (w m) as))
+	     ;(define r w) ;; NO-OP measure loop overhead
+	     (loop (case m
+		     [(to-draw stop-when) w]
+		     [else r])
+		   (cdr h))])))))
 
-(define h (reverse (with-input-from-file "zombie-hist-1.txt" read)))
+(define h (reverse (with-input-from-file "zombie-hist-3.txt" read)))
 
-(collect-garbage)
-(collect-garbage)
-(time (replay w0 h))
+(define (bench-safe)  
+  (replay w1 h))
+    
+(define (bench-unsafe)
+  (replay unsafe:w1 h))
 
+;(bench)
 
-(collect-garbage)
-(collect-garbage)
-(time (replay unsafe:w0 h))
+(define (run-it i)
+  (define (bench f)
+    (for/sum ([j (in-range i)])
+      (collect-garbage)
+      (collect-garbage)
+      (define-values (res cpu real gc)
+        (time-apply f empty))
+      cpu))
+  
+  (values ; JUST PROFILE UNSAFE FOR NOW
+   #;(bench (λ () (replay w1 h)))
+   (bench (λ () (replay unsafe:w1 h)))))
+
+(require profile)
+(profile-thunk (λ ()
+                 (run-it 50)))
