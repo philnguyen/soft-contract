@@ -1,4 +1,4 @@
-#lang racket
+#lang racket  
 
 (module image racket
   (require 2htdp/image)
@@ -294,8 +294,11 @@
            (submod ".." const)
            (submod ".." motion-help))
 
-  (current-pseudo-random-generator (make-pseudo-random-generator))
-  (random-seed 761234)
+  (provide reset!)
+  (define r (make-pseudo-random-generator)) 
+  (define (reset!)
+    (parameterize ((current-pseudo-random-generator r))
+		  (random-seed 1324)))
 
   ;; world->world : World -> World
   (define (world->world w)
@@ -321,9 +324,8 @@
   ;; snake-eat : World -> World
   ;; Eat the food and generate a new one.
   (define (snake-eat w)
-    (define i (add1 (random (sub1 BOARD-WIDTH))))
-    (define j (add1 (random (sub1 BOARD-HEIGHT))))
-    (printf "~a, ~a~n" i j)
+    (define i (add1 (random (sub1 BOARD-WIDTH) r)))
+    (define j (add1 (random (sub1 BOARD-HEIGHT) r)))
     (world (snake-grow (world-snake w))
            (posn i j)
 	   #;(posn (- BOARD-WIDTH 1) (- BOARD-HEIGHT 1))))
@@ -337,8 +339,11 @@
            (submod ".." unsafe-const)
            (submod ".." unsafe-motion-help))
 
-  (current-pseudo-random-generator (make-pseudo-random-generator))
-  (random-seed 761234)
+  (provide reset!)
+  (define r (make-pseudo-random-generator)) 
+  (define (reset!)
+    (parameterize ((current-pseudo-random-generator r))
+		  (random-seed 1324)))
 
   ;; world->world : World -> World
   (define (world->world w)
@@ -364,9 +369,8 @@
   ;; snake-eat : World -> World
   ;; Eat the food and generate a new one.
   (define (snake-eat w)
-    (define i (add1 (random (sub1 BOARD-WIDTH))))
-    (define j (add1 (random (sub1 BOARD-HEIGHT))))
-    (printf "~a, ~a~n" i j)
+    (define i (add1 (random (sub1 BOARD-WIDTH) r)))
+    (define j (add1 (random (sub1 BOARD-HEIGHT) r)))
     (world (snake-grow (world-snake w))
            (posn i j)
                  
@@ -541,21 +545,20 @@
 (define (play)
   (big-bang (WORLD)
             (on-tick (λ (w) (! `(on-tick)) (world->world w)) 1/5)
-            (on-key (λ (ke w) (! `(on-key ,ke)) (handle-key ke w)))
+            (on-key (λ (w ke) (! `(on-key ,ke)) (handle-key w ke)))
             (to-draw (λ (w) (world->scene w)))
             (stop-when (λ (w) (! `(stop-when)) (game-over? w)))))
 
 #;
-(with-output-to-file "snake-hist-1.txt" 
+(with-output-to-file "snake-hist-2.txt" 
   (λ () 
     (set! history empty)
     (play)
     (write history)))
 
-(play)
-
 
 (define (replay w0 hist)
+  (reset!)
   (let loop ((w w0) (h hist))
     (if (empty? h)
         w
@@ -572,6 +575,7 @@
            (cdr h))))))
 
 (define (unsafe:replay w0 hist)
+  (unsafe:reset!)
   (let loop ((w w0) (h hist))
     (if (empty? h)
         w
