@@ -22,9 +22,9 @@
   #;(define (image? x) •))
 
 (module data racket
-  (struct snake (dir segs))
-  (struct world (snake food))
-  (struct posn (x y))
+  (struct snake (dir segs) #:prefab)
+  (struct world (snake food) #:prefab)
+  (struct posn (x y) #:prefab)
   
   (define (nelistof c) (cons/c c (listof c)))
   (define DIR/C (or/c "up" "down" "left" "right"))
@@ -48,9 +48,9 @@
    [nelistof (any/c . -> . any/c)]))
 
 (module unsafe-data racket
-  (struct snake (dir segs))
-  (struct world (snake food))
-  (struct posn (x y))
+  (struct snake (dir segs) #:prefab)
+  (struct world (snake food) #:prefab)
+  (struct posn (x y) #:prefab)
   
   (define (nelistof c) (cons/c c (listof c)))
   (define DIR/C (or/c "up" "down" "left" "right"))
@@ -293,6 +293,9 @@
   (require (submod ".." data)
            (submod ".." const)
            (submod ".." motion-help))
+
+  (random-seed 761234)
+
   ;; world->world : World -> World
   (define (world->world w)
     (cond [(eating? w) (snake-eat w)]
@@ -317,10 +320,13 @@
   ;; snake-eat : World -> World
   ;; Eat the food and generate a new one.
   (define (snake-eat w)
+    (define i (add1 (random (sub1 BOARD-WIDTH))))
+    (define j (add1 (random (sub1 BOARD-HEIGHT))))
+    (printf "~a, ~a~n" i j)
     (world (snake-grow (world-snake w))
-           (posn (add1 (random (sub1 BOARD-WIDTH)))
-                 (add1 (random (sub1 BOARD-HEIGHT))))
-           #;(posn (- BOARD-WIDTH 1) (- BOARD-HEIGHT 1))))
+           (posn i j)
+	   #;(posn (- BOARD-WIDTH 1) (- BOARD-HEIGHT 1))))
+
   (provide/contract
    [world-change-dir (WORLD/C DIR/C . -> . WORLD/C)]
    [world->world (WORLD/C . -> . WORLD/C)]))
@@ -329,6 +335,9 @@
   (require (submod ".." unsafe-data)
            (submod ".." unsafe-const)
            (submod ".." unsafe-motion-help))
+
+  (random-seed 761234)
+
   ;; world->world : World -> World
   (define (world->world w)
     (cond [(eating? w) (snake-eat w)]
@@ -353,9 +362,12 @@
   ;; snake-eat : World -> World
   ;; Eat the food and generate a new one.
   (define (snake-eat w)
+    (define i (add1 (random (sub1 BOARD-WIDTH))))
+    (define j (add1 (random (sub1 BOARD-HEIGHT))))
+    (printf "~a, ~a~n" i j)
     (world (snake-grow (world-snake w))
-           (posn (add1 (random (sub1 BOARD-WIDTH)))
-                 (add1 (random (sub1 BOARD-HEIGHT))))
+           (posn i j)
+                 
            #;(posn (- BOARD-WIDTH 1) (- BOARD-HEIGHT 1))))
   (provide
    world-change-dir
@@ -538,6 +550,8 @@
     (play)
     (write history)))
 
+(play)
+
 
 (define (replay w0 hist)
   (let loop ((w w0) (h hist))
@@ -574,5 +588,5 @@
 (define w0 (WORLD))
 ;(replay (WORLD) h)
 (provide replay unsafe:replay w0)
-  
+
 
