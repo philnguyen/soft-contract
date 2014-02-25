@@ -530,12 +530,12 @@
 
 (require 2htdp/universe)
 (require 'data 'const 'scenes 'handlers 'motion 'collide)
-(require (prefix-in unsafe: 'data)
-         (prefix-in unsafe: 'const)
-         (prefix-in unsafe: 'scenes)
-         (prefix-in unsafe: 'handlers)
-         (prefix-in unsafe: 'motion)
-         (prefix-in unsafe: 'collide))
+(require (prefix-in unsafe: 'unsafe-data)
+         (prefix-in unsafe: 'unsafe-const)
+         (prefix-in unsafe: 'unsafe-scenes)
+         (prefix-in unsafe: 'unsafe-handlers)
+         (prefix-in unsafe: 'unsafe-motion)
+         (prefix-in unsafe: 'unsafe-collide))
          
 
 (define history empty)
