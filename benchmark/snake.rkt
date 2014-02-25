@@ -22,9 +22,9 @@
   #;(define (image? x) •))
 
 (module data racket
-  (struct snake (dir segs) #:prefab)
-  (struct world (snake food) #:prefab)
-  (struct posn (x y) #:prefab)
+  (struct snake (dir segs))
+  (struct world (snake food))
+  (struct posn (x y))
   
   (define (nelistof c) (cons/c c (listof c)))
   (define DIR/C (or/c "up" "down" "left" "right"))
@@ -48,9 +48,9 @@
    [nelistof (any/c . -> . any/c)]))
 
 (module unsafe-data racket
-  (struct snake (dir segs) #:prefab)
-  (struct world (snake food) #:prefab)
-  (struct posn (x y) #:prefab)
+  (struct snake (dir segs))
+  (struct world (snake food))
+  (struct posn (x y))
   
   (define (nelistof c) (cons/c c (listof c)))
   (define DIR/C (or/c "up" "down" "left" "right"))
@@ -592,7 +592,8 @@
            (cdr h))))))
 
 (define w0 (WORLD))
+(define unsafe:w0 (unsafe:WORLD))
 ;(replay (WORLD) h)
-(provide replay unsafe:replay w0)
+(provide replay unsafe:replay w0 unsafe:w0)
 
 
