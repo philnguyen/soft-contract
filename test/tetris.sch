@@ -78,7 +78,7 @@
    [append (BSET/C BSET/C . -> . BSET/C)]
    [length ((listof any) . -> . int?)]
    [foldr ([BLOCK/C BSET/C . -> . BSET/C] BSET/C BSET/C . -> . BSET/C)]
-   [foldr-i ([BLOCK/C image/c . -> . image/c] image/c BSET/C . -> . image/c)]
+   [foldr-i ([BLOCK/C image? . -> . image?] image? BSET/C . -> . image?)]
    [foldr-n ((BLOCK/C real? . -> . real?) real? BSET/C . -> . real?)])
   (require image data))
 
@@ -218,7 +218,7 @@
    [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
    [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
    [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . bool?)]
-   [build-tetra-blocks (COLOR/C int? int? int? int? int? int? int? int? int? int?
+   [build-tetra-blocks (COLOR/C real? real? int? int? int? int? int? int? int? int?
                                 . -> .  TETRA/C)]
    [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)])
   (require bset data consts block)
@@ -260,10 +260,10 @@
   (define (build-tetra-blocks color xc yc x1 y1 x2 y2 x3 y3 x4 y4)
     (tetra-move 3 0 
                 (tetra (posn xc yc)
-                       (cons (block x1 y1 color)
-                             (cons (block x2 y2 color)
-                                   (cons (block x3 y3 color)
-                                         (cons (block x4 y4 color) empty))))))))
+                       (list (block x1 y1 color)
+                             (block x2 y2 color)
+                             (block x3 y3 color)
+                             (block x4 y4 color))))))
 
 (module world
   (provide [world-key-move (WORLD/C str? . -> . WORLD/C)]
@@ -358,15 +358,14 @@
 
 (module image
   (provide
-   [image/c any]
-   [overlay (image/c image/c int? COLOR/C COLOR/C . -> . image/c)]
-   [circle (int? str? str? . -> . image/c)]
-   [rectangle (int? int? COLOR/C COLOR/C . -> . image/c)]
-   [place-image (image/c int? int? image/c . -> . image/c)]
-   [empty-scene (int? int? . -> . image/c)])
+   [image? (any . -> . bool?)]
+   [overlay (image? image? . -> . image?)]
+   [circle (real? real? str? . -> . image?)]
+   [rectangle (real? real? COLOR/C COLOR/C . -> . image?)]
+   [place-image (image? real? real? image? . -> . image?)]
+   [empty-scene (real? real? . -> . image?)])
   (require data)
-  (define (image/c x) (image? x))
-  (define (image? x) •))
+  (struct image (impl)))
 
 (module aux
   (require data)
@@ -377,10 +376,10 @@
 
 (module visual
   (provide
-   [world->image (WORLD/C . -> . image/c)]
-   [blocks->image (BSET/C . -> . image/c)]
-   [block->image (BLOCK/C . -> . image/c)]
-   [place-block (BLOCK/C image/c . -> . image/c)])
+   [world->image (WORLD/C . -> . image?)]
+   [blocks->image (BSET/C . -> . image?)]
+   [block->image (BLOCK/C . -> . image?)]
+   [place-block (BLOCK/C image? . -> . image?)])
   (require image data consts world list-fun aux)
   
   ;; Visualize whirled peas

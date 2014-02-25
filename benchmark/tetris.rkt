@@ -301,7 +301,7 @@
    [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
    [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
    [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . boolean?)]
-   [build-tetra-blocks (COLOR/C integer? integer? integer? integer? integer? integer? integer? integer? integer? integer?
+   [build-tetra-blocks (COLOR/C real? real? integer? integer? integer? integer? integer? integer? integer? integer?
                                 . -> .  TETRA/C)]
    [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)]))
 
@@ -317,7 +317,7 @@
   
   (define tetras
     (list 
-     (build-tetra-blocks 'green   1 #;1/2 -2 #;-3/2    0 -1 0 -2 1 -1 1 -2)
+     (build-tetra-blocks 'green   1/2 -3/2    0 -1 0 -2 1 -1 1 -2)
      (build-tetra-blocks 'blue    1   -1      0 -1 1 -1 2 -1 3 -1)
      (build-tetra-blocks 'purple  1   -1      0 -1 1 -1 2 -1 2 -2)
      (build-tetra-blocks 'cyan    1   -1      0 -1 1 -1 2 -1 0 -2)
