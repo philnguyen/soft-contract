@@ -553,30 +553,4 @@
 		     [else r])
 		   (cdr h))])))))
 
-(define h (reverse (with-input-from-file "zombie-hist-3.txt" read)))
-
-(define (bench-safe)  
-  (replay w1 h))
-    
-(define (bench-unsafe)
-  (replay unsafe:w1 h))
-
-;(bench)
-
-(define (run-it i)
-  (define (bench f)
-    (for/sum ([j (in-range i)])
-      (collect-garbage)
-      (collect-garbage)
-      (define-values (res cpu real gc)
-        (time-apply f empty))
-      cpu))
-  
-  (define con (bench (λ () (replay w1 h))))
-  (define ver (bench (λ () (replay unsafe:w1 h))))
-  (printf "contract (~a runs): ~a~n" i con)
-  (printf "verified (~a runs): ~a~n" i ver)
-  (printf "speedup:            ~a~n" (* 1. (/ con ver))))
-
-
-(run-it 50)
+(provide replay w1 unsafe:w1)
