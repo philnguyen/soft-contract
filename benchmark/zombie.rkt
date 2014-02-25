@@ -189,12 +189,15 @@
           [else "unknown message"]))))  
        
   (define (build-zombies i)
+    (define r (make-pseudo-random-generator))
+    (parameterize ((current-pseudo-random-generator r))
+       (random-seed 43453))
     (foldr new-cons-zombies
            (new-mt-zombies)
            (build-list i
                        (λ (_)
-                         (new-zombie (new-posn (random WIDTH)
-                                               (random HEIGHT)))))))
+                         (new-zombie (new-posn (random WIDTH r)
+                                               (random HEIGHT r)))))))
   
   (define w1
     (new-world 
@@ -235,7 +238,6 @@
   (require (submod ".." image)
            (submod ".." math))
   
-  (random-seed 761234)
   (define WIDTH 400)
   (define HEIGHT 400)
   (define MT-SCENE (empty-scene WIDTH HEIGHT))
@@ -450,12 +452,15 @@
           [else "unknown message"]))))
   
   (define (build-zombies i)
+    (define r (make-pseudo-random-generator))
+    (parameterize ((current-pseudo-random-generator r))
+       (random-seed 43453))
     (foldr new-cons-zombies
            (new-mt-zombies)
            (build-list i
                        (λ (_)
-                         (new-zombie (new-posn (random WIDTH)
-                                               (random HEIGHT)))))))
+                         (new-zombie (new-posn (random WIDTH r)
+                                               (random HEIGHT r)))))))
   
   (define w1
     (new-world 
@@ -533,7 +538,7 @@
 
 ;(start w1)
 
-;(with-output-to-file "zombie-hist-3.txt" (lambda () (start/record unsafe:w1) (write history)))
+;(with-output-to-file "zombie-hist-4.txt" (lambda () (start/record unsafe:w1) (write history)))
 
 (define (replay w0 hist)
   (let loop ((w w0) (h hist))
