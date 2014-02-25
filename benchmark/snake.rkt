@@ -294,6 +294,7 @@
            (submod ".." const)
            (submod ".." motion-help))
 
+  (current-pseudo-random-generator (make-pseudo-random-generator))
   (random-seed 761234)
 
   ;; world->world : World -> World
@@ -336,6 +337,7 @@
            (submod ".." unsafe-const)
            (submod ".." unsafe-motion-help))
 
+  (current-pseudo-random-generator (make-pseudo-random-generator))
   (random-seed 761234)
 
   ;; world->world : World -> World
