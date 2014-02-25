@@ -30,4 +30,4 @@
 (run-it 50
         'snake
         (λ () (s:replay s:w0 s:h))
-        (λ () (s:unsafe:replay s:w0 s:h)))
+        (λ () (s:unsafe:replay s:unsafe:w0 s:h)))
