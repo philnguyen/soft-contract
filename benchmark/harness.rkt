@@ -18,9 +18,11 @@
 
 (require (prefix-in z: "zombie.rkt"))
 (require (prefix-in s: "snake.rkt"))
+(require (prefix-in t: "tetris.rkt"))
 
 (define z:h (reverse (with-input-from-file "zombie-hist-4.txt" read)))
 (define s:h (reverse (with-input-from-file "snake-hist-2.txt" read)))
+(define t:h (reverse (with-input-from-file "tetris-hist-1.txt" read)))
 
 (run-it 50
         'zombie
@@ -31,3 +33,8 @@
         'snake
         (λ () (s:replay s:w0 s:h))
         (λ () (s:unsafe:replay s:unsafe:w0 s:h)))
+
+(run-it 1 ; something is super expensive...
+        'tetris
+        (λ () (t:replay t:w0 t:h))
+        (λ () (t:unsafe:replay t:unsafe:w0 t:h)))
