@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(require "lang.rkt" "closure.rkt" "utils.rkt")
+(require "lang.rkt" "closure.rkt" "utils.rkt" "show.rkt")
 (provide query handled?)
 
 ; query external solver for provability relation
@@ -9,7 +9,7 @@
   (cond    
     [(not (handled? C)) 'Neither] ; skip when contract is strange
     [else
-     #;(printf "Queried with: ~a, ~a~n" V C)
+     #;(printf "Queried with: ~a~n~a~n" (show-Ans σ V) C)
      (let*-values ([(σ′ i) (match V
                              [(.L i) (values σ i)]
                              [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#])]
@@ -42,6 +42,7 @@
 (define (handled? C)
   (match? C
     (.// (.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? num?)))) _) #f) _) _)
+    (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?)) (list (.x 0) (or (.x _) (.b (? num?)))) _) #f) _) _)
     (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
                         (list (.x 0)
                               (.@ (? arith?)
@@ -95,6 +96,11 @@
             (values (format "~a ~a ~a" (→lab i) (→lab o) (→lab X))
                     (labels i X)))]
          [(.λ 1 (.@ (or (.=) (.equal?))
+                    (list (.x 0) (.@ (.sqrt) (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
+          (let ([X (ρ@* M)])
+            (values (format "~a = ~a ^ 0.5" (→lab i) (→lab X))
+                    (labels i X)))]
+         [(.λ 1 (.@ (or (.=) (.equal?))
                     (list (.x 0) (.@ (? .o? o)
                                      (list (and M (or (.x _) (.b (? num?))))
                                            (and N (or (.x _) (.b (? num?))))) _)) _) #f)
@@ -112,17 +118,20 @@
 (: call-with : String String String → .R)
 (define (call-with decs asserts concl)
   (match (call (str++ decs asserts (format "QUERY ~a;~n" concl)))
-    [20 'Proved]
-    [10 (match (call (str++ decs asserts (format "CHECKSAT ~a;" concl)))
-          [20 'Refuted]
+    [(regexp #rx"^valid") 'Proved]
+    [(regexp #rx"^invalid")
+     (match (call (str++ decs asserts (format "CHECKSAT ~a;" concl)))
+          [(regexp #rx"^unsat") 'Refuted]
           [_ #;(printf "Neither~n") 'Neither])]
     [_ #;(printf "Neither~n")'Neither]))
 
 ; performs system call to solver with given query
-(: call : String → Int)
+(: call : String → String)
 (define (call query)
   #;(printf "Called with:~n~a~n~n" query)
-  (system/exit-code (format "echo \"~a\" | cvc4 -q > /dev/null" query)))
+  (with-output-to-string
+   (λ () ; CVC4 from 1.3 no longer uses exit code to indicate sat/unsat
+     (system (format "echo \"~a\" | cvc4 -q" query)))))
 
 ; generate printable/readable element for given value/label index
 (: →lab : (U Int .V .o) → (U Num String Sym))
