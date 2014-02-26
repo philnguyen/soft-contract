@@ -1,8 +1,6 @@
 #lang racket
 
 (module data racket  
-  
-  
   (struct posn (x y))
   (struct block (x y color))
   (struct tetra (center blocks))
@@ -78,11 +76,10 @@
 (module image racket
   (require 2htdp/image)  
   (require (submod ".." data))
-  (define (image/c x) (image? x))  
-  #;(define (image? x) •)
+  (define image/c image?)
   (provide image/c)
   (provide/contract   
-   [overlay (image/c image/c integer? COLOR/C COLOR/C . -> . image/c)]
+   [overlay (image/c image/c . -> . image/c)]
    [circle (integer? string? string? . -> . image/c)]
    [rectangle (integer? integer? COLOR/C COLOR/C . -> . image/c)]
    [place-image (image/c integer? integer? image/c . -> . image/c)]
@@ -208,12 +205,12 @@
    [blocks-intersect (BSET/C BSET/C . -> . BSET/C)]
    [blocks-count (BSET/C . -> . real?)]
    [blocks-overflow? (BSET/C . -> . boolean?)]
-   [blocks-move (real? real? BSET/C . -> . BSET/C)]
+   [blocks-move (integer? integer? BSET/C . -> . BSET/C)]
    [blocks-rotate-cw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-rotate-ccw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-change-color (BSET/C COLOR/C . -> . BSET/C)]
    [blocks-row (BSET/C real? . -> . BSET/C)]
-   [full-row? (BSET/C real? . -> . boolean?)]
+   [full-row? (BSET/C integer? . -> . boolean?)]
    [blocks-union (BSET/C BSET/C . -> . BSET/C)]
    [blocks-max-x (BSET/C . -> . real?)]
    [blocks-min-x (BSET/C . -> . real?)]
@@ -227,11 +224,14 @@
   (define (elim-row bs i offset)
     (cond
       [(< i 0) bs]
-      [(full-row? bs i) (elim-row bs (sub1 i) (add1 offset))]
-      [else (elim-row (blocks-union bs
+      [(full-row? bs i)
+       (elim-row (del-row bs i) (sub1 i) (add1 offset))]
+      [else (elim-row (blocks-union (del-row bs i)
                                     (blocks-move 0 offset (blocks-row bs i)))
                       (sub1 i)
                       offset)]))
+  (define (del-row bs i)
+    (filter (λ (b) (not (= i (block-y b)))) bs))
   (provide/contract
    [elim-row (BSET/C integer? integer? . -> . BSET/C)]))
 
@@ -243,7 +243,9 @@
   ;; eliminate-full-rows : BSet -> BSet
   ;; Eliminate all full rows and shift down appropriately.
   (define (eliminate-full-rows bs)
-    (elim-row bs board-height 0))
+    (let ([ans (elim-row bs board-height 0)])
+      (printf "elim:~n~nbs:~n~a~n~nres:~n~a~n~n" bs ans)
+      ans))
   (provide/contract
    [eliminate-full-rows (BSET/C . -> . BSET/C)]))
 
@@ -280,7 +282,7 @@
   ;; tetra-overlaps-blocks? : Tetra BSet -> Boolean
   ;; Is the tetra on any of the blocks?
   (define (tetra-overlaps-blocks? t bs)
-    (false? (false? (blocks-intersect (tetra-blocks t) bs))))
+    (not (empty? (blocks-intersect (tetra-blocks t) bs))))
   
   ;; tetra-change-color : Tetra Color -> Tetra
   ;; Change the color of the given tetra.
@@ -291,10 +293,10 @@
   (define (build-tetra-blocks color xc yc x1 y1 x2 y2 x3 y3 x4 y4)
     (tetra-move 3 0 
                 (tetra (posn xc yc)
-                       (cons (block x1 y1 color)
-                             (cons (block x2 y2 color)
-                                   (cons (block x3 y3 color)
-                                         (cons (block x4 y4 color) empty)))))))
+                       (list (block x1 y1 color)
+                             (block x2 y2 color)
+                             (block x3 y3 color)
+                             (block x4 y4 color)))))
   
   (provide/contract ;[tetras (listof TETRA/C)]
    [tetra-move (integer? integer? TETRA/C . -> . TETRA/C)]
@@ -445,7 +447,8 @@
     (place-image (blocks->image (append (tetra-blocks (world-tetra w))
                                         (append (ghost-blocks w)
                                                 (world-blocks w))))
-                 0 0 
+                 (/ (* board-width block-size) 2)
+                 (/ (* board-height block-size) 2)
                  (empty-scene (* board-width block-size)
                               (* board-height block-size))))
   
