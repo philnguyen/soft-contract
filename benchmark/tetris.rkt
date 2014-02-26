@@ -243,9 +243,7 @@
   ;; eliminate-full-rows : BSet -> BSet
   ;; Eliminate all full rows and shift down appropriately.
   (define (eliminate-full-rows bs)
-    (let ([ans (elim-row bs board-height 0)])
-      (printf "elim:~n~nbs:~n~a~n~nres:~n~a~n~n" bs ans)
-      ans))
+    (elim-row bs board-height 0))
   (provide/contract
    [eliminate-full-rows (BSET/C . -> . BSET/C)]))
 
