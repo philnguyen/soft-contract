@@ -52,7 +52,92 @@
 (: →V : .U → .//)
 (define (→V U) (.// U ∅))
 
-(define-type .F (Setof (Pairof .L .L)))
+;; maps abstract to concrete labels
+(define-type .F (Map Int Int))
+(define .F? hash?)
+
+(: subst/L : (case→ [.L .F → .L]
+                    [.// .F → .//]
+                    [.μ/V .F → .μ/V]
+                    [(U .// .μ/V) .F → (U .// .μ/V)]
+                    [.V .F → .V]
+                    [.U .F → .U]
+                    [(Listof .V) .F → (Listof .V)]))
+(define (subst/L V F)
+  (: go : (case→ [.L → .L] [.// → .//] [.μ/V → .μ/V] [(U .// .μ/V) → (U .// .μ/V)]
+                 [.V → .V] [.U → .U] [(Listof .V) → (Listof .V)] [.ρ → .ρ]))
+  (define go
+    (match-lambda
+      ; V
+      [(and V (.L i)) (match (hash-ref F i #f)
+                        [(? int? j) (.L j)]
+                        [#f V])]
+      [(.// U C*) (.// (go U) (for/set: .V ([Ci C*]) (go Ci)))]
+      [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go Vi)))]
+      [(? .X/V? V) V]
+      ; U
+      [(.Ar C V l) (.Ar (go C) (go V) l)]
+      [(.St t V*) (.St t (go V*))]
+      [(.λ↓ f ρ) (.λ↓ f (go ρ))]
+      [(.Λ/C Cx (.↓ e ρ) v?) (.Λ/C (go Cx) (.↓ e (go ρ)) v?)]
+      [(.St/C t V*) (.St/C t (go V*))]
+      [(.μ/C x C) (.μ/C x (go C))]
+      [(and U (or (? .X/C?) (? .prim?) (? .•?))) U]
+      ; ρ
+      [(.ρ m l)
+       (.ρ
+        (for/fold: : (Map (U Sym Int) .V) ([acc : (Map (U Sym Int) .V) m]) ([k (in-hash-keys m)])
+          (match (hash-ref m k #f)
+            [#f acc]
+            [(? .V? V) (hash-set acc k (go V))]))
+        l)]
+      ; List
+      [(? list? V*) (map go V*)]))
+  (go V))
+
+(: transfer : .σ .V .σ .F → (List .σ .V .F))
+; transfers value from old heap to new heap, given mapping F
+(define (transfer σ-old V-old σ-new F)
+  (: go! : (case→ [.L → .L]
+                 [(U .// .μ/V) → (U .// .μ/V)]
+                 [.V → .V]
+                 [.U → .U]
+                 [(Listof .V) → (Listof .V)]
+                 [.ρ → .ρ]))
+  (define (go! V-old)
+    (match V-old
+      ; V
+      [(.L i) (match (hash-ref F i #f)
+                [(? int? j) (.L j)]
+                [#f (match-let ([(cons σ′ (and L_j (.L j))) (σ+ σ-new)])
+                      (set! σ-new σ′)
+                      (set! F (hash-set F i j))
+                      (let ([V′ (go! (σ@ σ-old i))])
+                        (set! σ-new (σ-set σ-new j V′))
+                        L_j))])]
+      [(.// U C*) (.// (go! U) (for/set: .V ([Ci C*]) (go! Ci)))]
+      [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go! Vi)))]
+      [(? .X/V? V) V]
+      ; U
+      [(.Ar C V l) (.Ar (go! C) (go! V) l)]
+      [(.St t V*) (.St t (go! V*))]
+      [(.λ↓ f ρ) (.λ↓ f (go! ρ))]
+      [(.Λ/C Cx (.↓ e ρ) v?) (.Λ/C (go! Cx) (.↓ e (go! ρ)) v?)]
+      [(.St/C t V*) (.St/C t (go! V*))]
+      [(.μ/C x C) (.μ/C x (go! C))]
+      [(and U (or (? .X/C?) (? .prim?) (? .•?))) U]
+      ;ρ
+      [(.ρ m l)
+       (.ρ
+        (for/fold: : (Map (U Sym Int) .V) ([acc : (Map (U Sym Int) .V) m]) ([k (in-hash-keys m)])
+          (match (hash-ref m k #f)
+            [#f acc]
+            [(? .V? V) (hash-set acc k (go! V))]))
+        l)]
+      ; List
+      [(? list? V*) (map go! V*)]))
+  (let ([V-new (go! V-old)])
+    (list σ-new V-new F)))
 
 ;;;;; REUSED CONSTANTS
 
@@ -73,7 +158,7 @@
   [♦ (→V •)] [V∅ (.μ/V '_ ∅)]
   [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
   [INT/C (Prim 'int?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'num?)]
-  [STR/C (Prim 'str?)] [PROC/C (Prim 'proc?)])
+  [STR/C (Prim 'str?)] [PROC/C (Prim 'proc?)] [SYM/C (Prim 'symbol?)])
 
 
 ;;;;; ENVIRONMENT
@@ -136,12 +221,16 @@
 (struct: .σ ([map : (Map Int (U .// .μ/V))] [next : Int]) #:transparent)
 (define σ∅ (.σ (hash) 0))
 
-(: σ@ : .σ (U .V Int) → .V)
+(: σ@ : (case→ [.σ (U .L Int) → (U .// .μ/V)]
+               [.σ .// → .//]
+               [.σ .μ/V → .μ/V]
+               [.σ .X/V → .X/V]
+               [.σ .V → .V]))
 (define (σ@ σ a)
   (match a
     [(.L i) (hash-ref (.σ-map σ) i)]
     [(? int? i) (hash-ref (.σ-map σ) i)]
-    [(? .V? V) V]))
+    [(and (? .V? V) (not (? .L?))) V]))
 
 ; allocates new location with given refinements.
 ; does NOT handle redundant/bogus refinements.
@@ -213,25 +302,44 @@
            [(_ _)
             (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ o (list (.x 2) (.x 1)) 'Λ)) 'Λ) #f) (ρ++ ρ∅ (list V1 V2)))]))]))
 
-(: V-abs : (case→ [.σ .V → .V]
+(: V-abs : (case→ [.σ .L → (U .// .μ/V)]
+                  [.σ .// → .//]
+                  [.σ .μ/V → .μ/V]
+                  [.σ (U .// .μ/V) → (U .// .μ/V)]
+                  [.σ .X/V → .X/V]
+                  [.σ .V → (U .// .μ/V .X/V)]
+                  [.σ .λ↓ → .λ↓]
+                  [.σ .U → .U]
                   [.σ (Listof .V) → (Listof .V)]
                   [.σ .ρ → .ρ]))
 (define (V-abs σ V*)
-  (: go : (case→ [.V → .V] [(Listof .V) → (Listof .V)] [.ρ → .ρ]))
+  (: go : (case→ [.L → (U .// .μ/V)]
+                 [.// → .//]
+                 [.μ/V → .μ/V]
+                 [(U .// .μ/V) → (U .// .μ/V)]
+                 [.X/V → .X/V]
+                 [.V → (U .// .μ/V .X/V)]
+                 [.λ↓ → .λ↓]
+                 [.U → .U]
+                 [(Listof .V) → (Listof .V)]
+                 [.ρ → .ρ]))
   (define go
     (match-lambda
       [(.L i) (go (σ@ σ i))]
-      [(and V (.// U C*))
-       (match U
-         [(.Ar C V′ l^3) (.// (.Ar (go C) (go V′) l^3) C*)]
-         [(.St t V*′) (.// (.St t (map go V*′)) C*)]
-         [(.λ↓ f ρ) (→V (.λ↓ f (go ρ)))]
-         [_ (.// U
-                 (for/set: .V ([C C*]
-                               #:unless ; discard dynamically generated refinements
-                               (match? C (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) _) 'Λ) #f) _) _)))
-                   C))])] ; FIXME: ok to ignore other forms??
-      [(? .V? V) V]
+      [(.// U C*)
+       (.// (go U)
+            (for/set: .V ([C C*]
+                          ;#:unless ; discard dynamically generated refinements
+                          #;(match? C (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) _) 'Λ) #f) _) _)))
+              C))]
+      ; FIXME: ok to ignore other forms??
+      [(? .μ/V? V) V]
+      [(? .X/V? V) V]
+      [(? .U? U) (match U
+                   [(.Ar C V′ l^3) (.Ar (go C) (go V′) l^3)]
+                   [(.St t V*′) (.St t (map go V*′))]
+                   [(.λ↓ f ρ) (.λ↓ f (go ρ))]
+                   [_ U])]
       [(? list? V*) (map go V*)]
       [(.ρ m l) (.ρ (for/fold ([m′ m]) ([(i V) (in-hash m)])
                       (hash-set m′ i (go V))) l)]))
@@ -299,6 +407,9 @@
           [(.λ 1 (.@ (.=) (list (.x 0) (.@ (.sub1) (list e) l)) g) #f)
            (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ (.-) (list e .one) l)) g) #f) ρ) C*)]
           [_ V])]
+       [(.Ar (.// (.Λ/C (list (.// (.λ↓ (.λ 1 (.b #t) _) _) _)) (.↓ (.bool?) _) _) _)
+             (and p (.// (or (? .pred?) (? .st-p?)) _)) _)
+        p]
        [(.Ar (.// (.Λ/C (list (.// (.λ↓ (.λ 1 (.b #t) _) _) _) ...) (.↓ (.λ 1 (.b #t) _) _) _) _)
              V _)
         (simplify V)]
@@ -329,6 +440,10 @@
           [(.if E0 E1 E2) (or (go E0) (go E1) (go E2))]
           [(.amb Es) (for/or ([E Es]) (go E))]
           [_ #f]))))
+
+(: unroll : .μ/V → (Setof .V))
+(define (unroll V)
+  (match-let ([(.μ/V x V*) V]) (V/ V* (.X/V x) V)))
 
 (: unroll/C : .μ/C → .V)
 (define (unroll/C U) (match-let ([(.μ/C x C′) U]) (C/ C′ x (→V U))))
@@ -414,9 +529,9 @@
   (go-ρ ρ)
   ac)
 
-(: ≃ : (case→ [.σ .V .σ .V → (Option .F)]
+#;(: ≃ : (case→ [.σ .V .σ .V → (Option .F)]
               [.σ (Listof .V) .σ (Listof .V) → (Option .F)]))
-(define (≃ σ0 x0 σ1 x1)
+#;(define (≃ σ0 x0 σ1 x1)
   
   (define-syntax-rule (∪ F G)
     (match F

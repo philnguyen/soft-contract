@@ -58,7 +58,7 @@
                                      (for/fold ([decs (hash-set*
                                                        decs
                                                        t (.λ/c field-cs strct-c #f)
-                                                       (gen-p t) .pred/c)])
+                                                       (gen-p t) .any/c #;.pred/c)])
                                        ([field field*] [field-c field-cs])
                                        (hash-set decs (gen-ac t field) (.λ/c (list strct-c) field-c #f))))]
                                   [`(,x ,c) (hash-set decs x (read-e syms l '() c))]))
@@ -105,7 +105,7 @@
     [`(implies ,e1 ,e2) (.if (go e1) (go e2) .tt)]
     [`(begin ,e) (go e)]
     [`(begin ,e* ...) (let ([n (length e*)])
-                        (.@ (.λ n (.x (- n 1)) #f) (map go e*) l))]
+                        (.@ (.λ n (.x 0) #f) (map go e*) l))]
     [`(cond [else ,e]) (go e)]
     [`(cond [,e1 ,e2] ,p ...) (.if (go e1) (go e2) (go `(cond ,@p)))]
     [`(let ([,x ,ex] ...) ,e) (go `((λ ,x ,e) ,@ex))]

@@ -31,24 +31,28 @@
 (define (show-V σ V)
   (match V
     [(.L i) (show-V σ (σ@ σ i))]
-    [(.// U C*)
-     (match U
-       [(.b b) (show-b b)]
-       [(.•) (if (set-empty? C*) '• `(• ,@(for/list: : (Listof Any) ([C C*]) (show-V σ C))))]
-       #;[(or (? .Ar?) (.o) (? .λ↓?)) 'function]
-       [(? .o? o) (name o)]
-       [(.λ↓ f _) (show-e f)]
-       [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
-       [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) e) _) _) _) _))) `(≠/c ,(show-e e))]
-       [(.St (and n (or 'and/c 'or/c '¬/c)) V*) `(,n ,@(show-V σ V*))]
-       [(.St t V*) `(,t ,@(show-V σ V*))]
-       [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
-       [(.St/C t V*) `(,(str→sym (str++ (sym→str t) "/c")) ,@(show-V σ V*))]
-       [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
-       [(.X/C x) x])]
+    [(.// U C*) (if (.•? U) `(• ,@(for/list: : (Listof Any) ([C C*]) (show-V σ C)))
+                    (show-U σ U))]
     [(.X/V x) x]
     [(.μ/V x V*) `(μ (,x) ,(for/list: : (Listof Any) ([V V*]) (show-V σ V)))]
     [(? list? V*) (map (curry show-V σ) V*)]))
+
+(: show-U : .σ .U → Any)
+(define (show-U σ U)
+  (match U
+    [(.b b) (show-b b)]
+    [(.•) '•]
+    #;[(or (? .Ar?) (.o) (? .λ↓?)) 'function]
+    [(? .o? o) (name o)]
+    [(.λ↓ f _) (show-e f)]
+    [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
+    [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) e) _) _) _) _))) `(≠/c ,(show-e e))]
+    [(.St (and n (or 'and/c 'or/c '¬/c)) V*) `(,n ,@(show-V σ V*))]
+    [(.St t V*) `(,t ,@(show-V σ V*))]
+    [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
+    [(.St/C t V*) `(,(str→sym (str++ (sym→str t) "/c")) ,@(show-V σ V*))]
+    [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
+    [(.X/C x) x]))
 
 (: show-ρ : .σ .ρ → Any)
 (define (show-ρ σ ρ)
@@ -104,13 +108,14 @@
       [(.st-ac 'cons _ 1) 'cdr]
       [(.st-ac t _ i) (str→sym (str++ (sym→str t) "@" (num→str i)))]
       [(.st-p t _) (str→sym (str++ (sym→str t) "?"))]
+      [(.sqrt) '√]
       [(? .o? o) (name o)]
       [(.x i) (ctx-ref ctx i)]
       [(.ref x _ _) x]
       [(.@ f xs _) `(,(go ctx f) ,@(map (curry go ctx) xs))]
       [(.@-havoc x) `(apply ,(go ctx x) •)]
       #;[(.apply f xs _) `(@ ,(go ctx f) ,(go ctx xs))]
-      [(.if i t e) `(,(go ctx i) ,(go ctx t) ,(go ctx e))]
+      [(.if i t e) `(if ,(go ctx i) ,(go ctx t) ,(go ctx e))]
       [(.amb e*) `(amb ,@(for/list: : (Listof Any) ([e e*]) (go ctx e)))]
       [(.μ/c x c) `(μ/c (,x) ,(go ctx c))]
       [(.λ/c c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
