@@ -394,63 +394,42 @@
    blocks-change-color blocks-row full-row? blocks-union
    blocks-max-x blocks-min-x blocks-max-y))
 
-
-(module elim-row racket  
-  (require (submod ".." data)
-           (submod ".." bset)
-           (submod ".." consts))
-  (define (elim-row bs i offset)
-    (cond
-      [(< i 0) bs]
-      [(full-row? bs i)
-       (elim-row (del-row bs i) (sub1 i) (add1 offset))]
-      [else (elim-row (blocks-union (del-row bs i)
-                                    (blocks-move 0 offset (blocks-row bs i)))
-                      (sub1 i)
-                      offset)]))
-  (define (del-row bs i)
-    (filter (λ (b) (not (= i (block-y b)))) bs))
-  (provide/contract
-   [elim-row (BSET/C integer? integer? . -> . BSET/C)]))
-
-(module unsafe-elim-row racket  
-  (require (submod ".." unsafe-data)
-           (submod ".." unsafe-bset)
-           (submod ".." unsafe-consts))
-  (define (elim-row bs i offset)
-    (cond
-      [(< i 0) bs]
-      [(full-row? bs i)
-       (elim-row (del-row bs i) (sub1 i) (add1 offset))]
-      [else (elim-row (blocks-union (del-row bs i)
-                                    (blocks-move 0 offset (blocks-row bs i)))
-                      (sub1 i)
-                      offset)]))
-  (define (del-row bs i)
-    (filter (λ (b) (not (= i (block-y b)))) bs))
-  (provide elim-row))
-
 (module elim racket
   (require (submod ".." data)
            (submod ".." bset)
-           (submod ".." consts)
-           (submod ".." elim-row))
+           (submod ".." consts))
+  
   ;; eliminate-full-rows : BSet -> BSet
   ;; Eliminate all full rows and shift down appropriately.
   (define (eliminate-full-rows bs)
     (elim-row bs board-height 0))
+  
+  (define (elim-row bs i offset)
+    (cond [(< i 0) empty]
+          [(full-row? bs i)   (elim-row bs (sub1 i) (add1 offset))]
+          [else (blocks-union (elim-row bs (sub1 i) offset)
+                              (blocks-move 0 offset (blocks-row
+                                                     bs i)))]))
   (provide/contract
    [eliminate-full-rows (BSET/C . -> . BSET/C)]))
 
 (module unsafe-elim racket
   (require (submod ".." unsafe-data)
            (submod ".." unsafe-bset)
-           (submod ".." unsafe-consts)
-           (submod ".." unsafe-elim-row))
+           (submod ".." unsafe-consts))
   ;; eliminate-full-rows : BSet -> BSet
   ;; Eliminate all full rows and shift down appropriately.
+  ;; eliminate-full-rows : BSet -> BSet
+;; Eliminate all full rows and shift down appropriately.
   (define (eliminate-full-rows bs)
     (elim-row bs board-height 0))
+  
+  (define (elim-row bs i offset)
+    (cond [(< i 0) empty]
+          [(full-row? bs i)   (elim-row bs (sub1 i) (add1 offset))]
+          [else (blocks-union (elim-row bs (sub1 i) offset)
+                              (blocks-move 0 offset (blocks-row
+                                                     bs i)))]))
   (provide eliminate-full-rows))
 
 
@@ -920,7 +899,6 @@
          (prefix-in unsafe: 'unsafe-image)
          (prefix-in unsafe: 'unsafe-list-fun)
          (prefix-in unsafe: 'unsafe-bset)
-         (prefix-in unsafe: 'unsafe-elim-row)
          (prefix-in unsafe: 'unsafe-elim)
          (prefix-in unsafe: 'unsafe-tetras)
          (prefix-in unsafe: 'unsafe-aux)
@@ -941,7 +919,7 @@
   (big-bang (world0)
             (on-tick (λ (w) (! `(on-tick)) (next-world w)) 1/5)
             (on-key (λ (w ke) (! `(on-key ,ke)) (world-key-move w ke)))
-            (to-draw (λ (w) (! `(to-draw)) (world->image w)))
+            (to-draw (λ (w) #;(! `(to-draw)) (world->image w)))
             (stop-when (λ (w) (! `(stop-when)) (blocks-overflow? (world-blocks w))))))
 
 #;(with-output-to-file "tetris-hist-1.txt"
@@ -951,30 +929,24 @@
     (write history)))
 
 (define (replay w0 hist)
-  (let loop ([w w0] [h hist])
-    (if (empty? h) w
-        (let ()
-          (loop (match (car h)
-                  [`(on-key ,ke) (world-key-move w ke)]
-                  [`(on-tick) (next-world w)]
-                  [`(to-draw) (world->image w) w]
-                  [`(stop-when)
-                   (λ (w) (blocks-overflow? (world-blocks w)))
-                   w])
-                (cdr h))))))
+  (for/fold ([w w0]) ([e hist])
+    (match e
+      [`(on-key ,ke) (world-key-move w ke)]
+      [`(on-tick) (next-world w)]
+      [`(to-draw) (world->image w) w]
+      [`(stop-when)
+       (λ (w) (blocks-overflow? (world-blocks w)))
+       w])))
 
 (define (unsafe:replay w0 hist)
-  (let loop ([w w0] [h hist])
-    (if (empty? h) w
-        (let ()
-          (loop (match (car h)
-                  [`(on-key ,ke) (unsafe:world-key-move w ke)]
-                  [`(on-tick) (unsafe:next-world w)]
-                  [`(to-draw) (unsafe:world->image w) w]
-                  [`(stop-when)
-                   (λ (w) (unsafe:blocks-overflow? (unsafe:world-blocks w)))
-                   w])
-                (cdr h))))))
+  (for/fold ([w w0]) ([e hist])
+    (match e
+      [`(on-key ,ke) (unsafe:world-key-move w ke)]
+      [`(on-tick) (unsafe:next-world w)]
+      [`(to-draw) (unsafe:world->image w) w]
+      [`(stop-when)
+       (λ (w) (unsafe:blocks-overflow? (unsafe:world-blocks w)))
+       w])))
 
 (define w0 (world0))
 (define unsafe:w0 (unsafe:world0))
