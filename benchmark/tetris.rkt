@@ -1,10 +1,10 @@
 #lang racket
 
 (module data racket  
-  (struct posn (x y))
-  (struct block (x y color))
-  (struct tetra (center blocks))
-  (struct world (tetra blocks))
+  (struct posn (x y) #:transparent)
+  (struct block (x y color) #:transparent)
+  (struct tetra (center blocks) #:transparent)
+  (struct world (tetra blocks) #:transparent)
   
   (define COLOR/C symbol?)
   (define POSN/C (struct/c posn real? real?))
@@ -31,10 +31,10 @@
    BSET/C))
 
 (module unsafe-data racket
-  (struct posn (x y))
-  (struct block (x y color))
-  (struct tetra (center blocks))
-  (struct world (tetra blocks))
+  (struct posn (x y) #:transparent)
+  (struct block (x y color) #:transparent)
+  (struct tetra (center blocks) #:transparent)
+  (struct world (tetra blocks) #:transparent)
   
   (define COLOR/C symbol?)
   (define POSN/C (struct/c posn real? real?))
@@ -547,8 +547,13 @@
   (require (submod ".." data)
            (submod ".." tetras))  
   
+  (define r (make-pseudo-random-generator))
+  (parameterize ((current-pseudo-random-generator r))
+		(random-seed 43453))
+
+
   (define (list-pick-random ls)
-    (list-ref ls (random (length ls))))
+    (list-ref ls (random (length ls) r)))
   
   (define neg-1 -1)
   
@@ -571,8 +576,13 @@
   (require (submod ".." unsafe-data)
            (submod ".." unsafe-tetras))  
   
+  (define r (make-pseudo-random-generator))
+  (parameterize ((current-pseudo-random-generator r))
+		(random-seed 43453))
+
+
   (define (list-pick-random ls)
-    (list-ref ls (random (length ls))))
+    (list-ref ls (random (length ls) r)))
   
   (define neg-1 -1)
   
@@ -915,6 +925,7 @@
             (to-draw (λ (w) (world->scene w)))
             (stop-when (λ (w) (! `(stop-when)) (game-over? w)))))
 
+(provide play)
 (define (play)
   (big-bang (world0)
             (on-tick (λ (w) (! `(on-tick)) (next-world w)) 1/5)
@@ -922,14 +933,17 @@
             (to-draw (λ (w) #;(! `(to-draw)) (world->image w)))
             (stop-when (λ (w) (! `(stop-when)) (blocks-overflow? (world-blocks w))))))
 
-#;(with-output-to-file "tetris-hist-1.txt"
+#;
+(with-output-to-file "tetris-hist-3.txt"
   (λ ()
     (set! history empty)
-    (play)
+    (with-output-to-file "tetris-sanity.txt" (lambda () (write (play))))
     (write history)))
+    
 
 (define (replay w0 hist)
   (for/fold ([w w0]) ([e hist])
+    (printf "~a~n" e)
     (match e
       [`(on-key ,ke) (world-key-move w ke)]
       [`(on-tick) (next-world w)]
