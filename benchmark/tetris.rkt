@@ -943,7 +943,7 @@
 
 (define (replay w0 hist)
   (for/fold ([w w0]) ([e hist])
-    (printf "~a~n" e)
+    #;(printf "~a~n" e)
     (match e
       [`(on-key ,ke) (world-key-move w ke)]
       [`(on-tick) (next-world w)]
