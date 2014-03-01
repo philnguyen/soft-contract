@@ -94,10 +94,10 @@
         (let ([X1 (if (.•? U1) V1 W1)]
               [X2 (if (.•? U2) V2 W2)])
           (cond
-            [(eq? 'Proved (⊢′ σ X1 ZERO/C)) (cons σ ZERO)]
-            [(eq? 'Proved (⊢′ σ X2 ZERO/C)) (cons σ ZERO)]
-            [(eq? 'Proved (⊢′ σ X1 ONE/C)) (cons σ X2)]
-            [(eq? 'Proved (⊢′ σ X2 ONE/C)) (cons σ X1)]
+            [(eq? 'Proved (⊢ σ X1 ZERO/C)) (cons σ ZERO)]
+            [(eq? 'Proved (⊢ σ X2 ZERO/C)) (cons σ ZERO)]
+            [(eq? 'Proved (⊢ σ X1 ONE/C)) (cons σ X2)]
+            [(eq? 'Proved (⊢ σ X2 ONE/C)) (cons σ X1)]
             [else (σ+ σ
                       (cond [(all-prove? σ V* INT/C) INT/C]
                             [(all-prove? σ V* REAL/C) REAL/C]
@@ -114,16 +114,16 @@
         (let ([X1 (if (.•? U1) V1 W1)]
               [X2 (if (.•? U2) V2 W2)])
           (cond
-            [(eq? 'Proved (⊢′ σ X1 ZERO/C)) (cons σ ZERO)]
+            [(eq? 'Proved (⊢ σ X1 ZERO/C)) (cons σ ZERO)]
             [else (σ+ σ
                       (cond [(all-prove? σ V* REAL/C) REAL/C]
                             [else NUM/C])
                       (cond [(all-prove? σ V* POS/C) POS/C]
                             [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
-                            [(eq? 'Proved (⊢′ σ V1 NON-ZERO/C)) NON-ZERO/C]
+                            [(eq? 'Proved (⊢ σ V1 NON-ZERO/C)) NON-ZERO/C]
                             [else #f])
                       (÷/C X1 X2)
-                      (if (eq? 'Proved (⊢′ σ X1 NON-ZERO/C)) NON-ZERO/C #f))]))])]
+                      (if (eq? 'Proved (⊢ σ X1 NON-ZERO/C)) NON-ZERO/C #f))]))])]
     [((.+) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (+ x y)))]
@@ -131,9 +131,9 @@
         (let ([X1 (if (.•? U1) V1 W1)]
               [X2 (if (.•? U2) V2 W2)])
           (cond
-            [(eq? 'Proved (⊢′ σ X1 ZERO/C)) (cons σ X2)]
-            [(eq? 'Proved (⊢′ σ X2 ZERO/C)) (cons σ X1)]
-            [else (σ+ σ
+            [(eq? 'Proved (⊢ σ X1 ZERO/C)) (cons σ X2)]
+            [(eq? 'Proved (⊢ σ X2 ZERO/C)) (cons σ X1)]
+            [else (match-let ([ans (σ+ σ
                       (cond [(all-prove? σ V* INT/C) INT/C]
                             [(all-prove? σ V* REAL/C) REAL/C]
                             [else NUM/C])
@@ -142,7 +142,8 @@
                             [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
                             [(all-prove? σ V* NON-POS/C) NON-POS/C]
                             [else #f])
-                      (+/C X1 X2))]))])]
+                      (+/C X1 X2))])
+                    ans)]))])]
     [((.-) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (- x y)))]
@@ -151,7 +152,7 @@
               [X2 (if (.•? U2) V2 W2)])
           (cond
             [(and (.L? X1) (.L? X2) (equal? X1 X2)) (cons σ ZERO)]
-            [(eq? 'Proved (⊢′ σ X2 ZERO/C)) (cons σ X1)]
+            [(eq? 'Proved (⊢ σ X2 ZERO/C)) (cons σ X1)]
             [else (σ+ σ
                       (cond [(all-prove? σ V* INT/C) INT/C]
                             [(all-prove? σ V* REAL/C) REAL/C]
@@ -163,14 +164,14 @@
        [(list (and W (.// U _)))
         (let ([X (if (.•? U) V W)])
           (cond
-            [(eq? 'Proved (⊢′ σ X ZERO/C)) (cons σ ZERO)]
+            [(eq? 'Proved (⊢ σ X ZERO/C)) (cons σ ZERO)]
             [else (σ+ σ
                       (cond [(equal? 'Proved (⊢ σ V POS/C)) {set REAL/C POS/C}]
                             [(equal? 'Proved (⊢ σ V NON-NEG/C)) {set REAL/C NON-NEG/C}]
                             [(equal? 'Proved (⊢ σ V NEG/C)) {set NUM/C (.¬/C REAL/C)}]
                             [else NUM/C])
                       (sqrt/C V))]))])]
-    
+    [((.<) (list (.L i) (.L i))) (cons σ FF)]
     [((.<) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? real? x)) _) (.// (.b (? real? y)) _)) (cons σ (Prim (< x y)))]
@@ -202,11 +203,14 @@
                         [(_ _) (cons σ 'ignore)])])
                   {set (cons σt TT) (cons σf FF)})])]))])]
     [((.>) (list V1 V2)) (Δ σ (.<) (list V2 V1))]
+    [((.>) (list (.L i) (.L i))) (cons σ FF)]
+    [((.≥) (list (.L i) (.L i))) (cons σ TT)]
     [((.≥) (list V1 V2)) (match/Vns* (Δ σ (.<) (list V1 V2))
                            [(cons σt (.// (.b #t) _)) (cons σt FF)]
                            [(cons σf (.// (.b #f) _)) (cons σf TT)])]
+    [((.≤) (list (.L i) (.L i))) (cons σ TT)]
     [((.≤) (list V1 V2)) (Δ σ (.≥) (list V2 V1))]
-    #;[((.=) (list (.L i) (.L i))) (cons σ TT)]
+    [((.=) (list (.L i) (.L i))) (cons σ TT)]
     [((.=) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (= x y)))]
@@ -301,6 +305,7 @@
 (define (refine1 σ V C)
   (let ([C (simplify C)])
     #;(printf "refine1:~n~a~n~a~n~a~n~n" (show-σ σ) (show-E σ V) (show-E σ C))
+    (when (match? C (.// (.•) _)) (error "ha!"))
     (match V
       [(.L i) (match-let ([(cons σ′ V′) (refine1 σ (σ@ σ i) C)])
                 (match V′
@@ -362,16 +367,17 @@
       [(and (.μ/V x V*) V)
        (let*-values ([(σ′ V*′)
                       (for/fold: ([σ : .σ σ] [Vs : (Setof .V) ∅]) ([Vi V*])
-                        (match (⊢′ σ Vi C)
+                        (match (⊢ σ Vi C)
                           ['Proved (values σ (set-add Vs Vi))]
                           ['Refuted (values σ Vs)]
-                          ['Neither (match-let ([(cons σ′ Vj) (refine1 σ Vi C)])
-                                      (values σ′ (set-add Vs Vj)))]))])
-         #;(printf "new V* is ~a~n~n" V*′)
+                          ['Neither (match-let* ([(cons σ′ Vj) (refine1 σ Vi C)]
+                                                 [(cons Vj′ Vs′) (elim-μ x Vj)])
+                                      (values σ′ (compact (compact Vs Vs′) {set Vj′})))]))])
+         #;(printf "new V* is ~a~n~n" (for/set: Any ([Vi V*′]) (show-V σ′ Vi)))
          (match (set-count V*′)
            [0 (error "bogus refinement") #;V∅]
            [1 (cons σ′ (V/ (set-first V*′) (.X/V x) V))]
-           [_ (cons σ′ (.μ/V x V*′))]))]
+           [_ (cons σ′ (μV x V*′))]))]
       [(? .X/V? x) (cons σ x)]))) ; abuse μ for non-inductive set
 
 (: refine* : .σ (Listof .V) (Listof .V) → (Pairof .σ (Listof .V)))
@@ -530,16 +536,18 @@
        [((? .V? V0) (? .V? V1))
         #;(printf "⊕:~n~a~nand~n~a~n~n" (show-Ans σ∅ V0) (show-Ans σ∅ V1))
         #;(printf "⊕:~n~a~nand~n~a~n~n" V0 V1)
-        (cond
+        (let: ([ans : .V (cond
           [(V∈ V1 V0) V1] ; postpone approximation if value shrinks
-          [(and (.//? V1) (.•? (.//-pre V1)) (= 1 (set-count (.//-refine V1)))) V1]
-          [(equal? V0 ♦) ♦]
+          #;[(and (.//? V1) (.•? (.//-pre V1)) (= 1 (set-count (.//-refine V1)))) V1]
+          #;[(equal? V0 ♦) ♦]
+          [(⊑ V1 V0) V0]
+          [(⊑ V0 V1) V1]
           [else
            (match* (V0 V1)
              [((.// U0 C*) (.// U1 D*))
               (match* (U0 U1)
-                ; keep around certain values from built-in, finite sets
-                [(_ (or (? .o?) (.b 0) (.b 1) (.b #t) (.b #f) (.St _ '()))) V1]
+                ; keep around common values: 0, 1, #t, #f, struct with no component
+                [(_ (or (.•) (? .o?) (.b 0) (.b 1) (.b #t) (.b #f) (.St _ '()))) V1]
                 ; cannot blur higher order value
                 [(_ (.λ↓ f ρ))
                  (let ([repeated (repeated-lambdas f ρ)])
@@ -547,15 +555,15 @@
                    (match (set-count repeated)
                      [0 V1]
                      ; TODO: μ introduced outside here. Am i sure there's none inside?
-                     [_ (let ([V′ (.μ/V 'X (set-add repeated (for/fold: ([V1 : .V V1]) ([Vi repeated])
-                                                               (V/ V1 Vi (.X/V 'X)))))])
+                     [_ (let ([V′ (μV 'X (set-add repeated (for/fold: ([V1 : .V V1]) ([Vi repeated])
+                                                             (V/ V1 Vi (.X/V 'X)))))])
                           #;(printf "~a~n⇒⊕~n~a~n~n" V1 V′)
                           V′)]))]
                 [((.Ar C V0 l) (.Ar C V1 l))
                  (.// (.Ar C (⊕ V0 V1) l) (set-intersect C* D*))]
                 [(_ (or (? .λ?) (? .Ar?))) V1]
                 [((.St t V0*) (.St t V1*)) (.// (.St t (⊕ V0* V1*)) (set-intersect C* D*))]
-                [(_ (.St t V1*)) #;(printf "case1~n")
+                [(_ (.St t V1*)) #;(printf "⊕:case1~n")
                                  #;(printf "⊕:~n~a~nand~n~a~n~n" (show-E σ∅ V0) (show-E σ∅ V1))
                                  (match-let* ([x 'X #;(fresh V1*)]
                                               [Vi* (V/ V1* V0 (.X/V x))]
@@ -565,7 +573,7 @@
                                        (.// (.St t (V/ Vi* (.X/V x) (μV x (compact {set V0 (.// (.St t Vi*) ∅)} Vs)))) D*)))]
                 [((.b (? num? b0)) (.b (? num? b1)))
                  (cond ; if it moves towards 0, let it take its time
-                   [(and (int? b0) (int? b1) (or (<= 0 b1 b0) (>= 0 b1 b0))) V1]
+                   #;[(and (int? b0) (int? b1) (or (<= 0 b1 b0) (>= 0 b1 b0))) V1]
                    [else
                     (.// • (set-add
                             (cond [(and (real? b0) (real? b1))
@@ -584,15 +592,18 @@
                    (.// • (for/set: .V ([D (set-union D* (U^ U1))]
                                         #:when (eq? 'Proved (C*⇒C C* D)))
                             D)))])]
-             [((.μ/V x V0*) (.μ/V y V1*)) #;(printf "case2~n") (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
-             [((.μ/V x V0*) _) #;(printf "case3~n")
+             [((.μ/V x V0*) (.μ/V y V1*)) #;(printf "⊕:case2~n") (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
+             [((.μ/V x V0*) _) #;(printf "⊕:case3~n")
                                (match-let ([(cons V1′ Vs) (dbg/off 'case3 (elim-μ x (V/ V1 V0 (.X/V x))))])
                                  (μV x (dbg/off 'compact1 (compact (dbg/off 'compact0 (compact V0* {set V1′})) Vs))))]
-             [(_ (.μ/V x V1*)) #;(printf "case4~n")
+             [(_ (.μ/V x V1*)) #;(printf "⊕:case4~n")
                                (match-let ([(cons V0′ Vs) (elim-μ x (V/ V0 V1 (.X/V x)))])
                                  (μV x (compact (compact {set V0′} Vs) V1*)))]
              [((? .X/V? x) _) x]
-             [(_ (? .X/V? x)) x])])]
+             [(_ (? .X/V? x)) x])])])
+          #;(printf "⊕:~n~a~nand~n~a~nis~n~a~n~n" (show-Ans σ∅ V0) (show-Ans σ∅ V1) (show-Ans σ∅ ans))
+          (check ans)
+          ans)]
        [((and ρ0 (.ρ m0 l0)) (and ρ1 (.ρ m1 l1)))
         (let* ([l (max l0 l1)]
                [m (for/fold: ([m : (Map (U Int Sym) .V) (hash)]) ([sd (in-range 0 l)])
@@ -607,6 +618,14 @@
                [m (for/fold: ([m : (Map (U Int Sym) .V) m]) ([k (in-hash-keys m1)] #:when (sym? k))
                     (hash-set m k (hash-ref m1 k)))])
           (.ρ m l))])]))
+
+(: check : (case→ [.V → Void]
+                  [.V Int → Void]))
+(define (check V [i 1])
+  (match V
+    [(.μ/V _ V*) (if (<= i 0) (error "no!") (for: : Void ([Vi V*]) (check Vi (- i 1))))]
+    [(.// (.St _ V*) _) (for: : Void ([Vi V*]) (check Vi))]
+    [_ (void)]))
 
 ;; remove all sub-μ. TODO: generalize allowed μ-depth
 (: elim-μ : (case→ [Sym .V → (Pairof .V (Setof .V))]
@@ -639,6 +658,7 @@
 ; simplify to • if body has •
 (: μV : Sym (Setof .V) → .V)
 (define (μV x V*)
+  #;(for: : Void ([Vi V*]) (check Vi 0))
   (let ([V* (for/set: .V ([V V*] #:unless (equal? V (.X/V x))) V)])
     (cond
       [(set-member? V* ♦) ♦]
@@ -679,7 +699,7 @@
                          xs)]
            [(or (? .Ar?) (? .λ↓?) (.o)) (values (hash-set m 'proc? V) xs)] ; TODO: by arity also?
            [(.St t _) (values (hash-set m `(struct ,t) V) xs)])]
-        [(? .μ/V? V) (error "weird") (values (hash-set m 'μ V) xs)]
+        [(? .μ/V? V) (error (format "weird:~n~a~n~a~n~n" V0s V1s)) (values (hash-set m 'μ V) xs)]
         [(? .X/V? x) (values m (set-add xs x))])))
   
   (: merge : (.V .V → (Pairof .V (Setof .V))))
@@ -769,10 +789,10 @@
        [(.St 'and/c (list C1 C2)) (refine-V (reify C1) C2)]
        [(.St 'or/c (list C1 C2))
         (match* ((reify C1) (reify C2))
-          [((.μ/V x V1*) (.μ/V z V2*)) (.μ/V x {set-union V1* (V/ V2* (.X/V z) (.X/V x))})]
-          [((and V1 (.μ/V x V1*)) V2) (.μ/V x (set-add V1* (V/ V2 V1 (.X/V x))))]
-          [(V1 (and V2 (.μ/V x V2*))) (.μ/V x (set-add V2* (V/ V1 V2 (.X/V x))))]
-          [(V1 V2) (if (equal? V1 V2) V1 (.μ/V '_ {set V1 V2}))])]
+          [((.μ/V x V1*) (.μ/V z V2*)) (μV x {set-union V1* (V/ V2* (.X/V z) (.X/V x))})]
+          [((and V1 (.μ/V x V1*)) V2) (μV x (set-add V1* (V/ V2 V1 (.X/V x))))]
+          [(V1 (and V2 (.μ/V x V2*))) (μV x (set-add V2* (V/ V1 V2 (.X/V x))))]
+          [(V1 V2) (if (equal? V1 V2) V1 (μV '_ {set V1 V2}))])]
        [(.St/C t D*) (→V (.St t (map reify D*)))]
        [(.μ/C x D) (match (reify D)
                      [(.μ/V '_ V*) (μV x V*)]

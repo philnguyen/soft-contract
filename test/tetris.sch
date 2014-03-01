@@ -193,24 +193,17 @@
 (module elim
   (provide
    [eliminate-full-rows (BSET/C . -> . BSET/C)])
-  (require data bset consts elim-row)
+  (require data bset consts)
   ;; eliminate-full-rows : BSet -> BSet
   ;; Eliminate all full rows and shift down appropriately.
   (define (eliminate-full-rows bs)
-    (elim-row bs board-height 0)))
-
-(module elim-row
-  (provide
-   [elim-row (BSET/C int? int? . -> . BSET/C)])
-  (require data bset consts)
+    (elim-row bs board-height 0))
+  
   (define (elim-row bs i offset)
-    (cond
-      [(< i 0) bs]
-      [(full-row? bs i) (elim-row bs (sub1 i) (add1 offset))]
-      [else (elim-row (blocks-union bs
-                                    (blocks-move 0 offset (blocks-row bs i)))
-                      (sub1 i)
-                      offset)])))
+    (cond [(< i 0) empty]
+          [(full-row? bs i)   (elim-row bs (sub1 i) (add1 offset))]
+          [else (blocks-union (elim-row bs (sub1 i) offset)
+                              (blocks-move 0 offset (blocks-row bs i)))])))
 
 (module tetras
   (provide ;[tetras (listof TETRA/C)]
@@ -418,7 +411,7 @@
   (define (world0)
     (world (list-pick-random tetras) #f)))
 
-(require block bset data elim-row elim tetras visual image world)
+(require block bset data elim tetras visual image world)
 (amb
  (block-rotate-cw • •)
  (block-rotate-ccw • •)
@@ -453,7 +446,6 @@
  (block-color •)
  (block-x •)
  (block-y •)
- (elim-row • • •)
  (eliminate-full-rows •)
  (tetra-overlaps-blocks? • •)
  (build-tetra-blocks • • • • • • • • • • •) 

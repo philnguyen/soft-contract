@@ -3,18 +3,18 @@
 (provide (all-defined-out))
 
 (:* [all-prove? all-refute? some-proves? some-refutes?] : .σ (Listof .V) .V → Bool)
-(define (all-prove? σ V* C) (for/and ([V V*]) (match? (⊢′ σ V C) 'Proved)))
-(define (all-refute? σ V* C) (for/and ([V V*]) (match? (⊢′ σ V C) 'Refuted)))
-(define (some-proves? σ V* C) (for/or ([V V*]) (match? (⊢′ σ V C) 'Proved)))
-(define (some-refutes? σ V* C) (for/or ([V V*]) (match? (⊢′ σ V C) 'Refuted)))
+(define (all-prove? σ V* C) (for/and ([V V*]) (match? (⊢ σ V C) 'Proved)))
+(define (all-refute? σ V* C) (for/and ([V V*]) (match? (⊢ σ V C) 'Refuted)))
+(define (some-proves? σ V* C) (for/or ([V V*]) (match? (⊢ σ V C) 'Proved)))
+(define (some-refutes? σ V* C) (for/or ([V V*]) (match? (⊢ σ V C) 'Refuted)))
 
 (: ⊢ : .σ .V .V → .R)
 (define (⊢ σ V C)
-  #;(printf "⊢:~nV:~a~nC:~a~n~n" (show-E σ V) (show-E σ C))
+  #;(printf "⊢:~nV:~a~nC:~a~n~n" V C #;(show-E σ V) #;(show-E σ C))
   (let ([C (simplify C)])
     (match (⊢′ σ V C)
       ['Neither (query σ V C)]
-      [r r])))
+      [r #;(printf "Ans: ~a~n~n" r) r])))
 
 ; internal, lightweight, lo-tech prover
 (: ⊢′ : (case→ [.σ .V .V → .R]
@@ -30,7 +30,8 @@
   
   (: go : (case→ [.V .V → .R] [.U .V → .R] [.U .U → .R]))
   (define (go V C)
-    (cond
+    (let: ([ans : .R
+           (cond
       [(assumed? (cons V C)) 'Proved]
       [else
        (match* (V C)
@@ -55,8 +56,7 @@
                    [(for/and: : Bool ([ri r]) (equal? ri 'Proved)) 'Proved]
                    [(for/and: : Bool ([ri r]) (equal? ri 'Refuted)) 'Refuted]
                    [else 'Neither])]))]
-         [((.X/V x) C) #;(if (assumed? (cons V C)) 'Proved 'Neither)
-                       (error "⊢′: impossible")]
+         [((.X/V x) C) 'Proved]
          
          ; U ∈ C
          [((? .U? U) (? .V? C))
@@ -166,7 +166,9 @@
             [(_ (and Uc (.μ/C x C′))) (assume! (cons V C)) (go U (unroll/C Uc))]
             
             ; conservative default
-            [(_ _) 'Neither])])]))
+            [(_ _) 'Neither])])])])
+      #;(printf "go:~nV: ~a~nC: ~a~nans: ~a~n~n" V C ans)
+      ans))
   (go V C))
 
 (: C*⇒C*? : (Setof .V) (Setof .V) → Bool)
@@ -190,6 +192,7 @@
 ; checks whether first contract proves second
 (: C⇒C : .V .V → .R)
 (define (C⇒C C D)
+  #;(printf "C:~n~a~nD:~n~a~n~n" C D)
   (let: go ([C C] [D D] [assume : (Setof (Pairof .V .V)) ∅])
     (cond
       [(C≃ C D) 'Proved]
@@ -359,67 +362,77 @@
 (: decide-R : Bool → .R)
 (define decide-R (match-lambda [#t 'Proved] [#f 'Refuted]))
 
-(: ⊑ : .σ .σ → (case→
-                [.V .V → (Option .F)]
-                [(Listof .V) (Listof .V) → (Option .F)]
-                [.ρ .ρ → (Option .F)]))
-(define (⊑ σ0 σ1)
-  (define: F : .F (hash))
-  (define-set: assume : (Pairof .V .V) (assumed? assume!))
-  
-  (: go : (case→ [.V .V → Bool]
-                 [(Listof .V) (Listof .V) → Bool]
-                 [.ρ .ρ → Bool]))
-  (define (go x y)
-    #;(printf "go ~a ~a~n" x y)
-    (match* (x y)
-      [((? .V? V0) (? .V? V1))
-       (or        
-        (assumed? (cons V0 V1))
-        (match* (V0 V1)
-          [((.// U0 C*) (.// U1 D*))
-           (match* (U0 U1)
-             [((.•) (.•)) (C*⇒C*? C* D*)]
-             [((.St t V0*) (.St t V1*)) (andmap go V0* V1*)]             
-             [(_ (.•))
-              (match U0
-                [(.b (? int?)) (C*⇒C*? (set-add C* INT/C) D*)]
-                [(.b (? real?)) (C*⇒C*? (set-add C* REAL/C) D*)]
-                [(.b (? num?)) (C*⇒C*? (set-add C* NUM/C) D*)]
-                [(.b (? str?)) (C*⇒C*? (set-add C* STR/C) D*)]
-                [(.b (? sym?)) (C*⇒C*? (set-add C* SYM/C) D*)]
-                [_ (C*⇒C*? C* D*)])]
-             [(_ _) (equal? U0 U1)])]
-          [((.L i) (.L j))
-           (match (hash-ref F j #f)
-             [#f #;(printf "no key~n")
-                 (if (go (σ@ σ0 i) (σ@ σ1 j))
-                     (begin #;(printf "lookedup yes~n")(set! F (hash-set F j i)) #t)
-                     #f)]
-             [(? int? i′) #;(printf "yes key~n")(= i i′)])]
-          [((.L i) _) (go (σ@ σ0 i) V1)]
-          [(_ (.L j)) (go V0 (σ@ σ1 j))]
-          [((? .μ/V? V0) (? .μ/V? V1))
-           (assume! (cons V0 V1))
-           (for/and: : Bool ([V0i (unroll V0)])
-             (for/or: : Bool ([V1i (unroll V1)]) ;FIXME: may screw up F
-               (go V0i V1i)))]
-          [(_ (? .μ/V? V1))
-           (assume! (cons V0 V1))
-           (for/or: : Bool ([V1i (unroll V1)]) (go V0 V1i))] ; FIXME: may screw up F
-          [((? .μ/V? V0) _)
-           (assume! (cons V0 V1))
-           (for/and ([V0i (unroll V0)]) (go V0i V1))]
-          [(_ _) #f]))]
-      [((.ρ m0 l0) (.ρ m1 l1))
-       (for/and ([i (in-range 0 (max l0 l1))])
-         (match* ((hash-ref m0 (- l0 i 1) #f) (hash-ref m1 (- l1 i 1) #f))
-           [((? .V? V0) (? .V? V1)) (go V0 V1)]
-           [(#f #f) #t]
-           [(_ _) #f]))]
-      [((? list? V0*) (? list? V1*)) (andmap go V0* V1*)]))
-  (λ (V0 V1) (if (go V0 V1) F #f)))
-
+(: ⊑ : (case→ [.σ .σ → (case→
+                        [.V .V → (Option .F)]
+                        [(Listof .V) (Listof .V) → (Option .F)]
+                        [.ρ .ρ → (Option .F)])]
+              [.V .V → (Option .F)]
+              [(Listof .V) (Listof .V) → (Option .F)]))
+(define ⊑
+  (match-lambda**
+      [((? .σ? σ0) (? .σ? σ1))
+       (define: F : .F (hash))
+       (define-set: assume : (Pairof .V .V) (assumed? assume!))  
+       
+       (: go! : (case→ [.V .V → Bool]
+                       [(Listof .V) (Listof .V) → Bool]
+                       [.ρ .ρ → Bool]))
+       (define (go! x y)
+         #;(printf "go:~nσ0:~n~a~nσ1:~n~a~nV0:~n~a~nV1:~n~a~n~n" σ0 σ1 x y)
+         (match* (x y)
+           [((? .V? V0) (? .V? V1))
+            (or        
+             (assumed? (cons V0 V1))
+             (match* (V0 V1)
+               [((.// U0 C*) (.// U1 D*))
+                (match* (U0 U1)
+                  [((.•) (.•)) (C*⇒C*? C* D*)]
+                  [((.St t V0*) (.St t V1*)) (andmap go! V0* V1*)]
+                  [((.Ar C1 V1 _) (.Ar C2 V2 _)) (and (equal? C1 C2) (go! V1 V2))]
+                  [((.λ↓ e0 ρ0) (.λ↓ e1 ρ1)) (and (equal? e0 e1) (go! ρ0 ρ1))]
+                  [(_ (.•))
+                   (match U0
+                     [(.b (? int?)) (C*⇒C*? (set-add C* INT/C) D*)]
+                     [(.b (? real?)) (C*⇒C*? (set-add C* REAL/C) D*)]
+                     [(.b (? num?)) (C*⇒C*? (set-add C* NUM/C) D*)]
+                     [(.b (? str?)) (C*⇒C*? (set-add C* STR/C) D*)]
+                     [(.b (? sym?)) (C*⇒C*? (set-add C* SYM/C) D*)]
+                     [_ (C*⇒C*? C* D*)])]
+                  [(_ _) (equal? U0 U1)])]
+               [((.L i) (.L j))
+                (match (hash-ref F j #f)
+                  [#f #;(printf "no key~n")
+                      (if (go! (σ@ σ0 i) (σ@ σ1 j))
+                          (begin #;(printf "lookedup yes~n")(set! F (hash-set F j i)) #t)
+                          #f)]
+                  [(? int? i′) #;(printf "yes key~n")(= i i′)])]
+               [((.L i) _) (go! (σ@ σ0 i) V1)]
+               [(_ (.L j)) (go! V0 (σ@ σ1 j))]
+               [((? .μ/V? V0) (? .μ/V? V1))
+                (assume! (cons V0 V1))
+                (for/and: : Bool ([V0i (unroll V0)])
+                  (for/or: : Bool ([V1i (unroll V1)]) ;FIXME: may screw up F
+                    (let ([G F])
+                      (or (go! V0i V1i) (begin (set! F G) #f)))))]
+               [(_ (? .μ/V? V1))
+                (assume! (cons V0 V1))
+                (for/or: : Bool ([V1i (unroll V1)])
+                  (let ([G F])
+                    (or (go! V0 V1i) (begin (set! F G) #f))))] ; FIXME: may screw up F
+               [((? .μ/V? V0) _)
+                (assume! (cons V0 V1))
+                (for/and ([V0i (unroll V0)]) (go! V0i V1))]
+               [(_ _) #f]))]
+           [((.ρ m0 l0) (.ρ m1 l1))
+            (for/and ([i (in-range 0 (max l0 l1))])
+              (match* ((hash-ref m0 (- l0 i 1) #f) (hash-ref m1 (- l1 i 1) #f))
+                [((? .V? V0) (? .V? V1)) (go! V0 V1)]
+                [(#f #f) #t]
+                [(_ _) #f]))]
+           [((? list? V0*) (? list? V1*)) (andmap go! V0* V1*)]))
+       (λ (V0 V1) (if (go! V0 V1) F #f))]
+    [((? .V? V0) (? .V? V1)) ((⊑ σ∅ σ∅) V0 V1)]
+    [((? list? l0) (? list? l1)) ((⊑ σ∅ σ∅) l0 l1)]))
 
 
 (: C≃ : (case→ [.V .V → Bool]

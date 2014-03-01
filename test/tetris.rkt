@@ -40,7 +40,7 @@
       [board-width int?]
       [board-height int?])
      (define block-size 20)
-     (define board-height 20)
+     #'(define board-height 20)
      (define board-width 10)))
 
 (define MODL-BLOCK

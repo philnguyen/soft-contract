@@ -8,9 +8,12 @@
 (define-type N Nonnegative-Integer)
 (define-type Bm-Result (List .ς+ N N N))
 
-(define: mode : Mode 'tex)
+(define: mode : Mode 'verbose)
 (define: files : (Listof String) '())
-(define TIMEOUT 30)
+(define TIMEOUT 1200)
+(define ITER 10)
+(: avg : Real → Real)
+(define (avg x) (* (/ x ITER) 1.0))
 
 (command-line
  #:once-each
@@ -37,17 +40,23 @@
 (: benchmark : (.p → .ς+) .p → (U #f (List Bm-Result)))
 (define (benchmark ev p)
   (collect-garbage)
+  (collect-garbage)
   (within-time: Bm-Result
                 TIMEOUT
                 (let-values: ([([r : (List .ς+)] [t1 : N] [t2 : N] [t3 : N])
-                               (time-app ev (list p))])
+                               (time-app
+                                (λ (p) ; can't get for/last to type check...
+                                  (let: ([ans : .ς+ ∅])
+                                    (for: : Void ([i ITER]) (set! ans (ev p)))
+                                    ans))
+                                (list p))])
                   (list (first r) t1 t2 t3))))
 
 (define-syntax-rule (+! x v) (when (number? v) (set! x (+ x v))))
 
-(when (eq? mode 'tex)
+#;(when (eq? mode 'tex)
   (printf "Program & Lines & Checks & T1 & B1 & T2 & B2\\\\ \\hline \\hline~n"))
-(define-values (L C T1 T2 B1 B2) (values 0 0 0 0 0 0))
+#;(define-values (L C T1 T2 B1 B2) (values 0 0 0 0 0 0))
 (for ([fn files] #:when (regexp-match? #rx"sch$" fn))
   (let* ([lines (for/sum: : Int ([s (file->lines fn)]
                                  #:unless (regexp-match? #rx"^( *)(;.*)*( *)$" s)) 1)]
@@ -61,8 +70,8 @@
        (match (benchmark ev p)
          [#f (printf "~a: ~a lines, ~a checks, timeout~n~n" name lines checks)]
          [(list (list r t1 t2 t3))
-          (printf "~a: ~a lines, ~a checks~ncpu time: ~a, real time: ~a, gc time: ~a~n"
-                  name lines checks t1 t2 t3)
+          (printf "~a: ~a lines, ~a checks, ~ams~n"
+                  name lines checks (avg t1))
           (cond
             [(set-empty? r) (printf "   (NOTHING)~n")]
             [else
@@ -76,7 +85,7 @@
                                        (show-Ans σ A)))])
                             (printf "-- ~a~n   ~a~n" (car r) (cdr r)))])])
           (printf "~n")])]
-      ['tex
+      #;['tex
        ; compare with disabled interpreter, dump table in latex format
        (let ([a1 (benchmark ev p)]
              [a2 #f]) ; FIXME
@@ -87,6 +96,6 @@
            (+! L lines) (+! C checks)
            (+! T1 t1) (+! T2 t2) (+! B1 b1) (+! B2 b2)
            (printf "~a & ~a & ~a & ~a & ~a & ~a & ~a\\\\~n" name lines checks t1 b1 t2 b2)))])))
-(when (eq? mode 'tex)
+#;(when (eq? mode 'tex)
   (printf "\\hline~n")
   (printf "TOTAL & ~a & ~a & ~a & ~a & ~a & ~a~n" L C T1 B1 T2 B2))

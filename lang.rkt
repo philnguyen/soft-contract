@@ -4,6 +4,8 @@
 
 (define-type Sym^3 (List Sym Sym Sym))
 
+;; prefixing types with dots just so i can use 1-letter variables without shadowing them
+
 ;; program and module
 (struct: .p ([modules : .m*] [main : .e]) #:transparent)
 (struct: .m ([order : (Listof Sym)] [defs : (Map Sym (Pairof .e (U #f .e)))]) #:transparent)

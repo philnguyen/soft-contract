@@ -54,6 +54,7 @@
 
 ;; maps abstract to concrete labels
 (define-type .F (Map Int Int))
+(define: F∅ : .F (hash))
 (define .F? hash?)
 
 (: subst/L : (case→ [.L .F → .L]
@@ -62,10 +63,12 @@
                     [(U .// .μ/V) .F → (U .// .μ/V)]
                     [.V .F → .V]
                     [.U .F → .U]
-                    [(Listof .V) .F → (Listof .V)]))
+                    [(Listof .V) .F → (Listof .V)]
+                    [(Setof .V) .F → (Setof .V)]))
 (define (subst/L V F)
   (: go : (case→ [.L → .L] [.// → .//] [.μ/V → .μ/V] [(U .// .μ/V) → (U .// .μ/V)]
-                 [.V → .V] [.U → .U] [(Listof .V) → (Listof .V)] [.ρ → .ρ]))
+                 [.V → .V] [.U → .U] [.ρ → .ρ]
+                 [(Listof .V) → (Listof .V)] [(Setof .V) → (Setof .V)]))
   (define go
     (match-lambda
       ; V
@@ -92,7 +95,8 @@
             [(? .V? V) (hash-set acc k (go V))]))
         l)]
       ; List
-      [(? list? V*) (map go V*)]))
+      [(? list? V*) (map go V*)]
+      [(? set? s) (for/set: .V ([V s]) (go V))]))
   (go V))
 
 (: transfer : .σ .V .σ .F → (List .σ .V .F))
@@ -115,7 +119,10 @@
                       (let ([V′ (go! (σ@ σ-old i))])
                         (set! σ-new (σ-set σ-new j V′))
                         L_j))])]
-      [(.// U C*) (.// (go! U) (for/set: .V ([Ci C*]) (go! Ci)))]
+      [(.// U C*)
+       #;(printf "Looking at ~a~n~n" C*)
+       (.// (go! U) (for/set: .V ([Ci C*] #:when (transfer? Ci))
+                                 #;(printf "Transferring ~a~n~n" Ci) (go! Ci)))]
       [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go! Vi)))]
       [(? .X/V? V) V]
       ; U
@@ -136,6 +143,26 @@
         l)]
       ; List
       [(? list? V*) (map go! V*)]))
+  
+  (: transfer? : .V → Bool)
+  (define (transfer? C)
+    (match C
+      [(.L i) (hash-has-key? F i)]
+      [(.// U _) (match U
+                   [(? .prim?) #t]
+                   [(.•) #f]
+                   [(.Ar C V _) (and (transfer? C) (transfer? V))]
+                   [(.St _ V*) (andmap transfer? V*)]
+                   [(.λ↓ f (.ρ m _)) (for/and: : Bool ([V (in-hash-values m)])
+                                       (transfer? V))]
+                   [(.Λ/C C (.ρ m _) _)
+                    (and (andmap transfer? C)
+                         (for/and: : Bool ([V (in-hash-values m)])
+                           (transfer? V)))]
+                   [(.St/C _ C*) (andmap transfer? C*)]
+                   [(.μ/C _ c) (transfer? c)]
+                   [(? .X/C?) #t])]
+      [_ #f]))
   (let ([V-new (go! V-old)])
     (list σ-new V-new F)))
 
@@ -241,7 +268,7 @@
                         (match-let ([Cs (for/fold: ([a : (Setof .V) ∅]) ([C C*])
                                           (match C
                                             [(? set? s) (set-union a s)]
-                                            [(? .V? C) (set-add a C)]
+                                            [(? .V? C) (when (match? C (.// (.•) _)) (error "ha!")) (set-add a C)]
                                             [_ a]))])
                           (if (set-empty? Cs) ♦ (.// • Cs))))
               (+ 1 i))

@@ -1,10 +1,9 @@
+(module lib
+  (provide [append ((listof any) (listof any) . -> . (listof any))]))
+
 (module flatten
-  (provide
-   [append ((listof any) (listof any) . -> . (listof any))]
-   [flatten (any . -> . (listof any))])
-  (define (append xs ys)
-    (if (empty? xs) ys
-        (cons (car xs) (append (cdr xs) ys))))
+  (provide [flatten (any . -> . (listof any))])
+  (require lib)
   (define (flatten x)
     (cond
       [(empty? x) empty]
