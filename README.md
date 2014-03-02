@@ -1,3 +1,5 @@
 soft-contract
 =============
-To run tests, see directions under test/README
+Benchmarks for the analysis are under test/
+Benchmarks measuring contract's overhead are under benchmark/
+See the README file under each directory for more details
