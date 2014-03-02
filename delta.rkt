@@ -551,7 +551,6 @@
                 ; cannot blur higher order value
                 [(_ (.λ↓ f ρ))
                  (let ([repeated (repeated-lambdas f ρ)])
-                   #;(printf "repeated: ~a~n~n" repeated)
                    (match (set-count repeated)
                      [0 V1]
                      ; TODO: μ introduced outside here. Am i sure there's none inside?
@@ -560,9 +559,9 @@
                           #;(printf "~a~n⇒⊕~n~a~n~n" V1 V′)
                           V′)]))]
                 [((.Ar C V0 l) (.Ar C V1 l))
-                 (.// (.Ar C (⊕ V0 V1) l) (set-intersect C* D*))]
+                 (.// (.Ar C (⊕ V0 V1) l) D*)]
                 [(_ (or (? .λ?) (? .Ar?))) V1]
-                [((.St t V0*) (.St t V1*)) (.// (.St t (⊕ V0* V1*)) (set-intersect C* D*))]
+                [((.St t V0*) (.St t V1*)) (.// (.St t (⊕ V0* V1*)) D*)]
                 [(_ (.St t V1*)) #;(printf "⊕:case1~n")
                                  #;(printf "⊕:~n~a~nand~n~a~n~n" (show-E σ∅ V0) (show-E σ∅ V1))
                                  (match-let* ([x 'X #;(fresh V1*)]

@@ -409,19 +409,22 @@
                [((.L i) _) (go! (σ@ σ0 i) V1)]
                [(_ (.L j)) (go! V0 (σ@ σ1 j))]
                [((? .μ/V? V0) (? .μ/V? V1))
+                #;(printf "Case0: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
                 (assume! (cons V0 V1))
                 (for/and: : Bool ([V0i (unroll V0)])
                   (for/or: : Bool ([V1i (unroll V1)]) ;FIXME: may screw up F
                     (let ([G F])
                       (or (go! V0i V1i) (begin (set! F G) #f)))))]
+               [((? .μ/V? V0) _)
+                #;(printf "Case2: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
+                (assume! (cons V0 V1))
+                (for/and ([V0i (unroll V0)]) (go! V0i V1))]
                [(_ (? .μ/V? V1))
+                #;(printf "Case1: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
                 (assume! (cons V0 V1))
                 (for/or: : Bool ([V1i (unroll V1)])
                   (let ([G F])
                     (or (go! V0 V1i) (begin (set! F G) #f))))] ; FIXME: may screw up F
-               [((? .μ/V? V0) _)
-                (assume! (cons V0 V1))
-                (for/and ([V0i (unroll V0)]) (go! V0i V1))]
                [(_ _) #f]))]
            [((.ρ m0 l0) (.ρ m1 l1))
             (for/and ([i (in-range 0 (max l0 l1))])
