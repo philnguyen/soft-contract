@@ -558,4 +558,4 @@
 		     [else r])
 		   (cdr h))])))))
 
-(provide replay w1 unsafe:w1)
+(provide replay w1 unsafe:w1 start)

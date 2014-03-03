@@ -591,9 +591,16 @@
               w])
            (cdr h))))))
 
+(define (start w)
+  (big-bang w
+            (on-tick unsafe:world->world 1/5)
+            (on-key unsafe:handle-key)
+            (to-draw unsafe:world->scene)
+            (stop-when unsafe:game-over?)))
+
 (define w0 (WORLD))
 (define unsafe:w0 (unsafe:WORLD))
 ;(replay (WORLD) h)
-(provide replay unsafe:replay w0 unsafe:w0)
+(provide replay unsafe:replay w0 unsafe:w0 start)
 
 

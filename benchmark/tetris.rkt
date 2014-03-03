@@ -1,10 +1,10 @@
 #lang racket
 
 (module data racket  
-  (struct posn (x y) #:transparent)
-  (struct block (x y color) #:transparent)
-  (struct tetra (center blocks) #:transparent)
-  (struct world (tetra blocks) #:transparent)
+  (struct posn (x y))
+  (struct block (x y color))
+  (struct tetra (center blocks))
+  (struct world (tetra blocks))
   
   (define COLOR/C symbol?)
   (define POSN/C (struct/c posn real? real?))
@@ -31,10 +31,10 @@
    BSET/C))
 
 (module unsafe-data racket
-  (struct posn (x y) #:transparent)
-  (struct block (x y color) #:transparent)
-  (struct tetra (center blocks) #:transparent)
-  (struct world (tetra blocks) #:transparent)
+  (struct posn (x y))
+  (struct block (x y color))
+  (struct tetra (center blocks))
+  (struct world (tetra blocks))
   
   (define COLOR/C symbol?)
   (define POSN/C (struct/c posn real? real?))
@@ -933,6 +933,13 @@
             (to-draw (λ (w) #;(! `(to-draw)) (world->image w)))
             (stop-when (λ (w) (! `(stop-when)) (blocks-overflow? (world-blocks w))))))
 
+(define (start w)
+  (big-bang w
+            (on-tick unsafe:next-world 1/5)
+            (on-key unsafe:world-key-move)
+            (to-draw unsafe:world->image)
+            (stop-when (compose unsafe:blocks-overflow? unsafe:world-blocks))))
+
 #;
 (with-output-to-file "tetris-hist-3.txt"
   (λ ()
@@ -964,7 +971,7 @@
 
 (define w0 (world0))
 (define unsafe:w0 (unsafe:world0))
-(provide replay unsafe:replay w0 unsafe:w0)
+(provide replay unsafe:replay w0 unsafe:w0 start)
 
 
 
