@@ -201,17 +201,6 @@
              (match (step ς)
                [(? set? s) (for ([ςi s]) (visit ςi))]
                [(? .ς? ςi) (visit ςi)])))]
-        ; undo the stupid hack
-        [(and ς (.ς (? .V?) _ (cons (.@/κ '() _ _) _)))
-         (let ([ς^ (canon ς)])
-           (if (not (seen? ς^))
-               (begin
-                 (seen! ς^)
-                 #;(printf "~a~nis mapped to~n~a~n~n" ς ς^)
-                 (match (step ς)
-                   [(? set? s) (for ([ςi s]) (visit ςi))]
-                   [(? .ς? ςi) (visit ςi)]))
-               (printf "seen!~n")))]
         ; do regular 1-step on unseen state
         [_ (match (dbg/off 'step (step ς))
              [(? set? s) #;(printf "SPLIT ~a~n~n" (set-count s))
@@ -316,26 +305,21 @@
                [(and V (or (.// (? .λ↓?) _) (.// (? .Ar?) _))) (step-@ V V* l σt k)]
                [(? .μ/V? Vf)
                 (let ([seens (μs-seen k σt Vf V*)])
-                  (if (empty? seens)
-                      (match/nd: (.V → .ς) (unroll Vf)
-                        [V (match-let ([(cons σi V) (alloc σt V)])
-                             (step-@ V V* l σi (cons (.μ/κ Vf V* σi) k)))])
-                      ∅)
-                  #;(or
+                  (or
                    (for/or: : (U #f .ς+) ([seen seens] #:when (hash? seen))
-                     (printf "case 1~n") ∅)
+                     #;(printf "case 1~n") ∅)
                    (for/or: : (U #f .ς*) ([seen seens] #:when (cons? seen))
                      (match-let* ([(cons σ0 Vx0) seen]
                                   [(cons σi Vxi) (⊕ σ0 Vx0 σt V*)])
                        (match/nd: (.V → .ς) (unroll Vf)
                          [Vj (match-let ([(cons σi′ Vj) (alloc σi Vj)])
-                               (printf "case 2~n")
-                              (step-@ Vj Vxi l σi′ (cons (.μ/κ Vf Vxi σi) k)))])))
+                               #;(printf "case 2~n")
+                               (step-@ Vj Vxi l σi′ (cons (.μ/κ Vf Vxi σi) k)))])))
                    (match/nd: (.V → .ς) (unroll Vf)
                      [Vj (match-let ([(cons σi Vj) (alloc σt Vj)])
-                           (printf "case 3~n")
+                           #;(printf "case 3~n")
                            #;(printf "0: ~a~n1: ~a~n~n" (show-V σ0 Vx0) (show-V σt V*))
-                          (step-@ Vj V* l σi (cons (.μ/κ Vf V* σt) k)))])))]
+                           (step-@ Vj V* l σi (cons (.μ/κ Vf V* σt) k)))])))]
                [_
                 (match-let ([havocs (for/fold: ([s : (Setof .ς) ∅]) ([V V*])
                                       (set-union s (havoc V σt k)))]
@@ -567,39 +551,25 @@
 (: apps-seen : .κ* .σ .λ↓ (Listof .V) → (Listof (Pairof .rt/κ (Option .F))))
 (define (apps-seen k σ f Vx)
   #;(printf "apps-seen~nf: ~a~nk: ~a~n~n" (show-V σ∅ (→V f)) (show-k σ∅ k))
-  (let: go : (Listof (Pairof .rt/κ (Option .F)))
-    ([k k] [acc : (Listof (Pairof .rt/κ (Option .F))) '()])
-    (match k
-      ['() #;(printf "Nope~n~n") acc]
-      [(cons (and κ (.rt/κ σ0 f0 Vx0)) kr)
-       (go kr (if (equal? f0 f)
-                  (begin
-                    #;(printf "Checking:~nσ:~n~a~nVx:~n~a~nσ0:~n~a~nVx0:~n~a~nans:~n~a~n~n"
-                            σ Vx σ0 Vx0
-                            ((⊑ σ σ0) Vx Vx0))
-                  (cons (cons κ ((⊑ σ σ0) Vx Vx0)) acc))
-                  acc))]
-      [(cons _ kr) (go kr acc)])))
+  (for/fold: ([acc : (Listof (Pairof .rt/κ (Option .F))) '()]) ([κ k])
+    (match κ
+      [(and κ (.rt/κ σ0 f0 Vx0))
+       (if (equal? f0 f)
+           (cons (ann (cons κ ((⊑ σ σ0) Vx Vx0))
+                      (Pairof .rt/κ (Option .F)))
+                 acc)
+           acc)]
+      [_ acc])))
 
-;; FIXME code dup
 (: μs-seen : .κ* .σ .μ/V (Listof .V) → (Listof (U .F (Pairof .σ (Listof .V)))))
 (define (μs-seen k σ f Vx)
   #;(printf "apps-seen~nf: ~a~nk: ~a~n~n" (show-V σ∅ (→V f)) (show-k σ∅ k))
-  (let: go : (Listof (U .F (Pairof .σ (Listof .V))))
-    ([k k] [acc : (Listof (U .F (Pairof .σ (Listof .V)))) '()])
-    (match k
-      ['() #;(printf "Nope~n~n") acc]
-      [(cons (.μ/κ g Vx0 σ0) kr)
-       (go kr (if ((⊑ σ σ0) f g)
-                  (begin
-                    #;(printf "Checking:~nσ:~n~a~nVx:~n~a~nσ0:~n~a~nVx0:~n~a~nans:~n~a~n~n"
-                              σ Vx σ0 Vx0
-                              ((⊑ σ σ0) Vx Vx0))
-                    (cons (match ((⊑ σ σ0) Vx Vx0)
-                            [#f (ann (cons σ0 Vx0) (Pairof .σ (Listof .V)))]
-                            [(? hash? F) F]) acc))
-                  acc))]
-      [(cons _ kr) (go kr acc)])))
+  (for/fold: ([acc : (Listof (U .F (Pairof .σ (Listof .V)))) '()]) ([κ k])
+    (match κ
+      [(.μ/κ g Vx0 σ0) (match ((⊑ σ σ0) Vx Vx0)
+                         [#f (cons (ann (cons σ0 Vx0) (Pairof .σ (Listof .V))) acc)]
+                         [(? hash? F) (cons F acc)])]
+      [_ acc])))
 
 (: split-κ* : .rt/κ .κ* → (Pairof .κ* .κ*))
 (define (split-κ* κ k)
@@ -623,11 +593,9 @@
 
 (: chk-seen? : .κ* .μ/C .V → Bool)
 (define (chk-seen? k C V)
-  (let go ([k k])
-    (match k
-      ['() #f]
-      [(cons (.recchk/κ C′ V′) kr) (or (and (equal? C′ C) (equal? V′ V)) (go kr))]
-      [(cons _ kr) (go kr)])))
+  (for/or: ([κ k] #:when (match? κ (? .recchk/κ?)))
+    (match-let ([(.recchk/κ C′ V′) κ])
+      (and (equal? C′ C) (equal? V′ V)))))
 
 ;; for debugging
 (define (e x) (set->list (ev (read-p x))))
@@ -728,53 +696,53 @@
       ; list
       [(? list? l) (map go! l)]))
   
-  (: revise : (case→ [.V → .V] [.↓ → .↓] [.E → .E]
+  (: fixup : (case→ [.V → .V] [.↓ → .↓] [.E → .E]
                   [.μ/C → .μ/C] [.λ↓ → .λ↓] [.U → .U] [.ρ → .ρ] [.κ → .κ] [.κ* → .κ*]
                   [(Listof .V) → (Listof .V)] [(Listof .E) → (Listof .E)]
                   [.σ → .σ]))
-  (define (revise x)
+  (define (fixup x)
     (match x
       ; E
-      [(.↓ e ρ) (.↓ e (revise ρ))]
-      [(.FC c v l) (.FC (revise c) (revise v) l)]
-      [(.Mon c e l) (.Mon (revise c) (revise e) l)]
-      [(.Assume v c) (.Assume (revise v) (revise c))]
-      [(.blm f g v c)(.blm f g (revise v) (revise c))]
+      [(.↓ e ρ) (.↓ e (fixup ρ))]
+      [(.FC c v l) (.FC (fixup c) (fixup v) l)]
+      [(.Mon c e l) (.Mon (fixup c) (fixup e) l)]
+      [(.Assume v c) (.Assume (fixup v) (fixup c))]
+      [(.blm f g v c)(.blm f g (fixup v) (fixup c))]
       ; V
       [(? .L? x) x]
-      [(.// U C*) (.// (revise U) (subst/L C* F))]
+      [(.// U C*) (.// (fixup U) (subst/L C* F))]
       [(.μ/V x V*) (.μ/V x (subst/L V* F))]
       [(? .X/V? x) x]
       ; U
-      [(.Ar c v l) (.Ar (revise c) (revise v) l)]
-      [(.St t V*) (.St t (revise V*))]
-      [(.λ↓ f ρ) (.λ↓ f (revise ρ))]
-      [(.Λ/C c d v?) (.Λ/C (revise c) (revise d) v?)]
-      [(.St/C t V*) (.St/C t (revise V*))]
-      [(.μ/C x c) (.μ/C x (revise c))]
+      [(.Ar c v l) (.Ar (fixup c) (fixup v) l)]
+      [(.St t V*) (.St t (fixup V*))]
+      [(.λ↓ f ρ) (.λ↓ f (fixup ρ))]
+      [(.Λ/C c d v?) (.Λ/C (fixup c) (fixup d) v?)]
+      [(.St/C t V*) (.St/C t (fixup V*))]
+      [(.μ/C x c) (.μ/C x (fixup c))]
       [(? .X/C? x) x]
       [(? .prim? p) p]
       ; ρ
       [(.ρ m l) (.ρ (for/fold: ([m′ : (Map (U Int Sym) .V) m∅]) ([i (in-hash-keys m)])
-                      (hash-set m′ i (revise (hash-ref m i))))
+                      (hash-set m′ i (fixup (hash-ref m i))))
                     l)]
       ; κ
-      [(.if/κ t e) (.if/κ (revise t) (revise e))]
-      [(.@/κ e* v* l) (.@/κ (revise e*) (revise v*) l)]
+      [(.if/κ t e) (.if/κ (fixup t) (fixup e))]
+      [(.@/κ e* v* l) (.@/κ (fixup e*) (fixup v*) l)]
       [(.▹/κ (cons C E) l)
-       (.▹/κ (cond [(and (false? C) (.E? E)) (cons #f (revise E))]
-                   [(and (.V? C) (false? E)) (cons (revise C) #f)]
+       (.▹/κ (cond [(and (false? C) (.E? E)) (cons #f (fixup E))]
+                   [(and (.V? C) (false? E)) (cons (fixup C) #f)]
                    [else (error "impossible!")])
              l)]
       [(.indy/κ c x x↓ d v? l)
-       (.indy/κ (revise c) (revise x) (revise x↓) (if (.↓? d) (revise d) #f) v? l)]
+       (.indy/κ (fixup c) (fixup x) (fixup x↓) (if (.↓? d) (fixup d) #f) v? l)]
       [(? .μc/κ? x) x]
-      [(.λc/κ c c↓ d ρ v?) (.λc/κ c (revise c↓) d (revise ρ) v?)]
-      [(.structc/κ t c ρ c↓) (.structc/κ t c (revise ρ) (revise c↓))]
-      [(.rt/κ σ f x) (.rt/κ (revise σ) (revise f) (revise x))]
-      [(.blr/κ G σ V) (.blr/κ G (revise σ) (revise V))]
-      [(.recchk/κ C V) (.recchk/κ (revise C) (revise V))]
-      [(.μ/κ f xs σ) (.μ/κ f (revise xs) (revise σ))]
+      [(.λc/κ c c↓ d ρ v?) (.λc/κ c (fixup c↓) d (fixup ρ) v?)]
+      [(.structc/κ t c ρ c↓) (.structc/κ t c (fixup ρ) (fixup c↓))]
+      [(.rt/κ σ f x) (.rt/κ (fixup σ) (fixup f) (fixup x))]
+      [(.blr/κ G σ V) (.blr/κ G (fixup σ) (fixup V))]
+      [(.recchk/κ C V) (.recchk/κ (fixup C) (fixup V))]
+      [(.μ/κ f xs σ) (.μ/κ f (fixup xs) (fixup σ))]
       ; σ
       [(.σ m _)
        #;(printf "F: ~a~nm: ~a~n~n" F m)
@@ -783,8 +751,8 @@
                     (match (hash-ref m i #f)
                       [(? .V? Vi) (σ-set σ′ (hash-ref F i) (subst/L Vi F))]
                       [#f σ′])))]
-      [(? list? l) (map revise l)]))
+      [(? list? l) (map fixup l)]))
   
   (let* ([E′ (go! E)]
          [k′ (go! k)])
-    (.ς (revise E′) (revise σ) (revise k′))))
+    (.ς (fixup E′) (fixup σ) (fixup k′))))
