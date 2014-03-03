@@ -17,4 +17,6 @@ To play Tetris:
 * Use `d` to rotate the block clockwise
 
 To play Zombie:
+> racket play-zombie.rkt
+
 * The player runs towards the mouse cursor.
