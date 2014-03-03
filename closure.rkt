@@ -280,7 +280,7 @@
                [hi (+ lo n)]
                [r (range lo hi)])
     (cons (.σ (for/fold ([m m]) ([i r]) (hash-set m i ♦)) hi)
-          (for/list: : (Listof .L) ([i r]) (.L i)))))
+          (map .L r))))
 
 (: σ-set : .σ (U .L Int) (U .// .μ/V) → .σ)
 (define (σ-set σ a V)
@@ -451,21 +451,7 @@
         (match V
           [(.// (.St _ V*) _) (ormap go V*)]
           [(.// (.Ar _ V′ _) _) (go V′)]
-          #;[(.// (.λ↓ F _) _)
-           (match v
-             [(.// (.λ↓ f _) _) (e∈ f F)]
-             [_ #f])]
-          [(.μ/V _ V*) (for/or ([V V*]) (go V))]
-          [_ #f]))))
-#;(: e∈ : .e .e → Bool)
-#;(define (e∈ e E)
-  (let go ([E E])
-    (or (equal? e E)
-        (match E
-          [(.λ _ E′ _) (go E′)]
-          [(.@ f xs _) (or (go f) (ormap go xs))]
-          [(.if E0 E1 E2) (or (go E0) (go E1) (go E2))]
-          [(.amb Es) (for/or ([E Es]) (go E))]
+          [(.μ/V _ V*) (for/and ([V V*]) (go V))]
           [_ #f]))))
 
 (: unroll : .μ/V → (Setof .V))
@@ -497,7 +483,7 @@
                             [(.X/V x) (if (eq? x z) V (.μ/V z (for/set: .V ([V Vs]) (go V))))]
                             [_ (.μ/V z (for/set: .V ([V Vs]) (go V)))])]
              [x x]))]
-      [(? .ρ? (and ρ (.ρ m l)))
+      [(and ρ (.ρ m l))
        (let ([m′ (for/fold: ([m′ : (Map (U Int Sym) .V) m∅]) ([x (in-hash-keys m)])
                    (hash-set m′ x (go (hash-ref m x))))])
          (if (equal? m′ m) ρ (.ρ m′ l)))]))
@@ -543,53 +529,12 @@
 (: repeated-lambdas : .λ .ρ → (Setof .V))
 (define (repeated-lambdas e ρ)
   (define-set: ac : .V [_ add!])
-  (: go-V : .V → Void)
-  (define (go-V V)
-    (match V
-      [(.// (.λ↓ f ρ1) _) (if (equal? #|eq?|# f e) (add! V) (go-ρ ρ1))]
-      [(.// (.Ar _ V′ _) _) (go-V V′)]
+  (: go! : (U .V .ρ) → Void)
+  (define go!
+    (match-lambda
+      [(and V (.// (.λ↓ f ρ1) _)) (if (equal? f e) (add! V) (go! ρ1))]
+      [(.// (.Ar _ V′ _) _) (go! V′)]
+      [(.ρ m _) (for ([V (in-hash-values m)]) (go! V))]
       [_ (void)]))
-  (: go-ρ : .ρ → Void)
-  (define (go-ρ ρ)
-    (match-let ([(.ρ m _) ρ])
-      (for ([V (in-hash-values m)]) (go-V V))))
-  (go-ρ ρ)
+  (go! ρ)
   ac)
-
-#;(: ≃ : (case→ [.σ .V .σ .V → (Option .F)]
-              [.σ (Listof .V) .σ (Listof .V) → (Option .F)]))
-#;(define (≃ σ0 x0 σ1 x1)
-  
-  (define-syntax-rule (∪ F G)
-    (match F
-      [(? set? f) (match G [(? set? g) (set-union f g)] [_ #f])]
-      [_ #f]))
-  
-  (: go : (case→ [.V .V → (Option .F)]
-                 [(Listof .V) (Listof .V) → (Option .F)]
-                 [.ρ .ρ → (Option .F)]))
-  (define (go x0 x1)
-    (match* (x0 x1)
-      ; TODO assume always consistent for now
-      [((? list? l0) (? list? l1))
-       (let loop ([l0 l0] [l1 l1])
-         (match* (l0 l1)
-           [('() '()) ∅]
-           [((cons V0 l0) (cons V1 l1)) (∪ (go V0 V1) (loop l0 l1))]))]
-      [((.ρ m0 l0) (.ρ m1 l1))
-          (for/fold: ([s : (Option .F) ∅]) ([i (in-range 0 (max l0 l1))])
-            (match* ((hash-ref m0 (- l0 i 1)) (hash-ref m1 (- l1 i 1)))
-              [((? .V? V0) (? .V? V1)) (∪ s (go V0 V1))]
-              [(#f #f) s]
-              [(_ _) #f]))]
-      [((.// U0 C0s) (.// U1 C1s))
-       (match* (U0 U1)
-         [((.Ar C0 V0 _) (.Ar C1 V1 _)) (∪ (go V0 V1) (go C0 C1))]
-         [((.St t V0*) (.St t V1*)) (go V0* V1*)]
-         [((.λ↓ e ρ0) (.λ↓ e ρ1)) (go ρ0 ρ1)]
-         [((.Λ/C C0* (.↓ e ρ0) v?) (.Λ/C C1* (.↓ e ρ1) v?)) (∪ (go C0* C1*) (go ρ0 ρ1))]
-         [(U U) (if (equal? C0s C1s) ∅ #f)])]
-      [((and L0 (.L i)) (and L1 (.L j))) (∪ (go (σ@ σ0 i) (σ@ σ1 j)) (set (cons L0 L1)))]
-      [(_ _) (if (equal? x0 x1) ∅ #f)]))
-  
-  (go x0 x1))

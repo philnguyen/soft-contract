@@ -99,21 +99,6 @@
     (define: ans : .ς+ ∅)
     (define-set: seen : .ς [seen? seen!])
     
-    #;(define-syntax-rule (when-unseen! ς e ...)
-      (let ([x ς]) ; only need to keep around one class of states
-        ()
-        
-        #;(if (.V? (.ς-e x))
-            (let ([x^ (match x
-                        [(.ς Vn σ (cons (.@/κ '() _ _) _)) (canon x)]
-                        #;[(.ς Vx σ (cons (.apply/fn/κ _ _) _)) (ς-abs x)]
-                        [_ x])])
-              #;(printf "~a~nabs:~n~a~n~n" x x^)
-              (unless (set-member? seen x^)
-                (set! seen (set-add seen x^))
-                e ...))
-            (begin e ...))))
-    
     (: resume : .res .K .rt/κ → Void)
     ; ans: the answer to plug in
     ; ctx: pending context
