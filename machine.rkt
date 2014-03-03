@@ -615,6 +615,7 @@
                   (k: ,@(show-k σ k)))]))
 
 ; rename all labels to some canonnical form based on the expression's shape
+; relax, this only happens a few times, not that expensive
 (: canon : .ς → .ς)
 (define (canon ς)
   (match-define (.ς (? .E? E) σ k) ς)
@@ -670,16 +671,17 @@
       [(? .μc/κ? x) x]
       [(.λc/κ c c↓ d ρ v?) (.λc/κ c (go! c↓) d (go! ρ) v?)]
       [(.structc/κ t c ρ c↓) (.structc/κ t c (go! ρ) (go! c↓))]
-      [(.rt/κ σ f x) (.rt/κ σ (go! f) (go! x))]
-      [(.blr/κ G σ V) (.blr/κ (for/fold: ([G′ : .F G]) ([i (in-hash-keys G)])
+      #;[(.rt/κ σ f x) (.rt/κ σ (go! f) (go! x))]
+      #;[(.blr/κ G σ V) (.blr/κ (for/fold: ([G′ : .F G]) ([i (in-hash-keys G)])
                                 (let ([j (alloc! i)]
                                       [k (alloc! (hash-ref G i))])
                                   (hash-set G′ j k)))
                               σ (go! V))]
-      [(.recchk/κ C V) (.recchk/κ (go! C) (go! V))]
+      #;[(.recchk/κ C V) (.recchk/κ (go! C) (go! V))]
       [(.μ/κ f xs σ) (.μ/κ f (go! xs) σ)]
       ; list
-      [(? list? l) (map go! l)]))
+      [(? list? l)
+       (for/list ([i l] #:unless (match? i (? .rt/κ?) (? .blr/κ?) (? .recchk/κ?))) (go! i))]))
   
   (: fixup : (case→ [.V → .V] [.↓ → .↓] [.E → .E]
                   [.μ/C → .μ/C] [.λ↓ → .λ↓] [.U → .U] [.ρ → .ρ] [.κ → .κ] [.κ* → .κ*]
@@ -724,9 +726,9 @@
       [(? .μc/κ? x) x]
       [(.λc/κ c c↓ d ρ v?) (.λc/κ c (fixup c↓) d (fixup ρ) v?)]
       [(.structc/κ t c ρ c↓) (.structc/κ t c (fixup ρ) (fixup c↓))]
-      [(.rt/κ σ f x) (.rt/κ (fixup σ) (fixup f) (fixup x))]
-      [(.blr/κ G σ V) (.blr/κ G (fixup σ) (fixup V))]
-      [(.recchk/κ C V) (.recchk/κ (fixup C) (fixup V))]
+      #;[(.rt/κ σ f x) (.rt/κ (fixup σ) (fixup f) (fixup x))]
+      #;[(.blr/κ G σ V) (.blr/κ G (fixup σ) (fixup V))]
+      #;[(.recchk/κ C V) (.recchk/κ (fixup C) (fixup V))]
       [(.μ/κ f xs σ) (.μ/κ f (fixup xs) (fixup σ))]
       ; σ
       [(.σ m _)
