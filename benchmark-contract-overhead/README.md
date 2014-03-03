@@ -11,8 +11,8 @@ To play Snake:
 To play Tetris:
 > racket play-tetris.rkt
 
-* Use "→" and "←" for moving sideways
-* Use "↓" for dropping the block
+* Use "→" and "←" to move right or left
+* Use "↓" to drop the block
 * Use "a" to rotate the block counterclockwise
 * Use "d" to rotate the block clockwise
 
