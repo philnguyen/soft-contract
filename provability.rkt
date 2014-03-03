@@ -1,19 +1,22 @@
 #lang typed/racket
-(require "utils.rkt" "lang.rkt" "closure.rkt" #;"query-z3.rkt" "show.rkt" "query.rkt")
+(require "utils.rkt" "lang.rkt" "closure.rkt" "show.rkt"
+         (only-in "query.rkt" [query cvc4]))
 (provide (all-defined-out))
 
 (:* [all-prove? all-refute? some-proves? some-refutes?] : .σ (Listof .V) .V → Bool)
-(define (all-prove? σ V* C) (for/and ([V V*]) (match? (⊢ σ V C) 'Proved)))
-(define (all-refute? σ V* C) (for/and ([V V*]) (match? (⊢ σ V C) 'Refuted)))
-(define (some-proves? σ V* C) (for/or ([V V*]) (match? (⊢ σ V C) 'Proved)))
-(define (some-refutes? σ V* C) (for/or ([V V*]) (match? (⊢ σ V C) 'Refuted)))
+(define (all-prove? σ V* C) (for/and ([V V*]) (eq? (⊢ σ V C) 'Proved)))
+(define (all-refute? σ V* C) (for/and ([V V*]) (eq? (⊢ σ V C) 'Refuted)))
+(define (some-proves? σ V* C) (for/or ([V V*]) (eq? (⊢ σ V C) 'Proved)))
+(define (some-refutes? σ V* C) (for/or ([V V*]) (eq? (⊢ σ V C) 'Refuted)))
+
+(define ext-solver (make-parameter cvc4))
 
 (: ⊢ : .σ .V .V → .R)
 (define (⊢ σ V C)
   #;(printf "⊢:~nV:~a~nC:~a~n~n" V C #;(show-E σ V) #;(show-E σ C))
   (let ([C (simplify C)])
     (match (⊢′ σ V C)
-      ['Neither (query σ V C)]
+      ['Neither ((ext-solver) σ V C)]
       [r #;(printf "Ans: ~a~n~n" r) r])))
 
 ; internal, lightweight, lo-tech prover
