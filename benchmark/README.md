@@ -5,10 +5,12 @@ You need to have [Racket](http://racket-lang.org/) installed. These programs hav
 
 To play Snake:
 > racket play-snake.rkt
+
 * Use keys "w", "s", "a", "d" for "up", "down", "left", "right", respectively.
 
 To play Tetris:
 > racket play-tetris.rkt
+
 * Use "→" and "←" for moving sideways
 * Use "↓" for dropping the block
 * Use "a" to rotate the block counterclockwise
