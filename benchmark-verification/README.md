@@ -8,9 +8,11 @@ To run all tests and print out results, run:
 
 There will be a long initial delay.
 
-In pretty-printed results, elipses (...) stand for free variables,
-and L₁, L₂, etc. stand for a labels.
+In pretty-printed results, elipses `...` stand for free variables,
+and `L₁`, `L₂`, etc. stand for a labels.
 
-To run only specific tests, for example, only foldr and foldl, run:
+To run only specific tests, for example, only `foldr` and `foldl`, run:
 > racket run.rkt foldl.sch foldr.sch
 
+Changes since submission to ICFP on March 1st:
+* `cpstak` no longer timeouts
