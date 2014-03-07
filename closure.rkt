@@ -451,7 +451,7 @@
         (match V
           [(.// (.St _ V*) _) (ormap go V*)]
           [(.// (.Ar _ V′ _) _) (go V′)]
-          [(.μ/V _ V*) (for/and ([V V*]) (go V))]
+          [(.μ/V _ V*) (for/or ([V V*]) (go V))]
           [_ #f]))))
 
 (: unroll : .μ/V → (Setof .V))
