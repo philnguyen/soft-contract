@@ -9,18 +9,18 @@ Each benchmark times out after 20 minutes.
 To create an executable, run:
 > raco exe run.rkt
 
-This will produce binaries named `run`, `run.exe`, or `run.app` depending on operating systems.
+This will produce a binary named `run`, `run.exe`, or `run.app` depending on operating systems.
 The compilation will take a while.
 To run the resulting executable on Linux, do:
 > ./run
 
-This will verify all source files with extension `.sch` in the same directory
+By default, this will verify all source files with extension `.sch` in the same directory
 and print out results.
 In pretty-printed results, elipses `...` stand for free variables,
 and `L₁`, `L₂`, etc. stand for a labels.
 
-To run only specific tests, for example, only `foldr` and `foldl`, run:
+To run only specific tests, for example, only `foldr` and `foldl`, do:
 > ./run foldl.sch foldr.sch
 
 Changes since submission to ICFP on March 1st:
-* `cpstak` no longer timeouts
+* [cpstak](https://github.com/philnguyen/soft-contract/blob/master/benchmark-verification/cpstak.sch) no longer timeouts
