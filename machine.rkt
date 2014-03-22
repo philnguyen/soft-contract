@@ -83,11 +83,11 @@
     (hash-update! M ctx (λ: ([s : (Setof .res)])
                           (set-add (set-remove s res0) resi))))
   
-  (: Ξ@ : .rt/κ → (Setof .K))
-  (define (Ξ@ ctx) (hash-ref Ξ ctx (λ () ∅)))
+  (: Ξ@ : .rt/κ → (Listof .K)) ; FIXME force randomness to test
+  (define (Ξ@ ctx) (shuffle (set->list (hash-ref Ξ ctx (λ () ∅)))))
   
-  (: M@ : .rt/κ → (Setof .res))
-  (define (M@ ctx) (hash-ref M ctx (λ () ∅)))
+  (: M@ : .rt/κ → (Listof .res)) ; FIXME force randomness to test
+  (define (M@ ctx) (shuffle (set->list (hash-ref M ctx (λ () ∅)))))
   
   (: m-opaque? : Sym → Bool)
   (define (m-opaque? x) ; TODO: expensive?
@@ -151,13 +151,13 @@
          (match-let* ([(cons l r) (split-κ* ctx k)]
                       [K (list F σ l r)])
            (Ξ+! ctx K)
-           (for: ([res : .res (M@ ctx)])
+           (for ([res : .res (M@ ctx)])
              (resume res K ctx)))]
         ; remember returned value and return to any other waiting contexts
         [(.ς (? .V? V) σ (cons (? .rt/κ? ctx) k))
          (let ([res (list σ V)])
            (M+! ctx res)
-           (for: ([K : .K (Ξ@ ctx)])
+           (for ([K : .K (Ξ@ ctx)])
              (resume res K ctx)))
          (visit (.ς V σ k))]
         ; blur value in M table ; TODO: this is a hack
@@ -168,7 +168,7 @@
                       [resi (list σi Vi)])
            (when ((⊑ σ0 σi) V0 Vi)
              (upd-M! ctx res0 resi))
-           (for: ([K : .K (Ξ@ ctx)])
+           (for ([K : .K (Ξ@ ctx)])
              (resume resi K ctx)))
          (visit (.ς V σ k))]
         ; FIXME HACK
@@ -188,8 +188,8 @@
                [(? .ς? ςi) (visit ςi)])))]
         ; do regular 1-step on unseen state
         [_ (match (dbg/off 'step (step ς))
-             [(? set? s) #;(printf "SPLIT ~a~n~n" (set-count s))
-                         (for ([ςi s]) #;(printf "BRANCH:~n~n") (visit ςi) #;(when-unseen! ςi (visit ςi)))]
+             [(? set? s) #;(printf "SPLIT ~a~n~n" (set-count s)) ; FIXME force randomness to test
+                         (for ([ςi (shuffle (set->list s))]) #;(printf "BRANCH:~n~n") (visit ςi) #;(when-unseen! ςi (visit ςi)))]
              [(? .ς? ςi) (visit ςi) #;(when-unseen! ςi (visit ςi))])]))
     
     ;; "main"
@@ -243,9 +243,10 @@
                    (for/or: : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) seens]
                                          #:when (.F? (cdr res)))
                      (match-let ([(cons ctx (? .F? F)) res])
-                       #;(printf "Seen, repeated~n")                       
+                       #;(printf "Seen, repeated:~nold:~n~a~nNew:~n~a~nF: ~a~n~n"
+                               ctx (show-V σ Vx) F)
                        (.ς (cons ctx F) σ k)))
-                   (for/or: : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) (reverse seens) #|TODO unintuitive|#]
+                   (for/or: : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) seens]
                                          #:when (false? (cdr res)))
                      #;(printf "Function: ~a~n~n" (show-U σ f))
                      #;(printf "Seen, new~n")

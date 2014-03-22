@@ -486,6 +486,35 @@
     [#t {set (Prim 'true?) (Prim 'bool?)}]
     [#f {set (Prim 'false?) (Prim 'bool?)}]))
 
+(: v-class : .σ (U .V (Setof .V)) → (Setof Any))
+(define (v-class σ x)
+  (match x
+    [(.L i) (v-class σ (σ@ σ i))]
+    [(.// U C*)
+     (match U
+       [(.•) (or (for/or: : (Option (Setof Any)) ([C : .V C*] #:when (match? C (.// (.pred) _)))
+                   (match-let ([(.// (and o (.pred)) _) C])
+                     {set (name o)}))
+                 {set '•})]
+       [(? .o? o) {set `(prim ,(name o))}]
+       [(.b u) {set (cond
+                      [(int? u) 'int?]
+                      [(real? u) 'real?]
+                      [(num? u) 'num?]
+                      [(str? u) 'str?]
+                      [(false? #f) 'false?]
+                      [(eq? u #t) 'true?]
+                      [(sym? u) 'sym?]
+                      [else 'misc])}]
+       [(.Ar _ V _) (v-class σ V)]
+       [(.St t _) {set t}]
+       [(.λ↓ (.λ n _ v?) _) {set `(proc? ,n ,v?)}]
+       [_ {set 'misc}])]
+    [(.μ/V _ V*) (v-class σ V*)]
+    [(.X/V _) ∅]
+    [(? set? s) (for/fold: ([acc : (Setof Any) ∅]) ([i s])
+                  (set-union acc (v-class σ i)))]))
+
 ;; biased approximation
 (: ⊕ : (case→ 
         [.σ .V .σ .V → (Pairof .σ .V)]
@@ -592,12 +621,20 @@
                                         #:when (eq? 'Proved (C*⇒C C* D)))
                             D)))])]
              [((.μ/V x V0*) (.μ/V y V1*)) #;(printf "⊕:case2~n") (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
-             [((.μ/V x V0*) _) #;(printf "⊕:case3~n")
-                               (match-let ([(cons V1′ Vs) (dbg/off 'case3 (elim-μ x (V/ V1 V0 (.X/V x))))])
-                                 (μV x (dbg/off 'compact1 (compact (dbg/off 'compact0 (compact V0* {set V1′})) Vs))))]
-             [(_ (.μ/V x V1*)) #;(printf "⊕:case4~n")
-                               (match-let ([(cons V0′ Vs) (elim-μ x (V/ V0 V1 (.X/V x)))])
-                                 (μV x (compact (compact {set V0′} Vs) V1*)))]
+             [((.μ/V x V0*) _)
+              #;(printf "⊕:case3~n")
+              #;(printf "~a  ∩  ~a~n~n" (v-class σ∅ V0*) (v-class σ∅ V1))
+              (if (set-empty? (set-intersect (v-class σ∅ V0*) (v-class σ∅ V1)))
+                  V1
+                  (match-let ([(cons V1′ Vs) (dbg/off 'case3 (elim-μ x (V/ V1 V0 (.X/V x))))])
+                (μV x (dbg/off 'compact1 (compact (dbg/off 'compact0 (compact V0* {set V1′})) Vs)))))]
+             [(_ (.μ/V x V1*))
+              #;(printf "⊕:case4~n")
+              #;(printf "~a  ∩  ~a~n~n" (v-class σ∅ V0) (v-class σ∅ V1*))
+              (if (set-empty? (set-intersect (v-class σ∅ V0) (v-class σ∅ V1*)))
+                  V1
+                  (match-let ([(cons V0′ Vs) (elim-μ x (V/ V0 V1 (.X/V x)))])
+                    (μV x (compact (compact {set V0′} Vs) V1*))))]
              [((? .X/V? x) _) x]
              [(_ (? .X/V? x)) x])])])
           #;(printf "⊕:~n~a~nand~n~a~nis~n~a~n~n" (show-Ans σ∅ V0) (show-Ans σ∅ V1) (show-Ans σ∅ ans))
@@ -622,8 +659,8 @@
                   [.V Int → Void]))
 (define (check V [i 1])
   (match V
-    [(.μ/V _ V*) (if (<= i 0) (error "no!") (for: : Void ([Vi V*]) (check Vi (- i 1))))]
-    [(.// (.St _ V*) _) (for: : Void ([Vi V*]) (check Vi))]
+    [(.μ/V _ V*) (if (<= i 0) (error "no!") (for ([Vi V*]) (check Vi (- i 1))))]
+    [(.// (.St _ V*) _) (for ([Vi V*]) (check Vi))]
     [_ (void)]))
 
 ;; remove all sub-μ. TODO: generalize allowed μ-depth
@@ -657,7 +694,7 @@
 ; simplify to • if body has •
 (: μV : Sym (Setof .V) → .V)
 (define (μV x V*)
-  #;(for: : Void ([Vi V*]) (check Vi 0))
+  #;(for ([Vi V*]) (check Vi 0))
   (let ([V* (for/set: .V ([V V*] #:unless (equal? V (.X/V x))) V)])
     (cond
       [(set-member? V* ♦) ♦]

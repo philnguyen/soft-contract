@@ -163,7 +163,25 @@
                    [(.μ/C _ c) (transfer? c)]
                    [(? .X/C?) #t])]
       [_ #f]))
+  
+  (: well-formed? : .σ .V → Boolean)
+  (define (well-formed? σ V)
+    (match V
+      [(.// U C*)
+       (and (for/and: : Boolean ([C C*]) (well-formed? σ C))
+            (match U
+              [(.St _ V*) (for/and: : Boolean ([Vi V*]) (well-formed? σ Vi))]
+              [(.λ↓ _ (.ρ m _))
+               (for/and: : Boolean ([i (in-hash-keys m)])
+                 (well-formed? σ (hash-ref m i)))]
+              [_ #t]))]
+      [(.L i) (and (hash-has-key? (.σ-map σ) i)
+                   (well-formed? σ (σ@ σ i)))]
+      [_ #t]))
+  
   (let ([V-new (go! V-old)])
+    #;(unless (well-formed? σ-new V-new)
+      (error "malformed"))
     (list σ-new V-new F)))
 
 ;;;;; REUSED CONSTANTS
