@@ -14,8 +14,9 @@
 ;; expression
 (define-data (.e)
   (subset: (.v)
-    (.λ [arity : Int] [body : .e] [var? : Bool])    
-    (.•ₗ [l : Negative-Integer])
+    (.λ [arity : Int] [body : .e] [var? : Bool])
+    (subset: (.•)
+      (.•ₗ [l : Negative-Integer])) 
     (subset: (.prim)
       (.b [unboxed : (U Num Bool String Sym)])
       (subset: (.o)
@@ -100,6 +101,7 @@
     [_ 0]))
 
 ;; frequently used constants
+(define • (.•))
 (define .tt (.b #t))
 (define .ff (.b #f))
 (define .any/c (.λ 1 .tt #f))
@@ -203,6 +205,24 @@
     (define n (length cs))
     (for/fold ([acs acs]) ([i n])
       (set-add acs (.st-ac t n i)))))
+
+(: gen-havoc : .p → .p)
+(define (gen-havoc p)
+  (match-define (.p (.m* m-seq ms) acs e†) p)
+    
+  (define havoc
+    (.λ 1 (.amb (set-add (for/set: .@ ([ac acs])
+                           (.@ (.ref 'havoc '☠ '☠)
+                               (list (.@ ac (list (.x 0)) '☠)) '☠))
+                         (.@ (.ref 'havoc '☠ '☠)
+                             (list (.@-havoc (.x 0))) '☠))) #f))
+  
+  (define ☠ (.m (list 'havoc)
+                (hash-set (ann #hash() (Map Sym (Pairof .e (U #f .e))))
+                          'havoc (cons havoc (.λ/c (list .any/c) .none/c #f)))))
+  
+  (if (hash-has-key? ms '☠) p
+      (.p (.m* (cons '☠ m-seq) (hash-set ms '☠ ☠)) acs e†)))
 
 (: amb : (Listof .e) → .e)
 (define (amb e*)

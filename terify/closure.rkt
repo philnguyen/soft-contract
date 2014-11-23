@@ -1,5 +1,6 @@
-#lang typed/racket
-(require "utils.rkt" "lang.rkt")
+#lang typed/racket/base
+(require racket/match racket/list racket/set
+         "../utils.rkt" "../lang.rkt")
 (require/typed redex [variable-not-in (Any Sym → Sym)])
 (provide (all-defined-out))
 
@@ -23,7 +24,7 @@
 ;; blessed arrow, struct, and closed lambda
 (define-type .U (U .prim .• .Ar .St .λ↓ .Λ/C .St/C .μ/C .X/C .Case))
 (define-predicate .U? .U)
-(struct .• () #:transparent)
+#;(struct .• () #:transparent)
 (struct .Ar ([c : .V] [v : .V] [l^3 : Sym^3]) #:transparent)
 (struct .St ([tag : Sym] [fields : (Listof .V)]) #:transparent)
 (struct .λ↓ ([f : .λ] [ρ : .ρ]) #:transparent)
@@ -32,7 +33,7 @@
 (struct .μ/C ([x : Sym] [c : .V]) #:transparent)
 (struct .X/C ([x : Sym]) #:transparent)
 (struct .Case ([m : (Map (Listof .V) .L)]) #:transparent)
-(define • (.•))
+#;(define • (.•))
 
 (: .Case@ : .Case (Listof .V) → (Option .L))
 (define (.Case@ c xs)

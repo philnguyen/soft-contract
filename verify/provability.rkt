@@ -1,5 +1,6 @@
-#lang typed/racket
-(require "utils.rkt" "lang.rkt" "closure.rkt" "show.rkt"
+#lang typed/racket/base
+(require racket/match racket/set racket/list
+         "../utils.rkt" "../lang.rkt" "closure.rkt" "show.rkt"
          (only-in "query.rkt" [query cvc4]))
 (provide (all-defined-out))
 

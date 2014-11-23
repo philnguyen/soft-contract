@@ -1,5 +1,6 @@
-#lang typed/racket
-(require "utils.rkt" "lang.rkt")
+#lang typed/racket/base
+(require racket/match racket/set racket/list
+         "../utils.rkt" "../lang.rkt")
 (require/typed redex [variable-not-in (Any Sym → Sym)])
 (provide (all-defined-out))
 

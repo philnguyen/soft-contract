@@ -1,5 +1,7 @@
-#lang typed/racket
-(require "../utils.rkt" "../show.rkt" "../lang.rkt" "../closure.rkt" "../machine.rkt"
+#lang typed/racket/base
+(require racket/cmdline racket/match racket/list racket/set
+         (only-in racket/file file->list)
+         "../../utils.rkt" "../show.rkt" "../../lang.rkt" "../closure.rkt" "../machine.rkt"
          (only-in "../query.rkt" [query cvc4])
          (only-in "../query-z3.rkt" [query z3])
          (only-in "../provability.rkt" ext-solver))

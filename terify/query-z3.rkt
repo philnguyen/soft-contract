@@ -1,6 +1,7 @@
-#lang typed/racket
+#lang typed/racket/base
 
-(require "lang.rkt" "closure.rkt" "utils.rkt" "show.rkt")
+(require racket/match racket/list racket/set racket/string racket/bool racket/port racket/system
+         "../utils.rkt" "../lang.rkt" "closure.rkt" "show.rkt")
 (provide query model handled?)
 
 ; query external solver for provability relation
@@ -273,11 +274,19 @@
               (for/fold ([m : (Map Int .//) m])
                         ([line : Any (in-list lines)])
                 (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
-                (define res
+                (printf "e: ~a~n" e)
+                (define res : Real
                   (match e
-                    [`(- ,(? real? x)) (- x)]
+                    [`(+ ,(? real? x) ,(? real? y) ...)
+                     (apply + x (cast y (Listof Real)))]
+                    [`(- ,(? real? x) ,(? real? y) ...)
+                     (apply - x (cast y (Listof Real)))]
+                    [`(* ,(? real? x) ,(? real? y) ...)
+                     (apply * x (cast y (Listof Real)))]
+                    [`(/ ,(? real? x) ,(? real? y) ...)
+                     (apply / x (cast y (Listof Real)))]
                     [(? real? x) x]))
-                (hash-set m (lab→i a) (.// (.b res) ∅))))
+                (hash-set m (lab→i a) (.// (.b (cast res Real)) ∅))))
             ;; Fixup. Z3 gives empty model sometimes for trivial cases
             (define m′′
               (for/hash : (Map Integer .//) ([(k v) m′])

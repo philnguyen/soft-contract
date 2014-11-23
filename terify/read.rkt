@@ -1,5 +1,6 @@
-#lang racket
-(require "utils.rkt" "lang.rkt" (only-in redex variable-not-in))
+#lang racket/base
+(require racket/match racket/list racket/set
+         "../utils.rkt" "../lang.rkt" (only-in redex variable-not-in))
 (provide read-p)
 
 ;; figure out define/provide/require for each module

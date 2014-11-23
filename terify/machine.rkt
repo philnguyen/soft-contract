@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils.rkt" "lang.rkt" "closure.rkt" "delta.rkt" "provability.rkt" "show.rkt")
+ "../utils.rkt" "../lang.rkt" "closure.rkt" "delta.rkt" "provability.rkt" "show.rkt")
 (require/typed ; TODO for debugging only
  "read.rkt"
  [read-p (Any → .p)])

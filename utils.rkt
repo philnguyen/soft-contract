@@ -1,5 +1,5 @@
-#lang typed/racket
-
+#lang typed/racket/base
+(require racket/set racket/match)
 (provide (all-defined-out)) ; TODO
 
 (: memoize : (∀ (X Y) ((X → Y) [#:eq? Bool] → (X → Y))))

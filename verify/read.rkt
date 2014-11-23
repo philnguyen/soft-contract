@@ -1,5 +1,6 @@
-#lang racket
-(require "utils.rkt" "lang.rkt" (only-in redex variable-not-in))
+#lang racket/base
+(require racket/match racket/set racket/list
+         "../utils.rkt" "../lang.rkt" (only-in redex variable-not-in))
 (provide read-p)
 
 ;; figure out define/provide/require for each module
@@ -37,6 +38,7 @@
      (let ([syms (pass-1 p)])
        (gen-havoc
         (.p (.m* l* (for/hash ([l l*] [d* d**]) (values l (read-m syms l d*))))
+            ∅ ; FIXME
             (read-e syms '† '() e))))]
     [`(,(and m `(module ,_ ,_ ...)) ... ,e) (read-p `(,@m (require) ,e))]
     [_ (error "Invalid program form. Expect ((module x c v)⋯ (require x⋯) e)")]))

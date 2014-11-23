@@ -1,5 +1,6 @@
-#lang typed/racket
-(require "utils.rkt" "lang.rkt" "closure.rkt" "delta.rkt" "provability.rkt" "show.rkt")
+#lang typed/racket/base
+(require racket/set racket/list racket/match racket/bool racket/function
+         "../utils.rkt" "../lang.rkt" "closure.rkt" "delta.rkt" "provability.rkt" "show.rkt")
 (require/typed ; TODO for debugging only
  "read.rkt"
  [read-p (Any → .p)])
@@ -43,7 +44,7 @@
 
 (: ev : .p → .ς+)
 (define (ev p)
-  (match-define (.p (and m* (.m* _ ms)) e) p)
+  (match-define (.p (and m* (.m* _ ms)) _ e) p)
   (define step (step-p m*))
   (define: Ξ : (MMap .rt/κ .K) (make-hash))
   (define: M : (MMap .rt/κ .res) (make-hash))

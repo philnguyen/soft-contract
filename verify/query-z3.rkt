@@ -1,6 +1,7 @@
-#lang typed/racket
+#lang typed/racket/base
 
-(require "lang.rkt" "closure.rkt" "utils.rkt" "show.rkt")
+(require racket/match racket/list racket/set racket/bool racket/string racket/port racket/system
+         "../utils.rkt" "../lang.rkt" "closure.rkt" "show.rkt")
 (provide query handled?)
 
 ; query external solver for provability relation
