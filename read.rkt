@@ -1,6 +1,6 @@
 #lang racket/base
 (require racket/match racket/list racket/set
-         "utils.rkt" "lang.rkt" (only-in redex variable-not-in))
+         "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in))
 (provide read-p on-•!)
 
 (define on-•! (make-parameter (λ () •)))
