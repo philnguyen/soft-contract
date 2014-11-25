@@ -13,9 +13,9 @@
 (define-type N Nonnegative-Integer)
 (define-type Bm-Result (List .ς+ N N N))
 
-(define: mode : Mode 'verbose)
-(define: files : (Listof String) '())
-(define: solver : (.σ .V .V → .R) cvc4)
+(define mode : Mode 'verbose)
+(define files : (Listof String) '())
+(define solver : (.σ .V .V → .R) z3)
 (define TIMEOUT 1200)
 (define ITER 10)
 (: avg : Real → Real)
@@ -25,7 +25,8 @@
  #:once-each
  [("-v" "--verbose") "Verbose mode" (set! mode 'verbose)]
  [("-V" "--overbose") "Verbose, with heap dump" (set! mode 'overbose)]
- [("-z" "--z3") "User Z3 instead of CVC4" (set! solver z3)]
+ [("-z" "--z3") "Use Z3 as solver (default)" (set! solver z3)]
+ [("-c" "--cvc4") "Use CVC4 as solver" (set! solver cvc4)]
  #:args fnames
  (set! files (if (empty? fnames)
                  (sort (map path->string (directory-list)) string<=?)
