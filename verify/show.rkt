@@ -2,7 +2,7 @@
 (require racket/match racket/set racket/list racket/function
          "../utils.rkt" "../lang.rkt" "closure.rkt")
 (require/typed
- redex
+ redex/reduction-semantics
  [variables-not-in (Any Any → (Listof Sym))])
 
 (provide (all-defined-out))

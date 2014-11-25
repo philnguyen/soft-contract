@@ -1,17 +1,16 @@
 #lang typed/racket/base
 (provide feedback)
 (require racket/match racket/list
-         (only-in "verify/machine.rkt" [e verify])
-         (only-in "verify/machine.rkt" .ς)
+         (only-in "utils.rkt" match?)
+         (only-in "lang.rkt" .p)
+         (only-in "verify/machine.rkt" .ς [e verify])
          (only-in "verify/closure.rkt" .blm?)
          (only-in "terify/machine.rkt" [ev find-error])
          (only-in "terify/provability.rkt" [model model/untyped])
          (only-in "terify/query-z3.rkt" [model model/z3])
          (only-in "terify/show.rkt" show-ce show-A)
-         (only-in "terify/closure.rkt" .σ?)
-         (only-in "terify/lang.rkt" .p)
-         (only-in "terify/utils.rkt" match?))
-(require/typed "terify/read.rkt"
+         (only-in "terify/closure.rkt" .σ?))
+(require/typed "read.rkt"
   [read-p (Sexp → .p)])
 
 (define Timeout 5)

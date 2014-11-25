@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set
          "../utils.rkt" "../lang.rkt")
-(require/typed redex [variable-not-in (Any Sym → Sym)])
+(require/typed redex/reduction-semantics [variable-not-in (Any Sym → Sym)])
 (provide (all-defined-out))
 
 (define m∅ : (Map (U Int Sym) .V) (hash))

@@ -2,8 +2,7 @@
   (provide [n number?]))
 
 (module id
-  (provide
-   [f ([x : number?] . -> . (=/c x))])
+  (provide [f (->i ([x number?]) (res (x) (=/c x)))])
   (define (f x) x))
 
 (require opaque id)

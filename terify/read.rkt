@@ -1,8 +1,6 @@
 #lang racket/base
-(require racket/match racket/set racket/list
-         "../utils.rkt" "../lang.rkt"
-         (rename-in "../read.rkt" [read-p read-p/raw])
-         (only-in redex variable-not-in))
+(require "../lang.rkt"
+         (rename-in "../read.rkt" [read-p read-p/raw]))
 (provide read-p)
 
 (define (read-p s)
