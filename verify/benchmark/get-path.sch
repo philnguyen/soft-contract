@@ -1,17 +1,15 @@
 (module lib
   (provide
-   [path/c any]
-   [dom/c any])
+   [path/c any/c]
+   [dom/c any/c])
   (define path/c
-    ([msg : (one-of/c "hd" "tl")] . -> .
-     (cond
-       [(equal? msg "hd") str?]
-       [else (or/c false? path/c)])))
+    (->i ([msg (one-of/c "hd" "tl")])
+	 (res (msg)
+	      (cond
+	       [(equal? msg "hd") string?]
+	       [else (or/c false? path/c)]))))
   (define dom/c
-    ([msg : (one-of/c "get-child")] . -> .
-     (cond
-       [(equal? msg "get-child") (str? . -> . dom/c)]
-       [else false?]))))
+    (-> (one-of/c "get-child") (string? . -> . dom/c))))
 
 (module get-path
   (provide [get-path (dom/c path/c . -> . dom/c)])

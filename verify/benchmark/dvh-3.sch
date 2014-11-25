@@ -1,11 +1,11 @@
 (module dvh-3
   (provide
-   [  eq  ([x : num?] . -> . (=/c x))]
-   [succ  ([x : num?] . -> . (=/c (add1 x)))]
-   [succ2 ([x : num?] . -> . (lambda (z) (= x (sub1 z))))]
-   [mult  ([x : num?] [y : num?] . -> . (=/c (* x y)))]
+   [  eq  (->i ([x number?]) (res (x) (=/c x)))]
+   [succ  (->i ([x number?]) (res (x) (=/c (add1 x))))]
+   [succ2 (->i ([x number?]) (res (x) (lambda (z) (= x (sub1 z)))))]
+   [mult  (->i ([x number?] [y number?]) (res (x y) (=/c (* x y))))]
    ;; reverse order of mult in contract from implementation
-   [mult2 ([x : num?] [y : num?] . -> . (=/c (* y x)))])
+   [mult2 (->i ([x number?] [y number?]) (res (x y) (=/c (* y x))))])
 
   (define (eq x) x)
   (define (succ x) (add1 x))

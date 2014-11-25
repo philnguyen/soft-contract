@@ -1,6 +1,6 @@
 (module tak
   (provide
-   [tak (int? int? int? (int? . -> . int?) . -> . int?)])
+   [tak (integer? integer? integer? (integer? . -> . integer?) . -> . integer?)])
   (define (tak x y z k)
     (if (not (< y x))
         (k z)
@@ -19,7 +19,7 @@
                              (tak v1 v2 v3 k))))))))))
 
 (module nums
-  (provide [a int?] [b int?] [c int?]))
+  (provide [a integer?] [b integer?] [c integer?]))
 
 (require tak nums)
 (tak a b c (lambda (x) x))

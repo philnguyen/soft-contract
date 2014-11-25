@@ -1,7 +1,7 @@
 (module eo
   (provide
-   [even? (int? . -> . bool?)]
-   [odd? (int? . -> . bool?)])
+   [even? (integer? . -> . bool?)]
+   [odd? (integer? . -> . bool?)])
   (define (even? n)
     (if (zero? n) #t (odd? (sub1 n))))
   (define (odd? n)

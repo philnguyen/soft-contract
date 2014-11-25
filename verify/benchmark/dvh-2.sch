@@ -1,6 +1,8 @@
 (module dvh-2
   (provide
-   [main ([x : num?] . -> . ([y : (and/c num? (=/c x))] . -> . (=/c x)))])
+   [main (->i ([x number?])
+	      (res (x) (->i ([y (and/c number? (=/c x))])
+			    (res (y) (=/c x)))))])
 
   (define (main x) (lambda (y) y)))
 

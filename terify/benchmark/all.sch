@@ -1,5 +1,5 @@
 (module all
-  (provide [all ((any . -> . any) (listof any) . -> . #|HERE|#bool?)])
+  (provide [all ((any/c . -> . any/c) (listof any/c) . -> . #|HERE|#bool?)])
   (define (all p? xs)
     (cond
       [(empty? xs) #t]

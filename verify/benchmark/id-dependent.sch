@@ -1,9 +1,9 @@
 (module opaque
-  (provide [n num?]))
+  (provide [n number?]))
 
 (module id
   (provide
-   [f ([x : num?] . -> . (=/c x))])
+   [f ([x : number?] . -> . (=/c x))])
   (define (f x) x))
 
 (require opaque id)

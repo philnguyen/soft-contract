@@ -1,4 +1,4 @@
-(module m (provide [f (int? . -> . any)])
+(module m (provide [f (integer? . -> . any/c)])
   (define (f x)
     (if (= x 0) #f (cons x (g (- x 1)))))
   (define (g x)

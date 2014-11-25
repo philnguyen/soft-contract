@@ -1,8 +1,8 @@
 (module nth0
   (provide
-   [nth (int? (listof int?) . -> . int?)]
-   [mk-list (int? . -> . (listof int?))]
-   [main (int? . -> . int?)])
+   [nth (integer? (listof integer?) . -> . integer?)]
+   [mk-list (integer? . -> . (listof integer?))]
+   [main (integer? . -> . integer?)])
   (define (nth n xs)
     (if (= n 0) (car xs) (nth (- n 1) (cdr xs))))
   (define (mk-list n)

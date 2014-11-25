@@ -1,7 +1,7 @@
 (module image
   (provide
-   [image/c any]
-   [circle (real? str? str? . -> . image/c)]
+   [image/c any/c]
+   [circle (real? string? string? . -> . image/c)]
    [empty-scene (real? real? . -> . image/c)]
    [place-image (image/c real? real? image/c . -> . image/c)])
   (define image/c (λ (x) (image? x)))
@@ -13,10 +13,10 @@
    [posn=? (POSN/C POSN/C . -> . bool?)]
    [struct snake ([dir DIR/C] [segs (nelistof POSN/C)])]
    [struct world ([snake SNAKE/C] [food POSN/C])]
-   [DIR/C any]
-   [POSN/C any]
-   [SNAKE/C any]
-   [WORLD/C any])
+   [DIR/C any/c]
+   [POSN/C any/c]
+   [SNAKE/C any/c]
+   [WORLD/C any/c])
   
   (define DIR/C (one-of/c "up" "down" "left" "right"))
   (define POSN/C (struct/c posn real? real?))
@@ -63,7 +63,7 @@
   (require data const)
   
   ;; snake-wall-collide? : Snake -> Boolean
-  ;; Is the snake colliding with any of the walls?
+  ;; Is the snake colliding with any/c of the walls?
   (define (snake-wall-collide? snk)
     (head-collide? (car (snake-segs snk))))
   
@@ -169,7 +169,7 @@
   ;; Movie handlers
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (provide
-   [handle-key (WORLD/C str? . -> . WORLD/C)]
+   [handle-key (WORLD/C string? . -> . WORLD/C)]
    [game-over? (WORLD/C . -> . bool?)])
   (require data motion collide)
   

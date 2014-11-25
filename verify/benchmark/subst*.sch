@@ -1,6 +1,6 @@
 (module subst*
   (provide
-   [subst* (any any any . -> . any)])
+   [subst* (any/c any/c any/c . -> . any/c)])
   (define (subst* new old t)
     (cond
       [(equal? old t) new]

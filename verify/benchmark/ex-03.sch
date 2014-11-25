@@ -1,7 +1,7 @@
 (module lib
-  (provide [member (any (listof any) . -> . (or/c false? (nelistof any)))]))
+  (provide [member (any/c (listof any/c) . -> . (or/c false? (nelistof any/c)))]))
 (module ex-03
-  (provide [f (any (listof any) . -> . false?)])
+  (provide [f (any/c (listof any/c) . -> . false?)])
   (require lib)
   (define (f v l)
     (let ([x (member v l)])

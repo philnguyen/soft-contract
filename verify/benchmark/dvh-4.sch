@@ -1,9 +1,12 @@
 ; Demonstrates shortcoming in Phil's email from 7/13
 (module dvh-4
   (provide
-   [phil  ([l1 : num?] . -> . 
-           ([l2 : num?] . -> .
-            ([l3 : (and/c num? (not/c zero?) (=/c (* l1 l2)))] . -> . (not/c zero?))))])
+   [phil  (->i ([l1 number?])
+	       (res (l1)
+		    (->i ([l2 number?])
+			 (res (l2)
+			      (->i ([l3 (and/c number? (not/c zero?) (=/c (* l1 l2)))])
+				   (res (l3) (not/c zero?)))))))])
 
   (define phil
     (lambda (l1)

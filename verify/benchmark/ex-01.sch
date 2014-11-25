@@ -1,7 +1,7 @@
 (module f
-  (provide [f (any . -> . num?)])
+  (provide [f (any/c . -> . number?)])
   (define (f x)
-    (if (num? x) (add1 x) 0)))
+    (if (number? x) (add1 x) 0)))
 
 (require f)
 (f •)

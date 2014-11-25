@@ -1,6 +1,6 @@
 (module mult
-  (provide [mult (int? int? . -> . (and/c int? (>=/c 0)))]
-           [sqr ([n : int?] . -> . (and/c int? (>=/c n)))])
+  (provide [mult (integer? integer? . -> . (and/c integer? (>=/c 0)))]
+           [sqr (->i ([n integer?]) (res (n) (and/c integer? (>=/c n))))])
   (define (mult n m)
     (if (or (<= n 0) (<= m 0)) 0
         (+ n (mult n (- m 1)))))

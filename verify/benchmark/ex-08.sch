@@ -1,7 +1,7 @@
 (module strnum?
-  (provide [strnum? ([x : any] . -> . (and/c bool? (λ (a) (equal? a (or (str? x) (num? x))))))])
+  (provide [strnum? (->i ([x any/c]) (res (x) (and/c bool? (λ (a) (equal? a (or (string? x) (number? x)))))))])
   (define (strnum? x)
-    (or (str? x) (num? x))))
+    (or (string? x) (number? x))))
 
 (require strnum?)
 (strnum? •)

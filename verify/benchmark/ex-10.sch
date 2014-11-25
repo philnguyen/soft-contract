@@ -1,7 +1,7 @@
 (module f
-  (provide [f (cons? . -> . num?)])
+  (provide [f (cons? . -> . number?)])
   (define (f p)
-    (if (num? (car p)) (add1 (car p)) 7)))
+    (if (number? (car p)) (add1 (car p)) 7)))
 
 (require f)
 (f •)

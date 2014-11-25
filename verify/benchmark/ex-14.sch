@@ -1,12 +1,12 @@
 (module f
   (provide
-   [f ([or/c num? str?] cons? . -> . num?)])
+   [f ([or/c number? string?] cons? . -> . number?)])
   (define (f input extra)
     (cond
-      [(and (num? input) (num? (car extra)))
+      [(and (number? input) (number? (car extra)))
        (+ input (car extra))]
-      [(num? (car extra))
-       (+ (str-len input) (car extra))]
+      [(number? (car extra))
+       (+ (string-length input) (car extra))]
       [else 0])))
 
 (require f)

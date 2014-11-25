@@ -1,12 +1,12 @@
 (module fold-fun-list
   (provide
-   [mk-list (int? . -> . (listof (int? . -> . int?)))]
-   [foldr (((int? . -> . int?) (int? . -> . int?) . -> . (int? . -> . int?))
-           (int? . -> . int?)
-           (listof (int? . -> . int?))
-           . -> . (int? . -> . int?))]
-   [main ([n : int?] . -> . (and/c (int? . -> . int?)
-                                   (λ (f) (>= (f 0) 0))))])
+   [mk-list (integer? . -> . (listof (integer? . -> . integer?)))]
+   [foldr (((integer? . -> . integer?) (integer? . -> . integer?) . -> . (integer? . -> . integer?))
+           (integer? . -> . integer?)
+           (listof (integer? . -> . integer?))
+           . -> . (integer? . -> . integer?))]
+   [main (integer? . -> . (and/c (integer? . -> . integer?)
+				 (λ (f) (>= (f 0) 0))))])
   (define (mk-list n)
     (if (< n 0) empty
         (cons (λ (m) (+ m n)) (mk-list (- n 1)))))

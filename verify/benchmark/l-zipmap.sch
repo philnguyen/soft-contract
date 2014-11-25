@@ -1,5 +1,5 @@
 (module zip
-  (provide [zip (int? int? . -> . int?)])
+  (provide [zip (integer? integer? . -> . integer?)])
   (define (zip x y)
     (cond
       [(and (= x 0) (= y 0)) x]
@@ -7,12 +7,12 @@
       [else 'fail])))
 
 (module map
-  (provide [map (int? . -> . int?)])
+  (provide [map (integer? . -> . integer?)])
   (define (map x)
     (if (= x 0) x (+ 1 (map (- x 1))))))
 
 (module main
-  (provide [main ([n : int?] . -> . (and/c int? (=/c n)))])
+  (provide [main (->i ([n integer?]) (res (n) (and/c integer? (=/c n))))])
   (require zip map)
   (define (main n) (map (zip n n))))
 

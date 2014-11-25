@@ -1,6 +1,6 @@
-(module assert (provide [assert ((not/c false?) . -> . any)]))
+(module assert (provide [assert ((not/c false?) . -> . any/c)]))
 (module m
-  (provide [main (-> any)])
+  (provide [main (-> any/c)])
   (require assert)
   (define (f x y) (if x (f y x) (g x y)))
   (define (g x y) (assert y))

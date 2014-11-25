@@ -203,8 +203,8 @@
   [MT (→V (.St 'empty empty))]
   [♦ (→V •)] [V∅ (.μ/V '_ ∅)]
   [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
-  [INT/C (Prim 'int?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'num?)]
-  [STR/C (Prim 'str?)] [PROC/C (Prim 'proc?)] [SYM/C (Prim 'symbol?)])
+  [INT/C (Prim 'integer?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'number?)]
+  [STR/C (Prim 'string?)] [PROC/C (Prim 'procedure?)] [SYM/C (Prim 'symbol?)])
 
 
 ;;;;; ENVIRONMENT

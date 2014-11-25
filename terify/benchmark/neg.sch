@@ -1,17 +1,17 @@
-(module g (provide [g (int? . -> . (any . -> . int?))])
+(module g (provide [g (integer? . -> . (any/c . -> . integer?))])
   (define (g x) (λ (_) x)))
 
 (module twice
   (provide
-   [twice (((any . -> . int?) . -> . (any . -> . int?)) (any . -> . int?) any . -> . int?)])
+   [twice (((any/c . -> . integer?) . -> . (any/c . -> . integer?)) (any/c . -> . integer?) any/c . -> . integer?)])
   (define (twice f x y) ((f (f x)) y)))
 
 (module neg
-  (provide [neg ((any . -> . int?) . -> . (any . -> . int?))])
+  (provide [neg ((any/c . -> . integer?) . -> . (any/c . -> . integer?))])
   (define (neg x) (λ (_) (- 0 (x #f)))))
 
 (module main
-  (provide [main (int? . -> . (and/c int? (>=/c 0)))])
+  (provide [main (integer? . -> . (and/c integer? (>=/c 0)))])
   (require twice neg g)
   (define (main n)
     (if (>= n 0)

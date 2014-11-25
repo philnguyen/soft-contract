@@ -1,5 +1,5 @@
 (module foldr1
-  (provide [foldr1 ((any any . -> . any) (nelistof any) . -> . any)])
+  (provide [foldr1 ((any/c any/c . -> . any/c) (nelistof any/c) . -> . any/c)])
   (define (foldr1 f xs)
     (let ([z (car xs)]
           [zs (cdr xs)])

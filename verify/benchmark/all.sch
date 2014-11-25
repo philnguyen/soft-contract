@@ -1,5 +1,5 @@
 (module all
-  (provide [all ((any . -> . any) (listof any) . -> . any)])
+  (provide [all ((any/c . -> . any/c) (listof any/c) . -> . any/c)])
   (define (all p? xs)
     (cond
       [(empty? xs) #t]

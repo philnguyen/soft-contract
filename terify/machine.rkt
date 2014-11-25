@@ -43,11 +43,10 @@
   (for ([x (rest (third it))])
     (printf " ~a~n" x)))
 
-(: ev : .p → (Option .Ans))
+(: ev : .p → #;(Setof .Ans) (Option .Ans))
 (define (ev p)
   (match-define (.p (and m* (.m* _ ms)) accs e) p)
   (define step (step-p m* accs))
-  (define D 3)
   
   (: prob : Real → Boolean)
   (define (prob p) (<= (random) p))
@@ -150,6 +149,26 @@
        [(set? front′) (search front′)]
        [else front′])]))
   
+  ;; Run program normally (just for debugging)
+  (: run : (Setof .ς) → (Setof .Ans))
+  (define (run front)
+    (define res : (Setof .Ans) ∅)
+    (let go! : (Setof .Ans) ([front front])
+      (cond
+       [(set-empty? front) res]
+       [else
+        (define front′ : (Setof .ς) ∅)
+        (for ([ς front])
+          (match ς
+            [(.ς (? .V? V) σ '()) (set! res (set-add res (cons σ V)))]
+            [(.ς (and blm (.blm l⁺ _ _ _)) σ _)
+             (set! res (set-add res (cons σ blm)))]
+            [_ (define ςs (step ς))
+               (set! front′
+                     (cond [(set? ςs) (set-union front′ ςs)]
+                           [else (set-add front′ ςs)]))]))
+        (go! front′)])))
+  
   ;; Interactive debugging
   #;(let ()
     (define l : (Listof Integer) '())
@@ -189,7 +208,10 @@
     (read)
     #f)
   
-  (search (set (inj e))))
+  ;; `search` is for CE, `run` is the normal run
+  (search (set (inj e)))
+  #;(run (set (inj e))))
+
 
 (define-syntax-rule (match/nd v [p e ...] ...) (match/nd: (.Ans → .ς) v [p e ...] ...))
 
@@ -231,22 +253,44 @@
          ;; Handle box operations specially
          [(.st-mk 'box 1)
           (match V*
-            [(list _)
-             #;(match-define (cons σ L) (σ+ σ))
-             #;(.ς L (σ-set σ L (→V (.St 'box V*))) k)
-             (error "TODO")]
+            [(list V)
+             (let-values ([(σ L) (σ+ σ)])
+               (.ς L (σ-set σ L (→V (.St 'box V*))) k))]
             [_ (.ς (.blm l 'box (Prim (length V*)) (arity=/C 1)) σ k)])]
          [(.st-p 'box 1)
           (match V*
             [(list V)
              (match V
-               [(.L i) (error "TODO")]
+               [(.L i)
+                (match (σ@ σ i)
+                  [(.// (.•) Cs)
+                   (match (C*⇒C Cs (Prim 'box?))
+                     ['Proved (.ς TT σ k)]
+                     ['Refuted (.ς FF σ k)]
+                     ;; Handle aliases in ambiguous case
+                     ['Neither
+                      (define ςs
+                        {set
+                         ;; Fresh box
+                         (let-values ([(σ₁ L₁) (σ+ σ)])
+                           (.ς TT (σ-set σ₁ i (mk-box L₁)) k)) 
+                         ;; Non-box
+                         (.ς FF (σ-set σ i (.// (.•) (set-add Cs (.¬/C (Prim 'box?))))) k)})
+                      ;; Handle aliases by replacing Lᵢ with Lⱼ for each definite box Lⱼ
+                      (for/fold ([ςs : (Setof .ς) ςs])
+                                ([(j Vⱼ) (in-hash (.σ-map σ))]
+                                 #:when (match? Vⱼ (.// (.St 'box _) _)))
+                        (set-add ςs (.ς TT (L/L σ i j) (L/L k i j))))])]
+                  [(.// (.St 'box _) _) (.ς TT σ k)]
+                  [_ (.ς FF σ k)])]
+               ;; Box are always pointed to
                [_ (.ς FF σ k)])]
             [_ (.ς (.blm l 'box? (Prim (length V*)) (arity=/C 1)) σ k)])]
          [(.st-ac 'box 1 0)
           (error "TODO")]
          [(.set-box!)
           (error "TODO")]
+         ;; Defer other primitives to δ
          [(? .o? o) (match/nd (dbg/off '@ (δ σ o V* l)) [(cons σa A) (.ς A σa k)])]
          [(? .λ↓? f) (step-β f V* l σ k)]
          [(.Ar (.// (.Λ/C C* D v?) _) Vg (and l^3 (list _ _ lo)))
@@ -512,15 +556,62 @@
                     [_ (cons κ (trim kr))])]
                  [_ k])))]))
 
-;;;;; small programs for testing
-(define f
-  (read-p
-   `((module f
-       (provide [f (int? . -> . int?)])
-       (define (f n)
-         (if (= n 0) 1 (* n (f (- n 1))))))
-     (require f)
-     (f 100))))
+;; Replace label in state
+(: L/L (case->
+        [.σ Int Int → .σ]
+        [.κ* Int Int → .κ*]))
+(define (L/L x i j)
+  (: go (case->
+         [.σ → .σ] [.ρ → .ρ]
+         [.L → .L] [.// → .//] [.V → .V] [.↓ → .↓] [.E → .E]
+         [.U → .U] [.κ → .κ] [.κ* → .κ*]))
+  (define (go x)
+    (match x
+      ;; σ
+      [(.σ m l) (.σ (for/hash : (Map Int .//) ([(k V) (in-hash m)]
+                                      #:unless (equal? k i))
+                      (values k (go V)))
+                    l)]
+      ;; ρ
+      [(.ρ m d) (.ρ (for/hash : (Map (U Sym Int) .V) ([(k v) (in-hash m)])
+                      (values k (go v)))
+                    d)]
+      ;; L
+      [(and V (.L k))
+       (cond [(equal? k i) (.L j)]
+             [else V])]
+      ;; V
+      [(.// U Cs) (.// (go U) (for/set: .V ([C Cs]) (go C)))]
+      ;; E
+      [(.↓ e ρ) (.↓ e (go ρ))]
+      [(.FC C V ctx) (.FC (go C) (go V) ctx)]
+      [(.Mon C E l³) (.Mon (go C) (go E) l³)]
+      [(.Assume V C) (.Assume (go C) (go V))]
+      [(.blm l⁺ lᵒ V C) (.blm l⁺ lᵒ (go V) (go C))]
+      ;; U
+      [(.Ar C V l³) (.Ar (go C) (go V) l³)]
+      [(.St t Vs) (.St t (map go Vs))]
+      [(.λ↓ f ρ) (.λ↓ f (go ρ))]
+      [(.Λ/C Cs D v?) (.Λ/C (map go Cs) (go D) v?)]
+      [(.St/C t Cs) (.St t (map go Cs))]
+      [(.μ/C x C) (.μ/C x (go C))]
+      [(.Case m) (.Case (for/hash : (Map (Listof .V) .L) ([(k v) (in-hash m)])
+                          (values (map go k) (go v))))]
+      [(? .U? U) U]
+      ;; κ
+      [(.if/κ t e) (.if/κ (go t) (go e))]
+      [(.@/κ e* v* ctx) (.@/κ (map go e*) (map go v*) ctx)]
+      [(.▹/κ (cons #f (? .E? E)) l³) (.▹/κ (cons #f (go E)) l³)]
+      [(.▹/κ (cons (? .V? V) #f) l³) (.▹/κ (cons (go V) #f) l³)]
+      [(.indy/κ Cs Vs Vs↓ D v? l³)
+       (.indy/κ (map go Cs) (map go Vs) (map go Vs↓)
+                (if D (go D) #f) v? l³)]
+      [(.λc/κ cs Cs d ρ v?) (.λc/κ cs (map go Cs) d (go ρ) v?)]
+      [(.structc/κ t cs ρ Cs) (.structc/κ t cs (go ρ) (map go Cs))]
+      [(? .κ? κ) κ]
+      ;; κ*
+      [(? list? l) (map go l)]))
+  (go x))
 
 ;; for debugging
 (define (e x) (ev (read-p x)))

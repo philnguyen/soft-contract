@@ -1,20 +1,20 @@
 (module data
   (provide
-   [struct block ([x num?] [y num?] [color COLOR/C])]
-   [struct posn ([x num?] [y num?])]
+   [struct block ([x number?] [y number?] [color COLOR/C])]
+   [struct posn ([x number?] [y number?])]
    [struct tetra ([center POSN/C] [blocks BSET/C])]
    [struct world ([tetra TETRA/C] [blocks BSET/C])]
    [posn=? (POSN/C POSN/C . -> . bool?)]
-   [COLOR/C any]
-   [POSN/C any]
-   [BLOCK/C any]
-   [TETRA/C any]
-   [WORLD/C any]
-   [BSET/C any])
+   [COLOR/C any/c]
+   [POSN/C any/c]
+   [BLOCK/C any/c]
+   [TETRA/C any/c]
+   [WORLD/C any/c]
+   [BSET/C any/c])
   (define BSET/C (listof BLOCK/C))
   (define COLOR/C symbol?)
-  (define POSN/C (struct/c posn num? num?))
-  (define BLOCK/C (struct/c block num? num? COLOR/C))
+  (define POSN/C (struct/c posn number? number?))
+  (define BLOCK/C (struct/c block number? number? COLOR/C))
   (define TETRA/C (struct/c tetra POSN/C BSET/C))
   (define WORLD/C (struct/c world TETRA/C BSET/C))
   
@@ -28,9 +28,9 @@
          (= (posn-y p1) (posn-y p2)))))
 
 (module consts
-  (provide [block-size int?]
-           [board-width int?]
-           [board-height int?])
+  (provide [block-size integer?]
+           [board-width integer?]
+           [board-height integer?])
   (define block-size 20)
   (define board-height 20)
   (define board-width 10))
@@ -40,7 +40,7 @@
    [block-rotate-ccw (POSN/C BLOCK/C . -> . BLOCK/C)]
    [block-rotate-cw (POSN/C BLOCK/C . -> . BLOCK/C)]
    [block=? (BLOCK/C BLOCK/C . -> . bool?)]
-   [block-move (num? num? BLOCK/C . -> . BLOCK/C)])
+   [block-move (number? number? BLOCK/C . -> . BLOCK/C)])
   (require data)
   
   ;; block=? : Block Block -> Boolean
@@ -69,17 +69,17 @@
 
 (module list-fun
   (provide
-   [max (num? num? . -> . num?)]
-   [min (num? num? . -> . num?)]
-   [ormap ([BLOCK/C . -> . bool?] (listof any) . -> . bool?)]
-   [andmap ([BLOCK/C . -> . bool?] (listof any) . -> . bool?)]
+   [max (number? number? . -> . number?)]
+   [min (number? number? . -> . number?)]
+   [ormap ([BLOCK/C . -> . bool?] (listof any/c) . -> . bool?)]
+   [andmap ([BLOCK/C . -> . bool?] (listof any/c) . -> . bool?)]
    [map ([BLOCK/C . -> . BLOCK/C] BSET/C . -> . BSET/C)]
    [filter ([BLOCK/C . -> . bool?] BSET/C . -> . BSET/C)]
    [append (BSET/C BSET/C . -> . BSET/C)]
-   [length ((listof any) . -> . int?)]
+   [length ((listof any/c) . -> . integer?)]
    [foldr ([BLOCK/C BSET/C . -> . BSET/C] BSET/C BSET/C . -> . BSET/C)]
    [foldr-i ([BLOCK/C image? . -> . image?] image? BSET/C . -> . image?)]
-   [foldr-n ((BLOCK/C num? . -> . num?) num? BSET/C . -> . num?)])
+   [foldr-n ((BLOCK/C number? . -> . number?) number? BSET/C . -> . number?)])
   (require image data))
 
 (module bset
@@ -88,18 +88,18 @@
    [blocks=? (BSET/C BSET/C . -> . bool?)]
    [blocks-subset? (BSET/C BSET/C . -> . bool?)]
    [blocks-intersect (BSET/C BSET/C . -> . BSET/C)]
-   [blocks-count (BSET/C . -> . num?)]
+   [blocks-count (BSET/C . -> . number?)]
    [blocks-overflow? (BSET/C . -> . bool?)]
-   [blocks-move (num? num? BSET/C . -> . BSET/C)]
+   [blocks-move (number? number? BSET/C . -> . BSET/C)]
    [blocks-rotate-cw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-rotate-ccw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-change-color (BSET/C COLOR/C . -> . BSET/C)]
-   [blocks-row (BSET/C num? . -> . BSET/C)]
-   [full-row? (BSET/C num? . -> . bool?)]
+   [blocks-row (BSET/C number? . -> . BSET/C)]
+   [full-row? (BSET/C number? . -> . bool?)]
    [blocks-union (BSET/C BSET/C . -> . BSET/C)]
-   [blocks-max-x (BSET/C . -> . num?)]
-   [blocks-min-x (BSET/C . -> . num?)]
-   [blocks-max-y (BSET/C . -> . num?)])
+   [blocks-max-x (BSET/C . -> . number?)]
+   [blocks-min-x (BSET/C . -> . number?)]
+   [blocks-max-y (BSET/C . -> . number?)])
   (require data block list-fun consts)
   
   ;; blocks-contains? : BSet Block -> Boolean
@@ -159,7 +159,7 @@
     (= board-width (blocks-count (blocks-row bs i))))
   
   ;; blocks-overflow? : BSet -> Boolean
-  ;; Have any of the blocks reach over the top of the board?
+  ;; Have any/c of the blocks reach over the top of the board?
   (define (blocks-overflow? bs)
     (ormap (λ (b) (<= (block-y b) 0)) bs))
   
@@ -207,11 +207,11 @@
 
 (module tetras
   (provide ;[tetras (listof TETRA/C)]
-   [tetra-move (int? int? TETRA/C . -> . TETRA/C)]
+   [tetra-move (integer? integer? TETRA/C . -> . TETRA/C)]
    [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
    [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
    [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . bool?)]
-   [build-tetra-blocks (COLOR/C num? num? int? int? int? int? int? int? int? int?
+   [build-tetra-blocks (COLOR/C number? number? integer? integer? integer? integer? integer? integer? integer? integer?
                                 . -> .  TETRA/C)]
    [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)])
   (require bset data consts block)
@@ -240,7 +240,7 @@
                              (tetra-blocks t))))
   
   ;; tetra-overlaps-blocks? : Tetra BSet -> Boolean
-  ;; Is the tetra on any of the blocks?
+  ;; Is the tetra on any/c of the blocks?
   (define (tetra-overlaps-blocks? t bs)
     (false? (false? (blocks-intersect (tetra-blocks t) bs))))
   
@@ -259,7 +259,7 @@
                              (block x4 y4 color))))))
 
 (module world
-  (provide [world-key-move (WORLD/C str? . -> . WORLD/C)]
+  (provide [world-key-move (WORLD/C string? . -> . WORLD/C)]
            [next-world (WORLD/C . -> . WORLD/C)]
            [ghost-blocks (WORLD/C . -> . BSET/C)])
   (require data bset block tetras aux elim consts)
@@ -281,7 +281,7 @@
   
   ;; landed-on-blocks? : World -> Boolean
   ;; Has the current tetra landed on blocks?
-  ;; I.e., if we move the tetra down 1, will it touch any existing blocks?
+  ;; I.e., if we move the tetra down 1, will it touch any/c existing blocks?
   (define (landed-on-blocks? w)
     (tetra-overlaps-blocks? (tetra-move 0 1 (world-tetra w))
                             (world-blocks w)))
@@ -351,12 +351,12 @@
 
 (module image
   (provide
-   [image? (any . -> . bool?)]
+   [image? (any/c . -> . bool?)]
    [overlay (image? image? . -> . image?)]
-   [circle (num? num? str? . -> . image?)]
-   [rectangle (num? num? COLOR/C COLOR/C . -> . image?)]
-   [place-image (image? num? num? image? . -> . image?)]
-   [empty-scene (num? num? . -> . image?)])
+   [circle (number? number? string? . -> . image?)]
+   [rectangle (number? number? COLOR/C COLOR/C . -> . image?)]
+   [place-image (image? number? number? image? . -> . image?)]
+   [empty-scene (number? number? . -> . image?)])
   (require data)
   (struct image (impl)))
 
@@ -364,7 +364,7 @@
   (require data)
   (provide
    [list-pick-random ((listof TETRA/C) . -> . TETRA/C)]
-   [neg-1 int?] ;; ha!
+   [neg-1 integer?] ;; ha!
    [tetras (listof TETRA/C)]))
 
 (module visual

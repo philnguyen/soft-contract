@@ -1,5 +1,5 @@
 (module ack ; weakening the 1st arg will make program loop (never wrong)
-  (provide [ack (int? #|HERE|#real? . -> . int?)])
+  (provide [ack (integer? #|HERE|#real? . -> . integer?)])
   (define (ack m n)
     (cond
       [(= m 0) (+ n 1)]

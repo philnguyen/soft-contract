@@ -1,5 +1,5 @@
 (module Y
-  (provide [Y (([any . -> . any] . -> . [any . -> . any]) . -> . [any . -> . any])])
+  (provide [Y (([any/c . -> . any/c] . -> . [any/c . -> . any/c]) . -> . [any/c . -> . any/c])])
   (define (Y f)
     (λ (y)
       (((λ (x) (f (λ (z) ((x x) z))))
@@ -8,7 +8,7 @@
 
 (module last
   (require Y)
-  (provide [last ((cons/c any (listof any)) . -> . any)])
+  (provide [last ((cons/c any/c (listof any/c)) . -> . any/c)])
   (define (last l)
     ((Y (λ (f)
           (λ (x)

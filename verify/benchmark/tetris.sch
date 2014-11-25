@@ -5,12 +5,12 @@
    [struct tetra ([center POSN/C] [blocks BSET/C])]
    [struct world ([tetra TETRA/C] [blocks BSET/C])]
    [posn=? (POSN/C POSN/C . -> . bool?)]
-   [COLOR/C any]
-   [POSN/C any]
-   [BLOCK/C any]
-   [TETRA/C any]
-   [WORLD/C any]
-   [BSET/C any])
+   [COLOR/C any/c]
+   [POSN/C any/c]
+   [BLOCK/C any/c]
+   [TETRA/C any/c]
+   [WORLD/C any/c]
+   [BSET/C any/c])
   (define BSET/C (listof BLOCK/C))
   (define COLOR/C symbol?)
   (define POSN/C (struct/c posn real? real?))
@@ -28,9 +28,9 @@
          (= (posn-y p1) (posn-y p2)))))
 
 (module consts
-  (provide [block-size int?]
-           [board-width int?]
-           [board-height int?])
+  (provide [block-size integer?]
+           [board-width integer?]
+           [board-height integer?])
   (define block-size 20)
   (define board-height 20)
   (define board-width 10))
@@ -71,12 +71,12 @@
   (provide
    [max (real? real? . -> . real?)]
    [min (real? real? . -> . real?)]
-   [ormap ([BLOCK/C . -> . bool?] (listof any) . -> . bool?)]
-   [andmap ([BLOCK/C . -> . bool?] (listof any) . -> . bool?)]
+   [ormap ([BLOCK/C . -> . bool?] (listof any/c) . -> . bool?)]
+   [andmap ([BLOCK/C . -> . bool?] (listof any/c) . -> . bool?)]
    [map ([BLOCK/C . -> . BLOCK/C] BSET/C . -> . BSET/C)]
    [filter ([BLOCK/C . -> . bool?] BSET/C . -> . BSET/C)]
    [append (BSET/C BSET/C . -> . BSET/C)]
-   [length ((listof any) . -> . int?)]
+   [length ((listof any/c) . -> . integer?)]
    [foldr ([BLOCK/C BSET/C . -> . BSET/C] BSET/C BSET/C . -> . BSET/C)]
    [foldr-i ([BLOCK/C image? . -> . image?] image? BSET/C . -> . image?)]
    [foldr-n ((BLOCK/C real? . -> . real?) real? BSET/C . -> . real?)])
@@ -159,7 +159,7 @@
     (= board-width (blocks-count (blocks-row bs i))))
   
   ;; blocks-overflow? : BSet -> Boolean
-  ;; Have any of the blocks reach over the top of the board?
+  ;; Have any/c of the blocks reach over the top of the board?
   (define (blocks-overflow? bs)
     (ormap (λ (b) (<= (block-y b) 0)) bs))
   
@@ -207,11 +207,11 @@
 
 (module tetras
   (provide ;[tetras (listof TETRA/C)]
-   [tetra-move (int? int? TETRA/C . -> . TETRA/C)]
+   [tetra-move (integer? integer? TETRA/C . -> . TETRA/C)]
    [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
    [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
    [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . bool?)]
-   [build-tetra-blocks (COLOR/C real? real? int? int? int? int? int? int? int? int?
+   [build-tetra-blocks (COLOR/C real? real? integer? integer? integer? integer? integer? integer? integer? integer?
                                 . -> .  TETRA/C)]
    [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)])
   (require bset data consts block)
@@ -240,7 +240,7 @@
                              (tetra-blocks t))))
   
   ;; tetra-overlaps-blocks? : Tetra BSet -> Boolean
-  ;; Is the tetra on any of the blocks?
+  ;; Is the tetra on any/c of the blocks?
   (define (tetra-overlaps-blocks? t bs)
     (false? (false? (blocks-intersect (tetra-blocks t) bs))))
   
@@ -259,7 +259,7 @@
                              (block x4 y4 color))))))
 
 (module world
-  (provide [world-key-move (WORLD/C str? . -> . WORLD/C)]
+  (provide [world-key-move (WORLD/C string? . -> . WORLD/C)]
            [next-world (WORLD/C . -> . WORLD/C)]
            [ghost-blocks (WORLD/C . -> . BSET/C)])
   (require data bset block tetras aux elim consts)
@@ -281,7 +281,7 @@
   
   ;; landed-on-blocks? : World -> Boolean
   ;; Has the current tetra landed on blocks?
-  ;; I.e., if we move the tetra down 1, will it touch any existing blocks?
+  ;; I.e., if we move the tetra down 1, will it touch any/c existing blocks?
   (define (landed-on-blocks? w)
     (tetra-overlaps-blocks? (tetra-move 0 1 (world-tetra w))
                             (world-blocks w)))
@@ -351,9 +351,9 @@
 
 (module image
   (provide
-   [image? (any . -> . bool?)]
+   [image? (any/c . -> . bool?)]
    [overlay (image? image? . -> . image?)]
-   [circle (real? real? str? . -> . image?)]
+   [circle (real? real? string? . -> . image?)]
    [rectangle (real? real? COLOR/C COLOR/C . -> . image?)]
    [place-image (image? real? real? image? . -> . image?)]
    [empty-scene (real? real? . -> . image?)])
@@ -364,7 +364,7 @@
   (require data)
   (provide
    [list-pick-random ((listof TETRA/C) . -> . TETRA/C)]
-   [neg-1 int?] ;; ha!
+   [neg-1 integer?] ;; ha!
    [tetras (listof TETRA/C)]))
 
 (module visual

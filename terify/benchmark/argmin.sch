@@ -1,5 +1,5 @@
 (module holes
-  (provide [proc (-> any/c num?)]
+  (provide [proc (-> any/c number?)]
 	   [lst (nelistof any/c)]))
 
 (module min
@@ -8,7 +8,7 @@
     (if (< x y) x y)))
 
 (module argmin
-  (provide [argmin ((-> any/c num?) (nelistof any/c) . -> . any)])
+  (provide [argmin ((-> any/c number?) (nelistof any/c) . -> . any/c)])
   (require min)
   (define (argmin f xs)
     (cond [(empty? (cdr xs)) (f (car xs))]

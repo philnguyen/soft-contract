@@ -1,7 +1,7 @@
 (module map-foldr
   (provide
-   [foldr ((any any . -> . any) any (listof any) . -> . any)]
-   [map ((any . -> . any) (listof any) . -> . (listof any))])
+   [foldr ((any/c any/c . -> . any/c) any/c (listof any/c) . -> . any/c)]
+   [map ((any/c . -> . any/c) (listof any/c) . -> . (listof any/c))])
   (define (foldr f z xs)
     (if (empty? xs) z
         (f (car xs) (foldr f z (cdr xs)))))

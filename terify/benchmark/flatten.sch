@@ -1,8 +1,8 @@
 (module lib
-  (provide [append ((listof any) (listof any) . -> . (listof any))]))
+  (provide [append ((listof any/c) (listof any/c) . -> . (listof any/c))]))
 
 (module flatten
-  (provide [flatten (any . -> . (listof any))])
+  (provide [flatten (any/c . -> . (listof any/c))])
   (require lib)
   (define (flatten x)
     (cond

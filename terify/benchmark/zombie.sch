@@ -1,18 +1,18 @@
 (module image
   (provide
-   [image? (any . -> . bool?)]
-   [empty-scene (num? num? . -> . image?)]
-   [place-image (image? num? num? image? . -> . image?)]
-   [circle (num? str? str? . -> . image?)])
+   [image? (any/c . -> . bool?)]
+   [empty-scene (number? number? . -> . image?)]
+   [place-image (image? number? number? image? . -> . image?)]
+   [circle (number? string? string? . -> . image?)])
   (struct image (impl)))
 
 (module math
   (provide
-   [min (num? num? . -> . num?)]
-   [max (num? num? . -> . num?)]
-   [abs (num? . -> . num?)]
-   [sqrt (num? . -> . num?)]
-   [sqr (num? . -> . num?)])
+   [min (number? number? . -> . number?)]
+   [max (number? number? . -> . number?)]
+   [abs (number? . -> . number?)]
+   [sqrt (number? . -> . number?)]
+   [sqr (number? . -> . number?)])
   (define (min x y) (if (<= x y) x y))
   (define (max x y) (if (>= x y) x y))
   (define (abs x) (if (>= x 0) x (- 0 x)))
@@ -20,12 +20,12 @@
 
 (module zombie
   (provide
-   [posn/c any]
-   [player/c any]
-   [zombie/c any]
-   [zombies/c any]
-   [horde/c any]
-   [world/c any]
+   [posn/c any/c]
+   [player/c any/c]
+   [zombie/c any/c]
+   [zombies/c any/c]
+   [horde/c any/c]
+   [world/c any/c]
    
    [new-world (player/c posn/c horde/c . -> . world/c)]
    [new-player (posn/c . -> . player/c)]
@@ -33,7 +33,7 @@
    [new-cons-zombies (zombie/c zombies/c . -> . zombies/c)]
    [new-mt-zombies (-> zombies/c)]
    [new-zombie (posn/c . -> . zombie/c)]
-   [new-posn (num? num? . -> . posn/c)]
+   [new-posn (number? number? . -> . posn/c)]
    [w0 world/c])
   (require image math)
   
@@ -47,67 +47,67 @@
   (define PLAYER-IMG (circle PLAYER-RADIUS "solid" "green"))
   
   (define posn/c
-    ([msg : (one-of/c 'x 'y 'posn 'move-toward/speed 'draw-on/image 'dist)]
-     . -> .
-     (cond
-       [(equal? msg 'x) (-> num?)]
-       [(equal? msg 'y) (-> num?)]
-       [(equal? msg 'posn) (-> posn/c)]
-       [(equal? msg 'move-toward/speed) (posn/c num? . -> . posn/c)]
-       [(equal? msg 'draw-on/image) (image? image? . -> . image?)]
-       [(equal? msg 'dist) (posn/c . -> . num?)]
-       [else "error"])))
+    (->i ([msg (one-of/c 'x 'y 'posn 'move-toward/speed 'draw-on/image 'dist)])
+	 (res (msg)
+	      (cond
+	       [(equal? msg 'x) (-> number?)]
+	       [(equal? msg 'y) (-> number?)]
+	       [(equal? msg 'posn) (-> posn/c)]
+	       [(equal? msg 'move-toward/speed) (posn/c number? . -> . posn/c)]
+	       [(equal? msg 'draw-on/image) (image? image? . -> . image?)]
+	       [(equal? msg 'dist) (posn/c . -> . number?)]
+	       [else "error"]))))
   
   (define player/c
-    ([msg : (one-of/c 'posn 'move-toward 'draw-on)]
-     . -> .
-     (cond
-       [(equal? msg 'posn) (-> posn/c)]
-       [(equal? msg 'move-toward) (posn/c . -> . player/c)]
-       [(equal? msg 'draw-on) (image? . -> . image?)]
-       [else "error"])))
+    (->i ([msg (one-of/c 'posn 'move-toward 'draw-on)])
+	 (res (msg)
+	      (cond
+	       [(equal? msg 'posn) (-> posn/c)]
+	       [(equal? msg 'move-toward) (posn/c . -> . player/c)]
+	       [(equal? msg 'draw-on) (image? . -> . image?)]
+	       [else "error"]))))
   
   (define zombie/c
-    ([msg : (one-of/c 'posn 'draw-on/color 'touching? 'move-toward)]
-     . -> . 
-     (cond
-       [(equal? msg 'posn) (-> posn/c)]
-       [(equal? msg 'draw-on/color) (str? image? . -> . image?)]
-       [(equal? msg 'touching?) (posn/c . -> . bool?)]
-       [(equal? msg 'move-toward) (posn/c . -> . zombie/c)]
-       [else "error"])))
+    (->i ([msg (one-of/c 'posn 'draw-on/color 'touching? 'move-toward)])
+	 (res (msg)
+	      (cond
+	       [(equal? msg 'posn) (-> posn/c)]
+	       [(equal? msg 'draw-on/color) (string? image? . -> . image?)]
+	       [(equal? msg 'touching?) (posn/c . -> . bool?)]
+	       [(equal? msg 'move-toward) (posn/c . -> . zombie/c)]
+	       [else "error"]))))
   
   (define horde/c
-    ([msg : (one-of/c 'dead 'undead 'draw-on 'touching? 'move-toward 'eat-brains)]
-     . -> .
-     (cond
-       [(equal? msg 'dead) (-> zombies/c)]
-       [(equal? msg 'undead) (-> zombies/c)]
-       [(equal? msg 'draw-on) (image? . -> . image?)]
-       [(equal? msg 'touching?) (posn/c . -> . bool?)]
-       [(equal? msg 'move-toward) (posn/c . -> . horde/c)]
-       [(equal? msg 'eat-brains) (-> horde/c)]
-       [else "error"])))
+    (->i ([msg (one-of/c 'dead 'undead 'draw-on 'touching? 'move-toward 'eat-brains)])
+	 (res (msg)
+	      (cond
+	       [(equal? msg 'dead) (-> zombies/c)]
+	       [(equal? msg 'undead) (-> zombies/c)]
+	       [(equal? msg 'draw-on) (image? . -> . image?)]
+	       [(equal? msg 'touching?) (posn/c . -> . bool?)]
+	       [(equal? msg 'move-toward) (posn/c . -> . horde/c)]
+	       [(equal? msg 'eat-brains) (-> horde/c)]
+	       [else "error"]))))
   
   (define zombies/c
-    ([msg : (one-of/c 'move-toward 'draw-on/color 'touching? 'kill-all)]
-     . -> .
-     (cond
-       [(equal? msg 'move-toward) (posn/c . -> . zombies/c)]
-       [(equal? msg 'draw-on/color) (str? image? . -> . image?)]
-       [(equal? msg 'touching?) (posn/c . -> . bool?)]
-       [(equal? msg 'kill-all) (zombies/c . -> . horde/c)]
-       [else "error"])))
+    (->i ([msg (one-of/c 'move-toward 'draw-on/color 'touching? 'kill-all)])
+	 (res (msg)
+	      (cond
+	       [(equal? msg 'move-toward) (posn/c . -> . zombies/c)]
+	       [(equal? msg 'draw-on/color) (string? image? . -> . image?)]
+	       [(equal? msg 'touching?) (posn/c . -> . bool?)]
+	       [(equal? msg 'kill-all) (zombies/c . -> . horde/c)]
+	       [else "error"]))))
   
   (define world/c
-    ([msg : (one-of/c 'on-mouse 'on-tick 'to-draw 'stop-when)]
-     . -> .
-     (cond
-       [(equal? msg 'on-mouse) (num? num? str? . -> . world/c)]
-       [(equal? msg 'on-tick) (-> world/c)]
-       [(equal? msg 'to-draw) (-> image?)]
-       [(equal? msg 'stop-when) (-> bool?)]
-       [else "error"])))
+    (->i ([msg (one-of/c 'on-mouse 'on-tick 'to-draw 'stop-when)])
+	 (res (msg)
+	      (cond
+	       [(equal? msg 'on-mouse) (number? number? string? . -> . world/c)]
+	       [(equal? msg 'on-tick) (-> world/c)]
+	       [(equal? msg 'to-draw) (-> image?)]
+	       [(equal? msg 'stop-when) (-> bool?)]
+	       [else "error"]))))
   
   (define (new-world player mouse zombies)
     (λ (msg)

@@ -1,14 +1,14 @@
 (module f
-  (provide [f ((or/c str? num?) . -> . num?)])
+  (provide [f ((or/c string? number?) . -> . number?)])
   (define (f x)
-    (if (num? x) (add1 x) (str-len x))))
+    (if (number? x) (add1 x) (string-length x))))
 
 (module g
-  (provide [g (any . -> . num?)])
+  (provide [g (any/c . -> . number?)])
   (require f)
   (define (g x)
-    (if (let ([tmp (num? x)])
-          (if tmp tmp (str? x)))
+    (if (let ([tmp (number? x)])
+          (if tmp tmp (string? x)))
         (f x)
         0)))
 

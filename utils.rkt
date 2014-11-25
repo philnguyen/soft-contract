@@ -4,7 +4,7 @@
 
 (: memoize : (∀ (X Y) ((X → Y) [#:eq? Bool] → (X → Y))))
 (define (memoize f #:eq? [eq?? #f])
-  (let: ([m : (Map X Y) ((if eq?? make-hasheq make-hash))])
+  (let ([m : (Map X Y) ((if eq?? make-hasheq make-hash))])
     (λ (x) (hash-ref! m x (λ () (f x))))))
 
 
@@ -12,31 +12,31 @@
 (define-syntax-rule
   (define-data (k f ...) ki ...)
   (begin
-    (struct: k (f ...) #:transparent)
+    (struct k (f ...) #:transparent)
     (define-data-under k ki) ...))
 (define-syntax define-data-under
   (syntax-rules (subset:)
     [(_ k (subset: (ki fi ...) cl ...))
      (begin
-       (struct: ki k (fi ...) #:transparent)
+       (struct ki k (fi ...) #:transparent)
        (define-data-under ki cl) ...)]
-    [(_ k (ki fi ...)) (struct: ki k (fi ...) #:transparent)]))
+    [(_ k (ki fi ...)) (struct ki k (fi ...) #:transparent)]))
 
 (define-syntax-rule (match? v p ...) (match v [p #t] ... [_ #f]))
 (define-syntax-rule (match-λ? p ...) (match-lambda [p #t] ... [_ #f]))
 
 (define-syntax-rule (for/set: X (c ...) e ...)
-  (for/fold: ([acc : (Setof X) ∅]) (c ...)
+  (for/fold ([acc : (Setof X) ∅]) (c ...)
     (set-add acc (begin e ...))))
 
 ;; non-deterministic match. The types is to make it less awkard in pattern matching
 (define-syntax match/nd:
   (syntax-rules (→)
     [(_ (α → β) v [p e ...] ...)
-     (let: ([x v]
-            [f : (α → (U β (Setof β))) (match-lambda [p e ...] ... [x (error "match/nd unmatched: " x)])])
+     (let ([x v]
+           [f : (α → (U β (Setof β))) (match-lambda [p e ...] ... [x (error "match/nd unmatched: " x)])])
        (if (set? x)
-           (for/fold: : (Setof β) ([acc : (Setof β) ∅]) ([xi x])
+           (for/fold : (Setof β) ([acc : (Setof β) ∅]) ([xi x])
              (let ([y (f xi)])
                (if (set? y) (set-union acc y) (set-add acc y))))
            (f x)))]))
@@ -65,7 +65,7 @@
 ;; evaluate an expression within given #seconds
 ;; return singleton list of value, or #f on timeout
 (define-syntax-rule (within-time: τ n e ...)
-  (let: ([c : (Channelof (U #f (List τ))) (make-channel)])
+  (let ([c : (Channelof (U #f (List τ))) (make-channel)])
     (let ([t1 (thread (λ () (channel-put c (list (begin e ...)))))]
           [t2 (thread (λ () (sleep n) (channel-put c #f)))])
       (match (channel-get c)
@@ -93,7 +93,7 @@
 
 (define-syntax-rule (define-set: s : τ [in? add!])
   (begin
-    (define: s : (Setof τ) ∅)
+    (define s : (Setof τ) ∅)
     (: in? : τ → Bool)
     (define (in? x) (set-member? s x))
     (: add! : (U τ (Setof τ)) → Void)

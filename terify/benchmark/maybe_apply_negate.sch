@@ -1,17 +1,17 @@
 (module negate
-  (provide [negate ((or/c int? bool?) . -> . (or/c int? bool?))])
+  (provide [negate ((or/c integer? bool?) . -> . (or/c integer? bool?))])
   (define (negate x)
-    (if (int? x) (- 0 x) (not x))))
+    (if (integer? x) (- 0 x) (not x))))
 
 (module maybe-apply
-  (provide [maybe-apply (int? (or/c false? (int? . -> . int?)) . -> . int?)])
+  (provide [maybe-apply (integer? (or/c false? (integer? . -> . integer?)) . -> . integer?)])
   (define (maybe-apply x f)
     (if (false? f) x (f x))))
 
-(module opaque (provide [n int?]))
+(module opaque (provide [n integer?]))
 
 (module main
-  (provide [main (-> int?)])
+  (provide [main (-> integer?)])
   (require maybe-apply negate opaque)
   (define (main)
     (maybe-apply n negate)))

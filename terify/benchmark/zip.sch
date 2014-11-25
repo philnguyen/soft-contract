@@ -1,8 +1,8 @@
 (module zip
   (provide
-   [zip ((listof int?) (listof int?) . -> . (listof (cons/c int? int?)))]
-   [mk-list (int? . -> . (listof int?))]
-   [main (int? . -> . (listof (cons/c int? int?)))])
+   [zip ((listof integer?) (listof integer?) . -> . (listof (cons/c integer? integer?)))]
+   [mk-list (integer? . -> . (listof integer?))]
+   [main (integer? . -> . (listof (cons/c integer? integer?)))])
   (define (zip xs ys) ; zip itself is unsafe
     (cond
       [(and (empty? xs) (empty? ys)) empty]

@@ -1,9 +1,9 @@
 (module l-zipunzip
   (provide
-   [f ((int? int? . -> . int?) . -> . (int? int? . -> . int?))]
-   [unzip (int? (int? int? . -> . int?) . -> . int?)]
-   [zip (int? int? . -> . int?)]
-   [main (int? . -> . int?)])
+   [f ((integer? integer? . -> . integer?) . -> . (integer? integer? . -> . integer?))]
+   [unzip (integer? (integer? integer? . -> . integer?) . -> . integer?)]
+   [zip (integer? integer? . -> . integer?)]
+   [main (integer? . -> . integer?)])
   
   (define (f g) (λ (x y) (g (+ x 1) (+ y 1))))
   (define (unzip x k)

@@ -1,5 +1,5 @@
 (module main
-  (provide [main (int? . -> . int?)])
+  (provide [main (integer? . -> . integer?)])
   (define (main len)
     (let [xs (mk-list len)]
       (if (not (= len 0)) (car (reverse xs empty)) 0)))

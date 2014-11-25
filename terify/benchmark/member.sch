@@ -1,6 +1,6 @@
 (module member
   (provide
-   [member (any (listof any) . -> . #|HERE|# bool?)])
+   [member (any/c (listof any/c) . -> . #|HERE|# bool?)])
   (define (member x l)
     (cond
      [(empty? l) empty]

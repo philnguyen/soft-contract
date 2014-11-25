@@ -1,16 +1,16 @@
 (module IO
   (provide
-   [display (str? . -> . any)]
-   [error (str? . -> . any)]
-   [read (-> any)]))
+   [display (string? . -> . any/c)]
+   [error (string? . -> . any/c)]
+   [read (-> any/c)]))
 
 (module guess
-  (provide [guess (int? . -> . any)])
+  (provide [guess (integer? . -> . any/c)])
   (require IO)
   (define (guess target)
     (let ([input (read)])
       (cond
-        [(not (or (equal? input 'quit) (int? input)))
+        [(not (or (equal? input 'quit) (integer? input)))
          (error "Invalid type for input")]
         [(equal? input 'quit) 'quit]
         [(< input target)

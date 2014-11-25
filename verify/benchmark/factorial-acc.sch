@@ -1,6 +1,6 @@
 (module factorial
   (provide
-   [factorial (int? . -> . int?)])
+   [factorial (integer? . -> . integer?)])
   (define (factorial n)
     (factorial-acc n 1))
   (define (factorial-acc n acc)

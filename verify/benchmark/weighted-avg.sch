@@ -1,8 +1,8 @@
 (module weighted-avg
   (provide
-   [weighted-avg ([x : (nelistof real?)]
-                  . -> . ((and/c (nelistof positive?) (λ (w) (= (len x) (len w))))
-                  . -> . real?))])
+   [weighted-avg (->i ([x (nelistof real?)])
+		      (res (x) ((and/c (nelistof positive?) (λ (w) (= (len x) (len w))))
+				. -> . real?)))])
   (define (weighted-avg x)
     (λ (w)
       (let* ([x@ (list@ x)]

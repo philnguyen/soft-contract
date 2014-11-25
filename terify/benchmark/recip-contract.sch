@@ -1,8 +1,8 @@
 (module recip
-  (provide [recip (num? . -> . non-zero/c)]
-           [non-zero/c any])
+  (provide [recip (number? . -> . non-zero/c)]
+           [non-zero/c any/c])
   (define (recip x) (/ 1 x))
-  (define non-zero/c (and/c num? (not/c zero?))))
+  (define non-zero/c (and/c number? (not/c zero?))))
 
 (require recip)
 (recip •)

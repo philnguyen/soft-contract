@@ -479,10 +479,10 @@
 (: b^ : (U Num Str Sym Bool) → (Setof .V))
 (define b^
   (match-lambda
-    [(? int? n) (set-union {set (Prim 'int?) (Prim 'real?) (Prim 'num?)} (sign/C n))]
-    [(? real? r) (set-union {set (Prim 'real?) (Prim 'num?)} (sign/C r))]
-    [(? num? x) {set (Prim 'num?)}]
-    [(? str?) {set (Prim 'str?)}]
+    [(? int? n) (set-union {set (Prim 'integer?) (Prim 'real?) (Prim 'number?)} (sign/C n))]
+    [(? real? r) (set-union {set (Prim 'real?) (Prim 'number?)} (sign/C r))]
+    [(? num? x) {set (Prim 'number?)}]
+    [(? str?) {set (Prim 'string?)}]
     [(? sym?) {set (Prim 'symbol?)}]
     [#t {set (Prim 'true?) (Prim 'bool?)}]
     [#f {set (Prim 'false?) (Prim 'bool?)}]))

@@ -7,9 +7,9 @@
 ;; prefixing types with dots just so i can use 1-letter variables without shadowing them
 
 ;; program and module
-(struct: .p ([modules : .m*] [accessors : (Setof .st-ac)] [main : .e]) #:transparent)
-(struct: .m* ([order : (Listof Sym)] [modules : (Map Sym .m)]) #:transparent)
-(struct: .m ([order : (Listof Sym)] [defs : (Map Sym (Pairof .e (U #f .e)))]) #:transparent)
+(struct .p ([modules : .m*] [accessors : (Setof .st-ac)] [main : .e]) #:transparent)
+(struct .m* ([order : (Listof Sym)] [modules : (Map Sym .m)]) #:transparent)
+(struct .m ([order : (Listof Sym)] [defs : (Map Sym (Pairof .e (U #f .e)))]) #:transparent)
 
 ;; expression
 (define-data (.e)
@@ -138,13 +138,13 @@
    #:eq? #t
    (match-lambda
      ['add1 (.add1)] ['sub1 (.sub1)] ['sqrt (.sqrt)] ['+ (.+)] ['- (.-)] ['* (.*)] ['/ (./)]
-     ['str-len (.str-len)]
-     ['num? (.num?)] ['real? (.real?)] ['int? (.int?)]
+     ['string-length (.str-len)]
+     ['number? (.num?)] ['real? (.real?)] ['integer? (.int?)]
      ['true? (.true?)] [(or 'false? 'not) (.false?)] ['bool? (.bool?)]
-     ['str? (.str?)] ['symbol? (.symbol?)] ['proc? (.proc?)]     
+     ['string? (.str?)] ['symbol? (.symbol?)] ['procedure? (.proc?)]     
      ['equal? (.equal?)]
-     [(or 'any 'any/c) .any/c]
-     [(or 'none 'none/c) .none/c]
+     ['any/c .any/c]
+     ['none/c .none/c]
      ['= (.=)]
      ['< (.<)]
      ['> (.>)]
@@ -159,10 +159,10 @@
      ['cdr .cdr]
      ['empty (.@ (.st-mk 'empty 0) empty 'Λ)]
      ['empty? .empty/c]
-     ['box (.st-mk 'box 1)]
+     #|['box (.st-mk 'box 1)]
      ['box? (.st-p 'box 1)]
      ['unbox (.st-ac 'box 1 0)]
-     ['set-box! (.set-box!)]
+     ['set-box! (.set-box!)]|#
      [(? num? x) (.b x)]
      [#f .ff]
      [#t .tt]
@@ -174,11 +174,11 @@
 (define name
   (match-lambda
    [(.add1) 'add1] [(.sub1) 'sub1] [(.sqrt) 'sqrt] [(.+) '+] [(.-) '-] [(.*) '*] [(./) '/]
-   [(.str-len) 'str-len] [(.equal?) 'equal?]
+   [(.str-len) 'string-length] [(.equal?) 'equal?]
    [(.=) '=] [(.>) '>] [(.<) '<] [(.≥) '≥] [(.≤) '≤]
    [(.arity=?) 'arity=?] [(.arity≥?) 'arity≥?] [(.arity-includes?) 'arity-includes?]
-   [(.num?) 'num?] [(.real?) 'real?] [(.int?) 'int?] [(.true?) 'true?] [(.false?) 'false?]
-   [(.bool?) 'bool?] [(.str?) 'str?] [(.symbol?) 'symbol?] [(.proc?) 'proc?]
+   [(.num?) 'number?] [(.real?) 'real?] [(.int?) 'integer?] [(.true?) 'true?] [(.false?) 'false?]
+   [(.bool?) 'bool?] [(.str?) 'string?] [(.symbol?) 'symbol?] [(.proc?) 'procedure?]
    [(.st-mk t _) t]
    [(.st-ac 'cons 2 0) 'car]
    [(.st-ac 'cons 2 1) 'cdr]
@@ -226,10 +226,10 @@
 
 (: amb : (Listof .e) → .e)
 (define (amb e*)
-  (let ([s (for/fold: ([ac : (Setof .e) ∅]) ([e e*])
-             (match e ; try to avoid nested amb
-               [(.amb s) (set-union ac s)]
-               [_ (set-add ac e)]))])
-    (match (set-count s)
-      [1 (set-first s)]
-      [_ (.amb s)])))
+  (define s
+    (for/fold ([ac : (Setof .e) ∅]) ([e e*])
+      (match e ; try to avoid nested amb
+        [(.amb s) (set-union ac s)]
+        [_ (set-add ac e)])))
+  (cond [(= 1 (set-count s)) (set-first s)]
+        [else (.amb s)]))

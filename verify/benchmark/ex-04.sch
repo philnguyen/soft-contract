@@ -1,13 +1,13 @@
 (module f
-  (provide [f ((or/c str? num?) . -> . num?)])
+  (provide [f ((or/c string? number?) . -> . number?)])
   (define (f x)
-    (if (num? x) (add1 x) (str-len x))))
+    (if (number? x) (add1 x) (string-length x))))
 
 (module g
-  (provide [g (any . -> . num?)])
+  (provide [g (any/c . -> . number?)])
   (require f)
   (define (g x)
-    (if (or (num? x) (str? x)) (f x) 0)))
+    (if (or (number? x) (string? x)) (f x) 0)))
 
 (require g)
 (g •)

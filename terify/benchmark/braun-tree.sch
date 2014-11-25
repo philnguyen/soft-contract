@@ -1,7 +1,7 @@
 (module tree
   (provide
-   [braun-tree? (any . -> . bool?)]
-   [insert (braun-tree? any . -> . braun-tree?)])
+   [braun-tree? (any/c . -> . bool?)]
+   [insert (braun-tree? any/c . -> . braun-tree?)])
   
   (struct node (v l r))
 

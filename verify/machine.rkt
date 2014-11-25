@@ -568,16 +568,6 @@
        (if (equal? κ κ′) (cons (reverse l) kr) (go (cons κ′ l) kr))]
       [(cons κ kr) (go (cons κ l) kr)])))
 
-;;;;; small programs for testing
-(define f
-  (read-p
-   `((module f
-       (provide [f (int? . -> . int?)])
-       (define (f n)
-         (if (= n 0) 1 (* n (f (- n 1))))))
-     (require f)
-     (f 100))))
-
 (: chk-seen? : .κ* .μ/C .V → Bool)
 (define (chk-seen? k C V)
   (for/or: ([κ k] #:when (match? κ (? .recchk/κ?)))

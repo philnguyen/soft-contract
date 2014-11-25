@@ -509,4 +509,8 @@
       [(equal? 'Refuted (C*⇒C Cs NUM/C))
        (→V (.St 'struct● (list (Prim (random)))))]
       [else (Prim (random))])]
+    [(.λ↓ (.λ 1 (.@ (.•ₗ l) (list e) _) #f) ρ)
+     (match-define (.// _ Cs) (σ@ σ l))
+     (cond [(set-empty? Cs) (→V (.λ↓ (.λ 1 e #f) ρ))]
+           [else V])]
     [_ V]))

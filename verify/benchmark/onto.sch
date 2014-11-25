@@ -1,21 +1,24 @@
 (module onto
   (provide
-   [onto ([A : (any . -> . bool?)] . -> . ; poor man's quantifier
-         ([callbacks : (listof proc?)] . -> .
-         ([f : (or/c false? str? (A . -> . any))] . -> .
-         ([obj : (and/c
-                  A
-                  (cond
-                   [(false? f) (any . -> . any)]
-                   [(str? f) ([k : any] . -> . (if (equal? k f) (A . -> . any) any))]
-                   [else any]))]
-          . -> . (listof proc?)))))])
+   [onto (->i ([A (any/c . -> . bool?)]) ; poor man's quantifier
+	      (res (A)
+		   (->i ([callbacks (listof procedure?)])
+			(res (callbacks)
+			     (->i ([f (or/c false? string? (A . -> . any/c))])
+				  (res (f)
+				       (->i ([obj (and/c
+						   A
+						   (cond
+						    [(false? f) (any/c . -> . any/c)]
+						    [(string? f) (->i ([k any/c]) (res (k) (if (equal? k f) (A . -> . any/c) any/c)))]
+						    [else any/c]))])
+					    (res (obj) (listof procedure?)))))))))])
   (define (onto A)
     (λ (callbacks)
       (λ (f)
         (λ (obj)
           (if (false? f) (cons obj callbacks)
-              (let [cb (if (str? f) (obj f) f)]
+              (let [cb (if (string? f) (obj f) f)]
                 (cons (λ () (cb obj)) callbacks))))))))
 
 (require onto)

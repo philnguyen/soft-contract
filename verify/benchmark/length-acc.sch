@@ -1,6 +1,6 @@
 (module len
   (provide
-   [len ([l : (listof any)] . -> . (and/c int? (>=/c 0)))])
+   [len (->i ([l (listof any/c)]) (res (l) (and/c integer? (>=/c 0))))])
   (define (len xs)
     (len-acc xs 0))
   (define (len-acc xs acc)

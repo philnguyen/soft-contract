@@ -5,14 +5,14 @@
   (define (unlock st) 0))
 
 (module fg
-  (provide [f (int? int? . -> . int?)]
-           [g (int? int? . -> . int?)])
+  (provide [f (integer? integer? . -> . integer?)]
+           [g (integer? integer? . -> . integer?)])
   (require lock)
   (define (f n st) (if (> n 0) (lock st) st))
   (define (g n st) (if (> n 0) (unlock st) st)))
 
 (module main
-  (provide [main (int? . -> . (one-of/c 0))])
+  (provide [main (integer? . -> . (one-of/c 0))])
   (require fg)
   (define (main n) (g n (f n 0))))
 

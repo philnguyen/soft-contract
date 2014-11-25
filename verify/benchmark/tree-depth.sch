@@ -1,6 +1,6 @@
 (module tree-depth
-  (provide [depth (TREE/C . -> . (and/c int? (>=/c 0)))]
-           [TREE/C any])
+  (provide [depth (TREE/C . -> . (and/c integer? (>=/c 0)))]
+           [TREE/C any/c])
   (struct leaf ())
   (struct node (l r))
   (define (depth t)

@@ -1,6 +1,7 @@
 (module filter-dep
   (provide
-   [filter ([p? : (any . -> . any)] [xs : (listof any)] . -> . (listof (λ (x) (p? x))))])
+   [filter (->i ([p? (any/c . -> . any/c)] [xs (listof any/c)])
+		(res (p? xs) (listof (λ (x) (p? x)))))])
   (define (filter p? xs)
     (cond
       [(empty? xs) empty]

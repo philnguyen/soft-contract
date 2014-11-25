@@ -1,28 +1,28 @@
 (module bt
   (provide
-   [num (NODE/C . -> . num?)]
+   [num (NODE/C . -> . number?)]
    [left (NODE/C . -> . BT/C)]
    [right (NODE/C . -> . BT/C)]
-   [BT/C any]
-   [NODE/C any])
+   [BT/C any/c]
+   [NODE/C any/c])
   (define num car)
   (define (left node) (car (cdr node)))
   (define (right node) (cdr (cdr node)))
-  (define BT/C (μ/c (X) (or/c num? (cons/c num? (cons/c X X)))))
-  (define NODE/C (cons/c num? (cons/c BT/C BT/C))))
+  (define BT/C (μ/c (X) (or/c number? (cons/c number? (cons/c X X)))))
+  (define NODE/C (cons/c number? (cons/c BT/C BT/C))))
 
 (module sum
-  (provide [sum (BT/C . -> . num?)])
+  (provide [sum (BT/C . -> . number?)])
   (require bt)
   (define (sum t)
-    (if (num? t) t
+    (if (number? t) t
         (+ (num t) (+ (sum (left t)) (sum (right t)))))))
 
 (module map
-  (provide [map ((num? . -> . num?) BT/C . -> . BT/C)])
+  (provide [map ((number? . -> . number?) BT/C . -> . BT/C)])
   (require bt)
   (define (map f t)
-    (if (num? t) (f t)
+    (if (number? t) (f t)
         (cons (f (num t))
               (cons (map f (left t)) (map f (right t)))))))
 

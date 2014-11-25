@@ -1,20 +1,20 @@
 (module obj
   (provide
-   [alloc (-> (none/c . -> . any))]
-   [update ((any . -> . any) any any . -> . (any . -> . any))]
-   [select ((any . -> . any) any . -> . any)])
+   [alloc (-> (none/c . -> . any/c))]
+   [update ((any/c . -> . any/c) any/c any/c . -> . (any/c . -> . any/c))]
+   [select ((any/c . -> . any/c) any/c . -> . any/c)])
   (define (alloc) (λ (_) _))
   (define (update f k v)
     (λ (x) (if (equal? x k) v (f k))))
   (define (select f x) (f x)))
 
 (module assert
-  (provide [assert ((not/c false?) . -> . any)]))
+  (provide [assert ((not/c false?) . -> . any/c)]))
 
 ;; translated from Swamy et al. 2013
 (module main
   (provide
-   [main ((any . -> . any) . -> . (any . -> . any))])
+   [main ((any/c . -> . any/c) . -> . (any/c . -> . any/c))])
   (require obj assert)
   (define (main global)
     (let* ([incf (λ (this args)

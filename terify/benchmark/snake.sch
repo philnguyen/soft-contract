@@ -1,25 +1,25 @@
 (module image
   (provide
-   [image/c any]
-   [circle (num? str? str? . -> . image/c)]
-   [empty-scene (num? num? . -> . image/c)]
-   [place-image (image/c num? num? image/c . -> . image/c)])
+   [image/c any/c]
+   [circle (number? string? string? . -> . image/c)]
+   [empty-scene (number? number? . -> . image/c)]
+   [place-image (image/c number? number? image/c . -> . image/c)])
   (define image/c (λ (x) (image? x)))
   (define (image? x) •))
 
 (module data
   (provide
-   [struct posn ([x num?] [y num?])]
+   [struct posn ([x number?] [y number?])]
    [posn=? (POSN/C POSN/C . -> . bool?)]
    [struct snake ([dir DIR/C] [segs (nelistof POSN/C)])]
    [struct world ([snake SNAKE/C] [food POSN/C])]
-   [DIR/C any]
-   [POSN/C any]
-   [SNAKE/C any]
-   [WORLD/C any])
+   [DIR/C any/c]
+   [POSN/C any/c]
+   [SNAKE/C any/c]
+   [WORLD/C any/c])
   
   (define DIR/C (one-of/c "up" "down" "left" "right"))
-  (define POSN/C (struct/c posn num? num?))
+  (define POSN/C (struct/c posn number? number?))
   (define SNAKE/C (struct/c snake DIR/C (nelistof POSN/C)))
   (define WORLD/C (struct/c world SNAKE/C POSN/C))
   
@@ -37,10 +37,10 @@
    [BACKGROUND (-> image/c)]
    [FOOD-IMAGE (-> image/c)]
    [SEGMENT-IMAGE (-> image/c)]
-   [GRID-SIZE num?]
-   [BOARD-HEIGHT-PIXELS (-> num?)]
-   [BOARD-WIDTH num?]
-   [BOARD-HEIGHT num?])
+   [GRID-SIZE number?]
+   [BOARD-HEIGHT-PIXELS (-> number?)]
+   [BOARD-WIDTH number?]
+   [BOARD-HEIGHT number?])
   (require image data)
   
   (define GRID-SIZE 30)
@@ -63,7 +63,7 @@
   (require data const)
   
   ;; snake-wall-collide? : Snake -> Boolean
-  ;; Is the snake colliding with any of the walls?
+  ;; Is the snake colliding with any/c of the walls?
   (define (snake-wall-collide? snk)
     (head-collide? (car (snake-segs snk))))
   
@@ -169,7 +169,7 @@
   ;; Movie handlers
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (provide
-   [handle-key (WORLD/C str? . -> . WORLD/C)]
+   [handle-key (WORLD/C string? . -> . WORLD/C)]
    [game-over? (WORLD/C . -> . bool?)])
   (require data motion collide)
   
@@ -190,7 +190,7 @@
   (provide
    [world->scene (WORLD/C . -> . image/c)]
    [food+scene (POSN/C image/c . -> . image/c)]
-   [place-image-on-grid (image/c num? num? image/c . -> . image/c)]
+   [place-image-on-grid (image/c number? number? image/c . -> . image/c)]
    [snake+scene (SNAKE/C image/c . -> . image/c)]
    [segments+scene ((listof POSN/C) image/c . -> . image/c)]
    [segment+scene (POSN/C image/c . -> . image/c)])

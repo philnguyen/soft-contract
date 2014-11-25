@@ -1,11 +1,11 @@
-(module rand (provide (rand (-> int?))))
+(module rand (provide (rand (-> integer?))))
 
 (module fold-div
   (provide
    [foldl ((real? real? . -> . real?) real? (listof real?) . -> . real?)]
-   [randpos (-> int?)]
-   [mk-list (int? . -> . (listof (and/c int? positive?)))]
-   [main (int? int? . -> . real?)])
+   [randpos (-> integer?)]
+   [mk-list (integer? . -> . (listof (and/c integer? positive?)))]
+   [main (integer? integer? . -> . real?)])
   (require rand)
   (define (foldl f z l)
     (if (empty? l) z (foldl f (f z (car l)) (cdr l))))

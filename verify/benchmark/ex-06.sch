@@ -1,9 +1,9 @@
 (module f
-  (provide [f ((or/c num? str?) str? . -> . num?)])
+  (provide [f ((or/c number? string?) string? . -> . number?)])
   (define (f x y)
-    (if (and (num? x) (str? y))
-        (+ x (str-len y))
-        (str-len x))))
+    (if (and (number? x) (string? y))
+        (+ x (string-length y))
+        (string-length x))))
 
 (require f)
 (f • •)

@@ -1,6 +1,6 @@
 (module filter
   (provide
-   [filter ((any . -> . any) (listof any) . -> . (listof any))])
+   [filter ((any/c . -> . any/c) (listof any/c) . -> . (listof any/c))])
   (define (filter p? xs)
     (cond
       [(empty? xs) empty]

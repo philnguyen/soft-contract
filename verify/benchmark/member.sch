@@ -1,6 +1,6 @@
 (module member
   (provide
-   [member (any (listof any) . -> . (listof any))])
+   [member (any/c (listof any/c) . -> . (listof any/c))])
   (define (member x l)
     (if (empty? l) empty
         (if (equal? x (car l)) l (member x (cdr l))))))

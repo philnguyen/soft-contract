@@ -6,7 +6,7 @@
 
 (module f
   (provide 
-   [f (zero? . -> . num?)]))
+   [f (zero? . -> . number?)]))
 
 (require db1 f)
 ((db1 f) 0)

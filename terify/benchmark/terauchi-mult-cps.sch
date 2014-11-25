@@ -1,7 +1,7 @@
-(module assert (provide [assert ((not/c false?) . -> . any)]))
+(module assert (provide [assert ((not/c false?) . -> . any/c)]))
 
 (module m
-  (provide [main (-> any)])
+  (provide [main (-> any/c)])
   (require assert)
   (define (mult x y k)
     (if (or (<= x 0) (<= y 0)) (k 0)
