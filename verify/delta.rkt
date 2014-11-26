@@ -484,8 +484,8 @@
     [(? num? x) {set (Prim 'number?)}]
     [(? str?) {set (Prim 'string?)}]
     [(? sym?) {set (Prim 'symbol?)}]
-    [#t {set (Prim 'true?) (Prim 'bool?)}]
-    [#f {set (Prim 'false?) (Prim 'bool?)}]))
+    [#t {set (Prim 'true?) (Prim 'boolean?)}]
+    [#f {set (Prim 'false?) (Prim 'boolean?)}]))
 
 (: v-class : .σ (U .V (Setof .V)) → (Setof Any))
 (define (v-class σ x)

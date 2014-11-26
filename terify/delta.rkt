@@ -490,8 +490,8 @@
     [(? num? x) {set (Prim 'number?)}]
     [(? str?) {set (Prim 'string?)}]
     [(? sym?) {set (Prim 'symbol?)}]
-    [#t {set (Prim 'true?) (Prim 'bool?)}]
-    [#f {set (Prim 'false?) (Prim 'bool?)}]))
+    [#t {set (Prim 'true?) (Prim 'boolean?)}]
+    [#f {set (Prim 'false?) (Prim 'boolean?)}]))
 
 
 (: alloc : (case→ [.σ .V → .Vns]

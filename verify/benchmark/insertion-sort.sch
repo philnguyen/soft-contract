@@ -1,6 +1,6 @@
 (module opaque
   (provide [insert (integer? SORTED/C . -> . (and/c (nelistof integer?) ne-sorted?))]
-           [ne-sorted? ((nelistof integer?) . -> . bool?)]
+           [ne-sorted? ((nelistof integer?) . -> . boolean?)]
            [SORTED/C any/c])
   (define SORTED/C (or/c empty? (and/c (nelistof integer?) ne-sorted?))))
 

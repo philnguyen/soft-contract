@@ -1,9 +1,9 @@
 (module taut
   (provide
-   [taut ([μ/c (X) (or/c bool? [bool? . -> . X])] . -> . bool?)])
+   [taut ([μ/c (X) (or/c boolean? [boolean? . -> . X])] . -> . boolean?)])
   (define (taut b)
     (cond
-      [(bool? b) b]
+      [(boolean? b) b]
       [else (and (taut (b #t)) (taut (b #f)))])))
 
 (require taut)

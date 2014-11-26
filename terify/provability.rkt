@@ -476,7 +476,7 @@
          ['Refuted (Prim +1i)]
          [_ (Prim (random))])]
       [(set-member? Cs STR/C) (Prim "")] ; TODO
-      [(set-member? Cs (Prim 'bool?)) (Prim #t)]
+      [(set-member? Cs (Prim 'boolean?)) (Prim #t)]
       [(set-member? Cs PROC/C)
        (cond
         [(for/or : (U Boolean .V)

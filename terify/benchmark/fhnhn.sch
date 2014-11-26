@@ -1,8 +1,8 @@
 (module f
-  (provide [f ([x : (any/c . -> . integer?)]
-               . -> .
-               ((and/c (any/c . -> . integer?)
-                       (λ (y) (not (and (> (x #f) 0) (< (y #f) 0))))) . -> . integer?))]))
+  (provide [f (->i ([x (any/c . -> . integer?)])
+		   (res (x)
+			((and/c (any/c . -> . integer?)
+				(λ (y) (not (and (> (x #f) 0) (< (y #f) 0))))) . -> . integer?)))]))
 
 (module h (provide [h (integer? . -> . (any/c . -> . integer?))])
   (define (h x) (λ (_) x)))

@@ -1,5 +1,5 @@
 (module negate
-  (provide [negate ((or/c integer? bool?) . -> . (or/c integer? bool?))])
+  (provide [negate ((or/c integer? boolean?) . -> . (or/c integer? boolean?))])
   (define (negate x)
     (if (integer? x) (- 0 x) (not x))))
 

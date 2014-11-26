@@ -1,6 +1,6 @@
 (module foldl
   (provide
-   [foldl ((number? bool? . -> . bool?) bool? (listof number?) . -> . bool?)])
+   [foldl ((number? boolean? . -> . boolean?) boolean? (listof number?) . -> . boolean?)])
   (define (foldl f z xs)
     (if (empty? xs) z
         (foldl f (f #|HERE|# z (car xs)) (cdr xs)))))

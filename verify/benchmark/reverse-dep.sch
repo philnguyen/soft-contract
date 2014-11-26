@@ -1,6 +1,6 @@
 (module reverse-dep
   (provide
-   [reverse (->i ([xs : (listof any/c)])
+   [reverse (->i ([xs (listof any/c)])
 		 (res (xs)
 		      (and/c (listof any/c)
 			     (λ (ys) (equal? (empty? xs) (empty? ys))))))]

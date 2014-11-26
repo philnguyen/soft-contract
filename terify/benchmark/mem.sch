@@ -1,10 +1,10 @@
 (module mem
   (provide
-   [mk-list (->i ([_ : integer?] [x : integer?])
+   [mk-list (->i ([_ integer?] [x integer?])
 		 (res (_ x)
 		      (and/c (listof integer?)
 			     (λ (l) (or (empty? l) (mem x l))))))]
-   [mem (integer? (listof integer?) . -> . bool?)])
+   [mem (integer? (listof integer?) . -> . boolean?)])
   (define (mk-list n x)
     (if (< n 0) empty (cons #|HERE|#n #;x (mk-list (- n 1) x))))
   (define (mem x xs)

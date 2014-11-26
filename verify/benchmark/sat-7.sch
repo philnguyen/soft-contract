@@ -1,7 +1,7 @@
 (module sat
   (provide
    [sat-solve-7
-    ((bool? bool? bool? bool? bool? bool? bool? . -> . bool?) . -> . bool?)])
+    ((boolean? boolean? boolean? boolean? boolean? boolean? boolean? . -> . boolean?) . -> . boolean?)])
   
   (define (try f)
     (or (f #t) (f #f)))
@@ -17,7 +17,7 @@
                                                      (p n1 n2 n3 n4 n5 n6 n7)))))))))))))))))
 (module φ
   (provide
-   [φ (bool? bool? bool? bool? bool? bool? bool? . -> . bool?)]))
+   [φ (boolean? boolean? boolean? boolean? boolean? boolean? boolean? . -> . boolean?)]))
 
 (require sat φ)
 (sat-solve-7 φ)

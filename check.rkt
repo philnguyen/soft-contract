@@ -10,8 +10,8 @@
          (only-in "terify/query-z3.rkt" [model model/z3])
          (only-in "terify/show.rkt" show-ce show-A)
          (only-in "terify/closure.rkt" .σ?))
-(require/typed "read.rkt"
-  [read-p (Sexp → .p)])
+(require/typed "terify/read.rkt"
+  [(read-p read/ce) (Sexp → .p)])
 
 (define Timeout 5)
 (define-type Result (U 'timeout Ce-Result Ve-Result))
@@ -51,11 +51,13 @@
 (: try-find-ce : Sexp → Ce-Result)
 ;; Run counterexample on program
 (define (try-find-ce prog)
-  (define p (read-p prog))
+  (define p (read/ce prog))
+  #;(printf "CE read~n")
   (match (find-error p)
     [#f #;(printf "CE says safe~n") 'safe]
     [(cons σ^ blm)
+     #;(printf "CE says CE~n")
      (list 'ce
            (match (model/z3 (model/untyped p σ^))
-             [#f #f]
-             [(? .σ? σ) (list (show-A σ blm) (show-ce p σ))]))]))
+             [#f #;(printf "CE can't find~n") #f]
+             [(? .σ? σ) #;(printf "CE finds~n") (list (show-A σ blm) (show-ce p σ))]))]))

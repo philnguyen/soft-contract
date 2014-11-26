@@ -2,7 +2,7 @@
   (provide [string-append (string? string? . -> . string?)]))
 
 (module inc-or-greet
-  (provide [inc-or-greet (bool? (or/c string? integer?) . -> . (or/c false? integer? string?))])
+  (provide [inc-or-greet (boolean? (or/c string? integer?) . -> . (or/c false? integer? string?))])
   (require lib)
   (define (inc-or-greet mode y)
     (if mode

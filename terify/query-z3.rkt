@@ -60,9 +60,9 @@
 (: explore : .σ (Setof Int) → (Values (Setof String) (Setof Int)))
 (define (explore σ i*)
   (match-define (.σ m _) σ)
-  (define: asserts : (Setof String) ∅)
-  (define: seen : (Setof Int) ∅)
-  (define: involved : (Setof Int) ∅)  
+  (define asserts : (Setof String) ∅)
+  (define seen : (Setof Int) ∅)
+  (define involved : (Setof Int) ∅)  
   
   (: visit : Int → Void)
   (define (visit i)
@@ -274,7 +274,7 @@
               (for/fold ([m : (Map Int .//) m])
                         ([line : Any (in-list lines)])
                 (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
-                (printf "e: ~a~n" e)
+                #;(printf "e: ~a~n" e)
                 (define res : Real
                   (match e
                     [`(+ ,(? real? x) ,(? real? y) ...)

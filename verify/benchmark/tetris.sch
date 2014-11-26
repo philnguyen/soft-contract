@@ -4,7 +4,7 @@
    [struct posn ([x real?] [y real?])]
    [struct tetra ([center POSN/C] [blocks BSET/C])]
    [struct world ([tetra TETRA/C] [blocks BSET/C])]
-   [posn=? (POSN/C POSN/C . -> . bool?)]
+   [posn=? (POSN/C POSN/C . -> . boolean?)]
    [COLOR/C any/c]
    [POSN/C any/c]
    [BLOCK/C any/c]
@@ -39,7 +39,7 @@
   (provide
    [block-rotate-ccw (POSN/C BLOCK/C . -> . BLOCK/C)]
    [block-rotate-cw (POSN/C BLOCK/C . -> . BLOCK/C)]
-   [block=? (BLOCK/C BLOCK/C . -> . bool?)]
+   [block=? (BLOCK/C BLOCK/C . -> . boolean?)]
    [block-move (real? real? BLOCK/C . -> . BLOCK/C)])
   (require data)
   
@@ -71,10 +71,10 @@
   (provide
    [max (real? real? . -> . real?)]
    [min (real? real? . -> . real?)]
-   [ormap ([BLOCK/C . -> . bool?] (listof any/c) . -> . bool?)]
-   [andmap ([BLOCK/C . -> . bool?] (listof any/c) . -> . bool?)]
+   [ormap ([BLOCK/C . -> . boolean?] (listof any/c) . -> . boolean?)]
+   [andmap ([BLOCK/C . -> . boolean?] (listof any/c) . -> . boolean?)]
    [map ([BLOCK/C . -> . BLOCK/C] BSET/C . -> . BSET/C)]
-   [filter ([BLOCK/C . -> . bool?] BSET/C . -> . BSET/C)]
+   [filter ([BLOCK/C . -> . boolean?] BSET/C . -> . BSET/C)]
    [append (BSET/C BSET/C . -> . BSET/C)]
    [length ((listof any/c) . -> . integer?)]
    [foldr ([BLOCK/C BSET/C . -> . BSET/C] BSET/C BSET/C . -> . BSET/C)]
@@ -84,18 +84,18 @@
 
 (module bset
   (provide
-   [blocks-contains? (BSET/C BLOCK/C . -> . bool?)]
-   [blocks=? (BSET/C BSET/C . -> . bool?)]
-   [blocks-subset? (BSET/C BSET/C . -> . bool?)]
+   [blocks-contains? (BSET/C BLOCK/C . -> . boolean?)]
+   [blocks=? (BSET/C BSET/C . -> . boolean?)]
+   [blocks-subset? (BSET/C BSET/C . -> . boolean?)]
    [blocks-intersect (BSET/C BSET/C . -> . BSET/C)]
    [blocks-count (BSET/C . -> . real?)]
-   [blocks-overflow? (BSET/C . -> . bool?)]
+   [blocks-overflow? (BSET/C . -> . boolean?)]
    [blocks-move (real? real? BSET/C . -> . BSET/C)]
    [blocks-rotate-cw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-rotate-ccw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-change-color (BSET/C COLOR/C . -> . BSET/C)]
    [blocks-row (BSET/C real? . -> . BSET/C)]
-   [full-row? (BSET/C real? . -> . bool?)]
+   [full-row? (BSET/C real? . -> . boolean?)]
    [blocks-union (BSET/C BSET/C . -> . BSET/C)]
    [blocks-max-x (BSET/C . -> . real?)]
    [blocks-min-x (BSET/C . -> . real?)]
@@ -210,7 +210,7 @@
    [tetra-move (integer? integer? TETRA/C . -> . TETRA/C)]
    [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
    [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
-   [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . bool?)]
+   [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . boolean?)]
    [build-tetra-blocks (COLOR/C real? real? integer? integer? integer? integer? integer? integer? integer? integer?
                                 . -> .  TETRA/C)]
    [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)])
@@ -351,7 +351,7 @@
 
 (module image
   (provide
-   [image? (any/c . -> . bool?)]
+   [image? (any/c . -> . boolean?)]
    [overlay (image? image? . -> . image?)]
    [circle (real? real? string? . -> . image?)]
    [rectangle (real? real? COLOR/C COLOR/C . -> . image?)]

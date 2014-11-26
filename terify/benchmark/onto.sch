@@ -1,7 +1,7 @@
 (module onto
   (provide
    [onto
-    (->i ([A : (any/c . -> . bool?)])
+    (->i ([A (any/c . -> . boolean?)])
 	 (res₁ (A)
 	      (->i ([callbacks (listof procedure?)])
 		   (res₂ (callbacks)

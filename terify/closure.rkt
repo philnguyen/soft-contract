@@ -57,6 +57,7 @@
 
 (: close : .v .ρ → .V)
 (define (close v ρ)
+  (printf "close:~n~a~n~a~n" v ρ)
   (match v ; partial
     [(? .λ? v) (→V (.λ↓ v (restrict ρ (FV v))))]
     [(? .prim? p) (→V p)]))
@@ -102,7 +103,7 @@
 (define (restrict ρ sd*)
   (if (set-empty? sd*) ρ∅ ; common case, reuse instance
       (match-let* ([(.ρ m l) ρ]
-                   [m′ (for/fold: : (Map (U Int Sym) .V) ([acc m∅]) ([sd sd*])
+                   [m′ (for/fold : (Map (U Int Sym) .V) ([acc m∅]) ([sd sd*])
                          (let ([i (- l sd 1)])
                            (hash-set acc i (hash-ref m i))))])
         (.ρ m′ l))))

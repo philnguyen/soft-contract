@@ -10,7 +10,7 @@
 (module data
   (provide
    [struct posn ([x real?] [y real?])]
-   [posn=? (POSN/C POSN/C . -> . bool?)]
+   [posn=? (POSN/C POSN/C . -> . boolean?)]
    [struct snake ([dir DIR/C] [segs (nelistof POSN/C)])]
    [struct world ([snake SNAKE/C] [food POSN/C])]
    [DIR/C any/c]
@@ -58,8 +58,8 @@
 
 (module collide
   (provide
-   [snake-wall-collide? (SNAKE/C . -> . bool?)]
-   [snake-self-collide? (SNAKE/C . -> . bool?)])
+   [snake-wall-collide? (SNAKE/C . -> . boolean?)]
+   [snake-self-collide? (SNAKE/C . -> . boolean?)])
   (require data const)
   
   ;; snake-wall-collide? : Snake -> Boolean
@@ -170,7 +170,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (provide
    [handle-key (WORLD/C string? . -> . WORLD/C)]
-   [game-over? (WORLD/C . -> . bool?)])
+   [game-over? (WORLD/C . -> . boolean?)])
   (require data motion collide)
   
   ;; handle-key : World String -> World

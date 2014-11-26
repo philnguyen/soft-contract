@@ -1,6 +1,6 @@
 (module onto
   (provide
-   [onto (->i ([A (any/c . -> . bool?)]) ; poor man's quantifier
+   [onto (->i ([A (any/c . -> . boolean?)]) ; poor man's quantifier
 	      (res (A)
 		   (->i ([callbacks (listof procedure?)])
 			(res (callbacks)

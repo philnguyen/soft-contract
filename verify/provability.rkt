@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list
          "../utils.rkt" "../lang.rkt" "closure.rkt" "show.rkt"
-         (only-in "query.rkt" [query cvc4]))
+         (only-in "query-z3.rkt" [query z3]))
 (provide (all-defined-out))
 
 (:* [all-prove? all-refute? some-proves? some-refutes?] : .σ (Listof .V) .V → Bool)
@@ -10,7 +10,7 @@
 (define (some-proves? σ V* C) (for/or ([V V*]) (eq? (⊢ σ V C) 'Proved)))
 (define (some-refutes? σ V* C) (for/or ([V V*]) (eq? (⊢ σ V C) 'Refuted)))
 
-(define ext-solver (make-parameter cvc4))
+(define ext-solver (make-parameter z3))
 
 (: ⊢ : .σ .V .V → .R)
 (define (⊢ σ V C)
