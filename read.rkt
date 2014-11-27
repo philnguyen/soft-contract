@@ -106,6 +106,7 @@
     [`(or ,e1 ,er ...) (go `(let [♣ ,e1]
                               (if ♣ ♣ (or ,@er))))]
     [`(implies ,e1 ,e2) (.if (go e1) (go e2) .tt)]
+    [`(begin) (.b #f)] ; dummy
     [`(begin ,e) (go e)]
     [`(begin ,e* ...) (let ([n (length e*)])
                         (.@ (.λ n (.x 0) #f) (map go e*) l))]
