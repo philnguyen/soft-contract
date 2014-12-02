@@ -1,19 +1,8 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function
          "../utils.rkt" "../lang.rkt" "closure.rkt")
-(require/typed
- redex/reduction-semantics
- [variables-not-in (Any Any → (Listof Sym))])
 
 (provide (all-defined-out))
-
-(: vars-not-in : Int (Listof Sym) → (Listof Sym))
-(define vars-not-in
-  (let* ([pool '(x y z u v w a b c)]
-         [N (length pool)])
-    (λ (n t)
-      (reverse ; just for nice order
-       (variables-not-in t (if (<= n N) (take pool n) (make-list n 'x1)))))))
 
 (: show-Ans : (case→ [.Ans → (Pairof Any Any)] [.σ .A → (Pairof Any Any)]))
 (define show-Ans
@@ -24,7 +13,7 @@
 (: show-A : .σ .A → Any)
 (define (show-A σ A)
   (match A    
-    [(.blm l+ lo V C) `(blm ,l+ ,lo ,(show-V σ V) ,(show-V σ C))]
+    [(.blm l+ lo V C) `(blame ,l+ ,lo ,(show-V σ V) ,(show-V σ C))]
     [(? .V? V) (show-V σ V)]))
 
 (: show-V : (case→ [.σ .V → Any]
@@ -32,10 +21,10 @@
 (define (show-V σ V)
   (match V
     [(.L i) (show-V σ (σ@ σ i))]
-    [(.// U C*) (if (.•? U) `(• ,@(for/list: : (Listof Any) ([C C*]) (show-V σ C)))
+    [(.// U C*) (if (.•? U) `(• ,@(for/list : (Listof Any) ([C C*]) (show-V σ C)))
                     (show-U σ U))]
     [(.X/V x) x]
-    [(.μ/V x V*) `(μ (,x) ,(for/list: : (Listof Any) ([V V*]) (show-V σ V)))]
+    [(.μ/V x V*) `(μ (,x) ,(for/list : (Listof Any) ([V V*]) (show-V σ V)))]
     [(? list? V*) (map (curry show-V σ) V*)]))
 
 (: show-U : .σ .U → Any)
@@ -58,7 +47,7 @@
 (: show-ρ : .σ .ρ → Any)
 (define (show-ρ σ ρ)
   (match-let ([(.ρ m l) ρ])
-    (for/list: : (Listof Any) ([x (in-hash-keys m)])
+    (for/list : (Listof Any) ([x (in-hash-keys m)])
       (cond
         [(sym? x) `(,x ↦ ,(show-V σ (hash-ref m x)))]
         [(int? x) `(,(str++ "sd" (n-sub (- l x 1))) ↦ ,(show-V σ (hash-ref m x)))]))))
@@ -88,17 +77,30 @@
       [(.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b x)) _) #f) `(arity-includes/c ,x)]
       [(.λ 1 (.@ (.arity=?) (list (.x 0) (.b x)) _) #f) `(arity=/c ,x)]
       [(.λ 1 (.@ (.arity≥?) (list (.x 0) (.b x)) _) #f) `(arity≥/c ,x)]
-      [(.@ (.st-mk 'or/c _) (list (.@ (.st-mk '¬/c _) (list c) _) d) _)
+      #;[(.@ (.st-mk 'or/c _) (list (.@ (.st-mk '¬/c _) (list c) _) d) _)
        `(⇒/c ,(go ctx c) ,(go ctx d))]
-      [(.@ (.st-mk (and n 'and/c 'or/c '¬/c) _) c* _) `(,n ,@(map (curry go ctx) c*))]
-      [(.@ (.λ n e #f) ex _) (let ([x* (vars-not-in n ctx)])
-                               `(let ,(for/list: : (Listof Any) ([x (reverse x*)] [ei ex])
-                                        `(,x ,(go ctx ei)))
-                                  ,(go (append x* ctx) e)))]
-      [(.if a b (.b #f)) `(∧ ,(go ctx a) ,(go ctx b))]
-      [(.if a b (.b #t)) `(⇒ ,(go ctx a) ,(go ctx b))]
+      [(.λ 1 (.b (not #f)) #f) 'any/c]
+      [(.λ 1 (.b #f) #f) 'none/c]
+      [(.@ (.λ 1 (.x 0) _) (list e) _) (go ctx e)]
       [(.@ (.λ 1 (.if (.x 0) (.x 0) (? closed? b)) #f) (list a) _)
-       `(∨ ,(go ctx a) ,(go ctx b))]
+       (match* ((go ctx a) (go (append (vars-not-in 1 ctx) ctx) b))
+         [(`(or ,l ...) `(or ,r ...)) `(or ,@l ,@r)]
+         [(`(or ,l ...) r) `(or ,@l ,r)]
+         [(l `(or ,r ...)) `(or ,l ,@r)]
+         [(l r) `(or ,l ,r)])]
+      [(.@ (.st-mk (and n 'and/c 'or/c '¬/c) _) c* _) `(,n ,@(map (curry go ctx) c*))]
+      [(.@ (.λ n e #f) ex _)
+       (define x* (vars-not-in n ctx))
+       `(let ,(for/list : (Listof Any) ([x (reverse x*)] [ei ex])
+                `(,x ,(go ctx ei)))
+         ,(go (append x* ctx) e))]
+      [(.if a b (.b #f))
+       (match* ((go ctx a) (go ctx b))
+         [(`(and ,l ...) `(and ,r ...)) `(and ,@l ,@r)]
+         [(`(and ,l ...) r) `(and ,@l ,r)]
+         [(l `(and ,r ...)) `(and ,l ,@r)]
+         [(l r) `(and ,l ,r)])]
+      [(.if a b (.b #t)) `(implies ,(go ctx a) ,(go ctx b))]
       
       [(.λ n e v?) (let ([x* (vars-not-in n ctx)])
                      `(,(if v? 'λ* 'λ) ,x* ,(go (append x* ctx) e)))]
@@ -117,7 +119,7 @@
       [(.@-havoc x) `(apply ,(go ctx x) •)]
       #;[(.apply f xs _) `(@ ,(go ctx f) ,(go ctx xs))]
       [(.if i t e) `(if ,(go ctx i) ,(go ctx t) ,(go ctx e))]
-      [(.amb e*) `(amb ,@(for/list: : (Listof Any) ([e e*]) (go ctx e)))]
+      [(.amb e*) `(amb ,@(for/list : (Listof Any) ([e e*]) (go ctx e)))]
       [(.μ/c x c) `(μ/c (,x) ,(go ctx c))]
       [(.λ/c c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
       [(.x/c x) x]

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set
          "../utils.rkt" "../lang.rkt" "closure.rkt" "show.rkt"
-         (only-in "query.rkt" [query z3]))
+         (only-in "query-z3.rkt" [query z3]))
 (provide (all-defined-out))
 
 (:* [all-prove? all-refute? some-proves? some-refutes?] : .σ (Listof .V) .V → Bool)

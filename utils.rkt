@@ -1,6 +1,9 @@
 #lang typed/racket/base
-(require racket/set racket/match)
+(require racket/set racket/match racket/list)
 (provide (all-defined-out)) ; TODO
+(require/typed
+ redex/reduction-semantics
+ [variables-not-in (Any Any → (Listof Sym))])
 
 (: memoize : (∀ (X Y) ((X → Y) [#:eq? Bool] → (X → Y))))
 (define (memoize f #:eq? [eq?? #f])
@@ -107,3 +110,26 @@
         (values pass (set-add fail x)))))
 
 (define-syntax-rule (inc! x) (set! x (+ 1 x)))
+
+;;;;; Pretty printing stuff
+
+(: reverse∘subscript : (Listof Sym) → (Listof Sym))
+(define (reverse∘subscript xs)
+  (for/fold ([ys : (Listof Sym) '()]) ([x xs])
+    (cons
+     (string->symbol
+      (list->string
+       (for/list : (Listof Char) ([c (in-string (symbol->string x))])
+         (match c
+           [#\0 #\₀] [#\1 #\₁] [#\2 #\₂] [#\3 #\₃] [#\4 #\₄]
+           [#\5 #\₅] [#\6 #\₆] [#\7 #\₇] [#\8 #\₈] [#\9 #\₉]
+           [_ c]))))
+     ys)))
+
+(: vars-not-in : Int (Listof Sym) → (Listof Sym))
+(define vars-not-in
+  (let* ([pool '(x y z u v w a b c)]
+         [N (length pool)])
+    (λ (n t)
+      (reverse∘subscript ; just for nice order
+       (variables-not-in t (if (<= n N) (take pool n) (make-list n 'x1)))))))

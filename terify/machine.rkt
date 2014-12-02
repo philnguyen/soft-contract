@@ -335,49 +335,68 @@
   
   (: step-• : .L (Listof .V) Sym .σ .κ* → .ς*)
   (define (step-• Lf V* l σ k)
-    (ς∪ (step-havoc Lf V* σ k)
-        (let ()
-          (define-values (σ′ Lₐ) (σ+ σ))
-          (define Vf (→V (.Case (hash-set ((inst hash (Listof .V) .L)) V* Lₐ))))
-          (.ς Lₐ (σ-set σ′ Lf Vf) k))))
-  
-  (: step-havoc : .L (Listof .V) .σ .κ* → .ς*)
-  (define (step-havoc Lf V* σ k)
-    (match-define (.σ m l) σ)
-    (match-define (.L α) Lf)
     (match V*
-      [(list) ∅]
-      [(list V)
-       ;; Non-deterministically apply propriate operation then put back to unknown context
-       (define x₀ (.x 0))
-       (define ● (•!))
-       (match V
-         [(.// (.λ↓ (.λ n _ _) ρ) _)
-          (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) '☠)) '☠) #f) ρ∅))
-          (define σ′ (.σ (hash-set m α (→V Vf)) l))
-          (step-β Vf V* '☠ σ′ k)]
-         [(.// (.Ar (.// (.Λ/C cs _ _) _) _ _) _)
-          (define n (length cs))
-          (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) '☠)) '☠) #f) ρ∅))
-          (define σ′ (.σ (hash-set m α (→V Vf)) l))
-          (step-β Vf V* '☠ σ′ k)]
-         [(.// (.St t Vs) _)
-          (define n (length Vs))
-          (for/fold ([ςs : (Setof .ς) ∅]) ([Vᵢ Vs] [i n])
-            (define acc (.st-ac t n i))
-            (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ acc (list x₀) '☠)) '☠) #f) ρ∅))
-            (define σ′ (.σ (hash-set m α (→V Vf)) l))
-            (set-add ςs (step-β Vf V* '☠ σ′ k)))]
-         [(? .prim?) ∅]
-         [_ ∅ #|TODO|#])]
+      [(list) (error "TODO")]
+      [(list V) (step-•₁ Lf V l σ k)]
       [_
-       ;; Non-determistically havoc 1 arg
+       ;; Nondeterministically apply to 1 arg
        (define ● (•!))
        (define n (length V*))
+       (match-define (.σ m a) σ)
+       (match-define (.L α) Lf)
        (for/fold ([acc : (Setof .ς) ∅]) ([i n])
          (define Vf (.λ↓ (.λ n (.@ ● (list (.x i)) '☠) #f) ρ∅))
-         (define σ′ (.σ (hash-set m α (→V Vf)) l))
+         (define σ′ (.σ (hash-set m α (→V Vf)) a))
          (set-add acc (step-β Vf V* '☠ σ′ k)))]))
+  
+  (: step-•₁ : .L .V Sym .σ .κ* → .ς*)
+  (define (step-•₁ Lf V l σ k)
+    (: step-const : .L .σ .κ* → .ς)
+    (define (step-const Lf σ k)
+      (match-define (and ● (.•ₗ n)) (•!))
+      (define σ′ (σ-set (σ-set σ n ♦) Lf (→V (.λ↓ (.λ 1 ● #f) ρ∅))))
+      (.ς (.L n) σ′ k))
+    
+    (: step-dep : .L .V .σ .κ* → .ς)
+    (define (step-dep Lf V σ k)
+      (match-define (and ●₁ (.•ₗ α₁)) (•!))
+      (match-define (and ●₂ (.•ₗ α₂)) (•!))
+      (define E (.if (.@ (.proc?) (list (.x 0)) '☠)
+                     (.λ 1 (.@ (.@ ●₁ (list (.x 1)) '☠) (list (.x 0)) '☠) #f)
+                     (.@ ●₂ (list (.x 0)) '☠)))
+      (.ς (.↓ E (ρ+ ρ∅ V))
+          (σ-set (σ-set σ α₁ (.// • (set (Prim 'procedure?)))) α₂ (→V Case∅))
+          k))
+    
+    (: step-havoc : .L .V .σ .κ* → .ς*)
+    (define (step-havoc Lf V σ k)
+      (match-define (.σ m l) σ)
+      (match-define (.L α) Lf)
+      (define x₀ (.x 0))
+      (define ● (•!))
+      (match V
+        [(.// (.λ↓ (.λ n _ _) ρ) _)
+         (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) '☠)) '☠) #f) ρ∅))
+         (define σ′ (.σ (hash-set m α (→V Vf)) l))
+         (step-β Vf (list V) '☠ σ′ k)]
+        [(.// (.Ar (.// (.Λ/C cs _ _) _) _ _) _)
+         (define n (length cs))
+         (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) '☠)) '☠) #f) ρ∅))
+         (define σ′ (.σ (hash-set m α (→V Vf)) l))
+         (step-β Vf (list V) '☠ σ′ k)]
+        [(.// (.St t Vs) _)
+         (define n (length Vs))
+         (for/fold ([ςs : (Setof .ς) ∅]) ([Vᵢ Vs] [i n])
+           (define acc (.st-ac t n i))
+           (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ acc (list x₀) '☠)) '☠) #f) ρ∅))
+           (define σ′ (.σ (hash-set m α (→V Vf)) l))
+           (set-add ςs (step-β Vf (list V) '☠ σ′ k)))]
+        [(? .prim?) ∅]
+        [_ ∅ #|TODO|#]))
+    
+    (ς∪ (step-const Lf σ k)
+        (step-dep Lf V σ k)
+        (step-havoc Lf V σ k)))
   
   (: step-fc : .V .V Sym .σ .κ* → .ς*)
   (define (step-fc C V l σ k)

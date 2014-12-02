@@ -35,6 +35,8 @@
 (struct .Case ([m : (Map (Listof .V) .L)]) #:transparent)
 #;(define • (.•))
 
+(define Case∅ (.Case (hash)))
+
 (: .Case@ : .Case (Listof .V) → (Option .L))
 (define (.Case@ c xs)
   (match-define (.Case m) c)
