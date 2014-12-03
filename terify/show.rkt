@@ -101,6 +101,11 @@
        `(let ,(for/list : (Listof Any) ([x (reverse x*)] [ei ex])
                 `(,x ,(go ctx ei)))
          ,(go (append x* ctx) e))]
+      [(.if (and e (.•ₗ α)) e₁ e₂)
+       (match (σ@ σ α)
+         [(.// (.b #f) _) (go ctx e₂)]
+         [(.// (not (? .•?)) _) (go ctx e₁)]
+         [_ `(if ,(go ctx e) ,(go ctx e₁) ,(go ctx e₂))])]
       [(.if a b (.b #f))
        (match* ((go ctx a) (go ctx b))
          [(`(and ,l ...) `(and ,r ...)) `(and ,@l ,@r)]

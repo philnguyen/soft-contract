@@ -32,7 +32,7 @@
          (append #|bad but not too bad|# (collect-names d) acc)))
      `(,@modl
        (require ,@m)
-       (begin ,@(for/list ([x names]) `(• ,x))))]
+       (amb ,@(for/list ([x names]) `(• ,x))))]
     [(list (and modl `(module ,_ ...)) ... `(require ,x ...) e)
      (define main (variable-not-in modl 'main))
      (massage `(,@modl (module ,main (provide [,main any/c]) (require ,@x) (define (,main) ,e))))]

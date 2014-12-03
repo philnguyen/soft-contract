@@ -225,7 +225,7 @@
       (.p (.m* (cons '☠ m-seq) (hash-set ms '☠ ☠)) acs e†)))
 
 (: amb : (Listof .e) → .e)
-(define (amb e*)
+#;(define (amb e*)
   (define s
     (for/fold ([ac : (Setof .e) ∅]) ([e e*])
       (match e ; try to avoid nested amb
@@ -233,3 +233,8 @@
         [_ (set-add ac e)])))
   (cond [(= 1 (set-count s)) (set-first s)]
         [else (.amb s)]))
+(define (amb e*)
+  (match e*
+    ['() .ff]
+    [(list e) e]
+    [(cons e es) (.if (•!) e (amb es))]))
