@@ -42,7 +42,8 @@
      (define accs (gen-accs (hash-values ms)))
      (.p (.m* l* ms) accs (read-e syms '† '() e))]
     [`(,(and m `(module ,_ ,_ ...)) ... ,e) (read-p `(,@m (require) ,e))]
-    [_ (error "Invalid program form. Expect ((module x c v)⋯ (require x⋯) e)")]))
+    [_ (error 'Parser "Invalid program form. Expect ((module x c v)⋯ (require x⋯) e). Given:~n~a"
+              p)]))
 
 (define h∅ (hash))
 

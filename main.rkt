@@ -13,10 +13,7 @@
                          (feedback/massage '(m ...)))))
 
 (define-syntax-rule (top-interaction . x)
-  (top-interaction₁ (x)))
-
-(define-syntax-rule (top-interaction₁ (x ...))
-  (#%top-interaction . (feedback/massage '(x ...))))
+  (#%top-interaction . (feedback/massage 'x)))
 
 #;(define-syntax-rule (top-interaction . e)
   (#%top-interaction . (begin #;(printf "Run Top:~n~a~n" (massage-top 'e))
@@ -37,11 +34,12 @@
        (require ,@m)
        (begin ,@(for/list ([x names]) `(• ,x))))]
     [(list (and modl `(module ,_ ...)) ... `(require ,x ...) e)
-     (define top (variable-not-in modl 'top))
-     (massage `(,@modl (module ,top (provide [,top any/c]) (require ,@x) (define (,top) ,e))))]
+     (define main (variable-not-in modl 'main))
+     (massage `(,@modl (module ,main (provide [,main any/c]) (require ,@x) (define (,main) ,e))))]
     [(list (and modl `(module ,_ ...)) ... e)
      (massage `(,@modl (require) ,e))]
-    [_ (error 'Parser "Invalid program form. Expect ((module name clause …) …). Given:~n~a" p)]))
+    [(and m `(module ,_ ...)) (massage (list m))]
+    [e (list e)]))
 
 (define collect-names
   (match-lambda

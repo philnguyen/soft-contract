@@ -38,6 +38,7 @@
     [(.λ↓ f _) (show-e σ f)]
     [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
     [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) e) _) _) _) _))) `(≠/c ,(show-e σ e))]
+    [(.St 'empty (list)) 'empty]
     [(.St (and n (or 'and/c 'or/c '¬/c)) V*) `(,n ,@(show-V σ V*))]
     [(.St t V*) `(,t ,@(show-V σ V*))]
     [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
@@ -86,6 +87,7 @@
        `(⇒/c ,(go ctx c) ,(go ctx d))]
       [(.λ 1 (.b (not #f)) #f) 'any/c]
       [(.λ 1 (.b #f) #f) 'none/c]
+      [(.@ (.st-mk 'empty 0) (list) _) 'empty]
       [(.@ (.λ 1 (.x 0) _) (list e) _) (go ctx e)]
       [(.@ (.λ 1 (.if (.x 0) (.x 0) b) #f) (list a) _)
        (match* ((go ctx a) (go (append (vars-not-in 1 ctx) ctx) b))
