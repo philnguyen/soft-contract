@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/set racket/list racket/match racket/bool racket/function
-         "../utils.rkt" "../lang.rkt" "closure.rkt" "delta.rkt" "provability.rkt" "show.rkt")
+         "../utils.rkt" "../lang.rkt" "runtime.rkt" "delta.rkt" "provability.rkt" "show.rkt")
 (require/typed ; TODO for debugging only
  "read.rkt"
  [read-p (Any → .p)])
@@ -308,9 +308,9 @@
                            #;(printf "0: ~a~n1: ~a~n~n" (show-V σ0 Vx0) (show-V σt V*))
                            (step-@ Vj V* l σi (cons (.μ/κ Vf V* σt) k)))])))]
                [_
-                (match-let ([havocs (for/fold: ([s : (Setof .ς) ∅]) ([V V*])
-                                      (set-union s (havoc V σt k)))]
-                            [(cons σ′ La) (σ+ σt)])
+                (let-values ([(havocs) (for/fold ([s : (Setof .ς) ∅]) ([V V*])
+                                         (set-union s (havoc V σt k)))]
+                             [(σ′ La) (σ+ σt)])
                   (set-add havocs (.ς La σ′ k)))])]
             [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf (arity-includes/C (length V*))) σf k)])]
          [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf PROC/C) σf k)])]
@@ -404,7 +404,7 @@
     (match E
       [(.↓ e ρ)
        (match e
-         [(.•) (match-let ([(cons σ′ L) (σ+ σ)]) (.ς L σ′ k))]
+         [(.•) (let-values ([(σ′ L) (σ+ σ)]) (.ς L σ′ k))]
          [(? .v? v) (.ς (close v ρ) σ k)]
          [(.x sd) (when (.X/V? (ρ@ ρ sd)) (error "STOP!"))(.ς (ρ@ ρ sd) σ k)]
          [(.x/c x) (.ς (ρ@ ρ x) σ k)]
@@ -428,11 +428,11 @@
                (match U
                  [(.λ↓ (.λ n _ _) _)
                   #;(printf "case1: ~a~n~n" (show-E σ V))
-                  (match-let ([(cons σ′ Ls) (σ++ σ n)])
+                  (let-values ([(σ′ Ls) (σ++ σ n)])
                     (step-@ V Ls '☠ σ′ k))]
                  [(.Ar (.// (.Λ/C Cx _ _) _) _ _)
                   #;(printf "case2: ~a~n~n" (show-E σ V))
-                  (match-let ([(cons σ′ Ls) (σ++ σ (length Cx))])
+                  (let-values ([(σ′ Ls) (σ++ σ (length Cx))])
                     (step-@ V Ls '☠ σ′ k))]
                  [_ ∅]))]
             [X (error "weird" X)])]
@@ -593,8 +593,8 @@
     [(.indy/κ Cs xs xs↓ d _ _) `(indy ,(map E Cs) ,(map E xs) ,(map E xs↓)
                                       ,(match d [#f '_] [(? .E? d) (E d)]))]
     [(.μc/κ x) `(μ/c ,x ∘)]
-    [(.λc/κ cs Cs d ρ _) `(λ/c (,@(reverse (map E Cs)) ,@(map show-e cs)) ,(show-e d))]
-    [(.structc/κ t c _ c↓) `(struct/c ,t (,@(reverse (map E c↓)) ,(map show-e c)))]
+    [(.λc/κ cs Cs d ρ _) `(λ/c (,@(reverse (map E Cs)) ,@(map (curry show-e σ) cs)) ,(show-e σ d))]
+    [(.structc/κ t c _ c↓) `(struct/c ,t (,@(reverse (map E c↓)) ,(map (curry show-e σ) c)))]
     [(.rt/κ _ f x) `(rt ,(E (→V f)) ,@(map E x))]
     [(.blr/κ _ _ V) `(blr ,(E V))]
     [(.recchk/κ c v) `(μ/▹ ,(E (→V c)) ,(E v))]))
@@ -725,11 +725,11 @@
       ; σ
       [(.σ m _)
        #;(printf "F: ~a~nm: ~a~n~n" F m)
-       (match-let ([(cons σ′ _) (σ++ σ∅ (hash-count F))])
-                  (for/fold: ([σ′ : .σ σ′]) ([i (in-hash-keys F)])
-                    (match (hash-ref m i #f)
-                      [(? .V? Vi) (σ-set σ′ (hash-ref F i) (subst/L Vi F))]
-                      [#f σ′])))]
+       (let-values ([(σ′ _) (σ++ σ∅ (hash-count F))])
+         (for/fold ([σ′ : .σ σ′]) ([i (in-hash-keys F)])
+           (match (hash-ref m i #f)
+             [(? .V? Vi) (σ-set σ′ (hash-ref F i) (subst/L Vi F))]
+             [#f σ′])))]
       [(? list? l) (map fixup l)]))
   
   (let* ([E′ (go! E)]

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set
-         "../utils.rkt" "../lang.rkt" "closure.rkt" "show.rkt"
-         (only-in "query-z3.rkt" [query z3]))
+         "../utils.rkt" "../lang.rkt" "runtime.rkt" "show.rkt"
+         (only-in "../query-z3.rkt" [query z3]))
 (provide (all-defined-out))
 
 (:* [all-prove? all-refute? some-proves? some-refutes?] : .σ (Listof .V) .V → Bool)
@@ -459,11 +459,11 @@
 (define (model p σ)
   (match-define (.σ m l) σ)
   (define m′
-    (for/hash : (Map Int .//) ([(L V) m])
+    (for/hash : (Map Int .V+) ([(L V) m])
       (values L (model/v p σ V))))
   (.σ m′ l))
 
-(: model/v : .p .σ .// → .//)
+(: model/v : .p .σ .V+ → .V+)
 (define (model/v p σ V)
   (match-define (.// U₁ Cs) V)
   (match U₁

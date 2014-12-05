@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
-         "../utils.rkt" "../lang.rkt" "closure.rkt" "provability.rkt" "show.rkt")
+         "../utils.rkt" "../lang.rkt" "runtime.rkt" "provability.rkt" "show.rkt")
 (provide (all-defined-out))
 
 (define-syntax-rule (match/Ans* v [p e ...] ...) (match/nd: (.Ans → .Ans) v [p e ...] ...))
@@ -99,15 +99,17 @@
             [(eq? 'Proved (⊢ σ X2 ZERO/C)) (cons σ ZERO)]
             [(eq? 'Proved (⊢ σ X1 ONE/C)) (cons σ X2)]
             [(eq? 'Proved (⊢ σ X2 ONE/C)) (cons σ X1)]
-            [else (σ+ σ
-                      (cond [(all-prove? σ V* INT/C) INT/C]
-                            [(all-prove? σ V* REAL/C) REAL/C]
-                            [else NUM/C])
-                      (cond [(all-prove? σ V* POS/C) POS/C]
-                            [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
-                            [(all-prove? σ V* NON-ZERO/C) NON-ZERO/C]
-                            [else #f])
-                      (*/C X1 X2))]))])]
+            [else (let-values ([(σ V)
+                                (σ+ σ
+                                    (cond [(all-prove? σ V* INT/C) INT/C]
+                                          [(all-prove? σ V* REAL/C) REAL/C]
+                                          [else NUM/C])
+                                    (cond [(all-prove? σ V* POS/C) POS/C]
+                                          [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
+                                          [(all-prove? σ V* NON-ZERO/C) NON-ZERO/C]
+                                          [else #f])
+                                    (*/C X1 X2))])
+                    (cons σ V))]))])]
     [((./) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (/ x y)))]
@@ -116,15 +118,17 @@
               [X2 (if (.•? U2) V2 W2)])
           (cond
             [(eq? 'Proved (⊢ σ X1 ZERO/C)) (cons σ ZERO)]
-            [else (σ+ σ
-                      (cond [(all-prove? σ V* REAL/C) REAL/C]
-                            [else NUM/C])
-                      (cond [(all-prove? σ V* POS/C) POS/C]
-                            [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
-                            [(eq? 'Proved (⊢ σ V1 NON-ZERO/C)) NON-ZERO/C]
-                            [else #f])
-                      (÷/C X1 X2)
-                      (if (eq? 'Proved (⊢ σ X1 NON-ZERO/C)) NON-ZERO/C #f))]))])]
+            [else (let-values ([(σ V)
+                                (σ+ σ
+                                    (cond [(all-prove? σ V* REAL/C) REAL/C]
+                                          [else NUM/C])
+                                    (cond [(all-prove? σ V* POS/C) POS/C]
+                                          [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
+                                          [(eq? 'Proved (⊢ σ V1 NON-ZERO/C)) NON-ZERO/C]
+                                          [else #f])
+                                    (÷/C X1 X2)
+                                    (if (eq? 'Proved (⊢ σ X1 NON-ZERO/C)) NON-ZERO/C #f))])
+                    (cons σ V))]))])]
     [((.+) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (+ x y)))]
@@ -134,17 +138,18 @@
           (cond
             [(eq? 'Proved (⊢ σ X1 ZERO/C)) (cons σ X2)]
             [(eq? 'Proved (⊢ σ X2 ZERO/C)) (cons σ X1)]
-            [else (match-let ([ans (σ+ σ
-                      (cond [(all-prove? σ V* INT/C) INT/C]
-                            [(all-prove? σ V* REAL/C) REAL/C]
-                            [else NUM/C])
-                      (cond [(all-prove? σ V* POS/C) POS/C]
-                            [(all-prove? σ V* NEG/C) NEG/C]
-                            [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
-                            [(all-prove? σ V* NON-POS/C) NON-POS/C]
-                            [else #f])
-                      (+/C X1 X2))])
-                    ans)]))])]
+            [else (let-values ([(σ V)
+                                (σ+ σ
+                                    (cond [(all-prove? σ V* INT/C) INT/C]
+                                          [(all-prove? σ V* REAL/C) REAL/C]
+                                          [else NUM/C])
+                                    (cond [(all-prove? σ V* POS/C) POS/C]
+                                          [(all-prove? σ V* NEG/C) NEG/C]
+                                          [(all-prove? σ V* NON-NEG/C) NON-NEG/C]
+                                          [(all-prove? σ V* NON-POS/C) NON-POS/C]
+                                          [else #f])
+                                    (+/C X1 X2))])
+                    (cons σ V))]))])]
     [((.-) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (- x y)))]
@@ -154,11 +159,13 @@
           (cond
             [(and (.L? X1) (.L? X2) (equal? X1 X2)) (cons σ ZERO)]
             [(eq? 'Proved (⊢ σ X2 ZERO/C)) (cons σ X1)]
-            [else (σ+ σ
-                      (cond [(all-prove? σ V* INT/C) INT/C]
-                            [(all-prove? σ V* REAL/C) REAL/C]
-                            [else NUM/C])
-                      (-/C X1 X2))]))])]
+            [else (let-values ([(σ V)
+                                (σ+ σ
+                                    (cond [(all-prove? σ V* INT/C) INT/C]
+                                          [(all-prove? σ V* REAL/C) REAL/C]
+                                          [else NUM/C])
+                                    (-/C X1 X2))])
+                    (cons σ V))]))])]
     [((.sqrt) (list V))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? real? x)) _)) (cons σ (Prim (sqrt x)))]
@@ -166,12 +173,14 @@
         (let ([X (if (.•? U) V W)])
           (cond
             [(eq? 'Proved (⊢ σ X ZERO/C)) (cons σ ZERO)]
-            [else (σ+ σ
-                      (cond [(equal? 'Proved (⊢ σ V POS/C)) {set REAL/C POS/C}]
-                            [(equal? 'Proved (⊢ σ V NON-NEG/C)) {set REAL/C NON-NEG/C}]
-                            [(equal? 'Proved (⊢ σ V NEG/C)) {set NUM/C (.¬/C REAL/C)}]
-                            [else NUM/C])
-                      (sqrt/C V))]))])]
+            [else (let-values ([(σ V)
+                                (σ+ σ
+                                    (cond [(equal? 'Proved (⊢ σ V POS/C)) {set REAL/C POS/C}]
+                                          [(equal? 'Proved (⊢ σ V NON-NEG/C)) {set REAL/C NON-NEG/C}]
+                                          [(equal? 'Proved (⊢ σ V NEG/C)) {set NUM/C (.¬/C REAL/C)}]
+                                          [else NUM/C])
+                                    (sqrt/C V))])
+                    (cons σ V))]))])]
     [((.<) (list (.L i) (.L i))) (cons σ FF)]
     [((.<) (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
@@ -246,7 +255,8 @@
     [((.str-len) (list V))
      (match (σ@ σ V)
        [(.// (.b (? str? s)) _) (cons σ (Prim (string-length s)))]
-       [_ (σ+ σ INT/C NON-NEG/C)])]))
+       [_ (let-values ([(σ V) (σ+ σ INT/C NON-NEG/C)])
+            (cons σ V))])]))
 
 (: V=? : .σ .V .V → .Vns*)
 (define (V=? σ V1 V2)
@@ -351,14 +361,17 @@
             ; struct contracts
             [(.St/C t D*)
              (match-let* ([(cons σ V*) (ann (match U
-                                              [(.•) (σ++ σ (length D*))]
+                                              [(.•)
+                                               (let-values ([(σ Vs) (σ++ σ (length D*))])
+                                                 (cons σ Vs))]
                                               [(.St _ V*) (cons σ V*)])
                                             (Pairof .σ (Listof .V)))]
                           [(cons σ V*) (refine* σ V* D*)])
                (cons σ (.// (.St t V*) C*)))]
             [(.st-p t n) (match U
-                           [(.•) (match-let ([(cons σ′ L*) (σ++ σ n)])
-                                   (cons σ′ (.// (.St t L*) C*)))]
+                           [(.•)
+                            (let-values ([(σ′ L*) (σ++ σ n)])
+                              (cons σ′ (.// (.St t L*) C*)))]
                            [(.St (? (curry eq? t)) _) (cons σ V)])]
             ; singleton contracts
             [(.true?) (cons σ (.// .tt C*))]
@@ -800,10 +813,12 @@
                      (match-let ([(cons σ V) (alloc σ (hash-ref m x))])
                        (values σ (hash-set m′ x V))))])
        (cons σ (→V (.λ↓ f (.ρ m l)))))]
-    [(.// (.•) Cs) (match-let ([(cons σ L) (σ+ σ)])
-                     (refine σ L Cs))]
-    [(? .μ/V? V) (match-let ([(cons σ L) (σ+ σ)])
-                   (cons (σ-set σ L V) L))]
+    [(.// (.•) Cs)
+     (let-values ([(σ L) (σ+ σ)])
+       (refine σ L Cs))]
+    [(? .μ/V? V)
+     (let-values ([(σ L) (σ+ σ)])
+       (cons (σ-set σ L V) L))]
     [(? .V? V) (cons σ V)]
     [(? list? V*) (let-values ([(σ Vs)
                                 (for/fold: ([σ : .σ σ] [Vs : (Listof .V) '()]) ([V V*])

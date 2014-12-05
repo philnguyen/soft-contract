@@ -4,13 +4,13 @@
          (only-in "utils.rkt" match?)
          (only-in "lang.rkt" .p)
          (only-in "verify/machine.rkt" .ς [e verify])
-         (prefix-in ve: (only-in "verify/closure.rkt" .blm? .blm .σ .σ?))
+         (prefix-in ve: (only-in "verify/runtime.rkt" .blm? .blm .σ .σ?))
          (prefix-in ve: (only-in "verify/show.rkt" show-V))
          (only-in "terify/machine.rkt" [ev find-error])
          (only-in "terify/provability.rkt" [model model/untyped])
-         (only-in "terify/query-z3.rkt" [model model/z3])
+         (only-in "terify/model.rkt" [model model/z3])
          (prefix-in ce: (only-in "terify/show.rkt" show-ce show-A show-V))
-         (prefix-in ce: (only-in "terify/closure.rkt" .blm? .blm .σ .σ?)))
+         (prefix-in ce: (only-in "terify/runtime.rkt" .blm? .blm .σ .σ?)))
 (require/typed "terify/read.rkt"
   [(read-p read/ce) (Sexp → .p)])
 

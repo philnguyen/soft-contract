@@ -1,8 +1,7 @@
 #lang typed/racket/base
-
 (require racket/match racket/list racket/set racket/string racket/bool racket/port racket/system
-         "../utils.rkt" "../lang.rkt" "closure.rkt" "show.rkt")
-(provide query model handled?)
+         "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
+(provide explore →lab call query handled?)
 
 ; query external solver for provability relation
 (: query : .σ .V .V → .R)
@@ -119,38 +118,37 @@
   
   (values asserts involved))
 
+
 ; generate statemetn expressing relationship between i and C
 ; e.g. <L0, (sum/c 1 2)>  translates to  "L0 = 1 + 2"
 (: gen : Int .V → (Values (U #f String) (Setof Int)))
 (define (gen i C)
   (match C
     [(.// (.λ↓ f ρ) _)
-     (define ρ@*
-       (match-lambda
-        [(.b (? num? n)) (Prim n)]
-        [(.x i) (ρ@ ρ (- i 1))]))
-     (match f
-       [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? num?))))) _) #f)
-        (define X (ρ@* e))
-        (values (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))
-                (labels i X))]
-       [(.λ 1 (.@ (or (.=) (.equal?))
-                  (list (.x 0) (.@ (.sqrt) (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
-        (define X (ρ@* M))
-        (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
-                (labels i X))]
-       [(.λ 1 (.@ (or (.=) (.equal?))
-                  (list (.x 0) (.@ (? .o? o)
-                                   (list (and M (or (.x _) (.b (? num?))))
-                                         (and N (or (.x _) (.b (? num?))))) _)) _) #f)
-        (define X (ρ@* M))
-        (define Y (ρ@* N))
-        (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
-                (labels i X Y))]
-       [_ (values #f ∅)])]
+     (let ([ρ@* (match-lambda
+                  [(.b (? num? n)) (Prim n)]
+                  [(.x i) (ρ@ ρ (- i 1))])])
+       (match f
+         [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? num?))))) _) #f)
+          (let ([X (ρ@* e)])
+            (values (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))
+                    (labels i X)))]
+         [(.λ 1 (.@ (or (.=) (.equal?))
+                    (list (.x 0) (.@ (.sqrt) (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
+          (let ([X (ρ@* M)])
+            (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
+                    (labels i X)))]
+         [(.λ 1 (.@ (or (.=) (.equal?))
+                    (list (.x 0) (.@ (? .o? o)
+                                     (list (and M (or (.x _) (.b (? num?))))
+                                           (and N (or (.x _) (.b (? num?))))) _)) _) #f)
+          (let ([X (ρ@* M)] [Y (ρ@* N)])
+            (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
+                    (labels i X Y)))]
+         [_ (values #f ∅)]))]
     [(.// (.St '¬/c (list D)) _)
-     (define-values (q i*) (gen i D))
-     (values (match q [(? str? s) (format "(not ~a)" s)] [_ #f]) i*)]
+     (let-values ([(q i*) (gen i D)])
+       (values (match q [(? str? s) (format "(not ~a)" s)] [_ #f]) i*))]
     [_ (values #f ∅)]))
 
 ; perform query/ies with given declarations, assertions, and conclusion,
@@ -203,106 +201,3 @@
     (match V
       [(? int? i) i]
       [(.L i) i])))
-
-(: model : .σ → (Option .σ))
-(define (model σ)
-  (match-define (.σ m _) σ)
-  (cond
-   [(for/or : Any ([V (in-hash-values m)])
-      (match-define (.// U _) V)
-      (.•? U))
-    (model′ σ)]
-   [else σ]))
-
-(: model′ : .σ → (Option .σ))
-(define (model′ σ)
-  ;; Compute all labels of reals/ints
-  (define-values (labels types)
-    (for/fold ([labels : (Listof Int) '()]
-               [types : (Listof (U 'Int 'Real)) '()])
-              ([(l V) (in-hash (.σ-map σ))])
-      (match V
-        [(.// U C*)
-         (match U
-           [(.b (? integer?)) (values (cons l labels) (cons 'Int types))]
-           [(.b (? real?)) (values (cons l labels) (cons 'Real types))]
-           [(.•)
-            (cond
-             [(for/or : Boolean ([C : .V C*]
-                                 #:when (match? C (.// (.int?) _)))
-                #t)
-              (values (cons l labels) (cons 'Int types))]
-             [(for/or : Boolean ([C : .V C*]
-                                 #:when (match? C (.// (.real?) _)))
-                #t)
-              (values (cons l labels) (cons 'Real types))]
-             [else (values labels types)])]
-           [_ (values labels types)])]
-        [_ (values labels types)])))
-  #;(printf "labels:~n~a~n" labels)
-  ;; Generate assertions
-  (define-values (assertions _) (explore σ (list->set labels)))
-  #;(printf "assertions:~n~a~n" assertions)
-  ;; Generate query
-  (define query
-    (string-append
-     ;; Declaration
-     (string-append*
-      (for/list ([l labels] [t types])
-        (format "(declare-const ~a ~a)~n" (→lab l) t)))
-     ;; Assertions
-     (string-append*
-      (for/list ([assrt assertions])
-        (format "(assert ~a)~n" assrt)))
-     ;; Generate model
-     (format "(check-sat)~n(get-model)~n")))
-  ;; Call to Z3
-  #;(printf "Query:~n~a~n" query)
-  (match (call query)
-    [(regexp #rx"^sat(.*)" (list _ (? string? m/str)))
-     (match-define (.σ m l) σ)
-     (with-input-from-string m/str
-       (λ ()
-         (cast
-          (match (read)
-           [(list 'model lines ...)
-            #;(begin
-              (printf "Model:~n")
-              (for ([l lines]) (printf "~a~n" l)))
-            (match-define (.σ m l) σ)
-            (define m′
-              (for/fold ([m : (Map Int .//) m])
-                        ([line : Any (in-list lines)])
-                (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
-                #;(printf "e: ~a~n" e)
-                (define res : Real
-                  (match e
-                    [`(+ ,(? real? x) ,(? real? y) ...)
-                     (apply + x (cast y (Listof Real)))]
-                    [`(- ,(? real? x) ,(? real? y) ...)
-                     (apply - x (cast y (Listof Real)))]
-                    [`(* ,(? real? x) ,(? real? y) ...)
-                     (apply * x (cast y (Listof Real)))]
-                    [`(/ ,(? real? x) ,(? real? y) ...)
-                     (apply / x (cast y (Listof Real)))]
-                    [(? real? x) x]))
-                (hash-set m (lab→i a) (.// (.b (cast res Real)) ∅))))
-            ;; Fixup. Z3 gives empty model sometimes for trivial cases
-            (define m′′
-              (for/hash : (Map Integer .//) ([(k v) m′])
-                (values
-                 k
-                 (match v
-                   [(.// (.•) _) (Prim 0)]
-                   [_ v]))))
-            (.σ m′′ l)])
-          .σ)))]
-    [_ #f]))
-
-(: lab→i : Symbol → Int)
-(define (lab→i s)
-  (match (symbol->string s)
-    [(regexp #rx"L(.+)" (list _ (? string? d)))
-     (cast (string->number d) Int)]
-    [(regexp #rx"X(.+)" (list _ (? string? d)))
-     (- (cast (string->number d) Int))]))

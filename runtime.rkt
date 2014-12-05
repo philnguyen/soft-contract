@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set
-         "../utils.rkt" "../lang.rkt")
+         "utils.rkt" "lang.rkt")
 (require/typed redex/reduction-semantics [variable-not-in (Any Sym → Sym)])
 (provide (all-defined-out))
 
@@ -19,7 +19,12 @@
     (subset: (.blm [violator : Sym] [origin : Sym] [v : .V] [c : .V]))
     (subset: (.V) ; either label or refined prevalue
       (.L [i : Int])
-      (.// [pre : .U] [refine : (Setof .V)]))))
+      (.// [pre : .U] [refine : (Setof .V)])
+      ;; The counterexample engine does not use these
+      (.μ/V [x : Sym] [Vs : (Setof .V)])
+      (.X/V [x : Sym]))))
+
+(define-type .V+ (U .// .μ/V))
 
 ;; blessed arrow, struct, and closed lambda
 (define-type .U (U .prim .• .Ar .St .λ↓ .Λ/C .St/C .μ/C .X/C .Case))
@@ -89,7 +94,7 @@
 
 (define** 
   [MT (→V (.St 'empty empty))]
-  [♦ (→V (.•))]
+  [♦ (→V (.•))] [V∅ (.μ/V '_ ∅)]
   [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
   [INT/C (Prim 'integer?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'number?)]
   [STR/C (Prim 'string?)] [PROC/C (Prim 'procedure?)] [SYM/C (Prim 'symbol?)])
@@ -151,15 +156,16 @@
               [sd (match x [(.x sd) sd] [(? int? sd) sd])])
     (hash-has-key? m (- l sd 1))))
 
-
 ;;;;; STORE
 
 ;; store maps label indices to refined prevalues
-(struct .σ ([map : (Map Int .//)] [next : Int]) #:transparent)
+(struct: .σ ([map : (Map Int .V+)] [next : Int]) #:transparent)
 (define σ∅ (.σ (hash) 0))
 
-(: σ@ : (case→ [.σ (U .L Int) → .//]
+(: σ@ : (case→ [.σ (U .L Int) → .V+]
                [.σ .// → .//]
+               [.σ .μ/V → .μ/V]
+               [.σ .X/V → .X/V]
                [.σ .V → .V]))
 (define (σ@ σ a)
   (match a
@@ -178,8 +184,7 @@
         [(? set? s) (set-union a s)]
         [(? .V? C) (when (match? C (.// (.•) _)) (error "ha!")) (set-add a C)]
         [_ a])))
-  (define V (if (set-empty? Cs) ♦ (.// (.•) Cs)))
-  (values (.σ (hash-set m i V) (+ 1 i))
+  (values (.σ (hash-set m i (if (set-empty? Cs) ♦ (.// • Cs))) (+ 1 i))
           (.L i)))
 
 (: σ++ : .σ Int → (Values .σ (Listof .L)))
@@ -190,7 +195,7 @@
   (values (.σ (for/fold ([m m]) ([i r]) (hash-set m i ♦)) hi)
           (map .L r)))
 
-(: σ-set : .σ (U .L Int) .// → .σ)
+(: σ-set : .σ (U .L Int) .V+ → .σ)
 (define (σ-set σ a V)
   (match-let ([(.σ m l) σ]
               [i (match a [(.L i) i] [(? int? i) i])])
@@ -340,3 +345,4 @@
 
 (: mk-box : .V → .//)
 (define (mk-box V) (→V (.St 'box (list V))))
+

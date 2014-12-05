@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "../utils.rkt" "../lang.rkt" "closure.rkt" "delta.rkt" "provability.rkt" "show.rkt")
+ "../utils.rkt" "../lang.rkt" "runtime.rkt" "delta.rkt" "provability.rkt" "show.rkt")
 (require/typed ; TODO for debugging only
  "read.rkt"
  [read-p (Any → .p)])
@@ -582,12 +582,12 @@
 (define (L/L x i j)
   (: go (case->
          [.σ → .σ] [.ρ → .ρ]
-         [.L → .L] [.// → .//] [.V → .V] [.↓ → .↓] [.E → .E]
+         [.L → .L] [.// → .//] [.V+ → .V+] [.V → .V] [.↓ → .↓] [.E → .E]
          [.U → .U] [.κ → .κ] [.κ* → .κ*]))
   (define (go x)
     (match x
       ;; σ
-      [(.σ m l) (.σ (for/hash : (Map Int .//) ([(k V) (in-hash m)]
+      [(.σ m l) (.σ (for/hash : (Map Int .V+) ([(k V) (in-hash m)]
                                       #:unless (equal? k i))
                       (values k (go V)))
                     l)]
