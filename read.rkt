@@ -143,6 +143,7 @@
     [`(zero? ,e) (.@ (.=) (list (go e) .zero) l)]
     [`(positive? ,e) (.@ (.>) (list (go e) .zero) l)]
     [`(negative? ,e) (.@ (.<) (list (go e) .zero) l)]
+    [`(unless ,p ,e) (.if (go p) (go e) .void)]
     
     ;; basic contract forms
     #;[`(-> [,x : ,cx] ... ,cy) (.λ/c (map go cx) (read-e syms l (bind xs x) cy) #f)]

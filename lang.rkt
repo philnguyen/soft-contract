@@ -28,6 +28,7 @@
           (.add1) (.sub1) (.str-len) (.sqrt))
         (subset: (.o2)
           (.equal?) (.=) (.>) (.<) (.≥) (.≤) (.+) (.-) (.*) (./)
+          (.expt) (.abs) (.min) (.max)
           (.arity=?) (.arity≥?) (.arity-includes?)
           (.set-box!))
         (.st-mk [tag : Sym] [arity : Int]))))
@@ -113,6 +114,7 @@
 (define .cdr (.st-ac 'cons 2 1))
 (define .zero (.b 0))
 (define .one (.b 1))
+(define .void (.@ (.st-mk 'void 0) (list) 'Λ))
 
 (: .cons/c : .e .e → .e)
 (define (.cons/c c d) (.struct/c 'cons (list c d)))
@@ -148,6 +150,9 @@
      ['= (.=)]
      ['< (.<)]
      ['> (.>)]
+     ['abs (.abs)]
+     ['min (.min)]
+     ['max (.max)]
      [(or '>= '≥) (.≥)]
      [(or '<= '≤) (.≤)]
      ['arity=? (.arity=?)]
@@ -157,8 +162,9 @@
      ['cons (.st-mk 'cons 2)]
      ['car .car]
      ['cdr .cdr]
-     ['empty (.@ (.st-mk 'empty 0) empty 'Λ)]
-     ['empty? .empty/c]
+     [(or 'empty 'null) (.@ (.st-mk 'empty 0) empty 'Λ)]
+     [(or 'empty? 'null?) .empty/c]
+     ['void (.st-mk 'void 0)]
      #|['box (.st-mk 'box 1)]
      ['box? (.st-p 'box 1)]
      ['unbox (.st-ac 'box 1 0)]
@@ -176,6 +182,7 @@
    [(.add1) 'add1] [(.sub1) 'sub1] [(.sqrt) 'sqrt] [(.+) '+] [(.-) '-] [(.*) '*] [(./) '/]
    [(.str-len) 'string-length] [(.equal?) 'equal?]
    [(.=) '=] [(.>) '>] [(.<) '<] [(.≥) '≥] [(.≤) '≤]
+   [(.abs) 'abs] [(.min) 'min] [(.max) 'max]
    [(.arity=?) 'arity=?] [(.arity≥?) 'arity≥?] [(.arity-includes?) 'arity-includes?]
    [(.num?) 'number?] [(.real?) 'real?] [(.int?) 'integer?] [(.true?) 'true?] [(.false?) 'false?]
    [(.bool?) 'boolean?] [(.str?) 'string?] [(.symbol?) 'symbol?] [(.proc?) 'procedure?]
