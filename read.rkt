@@ -150,7 +150,7 @@
     [`(->i ((,x ,dom) ...) (,res (,dep ...) ,rng))
      (unless (equal? x dep)
        (error '->i "Please specify full dependency ~a instead of ~a for now" x dep))
-     (.λ/c (map go dom) (read-e syms l (bind xs x) `(λ (,res) ,rng)) #f)]
+     (.λ/c (map go dom) (read-e syms l (bind xs x) rng) #f)]
     [`(-> ,cx ... ,cy)
      (.λ/c (map go cx) (read-e syms l (bind xs (make-list (length xs) '♣)) cy) #f)
      #;(go `(->i
