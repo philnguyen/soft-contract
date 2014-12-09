@@ -77,6 +77,7 @@
 (define (raise-contract-error l⁺ lᵒ v c [ce #f])
   (define parties
     (cond [(equal? l⁺ lᵒ) (format "'~a' violates its own contract." l⁺)]
+          [(equal? lᵒ 'Λ) (format "'~a' violates a contract in an application." l⁺)]
           [else (format "'~a' violates '~a'." l⁺ lᵒ)]))
   (define reason
     (match* (v c)
