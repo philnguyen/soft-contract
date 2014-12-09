@@ -1,6 +1,6 @@
 (module max
   (provide
-   [max* (real? real? . ->* . real?)])
+   [max* ((real?) #:rest real? . ->* . real?)])
   (define (max a b)
     (if (>= a b) a b))
   (define* (max* x xs)
