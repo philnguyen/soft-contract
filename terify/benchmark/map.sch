@@ -1,6 +1,6 @@
 (module map
   (provide
-   [map (->i ([_ (any/c . -> .any/c)]
+   [map (->i ([_ (any/c . -> . any/c)]
 	      [l (listof any/c)])
 	     (res (_ l)
 		  (and/c (listof any/c)
