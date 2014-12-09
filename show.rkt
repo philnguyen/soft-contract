@@ -26,6 +26,8 @@
     [(.// U C*) (if (.•? U)
                     `(• ,@(for/list : (Listof Any) ([C C*]) (show-V σ C)))
                     (show-U σ U))]
+    [(.X/V x) x]
+    [(.μ/V x V*) `(μ (,x) ,(for/list : (Listof Any) ([V V*]) (show-V σ V)))]
     [(? list? V*) (map (curry show-V σ) V*)]))
 
 (: show-U : .σ .U → Any)
