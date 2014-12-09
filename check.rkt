@@ -86,7 +86,7 @@
   (define ce-prog
     (cond [ce (format "An example program that breaks it:~n ~a" (pretty ce))]
           [else ""]))
-  (error (format "Contract violation: ~a~n~a~n~a" parties reason ce-prog)))
+  (error (format "Contract violation: ~a~n~a~n~a~n" parties reason ce-prog)))
 
 (: pretty : Any → String)
 (define (pretty x)
