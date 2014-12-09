@@ -16,8 +16,8 @@
 (define mode : Mode 'verbose)
 (define files : (Listof String) '())
 (define solver : (.σ .V .V → .R) z3)
-(define TIMEOUT 1200)
-(define ITER 10)
+(define TIMEOUT 120)
+(define ITER 1)
 (: avg : Real → Real)
 (define (avg x) (* (/ x ITER) 1.0))
 

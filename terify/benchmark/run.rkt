@@ -3,7 +3,8 @@
          (only-in racket/file file->list)
          "../../utils.rkt" "../../lang.rkt" "../show.rkt" "../runtime.rkt" "../machine.rkt"
          (only-in "../../query-cvc4.rkt" [query cvc4])
-         (only-in "../../query-z3.rkt" [query z3] [model z3/model])
+         (only-in "../../query-z3.rkt" [query z3])
+         (only-in "../model.rkt" [model z3/model])
          (only-in "../provability.rkt" ext-solver model))
 (require/typed "../read.rkt" [read-p (Any → .p)])
 (require/typed racket/file [file->lines (Path-String → (Listof String))])
@@ -16,7 +17,7 @@
 (define mode : Mode 'verbose)
 (define files : (Listof String) '())
 (define solver : (.σ .V .V → .R) z3)
-(define TIMEOUT 600)
+(define TIMEOUT 120)
 #;(define ITER 1)
 #;(: avg : Real → Real)
 #;(define (avg x) (* (/ x ITER) 1.0))
