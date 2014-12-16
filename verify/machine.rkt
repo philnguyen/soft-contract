@@ -61,27 +61,27 @@
   (: M+! : .rt/κ .res → Void)
   (define (M+! ctx res)
     #;(printf "abt to add:~nres:~n~a~nctx:~n~a~n~n" res ctx)    
-    (match-let* ([(list σ V) res]
-                 [res* (hash-ref M ctx (λ () ∅))]
-                 [del                  
-                  (for/fold: ([del : (Setof .res) ∅]) ([r : .res res*])
-                        (match-let ([(list σ0 V0) r])
-                          #;(printf "Comparing:~nV0:~n~a~nσ0:~n~a~nV1:~n~a~nσ1:~n~a~n~n"
-                                  V0 σ0 V σ)
-                          #;(printf "Result: ~a ~a~n~n" ((⊑ σ σ0) V V0) ((⊑ σ0 σ) V0 V))
-                          (cond
-                            #;[(equal? Vi V^) del]
-                            ; FIXME temp
-                            [((⊑ σ σ0) V V0) #;(printf "case 1~n") (set-add del (list σ V))]
-                            [((⊑ σ0 σ) V0 V) #;(printf "case 2~n") (set-add del (list σ0 V0))]
-                            [else #;(printf "case 3~n~n~n")del])))])
-      #;(printf "old-res for:~n~a~n~n~a~n~n" (set-count res*))
-      #;(printf ",")
-      (hash-set! M ctx (set-subtract (set-add res* (list σ V)) del))))
+    (match-define (list σ V) res)
+    (define res* (hash-ref M ctx (λ () ∅)))
+    (define del                  
+      (for/fold ([del : (Setof .res) ∅]) ([r : .res res*])
+        (match-define (list σ0 V0) r)
+        #;(printf "Comparing:~nV0:~n~a~nσ0:~n~a~nV1:~n~a~nσ1:~n~a~n~n"
+        V0 σ0 V σ)
+        #;(printf "Result: ~a ~a~n~n" ((⊑ σ σ0) V V0) ((⊑ σ0 σ) V0 V))
+        (cond
+         #;[(equal? Vi V^) del]
+                                        ; FIXME temp
+         [((⊑ σ σ0) V V0) #;(printf "case 1~n") (set-add del (list σ V))]
+         [((⊑ σ0 σ) V0 V) #;(printf "case 2~n") (set-add del (list σ0 V0))]
+         [else #;(printf "case 3~n~n~n")del])))
+    #;(printf "old-res for:~n~a~n~n~a~n~n" (set-count res*))
+    #;(printf ",")
+    (hash-set! M ctx (set-subtract (set-add res* (list σ V)) del)))
   
   (: upd-M! : .rt/κ .res .res → Void)
   (define (upd-M! ctx res0 resi)
-    (hash-update! M ctx (λ: ([s : (Setof .res)])
+    (hash-update! M ctx (λ ([s : (Setof .res)])
                           (set-add (set-remove s res0) resi))))
   
   (: Ξ@ : .rt/κ → (Listof .K)) ; FIXME force randomness to test
@@ -92,8 +92,8 @@
   
   (: m-opaque? : Sym → Bool)
   (define (m-opaque? x) ; TODO: expensive?
-    (match-let ([(.m _ defs) (hash-ref ms x)])
-      (for/or ([d (in-hash-values defs)] #:when (match? d (cons (.•) _))) #t)))
+    (match-define (.m _ defs) (hash-ref ms x))
+    (for/or ([d (in-hash-values defs)] #:when (match? d (cons (.•) _))) #t))
   
   (: step* : .ς → .ς+)
   (define (step* ς)
@@ -115,10 +115,10 @@
                        #t))) ; just to force boolean
           (match-let* ([k (append l (list* (.blr/κ F σ0 V0) rt r))]
                        [(cons σk′ F′)
-                        (for/fold: ([acc : (Pairof .σ .F) (cons σk F)]) ([i (in-hash-keys F)])
-                          (match-let* ([(cons σ F) acc]
-                                       [(list σ′ _ F′) (transfer σ0 (.L i) σ F)])
-                            (cons σ′ F′)))]
+                        (for/fold ([acc : (Pairof .σ .F) (cons σk F)]) ([i (in-hash-keys F)])
+                          (match-define (cons σ F) acc)
+                          (match-define (list σ′ _ F′) (transfer σ0 (.L i) σ F))
+                          (cons σ′ F′))]
                        [(list σk′′ V-new _) (transfer σ0 V0 σk′ F′)]
                        [ς (.ς V-new σk′′ k)])
             #;(printf "Resume called with:~n res:~n~a~n K:~n~a~n rt:~n~a~nAbout to resume with:~n~a~n~n"
@@ -149,28 +149,28 @@
            (set! ans (set-add ans ς)))]
         ; remember waiting context and plug any available answers into it
         [(.ς (cons ctx F) σ k)
-         (match-let* ([(cons l r) (split-κ* ctx k)]
-                      [K (list F σ l r)])
-           (Ξ+! ctx K)
-           (for ([res : .res (M@ ctx)])
-             (resume res K ctx)))]
+         (match-define (cons l r) (split-κ* ctx k))
+         (define K (list F σ l r))
+         (Ξ+! ctx K)
+         (for ([res : .res (M@ ctx)])
+           (resume res K ctx))]
         ; remember returned value and return to any other waiting contexts
         [(.ς (? .V? V) σ (cons (? .rt/κ? ctx) k))
-         (let ([res (list σ V)])
-           (M+! ctx res)
-           (for ([K : .K (Ξ@ ctx)])
-             (resume res K ctx)))
+         (define res (list σ V))
+         (M+! ctx res)
+         (for ([K : .K (Ξ@ ctx)])
+           (resume res K ctx))
          (visit (.ς V σ k))]
         ; blur value in M table ; TODO: this is a hack
         [(.ς (? .V? V) σ (cons (.blr/κ F σ0 V0) (cons (? .rt/κ? ctx) k)))
-         (match-let* ([(cons σ′ Vi) (⊕ σ0 V0 σ V)]
-                      [σi (⊕ σ0 σ′ F)]
-                      [res0 (list σ0 V0)]
-                      [resi (list σi Vi)])
-           (when ((⊑ σ0 σi) V0 Vi)
-             (upd-M! ctx res0 resi))
-           (for ([K : .K (Ξ@ ctx)])
-             (resume resi K ctx)))
+         (match-define (cons σ′ Vi) (⊕ σ0 V0 σ V))
+         (define σi (⊕ σ0 σ′ F))
+         (define res0 (list σ0 V0))
+         (define resi (list σi Vi))
+         (when ((⊑ σ0 σi) V0 Vi)
+           (upd-M! ctx res0 resi))
+         (for ([K : .K (Ξ@ ctx)])
+           (resume resi K ctx))
          (visit (.ς V σ k))]
         ; FIXME HACK
         [(.ς (? .V? V) σ (cons (.blr/κ F1 σ1 V1) (cons (.blr/κ F0 σ0 V0) k)))
@@ -354,10 +354,10 @@
         ['Refuted (.ς (.blm l+ lo V C) σ k)]
         ['Neither
          (match C
-           [(.L i) ; FIXME this is wrong, need to take care of higher-order contract
-            (match-let ([(cons σt Vt) (refine σ V C)]
-                        [(cons σf Vf) (refine σ V (.¬/C C))])
-              {set (.ς Vt σt k) (.ς Vf σf k)})]
+           [(.L i)
+            (match-define (cons σt Vt) (refine σ V C))
+            (match-define (cons σf Vf) (refine σ V (.¬/C C)))
+            {set (.ς Vt σt k) (.ς Vf σf k)}]
            [(.// Uc C*)
             (match Uc
               [(and (.μ/C x C′) Uc)
