@@ -6,12 +6,12 @@
          (only-in "verify/machine.rkt" .ς [e verify])
          (prefix-in ve: (only-in "verify/runtime.rkt" .blm? .blm .σ .σ?))
          (prefix-in ve: (only-in "verify/show.rkt" show-V))
-         (only-in "terify/machine.rkt" [ev find-error])
-         (only-in "terify/provability.rkt" [model model/untyped])
-         (only-in "terify/model.rkt" [model model/z3])
-         (prefix-in ce: (only-in "terify/show.rkt" show-ce show-A show-V))
-         (prefix-in ce: (only-in "terify/runtime.rkt" .blm? .blm .σ .σ?)))
-(require/typed "terify/read.rkt"
+         (only-in "ce/machine.rkt" [ev find-error])
+         (only-in "ce/provability.rkt" [model model/untyped])
+         (only-in "ce/model.rkt" [model model/z3])
+         (prefix-in ce: (only-in "ce/show.rkt" show-ce show-A show-V))
+         (prefix-in ce: (only-in "ce/runtime.rkt" .blm? .blm .σ .σ?)))
+(require/typed "ce/read.rkt"
   [(read-p read/ce) (Sexp → .p)])
 
 (: feedback ([Sexp] [Integer] . ->* . Any))
@@ -90,7 +90,7 @@
   (define ce-prog
     (cond [ce (format "An example module that breaks it:~n ~a"
                       (pretty `(module user racket
-                                (require ,l⁺)
+                                (require (submod "\"..\"" ,l⁺))
                                 ,ce)))]
           [else ""]))
   (error (format "Contract violation: ~a~n~a~n~a~n" parties reason ce-prog)))

@@ -8,7 +8,7 @@
 ;; figure out define/provide/require for each module
 (define (pass-1 p)
   (match p
-    [`(,m* ... (require ,main-reqs ...) ,e)
+    [`(,m* ... (require (quote ,main-reqs) ...) ,e)
      (for/fold ([M (hash '† (list ∅ ∅ (list->set main-reqs)))]) ([m m*])
        (match m
          [`(module ,name racket ,d* ...)
@@ -18,7 +18,7 @@
            (for/fold ([acc (list ∅ ∅ ∅)]) ([d d*])
              (match-let ([(list defs decs reqs) acc])
                (match d
-                 [`(require ,x* ...) (list defs decs (set-union reqs (list->set x*)))]
+                 [`(require (submod ".." ,x*) ...) (list defs decs (set-union reqs (list->set x*)))]
                  [`(provide/contract ,prov* ...)
                   (list defs
                         (for/fold ([decs decs]) ([prov prov*])
@@ -32,8 +32,10 @@
                   (list (set-add defs f) decs reqs)]
                  [`(struct ,t (,field* ...))
                   (list (set-union defs (gen-names t field*)) decs reqs)]
-                 [_ (error 'Parser "Expect one of:~n (require module-name …)~n (provide/contract (x c) …)~n (define x v)~n (struct name (field …))~n.Given:~n~a" (pretty d))]))))]
+                 [_ (error 'Parser "Expect one of:~n (require (submod \"..\" module-name) …)~n (provide/contract (x c) …)~n (define x v)~n (struct name (field …))~n.Given:~n~a" (pretty d))]))))]
          [_ (error 'Parser "Expect module definition of the form~n (module module-name racket _ …)~n.Given:~n~a" (pretty m))]))]
+    [`(,_ ... ,(and req `(require ,_ ...)) ,_)
+     (error 'Parser "Expect require clause of form (require 'name …)~nGiven:~n ~a" req)]
     [`(,m* ... ,e) (pass-1 `(,@ m* (require) ,e))]))
 
 ;; read and return program's ast
@@ -46,7 +48,7 @@
      (define accs (gen-accs (hash-values ms)))
      (.p (.m* l* ms) accs (read-e syms '† '() e))]
     [`(,(and m `(module ,_ racket ,_ ...)) ... ,e) (read-p `(,@m (require) ,e))]
-    [_ (error 'Parser "Invalid program form. Expect~n((module module-name racket~n (provide/contract [x c] …)~n (require module-name …)~n (define x v) …) …).~nGiven:~n~a"
+    [_ (error 'Parser "Invalid program form. Expect~n((module module-name racket~n (provide/contract [x c] …)~n (require (submod \"..\" module-name) …)~n (define x v) …) …).~nGiven:~n~a"
               (pretty p))]))
 
 (define h∅ (hash))

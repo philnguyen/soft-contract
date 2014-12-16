@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/match
+(require racket/match racket/port
          (only-in "check.rkt" feedback)
          (only-in redex/reduction-semantics variable-not-in)
          (for-syntax racket/base racket/match))
@@ -31,7 +31,7 @@
        (for*/fold ([acc '()]) ([ds dss] [d ds])
          (append #|bad but not too bad|# (collect-names d) acc)))
      `(,@modl
-       (require ,@m)
+       (require ,@(for/list ([mᵢ m]) `(quote ,mᵢ)))
        (amb ,@(for/list ([x names]) `(• ,x))))]
     [(list (and modl `(module ,_  racket ...)) ... `(require ,x ...) e)
      (define main (variable-not-in modl 'main))
