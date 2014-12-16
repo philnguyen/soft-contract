@@ -169,6 +169,8 @@
      ['box? (.st-p 'box 1)]
      ['unbox (.st-ac 'box 1 0)]
      ['set-box! (.set-box!)]|#
+     [(or 'box 'box? 'unbox 'set-box!)
+      (error 'Disabled "Box operations are not supported for now")]
      [(? num? x) (.b x)]
      [#f .ff]
      [#t .tt]

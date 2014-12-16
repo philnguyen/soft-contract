@@ -283,13 +283,30 @@
                         (set-add ςs (.ς TT (L/L σ i j) (L/L k i j))))])]
                   [(.// (.St 'box _) _) (.ς TT σ k)]
                   [_ (.ς FF σ k)])]
-               ;; Box are always pointed to
+               ;; Boxes are always pointed to
                [_ (.ς FF σ k)])]
             [_ (.ς (.blm l 'box? (Prim (length V*)) (arity=/C 1)) σ k)])]
          [(.st-ac 'box 1 0)
-          (error "TODO")]
+          (match V*
+            [(list V)
+             (match/nd: (.ς → .ς) (step-@ (Prim 'box?) V* 'Λ σ k)
+               [(.ς (.// (.b #t) _) σ k)
+                (match-define (.L i) V) ; Boxes are always pointed to
+                (match-define (.// (.St 'box (list V_unbox)) _) (σ@ σ i))
+                (.ς V_unbox σ k)]
+               [(.ς (.// (.b #f) _) σ k)
+                (.ς (.blm l 'unbox V (Prim 'box?)) σ k)])]
+            [_ (.ς (.blm l 'unbox (Prim (length V*)) (arity=/C 1)) σ k)])]
          [(.set-box!)
-          (error "TODO")]
+          (match V*
+            [(list V_box V_val)
+             (match/nd: (.ς → .ς) (step-@ (Prim 'box?) V* 'Λ σ k)
+               [(.ς (.// (.b #t) _) σ k)
+                (match-define (.L i) V_box) ; Boxes are always pointed to
+                (.ς V_box (σ-set σ i (→V (.St 'box (list V_val)))) k)]
+               [(.ς (.// (.b #f) _) σ k)
+                (.ς (.blm l 'set-box! V_box (Prim 'box?)) σ k)])]
+            [_ (.ς (.blm l 'set-box! (Prim (length V*)) (arity=/C 2)) σ k)])]
          ;; Defer other primitives to δ
          [(? .o? o) (match/nd (dbg/off '@ (δ σ o V* l)) [(cons σa A) (.ς A σa k)])]
          [(? .λ↓? f) (step-β f V* l σ k)]
