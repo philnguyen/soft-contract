@@ -26,22 +26,27 @@
 ;; Havoc each exported identifier
 (define (massage p)
   (match p
-    [(list (and modl `(module ,m ,dss ...)) ...)
+    [(list (and modl `(module ,m racket ,dss ...)) ...)
      (define names
        (for*/fold ([acc '()]) ([ds dss] [d ds])
          (append #|bad but not too bad|# (collect-names d) acc)))
      `(,@modl
        (require ,@m)
        (amb ,@(for/list ([x names]) `(• ,x))))]
-    [(list (and modl `(module ,_ ...)) ... `(require ,x ...) e)
+    [(list (and modl `(module ,_  racket ...)) ... `(require ,x ...) e)
      (define main (variable-not-in modl 'main))
-     (massage `(,@modl (module ,main (provide [,main any/c]) (require ,@x) (define (,main) ,e))))]
-    [(list (and modl `(module ,_ ...)) ... e)
+     (massage
+      `(,@modl
+        (module ,main racket
+          (provide/contract [,main any/c])
+          (require ,@x)
+          (define (,main) ,e))))]
+    [(list (and modl `(module ,_ racket ...)) ... e)
      (massage `(,@modl (require) ,e))]
-    [(and m `(module ,_ ...)) (massage (list m))]
+    [(and m `(module ,_ racket ...)) (massage (list m))]
     [e (list e)]))
 
 (define collect-names
   (match-lambda
-   [`(provide [,x ,_] ...) x]
+   [`(provide/contract [,x ,_] ...) x]
    [_ '()]))

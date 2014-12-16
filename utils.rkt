@@ -1,5 +1,5 @@
 #lang typed/racket/base
-(require racket/set racket/match racket/list)
+(require racket/set racket/match racket/list racket/pretty racket/string racket/port)
 (provide (all-defined-out)) ; TODO
 (require/typed
  redex/reduction-semantics
@@ -133,3 +133,8 @@
     (λ (n t)
       (reverse∘subscript ; just for nice order
        (variables-not-in t (if (<= n N) (take pool n) (make-list n 'x1)))))))
+
+(: pretty : Any → String)
+(define (pretty x)
+  (parameterize ([pretty-print-columns 80])
+    (string-trim (with-output-to-string (λ () (pretty-display x))))))

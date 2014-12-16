@@ -11,7 +11,7 @@
     [`(,m* ... (require ,main-reqs ...) ,e)
      (for/fold ([M (hash '† (list ∅ ∅ (list->set main-reqs)))]) ([m m*])
        (match m
-         [`(module ,name ,d* ...)
+         [`(module ,name racket ,d* ...)
           (hash-set
            M
            name
@@ -19,31 +19,35 @@
              (match-let ([(list defs decs reqs) acc])
                (match d
                  [`(require ,x* ...) (list defs decs (set-union reqs (list->set x*)))]
-                 [`(provide ,prov* ...)
+                 [`(provide/contract ,prov* ...)
                   (list defs
                         (for/fold ([decs decs]) ([prov prov*])
                           (match prov
                             [`(struct ,t ([,field* ,_] ...)) (set-union decs (gen-names t field*))]
-                            [`(,(? sym? x) ,_) (set-add decs x)]))
+                            [`(,(? sym? x) ,_) (set-add decs x)]
+                            [_ (error 'Parser "Expect provide clause as one of:~n (name contract)~n (struct struct-name ([field-name contract] …))~n.Given:~n~a"
+                                      (pretty prov))]))
                         reqs)]
                  [(or `(,(or 'define 'define*) (,f ,_ ...) ,_) `(define ,f ,_))
                   (list (set-add defs f) decs reqs)]
                  [`(struct ,t (,field* ...))
-                  (list (set-union defs (gen-names t field*)) decs reqs)]))))]))]
+                  (list (set-union defs (gen-names t field*)) decs reqs)]
+                 [_ (error 'Parser "Expect one of:~n (require module-name …)~n (provide/contract (x c) …)~n (define x v)~n (struct name (field …))~n.Given:~n~a" (pretty d))]))))]
+         [_ (error 'Parser "Expect module definition of the form~n (module module-name racket _ …)~n.Given:~n~a" (pretty m))]))]
     [`(,m* ... ,e) (pass-1 `(,@ m* (require) ,e))]))
 
 ;; read and return program's ast
 (define (read-p p)
   #;(printf "~a~n~n" p)
   (match p
-    [`((module ,l* ,d** ...) ... (require ,_ ...) ,e)
+    [`((module ,l* racket ,d** ...) ... (require ,_ ...) ,e)
      (define syms (pass-1 p))
      (define ms (for/hash ([l l*] [d* d**]) (values l (read-m syms l d*))))
      (define accs (gen-accs (hash-values ms)))
      (.p (.m* l* ms) accs (read-e syms '† '() e))]
-    [`(,(and m `(module ,_ ,_ ...)) ... ,e) (read-p `(,@m (require) ,e))]
-    [_ (error 'Parser "Invalid program form. Expect ((module x c v)⋯ (require x⋯) e). Given:~n~a"
-              p)]))
+    [`(,(and m `(module ,_ racket ,_ ...)) ... ,e) (read-p `(,@m (require) ,e))]
+    [_ (error 'Parser "Invalid program form. Expect~n((module module-name racket~n (provide/contract [x c] …)~n (require module-name …)~n (define x v) …) …).~nGiven:~n~a"
+              (pretty p))]))
 
 (define h∅ (hash))
 
@@ -53,7 +57,7 @@
                 [(decs defs rev-order)
                  (for/fold ([decs h∅] [defs h∅] [order empty]) ([d ds])
                    (match d
-                     [`(provide ,prov* ...)
+                     [`(provide/contract ,prov* ...)
                       (values (for/fold ([decs decs]) ([prov prov*])
                                 (match prov
                                   [`(struct ,t ([,field* ,c*] ...))
@@ -193,7 +197,7 @@
                  ['positive? (.λ 1 (.@ (.>) (list (.x 0) .zero) l) #f)]
                  ['negative? (.λ 1 (.@ (.<) (list (.x 0) .zero)) l) #f]
                  [_ #f])
-               (error (format "Unknown symbol ~a in module ~a" s l)))))]))
+               (error 'Parser "Unknown symbol ~a in module ~a" s l))))]))
 
 (define (bind xs x)
   (match x
