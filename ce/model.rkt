@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/string racket/port
-         "../utils.rkt" "../lang.rkt" "runtime.rkt" "../query-z3.rkt")
+         "../utils.rkt" "../lang.rkt" "runtime.rkt" "../query-z3.rkt" "../show.rkt")
 (provide model
          (all-from-out "../query-z3.rkt"))
 
@@ -57,7 +57,8 @@
      ;; Generate model
      (format "(check-sat)~n(get-model)~n")))
   ;; Call to Z3
-  #;(printf "Query:~n~a~n" query)
+  (printf "Query:~n~a~n" query)
+  (printf "Heap:~n~a~n" (show-σ σ))
   (match (call query)
     [(regexp #rx"^sat(.*)" (list _ (? string? m/str)))
      (match-define (.σ m l) σ)
@@ -66,7 +67,7 @@
          (cast
           (match (read)
            [(list 'model lines ...)
-            #;(begin
+            (begin
               (printf "Model:~n")
               (for ([l lines]) (printf "~a~n" l)))
             (match-define (.σ m l) σ)
@@ -75,17 +76,8 @@
                         ([line : Any (in-list lines)])
                 (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
                 #;(printf "e: ~a~n" e)
-                (define res : Real
-                  (match e
-                    [`(+ ,(? real? x) ,(? real? y) ...)
-                     (apply + x (cast y (Listof Real)))]
-                    [`(- ,(? real? x) ,(? real? y) ...)
-                     (apply - x (cast y (Listof Real)))]
-                    [`(* ,(? real? x) ,(? real? y) ...)
-                     (apply * x (cast y (Listof Real)))]
-                    [`(/ ,(? real? x) ,(? real? y) ...)
-                     (apply / x (cast y (Listof Real)))]
-                    [(? real? x) x]))
+                (define res
+                  (cast (call-with-values (λ () (eval e)) (λ xs (car xs))) Real))
                 (hash-set m (lab→i a) (.// (.b (cast res Real)) ∅))))
             ;; Fixup. Z3 gives empty model sometimes for trivial cases
             (define m′′

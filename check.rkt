@@ -18,7 +18,7 @@
 (define (feedback prog [timeout 30])
   (match (run prog timeout)
     ['timeout (printf "Timeout after ~a seconds~n" timeout)]
-    [(or 'safe (list)) (printf "Program is safe")]
+    [(or 'safe (list)) (printf "Program is safe~n")]
     [(list 'blame l⁺ lᵒ v c)
      (raise-contract-error l⁺ lᵒ v c)]
     [(list 'ce (list 'blame l⁺ lᵒ v c) ce)

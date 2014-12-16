@@ -1,5 +1,6 @@
 #lang racket/base
 (require racket/match racket/port
+         "utils.rkt"
          (only-in "check.rkt" feedback)
          (only-in redex/reduction-semantics variable-not-in)
          (for-syntax racket/base racket/match))
@@ -9,8 +10,7 @@
          read read-syntax)
 
 (define-syntax-rule (module-begin m ...)
-  (#%module-begin (begin #;(printf "Run Program:~n~a~n" (massage-prog '(m ...)))
-                         (feedback/massage '(m ...)))))
+  (#%module-begin (feedback/massage '(m ...))))
 
 (define-syntax-rule (top-interaction . x)
   (#%top-interaction . (feedback/massage 'x)))
@@ -20,7 +20,7 @@
                               (feedback (massage-top 'e)))))
 
 (define (feedback/massage x)
-  #;(printf "Prog:~n~a~n" x)
+  #;(printf "Prog:~n~a~n" (pretty (massage x)))
   (feedback (massage x)))
 
 ;; Havoc each exported identifier
@@ -33,17 +33,18 @@
      `(,@modl
        (require ,@(for/list ([mᵢ m]) `(quote ,mᵢ)))
        (amb ,@(for/list ([x names]) `(• ,x))))]
-    [(list (and modl `(module ,_  racket ...)) ... `(require ,x ...) e)
-     (define main (variable-not-in modl 'main))
-     (massage
+    [(list (and modl `(module ,_ racket ,_ ...)) ... `(require ,x ...) e)
+     p
+     #;(define main (variable-not-in modl 'main))
+     #;(massage
       `(,@modl
         (module ,main racket
           (provide/contract [,main any/c])
-          (require ,@x)
+          (require ,@(for/list ([xᵢ x]) `(submod ".." ,(cadr xᵢ))))
           (define (,main) ,e))))]
-    [(list (and modl `(module ,_ racket ...)) ... e)
+    [(list (and modl `(module ,_ racket ,_ ...)) ... e)
      (massage `(,@modl (require) ,e))]
-    [(and m `(module ,_ racket ...)) (massage (list m))]
+    [(and m `(module ,_ racket ,_ ...)) (massage (list m))]
     [e (list e)]))
 
 (define collect-names
