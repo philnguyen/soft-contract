@@ -41,6 +41,16 @@
           [(cons σt (.// (.b #t) _)) (Δ σt o V*)]
           [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V2 NUM/C))])]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V1 NUM/C))])]
+    [((.+) (list)) (cons σ (Prim 0))]
+    [((.*) (list)) (cons σ (Prim 1))]
+    [((or (.+) (.*)) (list V))
+     (match/Ans* (δ σ (.num?) (list V) 'Λ)
+       [(cons σt (.// (.b #t) _)) (cons σt V)]
+       [(cons σf (.// (.b #f) _)) (cons σf V)])]
+    [((or (.+) (.*)) (list* V₁ V₂ Vᵣ))
+     (match/Ans* (δ σ o (list V₁ V₂) l)
+       [(cons σ (? .V? Vᵢ)) (δ σ o (cons Vᵢ Vᵣ) l)]
+       [(and ans (cons σ (? .blm?))) ans])]
     [((./) (list V1 V2))
      (match/Ans* (δ σ (.num?) (list V1) 'Λ)
        [(cons σt (.// (.b #t) _))
