@@ -336,7 +336,10 @@
   (: step-• : .L (Listof .V) Sym .σ .κ* → .ς*)
   (define (step-• Lf V* l σ k)
     (match V*
-      [(list) (error "TODO")]
+      [(list)
+       (match-define (and ● (.•ₗ n)) (•!))
+       (define Vf (→V (.λ↓ (.λ 0 ● #f) ρ∅)))
+       (.ς (.L n) (σ-set (σ-set σ Lf Vf) n ♦) k)]
       [(list V) (step-•₁ Lf V l σ k)]
       [_
        ;; Nondeterministically apply to 1 arg

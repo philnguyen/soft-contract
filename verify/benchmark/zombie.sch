@@ -1,13 +1,13 @@
-(module image
-  (provide
+(module image racket
+  (provide/contract
    [image? (any/c . -> . boolean?)]
    [empty-scene (real? real? . -> . image?)]
    [place-image (image? real? real? image? . -> . image?)]
    [circle (real? string? string? . -> . image?)])
   (struct image (impl)))
 
-(module math
-  (provide
+(module math racket
+  (provide/contract
    [min (real? real? . -> . real?)]
    [max (real? real? . -> . real?)]
    [abs (real? . -> . real?)]
@@ -18,8 +18,8 @@
   (define (abs x) (if (>= x 0) x (- 0 x)))
   (define (sqr x) (* x x)))
 
-(module zombie
-  (provide
+(module zombie racket
+  (provide/contract
    [posn/c any/c]
    [player/c any/c]
    [zombie/c any/c]
@@ -35,7 +35,7 @@
    [new-zombie (posn/c . -> . zombie/c)]
    [new-posn (real? real? . -> . posn/c)]
    [w0 world/c])
-  (require image math)
+  (require (submod ".." image) (submod ".." math))
   
   (define WIDTH 400)
   (define HEIGHT 400)
@@ -258,7 +258,7 @@
        (new-zombie (new-posn 200 200))
        (new-mt-zombies))))))
 
-(require zombie)
+(require 'zombie)
 
 (amb (• new-posn)
      (• new-player)
