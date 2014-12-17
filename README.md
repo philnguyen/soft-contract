@@ -1,11 +1,23 @@
 soft-contract
 =============
 
+Installation
+------------------------
+
+    raco pkg install soft-contract
+
+
+Examples and Usage
+------------------------
+
 This collection implements a small functional language with contract verification
 and counterexample generation.
 Examples are under [examples/](https://github.com/philnguyen/soft-contract/tree/release/examples)
 
-It currently supports the following subset of Racket:
+You need to have [Z3](http://z3.codeplex.com/releases) available in your path.
+This program has been tested to work with Z3 `4.3.2`.
+
+The demo currently supports the following subset of Racket:
 
     program          ::= module-form
 	sub-module-form  ::= (module module-name racket
