@@ -97,24 +97,32 @@
     (match Vᵢ
       [(.// Uᵢ _)
        (when (.Case? Uᵢ)
+         (printf "Constraining ~a~n" Uᵢ)
          (match-define (.Case mappings) Uᵢ)
          (let loop₁ : Void ([pairs : (Listof (Pairof (Listof .V) .L)) (hash->list mappings)])
               (when (cons? pairs)
                 (match-define (cons (cons xs₁ y₁) pairs₂) pairs)
-                (when (and (involved? xs₁) (involved? y₁))
-                  (let loop₂ : Void ([pairs₂ : (Listof (Pairof (Listof .V) .L)) pairs₂])
-                       (when (cons? pairs₂)
-                         (match-define (cons (cons xs₂ y₂) pairs₃) pairs₂)
-                         (when (and (involved? xs₂) (involved? y₂))
-                           (∪!
-                             asserts
-                             (format
-                              "~a"
-                              `(=>
-                                (and ,@(for/list : (Listof Any) ([x₁ xs₁] [x₂ xs₂])
-                                         `(= ,(→lab x₁) ,(→lab x₂))))
-                                (= ,(→lab y₁) ,(→lab y₂))))))
-                         (loop₂ pairs₃))))
+                (let loop₂ : Void ([pairs₂ : (Listof (Pairof (Listof .V) .L)) pairs₂])
+                     (when (cons? pairs₂)
+                       (match-define (cons (cons xs₂ y₂) pairs₃) pairs₂)
+                       (∪!
+                         asserts
+                         (format
+                          "~a"
+                          `(=>
+                            (and ,@(for/list : (Listof Any) ([x₁ xs₁] [x₂ xs₂])
+                                     `(= ,(→lab x₁) ,(→lab x₂))))
+                            (= ,(→lab y₁) ,(→lab y₂)))))
+                       (∪! involved (list->set (for/list : (Listof Int) ([x xs₁] #:when (.L? x))
+                                                 (match-define (.L i) x)
+                                                 i)))
+                       (∪! involved (list->set (for/list : (Listof Int) ([x xs₂] #:when (.L? x))
+                                                 (match-define (.L i) x)
+                                                 i)))
+                       (∪! involved (list->set (for/list : (Listof Int) ([y (list y₁ y₂)]
+                                                                         #:when (.L? y))
+                                                 (match-define (.L i) y)
+                                                 i)))))
                 (loop₁ pairs₂))))]
       [_ (void)]))
   
