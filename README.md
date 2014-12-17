@@ -7,13 +7,13 @@ Examples are under [examples/](https://github.com/philnguyen/soft-contract/tree/
 
 Core language supported currently:
 
-    program ::= (module module-name racket
-	              (provide provide-spec …)
-				  (require require-spec …)
-				  (define name value) …)
+    program      ::= (module module-name racket
+	                   (provide provide-spec …)
+                       (require require-spec …)
+                       (define name value) …)
     provide-spec ::= (name contract)
 	require-spec ::= (submod ".." module-name)
-	value ::= (λ (var) expr) | number | boolean | string | symbol
-	expr ::= var | (if expr expr expr) | (expr expr …)
-	contract ::= expr | (or/c contract …) | (and/c contract …)
-	           | (->i ([var contract] …) (res (var …) contract))
+	value        ::= (λ (var) expr) | number | boolean | string | symbol
+	expr         ::= var | (if expr expr expr) | (expr expr …)
+	contract     ::= expr | (or/c contract …) | (and/c contract …)
+	               | (->i ([var contract] …) (res (var …) contract))
