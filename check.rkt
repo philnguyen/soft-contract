@@ -30,9 +30,9 @@
      (raise-contract-error l⁺ lᵒ v c)]))
 
 (define-type Result (U 'timeout Ce-Result Ve-Result))
-(define-type Ce-Result (U 'safe Err-Result (List 'ce Err-Result Any)))
-(define-type Ve-Result (Listof Err-Result))
-(define-type Err-Result (U (List 'blame Symbol Symbol Any Any) exn))
+(define-type Ce-Result (U 'safe Err-Result (List 'ce Err-Result Any) exn))
+(define-type Ve-Result (U (Listof Err-Result) exn))
+(define-type Err-Result (List 'blame Symbol Symbol Any Any))
 
 (: run : Sexp Integer → Result)
 ;; Verify + Seek counterexamples at the same time, whichever finishes first
@@ -56,7 +56,7 @@
 (: try-verify : Sexp → Ve-Result)
 ;; Run verification on program
 (define (try-verify prog)
-  (with-handlers ([exn:fail? (λ (e) e)])
+  (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     (define ςs (verify prog))
     (for/list : (Listof Err-Result) ([ς ςs] #:when (match? ς (.ς (? ve:.blm?) _ _)))
       (match-define (.ς (ve:.blm l⁺ lᵒ v c) σ _) ς)
@@ -65,7 +65,7 @@
 (: try-find-ce : Sexp → Ce-Result)
 ;; Run counterexample on program
 (define (try-find-ce prog)
-  (with-handlers ([exn:fail? (λ (e) e)])
+  (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     (define p (read/ce prog))
     #;(printf "CE read~n")
     (match (find-error p)
