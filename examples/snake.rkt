@@ -3,15 +3,15 @@
 (module image racket
   (provide/contract
    [image/c any/c]
-   [circle (real? string? string? . -> . image/c)]
-   [empty-scene (real? real? . -> . image/c)]
-   [place-image (image/c real? real? image/c . -> . image/c)])
+   [circle (number? string? string? . -> . image/c)]
+   [empty-scene (number? number? . -> . image/c)]
+   [place-image (image/c number? number? image/c . -> . image/c)])
   (define image/c (λ (x) (image? x)))
   (define (image? x) •))
 
 (module data racket
   (provide/contract
-   [struct posn ([x real?] [y real?])]
+   [struct posn ([x number?] [y number?])]
    [posn=? (POSN/C POSN/C . -> . boolean?)]
    [struct snake ([dir DIR/C] [segs (nelistof POSN/C)])]
    [struct world ([snake SNAKE/C] [food POSN/C])]
@@ -21,7 +21,7 @@
    [WORLD/C any/c])
   
   (define DIR/C (one-of/c "up" "down" "left" "right"))
-  (define POSN/C (struct/c posn real? real?))
+  (define POSN/C (struct/c posn number? number?))
   (define SNAKE/C (struct/c snake DIR/C (nelistof POSN/C)))
   (define WORLD/C (struct/c world SNAKE/C POSN/C))
   
@@ -39,10 +39,10 @@
    [BACKGROUND (-> image/c)]
    [FOOD-IMAGE (-> image/c)]
    [SEGMENT-IMAGE (-> image/c)]
-   [GRID-SIZE real?]
-   [BOARD-HEIGHT-PIXELS (-> real?)]
-   [BOARD-WIDTH real?]
-   [BOARD-HEIGHT real?])
+   [GRID-SIZE number?]
+   [BOARD-HEIGHT-PIXELS (-> number?)]
+   [BOARD-WIDTH number?]
+   [BOARD-HEIGHT number?])
   (require (submod ".." image) (submod ".." data))
   
   (define GRID-SIZE 30)
@@ -193,7 +193,7 @@
   (provide/contract
    [world->scene (WORLD/C . -> . image/c)]
    [food+scene (POSN/C image/c . -> . image/c)]
-   [place-image-on-grid (image/c real? real? image/c . -> . image/c)]
+   [place-image-on-grid (image/c number? number? image/c . -> . image/c)]
    [snake+scene (SNAKE/C image/c . -> . image/c)]
    [segments+scene ((listof POSN/C) image/c . -> . image/c)]
    [segment+scene (POSN/C image/c . -> . image/c)])
@@ -234,42 +234,3 @@
   ;; Add one snake segment to a scene.
   (define (segment+scene seg scn)
     (place-image-on-grid (SEGMENT-IMAGE) (posn-x seg) (posn-y seg) scn)))
-
-(require 'image 'data 'const 'collide 'cut-tail 'motion-help 'motion 'handlers 'scenes)
-(amb
- (snake-wall-collide? OPQ)
- (snake-self-collide? OPQ)
- (WORLD)
- (BACKGROUND)
- (FOOD-IMAGE)
- (SEGMENT-IMAGE)
- GRID-SIZE
- (BOARD-HEIGHT-PIXELS)
- BOARD-WIDTH
- BOARD-HEIGHT
- (cut-tail OPQ)
- (posn OPQ OPQ)
- (posn? OPQ)
- (posn-x OPQ)
- (posn-y OPQ)
- (posn=? OPQ OPQ)
- (snake OPQ OPQ)
- (snake? OPQ)
- (snake-dir OPQ)
- (snake-segs OPQ)
- (world OPQ OPQ)
- (world? OPQ)
- (world-snake OPQ)
- (world-food OPQ)
- (game-over? OPQ)
- (handle-key OPQ OPQ)
- (snake-slither OPQ)
- (snake-grow OPQ)
- (world->world OPQ)
- (world-change-dir OPQ OPQ)
- (world->scene OPQ)
- (food+scene OPQ OPQ)
- (place-image-on-grid OPQ OPQ OPQ OPQ)
- (snake+scene OPQ OPQ)
- (segments+scene OPQ OPQ)
- (segment+scene OPQ OPQ))

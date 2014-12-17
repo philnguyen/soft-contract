@@ -2,8 +2,8 @@
 
 (module data racket
   (provide/contract
-   [struct block ([x real?] [y real?] [color COLOR/C])]
-   [struct posn ([x real?] [y real?])]
+   [struct block ([x number?] [y number?] [color COLOR/C])]
+   [struct posn ([x number?] [y number?])]
    [struct tetra ([center POSN/C] [blocks BSET/C])]
    [struct world ([tetra TETRA/C] [blocks BSET/C])]
    [posn=? (POSN/C POSN/C . -> . boolean?)]
@@ -15,8 +15,8 @@
    [BSET/C any/c])
   (define BSET/C (listof BLOCK/C))
   (define COLOR/C symbol?)
-  (define POSN/C (struct/c posn real? real?))
-  (define BLOCK/C (struct/c block real? real? COLOR/C))
+  (define POSN/C (struct/c posn number? number?))
+  (define BLOCK/C (struct/c block number? number? COLOR/C))
   (define TETRA/C (struct/c tetra POSN/C BSET/C))
   (define WORLD/C (struct/c world TETRA/C BSET/C))
   
@@ -41,10 +41,10 @@
   (provide/contract
    [image? (any/c . -> . boolean?)]
    [overlay (image? image? . -> . image?)]
-   [circle (real? real? string? . -> . image?)]
-   [rectangle (real? real? COLOR/C COLOR/C . -> . image?)]
-   [place-image (image? real? real? image? . -> . image?)]
-   [empty-scene (real? real? . -> . image?)])
+   [circle (number? number? string? . -> . image?)]
+   [rectangle (number? number? COLOR/C COLOR/C . -> . image?)]
+   [place-image (image? number? number? image? . -> . image?)]
+   [empty-scene (number? number? . -> . image?)])
   (require (submod ".." data))
   (struct image (impl)))
 
@@ -53,7 +53,7 @@
    [block-rotate-ccw (POSN/C BLOCK/C . -> . BLOCK/C)]
    [block-rotate-cw (POSN/C BLOCK/C . -> . BLOCK/C)]
    [block=? (BLOCK/C BLOCK/C . -> . boolean?)]
-   [block-move (real? real? BLOCK/C . -> . BLOCK/C)])
+   [block-move (number? number? BLOCK/C . -> . BLOCK/C)])
   (require (submod ".." data))
   
   ;; block=? : Block Block -> Boolean
@@ -82,8 +82,8 @@
 
 (module list-fun racket
   (provide/contract
-   [max (real? real? . -> . real?)]
-   [min (real? real? . -> . real?)]
+   [max (number? number? . -> . number?)]
+   [min (number? number? . -> . number?)]
    [ormap ([BLOCK/C . -> . boolean?] (listof any/c) . -> . boolean?)]
    [andmap ([BLOCK/C . -> . boolean?] (listof any/c) . -> . boolean?)]
    [map ([BLOCK/C . -> . BLOCK/C] BSET/C . -> . BSET/C)]
@@ -92,7 +92,7 @@
    [length ((listof any/c) . -> . integer?)]
    [foldr ([BLOCK/C BSET/C . -> . BSET/C] BSET/C BSET/C . -> . BSET/C)]
    [foldr-i ([BLOCK/C image? . -> . image?] image? BSET/C . -> . image?)]
-   [foldr-n ((BLOCK/C real? . -> . real?) real? BSET/C . -> . real?)])
+   [foldr-n ((BLOCK/C number? . -> . number?) number? BSET/C . -> . number?)])
   (require (submod ".." image) (submod ".." data)))
 
 (module bset racket
@@ -101,18 +101,18 @@
    [blocks=? (BSET/C BSET/C . -> . boolean?)]
    [blocks-subset? (BSET/C BSET/C . -> . boolean?)]
    [blocks-intersect (BSET/C BSET/C . -> . BSET/C)]
-   [blocks-count (BSET/C . -> . real?)]
+   [blocks-count (BSET/C . -> . number?)]
    [blocks-overflow? (BSET/C . -> . boolean?)]
-   [blocks-move (real? real? BSET/C . -> . BSET/C)]
+   [blocks-move (number? number? BSET/C . -> . BSET/C)]
    [blocks-rotate-cw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-rotate-ccw (POSN/C BSET/C . -> . BSET/C)]
    [blocks-change-color (BSET/C COLOR/C . -> . BSET/C)]
-   [blocks-row (BSET/C real? . -> . BSET/C)]
-   [full-row? (BSET/C real? . -> . boolean?)]
+   [blocks-row (BSET/C number? . -> . BSET/C)]
+   [full-row? (BSET/C number? . -> . boolean?)]
    [blocks-union (BSET/C BSET/C . -> . BSET/C)]
-   [blocks-max-x (BSET/C . -> . real?)]
-   [blocks-min-x (BSET/C . -> . real?)]
-   [blocks-max-y (BSET/C . -> . real?)])
+   [blocks-max-x (BSET/C . -> . number?)]
+   [blocks-min-x (BSET/C . -> . number?)]
+   [blocks-max-y (BSET/C . -> . number?)])
   (require (submod ".." data) (submod ".." block) (submod ".." list-fun) (submod ".." consts))
   
   ;; blocks-contains? : BSet Block -> Boolean
@@ -224,7 +224,7 @@
    [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
    [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
    [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . boolean?)]
-   [build-tetra-blocks (COLOR/C real? real? integer? integer? integer? integer? integer? integer? integer? integer?
+   [build-tetra-blocks (COLOR/C number? number? integer? integer? integer? integer? integer? integer? integer? integer?
                                 . -> .  TETRA/C)]
    [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)])
   (require (submod ".." bset) (submod ".." data) (submod ".." consts) (submod ".." block))
