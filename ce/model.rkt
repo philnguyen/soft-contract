@@ -57,8 +57,8 @@
      ;; Generate model
      (format "(check-sat)~n(get-model)~n")))
   ;; Call to Z3
-  (printf "Query:~n~a~n" query)
-  (printf "Heap:~n~a~n" (show-σ σ))
+  #;(printf "Query:~n~a~n" query)
+  #;(printf "Heap:~n~a~n" (show-σ σ))
   (match (call query)
     [(regexp #rx"^sat(.*)" (list _ (? string? m/str)))
      (match-define (.σ m l) σ)
@@ -67,7 +67,7 @@
          (cast
           (match (read)
            [(list 'model lines ...)
-            (begin
+            #;(begin
               (printf "Model:~n")
               (for ([l lines]) (printf "~a~n" l)))
             (match-define (.σ m l) σ)
