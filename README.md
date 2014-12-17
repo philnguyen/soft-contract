@@ -7,7 +7,8 @@ Examples are under [examples/](https://github.com/philnguyen/soft-contract/tree/
 
 Core language supported currently:
 
-    program      ::= (module module-name racket
+    program      ::= module-form
+	module-form  ::= (module module-name racket
 	                   (provide provide-spec …)
                        (require require-spec …)
                        (define name value) …)
