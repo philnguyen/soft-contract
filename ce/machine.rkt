@@ -250,6 +250,10 @@
     (match Vf
       [(.// U C*)
        (match U
+         ;; Debug
+         #;[(.=)
+          (printf "Debug =: ~n V*: ~a~n σ: ~a~n" V* (show-σ σ))
+          ∅]
          ;; Handle box operations specially
          [(.st-mk 'box 1)
           (match V*
@@ -329,12 +333,15 @@
              (match (σ@ σt i)
                [(and V (or (.// (? .λ↓?) _) (.// (? .Ar?) _))) (step-@ V V* l σt k)]
                [(.// (? .Case? U) _)
+                (printf "Applying Case with~n Case = ~a~n Arg = ~a~n" U V*)
                 (match (.Case@ U V*)
                   [#f
                    (define-values (σ′ Lₐ) (σ+ σt))
                    (define Vf′ (→V (.Case+ U V* Lₐ)))
+                   (printf "Not memoized. Refined. New case:~n ~a~n" Vf′)
                    (.ς Lₐ (σ-set σ′ i Vf′) k)]
                   [(? .L? Lₐ)
+                   (printf "Memoized. Return: ~a~n" Lₐ)
                    (.ς Lₐ σt k)])]
                [_ (step-• L V* l σt k)])]
             [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf (arity-includes/C (length V*))) σf k)])]
@@ -362,30 +369,36 @@
        ;; Nondeterministically apply to 1 arg
        (define ● (•!))
        (define n (length V*))
-       (match-define (.σ m a) σ)
        (match-define (.L α) Lf)
        (for/fold ([acc : (Setof .ς) ∅]) ([i n])
          (define Vf (.λ↓ (.λ n (.@ ● (list (.x i)) '☠) #f) ρ∅))
-         (define σ′ (.σ (hash-set m α (→V Vf)) a))
+         (define σ′ (σ-set σ α (→V Vf)))
          (set-add acc (step-β Vf V* '☠ σ′ k)))]))
   
   (: step-•₁ : .L .V Sym .σ .κ* → .ς*)
   (define (step-•₁ Lf V l σ k)
+    
     (: step-const : .L .σ .κ* → .ς)
     (define (step-const Lf σ k)
       (match-define (and ● (.•ₗ n)) (•!))
-      (define σ′ (σ-set (σ-set σ n ♦) Lf (→V (.λ↓ (.λ 1 ● #f) ρ∅))))
+      (define σ′ (σ-set σ
+                        n ♦
+                        Lf (→V (.λ↓ (.λ 1 ● #f) ρ∅))))
       (.ς (.L n) σ′ k))
     
     (: step-dep : .L .V .σ .κ* → .ς)
     (define (step-dep Lf V σ k)
       (match-define (and ●₁ (.•ₗ α₁)) (•!))
       (match-define (and ●₂ (.•ₗ α₂)) (•!))
-      (define E (.if (.@ (.proc?) (list (.x 0)) '☠)
+      (define e (.if (.@ (.proc?) (list (.x 0)) '☠)
                      (.λ 1 (.@ (.@ ●₁ (list (.x 1)) '☠) (list (.x 0)) '☠) #f)
                      (.@ ●₂ (list (.x 0)) '☠)))
-      (.ς (.↓ E (ρ+ ρ∅ V))
-          (σ-set (σ-set σ α₁ (.// • (set (Prim 'procedure?)))) α₂ (→V Case∅))
+      (define Vf (→V (.λ↓ (.λ 1 e #f) ρ∅)))
+      (.ς (.↓ e (ρ+ ρ∅ V))
+          (σ-set σ
+                 α₁ (.// • (set (Prim 'procedure?)))
+                 α₂ (→V Case∅)
+                 Lf Vf)
           k))
     
     (: step-havoc : .L .V .σ .κ* → .ς*)
@@ -494,7 +507,7 @@
        (match e
          [(.•ₗ n)
           (match-define (.σ m l) σ)
-          (.ς (.L n) (.σ (hash-update m n identity (λ () ♦)) l) k)]
+          (.ς (.L n) (.σ (hash-update m n identity ♦) l) k)]
          [(? .v? v) (.ς (close v ρ) σ k)]
          [(.x sd) (.ς (ρ@ ρ sd) σ k)]
          [(.x/c x) (.ς (ρ@ ρ x) σ k)]

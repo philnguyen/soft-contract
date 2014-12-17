@@ -195,8 +195,13 @@
   (values (.σ (for/fold ([m m]) ([i r]) (hash-set m i ♦)) hi)
           (map .L r)))
 
-(: σ-set : .σ (U .L Int) .V+ → .σ)
-(define (σ-set σ a V)
+(define-syntax σ-set
+  (syntax-rules ()
+    [(_ σ) σ]
+    [(_ σ k v rest ...) (σ-set (σ-set₁ σ k v) rest ...)]))
+
+(: σ-set₁ : .σ (U .L Int) .V+ → .σ)
+(define (σ-set₁ σ a V)
   (match-let ([(.σ m l) σ]
               [i (match a [(.L i) i] [(? int? i) i])])
     (.σ (hash-set m i V) l)))
