@@ -97,7 +97,6 @@
     (match Vᵢ
       [(.// Uᵢ _)
        (when (.Case? Uᵢ)
-         (printf "Constraining ~a~n" Uᵢ)
          (match-define (.Case mappings) Uᵢ)
          (let loop₁ : Void ([pairs : (Listof (Pairof (Listof .V) .L)) (hash->list mappings)])
               (when (cons? pairs)

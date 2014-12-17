@@ -247,3 +247,12 @@
     ['() .ff]
     [(list e) e]
     [(cons e es) (.if (•!) e (amb es))]))
+
+(: e/ : .e Int .e → .e)
+(define (e/ e x eₓ)
+  (match e
+    [(.x k) (if (= k x) eₓ e)]
+    [(.@ f xs l) (.@ (e/ f x eₓ) (for/list : (Listof .e) ([xᵢ xs]) (e/ xᵢ x eₓ)) l)]
+    [(.if e e₁ e₂) (.if (e/ e x eₓ) (e/ e₁ x eₓ) (e/ e₂ x eₓ))]
+    [(.λ n e v?) (.λ n (e/ e (+ x (if v? (- n 1) n)) eₓ) v?)]
+    [_ e #|FIXME other cases|#]))

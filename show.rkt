@@ -109,6 +109,17 @@
       [(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
        (match-define (.// (.Case m) _) (σ@ σ n))
        `(case ,(go ctx e) ,@(show-cases σ m))]
+      #;[(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _ #f) _) _)))))) es _)
+       (match-let ([(.// (.λ↓ (.λ k e #f) ρ) _) (σ@ σ n)])
+         (cond
+          [(andmap .x? es)
+           (go '() (for/fold ([e e]) ([i (in-range (- n 1) -1 -1)] [eᵢ es])
+                     (e/ e i eᵢ)))]
+          [else
+           (define xs (vars-not-in k ctx))
+           `(let ,(for/list : (Listof Any) ([xᵢ (reverse xs)] [eᵢ es])
+                    `(,xᵢ ,(go ctx eᵢ)))
+             ,(go xs e))]))]
       [(.if (and e (.•ₗ α)) e₁ e₂)
        (match (σ@ σ α)
          [(.// (.b #f) _) (go ctx e₂)]
