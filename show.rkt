@@ -47,10 +47,13 @@
     [(.St/C t V*) `(,(str→sym (str++ (sym→str t) "/c")) ,@(show-V σ V*))]
     [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
     [(.X/C x) x]
-    [(.Case m) `(case-λ
-                 ,@(for/list : (Listof Any) ([(k* v) (in-hash m)])
-                     `(,@(for/list : (Listof Any) ([k k*]) (show-V σ k)) ↦ ,(show-V σ v)))
-                 [_ ↦ #f])]))
+    [(.Case m) `(case-λ ,@(show-cases σ m))]))
+
+(: show-cases : .σ (Map (Listof .V) .L) → (Listof Any))
+(define (show-cases σ m)
+  (define show (curry show-V σ))
+  (for/list ([(k* v) (in-hash m)])
+    `(,(map show k*) ,(show v))))
 
 (: show-ρ : .σ .ρ → Any)
 (define (show-ρ σ ρ)
@@ -103,6 +106,9 @@
        `(let ,(for/list : (Listof Any) ([x (reverse x*)] [ei ex])
                 `(,x ,(go ctx ei)))
          ,(go (append x* ctx) e))]
+      [(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
+       (match-define (.// (.Case m) _) (σ@ σ n))
+       `(case ,(go ctx e) ,@(show-cases σ m))]
       [(.if (and e (.•ₗ α)) e₁ e₂)
        (match (σ@ σ α)
          [(.// (.b #f) _) (go ctx e₂)]
