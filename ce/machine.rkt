@@ -333,15 +333,15 @@
              (match (σ@ σt i)
                [(and V (or (.// (? .λ↓?) _) (.// (? .Ar?) _))) (step-@ V V* l σt k)]
                [(.// (? .Case? U) _)
-                (printf "Applying Case with~n Case = ~a~n Arg = ~a~n" U V*)
+                #;(printf "Applying Case with~n Case = ~a~n Arg = ~a~n" U V*)
                 (match (.Case@ U V*)
                   [#f
                    (define-values (σ′ Lₐ) (σ+ σt))
                    (define Vf′ (→V (.Case+ U V* Lₐ)))
-                   (printf "Not memoized. Refined. New case:~n ~a~n" Vf′)
+                   #;(printf "Not memoized. Refined. New case:~n ~a~n" Vf′)
                    (.ς Lₐ (σ-set σ′ i Vf′) k)]
                   [(? .L? Lₐ)
-                   (printf "Memoized. Return: ~a~n" Lₐ)
+                   #;(printf "Memoized. Return: ~a~n" Lₐ)
                    (.ς Lₐ σt k)])]
                [_ (step-• L V* l σt k)])]
             [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf (arity-includes/C (length V*))) σf k)])]
@@ -507,7 +507,7 @@
        (match e
          [(.•ₗ n)
           (match-define (.σ m l) σ)
-          (.ς (.L n) (.σ (hash-update m n identity ♦) l) k)]
+          (.ς (.L n) (.σ (hash-update m n identity (λ () ♦)) l) k)]
          [(? .v? v) (.ς (close v ρ) σ k)]
          [(.x sd) (.ς (ρ@ ρ sd) σ k)]
          [(.x/c x) (.ς (ρ@ ρ x) σ k)]
@@ -569,8 +569,7 @@
   (match-lambda
     [(.ς (? .V? V) σ (cons κ k))
      (when (match? V (.// (.•) _))
-       (printf "~a~n~n" (show-ς (.ς V σ (cons κ k))))
-       (error "impossible"))
+       (error 'Impossible "~a" (show-ς (.ς V σ (cons κ k)))))
      (step-V V σ κ k)]
     [(.ς (? .E? E) σ k) (step-E E σ k)]))
 

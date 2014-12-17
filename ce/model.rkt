@@ -42,6 +42,7 @@
   #;(printf "labels:~n~a~n" labels)
   ;; Generate assertions
   (define-values (assertions _) (explore σ (list->set labels)))
+  #;(printf "store:~n~a~n" (parameterize ([abstract-V? #f]) (show-σ σ)))
   #;(printf "assertions:~n~a~n" assertions)
   ;; Generate query
   (define query
