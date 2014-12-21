@@ -249,10 +249,17 @@
     [(cons e es) (.if (•!) e (amb es))]))
 
 (: e/ : .e Int .e → .e)
+;; Substitute expression at given static distance
 (define (e/ e x eₓ)
   (match e
     [(.x k) (if (= k x) eₓ e)]
+    [(.λ n e v?) (.λ n (e/ e (+ x (if v? (- n 1) n)) eₓ) v?)]
     [(.@ f xs l) (.@ (e/ f x eₓ) (for/list : (Listof .e) ([xᵢ xs]) (e/ xᵢ x eₓ)) l)]
     [(.if e e₁ e₂) (.if (e/ e x eₓ) (e/ e₁ x eₓ) (e/ e₂ x eₓ))]
-    [(.λ n e v?) (.λ n (e/ e (+ x (if v? (- n 1) n)) eₓ) v?)]
-    [_ e #|FIXME other cases|#]))
+    [(.amb es) (.amb (for/set: .e ([eᵢ es]) (e/ eᵢ x eₓ)))]
+    [(.μ/c z c) (.μ/c z (e/ c x eₓ))]
+    [(.λ/c cs cy v?) (.λ/c (for/list : (Listof .e) ([c cs]) (e/ c x eₓ))
+                           (e/ cy (+ x (if v? (- (length cs) 1) (length cs))) eₓ)
+                           v?)]
+    [(.struct/c t cs) (.struct/c t (for/list : (Listof .e) ([c cs]) (e/ c x eₓ)))]
+    [e e]))

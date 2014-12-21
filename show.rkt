@@ -101,20 +101,24 @@
          [(l `(or ,r ...)) `(or ,l ,@r)]
          [(l r) `(or ,l ,r)])]
       [(.@ (.st-mk (and n 'and/c 'or/c '¬/c) _) c* _) `(,n ,@(map (curry go ctx) c*))]
+      ;; Direct case-λ application
+      [(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
+       (match-define (.// (.Case m) _) (σ@ σ n))
+       `(case ,(go ctx e) ,@(show-cases σ m))]
+      ;; Direct λ application
       [(.@ (.λ n e #f) ex _)
        (define x* (vars-not-in n ctx))
        `(let ,(for/list : (Listof Any) ([x (reverse x*)] [ei ex])
                 `(,x ,(go ctx ei)))
          ,(go (append x* ctx) e))]
-      [(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
-       (match-define (.// (.Case m) _) (σ@ σ n))
-       `(case ,(go ctx e) ,@(show-cases σ m))]
-      #;[(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _ #f) _) _)))))) es _)
+      [(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _ #f) _) _)))))) es _)
        (match-let ([(.// (.λ↓ (.λ k e #f) ρ) _) (σ@ σ n)])
          (cond
-          [(andmap .x? es)
-           (go '() (for/fold ([e e]) ([i (in-range (- n 1) -1 -1)] [eᵢ es])
+          ;; Inline if all arguments are simple. TODO: can do better, for each argument?
+          [(for/and : Boolean ([eᵢ es]) (or (.x? eᵢ) (.ref? eᵢ) (.v? eᵢ)))
+           (go '() (for/fold ([e e]) ([i (in-range (- k 1) -1 -1)] [eᵢ es])
                      (e/ e i eᵢ)))]
+          ;; Default to `let`
           [else
            (define xs (vars-not-in k ctx))
            `(let ,(for/list : (Listof Any) ([xᵢ (reverse xs)] [eᵢ es])
