@@ -1,11 +1,11 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/cmdline racket/list racket/set racket/bool
          (only-in racket/file file->list)
-         "../../utils.rkt" "../../lang.rkt" "../show.rkt" "../runtime.rkt" "../machine.rkt"
+         "../../utils.rkt" "../../lang.rkt" "../../show.rkt" "../../runtime.rkt" "../machine.rkt"
          (only-in "../../query-cvc4.rkt" [query cvc4])
          (only-in "../../query-z3.rkt" [query z3])
          (only-in "../model.rkt" [model z3/model])
-         (only-in "../provability.rkt" ext-solver model))
+         (only-in "../../provability.rkt" ext-solver model))
 (require/typed "../read.rkt" [read-p (Any → .p)])
 (require/typed racket/file [file->lines (Path-String → (Listof String))])
 (require/typed racket [string-trim (String String → String)])

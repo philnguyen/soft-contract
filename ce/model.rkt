@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/string racket/port
-         "../utils.rkt" "../lang.rkt" "runtime.rkt" "../query-z3.rkt" "../show.rkt")
+         "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../query-z3.rkt" "../show.rkt")
 (provide model
          (all-from-out "../query-z3.rkt"))
 
