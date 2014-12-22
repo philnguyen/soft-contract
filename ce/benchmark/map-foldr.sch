@@ -1,5 +1,5 @@
-(module map-foldr
-  (provide
+(module map-foldr racket
+  (provide/contract
    [foldr ((any/c any/c . -> . any/c) any/c (listof any/c) . -> . any/c)]
    [map ((any/c . -> . any/c) (listof any/c) . -> . (listof any/c))])
   (define (foldr f z xs)
@@ -8,5 +8,5 @@
   (define (map f xs)
     (foldr (λ (x ys) (cons (f x) ys)) empty xs)))
 
-(require map-foldr)
+(require 'map-foldr)
 (map • •)

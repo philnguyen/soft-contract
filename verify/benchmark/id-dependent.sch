@@ -1,9 +1,9 @@
-(module opaque
-  (provide [n number?]))
+(module opaque racket
+  (provide/contract [n number?]))
 
-(module id
-  (provide [f (->i ([x number?]) (res (x) (=/c x)))])
+(module id racket
+  (provide/contract [f (->i ([x number?]) (res (x) (=/c x)))])
   (define (f x) x))
 
-(require opaque id)
+(require 'opaque 'id)
 (f n)

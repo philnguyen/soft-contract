@@ -1,5 +1,5 @@
-(module fold-fun-list
-  (provide
+(module fold-fun-list racket
+  (provide/contract
    [mk-list (integer? . -> . (listof (integer? . -> . integer?)))]
    [foldr (((integer? . -> . integer?) (integer? . -> . integer?) . -> . (integer? . -> . integer?))
            (integer? . -> . integer?)
@@ -17,5 +17,5 @@
     (let [xs (mk-list n)]
       (foldr compose (λ (x) x) xs))))
 
-(require fold-fun-list)
+(require 'fold-fun-list)
 (main •)

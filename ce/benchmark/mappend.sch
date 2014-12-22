@@ -1,5 +1,5 @@
-(module map-append
-  (provide
+(module map-append racket
+  (provide/contract
    [map-append ((any/c . -> . (listof any/c)) (listof any/c) . -> . (listof any/c))]
    [append ((listof any/c) (listof any/c) . -> . (listof any/c))])
   
@@ -11,5 +11,5 @@
     (if (empty? xs) empty
         (append (f (car xs)) (map-append f (cdr xs))))))
 
-(require map-append)
+(require 'map-append)
 (map-append • •)

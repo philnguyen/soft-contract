@@ -1,5 +1,5 @@
-(module zip
-  (provide
+(module zip racket
+  (provide/contract
    [zip ((listof integer?) (listof integer?) . -> . (listof (cons/c integer? integer?)))]
    [mk-list (integer? . -> . (listof integer?))]
    [main (integer? . -> . (listof (cons/c integer? integer?)))])
@@ -13,5 +13,5 @@
   (define (main n)
     (let [xs (mk-list n)] (zip xs xs))))
 
-(require zip)
+(require 'zip)
 (main •)

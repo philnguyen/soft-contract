@@ -1,6 +1,6 @@
 ; Demonstrates shortcoming in Phil's email from 7/13
-(module dvh-4
-  (provide
+(module dvh-4 racket
+  (provide/contract
    [phil  (->i ([l1 number?])
 	       (res (l1)
 		    (->i ([l2 number?])
@@ -14,5 +14,5 @@
         (lambda (l3)
           l1)))))
 
-(require dvh-4)
+(require 'dvh-4)
 (((phil •) •) •)

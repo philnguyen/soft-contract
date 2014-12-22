@@ -1,12 +1,12 @@
-(module IO
-  (provide
+(module IO racket
+  (provide/contract
    [display (string? . -> . any/c)]
    [error (string? . -> . any/c)]
    [read (-> any/c)]))
 
-(module guess
-  (provide [guess (integer? . -> . any/c)])
-  (require IO)
+(module guess racket
+  (provide/contract [guess (integer? . -> . any/c)])
+  (require (submod ".." IO))
   (define (guess target)
     (let ([input (read)])
       (cond
@@ -19,5 +19,5 @@
          (begin (display "Too high!\n") (guess target))]
         [else (begin (display "Correct!\n") 'done)]))))
 
-(require guess)
+(require 'guess)
 (guess •)

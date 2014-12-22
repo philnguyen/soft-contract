@@ -1,5 +1,5 @@
-(module tree
-  (provide
+(module tree racket
+  (provide/contract
    [braun-tree? (any/c . -> . boolean?)]
    [insert (braun-tree? any/c . -> . braun-tree?)])
   
@@ -24,6 +24,6 @@
         (node (node-v bt) (insert (#|HERE|#node-l bt) x) (node-r bt))
         (node x #f #f))))
 
-(require tree)
+(require 'tree)
 (insert • 42)
 

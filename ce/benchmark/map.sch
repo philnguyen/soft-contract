@@ -1,5 +1,5 @@
-(module map
-  (provide
+(module map racket
+  (provide/contract
    [map (->i ([_ (any/c . -> . any/c)]
 	      [l (listof any/c)])
 	     (res (_ l)
@@ -9,5 +9,5 @@
     (if (empty? xs) empty
         (cons (f (car xs)) (map f (cdr xs))))))
 
-(require map)
+(require 'map)
 (map • •)

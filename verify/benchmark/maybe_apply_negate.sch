@@ -1,20 +1,20 @@
-(module negate
-  (provide [negate ((or/c integer? boolean?) . -> . (or/c integer? boolean?))])
+(module negate racket
+  (provide/contract [negate ((or/c integer? boolean?) . -> . (or/c integer? boolean?))])
   (define (negate x)
     (if (integer? x) (- 0 x) (not x))))
 
-(module maybe-apply
-  (provide [maybe-apply (integer? (or/c false? (integer? . -> . integer?)) . -> . integer?)])
+(module maybe-apply racket
+  (provide/contract [maybe-apply (integer? (or/c false? (integer? . -> . integer?)) . -> . integer?)])
   (define (maybe-apply x f)
     (if (false? f) x (f x))))
 
-(module opaque (provide [n integer?]))
+(module opaque racket (provide/contract [n integer?]))
 
-(module main
-  (provide [main (-> integer?)])
-  (require maybe-apply negate opaque)
+(module main racket
+  (provide/contract [main (-> integer?)])
+  (require (submod ".." maybe-apply) (submod ".." negate) (submod ".." opaque))
   (define (main)
     (maybe-apply n negate)))
 
-(require negate maybe-apply main)
+(require 'negate 'maybe-apply 'main)
 (amb (negate •) (maybe-apply • •) (main))

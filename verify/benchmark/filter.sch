@@ -1,5 +1,5 @@
-(module filter
-  (provide
+(module filter racket
+  (provide/contract
    [filter ((any/c . -> . any/c) (listof any/c) . -> . (listof any/c))])
   (define (filter p? xs)
     (cond
@@ -8,5 +8,5 @@
                   [zs (filter p? (cdr xs))])
               (if (p? x) (cons x zs) zs))])))
 
-(require filter)
+(require 'filter)
 (filter • •)

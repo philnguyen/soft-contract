@@ -1,5 +1,5 @@
-(module member
-  (provide
+(module member racket
+  (provide/contract
    [member (any/c (listof any/c) . -> . #|HERE|# boolean?)])
   (define (member x l)
     (cond
@@ -7,5 +7,5 @@
      [(equal? x (car l)) l]
      [else (member x (cdr l))])))
 
-(require member)
+(require 'member)
 (member • •)

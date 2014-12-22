@@ -1,5 +1,5 @@
-(module filter-dep
-  (provide
+(module filter-dep racket
+  (provide/contract
    [filter (->i ([p? (any/c . -> . any/c)] [xs (listof any/c)])
 		(res (p? xs) (listof (λ (x) (p? x)))))])
   (define (filter p? xs)
@@ -9,5 +9,5 @@
                   [zs (filter p? (cdr xs))])
               (if (p? x) (cons x zs) zs))])))
 
-(require filter-dep)
+(require 'filter-dep)
 (filter • •)

@@ -1,18 +1,18 @@
-(module keygen
-  (require prime?)
-  (provide [keygen (any/c . -> . (λ (x) (prime? x)))]))
+(module keygen racket
+  (require (submod ".." prime?))
+  (provide/contract [keygen (any/c . -> . (λ (x) (prime? x)))]))
 
-(module rsa
-  (require prime?)
-  (provide [rsa ((λ (x) (prime? x)) any/c . -> . any/c)]))
+(module rsa racket
+  (require (submod ".." prime?))
+  (provide/contract [rsa ((λ (x) (prime? x)) any/c . -> . any/c)]))
 
-(module prime?
-  (provide [prime? (any/c . -> . any/c)]))
+(module prime? racket
+  (provide/contract [prime? (any/c . -> . any/c)]))
 
-(module enc
-  (provide [enc (any/c . -> . any/c)])
-  (require rsa keygen)
+(module enc racket
+  (provide/contract [enc (any/c . -> . any/c)])
+  (require (submod ".." rsa) (submod ".." keygen))
   (define (enc x) (rsa (keygen #t) x)))
 
-(require enc)
+(require 'enc)
 (enc •)

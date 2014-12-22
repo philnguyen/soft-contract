@@ -1,5 +1,5 @@
-(module l-zipunzip
-  (provide
+(module l-zipunzip racket
+  (provide/contract
    [f ((integer? integer? . -> . integer?) . -> . (integer? integer? . -> . integer?))]
    [unzip (integer? (integer? integer? . -> . integer?) . -> . integer?)]
    [zip (integer? integer? . -> . integer?)]
@@ -17,5 +17,5 @@
   (define (main n)
     (unzip n zip)))
 
-(require l-zipunzip)
+(require 'l-zipunzip)
 (main •)

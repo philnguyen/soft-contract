@@ -1,5 +1,5 @@
-(module reverse-dep
-  (provide
+(module reverse-dep racket
+  (provide/contract
    [reverse (->i ([xs (listof any/c)])
 		 (res (xs)
 		      (and/c (listof any/c)
@@ -12,5 +12,5 @@
     (if (empty? xs) empty
         (append (cdr xs) (cons (car xs) empty)))))
 
-(require reverse-dep)
+(require 'reverse-dep)
 (reverse •)

@@ -1,5 +1,5 @@
-(module eo
-  (provide
+(module eo racket
+  (provide/contract
    [even? (integer? . -> . boolean?)]
    [odd? (integer? . -> . boolean?)])
   (define (even? n)
@@ -7,5 +7,5 @@
   (define (odd? n)
     (if (zero? n) #f (even? (sub1 n)))))
 
-(require eo)
+(require 'eo)
 (even? •)

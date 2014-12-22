@@ -1,5 +1,5 @@
-(module tree-depth
-  (provide [depth (TREE/C . -> . (and/c integer? (>=/c 0)))]
+(module tree-depth racket
+  (provide/contract [depth (TREE/C . -> . (and/c integer? (>=/c 0)))]
            [TREE/C any/c])
   (struct leaf ())
   (struct node (l r))
@@ -8,5 +8,5 @@
   (define (max x y) (if (> x y) x y))
   (define TREE/C (μ/c (X) (or/c (struct/c leaf) (struct/c node X X)))))
 
-(require tree-depth)
+(require 'tree-depth)
 (depth •)

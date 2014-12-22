@@ -1,10 +1,11 @@
-(module f
-  (provide [f (cons? . -> . symbol?)])
-  (require g)
+(module f racket
+  (provide/contract [f (cons? . -> . symbol?)])
+  (require (submod ".." g))
   (define (f p)
     (if (and (number? (car p)) (number? (cdr p))) (g p) 'no)))
 
-(module g (provide [g ((cons/c number? number?) . -> . symbol?)]))
+(module g racket
+  (provide/contract [g ((cons/c number? number?) . -> . symbol?)]))
 
-(require f)
+(require 'f)
 (f •)

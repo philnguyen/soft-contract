@@ -1,5 +1,5 @@
-(module sat
-  (provide
+(module sat racket
+  (provide/contract
    [sat-solve-7
     ((boolean? boolean? boolean? boolean? boolean? boolean? boolean? . -> . boolean?) . -> . boolean?)])
   
@@ -15,9 +15,9 @@
                                        (try (λ (n6)
                                               (try (λ (n7)
                                                      (p n1 n2 n3 n4 n5 n6 n7)))))))))))))))))
-(module φ
-  (provide
+(module φ racket
+  (provide/contract
    [φ (boolean? boolean? boolean? boolean? boolean? boolean? boolean? . -> . boolean?)]))
 
-(require sat φ)
+(require 'sat 'φ)
 (sat-solve-7 φ)

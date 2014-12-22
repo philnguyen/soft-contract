@@ -1,5 +1,5 @@
-(module weighted-avg
-  (provide
+(module weighted-avg racket
+  (provide/contract
    [weighted-avg (->i ([x (nelistof real?)])
 		      (res (x) ((and/c (nelistof positive?) (λ (w) (= (len x) (len w))))
 				. -> . real?)))])
@@ -17,5 +17,5 @@
     (λ (i) (if (zero? i) (car xs) ((list@ (cdr xs)) (- i 1)))))
   (define (len l) (if (empty? l) 0 (+ 1 (len (cdr l))))))
 
-(require weighted-avg)
+(require 'weighted-avg)
 ((weighted-avg (list 10 15 20)) (list 1 1 1))

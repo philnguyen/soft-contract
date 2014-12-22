@@ -1,19 +1,19 @@
-(module Y
-  (provide [Y (([any/c . -> . any/c] . -> . [any/c . -> . any/c]) . -> . [any/c . -> . any/c])])
+(module Y racket
+  (provide/contract [Y (([any/c . -> . any/c] . -> . [any/c . -> . any/c]) . -> . [any/c . -> . any/c])])
   (define (Y f)
     (λ (y)
       (((λ (x) (f (λ (z) ((x x) z))))
         (λ (x) (f (λ (z) ((x x) z)))))
        y))))
 
-(module last
-  (require Y)
-  (provide [last ((cons/c any/c (listof any/c)) . -> . any/c)])
+(module last racket
+  (require (submod ".." Y))
+  (provide/contract [last ((cons/c any/c (listof any/c)) . -> . any/c)])
   (define (last l)
     ((Y (λ (f)
           (λ (x)
             (if (empty? (cdr x)) (car x) (f (cdr x))))))
      l)))
 
-(require last)
+(require 'last)
 (last •)

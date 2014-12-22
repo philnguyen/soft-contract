@@ -1,5 +1,5 @@
-(module obj
-  (provide
+(module obj racket
+  (provide/contract
    [alloc (-> (none/c . -> . any/c))]
    [update ((any/c . -> . any/c) any/c any/c . -> . (any/c . -> . any/c))]
    [select ((any/c . -> . any/c) any/c . -> . any/c)])
@@ -9,13 +9,13 @@
   (define (select f x) (f x)))
 
 (module assert
-  (provide [assert ((not/c false?) . -> . any/c)]))
+  (provide/contract [assert ((not/c false?) . -> . any/c)]))
 
 ;; translated from Swamy et al. 2013
 (module main
-  (provide
+  (provide/contract
    [main ((any/c . -> . any/c) . -> . (any/c . -> . any/c))])
-  (require obj assert)
+  (require (submod ".." obj) (submod ".." assert))
   (define (main global)
     (let* ([incf (λ (this args)
                    (let ([x (select args "0")])
@@ -29,5 +29,5 @@
         (let ([global (update global "incf" 0)])
           global)))))
 
-(require main)
+(require 'main)
 (main •)

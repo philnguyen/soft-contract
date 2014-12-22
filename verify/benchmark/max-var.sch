@@ -1,5 +1,5 @@
-(module max
-  (provide
+(module max racket
+  (provide/contract
    [max* ((real?) #:rest real? . ->* . real?)])
   (define (max a b)
     (if (>= a b) a b))
@@ -10,5 +10,5 @@
       [(empty? xs) z]
       [else (foldl f (f (car xs) z) (cdr xs))])))
 
-(require max)
+(require 'max)
 (max* • • • • •)

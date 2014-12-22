@@ -1,5 +1,5 @@
-(module data
-  (provide
+(module data racket
+  (provide/contract
    [struct block ([x number?] [y number?] [color COLOR/C])]
    [struct posn ([x number?] [y number?])]
    [struct tetra ([center POSN/C] [blocks BSET/C])]
@@ -27,21 +27,22 @@
     (and (= (posn-x p1) (posn-x p2))
          (= (posn-y p1) (posn-y p2)))))
 
-(module consts
-  (provide [block-size integer?]
-           [board-width integer?]
-           [board-height integer?])
+(module consts racket
+  (provide/contract
+   [block-size integer?]
+   [board-width integer?]
+   [board-height integer?])
   (define block-size 20)
   (define board-height 20)
   (define board-width 10))
 
-(module block
-  (provide
+(module block racket
+  (provide/contract
    [block-rotate-ccw (POSN/C BLOCK/C . -> . BLOCK/C)]
    [block-rotate-cw (POSN/C BLOCK/C . -> . BLOCK/C)]
    [block=? (BLOCK/C BLOCK/C . -> . boolean?)]
    [block-move (number? number? BLOCK/C . -> . BLOCK/C)])
-  (require data)
+  (require (submod ".." data))
   
   ;; block=? : Block Block -> Boolean
   ;; Determines if two blocks are the same (ignoring color).
@@ -67,8 +68,8 @@
   (define (block-rotate-cw c b)
     (block-rotate-ccw c (block-rotate-ccw c (block-rotate-ccw c b)))))
 
-(module list-fun
-  (provide
+(module list-fun racket
+  (provide/contract
    [max (number? number? . -> . number?)]
    [min (number? number? . -> . number?)]
    [ormap ([BLOCK/C . -> . boolean?] (listof any/c) . -> . boolean?)]
@@ -80,10 +81,10 @@
    [foldr ([BLOCK/C BSET/C . -> . BSET/C] BSET/C BSET/C . -> . BSET/C)]
    [foldr-i ([BLOCK/C image? . -> . image?] image? BSET/C . -> . image?)]
    [foldr-n ((BLOCK/C number? . -> . number?) number? BSET/C . -> . number?)])
-  (require image data))
+  (require (submod ".." image) (submod ".." data)))
 
-(module bset
-  (provide
+(module bset racket
+  (provide/contract
    [blocks-contains? (BSET/C BLOCK/C . -> . boolean?)]
    [blocks=? (BSET/C BSET/C . -> . boolean?)]
    [blocks-subset? (BSET/C BSET/C . -> . boolean?)]
@@ -100,7 +101,7 @@
    [blocks-max-x (BSET/C . -> . number?)]
    [blocks-min-x (BSET/C . -> . number?)]
    [blocks-max-y (BSET/C . -> . number?)])
-  (require data block list-fun consts)
+  (require (submod ".." data) (submod ".." block) (submod ".." list-fun) (submod ".." consts))
   
   ;; blocks-contains? : BSet Block -> Boolean
   ;; Determine if the block is in the set of blocks.
@@ -190,10 +191,10 @@
   (define (blocks-max-x bs)
     (foldr-n (λ (b n) (max (block-x b) n)) 0 bs)))
 
-(module elim
-  (provide
+(module elim racket
+  (provide/contract
    [eliminate-full-rows (BSET/C . -> . BSET/C)])
-  (require data bset consts)
+  (require (submod ".." data) (submod ".." bset) (submod ".." consts))
   ;; eliminate-full-rows : BSet -> BSet
   ;; Eliminate all full rows and shift down appropriately.
   (define (eliminate-full-rows bs)
@@ -205,8 +206,8 @@
           [else (blocks-union (elim-row bs (sub1 i) offset)
                               (blocks-move 0 offset (blocks-row bs i)))])))
 
-(module tetras
-  (provide ;[tetras (listof TETRA/C)]
+(module tetras racket
+  (provide/contract ;[tetras (listof TETRA/C)]
    [tetra-move (integer? integer? TETRA/C . -> . TETRA/C)]
    [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
    [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
@@ -214,7 +215,7 @@
    [build-tetra-blocks (COLOR/C number? number? integer? integer? integer? integer? integer? integer? integer? integer?
                                 . -> .  TETRA/C)]
    [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)])
-  (require bset data consts block)
+  (require (submod ".." bset) (submod ".." data) (submod ".." consts) (submod ".." block))
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Tetras
   
@@ -258,11 +259,11 @@
                              (block x3 y3 color)
                              (block x4 y4 color))))))
 
-(module world
-  (provide [world-key-move (WORLD/C string? . -> . WORLD/C)]
+(module world racket
+  (provide/contract [world-key-move (WORLD/C string? . -> . WORLD/C)]
            [next-world (WORLD/C . -> . WORLD/C)]
            [ghost-blocks (WORLD/C . -> . BSET/C)])
-  (require data bset block tetras aux elim consts)
+  (require (submod ".." data) (submod ".." bset) (submod ".." block) (submod ".." tetras) (submod ".." aux) (submod ".." elim) (submod ".." consts))
   
   ;; touchdown : World -> World
   ;; Add the current tetra's blocks onto the world's block list,
@@ -349,31 +350,31 @@
           [(equal? k "s") (world-rotate-cw w)]
           [else w])))
 
-(module image
-  (provide
+(module image racket
+  (provide/contract
    [image? (any/c . -> . boolean?)]
    [overlay (image? image? . -> . image?)]
    [circle (number? number? string? . -> . image?)]
    [rectangle (number? number? COLOR/C COLOR/C . -> . image?)]
    [place-image (image? number? number? image? . -> . image?)]
    [empty-scene (number? number? . -> . image?)])
-  (require data)
+  (require (submod ".." data))
   (struct image (impl)))
 
-(module aux
-  (require data)
-  (provide
+(module aux racket
+  (require (submod ".." data))
+  (provide/contract
    [list-pick-random ((listof TETRA/C) . -> . TETRA/C)]
    [neg-1 integer?] ;; ha!
    [tetras (listof TETRA/C)]))
 
-(module visual
-  (provide
+(module visual racket
+  (provide/contract
    [world->image (WORLD/C . -> . image?)]
    [blocks->image (BSET/C . -> . image?)]
    [block->image (BLOCK/C . -> . image?)]
    [place-block (BLOCK/C image? . -> . image?)])
-  (require image data consts world list-fun aux)
+  (require (submod ".." image) (submod ".." data) (submod ".." consts) (submod ".." world) (submod ".." list-fun) (submod ".." aux))
   
   ;; Visualize whirled peas
   ;; World -> Scene
@@ -411,7 +412,7 @@
   (define (world0)
     (world (list-pick-random tetras) #f)))
 
-(require block bset data elim tetras visual image world)
+(require 'block 'bset 'data 'elim 'tetras 'visual 'image 'world)
 (amb
  (block-rotate-cw • •)
  (block-rotate-ccw • •)

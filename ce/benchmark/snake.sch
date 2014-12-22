@@ -1,5 +1,5 @@
-(module image
-  (provide
+(module image racket
+  (provide/contract
    [image/c any/c]
    [circle (number? string? string? . -> . image/c)]
    [empty-scene (number? number? . -> . image/c)]
@@ -7,8 +7,8 @@
   (define image/c (λ (x) (image? x)))
   (define (image? x) •))
 
-(module data
-  (provide
+(module data racket
+  (provide/contract
    [struct posn ([x number?] [y number?])]
    [posn=? (POSN/C POSN/C . -> . boolean?)]
    [struct snake ([dir DIR/C] [segs (nelistof POSN/C)])]
@@ -31,8 +31,8 @@
   (struct snake (dir segs))
   (struct world (snake food)))
 
-(module const
-  (provide
+(module const racket
+  (provide/contract
    [WORLD (-> WORLD/C)]
    [BACKGROUND (-> image/c)]
    [FOOD-IMAGE (-> image/c)]
@@ -41,7 +41,7 @@
    [BOARD-HEIGHT-PIXELS (-> number?)]
    [BOARD-WIDTH number?]
    [BOARD-HEIGHT number?])
-  (require image data)
+  (require (submod ".." image) (submod ".." data))
   
   (define GRID-SIZE 30)
   (define BOARD-HEIGHT 20)
@@ -56,11 +56,11 @@
   (define (WORLD) (world (snake "right" (cons (posn 5 3) empty))
                          (posn 8 12))))
 
-(module collide
-  (provide
+(module collide racket
+  (provide/contract
    [snake-wall-collide? (SNAKE/C . -> . boolean?)]
    [snake-self-collide? (SNAKE/C . -> . boolean?)])
-  (require data const)
+  (require (submod ".." data) (submod ".." const))
   
   ;; snake-wall-collide? : Snake -> Boolean
   ;; Is the snake colliding with any/c of the walls?
@@ -85,10 +85,10 @@
           [else (or (posn=? (car segs) h)
                     (segs-self-collide? h (cdr segs)))])))
 
-(module cut-tail
-  (provide
+(module cut-tail racket
+  (provide/contract
    [cut-tail ((nelistof POSN/C) . -> . (listof POSN/C))])
-  (require data)
+  (require (submod ".." data))
   ;; NeSegs is one of:
   ;; - (cons Posn empty)
   ;; - (cons Posn NeSegs)
@@ -100,11 +100,11 @@
       (cond [(empty? r) empty]
             [else (cons (car segs) (cut-tail r))]))))
 
-(module motion-help
-  (provide
+(module motion-help racket
+  (provide/contract
    [snake-slither (SNAKE/C . -> . SNAKE/C)]
    [snake-grow (SNAKE/C . -> . SNAKE/C)])
-  (require data cut-tail)
+  (require (submod ".." data) (submod ".." cut-tail))
   
   ;; next-head : Posn Direction -> Posn
   ;; Compute next position for head.
@@ -132,11 +132,11 @@
                               d)
                    (snake-segs snk))))))
 
-(module motion
-  (provide
+(module motion racket
+  (provide/contract
    [world-change-dir (WORLD/C DIR/C . -> . WORLD/C)]
    [world->world (WORLD/C . -> . WORLD/C)])
-  (require data const motion-help)
+  (require (submod ".." data) (submod ".." const) (submod ".." motion-help))
   ;; world->world : World -> World
   (define (world->world w)
     (cond [(eating? w) (snake-eat w)]
@@ -165,13 +165,13 @@
            #;(posn (random BOARD-WIDTH) (random BOARD-HEIGHT))
            (posn (- BOARD-WIDTH 1) (- BOARD-HEIGHT 1)))))
 
-(module handlers
+(module handlers racket
   ;; Movie handlers
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (provide
+  (provide/contract
    [handle-key (WORLD/C string? . -> . WORLD/C)]
    [game-over? (WORLD/C . -> . boolean?)])
-  (require data motion collide)
+  (require (submod ".." data) (submod ".." motion) (submod ".." collide))
   
   ;; handle-key : World String -> World
   (define (handle-key w ke)
@@ -185,16 +185,16 @@
   (define (game-over? w)
     (or (snake-wall-collide? (world-snake w))
         (snake-self-collide? (world-snake w)))))
-(module scenes
+(module scenes racket
   
-  (provide
+  (provide/contract
    [world->scene (WORLD/C . -> . image/c)]
    [food+scene (POSN/C image/c . -> . image/c)]
    [place-image-on-grid (image/c number? number? image/c . -> . image/c)]
    [snake+scene (SNAKE/C image/c . -> . image/c)]
    [segments+scene ((listof POSN/C) image/c . -> . image/c)]
    [segment+scene (POSN/C image/c . -> . image/c)])
-  (require data const image)
+  (require (submod ".." data) (submod ".." const) (submod ".." image))
   
   ;; world->scene : World -> Image
   ;; Build an image of the given world.
@@ -232,7 +232,7 @@
   (define (segment+scene seg scn)
     (place-image-on-grid (SEGMENT-IMAGE) (posn-x seg) (posn-y seg) scn)))
 
-(require image data const collide cut-tail motion-help motion handlers scenes)
+(require 'image 'data 'const 'collide 'cut-tail 'motion-help 'motion 'handlers 'scenes)
 (amb
  (snake-wall-collide? •)
  (snake-self-collide? •)

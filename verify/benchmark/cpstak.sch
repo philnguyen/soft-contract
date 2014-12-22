@@ -1,5 +1,5 @@
-(module tak
-  (provide
+(module tak racket
+  (provide/contract
    [tak (integer? integer? integer? (integer? . -> . integer?) . -> . integer?)])
   (define (tak x y z k)
     (if (not (< y x))
@@ -18,8 +18,8 @@
                            (lambda (v3)
                              (tak v1 v2 v3 k))))))))))
 
-(module nums
-  (provide [a integer?] [b integer?] [c integer?]))
+(module nums racket
+  (provide/contract [a integer?] [b integer?] [c integer?]))
 
-(require tak nums)
+(require 'tak 'nums)
 (tak a b c (lambda (x) x))

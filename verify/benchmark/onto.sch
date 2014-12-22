@@ -1,5 +1,5 @@
-(module onto
-  (provide
+(module onto racket
+  (provide/contract
    [onto (->i ([A (any/c . -> . boolean?)]) ; poor man's quantifier
 	      (res (A)
 		   (->i ([callbacks (listof procedure?)])
@@ -21,5 +21,5 @@
               (let [cb (if (string? f) (obj f) f)]
                 (cons (λ () (cb obj)) callbacks))))))))
 
-(require onto)
+(require 'onto)
 ((((onto •) •) •) •)

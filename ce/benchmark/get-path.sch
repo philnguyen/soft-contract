@@ -1,5 +1,5 @@
-(module lib
-  (provide
+(module lib racket
+  (provide/contract
    [path/c any/c]
    [dom/c any/c])
   (define path/c
@@ -10,9 +10,9 @@
     (->i ([msg (one-of/c "get-child")])
 	 (res (msg) (string? . -> . dom/c)))))
 
-(module get-path
-  (provide [get-path (dom/c path/c . -> . dom/c)])
-  (require lib)
+(module get-path racket
+  (provide/contract [get-path (dom/c path/c . -> . dom/c)])
+  (require (submod ".." lib))
   (define (get-path root p)
     (while root p))
   (define (while cur path)
@@ -21,5 +21,5 @@
           (path #|HERE|# "hd" #;"tl"))
         cur)))
 
-(require get-path)
+(require 'get-path)
 (get-path • •)
