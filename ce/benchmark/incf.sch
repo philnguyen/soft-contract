@@ -8,11 +8,11 @@
     (λ (x) (if (equal? x k) v (f k))))
   (define (select f x) (f x)))
 
-(module assert
+(module assert racket
   (provide/contract [assert ((not/c false?) . -> . any/c)]))
 
 ;; translated from Swamy et al. 2013
-(module main
+(module main racket
   (provide/contract
    [main ((any/c . -> . any/c) . -> . (any/c . -> . any/c))])
   (require (submod ".." obj) (submod ".." assert))
