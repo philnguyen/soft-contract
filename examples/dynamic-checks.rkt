@@ -1,5 +1,6 @@
 #lang soft-contract
 
+;; Adapted from example 14 in LTUL
 (module f racket
   (provide/contract
    [f ((or/c number? string?) cons? . -> . number?)])
