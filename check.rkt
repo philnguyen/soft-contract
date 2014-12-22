@@ -4,13 +4,11 @@
          (only-in "utils.rkt" match? pretty)
          (only-in "lang.rkt" .p)
          (only-in "verify/machine.rkt" .ς [e verify])
-         (prefix-in ve: (only-in "verify/runtime.rkt" .blm? .blm .σ .σ?))
-         (prefix-in ve: (only-in "verify/show.rkt" show-V))
+         (only-in "runtime.rkt" .blm? .blm .σ .σ?)
+         (only-in "show.rkt" show-V show-A show-ce)
          (only-in "ce/machine.rkt" [ev find-error])
-         (only-in "ce/provability.rkt" [model model/untyped])
-         (only-in "ce/model.rkt" [model model/z3])
-         (prefix-in ce: (only-in "ce/show.rkt" show-ce show-A show-V))
-         (prefix-in ce: (only-in "ce/runtime.rkt" .blm? .blm .σ .σ?)))
+         (only-in "provability.rkt" [model model/untyped])
+         (only-in "ce/model.rkt" [model model/z3]))
 (require/typed "ce/read.rkt"
   [(read-p read/ce) (Sexp → .p)])
 
@@ -58,9 +56,9 @@
 (define (try-verify prog)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     (define ςs (verify prog))
-    (for/list : (Listof Err-Result) ([ς ςs] #:when (match? ς (.ς (? ve:.blm?) _ _)))
-      (match-define (.ς (ve:.blm l⁺ lᵒ v c) σ _) ς)
-      (list 'blame l⁺ lᵒ (ve:show-V σ v) (ve:show-V σ c)))))
+    (for/list : (Listof Err-Result) ([ς ςs] #:when (match? ς (.ς (? .blm?) _ _)))
+      (match-define (.ς (.blm l⁺ lᵒ v c) σ _) ς)
+      (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c)))))
 
 (: try-find-ce : Sexp → Ce-Result)
 ;; Run counterexample on program
@@ -70,12 +68,12 @@
     #;(printf "CE read~n")
     (match (find-error p)
       [#f #;(printf "CE says safe~n") 'safe]
-       [(cons σ^ (ce:.blm l⁺ lᵒ v c))
+       [(cons σ^ (.blm l⁺ lᵒ v c))
         #;(printf "CE says CE~n")
         (match (model/z3 (model/untyped p σ^))
-          [#f (list 'blame l⁺ lᵒ (ce:show-V σ^ v) (ce:show-V σ^ c))]
-          [(? ce:.σ? σ) (list 'ce (list 'blame l⁺ lᵒ (ce:show-V σ v) (ce:show-V σ c))
-                              (second #|for now|# (ce:show-ce p σ)))])])))
+          [#f (list 'blame l⁺ lᵒ (show-V σ^ v) (show-V σ^ c))]
+          [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))
+                           (second #|for now|# (show-ce p σ)))])])))
 
 (: raise-contract-error ([Any Any Any Any] [Any] . ->* . Any))
 (define (raise-contract-error l⁺ lᵒ v c [ce #f])
