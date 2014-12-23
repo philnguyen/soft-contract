@@ -691,7 +691,7 @@
 (: elim-μ : (case→ [Symbol .V → (Pairof .V (Setof .V))]
                    [Symbol (Listof .V) → (Pairof (Listof .V) (Setof .V))]))
 (define (elim-μ x V)
-  (define-set: body* : .V [_ add!])
+  (define-set bodies : .V)
   (: go : (case→ [.V → .V] [(Listof .V) → (Listof .V)]))
   (define go
     (match-lambda
@@ -707,12 +707,12 @@
                       (hash-set m′ x (go (hash-ref m x))))])
             (if (equal? m′ m) V (.// (.λ↓ f (.ρ m′ l)) C*)))]
          [_ V])]
-      [(.μ/V z V*) (add! (for/set: .V ([Vi V*]) (V/ Vi (.X/V z) (.X/V x)))) (.X/V x)]
+      [(.μ/V z V*) (bodies-add! (for/set: .V ([Vi V*]) (V/ Vi (.X/V z) (.X/V x)))) (.X/V x)]
       [(.X/V _) (.X/V x)]))
   
   (let ([V′ (go V)])
     #;(printf "elim-μ depth ~a → ~a~n~n" (μ-depth V) (μ-depth V′))
-    (cons V′ body*)))
+    (cons V′ bodies)))
 
 ; remove redundant variable
 ; simplify to • if body has •

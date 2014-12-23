@@ -97,7 +97,7 @@
   (: step* : .ς → .ς+)
   (define (step* ς)
     (define ans : .ς+ ∅)
-    (define-set: seen : .ς [seen? seen!])
+    (define-set seen : .ς)
     
     (: resume : .res .K .rt/κ → Void)
     ; ans: the answer to plug in
@@ -124,9 +124,9 @@
                     ans ctx rt ς)
             (let ([ς^ (canon ς)])
               #;(printf "canon:~n~a~n~n" ς^)
-              (unless (seen? ς^)
+              (unless (seen-has? ς^)
                 #;(printf "UNSEEN!~n~n")
-                (seen! ς^)
+                (seen-add! ς^)
                 (visit ς)))
             #;(when-unseen! ς (visit ς))))))
     
@@ -181,8 +181,8 @@
         ; FIXME hack
         [(.ς (? .V?) _ (cons (? .recchk/κ?) _))
          (let ([ς^ ς])
-           (unless (seen? ς^)
-             (seen! ς^)
+           (unless (seen-has? ς^)
+             (seen-add! ς^)
              (match (step ς)
                [(? set? s) (for ([ςi s]) (visit ςi))]
                [(? .ς? ςi) (visit ςi)])))]

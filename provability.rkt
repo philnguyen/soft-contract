@@ -25,7 +25,7 @@
                [.σ .U .V → .R]
                [.σ .U .U → .R]))
 (define (⊢′ σ V C)
-  (define-set: assume : (Pairof (U .U .V) (U .U .V)) [assumed? assume!])
+  (define-set assumed : (Pairof (U .U .V) (U .U .V)))
   
   ;; just for debugging
   (: show : .σ (U .V .U) → Any)
@@ -35,7 +35,7 @@
   (: go : (case→ [.V .V → .R] [.U .V → .R] [.U .U → .R]))
   (define (go V C)
     (cond
-     [(assumed? (cons V C)) 'Proved]
+     [(assumed-has? (cons V C)) 'Proved]
      [else
       (match* (V C)
         ; V ∈ C
@@ -50,7 +50,7 @@
                           ['Neither (C*⇒C C* C)]
                           [r r])]
         [((and V (.μ/V x V*)) C)
-         (assume! (cons V C))
+         (assumed-add! (cons V C))
          (let ([r (for/set: .R ([V (unroll V)]) (go V C))])
            (match (set-count r) ; TODO optimize?
              [0 'Proved]
@@ -171,7 +171,7 @@
               ['Proved 'Proved]
               ['Refuted (go U Q)]
               ['Neither (match (go U Q) ['Proved 'Proved] [_ 'Neither])])]
-           [(_ (and Uc (.μ/C x C′))) (assume! (cons V C)) (go U (unroll/C Uc))]
+           [(_ (and Uc (.μ/C x C′))) (assumed-add! (cons V C)) (go U (unroll/C Uc))]
            
            ;; conservative default
            [(_ _) 'Neither])])]))
@@ -373,8 +373,8 @@
 (define ⊑
   (match-lambda**
       [((? .σ? σ0) (? .σ? σ1))
-       (define: F : .F (hash))
-       (define-set: assume : (Pairof .V .V) (assumed? assume!))  
+       (define F : .F (hash))
+       (define-set assumed : (Pairof .V .V))
        
        (: go! : (case→ [.V .V → Boolean]
                        [(Listof .V) (Listof .V) → Boolean]
@@ -384,7 +384,7 @@
          (match* (x y)
            [((? .V? V0) (? .V? V1))
             (or        
-             (assumed? (cons V0 V1))
+             (assumed-has? (cons V0 V1))
              (match* (V0 V1)
                [((.// U0 C*) (.// U1 D*))
                 (match* (U0 U1)
@@ -412,18 +412,18 @@
                [(_ (.L j)) (go! V0 (σ@ σ1 j))]
                [((? .μ/V? V0) (? .μ/V? V1))
                 #;(printf "Case0: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
-                (assume! (cons V0 V1))
+                (assumed-add! (cons V0 V1))
                 (for/and: : Boolean ([V0i (unroll V0)])
                   (for/or: : Boolean ([V1i (unroll V1)]) ;FIXME: may screw up F
                     (let ([G F])
                       (or (go! V0i V1i) (begin (set! F G) #f)))))]
                [((? .μ/V? V0) _)
                 #;(printf "Case2: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
-                (assume! (cons V0 V1))
+                (assumed-add! (cons V0 V1))
                 (for/and ([V0i (unroll V0)]) (go! V0i V1))]
                [(_ (? .μ/V? V1))
                 #;(printf "Case1: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
-                (assume! (cons V0 V1))
+                (assumed-add! (cons V0 V1))
                 (for/or: : Boolean ([V1i (unroll V1)])
                   (let ([G F])
                     (or (go! V0 V1i) (begin (set! F G) #f))))] ; FIXME: may screw up F

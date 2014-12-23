@@ -93,13 +93,17 @@
       y))
 (define-syntax-rule (dbg/off n (f x ...)) (f x ...))
 
-(define-syntax-rule (define-set: s : τ [in? add!])
-  (begin
-    (define s : (Setof τ) ∅)
-    (: in? : τ → Boolean)
-    (define (in? x) (set-member? s x))
-    (: add! : (U τ (Setof τ)) → Void)
-    (define (add! x) (set! s (if (set? x) (set-union s x) (set-add s x))))))
+;; Define set with shortened syntax for (imperative) adding and membership testing
+(define-syntax (define-set stx)
+  (syntax-case stx (:)
+    [(_ s : τ)
+     (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
+                   [s-add! (format-id #'s "~a-add!" #'s)])
+       #'(begin (define s : (Setof τ) ∅)
+                (define (s-has? [x : τ]) : Boolean (set-member? s x))
+                (define (s-add! [x : (U τ (Setof τ))])
+                  (set! s (cond [(set? x) (set-union s x)]
+                                [else (set-add s x)])))))]))
 
 (: set-partition : (∀ (X) (X → Boolean) (Setof X) → (Values (Setof X) (Setof X))))
 (define (set-partition p xs)

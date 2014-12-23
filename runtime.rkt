@@ -336,11 +336,11 @@
 ;; return all sub-values as lambdas with similar function body
 (: repeated-lambdas : .λ .ρ → (Setof .V))
 (define (repeated-lambdas e ρ)
-  (define-set: ac : .V [_ add!])
+  (define-set ac : .V)
   (: go! : (U .V .ρ) → Void)
   (define go!
     (match-lambda
-      [(and V (.// (.λ↓ f ρ1) _)) (if (equal? f e) (add! V) (go! ρ1))]
+      [(and V (.// (.λ↓ f ρ1) _)) (if (equal? f e) (ac-add! V) (go! ρ1))]
       [(.// (.Ar _ V′ _) _) (go! V′)]
       [(.ρ m _) (for ([V (in-hash-values m)]) (go! V))]
       [_ (void)]))
