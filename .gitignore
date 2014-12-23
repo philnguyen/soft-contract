@@ -1,2 +1,5 @@
 *~
 compiled
+doc/*.css
+doc/*.js
+doc/*.html
