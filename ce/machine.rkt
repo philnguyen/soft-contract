@@ -9,15 +9,15 @@
 
 (define-data .κ
   (struct .if/κ [t : .E] [e : .E])
-  (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Sym])
-  (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l^3 : Sym^3])
+  (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Symbol])
+  (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l^3 : Symbol^3])
   (struct .indy/κ
     [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
-    [d : (U #f .↓)] [v? : (U #f Int)] [l^3 : Sym^3])
+    [d : (U #f .↓)] [v? : (U #f Integer)] [l^3 : Symbol^3])
   ; contract stuff
-  (struct .μc/κ [x : Sym])
-  (struct .λc/κ [c : (Listof .e)] [c↓ : (Listof .V)] [d : .e] [ρ : .ρ] [v? : Bool])
-  (struct .structc/κ [t : Sym] [c : (Listof .e)] [ρ : .ρ] [c↓ : (Listof .V)]))
+  (struct .μc/κ [x : Symbol])
+  (struct .λc/κ [c : (Listof .e)] [c↓ : (Listof .V)] [d : .e] [ρ : .ρ] [v? : Boolean])
+  (struct .structc/κ [t : Symbol] [c : (Listof .e)] [ρ : .ρ] [c↓ : (Listof .V)]))
 (define-type .κ* (Listof .κ))
 
 ; ctx in e's position for pending states
@@ -25,7 +25,7 @@
 (define-type .ς+ (Setof .ς))
 (define-type .ς* (U .ς .ς+))
 
-(: final? : .ς → Bool)
+(: final? : .ς → Boolean)
 (define final?
   (match-λ? (.ς (? .blm?) _ _) (.ς (? .V?) _ (list))))
 
@@ -52,7 +52,7 @@
   (: prob : Real → Boolean)
   (define (prob p) (<= (random) p))
   
-  (: m-opaque? : Sym → Bool)
+  (: m-opaque? : Symbol → Boolean)
   (define (m-opaque? x) ; TODO: expensive?
     (match x
       ['† #t]
@@ -170,7 +170,7 @@
                            [else (set-add front′ ςs)]))]))
         (go! front′)])))
   
-  ;; Interactive debugging
+  ;; Integereractive debugging
   #;(let ()
     (define l : (Listof Integer) '())
     (define stepᵢ 0)
@@ -220,19 +220,19 @@
 (define (step-p m* accs)  
   (match-define (.m* _ ms) m*)
   
-  (: ref-e : Sym Sym → .e)
+  (: ref-e : Symbol Symbol → .e)
   (define (ref-e m x)
     (match-define (.m _ defs) (hash-ref ms m))
     (car (hash-ref defs x))) 
  
-  (: ref-c : Sym Sym → .e)
+  (: ref-c : Symbol Symbol → .e)
   (define (ref-c m x)
     (match-define (.m _ decs) (hash-ref ms m))
     (match (cdr (hash-ref decs x))
       [(? .e? c) c]
       [_ (error (format "module ~a does not export ~a" m x))]))
   
-  (: step-β : .λ↓ (Listof .V) Sym .σ .κ* → .ς)
+  (: step-β : .λ↓ (Listof .V) Symbol .σ .κ* → .ς)
   (define (step-β f Vx l σ k)
     #;(printf "Stepping ~a~n~n" (show-U σ f))
     (match-define (.λ↓ (.λ n e v?) ρ) f)
@@ -244,7 +244,7 @@
               (.ς (.↓ e (ρ++ ρ Vx (- n 1))) σ k)
               (.ς (.blm l 'Λ (Prim (length Vx)) (arity≥/C (- n 1))) σ k))]))
       
-  (: step-@ : .V (Listof .V) Sym .σ .κ* → .ς*)
+  (: step-@ : .V (Listof .V) Symbol .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
     #;(printf "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*)) ;TODO reenable
     #;(printf "step-@:~nσ:~n~a~nf:~n~a~nx:~n~a~n~n" σ Vf V*)
@@ -358,7 +358,7 @@
            (cond [(set? ςᵢ) (set-union acc ςᵢ)]
                  [else (set-add acc ςᵢ)]))]))
   
-  (: step-• : .L (Listof .V) Sym .σ .κ* → .ς*)
+  (: step-• : .L (Listof .V) Symbol .σ .κ* → .ς*)
   (define (step-• Lf V* l σ k)
     (match V*
       [(list)
@@ -376,7 +376,7 @@
          (define σ′ (σ-set σ α (→V Vf)))
          (set-add acc (step-β Vf V* '☠ σ′ k)))]))
   
-  (: step-•₁ : .L .V Sym .σ .κ* → .ς*)
+  (: step-•₁ : .L .V Symbol .σ .κ* → .ς*)
   (define (step-•₁ Lf V l σ k)
     
     (: step-const : .L .σ .κ* → .ς)
@@ -432,7 +432,7 @@
         (step-dep Lf V σ k)
         (step-havoc Lf V σ k)))
   
-  (: step-fc : .V .V Sym .σ .κ* → .ς*)
+  (: step-fc : .V .V Symbol .σ .κ* → .ς*)
   (define (step-fc C V l σ k)
     (match (⊢ σ V C)
       ['Proved (.ς TT σ k)]
@@ -454,7 +454,7 @@
             [_ (step-@ C (list V) l σ k)])]
          [(.L _) (step-@ C (list V) l σ k)])]))
   
-  (: step-▹ : .V .V Sym^3 .σ .κ* → .ς*)
+  (: step-▹ : .V .V Symbol^3 .σ .κ* → .ς*)
   (define (step-▹ C V l^3 σ k)
     #;(printf "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
     (match-define (list l+ l- lo) l^3)
@@ -593,7 +593,7 @@
                       (cons (.if/κ TT Ei) k))
                     k Er))]))
 
-(: ▹/κ1 : .V Sym^3 .κ* → .κ*)
+(: ▹/κ1 : .V Symbol^3 .κ* → .κ*)
 (define (▹/κ1 C l^3 k)
   (match C
     [(.// (.λ↓ (.λ 1 (.b #t) _) _) _) k]
@@ -609,8 +609,8 @@
 
 ;; Replace label in state
 (: L/L (case->
-        [.σ Int Int → .σ]
-        [.κ* Int Int → .κ*]))
+        [.σ Integer Integer → .σ]
+        [.κ* Integer Integer → .κ*]))
 (define (L/L x i j)
   (: go (case->
          [.σ → .σ] [.ρ → .ρ]
@@ -619,12 +619,12 @@
   (define (go x)
     (match x
       ;; σ
-      [(.σ m l) (.σ (for/hash : (Map Int .V+) ([(k V) (in-hash m)]
+      [(.σ m l) (.σ (for/hash : (Map Integer .V+) ([(k V) (in-hash m)]
                                       #:unless (equal? k i))
                       (values k (go V)))
                     l)]
       ;; ρ
-      [(.ρ m d) (.ρ (for/hash : (Map (U Sym Int) .V) ([(k v) (in-hash m)])
+      [(.ρ m d) (.ρ (for/hash : (Map (U Symbol Integer) .V) ([(k v) (in-hash m)])
                       (values k (go v)))
                     d)]
       ;; L

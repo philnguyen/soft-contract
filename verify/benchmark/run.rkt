@@ -34,11 +34,11 @@
 
 (define time-app (cast time-apply ((.p → .ς+) (List .p) → (Values (List .ς+) N N N))))
 
-(: a→time : (U #f (List Bm-Result)) → (U Str N))
+(: a→time : (U #f (List Bm-Result)) → (U String N))
 (define a→time (match-lambda [#f "$\\infty$"]
                              [(list (list _ t _ _)) t]))
 
-(: a→#blame : (U #f (List Bm-Result)) → (U Str N))
+(: a→#blame : (U #f (List Bm-Result)) → (U String N))
 (define a→#blame
   (match-lambda
     [#f "-"]
@@ -68,7 +68,7 @@
       (printf "Program & Lines & Checks & T1 & B1 & T2 & B2\\\\ \\hline \\hline~n"))
   #;(define-values (L C T1 T2 B1 B2) (values 0 0 0 0 0 0))
   (for ([fn files] #:when (regexp-match? #rx"sch$" fn))
-    (let* ([lines (for/sum: : Int ([s (file->lines fn)]
+    (let* ([lines (for/sum: : Integer ([s (file->lines fn)]
                                    #:unless (regexp-match? #rx"^( *)(;.*)*( *)$" s)) 1)]
            [name (string-trim fn ".sch")]
            #;[_ (printf "reading ~a...~n" fn)]

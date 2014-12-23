@@ -4,9 +4,9 @@
 (provide (all-defined-out)) ; TODO
 (require/typed
  redex/reduction-semantics
- [variables-not-in (Any Any → (Listof Sym))])
+ [variables-not-in (Any Any → (Listof Symbol))])
 
-(: memoize : (∀ (X Y) ((X → Y) [#:eq? Bool] → (X → Y))))
+(: memoize : (∀ (X Y) ((X → Y) [#:eq? Boolean] → (X → Y))))
 (define (memoize f #:eq? [eq?? #f])
   (let ([m : (Map X Y) ((if eq?? make-hasheq make-hash))])
     (λ (x) (hash-ref! m x (λ () (f x))))))
@@ -60,18 +60,9 @@
 (define-syntax-rule (define** [id v] ...) (define-values (id ...) (values v ...)))
 
 ;; Abbreviations
-(define: ∅ : (Setof Nothing) (set))
-(define-type Int Integer)
+(define ∅ : (Setof Nothing) (set))
 (define-type Map HashTable)
 (define-type (MMap X Y) (Map X (Setof Y)))
-(define-type Num Number)
-(define-type Bool Boolean)
-(define-type Sym Symbol)
-(define-type Str String)
-(define**
-  [int? integer?] [num? number?] [str? string?] [sym? symbol?] [bool? boolean?]
-  [sym→str symbol->string] [num→str number->string] [str→sym string->symbol]
-  [str++ string-append])
 
 ;; evaluate an expression within given #seconds
 ;; return singleton list of value, or #f on timeout
@@ -105,7 +96,7 @@
 (define-syntax-rule (define-set: s : τ [in? add!])
   (begin
     (define s : (Setof τ) ∅)
-    (: in? : τ → Bool)
+    (: in? : τ → Boolean)
     (define (in? x) (set-member? s x))
     (: add! : (U τ (Setof τ)) → Void)
     (define (add! x) (set! s (if (set? x) (set-union s x) (set-add s x))))))
@@ -121,9 +112,9 @@
 
 ;;;;; Pretty printing stuff
 
-(: reverse∘subscript : (Listof Sym) → (Listof Sym))
+(: reverse∘subscript : (Listof Symbol) → (Listof Symbol))
 (define (reverse∘subscript xs)
-  (for/fold ([ys : (Listof Sym) '()]) ([x xs])
+  (for/fold ([ys : (Listof Symbol) '()]) ([x xs])
     (cons
      (string->symbol
       (list->string
@@ -134,7 +125,7 @@
            [_ c]))))
      ys)))
 
-(: vars-not-in : Int (Listof Sym) → (Listof Sym))
+(: vars-not-in : Integer (Listof Symbol) → (Listof Symbol))
 (define vars-not-in
   (let* ([pool '(x y z u v w a b c)]
          [N (length pool)])
@@ -147,7 +138,7 @@
   (parameterize ([pretty-print-columns 80])
     (string-trim (with-output-to-string (λ () (pretty-display x))))))
 
-(: n-sub : Int → String)
+(: n-sub : Integer → String)
 (define (n-sub n)
   (cond
    [(< n 0) (format "₋~a" (n-sub (- n)))]

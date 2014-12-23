@@ -8,15 +8,15 @@
 
 (define-data .κ
   (struct .if/κ [t : .E] [e : .E])
-  (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Sym])
-  (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l^3 : Sym^3])
+  (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Symbol])
+  (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l^3 : Symbol^3])
   (struct .indy/κ
     [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
-    [d : (U #f .↓)] [v? : (U #f Int)] [l^3 : Sym^3])
+    [d : (U #f .↓)] [v? : (U #f Integer)] [l^3 : Symbol^3])
   ; contract stuff
-  (struct .μc/κ [x : Sym])
-  (struct .λc/κ [c : (Listof .e)] [c↓ : (Listof .V)] [d : .e] [ρ : .ρ] [v? : Bool])
-  (struct .structc/κ [t : Sym] [c : (Listof .e)] [ρ : .ρ] [c↓ : (Listof .V)])
+  (struct .μc/κ [x : Symbol])
+  (struct .λc/κ [c : (Listof .e)] [c↓ : (Listof .V)] [d : .e] [ρ : .ρ] [v? : Boolean])
+  (struct .structc/κ [t : Symbol] [c : (Listof .e)] [ρ : .ρ] [c↓ : (Listof .V)])
   ; magics for termination
   (struct .rt/κ [σ : .σ] [f : .λ↓] [x : (Listof .V)])
   (struct .blr/κ [F : .F] [σ : .σ] [v : .V])
@@ -30,7 +30,7 @@
 (define-type .ς+ (Setof .ς))
 (define-type .ς* (U .ς .ς+))
 
-(: final? : .ς → Bool)
+(: final? : .ς → Boolean)
 (define (final? ς)
   (match? ς (.ς (? .blm?) _ _) (.ς (? .V?) _ (list))))
 
@@ -89,7 +89,7 @@
   (: M@ : .rt/κ → (Listof .res)) ; FIXME force randomness to test
   (define (M@ ctx) (shuffle (set->list (hash-ref M ctx (λ () ∅)))))
   
-  (: m-opaque? : Sym → Bool)
+  (: m-opaque? : Symbol → Boolean)
   (define (m-opaque? x) ; TODO: expensive?
     (match-define (.m _ defs) (hash-ref ms x))
     (for/or ([d (in-hash-values defs)] #:when (match? d (cons '• _))) #t))
@@ -197,8 +197,8 @@
       (visit ς)
       #;(printf "#states: ~a, ~a base cases, ~a contexts~n~n"
                 (set-count seen)
-                (list (hash-count M) (for/sum: : Int ([s (in-hash-values M)]) (set-count s)))
-                (list (hash-count Ξ) (for/sum: : Int ([s (in-hash-values Ξ)]) (set-count s))))
+                (list (hash-count M) (for/sum: : Integer ([s (in-hash-values M)]) (set-count s)))
+                (list (hash-count Ξ) (for/sum: : Integer ([s (in-hash-values Ξ)]) (set-count s))))
       #;(printf "contexts:~n~a~n~n" (hash->list Ξ))
       ans))
   
@@ -209,12 +209,12 @@
 (define (step-p m*)  
   (match-define (.m* _ ms) m*)
   
-  (: ref-e : Sym Sym → .e)
+  (: ref-e : Symbol Symbol → .e)
   (define (ref-e m x)
     (match-let ([(.m _ defs) (hash-ref ms m)])
       (car (hash-ref defs x))))
   
-  (: ref-c : Sym Sym → .e)
+  (: ref-c : Symbol Symbol → .e)
   (define (ref-c m x)
     (match-let ([(.m _ decs) (hash-ref ms m)])
       (match (cdr (hash-ref decs x))
@@ -231,7 +231,7 @@
       [(? set? s) s]
       [(? .ς? ς) (set ς)]))
   
-  (: step-β : .λ↓ (Listof .V) Sym .σ .κ* → .ς)
+  (: step-β : .λ↓ (Listof .V) Symbol .σ .κ* → .ς)
   (define (step-β f Vx l σ k)
     #;(printf "Stepping ~a~n~n" (show-U σ f))
     (match-let* ([(.λ↓ (.λ n e v?) ρ) f])
@@ -262,7 +262,7 @@
                 (.ς (.↓ e (ρ++ ρ Vx (- n 1))) σ k)
                 (.ς (.blm l 'Λ (Prim (length Vx)) (arity≥/C (- n 1))) σ k))])))
   
-  (: step-@ : .V (Listof .V) Sym .σ .κ* → .ς*)
+  (: step-@ : .V (Listof .V) Symbol .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
     #;(printf "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*)) ;TODO reenable
     #;(printf "step-@:~nσ:~n~a~nf:~n~a~nx:~n~a~n~n" σ Vf V*)
@@ -316,7 +316,7 @@
       #;[(? .μ/V? Vf) (match/nd: (.V → .ς) (unroll Vf)
                         [Vf (step-@ Vf V* l σ k)])]))
   
-  (: step-fc : .V .V Sym .σ .κ* → .ς*)
+  (: step-fc : .V .V Symbol .σ .κ* → .ς*)
   (define (step-fc C V l σ k)
     (match (⊢ σ V C)
       ['Proved (.ς TT σ k)]
@@ -344,7 +344,7 @@
             [_ (step-@ C (list V) l σ k)])]
          [(.L _) (step-@ C (list V) l σ k)])]))
   
-  (: step-▹ : .V .V Sym^3 .σ .κ* → .ς*)
+  (: step-▹ : .V .V Symbol^3 .σ .κ* → .ς*)
   (define (step-▹ C V l^3 σ k)
     #;(printf "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
     (match-let ([(list l+ l- lo) l^3])
@@ -509,7 +509,7 @@
     [(list E) (.ς E σ k)]
     [(cons E Er) (.ς E σ (foldr (λ: ([Ei : .E] [k : .κ*]) (cons (.if/κ TT Ei) k)) k Er))]))
 
-#;(: wrap : .Λ/C .V Sym^3 → .V)
+#;(: wrap : .Λ/C .V Symbol^3 → .V)
 #;(define (wrap C V l^3)
     (match V
       [(.// (.Ar (.// (.Λ/C Cx D v?) _) V′ (list l+ l- l)) D*)
@@ -520,7 +520,7 @@
              (→V (.Ar (→V C) V l^3))))]
       [_ (→V (.Ar (→V C) V l^3))]))
 
-(: ▹/κ1 : .V Sym^3 .κ* → .κ*)
+(: ▹/κ1 : .V Symbol^3 .κ* → .κ*)
 (define (▹/κ1 C l^3 k)
   (match C
     [(.// (.λ↓ (.λ 1 (.b #t) _) _) _) k]
@@ -567,7 +567,7 @@
        (if (equal? κ κ′) (cons (reverse l) kr) (go (cons κ′ l) kr))]
       [(cons κ kr) (go (cons κ l) kr)])))
 
-(: chk-seen? : .κ* .μ/C .V → Bool)
+(: chk-seen? : .κ* .μ/C .V → Boolean)
 (define (chk-seen? k C V)
   (for/or ([κ k] #:when (match? κ (? .recchk/κ?)))
     (match-let ([(.recchk/κ C′ V′) κ])
@@ -611,10 +611,10 @@
 (define (canon ς)
   (match-define (.ς (? .E? E) σ k) ς)
   (define F F∅)
-  (: alloc! : Int → Int)
+  (: alloc! : Integer → Integer)
   (define (alloc! i)
     (match (hash-ref F i #f)
-      [(? int? j) j]
+      [(? integer? j) j]
       [#f (let ([j (hash-count F)])
             (set! F (hash-set F i j))
             j)]))
@@ -646,7 +646,7 @@
       [(? .X/C? x) x]
       [(? .prim? p) p]
       ; ρ
-      [(.ρ m l) (.ρ (for/fold ([m′ : (Map (U Int Sym) .V) m∅]) ([i (in-hash-keys m)])
+      [(.ρ m l) (.ρ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅]) ([i (in-hash-keys m)])
                       (hash-set m′ i (go! (hash-ref m i))))
                     l)]
       ; κ
@@ -707,7 +707,7 @@
   (: fixup/ρ : .ρ → .ρ)
   (define (fixup/ρ ρ)
     (match-define (.ρ m l) ρ)
-    (.ρ (for/fold ([m′ : (Map (U Int Sym) .V) m∅]) ([i (in-hash-keys m)])
+    (.ρ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅]) ([i (in-hash-keys m)])
           (hash-set m′ i (fixup/V (hash-ref m i))))
         l))
   

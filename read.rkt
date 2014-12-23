@@ -24,7 +24,7 @@
                         (for/fold ([decs decs]) ([prov prov*])
                           (match prov
                             [`(struct ,t ([,field* ,_] ...)) (set-union decs (gen-names t field*))]
-                            [`(,(? sym? x) ,_) (set-add decs x)]
+                            [`(,(? symbol? x) ,_) (set-add decs x)]
                             [_ (error 'Parser "Expect provide clause as one of:~n (name contract)~n (struct struct-name ([field-name contract] …))~n.Given:~n~a"
                                       (pretty prov))]))
                         reqs)]
@@ -181,10 +181,10 @@
      (.λ (+ 1 (length x)) (read-e syms l (bind (bind xs x) xn) e) #t)]
     [(or '• 'OPQ) ((on-•!))]
     [`(quote ,x) (.b x)]
-    [(or (? num? x) (? bool? x) (? str? x)) (prim x)]
+    [(or (? number? x) (? boolean? x) (? string? x)) (prim x)]
     #;[`(apply ,f ,xs) (.apply (go f) (go xs) l)]
     [`(,f ,xs ...) (.@ (go f) (map go xs) l)]
-    [(? sym? s)
+    [(? symbol? s)
      (or (var xs s)
          (match-let ([(list my-defs my-decs my-reqs) (hash-ref syms l)])
            (or (for*/first ([name my-defs] #:when (eq? name s)) (.ref s l l))
@@ -203,7 +203,7 @@
 
 (define (bind xs x)
   (match x
-    [(? sym? x) (cons x xs)]
+    [(? symbol? x) (cons x xs)]
     [(? list? zs) (for/fold ([xs xs]) ([z zs]) (bind xs z))]))
 
 (define (bind-name xs x) (cons (list x) xs))
@@ -213,7 +213,7 @@
     (match xs
       ['() #f]
       [(cons (list x′) xr) (if (eq? x′ z) (.x/c x′) (loop xr i))]
-      [(cons (? sym? x′) xr) (if (eq? x′ z) (.x i) (loop xr (+ 1 i)))])))
+      [(cons (? symbol? x′) xr) (if (eq? x′ z) (.x i) (loop xr (+ 1 i)))])))
 
 (define (gen-names t acs)
   (set-union {set t (gen-p t)} {for/set ([ac acs]) (gen-ac t ac)}))

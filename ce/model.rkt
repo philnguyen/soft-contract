@@ -18,20 +18,20 @@
 (define (model′ σ)
   ;; Compute all labels of reals/ints
   (define-values (labels types)
-    (for/fold ([labels : (Listof Int) '()]
-               [types : (Listof (U 'Int 'Real)) '()])
+    (for/fold ([labels : (Listof Integer) '()]
+               [types : (Listof (U 'Integer 'Real)) '()])
               ([(l V) (in-hash (.σ-map σ))])
       (match V
         [(.// U C*)
          (match U
-           [(.b (? integer?)) (values (cons l labels) (cons 'Int types))]
+           [(.b (? integer?)) (values (cons l labels) (cons 'Integer types))]
            [(.b (? real?)) (values (cons l labels) (cons 'Real types))]
            ['•
             (cond
              [(for/or : Boolean ([C : .V C*]
                                  #:when (match? C (.// 'integer? _)))
                 #t)
-              (values (cons l labels) (cons 'Int types))]
+              (values (cons l labels) (cons 'Integer types))]
              [(for/or : Boolean ([C : .V C*]
                                  #:when (match? C (.// 'real? _)))
                 #t)
@@ -73,7 +73,7 @@
               (for ([l lines]) (printf "~a~n" l)))
             (match-define (.σ m l) σ)
             (define m′
-              (for/fold ([m : (Map Int .V+) m])
+              (for/fold ([m : (Map Integer .V+) m])
                         ([line : Any (in-list lines)])
                 (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
                 #;(printf "e: ~a~n" e)
@@ -91,10 +91,10 @@
           .σ)))]
     [_ #f]))
 
-(: lab→i : Symbol → Int)
+(: lab→i : Symbol → Integer)
 (define (lab→i s)
   (match (symbol->string s)
     [(regexp #rx"L(.+)" (list _ (? string? d)))
-     (cast (string->number d) Int)]
+     (cast (string->number d) Integer)]
     [(regexp #rx"X(.+)" (list _ (? string? d)))
-     (- (cast (string->number d) Int))]))
+     (- (cast (string->number d) Integer))]))

@@ -1,10 +1,10 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set
          "utils.rkt" "lang.rkt")
-(require/typed redex/reduction-semantics [variable-not-in (Any Sym → Sym)])
+(require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
-(define m∅ : (Map (U Int Sym) .V) (hash))
+(define m∅ : (Map (U Integer Symbol) .V) (hash))
 (define-type .R (U 'Proved 'Refuted 'Neither))
 
 ;;;;; CLOSURE
@@ -12,17 +12,17 @@
 ;; closure forms
 (define-data .E
   (struct .↓ [e : .e] [ρ : .ρ])
-  (struct .FC [c : .V] [v : .V] [ctx : Sym])
-  (struct .Mon [c : .E] [e : .E] [l^3 : Sym^3])
+  (struct .FC [c : .V] [v : .V] [ctx : Symbol])
+  (struct .Mon [c : .E] [e : .E] [l^3 : Symbol^3])
   (struct .Assume [v : .V] [c : .V])
   (subset: .A
-    (struct .blm [violator : Sym] [origin : Sym] [v : .V] [c : .V])
+    (struct .blm [violator : Symbol] [origin : Symbol] [v : .V] [c : .V])
     (subset: .V ; either label or refined prevalue
-      (struct .L [i : Int])
+      (struct .L [i : Integer])
       (struct .// [pre : .U] [refine : (Setof .V)])
       ;; The counterexample engine does not use these
-      (struct .μ/V [x : Sym] [Vs : (Setof .V)])
-      (struct .X/V [x : Sym]))))
+      (struct .μ/V [x : Symbol] [Vs : (Setof .V)])
+      (struct .X/V [x : Symbol]))))
 
 (define-type .V+ (U .// .μ/V))
 
@@ -30,13 +30,13 @@
 (define-data .U
   .prim
   '•
-  (struct .Ar [c : .V] [v : .V] [l^3 : Sym^3])
-  (struct .St [tag : Sym] [fields : (Listof .V)])
+  (struct .Ar [c : .V] [v : .V] [l^3 : Symbol^3])
+  (struct .St [tag : Symbol] [fields : (Listof .V)])
   (struct .λ↓ [f : .λ] [ρ : .ρ])
-  (struct .Λ/C [c : (Listof .V)] [d : .↓] [v? : Bool])
-  (struct .St/C [t : Sym] [fields : (Listof .V)])
-  (struct .μ/C [x : Sym] [c : .V])
-  (struct .X/C [x : Sym])
+  (struct .Λ/C [c : (Listof .V)] [d : .↓] [v? : Boolean])
+  (struct .St/C [t : Symbol] [fields : (Listof .V)])
+  (struct .μ/C [x : Symbol] [c : .V])
+  (struct .X/C [x : Symbol])
   (struct .Case [m : (Map (Listof .V) .L)]))
 
 (define Case∅ (.Case (hash)))
@@ -72,20 +72,20 @@
 (define (→V U) (.// U ∅))
 
 ;; maps abstract to concrete labels
-(define-type .F (Map Int Int))
+(define-type .F (Map Integer Integer))
 (define F∅ : .F (hash))
 (define .F? hash?)
 
 
 ;;;;; REUSED CONSTANTS
 
-(: Prim : (U Sym Num String Bool) → .//)
+(: Prim : (U Symbol Number String Boolean) → .//)
 (define Prim
   (memoize
    #:eq? #t
    (match-lambda
      [(or 'mt 'empty) MT]
-     [(and (or (? sym?) (? num?) (? str?) #t #f) name)
+     [(and (or (? symbol?) (? number?) (? string?) #t #f) name)
       (match (prim name)
         [(? .prim? b) (.// b ∅)]
         [(? .λ? f) (.// (.λ↓ f ρ∅) ∅)]
@@ -102,30 +102,30 @@
 ;;;;; ENVIRONMENT
 
 ;; environment maps static distances (HACK: or symbols) to values
-(struct .ρ ([map : (Map (U Int Sym) .V)] [len : Int]) #:transparent) ; FIXME equality
+(struct .ρ ([map : (Map (U Integer Symbol) .V)] [len : Integer]) #:transparent) ; FIXME equality
 (define ρ∅ (.ρ m∅ 0))
 
-(: restrict : .ρ (Setof Int) → .ρ)
+(: restrict : .ρ (Setof Integer) → .ρ)
 (define (restrict ρ sd*)
   (cond
    [(set-empty? sd*) ρ∅]
    [else
     (match-define (.ρ m l) ρ)
     (define m′
-      (for/fold ([acc : (Map (U Int Sym) .V) m∅]) ([sd sd*])
+      (for/fold ([acc : (Map (U Integer Symbol) .V) m∅]) ([sd sd*])
         (define i (- l sd 1))
         (hash-set acc i (hash-ref m i))))
     (.ρ m′ l)]))
 
 (: ρ+ : (case→ [.ρ .V → .ρ]
-               [.ρ Sym .V → .ρ]))
+               [.ρ Symbol .V → .ρ]))
 (define ρ+
   (match-lambda*
     [(list (.ρ m l) (? .V? V)) (.ρ (hash-set m l V) (+ 1 l))]
-    [(list (.ρ m l) (? sym? x) (? .V? V)) (.ρ (hash-set m x V) l)]))
+    [(list (.ρ m l) (? symbol? x) (? .V? V)) (.ρ (hash-set m x V) l)]))
 
 (: ρ++ (case→ [.ρ (Listof .V) → .ρ]
-              [.ρ (Listof .V) (U Bool Int) → .ρ]))
+              [.ρ (Listof .V) (U Boolean Integer) → .ρ]))
 (define (ρ++ ρ V* [var? #f])
   (match var?
     [#f (for/fold ([ρi ρ]) ([V V*]) (ρ+ ρi V))]
@@ -134,34 +134,34 @@
                     MT V*))]
     [(? integer? n) (ρ++ (ρ+ ρ (car V*)) (cdr V*) (- n 1))]))
 
-(: ρ@ : .ρ (U .x Int .x/c Sym) → .V)
+(: ρ@ : .ρ (U .x Integer .x/c Symbol) → .V)
 (define (ρ@ ρ x)
   (match-let ([(.ρ m l) ρ])
     (hash-ref m (match x
                   [(.x sd) (- l sd 1)]
-                  [(? int? sd) (- l sd 1)]
+                  [(? integer? sd) (- l sd 1)]
                   [(.x/c x) x]
-                  [(? sym? x) x]))))
+                  [(? symbol? x) x]))))
 
-(: ρ-set : .ρ (U .x Int) .V → .ρ)
+(: ρ-set : .ρ (U .x Integer) .V → .ρ)
 (define (ρ-set ρ x V)
   (match-let ([(.ρ m l) ρ]
-              [sd (match x [(.x sd) sd] [(? int? sd) sd])])
+              [sd (match x [(.x sd) sd] [(? integer? sd) sd])])
     (.ρ (hash-set m (- l sd 1) V) l)))
 
-(: ρ∋ : .ρ (U .x Int) → Bool)
+(: ρ∋ : .ρ (U .x Integer) → Boolean)
 (define (ρ∋ ρ x)
   (match-let ([(.ρ m l) ρ]
-              [sd (match x [(.x sd) sd] [(? int? sd) sd])])
+              [sd (match x [(.x sd) sd] [(? integer? sd) sd])])
     (hash-has-key? m (- l sd 1))))
 
 ;;;;; STORE
 
 ;; store maps label indices to refined prevalues
-(struct: .σ ([map : (Map Int .V+)] [next : Int]) #:transparent)
+(struct: .σ ([map : (Map Integer .V+)] [next : Integer]) #:transparent)
 (define σ∅ (.σ (hash) 0))
 
-(: σ@ : (case→ [.σ (U .L Int) → .V+]
+(: σ@ : (case→ [.σ (U .L Integer) → .V+]
                [.σ .// → .//]
                [.σ .μ/V → .μ/V]
                [.σ .X/V → .X/V]
@@ -169,7 +169,7 @@
 (define (σ@ σ a)
   (match a
     [(.L i) (hash-ref (.σ-map σ) i)]
-    [(? int? i) (hash-ref (.σ-map σ) i)]
+    [(? integer? i) (hash-ref (.σ-map σ) i)]
     [(and (? .V? V) (not (? .L?))) V]))
 
 ; allocates new location with given refinements.
@@ -186,7 +186,7 @@
   (values (.σ (hash-set m i (if (set-empty? Cs) ♦ (.// '• Cs))) (+ 1 i))
           (.L i)))
 
-(: σ++ : .σ Int → (Values .σ (Listof .L)))
+(: σ++ : .σ Integer → (Values .σ (Listof .L)))
 (define (σ++ σ n)
   (match-define (.σ m lo) σ)
   (define hi (+ lo n))
@@ -199,14 +199,14 @@
     [(_ σ) σ]
     [(_ σ k v rest ...) (σ-set (σ-set₁ σ k v) rest ...)]))
 
-(: σ-set₁ : .σ (U .L Int) .V+ → .σ)
+(: σ-set₁ : .σ (U .L Integer) .V+ → .σ)
 (define (σ-set₁ σ a V)
   (match-let ([(.σ m l) σ]
-              [i (match a [(.L i) i] [(? int? i) i])])
+              [i (match a [(.L i) i] [(? integer? i) i])])
     (.σ (hash-set m i V) l)))
 
 ; substitute contract for given symbol
-(: C/ : .V Sym .V → .V)
+(: C/ : .V Symbol .V → .V)
 (define (C/ V x V′)
   (match V
     [(.L _) V]
@@ -282,7 +282,7 @@
 (define (=/C V) (→C '= #:2nd V))
 (define (≠/C V) (.¬/C (=/C V)))
 
-(:* [arity=/C arity≥/C arity-includes/C] : Int → .V)
+(:* [arity=/C arity≥/C arity-includes/C] : Integer → .V)
 (define (arity=/C n) (→C 'arity=? #:2nd (Prim n)))
 (define (arity≥/C n) (→C 'arity>=? #:2nd (Prim n)))
 (define (arity-includes/C n) (→C 'arity-includes? #:2nd (Prim n)))
@@ -321,7 +321,7 @@
 (: unroll/C : .μ/C → .V)
 (define (unroll/C U) (match-let ([(.μ/C x C′) U]) (C/ C′ x (→V U))))
 
-(: flat/C? : .σ (U .U .V) → Bool)
+(: flat/C? : .σ (U .U .V) → Boolean)
 (define (flat/C? σ V) ; returns whether value is definitely a flat contract
   (let go ([V V])
     (match V
@@ -368,7 +368,7 @@
     (match-lambda
      [(and V (.L i))
       (match (hash-ref F i #f)
-        [(? int? j) (.L j)]
+        [(? integer? j) (.L j)]
         [_ V])]
      [(.// U C*) (.// (go/U U) (for/set: .V ([Ci C*]) (go/V Ci)))]
      [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go/V Vi)))]
@@ -389,7 +389,7 @@
   (define (go/ρ ρ)
     (match-define (.ρ m l) ρ)
     (.ρ ;; TODO: either wrong or dumb, rewrite using for/hash
-     (for/fold ([acc : (Map (U Sym Int) .V) m]) ([k (in-hash-keys m)])
+     (for/fold ([acc : (Map (U Symbol Integer) .V) m]) ([k (in-hash-keys m)])
        (match (hash-ref m k #f)
          [(? .V? V) (hash-set acc k (go/V V))]
          [_ acc]))
@@ -418,7 +418,7 @@
     (match V-old
       ; V
       [(.L i) (match (hash-ref F i #f)
-                [(? int? j) (.L j)]
+                [(? integer? j) (.L j)]
                 [#f
                  (match-define-values (σ′ (and L_j (.L j))) (σ+ σ-new))
                  (set! σ-new σ′)
@@ -443,7 +443,7 @@
       ;ρ
       [(.ρ m l)
        (.ρ
-        (for/fold : (Map (U Sym Int) .V) ([acc : (Map (U Sym Int) .V) m]) ([k (in-hash-keys m)])
+        (for/fold : (Map (U Symbol Integer) .V) ([acc : (Map (U Symbol Integer) .V) m]) ([k (in-hash-keys m)])
           (match (hash-ref m k #f)
             [#f acc]
             [(? .V? V) (hash-set acc k (go! V))]))
@@ -451,7 +451,7 @@
       ; List
       [(? list? V*) (map go! V*)]))
   
-  (: transfer? : .V → Bool)
+  (: transfer? : .V → Boolean)
   (define (transfer? C)
     (match C
       [(.L i) (hash-has-key? F i)]
@@ -460,11 +460,11 @@
                    ['• #f]
                    [(.Ar C V _) (and (transfer? C) (transfer? V))]
                    [(.St _ V*) (andmap transfer? V*)]
-                   [(.λ↓ f (.ρ m _)) (for/and : Bool ([V (in-hash-values m)])
+                   [(.λ↓ f (.ρ m _)) (for/and : Boolean ([V (in-hash-values m)])
                                        (transfer? V))]
                    [(.Λ/C C (.ρ m _) _)
                     (and (andmap transfer? C)
-                         (for/and : Bool ([V (in-hash-values m)])
+                         (for/and : Boolean ([V (in-hash-values m)])
                            (transfer? V)))]
                    [(.St/C _ C*) (andmap transfer? C*)]
                    [(.μ/C _ c) (transfer? c)]
@@ -535,7 +535,7 @@
   (go V*))
 
 ;; checks whether v appears under V
-(: V∈ : .V .V → Bool)
+(: V∈ : .V .V → Boolean)
 (define (V∈ v V)
   (let go ([V V])
     (or (equal? v V) ; TODO: Not enough for sat-7
@@ -572,7 +572,7 @@
                             [_ (.μ/V z (for/set: .V ([V Vs]) (go V)))])]
              [x x]))]
       [(and ρ (.ρ m l))
-       (let ([m′ (for/fold ([m′ : (Map (U Int Sym) .V) m∅]) ([x (in-hash-keys m)])
+       (let ([m′ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅]) ([x (in-hash-keys m)])
                    (hash-set m′ x (go (hash-ref m x))))])
          (if (equal? m′ m) ρ (.ρ m′ l)))]))
   (match V0
@@ -582,10 +582,10 @@
     [(? .ρ? ρ) (go ρ)]))
 
 ; generates a symbol not appearing in value (for μ/V x {...})
-(: fresh : (U .V (Setof .V) (Listof .V)) → Sym)
+(: fresh : (U .V (Setof .V) (Listof .V)) → Symbol)
 (define (fresh V)
   
-  (: col : (U .V (Setof .V) (Listof .V)) → (Setof Sym))
+  (: col : (U .V (Setof .V) (Listof .V)) → (Setof Symbol))
   (define (col V)
     (match V
       [(.L _) ∅]
@@ -596,9 +596,9 @@
          [_ ∅])] ; TODO ok to ignore?
       [(.μ/V x Vs) (col Vs)]
       [(.X/V x) {set x}]
-      [(? set? V*) (for/fold ([s : (Setof Sym) ∅]) ([V V*])
+      [(? set? V*) (for/fold ([s : (Setof Symbol) ∅]) ([V V*])
                      (set-union s (col V)))]
-      [(? list? V*) (for/fold ([s : (Setof Sym) ∅]) ([V V*])
+      [(? list? V*) (for/fold ([s : (Setof Symbol) ∅]) ([V V*])
                       (set-union s (col V)))]))
   
   (variable-not-in (set->list (col V)) 'X))

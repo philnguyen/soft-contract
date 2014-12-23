@@ -60,13 +60,13 @@
   (match-let ([(.ρ m l) ρ])
     (for/list : (Listof Any) ([x (in-hash-keys m)])
       (cond
-        [(sym? x) `(,x ↦ ,(show-V σ (hash-ref m x)))]
-        [(int? x) `(,(format "sd~a" (n-sub (- l x 1))) ↦ ,(show-V σ (hash-ref m x)))]))))
+        [(symbol? x) `(,x ↦ ,(show-V σ (hash-ref m x)))]
+        [(integer? x) `(,(format "sd~a" (n-sub (- l x 1))) ↦ ,(show-V σ (hash-ref m x)))]))))
 
 (: show-E : .σ .E → Any)
 (define (show-E σ E)
   (match E
-    [(.L i) (str→sym (format "L~a" (n-sub i)))]
+    [(.L i) (string->symbol (format "L~a" (n-sub i)))]
     [(? .A? A) (show-A σ A)]
     [(.↓ e ρ) (show-e σ e)]
     [(.FC C V l) `(FC ,l ,(show-E σ C) ,(show-E σ V))]
@@ -75,7 +75,7 @@
 
 (: show-e : .σ .e → Any)
 (define (show-e σ e)
-  (let go ([ctx : (Listof Sym) '()] [e e])
+  (let go ([ctx : (Listof Symbol) '()] [e e])
     (match e
       ; syntactic sugar
       [(.λ 1 (.@ '= (list (.x 0) e′) _) _) `(=/c ,(go ctx e′))]
@@ -102,7 +102,7 @@
          [(l r) `(or ,l ,r)])]
       [(.@ (.st-mk (and n 'and/c 'or/c '¬/c) _) c* _) `(,n ,@(map (curry go ctx) c*))]
       ;; Direct case-λ application
-      [(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
+      [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
        (match-define (.// (.Case m) _) (σ@ σ n))
        `(case ,(go ctx e) ,@(show-cases σ m))]
       ;; Direct λ application
@@ -111,7 +111,7 @@
        `(let ,(for/list : (Listof Any) ([x (reverse x*)] [ei ex])
                 `(,x ,(go ctx ei)))
          ,(go (append x* ctx) e))]
-      [(.@ (.•ₗ (and n (? (λ ([n : Int]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _ #f) _) _)))))) es _)
+      [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _ #f) _) _)))))) es _)
        (match-let ([(.// (.λ↓ (.λ k e #f) ρ) _) (σ@ σ n)])
          (cond
           ;; Inline if all arguments are simple. TODO: can do better, for each argument?
@@ -161,7 +161,7 @@
       [(.x/c x) x]
       [(.struct/c t cs) `(,(string->symbol (format "~a/c" t)) ,@(map (curry go ctx) cs))])))
 
-(: show-b : (U Num Str Bool Sym) → Any)
+(: show-b : (U Number String Boolean Symbol) → Any)
 (define (show-b x)
   (cond
    [(string? x) (format "\"~a\"" x)]
@@ -177,7 +177,7 @@
     (for/list : (Listof Any) ([(i v) (in-hash m)])
       `(,(format "L~a" (n-sub i)) ↦ ,(show-E σ v)))))
 
-(: ctx-ref : (Listof Sym) Int → Sym)
+(: ctx-ref : (Listof Symbol) Integer → Symbol)
 (define (ctx-ref xs i)
   (printf "Search for ~a in ~a~n" i xs)
   (let go ([xs xs] [i i])
@@ -208,7 +208,7 @@
      `(,m-name : ,@res))
    (show-e σ e†)))
 
-(: syn : .σ Int → Any)
+(: syn : .σ Integer → Any)
 (define (syn σ α)
   (match-define (.σ m _) σ)
   (match (hash-ref m α #f)

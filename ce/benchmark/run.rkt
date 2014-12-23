@@ -53,7 +53,7 @@
 #;(define-values (L C T1 T2 B1 B2) (values 0 0 0 0 0 0))
 (for ([fn files] #:when (regexp-match? #rx"sch$" fn))
   (define lines ; count non-empty, non-comment lines
-    (for/sum : Int ([s (file->lines fn)] #:unless (regexp-match? #rx"^( *)(;.*)*( *)$" s)) 1))
+    (for/sum : Integer ([s (file->lines fn)] #:unless (regexp-match? #rx"^( *)(;.*)*( *)$" s)) 1))
   (define name (string-trim fn ".sch"))
   (define p (read-p (file->list fn)))
   (define checks (checks# p))
