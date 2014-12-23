@@ -33,7 +33,7 @@
           (format "(declare-const ~a ~a)~n"
                   (→lab i)
                   (match-let ([(.// _ C*) (σ@ σ′ i)])
-                    (or (for/or : (U #f Sym) ([C : .V C*] #:when (match? C (.// (.int?) _))) 'Int)
+                    (or (for/or : (U #f Sym) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'Int)
                         'Real)))))
        (string-append* (for/list ([q Q*]) (format "(assert ~a)~n" q)))
        q)])]))
@@ -42,8 +42,8 @@
 (define (handled? C)
   (match? C
     (.// (.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? num?)))) _) #f) _) _)
-    (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?)) (list (.x 0) (or (.x _) (.b (? num?)))) _) #f) _) _)
-    (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
+    (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (or (.x _) (.b (? num?)))) _) #f) _) _)
+    (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                         (list (.x 0)
                               (.@ (? arith?)
                                   (list (or (.x _) (.b (? num?)))
@@ -52,7 +52,7 @@
 
 (: arith? : .e → Bool)
 (define (arith? e)
-  (match? e (.=) (.equal?) (.>) (.<) (.≥) (.≤)))
+  (match? e '= 'equal? '> '< '>= '<=))
 
 ; generate all possible assertions spanned by given set of labels
 ; return set of assertions as wel as set of labels involved
@@ -88,7 +88,7 @@
       [(? list? l) (andmap involved? l)]
       [(.// U Cs)
        (match U
-         [(.•) (or (set-member? Cs REAL/C) (set-member? Cs INT/C))]
+         ['• (or (set-member? Cs REAL/C) (set-member? Cs INT/C))]
          [(.b (? real?)) #t]
          [_ #f])]))
   
@@ -142,12 +142,12 @@
           (let ([X (ρ@* e)])
             (values (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))
                     (labels i X)))]
-         [(.λ 1 (.@ (or (.=) (.equal?))
-                    (list (.x 0) (.@ (.sqrt) (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
+         [(.λ 1 (.@ (or '= 'equal?)
+                    (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
           (let ([X (ρ@* M)])
             (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
                     (labels i X)))]
-         [(.λ 1 (.@ (or (.=) (.equal?))
+         [(.λ 1 (.@ (or '= 'equal?)
                     (list (.x 0) (.@ (? .o? o)
                                      (list (and M (or (.x _) (.b (? num?))))
                                            (and N (or (.x _) (.b (? num?))))) _)) _) #f)
@@ -189,8 +189,7 @@
      (if (int? i)
          (if (>= i 0) (format "L~a" i) (format "X~a" (- i)))
          (error "can't happen"))]
-    [(.equal?) '=] [(.≥) '>=] [(.≤) '<=]
-    [(? .o? o) (name o)]))
+    [(? symbol? o) o]))
 
 ; extracts all labels in contract
 (: span-C : .V → (Setof Int))

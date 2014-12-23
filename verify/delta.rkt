@@ -23,66 +23,66 @@
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V (→V (.st-p t n))))])]
     
     ; arithmetics
-    [((.=) (list V1 V2))
-     (match/Ans* (δ σ (.num?) (list V1) 'Λ)
+    [('= (list V1 V2))
+     (match/Ans* (δ σ 'number? (list V1) 'Λ)
        [(cons σt (.// (.b #t) _))
-        (match/Ans* (δ σt (.num?) (list V2) 'Λ)
-          [(cons σt (.// (.b #t) _)) (Δ σt (.=) V*)]
+        (match/Ans* (δ σt 'number? (list V2) 'Λ)
+          [(cons σt (.// (.b #t) _)) (Δ σt '= V*)]
           [(cons σf (.// (.b #f) _)) (cons σf (.blm l '= V2 NUM/C))])]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l '= V1 NUM/C))])]
-    [((or (.add1) (.sub1)) (list V))
-     (match/Ans* (δ σ (.num?) V* 'Λ)
+    [((or 'add1 'sub1) (list V))
+     (match/Ans* (δ σ 'number? V* 'Λ)
        [(cons σt (.// (.b #t) _)) (Δ σt o V*)]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V NUM/C))])]
-    [((or (.+) (.-) (.*)) (list V1 V2))
-     (match/Ans* (δ σ (.num?) (list V1) 'Λ)
+    [((or '+ '- '*) (list V1 V2))
+     (match/Ans* (δ σ 'number? (list V1) 'Λ)
        [(cons σt (.// (.b #t) _))
-        (match/Ans* (δ σt (.num?) (list V2) 'Λ)
+        (match/Ans* (δ σt 'number? (list V2) 'Λ)
           [(cons σt (.// (.b #t) _)) (Δ σt o V*)]
           [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V2 NUM/C))])]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V1 NUM/C))])]
-    [((.+) (list)) (cons σ (Prim 0))]
-    [((.*) (list)) (cons σ (Prim 1))]
-    [((or (.+) (.*)) (list V))
-     (match/Ans* (δ σ (.num?) (list V) 'Λ)
+    [('+ (list)) (cons σ (Prim 0))]
+    [('* (list)) (cons σ (Prim 1))]
+    [((or '+ '*) (list V))
+     (match/Ans* (δ σ 'number? (list V) 'Λ)
        [(cons σt (.// (.b #t) _)) (cons σt V)]
        [(cons σf (.// (.b #f) _)) (cons σf V)])]
-    [((or (.+) (.*)) (list* V₁ V₂ Vᵣ))
+    [((or '+ '*) (list* V₁ V₂ Vᵣ))
      (match/Ans* (δ σ o (list V₁ V₂) l)
        [(cons σ (? .V? Vᵢ)) (δ σ o (cons Vᵢ Vᵣ) l)]
        [(and ans (cons σ (? .blm?))) ans])]
-    [((./) (list V1 V2))
-     (match/Ans* (δ σ (.num?) (list V1) 'Λ)
+    [('/ (list V1 V2))
+     (match/Ans* (δ σ 'number? (list V1) 'Λ)
        [(cons σt (.// (.b #t) _))
-        (match/Ans* (δ σt (.num?) (list V2) 'Λ)
+        (match/Ans* (δ σt 'number? (list V2) 'Λ)
           [(cons σt (.// (.b #t) _))
-           (match/Ans* (δ σt (.=) (list V2 (Prim 0)) 'Λ)
+           (match/Ans* (δ σt '= (list V2 (Prim 0)) 'Λ)
              [(cons σt (.// (.b #t) _)) (cons σt (.blm l '/ V2 NON-ZERO/C))]
-             [(cons σf (.// (.b #f) _)) (Δ σf (./) V*)])]
+             [(cons σf (.// (.b #f) _)) (Δ σf '/ V*)])]
           [(cons σf (.// (.b #f) _)) (cons σf (.blm l '/ V2 NUM/C))])]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l '/ V1 NUM/C))])]
-    [((or (.>) (.<) (.≤) (.≥)) (list V1 V2))
-     (match/Ans* (δ σ (.real?) (list V1) 'Λ)
+    [((or '> '< '<= '>=) (list V1 V2))
+     (match/Ans* (δ σ 'real? (list V1) 'Λ)
        [(cons σt (.// (.b #t) _))
-        (match/Ans* (δ σt (.real?) (list V2) 'Λ)
+        (match/Ans* (δ σt 'real? (list V2) 'Λ)
           [(cons σt (.// (.b #t) _)) (Δ σt o V*)]
           [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V2 REAL/C))])]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V1 REAL/C))])]
-    [((.str-len) (list V))
-     (match/Ans* (δ σ (.str?) V* 'Λ)
-       [(cons σt (.// (.b #t) _)) (Δ σt (.str-len) V*)]
+    [('string-length (list V))
+     (match/Ans* (δ σ 'string? V* 'Λ)
+       [(cons σt (.// (.b #t) _)) (Δ σt 'string-length V*)]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l 'str-len V STR/C))])]
-    [((.equal?) (list V1 V2)) (V=? σ V1 V2)]
-    [((.sqrt) (list V))
-     (match/Ans* (δ σ (.real?) (list V) 'Λ)
-       [(cons σt (.// (.b #t) _)) (Δ σt (.sqrt) V*)]
+    [('equal? (list V1 V2)) (V=? σ V1 V2)]
+    [('sqrt (list V))
+     (match/Ans* (δ σ 'real? (list V) 'Λ)
+       [(cons σt (.// (.b #t) _)) (Δ σt 'sqrt V*)]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l 'sqrt V REAL/C))])]
     
     ; arity check
-    [((or (.arity=?) (.arity≥?) (.arity-includes?)) (list V1 V2))
-     (match/Ans* (δ σ (.proc?) (list V1) 'Λ)
+    [((or 'arity=? 'arity>=? 'arity-includes?) (list V1 V2))
+     (match/Ans* (δ σ 'procedure? (list V1) 'Λ)
        [(cons σt (.// (.b #t) _))
-        (match/Ans* (δ σt (.int?) (list V2) 'Λ)
+        (match/Ans* (δ σt 'integer? (list V2) 'Λ)
           [(cons σt (.// (.b #t) _)) (check-C σt V1 (→C o #:2nd V2))]
           [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V2 INT/C))])]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V1 PROC/C))])]
@@ -95,10 +95,10 @@
 (: Δ : .σ .o (Listof .V) → .Vns*)
 (define (Δ σ o V*)
   (match* (o V*)
-    [((.add1) (list V)) (Δ σ (.+) (list V ONE))]
-    [((.sub1) (list V)) (Δ σ (.-) (list V ONE))]
+    [('add1 (list V)) (Δ σ '+ (list V ONE))]
+    [('sub1 (list V)) (Δ σ '- (list V ONE))]
     
-    [((.*) (list V1 V2))
+    [('* (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (* x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
@@ -120,7 +120,7 @@
                                           [else #f])
                                     (*/C X1 X2))])
                     (cons σ V))]))])]
-    [((./) (list V1 V2))
+    [('/ (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (/ x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
@@ -139,7 +139,7 @@
                                     (÷/C X1 X2)
                                     (if (eq? 'Proved (⊢ σ X1 NON-ZERO/C)) NON-ZERO/C #f))])
                     (cons σ V))]))])]
-    [((.+) (list V1 V2))
+    [('+ (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (+ x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
@@ -160,7 +160,7 @@
                                           [else #f])
                                     (+/C X1 X2))])
                     (cons σ V))]))])]
-    [((.-) (list V1 V2))
+    [('- (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (- x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
@@ -176,8 +176,8 @@
                                           [else NUM/C])
                                     (-/C X1 X2))])
                     (cons σ V))]))])]
-    [((.sqrt) (list V))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+    [('sqrt (list V))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? real? x)) _)) (cons σ (Prim (sqrt x)))]
        [(list (and W (.// U _)))
         (let ([X (if (.•? U) V W)])
@@ -191,8 +191,8 @@
                                           [else NUM/C])
                                     (sqrt/C V))])
                     (cons σ V))]))])]
-    [((.<) (list (.L i) (.L i))) (cons σ FF)]
-    [((.<) (list V1 V2))
+    [('< (list (.L i) (.L i))) (cons σ FF)]
+    [('< (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? real? x)) _) (.// (.b (? real? y)) _)) (cons σ (Prim (< x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
@@ -222,16 +222,16 @@
                         [(_ (.L _)) (refine σ X2 (≤/C X1))]
                         [(_ _) (cons σ 'ignore)])])
                   {set (cons σt TT) (cons σf FF)})])]))])]
-    [((.>) (list V1 V2)) (Δ σ (.<) (list V2 V1))]
-    [((.>) (list (.L i) (.L i))) (cons σ FF)]
-    [((.≥) (list (.L i) (.L i))) (cons σ TT)]
-    [((.≥) (list V1 V2)) (match/Vns* (Δ σ (.<) (list V1 V2))
+    [('> (list V1 V2)) (Δ σ '< (list V2 V1))]
+    [('> (list (.L i) (.L i))) (cons σ FF)]
+    [('>= (list (.L i) (.L i))) (cons σ TT)]
+    [('>= (list V1 V2)) (match/Vns* (Δ σ '< (list V1 V2))
                            [(cons σt (.// (.b #t) _)) (cons σt FF)]
                            [(cons σf (.// (.b #f) _)) (cons σf TT)])]
-    [((.≤) (list (.L i) (.L i))) (cons σ TT)]
-    [((.≤) (list V1 V2)) (Δ σ (.≥) (list V2 V1))]
-    [((.=) (list (.L i) (.L i))) (cons σ TT)]
-    [((.=) (list V1 V2))
+    [('<= (list (.L i) (.L i))) (cons σ TT)]
+    [('<= (list V1 V2)) (Δ σ '>= (list V2 V1))]
+    [('= (list (.L i) (.L i))) (cons σ TT)]
+    [('= (list V1 V2))
      (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? num? x)) _) (.// (.b (? num? y)) _)) (cons σ (Prim (= x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
@@ -262,7 +262,7 @@
                         [(_ _) (cons σ 'ignore)])])
                   {set (cons σt TT) (cons σf FF)})])]))])]
     
-    [((.str-len) (list V))
+    [('string-length (list V))
      (match (σ@ σ V)
        [(.// (.b (? str? s)) _) (cons σ (Prim (string-length s)))]
        [_ (let-values ([(σ V) (σ+ σ INT/C NON-NEG/C)])
@@ -282,8 +282,8 @@
        [a a])]
     [(_ (.L i)) (V=? σ V1 (σ@ σ i))]
     [((.L i) _) (V=? σ (σ@ σ i) V2)]
-    [(_ (.// (.•) _)) {set (cons σ TT) (cons σ FF)}]
-    [((.// (.•) _) _) {set (cons σ TT) (cons σ FF)}]
+    [(_ (.// '• _)) {set (cons σ TT) (cons σ FF)}]
+    [((.// '• _) _) {set (cons σ TT) (cons σ FF)}]
     [((.// (.St t1 V1*) _) (.// (.St t2 V2*) _))
      (if (eq? t1 t2)
          (let loop ([σ σ] [V1* V1*] [V2* V2*])
@@ -326,7 +326,7 @@
 (define (refine1 σ V C)
   (let ([C (simplify C)])
     #;(printf "refine1:~n~a~n~a~n~a~n~n" (show-σ σ) (show-E σ V) (show-E σ C))
-    (when (match? C (.// (.•) _)) (error "ha!"))
+    (when (match? C (.// '• _)) (error "ha!"))
     (match V
       [(.L i) (match-let ([(cons σ′ V′) (refine1 σ (σ@ σ i) C)])
                 (match V′
@@ -355,11 +355,11 @@
                [(_ _) (cons σ (.// U (refine-C* C* C)))])]
             [(and Uc (.μ/C x C′))
              (match U
-               [(.•) (cons σ (reify C))]
+               ['• (cons σ (reify C))]
                [(.St t V*) (refine1 σ V (unroll/C Uc))]
                [_ (cons σ V)])]
             ; equal contracts
-            [(.λ↓ (.λ 1 (.@ (or (.=) (.equal?)) (list (.x 0) e) _) #f) ρ)
+            [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) e) _) #f) ρ)
              (match e
                [(? .b? b) (cons σ (.// b C*))]
                [(and (? .λ? f) (? closed?)) (cons σ (.// (.λ↓ f ρ∅) C*))]
@@ -371,7 +371,7 @@
             ; struct contracts
             [(.St/C t D*)
              (match-let* ([(cons σ V*) (ann (match U
-                                              [(.•)
+                                              ['•
                                                (let-values ([(σ Vs) (σ++ σ (length D*))])
                                                  (cons σ Vs))]
                                               [(.St _ V*) (cons σ V*)])
@@ -379,13 +379,13 @@
                           [(cons σ V*) (refine* σ V* D*)])
                (cons σ (.// (.St t V*) C*)))]
             [(.st-p t n) (match U
-                           [(.•)
+                           ['•
                             (let-values ([(σ′ L*) (σ++ σ n)])
                               (cons σ′ (.// (.St t L*) C*)))]
                            [(.St (? (curry eq? t)) _) (cons σ V)])]
             ; singleton contracts
-            [(.true?) (cons σ (.// .tt C*))]
-            [(.false?) (cons σ (.// .ff C*))]
+            ['true? (cons σ (.// .tt C*))]
+            ['false? (cons σ (.// .ff C*))]
             [(.st-p t 0) (cons σ (.// (.St t '()) C*))]
             [_ (cons σ (.// U (set-add C* C)))])])]
       [(and (.μ/V x V*) V)
@@ -448,22 +448,22 @@
           [((.St 'or/c _) _) (let ([C′ (truncate C D)])
                                (if (equal? C C′) {set C D} (refine-C C′ D)))]
           ; special rules for reals
-          [((.λ↓ (.λ 1 (.@ (.≥) (list e1 e2) l) #f) ρc)
-            (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
+          [((.λ↓ (.λ 1 (.@ '>= (list e1 e2) l) #f) ρc)
+            (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρd) _))))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ (.>) (list e1 e2) l) #f) ρc)) {set C D})]
-          [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l) #f) ρc)) {set C D})]
+          [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρc) _)))
-            (.λ↓ (.λ 1 (.@ (.≥) (list e1 e2) l) #f) ρd))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ (.>) (list e1 e2) l) #f) ρd)) {set C D})]
-          [((.λ↓ (.λ 1 (.@ (.≤) (list e1 e2) l) #f) ρc)
-            (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
+            (.λ↓ (.λ 1 (.@ '>= (list e1 e2) l) #f) ρd))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l) #f) ρd)) {set C D})]
+          [((.λ↓ (.λ 1 (.@ '<= (list e1 e2) l) #f) ρc)
+            (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρd) _))))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ (.<) (list e1 e2) l) #f) ρc)) {set C D})]
-          [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l) #f) ρc)) {set C D})]
+          [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρc) _)))
-            (.λ↓ (.λ 1 (.@ (.≤) (list e1 e2) l) #f) ρd))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ (.<) (list e1 e2) l) #f) ρd)) {set C D})]
+            (.λ↓ (.λ 1 (.@ '<= (list e1 e2) l) #f) ρd))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l) #f) ρd)) {set C D})]
           [(_ _) {set C D}])]
        [(_ _) {set C D}])]))
 
@@ -480,7 +480,7 @@
     [_ C]))
 
 (: U+ : .U .U → .U)
-(define U+ (match-lambda** [((.•) U) U] [(U _) U]))
+(define U+ (match-lambda** [('• U) U] [(U _) U]))
 
 (: ∪ : (U (Setof .V) .V) * → (Setof .V))
 (define (∪ . V*)
@@ -494,7 +494,7 @@
 (: U^ : .U → (Setof .V))
 (define U^
   (match-lambda [(.b b) (b^ b)]
-                [(.•) ∅]
+                ['• ∅]
                 [(or (? .Ar?) (? .λ↓?)) {set PROC/C}]
                 [(.St t V*) {set (→V (.st-p t (length V*)))}]
                 [_ ∅]))
@@ -516,10 +516,10 @@
     [(.L i) (v-class σ (σ@ σ i))]
     [(.// U C*)
      (match U
-       [(.•) (or (for/or: : (Option (Setof Any)) ([C : .V C*] #:when (match? C (.// (.pred) _)))
-                   (match-let ([(.// (and o (.pred)) _) C])
-                     {set (name o)}))
-                 {set '•})]
+       ['• (or (for/or : (Option (Setof Any)) ([C : .V C*] #:when (match? C (.// (? .pred?) _)))
+                 (match-define (.// (? .pred? o) _) C)
+                 {set (name o)})
+               {set '•})]
        [(? .o? o) {set `(prim ,(name o))}]
        [(.b u) {set (cond
                       [(int? u) 'int?]
@@ -600,7 +600,7 @@
              [((.// U0 C*) (.// U1 D*))
               (match* (U0 U1)
                 ; keep around common values: 0, 1, #t, #f, struct with no component
-                [(_ (or (.•) (? .o?) (.b 0) (.b 1) (.b #t) (.b #f) (.St _ '()))) V1]
+                [(_ (or '• (? .o?) (.b 0) (.b 1) (.b #t) (.b #f) (.St _ '()))) V1]
                 ; cannot blur higher order value
                 [(_ (.λ↓ f ρ))
                  (let ([repeated (repeated-lambdas f ρ)])
@@ -620,30 +620,30 @@
                                  (match-let* ([x 'X #;(fresh V1*)]
                                               [Vi* (V/ V1* V0 (.X/V x))]
                                               [(cons Vi* Vs) (elim-μ x Vi*)])
-                                   (if (equal? Vi* V1*) (.// • (set-intersect C* D*))
+                                   (if (equal? Vi* V1*) (.// '• (set-intersect C* D*))
                                        #;(μV x (compact {set V0 (.// (.St t Vi*) D*)} Vs))
                                        (.// (.St t (V/ Vi* (.X/V x) (μV x (compact {set V0 (.// (.St t Vi*) ∅)} Vs)))) D*)))]
                 [((.b (? num? b0)) (.b (? num? b1)))
                  (cond ; if it moves towards 0, let it take its time
                    #;[(and (int? b0) (int? b1) (or (<= 0 b1 b0) (>= 0 b1 b0))) V1]
                    [else
-                    (.// • (set-add
-                            (cond [(and (real? b0) (real? b1))
-                                   {set (cond [(and (> b0 0) (> b1 0)) POS/C]
-                                              [(and (< b0 0) (< b1 0)) NEG/C]
-                                              [(and (not (= b0 0)) (not (= b1 0))) NON-ZERO/C]
-                                              [(and (>= b0 0) (>= b1 0)) NON-NEG/C]
-                                              [(and (<= b0 0) (<= b1 0)) NON-POS/C]
-                                              [else REAL/C])}]
-                                  [else ∅])
-                            (cond [(and (int? b0) (int? b1)) INT/C]
-                                  [(and (real? b0) (real? b1)) REAL/C]
-                                  [else NUM/C])))])]
+                    (.// '• (set-add
+                             (cond [(and (real? b0) (real? b1))
+                                    {set (cond [(and (> b0 0) (> b1 0)) POS/C]
+                                               [(and (< b0 0) (< b1 0)) NEG/C]
+                                               [(and (not (= b0 0)) (not (= b1 0))) NON-ZERO/C]
+                                               [(and (>= b0 0) (>= b1 0)) NON-NEG/C]
+                                               [(and (<= b0 0) (<= b1 0)) NON-POS/C]
+                                               [else REAL/C])}]
+                                   [else ∅])
+                             (cond [(and (int? b0) (int? b1)) INT/C]
+                                   [(and (real? b0) (real? b1)) REAL/C]
+                                   [else NUM/C])))])]
                 [(_ _)
                  (let ([C* (set-union C* (U^ U0))])
-                   (.// • (for/set: .V ([D (set-union D* (U^ U1))]
-                                        #:when (eq? 'Proved (C*⇒C C* D)))
-                            D)))])]
+                   (.// '• (for/set: .V ([D (set-union D* (U^ U1))]
+                                         #:when (eq? 'Proved (C*⇒C C* D)))
+                             D)))])]
              [((.μ/V x V0*) (.μ/V y V1*)) #;(printf "⊕:case2~n") (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
              [((.μ/V x V0*) _)
               #;(printf "⊕:case3~n")
@@ -739,7 +739,7 @@
   (: collect : (Setof .V) → (Values (Map Any .V) (Setof .X/V)))
   (define (collect Vs)
     #;(printf "collect:~n~a~n~n" Vs)
-    (for/fold: ([m : (Map Any .V) (hash)] [xs : (Setof .X/V) ∅]) ([V Vs])
+    (for/fold ([m : (Map Any .V) (hash)] [xs : (Setof .X/V) ∅]) ([V Vs])
       (match V
         [(.// U C*)
          (match U
@@ -749,15 +749,15 @@
            [(.b #t) (values (hash-set m #t V) xs)]
            [(.b #f) (values (hash-set m #f V) xs)]
            [(? .o? o) (values (hash-set m `(o ,(name o)) V) xs)]
-           [(.•) (values (hash-set m (for/fold: : Any ([ac '•]) ([C C*])
-                                       (match C
-                                         [(.// (? .pred? p) _) (match p
-                                                                 [(.st-p t _) t]
-                                                                 [_ (name p)])]
-                                         [_ ac]))
-                                   V)
-                         xs)]
-           [(or (? .Ar?) (? .λ↓?) (.o)) (values (hash-set m 'proc? V) xs)] ; TODO: by arity also?
+           ['• (values (hash-set m (for/fold : Any ([ac '•]) ([C C*])
+                                     (match C
+                                       [(.// (? .pred? p) _) (match p
+                                                               [(.st-p t _) t]
+                                                               [_ (name p)])]
+                                       [_ ac]))
+                                 V)
+                       xs)]
+           [(or (? .Ar?) (? .λ↓?) (? .o?)) (values (hash-set m 'proc? V) xs)] ; TODO: by arity also?
            [(.St t _) (values (hash-set m `(struct ,t) V) xs)])]
         [(? .μ/V? V) (error (format "weird:~n~a~n~a~n~n" V0s V1s)) (values (hash-set m 'μ V) xs)]
         [(? .X/V? x) (values m (set-add xs x))])))
@@ -823,7 +823,7 @@
                      (match-let ([(cons σ V) (alloc σ (hash-ref m x))])
                        (values σ (hash-set m′ x V))))])
        (cons σ (→V (.λ↓ f (.ρ m l)))))]
-    [(.// (.•) Cs)
+    [(.// '• Cs)
      (let-values ([(σ L) (σ+ σ)])
        (refine σ L Cs))]
     [(? .μ/V? V)
@@ -845,7 +845,7 @@
 (: reify : .V → .V)
 (define (reify C)
   (match C
-    [(.L _) (.// • {set C})]
+    [(.L _) (.// '• {set C})]
     [(.// Uc _)
      (match Uc
        [(.St 'and/c (list C1 C2)) (refine-V (reify C1) C2)]
@@ -863,5 +863,5 @@
        [(.X/C x) (.X/V x)]
        [(.st-p t n) (→V (.St t (make-list n ♦)))]
        [(.λ↓ (.λ 1 (.b #t) #f) _) ♦]
-       [_ (.// • {set (simplify C)})])]))
+       [_ (.// '• {set (simplify C)})])]))
 

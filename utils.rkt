@@ -1,5 +1,6 @@
 #lang typed/racket/base
 (require racket/set racket/match racket/list racket/pretty racket/string racket/port)
+(require (for-syntax racket/base racket/syntax))
 (provide (all-defined-out)) ; TODO
 (require/typed
  redex/reduction-semantics
@@ -10,20 +11,27 @@
   (let ([m : (Map X Y) ((if eq?? make-hasheq make-hash))])
     (λ (x) (hash-ref! m x (λ () (f x))))))
 
+;; Define type `t` along with predicate `t?`
+(define-syntax (define-type/pred stx)
+  (syntax-case stx ()
+    [(_ τ e) (with-syntax ([τ? (format-id #'τ "~a?" #'τ)])
+               #'(begin (define-type τ e)
+                        (define-predicate τ? τ)))]))
 
 ;; define data-type hierarchy
-(define-syntax-rule
-  (define-data (k f ...) ki ...)
-  (begin
-    (struct k (f ...) #:transparent)
-    (define-data-under k ki) ...))
-(define-syntax define-data-under
-  (syntax-rules (subset:)
-    [(_ k (subset: (ki fi ...) cl ...))
-     (begin
-       (struct ki k (fi ...) #:transparent)
-       (define-data-under ki cl) ...)]
-    [(_ k (ki fi ...)) (struct ki k (fi ...) #:transparent)]))
+(define-syntax-rule (define-data τ σ ...)
+  (define-data′ τ (σ ...) ()))
+(define-syntax (define-data′ stx)
+  (syntax-case stx (subset: struct)
+    [(_ τ () (σ ...)) #'(define-type/pred τ (U σ ...))]
+    [(_ τ ((subset: τ′ clauses′ ...) clauses ...) (σ ...))
+     #'(begin (define-data′ τ′ (clauses′ ...) ())
+              (define-data′ τ (clauses ...) (τ′ σ ...)))]
+    [(_ τ ((struct k f ...) clauses ...) (σ ...))
+     #'(begin (struct k (f ...) #:transparent)
+              (define-data′ τ (clauses ...) (k σ ...)))]
+    [(_ τ (τ₁ clauses ...) (σ ...))
+     #'(define-data′ τ (clauses ...) (τ₁ σ ...))]))
 
 (define-syntax-rule (match? v p ...) (match v [p #t] ... [_ #f]))
 (define-syntax-rule (match-λ? p ...) (match-lambda [p #t] ... [_ #f]))
@@ -138,3 +146,10 @@
 (define (pretty x)
   (parameterize ([pretty-print-columns 80])
     (string-trim (with-output-to-string (λ () (pretty-display x))))))
+
+(: n-sub : Int → String)
+(define (n-sub n)
+  (cond
+   [(< n 0) (format "₋~a" (n-sub (- n)))]
+   [(<= 0 n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
+   [else (string-append (n-sub (quotient n 10)) (n-sub (remainder n 10)))]))

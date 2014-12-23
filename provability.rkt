@@ -41,7 +41,7 @@
         ; V ∈ C
         [((.L i) C)
          (match C ; HACK
-           [(.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?)) (list-no-order (.x 0) (.x a)) _) #f) ρ) _)
+           [(.// (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list-no-order (.x 0) (.x a)) _) #f) ρ) _)
             (match (ρ@ ρ (- (cast a Int) 1))
               [(.L j) (if (= i j) 'Proved (go (σ@ σ i) C))]
               [_ (go (σ@ σ i) C)])]
@@ -70,25 +70,25 @@
         ; U ∈ U
         [(_ (.λ↓ (.λ _ (.b #t) _) _)) 'Proved] ; any
         [(_ (.λ↓ (.λ _ (.b #f) _) _)) 'Refuted] ; none
-        [((.•) _) 'Neither] ; opaque, no further info
+        [('• _) 'Neither] ; opaque, no further info
         [((? .U? U) (? .U? Uc))
          (match* (U Uc)
            ;; negation
            [(_ (.St '¬/c (list C′))) (¬R (go U C′))]
-           [(_ (.λ↓ (.λ n (.@ (.false?) (list e) l) v?) ρ)) (¬R (go U (.λ↓ (.λ n e v?) ρ)))]
+           [(_ (.λ↓ (.λ n (.@ 'false? (list e) l) v?) ρ)) (¬R (go U (.λ↓ (.λ n e v?) ρ)))]
            
            ;; base predicates as contracts
-           [([.b (? num?)] [.num?]) 'Proved]
-           [([.b (? real?)] [.real?]) 'Proved]
-           [([.b (? int?)] [.int?]) 'Proved]
-           [([.b (? str?)] [.str?]) 'Proved]
-           [([.b (? bool?)] [.bool?]) 'Proved]
-           [([.b #t] [.true?]) 'Proved]
-           [([.b #f] [.false?]) 'Proved]
-           [([.b sym?] [.symbol?]) 'Proved]
+           [([.b (? num?)] 'number?) 'Proved]
+           [([.b (? real?)] 'real?) 'Proved]
+           [([.b (? int?)] 'integer?) 'Proved]
+           [([.b (? str?)] 'string?) 'Proved]
+           [([.b (? bool?)] 'boolean?) 'Proved]
+           [([.b #t] 'true?) 'Proved]
+           [([.b #f] 'false?) 'Proved]
+           [([.b sym?] 'symbol?) 'Proved]
            
            ;; proc
-           [((or (? .λ↓?) (? .Ar?) (? .o?) (? .Case?)) (.proc?)) 'Proved]
+           [((or (? .λ↓?) (? .Ar?) (? .o?) (? .Case?)) 'procedure?) 'Proved]
            ;; struct
            [((.St t _) (.st-p t _)) 'Proved]
            [((.St t V*) (.St/C t C*))
@@ -101,40 +101,40 @@
                      ['Neither 'Neither])]))]
            
            ;; definite retutes for other concrete values
-           [((not (? .λ↓?) (? .Ar?) (.o) (? .Case?)) (.proc?)) 'Refuted]
+           [((not (? .λ↓?) (? .Ar?) (? .o?) (? .Case?)) 'procedure?) 'Refuted]
            [(_ (? .St/C?)) 'Refuted]
            [(_ (? .pred?)) 'Refuted]
            
            ;; special rules for reals. Had to split cases because TR doesn't play well with (or ...)
-           [((.b b1) (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
+           [((.b b1) (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                     (or (list (.x 0) (.b b2)) (list (.b b2) (.x 0))) _) #f) _))
             (decide-R (equal? b1 b2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.≥) (list (.x 0) (.b (? real? r2))) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '>= (list (.x 0) (.b (? real? r2))) _) #f) _))
             (decide-R (>= r1 r2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.≤) (list (.b (? real? r2)) (.x 0)) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '<= (list (.b (? real? r2)) (.x 0)) _) #f) _))
             (decide-R (>= r1 r2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.>) (list (.x 0) (.b (? real? r2))) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '> (list (.x 0) (.b (? real? r2))) _) #f) _))
             (decide-R (> r1 r2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.<) (list (.b (? real? r2)) (.x 0)) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '< (list (.b (? real? r2)) (.x 0)) _) #f) _))
             (decide-R (> r1 r2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.≤) (list (.x 0) (.b (? real? r2))) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '<= (list (.x 0) (.b (? real? r2))) _) #f) _))
             (decide-R (<= r1 r2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.≥) (list (.b (? real? r2)) (.x 0)) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '>= (list (.b (? real? r2)) (.x 0)) _) #f) _))
             (decide-R (<= r1 r2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.<) (list (.x 0) (.b (? real? r2))) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '< (list (.x 0) (.b (? real? r2))) _) #f) _))
             (decide-R (< r1 r2))]
-           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ (.>) (list (.b (? real? r2)) (.x 0)) _) #f) _))
+           [((.b (? real? r1)) (.λ↓ (.λ 1 (.@ '> (list (.b (? real? r2)) (.x 0)) _) #f) _))
             (decide-R (< r1 r2))]
            
            ;; rules for arities
            ;; arity includes
-           [(_ (.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b (? int? n))) _) #f) _))
+           [(_ (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? int? n))) _) #f) _))
             (match U
               [(.λ↓ (.λ m _ v?) _) (if v? (decide-R (>= n (- m 1))) (decide-R (= m n)))]
               [(.Ar (.// (.Λ/C Cx _ v?) _) _ _)
                (if v? (decide-R (>= n (- (length Cx) 1))) (decide-R (= n (length Cx))))]
-              [(.o1) (decide-R (= n 1))]
-              [(.o2) (decide-R (= n 2))]
+              [(? .o1?) (decide-R (= n 1))]
+              [(? .o2?) (decide-R (= n 2))]
               [(.st-mk _ m) (decide-R (= m n))]
               [(.Case m) (cond
                           [(for/or : Boolean ([k (in-hash-keys m)])
@@ -143,19 +143,19 @@
                           [else 'Neither])]
               [_ 'Neither])]
            ;; arity at least
-           [(_ (.λ↓ (.λ 1 (.@ (.arity≥?) (list (.x 0) (.b (? int? n))) _) #f) _))
+           [(_ (.λ↓ (.λ 1 (.@ 'arity>=? (list (.x 0) (.b (? int? n))) _) #f) _))
             (match U
               [(.λ↓ (.λ m _ v?) _) (if v? (decide-R (>= n (- m 1))) 'Refuted)]
               [(.Ar (.// (.Λ/C Cx _ v?) _) _ _) (if v? (decide-R (>= n (- (length Cx) 1))) 'Refuted)]
-              [(.o) 'Refuted]
+              [(? .o?) 'Refuted]
               [_ 'Neither])]
            ;; arity exact
-           [(_ (.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) (.b (? int? n))) _) #f) _))
+           [(_ (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? int? n))) _) #f) _))
             (match U
               [(.λ↓ (.λ m _ v?) _) (if v? 'Refuted (decide-R (= m n)))]
               [(.Ar (.// (.Λ/C Cx _ v?) _) _ _) (if v? 'Refuted (decide-R (= (length Cx) n)))]
-              [(.o1) (decide-R (= n 1))]
-              [(.o2) (decide-R (= n 2))]
+              [(? .o1?) (decide-R (= n 1))]
+              [(? .o2?) (decide-R (= n 2))]
               [(.st-mk _ m) (decide-R (= m n))]
               [_ 'Neither])]
            
@@ -216,51 +216,51 @@
             [(_ (.St '¬/c (list D′))) (¬R (go C D′ assume))]
             
             ;; special rules for reals
-            [((.λ↓ (.λ 1 (.@ (.>) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (or (.>) (.≥)) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '> (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ (or '> '>=) (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (>= r1 r2) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.>) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (or (.=) (.<) (.≤)) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '> (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ (or '= '< '<=) (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (>= r1 r2) 'Refuted 'Neither)]
             
-            [((.λ↓ (.λ 1 (.@ (.≥) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (.>) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '>= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ '> (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (> r1 r2) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.≥) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (.≥) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '>= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ '>= (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (>= r1 r2) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.≥) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (or (.≤) (.=)) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '>= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ (or '<= '=) (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (> r1 r2) 'Refuted 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.≥) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (.<) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '>= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ '< (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (>= r1 r2) 'Refuted 'Neither)]
             
-            [((.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.b (? real? r1))) _) _) _)
+            [((.λ↓ (.λ 1 (.@ '= (list (.x 0) (.b (? real? r1))) _) _) _)
               (.λ↓ (.λ 1 (.@ o (list (.x 0) (.b (? real? r2))) _) _) _))
-             (decide-R ((match o [(.=) =] [(.>) >] [(.<) <] [(.≥) >=] [(.≤) <=]) r1 r2))]
+             (decide-R ((match o ['= =] ['> >] ['< <] ['>= >=] ['<= <=]) r1 r2))]
             
-            [((.λ↓ (.λ 1 (.@ (.≤) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (.<) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '<= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ '< (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (< r1 r2) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.≤) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (.≤) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '<= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ '<= (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (<= r1 r2) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.≤) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (or (.≥) (.=)) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '<= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ (or '>= '=) (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (< r1 r2) 'Refuted 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.≤) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (.>) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '<= (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ '> (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (<= r1 r2) 'Refuted 'Neither)]
             
-            [((.λ↓ (.λ 1 (.@ (.<) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (or (.<) (.≤)) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '< (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ (or '< '<=) (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (<= r1 r2) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.<) (list (.x 0) (.b (? real? r1))) _) _) _)
-              (.λ↓ (.λ 1 (.@ (or (.=) (.>) (.≥)) (list (.x 0) (.b (? real? r2))) _) _) _))
+            [((.λ↓ (.λ 1 (.@ '< (list (.x 0) (.b (? real? r1))) _) _) _)
+              (.λ↓ (.λ 1 (.@ (or '= '> '>=) (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (<= r1 r2) 'Refuted 'Neither)]
             
-            [(_ (.λ↓ (.λ 1 (.@ (or (.=) (.equal?)) (list (.x 0) (not (? .v?) (? .x?))) 'Λ) _) _)) 'Proved]
+            [(_ (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (not (? .v?) (? .x?))) 'Λ) _) _)) 'Proved]
             
             ;; struct
             [((.st-p t n) (.St/C t _)) (if (= n 0) 'Proved 'Neither)]
@@ -271,7 +271,7 @@
                  ['Refuted 'Refuted]
                  [_ (match (go Ci Di assume) ['Proved a] [r r])]))]
             [((or (? .St/C?) (? .st-p?)) (or (? .pred?) (? .St/C?))) 'Refuted]
-            [((.proc?) (or (? .St/C?) (? .st-p?) (? .pred?))) 'Refuted]
+            [('procedure? (or (? .St/C?) (? .st-p?) (? .pred?))) 'Refuted]
             
             ;; recursive contracts
             [((.μ/C x C′) (.μ/C y D′)) (go (C/ C′ x C) (C/ D′ y D) (set-add assume (cons C D)))]
@@ -280,34 +280,34 @@
             
             ;; rules for arity
             ;; arity exact
-            [((.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? int? n))) _) #f) _))
              (decide-R (= m n))]
-            [((.λ↓ (.λ 1 (.@ (.arity≥?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity>=? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? int? n))) _) #f) _))
              'Refuted]
-            [((.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? int? n))) _) #f) _))
              (if (= m n) 'Neither 'Refuted)]
             ;; arity at least
-            [((.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity≥?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity>=? (list (.x 0) (.b (? int? n))) _) #f) _))
              'Refuted]
-            [((.λ↓ (.λ 1 (.@ (.arity≥?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity≥?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity>=? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity>=? (list (.x 0) (.b (? int? n))) _) #f) _))
              (if (>= m n) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity≥?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity>=? (list (.x 0) (.b (? int? n))) _) #f) _))
              'Neither]
             ;; arity includes
-            [((.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? int? n))) _) #f) _))
              (decide-R (= m n))]
-            [((.λ↓ (.λ 1 (.@ (.arity≥?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity>=? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? int? n))) _) #f) _))
              (if (>= n m) 'Proved 'Neither)]
-            [((.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b (? int? m))) _) #f) _)
-              (.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b (? int? n))) _) #f) _))
+            [((.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? int? m))) _) #f) _)
+              (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? int? n))) _) #f) _))
              (if (= m n) 'Proved 'Neither)]
             
             ;; break apart composit contracts
@@ -333,12 +333,12 @@
     [(equal? p q) 'Proved]
     [else
      (match* (p q)
-       [((or (.true?) (.false?)) (.bool?)) 'Proved]
-       [((or (.real?) (.int?)) (.num?)) 'Proved]
-       [((.int?) (.real?)) 'Proved]
-       [((.bool?) (or (.true?) (.false?))) 'Neither]
-       [((.num?) (or (.real?) (.int?))) 'Neither]
-       [((.real?) (.int?)) 'Neither]
+       [((or 'true? 'false?) 'boolean?) 'Proved]
+       [((or 'real? 'integer?) 'number?) 'Proved]
+       [('integer? 'real?) 'Proved]
+       [('boolean? (or 'true? 'false?)) 'Neither]
+       [('number? (or 'real? 'integer?)) 'Neither]
+       [('real? 'integer?) 'Neither]
        [((.st-p t _) (.st-p t _)) 'Proved]
        [(_ _) 'Refuted])]))
 
@@ -388,11 +388,11 @@
              (match* (V0 V1)
                [((.// U0 C*) (.// U1 D*))
                 (match* (U0 U1)
-                  [((.•) (.•)) (C*⇒C*? C* D*)]
+                  [('• '•) (C*⇒C*? C* D*)]
                   [((.St t V0*) (.St t V1*)) (andmap go! V0* V1*)]
                   [((.Ar C1 V1 _) (.Ar C2 V2 _)) (and (equal? C1 C2) (go! V1 V2))]
                   [((.λ↓ e0 ρ0) (.λ↓ e1 ρ1)) (and (equal? e0 e1) (go! ρ0 ρ1))]
-                  [(_ (.•))
+                  [(_ '•)
                    (match U0
                      [(.b (? int?)) (C*⇒C*? (set-add C* INT/C) D*)]
                      [(.b (? real?)) (C*⇒C*? (set-add C* REAL/C) D*)]
@@ -489,7 +489,7 @@
 (define (model/v p σ V)
   (match-define (.// U₁ Cs) V)
   (match U₁
-    [(.•)
+    ['•
      (cond
       [(set-member? Cs INT/C) V]
       [(set-member? Cs REAL/C) V]
@@ -506,12 +506,12 @@
                   #:when
                   (match?
                    C
-                   (.// (.λ↓ (.λ 1 (.@ (.arity=?) (list (.x 0) _) _) _) _) _)))
+                   (.// (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) _) _) _) _) _)))
            C)
          =>
          (λ ([C : (U Boolean .V)])
            (match-define
-            (.// (.λ↓ (.λ 1 (.@ (.arity=?) (list _ (.b (? exact-integer? n))) _) _) _) _)
+            (.// (.λ↓ (.λ 1 (.@ 'arity=? (list _ (.b (? exact-integer? n))) _) _) _) _)
             C)
            (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
         [(for/or : (U Boolean .V)
@@ -519,12 +519,12 @@
                   #:when
                   (match?
                    C
-                   (.// (.λ↓ (.λ 1 (.@ (.arity-includes?) (list (.x 0) _) _) _) _) _)))
+                   (.// (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) _) _) _) _) _)))
            C)
          =>
          (λ ([C : (U Boolean .V)])
            (match-define
-            (.// (.λ↓ (.λ _ (.@ (.arity-includes?) (list _ (.b (? exact-integer? n))) _) _) _) _)
+            (.// (.λ↓ (.λ _ (.@ 'arity-includes? (list _ (.b (? exact-integer? n))) _) _) _) _)
             C)
            (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
         [else (→V (.λ↓ (.λ 1 (.b (random)) #f) ρ∅))])]

@@ -34,17 +34,17 @@
 (define (show-U σ U)
   (match U
     [(.b b) (show-b b)]
-    [(.•) '•]
+    ['• '•]
     #;[(or (? .Ar?) (.o) (? .λ↓?)) 'function]
     [(? .o? o) (name o)]
     [(.λ↓ f _) (show-e σ f)]
     [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
-    [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) e) _) _) _) _))) `(≠/c ,(show-e σ e))]
+    [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) e) _) _) _) _))) `(≠/c ,(show-e σ e))]
     [(.St 'empty (list)) 'empty]
     [(.St (and n (or 'and/c 'or/c '¬/c)) V*) `(,n ,@(show-V σ V*))]
     [(.St t V*) `(,t ,@(show-V σ V*))]
     [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
-    [(.St/C t V*) `(,(str→sym (str++ (sym→str t) "/c")) ,@(show-V σ V*))]
+    [(.St/C t V*) `(,(string->symbol (format "~a/c" t)) ,@(show-V σ V*))]
     [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
     [(.X/C x) x]
     [(.Case m) `(case-λ ,@(show-cases σ m))]))
@@ -78,16 +78,16 @@
   (let go ([ctx : (Listof Sym) '()] [e e])
     (match e
       ; syntactic sugar
-      [(.λ 1 (.@ (.=) (list (.x 0) e′) _) _) `(=/c ,(go ctx e′))]
-      [(.λ 1 (.@ (.equal?) (list (.x 0) e′) _) _) `(≡/c ,(go ctx e′))]
-      [(.λ 1 (.@ (.>) (list (.x 0) e′) _) _) `(>/c ,(go ctx e′))]
-      [(.λ 1 (.@ (.<) (list (.x 0) e′) _) _) `(</c ,(go ctx e′))]
-      [(.λ 1 (.@ (.≥) (list (.x 0) e′) _) _) `(≥/c ,(go ctx e′))]
-      [(.λ 1 (.@ (.≤) (list (.x 0) e′) _) _) `(≤/c ,(go ctx e′))]
+      [(.λ 1 (.@ '= (list (.x 0) e′) _) _) `(=/c ,(go ctx e′))]
+      [(.λ 1 (.@ 'equal? (list (.x 0) e′) _) _) `(≡/c ,(go ctx e′))]
+      [(.λ 1 (.@ '> (list (.x 0) e′) _) _) `(>/c ,(go ctx e′))]
+      [(.λ 1 (.@ '< (list (.x 0) e′) _) _) `(</c ,(go ctx e′))]
+      [(.λ 1 (.@ '>= (list (.x 0) e′) _) _) `(≥/c ,(go ctx e′))]
+      [(.λ 1 (.@ '<= (list (.x 0) e′) _) _) `(≤/c ,(go ctx e′))]
       [(.λ 1 (.@ (? closed? f) (list (.x 0)) _) _) (go '() f)]
-      [(.λ 1 (.@ (.arity-includes?) (list (.x 0) (.b x)) _) #f) `(arity-includes/c ,x)]
-      [(.λ 1 (.@ (.arity=?) (list (.x 0) (.b x)) _) #f) `(arity=/c ,x)]
-      [(.λ 1 (.@ (.arity≥?) (list (.x 0) (.b x)) _) #f) `(arity≥/c ,x)]
+      [(.λ 1 (.@ 'arity-includes? (list (.x 0) (.b x)) _) #f) `(arity-includes/c ,x)]
+      [(.λ 1 (.@ 'arity=? (list (.x 0) (.b x)) _) #f) `(arity=/c ,x)]
+      [(.λ 1 (.@ 'arity>=? (list (.x 0) (.b x)) _) #f) `(arity≥/c ,x)]
       #;[(.@ (.st-mk 'or/c _) (list (.@ (.st-mk '¬/c _) (list c) _) d) _)
        `(⇒/c ,(go ctx c) ,(go ctx d))]
       [(.λ 1 (.b (not #f)) #f) 'any/c]
@@ -116,7 +116,7 @@
          (cond
           ;; Inline if all arguments are simple. TODO: can do better, for each argument?
           [(for/and : Boolean ([eᵢ es]) (or (.x? eᵢ) (.ref? eᵢ) (.v? eᵢ)))
-           (go '() (for/fold ([e e]) ([i (in-range (- k 1) -1 -1)] [eᵢ es])
+           (go ctx (for/fold ([e e]) ([i (in-range (- k 1) -1 -1)] [eᵢ es])
                      (e/ e i eᵢ)))]
           ;; Default to `let`
           [else
@@ -146,8 +146,8 @@
       [(.st-mk t _) t]
       [(.st-ac 'cons _ 0) 'car]
       [(.st-ac 'cons _ 1) 'cdr]
-      [(.st-ac t _ i) (str→sym (str++ (sym→str t) "@" (num→str i)))]
-      [(.st-p t _) (str→sym (str++ (sym→str t) "?"))]
+      [(.st-ac t _ i) (string->symbol (format "~a@~a" t i))]
+      [(.st-p t _) (string->symbol (format "~a?" t))]
       [(? .o? o) (name o)]
       [(.x i) (ctx-ref ctx i)]
       [(.ref x _ _) x]
@@ -159,7 +159,7 @@
       [(.μ/c x c) `(μ/c (,x) ,(go ctx c))]
       [(.λ/c c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
       [(.x/c x) x]
-      [(.struct/c t cs) `(,(str→sym (str++ (sym→str t) "/c")) ,@(map (curry go ctx) cs))])))
+      [(.struct/c t cs) `(,(string->symbol (format "~a/c" t)) ,@(map (curry go ctx) cs))])))
 
 (: show-b : (U Num Str Bool Sym) → Any)
 (define (show-b x)
@@ -175,22 +175,16 @@
   (match-define (.σ m _) σ)
   (parameterize ([abstract-V? #f])
     (for/list : (Listof Any) ([(i v) (in-hash m)])
-      `(,(str++ "L" (n-sub i)) ↦ ,(show-E σ v)))))
+      `(,(format "L~a" (n-sub i)) ↦ ,(show-E σ v)))))
 
 (: ctx-ref : (Listof Sym) Int → Sym)
 (define (ctx-ref xs i)
+  (printf "Search for ~a in ~a~n" i xs)
   (let go ([xs xs] [i i])
     (match* (xs i)
-      [('() _) (str→sym (str++ (sym→str '⋯) (n-sub i)))]
+      [('() _) (string->symbol (format "…~a" (n-sub i)))]
       [((cons x _) 0) x]
       [((cons _ xr) i) (go xr (- i 1))])))
-
-(: n-sub : Int → String)
-(define (n-sub n)
-  (cond
-   [(< n 0) (format "₋~a" (n-sub (- n)))]
-   [(<= 0 n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
-   [else (str++ (n-sub (quotient n 10)) (n-sub (remainder n 10)))]))
 
 (: show-ce : .p .σ → (Listof Any))
 (define (show-ce p σ)

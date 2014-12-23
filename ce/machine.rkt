@@ -7,20 +7,21 @@
  [read-p (Any → .p)])
 (provide (all-defined-out)) ; TODO
 
-(define-data (.κ)
-  (.if/κ [t : .E] [e : .E])
-  (.@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Sym])
-  (.▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l^3 : Sym^3])
-  (.indy/κ [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
-           [d : (U #f .↓)] [v? : (U #f Int)] [l^3 : Sym^3])
+(define-data .κ
+  (struct .if/κ [t : .E] [e : .E])
+  (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Sym])
+  (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l^3 : Sym^3])
+  (struct .indy/κ
+    [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
+    [d : (U #f .↓)] [v? : (U #f Int)] [l^3 : Sym^3])
   ; contract stuff
-  (.μc/κ [x : Sym])
-  (.λc/κ [c : (Listof .e)] [c↓ : (Listof .V)] [d : .e] [ρ : .ρ] [v? : Bool])
-  (.structc/κ [t : Sym] [c : (Listof .e)] [ρ : .ρ] [c↓ : (Listof .V)]))
+  (struct .μc/κ [x : Sym])
+  (struct .λc/κ [c : (Listof .e)] [c↓ : (Listof .V)] [d : .e] [ρ : .ρ] [v? : Bool])
+  (struct .structc/κ [t : Sym] [c : (Listof .e)] [ρ : .ρ] [c↓ : (Listof .V)]))
 (define-type .κ* (Listof .κ))
 
 ; ctx in e's position for pending states
-(struct: .ς ([e : .E] [s : .σ] [k : .κ*]) #:transparent)
+(struct .ς ([e : .E] [s : .σ] [k : .κ*]) #:transparent)
 (define-type .ς+ (Setof .ς))
 (define-type .ς* (U .ς .ς+))
 
@@ -267,7 +268,7 @@
              (match V
                [(.L i)
                 (match (σ@ σ i)
-                  [(.// (.•) Cs)
+                  [(.// '• Cs)
                    (match (C*⇒C Cs (Prim 'box?))
                      ['Proved (.ς TT σ k)]
                      ['Refuted (.ς FF σ k)]
@@ -279,7 +280,7 @@
                          (let-values ([(σ₁ L₁) (σ+ σ)])
                            (.ς TT (σ-set σ₁ i (mk-box L₁)) k)) 
                          ;; Non-box
-                         (.ς FF (σ-set σ i (.// (.•) (set-add Cs (.¬/C (Prim 'box?))))) k)})
+                         (.ς FF (σ-set σ i (.// '• (set-add Cs (.¬/C (Prim 'box?))))) k)})
                       ;; Handle aliases by replacing Lᵢ with Lⱼ for each definite box Lⱼ
                       (for/fold ([ςs : (Setof .ς) ςs])
                                 ([(j Vⱼ) (in-hash (.σ-map σ))]
@@ -301,7 +302,7 @@
                [(.ς (.// (.b #f) _) σ k)
                 (.ς (.blm l 'unbox V (Prim 'box?)) σ k)])]
             [_ (.ς (.blm l 'unbox (Prim (length V*)) (arity=/C 1)) σ k)])]
-         [(.set-box!)
+         ['set-box!
           (match V*
             [(list V_box V_val)
              (match/nd: (.ς → .ς) (step-@ (Prim 'box?) V* 'Λ σ k)
@@ -322,13 +323,13 @@
               (.ς Vg σ (cons (.indy/κ C* V* '() D n l^3) k))
               (.ς (.blm l lo (Prim (length V*))(if v? (arity≥/C (- C# 1)) (arity=/C C#))) σ k))]
          [_
-          (match/nd (δ σ (.proc?) (list Vf) 'Λ)
+          (match/nd (δ σ 'procedure? (list Vf) 'Λ)
             [(cons σt (.// (.b #t) _)) (error "impossible" (show-V σ Vf))]
             [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf PROC/C) σf k)])])]
       [(and L (.L i))
-       (match/nd (δ σ (.proc?) (list L) 'Λ)
+       (match/nd (δ σ 'procedure? (list L) 'Λ)
          [(cons σt (.// (.b #t) _))
-          (match/nd (δ σt (.arity-includes?) (list L (Prim (length V*))) 'Λ)
+          (match/nd (δ σt 'arity-includes? (list L (Prim (length V*))) 'Λ)
             [(cons σt (.// (.b #t) _))
              (match (σ@ σt i)
                [(and V (or (.// (? .λ↓?) _) (.// (? .Ar?) _))) (step-@ V V* l σt k)]
@@ -390,13 +391,13 @@
     (define (step-dep Lf V σ k)
       (match-define (and ●₁ (.•ₗ α₁)) (•!))
       (match-define (and ●₂ (.•ₗ α₂)) (•!))
-      (define e (.if (.@ (.proc?) (list (.x 0)) '☠)
+      (define e (.if (.@ 'procedure? (list (.x 0)) '☠)
                      (.λ 1 (.@ (.@ ●₁ (list (.x 1)) '☠) (list (.x 0)) '☠) #f)
                      (.@ ●₂ (list (.x 0)) '☠)))
       (define Vf (→V (.λ↓ (.λ 1 e #f) ρ∅)))
       (.ς (.↓ e (ρ+ ρ∅ V))
           (σ-set σ
-                 α₁ (.// • (set (Prim 'procedure?)))
+                 α₁ (.// '• (set (Prim 'procedure?)))
                  α₂ (→V Case∅)
                  Lf Vf)
           k))
@@ -483,15 +484,15 @@
                     (cons (.@/κ (for/list ([C C*] [V V*]) (.Mon C V l^3)) '() lo) k))]
                [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (→V (.st-p t n))) σf k)])]
             [(and Uc (.Λ/C Cx* D v?))
-             (match/nd (δ σ (.proc?) (list V) lo)
+             (match/nd (δ σ 'procedure? (list V) lo)
                [(cons σt (.// (.b #t) _))
                 (match v?
-                  [#f (match/nd (δ σt (.arity-includes?) (list V (Prim (length Cx*))) lo)
+                  [#f (match/nd (δ σt 'arity-includes? (list V (Prim (length Cx*))) lo)
                         [(cons σt (.// (.b #t) _))
                          (.ς (→V (.Ar C V l^3)) σt k)]
                         [(cons σf (.// (.b #f) _))
                          (.ς (.blm l+ lo V (arity-includes/C (length Cx*))) σf k)])]
-                  [#t (match/nd (δ σt (.arity≥?) (list V (Prim (- (length Cx*) 1))) lo)
+                  [#t (match/nd (δ σt 'arity>=? (list V (Prim (- (length Cx*) 1))) lo)
                         [(cons σt (.// (.b #t) _))
                          (.ς (→V (.Ar C V l^3)) σt k)]
                         [(cons σf (.// (.b #f) _))
@@ -533,7 +534,7 @@
   (define (step-V V σ κ k)
     (match κ
       [(.if/κ E1 E2)
-       (match/nd (δ σ .false/c (list V) 'Λ)
+       (match/nd (δ σ 'false? (list V) 'Λ)
          [(cons σt (.// (.b #f) _)) (.ς E1 σt k)]
          [(cons σf (.// (.b #t) _)) (.ς E2 σf k)])]
       
@@ -545,7 +546,6 @@
       [(.▹/κ (cons #f (? .E? E)) l^3)
        (.ς E σ (▹/κ1 V l^3 k))]
       [(.▹/κ (cons (? .V? C) #f) l^3) (step-▹ C V l^3 σ k)]
-      
       
       ;; indy
       [(.indy/κ (list Ci) (cons Vi Vr) Vs↓ D n l^3) ; repeat last contract, handling var-args
@@ -568,7 +568,7 @@
   
   (match-lambda
     [(.ς (? .V? V) σ (cons κ k))
-     (when (match? V (.// (.•) _))
+     (when (match? V (.// '• _))
        (error 'Impossible "~a" (show-ς (.ς V σ (cons κ k)))))
      (step-V V σ κ k)]
     [(.ς (? .E? E) σ k) (step-E E σ k)]))

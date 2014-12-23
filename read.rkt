@@ -3,7 +3,7 @@
          "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in))
 (provide read-p on-•!)
 
-(define on-•! (make-parameter (λ () •)))
+(define on-•! (make-parameter (λ () '•)))
 
 ;; figure out define/provide/require for each module
 (define (pass-1 p)
@@ -144,11 +144,11 @@
                       (.cons/c d (.μ/c x (.or/c l (list .empty/c (.cons/c d (.x/c x)))))))]
     [`(one-of/c ,v ...) (go `(or/c ,@(for/list ([vi v]) `(λ (♣) (equal? ♣ ,vi)))))]
     ; FIXME: only if there's no variable with such name in scope
-    [`(add1 ,e) (.@ (.+) (list (go e) .one) l)]
-    [`(sub1 ,e) (.@ (.-) (list (go e) .one) l)]
-    [`(zero? ,e) (.@ (.=) (list (go e) .zero) l)]
-    [`(positive? ,e) (.@ (.>) (list (go e) .zero) l)]
-    [`(negative? ,e) (.@ (.<) (list (go e) .zero) l)]
+    [`(add1 ,e) (.@ '+ (list (go e) .one) l)]
+    [`(sub1 ,e) (.@ '- (list (go e) .one) l)]
+    [`(zero? ,e) (.@ '= (list (go e) .zero) l)]
+    [`(positive? ,e) (.@ '> (list (go e) .zero) l)]
+    [`(negative? ,e) (.@ '< (list (go e) .zero) l)]
     [`(unless ,p ,e) (.if (go p) (go e) .void)]
     
     ;; basic contract forms
@@ -195,9 +195,9 @@
                  (.ref s l-req l))
                (prim s)
                (match s ; desugar these for more uniform treatment of arithmetics
-                 ['zero? (.λ 1 (.@ (.=) (list (.x 0) .zero) l) #f)]
-                 ['positive? (.λ 1 (.@ (.>) (list (.x 0) .zero) l) #f)]
-                 ['negative? (.λ 1 (.@ (.<) (list (.x 0) .zero)) l) #f]
+                 ['zero? (.λ 1 (.@ '= (list (.x 0) .zero) l) #f)]
+                 ['positive? (.λ 1 (.@ '> (list (.x 0) .zero) l) #f)]
+                 ['negative? (.λ 1 (.@ '< (list (.x 0) .zero)) l) #f]
                  [_ #f])
                (error 'Parser "Unknown symbol ~a in module ~a" s l))))]))
 

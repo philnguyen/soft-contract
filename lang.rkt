@@ -12,38 +12,39 @@
 (struct .m ([order : (Listof Sym)] [defs : (Map Sym (Pairof .e (U #f .e)))]) #:transparent)
 
 ;; expression
-(define-data (.e)
-  (subset: (.v)
-    (.λ [arity : Int] [body : .e] [var? : Bool])
-    (subset: (.•)
-      (.•ₗ [l : Negative-Integer])) 
-    (subset: (.prim)
-      (.b [unboxed : (U Num Bool String Sym)])
-      (subset: (.o)
-        (subset: (.o1)
-          (subset: (.pred)
-            (.st-p [tag : Sym] [arity : Int])
-            (.num?) (.real?) (.int?) (.true?) (.false?) (.bool?) (.str?) (.symbol?) (.proc?))
-          (.st-ac [tag : Sym] [arity : Int] [index : Int])
-          (.add1) (.sub1) (.str-len) (.sqrt))
-        (subset: (.o2)
-          (.equal?) (.=) (.>) (.<) (.≥) (.≤) (.+) (.-) (.*) (./)
-          (.expt) (.abs) (.min) (.max)
-          (.arity=?) (.arity≥?) (.arity-includes?)
-          (.set-box!))
-        (.st-mk [tag : Sym] [arity : Int]))))
-  (.x [sd : Int]) ; static distance
-  (.ref [name : Sym] [in : Sym] [ctx : Sym])
-  (.@ [f : .e] [xs : (Listof .e)] [ctx : Sym])
-  (.@-havoc [x : .x]) ; hack for havoc
+(define-data .e
+  (subset: .v
+    (struct .λ [arity : Int] [body : .e] [var? : Bool])
+    (subset: .•
+      '•
+      (struct .•ₗ [l : Negative-Integer])) 
+    (subset: .prim
+      (struct .b [unboxed : (U Num Bool String Sym)])
+      (subset: .o
+        (subset: .o1
+          (subset: .pred
+            (struct .st-p [tag : Sym] [arity : Int])
+            'number? 'real? 'integer? 'true? 'false? 'boolean? 'string? 'symbol? 'procedure?)
+          (struct .st-ac [tag : Sym] [arity : Int] [index : Int])
+          'add1 'sub1 'string-length 'sqrt)
+        (subset: .o2
+          'equal? '= '> '< '>= '<= '+ '- '* '/
+          'expt 'abs 'min 'max
+          'arity=? 'arity>=? 'arity-includes?
+          'set-box!)
+        (struct .st-mk [tag : Sym] [arity : Int]))))
+  (struct .x [sd : Int]) ; static distance
+  (struct .ref [name : Sym] [in : Sym] [ctx : Sym])
+  (struct .@ [f : .e] [xs : (Listof .e)] [ctx : Sym])
+  (struct .@-havoc [x : .x]) ; hack for havoc
   #;(.apply [f : .e] [xs : .e] [ctx : Sym])
-  (.if [i : .e] [t : .e] [e : .e])
-  (.amb [e* : (Setof .e)])
+  (struct .if [i : .e] [t : .e] [e : .e])
+  (struct .amb [e* : (Setof .e)])
   ; contract stuff
-  (.μ/c [x : Sym] [c : .e])
-  (.λ/c [xs : (Listof .e)] [cy : .e] [var? : Bool])
-  (.x/c [x : Sym])
-  (.struct/c [tag : Sym] [fields : (Listof .e)])
+  (struct .μ/c [x : Sym] [c : .e])
+  (struct .λ/c [xs : (Listof .e)] [cy : .e] [var? : Bool])
+  (struct .x/c [x : Sym])
+  (struct .struct/c [tag : Sym] [fields : (Listof .e)])
   #;(.and/c [l : .e] [r : .e])
   #;(.or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
@@ -65,12 +66,12 @@
     [(.@-havoc x) (FV x d)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
-    [(.amb e*) (for/fold: ([FVs : (Setof Int) ∅]) ([e e*])
+    [(.amb e*) (for/fold ([FVs : (Setof Int) ∅]) ([e e*])
                  (set-union FVs (FV e d)))]
     [(.μ/c _ e) (FV e d)]
     [(.λ/c cx cy _) (for/fold ([FVs (FV cy (+ d (length cx)))]) ([c cx])
                       (set-union FVs (FV c d)))]
-    [(.struct/c _ cs) (for/fold: ([FVs : (Setof Int) ∅]) ([c cs])
+    [(.struct/c _ cs) (for/fold ([FVs : (Setof Int) ∅]) ([c cs])
                         (set-union FVs (FV c d)))]
     [_ ∅]))
 
@@ -97,19 +98,16 @@
     [(.μ/c _ e) (checks# e)]
     [(.λ/c cx cy _) (+ (checks# cx) (checks# cy))]
     [(.struct/c _ cs) (checks# cs)]
-    [(.pred) 0]
-    [(.o) 1] ; FIXME: depends on arity
+    [(? .pred?) 0]
+    [(? .o?) 1] ; FIXME: depends on arity
     [_ 0]))
 
 ;; frequently used constants
-(define • (.•))
 (define .tt (.b #t))
 (define .ff (.b #f))
 (define .any/c (.λ 1 .tt #f))
 (define .none/c (.λ 1 .ff #f))
 (define .empty/c (.st-p 'empty 0))
-(define .false/c (.false?))
-(define .bool/c (.bool?))
 (define .car (.st-ac 'cons 2 0))
 (define .cdr (.st-ac 'cons 2 1))
 (define .zero (.b 0))
@@ -136,67 +134,43 @@
 
 (: prim : (U Sym Num String Bool) → (U #f .e))
 (define prim
-  (memoize
-   #:eq? #t
-   (match-lambda
-     ['add1 (.add1)] ['sub1 (.sub1)] ['sqrt (.sqrt)] ['+ (.+)] ['- (.-)] ['* (.*)] ['/ (./)]
-     ['string-length (.str-len)]
-     ['number? (.num?)] ['real? (.real?)] ['integer? (.int?)]
-     ['true? (.true?)] [(or 'false? 'not) (.false?)] ['boolean? (.bool?)]
-     ['string? (.str?)] ['symbol? (.symbol?)] ['procedure? (.proc?)]     
-     ['equal? (.equal?)]
-     ['any/c .any/c]
-     ['none/c .none/c]
-     ['= (.=)]
-     ['< (.<)]
-     ['> (.>)]
-     ['abs (.abs)]
-     ['min (.min)]
-     ['max (.max)]
-     [(or '>= '≥) (.≥)]
-     [(or '<= '≤) (.≤)]
-     ['arity=? (.arity=?)]
-     [(or 'arity>=? 'arity≥?) (.arity≥?)]
-     ['arity-includes? (.arity-includes?)]
-     ['cons? (.st-p 'cons 2)]
-     ['cons (.st-mk 'cons 2)]
-     ['car .car]
-     ['cdr .cdr]
-     [(or 'empty 'null) (.@ (.st-mk 'empty 0) empty 'Λ)]
-     [(or 'empty? 'null?) .empty/c]
-     ['void (.st-mk 'void 0)]
-     #|['box (.st-mk 'box 1)]
-     ['box? (.st-p 'box 1)]
-     ['unbox (.st-ac 'box 1 0)]
-     ['set-box! (.set-box!)]|#
-     [(or 'box 'box? 'unbox 'set-box!)
-      (error 'Disabled "Box operations are not supported for now")]
-     [(? num? x) (.b x)]
-     [#f .ff]
-     [#t .tt]
-     [(? str? x) (.b x)]
-     #;[`(quote ,(? sym? x)) (.b x)]
-     [_ #f])))
+  (match-lambda
+   #|['box (.st-mk 'box 1)]
+   ['box? (.st-p 'box 1)]
+   ['unbox (.st-ac 'box 1 0)]
+   ['set-box! (.set-box!)]|#
+   ['not 'false?]
+   [(or 'box 'box? 'unbox 'set-box!)
+    (error 'Disabled "Box operations are not supported for now")]
+   [(? .o? o) o]
+   ['any/c .any/c]
+   ['none/c .none/c]
+   ['cons? (.st-p 'cons 2)]
+   ['cons (.st-mk 'cons 2)]
+   ['car .car]
+   ['cdr .cdr]
+   [(or 'empty 'null) (.@ (.st-mk 'empty 0) empty 'Λ)]
+   [(or 'empty? 'null?) .empty/c]
+   ['void (.st-mk 'void 0)]
+   [(? num? x) (.b x)]
+   [#f .ff]
+   [#t .tt]
+   [(? str? x) (.b x)]
+   #;[`(quote ,(? sym? x)) (.b x)]
+   [_ #f]))
 
 (: name : .o → Sym)
 (define name
   (match-lambda
-   [(.add1) 'add1] [(.sub1) 'sub1] [(.sqrt) 'sqrt] [(.+) '+] [(.-) '-] [(.*) '*] [(./) '/]
-   [(.str-len) 'string-length] [(.equal?) 'equal?]
-   [(.=) '=] [(.>) '>] [(.<) '<] [(.≥) '≥] [(.≤) '≤]
-   [(.abs) 'abs] [(.min) 'min] [(.max) 'max]
-   [(.arity=?) 'arity=?] [(.arity≥?) 'arity≥?] [(.arity-includes?) 'arity-includes?]
-   [(.num?) 'number?] [(.real?) 'real?] [(.int?) 'integer?] [(.true?) 'true?] [(.false?) 'false?]
-   [(.bool?) 'boolean?] [(.str?) 'string?] [(.symbol?) 'symbol?] [(.proc?) 'procedure?]
+   [(? symbol? s) s]
    [(.st-mk t _) t]
    [(.st-ac 'cons 2 0) 'car]
    [(.st-ac 'cons 2 1) 'cdr]
    [(.st-ac 'box 1 0) 'unbox]
    [(.st-ac t _ i) (string->symbol (format "~a@~a" t i))]
-   [(.st-p t _) (string->symbol (format "~a?" t))]
-   [(.set-box!) 'set-box!]))
+   [(.st-p t _) (string->symbol (format "~a?" t))]))
 
-(define .pred/c (.λ/c (list .any/c) .bool/c #f))
+(define .pred/c (.λ/c (list .any/c) 'boolean? #f))
 
 (: ¬l : Sym^3 → Sym^3)
 (define ¬l

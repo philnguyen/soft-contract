@@ -10,35 +10,34 @@
 ;;;;; CLOSURE
 
 ;; closure forms
-(define-data (.E)
-  (.↓ [e : .e] [ρ : .ρ])
-  (.FC [c : .V] [v : .V] [ctx : Sym])
-  (.Mon [c : .E] [e : .E] [l^3 : Sym^3])
-  (.Assume [v : .V] [c : .V])
-  (subset: (.A)
-    (subset: (.blm [violator : Sym] [origin : Sym] [v : .V] [c : .V]))
-    (subset: (.V) ; either label or refined prevalue
-      (.L [i : Int])
-      (.// [pre : .U] [refine : (Setof .V)])
+(define-data .E
+  (struct .↓ [e : .e] [ρ : .ρ])
+  (struct .FC [c : .V] [v : .V] [ctx : Sym])
+  (struct .Mon [c : .E] [e : .E] [l^3 : Sym^3])
+  (struct .Assume [v : .V] [c : .V])
+  (subset: .A
+    (struct .blm [violator : Sym] [origin : Sym] [v : .V] [c : .V])
+    (subset: .V ; either label or refined prevalue
+      (struct .L [i : Int])
+      (struct .// [pre : .U] [refine : (Setof .V)])
       ;; The counterexample engine does not use these
-      (.μ/V [x : Sym] [Vs : (Setof .V)])
-      (.X/V [x : Sym]))))
+      (struct .μ/V [x : Sym] [Vs : (Setof .V)])
+      (struct .X/V [x : Sym]))))
 
 (define-type .V+ (U .// .μ/V))
 
 ;; blessed arrow, struct, and closed lambda
-(define-type .U (U .prim .• .Ar .St .λ↓ .Λ/C .St/C .μ/C .X/C .Case))
-(define-predicate .U? .U)
-#;(struct .• () #:transparent)
-(struct .Ar ([c : .V] [v : .V] [l^3 : Sym^3]) #:transparent)
-(struct .St ([tag : Sym] [fields : (Listof .V)]) #:transparent)
-(struct .λ↓ ([f : .λ] [ρ : .ρ]) #:transparent)
-(struct .Λ/C ([c : (Listof .V)] [d : .↓] [v? : Bool]) #:transparent)
-(struct .St/C ([t : Sym] [fields : (Listof .V)]) #:transparent)
-(struct .μ/C ([x : Sym] [c : .V]) #:transparent)
-(struct .X/C ([x : Sym]) #:transparent)
-(struct .Case ([m : (Map (Listof .V) .L)]) #:transparent)
-#;(define • (.•))
+(define-data .U
+  .prim
+  '•
+  (struct .Ar [c : .V] [v : .V] [l^3 : Sym^3])
+  (struct .St [tag : Sym] [fields : (Listof .V)])
+  (struct .λ↓ [f : .λ] [ρ : .ρ])
+  (struct .Λ/C [c : (Listof .V)] [d : .↓] [v? : Bool])
+  (struct .St/C [t : Sym] [fields : (Listof .V)])
+  (struct .μ/C [x : Sym] [c : .V])
+  (struct .X/C [x : Sym])
+  (struct .Case [m : (Map (Listof .V) .L)]))
 
 (define Case∅ (.Case (hash)))
 
@@ -90,11 +89,11 @@
       (match (prim name)
         [(? .prim? b) (.// b ∅)]
         [(? .λ? f) (.// (.λ↓ f ρ∅) ∅)]
-        [#f (error "Prim: " name)])])))
+        [#f (error 'Prim "Unknown primitive name `~a`" name)])])))
 
 (define** 
   [MT (→V (.St 'empty empty))]
-  [♦ (→V (.•))] [V∅ (.μ/V '_ ∅)]
+  [♦ (→V '•)] [V∅ (.μ/V '_ ∅)]
   [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
   [INT/C (Prim 'integer?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'number?)]
   [STR/C (Prim 'string?)] [PROC/C (Prim 'procedure?)] [SYM/C (Prim 'symbol?)])
@@ -182,9 +181,9 @@
     (for/fold ([a : (Setof .V) ∅]) ([C C*])
       (match C
         [(? set? s) (set-union a s)]
-        [(? .V? C) (when (match? C (.// (.•) _)) (error "ha!")) (set-add a C)]
+        [(? .V? C) (when (match? C (.// '• _)) (error "ha!")) (set-add a C)]
         [_ a])))
-  (values (.σ (hash-set m i (if (set-empty? Cs) ♦ (.// • Cs))) (+ 1 i))
+  (values (.σ (hash-set m i (if (set-empty? Cs) ♦ (.// '• Cs))) (+ 1 i))
           (.L i)))
 
 (: σ++ : .σ Int → (Values .σ (Listof .L)))
@@ -239,22 +238,22 @@
     [((? .V? V1) (? .V? V2))
      (→V (match* (V1 V2)
            [((.// (? .b? c) _) (.// (? .b? d) _))
-            (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ o (list c d) 'Λ)) 'Λ) #f) ρ∅)]
+            (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ o (list c d) 'Λ)) 'Λ) #f) ρ∅)]
            [((.// (? .b? c) _) _)
-            (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ o (list c (.x 1)) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V2))]
+            (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ o (list c (.x 1)) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V2))]
            [(_ (.// (? .b? d) _))
-            (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ o (list (.x 1) d) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V1))]
+            (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ o (list (.x 1) d) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V1))]
            [(_ _)
-            (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ o (list (.x 2) (.x 1)) 'Λ)) 'Λ) #f) (ρ++ ρ∅ (list V1 V2)))]))]))
+            (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ o (list (.x 2) (.x 1)) 'Λ)) 'Λ) #f) (ρ++ ρ∅ (list V1 V2)))]))]))
 
 
 (define**
-  [ZERO/C (→C (.=) #:2nd ZERO)]
-  [POS/C (→C (.>) #:2nd ZERO)]
-  [NEG/C (→C (.<) #:2nd ZERO)]
-  [NON-NEG/C (→C (.≥) #:2nd ZERO)]
-  [NON-POS/C (→C (.≤) #:2nd ZERO)]
-  [ONE/C (→C (.=) #:2nd ONE)])
+  [ZERO/C (→C '= #:2nd ZERO)]
+  [POS/C (→C '> #:2nd ZERO)]
+  [NEG/C (→C '< #:2nd ZERO)]
+  [NON-NEG/C (→C '>= #:2nd ZERO)]
+  [NON-POS/C (→C '<= #:2nd ZERO)]
+  [ONE/C (→C '= #:2nd ONE)])
 (define NON-ZERO/C (.¬/C ZERO/C))
 (: sign/C : Real → (Setof .V))
 (define (sign/C x) ; TODO ridiculous, yea...
@@ -263,30 +262,30 @@
         [else {set NEG/C NON-ZERO/C NON-POS/C}]))
 
 (:* [+/C -/C */C ÷/C] : .V .V → .V)
-(define (+/C V1 V2) (→C (.+) #:1st V1 #:2nd V2))
-(define (-/C V1 V2) (→C (.-) #:1st V1 #:2nd V2))
-(define (*/C V1 V2) (→C (.*) #:1st V1 #:2nd V2))
-(define (÷/C V1 V2) (→C (./) #:1st V1 #:2nd V2))
+(define (+/C V1 V2) (→C '+ #:1st V1 #:2nd V2))
+(define (-/C V1 V2) (→C '- #:1st V1 #:2nd V2))
+(define (*/C V1 V2) (→C '* #:1st V1 #:2nd V2))
+(define (÷/C V1 V2) (→C '/ #:1st V1 #:2nd V2))
 
 (: sqrt/C : .V → .V)
 (define (sqrt/C V)
   (→V
    (match V
-     [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ (.sqrt) (list b) 'Λ)) 'Λ) #f) ρ∅)]
-     [_ (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ (.sqrt) (list (.x 1)) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V))])))
+     [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list b) 'Λ)) 'Λ) #f) ρ∅)]
+     [_ (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list (.x 1)) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V))])))
  
 (:* [</C >/C ≥/C ≤/C =/C ≠/C] : .V → .V)
-(define (</C V) (→C (.<) #:2nd V))
-(define (>/C V) (→C (.>) #:2nd V))
-(define (≥/C V) (→C (.≥) #:2nd V))
-(define (≤/C V) (→C (.≤) #:2nd V))
-(define (=/C V) (→C (.=) #:2nd V))
+(define (</C V) (→C '< #:2nd V))
+(define (>/C V) (→C '> #:2nd V))
+(define (≥/C V) (→C '>= #:2nd V))
+(define (≤/C V) (→C '<= #:2nd V))
+(define (=/C V) (→C '= #:2nd V))
 (define (≠/C V) (.¬/C (=/C V)))
 
 (:* [arity=/C arity≥/C arity-includes/C] : Int → .V)
-(define (arity=/C n) (→C (.arity=?) #:2nd (Prim n)))
-(define (arity≥/C n) (→C (.arity≥?) #:2nd (Prim n)))
-(define (arity-includes/C n) (→C (.arity-includes?) #:2nd (Prim n)))
+(define (arity=/C n) (→C 'arity=? #:2nd (Prim n)))
+(define (arity≥/C n) (→C 'arity>=? #:2nd (Prim n)))
+(define (arity-includes/C n) (→C 'arity-includes? #:2nd (Prim n)))
 
 ;; simplifies predicate
 (: simplify : .V → .V)
@@ -305,12 +304,12 @@
              [(? .prim? p) (→V p)]
              [(and (? .λ? f) (? closed? f)) (simplify (.// (.λ↓ f ρ∅) C*))]
              [_ V])]
-          [(.λ 1 (.@ (.=) (list (.x 0) (.@ (.add1) (list e) l)) g) #f)
-           (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ (.+) (list e .one) l)) g) #f) ρ) C*)]
-          [(.λ 1 (.@ (.=) (list (.x 0) (.@ (.sub1) (list e) l)) g) #f)
-           (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) (.@ (.-) (list e .one) l)) g) #f) ρ) C*)]
+          [(.λ 1 (.@ '= (list (.x 0) (.@ 'add1 (list e) l)) g) #f)
+           (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ '+ (list e .one) l)) g) #f) ρ) C*)]
+          [(.λ 1 (.@ '= (list (.x 0) (.@ 'sub1 (list e) l)) g) #f)
+           (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ '- (list e .one) l)) g) #f) ρ) C*)]
           [_ V])]
-       [(.Ar (.// (.Λ/C (list (.// (.λ↓ (.λ 1 (.b #t) _) _) _)) (.↓ (.bool?) _) _) _)
+       [(.Ar (.// (.Λ/C (list (.// (.λ↓ (.λ 1 (.b #t) _) _) _)) (.↓ 'boolean? _) _) _)
              (and p (.// (or (? .pred?) (? .st-p?)) _)) _)
         p]
        [(.Ar (.// (.Λ/C (list (.// (.λ↓ (.λ 1 (.b #t) _) _) _) ...) (.↓ (.λ 1 (.b #t) _) _) _) _)
@@ -351,47 +350,60 @@
 (: mk-box : .V → .//)
 (define (mk-box V) (→V (.St 'box (list V))))
 
-(: subst/L : (case→ [.L .F → .L]
-                    [.// .F → .//]
-                    [.μ/V .F → .μ/V]
-                    [(U .// .μ/V) .F → (U .// .μ/V)]
-                    [.V .F → .V]
-                    [.U .F → .U]
-                    [(Listof .V) .F → (Listof .V)]
-                    [(Setof .V) .F → (Setof .V)]))
+(: subst/L : (case->
+              [.L .F → .L]
+              [.// .F → .//]
+              [.μ/V .F → .μ/V]
+              [(U .// .μ/V) .F → (U .// .μ/V)]
+              [.V .F → .V]
+              [(Setof .V) .F → (Setof .V)]))
 (define (subst/L V F)
-  (: go : (case→ [.L → .L] [.// → .//] [.μ/V → .μ/V] [(U .// .μ/V) → (U .// .μ/V)]
-                 [.V → .V] [.U → .U] [.ρ → .ρ]
-                 [(Listof .V) → (Listof .V)] [(Setof .V) → (Setof .V)]))
-  (define go
+  (: go/V : (case->
+             [.L → .L]
+             [.// → .//]
+             [.μ/V → .μ/V]
+             [.V+ → .V+]
+             [.V → .V]))
+  (define go/V
     (match-lambda
-      ; V
-      [(and V (.L i)) (match (hash-ref F i #f)
-                        [(? int? j) (.L j)]
-                        [#f V])]
-      [(.// U C*) (.// (go U) (for/set: .V ([Ci C*]) (go Ci)))]
-      [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go Vi)))]
-      [(? .X/V? V) V]
-      ; U
-      [(.Ar C V l) (.Ar (go C) (go V) l)]
-      [(.St t V*) (.St t (go V*))]
-      [(.λ↓ f ρ) (.λ↓ f (go ρ))]
-      [(.Λ/C Cx (.↓ e ρ) v?) (.Λ/C (go Cx) (.↓ e (go ρ)) v?)]
-      [(.St/C t V*) (.St/C t (go V*))]
-      [(.μ/C x C) (.μ/C x (go C))]
-      [(and U (or (? .X/C?) (? .prim?) (? .•?))) U]
-      ; ρ
-      [(.ρ m l)
-       (.ρ
-        (for/fold: : (Map (U Sym Int) .V) ([acc : (Map (U Sym Int) .V) m]) ([k (in-hash-keys m)])
-          (match (hash-ref m k #f)
-            [#f acc]
-            [(? .V? V) (hash-set acc k (go V))]))
-        l)]
-      ; List
-      [(? list? V*) (map go V*)]
-      [(? set? s) (for/set: .V ([V s]) (go V))]))
-  (go V))
+     [(and V (.L i))
+      (match (hash-ref F i #f)
+        [(? int? j) (.L j)]
+        [_ V])]
+     [(.// U C*) (.// (go/U U) (for/set: .V ([Ci C*]) (go/V Ci)))]
+     [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go/V Vi)))]
+     [(? .X/V? V) V]))
+  
+  (: go/U : .U → .U)
+  (define go/U
+    (match-lambda
+     [(.Ar C V l) (.Ar (go/V C) (go/V V) l)]
+     [(.St t V*) (.St t (go/V* V*))]
+     [(.λ↓ f ρ) (.λ↓ f (go/ρ ρ))]
+     [(.Λ/C Cx (.↓ e ρ) v?) (.Λ/C (go/V* Cx) (.↓ e (go/ρ ρ)) v?)]
+     [(.St/C t V*) (.St/C t (go/V* V*))]
+     [(.μ/C x C) (.μ/C x (go/V C))]
+     [U U]))
+  
+  (: go/ρ : .ρ → .ρ)
+  (define (go/ρ ρ)
+    (match-define (.ρ m l) ρ)
+    (.ρ ;; TODO: either wrong or dumb, rewrite using for/hash
+     (for/fold ([acc : (Map (U Sym Int) .V) m]) ([k (in-hash-keys m)])
+       (match (hash-ref m k #f)
+         [(? .V? V) (hash-set acc k (go/V V))]
+         [_ acc]))
+     l))
+  
+  (: go/V* : (Listof .V) → (Listof .V))
+  (define (go/V* V*) (map go/V V*))
+  
+  (: go/Vs : (Setof .V) → (Setof .V))
+  (define (go/Vs Vs)
+    (for/set: .V ([V (in-set Vs)]) (go/V V)))
+
+  (cond [(set? V) (go/Vs V)]
+        [else (go/V V)]))
 
 (: transfer : .σ .V .σ .F → (List .σ .V .F))
 ; transfers value from old heap to new heap, given mapping F
@@ -427,7 +439,7 @@
       [(.Λ/C Cx (.↓ e ρ) v?) (.Λ/C (go! Cx) (.↓ e (go! ρ)) v?)]
       [(.St/C t V*) (.St/C t (go! V*))]
       [(.μ/C x C) (.μ/C x (go! C))]
-      [(and U (or (? .X/C?) (? .prim?) (? .•?))) U]
+      [(and U (or (? .X/C?) (? .prim?) '•)) U]
       ;ρ
       [(.ρ m l)
        (.ρ
@@ -445,7 +457,7 @@
       [(.L i) (hash-has-key? F i)]
       [(.// U _) (match U
                    [(? .prim?) #t]
-                   [(.•) #f]
+                   ['• #f]
                    [(.Ar C V _) (and (transfer? C) (transfer? V))]
                    [(.St _ V*) (andmap transfer? V*)]
                    [(.λ↓ f (.ρ m _)) (for/and : Bool ([V (in-hash-values m)])
@@ -474,10 +486,10 @@
                    (well-formed? σ (σ@ σ i)))]
       [_ #t]))
   
-  (let ([V-new (go! V-old)])
-    #;(unless (well-formed? σ-new V-new)
-      (error "malformed"))
-    (list σ-new V-new F)))
+  (define V-new (go! V-old))
+  #;(unless (well-formed? σ-new V-new)
+  (error "malformed"))
+  (list σ-new V-new F))
 
 (: V-abs : (case→ [.σ .L → (U .// .μ/V)]
                   [.σ .// → .//]
@@ -507,7 +519,7 @@
        (.// (go U)
             (for/set: .V ([C C*]
                           ;#:unless ; discard dynamically generated refinements
-                          #;(match? C (.// (.λ↓ (.λ 1 (.@ (.=) (list (.x 0) _) 'Λ) #f) _) _)))
+                          #;(match? C (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) _) 'Λ) #f) _) _)))
               C))]
       ; FIXME: ok to ignore other forms??
       [(? .μ/V? V) V]

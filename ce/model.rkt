@@ -26,14 +26,14 @@
          (match U
            [(.b (? integer?)) (values (cons l labels) (cons 'Int types))]
            [(.b (? real?)) (values (cons l labels) (cons 'Real types))]
-           [(.•)
+           ['•
             (cond
              [(for/or : Boolean ([C : .V C*]
-                                 #:when (match? C (.// (.int?) _)))
+                                 #:when (match? C (.// 'integer? _)))
                 #t)
               (values (cons l labels) (cons 'Int types))]
              [(for/or : Boolean ([C : .V C*]
-                                 #:when (match? C (.// (.real?) _)))
+                                 #:when (match? C (.// 'real? _)))
                 #t)
               (values (cons l labels) (cons 'Real types))]
              [else (values labels types)])]
@@ -83,11 +83,10 @@
             ;; Fixup. Z3 gives empty model sometimes for trivial cases
             (define m′′
               (for/hash : (Map Integer .V+) ([(k v) m′])
-                (values
-                 k
-                 (match v
-                   [(.// (.•) _) (Prim 0)]
-                   [_ v]))))
+                (values k
+                        (match v
+                          [(.// '• _) (Prim 0)]
+                          [_ v]))))
             (.σ m′′ l)])
           .σ)))]
     [_ #f]))
