@@ -1,37 +1,102 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/string racket/port
-         "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../query-z3.rkt" "../show.rkt")
-(provide model
-         (all-from-out "../query-z3.rkt"))
+         "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../query-z3.rkt" "../provability.rkt" "../show.rkt")
+(provide model)
 
-(: model : .σ → (Option .σ))
-(define (model σ)
-  (match-define (.σ m _) σ)
+(: model : .p .σ → (Option .σ))
+;; Return one instantiation of program×heap
+(define (model p σ)
+  (match-define (and σ′ (.σ m _)) (model/σ p σ))
   (cond
    [(for/or : Any ([V (in-hash-values m)])
       (match-define (.// U _) V)
       (.•? U))
-    (model′ σ)]
-   [else σ]))
+    (model/z3 σ′)]
+   [else σ′]))
 
-(: model′ : .σ → (Option .σ))
-(define (model′ σ)
+(: model/σ : .p .σ → .σ)
+;; Instantiate non-number abstract values
+(define (model/σ p σ)
+  
+  (: model/v : .V+ → .V+)
+  (define (model/v V)
+    (match-define (.// U₁ Cs) V)
+    (match U₁
+      ['•
+       (cond
+        [(set-member? Cs INT/C) V]
+        [(set-member? Cs REAL/C) V]
+        [(set-member? Cs NUM/C)
+         (match (C*⇒C Cs REAL/C)
+           ['Refuted (Prim +1i)]
+           [_ (Prim (random))])]
+        [(set-member? Cs STR/C) (Prim "")] ; TODO
+        [(set-member? Cs (Prim 'boolean?)) (Prim #t)]
+        [(set-member? Cs PROC/C)
+         (cond
+          [(for/or : (U Boolean .V)
+                   ([C Cs]
+                    #:when
+                    (match?
+                     C
+                     (.// (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) _) _) _) _) _)))
+             C)
+           =>
+           (λ ([C : (U Boolean .V)])
+             (match-define
+              (.// (.λ↓ (.λ 1 (.@ 'arity=? (list _ (.b (? exact-integer? n))) _) _) _) _)
+              C)
+             (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
+          [(for/or : (U Boolean .V)
+                   ([C Cs]
+                    #:when
+                    (match?
+                     C
+                     (.// (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) _) _) _) _) _)))
+             C)
+           =>
+           (λ ([C : (U Boolean .V)])
+             (match-define
+              (.// (.λ↓ (.λ _ (.@ 'arity-includes? (list _ (.b (? exact-integer? n))) _) _) _) _)
+              C)
+             (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
+          [else (→V (.λ↓ (.λ 1 (.b (random)) #f) ρ∅))])]
+        [(equal? 'Refuted (C*⇒C Cs NUM/C))
+         (→V (.St 'struct● (list (Prim (random)))))]
+        [else (Prim (random))])]
+      [(.λ↓ (.λ 1 (.@ (.•ₗ l) (list e) _) #f) ρ)
+       (match-define (.// _ Cs) (σ@ σ l))
+       (cond [(set-empty? Cs) (→V (.λ↓ (.λ 1 e #f) ρ))]
+             [else V])]
+      [_ V]))
+  
+  (match-define (.σ m l) σ)
+  
+  (define m′
+    (for/hash : (Map Integer .V+) ([(L V) m])
+      (values L (model/v V))))
+
+  (.σ m′ l))
+
+(: model/z3 : .σ → (Option .σ))
+;; Ask Z3 to instantiate abstract values
+(define (model/z3 σ)
   ;; Compute all labels of reals/ints
   (define-values (labels types)
     (for/fold ([labels : (Listof Integer) '()]
-               [types : (Listof (U 'Integer 'Real)) '()])
+               [types : (Listof (U 'Int 'Real)) '()])
               ([(l V) (in-hash (.σ-map σ))])
       (match V
         [(.// U C*)
          (match U
-           [(.b (? integer?)) (values (cons l labels) (cons 'Integer types))]
+           [(.b (? integer?)) (values (cons l labels) (cons 'Int types))]
            [(.b (? real?)) (values (cons l labels) (cons 'Real types))]
            ['•
             (cond
              [(for/or : Boolean ([C : .V C*]
                                  #:when (match? C (.// 'integer? _)))
                 #t)
-              (values (cons l labels) (cons 'Integer types))]
+              (values (cons l labels) (cons 'Int types))]
              [(for/or : Boolean ([C : .V C*]
                                  #:when (match? C (.// 'real? _)))
                 #t)
@@ -98,3 +163,5 @@
      (cast (string->number d) Integer)]
     [(regexp #rx"X(.+)" (list _ (? string? d)))
      (- (cast (string->number d) Integer))]))
+
+

@@ -4,8 +4,8 @@
          "../../utils.rkt" "../../lang.rkt" "../../show.rkt" "../../runtime.rkt" "../machine.rkt"
          (only-in "../../query-cvc4.rkt" [query cvc4])
          (only-in "../../query-z3.rkt" [query z3])
-         (only-in "../model.rkt" [model z3/model])
-         (only-in "../../provability.rkt" ext-solver model))
+         (only-in "../../provability.rkt" ext-solver)
+         (only-in "../model.rkt" model))
 (require/typed "../read.rkt" [read-p (Any → .p)])
 (require/typed racket/file [file->lines (Path-String → (Listof String))])
 (require/typed racket [string-trim (String String → String)])
@@ -71,13 +71,9 @@
          [else
           (match-define (cons σ (? .blm? blm)) r)
           (printf "-- ~a~n" (show-A σ blm))
-          #;(printf "Store:~n~a~n" (show-σ σ))
           (define σ′ (model p σ))
-          #;(printf "Store′:~n~a~n" (show-σ σ′))
-          (define σ′′ (z3/model σ′))
-          #;(printf "Store′′:~n~a~n" (if σ′′ (show-σ σ′′) #f))
-          (when (.σ? σ′′)
-            (printf "   Counterexample:~n~a~n" (show-ce p σ′′)))])
+          (when (.σ? σ′)
+            (printf "   Counterexample:~n~a~n" (show-ce p σ′)))])
         (printf "~n")])]
     #;['tex
     ;; Compare with disabled interpreter, dump table in latex format

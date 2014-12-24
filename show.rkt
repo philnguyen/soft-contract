@@ -179,7 +179,6 @@
 
 (: ctx-ref : (Listof Symbol) Integer → Symbol)
 (define (ctx-ref xs i)
-  (printf "Search for ~a in ~a~n" i xs)
   (let go ([xs xs] [i i])
     (match* (xs i)
       [('() _) (string->symbol (format "…~a" (n-sub i)))]

@@ -7,8 +7,7 @@
          (only-in "runtime.rkt" .blm? .blm .σ .σ?)
          (only-in "show.rkt" show-V show-A show-ce)
          (only-in "ce/machine.rkt" [ev find-error])
-         (only-in "provability.rkt" [model model/untyped])
-         (only-in "ce/model.rkt" [model model/z3]))
+         (only-in "ce/model.rkt" model))
 (require/typed "ce/read.rkt"
   [(read-p read/ce) (Sexp → .p)])
 
@@ -70,7 +69,7 @@
       [#f #;(printf "CE says safe~n") 'safe]
        [(cons σ^ (.blm l⁺ lᵒ v c))
         #;(printf "CE says CE~n")
-        (match (model/z3 (model/untyped p σ^))
+        (match (model p σ^)
           [#f (list 'blame l⁺ lᵒ (show-V σ^ v) (show-V σ^ c))]
           [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))
                            (second #|for now|# (show-ce p σ)))])])))

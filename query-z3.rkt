@@ -33,7 +33,7 @@
           (format "(declare-const ~a ~a)~n"
                   (→lab i)
                   (match-let ([(.// _ C*) (σ@ σ′ i)])
-                    (or (for/or : (U #f Symbol) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'Integer)
+                    (or (for/or : (U #f Symbol) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'Int)
                         'Real)))))
        (string-append* (for/list ([q Q*]) (format "(assert ~a)~n" q)))
        q)])]))
