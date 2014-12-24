@@ -55,7 +55,7 @@
                                (time-app
                                 (λ (p) ; can't get for/last to type check...
                                   (let: ([ans : .ς+ ∅])
-                                    (for: : Void ([i ITER]) (set! ans (ev p)))
+                                    (for : Void ([i ITER]) (set! ans (ev p)))
                                     ans))
                                 (list p))])
                   (list (first r) t1 t2 t3))))

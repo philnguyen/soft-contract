@@ -92,7 +92,7 @@
            ;; struct
            [((.St t _) (.st-p t _)) 'Proved]
            [((.St t V*) (.St/C t C*))
-            (for/fold: ([r : .R 'Proved]) ([Vi V*] [Ci C*])
+            (for/fold ([r : .R 'Proved]) ([Vi V*] [Ci C*])
               (match r
                 ['Refuted 'Refuted]
                 [_ (match (go Vi Ci)
@@ -266,7 +266,7 @@
             [((.st-p t n) (.St/C t _)) (if (= n 0) 'Proved 'Neither)]
             [((.St/C t _) (.st-p t n)) (if (= n 0) 'Proved 'Neither)]
             [((.St/C t C*) (.St/C t D*))
-             (for/fold: ([a : .R 'Proved]) ([Ci C*] [Di D*])
+             (for/fold ([a : .R 'Proved]) ([Ci C*] [Di D*])
                (match a
                  ['Refuted 'Refuted]
                  [_ (match (go Ci Di assume) ['Proved a] [r r])]))]
@@ -413,8 +413,8 @@
                [((? .μ/V? V0) (? .μ/V? V1))
                 #;(printf "Case0: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
                 (assumed-add! (cons V0 V1))
-                (for/and: : Boolean ([V0i (unroll V0)])
-                  (for/or: : Boolean ([V1i (unroll V1)]) ;FIXME: may screw up F
+                (for/and : Boolean ([V0i (unroll V0)])
+                  (for/or : Boolean ([V1i (unroll V1)]) ;FIXME: may screw up F
                     (let ([G F])
                       (or (go! V0i V1i) (begin (set! F G) #f)))))]
                [((? .μ/V? V0) _)
@@ -424,7 +424,7 @@
                [(_ (? .μ/V? V1))
                 #;(printf "Case1: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
                 (assumed-add! (cons V0 V1))
-                (for/or: : Boolean ([V1i (unroll V1)])
+                (for/or : Boolean ([V1i (unroll V1)])
                   (let ([G F])
                     (or (go! V0 V1i) (begin (set! F G) #f))))] ; FIXME: may screw up F
                [(_ _) #f]))]

@@ -101,7 +101,7 @@
     [('sub1 (list V)) (Δ σ '- (list V ONE))]
     
     [('* (list V1 V2))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? number? x)) _) (.// (.b (? number? y)) _)) (cons σ (Prim (* x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
         (let ([X1 (if (.•? U1) V1 W1)]
@@ -124,7 +124,7 @@
                                (*/C X1 X2))])
                (cons σ L))]))])]
     [('/ (list V1 V2))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? number? x)) _) (.// (.b (? number? y)) _)) (cons σ (Prim (/ x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
         (let ([X1 (if (.•? U1) V1 W1)]
@@ -144,7 +144,7 @@
                                (if (eq? 'Proved (⊢ σ X1 NON-ZERO/C)) NON-ZERO/C #f))])
                (cons σ L))]))])]
     [('+ (list V1 V2))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? number? x)) _) (.// (.b (? number? y)) _)) (cons σ (Prim (+ x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
         (let ([X1 (if (.•? U1) V1 W1)]
@@ -166,7 +166,7 @@
                                (+/C X1 X2))])
                (cons σ L))]))])]
     [('- (list V1 V2))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? number? x)) _) (.// (.b (? number? y)) _)) (cons σ (Prim (- x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
         (let ([X1 (if (.•? U1) V1 W1)]
@@ -183,7 +183,7 @@
                                (-/C X1 X2))])
                (cons σ L))]))])]
     [('sqrt (list V))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? real? x)) _)) (cons σ (Prim (sqrt x)))]
        [(list (and W (.// U _)))
         (let ([X (if (.•? U) V W)])
@@ -200,7 +200,7 @@
              (cons σ L))]))])]
     [('< (list (.L i) (.L i))) (cons σ FF)]
     [('< (list V1 V2))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? real? x)) _) (.// (.b (? real? y)) _)) (cons σ (Prim (< x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
         (let ([X1 (if (.•? U1) V1 W1)]
@@ -239,7 +239,7 @@
     [('<= (list V1 V2)) (Δ σ '>= (list V2 V1))]
     [('= (list (.L i) (.L i))) (cons σ TT)]
     [('= (list V1 V2))
-     (match (for/list: : (Listof .V) ([Vi V*]) (σ@ σ Vi))
+     (match (for/list : (Listof .V) ([Vi V*]) (σ@ σ Vi))
        [(list (.// (.b (? number? x)) _) (.// (.b (? number? y)) _)) (cons σ (Prim (= x y)))]
        [(list (and W1 (.// U1 _)) (and W2 (.// U2 _)))
         (let ([X1 (if (.•? U1) V1 W1)]
