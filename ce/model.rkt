@@ -1,18 +1,14 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/string racket/port
          "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../query-z3.rkt" "../provability.rkt" "../show.rkt")
-(provide model)
+(provide model σ•?)
 
 (: model : .p .σ → (Option .σ))
 ;; Return one instantiation of program×heap
 (define (model p σ)
-  (match-define (and σ′ (.σ m _)) (model/σ p σ))
-  (cond
-   [(for/or : Any ([V (in-hash-values m)])
-      (match-define (.// U _) V)
-      (.•? U))
-    (model/z3 σ′)]
-   [else σ′]))
+  (define σ′ (model/σ p σ))
+  (cond [(σ•? σ′) (model/z3 σ′)]
+        [else σ′]))
 
 (: model/σ : .p .σ → .σ)
 ;; Instantiate non-number abstract values
@@ -164,4 +160,10 @@
     [(regexp #rx"X(.+)" (list _ (? string? d)))
      (- (cast (string->number d) Integer))]))
 
-
+(: σ•? : .σ → Boolean)
+;; Check if the heap has at least one abstract value
+(define (σ•? σ)
+  (match-define (.σ m _) σ)
+  (for/or : Boolean ([V (in-hash-values m)])
+    (match-define (.// U _) V)
+    (.•? U)))
