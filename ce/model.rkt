@@ -139,8 +139,15 @@
                 (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
                 #;(printf "e: ~a~n" e)
                 (define res
-                  (cast (call-with-values (λ () (eval e)) (λ xs (car xs))) Real))
-                (hash-set m (lab→i a) (.// (.b (cast res Real)) ∅))))
+                  (let go : Real ([e : Any e])
+                    (match e
+                      [`(+ ,eᵢ ...) (apply + (map go eᵢ))]
+                      [`(- ,e₁ ,eᵢ ...) (apply - (go e₁) (map go eᵢ))]
+                      [`(* ,eᵢ ...) (apply * (map go eᵢ))]
+                      [`(/ ,e₁ ,eᵢ ...) (apply / (go e₁) (map go eᵢ))]
+                      [`(,(or '^ '** 'expt) ,e₁ ,e₂) (assert (expt (go e₁) (go e₂)) real?)]
+                      [(? real? x) x])))
+                (hash-set m (lab→i a) (.// (.b res) ∅))))
             ;; Fixup. Z3 gives empty model sometimes for trivial cases
             (define m′′
               (for/hash : (Map Integer .V+) ([(k v) m′])
