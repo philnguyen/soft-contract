@@ -100,7 +100,7 @@
          [(`(or ,l ...) r) `(or ,@l ,r)]
          [(l `(or ,r ...)) `(or ,l ,@r)]
          [(l r) `(or ,l ,r)])]
-      [(.@ (.st-mk (and n 'and/c 'or/c '¬/c) _) c* _) `(,n ,@(map (curry go ctx) c*))]
+      [(.@ (.st-mk (and n (or 'and/c 'or/c '¬/c)) _) c* _) `(,n ,@(map (curry go ctx) c*))]
       ;; Direct case-λ application
       [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
        (match-define (.// (.Case m) _) (σ@ σ n))
