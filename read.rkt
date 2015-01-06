@@ -42,14 +42,20 @@
 (define (read-p p)
   #;(printf "~a~n~n" p)
   (match p
-    [`((module ,l* racket ,d** ...) ... (require ,_ ...) ,e)
+    [`((module ,l* racket ,d** ...) ... (require ,_ ...) ,e ...)
      (define syms (pass-1 p))
      (define ms (for/hash ([l l*] [d* d**]) (values l (read-m syms l d*))))
      (define accs (gen-accs (hash-values ms)))
-     (.p (.m* l* ms) accs (read-e syms '† '() e))]
-    [`(,(and m `(module ,_ racket ,_ ...)) ... ,e) (read-p `(,@m (require) ,e))]
+     (.p (.m* l* ms) accs (read-e syms '† '() (-begin e)))]
+    [`(,(and m `(module ,_ racket ,_ ...)) ... ,e ...) (read-p `(,@m (require) ,@e))]
     [_ (error 'Parser "Invalid program form. Expect~n((module module-name racket~n (provide/contract [x c] …)~n (require (submod \"..\" module-name) …)~n (define x v) …) …).~nGiven:~n~a"
               (pretty p))]))
+
+(define -begin
+  (match-lambda
+   [(list) '(void)]
+   [(list e) e]
+   [(list e ...) (cons 'begin e)]))
 
 (define h∅ (hash))
 

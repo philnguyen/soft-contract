@@ -36,7 +36,7 @@
      `(,@modl
        (require ,@(for/list ([mᵢ m]) `(quote ,mᵢ)))
        (amb ,@(for/list ([x names]) `(• ,x))))]
-    [(list (and modl `(module ,_ racket ,_ ...)) ... `(require ,x ...) e)
+    [(list (and modl `(module ,_ racket ,_ ...)) ... `(require ,x ...) e ...)
      (cond
       [(verify-top?)
        (define top-level (variable-not-in modl 'top-level))
@@ -45,10 +45,10 @@
           (module ,top-level racket
             (provide/contract [,top-level any/c])
             (require ,@(for/list ([xᵢ x]) `(submod ".." ,(cadr xᵢ))))
-            (define (,top-level) ,e))))]
+            (define (,top-level) (begin ,@e)))))]
       [else p])]
-    [(list (and modl `(module ,_ racket ,_ ...)) ... e)
-     (massage `(,@modl (require) ,e))]
+    [(list (and modl `(module ,_ racket ,_ ...)) ... e ...)
+     (massage `(,@modl (require) ,@e))]
     [(and m `(module ,_ racket ,_ ...)) (massage (list m))]
     [e (list e)]))
 
