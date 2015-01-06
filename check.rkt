@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (provide feedback)
-(require racket/match racket/list racket/port racket/string
-         (only-in "utils.rkt" match? pretty)
+(require racket/match racket/list racket/port racket/string racket/set
+         (only-in "utils.rkt" match? pretty n-sub define-set)
          (only-in "lang.rkt" .p)
          (only-in "verify/machine.rkt" .ς [e verify])
          (only-in "runtime.rkt" .blm? .blm .σ .σ?)
@@ -10,6 +10,8 @@
          (only-in "ce/model.rkt" model))
 (require/typed "ce/read.rkt"
   [(read-p read/ce) (Sexp → .p)])
+(require/typed "read.rkt"
+  [-begin ((Listof Any) → Any)])
 
 (: feedback ([Sexp] [Integer] . ->* . Any))
 (define (feedback prog [timeout 30])
@@ -83,11 +85,47 @@
   (define reason
     (match* (v c)
       [(_ `(arity=/c ,_)) "Wrong arity"]
-      [(_ _) (format "Value~n ~a~nviolates predicate~n ~a" (pretty v) (pretty c))]))
+      [(_ _) (format "Value~n ~a~nviolates predicate~n ~a"
+                     (pretty (match (replace-struct● v)
+                               [`(begin (struct ,_ ()) ... ,v) v]
+                               [v v]))
+                     (pretty (replace-struct● c)))]))
   (define ce-prog
     (cond [ce (format "An example module that breaks it:~n ~a"
                       (pretty `(module user racket
                                 (require (submod "\"..\"" ,l⁺))
-                                ,ce)))]
+                                ,(replace-struct● ce))))]
           [else ""]))
   (error (format "Contract violation: ~a~n~a~n~a~n" parties reason ce-prog)))
+
+(: new-name! : Any → Symbol)
+;; Generate a fresh struct name for each new tag
+(define new-name!
+  (let ([count 0]
+        [m : (HashTable Any Symbol) (make-hash)])
+    (λ (tag)
+      (hash-ref! m tag
+                 (λ ()
+                   (begin0 (string->symbol (format "s~a" (n-sub count)))
+                     (set! count (+ 1 count))))))))
+
+(: replace-struct● : Any → Any)
+;; Traverse the S-exp, replace all (struct• _) and insert top-level struct definitions
+(define (replace-struct● e)
+
+  (define-set new-names : Symbol)
+  
+  (define e′
+    (let go! : Any ([e : Any e])
+      (match e
+        [`(struct● ,tag)
+         (define name (new-name! tag))
+         (new-names-add! name)
+         `(,name)]
+        [(list xs ...) (map go! xs)]
+        [_ e])))
+  
+  (-begin
+   `(,@(for/list : (Listof Any) ([name (in-set new-names)])
+         `(struct ,name ()))
+     ,e′)))
