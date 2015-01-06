@@ -13,7 +13,8 @@
   (#%module-begin (feedback/massage '(m ...))))
 
 (define-syntax-rule (top-interaction . x)
-  (#%top-interaction . (feedback/massage 'x)))
+  (#%top-interaction . (parameterize ([verify-top? #t])
+                         (feedback/massage 'x))))
 
 #;(define-syntax-rule (top-interaction . e)
   (#%top-interaction . (begin #;(printf "Run Top:~n~a~n" (massage-top 'e))
@@ -22,6 +23,8 @@
 (define (feedback/massage x)
   #;(printf "Prog:~n~a~n" (pretty (massage x)))
   (feedback (massage x)))
+
+(define verify-top? (make-parameter #f))
 
 ;; Havoc each exported identifier
 (define (massage p)
@@ -34,14 +37,16 @@
        (require ,@(for/list ([mᵢ m]) `(quote ,mᵢ)))
        (amb ,@(for/list ([x names]) `(• ,x))))]
     [(list (and modl `(module ,_ racket ,_ ...)) ... `(require ,x ...) e)
-     p
-     #;(define main (variable-not-in modl 'main))
-     #;(massage
-      `(,@modl
-        (module ,main racket
-          (provide/contract [,main any/c])
-          (require ,@(for/list ([xᵢ x]) `(submod ".." ,(cadr xᵢ))))
-          (define (,main) ,e))))]
+     (cond
+      [(verify-top?)
+       (define top-level (variable-not-in modl 'top-level))
+       (massage
+        `(,@modl
+          (module ,top-level racket
+            (provide/contract [,top-level any/c])
+            (require ,@(for/list ([xᵢ x]) `(submod ".." ,(cadr xᵢ))))
+            (define (,top-level) ,e))))]
+      [else p])]
     [(list (and modl `(module ,_ racket ,_ ...)) ... e)
      (massage `(,@modl (require) ,e))]
     [(and m `(module ,_ racket ,_ ...)) (massage (list m))]
