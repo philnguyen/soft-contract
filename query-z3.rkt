@@ -128,11 +128,15 @@
   (values asserts involved))
 
 
-; generate statemetn expressing relationship between i and C
+; generate statement expressing relationship between i and C
 ; e.g. <L0, (sum/c 1 2)>  translates to  "L0 = 1 + 2"
 (: gen : Integer .V → (Values (U #f String) (Setof Integer)))
 (define (gen i C)
   (match C
+    [(? (λ ([C : .V]) (equal? C (.¬/C (Prim 'integer?)))))
+     ;; Make sure Z3 doesn't consider `1.0` a `(not/c integer?)` by Racket's standard
+     (values (format "(not (is_int ~a))" (→lab i))
+             (labels i))]
     [(.// (.λ↓ f ρ) _)
      (let ([ρ@* (match-lambda
                   [(.b (? number? n)) (Prim n)]
