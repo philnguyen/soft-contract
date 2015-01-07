@@ -26,7 +26,10 @@
          (match (C*⇒C Cs REAL/C)
            ['Refuted (Prim +1i)]
            [_ (Prim (random))])]
-        [(set-member? Cs STR/C) (Prim "")] ; TODO
+        [(set-member? Cs STR/C)
+         ;; FIXME: abstract string should have a `string-length` field
+         ;; Currently, (string-length x) would be an integer somewhere on the heap
+         (Prim (random-string (random 16)))] 
         [(set-member? Cs (Prim 'boolean?))
          (match (C*⇒C Cs (Prim 'false?))
            ['Refuted
@@ -180,3 +183,12 @@
   (for/or : Boolean ([V (in-hash-values m)])
     (match-define (.// U _) V)
     (.•? U)))
+
+(: random-string : Natural → String)
+(define random-string
+  (let* ([chars "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"]
+         [chars-count (string-length chars)])
+    (λ (n)
+      (list->string
+       (for/list ([i (in-range n)])
+         (string-ref chars (random chars-count)))))))
