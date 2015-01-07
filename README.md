@@ -4,7 +4,10 @@ soft-contract
 Installation
 ------------------------
 
-    raco pkg install soft-contract
+To install, clone the `racket` branch of this repository, then:
+
+	cd path/to/soft-contract
+    raco pkg install
 
 
 Examples and Usage
@@ -19,16 +22,18 @@ This program has been tested to work with Z3 `4.3.2`.
 
 The demo currently supports the following subset of Racket:
 
-    program          ::= module-form
-	sub-module-form  ::= (module module-name racket
-	                       (provide provide-spec …)
+    program          ::= sub-module-form … | sub-module-form … (require id …) expr
+	sub-module-form  ::= (module module-id racket
+	                       (provide/contract provide-spec …)
                            (require require-spec …)
-                           (define name value) …)
-    provide-spec     ::= (name contract)
-	require-spec     ::= (submod ".." module-name)
-	value            ::= (λ (var) expr) | number | boolean | string | symbol | op
-	expr             ::= var | (if expr expr expr) | (expr expr …)
-	contract         ::= expr | (or/c contract …) | (and/c contract …)
-	                   | (->i ([var contract] …) (res (var …) contract))
+						   (struct id (id …)) …
+                           (define id value) …)
+    provide-spec     ::= (id contract) | (struct id ([id contract] …))
+	require-spec     ::= (submod ".." module-id)
+	value            ::= (lambda (id …) expr) | number | boolean | string | symbol | op
+	expr             ::= id | (if expr expr expr) | (expr expr …)
+	contract         ::= expr | any/c | (or/c contract …) | (and/c contract …)
+	                   | (list/c contract) | (listof contract)
+	                   | (->i ([id contract] …₁) (res (id …₁) contract))
     op               ::= + | - | * | / | string-length
 	                   | number? | real? | integer? | boolean? | false? | cons? | empty?
