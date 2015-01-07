@@ -78,25 +78,44 @@
 
 (: raise-contract-error ([Any Any Any Any] [Any] . ->* . Any))
 (define (raise-contract-error l⁺ lᵒ v c [ce #f])
+  (define sure? #t)
   (define parties
     (cond [(equal? l⁺ lᵒ) (format "'~a' violates its own contract." l⁺)]
           [(equal? lᵒ 'Λ) (format "'~a' violates a contract in an application." l⁺)]
           [else (format "'~a' violates '~a'." l⁺ lᵒ)]))
-  (define reason
+  (define reason : String
     (match* (v c)
       [(_ `(arity=/c ,_)) "Wrong arity"]
-      [(_ _) (format "Value~n ~a~nviolates predicate~n ~a"
-                     (pretty (match (replace-struct● v)
-                               [`(begin (struct ,_ ()) ... ,v) v]
-                               [v v]))
-                     (pretty (replace-struct● c)))]))
+      [(_ _)
+       (match (replace-struct● v)
+         [(and v `(begin (struct ,_ ()) ... ,_))
+          (format "Value produced by~n ~a~nviolates predicate~n ~a"
+                  (pretty v)
+                  (pretty (replace-struct● c)))]
+         [`(• ,cs ...)
+          (set! sure? #f)
+          (format "~a~n~a~nviolates predicate~n ~a"
+                  (match (length cs)
+                    [0 "Arbitrary value"]
+                    [1 "Value contrained by contract"]
+                    [_ "Value contrained by contracts"])
+                  (string-join (for/list : (Listof String) ([c cs]) (format " ~a" (pretty c))) "\n")
+                  (pretty (replace-struct● c)))]
+         [_
+          (format "Value~n ~a~nviolates predicate~n ~a"
+                  (pretty v)
+                  (pretty (replace-struct● c)))])]))
   (define ce-prog
     (cond [ce (format "An example module that breaks it:~n ~a"
                       (pretty `(module user racket
                                 (require (submod "\"..\"" ,l⁺))
                                 ,(replace-struct● ce))))]
           [else ""]))
-  (error (format "Contract violation: ~a~n~a~n~a~n" parties reason ce-prog)))
+  (error (format "~a: ~a~n~a~n~a~n"
+                 (if sure? "Contract violation" "Possible contract violation")
+                 parties
+                 reason
+                 ce-prog)))
 
 (: new-name! : Any → Symbol)
 ;; Generate a fresh struct name for each new tag
