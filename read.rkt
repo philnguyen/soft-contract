@@ -8,7 +8,7 @@
 ;; figure out define/provide/require for each module
 (define (pass-1 p)
   (match p
-    [`(,m* ... (require (quote ,main-reqs) ...) ,e)
+    [`(,m* ... (require (quote ,main-reqs) ...) ,_ ...)
      (for/fold ([M (hash '† (list ∅ ∅ (list->set main-reqs)))]) ([m m*])
        (match m
          [`(module ,name racket ,d* ...)
@@ -34,9 +34,10 @@
                   (list (set-union defs (gen-names t field*)) decs reqs)]
                  [_ (error 'Parser "Expect one of:~n (require (submod \"..\" module-name) …)~n (provide/contract (x c) …)~n (define x v)~n (struct name (field …))~n.Given:~n~a" (pretty d))]))))]
          [_ (error 'Parser "Expect module definition of the form~n (module module-name racket _ …)~n.Given:~n~a" (pretty m))]))]
-    [`(,_ ... ,(and req `(require ,_ ...)) ,_)
+    [`(,_ ... ,(and req `(require ,_ ...)) ,_ ...)
      (error 'Parser "Expect require clause of form (require 'name …)~nGiven:~n ~a" req)]
-    [`(,m* ... ,e) (pass-1 `(,@ m* (require) ,e))]))
+    [`(,(and modl `(module ,_ racket ,_ ...)) ... ,e ...)
+     (pass-1 `(,@modl (require) ,@e))]))
 
 ;; read and return program's ast
 (define (read-p p)
