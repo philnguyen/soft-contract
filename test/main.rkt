@@ -36,14 +36,14 @@
 ;; Check whether program fails, optionally enforcing a counterexample
 (define (check-verify-fail s [counter-example? #f])
   (match-define (list val out err) (verify s))
-  (test-true "contract violation" (regexp-match? ".*ontract violation.*" err))
+  (check-regexp-match ".*ontract violation.*" err)
   (when counter-example?
-    (test-true "counter-example" (regexp-match? ".*An example module that breaks it.*" err))))
+    (check-regexp-match ".*An example module that breaks it.*" err)))
 
 ;; String (String -> Void) -> Void
 (define (test-dir dir-name test-func)
   (for ([file (in-directory dir-name)]
-        #:when (regexp-match? #rx".*rkt" (path->string file)))
+        #:when (regexp-match-exact? #rx".*rkt" (path->string file)))
     (printf "Testing: ~a~n" file)
     (test-case (path->string file)
                (test-func (format "(~a)" (file->string file))))))

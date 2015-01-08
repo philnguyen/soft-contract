@@ -24,11 +24,12 @@ The demo currently supports the following subset of Racket:
 
     program          ::= sub-module-form … | sub-module-form … (require id …) expr
 	sub-module-form  ::= (module module-id racket
-	                       (provide (contract-out provide-spec …))
+	                       (provide provide-spec …)
                            (require require-spec …)
 						   (struct id (id …)) …
                            (define id value) …)
-    provide-spec     ::= (id contract) | (struct id ([id contract] …))
+    provide-spec     ::= id | (contract-out p/c-item …)
+    p/c-item         ::= (id contract) | (struct id ([id contract] …))
 	require-spec     ::= (submod ".." module-id)
 	value            ::= (lambda (id …) expr) | number | boolean | string | symbol | op
 	expr             ::= id | (if expr expr expr) | (expr expr …)
