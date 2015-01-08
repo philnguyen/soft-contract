@@ -44,7 +44,7 @@
        (massage
         `(,@modl
           (module ,top-level racket
-            (provide/contract [,top-level any/c])
+            (provide (contract-out [,top-level any/c]))
             (require ,@(for/list ([xᵢ x]) `(submod ".." ,(cadr xᵢ))))
             (define (,top-level) (begin ,@e)))))]
       [else p])]
@@ -55,5 +55,7 @@
 
 (define collect-names
   (match-lambda
-   [`(provide/contract [,x ,_] ...) x]
+   [(or `(provide/contract [,x ,_] ...)
+        `(provide (contract-out [,x ,_] ...)))
+    x]
    [_ '()]))

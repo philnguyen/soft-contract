@@ -24,7 +24,7 @@ The demo currently supports the following subset of Racket:
 
     program          ::= sub-module-form … | sub-module-form … (require id …) expr
 	sub-module-form  ::= (module module-id racket
-	                       (provide/contract provide-spec …)
+	                       (provide (contract-out provide-spec …))
                            (require require-spec …)
 						   (struct id (id …)) …
                            (define id value) …)

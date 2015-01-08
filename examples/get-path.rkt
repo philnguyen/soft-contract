@@ -1,9 +1,10 @@
 #lang soft-contract
 
 (module lib racket
-  (provide/contract
-   [path/c any/c]
-   [dom/c any/c])
+  (provide
+   (contract-out
+    [path/c any/c]
+    [dom/c any/c]))
   (define path/c
     (->i ([msg (one-of/c "hd" "tl")])
 	 (res (msg) (cond [(equal? msg "hd") string?]
@@ -13,7 +14,7 @@
 	 (res (msg) (string? . -> . dom/c)))))
 
 (module get-path racket
-  (provide/contract [get-path (dom/c path/c . -> . dom/c)])
+  (provide (contract-out [get-path (dom/c path/c . -> . dom/c)]))
   (require (submod ".." lib))
   (define (get-path root p)
     (while root p))

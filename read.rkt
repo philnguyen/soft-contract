@@ -19,7 +19,8 @@
              (match-let ([(list defs decs reqs) acc])
                (match d
                  [`(require (submod ".." ,x*) ...) (list defs decs (set-union reqs (list->set x*)))]
-                 [`(provide/contract ,prov* ...)
+                 [(or `(provide/contract ,prov* ...)
+                      `(provide (contract-out ,prov* ...)))
                   (list defs
                         (for/fold ([decs decs]) ([prov prov*])
                           (match prov
@@ -32,7 +33,7 @@
                   (list (set-add defs f) decs reqs)]
                  [`(struct ,t (,field* ...))
                   (list (set-union defs (gen-names t field*)) decs reqs)]
-                 [_ (error 'Parser "Expect one of:~n (require (submod \"..\" module-name) …)~n (provide/contract (x c) …)~n (define x v)~n (struct name (field …))~n.Given:~n~a" (pretty d))]))))]
+                 [_ (error 'Parser "Expect one of:~n (require (submod \"..\" module-name) …)~n (provide (contract-out (x c) …))~n (define x v)~n (struct name (field …))~n.Given:~n~a" (pretty d))]))))]
          [_ (error 'Parser "Expect module definition of the form~n (module module-name racket _ …)~n.Given:~n~a" (pretty m))]))]
     [`(,_ ... ,(and req `(require ,_ ...)) ,_ ...)
      (error 'Parser "Expect require clause of form (require 'name …)~nGiven:~n ~a" req)]
@@ -49,7 +50,7 @@
      (define accs (gen-accs (hash-values ms)))
      (.p (.m* l* ms) accs (read-e syms '† '() (-begin e)))]
     [`(,(and m `(module ,_ racket ,_ ...)) ... ,e ...) (read-p `(,@m (require) ,@e))]
-    [_ (error 'Parser "Invalid program form. Expect~n((module module-name racket~n (provide/contract [x c] …)~n (require (submod \"..\" module-name) …)~n (define x v) …) …).~nGiven:~n~a"
+    [_ (error 'Parser "Invalid program form. Expect~n((module module-name racket~n (provide (contract-out (x c) …))~n (require (submod \"..\" module-name) …)~n (define x v) …) …).~nGiven:~n~a"
               (pretty p))]))
 
 (define -begin
@@ -66,7 +67,8 @@
                 [(decs defs rev-order)
                  (for/fold ([decs h∅] [defs h∅] [order empty]) ([d ds])
                    (match d
-                     [`(provide/contract ,prov* ...)
+                     [(or `(provide/contract ,prov* ...)
+                          `(provide (contract-out ,prov* ...)))
                       (values (for/fold ([decs decs]) ([prov prov*])
                                 (match prov
                                   [`(struct ,t ([,field* ,c*] ...))

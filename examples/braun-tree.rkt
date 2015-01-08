@@ -1,9 +1,10 @@
 #lang soft-contract
 
 (module tree racket
-  (provide/contract
-   [braun-tree? (any/c . -> . boolean?)]
-   [insert (braun-tree? any/c . -> . braun-tree?)])
+  (provide
+   (contract-out
+    [braun-tree? (any/c . -> . boolean?)]
+    [insert (braun-tree? any/c . -> . braun-tree?)]))
   
   (struct node (v l r))
 
