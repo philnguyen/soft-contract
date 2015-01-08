@@ -1,7 +1,7 @@
 (module main racket
   (provide/contract [main (integer? . -> . integer?)])
   (define (main len)
-    (let [xs (mk-list len)]
+    (let ([xs (mk-list len)])
       (if (not (= len 0)) (car (reverse xs empty)) 0)))
   
   (define (reverse l ac)

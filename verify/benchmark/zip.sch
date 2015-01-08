@@ -11,7 +11,7 @@
   (define (mk-list n)
     (if (< n 0) empty (cons n (mk-list (- n 1)))))
   (define (main n)
-    (let [xs (mk-list n)] (zip xs xs))))
+    (let ([xs (mk-list n)]) (zip xs xs))))
 
 (require 'zip)
 (main •)

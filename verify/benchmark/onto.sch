@@ -18,7 +18,7 @@
       (λ (f)
         (λ (obj)
           (if (false? f) (cons obj callbacks)
-              (let [cb (if (string? f) (obj f) f)]
+              (let ([cb (if (string? f) (obj f) f)])
                 (cons (λ () (cb obj)) callbacks))))))))
 
 (require 'onto)

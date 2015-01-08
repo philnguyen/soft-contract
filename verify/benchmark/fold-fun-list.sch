@@ -14,7 +14,7 @@
     (if (empty? xs) z (f (car xs) (foldr f z (cdr xs)))))
   (define (compose f g) (λ (x) (f (g x))))
   (define (main n)
-    (let [xs (mk-list n)]
+    (let ([xs (mk-list n)])
       (foldr compose (λ (x) x) xs))))
 
 (require 'fold-fun-list)
