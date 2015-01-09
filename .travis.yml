@@ -1,0 +1,19 @@
+language: racket
+
+env:
+ - RACKET_VERSION=HEAD
+
+before_install:
+ - git clone -b racket git@github.com:philnguyen/soft-contract.git
+ - cat travis-racket/install-racket.sh | bash
+
+install:
+
+before_script:
+
+script:
+ - /usr/racket/bin/raco make main.rkt
+ - cd test
+ - /usr/racket/bin/raco test main.rkt -x main.rkt
+
+after_script:
