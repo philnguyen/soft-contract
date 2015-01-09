@@ -272,8 +272,20 @@
     [('string-length (list V))
      (match (σ@ σ V)
        [(.// (.b (? string? s)) _) (cons σ (Prim (string-length s)))]
-       [_ (let-values ([(σ L) (σ+ σ INT/C NON-NEG/C)])
-            (cons σ L))])]))
+       [(.// '• Cs)
+        (or
+         (for/or : (U #f .Vns)
+                 ([C Cs]
+                  #:when
+                  (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _) _) ρ) _)))
+           (match-define (.// (.λ↓ (.λ 1 (.@ _ (list _ len) _) _) ρ) _) C)
+           (cons σ (match len
+                     [(? .b? b) (→V b)]
+                     [(.x sd) (ρ@ ρ (- sd 1))])))
+         (let-values ([(Lₛ) (assert V .L?)]
+                      [(σ L) (σ+ σ INT/C NON-NEG/C)])
+           (match-define (cons σ′ _) (refine σ Lₛ (string-length/C L)))
+           (cons σ′ L)))])]))
 
 (: V=? : .σ .V .V → .Vns*)
 (define (V=? σ V1 V2)

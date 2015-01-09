@@ -6,9 +6,13 @@
 (: model : .p .σ → (Option .σ))
 ;; Return one instantiation of program×heap
 (define (model p σ)
-  (define σ′ (model/σ p σ))
-  (cond [(σ•? σ′) (model/z3 σ′)]
-        [else σ′]))
+  #;(printf "σ₀:~n~a~n" (show-σ σ))
+  (cond
+   [(σ•? σ)
+    (define σ′ (model/z3 σ))
+    (cond [σ′ #;(printf "σ₁:~n~a~n" (show-σ σ′)) (model/σ p σ′)]
+          [else #f])]
+   [else σ]))
 
 (: model/σ : .p .σ → .σ)
 ;; Instantiate non-number abstract values
@@ -29,7 +33,25 @@
         [(set-member? Cs STR/C)
          ;; FIXME: abstract string should have a `string-length` field
          ;; Currently, (string-length x) would be an integer somewhere on the heap
-         (Prim (random-string (random 16)))] 
+         (or
+          (for/or : (U #f .V+)
+                  ([C Cs]
+                   #:when
+                   (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _) _) _) _)))
+            (match-define (.// (.λ↓ (.λ _ (.@ _ (list _ len) _) _) ρ) _) C)
+            (define n
+              (match len
+                [(.b (? exact-integer? n)) n]
+                [(.x sd)
+                 (define Vₗ (ρ@ ρ (- sd 1)))
+                 (match Vₗ
+                   [(.// (.b (? exact-integer? n)) _) n]
+                   [(.L α)
+                    (match (σ@ σ α)
+                      [(.// (.b (? exact-integer? n)) _) n]
+                      [V (error 'Internal "string-length is not an integer" V)])])]))
+            (Prim (random-string n)))
+          (Prim (random-string (random 16))))] 
         [(set-member? Cs (Prim 'boolean?))
          (match (C*⇒C Cs (Prim 'false?))
            ['Refuted
@@ -92,19 +114,15 @@
                [types : (Listof (U 'Int 'Real)) '()])
               ([(l V) (in-hash (.σ-map σ))])
       (match V
-        [(.// U C*)
+        [(.// U Cs)
          (match U
            [(.b (? integer?)) (values (cons l labels) (cons 'Int types))]
            [(.b (? real?)) (values (cons l labels) (cons 'Real types))]
            ['•
             (cond
-             [(for/or : Boolean ([C : .V C*]
-                                 #:when (match? C (.// 'integer? _)))
-                #t)
+             [(set-member? Cs INT/C)
               (values (cons l labels) (cons 'Int types))]
-             [(for/or : Boolean ([C : .V C*]
-                                 #:when (match? C (.// 'real? _)))
-                #t)
+             [(set-member? Cs REAL/C)
               (values (cons l labels) (cons 'Real types))]
              [else (values labels types)])]
            [_ (values labels types)])]
@@ -157,14 +175,7 @@
                       [`(,(or '^ '** 'expt) ,e₁ ,e₂) (assert (expt (go e₁) (go e₂)) real?)]
                       [(? real? x) x])))
                 (hash-set m (lab→i a) (.// (.b res) ∅))))
-            ;; Fixup. Z3 gives empty model sometimes for trivial cases
-            (define m′′
-              (for/hash : (Map Integer .V+) ([(k v) m′])
-                (values k
-                        (match v
-                          [(.// '• _) (Prim 0)]
-                          [_ v]))))
-            (.σ m′′ l)])
+            (.σ m′ l)])
           .σ)))]
     [_ #f]))
 
@@ -184,7 +195,7 @@
     (match-define (.// U _) V)
     (.•? U)))
 
-(: random-string : Natural → String)
+(: random-string : Integer → String)
 (define random-string
   (let* ([chars "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"]
          [chars-count (string-length chars)])

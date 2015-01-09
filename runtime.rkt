@@ -274,13 +274,14 @@
      [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list b) 'Λ)) 'Λ) #f) ρ∅)]
      [_ (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list (.x 1)) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V))])))
  
-(:* [</C >/C ≥/C ≤/C =/C ≠/C] : .V → .V)
+(:* [</C >/C ≥/C ≤/C =/C ≠/C string-length/C] : .V → .V)
 (define (</C V) (→C '< #:2nd V))
 (define (>/C V) (→C '> #:2nd V))
 (define (≥/C V) (→C '>= #:2nd V))
 (define (≤/C V) (→C '<= #:2nd V))
 (define (=/C V) (→C '= #:2nd V))
 (define (≠/C V) (.¬/C (=/C V)))
+(define (string-length/C V) (→C 'string-length #:2nd V))
 
 (:* [arity=/C arity≥/C arity-includes/C] : Integer → .V)
 (define (arity=/C n) (→C 'arity=? #:2nd (Prim n)))
