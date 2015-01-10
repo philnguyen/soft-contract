@@ -6,7 +6,16 @@ env:
 before_install:
  - git clone https://github.com/greghendershott/travis-racket.git
  - cat travis-racket/install-racket.sh | bash
-# TODO I feel so bad doing this. Need to work out a way to waste their bandwidth less
+ # TODO I feel so bad doing this. Need to work out a way to waste their bandwidth less
+ # Install latest Git to avoid problem with cloning Z3
+ - git clone https://github.com/git/git.git
+ - sudo apt-get install gettext zlib1g-dev asciidoc libcurl4-openssl-dev
+ - cd git
+ - make configure
+ - ./configure --prefix/usr
+ - make all doc
+ - sudo make install
+ # Install Z3
  - git clone https://git01.codeplex.com/z3
  - cd z3
  - mkdir ~/my-z3
