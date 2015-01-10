@@ -7,7 +7,7 @@
                    [sandbox-error-output 'string]
                    [sandbox-propagate-exceptions #f]
                    [sandbox-memory-limit 200]
-                   [sandbox-eval-limits (list 10 200)]
+                   [sandbox-eval-limits (list 60 200)]
                    [sandbox-namespace-specs
                     (append (sandbox-namespace-specs)
                             `(file/convertible
