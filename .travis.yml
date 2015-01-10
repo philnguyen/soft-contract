@@ -12,7 +12,7 @@ before_install:
  - sudo apt-get install gettext zlib1g-dev asciidoc libcurl4-openssl-dev
  - cd git
  - make configure
- - ./configure --prefix/usr
+ - ./configure --prefix=/usr
  - make all doc
  - sudo make install
  # Install Z3
