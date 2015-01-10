@@ -18,12 +18,10 @@ before_install:
  # Install Z3
  - git clone https://git01.codeplex.com/z3
  - cd z3
- - mkdir ~/my-z3
- - python scripts/mk_make.py --prefix=~/my-z3
+ - python scripts/mk_make.py
  - cd build
  - make
- - make install
- - export PATH=$HOME/my-z3:$PATH
+ - sudo make install
 
 install:
 
