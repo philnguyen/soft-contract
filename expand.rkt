@@ -93,4 +93,4 @@
 ;; example use
 
 (module+ main
-  (do-expand (read-syntax #f (open-input-string "(module m racket 5)")) #f))
+  (do-expand (read-syntax #f (open-input-string "(module m racket 5)"))))
