@@ -22,7 +22,7 @@
                               (feedback (massage-top 'e)))))
 
 (define (feedback/massage x)
-  #;(printf "Prog:~n~a~n" (pretty (massage x)))
+  (eprintf "Prog:~n~a~n" (pretty (massage x)))
   (feedback (massage x)))
 
 (define verify-top? (make-parameter #f))

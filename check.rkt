@@ -1,6 +1,7 @@
 #lang typed/racket/base
 (provide feedback)
 (require racket/match racket/list racket/port racket/string racket/set
+         racket/pretty
          (only-in "utils.rkt" match? pretty n-sub define-set)
          (only-in "lang.rkt" .p)
          (only-in "verify/machine.rkt" .ς [e verify])
@@ -15,6 +16,8 @@
 
 (: feedback ([Sexp] [Integer] . ->* . Any))
 (define (feedback prog [timeout 30])
+  (eprintf ">>> program is:\n")
+  (pretty-print prog (current-error-port))
   (match (run prog timeout)
     ['timeout (printf "Timeout after ~a seconds~n" timeout)]
     [(or 'safe (list)) (printf "Program is safe~n")]

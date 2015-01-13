@@ -6,6 +6,7 @@
 (define on-•! (make-parameter (λ () '•)))
 
 ;; figure out define/provide/require for each module
+;; Module -> Hash[ModuleName, List[Symbol-Set, Symbol-Set, Symbol-Set]]
 (define (pass-1 p)
   
   ;; module-clause -> (Values Symbol-Set Symbol-Set Symbol-Set)
@@ -13,6 +14,8 @@
     (match m-clause
       [`(require (submod ".." ,x*) ...)
        (values ∅ ∅ (list->set x*))]
+      [`(#%require (for-syntax ,(? symbol?) ...))
+       (values ∅ ∅ ∅)]
       [`(provide/contract ,p/c-items ...)
        (pass-1/m-clause `(provide (contract-out ,@p/c-items)))]
       [`(provide ,provide-specs ...)
@@ -41,6 +44,8 @@
        (values {set f} ∅ ∅)]
       [`(struct ,t (,field* ...))
        (values (gen-names t field*) ∅ ∅)]
+      [e
+       (values ∅ ∅ ∅)]
       [_ (error
           'Parser
           "expect one of:~n (require (submod \"..\" module-name) …)~n (provide provide-spec …)~n (define x v)~n (struct id (id …))~ngiven:~n~a"
@@ -50,7 +55,7 @@
     [`(,m* ... (require (quote ,main-reqs) ...) ,_ ...)
      (for/fold ([M (hash '† (list ∅ ∅ (list->set main-reqs)))]) ([m m*])
        (match m
-         [`(module ,name racket ,d* ...)
+         [`(module ,name ,lang (,_ ,d* ...)) ;; FIXME: #%module-begin
           (hash-set
            M
            name
@@ -65,19 +70,19 @@
          [_ (error 'Parser "expect module definition of the form~n (module module-name racket _ …)~ngiven:~n~a" (pretty m))]))]
     [`(,_ ... ,(and req `(require ,_ ...)) ,_ ...)
      (error 'Parser "expect require clause of form (require 'name …)~ngiven:~n ~a" req)]
-    [`(,(and modl `(module ,_ racket ,_ ...)) ... ,e ...)
+    [`(,(and modl `(module ,_ ,lang ,_ ...)) ... ,e ...)
      (pass-1 `(,@modl (require) ,@e))]))
 
 ;; read and return program's ast
 (define (read-p p)
   #;(printf "~a~n~n" p)
   (match p
-    [`((module ,l* racket ,d** ...) ... (require ,_ ...) ,e ...)
+    [`((module ,l* ,lang (,(or '#%plain-module-begin '#%module-begin) ,d** ...)) ... (require ,_ ...) ,e ...)
      (define syms (pass-1 p))
      (define ms (for/hash ([l l*] [d* d**]) (values l (read-m syms l d*))))
      (define accs (gen-accs (hash-values ms)))
      (.p (.m* l* ms) accs (read-e syms '† '() (-begin e)))]
-    [`(,(and m `(module ,_ racket ,_ ...)) ... ,e ...) (read-p `(,@m (require) ,@e))]
+    [`(,(and m `(module ,_ ,lang ,_ ...)) ... ,e ...) (read-p `(,@m (require) ,@e))]
     [_ (error 'Parser "invalid program form. Expect~n((module module-name racket~n (provide (contract-out (x c) …))~n (require (submod \"..\" module-name) …)~n (define x v) …) …).~ngiven:~n~a"
               (pretty p))]))
 

@@ -9,36 +9,57 @@
 ;; program and module
 (struct .p ([modules : .m*] [accessors : (Setof .st-ac)] [main : .e]) #:transparent)
 (struct .m* ([order : (Listof Symbol)] [modules : (Map Symbol .m)]) #:transparent)
-(struct .m ([order : (Listof Symbol)] [defs : (Map Symbol (Pairof .e (U #f .e)))]) #:transparent)
+;; the .e in `order` is top-level expressions to run for side-effect
+(struct .m ([order : (Listof (U .e Symbol))] [defs : (Map Symbol (Pairof .e (U #f .e)))]) #:transparent)
 
 ;; expression
 (define-data .e
   (subset: .v
+    ;; if `var?` is true, accepts >= arity args
     (struct .λ [arity : Integer] [body : .e] [var? : Boolean])
     (subset: .•
       '•
+      ;; `l` is a tag annotating which static location this opaque value came from
       (struct .•ₗ [l : Negative-Integer])) 
     (subset: .prim
-      (struct .b [unboxed : (U Number Boolean String Symbol)])
+      ;; primitive values that can appear in syntax
+      (struct .b [unboxed : (U Number Boolean String Symbol Bytes Regexp PRegexp)])
       (subset: .o
         (subset: .o1
           (subset: .pred
-            (struct .st-p [tag : Symbol] [arity : Integer])
+            ;; `arity` is the number of fields in the struct
+            (struct .st-p [tag : Identifier] [arity : Integer])
+            Identifier
             'number? 'real? 'integer? 'true? 'false? 'boolean? 'string? 'symbol? 'procedure?)
-          (struct .st-ac [tag : Symbol] [arity : Integer] [index : Integer])
+          ;; `arity` is the number of fields in the struct
+          ;; `index` is the index that this accesses
+          (struct .st-ac [tag : Identifier] [arity : Integer] [index : Integer])
+          Identifier
           'add1 'sub1 'string-length 'sqrt)
         (subset: .o2
+          Identifier
           'equal? '= '> '< '>= '<= '+ '- '* '/
           'expt 'abs 'min 'max
           'arity=? 'arity>=? 'arity-includes?
           'set-box!)
-        (struct .st-mk [tag : Symbol] [arity : Integer]))))
+        (struct .st-mk [tag : Identifier] [arity : Integer]))))
+  ;; lexical variables
   (struct .x [sd : Integer]) ; static distance
-  (struct .ref [name : Symbol] [in : Symbol] [ctx : Symbol])
-  (struct .@ [f : .e] [xs : (Listof .e)] [ctx : Symbol])
-  (struct .@-havoc [x : .x]) ; hack for havoc
+  ;; module references
+  (struct .ref [name : Identifier] [in : Module-Path] [ctx : Any])
+  (struct .@ [f : .e] [xs : (Listof .e)] [ctx : Any])
   #;(.apply [f : .e] [xs : .e] [ctx : Symbol])
   (struct .if [i : .e] [t : .e] [e : .e])
+  (struct .wcm [key : .e] [val : .e] [body : .e])
+  (struct .begin [es : (Listof .e)])
+  (struct .begin0 [e : .e] [es : (Listof .e)])
+  (struct .quote [v : Any])
+  ;; the Integer in `bnds` is the number of identifiers bound in that clause
+  (struct .let-values [bnds (Listof (Pair Integer .e))] [body (Listof .e)])
+  ;; the Integer in `bnds` is the number of identifiers bound in that clause
+  (struct .letrec-values [bnds (Listof (Pair Integer .e))] [body (Listof .e)])
+  
+  (struct .@-havoc [x : .x]) ; hack for havoc
   (struct .amb [e* : (Setof .e)])
   ; contract stuff
   (struct .μ/c [x : Symbol] [c : .e])
