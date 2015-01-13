@@ -36,7 +36,7 @@
         [(syntax? x) (register-all! (syntax-e x))]
         [else (error 'register-all! "unexpected ~a" x)]))
 
-(define (do-expand stx in-path)
+(define (do-expand stx)
   ;; error checking
   (syntax-parse stx #:literals ()
     [((~and mod-datum (~datum module)) n:id lang:expr . rest)
