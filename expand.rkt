@@ -6,7 +6,7 @@
          racket/dict racket/match
          racket/format)
 
-
+(provide do-expand)
 
 (define (identifier-binding* i)
   (if (dict-ref lexical-bindings i #f)
