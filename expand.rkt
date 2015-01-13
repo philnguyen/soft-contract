@@ -89,8 +89,25 @@
        (syntax-e id)
        sym*)))
 
+(provide do-expand-file)
+
+(define (do-expand-file in)
+  
+  (define input (if (input-port? in) in (open-input-file in)))
+  ;; If the given input is a file name, then chdir to its containing
+  ;; directory so the expand function works properly
+  (define in-path (if (input-port? in) #f (normalize-path in)))
+  (unless (input-port? in)
+    (define in-dir (or (path-only in) "."))
+    (current-module (object-name input))
+    (current-directory in-dir))
+  (read-accept-reader #t)
+  (read-accept-lang #t)
+  
+  (define stx (read-syntax (object-name input) input))
+  (do-expand stx))
+
 
 ;; example use
-
 (module+ main
   (do-expand (read-syntax #f (open-input-string "(module m racket 5)"))))
