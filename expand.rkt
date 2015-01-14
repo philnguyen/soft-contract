@@ -89,6 +89,22 @@
        (syntax-e id)
        sym*)))
 
+(provide do-expand-toplevel)
+(require syntax/parse racket/port)
+;; given a string which should be a sequence of modules, fully-expand
+;; them all as if they were in a `racket/load` context
+(define (do-expand-toplevel str)
+  (define p (open-input-string str))
+  (define stxs (port->list (lambda (p) (read-syntax 'toplevel p)) p))
+  (parameterize ([current-namespace (make-base-namespace)])
+    (for/list ([m stxs])
+      (syntax-parse m
+        [((~datum module) . _) (void)]
+        [_ (error 'do-expand-toplevel "expected a module")])
+      (define m* (namespace-syntax-introduce (expand m)))
+      (eval-syntax m*)
+      m*)))
+
 (provide do-expand-file)
 
 (define (do-expand-file in)
