@@ -101,7 +101,12 @@
 (define-syntax-class mod-form
   (pattern
    ((~datum provide) p:provide-form ...)
-   #:attr contracts (filter values (attribute p.contracts)))
+   #:attr contracts (attribute p.contracts))
+  (pattern
+   ((~datum provide/contract) [i:id c:expr] ...)
+   #:attr contracts (map hash
+                         (map syntax->datum (syntax->list #'(i ...)))
+                         (map syntax->datum (syntax->list #'(c ...)))))
   [pattern _ #:attr contracts null])
 
 (define (find-contracts m)
