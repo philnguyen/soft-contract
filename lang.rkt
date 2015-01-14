@@ -2,21 +2,59 @@
 (require "utils.rkt")
 (provide (all-defined-out))
 
-(define-type Symbol^3 (List Symbol Symbol Symbol))
-
 ;; prefixing types with dots just so i can use 1-letter variables without shadowing them
 
+(struct (X) .begin ([body : (Listof X)]) #:transparent)
+(define-type .begin/expr (.begin .expr))
+(define-type .begin/top (.begin .top-level-form))
+
+(: -begin : (∀ (X) (Listof X) → (U X (.begin X))))
+(define -begin
+  (match-lambda
+   [(list e) e]
+   [es (.begin es)]))
+
+;; Subset of Racket reference 1.2.3.1
+
+(define-data .top-level-form
+  .general-top-level-form
+  .expr
+  .module
+  .begin/top)
+
+(define-data .module-level-form
+  .general-top-level-form
+  (struct .#%provide [specs : (Listof .raw-provide-spec)])
+  .submodule-form)
+
+(define-data .general-top-level-form
+  .expr
+  (struct .define-values [ids : (Listof Identifier)] [e : .expr])
+  (struct .#%require [specs : (Listof .raw-require-spec)]))
+
+(define-data .submodule-form
+  (struct .module [id : Identifier] [path : Module-Path] [body : .#%plain-module-begin]))
+
+(define-data .raw-provide-spec
+  Any #|TODO|#)
+
+(define-data .raw-require-spec
+  Any #|TODO|#)
+
+(struct .#%plain-module-begin ([body : (Listof .module-level-form)]) #:transparent)
+
 ;; program and module
-(struct .p ([modules : .m*] [accessors : (Setof .st-ac)] [main : .e]) #:transparent)
+(struct .p ([modules : .m*] [accessors : (Setof .st-ac)] [main : .expr]) #:transparent)
 (struct .m* ([order : (Listof Symbol)] [modules : (Map Symbol .m)]) #:transparent)
 ;; the .e in `order` is top-level expressions to run for side-effect
-(struct .m ([order : (Listof (U .e Symbol))] [defs : (Map Symbol (Pairof .e (U #f .e)))]) #:transparent)
+(struct .m ([order : (Listof (U .expr Symbol))] [defs : (Map Symbol (Pairof .expr (U #f .expr)))]) #:transparent)
 
-;; expression
-(define-data .e
-  (subset: .v
+
+(define-data .expr
+  (subset: .val
     ;; if `var?` is true, accepts >= arity args
-    (struct .λ [arity : Integer] [body : .e] [var? : Boolean])
+    (struct .#%plain-lambda [formals : #|.formals|# Integer] [body : .expr])
+    #;(struct .case-lambda [body : (Listof (Pairof .formals .begin))])
     (subset: .•
       '•
       ;; `l` is a tag annotating which static location this opaque value came from
@@ -47,29 +85,34 @@
   (struct .x [sd : Integer]) ; static distance
   ;; module references
   (struct .ref [name : Identifier] [in : Module-Path] [ctx : Any])
-  (struct .@ [f : .e] [xs : (Listof .e)] [ctx : Any])
-  #;(.apply [f : .e] [xs : .e] [ctx : Symbol])
-  (struct .if [i : .e] [t : .e] [e : .e])
-  (struct .wcm [key : .e] [val : .e] [body : .e])
-  (struct .begin [es : (Listof .e)])
-  (struct .begin0 [e : .e] [es : (Listof .e)])
+  (struct .#%app [f : .expr] [xs : (Listof .expr)] [ctx : Any])
+  (struct .if [i : .expr] [t : .expr] [e : .expr])
+  (struct .wcm [key : .expr] [val : .expr] [body : .expr])
+  .begin/expr #;(struct .begin [exprs : (Listof .general-top-level-form)])
+  (struct .begin0 [expr0 : .expr] [exprs : (Listof .expr)])
   (struct .quote [v : Any])
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
-  (struct .let-values [bnds (Listof (Pair Integer .e))] [body (Listof .e)])
+  (struct .let-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
-  (struct .letrec-values [bnds (Listof (Pair Integer .e))] [body (Listof .e)])
+  (struct .letrec-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
   
   (struct .@-havoc [x : .x]) ; hack for havoc
-  (struct .amb [e* : (Setof .e)])
+  (struct .amb [e* : (Setof .expr)])
   ; contract stuff
-  (struct .μ/c [x : Symbol] [c : .e])
-  (struct .λ/c [xs : (Listof .e)] [cy : .e] [var? : Boolean])
-  (struct .x/c [x : Symbol])
-  (struct .struct/c [tag : Symbol] [fields : (Listof .e)])
+  (struct .μ/c [x : Identifier] [c : .expr])
+  (struct .λ/c [xs : (Listof .expr)] [cy : .expr] [var? : Boolean])
+  (struct .x/c [x : Identifier])
+  (struct .struct/c [tag : Identifier] [fields : (Listof .expr)])
   #;(.and/c [l : .e] [r : .e])
   #;(.or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
 
+(define-data .formals
+  Natural
+  (Pairof Natural 'rest)
+  'rest)
+
+#|
 (: •! : → .•ₗ)
 ;; Generate new labeled hole
 (define •!
@@ -128,30 +171,30 @@
 (define .ff (.b #f))
 (define .any/c (.λ 1 .tt #f))
 (define .none/c (.λ 1 .ff #f))
-(define .empty/c (.st-p 'empty 0))
-(define .car (.st-ac 'cons 2 0))
-(define .cdr (.st-ac 'cons 2 1))
+(define .empty/c (.st-p #'empty 0))
+(define .car (.st-ac #'cons 2 0))
+(define .cdr (.st-ac #'cons 2 1))
 (define .zero (.b 0))
 (define .one (.b 1))
-(define .void (.@ (.st-mk 'void 0) (list) 'Λ))
+(define .void (.@ (.st-mk #'void 0) (list) 'Λ))
 
 (: .cons/c : .e .e → .e)
-(define (.cons/c c d) (.struct/c 'cons (list c d)))
+(define (.cons/c c d) (.struct/c #'cons (list c d)))
 
 (:* [.or/c .and/c] : Symbol (Listof .e) → .e)
 (define (.or/c l e*)
   (match e*
     ['() .none/c]
     [(list c) c]
-    [(cons c cr) (.@ (.st-mk 'or/c 2) (list c (.or/c l cr)) l)]))
+    [(cons c cr) (.@ (.st-mk #'or/c 2) (list c (.or/c l cr)) l)]))
 (define (.and/c l e*)
   (match e*
     ['() .any/c]
     [(list c ) c]
-    [(cons c cr) (.@ (.st-mk 'and/c 2) (list c (.and/c l cr)) l)]))
+    [(cons c cr) (.@ (.st-mk #'and/c 2) (list c (.and/c l cr)) l)]))
 (: .not/c : Symbol .e → .e)
 (define (.not/c l c)
-  (.@ (.st-mk '¬/c 1) (list c) l))
+  (.@ (.st-mk #'¬/c 1) (list c) l))
 
 (: prim : (U Symbol Number String Boolean) → (U #f .e))
 (define prim
@@ -166,13 +209,13 @@
    [(? .o? o) o]
    ['any/c .any/c]
    ['none/c .none/c]
-   ['cons? (.st-p 'cons 2)]
-   ['cons (.st-mk 'cons 2)]
+   ['cons? (.st-p #'cons 2)]
+   ['cons (.st-mk #'cons 2)]
    ['car .car]
    ['cdr .cdr]
-   [(or 'empty 'null) (.@ (.st-mk 'empty 0) empty 'Λ)]
+   [(or 'empty 'null) (.@ (.st-mk #'empty 0) empty 'Λ)]
    [(or 'empty? 'null?) .empty/c]
-   ['void (.st-mk 'void 0)]
+   ['void (.st-mk #'void 0)]
    [(? number? x) (.b x)]
    [#f .ff]
    [#t .tt]
@@ -184,7 +227,7 @@
 (define name
   (match-lambda
    [(? symbol? s) s]
-   [(.st-mk t _) t]
+   [(.st-mk t _) (assert (syntax->datum t) symbol?)]
    [(.st-ac 'cons 2 0) 'car]
    [(.st-ac 'cons 2 1) 'cdr]
    [(.st-ac 'box 1 0) 'unbox]
@@ -216,9 +259,9 @@
     
   (define havoc
     (.λ 1 (.amb (set-add (for/set: .@ ([ac acs])
-                           (.@ (.ref 'havoc '☠ '☠)
+                           (.@ (.ref #'havoc '☠ '☠)
                                (list (.@ ac (list (.x 0)) '☠)) '☠))
-                         (.@ (.ref 'havoc '☠ '☠)
+                         (.@ (.ref #'havoc '☠ '☠)
                              (list (.@-havoc (.x 0))) '☠))) #f))
   
   (define ☠ (.m (list 'havoc)
@@ -258,3 +301,4 @@
                            v?)]
     [(.struct/c t cs) (.struct/c t (for/list : (Listof .e) ([c cs]) (e/ c x eₓ)))]
     [e e]))
+|#

@@ -6,7 +6,9 @@
          racket/dict racket/match
          racket/format)
 
-(provide do-expand)
+(provide do-expand do-expand-file do-expand-toplevel
+         ;; Helpers
+         id->sym)
 
 (define (identifier-binding* i)
   (if (dict-ref lexical-bindings i #f)

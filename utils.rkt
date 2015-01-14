@@ -63,6 +63,7 @@
 (define ∅ : (Setof Nothing) (set))
 (define-type Map HashTable)
 (define-type (MMap X Y) (Map X (Setof Y)))
+(define-type (NeListof X) (Pairof X (Listof X)))
 
 ;; evaluate an expression within given #seconds
 ;; return singleton list of value, or #f on timeout
