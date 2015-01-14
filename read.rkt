@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/match racket/list racket/set
+(require racket/match racket/list racket/set racket/bool
          "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
          syntax/parse racket/pretty racket/contract
          "expand.rkt")
@@ -25,18 +25,18 @@
 ;;(: read-top-level-form : Syntax → .top-level-form)
 (define/contract (read-top-level-form form)
   (syntax? . -> . .top-level-form?)
-  ;;(printf "read-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (printf "read-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
      (.module
       #'id (lang-path #'path)
       (.#%plain-module-begin
-       (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
+       (filter-not false? (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
                   #:when
                   (syntax-parse formᵢ
                     [((~literal module) (~literal configure-runtime) _ ...) #f]
                     [_ #t]))
-         (read-module-level-form formᵢ))
+         (read-module-level-form formᵢ)))
        #;(map read-module-level-form (syntax->list #'(forms ...)))))]
     [((~literal begin) form ...)
      (-begin (map read-top-level-form (syntax->list #'(form ...))))]
@@ -45,8 +45,8 @@
 
 ;;(: read-module-level-form : Syntax → (Option .module-level-form))
 (define/contract (read-module-level-form form)
-  (syntax? . -> . .module-level-form?)
-  ;;(printf "read-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (syntax? . -> . (or/c #f .module-level-form?))
+  (printf "read-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal #%provide) spec ...)
      (.#%provide (map read-provide-spec (syntax->list #'(spec ...))))]
@@ -57,24 +57,46 @@
 
 ;;(: read-submodule-form : Syntax → (Option .submodule-form))
 (define/contract (read-submodule-form form)
-  (syntax? . -> . .submodule-form?)
-  ;;(printf "read-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (syntax? . -> . (or/c #f .submodule-form?))
+  (printf "read-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path ((~literal #%plain-module-begin) d ...))
      (.module
       #'id (lang-path #'path)
       (.#%plain-module-begin (map read-module-level-form (syntax->list #'(d ...)))))]
-    [((~literal module*) _ ...) (todo 'module*)]))
+    [((~literal module*) _ ...) (todo 'module*)]
+    [_ #f]))
 
 ;;(: read-general-top-level-form : Syntax → (Option .general-top-level-form))
 (define/contract (read-general-top-level-form form)
-  (syntax? . -> . .general-top-level-form?)
-  ;;(printf "read-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
+  (syntax? . -> . (or/c #f .general-top-level-form?))
+  (printf "read-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
   (syntax-parse form
-    [((~literal define-values) (x ...) e)
+    #:literals (define-syntaxes define-values #%require let-values #%plain-app values)
+    [(define-values (_ ctor pred acc ...)
+       (let-values ([(_ ...)
+                     (let-values ()
+                       (let-values ()
+                         (#%plain-app _ ctor-name _ ...)))])
+         (#%plain-app values _ _ _ (#%plain-app _ _ _ _) ...)))
+     (define/contract ctor-name symbol? (syntax->datum #'ctor-name))
+     (define/contract ctor identifier? (datum->syntax #'ctor ctor-name))
+     (define/contract accs (listof identifier?) (syntax->list #'(acc ...)))
+     (define n (length accs))
+     (.define-values
+      (list* ctor #'pred accs)
+      (.#%app (datum->syntax ctor 'values)
+              (list* (.st-mk ctor n)
+                     (.st-p ctor n)
+                     (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
+                       (.st-ac ctor n i)))
+              'Λ))]
+    [(define-values (x:identifier ...) e)
+     (printf "Case 2~n")
      (.define-values (syntax->list #'(x ...)) (read-expr #'e))]
-    [((~literal #%require) spec ...)
+    [(#%require spec ...)
      (.#%require (map read-require-spec (syntax->list #'(spec ...))))]
+    [(define-syntaxes _ ...) #f]
     [_ (read-expr form)]))
 
 (define/contract (lang-path stx)
@@ -90,7 +112,7 @@
 ;;(: read-expr ([Syntax] [(Listof Identifier)] . ->* . (Option .e)))
 (define/contract (read-expr stx [ctx '()])
   (syntax? . -> . .expr?)
-  ;;(printf "read-expr:~n~a~n~n" (pretty (syntax->datum stx)))
+  (printf "read-expr:~n~a~n~n" (pretty (syntax->datum stx)))
   ;;(: go : Syntax → .e)
   (define (go e) (read-expr e ctx))
   ;;(: go/list : Syntax → (Listof .e))
@@ -112,16 +134,12 @@
     [_
      #:when (prefab-struct-key (syntax-e #'v))
      (todo 'struct)]
-    [(#%plain-app f x ...)
-     (.#%app (go #'f) (go/list #'(x ...)) ctx)]
+    [(#%plain-app f x ...) (.#%app (go #'f) (go/list #'(x ...)) ctx)]
     [((~literal with-continuation-mark) e₀ e₁ e₂)
      (.wcm (go #'e₀) (go #'e₁) (go #'e₂))]
-    [(begin0 e₀ e ...)
-     (.begin0 (go #'e₀) (go/list #'(e ...)))]
-    [(if i t e)
-     (.if (go #'i) (go #'t) (go #'e))]
-    [(let-values () b ...)
-     (-begin (go/list #'(b ...)))]
+    [(begin0 e₀ e ...) (.begin0 (go #'e₀) (go/list #'(e ...)))]
+    [(if i t e) (.if (go #'i) (go #'t) (go #'e))]
+    [(let-values () b ...) (-begin (go/list #'(b ...)))]
     [(let-values (bindings ...) b ...)
      (define ctx′ ctx)
      (.let-values
@@ -142,13 +160,16 @@
                 (read-expr bᵢ ctx′))))]
     [(case-lambda _ ...) (todo 'case-lambda)]
     [(letrec-values _ ...) (todo 'letrec-values)]
-    [(quote e) (.b (syntax->datum #'e))]
+    [(quote e:number) (.b (syntax->datum #'e))]
+    [(quote e:str) (.b (syntax->datum #'e))]
+    [(quote e:boolean) (.b (syntax->datum #'e))]
+    [(quote e:id) (.b (syntax->datum #'e))]
+    [(quote e) (printf "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
     [(#%variable-reference) (todo '#%variable-reference)]
-    [(#%variable-reference id)
-     (todo 'id)]
+    [(#%variable-reference id) (todo 'id)]
     [i:identifier
      (match (identifier-binding #'i)
        ['lexical (.x (id->sd ctx #'i))]
