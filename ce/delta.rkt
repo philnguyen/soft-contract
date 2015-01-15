@@ -10,7 +10,7 @@
 (define (δ σ o V* l)
   (when (match? o (.st-mk 'box _) (.st-ac 'box _ _) (.st-p 'box _))
     (error "δ does not handle box opreation"))
-  #;(printf "δ: o: ~a~nV*: ~a~n~nσ: ~a~n~n~n" o (map (curry show-E σ) V*) (show-σ σ))
+  ;;(printf "δ: o: ~a~nV*: ~a~n~nσ: ~a~n~n~n" o (map (curry show-E σ) V*) (show-σ σ))
   (match* (o V*)
     
     ; primitive predicates
@@ -429,8 +429,9 @@
 
 (: refine-C* : (Setof .V) .V → (Setof .V))
 (define (refine-C* C* C)
-  (if (set-empty? C*) {set C}
-      (for/fold ([acc : (Setof .V) ∅]) ([Ci C*]) (∪ acc (refine-C Ci C)))))
+  (cond [(set-empty? C*) {set C}]
+        [else (for/fold ([acc : (Setof .V) ∅]) ([Cᵢ C*])
+                (∪ acc (refine-C Cᵢ C)))]))
 
 (: refine-C : .V .V → (U .V (Setof .V)))
 (define (refine-C C D)

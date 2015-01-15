@@ -210,9 +210,10 @@
             ;; eliminate negation
             [((.St '¬/c (list C′)) (.St '¬/c (list D′)))
              (match (go D′ C′ assume) ['Proved 'Proved] [_ 'Neither])]
-            [((.St '¬/c (list C′)) _) (match (go D C′ assume)
-                                        ['Proved 'Refuted]
-                                        [_ 'Neither])]
+            [((.St '¬/c (list C′)) _)
+             (match (go D C′ assume)
+               ['Proved 'Refuted]
+               [_ 'Neither])]
             [(_ (.St '¬/c (list D′))) (¬R (go C D′ assume))]
             
             ;; special rules for reals
@@ -259,8 +260,6 @@
             [((.λ↓ (.λ 1 (.@ '< (list (.x 0) (.b (? real? r1))) _) _) _)
               (.λ↓ (.λ 1 (.@ (or '= '> '>=) (list (.x 0) (.b (? real? r2))) _) _) _))
              (if (<= r1 r2) 'Refuted 'Neither)]
-            
-            [(_ (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (not (? .v?) (? .x?))) 'Λ) _) _)) 'Proved]
             
             ;; struct
             [((.st-p t n) (.St/C t _)) (if (= n 0) 'Proved 'Neither)]

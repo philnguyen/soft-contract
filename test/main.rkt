@@ -39,7 +39,10 @@
     (match-define (list val out err) (verify s))
     (check-regexp-match ".*ontract violation.*" err)
     (when counter-example?
-      (check-regexp-match ".*An example module that breaks it.*" err)))
+      ;; Ensure mentioning of a counterexample
+      (check-regexp-match ".*An example module that breaks it.*" err)
+      ;; Ensure concrete counterexample
+      (check-true (not (member #\• (string->list err))))))
 
   ;; String (String -> Void) -> Void
   (define (test-dir dir-name test-func)
