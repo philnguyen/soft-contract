@@ -11,9 +11,9 @@
 
 ;; closure forms
 (define-data .E
-  (struct .↓ [e : .e] [ρ : .ρ])
-  (struct .FC [c : .V] [v : .V] [ctx : Symbol])
-  (struct .Mon [c : .E] [e : .E] [l^3 : Symbol^3])
+  (struct .↓ [e : .expr] [ρ : .ρ])
+  (struct .FC [c : .V] [v : .V] [ctx : Any])
+  (struct .Mon [c : .E] [e : .E] [l³ : Id³])
   (struct .Assume [v : .V] [c : .V])
   (subset: .A
     (struct .blm [violator : Symbol] [origin : Symbol] [v : .V] [c : .V])
@@ -31,10 +31,10 @@
   .prim
   '•
   (struct .Ar [c : .V] [v : .V] [l^3 : Symbol^3])
-  (struct .St [tag : Symbol] [fields : (Listof .V)])
+  (struct .St [tag : Identifier] [fields : (Listof .V)])
   (struct .λ↓ [f : .λ] [ρ : .ρ])
   (struct .Λ/C [c : (Listof .V)] [d : .↓] [v? : Boolean])
-  (struct .St/C [t : Symbol] [fields : (Listof .V)])
+  (struct .St/C [t : Identifier] [fields : (Listof .V)])
   (struct .μ/C [x : Symbol] [c : .V])
   (struct .X/C [x : Symbol])
   (struct .Case [m : (Map (Listof .V) .L)]))
@@ -65,7 +65,7 @@
 (define (close v ρ)
   #;(printf "close:~n~a~n~a~n" v ρ)
   (match v ; partial
-    [(? .λ? v) (→V (.λ↓ v (restrict ρ (FV v))))]
+    [(? .#%plain-lambda? v) (→V (.λ↓ v (restrict ρ (FV v))))]
     [(? .prim? p) (→V p)]))
 
 (: →V : .U → .//)

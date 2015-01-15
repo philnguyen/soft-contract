@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require "expand.rkt" racket/cmdline racket/list "check.rkt")
+(require "expand.rkt" racket/cmdline racket/list racket/pretty)
 
 (define fname (command-line #:program "raco soft-contract"
                #:args (fname)
@@ -17,8 +17,8 @@
      (syntax->list #'((module name lang body ...) ...))]))
 
 ;; FIXME
-(define (find/havoc-provides submod) null)
+#;(define (find/havoc-provides submod) null)
 
-(define havoc-provides (append-map find/havoc-provides (submodules-of expanded-stx)))
+#;(define havoc-provides (append-map find/havoc-provides (submodules-of expanded-stx)))
 
-(feedback (map syntax->datum (append (submodules-of expanded-stx) havoc-provides)))
+#;(feedback (map syntax->datum (append (submodules-of expanded-stx) havoc-provides)))

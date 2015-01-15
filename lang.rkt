@@ -7,6 +7,7 @@
 (struct (X) .begin ([body : (Listof X)]) #:transparent)
 (define-type .begin/expr (.begin .expr))
 (define-type .begin/top (.begin .top-level-form))
+(define-type Id³ (List Identifier Identifier Identifier))
 
 (: -begin : (∀ (X) (Listof X) → (U X (.begin X))))
 (define -begin
@@ -48,7 +49,6 @@
 (struct .m* ([order : (Listof Symbol)] [modules : (Map Symbol .m)]) #:transparent)
 ;; the .e in `order` is top-level expressions to run for side-effect
 (struct .m ([order : (Listof (U .expr Symbol))] [defs : (Map Symbol (Pairof .expr (U #f .expr)))]) #:transparent)
-
 
 (define-data .expr
   (subset: .val
@@ -112,21 +112,21 @@
   (Pairof Natural 'rest)
   'rest)
 
-#|
 (: •! : → .•ₗ)
 ;; Generate new labeled hole
 (define •!
   (let ([n : Negative-Integer -2 #|HACK|#])
     (λ () (begin0 (.•ₗ n) (set! n (- n 1))))))
 
-(: FV : (case→ [.e → (Setof Integer)]
-               [.e Integer → (Setof Integer)]))
+(: FV : (case→ [.expr → (Setof Integer)]
+               [.expr Integer → (Setof Integer)]))
+;; Compute free variables for expression. Return set of static distances.
 (define (FV e [d 0])
   (match e
     [(.x sd) (if (>= sd d) {set (- sd d)} ∅)]
-    [(.λ n e _) (FV e (+ d n))]
-    [(.@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
-                   (set-union FVs (FV x d)))]
+    [(.#%plain-lambda n e) (FV e (+ d n))]
+    [(.#%app f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
+                       (set-union FVs (FV x d)))]
     [(.@-havoc x) (FV x d)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
@@ -139,47 +139,63 @@
                         (set-union FVs (FV c d)))]
     [_ ∅]))
 
-(: closed? : .e → Boolean)
-(define (closed? e) (set-empty? (FV e)))
+(define (closed? [e : .expr]) (set-empty? (FV e)))
 
-(: checks# : (Rec X (U .e .p .m (Listof X))) → Integer)
+(: checks# : (Rec X (U .top-level-form
+                       .expr
+                       .general-top-level-form
+                       .expr
+                       .module
+                       .begin/top
+                       .#%plain-module-begin
+                       .module-level-form
+                       (Listof X))) → Integer)
 (define checks#
   (match-lambda
-    [(? list? es) (for/sum ([e es]) (checks# e))]
-    [(.p (.m* _ ms) _ e) (+ (ann (for/sum ([(l mi) (in-hash ms)]
-                                           #:unless (equal? l '☠))
-                                   (checks# mi)) Integer)
-                            (checks# e))]
-    [(.m _ defs) (for/sum ([(l d) (in-hash defs)])
-                   (match-let ([(cons e c) d])
-                     (+ (checks# e) (match c [(? .e? c) (checks# c)] [_ 0]))))]
-    [(.λ _ e _) (checks# e)]
-    [(.@ f xs _) (+ 1 (checks# f) (checks# xs))]
-    [(.@-havoc x) 1]
-    #;[(.apply f xs _) (+ 1 (checks# f) (checks# xs))]
-    [(.if e e1 e2) (+ (checks# e) (checks# e1) (checks# e2))]
-    [(.amb e*) (for/sum ([e e*]) (checks# e))]
-    [(.μ/c _ e) (checks# e)]
-    [(.λ/c cx cy _) (+ (checks# cx) (checks# cy))]
+    [(? list? es) (for/sum : Integer ([e (in-list es)]) (checks# e))]
+    [(.define-values _ e) (checks# e)]
+    [(.#%plain-lambda _ e) (checks# e)]
+    [(.#%app f xs _) (+ 1 (checks# f) (checks# xs))]
+    [(.if i t e) (+ (checks# i) (checks# t) (checks# e))]
+    [(.wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
+    [(.begin0 e es) (+ (checks# e) (checks# es))]
+    [(.let-values bindings e)
+     (+ (for/sum : Integer ([binding (in-list bindings)])
+          (match-define (cons _ eₓ) binding)
+          (checks# eₓ))
+        (checks# e))]
+    [(.letrec-values bindings e)
+     (+ (for/sum : Integer ([binding (in-list bindings)])
+          (match-define (cons _ eₓ) binding)
+          (checks# eₓ))
+        (checks# e))]
+    [(.amb es) (for/sum ([e (in-set es)]) (checks# e))]
+    [(.μ/c _ c) (checks# c)]
+    [(.λ/c cs d _) (+ (checks# cs) (checks# d))]
     [(.struct/c _ cs) (checks# cs)]
-    [(? .pred?) 0]
-    [(? .o?) 1] ; FIXME: depends on arity
+    
+    [(.#%plain-module-begin xs) (checks# xs)]
+    [(.module _ _ body) (checks# body)]
+    [(or (? .pred?) (? .st-mk?)) 0]
+    [(? .o1?) 1]
+    [(? .o2?) 2]
     [_ 0]))
 
 ;; frequently used constants
 (define .tt (.b #t))
 (define .ff (.b #f))
-(define .any/c (.λ 1 .tt #f))
-(define .none/c (.λ 1 .ff #f))
+(define .any/c (.#%plain-lambda 1 .tt))
+(define .none/c (.#%plain-lambda 1 .ff))
 (define .empty/c (.st-p #'empty 0))
 (define .car (.st-ac #'cons 2 0))
 (define .cdr (.st-ac #'cons 2 1))
 (define .zero (.b 0))
 (define .one (.b 1))
-(define .void (.@ (.st-mk #'void 0) (list) 'Λ))
+(define .void (.#%app (.st-mk #'void 0) (list) 'Λ))
 
-(: .cons/c : .e .e → .e)
-(define (.cons/c c d) (.struct/c #'cons (list c d)))
+#|
+(define (.cons/c [c : .expr] [d : .expr])
+  (.struct/c #'cons (list c d)))
 
 (:* [.or/c .and/c] : Symbol (Listof .e) → .e)
 (define (.or/c l e*)
@@ -195,9 +211,10 @@
 (: .not/c : Symbol .e → .e)
 (define (.not/c l c)
   (.@ (.st-mk #'¬/c 1) (list c) l))
+|#
 
-(: prim : (U Symbol Number String Boolean) → (U #f .e))
-(define prim
+#;(: prim : (U Symbol Number String Boolean) → (U #f .e))
+#;(define prim
   (match-lambda
    #|['box (.st-mk 'box 1)]
    ['box? (.st-p 'box 1)]
@@ -223,8 +240,8 @@
    #;[`(quote ,(? sym? x)) (.b x)]
    [_ #f]))
 
-(: name : .o → Symbol)
-(define name
+#;(: name : .o → Symbol)
+#;(define name
   (match-lambda
    [(? symbol? s) s]
    [(.st-mk t _) (assert (syntax->datum t) symbol?)]
@@ -234,14 +251,14 @@
    [(.st-ac t _ i) (string->symbol (format "~a@~a" t i))]
    [(.st-p t _) (string->symbol (format "~a?" t))]))
 
-(define .pred/c (.λ/c (list .any/c) 'boolean? #f))
+#;(define .pred/c (.λ/c (list .any/c) 'boolean? #f))
 
-(: ¬l : Symbol^3 → Symbol^3)
-(define ¬l
-  (match-lambda [(list l+ l- lo) (list l- l+ lo)]))
+(: swap-parties : Id³ → Id³)
+(define swap-parties
+  (match-lambda [(list + - o) (list - + o)]))
 
-(: gen-accs : (Sequenceof .m) → (Setof .st-ac))
-(define (gen-accs ms)
+#;(: gen-accs : (Sequenceof .m) → (Setof .st-ac))
+#;(define (gen-accs ms)
   (for*/fold ([acs : (Setof .st-ac) {set .car .cdr}])
              ([m ms]
               [defs (in-value (.m-defs m))]
@@ -253,8 +270,8 @@
     (for/fold ([acs acs]) ([i n])
       (set-add acs (.st-ac t n i)))))
 
-(: gen-havoc : .p → .p)
-(define (gen-havoc p)
+#;(: gen-havoc : .p → .p)
+#;(define (gen-havoc p)
   (match-define (.p (.m* m-seq ms) acs e†) p)
     
   (define havoc
@@ -271,7 +288,7 @@
   (if (hash-has-key? ms '☠) p
       (.p (.m* (cons '☠ m-seq) (hash-set ms '☠ ☠)) acs e†)))
 
-(: amb : (Listof .e) → .e)
+(: amb : (Listof .expr) → .expr)
 #;(define (amb e*)
   (define s
     (for/fold ([ac : (Setof .e) ∅]) ([e e*])
@@ -286,9 +303,9 @@
     [(list e) e]
     [(cons e es) (.if (•!) e (amb es))]))
 
-(: e/ : .e Integer .e → .e)
+#;(: e/ : .e Integer .e → .e)
 ;; Substitute expression at given static distance
-(define (e/ e x eₓ)
+#;(define (e/ e x eₓ)
   (match e
     [(.x k) (if (= k x) eₓ e)]
     [(.λ n e v?) (.λ n (e/ e (+ x (if v? (- n 1) n)) eₓ) v?)]
@@ -301,4 +318,3 @@
                            v?)]
     [(.struct/c t cs) (.struct/c t (for/list : (Listof .e) ([c cs]) (e/ c x eₓ)))]
     [e e]))
-|#
