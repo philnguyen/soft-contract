@@ -24,8 +24,12 @@
     (match U₁
       ['•
        (cond
-        [(set-member? Cs INT/C) V]
-        [(set-member? Cs REAL/C) V]
+        [(set-member? Cs INT/C)
+         (error 'Internal "expect Z3 to have instantated `integer?`")
+         V]
+        [(set-member? Cs REAL/C)
+         (error 'Internal "expect Z3 to have instanted `real?`")
+         V]
         [(set-member? Cs NUM/C)
          (match (C*⇒C Cs REAL/C)
            ['Refuted (Prim +1i)]
@@ -88,9 +92,7 @@
               C)
              (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
           [else (→V (.λ↓ (.λ 1 (.b (random)) #f) ρ∅))])]
-        [(equal? 'Refuted (C*⇒C Cs NUM/C))
-         (→V (.St 'struct● (list (Prim (random)))))]
-        [else (Prim (random))])]
+        [else (→V (.St 'struct● (list (Prim (random)))))])]
       [(.λ↓ (.λ 1 (.@ (.•ₗ l) (list e) _) #f) ρ)
        (match-define (.// _ Cs) (σ@ σ l))
        (cond [(set-empty? Cs) (→V (.λ↓ (.λ 1 e #f) ρ))]
