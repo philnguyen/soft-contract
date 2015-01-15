@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set racket/string racket/bool racket/port racket/system
          "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
-(provide explore →lab call query handled?)
+(provide explore →lab call query handled? total-z3-time reset-z3-time!)
 
 ; query external solver for provability relation
 (: query : .σ .V .V → .R)
@@ -176,14 +176,25 @@
              [_ #;(printf "Neither~n") 'Neither])]
     [_ #;(printf "Neither~n")'Neither]))
 
+(: total-z3-time : Number)
+(define total-z3-time 0)
+
+(define (reset-z3-time!) (set! total-z3-time 0))
+
 ; performs system call to solver with given query
 (: call : String → String)
 (define (call query)
-  #;(printf "Called with:~n~a~n~n" query)
-  (with-output-to-string
-   (λ () ; FIXME: lo-tech. I don't know Z3's exit code
-     (system (format "echo \"~a\" | z3 -in -smt2" query)))))
-
+  (define now (current-process-milliseconds))
+  (log-info "Calling z3 ...")
+  (define result-str
+    (with-output-to-string
+        (λ () ; FIXME: lo-tech. I don't know Z3's exit code
+          (system (format "echo \"~a\" | z3 -in -smt2" query)))))
+  (set! total-z3-time (+ total-z3-time (- (current-process-milliseconds) now)))
+  (log-info "Called z3 ... ~a" (- (current-process-milliseconds) now))
+  result-str)
+  
+  
 ; generate printable/readable element for given value/label index
 (: →lab : (U Integer .V .o) → (U Number String Symbol))
 (define →lab
