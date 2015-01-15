@@ -43,6 +43,8 @@
 
 (: ev : .p → .ς+)
 (define (ev p)
+  (log-info "called `ev` in machine.rkt ... ~a" (current-process-milliseconds))
+
   (match-define (.p (and m* (.m* _ ms)) _ e) p)
   (define step (step-p m*))
   (define Ξ : (MMap .rt/κ .K) (make-hash))

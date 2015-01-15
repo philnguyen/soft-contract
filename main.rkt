@@ -23,7 +23,10 @@
 
 (define (feedback/massage x)
   #;(printf "Prog:~n~a~n" (pretty (massage x)))
-  (feedback (massage x)))
+  (log-info "feedback/massage ... ~a" (current-process-milliseconds))
+  (begin0
+      (feedback (massage x))
+    (log-info "Finished feedback/massage: ~a" (current-process-milliseconds))))
 
 (define verify-top? (make-parameter #f))
 
