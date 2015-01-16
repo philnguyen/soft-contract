@@ -6,7 +6,22 @@
          racket/port
          syntax/id-table
          syntax/parse
-         unstable/hash)
+         unstable/hash
+         racket/contract/private/provide)
+
+(provide scv-ignore?)
+
+(define (flatten* l)
+  (if l (flatten l) null))
+
+(define (scv-ignore? stx)
+  (or (syntax-property stx 'scv:ignore)
+      (memf (λ (i) (eq? (syntax-e i) 'handle-contract-out)) (flatten* (syntax-property stx 'origin)))
+      (syntax-parse stx #:literals (define-values #%plain-app vector)
+        [(define-values (_:id)
+           (#%plain-app (~datum do-partial-app) _ _ _ _ (#%plain-app vector . _)))
+         #t]
+        [_ #f])))
 
 (provide do-expand)
 
