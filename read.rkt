@@ -164,7 +164,7 @@
     [(quote e:str) (.b (syntax->datum #'e))]
     [(quote e:boolean) (.b (syntax->datum #'e))]
     [(quote e:id) (.b (syntax->datum #'e))]
-    [(quote e) (printf "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
+    [(quote e) #|FIXME|# (printf "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
