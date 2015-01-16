@@ -1,7 +1,10 @@
 #lang typed/racket/base
-(require racket/match racket/list racket/set racket/string racket/bool racket/port racket/system
+(require racket/match racket/list racket/set racket/string racket/bool
+         racket/port racket/system racket/function
          "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
 (provide explore →lab call query handled? total-z3-time reset-z3-time!)
+
+(define-type Z3-Num (U 'Int 'Real))
 
 ; query external solver for provability relation
 (: query : .σ .V .V → .R)
@@ -14,7 +17,7 @@
                             [(.L i) (values σ i)]
                             [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#]))
     (define-values (Q* i*) (explore σ′ (set-add (span-C C) i)))
-    (define-values (q j*) (gen i C))
+    (define-values (q j*) (gen σ′ i C))
     #;(printf "premises [~a] involve labels [~a] ~n" Q* i*)
     (cond
      ;; Skip querying when the set of labels spanned by premises does not cover
@@ -72,7 +75,7 @@
           (∪! asserts (format "(= ~a ~a)" (→lab i) (→lab V)))
           (∪! involved i))
         (for ([C C*])
-          (let-values ([(q1 j*) (gen i C)])
+          (let-values ([(q1 j*) (gen σ i C)])
             (∪! queue j*)
             (when (string? q1)
               (∪! asserts q1)
@@ -130,38 +133,78 @@
 
 ; generate statement expressing relationship between i and C
 ; e.g. <L0, (sum/c 1 2)>  translates to  "L0 = 1 + 2"
-(: gen : Integer .V → (Values (U #f String) (Setof Integer)))
-(define (gen i C)
+(: gen : .σ Integer .V → (Values (U #f String) (Setof Integer)))
+(define (gen σ i C)
+  
+  (: type-of : .V → Z3-Num)
+  (define (type-of V)
+    (match V
+      [(.L j) (type-of (σ@ σ j))]
+      [(.// (.b (? exact-integer?)) _) 'Int]
+      [(.// (.b (? real?)) _) 'Real]
+      [(.// '• Cs)
+       (cond [(set-member? Cs INT/C) 'Int]
+             [else 'Real])]))
+  
+  (define type-i (type-of (.L i)))
+  
+  (: maybe-convert : Z3-Num Any → Any)
+  (define (maybe-convert t x)
+    (match t
+      ['Int (format "(to_real ~a)" x)]
+      [_ x]))
+  
   (match C
-    [(? (λ ([C : .V]) (equal? C (.¬/C (Prim 'integer?)))))
+    [(? (curry equal? (.¬/C INT/C)))
      ;; Make sure Z3 doesn't consider `1.0` a `(not/c integer?)` by Racket's standard
      (values (format "(not (is_int ~a))" (→lab i))
              (labels i))]
     [(.// (.λ↓ f ρ) _)
-     (let ([ρ@* (match-lambda
-                  [(.b (? number? n)) (Prim n)]
-                  [(.x i) (ρ@ ρ (- i 1))])])
-       (match f
-         [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _) #f)
-          (let ([X (ρ@* e)])
-            (values (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))
-                    (labels i X)))]
-         [(.λ 1 (.@ (or '= 'equal?)
-                    (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
-          (let ([X (ρ@* M)])
-            (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
-                    (labels i X)))]
-         [(.λ 1 (.@ (or '= 'equal?)
-                    (list (.x 0) (.@ (? .o? o)
-                                     (list (and M (or (.x _) (.b (? number?))))
-                                           (and N (or (.x _) (.b (? number?))))) _)) _) #f)
-          (let ([X (ρ@* M)] [Y (ρ@* N)])
-            (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
-                    (labels i X Y)))]
-         [_ (values #f ∅)]))]
+     (define ρ@*
+       (match-lambda
+        [(.b (? number? n)) (Prim n)]
+        [(.x i) (ρ@ ρ (- i 1))]))
+     (match f
+       [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _) #f)
+        (define X (ρ@* e))
+        (define type-X (type-of X))
+        (values
+         (cond [(equal? type-i type-X)
+                (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))]
+               [else (format "(~a (to_real ~a) ~a)"
+                             (→lab o)
+                             (maybe-convert type-i (→lab i))
+                             (maybe-convert type-X (→lab X)))])
+         (labels i X))]
+       [(.λ 1 (.@ (or '= 'equal?)
+                  (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
+        (define X (ρ@* M))
+        (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
+                (labels i X))]
+       [(.λ 1 (.@ (or '= 'equal?)
+                  (list (.x 0) (.@ (? .o? o)
+                                   (list (and M (or (.x _) (.b (? number?))))
+                                         (and N (or (.x _) (.b (? number?))))) _)) _) #f)
+        (define X (ρ@* M))
+        (define Y (ρ@* N))
+        (define type-X (type-of X))
+        (define type-Y (type-of Y))
+        (cond
+         [(and (equal? type-i type-X) (equal? type-X type-Y))
+          (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
+                  (labels i X Y))]
+         [else ; if some operand is Real, convert all to Real
+          (values
+           (format "(= ~a (~a ~a ~a))"
+                   (maybe-convert type-i (→lab i))
+                   (→lab o)
+                   (maybe-convert type-X (→lab X))
+                   (maybe-convert type-Y (→lab Y)))
+           (labels i X Y))])]
+       [_ (values #f ∅)])]
     [(.// (.St '¬/c (list D)) _)
-     (let-values ([(q i*) (gen i D)])
-       (values (match q [(? string? s) (format "(not ~a)" s)] [_ #f]) i*))]
+     (define-values (q i*) (gen σ i D))
+     (values (match q [(? string? s) (format "(not ~a)" s)] [_ #f]) i*)]
     [_ (values #f ∅)]))
 
 ; perform query/ies with given declarations, assertions, and conclusion,
@@ -186,6 +229,7 @@
 (define (call query)
   (define now (current-process-milliseconds))
   (log-info "Calling z3 ...")
+  (printf "Query:~n~a~n---~n" query)
   (define result-str
     (with-output-to-string
         (λ () ; FIXME: lo-tech. I don't know Z3's exit code

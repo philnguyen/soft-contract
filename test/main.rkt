@@ -43,7 +43,13 @@
       (check-regexp-match ".*An example module that breaks it.*" err)
       ;; Ensure concrete counterexample
       (check-true (not (member #\• (string->list err))))))
-
+  
+  ;; String -> Void
+  ;; Enforce the tool NOT to generate a counterexample
+  (define (check-no-ce s)
+    (match-define (list val out err) (verify s))
+    (check-false (regexp-match? ".*An example module that breaks it.*" err)))
+  
   ;; String (String -> Void) -> Void
   (define (test-dir dir-name test-func)
     (for ([file (in-directory dir-name)]
@@ -54,4 +60,5 @@
 
   (test-dir "safe" check-verify-safe)
   (test-dir "fail" check-verify-fail)
-  (test-dir "fail-ce" (λ (s) (check-verify-fail s #t))))
+  (test-dir "fail-ce" (λ (s) (check-verify-fail s #t)))
+  (test-dir "no-ce" check-no-ce))
