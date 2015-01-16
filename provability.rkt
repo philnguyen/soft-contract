@@ -14,7 +14,7 @@
 
 (: ⊢ : .σ .V .V → .R)
 (define (⊢ σ V C)
-  #;(printf "⊢:~nV:~a~nC:~a~n~n" V C #;(show-E σ V) #;(show-E σ C))
+  #;(printf "⊢:~nV:~a~nC:~a~nσ:~a~n~n" (show-E σ V) (show-E σ C) (show-σ σ))
   (let ([C (simplify C)])
     (match (⊢′ σ V C)
       ['Neither ((ext-solver) σ V C)]
@@ -182,7 +182,11 @@
   (for/and ([D Ds]) (eq? 'Proved (C*⇒C Cs D))))
 
 (: C*⇒C : (Setof .V) .V → .R)
-(define (C*⇒C C* C)  
+(define (C*⇒C C* C)
+  #;(printf "C*⇒C:~nC*: ~a~nC: ~a~n~n"
+          (for/list : (Listof Any) ([C (in-set C*)])
+            (show-V σ∅ C))
+          (show-V σ∅ C))
   (match C
     [(.// (.St 'and/c (list C1 C2)) _) (∧R (C*⇒C C* C1) (C*⇒C C* C2))]
     [_ (for*/fold: ([R : .R 'Neither]) ([Ci C*])
@@ -382,12 +386,40 @@
          #;(printf "go:~nσ0:~n~a~nσ1:~n~a~nV0:~n~a~nV1:~n~a~n~n" σ0 σ1 x y)
          (match* (x y)
            [((? .V? V0) (? .V? V1))
+            #;(printf "go!:~nσ₀:~n~a~nV₀:~n~a~nσ₁:~n~a~nV₁:~n~a~n~n"
+                    (show-σ σ0)
+                    (show-V σ0 V0)
+                    (show-σ σ1)
+                    (show-V σ1 V))
             (or        
              (assumed-has? (cons V0 V1))
              (match* (V0 V1)
                [((.// U0 C*) (.// U1 D*))
                 (match* (U0 U1)
-                  [('• '•) (C*⇒C*? C* D*)]
+                  [('• '•)
+                   (C*⇒C*?
+                       (for/set: .V ([C (in-set C*)]
+                                     #:unless
+                                     (match?
+                                      C
+                                      (.//
+                                       (.λ↓
+                                        (.λ 1
+                                            (.@ (or '= 'equal?)
+                                                (list (.x 0) (not (? .v?) (? .x?))) 'Λ) _) _)
+                                       _)))
+                                 C)
+                       (for/set: .V ([D (in-set D*)]
+                                     #:unless
+                                     (match?
+                                      D
+                                      (.//
+                                       (.λ↓
+                                        (.λ 1
+                                            (.@ (or '= 'equal?)
+                                                (list (.x 0) (not (? .v?) (? .x?))) 'Λ) _) _)
+                                       _)))
+                                 D))]
                   [((.St t V0*) (.St t V1*)) (andmap go! V0* V1*)]
                   [((.Ar C1 V1 _) (.Ar C2 V2 _)) (and (equal? C1 C2) (go! V1 V2))]
                   [((.λ↓ e0 ρ0) (.λ↓ e1 ρ1)) (and (equal? e0 e1) (go! ρ0 ρ1))]
