@@ -229,7 +229,7 @@
 (define (call query)
   (define now (current-process-milliseconds))
   (log-info "Calling z3 ...")
-  (printf "Query:~n~a~n---~n" query)
+  #;(printf "Query:~n~a~n---~n" query)
   (define result-str
     (with-output-to-string
         (λ () ; FIXME: lo-tech. I don't know Z3's exit code
