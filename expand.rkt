@@ -143,7 +143,7 @@
       (define cnts (find-contracts m))
       (define m* (namespace-syntax-introduce (expand m)))
       (eval-syntax m*)
-      (list (syntax->datum m*) cnts))))
+      (list m* #;(syntax->datum m*) cnts))))
 
 (provide do-expand-file)
 

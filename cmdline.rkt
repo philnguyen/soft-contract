@@ -16,6 +16,9 @@
         (module name lang body ...) ...))
      (syntax->list #'((module name lang body ...) ...))]))
 
+(require racket/pretty)
+(printf "~a~n" (pretty-print (map syntax->datum (submodules-of expanded-stx))))
+
 ;; FIXME
 #;(define (find/havoc-provides submod) null)
 
