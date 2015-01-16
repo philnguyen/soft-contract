@@ -150,9 +150,10 @@
   
   (: maybe-convert : Z3-Num Any → Any)
   (define (maybe-convert t x)
-    (match t
-      ['Int (format "(to_real ~a)" x)]
-      [_ x]))
+    (cond [(real? x) x]
+          [else (match t
+                  ['Int (format "(to_real ~a)" x)]
+                  [_ x])]))
   
   (match C
     [(? (curry equal? (.¬/C INT/C)))
@@ -240,7 +241,7 @@
   
   
 ; generate printable/readable element for given value/label index
-(: →lab : (U Integer .V .o) → (U Number String Symbol))
+(: →lab : (U Integer .V .o) → (U Real String Symbol))
 (define →lab
   (match-lambda
     [(.// (.b (? real? x)) _) x]
