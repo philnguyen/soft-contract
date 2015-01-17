@@ -18,25 +18,24 @@
                                               '((read #rx#"racket-prefs.rktd")))])
       (make-evaluator 'soft-contract)))
 
-  ;; String -> Void
+  ;; String -> (Values Any Any Any)
   (define (verify s)
     (define ev (make-ev))
-    (define val (ev s))
-    (define out (get-output ev))
-    (define err (get-error-output ev))
-    (list val out err))
+    (values (ev s)
+            (get-output ev)
+            (get-error-output ev)))
 
   ;; String -> Void
   ;; Check whether program is safe
   (define (check-verify-safe s)
-    (match-define (list val out err) (verify s))
+    (define-values (val out err) (verify s))
     (test-equal? "no error" "" err)
     (test-true "safe" (regexp-match? ".*Program is safe.*" out)))
 
   ;; String -> Void
   ;; Check whether program fails, optionally enforcing a counterexample
   (define (check-verify-fail s [counter-example? #f])
-    (match-define (list val out err) (verify s))
+    (define-values (val out err) (verify s))
     (check-regexp-match ".*ontract violation.*" err)
     (when counter-example?
       ;; Ensure mentioning of a counterexample
@@ -47,7 +46,7 @@
   ;; String -> Void
   ;; Enforce the tool NOT to generate a counterexample
   (define (check-no-ce s)
-    (match-define (list val out err) (verify s))
+    (define-values (val out err) (verify s))
     (check-false (regexp-match? ".*An example module that breaks it.*" err)))
   
   ;; String (String -> Void) -> Void
