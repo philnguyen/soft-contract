@@ -11,6 +11,18 @@
   (let ([m : (Map X Y) ((if eq?? make-hasheq make-hash))])
     (λ (x) (hash-ref! m x (λ () (f x))))))
 
+(define-syntax define/memo
+  (syntax-rules (: →)
+    [(define/memo (f [x : τ] ...) : σ e ...)
+     (define f : (τ ... → σ)
+       (let ([m : (HashTable (List τ ...) σ) (make-hash)])
+         (λ ([x : τ] ...) : σ
+            (hash-ref! m (list x ...) (λ () : σ e ...)))))]
+    [(define/memo (f x ...) e ...)
+     (define f
+       (let ([m (make-hash)])
+         (λ (x ...) (hash-ref! m (list x ...) (λ () e ...)))))]))
+
 ;; Define type `t` along with predicate `t?`
 (define-syntax (define-type/pred stx)
   (syntax-case stx ()
