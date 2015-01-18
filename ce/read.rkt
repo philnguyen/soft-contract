@@ -1,8 +1,8 @@
 #lang racket/base
 (require "../lang.rkt"
-         (rename-in "../read.rkt" [read-p read-p/raw]))
-(provide read-p)
+         (rename-in "../read.rkt" [parse-prog parse-prog/raw]))
+(provide parse-prog)
 
-(define (read-p s)
+(define (parse-prog mods expr)
   (parameterize ([on-•! •!])
-    (read-p/raw s)))
+    (parse-prog/raw mods expr)))

@@ -1,9 +1,11 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/string racket/port
          "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../query-z3.rkt" "../provability.rkt" "../show.rkt")
-(provide model σ•?)
+(provide model σ•? Struct-Tag-●)
 
-(: model : .p .σ → (Option .σ))
+(define Struct-Tag-● #'●)
+
+(: model : .prog .σ → (Option .σ))
 ;; Return one instantiation of program×heap
 (define (model p σ)
   #;(printf "σ₀:~n~a~n" (show-σ σ))
@@ -14,7 +16,7 @@
           [else #f])]
    [else σ]))
 
-(: model/σ : .p .σ → .σ)
+(: model/σ : .prog .σ → .σ)
 ;; Instantiate non-number abstract values
 (define (model/σ p σ)
   
@@ -37,8 +39,8 @@
           (for/or : (U #f .V+)
                   ([C Cs]
                    #:when
-                   (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _) _) _) _)))
-            (match-define (.// (.λ↓ (.λ _ (.@ _ (list _ len) _) _) ρ) _) C)
+                   (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _)) _) _)))
+            (match-define (.// (.λ↓ (.λ _ (.@ _ (list _ len) _)) ρ) _) C)
             (define n
               (match len
                 [(.b (? exact-integer? n)) n]
@@ -54,10 +56,7 @@
           (Prim (random-string (random 16))))] 
         [(set-member? Cs (Prim 'boolean?))
          (match (C*⇒C Cs (Prim 'false?))
-           ['Refuted
-            (match (C*⇒C Cs (Prim 'true?))
-              ['Refuted (error 'Internal "spurious path: boolean neither true nor false")]
-              [_ (Prim #t)])]
+           ['Refuted (Prim #t)]
            [_ (Prim #f)])]
         [(set-member? Cs PROC/C)
          (cond
@@ -66,34 +65,34 @@
                     #:when
                     (match?
                      C
-                     (.// (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) _) _) _) _) _)))
+                     (.// (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) _) _)) _) _)))
              C)
            =>
            (λ ([C : (U Boolean .V)])
              (match-define
-              (.// (.λ↓ (.λ 1 (.@ 'arity=? (list _ (.b (? exact-integer? n))) _) _) _) _)
+              (.// (.λ↓ (.λ 1 (.@ 'arity=? (list _ (.b (? exact-integer? n))) _)) _) _)
               C)
-             (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
+             (→V (.λ↓ (.λ n (.b (random))) ρ∅)))]
           [(for/or : (U Boolean .V)
                    ([C Cs]
                     #:when
                     (match?
                      C
-                     (.// (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) _) _) _) _) _)))
+                     (.// (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) _) _)) _) _)))
              C)
            =>
            (λ ([C : (U Boolean .V)])
              (match-define
-              (.// (.λ↓ (.λ _ (.@ 'arity-includes? (list _ (.b (? exact-integer? n))) _) _) _) _)
+              (.// (.λ↓ (.λ _ (.@ 'arity-includes? (list _ (.b (? exact-integer? n))) _)) _) _)
               C)
-             (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
-          [else (→V (.λ↓ (.λ 1 (.b (random)) #f) ρ∅))])]
+             (→V (.λ↓ (.λ n (.b (random))) ρ∅)))]
+          [else (→V (.λ↓ (.λ 1 (.b (random))) ρ∅))])]
         [(equal? 'Refuted (C*⇒C Cs NUM/C))
-         (→V (.St 'struct● (list (Prim (random)))))]
+         (→V (.St Struct-Tag-● (list (Prim (fresh-int!)))))]
         [else (Prim (random))])]
-      [(.λ↓ (.λ 1 (.@ (.•ₗ l) (list e) _) #f) ρ)
+      [(.λ↓ (.λ 1 (.@ (.•ₗ l) (list e) _)) ρ)
        (match-define (.// _ Cs) (σ@ σ l))
-       (cond [(set-empty? Cs) (→V (.λ↓ (.λ 1 e #f) ρ))]
+       (cond [(set-empty? Cs) (→V (.λ↓ (.λ 1 e) ρ))]
              [else V])]
       [_ V]))
   

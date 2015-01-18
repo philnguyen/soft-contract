@@ -6,16 +6,14 @@
 
 (define m∅ : (Map (U Integer Identifier) .V) (hash))
 (define-type .R (U 'Proved 'Refuted 'Neither))
-(define-type Mon-Party Any #|TODO|#)
-(define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
 
 ;;;;; CLOSURE
 
 ;; closure forms
 (define-data .E
   (struct .↓ [e : .expr] [ρ : .ρ])
-  (struct .FC [c : .V] [v : .V] [ctx : Any])
-  (struct .Mon [c : .E] [e : .E] [l³ : Id³])
+  (struct .FC [c : .V] [v : .V] [ctx : Mon-Party])
+  (struct .Mon [c : .E] [e : .E] [l³ : Mon-Info])
   (struct .Assume [v : .V] [c : .V])
   (subset: .A
     (struct .blm [violator : Mon-Party] [origin : Mon-Party] [v : .V] [c : .V])

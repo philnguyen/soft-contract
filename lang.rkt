@@ -1,14 +1,23 @@
 #lang typed/racket
-(require "utils.rkt"
-         (for-syntax racket/base racket/syntax))
+(require "utils.rkt" (for-syntax racket/base racket/syntax))
 (provide (all-defined-out))
+(require/typed "utils-untyped.rkt"
+  [todo (Any → Nothing)])
 
 ;; prefixing types with dots just so i can use 1-letter variables without shadowing them
 
 (struct (X) .begin ([body : (Listof X)]) #:transparent)
 (define-type .begin/expr (.begin .expr))
 (define-type .begin/top (.begin .top-level-form))
-(define-type Id³ (List Identifier Identifier Identifier))
+
+(define-type Mon-Party Module-Path #|TODO|#)
+(define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
+
+(: swap-parties : Mon-Info → Mon-Info)
+(define/match (swap-parties info)
+  [((list + - o)) (list - + o)])
+
+(define THE-MODULE-HACK : Module-Path "The-Module")
 
 (: -begin : (∀ (X) (Listof X) → (U X (.begin X))))
 (define -begin
@@ -77,8 +86,8 @@
   ;; lexical variables
   (struct .x #|static distance|# [sd : Integer])
   ;; module references
-  (struct .ref [name : Identifier] [in : Module-Path] [ctx : Any])
-  (struct .@ [f : .expr] [xs : (Listof .expr)] [ctx : Any])
+  (struct .ref [name : Identifier] [in : Module-Path] [ctx : Mon-Party])
+  (struct .@ [f : .expr] [xs : (Listof .expr)] [ctx : Mon-Party])
   (struct .if [i : .expr] [t : .expr] [e : .expr])
   (struct .wcm [key : .expr] [val : .expr] [body : .expr])
   .begin/expr #;(struct .begin [exprs : (Listof .general-top-level-form)])
@@ -148,37 +157,39 @@
                        .begin/top
                        .#%plain-module-begin
                        .module-level-form
+                       .prog
                        (Listof X))) → Integer)
 (define checks#
   (match-lambda
-    [(? list? es) (for/sum : Integer ([e (in-list es)]) (checks# e))]
-    [(.define-values _ e) (checks# e)]
-    [(.λ _ e) (checks# e)]
-    [(.@ f xs _) (+ 1 (checks# f) (checks# xs))]
-    [(.if i t e) (+ (checks# i) (checks# t) (checks# e))]
-    [(.wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
-    [(.begin0 e es) (+ (checks# e) (checks# es))]
-    [(.let-values bindings e)
-     (+ (for/sum : Integer ([binding (in-list bindings)])
-          (match-define (cons _ eₓ) binding)
-          (checks# eₓ))
-        (checks# e))]
-    [(.letrec-values bindings e)
-     (+ (for/sum : Integer ([binding (in-list bindings)])
-          (match-define (cons _ eₓ) binding)
-          (checks# eₓ))
-        (checks# e))]
-    [(.amb es) (for/sum ([e (in-set es)]) (checks# e))]
-    [(.μ/c _ c) (checks# c)]
-    [(.λ/c cs d _) (+ (checks# cs) (checks# d))]
-    [(.struct/c _ cs) (checks# cs)]
-    
-    [(.#%plain-module-begin xs) (checks# xs)]
-    [(.module _ body) (checks# body)]
-    [(or (? .pred?) (? .st-mk?)) 0]
-    [(? .o1?) 1]
-    [(? .o2?) 2]
-    [_ 0]))
+   [(? list? es) (for/sum : Integer ([e (in-list es)]) (checks# e))]
+   [(.prog ms e) (+ (checks# ms) (checks# e))]
+   [(.define-values _ e) (checks# e)]
+   [(.λ _ e) (checks# e)]
+   [(.@ f xs _) (+ 1 (checks# f) (checks# xs))]
+   [(.if i t e) (+ (checks# i) (checks# t) (checks# e))]
+   [(.wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
+   [(.begin0 e es) (+ (checks# e) (checks# es))]
+   [(.let-values bindings e)
+    (+ (for/sum : Integer ([binding (in-list bindings)])
+         (match-define (cons _ eₓ) binding)
+         (checks# eₓ))
+       (checks# e))]
+   [(.letrec-values bindings e)
+    (+ (for/sum : Integer ([binding (in-list bindings)])
+         (match-define (cons _ eₓ) binding)
+         (checks# eₓ))
+       (checks# e))]
+   [(.amb es) (for/sum ([e (in-set es)]) (checks# e))]
+   [(.μ/c _ c) (checks# c)]
+   [(.λ/c cs d _) (+ (checks# cs) (checks# d))]
+   [(.struct/c _ cs) (checks# cs)]
+   
+   [(.#%plain-module-begin xs) (checks# xs)]
+   [(.module _ body) (checks# body)]
+   [(or (? .pred?) (? .st-mk?)) 0]
+   [(? .o1?) 1]
+   [(? .o2?) 2]
+   [_ 0]))
 
 (define-syntax (define-value/pattern stx)
   (syntax-case stx ()
@@ -190,12 +201,8 @@
              (syntax-rules ()
                [(_) pat]))))]))
 
-#;(define-syntax-rule (define-value/pattern pat e)
-  (begin
-    (define v e)
-    (define-match-expander pat
-      (syntax-rules () [() e])
-      (syntax-id-rules () [pat v]))))
+(define box-id : Identifier #'box)
+(define cons-id : Identifier #'cons)
 
 ;; frequently used constants
 (define-value/pattern .tt (.b #t))
@@ -211,6 +218,9 @@
 (define-value/pattern .one (.b 1))
 (define-value/pattern .void (.st-mk #'void 0))
 (define-value/pattern .null #|hack|# (.@ (.st-mk #'null 0) (list) 'Λ))
+(define-value/pattern .box? (.st-p box-id 1))
+(define-value/pattern .unbox (.st-ac box-id 1 0))
+(define-value/pattern .box (.st-mk box-id 1))
 
 #|
 (define (.cons/c [c : .expr] [d : .expr])
@@ -264,22 +274,19 @@
   (syntax-rules ()
     [(?id id) (? (λ (x) (free-identifier=? x id)))]))
 
+
 (: name : .o → Symbol)
 (define name
   (match-lambda
    [(? symbol? s) s]
    [(.st-mk t _) (assert (syntax->datum t) symbol?)]
-   [(.st-ac (?id #'cons) 2 0) 'car]
-   [(.st-ac (?id #'cons) 2 1) 'cdr]
-   [(.st-ac (?id #'box) 1 0) 'unbox]
+   [(.st-ac (?id cons-id) 2 0) 'car]
+   [(.st-ac (?id cons-id) 2 1) 'cdr]
+   [(.st-ac (?id box-id) 1 0) 'unbox]
    [(.st-ac t _ i) (string->symbol (format "~a@~a" (syntax->datum t) i))]
    [(.st-p t _) (string->symbol (format "~a?" (syntax->datum t)))]))
 
 #;(define .pred/c (.λ/c (list .any/c) 'boolean? #f))
-
-(: swap-parties : Id³ → Id³)
-(define swap-parties
-  (match-lambda [(list + - o) (list - + o)]))
 
 #;(: gen-accs : (Sequenceof .m) → (Setof .st-ac))
 #;(define (gen-accs ms)
@@ -294,16 +301,17 @@
     (for/fold ([acs acs]) ([i n])
       (set-add acs (.st-ac t n i)))))
 
-(define ☠ "havoc")
-(define havoc-id #'havoc)
+(define ☠ "havoc") ; havoc module path
+(define havoc-id #'havoc) ; havoc function id
 
-(define (havoc-ref-from [ctx : Any])
+(define (havoc-ref-from [ctx : Mon-Party])
   (.ref havoc-id ☠ ctx))
 
 (: prog-accs : (Listof .module) → (Setof .st-ac))
 ;; Retrieve set of all public accessors from program
 (define (prog-accs ms)
-  (error "TODO"))
+  (printf "TODO: generate accessors properly")
+  {set})
 
 (: gen-havoc : .prog → .prog)
 (define (gen-havoc p)
@@ -376,10 +384,10 @@
              path
              (syntax->datum id))))
 
-(: .ref->expr : .prog .ref → .expr)
-(define (.ref->expr p ref)
+(: .ref->expr : (Listof .module) .ref → .expr)
+(define (.ref->expr ms ref)
   (match-define (.ref ref-id mod-path _) ref)
-  (.id->expr (path->module p mod-path) ref-id))
+  (.id->expr (path->module ms mod-path) ref-id))
 
 (: .id->ctc : .module Identifier → .expr)
 ;; Return the contract monitoring identifier `id` exported by module `m`
@@ -392,15 +400,38 @@
           (and (free-identifier=? x id) c)))
       (error '.id->ctc "module ~a does not export ~a" mod-name (syntax->datum id))))
 
-(: .ref->ctc : .prog .ref → .expr)
-(define (.ref->ctc p ref)
+(: .ref->ctc : (Listof .module) .ref → .expr)
+(define (.ref->ctc ms ref)
   (match-define (.ref ref-id mod-path _) ref)
-  (.id->ctc (path->module p mod-path) ref-id))
+  (.id->ctc (path->module ms mod-path) ref-id))
 
-(: path->module : .prog Module-Path → .module)
-(define (path->module prog path)
-  (match-define (.prog mods _) prog)
+(: path->module : (Listof .module) Module-Path → .module)
+(define (path->module mods path)
   (or (for/or : (U #f .module) ([modᵢ (in-list mods)])
         (match-define (.module pathᵢ _) modᵢ)
         (and (equal? path pathᵢ) modᵢ))
       (error 'path->module "there is no module at path ~a" path)))
+
+(: .id->path : Identifier → Module-Path)
+;; Extract module-path that defines identifier
+(define (.id->path id)
+  (todo '.id->path))
+
+(: module-opaque? : (Listof .module) Module-Path → Boolean)
+(define (module-opaque? ms path) ; TODO: expensive?
+  (match-define (.module _ (.#%plain-module-begin body)) (path->module ms path))
+  
+  (define-values (exports defines)
+    (for/fold ([exports : (Setof Identifier) ∅] [defines : (Setof Identifier) ∅])
+              ([e (in-list body)])
+      (match e
+        [(.#%provide specs)
+         (values (set-union exports (list->set (map .p/c-item-id specs))) defines)]
+        [(.define-values xs _)
+         (values exports (set-union defines (list->set xs)))]
+        [_ (values exports defines)])))
+  (not ; I can't get `for*/and` to type-check, so use nested `for/and`
+   (for/and : Boolean ([exported-id : Identifier (in-set exports)])
+     (for/and : Boolean ([defined-id : Identifier (in-set defines)])
+       (free-identifier=? exported-id defined-id)))))
+

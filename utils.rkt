@@ -157,3 +157,9 @@
    [(< n 0) (format "₋~a" (n-sub (- n)))]
    [(<= 0 n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
    [else (string-append (n-sub (quotient n 10)) (n-sub (remainder n 10)))]))
+
+(: fresh-int! : → Integer)
+(define fresh-int!
+  (let ([i 0])
+    (λ ()
+      (begin0 i (set! i (+ 1 i))))))

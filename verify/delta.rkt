@@ -8,7 +8,7 @@
 
 (define X #'X)
 
-(: δ : .σ .o (Listof .V) Symbol → .Ans*)
+(: δ : .σ .o (Listof .V) Mon-Party → .Ans*)
 (define (δ σ o V* l)
   #;(printf "δ: o: ~a~nV*: ~a~n~nσ: ~a~n~n~n" o (map (curry show-E σ) V*) (show-σ σ))
   (match* (o V*)
@@ -91,7 +91,7 @@
     ; constructor
     [((.st-mk t n) _)
      (cond [(= (length V*) n) (cons σ (→V (.St t V*)))]
-           [else (cons σ (.blm l t (Prim (length V*)) (arity=/C n)))])]
+           [else (cons σ (.blm l (#|hack|# format "~a" t) (Prim (length V*)) (arity=/C n)))])]
     ; anything else is error
     [(_ _) (cons σ (.blm l (name o) ♦ (arity=/C -1 #|HACK|#)))]))
 

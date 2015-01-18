@@ -6,10 +6,17 @@
 (define-syntax-rule (match/Ans* v [p e ...] ...) (match/nd: (.Ans → .Ans) v [p e ...] ...))
 (define-syntax-rule (match/Vns* v [p e ...] ...) (match/nd: (.Vns → .Vns) v [p e ...] ...))
 
-(: δ : .σ .o (Listof .V) Symbol → .Ans*)
+(define (box-operation? [o : .o])
+  (match o
+    [(.st-mk (?id box-id) _) #t]
+    [(.st-ac (?id box-id) _ _) #t]
+    [(.st-p (?id box-id) _) #t]
+    [_ #f]))
+
+(: δ : .σ .o (Listof .V) Mon-Party → .Ans*)
 (define (δ σ o V* l)
-  (when (match? o (.st-mk 'box _) (.st-ac 'box _ _) (.st-p 'box _))
-    (error "δ does not handle box opreation"))
+  (when (box-operation? o)
+    (error 'Internal "δ should not handle box operations"))
   #;(printf "δ: o: ~a~nV*: ~a~n~nσ: ~a~n~n~n" o (map (curry show-E σ) V*) (show-σ σ))
   (match* (o V*)
     
@@ -90,7 +97,8 @@
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V1 PROC/C))])]
     ; constructor
     [((.st-mk t n) _)
-     (if (= (length V*) n) (cons σ (→V (.St t V*))) (cons σ (.blm l t (Prim (length V*)) (arity=/C n))))]
+     (cond [(= (length V*) n) (cons σ (→V (.St t V*)))]
+           [else (cons σ (.blm l (#|hack|# format "~a" t) (Prim (length V*)) (arity=/C n)))])]
     ; anything else is error
     [(_ _) (cons σ (.blm l (name o) ♦ (arity=/C -1 #|HACK|#)))]))
 
@@ -277,8 +285,8 @@
          (for/or : (U #f .Vns)
                  ([C Cs]
                   #:when
-                  (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _) _) ρ) _)))
-           (match-define (.// (.λ↓ (.λ 1 (.@ _ (list _ len) _) _) ρ) _) C)
+                  (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _)) ρ) _)))
+           (match-define (.// (.λ↓ (.λ 1 (.@ _ (list _ len) _)) ρ) _) C)
            (cons σ (match len
                      [(? .b? b) (→V b)]
                      [(.x sd) (ρ@ ρ (- sd 1))])))
@@ -372,7 +380,7 @@
                [(_ _) (refine-U σ U (refine-C* C* C))])]
             [(? .μ/C? Uc) (refine1 σ V (unroll/C Uc))]
             ; equal contracts
-            [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) e) _) #f) ρ)
+            [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) e) _)) ρ)
              (match e
                [(? .b? b) (cons σ (.// b C*))]
                [(and (? .λ? f) (? closed?)) (cons σ (.// (.λ↓ f ρ∅) C*))]
@@ -453,22 +461,22 @@
           [((.St 'or/c _) _) (let ([C′ (truncate C D)])
                                (if (equal? C C′) {set C D} (refine-C C′ D)))]
           ; special rules for reals
-          [((.λ↓ (.λ 1 (.@ '>= (list e1 e2) l) #f) ρc)
+          [((.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρc)
             (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _) #f) ρd) _))))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l) #f) ρc)) {set C D})]
+                                                (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρc)) {set C D})]
           [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _) #f) ρc) _)))
-            (.λ↓ (.λ 1 (.@ '>= (list e1 e2) l) #f) ρd))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l) #f) ρd)) {set C D})]
-          [((.λ↓ (.λ 1 (.@ '<= (list e1 e2) l) #f) ρc)
+                                                (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
+            (.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρd))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρd)) {set C D})]
+          [((.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρc)
             (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _) #f) ρd) _))))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l) #f) ρc)) {set C D})]
+                                                (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρc)) {set C D})]
           [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _) #f) ρc) _)))
-            (.λ↓ (.λ 1 (.@ '<= (list e1 e2) l) #f) ρd))
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l) #f) ρd)) {set C D})]
+                                                (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
+            (.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρd))
+           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρd)) {set C D})]
           [(_ _) {set C D}])]
        [(_ _) {set C D}])]))
 
@@ -512,7 +520,7 @@
     [(? number? x) {set (Prim 'number?)}]
     [(? string?) {set (Prim 'string?)}]
     [(? symbol?) {set (Prim 'symbol?)}]
-    [#t {set (Prim 'true?) (Prim 'boolean?)}]
+    [#t {set (.¬/C (Prim 'false?)) (Prim 'boolean?)}]
     [#f {set (Prim 'false?) (Prim 'boolean?)}]))
 
 
@@ -527,7 +535,8 @@
                               (cons σ (.// (.Ar C V′ l^3) Cs)))]
     [(.// (.λ↓ f (.ρ m l)) Cs)
      (let-values ([(σ m)
-                   (for/fold: ([σ : .σ σ] [m′ : (Map (U Integer Symbol) .V) m]) ([x (in-hash-keys m)])
+                   (for/fold ([σ : .σ σ] [m′ : (Map (U Integer Identifier) .V) m])
+                             ([x (in-hash-keys m)])
                      (match-let ([(cons σ V) (alloc σ (hash-ref m x))])
                        (values σ (hash-set m′ x V))))])
        (cons σ (→V (.λ↓ f (.ρ m l)))))]

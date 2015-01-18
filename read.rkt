@@ -1,40 +1,44 @@
 #lang racket/base
 (require racket/match racket/list racket/set racket/bool
-         "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
+         "utils-untyped.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
          syntax/parse racket/pretty racket/contract
          "expand.rkt"
          (prefix-in fake: "fake-contract.rkt"))
 (provide (all-defined-out) #;read-p #;on-•!)
 
-#;(define (printf . _) (void))
+
+(define/contract (file->prog path)
+  (path? . -> . .prog?)
+  (define/contract stx syntax? (do-expand-file path))
+  (define/contract m .module? (parse-top-level-form stx))
+  (.prog (list m) .ff))
 
 ;; TODO For testing only
+(define ids (box '()))
 
-#;(define on-•! (make-parameter (λ () '•)))
+;; FIXME may not need this anymore
+(define on-•! (make-parameter (λ () '•)))
 
-(define cur-mod (make-parameter #f))
+(define cur-mod (make-parameter "top-level"))
 
 (define (index->path i)
   (define-values (v _) (module-path-index-split i))
   (list (resolved-module-path-name (module-path-index-resolve i)) #f))
 
-(define (todo x)
-  (error 'TODO "~a" x))
-
 (define scv-syntax? (and/c syntax? (not/c scv-ignore?)))
 
 ;; Read our current limited notion of program
-(define/contract (read-prog mods top)
+(define/contract (parse-prog mods top)
   ((listof scv-syntax?) scv-syntax? . -> . .prog?)
-  (.prog (read-mods mods) (read-expr top)))
+  (.prog (parse-mods mods) (parse-expr top)))
 
-(define/contract (read-mods mods)
+(define/contract (parse-mods mods)
   ((listof scv-syntax?) . -> . (listof .module?))
-  (todo 'read-mods))
+  (todo 'parse-mods))
 
-(define/contract (read-top-level-form form)
+(define/contract (parse-top-level-form form)
   (scv-syntax? . -> . .top-level-form?)
-  #;(printf "read-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  #;(printf "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
      (.module
@@ -49,21 +53,21 @@
                      [_ #t])
                    #:when
                    (scv-syntax? formᵢ))
-          (read-module-level-form formᵢ)))
-       #;(map read-module-level-form (syntax->list #'(forms ...)))))]
+          (parse-module-level-form formᵢ)))
+       #;(map parse-module-level-form (syntax->list #'(forms ...)))))]
     [((~literal begin) form ...)
-     (-begin (map read-top-level-form (syntax->list #'(form ...))))]
-    [((~literal #%expression) e) (read-expr #'e)]
-    [_ (read-general-top-level-form form)]))
+     (-begin (map parse-top-level-form (syntax->list #'(form ...))))]
+    [((~literal #%expression) e) (parse-expr #'e)]
+    [_ (parse-general-top-level-form form)]))
 
-(define/contract (read-module-level-form form)
+(define/contract (parse-module-level-form form)
   (scv-syntax? . -> . (or/c #f .module-level-form?))
-  #;(printf "read-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  #;(printf "parse-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     #:literals (#%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                 call-with-values)
     [(#%provide spec ...)
-     (.#%provide (map read-provide-spec (syntax->list #'(spec ...))))]
+     (.#%provide (map parse-provide-spec (syntax->list #'(spec ...))))]
     [(#%declare _ ...) (todo '#%declare)]
     [(begin-for-syntax _ ...) #|ignore|# #f]
     
@@ -81,25 +85,25 @@
              (identifier? (car (syntax->list #'(c ...)))))
      (.#%provide (for/list ([x (in-list (syntax->list #'(x ...)))]
                             [c (in-list (syntax->list #'(c ...)))])
-                   (.p/c-item x (read-expr c))))]
+                   (.p/c-item x (parse-expr c))))]
     
-    [_ (or (read-general-top-level-form form)
-           (read-submodule-form form))]))
+    [_ (or (parse-general-top-level-form form)
+           (parse-submodule-form form))]))
 
-(define/contract (read-submodule-form form)
+(define/contract (parse-submodule-form form)
   (scv-syntax? . -> . (or/c #f .submodule-form?))
-  #;(printf "read-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
+  #;(printf "parse-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path ((~literal #%plain-module-begin) d ...))
      (.module
       (module-path #'id)
-      (.#%plain-module-begin (map read-module-level-form (syntax->list #'(d ...)))))]
+      (.#%plain-module-begin (map parse-module-level-form (syntax->list #'(d ...)))))]
     [((~literal module*) _ ...) (todo 'module*)]
     [_ #f]))
 
-(define/contract (read-general-top-level-form form)
+(define/contract (parse-general-top-level-form form)
   (scv-syntax? . -> . (or/c #f .general-top-level-form?))
-  #;(printf "read-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
+  #;(printf "parse-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
   (syntax-parse form
     #:literals (define-syntaxes define-values #%require let-values #%plain-app values
                  call-with-values)
@@ -122,11 +126,11 @@
                        (.st-ac ctor n i)))
               'Λ))]
     [(define-values (x:identifier ...) e)
-     (.define-values (syntax->list #'(x ...)) (read-expr #'e))]
+     (.define-values (syntax->list #'(x ...)) (parse-expr #'e))]
     [(#%require spec ...)
-     (.#%require (map read-require-spec (syntax->list #'(spec ...))))]
+     (.#%require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
-    [_ (read-expr form)]))
+    [_ (parse-expr form)]))
 
 (define/contract (module-path stx)
   (identifier? . -> . module-path?)
@@ -139,11 +143,11 @@
         (.ref #'i (path->string (simplify-path src)) (cur-mod))]
        [#f #|FIXME|# (syntax->datum stx)])]))
 
-(define/contract (read-expr stx [ctx '()])
+(define/contract (parse-expr stx [ctx '()])
   (scv-syntax? . -> . .expr?)
-  #;(printf "read-expr: ~a~n~n" (pretty (syntax->datum stx)))
+  #;(printf "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
   ;;(: go : Syntax → .e)
-  (define (go e) (read-expr e ctx))
+  (define (go e) (parse-expr e ctx))
   ;;(: go/list : Syntax → (Listof .e))
   (define (go/list es) (map go (syntax->list es)))
   (syntax-parse stx
@@ -158,17 +162,17 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (.-> (map read-expr (syntax->list #'(c ...)))
-          (read-expr #'d))]
+     (.-> (map parse-expr (syntax->list #'(c ...)))
+          (parse-expr #'d))]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
-     (match (map read-expr (syntax->list #'(c ...)))
+     (match (map parse-expr (syntax->list #'(c ...)))
        ['() .any/c]
        [(list c) c]
        [(list c₁ ... cₖ) (foldr .and/c cₖ c₁)])]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
-     (match (map read-expr (syntax->list #'(c ...)))
+     (match (map parse-expr (syntax->list #'(c ...)))
        ['() .none/c]
        [(list c) c]
        [(list c₁ ... cₖ) (foldr .or/c cₖ c₁)])]
@@ -184,7 +188,8 @@
     [_
      #:when (prefab-struct-key (syntax-e #'v))
      (todo 'struct)]
-    [(#%plain-app f x ...) (.@ (go #'f) (go/list #'(x ...)) ctx)]
+    [(#%plain-app f x ...)
+     (.@ (go #'f) (go/list #'(x ...)) (cur-mod))]
     [((~literal with-continuation-mark) e₀ e₁ e₂)
      (.wcm (go #'e₀) (go #'e₁) (go #'e₂))]
     [(begin0 e₀ e ...) (.begin0 (go #'e₀) (go/list #'(e ...)))]
@@ -200,14 +205,14 @@
                (cons (length (syntax->list #'(x ...))) (go #'e))
              (set! ctx′ (ext-env ctx′ (syntax->list #'(x ...)))))]))
       (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                (read-expr bᵢ ctx′))))]
+                (parse-expr bᵢ ctx′))))]
     [(#%plain-lambda (fmls ...) b ...)
      (define xs (syntax->list #'(fmls ...)))
      (define ctx′ (ext-env ctx xs))
      (.λ
       (length xs)
       (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                (read-expr bᵢ ctx′))))]
+                (parse-expr bᵢ ctx′))))]
     [(case-lambda _ ...) (todo 'case-lambda)]
     [(letrec-values _ ...) (todo 'letrec-values)]
     [(quote e:number) (.b (syntax->datum #'e))]
@@ -220,15 +225,23 @@
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
     [(#%variable-reference) (todo '#%variable-reference)]
     [(#%variable-reference id) (todo 'id)]
-    [(~literal null) #|hack|# .null]
+    
+    ;; Hacks for now
+    [(~literal null) .null]
+    [(~literal positive?) (parse-expr #'(#%plain-lambda (x) (> x 0)))]
+    [(~literal negative?) (parse-expr #'(#%plain-lambda (x) (> x 0)))]
+    [(~literal zero?) (parse-expr #'(#%plain-lambda (x) (= x 0)))]
+    
     [i:identifier
      (or
-      (read-primitive #'i)
+      (parse-primitive #'i)
+      (begin (printf "identifier: ~a~n" (identifier-binding #'i)) #f)      
       (match (identifier-binding #'i)
         ['lexical (.x (id->sd ctx #'i))]
         [#f (.x (id->sd ctx #'i))]
         [(and X (list (app index->path (list src self?)) _ _ _ _ _ _))
-         (printf "Identifier: ~a~nName: ~a~nPath: ~a~n~n"
+         (set-box! ids (cons #'i (unbox ids)))
+         #;(printf "Identifier: ~a~nName: ~a~nPath: ~a~n~n"
                  #'i
                  (syntax->datum #'i)
                  (if (path? src)
@@ -243,9 +256,9 @@
                  [else 'null]))
          (.ref #'i path (cur-mod))]))]))
 
-(define/contract (read-primitive id)
+(define/contract (parse-primitive id)
   (identifier?  . -> . (or/c #f .o?))
-  #;(printf "read-primitive: ~a~n~n" (syntax->datum id))
+  #;(printf "parse-primitive: ~a~n~n" (syntax->datum id))
   (syntax-parse id
     [(~literal number?) 'number?]
     [(~literal real?) 'real?]
@@ -282,17 +295,17 @@
     [(~literal values) 'values]
     [_ #f]))
 
-(define/contract (read-provide-spec spec)
+(define/contract (parse-provide-spec spec)
   (scv-syntax? . -> . .raw-provide-spec?)
   (syntax-parse spec
     [i:identifier #'i]
-    [_ (error 'read-provide-spec "unexpected: ~a" spec)]))
+    [_ (error 'parse-provide-spec "unexpected: ~a" spec)]))
 
-(define/contract (read-require-spec spec)
+(define/contract (parse-require-spec spec)
   (scv-syntax? . -> . .raw-require-spec?)
   (syntax-parse spec
     [i:identifier spec]
-    [_ (printf "read-require-spec: ignore ~a~n" (syntax->datum spec) #f)]))
+    [_ (printf "parse-require-spec: ignore ~a~n" (syntax->datum spec) #f)]))
 
 ;; Extends environment
 (define/contract (ext-env ctx xs)
@@ -304,7 +317,9 @@
 ;; Return static distance of given identifier in context
 (define/contract (id->sd ctx id)
   ((listof identifier?) identifier? . -> . integer?)
-  ;(printf "id->sd: looking for ~a in context ~a~n" (syntax->datum id) (map syntax->datum ctx))
+  #;(printf "id->sd: looking for ~a in context ~a~n"
+          (syntax->datum id)
+          (map syntax->datum ctx))
   (or (for/first ([idᵢ (in-list ctx)] [i (in-naturals)]
                   #:when (free-identifier=? id idᵢ))
         i)
@@ -315,6 +330,6 @@
 ;; Testing only
 (module+ test
   (define (test file)
-    (read-top-level-form (do-expand-file file)))
+    (parse-top-level-form (do-expand-file file)))
 
-  (set-box! stx (test "test/test-parser/tests/provide-contract.rkt"))) 
+  (set-box! stx (test "test/test-parser/tests/div100.rkt")))
