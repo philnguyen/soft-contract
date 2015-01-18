@@ -3,7 +3,7 @@
          "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt" "delta.rkt")
 (require/typed ; TODO for debugging only
  "read.rkt"
- [read-p (Any → .p)])
+ [read-prog (Any → .prog)])
 (provide (all-defined-out)) ; TODO
 
 (define-data .κ
@@ -15,8 +15,8 @@
     [d : (U #f .↓)] [v? : (U #f Integer)] [l^3 : Symbol^3])
   ; contract stuff
   (struct .μc/κ [x : Symbol])
-  (struct .λc/κ [c : (Listof .e)] [c↓ : (Listof .V)] [d : .e] [ρ : .ρ] [v? : Boolean])
-  (struct .structc/κ [t : Symbol] [c : (Listof .e)] [ρ : .ρ] [c↓ : (Listof .V)])
+  (struct .λc/κ [c : (Listof .expr)] [c↓ : (Listof .V)] [d : .expr] [ρ : .ρ] [v? : Boolean])
+  (struct .structc/κ [t : Symbol] [c : (Listof .expr)] [ρ : .ρ] [c↓ : (Listof .V)])
   ; magics for termination
   (struct .rt/κ [σ : .σ] [f : .λ↓] [x : (Listof .V)])
   (struct .blr/κ [F : .F] [σ : .σ] [v : .V])
@@ -34,16 +34,16 @@
 (define (final? ς)
   (match? ς (.ς (? .blm?) _ _) (.ς (? .V?) _ (list))))
 
-(: inj : .e → .ς)
+(: inj : .expr → .ς)
 (define (inj e)
   (.ς (.↓ e ρ∅) σ∅ empty))
 
 (define-type .K (List .F .σ .κ* .κ*))
 (define-type .res (List .σ .V))
 
-(: ev : .p → .ς+)
+(: ev : .prog → .ς+)
 (define (ev p)
-  (match-define (.p (and m* (.m* _ ms)) _ e) p)
+  (match-define (.prog m* e) p)
   (define step (step-p m*))
   (define Ξ : (MMap .rt/κ .K) (make-hash))
   (define M : (MMap .rt/κ .res) (make-hash))
@@ -89,10 +89,23 @@
   (: M@ : .rt/κ → (Listof .res)) ; FIXME force randomness to test
   (define (M@ ctx) (shuffle (set->list (hash-ref M ctx (λ () ∅)))))
   
-  (: m-opaque? : Symbol → Boolean)
-  (define (m-opaque? x) ; TODO: expensive?
-    (match-define (.m _ defs) (hash-ref ms x))
-    (for/or ([d (in-hash-values defs)] #:when (match? d (cons '• _))) #t))
+  (: m-opaque? : Identifier → Boolean)
+  (define (m-opaque? path) ; TODO: expensive?
+    (match-define (.module _ (.#%plain-module-begin body))
+                  (path->module p path))
+    
+    (define-values (exports defines)
+      (for/fold ([exports : (Setof Identifier) ∅] [defines : (Setof Identifier) ∅])
+                ([e (in-list body)])
+        (match e
+         [(.#%provide specs)
+          (values (set-union exports (list->set (map .p/c-item-id specs))) defines)]
+         [(.define-values xs _)
+          (values exports (set-union defines (list->set xs)))]
+         [_ (values exports defines)])))
+    (not
+     (for*/and ([exported-id (in-set exports)] [defined-id (in-set defines)])
+       (free-identifier=? exported-id defined-id))))
   
   (: step* : .ς → .ς+)
   (define (step* ς)
@@ -205,21 +218,8 @@
   (step* (inj e)))
 
 (define-syntax-rule (match/nd v [p e ...] ...) (match/nd: (.Ans → .ς) v [p e ...] ...))
-(: step-p : .m* → (.ς → .ς*))
+(: step-p : (Listof .module) → (.ς → .ς*))
 (define (step-p m*)  
-  (match-define (.m* _ ms) m*)
-  
-  (: ref-e : Symbol Symbol → .e)
-  (define (ref-e m x)
-    (match-let ([(.m _ defs) (hash-ref ms m)])
-      (car (hash-ref defs x))))
-  
-  (: ref-c : Symbol Symbol → .e)
-  (define (ref-c m x)
-    (match-let ([(.m _ decs) (hash-ref ms m)])
-      (match (cdr (hash-ref decs x))
-        [(? .e? c) c]
-        [_ (error (format "module ~a does not export ~a" m x))])))
   
   (define HAVOC (match-let ([(? .λ? v) (ref-e '☠ 'havoc)]) (→V (.λ↓ v ρ∅))))
   
@@ -234,7 +234,7 @@
   (: step-β : .λ↓ (Listof .V) Symbol .σ .κ* → .ς)
   (define (step-β f Vx l σ k)
     #;(printf "Stepping ~a~n~n" (show-U σ f))
-    (match-let* ([(.λ↓ (.λ n e v?) ρ) f])
+    (match-let* ([(.λ↓ (.λ n e) ρ) f])
       (match v?
         [#f (if (= (length Vx) n)
                 (let ([seens (apps-seen k σ f Vx)])                  
@@ -425,7 +425,7 @@
              (match-let ([(cons σ V) (alloc σ V)])
                #;(printf "havoc: ~a~n~n" (show-V σ V))
                (match U
-                 [(.λ↓ (.λ n _ _) _)
+                 [(.λ↓ (.λ n _) _)
                   #;(printf "case1: ~a~n~n" (show-E σ V))
                   (let-values ([(σ′ Ls) (σ++ σ n)])
                     (step-@ V Ls '☠ σ′ k))]
@@ -523,7 +523,7 @@
 (: ▹/κ1 : .V Symbol^3 .κ* → .κ*)
 (define (▹/κ1 C l^3 k)
   (match C
-    [(.// (.λ↓ (.λ 1 (.b #t) _) _) _) k]
+    [(.// (.λ↓ (.λ 1 (.b #t)) _) _) k]
     [(.// (? .Λ/C?) _) (cons (.▹/κ (cons C #f) l^3) k)]
     [_ (cons (.▹/κ (cons C #f) l^3)
              (let: trim : .κ* ([k : .κ* k])
@@ -605,8 +605,8 @@
                   (σ: ,@(show-σ σ))
                   (k: ,@(show-k σ k)))]))
 
-; rename all labels to some canonnical form based on the expression's shape
-; relax, this only happens a few times, not that expensive
+;; rename all labels to some canonnical form based on the expression's shape
+;; relax, this only happens a few times, not that expensive
 (: canon : .ς → .ς)
 (define (canon ς)
   (match-define (.ς (? .E? E) σ k) ς)

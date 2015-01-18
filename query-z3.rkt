@@ -41,16 +41,16 @@
 (: handled? : .V → Boolean)
 (define (handled? C)
   (match? C
-    (.// (.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? number?)))) _) #f) _) _)
-    (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (or (.x _) (.b (? number?)))) _) #f) _) _)
+    (.// (.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? number?)))) _)) _) _)
+    (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (or (.x _) (.b (? number?)))) _)) _) _)
     (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                         (list (.x 0)
                               (.@ (? arith?)
                                   (list (or (.x _) (.b (? number?)))
-                                        (or (.x _) (.b (? number?)))) _)) _) #f) _) _)
+                                        (or (.x _) (.b (? number?)))) _)) _)) _) _)
     (.// (.St '¬/c (list (? handled? C′))) _)))
 
-(: arith? : .e → Boolean)
+(: arith? : .expr → Boolean)
 (define (arith? e)
   (match? e '= 'equal? '> '< '>= '<=))
 
@@ -142,19 +142,19 @@
                   [(.b (? number? n)) (Prim n)]
                   [(.x i) (ρ@ ρ (- i 1))])])
        (match f
-         [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _) #f)
+         [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _))
           (let ([X (ρ@* e)])
             (values (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))
                     (labels i X)))]
          [(.λ 1 (.@ (or '= 'equal?)
-                    (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
+                    (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _))
           (let ([X (ρ@* M)])
             (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
                     (labels i X)))]
          [(.λ 1 (.@ (or '= 'equal?)
                     (list (.x 0) (.@ (? .o? o)
                                      (list (and M (or (.x _) (.b (? number?))))
-                                           (and N (or (.x _) (.b (? number?))))) _)) _) #f)
+                                           (and N (or (.x _) (.b (? number?))))) _)) _))
           (let ([X (ρ@* M)] [Y (ρ@* N)])
             (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
                     (labels i X Y)))]
@@ -200,7 +200,7 @@
 (define span-C
   (match-lambda
     [(.// (.λ↓ _ (.ρ m _)) _)
-     (for/set: Integer ([V (in-hash-values m)] #:when (.L? V))
+     (for/set: : (Setof Integer) ([V (in-hash-values m)] #:when (.L? V))
        (match-let ([(.L i) V]) i))]
     [_ ∅]))
 
@@ -209,7 +209,7 @@
   (set! s (let ([x i]) (if (set? x) (set-union s x) (set-add s i)))))
 (: labels : (U .V Integer) * → (Setof Integer))
 (define (labels . V*)
-  (for/set: Integer ([V V*] #:when (match? V (? integer?) (.L _)))
+  (for/set: : (Setof Integer) ([V V*] #:when (match? V (? integer?) (.L _)))
     (match V
       [(? integer? i) i]
       [(.L i) i])))

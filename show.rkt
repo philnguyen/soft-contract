@@ -39,7 +39,7 @@
     [(? .o? o) (name o)]
     [(.λ↓ f _) (show-e σ f)]
     [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
-    [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) e) _) _) _) _))) `(≠/c ,(show-e σ e))]
+    [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) e) _)) _) _))) `(≠/c ,(show-e σ e))]
     [(.St 'empty (list)) 'empty]
     [(.St (and n (or 'and/c 'or/c)) V*) `(,n ,@(show-V σ V*))]
     [(.St '¬/c V*) `(not/c ,@(show-V σ V*))]
@@ -74,28 +74,28 @@
     [(.Mon C E l³) `(Mon ,l³ ,(show-E σ C) ,(show-E σ E))]
     [(.Assume V C) `(Asm ,(show-E σ V) ,(show-E σ C))]))
 
-(: show-e : .σ .e → Any)
+(: show-e : .σ .expr → Any)
 (define (show-e σ e)
   (let go ([ctx : (Listof Symbol) '()] [e e])
     (match e
       ; syntactic sugar
-      [(.λ 1 (.@ '= (list (.x 0) e′) _) _) `(=/c ,(go ctx e′))]
-      [(.λ 1 (.@ 'equal? (list (.x 0) e′) _) _) `(≡/c ,(go ctx e′))]
-      [(.λ 1 (.@ '> (list (.x 0) e′) _) _) `(>/c ,(go ctx e′))]
-      [(.λ 1 (.@ '< (list (.x 0) e′) _) _) `(</c ,(go ctx e′))]
-      [(.λ 1 (.@ '>= (list (.x 0) e′) _) _) `(≥/c ,(go ctx e′))]
-      [(.λ 1 (.@ '<= (list (.x 0) e′) _) _) `(≤/c ,(go ctx e′))]
-      [(.λ 1 (.@ (? closed? f) (list (.x 0)) _) _) (go '() f)]
-      [(.λ 1 (.@ 'arity-includes? (list (.x 0) (.b x)) _) #f) `(arity-includes/c ,x)]
-      [(.λ 1 (.@ 'arity=? (list (.x 0) (.b x)) _) #f) `(arity=/c ,x)]
-      [(.λ 1 (.@ 'arity>=? (list (.x 0) (.b x)) _) #f) `(arity≥/c ,x)]
+      [(.λ 1 (.@ '= (list (.x 0) e′) _)) `(=/c ,(go ctx e′))]
+      [(.λ 1 (.@ 'equal? (list (.x 0) e′) _)) `(≡/c ,(go ctx e′))]
+      [(.λ 1 (.@ '> (list (.x 0) e′) _)) `(>/c ,(go ctx e′))]
+      [(.λ 1 (.@ '< (list (.x 0) e′) _)) `(</c ,(go ctx e′))]
+      [(.λ 1 (.@ '>= (list (.x 0) e′) _)) `(≥/c ,(go ctx e′))]
+      [(.λ 1 (.@ '<= (list (.x 0) e′) _)) `(≤/c ,(go ctx e′))]
+      [(.λ 1 (.@ (? closed? f) (list (.x 0)) _)) (go '() f)]
+      [(.λ 1 (.@ 'arity-includes? (list (.x 0) (.b x)) _)) `(arity-includes/c ,x)]
+      [(.λ 1 (.@ 'arity=? (list (.x 0) (.b x)) _)) `(arity=/c ,x)]
+      [(.λ 1 (.@ 'arity>=? (list (.x 0) (.b x)) _)) `(arity≥/c ,x)]
       #;[(.@ (.st-mk 'or/c _) (list (.@ (.st-mk '¬/c _) (list c) _) d) _)
        `(⇒/c ,(go ctx c) ,(go ctx d))]
-      [(.λ 1 (.b (not #f)) #f) 'any/c]
-      [(.λ 1 (.b #f) #f) 'none/c]
-      [(.@ (.st-mk 'empty 0) (list) _) 'empty]
-      [(.@ (.λ 1 (.x 0) _) (list e) _) (go ctx e)]
-      [(.@ (.λ 1 (.if (.x 0) (.x 0) b) #f) (list a) _)
+      [(.λ 1 (.b (not #f))) 'any/c]
+      [(.λ 1 (.b #f)) 'none/c]
+      [(.@ (.st-mk (?id #'null) 0) (list) _) 'null]
+      [(.@ (.λ 1 (.x 0)) (list e) _) (go ctx e)]
+      [(.@ (.λ 1 (.if (.x 0) (.x 0) b)) (list a) _)
        (match* ((go ctx a) (go (append (vars-not-in 1 ctx) ctx) b))
          [(`(or ,l ...) `(or ,r ...)) `(or ,@l ,@r)]
          [(`(or ,l ...) r) `(or ,@l ,r)]
@@ -107,13 +107,13 @@
        (match-define (.// (.Case m) _) (σ@ σ n))
        `(case ,(go ctx e) ,@(show-cases σ m))]
       ;; Direct λ application
-      [(.@ (.λ n e #f) ex _)
+      [(.@ (.λ n e) ex _)
        (define x* (vars-not-in n ctx))
        `(let ,(for/list : (Listof Any) ([x (reverse x*)] [ei ex])
                 `(,x ,(go ctx ei)))
          ,(go (append x* ctx) e))]
-      [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _ #f) _) _)))))) es _)
-       (match-let ([(.// (.λ↓ (.λ k e #f) ρ) _) (σ@ σ n)])
+      [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _) _) _)))))) es _)
+       (match-let ([(.// (.λ↓ (.λ k e) ρ) _) (σ@ σ n)])
          (cond
           ;; Inline if all arguments are simple. TODO: can do better, for each argument?
           [(for/and : Boolean ([eᵢ es]) (or (.x? eᵢ) (.ref? eᵢ) (.v? eᵢ)))
@@ -139,9 +139,9 @@
       [(.if a b (.b #t)) `(implies ,(go ctx a) ,(go ctx b))]
       
       
-      [(.λ n e v?)
+      [(.λ n e)
        (define x* (vars-not-in n ctx))
-       `(,(if v? 'λ* 'λ) ,(reverse x*) ,(go (append x* ctx) e))]
+       `(λ ,(reverse x*) ,(go (append x* ctx) e))]
       [(.•ₗ α) (syn σ α)]
       [(.b b) (show-b b)]
       [(.st-mk t _) t]
@@ -186,27 +186,12 @@
       [((cons x _) 0) x]
       [((cons _ xr) i) (go xr (- i 1))])))
 
-(: show-ce : .p .σ → (Listof Any))
+(: show-ce : .prog .σ → Any)
 (define (show-ce p σ)
-  (match-define (.p (.m* order ms) _ e†) p)
+  (match-define (.prog _ top) p)
   #;(printf "σ:~n~ae†:~n~a~n" σ e†)
-  (list
-   (for*/list : (Listof (Listof Any))
-              ([m-name order]
-               [m (in-value (hash-ref ms m-name))]
-               [m-order (in-value (.m-order m))]
-               [defs (in-value (.m-defs m))]
-               [res
-                (in-value
-                 (for*/list : (Listof Any)
-                            ([x-name m-order]
-                             [v (in-value (car (hash-ref defs x-name)))]
-                             #;[_ (in-value (printf "Value is: ~a~n" v))]
-                             #:when (.•ₗ? v))
-                   `(,x-name : ,(syn σ (.•ₗ-l v)))))]
-               #:unless (empty? res))
-     `(,m-name : ,@res))
-   (show-e σ e†)))
+  ;; TODO: ignore modules for current need
+  (show-e σ top))
 
 (: syn : .σ Integer → Any)
 (define (syn σ α)

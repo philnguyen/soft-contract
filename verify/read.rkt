@@ -1,7 +1,7 @@
 #lang racket/base
 (require "../lang.rkt"
-         (rename-in "../read.rkt" [read-p read-p/raw]))
-(provide read-p)
+         (rename-in "../read.rkt" [read-prog read-prog/raw]))
+(provide read-prog)
 
-(define (read-p s)
-  (gen-havoc (read-p/raw s)))
+(define (read-prog s)
+  (gen-havoc (read-prog/raw s)))

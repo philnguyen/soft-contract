@@ -48,10 +48,6 @@
 (define-syntax-rule (match? v p ...) (match v [p #t] ... [_ #f]))
 (define-syntax-rule (match-λ? p ...) (match-lambda [p #t] ... [_ #f]))
 
-(define-syntax-rule (for/set: X (c ...) e ...)
-  (for/fold ([acc : (Setof X) ∅]) (c ...)
-    (set-add acc (begin e ...))))
-
 ;; non-deterministic match. The types is to make it less awkard in pattern matching
 (define-syntax match/nd:
   (syntax-rules (→)
