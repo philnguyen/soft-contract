@@ -261,11 +261,12 @@
         [(= x 0) {set ZERO/C NON-NEG/C NON-POS/C}]
         [else {set NEG/C NON-ZERO/C NON-POS/C}]))
 
-(:* [+/C -/C */C ÷/C] : .V .V → .V)
+(:* [+/C -/C */C ÷/C expt/C] : .V .V → .V)
 (define (+/C V1 V2) (→C '+ #:1st V1 #:2nd V2))
 (define (-/C V1 V2) (→C '- #:1st V1 #:2nd V2))
 (define (*/C V1 V2) (→C '* #:1st V1 #:2nd V2))
 (define (÷/C V1 V2) (→C '/ #:1st V1 #:2nd V2))
+(define (expt/C V1 V2) (→C 'expt #:1st V1 #:2nd V2))
 
 (: sqrt/C : .V → .V)
 (define (sqrt/C V)
