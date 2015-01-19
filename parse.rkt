@@ -59,11 +59,11 @@
                      #:when
                      (scv-syntax? formᵢ))
             (parse-module-level-form formᵢ)))
-         #;(map parse-module-level-form (syntax->list #'(forms ...)))))]
+         #;(map parse-module-level-form (syntax->list #'(forms ...))))))]
         [((~literal begin) form ...)
          (-begin (map parse-top-level-form (syntax->list #'(form ...))))]
         [((~literal #%expression) e) (parse-expr #'e)]
-        [_ (parse-general-top-level-form form)])))
+        [_ (parse-general-top-level-form form)]))
 
 (define/contract (parse-module-level-form form)
   (scv-syntax? . -> . (or/c #f .module-level-form?))
