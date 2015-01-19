@@ -98,7 +98,7 @@
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
   (struct .letrec-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
   
-  (struct .@-havoc [x : .x]) ; hack for havoc
+  (struct .@-havoc [x : .x]) ; hack for havoc to detect argument's arity at runtime
   (struct .amb [e* : (Setof .expr)])
   ; contract stuff
   (struct .and/c [l : .expr] [r : .expr])
