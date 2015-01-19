@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (define abstract-V? (make-parameter #t))
+(define-type Sexps (Listof Sexp))
 
 (: show-Ans : (case→ [.Ans → (Pairof Sexp Sexp)] [.σ .A → (Pairof Sexp Sexp)]))
 (define show-Ans
@@ -97,9 +98,9 @@
       [(.@ (.λ 1 (.x 0)) (list e) _) (go ctx e)]
       [(.@ (.λ 1 (.if (.x 0) (.x 0) b)) (list a) _)
        (match* ((go ctx a) (go (append (vars-not-in 1 ctx) ctx) b))
-         [(`(or ,l ...) `(or ,r ...)) `(or ,@l ,@r)]
-         [(`(or ,l ...) r) `(or ,@l ,r)]
-         [(l `(or ,r ...)) `(or ,l ,@r)]
+         [(`(or ,l ...) `(or ,r ...)) `(or ,@(cast l Sexps) ,@(cast r Sexps))]
+         [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
+         [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
          [(l r) `(or ,l ,r)])]
       [(.@ (.st-mk (and n (or 'and/c 'or/c '¬/c)) _) c* _) `(,n ,@(map (curry go ctx) c*))]
       ;; Direct case-λ application
@@ -132,10 +133,10 @@
          [_ `(if ,(go ctx e) ,(go ctx e₁) ,(go ctx e₂))])]
       [(.if a b (.b #f))
        (match* ((go ctx a) (go ctx b))
-         [(`(and ,l ...) `(and ,r ...)) `(and ,@l ,@r)]
-         [(`(and ,l ...) r) `(and ,@l ,(cast r Sexp))]
-         [(l `(and ,r ...)) `(and ,l ,@(cast r Sexp))]
-         [(l r) `(and ,(cast l Sexp) ,(cast r Sexp))])]
+         [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l Sexps) ,@(cast r Sexps))]
+         [(`(and ,l ...) r) `(and ,@(cast l Sexps) ,r)]
+         [(l `(and ,r ...)) `(and ,l ,@(cast r Sexps))]
+         [(l r) `(and ,l ,r)])]
       [(.if a b (.b #t)) `(implies ,(go ctx a) ,(go ctx b))]
       
       
