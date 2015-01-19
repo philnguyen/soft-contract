@@ -172,7 +172,8 @@
      (with-input-from-string m/str
        (λ ()
          (cast
-          (match (read)
+          (match (parameterize ([read-decimal-as-inexact #f])
+                   (read))
            [(list 'model lines ...)
             #;(begin
               (printf "Model:~n")
@@ -191,10 +192,7 @@
                       [`(* ,eᵢ ...) (apply * (map go eᵢ))]
                       [`(/ ,e₁ ,eᵢ ...) (apply / (go e₁) (map go eᵢ))]
                       [`(,(or '^ '** 'expt) ,e₁ ,e₂) (assert (expt (go e₁) (go e₂)) real?)]
-                      [(? real? x)
-                       ;; Z3 returns (/ 1.0 3.0) to mean 1/3, so we need to preserve exact-ness
-                       (cond [(and (inexact? x) (integer? x)) (inexact->exact x)]
-                             [else x])])))
+                      [(? real? x) x])))
                 (hash-set m (lab→i a) (.// (.b res) ∅))))
             (.σ m′ l)])
           .σ)))]
