@@ -1,166 +1,270 @@
-#lang typed/racket
+#lang typed/racket/base
+(require racket/match racket/list racket/set racket/string racket/bool
+         racket/port racket/system racket/function
+         "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
+(provide explore →lab call query handled? total-z3-time reset-z3-time!)
 
-(require "lang.rkt" "closure.rkt" "utils.rkt" "show.rkt")
-(provide query handled?)
+(define-type Z3-Num (U 'Int 'Real))
 
 ; query external solver for provability relation
 (: query : .σ .V .V → .R)
 (define (query σ V C)
   (cond    
-    [(not (handled? C)) 'Neither] ; skip when contract is strange
-    [else
-     #;(printf "Queried with: ~a~n~a~n" (show-Ans σ V) C)
-     (let*-values ([(σ′ i) (match V
-                             [(.L i) (values σ i)]
-                             [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#])]
-                   [(Q* i*) (explore σ′ (set-add (span-C C) i))]
-                   [(q j*) (gen i C)])
-       #;(printf "premises [~a] involve labels [~a] ~n" Q* i*)
-       (cond
-         ; skip querying when the set of labels spanned by premises does not cover
-         ; that spanned by conclusion
-         [(not (subset? j* i*)) 'Neither]
-         ; skip querying when the set of labels spanned by premises only contains
-         ; the single label we ask about (relies on local provability relation
-         ; being precise enough)
-         [(equal? i* {set i}) 'Neither]
-         ; skip querying when could not generate conclusion
-         [(false? q) 'Neither]
-         [else
-          (call-with
-           (string-append*
-            (for/list ([i i*])
-              (format "(declare-const ~a ~a)~n"
-                      (→lab i)
-                      (match-let ([(.// _ C*) (σ@ σ′ i)])
-                        (or (for/or: : (U #f Sym) ([C : .V C*] #:when (match? C (.// (.int?) _))) 'Int)
-                            'Real)))))
-           (string-append* (for/list ([q Q*]) (format "(assert ~a)~n" q)))
-           q)]))]))
+   [(not (handled? C)) 'Neither] ; skip when contract is strange
+   [else
+    #;(printf "Queried with: ~a~n~a~n" (show-Ans σ V) C)
+    (define-values (σ′ i) (match V
+                            [(.L i) (values σ i)]
+                            [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#]))
+    (define-values (Q* i*) (explore σ′ (set-add (span-C C) i)))
+    (define-values (q j*) (gen σ′ i C))
+    #;(printf "premises [~a] involve labels [~a] ~n" Q* i*)
+    (cond
+     ;; Skip querying when the set of labels spanned by premises does not cover
+     ;; That spanned by conclusion
+     [(not (subset? j* i*)) 'Neither]
+     ;; Skip querying when the set of labels spanned by premises only contains
+     ;; The single label we ask about (relies on local provability relation
+     ;; Being precise enough)
+     [(equal? i* {set i}) 'Neither]
+     ;; Skip querying when could not generate conclusion
+     [(false? q) 'Neither]
+     [else
+      (call-with
+       (string-append*
+        (for/list ([i i*])
+          (format "(declare-const ~a ~a)~n"
+                  (→lab i)
+                  (match-let ([(.// _ C*) (σ@ σ′ i)])
+                    (or (for/or : (U #f Symbol) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'Int)
+                        'Real)))))
+       (string-append* (for/list ([q Q*]) (format "(assert ~a)~n" q)))
+       q)])]))
 
-(: handled? : .V → Bool)
+(: handled? : .V → Boolean)
 (define (handled? C)
   (match? C
-    (.// (.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? num?)))) _) #f) _) _)
-    (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?)) (list (.x 0) (or (.x _) (.b (? num?)))) _) #f) _) _)
-    (.// (.λ↓ (.λ 1 (.@ (or (.=) (.equal?))
+    (.// (.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? number?)))) _) #f) _) _)
+    (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (or (.x _) (.b (? number?)))) _) #f) _) _)
+    (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                         (list (.x 0)
                               (.@ (? arith?)
-                                  (list (or (.x _) (.b (? num?)))
-                                        (or (.x _) (.b (? num?)))) _)) _) #f) _) _)
+                                  (list (or (.x _) (.b (? number?)))
+                                        (or (.x _) (.b (? number?)))) _)) _) #f) _) _)
     (.// (.St '¬/c (list (? handled? C′))) _)))
 
-(: arith? : .e → Bool)
+(: arith? : .e → Boolean)
 (define (arith? e)
-  (match? e (.=) (.equal?) (.>) (.<) (.≥) (.≤)))
+  (match? e '= 'equal? '> '< '>= '<=))
 
 ; generate all possible assertions spanned by given set of labels
 ; return set of assertions as wel as set of labels involved
-(: explore : .σ (Setof Int) → (Values (Setof String) (Setof Int)))
+(: explore : .σ (Setof Integer) → (Values (Setof String) (Setof Integer)))
 (define (explore σ i*)
-  (define: asserts : (Setof String) ∅)
-  (define: seen : (Setof Int) ∅)
-  (define: involved : (Setof Int) ∅)  
+  (match-define (.σ m _) σ)
+  (define asserts : (Setof String) ∅)
+  (define seen : (Setof Integer) ∅)
+  (define involved : (Setof Integer) ∅)  
   
-  (: visit : Int → Void)
+  (: visit : Integer → Void)
   (define (visit i)
     (unless (set-member? seen i)
-      (match-let ([(and V (.// U C*)) (σ@ σ i)]
-                  [queue (ann ∅ (Setof Int))])
-        (when (real? U)
+      (match-let ([(and V (.// U C*)) (hash-ref m i)]
+                  [queue (ann ∅ (Setof Integer))])
+        (when (match? U (.b (? real?)))
           (∪! asserts (format "(= ~a ~a)" (→lab i) (→lab V)))
           (∪! involved i))
         (for ([C C*])
-          (let-values ([(q1 j*) (gen i C)])
+          (let-values ([(q1 j*) (gen σ i C)])
             (∪! queue j*)
-            (when (str? q1)
+            (when (string? q1)
               (∪! asserts q1)
               (∪! involved j*))))
         (∪! seen i)
         (for ([j queue]) (visit j)))))
   (for ([i i*]) (visit i))
+  
+  (: involved? : (U .V (Listof .V)) → Boolean)
+  (define (involved? V)
+    (match V
+      [(.L i) (set-member? involved i)]
+      [(? list? l) (andmap involved? l)]
+      [(.// U Cs)
+       (match U
+         ['• (or (set-member? Cs REAL/C) (set-member? Cs INT/C))]
+         [(.b (? real?)) #t]
+         [_ #f])]))
+  
+  ;; Constraint equal inputs -> equal outputs
+  (for ([(i Vᵢ) (in-hash m)])
+    (match Vᵢ
+      [(.// Uᵢ _)
+       (when (.Case? Uᵢ)
+         (match-define (.Case mappings) Uᵢ)
+         (let loop₁ : Void ([pairs : (Listof (Pairof (Listof .V) .L)) (hash->list mappings)])
+              (when (cons? pairs)
+                (match-define (cons (cons xs₁ y₁) pairs₂) pairs)
+                (let loop₂ : Void ([pairs₂ : (Listof (Pairof (Listof .V) .L)) pairs₂])
+                     (when (cons? pairs₂)
+                       (match-define (cons (cons xs₂ y₂) pairs₃) pairs₂)
+                       (∪!
+                         asserts
+                         (format
+                          "~a"
+                          `(=>
+                            (and ,@(for/list : (Listof Any) ([x₁ xs₁] [x₂ xs₂])
+                                     `(= ,(→lab x₁) ,(→lab x₂))))
+                            (= ,(→lab y₁) ,(→lab y₂)))))
+                       (∪! involved (list->set (for/list : (Listof Integer) ([x xs₁] #:when (.L? x))
+                                                 (match-define (.L i) x)
+                                                 i)))
+                       (∪! involved (list->set (for/list : (Listof Integer) ([x xs₂] #:when (.L? x))
+                                                 (match-define (.L i) x)
+                                                 i)))
+                       (∪! involved (list->set (for/list : (Listof Integer) ([y (list y₁ y₂)]
+                                                                         #:when (.L? y))
+                                                 (match-define (.L i) y)
+                                                 i)))))
+                (loop₁ pairs₂))))]
+      [_ (void)]))
+  
   (values asserts involved))
 
-; generate statemetn expressing relationship between i and C
+
+; generate statement expressing relationship between i and C
 ; e.g. <L0, (sum/c 1 2)>  translates to  "L0 = 1 + 2"
-(: gen : Int .V → (Values (U #f String) (Setof Int)))
-(define (gen i C)
+(: gen : .σ Integer .V → (Values (U #f String) (Setof Integer)))
+(define (gen σ i C)
+  
+  (: type-of : .V → Z3-Num)
+  (define (type-of V)
+    (match V
+      [(.L j) (type-of (σ@ σ j))]
+      [(.// (.b (? exact-integer?)) _) 'Int]
+      [(.// (.b (? real?)) _) 'Real]
+      [(.// '• Cs)
+       (cond [(set-member? Cs INT/C) 'Int]
+             [else 'Real])]))
+  
+  (define type-i (type-of (.L i)))
+  
+  (: maybe-convert : Z3-Num Any → Any)
+  (define (maybe-convert t x)
+    (match t
+      ['Int (format "(to_real ~a)" x)]
+      [_ x]))
+  
   (match C
+    [(? (curry equal? (.¬/C INT/C)))
+     ;; Make sure Z3 doesn't consider `1.0` a `(not/c integer?)` by Racket's standard
+     (values (format "(not (is_int ~a))" (→lab i))
+             (labels i))]
     [(.// (.λ↓ f ρ) _)
-     (let ([ρ@* (match-lambda
-                  [(.b (? num? n)) (Prim n)]
-                  [(.x i) (ρ@ ρ (- i 1))])])
-       (match f
-         [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? num?))))) _) #f)
-          (let ([X (ρ@* e)])
-            (values (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))
-                    (labels i X)))]
-         [(.λ 1 (.@ (or (.=) (.equal?))
-                    (list (.x 0) (.@ (.sqrt) (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
-          (let ([X (ρ@* M)])
-            (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
-                    (labels i X)))]
-         [(.λ 1 (.@ (or (.=) (.equal?))
-                    (list (.x 0) (.@ (? .o? o)
-                                     (list (and M (or (.x _) (.b (? num?))))
-                                           (and N (or (.x _) (.b (? num?))))) _)) _) #f)
-          (let ([X (ρ@* M)] [Y (ρ@* N)])
-            (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
-                    (labels i X Y)))]
-         [_ (values #f ∅)]))]
+     (define ρ@*
+       (match-lambda
+        [(.b (? number? n)) (Prim n)]
+        [(.x i) (ρ@ ρ (- i 1))]))
+     (match f
+       [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _) #f)
+        (define X (ρ@* e))
+        (define type-X (type-of X))
+        (values
+         (cond [(equal? type-i type-X)
+                (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))]
+               [else (format "(~a (to_real ~a) ~a)"
+                             (→lab o)
+                             (maybe-convert type-i (→lab i))
+                             (maybe-convert type-X (→lab X)))])
+         (labels i X))]
+       [(.λ 1 (.@ (or '= 'equal?)
+                  (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
+        (define X (ρ@* M))
+        (values (format "(= ~a (^ ~a 0.5))" (→lab i) (→lab X))
+                (labels i X))]
+       [(.λ 1 (.@ (or '= 'equal?)
+                  (list (.x 0) (.@ (? .o? o)
+                                   (list (and M (or (.x _) (.b (? number?))))
+                                         (and N (or (.x _) (.b (? number?))))) _)) _) #f)
+        (define X (ρ@* M))
+        (define Y (ρ@* N))
+        (define type-X (type-of X))
+        (define type-Y (type-of Y))
+        (cond
+         [(and (equal? type-i type-X) (equal? type-X type-Y))
+          (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
+                  (labels i X Y))]
+         [else ; if some operand is Real, convert all to Real
+          (values
+           (format "(= ~a (~a ~a ~a))"
+                   (maybe-convert type-i (→lab i))
+                   (→lab o)
+                   (maybe-convert type-X (→lab X))
+                   (maybe-convert type-Y (→lab Y)))
+           (labels i X Y))])]
+       [_ (values #f ∅)])]
     [(.// (.St '¬/c (list D)) _)
-     (let-values ([(q i*) (gen i D)])
-       (values (match q [(? str? s) (format "(not ~a)" s)] [_ #f]) i*))]
+     (define-values (q i*) (gen σ i D))
+     (values (match q [(? string? s) (format "(not ~a)" s)] [_ #f]) i*)]
     [_ (values #f ∅)]))
 
 ; perform query/ies with given declarations, assertions, and conclusion,
 ; trying to decide whether value definitely proves or refutes predicate
 (: call-with : String String String → .R)
 (define (call-with decs asserts concl)
-  (match (call (str++ decs asserts (format "(assert (not ~a))~n(check-sat)~n" concl)))
+  (match (call (format "~a~n~a~n(assert (not ~a))~n(check-sat)~n" decs asserts concl))
     [(regexp #rx"^unsat") 'Proved]
     [(regexp #rx"^sat") 
-     (match (call (str++ decs asserts (format "(assert ~a)~n(check-sat)~n" concl)))
+     (match (call (format "~a~n~a~n(assert ~a)~n(check-sat)~n" decs asserts concl))
              [(regexp #rx"^unsat") 'Refuted]
              [_ #;(printf "Neither~n") 'Neither])]
     [_ #;(printf "Neither~n")'Neither]))
 
+(: total-z3-time : Number)
+(define total-z3-time 0)
+
+(define (reset-z3-time!) (set! total-z3-time 0))
+
 ; performs system call to solver with given query
 (: call : String → String)
 (define (call query)
-  #;(printf "Called with:~n~a~n~n" query)
-  (with-output-to-string
-   (λ () ; FIXME: lo-tech. I don't know Z3's exit code
-     (system (format "echo \"~a\" | z3 -in -smt2" query)))))
-
+  (define now (current-process-milliseconds))
+  (log-info "Calling z3 ...")
+  ;(printf "Query:~n~a~n---~n" query)
+  (define result-str
+    (with-output-to-string
+        (λ () ; FIXME: lo-tech. I don't know Z3's exit code
+          (system (format "echo \"~a\" | z3 -in -smt2" query)))))
+  (set! total-z3-time (+ total-z3-time (- (current-process-milliseconds) now)))
+  (log-info "Called z3 ... ~a" (- (current-process-milliseconds) now))
+  result-str)
+  
+  
 ; generate printable/readable element for given value/label index
-(: →lab : (U Int .V .o) → (U Num String Sym))
+(: →lab : (U Integer .V .o) → (U Number String Symbol))
 (define →lab
   (match-lambda
     [(.// (.b (? real? x)) _) x]
-    [(or (.L i) (? int? i))
-     (if (int? i) (if (>= i 0) (format "L~a" i) (format "X~a" (- -1 i)))
+    [(or (.L i) (? integer? i))
+     (if (integer? i)
+         (if (>= i 0) (format "L~a" i) (format "X~a" (- i)))
          (error "can't happen"))]
-    [(.equal?) '=] [(.≥) '>=] [(.≤) '<=]
-    [(? .o? o) (name o)]))
+    [(? symbol? o) o]))
 
 ; extracts all labels in contract
-(: span-C : .V → (Setof Int))
+(: span-C : .V → (Setof Integer))
 (define span-C
   (match-lambda
     [(.// (.λ↓ _ (.ρ m _)) _)
-     (for/set: Int ([V (in-hash-values m)] #:when (.L? V))
+     (for/set: Integer ([V (in-hash-values m)] #:when (.L? V))
        (match-let ([(.L i) V]) i))]
     [_ ∅]))
 
 ;; syntactic sugar
 (define-syntax-rule (∪! s i)
   (set! s (let ([x i]) (if (set? x) (set-union s x) (set-add s i)))))
-(: labels : (U .V Int) * → (Setof Int))
+(: labels : (U .V Integer) * → (Setof Integer))
 (define (labels . V*)
-  (for/set: Int ([V V*] #:when (match? V (? int?) (.L _)))
+  (for/set: Integer ([V V*] #:when (match? V (? integer?) (.L _)))
     (match V
-      [(? int? i) i]
+      [(? integer? i) i]
       [(.L i) i])))
-
-
