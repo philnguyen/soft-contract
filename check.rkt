@@ -120,17 +120,6 @@
                  reason
                  ce-prog)))
 
-(: new-name! : Any → Symbol)
-;; Generate a fresh struct name for each new tag
-(define new-name!
-  (let ([count 0]
-        [m : (HashTable Any Symbol) (make-hash)])
-    (λ (tag)
-      (hash-ref! m tag
-                 (λ ()
-                   (begin0 (string->symbol (format "s~a" (n-sub count)))
-                     (set! count (+ 1 count))))))))
-
 (: replace-struct● : Any → Any)
 ;; Traverse the S-exp, replace all (struct• _) and insert top-level struct definitions
 (define (replace-struct● e)
@@ -140,8 +129,8 @@
   (define e′
     (let go! : Any ([e : Any e])
       (match e
-        [`(struct● ,tag)
-         (define name (new-name! tag))
+        [`(● ,tag)
+         (define name (string->symbol (format "s~a" (n-sub (assert tag exact-integer?)))))
          (new-names-add! name)
          `(,name)]
         [(list xs ...) (map go! xs)]
