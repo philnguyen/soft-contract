@@ -3,7 +3,7 @@
 (require "expand.rkt" racket/cmdline racket/list racket/pretty
          "lang.rkt"
          (only-in "check.rkt" feedback))
-(require/typed "read.rkt"
+(require/typed "parse.rkt"
   [file->prog (Path-String → .prog)])
 
 (define fname

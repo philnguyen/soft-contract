@@ -3,7 +3,7 @@
  racket/match racket/set racket/list racket/bool racket/function
  "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt" "delta.rkt")
 #;(require/typed ; TODO for debugging only
- "read.rkt"
+ "parse.rkt"
  [read-p (Any → .p)])
 (provide (all-defined-out)) ; TODO
 

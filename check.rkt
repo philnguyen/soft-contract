@@ -9,11 +9,11 @@
          (only-in "show.rkt" show-V show-A show-ce)
          (only-in "ce/machine.rkt" [ev find-error])
          (only-in "ce/model.rkt" model))
-(require/typed "read.rkt"
+(require/typed "parse.rkt"
   [file->prog (Path → .prog)])
-#;(require/typed "ce/read.rkt"
+#;(require/typed "ce/parse.rkt"
   [(parse-prog parse/ce) ((Listof Syntax) Syntax → .prog)])
-#;(require/typed "verify/read.rkt"
+#;(require/typed "verify/parse.rkt"
   [(parse-prog parse/ve) ((Listof Syntax) Syntax → .prog)])
 
 (: feedback ([.prog] [Integer] . ->* . Void))

@@ -2,7 +2,7 @@
 (require racket/set racket/list racket/match racket/bool racket/function
          "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt" "delta.rkt")
 #;(require/typed ; TODO for debugging only
- "read.rkt"
+ "parse.rkt"
  [read-prog ((Listof Syntax) Syntax → .prog)])
 (provide (all-defined-out)) ; TODO
 
