@@ -1,7 +1,7 @@
 soft-contract
 =============
 
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract?branch=racket)](https://travis-ci.org/philnguyen/soft-contract)
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=master)](https://travis-ci.org/philnguyen/soft-contract)
 
 Installation
 ------------------------
@@ -21,6 +21,15 @@ Examples are under [examples/](https://github.com/philnguyen/soft-contract/tree/
 
 You need to have [Z3](http://z3.codeplex.com/releases) available in your path.
 This program has been tested to work with Z3 `4.3.2`.
+
+Web REPL
+-------------------------
+
+You can experiment with soft contract verification by using the web
+REPL available at http://scv.umiacs.umd.edu/.
+
+Supported Language
+-------------------------
 
 The demo currently supports the following subset of Racket:
 
