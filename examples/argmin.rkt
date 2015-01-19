@@ -1,16 +1,17 @@
-#lang soft-contract
+#lang racket
+(require soft-contract/fake-contract)
 
-(module min racket
-  (provide (contract-out [min (real? real? . -> . real?)]))
-  (define (min x y)
-    (if (< x y) x y)))
+;; Produce the element that minimizes f
+(define (argmin f xs)
+  (argmin/acc f (car xs) (f (car xs)) (cdr xs)))
 
-(module argmin racket
-  (provide
-   (contract-out
-    [argmin ((-> any/c number?) (cons/c any/c (listof any/c)) . -> . any/c)]))
-  (require (submod ".." min))
-  (define (argmin f xs)
-    (cond [(empty? (cdr xs)) (f (car xs))]
-	  [else (min (f (car xs))
-		     (argmin f (cdr xs)))])))
+(define (argmin/acc f a b xs)
+  (if (empty? xs)
+      a
+      (if (< b (f (car xs)))
+          (argmin/acc f a b (cdr xs))
+          (argmin/acc f (car xs) (f (car xs)) (cdr xs)))))
+
+(provide
+ (contract-out
+  [argmin ((any/c . -> . number?) (cons/c any/c (listof any/c)) . -> . any/c)]))

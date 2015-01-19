@@ -1,11 +1,12 @@
-#lang soft-contract
+#lang lang
+(require soft-contract/fake-contract)
 
-(module foldl1 racket
-  (provide
-   (contract-out
-    [foldl1 ((any/c any/c . -> . any/c) (#|HERE|# listof any/c) . -> . any/c)]))
-  (define (foldl1 f xs)
-    (let ([z (car xs)]
-          [zs (cdr xs)])
-      (if (empty? zs) z
-          (foldl1 f (cons (f z (car zs)) (cdr zs)))))))
+(define (foldl1 f xs)
+  (let ([z (car xs)]
+        [zs (cdr xs)])
+    (if (empty? zs) z
+        (foldl1 f (cons (f z (car zs)) (cdr zs))))))
+
+(provide
+ (contract-out
+  [foldl1 ((any/c any/c . -> . any/c) (#|HERE|# listof any/c) . -> . any/c)]))
