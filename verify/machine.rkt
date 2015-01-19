@@ -92,7 +92,7 @@
   (: m-opaque? : Module-Path → Boolean)
   (define (m-opaque? path)
     ;; FIXME implement
-    (match? path 'havoc "havoc" '†))
+    (or (equal? path ☠) (equal? path '†)))
   
   (: step* : .ς → .ς+)
   (define (step* ς)
@@ -216,7 +216,7 @@
   ; in the presence of lots of struct declaration
   (: havoc : .V .σ .κ* → .ς+)
   (define (havoc V σ k)
-    (match (step-@ HAVOC (list V) '☠ σ k)
+    (match (step-@ HAVOC (list V) ☠ σ k)
       [(? set? s) s]
       [(? .ς? ς) (set ς)]))
   

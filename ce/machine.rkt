@@ -55,7 +55,7 @@
   (: m-opaque? : Module-Path → Boolean)
   (define (m-opaque? path)
     ;; FIXME implement
-    (match? path "havoc" 'havoc '† "†"))
+    (or (equal? path ☠) (equal? path '†)))
   
   (: maybe-blame? : (U .κ* .ς) → Boolean)
   (define maybe-blame?
@@ -348,9 +348,9 @@
        (define n (length V*))
        (match-define (.L α) Lf)
        (for/fold ([acc : (Setof .ς) ∅]) ([i n])
-         (define Vf (.λ↓ (.λ n (.@ ● (list (.x i)) '☠)) ρ∅))
+         (define Vf (.λ↓ (.λ n (.@ ● (list (.x i)) ☠)) ρ∅))
          (define σ′ (σ-set σ α (→V Vf)))
-         (set-add acc (step-β Vf V* '☠ σ′ k)))]))
+         (set-add acc (step-β Vf V* ☠ σ′ k)))]))
   
   (: step-•₁ : .L .V Mon-Party .σ .κ* → .ς*)
   (define (step-•₁ Lf V l σ k)
@@ -367,9 +367,9 @@
     (define (step-dep Lf V σ k)
       (match-define (and ●₁ (.•ₗ α₁)) (•!))
       (match-define (and ●₂ (.•ₗ α₂)) (•!))
-      (define e (.if (.@ 'procedure? (list (.x 0)) '☠)
-                     (.λ 1 (.@ (.@ ●₁ (list (.x 1)) '☠) (list (.x 0)) '☠))
-                     (.@ ●₂ (list (.x 0)) '☠)))
+      (define e (.if (.@ 'procedure? (list (.x 0)) ☠)
+                     (.λ 1 (.@ (.@ ●₁ (list (.x 1)) ☠) (list (.x 0)) ☠))
+                     (.@ ●₂ (list (.x 0)) ☠)))
       (define Vf (→V (.λ↓ (.λ 1 e) ρ∅)))
       (.ς (.↓ e (ρ+ ρ∅ V))
           (σ-set σ
@@ -386,21 +386,21 @@
       (define ● (•!))
       (match V
         [(.// (.λ↓ (.λ n _) ρ) _)
-         (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) '☠)) '☠)) ρ∅))
+         (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) ☠)) ☠)) ρ∅))
          (define σ′ (.σ (hash-set m α (→V Vf)) l))
-         (step-β Vf (list V) '☠ σ′ k)]
+         (step-β Vf (list V) ☠ σ′ k)]
         [(.// (.Ar (.// (.Λ/C cs _ _) _) _ _) _)
          (define n (length cs))
-         (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) '☠)) '☠)) ρ∅))
+         (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) ☠)) ☠)) ρ∅))
          (define σ′ (.σ (hash-set m α (→V Vf)) l))
-         (step-β Vf (list V) '☠ σ′ k)]
+         (step-β Vf (list V) ☠ σ′ k)]
         [(.// (.St t Vs) _)
          (define n (length Vs))
          (for/fold ([ςs : (Setof .ς) ∅]) ([Vᵢ Vs] [i n])
            (define acc (.st-ac t n i))
-           (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ acc (list x₀) '☠)) '☠)) ρ∅))
+           (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ acc (list x₀) ☠)) ☠)) ρ∅))
            (define σ′ (.σ (hash-set m α (→V Vf)) l))
-           (set-add ςs (step-β Vf (list V) '☠ σ′ k)))]
+           (set-add ςs (step-β Vf (list V) ☠ σ′ k)))]
         [(? .prim?) ∅]
         [_ ∅ #|TODO|#]))
     
