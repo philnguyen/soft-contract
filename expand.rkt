@@ -153,7 +153,7 @@
   ;; If the given input is a file name, then chdir to its containing
   ;; directory so the expand function works properly
   (define in-path (if (input-port? in) #f (normalize-path in)))
-  (define in-dir (and (input-port? in)
+  (define in-dir (and (not (input-port? in))
                       (or (path-only in) ".")))
   (parameterize ([current-module (if in-dir (object-name input) (current-module))]
                  [current-directory (if in-dir in-dir (current-directory))]
