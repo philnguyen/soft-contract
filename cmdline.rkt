@@ -12,24 +12,6 @@
                         (cons fname fnames))
           (Listof Path-String)))
 
-#;(define expanded-stx (do-expand-file fname))
-
-
-#;(define (submodules-of expanded-stx)
-  (syntax-case expanded-stx (module configure-runtime)
-    [(module _name _lang
-       (#%module-begin
-        (module configure-runtime '#%kernel _ ...)
-        (module name lang body ...) ...))
-     (syntax->list #'((module name lang body ...) ...))]))
-
-
-
-#;(require racket/pretty)
-#;(printf "~a~n" prog)
-
-(printf "Filenames: ~a~n" fnames)
-
 (define prog (files->prog fnames))
 (feedback prog)
 
