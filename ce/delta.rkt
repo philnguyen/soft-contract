@@ -79,6 +79,23 @@
      (match/Ans* (δ σ 'real? (list V) 'Λ)
        [(cons σt (.// (.b #t) _)) (Δ σt 'sqrt V*)]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l 'sqrt V REAL/C))])]
+    [('expt (list Vₓ Vₑ))
+     (match/Ans* (δ σ 'number? (list Vₓ) 'Λ)
+       [(cons σ (.// (.b #t) _))
+        (match/Ans* (δ σ 'number? (list Vₑ) 'Λ)
+          [(cons σ (.// (.b #t) _))
+           ;; TODO could be expensive for programs with frequent use of `expt` on abstract values
+           ;; There's an implicit split for `real?`
+           (match/Ans* (δ σ '= (list Vₓ (Prim 0)) 'Λ)
+             [(cons σ (.// (.b #t) _))
+              (match/Ans* (δ σ '< (list Vₑ (Prim 0)) 'Λ)
+               [(cons σ (.// (.b #t) _))
+                (cons σ (.blm l 'expt (→V (.St 'values #|hack|# (list Vₓ Vₑ)))
+                              (→V (.St/C 'values #|hack|# (list ZERO/C NON-NEG/C)))))]
+               [_ (Δ σ 'expt (list Vₓ Vₑ))])]
+             [_ (Δ σ 'expt (list Vₓ Vₑ))])]
+          [(cons σ (.// (.b #f) _)) (cons σ (.blm l 'expt Vₑ NUM/C))])]
+       [(cons σ (.// (.b #f) _)) (cons σ (.blm l 'expt Vₓ NUM/C))])]
     
     ; arity check
     [((or 'arity=? 'arity>=? 'arity-includes?) (list V1 V2))
@@ -285,7 +302,25 @@
          (let-values ([(Lₛ) (assert V .L?)]
                       [(σ L) (σ+ σ INT/C NON-NEG/C)])
            (match-define (cons σ′ _) (refine σ Lₛ (string-length/C L)))
-           (cons σ′ L)))])]))
+           (cons σ′ L)))])]
+    [('expt (list Vₓ Vₑ))
+     (define-values (Vₓ′ Vₑ′)
+       (let ([lookup (match-lambda
+                      [(.L i) (σ@ σ i)]
+                      [(? .//? V) V])])
+         (values (lookup Vₓ) (lookup Vₑ))))
+     (match* (Vₓ′ Vₑ′)
+       [((.// (.b (? number? x)) _) (.// (.b (? number? e)) _))
+        (cons σ (Prim (expt x e)))]
+       [(_ _)
+        (cond
+         [(eq? 'Proved (⊢ σ Vₑ ZERO/C)) (cons σ (Prim 1)) #|wrong `exact` property|#]
+         [(eq? 'Proved (⊢ σ Vₓ ONE/C)) (cons σ (Prim 1)) #|wrong `exact` property|#]
+         [(and (eq? 'Proved (⊢ σ Vₓ REAL/C)) (eq? 'Proved (⊢ σ Vₑ REAL/C)))
+          (let-values ([(σ V) (σ+ σ REAL/C (expt/C Vₓ Vₑ))])
+            (cons σ V))]
+         [else (let-values ([(σ V) (σ+ σ NUM/C (expt/C Vₓ Vₑ))])
+                 (cons σ V))])])]))
 
 (: V=? : .σ .V .V → .Vns*)
 (define (V=? σ V1 V2)
@@ -542,3 +577,24 @@
                      (match-let ([(cons σ V) (alloc σ V)])
                        (values σ (cons V Vs))))])
        (cons σ (reverse Vs)))]))
+
+;; TODO Can't get this to work in TR
+#;(module+ test
+  (require typed/rackunit "../runtime.rkt")
+  
+  (: check-ans-include : .Ans* .Ans → Any)
+  (define (check-ans-include ans ansᵢ)
+    (cond [(set? ans) (check-true (set-member? ans ansᵢ))]
+          [else (check-equal? ans ansᵢ)]))
+  
+  (: check-δ : .o (Listof .V) .Ans → Any)
+  (define (check-δ o Vs A)
+    (define-values (σ Vs-rev)
+      (for/fold ([σ : .σ (.σ (hash) 0)] [Vs-rev : (Listof .V) '()]) ([V (in-list Vs)])
+        (match V
+          [(.// (? number?) _) (values σ (cons V Vs-rev))]
+          [(.// (? .•?) Cs) (let-values ([(σ L) (σ+ σ Cs)])
+                              (values σ (cons L Vs-rev)))]
+          [_ (fail (format "check-δ does not support argument ~a" V))
+             (values σ (cons V Vs-rev))])))
+    (check-ans-include (δ σ o (reverse Vs-rev) 'test) A)))

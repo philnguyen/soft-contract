@@ -77,6 +77,23 @@
      (match/Ans* (δ σ 'real? (list V) 'Λ)
        [(cons σt (.// (.b #t) _)) (Δ σt 'sqrt V*)]
        [(cons σf (.// (.b #f) _)) (cons σf (.blm l 'sqrt V REAL/C))])]
+    [('expt (list Vₓ Vₑ))
+     (match/Ans* (δ σ 'number? (list Vₓ) 'Λ)
+       [(cons σ (.// (.b #t) _))
+        (match/Ans* (δ σ 'number? (list Vₑ) 'Λ)
+          [(cons σ (.// (.b #t) _))
+           ;; TODO could be expensive for programs with frequent use of `expt` on abstract values
+           ;; There's an implicit split for `real?`
+           (match/Ans* (δ σ '= (list Vₓ (Prim 0)) 'Λ)
+             [(cons σ (.// (.b #t) _))
+              (match/Ans* (δ σ '< (list Vₑ (Prim 0)) 'Λ)
+               [(cons σ (.// (.b #t) _))
+                (cons σ (.blm l 'expt (→V (.St 'values #|hack|# (list Vₓ Vₑ)))
+                              (→V (.St/C 'values #|hack|# (list ZERO/C NON-NEG/C)))))]
+               [_ (Δ σ 'expt (list Vₓ Vₑ))])]
+             [_ (Δ σ 'expt (list Vₓ Vₑ))])]
+          [(cons σ (.// (.b #f) _)) (cons σ (.blm l 'expt Vₑ NUM/C))])]
+       [(cons σ (.// (.b #f) _)) (cons σ (.blm l 'expt Vₓ NUM/C))])]
     
     ; arity check
     [((or 'arity=? 'arity>=? 'arity-includes?) (list V1 V2))
@@ -266,7 +283,26 @@
      (match (σ@ σ V)
        [(.// (.b (? string? s)) _) (cons σ (Prim (string-length s)))]
        [_ (let-values ([(σ V) (σ+ σ INT/C NON-NEG/C)])
-            (cons σ V))])]))
+            (cons σ V))])]
+    
+    [('expt (list Vₓ Vₑ))
+     (define-values (Vₓ′ Vₑ′)
+       (let ([lookup (match-lambda
+                      [(.L i) (σ@ σ i)]
+                      [(? .//? V) V])])
+         (values (lookup Vₓ) (lookup Vₑ))))
+     (match* (Vₓ′ Vₑ′)
+       [((.// (.b (? number? x)) _) (.// (.b (? number? e)) _))
+        (cons σ (Prim (expt x e)))]
+       [(_ _)
+        (cond
+         [(eq? 'Proved (⊢ σ Vₑ ZERO/C)) (cons σ (Prim 1)) #|wrong `exact` property|#]
+         [(eq? 'Proved (⊢ σ Vₓ ONE/C)) (cons σ (Prim 1)) #|wrong `exact` property|#]
+         [(and (eq? 'Proved (⊢ σ Vₓ REAL/C)) (eq? 'Proved (⊢ σ Vₑ REAL/C)))
+          (let-values ([(σ V) (σ+ σ REAL/C (expt/C Vₓ Vₑ))])
+            (cons σ V))]
+         [else (let-values ([(σ V) (σ+ σ NUM/C (expt/C Vₓ Vₑ))])
+                 (cons σ V))])])]))
 
 (: V=? : .σ .V .V → .Vns*)
 (define (V=? σ V1 V2)
