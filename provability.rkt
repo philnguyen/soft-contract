@@ -396,7 +396,30 @@
              (match* (V0 V1)
                [((.// U0 C*) (.// U1 D*))
                 (match* (U0 U1)
-                  [('• '•) (C*⇒C*? C* D*)]
+                  [('• '•)
+                   (C*⇒C*?
+                       (for/set: .V ([C (in-set C*)]
+                                     #:unless
+                                     (match?
+                                      C
+                                      (.//
+                                       (.λ↓
+                                        (.λ 1
+                                            (.@ (or '= 'equal?)
+                                                (list (.x 0) (not (? .v?) (? .x?))) 'Λ) _) _)
+                                       _)))
+                                 C)
+                       (for/set: .V ([D (in-set D*)]
+                                     #:unless
+                                     (match?
+                                      D
+                                      (.//
+                                       (.λ↓
+                                        (.λ 1
+                                            (.@ (or '= 'equal?)
+                                                (list (.x 0) (not (? .v?) (? .x?))) 'Λ) _) _)
+                                       _)))
+                                 D))]
                   [((.St t V0*) (.St t V1*)) (andmap go! V0* V1*)]
                   [((.Ar C1 V1 _) (.Ar C2 V2 _)) (and (equal? C1 C2) (go! V1 V2))]
                   [((.λ↓ e0 ρ0) (.λ↓ e1 ρ1)) (and (equal? e0 e1) (go! ρ0 ρ1))]
@@ -443,25 +466,9 @@
                 [(#f #f) #t]
                 [(_ _) #f]))]
            [((? list? V0*) (? list? V1*)) (andmap go! V0* V1*)]))
-       (λ (V0 V1)
-         (cond [(go! V0 V1) F]
-               [(and (.V? V0) (.V? V1)) (⊑/ext F σ0 V0 σ1 V1)]
-               [else #f]))]
+       (λ (V0 V1) (if (go! V0 V1) F #f))]
     [((? .V? V0) (? .V? V1)) ((⊑ σ∅ σ∅) V0 V1)]
     [((? list? l0) (? list? l1)) ((⊑ σ∅ σ∅) l0 l1)]))
-
-(: ⊑/ext : .F .σ .V .σ .V → (Option .F))
-(define (⊑/ext F σ₀ V₀ σ₁ V₁)
-  (define V₁′
-    (match V₁
-      [(.L i) (σ@ σ₁ i)]
-      [_ V₁]))
-  (match V₁′
-    [(.// _ Ds)
-     (and (for/and : Boolean ([D (in-set Ds)])
-            (eq? 'Proved (⊢ σ₀ V₀ (subst/L D F))))
-          F)]
-    [_ #f]))
 
 
 (: C≃ : (case→ [.V .V → Boolean]

@@ -6,16 +6,6 @@
 
 (define-type Z3-Num (U 'Int 'Real))
 
-(: type-of : .σ .V → Z3-Num)
-(define (type-of σ V)
-  (match V
-    [(.L j) (type-of σ (σ@ σ j))]
-    [(.// (.b (? exact-integer?)) _) 'Int]
-    [(.// (.b (? real?)) _) 'Real]
-    [(.// '• Cs)
-     (cond [(set-member? Cs INT/C) 'Int]
-           [else 'Real])]))
-
 ; query external solver for provability relation
 (: query : .σ .V .V → .R)
 (define (query σ V C)
@@ -45,7 +35,9 @@
         (for/list ([i i*])
           (format "(declare-const ~a ~a)~n"
                   (→lab i)
-                  (type-of σ′ (.L i)))))
+                  (match-let ([(.// _ C*) (σ@ σ′ i)])
+                    (or (for/or : (U #f Symbol) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'Int)
+                        'Real)))))
        (string-append* (for/list ([q Q*]) (format "(assert ~a)~n" q)))
        q)])]))
 
@@ -144,16 +136,23 @@
 (: gen : .σ Integer .V → (Values (U #f String) (Setof Integer)))
 (define (gen σ i C)
   
+  (: type-of : .V → Z3-Num)
+  (define (type-of V)
+    (match V
+      [(.L j) (type-of (σ@ σ j))]
+      [(.// (.b (? exact-integer?)) _) 'Int]
+      [(.// (.b (? real?)) _) 'Real]
+      [(.// '• Cs)
+       (cond [(set-member? Cs INT/C) 'Int]
+             [else 'Real])]))
   
-  
-  (define type-i (type-of σ (.L i)))
+  (define type-i (type-of (.L i)))
   
   (: maybe-convert : Z3-Num Any → Any)
   (define (maybe-convert t x)
-    (cond [(real? x) x]
-          [else (match t
-                  ['Int (format "(to_real ~a)" x)]
-                  [_ x])]))
+    (match t
+      ['Int (format "(to_real ~a)" x)]
+      [_ x]))
   
   (match C
     [(? (curry equal? (.¬/C INT/C)))
@@ -168,21 +167,14 @@
      (match f
        [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _) #f)
         (define X (ρ@* e))
-        (define type-X (type-of σ X))
+        (define type-X (type-of X))
         (values
-         (match* (type-i type-X)
-           [('Int 'Real)
-            (format "(~a ~a ~a)"
-                    (→lab o)
-                    (maybe-convert type-i (→lab i))
-                    (→lab X))]
-           [('Real 'Int)
-            (format "(~a ~a ~a)"
-                    (→lab o)
-                    (→lab i)
-                    (maybe-convert type-X (→lab X)))]
-           [(_ _)
-            (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))])
+         (cond [(equal? type-i type-X)
+                (format "(~a ~a ~a)" (→lab o) (→lab i) (→lab X))]
+               [else (format "(~a (to_real ~a) ~a)"
+                             (→lab o)
+                             (maybe-convert type-i (→lab i))
+                             (maybe-convert type-X (→lab X)))])
          (labels i X))]
        [(.λ 1 (.@ (or '= 'equal?)
                   (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _) _)
@@ -195,8 +187,8 @@
                                          (and N (or (.x _) (.b (? number?))))) _)) _) #f)
         (define X (ρ@* M))
         (define Y (ρ@* N))
-        (define type-X (type-of σ X))
-        (define type-Y (type-of σ Y))
+        (define type-X (type-of X))
+        (define type-Y (type-of Y))
         (cond
          [(and (equal? type-i type-X) (equal? type-X type-Y))
           (values (format "(= ~a (~a ~a ~a))" (→lab i) (→lab o) (→lab X) (→lab Y))
@@ -237,7 +229,7 @@
 (define (call query)
   (define now (current-process-milliseconds))
   (log-info "Calling z3 ...")
-  #;(printf "Query:~n~a~n---~n" query)
+  (printf "Query:~n~a~n---~n" query)
   (define result-str
     (with-output-to-string
         (λ () ; FIXME: lo-tech. I don't know Z3's exit code
@@ -248,7 +240,7 @@
   
   
 ; generate printable/readable element for given value/label index
-(: →lab : (U Integer .V .o) → (U Real String Symbol))
+(: →lab : (U Integer .V .o) → (U Number String Symbol))
 (define →lab
   (match-lambda
     [(.// (.b (? real? x)) _) x]
