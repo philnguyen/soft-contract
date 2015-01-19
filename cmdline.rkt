@@ -4,13 +4,13 @@
          "lang.rkt"
          (only-in "check.rkt" feedback))
 (require/typed "parse.rkt"
-  [file->prog (Path-String → .prog)])
+  [files->prog ((Listof Path-String) → .prog)])
 
-(define fname
-  (assert (command-line #:program "raco soft-contract"
-                        #:args (fname)
-                        fname)
-          path-string?))
+(define fnames
+  (cast (command-line #:program "raco soft-contract"
+                        #:args (fname . fnames)
+                        (cons fname fnames))
+          (Listof Path-String)))
 
 #;(define expanded-stx (do-expand-file fname))
 
@@ -28,7 +28,7 @@
 #;(require racket/pretty)
 #;(printf "~a~n" prog)
 
-(define prog (file->prog fname))
+(define prog (files->prog fnames))
 (feedback prog)
 
 ;; FIXME

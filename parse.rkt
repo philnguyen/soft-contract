@@ -6,12 +6,11 @@
          (prefix-in fake: "fake-contract.rkt"))
 (provide (all-defined-out) #;read-p #;on-•!)
 
-
-(define/contract (file->prog path)
-  (path-string? . -> . .prog?)
-  (define/contract stx syntax? (do-expand-file path))
-  (define/contract m .module? (parse-top-level-form stx))
-  (define ms (list m))
+(define/contract (files->prog paths)
+  ((listof path-string?) . -> . .prog?)
+  (define/contract ms (listof .module?)
+    (for/list ([path (in-list paths)])
+      (parse-top-level-form (do-expand-file path))))
   (define-values (havoc-m havoc-e) (gen-havoc ms))
   (.prog (cons havoc-m ms) havoc-e))
 
