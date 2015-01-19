@@ -21,7 +21,8 @@
 ;; FIXME may not need this anymore
 (define on-•! (make-parameter (λ () '•)))
 
-(define cur-mod (make-parameter "top-level"))
+(define/contract cur-mod (parameter/c module-path?)
+  (make-parameter "top-level"))
 
 (define (index->path i)
   (define-values (v _) (module-path-index-split i))
@@ -43,24 +44,26 @@
   #;(printf "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
+     (define mod-path (module-path #'id))
      (.module
-      (module-path #'id)
-      (.#%plain-module-begin
-       (filter
-        values
-        (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
-                   #:when
-                   (syntax-parse formᵢ
-                     [((~literal module) (~literal configure-runtime) _ ...) #f]
-                     [_ #t])
-                   #:when
-                   (scv-syntax? formᵢ))
-          (parse-module-level-form formᵢ)))
-       #;(map parse-module-level-form (syntax->list #'(forms ...)))))]
-    [((~literal begin) form ...)
-     (-begin (map parse-top-level-form (syntax->list #'(form ...))))]
-    [((~literal #%expression) e) (parse-expr #'e)]
-    [_ (parse-general-top-level-form form)]))
+      mod-path
+      (parameterize ([cur-mod mod-path])
+        (.#%plain-module-begin
+         (filter
+          values
+          (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
+                     #:when
+                     (syntax-parse formᵢ
+                       [((~literal module) (~literal configure-runtime) _ ...) #f]
+                       [_ #t])
+                     #:when
+                     (scv-syntax? formᵢ))
+            (parse-module-level-form formᵢ)))
+         #;(map parse-module-level-form (syntax->list #'(forms ...)))))]
+        [((~literal begin) form ...)
+         (-begin (map parse-top-level-form (syntax->list #'(form ...))))]
+        [((~literal #%expression) e) (parse-expr #'e)]
+        [_ (parse-general-top-level-form form)])))
 
 (define/contract (parse-module-level-form form)
   (scv-syntax? . -> . (or/c #f .module-level-form?))
