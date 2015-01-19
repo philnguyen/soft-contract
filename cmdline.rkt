@@ -28,6 +28,8 @@
 #;(require racket/pretty)
 #;(printf "~a~n" prog)
 
+(printf "Filenames: ~a~n" fnames)
+
 (define prog (files->prog fnames))
 (feedback prog)
 

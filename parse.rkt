@@ -184,6 +184,8 @@
        ['() .none/c]
        [(list c) c]
        [(list c₁ ... cₖ) (foldr .or/c cₖ c₁)])]
+    ;; primitive contracts
+    [(~literal fake:any/c) .any/c]
     
     ;; Literals
     [v:str (.b (syntax->datum #'v))]
