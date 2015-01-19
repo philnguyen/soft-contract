@@ -1,10 +1,17 @@
 #lang racket/base
 (require racket/match racket/list racket/set racket/bool
-         "utils-untyped.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
+         "utils.rkt" "utils-untyped.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
          syntax/parse racket/pretty racket/contract
          "expand.rkt"
          (prefix-in fake: "fake-contract.rkt"))
 (provide (all-defined-out) #;read-p #;on-•!)
+
+(define debug printf)
+#;(define (debug . _) (void))
+
+(define (dummy)
+  (debug "Misreading syntax, returning dummy expression #f")
+  (.b 'dummy))
 
 (define/contract (files->prog paths)
   ((listof path-string?) . -> . .prog?)
@@ -40,7 +47,7 @@
 
 (define/contract (parse-top-level-form form)
   (scv-syntax? . -> . .top-level-form?)
-  #;(printf "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
      (define mod-path (module-path #'id))
@@ -65,7 +72,7 @@
 
 (define/contract (parse-module-level-form form)
   (scv-syntax? . -> . (or/c #f .module-level-form?))
-  #;(printf "parse-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (debug "parse-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     #:literals (#%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                 call-with-values)
@@ -83,7 +90,7 @@
         _
         (#%plain-app (~literal list) x:id c) ...))
       _)
-     #;(printf "x: ~a~nc: ~a~n"
+     #;(debug "x: ~a~nc: ~a~n"
              (identifier? (car (syntax->list #'(x ...))))
              (identifier? (car (syntax->list #'(c ...)))))
      (.#%provide (for/list ([x (in-list (syntax->list #'(x ...)))]
@@ -95,7 +102,7 @@
 
 (define/contract (parse-submodule-form form)
   (scv-syntax? . -> . (or/c #f .submodule-form?))
-  #;(printf "parse-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (debug "parse-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path ((~literal #%plain-module-begin) d ...))
      (.module
@@ -106,7 +113,7 @@
 
 (define/contract (parse-general-top-level-form form)
   (scv-syntax? . -> . (or/c #f .general-top-level-form?))
-  #;(printf "parse-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
+  (debug "parse-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
   (syntax-parse form
     #:literals (define-syntaxes define-values #%require let-values #%plain-app values
                  call-with-values)
@@ -150,7 +157,7 @@
 
 (define/contract (parse-expr stx [ctx '()])
   (scv-syntax? . -> . .expr?)
-  #;(printf "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
+  (debug "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
   ;;(: go : Syntax → .e)
   (define (go e) (parse-expr e ctx))
   ;;(: go/list : Syntax → (Listof .e))
@@ -229,12 +236,12 @@
     [(quote e:str) (.b (syntax->datum #'e))]
     [(quote e:boolean) (.b (syntax->datum #'e))]
     [(quote e:id) (.b (syntax->datum #'e))]
-    [(quote e) #|FIXME|# (printf "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
+    [(quote e) #|FIXME|# (debug "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
-    [(#%variable-reference) (todo '#%variable-reference)]
-    [(#%variable-reference id) (todo 'id)]
+    [(#%variable-reference) (dummy)]
+    [(#%variable-reference id) (todo '|#%variable-reference id|)]
     
     ;; Hacks for now
     [(~literal null) .null]
@@ -250,7 +257,7 @@
         [#f (.x (id->sd ctx #'i))]
         [(and X (list (app index->path (list src self?)) _ _ _ _ _ _))
          (set-box! ids (cons #'i (unbox ids)))
-         #;(printf "Identifier: ~a~nName: ~a~nPath: ~a~n~n"
+         #;(debug "Identifier: ~a~nName: ~a~nPath: ~a~n~n"
                  #'i
                  (syntax->datum #'i)
                  (if (path? src)
@@ -267,7 +274,7 @@
 
 (define/contract (parse-primitive id)
   (identifier?  . -> . (or/c #f .o?))
-  #;(printf "parse-primitive: ~a~n~n" (syntax->datum id))
+  (debug "parse-primitive: ~a~n~n" (syntax->datum id))
   (syntax-parse id
     [(~literal number?) 'number?]
     [(~literal real?) 'real?]
@@ -305,16 +312,16 @@
     [_ #f]))
 
 (define/contract (parse-provide-spec spec)
-  (scv-syntax? . -> . .raw-provide-spec?)
+  (scv-syntax? . -> . .provide-spec?)
   (syntax-parse spec
     [i:identifier #'i]
     [_ (error 'parse-provide-spec "unexpected: ~a" spec)]))
 
 (define/contract (parse-require-spec spec)
-  (scv-syntax? . -> . .raw-require-spec?)
+  (scv-syntax? . -> . .require-spec?)
   (syntax-parse spec
     [i:identifier spec]
-    [_ (printf "parse-require-spec: ignore ~a~n" (syntax->datum spec) #f)]))
+    [_ (debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
 
 ;; Extends environment
 (define/contract (ext-env ctx xs)
@@ -326,7 +333,7 @@
 ;; Return static distance of given identifier in context
 (define/contract (id->sd ctx id)
   ((listof identifier?) identifier? . -> . integer?)
-  #;(printf "id->sd: looking for ~a in context ~a~n"
+  #;(debug "id->sd: looking for ~a in context ~a~n"
           (syntax->datum id)
           (map syntax->datum ctx))
   (or (for/first ([idᵢ (in-list ctx)] [i (in-naturals)]

@@ -35,21 +35,21 @@
 
 (define-data .module-level-form
   .general-top-level-form
-  (struct .#%provide [specs : (Listof .raw-provide-spec)])
+  (struct .#%provide [specs : (Listof .provide-spec)])
   .submodule-form)
 
 (define-data .general-top-level-form
   .expr
   (struct .define-values [ids : (Listof Identifier)] [e : .expr])
-  (struct .#%require [specs : (Listof .raw-require-spec)]))
+  (struct .#%require [specs : (Listof .require-spec)]))
 
 (define-data .submodule-form
   (struct .module [path : Module-Path] [body : .#%plain-module-begin]))
 
-(define-data .raw-provide-spec
+(define-data .provide-spec
   (struct .p/c-item [id : Identifier] [spec : .expr] #|TODO|#))
 
-(define-data .raw-require-spec
+(define-data .require-spec
   Any #|TODO|#)
 
 (struct .#%plain-module-begin ([body : (Listof .module-level-form)]) #:transparent)
