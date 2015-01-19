@@ -8,10 +8,12 @@
 
 
 (define/contract (file->prog path)
-  (path? . -> . .prog?)
+  (path-string? . -> . .prog?)
   (define/contract stx syntax? (do-expand-file path))
   (define/contract m .module? (parse-top-level-form stx))
-  (.prog (list m) .ff))
+  (define ms (list m))
+  (define-values (havoc-m havoc-e) (gen-havoc ms))
+  (.prog (cons havoc-m ms) havoc-e))
 
 ;; TODO For testing only
 (define ids (box '()))
@@ -143,6 +145,8 @@
         (.ref #'i (path->string (simplify-path src)) (cur-mod))]
        [#f #|FIXME|# (syntax->datum stx)])]))
 
+(define dummy-id #'dummy)
+
 (define/contract (parse-expr stx [ctx '()])
   (scv-syntax? . -> . .expr?)
   #;(printf "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
@@ -162,17 +166,20 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (.-> (map parse-expr (syntax->list #'(c ...)))
+     (.λ/c (go/list #'(c ...))
+           (parse-expr #'d (ext-env ctx (make-list (length (syntax->list #'(c ...))) dummy-id)))
+           #f)
+     #;(.-> (map parse-expr (syntax->list #'(c ...)))
           (parse-expr #'d))]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
-     (match (map parse-expr (syntax->list #'(c ...)))
+     (match (go/list #'(c ...))
        ['() .any/c]
        [(list c) c]
        [(list c₁ ... cₖ) (foldr .and/c cₖ c₁)])]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
-     (match (map parse-expr (syntax->list #'(c ...)))
+     (match (go/list #'(c ...))
        ['() .none/c]
        [(list c) c]
        [(list c₁ ... cₖ) (foldr .or/c cₖ c₁)])]
@@ -228,14 +235,13 @@
     
     ;; Hacks for now
     [(~literal null) .null]
-    [(~literal positive?) (parse-expr #'(#%plain-lambda (x) (> x 0)))]
-    [(~literal negative?) (parse-expr #'(#%plain-lambda (x) (> x 0)))]
-    [(~literal zero?) (parse-expr #'(#%plain-lambda (x) (= x 0)))]
+    [(~literal positive?) (go #'(#%plain-lambda (x) (> x 0)))]
+    [(~literal negative?) (go #'(#%plain-lambda (x) (> x 0)))]
+    [(~literal zero?) (go #'(#%plain-lambda (x) (= x 0)))]
     
     [i:identifier
      (or
       (parse-primitive #'i)
-      (begin (printf "identifier: ~a~n" (identifier-binding #'i)) #f)      
       (match (identifier-binding #'i)
         ['lexical (.x (id->sd ctx #'i))]
         [#f (.x (id->sd ctx #'i))]

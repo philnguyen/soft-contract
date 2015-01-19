@@ -5,7 +5,7 @@
          (only-in "../../query-cvc4.rkt" [query cvc4])
          (only-in "../../query-z3.rkt" [query z3])
          (only-in "../../provability.rkt" ext-solver))
-(require/typed "../read.rkt" [read-p (Any → .p)])
+(require/typed "../read.rkt" [read-prog (Any → .prog)])
 (require/typed racket/file [file->lines (Path-String → (Listof String))])
 (require/typed racket [string-trim (String String → String)])
 
@@ -32,7 +32,7 @@
                  (sort (map path->string (directory-list)) string<=?)
                  (#|TODO: ok?|# filter string? fnames))))
 
-(define time-app (cast time-apply ((.p → .ς+) (List .p) → (Values (List .ς+) N N N))))
+(define time-app (cast time-apply ((.prog → .ς+) (List .prog) → (Values (List .ς+) N N N))))
 
 (: a→time : (U #f (List Bm-Result)) → (U String N))
 (define a→time (match-lambda [#f "$\\infty$"]
@@ -43,9 +43,9 @@
   (match-lambda
     [#f "-"]
     [(list (list as _ _ _))
-     (set-count (for/set: Any ([a as] #:when (match? a (.ς (? .blm?) _ _))) (.ς-e a)))]))
+     (set-count (for/set: : (Setof Any) ([a as] #:when (match? a (.ς (? .blm?) _ _))) (.ς-e a)))]))
 
-(: benchmark : (.p → .ς+) .p → (U #f (List Bm-Result)))
+(: benchmark : (.prog → .ς+) .prog → (U #f (List Bm-Result)))
 (define (benchmark ev p)
   (collect-garbage)
   (collect-garbage)
@@ -69,10 +69,10 @@
   #;(define-values (L C T1 T2 B1 B2) (values 0 0 0 0 0 0))
   (for ([fn files] #:when (regexp-match? #rx"sch$" fn))
     (let* ([lines (for/sum: : Integer ([s (file->lines fn)]
-                                   #:unless (regexp-match? #rx"^( *)(;.*)*( *)$" s)) 1)]
+                                       #:unless (regexp-match? #rx"^( *)(;.*)*( *)$" s)) 1)]
            [name (string-trim fn ".sch")]
            #;[_ (printf "reading ~a...~n" fn)]
-           [p (read-p (file->list fn))]
+           [p (read-prog (file->list fn))]
            [checks (checks# p)])
       (match mode
         [(or 'verbose 'overbose)
@@ -86,11 +86,11 @@
               [(set-empty? r) (printf "   (NOTHING)~n")]
               [else
                (match mode
-                 ['verbose (for ([r (for/set: Any ([ς r])
+                 ['verbose (for ([r (for/set: : (Setof Any) ([ς r])
                                       (match-let ([(.ς (? .A? A) σ _) ς])
                                         (show-A σ A)))])
                              (printf "-- ~a~n" r))]
-                 ['overbose (for ([r (for/set: (Pairof Any Any) ([ς r])
+                 ['overbose (for ([r (for/set: : (Setof (Pairof Any Any)) ([ς r])
                                        (match-let* ([(.ς (? .A? A) σ _) ς])
                                          (show-Ans σ A)))])
                               (printf "-- ~a~n   ~a~n" (car r) (cdr r)))])])

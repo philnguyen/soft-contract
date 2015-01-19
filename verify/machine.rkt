@@ -91,7 +91,8 @@
   
   (: m-opaque? : Module-Path → Boolean)
   (define (m-opaque? path)
-    (module-opaque? ms path))
+    ;; FIXME implement
+    (match? path 'havoc "havoc" '†))
   
   (: step* : .ς → .ς+)
   (define (step* ς)

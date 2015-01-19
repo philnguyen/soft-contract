@@ -3,18 +3,20 @@
 (require racket/match racket/list racket/port racket/string racket/set
          racket/pretty
          (only-in "utils.rkt" match? pretty n-sub define-set)
-         (only-in "lang.rkt" .p)
-         (only-in "verify/machine.rkt" .ς [e verify])
+         (only-in "lang.rkt" .prog -begin Mon-Party)
+         (only-in "verify/machine.rkt" .ς [ev verify])
          (only-in "runtime.rkt" .blm? .blm .σ .σ?)
          (only-in "show.rkt" show-V show-A show-ce)
          (only-in "ce/machine.rkt" [ev find-error])
          (only-in "ce/model.rkt" model))
-(require/typed "ce/read.rkt"
-  [(read-p read/ce) (Sexp → .p)])
 (require/typed "read.rkt"
-  [-begin ((Listof Any) → Any)])
+  [file->prog (Path → .prog)])
+#;(require/typed "ce/read.rkt"
+  [(parse-prog parse/ce) ((Listof Syntax) Syntax → .prog)])
+#;(require/typed "verify/read.rkt"
+  [(parse-prog parse/ve) ((Listof Syntax) Syntax → .prog)])
 
-(: feedback ([Sexp] [Integer] . ->* . Any))
+(: feedback ([.prog] [Integer] . ->* . Void))
 (define (feedback prog [timeout 30])
   (eprintf ">>> program is:\n")
   (pretty-print prog (current-error-port))
@@ -34,9 +36,9 @@
 (define-type Result (U 'timeout Ce-Result Ve-Result))
 (define-type Ce-Result (U 'safe Err-Result (List 'ce Err-Result Any) exn))
 (define-type Ve-Result (U (Listof Err-Result) exn))
-(define-type Err-Result (List 'blame Symbol Symbol Any Any))
+(define-type Err-Result (List 'blame Mon-Party Mon-Party Any Any))
 
-(: run : Sexp Integer → Result)
+(: run : .prog Integer → Result)
 ;; Verify + Seek counterexamples at the same time, whichever finishes first
 (define (run prog timeout)
   (define c : (Channelof Result) (make-channel))
@@ -55,20 +57,19 @@
        [res (kill-all) res])]
     [result (kill-all) result]))
 
-(: try-verify : Sexp → Ve-Result)
+(: try-verify : .prog → Ve-Result)
 ;; Run verification on program
-(define (try-verify prog)
+(define (try-verify p)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    (define ςs (verify prog))
+    (define ςs (verify p))
     (for/list : (Listof Err-Result) ([ς ςs] #:when (match? ς (.ς (? .blm?) _ _)))
       (match-define (.ς (.blm l⁺ lᵒ v c) σ _) ς)
       (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c)))))
 
-(: try-find-ce : Sexp → Ce-Result)
+(: try-find-ce : .prog → Ce-Result)
 ;; Run counterexample on program
-(define (try-find-ce prog)
+(define (try-find-ce p)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    (define p (read/ce prog))
     #;(printf "CE read~n")
     (match (find-error p)
       [#f #;(printf "CE says safe~n") 'safe]
@@ -77,9 +78,9 @@
         (match (model p σ^)
           [#f (list 'blame l⁺ lᵒ (show-V σ^ v) (show-V σ^ c))]
           [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))
-                           (second #|for now|# (show-ce p σ)))])])))
+                           (show-ce p σ))])])))
 
-(: raise-contract-error ([Any Any Any Any] [Any] . ->* . Any))
+(: raise-contract-error ([Any Any Any Any] [Any] . ->* . Void))
 (define (raise-contract-error l⁺ lᵒ v c [ce #f])
   (define sure? #t)
   (define parties

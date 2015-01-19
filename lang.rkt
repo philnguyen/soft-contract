@@ -302,7 +302,7 @@
       (set-add acs (.st-ac t n i)))))
 
 (define ☠ "havoc") ; havoc module path
-(define havoc-id #'havoc) ; havoc function id
+(define havoc-id #'havoc-id) ; havoc function id
 
 (define (havoc-ref-from [ctx : Mon-Party])
   (.ref havoc-id ☠ ctx))
@@ -310,29 +310,47 @@
 (: prog-accs : (Listof .module) → (Setof .st-ac))
 ;; Retrieve set of all public accessors from program
 (define (prog-accs ms)
-  (printf "TODO: generate accessors properly")
+  ;; FIXME: generate accessors properly
   {set})
 
-(: gen-havoc : .prog → .prog)
-(define (gen-havoc p)
-  (match-define (.prog ms e) p)
+(: gen-havoc : (Listof .module) → (Values .module .expr))
+;; Generate:
+;; - havoc module
+;; - expression havoc-ing exported identifiers from all concrete modules
+(define (gen-havoc ms)
   
+  ;;; Generate module
   (define havoc-ref (havoc-ref-from ☠))
   (define x₀ (.x 0))
-  
   (define havoc-func
     (.λ 1 (.amb (set-add (for/set: : (Setof .@) ([ac (prog-accs ms)])
                            (.@ havoc-ref (list (.@ ac (list x₀) ☠)) ☠))
                          (.@ havoc-ref (list (.@-havoc x₀)) ☠)))))
-  
-  (define havoc-modl
+  (define m
     (.module ☠
              (.#%plain-module-begin
               (list
                (.define-values (list havoc-id) havoc-func)
                (.#%provide (list (.p/c-item havoc-id .any/c)))))))
   
-  (.prog (append ms (list havoc-modl)) e))
+  ;;; Generate expression
+  (define-set refs : .ref)
+  (for* ([m (in-list ms)])
+    (cond
+     [(module-opaque? m)
+      (eprintf "Omit havocking opaque module ~a~n" (.module-path m))]
+     [else
+      (match-define (.module path (.#%plain-module-begin forms)) m)
+      (eprintf "Insert exported identifiers from module ~a to unknown contexts" path)
+      (for* ([form (in-list forms)]
+             #:when (.#%provide? form)
+             [spec (in-list (.#%provide-specs form))])
+        (refs-add! (.ref (.p/c-item-id spec) path '†)))]))
+  (define expr
+    (.amb/remember (for/list ([ref (in-set refs)])
+                     (.@ (•!) (list ref) ☠))))
+
+  (values m expr))
 
 (: amb : (Listof .expr) → .expr)
 #;(define (amb e*)
@@ -386,8 +404,20 @@
 
 (: .ref->expr : (Listof .module) .ref → .expr)
 (define (.ref->expr ms ref)
-  (match-define (.ref ref-id mod-path _) ref)
-  (.id->expr (path->module ms mod-path) ref-id))
+  (match-define (.ref ref-id _FIXME _) ref)
+  
+  ;; FIXME:
+  ;; - figure out module-path properly
+  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
+  #;(.id->expr (path->module ms mod-path) ref-id)
+  (or (for/or : (U #f .expr) ([m (in-list ms)])
+        (match-define (.module _ (.#%plain-module-begin forms)) m)
+        (for/or : (U #f .expr) ([form (in-list forms)])
+          (match form
+            [(.define-values (list x) e)
+             (and (free-identifier=? ref-id x) e)]
+            [_ #f])))
+      (error '.ref->expr "No module defines ~a" (syntax->datum ref-id))))
 
 (: .id->ctc : .module Identifier → .expr)
 ;; Return the contract monitoring identifier `id` exported by module `m`
@@ -402,11 +432,25 @@
 
 (: .ref->ctc : (Listof .module) .ref → .expr)
 (define (.ref->ctc ms ref)
-  (match-define (.ref ref-id mod-path _) ref)
-  (.id->ctc (path->module ms mod-path) ref-id))
+  (match-define (.ref ref-id _FIXME _) ref)
+  
+  ;; FIXME:
+  ;; - figure out module-path properly
+  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
+  #;(.id->expr (path->module ms mod-path) ref-id)
+  (or (for/or : (U #f .expr) ([m (in-list ms)])
+        (match-define (.module _ (.#%plain-module-begin forms)) m)
+        (for/or : (U #f .expr) ([form (in-list forms)])
+          (match form
+            [(.#%provide specs)
+             (for/or : (U #f .expr) ([spec (in-list specs)])
+               (match-define (.p/c-item x c) spec)
+               (and (free-identifier=? ref-id x) c))]
+            [_ #f])))
+      (error '.ref->ctc "No module exports ~a" (syntax->datum ref-id))))
 
-(: path->module : (Listof .module) Module-Path → .module)
-(define (path->module mods path)
+#;(: path->module : (Listof .module) Module-Path → .module)
+#;(define (path->module mods path)
   (or (for/or : (U #f .module) ([modᵢ (in-list mods)])
         (match-define (.module pathᵢ _) modᵢ)
         (and (equal? path pathᵢ) modᵢ))
@@ -417,9 +461,10 @@
 (define (.id->path id)
   (todo '.id->path))
 
-(: module-opaque? : (Listof .module) Module-Path → Boolean)
-(define (module-opaque? ms path) ; TODO: expensive?
-  (match-define (.module _ (.#%plain-module-begin body)) (path->module ms path))
+;; FIXME: factor this out into function checking given `.module`xpr
+(: module-opaque? : .module → Boolean)
+(define (module-opaque? m) ; TODO: expensive?
+  (match-define (.module _ (.#%plain-module-begin body)) m)
   
   (define-values (exports defines)
     (for/fold ([exports : (Setof Identifier) ∅] [defines : (Setof Identifier) ∅])
@@ -434,4 +479,12 @@
    (for/and : Boolean ([exported-id : Identifier (in-set exports)])
      (for/and : Boolean ([defined-id : Identifier (in-set defines)])
        (free-identifier=? exported-id defined-id)))))
+
+(: .amb/remember : (Listof .expr) → .expr)
+(define (.amb/remember es)
+  (match es
+    ['() .ff]
+    [(list e) e]
+    [(cons e es) (.if (•!) e (.amb/remember es))]))
+
 
