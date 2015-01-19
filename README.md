@@ -1,7 +1,7 @@
 soft-contract
 =============
 
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract?branch=racket)](https://travis-ci.org/philnguyen/soft-contract)
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=master)](https://travis-ci.org/philnguyen/soft-contract)
 
 Installation
 ------------------------
