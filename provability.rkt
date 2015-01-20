@@ -465,7 +465,7 @@
     #;[((.apply f xs _) (.apply g ys _)) (and (C≃ f g) (C≃ xs ys))]
     [((.if i1 t1 e1) (.if i2 t2 e2)) (and (C≃ i1 i2) (C≃ t1 t2) (C≃ e1 e2))]
     [((.μ/c x c) (.μ/c x d)) (C≃ c d)]
-    [((.λ/c xs y1 v?) (.λ/c zs y2 v?))
+    [((.->i xs y1 v?) (.->i zs y2 v?))
      (and (= (length xs) (length zs)) (andmap C≃ xs zs) (C≃ y1 y2))]
     [((.struct/c t cs) (.struct/c t ds)) (andmap C≃ cs ds)]
     ; ρ

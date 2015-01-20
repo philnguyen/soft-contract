@@ -87,7 +87,7 @@
       (#%plain-lambda
        ()
        (#%plain-app
-        _
+        (~literal dynamic-provide/contract)
         (#%plain-app (~literal list) x:id c) ...))
       _)
      #;(debug "x: ~a~nc: ~a~n"
@@ -174,7 +174,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (.λ/c (go/list #'(c ...))
+     (.->i (go/list #'(c ...))
            (parse-expr #'d (ext-env ctx (make-list (length (syntax->list #'(c ...))) dummy-id)))
            #f)
      #;(.-> (map parse-expr (syntax->list #'(c ...)))
@@ -340,6 +340,14 @@
                   #:when (free-identifier=? id idᵢ))
         i)
       (error 'id->sd "Unbound identifier ~a" (syntax->datum id))))
+
+;; For debugging only. Return scv-relevant s-expressions
+(define/contract (scv-relevant path)
+  (path-string? . -> . any/c)
+  (define stx (do-expand-file path))
+  (for/list ([stxᵢ (in-list (syntax->list stx))]
+        #:unless (scv-ignore? stxᵢ))
+    (syntax->datum stxᵢ)))
 
 (define stx (box #f))
 

@@ -105,7 +105,7 @@
   (struct .or/c [l : .expr] [r : .expr])
   (struct .μ/c [x : Identifier] [c : .expr])
   (struct .-> [dom : (Listof .expr)] [rng : .expr]) ; non-dependent function contract
-  (struct .λ/c [xs : (Listof .expr)] [cy : .expr] [var? : Boolean]) ; dependent function contract
+  (struct .->i [xs : (Listof .expr)] [cy : .expr] [var? : Boolean]) ; dependent function contract
   (struct .x/c [x : Identifier])
   (struct .struct/c [tag : Identifier] [fields : (Listof .expr)])
   #;(.and/c [l : .e] [r : .e])
@@ -141,7 +141,7 @@
     [(.amb e*) (for/fold ([FVs : (Setof Integer) ∅]) ([e e*])
                  (set-union FVs (FV e d)))]
     [(.μ/c _ e) (FV e d)]
-    [(.λ/c cx cy _) (for/fold ([FVs (FV cy (+ d (length cx)))]) ([c cx])
+    [(.->i cx cy _) (for/fold ([FVs (FV cy (+ d (length cx)))]) ([c cx])
                       (set-union FVs (FV c d)))]
     [(.struct/c _ cs) (for/fold ([FVs : (Setof Integer) ∅]) ([c cs])
                         (set-union FVs (FV c d)))]
@@ -181,7 +181,7 @@
        (checks# e))]
    [(.amb es) (for/sum ([e (in-set es)]) (checks# e))]
    [(.μ/c _ c) (checks# c)]
-   [(.λ/c cs d _) (+ (checks# cs) (checks# d))]
+   [(.->i cs d _) (+ (checks# cs) (checks# d))]
    [(.struct/c _ cs) (checks# cs)]
    
    [(.#%plain-module-begin xs) (checks# xs)]
@@ -286,7 +286,7 @@
    [(.st-ac t _ i) (string->symbol (format "~a@~a" (syntax->datum t) i))]
    [(.st-p t _) (string->symbol (format "~a?" (syntax->datum t)))]))
 
-#;(define .pred/c (.λ/c (list .any/c) 'boolean? #f))
+#;(define .pred/c (.->i (list .any/c) 'boolean? #f))
 
 #;(: gen-accs : (Sequenceof .m) → (Setof .st-ac))
 #;(define (gen-accs ms)
@@ -295,8 +295,8 @@
               [defs (in-value (.m-defs m))]
               [d (in-hash-values defs)]
               [c (in-value (cdr d))]
-              #:when (match? c (.λ/c _ (? .struct/c?) _)))
-    (match-define (.λ/c _ (.struct/c t cs) _) c)
+              #:when (match? c (.->i _ (? .struct/c?) _)))
+    (match-define (.->i _ (.struct/c t cs) _) c)
     (define n (length cs))
     (for/fold ([acs acs]) ([i n])
       (set-add acs (.st-ac t n i)))))
@@ -380,8 +380,8 @@
     [(.amb es) (.amb (for/set: : (Setof .expr) ([eᵢ es]) (e/ eᵢ x eₓ)))]
     [(.μ/c z c) (.μ/c z (e/ c x eₓ))]
     [(.-> cs d) (.-> (e/ cs x eₓ) (e/ d x eₓ))]
-    [(.λ/c cs cy v?)
-     (.λ/c (e/ cs x eₓ)
+    [(.->i cs cy v?)
+     (.->i (e/ cs x eₓ)
            (e/ cy (+ x (if v? (- (length cs) 1) (length cs))) eₓ)
            v?)]
     [(.struct/c t cs) (.struct/c t (e/ cs x eₓ))]

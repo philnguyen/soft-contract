@@ -159,7 +159,7 @@
       [(.if i t e) `(if ,(go ctx i) ,(go ctx t) ,(go ctx e))]
       [(.amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (go ctx e)))]
       [(.μ/c x c) `(μ/c (,(syntax->datum x)) ,(go ctx c))]
-      [(.λ/c c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
+      [(.->i c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
       [(.x/c x) (syntax->datum x)]
       [(.struct/c t cs) `(,(string->symbol (format "~a/c" t)) ,@(map (curry go ctx) cs))])))
 
