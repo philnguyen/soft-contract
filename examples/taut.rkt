@@ -1,9 +1,12 @@
-#lang soft-contract
+#lang racket
+(require soft-contract/fake-contract)
 
-(module taut racket
-  (provide/contract
-   [taut ([μ/c (X) (or/c boolean? [boolean? . -> . X])] . -> . boolean?)])
-  (define (taut b)
-    (cond
-      [(boolean? b) b]
-      [else (and (taut (b #t)) (taut (b #f)))])))
+(define (taut b)
+  (cond
+   [(boolean? b) b]
+   [else (and (taut (b #t)) (taut (b #f)))]))
+
+(define prop/c (or/c boolean? (boolean? . -> . prop/c)))
+
+(provide/contract
+ [taut (prop/c . -> . boolean?)])

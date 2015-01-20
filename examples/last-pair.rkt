@@ -1,4 +1,5 @@
-#lang soft-contract
+#lang racket
+(require soft-contract/fake-contract)
 
 (module lastpair racket
   (provide (contract-out [lastpair (cons? . -> . cons?)]))
