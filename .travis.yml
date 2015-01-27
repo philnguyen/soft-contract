@@ -30,7 +30,7 @@ install:
 before_script:
 
 script:
- - /usr/racket/bin/raco make main.rkt lang/reader.rkt
+ - /usr/racket/bin/raco make check.rkt
  - /usr/racket/bin/raco link .
  - cd test
  # test parser
