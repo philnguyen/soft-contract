@@ -47,10 +47,10 @@
    #:refinements
    (real? real? → real?)
    (integer? integer? → integer?)
-   ((>/c 0) (</c 0) → (>/c 0))
    ((>/c 0) (≤/c 0) → (>/c 0))
-   ((</c 0) (>/c 0) → (</c 0))
    ((</c 0) (≥/c 0) → (</c 0))
+   ((≥/c 0) (≤/c 0) → (≥/c 0))
+   ((≤/c 0) (≥/c 0) → (≤/c 0))
    ((=/c 0) (=/c 0) → (=/c 0))
    (any/c (=/c 0) → (=/c x))]
   [(* : [x : number?] [y : number?] → (∧ number? (=/c (* x y))))

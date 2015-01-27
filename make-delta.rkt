@@ -78,7 +78,7 @@
       [(cons (? .V? C) Cᵣs)
        (match (⊢ σ V C)
          ['✓ (cons σ V)]
-         ['X (error "Bogus refinement")]
+         ['X (error 'Internal "Bogus refinement of ~a by ~a" (show-A σ V) (show-A σ C))]
          [_ (match-define (cons σ′ V′) ((refine1) σ V C))
             (go σ′ V′ Cᵣs)])]))
   (go σ V Css))
