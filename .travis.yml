@@ -38,7 +38,7 @@ script:
  - /usr/racket/bin/raco test -x main.rkt
  - cd ..
  # test delta
- - raco test -x test-delta.rkt
+ - /usr/racket/bin/raco test -x test-delta.rkt
  # test verifier
  - cd test-verifier
  - /usr/racket/bin/raco test -x main.rkt

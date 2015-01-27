@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require
- racket/match racket/set
+ racket/match racket/set racket/bool
  "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt" "make-delta.rkt")
 (provide (all-defined-out)
          (except-out (all-from-out "make-delta.rkt") define-δ))
