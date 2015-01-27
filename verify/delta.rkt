@@ -37,9 +37,9 @@
           [(.St 'and/c (list C1 C2)) (raw:refine σ V C1 C2)]
           [(.St 'or/c (list C1 C2))
            (match* ((⊢ σ V C1) (⊢ σ V C2))
-             [('Refuted 'Refuted) (error "WTF??")]
-             [(_ 'Refuted) (refine1 σ V C1)]
-             [('Refuted _) (refine1 σ V C2)]
+             [('X 'X) (error "WTF??")]
+             [(_ 'X) (refine1 σ V C1)]
+             [('X _) (refine1 σ V C2)]
              [(_ _) (cons σ (.// U (raw:refine-C* C* C)))])]
           [(and Uc (.μ/C x C′))
            (match U
@@ -80,9 +80,9 @@
      (let*-values ([(σ′ V*′)
                     (for/fold ([σ : .σ σ] [Vs : (Setof .V) ∅]) ([Vi V*])
                       (match (⊢ σ Vi C)
-                        ['Proved (values σ (set-add Vs Vi))]
-                        ['Refuted (values σ Vs)]
-                        ['Neither (match-let* ([(cons σ′ Vj) (refine1 σ Vi C)]
+                        ['✓ (values σ (set-add Vs Vi))]
+                        ['X (values σ Vs)]
+                        ['? (match-let* ([(cons σ′ Vj) (refine1 σ Vi C)]
                                                [(cons Vj′ Vs′) (elim-μ x Vj)])
                                     (values σ′ (compact (compact Vs Vs′) {set Vj′})))]))])
        #;(printf "new V* is ~a~n~n" (for/set: Any ([Vi V*′]) (show-V σ′ Vi)))
@@ -224,7 +224,7 @@
                 [(_ _)
                  (let ([C* (set-union C* (raw:U^ U0))])
                    (.// '• (for/set: : (Setof .V) ([D (set-union D* (raw:U^ U1))]
-                                                   #:when (eq? 'Proved (C*⇒C C* D)))
+                                                   #:when (eq? '✓ (C*⇒C C* D)))
                              D)))])]
              [((.μ/V x V0*) (.μ/V y V1*)) #;(printf "⊕:case2~n") (μV x (compact V0* (V/ V1* (.X/V y) (.X/V x))))]
              [((.μ/V x V0*) _)
@@ -411,7 +411,7 @@
           [((.μ/V x V1*) (.μ/V z V2*)) (μV x {set-union V1* (V/ V2* (.X/V z) (.X/V x))})]
           [((and V1 (.μ/V x V1*)) V2) (μV x (set-add V1* (V/ V2 V1 (.X/V x))))]
           [(V1 (and V2 (.μ/V x V2*))) (μV x (set-add V2* (V/ V1 V2 (.X/V x))))]
-          [(V1 V2) (if (equal? V1 V2) V1 (μV '_ {set V1 V2}))])]
+          [(V1 V2) (if (equal? V1 V2) V1 (μV raw:X {set V1 V2}))])]
        [(.St/C t D*) (→V (.St t (map reify D*)))]
        [(.μ/C x D) (match (reify D)
                      [(.μ/V '_ V*) (μV x V*)]

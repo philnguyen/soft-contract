@@ -163,3 +163,6 @@
   (let ([i 0])
     (λ ()
       (begin0 i (set! i (+ 1 i))))))
+
+(define (todo x)
+  (error 'TODO "~a" x))

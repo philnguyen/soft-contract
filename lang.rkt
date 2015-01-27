@@ -1,8 +1,6 @@
 #lang typed/racket
 (require "utils.rkt" (for-syntax racket/base racket/syntax))
 (provide (all-defined-out))
-(require/typed "utils-untyped.rkt"
-  [todo (Any → Nothing)])
 
 ;; prefixing types with dots just so i can use 1-letter variables without shadowing them
 
@@ -82,7 +80,7 @@
           'expt 'abs 'min 'max
           'arity=? 'arity>=? 'arity-includes?
           'set-box!)
-        (struct .st-mk [tag : Identifier] [arity : Integer]))))
+        (struct .st-mk [tag : Struct-Tag] [arity : Integer]))))
   ;; lexical variables
   (struct .x #|static distance|# [sd : Integer])
   ;; module references
@@ -107,7 +105,7 @@
   (struct .-> [dom : (Listof .expr)] [rng : .expr]) ; non-dependent function contract
   (struct .->i [xs : (Listof .expr)] [cy : .expr] [var? : Boolean]) ; dependent function contract
   (struct .x/c [x : Identifier])
-  (struct .struct/c [tag : Identifier] [fields : (Listof .expr)])
+  (struct .struct/c [tag : Identifier #|deliberately restricted|#] [fields : (Listof .expr)])
   #;(.and/c [l : .e] [r : .e])
   #;(.or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
@@ -119,6 +117,8 @@
   Natural
   (Pairof Natural 'rest)
   'rest)
+
+(define-type/pred Struct-Tag (U Identifier 'and/c 'or/c 'not/c))
 
 (: •! : → .•ₗ)
 ;; Generate new labeled hole
@@ -272,19 +272,23 @@
 ;; Pattern matching given syntax
 (define-match-expander ?id
   (syntax-rules ()
-    [(?id id) (? (λ (x) (free-identifier=? x id)))]))
+    [(?id id) (? (λ (x) (and (identifier? x) (free-identifier=? x id))))]))
 
 
 (: name : .o → Symbol)
 (define name
   (match-lambda
    [(? symbol? s) s]
-   [(.st-mk t _) (assert (syntax->datum t) symbol?)]
+   [(.st-mk t _) (struct-tag->symbol t)]
    [(.st-ac (?id cons-id) 2 0) 'car]
    [(.st-ac (?id cons-id) 2 1) 'cdr]
    [(.st-ac (?id box-id) 1 0) 'unbox]
    [(.st-ac t _ i) (string->symbol (format "~a@~a" (syntax->datum t) i))]
    [(.st-p t _) (string->symbol (format "~a?" (syntax->datum t)))]))
+
+(define (struct-tag->symbol [t : Struct-Tag]) : Symbol
+  (cond [(identifier? t) (assert (syntax->datum t) symbol?)]
+        [else t]))
 
 #;(define .pred/c (.->i (list .any/c) 'boolean? #f))
 

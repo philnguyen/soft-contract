@@ -34,9 +34,9 @@
                (define ¬cons (.¬/C (Prim 'cons?)))
                (when (equal? C1 (Prim 'empty?))))
              (match* ((⊢ σ V C1) (⊢ σ V C2))
-               [('Refuted 'Refuted) (error "WTF??")]
-               [(_ 'Refuted) (refine1 σ V C1)]
-               [('Refuted _) (refine1 σ V C2)]
+               [('X 'X) (error "WTF??")]
+               [(_ 'X) (refine1 σ V C1)]
+               [('X _) (refine1 σ V C2)]
                [(_ _) (refine-U σ U (raw:refine-C* C* C))])]
             [(? .μ/C? Uc) (refine1 σ V (unroll/C Uc))]
             ; equal contracts

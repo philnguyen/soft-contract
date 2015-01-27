@@ -8,7 +8,7 @@
 (: query : .σ .V .V → .R)
 (define (query σ V C)
   (cond    
-    [(not (handled? C)) 'Neither] ; skip when contract is strange
+    [(not (handled? C)) '?] ; skip when contract is strange
     [else
      #;(printf "Queried with: ~a~n~a~n" (show-Ans σ V) C)
      (let*-values ([(σ′ i) (match V
@@ -20,13 +20,13 @@
        (cond
          ; skip querying when the set of labels spanned by premises does not cover
          ; that spanned by conclusion
-         [(not (subset? j* i*)) 'Neither]
+         [(not (subset? j* i*)) '?]
          ; skip querying when the set of labels spanned by premises only contains
          ; the single label we ask about (relies on local provability relation
          ; being precise enough)
-         [(equal? i* {set i}) 'Neither]
+         [(equal? i* {set i}) '?]
          ; skip querying when could not generate conclusion
-         [(false? q) 'Neither]
+         [(false? q) '?]
          [else
           (call-with
            (string-append*
@@ -49,7 +49,7 @@
                               (.@ (? arith?)
                                   (list (or (.x _) (.b (? number?)))
                                         (or (.x _) (.b (? number?)))) _)) _)) _) _)
-    (.// (.St '¬/c (list (? handled? C′))) _)))
+    (.// (.St 'not/c (list (? handled? C′))) _)))
 
 (: arith? : .expr → Boolean)
 (define (arith? e)
@@ -110,7 +110,7 @@
             (values (format "~a = ~a ~a ~a" (→lab i) (→lab X) (→lab o) (→lab Y))
                     (labels i X Y)))]
          [_ (values #f ∅)]))]
-    [(.// (.St '¬/c (list D)) _)
+    [(.// (.St 'not/c (list D)) _)
      (let-values ([(q i*) (gen i D)])
        (values (match q [(? string? s) (format "NOT (~a)" s)] [_ #f]) i*))]
     [_ (values #f ∅)]))
@@ -120,12 +120,12 @@
 (: call-with : String String String → .R)
 (define (call-with decs asserts concl)
   (match (call (format "~a~n~a~nQUERY ~a;~n" decs asserts concl))
-    [(regexp #rx"^valid") 'Proved]
+    [(regexp #rx"^valid") '✓]
     [(regexp #rx"^invalid")
      (match (call (format "~a~n~a~nCHECKSAT ~a;" decs asserts concl))
-          [(regexp #rx"^unsat") 'Refuted]
-          [_ #;(printf "Neither~n") 'Neither])]
-    [_ #;(printf "Neither~n")'Neither]))
+          [(regexp #rx"^unsat") 'X]
+          [_ #;(printf "?~n") '?])]
+    [_ #;(printf "?~n")'?]))
 
 ; performs system call to solver with given query
 (: call : String → String)

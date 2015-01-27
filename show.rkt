@@ -40,11 +40,11 @@
     [(? .o? o) (name o)]
     [(.λ↓ f _) (show-e σ f)]
     [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
-    [(.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) e) _)) _) _))) `(≠/c ,(show-e σ e))]
+    [(.St 'not/c (list (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) e) _)) _) _))) `(≠/c ,(show-e σ e))]
     [(.St 'empty (list)) 'empty]
     [(.St (and n (or 'and/c 'or/c)) V*) `(,n ,@(show-V σ V*))]
-    [(.St '¬/c V*) `(not/c ,@(show-V σ V*))]
-    [(.St t V*) `(,(syntax->datum t) ,@(show-V σ V*))]
+    [(.St 'not/c V*) `(not/c ,@(show-V σ V*))]
+    [(.St t V*) `(,(struct-tag->symbol t) ,@(show-V σ V*))]
     [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
     [(.St/C t V*) `(,(string->symbol (format "~a/c" t)) ,@(show-V σ V*))]
     [(.μ/C x V) `(μ/C (,(syntax->datum x)) ,(show-V σ V))]
@@ -90,7 +90,7 @@
       [(.λ 1 (.@ 'arity-includes? (list (.x 0) (.b x)) _)) `(arity-includes/c ,x)]
       [(.λ 1 (.@ 'arity=? (list (.x 0) (.b x)) _)) `(arity=/c ,x)]
       [(.λ 1 (.@ 'arity>=? (list (.x 0) (.b x)) _)) `(arity≥/c ,x)]
-      #;[(.@ (.st-mk 'or/c _) (list (.@ (.st-mk '¬/c _) (list c) _) d) _)
+      #;[(.@ (.st-mk 'or/c _) (list (.@ (.st-mk 'not/c _) (list c) _) d) _)
        `(⇒/c ,(go ctx c) ,(go ctx d))]
       [(.λ 1 (.b (not #f))) 'any/c]
       [(.λ 1 (.b #f)) 'none/c]
@@ -102,7 +102,7 @@
          [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
          [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
          [(l r) `(or ,l ,r)])]
-      [(.@ (.st-mk (and n (or 'and/c 'or/c '¬/c)) _) c* _) `(,n ,@(map (curry go ctx) c*))]
+      [(.@ (.st-mk (and n (or 'and/c 'or/c 'not/c)) _) c* _) `(,n ,@(map (curry go ctx) c*))]
       ;; Direct case-λ application
       [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
        (match-define (.// (.Case m) _) (σ@ σ n))
@@ -145,7 +145,7 @@
        `(λ ,(reverse x*) ,(go (append x* ctx) e))]
       [(.•ₗ α) (syn σ α)]
       [(.b b) (show-b b)]
-      [(.st-mk t _) (syntax->datum t)]
+      [(.st-mk t _) (struct-tag->symbol t)]
       [(.st-ac (?id cons-id) _ 0) 'car]
       [(.st-ac (?id cons-id) _ 1) 'cdr]
       [(.st-ac t _ i) (string->symbol (format "~a@~a" (syntax->datum t) i))]

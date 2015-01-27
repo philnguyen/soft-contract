@@ -246,10 +246,10 @@
                 (match (σ@ σ i)
                   [(.// '• Cs)
                    (match (C*⇒C Cs (Prim .box?))
-                     ['Proved (.ς TT σ k)]
-                     ['Refuted (.ς FF σ k)]
+                     ['✓ (.ς TT σ k)]
+                     ['X (.ς FF σ k)]
                      ;; Handle aliases in ambiguous case
-                     ['Neither
+                     ['?
                       (define ςs
                         {set
                          ;; Fresh box
@@ -394,7 +394,7 @@
          (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) ☠)) ☠)) ρ∅))
          (define σ′ (.σ (hash-set m α (→V Vf)) l))
          (step-β Vf (list V) ☠ σ′ k)]
-        [(.// (.St t Vs) _)
+        [(.// (.St (? identifier? t) Vs) _)
          (define n (length Vs))
          (for/fold ([ςs : (Setof .ς) ∅]) ([Vᵢ Vs] [i n])
            (define acc (.st-ac t n i))
@@ -411,9 +411,9 @@
   (: step-fc : .V .V Mon-Party .σ .κ* → .ς*)
   (define (step-fc C V l σ k)
     (match (⊢ σ V C)
-      ['Proved (.ς TT σ k)]
-      ['Refuted (.ς FF σ k)]
-      ['Neither
+      ['✓ (.ς TT σ k)]
+      ['X (.ς FF σ k)]
+      ['?
        (match C
          [(.// U D*)
           (match U
@@ -435,9 +435,9 @@
     #;(printf "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
     (match-define (list l+ l- lo) l³)
     (match (⊢ σ V C) ; want a check here to reduce redundant cases for recursive contracts
-      ['Proved (.ς V σ k)]
-      ['Refuted (.ς (.blm l+ lo V C) σ k)]
-      ['Neither
+      ['✓ (.ς V σ k)]
+      ['X (.ς (.blm l+ lo V C) σ k)]
+      ['?
        (match C
          [(.L i) ; FIXME this is wrong, need to take care of higher-order contract
           (match-define (cons σt Vt) (refine σ V C))
@@ -579,7 +579,7 @@
                (match k
                  [(cons (and κ (.▹/κ (cons (? .V? D) #f) _)) kr)
                   (match (C⇒C C D)
-                    ['Proved (trim kr)]
+                    ['✓ (trim kr)]
                     [_ (cons κ (trim kr))])]
                  [_ k])))]))
 

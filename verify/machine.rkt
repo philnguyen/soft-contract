@@ -297,9 +297,9 @@
   (: step-fc : .V .V Mon-Party .σ .κ* → .ς*)
   (define (step-fc C V l σ k)
     (match (⊢ σ V C)
-      ['Proved (.ς TT σ k)]
-      ['Refuted (.ς FF σ k)]
-      ['Neither
+      ['✓ (.ς TT σ k)]
+      ['X (.ς FF σ k)]
+      ['?
        (match C
          [(.// U D*)
           (match U
@@ -327,9 +327,9 @@
     #;(printf "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
     (match-let ([(list l+ l- lo) l³])
       (match (⊢ σ V C) ; want a check here to reduce redundant cases for recursive contracts
-        ['Proved (.ς V σ k)]
-        ['Refuted (.ς (.blm l+ lo V C) σ k)]
-        ['Neither
+        ['✓ (.ς V σ k)]
+        ['X (.ς (.blm l+ lo V C) σ k)]
+        ['?
          (match C
            [(.L i)
             (match-define (cons σt Vt) (refine σ V C))
@@ -358,7 +358,7 @@
                (let ([n (length C*)])
                  (match/nd (δ σ (.st-p t n) (list V) lo)
                    [(cons σt (.// (.b #t) _))
-                    (match-let ([(.// (.St t V*) _) (dbg/off '▹ (σ@ σt V))])
+                    (match-let ([(.// (.St (? identifier? t) V*) _) (dbg/off '▹ (σ@ σt V))])
                       (.ς (→V (.st-mk t n)) σt
                           (cons (.@/κ (for/list ([C C*] [V V*]) (.Mon C V l³)) '() lo) k)))]
                    [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (→V (.st-p t n))) σf k)]))]
@@ -509,7 +509,7 @@
                (match k
                  [(cons (and κ (.▹/κ (cons (? .V? D) #f) _)) kr)
                   (match (C⇒C C D)
-                    ['Proved (trim kr)]
+                    ['✓ (trim kr)]
                     [_ (cons κ (trim kr))])]
                  [_ k])))]))
 

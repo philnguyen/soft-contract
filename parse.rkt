@@ -1,6 +1,6 @@
 #lang racket/base
 (require racket/match racket/list racket/set racket/bool
-         "utils.rkt" "utils-untyped.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
+         "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
          syntax/parse racket/pretty racket/contract
          "expand.rkt"
          (prefix-in fake: "fake-contract.rkt"))

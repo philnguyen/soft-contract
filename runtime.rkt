@@ -5,7 +5,7 @@
 (provide (all-defined-out))
 
 (define m∅ : (Map (U Integer Identifier) .V) (hash))
-(define-type .R (U 'Proved 'Refuted 'Neither))
+(define-type .R (U '✓ 'X '?))
 
 ;;;;; CLOSURE
 
@@ -31,10 +31,10 @@
   .prim
   '•
   (struct .Ar [c : .V] [v : .V] [l³ : Mon-Info])
-  (struct .St [tag : Identifier] [fields : (Listof .V)])
+  (struct .St [tag : Struct-Tag] [fields : (Listof .V)])
   (struct .λ↓ [f : .λ] [ρ : .ρ])
   (struct .Λ/C [c : (Listof .V)] [d : .↓] [v? : Boolean])
-  (struct .St/C [t : Identifier] [fields : (Listof .V)])
+  (struct .St/C [t : Identifier #|deliberately restricted|#] [fields : (Listof .V)])
   (struct .μ/C [x : Identifier] [c : .V])
   (struct .X/C [x : Identifier])
   (struct .Case [m : (Map (Listof .V) .L)]))
@@ -52,7 +52,16 @@
   (.Case (hash-set m xs y)))
 
 (: .¬/C : .V → .V)
-(define (.¬/C V) (.// (.St #'not/c (list V)) ∅))
+(define (.¬/C C)
+  (match C
+    [(.// (.λ↓ (.λ 1 (.@ (? .o2? o) xs ctx)) ρ) _)
+     (match o
+       ['< (.// (.λ↓ (.λ 1 (.@ '>= xs ctx)) ρ) ∅)]
+       ['> (.// (.λ↓ (.λ 1 (.@ '<= xs ctx)) ρ) ∅)]
+       ['<= (.// (.λ↓ (.λ 1 (.@ '> xs ctx)) ρ) ∅)]
+       ['>= (.// (.λ↓ (.λ 1 (.@ '< xs ctx)) ρ) ∅)]
+       [_ (.// (.St 'not/c (list C)) ∅)])]
+    [_ (.// (.St 'not/c (list C)) ∅)]))
 
 ; evaluation answer. New type instead of cons to work well with pattern matching
 (define-type .Ans (Pairof .σ .A))
@@ -75,21 +84,6 @@
 (define-type .F (Map Integer Integer))
 (define F∅ : .F (hash))
 (define .F? hash?)
-
-
-;;;;; REUSED CONSTANTS
-
-(: Prim : (U .o Number String Boolean) → .//)
-(define (Prim x)
-  (cond [(.o? x) (.// x ∅)]
-        [else (.// (.b x) ∅)]))
-
-(define** 
-  [MT (→V (.St #'null (list)))]
-  [♦ (→V '•)] [V∅ (.μ/V #'_ ∅)]
-  [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
-  [INT/C (Prim 'integer?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'number?)]
-  [STR/C (Prim 'string?)] [PROC/C (Prim 'procedure?)] [SYM/C (Prim 'symbol?)])
 
 
 ;;;;; ENVIRONMENT
@@ -147,6 +141,24 @@
   (match-let ([(.ρ m l) ρ]
               [sd (match x [(.x sd) sd] [(? integer? sd) sd])])
     (hash-has-key? m (- l sd 1))))
+
+
+;;;;; REUSED CONSTANTS
+
+(: Prim : (U .o Number String Boolean) → .//)
+(define (Prim x)
+  (cond [(.o? x) (.// x ∅)]
+        [else (.// (.b x) ∅)]))
+
+(define** 
+  [MT (→V (.St #'null (list)))]
+  [♦ (→V '•)] [V∅ (.μ/V #'_ ∅)]
+  [ANY/C (→V (.λ↓ .any/c ρ∅))]
+  [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
+  [FALSE/C (Prim 'false?)] [BOOL/C (Prim 'boolean?)]
+  [INT/C (Prim 'integer?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'number?)]
+  [STR/C (Prim 'string?)] [PROC/C (Prim 'procedure?)] [SYM/C (Prim 'symbol?)])
+
 
 ;;;;; STORE
 
@@ -254,11 +266,12 @@
         [(= x 0) {set ZERO/C NON-NEG/C NON-POS/C}]
         [else {set NEG/C NON-ZERO/C NON-POS/C}]))
 
-(:* [+/C -/C */C ÷/C] : .V .V → .V)
+(:* [+/C -/C */C ÷/C expt/C] : .V .V → .V)
 (define (+/C V1 V2) (→C '+ #:1st V1 #:2nd V2))
 (define (-/C V1 V2) (→C '- #:1st V1 #:2nd V2))
 (define (*/C V1 V2) (→C '* #:1st V1 #:2nd V2))
 (define (÷/C V1 V2) (→C '/ #:1st V1 #:2nd V2))
+(define (expt/C V1 V2) (→C 'expt #:1st V1 #:2nd V2))
 
 (: sqrt/C : .V → .V)
 (define (sqrt/C V)
