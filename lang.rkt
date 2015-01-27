@@ -347,7 +347,7 @@
      [else
       #;(printf "Havocking transparent module ~a~n" (.module-path m))
       (match-define (.module path (.#%plain-module-begin forms)) m)
-      (printf "Insert exported identifiers from module ~a to unknown contexts~n" path)
+      #;(eprintf "Insert exported identifiers from module ~a to unknown contexts~n" path)
       (for* ([form (in-list forms)]
              #:when (.#%provide? form)
              [spec (in-list (.#%provide-specs form))])

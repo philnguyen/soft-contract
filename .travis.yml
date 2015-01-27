@@ -33,10 +33,15 @@ script:
  - /usr/racket/bin/raco make main.rkt lang/reader.rkt
  - /usr/racket/bin/raco link .
  - cd test
+ # test parser
  - cd test-parser
  - /usr/racket/bin/raco test -x main.rkt
  - cd ..
+ # test delta
+ - raco test -x test-delta.rkt
+ # test verifier
  - cd test-verifier
  - /usr/racket/bin/raco test -x main.rkt
+ - cd ..
 
 after_script:
