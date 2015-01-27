@@ -1,8 +1,9 @@
-(module m racket
-  (provide/contract [x integer?])
-  (define x
-    (string-length "ASDF")))
+#lang racket
+(require soft-contract/fake-contract)
 
-(require 'm)
+(define x
+  (string-length "ASDF"))
 x
 3
+
+(provide/contract [x integer?])

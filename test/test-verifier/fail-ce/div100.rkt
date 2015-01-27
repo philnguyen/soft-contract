@@ -1,4 +1,7 @@
-(module f racket
-  (provide/contract [f (integer? . -> . integer?)])
-  (define (f n)
-    (/ 1 (- 100 n))))
+#lang racket
+(require soft-contract/fake-contract)
+
+(define (f n)
+  (/ 1 (- 100 n)))
+
+(provide/contract [f (integer? . -> . integer?)])

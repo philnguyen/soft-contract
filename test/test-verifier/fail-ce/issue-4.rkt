@@ -1,4 +1,9 @@
-(module foo racket
-  (provide (contract-out [foo (string? . -> . (or/c string? integer?))]))
-  (define (foo s)
-    (/ (string-length s) 2)))
+#lang racket
+
+(require soft-contract/fake-contract)
+
+(define (foo s)
+  (/ (string-length s) 2))
+
+(provide
+ (contract-out [foo (string? . -> . (or/c string? integer?))]))
