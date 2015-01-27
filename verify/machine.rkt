@@ -1,42 +1,11 @@
 #lang typed/racket/base
 (require racket/set racket/list racket/match racket/bool racket/function
-         "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt" "delta.rkt")
+         "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt"
+         "delta.rkt" "../machine.rkt")
 (require/typed ; TODO for debugging only
  "../parse.rkt"
  [files->prog ((Listof Path-String) → .prog)])
 (provide (all-defined-out)) ; TODO
-
-(define-data .κ
-  (struct .if/κ [t : .E] [e : .E])
-  (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Mon-Party])
-  (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l³ : Mon-Info])
-  (struct .indy/κ
-    [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
-    [d : (U #f .↓)] [v? : (U #f Integer)] [l³ : Mon-Info])
-  ; contract stuff
-  (struct .μc/κ [x : Identifier])
-  (struct .λc/κ [c : (Listof .expr)] [c↓ : (Listof .V)] [d : .expr] [ρ : .ρ] [v? : Boolean])
-  (struct .structc/κ [t : Identifier] [c : (Listof .expr)] [ρ : .ρ] [c↓ : (Listof .V)])
-  ; magics for termination
-  (struct .rt/κ [σ : .σ] [f : .λ↓] [x : (Listof .V)])
-  (struct .blr/κ [F : .F] [σ : .σ] [v : .V])
-  (struct .recchk/κ [c : .μ/C] [v : .V]) ; where all labels are fully resolved
-  ; experiment
-  (struct .μ/κ [F : .μ/V] [xs : (Listof .V)] [σ : .σ]))
-(define-type .κ* (Listof .κ))
-
-; ctx in e's position for pending states
-(struct .ς ([e : (U (Pairof .rt/κ .F) .E)] [s : .σ] [k : .κ*]) #:transparent)
-(define-type .ς+ (Setof .ς))
-(define-type .ς* (U .ς .ς+))
-
-(: final? : .ς → Boolean)
-(define (final? ς)
-  (match? ς (.ς (? .blm?) _ _) (.ς (? .V?) _ (list))))
-
-(: inj : .expr → .ς)
-(define (inj e)
-  (.ς (.↓ e ρ∅) σ∅ empty))
 
 (define-type .K (List .F .σ .κ* .κ*))
 (define-type .res (List .σ .V))
@@ -50,32 +19,21 @@
   
   (: Ξ+! : .rt/κ .K → Void)
   (define (Ξ+! ctx K)
-    #;(printf "Ξ[~a] += ~a~n~n"
-              (show-κ σ ctx)
-              `((σ: ,@(show-σ σ))
-                (l: ,@(show-k σ l))
-                (r: ,@(show-k σ r))))
     (mmap-join! Ξ ctx K))
   
   (: M+! : .rt/κ .res → Void)
   (define (M+! ctx res)
-    #;(printf "abt to add:~nres:~n~a~nctx:~n~a~n~n" res ctx)    
+    ;;(printf "abt to add:~nres:~n~a~nctx:~n~a~n~n" res ctx)    
     (match-define (list σ V) res)
     (define res* (hash-ref M ctx (λ () ∅)))
     (define del                  
       (for/fold ([del : (Setof .res) ∅]) ([r : .res res*])
         (match-define (list σ0 V0) r)
-        #;(printf "Comparing:~nV0:~n~a~nσ0:~n~a~nV1:~n~a~nσ1:~n~a~n~n"
-        V0 σ0 V σ)
-        #;(printf "Result: ~a ~a~n~n" ((⊑ σ σ0) V V0) ((⊑ σ0 σ) V0 V))
         (cond
-         #;[(equal? Vi V^) del]
-                                        ; FIXME temp
-         [((⊑ σ σ0) V V0) #;(printf "case 1~n") (set-add del (list σ V))]
-         [((⊑ σ0 σ) V0 V) #;(printf "case 2~n") (set-add del (list σ0 V0))]
-         [else #;(printf "case 3~n~n~n")del])))
-    #;(printf "old-res for:~n~a~n~n~a~n~n" (set-count res*))
-    #;(printf ",")
+          ;; FIXME temp
+          [((⊑ σ σ0) V V0) (set-add del (list σ V))]
+          [((⊑ σ0 σ) V0 V) (set-add del (list σ0 V0))]
+          [else del])))
     (hash-set! M ctx (set-subtract (set-add res* (list σ V)) del)))
   
   (: upd-M! : .rt/κ .res .res → Void)
@@ -120,47 +78,38 @@
                           (cons σ′ F′))]
                        [(list σk′′ V-new _) (transfer σ0 V0 σk′ F′)]
                        [ς (.ς V-new σk′′ k)])
-            #;(printf "Resume called with:~n res:~n~a~n K:~n~a~n rt:~n~a~nAbout to resume with:~n~a~n~n"
-                    ans ctx rt ς)
             (let ([ς^ (canon ς)])
-              #;(printf "canon:~n~a~n~n" ς^)
+              ;;(printf "canon:~n~a~n~n" ς^)
               (unless (seen-has? ς^)
                 #;(printf "UNSEEN!~n~n")
                 (seen-add! ς^)
-                (visit ς)))
-            #;(when-unseen! ς (visit ς))))))
+                (visit ς)))))))
     
     ;; imperative DFS speeds interpreter up by ~40%
     ;; from not maintaining an explicit frontier set
     (: visit : .ς → Void)
     (define (visit ς)
-      #;(printf ".")
-      #;(printf "~a~n~n" (show-ς ς))
-      #;(when (match? (.ς-k ς) (cons (? .blr/κ?) (cons (not (or (? .blr/κ?) (? .rt/κ?))) _))) (error "STOP"))
-      #;(match ς
-        [(.ς (? .V? V) _ _) (check V)]
-        [_ (void)])
       (match ς
-        ; record final states, omit blames on top, havoc, and opaque modules
+        ;; record final states, omit blames on top, havoc, and opaque modules
         [(? final? ς)
-         #;(printf "------~n~n")
+         ;;(printf "------~n~n")
          (unless (match? ς (.ς (.blm (or #f (? (λ (x) (equal? x ☠))) (? m-opaque?)) _ _ _) _ _))
            (set! ans (set-add ans ς)))]
-        ; remember waiting context and plug any available answers into it
+        ;; remember waiting context and plug any available answers into it
         [(.ς (cons ctx F) σ k)
          (match-define (cons l r) (split-κ* ctx k))
          (define K (list F σ l r))
          (Ξ+! ctx K)
          (for ([res : .res (M@ ctx)])
            (resume res K ctx))]
-        ; remember returned value and return to any other waiting contexts
+        ;; remember returned value and return to any other waiting contexts
         [(.ς (? .V? V) σ (cons (? .rt/κ? ctx) k))
          (define res (list σ V))
          (M+! ctx res)
          (for ([K : .K (Ξ@ ctx)])
            (resume res K ctx))
          (visit (.ς V σ k))]
-        ; blur value in M table ; TODO: this is a hack
+        ;; blur value in M table ; TODO: this is a hack
         [(.ς (? .V? V) σ (cons (.blr/κ F σ0 V0) (cons (? .rt/κ? ctx) k)))
          (match-define (cons σ′ Vi) (⊕ σ0 V0 σ V))
          (define σi (⊕ σ0 σ′ F))
@@ -173,12 +122,12 @@
          (visit (.ς V σ k))]
         ; FIXME HACK
         [(.ς (? .V? V) σ (cons (.blr/κ F1 σ1 V1) (cons (.blr/κ F0 σ0 V0) k)))
-         #;(printf "B: ~a  ⊕  ~a  =  ~a~n~n" (show-V σ V0) (show-V σ V1) (show-V σ (⊕ V0 V1)))
-         #;(printf "Blur: ~a with ~a~n~n" (show-E σ V0) (show-E σ V1))
+         ;;(printf "B: ~a  ⊕  ~a  =  ~a~n~n" (show-V σ V0) (show-V σ V1) (show-V σ (⊕ V0 V1)))
+         ;;(printf "Blur: ~a with ~a~n~n" (show-E σ V0) (show-E σ V1))
          (match-let* ([(cons σ′ Vi) (⊕ σ0 V0 σ1 V1)]
                       [σi (⊕ σ0 σ′ F0)])
            (visit (.ς V σ (cons (.blr/κ F1 σi Vi) k))))]
-        ; FIXME hack
+        ;; FIXME hack
         [(.ς (? .V?) _ (cons (? .recchk/κ?) _))
          (let ([ς^ ς])
            (unless (seen-has? ς^)
@@ -186,25 +135,22 @@
              (match (step ς)
                [(? set? s) (for ([ςi s]) (visit ςi))]
                [(? .ς? ςi) (visit ςi)])))]
-        ; do regular 1-step on unseen state
+        ;; do regular 1-step on unseen state
         [_ (match (dbg/off 'step (step ς))
-             [(? set? s) #;(printf "SPLIT ~a~n~n" (set-count s)) ; FIXME force randomness to test
-                         (for ([ςi (shuffle (set->list s))]) #;(printf "BRANCH:~n~n") (visit ςi) #;(when-unseen! ςi (visit ςi)))]
-             [(? .ς? ςi) (visit ςi) #;(when-unseen! ςi (visit ςi))])]))
+             [(? set? s)
+              ;; FIXME force randomness to test
+              (for ([ςi (shuffle (set->list s))])
+                (visit ςi))]
+             [(? .ς? ςi) (visit ςi)])]))
     
     ;; "main"
     (begin
       (visit ς)
-      #;(printf "#states: ~a, ~a base cases, ~a contexts~n~n"
-                (set-count seen)
-                (list (hash-count M) (for/sum: : Integer ([s (in-hash-values M)]) (set-count s)))
-                (list (hash-count Ξ) (for/sum: : Integer ([s (in-hash-values Ξ)]) (set-count s))))
-      #;(printf "contexts:~n~a~n~n" (hash->list Ξ))
       ans))
   
-  (step* (inj e)))
+  (parameterize ([raw:refine1 refine1])
+    (step* (inj e))))
 
-(define-syntax-rule (match/nd v [p e ...] ...) (match/nd: (.Ans → .ς) v [p e ...] ...))
 (: step-p : (Listof .module) → (.ς → .ς*))
 (define (step-p ms)  
   
@@ -474,45 +420,6 @@
      (step-V V σ κ k)]
     [(.ς (? .E? E) σ k) (step-E E σ k)]))
 
-(: and/ς : (Listof .E) .σ .κ* → .ς)
-(define (and/ς E* σ k)
-  (match E*
-    ['() (.ς TT σ k)]
-    [(list E) (.ς E σ k)]
-    [(cons E Er) (.ς E σ (foldr (λ: ([Ei : .E] [k : .κ*]) (cons (.if/κ Ei FF) k)) k Er))]))
-
-(: or/ς : (Listof .E) .σ .κ* → .ς)
-(define (or/ς E* σ k)
-  (match E*
-    ['() (.ς FF σ k)]
-    [(list E) (.ς E σ k)]
-    [(cons E Er) (.ς E σ (foldr (λ: ([Ei : .E] [k : .κ*]) (cons (.if/κ TT Ei) k)) k Er))]))
-
-#;(: wrap : .Λ/C .V Mon-Info → .V)
-#;(define (wrap C V l³)
-    (match V
-      [(.// (.Ar (.// (.Λ/C Cx D v?) _) V′ (list l+ l- l)) D*)
-       (match-let ([(.Λ/C Cz D′ v?′) C]
-                   [(list h+ h- h) l³])
-         (if (and (equal? Cx Cz) (equal? D D′) (equal? v? v?′) (eq? l h))
-             (.// (.Ar (→V (.Λ/C Cz D v?)) V′ (list l+ h- l)) D*)
-             (→V (.Ar (→V C) V l³))))]
-      [_ (→V (.Ar (→V C) V l³))]))
-
-(: ▹/κ1 : .V Mon-Info .κ* → .κ*)
-(define (▹/κ1 C l³ k)
-  (match C
-    [(.// (.λ↓ (.λ 1 (.b #t)) _) _) k]
-    [(.// (? .Λ/C?) _) (cons (.▹/κ (cons C #f) l³) k)]
-    [_ (cons (.▹/κ (cons C #f) l³)
-             (let: trim : .κ* ([k : .κ* k])
-               (match k
-                 [(cons (and κ (.▹/κ (cons (? .V? D) #f) _)) kr)
-                  (match (C⇒C C D)
-                    ['✓ (trim kr)]
-                    [_ (cons κ (trim kr))])]
-                 [_ k])))]))
-
 (: apps-seen : .κ* .σ .λ↓ (Listof .V) → (Listof (Pairof .rt/κ (Option .F))))
 (define (apps-seen k σ f Vx)
   #;(printf "apps-seen~nf: ~a~nk: ~a~n~n" (show-V σ∅ (→V f)) (show-k σ∅ k))
@@ -556,34 +463,6 @@
 (define (e [p : Path-String])
   (set->list (ev (files->prog (list p)))))
 
-(: show-k : .σ .κ* → (Listof Any))
-(define (show-k σ k) (for/list ([κ k]) (show-κ σ κ)))
-
-(: show-κ : .σ .κ → Any)
-(define (show-κ σ κ)
-  (define E (curry show-E σ))
-  (match κ
-    [(.if/κ t e) `(if ∘ ,(E t) ,(E e))]
-    [(.@/κ e* v* _) `(@ ,@(reverse (map E v*)) ∘ ,@(map E e*))]
-    #;[(.apply/fn/κ Vf _) `(apply ,(E Vf) ∘)]
-    #;[(.apply/ar/κ Ex _) `(apply ∘ ,(E Ex))]
-    [(.▹/κ (cons #f (? .E? e)) _) `(∘ ▹ ,(E e))]
-    [(.▹/κ (cons (? .E? C) #f) _) `(,(E C) ▹ ∘)]
-    [(.indy/κ Cs xs xs↓ d _ _) `(indy ,(map E Cs) ,(map E xs) ,(map E xs↓)
-                                      ,(match d [#f '_] [(? .E? d) (E d)]))]
-    [(.μc/κ x) `(μ/c ,x ∘)]
-    [(.λc/κ cs Cs d ρ _) `(λ/c (,@(reverse (map E Cs)) ,@(map (curry show-e σ) cs)) ,(show-e σ d))]
-    [(.structc/κ t c _ c↓) `(struct/c ,t (,@(reverse (map E c↓)) ,(map (curry show-e σ) c)))]
-    [(.rt/κ _ f x) `(rt ,(E (→V f)) ,@(map E x))]
-    [(.blr/κ _ _ V) `(blr ,(E V))]
-    [(.recchk/κ c v) `(μ/▹ ,(E (→V c)) ,(E v))]))
-
-(: show-ς : .ς → Any)
-(define show-ς
-  (match-lambda
-    [(.ς E σ k) `((E: ,(if (.E? E) (show-E σ E) (show-κ σ (car E))))
-                  (σ: ,@(show-σ σ))
-                  (k: ,@(show-k σ k)))]))
 
 ;; rename all labels to some canonnical form based on the expression's shape
 ;; relax, this only happens a few times, not that expensive

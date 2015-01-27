@@ -4,16 +4,12 @@
          racket/pretty
          (only-in "utils.rkt" match? pretty n-sub define-set)
          (only-in "lang.rkt" .prog -begin Mon-Party)
-         (only-in "verify/machine.rkt" .ς [ev verify])
+         (only-in "machine.rkt" .ς)
+         (only-in "verify/machine.rkt" [ev verify])
          (only-in "runtime.rkt" .blm? .blm .σ .σ?)
          (only-in "show.rkt" show-V show-A show-ce)
          (only-in "ce/machine.rkt" [ev find-error])
          (only-in "ce/model.rkt" model))
-
-#;(require/typed "ce/parse.rkt"
-  [(parse-prog parse/ce) ((Listof Syntax) Syntax → .prog)])
-#;(require/typed "verify/parse.rkt"
-  [(parse-prog parse/ve) ((Listof Syntax) Syntax → .prog)])
 
 (: feedback ([.prog] [Integer] . ->* . Void))
 (define (feedback prog [timeout 30])

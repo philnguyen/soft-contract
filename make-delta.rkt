@@ -620,5 +620,5 @@
                  #,@parsed-clauses
                     [(⋆ Vs)
                      (cons σ (.blm l (name ⋆) (Prim (length Vs)) (arity=/C -1 #|hack|#)))]))))
-       (pretty-print (syntax->datum ans))
+       ;;(pretty-print (syntax->datum ans))
        ans)]))

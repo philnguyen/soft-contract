@@ -1,48 +1,12 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt" "delta.rkt")
+ "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt"
+ "delta.rkt" "../machine.rkt")
 (require/typed ; TODO for debugging only
  "../parse.rkt"
  [files->prog ((Listof Path-String) → .prog)])
 (provide (all-defined-out)) ; TODO
-
-(define-data .κ
-  (struct .if/κ [t : .E] [e : .E])
-  (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Mon-Party])
-  (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l³ : Mon-Info])
-  (struct .indy/κ
-    [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
-    [d : (U #f .↓)] [v? : (U #f Integer)] [l³ : Mon-Info])
-  ; contract stuff
-  (struct .μc/κ [x : Identifier])
-  (struct .λc/κ [c : (Listof .expr)] [c↓ : (Listof .V)] [d : .expr] [ρ : .ρ] [v? : Boolean])
-  (struct .structc/κ [t : Identifier] [c : (Listof .expr)] [ρ : .ρ] [c↓ : (Listof .V)]))
-(define-type .κ* (Listof .κ))
-
-; ctx in e's position for pending states
-(struct .ς ([e : .E] [s : .σ] [k : .κ*]) #:transparent)
-(define-type .ς+ (Setof .ς))
-(define-type .ς* (U .ς .ς+))
-
-(: final? : .ς → Boolean)
-(define final?
-  (match-λ? (.ς (? .blm?) _ _) (.ς (? .V?) _ (list))))
-
-(: inj : .expr → .ς)
-(define (inj e)
-  (.ς (.↓ e ρ∅) σ∅ empty))
-
-(: print-ς : .ς → Void)
-(define (print-ς ς)
-  (define it (show-ς ς))
-  (printf "E:~n ~a~n" (second (first it)))
-  (printf "σ:~n")
-  (for ([x (rest (second it))])
-    (printf " ~a~n" x))
-  (printf "k:~n")
-  (for ([x (rest (third it))])
-    (printf " ~a~n" x)))
 
 (: ev : .prog → #;(Setof .Ans) (Option .Ans))
 (define (ev p)
@@ -60,13 +24,13 @@
   (: maybe-blame? : (U .κ* .ς) → Boolean)
   (define maybe-blame?
     (match-lambda
-     [(list) #f]
-     [(cons κ kᵣ)
-      (match κ
-        [(.if/κ (.blm l _ _ _) _) (not (m-opaque? l))]
-        [(.if/κ _ (.blm l _ _ _)) (not (m-opaque? l))]
-        [_ (maybe-blame? kᵣ)])]
-     [(.ς _ _ k) (maybe-blame? k)]))
+      [(list) #f]
+      [(cons κ kᵣ)
+       (match κ
+         [(.if/κ (.blm l _ _ _) _) (not (m-opaque? l))]
+         [(.if/κ _ (.blm l _ _ _)) (not (m-opaque? l))]
+         [_ (maybe-blame? kᵣ)])]
+      [(.ς _ _ k) (maybe-blame? k)]))
   
   (: on-new-state : (Setof .ς) .ς → (U (Setof .ς) .Ans))
   (define (on-new-state front ς)
@@ -76,96 +40,91 @@
              [else (cons σ blm)])]
       [(.ς (? .V? V) σ k)
        (cond
-        [(empty? k) front]
-        [(maybe-blame? k)
-         (match (ffw ς (set-count front) #|just a heuristic|#)
-           [(? set? s) (set-union front s)]
-           [(? cons? ans) ans])]
-        [else (set-add front ς)])]
+         [(empty? k) front]
+         [(maybe-blame? k)
+          (match (ffw ς (set-count front) #|just a heuristic|#)
+            [(? set? s) (set-union front s)]
+            [(? cons? ans) ans])]
+         [else (set-add front ς)])]
       [_ (set-add front ς)]))
   
   (: ffw : .ς Integer → (U (Setof .ς) .Ans))
   ;; Fast-forward
   (define (ffw ς n)
     (cond
-     [(> n 0)
-      (match (step ς)
-        [(.ς (and blm (.blm l⁺ _ _ _)) σ _)
-         (cond [(m-opaque? l⁺) ∅]
-               [else (cons σ blm)])]
-        [(? .ς? ς′)
-         (cond
-          [(final? ς′) ∅]
-          [(maybe-blame? ς′) (ffw ς′ (- n 1))]
-          [else {set ς′}])]
-        [(? set? s)
-         (for/fold ([acc : (U (Setof .ς) .Ans) ∅]) ([ς′ s])
-           (cond ; FIXME duplicate code
-            [(cons? acc) acc]
-            [(final? ς′)
-             (match ς′
-               [(.ς (and blm (.blm (not (? m-opaque?)) _ _ _)) σ _)
-                (cons σ blm)]
-               [_ acc])]
-            [(maybe-blame? ς′)
-             (match (ffw ς′ (- n 1))
-               [(? set? s) (set-union acc s)]
-               [(? cons? ans) ans])]
-            [else (set-add acc ς′)]))])]
-     [else {set ς}]))
+      [(> n 0)
+       (match (step ς)
+         [(.ς (and blm (.blm l⁺ _ _ _)) σ _)
+          (cond [(m-opaque? l⁺) ∅]
+                [else (cons σ blm)])]
+         [(? .ς? ς′)
+          (cond
+            [(final? ς′) ∅]
+            [(maybe-blame? ς′) (ffw ς′ (- n 1))]
+            [else {set ς′}])]
+         [(? set? s)
+          (for/fold ([acc : (U (Setof .ς) .Ans) ∅]) ([ς′ s])
+            (cond ; FIXME duplicate code
+              [(cons? acc) acc]
+              [(final? ς′)
+               (match ς′
+                 [(.ς (and blm (.blm (not (? m-opaque?)) _ _ _)) σ _)
+                  (cons σ blm)]
+                 [_ acc])]
+              [(maybe-blame? ς′)
+               (match (ffw ς′ (- n 1))
+                 [(? set? s) (set-union acc s)]
+                 [(? cons? ans) ans])]
+              [else (set-add acc ς′)]))])]
+      [else {set ς}]))
   
   (: batch-step : (Setof .ς) → (U (Setof .ς) .Ans))
   (define (batch-step front)
     (for/fold ([next : (U (Setof .ς) .Ans) ∅]) ([ς front])
       (cond
-       [(cons? next) next] ; TODO: #:break, but TR doesn't like it
-       [else
-        (match (step ς)
-          [(? .ς? ς′) (on-new-state next ς′)]
-          [(? set? ςs)
-           (for/fold ([next : (U (Setof .ς) .Ans) next]) ([ςᵢ ςs])
-             (cond [(cons? next) next]
-                   [else (on-new-state next ςᵢ)]))])])))
+        [(cons? next) next] ; TODO: #:break, but TR doesn't like it
+        [else
+         (match (step ς)
+           [(? .ς? ς′) (on-new-state next ς′)]
+           [(? set? ςs)
+            (for/fold ([next : (U (Setof .ς) .Ans) next]) ([ςᵢ ςs])
+              (cond [(cons? next) next]
+                    [else (on-new-state next ςᵢ)]))])])))
   
   (define stepᵢ 0)
   (: search : (Setof .ς) → (Option .Ans))
   (define (search front)
-    #;(begin ; debug
-      (printf "~a: ~a/~a~n"
-              stepᵢ
-              (for/sum ([ς front] #:when (maybe-blame? ς)) 1)
-              (set-count front)))
+    
     (cond
-     [(set-empty? front) #f]
-     [else
-      (inc! stepᵢ)
-      (define front′ (batch-step front))
-      (cond
-       [(set? front′) (search front′)]
-       [else front′])]))
+      [(set-empty? front) #f]
+      [else
+       (inc! stepᵢ)
+       (define front′ (batch-step front))
+       (cond
+         [(set? front′) (search front′)]
+         [else front′])]))
   
   ;; Run program normally (just for debugging)
   (: run : (Setof .ς) → (Setof .Ans))
   (define (run front)
     (define res : (Setof .Ans) ∅)
     (let go! : (Setof .Ans) ([front front])
-      (cond
-       [(set-empty? front) res]
-       [else
-        (define front′ : (Setof .ς) ∅)
-        (for ([ς front])
-          (match ς
-            [(.ς (? .V? V) σ '()) (set! res (set-add res (cons σ V)))]
-            [(.ς (and blm (.blm l⁺ _ _ _)) σ _)
-             (set! res (set-add res (cons σ blm)))]
-            [_ (define ςs (step ς))
-               (set! front′
-                     (cond [(set? ςs) (set-union front′ ςs)]
-                           [else (set-add front′ ςs)]))]))
-        (go! front′)])))
+         (cond
+           [(set-empty? front) res]
+           [else
+            (define front′ : (Setof .ς) ∅)
+            (for ([ς front])
+              (match ς
+                [(.ς (? .V? V) σ '()) (set! res (set-add res (cons σ V)))]
+                [(.ς (and blm (.blm l⁺ _ _ _)) σ _)
+                 (set! res (set-add res (cons σ blm)))]
+                [_ (define ςs (step ς))
+                   (set! front′
+                         (cond [(set? ςs) (set-union front′ ςs)]
+                               [else (set-add front′ ςs)]))]))
+            (go! front′)])))
   
-  ;; Integereractive debugging
-  #;(let ()
+  (define (debug-interactively)
     (define l : (Listof Integer) '())
     (define stepᵢ 0)
     (let debug ([ς : .ς (inj e)])
@@ -175,40 +134,38 @@
       (when b? (set! l (cons stepᵢ l)))
       (for ([κ k]) (printf " ~a~n" (show-κ σ κ)))
       (cond
-       [(final? ς)
-        (printf "Final:~n")
-        (print-ς ς)
-        (printf "forwardables: ~a" l)]
-       [else
-        (define next (step ς))
-        (inc! stepᵢ)
-        (cond
-         [(set? next)
-          (define n (set-count next))
-          (define nextl : (Listof .ς) (set->list next))
-          (printf "~a next states:~n" n)
-          (for ([ςᵢ (in-list nextl)] [i n])
-            (printf "~a:~n" i)
-            (print-ς ςᵢ)
-            (printf "~n"))
-          (define next-choice : Integer
-            (let prompt ()
-              (printf "Explore [0 - ~a]: " (- n 1))
-              (match (read)
-                [(and (? exact-integer? k) (? (λ ([k : Integer]) (<= 0 k (- n 1))))) k]
-                [_ (prompt)])))
-          (debug (list-ref nextl next-choice))]
-         [else (debug next)])]))
+        [(final? ς)
+         (printf "Final:~n")
+         (print-ς ς)
+         (printf "forwardables: ~a" l)]
+        [else
+         (define next (step ς))
+         (inc! stepᵢ)
+         (cond
+           [(set? next)
+            (define n (set-count next))
+            (define nextl : (Listof .ς) (set->list next))
+            (printf "~a next states:~n" n)
+            (for ([ςᵢ (in-list nextl)] [i n])
+              (printf "~a:~n" i)
+              (print-ς ςᵢ)
+              (printf "~n"))
+            (define next-choice : Integer
+              (let prompt ()
+                (printf "Explore [0 - ~a]: " (- n 1))
+                (match (read)
+                  [(and (? exact-integer? k) (? (λ ([k : Integer]) (<= 0 k (- n 1))))) k]
+                  [_ (prompt)])))
+            (debug (list-ref nextl next-choice))]
+           [else (debug next)])]))
     (printf "Done, ~a steps taken~n" stepᵢ)
     (read)
     #f)
   
   ;; `search` is for CE, `run` is the normal run
-  (search (set (inj e)))
-  #;(run (set (inj e))))
+  (parameterize ([raw:refine1 refine1])
+    (search (set (inj e)))))
 
-
-(define-syntax-rule (match/nd v [p e ...] ...) (match/nd: (.Ans → .ς) v [p e ...] ...))
 
 (: step-p : (Listof .module) (Setof .st-ac) → (.ς → .ς*))
 (define (step-p ms accs)  
@@ -549,40 +506,6 @@
      (step-V V σ κ k)]
     [(.ς (? .E? E) σ k) (step-E E σ k)]))
 
-(: and/ς : (Listof .E) .σ .κ* → .ς)
-(define (and/ς E* σ k)
-  (match E*
-    ['() (.ς TT σ k)]
-    [(list E) (.ς E σ k)]
-    [(cons E Er)
-     (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*])
-                      (cons (.if/κ Ei FF) k))
-                    k Er))]))
-
-(: or/ς : (Listof .E) .σ .κ* → .ς)
-(define (or/ς E* σ k)
-  (match E*
-    ['() (.ς FF σ k)]
-    [(list E) (.ς E σ k)]
-    [(cons E Er)
-     (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*])
-                      (cons (.if/κ TT Ei) k))
-                    k Er))]))
-
-(: ▹/κ1 : .V Mon-Info .κ* → .κ*)
-(define (▹/κ1 C l³ k)
-  (match C
-    [(.// (.λ↓ (.λ 1 (.b #t)) _) _) k]
-    [(.// (? .Λ/C?) _) (cons (.▹/κ (cons C #f) l³) k)]
-    [_ (cons (.▹/κ (cons C #f) l³)
-             (let trim : .κ* ([k : .κ* k])
-               (match k
-                 [(cons (and κ (.▹/κ (cons (? .V? D) #f) _)) kr)
-                  (match (C⇒C C D)
-                    ['✓ (trim kr)]
-                    [_ (cons κ (trim kr))])]
-                 [_ k])))]))
-
 ;; Replace label in state
 (: L/L (case->
         [.σ Integer Integer → .σ]
@@ -642,29 +565,3 @@
 
 ;; for debugging
 (define (e [p : Path-String]) (ev (files->prog (list p))))
-
-(: show-k : .σ .κ* → (Listof Any))
-(define (show-k σ k) (for/list ([κ k]) (show-κ σ κ)))
-
-(: show-κ : .σ .κ → Any)
-(define (show-κ σ κ)
-  (define E (curry show-E σ))
-  (match κ
-    [(.if/κ t e) `(if ● ,(E t) ,(E e))]
-    [(.@/κ e* v* _) `(@ ,@(reverse (map E v*)) ● ,@(map E e*))]
-    [(.▹/κ (cons #f (? .E? e)) l³) `(● ▹ ,(E e) ,l³)]
-    [(.▹/κ (cons (? .E? C) #f) l³) `(,(E C) ,l³ ▹ ●)]
-    [(.indy/κ Cs xs xs↓ d _ _) `(indy ,(map E Cs) ,(map E xs) ,(map E xs↓)
-                                      ,(match d [#f '_] [(? .E? d) (E d)]))]
-    [(.μc/κ x) `(μ/c ,x ●)]
-    [(.λc/κ cs Cs d ρ _)
-     `(λ/c (,@(reverse (map E Cs)) ,@(map (curry show-e σ) cs)) ,(show-e σ d))]
-    [(.structc/κ t c _ c↓)
-     `(struct/c ,t (,@(reverse (map E c↓)) ,(map (curry show-e σ) c)))]))
-
-(: show-ς : .ς → (List (Listof Any) (Listof Any) (Listof Any)))
-(define show-ς
-  (match-lambda
-    [(.ς E σ k) `((E: ,(show-E σ E))
-                  (σ: ,@(show-σ σ))
-                  (k: ,@(show-k σ k)))]))
