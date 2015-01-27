@@ -64,11 +64,11 @@
     [_ (.// (.St 'not/c (list C)) ∅)]))
 
 ; evaluation answer. New type instead of cons to work well with pattern matching
-(define-type .Ans (Pairof .σ .A))
-(define-type .Ans+ (Setof .Ans))
-(define-type .Ans* (U .Ans .Ans+))
-(define-type .Vns (Pairof .σ .V))
-(define-type .Vns* (U .Vns (Setof .Vns)))
+(define-type/pred .Ans (Pairof .σ .A))
+(define-type/pred .Ans+ (Setof .Ans))
+(define-type/pred .Ans* (U .Ans .Ans+))
+(define-type/pred .Vns (Pairof .σ .V))
+(define-type/pred .Vns* (U .Vns (Setof .Vns)))
 
 (: close : .v .ρ → .//)
 (define (close v ρ)

@@ -2,13 +2,23 @@
 (require racket/match racket/set racket/list racket/function racket/bool
          "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../provability.rkt" "../show.rkt"
          (prefix-in raw: "../delta.rkt"))
-(provide δ ⊕
-         (rename-out [raw:refine refine] [raw:alloc alloc]))
+(provide δ ⊕ refine alloc)
 
 (: δ : .σ .o (Listof .V) Mon-Party → .Ans*)
 (define (δ σ o Vs l)
   (parameterize ([raw:refine1 refine1])
     (raw:δ σ o Vs l)))
+
+(: refine : .σ .V (U (Setof .V) (Listof .V) .V) * → .Vns)
+(define (refine σ V . Css)
+  (parameterize ([raw:refine1 refine1])
+    (apply raw:refine σ V Css)))
+
+(: alloc : (case-> [.σ .V → .Vns]
+                   [.σ (Listof .V) → (Pairof .σ (Listof .V))]))
+(define (alloc σ V)
+  (parameterize ([raw:refine1 refine1])
+    (raw:alloc σ V)))
 
 (: refine1 : .σ .V .V → .Vns)
 (define (refine1 σ V C)
