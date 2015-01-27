@@ -2,9 +2,9 @@
 (require
  racket/match racket/set racket/list racket/bool racket/function
  "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../show.rkt" "../provability.rkt" "delta.rkt")
-#;(require/typed ; TODO for debugging only
- "parse.rkt"
- [read-p (Any → .p)])
+(require/typed ; TODO for debugging only
+ "../parse.rkt"
+ [files->prog ((Listof Path-String) → .prog)])
 (provide (all-defined-out)) ; TODO
 
 (define-data .κ
@@ -641,7 +641,7 @@
   (go x))
 
 ;; for debugging
-#;(define (e x) (ev (read-p x)))
+(define (e [p : Path-String]) (ev (files->prog (list p))))
 
 (: show-k : .σ .κ* → (Listof Any))
 (define (show-k σ k) (for/list ([κ k]) (show-κ σ κ)))

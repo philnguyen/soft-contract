@@ -108,4 +108,12 @@
      ['?
       (match-define (cons σt _) (refine σ V C))
       (match-define (cons σf _) (refine σ V (.¬/C C)))
-      {set (cons σt TT) (cons σf FF)}])])
+      {set (cons σt TT) (cons σf FF)}])]
+  [#:escape
+   ((or 'arity=? 'arity>=? 'arity-includes?) (list V1 V2))
+   (match/Ans* (δ σ 'procedure? (list V1) 'Λ)
+     [(cons σt (.// (.b #t) _))
+      (match/Ans* (δ σt 'integer? (list V2) 'Λ)
+        [(cons σt (.// (.b #t) _)) (check-C σt V1 (→C o #:2nd V2))]
+        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V2 INT/C))])]
+     [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V1 PROC/C))])])

@@ -339,20 +339,26 @@
   
   ;;; Generate expression
   (define-set refs : .ref)
+  #;(printf "~nmodules: ~n~a~n" ms)
   (for* ([m (in-list ms)])
     (cond
      [(module-opaque? m)
       (eprintf "Omit havocking opaque module ~a~n" (.module-path m))]
      [else
+      #;(printf "Havocking transparent module ~a~n" (.module-path m))
       (match-define (.module path (.#%plain-module-begin forms)) m)
-      (eprintf "Insert exported identifiers from module ~a to unknown contexts" path)
+      (printf "Insert exported identifiers from module ~a to unknown contexts~n" path)
       (for* ([form (in-list forms)]
              #:when (.#%provide? form)
              [spec (in-list (.#%provide-specs form))])
+        #;(printf "adding: ~a~n" (.p/c-item-id spec))
         (refs-add! (.ref (.p/c-item-id spec) path '†)))]))
+  #;(printf "~nrefs: ~a~n" refs)
   (define expr
     (.amb/remember (for/list ([ref (in-set refs)])
                      (.@ (•!) (list ref) ☠))))
+  
+  #;(printf "~nhavoc-expr:~n~a" expr)
 
   (values m expr))
 
@@ -490,5 +496,3 @@
     ['() .ff]
     [(list e) e]
     [(cons e es) (.if (•!) e (.amb/remember es))]))
-
-

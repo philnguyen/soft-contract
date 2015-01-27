@@ -61,6 +61,7 @@
 (define (try-verify p)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     (define ςs (verify p))
+    ;;(printf "`try-verify` gives:~n~a~n" ςs)
     (for/list : (Listof Err-Result) ([ς ςs] #:when (match? ς (.ς (? .blm?) _ _)))
       (match-define (.ς (.blm l⁺ lᵒ v c) σ _) ς)
       (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c)))))
@@ -70,14 +71,16 @@
 (define (try-find-ce p)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     #;(printf "CE read~n")
-    (match (find-error p)
+    (define ans (find-error p))
+    ;;(printf "`try-find-ce` gives:~n~a~n" ans)
+    (match ans
       [#f #;(printf "CE says safe~n") 'safe]
-       [(cons σ^ (.blm l⁺ lᵒ v c))
+      [(cons σ^ (.blm l⁺ lᵒ v c))
         #;(printf "CE says CE~n")
-        (match (model p σ^)
-          [#f (list 'blame l⁺ lᵒ (show-V σ^ v) (show-V σ^ c))]
-          [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))
-                           (show-ce p σ))])])))
+       (match (model p σ^)
+         [#f (list 'blame l⁺ lᵒ (show-V σ^ v) (show-V σ^ c))]
+         [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))
+                          (show-ce p σ))])])))
 
 (: raise-contract-error ([Any Any Any Any] [Any] . ->* . Void))
 (define (raise-contract-error l⁺ lᵒ v c [ce #f])

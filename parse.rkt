@@ -6,8 +6,8 @@
          (prefix-in fake: "fake-contract.rkt"))
 (provide (all-defined-out) #;read-p #;on-•!)
 
-(define debug printf)
-#;(define (debug . _) (void))
+#;(define debug printf)
+(define (debug . _) (void))
 
 (define (dummy)
   (debug "Misreading syntax, returning dummy expression #f")
@@ -87,7 +87,7 @@
       (#%plain-lambda
        ()
        (#%plain-app
-        (~literal dynamic-provide/contract)
+        (~literal fake:dynamic-provide/contract)
         (#%plain-app (~literal list) x:id c) ...))
       _)
      #;(debug "x: ~a~nc: ~a~n"
@@ -356,4 +356,4 @@
   (define (test file)
     (parse-top-level-form (do-expand-file file)))
 
-  (set-box! stx (test "test/test-parser/tests/div100.rkt")))
+  (set-box! stx (test "examples/div100.rkt")))

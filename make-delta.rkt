@@ -605,10 +605,10 @@
   (syntax-parse stx
     [(define-δ clause:δ-clause ...)
      (with-syntax ([σ (datum->syntax stx 'σ)]
-                    [l (datum->syntax stx 'l)]
-                    [o (datum->syntax stx 'o)]
-                    [Vs (datum->syntax stx 'Vs)]
-                    [δ (datum->syntax stx 'δ)])
+                   [l (datum->syntax stx 'l)]
+                   [o (datum->syntax stx 'o)]
+                   [Vs (datum->syntax stx 'Vs)]
+                   [δ (datum->syntax stx 'δ)])
        (define parsed-clauses
          (parameterize ([-σ #'σ] [-l #'l])
            (map parse-clause (syntax->list #'(clause ...)))))
@@ -618,6 +618,7 @@
              (define (δ σ o Vs l)
                (match* (o Vs)
                  #,@parsed-clauses
-                 [(⋆ Vs) (cons σ (.blm l (name ⋆) (Prim (length Vs)) (arity=/C -1 #|hack|#)))]))))
+                    [(⋆ Vs)
+                     (cons σ (.blm l (name ⋆) (Prim (length Vs)) (arity=/C -1 #|hack|#)))]))))
        (pretty-print (syntax->datum ans))
        ans)]))

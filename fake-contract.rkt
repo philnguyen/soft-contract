@@ -8,7 +8,8 @@
          (prefix-in r: racket/base))
 
 (provide (all-from-out racket/contract/base) provide
-         -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract contract-out)
+         -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract contract-out
+         dynamic-provide/contract)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
