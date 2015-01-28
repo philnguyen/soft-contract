@@ -56,7 +56,7 @@
   (subset: .v
     ;; if `var?` is true, accepts >= arity args
     (struct .λ [formals : .formals] [body : .expr])
-    #;(struct .case-lambda [body : (Listof (Pairof .formals .begin))])
+    (struct .case-lambda [body : (Listof (Pairof .formals .expr))])
     (subset: .•
       '•
       ;; `l` is a tag annotating which static location this opaque value came from

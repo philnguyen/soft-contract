@@ -85,7 +85,7 @@
        ()
        (#%plain-app
         (~literal fake:dynamic-provide/contract)
-        (#%plain-app (~literal list) x:id c) ...))
+        (#%plain-app (~literal list) x:id c:expr) ...))
       _)
      #;(debug "x: ~a~nc: ~a~n"
              (identifier? (car (syntax->list #'(x ...))))
@@ -126,12 +126,12 @@
      (define n (length accs))
      (.define-values
       (list* ctor #'pred accs)
-      (.@ (datum->syntax ctor 'values)
-              (list* (.st-mk ctor n)
-                     (.st-p ctor n)
-                     (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
-                       (.st-ac ctor n i)))
-              'Λ))]
+      (.@ 'values
+          (list* (.st-mk ctor n)
+                 (.st-p ctor n)
+                 (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
+                   (.st-ac ctor n i)))
+          'Λ))]
     [(define-values (x:identifier ...) e)
      (.define-values (syntax->list #'(x ...)) (parse-expr #'e))]
     [(#%require spec ...)
@@ -176,6 +176,16 @@
            #f)
      #;(.-> (map parse-expr (syntax->list #'(c ...)))
           (parse-expr #'d))]
+    ;; Dependent contract
+    [(begin
+       (#%plain-app
+        (~literal fake:dynamic->i)
+        (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+        (#%plain-lambda (z:id ...) d:expr))
+       _ ...)
+     (define xs (syntax->list #'(z ...)))
+     (define ctx′ (ext-env ctx xs))
+     (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
      (match (go/list #'(c ...))
@@ -246,7 +256,28 @@
          (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
                    (parse-expr bᵢ ctx′))))])]
     
-    [(case-lambda _ ...) (todo 'case-lambda)]
+    [(case-lambda [fml bodies ...+] ...)
+     (.case-lambda
+      (for/list ([fmlᵢ (in-list (syntax->list #'(fml ...)))]
+                 [bodiesᵢ (in-list (syntax->list #'((bodies ...) ...)))])
+        (syntax-parse fmlᵢ
+          [(x:id ...)
+           (define xs (syntax->list #'(x ...)))
+           (define ctx′ (ext-env ctx xs))
+           (cons (length xs)
+                 (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
+                           (parse-expr body ctx′))))]
+          [rest:id
+           (define ctx′ (ext-env ctx (list #'rest)))
+           (cons (cons 0 'rest)
+                 (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
+                           (parse-expr body ctx′))))]
+          [(x:id ... . rest:id)
+           (define xs (append (syntax->list #'(x ...)) (list #'rest)))
+           (define ctx′ (ext-env ctx xs))
+           (cons (cons (- (length xs) 1) 'rest)
+                 (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
+                           (parse-expr body ctx′))))])))]
     [(letrec-values _ ...) (todo 'letrec-values)]
     [(quote e:number) (.b (syntax->datum #'e))]
     [(quote e:str) (.b (syntax->datum #'e))]
@@ -365,11 +396,8 @@
         #:unless (scv-ignore? stxᵢ))
     (syntax->datum stxᵢ)))
 
-(define stx (box #f))
-
 ;; Testing only
-(module+ test
-  (define (test file)
-    (parse-top-level-form (do-expand-file file)))
+(define (test file)
+    (files->prog (list file)))
 
-  (set-box! stx (test "examples/div100.rkt")))
+;;(test "test/test-verifier/fail-ce/braun-tree.rkt")

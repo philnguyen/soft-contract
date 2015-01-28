@@ -1,5 +1,5 @@
 #lang racket
-(require soft-contract-fake-contract)
+(require soft-contract/fake-contract)
 
 (define (Y f)
   (λ (y)

@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require (except-in racket/contract/base
-                    -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract )
+                    -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract)
          (for-syntax racket/base)
          racket/list)
 (require (prefix-in c: racket/contract/base)
@@ -9,7 +9,9 @@
 
 (provide (all-from-out racket/contract/base) provide
          -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract contract-out
-         dynamic-provide/contract)
+         dynamic-provide/contract
+         dynamic->i
+         dynamic-struct/c)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
