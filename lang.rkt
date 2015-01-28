@@ -476,9 +476,9 @@
         [(.define-values xs _)
          (values exports (set-union defines (list->set xs)))]
         [_ (values exports defines)])))
-  (not ; I can't get `for*/and` to type-check, so use nested `for/and`
+  (not
    (for/and : Boolean ([exported-id : Identifier (in-set exports)])
-     (for/and : Boolean ([defined-id : Identifier (in-set defines)])
+     (for/or : Boolean ([defined-id : Identifier (in-set defines)])
        (free-identifier=? exported-id defined-id)))))
 
 (: .amb/remember : (Listof .expr) → .expr)

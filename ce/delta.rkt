@@ -79,3 +79,5 @@
   (if (set-empty? D/st)
       (cons σ (.// U Ds))
       (refine1 σ (.// U Ds) (set-first D/st))))
+
+(raw:refine1 refine1)

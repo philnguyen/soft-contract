@@ -428,3 +428,5 @@
        [(.st-p t n) (→V (.St t (make-list n ♦)))]
        [(.λ↓ (.λ 1 (.b #t)) _) ♦]
        [_ (.// '• {set (simplify C)})])]))
+
+(raw:refine1 refine1)
