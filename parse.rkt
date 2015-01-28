@@ -161,7 +161,7 @@
   (define (go/list es) (map go (syntax->list es)))
   (syntax-parse stx
     #:literals
-    (let-values letrec-values begin0 if #%plain-lambda #%top
+    (let-values letrec-values begin begin0 if #%plain-lambda #%top
                 module* module #%plain-app quote #%require quote-syntax
                 with-continuation-mark #%declare #%provide case-lambda
                 #%variable-reference set! list)
