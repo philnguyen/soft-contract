@@ -6,11 +6,8 @@
          (prefix-in fake: "fake-contract.rkt"))
 (provide (all-defined-out) #;read-p #;on-•!)
 
-#;(define debug printf)
-(define (debug . _) (void))
-
 (define (dummy)
-  (debug "Misreading syntax, returning dummy expression #f")
+  (log-warning "Misreading syntax, returning dummy expression #f")
   (.b 'dummy))
 
 (define/contract (files->prog paths)
@@ -47,7 +44,7 @@
 
 (define/contract (parse-top-level-form form)
   (scv-syntax? . -> . .top-level-form?)
-  (debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (log-debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
      (define mod-path (module-path #'id))
@@ -72,7 +69,7 @@
 
 (define/contract (parse-module-level-form form)
   (scv-syntax? . -> . (or/c #f .module-level-form?))
-  (debug "parse-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (log-debug "parse-module-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     #:literals (#%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                 call-with-values)
@@ -102,7 +99,7 @@
 
 (define/contract (parse-submodule-form form)
   (scv-syntax? . -> . (or/c #f .submodule-form?))
-  (debug "parse-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (log-debug "parse-submodule-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path ((~literal #%plain-module-begin) d ...))
      (.module
@@ -113,7 +110,7 @@
 
 (define/contract (parse-general-top-level-form form)
   (scv-syntax? . -> . (or/c #f .general-top-level-form?))
-  (debug "parse-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
+  (log-debug "parse-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
   (syntax-parse form
     #:literals (define-syntaxes define-values #%require let-values #%plain-app values
                  call-with-values)
@@ -157,7 +154,7 @@
 
 (define/contract (parse-expr stx [ctx '()])
   (scv-syntax? . -> . .expr?)
-  (debug "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
+  (log-debug "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
   ;;(: go : Syntax → .e)
   (define (go e) (parse-expr e ctx))
   ;;(: go/list : Syntax → (Listof .e))
@@ -211,6 +208,7 @@
      (.@ (go #'f) (go/list #'(x ...)) (cur-mod))]
     [((~literal with-continuation-mark) e₀ e₁ e₂)
      (.wcm (go #'e₀) (go #'e₁) (go #'e₂))]
+    [(begin e ...) (-begin (go/list #'(e ...)))]
     [(begin0 e₀ e ...) (.begin0 (go #'e₀) (go/list #'(e ...)))]
     [(if i t e) (.if (go #'i) (go #'t) (go #'e))]
     [(let-values () b ...) (-begin (go/list #'(b ...)))]
@@ -225,20 +223,36 @@
              (set! ctx′ (ext-env ctx′ (syntax->list #'(x ...)))))]))
       (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
                 (parse-expr bᵢ ctx′))))]
-    [(#%plain-lambda (fmls ...) b ...)
-     (define xs (syntax->list #'(fmls ...)))
-     (define ctx′ (ext-env ctx xs))
-     (.λ
-      (length xs)
-      (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                (parse-expr bᵢ ctx′))))]
+    [(#%plain-lambda fmls b ...)
+     (syntax-parse #'fmls
+       [(x:id ...)
+        (define xs (syntax->list #'(x ...)))
+        (define ctx′ (ext-env ctx xs))
+        (.λ
+         (length xs)
+         (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
+                   (parse-expr bᵢ ctx′))))]
+       [rest:id
+        (define ctx′ (ext-env ctx (list #'rest)))
+        (.λ
+         (cons 0 'rest)
+         (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
+                   (parse-expr bᵢ ctx′))))]
+       [(x:id ... . rest:id)
+        (define xs (append (syntax->list #'(x ...)) (list #'rest)))
+        (define ctx′ (ext-env ctx xs))
+        (.λ
+         (cons (- (length xs) 1) 'rest)
+         (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
+                   (parse-expr bᵢ ctx′))))])]
+    
     [(case-lambda _ ...) (todo 'case-lambda)]
     [(letrec-values _ ...) (todo 'letrec-values)]
     [(quote e:number) (.b (syntax->datum #'e))]
     [(quote e:str) (.b (syntax->datum #'e))]
     [(quote e:boolean) (.b (syntax->datum #'e))]
     [(quote e:id) (.b (syntax->datum #'e))]
-    [(quote e) #|FIXME|# (debug "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
+    [(quote e) #|FIXME|# (log-warning "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
@@ -276,7 +290,7 @@
 
 (define/contract (parse-primitive id)
   (identifier?  . -> . (or/c #f .o?))
-  (debug "parse-primitive: ~a~n~n" (syntax->datum id))
+  (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
   (syntax-parse id
     [(~literal number?) 'number?]
     [(~literal real?) 'real?]
@@ -323,7 +337,7 @@
   (scv-syntax? . -> . .require-spec?)
   (syntax-parse spec
     [i:identifier spec]
-    [_ (debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
+    [_ (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
 
 ;; Extends environment
 (define/contract (ext-env ctx xs)

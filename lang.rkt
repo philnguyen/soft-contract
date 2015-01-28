@@ -55,7 +55,7 @@
 (define-data .expr
   (subset: .v
     ;; if `var?` is true, accepts >= arity args
-    (struct .λ [formals : #|.formals|# Integer] [body : .expr])
+    (struct .λ [formals : .formals] [body : .expr])
     #;(struct .case-lambda [body : (Listof (Pairof .formals .begin))])
     (subset: .•
       '•
@@ -111,10 +111,7 @@
 ;; Current restricted representation of program
 (struct .prog ([modules : (Listof .module)] [main : .expr]) #:transparent)
 
-(define-data .formals
-  Natural
-  (Pairof Natural 'rest)
-  'rest)
+(define-type/pred .formals (U Integer (Pairof Integer 'rest)))
 
 (define-type/pred Struct-Tag (U Identifier 'and/c 'or/c 'not/c 'struct●))
 
@@ -139,7 +136,8 @@
 (define (FV e [d 0])
   (match e
     [(.x sd) (if (>= sd d) {set (- sd d)} ∅)]
-    [(.λ n e) (FV e (+ d n))]
+    [(.λ (? integer? n) e) (FV e (+ d n))]
+    [(.λ (cons n _) e) (FV e (+ d n))]
     [(.@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
                        (set-union FVs (FV x d)))]
     [(.@-havoc x) (FV x d)]
@@ -376,7 +374,8 @@
 (define (e/ e x eₓ)
   (match e
     [(.x k) (if (= k x) eₓ e)]
-    [(.λ n e) (.λ n (e/ e (+ x n) eₓ))]
+    [(.λ (? integer? n) e) (.λ n (e/ e (+ x n) eₓ))]
+    [(.λ (cons n _) e) (.λ (cons n 'rest) (e/ e (+ x n -1) eₓ))]
     [(.@ f xs l) (.@ (e/ f x eₓ) (e/ xs x eₓ) l)]
     [(.if e e₁ e₂) (.if (e/ e x eₓ) (e/ e₁ x eₓ) (e/ e₂ x eₓ))]
     [(.amb es) (.amb (for/set: : (Setof .expr) ([eᵢ es]) (e/ eᵢ x eₓ)))]

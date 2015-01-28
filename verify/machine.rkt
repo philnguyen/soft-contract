@@ -168,23 +168,26 @@
   
   (: step-β : .λ↓ (Listof .V) Mon-Party .σ .κ* → .ς)
   (define (step-β f Vx l σ k)
-    #;(printf "Stepping ~a~n~n" (show-U σ f))
-    (match-define (.λ↓ (.λ n e) ρ) f)
-    (cond
-     [(= (length Vx) n)
-      (define seens (apps-seen k σ f Vx))
-      (or
-       (for/or : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) seens]
-                            #:when (.F? (cdr res)))
-         (match-define (cons ctx (? .F? F)) res)
-         (.ς (cons ctx F) σ k))
-       (for/or : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) seens]
-                            #:when (false? (cdr res)))
-         (match-define (cons (.rt/κ σ0 _ Vx0) _) res)
-         (match-define (cons σ1 Vx1) (⊕ σ0 Vx0 σ Vx))
-         (.ς (.↓ e (ρ++ ρ Vx1)) σ1 (cons (.rt/κ σ1 f Vx1) k)))
-       (.ς (.↓ e (ρ++ ρ Vx)) σ (cons (.rt/κ σ f Vx) k)))]
-     [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)]))
+    ;;(printf "Stepping ~a~n~n" (show-U σ f))
+    (match f
+      [(.λ↓ (.λ (? integer? n) e) ρ)
+       (cond
+         [(= (length Vx) n)
+          (define seens (apps-seen k σ f Vx))
+          (or
+           (for/or : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) seens]
+                                #:when (.F? (cdr res)))
+             (match-define (cons ctx (? .F? F)) res)
+             (.ς (cons ctx F) σ k))
+           (for/or : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) seens]
+                                #:when (false? (cdr res)))
+             (match-define (cons (.rt/κ σ0 _ Vx0) _) res)
+             (match-define (cons σ1 Vx1) (⊕ σ0 Vx0 σ Vx))
+             (.ς (.↓ e (ρ++ ρ Vx1)) σ1 (cons (.rt/κ σ1 f Vx1) k)))
+           (.ς (.↓ e (ρ++ ρ Vx)) σ (cons (.rt/κ σ f Vx) k)))]
+         [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
+      [(.λ↓ (.λ (cons n _) e) ρ)
+       (error 'TODO "varargs")]))
   
   (: step-@ : .V (Listof .V) Mon-Party .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
@@ -349,9 +352,12 @@
              (match-let ([(cons σ V) (alloc σ V)])
                #;(printf "havoc: ~a~n~n" (show-V σ V))
                (match U
-                 [(.λ↓ (.λ n _) _)
+                 [(.λ↓ (.λ formals _) _)
                   #;(printf "case1: ~a~n~n" (show-E σ V))
-                  (let-values ([(σ′ Ls) (σ++ σ n)])
+                  (let-values ([(σ′ Ls)
+                                (match formals
+                                  [(? integer? n) (σ++ σ n)]
+                                  [(cons n _) (σ++ σ (+ 1 n))])])
                     (step-@ V Ls ☠ σ′ k))]
                  [(.Ar (.// (.Λ/C Cx _ _) _) _ _)
                   #;(printf "case2: ~a~n~n" (show-E σ V))

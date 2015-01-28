@@ -13,8 +13,8 @@
 
 (: feedback ([.prog] [Integer] . ->* . Void))
 (define (feedback prog [timeout 30])
-  (eprintf ">>> program is:\n")
-  (pretty-print prog (current-error-port))
+  ;;(eprintf ">>> program is:\n")
+  ;;(pretty-print prog (current-error-port))
   (match (run prog timeout)
     ['timeout (printf "Timeout after ~a seconds~n" timeout)]
     [(or 'safe (list)) (printf "Program is safe~n")]

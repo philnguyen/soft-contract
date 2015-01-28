@@ -130,7 +130,7 @@
            ;; arity includes
            [(_ (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) (.b (? integer? n))) _)) _))
             (match U
-              [(.λ↓ (.λ m _) _) (decide-R (= m n))]
+              [(.λ↓ (.λ (? integer? m) _) _) (decide-R (= m n))]
               [(.Ar (.// (.Λ/C Cx _ v?) _) _ _)
                (if v? (decide-R (>= n (- (length Cx) 1))) (decide-R (= n (length Cx))))]
               [(? .o1?) (decide-R (= n 1))]
@@ -152,7 +152,7 @@
            ;; arity exact
            [(_ (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) (.b (? integer? n))) _)) _))
             (match U
-              [(.λ↓ (.λ m _) _) (decide-R (= m n))]
+              [(.λ↓ (.λ (? integer? m) _) _) (decide-R (= m n))]
               [(.Ar (.// (.Λ/C Cx _ v?) _) _ _) (if v? 'X (decide-R (= (length Cx) n)))]
               [(? .o1?) (decide-R (= n 1))]
               [(? .o2?) (decide-R (= n 2))]

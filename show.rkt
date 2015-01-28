@@ -108,13 +108,13 @@
        (match-define (.// (.Case m) _) (σ@ σ n))
        `(case ,(go ctx e) ,@(show-cases σ m))]
       ;; Direct λ application
-      [(.@ (.λ n e) ex _)
+      [(.@ (.λ (? integer? n) e) ex _)
        (define x* (vars-not-in n ctx))
        `(let ,(for/list : (Listof Sexp) ([x (reverse x*)] [ei ex])
                 `(,x ,(go ctx ei)))
          ,(go (append x* ctx) e))]
       [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _) _) _)))))) es _)
-       (match-let ([(.// (.λ↓ (.λ k e) ρ) _) (σ@ σ n)])
+       (match-let ([(.// (.λ↓ (.λ (? integer? k) e) ρ) _) (σ@ σ n)])
          (cond
           ;; Inline if all arguments are simple. TODO: can do better, for each argument?
           [(for/and : Boolean ([eᵢ es]) (or (.x? eᵢ) (.ref? eᵢ) (.v? eᵢ)))
@@ -140,9 +140,12 @@
       [(.if a b (.b #t)) `(implies ,(go ctx a) ,(go ctx b))]
       
       
-      [(.λ n e)
+      [(.λ (? integer? n) e)
        (define x* (vars-not-in n ctx))
        `(λ ,(reverse x*) ,(go (append x* ctx) e))]
+      [(.λ (cons n _) e)
+       (match-define (and x* (cons x₁ xs)) (vars-not-in (+ 1 n) ctx))
+       `(λ (,(reverse xs) . ,x₁) ,(go (append x* ctx) e))]
       [(.•ₗ α) (syn σ α)]
       [(.b b) (show-b b)]
       [(.st-mk t _) (struct-tag->symbol t)]

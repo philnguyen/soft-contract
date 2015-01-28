@@ -172,10 +172,12 @@
   
   (: step-β : .λ↓ (Listof .V) Mon-Party .σ .κ* → .ς)
   (define (step-β f Vx l σ k)
-    #;(printf "Stepping ~a~n~n" (show-U σ f))
-    (match-define (.λ↓ (.λ n e) ρ) f)
-    (cond [(= (length Vx) n) (.ς (.↓ e (ρ++ ρ Vx)) σ k)]
-          [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)]))
+    ;;(printf "Stepping ~a~n~n" (show-U σ f))
+    (match f
+      [(.λ↓ (.λ (? integer? n) e) ρ)
+       (cond [(= (length Vx) n) (.ς (.↓ e (ρ++ ρ Vx)) σ k)]
+             [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
+      [_ (error 'TODO "step-β: varargs")]))
       
   (: step-@ : .V (Listof .V) Mon-Party .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
@@ -342,8 +344,12 @@
       (define x₀ (.x 0))
       (define ● (•!))
       (match V
-        [(.// (.λ↓ (.λ n _) ρ) _)
-         (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) ☠)) ☠)) ρ∅))
+        [(.// (.λ↓ (.λ formals _) ρ) _)
+         (define Vf
+           (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ (match formals
+                                                         [(? integer? n) n]
+                                                         [(cons n _) (+ 1 n)])])
+                                           (•!)) ☠)) ☠)) ρ∅))
          (define σ′ (.σ (hash-set m α (→V Vf)) l))
          (step-β Vf (list V) ☠ σ′ k)]
         [(.// (.Ar (.// (.Λ/C cs _ _) _) _ _) _)
