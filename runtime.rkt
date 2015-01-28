@@ -61,6 +61,13 @@
        ['<= (.// (.λ↓ (.λ 1 (.@ '> xs ctx)) ρ) ∅)]
        ['>= (.// (.λ↓ (.λ 1 (.@ '< xs ctx)) ρ) ∅)]
        [_ (.// (.St 'not/c (list C)) ∅)])]
+    [(.// (.St 'and/c (list C₁ C₂)) _)
+     (→V (.St 'or/c (list (.¬/C C₁) (→V (.St 'and/c (list C₁ (.¬/C C₂)))))))]
+    [(.// (.St 'or/c (list C₁ C₂)) _)
+     (→V (.St 'and/c (list (.¬/C C₁) (.¬/C C₂))))]
+    [(.// (.St 'not/c (list C′)) _) C′]
+    [(.// (.λ↓ (.λ 1 (.@ 'false? (list e) _)) ρ) _)
+     (→V (.λ↓ (.λ 1 e) ρ))]
     [_ (.// (.St 'not/c (list C)) ∅)]))
 
 ; evaluation answer. New type instead of cons to work well with pattern matching
