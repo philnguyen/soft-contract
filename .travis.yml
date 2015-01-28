@@ -33,12 +33,10 @@ script:
  - /usr/racket/bin/raco make check.rkt
  - /usr/racket/bin/raco link .
  - cd test
- # test parser
- - cd test-parser
- - /usr/racket/bin/raco test -x main.rkt
- - cd ..
  # test delta
  - /usr/racket/bin/raco test -x test-delta.rkt
+ # test parser
+ - /usr/racket/bin/raco test -x test-parser.rkt
  # test verifier
  - cd test-verifier
  - /usr/racket/bin/raco test -x main.rkt
