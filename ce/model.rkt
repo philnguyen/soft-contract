@@ -8,11 +8,14 @@
 (: model : .prog .σ → (Option .σ))
 ;; Return one instantiation of program×heap
 (define (model p σ)
-  #;(printf "σ₀:~n~a~n" (show-σ σ))
+  (log-debug "σ₀:~n~a~n" (show-σ σ))
   (cond
    [(σ•? σ)
-    (define σ′ (model/z3 σ))
-    (cond [σ′ #;(printf "σ₁:~n~a~n" (show-σ σ′)) (model/σ p σ′)]
+    (define σ₁ (model/z3 σ))
+    (cond [σ₁ (log-debug "σ₁:~n~a~n" (show-σ σ₁))
+              (define σ₂ (model/σ p σ₁))
+              (log-debug "σ₂:~n~a~n" (show-σ σ₂))
+              σ₂]
           [else #f])]
    [else σ]))
 
@@ -145,8 +148,8 @@
      ;; Generate model
      (format "(check-sat)~n(get-model)~n")))
   ;; Call to Z3
-  #;(printf "Query:~n~a~n" query)
-  #;(printf "Heap:~n~a~n" (show-σ σ))
+  (log-debug "Query:~n~a~n" query)
+  (log-debug "Heap:~n~a~n" (show-σ σ))
   (match (call query)
     [(regexp #rx"^sat(.*)" (list _ (? string? m/str)))
      (match-define (.σ m l) σ)
@@ -155,9 +158,8 @@
          (cast
           (match (read)
            [(list 'model lines ...)
-            #;(begin
-              (printf "Model:~n")
-              (for ([l lines]) (printf "~a~n" l)))
+            (log-debug "Model:~n")
+            (for ([l lines]) (log-debug "~a~n" l))
             (match-define (.σ m l) σ)
             (define m′
               (for/fold ([m : (Map Integer .V+) m])
