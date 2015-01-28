@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/set racket/match racket/list racket/pretty racket/string racket/port)
-(require (for-syntax racket/base racket/syntax))
+(require (for-syntax racket/base racket/syntax syntax/parse))
 (provide (all-defined-out)) ; TODO
 (require/typed
  redex/reduction-semantics
@@ -61,9 +61,11 @@
            (f x)))]))
 
 ;; define the same type for multiple identifiers
-(define-syntax :*
-  (syntax-rules (:)
-    [(_ (id ...) : rest ...) (begin (: id : rest ...) ...)]))
+(define-syntax (:* stx)
+  (syntax-parse stx
+    #:literals (:)
+    [(_ x:id ... : τ ...)
+     #'(begin (: x : τ ...) ...)]))
 
 (define-syntax-rule (define** [id v] ...) (define-values (id ...) (values v ...)))
 

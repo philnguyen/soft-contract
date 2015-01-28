@@ -99,8 +99,6 @@
   (struct .@-havoc [x : .x]) ; hack for havoc to detect argument's arity at runtime
   (struct .amb [e* : (Setof .expr)])
   ; contract stuff
-  (struct .and/c [l : .expr] [r : .expr])
-  (struct .or/c [l : .expr] [r : .expr])
   (struct .μ/c [x : Identifier] [c : .expr])
   (struct .-> [dom : (Listof .expr)] [rng : .expr]) ; non-dependent function contract
   (struct .->i [xs : (Listof .expr)] [cy : .expr] [var? : Boolean]) ; dependent function contract
@@ -119,6 +117,15 @@
   'rest)
 
 (define-type/pred Struct-Tag (U Identifier 'and/c 'or/c 'not/c 'struct●))
+
+(:* .and/c .or/c : Mon-Party → (.expr .expr → .expr))
+(define ((.and/c ctx) c d)
+  (.@ (.st-mk 'and/c 2) (list c d) ctx))
+(define ((.or/c ctx) c d)
+  (.@ (.st-mk 'or/c 2) (list c d) ctx))
+(: .not/c : Mon-Party → (.expr → .expr))
+(define ((.not/c ctx) c)
+  (.@ (.st-mk 'not/c 1) (list c) ctx))
 
 (: •! : → .•ₗ)
 ;; Generate new labeled hole
@@ -225,21 +232,6 @@
 #|
 (define (.cons/c [c : .expr] [d : .expr])
   (.struct/c #'cons (list c d)))
-
-(:* [.or/c .and/c] : Symbol (Listof .e) → .e)
-(define (.or/c l e*)
-  (match e*
-    ['() .none/c]
-    [(list c) c]
-    [(cons c cr) (.@ (.st-mk #'or/c 2) (list c (.or/c l cr)) l)]))
-(define (.and/c l e*)
-  (match e*
-    ['() .any/c]
-    [(list c ) c]
-    [(cons c cr) (.@ (.st-mk #'and/c 2) (list c (.and/c l cr)) l)]))
-(: .not/c : Symbol .e → .e)
-(define (.not/c l c)
-  (.@ (.st-mk #'¬/c 1) (list c) l))
 |#
 
 #;(: prim : (U Symbol Number String Boolean) → (U #f .e))

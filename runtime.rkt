@@ -273,7 +273,7 @@
         [(= x 0) {set ZERO/C NON-NEG/C NON-POS/C}]
         [else {set NEG/C NON-ZERO/C NON-POS/C}]))
 
-(:* [+/C -/C */C ÷/C expt/C] : .V .V → .V)
+(:* +/C -/C */C ÷/C expt/C : .V .V → .V)
 (define (+/C V1 V2) (→C '+ #:1st V1 #:2nd V2))
 (define (-/C V1 V2) (→C '- #:1st V1 #:2nd V2))
 (define (*/C V1 V2) (→C '* #:1st V1 #:2nd V2))
@@ -287,7 +287,7 @@
      [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list b) 'Λ)) 'Λ)) ρ∅)]
      [_ (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list (.x 1)) 'Λ)) 'Λ)) (ρ+ ρ∅ V))])))
  
-(:* [</C >/C ≥/C ≤/C =/C ≠/C equal/C string-length/C] : .V → .V)
+(:* </C >/C ≥/C ≤/C =/C ≠/C equal/C string-length/C : .V → .V)
 (define (</C V) (→C '< #:2nd V))
 (define (>/C V) (→C '> #:2nd V))
 (define (≥/C V) (→C '>= #:2nd V))
@@ -297,7 +297,7 @@
 (define (equal/C V) (→C 'equal? #:2nd V))
 (define (string-length/C V) (→C 'string-length #:2nd V))
 
-(:* [arity=/C arity≥/C arity-includes/C] : Integer → .V)
+(:* arity=/C arity≥/C arity-includes/C : Integer → .V)
 (define (arity=/C n) (→C 'arity=? #:2nd (Prim n)))
 (define (arity≥/C n) (→C 'arity>=? #:2nd (Prim n)))
 (define (arity-includes/C n) (→C 'arity-includes? #:2nd (Prim n)))

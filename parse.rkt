@@ -184,13 +184,15 @@
      (match (go/list #'(c ...))
        ['() .any/c]
        [(list c) c]
-       [(list c₁ ... cₖ) (foldr .and/c cₖ c₁)])]
+       [(list c₁ ... cₖ) (foldr (.and/c (cur-mod)) cₖ c₁)])]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
      (match (go/list #'(c ...))
        ['() .none/c]
        [(list c) c]
-       [(list c₁ ... cₖ) (foldr .or/c cₖ c₁)])]
+       [(list c₁ ... cₖ) (foldr (.or/c (cur-mod)) cₖ c₁)])]
+    ;; Negation
+    [(#%plain-app (~literal fake:not/c) c) ((.not/c (cur-mod)) (go #'c))]
     ;; primitive contracts
     [(~literal fake:any/c) .any/c]
     

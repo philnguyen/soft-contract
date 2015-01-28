@@ -4,7 +4,7 @@
          (only-in "query-z3.rkt" [query z3]))
 (provide (all-defined-out))
 
-(:* [all-prove? all-refute? some-proves? some-refutes?] : .σ (Listof .V) .V → Boolean)
+(:* all-prove? all-refute? some-proves? some-refutes? : .σ (Listof .V) .V → Boolean)
 (define (all-prove? σ V* C) (for/and ([V V*]) (eq? (⊢ σ V C) '✓)))
 (define (all-refute? σ V* C) (for/and ([V V*]) (eq? (⊢ σ V C) 'X)))
 (define (some-proves? σ V* C) (for/or ([V V*]) (eq? (⊢ σ V C) '✓)))
