@@ -32,6 +32,7 @@
   (list (resolved-module-path-name (module-path-index-resolve i)) #f))
 
 (define scv-syntax? (and/c syntax? (not/c scv-ignore?)))
+(define env? (listof identifier?))
 
 ;; Read our current limited notion of program
 (define/contract (parse-prog mods top)
@@ -233,51 +234,21 @@
              (set! ctx′ (ext-env ctx′ (syntax->list #'(x ...)))))]))
       (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
                 (parse-expr bᵢ ctx′))))]
-    [(#%plain-lambda fmls b ...)
-     (syntax-parse #'fmls
-       [(x:id ...)
-        (define xs (syntax->list #'(x ...)))
-        (define ctx′ (ext-env ctx xs))
-        (.λ
-         (length xs)
+    [(#%plain-lambda fmls b ...+)
+     (define-values (arity ctx′) (parse-formals ctx #'fmls))
+     (.λ arity
          (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
                    (parse-expr bᵢ ctx′))))]
-       [rest:id
-        (define ctx′ (ext-env ctx (list #'rest)))
-        (.λ
-         (cons 0 'rest)
-         (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                   (parse-expr bᵢ ctx′))))]
-       [(x:id ... . rest:id)
-        (define xs (append (syntax->list #'(x ...)) (list #'rest)))
-        (define ctx′ (ext-env ctx xs))
-        (.λ
-         (cons (- (length xs) 1) 'rest)
-         (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                   (parse-expr bᵢ ctx′))))])]
     
     [(case-lambda [fml bodies ...+] ...)
      (.case-lambda
       (for/list ([fmlᵢ (in-list (syntax->list #'(fml ...)))]
                  [bodiesᵢ (in-list (syntax->list #'((bodies ...) ...)))])
-        (syntax-parse fmlᵢ
-          [(x:id ...)
-           (define xs (syntax->list #'(x ...)))
-           (define ctx′ (ext-env ctx xs))
-           (cons (length xs)
-                 (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
-                           (parse-expr body ctx′))))]
-          [rest:id
-           (define ctx′ (ext-env ctx (list #'rest)))
-           (cons (cons 0 'rest)
-                 (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
-                           (parse-expr body ctx′))))]
-          [(x:id ... . rest:id)
-           (define xs (append (syntax->list #'(x ...)) (list #'rest)))
-           (define ctx′ (ext-env ctx xs))
-           (cons (cons (- (length xs) 1) 'rest)
-                 (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
-                           (parse-expr body ctx′))))])))]
+        ;; Compute case arity and extended context for RHS
+        (define-values (arity ctx′) (parse-formals ctx fmlᵢ))
+        (cons arity
+              (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
+                        (parse-expr body ctx′))))))]
     [(letrec-values _ ...) (todo 'letrec-values)]
     [(quote e:number) (.b (syntax->datum #'e))]
     [(quote e:str) (.b (syntax->datum #'e))]
@@ -318,6 +289,19 @@
                  [src (symbol->string src)]
                  [else 'null]))
          (.ref #'i path (cur-mod))]))]))
+
+;; Parse given `formals` to extend environment
+(define/contract (parse-formals ctx formals)
+  (env? scv-syntax? . -> . (values .formals? env?))
+  (syntax-parse formals
+    [(x:id ...)
+     (define xs (syntax->list #'(x ...)))
+     (values (length xs) (ext-env ctx xs))]
+    [rest:id
+     (values (cons 0 'rest) (ext-env ctx (list #'rest)))]
+    [(x:id ... . rest:id)
+     (define xs (append (syntax->list #'(x ...)) (list #'rest)))
+     (values (cons (- (length xs) 1) 'rest) (ext-env ctx xs))]))
 
 (define/contract (parse-primitive id)
   (identifier?  . -> . (or/c #f .o?))
@@ -372,14 +356,14 @@
 
 ;; Extends environment
 (define/contract (ext-env ctx xs)
-  ((listof identifier?) (listof identifier?) . -> . (listof identifier?))
+  (env? (listof identifier?) . -> . env?)
   
   (for/fold ([ctx′ ctx]) ([x (in-list xs)])
     (cons x ctx′)))
 
 ;; Return static distance of given identifier in context
 (define/contract (id->sd ctx id)
-  ((listof identifier?) identifier? . -> . integer?)
+  (env? identifier? . -> . integer?)
   #;(debug "id->sd: looking for ~a in context ~a~n"
           (syntax->datum id)
           (map syntax->datum ctx))
