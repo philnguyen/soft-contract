@@ -1,5 +1,5 @@
 #lang typed/racket/base
-(provide feedback)
+(provide feedback exn:fail:contract:counterexample? exn:fail:contract:maybe?)
 (require racket/match racket/list racket/port racket/string racket/set
          racket/pretty
          (only-in "utils.rkt" match? pretty n-sub define-set)
@@ -78,6 +78,9 @@
          [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))
                           (show-ce p σ))])])))
 
+(struct exn:fail:contract:counterexample exn:fail:contract () #:transparent)
+(struct exn:fail:contract:maybe exn:fail:contract () #:transparent)
+
 (: raise-contract-error ([Any Any Any Any] [Any] . ->* . Void))
 (define (raise-contract-error l⁺ lᵒ v c [ce #f])
   (define sure? #t)
@@ -113,14 +116,28 @@
                                 (require (submod "\"..\"" ,l⁺))
                                 ,(replace-struct● ce))))]
           [else ""]))
-  (error (format "~a: ~a~n~a~n~a~n"
-                 (if sure? "Contract violation" "Possible contract violation")
-                 parties
-                 reason
-                 ce-prog)))
+  (cond [sure? (raise-counterexample parties reason ce-prog)]
+        [else (raise-maybe-contract-violation parties reason)]))
+
+(: raise-counterexample : String String String → Nothing)
+(define (raise-counterexample parties reason ce)
+  (raise (exn:fail:contract:counterexample
+          (format "Contract violation: ~a~n~a~n~a~n"
+                  parties
+                  reason
+                  ce)
+          (current-continuation-marks))))
+
+(: raise-maybe-contract-violation : String String → Nothing)
+(define (raise-maybe-contract-violation parties reason)
+  (raise (exn:fail:contract:maybe
+          (format "Possible contract violation: ~a~n~a~n"
+                  parties
+                  reason)
+          (current-continuation-marks))))
 
 (: replace-struct● : Any → Any)
-;; Traverse the S-exp, replace all (struct• _) and insert top-level struct definitions
+;; Traverse the S-exp, replace all (struct● _) and insert top-level struct definitions
 (define (replace-struct● e)
 
   (define-set new-names : Symbol)
@@ -128,7 +145,7 @@
   (define e′
     (let go! : Any ([e : Any e])
       (match e
-        [`(● ,tag)
+        [`(struct● ,tag)
          (define name (string->symbol (format "s~a" (n-sub (assert tag exact-integer?)))))
          (new-names-add! name)
          `(,name)]

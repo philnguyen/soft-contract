@@ -135,9 +135,10 @@
         {set (cons σt TT) (cons σt FF)}])]))
 
 (: refine-C* : (Setof .V) .V → (Setof .V))
-(define (refine-C* C* C)
-  (if (set-empty? C*) {set C}
-      (for/fold ([acc : (Setof .V) ∅]) ([Ci C*]) (∪ acc (refine-C Ci C)))))
+(define (refine-C* Cs C)
+  (cond [(set-empty? Cs) {set C}]
+        [else (for/fold ([acc : (Setof .V) ∅]) ([Cᵢ Cs])
+                (∪ acc (refine-C Cᵢ C)))]))
 
 (: refine-C : .V .V → (U .V (Setof .V)))
 (define (refine-C C D)

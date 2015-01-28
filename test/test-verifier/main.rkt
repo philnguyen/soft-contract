@@ -1,4 +1,5 @@
 #lang racket/base
+(require racket/contract)
 
 (module+ test
   (require racket/match racket/sandbox racket/file rackunit)
@@ -18,29 +19,37 @@
                                               '((read #rx#"racket-prefs.rktd")))])
       (make-evaluator 'soft-contract)))
 
-  ;; String -> Void
-  (define (verify s)
+  (define/contract (verify s)
+    (string? . -> . (values string? string? string?))
     (define ev (make-ev))
     (define val (ev s))
     (define out (get-output ev))
     (define err (get-error-output ev))
-    (list val out err))
+    (values val out err))
 
-  ;; String -> Void
   ;; Check whether program is safe
-  (define (check-verify-safe s)
-    (match-define (list val out err) (verify s))
+  (define/contract (check-verify-safe s)
+    (string? . -> . any)
+    (define-values (val out err) (verify s))
     (test-equal? "no error" "" err)
     (test-true "safe" (regexp-match? ".*Program is safe.*" out)))
 
-  ;; String -> Void
   ;; Check whether program fails, optionally enforcing a counterexample
-  (define (check-verify-fail s [counter-example? #f])
-    (match-define (list val out err) (verify s))
+  (define/contract (check-verify-fail s [counter-example? #f])
+    (string? . -> . any)
+    (define-values (val out err) (verify s))
     (check-regexp-match ".*ontract violation.*" err)
     (when counter-example?
-      (check-regexp-match ".*An example module that breaks it.*" err)))
-
+      ;; Ensure mentioning of a counterexample
+      (check-regexp-match ".*An example module that breaks it.*" err)
+      ;; Ensure concrete counterexample
+      (check-false (member #\• (string->list err)))))
+  
+  ;; Enforce the tool NOT to generate any counterexample
+  (define/contract (check-no-ce s)
+    (define-values (val out err) (verify s))
+    (check-false (regexp-match? ".*An example module that breaks it.*" err)))
+  
   ;; String (String -> Void) -> Void
   (define (test-dir dir-name test-func)
     (for ([file (in-directory dir-name)]
@@ -51,4 +60,5 @@
 
   (test-dir "safe" check-verify-safe)
   (test-dir "fail" check-verify-fail)
-  (test-dir "fail-ce" (λ (s) (check-verify-fail s #t))))
+  (test-dir "fail-ce" (λ (s) (check-verify-fail s #t)))
+  (test-dir "no-ce" check-no-ce))

@@ -118,7 +118,7 @@
   (Pairof Natural 'rest)
   'rest)
 
-(define-type/pred Struct-Tag (U Identifier 'and/c 'or/c 'not/c))
+(define-type/pred Struct-Tag (U Identifier 'and/c 'or/c 'not/c 'struct●))
 
 (: •! : → .•ₗ)
 ;; Generate new labeled hole

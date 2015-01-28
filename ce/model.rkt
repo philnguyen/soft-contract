@@ -1,9 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/string racket/port
          "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../query-z3.rkt" "../provability.rkt" "../show.rkt")
-(provide model σ•? Struct-Tag-●)
-
-(define Struct-Tag-● #'●)
+(provide model σ•?)
 
 (: model : .prog .σ → (Option .σ))
 ;; Return one instantiation of program×heap
@@ -28,71 +26,90 @@
     (match-define (.// U₁ Cs) V)
     (match U₁
       ['•
+       ;; whether the value is ok to be an instance of `C`
+       (define (ok-with? [C : .V])
+         (not (eq? 'Refuted (C*⇒C Cs C))))
+       
+       ;; whether the value must be an instance of `C`
+       (define (must-be? [C : .V])
+         (eq? 'Proved (C*⇒C Cs C)))
+       
+       (: repeat-try : Integer (Integer → .V+) String → .V+)
+       ;; Try `n` times to generate `item-name` from generator `next`
+       (define (repeat-try n next item-name)
+         ;; TODO can't use for*/first in TR...
+         (let go ([i 0])
+           (cond [(< i n)
+                  (define V (next i))
+                  (cond [(ok-with? (equal/C V)) V]
+                        [else (go (+ 1 i))])]
+                 [else (error 'Internal "unexpected failure generating ~a" item-name)])))
+       
        (cond
-        [(set-member? Cs INT/C) V]
-        [(set-member? Cs REAL/C) V]
-        [(set-member? Cs NUM/C)
-         (match (C*⇒C Cs REAL/C)
-           ['Refuted (Prim +1i)]
-           [_ (Prim (random))])]
-        [(set-member? Cs STR/C)
-         ;; FIXME: abstract string should have a `string-length` field
-         ;; Currently, (string-length x) would be an integer somewhere on the heap
-         (or
-          (for/or : (U #f .V+)
-                  ([C Cs]
-                   #:when
-                   (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _)) _) _)))
-            (match-define (.// (.λ↓ (.λ _ (.@ _ (list _ len) _)) ρ) _) C)
-            (define n
-              (match len
-                [(.b (? exact-integer? n)) n]
-                [(.x sd)
-                 (define Vₗ (ρ@ ρ (- sd 1)))
-                 (match Vₗ
-                   [(.// (.b (? exact-integer? n)) _) n]
-                   [(.L α)
-                    (match (σ@ σ α)
-                      [(.// (.b (? exact-integer? n)) _) n]
-                      [V (error 'Internal "string-length is not an integer" V)])])]))
-            (Prim (random-string n)))
-          (Prim (random-string (random 16))))] 
-        [(set-member? Cs (Prim 'boolean?))
-         (match (C*⇒C Cs (Prim 'false?))
-           ['Refuted (Prim #t)]
-           [_ (Prim #f)])]
-        [(set-member? Cs PROC/C)
-         (cond
-          [(for/or : (U Boolean .V)
+         ;; Z3 might have NOT given back a model for trivial/empty set of constraints on numbers
+         [(ok-with? INT/C)
+          (cond [(ok-with? NON-NEG/C) (repeat-try 1000 Prim "a natural number")]
+                [else (repeat-try 1000 (λ (i) (Prim (- (+ 1 i)))) "a negative integer")])]
+         [(ok-with? REAL/C) (repeat-try 1000 (λ (_) (Prim (random))) "a real number")]
+         [(ok-with? NUM/C)
+          (cond [(ok-with? (=/C (Prim +1i))) (Prim +1i)]
+                [else (repeat-try 1000 (λ (_) (Prim (* +1i (random)))) "a complex number")])]
+         [(must-be? PROC/C)
+          (cond
+            [(for/or : (U Boolean .V)
+                     ([C Cs]
+                      #:when
+                      (match?
+                       C
+                       (.// (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) _) _)) _) _)))
+               C)
+             =>
+             (λ ([C : (U Boolean .V)])
+               (match-define
+                 (.// (.λ↓ (.λ 1 (.@ 'arity=? (list _ (.b (? exact-integer? n))) _)) _) _)
+                 C)
+               (→V (.λ↓ (.λ n (.b (random))) ρ∅)))]
+            [(for/or : (U Boolean .V)
+                     ([C Cs]
+                      #:when
+                      (match?
+                       C
+                       (.// (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) _) _)) _) _)))
+               C)
+             =>
+             (λ ([C : (U Boolean .V)])
+               (match-define
+                 (.// (.λ↓ (.λ _ (.@ 'arity-includes? (list _ (.b (? exact-integer? n))) _)) _) _)
+                 C)
+               (→V (.λ↓ (.λ n (.b (random))) ρ∅)))]
+            [else (→V (.λ↓ (.λ 1 (.b (random))) ρ∅))])]
+         [(ok-with? STR/C)
+          ;; FIXME: abstract string should have a `string-length` field
+          ;; Currently, (string-length x) would be an integer somewhere on the heap
+          (or
+           (for/or : (U #f .V+)
                    ([C Cs]
                     #:when
-                    (match?
-                     C
-                     (.// (.λ↓ (.λ 1 (.@ 'arity=? (list (.x 0) _) _)) _) _)))
-             C)
-           =>
-           (λ ([C : (U Boolean .V)])
-             (match-define
-              (.// (.λ↓ (.λ 1 (.@ 'arity=? (list _ (.b (? exact-integer? n))) _)) _) _)
-              C)
-             (→V (.λ↓ (.λ n (.b (random))) ρ∅)))]
-          [(for/or : (U Boolean .V)
-                   ([C Cs]
-                    #:when
-                    (match?
-                     C
-                     (.// (.λ↓ (.λ 1 (.@ 'arity-includes? (list (.x 0) _) _)) _) _)))
-             C)
-           =>
-           (λ ([C : (U Boolean .V)])
-             (match-define
-              (.// (.λ↓ (.λ _ (.@ 'arity-includes? (list _ (.b (? exact-integer? n))) _)) _) _)
-              C)
-             (→V (.λ↓ (.λ n (.b (random))) ρ∅)))]
-          [else (→V (.λ↓ (.λ 1 (.b (random))) ρ∅))])]
-        [(equal? 'Refuted (C*⇒C Cs NUM/C))
-         (→V (.St Struct-Tag-● (list (Prim (fresh-int!)))))]
-        [else (Prim (random))])]
+                    (match? C (.// (.λ↓ (.λ 1 (.@ 'string-length (list (.x 0) (or (? .b?) (? .x?))) _)) _) _)))
+             (match-define (.// (.λ↓ (.λ _ (.@ _ (list _ len) _)) ρ) _) C)
+             (define n
+               (match len
+                 [(.b (? exact-integer? n)) n]
+                 [(.x sd)
+                  (define Vₗ (ρ@ ρ (- sd 1)))
+                  (match Vₗ
+                    [(.// (.b (? exact-integer? n)) _) n]
+                    [(.L α)
+                     (match (σ@ σ α)
+                       [(.// (.b (? exact-integer? n)) _) n]
+                       [V (error 'Internal "string-length is not an integer" V)])])]))
+             (repeat-try 1000 (λ (_) (Prim (random-string n))) "a string"))
+           (repeat-try 1000 (λ (_) (Prim (random-string 4))) "a string"))]
+         [(ok-with? BOOL/C)
+          (cond [(ok-with? FALSE/C) FF]
+                [else TT])]
+         ;; use unknown struct as last resort
+         [else (→V (.St 'struct● (list (Prim (random)))))])]
       [(.λ↓ (.λ 1 (.@ (.•ₗ l) (list e) _)) ρ)
        (match-define (.// _ Cs) (σ@ σ l))
        (cond [(set-empty? Cs) (→V (.λ↓ (.λ 1 e) ρ))]
@@ -156,7 +173,7 @@
      (with-input-from-string m/str
        (λ ()
          (cast
-          (match (read)
+          (match (parameterize ([read-decimal-as-inexact #f]) (read))
            [(list 'model lines ...)
             (log-debug "Model:~n")
             (for ([l lines]) (log-debug "~a~n" l))
