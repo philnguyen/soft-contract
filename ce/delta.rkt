@@ -2,45 +2,48 @@
 (require racket/match racket/function racket/set
          "../utils.rkt" "../lang.rkt" "../runtime.rkt" "../provability.rkt"
          (prefix-in raw: "../delta.rkt"))
-(provide δ refine refine1 raw:refine1)
+(provide δ refine refine1)
 
 (: δ : .σ .o (Listof .V) Mon-Party → .Ans*)
 (define (δ σ o V* l)
-  (raw:δ σ o V* l))
+  (parameterize ([raw:refine1 refine1])
+    (raw:δ σ o V* l)))
 
 (: refine : .σ .V (U (Setof .V) (Listof .V) .V) * → .Vns)
 (define (refine σ V . Css)
-  (apply raw:refine σ V Css))
+  (parameterize ([raw:refine1 refine1])
+    (apply raw:refine σ V Css)))
 
 (: refine1 : .σ .V .V → .Vns)
 (define (refine1 σ V C)
-  (let ([C (simplify C)])
-     
-    (when (match? C (.// '• _)) (error "ha!"))
-    (match V
-      [(.L i) (match-let ([(cons σ′ V′) (refine1 σ (σ@ σ i) C)])
-                (match V′
-                  [(.// (.St t V*) C*) (match-let* ([(cons σ′ V*′) (raw:alloc σ′ V*)]
-                                                    [V′ (.// (.St t V*′) C*)])
-                                         (cons (σ-set σ′ i V′) V))]
-                  [(? .//? V′) (cons (σ-set σ′ i V′) V)]
-                  [_ (error "broken =_=" V)]))]
-      [(.// U C*)
-       (match C
-         [(.L _) (cons σ (.// U (set-add C* C)))]
-         [(.// Uc _)          
-          (match Uc
-            [(.St 'and/c (list C1 C2)) (raw:refine σ V C1 C2)]
-            [(.St 'or/c (list C1 C2))
-             #;(begin
+  (parameterize ([raw:refine1 refine1])
+    (let ([C (simplify C)])
+      
+      (when (match? C (.// '• _)) (error "ha!"))
+      (match V
+        [(.L i) (match-let ([(cons σ′ V′) (refine1 σ (σ@ σ i) C)])
+                  (match V′
+                    [(.// (.St t V*) C*) (match-let* ([(cons σ′ V*′) (raw:alloc σ′ V*)]
+                                                      [V′ (.// (.St t V*′) C*)])
+                                           (cons (σ-set σ′ i V′) V))]
+                    [(? .//? V′) (cons (σ-set σ′ i V′) V)]
+                    [_ (error "broken =_=" V)]))]
+        [(.// U C*)
+         (match C
+           [(.L _) (cons σ (.// U (set-add C* C)))]
+           [(.// Uc _)          
+            (match Uc
+              [(.St 'and/c (list C1 C2)) (raw:refine σ V C1 C2)]
+              [(.St 'or/c (list C1 C2))
+               #;(begin
                (define ¬mt (.¬/C (Prim 'empty?)))
                (define ¬cons (.¬/C (Prim 'cons?)))
                (when (equal? C1 (Prim 'empty?))))
-             (match* ((⊢ σ V C1) (⊢ σ V C2))
-               [('X 'X) (error "WTF??")]
-               [(_ 'X) (refine1 σ V C1)]
-               [('X _) (refine1 σ V C2)]
-               [(_ _) (refine-U σ U (raw:refine-C* C* C))])]
+              (match* ((⊢ σ V C1) (⊢ σ V C2))
+                [('X 'X) (error "WTF??")]
+                [(_ 'X) (refine1 σ V C1)]
+                [('X _) (refine1 σ V C2)]
+                [(_ _) (refine-U σ U (raw:refine-C* C* C))])]
             [(? .μ/C? Uc) (refine1 σ V (unroll/C Uc))]
             ; equal contracts
             [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) e) _)) ρ)
@@ -70,7 +73,7 @@
             ['true? (cons σ (.// .tt C*))]
             ['false? (cons σ (.// .ff C*))]
             [(.st-p t 0) (cons σ (.// (.St t '()) C*))]
-            [_ (refine-U σ U (raw:refine-C* C* C))])])])))
+            [_ (refine-U σ U (raw:refine-C* C* C))])])]))))
 
 (: refine-U : .σ .U (Setof .V) → .Vns)
 (define (refine-U σ U Cs)
@@ -79,5 +82,3 @@
   (if (set-empty? D/st)
       (cons σ (.// U Ds))
       (refine1 σ (.// U Ds) (set-first D/st))))
-
-(raw:refine1 refine1)

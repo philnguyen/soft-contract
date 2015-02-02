@@ -3,7 +3,7 @@
 
 (module+ test
   (require racket/match racket/sandbox racket/file rackunit
-           "../../lang.rkt" "../../parse.rkt" "../../check.rkt")
+           "../lang.rkt" "../parse.rkt" "../check.rkt")
   
   (define exn:scv? (or/c exn:fail:contract:counterexample?
                          exn:fail:contract:maybe?))
@@ -45,7 +45,7 @@
   
   (define (test-dir dir-name test-func)
     (path-string? (.prog? . -> . any) . -> . any)
-    (for* ([file (in-directory dir-name)]
+    (for* ([file (in-directory (format "programs/~a" dir-name))]
            [file-path-str (in-value (path->string file))]
            #:when (regexp-match-exact? #rx".*rkt" file-path-str))
       (printf "Testing: ~a~n" file-path-str)
@@ -60,4 +60,3 @@
   (test-dir "fail" check-verify-fail)
   (test-dir "fail-ce" (λ (s) (check-verify-fail s #t)))
   (test-dir "no-ce" check-no-ce))
-

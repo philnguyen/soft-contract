@@ -21,9 +21,6 @@
 ;; TODO For testing only
 (define ids (box '()))
 
-;; FIXME may not need this anymore
-(define on-•! (make-parameter (λ () '•)))
-
 (define/contract cur-mod (parameter/c module-path?)
   (make-parameter "top-level"))
 
@@ -201,6 +198,16 @@
        [(list c₁ ... cₖ) (foldr (.or/c (cur-mod)) cₖ c₁)])]
     ;; Negation
     [(#%plain-app (~literal fake:not/c) c) ((.not/c (cur-mod)) (go #'c))]
+    [(#%plain-app (~literal fake:listof) c)
+     (define x #'x)
+     (.μ/c x ((.or/c (cur-mod)) .null/c (.cons/c (go #'c) (.x/c x))))]
+    [(#%plain-app (~literal fake:list/c) c ...)
+     (foldr .cons/c .null/c (go/list #'(c ...)))]
+    [(begin
+       (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...)
+       _ ...)
+     (.struct/c #'tag (go/list #'(c ...)))]
+
     ;; primitive contracts
     [(~literal fake:any/c) .any/c]
     
@@ -383,5 +390,3 @@
 ;; Testing only
 (define (test file)
     (files->prog (list file)))
-
-;;(test "test/test-verifier/fail-ce/braun-tree.rkt")

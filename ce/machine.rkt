@@ -163,8 +163,7 @@
     #f)
   
   ;; `search` is for CE, `run` is the normal run
-  (parameterize ([raw:refine1 refine1])
-    (search (set (inj e)))))
+  (search (set (inj e))))
 
 
 (: step-p : (Listof .module) (Setof .st-ac) → (.ς → .ς*))

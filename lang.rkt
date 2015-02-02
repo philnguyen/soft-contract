@@ -124,6 +124,9 @@
 (define ((.not/c ctx) c)
   (.@ (.st-mk 'not/c 1) (list c) ctx))
 
+(define (.cons/c [c : .expr] [d : .expr])
+  (.struct/c #'cons (list c d)))
+
 (: •! : → .•ₗ)
 ;; Generate new labeled hole
 (define •!
@@ -214,7 +217,7 @@
 (define-value/pattern .ff (.b #f))
 (define-value/pattern .any/c (.λ 1 .tt))
 (define-value/pattern .none/c (.λ 1 .ff))
-(define-value/pattern .empty/c (.st-p #'empty 0))
+(define-value/pattern .null/c (.st-p #'null 0))
 (define-value/pattern .cons (.st-mk #'cons 2))
 (define-value/pattern .car (.st-ac #'cons 2 0))
 (define-value/pattern .cdr (.st-ac #'cons 2 1))
@@ -226,11 +229,6 @@
 (define-value/pattern .box? (.st-p box-id 1))
 (define-value/pattern .unbox (.st-ac box-id 1 0))
 (define-value/pattern .box (.st-mk box-id 1))
-
-#|
-(define (.cons/c [c : .expr] [d : .expr])
-  (.struct/c #'cons (list c d)))
-|#
 
 #;(: prim : (U Symbol Number String Boolean) → (U #f .e))
 #;(define prim

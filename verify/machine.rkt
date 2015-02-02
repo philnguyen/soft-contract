@@ -148,8 +148,7 @@
       (visit ς)
       ans))
   
-  (parameterize ([raw:refine1 refine1])
-    (step* (inj e))))
+  (step* (inj e)))
 
 (: step-p : (Listof .module) → (.ς → .ς*))
 (define (step-p ms)  

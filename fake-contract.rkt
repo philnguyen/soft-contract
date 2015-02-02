@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require (except-in racket/contract/base
-                    -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract)
+                    -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract
+                    one-of/c)
          (for-syntax racket/base)
          racket/list)
 (require (prefix-in c: racket/contract/base)
@@ -22,6 +23,7 @@
 (define and/c c:and/c)
 (define or/c c:and/c)
 (define list/c c:list/c)
+(define one-of/c c:one-of/c)
 (define-syntax (struct/c stx) 
   (syntax-case stx ()
     [(_ name cs ...)
