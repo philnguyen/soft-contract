@@ -10,11 +10,11 @@
          read read-syntax)
 
 (define-syntax-rule (module-begin m ...)
-  (#%module-begin (parameterize ([verify-top? #t])
+  (#%module-begin (parameterize ([verify-top? #f])
                     (feedback/massage '(m ...)))))
 
 (define-syntax-rule (top-interaction . x)
-  (#%top-interaction . (parameterize ([verify-top? #t])
+  (#%top-interaction . (parameterize ([verify-top? #f])
                          (feedback/massage 'x))))
 
 #;(define-syntax-rule (top-interaction . e)

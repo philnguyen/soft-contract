@@ -14,12 +14,12 @@
 (require/typed "read.rkt"
   [-begin ((Listof Any) → Any)])
 
-(: feedback ([Sexp] [Integer] . ->* . Any))
+(: feedback ([Sexp] [Integer] . ->* . (U 'safe 'timeout)))
 (define (feedback prog [timeout 30])
   (log-info "feedback ... ~a" (current-process-milliseconds))
   (match (run prog timeout)
-    ['timeout (printf "Timeout after ~a seconds~n" timeout)]
-    [(or 'safe (list)) (printf "Program is safe~n")]
+    ['timeout 'timeout]
+    [(or 'safe (list)) 'safe]
     [(list 'blame l⁺ lᵒ v c)
      (raise-contract-error l⁺ lᵒ v c)]
     [(list 'ce (list 'blame l⁺ lᵒ v c) ce)
@@ -88,7 +88,7 @@
 (struct exn:fail:contract:counterexample exn:fail:contract () #:transparent)
 (struct exn:fail:contract:maybe exn:fail:contract () #:transparent)
 
-(: raise-contract-error ([Any Any Any Any] [Any] . ->* . Any))
+(: raise-contract-error ([Any Any Any Any] [Any] . ->* . Nothing))
 (define (raise-contract-error l⁺ lᵒ v c [ce #f])
   (define sure? #t)
   (define parties
