@@ -32,7 +32,7 @@ before_script:
 script:
  - /usr/racket/bin/raco make check.rkt
  - /usr/racket/bin/raco link .
- - cd benchmark
+ - cd benchmark-verification
  - /usr/racket/bin/raco test -x main.rkt
 
 after_script:
