@@ -4,7 +4,7 @@
   (require "../parse.rkt")
   (require rackunit)
   
-  (for* ([dir (list "test-verifier/safe" "test-verifier/fail" "test-verifier/fail-ce")]
+  (for* ([dir (list "programs/safe" "programs/fail" "programs/fail-ce")]
          [file (in-directory dir)]
          #:when (regexp-match-exact? #rx".*rkt" (path->string file)))
     (define str (path->string file))

@@ -42,7 +42,7 @@
 
 (define/contract (parse-top-level-form form)
   (scv-syntax? . -> . .top-level-form?)
-  (log-debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (printf "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
      (define mod-path (module-path #'id))
@@ -179,7 +179,7 @@
        (#%plain-app
         (~literal fake:dynamic->i)
         (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-        (#%plain-lambda (z:id ...) d:expr))
+        (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
      (define xs (syntax->list #'(z ...)))
      (define ctx′ (ext-env ctx xs))
@@ -207,6 +207,8 @@
        (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...)
        _ ...)
      (.struct/c #'tag (go/list #'(c ...)))]
+    [(#%plain-app (~literal fake:=/c/proc) c)
+     (todo '=/c)]
 
     ;; primitive contracts
     [(~literal fake:any/c) .any/c]
@@ -266,7 +268,7 @@
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
     [(#%variable-reference) (dummy)]
-    [(#%variable-reference id) (todo '|#%variable-reference id|)]
+    [(#%variable-reference id) (todo (format "#%variable-reference ~a" (syntax->datum #'id)))]
     
     ;; Hacks for now
     [(~literal null) .null]
@@ -389,4 +391,6 @@
 
 ;; Testing only
 (define (test file)
-    (files->prog (list file)))
+  (files->prog (list file)))
+
+(test "test/programs/safe/dvh-2.rkt")
