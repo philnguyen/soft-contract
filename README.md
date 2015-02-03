@@ -1,7 +1,7 @@
-soft-contract
+Higher-order Contract Verification with Counterexamples
 =============
 
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=master)](https://travis-ci.org/philnguyen/soft-contract)
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=pldi-aec-2015)](https://travis-ci.org/philnguyen/soft-contract)
 
 Installation
 ------------------------
