@@ -4,6 +4,6 @@
     (cond
       [(and (number? x) (string? y)) (and (number? x) (string? y))]
       [(number? x) (and (number? x) (not (string? y)))]
-      [else (not (number? x))])))
+      [else #|HERE|# (number? x)])))
 (require 'ex-13)
 (f • •)
