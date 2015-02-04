@@ -54,11 +54,14 @@
 
   (define/contract (test-dir dir-name test-func)
     (path-string? (any/c . -> . any) . -> . any)
-    (define fnames (sort (map path->string (directory-list dir-name)) string<=?))
-    (for ([fname fnames] #:when (regexp-match-exact? #rx".*sch" fname))
-      (define path (format "~a/~a" dir-name fname))
-      (printf "~nChecking \"~a\": " path)
-      (test-case path (test-func (file->list path)))))
+    (cond
+      [(directory-exists? dir-name)
+       (define fnames (sort (map path->string (directory-list dir-name)) string<=?))
+       (for ([fname fnames] #:when (regexp-match-exact? #rx".*sch" fname))
+         (define path (format "~a/~a" dir-name fname))
+         (printf "~nChecking \"~a\": " path)
+         (test-case path (test-func (file->list path))))]
+      [else (printf "Warning: directory \"~a\" does not exist~n" dir-name)]))
   
   (test-dir "safe" check-verify-safe)
   (test-dir "fail-ce" (λ (s) (check-verify-fail s #t)))
