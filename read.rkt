@@ -240,7 +240,7 @@
                (match s ; desugar these for more uniform treatment of arithmetics
                  ['zero? (.λ 1 (.@ '= (list (.x 0) .zero) l) #f)]
                  ['positive? (.λ 1 (.@ '> (list (.x 0) .zero) l) #f)]
-                 ['negative? (.λ 1 (.@ '< (list (.x 0) .zero)) l) #f]
+                 ['negative? (.λ 1 (.@ '< (list (.x 0) .zero) l) #f)]
                  [_ #f])
                (error 'Parser "Unknown symbol ~a in module ~a" s l))))]))
 
