@@ -4,7 +4,8 @@
   (require racket/cmdline racket/match racket/set racket/list racket/sandbox racket/contract
            rackunit racket/file racket/format
            (only-in racket/file file->list)
-           "../utils.rkt" "../show.rkt" "../lang.rkt" "../runtime.rkt" "../check.rkt")
+           "../utils.rkt" "../show.rkt" "../lang.rkt" "../runtime.rkt"
+           "../check.rkt" "../main.rkt")
 
   (define Time-Out 300)
 
@@ -14,14 +15,14 @@
   ;; run program and report result/time
   (define/contract (verify prog)
     (any/c . -> . (values verification-result? integer?))
-    
+
     (define (run)
       (with-handlers ([scv:exn? values])
-        (feedback prog Time-Out)))
-    
+        (feedback/massage prog Time-Out)))
+
     (match-define-values ((list res) t₁ t₂ t₃)
                          (time-apply run '()))
-    
+
     (values res t₂))
 
   ;; Make sure this correct program is verified
@@ -62,7 +63,7 @@
          (printf "~nChecking \"~a\": " path)
          (test-case path (test-func (file->list path))))]
       [else (printf "Warning: directory \"~a\" does not exist~n" dir-name)]))
-  
+
   (test-dir "safe" check-verify-safe)
   (test-dir "fail-ce" (λ (s) (check-verify-fail s #t)))
   (test-dir "fail" check-verify-fail)

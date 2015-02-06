@@ -6,6 +6,7 @@
          (for-syntax racket/base racket/match))
 (provide (rename-out [module-begin #%module-begin]
                      [top-interaction #%top-interaction])
+         feedback/massage
          #%app #%datum #%top
          read read-syntax)
 
@@ -21,11 +22,11 @@
   (#%top-interaction . (begin #;(printf "Run Top:~n~a~n" (massage-top 'e))
                               (feedback (massage-top 'e)))))
 
-(define (feedback/massage x)
+(define (feedback/massage x [timeout 30])
   #;(printf "Prog:~n~a~n" (pretty (massage x)))
   (log-info "feedback/massage ... ~a" (current-process-milliseconds))
   (begin0
-      (feedback (massage x))
+      (feedback (massage x) timeout)
     (log-info "Finished feedback/massage: ~a" (current-process-milliseconds))))
 
 (define verify-top? (make-parameter #f))
@@ -33,6 +34,7 @@
 ;; Havoc each exported identifier
 (define (massage p)
   (match p
+    ;; Given list of modules without top-level, insert top-level havoc-ing everybody
     [(list (and modl `(module ,m racket ,dss ...)) ...)
      (define names
        (for*/fold ([acc '()]) ([ds dss] [d ds])
@@ -40,6 +42,8 @@
      `(,@modl
        (require ,@(for/list ([mᵢ m]) `(quote ,mᵢ)))
        (amb ,@(for/list ([x names]) `(• ,x))))]
+    ;; Given list of modules followed by top-level,
+    ;; either leave as-is or also verify top-level depending on `(verify-top?)`
     [(list (and modl `(module ,_ racket ,_ ...)) ... `(require ,x ...) e ...)
      (cond
       [(verify-top?)
