@@ -95,7 +95,7 @@
 
   (: step* : .ς → .ς+)
   (define (step* ς)
-    (define ans : .ς+ ∅)
+    (define-set ans : .ς)
     (define-set seen : .ς)
 
     (: resume : .res .K .rt/κ → Void)
@@ -130,7 +130,7 @@
         ; record final states, omit blames on top, havoc, and opaque modules
         [(? final? ς)
          (unless (match? ς (.ς [.blm (or '† '☠ (? m-opaque?)) _ _ _] _ _))
-           (set! ans (set-add ans ς)))]
+           (ans-add! ς))]
         ; remember waiting context and plug any available answers into it
         [(.ς (cons ctx F) σ k)
          (define-values (kₗ kᵣ) (split-κ* ctx k))
@@ -395,12 +395,14 @@
               (cons (.▹/κ  (cons #f (.↓ (ref-e in name) ρ∅)) (list in ctx in)) k))]
          [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
          [(.@-havoc x)
-          (match/nd: (.V → .ς) (match (ρ@ ρ x)
-                                 [(? .//? V) V]
-                                 [(.L i) (match (σ@ σ i) ; TODO rewrite
-                                           [(? .//? V) V]
-                                           [(? .μ/V? V) (unroll V)])]
-                                 [(? .μ/V? V) (unroll V)])
+          (define V
+            (match (ρ@ ρ x)
+              [(? .//? V) V]
+              [(.L i) (match (σ@ σ i)
+                        [(? .//? V) V]
+                        [(? .μ/V? V) (unroll V)])]
+              [(? .μ/V? V) (unroll V)]))
+          (match/nd: (.V → .ς) V
             [(and V (.// U C*))
              ; always alloc the result of unroll
              ; FIXME: rewrite 'unroll' to force it
@@ -408,15 +410,13 @@
              #;(printf "havoc: ~a~n~n" (show-V σ′ V′))
              (match U
                [(.λ↓ (.λ n _ _) _)
-                #;(printf "case1: ~a~n~n" (show-E σ′ V′))
                 (define-values (σ′′ Ls) (σ++ σ′ n))
                 (step-@ V′ Ls '☠ σ′′ k)]
                [(.Ar (.// (.Λ/C Cx _ _) _) _ _)
-                #;(printf "case2: ~a~n~n" (show-E σ′ V′))
                 (define-values (σ′′ Ls) (σ++ σ′ (length Cx)))
                 (step-@ V′ Ls '☠ σ′′ k)]
                [_ ∅])]
-            [X (error 'Internal "step-E: ~a" X)])]
+            [X (error 'Internal "@-havoc: ~a" X)])]
          [(.if i t e) (.ς (.↓ i ρ) σ (cons (.if/κ (.↓ t ρ) (.↓ e ρ)) k))]
          [(.amb e*) (for/set: .ς ([e e*]) (.ς (.↓ e ρ) σ k))]
          [(.μ/c x e) (.ς (.↓ e (ρ+ ρ x (→V (.X/C x)))) σ (cons (.μc/κ x) k))]
@@ -614,8 +614,8 @@
       [(? .X/C? x) x]
       [(? .prim? p) p]
       ; ρ
-      [(.ρ m l) (.ρ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅]) ([i (in-hash-keys m)])
-                      (hash-set m′ i (go! (hash-ref m i))))
+      [(.ρ m l) (.ρ (for/hash : (Map (U Integer Symbol) .V) ([(i V) (in-hash m)])
+                      (values i (go! V)))
                     l)]
       ; κ
       [(.if/κ t e) (.if/κ (go! t) (go! e))]
@@ -675,8 +675,8 @@
   (: fixup/ρ : .ρ → .ρ)
   (define (fixup/ρ ρ)
     (match-define (.ρ m l) ρ)
-    (.ρ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅]) ([i (in-hash-keys m)])
-          (hash-set m′ i (fixup/V (hash-ref m i))))
+    (.ρ (for/hash : (Map (U Integer Symbol) .V) ([(i V) (in-hash m)])
+          (values i (fixup/V V)))
         l))
 
   (: fixup/κ : .κ → .κ)
