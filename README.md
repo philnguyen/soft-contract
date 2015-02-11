@@ -6,7 +6,7 @@ Higher-order Contract Verification with Counterexamples
 
 ### Obtain the self-contained Virtualbox image
 
-You can download the [Virtualbox image](http://google.com)
+You can download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing)
 containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks.
 
 The image runs Lubuntu 14.10 32 bit.

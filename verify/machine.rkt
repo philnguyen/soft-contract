@@ -189,9 +189,7 @@
          #;(log-debug "Blur: ~a with ~a~n~n" (show-E σ V0) (show-E σ V1))
          (match-define (cons σ′ Vi) (⊕ σ0 V0 σ1 V1))
          (define σi (⊕ σ0 σ′ F0))
-         (visit (.ς V σ (cons (.blr/κ F1 σi Vi) k)))
-         #;(memoizing ς
-           )]
+         (visit (.ς V σ (cons (.blr/κ F1 σi Vi) k)))]
         ; FIXME hack
         [(.ς (? .V?) _ (cons (? .recchk/κ?) _))
          (memoizing ς
