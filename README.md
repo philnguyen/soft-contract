@@ -20,13 +20,13 @@ Directory structure:
 
 ### Run the benchmarks
 
-> cd /home/aec/soft-contract/benchmark-verfications
-> raco test main.rkt
+    cd /home/aec/soft-contract/benchmark-verfications
+    raco test main.rkt
 
 ### Run the server
 
-> cd /home/aec/try-scv-racket
-> racket main.rkt
+    cd /home/aec/try-scv-racket
+    racket main.rkt
 
 Then open the link at `http://localhost:8080` to try out the web tool.
 There are examples to start with.
