@@ -3,10 +3,8 @@ Higher-order Contract Verification with Counterexamples
 
 [![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=pldi-aec-2015)](https://travis-ci.org/philnguyen/soft-contract)
 
-Obtaining the self-contained Virtualbox image
----------------------------------------------
 
-### Download
+### Obtain the self-contained Virtualbox image
 
 You can download the [Virtualbox image](http://google.com)
 containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks.
