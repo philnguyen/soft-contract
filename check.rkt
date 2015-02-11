@@ -57,7 +57,7 @@
      (match (channel-get c)
        ['timeout (kill-all) err]
        [res (kill-all) res])]
-    [result 
+    [result
      (log-info "Got a result ... ~a  (z3 time: ~a)" (current-process-milliseconds) total-z3-time)
      (kill-all) result]))
 
@@ -98,6 +98,7 @@
   (define reason : String
     (match* (v c)
       [(_ `(arity=/c ,_)) "Wrong arity"]
+      [(_ `(arity-includes/c ,_)) "Wrong arity"]
       [(_ _)
        (match (replace-struct● v)
          [(and v `(begin (struct ,_ ()) ... ,_))
@@ -160,7 +161,7 @@
 (define (replace-struct● e)
 
   (define-set new-names : Symbol)
-  
+
   (define e′
     (let go! : Any ([e : Any e])
       (match e
@@ -170,7 +171,7 @@
          `(,name)]
         [(list xs ...) (map go! xs)]
         [_ e])))
-  
+
   (-begin
    `(,@(for/list : (Listof Any) ([name (in-set new-names)])
          `(struct ,name ()))
