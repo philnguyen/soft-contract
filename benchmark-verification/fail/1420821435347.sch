@@ -3,4 +3,3 @@
   (define (f n)
     (/ 1 (- 100 n))))
 
-(require 'f)

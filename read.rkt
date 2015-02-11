@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/match racket/list racket/set
+(require racket/match racket/list racket/set racket/contract
          "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in))
 (provide read-p on-•! -begin)
 
@@ -7,7 +7,7 @@
 
 ;; figure out define/provide/require for each module
 (define (pass-1 p)
-  
+
   ;; module-clause -> (Values Symbol-Set Symbol-Set Symbol-Set)
   (define (pass-1/m-clause m-clause)
     (match m-clause
@@ -45,7 +45,7 @@
           'Parser
           "expect one of:~n (require (submod \"..\" module-name) …)~n (provide provide-spec …)~n (define x v)~n (struct id (id …))~ngiven:~n~a"
           (pretty m-clause))]))
-  
+
   (match p
     [`(,m* ... (require (quote ,main-reqs) ...) ,_ ...)
      (for/fold ([M (hash '† (list ∅ ∅ (list->set main-reqs)))]) ([m m*])
@@ -91,7 +91,7 @@
 
 ;; read and return module's ast
 (define (read-m syms l ds)
-  
+
   (define (read-m-clause decs defs order m-clause)
     (match m-clause
       [`(provide/contract ,p/c-items ...)
@@ -138,28 +138,59 @@
                (append (for/list ([f field*]) (gen-ac t f))
                        (list* (gen-p t) t order)))]
       [_ (values decs defs order)]))
-  
+
   ;; read each provide/define clause
   (define-values (decs defs rev-order)
     (for/fold ([decs h∅] [defs h∅] [order empty]) ([d ds])
       (read-m-clause decs defs order d)))
-  
+
   ;; rebuild table from definitions
   (define m1
     (for/hash ([(l e) (in-hash defs)])
       (values l (cons e (hash-ref decs l #f)))))
-  
+
   ;; undefined but declared values are •
   (define-values (m2 ro)
     (for/fold ([m m1] [ro rev-order])
               ([(l c) (in-hash decs)] #:unless (hash-has-key? m1 l))
       (values (hash-set m l (cons ((on-•!)) c)) (cons l ro))))
-  
+
   (.m (reverse ro) m2))
 
 (define (read-e syms l xs e)
   (define (go ei) (read-e syms l xs ei))
+
+  ;; FIXME temporary hack to allow shadowing
+  (define hack? (or/c '>=/c '>/c '<=/c '</c '=/c))
+
+  (define/contract (resolve-symbol s)
+    (symbol? . -> . (or/c #f .e?))
+    (or (var xs s)
+        (match-let ([(list my-defs my-decs my-reqs) (hash-ref syms l)])
+          (or (for*/first ([name my-defs] #:when (eq? name s)) (.ref s l l))
+              (for*/first ([name my-decs] #:when (eq? name s)) (.ref s l l))
+              (for*/first ([l-req my-reqs]
+                           [their-provides (in-value (second (hash-ref syms l-req)))]
+                           #:when (set-member? their-provides s))
+                (.ref s l-req l))
+              (prim s)
+              (match s ; desugar these for more uniform treatment of arithmetics
+                ['zero? (.λ 1 (.@ '= (list (.x 0) .zero) l) #f)]
+                ['positive? (.λ 1 (.@ '> (list (.x 0) .zero) l) #f)]
+                ['negative? (.λ 1 (.@ '< (list (.x 0) .zero) l) #f)]
+                [_ #f])))))
+
   (match e ; assume `♣` never appears in source code
+    [`(,(? hack? c) ,e)
+     (match (resolve-symbol c)
+       [(? .e? f) (.@ f (list (go e)) l)]
+       [_
+        (match `(,c ,e)
+          [`(>=/c ,e) (go `(λ (♣) (and (real? ♣) (>= ♣ ,e))))]
+          [`(>/c ,e) (go `(λ (♣) (and (real? ♣) (> ♣ ,e))))]
+          [`(<=/c ,e) (go `(λ (♣) (and (real? ♣) (<= ♣ ,e))))]
+          [`(</c ,e) (go `(λ (♣) (and (real? ♣) (< ♣ ,e))))]
+          [`(=/c ,e) (go `(λ (♣) (and (real? ♣) (= ♣ ,e))))])])]
     ;; syntactic sugar
     [`(and) .tt]
     [`(and ,e) (go e)]
@@ -178,16 +209,11 @@
     [`(let* ([,x ,ex] ,p ...) ,e) (go `(let ([,x ,ex]) (let* ,p ,e)))]
     [`(list ,e* ...)
      (foldr (λ (ei acc) (.@ (prim 'cons) (list (go ei) acc) l)) (prim 'empty) e*)]
-    [`(>=/c ,e) (go `(λ (♣) (and (real? ♣) (>= ♣ ,e))))]
-    [`(>/c ,e) (go `(λ (♣) (and (real? ♣) (> ♣ ,e))))]
-    [`(<=/c ,e) (go `(λ (♣) (and (real? ♣) (<= ♣ ,e))))]
-    [`(</c ,e) (go `(λ (♣) (and (real? ♣) (< ♣ ,e))))]
-    [`(=/c ,e) (go `(λ (♣) (and (real? ♣) (= ♣ ,e))))]
     [`(and/c ,e* ...) (.and/c l (map go e*))]
     [`(or/c ,e* ...) (.or/c l (map go e*))]
     [`(not/c ,c) (.not/c l (go c))]
     [`(=>/c ,c ,d) (.or/c l (list (.not/c l (go c)) (go d)))]
-    [`(cons/c ,c ,d) (.struct/c 'cons (list (go c) (go d)))]    
+    [`(cons/c ,c ,d) (.struct/c 'cons (list (go c) (go d)))]
     [`(listof ,c)
      (let ([x (variable-not-in c 'X)])
        (.μ/c x (.or/c l (list .empty/c (.cons/c (go c) (.x/c x))))))]
@@ -204,7 +230,7 @@
     [`(positive? ,e) (.@ '> (list (go e) .zero) l)]
     [`(negative? ,e) (.@ '< (list (go e) .zero) l)]
     [`(unless ,p ,e) (.if (go p) (go e) .void)]
-    
+
     ;; basic contract forms
     [`(->i ((,x ,dom) ...) (,res (,dep ...) ,rng))
      (unless (equal? x dep)
@@ -218,7 +244,7 @@
            #t)]
     [`(struct/c ,t ,cs ...) (.struct/c t (map go cs))]
     [`(,(or 'μ/c 'mu/c) (,x) ,c) (.μ/c x (read-e syms l (bind-name xs x) c))]
-    
+
     ;; other basic exp forms
     [`(if ,e1 ,e2 ,e3) (.if (go e1) (go e2) (go e3))]
     [`(amb ,e* ...) (amb (map go e*))]
@@ -228,21 +254,8 @@
     [(or (? number? x) (? boolean? x) (? string? x)) (prim x)]
     [`(,f ,xs ...) (.@ (go f) (map go xs) l)]
     [(? symbol? s)
-     (or (var xs s)
-         (match-let ([(list my-defs my-decs my-reqs) (hash-ref syms l)])
-           (or (for*/first ([name my-defs] #:when (eq? name s)) (.ref s l l))
-               (for*/first ([name my-decs] #:when (eq? name s)) (.ref s l l))
-               (for*/first ([l-req my-reqs]
-                            [their-provides (in-value (second (hash-ref syms l-req)))]
-                            #:when (set-member? their-provides s))
-                 (.ref s l-req l))
-               (prim s)
-               (match s ; desugar these for more uniform treatment of arithmetics
-                 ['zero? (.λ 1 (.@ '= (list (.x 0) .zero) l) #f)]
-                 ['positive? (.λ 1 (.@ '> (list (.x 0) .zero) l) #f)]
-                 ['negative? (.λ 1 (.@ '< (list (.x 0) .zero) l) #f)]
-                 [_ #f])
-               (error 'Parser "Unknown symbol ~a in module ~a" s l))))]))
+     (or (resolve-symbol s)
+         (error 'Parser "Unknown symbol ~a in module ~a" s l))]))
 
 (define (bind xs x)
   (match x

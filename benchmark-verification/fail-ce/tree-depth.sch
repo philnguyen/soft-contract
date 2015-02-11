@@ -1,6 +1,6 @@
 (module tree-depth racket
   (provide/contract
-   [depth (TREE/C . -> . (and/c integer? (>=/c 0)))]
+   [depth (TREE/C . -> . (and/c integer? (>/c 0)))]
    [TREE/C any/c])
   (struct leaf ())
   (struct node (l r))

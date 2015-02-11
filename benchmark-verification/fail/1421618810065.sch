@@ -13,6 +13,3 @@
         (if (< b (f (car xs)))
             (argmin/acc f a b (cdr xs))
             (argmin/acc f (car xs) (f (car xs)) (cdr xs))))))
-
-(require 'argmin)
-(argmin abs '(1 2 -3))

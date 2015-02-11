@@ -20,6 +20,7 @@
       (with-handlers ([scv:exn? values])
         (feedback/massage prog Time-Out)))
 
+    (collect-garbage) (collect-garbage) (collect-garbage)
     (match-define-values ((list res) t₁ t₂ t₃)
                          (time-apply run '()))
 

@@ -15,4 +15,6 @@
 
 (module main racket
   (require (submod ".." argmin))
-  (argmin (lambda (x) 0+1i) (cons 1 (cons 1 empty))))
+  (provide (contract-out [main (-> any/c)]))
+  (define (main)
+    (argmin (lambda (x) 0+1i) (cons 1 (cons 1 empty)))))

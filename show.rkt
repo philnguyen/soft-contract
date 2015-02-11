@@ -14,7 +14,7 @@
 
 (: show-A : .σ .A → Any)
 (define (show-A σ A)
-  (match A    
+  (match A
     [(.blm l+ lo V C) `(blame ,l+ ,lo ,(show-V σ V) ,(show-V σ C))]
     [(? .V? V) (show-V σ V)]))
 
@@ -137,12 +137,13 @@
          [(l `(and ,r ...)) `(and ,l ,@r)]
          [(l r) `(and ,l ,r)])]
       [(.if a b (.b #t)) `(implies ,(go ctx a) ,(go ctx b))]
-      
-      
+
+
       [(.λ n e v?)
        (define x* (vars-not-in n ctx))
        `(,(if v? 'λ* 'λ) ,(reverse x*) ,(go (append x* ctx) e))]
       [(.•ₗ α) (syn σ α)]
+      ['• '•]
       [(.b b) (show-b b)]
       [(.st-mk t _) t]
       [(.st-ac 'cons _ 0) 'car]

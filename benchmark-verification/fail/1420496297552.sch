@@ -5,6 +5,8 @@
           [zs (cdr xs)])
       (if (empty? zs) z
           (foldl1 f (cons (f z (car zs)) (cdr zs)))))))
- (module user racket
+
+(module user racket
   (require (submod ".." foldl1))
-  (foldl1 (λ (x y) 0.840) empty))
+  (provide/contract (main (-> any/c)))
+  (define (main) (foldl1 (λ (x y) 0.840) empty)))

@@ -6,4 +6,5 @@
 
 (module user racket 
   (require (submod ".." lastpair))
-  (lastpair (cons 0.290 0.227)))
+  (provide main)
+  (define (main) (lastpair (cons 0.290 0.227))))

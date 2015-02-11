@@ -12,9 +12,11 @@
 		     (argmin f (cdr xs)))])))
 
 
- (module user racket
+(module user racket
   (require (submod ".." argmin))
-  (argmin (λ (x) 0+1i) (cons 0.873 (cons 0.072 empty))))
+  (provide main)
+  (define (main) (argmin (λ (x) 0+1i) (cons 0.873 (cons 0.072 empty)))))
  
- (require 'user)
+(require 'user)
+(main)
 

@@ -91,7 +91,7 @@
         [(? .λ? f) (.// (.λ↓ f ρ∅) ∅)]
         [#f (error 'Prim "Unknown primitive name `~a`" name)])])))
 
-(define** 
+(define**
   [MT (→V (.St 'empty empty))]
   [♦ (→V '•)] [V∅ (.μ/V '_ ∅)]
   [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
@@ -274,7 +274,7 @@
    (match V
      [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list b) 'Λ)) 'Λ) #f) ρ∅)]
      [_ (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list (.x 1)) 'Λ)) 'Λ) #f) (ρ+ ρ∅ V))])))
- 
+
 (:* [</C >/C ≥/C ≤/C =/C ≠/C string-length/C equal/C] : .V → .V)
 (define (</C V) (→C '< #:2nd V))
 (define (>/C V) (→C '> #:2nd V))
@@ -331,7 +331,7 @@
       [(.L i) (go (σ@ σ i))]
       [(.// U _) (go U)]
       [(.St/C _ C*) (andmap go C*)]
-      [(.St _ C*) (andmap go C*)]      
+      [(.St _ C*) (andmap go C*)]
       [(.μ/C _ D) (go D)]
       [(? .Λ/C?) #f]
       [_ #t])))
@@ -376,7 +376,7 @@
      [(.// U C*) (.// (go/U U) (for/set: .V ([Ci C*]) (go/V Ci)))]
      [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go/V Vi)))]
      [(? .X/V? V) V]))
-  
+
   (: go/U : .U → .U)
   (define go/U
     (match-lambda
@@ -387,7 +387,7 @@
      [(.St/C t V*) (.St/C t (go/V* V*))]
      [(.μ/C x C) (.μ/C x (go/V C))]
      [U U]))
-  
+
   (: go/ρ : .ρ → .ρ)
   (define (go/ρ ρ)
     (match-define (.ρ m l) ρ)
@@ -397,10 +397,10 @@
          [(? .V? V) (hash-set acc k (go/V V))]
          [_ acc]))
      l))
-  
+
   (: go/V* : (Listof .V) → (Listof .V))
   (define (go/V* V*) (map go/V V*))
-  
+
   (: go/Vs : (Setof .V) → (Setof .V))
   (define (go/Vs Vs)
     (for/set: .V ([V (in-set Vs)]) (go/V V)))
@@ -453,7 +453,7 @@
         l)]
       ; List
       [(? list? V*) (map go! V*)]))
-  
+
   (: transfer? : .V → Boolean)
   (define (transfer? C)
     (match C
@@ -473,7 +473,7 @@
                    [(.μ/C _ c) (transfer? c)]
                    [(? .X/C?) #t])]
       [_ #f]))
-  
+
   (: well-formed? : .σ .V → Boolean)
   (define (well-formed? σ V)
     (match V
@@ -488,7 +488,7 @@
       [(.L i) (and (hash-has-key? (.σ-map σ) i)
                    (well-formed? σ (σ@ σ i)))]
       [_ #t]))
-  
+
   (define V-new (go! V-old))
   #;(unless (well-formed? σ-new V-new)
   (error "malformed"))
@@ -587,7 +587,7 @@
 ; generates a symbol not appearing in value (for μ/V x {...})
 (: fresh : (U .V (Setof .V) (Listof .V)) → Symbol)
 (define (fresh V)
-  
+
   (: col : (U .V (Setof .V) (Listof .V)) → (Setof Symbol))
   (define (col V)
     (match V
@@ -603,5 +603,5 @@
                      (set-union s (col V)))]
       [(? list? V*) (for/fold ([s : (Setof Symbol) ∅]) ([V V*])
                       (set-union s (col V)))]))
-  
+
   (variable-not-in (set->list (col V)) 'X))

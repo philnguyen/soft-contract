@@ -3,33 +3,37 @@ Higher-order Contract Verification with Counterexamples
 
 [![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=pldi-aec-2015)](https://travis-ci.org/philnguyen/soft-contract)
 
-Installation
-------------------------
+Obtaining the self-contained Virtualbox image
+---------------------------------------------
 
-To install, clone the `racket` branch of this repository, then:
+### Download
 
-	cd path/to/soft-contract
-    raco pkg install
+You can download the [Virtualbox image](http://google.com)
+containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks.
 
+The image runs Lubuntu 14.10 32 bit.
+The username is `aec` and password is `aec`.
 
-Examples and Usage
-------------------------
+Directory structure:
 
-This collection implements a small functional language with contract verification
-and counterexample generation.
-Examples are under [examples/](https://github.com/philnguyen/soft-contract/tree/release/examples)
+* `/home/aec/soft-contract`: source code for Soft Contract Verification with counterexamples
+* `/home/aec/soft-contract/benchmark-verification`: benchmarks categorized into safe and unsafe programs
+* `/home/aec/try-scv-racket`: the webserver for interactive testing
 
-You need to have [Z3](http://z3.codeplex.com/releases) available in your path.
-This program has been tested to work with Z3 `4.3.2`.
+### Run the benchmarks
 
-Web REPL
--------------------------
+> cd /home/aec/soft-contract/benchmark-verfications
+> raco test main.rkt
 
-You can experiment with soft contract verification by using the web
-REPL available at http://scv.umiacs.umd.edu/.
+### Run the server
 
-Supported Language
--------------------------
+> cd /home/aec/try-scv-racket
+> racket main.rkt
+
+Then open the link at `http://localhost:8080` to try out the web tool.
+There are examples to start with.
+
+### Supported Language
 
 The demo currently supports the following subset of Racket:
 

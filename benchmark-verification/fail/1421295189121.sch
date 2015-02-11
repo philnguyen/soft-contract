@@ -3,4 +3,7 @@
   (define (f n)
     (/ 1 (- 100 n))))
 
-(module user racket (require (submod ".." f)) (f 100))
+(module user racket
+ (require (submod ".." f))
+ (provide main)
+ (define (main) (f 100)))
