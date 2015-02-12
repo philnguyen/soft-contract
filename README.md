@@ -38,16 +38,31 @@ into the REPL for use as verification benchmarks.
 The next most convenient method for testing the artifact is to download and run
 a virtual machine that contains SCV Racket and all of its dependencies.
 
+The image has been tested to work with Virtualbox `4.3.18`.
+Instructions for [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
+can be found on the official site.
+
 1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing) 
 (~3.4 GB; hosted on Google Drive),
 which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
+
+2. Launch Virtualbox:
+
+  * Click `New`
+  * Enter name and operating system:
+    - Name: *(any name)*
+	- Type: `Linux`
+	- Version: `Ubuntu (32 bit)`
+  * Next, set `Memory size`, preferably `2048MB`
+  * Next, select `Use an existing virtual drive file`, then point to the downloaded disk image, then press `Create`
+  * With the newly created machine selected, press `start`
 
 2. The image runs Lubuntu 14.10 32 bit. When the desktop loads, log in:
 
   * Username: `aec`
   * Password: `aec`
 
-3. Press `Ctrl + Alt + t` to launch the terminal.
+3. Press `Ctrl + Alt + t` to launch the terminal. (or `Start → Accessories → LXTerminal`)
 
   Directory structure:
 
