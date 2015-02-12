@@ -15,16 +15,16 @@ where benchmarks originally written in typed languages
 are translated to untyped programs with contracts.
 The tool itself is written in [Racket](http://racket-lang.org/).
 
-There are three ways to evaluate the artifact:
+There are three options to evaluate the artifact:
 
 * By [the self-contained Virtualbox image](#obtain-the-self-contained-virtualbox-image)
 * By [the online evaluator](#try-the-online-evaluator)
-* By [building `soft-contract` repository](#build-from-source-code)
+* By [cloning and building the repositories](#build-from-source-code)
 
 ## Obtain the self-contained Virtualbox image
 
-1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing)
-containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks.
+1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing),
+which contains built source code for `soft-contract`, the `try-scv-racket` webserver, and benchmarks.
 
 2. The image runs Lubuntu 14.10 32 bit. When the desktop loads, log in:
 
@@ -70,7 +70,7 @@ with many examples.
     	raco make main.rkt
 	    raco link
 
-4. Run the benchmarks
+4. Run the benchmarks. This step assumes `z3` is available in `$PATH`.
 
         cd path/to/soft-contract/benchmark-verification
 	    raco test main.rkt
