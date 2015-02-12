@@ -10,7 +10,12 @@ You can download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9
 containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks.
 
 The image runs Lubuntu 14.10 32 bit.
-The username is `aec` and password is `aec`.
+
+
+* Username: `aec`
+* Password: `aec`
+
+When the desktop loads, press `Ctrl + Alt + t` to launch the terminal.
 
 Directory structure:
 
