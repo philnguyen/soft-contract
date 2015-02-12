@@ -25,13 +25,16 @@ There are three options to evaluate the artifact:
 
 The quickest and most convenient way to test the artifact
 is to use the [online evaluator](http://scv.umiacs.umd.edu/) hosted
-at the University of Maryland, which provides a REPL for SCV Racket.  
+at the University of Maryland, which provides a REPL for SCV Racket.
 All of the benchmarks and examples are available to try or
 you experiment with your own programs.
 
 No indentifying information is retained in the server logs, 
 although we do record the programs entered
 into the REPL for use as verification benchmarks.
+
+We recommend using `Google Chrome`, even though the website is also usable in `Firefox`
+(with a different layout).
 
 ## Obtain the self-contained Virtualbox image
 
@@ -42,7 +45,7 @@ The image has been tested to work with Virtualbox `4.3.18`.
 Instructions for [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 can be found on the official site.
 
-1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxTmVzbE8xMmp1X2c/view?usp=sharing) 
+1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxMkNKUUo2cVVlbEU/view?usp=sharing) 
 (~3.4 GB; hosted on Google Drive),
 which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
@@ -62,7 +65,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
   * Username: `aec`
   * Password: `aec`
 
-3. Press `Ctrl + Alt + t` to launch the terminal. (or `Start → Accessories → LXTerminal`)
+3. There are desktop icons for the terminal and browser.
 
   Directory structure:
 
@@ -70,7 +73,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
   * `/home/aec/soft-contract/benchmark-verification`: benchmarks categorized into safe and unsafe programs
   * `/home/aec/try-scv-racket`: the webserver for interactive testing
 
-4. To run the benchmarks
+4. To run the benchmarks, open the terminal:
 
         cd /home/aec/soft-contract/benchmark-verfication
         raco test main.rkt
@@ -81,7 +84,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
         cd /home/aec/try-scv-racket
         racket main.rkt
 
-   The image has `Firefox` installed (`Start → Internet → Firefox`)
+   `Google Chrome`'s homepage is set to [http://localhost:8080](http://localhost:8080).
 
 ## Build from source code
 
