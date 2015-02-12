@@ -53,7 +53,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
     - Name: *(any name)*
 	- Type: `Linux`
 	- Version: `Ubuntu (32 bit)`
-  * Next, set `Memory size`, preferably `2048MB`
+  * Next, set `Memory size`, recommended at least `1024MB`
   * Next, select `Use an existing virtual drive file`, then point to the downloaded disk image, then press `Create`
   * With the newly created machine selected, press `start`
 
