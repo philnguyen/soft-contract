@@ -1,16 +1,32 @@
-Higher-order Contract Verification with Counterexamples
-=============
+Artifact for "Relatively Complete Counterexamples for Higher-order Programs"
+============================================================================
 
 [![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=pldi-aec-2015)](https://travis-ci.org/philnguyen/soft-contract)
 
+This repository contains the source code and benchmarks used to evaluate
+the research done in *Relatively Complete Counterexamples for Higher-order Programs*
+[submitted to PLDI 2015](http://https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/paper/pldi15-paper103.pdf).
 
-### Obtain the self-contained Virtualbox image
+We evaluate our method on programs written in an untyped functional language
+representing [Core Racket](#Supported Language)
+and demonstrate its effectiveness against various common programing idioms.
+The benchmarks are collected from different verification techniques on typed and untyped languages,
+where benchmarks originally written in typed languages
+are translated to untyped programs with contracts.
+The tool itself is written in [Racket](http://http://racket-lang.org/).
+
+There are three ways to evaluate the artifact:
+
+* By [the self-contained Virtualbox image](#Obtain the self-contained Virtualbox image)
+* By [the online evaluator](#Try the online evaluator)
+* By [building `soft-contract` repository](#Build from source code)
+
+## Obtain the self-contained Virtualbox image
 
 You can download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing)
 containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks.
 
 The image runs Lubuntu 14.10 32 bit.
-
 
 * Username: `aec`
 * Password: `aec`
@@ -36,7 +52,47 @@ Directory structure:
 Then open the link at `http://localhost:8080` to try out the web tool.
 There are examples to start with.
 
-### Supported Language
+## Try the online evaluator
+
+The quickest way to try out the tool is through the [online evaluator](http://scv.umiacs.umd.edu/)
+with many examples.
+
+## Build from source code
+
+### Build the `soft-contract` repository
+
+1. Obtain [Racket snapshot](http://www.cs.utah.edu/plt/snapshots/).
+
+2. Obtain [Z3](http://z3.codeplex.com/)
+
+3. Clone and build the repository
+
+    git clone https://github.com/philnguyen/soft-contract.git
+	cd path/to/soft-contract
+	raco make main.rkt
+	raco link
+
+4. Run the benchmarks
+
+    cd path/to/soft-contract/benchmark-verification
+	raco test main.rkt
+
+### Build the `try-scv-racket` server
+
+This step assumes that you have built `soft-contract`
+and performed `raco link` as in the [previous section](#Build the `soft-contract` repository)
+
+1. Clone the `try-scv-racket` repository
+
+    git clone https://github.com/plum-umd/try-scv-racket.git
+
+2. Launch the server at [http://localhost:8080]
+
+    cd path/to/try-scv-racket
+	racket main.rkt
+	
+
+## Supported Language
 
 The demo currently supports the following subset of Racket:
 
