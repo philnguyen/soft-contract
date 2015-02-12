@@ -16,6 +16,3 @@
             (+ 1 (zip (- x 1) (- y 1))))))
   (define (main n)
     (unzip n zip)))
-
-(require 'l-zipunzip)
-(main •)

@@ -16,6 +16,3 @@
 		      (res (n) (and/c integer? (=/c n))))])
   (require (submod ".." zip) (submod ".." map))
   (define (main n) (map (zip n n))))
-
-(require 'main)
-(main •)
