@@ -42,7 +42,7 @@ The image has been tested to work with Virtualbox `4.3.18`.
 Instructions for [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 can be found on the official site.
 
-1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing) 
+1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxTmVzbE8xMmp1X2c/view?usp=sharing) 
 (~3.4 GB; hosted on Google Drive),
 which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
