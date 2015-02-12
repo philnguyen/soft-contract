@@ -5,7 +5,7 @@ Artifact for "Relatively Complete Counterexamples for Higher-order Programs"
 
 This repository contains the source code and benchmarks used to evaluate
 the research done in *Relatively Complete Counterexamples for Higher-order Programs*
-[submitted to PLDI 2015](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/paper/pldi15-paper103.pdf).
+[accepted to PLDI 2015](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/paper/pldi15-paper103.pdf).
 
 We evaluate our method on programs written in an untyped functional language
 representing [Core Racket](#supported-language)
@@ -17,14 +17,30 @@ The tool itself is written in [Racket](http://racket-lang.org/).
 
 There are three options to evaluate the artifact:
 
-* By [the self-contained Virtualbox image](#obtain-the-self-contained-virtualbox-image)
 * By [the online evaluator](#try-the-online-evaluator)
+* By [the self-contained Virtualbox image](#obtain-the-self-contained-virtualbox-image)
 * By [cloning and building the repositories](#build-from-source-code)
+
+## Try the online evaluator
+
+The quickest and most convenient way to test the artifact
+is to use the [online evaluator](http://scv.umiacs.umd.edu/) hosted
+at the University of Maryland, which provides a REPL for SCV Racket.  
+All of the benchmarks and examples are available to try or
+you experiment with your own programs.
+
+No indentifying information is retained in the server logs, 
+although we do record the programs entered
+into the REPL for use as verification benchmarks.
 
 ## Obtain the self-contained Virtualbox image
 
-1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing),
-which contains built source code for `soft-contract`, the `try-scv-racket` webserver, and benchmarks.
+The next most convenient method for testing the artifact is to download and run
+a virtual machine that contains SCV Racket and all of its dependencies.
+
+1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing) 
+(~3.4 GB; hosted on Google Drive),
+which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
 2. The image runs Lubuntu 14.10 32 bit. When the desktop loads, log in:
 
@@ -49,19 +65,16 @@ which contains built source code for `soft-contract`, the `try-scv-racket` webse
         cd /home/aec/try-scv-racket
         racket main.rkt
 
-
-## Try the online evaluator
-
-The quickest way to try out the tool is through the [online evaluator](http://scv.umiacs.umd.edu/)
-with many examples.
-
 ## Build from source code
+
+The final and most involved way to test the artifact is to download
+and build the system yourself.
 
 ### Build the `soft-contract` repository
 
-1. Obtain [Racket snapshot](http://www.cs.utah.edu/plt/snapshots/).
+1. Obtain and install [Racket snapshot](http://www.cs.utah.edu/plt/snapshots/).
 
-2. Obtain [Z3](http://z3.codeplex.com/)
+2. Obtain and install [Z3](http://z3.codeplex.com/)
 
 3. Clone and build the repository
 
