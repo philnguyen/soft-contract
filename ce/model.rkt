@@ -6,11 +6,11 @@
 (: model : .p .σ → (Option .σ))
 ;; Return one instantiation of program×heap
 (define (model p σ)
-  #;(printf "σ₀:~n~a~n" (show-σ σ))
+  (log-debug "σ₀:~n~a~n" (show-σ σ))
   (cond
    [(σ•? σ)
     (define σ′ (model/z3 σ))
-    (cond [σ′ #;(printf "σ₁:~n~a~n" (show-σ σ′)) (model/σ p σ′)]
+    (cond [σ′ (log-debug "σ₁:~n~a~n" (show-σ σ′)) (model/σ p σ′)]
           [else #f])]
    [else σ]))
 
@@ -164,8 +164,8 @@
      ;; Generate model
      (format "(check-sat)~n(get-model)~n")))
   ;; Call to Z3
-  #;(printf "Query:~n~a~n" query)
-  #;(printf "Heap:~n~a~n" (show-σ σ))
+  (log-debug "Query:~n~a~n" query)
+  (log-debug "Heap:~n~a~n" (show-σ σ))
   (match (call query)
     [(regexp #rx"^sat(.*)" (list _ (? string? m/str)))
      (match-define (.σ m l) σ)
