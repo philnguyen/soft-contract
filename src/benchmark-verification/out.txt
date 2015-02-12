@@ -1,0 +1,1662 @@
+raco test: (submod "main.rkt" test)
+
+Checking "safe/1420660221177.sch": 0.017s
+Checking "safe/1420821445853.sch": 0.003s
+Checking "safe/1420821452343.sch": 0.004s
+Checking "safe/1421183465104.sch": 0.002s
+Checking "safe/1421183472160.sch": 0.002s
+Checking "safe/1421266553854.sch": 0.096s
+Checking "safe/1421278287648.sch": 0.039s
+Checking "safe/1421295936157.sch": 0.003s
+Checking "safe/1421295970391.sch": 0.002s
+Checking "safe/1421365820240.sch": 0.006s
+Checking "safe/1421366579407.sch": 0.009s
+Checking "safe/1421367288633.sch": 0.003s
+Checking "safe/1421367308499.sch": 0.003s
+Checking "safe/1421368042809.sch": 0.005s
+Checking "safe/1421368695192.sch": 0.003s
+Checking "safe/1421369373534.sch": 0.003s
+Checking "safe/1421434572870.sch": 0.001s
+Checking "safe/1421434923666.sch": 0.007s
+Checking "safe/1421448806387.sch": 0.025s
+Checking "safe/1421448866171.sch": 0.026s
+Checking "safe/1421448898796.sch": 0.027s
+Checking "safe/1421630426986.sch": 0.016s
+Checking "safe/ack.sch": 0.016s
+Checking "safe/all.sch": 0.023s
+Checking "safe/append.sch": 0.022s
+Checking "safe/argmin.sch": 0.027s
+Checking "safe/cpstak.sch": 11.872s
+Checking "safe/dvh-1.sch": 0.006s
+Checking "safe/dvh-2.sch": 0.016s
+Checking "safe/dvh-3.sch": 0.076s
+Checking "safe/even-odd.sch": 0.063s
+Checking "safe/ex-01.sch": 0.004s
+Checking "safe/ex-02.sch": 0.004s
+Checking "safe/ex-03.sch": 0.023s
+Checking "safe/ex-04.sch": 0.007s
+Checking "safe/ex-05.sch": 0.004s
+Checking "safe/ex-06.sch": 0.006s
+Checking "safe/ex-07.sch": 0.004s
+Checking "safe/ex-08.sch": 0.006s
+Checking "safe/ex-09.sch": 0.008s
+Checking "safe/ex-10.sch": 0.004s
+Checking "safe/ex-11.sch": 0.006s
+Checking "safe/ex-12.sch": 0.006s
+Checking "safe/ex-13.sch": 0.007s
+Checking "safe/ex-14.sch": 0.008s
+Checking "safe/factorial-acc.sch": 0.01s
+Checking "safe/factorial.sch": 0.008s
+Checking "safe/fhnhn.sch": 0.038s
+Checking "safe/fibonacci.sch": 0.891s
+Checking "safe/filter.sch": 0.025s
+Checking "safe/flatten.sch": 0.042s
+Checking "safe/fold-div.sch": 0.288s
+Checking "safe/fold-fun-list.sch": 0.08s
+Checking "safe/foldl.sch": 0.022s
+Checking "safe/foldl1.sch": 0.023s
+Checking "safe/foldr.sch": 0.023s
+Checking "safe/foldr1.sch": 0.023s
+Checking "safe/get-path.sch": 0.035s
+Checking "safe/guess.sch": 0.136s
+Checking "safe/ho-opaque.sch": 0.007s
+Checking "safe/hors.sch": 0.048s
+Checking "safe/hrec.sch": 0.018s
+Checking "safe/id-dependent.sch": 0.005s
+Checking "safe/inc-or-greet.sch": 0.009s
+Checking "safe/incf.sch": 0.057s
+Checking "safe/insertion-sort.sch": 0.075s
+Checking "safe/intro1.sch": 0.023s
+Checking "safe/intro2.sch": 0.024s
+Checking "safe/intro3.sch": 0.024s
+Checking "safe/isnil.sch": 0.013s
+Checking "safe/last-pair.sch": 0.021s
+Checking "safe/last.sch": 0.036s
+Checking "safe/length-acc.sch": 0.025s
+Checking "safe/length.sch": 0.023s
+Checking "safe/map-foldr.sch": 0.024s
+Checking "safe/map.sch": 0.024s
+Checking "safe/mappend.sch": 0.029s
+Checking "safe/max.sch": 0.028s
+Checking "safe/maybe_apply_negate.sch": 0.015s
+Checking "safe/mem.sch": 0.024s
+Checking "safe/member.sch": 0.023s
+Checking "safe/mini-church.sch": 1.586s
+Checking "safe/mult.sch": 0.137s
+Checking "safe/mutual-cons.sch": 0.069s
+Checking "safe/neg.sch": 0.071s
+Checking "safe/nth0.sch": 0.02s
+Checking "safe/onto.sch": 0.048s
+Checking "safe/r-file.sch": 0.074s
+Checking "safe/r-lock.sch": 0.051s
+Checking "safe/recip-contract.sch": 0.005s
+Checking "safe/recip.sch": 0.005s
+Checking "safe/recursive-div2.sch": 0.022s
+Checking "safe/repeat.sch": 0.012s
+Checking "safe/reverse-dep.sch": 0.025s
+Checking "safe/reverse.sch": 0.014s
+Checking "safe/rsa.sch": 0.016s
+Checking "safe/sat-7.sch": 5.97s
+Checking "safe/snake.sch": 4.414s
+Checking "safe/subst*.sch": 0.023s
+Checking "safe/sum-filter.sch": 0.026s
+Checking "safe/tak.sch": 0.013s
+Checking "safe/taut.sch": 0.022s
+Checking "safe/terauchi-boolflip.sch": 0.009s
+Checking "safe/terauchi-mult-all.sch": 0.009s
+Checking "safe/terauchi-mult-cps.sch": 0.258s
+Checking "safe/terauchi-mult.sch": 0.08s
+Checking "safe/terauchi-sum-acm.sch": 0.031s
+Checking "safe/terauchi-sum-all.sch": 0.008s
+Checking "safe/terauchi-sum.sch": 0.049s
+Checking "safe/tetris.sch": 10.112s
+Checking "safe/tricky.sch": 0.008s
+Checking "safe/weighted-avg.sch": 0.061s
+Checking "safe/zombie.sch": 22.761s
+Checking "fail-ce/1420482332997.sch": 0.054s
+Contract violation: 'argmin' violates 'min'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1420482413791.sch": 6.852s
+Contract violation: 'tree' violates its own contract.
+Value
+ (node 0 (node 0 (node 0 #f #f) #f) #f)
+violates predicate
+ (λ (x)
+  (or (false? x)
+      (and (node? x)
+           (braun-tree? (node-l x))
+           (braun-tree? (node-r x))
+           (let ((x₁ (size (node-l x))) (y (size (node-r x))))
+             (or (= x₁ y) (= x₁ (+ y 1)))))))
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." tree))
+  (insert (node 0 (node 0 #f #f) #f) 0))
+
+
+Checking "fail-ce/1420482951093.sch": 0.041s
+Contract violation: 'last' violates 'cdr'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." last)) (last empty))
+
+
+Checking "fail-ce/1420482991892.sch": 0.038s
+Contract violation: 'get-path' violates a contract in an application.
+Value
+ "AbPG"
+violates predicate
+ procedure?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." get-path))
+  (get-path (λ (x) (λ (x) (λ (x) any/c))) (λ (x) "AbPG")))
+
+
+Checking "fail-ce/1420496297552.sch": 0.025s
+Contract violation: 'foldl1' violates 'car'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." foldl1))
+  (foldl1 (λ (x y) 0.519) empty))
+
+
+Checking "fail-ce/1420496311575.sch": 0.019s
+Contract violation: 'foldl1' violates 'car'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." foldl1))
+  (foldl1 (λ (x y) 0.772) empty))
+
+
+Checking "fail-ce/1420515847537.sch": 0.118s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1420595282395.sch": 0.014s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1420656211995.sch": 0.124s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1420656268553.sch": 0.119s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1420656277509.sch": 0.096s
+Contract violation: 'f' violates its own contract.
+Value
+ -1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 102))
+
+
+Checking "fail-ce/1420656347285.sch": 0.016s
+Contract violation: 'f' violates its own contract.
+Value
+ -1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f -2))
+
+
+Checking "fail-ce/1420656526464.sch": 0.013s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1420659600787.sch": 0.014s
+Contract violation: 'm' violates '+'.
+Value
+ "2nfi"
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." m)) (f "2nfi"))
+
+
+Checking "fail-ce/1420660239137.sch": 0.1s
+Contract violation: 'f' violates its own contract.
+Value
+ -1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 102))
+
+
+Checking "fail-ce/1420660286557.sch": 0.004s
+Contract violation: 'f' violates its own contract.
+Value
+ 1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 98))
+
+
+Checking "fail-ce/1420664421157.sch": 0.083s
+Contract violation: 'gcd2' violates 'lib'.
+Value
+ 1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." gcd2))
+  (let ((x₁ (equal? (gcd2 0 1337) 1337))
+        (x₂ (equal? (gcd2 1337 0) 1337))
+        (x₃ (equal? (gcd2 2 4) (* 2 (gcd2 1 2))))
+        (x₄ (equal? (gcd2 2 5) (gcd2 1 5)))
+        (x₅ (equal? (gcd2 5 10) (gcd2 5 5)))
+        (x₆ (equal? (gcd2 9 7) (gcd2 (/ (- 9 7) 2) 7)))
+        (x₇ (equal? (gcd2 7 9) (gcd2 (/ (- 9 7) 2) 7)))
+        (x₈ (equal? (gcd2 10 17) 1))
+        (x₉ (equal? (gcd2 17 10) 1))
+        (x₁₀ (equal? (gcd2 60 10) 10))
+        (x₁₁ (equal? (gcd2 30 45) 15)))
+    x₁₁))
+
+
+Checking "fail-ce/1420690333426.sch": 0.125s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1420691507196.sch": 0.017s
+Contract violation: 'lastpair' violates its own contract.
+Value
+ 0
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." lastpair)) (lastpair (cons 0 0)))
+
+
+Checking "fail-ce/1420732832760.sch": 0.117s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1420744806759.sch": 0.044s
+Contract violation: 'foo' violates its own contract.
+Value
+ #t
+violates predicate
+ (or/c string? integer?)
+An example module that breaks it:
+ (module user racket (require (submod ".." foo)) (foo 4))
+
+
+Checking "fail-ce/1420821435347.sch": 0.117s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1420821439412.sch": 0.122s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421266456231.sch": 0.041s
+Contract violation: 'last' violates 'cdr'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." last)) (last empty))
+
+
+Checking "fail-ce/1421268838715.sch": 0.015s
+Contract violation: 'argmin' violates 'min'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." argmin)) (main))
+
+
+Checking "fail-ce/1421273422239.sch": 0.042s
+Contract violation: 'argmin' violates 'min'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421275126620.sch": 0.015s
+Contract violation: 'm1' violates its own contract.
+Value
+ 0.696
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." m1)) (f 0.696))
+
+
+Checking "fail-ce/1421275141672.sch": 0.014s
+Contract violation: 'm1' violates its own contract.
+Value
+ 0.817
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." m1)) (f 0.817))
+
+
+Checking "fail-ce/1421284075459.sch": 0.123s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421284087965.sch": 0.014s
+Contract violation: 'f' violates '-'.
+Value
+ empty
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f empty))
+
+
+Checking "fail-ce/1421284119022.sch": 0.015s
+Contract violation: 'f' violates 'car'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f empty))
+
+
+Checking "fail-ce/1421284132827.sch": 0.125s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (cons 100 empty)))
+
+
+Checking "fail-ce/1421284150237.sch": 0.017s
+Contract violation: 'f' violates '-'.
+Value
+ (cons 0 empty)
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (cons 0 empty)))
+
+
+Checking "fail-ce/1421284164810.sch": 0.147s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (cons -99 empty)))
+
+
+Checking "fail-ce/1421284515671.sch": 0.124s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421287335088.sch": 0.119s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421287366950.sch": 0.097s
+Contract violation: 'f' violates its own contract.
+Value
+ 10109/100
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421287420804.sch": 0.096s
+Contract violation: 'f' violates its own contract.
+Value
+ 1010000001/10000000
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421287474968.sch": 0.017s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421287539517.sch": 0.013s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421295189121.sch": 0.126s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421295318907.sch": 0.182s
+Contract violation: 'sqr' violates its own contract.
+Value
+ 0
+violates predicate
+ (>/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." sqr)) (sqr 0))
+
+
+Checking "fail-ce/1421295449592.sch": 0.18s
+Contract violation: 'sqr' violates its own contract.
+Value
+ 0
+violates predicate
+ (>/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." sqr)) (sqr 0))
+
+
+Checking "fail-ce/1421295461255.sch": 0.014s
+Contract violation: 'fact' violates '>='.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." fact)) factorial)
+
+
+Checking "fail-ce/1421298202067.sch": 0.038s
+Contract violation: 'get-path' violates a contract in an application.
+Value
+ "lStD"
+violates predicate
+ procedure?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." get-path))
+  (get-path (λ (x) (λ (x) (λ (x) any/c))) (λ (x) "lStD")))
+
+
+Checking "fail-ce/1421308158642.sch": 0.088s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421308177595.sch": 0.099s
+Contract violation: 'f' violates its own contract.
+Value
+ -1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 102))
+
+
+Checking "fail-ce/1421333651908.sch": 0.02s
+Contract violation: 'foldl1' violates 'car'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." foldl1))
+  (foldl1 (λ (x y) 0.992) empty))
+
+
+Checking "fail-ce/1421337657230.sch": 0.123s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421337999257.sch": 0.128s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421338181916.sch": 0.124s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421342896336.sch": 0.017s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421343008338.sch": 0.127s
+Contract violation: 'f' violates its own contract.
+Value
+ 0
+violates predicate
+ (λ (x) (and (real? x) (< x 0)))
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f -1))
+
+
+Checking "fail-ce/1421349151054.sch": 0.014s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421349177971.sch": 0.042s
+Contract violation: 'argmin' violates 'min'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." argmin)) (main))
+
+
+Checking "fail-ce/1421349225401.sch": 0.044s
+Contract violation: 'argmin' violates 'min'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421365887431.sch": 0.102s
+Contract violation: 'f' violates its own contract.
+Value
+ #f
+violates predicate
+ (λ (x) x)
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." f))
+  (f (λ (x) (if (procedure? x) (λ (x₁) (0.274 x₁)) (case x ((7) 1) ((5) 0))))))
+
+
+Checking "fail-ce/1421366030417.sch": 0.016s
+Contract violation: 'f' violates its own contract.
+Value
+ #f
+violates predicate
+ (λ (x) x)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (λ (x) 0)))
+
+
+Checking "fail-ce/1421366398632.sch": 0.016s
+Contract violation: 'f' violates its own contract.
+Value
+ (λ (x) x)
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (λ (x) 0)))
+
+
+Checking "fail-ce/1421366420470.sch": 0.015s
+Contract violation: 'f' violates its own contract.
+Value
+ (λ (x) x)
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f any/c))
+
+
+Checking "fail-ce/1421366622643.sch": 0.017s
+Contract violation: 'f' violates a contract in an application.
+Value
+ #f
+violates predicate
+ procedure?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (λ (x) 1)))
+
+
+Checking "fail-ce/1421366679251.sch": 0.013s
+Contract violation: 'f' violates a contract in an application.
+Value
+ #f
+violates predicate
+ procedure?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) x)
+
+
+Checking "fail-ce/1421367862184.sch": 0.014s
+Contract violation: 'm' violates its own contract.
+Value
+ ((integer? ↦ integer?) ◃ any/c)
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." m)) (f any/c))
+
+
+Checking "fail-ce/1421367874979.sch": 0.014s
+Contract violation: 'm' violates its own contract.
+Value
+ ((integer? ↦ integer?) ◃ any/c)
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." m)) (f any/c))
+
+
+Checking "fail-ce/1421367918097.sch": 0.015s
+Contract violation: 'm' violates its own contract.
+Value
+ #f
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." m)) (f (λ (x) 0)))
+
+
+Checking "fail-ce/1421368029247.sch": 0.015s
+Contract violation: 'f' violates '='.
+Value
+ "hHDS"
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (λ (x) "hHDS")))
+
+
+Checking "fail-ce/1421368654738.sch": 0.016s
+Contract violation: 'm' violates its own contract.
+Value
+ #f
+violates predicate
+ (λ (x) x)
+An example module that breaks it:
+ (module user racket (require (submod ".." m)) (f (λ (x) 0)))
+
+
+Checking "fail-ce/1421423361109.sch": 0.119s
+Contract violation: 'sqr' violates its own contract.
+Value
+ 0
+violates predicate
+ (λ (x) (and (real? x) (> x 0)))
+An example module that breaks it:
+ (module user racket (require (submod ".." sqr)) (sqr 0))
+
+
+Checking "fail-ce/1421423736424.sch": 0.097s
+Contract violation: 'f' violates its own contract.
+Value
+ #t
+violates predicate
+ false?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." f))
+  (f (λ (x) (if (procedure? x) (λ (x₁) (0.221 x₁)) (case x ((7) 1) ((5) 0))))))
+
+
+Checking "fail-ce/1421434510927.sch": 0.003s
+Contract violation: 'foo' violates its own contract.
+Value
+ 5/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." foo)) (div2 5))
+
+
+Checking "fail-ce/1421448781003.sch": 0.029s
+Contract violation: 'min' violates '<'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." min)) (min 0+1i 0))
+
+
+Checking "fail-ce/1421448909657.sch": 0.042s
+Contract violation: 'argmin' violates 'min'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421452080499.sch": 0.039s
+Contract violation: 'argmin' violates '<'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421513232946.sch": 0.125s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421513323631.sch": 0.015s
+Contract violation: 'f' violates its own contract.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) f)
+
+
+Checking "fail-ce/1421513364148.sch": 0.021s
+Contract violation: 'f' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ (λ (x) (and (real? x) (>= x 0)))
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421513376892.sch": 0.1s
+Contract violation: 'f' violates its own contract.
+Value
+ -1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 102))
+
+
+Checking "fail-ce/1421513392527.sch": 0.104s
+Contract violation: 'f' violates its own contract.
+Value
+ -1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 102))
+
+
+Checking "fail-ce/1421513437366.sch": 0.015s
+Contract violation: 'f' violates a contract in an application.
+Value
+ #f
+violates predicate
+ procedure?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421513440425.sch": 0.018s
+Contract violation: 'f' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ (λ (x) (and (real? x) (>= x 0)))
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0 0))
+
+
+Checking "fail-ce/1421513445870.sch": 0.019s
+Contract violation: 'f' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ (λ (x) (and (real? x) (>= x 0)))
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0 0))
+
+
+Checking "fail-ce/1421513473114.sch": 0.019s
+Contract violation: 'f' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0 0))
+
+
+Checking "fail-ce/1421513493994.sch": 0.018s
+Contract violation: 'f' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0 0))
+
+
+Checking "fail-ce/1421513516156.sch": 0.015s
+Contract violation: 'f' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0 0))
+
+
+Checking "fail-ce/1421513560359.sch": 0.015s
+Contract violation: 'f' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0 0))
+
+
+Checking "fail-ce/1421513897236.sch": 0.115s
+Contract violation: 'm' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." m)) (f 100))
+
+
+Checking "fail-ce/1421513923640.sch": 0.119s
+Contract violation: 'm' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." m)) (f 100))
+
+
+Checking "fail-ce/1421558428580.sch": 0.117s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421618765763.sch": 0.116s
+Contract violation: 'f' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 100))
+
+
+Checking "fail-ce/1421618772487.sch": 0.039s
+Contract violation: 'argmin' violates '<'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421618810065.sch": 0.039s
+Contract violation: 'argmin' violates '<'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421618824428.sch": 0.038s
+Contract violation: 'argmin' violates '<'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421618833508.sch": 0.039s
+Contract violation: 'argmin' violates '<'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/1421620246319.sch": 0.013s
+Contract violation: 'f' violates 'expt'.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421620254607.sch": 0.013s
+Contract violation: 'f' violates 'expt'.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/1421630130607.sch": 0.026s
+Contract violation: 'f' violates its own contract.
+Value
+ #f
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (split-snd "8OWD"))
+
+
+Checking "fail-ce/1421630133151.sch": 0.026s
+Contract violation: 'f' violates its own contract.
+Value
+ #f
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (split-snd "7Fd1"))
+
+
+Checking "fail-ce/1421630228561.sch": 0.028s
+Contract violation: 'f' violates its own contract.
+Value
+ #f
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (split-snd "HvYx"))
+
+
+Checking "fail-ce/1421630454720.sch": 0.092s
+Contract violation: 'f' violates 'lib'.
+Value
+ 3
+violates predicate
+ (λ (x) (and (real? x) (< x (string-length …₀))))
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (split-snd ""))
+
+
+Checking "fail-ce/1421630463767.sch": 0.015s
+Contract violation: 'f' violates a contract in an application.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (split-snd "gERo"))
+
+
+Checking "fail-ce/1421630539995.sch": 0.015s
+Contract violation: 'f' violates its own contract.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) right-triangle?)
+
+
+Checking "fail-ce/1421630546299.sch": 0.014s
+Contract violation: 'f' violates its own contract.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) right-triangle?)
+
+
+Checking "fail-ce/1421630678873.sch": 0.013s
+Contract violation: 'f' violates its own contract.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) pow)
+
+
+Checking "fail-ce/1421630691166.sch": 0.013s
+Contract violation: 'f' violates its own contract.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) pow)
+
+
+Checking "fail-ce/1421630743420.sch": 0.014s
+Contract violation: 'f' violates 'expt'.
+Wrong arity
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0))
+
+
+Checking "fail-ce/ack.sch": 0.019s
+Contract violation: 'ack' violates its own contract.
+Value
+ 1/2
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." ack)) (ack 0 -1/2))
+
+
+Checking "fail-ce/all.sch": 0.02s
+Contract violation: 'all' violates its own contract.
+Value
+ 0
+violates predicate
+ boolean?
+An example module that breaks it:
+ (module user racket (require (submod ".." all)) (all (λ (x) 0) (cons 0 empty)))
+
+
+Checking "fail-ce/append.sch": 0.006s
+Contract violation: 'append' violates its own contract.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." append)) (append empty empty))
+
+
+Checking "fail-ce/argmin.sch": 0.039s
+Contract violation: 'argmin' violates '<'.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." argmin))
+  (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
+
+
+Checking "fail-ce/braun-tree.sch": 2.819s
+Contract violation: 'tree' violates its own contract.
+Value
+ (node 0 (node 0 (node 42 #f #f) #f) #f)
+violates predicate
+ (λ (x)
+  (or (false? x)
+      (and (node? x)
+           (braun-tree? (node-l x))
+           (braun-tree? (node-r x))
+           (let ((x₁ (size (node-l x))) (y (size (node-r x))))
+             (or (= x₁ y) (= x₁ (+ y 1)))))))
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." tree))
+  (insert (node 0 (node 0 #f #f) #f) 42))
+
+
+Checking "fail-ce/ex-01.sch": 0.015s
+Contract violation: 'f' violates '+'.
+Value
+ "gwfd"
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f "gwfd"))
+
+
+Checking "fail-ce/ex-02.sch": 0.014s
+Contract violation: 'f' violates 'str-len'.
+Value
+ #f
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f #f))
+
+
+Checking "fail-ce/ex-03.sch": 0.028s
+Contract violation: 'ex-03' violates its own contract.
+Value
+ (cons 0 empty)
+violates predicate
+ false?
+An example module that breaks it:
+ (module user racket (require (submod ".." ex-03)) (f 0 empty))
+
+
+Checking "fail-ce/ex-04.sch": 0.017s
+Contract violation: 'g' violates 'f'.
+Value
+ #f
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." g)) (g #f))
+
+
+Checking "fail-ce/ex-05.sch": 0.016s
+Contract violation: 'f' violates 'str-len'.
+Value
+ #f
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f #f "rU5Z"))
+
+
+Checking "fail-ce/ex-07.sch": 0.013s
+Contract violation: 'f' violates 'str-len'.
+Value
+ 0
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f 0 0))
+
+
+Checking "fail-ce/ex-08.sch": 0.017s
+Contract violation: 'strnum?' violates its own contract.
+Value
+ #f
+violates predicate
+ (≡/c (or (string? …₁) (number? …₁)))
+An example module that breaks it:
+ (module user racket (require (submod ".." strnum?)) (strnum? 0.795))
+
+
+Checking "fail-ce/ex-09.sch": 0.017s
+Contract violation: 'g' violates 'f'.
+Value
+ #f
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." g)) (g #f))
+
+
+Checking "fail-ce/ex-10.sch": 0.014s
+Contract violation: 'f' violates '+'.
+Value
+ "83w8"
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (cons "83w8" 0)))
+
+
+Checking "fail-ce/ex-11.sch": 0.016s
+Contract violation: 'f' violates 'g'.
+Value
+ "KtQ7"
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f (cons 0 "KtQ7")))
+
+
+Checking "fail-ce/ex-12.sch": 0.016s
+Contract violation: 'carnum?' violates 'car'.
+Value
+ 0
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." carnum?)) (carnum? 0))
+
+
+Checking "fail-ce/ex-13.sch": 0.018s
+Contract violation: 'ex-13' violates its own contract.
+Value
+ #f
+violates predicate
+ (not/c false?)
+An example module that breaks it:
+ (module user racket (require (submod ".." ex-13)) (f "6m4u" 0))
+
+
+Checking "fail-ce/ex-14.sch": 0.018s
+Contract violation: 'f' violates 'str-len'.
+Value
+ #f
+violates predicate
+ string?
+An example module that breaks it:
+ (module user racket (require (submod ".." f)) (f #f (cons 0 0)))
+
+
+Checking "fail-ce/flatten.sch": 0.02s
+Contract violation: 'flatten' violates 'lib'.
+Value
+ 0
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." flatten)) (flatten (cons empty 0)))
+
+
+Checking "fail-ce/fold-div.sch": 0.176s
+Contract violation: 'fold-div' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." fold-div)) (main 1 0))
+
+
+Checking "fail-ce/foldl.sch": 0.017s
+Contract violation: 'foldl' violates its own contract.
+Value
+ #f
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." foldl))
+  (foldl (λ (x y) 0.312) #f (cons 0 empty)))
+
+
+Checking "fail-ce/foldl1.sch": 0.018s
+Contract violation: 'foldl1' violates 'car'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." foldl1))
+  (foldl1 (λ (x y) 0.682) empty))
+
+
+Checking "fail-ce/foldr.sch": 0.02s
+Contract violation: 'foldr' violates its own contract.
+Value
+ #f
+violates predicate
+ number?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." foldr))
+  (foldr (λ (x y) 0.961) #f (cons 0 empty)))
+
+
+Checking "fail-ce/foldr1.sch": 0.017s
+Contract violation: 'foldr1' violates 'car'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." foldr1))
+  (foldr1 (λ (x y) 0.173) empty))
+
+
+Checking "fail-ce/get-path.sch": 0.035s
+Contract violation: 'get-path' violates a contract in an application.
+Value
+ "jKfv"
+violates predicate
+ procedure?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." get-path))
+  (get-path (λ (x) (λ (x) (λ (x) any/c))) (λ (x) "jKfv")))
+
+
+Checking "fail-ce/id-dependent.sch": 0.015s
+Contract violation: 'id' violates its own contract.
+Value
+ 0+1i
+violates predicate
+ (λ (x) (and (real? x) (= x …₀)))
+An example module that breaks it:
+ (module user racket (require (submod ".." id)) (f 0+1i))
+
+
+Checking "fail-ce/inc-or-greet.sch": 0.018s
+Contract violation: 'inc-or-greet' violates its own contract.
+Value
+ #f
+violates predicate
+ (or/c integer? string?)
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." inc-or-greet))
+  (inc-or-greet #t "EHJe"))
+
+
+Checking "fail-ce/l-zipmap.sch": 0.079s
+Contract violation: 'zip' violates its own contract.
+Value
+ fail
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." zip)) (zip 0 1))
+
+
+Checking "fail-ce/l-zipunzip.sch": 0.041s
+Contract violation: 'l-zipunzip' violates its own contract.
+Value
+ fail
+violates predicate
+ integer?
+An example module that breaks it:
+ (module user racket (require (submod ".." l-zipunzip)) (zip 0 1))
+
+
+Checking "fail-ce/last-pair.sch": 0.014s
+Contract violation: 'lastpair' violates its own contract.
+Value
+ 0
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." lastpair)) (lastpair (cons 0 0)))
+
+
+Checking "fail-ce/last.sch": 0.019s
+Contract violation: 'last' violates 'cdr'.
+Value
+ empty
+violates predicate
+ cons?
+An example module that breaks it:
+ (module user racket (require (submod ".." last)) (last empty))
+
+
+Checking "fail-ce/mem.sch": 0.203s
+Contract violation: 'mem' violates its own contract.
+Value
+ (cons 0 empty)
+violates predicate
+ (λ (x) (or (empty? x) (mem …₀ x)))
+An example module that breaks it:
+ (module user racket (require (submod ".." mem)) (mk-list 0 1))
+
+
+Checking "fail-ce/member.sch": 0.018s
+Contract violation: 'member' violates its own contract.
+Value
+ empty
+violates predicate
+ boolean?
+An example module that breaks it:
+ (module user racket (require (submod ".." member)) (member 0 empty))
+
+
+Checking "fail-ce/recip-contract.sch": 0.005s
+Contract violation: 'recip' violates '/'.
+Value
+ 0
+violates predicate
+ (≠/c 0)
+An example module that breaks it:
+ (module user racket (require (submod ".." recip)) (recip 0))
+
+
+Checking "fail-ce/snake.sch": 0.705s
+Contract violation: 'collide' violates '<='.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." collide))
+  (snake-wall-collide? (snake "up" (cons (posn 0+1i 0) empty))))
+
+
+Checking "fail-ce/sum.sch": 0.052s
+Contract violation: 'sum' violates its own contract.
+Value
+ 0
+violates predicate
+ (λ (x) (and (real? x) (> x …₀)))
+An example module that breaks it:
+ (module user racket (require (submod ".." sum)) (sum 0))
+
+
+Checking "fail-ce/tetris.sch": 0.597s
+Contract violation: 'bset' violates '<='.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket (require (submod ".." bset)) (blocks-overflow? empty))
+
+
+Checking "fail-ce/tree-depth.sch": 0.013s
+Contract violation: 'tree-depth' violates its own contract.
+Value
+ 0
+violates predicate
+ (λ (x) (and (real? x) (> x 0)))
+An example module that breaks it:
+ (module user racket (require (submod ".." tree-depth)) (depth (leaf)))
+
+
+Checking "fail-ce/zombie.sch": 1.001s
+Contract violation: 'zombie' violates '<='.
+Value
+ 0+1i
+violates predicate
+ real?
+An example module that breaks it:
+ (module user racket
+  (require (submod ".." zombie))
+  (new-zombie (λ (x) (λ (x) 0+1i))))
+
+
+Checking "fail/1420595305940.sch": 0.131s
+Possible contract violation: 'f' violates its own contract.
+Value contrained by contracts
+ (>/c 0)
+ (≠/c 0)
+ (=/c (/ 1 …₁))
+ real?
+ (not/c integer?)
+violates predicate
+ integer?
+
+
+Checking "fail/1420595348811.sch": 0.127s
+Possible contract violation: 'f' violates its own contract.
+Value contrained by contracts
+ (>/c 0)
+ (≠/c 0)
+ real?
+ (not/c integer?)
+ (=/c (/ 2 …₁))
+violates predicate
+ integer?
+
+
+Checking "fail/1421339783543.sch": 0.071s
+Possible contract violation: 'f' violates its own contract.
+Value contrained by contracts
+ (=/c (/ 1 …₁))
+ (>/c 0)
+ (≠/c 0)
+ real?
+ (not/c integer?)
+violates predicate
+ integer?
+
+
+Checking "fail/1421513554449.sch": 0.09s
+Possible contract violation: 'f' violates its own contract.
+Value contrained by contracts
+ (=/c (/ 1 …₁))
+ (>/c 0)
+ (≠/c 0)
+ real?
+ (not/c integer?)
+violates predicate
+ integer?
+
+
+Checking "fail/1421620227488.sch": 0.016s
+Possible contract violation: 'f' violates its own contract.
+Value contrained by contracts
+ (=/c (expt 2 …₁))
+ real?
+ (not/c integer?)
+violates predicate
+ integer?
+
+550 tests passed

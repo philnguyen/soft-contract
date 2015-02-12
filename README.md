@@ -78,6 +78,9 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
 
         550 tests passed
 
+   An example of the expected output from running the tests can be found at
+   [`/home/aec/soft-contract/src/benchmark-verification/out.txt`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/src/benchmark-verification/out.txt)
+
 5. The server already runs in the background.
    To try out the web tool, launch the browser from the `Google Chrome`
    desktop icon.
@@ -85,8 +88,8 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
 
 Miscelaneous information:
 
-  * `/home/aec/soft-contract` contains the source code for the evaluator
-  * `/home/aec/soft-contract/benchmark-verification` contains the benchmarks
+  * `/home/aec/soft-contract/src` contains the source code for the evaluator
+  * `/home/aec/soft-contract/src/benchmark-verification` contains the benchmarks
   * `/home/aec/try-scv-racket` contains the source code for the web server
   * If the server dies, it can be restarted by executing:
   
@@ -107,18 +110,17 @@ and build the system yourself.
 
         git clone https://github.com/philnguyen/soft-contract.git
 	    cd path/to/soft-contract
-    	raco make main.rkt
-	    raco link
+		raco pkg install
 
 4. Run the benchmarks. This step assumes `z3` is available in `$PATH`.
 
-        cd path/to/soft-contract/benchmark-verification
+        cd path/to/soft-contract/src/benchmark-verification
 	    raco test main.rkt
 
 ### Build the `try-scv-racket` server
 
 This step assumes that you have built `soft-contract`
-and performed `raco link` as in the [previous section](#Build the `soft-contract` repository)
+and performed `raco pkg install` as in the [previous section](#Build the `soft-contract` repository)
 
 1. Clone the `try-scv-racket` repository
 
@@ -126,9 +128,7 @@ and performed `raco link` as in the [previous section](#Build the `soft-contract
 
 2. Launch the server at [http://localhost:8080](http://localhost:8080)
 
-        cd path/to/try-scv-racket
-    	racket main.rkt
-	
+        racket path/to/try-scv-racket/main.rkt
 
 ## Supported Language
 
