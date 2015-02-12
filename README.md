@@ -72,7 +72,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
 
 4. To run the benchmarks
 
-        cd /home/aec/soft-contract/benchmark-verfications
+        cd /home/aec/soft-contract/benchmark-verfication
         raco test main.rkt
 
 5. To run the server and try out the web tool at [http://localhost:8080](http://localhost:8080).
