@@ -125,6 +125,12 @@
            `(let ,(for/list : (Listof Any) ([xᵢ (reverse xs)] [eᵢ es])
                     `(,xᵢ ,(go ctx eᵢ)))
              ,(go xs e))]))]
+      ;; Fix confusing ill-typed (though correct) value at function position
+      ;; as a reminiscent of `havoc`
+      [(.@ (.•ₗ (? (λ ([n : Integer])
+                     (match? (σ@ σ n) (.// (.b (? number?)) _)))))
+           (list x) (or '† '☠))
+       (go ctx x)]
       [(.if (and e (.•ₗ α)) e₁ e₂)
        (match (σ@ σ α)
          [(.// (.b #f) _) (go ctx e₂)]
