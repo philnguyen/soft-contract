@@ -41,13 +41,13 @@ containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks
 
 4. To run the benchmarks
 
-    cd /home/aec/soft-contract/benchmark-verfications
-    raco test main.rkt
+        cd /home/aec/soft-contract/benchmark-verfications
+        raco test main.rkt
 
 5. To run the server and try out the web tool at [http://localhost:8080]
 
-    cd /home/aec/try-scv-racket
-    racket main.rkt
+        cd /home/aec/try-scv-racket
+        racket main.rkt
 
 
 ## Try the online evaluator
@@ -65,15 +65,15 @@ with many examples.
 
 3. Clone and build the repository
 
-    git clone https://github.com/philnguyen/soft-contract.git
-	cd path/to/soft-contract
-	raco make main.rkt
-	raco link
+        git clone https://github.com/philnguyen/soft-contract.git
+	    cd path/to/soft-contract
+    	raco make main.rkt
+	    raco link
 
 4. Run the benchmarks
 
-    cd path/to/soft-contract/benchmark-verification
-	raco test main.rkt
+        cd path/to/soft-contract/benchmark-verification
+	    raco test main.rkt
 
 ### Build the `try-scv-racket` server
 
@@ -82,12 +82,12 @@ and performed `raco link` as in the [previous section](#Build the `soft-contract
 
 1. Clone the `try-scv-racket` repository
 
-    git clone https://github.com/plum-umd/try-scv-racket.git
+        git clone https://github.com/plum-umd/try-scv-racket.git
 
 2. Launch the server at [http://localhost:8080]
 
-    cd path/to/try-scv-racket
-	racket main.rkt
+        cd path/to/try-scv-racket
+    	racket main.rkt
 	
 
 ## Supported Language
