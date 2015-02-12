@@ -75,10 +75,13 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
         cd /home/aec/soft-contract/benchmark-verfications
         raco test main.rkt
 
-5. To run the server and try out the web tool at [http://localhost:8080](http://localhost:8080)
+5. To run the server and try out the web tool at [http://localhost:8080](http://localhost:8080).
+
 
         cd /home/aec/try-scv-racket
         racket main.rkt
+
+   The image has `Firefox` installed (`Start → Internet → Firefox`)
 
 ## Build from source code
 
