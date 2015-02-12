@@ -44,7 +44,7 @@ containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks
         cd /home/aec/soft-contract/benchmark-verfications
         raco test main.rkt
 
-5. To run the server and try out the web tool at [http://localhost:8080]
+5. To run the server and try out the web tool at [http://localhost:8080](http://localhost:8080)
 
         cd /home/aec/try-scv-racket
         racket main.rkt
@@ -84,7 +84,7 @@ and performed `raco link` as in the [previous section](#Build the `soft-contract
 
         git clone https://github.com/plum-umd/try-scv-racket.git
 
-2. Launch the server at [http://localhost:8080]
+2. Launch the server at [http://localhost:8080](http://localhost:8080)
 
         cd path/to/try-scv-racket
     	racket main.rkt
