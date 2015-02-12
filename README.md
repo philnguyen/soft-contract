@@ -45,7 +45,7 @@ The image has been tested to work with Virtualbox `4.3.18`.
 Instructions for [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 can be found on the official site.
 
-1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxMkNKUUo2cVVlbEU/view?usp=sharing) 
+1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxMkNKUUo2cVVlbEU/view?usp=sharing)
 (~3.4 GB; hosted on Google Drive),
 which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
@@ -60,31 +60,37 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
   * Next, select `Use an existing virtual drive file`, then point to the downloaded disk image, then press `Create`
   * With the newly created machine selected, press `start`
 
-2. The image runs Lubuntu 14.10 32 bit. When the desktop loads, log in:
+2. The image runs Lubuntu 14.10 32 bit with log in information:
 
   * Username: `aec`
   * Password: `aec`
 
-3. There are desktop icons for the terminal and browser.
+3. The desktop loads with a terminal poping up.
 
-  Directory structure:
+4. To run the benchmarks, type:
 
-  * `/home/aec/soft-contract`: source code for Soft Contract Verification with counterexamples
-  * `/home/aec/soft-contract/benchmark-verification`: benchmarks categorized into safe and unsafe programs
-  * `/home/aec/try-scv-racket`: the webserver for interactive testing
+        test
 
-4. To run the benchmarks, open the terminal:
+   This runs the test suite and reports the runtime for each.
+   The longest one runs in about 30 seconds.
+   For bad programs, the tool also prints out counterexamples.
+   At the end, you should see a summary:
 
-        cd /home/aec/soft-contract/benchmark-verfication
-        raco test main.rkt
+        550 tests passed
 
-5. To run the server and try out the web tool at [http://localhost:8080](http://localhost:8080).
+5. The server already runs in the background.
+   To try out the web tool, launch the browser from the `Google Chrome`
+   desktop icon.
+   Its homepage is set to `Try SCV`.
 
+Miscelaneous information:
 
-        cd /home/aec/try-scv-racket
-        racket main.rkt
-
-   `Google Chrome`'s homepage is set to [http://localhost:8080](http://localhost:8080).
+  * `/home/aec/soft-contract` contains the source code for the evaluator
+  * `/home/aec/soft-contract/benchmark-verification` contains the benchmarks
+  * `/home/aec/try-scv-racket` contains the source code for the web server
+  * If the server dies, it can be restarted by executing:
+  
+        start-try-scv
 
 ## Build from source code
 
