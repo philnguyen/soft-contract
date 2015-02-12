@@ -5,52 +5,50 @@ Artifact for "Relatively Complete Counterexamples for Higher-order Programs"
 
 This repository contains the source code and benchmarks used to evaluate
 the research done in *Relatively Complete Counterexamples for Higher-order Programs*
-[submitted to PLDI 2015](http://https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/paper/pldi15-paper103.pdf).
+[submitted to PLDI 2015](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/paper/pldi15-paper103.pdf).
 
 We evaluate our method on programs written in an untyped functional language
-representing [Core Racket](#Supported Language)
+representing [Core Racket](#supported-language)
 and demonstrate its effectiveness against various common programing idioms.
 The benchmarks are collected from different verification techniques on typed and untyped languages,
 where benchmarks originally written in typed languages
 are translated to untyped programs with contracts.
-The tool itself is written in [Racket](http://http://racket-lang.org/).
+The tool itself is written in [Racket](http://racket-lang.org/).
 
 There are three ways to evaluate the artifact:
 
-* By [the self-contained Virtualbox image](#Obtain the self-contained Virtualbox image)
-* By [the online evaluator](#Try the online evaluator)
-* By [building `soft-contract` repository](#Build from source code)
+* By [the self-contained Virtualbox image](#obtain-the-self-contained-virtualbox-image)
+* By [the online evaluator](#try-the-online-evaluator)
+* By [building `soft-contract` repository](#build-from-source-code)
 
 ## Obtain the self-contained Virtualbox image
 
-You can download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing)
+1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVlh2dWo5WG40czA/view?usp=sharing)
 containing source code for `SCV`, the `try-scv-racket` webserver, and benchmarks.
 
-The image runs Lubuntu 14.10 32 bit.
+2. The image runs Lubuntu 14.10 32 bit. When the desktop loads, log in:
 
-* Username: `aec`
-* Password: `aec`
+  * Username: `aec`
+  * Password: `aec`
 
-When the desktop loads, press `Ctrl + Alt + t` to launch the terminal.
+3. Press `Ctrl + Alt + t` to launch the terminal.
 
-Directory structure:
+  Directory structure:
 
-* `/home/aec/soft-contract`: source code for Soft Contract Verification with counterexamples
-* `/home/aec/soft-contract/benchmark-verification`: benchmarks categorized into safe and unsafe programs
-* `/home/aec/try-scv-racket`: the webserver for interactive testing
+  * `/home/aec/soft-contract`: source code for Soft Contract Verification with counterexamples
+  * `/home/aec/soft-contract/benchmark-verification`: benchmarks categorized into safe and unsafe programs
+  * `/home/aec/try-scv-racket`: the webserver for interactive testing
 
-### Run the benchmarks
+4. To run the benchmarks
 
     cd /home/aec/soft-contract/benchmark-verfications
     raco test main.rkt
 
-### Run the server
+5. To run the server and try out the web tool at [http://localhost:8080]
 
     cd /home/aec/try-scv-racket
     racket main.rkt
 
-Then open the link at `http://localhost:8080` to try out the web tool.
-There are examples to start with.
 
 ## Try the online evaluator
 
