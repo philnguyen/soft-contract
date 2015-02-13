@@ -24,7 +24,7 @@ There are four options to evaluate the artifact, ordered in increasing
 level of both involvement and confidence in reproducibility:
 
 * By [inspecting the logs of our continuous integration server](#continuous-integration-results)
-* By [the online evaluator](#try-the-online-evaluator)
+* By [interacting with the online evaluator](#try-the-online-evaluator)
 * By [the self-contained Virtualbox image](#obtain-the-self-contained-virtualbox-image)
 * By [cloning and building the repositories](#build-from-source-code)
 
