@@ -7,7 +7,7 @@ the research done in *Relatively Complete Counterexamples for Higher-order Progr
 
 We evaluate our method on programs written in an untyped functional language
 representing [Core Racket](#supported-language)
-and demonstrate its effectiveness against various common programing idioms.
+and demonstrate its effectiveness against various common programming idioms.
 The benchmarks are collected from different verification techniques on typed and untyped languages,
 where benchmarks originally written in typed languages
 are translated to untyped programs with contracts.
@@ -48,7 +48,7 @@ at the University of Maryland, which provides a REPL for SCV Racket.
 All of the benchmarks and examples are available to try or
 you experiment with your own programs.
 
-No indentifying information is retained in the server logs, 
+No identifying information is retained in the server logs, 
 although we do record the programs entered
 into the REPL for use as verification benchmarks.
 
@@ -81,13 +81,13 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
   * Username: `aec`
   * Password: `aec`
 
-3. The desktop loads with a terminal poping up.
+3. The desktop loads with a terminal popping up.
 
 4. To run the benchmarks, type:
 
         test
 
-   This runs the test suite and reports the runtime for each.
+   This runs the test suite and reports the run-time for each.
    The longest one runs in about 30 seconds.
    For bad programs, the tool also prints out counterexamples.
    At the end, you should see a summary:
@@ -102,7 +102,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
    desktop icon.
    Its homepage is set to `Try SCV`.
 
-Miscelaneous information:
+Miscellaneous information:
 
   * `/home/aec/soft-contract/src` contains the source code for the evaluator
   * `/home/aec/soft-contract/src/benchmark-verification` contains the benchmarks
