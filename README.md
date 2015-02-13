@@ -223,30 +223,57 @@ The contract combinators are used as follow:
 
 #### Example: `argmin`
 
-The `Main Examples` menu has two versions of the same function `argmin`,
-one correct and one incorrect.
-The function takes a function and a list, then produce
-the list element that minimizes the function.
+Consider the following program implementing `argmin`,
+which finds a list element that minimizes some function:
 
-In `argmin_unsafe`, `argmin` requires its first argument to be a
-function producing `number`.
-However, `number?` includes complex numbers in Racket,
-which `<` is not defined on.
+```{Racket}
+(module argmin racket
+  (provide
+    (contract-out
+      [argmin ((any/c . -> . number?) (cons/c any/c (listof any/c)) . -> . any/c)]))
+
+  ;; Produce the element that minimizes f
+  (define (argmin f xs)
+    (argmin/acc f (car xs) (f (car xs)) (cdr xs)))
+
+  (define (argmin/acc f a b xs)
+    (if (empty? xs)
+        a
+        (if (< b (f (car xs)))
+            (argmin/acc f a b (cdr xs))
+            (argmin/acc f (car xs) (f (car xs)) (cdr xs))))))
+```
+
+Function `argmin` requires its first argument to be a function producing `number`.
+However, `number?` includes complex numbers in Racket, which `<` is not defined on.
 This specification of `argmin` is therefore unsafe,
 in the sense that there exists an input to `argmin`
 that satisfies its contract but causes `argmin`
 to break either its own contract or its contract with some other component
 (in this case, `argmin` would break the implicit contract of `<`
 requiring its arguments to be real numbers).
+Our tool confirms that:
+
+    Contract violation: 'argmin' violates '<'.
+    Value
+     0+1i
+    violates predicate
+     real?
+    An example module that breaks it:
+     (module user racket
+      (require (submod ".." argmin))
+      (argmin (λ (x) 0+1i) (cons 0 (cons 0 empty))))
 
 The counterexample in this case is higher-order,
 and it's a specific combination of arguments:
-* the first argument is a function producing a non-real number
-* the second argument is a list of length at least 2,
+* the first argument is a function producing a *non-real* number
+* the second argument is a list of *length at least 2*,
   otherwise the comparison `<` is not triggered
 
 The right fix in this case would be a stricter contract
-on `argmin`'s argument, requiring its first argument
-to produce a real number.
+on `argmin`'s argument, requiring its first argument to produce a real number.
 With this fix, our system verifies that `argmin` is safe,
-which can be seen in example `argmin_safe`.
+which can be seen in example.
+
+Our [web-service version of the tool](http://scv.umiacs.umd.edu/)
+has these two examples of `argmin_unsafe` and `argmin_safe` to try out.
