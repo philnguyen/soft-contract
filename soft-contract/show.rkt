@@ -196,7 +196,7 @@
 (: show-ce : .p .σ → (Listof Any))
 (define (show-ce p σ)
   (match-define (.p (.m* order ms) _ e†) p)
-  #;(printf "σ:~n~ae†:~n~a~n" σ e†)
+  #;(log-debug "σ:~n~ae†:~n~a~n" σ e†)
   (list
    (for*/list : (Listof (Listof Any))
               ([m-name order]
@@ -208,7 +208,7 @@
                  (for*/list : (Listof Any)
                             ([x-name m-order]
                              [v (in-value (car (hash-ref defs x-name)))]
-                             #;[_ (in-value (printf "Value is: ~a~n" v))]
+                             #;[_ (in-value (log-debug "Value is: ~a~n" v))]
                              #:when (.•ₗ? v))
                    `(,x-name : ,(syn σ (.•ₗ-l v)))))]
                #:unless (empty? res))

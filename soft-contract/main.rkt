@@ -19,11 +19,11 @@
                          (feedback/massage 'x))))
 
 #;(define-syntax-rule (top-interaction . e)
-  (#%top-interaction . (begin #;(printf "Run Top:~n~a~n" (massage-top 'e))
+  (#%top-interaction . (begin #;(log-debug "Run Top:~n~a~n" (massage-top 'e))
                               (feedback (massage-top 'e)))))
 
 (define (feedback/massage x [timeout 30])
-  #;(printf "Prog:~n~a~n" (pretty (massage x)))
+  #;(log-debug "Prog:~n~a~n" (pretty (massage x)))
   (log-info "feedback/massage ... ~a" (current-process-milliseconds))
   (begin0
       (feedback (massage x) timeout)

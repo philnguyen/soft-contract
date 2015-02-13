@@ -75,11 +75,11 @@
 (define (try-find-ce prog)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     (define p (read/ce prog))
-    #;(printf "CE read~n")
+    #;(log-debug "CE read~n")
     (match (find-error p)
-      [#f #;(printf "CE says safe~n") 'safe]
+      [#f #;(log-debug "CE says safe~n") 'safe]
        [(cons σ^ (.blm l⁺ lᵒ v c))
-        #;(printf "CE says CE~n")
+        #;(log-debug "CE says CE~n")
         (match (model p σ^)
           [#f (list 'blame l⁺ lᵒ (show-V σ^ v) (show-V σ^ c))]
           [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))

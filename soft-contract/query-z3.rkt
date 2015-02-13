@@ -12,13 +12,13 @@
   (cond
    [(not (handled? C)) 'Neither] ; skip when contract is strange
    [else
-    #;(printf "Queried with: ~a~n~a~n" (show-Ans σ V) C)
+    #;(log-debug "Queried with: ~a~n~a~n" (show-Ans σ V) C)
     (define-values (σ′ i) (match V
                             [(.L i) (values σ i)]
                             [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#]))
     (define-values (Q* i*) (explore σ′ (set-add (span-C C) i)))
     (define-values (q j*) (gen σ′ i C))
-    #;(printf "premises [~a] involve labels [~a] ~n" Q* i*)
+    #;(log-debug "premises [~a] involve labels [~a] ~n" Q* i*)
     (cond
      ;; Skip querying when the set of labels spanned by premises does not cover
      ;; That spanned by conclusion
@@ -227,8 +227,8 @@
     [(regexp #rx"^sat")
      (match (call (format "~a~n~a~n(assert ~a)~n(check-sat)~n" decs asserts concl))
              [(regexp #rx"^unsat") 'Refuted]
-             [_ #;(printf "Neither~n") 'Neither])]
-    [_ #;(printf "Neither~n")'Neither]))
+             [_ #;(log-debug "Neither~n") 'Neither])]
+    [_ #;(log-debug "Neither~n")'Neither]))
 
 (: total-z3-time : Number)
 (define total-z3-time 0)
@@ -240,10 +240,10 @@
 (define (call query)
   (define now (current-process-milliseconds))
   (log-info "Calling z3 ...")
-  ;(printf "Query:~n~a~n---~n" query)
+  ;(log-debug "Query:~n~a~n---~n" query)
   (define result-str
     (with-output-to-string
-        (λ () ; FIXME: lo-tech. I don't know Z3's exit code
+        (λ ()
           (system (format "echo \"~a\" | z3 -in -smt2" query)))))
   (set! total-z3-time (+ total-z3-time (- (current-process-milliseconds) now)))
   (log-info "Called z3 ... ~a" (- (current-process-milliseconds) now))

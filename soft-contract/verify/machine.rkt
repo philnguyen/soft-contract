@@ -168,7 +168,6 @@
              (resume res K ctx))
            (log-debug "--FOLLOW MAIN PATH:~n")
            (visit (.ς V σ k)))]
-        ; blur value in M table ; TODO: this is a hack
         [(.ς (? .V? V) σ (list* (.blr/κ F σ0 V0) (? .rt/κ? ctx) k))
          (memoizing ς
            (match-define (cons σ′ Vi) (⊕ σ0 V0 σ V))
@@ -183,27 +182,23 @@
              (resume resi K ctx))
            (log-debug "--FOLLOW MAIN PATH:~n")
            (visit (.ς V σ k)))]
-        ; FIXME HACK
         [(.ς (? .V? V) σ (list* (.blr/κ F1 σ1 V1) (.blr/κ F0 σ0 V0) k))
          #;(log-debug "B: ~a  ⊕  ~a  =  ~a~n~n" (show-V σ V0) (show-V σ V1) (show-V σ (⊕ V0 V1)))
          #;(log-debug "Blur: ~a with ~a~n~n" (show-E σ V0) (show-E σ V1))
          (match-define (cons σ′ Vi) (⊕ σ0 V0 σ1 V1))
          (define σi (⊕ σ0 σ′ F0))
          (visit (.ς V σ (cons (.blr/κ F1 σi Vi) k)))]
-        ; FIXME hack
         [(.ς (? .V?) _ (cons (? .recchk/κ?) _))
          (memoizing ς
            (match (step ς)
              [(? set? s) (for ([ςi s]) (visit ςi))]
              [(? .ς? ςi) (visit ςi)]))]
-        ; FIXME hack
         [(.ς (.↓ (.@-havoc x) ρ) σ _)
          #;(log-debug "havoc ~a~n" (show-V σ (ρ@ ρ x)))
          (memoizing ς
            (match (step ς)
              [(? set? s) (for ([ςᵢ (in-set s)]) (visit ςᵢ))]
              [(? .ς? ς′) (visit ς′)]))]
-        ; FIXME hack
         [(? ς-apply?)
          (memoizing ς
            (match (step ς)
@@ -247,7 +242,12 @@
 
   (: havoc : .V .σ .κ* → .ς+)
   (define (havoc V σ k)
-    (match (step-@ HAVOC (list V) '☠ σ k)
+    (for/fold ([acc : (Setof .ς) ∅])
+              ([Vᵢ (in-set (havoc-split σ V))])
+      (define ςs (step-@ HAVOC (list Vᵢ) '☠ σ k))
+      (cond [(set? ςs) (set-union acc ςs)]
+            [else (set-add acc ςs)]))
+    #;(match (step-@ HAVOC (list V) '☠ σ k)
       [(? set? s) s]
       [(? .ς? ς) (set ς)]))
 
@@ -277,13 +277,13 @@
              (.ς (.↓ e (ρ++ ρ Vx1)) σ1 (cons (.rt/κ σ1 f Vx1) k)))
            (.ς (.↓ e (ρ++ ρ Vx)) σ (cons (.rt/κ σ f Vx) k)))]
          [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
-      [#t (cond [(>= (length Vx) (- n 1)) ; FIXME varargs not handled yet
+      [#t (cond [(>= (length Vx) (- n 1))
                  (.ς (.↓ e (ρ++ ρ Vx (- n 1))) σ k)]
                 [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity≥/C (- n 1))) σ k)])]))
 
   (: step-@ : .V (Listof .V) Symbol .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
-    #;(log-debug "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*)) ;TODO reenable
+    #;(log-debug "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*))
     #;(log-debug "step-@:~nσ:~n~a~nf:~n~a~nx:~n~a~n~n" σ Vf V*)
     (match Vf
       [(.// U C*)
@@ -410,10 +410,10 @@
                [(cons σt (.// (.b #t) _))
                 (match v?
                   [#f (match/nd (δ σt 'arity-includes? (list V (Prim (length Cx*))) lo)
-                        [(cons σt (.// (.b #t) _)) (.ς (→V (.Ar C V l^3)) σt k)]
+                        [(cons σt (.// (.b #t) _)) (.ς (wrap Uc V l^3) #;(→V (.Ar C V l^3)) σt k)]
                         [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (arity-includes/C (length Cx*))) σf k)])]
                   [#t (match/nd (δ σt 'arity>=? (list V (Prim (- (length Cx*) 1))) lo)
-                        [(cons σt (.// (.b #t) _)) (.ς (→V (.Ar C V l^3)) σt k)]
+                        [(cons σt (.// (.b #t) _)) (.ς (wrap Uc V l^3) #;(→V (.Ar C V l^3)) σt k)]
                         [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (arity≥/C (- (length Cx*) 1))) σf k)])])]
                [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V PROC/C) σf k)])]
             [_ (.ς (.FC C V lo) σ (cons (.if/κ (.Assume V C) (.blm l+ lo V C)) k))])])]))
@@ -434,7 +434,7 @@
               (cons (.▹/κ  (cons #f (.↓ (ref-e in name) ρ∅)) (list in ctx in)) k))]
          [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
          [(.@-havoc x)
-          (define V
+          #;(define V
             ;; Abstract values of form (μx._) are safe to discard for havoc-ing
             (match (ρ@ ρ x)
               [(? .//? V) V]
@@ -442,10 +442,9 @@
                         [(? .//? V) V]
                         [_ #f])]
               [_ #f]))
-          (match V
+          (match/nd: (.V → .ς) (havoc-split σ (ρ@ ρ x))
             [(and V (.// U C*))
              ; always alloc the result of unroll
-             ; FIXME: rewrite 'unroll' to force it
              (match-define (cons σ′ V′) (alloc σ V))
              #;(log-debug "havoc: ~a~n~n" (show-V σ′ V′))
              (match U
@@ -527,6 +526,19 @@
     ['() (.ς FF σ k)]
     [(list E) (.ς E σ k)]
     [(cons E Er) (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*]) (cons (.if/κ TT Ei) k)) k Er))]))
+
+(: wrap : .Λ/C .V Symbol^3 → .V)
+;; Slightly smarter wrapping of function contract that avoid obvious duplicates
+(define (wrap C V l^3)
+  (match V
+    [(.// (.Ar (.// (.Λ/C Cx D v?) _) V′ (list l+ l- l)) D*)
+     (match-define (.Λ/C Cz D′ v?′) C)
+     (match-define (list h+ h- h) l^3)
+     (cond
+       [(and (equal? Cx Cz) (equal? D D′) (equal? v? v?′) (eq? l h))
+        (.// (.Ar (→V (.Λ/C Cz D v?)) V′ (list l+ h- l)) D*)]
+       [else (→V (.Ar (→V C) V l^3))])]
+    [_ (→V (.Ar (→V C) V l^3))]))
 
 (: ▹/κ1 : .V Symbol^3 .κ* → .κ*)
 (define (▹/κ1 C l^3 k)
@@ -798,3 +810,33 @@
          (match? (last Vs) (.// (? .λ↓?) _)))]
     [_ #f]))
 
+(: havoc-split : .σ .V → (Setof .V))
+;; Eagerly split value into smaller ones for havoc-ing,
+;; eliminating those guaranteed not to have behavior
+(define (havoc-split σ V)
+  (define-set seen : .V)
+  (define ans
+    (let go : (Setof .V) ([V : .V V])
+      (match V
+        [(.L i) (go (σ@ σ i))]
+        [(.// U _)
+         (match U
+           [(? .prim?) ∅]
+           [(? .•?) ∅]
+           [(.St _ Vs)
+            (for/fold ([acc : (Setof .V) ∅]) ([Vᵢ Vs])
+              (set-union acc (go Vᵢ)))]
+           [(.St/C _ Cs)
+            (for/fold ([acc : (Setof .V) ∅]) ([Cᵢ Cs])
+              (set-union acc (go Cᵢ)))]
+           [(.μ/C _ C) {go C}]
+           [(? .X/C?) ∅]
+           ; conservative default
+           [_ {set V}])]
+        [_ ∅])))
+  (unless (set-empty? ans)
+    (log-debug "~a behaviors: ~a~n"
+               (for/list : (Listof Any) ([V ans])
+                 (show-V σ V))
+               (show-Ans σ V)))
+  ans)

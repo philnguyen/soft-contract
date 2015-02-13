@@ -10,7 +10,7 @@
 (define (δ σ o V* l)
   (when (match? o (.st-mk 'box _) (.st-ac 'box _ _) (.st-p 'box _))
     (error "δ does not handle box opreation"))
-  ;;(printf "δ: o: ~a~nV*: ~a~n~nσ: ~a~n~n~n" o (map (curry show-E σ) V*) (show-σ σ))
+  ;;(log-debug "δ: o: ~a~nV*: ~a~n~nσ: ~a~n~n~n" o (map (curry show-E σ) V*) (show-σ σ))
   (match* (o V*)
     
     ; primitive predicates
@@ -355,7 +355,7 @@
 (define (refine σ V . C**)
   (: go : .σ .V (Listof (U (Setof .V) (Listof .V) .V)) → .Vns)
   (define (go σ V C**)
-    #;(printf "REFINE:~n~a~n~a~n~a~n~n" σ V C**)
+    #;(log-debug "REFINE:~n~a~n~a~n~a~n~n" σ V C**)
     (match C**
       ['() (cons σ V)]
       [(cons (? list? C*) Cr*)
@@ -448,7 +448,7 @@
 (define (refine* σ V* C*)  
   (let-values ([(σ′ V*′)
                 (for/fold: ([σ : .σ σ] [Vs : (Listof .V) '()]) ([V V*] [C C*])
-                  #;(printf "Got:~n~a~n~a~n~n" V C)
+                  #;(log-debug "Got:~n~a~n~a~n~n" V C)
                   (match-let ([(cons σ V) (refine1 σ V C)])
                     (values σ (cons V Vs))))])
     (cons σ′ (reverse V*′))))
@@ -577,24 +577,3 @@
                      (match-let ([(cons σ V) (alloc σ V)])
                        (values σ (cons V Vs))))])
        (cons σ (reverse Vs)))]))
-
-;; TODO Can't get this to work in TR
-#;(module+ test
-  (require typed/rackunit "../runtime.rkt")
-  
-  (: check-ans-include : .Ans* .Ans → Any)
-  (define (check-ans-include ans ansᵢ)
-    (cond [(set? ans) (check-true (set-member? ans ansᵢ))]
-          [else (check-equal? ans ansᵢ)]))
-  
-  (: check-δ : .o (Listof .V) .Ans → Any)
-  (define (check-δ o Vs A)
-    (define-values (σ Vs-rev)
-      (for/fold ([σ : .σ (.σ (hash) 0)] [Vs-rev : (Listof .V) '()]) ([V (in-list Vs)])
-        (match V
-          [(.// (? number?) _) (values σ (cons V Vs-rev))]
-          [(.// (? .•?) Cs) (let-values ([(σ L) (σ+ σ Cs)])
-                              (values σ (cons L Vs-rev)))]
-          [_ (fail (format "check-δ does not support argument ~a" V))
-             (values σ (cons V Vs-rev))])))
-    (check-ans-include (δ σ o (reverse Vs-rev) 'test) A)))

@@ -17,7 +17,7 @@
     (struct .λ [arity : Integer] [body : .e] [var? : Boolean])
     (subset: .•
       '•
-      (struct .•ₗ [l : Negative-Integer])) 
+      (struct .•ₗ [l : Negative-Integer]))
     (subset: .prim
       (struct .b [unboxed : (U Number Boolean String Symbol)])
       (subset: .o
@@ -37,17 +37,13 @@
   (struct .ref [name : Symbol] [in : Symbol] [ctx : Symbol])
   (struct .@ [f : .e] [xs : (Listof .e)] [ctx : Symbol])
   (struct .@-havoc [x : .x]) ; hack for havoc
-  #;(.apply [f : .e] [xs : .e] [ctx : Symbol])
   (struct .if [i : .e] [t : .e] [e : .e])
   (struct .amb [e* : (Setof .e)])
   ; contract stuff
   (struct .μ/c [x : Symbol] [c : .e])
   (struct .λ/c [xs : (Listof .e)] [cy : .e] [var? : Boolean])
   (struct .x/c [x : Symbol])
-  (struct .struct/c [tag : Symbol] [fields : (Listof .e)])
-  #;(.and/c [l : .e] [r : .e])
-  #;(.or/c [l : .e] [r : .e])
-  #;(.¬/c [c : .e]))
+  (struct .struct/c [tag : Symbol] [fields : (Listof .e)]))
 
 (: •! : → .•ₗ)
 ;; Generate new labeled hole
@@ -92,14 +88,15 @@
     [(.λ _ e _) (checks# e)]
     [(.@ f xs _) (+ 1 (checks# f) (checks# xs))]
     [(.@-havoc x) 1]
-    #;[(.apply f xs _) (+ 1 (checks# f) (checks# xs))]
     [(.if e e1 e2) (+ (checks# e) (checks# e1) (checks# e2))]
     [(.amb e*) (for/sum ([e e*]) (checks# e))]
     [(.μ/c _ e) (checks# e)]
     [(.λ/c cx cy _) (+ (checks# cx) (checks# cy))]
     [(.struct/c _ cs) (checks# cs)]
-    [(? .pred?) 0]
-    [(? .o?) 1] ; FIXME: depends on arity
+    [(or (? .pred?) (? .st-mk?)) 0]
+    [(? .o1?) 1]
+    [(? .o2?) 2]
+    [(? .o?) 1]
     [_ 0]))
 
 ;; frequently used constants
@@ -192,18 +189,18 @@
 (: gen-havoc : .p → .p)
 (define (gen-havoc p)
   (match-define (.p (.m* m-seq ms) acs e†) p)
-    
+
   (define havoc
     (.λ 1 (.amb (set-add (for/set: .@ ([ac acs])
                            (.@ (.ref 'havoc '☠ '☠)
                                (list (.@ ac (list (.x 0)) '☠)) '☠))
                          (.@ (.ref 'havoc '☠ '☠)
                              (list (.@-havoc (.x 0))) '☠))) #f))
-  
+
   (define ☠ (.m (list 'havoc)
                 (hash-set (ann #hash() (Map Symbol (Pairof .e (U #f .e))))
                           'havoc (cons havoc (.λ/c (list .any/c) .none/c #f)))))
-  
+
   (if (hash-has-key? ms '☠) p
       (.p (.m* (cons '☠ m-seq) (hash-set ms '☠ ☠)) acs e†)))
 

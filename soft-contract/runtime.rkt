@@ -63,7 +63,7 @@
 
 (: close : .v .ρ → .V)
 (define (close v ρ)
-  #;(printf "close:~n~a~n~a~n" v ρ)
+  #;(log-debug "close:~n~a~n~a~n" v ρ)
   (match v ; partial
     [(? .λ? v) (→V (.λ↓ v (restrict ρ (FV v))))]
     [(? .prim? p) (→V p)]))
@@ -102,7 +102,7 @@
 ;;;;; ENVIRONMENT
 
 ;; environment maps static distances (HACK: or symbols) to values
-(struct .ρ ([map : (Map (U Integer Symbol) .V)] [len : Integer]) #:transparent) ; FIXME equality
+(struct .ρ ([map : (Map (U Integer Symbol) .V)] [len : Integer]) #:transparent)
 (define ρ∅ (.ρ m∅ 0))
 
 (: restrict : .ρ (Setof Integer) → .ρ)
@@ -256,7 +256,7 @@
   [ONE/C (→C '= #:2nd ONE)])
 (define NON-ZERO/C (.¬/C ZERO/C))
 (: sign/C : Real → (Setof .V))
-(define (sign/C x) ; TODO ridiculous, yea...
+(define (sign/C x)
   (cond [(> x 0) {set POS/C NON-NEG/C NON-ZERO/C}]
         [(= x 0) {set ZERO/C NON-NEG/C NON-POS/C}]
         [else {set NEG/C NON-ZERO/C NON-POS/C}]))
@@ -392,10 +392,8 @@
   (define (go/ρ ρ)
     (match-define (.ρ m l) ρ)
     (.ρ ;; TODO: either wrong or dumb, rewrite using for/hash
-     (for/fold ([acc : (Map (U Symbol Integer) .V) m]) ([k (in-hash-keys m)])
-       (match (hash-ref m k #f)
-         [(? .V? V) (hash-set acc k (go/V V))]
-         [_ acc]))
+     (for/hash : (Map (U Symbol Integer) .V) ([(k v) (in-hash m)])
+       (values k (go/V v)))
      l))
 
   (: go/V* : (Listof .V) → (Listof .V))
@@ -430,9 +428,9 @@
                    (set! σ-new (σ-set σ-new j V′))
                    L_j)])]
       [(.// U C*)
-       #;(printf "Looking at ~a~n~n" C*)
+       #;(log-debug "Looking at ~a~n~n" C*)
        (.// (go! U) (for/set: .V ([Ci C*] #:when (transfer? Ci))
-                                 #;(printf "Transferring ~a~n~n" Ci) (go! Ci)))]
+                                 #;(log-debug "Transferring ~a~n~n" Ci) (go! Ci)))]
       [(.μ/V x V*) (.μ/V x (for/set: .V ([Vi V*]) (go! Vi)))]
       [(? .X/V? V) V]
       ; U
@@ -518,20 +516,15 @@
   (define go
     (match-lambda
       [(.L i) (go (σ@ σ i))]
-      [(.// U C*)
-       (.// (go U)
-            (for/set: .V ([C C*]
-                          ;#:unless ; discard dynamically generated refinements
-                          #;(match? C (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) _) 'Λ) #f) _) _)))
-              C))]
-      ; FIXME: ok to ignore other forms??
+      [(.// U C*) (.// (go U) (for/set: .V ([C C*]) C))]
       [(? .μ/V? V) V]
       [(? .X/V? V) V]
-      [(? .U? U) (match U
-                   [(.Ar C V′ l^3) (.Ar (go C) (go V′) l^3)]
-                   [(.St t V*′) (.St t (map go V*′))]
-                   [(.λ↓ f ρ) (.λ↓ f (go ρ))]
-                   [_ U])]
+      [(? .U? U)
+       (match U
+         [(.Ar C V′ l^3) (.Ar (go C) (go V′) l^3)]
+         [(.St t V*′) (.St t (map go V*′))]
+         [(.λ↓ f ρ) (.λ↓ f (go ρ))]
+         [_ U])]
       [(? list? V*) (map go V*)]
       [(.ρ m l) (.ρ (for/fold ([m′ m]) ([(i V) (in-hash m)])
                       (hash-set m′ i (go V))) l)]))
@@ -541,7 +534,7 @@
 (: V∈ : .V .V → Boolean)
 (define (V∈ v V)
   (let go ([V V])
-    (or (equal? v V) ; TODO: Not enough for sat-7
+    (or (equal? v V)
         (match V
           [(.// (.St _ V*) _) (ormap go V*)]
           [(.// (.Ar _ V′ _) _) (go V′)]
@@ -568,7 +561,7 @@
                      [(.Ar C V l^3) (.Ar C (go V) l^3)]
                      [(.St t V*) (.St t (map go V*))]
                      [(.λ↓ f ρ) (.λ↓ f (go ρ))]
-                     [_ U1]) ; TODO ok to ignore other forms?
+                     [_ U1])
                    C*)]
              [(.μ/V z Vs) (match V1
                             [(.X/V x) (if (eq? x z) V (.μ/V z (for/set: .V ([V Vs]) (go V))))]
@@ -596,7 +589,7 @@
        (match U
          [(.Ar _ V _) (col V)]
          [(.St _ Vs) (col Vs)]
-         [_ ∅])] ; TODO ok to ignore?
+         [_ ∅])]
       [(.μ/V x Vs) (col Vs)]
       [(.X/V x) {set x}]
       [(? set? V*) (for/fold ([s : (Setof Symbol) ∅]) ([V V*])

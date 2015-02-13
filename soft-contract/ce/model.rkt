@@ -15,7 +15,6 @@
    [else σ]))
 
 (: model/σ : .p .σ → .σ)
-;; Instantiate non-number abstract values
 (define (model/σ p σ)
   
   (: model/v : .V+ → .V+)
@@ -43,7 +42,7 @@
                   (define V (next i))
                   (cond [(ok-with? (equal/C V)) V]
                         [else (go (+ 1 i))])]
-                 [else (error 'Internal "unexpected failure generating ~a" item-name)])))
+                 [else (error 'Internal "fail to generate ~a" item-name)])))
        
        (cond
         ;; Z3 might have NOT given back a model for trivial/empty set of constraints on numbers
@@ -84,8 +83,6 @@
              (→V (.λ↓ (.λ n (.b (random)) #f) ρ∅)))]
           [else (→V (.λ↓ (.λ 1 (.b (random)) #f) ρ∅))])]
         [(ok-with? STR/C)
-         ;; FIXME: abstract string should have a `string-length` field
-         ;; Currently, (string-length x) would be an integer somewhere on the heap
          (or
           (for/or : (U #f .V+)
                   ([C Cs]
@@ -145,11 +142,11 @@
              [else (values labels types)])]
            [_ (values labels types)])]
         [_ (values labels types)])))
-  #;(printf "labels:~n~a~n" labels)
+  #;(log-debug "labels:~n~a~n" labels)
   ;; Generate assertions
   (define-values (assertions _) (explore σ (list->set labels)))
-  #;(printf "store:~n~a~n" (parameterize ([abstract-V? #f]) (show-σ σ)))
-  #;(printf "assertions:~n~a~n" assertions)
+  #;(log-debug "store:~n~a~n" (parameterize ([abstract-V? #f]) (show-σ σ)))
+  #;(log-debug "assertions:~n~a~n" assertions)
   ;; Generate query
   (define query
     (string-append
@@ -176,14 +173,14 @@
                    (read))
            [(list 'model lines ...)
             #;(begin
-              (printf "Model:~n")
-              (for ([l lines]) (printf "~a~n" l)))
+              (log-debug "Model:~n")
+              (for ([l lines]) (log-debug "~a~n" l)))
             (match-define (.σ m l) σ)
             (define m′
               (for/fold ([m : (Map Integer .V+) m])
                         ([line : Any (in-list lines)])
                 (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
-                #;(printf "e: ~a~n" e)
+                #;(log-debug "e: ~a~n" e)
                 (define res
                   (let go : Real ([e : Any e])
                     (match e

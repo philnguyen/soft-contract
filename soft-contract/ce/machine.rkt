@@ -36,22 +36,22 @@
 (: print-ς : .ς → Void)
 (define (print-ς ς)
   (define it (show-ς ς))
-  (printf "E:~n ~a~n" (second (first it)))
-  (printf "σ:~n")
+  (log-debug "E:~n ~a~n" (second (first it)))
+  (log-debug "σ:~n")
   (for ([x (rest (second it))])
-    (printf " ~a~n" x))
-  (printf "k:~n")
+    (log-debug " ~a~n" x))
+  (log-debug "k:~n")
   (for ([x (rest (third it))])
-    (printf " ~a~n" x)))
+    (log-debug " ~a~n" x)))
 
 (: ev : .p → #;(Setof .Ans) (Option .Ans))
 (define (ev p)
   (match-define (.p (and m* (.m* _ ms)) accs e) p)
   (define step (step-p m* accs))
-  
+
   (: prob : Real → Boolean)
   (define (prob p) (<= (random) p))
-  
+
   (: m-opaque? : Symbol → Boolean)
   (define (m-opaque? x) ; TODO: expensive?
     (match x
@@ -62,7 +62,7 @@
        (for/or ([d (in-hash-values defs)]
                 #:when (.•ₗ? (car d)))
          #t)]))
-  
+
   (: maybe-blame? : (U .κ* .ς) → Boolean)
   (define maybe-blame?
     (match-lambda
@@ -73,7 +73,7 @@
         [(.if/κ _ (.blm l _ _ _)) (not (m-opaque? l))]
         [_ (maybe-blame? kᵣ)])]
      [(.ς _ _ k) (maybe-blame? k)]))
-  
+
   (: on-new-state : (Setof .ς) .ς → (U (Setof .ς) .Ans))
   (define (on-new-state front ς)
     (match ς
@@ -89,7 +89,7 @@
            [(? cons? ans) ans])]
         [else (set-add front ς)])]
       [_ (set-add front ς)]))
-  
+
   (: ffw : .ς Integer → (U (Setof .ς) .Ans))
   ;; Fast-forward
   (define (ffw ς n)
@@ -119,7 +119,7 @@
                [(? cons? ans) ans])]
             [else (set-add acc ς′)]))])]
      [else {set ς}]))
-  
+
   (: batch-step : (Setof .ς) → (U (Setof .ς) .Ans))
   (define (batch-step front)
     (for/fold ([next : (U (Setof .ς) .Ans) ∅]) ([ς front])
@@ -132,12 +132,12 @@
            (for/fold ([next : (U (Setof .ς) .Ans) next]) ([ςᵢ ςs])
              (cond [(cons? next) next]
                    [else (on-new-state next ςᵢ)]))])])))
-  
+
   (define stepᵢ 0)
   (: search : (Setof .ς) → (Option .Ans))
   (define (search front)
     #;(begin ; debug
-      (printf "~a: ~a/~a~n"
+      (log-debug "~a: ~a/~a~n"
               stepᵢ
               (for/sum ([ς front] #:when (maybe-blame? ς)) 1)
               (set-count front)))
@@ -149,7 +149,7 @@
       (cond
        [(set? front′) (search front′)]
        [else front′])]))
-  
+
   ;; Run program normally (just for debugging)
   (: run : (Setof .ς) → (Setof .Ans))
   (define (run front)
@@ -169,7 +169,7 @@
                      (cond [(set? ςs) (set-union front′ ςs)]
                            [else (set-add front′ ςs)]))]))
         (go! front′)])))
-  
+
   ;; Integereractive debugging
   #;(let ()
     (define l : (Listof Integer) '())
@@ -177,14 +177,14 @@
     (let debug ([ς : .ς (inj e)])
       (match-define (.ς _ σ k) ς)
       (define b? (maybe-blame? k))
-      (printf "~a: Stack: (~a) ~n" stepᵢ b?)
+      (log-debug "~a: Stack: (~a) ~n" stepᵢ b?)
       (when b? (set! l (cons stepᵢ l)))
-      (for ([κ k]) (printf " ~a~n" (show-κ σ κ)))
+      (for ([κ k]) (log-debug " ~a~n" (show-κ σ κ)))
       (cond
        [(final? ς)
-        (printf "Final:~n")
+        (log-debug "Final:~n")
         (print-ς ς)
-        (printf "forwardables: ~a" l)]
+        (log-debug "forwardables: ~a" l)]
        [else
         (define next (step ς))
         (inc! stepᵢ)
@@ -192,23 +192,23 @@
          [(set? next)
           (define n (set-count next))
           (define nextl : (Listof .ς) (set->list next))
-          (printf "~a next states:~n" n)
+          (log-debug "~a next states:~n" n)
           (for ([ςᵢ (in-list nextl)] [i n])
-            (printf "~a:~n" i)
+            (log-debug "~a:~n" i)
             (print-ς ςᵢ)
-            (printf "~n"))
+            (log-debug "~n"))
           (define next-choice : Integer
             (let prompt ()
-              (printf "Explore [0 - ~a]: " (- n 1))
+              (log-debug "Explore [0 - ~a]: " (- n 1))
               (match (read)
                 [(and (? exact-integer? k) (? (λ ([k : Integer]) (<= 0 k (- n 1))))) k]
                 [_ (prompt)])))
           (debug (list-ref nextl next-choice))]
          [else (debug next)])]))
-    (printf "Done, ~a steps taken~n" stepᵢ)
+    (log-debug "Done, ~a steps taken~n" stepᵢ)
     (read)
     #f)
-  
+
   ;; `search` is for CE, `run` is the normal run
   (search (set (inj e)))
   #;(run (set (inj e))))
@@ -217,24 +217,24 @@
 (define-syntax-rule (match/nd v [p e ...] ...) (match/nd: (.Ans → .ς) v [p e ...] ...))
 
 (: step-p : .m* (Setof .st-ac) → (.ς → .ς*))
-(define (step-p m* accs)  
+(define (step-p m* accs)
   (match-define (.m* _ ms) m*)
-  
+
   (: ref-e : Symbol Symbol → .e)
   (define (ref-e m x)
     (match-define (.m _ defs) (hash-ref ms m))
-    (car (hash-ref defs x))) 
- 
+    (car (hash-ref defs x)))
+
   (: ref-c : Symbol Symbol → .e)
   (define (ref-c m x)
     (match-define (.m _ decs) (hash-ref ms m))
     (match (cdr (hash-ref decs x))
       [(? .e? c) c]
       [_ (error (format "module ~a does not export ~a" m x))]))
-  
+
   (: step-β : .λ↓ (Listof .V) Symbol .σ .κ* → .ς)
   (define (step-β f Vx l σ k)
-    #;(printf "Stepping ~a~n~n" (show-U σ f))
+    #;(log-debug "Stepping ~a~n~n" (show-U σ f))
     (match-define (.λ↓ (.λ n e v?) ρ) f)
     (match v?
       [#f (if (= (length Vx) n)
@@ -243,17 +243,17 @@
       [#t (if (>= (length Vx) (- n 1))
               (.ς (.↓ e (ρ++ ρ Vx (- n 1))) σ k)
               (.ς (.blm l 'Λ (Prim (length Vx)) (arity≥/C (- n 1))) σ k))]))
-      
+
   (: step-@ : .V (Listof .V) Symbol .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
-    #;(printf "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*)) ;TODO reenable
-    #;(printf "step-@:~nσ:~n~a~nf:~n~a~nx:~n~a~n~n" σ Vf V*)
+    #;(log-debug "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*))
+    #;(log-debug "step-@:~nσ:~n~a~nf:~n~a~nx:~n~a~n~n" σ Vf V*)
     (match Vf
       [(.// U C*)
        (match U
          ;; Debug
          #;[(.=)
-          (printf "Debug =: ~n V*: ~a~n σ: ~a~n" V* (show-σ σ))
+          (log-debug "Debug =: ~n V*: ~a~n σ: ~a~n" V* (show-σ σ))
           ∅]
          ;; Handle box operations specially
          [(.st-mk 'box 1)
@@ -278,7 +278,7 @@
                         {set
                          ;; Fresh box
                          (let-values ([(σ₁ L₁) (σ+ σ)])
-                           (.ς TT (σ-set σ₁ i (mk-box L₁)) k)) 
+                           (.ς TT (σ-set σ₁ i (mk-box L₁)) k))
                          ;; Non-box
                          (.ς FF (σ-set σ i (.// '• (set-add Cs (.¬/C (Prim 'box?))))) k)})
                       ;; Handle aliases by replacing Lᵢ with Lⱼ for each definite box Lⱼ
@@ -334,20 +334,20 @@
              (match (σ@ σt i)
                [(and V (or (.// (? .λ↓?) _) (.// (? .Ar?) _))) (step-@ V V* l σt k)]
                [(.// (? .Case? U) _)
-                #;(printf "Applying Case with~n Case = ~a~n Arg = ~a~n" U V*)
+                #;(log-debug "Applying Case with~n Case = ~a~n Arg = ~a~n" U V*)
                 (match (.Case@ U V*)
                   [#f
                    (define-values (σ′ Lₐ) (σ+ σt))
                    (define Vf′ (→V (.Case+ U V* Lₐ)))
-                   #;(printf "Not memoized. Refined. New case:~n ~a~n" Vf′)
+                   #;(log-debug "Not memoized. Refined. New case:~n ~a~n" Vf′)
                    (.ς Lₐ (σ-set σ′ i Vf′) k)]
                   [(? .L? Lₐ)
-                   #;(printf "Memoized. Return: ~a~n" Lₐ)
+                   #;(log-debug "Memoized. Return: ~a~n" Lₐ)
                    (.ς Lₐ σt k)])]
                [_ (step-• L V* l σt k)])]
             [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf (arity-includes/C (length V*))) σf k)])]
          [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf PROC/C) σf k)])]))
-  
+
   (: ς∪ : .ς* * → .ς+)
   (define (ς∪ . ςs)
     (match ςs
@@ -357,7 +357,7 @@
       [_ (for/fold ([acc : .ς+ ∅]) ([ςᵢ ςs])
            (cond [(set? ςᵢ) (set-union acc ςᵢ)]
                  [else (set-add acc ςᵢ)]))]))
-  
+
   (: step-• : .L (Listof .V) Symbol .σ .κ* → .ς*)
   (define (step-• Lf V* l σ k)
     (match V*
@@ -375,10 +375,10 @@
          (define Vf (.λ↓ (.λ n (.@ ● (list (.x i)) '☠) #f) ρ∅))
          (define σ′ (σ-set σ α (→V Vf)))
          (set-add acc (step-β Vf V* '☠ σ′ k)))]))
-  
+
   (: step-•₁ : .L .V Symbol .σ .κ* → .ς*)
   (define (step-•₁ Lf V l σ k)
-    
+
     (: step-const : .L .σ .κ* → .ς)
     (define (step-const Lf σ k)
       (match-define (and ● (.•ₗ n)) (•!))
@@ -386,7 +386,7 @@
                         n ♦
                         Lf (→V (.λ↓ (.λ 1 ● #f) ρ∅))))
       (.ς (.L n) σ′ k))
-    
+
     (: step-dep : .L .V .σ .κ* → .ς)
     (define (step-dep Lf V σ k)
       (match-define (and ●₁ (.•ₗ α₁)) (•!))
@@ -401,7 +401,7 @@
                  α₂ (→V Case∅)
                  Lf Vf)
           k))
-    
+
     (: step-havoc : .L .V .σ .κ* → .ς*)
     (define (step-havoc Lf V σ k)
       (match-define (.σ m l) σ)
@@ -426,12 +426,12 @@
            (define σ′ (.σ (hash-set m α (→V Vf)) l))
            (set-add ςs (step-β Vf (list V) '☠ σ′ k)))]
         [(? .prim?) ∅]
-        [_ ∅ #|TODO|#]))
-    
+        [_ #|no behavior|# ∅]))
+
     (ς∪ (step-const Lf σ k)
         (step-dep Lf V σ k)
         (step-havoc Lf V σ k)))
-  
+
   (: step-fc : .V .V Symbol .σ .κ* → .ς*)
   (define (step-fc C V l σ k)
     (match (⊢ σ V C)
@@ -453,17 +453,18 @@
                [(cons σf (.// (.b #f) _)) (.ς FF σf k)])]
             [_ (step-@ C (list V) l σ k)])]
          [(.L _) (step-@ C (list V) l σ k)])]))
-  
+
   (: step-▹ : .V .V Symbol^3 .σ .κ* → .ς*)
   (define (step-▹ C V l^3 σ k)
-    #;(printf "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
+    #;(log-debug "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
     (match-define (list l+ l- lo) l^3)
     (match (⊢ σ V C) ; want a check here to reduce redundant cases for recursive contracts
       ['Proved (.ς V σ k)]
       ['Refuted (.ς (.blm l+ lo V C) σ k)]
       ['Neither
        (match C
-         [(.L i) ; FIXME this is wrong, need to take care of higher-order contract
+         [(.L i)
+          ; TODO: this does not really show up for `ce`
           (match-define (cons σt Vt) (refine σ V C))
           (match-define (cons σf Vf) (refine σ V (.¬/C C)))
           {set (.ς Vt σt k) (.ς Vf σf k)}]
@@ -499,10 +500,10 @@
                          (.ς (.blm l+ lo V (arity≥/C (- (length Cx*) 1))) σf k)])])]
                [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V PROC/C) σf k)])]
             [_ (.ς (.FC C V lo) σ (cons (.if/κ (.Assume V C) (.blm l+ lo V C)) k))])])]))
-  
+
   (: step-E : .E .σ .κ* → .ς*)
   (define (step-E E σ k)
-    #;(printf "E: ~a~n~n" E)
+    #;(log-debug "E: ~a~n~n" E)
     (match E
       [(.↓ e ρ)
        (match e
@@ -529,7 +530,7 @@
       [(.Assume V C)
        (match-define (cons σ′ V′) (refine σ V C))
        (.ς V′ σ′ k)]))
-  
+
   (: step-V : .V .σ .κ .κ* → .ς*)
   (define (step-V V σ κ k)
     (match κ
@@ -537,16 +538,16 @@
        (match/nd (δ σ 'false? (list V) 'Λ)
          [(cons σt (.// (.b #f) _)) (.ς E1 σt k)]
          [(cons σf (.// (.b #t) _)) (.ς E2 σf k)])]
-      
+
       [(.@/κ (cons E1 Er) V* l) (.ς E1 σ (cons (.@/κ Er (cons V V*) l) k))]
       [(.@/κ '() V* l)
        (match-define (cons Vf Vx*) (reverse (cons V V*)))
        (step-@ Vf Vx* l σ k)]
-      
+
       [(.▹/κ (cons #f (? .E? E)) l^3)
        (.ς E σ (▹/κ1 V l^3 k))]
       [(.▹/κ (cons (? .V? C) #f) l^3) (step-▹ C V l^3 σ k)]
-      
+
       ;; indy
       [(.indy/κ (list Ci) (cons Vi Vr) Vs↓ D n l^3) ; repeat last contract, handling var-args
        (step-▹ Ci Vi (¬l l^3) σ (cons (.indy/κ (list Ci) Vr (cons V Vs↓) D n l^3) k))]
@@ -556,16 +557,16 @@
        (match-define (and V* (cons Vf Vx*)) (reverse (cons V Vs↓)))
        (.ς (.↓ d (ρ++ ρ Vx* n)) σ (cons (.indy/κ '() '() V* #f n l^3) k))]
       [(.indy/κ _ '() (cons Vf Vx) #f _ (and l^3 (list l+ _ _))) ; apply inner function
-       #;(printf "range: ~a~n~n" (show-E σ V))
+       #;(log-debug "range: ~a~n~n" (show-E σ V))
        (step-@ Vf Vx l+ σ (▹/κ1 V l^3 k))]
-      
+
       ; contracts
       [(.μc/κ x) (.ς (→V (.μ/C x V)) σ k)]
       [(.λc/κ '() c↓ d ρ v?) (.ς (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?)) σ k)]
       [(.λc/κ (cons c c*) c↓ d ρ v?) (.ς (.↓ c ρ) σ (cons (.λc/κ c* (cons V c↓) d ρ v?) k))]
       [(.structc/κ t '() _ c↓) (.ς (→V (.St/C t (reverse (cons V c↓)))) σ k)]
       [(.structc/κ t (cons c c*) ρ c↓) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ (cons V c↓)) k))]))
-  
+
   (match-lambda
     [(.ς (? .V? V) σ (cons κ k))
      (when (match? V (.// '• _))

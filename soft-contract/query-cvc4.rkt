@@ -10,13 +10,13 @@
   (cond    
     [(not (handled? C)) 'Neither] ; skip when contract is strange
     [else
-     #;(printf "Queried with: ~a~n~a~n" (show-Ans σ V) C)
+     #;(log-debug "Queried with: ~a~n~a~n" (show-Ans σ V) C)
      (let*-values ([(σ′ i) (match V
                              [(.L i) (values σ i)]
                              [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#])]
                    [(Q* i*) (explore σ′ (set-add (span-C C) i))]
                    [(q j*) (gen i C)])
-       #;(printf "premises [~a] involve labels [~a] ~n" Q* i*)
+       #;(log-debug "premises [~a] involve labels [~a] ~n" Q* i*)
        (cond
          ; skip querying when the set of labels spanned by premises does not cover
          ; that spanned by conclusion
@@ -59,7 +59,7 @@
 ; return set of assertions as wel as set of labels involved
 (: explore : .σ (Setof Integer) → (Values (Setof String) (Setof Integer)))
 (define (explore σ i*)
-  #;(printf "explore:~n~nσ:~n~a~n~ni*:~n~a~n~n~n" σ i*)
+  #;(log-debug "explore:~n~nσ:~n~a~n~ni*:~n~a~n~n~n" σ i*)
   (define-set asserts : String)
   (define-set seen : Integer)
   (define-set involved : Integer)
@@ -124,13 +124,13 @@
     [(regexp #rx"^invalid")
      (match (call (format "~a~n~a~nCHECKSAT ~a;" decs asserts concl))
           [(regexp #rx"^unsat") 'Refuted]
-          [_ #;(printf "Neither~n") 'Neither])]
-    [_ #;(printf "Neither~n")'Neither]))
+          [_ #;(log-debug "Neither~n") 'Neither])]
+    [_ #;(log-debug "Neither~n")'Neither]))
 
 ; performs system call to solver with given query
 (: call : String → String)
 (define (call query)
-  #;(printf "Called with:~n~a~n~n" query)
+  #;(log-debug "Called with:~n~a~n~n" query)
   (with-output-to-string
    (λ () ; CVC4 from 1.3 no longer uses exit code to indicate sat/unsat
      (system (format "echo \"~a\" | cvc4 -q" query)))))

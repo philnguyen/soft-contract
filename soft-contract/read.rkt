@@ -70,7 +70,7 @@
 
 ;; read and return program's ast
 (define (read-p p)
-  #;(printf "~a~n~n" p)
+  #;(log-debug "~a~n~n" p)
   (match p
     [`((module ,l* racket ,d** ...) ... (require ,_ ...) ,e ...)
      (define syms (pass-1 p))

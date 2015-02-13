@@ -7,7 +7,7 @@
            "../utils.rkt" "../show.rkt" "../lang.rkt" "../runtime.rkt"
            "../check.rkt" "../main.rkt")
 
-  (define Time-Out 300)
+  (define Time-Out 120)
 
   (define scv:exn? (or/c exn:fail:contract:counterexample? exn:fail:contract:maybe?))
   (define verification-result? (or/c 'timeout 'safe scv:exn?))
