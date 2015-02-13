@@ -90,16 +90,10 @@ can be found on the official site.
    (~1.1 GB; hosted on Google Drive),
    which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
-2. Launch Virtualbox:
-
-  * Click `New`
-  * Enter name and operating system:
-    - Name: *(any name)*
-	- Type: `Linux`
-	- Version: `Ubuntu (32 bit)`
-  * Next, set `Memory size`, recommended at least `1024MB`
-  * Next, select `Use an existing virtual drive file`, then point to the downloaded disk image, then press `Create`
-  * With the newly created machine selected, press `start`
+2. Launch the image:
+   on most Linux or Windows desktops, double-clicking the file will do.
+   Otherwise from Virtualbox, choose `File → Import Appliance`.
+   It is recommended that you give the image at least `1024MB` of memory.
 
 2. The image runs Lubuntu 14.10 32 bit with log in information:
 
