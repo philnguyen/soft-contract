@@ -3,8 +3,6 @@ Directory structure
 
 The system has two separate components for verification and generating counterexamples.
 
-Shared code includes:
-
 * `examples` contains example programs
 * `benchmark-contract-overhead` contains simple benchmarks for contract overhead in 3 video games
 * `benchmark-verification` contains tests for contract verification and counterexample generation
