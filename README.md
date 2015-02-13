@@ -1,8 +1,6 @@
 Artifact for "Relatively Complete Counterexamples for Higher-order Programs"
 ============================================================================
 
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=pldi-aec-2015)](https://travis-ci.org/philnguyen/soft-contract)
-
 This repository contains the source code and benchmarks used to evaluate
 the research done in *Relatively Complete Counterexamples for Higher-order Programs*
 [accepted to PLDI 2015](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/paper/pldi15-paper103.pdf).
@@ -15,13 +13,34 @@ where benchmarks originally written in typed languages
 are translated to untyped programs with contracts.
 The tool itself is written in [Racket](http://racket-lang.org/).
 
-There are three options to evaluate the artifact:
+There are three components to this artifact:
 
+* An implementation of soft contract verification, which attempts
+to verify or refute functional programs with behavioral contracts.
+* A web REPL for interactively using the implementation.
+* A test suite of 550 programs.
+
+There are four options to evaluate the artifact, ordered in increasing
+level of both involvement and confidence in reproducibility:
+
+* By [inspecting the logs of our continuous integration](#continuous-integration-results)
 * By [the online evaluator](#try-the-online-evaluator)
 * By [the self-contained Virtualbox image](#obtain-the-self-contained-virtualbox-image)
 * By [cloning and building the repositories](#build-from-source-code)
 
+## Continuous integration results
+
+> https://travis-ci.org/philnguyen/soft-contract/
+
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=pldi-aec-2015)](https://travis-ci.org/philnguyen/soft-contract)
+
+The implementation is built and tested from scratch on every commit.
+The build will fail if any of the test suite programs produce
+unexpected results.
+
 ## Try the online evaluator
+
+> http://scv.umiacs.umd.edu/
 
 The quickest and most convenient way to test the artifact
 is to use the [online evaluator](http://scv.umiacs.umd.edu/) hosted
@@ -32,9 +51,6 @@ you experiment with your own programs.
 No indentifying information is retained in the server logs, 
 although we do record the programs entered
 into the REPL for use as verification benchmarks.
-
-We recommend using `Google Chrome`, even though the website is also usable in `Firefox`
-(with a different layout).
 
 ## Obtain the self-contained Virtualbox image
 
@@ -80,8 +96,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
 
    An example of the expected output from running the tests can be found at
    [`/home/aec/soft-contract/src/benchmark-verification/out.txt`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/src/benchmark-verification/out.txt)
-   Our Travis CI script also runs the [same tests for every commit](https://travis-ci.org/philnguyen/soft-contract).
-
+   
 5. The server already runs in the background.
    To try out the web tool, launch the browser from the `Google Chrome`
    desktop icon.
