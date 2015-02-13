@@ -247,7 +247,7 @@
 
   (: havoc : .V .σ .κ* → .ς+)
   (define (havoc V σ k)
-    (match (step-@ HAVOC (list V) '☠ σ '())
+    (match (step-@ HAVOC (list V) '☠ σ k)
       [(? set? s) s]
       [(? .ς? ς) (set ς)]))
 
@@ -435,13 +435,14 @@
          [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
          [(.@-havoc x)
           (define V
+            ;; Abstract values of form (μx._) are safe to discard for havoc-ing
             (match (ρ@ ρ x)
               [(? .//? V) V]
               [(.L i) (match (σ@ σ i)
                         [(? .//? V) V]
-                        [(? .μ/V? V) (unroll V)])]
-              [(? .μ/V? V) (unroll V)]))
-          (match/nd: (.V → .ς) V
+                        [_ #f])]
+              [_ #f]))
+          (match V
             [(and V (.// U C*))
              ; always alloc the result of unroll
              ; FIXME: rewrite 'unroll' to force it
@@ -455,7 +456,7 @@
                 (define-values (σ′′ Ls) (σ++ σ′ (length Cx)))
                 (step-@ V′ Ls '☠ σ′′ k)]
                [_ ∅])]
-            [X (error 'Internal "@-havoc: ~a" X)])]
+            [#f ∅])]
          [(.if i t e) (.ς (.↓ i ρ) σ (cons (.if/κ (.↓ t ρ) (.↓ e ρ)) k))]
          [(.amb e*) (for/set: .ς ([e e*]) (.ς (.↓ e ρ) σ k))]
          [(.μ/c x e) (.ς (.↓ e (ρ+ ρ x (→V (.X/C x)))) σ (cons (.μc/κ x) k))]
@@ -796,3 +797,4 @@
      (or (empty? Vs)
          (match? (last Vs) (.// (? .λ↓?) _)))]
     [_ #f]))
+
