@@ -268,12 +268,11 @@ The counterexample in this case is higher-order,
 and it's a specific combination of arguments:
 * the first argument is a function producing a *non-real* number
 * the second argument is a list of *length at least 2*,
-  otherwise the comparison `<` is not triggered
+  (otherwise the comparison `<` is not triggered)
 
-The right fix in this case would be a stricter contract
-on `argmin`'s argument, requiring its first argument to produce a real number.
-With this fix, our system verifies that `argmin` is safe,
-which can be seen in example.
+The right fix in this case is a stricter contract
+on `argmin`'s first argument, requiring the function to produce a real number.
+With this fix, our system verifies that `argmin` is safe.
 
 Our [web-service version of the tool](http://scv.umiacs.umd.edu/)
 has these two examples of `argmin_unsafe` and `argmin_safe` to try out.
