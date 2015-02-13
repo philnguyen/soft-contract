@@ -45,8 +45,8 @@ The image has been tested to work with Virtualbox `4.3.18`.
 Instructions for [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 can be found on the official site.
 
-1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxMkNKUUo2cVVlbEU/view?usp=sharing)
-(~3.4 GB; hosted on Google Drive),
+1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxekEzdGJBZHV0dlU/view?usp=sharing)
+(~3.6 GB; hosted on Google Drive),
 which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
 2. Launch Virtualbox:
@@ -80,6 +80,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
 
    An example of the expected output from running the tests can be found at
    [`/home/aec/soft-contract/src/benchmark-verification/out.txt`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/src/benchmark-verification/out.txt)
+   Our Travis CI script also runs the [same tests for every commit](https://travis-ci.org/philnguyen/soft-contract).
 
 5. The server already runs in the background.
    To try out the web tool, launch the browser from the `Google Chrome`
