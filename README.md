@@ -38,6 +38,21 @@ The implementation is built and tested from scratch on every commit.
 The build will fail if any of the test suite programs produce
 unexpected results.
 
+We categorized programs into safe and unsafe.
+Ideally, we should verify all safe programs
+(in [`safe`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/safe))
+and generate counterexamples for all unsafe ones
+(in [`fail-ce`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/fail-ce)).
+Unfortunately, verification is neccesarily incomplete in practice.
+We therefore have to weaker categories
+ * [`fail`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/fail):
+   the verification should at least recognize that the program is potentially buggy
+even if it cannot generate a counterexample (due to limitation of the underlying solver, for example)
+ * [`no-ce`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/no-ce):
+   the verification may fail to verify the correct program, reporting a *probable* contract violation, but under no circumstance should it produce a counterexample. This category is currently empty.
+
+Overtime, we move tests from `fail` and `no-ce` to the stronger categories `fail-ce` and `safe`, respectively, and use integration testing to prevent regression in precision.
+
 ## Try the online evaluator
 
 > http://scv.umiacs.umd.edu/
@@ -170,7 +185,30 @@ The demo currently supports the following subset of Racket:
 	value            ::= (lambda (id …) expr) | number | boolean | string | symbol | op
 	expr             ::= id | (if expr expr expr) | (expr expr …)
 	contract         ::= expr | any/c | (or/c contract …) | (and/c contract …)
-	                   | (list/c contract) | (listof contract)
+	                   | (>/c e) | (>=/c e) | (</c e) | (<=/c e) | (=/c e)
+	                   | (list/c contract …) | (listof contract)
 	                   | (->i ([id contract] …₁) (res (id …₁) contract))
+					   | (struct/c id contract …)
     op               ::= + | - | * | / | string-length
 	                   | number? | real? | integer? | boolean? | false? | cons? | empty?
+
+Most forms are straightforward.
+The contract combinators are used as follow:
+
+* `expr` is any program expression
+* `any/c` matches any value
+* `(list/c c …)` produces a contract for a fixed-length list whose elements
+  matches the contracts `c …` pairwise.
+* `(listof c)` produces a contract for an homogeneous list of any length
+  whose elements match `c`.
+* `or/c` and `and/c` produces disjunctive and conjunctive contracts, respectively
+* `(>/c e)` produces a contract matching real numbers greater than the value
+  evaluated to by `e`.
+  Other combinators `>=/c`, `</c`, `<=/c` and `=/c` behave analogously.
+* `(->i ([x cₓ] ...) (res (x …) d))`
+  produces a function contract that if its arguments `(x …)` satisfy
+  contracts `(cₓ …)`, produces a value satisfying contract `d`.
+  This is a dependent contract, which means `x …` can appear free in `d`.
+* `(struct/c id c …)` produces a contract matching values
+  created by constructor `id` and each component matches contract `c`.
+  
