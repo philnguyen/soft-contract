@@ -140,8 +140,14 @@ and build the system yourself.
 ### Build the `soft-contract` repository
 
 1. Obtain and install [Racket snapshot](http://www.cs.utah.edu/plt/snapshots/).
+   This project has been tested to work with Racket snapshots after `01/20/2015`
+   and is expected to build successfully with all recent snapshots
+   (also reflected by the [Travis CI build status](https://travis-ci.org/philnguyen/soft-contract),
+   which always uses the latest snapshot at the time the script runs).
+   It is known that Racket release `6.1.1` does *not* compile this project.
 
-2. Obtain and install [Z3](http://z3.codeplex.com/)
+2. Obtain and install [Z3](http://z3.codeplex.com/).
+   This project has been tested to work with version `4.3.2`.
 
 3. Clone and build the repository
 
