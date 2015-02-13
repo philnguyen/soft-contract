@@ -2,5 +2,5 @@
 
 (define collection "soft-contract")
 
-(define compile-omit-paths '("src" "test"))
+(define compile-omit-paths '("test"))
 

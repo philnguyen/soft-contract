@@ -5,7 +5,7 @@
            rackunit racket/file racket/format
            (only-in racket/file file->list)
            "../utils.rkt" "../show.rkt" "../lang.rkt" "../runtime.rkt"
-           "../check.rkt" "../../main.rkt")
+           "../check.rkt" "../main.rkt")
 
   (define Time-Out 300)
 

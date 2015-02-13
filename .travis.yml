@@ -30,9 +30,10 @@ install:
 before_script:
 
 script:
+ - cd soft-contract
  - /usr/racket/bin/raco make main.rkt
  - /usr/racket/bin/raco link .
- - cd src/benchmark-verification
+ - cd benchmark-verification
  - /usr/racket/bin/raco test -x main.rkt
 
 after_script:

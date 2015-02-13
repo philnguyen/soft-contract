@@ -95,7 +95,7 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
         550 tests passed
 
    An example of the expected output from running the tests can be found at
-   [`/home/aec/soft-contract/src/benchmark-verification/out.txt`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/src/benchmark-verification/out.txt)
+   [`/home/aec/soft-contract/soft-contract/benchmark-verification/out.txt`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/out.txt)
    
 5. The server already runs in the background.
    To try out the web tool, launch the browser from the `Google Chrome`
@@ -104,8 +104,8 @@ which contains built source code for `soft-contract`, the `try-scv-racket` web s
 
 Miscellaneous information:
 
-  * `/home/aec/soft-contract/src` contains the source code for the evaluator
-  * `/home/aec/soft-contract/src/benchmark-verification` contains the benchmarks
+  * `/home/aec/soft-contract/soft-contract` contains the source code for the evaluator
+  * `/home/aec/soft-contract/soft-contract/benchmark-verification` contains the benchmarks
   * `/home/aec/try-scv-racket` contains the source code for the web server
   * If the server dies, it can be restarted by executing:
   
@@ -125,12 +125,16 @@ and build the system yourself.
 3. Clone and build the repository
 
         git clone https://github.com/philnguyen/soft-contract.git
-	    cd path/to/soft-contract
+	    cd path/to/soft-contract/soft-contract
 		raco pkg install
+
+   Notice that you need to build from
+   [`soft-contract/soft-contract`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/out.txt),
+   not the outer directory.
 
 4. Run the benchmarks. This step assumes `z3` is available in `$PATH`.
 
-        cd path/to/soft-contract/src/benchmark-verification
+        cd path/to/soft-contract/soft-contract/benchmark-verification
 	    raco test main.rkt
 
 ### Build the `try-scv-racket` server

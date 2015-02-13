@@ -1,7 +1,7 @@
 #lang racket/base
 (require racket/match racket/port
-         "src/utils.rkt"
-         (only-in "src/check.rkt" feedback)
+         "utils.rkt"
+         (only-in "check.rkt" feedback)
          (only-in redex/reduction-semantics variable-not-in)
          (for-syntax racket/base racket/match))
 (provide (rename-out [module-begin #%module-begin]
