@@ -28,7 +28,7 @@ is the main place that implements counterexample generation based on the work de
   defines infrastructure for verification
   - [delta.rkt](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/verify/delta.rkt)
     defines primitives extended to abstract values
-  - [machine.rkt]((https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/verify/machine.rkt)
+  - [machine.rkt](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/verify/machine.rkt)
     defines the CESK machine
 * [ce/](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/ce)
   defines infrastructure for counterexample generation
