@@ -86,13 +86,9 @@ The image has been tested to work with Virtualbox `4.3.18`.
 Instructions for [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 can be found on the official site.
 
-1. Download the [Virtualbox image](https://drive.google.com/file/d/0B5Xtjx9YdmWxQVc3THRkMGpVVlk/view?usp=sharing)
-(~3.6 GB; hosted on Google Drive),
-which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
-
-   Alternatively, you can download the
-   [zipped version](https://drive.google.com/file/d/0B5Xtjx9YdmWxbVFZT05LQkJHcXM/view?usp=sharing)
-   (~1.1 GB) of the same image if you have the software.
+1. Download the [OVA image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVTlWZ01aZ2dOSk0/view?usp=sharing)
+   (~1.1 GB; hosted on Google Drive),
+   which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
 2. Launch Virtualbox:
 
