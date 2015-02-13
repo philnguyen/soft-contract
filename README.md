@@ -86,7 +86,7 @@ The image has been tested to work with Virtualbox `4.3.18`.
 Instructions for [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 can be found on the official site.
 
-1. Download the [OVA image](https://drive.google.com/file/d/0B5Xtjx9YdmWxVTlWZ01aZ2dOSk0/view?usp=sharing)
+1. Download the [OVA image](https://drive.google.com/file/d/0B5Xtjx9YdmWxS1BPWFVPYVE1cUE/view?usp=sharing)
    (~1.1 GB; hosted on Google Drive),
    which contains built source code for `soft-contract`, the `try-scv-racket` web server, and benchmarks.
 
