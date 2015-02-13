@@ -18,7 +18,7 @@ There are three components to this artifact:
 * An implementation of soft contract verification, which attempts
 to verify or refute functional programs with behavioral contracts.
 * A web REPL for interactively using the implementation.
-* A test suite of 550 programs.
+* A test suite of 262 programs (involving 550 checks).
 
 There are four options to evaluate the artifact, ordered in increasing
 level of both involvement and confidence in reproducibility:
