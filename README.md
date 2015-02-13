@@ -53,7 +53,7 @@ We therefore have two weaker categories
    This category is currently empty.
 
 Overtime, we move tests from `fail` and `no-ce` to the stronger categories `fail-ce` and `safe`,
-respectively, and use integration testing to prevent regression in precision.
+respectively, and use automated testing at each commit to prevent regression.
 
 ## Try the online evaluator
 
