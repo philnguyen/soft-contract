@@ -173,6 +173,7 @@
 (define (show-b x)
   (cond
    [(string? x) (format "\"~a\"" x)]
+   [(symbol? x) `(quote ,x)]
    [(and (real? x) (inexact? x))
     (define s (number->string x))
     (substring s 0 (min (string-length s) 5))]
