@@ -24,6 +24,3 @@
         (node (node-v bt) (insert (#|HERE|#node-l bt) x) (node-r bt))
         (node x #f #f))))
 
-(require 'tree)
-(insert • 42)
-
