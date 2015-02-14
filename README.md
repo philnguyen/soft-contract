@@ -38,6 +38,14 @@ The implementation is built and tested from scratch on every commit.
 The build will fail if any of the test suite programs produce
 unexpected results.
 
+Directory [`fail-ce`](https://github.com/philnguyen/soft-contract/tree/pldi-aec-2015/soft-contract/benchmark-verification/fail-ce)
+contains faulty programs used for testing our method of finding counterexamples as mentioned in the paper.
+We obtained most faulty programs by weakening preconditions of their correct counterparts
+(for example, turn a `non-empty` list requirement to `list`, or weakening `number?` to `real?`),
+or introduce subtle and easy to make errors
+(such as in [`braun-tree`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/fail-ce/braun-tree.sch)).
+Programs with time-stamp-like names are those we collected from our web-sever tool.
+
 We categorized programs into safe and unsafe.
 Ideally, we should verify all safe programs
 (in [`safe`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/safe))
@@ -54,14 +62,6 @@ We therefore have two weaker categories
 
 Overtime, we move tests from `fail` and `no-ce` to the stronger categories `fail-ce` and `safe`,
 respectively, and use automated testing at each commit to prevent regression.
-
-Directory [`fail-ce`](https://github.com/philnguyen/soft-contract/tree/pldi-aec-2015/soft-contract/benchmark-verification/fail-ce)
-contains faulty programs used for testing our method of finding counterexamples as mentioned in the paper.
-We obtained most faulty programs by weakening preconditions of their correct counterparts
-(for example, turn a `non-empty` list requirement to `list`, or weakening `number?` to `real?`),
-or introduce subtle and easy to make errors
-(such as in [`braun-tree`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/fail-ce/braun-tree.sch)).
-Programs with time-stamp-like names are those we collected from our web-sever tool.
 
 ## Try the online evaluator
 
