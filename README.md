@@ -107,7 +107,8 @@ can be found on the official site.
         test
 
    This runs the test suite and reports the run-time for each.
-   The longest one runs in about 30 seconds.
+   The longest one runs in about 1 minute.
+   Each test is given 5 minutes before it times out.
    For bad programs, the tool also prints out counterexamples.
    At the end, you should see a summary:
 
