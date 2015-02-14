@@ -40,9 +40,9 @@ unexpected results.
 
 Directory [`fail-ce`](https://github.com/philnguyen/soft-contract/tree/pldi-aec-2015/soft-contract/benchmark-verification/fail-ce)
 contains faulty programs used for testing our method of finding counterexamples as mentioned in the paper.
-We obtained most faulty programs by weakening preconditions of their correct counterparts
-(for example, turn a `non-empty` list requirement to `list`, or weakening `number?` to `real?`),
-or introduce subtle and easy to make errors
+We obtained most faulty programs by weakening preconditions of correct programs
+(for example, turning a `non-empty` list requirement to `list`, or weakening `number?` to `real?`),
+or introducing subtle and easy to make errors
 (such as in [`braun-tree`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/fail-ce/braun-tree.sch)).
 Programs with time-stamp-like names are those we collected from our web-sever tool.
 
