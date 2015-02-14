@@ -211,7 +211,7 @@ The contract combinators are used as follow:
 * `or/c` and `and/c` produces disjunctive and conjunctive contracts, respectively
 * `(>/c e)` produces a contract matching real numbers greater than the value
   evaluated to by `e`.
-  Other combinators `>=/c`, `</c`, `<=/c` and `=/c` behave analogously.
+  Other combinators `>=/c`, `</c`, `<=/c` and `=/c` behave predictably.
 * `(->i ([x cₓ] ...) (res (x …) d))`
   produces a function contract that if its arguments `(x …)` satisfy
   contracts `(cₓ …)`, produces a value satisfying contract `d`.
