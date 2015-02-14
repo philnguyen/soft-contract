@@ -155,7 +155,7 @@ and build the system yourself.
 		raco pkg install
 
    Notice that you need to build from
-   [`soft-contract/soft-contract`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/benchmark-verification/out.txt),
+   [`soft-contract/soft-contract`](https://github.com/philnguyen/soft-contract/blob/pldi-aec-2015/soft-contract/),
    not the outer directory.
 
 4. Run the benchmarks. This step assumes `z3` is available in `$PATH`.
