@@ -115,8 +115,10 @@
       [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _ #f) _) _)))))) es _)
        (match-let ([(.// (.λ↓ (.λ k e #f) ρ) _) (σ@ σ n)])
          (cond
-          ;; Inline if all arguments are simple. TODO: can do better, for each argument?
-          [(for/and : Boolean ([eᵢ es]) (or (.x? eᵢ) (.ref? eᵢ) (.v? eᵢ)))
+          ;; Inline if all arguments are simple or all parameters appear at most once.
+          ;; TODO: can do better, inline each argument?
+          [(or (andmap inlinable? es)
+               (for/and : Boolean ([i : Integer (in-range k)]) (<= (count-xs e i) 1)))
            (go ctx (for/fold ([e e]) ([i (in-range (- k 1) -1 -1)] [eᵢ es])
                      (e/ e i eᵢ)))]
           ;; Default to `let`
@@ -143,8 +145,6 @@
          [(l `(and ,r ...)) `(and ,l ,@r)]
          [(l r) `(and ,l ,r)])]
       [(.if a b (.b #t)) `(implies ,(go ctx a) ,(go ctx b))]
-
-
       [(.λ n e v?)
        (define x* (vars-not-in n ctx))
        `(,(if v? 'λ* 'λ) ,(reverse x*) ,(go (append x* ctx) e))]
@@ -168,6 +168,9 @@
       [(.λ/c c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
       [(.x/c x) x]
       [(.struct/c t cs) `(,(string->symbol (format "~a/c" t)) ,@(map (curry go ctx) cs))])))
+
+(define (inlinable? [e : .e]) : Boolean
+  (or (.x? e) (.ref? e) (.prim? e)))
 
 (: show-b : (U Number String Boolean Symbol) → Any)
 (define (show-b x)

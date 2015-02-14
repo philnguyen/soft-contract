@@ -234,3 +234,20 @@
                            v?)]
     [(.struct/c t cs) (.struct/c t (for/list : (Listof .e) ([c cs]) (e/ c x eₓ)))]
     [e e]))
+
+(: count-xs : .e Integer → Integer)
+;; Count occurences of variable (given as static distance)
+(define (count-xs e x)
+  (match e
+    [(.x k) (if (= k x) 1 0)]
+    [(.λ n e v?) (count-xs e (+ x (if v? (- n 1) n)))]
+    [(.@ f xs _) (+ (count-xs f x)
+                    (for/sum : Integer ([xᵢ xs]) (count-xs xᵢ x)))]
+    [(.if e e₁ e₂) (+ (count-xs e x) (count-xs e₁ x) (count-xs e₂ x))]
+    [(.amb es) (for/sum : Integer ([e es]) (count-xs e x))]
+    [(.μ/c _ c) (count-xs c x)]
+    [(.λ/c cs cy v?)
+     (+ (for/sum : Integer ([c cs]) (count-xs c x))
+        (count-xs cy (+ x (if v? (- (length cs) 1) (length cs)))))]
+    [(.struct/c _ cs) (for/sum : Integer ([c cs]) (count-xs c x))]
+    [_ 0]))
