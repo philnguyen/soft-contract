@@ -58,7 +58,7 @@
 (define (refine σ V . Css)
   (: go : .σ .V (Listof (U (Setof .V) (Listof .V) .V)) → .Vns)
   (define (go σ V Css)
-    #;(printf "REFINE:~n~a~n~a~n~a~n~n" σ V Css)
+    #;(log-debug "REFINE:~n~a~n~a~n~a~n~n" σ V Css)
     (match Css
       ['() (cons σ V)]
       [(cons (? list? Cs) Cᵣs)
@@ -87,7 +87,7 @@
 (define (refine* σ V* C*)  
   (let-values ([(σ′ V*′)
                 (for/fold ([σ : .σ σ] [Vs : (Listof .V) '()]) ([V V*] [C C*])
-                  #;(printf "Got:~n~a~n~a~n~n" V C)
+                  #;(log-debug "Got:~n~a~n~a~n~n" V C)
                   (match-let ([(cons σ V) ((refine1) σ V C)])
                     (values σ (cons V Vs))))])
     (cons σ′ (reverse V*′))))

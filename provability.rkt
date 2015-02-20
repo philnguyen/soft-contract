@@ -14,11 +14,11 @@
 
 (: ⊢ : .σ .V .V → .R)
 (define (⊢ σ V C)
-  ;;(printf "⊢:~nV:~a~nC:~a~n~n" V C #;(show-E σ V) #;(show-E σ C))
+  ;;(log-debug "⊢:~nV:~a~nC:~a~n~n" V C #;(show-E σ V) #;(show-E σ C))
   (let ([C (simplify C)])
     (match (⊢′ σ V C)
       ['? ((ext-solver) σ V C)]
-      [r #;(printf "Ans: ~a~n~n" r) r])))
+      [r #;(log-debug "Ans: ~a~n~n" r) r])))
 
 ;; Integerernal, lightweight, lo-tech prover
 (: ⊢′ : (case→ [.σ .V .V → .R]
@@ -194,7 +194,7 @@
 ; checks whether first contract proves second
 (: C⇒C : .V .V → .R)
 (define (C⇒C C D)
-  #;(printf "C:~n~a~nD:~n~a~n~n" C D)
+  #;(log-debug "C:~n~a~nD:~n~a~n~n" C D)
   (let go ([C C] [D D] [assume : (Setof (Pairof .V .V)) ∅])
     (cond
       [(C≃ C D) '✓]
@@ -384,7 +384,7 @@
                        [(Listof .V) (Listof .V) → Boolean]
                        [.ρ .ρ → Boolean]))
        (define (go! x y)
-         #;(printf "go:~nσ0:~n~a~nσ1:~n~a~nV0:~n~a~nV1:~n~a~n~n" σ0 σ1 x y)
+         #;(log-debug "go:~nσ0:~n~a~nσ1:~n~a~nV0:~n~a~nV1:~n~a~n~n" σ0 σ1 x y)
          (match* (x y)
            [((? .V? V0) (? .V? V1))
             (or        
@@ -432,26 +432,26 @@
                   [(_ _) (equal? U0 U1)])]
                [((.L i) (.L j))
                 (match (hash-ref F j #f)
-                  [#f #;(printf "no key~n")
+                  [#f #;(log-debug "no key~n")
                       (if (go! (σ@ σ0 i) (σ@ σ1 j))
-                          (begin #;(printf "lookedup yes~n")(set! F (hash-set F j i)) #t)
+                          (begin #;(log-debug "lookedup yes~n")(set! F (hash-set F j i)) #t)
                           #f)]
-                  [(? integer? i′) #;(printf "yes key~n")(= i i′)])]
+                  [(? integer? i′) #;(log-debug "yes key~n")(= i i′)])]
                [((.L i) _) (go! (σ@ σ0 i) V1)]
                [(_ (.L j)) (go! V0 (σ@ σ1 j))]
                [((? .μ/V? V0) (? .μ/V? V1))
-                #;(printf "Case0: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
+                #;(log-debug "Case0: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
                 (assumed-add! (cons V0 V1))
                 (for/and : Boolean ([V0i (unroll V0)])
                   (for/or : Boolean ([V1i (unroll V1)]) ;FIXME: may screw up F
                     (let ([G F])
                       (or (go! V0i V1i) (begin (set! F G) #f)))))]
                [((? .μ/V? V0) _)
-                #;(printf "Case2: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
+                #;(log-debug "Case2: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
                 (assumed-add! (cons V0 V1))
                 (for/and ([V0i (unroll V0)]) (go! V0i V1))]
                [(_ (? .μ/V? V1))
-                #;(printf "Case1: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
+                #;(log-debug "Case1: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
                 (assumed-add! (cons V0 V1))
                 (for/or : Boolean ([V1i (unroll V1)])
                   (let ([G F])

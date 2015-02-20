@@ -79,7 +79,7 @@
 
 (: close : .v .ρ → .//)
 (define (close v ρ)
-  #;(printf "close:~n~a~n~a~n" v ρ)
+  #;(log-debug "close:~n~a~n~a~n" v ρ)
   (match v ; partial
     [(? .λ? v) (→V (.λ↓ v (restrict ρ (FV v))))]
     [(? .prim? p) (→V p)]))
@@ -442,9 +442,9 @@
                    (set! σ-new (σ-set σ-new j V′))
                    L_j)])]
       [(.// U C*)
-       #;(printf "Looking at ~a~n~n" C*)
+       #;(log-debug "Looking at ~a~n~n" C*)
        (.// (go! U) (for/set: : (Setof .V) ([Ci C*] #:when (transfer? Ci))
-                                 #;(printf "Transferring ~a~n~n" Ci) (go! Ci)))]
+                                 #;(log-debug "Transferring ~a~n~n" Ci) (go! Ci)))]
       [(.μ/V x V*) (.μ/V x (for/set: : (Setof .V) ([Vi V*]) (go! Vi)))]
       [(? .X/V? V) V]
       ; U

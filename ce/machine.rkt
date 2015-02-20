@@ -130,14 +130,14 @@
     (let debug ([ς : .ς (inj e)])
       (match-define (.ς _ σ k) ς)
       (define b? (maybe-blame? k))
-      (printf "~a: Stack: (~a) ~n" stepᵢ b?)
+      (log-debug "~a: Stack: (~a) ~n" stepᵢ b?)
       (when b? (set! l (cons stepᵢ l)))
-      (for ([κ k]) (printf " ~a~n" (show-κ σ κ)))
+      (for ([κ k]) (log-debug " ~a~n" (show-κ σ κ)))
       (cond
         [(final? ς)
-         (printf "Final:~n")
+         (log-debug "Final:~n")
          (print-ς ς)
-         (printf "forwardables: ~a" l)]
+         (log-debug "forwardables: ~a" l)]
         [else
          (define next (step ς))
          (inc! stepᵢ)
@@ -145,20 +145,20 @@
            [(set? next)
             (define n (set-count next))
             (define nextl : (Listof .ς) (set->list next))
-            (printf "~a next states:~n" n)
+            (log-debug "~a next states:~n" n)
             (for ([ςᵢ (in-list nextl)] [i n])
-              (printf "~a:~n" i)
+              (log-debug "~a:~n" i)
               (print-ς ςᵢ)
-              (printf "~n"))
+              (log-debug "~n"))
             (define next-choice : Integer
               (let prompt ()
-                (printf "Explore [0 - ~a]: " (- n 1))
+                (log-debug "Explore [0 - ~a]: " (- n 1))
                 (match (read)
                   [(and (? exact-integer? k) (? (λ ([k : Integer]) (<= 0 k (- n 1))))) k]
                   [_ (prompt)])))
             (debug (list-ref nextl next-choice))]
            [else (debug next)])]))
-    (printf "Done, ~a steps taken~n" stepᵢ)
+    (log-debug "Done, ~a steps taken~n" stepᵢ)
     (read)
     #f)
   
@@ -171,7 +171,7 @@
   
   (: step-β : .λ↓ (Listof .V) Mon-Party .σ .κ* → .ς)
   (define (step-β f Vx l σ k)
-    ;;(printf "Stepping ~a~n~n" (show-U σ f))
+    ;;(log-debug "Stepping ~a~n~n" (show-U σ f))
     (match f
       [(.λ↓ (.λ (? integer? n) e) ρ)
        (cond [(= (length Vx) n) (.ς (.↓ e (ρ++ ρ Vx)) σ k)]
@@ -180,14 +180,14 @@
       
   (: step-@ : .V (Listof .V) Mon-Party .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
-    #;(printf "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*)) ;TODO reenable
-    #;(printf "step-@:~nσ:~n~a~nf:~n~a~nx:~n~a~n~n" σ Vf V*)
+    #;(log-debug "step-@:~n~a~n~a~n~n" (show-Ans σ Vf) (map (curry show-E σ) V*)) ;TODO reenable
+    #;(log-debug "step-@:~nσ:~n~a~nf:~n~a~nx:~n~a~n~n" σ Vf V*)
     (match Vf
       [(.// U C*)
        (match U
          ;; Debug
          #;[(.=)
-          (printf "Debug =: ~n V*: ~a~n σ: ~a~n" V* (show-σ σ))
+          (log-debug "Debug =: ~n V*: ~a~n σ: ~a~n" V* (show-σ σ))
           ∅]
          ;; Handle box operations specially
          [(?.box)
@@ -268,15 +268,15 @@
              (match (σ@ σt i)
                [(and V (or (.// (? .λ↓?) _) (.// (? .Ar?) _))) (step-@ V V* l σt k)]
                [(.// (? .Case? U) _)
-                #;(printf "Applying Case with~n Case = ~a~n Arg = ~a~n" U V*)
+                #;(log-debug "Applying Case with~n Case = ~a~n Arg = ~a~n" U V*)
                 (match (.Case@ U V*)
                   [#f
                    (define-values (σ′ Lₐ) (σ+ σt))
                    (define Vf′ (→V (.Case+ U V* Lₐ)))
-                   #;(printf "Not memoized. Refined. New case:~n ~a~n" Vf′)
+                   #;(log-debug "Not memoized. Refined. New case:~n ~a~n" Vf′)
                    (.ς Lₐ (σ-set σ′ i Vf′) k)]
                   [(? .L? Lₐ)
-                   #;(printf "Memoized. Return: ~a~n" Lₐ)
+                   #;(log-debug "Memoized. Return: ~a~n" Lₐ)
                    (.ς Lₐ σt k)])]
                [_ (step-• L V* l σt k)])]
             [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf (arity-includes/C (length V*))) σf k)])]
@@ -394,7 +394,7 @@
   
   (: step-▹ : .V .V Mon-Info .σ .κ* → .ς*)
   (define (step-▹ C V l³ σ k)
-    #;(printf "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
+    #;(log-debug "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
     (match-define (list l+ l- lo) l³)
     (match (⊢ σ V C) ; want a check here to reduce redundant cases for recursive contracts
       ['✓ (.ς V σ k)]
@@ -440,7 +440,7 @@
   
   (: step-E : .E .σ .κ* → .ς*)
   (define (step-E E σ k)
-    #;(printf "E: ~a~n~n" E)
+    #;(log-debug "E: ~a~n~n" E)
     (match E
       [(.↓ e ρ)
        (match e
@@ -494,7 +494,7 @@
        (match-define (and V* (cons Vf Vx*)) (reverse (cons V Vs↓)))
        (.ς (.↓ d (ρ++ ρ Vx* n)) σ (cons (.indy/κ '() '() V* #f n l³) k))]
       [(.indy/κ _ '() (cons Vf Vx) #f _ (and l³ (list l+ _ _))) ; apply inner function
-       #;(printf "range: ~a~n~n" (show-E σ V))
+       #;(log-debug "range: ~a~n~n" (show-E σ V))
        (step-@ Vf Vx l+ σ (▹/κ1 V l³ k))]
       
       ; contracts

@@ -15,7 +15,7 @@
 
 (: show-A : .σ .A → Sexp)
 (define (show-A σ A)
-  (match A    
+  (match A
     [(.blm l+ lo V C) `(blame ,l+ ,lo ,(show-V σ V) ,(show-V σ C))]
     [(? .V? V) (show-V σ V)]))
 
@@ -117,7 +117,8 @@
        (match-let ([(.// (.λ↓ (.λ (? integer? k) e) ρ) _) (σ@ σ n)])
          (cond
           ;; Inline if all arguments are simple. TODO: can do better, for each argument?
-          [(for/and : Boolean ([eᵢ es]) (or (.x? eᵢ) (.ref? eᵢ) (.v? eᵢ)))
+          [(or (andmap inlinable? es)
+               (for/and : Boolean ([i : Integer (in-range k)]) (<= (count-xs e i) 1)))
            (go ctx (for/fold ([e e]) ([i (in-range (- k 1) -1 -1)] [eᵢ es])
                      (e/ e i eᵢ)))]
           ;; Default to `let`
@@ -126,6 +127,12 @@
            `(let ,(for/list : (Listof Sexp) ([xᵢ (reverse xs)] [eᵢ es])
                     `(,xᵢ ,(go ctx eᵢ)))
              ,(go xs e))]))]
+      ;; Fix confusing ill-typed (though correct) value at function position
+      ;; as a reminiscent of `havoc`
+      [(.@ (.•ₗ (? (λ ([n : Integer])
+                     (match? (σ@ σ n) (.// (.b (? number?)) _)))))
+           (list x) (or '† '☠))
+       (go ctx x)]
       [(.if (and e (.•ₗ α)) e₁ e₂)
        (match (σ@ σ α)
          [(.// (.b #f) _) (go ctx e₂)]
@@ -138,8 +145,8 @@
          [(l `(and ,r ...)) `(and ,l ,@(cast r Sexps))]
          [(l r) `(and ,l ,r)])]
       [(.if a b (.b #t)) `(implies ,(go ctx a) ,(go ctx b))]
-      
-      
+
+
       [(.λ (? integer? n) e)
        (define x* (vars-not-in n ctx))
        `(λ ,(reverse x*) ,(go (append x* ctx) e))]
@@ -166,10 +173,14 @@
       [(.x/c x) (syntax->datum x)]
       [(.struct/c t cs) `(,(string->symbol (format "~a/c" t)) ,@(map (curry go ctx) cs))])))
 
+(define (inlinable? [e : .expr]) : Boolean
+  (or (.x? e) (.ref? e) (.prim? e)))
+
 (: show-b : (U Number String Boolean Symbol) → Sexp)
 (define (show-b x)
   (cond
    [(string? x) (format "\"~a\"" x)]
+   [(symbol? x) `(quote x)]
    [(and (real? x) (inexact? x))
     (define s (number->string x))
     (substring s 0 (min (string-length s) 5))]
@@ -193,7 +204,7 @@
 (: show-ce : .prog .σ → Sexp)
 (define (show-ce p σ)
   (match-define (.prog _ top) p)
-  #;(printf "σ:~n~ae†:~n~a~n" σ e†)
+  #;(log-debug "σ:~n~ae†:~n~a~n" σ e†)
   ;; TODO: ignore modules for current need
   (show-e σ top))
 

@@ -42,7 +42,7 @@
 
 (define/contract (parse-top-level-form form)
   (scv-syntax? . -> . .top-level-form?)
-  (printf "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
+  (log-debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
      (define mod-path (module-path #'id))

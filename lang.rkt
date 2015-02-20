@@ -60,7 +60,7 @@
     (subset: .•
       '•
       ;; `l` is a tag annotating which static location this opaque value came from
-      (struct .•ₗ [l : Negative-Integer])) 
+      (struct .•ₗ [l : Negative-Integer]))
     (subset: .prim
       ;; primitive values that can appear in syntax
       (struct .b [unboxed : (U Number Boolean String Symbol #|Bytes Regexp PRegexp|#)])
@@ -95,7 +95,7 @@
   (struct .let-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
   (struct .letrec-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
-  
+
   (struct .@-havoc [x : .x]) ; hack for havoc to detect argument's arity at runtime
   (struct .amb [e* : (Setof .expr)])
   ; contract stuff
@@ -191,7 +191,7 @@
    [(.μ/c _ c) (checks# c)]
    [(.->i cs d _) (+ (checks# cs) (checks# d))]
    [(.struct/c _ cs) (checks# cs)]
-   
+
    [(.#%plain-module-begin xs) (checks# xs)]
    [(.module _ body) (checks# body)]
    [(or (? .pred?) (? .st-mk?)) 0]
@@ -310,7 +310,7 @@
 ;; - havoc module
 ;; - expression havoc-ing exported identifiers from all concrete modules
 (define (gen-havoc ms)
-  
+
   ;;; Generate module
   (define havoc-ref (havoc-ref-from ☠))
   (define x₀ (.x 0))
@@ -324,29 +324,29 @@
               (list
                (.define-values (list havoc-id) havoc-func)
                (.#%provide (list (.p/c-item havoc-id .any/c)))))))
-  
+
   ;;; Generate expression
   (define-set refs : .ref)
-  #;(printf "~nmodules: ~n~a~n" ms)
+  #;(log-debug "~nmodules: ~n~a~n" ms)
   (for* ([m (in-list ms)])
     (cond
      [(module-opaque? m)
       (eprintf "Omit havocking opaque module ~a~n" (.module-path m))]
      [else
-      #;(printf "Havocking transparent module ~a~n" (.module-path m))
+      #;(log-debug "Havocking transparent module ~a~n" (.module-path m))
       (match-define (.module path (.#%plain-module-begin forms)) m)
       #;(eprintf "Insert exported identifiers from module ~a to unknown contexts~n" path)
       (for* ([form (in-list forms)]
              #:when (.#%provide? form)
              [spec (in-list (.#%provide-specs form))])
-        #;(printf "adding: ~a~n" (.p/c-item-id spec))
+        #;(log-debug "adding: ~a~n" (.p/c-item-id spec))
         (refs-add! (.ref (.p/c-item-id spec) path '†)))]))
-  #;(printf "~nrefs: ~a~n" refs)
+  #;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (.amb/remember (for/list ([ref (in-set refs)])
                      (.@ (•!) (list ref) ☠))))
-  
-  #;(printf "~nhavoc-expr:~n~a" expr)
+
+  #;(log-debug "~nhavoc-expr:~n~a" expr)
 
   (values m expr))
 
@@ -404,7 +404,7 @@
 (: .ref->expr : (Listof .module) .ref → .expr)
 (define (.ref->expr ms ref)
   (match-define (.ref ref-id _FIXME _) ref)
-  
+
   ;; FIXME:
   ;; - figure out module-path properly
   ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
@@ -432,7 +432,7 @@
 (: .ref->ctc : (Listof .module) .ref → .expr)
 (define (.ref->ctc ms ref)
   (match-define (.ref ref-id _FIXME _) ref)
-  
+
   ;; FIXME:
   ;; - figure out module-path properly
   ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
@@ -464,7 +464,7 @@
 (: module-opaque? : .module → Boolean)
 (define (module-opaque? m) ; TODO: expensive?
   (match-define (.module _ (.#%plain-module-begin body)) m)
-  
+
   (define-values (exports defines)
     (for/fold ([exports : (Setof Identifier) ∅] [defines : (Setof Identifier) ∅])
               ([e (in-list body)])
@@ -485,3 +485,47 @@
     ['() .ff]
     [(list e) e]
     [(cons e es) (.if (•!) e (.amb/remember es))]))
+
+(: count-xs : (U .expr (Listof .expr)) Integer → Integer)
+;; Count occurences of variable (given as static distance)
+(define (count-xs e x)
+  (match e
+    [(.x k) (if (= k x) 1 0)]
+    [(.λ n e)
+     (match n
+       [(? integer? n) (count-xs e (+ x n))]
+       [(cons n _) (count-xs e (+ x 1 n))])]
+    [(.case-lambda clauses)
+     (for/sum : Integer ([clause clauses])
+       (match-define (cons n e) clause)
+       (match n
+         [(? integer? n) (count-xs e (+ x n))]
+         [(cons n _) (count-xs e (+ x 1 n))]))]
+    [(.@ f xs _) (+ (count-xs f x) (count-xs xs x))]
+    [(.if e e₁ e₂) (+ (count-xs e x) (count-xs e₁ x) (count-xs e₂ x))]
+    [(.wcm k v b) (+ (count-xs k x) (count-xs v x) (count-xs b x))]
+    [(.begin es) (count-xs es x)]
+    [(.let-values bindings body)
+     (define-values (count-occs count-bindings)
+       (for/fold ([count-occs : Integer 0] [count-bindings : Integer 0])
+                 ([binding bindings])
+         (match-define (cons n e) binding)
+         (values (+ count-occs (count-xs e x))
+                 (+ count-bindings n))))
+     (+ count-occs (count-xs body (+ x count-bindings)))]
+    [(.letrec-values bindings body)
+     (define count-bindings
+       (for/sum : Integer ([binding bindings]) (car binding)))
+     (define δ (+ x count-bindings))
+     (define count-occs
+       (for/sum : Integer ([binding bindings])
+         (count-xs (cdr binding) δ)))
+     (+ count-occs (count-xs body δ))]
+    [(.@-havoc (.x k)) (if (= k x) 1 0)]
+    [(.amb es) (for/sum : Integer ([e es]) (count-xs e x))]
+    [(.μ/c _ c) (count-xs c x)]
+    [(.-> cs d) (+ (count-xs cs x) (count-xs d x))]
+    [(.->i cs d #f) (+ (count-xs cs x) (count-xs d (+ x (length cs))))]
+    [(.struct/c _ cs) (count-xs cs x)]
+    [(? list? l) (for/sum : Integer ([i l]) (count-xs i x))]
+    [_ 0]))

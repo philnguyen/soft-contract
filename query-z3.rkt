@@ -9,16 +9,16 @@
 ; query external solver for provability relation
 (: query : .σ .V .V → .R)
 (define (query σ V C)
-  (cond    
+  (cond
    [(not (handled? C)) '?] ; skip when contract is strange
    [else
-    #;(printf "Queried with: ~a~n~a~n" (show-Ans σ V) C)
+    #;(log-debug "Queried with: ~a~n~a~n" (show-Ans σ V) C)
     (define-values (σ′ i) (match V
                             [(.L i) (values σ i)]
                             [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#]))
     (define-values (Q* i*) (explore σ′ (set-add (span-C C) i)))
     (define-values (q j*) (gen σ′ i C))
-    #;(printf "premises [~a] involve labels [~a] ~n" Q* i*)
+    #;(log-debug "premises [~a] involve labels [~a] ~n" Q* i*)
     (cond
      ;; Skip querying when the set of labels spanned by premises does not cover
      ;; That spanned by conclusion
@@ -64,8 +64,8 @@
   (match-define (.σ m _) σ)
   (define asserts : (Setof String) ∅)
   (define seen : (Setof Integer) ∅)
-  (define involved : (Setof Integer) ∅)  
-  
+  (define involved : (Setof Integer) ∅)
+
   (: visit : Integer → Void)
   (define (visit i)
     (unless (set-member? seen i)
@@ -83,7 +83,7 @@
         (∪! seen i)
         (for ([j queue]) (visit j)))))
   (for ([i i*]) (visit i))
-  
+
   (: involved? : (U .V (Listof .V)) → Boolean)
   (define (involved? V)
     (match V
@@ -94,7 +94,16 @@
          ['• (or (set-member? Cs REAL/C) (set-member? Cs INT/C))]
          [(.b (? real?)) #t]
          [_ #f])]))
-  
+
+  (: translate? : (U .V (Listof .V)) → Boolean)
+  (define translate?
+    (match-lambda
+      [(.L i) (translate? (σ@ σ i))]
+      [(.// (.b (? real?)) _) #t]
+      [(.// (? .•?) Cs) (or (set-member? Cs REAL/C) (set-member? Cs INT/C))]
+      [(? list? l) (andmap translate? l)]
+      [_ #f]))
+
   ;; Constraint equal inputs -> equal outputs
   (for ([(i Vᵢ) (in-hash m)])
     (match Vᵢ
@@ -104,30 +113,32 @@
          (let loop₁ : Void ([pairs : (Listof (Pairof (Listof .V) .L)) (hash->list mappings)])
               (when (cons? pairs)
                 (match-define (cons (cons xs₁ y₁) pairs₂) pairs)
-                (let loop₂ : Void ([pairs₂ : (Listof (Pairof (Listof .V) .L)) pairs₂])
-                     (when (cons? pairs₂)
-                       (match-define (cons (cons xs₂ y₂) pairs₃) pairs₂)
-                       (∪!
-                         asserts
-                         (format
-                          "~a"
-                          `(=>
-                            (and ,@(for/list : (Listof Any) ([x₁ xs₁] [x₂ xs₂])
-                                     `(= ,(→lab x₁) ,(→lab x₂))))
-                            (= ,(→lab y₁) ,(→lab y₂)))))
-                       (∪! involved (list->set (for/list : (Listof Integer) ([x xs₁] #:when (.L? x))
-                                                 (match-define (.L i) x)
-                                                 i)))
-                       (∪! involved (list->set (for/list : (Listof Integer) ([x xs₂] #:when (.L? x))
-                                                 (match-define (.L i) x)
-                                                 i)))
-                       (∪! involved (list->set (for/list : (Listof Integer) ([y (list y₁ y₂)]
-                                                                         #:when (.L? y))
-                                                 (match-define (.L i) y)
-                                                 i)))))
-                (loop₁ pairs₂))))]
+                (when (and (translate? xs₁) (translate? y₁))
+                  (let loop₂ : Void ([pairs₂ : (Listof (Pairof (Listof .V) .L)) pairs₂])
+                       (when (cons? pairs₂)
+                         (match-define (cons (cons xs₂ y₂) pairs₃) pairs₂)
+                         (when (and (translate? xs₂) (translate? y₂))
+                           (∪!
+                             asserts
+                             (format
+                              "~a"
+                              `(=>
+                                (and ,@(for/list : (Listof Any) ([x₁ xs₁] [x₂ xs₂])
+                                         `(= ,(→lab x₁) ,(→lab x₂))))
+                                (= ,(→lab y₁) ,(→lab y₂)))))
+                           (∪! involved (list->set (for/list : (Listof Integer) ([x xs₁] #:when (.L? x))
+                                                     (match-define (.L i) x)
+                                                     i)))
+                           (∪! involved (list->set (for/list : (Listof Integer) ([x xs₂] #:when (.L? x))
+                                                     (match-define (.L i) x)
+                                                     i)))
+                           (∪! involved (list->set (for/list : (Listof Integer) ([y (list y₁ y₂)]
+                                                                                 #:when (.L? y))
+                                                     (match-define (.L i) y)
+                                                     i))))))
+                  (loop₁ pairs₂)))))]
       [_ (void)]))
-  
+
   (values asserts involved))
 
 
@@ -135,7 +146,7 @@
 ; e.g. <L0, (sum/c 1 2)>  translates to  "L0 = 1 + 2"
 (: gen : .σ Integer .V → (Values (U #f String) (Setof Integer)))
 (define (gen σ i C)
-  
+
   (: type-of : .V → Z3-Num)
   (define (type-of V)
     (match V
@@ -145,16 +156,16 @@
       [(.// '• Cs)
        (cond [(set-member? Cs INT/C) 'Int]
              [else 'Real])]))
-  
+
   (define type-i (type-of (.L i)))
-  
+
   (: maybe-convert : Z3-Num Any → Any)
   (define (maybe-convert t x)
     (cond [(real? x) x]
           [else (match t
                   ['Int (format "(to_real ~a)" x)]
                   [_ x])]))
-  
+
   (match C
     [(? (curry equal? (.¬/C INT/C)))
      ;; Make sure Z3 doesn't consider `1.0` a `(not/c integer?)` by Racket's standard
@@ -214,16 +225,16 @@
 (define (call-with decs asserts concl)
   (match (call (format "~a~n~a~n(assert (not ~a))~n(check-sat)~n" decs asserts concl))
     [(regexp #rx"^unsat") '✓]
-    [(regexp #rx"^sat") 
+    [(regexp #rx"^sat")
      (match (call (format "~a~n~a~n(assert ~a)~n(check-sat)~n" decs asserts concl))
              [(regexp #rx"^unsat") 'X]
-             [_ #;(printf "?~n") '?])]
-    [_ #;(printf "?~n")'?]))
+             [_ #;(log-debug "?~n") '?])]
+    [_ #;(log-debug "?~n")'?]))
 
 ; performs system call to solver with given query
 (: call : String → String)
 (define (call query)
-  #;(printf "Called with:~n~a~n~n" query)
+  #;(log-debug "Called with:~n~a~n~n" query)
   (with-output-to-string
    (λ () ; FIXME: lo-tech. I don't know Z3's exit code
      (system (format "echo \"~a\" | z3 -in -smt2" query)))))

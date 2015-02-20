@@ -110,10 +110,6 @@
                 [else TT])]
          ;; use unknown struct as last resort
          [else (→V (.St 'struct● (list (Prim (random)))))])]
-      [(.λ↓ (.λ 1 (.@ (.•ₗ l) (list e) _)) ρ)
-       (match-define (.// _ Cs) (σ@ σ l))
-       (cond [(set-empty? Cs) (→V (.λ↓ (.λ 1 e) ρ))]
-             [else V])]
       [_ V]))
   
   (match-define (.σ m l) σ)
@@ -146,11 +142,11 @@
              [else (values labels types)])]
            [_ (values labels types)])]
         [_ (values labels types)])))
-  #;(printf "labels:~n~a~n" labels)
+  #;(log-debug "labels:~n~a~n" labels)
   ;; Generate assertions
   (define-values (assertions _) (explore σ (list->set labels)))
-  #;(printf "store:~n~a~n" (parameterize ([abstract-V? #f]) (show-σ σ)))
-  #;(printf "assertions:~n~a~n" assertions)
+  #;(log-debug "store:~n~a~n" (parameterize ([abstract-V? #f]) (show-σ σ)))
+  #;(log-debug "assertions:~n~a~n" assertions)
   ;; Generate query
   (define query
     (string-append
@@ -182,7 +178,7 @@
               (for/fold ([m : (Map Integer .V+) m])
                         ([line : Any (in-list lines)])
                 (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
-                #;(printf "e: ~a~n" e)
+                #;(log-debug "e: ~a~n" e)
                 (define res
                   (let go : Real ([e : Any e])
                     (match e
