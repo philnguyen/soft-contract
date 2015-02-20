@@ -30,6 +30,7 @@ install:
 before_script:
 
 script:
+ - cd soft-contract
  - /usr/racket/bin/raco make check.rkt
  - /usr/racket/bin/raco link .
  - cd test
