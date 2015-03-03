@@ -251,3 +251,29 @@
         (count-xs cy (+ x (if v? (- (length cs) 1) (length cs)))))]
     [(.struct/c _ cs) (for/sum : Integer ([c cs]) (count-xs c x))]
     [_ 0]))
+
+(: order-c : (U .e (Listof .e)) → Integer)
+;; Compute the contract's order from its syntax.
+;; In general this is an under-approximation because contracts are computed at run-time.
+(define (order-c e)
+  (match e
+    [(.λ/c cs d _)
+     (max (+ 1 (order-c cs)) (order-c d))]
+    [(.struct/c _ cs) (order-c cs)]
+    [(.@ (.st-mk (or 'and/c 'or/c '¬/c) _) cs _) (order-c cs)]
+    [(? list? l)
+     (for/fold ([o : Integer 0]) ([x l])
+       (max o (order-c x)))]
+    ;; conservative result
+    [_ 0]))
+
+(: order-p : .p → Integer)
+;; Compute program's order from it's syntax
+;; In general this is an under-approximation because contracts are computed at run-time.
+(define (order-p p)
+  (match-define (.p (.m* _ ms) _ _) p)
+  (for*/fold ([o : Integer 0])
+             ([m (in-hash-values ms)] [def/dec (in-hash-values (.m-defs m))])
+    (match (cdr def/dec)
+      [(? .e? e) (max o (order-c e))]
+      [_ o])))
