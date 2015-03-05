@@ -252,28 +252,40 @@
     [(.struct/c _ cs) (for/sum : Integer ([c cs]) (count-xs c x))]
     [_ 0]))
 
-(: order-c : (U .e (Listof .e)) → Integer)
-;; Compute the contract's order from its syntax.
-;; In general this is an under-approximation because contracts are computed at run-time.
-(define (order-c e)
-  (match e
-    [(.λ/c cs d _)
-     (max (+ 1 (order-c cs)) (order-c d))]
-    [(.struct/c _ cs) (order-c cs)]
-    [(.@ (.st-mk (or 'and/c 'or/c '¬/c) _) cs _) (order-c cs)]
-    [(? list? l)
-     (for/fold ([o : Integer 0]) ([x l])
-       (max o (order-c x)))]
-    ;; conservative result
-    [_ 0]))
 
-(: order-p : .p → Integer)
+
+(: order : .p → Integer)
 ;; Compute program's order from it's syntax
 ;; In general this is an under-approximation because contracts are computed at run-time.
-(define (order-p p)
+(define (order p)
   (match-define (.p (.m* _ ms) _ _) p)
+
+  (: order-c : (Setof (Pairof Symbol Symbol)) (U .e (Listof .e)) → Integer)
+  ;; Compute the contract's order from its syntax.
+  ;; In general this is an under-approximation because contracts are computed at run-time.
+  (define (order-c m e)
+    (match e
+      [(.λ/c cs d _)
+       (max (+ 1 (order-c m cs)) (order-c m d))]
+      [(.struct/c _ cs) (order-c m cs)]
+      [(.@ (.st-mk (or 'and/c 'or/c '¬/c) _) cs _) (order-c m cs)]
+      [(? list? l)
+       (for/fold ([o : Integer 0]) ([x l])
+         (max o (order-c m x)))]
+      [(.if _ t f) (max (order-c m t) (order-c m f))]
+      [(.ref name from _)
+       (cond
+         [(set-member? m (cons name from)) 0]
+         [else
+          (match-define (.m _ defs) (hash-ref ms from))
+          (order-c (set-add m (cons name from))
+                   (car (hash-ref defs name)))])]
+      ;; conservative result
+      [_ 0]))
+
+  
   (for*/fold ([o : Integer 0])
              ([m (in-hash-values ms)] [def/dec (in-hash-values (.m-defs m))])
     (match (cdr def/dec)
-      [(? .e? e) (max o (order-c e))]
+      [(? .e? e) (max o (order-c ∅ e))]
       [_ o])))
