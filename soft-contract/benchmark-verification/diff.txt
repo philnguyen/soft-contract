@@ -1,3 +1,5 @@
+=========================================
+Diff between safe/games/snake.sch and fail-ce/games/snake.sch:
 4,6c4,6
 <    [circle (real? string? string? . -> . image/c)]
 <    [empty-scene (real? real? . -> . image/c)]
@@ -30,6 +32,9 @@
 >    [place-image-on-grid (image/c number? number? image/c . -> . image/c)]
 234d233
 < 
+
+=========================================
+Diff between safe/games/tetris.sch and fail-ce/games/tetris.sch:
 3,4c3,4
 <    [struct block ([x real?] [y real?] [color COLOR/C])]
 <    [struct posn ([x real?] [y real?])]
@@ -113,6 +118,9 @@
 >   (require (submod ".." image) (submod ".." data) (submod ".." consts) (submod ".." world) (submod ".." list-fun) (submod ".." aux))
 415d413
 < 
+
+=========================================
+Diff between safe/games/zombie.sch and fail-ce/games/zombie.sch:
 4,6c4,6
 <    [empty-scene (real? real? . -> . image?)]
 <    [place-image (image? real? real? image? . -> . image?)]
@@ -155,6 +163,9 @@
 < 	       [(equal? msg 'on-mouse) (real? real? string? . -> . world/c)]
 ---
 > 	       [(equal? msg 'on-mouse) (number? number? string? . -> . world/c)]
+
+=========================================
+Diff between safe/hors/fhnhn.sch and fail-ce/hors/fhnhn.sch:
 2,5c2,7
 <   (provide/contract [f (->i ([x (any/c . -> . integer?)])
 < 		   (res (x)
@@ -186,10 +197,16 @@
 >   (provide/contract [main (f-spec integer? . -> . integer?)])
 >   (require (submod ".." f) (submod ".." g))
 >   (define (main f m) (g f m)))
+
+=========================================
+Diff between safe/hors/fold-div.sch and fail-ce/hors/fold-div.sch:
 13c13
 <     (let ([n (rand)]) (if (> n 0) n (randpos))))
 ---
 >     (let ([n (rand)]) (if (#|HERE >|# >= n 0) n (randpos))))
+
+=========================================
+Diff between safe/hors/fold-fun-list.sch and fail-ce/hors/fold-fun-list.sch:
 12c12
 <         (cons (λ (m) (+ m n)) (mk-list (- n 1)))))
 ---
@@ -200,14 +217,23 @@
 < (main •)
 ---
 > (• main)
+
+=========================================
+Diff between safe/hors/hors.sch and fail-ce/hors/hors.sch:
 28c28
 <   (define (main n) (s n 0)))
 ---
 >   (define (main n) (s n #|HERE|#n)))
+
+=========================================
+Diff between safe/hors/hrec.sch and fail-ce/hors/hrec.sch:
 5c5
 <     (if (>= x 0) (g x) (f (λ (x) (f g x)) (g x))))
 ---
 >     (if (<= x 0) (g x) (f (λ (x) (f g x)) (g x))))
+
+=========================================
+Diff between safe/hors/intro1.sch and fail-ce/hors/intro1.sch:
 5c5
 <   (provide/contract [h ((and/c integer? (>/c 0)) . -> . any/c)])
 ---
@@ -216,10 +242,16 @@
 <     (if (> n 0) (f n h) 'unit)))
 ---
 >     (if (>= n 0) (f n h) 'unit)))
+
+=========================================
+Diff between safe/hors/intro2.sch and fail-ce/hors/intro2.sch:
 5c5
 <   (provide/contract [h ((and/c integer? (>/c 0)) . -> . any/c)])
 ---
 >   (provide/contract [h ((and/c integer? (>/c 1)) . -> . any/c)])
+
+=========================================
+Diff between safe/hors/intro3.sch and fail-ce/hors/intro3.sch:
 3c3
 <   (define (f x g) (g (+ x 1))))
 ---
@@ -228,26 +260,44 @@
 <     (if (>= n 0) (f n (h n)) 'unit)))
 ---
 >     (if (> n 0) (f n (h n)) 'unit)))
+
+=========================================
+Diff between safe/hors/isnil.sch and fail-ce/hors/isnil.sch:
 5c5
 < 				     (λ (l) (implies (> n 0) (not (empty? l)))))))])
 ---
 > 				     (λ (l) (implies (>= n 0) (not (empty? l)))))))])
+
+=========================================
+Diff between safe/hors/max.sch and fail-ce/hors/max.sch:
 3c3
 <   (define (max max2 x y z) (max2 (max2 x y) z)))
 ---
 >   (define (max max2 x y z) #|HERE|# (max2 y z)))
+
+=========================================
+Diff between safe/hors/mem.sch and fail-ce/hors/mem.sch:
 8c8
 <     (if (< n 0) empty (cons x (mk-list (- n 1) x))))
 ---
 >     (if (< n 0) empty (cons (- x 1) (mk-list (- n 1) x))))
+
+=========================================
+Diff between safe/hors/mult.sch and fail-ce/hors/mult.sch:
 3c3
 < 		    [sqr (->i ([n integer?]) (res (n) (and/c integer? (>=/c n))))])
 ---
 > 		    [sqr (->i ([n integer?]) (res (n) (and/c integer? (>=/c (+ n 1)))))])
+
+=========================================
+Diff between safe/hors/nth0.sch and fail-ce/hors/nth0.sch:
 7c7
 <     (if (= n 0) (car xs) (nth (- n 1) (cdr xs))))
 ---
 >     (if (= n #|HERE|# 1) (car xs) (nth (- n 1) (cdr xs))))
+
+=========================================
+Diff between safe/hors/r-file.sch and fail-ce/hors/r-file.sch:
 9c9
 <    [readit ((one-of/c 'opened 'ignore) . -> . (one-of/c 'opened 'ignore))]
 ---
@@ -256,6 +306,9 @@
 < 
 < (require 'main)
 < (main • •)
+
+=========================================
+Diff between safe/hors/r-lock.sch and fail-ce/hors/r-lock.sch:
 3c3
 <            [unlock ((one-of/c 1) . -> . (one-of/c 0))])
 ---
@@ -264,10 +317,16 @@
 <   (define (g n st) (if (> n 0) (unlock st) st)))
 ---
 >   (define (g n st) (if (>= n 0) (unlock st) st)))
+
+=========================================
+Diff between safe/hors/reverse.sch and fail-ce/hors/reverse.sch:
 11c11
 <     (if (= n 0) empty (cons n (mk-list (- n 1))))))
 ---
 >     (if (#|HERE|#< n 0) empty (cons n (mk-list (- n 1))))))
+
+=========================================
+Diff between safe/octy/ex-01.sch and fail-ce/octy/ex-01.sch:
 4c4
 <     (if (number? x) (add1 x) 0)))
 ---
@@ -276,18 +335,30 @@
 < (f •)
 ---
 > (• f)
+
+=========================================
+Diff between safe/octy/ex-02.sch and fail-ce/octy/ex-02.sch:
 2c2
 <   (provide/contract [f ((or/c string? number?) . -> . number?)])
 ---
 >   (provide/contract [f (#|HERE|# any/c . -> . number?)])
+
+=========================================
+Diff between safe/octy/ex-03.sch and fail-ce/octy/ex-03.sch:
 8c8
 <       (if x (false? f) #f))))
 ---
 >       (if x x #f))))
+
+=========================================
+Diff between safe/octy/ex-04.sch and fail-ce/octy/ex-04.sch:
 10c10
 <     (if (or (number? x) (string? x)) (f x) 0)))
 ---
 >     (#|HERE|# f x)))
+
+=========================================
+Diff between safe/octy/ex-05.sch and fail-ce/octy/ex-05.sch:
 2c2
 <   (provide/contract [f (any/c any/c . -> . number?)])
 ---
@@ -298,12 +369,18 @@
 >     (if (and (number? x) (string? y))
 >         (+ x (string-length y))
 >         (string-length x))))
+
+=========================================
+Diff between safe/octy/ex-07.sch and fail-ce/octy/ex-07.sch:
 4,6c4
 <     (if (if (number? x) (string? y) #f)
 <         (+ x (string-length y))
 <         0)))
 ---
 >     (+ x (string-length y))))
+
+=========================================
+Diff between safe/octy/ex-08.sch and fail-ce/octy/ex-08.sch:
 2c2,3
 <   (provide/contract [strnum? (->i ([x any/c]) (res (x) (and/c boolean? (λ (a) (equal? a (or (string? x) (number? x)))))))])
 ---
@@ -313,6 +390,9 @@
 <     (or (string? x) (number? x))))
 ---
 >     (or (string? x) (#|HERE|# integer? x))))
+
+=========================================
+Diff between safe/octy/ex-09.sch and fail-ce/octy/ex-09.sch:
 10,13c10
 <     (if (let ([tmp (number? x)])
 <           (if tmp tmp (string? x)))
@@ -320,51 +400,84 @@
 <         0)))
 ---
 >     (f x)))
+
+=========================================
+Diff between safe/octy/ex-10.sch and fail-ce/octy/ex-10.sch:
 4c4
 <     (if (number? (car p)) (add1 (car p)) 7)))
 ---
 >     (if (number? (#|HERE|# cdr p)) (add1 (car p)) 7)))
+
+=========================================
+Diff between safe/octy/ex-11.sch and fail-ce/octy/ex-11.sch:
 5c5
 <     (if (and (number? (car p)) (number? (cdr p))) (g p) 'no)))
 ---
 >     (if (and (number? (car p)) (number? (#|HERE|# car p))) (g p) 'no)))
+
+=========================================
+Diff between safe/octy/ex-12.sch and fail-ce/octy/ex-12.sch:
 2c2,3
 <   (provide/contract [carnum? (->i ([p cons?]) (res (p) (and/c boolean? (λ (a) (equal? a (number? (car p)))))))])
 ---
 >   (provide/contract [carnum? (->i ([p #|HERE|# any/c])
 > 				  (res (p) (and/c boolean? (λ (a) (equal? a (number? (car p)))))))])
+
+=========================================
+Diff between safe/octy/ex-13.sch and fail-ce/octy/ex-13.sch:
 7c7
 <       [else (not (number? x))])))
 ---
 >       [else #|HERE|# (number? x)])))
+
+=========================================
+Diff between safe/octy/ex-14.sch and fail-ce/octy/ex-14.sch:
 3c3
 <    [f ([or/c number? string?] cons? . -> . number?)])
 ---
 >    [f (#|HERE|# any/c cons? . -> . number?)])
+
+=========================================
+Diff between safe/others/ack.sch and fail-ce/others/ack.sch:
 1,2c1,2
 < (module ack racket
 <   (provide/contract [ack (integer? integer? . -> . integer?)])
 ---
 > (module ack racket ; weakening the 1st arg will make program loop (never wrong)
 >   (provide/contract [ack (integer? #|HERE|#real? . -> . integer?)])
+
+=========================================
+Diff between safe/others/all.sch and fail-ce/others/all.sch:
 2c2
 <   (provide/contract [all ((any/c . -> . any/c) (listof any/c) . -> . any/c)])
 ---
 >   (provide/contract [all ((any/c . -> . any/c) (listof any/c) . -> . #|HERE|#boolean?)])
+
+=========================================
+Diff between safe/others/append.sch and fail-ce/others/append.sch:
 3c3
 <    [append ((listof any/c) (listof any/c) . -> . (listof any/c))])
 ---
 >    [append ((listof any/c) (listof any/c) . -> . #|HERE|# cons?)])
+
+=========================================
+Diff between safe/others/argmin.sch and fail-ce/others/argmin.sch:
 4c4
 <       [argmin ((any/c . -> . real?) (cons/c any/c (listof any/c)) . -> . any/c)]))
 ---
 >       [argmin ((any/c . -> . number?) (cons/c any/c (listof any/c)) . -> . any/c)]))
 15a16
 > 
+
+=========================================
+Diff between safe/others/flatten.sch and fail-ce/others/flatten.sch:
 10c10
 <       [(cons? x) (append [flatten (car x)] [flatten (cdr x)])]
 ---
 >       [(cons? x) (append [flatten (car x)] (cdr x) #|HERE|##;[flatten ])]
+
+=========================================
+Diff between safe/others/foldl.sch and fail-ce/others/foldl.sch:
 3c3
 <    [foldl ((any/c any/c . -> . any/c) any/c (listof any/c) . -> . any/c)])
 ---
@@ -373,10 +486,16 @@
 <         (foldl f (f (car xs) z) (cdr xs)))))
 ---
 >         (foldl f (f #|HERE|# z (car xs)) (cdr xs)))))
+
+=========================================
+Diff between safe/others/foldl1.sch and fail-ce/others/foldl1.sch:
 2c2
 <   (provide/contract [foldl1 ((any/c any/c . -> . any/c) (nelistof any/c) . -> . any/c)])
 ---
 >   (provide/contract [foldl1 ((any/c any/c . -> . any/c) (#|HERE|# listof any/c) . -> . any/c)])
+
+=========================================
+Diff between safe/others/foldr.sch and fail-ce/others/foldr.sch:
 3c3
 <    [foldr ((any/c any/c . -> . any/c) any/c (listof any/c) . -> . any/c)])
 ---
@@ -385,10 +504,16 @@
 <         (f (car xs) (foldr f z (cdr xs))))))
 ---
 >         (f #|HERE|# (foldr f z (cdr xs)) (car xs)))))
+
+=========================================
+Diff between safe/others/foldr1.sch and fail-ce/others/foldr1.sch:
 2c2
 <   (provide/contract [foldr1 ((any/c any/c . -> . any/c) (nelistof any/c) . -> . any/c)])
 ---
 >   (provide/contract [foldr1 ((any/c any/c . -> . any/c) (#|HERE|#listof any/c) . -> . any/c)])
+
+=========================================
+Diff between safe/others/get-path.sch and fail-ce/others/get-path.sch:
 7,10c7,8
 < 	 (res (msg)
 < 	      (cond
@@ -406,6 +531,9 @@
 <                (path "tl"))
 ---
 >           (path #|HERE|# "hd" #;"tl"))
+
+=========================================
+Diff between safe/others/id-dependent.sch and fail-ce/others/id-dependent.sch:
 1,3d0
 < (module opaque racket
 <   (provide/contract [n real?]))
@@ -419,18 +547,30 @@
 < (f n)
 ---
 > (f •)
+
+=========================================
+Diff between safe/others/inc-or-greet.sch and fail-ce/others/inc-or-greet.sch:
 5c5
 <   (provide/contract [inc-or-greet (boolean? (or/c string? integer?) . -> . (or/c false? integer? string?))])
 ---
 >   (provide/contract [inc-or-greet (boolean? (or/c string? integer?) . -> . (or/c #|HERE|# #;false? integer? string?))])
+
+=========================================
+Diff between safe/others/last-pair.sch and fail-ce/others/last-pair.sch:
 5c5
 <     (if (cons? (cdr x)) (lastpair (cdr x)) x)))
 ---
 >     (if (cons? #|HERE|# x) (lastpair (cdr x)) x)))
+
+=========================================
+Diff between safe/others/last.sch and fail-ce/others/last.sch:
 11c11
 <   (provide/contract [last ((cons/c any/c (listof any/c)) . -> . any/c)])
 ---
 >   (provide/contract [last (#|HERE|#(listof any/c) . -> . any/c)])
+
+=========================================
+Diff between safe/others/member.sch and fail-ce/others/member.sch:
 3c3
 <    [member (any/c (listof any/c) . -> . (listof any/c))])
 ---
@@ -443,6 +583,9 @@
 >      [(empty? l) empty]
 >      [(equal? x (car l)) l]
 >      [else (member x (cdr l))])))
+
+=========================================
+Diff between safe/others/recip-contract.sch and fail-ce/others/recip-contract.sch:
 2,3c2,4
 <   (provide/contract [recip (non-zero/c . -> . non-zero/c)]
 < 		    [non-zero/c any/c])
@@ -450,99 +593,4 @@
 >   (provide/contract
 >    [recip (number? . -> . non-zero/c)]
 >    [non-zero/c any/c])
-Diff for snake.sch:
-
-Diff for tetris.sch:
-
-Diff for zombie.sch:
-
-Diff for fhnhn.sch:
-
-Diff for fold-div.sch:
-
-Diff for fold-fun-list.sch:
-
-Diff for hors.sch:
-
-Diff for hrec.sch:
-
-Diff for intro1.sch:
-
-Diff for intro2.sch:
-
-Diff for intro3.sch:
-
-Diff for isnil.sch:
-
-Diff for max.sch:
-
-Diff for mem.sch:
-
-Diff for mult.sch:
-
-Diff for nth0.sch:
-
-Diff for r-file.sch:
-
-Diff for r-lock.sch:
-
-Diff for reverse.sch:
-
-Diff for ex-01.sch:
-
-Diff for ex-02.sch:
-
-Diff for ex-03.sch:
-
-Diff for ex-04.sch:
-
-Diff for ex-05.sch:
-
-Diff for ex-07.sch:
-
-Diff for ex-08.sch:
-
-Diff for ex-09.sch:
-
-Diff for ex-10.sch:
-
-Diff for ex-11.sch:
-
-Diff for ex-12.sch:
-
-Diff for ex-13.sch:
-
-Diff for ex-14.sch:
-
-Diff for ack.sch:
-
-Diff for all.sch:
-
-Diff for append.sch:
-
-Diff for argmin.sch:
-
-Diff for flatten.sch:
-
-Diff for foldl.sch:
-
-Diff for foldl1.sch:
-
-Diff for foldr.sch:
-
-Diff for foldr1.sch:
-
-Diff for get-path.sch:
-
-Diff for id-dependent.sch:
-
-Diff for inc-or-greet.sch:
-
-Diff for last-pair.sch:
-
-Diff for last.sch:
-
-Diff for member.sch:
-
-Diff for recip-contract.sch:
 
