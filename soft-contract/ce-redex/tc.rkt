@@ -40,6 +40,14 @@
   [(tc-S (name V (λ (X : T) E))) (tc V)]
   [(tc-S (case T _ ...)) (ℤ → T)])
 
+;; Syntactic sugar
+(define-metafunction SCPCF
+  LET* : ([X E] ...) E -> E
+  [(LET* () E) E]
+  [(LET* ([X E_X] any ...) E)
+   ((λ (X : T) (LET* (any ...) E)) E_X)
+   (judgment-holds (⊢ₜ {} E_X T))])
+
 (module+ test
   (require rackunit)
   (define-syntax-rule (==> E T)
@@ -52,8 +60,7 @@
   ((λ (f : ((ℤ → ℤ) → (ℤ → ℤ)))
      ((f (λ (n : ℤ) (if (= n 0 Λ) 100 0))) 0))
    . ==> . (((ℤ → ℤ) → (ℤ → ℤ)) → ℤ))
-  ((LET* ([f : ((ℤ  → ℤ) → (ℤ → ℤ))
-             (λ (g : (ℤ → ℤ))
+  ((LET* ([f (λ (g : (ℤ → ℤ))
                (λ (n : ℤ)
                  (/ 1 (- 100 (g n) L-) L/)))])
          ((λ (f : ((ℤ  → ℤ) → (ℤ → ℤ)))
@@ -62,8 +69,7 @@
              0))
           f))
    . ==> . ℤ)
-  ((LET* ([f : ((ℤ  → ℤ) → (ℤ → ℤ))
-             (λ (g : (ℤ → ℤ))
+  ((LET* ([f (λ (g : (ℤ → ℤ))
                (λ (n : ℤ)
                  (/ 1 (- 100 (g n) L-) L/)))])
          ((• (((ℤ  → ℤ) → (ℤ → ℤ)) → ℤ) L•) f))

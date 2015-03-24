@@ -22,7 +22,7 @@
   [C hole (if C E E) (C E) (A C) (O A ... C E ... L)]
   [Γ {[X ↦ T] ...}]
   [δ↓ S Err]
-  [ς (<> E Σ)]
+  [ς (E Σ)]
   [Ls {L ...}]
   ;; Z3 stuff
   [τ Int]
@@ -50,13 +50,6 @@
 (define A? (redex-match? SCPCF A))
 (define Σ? (redex-match? SCPCF Σ))
 
-;; syntactic sugar
-(define-metafunction SCPCF
-  LET* : ([X : T E] ...) E -> E
-  [(LET* () E) E]
-  [(LET* ([X : T E_X] any ...) E)
-   ((λ (X : T) (LET* (any ...) E)) E_X)])
-
 ;; Use judgment-form just to by friendly to type-setting
 (define-judgment-form SCPCF
   #:contract (∉dom L Σ [L ...])
@@ -64,6 +57,12 @@
   [(∉dom ,(+ 1 (apply max -1 (filter integer? (term (L_i ... L_j ...)))))
          {[L_i ↦ _] ...}
          {L_j ...})])
+
+(define-metafunction SCPCF
+  +X : T -> X
+  [(+X ℤ) x]
+  [(+X (ℤ → ℤ)) f]
+  [(+X _) g])
 
 (define-term Zero? (λ (x : ℤ) (zero? x Λ)))
 
@@ -86,6 +85,15 @@
   [(// (E_f E_x) Y E_Y) ((// E_f Y E_Y) (// E_x Y E_Y))]
   [(// (O E ... L) X E_X) (O (// E X E_X) ... L)]
   [(// E _ _) E])
+
+(define-metafunction SCPCF
+  holes : E -> Ls
+  [(holes (if E ...)) (∪ (holes E) ...)]
+  [(holes (E_f E_x)) (∪ (holes E_f) (holes E_x))]
+  [(holes (O E ... L)) (∪ (holes E) ...)]
+  [(holes (λ (X : T) E)) (holes E)]
+  [(holes (• T L′)) {L′}]
+  [(holes _) {}])
 
 ;; Compute labels for concrete program portions
 (define-metafunction SCPCF
@@ -114,6 +122,16 @@
   [(FV (O E ... L)) (∪ (FV E) ...)]
   [(FV (E E_x)) (∪ (FV E) (FV E_x))]
   [(FV _) {}])
+
+;; Count occurrences of X in E
+(define-metafunction SCPCF
+  count-X : X E -> n
+  [(count-X X X) 1]
+  [(count-X X (if E ...)) ,(apply + (term ((count-X X E) ...)))]
+  [(count-X X (O E ... L)) ,(apply + (term ((count-X X E) ...)))]
+  [(count-X X (λ (X : T) _)) 0]
+  [(count-X X (λ (Z : T) E)) (count-X X E)]
+  [(count-X X E) 0])
 
 (define-relation SCPCF
   conc? ⊆ V

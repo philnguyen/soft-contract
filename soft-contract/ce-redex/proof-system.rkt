@@ -6,6 +6,8 @@
   proves ⊆ Σ × L × P
   [(proves Σ L (λ (X : ℤ) (zero? X _)))
    (where 0 (@ Σ L))]
+  [(proves Σ L (λ (X : ℤ) (= X n _)))
+   (where n (@ Σ L))]
   [(proves Σ L (λ (X : ℤ) (O X _)))
    (where (• ℤ _ ... (λ (Y : ℤ) (O Y _)) _ ...) (@ Σ L))]
   [(proves Σ L (λ (X : ℤ) (zero? E _)))
@@ -23,6 +25,9 @@
   [(refutes Σ L (λ (X : ℤ) (zero? X _)))
    (where n (@ Σ L))
    (side-condition (not (zero? (term n))))]
+  [(refutes Σ L (λ (X : ℤ) (= X n _)))
+   (where n_1 (@ Σ L))
+   (side-condition (not (= (term n) (term n_1))))]
   [(refutes Σ L (λ (X : ℤ) (O X _)))
    (where (• ℤ _ ... (λ (Y : ℤ) (zero? (O X _) _))) (@ Σ L))]
   [(refutes Σ L (λ (X : ℤ) (zero? E _)))

@@ -2,7 +2,7 @@
 (provide (all-defined-out))
 (require
  redex/reduction-semantics racket/match racket/port racket/system racket/string racket/function
- "lib.rkt" "lang.rkt" "tc.rkt")
+ "lib.rkt" "lang.rkt" "tc.rkt" "proof-system.rkt")
 
 (define-metafunction SCPCF
   translate-Σ : Σ -> (any ...)
@@ -49,6 +49,11 @@
   [(ℓ L) ,(string->symbol (format "L-~a" (term L)))])
 
 (define-metafunction SCPCF
+  →L : X -> L
+  [(→L X) ,(match (symbol->string (term X))
+             [(regexp #rx"L-(.+)" (list _ (? string? s))) (string->number s)])])
+
+(define-metafunction SCPCF
   ⦃E⦄ : E -> t
   [(⦃E⦄ n) n]
   [(⦃E⦄ (↓ ℤ L)) (ℓ L)])
@@ -85,6 +90,43 @@
           (λ () (system (format "echo \"~a\" | z3 -in -smt2" req)))))
       (log-debug "call:~n~a~nres:~n~a~n" req res)
       res)])
+
+(define-metafunction SCPCF
+  query/model : Σ -> (any ...)
+  [(query/model (name Σ {[L ↦ S] ...}))
+   (decl ... (assert φ) ... ... (check-sat) (get-model))
+   (where (decl ...) (declare-Σ Σ))
+   (where ((φ ...) ...) ((assert-L-S L S) ...))])
+
+(define-metafunction SCPCF
+  model/z3 : Σ -> Σ or #f
+  [(model/z3 Σ)
+   ,(match (term (call (query/model Σ)))
+      [(regexp #rx"^sat(.*)" (list _ (? string? s)))
+       (match (with-input-from-string s read)
+         [(list 'model lines ...)
+          (for/fold ([Σ (term Σ)]) ([line (in-list lines)])
+            (match-define `(define-fun ,(? symbol? L) () ,_ ,e) line)
+            (term (!! ,Σ [(→L ,L) ↦ ,(eval e)])))])]
+      [_ #f])])
+
+(define-metafunction SCPCF
+  model/Σ : Σ -> Σ
+  [(model/Σ (name Σ {[L ↦ _] ...})) {[L ↦ (inst/L Σ L)] ...}])
+
+(define-metafunction SCPCF
+  inst/L : Σ L -> S
+  [(inst/L (name Σ {_ ... [L ↦ (• ℤ P ...)] _ ...}) L)
+   (inst/n 0 Σ L)]
+  [(inst/L Σ L) (@ Σ L)])
+
+(define-metafunction SCPCF
+  inst/n : n Σ L -> n
+  [(inst/n n Σ L) n
+   (where #f (refutes Σ L (λ (x : ℤ) (= x n Λ))))]
+  [(inst/n n Σ L) n_1
+   (where #t (refutes Σ L (λ (x : ℤ) (= x n Λ))))
+   (where n_1 ,(- (random 2000) 1000))])
 
 (module+ test
   (require rackunit)
