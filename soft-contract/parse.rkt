@@ -7,7 +7,7 @@
 (provide (all-defined-out) #;read-p #;on-•!)
 
 (define (dummy)
-  (log-warning "Misreading syntax, returning dummy expression #f")
+  (log-warning "Misreading syntax, returning dummy expression")
   (.b 'dummy))
 
 (define/contract (files->prog paths)
@@ -292,12 +292,13 @@
                      src))
          (define idsym (id->sym #'i))
          (define modsym (symbol->string (syntax-e stx)))
-         (define path
+         (define src-mod
            (cond [(path? src) (path->string (simplify-path src #f))]
                  [(eq? src '#%kernel) '#%kernel #|hack|#]
                  [src (symbol->string src)]
                  [else 'null]))
-         (.ref #'i path (cur-mod))]))]))
+         (printf "(idsym: ~a, modsym: ~a, src-mod: ~a)~n" idsym modsym src-mod)
+         (.ref idsym src-mod (cur-mod))]))]))
 
 ;; Parse given `formals` to extend environment
 (define/contract (parse-formals ctx formals)
@@ -360,7 +361,7 @@
 (define/contract (parse-require-spec spec)
   (scv-syntax? . -> . .require-spec?)
   (syntax-parse spec
-    [i:identifier spec]
+    [i:identifier #'i]
     [_ (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
 
 ;; Extends environment

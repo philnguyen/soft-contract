@@ -32,6 +32,7 @@
       'lexical
       (identifier-binding i)))
 
+;; Like standard `hash-set*` but ignore #f values
 (define (hash-set* h . kvs)
   (let loop ([kvs kvs] [h h])
     (if (null? kvs)
@@ -41,8 +42,8 @@
                [h (if v (hash-set h k v) h)])
           (loop (cddr kvs) h)))))
 
+;; Like standard `hash` but ignore #f values
 (define (hash* . kvs) (apply hash-set* (hash) kvs))
-
 
 (define lexical-bindings (make-free-id-table))
 

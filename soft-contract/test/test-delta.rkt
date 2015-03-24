@@ -7,7 +7,7 @@
            racket/set
            racket/function
            racket/string
-           "test-shared.rkt"
+           "shared.rkt"
            "../lang.rkt"
            "../show.rkt"
            (except-in "../runtime.rkt" σ@)
