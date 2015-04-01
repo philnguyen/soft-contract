@@ -27,7 +27,7 @@
   ;; Z3 stuff
   [τ Int]
   [decl (declare-const X τ) (declare-fun X (τ ...) τ)]
-  [(φ ψ) (implies φ φ) (not φ) (O² t t) (>= t t) (<= t t)]
+  [(φ ψ) True False (and φ ...) (or φ ...) (=> φ φ) (not φ) (O² t t) (>= t t) (<= t t)]
   [t n (O² t t) X]
   [q (decl ... (assert φ) ... (check-sat))
      (decl ... (assert φ) ... (check-sat) (get-model))]

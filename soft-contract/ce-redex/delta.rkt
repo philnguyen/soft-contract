@@ -1,7 +1,7 @@
 #lang racket/base
 (provide (all-defined-out))
 (require redex/reduction-semantics racket/set racket/match
-         "lib.rkt" "lang.rkt" "tc.rkt" "proof-system.rkt")
+         "lib.rkt" "lang.rkt" "tc.rkt" "proof-system-ext.rkt")
 
 (define-judgment-form SCPCF
   #:contract (δ L Σ O [L ...] δ↓ Σ)

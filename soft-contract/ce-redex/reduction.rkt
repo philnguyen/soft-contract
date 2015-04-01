@@ -1,7 +1,7 @@
 #lang racket/base
 (provide (all-defined-out))
 (require redex/reduction-semantics racket/set racket/match
-         "lib.rkt" "lang.rkt" "tc.rkt" "proof-system.rkt" "delta.rkt" "gen-term.rkt")
+         "lib.rkt" "lang.rkt" "tc.rkt" "delta.rkt" "gen-term.rkt")
 
 (define r₁
   (reduction-relation

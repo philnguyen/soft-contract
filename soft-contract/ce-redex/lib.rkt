@@ -66,3 +66,6 @@
   (integer? (listof any/c) . -> . (listof any/c))
   (take xs (min n (length xs))))
 
+(define (tails xs)
+  (cond [(null? xs) (list null)]
+        [else (cons xs (tails (cdr xs)))]))

@@ -1,7 +1,7 @@
 #lang racket/base
 (provide ce)
 (require redex racket/set racket/match racket/contract
-         "lib.rkt" "lang.rkt" "tc.rkt" "proof-system.rkt" "delta.rkt" "reduction.rkt" "z3.rkt")
+         "lib.rkt" "lang.rkt" "tc.rkt" "reduction.rkt" "z3.rkt")
 
 ;; Instantiate an abstract heap
 (define-metafunction SCPCF
@@ -83,10 +83,26 @@
     [_ 'timeout]))
 
 (module+ test
+  
   (ce (term ((• ((ℤ → ℤ) → ℤ) ◆)
              (λ (x : ℤ) (/ 1 x p)))))
   (ce (term (LET* ([f (λ (g : (ℤ → ℤ))
                         (λ (n : ℤ)
                           (/ 1 (- 100 (g n) ℓ₁) ℓ₂)))])
                   ((• (((ℤ → ℤ) → (ℤ → ℤ)) → ℤ) ●₁) f))))
-  (ce (term (+ 1 (• ℤ ●) Λ))))
+  (ce (term (+ 1 (• ℤ ●) Λ)))
+
+  ;; TODO: example query + model generated from this
+  (ce (term (LET* ([f (• (ℤ → (ℤ → ℤ)) Lf)]
+                   [a (• ℤ La)]
+                   [b (• ℤ Lb)]
+                   [c (• ℤ Lc)])
+                  (if (= a b ℓ₁)
+                      (/ 1
+                         (+ 1
+                            (* ((f a) c)
+                               ((f b) c)
+                               ℓ₃)
+                            ℓ₄)
+                         ℓ₂)
+                      42))))) 
