@@ -50,7 +50,7 @@
   (struct .p/c-item [id : Symbol] [spec : .expr] #|TODO|#))
 
 (define-data .require-spec
-  Any #|TODO|#)
+  Module-Path #|TODO|#)
 
 (struct .plain-module-begin ([body : (Listof .module-level-form)]) #:transparent)
 
@@ -105,7 +105,7 @@
   (struct .-> [dom : (Listof .expr)] [rng : .expr]) ; non-dependent function contract
   (struct .->i [xs : (Listof .expr)] [cy : .expr] [var? : Boolean]) ; dependent function contract
   (struct .x/c [x : Symbol])
-  (struct .struct/c [tag : .id #|deliberately restricted|#] [fields : (Listof .expr)])
+  (struct .struct/c [tag : .id] [fields : (Listof .expr)])
   #;(.and/c [l : .e] [r : .e])
   #;(.or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
