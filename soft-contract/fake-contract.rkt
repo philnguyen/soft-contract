@@ -2,7 +2,7 @@
 
 (require (except-in racket/contract/base
                     -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract
-                    one-of/c =/c)
+                    one-of/c =/c >/c >=/c </c <=/c)
          (for-syntax racket/base)
          racket/list)
 (require (prefix-in c: racket/contract/base)
@@ -12,7 +12,8 @@
          -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract contract-out
          dynamic-provide/contract
          dynamic->i
-         dynamic-struct/c)
+         dynamic-struct/c
+         =/c >/c >=/c </c <=/c)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
@@ -25,6 +26,10 @@
 (define list/c c:list/c)
 (define one-of/c c:one-of/c)
 (define =/c c:=/c)
+(define </c c:</c)
+(define <=/c c:<=/c)
+(define >/c c:>/c)
+(define >=/c c:>=/c)
 (define-syntax (struct/c stx) 
   (syntax-case stx ()
     [(_ name cs ...)

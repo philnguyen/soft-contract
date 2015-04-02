@@ -8,7 +8,7 @@
 
 (define (dummy)
   (log-warning "Misreading syntax, returning dummy expression")
-  (.b 'dummy))
+  (.b 'FIXME-dummy-data))
 
 (define/contract (files->prog paths)
   ((listof path-string?) . -> . .prog?)
@@ -118,17 +118,17 @@
                        (let-values ()
                          (#%plain-app _ ctor-name _ ...)))])
          (#%plain-app values _ _ _ (#%plain-app _ _ _ _) ...)))
-     (define/contract ctor-name symbol? (syntax->datum #'ctor-name))
-     (define/contract ctor identifier? (datum->syntax #'ctor ctor-name))
+     ;(define/contract ctor-name symbol? (syntax-e #'ctor-name))
+     (define/contract ctor-name symbol? (syntax-e #'ctor))
      (define/contract accs (listof identifier?) (syntax->list #'(acc ...)))
      (define n (length accs))
      (.define-values
-      (list* ctor #'pred accs)
+      (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
       (.@ 'values
-          (list* (.st-mk ctor n)
-                 (.st-p ctor n)
+          (list* (.st-mk (.id ctor-name (cur-mod)) n)
+                 (.st-p (.id ctor-name (cur-mod)) n)
                  (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
-                   (.st-ac ctor n i)))
+                   (.st-ac (.id ctor-name (cur-mod)) n i)))
           'Λ))]
     [(define-values (x:identifier ...) e)
      (.define-values (map syntax-e (syntax->list #'(x ...))) (parse-expr #'e))]
@@ -181,7 +181,7 @@
         (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
         (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
-     (printf "dynamic->id: ~a~n" (syntax->datum #'d))
+     (printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
      (define xs (syntax->list #'(z ...)))
      (define ctx′ (ext-env ctx xs))
      (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
@@ -189,7 +189,7 @@
       (~literal fake:dynamic->i)
       (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
       (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
-     (printf "dynamic->id: ~a~n" (syntax->datum #'d))
+     (printf "dynamic->id₂: ~a~n" (syntax->datum #'d))
      (define xs (syntax->list #'(z ...)))
      (define ctx′ (ext-env ctx xs))
      (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
@@ -202,16 +202,16 @@
     ;; Negation
     [(#%plain-app (~literal fake:not/c) c) (.not/c (go #'c))]
     [(#%plain-app (~literal fake:listof) c)
-     (define x #'x)
-     (.μ/c x ((.or/c (cur-mod)) .null/c (.cons/c (go #'c) (.x/c x))))]
+     (.μ/c 'X (.or/c .null/c (.cons/c (go #'c) (.x/c 'X))))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (foldr .cons/c .null/c (go/list #'(c ...)))]
-    [(begin
-       (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...)
-       _ ...)
-     (.struct/c #'tag (go/list #'(c ...)))]
-    [(#%plain-app (~literal fake:=/c/proc) c)
-     (todo '=/c)]
+    [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
+     (.struct/c (.id (syntax-e #'tag) (cur-mod)) (go/list #'(c ...)))]
+    [(#%plain-app (~literal fake:=/c) c) (.comp/c '= (go #'c))]
+    [(#%plain-app (~literal fake:>/c) c) (.comp/c '> (go #'c))]
+    [(#%plain-app (~literal fake:>=/c) c) (.comp/c '>= (go #'c))]
+    [(#%plain-app (~literal fake:</c) c) (.comp/c '< (go #'c))]
+    [(#%plain-app (~literal fake:<=/c) c) (.comp/c '<= (go #'c))]
 
     ;; primitive contracts
     [(~literal fake:any/c) .any/c]
@@ -266,11 +266,11 @@
     [(quote e:str) (.b (syntax->datum #'e))]
     [(quote e:boolean) (.b (syntax->datum #'e))]
     [(quote e:id) (.b (syntax->datum #'e))]
-    [(quote e) #|FIXME|# (log-warning "Misread ~a as ~a:~n" (syntax->datum #'e) #f) (.b #f #|FIXME|#)]
+    [(quote e) (todo "support arbitrary quote")]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
-    [(#%variable-reference) (dummy)]
+    [(#%variable-reference) (todo '#%variable-reference)]
     [(#%variable-reference id) (todo (format "#%variable-reference ~a" (syntax->datum #'id)))]
     
     ;; Hacks for now
@@ -348,10 +348,10 @@
     [(~literal min) 'min]
     [(~literal max) 'max]
     #;[(~literal set-box!) 'set-box!]
-    [(~literal cons) (.st-mk #'cons 2)]
-    [(~literal car) (.st-ac #'cons 2 0)]
-    [(~literal cdr) (.st-ac #'cons 2 1)]
-    [(~literal cons?) (.st-p #'cons 2)]
+    [(~literal cons) .cons]
+    [(~literal car) .car]
+    [(~literal cdr) .cdr]
+    [(~literal cons?) .cons?]
     [(~literal values) 'values]
     [_ #f]))
 
@@ -364,7 +364,7 @@
 (define/contract (parse-require-spec spec)
   (scv-syntax? . -> . .require-spec?)
   (syntax-parse spec
-    [i:identifier #'i]
+    [i:identifier (syntax-e #'i)]
     [_ (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
 
 ;; Extends environment
@@ -377,16 +377,10 @@
 ;; Return static distance of given identifier in context
 (define/contract (id->sd ctx id)
   (env? identifier? . -> . integer?)
-  #;(debug "id->sd: looking for ~a in context ~a~n"
-          (syntax->datum id)
-          (map syntax->datum ctx))
-  (define res
-    (or (for/first ([idᵢ (in-list ctx)] [i (in-naturals)]
-                    #:when (free-identifier=? id idᵢ))
-          i)
-        (error 'id->sd "Unbound identifier ~a" (syntax->datum id))))
-  (printf "~a resolves to ~a in ~a~n" (syntax-e id) res (map syntax-e ctx))
-  res)
+  (or (for/first ([idᵢ (in-list ctx)] [i (in-naturals)]
+                  #:when (free-identifier=? id idᵢ))
+        i)
+      (error 'id->sd "Unbound identifier ~a" (syntax->datum id))))
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
@@ -397,7 +391,7 @@
     (syntax->datum stxᵢ)))
 
 ;; Testing only
-(define (test file)
-  (files->prog (list file)))
+(define (test . files)
+  (files->prog files))
 
 (test "test/programs/safe/dvh-2.rkt")

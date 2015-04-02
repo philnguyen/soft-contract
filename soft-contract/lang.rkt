@@ -65,7 +65,7 @@
       (struct .•ₗ [l : Negative-Integer]))
     (subset: .prim
       ;; primitive values that can appear in syntax
-      (struct .b [unboxed : (U Number Boolean String Symbol #|Bytes Regexp PRegexp|#)])
+      (struct .b [unboxed : (U Number Boolean String Symbol Sexp #|Bytes Regexp PRegexp|#)])
       (subset: .o
         'values
         (subset: .o1
@@ -99,7 +99,7 @@
   (struct .letrec-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
 
   (struct .@-havoc [x : .x]) ; hack for havoc to detect argument's arity at runtime
-  (struct .amb [e* : (Setof .expr)])
+  (struct .amb [es : (Setof .expr)])
   ; contract stuff
   (struct .μ/c [x : Symbol] [c : .expr])
   (struct .-> [dom : (Listof .expr)] [rng : .expr]) ; non-dependent function contract
@@ -134,7 +134,7 @@
     [(.@-havoc x) (FV x d)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
-    [(.amb e*) (for/fold ([FVs : (Setof Integer) ∅]) ([e e*])
+    [(.amb es) (for/fold ([FVs : (Setof Integer) ∅]) ([e es])
                  (set-union FVs (FV e d)))]
     [(.μ/c _ e) (FV e d)]
     [(.->i cx cy _) (for/fold ([FVs (FV cy (+ d (length cx)))]) ([c cx])
@@ -215,6 +215,7 @@
 (define-value/pattern .box? (.st-p (.id 'box 'Λ) 1))
 (define-value/pattern .unbox (.st-ac (.id 'box 'Λ) 1 0))
 (define-value/pattern .box (.st-mk (.id 'box 'Λ) 1))
+(define .x₀ (.x 0))
 
 ;; TODO: ok to use 'Λ as context? Never blamed?
 (splicing-let ([mk-and/c (.st-mk (.id 'and/c 'Λ) 2)]
@@ -239,32 +240,22 @@
   (: .not/c : .expr → .expr)
   (define (.not/c c) (.@ (.st-mk (.id 'not/c 'Λ) 1) (list c) 'Λ)))
 
-#;(: prim : (U Symbol Number String Boolean) → (U #f .e))
-#;(define prim
-  (match-lambda
-   #|['box (.st-mk 'box 1)]
-   ['box? (.st-p 'box 1)]
-   ['unbox (.st-ac 'box 1 0)]
-   ['set-box! (.set-box!)]|#
-   ['not 'false?]
-   [(or 'box 'box? 'unbox 'set-box!)
-    (error 'Disabled "Box operations are not supported for now")]
-   [(? .o? o) o]
-   ['any/c .any/c]
-   ['none/c .none/c]
-   ['cons? (.st-p #'cons 2)]
-   ['cons (.st-mk #'cons 2)]
-   ['car .car]
-   ['cdr .cdr]
-   [(or 'empty 'null) (.@ (.st-mk #'empty 0) empty 'Λ)]
-   [(or 'empty? 'null?) .empty/c]
-   ['void (.st-mk #'void 0)]
-   [(? number? x) (.b x)]
-   [#f .ff]
-   [#t .tt]
-   [(? string? x) (.b x)]
-   #;[`(quote ,(? sym? x)) (.b x)]
-   [_ #f]))
+;; Macros
+(:* .and .or : .expr * → .expr)
+(define (.and . es)
+  (match es
+    [(list) .tt]
+    [(list e) e]
+    [(cons e es) (.if e (apply .and es) .ff)]))
+(define (.or . es)
+  (match es
+    [(list) .ff]
+    [(list e) e]
+    [(cons e es) (.let-values (list (cons 1 e)) (.if (.x 0) (.x 0) (apply .or es)))]))
+
+(: .comp/c : .o2 .expr → .expr)
+(define (.comp/c op e)
+  (.λ 1 (.and (.@ 'real? (list .x₀) 'Λ) (.@ op (list .x₀ e) 'Λ))))
 
 (: name : .o → Symbol)
 (define name
@@ -350,7 +341,7 @@
   (values m expr))
 
 (: amb : (Listof .expr) → .expr)
-(define/match (amb e*)
+(define/match (amb es)
   [((list)) .ff]
   [((list e)) e]
   [((cons e es)) (.if (•!) e (amb es))])
