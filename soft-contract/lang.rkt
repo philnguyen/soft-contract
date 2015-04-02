@@ -1,5 +1,6 @@
 #lang typed/racket
-(require "utils.rkt" (for-syntax racket/base racket/syntax))
+(require racket/splicing "utils.rkt"
+         (for-syntax racket/base racket/syntax))
 (provide (all-defined-out))
 
 ;; prefixing types with dots just so i can use 1-letter variables without shadowing them
@@ -15,15 +16,14 @@
 (define/match (swap-parties info)
   [((list + - o)) (list - + o)])
 
-(define THE-MODULE-HACK : Module-Path "The-Module")
+;;(define THE-MODULE-HACK : Module-Path "The-Module")
 
 (: -begin : (∀ (X) (Listof X) → (U X (.begin X))))
-(define -begin
-  (match-lambda
-   [(list e) e]
-   [es (.begin es)]))
+(define/match (-begin xs)
+  [((list e)) e]
+  [(es) (.begin es)])
 
-(struct .id ([name : Symbol] [from : (Option Module-Path)]) #:transparent)
+(struct .id ([name : Symbol] [from : Module-Path]) #:transparent)
 
 ;; Subset of Racket reference 1.2.3.1
 
@@ -35,16 +35,16 @@
 
 (define-data .module-level-form
   .general-top-level-form
-  (struct .#%provide [specs : (Listof .provide-spec)])
+  (struct .provide [specs : (Listof .provide-spec)])
   .submodule-form)
 
 (define-data .general-top-level-form
   .expr
   (struct .define-values [ids : (Listof Symbol)] [e : .expr])
-  (struct .#%require [specs : (Listof .require-spec)]))
+  (struct .require [specs : (Listof .require-spec)]))
 
 (define-data .submodule-form
-  (struct .module [path : Module-Path] [body : .#%plain-module-begin]))
+  (struct .module [path : Module-Path] [body : .plain-module-begin]))
 
 (define-data .provide-spec
   (struct .p/c-item [id : Symbol] [spec : .expr] #|TODO|#))
@@ -52,7 +52,7 @@
 (define-data .require-spec
   Any #|TODO|#)
 
-(struct .#%plain-module-begin ([body : (Listof .module-level-form)]) #:transparent)
+(struct .plain-module-begin ([body : (Listof .module-level-form)]) #:transparent)
 
 (define-data .expr
   (subset: .v
@@ -115,34 +115,22 @@
 
 (define-type/pred .formals (U Integer (Pairof Integer 'rest)))
 
-(:* .and/c .or/c : Mon-Party → (.expr .expr → .expr))
-(define ((.and/c ctx) c d)
-  (.@ (.st-mk (.id 'and/c #f) 2) (list c d) ctx))
-(define ((.or/c ctx) c d)
-  (.@ (.st-mk (.id 'or/c #f) 2) (list c d) ctx))
-(: .not/c : Mon-Party → (.expr → .expr))
-(define ((.not/c ctx) c)
-  (.@ (.st-mk (.id 'not/c #f) 1) (list c) ctx))
-
-(define (.cons/c [c : .expr] [d : .expr])
-  (.struct/c (.id 'cons #f) (list c d)))
-
 (: •! : → .•ₗ)
 ;; Generate new labeled hole
 (define •!
-  (let ([n : Negative-Integer -2 #|HACK|#])
+  (let ([n : Negative-Integer -2 #|HACK don't fix|#])
     (λ () (begin0 (.•ₗ n) (set! n (- n 1))))))
 
-(: FV : (case→ [.expr → (Setof Integer)]
-               [.expr Integer → (Setof Integer)]))
+(: FV : ([.expr] [Integer] . ->* . (Setof Integer)))
 ;; Compute free variables for expression. Return set of static distances.
 (define (FV e [d 0])
   (match e
     [(.x sd) (if (>= sd d) {set (- sd d)} ∅)]
-    [(.λ (? integer? n) e) (FV e (+ d n))]
-    [(.λ (cons n _) e) (FV e (+ d n))]
+    [(.λ xs e) (match xs
+                 [(? integer? n) (FV e (+ d n))]
+                 [(cons n _) (FV e (+ d n))])]
     [(.@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
-                       (set-union FVs (FV x d)))]
+                   (set-union FVs (FV x d)))]
     [(.@-havoc x) (FV x d)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
@@ -163,10 +151,11 @@
                        .expr
                        .module
                        .begin/top
-                       .#%plain-module-begin
+                       .plain-module-begin
                        .module-level-form
                        .prog
                        (Listof X))) → Integer)
+;; Statically count number of unsafe operations needing checks
 (define checks#
   (match-lambda
    [(? list? es) (for/sum : Integer ([e (in-list es)]) (checks# e))]
@@ -192,7 +181,7 @@
    [(.->i cs d _) (+ (checks# cs) (checks# d))]
    [(.struct/c _ cs) (checks# cs)]
 
-   [(.#%plain-module-begin xs) (checks# xs)]
+   [(.plain-module-begin xs) (checks# xs)]
    [(.module _ body) (checks# body)]
    [(or (? .pred?) (? .st-mk?)) 0]
    [(? .o1?) 1]
@@ -209,26 +198,46 @@
              (syntax-rules ()
                [(_) pat]))))]))
 
-(define box-id (.id 'box #f))
-(define cons-id (.id 'cons #f))
-
 ;; frequently used constants
 (define-value/pattern .tt (.b #t))
 (define-value/pattern .ff (.b #f))
 (define-value/pattern .any/c (.λ 1 .tt))
 (define-value/pattern .none/c (.λ 1 .ff))
-(define-value/pattern .null/c (.st-p (.id 'null #f) 0))
-(define-value/pattern .cons (.st-mk (.id 'cons #f) 2))
-(define-value/pattern .car (.st-ac (.id 'cons #f) 2 0))
-(define-value/pattern .cdr (.st-ac (.id 'cons #f) 2 1))
-(define-value/pattern .cons? (.st-mk (.id 'cons #f) 2))
+(define-value/pattern .null/c (.st-p (.id 'null 'Λ) 0))
+(define-value/pattern .cons (.st-mk (.id 'cons 'Λ) 2))
+(define-value/pattern .car (.st-ac (.id 'cons 'Λ) 2 0))
+(define-value/pattern .cdr (.st-ac (.id 'cons 'Λ) 2 1))
+(define-value/pattern .cons? (.st-mk (.id 'cons 'Λ) 2))
 (define-value/pattern .zero (.b 0))
 (define-value/pattern .one (.b 1))
-(define-value/pattern .void (.st-mk (.id 'void #f) 0))
-(define-value/pattern .null #|hack|# (.@ (.st-mk (.id 'null #f) 0) (list) 'Λ))
-(define-value/pattern .box? (.st-p (.id 'box #f) 1))
-(define-value/pattern .unbox (.st-ac (.id 'box #f) 1 0))
-(define-value/pattern .box (.st-mk (.id 'box #f) 1))
+(define-value/pattern .void (.st-mk (.id 'void 'Λ) 0))
+(define-value/pattern .null #|hack|# (.@ (.st-mk (.id 'null 'Λ) 0) (list) 'Λ))
+(define-value/pattern .box? (.st-p (.id 'box 'Λ) 1))
+(define-value/pattern .unbox (.st-ac (.id 'box 'Λ) 1 0))
+(define-value/pattern .box (.st-mk (.id 'box 'Λ) 1))
+
+;; TODO: ok to use 'Λ as context? Never blamed?
+(splicing-let ([mk-and/c (.st-mk (.id 'and/c 'Λ) 2)]
+               [mk-or/c (.st-mk (.id 'or/c 'Λ) 2)]
+               [mk-cons/c (.st-mk (.id 'cons/c 'Λ) 2)]
+               [mk-not/c (.st-mk (.id 'not/c 'Λ) 1)])
+  (:* .and/c .or/c : .expr * → .expr)
+  (define (.and/c . cs)
+    (match cs
+      [(list) .any/c]
+      [(list c) c]
+      [(cons c cs) (.@ mk-and/c (list c (apply .and/c cs)) 'Λ)]))
+  (define (.or/c . cs)
+    (match cs
+      [(list) .none/c]
+      [(list c) c]
+      [(cons c cs) (.@ mk-or/c (list c (apply .or/c cs)) 'Λ)]))
+  
+  (: .cons/c : .expr .expr → .expr)
+  (define (.cons/c c d) (.struct/c (.id 'cons 'Λ) (list c d)))
+
+  (: .not/c : .expr → .expr)
+  (define (.not/c c) (.@ (.st-mk (.id 'not/c 'Λ) 1) (list c) 'Λ)))
 
 #;(: prim : (U Symbol Number String Boolean) → (U #f .e))
 #;(define prim
@@ -256,12 +265,6 @@
    [(? string? x) (.b x)]
    #;[`(quote ,(? sym? x)) (.b x)]
    [_ #f]))
-
-;; Pattern matching given syntax
-(define-match-expander ?id
-  (syntax-rules ()
-    [(?id id) (? (λ (x) (and (symbol? x) (eq? x id))))]))
-
 
 (: name : .o → Symbol)
 (define name
@@ -316,10 +319,10 @@
                          (.@ havoc-ref (list (.@-havoc x₀)) ☠)))))
   (define m
     (.module ☠
-             (.#%plain-module-begin
+             (.plain-module-begin
               (list
                (.define-values (list (.id-name havoc-id)) havoc-func)
-               (.#%provide (list (.p/c-item (.id-name havoc-id) .any/c)))))))
+               (.provide (list (.p/c-item (.id-name havoc-id) .any/c)))))))
 
   ;;; Generate expression
   (define-set refs : .ref)
@@ -330,11 +333,11 @@
       (eprintf "Omit havocking opaque module ~a~n" (.module-path m))]
      [else
       #;(log-debug "Havocking transparent module ~a~n" (.module-path m))
-      (match-define (.module path (.#%plain-module-begin forms)) m)
+      (match-define (.module path (.plain-module-begin forms)) m)
       #;(eprintf "Insert exported identifiers from module ~a to unknown contexts~n" path)
       (for* ([form (in-list forms)]
-             #:when (.#%provide? form)
-             [spec (in-list (.#%provide-specs form))])
+             #:when (.provide? form)
+             [spec (in-list (.provide-specs form))])
         #;(log-debug "adding: ~a~n" (.p/c-item-id spec))
         (refs-add! (.ref (.id (.p/c-item-id spec) path) '†)))]))
   #;(log-debug "~nrefs: ~a~n" refs)
@@ -347,19 +350,10 @@
   (values m expr))
 
 (: amb : (Listof .expr) → .expr)
-#;(define (amb e*)
-  (define s
-    (for/fold ([ac : (Setof .e) ∅]) ([e e*])
-      (match e ; try to avoid nested amb
-        [(.amb s) (set-union ac s)]
-        [_ (set-add ac e)])))
-  (cond [(= 1 (set-count s)) (set-first s)]
-        [else (.amb s)]))
-(define (amb e*)
-  (match e*
-    ['() .ff]
-    [(list e) e]
-    [(cons e es) (.if (•!) e (amb es))]))
+(define/match (amb e*)
+  [((list)) .ff]
+  [((list e)) e]
+  [((cons e es)) (.if (•!) e (amb es))])
 
 (: e/ : (case->
          [.expr Integer .expr → .expr]
@@ -383,91 +377,16 @@
     [(list es ...) (for/list : (Listof .expr) ([e es]) (e/ e x eₓ))]
     [e e]))
 
-#|
-(: .id->expr : .module Identifier → .expr)
-;; Return corresponding definition for given identifier in module
-(define (.id->expr m id)
-  (match-define (.module path (.#%plain-module-begin forms)) m)
-  (or (for/or : (U #f .expr) ([form (in-list forms)]
-                              #:when (.define-values? form))
-        (match form
-          [(.define-values (list x) expr)
-           (and (free-identifier=? x id) expr)]
-          [_ #f]))
-      (error '.id->expr "module ~a does not define ~a"
-             path
-             (syntax->datum id))))
-
-(: .ref->expr : (Listof .module) .ref → .expr)
-(define (.ref->expr ms ref)
-  (match-define (.ref ref-id _FIXME _) ref)
-
-  ;; FIXME:
-  ;; - figure out module-path properly
-  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
-  #;(.id->expr (path->module ms mod-path) ref-id)
-  (or (for/or : (U #f .expr) ([m (in-list ms)])
-        (match-define (.module _ (.#%plain-module-begin forms)) m)
-        (for/or : (U #f .expr) ([form (in-list forms)])
-          (match form
-            [(.define-values (list x) e)
-             (and (free-identifier=? ref-id x) e)]
-            [_ #f])))
-      (error '.ref->expr "No module defines ~a" (syntax->datum ref-id))))
-
-(: .id->ctc : .module Identifier → .expr)
-;; Return the contract monitoring identifier `id` exported by module `m`
-(define (.id->ctc m id)
-  (match-define (.module mod-name (.#%plain-module-begin forms)) m)
-  ;; TODO: TR doesn't like `for*/or` so I use nested `for/or`
-  (or (for/or : (U #f .expr) ([form (in-list forms)] #:when (.#%provide? form))
-        (for/or : (U #f .expr) ([p/c-item (in-list (.#%provide-specs form))])
-          (match-define (.p/c-item x c) p/c-item)
-          (and (free-identifier=? x id) c)))
-      (error '.id->ctc "module ~a does not export ~a" mod-name (syntax->datum id))))
-
-(: .ref->ctc : (Listof .module) .ref → .expr)
-(define (.ref->ctc ms ref)
-  (match-define (.ref ref-id _FIXME _) ref)
-
-  ;; FIXME:
-  ;; - figure out module-path properly
-  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
-  #;(.id->expr (path->module ms mod-path) ref-id)
-  (or (for/or : (U #f .expr) ([m (in-list ms)])
-        (match-define (.module _ (.#%plain-module-begin forms)) m)
-        (for/or : (U #f .expr) ([form (in-list forms)])
-          (match form
-            [(.#%provide specs)
-             (for/or : (U #f .expr) ([spec (in-list specs)])
-               (match-define (.p/c-item x c) spec)
-               (and (free-identifier=? ref-id x) c))]
-            [_ #f])))
-      (error '.ref->ctc "No module exports ~a" (syntax->datum ref-id))))
-
-#;(: path->module : (Listof .module) Module-Path → .module)
-#;(define (path->module mods path)
-  (or (for/or : (U #f .module) ([modᵢ (in-list mods)])
-        (match-define (.module pathᵢ _) modᵢ)
-        (and (equal? path pathᵢ) modᵢ))
-      (error 'path->module "there is no module at path ~a" path)))
-
-(: .id->path : Identifier → Module-Path)
-;; Extract module-path that defines identifier
-(define (.id->path id)
-  (todo '.id->path))
-|#
-
 ;; FIXME: factor this out into function checking given `.module`xpr
 (: module-opaque? : .module → Boolean)
 (define (module-opaque? m) ; TODO: expensive?
-  (match-define (.module _ (.#%plain-module-begin body)) m)
+  (match-define (.module _ (.plain-module-begin body)) m)
 
   (define-values (exports defines)
     (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])
               ([e (in-list body)])
       (match e
-        [(.#%provide specs)
+        [(.provide specs)
          (values (set-union exports (list->set (map .p/c-item-id specs))) defines)]
         [(.define-values xs _)
          (values exports (set-union defines (list->set xs)))]
@@ -478,11 +397,10 @@
        (eq? exported-id defined-id)))))
 
 (: .amb/remember : (Listof .expr) → .expr)
-(define (.amb/remember es)
-  (match es
-    ['() .ff]
-    [(list e) e]
-    [(cons e es) (.if (•!) e (.amb/remember es))]))
+(define/match (.amb/remember es)
+  [((list)) .ff]
+  [((list e)) e]
+  [((cons e es)) (.if (•!) e (.amb/remember es))])
 
 (: count-xs : (U .expr (Listof .expr)) Integer → Integer)
 ;; Count occurences of variable (given as static distance)

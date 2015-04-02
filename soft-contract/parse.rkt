@@ -49,7 +49,7 @@
      (.module
       mod-path
       (parameterize ([cur-mod mod-path])
-        (.#%plain-module-begin
+        (.plain-module-begin
          (filter
           values
           (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
@@ -72,7 +72,7 @@
     #:literals (#%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                 call-with-values)
     [(#%provide spec ...)
-     (.#%provide (map parse-provide-spec (syntax->list #'(spec ...))))]
+     (.provide (map parse-provide-spec (syntax->list #'(spec ...))))]
     [(#%declare _ ...) (todo '#%declare)]
     [(begin-for-syntax _ ...) #|ignore|# #f]
     
@@ -88,9 +88,9 @@
      #;(debug "x: ~a~nc: ~a~n"
              (identifier? (car (syntax->list #'(x ...))))
              (identifier? (car (syntax->list #'(c ...)))))
-     (.#%provide (for/list ([x (in-list (syntax->list #'(x ...)))]
-                            [c (in-list (syntax->list #'(c ...)))])
-                   (.p/c-item x (parse-expr c))))]
+     (.provide (for/list ([x (in-list (syntax->list #'(x ...)))]
+                          [c (in-list (syntax->list #'(c ...)))])
+                 (.p/c-item (syntax-e x) (parse-expr c))))]
     
     [_ (or (parse-general-top-level-form form)
            (parse-submodule-form form))]))
@@ -102,7 +102,7 @@
     [((~literal module) id path ((~literal #%plain-module-begin) d ...))
      (.module
       (module-path #'id)
-      (.#%plain-module-begin (map parse-module-level-form (syntax->list #'(d ...)))))]
+      (.plain-module-begin (map parse-module-level-form (syntax->list #'(d ...)))))]
     [((~literal module*) _ ...) (todo 'module*)]
     [_ #f]))
 
@@ -131,9 +131,9 @@
                    (.st-ac ctor n i)))
           'Λ))]
     [(define-values (x:identifier ...) e)
-     (.define-values (syntax->list #'(x ...)) (parse-expr #'e))]
+     (.define-values (map syntax-e (syntax->list #'(x ...))) (parse-expr #'e))]
     [(#%require spec ...)
-     (.#%require (map parse-require-spec (syntax->list #'(spec ...))))]
+     (.require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
     [_ (parse-expr form)]))
 
@@ -145,7 +145,7 @@
      (match (identifier-binding #'i)
        [(and X (list (app index->path (list src self?)) _ _ _ _ _ _))
         #;(error 'debug "binding: ~a~n" (first X))
-        (.ref #'i (path->string (simplify-path src)) (cur-mod))]
+        (.ref (.id (syntax-e #'i) (path->string (simplify-path src))) (cur-mod))]
        [#f #|FIXME|# (syntax->datum stx)])]))
 
 (define dummy-id #'dummy)
@@ -181,23 +181,26 @@
         (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
         (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
+     (printf "dynamic->id: ~a~n" (syntax->datum #'d))
+     (define xs (syntax->list #'(z ...)))
+     (define ctx′ (ext-env ctx xs))
+     (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
+    [(#%plain-app ; FIXME: duplicate of above case, (begin e _ ...) => e
+      (~literal fake:dynamic->i)
+      (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+      (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+     (printf "dynamic->id: ~a~n" (syntax->datum #'d))
      (define xs (syntax->list #'(z ...)))
      (define ctx′ (ext-env ctx xs))
      (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
-     (match (go/list #'(c ...))
-       ['() .any/c]
-       [(list c) c]
-       [(list c₁ ... cₖ) (foldr (.and/c (cur-mod)) cₖ c₁)])]
+     (apply .and/c (go/list #'(c ...)))]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
-     (match (go/list #'(c ...))
-       ['() .none/c]
-       [(list c) c]
-       [(list c₁ ... cₖ) (foldr (.or/c (cur-mod)) cₖ c₁)])]
+     (apply .or/c (go/list #'(c ...)))]
     ;; Negation
-    [(#%plain-app (~literal fake:not/c) c) ((.not/c (cur-mod)) (go #'c))]
+    [(#%plain-app (~literal fake:not/c) c) (.not/c (go #'c))]
     [(#%plain-app (~literal fake:listof) c)
      (define x #'x)
      (.μ/c x ((.or/c (cur-mod)) .null/c (.cons/c (go #'c) (.x/c x))))]
@@ -294,11 +297,11 @@
          (define modsym (symbol->string (syntax-e stx)))
          (define src-mod
            (cond [(path? src) (path->string (simplify-path src #f))]
-                 [(eq? src '#%kernel) '#%kernel #|hack|#]
+                 [(eq? src '#%kernel) 'Λ #|hack|#]
                  [src (symbol->string src)]
                  [else 'null]))
-         (printf "(idsym: ~a, modsym: ~a, src-mod: ~a)~n" idsym modsym src-mod)
-         (.ref idsym src-mod (cur-mod))]))]))
+         ;(printf "(idsym: ~a, modsym: ~a, src-mod: ~a)~n" idsym modsym src-mod)
+         (.ref (.id (syntax-e #'i) src-mod) (cur-mod))]))]))
 
 ;; Parse given `formals` to extend environment
 (define/contract (parse-formals ctx formals)
@@ -377,10 +380,13 @@
   #;(debug "id->sd: looking for ~a in context ~a~n"
           (syntax->datum id)
           (map syntax->datum ctx))
-  (or (for/first ([idᵢ (in-list ctx)] [i (in-naturals)]
-                  #:when (free-identifier=? id idᵢ))
-        i)
-      (error 'id->sd "Unbound identifier ~a" (syntax->datum id))))
+  (define res
+    (or (for/first ([idᵢ (in-list ctx)] [i (in-naturals)]
+                    #:when (free-identifier=? id idᵢ))
+          i)
+        (error 'id->sd "Unbound identifier ~a" (syntax->datum id))))
+  (printf "~a resolves to ~a in ~a~n" (syntax-e id) res (map syntax-e ctx))
+  res)
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
