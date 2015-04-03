@@ -110,6 +110,35 @@
   #;(.or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
 
+(define-syntax (define-value/pattern stx)
+  (syntax-case stx ()
+    [(_ x pat)
+     (with-syntax ([@x (format-id #'x "?~a" #'x)])
+       #'(begin
+           (define x pat)
+           (define-match-expander @x
+             (syntax-rules ()
+               [(_) pat]))))]))
+
+;; frequently used constants
+(define .x₀ (.x 0))
+(define-value/pattern .tt (.b #t))
+(define-value/pattern .ff (.b #f))
+(define-value/pattern .any/c (.λ 1 .tt))
+(define-value/pattern .none/c (.λ 1 .ff))
+(define-value/pattern .null/c (.st-p (.id 'null 'Λ) 0))
+(define-value/pattern .cons (.st-mk (.id 'cons 'Λ) 2))
+(define-value/pattern .car (.st-ac (.id 'cons 'Λ) 2 0))
+(define-value/pattern .cdr (.st-ac (.id 'cons 'Λ) 2 1))
+(define-value/pattern .cons? (.st-mk (.id 'cons 'Λ) 2))
+(define-value/pattern .zero (.b 0))
+(define-value/pattern .one (.b 1))
+(define-value/pattern .void (.st-mk (.id 'void 'Λ) 0))
+(define-value/pattern .null #|hack|# (.@ (.st-mk (.id 'null 'Λ) 0) (list) 'Λ))
+(define-value/pattern .box? (.st-p (.id 'box 'Λ) 1))
+(define-value/pattern .unbox (.st-ac (.id 'box 'Λ) 1 0))
+(define-value/pattern .box (.st-mk (.id 'box 'Λ) 1))
+
 ;; Current restricted representation of program
 (struct .prog ([modules : (Listof .module)] [main : .expr]) #:transparent)
 
@@ -188,48 +217,19 @@
    [(? .o2?) 2]
    [_ 0]))
 
-(define-syntax (define-value/pattern stx)
-  (syntax-case stx ()
-    [(_ x pat)
-     (with-syntax ([@x (format-id #'x "?~a" #'x)])
-       #'(begin
-           (define x pat)
-           (define-match-expander @x
-             (syntax-rules ()
-               [(_) pat]))))]))
-
-;; frequently used constants
-(define-value/pattern .tt (.b #t))
-(define-value/pattern .ff (.b #f))
-(define-value/pattern .any/c (.λ 1 .tt))
-(define-value/pattern .none/c (.λ 1 .ff))
-(define-value/pattern .null/c (.st-p (.id 'null 'Λ) 0))
-(define-value/pattern .cons (.st-mk (.id 'cons 'Λ) 2))
-(define-value/pattern .car (.st-ac (.id 'cons 'Λ) 2 0))
-(define-value/pattern .cdr (.st-ac (.id 'cons 'Λ) 2 1))
-(define-value/pattern .cons? (.st-mk (.id 'cons 'Λ) 2))
-(define-value/pattern .zero (.b 0))
-(define-value/pattern .one (.b 1))
-(define-value/pattern .void (.st-mk (.id 'void 'Λ) 0))
-(define-value/pattern .null #|hack|# (.@ (.st-mk (.id 'null 'Λ) 0) (list) 'Λ))
-(define-value/pattern .box? (.st-p (.id 'box 'Λ) 1))
-(define-value/pattern .unbox (.st-ac (.id 'box 'Λ) 1 0))
-(define-value/pattern .box (.st-mk (.id 'box 'Λ) 1))
-(define .x₀ (.x 0))
-
 ;; TODO: ok to use 'Λ as context? Never blamed?
 (splicing-let ([mk-and/c (.st-mk (.id 'and/c 'Λ) 2)]
                [mk-or/c (.st-mk (.id 'or/c 'Λ) 2)]
                [mk-cons/c (.st-mk (.id 'cons/c 'Λ) 2)]
                [mk-not/c (.st-mk (.id 'not/c 'Λ) 1)])
   (:* .and/c .or/c : .expr * → .expr)
-  (define (.and/c . cs)
-    (match cs
+  (define .and/c
+    (match-lambda*
       [(list) .any/c]
       [(list c) c]
       [(cons c cs) (.@ mk-and/c (list c (apply .and/c cs)) 'Λ)]))
-  (define (.or/c . cs)
-    (match cs
+  (define .or/c
+    (match-lambda*
       [(list) .none/c]
       [(list c) c]
       [(cons c cs) (.@ mk-or/c (list c (apply .or/c cs)) 'Λ)]))
@@ -242,16 +242,16 @@
 
 ;; Macros
 (:* .and .or : .expr * → .expr)
-(define (.and . es)
-  (match es
+(define .and
+  (match-lambda*
     [(list) .tt]
     [(list e) e]
     [(cons e es) (.if e (apply .and es) .ff)]))
-(define (.or . es)
-  (match es
+(define .or
+  (match-lambda*
     [(list) .ff]
     [(list e) e]
-    [(cons e es) (.let-values (list (cons 1 e)) (.if (.x 0) (.x 0) (apply .or es)))]))
+    [(cons e es) (.let-values (list (cons 1 e)) (.if .x₀ .x₀ (apply .or es)))]))
 
 (: .comp/c : .o2 .expr → .expr)
 (define (.comp/c op e)
@@ -303,11 +303,10 @@
 
   ;;; Generate module
   (define havoc-ref (havoc-ref-from ☠))
-  (define x₀ (.x 0))
   (define havoc-func
     (.λ 1 (.amb (set-add (for/set: : (Setof .@) ([ac (prog-accs ms)])
-                           (.@ havoc-ref (list (.@ ac (list x₀) ☠)) ☠))
-                         (.@ havoc-ref (list (.@-havoc x₀)) ☠)))))
+                           (.@ havoc-ref (list (.@ ac (list .x₀) ☠)) ☠))
+                         (.@ havoc-ref (list (.@-havoc .x₀)) ☠)))))
   (define m
     (.module ☠
              (.plain-module-begin
