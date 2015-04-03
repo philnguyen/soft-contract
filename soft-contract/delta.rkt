@@ -87,15 +87,16 @@
    [(=/c 0) (</c 0)]
    #:refinements
    (real? real? → real?)]
-  [(quotient : [x : integer?] [y : (∧ integer? (¬ (=/c 0)))] → (∧ integer? (=/c (/ x y))))
+  ;; `quotient` and `remainder` don't work for now due to exactness
+  #;[(quotient : [x : integer?] [y : (∧ integer? (¬ (=/c 0)))] → (∧ integer? (=/c (/ x y))))
    #:refinements
    ((≥/c 0) (>/c 0) → (≥/c 0))
    ((=/c 0) any/c → (=/c 0))]
-  [(remainder : [x : integer?] [y : (∧ integer? (¬ (=/c 0)))] → (∧ integer? (=/c (remainder x y))))
+  #;[(remainder : [x : integer?] [y : (∧ integer? (¬ (=/c 0)))] → (∧ integer? (=/c (remainder x y))))
    #:refinements
    ((≥/c 0) (>/c 0) → (≥/c 0))
    ((=/c 0) any/c → (=/c 0))]
-  [(abs : [n : integer?] → (∧ integer? (=/c (abs n))))
+  [(abs : [n : integer?] → integer?)
    #:refinements
    ((>/c 0) → (>/c 0))
    ((=/c 0) → (=/c 0))]

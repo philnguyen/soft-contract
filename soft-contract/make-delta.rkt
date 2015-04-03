@@ -285,7 +285,8 @@
   
   (define-syntax-class o²
     #:description "restricted binary operator"
-    (pattern (~or (~literal +) (~literal -) (~literal *) (~literal /) (~literal expt))))
+    (pattern (~or (~literal +) (~literal -) (~literal *) (~literal /) (~literal expt)
+                  (~literal remainder))))
   
   (define-syntax-class b
     #:description "[identifier : contract]"
@@ -528,7 +529,8 @@
       [- #'-/C]
       [* #'*/C]
       [/ #'÷/C]
-      [expt #'expt/C]))
+      [expt #'expt/C]
+      [remainder #'remainder/C]))
   
   (define/contract (ctc->V c)
     (syntax? . -> . syntax?)
