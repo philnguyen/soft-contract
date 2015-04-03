@@ -179,10 +179,6 @@
              (match-define (cons (.rt/κ σ0 _ Vx0) _) res)
              (match-define (cons σ1 Vx1) (⊕ σ0 Vx0 σ Vx))
              (.ς (.↓ e (ρ++ ρ Vx1)) σ1 (cons (.rt/κ σ1 f Vx1) k)))
-           (and (printf "Extend env: ~a~n" f)
-                (printf "  Old env: ~a~n" ρ)
-                (printf "  New env: ~a~n" (ρ++ ρ Vx))
-                '#f)
            (.ς (.↓ e (ρ++ ρ Vx)) σ (cons (.rt/κ σ f Vx) k)))]
          [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
       [(.λ↓ (.λ (cons n _) e) ρ)
@@ -201,7 +197,6 @@
           (let* ([V# (length V*)]
                  [C# (length C*)]
                  [n (if v? (- C# 1) #f)])
-            (printf "Range contract₁: ~a~n" D)
             (if (if v? (>= V# (- C# 1)) (= V# C#))
                 (.ς Vg σ (cons (.indy/κ C* V* '() D n l³) k))
                 (.ς (.blm l lo (Prim (length V*))(if v? (arity≥/C (- C# 1)) (arity=/C C#))) σ k)))]
@@ -330,7 +325,6 @@
     #;(log-debug "E: ~a~n~n" E)
     (match E
       [(.↓ e ρ)
-       (printf "E: ⟨~a, ~a⟩~n" e ρ)
        (match e
          [(? .•?) (let-values ([(σ′ L) (σ+ σ)]) (.ς L σ′ k))]
          [(? .v? v) (.ς (close v ρ) σ k)]
@@ -392,9 +386,6 @@
                                [(cons σf (.// (.b #t) _)) (.ς E2 σf k)])]
 
       [(.let/κ '() Vs ρ e)
-       (printf "extend let: ~a~n" e)
-       (printf "  old env: ~a~n" ρ)
-       (printf "  new env: ~a~n" (ρ++ ρ (reverse (cons V Vs))))
        (.ς (.↓ e (ρ++ ρ (reverse (cons V Vs)))) σ k)]
       [(.let/κ (cons eₓ es) Vs ρ e)
        (.ς (.↓ eₓ ρ) σ (cons (.let/κ es (cons V Vs) ρ e) k))]
@@ -421,19 +412,14 @@
        (step-▹ Ci Vi (swap-parties l³) σ (cons (.indy/κ Cr Vr (cons V Vs↓) D n l³) k))]
       [(.indy/κ _ '() Vs↓ (.↓ d ρ) n l³) ; evaluate range contract
        (match-let ([(and V* (cons Vf Vx*)) (reverse (cons V Vs↓))])
-         (printf "Extended range contract: ~a~n" d)
-         (printf " Old env: ~a~n" ρ)
-         (printf " New env: ~a~n" (ρ++ ρ Vx* n))
          (.ς (.↓ d (ρ++ ρ Vx* n)) σ (cons (.indy/κ '() '() V* #f n l³) k)))]
       [(.indy/κ _ '() (cons Vf Vx) #f _ (and l³ (list l+ _ _))) ; apply inner function
        #;(log-debug "range: ~a~n~n" (show-E σ V))
-       (printf "Apply inner function: ~a~n" Vf)
        (step-@ Vf Vx l+ σ (▹/κ1 V l³ k))]
 
       ; contracts
       [(.μc/κ x) (.ς (→V (.μ/C x V)) σ k)]
       [(.λc/κ '() c↓ d ρ v?)
-       (printf "Evaluated dependente contract: ~a~n" (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?)))
        (.ς (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?)) σ k)]
       [(.λc/κ (cons c cs) c↓ d ρ v?) (.ς (.↓ c ρ) σ (cons (.λc/κ cs (cons V c↓) d ρ v?) k))]
       [(.structc/κ t '() _ c↓) (.ς (→V (.St/C t (reverse (cons V c↓)))) σ k)]
