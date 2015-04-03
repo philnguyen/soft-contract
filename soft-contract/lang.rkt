@@ -77,11 +77,13 @@
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
           (struct .st-ac [tag : .id] [arity : Integer] [index : Integer])
-          'add1 'sub1 'string-length 'sqrt)
+          'add1 'sub1 'string-length 'sqrt
+          'sin 'cos 'tan 'abs 'round 'floor 'ceiling 'log )
         (subset: .o2
           'equal? '= '> '< '>= '<= '+ '- '* '/
           'expt 'abs 'min 'max
           'arity=? 'arity>=? 'arity-includes?
+          'remainder 'quotient
           'set-box!)
         (struct .st-mk [tag : .id] [arity : Integer]))))
   ;; lexical variables
@@ -161,6 +163,13 @@
                  [(cons n _) (FV e (+ d n))])]
     [(.@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
                    (set-union FVs (FV x d)))]
+    [(.let-values bnds e)
+     (define-values (δ xs)
+       (for/fold ([δ : Integer 0] [xs : (Setof Integer) ∅]) ([bnd (in-list bnds)])
+         (match-define (cons n eₓ) bnd)
+         (values (+ δ n) (set-union xs (FV eₓ d)))))
+     (set-union xs (FV e (+ δ d)))]
+    [(.letrec-values _ _) (todo 'letrec-values)]
     [(.@-havoc x) (FV x d)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
@@ -171,7 +180,7 @@
                       (set-union FVs (FV c d)))]
     [(.struct/c _ cs) (for/fold ([FVs : (Setof Integer) ∅]) ([c cs])
                         (set-union FVs (FV c d)))]
-    [_ ∅]))
+    [_ (printf "Warning: FV(~a) = ∅~n" e) ∅]))
 
 (define (closed? [e : .expr]) (set-empty? (FV e)))
 
