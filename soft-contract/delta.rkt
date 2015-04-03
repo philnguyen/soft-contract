@@ -112,13 +112,13 @@
   
   ;; Ugly stuff. Only Phil gets to use #:escape clauses
   [#:escape ; accessor
-   {(.st-ac t n i) (list (and V (.// (.St t′ Vs) _)))}
+   {(and o (.st-ac t n i)) (list (and V (.// (.St t′ Vs) _)))}
    (cond [(equal? t t′) (cons σ (list-ref Vs i))]
-         [else (cons σ (.blm l (format "~a" #|hack|# t) V (→V (.st-p t n))))])]
+         [else (cons σ (.blm l (name o) V (→V (.st-p t n))))])]
   [#:escape ; constructor
-   {(.st-mk t n) Vs}
+   {(and o (.st-mk t n)) Vs}
    (cond [(= n (length Vs)) (cons σ (→V (.St t Vs)))]
-         [else (cons σ (.blm l (format "~a" #|hack|# t) (Prim (length Vs)) (arity=/C n)))])]
+         [else (cons σ (.blm l (name o) (Prim (length Vs)) (arity=/C n)))])]
   [#:escape ; struct predicate
    {(.st-p t n) (list V)}
    (define C (→V o))

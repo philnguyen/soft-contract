@@ -625,7 +625,6 @@
              (define (δ σ o Vs l)
                (match* (o Vs)
                  #,@parsed-clauses
-                    [(⋆ Vs)
-                     (cons σ (.blm l (name ⋆) (Prim (length Vs)) (arity=/C -1 #|hack|#)))]))))
+                    [(⋆ Vs) (cons σ (.blm l (name ⋆) (Prim (length Vs)) (arity=/C -1 #|hack|#)))]))))
        (pretty-print (syntax->datum ans))
        ans)]))
