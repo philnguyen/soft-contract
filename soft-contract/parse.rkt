@@ -212,6 +212,7 @@
     [(#%plain-app (~literal fake:>=/c) c) (.comp/c '>= (go #'c))]
     [(#%plain-app (~literal fake:</c) c) (.comp/c '< (go #'c))]
     [(#%plain-app (~literal fake:<=/c) c) (.comp/c '<= (go #'c))]
+    [(#%plain-app (~literal fake:cons/c) c d) (.cons/c (go #'c) (go #'d))]
 
     ;; primitive contracts
     [(~literal fake:any/c) .any/c]
@@ -394,4 +395,5 @@
 (define (test . files)
   (files->prog files))
 
-;;(test "test/programs/safe/ex-08.rkt")
+;(test "test/programs/fail-ce/argmin.rkt")
+;(test "test/programs/safe/ex-13.rkt")
