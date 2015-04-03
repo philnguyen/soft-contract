@@ -276,9 +276,9 @@
   (match-lambda
    [(? symbol? s) s]
    [(.st-mk (.id t _) _) t]
-   [(.st-ac (.id 'cons #f) 2 0) 'car]
-   [(.st-ac (.id 'cons #f) 2 1) 'cdr]
-   [(.st-ac (.id 'box #f) 1 0) 'unbox]
+   [(.st-ac (.id 'cons 'Λ) 2 0) 'car]
+   [(.st-ac (.id 'cons 'Λ) 2 1) 'cdr]
+   [(.st-ac (.id 'box 'Λ) 1 0) 'unbox]
    [(.st-ac (.id t _) _ i) (string->symbol (format "~a@~a" t i))]
    [(.st-p (.id t _) _) (string->symbol (format "~a?" t))]))
 

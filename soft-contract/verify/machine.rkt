@@ -313,10 +313,12 @@
                   (match v?
                     [#f (match/nd (δ σt 'arity-includes? (list V (Prim (length Cx*))) lo)
                           [(cons σt (.// (.b #t) _)) (.ς (→V (.Ar C V l³)) σt k)]
-                          [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (arity-includes/C (length Cx*))) σf k)])]
+                          [(cons σf (.// (.b #f) _))
+                           (.ς (.blm l+ lo V (arity-includes/C (length Cx*))) σf k)])]
                     [#t (match/nd (δ σt 'arity>=? (list V (Prim (- (length Cx*) 1))) lo)
                           [(cons σt (.// (.b #t) _)) (.ς (→V (.Ar C V l³)) σt k)]
-                          [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (arity≥/C (- (length Cx*) 1))) σf k)])])]
+                          [(cons σf (.// (.b #f) _))
+                           (.ς (.blm l+ lo V (arity≥/C (- (length Cx*) 1))) σf k)])])]
                  [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V PROC/C) σf k)])]
               [_ (.ς (.FC C V lo) σ (cons (.if/κ (.Assume V C) (.blm l+ lo V C)) k))])])])))
 

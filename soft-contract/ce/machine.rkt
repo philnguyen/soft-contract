@@ -455,6 +455,8 @@
          [(and ref (.ref (.id name in) ctx))
           (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
               (cons (.▹/κ  (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
+         [(.let-values (list (cons 1 eₓ)) e)
+          (.ς (.↓ eₓ ρ) σ (cons (.let/κ '() '() ρ e) k))]
          [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
          [(.if i t e) (.ς (.↓ i ρ) σ (cons (.if/κ (.↓ t ρ) (.↓ e ρ)) k))]
          [(.amb e*) (for/set: : (Setof .ς) ([e e*]) (.ς (.↓ e ρ) σ k))]
@@ -476,6 +478,11 @@
        (match/nd (δ σ 'false? (list V) 'Λ)
          [(cons σt (.// (.b #f) _)) (.ς E1 σt k)]
          [(cons σf (.// (.b #t) _)) (.ς E2 σf k)])]
+
+      [(.let/κ '() Vs ρ e)
+       (.ς (.↓ e (ρ++ ρ (reverse (cons V Vs)))) σ k)]
+      [(.let/κ (cons eₓ es) Vs ρ e)
+       (.ς (.↓ eₓ ρ) σ (cons (.let/κ es (cons V Vs) ρ e) k))]
       
       [(.@/κ (cons E1 Er) V* l) (.ς E1 σ (cons (.@/κ Er (cons V V*) l) k))]
       [(.@/κ '() V* l)
