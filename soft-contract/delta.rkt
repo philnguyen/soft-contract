@@ -115,6 +115,13 @@
    {(and o (.st-ac t n i)) (list (and V (.// (.St t′ Vs) _)))}
    (cond [(equal? t t′) (cons σ (list-ref Vs i))]
          [else (cons σ (.blm l (name o) V (→V (.st-p t n))))])]
+  [#:escape ; accessor on L
+   {(and o (.st-ac t n i)) (list (.L α))}
+   (match/Ans* (δ σ (.st-p t n) Vs 'Λ)
+     [(cons σt (.// (.b #t) _))
+      (match-define (.// (.St _ fields) _) (σ@ σt α))
+      (cons σt (list-ref fields i))]
+     [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) (.L α) (→V (.st-p t n))))])]
   [#:escape ; constructor
    {(and o (.st-mk t n)) Vs}
    (cond [(= n (length Vs)) (cons σ (→V (.St t Vs)))]
