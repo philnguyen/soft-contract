@@ -131,7 +131,7 @@
       ;; as a reminiscent of `havoc`
       [(.@ (.•ₗ (? (λ ([n : Integer])
                      (match? (σ@ σ n) (.// (.b (? number?)) _)))))
-           (list x) (or '† '☠))
+           (list x) (or '† 'havoc))
        (go ctx x)]
       [(.if (and e (.•ₗ α)) e₁ e₂)
        (match (σ@ σ α)
