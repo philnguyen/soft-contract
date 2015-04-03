@@ -133,7 +133,7 @@
 (define-value/pattern .cons (.st-mk (.id 'cons 'Λ) 2))
 (define-value/pattern .car (.st-ac (.id 'cons 'Λ) 2 0))
 (define-value/pattern .cdr (.st-ac (.id 'cons 'Λ) 2 1))
-(define-value/pattern .cons? (.st-mk (.id 'cons 'Λ) 2))
+(define-value/pattern .cons? (.st-p (.id 'cons 'Λ) 2))
 (define-value/pattern .zero (.b 0))
 (define-value/pattern .one (.b 1))
 (define-value/pattern .void (.st-mk (.id 'void 'Λ) 0))
@@ -180,7 +180,7 @@
                       (set-union FVs (FV c d)))]
     [(.struct/c _ cs) (for/fold ([FVs : (Setof Integer) ∅]) ([c cs])
                         (set-union FVs (FV c d)))]
-    [_ (printf "Warning: FV(~a) = ∅~n" e) ∅]))
+    [_ (log-debug "FV(~a) = ∅~n" e) ∅]))
 
 (define (closed? [e : .expr]) (set-empty? (FV e)))
 
