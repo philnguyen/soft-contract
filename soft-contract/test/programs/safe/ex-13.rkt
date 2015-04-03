@@ -7,4 +7,4 @@
    [(number? x) (and (number? x) (not (string? y)))]
    [else (not (number? x))]))
 
-(provide/contract [f (any/c any/c . -> . true?)])
+(provide/contract [f (any/c any/c . -> . (not/c false?))])
