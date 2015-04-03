@@ -28,11 +28,11 @@
       ['•
        ;; whether the value is ok to be an instance of `C`
        (define (ok-with? [C : .V])
-         (not (eq? 'Refuted (C*⇒C Cs C))))
+         (not (eq? 'X (C*⇒C Cs C))))
        
        ;; whether the value must be an instance of `C`
        (define (must-be? [C : .V])
-         (eq? 'Proved (C*⇒C Cs C)))
+         (eq? '✓ (C*⇒C Cs C)))
        
        (: repeat-try : Integer (Integer → .V+) String → .V+)
        ;; Try `n` times to generate `item-name` from generator `next`
