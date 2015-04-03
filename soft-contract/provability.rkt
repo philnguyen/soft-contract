@@ -74,7 +74,7 @@
         [((? .U? U) (? .U? Uc))
          (match* (U Uc)
            ;; negation
-           [(_ (.St 'not/c (list C′))) (¬R (go U C′))]
+           [(_ (.St (.id 'not/c 'Λ) (list C′))) (¬R (go U C′))]
            [(_ (.λ↓ (.λ n (.@ 'false? (list e) l)) ρ)) (¬R (go U (.λ↓ (.λ n e) ρ)))]
            
            ;; base predicates as contracts
@@ -161,12 +161,12 @@
            
            
            ;; conjunctive, disjunctive, and recursive contracts
-           [(_ (.St 'and/c (list P Q)))
+           [(_ (.St (.id 'and/c 'Λ) (list P Q)))
             (match (go U P)
               ['X 'X]
               ['✓ (go U Q)]
               ['? (match (go U Q) ['X 'X] [_ '?])])]
-           [(_ (.St 'or/c (list P Q)))
+           [(_ (.St (.id 'or/c 'Λ) (list P Q)))
             (match (go U P)
               ['✓ '✓]
               ['X (go U Q)]
@@ -184,7 +184,7 @@
 (: C*⇒C : (Setof .V) .V → .R)
 (define (C*⇒C C* C)  
   (match C
-    [(.// (.St 'and/c (list C1 C2)) _) (∧R (C*⇒C C* C1) (C*⇒C C* C2))]
+    [(.// (.St (.id 'and/c 'Λ) (list C1 C2)) _) (∧R (C*⇒C C* C1) (C*⇒C C* C2))]
     [_ (for*/fold: ([R : .R '?]) ([Ci C*])
          (match (C⇒C (simplify Ci) C) ; FIXME: can't use for/first with #:when
            ['✓ '✓]
@@ -208,15 +208,15 @@
             [((? .pred? o1) (? .pred? o2)) (p⇒p o1 o2)] ; primitive predicates
             
             ;; eliminate negation
-            [((.St 'not/c (list C′)) (.St 'not/c (list D′)))
+            [((.St (.id 'not/c 'Λ) (list C′)) (.St (.id 'not/c 'Λ) (list D′)))
              (match (go D′ C′ assume)
                ['✓ '✓]
                [_ '?])]
-            [((.St 'not/c (list C′)) _)
+            [((.St (.id 'not/c 'Λ) (list C′)) _)
              (match (go D C′ assume)
                ['✓ 'X]
                [_ '?])]
-            [(_ (.St 'not/c (list D′))) (¬R (go C D′ assume))]
+            [(_ (.St (.id 'not/c 'Λ) (list D′))) (¬R (go C D′ assume))]
             
             ;; special rules for reals
             [((.λ↓ (.λ 1 (.@ '> (list (.x 0) (.b (? real? r1))) _)) _)
@@ -315,14 +315,14 @@
              (if (= m n) '✓ '?)]
             
             ;; break apart composit contracts
-            [((.St 'or/c (list C1 C2)) _)
+            [((.St (.id 'or/c 'Λ) (list C1 C2)) _)
              (match* ((go C1 D assume) (go C2 D assume))
                [('✓ '✓) '✓]
                [('X 'X) 'X]
                [(_ _) '?])]
-            [(_ (.St 'and/c (list D1 D2))) (∧R (go C D1 assume) (go C D2 assume))]
-            [(_ (.St 'or/c (list D1 D2))) (∨R (go C D1 assume) (go C D2 assume))]
-            [((.St 'and/c (list C1 C2)) _)
+            [(_ (.St (.id 'and/c 'Λ) (list D1 D2))) (∧R (go C D1 assume) (go C D2 assume))]
+            [(_ (.St (.id 'or/c 'Λ) (list D1 D2))) (∨R (go C D1 assume) (go C D2 assume))]
+            [((.St (.id 'and/c 'Λ) (list C1 C2)) _)
              (match* ((go C1 D assume) (go C2 D assume))
                [('✓ _) '✓]
                [(_ '✓) '✓]
@@ -488,7 +488,7 @@
     [((.μ/C x D1) (.μ/C x D2)) (C≃ D1 D2)]
     ; e
     [((.λ n e1) (.λ n e2)) (C≃ e1 e2)]
-    [((.ref x m _) (.ref x m _)) #t]
+    [((.ref x _) (.ref x _)) #t]
     [((.@ f xs _) (.@ g ys _)) (and (C≃ f g) (andmap C≃ xs ys))]
     [((.@-havoc x) (.@-havoc y)) (equal? x y)]
     #;[((.apply f xs _) (.apply g ys _)) (and (C≃ f g) (C≃ xs ys))]

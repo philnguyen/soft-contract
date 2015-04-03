@@ -7,15 +7,17 @@
 
 (define-data .κ
   (struct .if/κ [t : .E] [e : .E])
+  (struct .let/κ [xs : (Listof .expr)] [vs : (Listof .V)]
+                 [env : .ρ] [body : .expr]) ;FIXME generalize to `let-values`
   (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Mon-Party])
   (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l³ : Mon-Info])
   (struct .indy/κ
     [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
     [d : (U #f .↓)] [v? : (U #f Integer)] [l³ : Mon-Info])
   ;; contract stuff
-  (struct .μc/κ [x : Identifier])
+  (struct .μc/κ [x : Symbol])
   (struct .λc/κ [c : (Listof .expr)] [c↓ : (Listof .V)] [d : .expr] [ρ : .ρ] [v? : Boolean])
-  (struct .structc/κ [t : Identifier] [c : (Listof .expr)] [ρ : .ρ] [c↓ : (Listof .V)])
+  (struct .structc/κ [t : .id] [c : (Listof .expr)] [ρ : .ρ] [c↓ : (Listof .V)])
   ;; magics for termination. `ce` does not use these
   (struct .rt/κ [σ : .σ] [f : .λ↓] [x : (Listof .V)])
   (struct .blr/κ [F : .F] [σ : .σ] [v : .V])
@@ -92,6 +94,7 @@
   (define E (curry show-E σ))
   (match κ
     [(.if/κ t e) `(if ∘ ,(E t) ,(E e))]
+    [(.let/κ xs vs ρ e) `(let …)]
     [(.@/κ e* v* _) `(@ ,@(reverse (map E v*)) ∘ ,@(map E e*))]
     [(.▹/κ (cons #f (? .E? e)) _) `(∘ ▹ ,(E e))]
     [(.▹/κ (cons (? .E? C) #f) _) `(,(E C) ▹ ∘)]

@@ -194,7 +194,7 @@
           (match V*
             [(list V)
              (let-values ([(σ L) (σ+ σ)])
-               (.ς L (σ-set σ L (→V (.St box-id V*))) k))]
+               (.ς L (σ-set σ L (→V (.St (.id 'box 'Λ) V*))) k))]
             [_ (.ς (.blm l 'box (Prim (length V*)) (arity=/C 1)) σ k)])]
          [(?.box?)
           (match V*
@@ -218,9 +218,9 @@
                       ;; Handle aliases by replacing Lᵢ with Lⱼ for each definite box Lⱼ
                       (for/fold ([ςs : (Setof .ς) ςs])
                                 ([(j Vⱼ) (in-hash (.σ-map σ))]
-                                 #:when (match? Vⱼ (.// (.St (?id box-id) _) _)))
+                                 #:when (match? Vⱼ (.// (.St (.id 'box 'Λ) _) _)))
                         (set-add ςs (.ς TT (L/L σ i j) (L/L k i j))))])]
-                  [(.// (.St (?id box-id) _) _) (.ς TT σ k)]
+                  [(.// (.St (.id 'box 'Λ) _) _) (.ς TT σ k)]
                   [_ (.ς FF σ k)])]
                ;; Boxes are always pointed to
                [_ (.ς FF σ k)])]
@@ -231,7 +231,7 @@
              (match/nd: (.ς → .ς) (step-@ (Prim .box?) V* 'Λ σ k)
                [(.ς (.// (.b #t) _) σ k)
                 (match-define (.L i) V) ; Boxes are always pointed to
-                (match-define (.// (.St 'box (list V_unbox)) _) (σ@ σ i))
+                (match-define (.// (.St (.id 'box 'Λ) (list V_unbox)) _) (σ@ σ i))
                 (.ς V_unbox σ k)]
                [(.ς (.// (.b #f) _) σ k)
                 (.ς (.blm l 'unbox V (Prim .box?)) σ k)])]
@@ -242,7 +242,7 @@
              (match/nd: (.ς → .ς) (step-@ (Prim .box?) V* 'Λ σ k)
                [(.ς (.// (.b #t) _) σ k)
                 (match-define (.L i) V_box) ; Boxes are always pointed to
-                (.ς V_box (σ-set σ i (→V (.St box-id (list V_val)))) k)]
+                (.ς V_box (σ-set σ i (→V (.St (.id 'box 'Λ) (list V_val)))) k)]
                [(.ς (.// (.b #f) _) σ k)
                 (.ς (.blm l 'set-box! V_box (Prim .box?)) σ k)])]
             [_ (.ς (.blm l 'set-box! (Prim (length V*)) (arity=/C 2)) σ k)])]
@@ -356,7 +356,7 @@
          (define Vf (.λ↓ (.λ 1 (.@ ● (list (.@ x₀ (for/list ([_ n]) (•!)) ☠)) ☠)) ρ∅))
          (define σ′ (.σ (hash-set m α (→V Vf)) l))
          (step-β Vf (list V) ☠ σ′ k)]
-        [(.// (.St (? identifier? t) Vs) _)
+        [(.// (.St t Vs) _)
          (define n (length Vs))
          (for/fold ([ςs : (Setof .ς) ∅]) ([Vᵢ Vs] [i n])
            (define acc (.st-ac t n i))
@@ -380,9 +380,10 @@
          [(.// U D*)
           (match U
             [(and U (.μ/C x C′)) (step-fc (unroll/C U) V l σ k)]
-            [(.St 'and/c (list C1 C2)) (and/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
-            [(.St 'or/c (list C1 C2)) (or/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
-            [(.St '¬/c (list C′)) (.ς (.FC C′ V l) σ (cons (.@/κ '() (list (Prim 'not)) l) k))]
+            [(.St (.id 'and/c 'Λ) (list C1 C2)) (and/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
+            [(.St (.id 'or/c 'Λ) (list C1 C2)) (or/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
+            [(.St (.id 'not/c 'Λ) (list C′))
+             (.ς (.FC C′ V l) σ (cons (.@/κ '() (list (Prim 'false?)) l) k))]
             [(.St/C t C*)
              (match/nd (δ σ (.st-p t (length C*)) (list V) l)
                [(cons σt (.// (.b #t) _))
@@ -408,10 +409,10 @@
          [(.// Uc C*)
           (match Uc
             [(and (.μ/C x C′) Uc) (step-▹ (unroll/C Uc) V l³ σ k)]
-            [(.St 'and/c (list Cₗ Cᵣ)) (.ς V σ (▹/κ1 Cₗ l³ (▹/κ1 Cᵣ l³ k)))]
-            [(.St 'or/c (list Cₗ Cᵣ))
+            [(.St (.id 'and/c 'Λ) (list Cₗ Cᵣ)) (.ς V σ (▹/κ1 Cₗ l³ (▹/κ1 Cᵣ l³ k)))]
+            [(.St (.id 'or/c 'Λ) (list Cₗ Cᵣ))
              (.ς (.FC Cₗ V lo) σ (cons (.if/κ (.Assume V Cₗ) (.Mon Cᵣ V l³)) k))]
-            [(.St '¬/c (list D))
+            [(.St (.id 'not/c 'Λ) (list D))
              (.ς (.FC D V lo) σ (cons (.if/κ (.blm l+ lo V C) (.Assume V C)) k))]
             [(.St/C t C*)
              (define n (length C*))
@@ -449,9 +450,9 @@
           (.ς (.L n) (.σ (hash-update m n identity (λ () ♦)) l) k)]
          [(? .v? v) (.ς (close v ρ) σ k)]
          [(.x sd) (.ς (ρ@ ρ sd) σ k)]
-         [(.x/c x) (.ς (ρ@ ρ x) σ k)]
-         [(and ref (.ref name ctx ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
-         [(and ref (.ref name in ctx))
+         [(? .x/c? x) (.ς (ρ@ ρ x) σ k)]
+         [(and ref (.ref (.id name ctx) ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
+         [(and ref (.ref (.id name in) ctx))
           (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
               (cons (.▹/κ  (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
          [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
@@ -528,7 +529,7 @@
                       (values k (go V)))
                     l)]
       ;; ρ
-      [(.ρ m d) (.ρ (for/hash : (Map (U Identifier Integer) .V) ([(k v) (in-hash m)])
+      [(.ρ m d) (.ρ (for/hash : (Map (U Integer Symbol) .V) ([(k v) (in-hash m)])
                       (values k (go v)))
                     d)]
       ;; L

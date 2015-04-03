@@ -85,15 +85,14 @@
   (for ([i i*]) (visit i))
 
   (: involved? : (U .V (Listof .V)) → Boolean)
-  (define (involved? V)
-    (match V
-      [(.L i) (set-member? involved i)]
-      [(? list? l) (andmap involved? l)]
-      [(.// U Cs)
-       (match U
-         ['• (or (set-member? Cs REAL/C) (set-member? Cs INT/C))]
-         [(.b (? real?)) #t]
-         [_ #f])]))
+  (define/match (involved? V)
+    [((.L i)) (set-member? involved i)]
+    [((? list? l)) (andmap involved? l)]
+    [((.// U Cs))
+     (match U
+       ['• (or (set-member? Cs REAL/C) (set-member? Cs INT/C))]
+       [(.b (? real?)) #t]
+       [_ #f])])
 
   (: translate? : (U .V (Listof .V)) → Boolean)
   (define translate?

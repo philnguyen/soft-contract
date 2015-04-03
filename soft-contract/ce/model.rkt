@@ -109,7 +109,7 @@
           (cond [(ok-with? FALSE/C) FF]
                 [else TT])]
          ;; use unknown struct as last resort
-         [else (→V (.St 'struct● (list (Prim (random)))))])]
+         [else (→V (.St (.id 'struct● 'Λ) (list (Prim (random)))))])]
       [_ V]))
   
   (match-define (.σ m l) σ)

@@ -87,13 +87,32 @@
    [(=/c 0) (</c 0)]
    #:refinements
    (real? real? → real?)]
+  [(quotient : [x : integer?] [y : (∧ integer? (¬ (=/c 0)))] → (∧ integer? (=/c (/ x y))))
+   #:refinements
+   ((≥/c 0) (>/c 0) → (≥/c 0))
+   ((=/c 0) any/c → (=/c 0))]
+  [(remainder : [x : integer?] [y : (∧ integer? (¬ (=/c 0)))] → (∧ integer? (=/c (remainder x y))))
+   #:refinements
+   ((≥/c 0) (>/c 0) → (≥/c 0))
+   ((=/c 0) any/c → (=/c 0))]
+  [(abs : [n : integer?] → (∧ integer? (=/c (abs n))))
+   #:refinements
+   ((>/c 0) → (>/c 0))
+   ((=/c 0) → (=/c 0))]
+  [(round : [x : real?] → integer?)]
+  [(floor : [x : real?] → integer?)]
+  [(ceiling : [x : real?] → integer?)]
+  [(log : [x : number?] → number?)]
+  [(cos : [x : number?] → number?)]
+  [(sin : [x : number?] → number?)]
+  [(tan : [x : number?] → number?)]
   [(string-length : [s : string?] → (∧ integer? (≥/c 0))) #|FIXME update DSL to refine s|#]
   [#:predicate equal? : any/c any/c]
   
   ;; Ugly stuff. Only Phil gets to use #:escape clauses
   [#:escape ; accessor
-   {(.st-ac t n i) (list (and V (.// (.St (? identifier? t′) Vs) _)))}
-   (cond [(free-identifier=? t t′) (cons σ (list-ref Vs i))]
+   {(.st-ac t n i) (list (and V (.// (.St t′ Vs) _)))}
+   (cond [(equal? t t′) (cons σ (list-ref Vs i))]
          [else (cons σ (.blm l (format "~a" #|hack|# t) V (→V (.st-p t n))))])]
   [#:escape ; constructor
    {(.st-mk t n) Vs}

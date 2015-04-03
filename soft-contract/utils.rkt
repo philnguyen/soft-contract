@@ -168,3 +168,10 @@
 
 (define (todo x)
   (error 'TODO "~a" x))
+
+(: index-of : (∀ (X) (Listof X) X → (U Integer #f)))
+(define (index-of xs z)
+  (for/or : (U #f Integer) ([x (in-list xs)]
+                            [i : Integer (in-naturals)]
+                            #:when (equal? x z))
+    i))

@@ -9,7 +9,8 @@
 (define-type .begin/expr (.begin .expr))
 (define-type .begin/top (.begin .top-level-form))
 
-(define-type Mon-Party Module-Path #|TODO|#)
+(define-type/pred Restricted-Module-Path (U Symbol String) #|TODO|#)
+(define-type Mon-Party Restricted-Module-Path)
 (define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
 
 (: swap-parties : Mon-Info → Mon-Info)
@@ -23,7 +24,7 @@
   [((list e)) e]
   [(es) (.begin es)])
 
-(struct .id ([name : Symbol] [from : Module-Path]) #:transparent)
+(struct .id ([name : Symbol] [from : Restricted-Module-Path]) #:transparent)
 
 ;; Subset of Racket reference 1.2.3.1
 
@@ -44,13 +45,13 @@
   (struct .require [specs : (Listof .require-spec)]))
 
 (define-data .submodule-form
-  (struct .module [path : Module-Path] [body : .plain-module-begin]))
+  (struct .module [path : Restricted-Module-Path] [body : .plain-module-begin]))
 
 (define-data .provide-spec
   (struct .p/c-item [id : Symbol] [spec : .expr] #|TODO|#))
 
 (define-data .require-spec
-  Module-Path #|TODO|#)
+  Restricted-Module-Path #|TODO|#)
 
 (struct .plain-module-begin ([body : (Listof .module-level-form)]) #:transparent)
 
@@ -65,7 +66,7 @@
       (struct .•ₗ [l : Negative-Integer]))
     (subset: .prim
       ;; primitive values that can appear in syntax
-      (struct .b [unboxed : (U Number Boolean String Symbol Sexp #|Bytes Regexp PRegexp|#)])
+      (struct .b [unboxed : (U Number Boolean String Symbol #|Sexp Bytes Regexp PRegexp|#)])
       (subset: .o
         'values
         (subset: .o1
@@ -251,11 +252,15 @@
   (match-lambda*
     [(list) .ff]
     [(list e) e]
-    [(cons e es) (.let-values (list (cons 1 e)) (.if .x₀ .x₀ (apply .or es)))]))
+    [(cons e es) (.let (list e) (.if .x₀ .x₀ (apply .or es)))]))
 
 (: .comp/c : .o2 .expr → .expr)
 (define (.comp/c op e)
   (.λ 1 (.and (.@ 'real? (list .x₀) 'Λ) (.@ op (list .x₀ e) 'Λ))))
+
+(: .let : (Listof .expr) .expr → .expr)
+(define (.let xs e) ; FIXME expand to let-values instead
+  (.@ (.λ (length xs) e) xs 'Λ))
 
 (: name : .o → Symbol)
 (define name
@@ -435,3 +440,42 @@
     [(.struct/c _ cs) (count-xs cs x)]
     [(? list? l) (for/sum : Integer ([i l]) (count-xs i x))]
     [_ 0]))
+
+(: .ref->expr : (Listof .module) .ref → .expr)
+(define (.ref->expr ms ref)
+  (match-define (.ref (.id name from) _) ref)
+  ;; FIXME:
+  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
+  (define m (path->module ms from))
+  (match-define (.module _ (.plain-module-begin forms)) m)
+  (or (for/or : (U #f .expr) ([form (in-list forms)])
+        (match form
+          [(.define-values (list x) e) (and (eq? x name) e)]
+          [(.define-values xs (.@ 'values vs _))
+           (cond [(index-of xs name) => (λ ([i : Integer]) (list-ref vs i))]
+                 [else #f])]
+          [_ #f]))
+      (error 'ref->expr "Module `~a` does not define `~a`" from name)))
+
+(: .ref->ctc : (Listof .module) .ref → .expr)
+(define (.ref->ctc ms ref)
+  (match-define (.ref (.id name from) _) ref)
+  ;; FIXME:
+  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
+  (define m (path->module ms from))
+  (match-define (.module _ (.plain-module-begin forms)) m)
+  (or (for/or : (U #f .expr) ([form (in-list forms)])
+        (match form
+          [(.provide specs)
+           (for/or : (U #f .expr) ([spec (in-list specs)])
+             (match-define (.p/c-item x c) spec)
+             (and (eq? x name) c))]
+          [_ #f]))
+      (error 'ref->ctc "Module `~a` does not provide `~a`" from name)))
+
+(: path->module : (Listof .module) Restricted-Module-Path → .module)
+(define (path->module ms x)
+  ;; - figure out module-path properly
+  (or (for/or : (U #f .module) ([m (in-list ms)] #:when (eq? (.module-path m) x))
+        m)
+      (error 'path->module "Cannot find module `~a`" x)))

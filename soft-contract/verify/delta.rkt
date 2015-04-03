@@ -196,8 +196,8 @@
                    (match (set-count repeated)
                      [0 V1]
                      ; TODO: μ introduced outside here. Am i sure there's none inside?
-                     [_ (let ([V′ (μV raw:X (set-add repeated (for/fold ([V1 : .V V1]) ([Vi repeated])
-                                                                (V/ V1 Vi (.X/V raw:X)))))])
+                     [_ (let ([V′ (μV 'X (set-add repeated (for/fold ([V1 : .V V1]) ([Vi repeated])
+                                                                (V/ V1 Vi (.X/V 'X)))))])
                           ;;(log-debug "~a~n⇒⊕~n~a~n~n" V1 V′)
                           V′)]))]
                 [((.Ar C V0 l) (.Ar C V1 l))
@@ -207,7 +207,7 @@
                 [(_ (.St t V1*))
                  ;;(log-debug "⊕:case1~n")
                  ;;(log-debug "⊕:~n~a~nand~n~a~n~n" (show-E σ∅ V0) (show-E σ∅ V1))
-                 (match-let* ([x raw:X #;(fresh V1*)]
+                 (match-let* ([x 'X #;(fresh V1*)]
                                  [Vi* (V/ V1* V0 (.X/V x))]
                                  [(cons Vi* Vs) (elim-μ x Vi*)])
                               (if (equal? Vi* V1*) (.// '• (set-intersect C* D*))
@@ -255,24 +255,24 @@
               [(_ (? .X/V? x)) x])])]
        [((and ρ0 (.ρ m0 l0)) (and ρ1 (.ρ m1 l1)))
         (let* ([l (max l0 l1)]
-               [m (for/fold ([m : (Map (U Integer Identifier) .V) (hash)]) ([sd (in-range 0 l)])
+               [m (for/fold ([m : (Map (U Integer Symbol) .V) (hash)]) ([sd (in-range 0 l)])
                     (match* ((hash-ref m0 (- l0 sd 1) (λ () #f))
                              (hash-ref m1 (- l1 sd 1) (λ () #f)))
                       [(#f #f) m]
                       [(#f (? .V? V)) (hash-set m (- l sd 1) V)]
                       [((? .V? V) #f) (hash-set m (- l sd 1) V)]
                       [((? .V? V0) (? .V? V1)) (hash-set m (- l sd 1) (⊕ V0 V1))]))]
-               [m (for/fold ([m : (Map (U Integer Identifier) .V) m])
+               [m (for/fold ([m : (Map (U Integer Symbol) .V) m])
                             ([k (in-hash-keys m0)] #:when (symbol? k))
                     (hash-set m k (hash-ref m0 k)))]
-               [m (for/fold ([m : (Map (U Integer Identifier) .V) m])
+               [m (for/fold ([m : (Map (U Integer Symbol) .V) m])
                             ([k (in-hash-keys m1)] #:when (symbol? k))
                     (hash-set m k (hash-ref m1 k)))])
           (.ρ m l))]))]))
 
 ;; remove all sub-μ. TODO: generalize allowed μ-depth
-(: elim-μ : (case→ [Identifier .V → (Pairof .V (Setof .V))]
-                   [Identifier (Listof .V) → (Pairof (Listof .V) (Setof .V))]))
+(: elim-μ : (case-> [Symbol .V → (Pairof .V (Setof .V))]
+                    [Symbol (Listof .V) → (Pairof (Listof .V) (Setof .V))]))
 (define (elim-μ x V)
   (define-set bodies : .V)
   (: go : (case→ [.V → .V] [(Listof .V) → (Listof .V)]))
@@ -286,7 +286,7 @@
          [(.Ar C V l) (.// (.Ar C (go V) l) C*)]
          [(.λ↓ f (and ρ (.ρ m l)))
           #;(log-debug "elim-μ: ρ:~n~a~n~n" m)
-          (let ([m′ (for/fold ([m′ : (Map (U Integer Identifier) .V) m∅])
+          (let ([m′ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅])
                               ([x (in-hash-keys m)])
                       (hash-set m′ x (go (hash-ref m x))))])
             (if (equal? m′ m) V (.// (.λ↓ f (.ρ m′ l)) C*)))]
@@ -300,7 +300,7 @@
 
 ;; remove redundant variable
 ;; simplify to • if body has •
-(: μV : Identifier (Setof .V) → .V)
+(: μV : Symbol (Setof .V) → .V)
 (define (μV x V*)
   (let ([V* (for/set: : (Setof .V) ([V V*] #:unless (equal? V (.X/V x))) V)])
     (cond
@@ -308,7 +308,7 @@
       [else (match (set-count V*)
               [0 V∅]
               [1 (let* ([V (set-first V*)]
-                        [V′ (V/ V (.X/V x) (.X/V #'☠))])
+                        [V′ (V/ V (.X/V x) (.X/V '☠))])
                    (if (equal? V V′) V V∅))]
               [_ (.μ/V x V*)])])))
 
@@ -409,7 +409,7 @@
           [((.μ/V x V1*) (.μ/V z V2*)) (μV x {set-union V1* (V/ V2* (.X/V z) (.X/V x))})]
           [((and V1 (.μ/V x V1*)) V2) (μV x (set-add V1* (V/ V2 V1 (.X/V x))))]
           [(V1 (and V2 (.μ/V x V2*))) (μV x (set-add V2* (V/ V1 V2 (.X/V x))))]
-          [(V1 V2) (if (equal? V1 V2) V1 (μV raw:X {set V1 V2}))])]
+          [(V1 V2) (if (equal? V1 V2) V1 (μV 'X {set V1 V2}))])]
        [(.St/C t D*) (→V (.St t (map reify D*)))]
        [(.μ/C x D) (match (reify D)
                      [(.μ/V '_ V*) (μV x V*)]

@@ -27,8 +27,8 @@
     [(.// U C*) (if (.•? U)
                     `(• ,@(for/list : (Listof Sexp) ([C C*]) (show-V σ C)))
                     (show-U σ U))]
-    [(.X/V x) (syntax->datum x)]
-    [(.μ/V x V*) `(μ (,(syntax->datum x)) ,(for/list : (Listof Sexp) ([V V*]) (show-V σ V)))]
+    [(.X/V x) x]
+    [(.μ/V x V*) `(μ (,x) ,(for/list : (Listof Sexp) ([V V*]) (show-V σ V)))]
     [(? list? V*) (map (curry show-V σ) V*)]))
 
 (: show-U : .σ .U → Sexp)
@@ -44,11 +44,11 @@
     [(.St 'empty (list)) 'empty]
     [(.St (and n (or 'and/c 'or/c)) V*) `(,n ,@(show-V σ V*))]
     [(.St 'not/c V*) `(not/c ,@(show-V σ V*))]
-    [(.St t V*) `(,(struct-tag->symbol t) ,@(show-V σ V*))]
+    [(.St t V*) `(,(.id-name t) ,@(show-V σ V*))]
     [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
     [(.St/C t V*) `(,(string->symbol (format "~a/c" t)) ,@(show-V σ V*))]
-    [(.μ/C x V) `(μ/C (,(syntax->datum x)) ,(show-V σ V))]
-    [(.X/C x) (syntax->datum x)]
+    [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
+    [(.X/C x) x]
     [(.Case m) `(case-λ ,@(show-cases σ m))]))
 
 (: show-cases : .σ (Map (Listof .V) .L) → (Listof Sexp))
@@ -60,10 +60,10 @@
 (: show-ρ : .σ .ρ → Sexp)
 (define (show-ρ σ ρ)
   (match-let ([(.ρ m l) ρ])
-    (for/list : (Listof Sexp) ([x (in-hash-keys m)])
+    (for/list : (Listof Sexp) ([(x v) (in-hash m)])
       (cond
-        [(identifier? x) `(,(syntax->datum x) ↦ ,(show-V σ (hash-ref m x)))]
-        [(integer? x) `(,(format "sd~a" (n-sub (- l x 1))) ↦ ,(show-V σ (hash-ref m x)))]))))
+        [(symbol? x) `(,x ↦ ,(show-V σ v))]
+        [(integer? x) `(,(format "sd~a" (n-sub (- l x 1))) ↦ ,(show-V σ v))]))))
 
 (: show-E : .σ .E → Sexp)
 (define (show-E σ E)
@@ -94,7 +94,7 @@
        `(⇒/c ,(go ctx c) ,(go ctx d))]
       [(.λ 1 (.b (not #f))) 'any/c]
       [(.λ 1 (.b #f)) 'none/c]
-      [(.@ (.st-mk (?id #'null) 0) (list) _) 'null]
+      [(.@ (.st-mk (.id 'null 'Λ) 0) (list) _) 'null]
       [(.@ (.λ 1 (.x 0)) (list e) _) (go ctx e)]
       [(.@ (.λ 1 (.if (.x 0) (.x 0) b)) (list a) _)
        (match* ((go ctx a) (go (append (vars-not-in 1 ctx) ctx) b))
@@ -155,22 +155,23 @@
        `(λ (,(reverse xs) . ,x₁) ,(go (append x* ctx) e))]
       [(.•ₗ α) (syn σ α)]
       [(.b b) (show-b b)]
-      [(.st-mk t _) (struct-tag->symbol t)]
-      [(.st-ac (?id cons-id) _ 0) 'car]
-      [(.st-ac (?id cons-id) _ 1) 'cdr]
-      [(.st-ac t _ i) (string->symbol (format "~a@~a" (syntax->datum t) i))]
-      [(.st-p t _) (string->symbol (format "~a?" (syntax->datum t)))]
+      [(.st-mk t _) (.id-name t)]
+      [(.st-ac (.id 'cons 'Λ) _ 0) 'car]
+      [(.st-ac (.id 'cons 'Λ) _ 1) 'cdr]
+      [(.st-ac t _ i) (string->symbol (format "~a@~a" (.id-name t) i))]
+      [(.st-p t _) (string->symbol (format "~a?" (.id-name t)))]
       [(? .o? o) (name o)]
       [(.x i) (ctx-ref ctx i)]
-      [(.ref x _ _) (syntax->datum x)]
+      [(.ref x _) (.id-name x)]
+      [(.let-values _ _) '(let …)]
       [(.@ f xs _) `(,(go ctx f) ,@(map (curry go ctx) xs))]
       [(.@-havoc x) `(apply ,(go ctx x) •)]
       #;[(.apply f xs _) `(@ ,(go ctx f) ,(go ctx xs))]
       [(.if i t e) `(if ,(go ctx i) ,(go ctx t) ,(go ctx e))]
       [(.amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (go ctx e)))]
-      [(.μ/c x c) `(μ/c (,(syntax->datum x)) ,(go ctx c))]
+      [(.μ/c x c) `(μ/c (,x) ,(go ctx c))]
       [(.->i c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
-      [(.x/c x) (syntax->datum x)]
+      [(.x/c x) x]
       [(.struct/c t cs) `(,(string->symbol (format "~a/c" t)) ,@(map (curry go ctx) cs))])))
 
 (define (inlinable? [e : .expr]) : Boolean

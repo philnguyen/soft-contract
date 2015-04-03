@@ -6,5 +6,5 @@
     (if x (false? f) #f)))
 
 (provide/contract
- [member (any/c (listof any/c) . -> . (or/c false? (nelistof any/c)))]
+ [member (any/c (listof any/c) . -> . (or/c false? (cons/c any/c (listof any/c))))]
  [f (any/c (listof any/c) . -> . false?)])

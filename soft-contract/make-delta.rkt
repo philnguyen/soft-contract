@@ -13,12 +13,12 @@
 
 (define (box-operation? [o : .o])
   (match o
-    [(.st-mk (?id box-id) _) #t]
-    [(.st-ac (?id box-id) _ _) #t]
-    [(.st-p (?id box-id) _) #t]
+    [(.st-mk (.id 'box 'Λ) _) #t]
+    [(.st-ac (.id 'box 'Λ) _ _) #t]
+    [(.st-p (.id 'box 'Λ) _) #t]
     [_ #f]))
 
-(define X #'X)
+#;(define X #'X)
 
 (define refine1 : (Parameterof (.σ .V .V → .Vns))
   (make-parameter
@@ -73,7 +73,7 @@
            (match-define (cons σ V) σV)
            (refine σ V C)))
        (go σ′ V′ Cᵣs)]
-      [(cons (.// (.St 'and/c Cs) _) Cᵣs)
+      [(cons (.// (.St (.id 'and/c 'Λ) Cs) _) Cᵣs)
        (go σ V (cons Cs Cᵣs))]
       [(cons (? .V? C) Cᵣs)
        (match (⊢ σ V C)
@@ -153,28 +153,32 @@
           [(_ (.μ/C x D′)) (refine-C C (C/ D′ x D))]
           [((.μ/C x C′) _) (refine-C (C/ C′ x C) D)]
           ; break conjunctive ones
-          [(_ (.St 'and/c (list D1 D2))) (∪ (refine-C C D1) (refine-C C D2))]
-          [((.St 'and/c (list C1 C2)) _) (∪ (refine-C C1 D) (refine-C C2 D))]
+          [(_ (.St (.id 'and/c 'Λ) (list D1 D2))) (∪ (refine-C C D1) (refine-C C D2))]
+          [((.St (.id 'and/c 'Λ) (list C1 C2)) _) (∪ (refine-C C1 D) (refine-C C2 D))]
           ; prune impossible disjunct
-          [(_ (.St 'or/c _)) (let ([D′ (truncate D C)])
-                               (if (equal? D D′) {set C D} (refine-C C D′)))]
-          [((.St 'or/c _) _) (let ([C′ (truncate C D)])
-                               (if (equal? C C′) {set C D} (refine-C C′ D)))]
+          [(_ (.St (.id 'or/c 'Λ) _)) (let ([D′ (truncate D C)])
+                                        (if (equal? D D′) {set C D} (refine-C C D′)))]
+          [((.St (.id 'or/c 'Λ) _) _) (let ([C′ (truncate C D)])
+                                        (if (equal? C C′) {set C D} (refine-C C′ D)))]
           ; special rules for reals
           [((.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρc)
-            (.St 'not/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
+            (.St (.id 'not/c 'Λ)
+                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
+                                           (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρc)) {set C D})]
-          [((.St 'not/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
+          [((.St (.id 'not/c 'Λ)
+                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
+                                           (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
             (.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρd))
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρd)) {set C D})]
           [((.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρc)
-            (.St 'not/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
+            (.St (.id 'not/c 'Λ)
+                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
+                                           (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρc)) {set C D})]
-          [((.St 'not/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                                (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
+          [((.St (.id 'not/c 'Λ)
+                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
+                                           (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
             (.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρd))
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρd)) {set C D})]
           [(_ _) {set C D}])]
@@ -184,12 +188,12 @@
 (: truncate : .V .V → .V)
 (define (truncate C D)
   (match C
-    [(.// (.St 'or/c (list C1 C2)) C*)
+    [(.// (.St (.id 'or/c 'Λ) (list C1 C2)) C*)
      (match* ((C⇒C D C1) (C⇒C D C2))
        [('X 'X) (error "WTF??")]
        [(_ 'X) (truncate C1 D)]
        [('X _) (truncate C2 D)]
-       [(_ _) (.// (.St 'or/c (list (truncate C1 D) (truncate C2 D))) C*)])]
+       [(_ _) (.// (.St (.id 'or/c 'Λ) (list (truncate C1 D) (truncate C2 D))) C*)])]
     [_ C]))
 
 (: U+ : .U .U → .U)
@@ -234,7 +238,7 @@
                               (cons σ (.// (.Ar C V′ l^3) Cs)))]
     [(.// (.λ↓ f (.ρ m l)) Cs)
      (let-values ([(σ m)
-                   (for/fold ([σ : .σ σ] [m′ : (Map (U Integer Identifier) .V) m])
+                   (for/fold ([σ : .σ σ] [m′ : (Map (U Integer Symbol) .V) m])
                              ([x (in-hash-keys m)])
                      (match-let ([(cons σ V) (alloc σ (hash-ref m x))])
                        (values σ (hash-set m′ x V))))])
@@ -419,8 +423,8 @@
                      [(cons σ (.// (.b #t) _)) #,rest]
                      [(and ans (cons σ (.// (.b #f) _))) ans]))
                #`(cons σ (.blm l 'o
-                               (→V (.St #'values (list #,@xs)))
-                               (→V (.St/C #'values (list #,@(map ctc->V cs))))))
+                               (→V (.St (.id 'values 'Λ) (list #,@xs)))
+                               (→V (.St/C (.id 'values 'Λ) (list #,@(map ctc->V cs))))))
                xs
                cs)))
     
@@ -551,13 +555,13 @@
       [((~literal ∧)) #'ANY/C]
       [((~literal ∧) c) (ctc->V #'c)]
       [((~literal ∧) c ... d)
-       (foldr (λ (cᵢ C) #`(→V (.St 'and/c (list #,(ctc->V cᵢ) #,C))))
+       (foldr (λ (cᵢ C) #`(→V (.St (.id 'and/c 'Λ) (list #,(ctc->V cᵢ) #,C))))
               (ctc->V #'d)
               (syntax->list #'(c ...)))]
       [((~literal ∨)) #'NONE/C]
       [((~literal ∨) c) (ctc->V #'c)]
       [((~literal ∨) c ... d)
-       (foldr (λ (cᵢ C) #`(→V (.St 'or/c (list #,(ctc->V cᵢ) #,C))))
+       (foldr (λ (cᵢ C) #`(→V (.St (.id 'or/c 'Λ) (list #,(ctc->V cᵢ) #,C))))
               (ctc->V #'d)
               (syntax->list #'(c ...)))]
       [p?:id #'(→V 'p?)]))
@@ -621,5 +625,5 @@
                  #,@parsed-clauses
                     [(⋆ Vs)
                      (cons σ (.blm l (name ⋆) (Prim (length Vs)) (arity=/C -1 #|hack|#)))]))))
-       ;;(pretty-print (syntax->datum ans))
+       (pretty-print (syntax->datum ans))
        ans)]))

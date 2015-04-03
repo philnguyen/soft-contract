@@ -137,12 +137,8 @@
                [(? .ς? ςi) (visit ςi)])))]
         ;; do regular 1-step on unseen state
         [_ (match (dbg/off 'step (step ς))
-             [(? set? s)
-              ;; FIXME force randomness to test
-              (for ([ςi (shuffle (set->list s))])
-                (visit ςi))]
+             [(? set? s) (for ([ςi s]) (visit ςi))]
              [(? .ς? ςi) (visit ςi)])]))
-
     ;; "main"
     (begin
       (visit ς)
@@ -154,7 +150,7 @@
 (define (step-p ms)
 
   (define HAVOC
-    (match-let ([(? .λ? v) (.ref->expr ms (.ref havoc-id ☠ ☠))])
+    (match-let ([(? .λ? v) (.ref->expr ms (.ref havoc-id ☠))])
       (→V (.λ↓ v ρ∅))))
 
   ; promote havoc to meta-language level to reduce excessive splits
@@ -183,6 +179,10 @@
              (match-define (cons (.rt/κ σ0 _ Vx0) _) res)
              (match-define (cons σ1 Vx1) (⊕ σ0 Vx0 σ Vx))
              (.ς (.↓ e (ρ++ ρ Vx1)) σ1 (cons (.rt/κ σ1 f Vx1) k)))
+           (and (printf "Extend env: ~a~n" f)
+                (printf "  Old env: ~a~n" ρ)
+                (printf "  New env: ~a~n" (ρ++ ρ Vx))
+                '#f)
            (.ς (.↓ e (ρ++ ρ Vx)) σ (cons (.rt/κ σ f Vx) k)))]
          [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
       [(.λ↓ (.λ (cons n _) e) ρ)
@@ -201,6 +201,7 @@
           (let* ([V# (length V*)]
                  [C# (length C*)]
                  [n (if v? (- C# 1) #f)])
+            (printf "Range contract₁: ~a~n" D)
             (if (if v? (>= V# (- C# 1)) (= V# C#))
                 (.ς Vg σ (cons (.indy/κ C* V* '() D n l³) k))
                 (.ς (.blm l lo (Prim (length V*))(if v? (arity≥/C (- C# 1)) (arity=/C C#))) σ k)))]
@@ -258,9 +259,10 @@
                [else (match-let ([(cons σt _) (refine σ V C)]
                                  [(cons σf _) (refine σ V (.¬/C C))])
                        {set (.ς TT σt k) (.ς FF σf k)})])]
-            [(.St 'and/c (list C1 C2)) (and/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
-            [(.St 'or/c (list C1 C2)) (or/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
-            [(.St '¬/c (list C′)) (.ς (.FC C′ V l) σ (cons (.@/κ '() (list (Prim 'not)) l) k))]
+            [(.St (.id 'and/c 'Λ) (list C1 C2)) (and/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
+            [(.St (.id 'or/c 'Λ) (list C1 C2)) (or/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
+            [(.St (.id 'not/c 'Λ) (list C′))
+             (.ς (.FC C′ V l) σ (cons (.@/κ '() (list (Prim 'false?)) l) k))]
             [(.St/C t C*)
              (match/nd (δ σ (.st-p t (length C*)) (list V) l)
                [(cons σt (.// (.b #t) _))
@@ -297,16 +299,16 @@
                                             [(cons σf _) (refine σ V (.¬/C C))])
                                   {set (.ς Vt σt k) (.ς (.blm l+ lo V C) σf k)})]
                  [else (.ς V σ (list* (.▹/κ (cons (unroll/C Uc) #f) l³) (.recchk/κ Uc (V-abs σ V)) k))])]
-              [(.St 'and/c (list Dl Dr)) (.ς V σ (▹/κ1 Dl l³ (▹/κ1 Dr l³ k)))]
-              [(.St 'or/c (list Dl Dr))
+              [(.St (.id 'and/c 'Λ) (list Dl Dr)) (.ς V σ (▹/κ1 Dl l³ (▹/κ1 Dr l³ k)))]
+              [(.St (.id 'or/c 'Λ) (list Dl Dr))
                (.ς (.FC Dl V lo) σ (cons (.if/κ (.Assume V Dl) (.Mon Dr V l³)) k))]
-              [(.St '¬/c (list D))
+              [(.St (.id 'not/c 'Λ) (list D))
                (.ς (.FC D V lo) σ (cons (.if/κ (.blm l+ lo V C) (.Assume V C)) k))]
               [(.St/C t C*)
                (let ([n (length C*)])
                  (match/nd (δ σ (.st-p t n) (list V) lo)
                    [(cons σt (.// (.b #t) _))
-                    (match-let ([(.// (.St (? identifier? t) V*) _) (dbg/off '▹ (σ@ σt V))])
+                    (match-let ([(.// (.St t V*) _) (dbg/off '▹ (σ@ σt V))])
                       (.ς (→V (.st-mk t n)) σt
                           (cons (.@/κ (for/list ([C C*] [V V*]) (.Mon C V l³)) '() lo) k)))]
                    [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (→V (.st-p t n))) σf k)]))]
@@ -328,15 +330,20 @@
     #;(log-debug "E: ~a~n~n" E)
     (match E
       [(.↓ e ρ)
+       (printf "E: ⟨~a, ~a⟩~n" e ρ)
        (match e
          [(? .•?) (let-values ([(σ′ L) (σ+ σ)]) (.ς L σ′ k))]
          [(? .v? v) (.ς (close v ρ) σ k)]
-         [(.x sd) (when (.X/V? (ρ@ ρ sd)) (error "STOP!"))(.ς (ρ@ ρ sd) σ k)]
-         [(.x/c x) (.ς (ρ@ ρ x) σ k)]
-         [(and ref (.ref name ctx ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
-         [(and ref (.ref name in ctx))
+         [(.x sd)
+          (when (.X/V? (ρ@ ρ sd)) (error "STOP!"))
+          (.ς (ρ@ ρ sd) σ k)]
+         [(? .x/c? x) (.ς (ρ@ ρ x) σ k)]
+         [(and ref (.ref (.id name ctx) ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
+         [(and ref (.ref (.id name in) ctx))
           (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
               (cons (.▹/κ  (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
+         [(.let-values (list (cons 1 eₓ)) e)
+          (.ς (.↓ eₓ ρ) σ (cons (.let/κ '() '() ρ e) k))]
          [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
          [(.@-havoc x)
           (define V
@@ -370,7 +377,7 @@
          [(.amb e*) (for/set: : (Setof .ς) ([e e*]) (.ς (.↓ e ρ) σ k))]
          [(.μ/c x e) (.ς (.↓ e (ρ+ ρ x (→V (.X/C x)))) σ (cons (.μc/κ x) k))]
          [(.->i '() d v?) (.ς (→V (.Λ/C '() (.↓ d ρ) v?)) σ k)]
-         [(.->i (cons c c*) d v?) (.ς (.↓ c ρ) σ (cons (.λc/κ c* '() d ρ v?) k))]
+         [(.->i (cons c cs) d v?) (.ς (.↓ c ρ) σ (cons (.λc/κ cs '() d ρ v?) k))]
          [(.struct/c t '()) (.ς (→V (.st-p t 0)) σ k)]
          [(.struct/c t (cons c c*)) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ '()) k))])]
       [(.Mon C E l³) (.ς C σ (cons (.▹/κ (cons #f E) l³) k))]
@@ -381,9 +388,17 @@
   (define (step-V V σ κ k)
     (match κ
       [(.if/κ E1 E2) (match/nd (δ σ 'false? (list V) 'Λ)
-                       [(cons σt (.// (.b #f) _)) (.ς E1 σt k)]
-                       [(cons σf (.// (.b #t) _)) (.ς E2 σf k)])]
+                               [(cons σt (.// (.b #f) _)) (.ς E1 σt k)]
+                               [(cons σf (.// (.b #t) _)) (.ς E2 σf k)])]
 
+      [(.let/κ '() Vs ρ e)
+       (printf "extend let: ~a~n" e)
+       (printf "  old env: ~a~n" ρ)
+       (printf "  new env: ~a~n" (ρ++ ρ (reverse (cons V Vs))))
+       (.ς (.↓ e (ρ++ ρ (reverse (cons V Vs)))) σ k)]
+      [(.let/κ (cons eₓ es) Vs ρ e)
+       (.ς (.↓ eₓ ρ) σ (cons (.let/κ es (cons V Vs) ρ e) k))]
+      
       [(.@/κ (cons E1 Er) V* l) (.ς E1 σ (cons (.@/κ Er (cons V V*) l) k))]
       [(.@/κ '() V* l)
        (match-define (cons Vf Vx*) (reverse (cons V V*)))
@@ -406,15 +421,21 @@
        (step-▹ Ci Vi (swap-parties l³) σ (cons (.indy/κ Cr Vr (cons V Vs↓) D n l³) k))]
       [(.indy/κ _ '() Vs↓ (.↓ d ρ) n l³) ; evaluate range contract
        (match-let ([(and V* (cons Vf Vx*)) (reverse (cons V Vs↓))])
+         (printf "Extended range contract: ~a~n" d)
+         (printf " Old env: ~a~n" ρ)
+         (printf " New env: ~a~n" (ρ++ ρ Vx* n))
          (.ς (.↓ d (ρ++ ρ Vx* n)) σ (cons (.indy/κ '() '() V* #f n l³) k)))]
       [(.indy/κ _ '() (cons Vf Vx) #f _ (and l³ (list l+ _ _))) ; apply inner function
        #;(log-debug "range: ~a~n~n" (show-E σ V))
+       (printf "Apply inner function: ~a~n" Vf)
        (step-@ Vf Vx l+ σ (▹/κ1 V l³ k))]
 
       ; contracts
       [(.μc/κ x) (.ς (→V (.μ/C x V)) σ k)]
-      [(.λc/κ '() c↓ d ρ v?) (.ς (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?)) σ k)]
-      [(.λc/κ (cons c c*) c↓ d ρ v?) (.ς (.↓ c ρ) σ (cons (.λc/κ c* (cons V c↓) d ρ v?) k))]
+      [(.λc/κ '() c↓ d ρ v?)
+       (printf "Evaluated dependente contract: ~a~n" (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?)))
+       (.ς (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?)) σ k)]
+      [(.λc/κ (cons c cs) c↓ d ρ v?) (.ς (.↓ c ρ) σ (cons (.λc/κ cs (cons V c↓) d ρ v?) k))]
       [(.structc/κ t '() _ c↓) (.ς (→V (.St/C t (reverse (cons V c↓)))) σ k)]
       [(.structc/κ t (cons c c*) ρ c↓) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ (cons V c↓)) k))]))
 
@@ -511,7 +532,7 @@
       [(? .X/C? x) x]
       [(? .prim? p) p]
       ; ρ
-      [(.ρ m l) (.ρ (for/hash : (Map (U Integer Identifier) .V) ([(i V) (in-hash m)])
+      [(.ρ m l) (.ρ (for/hash : (Map (U Integer Symbol) .V) ([(i V) (in-hash m)])
                       (values i (go! V)))
                     l)]
       ; κ
@@ -572,7 +593,7 @@
   (: fixup/ρ : .ρ → .ρ)
   (define (fixup/ρ ρ)
     (match-define (.ρ m l) ρ)
-    (.ρ (for/hash : (Map (U Integer Identifier) .V) ([(i V) (in-hash m)])
+    (.ρ (for/hash : (Map (U Integer Symbol) .V) ([(i V) (in-hash m)])
           (values i (fixup/V V)))
         l))
 

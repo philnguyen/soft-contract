@@ -4,7 +4,7 @@
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
-(define m∅ : (Map (U Integer Identifier) .V) (hash))
+(define m∅ : (Map (U Integer Symbol) .V) (hash))
 (define-type .R (U '✓ 'X '?))
 
 ;;;;; CLOSURE
@@ -21,8 +21,8 @@
       (struct .L [i : Integer])
       (struct .// [pre : .U] [refine : (Setof .V)])
       ;; The counterexample engine does not use these
-      (struct .μ/V [x : Identifier] [Vs : (Setof .V)])
-      (struct .X/V [x : Identifier]))))
+      (struct .μ/V [x : Symbol] [Vs : (Setof .V)])
+      (struct .X/V [x : Symbol]))))
 
 (define-type .V+ (U .// .μ/V))
 
@@ -31,12 +31,12 @@
   .prim
   '•
   (struct .Ar [c : .V] [v : .V] [l³ : Mon-Info])
-  (struct .St [tag : Struct-Tag] [fields : (Listof .V)])
+  (struct .St [tag : .id] [fields : (Listof .V)])
   (struct .λ↓ [f : .λ] [ρ : .ρ])
   (struct .Λ/C [c : (Listof .V)] [d : .↓] [v? : Boolean])
-  (struct .St/C [t : Identifier #|deliberately restricted|#] [fields : (Listof .V)])
-  (struct .μ/C [x : Identifier] [c : .V])
-  (struct .X/C [x : Identifier])
+  (struct .St/C [t : .id] [fields : (Listof .V)])
+  (struct .μ/C [x : Symbol] [c : .V])
+  (struct .X/C [x : Symbol])
   (struct .Case [m : (Map (Listof .V) .L)]))
 
 (define Case∅ (.Case (hash)))
@@ -60,15 +60,15 @@
        ['> (.// (.λ↓ (.λ 1 (.@ '<= xs ctx)) ρ) ∅)]
        ['<= (.// (.λ↓ (.λ 1 (.@ '> xs ctx)) ρ) ∅)]
        ['>= (.// (.λ↓ (.λ 1 (.@ '< xs ctx)) ρ) ∅)]
-       [_ (.// (.St 'not/c (list C)) ∅)])]
-    [(.// (.St 'and/c (list C₁ C₂)) _)
-     (→V (.St 'or/c (list (.¬/C C₁) (→V (.St 'and/c (list C₁ (.¬/C C₂)))))))]
-    [(.// (.St 'or/c (list C₁ C₂)) _)
-     (→V (.St 'and/c (list (.¬/C C₁) (.¬/C C₂))))]
-    [(.// (.St 'not/c (list C′)) _) C′]
+       [_ (.// (.St (.id 'not/c 'Λ) (list C)) ∅)])]
+    [(.// (.St (.id 'and/c 'Λ) (list C₁ C₂)) _)
+     (→V (.St (.id 'or/c 'Λ) (list (.¬/C C₁) (→V (.St (.id 'and/c 'Λ) (list C₁ (.¬/C C₂)))))))]
+    [(.// (.St (.id 'or/c 'Λ) (list C₁ C₂)) _)
+     (→V (.St (.id 'and/c 'Λ) (list (.¬/C C₁) (.¬/C C₂))))]
+    [(.// (.St (.id 'not/c 'Λ) (list C′)) _) C′]
     [(.// (.λ↓ (.λ 1 (.@ 'false? (list e) _)) ρ) _)
      (→V (.λ↓ (.λ 1 e) ρ))]
-    [_ (.// (.St 'not/c (list C)) ∅)]))
+    [_ (.// (.St (.id 'not/c 'Λ) (list C)) ∅)]))
 
 ; evaluation answer. New type instead of cons to work well with pattern matching
 (define-type/pred .Ans (Pairof .σ .A))
@@ -95,8 +95,8 @@
 
 ;;;;; ENVIRONMENT
 
-;; environment maps static distances (HACK: or identifiers) to values
-(struct .ρ ([map : (Map (U Integer Identifier) .V)] [len : Integer]) #:transparent) ; FIXME equality
+;; environment maps static distances (HACK: or symbols) to values
+(struct .ρ ([map : (Map (U Integer Symbol) .V)] [len : Integer]) #:transparent) ; FIXME equality
 (define ρ∅ (.ρ m∅ 0))
 
 (: restrict : .ρ (Setof Integer) → .ρ)
@@ -106,29 +106,28 @@
    [else
     (match-define (.ρ m l) ρ)
     (define m′
-      (for/fold ([acc : (Map (U Integer Identifier) .V) m∅]) ([sd sd*])
+      (for/fold ([acc : (Map (U Integer Symbol) .V) m∅]) ([sd sd*])
         (define i (- l sd 1))
         (hash-set acc i (hash-ref m i))))
     (.ρ m′ l)]))
 
-(: ρ+ : (case→ [.ρ .V → .ρ]
-               [.ρ Identifier .V → .ρ]))
+(: ρ+ : (case-> [.ρ .V → .ρ]
+                [.ρ Symbol .V → .ρ]))
 (define ρ+
   (match-lambda*
     [(list (.ρ m l) (? .V? V)) (.ρ (hash-set m l V) (+ 1 l))]
-    [(list (.ρ m l) (? identifier? x) (? .V? V)) (.ρ (hash-set m x V) l)]))
+    [(list (.ρ m l) (? symbol? x) (? .V? V)) (.ρ (hash-set m x V) l)]))
 
-(: ρ++ (case→ [.ρ (Listof .V) → .ρ]
-              [.ρ (Listof .V) (U Boolean Integer) → .ρ]))
+(: ρ++ : ([.ρ (Listof .V)] [(U Boolean Integer)] . ->* . .ρ))
 (define (ρ++ ρ V* [var? #f])
   (match var?
     [#f (for/fold ([ρi ρ]) ([V V*]) (ρ+ ρi V))]
-    [0 (ρ+ ρ (foldr (λ: ([Vi : .V] [Vr : .V])
-                      (.// (.St #'cons (list Vi Vr)) ∅))
+    [0 (ρ+ ρ (foldr (λ ([Vi : .V] [Vr : .V])
+                      (.// (.St (.id 'cons 'Λ) (list Vi Vr)) ∅))
                     MT V*))]
     [(? integer? n) (ρ++ (ρ+ ρ (car V*)) (cdr V*) (- n 1))]))
 
-(: ρ@ : .ρ (U .x Integer .x/c Identifier) → .V)
+(: ρ@ : .ρ (U .x Integer .x/c) → .V)
 (define (ρ@ ρ x)
   (match-define (.ρ m l) ρ)
   (hash-ref m (match x
@@ -158,8 +157,8 @@
         [else (.// (.b x) ∅)]))
 
 (define** 
-  [MT (→V (.St #'null (list)))]
-  [♦ (→V '•)] [V∅ (.μ/V #'_ ∅)]
+  [MT (→V (.St (.id 'null 'Λ) (list)))]
+  [♦ (→V '•)] [V∅ (.μ/V '_ ∅)]
   [ANY/C (→V (.λ↓ .any/c ρ∅))]
   [ZERO (Prim 0)] [ONE (Prim 1)] [TT (Prim #t)] [FF (Prim #f)]
   [FALSE/C (Prim 'false?)] [BOOL/C (Prim 'boolean?)]
@@ -173,11 +172,11 @@
 (struct: .σ ([map : (Map Integer .V+)] [next : Integer]) #:transparent)
 (define σ∅ (.σ (hash) 0))
 
-(: σ@ : (case→ [.σ (U .L Integer) → .V+]
-               [.σ .// → .//]
-               [.σ .μ/V → .μ/V]
-               [.σ .X/V → .X/V]
-               [.σ .V → .V]))
+(: σ@ : (case-> [.σ (U .L Integer) → .V+]
+                [.σ .// → .//]
+                [.σ .μ/V → .μ/V]
+                [.σ .X/V → .X/V]
+                [.σ .V → .V]))
 (define (σ@ σ a)
   (match a
     [(.L i) (hash-ref (.σ-map σ) i)]
@@ -218,13 +217,13 @@
     (.σ (hash-set m i V) l)))
 
 ; substitute contract for given identifier
-(: C/ : .V Identifier .V → .V)
+(: C/ : .V Symbol .V → .V)
 (define (C/ V x V′)
   (match V
     [(.L _) V]
     [(.// U D*)
      (match U
-       [(.X/C z) (if (free-identifier=? x z) V′ V)]
+       [(.X/C z) (if (eq? x z) V′ V)]
        [(.Ar C V l^3) (.// (.Ar (C/ C x V′) (C/ V x V′) l^3) D*)]
        [(.St t V*) (.// (.St t (for/list ([Vi V*]) (C/ Vi x V′))) D*)]
        [(.λ↓ f ρ) (.// (.λ↓ f (ρ+ ρ x V′)) D*)]
@@ -363,7 +362,7 @@
   ac)
 
 (: mk-box : .V → .//)
-(define (mk-box V) (→V (.St #'box (list V))))
+(define (mk-box V) (→V (.St (.id 'box 'Λ) (list V))))
 
 (: subst/L : (case->
               [.L .F → .L]
@@ -404,7 +403,7 @@
   (define (go/ρ ρ)
     (match-define (.ρ m l) ρ)
     (.ρ ;; TODO: either wrong or dumb, rewrite using for/hash
-     (for/fold ([acc : (Map (U Identifier Integer) .V) m]) ([k (in-hash-keys m)])
+     (for/fold ([acc : (Map (U Integer Symbol) .V) m]) ([k (in-hash-keys m)])
        (match (hash-ref m k #f)
          [(? .V? V) (hash-set acc k (go/V V))]
          [_ acc]))
@@ -458,7 +457,7 @@
       ;ρ
       [(.ρ m l)
        (.ρ
-        (for/fold : (Map (U Identifier Integer) .V) ([acc : (Map (U Identifier Integer) .V) m]) ([k (in-hash-keys m)])
+        (for/fold ([acc : (Map (U Integer Symbol) .V) m]) ([k (in-hash-keys m)])
           (match (hash-ref m k #f)
             [#f acc]
             [(? .V? V) (hash-set acc k (go! V))]))
@@ -588,7 +587,7 @@
                             [_ (.μ/V z (for/set: : (Setof .V) ([V Vs]) (go V)))])]
              [x x]))]
       [(and ρ (.ρ m l))
-       (let ([m′ (for/fold ([m′ : (Map (U Integer Identifier) .V) m∅]) ([x (in-hash-keys m)])
+       (let ([m′ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅]) ([x (in-hash-keys m)])
                    (hash-set m′ x (go (hash-ref m x))))])
          (if (equal? m′ m) ρ (.ρ m′ l)))]))
   (match V0
@@ -597,11 +596,11 @@
     [(? .V? V) (go V)]
     [(? .ρ? ρ) (go ρ)]))
 
-; generates an identifier not appearing in value (for μ/V x {...})
-(: fresh : (U .V (Setof .V) (Listof .V)) → Identifier)
+; generates a symbol not appearing in value (for μ/V x {...})
+(: fresh : (U .V (Setof .V) (Listof .V)) → Symbol)
 (define (fresh V)
   
-  (: col : (U .V (Setof .V) (Listof .V)) → (Setof Identifier))
+  (: col : (U .V (Setof .V) (Listof .V)) → (Setof Symbol))
   (define (col V)
     (match V
       [(.L _) ∅]
@@ -612,9 +611,9 @@
          [_ ∅])] ; TODO ok to ignore?
       [(.μ/V x Vs) (col Vs)]
       [(.X/V x) {set x}]
-      [(? set? V*) (for/fold ([s : (Setof Identifier) ∅]) ([V V*])
+      [(? set? V*) (for/fold ([s : (Setof Symbol) ∅]) ([V V*])
                      (set-union s (col V)))]
-      [(? list? V*) (for/fold ([s : (Setof Identifier) ∅]) ([V V*])
+      [(? list? V*) (for/fold ([s : (Setof Symbol) ∅]) ([V V*])
                       (set-union s (col V)))]))
   
-  (datum->syntax #f (variable-not-in (set->list (col V)) 'X)))
+  (variable-not-in (set->list (col V)) 'X))

@@ -181,7 +181,7 @@
         (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
         (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
-     (printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
+     ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
      (define xs (syntax->list #'(z ...)))
      (define ctx′ (ext-env ctx xs))
      (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
@@ -189,7 +189,7 @@
       (~literal fake:dynamic->i)
       (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
       (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
-     (printf "dynamic->id₂: ~a~n" (syntax->datum #'d))
+     ;(printf "dynamic->id₂: ~a~n" (syntax->datum #'d))
      (define xs (syntax->list #'(z ...)))
      (define ctx′ (ext-env ctx xs))
      (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
@@ -298,9 +298,9 @@
          (define src-mod
            (cond [(path? src) (path->string (simplify-path src #f))]
                  [(eq? src '#%kernel) 'Λ #|hack|#]
-                 [src (symbol->string src)]
+                 [#|FIXME hack|# (equal? (symbol->string src) "expanded module") (cur-mod)]
+                 [src src]
                  [else 'null]))
-         ;(printf "(idsym: ~a, modsym: ~a, src-mod: ~a)~n" idsym modsym src-mod)
          (.ref (.id (syntax-e #'i) src-mod) (cur-mod))]))]))
 
 ;; Parse given `formals` to extend environment
@@ -394,4 +394,4 @@
 (define (test . files)
   (files->prog files))
 
-(test "test/programs/safe/dvh-2.rkt")
+;;(test "test/programs/safe/ex-08.rkt")
