@@ -2,7 +2,7 @@
 (require soft-contract/fake-contract)
 
 (define (argmin f xs)
-  (cond [(empty? (cdr xs)) (f (car xs))]
+  (cond [(null? (cdr xs)) (f (car xs))]
         [else (min (f (car xs))
                    (argmin f (cdr xs)))]))
 

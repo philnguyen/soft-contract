@@ -276,6 +276,7 @@
     
     ;; Hacks for now
     [(~literal null) .null]
+    [(~literal null?) .null/c]
     [(~literal positive?) (go #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal negative?) (go #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal zero?) (go #'(#%plain-lambda (x) (#%plain-app = x 0)))]
