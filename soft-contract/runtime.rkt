@@ -17,12 +17,14 @@
   (struct .Assume [v : .V] [c : .V])
   (subset: .A
     (struct .blm [violator : Mon-Party] [origin : Mon-Party] [v : .V] [c : .V])
-    (subset: .V ; either label or refined prevalue
-      (struct .L [i : Integer])
-      (struct .// [pre : .U] [refine : (Setof .V)])
-      ;; The counterexample engine does not use these
-      (struct .μ/V [x : Symbol] [Vs : (Setof .V)])
-      (struct .X/V [x : Symbol]))))
+    (struct .Vs [vs : (Listof .V)])))
+
+(define-data .V ; either label or refined prevalue
+  (struct .L [i : Integer])
+  (struct .// [pre : .U] [refine : (Setof .V)])
+  ;; The counterexample engine does not use these
+  (struct .μ/V [x : Symbol] [Vs : (Setof .V)])
+  (struct .X/V [x : Symbol]))
 
 (define-type .V+ (U .// .μ/V))
 
@@ -74,8 +76,14 @@
 (define-type/pred .Ans (Pairof .σ .A))
 (define-type/pred .Ans+ (Setof .Ans))
 (define-type/pred .Ans* (U .Ans .Ans+))
+(define-type/pred .Vnss (Pairof .σ .Vs))
+(define-type/pred .Vnss* (U .Vnss (Setof .Vnss)))
 (define-type/pred .Vns (Pairof .σ .V))
 (define-type/pred .Vns* (U .Vns (Setof .Vns)))
+
+(define-match-expander -Vs
+  (syntax-rules () [(_ V ...) (.Vs (list V ...))])
+  (syntax-rules () [(_ V ...) (.Vs (list V ...))]))
 
 (: close : .v .ρ → .//)
 (define (close v ρ)
@@ -164,6 +172,7 @@
   [FALSE/C (Prim 'false?)] [BOOL/C (Prim 'boolean?)]
   [INT/C (Prim 'integer?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'number?)]
   [STR/C (Prim 'string?)] [PROC/C (Prim 'procedure?)] [SYM/C (Prim 'symbol?)])
+(define** [-VsTT (.Vs (list TT))] [-VsFF (.Vs (list FF))])
 
 
 ;;;;; STORE

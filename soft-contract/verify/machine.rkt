@@ -77,7 +77,7 @@
                           (match-define (list σ′ _ F′) (transfer σ0 (.L i) σ F))
                           (cons σ′ F′))]
                        [(list σk′′ V-new _) (transfer σ0 V0 σk′ F′)]
-                       [ς (.ς V-new σk′′ k)])
+                       [ς (.ς (-Vs V-new) σk′′ k)])
             (let ([ς^ (canon ς)])
               ;;(log-debug "canon:~n~a~n~n" ς^)
               (unless (seen-has? ς^)
@@ -198,17 +198,17 @@
                  [C# (length C*)]
                  [n (if v? (- C# 1) #f)])
             (if (if v? (>= V# (- C# 1)) (= V# C#))
-                (.ς Vg σ (cons (.indy/κ C* V* '() D n l³) k))
+                (.ς (-Vs Vg) σ (cons (.indy/κ C* V* '() D n l³) k))
                 (.ς (.blm l lo (Prim (length V*))(if v? (arity≥/C (- C# 1)) (arity=/C C#))) σ k)))]
          [_
           (match/nd (δ σ 'procedure? (list Vf) 'Λ)
-            [(cons σt (.// (.b #t) _)) (error "impossible" (show-V σ Vf))]
-            [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf PROC/C) σf k)])])]
+            [(cons σt (-Vs (.// (.b #t) _))) (error "impossible" (show-V σ Vf))]
+            [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l 'Λ Vf PROC/C) σf k)])])]
       [(and L (.L i))
        (match/nd (δ σ 'procedure? (list L) 'Λ)
-         [(cons σt (.// (.b #t) _))
+         [(cons σt (-Vs (.// (.b #t) _)))
           (match/nd (δ σt 'arity-includes? (list L (Prim (length V*))) 'Λ)
-            [(cons σt (.// (.b #t) _))
+            [(cons σt (-Vs (.// (.b #t) _)))
              (match (σ@ σt i)
                [(and V (or (.// (? .λ↓?) _) (.// (? .Ar?) _))) (step-@ V V* l σt k)]
                [(? .μ/V? Vf)
@@ -232,17 +232,17 @@
                 (let-values ([(havocs) (for/fold ([s : (Setof .ς) ∅]) ([V V*])
                                          (set-union s (havoc V σt k)))]
                              [(σ′ La) (σ+ σt)])
-                  (set-add havocs (.ς La σ′ k)))])]
-            [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf (arity-includes/C (length V*))) σf k)])]
-         [(cons σf (.// (.b #f) _)) (.ς (.blm l 'Λ Vf PROC/C) σf k)])]
+                  (set-add havocs (.ς (-Vs La) σ′ k)))])]
+            [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l 'Λ Vf (arity-includes/C (length V*))) σf k)])]
+         [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l 'Λ Vf PROC/C) σf k)])]
       #;[(? .μ/V? Vf) (match/nd: (.V → .ς) (unroll Vf)
                         [Vf (step-@ Vf V* l σ k)])]))
 
   (: step-fc : .V .V Mon-Party .σ .κ* → .ς*)
   (define (step-fc C V l σ k)
     (match (⊢ σ V C)
-      ['✓ (.ς TT σ k)]
-      ['X (.ς FF σ k)]
+      ['✓ (.ς -VsTT σ k)]
+      ['X (.ς -VsFF σ k)]
       ['?
        (match C
          [(.// U D*)
@@ -250,20 +250,20 @@
             [(and (.μ/C x C′) U)
              (cond
                [(chk-seen? k U (V-abs σ V)) (match-let ([(cons σ′ _) (refine σ V C)])
-                                              (.ς TT σ′ k))]
+                                              (.ς -VsTT σ′ k))]
                [else (match-let ([(cons σt _) (refine σ V C)]
                                  [(cons σf _) (refine σ V (.¬/C C))])
-                       {set (.ς TT σt k) (.ς FF σf k)})])]
+                       {set (.ς -VsTT σt k) (.ς -VsFF σf k)})])]
             [(.St (.id 'and/c 'Λ) (list C1 C2)) (and/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
             [(.St (.id 'or/c 'Λ) (list C1 C2)) (or/ς (list (.FC C1 V l) (.FC C2 V l)) σ k)]
             [(.St (.id 'not/c 'Λ) (list C′))
              (.ς (.FC C′ V l) σ (cons (.@/κ '() (list (Prim 'false?)) l) k))]
             [(.St/C t C*)
              (match/nd (δ σ (.st-p t (length C*)) (list V) l)
-               [(cons σt (.// (.b #t) _))
+               [(cons σt (-Vs (.// (.b #t) _)))
                 (match-let ([(.// (.St t V*) _) (σ@ σt V)])
                   (and/ς (for/list ([Vi V*] [Ci C*]) (.FC Ci Vi l)) σ k))]
-               [(cons σf (.// (.b #f) _)) (.ς FF σf k)])]
+               [(cons σf (-Vs (.// (.b #f) _))) (.ς -VsFF σf k)])]
             [_ (step-@ C (list V) l σ k)])]
          [(.L _) (step-@ C (list V) l σ k)])]))
 
@@ -272,54 +272,54 @@
     #;(log-debug "Mon:~nC:~a~nV:~a~nσ:~a~nk:~a~n~n" C V σ k)
     (match-let ([(list l+ l- lo) l³])
       (match (⊢ σ V C) ; want a check here to reduce redundant cases for recursive contracts
-        ['✓ (.ς V σ k)]
+        ['✓ (.ς (-Vs V) σ k)]
         ['X (.ς (.blm l+ lo V C) σ k)]
         ['?
          (match C
            [(.L i)
             (match-define (cons σt Vt) (refine σ V C))
             (match-define (cons σf Vf) (refine σ V (.¬/C C)))
-            {set (.ς Vt σt k) (.ς Vf σf k)}]
+            {set (.ς (-Vs Vt) σt k) (.ς (-Vs Vf) σf k)}]
            [(.// Uc C*)
             (match Uc
               [(and (.μ/C x C′) Uc)
                (cond
                  [(chk-seen? k Uc (V-abs σ V))
                   (match-let ([(cons σ′ V′) (dbg/off 'ho (refine σ V C))])
-                    (.ς V′ σ′ k))]
+                    (.ς (-Vs V′) σ′ k))]
                  ; hack to speed things up
                  [(flat/C? σ C)
                   #;(log-debug "Abt to refine:~nσ:~n~a~nV:~n~a~nC:~n~a~n~n" σ V C)
                   (match-let ([(cons σt Vt) (refine σ V C)]
                                             [(cons σf _) (refine σ V (.¬/C C))])
-                                  {set (.ς Vt σt k) (.ς (.blm l+ lo V C) σf k)})]
-                 [else (.ς V σ (list* (.▹/κ (cons (unroll/C Uc) #f) l³) (.recchk/κ Uc (V-abs σ V)) k))])]
-              [(.St (.id 'and/c 'Λ) (list Dl Dr)) (.ς V σ (▹/κ1 Dl l³ (▹/κ1 Dr l³ k)))]
+                                  {set (.ς (-Vs Vt) σt k) (.ς (.blm l+ lo V C) σf k)})]
+                 [else (.ς (-Vs V) σ (list* (.▹/κ (cons (unroll/C Uc) #f) l³) (.recchk/κ Uc (V-abs σ V)) k))])]
+              [(.St (.id 'and/c 'Λ) (list Dl Dr)) (.ς (-Vs V) σ (▹/κ1 Dl l³ (▹/κ1 Dr l³ k)))]
               [(.St (.id 'or/c 'Λ) (list Dl Dr))
-               (.ς (.FC Dl V lo) σ (cons (.if/κ (.Assume V Dl) (.Mon Dr V l³)) k))]
+               (.ς (.FC Dl V lo) σ (cons (.if/κ (.Assume V Dl) (.Mon (-Vs Dr) (-Vs V) l³)) k))]
               [(.St (.id 'not/c 'Λ) (list D))
                (.ς (.FC D V lo) σ (cons (.if/κ (.blm l+ lo V C) (.Assume V C)) k))]
               [(.St/C t C*)
                (let ([n (length C*)])
                  (match/nd (δ σ (.st-p t n) (list V) lo)
-                   [(cons σt (.// (.b #t) _))
+                   [(cons σt (-Vs (.// (.b #t) _)))
                     (match-let ([(.// (.St t V*) _) (dbg/off '▹ (σ@ σt V))])
-                      (.ς (→V (.st-mk t n)) σt
-                          (cons (.@/κ (for/list ([C C*] [V V*]) (.Mon C V l³)) '() lo) k)))]
-                   [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V (→V (.st-p t n))) σf k)]))]
+                      (.ς (-Vs (→V (.st-mk t n))) σt
+                          (cons (.@/κ (for/list ([C C*] [V V*]) (.Mon (-Vs C) (-Vs V) l³)) '() lo) k)))]
+                   [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l+ lo V (→V (.st-p t n))) σf k)]))]
               [(and Uc (.Λ/C Cx* D v?))
                (match/nd (δ σ 'procedure? (list V) lo)
-                 [(cons σt (.// (.b #t) _))
+                 [(cons σt (-Vs (.// (.b #t) _)))
                   (match v?
                     [#f (match/nd (δ σt 'arity-includes? (list V (Prim (length Cx*))) lo)
-                          [(cons σt (.// (.b #t) _)) (.ς (→V (.Ar C V l³)) σt k)]
-                          [(cons σf (.// (.b #f) _))
+                          [(cons σt (-Vs (.// (.b #t) _))) (.ς (-Vs (→V (.Ar C V l³))) σt k)]
+                          [(cons σf (-Vs (.// (.b #f) _)))
                            (.ς (.blm l+ lo V (arity-includes/C (length Cx*))) σf k)])]
                     [#t (match/nd (δ σt 'arity>=? (list V (Prim (- (length Cx*) 1))) lo)
-                          [(cons σt (.// (.b #t) _)) (.ς (→V (.Ar C V l³)) σt k)]
-                          [(cons σf (.// (.b #f) _))
+                          [(cons σt (-Vs (.// (.b #t) _))) (.ς (-Vs (→V (.Ar C V l³))) σt k)]
+                          [(cons σf (-Vs (.// (.b #f) _)))
                            (.ς (.blm l+ lo V (arity≥/C (- (length Cx*) 1))) σf k)])])]
-                 [(cons σf (.// (.b #f) _)) (.ς (.blm l+ lo V PROC/C) σf k)])]
+                 [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l+ lo V PROC/C) σf k)])]
               [_ (.ς (.FC C V lo) σ (cons (.if/κ (.Assume V C) (.blm l+ lo V C)) k))])])])))
 
   (: step-E : .E .σ .κ* → .ς*)
@@ -328,12 +328,12 @@
     (match E
       [(.↓ e ρ)
        (match e
-         [(? .•?) (let-values ([(σ′ L) (σ+ σ)]) (.ς L σ′ k))]
-         [(? .v? v) (.ς (close v ρ) σ k)]
+         [(? .•?) (let-values ([(σ′ L) (σ+ σ)]) (.ς (-Vs L) σ′ k))]
+         [(? .v? v) (.ς (-Vs (close v ρ)) σ k)]
          [(.x sd)
           (when (.X/V? (ρ@ ρ sd)) (error "STOP!"))
-          (.ς (ρ@ ρ sd) σ k)]
-         [(? .x/c? x) (.ς (ρ@ ρ x) σ k)]
+          (.ς (-Vs (ρ@ ρ sd)) σ k)]
+         [(? .x/c? x) (.ς (-Vs (ρ@ ρ x)) σ k)]
          [(and ref (.ref (.id name ctx) ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
          [(and ref (.ref (.id name in) ctx))
           (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
@@ -372,20 +372,20 @@
          [(.if i t e) (.ς (.↓ i ρ) σ (cons (.if/κ (.↓ t ρ) (.↓ e ρ)) k))]
          [(.amb e*) (for/set: : (Setof .ς) ([e e*]) (.ς (.↓ e ρ) σ k))]
          [(.μ/c x e) (.ς (.↓ e (ρ+ ρ x (→V (.X/C x)))) σ (cons (.μc/κ x) k))]
-         [(.->i '() d v?) (.ς (→V (.Λ/C '() (.↓ d ρ) v?)) σ k)]
+         [(.->i '() d v?) (.ς (-Vs (→V (.Λ/C '() (.↓ d ρ) v?))) σ k)]
          [(.->i (cons c cs) d v?) (.ς (.↓ c ρ) σ (cons (.λc/κ cs '() d ρ v?) k))]
-         [(.struct/c t '()) (.ς (→V (.st-p t 0)) σ k)]
+         [(.struct/c t '()) (.ς (-Vs (→V (.st-p t 0))) σ k)]
          [(.struct/c t (cons c c*)) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ '()) k))])]
       [(.Mon C E l³) (.ς C σ (cons (.▹/κ (cons #f E) l³) k))]
       [(.FC C V l) (step-fc C V l σ k)]
-      [(.Assume V C) (match-let ([(cons σ′ V′) (refine σ V C)]) (.ς V′ σ′ k))]))
+      [(.Assume V C) (match-let ([(cons σ′ V′) (refine σ V C)]) (.ς (-Vs V′) σ′ k))]))
 
   (: step-V : .V .σ .κ .κ* → .ς*)
   (define (step-V V σ κ k)
     (match κ
       [(.if/κ E1 E2) (match/nd (δ σ 'false? (list V) 'Λ)
-                               [(cons σt (.// (.b #f) _)) (.ς E1 σt k)]
-                               [(cons σf (.// (.b #t) _)) (.ς E2 σf k)])]
+                       [(cons σt (-Vs (.// (.b #f) _))) (.ς E1 σt k)]
+                       [(cons σf (-Vs (.// (.b #t) _))) (.ς E2 σf k)])]
 
       [(.let/κ '() Vs ρ e)
        (.ς (.↓ e (ρ++ ρ (reverse (cons V Vs)))) σ k)]
@@ -403,9 +403,9 @@
       [(.▹/κ (cons #f (? .E? E)) l³) (.ς E σ (cons (.▹/κ (cons V #f) l³) k))]
       [(.▹/κ (cons (? .V? C) #f) l³) (step-▹ C V l³ σ k)]
 
-      [(.rt/κ _ _ _) (.ς V σ k)]
-      [(.recchk/κ _ _) (.ς V σ k)]
-      [(.μ/κ _ _ _) (.ς V σ k)]
+      [(.rt/κ _ _ _) (.ς (-Vs V) σ k)]
+      [(.recchk/κ _ _) (.ς (-Vs V) σ k)]
+      [(.μ/κ _ _ _) (.ς (-Vs V) σ k)]
 
       ;; indy
       [(.indy/κ (list Ci) (cons Vi Vr) Vs↓ D n l³) ; repeat last contract, handling var-args
@@ -420,17 +420,21 @@
        (step-@ Vf Vx l+ σ (▹/κ1 V l³ k))]
 
       ; contracts
-      [(.μc/κ x) (.ς (→V (.μ/C x V)) σ k)]
+      [(.μc/κ x) (.ς (-Vs (→V (.μ/C x V))) σ k)]
       [(.λc/κ '() c↓ d ρ v?)
-       (.ς (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?)) σ k)]
+       (.ς (-Vs (→V (.Λ/C (reverse (cons V c↓)) (.↓ d ρ) v?))) σ k)]
       [(.λc/κ (cons c cs) c↓ d ρ v?) (.ς (.↓ c ρ) σ (cons (.λc/κ cs (cons V c↓) d ρ v?) k))]
-      [(.structc/κ t '() _ c↓) (.ς (→V (.St/C t (reverse (cons V c↓)))) σ k)]
+      [(.structc/κ t '() _ c↓) (.ς (-Vs (→V (.St/C t (reverse (cons V c↓))))) σ k)]
       [(.structc/κ t (cons c c*) ρ c↓) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ (cons V c↓)) k))]))
 
+  (: step-Vs : (Listof .V) .σ .κ .κ* → .ς*)
+  (define (step-Vs Vs σ κ k)
+    (todo 'step-Vs))
+
   (match-lambda
-    [(.ς (? .V? V) σ (cons κ k))
+    [(.ς (-Vs V) σ (cons κ k))
      (when (match? V (.// '• _))
-       (log-debug "~a~n~n" (show-ς (.ς V σ (cons κ k))))
+       (log-debug "~a~n~n" (show-ς (.ς (-Vs V) σ (cons κ k))))
        (error "impossible"))
      (step-V V σ κ k)]
     [(.ς (? .E? E) σ k) (step-E E σ k)]))

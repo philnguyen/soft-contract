@@ -9,7 +9,6 @@
 
 ;; Specialized non-deterministic match for answers
 (define-syntax-rule (match/Ans* v [p e ...] ...) (match/nd: (.Ans → .Ans) v [p e ...] ...))
-(define-syntax-rule (match/Vns* v [p e ...] ...) (match/nd: (.Vns → .Vns) v [p e ...] ...))
 
 (define (box-operation? [o : .o])
   (match o
@@ -30,11 +29,11 @@
   (match* (V1 V2)
     [((.L i) (.L i)) (cons σ TT)]
     [((.L i) (and (.// (not (? .•?)) _) V2))
-     (match/Vns* (V=? σ (σ@ σ i) V2)
+     (match/nd: (.Vns → .Vns) (V=? σ (σ@ σ i) V2)
        [(cons σt (.// (.b #t) _)) (cons (σ-set σ i V2) TT)]
        [a a])]
     [((and (.// (not (? .•?)) _) V1) (.L i))
-     (match/Vns* (V=? σ V1 (σ@ σ i))
+     (match/nd: (.Vns → .Vns) (V=? σ V1 (σ@ σ i))
        [(cons σt (.// (.b #t) _)) (cons (σ-set σ i V1) TT)]
        [a a])]
     [(_ (.L i)) (V=? σ V1 (σ@ σ i))]
@@ -47,7 +46,7 @@
            (match* (V1* V2*)
              [('() '()) (cons σ TT)]
              [((cons V1 V1r) (cons V2 V2r))
-              (match/Vns* (V=? σ V1 V2)
+              (match/nd: (.Vns → .Vns) (V=? σ V1 V2)
                 [(cons σt (.// (.b #t) _)) (loop σt V1* V2*)]
                 [a a])]))
          (cons σ FF))]
@@ -78,7 +77,7 @@
       [(cons (? .V? C) Cᵣs)
        (match (⊢ σ V C)
          ['✓ (cons σ V)]
-         ['X (error 'Internal "Bogus refinement of ~a by ~a" (show-A σ V) (show-A σ C))]
+         ['X (error 'Internal "Bogus refinement of ~a by ~a" (show-V σ V) (show-V σ C))]
          [_ (match-define (cons σ′ V′) ((refine1) σ V C))
             (go σ′ V′ Cᵣs)])]))
   (go σ V Css))
@@ -400,7 +399,7 @@
                             [else (define xC (fresh-id!))
                                   (values C xC)])))
                   (define guarded-body
-                    #`(match/Ans* (check-C σ #,x #,id-C)
+                    #`(match/nd: (.Vns → .Ans) (check-C σ #,x #,id-C)
                         [(cons σ (.// (.b #t) _)) #,rest]
                         [(cons σ (.// (.b #f) _))
                          (cons σ (.blm l (quote #,o) #,x #,id-C))]))
@@ -420,9 +419,9 @@
       (with-syntax ([σ (-σ)]
                     [l (-l)])
         (foldr (λ (x c rest)
-                 #`(match/Ans* (check-C σ #,x #,(ctc->V c))
+                 #`(match/nd: (.Vns → .Ans) (check-C σ #,x #,(ctc->V c))
                      [(cons σ (.// (.b #t) _)) #,rest]
-                     [(and ans (cons σ (.// (.b #f) _))) ans]))
+                     [(cons σ (.// (.b #f) _)) (cons σ -VsFF)]))
                #`(cons σ (.blm l 'o
                                (→V (.St (.id 'values 'Λ) (list #,@xs)))
                                (→V (.St/C (.id 'values 'Λ) (list #,@(map ctc->V cs))))))
@@ -446,7 +445,7 @@
     
     (define wild-cards (datum->syntax o (make-list (length xs) '_)))
     #`(match* #,xs
-        [#,concrete-checks (cons #,(-σ) (Prim (#,o #,@unboxed-ids)))]
+        [#,concrete-checks (cons #,(-σ) (-Vs (Prim (#,o #,@unboxed-ids))))]
         [#,wild-cards #,(gen-refinements d xs refinements)]))
   
   (define/contract (gen-refinements d xs refinements)
@@ -467,10 +466,7 @@
       (for/list ([refinement (in-list alias-refinements)])
         (syntax-parse refinement
           [(cᵣ ... (~literal →) ((~or (~literal =/c) (~literal ≡/c)) v))
-           (define res
-             #`(cons #,(-σ)
-                     #,(cond [(identifier? #'v) #'v]
-                             [else #'(Prim v)])))
+           (define res #`(cons #,(-σ) (-Vs #,(if (identifier? #'v) #'v #'(Prim v)))))
            #`[(and #,@(for/list ([x (in-list xs)]
                                  [c (in-list (syntax->list #'(cᵣ ...)))]
                                  #:unless (syntax-parse c [(~literal any/c) #t] [_ #f]))
@@ -493,7 +489,7 @@
                      #`(when (and #,@refinement-conds)
                          (match-define (cons σ′ _) (refine σ L #,(ctc->V #'dᵣ)))
                          (set! σ σ′))]))
-             (cons σ L))])))
+             (cons σ (-Vs L)))])))
   
   (define/contract (check-concrete x c)
     (syntax? syntax? . -> . (values syntax? syntax?))
@@ -581,8 +577,10 @@
       #`(('p? (list #,@xs))
          #,(gen-guards #'p? xs cs
                        (match xs
-                         [(list x) #`(check-C #,(-σ) #,x #,(ctc->V #'p?))]
-                         [(list x y) #`(check-o² #,(-σ) 'p? #,x #,y)]
+                         [(list x) #`(match/nd: (.Vns → .Vnss) (check-C #,(-σ) #,x #,(ctc->V #'p?))
+                                       [(cons σ V) (cons σ (-Vs V))])]
+                         [(list x y) #`(match/nd: (.Vns → .Vnss) (check-o² #,(-σ) 'p? #,x #,y)
+                                         [(cons σ V) (cons σ (-Vs V))])]
                          [_ (raise-syntax-error
                              'Internal
                              "only support unary and binary predicates for now")])))))

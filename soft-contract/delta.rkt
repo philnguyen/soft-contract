@@ -113,34 +113,37 @@
   ;; Ugly stuff. Only Phil gets to use #:escape clauses
   [#:escape ; accessor
    {(and o (.st-ac t n i)) (list (and V (.// (.St t′ Vs) _)))}
-   (cond [(equal? t t′) (cons σ (list-ref Vs i))]
+   (cond [(equal? t t′) (cons σ (-Vs (list-ref Vs i)))]
          [else (cons σ (.blm l (name o) V (→V (.st-p t n))))])]
   [#:escape ; accessor on L
    {(and o (.st-ac t n i)) (list (.L α))}
    (match/Ans* (δ σ (.st-p t n) Vs 'Λ)
-     [(cons σt (.// (.b #t) _))
+     [(cons σt (-Vs (.// (.b #t) _)))
       (match-define (.// (.St _ fields) _) (σ@ σt α))
-      (cons σt (list-ref fields i))]
-     [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) (.L α) (→V (.st-p t n))))])]
+      (cons σt (-Vs (list-ref fields i)))]
+     [(cons σf (-Vs (.// (.b #f) _)))
+      (cons σf (.blm l (name o) (.L α) (→V (.st-p t n))))])]
   [#:escape ; constructor
    {(and o (.st-mk t n)) Vs}
-   (cond [(= n (length Vs)) (cons σ (→V (.St t Vs)))]
+   (cond [(= n (length Vs)) (cons σ (-Vs (→V (.St t Vs))))]
          [else (cons σ (.blm l (name o) (Prim (length Vs)) (arity=/C n)))])]
   [#:escape ; struct predicate
    {(.st-p t n) (list V)}
    (define C (→V o))
    (match (⊢ σ V C)
-     ['✓ (cons σ TT)]
-     ['X (cons σ FF)]
+     ['✓ (cons σ -VsTT)]
+     ['X (cons σ -VsFF)]
      ['?
       (match-define (cons σt _) (refine σ V C))
       (match-define (cons σf _) (refine σ V (.¬/C C)))
-      {set (cons σt TT) (cons σf FF)}])]
+      {set (cons σt -VsTT) (cons σf -VsFF)}])]
   [#:escape
    ((or 'arity=? 'arity>=? 'arity-includes?) (list V1 V2))
    (match/Ans* (δ σ 'procedure? (list V1) 'Λ)
-     [(cons σt (.// (.b #t) _))
+     [(cons σt (-Vs (.// (.b #t) _)))
       (match/Ans* (δ σt 'integer? (list V2) 'Λ)
-        [(cons σt (.// (.b #t) _)) (check-C σt V1 (→C o #:2nd V2))]
-        [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V2 INT/C))])]
-     [(cons σf (.// (.b #f) _)) (cons σf (.blm l (name o) V1 PROC/C))])])
+        [(cons σt (-Vs (.// (.b #t) _)))
+         (match/nd: (.Vns → .Vnss) (check-C σt V1 (→C o #:2nd V2))
+           [(cons σ V) (cons σ (-Vs V))])]
+        [(cons σf (-Vs (.// (.b #f) _))) (cons σf (.blm l (name o) V2 INT/C))])]
+     [(cons σf (-Vs (.// (.b #f) _))) (cons σf (.blm l (name o) V1 PROC/C))])])

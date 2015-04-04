@@ -33,7 +33,7 @@
 
 (: final? : .ς → Boolean)
 (define (final? ς)
-  (match? ς (.ς (? .blm?) _ _) (.ς (? .V?) _ (list))))
+  (match? ς (.ς (? .blm?) _ _) (.ς (? .Vs?) _ (list))))
 
 (: inj : .expr → .ς)
 (define (inj e)
@@ -55,21 +55,21 @@
 (: and/ς : (Listof .E) .σ .κ* → .ς)
 (define (and/ς E* σ k)
   (match E*
-    ['() (.ς TT σ k)]
+    ['() (.ς -VsTT σ k)]
     [(list E) (.ς E σ k)]
     [(cons E Er)
      (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*])
-                      (cons (.if/κ Ei FF) k))
+                      (cons (.if/κ Ei -VsFF) k))
                     k Er))]))
 
 (: or/ς : (Listof .E) .σ .κ* → .ς)
 (define (or/ς E* σ k)
   (match E*
-    ['() (.ς FF σ k)]
+    ['() (.ς -VsFF σ k)]
     [(list E) (.ς E σ k)]
     [(cons E Er)
      (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*])
-                      (cons (.if/κ TT Ei) k))
+                      (cons (.if/κ -VsTT Ei) k))
                     k Er))]))
 
 (: ▹/κ1 : .V Mon-Info .κ* → .κ*)
@@ -92,20 +92,21 @@
 (: show-κ : .σ .κ → Any)
 (define (show-κ σ κ)
   (define E (curry show-E σ))
+  (define V (curry show-V σ))
   (match κ
     [(.if/κ t e) `(if ∘ ,(E t) ,(E e))]
     [(.let/κ xs vs ρ e) `(let …)]
-    [(.@/κ e* v* _) `(@ ,@(reverse (map E v*)) ∘ ,@(map E e*))]
+    [(.@/κ e* v* _) `(@ ,@(reverse (map V v*)) ∘ ,@(map E e*))]
     [(.▹/κ (cons #f (? .E? e)) _) `(∘ ▹ ,(E e))]
     [(.▹/κ (cons (? .E? C) #f) _) `(,(E C) ▹ ∘)]
-    [(.indy/κ Cs xs xs↓ d _ _) `(indy ,(map E Cs) ,(map E xs) ,(map E xs↓)
+    [(.indy/κ Cs xs xs↓ d _ _) `(indy ,(map V Cs) ,(map V xs) ,(map V xs↓)
                                       ,(match d [#f '_] [(? .E? d) (E d)]))]
     [(.μc/κ x) `(μ/c ,x ∘)]
-    [(.λc/κ cs Cs d ρ _) `(λ/c (,@(reverse (map E Cs)) ,@(map (curry show-e σ) cs)) ,(show-e σ d))]
-    [(.structc/κ t c _ c↓) `(struct/c ,t (,@(reverse (map E c↓)) ,(map (curry show-e σ) c)))]
-    [(.rt/κ _ f x) `(rt ,(E (→V f)) ,@(map E x))]
-    [(.blr/κ _ _ V) `(blr ,(E V))]
-    [(.recchk/κ c v) `(μ/▹ ,(E (→V c)) ,(E v))]))
+    [(.λc/κ cs Cs d ρ _) `(λ/c (,@(reverse (map V Cs)) ,@(map (curry show-e σ) cs)) ,(show-e σ d))]
+    [(.structc/κ t c _ c↓) `(struct/c ,t (,@(reverse (map V c↓)) ,(map (curry show-e σ) c)))]
+    [(.rt/κ _ f x) `(rt ,(V (→V f)) ,@(map V x))]
+    [(.blr/κ _ _ v) `(blr ,(V v))]
+    [(.recchk/κ c v) `(μ/▹ ,(V (→V c)) ,(V v))]))
 
 (: show-ς : .ς → (List (Listof Any) (Listof Any) (Listof Any)))
 (define show-ς

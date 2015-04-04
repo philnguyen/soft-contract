@@ -17,19 +17,21 @@
 (define (show-A σ A)
   (match A
     [(.blm l+ lo V C) `(blame ,l+ ,lo ,(show-V σ V) ,(show-V σ C))]
-    [(? .V? V) (show-V σ V)]))
+    [(.Vs vs) (show-Vs σ vs)]))
 
-(: show-V : (case→ [.σ .V → Sexp]
-                   [.σ (Listof .V) → (Listof Sexp)]))
+(: show-Vs : .σ (Listof .V) → (Listof Sexp))
+(define (show-Vs σ Vs)
+  (map (curry show-V σ) Vs))
+
+(: show-V : .σ .V → Sexp)
 (define (show-V σ V)
   (match V
     [(.L i) (if (abstract-V?) (show-V σ (σ@ σ i)) (format "L~a" (n-sub i)))]
-    [(.// U C*) (if (.•? U)
-                    `(• ,@(for/list : (Listof Sexp) ([C C*]) (show-V σ C)))
+    [(.// U Cs) (if (.•? U)
+                    `(• ,@(for/list : (Listof Sexp) ([C Cs]) (show-V σ C)))
                     (show-U σ U))]
     [(.X/V x) x]
-    [(.μ/V x V*) `(μ (,x) ,(for/list : (Listof Sexp) ([V V*]) (show-V σ V)))]
-    [(? list? V*) (map (curry show-V σ) V*)]))
+    [(.μ/V x Vs) `(μ (,x) ,(for/list : (Listof Sexp) ([V Vs]) (show-V σ V)))]))
 
 (: show-U : .σ .U → Sexp)
 (define (show-U σ U)
@@ -44,9 +46,9 @@
     [(.St 'empty (list)) 'empty]
     [(.St (and n (or 'and/c 'or/c)) V*) `(,n ,@(show-V σ V*))]
     [(.St 'not/c V*) `(not/c ,@(show-V σ V*))]
-    [(.St t V*) `(,(.id-name t) ,@(show-V σ V*))]
-    [(.Λ/C Cx D v?) `(,@(show-V σ Cx) ,(if v? '↦* '↦) ,(show-E σ D))]
-    [(.St/C t V*) `(,(string->symbol (format "~a/c" t)) ,@(show-V σ V*))]
+    [(.St t Vs) `(,(.id-name t) ,@(show-Vs σ Vs))]
+    [(.Λ/C Cs D v?) `(,@(show-Vs σ Cs) ,(if v? '↦* '↦) ,(show-E σ D))]
+    [(.St/C t Vs) `(,(string->symbol (format "~a/c" t)) ,@(show-Vs σ Vs))]
     [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
     [(.X/C x) x]
     [(.Case m) `(case-λ ,@(show-cases σ m))]))
@@ -71,9 +73,9 @@
     [(.L i) (string->symbol (format "L~a" (n-sub i)))]
     [(? .A? A) (show-A σ A)]
     [(.↓ e ρ) (show-e σ e)]
-    [(.FC C V l) `(FC ,l ,(show-E σ C) ,(show-E σ V))]
+    [(.FC C V l) `(FC ,l ,(show-V σ C) ,(show-V σ V))]
     [(.Mon C E l³) `(Mon ,l³ ,(show-E σ C) ,(show-E σ E))]
-    [(.Assume V C) `(Asm ,(show-E σ V) ,(show-E σ C))]))
+    [(.Assume V C) `(Asm ,(show-V σ V) ,(show-V σ C))]))
 
 (: show-e : .σ .expr → Sexp)
 (define (show-e σ e)
@@ -192,7 +194,7 @@
   (match-define (.σ m _) σ)
   (parameterize ([abstract-V? #f])
     (for/list : (Listof Sexp) ([(i v) (in-hash m)])
-      `(,(format "L~a" (n-sub i)) ↦ ,(show-E σ v)))))
+      `(,(format "L~a" (n-sub i)) ↦ ,(show-V σ v)))))
 
 (: ctx-ref : (Listof Symbol) Integer → Symbol)
 (define (ctx-ref xs i)
