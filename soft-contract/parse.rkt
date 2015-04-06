@@ -246,7 +246,8 @@
                (cons (length (syntax->list #'(x ...))) (go #'e))
              (set! ctx′ (ext-env ctx′ (syntax->list #'(x ...)))))]))
       (-begin (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                (parse-expr bᵢ ctx′))))]
+                (parse-expr bᵢ ctx′)))
+      (cur-mod))]
     [(#%plain-lambda fmls b ...+)
      (define-values (arity ctx′) (parse-formals ctx #'fmls))
      (.λ arity

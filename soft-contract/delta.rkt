@@ -146,4 +146,6 @@
          (match/nd: (.Vns → .Vnss) (check-C σt V1 (→C o #:2nd V2))
            [(cons σ V) (cons σ (-Vs V))])]
         [(cons σf (-Vs (.// (.b #f) _))) (cons σf (.blm l (name o) V2 INT/C))])]
-     [(cons σf (-Vs (.// (.b #f) _))) (cons σf (.blm l (name o) V1 PROC/C))])])
+     [(cons σf (-Vs (.// (.b #f) _))) (cons σf (.blm l (name o) V1 PROC/C))])]
+  [#:escape ; multiple values
+   {'values Vs} (cons σ (.Vs Vs))])

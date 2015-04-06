@@ -165,7 +165,7 @@
       [(? .o? o) (name o)]
       [(.x i) (ctx-ref ctx i)]
       [(.ref x _) (.id-name x)]
-      [(.let-values _ _) '(let …)]
+      [(.let-values _ _ _) '(let-values …) #|TODO|#]
       [(.@ f xs _) `(,(go ctx f) ,@(map (curry go ctx) xs))]
       [(.@-havoc x) `(apply ,(go ctx x) •)]
       #;[(.apply f xs _) `(@ ,(go ctx f) ,(go ctx xs))]

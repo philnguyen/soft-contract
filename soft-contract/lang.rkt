@@ -97,7 +97,7 @@
   (struct .begin0 [expr0 : .expr] [exprs : (Listof .expr)])
   (struct .quote [v : Any])
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
-  (struct .let-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
+  (struct .let-values [bnds : (Listof (Pair Integer .expr))] [body : .expr] [ctx : Mon-Party])
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
   (struct .letrec-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
 
@@ -163,7 +163,7 @@
                  [(cons n _) (FV e (+ d n))])]
     [(.@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
                    (set-union FVs (FV x d)))]
-    [(.let-values bnds e)
+    [(.let-values bnds e _)
      (define-values (δ xs)
        (for/fold ([δ : Integer 0] [xs : (Setof Integer) ∅]) ([bnd (in-list bnds)])
          (match-define (cons n eₓ) bnd)
@@ -205,7 +205,7 @@
    [(.if i t e) (+ (checks# i) (checks# t) (checks# e))]
    [(.wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
    [(.begin0 e es) (+ (checks# e) (checks# es))]
-   [(.let-values bindings e)
+   [(.let-values bindings e _)
     (+ (for/sum : Integer ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
@@ -425,7 +425,7 @@
     [(.if e e₁ e₂) (+ (count-xs e x) (count-xs e₁ x) (count-xs e₂ x))]
     [(.wcm k v b) (+ (count-xs k x) (count-xs v x) (count-xs b x))]
     [(.begin es) (count-xs es x)]
-    [(.let-values bindings body)
+    [(.let-values bindings body _)
      (define-values (count-occs count-bindings)
        (for/fold ([count-occs : Integer 0] [count-bindings : Integer 0])
                  ([binding bindings])

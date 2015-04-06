@@ -455,8 +455,9 @@
          [(and ref (.ref (.id name in) ctx))
           (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
               (cons (.▹/κ  (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
-         [(.let-values (list (cons 1 eₓ)) e)
-          (.ς (.↓ eₓ ρ) σ (cons (.let/κ '() '() ρ e) k))]
+         [(.let-values '() e _) (step-E (.↓ e ρ) σ k)]
+         [(.let-values (cons (cons nₓ eₓ) bnds) e ctx)
+          (.ς (.↓ eₓ ρ) σ (cons (.let-values/κ nₓ bnds '() ρ e ctx) k))]
          [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
          [(.if i t e) (.ς (.↓ i ρ) σ (cons (.if/κ (.↓ t ρ) (.↓ e ρ)) k))]
          [(.amb e*) (for/set: : (Setof .ς) ([e e*]) (.ς (.↓ e ρ) σ k))]
@@ -473,17 +474,14 @@
   
   (: step-V : .V .σ .κ .κ* → .ς*)
   (define (step-V V σ κ k)
+    (when (match? V (.// '• _))
+      (error 'Impossible "~a" (show-ς (.ς (-Vs V) σ (cons κ k)))))
     (match κ
       [(.if/κ E1 E2)
        (match/nd (δ σ 'false? (list V) 'Λ)
          [(cons σt (-Vs (.// (.b #f) _))) (.ς E1 σt k)]
          [(cons σf (-Vs (.// (.b #t) _))) (.ς E2 σf k)])]
 
-      [(.let/κ '() Vs ρ e)
-       (.ς (.↓ e (ρ++ ρ (reverse (cons V Vs)))) σ k)]
-      [(.let/κ (cons eₓ es) Vs ρ e)
-       (.ς (.↓ eₓ ρ) σ (cons (.let/κ es (cons V Vs) ρ e) k))]
-      
       [(.@/κ (cons E1 Er) V* l) (.ς E1 σ (cons (.@/κ Er (cons V V*) l) k))]
       [(.@/κ '() V* l)
        (match-define (cons Vf Vx*) (reverse (cons V V*)))
@@ -512,15 +510,24 @@
       [(.structc/κ t '() _ c↓) (.ς (-Vs (→V (.St/C t (reverse (cons V c↓))))) σ k)]
       [(.structc/κ t (cons c c*) ρ c↓) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ (cons V c↓)) k))]))
 
-  (: step-Vs : .Vs .σ .κ .κ* → .ς*)
+  (: step-Vs : (Listof .V) .σ .κ .κ* → .ς*)
   (define (step-Vs Vs σ κ k)
-    (todo 'step-Vs))
+    (match κ
+      [(.let-values/κ n bnds vals ρ e ctx)
+       (cond
+         [(= n (length Vs))
+          (match bnds
+            [(list) (.ς (.↓ e (ρ++ (ρ++ ρ vals) Vs)) σ k)]
+            [(cons (cons nₓ eₓ) bnds*)
+             (.ς (.↓ eₓ ρ) σ
+                 (cons (.let-values/κ nₓ bnds* (append vals Vs #|order matters|#) ρ e ctx) k))])]
+         [else (.ς (.blm ctx 'let-values (Prim (length Vs)) (=/C (Prim n))) σ k)])]
+      [κ (match Vs
+           [(list V) (step-V V σ κ k)]
+           [_ (todo "Blame sub-expression for wrong arity")])]))
   
   (match-lambda
-    [(.ς (-Vs V) σ (cons κ k))
-     (when (match? V (.// '• _))
-       (error 'Impossible "~a" (show-ς (.ς (-Vs V) σ (cons κ k)))))
-     (step-V V σ κ k)]
+    [(.ς (.Vs Vs) σ (cons κ k)) (step-Vs Vs σ κ k)]
     [(.ς (? .E? E) σ k) (step-E E σ k)]))
 
 ;; Replace label in state

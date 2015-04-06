@@ -7,7 +7,14 @@
 
 (define-data .κ
   (struct .if/κ [t : .E] [e : .E])
-  (struct .let/κ [xs : (Listof .expr)] [vs : (Listof .V)]
+  (struct .let-values/κ
+    [pending-arity : Integer]
+    [bnds : (Listof (Pairof Integer .expr))]
+    [vals : (Listof .V)]
+    [env : .ρ]
+    [body : .expr]
+    [ctx : Mon-Party])
+  #;(struct .let/κ [xs : (Listof .expr)] [vs : (Listof .V)]
                  [env : .ρ] [body : .expr]) ;FIXME generalize to `let-values`
   (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Mon-Party])
   (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l³ : Mon-Info])
@@ -95,7 +102,7 @@
   (define V (curry show-V σ))
   (match κ
     [(.if/κ t e) `(if ∘ ,(E t) ,(E e))]
-    [(.let/κ xs vs ρ e) `(let …)]
+    [(? .let-values/κ?) '(let-values …)]
     [(.@/κ e* v* _) `(@ ,@(reverse (map V v*)) ∘ ,@(map E e*))]
     [(.▹/κ (cons #f (? .E? e)) _) `(∘ ▹ ,(E e))]
     [(.▹/κ (cons (? .E? C) #f) _) `(,(E C) ▹ ∘)]
