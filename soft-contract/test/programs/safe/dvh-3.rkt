@@ -8,9 +8,9 @@
 (define (mult2 x y) (* x y))
 
 (provide/contract
- [  eq  (->i ([x number?]) (res (x) (=/c x)))]
- [succ  (->i ([x number?]) (res (x) (=/c (add1 x))))]
- [succ2 (->i ([x number?]) (res (x) (lambda (z) (= x (sub1 z)))))]
- [mult  (->i ([x number?] [y number?]) (res (x y) (=/c (* x y))))]
+ [  eq  (->i ([x real?]) (res (x) (=/c x)))]
+ [succ  (->i ([x real?]) (res (x) (=/c (add1 x))))]
+ [succ2 (->i ([x real?]) (res (x) (lambda (z) (= x (sub1 z)))))]
+ [mult  (->i ([x real?] [y real?]) (res (x y) (=/c (* x y))))]
  ;; reverse order of mult in contract from implementation
- [mult2 (->i ([x number?] [y number?]) (res (x y) (=/c (* y x))))])
+ [mult2 (->i ([x real?] [y real?]) (res (x y) (=/c (* y x))))])
