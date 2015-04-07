@@ -21,7 +21,7 @@
 ;; TODO For testing only
 (define ids (box '()))
 
-(define/contract cur-mod (parameter/c module-path?)
+(define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
 
 (define (index->path i)
@@ -45,7 +45,7 @@
   (log-debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
-     (define mod-path (module-path #'id))
+     (define mod-path (path->string (simplify-path (syntax-source #'id))))
      (.module
       mod-path
       (parameterize ([cur-mod mod-path])
@@ -101,7 +101,7 @@
   (syntax-parse form
     [((~literal module) id path ((~literal #%plain-module-begin) d ...))
      (.module
-      (module-path #'id)
+      (path->string (simplify-path (syntax-source #'id)))
       (.plain-module-begin (map parse-module-level-form (syntax->list #'(d ...)))))]
     [((~literal module*) _ ...) (todo 'module*)]
     [_ #f]))
@@ -136,17 +136,6 @@
      (.require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
     [_ (parse-expr form)]))
-
-(define/contract (module-path stx)
-  (identifier? . -> . module-path?)
-  
-  (syntax-parse stx
-    [i:identifier
-     (match (identifier-binding #'i)
-       [(and X (list (app index->path (list src self?)) _ _ _ _ _ _))
-        #;(error 'debug "binding: ~a~n" (first X))
-        (.ref (.id (syntax-e #'i) (path->string (simplify-path src))) (cur-mod))]
-       [#f #|FIXME|# (syntax->datum stx)])]))
 
 (define dummy-id #'dummy)
 
@@ -390,7 +379,7 @@
   (path-string? . -> . any/c)
   (define stx (do-expand-file path))
   (for/list ([stxᵢ (in-list (syntax->list stx))]
-        #:unless (scv-ignore? stxᵢ))
+             #:unless (scv-ignore? stxᵢ))
     (syntax->datum stxᵢ)))
 
 ;; Testing only
@@ -399,3 +388,4 @@
 
 ;(test "test/programs/fail-ce/argmin.rkt")
 ;(test "test/programs/safe/ex-13.rkt")
+;(test "a.rkt" "b.rkt")

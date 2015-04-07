@@ -9,8 +9,8 @@
 (define-type .begin/expr (.begin .expr))
 (define-type .begin/top (.begin .top-level-form))
 
-(define-type/pred Restricted-Module-Path (U Symbol String) #|TODO|#)
-(define-type Mon-Party Restricted-Module-Path)
+(define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
+(define-type Mon-Party Adhoc-Module-Path)
 (define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
 
 (: swap-parties : Mon-Info → Mon-Info)
@@ -24,7 +24,7 @@
   [((list e)) e]
   [(es) (.begin es)])
 
-(struct .id ([name : Symbol] [from : Restricted-Module-Path]) #:transparent)
+(struct .id ([name : Symbol] [from : Adhoc-Module-Path]) #:transparent)
 
 ;; Subset of Racket reference 1.2.3.1
 
@@ -45,13 +45,13 @@
   (struct .require [specs : (Listof .require-spec)]))
 
 (define-data .submodule-form
-  (struct .module [path : Restricted-Module-Path] [body : .plain-module-begin]))
+  (struct .module [path : Adhoc-Module-Path] [body : .plain-module-begin]))
 
 (define-data .provide-spec
   (struct .p/c-item [id : Symbol] [spec : .expr] #|TODO|#))
 
 (define-data .require-spec
-  Restricted-Module-Path #|TODO|#)
+  Adhoc-Module-Path #|TODO|#)
 
 (struct .plain-module-begin ([body : (Listof .module-level-form)]) #:transparent)
 
@@ -398,7 +398,7 @@
   (not
    (for/and : Boolean ([exported-id : Symbol (in-set exports)])
      (for/or : Boolean ([defined-id : Symbol (in-set defines)])
-       (eq? exported-id defined-id)))))
+       (equal? exported-id defined-id)))))
 
 (: .amb/remember : (Listof .expr) → .expr)
 (define/match (.amb/remember es)
@@ -459,7 +459,7 @@
   (match-define (.module _ (.plain-module-begin forms)) m)
   (or (for/or : (U #f .expr) ([form (in-list forms)])
         (match form
-          [(.define-values (list x) e) (and (eq? x name) e)]
+          [(.define-values (list x) e) (and (equal? x name) e)]
           [(.define-values xs (.@ 'values vs _))
            (cond [(index-of xs name) => (λ ([i : Integer]) (list-ref vs i))]
                  [else #f])]
@@ -478,13 +478,13 @@
           [(.provide specs)
            (for/or : (U #f .expr) ([spec (in-list specs)])
              (match-define (.p/c-item x c) spec)
-             (and (eq? x name) c))]
+             (and (equal? x name) c))]
           [_ #f]))
       (error 'ref->ctc "Module `~a` does not provide `~a`" from name)))
 
-(: path->module : (Listof .module) Restricted-Module-Path → .module)
+(: path->module : (Listof .module) Adhoc-Module-Path → .module)
 (define (path->module ms x)
   ;; - figure out module-path properly
-  (or (for/or : (U #f .module) ([m (in-list ms)] #:when (eq? (.module-path m) x))
+  (or (for/or : (U #f .module) ([m (in-list ms)] #:when (equal? (.module-path m) x))
         m)
       (error 'path->module "Cannot find module `~a`" x)))
