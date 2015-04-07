@@ -1,7 +1,7 @@
 #lang racket/base
-(require racket/match racket/list racket/set racket/bool
+(require racket/match racket/list racket/set racket/bool racket/function
          "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
-         syntax/parse racket/pretty racket/contract
+         syntax/parse syntax/modresolve racket/pretty racket/contract
          "expand.rkt"
          (prefix-in fake: "fake-contract.rkt"))
 (provide (all-defined-out) #;read-p #;on-•!)
@@ -23,10 +23,6 @@
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
-
-(define (index->path i)
-  (define-values (v _) (module-path-index-split i))
-  (list (resolved-module-path-name (module-path-index-resolve i)) #f))
 
 (define scv-syntax? (and/c syntax? (not/c scv-ignore?)))
 (define env? (listof identifier?))
@@ -277,23 +273,8 @@
       (match (identifier-binding #'i)
         ['lexical (.x (id->sd ctx #'i))]
         [#f (.x (id->sd ctx #'i))]
-        [(and X (list (app index->path (list src self?)) _ _ _ _ _ _))
-         (set-box! ids (cons #'i (unbox ids)))
-         #;(debug "Identifier: ~a~nName: ~a~nPath: ~a~n~n"
-                 #'i
-                 (syntax->datum #'i)
-                 (if (path? src)
-                     (path->string (simplify-path src #f))
-                     src))
-         (define idsym (id->sym #'i))
-         (define modsym (symbol->string (syntax-e stx)))
-         (define src-mod
-           (cond [(path? src) (path->string (simplify-path src #f))]
-                 [(eq? src '#%kernel) 'Λ #|hack|#]
-                 [#|FIXME hack|# (equal? (symbol->string src) "expanded module") (cur-mod)]
-                 [src src]
-                 [else 'null]))
-         (.ref (.id (syntax-e #'i) src-mod) (cur-mod))]))]))
+        [(list (app (λ (x) (path->string (resolve-module-path-index x (cur-mod)))) src) _ _ _ _ _ _)
+         (.ref (.id (syntax-e #'i) src) (cur-mod))]))]))
 
 ;; Parse given `formals` to extend environment
 (define/contract (parse-formals ctx formals)
@@ -388,4 +369,4 @@
 
 ;(test "test/programs/fail-ce/argmin.rkt")
 ;(test "test/programs/safe/ex-13.rkt")
-;(test "a.rkt" "b.rkt")
+
