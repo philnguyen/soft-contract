@@ -14,7 +14,8 @@
          dynamic->i
          dynamic-struct/c
          =/c >/c >=/c </c <=/c
-         not/c cons/c)
+         not/c cons/c
+         one-of/c)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()

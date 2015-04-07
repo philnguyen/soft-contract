@@ -205,6 +205,7 @@
     [(#%plain-app (~literal fake:</c) c) (.comp/c '< (go #'c))]
     [(#%plain-app (~literal fake:<=/c) c) (.comp/c '<= (go #'c))]
     [(#%plain-app (~literal fake:cons/c) c d) (.cons/c (go #'c) (go #'d))]
+    [(#%plain-app (~literal fake:one-of/c) c ...) (apply .one-of/c (go/list #'(c ...)))]
 
     ;; primitive contracts
     [(~literal fake:any/c) .any/c]

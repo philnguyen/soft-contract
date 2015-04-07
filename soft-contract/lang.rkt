@@ -232,7 +232,7 @@
                [mk-or/c (.st-mk (.id 'or/c 'Λ) 2)]
                [mk-cons/c (.st-mk (.id 'cons/c 'Λ) 2)]
                [mk-not/c (.st-mk (.id 'not/c 'Λ) 1)])
-  (:* .and/c .or/c : .expr * → .expr)
+  (:* .and/c .or/c .one-of/c : .expr * → .expr)
   (define .and/c
     (match-lambda*
       [(list) .any/c]
@@ -243,6 +243,11 @@
       [(list) .none/c]
       [(list c) c]
       [(cons c cs) (.@ mk-or/c (list c (apply .or/c cs)) 'Λ)]))
+  (define .one-of/c
+    (match-lambda*
+      [(list) .none/c]
+      [(list e) (.λ 1 (.@ 'equal? (list .x₀ e) 'Λ))]
+      [(cons e es) (.or/c (.λ 1 (.@ 'equal? (list .x₀ e) 'Λ)) (apply .one-of/c es))]))
   
   (: .cons/c : .expr .expr → .expr)
   (define (.cons/c c d) (.struct/c (.id 'cons 'Λ) (list c d)))
