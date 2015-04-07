@@ -3,4 +3,4 @@
 
 (define (f x) x)
 
-(provide/contract [f (->i ([x number?]) (res (x) (=/c x)))])
+(provide/contract [f (->i ([x real?]) (res (x) (=/c x)))])
