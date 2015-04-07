@@ -5,6 +5,6 @@
   (let ([z (car xs)]
 	[zs (cdr xs)])
     (if (empty? zs) z
-	(foldl1 f (cons (f z (car zs)) (cdr zs))))))q
+	(foldl1 f (cons (f z (car zs)) (cdr zs))))))
 
-(provide/contract [foldl1 ((any/c any/c . -> . any/c) (nelistof any/c) . -> . any/c)])
+(provide/contract [foldl1 ((any/c any/c . -> . any/c) (cons/c any/c (listof any/c)) . -> . any/c)])
