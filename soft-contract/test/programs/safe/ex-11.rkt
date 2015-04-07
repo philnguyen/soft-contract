@@ -1,11 +1,8 @@
- (module f racket
-  (provide/contract [f (cons? . -> . symbol?)])
-  (require (submod ".." g))
-  (define (f p)
-    (if (and (number? (car p)) (number? (cdr p))) (g p) 'no)))
+#lang racket
+(require soft-contract/fake-contract)
 
-(module g racket
-  (provide/contract [g ((cons/c number? number?) . -> . symbol?)]))
+(define (f g p)
+  (if (and (number? (car p)) (number? (cdr p))) (g p) 'no))
 
-(require 'f)
-(f •)
+(provide/contract
+ [f (((cons/c number? number?) . -> . symbol?) cons? . -> . symbol?)])
