@@ -1,5 +1,6 @@
 #lang racket/base
 (require racket/match racket/list racket/set racket/bool racket/function
+         web-server/private/util
          "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
          syntax/parse syntax/modresolve racket/pretty racket/contract
          "expand.rkt"
@@ -36,15 +37,21 @@
   ((listof scv-syntax?) . -> . (listof .module?))
   (todo 'parse-mods))
 
+(define (mod-path->mod-name p)
+  (match p ; hacks
+    ['#%kernel 'Λ]
+    [(and (? symbol?) (app symbol->string "expanded module")) (cur-mod)]
+    [_ (path->string (simplify-path p))]))
+
 (define/contract (parse-top-level-form form)
   (scv-syntax? . -> . .top-level-form?)
   (log-debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
-     (define mod-path (path->string (simplify-path (syntax-source #'id))))
+     (define mod-name (mod-path->mod-name (simplify-path (syntax-source #'id))))
      (.module
-      mod-path
-      (parameterize ([cur-mod mod-path])
+      mod-name
+      (parameterize ([cur-mod mod-name])
         (.plain-module-begin
          (filter
           values
@@ -263,6 +270,8 @@
     ;; Hacks for now
     [(~literal null) .null]
     [(~literal null?) .null/c]
+    [(~literal empty) .null]
+    [(~literal empty?) .null/c]
     [(~literal positive?) (go #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal negative?) (go #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal zero?) (go #'(#%plain-lambda (x) (#%plain-app = x 0)))]
@@ -273,7 +282,12 @@
       (match (identifier-binding #'i)
         ['lexical (.x (id->sd ctx #'i))]
         [#f (.x (id->sd ctx #'i))]
-        [(list (app (λ (x) (path->string (resolve-module-path-index x (cur-mod)))) src) _ _ _ _ _ _)
+        [(list (app (λ (x)
+                      (parameterize ([current-directory (directory-part (cur-mod))])
+                        (mod-path->mod-name
+                         (resolved-module-path-name (module-path-index-resolve x)))))
+                    src)
+               _ _ _ _ _ _)
          (.ref (.id (syntax-e #'i) src) (cur-mod))]))]))
 
 ;; Parse given `formals` to extend environment
@@ -366,7 +380,3 @@
 ;; Testing only
 (define (test . files)
   (files->prog files))
-
-;(test "test/programs/fail-ce/argmin.rkt")
-;(test "test/programs/safe/ex-13.rkt")
-
