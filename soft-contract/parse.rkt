@@ -298,7 +298,9 @@
     [e:boolean (.b (syntax-e #'e))]
     [e:id (.b (syntax-e #'e))]
     [e:keyword (.b (syntax-e #'e))]
-    [(e ...) (apply .list (map parse-quote (syntax->list #'(e ...))))]
+    [(l . r)
+     (.@ .cons (list (parse-quote #'l) (parse-quote #'r)) (cur-mod))]
+    [() .null]
     [e (error 'parse-quote "unsupported quoted form: ~a" (syntax-e #'e))]))
 
 ;; Parse given `formals` to extend environment
