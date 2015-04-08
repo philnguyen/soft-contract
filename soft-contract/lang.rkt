@@ -160,12 +160,12 @@
     [(.x sd) (if (>= sd d) {set (- sd d)} ∅)]
     [(.λ xs e) (match xs
                  [(? integer? n) (FV e (+ d n))]
-                 [(cons n _) (FV e (+ d n))])]
+                 [(cons n _) (FV e (+ d n 1))])]
     [(.@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
                    (set-union FVs (FV x d)))]
     [(.let-values bnds e _)
      (define-values (δ xs)
-       (for/fold ([δ : Integer 0] [xs : (Setof Integer) ∅]) ([bnd (in-list bnds)])
+       (for/fold ([δ : Integer 0] [xs : (Setof Integer) ∅]) ([bnd bnds])
          (match-define (cons n eₓ) bnd)
          (values (+ δ n) (set-union xs (FV eₓ d)))))
      (set-union xs (FV e (+ δ d)))]
@@ -181,6 +181,35 @@
     [(.struct/c _ cs) (for/fold ([FVs : (Setof Integer) ∅]) ([c cs])
                         (set-union FVs (FV c d)))]
     [_ (log-debug "FV(~a) = ∅~n" e) ∅]))
+
+(: shift-FV : .expr Integer → .expr)
+;; Shift free-variables in expression by given amount
+(define (shift-FV e d)
+  (let go ([d₀ 0] [e e])
+    (match e
+      [(.x sd) (if (>= sd d₀) (.x (+ sd d)) e)]
+      [(.λ xs e) (match xs
+                   [(? integer? n) (.λ xs (go (+ d₀ n) e))]
+                   [(cons n _) (.λ xs (go (+ d₀ 1 n) e))])]
+      [(.@ f xs ctx) (.@ (go d₀ f) (map (curry go d₀) xs) ctx)]
+      [(.let-values bnds e ctx)
+       (define-values (δ bnds-rev)
+         (for/fold ([δ : Integer 0] [bnds-rev : (Listof (Pairof Integer .expr)) '()])
+                   ([bnd bnds])
+           (match-define (cons nₓ eₓ) bnd)
+           (values (+ δ nₓ) (cons (cons nₓ (go d₀ eₓ)) bnds-rev))))
+       (.let-values (reverse bnds-rev)
+                    (go (+ d₀ δ) e)
+                    ctx)]
+      [(.@-havoc x) (.@-havoc (assert (go d₀ x) .x?))]
+      [(.if e e₁ e₂) (.if (go d₀ e) (go d₀ e₁) (go d₀ e₂))]
+      [(.amb es) (.amb (for/set: : (Setof .expr) ([e es])
+                         (go d₀ e)))]
+      [(.μ/c x e) (.μ/c x (go d₀ e))]
+      [(.->i cx cy #f)
+       (.->i (map (curry go d₀) cx) (go (+ d₀ (length cx)) cy) #f)]
+      [(.struct/c t cs) (.struct/c t (map (curry go d₀) cs))]
+      [e (log-debug "shift-FV⟦~a⟧ = ~a~n" e e) e])))
 
 (define (closed? [e : .expr]) (set-empty? (FV e)))
 
@@ -270,7 +299,7 @@
 
 (: .comp/c : .o2 .expr → .expr)
 (define (.comp/c op e)
-  (.λ 1 (.and (.@ 'real? (list .x₀) 'Λ) (.@ op (list .x₀ e) 'Λ))))
+  (.λ 1 (.and (.@ 'real? (list .x₀) 'Λ) (.@ op (list .x₀ (shift-FV e 1)) 'Λ))))
 
 (: .let : (Listof .expr) .expr → .expr)
 (define (.let xs e) ; FIXME expand to let-values instead
