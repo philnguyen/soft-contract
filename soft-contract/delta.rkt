@@ -20,12 +20,12 @@
   [#:predicate <= : real? real?]
   [#:predicate > : real? real?]
   [#:predicate >= : real? real?]
-  [(add1 : [x : number?] → (∧ number? (=/c (+ 1 x))))
+  [(add1 : [x : number?] → (∧ number? (=/c (+ x 1))))
    #:refinements
    (real? → real?)
    (integer? → integer?)
    ((>/c 0) → (>/c 0))]
-  [(sub1 : [x : number?] → (∧ number? (=/c (+ 1 x))))
+  [(sub1 : [x : number?] → (∧ number? (=/c (- x 1))))
    #:refinements
    (real? → real?)
    (integer? → integer?)
