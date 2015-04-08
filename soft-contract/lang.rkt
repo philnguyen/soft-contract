@@ -284,6 +284,9 @@
   (: .not/c : .expr → .expr)
   (define (.not/c c) (.@ (.st-mk (.id 'not/c 'Λ) 1) (list c) 'Λ)))
 
+(: .list/c : .expr * → .expr)
+(define (.list/c . cs) (foldr .cons/c .null/c cs))
+
 ;; Macros
 (:* .and .or : .expr * → .expr)
 (define .and

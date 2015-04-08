@@ -196,7 +196,7 @@
     [(#%plain-app (~literal fake:listof) c)
      (.μ/c 'X (.or/c .null/c (.cons/c (go #'c) (.x/c 'X))))]
     [(#%plain-app (~literal fake:list/c) c ...)
-     (foldr .cons/c .null/c (go/list #'(c ...)))]
+     (apply .list/c (go/list #'(c ...)))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (.struct/c (.id (syntax-e #'tag) (cur-mod)) (go/list #'(c ...)))]
     [(#%plain-app (~literal fake:=/c) c) (.comp/c '= (go #'c))]
@@ -256,12 +256,19 @@
         (cons arity
               (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
                         (parse-expr body ctx′))))))]
-    [(letrec-values _ ...) (todo 'letrec-values)]
+    [(letrec-values _ ...)
+     (printf "Skipping let-rec-values for now~n")
+     (.b 'dummy)
+     #;(todo 'letrec-values)]
     [(quote e:number) (.b (syntax->datum #'e))]
     [(quote e:str) (.b (syntax->datum #'e))]
     [(quote e:boolean) (.b (syntax->datum #'e))]
     [(quote e:id) (.b (syntax->datum #'e))]
-    [(quote e) (todo "support arbitrary quote")]
+    [(quote ()) .null]
+    [(quote e)
+     (printf "Skipping '~a for now~n" (syntax->datum #'e))
+     (.b 'dummy)
+     #;(todo "support arbitrary quote")]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
@@ -345,6 +352,7 @@
 
 (define/contract (parse-provide-spec spec)
   (scv-syntax? . -> . .provide-spec?)
+  (printf "Warning: shouldn't reach `parse-provide-spec` if using `fake-contract`~n")
   (syntax-parse spec
     [i:identifier #'i]
     [_ (error 'parse-provide-spec "unexpected: ~a" spec)]))
