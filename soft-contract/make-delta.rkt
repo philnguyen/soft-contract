@@ -55,7 +55,6 @@
 
 (: refine : .σ .V (U (Setof .V) (Listof .V) .V) * → .Vns)
 (define (refine σ V . Css)
-  (printf "refine: ~a by ~a~n" (show-V σ V) Css)
   (: go : .σ .V (Listof (U (Setof .V) (Listof .V) .V)) → .Vns)
   (define (go σ V Css)
     #;(log-debug "REFINE:~n~a~n~a~n~a~n~n" σ V Css)
