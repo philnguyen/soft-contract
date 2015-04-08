@@ -202,7 +202,7 @@
                 (.ς (.blm l lo (Prim (length V*))(if v? (arity≥/C (- C# 1)) (arity=/C C#))) σ k)))]
          [_
           (match/nd (δ σ 'procedure? (list Vf) 'Λ)
-            [(cons σt (-Vs (.// (.b #t) _))) (error "impossible" (show-V σ Vf))]
+            [(cons σt (-Vs (.// (.b #t) _))) (error "impossible" (show-V σt Vf))]
             [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l 'Λ Vf PROC/C) σf k)])])]
       [(and L (.L i))
        (match/nd (δ σ 'procedure? (list L) 'Λ)
@@ -262,7 +262,7 @@
              (match/nd (δ σ (.st-p t (length C*)) (list V) l)
                [(cons σt (-Vs (.// (.b #t) _)))
                 (match-let ([(.// (.St t V*) _) (σ@ σt V)])
-                  (and/ς (for/list ([Vi V*] [Ci C*]) (.FC Ci Vi l)) σ k))]
+                  (and/ς (for/list ([Vi V*] [Ci C*]) (.FC Ci Vi l)) σt k))]
                [(cons σf (-Vs (.// (.b #f) _))) (.ς -VsFF σf k)])]
             [_ (step-@ C (list V) l σ k)])]
          [(.L _) (step-@ C (list V) l σ k)])]))
@@ -638,3 +638,4 @@
   (define E′ (go! E))
   (define k′ (go! k))
   (.ς (fixup/E E′) (fixup/σ σ) (fixup/κ* k′)))
+

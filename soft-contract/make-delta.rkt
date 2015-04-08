@@ -30,11 +30,11 @@
     [((.L i) (.L i)) (cons σ TT)]
     [((.L i) (and (.// (not (? .•?)) _) V2))
      (match/nd: (.Vns → .Vns) (V=? σ (σ@ σ i) V2)
-       [(cons σt (.// (.b #t) _)) (cons (σ-set σ i V2) TT)]
+       [(cons σt (.// (.b #t) _)) (cons (σ-set σt i V2) TT)]
        [a a])]
     [((and (.// (not (? .•?)) _) V1) (.L i))
      (match/nd: (.Vns → .Vns) (V=? σ V1 (σ@ σ i))
-       [(cons σt (.// (.b #t) _)) (cons (σ-set σ i V1) TT)]
+       [(cons σt (.// (.b #t) _)) (cons (σ-set σt i V1) TT)]
        [a a])]
     [(_ (.L i)) (V=? σ V1 (σ@ σ i))]
     [((.L i) _) (V=? σ (σ@ σ i) V2)]
@@ -55,6 +55,7 @@
 
 (: refine : .σ .V (U (Setof .V) (Listof .V) .V) * → .Vns)
 (define (refine σ V . Css)
+  (printf "refine: ~a by ~a~n" (show-V σ V) Css)
   (: go : .σ .V (Listof (U (Setof .V) (Listof .V) .V)) → .Vns)
   (define (go σ V Css)
     #;(log-debug "REFINE:~n~a~n~a~n~a~n~n" σ V Css)
@@ -131,7 +132,7 @@
             [((? .L?) _) (refine σ X₁ (.¬/C C₂))]
             [(_ (? .L?)) (refine σ X₂ (.¬/C C₁))]
             [(_ _) (cons σ 'ignore)]))
-        {set (cons σt TT) (cons σt FF)}])]))
+        {set (cons σt TT) (cons σf FF)}])]))
 
 (: refine-C* : (Setof .V) .V → (Setof .V))
 (define (refine-C* Cs C)
