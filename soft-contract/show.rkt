@@ -179,11 +179,11 @@
 (define (inlinable? [e : .expr]) : Boolean
   (or (.x? e) (.ref? e) (.prim? e)))
 
-(: show-b : (U Number String Boolean Symbol) → Sexp)
+(: show-b : (U Number String Boolean Symbol Keyword) → Sexp)
 (define (show-b x)
   (cond
    [(string? x) (format "\"~a\"" x)]
-   [(symbol? x) `(quote x)]
+   [(or (symbol? x) (keyword? x)) `(quote x)]
    [(and (real? x) (inexact? x))
     (define s (number->string x))
     (substring s 0 (min (string-length s) 5))]

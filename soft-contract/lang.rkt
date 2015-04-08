@@ -66,14 +66,14 @@
       (struct .•ₗ [l : Negative-Integer]))
     (subset: .prim
       ;; primitive values that can appear in syntax
-      (struct .b [unboxed : (U Number Boolean String Symbol #|Sexp Bytes Regexp PRegexp|#)])
+      (struct .b [unboxed : (U Number Boolean String Symbol Keyword #|Sexp Bytes Regexp PRegexp|#)])
       (subset: .o
         'values
         (subset: .o1
           (subset: .pred
             ;; `arity` is the number of fields in the struct
             (struct .st-p [tag : .id] [arity : Integer])
-            'number? 'real? 'integer? 'false? 'boolean? 'string? 'symbol? 'procedure?)
+            'number? 'real? 'integer? 'false? 'boolean? 'string? 'symbol? 'procedure? 'keyword?)
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
           (struct .st-ac [tag : .id] [arity : Integer] [index : Integer])
@@ -286,6 +286,10 @@
 
 (: .list/c : .expr * → .expr)
 (define (.list/c . cs) (foldr .cons/c .null/c cs))
+
+(: .list : .expr * → .expr)
+(define (.list . es)
+  (foldr (λ ([eᵢ : .expr] [es : .expr]) (.@ .cons (list eᵢ es) 'Λ)) .null es))
 
 ;; Macros
 (:* .and .or : .expr * → .expr)

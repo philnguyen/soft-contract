@@ -14,6 +14,7 @@
   [#:predicate string?]
   [#:predicate symbol?]
   [#:predicate procedure?]
+  [#:predicate keyword?]
 
   [#:predicate = : number? number?]
   [#:predicate < : real? real?]

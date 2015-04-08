@@ -260,15 +260,7 @@
      (printf "Skipping let-rec-values for now~n")
      (.b 'dummy)
      #;(todo 'letrec-values)]
-    [(quote e:number) (.b (syntax->datum #'e))]
-    [(quote e:str) (.b (syntax->datum #'e))]
-    [(quote e:boolean) (.b (syntax->datum #'e))]
-    [(quote e:id) (.b (syntax->datum #'e))]
-    [(quote ()) .null]
-    [(quote e)
-     (printf "Skipping '~a for now~n" (syntax->datum #'e))
-     (.b 'dummy)
-     #;(todo "support arbitrary quote")]
+    [(quote e) (parse-quote #'e)]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
@@ -297,6 +289,17 @@
                     src)
                _ _ _ _ _ _)
          (.ref (.id (syntax-e #'i) src) (cur-mod))]))]))
+
+(define/contract (parse-quote stx)
+  (scv-syntax? . -> . .expr?)
+  (syntax-parse stx
+    [e:number (.b (syntax-e #'e))]
+    [e:str (.b (syntax-e #'e))]
+    [e:boolean (.b (syntax-e #'e))]
+    [e:id (.b (syntax-e #'e))]
+    [e:keyword (.b (syntax-e #'e))]
+    [(e ...) (apply .list (map parse-quote (syntax->list #'(e ...))))]
+    [e (error 'parse-quote "unsupported quoted form: ~a" (syntax-e #'e))]))
 
 ;; Parse given `formals` to extend environment
 (define/contract (parse-formals ctx formals)

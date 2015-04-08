@@ -215,7 +215,7 @@
                 [(.St (? identifier? t) V*) {set (→V (.st-p t (length V*)))}]
                 [_ ∅]))
 
-(: b^ : (U Number String Symbol Boolean) → (Setof .V))
+(: b^ : (U Number String Symbol Boolean Keyword) → (Setof .V))
 (define b^
   (match-lambda
     [(? integer? n) (set-union {set (Prim 'integer?) (Prim 'real?) (Prim 'number?)} (sign/C n))]
@@ -223,6 +223,7 @@
     [(? number? x) {set (Prim 'number?)}]
     [(? string?) {set (Prim 'string?)}]
     [(? symbol?) {set (Prim 'symbol?)}]
+    [(? keyword? x) {set (Prim 'keyword?)}]
     [#t {set (.¬/C (Prim 'false?)) (Prim 'boolean?)}]
     [#f {set (Prim 'false?) (Prim 'boolean?)}]))
 
