@@ -256,10 +256,22 @@
         (cons arity
               (-begin (for/list ([body (in-list (syntax->list bodiesᵢ))])
                         (parse-expr body ctx′))))))]
-    [(letrec-values _ ...)
-     (printf "Skipping let-rec-values for now~n")
-     (.b 'dummy)
-     #;(todo 'letrec-values)]
+    [(letrec-values () b ...) (-begin (go/list #'(b ...)))]
+    [(letrec-values (bindings ...) b ...)
+     (define bnds (syntax->list #'(bindings ...)))
+     (define-values (total-xs ctx′)
+       (for/fold ([total-xs 0] [ctx′ ctx]) ([bnd (in-list bnds)])
+         (syntax-parse bnd
+           [((x ...) e)
+            (define xs (syntax->list #'(x ...)))
+            (values (+ total-xs (length xs)) (ext-env ctx′ xs))])))
+     (.letrec-values
+      (for/list ([bnd (in-list bnds)])
+        (syntax-parse bnd
+          [((x ...) eₓ) (cons (length (syntax->list #'(x ...))) (parse-expr #'eₓ ctx′))]))
+      (-begin (for/list ([e (in-list (syntax->list #'(b ...)))])
+                (parse-expr e ctx′)))
+      (cur-mod))]
     [(quote e) (parse-quote #'e)]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
