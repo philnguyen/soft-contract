@@ -18,6 +18,4 @@
 
 (provide/contract
  [f ((integer? integer? . -> . integer?) . -> . (integer? integer? . -> . integer?))]
- [unzip (integer? (integer? integer? . -> . integer?) . -> . integer?)]
- [zip (integer? integer? . -> . integer?)]
  [main (integer? . -> . integer?)])
