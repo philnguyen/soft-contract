@@ -51,7 +51,7 @@
                               (.@ (? arith?)
                                   (list (or (.x _) (.b (? number?)))
                                         (or (.x _) (.b (? number?)))) _)) _)) _) _)
-    (.// (.St 'not/c (list (? handled? C′))) _)))
+    (.// (.St (.id 'not/c 'Λ) (list (? handled? C′))) _)))
 
 (: arith? : .expr → Boolean)
 (define (arith? e)
@@ -213,7 +213,7 @@
                     (maybe-convert type-Y (→lab Y)))
             (labels i X Y))])]
        [_ (values #f ∅)])]
-    [(.// (.St 'not/c (list D)) _)
+    [(.// (.St (.id 'not/c 'Λ) (list D)) _)
      (define-values (q i*) (gen σ i D))
      (values (match q [(? string? s) (format "(not ~a)" s)] [_ #f]) i*)]
     [_ (values #f ∅)]))

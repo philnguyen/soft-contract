@@ -34,19 +34,14 @@
                                            (cons (σ-set σ′ i V′) V))]
                     [(? .//? V′) (cons (σ-set σ′ i V′) V)]
                     [(? .μ/V? V′) (cons (σ-set σ′ i V′) V)] ; duplicate to get around TR
-                    [_ (error "broken =_=" V)]))
-         #;(match (refine1 σ (σ@ σ i) C)
-         [(cons σ (? .L? L)) (cons σ L)]
-         [(cons σ′ V′) (if (or (.//? V′) (.μ/V? V′))
-                           (cons (σ-set σ′ i V′) V)
-                           (error "broken: " V′))])]
+                    [_ (error "broken =_=" V)]))]
       [(.// U C*)
        (match C
          [(.L _) (cons σ (.// U (set-add C* C)))]
          [(.// Uc _)          
           (match Uc
-            [(.St 'and/c (list C1 C2)) (raw:refine σ V C1 C2)]
-            [(.St 'or/c (list C1 C2))
+            [(.St (.id 'and/c 'Λ) (list C1 C2)) (raw:refine σ V C1 C2)]
+            [(.St (.id 'or/c 'Λ) (list C1 C2))
              (match* ((⊢ σ V C1) (⊢ σ V C2))
                [('X 'X) (error "WTF??")]
                [(_ 'X) (refine1 σ V C1)]
@@ -403,8 +398,8 @@
     [(.L _) (.// '• {set C})]
     [(.// Uc _)
      (match Uc
-       [(.St 'and/c (list C1 C2)) (refine-V (reify C1) C2)]
-       [(.St 'or/c (list C1 C2))
+       [(.St (.id 'and/c 'Λ) (list C1 C2)) (refine-V (reify C1) C2)]
+       [(.St (.id 'or/c 'Λ) (list C1 C2))
         (match* ((reify C1) (reify C2))
           [((.μ/V x V1*) (.μ/V z V2*)) (μV x {set-union V1* (V/ V2* (.X/V z) (.X/V x))})]
           [((and V1 (.μ/V x V1*)) V2) (μV x (set-add V1* (V/ V2 V1 (.X/V x))))]

@@ -42,10 +42,10 @@
     [(? .o? o) (name o)]
     [(.λ↓ f _) (show-e σ f)]
     [(.Ar C V _) `(,(show-V σ C) ◃ ,(show-V σ V))]
-    [(.St 'not/c (list (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) e) _)) _) _))) `(≠/c ,(show-e σ e))]
-    [(.St 'empty (list)) 'empty]
-    [(.St (and n (or 'and/c 'or/c)) V*) `(,n ,@(show-V σ V*))]
-    [(.St 'not/c V*) `(not/c ,@(show-V σ V*))]
+    [(.St (.id 'not/c 'Λ) (list (.// (.λ↓ (.λ 1 (.@ '= (list (.x 0) e) _)) _) _))) `(≠/c ,(show-e σ e))]
+    [(.St (.id t 'Λ) (list)) t]
+    [(.St (.id (and n (or 'and/c 'or/c)) 'Λ) V*) `(,n ,@(show-Vs σ V*))]
+    [(.St (.id 'not/c 'Λ) V*) `(not/c ,@(show-Vs σ V*))]
     [(.St t Vs) `(,(.id-name t) ,@(show-Vs σ Vs))]
     [(.Λ/C Cs D v?) `(,@(show-Vs σ Cs) ,(if v? '↦* '↦) ,(show-E σ D))]
     [(.St/C t Vs) `(,(string->symbol (format "~a/c" t)) ,@(show-Vs σ Vs))]
@@ -104,7 +104,7 @@
          [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
          [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
          [(l r) `(or ,l ,r)])]
-      [(.@ (.st-mk (and n (or 'and/c 'or/c 'not/c)) _) c* _) `(,n ,@(map (curry go ctx) c*))]
+      [(.@ (.st-mk (.id (and n (or 'and/c 'or/c 'not/c)) 'Λ) _) c* _) `(,n ,@(map (curry go ctx) c*))]
       ;; Direct case-λ application
       [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (? .Case?) _)))))) (list e) _)
        (match-define (.// (.Case m) _) (σ@ σ n))
