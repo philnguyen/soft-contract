@@ -105,7 +105,7 @@
     [(? .let-values/κ?) '(let-values …)]
     [(.@/κ e* v* _) `(@ ,@(reverse (map V v*)) ∘ ,@(map E e*))]
     [(.▹/κ (cons #f (? .E? e)) _) `(∘ ▹ ,(E e))]
-    [(.▹/κ (cons (? .E? C) #f) _) `(,(E C) ▹ ∘)]
+    [(.▹/κ (cons (? .V? C) #f) _) `(,(V C) ▹ ∘)]
     [(.indy/κ Cs xs xs↓ d _ _) `(indy ,(map V Cs) ,(map V xs) ,(map V xs↓)
                                       ,(match d [#f '_] [(? .E? d) (E d)]))]
     [(.μc/κ x) `(μ/c ,x ∘)]
@@ -118,6 +118,7 @@
 (: show-ς : .ς → (List (Listof Any) (Listof Any) (Listof Any)))
 (define show-ς
   (match-lambda
-    [(.ς E σ k) `((E: ,(if (.E? E) (show-E σ E) (show-κ σ (car E))))
-                  (σ: ,@(show-σ σ))
-                  (k: ,@(show-k σ k)))]))
+    [(and ς (.ς E σ k))
+     `((E: ,(if (.E? E) (show-E σ E) (show-κ σ (car E))))
+       (σ: ,@(show-σ σ))
+       (k: ,@(show-k σ k)))]))
