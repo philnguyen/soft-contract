@@ -99,7 +99,7 @@
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
   (struct .let-values [bnds : (Listof (Pair Integer .expr))] [body : .expr] [ctx : Mon-Party])
   ;; the Integer in `bnds` is the number of identifiers bound in that clause
-  (struct .letrec-values [bnds : (Listof (Pair Integer .expr))] [body : .expr])
+  (struct .letrec-values [bnds : (Listof (Pair Integer .expr))] [body : .expr] [ctx : Mon-Party])
 
   (struct .@-havoc [x : .x]) ; hack for havoc to detect argument's arity at runtime
   (struct .amb [es : (Setof .expr)])
@@ -169,7 +169,14 @@
          (match-define (cons n eₓ) bnd)
          (values (+ δ n) (set-union xs (FV eₓ d)))))
      (set-union xs (FV e (+ δ d)))]
-    [(.letrec-values _ _) (todo 'letrec-values)]
+    [(.letrec-values bnds e _)
+     (define δ : Integer (for/sum ([bnd bnds]) (car bnd)))
+     (define d′ (+ δ d))
+     (apply set-union
+            (FV e d′)
+            (for/list : (Listof (Setof Integer)) ([bnd bnds])
+              (FV (cdr bnd) d′)))
+     (todo 'letrec-values)]
     [(.@-havoc x) (FV x d)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
@@ -239,7 +246,7 @@
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
        (checks# e))]
-   [(.letrec-values bindings e)
+   [(.letrec-values bindings e _)
     (+ (for/sum : Integer ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
@@ -474,7 +481,7 @@
          (values (+ count-occs (count-xs e x))
                  (+ count-bindings n))))
      (+ count-occs (count-xs body (+ x count-bindings)))]
-    [(.letrec-values bindings body)
+    [(.letrec-values bindings body _)
      (define count-bindings
        (for/sum : Integer ([binding bindings]) (car binding)))
      (define δ (+ x count-bindings))
