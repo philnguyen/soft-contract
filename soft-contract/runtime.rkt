@@ -53,25 +53,6 @@
   (match-define (.Case m) c)
   (.Case (hash-set m xs y)))
 
-(: .¬/C : .V → .V)
-(define (.¬/C C)
-  (match C
-    [(.// (.λ↓ (.λ 1 (.@ (? .o2? o) xs ctx)) ρ) _)
-     (match o
-       ['< (.// (.λ↓ (.λ 1 (.@ '>= xs ctx)) ρ) ∅)]
-       ['> (.// (.λ↓ (.λ 1 (.@ '<= xs ctx)) ρ) ∅)]
-       ['<= (.// (.λ↓ (.λ 1 (.@ '> xs ctx)) ρ) ∅)]
-       ['>= (.// (.λ↓ (.λ 1 (.@ '< xs ctx)) ρ) ∅)]
-       [_ (.// (.St (.id 'not/c 'Λ) (list C)) ∅)])]
-    [(.// (.St (.id 'and/c 'Λ) (list C₁ C₂)) _)
-     (→V (.St (.id 'or/c 'Λ) (list (.¬/C C₁) (→V (.St (.id 'and/c 'Λ) (list C₁ (.¬/C C₂)))))))]
-    [(.// (.St (.id 'or/c 'Λ) (list C₁ C₂)) _)
-     (→V (.St (.id 'and/c 'Λ) (list (.¬/C C₁) (.¬/C C₂))))]
-    [(.// (.St (.id 'not/c 'Λ) (list C′)) _) C′]
-    [(.// (.λ↓ (.λ 1 (.@ 'false? (list e) _)) ρ) _)
-     (→V (.λ↓ (.λ 1 e) ρ))]
-    [_ (.// (.St (.id 'not/c 'Λ) (list C)) ∅)]))
-
 ; evaluation answer. New type instead of cons to work well with pattern matching
 (define-type/pred .Ans (Pairof .σ .A))
 (define-type/pred .Ans+ (Setof .Ans))
@@ -188,8 +169,11 @@
                 [.σ .V → .V]))
 (define (σ@ σ a)
   (match a
-    [(.L i) (hash-ref (.σ-map σ) i)]
-    [(? integer? i) (hash-ref (.σ-map σ) i)]
+    [(.L i) (σ@ σ i)]
+    [(? integer? i)
+     (if (negative? i)
+         (hash-ref (.σ-map σ) i (λ () ♦))
+         (hash-ref (.σ-map σ) i))]
     [(and (? .V? V) (not (? .L?))) V]))
 
 ; allocates new location with given refinements.
@@ -230,16 +214,16 @@
 (define (C/ V x V′)
   (match V
     [(.L _) V]
-    [(.// U D*)
+    [(.// U Ds)
      (match U
-       [(.X/C z) (if (eq? x z) V′ V)]
-       [(.Ar C V l^3) (.// (.Ar (C/ C x V′) (C/ V x V′) l^3) D*)]
-       [(.St t V*) (.// (.St t (for/list ([Vi V*]) (C/ Vi x V′))) D*)]
-       [(.λ↓ f ρ) (.// (.λ↓ f (ρ+ ρ x V′)) D*)]
-       [(.Λ/C C* (.↓ d ρ) v?)
-        (.// (.Λ/C (for/list ([C C*]) (C/ C x V′)) (.↓ d (ρ+ ρ x V′)) v?) D*)]
-       [(.St/C t C*) (.// (.St/C t (for/list ([C C*]) (C/ C x V′))) D*)]
-       [(.μ/C z C) (.// (if (eq? z x) U (.μ/C z (C/ C x V′))) D*)]
+       [(.X/C z) (if (equal? x z) V′ V)]
+       [(.Ar C V l³) (.// (.Ar (C/ C x V′) (C/ V x V′) l³) Ds)]
+       [(.St t Vs) (.// (.St t (for/list ([Vᵢ Vs]) (C/ Vᵢ x V′))) Ds)]
+       [(.λ↓ f ρ) (.// (.λ↓ f (ρ+ ρ x V′)) Ds)]
+       [(.Λ/C Cs (.↓ d ρ) v?)
+        (.// (.Λ/C (for/list ([C Cs]) (C/ C x V′)) (.↓ d (ρ+ ρ x V′)) v?) Ds)]
+       [(.St/C t Cs) (.// (.St/C t (for/list ([C Cs]) (C/ C x V′))) Ds)]
+       [(.μ/C z C) (.// (if (equal? z x) U (.μ/C z (C/ C x V′))) Ds)]
        [(? .prim? p) V])]))
 
 ;; if only one argument is present, (→C o V2) means λx.(o x V2)
@@ -265,51 +249,6 @@
             (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ o (list (.x 1) d) 'Λ)) 'Λ)) (ρ+ ρ∅ V1))]
            [(_ _)
             (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ o (list (.x 2) (.x 1)) 'Λ)) 'Λ)) (ρ++ ρ∅ (list V1 V2)))]))]))
-
-
-(define**
-  [ZERO/C (→C '= #:2nd ZERO)]
-  [POS/C (→C '> #:2nd ZERO)]
-  [NEG/C (→C '< #:2nd ZERO)]
-  [NON-NEG/C (→C '>= #:2nd ZERO)]
-  [NON-POS/C (→C '<= #:2nd ZERO)]
-  [ONE/C (→C '= #:2nd ONE)])
-(define NON-ZERO/C (.¬/C ZERO/C))
-(: sign/C : Real → (Setof .V))
-(define (sign/C x) ; TODO ridiculous, yea...
-  (cond [(> x 0) {set POS/C NON-NEG/C NON-ZERO/C}]
-        [(= x 0) {set ZERO/C NON-NEG/C NON-POS/C}]
-        [else {set NEG/C NON-ZERO/C NON-POS/C}]))
-
-(:* +/C -/C */C ÷/C expt/C remainder/C : .V .V → .V)
-(define (+/C V1 V2) (→C '+ #:1st V1 #:2nd V2))
-(define (-/C V1 V2) (→C '- #:1st V1 #:2nd V2))
-(define (*/C V1 V2) (→C '* #:1st V1 #:2nd V2))
-(define (÷/C V1 V2) (→C '/ #:1st V1 #:2nd V2))
-(define (expt/C V1 V2) (→C 'expt #:1st V1 #:2nd V2))
-(define (remainder/C V1 V2) (→C 'remainder #:1st V1 #:2nd V2))
-
-(: sqrt/C : .V → .V)
-(define (sqrt/C V)
-  (→V
-   (match V
-     [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list b) 'Λ)) 'Λ)) ρ∅)]
-     [_ (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list (.x 1)) 'Λ)) 'Λ)) (ρ+ ρ∅ V))])))
- 
-(:* </C >/C ≥/C ≤/C =/C ≠/C equal/C string-length/C : .V → .V)
-(define (</C V) (→C '< #:2nd V))
-(define (>/C V) (→C '> #:2nd V))
-(define (≥/C V) (→C '>= #:2nd V))
-(define (≤/C V) (→C '<= #:2nd V))
-(define (=/C V) (→C '= #:2nd V))
-(define (≠/C V) (.¬/C (=/C V)))
-(define (equal/C V) (→C 'equal? #:2nd V))
-(define (string-length/C V) (→C 'string-length #:2nd V))
-
-(:* arity=/C arity≥/C arity-includes/C : Integer → .V)
-(define (arity=/C n) (→C 'arity=? #:2nd (Prim n)))
-(define (arity≥/C n) (→C 'arity>=? #:2nd (Prim n)))
-(define (arity-includes/C n) (→C 'arity-includes? #:2nd (Prim n)))
 
 ;; simplifies predicate
 (: simplify : .V → .V)
@@ -627,3 +566,88 @@
                       (set-union s (col V)))]))
   
   (variable-not-in (set->list (col V)) 'X))
+
+
+;;; Convenient macros
+
+
+(: .¬/C : .V → .V)
+(define (.¬/C C)
+  (match C
+    [(.// (.λ↓ (.λ 1 (.@ (? .o2? o) xs ctx)) ρ) _)
+     (match o
+       ['< (.// (.λ↓ (.λ 1 (.@ '>= xs ctx)) ρ) ∅)]
+       ['> (.// (.λ↓ (.λ 1 (.@ '<= xs ctx)) ρ) ∅)]
+       ['<= (.// (.λ↓ (.λ 1 (.@ '> xs ctx)) ρ) ∅)]
+       ['>= (.// (.λ↓ (.λ 1 (.@ '< xs ctx)) ρ) ∅)]
+       [_ (.// (.St (.id 'not/c 'Λ) (list C)) ∅)])]
+    [(.// (.St (.id 'and/c 'Λ) (list C₁ C₂)) _)
+     (→V (.St (.id 'or/c 'Λ) (list (.¬/C C₁) (→V (.St (.id 'and/c 'Λ) (list C₁ (.¬/C C₂)))))))]
+    [(.// (.St (.id 'or/c 'Λ) (list C₁ C₂)) _)
+     (→V (.St (.id 'and/c 'Λ) (list (.¬/C C₁) (.¬/C C₂))))]
+    [(.// (.St (.id 'not/c 'Λ) (list C′)) _) C′]
+    [(.// (.λ↓ (.λ 1 (.@ 'false? (list e) _)) ρ) _)
+     (→V (.λ↓ (.λ 1 e) ρ))]
+    [_ (.// (.St (.id 'not/c 'Λ) (list C)) ∅)]))
+
+(define**
+  [ZERO/C (→C '= #:2nd ZERO)]
+  [POS/C (→C '> #:2nd ZERO)]
+  [NEG/C (→C '< #:2nd ZERO)]
+  [NON-NEG/C (→C '>= #:2nd ZERO)]
+  [NON-POS/C (→C '<= #:2nd ZERO)]
+  [ONE/C (→C '= #:2nd ONE)])
+(define NON-ZERO/C (.¬/C ZERO/C))
+(: sign/C : Real → (Setof .V))
+(define (sign/C x) ; TODO ridiculous, yea...
+  (cond [(> x 0) {set POS/C NON-NEG/C NON-ZERO/C}]
+        [(= x 0) {set ZERO/C NON-NEG/C NON-POS/C}]
+        [else {set NEG/C NON-ZERO/C NON-POS/C}]))
+
+(:* +/C -/C */C ÷/C expt/C remainder/C : .V .V → .V)
+(define (+/C V1 V2) (→C '+ #:1st V1 #:2nd V2))
+(define (-/C V1 V2) (→C '- #:1st V1 #:2nd V2))
+(define (*/C V1 V2) (→C '* #:1st V1 #:2nd V2))
+(define (÷/C V1 V2) (→C '/ #:1st V1 #:2nd V2))
+(define (expt/C V1 V2) (→C 'expt #:1st V1 #:2nd V2))
+(define (remainder/C V1 V2) (→C 'remainder #:1st V1 #:2nd V2))
+
+(: sqrt/C : .V → .V)
+(define (sqrt/C V)
+  (→V
+   (match V
+     [(.// (? .b? b) _) (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list b) 'Λ)) 'Λ)) ρ∅)]
+     [_ (.λ↓ (.λ 1 (.@ '= (list (.x 0) (.@ 'sqrt (list (.x 1)) 'Λ)) 'Λ)) (ρ+ ρ∅ V))])))
+ 
+(:* </C >/C ≥/C ≤/C =/C ≠/C equal/C string-length/C : .V → .V)
+(define (</C V) (→C '< #:2nd V))
+(define (>/C V) (→C '> #:2nd V))
+(define (≥/C V) (→C '>= #:2nd V))
+(define (≤/C V) (→C '<= #:2nd V))
+(define (=/C V) (→C '= #:2nd V))
+(define (≠/C V) (.¬/C (=/C V)))
+(define (equal/C V) (→C 'equal? #:2nd V))
+(define (string-length/C V) (→C 'string-length #:2nd V))
+
+(:* arity=/C arity≥/C arity-includes/C : Integer → .V)
+(define (arity=/C n) (→C 'arity=? #:2nd (Prim n)))
+(define (arity≥/C n) (→C 'arity>=? #:2nd (Prim n)))
+(define (arity-includes/C n) (→C 'arity-includes? #:2nd (Prim n)))
+
+(: .CONS/C : .V .V → .V)
+(define (.CONS/C C D)
+  (→V (.St/C (.id 'cons 'Λ) (list C D))))
+
+(define .ANY/C (→V (.λ↓ .any/c ρ∅)))
+(define .NONE/C (→V (.λ↓ .none/c ρ∅)))
+
+(: .OR/C : .V * → .V)
+(define (.OR/C . Cs)
+  (match Cs
+    [(list) .NONE/C]
+    [(list C) C]
+    [(cons C Cs) (→V (.St (.id 'or/c 'Λ) (list C (apply .OR/C Cs))))]))
+
+(: .LISTOF : .V → .V)
+(define (.LISTOF C)
+  (→V (.μ/C 'X (.OR/C (→V .null/c) (.CONS/C C (→V (.X/C 'X)))))))
