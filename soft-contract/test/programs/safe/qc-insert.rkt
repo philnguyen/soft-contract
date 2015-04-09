@@ -12,7 +12,7 @@
       (and (<= (car xs) (car (cdr xs)))
            (ordered? (cdr xs)))))
 
-(define ordered-list/c (and/c (listof any/c) ordered?))
+(define ordered-list/c (and/c (listof real?) ordered?))
 
 (provide
  (contract-out

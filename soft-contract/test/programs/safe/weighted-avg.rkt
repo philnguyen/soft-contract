@@ -19,6 +19,6 @@
 (define (len l) (if (empty? l) 0 (+ 1 (len (cdr l)))))
 
 (provide/contract
- [weighted-avg (->i ([x (nelistof real?)])
-		    (res (x) ((and/c (nelistof positive?) (λ (w) (= (len x) (len w))))
+ [weighted-avg (->i ([x (cons/c real? (listof real?))])
+		    (res (x) ((and/c (cons/c (>/c 0) (listof (>/c 0))) (λ (w) (= (len x) (len w))))
 			      . -> . real?)))])

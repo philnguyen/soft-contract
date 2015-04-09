@@ -3,7 +3,7 @@
 
 (define (recip x) (/ 1 x))
 
-(define non-zero/c (and/c number? (not/c zero?)))
+(define non-zero/c (and/c real? (not/c zero?)))
 
 (provide/contract [recip (non-zero/c . -> . non-zero/c)]
 		  [non-zero/c any/c])

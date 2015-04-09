@@ -13,6 +13,4 @@
     (if (empty? xs) 0 (nth 0 xs))))
 
 (provide/contract
- [nth (integer? (listof integer?) . -> . integer?)]
- [mk-list (integer? . -> . (listof integer?))]
  [main (integer? . -> . integer?)])

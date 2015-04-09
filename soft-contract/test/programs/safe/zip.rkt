@@ -14,6 +14,5 @@
   (let ([xs (mk-list n)]) (zip xs xs)))
 
 (provide/contract
- [zip ((listof integer?) (listof integer?) . -> . (listof (cons/c integer? integer?)))]
  [mk-list (integer? . -> . (listof integer?))]
  [main (integer? . -> . (listof (cons/c integer? integer?)))])
