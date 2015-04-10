@@ -24,7 +24,7 @@
 (define any/c c:any/c)
 (define listof c:listof)
 (define and/c c:and/c)
-(define or/c c:and/c)
+(define or/c c:or/c)
 (define list/c c:list/c)
 (define one-of/c c:one-of/c)
 (define =/c c:=/c)
