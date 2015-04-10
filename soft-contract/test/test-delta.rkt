@@ -1,7 +1,6 @@
 #lang racket/base
 
-(module+ test
-  (require rackunit
+(require rackunit
            racket/match
            racket/contract
            racket/set
@@ -51,7 +50,7 @@
     (define Ans ((δ) σ o Vs′ 'tester))
     (printf "δ⟦~a, ~a⟧  ⟶  ~a~n"
             o
-            (map (curry show-A σ∅) Vs)
+            (show-Vs σ Vs)
             (cond [(set? Ans) (string-join (for/list ([Ansᵢ (in-set Ans)])
                                              (match-define (cons σ A) Ansᵢ)
                                              (format "~a" (show-A σ A)))
@@ -66,14 +65,15 @@
   (define/contract (ans-same? Ans ans)
     (.Ans? vns? . -> . boolean?)
     (match-define (cons σ A) Ans)
-    ;;(printf "ans-same? ~a : ~a~n" (show-A σ A) (show-A σ∅ ans))
+    ;(printf "ans-same? ~a : ~a~n" (show-A σ A) (show-V σ∅ ans))
     (match* (A ans)
-      [((.L i) ans) (ans-same? (cons σ (σ@ σ i)) ans)]
-      [((? .V? V) (.// (? .•?) Cs))
+      [((.Vs (list (.L i))) _) (ans-same? (cons σ (.Vs (list (σ@ σ i)))) ans)]
+      [((.Vs (list V)) (.// '• Cs))
        (for/and ([C (in-set Cs)])
          ;;(printf "⊢ ~a : ~a~n" (show-A σ V) (show-A σ C))
          (eq? '✓ (⊢ σ V C)))]
-      [(_ _) (equal? A ans)]))
+      [((.Vs (list V)) _) (equal? V ans)]
+      [((? .blm?) _) #f]))
   
   ;; Check if `Ans` is subsumed by `ans`
   (define/contract (check-ans-same? Ans ans)
@@ -151,7 +151,7 @@
   (for ([-δ (list ce:δ ve:δ)]
         [-refine (list ce:refine ve:refine)])
     (parameterize ([δ -δ] [refine -refine])
-      
+
       (check-δ! 'number? (list (Prim 4.5)) (Prim #t))
       (check-δ! 'number? (list (Prim "42")) (Prim #f))
       (check-δ 'number? (list (●)) (Prim #t))
@@ -194,4 +194,7 @@
       (check-δ-err 'string-length (list (●)))
       (check-δ! 'string-length (list (● STR/C)) (● INT/C NON-NEG/C))
       (check-δ! 'string-length (list (Prim "hi")) (Prim 2))
-      (check-δ-err! 'string-length (list (● (.¬/C STR/C)))))))
+      (check-δ-err! 'string-length (list (● (.¬/C STR/C))))
+
+      ))
+
