@@ -553,6 +553,8 @@
                     l)]
       ; κ
       [(.if/κ t e) (.if/κ (go! t) (go! e))]
+      [(.let-values/κ n bnds vals ρ e ctx)
+       (.let-values/κ n bnds (go! vals) (go! ρ) e ctx)]
       [(.@/κ e* v* l) (.@/κ (go! e*) (go! v*) l)]
       [(.▹/κ (cons C E) l)
        (.▹/κ (cond [(and (false? C) (.E? E)) (cons #f (go! E))]
@@ -617,6 +619,8 @@
   (define fixup/κ
     (match-lambda
      [(.if/κ t e) (.if/κ (fixup/E t) (fixup/E e))]
+     [(.let-values/κ n bnds vals ρ e ctx)
+      (.let-values/κ n bnds (fixup/V* vals) (fixup/ρ ρ) e ctx)]
      [(.@/κ e* v* l) (.@/κ (fixup/E* e*) (fixup/V* v*) l)]
      [(.▹/κ (cons C E) l)
       (.▹/κ (cond [(and (false? C) (.E? E)) (cons #f (fixup/E E))]
