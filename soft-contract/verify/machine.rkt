@@ -19,11 +19,13 @@
 
   (: Ξ+! : .rt/κ .K → Void)
   (define (Ξ+! ctx K)
+    ;(printf "Ξ+!:~n ctx: ~a~n K: ~a~n" ctx K)
     (mmap-join! Ξ ctx K))
 
   (: M+! : .rt/κ .res → Void)
   (define (M+! ctx res)
     ;;(log-debug "abt to add:~nres:~n~a~nctx:~n~a~n~n" res ctx)
+    ;(printf "M+!:~n ctx: ~a~n res: ~a~n" ctx res)
     (match-define (list σ V) res)
     (define res* (hash-ref M ctx (λ () ∅)))
     (define del
@@ -62,6 +64,7 @@
     ; ctx: pending context
     ; rt: which context to return to
     (define (resume ans ctx rt)
+      ;(printf "resume:~n ans: ~a~n ctx: ~a~n rt: ~a~n" ans ctx rt)
       (match-let* ([(list σ0 V0) ans]
                    [(list F σk l r) ctx])
         ; avoid bogus branches
@@ -103,14 +106,14 @@
          (for ([res : .res (M@ ctx)])
            (resume res K ctx))]
         ;; remember returned value and return to any other waiting contexts
-        [(.ς (? .V? V) σ (cons (? .rt/κ? ctx) k))
+        [(.ς (-Vs V) σ (cons (? .rt/κ? ctx) k))
          (define res (list σ V))
          (M+! ctx res)
          (for ([K : .K (Ξ@ ctx)])
            (resume res K ctx))
-         (visit (.ς V σ k))]
+         (visit (.ς (-Vs V) σ k))]
         ;; blur value in M table ; TODO: this is a hack
-        [(.ς (? .V? V) σ (cons (.blr/κ F σ0 V0) (cons (? .rt/κ? ctx) k)))
+        [(.ς (-Vs V) σ (cons (.blr/κ F σ0 V0) (cons (? .rt/κ? ctx) k)))
          (match-define (cons σ′ Vi) (⊕ σ0 V0 σ V))
          (define σi (⊕ σ0 σ′ F))
          (define res0 (list σ0 V0))
@@ -119,16 +122,16 @@
            (upd-M! ctx res0 resi))
          (for ([K : .K (Ξ@ ctx)])
            (resume resi K ctx))
-         (visit (.ς V σ k))]
+         (visit (.ς (-Vs V) σ k))]
         ; FIXME HACK
-        [(.ς (? .V? V) σ (cons (.blr/κ F1 σ1 V1) (cons (.blr/κ F0 σ0 V0) k)))
+        [(.ς (-Vs V) σ (cons (.blr/κ F1 σ1 V1) (cons (.blr/κ F0 σ0 V0) k)))
          ;;(log-debug "B: ~a  ⊕  ~a  =  ~a~n~n" (show-V σ V0) (show-V σ V1) (show-V σ (⊕ V0 V1)))
          ;;(log-debug "Blur: ~a with ~a~n~n" (show-E σ V0) (show-E σ V1))
          (match-let* ([(cons σ′ Vi) (⊕ σ0 V0 σ1 V1)]
                       [σi (⊕ σ0 σ′ F0)])
-           (visit (.ς V σ (cons (.blr/κ F1 σi Vi) k))))]
+           (visit (.ς (-Vs V) σ (cons (.blr/κ F1 σi Vi) k))))]
         ;; FIXME hack
-        [(.ς (? .V?) _ (cons (? .recchk/κ?) _))
+        [(.ς (-Vs _) _ (cons (? .recchk/κ?) _))
          (let ([ς^ ς])
            (unless (seen-has? ς^)
              (seen-add! ς^)
@@ -137,7 +140,9 @@
                [(? .ς? ςi) (visit ςi)])))]
         ;; do regular 1-step on unseen state
         [_ (match (dbg/off 'step (step ς))
-             [(? set? s) (for ([ςi s]) (visit ςi))]
+             [(? set? s)
+              (for ([ςi s] [i (in-naturals 1)])
+                (visit ςi))]
              [(? .ς? ςi) (visit ςi)])]))
     ;; "main"
     (begin
@@ -444,8 +449,18 @@
            [_ (todo "Blame sub-expression for wrong arity")])]))
 
   (match-lambda
-    [(.ς (.Vs Vs) σ (cons κ k)) (step-Vs Vs σ κ k)]
-    [(.ς (? .E? E) σ k) (step-E E σ k)]))
+    [(and ς (.ς (.Vs Vs) σ (cons κ k)))
+     #;(printf "~a:~n V: ~a~n σ: ~a~n~n"
+             (unbox X) (show-ek σ (cons κ k) `(⟦,@(show-Vs σ Vs)⟧)) (show-σ σ))
+     (set-box! X (+ 1 (unbox X)))
+     (step-Vs Vs σ κ k)]
+    [(and ς (.ς (? .E? E) σ k))
+     #;(printf "~a:~n E: ~a~n σ: ~a~n~n"
+             (unbox X) (show-ek σ k `(⦃,(show-E σ E)⦄)) (show-σ σ))
+     (set-box! X (+ 1 (unbox X)))
+     (step-E E σ k)]))
+
+(define X : (Boxof Integer) (box 0))
 
 (: apps-seen : .κ* .σ .λ↓ (Listof .V) → (Listof (Pairof .rt/κ (Option .F))))
 (define (apps-seen k σ f Vx)
@@ -517,6 +532,7 @@
       [(.Mon C E l) (.Mon (go! C) (go! E) l)]
       [(.Assume V C) (.Assume (go! V) (go! C))]
       [(.blm f g V C) (.blm f g (go! V) (go! C))]
+      [(.Vs Vs) (.Vs (go! Vs))]
       ; V
       [(.L i) (.L (alloc! i))]
       [(.// U C*) (.// (go! U) C*)]
@@ -576,7 +592,7 @@
      [(.Mon c e l) (.Mon (fixup/E c) (fixup/E e) l)]
      [(.Assume v c) (.Assume (fixup/V v) (fixup/V c))]
      [(.blm f g v c)(.blm f g (fixup/V v) (fixup/V c))]
-     [(? .V? V) (fixup/V V)]))
+     [(.Vs Vs) (.Vs (fixup/V* Vs))]))
 
   (: fixup/U : (case-> [.μ/C → .μ/C] [.λ↓ → .λ↓] [.U → .U]))
   (define fixup/U
