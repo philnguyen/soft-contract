@@ -27,9 +27,13 @@
 (define (show-V σ V)
   (match V
     [(.L i) (if (abstract-V?) (show-V σ (σ@ σ i)) (format "L~a" (n-sub i)))]
-    [(.// U Cs) (if (.•? U)
-                    `(• ,@(for/list : (Listof Sexp) ([C Cs]) (show-V σ C)))
-                    (show-U σ U))]
+    [(.// U Cs)
+     (cond
+       [(.•? U)
+        (match (for/list : (Listof Sexp) ([C Cs]) (show-V σ C))
+          [(list) '●]
+          [Cs `(● ,@Cs)])]
+       [else (show-U σ U)])]
     [(.X/V x) x]
     [(.μ/V x Vs) `(μ (,x) ,(for/list : (Listof Sexp) ([V Vs]) (show-V σ V)))]))
 
@@ -37,7 +41,7 @@
 (define (show-U σ U)
   (match U
     [(.b b) (show-b b)]
-    ['• '•]
+    ['• '●]
     #;[(or (? .Ar?) (.o) (? .λ↓?)) 'function]
     [(? .o? o) (name o)]
     [(.λ↓ f _) (show-e σ f)]
@@ -48,7 +52,7 @@
     [(.St (.id 'not/c 'Λ) V*) `(not/c ,@(show-Vs σ V*))]
     [(.St t Vs) `(,(.id-name t) ,@(show-Vs σ Vs))]
     [(.Λ/C Cs D v?) `(,@(show-Vs σ Cs) ,(if v? '↦* '↦) ,(show-E σ D))]
-    [(.St/C t Vs) `(,(string->symbol (format "~a/c" t)) ,@(show-Vs σ Vs))]
+    [(.St/C t Vs) `(,(string->symbol (format "~a/c" (.id-name t))) ,@(show-Vs σ Vs))]
     [(.μ/C x V) `(μ/C (,x) ,(show-V σ V))]
     [(.X/C x) x]
     [(.Case m) `(case-λ ,@(show-cases σ m))]))
@@ -174,7 +178,7 @@
       [(.μ/c x c) `(μ/c (,x) ,(go ctx c))]
       [(.->i c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
       [(.x/c x) x]
-      [(.struct/c t cs) `(,(string->symbol (format "~a/c" t)) ,@(map (curry go ctx) cs))])))
+      [(.struct/c t cs) `(,(string->symbol (format "~a/c" (.id-name t))) ,@(map (curry go ctx) cs))])))
 
 (define (inlinable? [e : .expr]) : Boolean
   (or (.x? e) (.ref? e) (.prim? e)))
@@ -216,4 +220,4 @@
   (match-define (.σ m _) σ)
   (match (hash-ref m α #f)
     [(? .V? V) (show-V σ (σ@ σ α))]
-    [else #f #|ok?|# #;(format "•~a" (n-sub α))]))
+    [else '• #|ok?|# #;(format "•~a" (n-sub α))]))
