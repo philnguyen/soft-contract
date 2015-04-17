@@ -93,10 +93,10 @@
                     [_ (cons κ (trim kr))])]
                  [_ k])))]))
 
-(: show-k : .σ .κ* → (Listof Any))
+(: show-k : .σ .κ* → (Listof Sexp))
 (define (show-k σ k) (for/list ([κ k]) (show-κ σ κ)))
 
-(: show-κ : .σ .κ → Any)
+(: show-κ : .σ .κ → Sexp)
 (define (show-κ σ κ)
   (define E (curry show-E σ))
   (define V (curry show-V σ))
@@ -110,12 +110,54 @@
                                       ,(match d [#f '_] [(? .E? d) (E d)]))]
     [(.μc/κ x) `(μ/c ,x ∘)]
     [(.λc/κ cs Cs d ρ _) `(λ/c (,@(reverse (map V Cs)) ,@(map (curry show-e σ) cs)) ,(show-e σ d))]
-    [(.structc/κ t c _ c↓) `(struct/c ,t (,@(reverse (map V c↓)) ,(map (curry show-e σ) c)))]
+    [(.structc/κ t c _ c↓) `(struct/c ,(.id-name t) (,@(reverse (map V c↓)) ,(map (curry show-e σ) c)))]
     [(.rt/κ _ f x) `(rt ,(V (→V f)) ,@(map V x))]
     [(.blr/κ _ _ v) `(blr ,(V v))]
     [(.recchk/κ c v) `(μ/▹ ,(V (→V c)) ,(V v))]))
 
-(: show-ς : .ς → (List (Listof Any) (Listof Any) (Listof Any)))
+(: show-ek : .σ .κ* Sexp → Sexp)
+(define (show-ek σ k acc)
+
+  (for/fold ([acc : Sexp acc]) ([κ (in-list k)])
+    (match κ
+      [(.if/κ E₁ E₂) `(if ,acc ,(show-E σ E₁) ,(show-E σ E₂))]
+      [(.let-values/κ _n bnds Vs _ρ e _ctx)
+       `(let-values (,@(reverse (show-Vs σ Vs))
+                     (□ ← ,acc)
+                     ,@(for/list : (Listof Sexp) ([bnd (in-list bnds)])
+                         (show-e σ (cdr bnd))))
+          ,(show-e σ e))]
+      [(.@/κ Es Vs _ctx)
+       `(,@(reverse (show-Vs σ Vs)) ,acc ,@(map (curry show-E σ) Es))]
+      [(.▹/κ ce _)
+       (cond [(.E? (cdr ce)) `(mon ,acc ,(show-E σ (cdr ce)))]
+             [(.V? (car ce)) `(mon ,(show-V σ (car ce)) ,acc)]
+             [else (error 'Internal "show-ek: unexpected case")])]
+      [(.indy/κ Cs Xs Xs↓ D _v? _)
+       (cond
+         [D
+          `(mon ,(show-E σ D)
+                (,@(reverse (show-Vs σ Xs↓))
+                 ,acc
+                 ,@(for/list : (Listof Sexp) ([Cᵢ Cs] [Vᵢ Xs])
+                     `(mon ,(show-V σ Cᵢ) ,(show-V σ Vᵢ)))))]
+         [else
+          `(mon ,acc
+                (,@(reverse (show-Vs σ Xs↓))
+                 ,@(for/list : (Listof Sexp) ([Cᵢ Cs] [Vᵢ Xs])
+                     `(mon ,(show-V σ Cᵢ) ,(show-V σ Vᵢ)))))])]
+      [(.μc/κ x) `(μ/c ,x ,acc)]
+      [(.λc/κ cs Cs d _ρ _)
+       `(→i (,@(reverse (show-Vs σ Cs)) ,acc ,@(map (curry show-e σ) cs))
+            ,(show-e σ d))]
+      [(.structc/κ t cs _ Cs)
+       `(,(.id-name t) ,@(reverse (show-Vs σ Cs)) ,acc ,@(map (curry show-e σ) cs))]
+      [(.rt/κ _ _ _) `(rt ,acc)]
+      [(.blr/κ _ _ _) `(blr ,acc)]
+      [(.recchk/κ _ _) `(recchk ,acc)]
+      [(.μ/κ _ _ _) `(μ/κ ,acc)])))
+
+(: show-ς : .ς → (List (Listof Sexp) (Listof Sexp) (Listof Sexp)))
 (define show-ς
   (match-lambda
     [(and ς (.ς E σ k))
