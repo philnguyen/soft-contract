@@ -48,17 +48,6 @@
 
 (define-syntax-rule (match/nd v [p e ...] ...) (match/nd: (.Ans → .ς) v [p e ...] ...))
 
-(: print-ς : .ς → Void)
-(define (print-ς ς)
-  (define it (show-ς ς))
-  (printf "E:~n ~a~n" (second (first it)))
-  (printf "σ:~n")
-  (for ([x (rest (second it))])
-    (printf " ~a~n" x))
-  (printf "k:~n")
-  (for ([x (rest (third it))])
-    (printf " ~a~n" x)))
-
 (: and/ς : (Listof .E) .σ .κ* → .ς)
 (define (and/ς E* σ k)
   (match E*
@@ -164,3 +153,16 @@
      `((E: ,(if (.E? E) (show-E σ E) (show-κ σ (car E))))
        (σ: ,@(show-σ σ))
        (k: ,@(show-k σ k)))]))
+
+(: print-ς : .ς → Void)
+(define (print-ς ς)
+  (match-define (.ς E σ k) ς)
+  (parameterize ([abstract-V? #f])
+    (cond [(.E? E)
+           (printf "---- E: ~a~n     σ: ~a~n~n"
+                   (show-ek σ k `(⦃,(show-E σ E)⦄))
+                   (show-σ σ))]
+          [else
+           (printf "---- K: ~a~n     σ: ~a~n~n"
+                   (show-ek σ k `(⟦,(show-κ σ (car E))⟧))
+                   (show-σ σ))])))
