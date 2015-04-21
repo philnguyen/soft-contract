@@ -365,10 +365,11 @@
 
   ;;; Generate module
   (define havoc-ref (havoc-ref-from ☠))
-  (define havoc-func
-    (.λ 1 (.amb (set-add (for/set: : (Setof .@) ([ac (prog-accs ms)])
-                           (.@ havoc-ref (list (.@ ac (list .x₀) ☠)) ☠))
-                         (.@ havoc-ref (list (.@-havoc .x₀)) ☠)))))
+  (define havoc-func ; only used by `verify` module, not `ce`
+    (.λ 1 (-amb
+           (cons (.@ havoc-ref (list (.@-havoc .x₀)) ☠)
+                 (for/list : (Listof .@) ([ac (prog-accs ms)])
+                   (.@ havoc-ref (list (.@ ac (list .x₀) ☠)) ☠))))))
   (define m
     (.module ☠
              (.plain-module-begin
@@ -394,18 +395,25 @@
         (refs-add! (.ref (.id (.p/c-item-id spec) path) '†)))]))
   #;(log-debug "~nrefs: ~a~n" refs)
   (define expr
-    (.amb/remember (for/list ([ref (in-set refs)])
+    (-amb/remember (for/list ([ref (in-set refs)])
                      (.@ (•!) (list ref) ☠))))
 
   #;(log-debug "~nhavoc-expr:~n~a" expr)
 
   (values m expr))
 
-(: amb : (Listof .expr) → .expr)
-(define/match (amb es)
+(: -amb : (Listof .expr) → .expr)
+(define (-amb es)
+  (cond
+    [(null? es) .ff]
+    [(null? (cdr es)) (car es)]
+    [else (.amb (list->set es))]))
+
+(: -amb/remember : (Listof .expr) → .expr)
+(define/match (-amb/remember es)
   [((list)) .ff]
   [((list e)) e]
-  [((cons e es)) (.if (•!) e (amb es))])
+  [((cons e es)) (.if (•!) e (-amb/remember es))])
 
 (: e/ : (case->
          [.expr Integer .expr → .expr]
@@ -447,12 +455,6 @@
    (for/and : Boolean ([exported-id : Symbol (in-set exports)])
      (for/or : Boolean ([defined-id : Symbol (in-set defines)])
        (equal? exported-id defined-id)))))
-
-(: .amb/remember : (Listof .expr) → .expr)
-(define/match (.amb/remember es)
-  [((list)) .ff]
-  [((list e)) e]
-  [((cons e es)) (.if (•!) e (.amb/remember es))])
 
 (: count-xs : (U .expr (Listof .expr)) Integer → Integer)
 ;; Count occurences of variable (given as static distance)
