@@ -75,11 +75,14 @@
       [(cons (.// (.St (.id 'and/c 'Λ) Cs) _) Cᵣs)
        (go σ V (cons Cs Cᵣs))]
       [(cons (? .V? C) Cᵣs)
-       (match (⊢ σ V C)
+       (match (⊢′ σ V C)
          ['✓ (cons σ V)]
          ['X (error 'Internal "Bogus refinement of ~a by ~a" (show-V σ V) (show-V σ C))]
-         [_ (match-define (cons σ′ V′) ((refine1) σ V C))
-            (go σ′ V′ Cᵣs)])]))
+         ['? (match (⊢ σ V C)
+               ['X (error 'Internal "Bogus refinement of ~a by ~a (by solver)"
+                          (show-V σ V) (show-V σ C))]
+               [_ (match-define (cons σ′ V′) ((refine1) σ V C))
+                  (go σ′ V′ Cᵣs)])])]))
   (go σ V Css))
 
 (: refine* : .σ (Listof .V) (Listof .V) → (Pairof .σ (Listof .V)))
