@@ -497,7 +497,7 @@
     
     (define (ctc->pat c)
       (syntax-parse c
-        [p?:identifier #`(? p?)]
+        [p?:identifier (datum->syntax #'p? (list '? #'p?))]
         [((~literal ¬) d) #`(not #,(ctc->pat #'d))]
         [((~literal ∧) d ...) #`(and #,@(map ctc->pat (syntax->list #'(d ...))))]
         [((~literal ∨) d ...) #`(or #,@(map ctc->pat (syntax->list #'(d ...))))]
@@ -510,7 +510,14 @@
         [_ (raise-syntax-error 'Internal "don't know how to generate pattern" c)]))
     
     (define id (fresh-id!))
-    (values #`(.// (.b (and #,id #,(ctc->pat c))) _) id))
+    (cond
+      [(identifier? c) ; more precise when [L ↦ concrete]
+       (values #`(or (.// (.b (? #,c #,id)) _)
+                     (and (.L _) (app (curry σ@ #,(-σ)) (.// (.b (? #,c #,id)) _))))
+               #`(assert #,id #,c))]
+      [else
+       (define -c (ctc->pat c))
+       (values #`(.// (.b (and #,id #,-c)) _) id)]))
   
   (define/contract (atom->V a)
     (syntax? . -> . syntax?)
