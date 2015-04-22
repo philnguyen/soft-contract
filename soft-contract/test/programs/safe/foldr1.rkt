@@ -7,4 +7,4 @@
     (if (empty? zs) z
 	(f z (foldr1 f zs)))))
 
-(provide/contract [foldr1 ((any/c any/c . -> . any/c) (nelistof any/c) . -> . any/c)])
+(provide/contract [foldr1 ((any/c any/c . -> . any/c) (cons/c any/c (listof any/c)) . -> . any/c)])
