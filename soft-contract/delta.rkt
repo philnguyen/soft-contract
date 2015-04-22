@@ -82,6 +82,7 @@
    ((≤/c 0) (≥/c 0) → (≤/c 0))
    ((≥/c 0) (≤/c 0) → (≤/c 0))
    ((=/c 0) any/c → (=/c 0))
+   ((¬ (=/c 0)) any/c → (¬ (=/c 0)))
    (any/c (=/c 1) → (=/c x))]
   [(expt : [a : number?] [x : number?] → (∧ number? (=/c (expt a x))))
    #:other-errors
