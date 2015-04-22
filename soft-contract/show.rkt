@@ -200,6 +200,11 @@
     (for/list : (Listof Sexp) ([(i v) (in-hash m)])
       `(,(format "L~a" (n-sub i)) ↦ ,(show-V σ v)))))
 
+(: show-F : .F → (Listof Sexp))
+(define (show-F F)
+  (for/list : (Listof Sexp) ([(k v) (in-hash F)])
+    `(,k ↦ ,v)))
+
 (: ctx-ref : (Listof Symbol) Integer → Symbol)
 (define (ctx-ref xs i)
   (let go ([xs xs] [i i])
