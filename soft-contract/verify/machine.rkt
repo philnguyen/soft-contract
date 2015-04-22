@@ -65,28 +65,43 @@
     ; rt: which context to return to
     (define (resume ans ctx rt)
       ;(printf "resume:~n ans: ~a~n ctx: ~a~n rt: ~a~n" ans ctx rt)
-      (match-let* ([(list σ0 V0) ans]
-                   [(list F σk l r) ctx])
-        ; avoid bogus branches
-        (when (for/and : Any ([i (in-hash-keys F)])
-                (let ([j (hash-ref F i)])
-                  (and (or ((⊑ σ0 σk) (σ@ σ0 i) (σ@ σk j))
-                           ((⊑ σk σ0) (σ@ σk j) (σ@ σ0 i)))
-                       #t))) ; just to force boolean
-          (match-let* ([k (append l (list* (.blr/κ F σ0 V0) rt r))]
-                       [(cons σk′ F′)
-                        (for/fold ([acc : (Pairof .σ .F) (cons σk F)]) ([i (in-hash-keys F)])
-                          (match-define (cons σ F) acc)
-                          (match-define (list σ′ _ F′) (transfer σ0 (.L i) σ F))
-                          (cons σ′ F′))]
-                       [(list σk′′ V-new _) (transfer σ0 V0 σk′ F′)]
-                       [ς (.ς (-Vs V-new) σk′′ k)])
-            (let ([ς^ (canon ς)])
-              ;;(log-debug "canon:~n~a~n~n" ς^)
-              (unless (seen-has? ς^)
-                #;(log-debug "UNSEEN!~n~n")
-                (seen-add! ς^)
-                (visit ς)))))))
+      (match-define (list σ₀ V₀) ans)
+      (match-define (list F σₖ l r) ctx)
+      
+      ; guard against bogus branches
+      (when (for/and : Boolean ([(i j) (in-hash F)])
+              (and (or ((⊑ σ₀ σₖ) (σ@ σ₀ i) (σ@ σₖ j))
+                       ((⊑ σₖ σ₀) (σ@ σₖ j) (σ@ σ₀ i)))
+                   #t)) ; just to force boolean
+        
+        (define k (append l (list* (.blr/κ F σ₀ V₀) rt r)))
+        
+        #;(printf "Plugged in value:~n  V₀: ~a~n  σ₀: ~a~n  F: ~a~n"
+                (parameterize ([abstract-V? #f])
+                  (show-V σ₀ V₀))
+                (show-σ σ₀)
+                (show-F F))
+        
+        (define-values (σₖ* F*)
+          (for/fold ([σₖ : .σ σₖ] [F : .F F]) ([i (in-hash-keys F)])
+            (match-define (list σₖ* _ F*) (transfer σ₀ (.L i) σₖ F))
+            ;(printf "Intermmediate:~n  σₖ*: ~a~n  F*: ~a~n" (show-σ σₖ*) (show-F F*))
+            (values σₖ* F*)))
+        
+        (match-define (list σₖ** V-new _) (transfer σ₀ V₀ σₖ* F*))
+        
+        #;(printf "Final:~n  Vₖ: ~a~n  σₖ**: ~a~n"
+                (parameterize ([abstract-V? #f])
+                  (show-V σₖ** V-new))
+                (show-σ σₖ**))
+        
+        (define ς (.ς (-Vs V-new) σₖ** k))
+        (define ς^ (canon ς))
+        ;;(log-debug "canon:~n~a~n~n" ς^)
+        (unless (seen-has? ς^)
+          #;(log-debug "UNSEEN!~n~n")
+          (seen-add! ς^)
+          (visit ς))))
 
     ;; imperative DFS speeds interpreter up by ~40%
     ;; from not maintaining an explicit frontier set
@@ -139,9 +154,11 @@
                [(? set? s) (for ([ςi s]) (visit ςi))]
                [(? .ς? ςi) (visit ςi)])))]
         ;; do regular 1-step on unseen state
-        [_ (match (dbg/off 'step (step ς))
+        [_ (match (step ς)
              [(? set? s)
+              ;(printf "Split into ~a~n" (set-count s))
               (for ([ςi s] [i (in-naturals 1)])
+                ;(printf "-- ~a/~a~n" i (set-count s))
                 (visit ςi))]
              [(? .ς? ςi) (visit ςi)])]))
     ;; "main"
@@ -448,19 +465,16 @@
            [(list V) (step-V V σ κ k)]
            [_ (todo "Blame sub-expression for wrong arity")])]))
 
-  (match-lambda
-    [(and ς (.ς (.Vs Vs) σ (cons κ k)))
-     #;(printf "~a:~n V: ~a~n σ: ~a~n~n"
-             (unbox X) (show-ek σ (cons κ k) `(⟦,@(show-Vs σ Vs)⟧)) (show-σ σ))
-     (set-box! X (+ 1 (unbox X)))
-     (step-Vs Vs σ κ k)]
-    [(and ς (.ς (? .E? E) σ k))
-     #;(printf "~a:~n E: ~a~n σ: ~a~n~n"
-             (unbox X) (show-ek σ k `(⦃,(show-E σ E)⦄)) (show-σ σ))
-     (set-box! X (+ 1 (unbox X)))
-     (step-E E σ k)]))
+  (define (dbg [ς : .ς]) : Void
+    (printf "~a:~n" X)
+    (print-ς ς)
+    (set! X (+ 1 X)))
 
-(define X : (Boxof Integer) (box 0))
+  (match-lambda
+    [(and ς (.ς (.Vs Vs) σ (cons κ k))) #;(dbg ς) (step-Vs Vs σ κ k)]
+    [(and ς (.ς (? .E? E) σ k)) #;(dbg ς) (step-E E σ k)]))
+
+(define X : Integer 0)
 
 (: apps-seen : .κ* .σ .λ↓ (Listof .V) → (Listof (Pairof .rt/κ (Option .F))))
 (define (apps-seen k σ f Vx)
