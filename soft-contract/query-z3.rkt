@@ -168,9 +168,8 @@
   (: maybe-convert : Z3-Num Any → Any)
   (define (maybe-convert t x)
     (cond [(real? x) x]
-          [else (match t
-                  ['Int (format "(to_real ~a)" x)]
-                  [_ x])]))
+          [(equal? t 'Int) (format "(to_real ~a)" x)]
+          [else x]))
 
   (match C
     [(? (curry equal? (.¬/C INT/C)))
@@ -240,7 +239,7 @@
 ; performs system call to solver with given query
 (: call : String → String)
 (define (call query)
-  #;(log-debug "Called with:~n~a~n~n" query)
+  (log-debug "Called with:~n~a~n~n" query)
   (with-output-to-string
    (λ () ; FIXME: lo-tech. I don't know Z3's exit code
      (system (format "echo \"~a\" | z3 -in -smt2" query)))))
