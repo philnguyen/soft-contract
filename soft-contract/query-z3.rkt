@@ -43,21 +43,23 @@
 
 (: handled? : .σ .V → Boolean)
 (define (handled? σ C)
-  (match-define (.// Uc _) C)
-  (match Uc
-    [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (.x sd)) _)) ρ)
-     (match (σ@ σ (ρ@ ρ (- sd 1)))
-       [(.// '• Cs) (or (set-member? Cs INT/C) (set-member? Cs REAL/C))]
-       [_ #t #|TODO|#])]
-    [(.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? number?)))) _)) _) #t]
-    [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (.b (? number?))) _)) _) #t]
-    [(.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                        (list (.x 0)
-                              (.@ (? arith?)
-                                  (list (or (.x _) (.b (? number?)))
-                                        (or (.x _) (.b (? number?)))) _)) _)) _)
-     #t]
-    [(.// (.St (.id 'not/c 'Λ) (list C*)) _) (handled? σ C*)]
+  (match C
+    [(.// Uc _)
+     (match Uc
+       [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (.x sd)) _)) ρ)
+        (match (σ@ σ (ρ@ ρ (- sd 1)))
+          [(.// '• Cs) (or (set-member? Cs INT/C) (set-member? Cs REAL/C))]
+          [_ #t #|TODO|#])]
+       [(.λ↓ (.λ 1 (.@ (? arith?) (list (.x 0) (or (.x _) (.b (? number?)))) _)) _) #t]
+       [(.λ↓ (.λ 1 (.@ (or '= 'equal?) (list (.x 0) (.b (? number?))) _)) _) #t]
+       [(.λ↓ (.λ 1 (.@ (or '= 'equal?)
+                       (list (.x 0)
+                             (.@ (? arith?)
+                                 (list (or (.x _) (.b (? number?)))
+                                       (or (.x _) (.b (? number?)))) _)) _)) _)
+        #t]
+       [(.// (.St (.id 'not/c 'Λ) (list C*)) _) (handled? σ C*)]
+       [_ #f])]
     [_ #f]))
 
 (: arith? : .expr → Boolean)
