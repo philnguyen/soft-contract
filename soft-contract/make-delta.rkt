@@ -41,7 +41,7 @@
     [(_ (.// '• _)) {set (cons σ TT) (cons σ FF)}]
     [((.// '• _) _) {set (cons σ TT) (cons σ FF)}]
     [((.// (.St t1 V1*) _) (.// (.St t2 V2*) _))
-     (if (eq? t1 t2)
+     (if (equal? t1 t2)
          (let loop ([σ σ] [V1* V1*] [V2* V2*])
            (match* (V1* V2*)
              [('() '()) (cons σ TT)]

@@ -76,7 +76,7 @@
                            ['•
                             (let-values ([(σ′ L*) (σ++ σ n)])
                               (cons σ′ (.// (.St t L*) C*)))]
-                           [(.St (? (curry eq? t)) _) (cons σ V)])]
+                           [(.St (? (curry equal? t)) _) (cons σ V)])]
             ; singleton contracts
             ['true? (cons σ (.// .tt C*))]
             ['false? (cons σ (.// .ff C*))]
@@ -114,7 +114,7 @@
                       [(real? u) 'real?]
                       [(number? u) 'number?]
                       [(string? u) 'string?]
-                      [(false? #f) 'false?]
+                      [(false? u) 'false?]
                       [(eq? u #t) 'true?]
                       [(symbol? u) 'symbol?]
                       [else 'misc])}]
