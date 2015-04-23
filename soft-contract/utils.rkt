@@ -67,6 +67,11 @@
 
 ;; Abbreviations
 (define ∅ : (Setof Nothing) (set))
+(define ∪ set-union)
+(define ∩ set-intersect)
+(define ∋ set-member?)
+(define --- set-subtract)
+(define -- set-remove)
 (define-type Map HashTable)
 (define-type (MMap X Y) (Map X (Setof Y)))
 (define-type (NeListof X) (Pairof X (Listof X)))

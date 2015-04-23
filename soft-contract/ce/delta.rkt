@@ -52,8 +52,8 @@
                [(and (? .λ? f) (? closed?)) (cons σ (.// (.λ↓ f ρ∅) C*))]
                [(.x i) (match (ρ@ ρ (- i 1))
                          [(.L a) (match-let ([(.// U′ C*′) (σ@ σ a)])
-                                   (cons σ (.// (raw:U+ U U′) (raw:∪ C* C*′ C))))]
-                         [(.// U′ C*′) (cons σ (.// (raw:U+ U U′) (raw:∪ C* C*′)))])]
+                                   (cons σ (.// (raw:U+ U U′) (raw:∪* C* C*′ C))))]
+                         [(.// U′ C*′) (cons σ (.// (raw:U+ U U′) (raw:∪* C* C*′)))])]
                [_ (refine-U σ U (raw:refine-C* C* C))])]
             ; struct contracts
             [(.St/C t D*)

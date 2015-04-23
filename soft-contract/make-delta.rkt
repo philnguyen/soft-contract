@@ -140,7 +140,7 @@
 (define (refine-C* Cs C)
   (cond [(set-empty? Cs) {set C}]
         [else (for/fold ([acc : (Setof .V) ∅]) ([Cᵢ Cs])
-                (∪ acc (refine-C Cᵢ C)))]))
+                (∪* acc (refine-C Cᵢ C)))]))
 
 (: refine-C : .V .V → (U .V (Setof .V)))
 (define (refine-C C D)
@@ -155,8 +155,8 @@
           [(_ (.μ/C x D′)) (refine-C C (C/ D′ x D))]
           [((.μ/C x C′) _) (refine-C (C/ C′ x C) D)]
           ; break conjunctive ones
-          [(_ (.St (.id 'and/c 'Λ) (list D1 D2))) (∪ (refine-C C D1) (refine-C C D2))]
-          [((.St (.id 'and/c 'Λ) (list C1 C2)) _) (∪ (refine-C C1 D) (refine-C C2 D))]
+          [(_ (.St (.id 'and/c 'Λ) (list D1 D2))) (∪* (refine-C C D1) (refine-C C D2))]
+          [((.St (.id 'and/c 'Λ) (list C1 C2)) _) (∪* (refine-C C1 D) (refine-C C2 D))]
           ; prune impossible disjunct
           [(_ (.St (.id 'or/c 'Λ) _)) (let ([D′ (truncate D C)])
                                         (if (equal? D D′) {set C D} (refine-C C D′)))]
@@ -201,8 +201,8 @@
 (: U+ : .U .U → .U)
 (define U+ (match-lambda** [('• U) U] [(U _) U]))
 
-(: ∪ : (U (Setof .V) .V) * → (Setof .V))
-(define (∪ . V*)
+(: ∪* : (U (Setof .V) .V) * → (Setof .V))
+(define (∪* . V*)
   (match V*
     ['() ∅]
     [(list (? .V? V)) {set V}]
