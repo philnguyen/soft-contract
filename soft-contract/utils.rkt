@@ -147,3 +147,12 @@
     (λ () (begin0 i (set! i (+ 1 i))))))
 
 (define (todo x) (error 'TODO "~a" x))
+
+(define-syntax for/union
+  (syntax-rules (: Setof)
+    [(_ : (Setof τ) (for-clauses ...) body ...)
+     (for/fold ([acc : (Setof τ) ∅]) (for-clauses ...)
+       (set-union acc (begin body ...)))]
+    [(_ (for-clauses ...) body ...)
+     (for/fold ([acc ∅]) (for-clauses ...)
+       (set-union acc (begin body ...)))]))
