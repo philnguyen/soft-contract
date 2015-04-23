@@ -130,7 +130,7 @@
         ;; blur value in M table ; TODO: this is a hack
         [(.ς (-Vs V) σ (cons (.blr/κ F σ0 V0) (cons (? .rt/κ? ctx) k)))
          (match-define (cons σ′ Vi) (⊕ σ0 V0 σ V))
-         (define σi (⊕ σ0 σ′ F))
+         (define σi (⊕/σ σ0 σ′ F))
          (define res0 (list σ0 V0))
          (define resi (list σi Vi))
          (when ((⊑ σ0 σi) V0 Vi)
@@ -143,7 +143,7 @@
          ;;(log-debug "B: ~a  ⊕  ~a  =  ~a~n~n" (show-V σ V0) (show-V σ V1) (show-V σ (⊕ V0 V1)))
          ;;(log-debug "Blur: ~a with ~a~n~n" (show-E σ V0) (show-E σ V1))
          (match-let* ([(cons σ′ Vi) (⊕ σ0 V0 σ1 V1)]
-                      [σi (⊕ σ0 σ′ F0)])
+                      [σi (⊕/σ σ0 σ′ F0)])
            (visit (.ς (-Vs V) σ (cons (.blr/κ F1 σi Vi) k))))]
         ;; FIXME hack
         [(.ς (-Vs _) _ (cons (? .recchk/κ?) _))
@@ -199,7 +199,7 @@
            (for/or : (U #f .ς) ([res : (Pairof .rt/κ (Option .F)) seens]
                                 #:when (false? (cdr res)))
              (match-define (cons (.rt/κ σ0 _ Vx0) _) res)
-             (match-define (cons σ1 Vx1) (⊕ σ0 Vx0 σ Vx))
+             (match-define (cons σ1 Vx1) (⊕* σ0 Vx0 σ Vx))
              (.ς (.↓ e (ρ++ ρ Vx1)) σ1 (cons (.rt/κ σ1 f Vx1) k)))
            (.ς (.↓ e (ρ++ ρ Vx)) σ (cons (.rt/κ σ f Vx) k)))]
          [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
@@ -240,7 +240,7 @@
                      #;(log-debug "case 1~n") ∅)
                    (for/or : (U #f .ς*) ([seen seens] #:when (cons? seen))
                      (match-let* ([(cons σ0 Vx0) seen]
-                                  [(cons σi Vxi) (⊕ σ0 Vx0 σt V*)])
+                                  [(cons σi Vxi) (⊕* σ0 Vx0 σt V*)])
                        (match/nd: (.V → .ς) (unroll Vf)
                          [Vj (match-let ([(cons σi′ Vj) (alloc σi Vj)])
                                #;(log-debug "case 2~n")
