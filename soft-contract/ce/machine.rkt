@@ -247,7 +247,7 @@
                 (.ς (.blm l 'set-box! V_box (Prim .box?)) σ k)])]
             [_ (.ς (.blm l 'set-box! (Prim (length V*)) (arity=/C 2)) σ k)])]
          ;; Defer other primitives to δ
-         [(? .o? o) (match/nd (dbg/off '@ (δ σ o V* l)) [(cons σa A) (.ς A σa k)])]
+         [(? .o? o) (match/nd (δ σ o V* l) [(cons σa A) (.ς A σa k)])]
          [(? .λ↓? f) (step-β f V* l σ k)]
          [(.Ar (.// (.Λ/C C* D v?) _) Vg (and l³ (list _ _ lo)))
           (define V# (length V*))
@@ -418,7 +418,7 @@
              (define n (length C*))
              (match/nd (δ σ (.st-p t n) (list V) lo)
                [(cons σt (-Vs (.// (.b #t) _)))
-                (match-define (.// (.St t V*) _) (dbg/off '▹ (σ@ σt V)))
+                (match-define (.// (.St t V*) _) (σ@ σt V))
                 (.ς (-Vs (→V (.st-mk t n))) σt
                     (cons (.@/κ (for/list ([C C*] [V V*]) (.Mon (-Vs C) (-Vs V) l³)) '() lo) k))]
                [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l+ lo V (→V (.st-p t n))) σf k)])]

@@ -127,15 +127,15 @@
 
 (: ρ-set : .ρ (U .x Integer) .V → .ρ)
 (define (ρ-set ρ x V)
-  (match-let ([(.ρ m l) ρ]
-              [sd (match x [(.x sd) sd] [(? integer? sd) sd])])
-    (.ρ (hash-set m (- l sd 1) V) l)))
+  (match-define (.ρ m l) ρ)
+  (define sd (match x [(.x sd) sd] [(? integer? sd) sd]))
+  (.ρ (hash-set m (- l sd 1) V) l))
 
 (: ρ∋ : .ρ (U .x Integer) → Boolean)
 (define (ρ∋ ρ x)
-  (match-let ([(.ρ m l) ρ]
-              [sd (match x [(.x sd) sd] [(? integer? sd) sd])])
-    (hash-has-key? m (- l sd 1))))
+  (match-define (.ρ m l) ρ)
+  (define sd (match x [(.x sd) sd] [(? integer? sd) sd]))
+  (hash-has-key? m (- l sd 1)))
 
 
 ;;;;; REUSED CONSTANTS
@@ -205,9 +205,9 @@
 
 (: σ-set₁ : .σ (U .L Integer) .V+ → .σ)
 (define (σ-set₁ σ a V)
-  (match-let ([(.σ m l) σ]
-              [i (match a [(.L i) i] [(? integer? i) i])])
-    (.σ (hash-set m i V) l)))
+  (match-define (.σ m l) σ)
+  (define i (match a [(.L i) i] [(? integer? i) i]))
+  (.σ (hash-set m i V) l))
 
 ; substitute contract for given identifier
 (: C/ : .V Symbol .V → .V)

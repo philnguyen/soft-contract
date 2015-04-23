@@ -17,8 +17,6 @@
 (define/match (swap-parties info)
   [((list + - o)) (list - + o)])
 
-;;(define THE-MODULE-HACK : Module-Path "The-Module")
-
 (: -begin : (∀ (X) (Listof X) → (U X (.begin X))))
 (define/match (-begin xs)
   [((list e)) e]
@@ -263,7 +261,6 @@
    [(? .o2?) 2]
    [_ 0]))
 
-;; TODO: ok to use 'Λ as context? Never blamed?
 (splicing-let ([mk-and/c (.st-mk (.id 'and/c 'Λ) 2)]
                [mk-or/c (.st-mk (.id 'or/c 'Λ) 2)]
                [mk-cons/c (.st-mk (.id 'cons/c 'Λ) 2)]
@@ -299,25 +296,16 @@
   (foldr (λ ([eᵢ : .expr] [es : .expr]) (.@ .cons (list eᵢ es) 'Λ)) .null es))
 
 ;; Macros
-(:* .and .or : .expr * → .expr)
+(:* .and : .expr * → .expr)
 (define .and
   (match-lambda*
     [(list) .tt]
     [(list e) e]
     [(cons e es) (.if e (apply .and es) .ff)]))
-(define .or
-  (match-lambda*
-    [(list) .ff]
-    [(list e) e]
-    [(cons e es) (.let (list e) (.if .x₀ .x₀ (apply .or es)))]))
 
 (: .comp/c : .o2 .expr → .expr)
 (define (.comp/c op e)
   (.λ 1 (.and (.@ 'real? (list .x₀) 'Λ) (.@ op (list .x₀ (shift-FV e 1)) 'Λ))))
-
-(: .let : (Listof .expr) .expr → .expr)
-(define (.let xs e) ; FIXME expand to let-values instead
-  (.@ (.λ (length xs) e) xs 'Λ))
 
 (: name : .o → Symbol)
 (define name
@@ -329,21 +317,6 @@
    [(.st-ac (.id 'box 'Λ) 1 0) 'unbox]
    [(.st-ac (.id t _) _ i) (string->symbol (format "~a@~a" t i))]
    [(.st-p (.id t _) _) (string->symbol (format "~a?" t))]))
-
-#;(define .pred/c (.->i (list .any/c) 'boolean? #f))
-
-#;(: gen-accs : (Sequenceof .m) → (Setof .st-ac))
-#;(define (gen-accs ms)
-  (for*/fold ([acs : (Setof .st-ac) {set .car .cdr}])
-             ([m ms]
-              [defs (in-value (.m-defs m))]
-              [d (in-hash-values defs)]
-              [c (in-value (cdr d))]
-              #:when (match? c (.->i _ (? .struct/c?) _)))
-    (match-define (.->i _ (.struct/c t cs) _) c)
-    (define n (length cs))
-    (for/fold ([acs acs]) ([i n])
-      (set-add acs (.st-ac t n i)))))
 
 (define ☠ 'havoc) ; havoc module path
 (define havoc-id (.id 'havoc-id ☠)) ; havoc function id
@@ -380,7 +353,7 @@
   ;;; Generate expression
   (define-set refs : .ref)
   #;(log-debug "~nmodules: ~n~a~n" ms)
-  (for* ([m (in-list ms)])
+  (for ([m (in-list ms)])
     (cond
      [(module-opaque? m)
       (eprintf "Omit havocking opaque module ~a~n" (.module-path m))]
@@ -415,29 +388,26 @@
   [((list e)) e]
   [((cons e es)) (.if (•!) e (-amb/remember es))])
 
-(: e/ : (case->
-         [.expr Integer .expr → .expr]
-         [(Listof .expr) Integer .expr → (Listof .expr)]))
+(: e/ : .expr Integer .expr → .expr)
 ;; Substitute expression at given static distance
 (define (e/ e x eₓ)
   (match e
     [(.x k) (if (= k x) eₓ e)]
     [(.λ (? integer? n) e) (.λ n (e/ e (+ x n) eₓ))]
     [(.λ (cons n _) e) (.λ (cons n 'rest) (e/ e (+ x n -1) eₓ))]
-    [(.@ f xs l) (.@ (e/ f x eₓ) (e/ xs x eₓ) l)]
+    [(.@ f xs l) (.@ (e/ f x eₓ) (e/* xs x eₓ) l)]
     [(.if e e₁ e₂) (.if (e/ e x eₓ) (e/ e₁ x eₓ) (e/ e₂ x eₓ))]
     [(.amb es) (.amb (for/set: : (Setof .expr) ([eᵢ es]) (e/ eᵢ x eₓ)))]
     [(.μ/c z c) (.μ/c z (e/ c x eₓ))]
-    [(.-> cs d) (.-> (e/ cs x eₓ) (e/ d x eₓ))]
+    [(.-> cs d) (.-> (e/* cs x eₓ) (e/ d x eₓ))]
     [(.->i cs cy v?)
-     (.->i (e/ cs x eₓ)
-           (e/ cy (+ x (if v? (- (length cs) 1) (length cs))) eₓ)
-           v?)]
-    [(.struct/c t cs) (.struct/c t (e/ cs x eₓ))]
-    [(list es ...) (for/list : (Listof .expr) ([e es]) (e/ e x eₓ))]
+     (.->i (e/* cs x eₓ) (e/ cy (+ x (if v? (- (length cs) 1) (length cs))) eₓ) v?)]
+    [(.struct/c t cs) (.struct/c t (e/* cs x eₓ))]
     [e e]))
 
-;; FIXME: factor this out into function checking given `.module`xpr
+(: e/* : (Listof .expr) Integer .expr → (Listof .expr))
+(define (e/* es x eₓ) (for/list ([e es]) (e/ e x eₓ)))
+
 (: module-opaque? : .module → Boolean)
 (define (module-opaque? m) ; TODO: expensive?
   (match-define (.module _ (.plain-module-begin body)) m)
@@ -511,8 +481,7 @@
         (match form
           [(.define-values (list x) e) (and (equal? x name) e)]
           [(.define-values xs (.@ 'values vs _))
-           (cond [(index-of xs name) => (λ ([i : Integer]) (list-ref vs i))]
-                 [else #f])]
+           (for/or : (U #f .expr) ([x xs] [v vs] #:when (equal? x name)) v)]
           [_ #f]))
       (error 'ref->expr "Module `~a` does not define `~a`" from name)))
 

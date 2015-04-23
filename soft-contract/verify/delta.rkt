@@ -237,8 +237,8 @@
                ;;(log-debug "~a  ∩  ~a~n~n" (v-class σ∅ V0*) (v-class σ∅ V1))
                (if (set-empty? (set-intersect (v-class σ∅ V0*) (v-class σ∅ V1)))
                    V1
-                   (match-let ([(cons V1′ Vs) (dbg/off 'case3 (elim-μ x (V/ V1 V0 (.X/V x))))])
-                     (μV x (dbg/off 'compact1 (compact (dbg/off 'compact0 (compact V0* {set V1′})) Vs)))))]
+                   (match-let ([(cons V1′ Vs) (elim-μ x (V/ V1 V0 (.X/V x)))])
+                     (μV x (compact (compact V0* {set V1′}) Vs))))]
               [(_ (.μ/V x V1*))
                ;;(log-debug "⊕:case4~n")
                ;;(log-debug "~a  ∩  ~a~n~n" (v-class σ∅ V0) (v-class σ∅ V1*))
@@ -364,7 +364,7 @@
                     (let ([V0 (hash-ref m0 k)])
                       (match (hash-ref m1 k (λ () #f))
                         [#f V0]
-                        [(? .V? V1) (match-let ([(cons V′ q′) (dbg/off 'go (merge V0 V1))])
+                        [(? .V? V1) (match-let ([(cons V′ q′) (merge V0 V1)])
                                       (set! q (set-union q q′))
                                       V′)])))]
               [s1 (for/set: : (Setof .V) ([k (in-hash-keys m1)] #:unless (hash-has-key? m0 k))

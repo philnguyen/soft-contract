@@ -6,11 +6,6 @@
  redex/reduction-semantics
  [variables-not-in (Any Any → (Listof Symbol))])
 
-(: memoize : (∀ (X Y) ((X → Y) [#:eq? Boolean] → (X → Y))))
-(define (memoize f #:eq? [eq?? #f])
-  (let ([m : (Map X Y) ((if eq?? make-hasheq make-hash))])
-    (λ (x) (hash-ref! m x (λ () (f x))))))
-
 (define-syntax define/memo
   (syntax-rules (: →)
     [(define/memo (f [x : τ] ...) : σ e ...)
@@ -53,11 +48,12 @@
   (syntax-rules (→)
     [(_ (α → β) v [p e ...] ...)
      (let ([x v]
-           [f : (α → (U β (Setof β))) (match-lambda [p e ...] ... [x (error "match/nd unmatched: " x)])])
+           [f : (α → (U β (Setof β)))
+              (match-lambda [p e ...] ... [x (error "match/nd unmatched: " x)])])
        (if (set? x)
-           (for/fold : (Setof β) ([acc : (Setof β) ∅]) ([xi x])
-             (let ([y (f xi)])
-               (if (set? y) (set-union acc y) (set-add acc y))))
+           (for/fold ([acc : (Setof β) ∅]) ([xᵢ x])
+             (define y (f xᵢ))
+             (if (set? y) (set-union acc y) (set-add acc y)))
            (f x)))]))
 
 ;; define the same type for multiple identifiers
@@ -79,30 +75,19 @@
 ;; return singleton list of value, or #f on timeout
 (define-syntax-rule (within-time: τ n e ...)
   (let ([c : (Channelof (U #f (List τ))) (make-channel)])
-    (let ([t1 (thread (λ () (channel-put c (list (begin e ...)))))]
-          [t2 (thread (λ () (sleep n) (channel-put c #f)))])
-      (match (channel-get c)
-        [#f (kill-thread t1) #f]
-        [ans (kill-thread t2) ans]))))
+    (define t₁ (thread (λ () (channel-put c (list (begin e ...))))))
+    (define t₂ (thread (λ () (sleep n) (channel-put c #f))))
+    (match (channel-get c)
+      [#f  (kill-thread t₁) #f]
+      [ans (kill-thread t₂) ans])))
 
 (: mmap-join! : (∀ (X Y) ((MMap X Y) X Y → Void)))
 (define (mmap-join! m x y)
-  (hash-update! m x (λ: ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
+  (hash-update! m x (λ ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
 
 (: mmap-join : (∀ (X Y) ((MMap X Y) X Y → (MMap X Y))))
 (define (mmap-join m x y)
-  (hash-update m x (λ: ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
-
-(define-syntax-rule (dbg n (f x ...))
-  (begin
-    (printf "~a:~a~nof~n~a~n" n 'f (list x ...))
-    (let ([y (f x ...)])
-      (printf "is~n~a~n~n" y)
-      y))
-  #;(let ([y (f x ...)])
-      (printf "~a:~a~nof~n~a~nis~n~a~n~n" n 'f (list x ...) y)
-      y))
-(define-syntax-rule (dbg/off n (f x ...)) (f x ...))
+  (hash-update m x (λ ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
 
 ;; Define set with shortened syntax for (imperative) adding and membership testing
 (define-syntax (define-set stx)
@@ -127,26 +112,22 @@
 
 ;;;;; Pretty printing stuff
 
-(: reverse∘subscript : (Listof Symbol) → (Listof Symbol))
-(define (reverse∘subscript xs)
-  (for/fold ([ys : (Listof Symbol) '()]) ([x xs])
-    (cons
-     (string->symbol
-      (list->string
-       (for/list : (Listof Char) ([c (in-string (symbol->string x))])
-         (match c
-           [#\0 #\₀] [#\1 #\₁] [#\2 #\₂] [#\3 #\₃] [#\4 #\₄]
-           [#\5 #\₅] [#\6 #\₆] [#\7 #\₇] [#\8 #\₈] [#\9 #\₉]
-           [_ c]))))
-     ys)))
+(: sym-sub : Symbol → Symbol)
+(define (sym-sub x)
+  (string->symbol
+   (list->string
+    (for/list : (Listof Char) ([c (in-string (symbol->string x))])
+      (case c
+        [(#\0) #\₀] [(#\1) #\₁] [(#\2) #\₂] [(#\3) #\₃] [(#\4) #\₄]
+        [(#\5) #\₅] [(#\6) #\₆] [(#\7) #\₇] [(#\8) #\₈] [(#\9) #\₉]
+        [else c])))))
 
 (: vars-not-in : Integer (Listof Symbol) → (Listof Symbol))
 (define vars-not-in
   (let* ([pool '(x y z u v w a b c)]
          [N (length pool)])
     (λ (n t)
-      (reverse∘subscript ; just for nice order
-       (variables-not-in t (if (<= n N) (take pool n) (make-list n 'x1)))))))
+      (map sym-sub (variables-not-in t (if (<= n N) (take pool n) (make-list n 'x1)))))))
 
 (: pretty : Any → String)
 (define (pretty x)
@@ -163,15 +144,6 @@
 (: fresh-int! : → Integer)
 (define fresh-int!
   (let ([i 0])
-    (λ ()
-      (begin0 i (set! i (+ 1 i))))))
+    (λ () (begin0 i (set! i (+ 1 i))))))
 
-(define (todo x)
-  (error 'TODO "~a" x))
-
-(: index-of : (∀ (X) (Listof X) X → (U Integer #f)))
-(define (index-of xs z)
-  (for/or : (U #f Integer) ([x (in-list xs)]
-                            [i : Integer (in-naturals)]
-                            #:when (equal? x z))
-    i))
+(define (todo x) (error 'TODO "~a" x))

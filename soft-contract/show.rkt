@@ -63,13 +63,13 @@
   (for/list ([(k* v) (in-hash m)])
     `(,(map show k*) ,(show v))))
 
-(: show-ρ : .σ .ρ → Sexp)
+(: show-ρ : .σ .ρ → (Listof Sexp))
 (define (show-ρ σ ρ)
-  (match-let ([(.ρ m l) ρ])
-    (for/list : (Listof Sexp) ([(x v) (in-hash m)])
-      (cond
-        [(symbol? x) `(,x ↦ ,(show-V σ v))]
-        [(integer? x) `(,(format "sd~a" (n-sub (- l x 1))) ↦ ,(show-V σ v))]))))
+  (match-define (.ρ m l) ρ)
+  (for/list ([(x v) (in-hash m)])
+    (cond
+      [(symbol? x) `(,x ↦ ,(show-V σ v))]
+      [(integer? x) `(,(format "sd~a" (n-sub (- l x 1))) ↦ ,(show-V σ v))])))
 
 (: show-E : .σ .E → Sexp)
 (define (show-E σ E)
@@ -120,19 +120,19 @@
                 `(,x ,(go ctx ei)))
          ,(go (append x* ctx) e))]
       [(.@ (.•ₗ (and n (? (λ ([n : Integer]) (match? (σ@ σ n) (.// (.λ↓ (.λ _ _) _) _)))))) es _)
-       (match-let ([(.// (.λ↓ (.λ (? integer? k) e) ρ) _) (σ@ σ n)])
-         (cond
-          ;; Inline if all arguments are simple. TODO: can do better, for each argument?
-          [(or (andmap inlinable? es)
-               (for/and : Boolean ([i : Integer (in-range k)]) (<= (count-xs e i) 1)))
-           (go ctx (for/fold ([e e]) ([i (in-range (- k 1) -1 -1)] [eᵢ es])
-                     (e/ e i eᵢ)))]
-          ;; Default to `let`
-          [else
-           (define xs (vars-not-in k ctx))
-           `(let ,(for/list : (Listof Sexp) ([xᵢ (reverse xs)] [eᵢ es])
-                    `(,xᵢ ,(go ctx eᵢ)))
-             ,(go xs e))]))]
+       (match-define (.// (.λ↓ (.λ (? integer? k) e) ρ) _) (σ@ σ n))
+       (cond
+         ;; Inline if all arguments are simple. TODO: can do better, for each argument?
+         [(or (andmap inlinable? es)
+              (for/and : Boolean ([i : Integer (in-range k)]) (<= (count-xs e i) 1)))
+          (go ctx (for/fold ([e e]) ([i (in-range (- k 1) -1 -1)] [eᵢ es])
+                    (e/ e i eᵢ)))]
+         ;; Default to `let`
+         [else
+          (define xs (vars-not-in k ctx))
+          `(let ,(for/list : (Listof Sexp) ([xᵢ (reverse xs)] [eᵢ es])
+                   `(,xᵢ ,(go ctx eᵢ)))
+             ,(go xs e))])]
       ;; Fix confusing ill-typed (though correct) value at function position
       ;; as a reminiscent of `havoc`
       [(.@ (.•ₗ (? (λ ([n : Integer])
@@ -197,12 +197,12 @@
 (define (show-σ σ)
   (match-define (.σ m _) σ)
   (parameterize ([abstract-V? #f])
-    (for/list : (Listof Sexp) ([(i v) (in-hash m)])
+    (for/list ([(i v) (in-hash m)])
       `(,(format "L~a" (n-sub i)) ↦ ,(show-V σ v)))))
 
 (: show-F : .F → (Listof Sexp))
 (define (show-F F)
-  (for/list : (Listof Sexp) ([(k v) (in-hash F)])
+  (for/list ([(k v) (in-hash F)])
     `(,k ↦ ,v)))
 
 (: ctx-ref : (Listof Symbol) Integer → Symbol)

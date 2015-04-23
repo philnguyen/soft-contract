@@ -213,7 +213,7 @@
     (match Vf
       [(.// U C*)
        (match U
-         [(? .o? o) (match/nd (dbg/off '@ (δ σ o V* l)) [(cons σa A) (.ς A σa k)])]
+         [(? .o? o) (match/nd (δ σ o V* l) [(cons σa A) (.ς A σa k)])]
          [(? .λ↓? f) (step-β f V* l σ k)]
          [(.Ar (.// (.Λ/C C* D v?) _) Vg (and l³ (list _ _ lo)))
           (let* ([V# (length V*)]
@@ -307,7 +307,7 @@
               [(and (.μ/C x C′) Uc)
                (cond
                  [(chk-seen? k Uc (V-abs σ V))
-                  (match-let ([(cons σ′ V′) (dbg/off 'ho (refine σ V C))])
+                  (match-let ([(cons σ′ V′) (refine σ V C)])
                     (.ς (-Vs V′) σ′ k))]
                  ; hack to speed things up
                  [(flat/C? σ C)
@@ -325,7 +325,7 @@
                (let ([n (length C*)])
                  (match/nd (δ σ (.st-p t n) (list V) lo)
                    [(cons σt (-Vs (.// (.b #t) _)))
-                    (match-let ([(.// (.St t V*) _) (dbg/off '▹ (σ@ σt V))])
+                    (match-let ([(.// (.St t V*) _) (σ@ σt V)])
                       (.ς (-Vs (→V (.st-mk t n))) σt
                           (cons (.@/κ (for/list ([C C*] [V V*]) (.Mon (-Vs C) (-Vs V) l³)) '() lo) k)))]
                    [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l+ lo V (→V (.st-p t n))) σf k)]))]
