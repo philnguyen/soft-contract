@@ -507,3 +507,34 @@
   (or (for/or : (U #f .module) ([m (in-list ms)] #:when (equal? (.module-path m) x))
         m)
       (error 'path->module "Cannot find module `~a`" x)))
+
+(: free-x/c : .expr → (Setof Symbol))
+;; Return all free references to recursive contracts inside term
+(define (free-x/c e)
+
+  (: go* : (Listof .expr) → (Setof Symbol))
+  (define (go* xs) (for/union : (Setof Symbol) ([x xs]) (go x)))
+
+  (: go : .expr → (Setof Symbol))
+  (define (go e)
+    (match e
+      [(.λ xs e) (go e)]
+      [(.case-lambda body)
+       (for/union : (Setof Symbol) ([p body]) (go (cdr p)))]
+      [(.@ f xs ctx) (∪ (go f) (go* xs))]
+      [(.if i t e) (∪ (go i) (go t) (go e))]
+      [(.wcm k v b) (∪ (go k) (go v) (go b))]
+      [(.begin0 e es) (∪ (go e) (go* es))]
+      [(.let-values bnds e ctx)
+       (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+      [(.letrec-values bnds e ctx)
+       (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+      [(.amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
+      [(.μ/c z c) (-- (go c) z)]
+      [(.-> cs d) (∪ (go* cs) (go d))]
+      [(.->i cs d v?) (∪ (go* cs) (go d))]
+      [(.struct/c t cs) (go* cs)]
+      [(.x/c x) (set x)]
+      [_ ∅]))
+  
+  (go e))

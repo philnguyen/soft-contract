@@ -133,6 +133,17 @@
                  (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
                    (.st-ac (.id ctor-name (cur-mod)) n i)))
           'Λ))]
+    [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
+     (define lhs (syntax-e #'x))
+     (define rhs (parse-expr #'e))
+     (define frees (free-x/c rhs))
+     (cond
+       [(set-empty? frees) (.define-values (list lhs) rhs)]
+       [(set-empty? (-- frees lhs)) (.define-values (list lhs) (.μ/c lhs rhs))]
+       [else
+        (error 'TODO
+               "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
+               lhs (set-first (-- frees lhs)))])]
     [(define-values (x:identifier ...) e)
      (.define-values (map syntax-e (syntax->list #'(x ...))) (parse-expr #'e))]
     [(#%require spec ...)
@@ -218,11 +229,13 @@
     [(#%plain-app (~literal fake:<=/c) c) (.comp/c '<= (go #'c))]
     [(#%plain-app (~literal fake:cons/c) c d) (.cons/c (go #'c) (go #'d))]
     [(#%plain-app (~literal fake:one-of/c) c ...) (apply .one-of/c (go/list #'(c ...)))]
-    ; recursive contract reference
+    ; recursive contract reference. FIXME: code duplicate
+    [(let-values () (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
+     (.x/c (syntax-e #'x))]
+    [(begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
+     (.x/c (syntax-e #'x))]
     [(#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...)
-     (log-error "Approximating user-defined recursive contract `~a` as `any/c` for now."
-                (syntax-e #'x))
-     .any/c]
+     (.x/c (syntax-e #'x))]
 
     ;; primitive contracts
     [(~literal fake:any/c) .any/c]
