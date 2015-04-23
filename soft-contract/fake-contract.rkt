@@ -2,7 +2,8 @@
 
 (require (except-in racket/contract/base
                     -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract
-                    one-of/c =/c >/c >=/c </c <=/c not/c cons/c)
+                    one-of/c =/c >/c >=/c </c <=/c not/c cons/c
+                    recursive-contract)
          (for-syntax racket/base)
          racket/list)
 (require (prefix-in c: racket/contract/base)
@@ -10,9 +11,11 @@
 
 (provide (all-from-out racket/contract/base) provide
          -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract contract-out
+         recursive-contract
          dynamic-provide/contract
          dynamic->i
          dynamic-struct/c
+         dynamic-recursive-contract
          =/c >/c >=/c </c <=/c
          not/c cons/c
          one-of/c)
@@ -67,3 +70,9 @@
     [(_ (~or i:id (contract-out [p/i:id ctc:expr] ...)) ...)
      #'(begin (scv:ignore (r:provide i ... (contract-out [p/i ctc] ...) ...))
               (dynamic-provide/contract (list i any/c) ... (list p/i ctc) ... ...))]))
+
+;; Phil's clueless hack for `recursive-contract`
+(define-syntax-rule (recursive-contract x type ...)
+  (begin (dynamic-recursive-contract x)
+         (scv:ignore (c:recursive-contract x type ...))))
+(define (dynamic-recursive-contract x) (void))
