@@ -177,7 +177,19 @@
      (define xs (syntax->list #'(z ...)))
      (define ctx′ (ext-env ctx xs))
      (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
-    [(#%plain-app ; FIXME: duplicate of above case, (begin e _ ...) => e
+    ; FIXME: duplicate of above case, (let-values () e _ ...) == (begin () e _ ...)
+    [(let-values ()
+       (#%plain-app
+        (~literal fake:dynamic->i)
+        (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+        (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+       _ ...)
+     ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
+     (define xs (syntax->list #'(z ...)))
+     (define ctx′ (ext-env ctx xs))
+     (.->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
+    ; FIXME: duplicate of above case, (begin e _ ...) == e
+    [(#%plain-app
       (~literal fake:dynamic->i)
       (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
       (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
