@@ -156,10 +156,15 @@
 (define/contract (parse-expr stx [ctx '()])
   (scv-syntax? . -> . .expr?)
   (log-debug "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
-  ;;(: go : Syntax → .e)
-  (define (go e) (parse-expr e ctx))
-  ;;(: go/list : Syntax → (Listof .e))
-  (define (go/list es) (map go (syntax->list es)))
+
+  (define/contract (go e)
+    (scv-syntax? . -> . .expr?)
+    (parse-expr e ctx))
+
+  (define/contract (go/list es)
+    ((and/c scv-syntax? (not/c identifier?)) . -> . (listof .expr?))
+    (map go (syntax->list es)))
+  
   (syntax-parse stx
     #:literals
     (let-values letrec-values begin begin0 if #%plain-lambda #%top
