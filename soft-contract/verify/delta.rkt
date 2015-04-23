@@ -94,8 +94,8 @@
          #;(log-debug "new V* is ~a~n~n" (for/set: Any ([Vi V*′]) (show-V σ′ Vi)))
          (match (set-count V*′)
            [0 (error "bogus refinement") #;V∅]
-              [1 (cons σ′ (V/ (set-first V*′) (.X/V x) V))]
-              [_ (cons σ′ (μV x V*′))]))]
+           [1 (cons σ′ (V/ (set-first V*′) (.X/V x) V))]
+           [_ (cons σ′ (μV x V*′))]))]
        [(? .X/V? x) (cons σ x)])))) ; abuse μ for non-inductive set
 
 (: v-class : .σ (U .V (Setof .V)) → (Setof Any))
@@ -148,7 +148,7 @@
                       (match Vi′
                         [(.L j) (cons (σ-set σ1′ i (σ@ σ1′ j)) V1)]
                         [(and Vi′ (or (? .//?) (? .μ/V?))) (cons (σ-set σ1′ i Vi′) V1)]
-                        [_ (error "⊕: impossible: .X/V")]))]
+                        [_ (error 'Internal "impossible instance of .X/V in ⊕'s definition (1)")]))]
             [_ (raw:alloc σ1 Vi)])]
          [((? list? V0) (? list? V1))
           (match-define (cons σ1′ l-rev)
@@ -163,7 +163,7 @@
          (define j (hash-ref F i))
          (match (⊕ (V-abs σ0 (σ@ σ0 i)) (V-abs σ1 (σ@ σ1 i)))
            [(and V (or (? .//?) (? .μ/V?))) (σ-set σ1 j V)]
-           [_ (error "⊕: impossible")])))]
+           [_ (error 'Internal "impossible instance of .X/V in ⊕'s definition (2)")])))]
     [(x y)
      (parameterize ([raw:refine1 refine1])
        (match* (x y)

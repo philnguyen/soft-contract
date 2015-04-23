@@ -353,13 +353,14 @@
          [(? .•?) (let-values ([(σ′ L) (σ+ σ)]) (.ς (-Vs L) σ′ k))]
          [(? .v? v) (.ς (-Vs (close v ρ)) σ k)]
          [(.x sd)
-          (when (.X/V? (ρ@ ρ sd)) (error "STOP!"))
+          (when (.X/V? (ρ@ ρ sd))
+            (error 'Internal "dangling reference to recursive data"))
           (.ς (-Vs (ρ@ ρ sd)) σ k)]
          [(? .x/c? x) (.ς (-Vs (ρ@ ρ x)) σ k)]
          [(and ref (.ref (.id name ctx) ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
          [(and ref (.ref (.id name in) ctx))
           (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
-              (cons (.▹/κ  (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
+              (cons (.▹/κ (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
          [(.let-values '() e _) (step-E (.↓ e ρ) σ k)]
          [(.let-values (cons (cons nₓ eₓ) bnds) e ctx)
           (.ς (.↓ eₓ ρ) σ (cons (.let-values/κ nₓ bnds '() ρ e ctx) k))]
