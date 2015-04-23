@@ -6,5 +6,9 @@
    [(boolean? b) b]
    [else (and (taut (b #t)) (taut (b #f)))]))
 
+(define prop/c
+  ((or/c boolean? (boolean? . -> . (recursive-contract prop/c))) . -> . boolean?))
+
 (provide/contract
- [taut ([μ/c (X) (or/c boolean? [boolean? . -> . X])] . -> . boolean?)])
+ [taut prop/c]
+ [prop/c any/c])
