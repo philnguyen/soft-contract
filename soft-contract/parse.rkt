@@ -1,5 +1,6 @@
 #lang racket/base
-(require racket/match racket/list racket/set racket/bool racket/function
+(require racket/match racket/list racket/set racket/bool racket/function racket/math
+         racket/unsafe/ops
          web-server/private/util
          "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
          syntax/parse syntax/modresolve racket/pretty racket/contract
@@ -40,6 +41,7 @@
 (define (mod-path->mod-name p)
   (match p ; hacks
     ['#%kernel 'Λ]
+    ['#%unsafe 'unsafe]
     [(and (? symbol?) (app symbol->string "expanded module")) (cur-mod)]
     [_ (path->string (simplify-path p))]))
 
@@ -48,7 +50,7 @@
   (log-debug "parse-top-level-form:~n~a~n~n" (pretty (syntax->datum form)))
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
-     (define mod-name (mod-path->mod-name (simplify-path (syntax-source #'id))))
+     (define mod-name (mod-path->mod-name (syntax-source #'id)))
      (.module
       mod-name
       (parameterize ([cur-mod mod-name])
@@ -396,10 +398,12 @@
     [(~literal max) 'max]
     #;[(~literal set-box!) 'set-box!]
     [(~literal cons) .cons]
-    [(~literal car) .car]
-    [(~literal cdr) .cdr]
+    [(~or (~literal car) (~literal unsafe-car)) .car]
+    [(~or (~literal cdr) (~literal unsafe-cdr)) .cdr]
     [(~literal cons?) .cons?]
     [(~literal values) 'values]
+    ;; Temporary ops
+    [(~literal sqr) 'sqr]
     [_ #f]))
 
 (define/contract (parse-provide-spec spec)

@@ -115,7 +115,7 @@
            (ans-add! ς))]
         ;; remember waiting context and plug any available answers into it
         [(.ς (cons ctx F) σ k)
-         (match-define (cons l r) (split-κ* ctx k))
+         (define-values (l r) (split-κ* ctx k))
          (define K (list F σ l r))
          (Ξ+! ctx K)
          (for ([res : .res (M@ ctx)])
@@ -203,8 +203,11 @@
              (.ς (.↓ e (ρ++ ρ Vx1)) σ1 (cons (.rt/κ σ1 f Vx1) k)))
            (.ς (.↓ e (ρ++ ρ Vx)) σ (cons (.rt/κ σ f Vx) k)))]
          [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
-      [(.λ↓ (.λ (cons n _) e) ρ)
-       (error 'TODO "varargs")]))
+      [(.λ↓ (.λ (cons n 'rest) e) ρ)
+       (cond
+         [(>= (length Vx) n) ;; TODO summarization
+          (.ς (.↓ e (ρ++ ρ Vx n)) σ (cons (.rt/κ σ f Vx) k))]
+         [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity≥/C n)) σ k)])]))
 
   (: step-@ : .V (Listof .V) Mon-Party .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
@@ -418,7 +421,9 @@
   (: step-V : .V .σ .κ .κ* → .ς*)
   (define (step-V V σ κ k)
     (when (match? V (.// '• _))
-      (error 'Impossible "~a" (show-ς (.ς (-Vs V) σ (cons κ k)))))
+      (error 'Internal "Impossible opaque value not referenced through location: ~a"
+             (format-ς (.ς (-Vs V) σ (cons κ k)))))
+    
     (match κ
       [(.if/κ E1 E2) (match/nd (δ σ 'false? (list V) 'Λ)
                        [(cons σt (-Vs (.// (.b #f) _))) (.ς E1 σt k)]
@@ -506,11 +511,9 @@
   #;(log-debug "apps-seen~nf: ~a~nk: ~a~n~n" (show-V σ∅ (→V f)) (show-k σ∅ k))
   (for/fold ([acc : (Listof (Pairof .rt/κ (Option .F))) '()]) ([κ k])
     (match κ
-      [(and κ (.rt/κ σ0 f0 Vx0))
+      [(.rt/κ σ0 f0 Vx0)
        (if (equal? f0 f)
-           (cons (ann (cons κ (⊑ σ σ0 Vx Vx0))
-                      (Pairof .rt/κ (Option .F)))
-                 acc)
+           (cons (cons κ (⊑ σ σ0 Vx Vx0)) acc)
            acc)]
       [_ acc])))
 
@@ -519,19 +522,21 @@
   #;(log-debug "apps-seen~nf: ~a~nk: ~a~n~n" (show-V σ∅ (→V f)) (show-k σ∅ k))
   (for/fold ([acc : (Listof (U .F (Pairof .σ (Listof .V)))) '()]) ([κ k])
     (match κ
-      [(.μ/κ g Vx0 σ0) (match (⊑ σ σ0 Vx Vx0)
-                         [#f (cons (ann (cons σ0 Vx0) (Pairof .σ (Listof .V))) acc)]
-                         [(? hash? F) (cons F acc)])]
+      [(.μ/κ g Vx0 σ0)
+       (match (⊑ σ σ0 Vx Vx0)
+         [#f (cons (ann (cons σ0 Vx0) (Pairof .σ (Listof .V))) acc)]
+         [(? hash? F) (cons F acc)])]
       [_ acc])))
 
-(: split-κ* : .rt/κ .κ* → (Pairof .κ* .κ*))
+(: split-κ* : .rt/κ .κ* → (Values .κ* .κ*))
 (define (split-κ* κ k)
   #;(log-debug "Split:~n~a~n~n~a~n~n" κ k)
-  (let: go ([l : .κ* '()] [k k])
+  (let go ([l : .κ* '()] [k k])
     (match k
-      ['() (error "WTF")]
+      ['() (error 'Internal "split-κ*: frame does not exist: ~a" κ)]
       [(cons (? .rt/κ? κ′) kr)
-       (if (equal? κ κ′) (cons (reverse l) kr) (go (cons κ′ l) kr))]
+       (cond [(equal? κ κ′) (values (reverse l) kr)]
+             [else (go (cons κ′ l) kr)])]
       [(cons κ kr) (go (cons κ l) kr)])))
 
 (: chk-seen? : .κ* .μ/C .V → Boolean)

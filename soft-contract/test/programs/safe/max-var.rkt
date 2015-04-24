@@ -4,7 +4,7 @@
 (define (max a b)
   (if (>= a b) a b))
 
-(define* (max* x xs)
+(define (max* x . xs)
   (foldl max x xs))
 
 (define (foldl f z xs)

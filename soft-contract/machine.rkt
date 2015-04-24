@@ -85,9 +85,6 @@
                     [_ (cons κ (trim kr))])]
                  [_ k])))]))
 
-(: show-k : .σ .κ* → (Listof Sexp))
-(define (show-k σ k) (for/list ([κ k]) (show-κ σ κ)))
-
 (: show-κ : .σ .κ → Sexp)
 (define (show-κ σ κ)
   (define E (curry show-E σ))
@@ -155,23 +152,18 @@
       [(.recchk/κ _ _) `(recchk ,acc)]
       [(.μ/κ _ _ _) `(μ/κ ,acc)])))
 
-(: show-ς : .ς → (List (Listof Sexp) (Listof Sexp) (Listof Sexp)))
-(define show-ς
-  (match-lambda
-    [(and ς (.ς E σ k))
-     `((E: ,(if (.E? E) (show-E σ E) (show-κ σ (car E))))
-       (σ: ,@(show-σ σ))
-       (k: ,@(show-k σ k)))]))
-
 (: print-ς : .ς → Void)
-(define (print-ς ς)
+(define (print-ς ς) (printf (format-ς ς)))
+
+(: format-ς : .ς → String)
+(define (format-ς ς)
   (match-define (.ς E σ k) ς)
   (parameterize ([abstract-V? #f])
     (cond [(.E? E)
-           (printf "---- E: ~a~n     σ: ~a~n~n"
+           (format "---- E: ~a~n     σ: ~a~n~n"
                    (show-ek σ k `(⦃,(show-E σ E)⦄))
                    (show-σ σ))]
           [else
-           (printf "---- K: ~a~n     σ: ~a~n~n"
+           (format "---- K: ~a~n     σ: ~a~n~n"
                    (show-ek σ k `(⟦,(show-κ σ (car E))⟧))
                    (show-σ σ))])))

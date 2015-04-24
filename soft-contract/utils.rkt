@@ -70,6 +70,7 @@
 (define ∪ set-union)
 (define ∩ set-intersect)
 (define ∋ set-member?)
+(define ⊆ subset?)
 (define --- set-subtract)
 (define -- set-remove)
 (define-type Map HashTable)
@@ -99,12 +100,14 @@
   (syntax-case stx (:)
     [(_ s : τ)
      (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
-                   [s-add! (format-id #'s "~a-add!" #'s)])
+                   [s-add! (format-id #'s "~a-add!" #'s)]
+                   [s-add*! (format-id #'s "~a-add*!" #'s)]
+                   [s-union! (format-id #'s "~a-union!" #'s)])
        #'(begin (define s : (Setof τ) ∅)
-                (define (s-has? [x : τ]) : Boolean (set-member? s x))
-                (define (s-add! [x : (U τ (Setof τ))])
-                  (set! s (cond [(set? x) (set-union s x)]
-                                [else (set-add s x)])))))]))
+                (define (s-has? [x : τ]) : Boolean (∋ s x))
+                (define (s-add! [x : τ]) (set! s (set-add s x)))
+                (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
+                (define (s-union! [xs : (Setof τ)]) (set! s (∪ s xs)))))]))
 
 (: set-partition : (∀ (X) (X → Boolean) (Setof X) → (Values (Setof X) (Setof X))))
 (define (set-partition p xs)

@@ -285,7 +285,7 @@
               (hash-set m* x (go! v))))
           (if (equal? m* m) V (.// (.λ↓ f (.ρ m* l)) Cs))]
          [_ V])]
-      [(.μ/V z V*) (bodies-add! (for/set: : (Setof .V) ([Vi V*]) (V/ Vi (.X/V z) (.X/V x)))) (.X/V x)]
+      [(.μ/V z V*) (bodies-union! (for/set: : (Setof .V) ([Vi V*]) (V/ Vi (.X/V z) (.X/V x)))) (.X/V x)]
       [(.X/V _) (.X/V x)]))
 
   (: go*! : (Listof .V) → (Listof .V))

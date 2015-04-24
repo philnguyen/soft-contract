@@ -112,7 +112,7 @@
   (match var?
     [#f (for/fold ([ρi ρ]) ([V V*]) (ρ+ ρi V))]
     [0 (ρ+ ρ (foldr (λ ([Vi : .V] [Vr : .V])
-                      (.// (.St (.id 'cons 'Λ) (list Vi Vr)) ∅))
+                      (.// (.St -id-cons (list Vi Vr)) ∅))
                     MT V*))]
     [(? integer? n) (ρ++ (ρ+ ρ (car V*)) (cdr V*) (- n 1))]))
 
@@ -156,6 +156,7 @@
 (define**
   [-VsTT (.Vs (list TT))] [-VsFF (.Vs (list FF))]
   [-VsVoid (.Vs (list (→V (.St (.id 'void 'Λ) (list)))))])
+(define -id-cons (.id 'cons 'Λ))
 
 
 ;;;;; STORE
@@ -638,7 +639,7 @@
 
 (: .CONS/C : .V .V → .V)
 (define (.CONS/C C D)
-  (→V (.St/C (.id 'cons 'Λ) (list C D))))
+  (→V (.St/C -id-cons (list C D))))
 
 (define .ANY/C (→V (.λ↓ .any/c ρ∅)))
 (define .NONE/C (→V (.λ↓ .none/c ρ∅)))

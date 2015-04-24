@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require
- racket/match racket/set racket/bool
+ racket/match racket/set racket/bool racket/math
  "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt" "make-delta.rkt")
 (provide (all-defined-out)
          (except-out (all-from-out "make-delta.rkt") define-δ))
@@ -111,6 +111,12 @@
   [(tan : [x : number?] → number?)]
   [(string-length : [s : string?] → (∧ integer? (≥/c 0))) #|FIXME update DSL to refine s|#]
   [#:predicate equal? : any/c any/c]
+
+  ;; Temporary ops
+  [(sqr : [x : number?] → number?)
+   #:refinements
+   (real? → (∧ real? (≥/c 0)))
+   (integer? → integer?)]
   
   ;; Ugly stuff. Only Phil gets to use #:escape clauses
   [#:escape ; accessor

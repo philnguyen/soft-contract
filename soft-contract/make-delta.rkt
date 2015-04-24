@@ -2,7 +2,7 @@
 (provide (all-defined-out))
 
 (require
- racket/match racket/list racket/set racket/function racket/bool
+ racket/match racket/list racket/set racket/function racket/bool racket/math
  "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt" "show.rkt"
  (for-syntax racket/base syntax/parse racket/contract racket/pretty racket/match
              racket/bool racket/list))

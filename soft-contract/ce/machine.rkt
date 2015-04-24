@@ -176,7 +176,10 @@
       [(.λ↓ (.λ (? integer? n) e) ρ)
        (cond [(= (length Vx) n) (.ς (.↓ e (ρ++ ρ Vx)) σ k)]
              [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity=/C n)) σ k)])]
-      [_ (error 'TODO "step-β: varargs")]))
+      [(.λ↓ (.λ (cons n 'rest) e) ρ)
+       (cond
+         [(>= (length Vx) n) (.ς (.↓ e (ρ++ ρ Vx n)) σ k)]
+         [else (.ς (.blm l 'Λ (Prim (length Vx)) (arity≥/C n)) σ k)])]))
       
   (: step-@ : .V (Listof .V) Mon-Party .σ .κ* → .ς*)
   (define (step-@ Vf V* l σ k)
@@ -485,7 +488,9 @@
   (: step-V : .V .σ .κ .κ* → .ς*)
   (define (step-V V σ κ k)
     (when (match? V (.// '• _))
-      (error 'Impossible "~a" (show-ς (.ς (-Vs V) σ (cons κ k)))))
+      (error 'Internal "Impossible opaque value not referenced through location: ~a"
+             (format-ς (.ς (-Vs V) σ (cons κ k)))))
+    
     (match κ
       [(.if/κ E1 E2)
        (match/nd (δ σ 'false? (list V) 'Λ)

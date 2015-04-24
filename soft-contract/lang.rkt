@@ -76,7 +76,10 @@
           ;; `index` is the index that this accesses
           (struct .st-ac [tag : .id] [arity : Integer] [index : Integer])
           'add1 'sub1 'string-length 'sqrt
-          'sin 'cos 'tan 'abs 'round 'floor 'ceiling 'log )
+          'sin 'cos 'tan 'abs 'round 'floor 'ceiling 'log
+          ;; temporary ops
+          'sqr
+          )
         (subset: .o2
           'equal? '= '> '< '>= '<= '+ '- '* '/
           'expt 'abs 'min 'max
@@ -355,8 +358,12 @@
   #;(log-debug "~nmodules: ~n~a~n" ms)
   (for ([m (in-list ms)])
     (cond
-     [(module-opaque? m)
-      (eprintf "Omit havocking opaque module ~a~n" (.module-path m))]
+      [(module-opaque? m)
+       =>
+       (λ (s)
+         (eprintf "Omit havocking opaque module `~a`. Provided but undefined: ~a~n"
+                  (.module-path m)
+                  (set->list s)))]
      [else
       #;(log-debug "Havocking transparent module ~a~n" (.module-path m))
       (match-define (.module path (.plain-module-begin forms)) m)
@@ -408,23 +415,19 @@
 (: e/* : (Listof .expr) Integer .expr → (Listof .expr))
 (define (e/* es x eₓ) (for/list ([e es]) (e/ e x eₓ)))
 
-(: module-opaque? : .module → Boolean)
-(define (module-opaque? m) ; TODO: expensive?
+(: module-opaque? : .module → (U #f (Setof Symbol)))
+(define (module-opaque? m)
   (match-define (.module _ (.plain-module-begin body)) m)
+  (define-set exports : Symbol)
+  (define-set defines : Symbol)
 
-  (define-values (exports defines)
-    (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])
-              ([e (in-list body)])
-      (match e
-        [(.provide specs)
-         (values (set-union exports (list->set (map .p/c-item-id specs))) defines)]
-        [(.define-values xs _)
-         (values exports (set-union defines (list->set xs)))]
-        [_ (values exports defines)])))
-  (not
-   (for/and : Boolean ([exported-id : Symbol (in-set exports)])
-     (for/or : Boolean ([defined-id : Symbol (in-set defines)])
-       (equal? exported-id defined-id)))))
+  (for ([e (in-list body)])
+    (match e
+      [(.provide specs) (exports-add*! (map .p/c-item-id specs))]
+      [(.define-values xs _) (defines-add*! xs)]
+      [_ (void)]))
+  
+  (if (⊆ exports defines) #f (--- exports defines)))
 
 (: count-xs : (U .expr (Listof .expr)) Integer → Integer)
 ;; Count occurences of variable (given as static distance)
@@ -475,7 +478,7 @@
   (match-define (.ref (.id name from) _) ref)
   ;; FIXME:
   ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
-  (define m (path->module ms from))
+  (define m (path->module ms from name))
   (match-define (.module _ (.plain-module-begin forms)) m)
   (or (for/or : (U #f .expr) ([form (in-list forms)])
         (match form
@@ -490,7 +493,7 @@
   (match-define (.ref (.id name from) _) ref)
   ;; FIXME:
   ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
-  (define m (path->module ms from))
+  (define m (path->module ms from name))
   (match-define (.module _ (.plain-module-begin forms)) m)
   (or (for/or : (U #f .expr) ([form (in-list forms)])
         (match form
@@ -501,12 +504,13 @@
           [_ #f]))
       (error 'ref->ctc "Module `~a` does not provide `~a`" from name)))
 
-(: path->module : (Listof .module) Adhoc-Module-Path → .module)
-(define (path->module ms x)
+(: path->module ([(Listof .module) Adhoc-Module-Path] [(U Symbol False)] . ->* . .module))
+(define (path->module ms x [ref-name #f])
   ;; - figure out module-path properly
   (or (for/or : (U #f .module) ([m (in-list ms)] #:when (equal? (.module-path m) x))
         m)
-      (error 'path->module "Cannot find module `~a`" x)))
+      (error 'path->module "Cannot find module `~a`~a" x
+             (if ref-name (format " (when resolving `~a`)" ref-name) ""))))
 
 (: free-x/c : .expr → (Setof Symbol))
 ;; Return all free references to recursive contracts inside term
