@@ -368,106 +368,107 @@
 (: decide-R : Boolean → .R)
 (define decide-R (match-lambda [#t '✓] [#f 'X]))
 
-(: ⊑ : (case→ [.σ .σ → (case→
-                        [.V .V → (Option .F)]
-                        [(Listof .V) (Listof .V) → (Option .F)]
-                        [.ρ .ρ → (Option .F)])]
-              [.V .V → (Option .F)]
-              [(Listof .V) (Listof .V) → (Option .F)]))
-(define ⊑
-  (match-lambda**
-      [((? .σ? σ0) (? .σ? σ1))
-       (define F : .F (hash))
-       (define-set assumed : (Pairof .V .V))
-       
-       (: go! : (case→ [.V .V → Boolean]
-                       [(Listof .V) (Listof .V) → Boolean]
-                       [.ρ .ρ → Boolean]))
-       (define (go! x y)
-         #;(log-debug "go:~nσ0:~n~a~nσ1:~n~a~nV0:~n~a~nV1:~n~a~n~n" σ0 σ1 x y)
-         (match* (x y)
-           [((? .V? V0) (? .V? V1))
-            (or        
-             (assumed-has? (cons V0 V1))
-             (match* (V0 V1)
-               [((.// U0 C*) (.// U1 D*))
-                (match* (U0 U1)
-                  [('• '•)
-                   (C*⇒C*?
-                       (for/set: : (Setof .V)
-                                 ([C (in-set C*)]
-                                  #:unless
-                                  (match?
-                                   C
-                                   (.//
-                                    (.λ↓
-                                     (.λ 1
-                                         (.@ (or '= 'equal?)
-                                             (list (.x 0) (not (? .v?) (? .x?))) 'Λ)) _)
-                                    _)))
-                         C)
-                       (for/set: : (Setof .V)
-                                 ([D (in-set D*)]
-                                  #:unless
-                                  (match?
-                                   D
-                                   (.//
-                                    (.λ↓
-                                     (.λ 1
-                                         (.@ (or '= 'equal?)
-                                             (list (.x 0) (not (? .v?) (? .x?))) 'Λ)) _)
-                                    _)))
-                         D))]
-                  [((.St t V0*) (.St t V1*)) (andmap go! V0* V1*)]
-                  [((.Ar C1 V1 _) (.Ar C2 V2 _)) (and (equal? C1 C2) (go! V1 V2))]
-                  [((.λ↓ e0 ρ0) (.λ↓ e1 ρ1)) (and (equal? e0 e1) (go! ρ0 ρ1))]
-                  [(_ '•)
-                   (match U0
-                     [(.b (? integer?)) (C*⇒C*? (set-add C* INT/C) D*)]
-                     [(.b (? real?)) (C*⇒C*? (set-add C* REAL/C) D*)]
-                     [(.b (? number?)) (C*⇒C*? (set-add C* NUM/C) D*)]
-                     [(.b (? string?)) (C*⇒C*? (set-add C* STR/C) D*)]
-                     [(.b (? symbol?)) (C*⇒C*? (set-add C* SYM/C) D*)]
-                     [_ (C*⇒C*? C* D*)])]
-                  [(_ _) (equal? U0 U1)])]
-               [((.L i) (.L j))
-                (match (hash-ref F j #f)
-                  [#f #;(log-debug "no key~n")
-                      (if (go! (σ@ σ0 i) (σ@ σ1 j))
-                          (begin #;(log-debug "lookedup yes~n")(set! F (hash-set F j i)) #t)
-                          #f)]
-                  [(? integer? i′) #;(log-debug "yes key~n")(= i i′)])]
-               [((.L i) _) (go! (σ@ σ0 i) V1)]
-               [(_ (.L j)) (go! V0 (σ@ σ1 j))]
-               [((? .μ/V? V0) (? .μ/V? V1))
-                #;(log-debug "Case0: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
-                (assumed-add! (cons V0 V1))
-                (for/and : Boolean ([V0i (unroll V0)])
-                  (for/or : Boolean ([V1i (unroll V1)]) ;FIXME: may screw up F
-                    (let ([G F])
-                      (or (go! V0i V1i) (begin (set! F G) #f)))))]
-               [((? .μ/V? V0) _)
-                #;(log-debug "Case2: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
-                (assumed-add! (cons V0 V1))
-                (for/and ([V0i (unroll V0)]) (go! V0i V1))]
-               [(_ (? .μ/V? V1))
-                #;(log-debug "Case1: ~a~n~n~a~n~n" (show-V σ0 V0) (show-V σ1 V1))
-                (assumed-add! (cons V0 V1))
-                (for/or : Boolean ([V1i (unroll V1)])
-                  (let ([G F])
-                    (or (go! V0 V1i) (begin (set! F G) #f))))] ; FIXME: may screw up F
-               [(_ _) #f]))]
-           [((.ρ m0 l0) (.ρ m1 l1))
-            (for/and ([i (in-range 0 (max l0 l1))])
-              (match* ((hash-ref m0 (- l0 i 1) #f) (hash-ref m1 (- l1 i 1) #f))
-                [((? .V? V0) (? .V? V1)) (go! V0 V1)]
-                [(#f #f) #t]
-                [(_ _) #f]))]
-           [((? list? V0*) (? list? V1*)) (andmap go! V0* V1*)]))
-       (λ (V0 V1) (if (go! V0 V1) F #f))]
-    [((? .V? V0) (? .V? V1)) ((⊑ σ∅ σ∅) V0 V1)]
-    [((? list? l0) (? list? l1)) ((⊑ σ∅ σ∅) l0 l1)]))
+(: ⊑ : (case->
+        [.σ .σ .V .V → (Option .F)]
+        [.σ .σ (Listof .V) (Listof .V) → (Option .F)]))
+(define (⊑ σ₀ σ₁ x₀ x₁)
+  (define F : .F (hash))
+  
+  (define-set assumed : (Pairof .V .V))
 
+  (define (go/ρ! [ρ₀ : .ρ] [ρ₁ : .ρ]) : Boolean
+    (match-define (.ρ m₀ l₀) ρ₀)
+    (match-define (.ρ m₁ l₁) ρ₁)
+    (for/and ([i (in-range 0 (max l₀ l₁))])
+      (match* ((hash-ref m₀ (- l₀ i 1) #f) (hash-ref m₁ (- l₁ i 1) #f))
+        [((? .V? V₀) (? .V? V₁)) (go! V₀ V₁)]
+        [(#f #f) #t]
+        [(_ _) #f])))
+
+  (define (go/Vs! [Vs₀ : (Listof .V)] [Vs₁ : (Listof .V)]) : Boolean
+    (andmap go! Vs₀ Vs₁))
+  
+  (: go! : .V .V → Boolean)
+  (define (go! V₀ V₁)
+    #;(log-debug "go:~nσ₀:~n~a~nσ₁:~n~a~nV0:~n~a~nV₁:~n~a~n~n" σ₀ σ₁ x y)
+    (or        
+     (assumed-has? (cons V₀ V₁))
+     (match* (V₀ V₁)
+       [((.// U₀ Cs) (.// U₁ Ds))
+        (match* (U₀ U₁)
+          [('• '•)
+           (C*⇒C*?
+               (for/set: : (Setof .V)
+                         ([C (in-set Cs)]
+                          #:unless
+                          (match?
+                           C
+                           (.//
+                            (.λ↓
+                             (.λ 1
+                                 (.@ (or '= 'equal?)
+                                     (list (.x 0) (not (? .v?) (? .x?))) 'Λ)) _)
+                            _)))
+                 C)
+               (for/set: : (Setof .V)
+                         ([D (in-set Ds)]
+                          #:unless
+                          (match?
+                           D
+                           (.//
+                            (.λ↓
+                             (.λ 1
+                                 (.@ (or '= 'equal?)
+                                     (list (.x 0) (not (? .v?) (? .x?))) 'Λ)) _)
+                            _)))
+                 D))]
+          [((.St t Vs₀) (.St t Vs₁)) (go/Vs! Vs₀ Vs₁)]
+          [((.Ar C₁ V₁ _) (.Ar C₂ V₂ _)) (and (equal? C₁ C₂) (go! V₁ V₂))]
+          [((.λ↓ e₀ ρ₀) (.λ↓ e₁ ρ₁)) (and (equal? e₀ e₁) (go/ρ! ρ₀ ρ₁))]
+          [(_ '•)
+           (match U₀
+             [(.b (? integer?)) (C*⇒C*? (set-add Cs INT/C) Ds)]
+             [(.b (? real?)) (C*⇒C*? (set-add Cs REAL/C) Ds)]
+             [(.b (? number?)) (C*⇒C*? (set-add Cs NUM/C) Ds)]
+             [(.b (? string?)) (C*⇒C*? (set-add Cs STR/C) Ds)]
+             [(.b (? symbol?)) (C*⇒C*? (set-add Cs SYM/C) Ds)]
+             [_ (C*⇒C*? Cs Ds)])]
+          [(_ _) (equal? U₀ U₁)])]
+       [((.L i) (.L j))
+        (match (hash-ref F j #f)
+          [#f #;(log-debug "no key~n")
+           (if (go! (σ@ σ₀ i) (σ@ σ₁ j))
+               (begin #;(log-debug "lookedup yes~n")(set! F (hash-set F j i)) #t)
+               #f)]
+          [(? integer? i*) #;(log-debug "yes key~n")(= i i*)])]
+       [((.L i) _) (go! (σ@ σ₀ i) V₁)]
+       [(_ (.L j)) (go! V₀ (σ@ σ₁ j))]
+       [((? .μ/V? V₀) (? .μ/V? V₁))
+        #;(log-debug "Case0: ~a~n~n~a~n~n" (show-V σ₀ V₀) (show-V σ₁ V₁))
+        (assumed-add! (cons V₀ V₁))
+        (for/and : Boolean ([V₀ᵢ (unroll V₀)])
+          (for/or : Boolean ([V₁ᵢ (unroll V₁)]) ;FIXME: may screw up F
+            (define G F)
+            (or (go! V₀ᵢ V₁ᵢ)
+                (begin (set! F G) #f))))]
+       [((? .μ/V? V₀) _)
+        #;(log-debug "Case2: ~a~n~n~a~n~n" (show-V σ₀ V₀) (show-V σ₁ V₁))
+        (assumed-add! (cons V₀ V₁))
+        (for/and ([V₀ᵢ (unroll V₀)]) (go! V₀ᵢ V₁))]
+       [(_ (? .μ/V? V₁))
+        #;(log-debug "Case1: ~a~n~n~a~n~n" (show-V σ₀ V₀) (show-V σ₁ V₁))
+        (assumed-add! (cons V₀ V₁))
+        (for/or : Boolean ([V₁ᵢ (unroll V₁)]) ; FIXME: may screw up F
+          (define G F)
+          (or (go! V₀ V₁ᵢ)
+              (begin (set! F G) #f)))] 
+       [(_ _) #f])))
+
+  (and (cond [(.V? x₀) (go! x₀ x₁)]
+             [else (go/Vs! x₀ x₁)])
+       F))
+
+(define (⊑/V [V₀ : .V] [V₁ : .V]) (⊑ σ∅ σ∅ V₀ V₁))
 
 (: C≃ : (case→ [.V .V → Boolean]
               [.U .U → Boolean]

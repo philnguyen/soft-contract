@@ -188,8 +188,8 @@
     [(V∈ V₁ V₀) V₁] ; postpone approximation if value shrinks
     ;;[(and (.//? V1) (.•? (.//-pre V1)) (= 1 (set-count (.//-refine V1)))) V1]
     ;;[(equal? V0 ♦) ♦]
-    [(⊑ V₁ V₀) V₀]
-    [(⊑ V₀ V₁) V₁]
+    [(⊑/V V₁ V₀) V₀]
+    [(⊑/V V₀ V₁) V₁]
     [else
      (match* (V₀ V₁)
        [((.// U₀ Cs) (.// U₁ Ds))
@@ -279,11 +279,11 @@
          [(.Ar C V l) (.// (.Ar C (go! V) l) Cs)]
          [(.λ↓ f (and ρ (.ρ m l)))
           #;(log-debug "elim-μ: ρ:~n~a~n~n" m)
-          (define m′
-            (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅])
+          (define m*
+            (for/fold ([m* : (Map (U Integer Symbol) .V) m∅])
                       ([(x v) (in-hash m)])
-              (hash-set m′ x (go! v))))
-          (if (equal? m′ m) V (.// (.λ↓ f (.ρ m′ l)) Cs))]
+              (hash-set m* x (go! v))))
+          (if (equal? m* m) V (.// (.λ↓ f (.ρ m* l)) Cs))]
          [_ V])]
       [(.μ/V z V*) (bodies-add! (for/set: : (Setof .V) ([Vi V*]) (V/ Vi (.X/V z) (.X/V x)))) (.X/V x)]
       [(.X/V _) (.X/V x)]))
@@ -298,16 +298,17 @@
 ;; remove redundant variable
 ;; simplify to • if body has •
 (: μV : Symbol (Setof .V) → .V)
-(define (μV x V*)
-  (let ([V* (for/set: : (Setof .V) ([V V*] #:unless (equal? V (.X/V x))) V)])
-    (cond
-      [(set-member? V* ♦) ♦]
-      [else (match (set-count V*)
-              [0 V∅]
-              [1 (let* ([V (set-first V*)]
-                        [V′ (V/ V (.X/V x) (.X/V '☠))])
-                   (if (equal? V V′) V V∅))]
-              [_ (.μ/V x V*)])])))
+(define (μV x Vs)
+  (define Vs* (for/set: : (Setof .V) ([V Vs] #:unless (equal? V (.X/V x))) V))
+  (cond
+    [(∋ Vs* ♦) ♦]
+    [else (match (set-count Vs*)
+            [0 V∅]
+            [1
+             (define V (set-first Vs*))
+             (define V* (V/ V (.X/V x) (.X/V '☠)))
+             (if (equal? V V*) V V∅)]
+            [_ (.μ/V x Vs*)])]))
 
 ; group values together by top constructors
 (: compact : (Setof .V) (Setof .V) → (Setof .V))

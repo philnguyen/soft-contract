@@ -153,7 +153,9 @@
   [FALSE/C (Prim 'false?)] [BOOL/C (Prim 'boolean?)]
   [INT/C (Prim 'integer?)] [REAL/C (Prim 'real?)] [NUM/C (Prim 'number?)]
   [STR/C (Prim 'string?)] [PROC/C (Prim 'procedure?)] [SYM/C (Prim 'symbol?)])
-(define** [-VsTT (.Vs (list TT))] [-VsFF (.Vs (list FF))])
+(define**
+  [-VsTT (.Vs (list TT))] [-VsFF (.Vs (list FF))]
+  [-VsVoid (.Vs (list (→V (.St (.id 'void 'Λ) (list)))))])
 
 
 ;;;;; STORE

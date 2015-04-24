@@ -172,6 +172,8 @@
       [(.let-values _ _ _) '(let-values …) #|TODO|#]
       [(.@ f xs _) `(,(go ctx f) ,@(map (curry go ctx) xs))]
       [(.@-havoc x) `(apply ,(go ctx x) •)]
+      [(.begin es) `(begin ,@(map (curry show-e σ) es))]
+      [(.begin0 e es) `(begin ,(show-e σ e) ,@(map (curry show-e σ) es))]
       #;[(.apply f xs _) `(@ ,(go ctx f) ,(go ctx xs))]
       [(.if i t e) `(if ,(go ctx i) ,(go ctx t) ,(go ctx e))]
       [(.amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (go ctx e)))]

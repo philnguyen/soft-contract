@@ -17,6 +17,9 @@
   #;(struct .let/κ [xs : (Listof .expr)] [vs : (Listof .V)]
                  [env : .ρ] [body : .expr]) ;FIXME generalize to `let-values`
   (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Mon-Party])
+  (struct .begin/κ [es : (Listof .expr)] [ρ : .ρ])
+  (struct .begin0v/κ [es : (Listof .expr)] [ρ : .ρ])
+  (struct .begin0e/κ [V : .V] [es : (Listof .expr)] [ρ : .ρ])
   (struct .▹/κ [ce : (U (Pairof #f .E) (Pairof .V #f))] [l³ : Mon-Info])
   (struct .indy/κ
     [c : (Listof .V)] [x : (Listof .V)] [x↓ : (Listof .V)]
@@ -118,6 +121,12 @@
           ,(show-e σ e))]
       [(.@/κ Es Vs _ctx)
        `(,@(reverse (show-Vs σ Vs)) ,acc ,@(map (curry show-E σ) Es))]
+      [(.begin/κ es _)
+       `(begin ,acc ,@(map (curry show-e σ) es))]
+      [(.begin0v/κ es _)
+       `(begin0 ,acc ,@(map (curry show-e σ) es))]
+      [(.begin0e/κ V es _)
+       `(begin0 ,(show-V σ V) ,acc ,@(map (curry show-e σ) es))]
       [(.▹/κ ce _)
        (cond [(.E? (cdr ce)) `(mon ,acc ,(show-E σ (cdr ce)))]
              [(.V? (car ce)) `(mon ,(show-V σ (car ce)) ,acc)]

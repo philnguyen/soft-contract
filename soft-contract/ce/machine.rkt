@@ -438,39 +438,49 @@
                          (.ς (.blm l+ lo V (arity≥/C (- (length Cx*) 1))) σf k)])])]
                [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l+ lo V PROC/C) σf k)])]
             [_ (.ς (.FC C V lo) σ (cons (.if/κ (.Assume V C) (.blm l+ lo V C)) k))])])]))
+
+  (: step-e : .e .ρ .σ .κ* → .ς*)
+  (define (step-e e ρ σ k)
+    (match e
+      [(.•ₗ n)
+       (match-define (.σ m l) σ)
+       (.ς (-Vs (.L n)) (.σ (hash-update m n identity (λ () ♦)) l) k)]
+      [(? .v? v) (.ς (-Vs (close v ρ)) σ k)]
+      [(.x sd) (.ς (-Vs (ρ@ ρ sd)) σ k)]
+      [(? .x/c? x) (.ς (-Vs (ρ@ ρ x)) σ k)]
+      [(and ref (.ref (.id name ctx) ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
+      [(and ref (.ref (.id name in) ctx))
+       (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
+           (cons (.▹/κ  (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
+      [(.let-values '() e _) (step-E (.↓ e ρ) σ k)]
+      [(.let-values (cons (cons nₓ eₓ) bnds) e ctx)
+       (.ς (.↓ eₓ ρ) σ (cons (.let-values/κ nₓ bnds '() ρ e ctx) k))]
+      [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
+      [(.begin es)
+       (cond [(null? es) (.ς -VsVoid σ k)]
+             [(null? (cdr es)) (.ς (.↓ (car es) ρ) σ k)]
+             [else (.ς (.↓ (car es) ρ) σ (cons (.begin/κ (cdr es) ρ) k))])]
+      [(.begin0 e es)
+       (cond [(null? es) (.ς (.↓ e ρ) σ k)]
+             [else (.ς (.↓ e ρ) σ (cons (.begin0v/κ es ρ) k))])]
+      [(.if i t e) (.ς (.↓ i ρ) σ (cons (.if/κ (.↓ t ρ) (.↓ e ρ)) k))]
+      [(.amb e*) (for/set: : (Setof .ς) ([e e*]) (.ς (.↓ e ρ) σ k))]
+      [(.μ/c x e) (.ς (.↓ e (ρ+ ρ x (→V (.X/C x)))) σ (cons (.μc/κ x) k))]
+      [(.->i '() d v?) (.ς (-Vs (→V (.Λ/C '() (.↓ d ρ) v?))) σ k)]
+      [(.->i (cons c c*) d v?) (.ς (.↓ c ρ) σ (cons (.λc/κ c* '() d ρ v?) k))]
+      [(.struct/c t '()) (.ς (-Vs (→V (.st-p t 0))) σ k)]
+      [(.struct/c t (cons c c*)) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ '()) k))]))
   
   (: step-E : .E .σ .κ* → .ς*)
   (define (step-E E σ k)
     #;(log-debug "E: ~a~n~n" E)
     (match E
-      [(.↓ e ρ)
-       (match e
-         [(.•ₗ n)
-          (match-define (.σ m l) σ)
-          (.ς (-Vs (.L n)) (.σ (hash-update m n identity (λ () ♦)) l) k)]
-         [(? .v? v) (.ς (-Vs (close v ρ)) σ k)]
-         [(.x sd) (.ς (-Vs (ρ@ ρ sd)) σ k)]
-         [(? .x/c? x) (.ς (-Vs (ρ@ ρ x)) σ k)]
-         [(and ref (.ref (.id name ctx) ctx)) (.ς (.↓ (.ref->expr ms ref) ρ∅) σ k)]
-         [(and ref (.ref (.id name in) ctx))
-          (.ς (.↓ (.ref->ctc ms ref) ρ∅) σ
-              (cons (.▹/κ  (cons #f (.↓ (.ref->expr ms ref) ρ∅)) (list in ctx in)) k))]
-         [(.let-values '() e _) (step-E (.↓ e ρ) σ k)]
-         [(.let-values (cons (cons nₓ eₓ) bnds) e ctx)
-          (.ς (.↓ eₓ ρ) σ (cons (.let-values/κ nₓ bnds '() ρ e ctx) k))]
-         [(.@ f xs l) (.ς (.↓ f ρ) σ (cons (.@/κ (for/list ([x xs]) (.↓ x ρ)) '() l) k))]
-         [(.if i t e) (.ς (.↓ i ρ) σ (cons (.if/κ (.↓ t ρ) (.↓ e ρ)) k))]
-         [(.amb e*) (for/set: : (Setof .ς) ([e e*]) (.ς (.↓ e ρ) σ k))]
-         [(.μ/c x e) (.ς (.↓ e (ρ+ ρ x (→V (.X/C x)))) σ (cons (.μc/κ x) k))]
-         [(.->i '() d v?) (.ς (-Vs (→V (.Λ/C '() (.↓ d ρ) v?))) σ k)]
-         [(.->i (cons c c*) d v?) (.ς (.↓ c ρ) σ (cons (.λc/κ c* '() d ρ v?) k))]
-         [(.struct/c t '()) (.ς (-Vs (→V (.st-p t 0))) σ k)]
-         [(.struct/c t (cons c c*)) (.ς (.↓ c ρ) σ (cons (.structc/κ t c* ρ '()) k))])]
+      [(.↓ e ρ) (step-e e ρ σ k)]
       [(.Mon C E l³) (.ς C σ (cons (.▹/κ (cons #f E) l³) k))]
       [(.FC C V l) (step-fc C V l σ k)]
       [(.Assume V C)
-       (match-define (cons σ′ V′) (refine σ V C))
-       (.ς (-Vs V′) σ′ k)]))
+       (match-define (cons σ* V*) (refine σ V C))
+       (.ς (-Vs V*) σ* k)]))
   
   (: step-V : .V .σ .κ .κ* → .ς*)
   (define (step-V V σ κ k)
@@ -486,6 +496,21 @@
       [(.@/κ '() V* l)
        (match-define (cons Vf Vx*) (reverse (cons V V*)))
        (step-@ Vf Vx* l σ k)]
+
+      [(.begin/κ es ρ)
+       (match es
+         [(list) (.ς (-Vs V) σ k)]
+         [(list e) (.ς (.↓ e ρ) σ k)]
+         [(cons e es) (.ς (.↓ e ρ) σ (cons (.begin/κ es ρ) k))])]
+
+      [(.begin0v/κ es ρ)
+       (match es
+         [(list) (.ς (-Vs V) σ k)]
+         [(cons e es) (.ς (.↓ e ρ) σ (cons (.begin0e/κ V es ρ) k))])]
+      [(.begin0e/κ V es ρ)
+       (match es
+         [(list) (.ς (-Vs V) σ k)]
+         [(cons e es) (.ς (.↓ e ρ) σ (cons (.begin0e/κ V es ρ) k))])]
       
       [(.▹/κ (cons #f (? .E? E)) l³)
        (.ς E σ (▹/κ1 V l³ k))]
