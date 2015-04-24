@@ -344,7 +344,7 @@
                  [(cons σf (-Vs (.// (.b #f) _))) (.ς (.blm l+ lo V PROC/C) σf k)])]
               [_ (.ς (.FC C V lo) σ (cons (.if/κ (.Assume V C) (.blm l+ lo V C)) k))])])])))
 
-  (: step-e : .e .ρ .σ .κ* → .ς*)
+  (: step-e : .expr .ρ .σ .κ* → .ς*)
   (define (step-e e ρ σ k)
     (match e
       [(? .•?) (let-values ([(σ′ L) (σ+ σ)]) (.ς (-Vs L) σ′ k))]
