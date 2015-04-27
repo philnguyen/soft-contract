@@ -354,11 +354,9 @@
   (: go/ρ : .ρ → .ρ)
   (define (go/ρ ρ)
     (match-define (.ρ m l) ρ)
-    (.ρ ;; TODO: either wrong or dumb, rewrite using for/hash
-     (for/fold ([acc : (Map (U Integer Symbol) .V) m]) ([k (in-hash-keys m)])
-       (match (hash-ref m k #f)
-         [(? .V? V) (hash-set acc k (go/V V))]
-         [_ acc]))
+    (.ρ
+     (for/hash : (Map (U Integer Symbol) .V) ([(k v) (in-hash m)])
+       (values k (go/V v)))
      l))
   
   (: go/V* : (Listof .V) → (Listof .V))
