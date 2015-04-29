@@ -406,8 +406,8 @@
       ['?
        (match C
          [(.L i) ; FIXME this is wrong, need to take care of higher-order contract
-          (match-define (cons σt Vt) (refine σ V C))
-          (match-define (cons σf Vf) (refine σ V (.¬/C C)))
+          (define-values (σt Vt) (refine σ V C))
+          (define-values (σf Vf) (refine σ V (.¬/C C)))
           {set (.ς (-Vs Vt) σt k) (.ς (-Vs Vf) σf k)}]
          [(.// Uc C*)
           (match Uc
@@ -482,7 +482,7 @@
       [(.Mon C E l³) (.ς C σ (cons (.▹/κ (cons #f E) l³) k))]
       [(.FC C V l) (step-fc C V l σ k)]
       [(.Assume V C)
-       (match-define (cons σ* V*) (refine σ V C))
+       (define-values (σ* V*) (refine σ V C))
        (.ς (-Vs V*) σ* k)]))
   
   (: step-V : .V .σ .κ .κ* → .ς*)

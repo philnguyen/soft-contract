@@ -116,6 +116,24 @@
                     MT V*))]
     [(? integer? n) (ρ++ (ρ+ ρ (car V*)) (cdr V*) (- n 1))]))
 
+(: ρ-undefined : .ρ Integer → .ρ)
+(define (ρ-undefined ρ n) ; TODO hacky for now. Define `undefined` properly
+  (match-define (.ρ m l) ρ)
+  (define -undefined (→V (.b 'undefined)))
+  (.ρ
+   (for/fold ([acc : (Map (U Integer Symbol) .V) m]) ([i (in-range n)])
+     (hash-set acc (+ l i) -undefined))
+   (+ l n)))
+
+(: ρ-upd : .ρ Integer (Listof .V) → .ρ)
+(define (ρ-upd ρ offset Vs)
+  (match-define (.ρ m l) ρ)
+  (define i₀ (- l offset (length Vs)))
+  (.ρ
+   (for/fold ([acc : (Map (U Integer Symbol) .V) m]) ([V Vs] [δ (in-naturals)])
+     (hash-set acc (+ i₀ δ) V))
+   l))
+
 (: ρ@ : .ρ (U .x Integer .x/c) → .V)
 (define (ρ@ ρ x)
   (match-define (.ρ m l) ρ)
@@ -285,7 +303,9 @@
     [_ V]))
 
 (: unroll/C : .μ/C → .V)
-(define (unroll/C U) (match-let ([(.μ/C x C′) U]) (C/ C′ x (→V U))))
+(define (unroll/C U)
+  (match-define (.μ/C x C) U)
+  (C/ C x (→V U)))
 
 (: flat/C? : .σ (U .U .V) → Boolean)
 (define (flat/C? σ V) ; returns whether value is definitely a flat contract
@@ -369,7 +389,7 @@
   (cond [(set? V) (go/Vs V)]
         [else (go/V V)]))
 
-(: transfer : .σ .V .σ .F → (List .σ .V .F))
+(: transfer : .σ .V .σ .F → (Values .σ .V .F))
 ; transfers value from old heap to new heap, given mapping F
 (define (transfer σ-old V-old σ-new F)
   (: go! : (case→ [.L → .L]
@@ -387,9 +407,9 @@
                  (match-define-values (σ′ (and L_j (.L j))) (σ+ σ-new))
                  (set! σ-new σ′)
                  (set! F (hash-set F i j))
-                 (let ([V′ (go! (σ@ σ-old i))])
-                   (set! σ-new (σ-set σ-new j V′))
-                   L_j)])]
+                 (define V* (go! (σ@ σ-old i)))
+                 (set! σ-new (σ-set σ-new j V*))
+                 L_j])]
       [(.// U C*)
        #;(log-debug "Looking at ~a~n~n" C*)
        (.// (go! U) (for/set: : (Setof .V) ([Ci C*] #:when (transfer? Ci))
@@ -407,10 +427,8 @@
       ;ρ
       [(.ρ m l)
        (.ρ
-        (for/fold ([acc : (Map (U Integer Symbol) .V) m]) ([k (in-hash-keys m)])
-          (match (hash-ref m k #f)
-            [#f acc]
-            [(? .V? V) (hash-set acc k (go! V))]))
+        (for/hash : (Map (U Integer Symbol) .V) ([(k V) (in-hash m)])
+          (values k (go! V)))
         l)]
       ; List
       [(? list? V*) (map go! V*)]))
@@ -441,10 +459,10 @@
       [(.// U C*)
        (and (for/and : Boolean ([C C*]) (well-formed? σ C))
             (match U
-              [(.St _ V*) (for/and : Boolean ([Vi V*]) (well-formed? σ Vi))]
+              [(.St _ V*) (for/and ([Vi V*]) (well-formed? σ Vi))]
               [(.λ↓ _ (.ρ m _))
-               (for/and : Boolean ([i (in-hash-keys m)])
-                 (well-formed? σ (hash-ref m i)))]
+               (for/and ([(i Vᵢ) (in-hash m)])
+                 (well-formed? σ Vᵢ))]
               [_ #t]))]
       [(.L i) (and (hash-has-key? (.σ-map σ) i)
                    (well-formed? σ (σ@ σ i)))]
@@ -453,7 +471,7 @@
   (define V-new (go! V-old))
   #;(unless (well-formed? σ-new V-new)
   (error "malformed"))
-  (list σ-new V-new F))
+  (values σ-new V-new F))
 
 (: V-abs : (case→ [.σ .L → (U .// .μ/V)]
                   [.σ .// → .//]
@@ -511,7 +529,8 @@
 
 (: unroll : .μ/V → (Setof .V))
 (define (unroll V)
-  (match-let ([(.μ/V x V*) V]) (V/ V* (.X/V x) V)))
+  (match-define (.μ/V x Vs) V)
+  (V/ Vs (.X/V x) V))
 
 (: V/ : (case→ [.V .V .V → .V]
                [(Listof .V) .V .V → (Listof .V)]
@@ -537,9 +556,10 @@
                             [_ (.μ/V z (for/set: : (Setof .V) ([V Vs]) (go V)))])]
              [x x]))]
       [(and ρ (.ρ m l))
-       (let ([m′ (for/fold ([m′ : (Map (U Integer Symbol) .V) m∅]) ([x (in-hash-keys m)])
-                   (hash-set m′ x (go (hash-ref m x))))])
-         (if (equal? m′ m) ρ (.ρ m′ l)))]))
+       (define m*
+         (for/hash : (Map (U Integer Symbol) .V) ([(x v) (in-hash m)])
+           (values x (go v))))
+       (if (equal? m* m) ρ (.ρ m* l))]))
   (match V0
     [(? set? s) (for/set: : (Setof .V) ([x s]) (go x))]
     [(? list? l) (map go l)]

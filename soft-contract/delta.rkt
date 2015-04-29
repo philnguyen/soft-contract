@@ -142,8 +142,8 @@
      ['✓ (cons σ -VsTT)]
      ['X (cons σ -VsFF)]
      ['?
-      (match-define (cons σt _) (refine σ V C))
-      (match-define (cons σf _) (refine σ V (.¬/C C)))
+      (define-values (σt _t) (refine σ V C))
+      (define-values (σf _f) (refine σ V (.¬/C C)))
       {set (cons σt -VsTT) (cons σf -VsFF)}])]
   [#:escape
    ((or 'arity=? 'arity>=? 'arity-includes?) (list V1 V2))

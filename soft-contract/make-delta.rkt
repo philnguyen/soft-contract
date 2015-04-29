@@ -19,10 +19,9 @@
 
 #;(define X #'X)
 
-(define refine1 : (Parameterof (.σ .V .V → .Vns))
+(define refine1 : (Parameterof (.σ .V .V → (Values .σ .V)))
   (make-parameter
-   (λ (σ V C)
-     (error 'Internal "Unparameterized `refine1`"))))
+   (λ (σ V C) (error 'Internal "Unparameterized `refine1`"))))
 
 (: V=? : .σ .V .V → .Vns*)
 (define (V=? σ V1 V2)
@@ -53,46 +52,44 @@
     ; default
     [((.// U1 _) (.// U2 _)) (cons σ (Prim (equal? U1 U2)))]))
 
-(: refine : .σ .V (U (Setof .V) (Listof .V) .V) * → .Vns)
+(: refine : .σ .V (U (Setof .V) (Listof .V) .V) * → (Values .σ .V))
 (define (refine σ V . Css)
-  (: go : .σ .V (Listof (U (Setof .V) (Listof .V) .V)) → .Vns)
+  (: go : .σ .V (Listof (U (Setof .V) (Listof .V) .V)) → (Values .σ .V))
   (define (go σ V Css)
     #;(log-debug "REFINE:~n~a~n~a~n~a~n~n" σ V Css)
     (match Css
-      ['() (cons σ V)]
+      ['() (values σ V)]
       [(cons (? list? Cs) Cᵣs)
-       (match-define (cons σ′ V′)
-         (for/fold ([σV : .Vns (cons σ V)]) ([C : .V Cs])
-           (match-define (cons σ V) σV)
+       (define-values (σ* V*)
+         (for/fold ([σ : .σ σ] [V : .V V]) ([C : .V Cs])
            (refine σ V C)))
-       (go σ′ V′ Cᵣs)]
+       (go σ* V* Cᵣs)]
       [(cons (? set? Cs) Cᵣs)
-       (match-define (cons σ′ V′)
-         (for/fold ([σV : .Vns (cons σ V)]) ([C : .V Cs])
-           (match-define (cons σ V) σV)
+       (define-values (σ* V*)
+         (for/fold ([σ : .σ σ] [V : .V V]) ([C : .V Cs])
            (refine σ V C)))
-       (go σ′ V′ Cᵣs)]
+       (go σ* V* Cᵣs)]
       [(cons (.// (.St (.id 'and/c 'Λ) Cs) _) Cᵣs)
        (go σ V (cons Cs Cᵣs))]
       [(cons (? .V? C) Cᵣs)
        (match (⊢′ σ V C)
-         ['✓ (cons σ V)]
+         ['✓ (values σ V)]
          ['X (error 'Internal "Bogus refinement of ~a by ~a" (show-V σ V) (show-V σ C))]
          ['? (match (⊢ σ V C)
                ['X (error 'Internal "Bogus refinement of ~a by ~a (by solver)"
                           (show-V σ V) (show-V σ C))]
-               [_ (match-define (cons σ′ V′) ((refine1) σ V C))
-                  (go σ′ V′ Cᵣs)])])]))
+               [_ (define-values (σ* V*) ((refine1) σ V C))
+                  (go σ* V* Cᵣs)])])]))
   (go σ V Css))
 
-(: refine* : .σ (Listof .V) (Listof .V) → (Pairof .σ (Listof .V)))
-(define (refine* σ V* C*)  
-  (let-values ([(σ′ V*′)
-                (for/fold ([σ : .σ σ] [Vs : (Listof .V) '()]) ([V V*] [C C*])
-                  #;(log-debug "Got:~n~a~n~a~n~n" V C)
-                  (match-let ([(cons σ V) ((refine1) σ V C)])
-                    (values σ (cons V Vs))))])
-    (cons σ′ (reverse V*′))))
+(: refine* : .σ (Listof .V) (Listof .V) → (Values .σ (Listof .V)))
+(define (refine* σ Vs Cs)
+  (define-values (σ* Vs*)
+    (for/fold ([σ : .σ σ] [Vs* : (Listof .V) '()]) ([V Vs] [C Cs])
+      #;(log-debug "Got:~n~a~n~a~n~n" V C)
+      (define-values (σ* V*) ((refine1) σ V C))
+      (values σ* (cons V* Vs))))
+  (values σ* (reverse Vs*)))
 
 (: check-C : .σ .V .V → .Vns*)
 (define (check-C σ V C)
@@ -100,8 +97,8 @@
     ['✓ (cons σ TT)]
     ['X (cons σ FF)]
     ['?
-     (match-define (cons σt _) (refine σ V C))
-     (match-define (cons σf _) (refine σ V (.¬/C C)))
+     (define-values (σt _t) (refine σ V C))
+     (define-values (σf _f) (refine σ V (.¬/C C)))
      {set (cons σt TT) (cons σf FF)}]))
 
 (: check-o² : .σ .o2 .V .V → .Vns*)
@@ -120,20 +117,20 @@
        ['✓ (cons σ TT)]
        ['X (cons σ FF)]
        ['?
-        (match-define (cons σt _)
+        (define-values (σt _t)
           (match* (X₁ X₂)
             [((.L i) (.L j))
              (if (> i j) (refine σ X₁ C₂) (refine σ X₂ C₁))]
             [((? .L?) _) (refine σ X₁ C₂)]
             [(_ (? .L?)) (refine σ X₂ C₁)]
-            [(_ _) (cons σ 'ignore)]))
-        (match-define (cons σf _)
+            [(_ _) (values σ 'ignore)]))
+        (define-values (σf _f)
           (match* (X₁ X₂)
             [((.L i) (.L j))
              (if (> i j) (refine σ X₁ (.¬/C C₂)) (refine σ X₂ (.¬/C C₁)))]
             [((? .L?) _) (refine σ X₁ (.¬/C C₂))]
             [(_ (? .L?)) (refine σ X₂ (.¬/C C₁))]
-            [(_ _) (cons σ 'ignore)]))
+            [(_ _) (values σ 'ignore)]))
         {set (cons σt TT) (cons σf FF)}])]))
 
 (: refine-C* : (Setof .V) .V → (Setof .V))
@@ -158,10 +155,12 @@
           [(_ (.St (.id 'and/c 'Λ) (list D1 D2))) (∪* (refine-C C D1) (refine-C C D2))]
           [((.St (.id 'and/c 'Λ) (list C1 C2)) _) (∪* (refine-C C1 D) (refine-C C2 D))]
           ; prune impossible disjunct
-          [(_ (.St (.id 'or/c 'Λ) _)) (let ([D′ (truncate D C)])
-                                        (if (equal? D D′) {set C D} (refine-C C D′)))]
-          [((.St (.id 'or/c 'Λ) _) _) (let ([C′ (truncate C D)])
-                                        (if (equal? C C′) {set C D} (refine-C C′ D)))]
+          [(_ (.St (.id 'or/c 'Λ) _))
+           (define D* (truncate D C))
+           (if (equal? D D*) {set C D} (refine-C C D*))]
+          [((.St (.id 'or/c 'Λ) _) _)
+           (define C* (truncate C D))
+           (if (equal? C C*) {set C D} (refine-C C* D))]
           ; special rules for reals
           [((.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρc)
             (.St (.id 'not/c 'Λ)
@@ -230,34 +229,39 @@
     [#t {set (.¬/C (Prim 'false?)) (Prim 'boolean?)}]
     [#f {set (Prim 'false?) (Prim 'boolean?)}]))
 
-(: alloc : (case-> [.σ .V → .Vns]
-                   [.σ (Listof .V) → (Pairof .σ (Listof .V))]))
+(: alloc : .σ .V → (Values .σ .V))
 (define (alloc σ V)
   (match V
-    [(.L _) (cons σ V)]
-    [(.// (.St t V*) Cs) (match-let ([(cons σ V*′) (alloc σ V*)])
-                           (cons σ (.// (.St t V*′) Cs)))]
-    [(.// (.Ar C V l^3) Cs) (match-let ([(cons σ V′) (alloc σ V)])
-                              (cons σ (.// (.Ar C V′ l^3) Cs)))]
+    [(.L _) (values σ V)]
+    [(.// (.St t Vs) Cs)
+     (define-values (σ* Vs*) (alloc* σ Vs))
+     (values σ* (.// (.St t Vs*) Cs))]
+    [(.// (.Ar C V l³) Cs)
+     (define-values (σ* V*) (alloc σ V))
+     (values σ* (.// (.Ar C V* l³) Cs))]
     [(.// (.λ↓ f (.ρ m l)) Cs)
-     (let-values ([(σ m)
-                   (for/fold ([σ : .σ σ] [m′ : (Map (U Integer Symbol) .V) m])
-                             ([x (in-hash-keys m)])
-                     (match-let ([(cons σ V) (alloc σ (hash-ref m x))])
-                       (values σ (hash-set m′ x V))))])
-       (cons σ (→V (.λ↓ f (.ρ m l)))))]
+     (define-values (σ* m*)
+       (for/fold ([σ : .σ σ] [m′ : (Map (U Integer Symbol) .V) m])
+                 ([x (in-hash-keys m)])
+         (define-values (σ* V*) (alloc σ (hash-ref m x)))
+         (values σ* (hash-set m′ x V*))))
+     (values σ* (→V (.λ↓ f (.ρ m* l))))]
     [(.// '• Cs)
-     (let-values ([(σ L) (σ+ σ)])
-       (refine σ L Cs))]
+     (define-values (σ₁ L₁) (σ+ σ))
+     (define-values (σ₂ L₂) (refine σ₁ L₁ Cs))
+     (values σ₂ L₂)]
     [(? .μ/V? V)
-     (let-values ([(σ L) (σ+ σ)])
-       (cons (σ-set σ L V) L))]
-    [(? .V? V) (cons σ V)]
-    [(? list? V*) (let-values ([(σ Vs)
-                                (for/fold ([σ : .σ σ] [Vs : (Listof .V) '()]) ([V V*])
-                                  (match-let ([(cons σ V) (alloc σ V)])
-                                    (values σ (cons V Vs))))])
-                    (cons σ (reverse Vs)))]))
+     (define-values (σ₁ L₁) (σ+ σ))
+     (values (σ-set σ₁ L₁ V) L₁)]
+    [(? .V? V) (values σ V)]))
+
+(: alloc* : .σ (Listof .V) → (Values .σ (Listof .V)))
+(define (alloc* σ Vs)
+  (define-values (σ* Vs*)
+    (for/fold ([σ : .σ σ] [Vs : (Listof .V) '()]) ([V Vs])
+      (define-values (σ* V*) (alloc σ V))
+      (values σ* (cons V* Vs))))
+  (values σ* (reverse Vs*)))
 
 ;; Language definition for `δ` begins here 
 (begin-for-syntax
@@ -482,7 +486,7 @@
           #,@alias-refinement-clauses
           [else
            (let-values ([(σ L) (σ+ σ)])
-             (match-define (cons σ′ _) (refine σ L #,(ctc->V d)))
+             (define-values (σ′ _) (refine σ L #,(ctc->V d)))
              (set! σ σ′)
              #,@(for/list ([refinement (in-list other-refinements)])
                   (syntax-parse refinement
@@ -491,7 +495,7 @@
                        (for/list ([x (in-list xs)] [c (in-list (syntax->list #'(cᵣ ...)))])
                          #`(eq? '✓ (⊢ σ #,x #,(ctc->V c)))))
                      #`(when (and #,@refinement-conds)
-                         (match-define (cons σ′ _) (refine σ L #,(ctc->V #'dᵣ)))
+                         (define-values (σ′ _) (refine σ L #,(ctc->V #'dᵣ)))
                          (set! σ σ′))]))
              (cons σ (-Vs L)))])))
   

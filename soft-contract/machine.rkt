@@ -14,8 +14,12 @@
     [env : .ρ]
     [body : .expr]
     [ctx : Mon-Party])
-  #;(struct .let/κ [xs : (Listof .expr)] [vs : (Listof .V)]
-                 [env : .ρ] [body : .expr]) ;FIXME generalize to `let-values`
+  (struct .letrec-values/κ
+    [pending-arity : Integer]
+    [bnds : (Listof (Pairof Integer .expr))]
+    [env : .ρ]
+    [body : .expr]
+    [ctx : Mon-Party])
   (struct .@/κ [e* : (Listof .E)] [v* : (Listof .V)] [ctx : Mon-Party])
   (struct .begin/κ [es : (Listof .expr)] [ρ : .ρ])
   (struct .begin0v/κ [es : (Listof .expr)] [ρ : .ρ])
@@ -57,9 +61,7 @@
     ['() (.ς -VsTT σ k)]
     [(list E) (.ς E σ k)]
     [(cons E Er)
-     (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*])
-                      (cons (.if/κ Ei -VsFF) k))
-                    k Er))]))
+     (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*]) (cons (.if/κ Ei -VsFF) k)) k Er))]))
 
 (: or/ς : (Listof .E) .σ .κ* → .ς)
 (define (or/ς E* σ k)
@@ -67,9 +69,7 @@
     ['() (.ς -VsFF σ k)]
     [(list E) (.ς E σ k)]
     [(cons E Er)
-     (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*])
-                      (cons (.if/κ -VsTT Ei) k))
-                    k Er))]))
+     (.ς E σ (foldr (λ ([Ei : .E] [k : .κ*]) (cons (.if/κ -VsTT Ei) k)) k Er))]))
 
 (: ▹/κ1 : .V Mon-Info .κ* → .κ*)
 (define (▹/κ1 C l³ k)
@@ -113,8 +113,11 @@
       [(.let-values/κ _n bnds Vs _ρ e _ctx)
        `(let-values (,@(reverse (show-Vs σ Vs))
                      (□ ← ,acc)
-                     ,@(for/list : (Listof Sexp) ([bnd (in-list bnds)])
+                     ,@(for/list : (Listof Sexp) ([bnd bnds])
                          (show-e σ (cdr bnd))))
+          ,(show-e σ e))]
+      [(.letrec-values/κ _n bnds _ρ e _ctx)
+       `(letrec-values (… (□ ← ,acc) ,@(for/list : (Listof Sexp) ([bnd bnds]) (show-e σ (cdr bnd))))
           ,(show-e σ e))]
       [(.@/κ Es Vs _ctx)
        `(,@(reverse (show-Vs σ Vs)) ,acc ,@(map (curry show-E σ) Es))]

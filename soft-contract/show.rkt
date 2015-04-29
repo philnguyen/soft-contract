@@ -7,11 +7,9 @@
 (define abstract-V? (make-parameter #t))
 (define-type Sexps (Listof Sexp))
 
-(: show-Ans : (case→ [.Ans → (Pairof Sexp Sexp)] [.σ .A → (Pairof Sexp Sexp)]))
-(define show-Ans
-  (case-lambda
-    [(σ A) (cons (show-E σ A) (show-σ σ))]
-    [(Ans) (show-Ans (car Ans) (cdr Ans))]))
+(: show-Ans : .σ .A → (Pairof Sexp Sexp))
+(define (show-Ans σ A)
+  (cons (show-E σ A) (show-σ σ)))
 
 (: show-A : .σ .A → Sexp)
 (define (show-A σ A)
@@ -189,7 +187,7 @@
 (define (show-b x)
   (cond
    [(string? x) (format "\"~a\"" x)]
-   [(or (symbol? x) (keyword? x)) `(quote x)]
+   [(or (symbol? x) (keyword? x)) `(quote ,x)]
    [(and (real? x) (inexact? x))
     (define s (number->string x))
     (substring s 0 (min (string-length s) 5))]

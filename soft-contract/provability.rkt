@@ -42,7 +42,7 @@
         [((.L i) C)
          (match C ; HACK
            [(.// (.λ↓ (.λ 1 (.@ (or '= 'equal?) (list-no-order (.x 0) (.x a)) _)) ρ) _)
-            (match (ρ@ ρ (- (cast a Integer) 1))
+            (match (ρ@ ρ (- (assert a exact-integer?) 1))
               [(.L j) (if (= i j) '✓ (go (σ@ σ i) C))]
               [_ (go (σ@ σ i) C)])]
            [_ (go (σ@ σ i) C)])]
@@ -51,14 +51,14 @@
                           [r r])]
         [((and V (.μ/V x V*)) C)
          (assumed-add! (cons V C))
-         (let ([r (for/set: : (Setof .R) ([V (unroll V)]) (go V C))])
-           (match (set-count r) ; TODO optimize?
-             [0 '✓]
-             [1 (set-first r)]
-             [_ (cond
-                 [(for/and: : Boolean ([ri r]) (equal? ri '✓)) '✓]
-                 [(for/and: : Boolean ([ri r]) (equal? ri 'X)) 'X]
-                 [else '?])]))]
+         (define r (for/set: : (Setof .R) ([V (unroll V)]) (go V C)))
+         (match (set-count r) ; TODO optimize?
+           [0 '✓]
+           [1 (set-first r)]
+           [_ (cond
+                [(for/and: : Boolean ([ri r]) (equal? ri '✓)) '✓]
+                [(for/and: : Boolean ([ri r]) (equal? ri 'X)) 'X]
+                [else '?])])]
         [((.X/V x) C) '✓]
         
         ; U ∈ C

@@ -176,8 +176,7 @@
      (apply set-union
             (FV e d′)
             (for/list : (Listof (Setof Integer)) ([bnd bnds])
-              (FV (cdr bnd) d′)))
-     (todo 'letrec-values)]
+              (FV (cdr bnd) d′)))]
     [(.@-havoc x) (FV x d)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(.if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
