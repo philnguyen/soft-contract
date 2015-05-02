@@ -110,8 +110,8 @@
           (format "~a~n~a~nviolates predicate~n ~a"
                   (match (length cs)
                     [0 "Arbitrary value"]
-                    [1 "Value contrained by contract"]
-                    [_ "Value contrained by contracts"])
+                    [1 "Value constrained by contract"]
+                    [_ "Value constrained by contracts"])
                   (string-join (for/list : (Listof String) ([c cs]) (format " ~a" (pretty c))) "\n")
                   (pretty (replace-struct● c)))]
          [_
