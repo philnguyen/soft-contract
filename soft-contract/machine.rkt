@@ -73,17 +73,18 @@
 
 (: ▹/κ1 : .V Mon-Info .κ* → .κ*)
 (define (▹/κ1 C l³ k)
+
+  (: trim : .κ* → .κ*)
+  (define/match (trim k)
+    [((cons (and κ (.▹/κ (cons (? .V? D) #f) _)) k*))
+     (cond [(equal? '✓ (C⇒C C D)) (trim k*)]
+           [else (cons κ (trim k*))])]
+    [(_) k])
+  
   (match C
     [(.// (.λ↓ (.λ 1 (.b #t)) _) _) k]
     [(.// (? .Λ/C?) _) (cons (.▹/κ (cons C #f) l³) k)]
-    [_ (cons (.▹/κ (cons C #f) l³)
-             (let trim : .κ* ([k : .κ* k])
-               (match k
-                 [(cons (and κ (.▹/κ (cons (? .V? D) #f) _)) kr)
-                  (match (C⇒C C D)
-                    ['✓ (trim kr)]
-                    [_ (cons κ (trim kr))])]
-                 [_ k])))]))
+    [_ (cons (.▹/κ (cons C #f) l³) (trim k))]))
 
 (: show-κ : .σ .κ → Sexp)
 (define (show-κ σ κ)

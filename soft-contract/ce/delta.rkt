@@ -53,8 +53,9 @@
                [(? .b? b) (values σ (.// b C*))]
                [(and (? .λ? f) (? closed?)) (values σ (.// (.λ↓ f ρ∅) C*))]
                [(.x i) (match (ρ@ ρ (- i 1))
-                         [(.L a) (match-let ([(.// U′ C*′) (σ@ σ a)])
-                                   (values σ (.// (raw:U+ U U′) (raw:∪* C* C*′ C))))]
+                         [(.L a)
+                          (match-define (.// U′ C*′) (σ@ σ a))
+                          (values σ (.// (raw:U+ U U′) (raw:∪* C* C*′ C)))]
                          [(.// U′ C*′) (values σ (.// (raw:U+ U U′) (raw:∪* C* C*′)))])]
                [_ (refine-U σ U (raw:refine-C* C* C))])]
             ; struct contracts

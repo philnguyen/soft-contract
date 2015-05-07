@@ -36,7 +36,7 @@
           (format "(declare-const ~a ~a)~n"
                   (→lab i)
                   (match-let ([(.// _ C*) (σ@ σ′ i)])
-                    (or (for/or : (U #f Symbol) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'Int)
+                    (or (for/or : (U #f Symbol) ([C C*] #:when (match? C (.// 'integer? _))) 'Int)
                         'Real)))))
        (string-append* (for/list ([q Q*]) (format "(assert ~a)~n" q)))
        q)])]))
@@ -71,25 +71,25 @@
 (: explore : .σ (Setof Integer) → (Values (Setof String) (Setof Integer)))
 (define (explore σ i*)
   (match-define (.σ m _) σ)
-  (define asserts : (Setof String) ∅)
-  (define seen : (Setof Integer) ∅)
-  (define involved : (Setof Integer) ∅)
+  (define-set asserts : String)
+  (define-set seen : Integer)
+  (define-set involved : Integer)
 
   (: visit : Integer → Void)
   (define (visit i)
     (unless (set-member? seen i)
       (match-define (and V (.// U C*)) (hash-ref m i))
-      (define queue : (Setof Integer) ∅)
+      (define-set queue : Integer)
       (when (match? U (.b (? real?)))
-        (∪! asserts (format "(= ~a ~a)" (→lab i) (→lab V)))
-        (∪! involved i))
+        (asserts-add! (format "(= ~a ~a)" (→lab i) (→lab V)))
+        (involved-add! i))
       (for ([C C*])
-        (let-values ([(q1 j*) (gen σ i C)])
-          (∪! queue j*)
-          (when (string? q1)
-            (∪! asserts q1)
-            (∪! involved j*))))
-      (∪! seen i)
+        (define-values (q1 js) (gen σ i C))
+        (queue-union! js)
+        (when q1
+          (asserts-add! q1)
+          (involved-union! js)))
+      (seen-add! i)
       (for ([j queue]) (visit j))))
   (for ([i i*]) (visit i))
 
@@ -126,24 +126,26 @@
                        (when (cons? pairs₂)
                          (match-define (cons (cons xs₂ y₂) pairs₃) pairs₂)
                          (when (and (translate? xs₂) (translate? y₂))
-                           (∪!
-                             asserts
-                             (format
-                              "~a"
-                              `(=>
-                                (and ,@(for/list : (Listof Any) ([x₁ xs₁] [x₂ xs₂])
-                                         `(= ,(→lab x₁) ,(→lab x₂))))
-                                (= ,(→lab y₁) ,(→lab y₂)))))
-                           (∪! involved (list->set (for/list : (Listof Integer) ([x xs₁] #:when (.L? x))
-                                                     (match-define (.L i) x)
-                                                     i)))
-                           (∪! involved (list->set (for/list : (Listof Integer) ([x xs₂] #:when (.L? x))
-                                                     (match-define (.L i) x)
-                                                     i)))
-                           (∪! involved (list->set (for/list : (Listof Integer) ([y (list y₁ y₂)]
-                                                                                 #:when (.L? y))
-                                                     (match-define (.L i) y)
-                                                     i))))))
+                           (asserts-add!
+                            (format
+                             "~a"
+                             `(=>
+                               (and ,@(for/list : (Listof Any) ([x₁ xs₁] [x₂ xs₂])
+                                        `(= ,(→lab x₁) ,(→lab x₂))))
+                               (= ,(→lab y₁) ,(→lab y₂)))))
+                           (involved-union!
+                            (list->set (for/list : (Listof Integer) ([x xs₁] #:when (.L? x))
+                                         (match-define (.L i) x)
+                                         i)))
+                           (involved-union!
+                            (list->set (for/list : (Listof Integer) ([x xs₂] #:when (.L? x))
+                                         (match-define (.L i) x)
+                                         i)))
+                           (involved-union!
+                            (list->set (for/list : (Listof Integer) ([y (list y₁ y₂)]
+                                                                     #:when (.L? y))
+                                         (match-define (.L i) y)
+                                         i))))))
                   (loop₁ pairs₂)))))]
       [_ (void)]))
 
@@ -266,9 +268,6 @@
        (match-let ([(.L i) V]) i))]
     [_ ∅]))
 
-;; syntactic sugar
-(define-syntax-rule (∪! s i)
-  (set! s (let ([x i]) (if (set? x) (set-union s x) (set-add s i)))))
 (: labels : (U .V Integer) * → (Setof Integer))
 (define (labels . V*)
   (for/set: : (Setof Integer) ([V V*] #:when (match? V (? integer?) (.L _)))
