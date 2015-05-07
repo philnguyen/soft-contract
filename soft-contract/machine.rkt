@@ -54,6 +54,8 @@
   (.ς (.↓ e ρ∅) σ∅ empty))
 
 (define-syntax-rule (match/nd v [p e ...] ...) (match/nd: (.Ans → .ς) v [p e ...] ...))
+(define-syntax-rule (match/nd/σ σ v [b e ...] ...)
+  (match/nd: (.Ans → .ς) v [(cons σ (-Vs (.// (.b b) _))) e ...] ...))
 
 (: and/ς : (Listof .E) .σ .κ* → .ς)
 (define (and/ς E* σ k)
