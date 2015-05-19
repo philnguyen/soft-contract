@@ -11,33 +11,33 @@
     [(not (handled? C)) '?] ; skip when contract is strange
     [else
      #;(log-debug "Queried with: ~a~n~a~n" (show-Ans σ V) C)
-     (let*-values ([(σ′ i) (match V
-                             [(.L i) (values σ i)]
-                             [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#])]
-                   [(Q* i*) (explore σ′ (set-add (span-C C) i))]
-                   [(q j*) (gen i C)])
-       #;(log-debug "premises [~a] involve labels [~a] ~n" Q* i*)
-       (cond
-         ; skip querying when the set of labels spanned by premises does not cover
-         ; that spanned by conclusion
-         [(not (subset? j* i*)) '?]
-         ; skip querying when the set of labels spanned by premises only contains
-         ; the single label we ask about (relies on local provability relation
-         ; being precise enough)
-         [(equal? i* {set i}) '?]
-         ; skip querying when could not generate conclusion
-         [(false? q) '?]
-         [else
-          (call-with
-           (string-append*
-            (for/list ([i i*])
-              (format "~a:~a;~n"
-                      (→lab i)
-                      (match-let ([(.// _ C*) (σ@ σ′ i)])
-                        (or (for/or : (U #f Symbol) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'INT)
-                            'REAL)))))
-           (string-append* (for/list ([q Q*]) (format "ASSERT ~a;~n" q)))
-           q)]))]))
+     (define-values (σ′ i)
+       (match V
+         [(.L i) (values σ i)]
+         [(? .//? V) (values (σ-set σ -1 V) -1) #|HACK|#]))
+     (define-values (Q* i*) (explore σ′ (set-add (span-C C) i)))
+     (define-values (q j*) (gen i C))
+     (cond
+       ; skip querying when the set of labels spanned by premises does not cover
+       ; that spanned by conclusion
+       [(not (subset? j* i*)) '?]
+       ; skip querying when the set of labels spanned by premises only contains
+       ; the single label we ask about (relies on local provability relation
+       ; being precise enough)
+       [(equal? i* {set i}) '?]
+       ; skip querying when could not generate conclusion
+       [(false? q) '?]
+       [else
+        (call-with
+         (string-append*
+          (for/list ([i i*])
+            (format "~a:~a;~n"
+                    (→lab i)
+                    (match-let ([(.// _ C*) (σ@ σ′ i)])
+                      (or (for/or : (U #f Symbol) ([C : .V C*] #:when (match? C (.// 'integer? _))) 'INT)
+                          'REAL)))))
+         (string-append* (for/list ([q Q*]) (format "ASSERT ~a;~n" q)))
+         q)])]))
 
 (: handled? : .V → Boolean)
 (define (handled? C)
@@ -68,16 +68,16 @@
   (define (visit i)
     (unless (seen-has? i)
       (match-define (and V (.// U C*)) (σ@ σ i))
-      (define queue : (Setof Integer) ∅)
+      (define-set queue : Integer)
       (when (real? U)
         (asserts-add! (format "~a = ~a" (→lab i) (→lab V)))
         (involved-add! i))
       (for ([C C*])
-        (let-values ([(q1 j*) (gen i C)])
-          (set! queue (set-union queue j*))
-          (when (string? q1)
-            (asserts-add! q1)
-            (involved-add! j*))))
+        (define-values (q1 js) (gen i C))
+        (queue-union! js)
+        (when q1
+          (asserts-add! q1)
+          (involved-union! js)))
       (seen-add! i)
       (for ([j queue]) (visit j))))
   (for ([i i*]) (visit i))
@@ -89,30 +89,32 @@
 (define (gen i C)
   (match C
     [(.// (.λ↓ f ρ) _)
-     (let ([ρ@* (match-lambda
-                  [(.b (? number? n)) (Prim n)]
-                  [(.x i) (ρ@ ρ (- i 1))])])
-       (match f
-         [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _))
-          (let ([X (ρ@* e)])
-            (values (format "~a ~a ~a" (→lab i) (→lab o) (→lab X))
-                    (labels i X)))]
-         [(.λ 1 (.@ (or '= 'equal?)
-                    (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _))
-          (let ([X (ρ@* M)])
-            (values (format "~a = ~a ^ 0.5" (→lab i) (→lab X))
-                    (labels i X)))]
-         [(.λ 1 (.@ (or '= 'equal?)
-                    (list (.x 0) (.@ (? .o? o)
-                                     (list (and M (or (.x _) (.b (? number?))))
-                                           (and N (or (.x _) (.b (? number?))))) _)) _))
-          (let ([X (ρ@* M)] [Y (ρ@* N)])
-            (values (format "~a = ~a ~a ~a" (→lab i) (→lab X) (→lab o) (→lab Y))
-                    (labels i X Y)))]
-         [_ (values #f ∅)]))]
+     (define ρ@*
+       (match-lambda
+         [(.b (? number? n)) (Prim n)]
+         [(.x i) (ρ@ ρ (- i 1))]))
+     (match f
+       [(.λ 1 (.@ (? .o? o) (list (.x 0) (and e (or (.x _) (.b (? number?))))) _))
+        (define X (ρ@* e))
+        (values (format "~a ~a ~a" (→lab i) (→lab o) (→lab X))
+                (labels i X))]
+       [(.λ 1 (.@ (or '= 'equal?)
+                  (list (.x 0) (.@ 'sqrt (list (and M (or (.x _) (.b (? real?))))) _)) _))
+        (define X (ρ@* M))
+        (values (format "~a = ~a ^ 0.5" (→lab i) (→lab X))
+                (labels i X))]
+       [(.λ 1 (.@ (or '= 'equal?)
+                  (list (.x 0) (.@ (? .o? o)
+                                   (list (and M (or (.x _) (.b (? number?))))
+                                         (and N (or (.x _) (.b (? number?))))) _)) _))
+        (define X (ρ@* M))
+        (define Y (ρ@* N))
+        (values (format "~a = ~a ~a ~a" (→lab i) (→lab X) (→lab o) (→lab Y))
+                (labels i X Y))]
+       [_ (values #f ∅)])]
     [(.// (.St 'not/c (list D)) _)
-     (let-values ([(q i*) (gen i D)])
-       (values (match q [(? string? s) (format "NOT (~a)" s)] [_ #f]) i*))]
+     (define-values (q i*) (gen i D))
+     (values (match q [(? string? s) (format "NOT (~a)" s)] [_ #f]) i*)]
     [_ (values #f ∅)]))
 
 ; perform query/ies with given declarations, assertions, and conclusion,
