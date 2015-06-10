@@ -7,12 +7,10 @@
            "../utils.rkt" "../show.rkt" "../lang.rkt" "../read.rkt" "../runtime.rkt"
            "../check.rkt" "../main.rkt")
   (define Time-Out 120)
+  (define Iters 10)
 
   (define scv:exn? (or/c exn:fail:contract:counterexample? exn:fail:contract:maybe?))
   (define verification-result? (or/c 'timeout 'safe scv:exn?))
-
-  (define-syntax-rule (time-thunk e)
-    (time-apply (λ () e) '()))
 
   (define/contract (count-lines fn)
     (path-string? . -> . integer?)
@@ -30,25 +28,37 @@
 
   ;; run program and report result/time
   (define/contract (verify prog)
-    (any/c . -> . verification-result?)
-    (with-handlers ([scv:exn? values])
-      (feedback/massage prog Time-Out)))
+    (any/c . -> . (values verification-result? real?))
+    (define-values (a Σt)
+      (for/fold ([a #f] [Σt 0]) ([_ (in-range Iters)])
+        (collect-garbage) (collect-garbage) (collect-garbage)
+        (define-values (a t₁ t₂ t₃)
+          (time-apply (λ ()
+                        (with-handlers ([scv:exn? values])
+                          (feedback/massage prog Time-Out)))
+                      '()))
+        (values a (+ Σt t₂))))
+    (values (car a) (/ Σt Iters)))
 
   ;; Make sure this correct program is verified
   (define/contract (check-verify-safe prog)
-    (any/c . -> . any)
-    (check-equal? (verify prog) 'safe))
+    (any/c . -> . real?)
+    (define-values (a t) (verify prog))
+    (check-equal? a 'safe)
+    t)
 
   ;; Make sure the tool does NOT generate any counterexample for correct program
   ;; (even though it may give a false positive)
   (define/contract (check-no-ce prog)
-    (any/c . -> . integer?)
-    (check-false (exn:fail:contract:counterexample? (verify prog))))
+    (any/c . -> . real?)
+    (define-values (a t) (verify prog))
+    (check-false (exn:fail:contract:counterexample? a))
+    t)
 
   ;; Make sure faulty program can't be verified, optionally enforcing a counterexample
   (define/contract (check-verify-fail prog [ce? #f])
-    ([any/c] [boolean?] . ->* . any)
-    (define a (verify prog))
+    ([any/c] [boolean?] . ->* . real?)
+    (define-values (a t) (verify prog))
     (check-true (scv:exn? a))
     (define err-msg (exn-message a))
     (when ce?
@@ -56,13 +66,14 @@
       (check-true (exn:fail:contract:counterexample? a))
       ;; Ensure counterexample is fully concrete
       (check-false (member #\• (string->list err-msg))))
-    (log-info "~n~a~n" err-msg))
+    (log-info "~n~a~n" err-msg)
+    t)
 
   (define sum-all-lc 0)
   (define max-all-order 0)
   (define sum-all-t 0)
   (define/contract (test-dir dir-name test-func)
-    (path-string? (any/c . -> . any) . -> . any)
+    (path-string? (any/c . -> . real?) . -> . any)
     (cond
       [(directory-exists? dir-name)
        (for* ([subdir-name (map path->string (directory-list dir-name))]
@@ -77,16 +88,14 @@
            (define path (format "~a/~a" subdir-path fname))
            (define lc (count-lines path))
            (collect-garbage) (collect-garbage) (collect-garbage)
-           (define-values (r t₁ t₂ t₃)
-             (time-thunk (test-case path (test-func (file->list path)))))
-           (define t t₂ #;(/ t₂ 1000))
+           (define t (test-func (file->list path)))
            (define ord (order (read-p (file->list path))))
            (printf "  ~a & ~a & ~a & ~a \\\\~n"
-                   (fname->tname fname) lc ord t)
+                   (fname->tname fname) lc ord (~r t #:precision 1))
            (set! sum-lc (+ sum-lc lc))
            (set! max-order (max max-order ord))
            (set! sum-t (+ sum-t t)))
-         (printf "Summary for\"~a\" & ~a & ~a & ~as \\\\~n"
+         (printf "Summary for \"~a\" & ~a & ~a & ~as \\\\~n"
                  subdir-name sum-lc max-order sum-t)
          (set! sum-all-lc (+ sum-all-lc sum-lc))
          (set! max-all-order (max max-all-order max-order))
