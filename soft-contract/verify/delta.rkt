@@ -487,18 +487,22 @@
           [((.λ↓ (.λ 1 (.@ '>= (list e1 e2) l) #f) ρc)
             (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρd) _))))
+           (assert e1) (assert e2)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l) #f) ρc)) {set C D})]
           [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρc) _)))
             (.λ↓ (.λ 1 (.@ '>= (list e1 e2) l) #f) ρd))
+           (assert e1) (assert e2)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l) #f) ρd)) {set C D})]
           [((.λ↓ (.λ 1 (.@ '<= (list e1 e2) l) #f) ρc)
             (.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρd) _))))
+           (assert e1) (assert e2)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l) #f) ρc)) {set C D})]
           [((.St '¬/c (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                                 (or (list e1 e2) (list e2 e1)) _) #f) ρc) _)))
             (.λ↓ (.λ 1 (.@ '<= (list e1 e2) l) #f) ρd))
+           (assert e1) (assert e2)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l) #f) ρd)) {set C D})]
           [(_ _) {set C D}])]
        [(_ _) {set C D}])]))
