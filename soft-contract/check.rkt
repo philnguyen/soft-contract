@@ -53,7 +53,9 @@
   (match (channel-get c)
     [(and err (or (cons 'blame _) (cons (cons 'blame _) _)))
      (log-info "Got an error ... ~a (z3 time: ~a)" (current-process-milliseconds) total-z3-time)
-     ;; Wait for (maybe) counterexample, unless timeout
+     ;; Wait for (maybe) counterexample
+     ;; unless timeout in 0.1s (hack)
+     (thread (λ () (sleep 2) (channel-put c 'timeout)))
      (match (channel-get c)
        ['timeout (kill-all) err]
        [res (kill-all) res])]
