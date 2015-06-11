@@ -69,9 +69,7 @@
     (log-info "~n~a~n" err-msg)
     t)
 
-  (define sum-all-lc 0)
-  (define max-all-order 0)
-  (define sum-all-t 0)
+  (define-values (sum-all-lc sum-all-cc max-all-order sum-all-t) (values 0 0 0 0))
   (define/contract (test-dir dir-name test-func)
     (path-string? (any/c . -> . real?) . -> . any)
     (cond
@@ -81,30 +79,34 @@
              #:when (directory-exists? subdir-path))
          (printf "~a:~n" subdir-path)
          (define fnames (sort (map path->string (directory-list subdir-path)) string<=?))
-         (define sum-lc 0)
-         (define max-order 0)
-         (define sum-t 0)
+         (define-values (sum-lc sum-cc max-order sum-t) (values 0 0 0 0))
          (for ([fname fnames] #:when (regexp-match-exact? #rx".*sch" fname))
            (define path (format "~a/~a" subdir-path fname))
-           (define lc (count-lines path))
-           (collect-garbage) (collect-garbage) (collect-garbage)
-           (define t (test-func (file->list path)))
-           (define ord (order (read-p (file->list path))))
-           (printf "  ~a & ~a & ~a & ~a \\\\~n"
-                   (fname->tname fname) lc ord (~r t #:precision 1))
-           (set! sum-lc (+ sum-lc lc))
-           (set! max-order (max max-order ord))
-           (set! sum-t (+ sum-t t)))
-         (printf "Summary for \"~a\" & ~a & ~a & ~as \\\\~n"
-                 subdir-name sum-lc max-order sum-t)
-         (set! sum-all-lc (+ sum-all-lc sum-lc))
-         (set! max-all-order (max max-all-order max-order))
-         (set! sum-all-t (+ sum-all-t sum-t)))]
+           (define sexp (file->list path))
+           (define-values (lc cc ord t)
+             (values (count-lines path)
+                     (checks# (read-p sexp))
+                     (order (read-p sexp))
+                     (test-func sexp)))
+           (printf "  ~a & ~a & ~a & ~a & ~a \\\\~n"
+                   (fname->tname fname) lc cc ord (~r t #:precision 1))
+           (set!-values (sum-lc sum-cc max-order sum-t)
+                        (values (+ sum-lc lc)
+                                (+ sum-cc cc)
+                                (max max-order ord)
+                                (+ sum-t t))))
+         (printf "Summary for \"~a\" & ~a & ~a & ~a & ~as \\\\~n"
+                 subdir-name sum-lc sum-cc max-order sum-t)
+         (set!-values (sum-all-lc sum-all-cc max-all-order sum-all-t)
+                      (values (+ sum-all-lc sum-lc)
+                              (+ sum-all-cc sum-cc)
+                              (max max-all-order max-order)
+                              (+ sum-all-t sum-t))))]
       [else (printf "~nWarning: directory \"~a\" does not exist~n" dir-name)]))
 
   (test-dir "safe" check-verify-safe)
   (test-dir "fail-ce" (λ (s) (check-verify-fail s #t)))
   (test-dir "fail" check-verify-fail)
   (test-dir "no-ce" check-no-ce)
-  (printf "Summary for all & ~a & ~a & ~as \\\\~n"
-          sum-all-lc max-all-order sum-all-t))
+  (printf "Summary for all & ~a & ~a & ~a & ~as \\\\~n"
+          sum-all-lc sum-all-lc max-all-order sum-all-t))
