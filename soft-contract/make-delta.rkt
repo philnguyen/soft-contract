@@ -166,21 +166,25 @@
             (.St (.id 'not/c 'Λ)
                  (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                            (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
+           (assert (and e1 e2) #|to make TR work for now|#)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρc)) {set C D})]
           [((.St (.id 'not/c 'Λ)
                  (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                            (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
             (.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρd))
+           (assert (and e1 e2) #|to make TR work for now|#)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρd)) {set C D})]
           [((.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρc)
             (.St (.id 'not/c 'Λ)
                  (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                            (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
+           (assert (and e1 e2) #|to make TR work for now|#)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρc)) {set C D})]
           [((.St (.id 'not/c 'Λ)
                  (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
                                            (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
             (.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρd))
+           (assert (and e1 e2) #|to make TR work for now|#)
            (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρd)) {set C D})]
           [(_ _) {set C D}])]
        [(_ _) {set C D}])]))
