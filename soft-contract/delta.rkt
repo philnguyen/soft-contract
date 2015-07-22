@@ -1,10 +1,33 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/bool racket/math
- "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt" "make-delta.rkt")
-(provide (all-defined-out)
-         (except-out (all-from-out "make-delta.rkt") define-δ))
+ "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt"
+ ;"make-delta.rkt"
+ )
+(provide (all-defined-out))
 
+
+(: δ : -σ -Γ -o (Listof -W) Mon-Party → (Values -σ -AΓs))
+;; Interpret primitive operations.
+;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
+(define (δ σ Γ o Ws l)
+  (match* (o Ws)
+    ;; Primitive predicate
+    [((? -pred? o) (list (and W (-W V π))))
+     (match (⊢ σ Γ W (-W o o))
+       ['✓ (values σ (cons -True/Vs Γ))]
+       ['X (values σ (cons -False/Vs Γ))]
+       ['?
+        (define π-tt (-π@* o (list π)))
+        (values σ {set (cons -True/Vs (Γ+ Γ π-tt))
+                       (cons -False/Vs (Γ+ Γ (-π@* 'false? (list π-tt))))})])]
+    ;; Constructor
+    [((-st-mk id n) Ws)
+     (error 'Internal "TODO: δ for constructor")]
+    ;; Acccessor
+    ))
+
+#|
 (define-δ ; Identifiers `δ`, `σ`, `o`, `Vs`, and `l` are in scope
   [#:predicate number?]
   [#:predicate real?]
@@ -157,3 +180,4 @@
      [(cons σf (-Vs (.// (.b #f) _))) (cons σf (.blm l (name o) V1 PROC/C))])]
   [#:escape ; multiple values
    {'values Vs} (cons σ (.Vs Vs))])
+|#

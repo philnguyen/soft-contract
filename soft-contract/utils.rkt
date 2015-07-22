@@ -164,3 +164,19 @@
     [(_ (for-clauses ...) body ...)
      (for/fold ([acc ∅]) (for-clauses ...)
        (set-union acc (begin body ...)))]))
+
+;; Application with implicit #f for failure for expressions marked with (!)
+;; e.g. (@? cons (! #f) 2) --> #f
+;; e.g. (@? cons #f 2) --> ⟨1, 2⟩
+(define-syntax @?
+  (syntax-rules (!)
+    [(_ f e ...) (@?* f (e ...) ())]))
+(define-syntax @?*
+  (syntax-rules (!)
+    [(_ f ()             (x ...)) (f x ...)]
+    [(_ f ((! e₁) e ...) (x ...))
+     (let ([x₁ e₁])
+       (if x₁ (@?* f (e ...) (x ... x₁)) #f))]
+    [(_ f (e₁     e ...) (x ...))
+     (let ([x₁ e₁])
+       (@?* f (e ...) (x ... x₁)))]))
