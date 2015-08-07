@@ -1,16 +1,23 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function
          "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
-(provide all-prove? all-refute? some-proves? some-refutes?
+(provide defines? all-prove? all-refute? some-proves? some-refutes?
          ⊢ Γ⊢ Γ⊢₀ Γ⊢ₑₓₜ σ⊢)
 
-(:* all-prove? all-refute? some-proves? some-refutes? : -σ -Γ (Listof -W) -W → Boolean)
+(:* all-prove? all-refute? some-proves? some-refutes? : -σ -Γ -WVs -WV → Boolean)
 (define (all-prove?    σ Γ Ws W_p) (for/and ([W Ws]) (eq? (⊢ σ Γ W W_p) '✓)))
 (define (all-refute?   σ Γ Ws W_p) (for/and ([W Ws]) (eq? (⊢ σ Γ W W_p) 'X)))
 (define (some-proves?  σ Γ Ws W_p) (for/or  ([W Ws]) (eq? (⊢ σ Γ W W_p) '✓)))
 (define (some-refutes? σ Γ Ws W_p) (for/or  ([W Ws]) (eq? (⊢ σ Γ W W_p) 'X)))
 
-(: ⊢ : -σ -Γ -W -W → -R)
+(: defines? : -σ -Γ -π* → Boolean)
+;; Check whether variable definitely binds a defined value
+(define (defines? σ Γ π)
+  (match π
+    [(-x x) (∈ x (FV-Γ Γ))]
+    [_ #f]))
+
+(: ⊢ : -σ -Γ -WV -WV → -R)
 ;; Check whether value `W_v` satisfies predicate `W_p` according to `σ` and `Γ`
 (define (⊢ σ Γ W_v W_p)
   (match-define (-W V   π  ) W_v)
@@ -28,9 +35,9 @@
 
 ;; Default (empty) external solver
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -π → -R))
-  (make-parameter
-   (λ (Γ π)
-     (error 'Internal "Uninitialized extended relation"))))
+  (make-parameter (λ (Γ π)
+                    (log-warning "External solver not set")
+                    '?)))
 
 (: Γ⊢₀ : -Γ -π* → -R)
 ;; Internal simple proof system
@@ -90,11 +97,10 @@
     [((-b (? integer?)) 'integer?) '✓]
     [((-b (? real?)) 'real?) '✓]
     [((-b (? number?)) 'number?) '✓]
-    [((? -λ↓?) 'procedure?) '✓]
+    [((? -Clo?) 'procedure?) '✓]
     [((? -o?)  'procedure?) '✓]
     [((? -Ar?) 'procedure?) '✓]
     [((-St id _) (-st-p id _)) '✓]
-    [((? -λ/C?) 'dep?) '✓]
 
     [('• (? -o?)) '?]
     [(_ (? -o?)) 'X]

@@ -1,5 +1,6 @@
 #lang typed/racket/base
-(require racket/set racket/match racket/list racket/pretty racket/string racket/port)
+(require racket/set racket/match racket/list racket/pretty racket/string racket/port
+         racket/function)
 (require (for-syntax racket/base racket/syntax syntax/parse))
 (provide (all-defined-out)) ; TODO
 (require/typed
@@ -47,14 +48,15 @@
 (define-syntax match/nd:
   (syntax-rules (→)
     [(_ (α → β) v [p e ...] ...)
-     (let ([x v]
-           [f : (α → (U β (Setof β)))
-              (match-lambda [p e ...] ... [x (error "match/nd unmatched: " x)])])
-       (if (set? x)
-           (for/fold ([acc : (Setof β) ∅]) ([xᵢ x])
-             (define y (f xᵢ))
-             (if (set? y) (set-union acc y) (set-add acc y)))
-           (f x)))]))
+     (let ()
+       (define x v)
+       (define f : (α → (U β (Setof β)))
+         (match-lambda [p e ...] ... [x (error 'match/nd "unmatched: ~a" x)]))
+       (cond
+         [(set? x) (for/fold ([acc : (Setof β) ∅]) ([xᵢ x])
+                     (define y (f xᵢ))
+                     (if (set? y) (set-union acc y) (set-add acc y)))]
+         [else (f x)]))]))
 
 ;; define the same type for multiple identifiers
 (define-syntax (:* stx)
@@ -70,12 +72,19 @@
 (define ∪ set-union)
 (define ∩ set-intersect)
 (define ∋ set-member?)
+(: ∈ : (∀ (X) X (Setof X) → Boolean))
+(define (∈ x xs) (∋ xs x))
 (define ⊆ subset?)
-(define --- set-subtract)
-(define -- set-remove)
+(define -- set-subtract)
 (define-type Map HashTable)
 (define-type (MMap X Y) (Map X (Setof Y)))
 (define-type (NeListof X) (Pairof X (Listof X)))
+
+(: set-add-list : (∀ (A) (Setof A) (Listof A) → (Setof A)))
+;; Add each element in given list to set
+(define (set-add-list xs x-list)
+  (for/fold ([xs* : (Setof A) xs]) ([x x-list])
+    (set-add xs* x)))
 
 ;; evaluate an expression within given #seconds
 ;; return singleton list of value, or #f on timeout
@@ -87,13 +96,35 @@
       [#f  (kill-thread t₁) #f]
       [ans (kill-thread t₂) ans])))
 
-(: mmap-join! : (∀ (X Y) ((MMap X Y) X Y → Void)))
-(define (mmap-join! m x y)
+;; Return the domain of a finite function represented as a hashtable
+(: dom : (∀ (X Y) (Map X Y) → (Setof X)))
+(define (dom f)
+  (list->set (hash-keys f)))
+
+(: ⊔ : (∀ (X Y) (MMap X Y) X Y → (MMap X Y)))
+;; m ⊔ [x ↦ {y}]
+(define (⊔ m x y)
+  (hash-update m x (λ ([ys : (Setof Y)]) (set-add ys y)) (λ () ∅)))
+
+(: ⊔! : (∀ (X Y) ((MMap X Y) X Y → Void)))
+;; mutate `m` to `m ⊔ [x ↦ {y}]`
+(define (⊔! m x y)
   (hash-update! m x (λ ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
 
-(: mmap-join : (∀ (X Y) ((MMap X Y) X Y → (MMap X Y))))
-(define (mmap-join m x y)
-  (hash-update m x (λ ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
+(: ⊔* : (∀ (X Y) (MMap X Y) X (Setof Y) → (MMap X Y)))
+;; m ⊔ [x ↦ ys]
+(define (⊔* m x ys)
+  (hash-update m x (λ ([s : (Setof Y)]) (∪ s ys)) (λ () ∅)))
+
+(: ⊔!* : (∀ (X Y) (MMap X Y) X (Setof Y) → Void))
+;; mutate `m` to `m ⊔ [x ↦ ys]`
+(define (⊔!* m x ys)
+  (hash-update! m x (λ ([s : (Setof Y)]) (∪ s ys)) (λ () ∅)))
+
+(: ⊔/m : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
+(define (⊔/m m₁ m₂)
+  (for/fold ([m : (MMap X Y) m₁]) ([(x ys) (in-hash m₂)])
+    (⊔* m x ys)))
 
 ;; Define set with shortened syntax for (imperative) adding and membership testing
 (define-syntax (define-set stx)
@@ -130,13 +161,6 @@
         [(#\5) #\₅] [(#\6) #\₆] [(#\7) #\₇] [(#\8) #\₈] [(#\9) #\₉]
         [else c])))))
 
-(: vars-not-in : Integer (Listof Symbol) → (Listof Symbol))
-(define vars-not-in
-  (let* ([pool '(x y z u v w a b c)]
-         [N (length pool)])
-    (λ (n t)
-      (map sym-sub (variables-not-in t (if (<= n N) (take pool n) (make-list n 'x1)))))))
-
 (: pretty : Any → String)
 (define (pretty x)
   (parameterize ([pretty-print-columns 80])
@@ -148,11 +172,6 @@
    [(< n 0) (format "₋~a" (n-sub (- n)))]
    [(<= 0 n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
    [else (string-append (n-sub (quotient n 10)) (n-sub (remainder n 10)))]))
-
-(: fresh-int! : → Integer)
-(define fresh-int!
-  (let ([i 0])
-    (λ () (begin0 i (set! i (+ 1 i))))))
 
 (define (todo x) (error 'TODO "~a" x))
 

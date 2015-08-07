@@ -1,10 +1,125 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "provability.rkt" "delta.rkt")
+ "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "provability.rkt")
+(require/typed "parse.rkt"
+  [files->prog ((Listof Path-String) → -prog)])
 
 (provide (all-defined-out)) ; TODO
 
+(define-data -φ
+  (struct -φ.if [t : -E] [e : -E])
+  (struct -φ.let-values
+    [pending : (Listof Symbol)]
+    [bnds : (Listof (Pairof (Listof Symbol) -e))]
+    [bnds↓ : (Map Symbol -WV)]
+    [env : -ρ]
+    [body : -e]
+    [ctx : Mon-Party])
+  (struct -φ.letrec-values
+    [pending : (Listof Symbol)]
+    [bnds : (Listof (Pairof (Listof Symbol) -e))]
+    [env : -ρ]
+    [body : -e]
+    [ctx : Mon-Party]
+    [old-dom : (Setof Symbol)])
+  (struct -φ.@ [es : (Listof -E)] [vs : -WVs] [ρ : -ρ] #|FIXME hack|# [ctx : Mon-Party])
+  (struct -φ.begin [es : (Listof -e)] [env : -ρ])
+  (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
+  (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
+  (struct -φ.mon
+    [ce : (U (Pairof #f -E) (Pairof -WV #f))]
+    [old-dom : (Setof Symbol)]
+    [mon-info : Mon-Info])
+  (struct -φ.indy [c : -WVs] [x : -WVs] [x↓ : -WVs] [d : (U #f -↓)] [mon-info : Mon-Info])
+  (struct -φ.rt [dom : (Setof Symbol)] [Γ : -Γ] #|TODO|#)
+  (struct -φ.rt@
+    [dom : (Setof Symbol)] [fun : -π*] [params : -formals] [args : (Listof -π*)])
+  ;; contract stuff
+  (struct -φ.μc [x : Symbol])
+  (struct -φ.struct/c
+    [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : -WVs])
+  (struct -φ.=> [dom : (Listof -e)] [dom↓ : (Listof -V)] [env : -ρ])
+  (struct -φ.=>i
+    [dom : (Listof -e)] [dom↓ : (Listof -V)] [xs : (Listof Symbol)] [rng : -e] [env : -ρ])
+  )
+
+(struct -τ ([E : -E] [Γ : -Γ]) #:transparent)
+(struct -κ ([ctn : -φ] [nxt : -τ]) #:transparent)
+
+(define-type -Ξ (MMap -τ -κ))
+(define-type -M (MMap -τ (Pairof -WV -Γ)))
+
+(struct -ς ([e : -E] [Γ : -Γ] [τ : -τ] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
+(struct -c ([e : -E] [Γ : -Γ] [τ : -τ]) #:transparent)
+(struct -ξ ([ςs : (Setof -c)] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
+
+(define-type -ς* (U -ς (Setof -ς)))
+
+(: 𝑰 : -prog → -ς)
+;; Load program to intial machine state
+;; FIXME: allow expressions in top-levels and execute them instead,
+;;        then initialize top-levels to `undefined`
+(define (𝑰 p)
+  (match-define (-prog ms e₀) p)
+
+  ;; Assuming each top-level variable binds a value for now
+  (define σ₀
+    (for*/fold ([σ : -σ -σ∅])
+               ([m ms]
+                [form (-plain-module-begin-body (-module-body m))])
+      (define mod-path (-module-path m))
+      (match form
+        ;; general top-level form
+        [(? -e?) σ]
+        [(-define-values ids e)
+         (cond
+           [(and (= 1 (length ids)) (-v? e))
+            (⊔ σ (-α.top (-id (car ids) mod-path)) (close e -ρ∅ -Γ∅))]
+           [else (error '𝑰 "TODO: general top-level binding. For now can't handle ~a"
+                        (show-e -σ∅ e))])]
+        [(? -require?) σ]
+        ;; provide
+        [(-provide specs)
+         (for/fold ([σ : -σ σ]) ([spec specs])
+           (match-define (-p/c-item x c) spec)
+           (cond
+             [(-v? c)
+              (define id (-id x mod-path))
+              (define σ₁ (⊔ σ (-α.ctc id) (close c -ρ∅ -Γ∅)))
+              (cond
+                [(hash-has-key? σ₁ (-α.top id)) σ₁]
+                [else (⊔ σ₁ (-α.top id) '•)])]
+             [else
+              (error '𝑰 "TODO: general expression in contract position. For now can't handle ~a"
+                     (show-e -σ∅ c))]))]
+        ;; submodule-form
+        [(? -module?)
+         (error '𝑰 "TODO: sub-module forms")])))
+
+  (define E₀ (-↓ e₀ -ρ∅))
+  (define τ₀ (-τ E₀ -Γ∅))
+
+  (-ς E₀ -Γ∅ τ₀ σ₀ (hash) (hash)))
+
+(: τ↓ : (case-> [-e -ρ -Γ → -τ]
+                [-E -Γ → -τ]))
+;; Create a simplified stack address
+(define τ↓
+  (case-lambda
+    [(e ρ Γ)
+     (define FVs (FV e))
+     (-τ (-↓ e (ρ↓ ρ FVs)) (Γ↓ Γ FVs))]
+    [(E Γ)
+     (match E
+       [(-↓ e ρ) (τ↓ e ρ Γ)]
+       [_ (-τ E Γ)])]))
+
+;;;;; For testing only
+(: ev : Path-String * → -ς)
+(define (ev . ps) (𝑰 (files->prog ps)))
+
+#|
 (define-data .κ
   (struct .if/κ [t : .E] [e : .E])
   (struct .let-values/κ
@@ -173,3 +288,4 @@
            (format "---- K: ~a~n     σ: ~a~n~n"
                    (show-ek σ k `(⟦,(show-κ σ (car E))⟧))
                    (show-σ σ))])))
+|#

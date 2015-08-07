@@ -17,12 +17,6 @@
     [(.st-p (.id 'box 'Λ) _) #t]
     [_ #f]))
 
-#;(define X #'X)
-
-(define refine1 : (Parameterof (.σ .V .V → (Values .σ .V)))
-  (make-parameter
-   (λ (σ V C) (error 'Internal "Unparameterized `refine1`"))))
-
 (: V=? : .σ .V .V → .Vns*)
 (define (V=? σ V1 V2)
   (match* (V1 V2)
@@ -51,45 +45,6 @@
          (cons σ FF))]
     ; default
     [((.// U1 _) (.// U2 _)) (cons σ (Prim (equal? U1 U2)))]))
-
-(: refine : .σ .V (U (Setof .V) (Listof .V) .V) * → (Values .σ .V))
-(define (refine σ V . Css)
-  (: go : .σ .V (Listof (U (Setof .V) (Listof .V) .V)) → (Values .σ .V))
-  (define (go σ V Css)
-    #;(log-debug "REFINE:~n~a~n~a~n~a~n~n" σ V Css)
-    (match Css
-      ['() (values σ V)]
-      [(cons (? list? Cs) Cᵣs)
-       (define-values (σ* V*)
-         (for/fold ([σ : .σ σ] [V : .V V]) ([C : .V Cs])
-           (refine σ V C)))
-       (go σ* V* Cᵣs)]
-      [(cons (? set? Cs) Cᵣs)
-       (define-values (σ* V*)
-         (for/fold ([σ : .σ σ] [V : .V V]) ([C : .V Cs])
-           (refine σ V C)))
-       (go σ* V* Cᵣs)]
-      [(cons (.// (.St (.id 'and/c 'Λ) Cs) _) Cᵣs)
-       (go σ V (cons Cs Cᵣs))]
-      [(cons (? .V? C) Cᵣs)
-       (match (⊢′ σ V C)
-         ['✓ (values σ V)]
-         ['X (error 'Internal "Bogus refinement of ~a by ~a" (show-V σ V) (show-V σ C))]
-         ['? (match (⊢ σ V C)
-               ['X (error 'Internal "Bogus refinement of ~a by ~a (by solver)"
-                          (show-V σ V) (show-V σ C))]
-               [_ (define-values (σ* V*) ((refine1) σ V C))
-                  (go σ* V* Cᵣs)])])]))
-  (go σ V Css))
-
-(: refine* : .σ (Listof .V) (Listof .V) → (Values .σ (Listof .V)))
-(define (refine* σ Vs Cs)
-  (define-values (σ* Vs*)
-    (for/fold ([σ : .σ σ] [Vs* : (Listof .V) '()]) ([V Vs] [C Cs])
-      #;(log-debug "Got:~n~a~n~a~n~n" V C)
-      (define-values (σ* V*) ((refine1) σ V C))
-      (values σ* (cons V* Vs))))
-  (values σ* (reverse Vs*)))
 
 (: check-C : .σ .V .V → .Vns*)
 (define (check-C σ V C)
@@ -133,62 +88,6 @@
             [(_ _) (values σ 'ignore)]))
         {set (cons σt TT) (cons σf FF)}])]))
 
-(: refine-C* : (Setof .V) .V → (Setof .V))
-(define (refine-C* Cs C)
-  (cond [(set-empty? Cs) {set C}]
-        [else (for/fold ([acc : (Setof .V) ∅]) ([Cᵢ Cs])
-                (∪* acc (refine-C Cᵢ C)))]))
-
-(: refine-C : .V .V → (U .V (Setof .V)))
-(define (refine-C C D)
-  (cond
-    [(equal? '✓ (C⇒C C D)) C]
-    [(equal? '✓ (C⇒C D C)) D]
-    [else
-     (match* (C D)
-       [((.// Uc _) (.// Ud _))
-        (match* (Uc Ud)
-          ; unroll recursive ones
-          [(_ (.μ/C x D′)) (refine-C C (C/ D′ x D))]
-          [((.μ/C x C′) _) (refine-C (C/ C′ x C) D)]
-          ; break conjunctive ones
-          [(_ (.St (.id 'and/c 'Λ) (list D1 D2))) (∪* (refine-C C D1) (refine-C C D2))]
-          [((.St (.id 'and/c 'Λ) (list C1 C2)) _) (∪* (refine-C C1 D) (refine-C C2 D))]
-          ; prune impossible disjunct
-          [(_ (.St (.id 'or/c 'Λ) _))
-           (define D* (truncate D C))
-           (if (equal? D D*) {set C D} (refine-C C D*))]
-          [((.St (.id 'or/c 'Λ) _) _)
-           (define C* (truncate C D))
-           (if (equal? C C*) {set C D} (refine-C C* D))]
-          ; special rules for reals
-          [((.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρc)
-            (.St (.id 'not/c 'Λ)
-                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                           (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
-           (assert (and e1 e2) #|to make TR work for now|#)
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρc)) {set C D})]
-          [((.St (.id 'not/c 'Λ)
-                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                           (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
-            (.λ↓ (.λ 1 (.@ '>= (list e1 e2) l)) ρd))
-           (assert (and e1 e2) #|to make TR work for now|#)
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '> (list e1 e2) l)) ρd)) {set C D})]
-          [((.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρc)
-            (.St (.id 'not/c 'Λ)
-                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                           (or (list e1 e2) (list e2 e1)) _)) ρd) _))))
-           (assert (and e1 e2) #|to make TR work for now|#)
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρc)) {set C D})]
-          [((.St (.id 'not/c 'Λ)
-                 (list (.// (.λ↓ (.λ 1 (.@ (or '= 'equal?)
-                                           (or (list e1 e2) (list e2 e1)) _)) ρc) _)))
-            (.λ↓ (.λ 1 (.@ '<= (list e1 e2) l)) ρd))
-           (assert (and e1 e2) #|to make TR work for now|#)
-           (if (equal? ρc ρd) (→V (.λ↓ (.λ 1 (.@ '< (list e1 e2) l)) ρd)) {set C D})]
-          [(_ _) {set C D}])]
-       [(_ _) {set C D}])]))
-
 ;; throws away all branch in C excluded by D
 (: truncate : .V .V → .V)
 (define (truncate C D)
@@ -200,72 +99,6 @@
        [('X _) (truncate C2 D)]
        [(_ _) (.// (.St (.id 'or/c 'Λ) (list (truncate C1 D) (truncate C2 D))) C*)])]
     [_ C]))
-
-(: U+ : .U .U → .U)
-(define U+ (match-lambda** [('• U) U] [(U _) U]))
-
-(: ∪* : (U (Setof .V) .V) * → (Setof .V))
-(define (∪* . V*)
-  (match V*
-    ['() ∅]
-    [(list (? .V? V)) {set V}]
-    [(list (? set? V)) V]
-    [_ (for/fold ([acc : (Setof .V) ∅]) ([V V*])
-         (if (set? V) (set-union acc V) (set-add acc V)))]))
-
-(: U^ : .U → (Setof .V))
-(define U^
-  (match-lambda [(.b b) (b^ b)]
-                ['• ∅]
-                [(or (? .Ar?) (? .λ↓?)) {set PROC/C}]
-                [(.St (? identifier? t) V*) {set (→V (.st-p t (length V*)))}]
-                [_ ∅]))
-
-(: b^ : (U Number String Symbol Boolean Keyword) → (Setof .V))
-(define b^
-  (match-lambda
-    [(? integer? n) (set-union {set (Prim 'integer?) (Prim 'real?) (Prim 'number?)} (sign/C n))]
-    [(? real? r) (set-union {set (Prim 'real?) (Prim 'number?)} (sign/C r))]
-    [(? number? x) {set (Prim 'number?)}]
-    [(? string?) {set (Prim 'string?)}]
-    [(? symbol?) {set (Prim 'symbol?)}]
-    [(? keyword? x) {set (Prim 'keyword?)}]
-    [#t {set (.¬/C (Prim 'false?)) (Prim 'boolean?)}]
-    [#f {set (Prim 'false?) (Prim 'boolean?)}]))
-
-(: alloc : .σ .V → (Values .σ .V))
-(define (alloc σ V)
-  (match V
-    [(.L _) (values σ V)]
-    [(.// (.St t Vs) Cs)
-     (define-values (σ* Vs*) (alloc* σ Vs))
-     (values σ* (.// (.St t Vs*) Cs))]
-    [(.// (.Ar C V l³) Cs)
-     (define-values (σ* V*) (alloc σ V))
-     (values σ* (.// (.Ar C V* l³) Cs))]
-    [(.// (.λ↓ f (.ρ m l)) Cs)
-     (define-values (σ* m*)
-       (for/fold ([σ : .σ σ] [m′ : (Map (U Integer Symbol) .V) m])
-                 ([x (in-hash-keys m)])
-         (define-values (σ* V*) (alloc σ (hash-ref m x)))
-         (values σ* (hash-set m′ x V*))))
-     (values σ* (→V (.λ↓ f (.ρ m* l))))]
-    [(.// '• Cs)
-     (define-values (σ₁ L₁) (σ+ σ))
-     (define-values (σ₂ L₂) (refine σ₁ L₁ Cs))
-     (values σ₂ L₂)]
-    [(? .μ/V? V)
-     (define-values (σ₁ L₁) (σ+ σ))
-     (values (σ-set σ₁ L₁ V) L₁)]
-    [(? .V? V) (values σ V)]))
-
-(: alloc* : .σ (Listof .V) → (Values .σ (Listof .V)))
-(define (alloc* σ Vs)
-  (define-values (σ* Vs*)
-    (for/fold ([σ : .σ σ] [Vs : (Listof .V) '()]) ([V Vs])
-      (define-values (σ* V*) (alloc σ V))
-      (values σ* (cons V* Vs))))
-  (values σ* (reverse Vs*)))
 
 ;; Language definition for `δ` begins here 
 (begin-for-syntax

@@ -1,31 +1,188 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/bool racket/math
- "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt"
+ "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "provability.rkt"
  ;"make-delta.rkt"
  )
 (provide (all-defined-out))
 
-
-(: δ : -σ -Γ -o (Listof -W) Mon-Party → (Values -σ -AΓs))
+(: δ : -σ -Γ -o -WVs Mon-Party → (Values -σ -AΓs))
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
 (define (δ σ Γ o Ws l)
-  (match* (o Ws)
+  (match o
     ;; Primitive predicate
-    [((? -pred? o) (list (and W (-W V π))))
-     (match (⊢ σ Γ W (-W o o))
-       ['✓ (values σ (cons -True/Vs Γ))]
-       ['X (values σ (cons -False/Vs Γ))]
-       ['?
-        (define π-tt (-π@* o (list π)))
-        (values σ {set (cons -True/Vs (Γ+ Γ π-tt))
-                       (cons -False/Vs (Γ+ Γ (-π@* 'false? (list π-tt))))})])]
+    [(? -pred? o)
+     (match Ws
+       [(list (and W (-W V π)))
+        (match (⊢ σ Γ W (-W o o))
+          ['✓ (values σ (-AΓ -True/Vs Γ))]
+          ['X (values σ (-AΓ -False/Vs Γ))]
+          ['?
+           (define π-tt (-π@* o (list π)))
+           (values σ {set (-AΓ -True/Vs (Γ+ Γ π-tt))
+                          (-AΓ -False/Vs (Γ+ Γ (-π@* 'false? (list π-tt))))})])]
+       [_ (values
+           σ
+           (-AΓ (-blm l (show-o o)
+                      (-Clo '(x) (-@ '= (list (-x 'x) (-b 1)) 'Λ) -ρ∅ -Γ∅)
+                      (WVs->Vs Ws))
+                Γ))])]
+    
     ;; Constructor
-    [((-st-mk id n) Ws)
-     (error 'Internal "TODO: δ for constructor")]
-    ;; Acccessor
-    ))
+    [(-st-mk id n)
+     (cond
+       [(= n (length Ws))
+        (define αs (alloc-fields Γ o Ws))
+        (define σ* : -σ
+          (for/fold ([σ* σ]) ([α αs] [W Ws])
+            (⊔ σ α (-W-x W))))
+        (values σ* (-AΓ (list (-St id αs)) Γ))]
+       [else
+        (values
+         σ
+         (-AΓ (-blm l (show-o o)
+                    (-Clo '(x) (-@ '= (list (-x 'x) (-b 1)) 'Λ) -ρ∅ -Γ∅)
+                    (WVs->Vs Ws))
+              Γ))])]
+    
+    ;; Accessor
+    [(-st-ac id n i)
+     (match Ws
+       [(list (and W (-W V π)))
+        (define-values (_ AΓs) (δ σ Γ (-st-p id n) Ws 'Λ))
+        (define π_a (-π@* o (list π)))
+        (define AΓs*
+          (match/nd: (-AΓ → -AΓ) AΓs
+           [(-AΓ (-b #t) Γ_t)
+            (match V
+              [(-St _ αs)
+               (match/nd: (-V → -AΓ) (hash-ref σ (list-ref αs i))
+                 [V (-AΓ V Γ_t)])]
+              [_ (-AΓ '• Γ_t)])]
+          [(-AΓ (-b #f) Γ_f)
+           (-AΓ (-blm l (show-o o) (-st-p id n) Ws) Γ_f)]))
+        (values σ AΓs*)]
+       [_ (values
+           σ
+           (-AΓ (-blm l (show-o o)
+                      (-Clo '(x) (-@ '= (list (-x 'x) (-b 1)) 'Λ) -ρ∅ -Γ∅)
+                      (WVs->Vs Ws))
+                 Γ))])]
+
+    ;; Ariths
+    ['+
+     (match Ws
+       [(list W₁ W₂)
+        (define-values (_σ₁ AΓs₁) (δ σ Γ 'number? (list W₁) 'Λ))
+
+        (define AΓs₂
+          (match/nd: (-AΓ → -AΓ) AΓs₁
+            [(-AΓ (list (-b #t)) Γ₁)
+             (define-values (_σ₂ AΓs₂)
+               (δ σ Γ₁ 'number? (list W₂) 'Λ))
+             AΓs₂]
+            [(-AΓ (list (-b #f)) Γ₁)
+             (-AΓ (-blm l o 'number? (list (-W-x W₁))) Γ₁)]))
+        
+        (values
+         σ
+         (match/nd: (-AΓ → -AΓ) AΓs₂
+          [(and a (-AΓ (? -blm?) _)) a]
+          [(-AΓ (list (-b #t)) Γ₂)
+           (match* ((-W-x W₁) (-W-x W₂))
+             [((-b (? number? x)) (-b (? number? y)))
+              (-AΓ (list (-b (+ x y))) Γ₂)]
+             [(_ _) (-AΓ (list '•) Γ₂)])]
+          [(-AΓ (list (-b #f)) Γ₂)
+           (-AΓ (-blm l o 'number? (list (-W-x W₂))) Γ₂)]))]
+       [_
+        (values
+         σ
+         (-AΓ (-blm l (show-o o)
+                    (-Clo '(x) (-@ '= (list (-x 'x) (-b 2)) 'Λ) -ρ∅ -Γ∅)
+                    (WVs->Vs Ws))
+              Γ))])]
+    
+    ['-
+     (match Ws
+       [(list W₁ W₂)
+        (define-values (_σ₁ AΓs₁) (δ σ Γ 'number? (list W₁) 'Λ))
+
+        (define AΓs₂
+          (match/nd: (-AΓ → -AΓ) AΓs₁
+            [(-AΓ (list (-b #t)) Γ₁)
+             (define-values (_σ₂ AΓs₂)
+               (δ σ Γ₁ 'number? (list W₂) 'Λ))
+             AΓs₂]
+            [(-AΓ (list (-b #f)) Γ₁)
+             (-AΓ (-blm l o 'number? (list (-W-x W₁))) Γ₁)]))
+        
+        (values
+         σ
+         (match/nd: (-AΓ → -AΓ) AΓs₂
+          [(and a (-AΓ (? -blm?) _)) a]
+          [(-AΓ (list (-b #t)) Γ₂)
+           (match* ((-W-x W₁) (-W-x W₂))
+             [((-b (? number? x)) (-b (? number? y)))
+              (-AΓ (list (-b (- x y))) Γ₂)]
+             [(_ _) (-AΓ (list '•) Γ₂)])]
+          [(-AΓ (list (-b #f)) Γ₂)
+           (-AΓ (-blm l o 'number? (list (-W-x W₂))) Γ₂)]))]
+       [_
+        (values
+         σ
+         (-AΓ (-blm l (show-o o)
+                    (-Clo '(x) (-@ '= (list (-x 'x) (-b 2)) 'Λ) -ρ∅ -Γ∅)
+                    (WVs->Vs Ws))
+              Γ))])]
+
+    ['*
+     (match Ws
+       [(list W₁ W₂)
+        (define-values (_σ₁ AΓs₁) (δ σ Γ 'number? (list W₁) 'Λ))
+
+        (define AΓs₂
+          (match/nd: (-AΓ → -AΓ) AΓs₁
+            [(-AΓ (list (-b #t)) Γ₁)
+             (define-values (_σ₂ AΓs₂)
+               (δ σ Γ₁ 'number? (list W₂) 'Λ))
+             AΓs₂]
+            [(-AΓ (list (-b #f)) Γ₁)
+             (-AΓ (-blm l o 'number? (list (-W-x W₁))) Γ₁)]))
+        
+        (values
+         σ
+         (match/nd: (-AΓ → -AΓ) AΓs₂
+          [(and a (-AΓ (? -blm?) _)) a]
+          [(-AΓ (list (-b #t)) Γ₂)
+           (match* ((-W-x W₁) (-W-x W₂))
+             [((-b (? number? x)) (-b (? number? y)))
+              (-AΓ (list (-b (* x y))) Γ₂)]
+             [(_ _) (-AΓ (list '•) Γ₂)])]
+          [(-AΓ (list (-b #f)) Γ₂)
+           (-AΓ (-blm l o 'number? (list (-W-x W₂))) Γ₂)]))]
+       [_
+        (values
+         σ
+         (-AΓ (-blm l (show-o o)
+                    (-Clo '(x) (-@ '= (list (-x 'x) (-b 2)) 'Λ) -ρ∅ -Γ∅)
+                    (WVs->Vs Ws))
+              Γ))])]))
+
+(: alloc-fields : -Γ -o -WVs → (Listof -α))
+;; Allocate a list of addresses for given fields in a constructor
+(define (alloc-fields Γ o Ws)
+  
+  (: alloc-field : Integer -WV → -α)
+  (define (alloc-field i W)
+    (log-warning "alloc-field: TODO proper implementation")
+    (match-define (-W V π) W)
+    (cond
+      [π (alloc o π Γ i)]
+      [else (alloc o Γ i)]))
+  
+  (for/list ([i (in-naturals)] [W Ws]) (alloc-field i W)))
 
 #|
 (define-δ ; Identifiers `δ`, `σ`, `o`, `Vs`, and `l` are in scope

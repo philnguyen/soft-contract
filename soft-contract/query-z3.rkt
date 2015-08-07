@@ -11,7 +11,8 @@
 (define Γ⊢₀ : (Parameterof (-Γ -π → -R))
   (make-parameter
    (λ (Γ π)
-     (error 'Internal "Uninitialized base proof relation"))))
+     (log-warning "Base solver not set")
+     '?)))
 
 ;; binary operators on reals
 (define-type/pred -r² (U '+ '- '* '/ '> '< '>= '<= '= 'equal?))
@@ -22,13 +23,12 @@
   (define FVs (∪ (FV-Γ Γ) (FV-π π)))
   (define conclusion (t π))
   (define declarations
-    (for/fold ([decs : (Listof Sexp) '()]) ([sd FVs])
-      (define x (-x sd))
+    (for/fold ([decs : (Listof Sexp) '()]) ([x FVs])
       (cond
-        [(equal? '✓ ((Γ⊢₀) Γ (-π@ 'integer? (list x))))
-         (cons `(declare-const ,(x→z3 x) Int) decs)]
-        [(equal? '✓ ((Γ⊢₀) Γ (-π@ 'real? (list x))))
-         (cons `(declare-const ,(x→z3 x) Real) decs)]
+        [(equal? '✓ ((Γ⊢₀) Γ (-π@ 'integer? (list (-x x)))))
+         (cons `(declare-const ,x Int) decs)]
+        [(equal? '✓ ((Γ⊢₀) Γ (-π@ 'real? (list (-x x)))))
+         (cons `(declare-const ,x Real) decs)]
         [else decs])))
   (define premises
     (for*/list : (Listof Sexp) ([π Γ] [s (in-value (t π))] #:when s)
@@ -48,7 +48,7 @@
       [(-π@ 'sub1 (list π)) (@? list '- (! (go π)) 1)]
       [(-π@ 'false? (list π)) (@? list 'not (! (go π)))]
       [(? -π@?) #f]
-      [(? -x? x) (x→z3 x)]
+      [(-x x) x]
       [(-b b) b]))
   (go π))
 
@@ -56,11 +56,6 @@
 ;; Translate an environment into a list of expressions
 (define (γ Γ)
   (for*/list : (Listof Sexp) ([π Γ] [s (in-value (t π))] #:when s) s))
-
-(: x→z3 : -x → Symbol)
-;; Generate Z3 symbol for variable
-(define (x→z3 x)
-  (string->symbol (format "x~a" (-x-sd x))))
 
 ;; translate Racket symbol to Z3 symbol
 (: rkt→z3 : -r² → Symbol)

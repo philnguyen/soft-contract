@@ -7,27 +7,23 @@
 ;; Provability result
 (define-type -R (U '✓ 'X '?))
 
-;;;;; Generics
-(: ⊔ : (∀ (X Y) (MMap X Y) X Y → (MMap X Y)))
-(define (⊔ m x y)
-  (hash-update m x (λ ([ys : (Setof Y)]) (set-add ys y)) (inst set Y)))
-
-;;;;; Pure syntax + fact environments
+;;;;; Restricted expression + fact environments
 
 (define-data -π
   -x
   -prim
-  -id
+  -id ; for top-level reference
   (struct -π@ [f : -π] [xs : (Listof -π)]))
 (define-type -π* (Option -π))
 
 (define-type -Γ (Setof -π))
 (define -Γ∅ : -Γ ∅)
 
-(: Γ+ : -Γ -π* → -Γ)
-(define (Γ+ Γ π) (if π (set-add Γ π) Γ))
+;; Extend fact environment
+(define (Γ+ [Γ : -Γ] [π : -π*]) : -Γ (if π (set-add Γ π) Γ))
 
 (: -π@* : -π* (Listof -π*) → -π*)
+;; Smart constructor for restricted application
 (define (-π@* f xs)
   (cond
     [(and f (andmap (inst values -π*) xs))
@@ -40,153 +36,194 @@
        [(f xs) (-π@ f (cast xs (Listof -π)))])]
     [else #f]))
 
-(: FV-π : -π* → (Setof Integer))
+(: FV-π : -π* → (Setof Symbol))
 ;; Compute free variables in restricted expression
 (define (FV-π π*)
   (match π*
-    [(-x sd) {set sd}]
+    [(-x x) {set x}]
     [(-π@ f xs)
-     (for/fold ([sds : (Setof Integer) (FV-π f)]) ([x xs])
+     (for/fold ([sds : (Setof Symbol) (FV-π f)]) ([x xs])
        (∪ sds (FV-π x)))]
     [_ ∅]))
 
-(: FV-Γ  : -Γ → (Setof Integer))
+(: FV-Γ  : -Γ → (Setof Symbol))
 ;; Computes free variables in fact environment
 (define (FV-Γ Γ)
-  (for/fold ([xs : (Setof Integer) ∅]) ([π Γ])
+  (for/fold ([xs : (Setof Symbol) ∅]) ([π Γ])
     (∪ xs (FV-π π))))
 
-(: restrict-Γ : -Γ (Setof Integer) → -Γ)
-;; Restrict fact environment's domain to given static distances
-(define (restrict-Γ Γ sds)
-  (for/set: : -Γ ([π Γ] #:when (subset? (FV-π π) sds)) π))
+(: π↓ : -π* (Setof Symbol) → -π*)
+;; Discard restricted expression if it contains free variables outside given set
+(define (π↓ π xs)
+  (cond
+    [(⊆ (FV-π π) xs) π]
+    [else #f]))
+
+(: Γ↓ : -Γ (Setof Symbol) → -Γ)
+;; Restrict fact environment's domain to given variable names
+(define (Γ↓ Γ xs)
+  (for/set: : -Γ ([π Γ] #:when (subset? (FV-π π) xs)) π))
+
+(: π*/ : -π* -π* -π* → -π*)
+;; Substitute sub-expression in restricted syntax
+(define (π*/ π π₁ π₂)
+  (cond
+    [π₁
+     (match π
+       [(or (? -x?) (? -prim?) (? -id?)) (if (equal? π π₁) π₂ π)]
+       [(-π@ f xs) (-π@* (π*/ f π₁ π₂)
+                         (for/list : (Listof -π*) ([x xs])
+                           (π*/ x π₁ π₂)))]
+       [#f #f])]
+    [else π]))
+
+(: Γ/ : -Γ -π* -π* → -Γ)
+;; Substitute sub-expression in fact environment
+(define (Γ/ Γ π₁ π₂)
+  (cond
+    [π₁ (for*/set: : -Γ ([π Γ] [π* (in-value (π*/ π π₁ π₂))] #:when π*)
+          π*)]
+    [else Γ]))
+
 
 ;;;;; CLOSURE
 
-;; closure forms
-(define-data -E
-  (struct -↓ [e : -expr] [ρ : -ρ])
-  (subset: -A
-    (struct -blm [violator : Mon-Party] [origin : Mon-Party] [v : -V] [c : -V])
-    (struct -Ws [ws : (Listof -W)])))
-
-(struct -W ([V : -V] [π : -π*]) #:transparent)
-
 ;; blessed arrow, struct, and closed lambda
 (define-data -V
+  'undefined
   -prim
   '•
   (struct -Ar [c : -α] [v : -α] [l³ : Mon-Info])
   (struct -St [tag : -id] [fields : (Listof -α)])
-  (struct -λ↓ [f : -λ] [ρ : -ρ] [Γ : -Γ])
-  (struct -λ/C [c : (Listof -α)] [e : -expr] [ρ : -ρ] [Γ : -Γ] [v? : Boolean])
+  (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
+  (struct -=>  [dom : (Listof -α)] [rng : -α])
+  (struct -=>i [dom : (Listof (Pairof Symbol -α))] [rng : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -St/C [t : -id] [fields : (Listof -α)])
   (struct -μ/C [x : Symbol] [c : -α])
   (struct -X/C [ref : -α]))
+(define-type -Vs (Listof -V))
 
-(define-match-expander -Ws*
-  (syntax-rules () [(_ W ...) (-Ws (list W ...))])
-  (syntax-rules () [(_ W ...) (-Ws (list W ...))]))
+(define-data -A
+  -Vs
+  (struct -blm [violator : Mon-Party] [origin : Mon-Party] [v : -V] [c : -Vs]))
+
+;; `X` paired with restricted expression
+(struct (X) -W ([x : X] [π : -π*]) #:transparent)
+
+(define-type -WV (-W -V))
+(define-type -WVs (Listof -WV))
+(define (WVs->Vs [WVs : -WVs]) : -Vs
+  ((inst map -V -WV) -W-x WVs))
+
+;; closure forms
+(define-data -E
+  (struct -↓ [e : -e] [ρ : -ρ])
+  (subset: -Ans
+    (-W -blm)
+    -WVs))
 
 (: close : -v -ρ -Γ → -V)
+;; Create closure from value syntax and environment
 (define (close v ρ Γ)
-  (cond
-    [(-λ? v)
-     (define xs (FV v))
-     (-λ↓ v (restrict-ρ ρ xs) (restrict-Γ Γ xs))]
-    [(-prim? v) v]
-    [(-•ₗ? v) '•]
-    [else (error 'close "Not yet supported: ~a" v)]))
+  (match v
+    [(-λ xs e)
+     (define FV_e (FV e))
+     (-Clo xs e (ρ↓ ρ FV_e) (Γ↓ Γ FV_e))]
+    [(? -prim? v) v]
+    [(? -•ₗ? v) '•]
+    [_ (error 'close "Not yet supported: ~a" v)]))
 
 
 ;;;;; ENVIRONMENT
 
-;; environment maps static distances (HACK: or symbols) to values
-(struct -ρ ([map : (Map Integer -α)] [len : Integer]) #:transparent)
-(define -ρ∅ (-ρ (hash) 0))
+;; environment maps variable names to addresses
+(define-type -ρ (Map Symbol -α))
+(define -ρ∅ : -ρ (hash))
 
-(: restrict-ρ : -ρ (Setof Integer) → -ρ)
-;; Restrict environment's domain to given static distances
-(define (restrict-ρ ρ sds)
+(: ρ↓ : -ρ (Setof Symbol) → -ρ)
+;; Restrict environment's domain to given variable names
+(define (ρ↓ ρ xs)
   (cond ; reuse empty collection in special cases
-   [(set-empty? sds) -ρ∅]
-   [else
-    (define m∅ (-ρ-map -ρ∅))
-    (match-define (-ρ m l) ρ)
-    (define m′
-      (for/fold ([acc : (Map Integer -α) m∅]) ([sd sds])
-        (define i (- l sd 1))
-        (hash-set acc i (hash-ref m i))))
-    (-ρ m′ l)]))
+   [(set-empty? xs) -ρ∅]
+   [else (for/fold ([ρ* : -ρ -ρ∅]) ([x xs])
+           (hash-set ρ* x (ρ@ ρ x)))]))
 
-(: ρ+ : -ρ -α → -ρ)
-(define (ρ+ ρ α)
-  (match-define (-ρ m l) ρ)
-  (-ρ (hash-set m l α) (+ 1 l)))
+(: ρ+ : -ρ (U -x Symbol) -α → -ρ)
+;; Extend environment with new mapping from symbol to address
+(define (ρ+ ρ x α)
+  (define s (if (-x? x) (-x-name x) x))
+  (hash-set ρ s α))
 
-(: ρ++ : ([-ρ (Listof -α)] [(U Boolean Integer)] . ->* . -ρ))
-(define (ρ++ ρ αs [var? #f])
-  (match var?
-    [#f (for/fold ([ρi ρ]) ([α αs]) (ρ+ ρi α))]
-    [_ (error 'ρ++ "TODO: var args")]
-    #|
-    [0 (ρ+ ρ (foldr (λ ([Vi : -V] [Vr : -V])
-                      (.// (-St -id-cons (list Vi Vr)) ∅))
-                    MT V*))]
-    [(? integer? n) (ρ++ (ρ+ ρ (car V*)) (cdr V*) (- n 1))]
-    |#))
+(: ρ++ : -ρ -formals (Listof -α) → -ρ)
+;; Extend environment with given parameter and argument lists
+(define (ρ++ ρ xs αs)
+  (match xs
+    [(? list? xs)
+     (for/fold ([ρ : -ρ ρ]) ([x xs] [α αs])
+       (hash-set ρ x α))]
+    [(-varargs init rest)
+     (let go ([ρ ρ] [xs xs] [αs αs])
+       (match* (xs αs)
+         [((cons x xs*) (cons α αs*))
+          (go (hash-set ρ x α) xs* αs*)]
+         [('() αs)
+          (error 'ρ++ "TODO: varargs")]
+         [((cons _ _) _)
+          (error 'ρ++ "more parameters than arguments")]))]))
 
-(: ρ-upd : -ρ Integer (Listof -α) → -ρ)
-(define (ρ-upd ρ offset αs)
-  (match-define (-ρ m l) ρ)
-  (define i₀ (- l offset (length αs)))
-  (-ρ
-   (for/fold ([acc : (Map Integer -α) m]) ([α αs] [δ (in-naturals)])
-     (hash-set acc (+ i₀ δ) α))
-   l))
-
-(: ρ@ : -ρ (U -x Integer) → -α)
+(: ρ@ : -ρ (U -x Symbol) → -α)
+;; Look up environment for address at given variable
 (define (ρ@ ρ x)
-  (match-define (-ρ m l) ρ)
-  (hash-ref m (- l (if (-x? x) (-x-sd x) x) 1)))
+  (define s (if (-x? x) (-x-name x) x))
+  (hash-ref ρ s))
 
-(: ρ-set : -ρ (U -x Integer) -α → -ρ)
-(define (ρ-set ρ x α)
-  (match-define (-ρ m l) ρ)
-  (define sd (match x [(-x sd) sd] [(? integer? sd) sd]))
-  (-ρ (hash-set m (- l sd 1) α) l))
 
-(: ρ∋ : -ρ (U -x Integer) → Boolean)
-(define (ρ∋ ρ x)
-  (match-define (-ρ m l) ρ)
-  (define sd (if (-x? x) (-x-sd x) x))
-  (hash-has-key? m (- l sd 1)))
+;;;;; ADDRESS
+
+(define-type -ctn (U -e -π -Γ Symbol Integer Boolean))
+(define-data -α
+  ;; for top-level binding
+  (struct -α.top [id : -id])
+  ;; for top-level binding'c contract
+  (struct -α.ctc [id : -id])
+  ;; for other bindings. TODO: decide what i want.
+  (struct -α.bnd [ctx : -e] [ctn : (Listof -ctn)]))
+
+(: alloc : -e -ctn * → -α)
+;; Allocate address for a run-time binding
+(define (alloc ctx . ctns)
+  (log-warning "alloc: decide the right type for content")
+  (-α.bnd ctx ctns))
+
 
 ;;;;; STORE
 
-(struct -α ([binder : -expr]) #:transparent)
-(struct -α-cnc -α ([arg : -expr]) #:transparent)
-(struct -α-opq -α ([stx : -π*] [facts : -Γ]) #:transparent)
-
 ;; store maps addresses to values
 (define-type -σ (MMap -α -V))
-(define σ∅ : -σ (hash))
+(define -σ∅ : -σ (hash))
 
 (: σ@ : -σ -α → (Setof -V))
+;; Look up the store for all values at given address
 (define (σ@ σ α) (hash-ref σ α))
 
-;; Allocate address for a run-time binding
-(: alloc : -expr -W -Γ → -α)
-(define (alloc binder W Γ)
-  (error 'alloc "TODO"))
+(: σ@₁ : -σ -α → -V)
+;; Look up the store for a single value at given address
+(define (σ@₁ σ α)
+  (define Vs (hash-ref σ α))
+  (cond
+    [(= 1 (set-count Vs)) (set-first Vs)]
+    [else (error 'Internal "expect exactly 1 value at address ~a, given 2" α)]))
 
 
 ;;;;; Convenience
 
 (define -Mt (-St (-id 'null 'Λ) (list)))
-(define -Any/C (-λ↓ -any/c -ρ∅ -Γ∅))
+(define -Any/C (-Clo '(x) -tt -ρ∅ -Γ∅))
 (define -id-cons (-id 'cons 'Λ))
-(define -True/Vs  (list (-b #t)))
-(define -False/Vs (list (-b #f)))
+(define -True/Vs  (list -tt))
+(define -False/Vs (list -ff))
+(define -● (-W '• #f))
 
-(define-type -AΓs (U (Pairof (Listof -V) -Γ) (Setof (Pairof (Listof -V) -Γ))))
+;; Use this adhoc type instead of `cons` to avoid using `inst`
+(struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
+(define-type -AΓs (U -AΓ (Setof -AΓ)))

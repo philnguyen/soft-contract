@@ -27,12 +27,11 @@
   (make-parameter "top-level"))
 
 (define scv-syntax? (and/c syntax? (not/c scv-ignore?)))
-(define env? (listof identifier?))
 
 ;; Read our current limited notion of program
 (define/contract (parse-prog mods top)
   ((listof scv-syntax?) scv-syntax? . -> . -prog?)
-  (-prog (parse-mods mods) (parse-expr top)))
+  (-prog (parse-mods mods) (parse-e top)))
 
 (define/contract (parse-mods mods)
   ((listof scv-syntax?) . -> . (listof -module?))
@@ -67,7 +66,7 @@
             (parse-module-level-form formᵢ))))))]
     [((~literal begin) form ...)
      (-begin/simp (map parse-top-level-form (syntax->list #'(form ...))))]
-    [((~literal #%expression) e) (parse-expr #'e)]
+    [((~literal #%expression) e) (parse-e #'e)]
     [_ (parse-general-top-level-form form)]))
 
 (define/contract (parse-module-level-form form)
@@ -93,9 +92,9 @@
      #;(debug "x: ~a~nc: ~a~n"
              (identifier? (car (syntax->list #'(x ...))))
              (identifier? (car (syntax->list #'(c ...)))))
-     (-provide (for/list ([x (in-list (syntax->list #'(x ...)))]
+     (-provide (for/list ([x (in-list (syntax->datum #'(x ...)))]
                           [c (in-list (syntax->list #'(c ...)))])
-                 (-p/c-item (syntax-e x) (parse-expr c))))]
+                 (-p/c-item x (parse-e c))))]
     
     [_ (or (parse-general-top-level-form form)
            (parse-submodule-form form))]))
@@ -137,7 +136,7 @@
           'Λ))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
-     (define rhs (parse-expr #'e))
+     (define rhs (parse-e #'e))
      (define frees (free-x/c rhs))
      (cond
        [(set-empty? frees) (-define-values (list lhs) rhs)]
@@ -147,25 +146,21 @@
                "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
                lhs (set-first (-- frees lhs)))])]
     [(define-values (x:identifier ...) e)
-     (-define-values (map syntax-e (syntax->list #'(x ...))) (parse-expr #'e))]
+     (-define-values (syntax->datum #'(x ...)) (parse-e #'e))]
     [(#%require spec ...)
      (-require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
-    [_ (parse-expr form)]))
+    [_ (parse-e form)]))
 
 (define dummy-id #'dummy)
 
-(define/contract (parse-expr stx [ctx '()])
-  (scv-syntax? . -> . -expr?)
-  (log-debug "parse-expr: ~a~n~n" (pretty-format (syntax->datum stx)))
+(define/contract (parse-e stx)
+  (scv-syntax? . -> . -e?)
+  (log-debug "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
 
-  (define/contract (go e)
-    (scv-syntax? . -> . -expr?)
-    (parse-expr e ctx))
-
-  (define/contract (go/list es)
-    ((and/c scv-syntax? (not/c identifier?)) . -> . (listof -expr?))
-    (map go (syntax->list es)))
+  (define/contract (parse-es es)
+    ((and/c scv-syntax? (not/c identifier?)) . -> . (listof -e?))
+    (map parse-e (syntax->list es)))
   
   (syntax-parse stx
     #:literals
@@ -179,11 +174,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (-->i (go/list #'(c ...))
-           (parse-expr #'d (ext-env ctx (make-list (length (syntax->list #'(c ...))) dummy-id)))
-           #f)
-     #;(--> (map parse-expr (syntax->list #'(c ...)))
-          (parse-expr #'d))]
+     (--> (parse-es #'(c ...)) (parse-e #'d))]
     ;; Dependent contract
     [(begin
        (#%plain-app
@@ -192,9 +183,7 @@
         (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
      ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
-     (define xs (syntax->list #'(z ...)))
-     (define ctx′ (ext-env ctx xs))
-     (-->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
+     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...))) (parse-e #'d))]
     ; FIXME: duplicate of above case, (let-values () e _ ...) == (begin () e _ ...)
     [(let-values ()
        (#%plain-app
@@ -203,39 +192,35 @@
         (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
      ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
-     (define xs (syntax->list #'(z ...)))
-     (define ctx′ (ext-env ctx xs))
-     (-->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
+     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...))) (parse-e #'d))]
     ; FIXME: duplicate of above case, (begin e _ ...) == e
     [(#%plain-app
       (~literal fake:dynamic->i)
       (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
       (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
      ;(printf "dynamic->id₂: ~a~n" (syntax->datum #'d))
-     (define xs (syntax->list #'(z ...)))
-     (define ctx′ (ext-env ctx xs))
-     (-->i (go/list #'(cₓ ...)) (parse-expr #'d ctx′) #f)]
+     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...))) (parse-e #'d))]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
-     (apply -and/c (go/list #'(c ...)))]
+     (apply -and/c (parse-es #'(c ...)))]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
-     (apply -or/c (go/list #'(c ...)))]
+     (apply -or/c (parse-es #'(c ...)))]
     ;; Negation
-    [(#%plain-app (~literal fake:not/c) c) (-not/c (go #'c))]
+    [(#%plain-app (~literal fake:not/c) c) (-not/c (parse-e #'c))]
     [(#%plain-app (~literal fake:listof) c)
-     (-μ/c 'X (-or/c -null/c (-cons/c (go #'c) (-x/c 'X))))]
+     (-μ/c 'X (-or/c -null/c (-cons/c (parse-e #'c) (-x/c 'X))))]
     [(#%plain-app (~literal fake:list/c) c ...)
-     (apply -list/c (go/list #'(c ...)))]
+     (apply -list/c (parse-es #'(c ...)))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
-     (-struct/c (-id (syntax-e #'tag) (cur-mod)) (go/list #'(c ...)))]
-    [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (go #'c))]
-    [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (go #'c))]
-    [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (go #'c))]
-    [(#%plain-app (~literal fake:</c) c) (-comp/c '< (go #'c))]
-    [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (go #'c))]
-    [(#%plain-app (~literal fake:cons/c) c d) (-cons/c (go #'c) (go #'d))]
-    [(#%plain-app (~literal fake:one-of/c) c ...) (apply -one-of/c (go/list #'(c ...)))]
+     (-struct/c (-id (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
+    [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
+    [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
+    [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
+    [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c))]
+    [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c))]
+    [(#%plain-app (~literal fake:cons/c) c d) (-cons/c (parse-e #'c) (parse-e #'d))]
+    [(#%plain-app (~literal fake:one-of/c) c ...) (apply -one-of/c (parse-es #'(c ...)))]
     ; recursive contract reference. FIXME: code duplicate
     [(let-values () (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
      (-x/c (syntax-e #'x))]
@@ -259,55 +244,44 @@
      #:when (prefab-struct-key (syntax-e #'v))
      (todo 'struct)]
     [(#%plain-app f x ...)
-     (-@ (go #'f) (go/list #'(x ...)) (cur-mod))]
+     (-@ (parse-e #'f) (parse-es #'(x ...)) (cur-mod))]
     [((~literal with-continuation-mark) e₀ e₁ e₂)
-     (-wcm (go #'e₀) (go #'e₁) (go #'e₂))]
-    [(begin e ...) (-begin/simp (go/list #'(e ...)))]
-    [(begin0 e₀ e ...) (-begin0 (go #'e₀) (go/list #'(e ...)))]
-    [(if i t e) (-if (go #'i) (go #'t) (go #'e))]
-    [(let-values () b ...) (-begin/simp (go/list #'(b ...)))]
+     (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
+    [(begin e ...) (-begin/simp (parse-es #'(e ...)))]
+    [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
+    [(if i t e) (-if (parse-e #'i) (parse-e #'t) (parse-e #'e))]
+    [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
     [(let-values (bindings ...) b ...)
-     (define ctx′ ctx)
      (-let-values
       (for/list ([binding (in-list (syntax->list #'(bindings ...)))])
         (syntax-parse binding
-          [((x ...) e)
-           (begin0
-               (cons (length (syntax->list #'(x ...))) (go #'e))
-             (set! ctx′ (ext-env ctx′ (syntax->list #'(x ...)))))]))
+          [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
       (-begin/simp (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                (parse-expr bᵢ ctx′)))
+                     (parse-e bᵢ)))
       (cur-mod))]
     [(#%plain-lambda fmls b ...+)
-     (define-values (arity ctx′) (parse-formals ctx #'fmls))
-     (-λ arity
-         (-begin/simp (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
-                   (parse-expr bᵢ ctx′))))]
+     (-λ (parse-formals #'fmls)
+         (-begin/simp
+          (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
+            (parse-e bᵢ))))]
     
     [(case-lambda [fml bodies ...+] ...)
      (-case-lambda
       (for/list ([fmlᵢ (in-list (syntax->list #'(fml ...)))]
                  [bodiesᵢ (in-list (syntax->list #'((bodies ...) ...)))])
         ;; Compute case arity and extended context for RHS
-        (define-values (arity ctx′) (parse-formals ctx fmlᵢ))
-        (cons arity
+        (cons (parse-formals fmlᵢ)
               (-begin/simp (for/list ([body (in-list (syntax->list bodiesᵢ))])
-                        (parse-expr body ctx′))))))]
-    [(letrec-values () b ...) (-begin/simp (go/list #'(b ...)))]
+                        (parse-e body))))))]
+    [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
     [(letrec-values (bindings ...) b ...)
      (define bnds (syntax->list #'(bindings ...)))
-     (define-values (total-xs ctx′)
-       (for/fold ([total-xs 0] [ctx′ ctx]) ([bnd (in-list bnds)])
-         (syntax-parse bnd
-           [((x ...) e)
-            (define xs (syntax->list #'(x ...)))
-            (values (+ total-xs (length xs)) (ext-env ctx′ xs))])))
      (-letrec-values
       (for/list ([bnd (in-list bnds)])
         (syntax-parse bnd
-          [((x ...) eₓ) (cons (length (syntax->list #'(x ...))) (parse-expr #'eₓ ctx′))]))
+          [((x ...) eₓ) (cons (syntax->datum #'(x ...)) (parse-e #'eₓ))]))
       (-begin/simp (for/list ([e (in-list (syntax->list #'(b ...)))])
-                (parse-expr e ctx′)))
+                     (parse-e e)))
       (cur-mod))]
     [(quote e) (parse-quote #'e)]
     [(quote-syntax e) (todo 'quote-syntax)]
@@ -321,16 +295,16 @@
     [(~literal null?) -null/c]
     [(~literal empty) -null]
     [(~literal empty?) -null/c]
-    [(~literal positive?) (go #'(#%plain-lambda (x) (#%plain-app > x 0)))]
-    [(~literal negative?) (go #'(#%plain-lambda (x) (#%plain-app > x 0)))]
-    [(~literal zero?) (go #'(#%plain-lambda (x) (#%plain-app = x 0)))]
+    [(~literal positive?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
+    [(~literal negative?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
+    [(~literal zero?) (parse-e #'(#%plain-lambda (x) (#%plain-app = x 0)))]
     
     [i:identifier
      (or
       (parse-primitive #'i)
       (match (identifier-binding #'i)
-        ['lexical (-x (id->sd ctx #'i))]
-        [#f (-x (id->sd ctx #'i))]
+        ['lexical (-x (syntax-e #'i))]
+        [#f (-x (syntax-e #'i))]
         [(list (app (λ (x)
                       (parameterize ([current-directory (directory-part (cur-mod))])
                         (mod-path->mod-name
@@ -340,30 +314,24 @@
          (-ref (-id (syntax-e #'i) src) (cur-mod))]))]))
 
 (define/contract (parse-quote stx)
-  (scv-syntax? . -> . -expr?)
+  (scv-syntax? . -> . -e?)
   (syntax-parse stx
     [e:number (-b (syntax-e #'e))]
     [e:str (-b (syntax-e #'e))]
     [e:boolean (-b (syntax-e #'e))]
     [e:id (-b (syntax-e #'e))]
     [e:keyword (-b (syntax-e #'e))]
-    [(l . r)
-     (-@ -cons (list (parse-quote #'l) (parse-quote #'r)) (cur-mod))]
+    [(l . r) (-@ -cons (list (parse-quote #'l) (parse-quote #'r)) (cur-mod))]
     [() -null]
     [e (error 'parse-quote "unsupported quoted form: ~a" (syntax-e #'e))]))
 
 ;; Parse given `formals` to extend environment
-(define/contract (parse-formals ctx formals)
-  (env? scv-syntax? . -> . (values -formals? env?))
+(define/contract (parse-formals formals)
+  (scv-syntax? . -> . -formals?)
   (syntax-parse formals
-    [(x:id ...)
-     (define xs (syntax->list #'(x ...)))
-     (values (length xs) (ext-env ctx xs))]
-    [rest:id
-     (values (cons 0 'rest) (ext-env ctx (list #'rest)))]
-    [(x:id ... . rest:id)
-     (define xs (append (syntax->list #'(x ...)) (list #'rest)))
-     (values (cons (- (length xs) 1) 'rest) (ext-env ctx xs))]))
+    [(x:id ...) (syntax->datum #'(x ...))]
+    [rest:id (-varargs '() (syntax-e #'rest))]
+    [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
 (define/contract (parse-primitive id)
   (identifier?  . -> . (or/c #f -o?))
@@ -418,21 +386,6 @@
   (syntax-parse spec
     [i:identifier (syntax-e #'i)]
     [_ (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
-
-;; Extends environment
-(define/contract (ext-env ctx xs)
-  (env? (listof identifier?) . -> . env?)
-  
-  (for/fold ([ctx′ ctx]) ([x (in-list xs)])
-    (cons x ctx′)))
-
-;; Return static distance of given identifier in context
-(define/contract (id->sd ctx id)
-  (env? identifier? . -> . integer?)
-  (or (for/first ([idᵢ (in-list ctx)] [i (in-naturals)]
-                  #:when (free-identifier=? id idᵢ))
-        i)
-      (error 'id->sd "Unbound identifier ~a" (syntax->datum id))))
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)

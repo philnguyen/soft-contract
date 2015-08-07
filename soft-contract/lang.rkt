@@ -1,12 +1,14 @@
 #lang typed/racket
 (require racket/splicing "utils.rkt"
          (for-syntax racket/base racket/syntax))
+(require/typed redex/reduction-semantics
+  [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
-;; prefixing types with dots just so i can use 1-letter variables without shadowing them
+;; prefixing types with dashes so i can use 1-letter variables without shadowing constructors
 
 (struct (X) -begin ([body : (Listof X)]) #:transparent)
-(define-type -begin/expr (-begin -expr))
+(define-type -begin/e (-begin -e))
 (define-type -begin/top (-begin -top-level-form))
 
 (define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
@@ -14,23 +16,26 @@
 (define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
 
 (: swap-parties : Mon-Info → Mon-Info)
+;; Swap positive and negative blame parties
 (define/match (swap-parties info)
   [((list + - o)) (list - + o)])
 
 (: -begin/simp : (∀ (X) (Listof X) → (U X (-begin X))))
+;; Smart constructor for begin, simplifying single-eession case
 (define/match (-begin/simp xs)
   [((list e)) e]
   [(es) (-begin es)])
 
-(struct -id ([name : Symbol] [from : Adhoc-Module-Path]) #:transparent)
+(struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
-;; Subset of Racket reference 1.2.3.1
+
+;; Definition of AST subset as in Racket reference 1.2.3.1
 
 (define-type Base (U Number Boolean String Symbol Keyword #|Sexp Bytes Regexp PRegexp|#))
 
 (define-data -top-level-form
   -general-top-level-form
-  -expr
+  -e
   -module
   -begin/top)
 
@@ -40,26 +45,25 @@
   -submodule-form)
 
 (define-data -general-top-level-form
-  -expr
-  (struct -define-values [ids : (Listof Symbol)] [e : -expr])
+  -e
+  (struct -define-values [ids : (Listof Symbol)] [e : -e])
   (struct -require [specs : (Listof -require-spec)]))
 
 (define-data -submodule-form
   (struct -module [path : Adhoc-Module-Path] [body : -plain-module-begin]))
 
 (define-data -provide-spec
-  (struct -p/c-item [id : Symbol] [spec : -expr] #|TODO|#))
+  (struct -p/c-item [id : Symbol] [spec : -e] #|TODO|#))
 
 (define-data -require-spec
   Adhoc-Module-Path #|TODO|#)
 
 (struct -plain-module-begin ([body : (Listof -module-level-form)]) #:transparent)
 
-(define-data -expr
+(define-data -e
   (subset: -v
-    ;; if `var?` is true, accepts >= arity args
-    (struct -λ [formals : -formals] [body : -expr])
-    (struct -case-lambda [body : (Listof (Pairof -formals -expr))])
+    (struct -λ [formals : -formals] [body : -e])
+    (struct -case-lambda [body : (Listof (Pairof -formals -e))])
     (subset: -•
       '•
       ;; `l` is a tag annotating which static location this opaque value came from
@@ -90,65 +94,62 @@
           'set-box!)
         (struct -st-mk [tag : -id] [arity : Integer]))))
   ;; lexical variables
-  (struct -x #|static distance|# [sd : Integer])
+  (struct -x [name : Symbol])
   ;; module references
   (struct -ref [id : -id] [ctx : Mon-Party])
-  (struct -@ [f : -expr] [xs : (Listof -expr)] [ctx : Mon-Party])
-  (struct -if [i : -expr] [t : -expr] [e : -expr])
-  (struct -wcm [key : -expr] [val : -expr] [body : -expr])
-  -begin/expr #;(struct -begin [exprs : (Listof -general-top-level-form)])
-  (struct -begin0 [expr0 : -expr] [exprs : (Listof -expr)])
+  (struct -@ [f : -e] [xs : (Listof -e)] [ctx : Mon-Party])
+  (struct -if [i : -e] [t : -e] [e : -e])
+  (struct -wcm [key : -e] [val : -e] [body : -e])
+  -begin/e
+  (struct -begin0 [e0 : -e] [es : (Listof -e)])
   (struct -quote [v : Any])
-  ;; the Integer in `bnds` is the number of identifiers bound in that clause
-  (struct -let-values [bnds : (Listof (Pair Integer -expr))] [body : -expr] [ctx : Mon-Party])
-  ;; the Integer in `bnds` is the number of identifiers bound in that clause
-  (struct -letrec-values [bnds : (Listof (Pair Integer -expr))] [body : -expr] [ctx : Mon-Party])
+  (struct -let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
+  (struct -letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
 
   (struct -@-havoc [x : -x]) ; hack for havoc to detect argument's arity at runtime
-  (struct -amb [es : (Setof -expr)])
-  ; contract stuff
-  (struct -μ/c [x : Symbol] [c : -expr])
-  (struct --> [dom : (Listof -expr)] [rng : -expr]) ; non-dependent function contract
-  (struct -->i [xs : (Listof -expr)] [cy : -expr] [var? : Boolean]) ; dependent function contract
+  (struct -amb [es : (Setof -e)])
+  
+  ;; contract stuff
+  (struct -μ/c [x : Symbol] [c : -e])
+  (struct --> [dom : (Listof -e)] [rng : -e]) ; non-dependent function contract
+  (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e]) ; dependent function contract
   (struct -x/c [x : Symbol])
-  (struct -struct/c [tag : -id] [fields : (Listof -expr)])
+  (struct -struct/c [tag : -id] [fields : (Listof -e)])
   #;(-and/c [l : .e] [r : .e])
   #;(-or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
 
-(define-syntax (define-value/pattern stx)
-  (syntax-case stx ()
-    [(_ x pat)
-     (with-syntax ([@x (format-id #'x "?~a" #'x)])
-       #'(begin
-           (define x pat)
-           (define-match-expander @x
-             (syntax-rules ()
-               [(_) pat]))))]))
+(: -formal-names : -formals → (Setof Symbol))
+;; Return all variable names in function's parameter list
+(define -formal-names
+  (match-lambda
+    [(? list? xs) (list->set xs)]
+    [(-varargs xs x) (set-add (list->set xs) x)]))
 
 ;; frequently used constants
-(define -x₀ (-x 0))
-(define-value/pattern -tt (-b #t))
-(define-value/pattern -ff (-b #f))
-(define-value/pattern -any/c (-λ 1 -tt))
-(define-value/pattern -none/c (-λ 1 -ff))
-(define-value/pattern -null/c (-st-p (-id 'null 'Λ) 0))
-(define-value/pattern -cons (-st-mk (-id 'cons 'Λ) 2))
-(define-value/pattern -car (-st-ac (-id 'cons 'Λ) 2 0))
-(define-value/pattern -cdr (-st-ac (-id 'cons 'Λ) 2 1))
-(define-value/pattern -cons? (-st-p (-id 'cons 'Λ) 2))
-(define-value/pattern -zero (-b 0))
-(define-value/pattern -one (-b 1))
-(define-value/pattern -void (-st-mk (-id 'void 'Λ) 0))
-(define-value/pattern -null #|hack|# (-@ (-st-mk (-id 'null 'Λ) 0) (list) 'Λ))
-(define-value/pattern -box? (-st-p (-id 'box 'Λ) 1))
-(define-value/pattern -unbox (-st-ac (-id 'box 'Λ) 1 0))
-(define-value/pattern -box (-st-mk (-id 'box 'Λ) 1))
+(define -tt (-b #t))
+(define -ff (-b #f))
+(define -any/c (-λ '(x) -tt))
+(define -none/c (-λ '(x) -ff))
+(define -null/c (-st-p (-id 'null 'Λ) 0))
+(define -cons (-st-mk (-id 'cons 'Λ) 2))
+(define -car (-st-ac (-id 'cons 'Λ) 2 0))
+(define -cdr (-st-ac (-id 'cons 'Λ) 2 1))
+(define -cons? (-st-p (-id 'cons 'Λ) 2))
+(define -zero (-b 0))
+(define -one (-b 1))
+(define -void (-st-mk (-id 'void 'Λ) 0))
+(define -null #|hack|# (-@ (-st-mk (-id 'null 'Λ) 0) (list) 'Λ))
+(define -box? (-st-p (-id 'box 'Λ) 1))
+(define -unbox (-st-ac (-id 'box 'Λ) 1 0))
+(define -box (-st-mk (-id 'box 'Λ) 1))
 
 ;; Current restricted representation of program
-(struct -prog ([modules : (Listof -module)] [main : -expr]) #:transparent)
+(struct -prog ([modules : (Listof -module)] [main : -e]) #:transparent)
 
-(define-type/pred -formals (U Integer (Pairof Integer 'rest)))
+(define-data -formals
+  (Listof Symbol)
+  (struct -varargs [init : (Listof Symbol)] [rest : Symbol]))
 
 (: •! : → -•ₗ)
 ;; Generate new labeled hole
@@ -156,76 +157,64 @@
   (let ([n : Negative-Integer -2 #|HACK don't fix|#])
     (λ () (begin0 (-•ₗ n) (set! n (- n 1))))))
 
-(: FV : ([-expr] [Integer] . ->* . (Setof Integer)))
-;; Compute free variables for expression. Return set of static distances.
-(define (FV e [d 0])
+(: FV : (U -e (Listof -e)) → (Setof Symbol))
+;; Compute free variables for expression. Return set of variable names.
+(define (FV e)
   (match e
-    [(-x sd) (if (>= sd d) {set (- sd d)} ∅)]
-    [(-λ xs e) (match xs
-                 [(? integer? n) (FV e (+ d n))]
-                 [(cons n _) (FV e (+ d n 1))])]
-    [(-@ f xs _) (for/fold ([FVs (FV f d)]) ([x xs])
-                   (set-union FVs (FV x d)))]
+    [(-x x) {set x}]
+    [(-λ xs e)
+     (define bound
+       (match xs
+         [(-varargs zs z) (set-add (list->set zs) z)]
+         [(? list? xs) (list->set xs)]))
+     (-- (FV e) bound)]
+    [(-@ f xs _)
+     (for/fold ([FVs (FV f)]) ([x xs]) (∪ FVs (FV x)))]
     [(-let-values bnds e _)
-     (define-values (δ xs)
-       (for/fold ([δ : Integer 0] [xs : (Setof Integer) ∅]) ([bnd bnds])
-         (match-define (cons n eₓ) bnd)
-         (values (+ δ n) (set-union xs (FV eₓ d)))))
-     (set-union xs (FV e (+ δ d)))]
+     (define-values (bound FV_rhs)
+       (for/fold ([bound : (Setof Symbol) ∅] [FV_rhs : (Setof Symbol) ∅]) ([bnd bnds])
+         (match-define (cons xs rhs) bnd)
+         (values (set-add-list bound xs) (∪ FV_rhs (FV rhs)))))
+     (∪ FV_rhs (-- (FV e) bound))]
     [(-letrec-values bnds e _)
-     (define δ : Integer (for/sum ([bnd bnds]) (car bnd)))
-     (define d′ (+ δ d))
-     (apply set-union
-            (FV e d′)
-            (for/list : (Listof (Setof Integer)) ([bnd bnds])
-              (FV (cdr bnd) d′)))]
-    [(-@-havoc x) (FV x d)]
+     (define bound
+       (for/fold ([bound : (Setof Symbol) ∅]) ([bnd bnds])
+         (set-add-list bound (car bnd))))
+     
+     (for/fold ([xs : (Setof Symbol) (-- (FV e) bound)]) ([bnd bnds])
+       (-- (FV (cdr bnd)) bound))]
+    [(-@-havoc x) (FV x)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
-    [(-if e e1 e2) (set-union (FV e d) (FV e1 d) (FV e2 d))]
-    [(-amb es) (for/fold ([FVs : (Setof Integer) ∅]) ([e es])
-                 (set-union FVs (FV e d)))]
-    [(-μ/c _ e) (FV e d)]
-    [(-->i cx cy _) (for/fold ([FVs (FV cy (+ d (length cx)))]) ([c cx])
-                      (set-union FVs (FV c d)))]
-    [(-struct/c _ cs) (for/fold ([FVs : (Setof Integer) ∅]) ([c cs])
-                        (set-union FVs (FV c d)))]
-    [_ (log-debug "FV(~a) = ∅~n" e) ∅]))
+    [(-if e e₁ e₂) (∪ (FV e) (FV e₁) (FV e₂))]
+    [(-amb es)
+     (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
+       (∪ xs (FV e)))]
+    [(-μ/c x e) (set-remove (FV e) x)]
+    [(--> cs d)
+     (for/fold ([xs : (Setof Symbol) (FV d)]) ([c cs])
+       (∪ xs (FV c)))]
+    [(-->i doms rng)
+     (define-values (bound FV_dom)
+       (for/fold ([bound : (Setof Symbol) ∅] [FV_dom : (Setof Symbol) ∅]) ([dom doms])
+         (match-define (cons x c) dom)
+         (values (set-add bound x) (∪ FV_dom (FV c)))))
+     (∪ FV_dom (-- (FV rng) bound))]
+    [(-struct/c _ cs)
+     (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
+       (∪ xs (FV c)))]
+    [(? list? l)
+     (for/fold ([xs : (Setof Symbol) ∅]) ([e l])
+       (∪ xs (FV e)))]
+    [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅]))
 
-(: shift-FV : -expr Integer → -expr)
-;; Shift free-variables in expression by given amount
-(define (shift-FV e d)
-  (let go ([d₀ 0] [e e])
-    (match e
-      [(-x sd) (if (>= sd d₀) (-x (+ sd d)) e)]
-      [(-λ xs e) (match xs
-                   [(? integer? n) (-λ xs (go (+ d₀ n) e))]
-                   [(cons n _) (-λ xs (go (+ d₀ 1 n) e))])]
-      [(-@ f xs ctx) (-@ (go d₀ f) (map (curry go d₀) xs) ctx)]
-      [(-let-values bnds e ctx)
-       (define-values (δ bnds-rev)
-         (for/fold ([δ : Integer 0] [bnds-rev : (Listof (Pairof Integer -expr)) '()])
-                   ([bnd bnds])
-           (match-define (cons nₓ eₓ) bnd)
-           (values (+ δ nₓ) (cons (cons nₓ (go d₀ eₓ)) bnds-rev))))
-       (-let-values (reverse bnds-rev)
-                    (go (+ d₀ δ) e)
-                    ctx)]
-      [(-@-havoc x) (-@-havoc (assert (go d₀ x) -x?))]
-      [(-if e e₁ e₂) (-if (go d₀ e) (go d₀ e₁) (go d₀ e₂))]
-      [(-amb es) (-amb (for/set: : (Setof -expr) ([e es])
-                         (go d₀ e)))]
-      [(-μ/c x e) (-μ/c x (go d₀ e))]
-      [(-->i cx cy #f)
-       (-->i (map (curry go d₀) cx) (go (+ d₀ (length cx)) cy) #f)]
-      [(-struct/c t cs) (-struct/c t (map (curry go d₀) cs))]
-      [e (log-debug "shift-FV⟦~a⟧ = ~a~n" e e) e])))
-
-(define (closed? [e : -expr]) (set-empty? (FV e)))
+(: closed? : -e → Boolean)
+;; Check whether expression is closed
+(define (closed? e) (set-empty? (FV e)))
 
 (: checks# : (Rec X (U -top-level-form
-                       -expr
+                       -e
                        -general-top-level-form
-                       -expr
+                       -e
                        -module
                        -begin/top
                        -plain-module-begin
@@ -255,7 +244,8 @@
        (checks# e))]
    [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
    [(-μ/c _ c) (checks# c)]
-   [(-->i cs d _) (+ (checks# cs) (checks# d))]
+   [(-->  cs d) (+ (checks# cs) (checks# d))]
+   [(-->i cs d) (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs)) (checks# d))]
    [(-struct/c _ cs) (checks# cs)]
 
    [(-plain-module-begin xs) (checks# xs)]
@@ -269,7 +259,7 @@
                [mk-or/c (-st-mk (-id 'or/c 'Λ) 2)]
                [mk-cons/c (-st-mk (-id 'cons/c 'Λ) 2)]
                [mk-not/c (-st-mk (-id 'not/c 'Λ) 1)])
-  (:* -and/c -or/c -one-of/c : -expr * → -expr)
+  (:* -and/c -or/c -one-of/c : -e * → -e)
   (define -and/c
     (match-lambda*
       [(list) -any/c]
@@ -283,44 +273,36 @@
   (define -one-of/c
     (match-lambda*
       [(list) -none/c]
-      [(list e) (-λ 1 (-@ 'equal? (list -x₀ e) 'Λ))]
-      [(cons e es) (-or/c (-λ 1 (-@ 'equal? (list -x₀ e) 'Λ)) (apply -one-of/c es))]))
+      [(list e) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) 'Λ))]
+      [(cons e es) (-or/c (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) 'Λ)) (apply -one-of/c es))]))
   
-  (: -cons/c : -expr -expr → -expr)
+  (: -cons/c : -e -e → -e)
   (define (-cons/c c d) (-struct/c (-id 'cons 'Λ) (list c d)))
 
-  (: -not/c : -expr → -expr)
+  (: -not/c : -e → -e)
   (define (-not/c c) (-@ (-st-mk (-id 'not/c 'Λ) 1) (list c) 'Λ)))
 
-(: -list/c : -expr * → -expr)
+(: -list/c : -e * → -e)
 (define (-list/c . cs) (foldr -cons/c -null/c cs))
 
-(: -list : -expr * → -expr)
+(: -list : -e * → -e)
 (define (-list . es)
-  (foldr (λ ([eᵢ : -expr] [es : -expr]) (-@ -cons (list eᵢ es) 'Λ)) -null es))
+  (foldr (λ ([eᵢ : -e] [es : -e]) (-@ -cons (list eᵢ es) 'Λ)) -null es))
 
 ;; Macros
-(:* -and : -expr * → -expr)
+(:* -and : -e * → -e)
+;; Return ast representing conjuction of 2 expressions
 (define -and
   (match-lambda*
     [(list) -tt]
     [(list e) e]
     [(cons e es) (-if e (apply -and es) -ff)]))
 
-(: -comp/c : -o2 -expr → -expr)
+(: -comp/c : -o2 -e → -e)
+;; Return ast representing `(op _ e)`
 (define (-comp/c op e)
-  (-λ 1 (-and (-@ 'real? (list -x₀) 'Λ) (-@ op (list -x₀ (shift-FV e 1)) 'Λ))))
-
-(: name : -o → Symbol)
-(define name
-  (match-lambda
-   [(? symbol? s) s]
-   [(-st-mk (-id t _) _) t]
-   [(-st-ac (-id 'cons 'Λ) 2 0) 'car]
-   [(-st-ac (-id 'cons 'Λ) 2 1) 'cdr]
-   [(-st-ac (-id 'box 'Λ) 1 0) 'unbox]
-   [(-st-ac (-id t _) _ i) (string->symbol (format "~a@~a" t i))]
-   [(-st-p (-id t _) _) (string->symbol (format "~a?" t))]))
+  (define x (variable-not-in (set->list (FV e)) 'x₀))
+  (-λ (list x) (-and (-@ 'real? (list (-x x)) 'Λ) (-@ op (list (-x x) e) 'Λ))))
 
 (define ☠ 'havoc) ; havoc module path
 (define havoc-id (-id 'havoc-id ☠)) ; havoc function id
@@ -334,7 +316,7 @@
   ;; FIXME: generate accessors properly
   {set})
 
-(: gen-havoc : (Listof -module) → (Values -module -expr))
+(: gen-havoc : (Listof -module) → (Values -module -e))
 ;; Generate:
 ;; - havoc module
 ;; - expression havoc-ing exported identifiers from all concrete modules
@@ -342,11 +324,13 @@
 
   ;;; Generate module
   (define havoc-ref (havoc-ref-from ☠))
+  (define x (-x 'x₀))
   (define havoc-func ; only used by `verify` module, not `ce`
-    (-λ 1 (-amb/simp
-           (cons (-@ havoc-ref (list (-@-havoc -x₀)) ☠)
-                 (for/list : (Listof -@) ([ac (prog-accs ms)])
-                   (-@ havoc-ref (list (-@ ac (list -x₀) ☠)) ☠))))))
+    (-λ (list 'x₀)
+        (-amb/simp
+         (cons (-@ havoc-ref (list (-@-havoc x)) ☠)
+               (for/list : (Listof -@) ([ac (prog-accs ms)])
+                 (-@ havoc-ref (list (-@ ac (list x) ☠)) ☠))))))
   (define m
     (-module ☠
              (-plain-module-begin
@@ -362,9 +346,9 @@
       [(module-opaque? m)
        =>
        (λ (s)
-         (eprintf "Omit havocking opaque module `~a`. Provided but undefined: ~a~n"
-                  (-module-path m)
-                  (set->list s)))]
+         (log-debug "Omit havocking opaque module `~a`. Provided but undefined: ~a~n"
+                   (-module-path m)
+                   (set->list s)))]
      [else
       #;(log-debug "Havocking transparent module ~a~n" (-module-path m))
       (match-define (-module path (-plain-module-begin forms)) m)
@@ -372,140 +356,135 @@
       (for* ([form (in-list forms)]
              #:when (-provide? form)
              [spec (in-list (-provide-specs form))])
-        #;(log-debug "adding: ~a~n" (-p/c-item-id spec))
+        (log-debug "adding: ~a~n" (-p/c-item-id spec))
         (refs-add! (-ref (-id (-p/c-item-id spec) path) '†)))]))
   #;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (-amb/remember (for/list ([ref (in-set refs)])
                      (-@ (•!) (list ref) ☠))))
 
-  #;(log-debug "~nhavoc-expr:~n~a" expr)
+  #;(log-debug "~nhavoc-e:~n~a" expr)
 
   (values m expr))
 
-(: -amb/simp : (Listof -expr) → -expr)
-(define (-amb/simp es)
-  (cond
-    [(null? es) (-amb ∅)]
-    [(null? (cdr es)) (car es)]
-    [else (-amb (list->set es))]))
+(: -amb/simp : (Listof -e) → -e)
+;; Smart constructor for `amb` with simplification for 1-expression case
+(define -amb/simp
+  (match-lambda
+    [(list e) e]
+    [es (-amb (list->set es))]))
 
-(: -amb/remember : (Listof -expr) → -expr)
+(: -amb/remember : (Listof -e) → -e)
+;; Return ast representing "remembered" non-determinism
 (define/match (-amb/remember es)
   [((list)) -ff]
   [((list e)) e]
   [((cons e es)) (-if (•!) e (-amb/remember es))])
 
-(: e/ : -expr Integer -expr → -expr)
-;; Substitute expression at given static distance
-(define (e/ e x eₓ)
-  (match e
-    [(-x k) (if (= k x) eₓ e)]
-    [(-λ (? integer? n) e) (-λ n (e/ e (+ x n) eₓ))]
-    [(-λ (cons n _) e) (-λ (cons n 'rest) (e/ e (+ x n -1) eₓ))]
-    [(-@ f xs l) (-@ (e/ f x eₓ) (e/* xs x eₓ) l)]
-    [(-if e e₁ e₂) (-if (e/ e x eₓ) (e/ e₁ x eₓ) (e/ e₂ x eₓ))]
-    [(-amb es) (-amb (for/set: : (Setof -expr) ([eᵢ es]) (e/ eᵢ x eₓ)))]
-    [(-μ/c z c) (-μ/c z (e/ c x eₓ))]
-    [(--> cs d) (--> (e/* cs x eₓ) (e/ d x eₓ))]
-    [(-->i cs cy v?)
-     (-->i (e/* cs x eₓ) (e/ cy (+ x (if v? (- (length cs) 1) (length cs))) eₓ) v?)]
-    [(-struct/c t cs) (-struct/c t (e/* cs x eₓ))]
-    [e e]))
-
-(: e/* : (Listof -expr) Integer -expr → (Listof -expr))
-(define (e/* es x eₓ) (for/list ([e es]) (e/ e x eₓ)))
-
 (: module-opaque? : -module → (U #f (Setof Symbol)))
+;; Check whether module is opaque, returning the set of opaque exports if so
 (define (module-opaque? m)
   (match-define (-module _ (-plain-module-begin body)) m)
-  (define-set exports : Symbol)
-  (define-set defines : Symbol)
-
-  (for ([e (in-list body)])
-    (match e
-      [(-provide specs) (exports-add*! (map -p/c-item-id specs))]
-      [(-define-values xs _) (defines-add*! xs)]
-      [_ (void)]))
   
-  (if (⊆ exports defines) #f (--- exports defines)))
+  (define-values (exports defines)
+    (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])
+              ([e (in-list body)])
+      (match e
+        [(-provide specs)
+         (values (set-add-list exports (map -p/c-item-id specs)) defines)]
+        [(-define-values xs _)
+         (values exports (set-add-list defines xs))]
+        [_ (values exports defines)])))
 
-(: count-xs : (U -expr (Listof -expr)) Integer → Integer)
-;; Count occurences of variable (given as static distance)
+  (if (⊆ exports defines) #f (-- exports defines)))
+
+(: binder-has? : -formals Symbol → Boolean)
+;; returns whether a list of binding names has given name
+(define (binder-has? xs x)
+  (match xs
+    [(? list? xs) (and (member x xs) #t)] ; force boolean
+    [(-varargs zs z) (or (equal? z x) (and (member x zs) #t))]))
+
+(: count-xs : (U -e (Listof -e)) Symbol → Integer)
+;; Count free occurences of variable with given name in expression(s)
 (define (count-xs e x)
   (match e
-    [(-x k) (if (= k x) 1 0)]
-    [(-λ n e)
-     (match n
-       [(? integer? n) (count-xs e (+ x n))]
-       [(cons n _) (count-xs e (+ x 1 n))])]
+    [(-x z) (if (equal? z x) 1 0)]
+    [(-λ xs e) (if (binder-has? xs x) 0 (count-xs e x))]
     [(-case-lambda clauses)
      (for/sum : Integer ([clause clauses])
-       (match-define (cons n e) clause)
-       (match n
-         [(? integer? n) (count-xs e (+ x n))]
-         [(cons n _) (count-xs e (+ x 1 n))]))]
+       (match-define (cons xs e) clause)
+       (if (binder-has? xs x) 0 (count-xs e x)))]
     [(-@ f xs _) (+ (count-xs f x) (count-xs xs x))]
     [(-if e e₁ e₂) (+ (count-xs e x) (count-xs e₁ x) (count-xs e₂ x))]
     [(-wcm k v b) (+ (count-xs k x) (count-xs v x) (count-xs b x))]
     [(-begin es) (count-xs es x)]
-    [(-let-values bindings body _)
-     (define-values (count-occs count-bindings)
-       (for/fold ([count-occs : Integer 0] [count-bindings : Integer 0])
-                 ([binding bindings])
-         (match-define (cons n e) binding)
-         (values (+ count-occs (count-xs e x))
-                 (+ count-bindings n))))
-     (+ count-occs (count-xs body (+ x count-bindings)))]
-    [(-letrec-values bindings body _)
-     (define count-bindings
-       (for/sum : Integer ([binding bindings]) (car binding)))
-     (define δ (+ x count-bindings))
-     (define count-occs
-       (for/sum : Integer ([binding bindings])
-         (count-xs (cdr binding) δ)))
-     (+ count-occs (count-xs body δ))]
-    [(-@-havoc (-x k)) (if (= k x) 1 0)]
+    [(-let-values bnds body _)
+     (define-values (bound k)
+       (for/fold ([bound : (Setof Symbol) ∅] [k : Integer 0]) ([bnd bnds])
+         (match-define (cons xs e) bnd)
+         (values (set-add-list bound xs) (+ k (count-xs e x)))))
+     (+ k (if (set-member? bound x) 0 (count-xs body x)))]
+    [(-letrec-values bnds body _)
+     (define bound
+       (for/fold ([bound : (Setof Symbol) ∅]) ([bnd bnds])
+         (set-add-list bound (car bnd))))
+     (cond
+       [(set-member? bound x) 0]
+       [else
+        (+ (for/sum : Integer ([bnd bnds])
+             (count-xs (cdr bnd) x))
+           (count-xs body x))])]
+    [(-@-havoc (-x z)) (if (equal? z x) 1 0)]
     [(-amb es) (for/sum : Integer ([e es]) (count-xs e x))]
-    [(-μ/c _ c) (count-xs c x)]
-    [(--> cs d) (+ (count-xs cs x) (count-xs d x))]
-    [(-->i cs d #f) (+ (count-xs cs x) (count-xs d (+ x (length cs))))]
+    [(-μ/c z c) (if (equal? z x) 0 (count-xs c x))]
+    [(--> doms rng) (+ (count-xs doms x) (count-xs rng x))]
+    [(-->i doms rng)
+     (define-values (bound k)
+       (for/fold ([bound : (Setof Symbol) ∅] [k : Integer 0]) ([dom doms])
+         (match-define (cons z c) dom)
+         (values (set-add bound z) (+ k (count-xs c x)))))
+     (+ k (if (set-member? bound x) 0 (count-xs rng x)))]
     [(-struct/c _ cs) (count-xs cs x)]
     [(? list? l) (for/sum : Integer ([i l]) (count-xs i x))]
     [_ 0]))
 
-(: -ref->expr : (Listof -module) -ref → -expr)
-(define (-ref->expr ms ref)
+(: -ref->e : (Listof -module) -ref → -e)
+;; Search for definition in list of modules at given reference
+(define (-ref->e ms ref)
   (match-define (-ref (-id name from) _) ref)
   ;; FIXME:
   ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
   (define m (path->module ms from name))
   (match-define (-module _ (-plain-module-begin forms)) m)
-  (or (for/or : (U #f -expr) ([form (in-list forms)])
+  (or (for/or : (U #f -e) ([form (in-list forms)])
         (match form
           [(-define-values (list x) e) (and (equal? x name) e)]
           [(-define-values xs (-@ 'values vs _))
-           (for/or : (U #f -expr) ([x xs] [v vs] #:when (equal? x name)) v)]
+           (for/or : (U #f -e) ([x xs] [v vs] #:when (equal? x name)) v)]
           [_ #f]))
-      (error 'ref->expr "Module `~a` does not define `~a`" from name)))
+      (error 'ref->e "Module `~a` does not define `~a`" from name)))
 
-(: -ref->ctc : (Listof -module) -ref → -expr)
+(: -ref->ctc : (Listof -module) -ref → -e)
+;; Search for contract in list of modules at given reference
 (define (-ref->ctc ms ref)
   (match-define (-ref (-id name from) _) ref)
   ;; FIXME:
   ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
   (define m (path->module ms from name))
   (match-define (-module _ (-plain-module-begin forms)) m)
-  (or (for/or : (U #f -expr) ([form (in-list forms)])
+  (or (for/or : (U #f -e) ([form (in-list forms)])
         (match form
           [(-provide specs)
-           (for/or : (U #f -expr) ([spec (in-list specs)])
+           (for/or : (U #f -e) ([spec (in-list specs)])
              (match-define (-p/c-item x c) spec)
              (and (equal? x name) c))]
           [_ #f]))
       (error 'ref->ctc "Module `~a` does not provide `~a`" from name)))
 
 (: path->module ([(Listof -module) Adhoc-Module-Path] [(U Symbol False)] . ->* . -module))
+;; Search for module at given path, given list of modules.
+;; The optional `ref-name` parameter is merely a hack for a more informative error message.
 (define (path->module ms x [ref-name #f])
   ;; - figure out module-path properly
   (or (for/or : (U #f -module) ([m (in-list ms)] #:when (equal? (-module-path m) x))
@@ -513,14 +492,14 @@
       (error 'path->module "Cannot find module `~a`~a" x
              (if ref-name (format " (when resolving `~a`)" ref-name) ""))))
 
-(: free-x/c : -expr → (Setof Symbol))
+(: free-x/c : -e → (Setof Symbol))
 ;; Return all free references to recursive contracts inside term
 (define (free-x/c e)
 
-  (: go* : (Listof -expr) → (Setof Symbol))
+  (: go* : (Listof -e) → (Setof Symbol))
   (define (go* xs) (for/union : (Setof Symbol) ([x xs]) (go x)))
 
-  (: go : -expr → (Setof Symbol))
+  (: go : -e → (Setof Symbol))
   (define (go e)
     (match e
       [(-λ xs e) (go e)]
@@ -535,9 +514,9 @@
       [(-letrec-values bnds e ctx)
        (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
-      [(-μ/c z c) (-- (go c) z)]
-      [(--> cs d) (∪ (go* cs) (go d))]
-      [(-->i cs d v?) (∪ (go* cs) (go d))]
+      [(-μ/c z c) (set-remove (go c) z)]
+      [(-->  cs d) (∪ (go* cs) (go d))]
+      [(-->i cs d) (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs)) (go d))]
       [(-struct/c t cs) (go* cs)]
       [(-x/c x) (set x)]
       [_ ∅]))

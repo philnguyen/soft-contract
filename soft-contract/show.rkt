@@ -6,22 +6,18 @@
 
 (define-type Sexps (Listof Sexp))
 
-(: show-Ans : -σ -A → (Pairof Sexp Sexp))
-(define (show-Ans σ A)
-  (cons (show-E σ A) (show-σ σ)))
+(: show-Ans : -σ -Ans → Sexp)
+(define (show-Ans σ Ans)
+  (cond
+    [(-W? Ans) (show-A σ (-W-x Ans))]
+    [else (for/list : (Listof Sexp) ([W Ans])
+            (show-V σ (-W-x W)))]))
 
 (: show-A : -σ -A → Sexp)
 (define (show-A σ A)
   (match A
-    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V σ V) ,(show-V σ C))]
-    [(-Ws Ws) (show-Ws σ Ws)]))
-
-(: show-Ws : -σ (Listof -W) → (Listof Sexp))
-(define (show-Ws σ Ws) (map (curry show-W σ) Ws))
-
-(: show-W : -σ -W → Sexp)
-(define (show-W σ W)
-  (cons (show-V σ (-W-V W)) (show-π (-W-π W))))
+    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V σ V) ,(show-Vs σ C))]
+    [(? list? Vs) (show-Vs σ Vs)]))
 
 (: show-Vs : -σ (Sequenceof -V) → (Listof Sexp))
 (define (show-Vs σ Vs)
@@ -30,10 +26,11 @@
 (: show-V : -σ -V → Sexp)
 (define (show-V σ V)
   (match V
+    ['undefined 'undefined]
     [(-b b) (show-b b)]
     ['• '●]
-    [(? -o? o) (name o)]
-    [(-λ↓ f _ _) (show-e σ f)]
+    [(? -o? o) (show-o o)]
+    [(-Clo xs e _ _) (show-e σ (-λ xs e))]
     [(-Ar γ α _) `(,(show-α σ γ) ◃ ,(show-α σ α))]
     #| TODO obsolete?
     [(-st (-id 'not/c 'Λ) (list (.// (-λ↓ (-λ 1 (-@ '= (list (-x 0) e) _)) _) _))) `(≠/c ,(show-e σ e))]
@@ -42,7 +39,11 @@
     [(-st (-id 'not/c 'Λ) V*) `(not/c ,@(show-Vs σ V*))]
     |#
     [(-St t αs) `(,(-id-name t) ,@(show-αs σ αs))]
-    [(-λ/C γs e ρ Γ v?) `(,@(show-αs σ γs) ,(if v? '↦* '↦) ,(show-e σ e))]
+    [(-=> γs α) `(,@(show-αs σ γs) ↦ ,(show-α σ α))]
+    [(-=>i doms e ρ Γ) `(,@(for/list : (Listof Sexp) ([dom doms])
+                              (match-define (cons x γ) dom)
+                              `(,x : ,(show-α σ γ)))
+                          ↦ ,(show-e σ e))]
     [(-St/C t αs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(show-αs σ αs))]
     [(-μ/C x α) `(μ/C (,x) ,(show-α σ α))]
     [(-X/C α) `(X: ,(show-α σ α))]))
@@ -53,16 +54,25 @@
 (: show-α : -σ -α → Sexp)
 (define (show-α σ α)
   (match α
-    [(-α-cnc e v) `(cnc: ,(show-e σ e) ,(show-e σ v))]
-    [(-α-opq e π Γ) `(cnc: ,(show-e σ e) ,(show-π π) ,(show-Γ Γ))]))
+    [(-α.top id) (-id-name id)]
+    [(-α.bnd ctx ctn) `(α ,(show-e σ ctx) ,@(map (curry show-ctn σ) ctn))]))
+
+(: show-ctn : -σ -ctn → Sexp)
+(define (show-ctn σ ctn)
+  (cond
+    [(-e? ctn) (show-e σ ctn)]
+    [(-π? ctn) (show-π ctn)]
+    [(set? ctn) (show-Γ ctn)]
+    [else ctn]))
 
 (: show-π : -π* → Sexp)
 (define (show-π π)
   (cond
-    [(-π@? π) `(@ ,(show-π (-π@-f π))
-                  ,@(for/list : (Listof Sexp) ([x (-π@-xs π)]) (show-π x)))]
+    [(-π@? π)
+     `(@ ,(show-π (-π@-f π))
+         ,@(for/list : (Listof Sexp) ([x (-π@-xs π)]) (show-π x)))]
     [(-id? π) (-id-name π)]
-    [π (show-e σ∅ π)]
+    [π (show-e -σ∅ π)]
     [else '⊘]))
 
 (: show-Γ : -Γ → (Listof Sexp))
@@ -71,9 +81,8 @@
 
 (: show-ρ : -σ -ρ → (Listof Sexp))
 (define (show-ρ σ ρ)
-  (match-define (-ρ m l) ρ)
-  (for/list ([(x α) (in-hash m)])
-    `(,(format "sd~a" (n-sub (- l x 1))) ↦ ,(show-α σ α))))
+  (for/list ([(x α) (in-hash ρ)])
+    `(,x ↦ ,(show-α σ α))))
 
 (: show-E : -σ -E → Sexp)
 (define (show-E σ E)
@@ -81,34 +90,34 @@
     [(? -A? A) (show-A σ A)]
     [(-↓ e _) (show-e σ e)]))
 
-(: show-e : -σ -expr → Sexp)
+(: show-e : -σ -e → Sexp)
 (define (show-e σ e)
-  (let go ([ctx : (Listof Symbol) '()] [e e])
+  (let go ([e e])
     (match e
       ; syntactic sugar
-      [(-λ 1 (-@ '= (list (-x 0) e′) _)) `(=/c ,(go ctx e′))]
-      [(-λ 1 (-@ 'equal? (list (-x 0) e′) _)) `(≡/c ,(go ctx e′))]
-      [(-λ 1 (-@ '> (list (-x 0) e′) _)) `(>/c ,(go ctx e′))]
-      [(-λ 1 (-@ '< (list (-x 0) e′) _)) `(</c ,(go ctx e′))]
-      [(-λ 1 (-@ '>= (list (-x 0) e′) _)) `(≥/c ,(go ctx e′))]
-      [(-λ 1 (-@ '<= (list (-x 0) e′) _)) `(≤/c ,(go ctx e′))]
-      [(-λ 1 (-@ (? closed? f) (list (-x 0)) _)) (go '() f)]
-      [(-λ 1 (-@ 'arity-includes? (list (-x 0) (-b x)) _)) `(arity-includes/c ,x)]
-      [(-λ 1 (-@ 'arity=? (list (-x 0) (-b x)) _)) `(arity=/c ,x)]
-      [(-λ 1 (-@ 'arity>=? (list (-x 0) (-b x)) _)) `(arity≥/c ,x)]
+      [(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(go e*))]
+      [(-λ (list x) (-@ 'equal? (list (-x x) e*) _)) `(≡/c ,(go e*))]
+      [(-λ (list x) (-@ '> (list (-x x) e*) _)) `(>/c ,(go e*))]
+      [(-λ (list x) (-@ '< (list (-x x) e*) _)) `(</c ,(go e*))]
+      [(-λ (list x) (-@ '>= (list (-x x) e*) _)) `(≥/c ,(go e*))]
+      [(-λ (list x) (-@ '<= (list (-x x) e*) _)) `(≤/c ,(go e*))]
+      [(-λ (list x) (-@ (? closed? f) (list (-x x)) _)) (go f)]
+      [(-λ (list x) (-@ 'arity-includes? (list (-x x) (-b 0)) _)) `(arity-includes/c ,x)]
+      [(-λ (list x) (-@ 'arity=? (list (-x x) (-b 0)) _)) `(arity=/c ,x)]
+      [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
       #;[(-@ (-st-mk 'or/c _) (list (-@ (-st-mk 'not/c _) (list c) _) d) _)
        `(⇒/c ,(go ctx c) ,(go ctx d))]
-      [(-λ 1 (-b (not #f))) 'any/c]
-      [(-λ 1 (-b #f)) 'none/c]
+      [(-λ (list _) (-b (not #f))) 'any/c]
+      [(-λ (list _) (-b #f)) 'none/c]
       [(-@ (-st-mk (-id 'null 'Λ) 0) (list) _) 'null]
-      [(-@ (-λ 1 (-x 0)) (list e) _) (go ctx e)]
-      [(-@ (-λ 1 (-if (-x 0) (-x 0) b)) (list a) _)
-       (match* ((go ctx a) (go (append (vars-not-in 1 ctx) ctx) b))
+      [(-@ (-λ (list x) (-x x)) (list e) _) (go e)]
+      [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
+       (match* ((go a) (go b))
          [(`(or ,l ...) `(or ,r ...)) `(or ,@(cast l Sexps) ,@(cast r Sexps))]
          [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
          [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
          [(l r) `(or ,l ,r)])]
-      [(-@ (-st-mk (-id (and n (or 'and/c 'or/c 'not/c)) 'Λ) _) c* _) `(,n ,@(map (curry go ctx) c*))]
+      [(-@ (-st-mk (-id (and n (or 'and/c 'or/c 'not/c)) 'Λ) _) c* _) `(,n ,@(map go c*))]
       #| TODO obsolete? 
       [(-if (and e (-•ₗ α)) e₁ e₂)
        (match (σ@ σ α)
@@ -117,19 +126,15 @@
          [_ `(if ,(go ctx e) ,(go ctx e₁) ,(go ctx e₂))])]
       |#
       [(-if a b (-b #f))
-       (match* ((go ctx a) (go ctx b))
+       (match* ((go a) (go b))
          [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l Sexps) ,@(cast r Sexps))]
          [(`(and ,l ...) r) `(and ,@(cast l Sexps) ,r)]
          [(l `(and ,r ...)) `(and ,l ,@(cast r Sexps))]
          [(l r) `(and ,l ,r)])]
-      [(-if a b (-b #t)) `(implies ,(go ctx a) ,(go ctx b))]
+      [(-if a b (-b #t)) `(implies ,(go a) ,(go b))]
 
-      [(-λ (? integer? n) e)
-       (define x* (vars-not-in n ctx))
-       `(λ ,(reverse x*) ,(go (append x* ctx) e))]
-      [(-λ (cons n _) e)
-       (match-define (and x* (cons x₁ xs)) (vars-not-in (+ 1 n) ctx))
-       `(λ (,(reverse xs) . ,x₁) ,(go (append x* ctx) e))]
+      [(-λ (list xs ...) e) `(λ ,xs ,(go e))]
+      [(-λ (-varargs xs rest) e) `(λ ,(cons xs rest) ,(go e))]
       [(-•ₗ n) `(• ,n)]
       [(-b b) (show-b b)]
       [(-st-mk t _) (-id-name t)]
@@ -137,23 +142,39 @@
       [(-st-ac (-id 'cons 'Λ) _ 1) 'cdr]
       [(-st-ac t _ i) (string->symbol (format "~a@~a" (-id-name t) i))]
       [(-st-p t _) (string->symbol (format "~a?" (-id-name t)))]
-      [(? -o? o) (name o)]
-      [(-x i) (ctx-ref ctx i)]
+      [(? -o? o) (show-o o)]
+      [(-x x) x]
       [(-ref x _) (-id-name x)]
       [(-let-values _ _ _) '(let-values …) #|TODO|#]
-      [(-@ f xs _) `(,(go ctx f) ,@(map (curry go ctx) xs))]
-      [(-@-havoc x) `(apply ,(go ctx x) •)]
+      [(-@ f xs _) `(,(go f) ,@(map go xs))]
+      [(-@-havoc x) `(apply ,(go x) •)]
       [(-begin es) `(begin ,@(map (curry show-e σ) es))]
       [(-begin0 e es) `(begin ,(show-e σ e) ,@(map (curry show-e σ) es))]
       #;[(-apply f xs _) `(@ ,(go ctx f) ,(go ctx xs))]
-      [(-if i t e) `(if ,(go ctx i) ,(go ctx t) ,(go ctx e))]
-      [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (go ctx e)))]
-      [(-μ/c x c) `(μ/c (,x) ,(go ctx c))]
-      [(-->i c d v?) `(,@(map (curry go ctx) c) ,(if v? '↦* '↦) ,(go ctx d))]
+      [(-if i t e) `(if ,(go i) ,(go t) ,(go e))]
+      [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (go e)))]
+      [(-μ/c x c) `(μ/c (,x) ,(go c))]
+      [(-->  doms rng) `(,@(map go doms) ↦ ,(go rng))]
+      [(-->i doms rng) `(,@(for/list : (Listof Sexp) ([dom doms])
+                             (match-define (cons x c) dom)
+                             `(,x : ,(go c)))
+                         ↦ ,(go rng))]
       [(-x/c x) x]
-      [(-struct/c t cs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map (curry go ctx) cs))])))
+      [(-struct/c t cs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map go cs))])))
 
-(define (inlinable? [e : -expr]) : Boolean
+(: show-o : -o → Symbol)
+;; Return operator's simple show-o for pretty-printing
+(define show-o
+  (match-lambda
+   [(? symbol? s) s]
+   [(-st-mk (-id t _) _) t]
+   [(-st-ac (-id 'cons 'Λ) 2 0) 'car]
+   [(-st-ac (-id 'cons 'Λ) 2 1) 'cdr]
+   [(-st-ac (-id 'box 'Λ) 1 0) 'unbox]
+   [(-st-ac (-id t _) _ i) (string->symbol (format "~a@~a" t i))]
+   [(-st-p (-id t _) _) (string->symbol (format "~a?" t))]))
+
+(define (inlinable? [e : -e]) : Boolean
   (or (-x? e) (-ref? e) (-prim? e)))
 
 (: show-b : (U Number String Boolean Symbol Keyword) → Sexp)
