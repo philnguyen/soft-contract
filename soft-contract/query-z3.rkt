@@ -8,9 +8,9 @@
 (define-type Z3-Num (U 'Int 'Real))
 
 ;; Base proof relation
-(define Γ⊢₀ : (Parameterof (-Γ -π → -R))
+(define Γ⊢₀ : (Parameterof (-Γ -?e → -R))
   (make-parameter
-   (λ (Γ π)
+   (λ (Γ e)
      (log-warning "Base solver not set")
      '?)))
 
@@ -18,44 +18,45 @@
 (define-type/pred -r² (U '+ '- '* '/ '> '< '>= '<= '= 'equal?))
 
 ;; Query external solver for provability relation
-(: z3⊢ : -Γ -π → -R)
-(define (z3⊢ Γ π)
-  (define FVs (∪ (FV-Γ Γ) (FV-π π)))
-  (define conclusion (t π))
-  (define declarations
-    (for/fold ([decs : (Listof Sexp) '()]) ([x FVs])
-      (cond
-        [(equal? '✓ ((Γ⊢₀) Γ (-π@ 'integer? (list (-x x)))))
-         (cons `(declare-const ,x Int) decs)]
-        [(equal? '✓ ((Γ⊢₀) Γ (-π@ 'real? (list (-x x)))))
-         (cons `(declare-const ,x Real) decs)]
-        [else decs])))
-  (define premises
-    (for*/list : (Listof Sexp) ([π Γ] [s (in-value (t π))] #:when s)
-      `(assert ,s)))
-  (call-with declarations premises conclusion))
+(: z3⊢ : -Γ -e → -R)
+(define (z3⊢ Γ e)
+  (define FVs (∪ (FV-Γ Γ) (FV e)))
+  (define conclusion (t e))
+  (cond
+    [conclusion
+     (define declarations
+       (for/fold ([decs : (Listof Sexp) '()]) ([x FVs])
+         (cond
+           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'integer? (list (-x x)))))
+            (cons `(declare-const ,x Int) decs)]
+           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'real? (list (-x x)))))
+            (cons `(declare-const ,x Real) decs)]
+           [else decs])))
+     (define premises
+       (for*/list : (Listof Sexp) ([e Γ] [s (in-value (t e))] #:when s)
+         `(assert ,s)))
+     (call-with declarations premises conclusion)]
+    [else '?]))
 
 
-(: t : -π → (Option Sexp))
+(: t : -e → (Option Sexp))
 ;; Translate restricted syntax into Z3 sexp
-(define (t π)
-  (: go : -π → (Option Sexp))
-  (define go
-    (match-lambda
-      [(-π@ (? -r²? r) (list π₁ π₂))
-       (@? list (rkt→z3 r) (! (go π₁)) (! (go π₂)))]
-      [(-π@ 'add1 (list π)) (@? list '+ (! (go π)) 1)]
-      [(-π@ 'sub1 (list π)) (@? list '- (! (go π)) 1)]
-      [(-π@ 'false? (list π)) (@? list 'not (! (go π)))]
-      [(? -π@?) #f]
+(define (t e)
+  (let go : (Option Sexp) ([e : -e e])
+    (match e
+      [(-@ (? -r²? r) (list e₁ e₂) _)
+       (@? list (rkt→z3 r) (! (go e₁)) (! (go e₂)))]
+      [(-@ 'add1 (list e) _) (@? list '+ (! (go e)) 1)]
+      [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
+      [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
       [(-x x) x]
-      [(-b b) b]))
-  (go π))
+      [(-b b) b]
+      [_ #f])))
 
 (: γ : -Γ → (Listof Sexp))
 ;; Translate an environment into a list of expressions
 (define (γ Γ)
-  (for*/list : (Listof Sexp) ([π Γ] [s (in-value (t π))] #:when s) s))
+  (for*/list : (Listof Sexp) ([e Γ] [s (in-value (t e))] #:when s) s))
 
 ;; translate Racket symbol to Z3 symbol
 (: rkt→z3 : -r² → Symbol)
