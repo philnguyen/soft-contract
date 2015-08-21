@@ -110,8 +110,8 @@
         (judgment-holds (split Γ W #t Γ*))
         (where (e_τ _ _) τ)
         (where M* (MM⊔ M [e_τ ↦ (?e Γ)]))
-        (where τ* #;τ** (-τ e* ρ Γ*))
-        (where Ξ* #;Ξ (MM⊔ Ξ [τ* ↦ (tail τ**)]))]
+        (where τ* (-τ e* ρ Γ*))
+        (where Ξ* (MM⊔ Ξ [τ* ↦ (tail τ**)]))]
    [--> ((name W (_ @ ?e)) Γ  σ τ  Ξ  M )
         ({e* ρ}            Γ* σ τ* Ξ* M*)
         If-False
@@ -119,8 +119,8 @@
         (judgment-holds (split Γ W #f Γ*))
         (where (e_τ _ _) τ)
         (where M* (MM⊔ M [e_τ ↦ (?e Γ)]))
-        (where τ* #;τ** (-τ e* ρ Γ*))
-        (where Ξ* #;Ξ (MM⊔ Ξ [τ* ↦ (tail τ**)]))]
+        (where τ* (-τ e* ρ Γ*))
+        (where Ξ* (MM⊔ Ξ [τ* ↦ (tail τ**)]))]
    [--> ((name W {V @ ?e  }) Γ   σ τ  Ξ M )
         (        {V @ ?e_0}  Γ_0 σ τ* Ξ M*)
         Rt
