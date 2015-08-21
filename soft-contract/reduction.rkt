@@ -13,7 +13,7 @@
   (match-define (-prog ms e†) p)
   (define τ₀ (-τ (-↓ e† -ρ∅) -Γ∅)) ;; the `mt` continuation pointer
 
-  (: ↦@ : -WV -WVs -ρ -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
+  (: ↦@ : -WV (Listof -WV) -ρ -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
   ;; Stepping rules for function application
   (define (↦@ W_f W_xs ρ Γ τ σ Ξ M l)
     (error '↦@ "TODO")
@@ -114,7 +114,7 @@
     (match e
       ;; close value
       [(? -v? v)
-       (-ς (list (-W (close v ρ Γ) v)) Γ τ σ Ξ M)]
+       (-ς (-W (list (close v ρ Γ)) v) Γ τ σ Ξ M)]
       ;; look up variable
       [(? -x? x)
        (match (ρ@ ρ x)
@@ -123,14 +123,14 @@
           (-ς (-blm 'TODO 'undefined 'defined? (list (-b 'undefined))) Γ τ σ Ξ M)]
          [α
           (for/set: : (Setof -ς) ([V (σ@ σ α)] #:unless (spurious? Γ x V))
-            (-ς (list (-W V x)) Γ τ σ Ξ M))])]
+            (-ς (-W (list V) x) Γ τ σ Ξ M))])]
       ;; look up top-level reference
       [(and ref (-ref (and id (-id name ctx*)) ctx))
        (cond
          ;; skip contract checking for self reference
          [(equal? ctx ctx*)
           (for/set: : (Setof -ς) ([V (σ@ σ (-α.def id))])
-            (-ς (list (-W V ref)) Γ τ σ Ξ M))]
+            (-ς (-W (list V) ref) Γ τ σ Ξ M))]
          ;; perform contract checking for cross-module reference
          [else
           (for*/set: : (Setof -ς) ([V (σ@ σ (-α.def id))]
@@ -221,30 +221,33 @@
        (error '↦e "TODO: x/c")]
       [(-struct/c id cs)
        (match cs
-         ['() (-ς (list (-W (-St/C id '()) #f)) Γ τ σ Ξ M)]
+         ['() (-ς (-W (list (-St/C id '())) #f) Γ τ σ Ξ M)]
          [(cons c cs*)
           (define φ (-φ.struct/c id cs* ρ '()))
           (with-pushed-frame c ρ Γ φ τ σ Ξ M)])]
       ))
 
 
-  (: ↦WVs : -WVs -Γ -φ -τ -σ -Ξ -M → -ς*)
+  (: ↦WVs : -Vs -?e -Γ -φ -τ -σ -Ξ -M → -ς*)
   ;; Stepping rules for "apply" states
-  (define (↦WVs Ws Γ φ τ σ Ξ M)
-    (error '↦WVs "TODO")
+  (define (↦WVs Vs e Γ φ τ σ Ξ M)
     ;; Leave `M` alone for now. TODO: update it.
-    #;(match φ
+    (match φ
       ;; Conditional
       [(-φ.if E₁ E₂)
-       (match Ws
-         [(list W)
-          (define-values (_σ AΓs) (δ σ Γ 'false? Ws 'Λ))
-          (match/nd: (-AΓ → -ς) AΓs
-            [(-AΓ (-b #f) Γ*) (-ς E₁ Γ* τ σ Ξ M)]
-            [(-AΓ (-b #t) Γ*) (-ς E₂ Γ* τ σ Ξ M)])]
+       (match Vs
+         [(list V)
+          (define-values (Γ_t Γ_f) (split-Γ Γ V e))
+          (define ς_t (and Γ_t (-ς E₁ Γ_t τ σ Ξ M)))
+          (define ς_f (and Γ_f (-ς E₂ Γ_f τ σ Ξ M)))
+          (cond
+            [(and ς_t ς_f) {set ς_t ς_f}]
+            [ς_t ς_t]
+            [ς_f ς_f]
+            [else (error '↦WVs "both if branches are bogus (!)")])]
          [_ (error '↦WVs "TODO: catch wrong arity in conditional")])]
       ;; let-values
-      [(-φ.let-values xs bnds bnds↓ ρ e l)
+      #;[(-φ.let-values xs bnds bnds↓ ρ e l)
        (define n (length xs))
        (cond
          ;; Make sure arity is right
@@ -275,7 +278,7 @@
              (-ς (-↓ e* ρ) Γ τ* σ Ξ* M)])]
          [else (-ς (-W (-blm/arity l 'let-values n Ws) #f) Γ τ₀ σ Ξ M)])]
       ;; letrec-values
-      [(-φ.letrec-values xs bnds ρ e l old-dom)
+      #;[(-φ.letrec-values xs bnds ρ e l old-dom)
        (define n (length xs))
        ;; make sure the arity is right
        (cond
@@ -301,7 +304,7 @@
              (-ς (-↓ e* ρ) Γ* τ* σ* Ξ* M)])]
          [else (-ς (-W (-blm/arity l 'letrec-values n Ws) #f) Γ τ₀ σ Ξ M)])]
       ;; Application
-      [(-φ.@ Es WVs ρ l)
+      #;[(-φ.@ Es WVs ρ l)
        (match Ws
          [(list W)
           (match Es
@@ -320,7 +323,7 @@
              (-ς E Γ τ* σ Ξ* M)])]
          [_ (-ς (-W (-blm/arity l 'apply 1 Ws) #f) Γ τ₀ σ Ξ M)])]
       ;; Begin
-      [(-φ.begin es ρ)
+      #;[(-φ.begin es ρ)
        (match es
          [(list) (-ς (list (-W (-St (-id 'void 'Λ) '()) #f)) Γ τ σ Ξ M)]
          [(list e) (-ς (-↓ e ρ) Γ τ σ Ξ M)]
@@ -331,7 +334,7 @@
           (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
       ;; begin0
       ; waiting on first clause
-      [(-φ.begin0v es ρ)
+      #;[(-φ.begin0v es ρ)
        (match es
          ['() (-ς Ws Γ τ σ Ξ M)]
          [(cons e es*)
@@ -340,7 +343,7 @@
           (define Ξ* (⊔ Ξ τ* κ*))
           (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
       ; waiting on next clause (and discard)
-      [(-φ.begin0e Ws es ρ)
+      #;[(-φ.begin0e Ws es ρ)
        (match es
          ['() (-ς Ws Γ τ σ Ξ M)]
          [(cons e es*)
@@ -349,7 +352,7 @@
           (define Ξ* (⊔ Ξ τ* κ*))
           (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
       ;; mon
-      [(-φ.mon ce xs (and l³ (list l₊ l₋ lₒ)))
+      #;[(-φ.mon ce xs (and l³ (list l₊ l₋ lₒ)))
        (match Ws
          [(list W)
           (match ce
@@ -362,13 +365,13 @@
              (↦mon W_c W xs Γ τ σ Ξ M l³)])]
          [_ (-ς (-W (-blm/arity l₊ lₒ 1 Ws) #f) Γ τ σ Ξ M)])]
       ;; indy
-      [(-φ.indy W_cs W_xs W_xs↓ rng (list l₊ l₋ lₒ))
+      #;[(-φ.indy W_cs W_xs W_xs↓ rng (list l₊ l₋ lₒ))
        (match Ws
          [(list W)
           (error '↦WVs "TODO: indy")]
          [_ (-ς (-W (-blm/arity l₊ lₒ 1 Ws) #f) Γ τ σ Ξ M)])]
       ;; restore fact environment
-      [(-φ.rt xs Γ₀)
+      #;[(-φ.rt Γ₀ e₀)
        (define Ws* : -WVs
          (for/list ([W Ws])
            (match-define (-W V π) W)
@@ -378,12 +381,12 @@
            (Γ+ Γ* π)))
        (-ς Ws* Γ* τ σ Ξ M)]
       ;; contract stuff
-      [(-φ.μc x)
+      #;[(-φ.μc x)
        (match Ws
          [(list W)
           (error '↦WVs "TODO: μ/c")]
          [_ (error '↦WVs "TODO: catch arity error for μ/c")])]
-      [(-φ.struct/c id es ρ WVs)
+      #;[(-φ.struct/c id es ρ WVs)
        (match Ws
          [(list W)
           (define Ws* (cons W WVs))
@@ -405,7 +408,7 @@
              (define Ξ* (⊔ Ξ τ* κ*))
              (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
          [else (error '↦WVs "TODO: catch arity error for μ/c")])]
-      [(-φ.=> cs cs↓ ρ)
+      #;[(-φ.=> cs cs↓ ρ)
        (match Ws
          [(list (-W V _))
           (define Vs (cons V cs↓))
@@ -426,7 +429,7 @@
              (define Ξ* (⊔ Ξ τ* κ*))
              (-ς (-↓ c ρ) Γ τ* σ Ξ* M)])]
          [else (error '↦WVs "TODO: catch arity error for -->")])]
-      [(-φ.=>i cs cs↓ xs rng ρ)
+      #;[(-φ.=>i cs cs↓ xs rng ρ)
        (match Ws
          [(list (-W V _))
           (define cs↓* (cons V cs↓))
@@ -452,15 +455,14 @@
   
   (match-lambda
    [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
-   [(-ς (? list? Ws) Γ τ σ Ξ M)
+   [(-ς (-W Vs e) Γ τ σ Ξ M)
     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-      [(-κ φ τ) (↦WVs Ws Γ φ τ σ Ξ M)])]
-   [ς (error '↦ "unexpected: ~a" ς)]
-))
+      [(-κ φ τ*) (↦WVs Vs e Γ φ τ* σ Ξ M)])]
+   [ς (error '↦ "unexpected: ~a" ς)]))
 
-(: -blm/arity : Mon-Party Mon-Party Integer -WVs → -blm)
+(: -blm/arity : Mon-Party Mon-Party Integer -Vs → -blm)
 ;; Create error message that blames given party for using the wrong number of values
-(define (-blm/arity l₊ lₒ n Ws)
+(define (-blm/arity l₊ lₒ n Vs)
   (-blm l₊ lₒ
         (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ∅ -Γ∅)
-        (WVs->Vs Ws)))
+        Vs))

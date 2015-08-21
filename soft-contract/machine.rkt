@@ -24,17 +24,20 @@
     [body : -e]
     [ctx : Mon-Party]
     [old-dom : (Setof Symbol)])
-  (struct -φ.@ [es : (Listof -E)] [vs : -WVs] [ctx : Mon-Party])
+  (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
-  (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
+  (struct -φ.begin0e [V : (Listof -WVs)] [es : (Listof -e)] [env : -ρ])
   (struct -φ.mon.v [val : -E] [mon-info : Mon-Info])
   (struct -φ.mon.c [ctc : -E] [mon-info : Mon-Info])
-  (struct -φ.indy [c : -WVs] [x : -WVs] [x↓ : -WVs] [d : (U #f -↓)] [mon-info : Mon-Info])
-  (struct -φ.rt [Γ : -Γ])
+  (struct -φ.indy
+    [c : (Listof -WV)] [x : (Listof -WV)] [x↓ : (Listof -WV)]
+    [d : (U #f -↓)] [mon-info : Mon-Info])
+  (struct -φ.rt [Γ : -Γ] [e : -?e])
   ;; contract stuff
   (struct -φ.μc [x : Symbol])
-  (struct -φ.struct/c [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : -WVs])
+  (struct -φ.struct/c
+    [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)])
   (struct -φ.=> [dom : (Listof -e)] [dom↓ : (Listof -V)] [env : -ρ])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [xs : (Listof Symbol)] [rng : -e] [env : -ρ])

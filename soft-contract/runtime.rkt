@@ -13,6 +13,11 @@
 (define-type -Γ (Setof -e))
 (define -Γ∅ : -Γ ∅)
 
+;; convenient syntax for negation
+(define-match-expander -not
+  (syntax-rules () [(_ e) (-@ 'false? (list e) _)])
+  (syntax-rules () [(_ e) (-?@ 'false? (list e))]))
+
 (: Γ+ : -Γ -?e * → -Γ)
 ;; Extend fact environment
 (define (Γ+ Γ . es)
@@ -41,7 +46,7 @@
     [(and f (andmap (inst values -?e) xs))
      (match* (f xs)
        ; (not (not e)) = e
-       [('false? (list (-@ 'false? (list e) _))) e]
+       [('false? (list (-not e))) e]
        ; (car (cons e _)) = e
        [((-st-ac id n i) (list (-@ (-st-mk id n) es _)))
         (list-ref es i)]
@@ -78,8 +83,9 @@
 (struct (X) -W ([x : X] [e : -?e]) #:transparent)
 
 (define-type -WV (-W -V))
-(define-type -WVs (Listof -WV))
-(define (WVs->Vs [WVs : -WVs]) : -Vs
+(define-type -WVs (-W (Listof -V)))
+
+(define (WVs->Vs [WVs : (Listof -WV)]) : -Vs
   ((inst map -V -WV) -W-x WVs))
 
 ;; closure forms
@@ -169,7 +175,7 @@
   ;; TODO: hack for now
   'undefined)
 
-(: alloc-immut-fields : -st-mk -WVs → (Listof -α))
+(: alloc-immut-fields : -st-mk (Listof -WV) → (Listof -α))
 (define (alloc-immut-fields k Ws)
   (match-define (-st-mk id n) k)
   (for/list : (Listof -α) ([W Ws] [i (in-range n)])

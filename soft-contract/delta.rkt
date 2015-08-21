@@ -6,7 +6,7 @@
  )
 (provide (all-defined-out))
 
-(: δ : -σ -Γ -o -WVs Mon-Party → (Values -σ -AΓs))
+(: δ : -σ -Γ -o (Listof -WV) Mon-Party → (Values -σ -AΓs))
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
 (define (δ σ Γ o Ws l)

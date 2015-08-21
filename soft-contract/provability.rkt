@@ -4,7 +4,7 @@
 #;(provide defines? all-prove? all-refute? some-proves? some-refutes?
          ⊢ Γ⊢ Γ⊢₀ Γ⊢ₑₓₜ σ⊢)
 (provide Γ⊢oW Γ⊢e e⊢e ⊢e V∈p
-         spurious?)
+         split-Γ spurious?)
 #|
 (:* all-prove? all-refute? some-proves? some-refutes? : -M -σ -Γ -WVs -WV → Boolean)
 (define (all-prove?    M σ Γ Ws W_p) (for/and ([W Ws]) (eq? (⊢ M σ Γ W W_p) '✓)))
@@ -140,10 +140,10 @@
        ; e ⇒ e
        [(e e) '✓]
        ; ¬e₁⇒¬e₂ ≡ e₂⇒e₁
-       [((-@ 'false? (list e₁*) _) (-@ 'false? (list e₂*) _))
+       [((-not e₁*) (-not e₂*))
         (e⊢e e₂* e₁*)]
        ; 
-       [(e₁ (-@ 'false? (list e₂*) _))
+       [(e₁ (-not e₂*))
         (¬R (e⊢e e₁ e₂*))]
        [((-@ (? -pred? p) (list e) _) (-@ (? -pred? q) (list e) _))
         (p⇒p p q)]
@@ -245,6 +245,24 @@
       [else #f]))
   ;; order matters for precision, in the presence of subtypes
   (with-prim-checks integer? real? number? string? symbol? keyword? false? boolean?))
+
+(: split-Γ : -Γ -V -?e → (Values (Option -Γ) (Option -Γ)))
+;; Join the environment with `V@e` and `¬(V@e)`
+(define (split-Γ Γ V e)
+  (define Γ_t (Γ+ Γ e))
+  (define Γ_f (Γ+ Γ (-not e)))
+  (define e-proved (Γ⊢e Γ e))
+  (define Γ_t*
+    (match* (e-proved V)
+      [('X _) #f]
+      [(_ (-b #f)) #f]
+      [(_ _) Γ_t]))
+  (define Γ_f*
+    (match* (e-proved V)
+      [('✓ _) #f]
+      [(_ (or (-b #f) '•)) Γ_f]
+      [(_ _) #f]))
+  (values Γ_t* Γ_f*))
 
 (: ¬R : -R → -R)
 (define ¬R
