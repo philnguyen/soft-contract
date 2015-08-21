@@ -223,6 +223,7 @@
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -● (-W '• #f))
+(define -Void/Vs (list (-St (-id 'void 'Λ) '())))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)

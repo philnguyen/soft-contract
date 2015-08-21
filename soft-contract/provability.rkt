@@ -223,28 +223,38 @@
        ; other cases, `p` known to exclude `q` (be careful)
        [(_ _) 'X])]))
 
-(: spurious? : -Γ -?e -V → Boolean)
+(: spurious? : -Γ -?e (U -V -Vs) → Boolean)
 ;; Check whether `e` cannot evaluate to `V` given `Γ` is true
 ;;   return #t --> `(e ⇓ V)` is spurious
 ;;   return #f --> don't know (safe answer)
 (define (spurious? Γ e V)
-  (define-syntax-rule (with-prim-checks p? ...)
-    (cond
-      [e
-       (match V
-         [(-St id αs)
-          (equal? 'X (Γ⊢e Γ (-?@ (-st-mk id (length αs)) (list e))))]
-         [(or (? -Clo?) (? -Ar?) (? -o?))
-          (equal? 'X (Γ⊢e Γ (-?@ 'procedure? (list e))))]
-         [(-b (? p?))
-          (equal? 'X (Γ⊢e Γ (-?@ 'p? (list e))))] ...
-         [(or (? -=>?) (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
-          (for/or : Boolean ([p : -o '(procedure? p? ...)])
-            (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
-         [_ #f])]
-      [else #f]))
-  ;; order matters for precision, in the presence of subtypes
-  (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
+  (cond
+    [(list? V)
+     (match e
+       [(-@ 'values es _)
+        (implies
+         (= (length es) (length V))
+         (for/or : Boolean ([ei es] [Vi V])
+           (spurious? Γ ei Vi)))]
+       [_ #f])]
+    [else
+     (define-syntax-rule (with-prim-checks p? ...)
+       (cond
+         [e
+          (match V
+            [(-St id αs)
+             (equal? 'X (Γ⊢e Γ (-?@ (-st-mk id (length αs)) (list e))))]
+            [(or (? -Clo?) (? -Ar?) (? -o?))
+             (equal? 'X (Γ⊢e Γ (-?@ 'procedure? (list e))))]
+            [(-b (? p?))
+             (equal? 'X (Γ⊢e Γ (-?@ 'p? (list e))))] ...
+            [(or (? -=>?) (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
+             (for/or : Boolean ([p : -o '(procedure? p? ...)])
+               (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
+            [_ #f])]
+         [else #f]))
+     ;; order matters for precision, in the presence of subtypes
+     (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?)]))
 
 (: split-Γ : -Γ -V -?e → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `V@e` and `¬(V@e)`

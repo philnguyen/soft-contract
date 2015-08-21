@@ -27,7 +27,7 @@
   (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
-  (struct -φ.begin0e [V : (Listof -WVs)] [es : (Listof -e)] [env : -ρ])
+  (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
   (struct -φ.mon.v [val : -E] [mon-info : Mon-Info])
   (struct -φ.mon.c [ctc : -E] [mon-info : Mon-Info])
   (struct -φ.indy

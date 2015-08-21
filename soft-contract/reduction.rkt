@@ -99,6 +99,7 @@
     |#)
 
   (: with-pushed-frame : -e -ρ -Γ -φ -τ -σ -Ξ -M → -ς)
+  ;; Proceed to the next `eval` state with given frame `φ` pushed
   (define (with-pushed-frame e ρ Γ φ τ σ Ξ M)
     (define FVs (FV e))
     (define ρ* (ρ↓ ρ FVs))
@@ -228,16 +229,17 @@
       ))
 
 
-  (: ↦WVs : -Vs -?e -Γ -φ -τ -σ -Ξ -M → -ς*)
+  (: ↦WVs : -WVs -Γ -φ -τ -σ -Ξ -M → -ς*)
   ;; Stepping rules for "apply" states
-  (define (↦WVs Vs e Γ φ τ σ Ξ M)
+  (define (↦WVs Ws Γ φ τ σ Ξ M)
+    (match-define (-W Vs ?e) Ws)
     ;; Leave `M` alone for now. TODO: update it.
     (match φ
       ;; Conditional
       [(-φ.if E₁ E₂)
        (match Vs
          [(list V)
-          (define-values (Γ_t Γ_f) (split-Γ Γ V e))
+          (define-values (Γ_t Γ_f) (split-Γ Γ V ?e))
           (define ς_t (and Γ_t (-ς E₁ Γ_t τ σ Ξ M)))
           (define ς_f (and Γ_f (-ς E₂ Γ_f τ σ Ξ M)))
           (cond
@@ -323,34 +325,28 @@
              (-ς E Γ τ* σ Ξ* M)])]
          [_ (-ς (-W (-blm/arity l 'apply 1 Ws) #f) Γ τ₀ σ Ξ M)])]
       ;; Begin
-      #;[(-φ.begin es ρ)
+      [(-φ.begin es ρ)
        (match es
-         [(list) (-ς (list (-W (-St (-id 'void 'Λ) '()) #f)) Γ τ σ Ξ M)]
+         [(list) (-ς (-W -Void/Vs -void) Γ τ σ Ξ M)]
          [(list e) (-ς (-↓ e ρ) Γ τ σ Ξ M)]
          [(cons e es*)
-          (define τ* (τ↓ e ρ Γ))
-          (define κ* (-κ (-φ.begin es* ρ) τ))
-          (define Ξ* (⊔ Ξ τ* κ*))
-          (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
+          (define φ* (-φ.begin es* ρ))
+          (with-pushed-frame e ρ Γ φ* τ σ Ξ M)])]
       ;; begin0
       ; waiting on first clause
-      #;[(-φ.begin0v es ρ)
+      [(-φ.begin0v es ρ)
        (match es
          ['() (-ς Ws Γ τ σ Ξ M)]
          [(cons e es*)
-          (define τ* (τ↓ e ρ Γ))
-          (define κ* (-κ (-φ.begin0e Ws es* ρ) τ))
-          (define Ξ* (⊔ Ξ τ* κ*))
-          (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
+          (define φ* (-φ.begin0e Ws es* ρ))
+          (with-pushed-frame e ρ Γ φ* τ σ Ξ M)])]
       ; waiting on next clause (and discard)
-      #;[(-φ.begin0e Ws es ρ)
+      [(-φ.begin0e Ws es ρ)
        (match es
          ['() (-ς Ws Γ τ σ Ξ M)]
          [(cons e es*)
-          (define τ* (τ↓ e ρ Γ))
-          (define κ* (-κ (-φ.begin0e Ws es* ρ) τ))
-          (define Ξ* (⊔ Ξ τ* κ*))
-          (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
+          (define φ* (-φ.begin0e Ws es* ρ))
+          (with-pushed-frame e ρ Γ φ* τ σ Ξ M)])]
       ;; mon
       #;[(-φ.mon ce xs (and l³ (list l₊ l₋ lₒ)))
        (match Ws
@@ -371,20 +367,17 @@
           (error '↦WVs "TODO: indy")]
          [_ (-ς (-W (-blm/arity l₊ lₒ 1 Ws) #f) Γ τ σ Ξ M)])]
       ;; restore fact environment
-      #;[(-φ.rt Γ₀ e₀)
-       (define Ws* : -WVs
-         (for/list ([W Ws])
-           (match-define (-W V π) W)
-           (-W V (π↓ π xs))))
-       (define Γ* : -Γ
-         (for/fold ([Γ* Γ₀]) ([π Γ] #:when (⊆ (FV-π π) xs))
-           (Γ+ Γ* π)))
-       (-ς Ws* Γ* τ σ Ξ M)]
+      [(-φ.rt Γ₀ e₀)
+       (cond
+         [(spurious? Γ₀ e₀ Vs)
+          (log-debug "rt: eliminate spurious result ~a for ~a knowing ~a~n"
+                     (show-Vs σ Vs) (and e₀ (show-e σ e₀)) (show-Γ Γ₀))
+          ∅]
+         [else (-ς (-W Vs e₀) Γ₀ τ σ Ξ M)])]
       ;; contract stuff
-      #;[(-φ.μc x)
-       (match Ws
-         [(list W)
-          (error '↦WVs "TODO: μ/c")]
+      [(-φ.μc x)
+       (match Vs
+         [(list V) (error '↦WVs "TODO: μ/c")]
          [_ (error '↦WVs "TODO: catch arity error for μ/c")])]
       #;[(-φ.struct/c id es ρ WVs)
        (match Ws
@@ -455,9 +448,9 @@
   
   (match-lambda
    [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
-   [(-ς (-W Vs e) Γ τ σ Ξ M)
+   [(-ς (? -W? W) Γ τ σ Ξ M)
     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-      [(-κ φ τ*) (↦WVs Vs e Γ φ τ* σ Ξ M)])]
+      [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M)])]
    [ς (error '↦ "unexpected: ~a" ς)]))
 
 (: -blm/arity : Mon-Party Mon-Party Integer -Vs → -blm)
