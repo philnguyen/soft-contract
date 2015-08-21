@@ -78,7 +78,7 @@
             ;; `arity` is the number of fields in the struct
             (struct -st-p [tag : -id] [arity : Integer])
             'defined?
-            'number? 'real? 'integer? 'false? 'boolean? 'string? 'symbol? 'procedure? 'keyword?)
+            'number? 'real? 'integer? 'not 'boolean? 'string? 'symbol? 'procedure? 'keyword?)
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
           (struct -st-ac [tag : -id] [arity : Integer] [index : Integer])

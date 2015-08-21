@@ -48,7 +48,7 @@
         (define prd (-st-p id n))
         (define ok-arg? (-?@ prd (list e)))
         (define Γ-ok (Γ+ Γ ok-arg?))
-        (define Γ-bad (Γ+ Γ (-?@ 'false? (list ok-arg?))))
+        (define Γ-bad (Γ+ Γ (-not ok-arg?)))
         (define (blm-bad-arg) (-AΓ (-blm l (show-o o) prd (list V)) Γ-bad))
         (match V
           [(-St id* αs)
@@ -78,8 +78,8 @@
         (match-define (-W V₂ e₂) W₂)
         (define ok-arg₁? (-?@ 'number? (list e₁)))
         (define ok-arg₂? (-?@ 'number? (list e₂)))
-        (define Γ-bad₁ (Γ+ Γ (-?@ 'false? (list ok-arg₁?))))
-        (define Γ-bad₂ (Γ+ Γ (-?@ 'false? (list ok-arg₂?))))
+        (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
+        (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
         (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
         (define (blm-bad-arg [V : -V] [Γ : -Γ])
           (-AΓ (-blm l '+ 'number? (list V)) Γ))
@@ -107,8 +107,8 @@
         (match-define (-W V₂ e₂) W₂)
         (define ok-arg₁? (-?@ 'number? (list e₁)))
         (define ok-arg₂? (-?@ 'number? (list e₂)))
-        (define Γ-bad₁ (Γ+ Γ (-?@ 'false? (list ok-arg₁?))))
-        (define Γ-bad₂ (Γ+ Γ (-?@ 'false? (list ok-arg₂?))))
+        (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
+        (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
         (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
         (define (blm-bad-arg [V : -V] [Γ : -Γ])
           (-AΓ (-blm l '- 'number? (list V)) Γ))
@@ -136,8 +136,8 @@
         (match-define (-W V₂ e₂) W₂)
         (define ok-arg₁? (-?@ 'number? (list e₁)))
         (define ok-arg₂? (-?@ 'number? (list e₂)))
-        (define Γ-bad₁ (Γ+ Γ (-?@ 'false? (list ok-arg₁?))))
-        (define Γ-bad₂ (Γ+ Γ (-?@ 'false? (list ok-arg₂?))))
+        (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
+        (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
         (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
         (define (blm-bad-arg [V : -V] [Γ : -Γ])
           (-AΓ (-blm l '* 'number? (list V)) Γ))
@@ -165,7 +165,7 @@
   [#:predicate number?]
   [#:predicate real?]
   [#:predicate integer?]
-  [#:predicate false?]
+  [#:predicate not]
   [#:predicate boolean?]
   [#:predicate string?]
   [#:predicate symbol?]

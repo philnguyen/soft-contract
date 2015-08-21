@@ -15,8 +15,8 @@
 
 ;; convenient syntax for negation
 (define-match-expander -not
-  (syntax-rules () [(_ e) (-@ 'false? (list e) _)])
-  (syntax-rules () [(_ e) (-?@ 'false? (list e))]))
+  (syntax-rules () [(_ e) (-@ 'not (list e) _)])
+  (syntax-rules () [(_ e) (-?@ 'not (list e))]))
 
 (: Γ+ : -Γ -?e * → -Γ)
 ;; Extend fact environment
@@ -46,7 +46,7 @@
     [(and f (andmap (inst values -?e) xs))
      (match* (f xs)
        ; (not (not e)) = e
-       [('false? (list (-not e))) e]
+       [('not (list (-not e))) e]
        ; (car (cons e _)) = e
        [((-st-ac id n i) (list (-@ (-st-mk id n) es _)))
         (list-ref es i)]
@@ -56,6 +56,11 @@
             (-@ f (cast xs (Listof -e)) 'Λ))]
        [(f xs) (-@ f (cast xs (Listof -e)) 'Λ)])]
     [else #f]))
+
+(: FV-Γ : -Γ → (Setof Symbol))
+(define (FV-Γ Γ)
+  (for/fold ([xs : (Setof Symbol) ∅]) ([e : -e Γ])
+    (set-union xs (FV e))))
 
 
 ;;;;; CLOSURE

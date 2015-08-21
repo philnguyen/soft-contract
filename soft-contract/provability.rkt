@@ -42,7 +42,7 @@
   (define (go π)
     (cond
       [(set-member? Γ π) '✓]
-      [(set-member? Γ (-π@ 'false? (list π))) 'X]
+      [(set-member? Γ (-π@ 'not (list π))) 'X]
       [else
        (match π
          [(-b #f) 'X]
@@ -61,7 +61,7 @@
              (match πs
                [(list (-b (? number?))) '✓]
                [_ '?])]
-            ['false? (¬R (Γ⊢₀ Γ (first πs)))]
+            ['not (¬R (Γ⊢₀ Γ (first πs)))]
             ['boolean?
              (match πs
                [(list (-b (? boolean?))) '✓]
@@ -150,7 +150,7 @@
        [((-@ (? -pred? p) (list e) _) e)
         (cond
           [(truth-pred? p) '✓]
-          [(equal? p 'false?) 'X]
+          [(equal? p 'not) 'X]
           [else '?])]
        [(_ _) '?])]
     [(_ R) R]))
@@ -170,7 +170,7 @@
     ;; ariths
     [(-@ (? -o? o) xs _)
      (match o
-       ['false? (¬R (⊢e (car xs)))]
+       ['not (¬R (⊢e (car xs)))]
        [(? -pred?) '?]
        [_ '✓])]
     [_ '?]))
@@ -195,13 +195,13 @@
        (match V
          [(-St id* _) (decide-R (equal? id id*))]
          [_ 'X])]))
-  (with-prim-checks integer? real? number? false? boolean? string? symbol? keyword?))
+  (with-prim-checks integer? real? number? not boolean? string? symbol? keyword?))
 
 (: truth-pred? : -pred → Boolean)
 ;; Does `(p? x)` imply `x` eval to truth?
 (define (truth-pred? p)
   (case p
-    [(false? boolean?) #f]
+    [(not boolean?) #f]
     [else #t]))
 
 (: p⇒p : -pred -pred → -R)
@@ -213,8 +213,8 @@
        ; structs
        [((-st-p t _) (-st-p t _)) '✓]
        ; boolean
-       [((or 'true? 'false?) 'boolean?) '✓]
-       [('boolean? (or 'true? 'false?)) '?]
+       [('not 'boolean?) '✓]
+       [('boolean? 'not) '?]
        ; number
        [('integer? (or 'real? 'number?)) '✓]
        [('real? 'number?) '✓]
@@ -244,7 +244,7 @@
          [_ #f])]
       [else #f]))
   ;; order matters for precision, in the presence of subtypes
-  (with-prim-checks integer? real? number? string? symbol? keyword? false? boolean?))
+  (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
 
 (: split-Γ : -Γ -V -?e → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `V@e` and `¬(V@e)`
