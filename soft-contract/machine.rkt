@@ -7,6 +7,7 @@
 
 (provide (all-defined-out)) ; TODO
 
+;; Continuation frames
 (define-data -φ
   (struct -φ.if [t : -E] [e : -E])
   (struct -φ.let-values
@@ -23,35 +24,34 @@
     [body : -e]
     [ctx : Mon-Party]
     [old-dom : (Setof Symbol)])
-  (struct -φ.@ [es : (Listof -E)] [vs : -WVs] [ρ : -ρ] #|FIXME hack|# [ctx : Mon-Party])
+  (struct -φ.@ [es : (Listof -E)] [vs : -WVs] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
-  (struct -φ.mon
-    [ce : (U (Pairof #f -E) (Pairof -WV #f))]
-    [old-dom : (Setof Symbol)]
-    [mon-info : Mon-Info])
+  (struct -φ.mon.v [val : -E] [mon-info : Mon-Info])
+  (struct -φ.mon.c [ctc : -E] [mon-info : Mon-Info])
   (struct -φ.indy [c : -WVs] [x : -WVs] [x↓ : -WVs] [d : (U #f -↓)] [mon-info : Mon-Info])
-  (struct -φ.rt [dom : (Setof Symbol)] [Γ : -Γ] #|TODO|#)
-  (struct -φ.rt@
-    [dom : (Setof Symbol)] [fun : -π*] [params : -formals] [args : (Listof -π*)])
+  (struct -φ.rt [Γ : -Γ])
   ;; contract stuff
   (struct -φ.μc [x : Symbol])
-  (struct -φ.struct/c
-    [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : -WVs])
+  (struct -φ.struct/c [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : -WVs])
   (struct -φ.=> [dom : (Listof -e)] [dom↓ : (Listof -V)] [env : -ρ])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [xs : (Listof Symbol)] [rng : -e] [env : -ρ])
   )
 
+;; Stack address
 (struct -τ ([E : -E] [Γ : -Γ]) #:transparent)
-(struct -κ ([ctn : -φ] [nxt : -τ]) #:transparent)
+;; Stack
+(struct -κ ([top : -φ] [nxt : -τ]) #:transparent)
 
 (define-type -Ξ (MMap -τ -κ))
-(define-type -M (MMap -τ (Pairof -WV -Γ)))
 
+;; (narrow) state
 (struct -ς ([e : -E] [Γ : -Γ] [τ : -τ] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
+;; configuration
 (struct -c ([e : -E] [Γ : -Γ] [τ : -τ]) #:transparent)
+;; state with widened stores and summarization
 (struct -ξ ([ςs : (Setof -c)] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
 
 (define-type -ς* (U -ς (Setof -ς)))
@@ -63,7 +63,8 @@
 (define (𝑰 p)
   (match-define (-prog ms e₀) p)
 
-  ;; Assuming each top-level variable binds a value for now
+  ;; Assuming each top-level variable binds a value for now.
+  ;; TODO generalize.
   (define σ₀
     (for*/fold ([σ : -σ -σ∅])
                ([m ms]
@@ -75,7 +76,7 @@
         [(-define-values ids e)
          (cond
            [(and (= 1 (length ids)) (-v? e))
-            (⊔ σ (-α.top (-id (car ids) mod-path)) (close e -ρ∅ -Γ∅))]
+            (⊔ σ (-α.def (-id (car ids) mod-path)) (close e -ρ∅ -Γ∅))]
            [else (error '𝑰 "TODO: general top-level binding. For now can't handle ~a"
                         (show-e -σ∅ e))])]
         [(? -require?) σ]
@@ -88,8 +89,8 @@
               (define id (-id x mod-path))
               (define σ₁ (⊔ σ (-α.ctc id) (close c -ρ∅ -Γ∅)))
               (cond
-                [(hash-has-key? σ₁ (-α.top id)) σ₁]
-                [else (⊔ σ₁ (-α.top id) '•)])]
+                [(hash-has-key? σ₁ (-α.def id)) σ₁]
+                [else (⊔ σ₁ (-α.def id) '•)])]
              [else
               (error '𝑰 "TODO: general expression in contract position. For now can't handle ~a"
                      (show-e -σ∅ c))]))]
@@ -102,6 +103,7 @@
 
   (-ς E₀ -Γ∅ τ₀ σ₀ (hash) (hash)))
 
+
 (: τ↓ : (case-> [-e -ρ -Γ → -τ]
                 [-E -Γ → -τ]))
 ;; Create a simplified stack address
@@ -109,17 +111,27 @@
   (case-lambda
     [(e ρ Γ)
      (define FVs (FV e))
-     (-τ (-↓ e (ρ↓ ρ FVs)) (Γ↓ Γ FVs))]
+     (define ρ* (ρ↓ ρ FVs))
+     (define Γ* (Γ↓ Γ FVs))
+     (-τ (-↓ e ρ*) Γ*)]
     [(E Γ)
      (match E
        [(-↓ e ρ) (τ↓ e ρ Γ)]
        [_ (-τ E Γ)])]))
 
+(: final-state? : -ς → Boolean)
+(define final-state?
+  (match-lambda
+    [(-ς (-W (? list?) _) _ τ _ Ξ _)
+     ;; Rely on the fact that there's no merging such that Ξ(τ₀) ≠ ∅
+     (set-empty? (hash-ref Ξ τ))]
+    [_ #f]))
+
 ;;;;; For testing only
 (: ev : Path-String * → -ς)
 (define (ev . ps) (𝑰 (files->prog ps)))
 
-#|
+#| Obsolete stuff. TODO: Delete.
 (define-data .κ
   (struct .if/κ [t : .E] [e : .E])
   (struct .let-values/κ

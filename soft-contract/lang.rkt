@@ -63,7 +63,7 @@
 (define-data -e
   (subset: -v
     (struct -λ [formals : -formals] [body : -e])
-    (struct -case-lambda [body : (Listof (Pairof -formals -e))])
+    (struct -case-λ [body : (Listof (Pairof -formals -e))])
     (subset: -•
       '•
       ;; `l` is a tag annotating which static location this opaque value came from
@@ -77,6 +77,7 @@
           (subset: -pred
             ;; `arity` is the number of fields in the struct
             (struct -st-p [tag : -id] [arity : Integer])
+            'defined?
             'number? 'real? 'integer? 'false? 'boolean? 'string? 'symbol? 'procedure? 'keyword?)
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
@@ -411,7 +412,7 @@
   (match e
     [(-x z) (if (equal? z x) 1 0)]
     [(-λ xs e) (if (binder-has? xs x) 0 (count-xs e x))]
-    [(-case-lambda clauses)
+    [(-case-λ clauses)
      (for/sum : Integer ([clause clauses])
        (match-define (cons xs e) clause)
        (if (binder-has? xs x) 0 (count-xs e x)))]
@@ -503,7 +504,7 @@
   (define (go e)
     (match e
       [(-λ xs e) (go e)]
-      [(-case-lambda body)
+      [(-case-λ body)
        (for/union : (Setof Symbol) ([p body]) (go (cdr p)))]
       [(-@ f xs ctx) (∪ (go f) (go* xs))]
       [(-if i t e) (∪ (go i) (go t) (go e))]

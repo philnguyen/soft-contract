@@ -6,13 +6,6 @@
 
 (define-type Sexps (Listof Sexp))
 
-(: show-Ans : -σ -Ans → Sexp)
-(define (show-Ans σ Ans)
-  (cond
-    [(-W? Ans) (show-A σ (-W-x Ans))]
-    [else (for/list : (Listof Sexp) ([W Ans])
-            (show-V σ (-W-x W)))]))
-
 (: show-A : -σ -A → Sexp)
 (define (show-A σ A)
   (match A
@@ -54,30 +47,15 @@
 (: show-α : -σ -α → Sexp)
 (define (show-α σ α)
   (match α
-    [(-α.top id) (-id-name id)]
-    [(-α.bnd ctx ctn) `(α ,(show-e σ ctx) ,@(map (curry show-ctn σ) ctn))]))
-
-(: show-ctn : -σ -ctn → Sexp)
-(define (show-ctn σ ctn)
-  (cond
-    [(-e? ctn) (show-e σ ctn)]
-    [(-π? ctn) (show-π ctn)]
-    [(set? ctn) (show-Γ ctn)]
-    [else ctn]))
-
-(: show-π : -π* → Sexp)
-(define (show-π π)
-  (cond
-    [(-π@? π)
-     `(@ ,(show-π (-π@-f π))
-         ,@(for/list : (Listof Sexp) ([x (-π@-xs π)]) (show-π x)))]
-    [(-id? π) (-id-name π)]
-    [π (show-e -σ∅ π)]
-    [else '⊘]))
+    [(-α.def id) (-id-name id)]
+    [(-α.ctc id) (string->symbol (format "~a/c" (-id-name id)))]
+    [(-α.bnd x e Γ) (string->symbol (format "~a@~a" x (if e (show-e -σ∅ e) '⊘)))]
+    [(-α.val v) (show-e -σ∅ v)]
+    [(-α.opq id loc ith) (string->symbol (format "~a@~a@~a" (-id-name id) loc ith))]))
 
 (: show-Γ : -Γ → (Listof Sexp))
 (define (show-Γ Γ)
-  (for/list : (Listof Sexp) ([π Γ]) (show-π π)))
+  (for/list : (Listof Sexp) ([e Γ]) (show-e -σ∅ e)))
 
 (: show-ρ : -σ -ρ → (Listof Sexp))
 (define (show-ρ σ ρ)

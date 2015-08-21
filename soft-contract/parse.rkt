@@ -166,7 +166,7 @@
     #:literals
     (let-values letrec-values begin begin0 if #%plain-lambda #%top
                 module* module #%plain-app quote #%require quote-syntax
-                with-continuation-mark #%declare #%provide case-lambda
+                with-continuation-mark #%declare #%provide case-λ
                 #%variable-reference set! list)
     ;;; Contracts
     ;; Non-dependent function contract
@@ -265,8 +265,8 @@
           (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
             (parse-e bᵢ))))]
     
-    [(case-lambda [fml bodies ...+] ...)
-     (-case-lambda
+    [(case-λ [fml bodies ...+] ...)
+     (-case-λ
       (for/list ([fmlᵢ (in-list (syntax->list #'(fml ...)))]
                  [bodiesᵢ (in-list (syntax->list #'((bodies ...) ...)))])
         ;; Compute case arity and extended context for RHS

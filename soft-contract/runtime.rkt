@@ -9,81 +9,48 @@
 
 ;;;;; Restricted expression + fact environments
 
-(define-data -π
-  -x
-  -prim
-  -id ; for top-level reference
-  (struct -π@ [f : -π] [xs : (Listof -π)]))
-(define-type -π* (Option -π))
-
-(define-type -Γ (Setof -π))
+(define-type -?e (Option -e))
+(define-type -Γ (Setof -e))
 (define -Γ∅ : -Γ ∅)
 
+(: Γ+ : -Γ -?e * → -Γ)
 ;; Extend fact environment
-(define (Γ+ [Γ : -Γ] [π : -π*]) : -Γ (if π (set-add Γ π) Γ))
+(define (Γ+ Γ . es)
+  (for/fold ([Γ* : -Γ Γ]) ([e es] #:when e)
+    (set-add Γ e)))
 
-(: -π@* : -π* (Listof -π*) → -π*)
-;; Smart constructor for restricted application
-(define (-π@* f xs)
+(: -?@ : -?e (Listof -?e) → -?e)
+;; Smart constructor for application
+(define (-?@ f xs)
+
+  (: access-same-value? : -id Integer (Listof -?e) → (Option -e))
+  (define (access-same-value? id n es)
+    (match es
+      [(cons (-@ (-st-ac id0 m0 0) (list e0) _) es*)
+       (and (equal? id id0)
+            (= n m0)
+            (for/and : Boolean ([i (in-range 1 n)] [ei es*])
+              (match ei
+                [(-@ (-st-ac jd mj j) (list ej) _)
+                 (and (= n mj) (= i j) (equal? id jd) (equal? e0 ej))]
+                [_ #f]))
+            e0)]
+      [_ #f]))
+  
   (cond
-    [(and f (andmap (inst values -π*) xs))
+    [(and f (andmap (inst values -?e) xs))
      (match* (f xs)
-       [('false? (list (-π@ 'false? (list π)))) π]
-       [((-st-ac id n i) (list (-π@ (-st-mk id n) πs)))
-        (list-ref πs i)]
-       [((-st-mk id n) (list (-π@ (? -st-ac? ac) πs) ...))
-        (error "TODO: does this match?")]
-       [(f xs) (-π@ f (cast xs (Listof -π)))])]
+       ; (not (not e)) = e
+       [('false? (list (-@ 'false? (list e) _))) e]
+       ; (car (cons e _)) = e
+       [((-st-ac id n i) (list (-@ (-st-mk id n) es _)))
+        (list-ref es i)]
+       ; (cons (car e) (cdr e)) = e
+       [((-st-mk id n) es)
+        (or (access-same-value? id n es)
+            (-@ f (cast xs (Listof -e)) 'Λ))]
+       [(f xs) (-@ f (cast xs (Listof -e)) 'Λ)])]
     [else #f]))
-
-(: FV-π : -π* → (Setof Symbol))
-;; Compute free variables in restricted expression
-(define (FV-π π*)
-  (match π*
-    [(-x x) {set x}]
-    [(-π@ f xs)
-     (for/fold ([sds : (Setof Symbol) (FV-π f)]) ([x xs])
-       (∪ sds (FV-π x)))]
-    [_ ∅]))
-
-(: FV-Γ  : -Γ → (Setof Symbol))
-;; Computes free variables in fact environment
-(define (FV-Γ Γ)
-  (for/fold ([xs : (Setof Symbol) ∅]) ([π Γ])
-    (∪ xs (FV-π π))))
-
-(: π↓ : -π* (Setof Symbol) → -π*)
-;; Discard restricted expression if it contains free variables outside given set
-(define (π↓ π xs)
-  (cond
-    [(⊆ (FV-π π) xs) π]
-    [else #f]))
-
-(: Γ↓ : -Γ (Setof Symbol) → -Γ)
-;; Restrict fact environment's domain to given variable names
-(define (Γ↓ Γ xs)
-  (for/set: : -Γ ([π Γ] #:when (subset? (FV-π π) xs)) π))
-
-(: π*/ : -π* -π* -π* → -π*)
-;; Substitute sub-expression in restricted syntax
-(define (π*/ π π₁ π₂)
-  (cond
-    [π₁
-     (match π
-       [(or (? -x?) (? -prim?) (? -id?)) (if (equal? π π₁) π₂ π)]
-       [(-π@ f xs) (-π@* (π*/ f π₁ π₂)
-                         (for/list : (Listof -π*) ([x xs])
-                           (π*/ x π₁ π₂)))]
-       [#f #f])]
-    [else π]))
-
-(: Γ/ : -Γ -π* -π* → -Γ)
-;; Substitute sub-expression in fact environment
-(define (Γ/ Γ π₁ π₂)
-  (cond
-    [π₁ (for*/set: : -Γ ([π Γ] [π* (in-value (π*/ π π₁ π₂))] #:when π*)
-          π*)]
-    [else Γ]))
 
 
 ;;;;; CLOSURE
@@ -107,8 +74,8 @@
   -Vs
   (struct -blm [violator : Mon-Party] [origin : Mon-Party] [v : -V] [c : -Vs]))
 
-;; `X` paired with restricted expression
-(struct (X) -W ([x : X] [π : -π*]) #:transparent)
+;; `X` paired with expression
+(struct (X) -W ([x : X] [e : -?e]) #:transparent)
 
 (define-type -WV (-W -V))
 (define-type -WVs (Listof -WV))
@@ -119,8 +86,13 @@
 (define-data -E
   (struct -↓ [e : -e] [ρ : -ρ])
   (subset: -Ans
-    (-W -blm)
+    -blm
     -WVs))
+
+(: Γ↓ : -Γ (Setof Symbol) → -Γ)
+;; Restrict fact environment's domain to given variable names
+(define (Γ↓ Γ xs)
+  (for/set: : -Γ ([e Γ] #:when (subset? (FV e) xs)) e))
 
 (: close : -v -ρ -Γ → -V)
 ;; Create closure from value syntax and environment
@@ -132,6 +104,10 @@
     [(? -prim? v) v]
     [(? -•ₗ? v) '•]
     [_ (error 'close "Not yet supported: ~a" v)]))
+
+(: -⇓ : -e -ρ → -↓)
+;; Close expression with restricted environment
+(define (-⇓ e ρ) (-↓ e (ρ↓ ρ (FV e))))
 
 
 ;;;;; ENVIRONMENT
@@ -180,20 +156,27 @@
 
 ;;;;; ADDRESS
 
-(define-type -ctn (U -e -π -Γ Symbol Integer Boolean))
 (define-data -α
-  ;; for top-level binding
-  (struct -α.top [id : -id])
-  ;; for top-level binding'c contract
+  ;; for top-level definition and contract
+  (struct -α.def [id : -id])
   (struct -α.ctc [id : -id])
-  ;; for other bindings. TODO: decide what i want.
-  (struct -α.bnd [ctx : -e] [ctn : (Listof -ctn)]))
+  ;; for lexical binding
+  (struct -α.bnd [x : Symbol] [arg : -?e] [inv : -Γ])
+  ;; for immutable concrete field
+  (struct -α.val [v : -e])
+  ;; for mutable or opaque field
+  (struct -α.opq [id : -id] [loc : (Option Integer)] [field : Integer])
+  ;; TODO: hack for now
+  'undefined)
 
-(: alloc : -e -ctn * → -α)
-;; Allocate address for a run-time binding
-(define (alloc ctx . ctns)
-  (log-warning "alloc: decide the right type for content")
-  (-α.bnd ctx ctns))
+(: alloc-immut-fields : -st-mk -WVs → (Listof -α))
+(define (alloc-immut-fields k Ws)
+  (match-define (-st-mk id n) k)
+  (for/list : (Listof -α) ([W Ws] [i (in-range n)])
+    (match-define (-W V e) W)
+    (cond
+      [e (-α.val e)]
+      [else (-α.opq id #f #|TODO|# i)])))
 
 
 ;;;;; STORE
@@ -212,7 +195,13 @@
   (define Vs (hash-ref σ α))
   (cond
     [(= 1 (set-count Vs)) (set-first Vs)]
-    [else (error 'Internal "expect exactly 1 value at address ~a, given 2" α)]))
+    [else (error 'Internal "expect exactly 1 value at address ~a, given ~a"
+                 α (set-count Vs))]))
+
+;;;;; Summarization table
+(struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
+(define-type -M (MMap -e -Res))
+(define -M⊥ : -M (hash))
 
 
 ;;;;; Convenience

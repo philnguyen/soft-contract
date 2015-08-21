@@ -1,21 +1,16 @@
 #lang typed/racket/base
-(require racket/match racket/set racket/list racket/function
+(require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
-(provide defines? all-prove? all-refute? some-proves? some-refutes?
+#;(provide defines? all-prove? all-refute? some-proves? some-refutes?
          ⊢ Γ⊢ Γ⊢₀ Γ⊢ₑₓₜ σ⊢)
-
-(:* all-prove? all-refute? some-proves? some-refutes? : -σ -Γ -WVs -WV → Boolean)
-(define (all-prove?    σ Γ Ws W_p) (for/and ([W Ws]) (eq? (⊢ σ Γ W W_p) '✓)))
-(define (all-refute?   σ Γ Ws W_p) (for/and ([W Ws]) (eq? (⊢ σ Γ W W_p) 'X)))
-(define (some-proves?  σ Γ Ws W_p) (for/or  ([W Ws]) (eq? (⊢ σ Γ W W_p) '✓)))
-(define (some-refutes? σ Γ Ws W_p) (for/or  ([W Ws]) (eq? (⊢ σ Γ W W_p) 'X)))
-
-(: defines? : -σ -Γ -π* → Boolean)
-;; Check whether variable definitely binds a defined value
-(define (defines? σ Γ π)
-  (match π
-    [(-x x) (∈ x (FV-Γ Γ))]
-    [_ #f]))
+(provide Γ⊢oW Γ⊢e e⊢e ⊢e V∈p
+         spurious?)
+#|
+(:* all-prove? all-refute? some-proves? some-refutes? : -M -σ -Γ -WVs -WV → Boolean)
+(define (all-prove?    M σ Γ Ws W_p) (for/and ([W Ws]) (eq? (⊢ M σ Γ W W_p) '✓)))
+(define (all-refute?   M σ Γ Ws W_p) (for/and ([W Ws]) (eq? (⊢ M σ Γ W W_p) 'X)))
+(define (some-proves?  M σ Γ Ws W_p) (for/or  ([W Ws]) (eq? (⊢ M σ Γ W W_p) '✓)))
+(define (some-refutes? M σ Γ Ws W_p) (for/or  ([W Ws]) (eq? (⊢ M σ Γ W W_p) 'X)))
 
 (: ⊢ : -σ -Γ -WV -WV → -R)
 ;; Check whether value `W_v` satisfies predicate `W_p` according to `σ` and `Γ`
@@ -105,43 +100,155 @@
     [('• (? -o?)) '?]
     [(_ (? -o?)) 'X]
     [(_ _) '?]))
+|#
 
-#|
-(: p⇒p : .pred .pred → -R)
+(: Γ⊢oW : -Γ -pred -WV → -R)
+;; Check whether value `W` satisfies predicate `p`
+(define (Γ⊢oW Γ p W)
+  (match-define (-W V e) W)
+  (match* ((V∈p V p) (Γ⊢e Γ e))
+    ;; For debugging only
+    [('✓ 'X) (error 'Γ⊢oW "inconsistent")]
+    [('X '✓) (error 'Γ⊢oW "inconsistent")]
+    ;; Valid casees
+    [('? '?) '?]
+    [('✓ _) '✓]
+    [(_ '✓) '✓]
+    [('X _) 'X]
+    [(_ 'X) 'X]))
+
+(: Γ⊢e : -Γ -?e → -R)
+;; Check if `e` evals to truth if all in `Γ` do
+(define (Γ⊢e Γ e)
+  (cond
+    [e
+     ;; TODO: can't use `for/first` in TR
+     (for*/fold ([R : -R (⊢e e)])
+                ([e* Γ]
+                 #:when (equal? '? R)
+                 [R* (in-value (e⊢e e* e))])
+       R*)]
+    [else '?]))
+
+(: e⊢e : -?e -?e → -R)
+;; Check if `e₂` returns truth when `e₁` does
+(define (e⊢e e₁ e₂)
+  (match* ((⊢e e₁) (⊢e e₂))
+    [('X _) '✓]
+    [(_ '?)
+     (match* (e₁ e₂)
+       ; e ⇒ e
+       [(e e) '✓]
+       ; ¬e₁⇒¬e₂ ≡ e₂⇒e₁
+       [((-@ 'false? (list e₁*) _) (-@ 'false? (list e₂*) _))
+        (e⊢e e₂* e₁*)]
+       ; 
+       [(e₁ (-@ 'false? (list e₂*) _))
+        (¬R (e⊢e e₁ e₂*))]
+       [((-@ (? -pred? p) (list e) _) (-@ (? -pred? q) (list e) _))
+        (p⇒p p q)]
+       [((-@ (? -pred? p) (list e) _) e)
+        (cond
+          [(truth-pred? p) '✓]
+          [(equal? p 'false?) 'X]
+          [else '?])]
+       [(_ _) '?])]
+    [(_ R) R]))
+
+(: ⊢e : -?e → -R)
+;; Check if expression returns truth
+(define ⊢e
+  (match-lambda
+    ;; values
+    [(-b #f) 'X]
+    [(? -•?) '?]
+    [(? -v?) '✓]
+    ;; constructors
+    [(or (? -μ/c?) (? -->?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
+    ;; special cases
+    [(-@ (or '= 'equal?) (list e e) _) '✓]
+    ;; ariths
+    [(-@ (? -o? o) xs _)
+     (match o
+       ['false? (¬R (⊢e (car xs)))]
+       [(? -pred?) '?]
+       [_ '✓])]
+    [_ '?]))
+
+(: V∈p : -V -pred → -R)
+;; Check whether value satisfies predicate
+(define (V∈p V p)
+  (define-syntax-rule (with-prim-checks p? ...)
+    (case p
+      [(p?)
+       (match V
+         [(-b (? p?)) '✓]
+         ['• '?]
+         [_ 'X])] ...
+      [(procedure?)
+       (match V
+         [(or (? -o?) (? -Clo?) (? -Ar?)) '✓]
+         ['• '?]
+         [_ 'X])]
+      [else
+       (match-define (-st-p id n) p)
+       (match V
+         [(-St id* _) (decide-R (equal? id id*))]
+         [_ 'X])]))
+  (with-prim-checks integer? real? number? false? boolean? string? symbol? keyword?))
+
+(: truth-pred? : -pred → Boolean)
+;; Does `(p? x)` imply `x` eval to truth?
+(define (truth-pred? p)
+  (case p
+    [(false? boolean?) #f]
+    [else #t]))
+
+(: p⇒p : -pred -pred → -R)
 (define (p⇒p p q)
   (cond
     [(equal? p q) '✓]
     [else
      (match* (p q)
+       ; structs
+       [((-st-p t _) (-st-p t _)) '✓]
+       ; boolean
        [((or 'true? 'false?) 'boolean?) '✓]
-       [((or 'real? 'integer?) 'number?) '✓]
-       [('integer? 'real?) '✓]
        [('boolean? (or 'true? 'false?)) '?]
+       ; number
+       [('integer? (or 'real? 'number?)) '✓]
+       [('real? 'number?) '✓]
        [('number? (or 'real? 'integer?)) '?]
        [('real? 'integer?) '?]
-       [((-st-p t _) (-st-p t _)) '✓]
+       ; other cases, `p` known to exclude `q` (be careful)
        [(_ _) 'X])]))
-|#
+
+(: spurious? : -Γ -?e -V → Boolean)
+;; Check whether `e` cannot evaluate to `V` given `Γ` is true
+;;   return #t --> `(e ⇓ V)` is spurious
+;;   return #f --> don't know (safe answer)
+(define (spurious? Γ e V)
+  (define-syntax-rule (with-prim-checks p? ...)
+    (cond
+      [e
+       (match V
+         [(-St id αs)
+          (equal? 'X (Γ⊢e Γ (-?@ (-st-mk id (length αs)) (list e))))]
+         [(or (? -Clo?) (? -Ar?) (? -o?))
+          (equal? 'X (Γ⊢e Γ (-?@ 'procedure? (list e))))]
+         [(-b (? p?))
+          (equal? 'X (Γ⊢e Γ (-?@ 'p? (list e))))] ...
+         [(or (? -=>?) (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
+          (for/or : Boolean ([p : -o '(procedure? p? ...)])
+            (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
+         [_ #f])]
+      [else #f]))
+  ;; order matters for precision, in the presence of subtypes
+  (with-prim-checks integer? real? number? string? symbol? keyword? false? boolean?))
 
 (: ¬R : -R → -R)
 (define ¬R
   (match-lambda ['✓ 'X] ['X '✓] [_ '?]))
 
-(define-syntax ∨R
-  (syntax-rules ()
-    [(_ e) e]
-    [(_ e1 e ...) (match e1
-                    ['✓ '✓]
-                    ['X (∨R e ...)]
-                    ['? (match (∨R e ...) ['✓ '✓] [_ '?])])]))
-
-(define-syntax ∧R
-  (syntax-rules ()
-    [(_ e) e]
-    [(_ e1 e ...) (match e1
-                    ['✓ (∧R e ...)]
-                    ['X 'X]
-                    ['? (match (∧R e ...) ['X 'X] [_ '?])])]))
 (: decide-R : Boolean → -R)
 (define decide-R (match-lambda [#t '✓] [#f 'X]))
-
