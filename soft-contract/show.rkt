@@ -14,7 +14,7 @@
 
 (: show-Vs : -σ (Sequenceof -V) → (Listof Sexp))
 (define (show-Vs σ Vs)
-  (for/list : (Listof Sexp) ([V Vs]) (show-V σ V)))
+  (for/list ([V Vs]) (show-V σ V)))
 
 (: show-V : -σ -V → Sexp)
 (define (show-V σ V)
@@ -55,7 +55,7 @@
 
 (: show-Γ : -Γ → (Listof Sexp))
 (define (show-Γ Γ)
-  (for/list : (Listof Sexp) ([e Γ]) (show-e -σ∅ e)))
+  (for/list ([e Γ]) (show-e -σ∅ e)))
 
 (: show-ρ : -σ -ρ → (Listof Sexp))
 (define (show-ρ σ ρ)

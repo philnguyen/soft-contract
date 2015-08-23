@@ -57,6 +57,29 @@
        [(f xs) (-@ f (cast xs (Listof -e)) 'Λ)])]
     [else #f]))
 
+(: -?struct/c : -id (Listof -?e) → (Option -struct/c))
+(define (-?struct/c id fields)
+  (and (andmap (inst values -?e) fields)
+       (-struct/c id (cast fields (Listof -e)))))
+
+(: -?-> : (Listof -?e) -?e → (Option -->))
+(define (-?-> cs d)
+  (and d (andmap (inst values -?e) cs) (--> (cast cs (Listof -e)) d)))
+
+(: split-values : -?e Integer → (Listof -?e))
+;; Split a pure expression `(values e ...)` into `(e ...)`
+(define (split-values e n)
+  (match e
+    [(-@ 'values es _)
+     (cond [(= n (length es)) es]
+           [else (error 'split-values "cannot split ~a values into ~a" (length es) n)])]
+    [(? -e?)
+     (cond [(= 1 n) (list e)]
+           [else #|hack|#
+            (for/list ([i (in-range n)])
+              (-?@ (-st-ac (-id 'values 'Λ) n i) (list e)))])]
+    [_ (make-list n #f)]))
+
 (: FV-Γ : -Γ → (Setof Symbol))
 (define (FV-Γ Γ)
   (for/fold ([xs : (Setof Symbol) ∅]) ([e : -e Γ])
@@ -183,7 +206,7 @@
 (: alloc-immut-fields : -st-mk (Listof -WV) → (Listof -α))
 (define (alloc-immut-fields k Ws)
   (match-define (-st-mk id n) k)
-  (for/list : (Listof -α) ([W Ws] [i (in-range n)])
+  (for/list ([W Ws] [i (in-range n)])
     (match-define (-W V e) W)
     (cond
       [e (-α.val e)]

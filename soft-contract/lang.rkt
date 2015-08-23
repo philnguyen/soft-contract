@@ -523,3 +523,9 @@
       [_ ∅]))
   
   (go e))
+
+(: id/c : -id → -id)
+;; HACK
+(define (id/c id)
+  (match-define (-id name path) id)
+  (-id (string->symbol (format "~a/c" name)) path))

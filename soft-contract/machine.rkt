@@ -34,11 +34,12 @@
     [c : (Listof -WV)] [x : (Listof -WV)] [x↓ : (Listof -WV)]
     [d : (U #f -↓)] [mon-info : Mon-Info])
   (struct -φ.rt [Γ : -Γ] [e : -?e])
+  (struct -φ.rt.dom [old : (Setof Symbol)])
   ;; contract stuff
   (struct -φ.μc [x : Symbol])
   (struct -φ.struct/c
     [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)])
-  (struct -φ.=> [dom : (Listof -e)] [dom↓ : (Listof -V)] [env : -ρ])
+  (struct -φ.=> [dom : (Listof -e)] [dom↓ : (Listof -WV)] [env : -ρ])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [xs : (Listof Symbol)] [rng : -e] [env : -ρ])
   )

@@ -155,7 +155,7 @@
 (define (sym-sub x)
   (string->symbol
    (list->string
-    (for/list : (Listof Char) ([c (in-string (symbol->string x))])
+    (for/list ([c (in-string (symbol->string x))])
       (case c
         [(#\0) #\₀] [(#\1) #\₁] [(#\2) #\₂] [(#\3) #\₃] [(#\4) #\₄]
         [(#\5) #\₅] [(#\6) #\₆] [(#\7) #\₇] [(#\8) #\₈] [(#\9) #\₉]

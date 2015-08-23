@@ -98,9 +98,9 @@
           (error '↦mon "TODO: flat")])])
     |#)
 
-  (: with-pushed-frame : -e -ρ -Γ -φ -τ -σ -Ξ -M → -ς)
+  (: -ς/pushed : -e -ρ -Γ -φ -τ -σ -Ξ -M → -ς)
   ;; Proceed to the next `eval` state with given frame `φ` pushed
-  (define (with-pushed-frame e ρ Γ φ τ σ Ξ M)
+  (define (-ς/pushed e ρ Γ φ τ σ Ξ M)
     (define FVs (FV e))
     (define ρ* (ρ↓ ρ FVs))
     (define Γ* (Γ↓ Γ FVs))
@@ -142,11 +142,11 @@
        (define Es : (Listof -E)
          (for/list ([x xs]) (-⇓ x ρ)))
        (define φ (-φ.@ Es '() l))
-       (with-pushed-frame f ρ Γ φ τ σ Ξ M)]
+       (-ς/pushed f ρ Γ φ τ σ Ξ M)]
       ;; evaluate scrutiny, pushing branches
       [(-if e₀ e₁ e₂)
        (define φ (-φ.if (-⇓ e₁ ρ) (-⇓ e₂ ρ)))
-       (with-pushed-frame e₀ ρ Γ φ τ σ Ξ M)]
+       (-ς/pushed e₀ ρ Γ φ τ σ Ξ M)]
       ;; ignore continuation marks for now
       [(-wcm e_k e_v e_b)
        (error '↦e "TODO: wcm")]
@@ -156,7 +156,7 @@
          [(null? es) (-ς (-↓ e₀ ρ) Γ τ σ Ξ M)]
          [else
           (define φ (-φ.begin0v es ρ))
-          (with-pushed-frame e₀ ρ Γ φ τ σ Ξ M)])]
+          (-ς/pushed e₀ ρ Γ φ τ σ Ξ M)])]
       ;; quote
       [(-quote x)
        (error '↦e "TODO: quote")]
@@ -166,7 +166,7 @@
          ['() (-ς (-↓ e* ρ) Γ τ σ Ξ M)]
          [(cons (cons xs eₓ) bnds*)
           (define φ (-φ.let-values xs bnds* (hash) ρ e l))
-          (with-pushed-frame eₓ ρ Γ φ τ σ Ξ M)])]
+          (-ς/pushed eₓ ρ Γ φ τ σ Ξ M)])]
       ;; letrec-values
       [(-letrec-values bnds e l)
        (match bnds
@@ -176,7 +176,7 @@
             (for*/fold ([ρ* : -ρ ρ]) ([bnd bnds] [x (in-list (car bnd))])
               (ρ+ ρ* x 'undefined)))
           (define φ (-φ.letrec-values xs bnds* ρ* e l (dom ρ)))
-          (with-pushed-frame e* ρ* Γ φ τ σ Ξ M)])]
+          (-ς/pushed e* ρ* Γ φ τ σ Ξ M)])]
       ;; @-havoc
       [(-@-havoc x)
        (match/nd: (-V → -ς) (σ@ σ (ρ@ ρ x))
@@ -201,15 +201,15 @@
        (match cs
          ['()
           (define φ (-φ.=> '() '() ρ))
-          (with-pushed-frame d ρ Γ φ τ σ Ξ M)]
+          (-ς/pushed d ρ Γ φ τ σ Ξ M)]
          [(cons c cs*)
           (define φ (-φ.=> (append cs* (list d)) '() ρ))
-          (with-pushed-frame c ρ Γ φ τ σ Ξ M)])]
+          (-ς/pushed c ρ Γ φ τ σ Ξ M)])]
       [(-->i doms rng)
        (match doms
          ['()
           (define φ (-φ.=>i '() '() '() rng ρ))
-          (with-pushed-frame rng ρ Γ φ τ σ Ξ M)]
+          (-ς/pushed rng ρ Γ φ τ σ Ξ M)]
          [(cons dom doms*)
           (match-define (cons x c) dom)
           (define-values (xs* cs*)
@@ -217,7 +217,7 @@
                        ([dom doms*])
               (values (car dom) (cdr dom))))
           (define φ (-φ.=>i cs* '() (cons x xs*) rng ρ))
-          (with-pushed-frame c ρ Γ φ τ σ Ξ M)])]
+          (-ς/pushed c ρ Γ φ τ σ Ξ M)])]
       [(-x/c x)
        (error '↦e "TODO: x/c")]
       [(-struct/c id cs)
@@ -225,14 +225,13 @@
          ['() (-ς (-W (list (-St/C id '())) #f) Γ τ σ Ξ M)]
          [(cons c cs*)
           (define φ (-φ.struct/c id cs* ρ '()))
-          (with-pushed-frame c ρ Γ φ τ σ Ξ M)])]
+          (-ς/pushed c ρ Γ φ τ σ Ξ M)])]
       ))
-
 
   (: ↦WVs : -WVs -Γ -φ -τ -σ -Ξ -M → -ς*)
   ;; Stepping rules for "apply" states
-  (define (↦WVs Ws Γ φ τ σ Ξ M)
-    (match-define (-W Vs ?e) Ws)
+  (define (↦WVs W Γ φ τ σ Ξ M)
+    (match-define (-W Vs ?e) W)
     ;; Leave `M` alone for now. TODO: update it.
     (match φ
       ;; Conditional
@@ -249,36 +248,33 @@
             [else (error '↦WVs "both if branches are bogus (!)")])]
          [_ (error '↦WVs "TODO: catch wrong arity in conditional")])]
       ;; let-values
-      #;[(-φ.let-values xs bnds bnds↓ ρ e l)
+      [(-φ.let-values xs bnds bnds↓ ρ e l)
        (define n (length xs))
        (cond
          ;; Make sure arity is right
-         [(= n (length Ws))
-          (define bnds↓* : (Map Symbol -WV)
-            (for/fold ([bnds↓* bnds↓]) ([x xs] [W Ws])
-              (hash-set bnds↓* x W)))
+         [(= n (length Vs))
+          (define bnds↓*
+            (for/fold ([bnds↓* : (Map Symbol -WV) bnds↓])
+                      ([x xs] [V Vs] [ei (split-values ?e n)])
+              (hash-set bnds↓* x (-W V ei))))
           (match bnds
             ;; Proceed to let's body
             ['()
              (define-values (ρ* Γ* σ*)
                (for/fold ([ρ* : -ρ ρ] [Γ* : -Γ Γ] [σ* : -σ σ])
-                         ([x xs] [W Ws])
-                 (define α (alloc e x Γ)) ; mono-variant for now
-                 (match-define (-W V π) W)
+                         ([(x W) (in-hash bnds↓*)])
+                 (match-define (-W V ex) W)
+                 (define α (-α.bnd x ex Γ))
                  (values (ρ+ ρ* x α)
-                         (Γ+ Γ* (-π@* 'equal? (list (-x x) π)))
+                         (Γ+ Γ* (-?@ 'equal? (list (-x x) ex)))
                          (⊔ σ* α V))))
-             (define τ* (τ↓ e ρ* Γ))
-             (define κ* (-κ (-φ.rt (dom ρ) Γ) τ))
-             (define Ξ* (⊔ Ξ τ* κ*))
-             (-ς (-↓ e ρ*) Γ* τ* σ* Ξ* M)]
+             (define φ* (-φ.rt.dom (dom ρ)))
+             (-ς/pushed e ρ* Γ* φ* τ σ* Ξ M)]
             ;; Proceed to next assigning clause
             [(cons (cons xs* e*) bnds*)
-             (define τ* (τ↓ e* ρ Γ))
-             (define κ* (-κ (-φ.let-values xs* bnds* bnds↓* ρ e l) τ))
-             (define Ξ* (⊔ Ξ τ* κ*))
-             (-ς (-↓ e* ρ) Γ τ* σ Ξ* M)])]
-         [else (-ς (-W (-blm/arity l 'let-values n Ws) #f) Γ τ₀ σ Ξ M)])]
+             (define φ* (-φ.let-values xs* bnds* bnds↓* ρ e l))
+             (-ς/pushed e* ρ Γ φ* τ σ Ξ M)])]
+         [else (-ς (-blm/arity l 'let-values n Vs) Γ τ σ Ξ M)])]
       ;; letrec-values
       #;[(-φ.letrec-values xs bnds ρ e l old-dom)
        (define n (length xs))
@@ -331,22 +327,22 @@
          [(list e) (-ς (-↓ e ρ) Γ τ σ Ξ M)]
          [(cons e es*)
           (define φ* (-φ.begin es* ρ))
-          (with-pushed-frame e ρ Γ φ* τ σ Ξ M)])]
+          (-ς/pushed e ρ Γ φ* τ σ Ξ M)])]
       ;; begin0
       ; waiting on first clause
       [(-φ.begin0v es ρ)
        (match es
-         ['() (-ς Ws Γ τ σ Ξ M)]
+         ['() (-ς W Γ τ σ Ξ M)]
          [(cons e es*)
-          (define φ* (-φ.begin0e Ws es* ρ))
-          (with-pushed-frame e ρ Γ φ* τ σ Ξ M)])]
+          (define φ* (-φ.begin0e W es* ρ))
+          (-ς/pushed e ρ Γ φ* τ σ Ξ M)])]
       ; waiting on next clause (and discard)
-      [(-φ.begin0e Ws es ρ)
+      [(-φ.begin0e W es ρ)
        (match es
-         ['() (-ς Ws Γ τ σ Ξ M)]
+         ['() (-ς W Γ τ σ Ξ M)]
          [(cons e es*)
-          (define φ* (-φ.begin0e Ws es* ρ))
-          (with-pushed-frame e ρ Γ φ* τ σ Ξ M)])]
+          (define φ* (-φ.begin0e W es* ρ))
+          (-ς/pushed e ρ Γ φ* τ σ Ξ M)])]
       ;; mon
       #;[(-φ.mon ce xs (and l³ (list l₊ l₋ lₒ)))
        (match Ws
@@ -379,48 +375,59 @@
        (match Vs
          [(list V) (error '↦WVs "TODO: μ/c")]
          [_ (error '↦WVs "TODO: catch arity error for μ/c")])]
-      #;[(-φ.struct/c id es ρ WVs)
-       (match Ws
-         [(list W)
-          (define Ws* (cons W WVs))
+      [(-φ.struct/c id es ρ WVs)
+       (match Vs
+         [(list V)
+          (define WVs* (cons (-W V ?e) WVs))
           (match es
             ['()
-             (define n (length Ws*))
-             (define-values (αs σ*)
-               ;; accumulate new store and address list (which is reversed compard to `Ws*`)
-               (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ])
-                         ([W Ws*] [i (in-naturals)])
-                 (match-define (-W V π) W)
-                 (define α (alloc -ff #|TODO dummy|# id (- n i 1) Γ))
-                 (values (cons α αs) (⊔ σ* α V))))
-             (define W_c (-W (-St/C id αs) #f))
-             (-ς (list W_c) Γ τ σ* Ξ M)]
+             (define n (length WVs*))
+             (define-values (αs σ* es*)
+               ; accumulate new store and address list
+               ; which is reversed compard to `WVs*`, hence of the right order
+               (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()])
+                         ([WV WVs*] [i (in-range n)])
+                 (match-define (-W V e) WV)
+                 (define α
+                   (cond [e (-α.val e)]
+                         [else (-α.opq (id/c id) #f #|FIXME|# i)]))
+                 (values (cons α αs)
+                         (⊔ σ* α V)
+                         (cons e es*))))
+             (define C (-St/C id αs))
+             (define e_C (-?struct/c id es*))
+             (-ς (-W (list C) e_C) Γ τ σ* Ξ M)]
             [(cons e es*)
-             (define τ* (τ↓ e ρ Γ))
-             (define κ* (-κ (-φ.struct/c id es* ρ Ws*) τ))
-             (define Ξ* (⊔ Ξ τ* κ*))
-             (-ς (-↓ e ρ) Γ τ* σ Ξ* M)])]
+             (define φ* (-φ.struct/c id es* ρ WVs*))
+             (-ς/pushed e ρ Γ φ* τ σ Ξ M)])]
          [else (error '↦WVs "TODO: catch arity error for μ/c")])]
-      #;[(-φ.=> cs cs↓ ρ)
-       (match Ws
-         [(list (-W V _))
-          (define Vs (cons V cs↓))
-          (define n (length Vs))
+      [(-φ.=> cs Cs ρ)
+       (match Vs
+         [(list V)
+          (define Cs* (cons (-W V ?e) Cs))
+          (define n (length Cs*))
           (match cs
             [(list)
-             (define-values (αs σ*)
-               ;; accumulate new store and address list (which is reversed compared to `Vs`)
-               (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ])
-                         ([V Vs] [i (in-naturals)])
-                 (define α (alloc -ff #|TODO dummy|# '=> (- n i 1) Γ))
-                 (values (cons α αs) (⊔ σ* α V))))
-             (match-define-values (αs_dom (list α_rng)) (split-at αs (- n 1)))
-             (-ς (list (-W (-=> αs_dom α_rng) #f)) Γ τ σ Ξ M)]
+             (define-values (αs σ* es*)
+               ; accumulate new store and address list
+               ; which is reversed compared to `Cs*`, hence of the right order
+               (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()])
+                         ([C Cs*] [i (in-range n)])
+                 (match-define (-W V e) C)
+                 (define α
+                   (cond [e (-α.val e)]
+                         [else (-α.opq (-id '-> 'Λ) #f #|TODO|# i)]))
+                 (values (cons α αs)
+                         (⊔ σ* α V)
+                         (cons e es*))))
+             (match-define-values (α-doms (list α-rng)) (split-at αs (- n 1)))
+             (match-define-values (e-doms (list e-rng)) (split-at es* (- n 1)))
+             (define C (-=> α-doms α-rng))
+             (define e_C (-?-> e-doms e-rng))
+             (-ς (-W (list C) e_C) Γ τ σ Ξ M)]
             [(cons c cs*)
-             (define τ* (τ↓ c ρ Γ))
-             (define κ* (-κ (-φ.=> cs* Vs ρ) τ))
-             (define Ξ* (⊔ Ξ τ* κ*))
-             (-ς (-↓ c ρ) Γ τ* σ Ξ* M)])]
+             (define φ* (-φ.=> cs* Cs* ρ))
+             (-ς/pushed c ρ Γ φ* τ σ Ξ M)])]
          [else (error '↦WVs "TODO: catch arity error for -->")])]
       #;[(-φ.=>i cs cs↓ xs rng ρ)
        (match Ws
