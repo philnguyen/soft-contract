@@ -41,7 +41,7 @@
     [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)])
   (struct -φ.=> [dom : (Listof -e)] [dom↓ : (Listof -WV)] [env : -ρ])
   (struct -φ.=>i
-    [dom : (Listof -e)] [dom↓ : (Listof -V)] [xs : (Listof Symbol)] [rng : -e] [env : -ρ])
+    [dom : (Listof -e)] [dom↓ : (Listof -WV)] [xs : (Listof Symbol)] [rng : -e] [env : -ρ])
   )
 
 ;; Stack address

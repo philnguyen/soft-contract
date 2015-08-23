@@ -429,27 +429,31 @@
              (define φ* (-φ.=> cs* Cs* ρ))
              (-ς/pushed c ρ Γ φ* τ σ Ξ M)])]
          [else (error '↦WVs "TODO: catch arity error for -->")])]
-      #;[(-φ.=>i cs cs↓ xs rng ρ)
-       (match Ws
-         [(list (-W V _))
-          (define cs↓* (cons V cs↓))
-          (define n (length cs↓*))
-          (match cs
+      [(-φ.=>i doms doms↓ xs rng ρ)
+       (match Vs
+         [(list V)
+          (define doms↓* (cons (-W V ?e) doms↓))
+          (define n (length doms↓*))
+          (match doms
             ['()
-             (define-values (αs σ*)
+             (define-values (αs σ* es*)
                ;; accumulate new store and address list for contract domains
                ;; (domains are reversed compared to `cs↓*`)
-               (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ])
-                         ([V cs↓*] [i (in-naturals)])
-                 (define α (alloc -ff #|TODO dummy|# '=>i (- n i 1) Γ))
-                 (values (cons α αs) (⊔ σ* α V))))
-             (define W_c (-W (-=>i (map (inst cons Symbol -α) xs αs) rng ρ Γ) #f))
-             (-ς (list W_c) Γ τ σ* Ξ M)]
-            [(cons c cs*)
-             (define τ* (τ↓ c ρ Γ))
-             (define κ* (-κ (-φ.=>i cs* cs↓* xs rng ρ) τ))
-             (define Ξ* (⊔ Ξ τ* κ*))
-             (-ς (-↓ c ρ) Γ τ* σ Ξ* M)])]
+               (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()])
+                         ([dom doms↓*] [i (in-range n)])
+                 (match-define (-W C e) dom)
+                 (define α
+                   (cond [e (-α.val e)]
+                         [else (-α.opq (-id '->/i 'Λ) #f #|TODO|# i)]))
+                 (values (cons α αs)
+                         (⊔ σ* α V)
+                         (cons e es*))))
+             (define C (-=>i (map (inst cons Symbol -α) xs αs) rng ρ Γ))
+             (define e_C (-?->i xs es* rng))
+             (-ς (-W (list C) e_C) Γ τ σ* Ξ M)]
+            [(cons dom doms*)
+             (define φ* (-φ.=>i doms* doms↓* xs rng ρ))
+             (-ς/pushed dom ρ Γ φ* τ σ Ξ M)])]
          [else (error '↦WVs "TODO: catch arity error for -->i")])]
       ))
   
