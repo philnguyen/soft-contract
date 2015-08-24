@@ -56,7 +56,9 @@
          [(set? x) (for/fold ([acc : (Setof β) ∅]) ([xᵢ x])
                      (define y (f xᵢ))
                      (if (set? y) (set-union acc y) (set-add acc y)))]
-         [else (f x)]))]))
+         [else (f x)]))]
+    [(_ #:tag tag (α → β) v [p e ...] ...)
+     (match/nd: (α → β) v [p e ...] ... [x (error 'tag "unmatched: ~a" x)])]))
 
 ;; define the same type for multiple identifiers
 (define-syntax (:* stx)
@@ -72,6 +74,7 @@
 (define ∪ set-union)
 (define ∩ set-intersect)
 (define ∋ set-member?)
+(define →∅ : (→ (Setof Nothing)) (λ () ∅))
 (: ∈ : (∀ (X) X (Setof X) → Boolean))
 (define (∈ x xs) (∋ xs x))
 (define ⊆ subset?)
@@ -104,22 +107,22 @@
 (: ⊔ : (∀ (X Y) (MMap X Y) X Y → (MMap X Y)))
 ;; m ⊔ [x ↦ {y}]
 (define (⊔ m x y)
-  (hash-update m x (λ ([ys : (Setof Y)]) (set-add ys y)) (λ () ∅)))
+  (hash-update m x (λ ([ys : (Setof Y)]) (set-add ys y)) →∅))
 
 (: ⊔! : (∀ (X Y) ((MMap X Y) X Y → Void)))
 ;; mutate `m` to `m ⊔ [x ↦ {y}]`
 (define (⊔! m x y)
-  (hash-update! m x (λ ([s : (Setof Y)]) (set-add s y)) (λ () ∅)))
+  (hash-update! m x (λ ([s : (Setof Y)]) (set-add s y)) →∅))
 
 (: ⊔* : (∀ (X Y) (MMap X Y) X (Setof Y) → (MMap X Y)))
 ;; m ⊔ [x ↦ ys]
 (define (⊔* m x ys)
-  (hash-update m x (λ ([s : (Setof Y)]) (∪ s ys)) (λ () ∅)))
+  (hash-update m x (λ ([s : (Setof Y)]) (∪ s ys)) →∅))
 
 (: ⊔!* : (∀ (X Y) (MMap X Y) X (Setof Y) → Void))
 ;; mutate `m` to `m ⊔ [x ↦ ys]`
 (define (⊔!* m x ys)
-  (hash-update! m x (λ ([s : (Setof Y)]) (∪ s ys)) (λ () ∅)))
+  (hash-update! m x (λ ([s : (Setof Y)]) (∪ s ys)) →∅))
 
 (: ⊔/m : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
 (define (⊔/m m₁ m₂)
@@ -139,6 +142,14 @@
                 (define (s-add! [x : τ]) (set! s (set-add s x)))
                 (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
                 (define (s-union! [xs : (Setof τ)]) (set! s (∪ s xs)))))]))
+
+(: mmap-subtract : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
+;; Compute bindings in `m₁` not in `m₀`
+(define (mmap-subtract m₁ m₀)
+  (for/fold ([acc : (MMap X Y) (hash)]) ([(k v) (in-hash m₁)])
+    (define δv (set-subtract v (hash-ref m₀ k →∅)))
+    (cond [(set-empty? δv) acc]
+          [else (hash-set acc k δv)])))
 
 (: set-partition : (∀ (X) (X → Boolean) (Setof X) → (Values (Setof X) (Setof X))))
 (define (set-partition p xs)
