@@ -139,8 +139,8 @@
 (define (close v ρ Γ)
   (match v
     [(-λ xs e)
-     (define FV_e (FV e))
-     (-Clo xs e (ρ↓ ρ FV_e) (Γ↓ Γ FV_e))]
+     (define FV_v (FV v))
+     (-Clo xs e (ρ↓ ρ FV_v) (Γ↓ Γ FV_v))]
     [(? -prim? v) v]
     [(? -•ₗ? v) '•]
     [_ (error 'close "Not yet supported: ~a" v)]))
