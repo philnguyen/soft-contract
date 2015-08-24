@@ -24,12 +24,12 @@
     [body : -e]
     [ctx : Mon-Party]
     [old-dom : (Setof Symbol)])
-  (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
+  (struct -φ.@ [es : (Listof -e)] [ρ : -ρ] [vs : (Listof -WV)] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
-  (struct -φ.mon.v [val : -E] [mon-info : Mon-Info])
-  (struct -φ.mon.c [ctc : -E] [mon-info : Mon-Info])
+  (struct -φ.mon.v [val : (U -E -WV)] [mon-info : Mon-Info])
+  (struct -φ.mon.c [ctc : (U -E -WV)] [mon-info : Mon-Info])
   (struct -φ.indy
     [c : (Listof -WV)] [x : (Listof -WV)] [x↓ : (Listof -WV)]
     [d : (U #f -↓)] [mon-info : Mon-Info])

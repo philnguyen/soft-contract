@@ -116,7 +116,7 @@
 ;; `X` paired with expression
 (struct (X) -W ([x : X] [e : -?e]) #:transparent)
 
-(define-type -WV (-W -V))
+(define-type/pred -WV (-W -V))
 (define-type -WVs (-W (Listof -V)))
 
 (define (WVs->Vs [WVs : (Listof -WV)]) : -Vs
