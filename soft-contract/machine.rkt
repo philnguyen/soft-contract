@@ -45,7 +45,7 @@
   )
 
 ;; Stack address
-(struct -τ ([E : -E] [Γ : -Γ]) #:transparent)
+(struct -τ ([E : (U -E #|HACK|# (Listof (U Symbol -E)))] [Γ : -Γ]) #:transparent)
 ;; Stack
 (struct -κ ([top : -φ] [nxt : -τ]) #:transparent)
 
@@ -53,10 +53,6 @@
 
 ;; (narrow) state
 (struct -ς ([e : -E] [Γ : -Γ] [τ : -τ] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
-;; configuration
-(struct -c ([e : -E] [Γ : -Γ] [τ : -τ]) #:transparent)
-;; state with widened stores and summarization
-(struct -ξ ([ςs : (Setof -c)] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
 
 (define-type -ς* (U -ς (Setof -ς)))
 
@@ -130,10 +126,6 @@
      ;; Rely on the fact that there's no merging such that Ξ(τ₀) ≠ ∅
      (set-empty? (hash-ref Ξ τ))]
     [_ #f]))
-
-;;;;; For testing only
-(: ev : Path-String * → -ς)
-(define (ev . ps) (𝑰 (files->prog ps)))
 
 #| Obsolete stuff. TODO: Delete.
 (define-data .κ

@@ -5,7 +5,17 @@
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
-(provide (all-defined-out)) ; TODO
+(provide ↦ ↦* dbg)
+
+(: ↦ : -ς → -ς*)
+;; Steps a full state in the CEΓKSΞ machine
+(define ↦
+  (match-lambda
+    [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
+    [(-ς (? -W? W) Γ τ σ Ξ M)
+     (match/nd: #:tag ↦ (-κ → -ς) (hash-ref Ξ τ)
+       [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M)])]
+    [ς (error '↦ "unexpected: ~a" ς)]))
 
 (: ↦e : -e -ρ -Γ -τ -σ -Ξ -M → -ς*)
 ;; Stepping rules for "eval" states
@@ -32,9 +42,12 @@
           (-ς (-W (list V) ref) Γ τ σ Ξ M))]
        ;; perform contract checking for cross-module reference
        [else
-        (for*/set: : (Setof -ς) ([V (σ@ σ (-α.def id))]
-                                 [C (σ@ σ (-α.ctc id))])
-          (↦mon (-W C #f) (-W V ref) Γ τ σ Ξ M (list ctx* ctx ctx*)))])]
+        ;; FIXME
+        (define Vs (σ@ σ (-α.def id)))
+        (define Cs (σ@ σ (-α.ctc id)))
+        (match/nd: #:tag ↦e/ref/V (-V → -ς) Vs
+          [V (match/nd: #:tag ↦e/ref/C (-V → -ς) Cs
+               [C (↦mon (-W C #f) (-W V ref) Γ τ σ Ξ M (list ctx* ctx ctx*))])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
      (define φ (-φ.@ xs (ρ↓ ρ (FV xs)) '() l))
@@ -75,17 +88,20 @@
         (-ς/pushed e* ρ* Γ φ τ σ Ξ M)])]
     ;; @-havoc
     [(-@-havoc x)
-     (match/nd: (-V → -ς) (σ@ σ (ρ@ ρ x))
-                [(and V (-Clo xs _ ρ Γ))
-                 (define n
-                   (match xs
-                     [(? list?) (length xs)]
-                     [(-varargs zs _) (+ 1 (length zs))]))
-                 (↦@ (-W V #f) (make-list n -●) ρ Γ τ σ Ξ M ☠)]
-                [(and V (-Ar γ _ l³))
-                 (match/nd: (-V → -ς) (σ@ σ γ)
-                            [(-=>  cs _    ) (↦@ (-W V #f) (make-list (length cs) -●) ρ Γ τ σ Ξ M ☠)]
-                            [(-=>i cs _ _ _) (↦@ (-W V #f) (make-list (length cs) -●) ρ Γ τ σ Ξ M ☠)])])]
+     (match/nd: #:tag ↦WVs/havoc/x (-V → -ς) (σ@ σ (ρ@ ρ x))
+       [(and V (-Clo xs _ ρ Γ))
+        (define n
+          (match xs
+            [(? list?) (length xs)]
+            [(-varargs zs _) (+ 1 (length zs))]))
+        (↦@ (-W V #f) (make-list n -●) Γ τ σ Ξ M ☠)]
+       [(and V (-Ar γ _ l³))
+        (match/nd: #:tag ↦WVs/havoc/dep (-V → -ς) (σ@ σ γ)
+          [(-=>  cs _    ) (↦@ (-W V #f) (make-list (length cs) -●) Γ τ σ Ξ M ☠)]
+          [(-=>i cs _ _ _) (↦@ (-W V #f) (make-list (length cs) -●) Γ τ σ Ξ M ☠)])]
+       [V
+        (log-debug "havoc: ignore first-order value ~a" (show-V σ V))
+        ∅])]
     ;; amb
     [(-amb es)
      (for/set: : (Setof -ς) ([e es])
@@ -123,91 +139,6 @@
         (define φ (-φ.struct/c id cs* ρ '()))
         (-ς/pushed c ρ Γ φ τ σ Ξ M)])]
     ))
-
-(: ↦@ : -WV (Listof -WV) -ρ -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
-;; Stepping rules for function application
-(define (↦@ W_f W_xs ρ Γ τ σ Ξ M l)
-  (error '↦@ "TODO")
-  #|
-  (match-define (-W V_f π_f) W_f)
-  (define-values (V_xs π_xs)
-  (for/lists ([V_xs : (Listof -V)] [π_xs : (Listof -π*)])
-  ([W W_xs])
-  (values (-W-x W) (-W-π W))))
-  (match V_f
-  [(? -o? o)
-  (define-values (σ* AΓs) (δ σ Γ o W_xs l))
-  (define π_a (-π@* π_f π_xs))
-  (match/nd: (-AΓ → -ς) AΓs
-  [(-AΓ (? -blm? blm) Γ*)
-  (-ς (-W blm π_a) Γ* τ σ Ξ M)]
-  [(-AΓ (list V) Γ*)
-  (-ς (list (-W V π_a)) Γ* τ σ Ξ M)])]
-  [(-Clo xs e ρ* Γ*)
-  (match xs
-  [(? list? xs)
-  
-  (: πx→x : -π* → -π*)
-  ;; Convert a fact about existing arguments into one about parameters
-  (define (πx→x π)
-  (for/fold ([π π]) ([x xs] [π_x π_xs])
-  (π*/ π π_x (-x x))))
-
-  ;; Check whether converted fact is relevant
-  (define relevant-π?
-  (let ([xs* : (Setof Symbol) (list->set xs)])
-  (λ ([π : -π*]) (⊆ (FV-π π) xs*))))
-
-  ;; for each binding [x ↦ π],
-  ;; turn each relevant fact about `π` in `Γ` to one about `x` in `Γ*`
-  (define Γ**
-  (for*/fold ([Γ** : -Γ Γ*])
-  ([π Γ] [π* (in-value (πx→x π))] #:when (relevant-π? π*))
-  (Γ+ Γ** π*)))
-
-  (define-values (ρ** σ*)
-  (for/fold ([ρ** : -ρ ρ*] [σ* : -σ σ])
-  ([x xs] [V_x V_xs])
-  (define α (alloc e x Γ)) ; monovariant for now
-  (values (ρ+ ρ** x α) (⊔ σ* α V_x))))
-  
-  (define τ* (τ↓ e ρ** Γ**))
-  (define κ* (-κ (-φ.rt@ (dom ρ) π_f xs π_xs) τ))
-  (define Ξ* (⊔ Ξ τ* κ*))
-  (-ς (-↓ e ρ**) Γ** τ* σ* Ξ* M)]
-  [(-varargs zs z)
-  (error '↦@ "TODO: varargs")])]
-  ['•
-  (error '↦@ "TODO: •")]
-  [_ (-ς (-W (-blm l 'apply 'procedure? (list V_f)) #f) Γ τ σ Ξ M)])
-  |#)
-
-(: ↦mon : -WV -WV -Γ -τ -σ -Ξ -M Mon-Info → -ς)
-;; Stepping rules for contract monitoring
-(define (↦mon W_c W_v Γ τ σ Ξ M l³)
-  (error '↦mon "TODO")
-  #|
-  (match-define (-W V_c π_c) W_c)
-  (match-define (-W V   π  ) W_v)
-  (match-define (list l₊ l₋ lₒ) l³)
-  (match (⊢ σ Γ W_v W_c)
-  ['✓ (-ς (list W_v) Γ τ σ Ξ M)]
-  ['X (-ς (-W (-blm l₊ lₒ V_c (list V)) #f) Γ τ σ Ξ M)]
-  ['?
-  (match V_c
-  [(-=> doms rng)
-  (error '↦mon "->")]
-  [(-=>i doms rng ρ_c Γ_c)
-  (error '↦mon "->i")]
-  [(-St/C id cs)
-  (error '↦mon "struct/c")]
-  [(-μ/C x c)
-  (error '↦mon "μ/c")]
-  [(-X/C x)
-  (error '↦mon "ref")]
-  [_
-  (error '↦mon "TODO: flat")])])
-  |#)
 
 (: ↦WVs : -WVs -Γ -φ -τ -σ -Ξ -M → -ς*)
 ;; Stepping rules for "apply" states
@@ -292,7 +223,7 @@
         (match es
           ['()
            (match-define (cons W_f W_xs) (reverse WVs*))
-           (↦@ W_f W_xs ρ Γ τ σ Ξ M l)]
+           (↦@ W_f W_xs Γ τ σ Ξ M l)]
           ;; Swap next argument for evaluation
           [(cons e* es*)
            (define φ* (-φ.@ es* (ρ↓ ρ (FV es*)) WVs* l))
@@ -439,6 +370,78 @@
        [else (error '↦WVs "TODO: catch arity error for -->i")])]
     ))
 
+(: ↦@ : -WV (Listof -WV) -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
+;; Stepping rules for function application
+(define (↦@ W_f W_xs Γ τ σ Ξ M l)
+  (match-define (-W V_f e_f) W_f)
+  (define-values (V_xs e_xs)
+    (for/lists ([V_xs : (Listof -V)] [e_xs : (Listof -?e)]) ([W W_xs])
+      (values (-W-x W) (-W-e W))))
+  (define e_a (-?@ e_f e_xs))
+  (match V_f
+    [(? -o? o)
+     (define-values (σ* AΓs) (δ σ Γ o W_xs l))
+     (match/nd: (-AΓ → -ς) AΓs
+       [(-AΓ (? -blm? blm) Γ*) (-ς blm Γ* τ σ* Ξ M)]
+       [(-AΓ (? list? Vs ) Γ*) (-ς (-W Vs e_a) Γ* τ σ* Ξ M)])]
+    [(-Clo xs e ρ_f Γ_f)
+     (match xs
+       [(? list? xs)
+        (define-values (ρ* σ*)
+          (for/fold ([ρ* : -ρ ρ_f] [σ* : -σ σ])
+                    ([x xs] [V_x V_xs] [ex e_xs])
+            (define α (-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ∅)))
+            (values (ρ+ ρ* x α) (⊔ σ* α V_x))))
+        (define φ* (-φ.rt Γ e_a))
+        (-ς/pushed e ρ* Γ_f φ* τ σ* Ξ M)]
+       [(-varargs zs z) (error '↦@ "TODO: varargs")])]
+    [(-Ar γ α l³) (error '↦@ "TODO: arrow")]
+    ['•
+     (define V_havoc (σ@₁ σ (-α.def havoc-id)))
+     (define W_havoc (-W V_havoc (-ref havoc-id l)))
+     (for/fold ([acc : (Setof -ς) ∅]) ([W_x W_xs])
+       (match (↦@ W_havoc (list W_x) Γ τ σ Ξ M 'Λ)
+         [(? set? s) (set-union acc s)]
+         [(? -ς? ς) (set-add acc ς)]))]
+    [_ (-ς (-blm l 'apply 'procedure? (list V_f)) Γ τ σ Ξ M)]))
+
+(: ↦mon : -WV -WV -Γ -τ -σ -Ξ -M Mon-Info → -ς*)
+;; Stepping rules for contract monitoring
+(define (↦mon W_c W_v Γ τ σ Ξ M l³)
+  (match-define (-W C e_c) W_c)
+  (match-define (-W V e_v) W_v)
+  (match-define (list l+ l- lo) l³)
+  (match (Γ⊢V∈C Γ W_v W_c)
+    ['✓
+     (define Γ* (Γ+ Γ (-?@ e_c (list e_v))))
+     (-ς (-W (list V) e_v) Γ* τ σ Ξ M)]
+    ['X
+     (define Γ* (Γ+ Γ (-not (-?@ e_c (list e_v)))))
+     (-ς (-blm l+ lo C (list V)) Γ* τ σ Ξ M)]
+    ['?
+     (match C
+       [(-=> doms rng)
+        (error '↦mon "->")]
+       [(-=>i doms rng ρ_c Γ_c)
+        (error '↦mon "->i")]
+       [(-St/C id cs)
+        (error '↦mon "struct/c")]
+       [(-μ/C x c)
+        (error '↦mon "μ/c")]
+       [(-X/C x)
+        (error '↦mon "ref")]
+       [(-St (-id 'and/c 'Λ) αs)
+        (error '↦mon "and/c")]
+       [(-St (-id 'or/c 'Λ) αs)
+        (error '↦mon "or/c")]
+       [(-St (-id 'not/c 'Λ) (list α))
+        (error '↦mon "not/c")]
+       [_
+        (define φ* (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))))
+        (define τ* (-τ (list '@ (-W (list C) e_c) (-W (list V) e_v)) Γ))
+        (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
+        (↦@ W_c (list W_v) Γ τ* σ Ξ* M lo)])]))
+
 (: -ς/pushed (case-> [-E    -Γ -φ -τ -σ -Ξ -M → -ς]
                      [-e -ρ -Γ -φ -τ -σ -Ξ -M → -ς]))
 ;; Proceed to the next `eval` state with given frame `φ` pushed
@@ -457,12 +460,16 @@
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
      (-ς E Γ τ* σ Ξ* M)])) 
 
-(: ↦ : -ς → -ς*)
-;; Steps a full state in the CEΓKSΞ machine
-(define ↦
+
+;;;;; For testing only
+
+(define ↦* : (-ς* → -ς*)
   (match-lambda
-    [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
-    [(-ς (? -W? W) Γ τ σ Ξ M)
-     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-                [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M)])]
-    [ς (error '↦ "unexpected: ~a" ς)]))
+    [(? set? s) (match/nd: #:tag ↦* (-ς → -ς) s [ς (↦ ς)])]
+    [(? -ς? ς) (↦ ς)]))
+
+(: dbg : Path-String → (Integer → -ς*))
+(define ((dbg p) n)
+  (for/fold ([ς* : -ς* (𝑰 (files->prog (list p)))])
+            ([i (in-range n)])
+    (↦* ς*)))
