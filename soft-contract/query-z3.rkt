@@ -11,7 +11,7 @@
 (define Γ⊢₀ : (Parameterof (-Γ -?e → -R))
   (make-parameter
    (λ (Γ e)
-     (log-warning "Base solver not set")
+     (log-error "base prover not set")
      '?)))
 
 ;; binary operators on reals
