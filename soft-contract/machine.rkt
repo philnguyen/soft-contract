@@ -101,7 +101,7 @@
   (define E₀ (-↓ e₀ -ρ∅))
   (define τ₀ (-τ E₀ -Γ∅))
 
-  (-ς E₀ -Γ∅ τ₀ σ₀ (hash) (hash)))
+  (-ς E₀ -Γ∅ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 
 
 (: τ↓ : (case-> [-e -ρ -Γ → -τ]
@@ -126,6 +126,20 @@
      ;; Rely on the fact that there's no merging such that Ξ(τ₀) ≠ ∅
      (set-empty? (hash-ref Ξ τ))]
     [_ #f]))
+
+(: final? (case-> [-ς → Boolean]
+                  [-E -τ -Ξ → Boolean]))
+(define final?
+  (case-lambda
+    [(E τ Ξ)
+     (cond
+       [(-blm? E) #t]
+       [(-W? E) (set-empty? (hash-ref Ξ τ))]
+       [else #f])]
+    [(ς)
+     (match-define (-ς E _ τ _ Ξ M) ς)
+     (final? E τ Ξ)]))
+
 
 #| Obsolete stuff. TODO: Delete.
 (define-data .κ

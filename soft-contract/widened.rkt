@@ -16,13 +16,19 @@
   (match-define (-ς E Γ τ σ Ξ M) (𝑰 p))
   (-ξ {set (-Cfg E Γ τ)} σ Ξ M))
 
+(: Cfg-final? : -Cfg -Ξ → Boolean)
+(define (Cfg-final? C Ξ)
+  (match-define (-Cfg E _ τ) C)
+  (final? E τ Ξ))
+
 (: ↦/ξ : -ξ → (Option -ξ))
 ;; Reduction relation on widened state
 (define (↦/ξ ξ)
   ;; FIXME: do this the efficient way
   (match-define (-ξ Cs σ Ξ M) ξ)
   (define ςs
-    (for/fold ([ςs : (Setof -ς) ∅]) ([C Cs])
+    (for/fold ([ςs : (Setof -ς) ∅])
+              ([C Cs] #:unless (Cfg-final? C Ξ))
       (match-define (-Cfg E Γ τ) C)
       (match (↦ (-ς E Γ τ σ Ξ M))
         [(? -ς? ς) (set-add ςs ς)]
@@ -52,15 +58,31 @@
       (mmap-subtract Ξ₁ Ξ₀)
       (mmap-subtract M₁ M₀)))
 
-(: dbg/ξ : Path-String → (Values (Integer → -ξ) (Integer Integer → -ξ)))
+(: dbg/ξ : Path-String → (Values (Integer → -ξ) (Integer Integer → -ξ) (Setof -Cfg)))
 (define (dbg/ξ p)
   (define ξ₀ (𝑰/ξ (files->prog (list p))))
+  
+  (define-values (ξ evals)
+    (let go : (Values -ξ (Map Integer -ξ))
+         ([ξ ξ₀] [i 1] [evals : (Map Integer -ξ) (hash 0 ξ₀)])
+      (define ξ* (↦/ξ ξ))
+      (cond
+        [ξ* (go ξ* (+ i 1) (hash-set evals i ξ*))]
+        [else (values ξ evals)])))
+  
   (define (step [n : Integer]) : -ξ
-    (for/fold ([ξ ξ₀]) ([i (in-range n)])
-      (or (↦/ξ ξ)
-          (error 'dbg/ξ "undefined for ~a~n" i))))
+    (hash-ref evals n (λ () (error 'dbg/ξ "undefined for ~a" (hash-count evals)))))
+  
   (define (diff [n₀ : Integer] [n₁ : Integer]) : -ξ
     (ξ-subtract (step n₁) (step n₀)))
-  (values step diff))
 
-(define-values (f s) (dbg/ξ "test/programs/safe/1.rkt"))
+  (define answers
+    (let ()
+      (match-define (-ξ Cs* _ Ξ* _) (hash-ref evals (- (hash-count evals) 1)))
+
+      (for*/set: : (Setof -Cfg) ([C Cs*] #:when (Cfg-final? C Ξ*))
+        C)))
+  
+  (values step diff answers))
+
+(define-values (f s ans) (dbg/ξ "test/programs/safe/1.rkt"))

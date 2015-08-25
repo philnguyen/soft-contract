@@ -399,7 +399,10 @@
     ['•
      (define V_havoc (σ@₁ σ (-α.def havoc-id)))
      (define W_havoc (-W V_havoc (-ref havoc-id l)))
-     (for/fold ([acc : (Setof -ς) ∅]) ([W_x W_xs])
+     ;; FIXME: return right arity!
+     (define ς• (-ς (-W (list '•) e_a) Γ τ σ Ξ M)) 
+     (for/fold ([acc : (Setof -ς) {set ς•}])
+               ([W_x W_xs])
        (match (↦@ W_havoc (list W_x) Γ τ σ Ξ M 'Λ)
          [(? set? s) (set-union acc s)]
          [(? -ς? ς) (set-add acc ς)]))]
