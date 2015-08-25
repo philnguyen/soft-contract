@@ -67,7 +67,7 @@
     (subset: -•
       '•
       ;; `l` is a tag annotating which static location this opaque value came from
-      (struct -•ₗ [l : Negative-Integer]))
+      (struct -•ₗ [l : Natural]))
     (subset: -prim
       ;; primitive values that can appear in syntax
       (struct -b [unboxed : Base])
@@ -155,8 +155,8 @@
 (: •! : → -•ₗ)
 ;; Generate new labeled hole
 (define •!
-  (let ([n : Negative-Integer -2 #|HACK don't fix|#])
-    (λ () (begin0 (-•ₗ n) (set! n (- n 1))))))
+  (let ([n : Natural 0])
+    (λ () (begin0 (-•ₗ n) (set! n (+ 1 n))))))
 
 (: FV : (U -e (Listof -e)) → (Setof Symbol))
 ;; Compute free variables for expression. Return set of variable names.
