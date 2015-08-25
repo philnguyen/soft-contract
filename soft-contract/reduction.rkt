@@ -373,6 +373,11 @@
 (: ↦@ : -WV (Listof -WV) -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
 ;; Stepping rules for function application
 (define (↦@ W_f W_xs Γ τ σ Ξ M l)
+
+  (: ↦indy : -V -V → -ς*)
+  (define (↦indy C V_g)
+    (error '↦indy "TODO"))
+  
   (match-define (-W V_f e_f) W_f)
   (define-values (V_xs e_xs)
     (for/lists ([V_xs : (Listof -V)] [e_xs : (Listof -?e)]) ([W W_xs])
@@ -395,7 +400,12 @@
         (define φ* (-φ.rt Γ e_a))
         (-ς/pushed e ρ* Γ_f φ* τ σ* Ξ M)]
        [(-varargs zs z) (error '↦@ "TODO: varargs")])]
-    [(-Ar γ α l³) (error '↦@ "TODO: arrow")]
+    [(-Ar γ α l³)
+     (define Cs (σ@ σ γ))
+     (define Vs (σ@ σ α))
+     (match/nd: (-V → -ς) Cs
+       [C (match/nd: (-V → -ς) Vs
+            [V_g (↦indy C V_g)])])]
     ['•
      (define V_havoc (σ@₁ σ (-α.def havoc-id)))
      (define W_havoc (-W V_havoc (-ref havoc-id l)))
@@ -414,6 +424,34 @@
   (match-define (-W C e_c) W_c)
   (match-define (-W V e_v) W_v)
   (match-define (list l+ l- lo) l³)
+
+  (: wrap-arrow : → -ς*)
+  ;; Wrap `V` inside `C`,
+  ;; knowing the former is a function and the latter a higher-order contract
+  (define (wrap-arrow)
+    ;; TODO: check for arity also
+    (define-values (Γ-ok Γ-bad) (split-Γ/Ve Γ W_v (-W 'procedure? 'procedure?)))
+    (define ς-ok
+      (and Γ-ok
+           (let ()
+             (define γ
+               (cond [e_c (-α.val e_c)]
+                     [else (-α.opq (-id 'Ar 'Λ) #f #|FIXME|# 0)]))
+             (define α
+               (cond [e_v (-α.val e_v)]
+                     [else (-α.opq (-id 'Ar 'Λ) #f #|FIXME|# 1)]))
+             (define Ar (-Ar γ α l³))
+             (define σ* (⊔ (⊔ σ α V) γ C))
+             (-ς (-W (list Ar) #f) Γ-ok τ σ* Ξ M))))
+    (define ς-bad
+      (and Γ-bad
+           (-ς (-blm l+ lo 'procedure? (list V)) Γ-bad τ σ Ξ M)))
+    (cond
+      [(and ς-ok ς-bad) {set ς-ok ς-bad}]
+      [ς-ok ς-ok]
+      [ς-bad ς-bad]
+      [else (error '↦mon "impossible")]))
+  
   (match (Γ⊢V∈C Γ W_v W_c)
     ['✓
      (define Γ* (Γ+ Γ (-?@ e_c (list e_v))))
@@ -423,10 +461,8 @@
      (-ς (-blm l+ lo C (list V)) Γ* τ σ Ξ M)]
     ['?
      (match C
-       [(-=> doms rng)
-        (error '↦mon "->")]
-       [(-=>i doms rng ρ_c Γ_c)
-        (error '↦mon "->i")]
+       [(-=> doms rng) (wrap-arrow)]
+       [(-=>i doms rng ρ_c Γ_c) (wrap-arrow)]
        [(-St/C id cs)
         (error '↦mon "struct/c")]
        [(-μ/C x c)
