@@ -63,6 +63,43 @@
 (define (𝑰 p)
   (match-define (-prog ms e₀) p)
 
+  (: alloc-es : -σ (Listof -e) → (Values -σ (Listof -α)))
+  (define (alloc-es σ es)
+    (define-values (σ* αs-rev)
+      (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α) '()])
+                ([e es])
+        (define-values (σ** V) (alloc-e σ* e))
+        (define α (-α.val e))
+        (values (⊔ σ** α V) (cons α αs-rev))))
+    (values σ* (reverse αs-rev)))
+
+  (: alloc-e : -σ -e → (Values -σ -V))
+  (define (alloc-e σ e)
+    (match e
+      [(? -v?) (values σ (close e -ρ∅ -Γ∅))]
+      [(--> doms rng)
+       (define-values (σ₁ α)
+         (let-values ([(σ* V) (alloc-e σ rng)])
+           (define α (-α.val rng))
+           (values (⊔ σ* α V) α)))
+       (define-values (σ₂ γs) (alloc-es σ₁ doms))
+       (values σ₂ (-=> γs α))]
+      [(-->i doms rng)
+       (define-values (xs cs)
+         (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
+                    ([dom doms])
+           (values (car dom) (cdr dom))))
+       (define-values (σ* γs) (alloc-es σ cs))
+       (values σ* (-=>i (map (inst cons Symbol -α) xs γs) rng -ρ∅ -Γ∅))]
+      [(-@ (-st-mk (-id (and t (or 'and/c 'or/c 'not/c)) 'Λ) _) cs _)
+       (define-values (σ* αs) (alloc-es σ cs))
+       (values σ* (-St (-id t 'Λ) αs))]
+      [(-struct/c id cs)
+       (define-values (σ* αs) (alloc-es σ cs))
+       (values σ* (-St/C id αs))]
+      [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
+                (show-e σ e))]))
+
   ;; Assuming each top-level variable binds a value for now.
   ;; TODO generalize.
   (define σ₀
@@ -75,28 +112,25 @@
         [(? -e?) σ]
         [(-define-values ids e)
          (cond
-           [(and (= 1 (length ids)) (-v? e))
-            (⊔ σ (-α.def (-id (car ids) mod-path)) (close e -ρ∅ -Γ∅))]
-           [else (error '𝑰 "TODO: general top-level binding. For now can't handle ~a"
-                        (show-e -σ∅ e))])]
+           [(= 1 (length ids))
+            (define-values (σ* V) (alloc-e σ e))
+            (⊔ σ* (-α.def (-id (car ids) mod-path)) V)]
+           [else
+            (error '𝑰 "TODO: general top-level. For now can't handle `define-~a-values`"
+                   (length ids))])]
         [(? -require?) σ]
         ;; provide
         [(-provide specs)
          (for/fold ([σ : -σ σ]) ([spec specs])
            (match-define (-p/c-item x c) spec)
+           (define-values (σ₁ C) (alloc-e σ c))
+           (define id (-id x mod-path))
+           (define σ₂ (⊔ σ₁ (-α.ctc id) C))
            (cond
-             [(-v? c)
-              (define id (-id x mod-path))
-              (define σ₁ (⊔ σ (-α.ctc id) (close c -ρ∅ -Γ∅)))
-              (cond
-                [(hash-has-key? σ₁ (-α.def id)) σ₁]
-                [else (⊔ σ₁ (-α.def id) '•)])]
-             [else
-              (error '𝑰 "TODO: general expression in contract position. For now can't handle ~a"
-                     (show-e -σ∅ c))]))]
+             [(hash-has-key? σ₂ (-α.def id)) σ₂]
+             [else (⊔ σ₂ (-α.def id) '•)]))]
         ;; submodule-form
-        [(? -module?)
-         (error '𝑰 "TODO: sub-module forms")])))
+        [(? -module?) (error '𝑰 "TODO: sub-module forms")])))
 
   (define E₀ (-↓ e₀ -ρ∅))
   (define τ₀ (-τ E₀ -Γ∅))
