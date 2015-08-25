@@ -4,7 +4,7 @@
 #;(provide defines? all-prove? all-refute? some-proves? some-refutes?
          ⊢ Γ⊢ Γ⊢₀ Γ⊢ₑₓₜ σ⊢)
 (provide Γ⊢V∈C Γ⊢oW Γ⊢e e⊢e ⊢e V∈p
-         split-Γ spurious?)
+         split-Γ split-Γ/Ve spurious?)
 
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
   (make-parameter (λ (Γ e)
@@ -187,19 +187,20 @@
 (: split-Γ : -Γ -V -?e → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `V@e` and `¬(V@e)`
 (define (split-Γ Γ V e)
-  (define Γ_t (Γ+ Γ e))
-  (define Γ_f (Γ+ Γ (-not e)))
-  (define e-proved (Γ⊢e Γ e))
-  (define Γ_t*
-    (match* (e-proved V)
-      [('X _) #f]
-      [(_ (-b #f)) #f]
-      [(_ _) Γ_t]))
-  (define Γ_f*
-    (match* (e-proved V)
-      [('✓ _) #f]
-      [(_ (or (-b #f) '•)) Γ_f]
-      [(_ _) #f]))
+  (define proved (or-R (⊢V V) (Γ⊢e Γ e)))
+  (define Γ_t* (if (equal? 'X proved) #f (Γ+ Γ e)))
+  (define Γ_f* (if (equal? '✓ proved) #f (Γ+ Γ (-not e))))
+  (values Γ_t* Γ_f*))
+
+(: split-Γ/Ve : -Γ -WV -WV → (Values (Option -Γ) (Option -Γ)))
+;; Join the environment with `V∈P` and `V∉P`
+(define (split-Γ/Ve Γ W_V W_P)
+  (match-define (-W V e_v) W_V)
+  (match-define (-W P e_p) W_P)
+  (define ψ (-?@ e_p (list e_v)))
+  (define proved (or-R (V∈V V P) (Γ⊢e Γ ψ)))
+  (define Γ_t* (if (equal? 'X proved) #f (Γ+ Γ ψ)))
+  (define Γ_f* (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ))))
   (values Γ_t* Γ_f*))
 
 (: not-R : -R → -R)
