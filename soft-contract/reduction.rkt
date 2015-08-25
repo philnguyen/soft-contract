@@ -12,6 +12,8 @@
 (define ↦
   (match-lambda
     [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
+    [(-ς (-Mon C V l³) Γ τ σ Ξ M)
+     (↦mon (-W C #f) (-W V #f) Γ τ σ Ξ M l³)]
     [(-ς (? -W? W) Γ τ σ Ξ M)
      (match/nd: #:tag ↦ (-κ → -ς) (hash-ref Ξ τ)
        [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M)])]

@@ -3,8 +3,8 @@
          "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
 #;(provide defines? all-prove? all-refute? some-proves? some-refutes?
          ⊢ Γ⊢ Γ⊢₀ Γ⊢ₑₓₜ σ⊢)
-(provide Γ⊢V∈C Γ⊢oW Γ⊢e e⊢e ⊢e V∈p
-         split-Γ split-Γ/Ve spurious?)
+(provide Γ⊢V∈C Γ⊢oW Γ⊢e e⊢e ⊢e V∈p V≡ Γ⊢e≡
+         split-Γ split-Γ/Ve spurious? or-R not-R decide-R)
 
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
   (make-parameter (λ (Γ e)
@@ -150,6 +150,19 @@
        [('real? 'integer?) '?]
        ; other cases, `p` known to exclude `q` (be careful)
        [(_ _) 'X])]))
+
+(: Γ⊢e≡ : -Γ -?e -?e → -R)
+(define (Γ⊢e≡ Γ e₁ e₂)
+  (cond ; TODO: just this for now
+    [(and e₁ e₂) (decide-R (equal? e₁ e₂))]
+    [else '?]))
+
+(: V≡ : -V -V → -R)
+;; Check whether 2 values are `equal?`
+(define V≡
+  (match-lambda**
+   [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
+   [(_ _) '?]))
 
 (: spurious? : -Γ -?e (U -V -Vs) → Boolean)
 ;; Check whether `e` cannot evaluate to `V` given `Γ` is true
