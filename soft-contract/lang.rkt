@@ -106,6 +106,7 @@
   (struct -quote [v : Any])
   (struct -let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
   (struct -letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
+  (struct -set! [x : Symbol] [e : -e])
 
   (struct -@-havoc [x : -x]) ; hack for havoc to detect argument's arity at runtime
   (struct -amb [es : (Setof -e)])
@@ -184,6 +185,7 @@
      
      (for/fold ([xs : (Setof Symbol) (-- (FV e) bound)]) ([bnd bnds])
        (-- (FV (cdr bnd)) bound))]
+    [(-set! x e) (set-add (FV e) x)]
     [(-@-havoc x) (FV x)]
     #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
     [(-if e e₁ e₂) (∪ (FV e) (FV e₁) (FV e₂))]

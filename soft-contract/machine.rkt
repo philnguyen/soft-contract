@@ -24,6 +24,7 @@
     [body : -e]
     [ctx : Mon-Party]
     [old-dom : (Setof Symbol)])
+  (struct -φ.set! [α : -α])
   (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])

@@ -260,6 +260,7 @@
       (-begin/simp (for/list ([bᵢ (in-list (syntax->list #'(b ...)))])
                      (parse-e bᵢ)))
       (cur-mod))]
+    [(set! x e) (-set! (syntax-e #'x) (parse-e #'e))]
     [(#%plain-lambda fmls b ...+)
      (-λ (parse-formals #'fmls)
          (-begin/simp

@@ -86,6 +86,9 @@
             (ρ+ ρ* x 'undefined)))
         (define φ (-φ.letrec-values xs bnds* ρ* e l (dom ρ)))
         (-ς/pushed e* ρ* Γ φ τ σ Ξ M)])]
+    [(-set! x e*)
+     (define φ (-φ.set! (ρ@ ρ x)))
+     (-ς/pushed e* ρ Γ φ τ σ Ξ M)]
     ;; @-havoc
     [(-@-havoc x)
      (match/nd: #:tag ↦WVs/havoc/x (-V → -ς) (σ@ σ (ρ@ ρ x))
@@ -215,6 +218,11 @@
          [(cons (cons xs* e*) bnds*)
           (define φ* (-φ.letrec-values xs* bnds* ρ e l dom₀))
           (-ς/pushed e* ρ* Γ* φ* τ σ* Ξ M)]))]
+    [(-φ.set! α)
+     (with-guarded-arity 1 'TODO 'set!
+       (define Γ* #|FIXME update!!|# Γ)
+       (define σ* (⊔ σ α (first Vs)))
+       (-ς (-W -Void/Vs #f) Γ* τ σ Ξ M))]
     ;; Application
     [(-φ.@ Es WVs l)
      (with-guarded-arity 1 l 'apply
