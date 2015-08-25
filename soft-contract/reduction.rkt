@@ -50,7 +50,7 @@
                [C (↦mon (-W C #f) (-W V ref) Γ τ σ Ξ M (list ctx* ctx ctx*))])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
-     (define φ (-φ.@ xs (ρ↓ ρ (FV xs)) '() l))
+     (define φ (-φ.@ (for/list : (Listof -E) ([x xs]) (-⇓ x ρ)) '() l))
      (-ς/pushed f ρ Γ φ τ σ Ξ M)]
     ;; evaluate scrutiny, pushing branches
     [(-if e₀ e₁ e₂)
@@ -216,18 +216,18 @@
           (define φ* (-φ.letrec-values xs* bnds* ρ e l dom₀))
           (-ς/pushed e* ρ* Γ* φ* τ σ* Ξ M)]))]
     ;; Application
-    [(-φ.@ es ρ WVs l)
+    [(-φ.@ Es WVs l)
      (with-guarded-arity 1 l 'apply
        (match-define (list V) Vs)
        (define WVs* (cons (-W V ?e) WVs))
-        (match es
+        (match Es
           ['()
            (match-define (cons W_f W_xs) (reverse WVs*))
            (↦@ W_f W_xs Γ τ σ Ξ M l)]
           ;; Swap next argument for evaluation
-          [(cons e* es*)
-           (define φ* (-φ.@ es* (ρ↓ ρ (FV es*)) WVs* l))
-           (-ς/pushed e* ρ Γ φ* τ σ Ξ M)]))]
+          [(cons E* Es*)
+           (define φ* (-φ.@ Es* WVs* l))
+           (-ς/pushed E* Γ φ* τ σ Ξ M)]))]
     ;; Begin
     [(-φ.begin es ρ)
      (match es
@@ -272,7 +272,7 @@
           (define φ* (-φ.mon.c W_V l³))
           (-ς/pushed C Γ φ* τ σ Ξ M)]))]
     ;; indy
-    [(-φ.indy W_cs W_xs W_xs↓ rng (list l+ l- lo))
+    #;[(-φ.indy W_cs W_xs W_xs↓ rng (list l+ l- lo))
      (with-guarded-arity 1 l+ lo
        (error '↦WVs "TODO: indy"))]
     ;; restore fact environment
@@ -374,9 +374,35 @@
 ;; Stepping rules for function application
 (define (↦@ W_f W_xs Γ τ σ Ξ M l)
 
-  (: ↦indy : -V -V → -ς*)
-  (define (↦indy C V_g)
-    (error '↦indy "TODO"))
+  (: ↦indy : (U -=> -=>i) -V (Listof -V) Mon-Info → -ς*)
+  (define (↦indy C V_f V_xs l³)
+    (match-define (list l+ l- lo) l³)
+    (match C
+      [(-=> γs α)
+       (define doms (σ@/list σ γs))
+       (define rngs (σ@ σ α))
+       (match/nd: (-V → -ς) rngs
+         [rng
+          (define φ₁ (-φ.mon.c (-W rng #f) l³))
+          (define τ₁ (-τ (list 'mon-res (-W (list rng) #f)) Γ))
+          (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
+          (match/nd: ((Listof -V) → -ς) doms
+            [dom
+             (match* (dom V_xs)
+               [('() '())
+                (↦@ (-W V_f #f) '() Γ τ₁ σ Ξ₁ M l)]
+               [((cons C-x C-xs) (cons V-x V-xs))
+                (define l³* (list l- l+ lo))
+                (define mon-xs
+                  (for/list : (Listof -E) ([C C-xs] [V V-xs])
+                    (-Mon C V l³*)))
+                (define mon-x (-Mon C-x V-x l³*))
+                (define φ₂ (-φ.@ mon-xs (list (-W V_f #f)) lo))
+                (define τ₂ (-τ (list* '@ (-W (list V_f) #f) (cons mon-x mon-xs)) Γ))
+                (define Ξ₂ (⊔ Ξ₁ τ₂ (-κ φ₂ τ₁)))
+                (-ς mon-x Γ τ₂ σ Ξ₂ M)])])])]
+      [(-=>i doms rng ρ_c Γ_c)
+       (error '↦indy "TODO: indy")]))
   
   (match-define (-W V_f e_f) W_f)
   (define-values (V_xs e_xs)
@@ -404,8 +430,9 @@
      (define Cs (σ@ σ γ))
      (define Vs (σ@ σ α))
      (match/nd: (-V → -ς) Cs
-       [C (match/nd: (-V → -ς) Vs
-            [V_g (↦indy C V_g)])])]
+       [(and C (or (? -=>?) (? -=>i?)))
+        (match/nd: (-V → -ς) Vs
+          [V_g (↦indy C V_g V_xs l³)])])]
     ['•
      (define V_havoc (σ@₁ σ (-α.def havoc-id)))
      (define W_havoc (-W V_havoc (-ref havoc-id l)))

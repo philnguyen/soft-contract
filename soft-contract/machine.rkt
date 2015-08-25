@@ -24,15 +24,21 @@
     [body : -e]
     [ctx : Mon-Party]
     [old-dom : (Setof Symbol)])
-  (struct -φ.@ [es : (Listof -e)] [ρ : -ρ] [vs : (Listof -WV)] [ctx : Mon-Party])
+  (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
   (struct -φ.mon.v [val : (U -E -WV)] [mon-info : Mon-Info])
   (struct -φ.mon.c [ctc : (U -E -WV)] [mon-info : Mon-Info])
-  (struct -φ.indy
-    [c : (Listof -WV)] [x : (Listof -WV)] [x↓ : (Listof -WV)]
-    [d : (U #f -↓)] [mon-info : Mon-Info])
+  (struct -φ.indy.dom
+    [pending : Symbol]
+    [doms : (Listof (Pairof Symbol -WV))]
+    [args : (Listof -WV)]
+    [args↓ : (Listof (Pairof Symbol -WV))]
+    [fun : -V]
+    [rng : -↓]
+    [mon-info : Mon-Info])
+  (struct -φ.indy.rng [fun : -V] [args : (Listof -WV)] [min-info : Mon-Info])
   (struct -φ.rt [Γ : -Γ] [e : -?e])
   (struct -φ.rt.dom [old : (Setof Symbol)])
   ;; contract stuff

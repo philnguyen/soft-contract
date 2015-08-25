@@ -125,6 +125,8 @@
 ;; closure forms
 (define-data -E
   (struct -↓ [e : -e] [ρ : -ρ])
+  ; `V` doesn't have any reference back to `E`, so it's not recursive
+  (struct -Mon [c : -V] [v : -V] [info : Mon-Info])
   (subset: -Ans
     -blm
     -WVs))
@@ -237,6 +239,16 @@
     [(= 1 (set-count Vs)) (set-first Vs)]
     [else (error 'Internal "expect exactly 1 value at address ~a, given ~a"
                  α (set-count Vs))]))
+
+(: σ@/list : -σ (Listof -α) → (Setof (Listof -V)))
+;; Look up store, return every possible list of values
+(define (σ@/list σ αs)
+  (match αs
+    ['() {set (list)}]
+    [(cons α βs)
+     (define Vss (σ@/list σ βs))
+     (for*/set: : (Setof (Listof -V)) ([V (σ@ σ α)] [Vs Vss])
+       (cons V Vs))]))
 
 ;;;;; Summarization table
 (struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
