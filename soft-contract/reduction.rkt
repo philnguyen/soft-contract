@@ -507,8 +507,18 @@
         (error '↦mon "μ/c")]
        [(-X/C x)
         (error '↦mon "ref")]
-       [(-St (-id 'and/c 'Λ) αs)
-        (error '↦mon "and/c")]
+       [(-St (-id 'and/c 'Λ) (list γ₁ γ₂))
+        (define Cs₁ (σ@ σ γ₁))
+        (define Cs₂ (σ@ σ γ₂))
+        (match/nd: (-V → -ς) Cs₁
+          [C₁
+           (match/nd: (-V → -ς) Cs₂
+             [C₂
+              ;; TODO: more precise splitting `(and/c _₁ _₂) --> _₁, _₂`
+              (define φ* (-φ.mon.v (-W C₂ #f) l³))
+              (define τ* (-τ (-Mon C₁ V l³) Γ))
+              (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
+              (↦mon (-W C₁ #f) W_v Γ τ* σ Ξ* M l³)])])]
        [(-St (-id 'or/c 'Λ) αs)
         (error '↦mon "or/c")]
        [(-St (-id 'not/c 'Λ) (list α))
