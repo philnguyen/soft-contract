@@ -93,7 +93,7 @@
            (define ans
              (match* ((Γ⊢oW Γ 'number? W₁) (Γ⊢oW Γ 'number? W₂))
                [('X _) ans-bad₁]
-               [(_ 'X) {set ans-bad₁ ans-bad₂}]
+               [(_ 'X) ans-bad₂]
                [('✓ '✓) ans-ok]
                [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
                [('? '✓) {set ans-bad₁ ans-ok}]
@@ -122,7 +122,7 @@
            (define ans
              (match* ((Γ⊢oW Γ 'number? W₁) (Γ⊢oW Γ 'number? W₂))
                [('X _) ans-bad₁]
-               [(_ 'X) {set ans-bad₁ ans-bad₂}]
+               [(_ 'X) ans-bad₂]
                [('✓ '✓) ans-ok]
                [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
                [('? '✓) {set ans-bad₁ ans-ok}]
@@ -151,7 +151,7 @@
            (define ans
              (match* ((Γ⊢oW Γ 'number? W₁) (Γ⊢oW Γ 'number? W₂))
                [('X _) ans-bad₁]
-               [(_ 'X) {set ans-bad₁ ans-bad₂}]
+               [(_ 'X) ans-bad₂]
                [('✓ '✓) ans-ok]
                [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
                [('? '✓) {set ans-bad₁ ans-ok}]
