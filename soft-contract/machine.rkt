@@ -29,8 +29,8 @@
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
-  (struct -φ.mon.v [val : (U -E -WV)] [mon-info : Mon-Info])
-  (struct -φ.mon.c [ctc : (U -E -WV)] [mon-info : Mon-Info])
+  (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info])
+  (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info])
   (struct -φ.indy.dom
     [pending : Symbol]
     [doms : (Listof (Pairof Symbol -WV))]

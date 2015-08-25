@@ -270,6 +270,7 @@
          [else
           (define φ* (-φ.mon.v W_C l³))
           (-ς/pushed E Γ φ* τ σ Ξ M)]))]
+    ; waiting on the value to be checked
     [(-φ.mon.v C (and l³ (list l+ _ lo)))
      (with-guarded-arity 1 l+ lo
        (match-define (list V) Vs)
@@ -391,7 +392,7 @@
        (define rngs (σ@ σ α))
        (match/nd: (-V → -ς) rngs
          [rng
-          (define φ₁ (-φ.mon.c (-W rng #f) l³))
+          (define φ₁ (-φ.mon.v (-W rng #f) l³))
           (define τ₁ (-τ (list 'mon-res (-W (list rng) #f)) Γ))
           (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
           (match/nd: ((Listof -V) → -ς) doms
