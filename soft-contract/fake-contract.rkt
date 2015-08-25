@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require (except-in racket/contract/base
-                    -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract
+                    -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
                     one-of/c =/c >/c >=/c </c <=/c not/c cons/c
                     recursive-contract)
          (for-syntax racket/base)
@@ -10,7 +10,7 @@
          (prefix-in r: racket/base))
 
 (provide (all-from-out racket/contract/base) provide
-         -> ->i and/c or/c any/c list/c listof struct/c ->* provide/contract contract-out
+         -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out
          recursive-contract
          dynamic-provide/contract
          dynamic->i
@@ -25,6 +25,7 @@
     [(_ s) (syntax-property #'s 'scv:ignore #t)]))
 
 (define any/c c:any/c)
+(define none/c c:none/c)
 (define listof c:listof)
 (define and/c c:and/c)
 (define or/c c:or/c)

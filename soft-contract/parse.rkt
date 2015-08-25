@@ -231,6 +231,7 @@
 
     ;; primitive contracts
     [(~literal fake:any/c) -any/c]
+    [(~literal fake:none/c) -none/c]
     
     ;; Literals
     [v:str (-b (syntax->datum #'v))]
