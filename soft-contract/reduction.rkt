@@ -14,6 +14,8 @@
     [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
     [(-ς (-Mon C V l³) Γ τ σ Ξ M)
      (↦mon (-W C #f) (-W V #f) Γ τ σ Ξ M l³)]
+    [(-ς (-FC C V l) Γ τ σ Ξ M)
+     (↦FC C V Γ τ σ Ξ M l)]
     [(-ς (? -W? W) Γ τ σ Ξ M)
      (match/nd: #:tag ↦ (-κ → -ς) (hash-ref Ξ τ)
        [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M)])]
@@ -519,15 +521,62 @@
               (define τ* (-τ (-Mon C₁ V l³) Γ))
               (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
               (↦mon (-W C₁ #f) W_v Γ τ* σ Ξ* M l³)])])]
-       [(-St (-id 'or/c 'Λ) αs)
-        (error '↦mon "or/c")]
+       [(-St (-id 'or/c 'Λ) (list γ₁ γ₂))
+        (define Cs₁ (σ@ σ γ₁))
+        (define Cs₂ (σ@ σ γ₂))
+        (match/nd: (-V → -ς) Cs₁
+          [C₁
+           (cond
+             [(C-flat? σ C₁)
+              (match/nd: (-V → -ς) Cs₂
+                [C₂
+                 (define φ (-φ.if (-Mon C₂ V l³) (-blm l+ lo C₁ (list V))))
+                 (define E* (-FC C₁ V lo))
+                 (define τ* (-τ E* Γ))
+                 (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
+                 (-ς E* Γ τ σ Ξ* M)])]
+             [else
+              (-ς (-blm lo 'Λ #|hack|# (-st-p (-id 'flat-contract? 'Λ) 1) (list C₁))
+                  Γ τ σ Ξ M)])])]
        [(-St (-id 'not/c 'Λ) (list α))
-        (error '↦mon "not/c")]
+        (match/nd: (-V → -ς) (σ@ σ α)
+          [C*
+           (cond
+             [(C-flat? σ C*)
+              (define φ (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)))
+              (-ς/pushed (-FC C* V lo) Γ φ τ σ Ξ M)]
+             [else
+              (-ς (-blm lo 'Λ #|hack|# (-st-p (-id 'flat-contract? 'Λ) 1) (list C*))
+                  Γ τ σ Ξ M)])])]
        [_
         (define φ* (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))))
         (define τ* (-τ (list '@ (-W (list C) e_c) (-W (list V) e_v)) Γ))
         (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
         (↦@ W_c (list W_v) Γ τ* σ Ξ* M lo)])]))
+
+(: ↦FC : -V -V -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
+;; Stepping rules for monitoring flat contracts
+(define (↦FC C V Γ τ σ Ξ M l)
+  (match C
+    [(-St (-id (and t (or 'and/c 'or/c)) 'Λ) (list γ₁ γ₂))
+     (define Cs₁ (σ@ σ γ₁))
+     (define Cs₂ (σ@ σ γ₂))
+     (match/nd: (-V → -ς) Cs₁
+       [C₁
+        (match/nd: (-V → -ς) Cs₂
+          [C₂
+           (define φ
+             (match t
+               ['and/c (-φ.if (-FC V C₂ l) (-W (list -ff) -ff))]
+               ['or/c  (-φ.if (-W (list -tt) -tt) (-FC V C₂ l))]))
+           (-ς/pushed (-FC C₁ V l) Γ φ τ σ Ξ M)])])]
+    [(-St (-id 'not/c 'Λ) (list γ))
+     (match/nd: (-V → -ς) (σ@ σ γ)
+       [C*
+        (define φ (-φ.@ '() (list (-W 'not 'not)) 'Λ))
+        (-ς/pushed (-FC C* V l) Γ φ τ σ Ξ M)])]
+    ;; FIXME recursive contract
+    [_ (↦@ (-W C #f) (list (-W V #f)) Γ τ σ Ξ M l)]))
 
 (: -ς/pushed (case-> [-E    -Γ -φ -τ -σ -Ξ -M → -ς]
                      [-e -ρ -Γ -φ -τ -σ -Ξ -M → -ς]))

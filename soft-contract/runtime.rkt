@@ -127,6 +127,7 @@
   (struct -↓ [e : -e] [ρ : -ρ])
   ; `V` doesn't have any reference back to `E`, so it's not recursive
   (struct -Mon [c : -V] [v : -V] [info : Mon-Info])
+  (struct -FC [c : -V] [v : -V] [lo : Mon-Party])
   (subset: -Ans
     -blm
     -WVs))
@@ -150,6 +151,21 @@
 (: -⇓ : -e -ρ → -↓)
 ;; Close expression with restricted environment
 (define (-⇓ e ρ) (-↓ e (ρ↓ ρ (FV e))))
+
+(: C-flat? : -σ -V → Boolean)
+;; Check whether value is a flat contract
+(define (C-flat? σ V)
+  (define (C-flat/list? [αs : (Listof -α)]) : Boolean
+    ;; TODO: can't do for*/and in TR
+    (for/and ([α αs])
+      (for/and : Boolean ([V (σ@ σ α)])
+        (C-flat? σ V))))
+  (match V
+    [(-St (-id (or 'and/c 'or/c 'not/c) 'Λ) αs) (C-flat/list? αs)]
+    [(-St/C _ αs) (C-flat/list? αs)]
+    [(or (? -=>?) (? -=>i?)) #f]
+    [(-μ/C _ α) (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
+    [_ #t]))
 
 
 ;;;;; ENVIRONMENT
