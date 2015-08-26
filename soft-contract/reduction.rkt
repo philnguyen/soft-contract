@@ -17,8 +17,11 @@
     [(-ς (-FC C V l) Γ τ σ Ξ M)
      (↦FC C V Γ τ σ Ξ M l)]
     [(-ς (? -W? W) Γ τ σ Ξ M)
-     (match/nd: #:tag ↦ (-κ → -ς) (hash-ref Ξ τ)
+     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
        [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M)])]
+    [(-ς (? -blm? blm) Γ τ σ Ξ M)
+     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
+       [(-κ φ τ*) (↦blm blm Γ φ τ* σ Ξ M)])]
     [ς (error '↦ "unexpected: ~a" ς)]))
 
 (: ↦e : -e -ρ -Γ -τ -σ -Ξ -M → -ς*)
@@ -78,7 +81,7 @@
      (match bnds
        ['() (-ς (-↓ e* ρ) Γ τ σ Ξ M)]
        [(cons (cons xs eₓ) bnds*)
-        (define φ (-φ.let-values xs bnds* (hash) ρ e l))
+        (define φ (-φ.let-values xs bnds* (hash) ρ e* l))
         (-ς/pushed eₓ ρ Γ φ τ σ Ξ M)])]
     ;; letrec-values
     [(-letrec-values bnds e l)
@@ -382,6 +385,15 @@
            (-ς/pushed dom ρ Γ φ* τ σ Ξ M)])]
        [else (error '↦WVs "TODO: catch arity error for -->i")])]
     ))
+
+(: ↦blm : -blm -Γ -φ -τ -σ -Ξ -M → -ς*)
+;; Either propagate error or eliminate a spurious one
+(define (↦blm blm Γ φ τ σ Ξ M)
+  (match φ
+    [(-φ.rt Γ₀ e₀)
+     ;; TODO eliminate spurious one
+     (-ς blm Γ τ σ Ξ M)]
+    [_ (-ς blm Γ τ σ Ξ M)]))
 
 (: ↦@ : -WV (Listof -WV) -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
 ;; Stepping rules for function application
