@@ -47,42 +47,44 @@
 
 
 ;;;;; For testing only
-
-(: ξ-subtract : -ξ -ξ → -ξ)
-;; Compute new stuff in `ξ₁` not in `ξ₀`
-(define (ξ-subtract ξ₁ ξ₀)
-  (match-define (-ξ Cs₀ σ₀ Ξ₀ M₀) ξ₀)
-  (match-define (-ξ Cs₁ σ₁ Ξ₁ M₁) ξ₁)
-  (-ξ (set-subtract Cs₁ Cs₀)
-      (mmap-subtract σ₁ σ₀)
-      (mmap-subtract Ξ₁ Ξ₀)
-      (mmap-subtract M₁ M₀)))
-
-(: dbg/ξ : Path-String → (Values (Integer → -ξ) (Integer Integer → -ξ) (Setof -Cfg)))
-(define (dbg/ξ p)
-  (define ξ₀ (𝑰/ξ (files->prog (list p))))
+(begin
   
-  (define-values (ξ evals)
-    (let go : (Values -ξ (Map Integer -ξ))
-         ([ξ ξ₀] [i 1] [evals : (Map Integer -ξ) (hash 0 ξ₀)])
-      (define ξ* (↦/ξ ξ))
-      (cond
-        [ξ* (go ξ* (+ i 1) (hash-set evals i ξ*))]
-        [else (values ξ evals)])))
-  
-  (define (step [n : Integer]) : -ξ
-    (hash-ref evals n (λ () (error 'dbg/ξ "undefined for ~a" (hash-count evals)))))
-  
-  (define (diff [n₀ : Integer] [n₁ : Integer]) : -ξ
-    (ξ-subtract (step n₁) (step n₀)))
+  (: ξ-subtract : -ξ -ξ → -ξ)
+  ;; Compute new stuff in `ξ₁` not in `ξ₀`
+  (define (ξ-subtract ξ₁ ξ₀)
+    (match-define (-ξ Cs₀ σ₀ Ξ₀ M₀) ξ₀)
+    (match-define (-ξ Cs₁ σ₁ Ξ₁ M₁) ξ₁)
+    (-ξ (set-subtract Cs₁ Cs₀)
+        (mmap-subtract σ₁ σ₀)
+        (mmap-subtract Ξ₁ Ξ₀)
+        (mmap-subtract M₁ M₀)))
 
-  (define answers
-    (let ()
-      (match-define (-ξ Cs* _ Ξ* _) (hash-ref evals (- (hash-count evals) 1)))
+  (: dbg/ξ : Path-String → (Values (Integer → -ξ) (Integer Integer → -ξ) (Setof -Cfg)))
+  (define (dbg/ξ p)
+    (define ξ₀ (𝑰/ξ (files->prog (list p))))
+    
+    (define-values (ξ evals)
+      (let go : (Values -ξ (Map Integer -ξ))
+           ([ξ ξ₀] [i 1] [evals : (Map Integer -ξ) (hash 0 ξ₀)])
+           (define ξ* (↦/ξ ξ))
+           (cond
+             [ξ* (go ξ* (+ i 1) (hash-set evals i ξ*))]
+             [else (values ξ evals)])))
+    
+    (define (step [n : Integer]) : -ξ
+      (hash-ref evals n (λ () (error 'dbg/ξ "undefined for ~a" (hash-count evals)))))
+    
+    (define (diff [n₀ : Integer] [n₁ : Integer]) : -ξ
+      (ξ-subtract (step n₁) (step n₀)))
 
-      (for*/set: : (Setof -Cfg) ([C Cs*] #:when (Cfg-final? C Ξ*))
-        C)))
-  
-  (values step diff answers))
+    (define answers
+      (let ()
+        (match-define (-ξ Cs* _ Ξ* _) (hash-ref evals (- (hash-count evals) 1)))
 
-(define-values (f s ans) (dbg/ξ "test/programs/safe/1.rkt"))
+        (for*/set: : (Setof -Cfg) ([C Cs*] #:when (Cfg-final? C Ξ*))
+          C)))
+    
+    (values step diff answers))
+
+  (define-values (f s ans) (dbg/ξ "test/programs/safe/1.rkt"))
+  )
