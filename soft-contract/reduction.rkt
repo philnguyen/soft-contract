@@ -534,7 +534,7 @@
                  (define E* (-FC C₁ V lo))
                  (define τ* (-τ E* Γ))
                  (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
-                 (-ς E* Γ τ σ Ξ* M)])]
+                 (-ς E* Γ τ* σ Ξ* M)])]
              [else
               (-ς (-blm lo 'Λ #|hack|# (-st-p (-id 'flat-contract? 'Λ) 1) (list C₁))
                   Γ τ σ Ξ M)])])]
