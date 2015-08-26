@@ -113,7 +113,6 @@
   
   ;; contract stuff
   (struct -μ/c [x : Symbol] [c : -e])
-  (struct --> [dom : (Listof -e)] [rng : -e]) ; non-dependent function contract
   (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e]) ; dependent function contract
   (struct -x/c [x : Symbol])
   (struct -struct/c [tag : -id] [fields : (Listof -e)])
@@ -145,6 +144,15 @@
 (define -box? (-st-p (-id 'box 'Λ) 1))
 (define -unbox (-st-ac (-id 'box 'Λ) 1 0))
 (define -box (-st-mk (-id 'box 'Λ) 1))
+
+(: --> : (Listof -e) -e → -e)
+;; Make a non-dependent contract as a special case of dependent contract
+(define (--> cs d)
+  (define doms
+    (for/list : (Listof (Pairof Symbol -e)) ([c cs] [i (in-naturals)])
+      (define x (string->symbol (format "■~a" (n-sub i)))) ; hack
+      (cons x c)))
+  (-->i doms d))
 
 ;; Current restricted representation of program
 (struct -prog ([modules : (Listof -module)] [main : -e]) #:transparent)
@@ -193,9 +201,6 @@
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (FV e)))]
     [(-μ/c x e) (set-remove (FV e) x)]
-    [(--> cs d)
-     (for/fold ([xs : (Setof Symbol) (FV d)]) ([c cs])
-       (∪ xs (FV c)))]
     [(-->i doms rng)
      (define-values (bound FV_dom)
        (for/fold ([bound : (Setof Symbol) ∅] [FV_dom : (Setof Symbol) ∅]) ([dom doms])
@@ -247,7 +252,6 @@
        (checks# e))]
    [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
    [(-μ/c _ c) (checks# c)]
-   [(-->  cs d) (+ (checks# cs) (checks# d))]
    [(-->i cs d) (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs)) (checks# d))]
    [(-struct/c _ cs) (checks# cs)]
 
@@ -441,7 +445,6 @@
     [(-@-havoc (-x z)) (if (equal? z x) 1 0)]
     [(-amb es) (for/sum : Integer ([e es]) (count-xs e x))]
     [(-μ/c z c) (if (equal? z x) 0 (count-xs c x))]
-    [(--> doms rng) (+ (count-xs doms x) (count-xs rng x))]
     [(-->i doms rng)
      (define-values (bound k)
        (for/fold ([bound : (Setof Symbol) ∅] [k : Integer 0]) ([dom doms])
@@ -518,7 +521,6 @@
        (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
       [(-μ/c z c) (set-remove (go c) z)]
-      [(-->  cs d) (∪ (go* cs) (go d))]
       [(-->i cs d) (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs)) (go d))]
       [(-struct/c t cs) (go* cs)]
       [(-x/c x) (set x)]

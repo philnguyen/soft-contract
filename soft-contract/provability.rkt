@@ -72,7 +72,7 @@
     [(? -•?) '?]
     [(? -v?) '✓]
     ;; constructors
-    [(or (? -μ/c?) (? -->?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
+    [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
     ;; special cases
     [(-@ (or '= 'equal?) (list e e) _) '✓]
     ;; ariths
@@ -189,7 +189,7 @@
              (equal? 'X (Γ⊢e Γ (-?@ 'procedure? (list e))))]
             [(-b (? p?))
              (equal? 'X (Γ⊢e Γ (-?@ 'p? (list e))))] ...
-            [(or (? -=>?) (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
+            [(or (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
              (for/or : Boolean ([p : -o '(procedure? p? ...)])
                (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
             [_ #f])]

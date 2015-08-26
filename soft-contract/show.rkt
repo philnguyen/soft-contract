@@ -32,7 +32,6 @@
     [(-st (-id 'not/c 'Λ) V*) `(not/c ,@(show-Vs σ V*))]
     |#
     [(-St t αs) `(,(-id-name t) ,@(show-αs σ αs))]
-    [(-=> γs α) `(,@(show-αs σ γs) ↦ ,(show-α σ α))]
     [(-=>i doms e ρ Γ) `(,@(for/list : (Listof Sexp) ([dom doms])
                               (match-define (cons x γ) dom)
                               `(,x : ,(show-α σ γ)))
@@ -132,7 +131,6 @@
       [(-if i t e) `(if ,(go i) ,(go t) ,(go e))]
       [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (go e)))]
       [(-μ/c x c) `(μ/c (,x) ,(go c))]
-      [(-->  doms rng) `(,@(map go doms) ↦ ,(go rng))]
       [(-->i doms rng) `(,@(for/list : (Listof Sexp) ([dom doms])
                              (match-define (cons x c) dom)
                              `(,x : ,(go c)))

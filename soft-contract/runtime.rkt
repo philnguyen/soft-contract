@@ -62,11 +62,6 @@
   (and (andmap (inst values -?e) fields)
        (-struct/c id (cast fields (Listof -e)))))
 
-(: -?-> : (Listof -?e) -?e → (Option -->))
-(define (-?-> cs d)
-  (and d (andmap (inst values -?e) cs)
-       (--> (cast cs (Listof -e)) d)))
-
 (: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
 (define (-?->i xs cs d)
   (and d (andmap (inst values -?e) cs)
@@ -91,6 +86,74 @@
   (for/fold ([xs : (Setof Symbol) ∅]) ([e : -e Γ])
     (set-union xs (FV e))))
 
+(: e/ : -e Symbol -e → -e)
+(define (e/ e x eₓ)
+  (let go ([e e])
+    (match e
+      [(-λ xs e*)
+       (cond [(binder-has? xs x) e]
+             [else (-λ xs (go e*))])]
+      [(-case-λ clauses)
+       (-case-λ
+        (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+          (match-define (cons xs e*) clause)
+          (cond [(binder-has? xs x) clause]
+                [else (cons xs (go e*))])))]
+      [(? -v?) e]
+      [(-x z) (if (equal? x z) eₓ e)]
+      [(? -ref?) e]
+      [(-@ f xs l) (-@ (go f) (map go xs) l)]
+      [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
+      [(-wcm k v b) (-wcm (go k) (go v) (go b))]
+      [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
+      [(? -quote?) e]
+      [(-let-values bnds e* l)
+       (define-values (bnds-rev locals)
+         (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+                    [locals : (Setof Symbol) ∅])
+                   ([bnd bnds])
+           (match-define (cons xs ex) bnd)
+           (values (cons (cons xs (go ex)) bnds-rev)
+                   (set-add-list locals xs))))
+       (define bnds* (reverse bnds-rev))
+       (define e**
+         (cond [(∋ locals x) e*]
+               [else (go e*)]))
+       (-let-values bnds* e** l)]
+      [(-letrec-values bnds e* l)
+       (define locals
+         (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
+           (set-add-list locals (car bnd))))
+       (cond
+         [(∋ locals x) e]
+         [else
+          (define bnds*
+            (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
+              (match-define (cons xs ex) bnd)
+              (cons xs (go ex))))
+          (-letrec-values bnds* (go e*) l)])]
+      [(-set! z e*) (-set! z (go e*))]
+      [(-amb es) (-amb (for/set: : (Setof -e) ([ei es]) (go ei)))]
+      [(-μ/c z c) (-μ/c z (go c))]
+      [(-->i doms rng)
+       (define-values (xs cs)
+         (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
+                    ([dom doms])
+           (values (car dom) (go (cdr dom)))))
+       (define rng*
+         (cond [(member x xs) rng]
+               [else (go rng)]))
+       (-->i (map (inst cons Symbol -e) xs cs) rng*)]
+      [(-struct/c t cs) (-struct/c t (map go cs))]
+      [_
+       (log-debug "e/: ignore substituting ~a" e)
+       e])))
+
+(: Γ/ : -Γ Symbol -e → -Γ)
+(define (Γ/ Γ x e)
+  (for/fold ([Γ* : -Γ Γ]) ([ei Γ])
+    (Γ+ Γ* (e/ ei x e))))
+
 
 ;;;;; CLOSURE
 
@@ -102,7 +165,6 @@
   (struct -Ar [c : -α] [v : -α] [l³ : Mon-Info])
   (struct -St [tag : -id] [fields : (Listof -α)])
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
-  (struct -=>  [dom : (Listof -α)] [rng : -α])
   (struct -=>i [dom : (Listof (Pairof Symbol -α))] [rng : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -St/C [t : -id] [fields : (Listof -α)])
   (struct -μ/C [x : Symbol] [c : -α])
@@ -163,7 +225,7 @@
   (match V
     [(-St (-id (or 'and/c 'or/c 'not/c) 'Λ) αs) (C-flat/list? αs)]
     [(-St/C _ αs) (C-flat/list? αs)]
-    [(or (? -=>?) (? -=>i?)) #f]
+    [(? -=>i?) #f]
     [(-μ/C _ α) (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
     [_ #t]))
 
