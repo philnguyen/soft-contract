@@ -27,9 +27,9 @@
      (define declarations
        (for/fold ([decs : (Listof Sexp) '()]) ([x FVs])
          (cond
-           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'integer? (list (-x x)))))
+           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'integer? (-x x))))
             (cons `(declare-const ,x Int) decs)]
-           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'real? (list (-x x)))))
+           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'real? (-x x))))
             (cons `(declare-const ,x Real) decs)]
            [else decs])))
      (define premises

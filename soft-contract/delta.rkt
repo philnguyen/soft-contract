@@ -48,7 +48,7 @@
      (with-guarded-arity 1
        (match-define (list (and W (-W V e))) Ws)
        (define prd (-st-p id n))
-       (define ok-arg? (-?@ prd (list e)))
+       (define ok-arg? (-?@ prd e))
        (define Γ-ok (Γ+ Γ ok-arg?))
        (define Γ-bad (Γ+ Γ (-not ok-arg?)))
        (define (blm-bad-arg) (-AΓ (-blm l (show-o o) prd (list V)) Γ-bad))
@@ -62,7 +62,7 @@
              (values σ AΓs)]
             [else (values σ (blm-bad-arg))])]
          ['•
-          (define query (-?@ (-st-p id n) (list e)))
+          (define query (-?@ (-st-p id n) e))
           (define ans
             (match (Γ⊢e Γ ok-arg?)
               ['✓ (-AΓ (list '•) (Γ+ Γ ok-arg?))]
@@ -91,8 +91,8 @@
        (list W₁ W₂)
        (match-define (-W V₁ e₁) W₁)
        (match-define (-W V₂ e₂) W₂)
-       (define ok-arg₁? (-?@ 'number? (list e₁)))
-       (define ok-arg₂? (-?@ 'number? (list e₂)))
+       (define ok-arg₁? (-?@ 'number? e₁))
+       (define ok-arg₂? (-?@ 'number? e₂))
        (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
        (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
        (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
@@ -120,8 +120,8 @@
        (match-define (list W₁ W₂) Ws)
        (match-define (-W V₁ e₁) W₁)
        (match-define (-W V₂ e₂) W₂)
-       (define ok-arg₁? (-?@ 'number? (list e₁)))
-       (define ok-arg₂? (-?@ 'number? (list e₂)))
+       (define ok-arg₁? (-?@ 'number? e₁))
+       (define ok-arg₂? (-?@ 'number? e₂))
        (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
        (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
        (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
@@ -149,8 +149,8 @@
        (match-define (list W₁ W₂) Ws)
        (match-define (-W V₁ e₁) W₁)
        (match-define (-W V₂ e₂) W₂)
-       (define ok-arg₁? (-?@ 'number? (list e₁)))
-       (define ok-arg₂? (-?@ 'number? (list e₂)))
+       (define ok-arg₁? (-?@ 'number? e₁))
+       (define ok-arg₂? (-?@ 'number? e₂))
        (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
        (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
        (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))

@@ -190,7 +190,7 @@
               (match-define (-W V ex) W)
               (define α (-α.bnd x ex Γ))
               (values (ρ+ ρ* x α)
-                      (Γ+ Γ* (-?@ 'equal? (list (-x x) ex)))
+                      (Γ+ Γ* (-?@ 'equal? (-x x) ex))
                       (⊔ σ* α V))))
           (define φ* (-φ.rt.let (dom ρ)))
           (-ς/pushed e ρ* Γ* φ* τ σ* Ξ M)]
@@ -207,7 +207,7 @@
                    ([x xs] [V Vs] [ex (split-values ?e n)])
            (define α (-α.bnd x ?e Γ))
            (values (ρ+ ρ* x α)
-                   (Γ+ Γ* (-?@ 'equal? (list (-x x) ex)))
+                   (Γ+ Γ* (-?@ 'equal? (-x x) ex))
                    (⊔ σ* α V))))
        (match bnds
          ;; proceed to letrec's body
@@ -288,7 +288,7 @@
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? φ Γ (-W Vs ?e)) ∅]
            [else
-            (define e_a (-?@ e_f e_xs))
+            (define e_a (apply -?@ e_f e_xs))
             (-ς (-W Vs e_a) Γ₀ τ σ Ξ M)])]
     ;; contract stuff
     [(-φ.μc x)
@@ -374,7 +374,7 @@
   (define-values (V_xs e_xs)
     (for/lists ([V_xs : (Listof -V)] [e_xs : (Listof -?e)]) ([W W_xs])
       (values (-W-x W) (-W-e W))))
-  (define e_a (-?@ e_f e_xs))
+  (define e_a (apply -?@ e_f e_xs))
   (match V_f
     [(? -o? o)
      (define-values (σ* AΓs) (δ σ Γ o W_xs l))
@@ -420,10 +420,10 @@
 
   (match (Γ⊢V∈C Γ W_v W_c)
     ['✓
-     (define Γ* (Γ+ Γ (-?@ e_c (list e_v))))
+     (define Γ* (Γ+ Γ (-?@ e_c e_v)))
      (-ς (-W (list V) e_v) Γ* τ σ Ξ M)]
     ['X
-     (define Γ* (Γ+ Γ (-not (-?@ e_c (list e_v)))))
+     (define Γ* (Γ+ Γ (-not (-?@ e_c e_v))))
      (-ς (-blm l+ lo C (list V)) Γ* τ σ Ξ M)]
     ['?
      (match C
@@ -561,7 +561,7 @@
   
   ; check whether the propositions from callee
   ; and caller contradict each other
-  (define e_a (-?@ e_f e_xs))
+  (define e_a (apply -?@ e_f e_xs))
   (define e_res (and ?e (convert ?e)))
   (or
    (and e_res (spurious? Γ₀ (-W Vs e_res)))

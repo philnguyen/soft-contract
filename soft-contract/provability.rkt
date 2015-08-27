@@ -11,7 +11,7 @@
 (define (Γ⊢V∈C Γ W_v W_c)
   (match-define (-W V e_v) W_v)
   (match-define (-W C e_c) W_c)
-  (or-R (V∈V V C) (Γ⊢e Γ (-?@ e_c (list e_v)))))
+  (or-R (V∈V V C) (Γ⊢e Γ (-?@ e_c e_v))))
 
 (: Γ⊢oW : -Γ -pred -WV → -R)
 ;; Check whether value `W` satisfies predicate `p`
@@ -173,14 +173,14 @@
         [e
          (match V
            [(-St id αs)
-            (equal? 'X (Γ⊢e Γ (-?@ (-st-mk id (length αs)) (list e))))]
+            (equal? 'X (Γ⊢e Γ (-?@ (-st-mk id (length αs)) e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
-            (equal? 'X (Γ⊢e Γ (-?@ 'procedure? (list e))))]
+            (equal? 'X (Γ⊢e Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
-            (equal? 'X (Γ⊢e Γ (-?@ 'p? (list e))))] ...
+            (equal? 'X (Γ⊢e Γ (-?@ 'p? e)))] ...
            [(or (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
             (for/or : Boolean ([p : -o '(procedure? p? ...)])
-              (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
+              (equal? '✓ (Γ⊢e Γ (-?@ p e))))]
            ['•
             (match e
               [(-not e*) (equal? '✓ (Γ⊢e Γ e*))]
@@ -211,7 +211,7 @@
 (define (Γ+/-W∈W Γ W_V W_P)
   (match-define (-W V e_v) W_V)
   (match-define (-W P e_p) W_P)
-  (define ψ (-?@ e_p (list e_v)))
+  (define ψ (-?@ e_p e_v))
   (define proved (or-R (V∈V V P) (Γ⊢e Γ ψ)))
   (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))

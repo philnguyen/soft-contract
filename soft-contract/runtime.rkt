@@ -16,7 +16,7 @@
 ;; convenient syntax for negation
 (define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
-  (syntax-rules () [(_ e) (-?@ 'not (list e))]))
+  (syntax-rules () [(_ e) (-?@ 'not e)]))
 
 (: Γ+ : -Γ -?e * → -Γ)
 ;; Extend fact environment
@@ -24,9 +24,9 @@
   (for/fold ([Γ* : -Γ Γ]) ([e es] #:when e)
     (set-add Γ* e)))
 
-(: -?@ : -?e (Listof -?e) → -?e)
+(: -?@ : -?e -?e * → -?e)
 ;; Smart constructor for application
-(define (-?@ f xs)
+(define (-?@ f . xs)
 
   (: access-same-value? : -id Integer (Listof -?e) → (Option -e))
   (define (access-same-value? id n es)
@@ -78,7 +78,7 @@
      (cond [(= 1 n) (list e)]
            [else #|hack|#
             (for/list ([i (in-range n)])
-              (-?@ (-st-ac (-id 'values 'Λ) n i) (list e)))])]
+              (-?@ (-st-ac (-id 'values 'Λ) n i) e))])]
     [_ (make-list n #f)]))
 
 (: FV-Γ : -Γ → (Setof Symbol))
