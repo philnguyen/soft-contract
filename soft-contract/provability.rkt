@@ -1,15 +1,11 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
-#;(provide defines? all-prove? all-refute? some-proves? some-refutes?
-         ⊢ Γ⊢ Γ⊢₀ Γ⊢ₑₓₜ σ⊢)
 (provide Γ⊢V∈C Γ⊢oW Γ⊢e e⊢e ⊢e V∈p V≡ Γ⊢e≡
-         split-Γ split-Γ/Ve spurious? or-R not-R decide-R)
+         Γ⊓ Γ⊓e Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R)
 
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
-  (make-parameter (λ (Γ e)
-                    (log-error "external solver not set")
-                    '?)))
+  (make-parameter (λ (Γ e) (log-error "external solver not set") '?)))
 
 (: Γ⊢V∈C : -Γ -WV -WV → -R)
 (define (Γ⊢V∈C Γ W_v W_c)
@@ -164,61 +160,75 @@
    [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
    [(_ _) '?]))
 
-(: spurious? : -Γ -?e (U -V -Vs) → Boolean)
+(: spurious? : -Γ -WVs → Boolean)
 ;; Check whether `e` cannot evaluate to `V` given `Γ` is true
 ;;   return #t --> `(e ⇓ V)` is spurious
 ;;   return #f --> don't know (safe answer)
-(define (spurious? Γ e V)
-  (cond
-    [(list? V)
-     (match e
-       [(-@ 'values es _)
-        (implies
-         (= (length es) (length V))
-         (for/or : Boolean ([ei es] [Vi V])
-           (spurious? Γ ei Vi)))]
-       [_ #f])]
-    [else
-     (define-syntax-rule (with-prim-checks p? ...)
-       (cond
-         [e
-          (match V
-            [(-St id αs)
-             (equal? 'X (Γ⊢e Γ (-?@ (-st-mk id (length αs)) (list e))))]
-            [(or (? -Clo?) (? -Ar?) (? -o?))
-             (equal? 'X (Γ⊢e Γ (-?@ 'procedure? (list e))))]
-            [(-b (? p?))
-             (equal? 'X (Γ⊢e Γ (-?@ 'p? (list e))))] ...
-            [(or (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
-             (for/or : Boolean ([p : -o '(procedure? p? ...)])
-               (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
-            ['•
-             (match e
-               [(-not e*) (equal? '✓ (Γ⊢e Γ e*))]
-               [_ #f])]
-            [_ #f])]
-         [else #f]))
-     ;; order matters for precision, in the presence of subtypes
-     (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?)]))
+(define (spurious? Γ W)
 
-(: split-Γ : -Γ -V -?e → (Values (Option -Γ) (Option -Γ)))
-;; Join the environment with `V@e` and `¬(V@e)`
-(define (split-Γ Γ V e)
+  (: spurious*? : -?e -V → Boolean)
+  (define (spurious*? e V)
+    (define-syntax-rule (with-prim-checks p? ...)
+      (cond
+        [e
+         (match V
+           [(-St id αs)
+            (equal? 'X (Γ⊢e Γ (-?@ (-st-mk id (length αs)) (list e))))]
+           [(or (? -Clo?) (? -Ar?) (? -o?))
+            (equal? 'X (Γ⊢e Γ (-?@ 'procedure? (list e))))]
+           [(-b (? p?))
+            (equal? 'X (Γ⊢e Γ (-?@ 'p? (list e))))] ...
+           [(or (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
+            (for/or : Boolean ([p : -o '(procedure? p? ...)])
+              (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
+           ['•
+            (match e
+              [(-not e*) (equal? '✓ (Γ⊢e Γ e*))]
+              [_ #f])]
+           [_ #f])]
+        [else #f]))
+    
+    ;; order matters for precision, in the presence of subtypes
+    (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
+  
+  (match-define (-W Vs e) W)
+  (match e
+    [(-@ 'values es _)
+     (implies (= (length es) (length Vs))
+              (ormap spurious*? es Vs))]
+    [_ #f]))
+
+(: Γ+/-W : -Γ -WV → (Values (Option -Γ) (Option -Γ)))
+;; Like `(Γ ⊓ W)` and `(Γ ⊓ ¬W)`, probably faster
+(define (Γ+/-W Γ W)
+  (match-define (-W V e) W)
   (define proved (or-R (⊢V V) (Γ⊢e Γ e)))
-  (define Γ_t* (if (equal? 'X proved) #f (Γ+ Γ e)))
-  (define Γ_f* (if (equal? '✓ proved) #f (Γ+ Γ (-not e))))
-  (values Γ_t* Γ_f*))
+  (values (if (equal? 'X proved) #f (Γ+ Γ e))
+          (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 
-(: split-Γ/Ve : -Γ -WV -WV → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-W∈W : -Γ -WV -WV → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `V∈P` and `V∉P`
-(define (split-Γ/Ve Γ W_V W_P)
+(define (Γ+/-W∈W Γ W_V W_P)
   (match-define (-W V e_v) W_V)
   (match-define (-W P e_p) W_P)
   (define ψ (-?@ e_p (list e_v)))
   (define proved (or-R (V∈V V P) (Γ⊢e Γ ψ)))
-  (define Γ_t* (if (equal? 'X proved) #f (Γ+ Γ ψ)))
-  (define Γ_f* (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ))))
-  (values Γ_t* Γ_f*))
+  (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
+          (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
+
+(: Γ⊓ : -Γ -Γ → (Option -Γ))
+;; Join fact environments. Return `#f` to represent the bogus environment (⊥)
+(define (Γ⊓ Γ₀ Γ₁)
+  (for/fold ([Γ : (Option -Γ) Γ₀]) ([e Γ₁])
+    (and Γ (Γ⊓e Γ e))))
+
+(: Γ⊓e : -Γ -?e → (Option -Γ))
+;; Refine fact environment with expression.
+;; Note: `∅` is `⊤` (no assumption), `#f` is `⊥` (spurious, anything is true).
+;; The operation doesn't guarantee absolute precision.
+;; In general, it returns an upperbound of the right answer.
+(define (Γ⊓e Γ e)
+  (if (equal? 'X (Γ⊢e Γ e)) #f (Γ+ Γ e)))
 
 (: not-R : -R → -R)
 ;; Negate provability result

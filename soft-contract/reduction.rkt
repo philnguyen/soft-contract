@@ -38,8 +38,10 @@
        ['undefined
         (-ς (-blm 'TODO 'undefined 'defined? (list (-b 'undefined))) Γ τ σ Ξ M)]
        [α
-        (for/set: : (Setof -ς) ([V (σ@ σ α)] #:unless (spurious? Γ x V))
-          (-ς (-W (list V) x) Γ τ σ Ξ M))])]
+        (for*/set: : (Setof -ς) ([V (σ@ σ α)]
+                                 [W (in-value (-W (list V) x))]
+                                 #:unless (spurious? Γ W))
+          (-ς W Γ τ σ Ξ M))])]
     ;; look up top-level reference
     [(and ref (-ref (and id (-id name ctx*)) ctx))
      (cond
@@ -162,7 +164,7 @@
     [(-φ.if E₁ E₂)
      (match Vs
        [(list V)
-        (define-values (Γ_t Γ_f) (split-Γ Γ V ?e))
+        (define-values (Γ_t Γ_f) (Γ+/-W Γ (-W V ?e)))
         (define ς_t (and Γ_t (-ς E₁ Γ_t τ σ Ξ M)))
         (define ς_f (and Γ_f (-ς E₂ Γ_f τ σ Ξ M)))
         (cond
@@ -284,7 +286,7 @@
        (error '↦WVs "TODO: indy"))]
     ;; restore fact environment
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
-     (cond [(rt-spurious? φ Γ Vs ?e) ∅]
+     (cond [(rt-spurious? φ Γ (-W Vs ?e)) ∅]
            [else
             (define e_a (-?@ e_f e_xs))
             (-ς (-W Vs e_a) Γ₀ τ σ Ξ M)])]
@@ -427,7 +429,7 @@
      (match C
        [(-=>i doms rng ρ_c Γ_c)
         ;; TODO: check for arity also
-        (define-values (Γ-ok Γ-bad) (split-Γ/Ve Γ W_v (-W 'procedure? 'procedure?)))
+        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W Γ W_v (-W 'procedure? 'procedure?)))
         (define ς-ok
           (and Γ-ok
                (let ()
@@ -541,16 +543,13 @@
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
      (-ς E Γ τ* σ Ξ* M)]))
 
-(: rt-spurious? ([-φ.rt.@ -Γ] [-Vs -?e] . ->* . Boolean))
+(: rt-spurious? ([-φ.rt.@ -Γ] [-WVs] . ->* . Boolean))
 ;; Check whether a returned result is spurious
-(define (rt-spurious? φ Γ [Vs '()] [?e #f])
+(define (rt-spurious? φ Γ [W (-W '() #f)])
+  (match-define (-W Vs ?e) W)
   (match-define (-φ.rt.@ Γ₀ xs e_f e_xs) φ)
-  (printf "Return:~nparams: ~a~nfun: ~a~nargs: ~a~n" xs e_f e_xs)
   (define params ; only care params that have corresponding args
     (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
-  (printf "Care about: ~a~n" params)
-  (printf "Facts from application: ~a~n" Γ)
-  (printf "Facts from caller: ~a~n" Γ₀)
 
   ; Convert facts about parameters in new environment
   ; to facts about arguments in old environment
@@ -558,7 +557,6 @@
   (define (convert [e : -e]) : -e
     (for/fold ([e* : -e e]) ([x xs] [e_x e_xs] #:when e_x)
       (define e** (e/ e* x e_x))
-      (printf "~a [~a ↦ ~a] = ~a~n" e* x e_x e**)
       e**))
   
   ; check whether the propositions from callee
@@ -566,13 +564,10 @@
   (define e_a (-?@ e_f e_xs))
   (define e_res (and ?e (convert ?e)))
   (or
-   (and e_res (spurious? Γ₀ e_res Vs))
-   (spurious? Γ₀ e_a Vs)
+   (and e_res (spurious? Γ₀ (-W Vs e_res)))
+   (spurious? Γ₀ (-W Vs e_a))
    (for/or : Boolean ([e Γ] #:when (⊆ (FV e) params))
-     (define e* (convert e))
-     (define ans (spurious? Γ₀ e* '•))
-     (printf "Convert ~a into ~a, checked whether is spurious: ~a~n" e e* ans)
-     ans)))
+     (spurious? Γ₀ (-W (list '•) (convert e))))))
 
 
 ;;;;; For testing only
