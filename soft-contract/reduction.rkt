@@ -284,31 +284,10 @@
        (error '↦WVs "TODO: indy"))]
     ;; restore fact environment
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
-     (printf "Return:~nparams: ~a~nfun: ~a~nargs: ~a~n" xs e_f e_xs)
-     (define params ; only care params that have corresponding args
-       (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
-     (printf "Care about: ~a~n" params)
-
-     ; Convert facts about parameters in new environment
-     ; to facts about arguments in old environment
-     ; PRECOND: (FV e) ⊆ params
-     (define (convert [e : -e]) : -e
-       (for/fold ([e* : -e e]) ([x xs] [e_x e_xs] #:when e_x)
-         (e/ e* x e_x)))
-     
-     ; check whether the propositions from callee
-     ; and caller contradict each other
-     (define e_a (-?@ e_f e_xs))
-     (define spurious-branch?
-       (or (spurious? Γ₀ e_a Vs)
-           (for/or : Boolean ([e Γ] #:when (⊆ (FV e) params))
-             (define e* (convert e))
-             (printf "Checking whether ~a is spurious~n" e*)
-             (spurious? Γ₀ e* '•))))
-
-     ; Discard spurious results
-     (cond [spurious-branch? ∅]
-           [else (-ς (-W Vs e_a) Γ₀ τ σ Ξ M)])]
+     (cond [(rt-spurious? φ Γ Vs ?e) ∅]
+           [else
+            (define e_a (-?@ e_f e_xs))
+            (-ς (-W Vs e_a) Γ₀ τ σ Ξ M)])]
     ;; contract stuff
     [(-φ.μc x)
      (match Vs
@@ -372,9 +351,9 @@
 ;; Either propagate error or eliminate a spurious one
 (define (↦blm blm Γ φ τ σ Ξ M)
   (match φ
-    [(-φ.rt.@ Γ₀ xs e_f e_xs)
-     ;; TODO eliminate spurious one
-     (-ς blm Γ₀ τ σ Ξ M)]
+    [(-φ.rt.@ Γ₀ _ _ _)
+     (cond [(rt-spurious? φ Γ) ∅]
+           [else (-ς blm Γ₀ τ σ Ξ M)])]
     [(-φ.rt.let dom) (-ς blm (Γ↓ Γ dom) τ σ Ξ M)]
     [_ (-ς blm Γ τ σ Ξ M)]))
 
@@ -437,12 +416,6 @@
   (match-define (-W V e_v) W_v)
   (match-define (list l+ l- lo) l³)
 
-  (: wrap-arrow : → -ς*)
-  ;; Wrap `V` inside `C`,
-  ;; knowing the former is a function and the latter a higher-order contract
-  (define (wrap-arrow)
-    )
-  
   (match (Γ⊢V∈C Γ W_v W_c)
     ['✓
      (define Γ* (Γ+ Γ (-?@ e_c (list e_v))))
@@ -566,7 +539,40 @@
     [(E Γ φ τ σ Ξ M)
      (define τ* (-τ E Γ))
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
-     (-ς E Γ τ* σ Ξ* M)])) 
+     (-ς E Γ τ* σ Ξ* M)]))
+
+(: rt-spurious? ([-φ.rt.@ -Γ] [-Vs -?e] . ->* . Boolean))
+;; Check whether a returned result is spurious
+(define (rt-spurious? φ Γ [Vs '()] [?e #f])
+  (match-define (-φ.rt.@ Γ₀ xs e_f e_xs) φ)
+  (printf "Return:~nparams: ~a~nfun: ~a~nargs: ~a~n" xs e_f e_xs)
+  (define params ; only care params that have corresponding args
+    (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
+  (printf "Care about: ~a~n" params)
+  (printf "Facts from application: ~a~n" Γ)
+  (printf "Facts from caller: ~a~n" Γ₀)
+
+  ; Convert facts about parameters in new environment
+  ; to facts about arguments in old environment
+  ; PRECOND: (FV e) ⊆ params
+  (define (convert [e : -e]) : -e
+    (for/fold ([e* : -e e]) ([x xs] [e_x e_xs] #:when e_x)
+      (define e** (e/ e* x e_x))
+      (printf "~a [~a ↦ ~a] = ~a~n" e* x e_x e**)
+      e**))
+  
+  ; check whether the propositions from callee
+  ; and caller contradict each other
+  (define e_a (-?@ e_f e_xs))
+  (define e_res (and ?e (convert ?e)))
+  (or
+   (and e_res (spurious? Γ₀ e_res Vs))
+   (spurious? Γ₀ e_a Vs)
+   (for/or : Boolean ([e Γ] #:when (⊆ (FV e) params))
+     (define e* (convert e))
+     (define ans (spurious? Γ₀ e* '•))
+     (printf "Convert ~a into ~a, checked whether is spurious: ~a~n" e e* ans)
+     ans)))
 
 
 ;;;;; For testing only
