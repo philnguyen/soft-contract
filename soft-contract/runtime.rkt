@@ -22,7 +22,7 @@
 ;; Extend fact environment
 (define (Γ+ Γ . es)
   (for/fold ([Γ* : -Γ Γ]) ([e es] #:when e)
-    (set-add Γ e)))
+    (set-add Γ* e)))
 
 (: -?@ : -?e (Listof -?e) → -?e)
 ;; Smart constructor for application
