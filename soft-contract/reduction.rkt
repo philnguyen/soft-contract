@@ -553,21 +553,21 @@
 
   ; Convert facts about parameters in new environment
   ; to facts about arguments in old environment
-  ; PRECOND: (FV e) ⊆ params
+  ; PRECOND: (FV e) ⊆ xs
   (define (convert [e : -e]) : -e
-    (for/fold ([e* : -e e]) ([x xs] [e_x e_xs] #:when e_x)
-      (define e** (e/ e* x e_x))
-      e**))
+    (for/fold ([e e]) ([x xs] [e_x e_xs] #:when e_x)
+      (e/ e x e_x)))
   
-  ; check whether the propositions from callee
-  ; and caller contradict each other
-  (define e_a (apply -?@ e_f e_xs))
-  (define e_res (and ?e (convert ?e)))
-  (or
-   (and e_res (spurious? Γ₀ (-W Vs e_res)))
-   (spurious? Γ₀ (-W Vs e_a))
-   (for/or : Boolean ([e Γ] #:when (⊆ (FV e) params))
-     (spurious? Γ₀ (-W (list '•) (convert e))))))
+  (define Γ*
+    (for/set: : -Γ ([e Γ] #:when (⊆ (FV e) params))
+      (convert e)))
+
+  ; Check whether the propositions would contradict
+  (define Γ₀* (Γ⊓ Γ₀ Γ*))
+  (cond
+    [Γ₀* (or (spurious? Γ₀* (-W Vs (and ?e (convert ?e))))
+             (spurious? Γ₀* (-W Vs (apply -?@ e_f e_xs))))]
+    [else #t]))
 
 
 ;;;;; For testing only

@@ -151,8 +151,8 @@
 
 (: Γ/ : -Γ Symbol -e → -Γ)
 (define (Γ/ Γ x e)
-  (for/fold ([Γ* : -Γ Γ]) ([ei Γ])
-    (Γ+ Γ* (e/ ei x e))))
+  (for/fold ([Γ : -Γ Γ]) ([ei Γ])
+    (Γ+ Γ (e/ ei x e))))
 
 
 ;;;;; CLOSURE
