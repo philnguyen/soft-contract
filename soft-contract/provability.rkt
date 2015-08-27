@@ -192,6 +192,10 @@
             [(or (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
              (for/or : Boolean ([p : -o '(procedure? p? ...)])
                (equal? '✓ (Γ⊢e Γ (-?@ p (list e)))))]
+            ['•
+             (match e
+               [(-not e*) (equal? '✓ (Γ⊢e Γ e*))]
+               [_ #f])]
             [_ #f])]
          [else #f]))
      ;; order matters for precision, in the presence of subtypes
