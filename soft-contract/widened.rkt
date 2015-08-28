@@ -48,6 +48,42 @@
 
 ;;;;; For testing only
 (begin
+
+  (: show-ξ : -ξ → Sexp)
+  (define (show-ξ ξ)
+    (match-define (-ξ Cs σ Ξ M) ξ)
+
+    (define (show-τ [τ : -τ]) : Sexp
+      (match-define (-τ E Γ) τ)
+      (cond
+        [(-E? E) `(τ: ,(show-E σ E) ,(show-Γ Γ))]
+        [else `(τ: … ,(show-Γ Γ))]))
+
+    (define show-φ : (-φ → Sexp)
+      (match-lambda
+        [(-φ.if t e) `(if ,(show-E σ t) ,(show-E σ e))]
+        [(? -φ.let-values?) `let-values…]
+        [(? -φ.letrec-values?) `letrec-values…]
+        [(? -φ.set!?) `set!…]
+        [(-φ.@ Es Ws _)
+         `(,@(map (curry show-E σ) Es) □
+           ,@(reverse (map (curry show-V σ) (map (inst -W-x -V) Ws))))]
+        [(-φ.begin es _) (map (curry show-e σ) es)]
+        [_ 'φ•]))
+
+    (define (show-κ [κ : -κ]) : Sexp
+      (match-define (-κ φ τ) κ)
+      `(κ: ,(show-φ φ) ,(show-τ τ)))
+
+    (define show-Ξ
+      (for/list : (Listof Sexp) ([(τ κs) (in-hash Ξ)])
+        `(,(show-τ τ) ↦ ,@(for/list : (Listof Sexp) ([κ κs]) (show-κ κ)))))
+    
+    `(,(for/list : (Listof Sexp) ([C Cs])
+         (match-define (-Cfg E Γ τ) C)
+         `(Cfg ,(show-E σ E) ,(show-Γ Γ) ,(show-τ τ)))
+      ,(show-σ σ)
+      ,show-Ξ))
   
   (: ξ-subtract : -ξ -ξ → -ξ)
   ;; Compute new stuff in `ξ₁` not in `ξ₀`
@@ -66,10 +102,10 @@
     (define-values (ξ evals)
       (let go : (Values -ξ (Map Integer -ξ))
            ([ξ ξ₀] [i 1] [evals : (Map Integer -ξ) (hash 0 ξ₀)])
-           (define ξ* (↦/ξ ξ))
-           (cond
-             [ξ* (go ξ* (+ i 1) (hash-set evals i ξ*))]
-             [else (values ξ evals)])))
+        (define ξ* (↦/ξ ξ))
+        (cond
+          [ξ* (go ξ* (+ i 1) (hash-set evals i ξ*))]
+          [else (values ξ evals)])))
     
     (define (step [n : Integer]) : -ξ
       (hash-ref evals n (λ () (error 'dbg/ξ "undefined for ~a" (hash-count evals)))))
@@ -86,5 +122,7 @@
     
     (values step diff answers))
 
-  (define-values (f s ans) (dbg/ξ "test/programs/safe/1.rkt"))
+  (define-values (f d ans) (dbg/ξ "test/programs/safe/1.rkt"))
+  (define F (compose show-ξ f))
+  (define (D [n₀ : Integer] [n₁ : Integer]) (show-ξ (d n₀ n₁)))
   )
