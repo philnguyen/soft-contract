@@ -17,7 +17,7 @@
 ;; Check whether value `W` satisfies predicate `p`
 (define (Γ⊢oW Γ p W)
   (match-define (-W V e) W)
-  (or-R (V∈p V p) (Γ⊢e Γ e)))
+  (or-R (V∈p V p) (Γ⊢e Γ (-?@ p e))))
 
 (: Γ⊢e : -Γ -?e → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
