@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "provability.rkt")
+ "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
@@ -161,3 +161,44 @@
     [(ς)
      (match-define (-ς E _ τ _ Ξ M) ς)
      (final? E τ Ξ)]))
+
+(define (show-ς [ς : -ς]) : Sexp
+  (match-define (-ς E Γ τ σ Ξ M) ς)
+
+  (define (show-τ [τ : -τ]) : Sexp
+    (match-define (-τ E Γ) τ)
+    (cond
+      [(-E? E) `(τ: ,(show-E σ E) ,(show-Γ Γ))]
+      [else `(τ: … ,(show-Γ Γ))]))
+
+  (define show-φ : (-φ → Sexp)
+    (match-lambda
+      [(-φ.if t e) `(if ,(show-E σ t) ,(show-E σ e))]
+      [(? -φ.let-values?) `let-values…]
+      [(? -φ.letrec-values?) `letrec-values…]
+      [(? -φ.set!?) `set!…]
+      [(-φ.@ Es Ws _)
+       `(,@(map (curry show-E σ) Es) ○
+         ,@(reverse (map (curry show-V σ) (map (inst -W-x -V) Ws))))]
+      [(-φ.begin es _) (map (curry show-e σ) es)]
+      [_ 'φ•]))
+
+  (define (show-κ [κ : -κ]) : Sexp
+    (match-define (-κ φ τ) κ)
+    `(κ: ,(show-φ φ) ,(show-τ τ)))
+
+  (define show-Ξ
+    (for/list : (Listof Sexp) ([(τ κs) (in-hash Ξ)])
+      `(,(show-τ τ) ↦ ,@(for/list : (Listof Sexp) ([κ κs]) (show-κ κ)))))
+  
+  `(,(show-E σ E)
+    ,(show-Γ Γ)
+    ,(show-τ τ)
+    ,(show-σ σ)
+    ,show-Ξ))
+
+(define (show-ς* [ς* : -ς*]) : Sexp
+  (cond
+    [(-ς? ς*) (show-ς ς*)]
+    [else (for/list : (Listof Sexp) ([ς ς*])
+            (show-ς ς))]))
