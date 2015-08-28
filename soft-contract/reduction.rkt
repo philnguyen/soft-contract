@@ -572,13 +572,14 @@
 
 ;;;;; For testing only
 
-(define ↦* : (-ς* → -ς*)
-  (match-lambda
-    [(? set? s) (match/nd: #:tag ↦* (-ς → -ς) s [ς (↦ ς)])]
-    [(? -ς? ς) (↦ ς)]))
+(begin
+  (define ↦* : (-ς* → -ς*)
+    (match-lambda
+      [(? set? s) (match/nd: #:tag ↦* (-ς → -ς) s [ς (↦ ς)])]
+      [(? -ς? ς) (↦ ς)]))
 
-(: dbg : Path-String → (Integer → -ς*))
-(define ((dbg p) n)
-  (for/fold ([ς* : -ς* (𝑰 (files->prog (list p)))])
-            ([i (in-range n)])
-    (↦* ς*)))
+  (: dbg : Path-String → (Integer → -ς*))
+  (define ((dbg p) n)
+    (for/fold ([ς : -ς* (𝑰 (files->prog (list p)))])
+              ([i (in-range n)])
+      (↦* ς))))
