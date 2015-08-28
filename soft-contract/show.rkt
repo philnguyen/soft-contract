@@ -6,6 +6,12 @@
 
 (define-type Sexps (Listof Sexp))
 
+(: show-Ans : -σ -Ans → Sexp)
+(define (show-Ans σ Ans)
+  (match Ans
+    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V σ V) ,(show-Vs σ C))]
+    [(-W Vs e) `(,@(show-Vs σ Vs) @ ,(and e (show-e σ e)))]))
+
 (: show-A : -σ -A → Sexp)
 (define (show-A σ A)
   (match A
@@ -64,7 +70,7 @@
 (: show-E : -σ -E → Sexp)
 (define (show-E σ E)
   (match E
-    [(? -A? A) (show-A σ A)]
+    [(? -Ans? A) (show-Ans σ A)]
     [(-↓ e _) (show-e σ e)]))
 
 (: show-e : -σ -e → Sexp)
@@ -112,7 +118,7 @@
 
       [(-λ (list xs ...) e) `(λ ,xs ,(go e))]
       [(-λ (-varargs xs rest) e) `(λ ,(cons xs rest) ,(go e))]
-      [(-•ₗ n) `(• ,n)]
+      [(-•ₗ n) (string->symbol (format "•~a" (n-sub n)))]
       [(-b b) (show-b b)]
       [(-st-mk t _) (-id-name t)]
       [(-st-ac (-id 'cons 'Λ) _ 0) 'car]
