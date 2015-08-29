@@ -137,22 +137,6 @@
 
   (-ς E₀ -Γ∅ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 
-
-(: τ↓ : (case-> [-e -ρ -Γ → -τ]
-                [-E -Γ → -τ]))
-;; Create a simplified stack address
-(define τ↓
-  (case-lambda
-    [(e ρ Γ)
-     (define FVs (FV e))
-     (define ρ* (ρ↓ ρ FVs))
-     (define Γ* (Γ↓ Γ FVs))
-     (-τ (-↓ e ρ*) Γ*)]
-    [(E Γ)
-     (match E
-       [(-↓ e ρ) (τ↓ e ρ Γ)]
-       [_ (-τ E Γ)])]))
-
 (: final? (case-> [-ς → Boolean]
                   [-E -τ -Ξ → Boolean]))
 (define final?

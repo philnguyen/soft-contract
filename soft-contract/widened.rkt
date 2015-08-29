@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "provability.rkt" "delta.rkt" "machine.rkt" "reduction.rkt")
+ "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "machine.rkt" "reduction.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
