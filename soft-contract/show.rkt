@@ -131,6 +131,7 @@
       [(-x x) x]
       [(-ref x _) (-id-name x)]
       [(-let-values _ _ _) '(let-values …) #|TODO|#]
+      [(? -letrec-values?) '(letrec-values …) #|TODO|#]
       [(-@ f xs _) `(,(go f) ,@(map go xs))]
       [(-@-havoc x) `(apply ,(go x) •)]
       [(-begin es) `(begin ,@(map (curry show-e σ) es))]

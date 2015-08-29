@@ -216,7 +216,7 @@
           (-ς/pushed e ρ* Γ* φ* τ σ* Ξ M)]
          ;; proceed to next assigning clause
          [(cons (cons xs* e*) bnds*)
-          (define φ* (-φ.letrec-values xs* bnds* ρ e l dom₀))
+          (define φ* (-φ.letrec-values xs* bnds* ρ* e l dom₀))
           (-ς/pushed e* ρ* Γ* φ* τ σ* Ξ M)]))]
     [(-φ.set! α)
      (with-guarded-arity 1 'TODO 'set!
@@ -290,6 +290,10 @@
            [else
             (define e_a (apply -?@ e_f e_xs))
             (-ς (-W Vs e_a) Γ₀ τ σ Ξ M)])]
+    [(-φ.rt.let dom₀)
+     (define e* (and ?e (⊆ (FV ?e) dom₀) ?e))
+     (define Γ* (Γ↓ Γ dom₀))
+     (-ς (-W Vs e*) Γ* τ σ Ξ M)]
     ;; contract stuff
     [(-φ.μc x)
      (match Vs
