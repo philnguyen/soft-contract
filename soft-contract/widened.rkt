@@ -49,26 +49,58 @@
 ;;;;; For testing only
 (begin
 
+  (: alloc-int (∀ (X) (→ (X → Integer))))
+  (define (alloc-int)
+    (let ([m : (Map X Integer) (make-hash)])
+      (λ ([x : X]) : Integer
+         (hash-ref! m x (λ () (hash-count m))))))
+
+  (define alloc-τ ((inst alloc-int -τ)))
+  (define alloc-α ((inst alloc-int -α)))
+
   (: show-ξ : -ξ → Sexp)
   (define (show-ξ ξ)
     (match-define (-ξ Cs σ Ξ M) ξ)
 
-    (define (show-τ [τ : -τ]) : Sexp
-      (match-define (-τ E Γ) τ)
-      (cond
-        [(-E? E) `(τ: ,(show-E σ E) ,(show-Γ Γ))]
-        [else `(τ: … ,(show-Γ Γ))]))
+    (define (show-α [α : -α]) : Symbol
+      (string->symbol (format "α~a" (n-sub (alloc-α α)))))
+    
+    (define show-σ
+      (for/list : (Listof Sexp) ([(α Vs) (in-hash σ)])
+        `(,(show-α α) ↦ ,(show-Vs σ Vs))))
+
+    (define (show-τ [τ : -τ]) : Symbol
+      (string->symbol (format "τ~a" (n-sub (alloc-τ τ)))))
+
+    (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
+      (for/list ([(x α) (in-hash ρ)])
+        `(,x ↦ ,(show-α α))))
+
+    (define (show-E [E : -E]) : Sexp
+      (match E
+        [(-↓ e ρ) `(,(show-e σ e) ,(show-ρ ρ))]
+        [(-W Vs e) `(,@(show-Vs σ Vs) @ ,(and e (show-e σ e)))]
+        [(-blm l+ lo C V) `(blame ,l+ ,lo ,(show-V σ C) ,(show-Vs σ V))]
+        [_ '♣]))
 
     (define show-φ : (-φ → Sexp)
       (match-lambda
-        [(-φ.if t e) `(if ,(show-E σ t) ,(show-E σ e))]
+        [(-φ.if t e) `(if ,(show-E t) ,(show-E e))]
         [(? -φ.let-values?) `let-values…]
         [(? -φ.letrec-values?) `letrec-values…]
         [(? -φ.set!?) `set!…]
         [(-φ.@ Es Ws _)
-         `(,@(map (curry show-E σ) Es) □
-           ,@(reverse (map (curry show-V σ) (map (inst -W-x -V) Ws))))]
-        [(-φ.begin es _) (map (curry show-e σ) es)]
+         `(,@(reverse (map (curry show-V σ) (map (inst -W-x -V) Ws)))
+           □ ,@(map show-E Es))]
+        [(-φ.begin es _) `(begin ,@(map (curry show-e σ) es))]
+        [(-φ.begin0v es _) `(begin0 □ ,@(map (curry show-e σ) es))]
+        [(-φ.begin0e (-W Vs _) es _)
+         `(begin0 ,(show-Vs σ Vs) ,@(map (curry show-e σ) es))]
+        [(-φ.rt.@ Γ xs f args)
+         `(rt ,(show-Γ Γ) (,(and f (show-e σ f))
+                           ,@(for/list : (Listof Sexp) ([x xs] [arg args])
+                               `(,x ↦ ,(and arg (show-e σ arg))))))]
+        [(-φ.rt.let dom) `(rt/let ,@(set->list dom))]
         [_ 'φ•]))
 
     (define (show-κ [κ : -κ]) : Sexp
@@ -81,8 +113,8 @@
     
     `(,(for/list : (Listof Sexp) ([C Cs])
          (match-define (-Cfg E Γ τ) C)
-         `(Cfg ,(show-E σ E) ,(show-Γ Γ) ,(show-τ τ)))
-      ,(show-σ σ)
+         `(Cfg ,(show-E E) ,(show-Γ Γ) ,(show-τ τ)))
+      ,show-σ
       ,show-Ξ))
   
   (: ξ-subtract : -ξ -ξ → -ξ)

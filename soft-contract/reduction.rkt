@@ -530,14 +530,13 @@
 ;; Proceed to the next `eval` state with given frame `φ` pushed
 (define -ς/pushed
   (case-lambda
-    [(e ρ Γ φ τ σ Ξ M)
+    [(e ρ Γ φ τ σ Ξ M) ; important not to restrict `Γ` for precision
      (define FVs (FV e))
      (define ρ* (ρ↓ ρ FVs))
-     (define Γ* (Γ↓ Γ FVs))
      (define E* (-↓ e ρ*))
-     (define τ* (-τ E* Γ*))
+     (define τ* (-τ E* Γ))
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
-     (-ς E* Γ τ* σ Ξ* M)] ; important not to restrict `Γ` for precision
+     (-ς E* Γ τ* σ Ξ* M)]
     [(E Γ φ τ σ Ξ M)
      (define τ* (-τ E Γ))
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))

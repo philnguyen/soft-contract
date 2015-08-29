@@ -54,7 +54,9 @@
   (match α
     [(-α.def id) (-id-name id)]
     [(-α.ctc id) (string->symbol (format "~a/c" (-id-name id)))]
-    [(-α.bnd x e Γ) (string->symbol (format "~a@~a" x (if e (show-e -σ∅ e) '⊘)))]
+    [(-α.bnd x e Γ)
+     (string->symbol
+      (format "~a@~a@~a" x (if e (show-e -σ∅ e) '⊘) (show-Γ Γ)))]
     [(-α.val v) (show-e -σ∅ v)]
     [(-α.opq id loc ith) (string->symbol (format "~a@~a@~a" (-id-name id) loc ith))]))
 
@@ -71,7 +73,7 @@
 (define (show-E σ E)
   (match E
     [(? -Ans? A) (show-Ans σ A)]
-    [(-↓ e _) (show-e σ e)]))
+    [(-↓ e ρ) `(,(show-e σ e) ,(show-ρ σ ρ))]))
 
 (: show-e : -σ -e → Sexp)
 (define (show-e σ e)

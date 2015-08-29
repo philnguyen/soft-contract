@@ -196,7 +196,10 @@
     [(-@ 'values es _)
      (implies (= (length es) (length Vs))
               (ormap spurious*? es Vs))]
-    [_ #f]))
+    [_
+     (match Vs
+       [(list V) (spurious*? e V)]
+       [_ #f])]))
 
 (: Γ+/-W : -Γ -WV → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ W)` and `(Γ ⊓ ¬W)`, probably faster

@@ -331,9 +331,9 @@
 
   ;;; Generate module
   (define havoc-ref (havoc-ref-from ☠))
-  (define x (-x 'x₀))
+  (define x (-x '☠))
   (define havoc-func ; only used by `verify` module, not `ce`
-    (-λ (list 'x₀)
+    (-λ (list '☠)
         (-amb/simp
          (cons (-@ havoc-ref (list (-@-havoc x)) ☠)
                (for/list : (Listof -@) ([ac (prog-accs ms)])
