@@ -30,18 +30,17 @@
   (match e
     ;; close value
     [(? -v? v)
-     (-ς (-W (list (close v ρ Γ)) v) Γ τ σ Ξ M)]
+     (-ς (-W (list (close v ρ)) v) Γ τ σ Ξ M)]
     ;; look up variable
     [(? -x? x)
-     (match (ρ@ ρ x)
-       ; TODO hack for now
-       ['undefined
-        (-ς (-blm 'TODO 'undefined 'defined? (list (-b 'undefined))) Γ τ σ Ξ M)]
-       [α
-        (for*/set: : (Setof -ς) ([V (σ@ σ α)]
-                                 [W (in-value (-W (list V) x))]
-                                 #:unless (spurious? Γ W))
-          (-ς W Γ τ σ Ξ M))])]
+     (for*/set: : (Setof -ς) ([V (σ@ σ (ρ@ ρ x))]
+                              [W (in-value (-W (list V) x))]
+                              #:unless (spurious? Γ W))
+       (match V
+         ['undefined ; FIXME hack
+          (-ς (-blm 'TODO 'Λ (-st-p (-id 'defined 'Λ) 1) (list 'undefined))
+              Γ τ σ Ξ M)]
+         [_ (-ς W Γ τ σ Ξ M)]))]
     ;; look up top-level reference
     [(and ref (-ref (and id (-id name ctx*)) ctx))
      (cond
@@ -90,11 +89,15 @@
      (match bnds
        ['() (-ς (-↓ e ρ) Γ τ σ Ξ M)]
        [(cons (cons xs e*) bnds*)
-        (define ρ*
-          (for*/fold ([ρ* : -ρ ρ]) ([bnd bnds] [x (in-list (car bnd))])
-            (ρ+ ρ* x 'undefined)))
+        (define-values (ρ* σ*)
+          (for/fold ([ρ* : -ρ ρ] [σ* : -σ σ]) ([bnd bnds])
+            (define xs (car bnd))
+            (for/fold ([ρ* : -ρ ρ*] [σ* : -σ σ*])
+                      ([x xs] [e_x (split-values e* (length xs))])
+              (define α (-α.bnd x e_x Γ))
+              (values (ρ+ ρ* x α) (⊔ σ α 'undefined)))))
         (define φ (-φ.letrec-values xs bnds* ρ* e l (dom ρ)))
-        (-ς/pushed e* ρ* Γ φ τ σ Ξ M)])]
+        (-ς/pushed e* ρ* Γ φ τ σ* Ξ M)])]
     [(-set! x e*)
      (define φ (-φ.set! (ρ@ ρ x)))
      (-ς/pushed e* ρ Γ φ τ σ Ξ M)]
@@ -202,22 +205,20 @@
     [(-φ.letrec-values xs bnds ρ e l dom₀)
      (define n (length xs))
      (with-guarded-arity n l 'letrec-values
-       (define-values (ρ* Γ* σ*)
-         (for/fold ([ρ* : -ρ ρ] [Γ* : -Γ Γ] [σ* : -σ σ])
+       (define-values (Γ* σ*)
+         (for/fold ([Γ* : -Γ Γ] [σ* : -σ σ])
                    ([x xs] [V Vs] [ex (split-values ?e n)])
-           (define α (-α.bnd x ?e Γ))
-           (values (ρ+ ρ* x α)
-                   (Γ+ Γ* (-?@ 'equal? (-x x) ex))
-                   (⊔ σ* α V))))
+           (values (Γ+ Γ* (-?@ 'equal? (-x x) ex))
+                   (⊔ σ* (ρ@ ρ x) V))))
        (match bnds
          ;; proceed to letrec's body
          ['()
           (define φ* (-φ.rt.let dom₀))
-          (-ς/pushed e ρ* Γ* φ* τ σ* Ξ M)]
+          (-ς/pushed e ρ Γ* φ* τ σ* Ξ M)]
          ;; proceed to next assigning clause
          [(cons (cons xs* e*) bnds*)
-          (define φ* (-φ.letrec-values xs* bnds* ρ* e l dom₀))
-          (-ς/pushed e* ρ* Γ* φ* τ σ* Ξ M)]))]
+          (define φ* (-φ.letrec-values xs* bnds* ρ e l dom₀))
+          (-ς/pushed e* ρ Γ* φ* τ σ* Ξ M)]))]
     [(-φ.set! α)
      (with-guarded-arity 1 'TODO 'set!
        (define Γ* #|FIXME update!!|# Γ)
@@ -289,11 +290,11 @@
      (cond [(rt-spurious? φ Γ (-W Vs ?e)) ∅]
            [else
             (define e_a (apply -?@ e_f e_xs))
-            (-ς (-W Vs e_a) Γ₀ τ σ Ξ M)])]
+            (-ς (-W (close-Γ Γ Vs) e_a) Γ₀ τ σ Ξ M)])]
     [(-φ.rt.let dom₀)
      (define e* (and ?e (⊆ (FV ?e) dom₀) ?e))
      (define Γ* (Γ↓ Γ dom₀))
-     (-ς (-W Vs e*) Γ* τ σ Ξ M)]
+     (-ς (-W (close-Γ Γ Vs) e*) Γ* τ σ Ξ M)]
     ;; contract stuff
     [(-φ.μc x)
      (match Vs
@@ -367,35 +368,40 @@
 ;; Stepping rules for function application
 (define (↦@ W_f W_xs Γ τ σ Ξ M l)
 
+  (match-define (-W V_f e_f) W_f)
+  (define-values (V_xs e_xs)
+    (for/lists ([V_xs : (Listof -V)] [e_xs : (Listof -?e)]) ([W W_xs])
+      (values (-W-x W) (-W-e W))))
+  (define e_a (apply -?@ e_f e_xs))
+
   (: ↦indy : -=>i -V (Listof -V) Mon-Info → -ς*)
   (define (↦indy C V_f V_xs l³)
     (match-define (list l+ l- lo) l³)
     (match C
       [(-=>i doms rng ρ_c Γ_c)
        (error '↦indy "TODO: indy")]))
+
+  (: ↦β : -formals -e -ρ -Γ → -ς*)
+  (define (↦β xs e ρ Γ)
+    (match xs
+      [(? list? xs)
+       (define-values (ρ* σ*)
+         (for/fold ([ρ* : -ρ ρ] [σ* : -σ σ])
+                   ([x xs] [V_x V_xs] [ex e_xs])
+           (define α (-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ∅)))
+           (values (ρ+ ρ* x α) (⊔ σ* α (close-Γ Γ V_x)))))
+       (define φ* (-φ.rt.@ Γ xs e_f e_xs))
+       (-ς/pushed e ρ* Γ φ* τ σ* Ξ M)]
+      [(-varargs zs z) (error '↦@ "TODO: varargs")]))
   
-  (match-define (-W V_f e_f) W_f)
-  (define-values (V_xs e_xs)
-    (for/lists ([V_xs : (Listof -V)] [e_xs : (Listof -?e)]) ([W W_xs])
-      (values (-W-x W) (-W-e W))))
-  (define e_a (apply -?@ e_f e_xs))
   (match V_f
     [(? -o? o)
      (define-values (σ* AΓs) (δ σ Γ o W_xs l))
      (match/nd: (-AΓ → -ς) AΓs
        [(-AΓ (? -blm? blm) Γ*) (-ς blm Γ* τ σ* Ξ M)]
        [(-AΓ (? list? Vs ) Γ*) (-ς (-W Vs e_a) Γ* τ σ* Ξ M)])]
-    [(-Clo xs e ρ_f Γ_f)
-     (match xs
-       [(? list? xs)
-        (define-values (ρ* σ*)
-          (for/fold ([ρ* : -ρ ρ_f] [σ* : -σ σ])
-                    ([x xs] [V_x V_xs] [ex e_xs])
-            (define α (-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ∅)))
-            (values (ρ+ ρ* x α) (⊔ σ* α V_x))))
-        (define φ* (-φ.rt.@ Γ xs e_f e_xs))
-        (-ς/pushed e ρ* Γ_f φ* τ σ* Ξ M)]
-       [(-varargs zs z) (error '↦@ "TODO: varargs")])]
+    [(-Clo* xs e ρ_f) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
+    [(-Clo xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]
     [(-Ar γ α l³)
      (define Cs (σ@ σ γ))
      (define Vs (σ@ σ α))

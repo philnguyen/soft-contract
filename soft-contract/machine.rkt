@@ -83,7 +83,7 @@
   (: alloc-e : -σ -e → (Values -σ -V))
   (define (alloc-e σ e)
     (match e
-      [(? -v?) (values σ (close e -ρ∅ -Γ∅))]
+      [(? -v?) (values σ (close-Γ -Γ∅ (close e -ρ∅)))]
       [(-->i doms rng)
        (define-values (xs cs)
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])

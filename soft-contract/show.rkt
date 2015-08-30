@@ -29,6 +29,7 @@
     [(-b b) (show-b b)]
     ['• '●]
     [(? -o? o) (show-o o)]
+    [(-Clo* xs e _) (show-e σ (-λ xs e))]
     [(-Clo xs e _ _) (show-e σ (-λ xs e))]
     [(-Ar γ α _) `(,(show-α σ γ) ◃ ,(show-α σ α))]
     #| TODO obsolete?

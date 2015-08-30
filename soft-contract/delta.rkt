@@ -40,7 +40,7 @@
        (define αs (alloc-immut-fields o Ws))
        (define σ* : -σ
          (for/fold ([σ* σ]) ([α αs] [W Ws])
-           (⊔ σ* α (-W-x W))))
+           (⊔ σ* α (close-Γ Γ (-W-x W)))))
        (values σ* (-AΓ (list (-St id αs)) Γ)))]
     
     ;; Accessor

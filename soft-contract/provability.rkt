@@ -7,6 +7,11 @@
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
   (make-parameter (λ (Γ e) (log-error "external solver not set") '?)))
 
+(: Γ-defines? : -Γ Symbol → Boolean)
+;; Check whether the variable is defined in given environment
+(define (Γ-defines? Γ x)
+  (for/or ([e Γ]) (∋ (FV e) x)))
+
 (: Γ⊢V∈C : -Γ -WV -WV → -R)
 (define (Γ⊢V∈C Γ W_v W_c)
   (match-define (-W V e_v) W_v)
@@ -181,6 +186,10 @@
            [(or (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
             (for/or : Boolean ([p : -o '(procedure? p? ...)])
               (equal? '✓ (Γ⊢e Γ (-?@ p e))))]
+           ['undefined
+            (match e
+              [(-x x) (Γ-defines? Γ x)]
+              [_ #f])]
            ['•
             (match e
               [(-not e*) (equal? '✓ (Γ⊢e Γ e*))]

@@ -164,6 +164,7 @@
   '•
   (struct -Ar [c : -α] [v : -α] [l³ : Mon-Info])
   (struct -St [tag : -id] [fields : (Listof -α)])
+  (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -=>i [dom : (Listof (Pairof Symbol -α))] [rng : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -St/C [t : -id] [fields : (Listof -α)])
@@ -199,16 +200,23 @@
 (define (Γ↓ Γ xs)
   (for/set: : -Γ ([e Γ] #:when (subset? (FV e) xs)) e))
 
-(: close : -v -ρ -Γ → -V)
+(: close : -v -ρ → -V)
 ;; Create closure from value syntax and environment
-(define (close v ρ Γ)
+(define (close v ρ)
   (match v
-    [(-λ xs e)
-     (define FV_v (FV v))
-     (-Clo xs e (ρ↓ ρ FV_v) (Γ↓ Γ FV_v))]
+    [(-λ xs e) (-Clo* xs e (ρ↓ ρ (FV v)))]
     [(? -prim? v) v]
     [(? -•ₗ? v) '•]
     [_ (error 'close "Not yet supported: ~a" v)]))
+
+(: close-Γ (case-> [-Γ -V → -V]
+                   [-Γ (Listof -V) → (Listof -V)]))
+(define (close-Γ Γ V)
+  (match V
+    [(-Clo* xs e ρ)
+     (-Clo xs e ρ (Γ↓ Γ (dom ρ)))]
+    [(list Vs ...) (map (curry close-Γ Γ) Vs)]
+    [(? -V?) V]))
 
 (: -⇓ : -e -ρ → -↓)
 ;; Close expression with restricted environment
@@ -285,9 +293,7 @@
   ;; for immutable concrete field
   (struct -α.val [v : -e])
   ;; for mutable or opaque field
-  (struct -α.opq [id : -id] [loc : (Option Integer)] [field : Integer])
-  ;; TODO: hack for now
-  'undefined)
+  (struct -α.opq [id : -id] [loc : (Option Integer)] [field : Integer]))
 
 (: alloc-immut-fields : -st-mk (Listof -WV) → (Listof -α))
 (define (alloc-immut-fields k Ws)
