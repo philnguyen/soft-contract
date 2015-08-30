@@ -353,3 +353,69 @@
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
 (define-type -AΓs (U -AΓ (Setof -AΓ)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; PRETTY PRINTING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: show-V : -V → Sexp)
+(define (show-V V)
+  (match V
+    ['undefined 'undefined]
+    [(-b b) (show-b b)]
+    ['• '●]
+    [(? -o? o) (show-o o)]
+    [(-Clo* xs e _) (show-e (-λ xs e))]
+    [(-Clo xs e _ _) (show-e (-λ xs e))]
+    [(-Ar γ α _) `(,(show-α γ) ◃ ,(show-α α))]
+    [(-St t αs) `(,(-id-name t) ,@(map show-α αs))]
+    [(-=>i doms e ρ Γ) `(,@(for/list : (Listof Sexp) ([dom doms])
+                             (match-define (cons x γ) dom)
+                             `(,x : ,(show-α γ)))
+                         ↦ ,(show-e e))]
+    [(-St/C t αs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-α αs))]
+    [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
+    [(-X/C α) `(X: ,(show-α α))]))
+
+(: show-A : -A → Sexp)
+(define (show-A A)
+  (match A
+    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
+    [(? list? Vs) (map show-V Vs)]))
+
+(: show-Ans : -Ans → Sexp)
+(define (show-Ans Ans)
+  (match Ans
+    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
+    [(-W Vs e) `(,@(map show-V Vs) @ ,(and e (show-e e)))]))
+
+(: show-α : -α → Sexp)
+(define (show-α α)
+  (match α
+    [(-α.def id) (-id-name id)]
+    [(-α.ctc id) (string->symbol (format "~a/c" (-id-name id)))]
+    [(-α.bnd x e Γ)
+     (string->symbol
+      (format "~a@~a@~a" x (if e (show-e e) '⊘) (show-Γ Γ)))]
+    [(-α.val v) (show-e v)]
+    [(-α.opq id loc ith) (string->symbol (format "~a@~a@~a" (-id-name id) loc ith))]))
+
+(: show-Γ : -Γ → (Listof Sexp))
+(define (show-Γ Γ)
+  (for/list ([e Γ]) (show-e e)))
+
+(: show-ρ : -ρ → (Listof Sexp))
+(define (show-ρ ρ)
+  (for/list ([(x α) (in-hash ρ)])
+    `(,x ↦ ,(show-α α))))
+
+(: show-E : -E → Sexp)
+(define (show-E E)
+  (match E
+    [(? -Ans? A) (show-Ans A)]
+    [(-↓ e ρ) `(,(show-e e) ,(show-ρ ρ))]))
+
+(: show-σ : -σ → (Listof Sexp))
+(define (show-σ σ)
+  (for/list ([(α Vs) (in-hash σ)])
+    `(,(show-α α) ↦ ,@(for/list : (Listof Sexp) ([V Vs]) (show-V V)))))

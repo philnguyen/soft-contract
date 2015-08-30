@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "machine.rkt" "reduction.rkt")
+ "utils.rkt" "lang.rkt" "runtime.rkt" "machine.rkt" "reduction.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
@@ -67,7 +67,7 @@
     
     (define show-σ
       (for/list : (Listof Sexp) ([(α Vs) (in-hash σ)])
-        `(,(show-α α) ↦ ,(show-Vs σ Vs))))
+        `(,(show-α α) ↦ ,@(for/list : (Listof Sexp) ([V Vs]) (show-V V)))))
 
     (define (show-τ [τ : -τ]) : Symbol
       (string->symbol (format "τ~a" (n-sub (alloc-τ τ)))))
@@ -78,9 +78,9 @@
 
     (define (show-E [E : -E]) : Sexp
       (match E
-        [(-↓ e ρ) `(,(show-e σ e) ,(show-ρ ρ))]
-        [(-W Vs e) `(,@(show-Vs σ Vs) @ ,(and e (show-e σ e)))]
-        [(-blm l+ lo C V) `(blame ,l+ ,lo ,(show-V σ C) ,(show-Vs σ V))]
+        [(-↓ e ρ) `(,(show-e e) ,(show-ρ ρ))]
+        [(-W Vs e) `(,@(map show-V Vs) @ ,(and e (show-e e)))]
+        [(-blm l+ lo C V) `(blame ,l+ ,lo ,(show-V C) ,(map show-V V))]
         [_ '♣]))
 
     (define show-φ : (-φ → Sexp)
@@ -90,16 +90,16 @@
         [(? -φ.letrec-values?) `letrec-values…]
         [(? -φ.set!?) `set!…]
         [(-φ.@ Es Ws _)
-         `(,@(reverse (map (curry show-V σ) (map (inst -W-x -V) Ws)))
+         `(,@(reverse (map show-V (map (inst -W-x -V) Ws)))
            □ ,@(map show-E Es))]
-        [(-φ.begin es _) `(begin ,@(map (curry show-e σ) es))]
-        [(-φ.begin0v es _) `(begin0 □ ,@(map (curry show-e σ) es))]
+        [(-φ.begin es _) `(begin ,@(map show-e es))]
+        [(-φ.begin0v es _) `(begin0 □ ,@(map show-e es))]
         [(-φ.begin0e (-W Vs _) es _)
-         `(begin0 ,(show-Vs σ Vs) ,@(map (curry show-e σ) es))]
+         `(begin0 ,(map show-V Vs) ,@(map show-e es))]
         [(-φ.rt.@ Γ xs f args)
-         `(rt ,(show-Γ Γ) (,(and f (show-e σ f))
+         `(rt ,(show-Γ Γ) (,(and f (show-e f))
                            ,@(for/list : (Listof Sexp) ([x xs] [arg args])
-                               `(,x ↦ ,(and arg (show-e σ arg))))))]
+                               `(,x ↦ ,(and arg (show-e arg))))))]
         [(-φ.rt.let dom) `(rt/let ,@(set->list dom))]
         [_ 'φ•]))
 

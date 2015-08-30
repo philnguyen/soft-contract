@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set racket/string racket/bool
          racket/port racket/system racket/function racket/pretty
-         "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
+         "utils.rkt" "lang.rkt" "runtime.rkt")
 
 (provide z3⊢ Γ⊢₀)
 

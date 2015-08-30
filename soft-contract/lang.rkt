@@ -536,3 +536,100 @@
 (define (id/c id)
   (match-define (-id name path) id)
   (-id (string->symbol (format "~a/c" name)) path))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; PRETTY PRINTING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: show-b : Base → Sexp)
+(define (show-b x)
+  (cond
+    [(string? x) (format "\"~a\"" x)]
+    [(or (symbol? x) (keyword? x)) `(quote ,x)]
+    [(and (real? x) (inexact? x))
+     (define s (number->string x))
+     (substring s 0 (min (string-length s) 5))]
+    [else x]))
+
+(: show-o : -o → Symbol)
+;; Return operator's simple show-o for pretty-printing
+(define show-o
+  (match-lambda
+   [(? symbol? s) s]
+   [(-st-mk (-id t _) _) t]
+   [(-st-ac (-id 'cons 'Λ) 2 0) 'car]
+   [(-st-ac (-id 'cons 'Λ) 2 1) 'cdr]
+   [(-st-ac (-id 'box 'Λ) 1 0) 'unbox]
+   [(-st-ac (-id t _) _ i) (string->symbol (format "~a@~a" t i))]
+   [(-st-p (-id t _) _) (string->symbol (format "~a?" t))]))
+
+(: show-e : -e → Sexp)
+(define (show-e e)
+  (match e
+    ; syntactic sugar
+    [(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]
+    [(-λ (list x) (-@ 'equal? (list (-x x) e*) _)) `(≡/c ,(show-e e*))]
+    [(-λ (list x) (-@ '> (list (-x x) e*) _)) `(>/c ,(show-e e*))]
+    [(-λ (list x) (-@ '< (list (-x x) e*) _)) `(</c ,(show-e e*))]
+    [(-λ (list x) (-@ '>= (list (-x x) e*) _)) `(≥/c ,(show-e e*))]
+    [(-λ (list x) (-@ '<= (list (-x x) e*) _)) `(≤/c ,(show-e e*))]
+    [(-λ (list x) (-@ (? closed? f) (list (-x x)) _)) (show-e f)]
+    [(-λ (list x) (-@ 'arity-includes? (list (-x x) (-b 0)) _)) `(arity-includes/c ,x)]
+    [(-λ (list x) (-@ 'arity=? (list (-x x) (-b 0)) _)) `(arity=/c ,x)]
+    [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
+    [(-λ (list _) (-b (not #f))) 'any/c]
+    [(-λ (list _) (-b #f)) 'none/c]
+    [(-@ (-st-mk (-id 'null 'Λ) 0) (list) _) 'null]
+    [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]
+    [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
+     (match* ((show-e a) (show-e b))
+       [(`(or ,l ...) `(or ,r ...)) `(or ,@(cast l Sexps) ,@(cast r Sexps))]
+       [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
+       [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
+       [(l r) `(or ,l ,r)])]
+    [(-@ (-st-mk (-id (and n (or 'and/c 'or/c 'not/c)) 'Λ) _) c* _) `(,n ,@(map show-e c*))]
+    #| TODO obsolete? 
+    [(-if (and e (-•ₗ α)) e₁ e₂)
+    (match (σ@ σ α)
+    [(-b #f) (go ctx e₂)]
+    [(not '•) (go ctx e₁)]
+    [_ `(if ,(go ctx e) ,(go ctx e₁) ,(go ctx e₂))])]
+    |#
+    [(-if a b (-b #f))
+     (match* ((show-e a) (show-e b))
+       [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l Sexps) ,@(cast r Sexps))]
+       [(`(and ,l ...) r) `(and ,@(cast l Sexps) ,r)]
+       [(l `(and ,r ...)) `(and ,l ,@(cast r Sexps))]
+       [(l r) `(and ,l ,r)])]
+    [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
+
+    [(-λ (list xs ...) e) `(λ ,xs ,(show-e e))]
+    [(-λ (-varargs xs rest) e) `(λ ,(cons xs rest) ,(show-e e))]
+    [(-•ₗ n) (string->symbol (format "•~a" (n-sub n)))]
+    [(-b b) (show-b b)]
+    [(-st-mk t _) (-id-name t)]
+    [(-st-ac (-id 'cons 'Λ) _ 0) 'car]
+    [(-st-ac (-id 'cons 'Λ) _ 1) 'cdr]
+    [(-st-ac t _ i) (string->symbol (format "~a@~a" (-id-name t) i))]
+    [(-st-p t _) (string->symbol (format "~a?" (-id-name t)))]
+    [(? -o? o) (show-o o)]
+    [(-x x) x]
+    [(-ref x _) (-id-name x)]
+    [(-let-values _ _ _) '(let-values …) #|TODO|#]
+    [(? -letrec-values?) '(letrec-values …) #|TODO|#]
+    [(-set! x e) `(set! ,x ,(show-e e))]
+    [(-@ f xs _) `(,(show-e f) ,@(map show-e xs))]
+    [(-@-havoc x) `(apply ,(show-e x) •)]
+    [(-begin es) `(begin ,@(map show-e es))]
+    [(-begin0 e es) `(begin ,(show-e e) ,@(map show-e es))]
+    #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
+    [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
+    [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
+    [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
+    [(-->i doms rng) `(,@(for/list : (Listof Sexp) ([dom doms])
+                           (match-define (cons x c) dom)
+                           `(,x : ,(show-e c)))
+p                       ↦ ,(show-e rng))]
+    [(-x/c x) x]
+    [(-struct/c t cs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-e cs))]))

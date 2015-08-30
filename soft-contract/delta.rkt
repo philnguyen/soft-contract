@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/bool racket/math
- "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "provability.rkt"
+ "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt"
  ;"make-delta.rkt"
  )
 (provide (all-defined-out))

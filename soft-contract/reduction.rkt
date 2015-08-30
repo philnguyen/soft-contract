@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt" "provability.rkt" "delta.rkt" "machine.rkt")
+ "utils.rkt" "lang.rkt" "runtime.rkt" "provability.rkt" "delta.rkt" "machine.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
@@ -127,7 +127,7 @@
         (match/nd: #:tag ↦WVs/havoc/dep (-V → -ς) (σ@ σ γ)
           [(-=>i cs _ _ _) (↦@ (-W V #f) (make-list (length cs) -●) Γ τ σ Ξ M ☠)])]
        [V
-        (log-debug "havoc: ignore first-order value ~a" (show-V σ V))
+        (log-debug "havoc: ignore first-order value ~a" (show-V V))
         ∅])]
     ;; amb
     [(-amb es)

@@ -82,6 +82,7 @@
 (define-type Map HashTable)
 (define-type (MMap X Y) (Map X (Setof Y)))
 (define-type (NeListof X) (Pairof X (Listof X)))
+(define-type Sexps (Listof Sexp))
 
 (: set-add-list : (∀ (A) (Setof A) (Listof A) → (Setof A)))
 ;; Add each element in given list to set

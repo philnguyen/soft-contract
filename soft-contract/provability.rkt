@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
-         "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
+         "utils.rkt" "lang.rkt" "runtime.rkt")
 (provide Γ⊢V∈C Γ⊢oW Γ⊢e e⊢e ⊢e V∈p V≡ Γ⊢e≡
          Γ⊓ Γ⊓e Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R)
 

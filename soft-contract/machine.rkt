@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils.rkt" "lang.rkt" "runtime.rkt" "show.rkt")
+ "utils.rkt" "lang.rkt" "runtime.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
@@ -98,7 +98,7 @@
        (define-values (σ* αs) (alloc-es σ cs))
        (values σ* (-St/C id αs))]
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
-                (show-e σ e))]))
+                (show-e e))]))
 
   ;; Assuming each top-level variable binds a value for now.
   ;; TODO generalize.
@@ -152,19 +152,19 @@
   (define (show-τ [τ : -τ]) : Sexp
     (match-define (-τ E Γ) τ)
     (cond
-      [(-E? E) `(τ: ,(show-E σ E) ,(show-Γ Γ))]
+      [(-E? E) `(τ: ,(show-E E) ,(show-Γ Γ))]
       [else `(τ: … ,(show-Γ Γ))]))
 
   (define show-φ : (-φ → Sexp)
     (match-lambda
-      [(-φ.if t e) `(if ,(show-E σ t) ,(show-E σ e))]
+      [(-φ.if t e) `(if ,(show-E t) ,(show-E e))]
       [(? -φ.let-values?) `let-values…]
       [(? -φ.letrec-values?) `letrec-values…]
       [(? -φ.set!?) `set!…]
       [(-φ.@ Es Ws _)
-       `(,@(map (curry show-E σ) Es) ○
-         ,@(reverse (map (curry show-V σ) (map (inst -W-x -V) Ws))))]
-      [(-φ.begin es _) (map (curry show-e σ) es)]
+       `(,@(map show-E Es) ○
+         ,@(reverse (map show-V (map (inst -W-x -V) Ws))))]
+      [(-φ.begin es _) (map show-e es)]
       [_ 'φ•]))
 
   (define (show-κ [κ : -κ]) : Sexp
@@ -175,7 +175,7 @@
     (for/list : (Listof Sexp) ([(τ κs) (in-hash Ξ)])
       `(,(show-τ τ) ↦ ,@(for/list : (Listof Sexp) ([κ κs]) (show-κ κ)))))
   
-  `(,(show-E σ E)
+  `(,(show-E E)
     ,(show-Γ Γ)
     ,(show-τ τ)
     ,(show-σ σ)
