@@ -31,7 +31,8 @@
 
 ;; Definition of AST subset as in Racket reference 1.2.3.1
 
-(define-type Base (U Number Boolean String Symbol Keyword #|Sexp Bytes Regexp PRegexp|#))
+(define-type/pred Base
+  (U Number Boolean String Symbol Keyword #|Sexp Bytes Regexp PRegexp|#))
 
 (define-data -top-level-form
   -general-top-level-form
@@ -180,6 +181,8 @@
      (-- (FV e) bound)]
     [(-@ f xs _)
      (for/fold ([FVs (FV f)]) ([x xs]) (∪ FVs (FV x)))]
+    [(-begin es) (FV es)]
+    [(-begin0 e₀ es) (∪ (FV e₀) (FV es))]
     [(-let-values bnds e _)
      (define-values (bound FV_rhs)
        (for/fold ([bound : (Setof Symbol) ∅] [FV_rhs : (Setof Symbol) ∅]) ([bnd bnds])

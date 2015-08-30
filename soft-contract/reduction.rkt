@@ -67,6 +67,14 @@
     ;; ignore continuation marks for now
     [(-wcm e_k e_v e_b)
      (error '↦e "TODO: wcm")]
+    ;; evaluate first clause in `begin` and push remaining clauses
+    [(-begin es)
+     (match es
+       [(list) (-ς (-W -Void/Vs (-?@ -void)) Γ τ σ Ξ M)]
+       [(list e*) (-ς (-↓ e* ρ) Γ τ σ Ξ M)]
+       [(cons e* es*)
+        (define φ (-φ.begin es* ρ))
+        (-ς/pushed e* ρ Γ φ τ σ Ξ M)])]
     ;; evaluate first clause in `begin0` and push the remaining clauses
     [(-begin0 e₀ es)
      (cond
@@ -76,7 +84,12 @@
         (-ς/pushed e₀ ρ Γ φ τ σ Ξ M)])]
     ;; quote
     [(-quote x)
-     (error '↦e "TODO: quote")]
+     (define-values (V ?e)
+       (cond
+         [(Base? x) (values (-b x) (-b x))]
+         [(null? x) (values (-St (-id 'null 'Λ) '()) -null)]
+         [else (error '↦e "TODO: quote")]))
+     (-ς (-W (list V) ?e) Γ τ σ Ξ M)]
     ;; let-values: evaluate the first argument (if there is) and push the rest
     [(-let-values bnds e* l)
      (match bnds
@@ -223,7 +236,7 @@
      (with-guarded-arity 1 'TODO 'set!
        (define Γ* #|FIXME update!!|# Γ)
        (define σ* (⊔ σ α (first Vs)))
-       (-ς (-W -Void/Vs #f) Γ* τ σ Ξ M))]
+       (-ς (-W -Void/Vs #f) Γ* τ σ* Ξ M))]
     ;; Application
     [(-φ.@ Es WVs l)
      (with-guarded-arity 1 l 'apply
