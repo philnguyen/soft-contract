@@ -13,7 +13,7 @@
   (match-lambda
     [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
     [(-ς (-Mon C V l³) Γ τ σ Ξ M)
-     (↦mon (-W C #f) (-W V #f) Γ τ σ Ξ M l³)]
+     (↦mon C V Γ τ σ Ξ M l³)]
     [(-ς (-FC C V l) Γ τ σ Ξ M)
      (↦FC C V Γ τ σ Ξ M l)]
     [(-ς (? -W? W) Γ τ σ Ξ M)
@@ -125,7 +125,7 @@
         (↦@ (-W V #f) (make-list n -●) Γ τ σ Ξ M ☠)]
        [(and V (-Ar γ _ l³))
         (match/nd: #:tag ↦WVs/havoc/dep (-V → -ς) (σ@ σ γ)
-          [(-=>i cs _ _ _) (↦@ (-W V #f) (make-list (length cs) -●) Γ τ σ Ξ M ☠)])]
+          [(-=>i xs _ _ _ _ _) (↦@ (-W V #f) (make-list (length xs) -●) Γ τ σ Ξ M ☠)])]
        [V
         (log-debug "havoc: ignore first-order value ~a" (show-V V))
         ∅])]
@@ -139,15 +139,15 @@
     [(-->i doms rng)
      (match doms
        ['()
-        (define φ (-φ.=>i '() '() '() rng ρ))
-        (-ς/pushed rng ρ Γ φ τ σ Ξ M)]
+        (define C (-=>i '() '() '() rng ρ Γ))
+        (define c (-?->i '() '() rng))
+        (-ς (-W (list C) c) Γ τ σ Ξ M)]
        [(cons dom doms*)
         (match-define (cons x c) dom)
         (define-values (xs* cs*)
-          (for/lists ([xs* : (Listof Symbol)] [cs* : (Listof -e)])
-                     ([dom doms*])
+          (for/lists ([xs* : (Listof Symbol)] [cs* : (Listof -e)]) ([dom doms*])
             (values (car dom) (cdr dom))))
-        (define φ (-φ.=>i cs* '() (cons x xs*) rng ρ))
+        (define φ (-φ.=>i cs* '() '() (cons x xs*) rng ρ))
         (-ς/pushed c ρ Γ φ τ σ Ξ M)])]
     [(-x/c x)
      (error '↦e "TODO: x/c")]
@@ -339,32 +339,30 @@
            (define φ* (-φ.struct/c id es* ρ WVs*))
            (-ς/pushed e ρ Γ φ* τ σ Ξ M)])]
        [else (error '↦WVs "TODO: catch arity error for μ/c")])]
-    [(-φ.=>i doms doms↓ xs rng ρ)
-     (match Vs
-       [(list V)
-        (define doms↓* (cons (-W V ?e) doms↓))
-        (define n (length doms↓*))
-        (match doms
-          ['()
-           (define-values (αs σ* es*)
-             ;; accumulate new store and address list for contract domains
-             ;; (domains are reversed compared to `cs↓*`)
-             (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()])
-                       ([dom doms↓*] [i (in-range n)])
-               (match-define (-W C e) dom)
-               (define α
-                 (cond [e (-α.val e)]
-                       [else (-α.opq (-id '->/i 'Λ) #f #|TODO|# i)]))
-               (values (cons α αs)
-                       (⊔ σ* α V)
-                       (cons e es*))))
-           (define C (-=>i (map (inst cons Symbol -α) xs αs) rng ρ Γ))
-           (define e_C (-?->i xs es* rng))
-           (-ς (-W (list C) e_C) Γ τ σ* Ξ M)]
-          [(cons dom doms*)
-           (define φ* (-φ.=>i doms* doms↓* xs rng ρ))
-           (-ς/pushed dom ρ Γ φ* τ σ Ξ M)])]
-       [else (error '↦WVs "TODO: catch arity error for -->i")])]
+    [(-φ.=>i cs Cs↓ cs↓ xs rng ρ)
+     (with-guarded-arity 1 'TODO 'Λ
+       (match-define (list V) Vs)
+       (define Cs↓* (cons V Cs↓))
+       (define cs↓* (cons ?e cs↓))
+       (match cs
+         ['()
+          (define-values (γs σ* cs*)
+            ;; accumulate new store and address list for contract domains
+            ;; (domains are reversed compared to `Cs↓*`)
+            (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()])
+                      ([C Cs↓*] [c cs↓*] [i (in-naturals)])
+              (define γ
+                (cond [c (-α.val c)]
+                      [else (-α.opq (-id '->/i 'Λ) #f #|TODO|# i)]))
+              (values (cons γ γs)
+                      (⊔ σ* γ C)
+                      (cons c cs*))))
+          (define C (-=>i xs cs* γs rng ρ Γ))
+          (define e_C (-?->i xs cs* rng))
+          (-ς (-W (list C) e_C) Γ τ σ* Ξ M)]
+         [(cons c cs*)
+          (define φ* (-φ.=>i cs* Cs↓* cs↓* xs rng ρ))
+          (-ς/pushed c ρ Γ φ* τ σ Ξ M)]))]
     ))
 
 (: ↦blm : -blm -Γ -φ -τ -σ -Ξ -M → -ς*)
@@ -387,13 +385,6 @@
       (values (-W-x W) (-W-e W))))
   (define e_a (apply -?@ e_f e_xs))
 
-  (: ↦indy : -=>i -V (Listof -V) Mon-Info → -ς*)
-  (define (↦indy C V_f V_xs l³)
-    (match-define (list l+ l- lo) l³)
-    (match C
-      [(-=>i doms rng ρ_c Γ_c)
-       (error '↦indy "TODO: indy")]))
-
   (: ↦β : -formals -e -ρ -Γ → -ς*)
   (define (↦β xs e ρ Γ)
     (match xs
@@ -406,32 +397,45 @@
        (define φ* (-φ.rt.@ Γ xs e_f e_xs))
        (-ς/pushed e ρ* Γ φ* τ σ* Ξ M)]
       [(-varargs zs z) (error '↦@ "TODO: varargs")]))
+
+  (: ↦δ : -o → -ς*)
+  (define (↦δ o)
+    (define-values (σ* AΓs) (δ σ Γ o W_xs l))
+    (match/nd: (-AΓ → -ς) AΓs
+      [(-AΓ (? -blm? blm) Γ*) (-ς blm         Γ* τ σ* Ξ M)]
+      [(-AΓ (? list? Vs ) Γ*) (-ς (-W Vs e_a) Γ* τ σ* Ξ M)]))
+  
+  (: ↦havoc : → (Setof -ς))
+  (define (↦havoc)
+    (define V_havoc (σ@₁ σ (-α.def havoc-id)))
+    (define W_havoc (-W V_havoc (-ref havoc-id l)))
+    (for/fold ([acc : (Setof -ς) ∅]) ([W_x W_xs])
+      (match (↦@ W_havoc (list W_x) Γ τ σ Ξ M 'Λ)
+        [(? set? s) (∪ acc s)]
+        [(? -ς? ς) (set-add acc ς)])))
+
+  (: ↦opq : → -ς)
+  (define (↦opq) (-ς (-W (list '•) e_a) Γ τ σ Ξ M))
+
+  (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -ς*)
+  (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
+    (match* (xs cs Cs)
+      [('() '() '())
+       (error '↦indy "TODO")]
+      [((cons x xs*) (cons c cs*) (cons C Cs*))
+       (error '↦indy "TODO")]))
   
   (match V_f
-    [(? -o? o)
-     (define-values (σ* AΓs) (δ σ Γ o W_xs l))
-     (match/nd: (-AΓ → -ς) AΓs
-       [(-AΓ (? -blm? blm) Γ*) (-ς blm Γ* τ σ* Ξ M)]
-       [(-AΓ (? list? Vs ) Γ*) (-ς (-W Vs e_a) Γ* τ σ* Ξ M)])]
-    [(-Clo* xs e ρ_f) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
-    [(-Clo xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]
+    [(? -o? o) (↦δ o)]
+    [(-Clo* xs e ρ_f    ) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
+    [(-Clo  xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]
     [(-Ar γ α l³)
-     (define Cs (σ@ σ γ))
-     (define Vs (σ@ σ α))
-     (match/nd: (-V → -ς) Cs
-       [(? -=>i? C)
-        (match/nd: (-V → -ς) Vs
-          [V_g (↦indy C V_g V_xs l³)])])]
-    ['•
-     (define V_havoc (σ@₁ σ (-α.def havoc-id)))
-     (define W_havoc (-W V_havoc (-ref havoc-id l)))
-     ;; FIXME: return right arity!
-     (define ς• (-ς (-W (list '•) e_a) Γ τ σ Ξ M)) 
-     (for/fold ([acc : (Setof -ς) {set ς•}])
-               ([W_x W_xs])
-       (match (↦@ W_havoc (list W_x) Γ τ σ Ξ M 'Λ)
-         [(? set? s) (set-union acc s)]
-         [(? -ς? ς) (set-add acc ς)]))]
+     (match/nd: (-V → -ς) (σ@ σ γ)
+       [(-=>i xs cs γs d ρ_d Γ_d)
+        (match/nd: ((Listof -V) → -ς) (σ@/list σ γs) ; can explode very fast!!
+          [Cs (match/nd: (-V → -ς) (σ@ σ α)
+                [V_g (↦indy xs cs Cs d ρ_d Γ_d V_g l³)])])])]
+    ['• (set-add (↦havoc) (↦opq))]
     [_ (-ς (-blm l 'apply 'procedure? (list V_f)) Γ τ σ Ξ M)]))
 
 (: ↦mon : -WV -WV -Γ -τ -σ -Ξ -M Mon-Info → -ς*)
@@ -450,7 +454,7 @@
      (-ς (-blm l+ lo C (list V)) Γ* τ σ Ξ M)]
     ['?
      (match C
-       [(-=>i doms rng ρ_c Γ_c)
+       [(-=>i xs cs Cs rng ρ_c Γ_c)
         ;; TODO: check for arity also
         (define-values (Γ-ok Γ-bad) (Γ+/-W∈W Γ W_v (-W 'procedure? 'procedure?)))
         (define ς-ok
@@ -464,7 +468,7 @@
                          [else (-α.opq (-id 'Ar 'Λ) #f #|FIXME|# 1)]))
                  (define Ar (-Ar γ α l³))
                  (define σ* (⊔ (⊔ σ α V) γ C))
-                 (-ς (-W (list Ar) #f) Γ-ok τ σ* Ξ M))))
+                 (-ς (-W (list Ar) #f #|TODO|#) Γ-ok τ σ* Ξ M))))
         (define ς-bad
           (and Γ-bad
                (-ς (-blm l+ lo 'procedure? (list V)) Γ-bad τ σ Ξ M)))
@@ -482,26 +486,29 @@
        [(-St (-id 'and/c 'Λ) (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
+        (define-values (c₁ c₂) (-and/c-split e_c))
         (match/nd: (-V → -ς) Cs₁
           [C₁
            (match/nd: (-V → -ς) Cs₂
              [C₂
-              ;; TODO: more precise splitting `(and/c _₁ _₂) --> _₁, _₂`
-              (define φ* (-φ.mon.v (-W C₂ #f) l³))
-              (define τ* (-τ (-Mon C₁ V l³) Γ))
+              (define φ* (-φ.mon.v (-W C₂ c₂) l³))
+              (define W_c₁ (-W C₁ c₁))
+              (define τ* (-τ (-Mon W_c₁ W_v l³) Γ))
               (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
-              (↦mon (-W C₁ #f) W_v Γ τ* σ Ξ* M l³)])])]
+              (↦mon W_c₁ W_v Γ τ* σ Ξ* M l³)])])]
        [(-St (-id 'or/c 'Λ) (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
+        (define-values (c₁ c₂) (-or/c-split e_c))
         (match/nd: (-V → -ς) Cs₁
           [C₁
            (cond
              [(C-flat? σ C₁)
               (match/nd: (-V → -ς) Cs₂
                 [C₂
-                 (define φ (-φ.if (-Mon C₂ V l³) (-blm l+ lo C₁ (list V))))
-                 (define E* (-FC C₁ V lo))
+                 (define φ (-φ.if (-Mon (-W C₂ c₂) W_v l³)
+                                  (-blm l+ lo C₁ (list V))))
+                 (define E* (-FC (-W C₁ c₁) W_v lo))
                  (define τ* (-τ E* Γ))
                  (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
                  (-ς E* Γ τ* σ Ξ* M)])]
@@ -514,7 +521,7 @@
            (cond
              [(C-flat? σ C*)
               (define φ (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)))
-              (-ς/pushed (-FC C* V lo) Γ φ τ σ Ξ M)]
+              (-ς/pushed (-FC (-W C* (-not/c-neg e_c)) W_v lo) Γ φ τ σ Ξ M)]
              [else
               (-ς (-blm lo 'Λ #|hack|# (-st-p (-id 'flat-contract? 'Λ) 1) (list C*))
                   Γ τ σ Ξ M)])])]
@@ -524,29 +531,32 @@
         (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
         (↦@ W_c (list W_v) Γ τ* σ Ξ* M lo)])]))
 
-(: ↦FC : -V -V -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
+(: ↦FC : -WV -WV -Γ -τ -σ -Ξ -M Mon-Party → -ς*)
 ;; Stepping rules for monitoring flat contracts
-(define (↦FC C V Γ τ σ Ξ M l)
+(define (↦FC W_c W_v Γ τ σ Ξ M l)
+  (match-define (-W C e_c) W_c)
+  (match-define (-W V e_v) W_v)
   (match C
     [(-St (-id (and t (or 'and/c 'or/c)) 'Λ) (list γ₁ γ₂))
      (define Cs₁ (σ@ σ γ₁))
      (define Cs₂ (σ@ σ γ₂))
+     (define-values (c₁ c₂) (-and/c-split e_c))
      (match/nd: (-V → -ς) Cs₁
        [C₁
         (match/nd: (-V → -ς) Cs₂
           [C₂
            (define φ
              (match t
-               ['and/c (-φ.if (-FC V C₂ l) (-W (list -ff) -ff))]
-               ['or/c  (-φ.if (-W (list -tt) -tt) (-FC V C₂ l))]))
-           (-ς/pushed (-FC C₁ V l) Γ φ τ σ Ξ M)])])]
+               ['and/c (-φ.if (-FC W_v (-W C₂ c₂) l) (-W (list -ff) -ff))]
+               ['or/c  (-φ.if (-W (list -tt) -tt) (-FC W_v (-W C₂ c₂) l))]))
+           (-ς/pushed (-FC (-W C₁ c₁) W_v l) Γ φ τ σ Ξ M)])])]
     [(-St (-id 'not/c 'Λ) (list γ))
      (match/nd: (-V → -ς) (σ@ σ γ)
        [C*
         (define φ (-φ.@ '() (list (-W 'not 'not)) 'Λ))
-        (-ς/pushed (-FC C* V l) Γ φ τ σ Ξ M)])]
+        (-ς/pushed (-FC (-W C* (-not/c-neg e_c)) W_v l) Γ φ τ σ Ξ M)])]
     ;; FIXME recursive contract
-    [_ (↦@ (-W C #f) (list (-W V #f)) Γ τ σ Ξ M l)]))
+    [_ (↦@ W_c (list W_v) Γ τ σ Ξ M l)]))
 
 (: -ς/pushed (case-> [-E    -Γ -φ -τ -σ -Ξ -M → -ς]
                      [-e -ρ -Γ -φ -τ -σ -Ξ -M → -ς]))

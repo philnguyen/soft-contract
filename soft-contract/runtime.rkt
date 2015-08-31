@@ -9,7 +9,7 @@
 
 ;;;;; Restricted expression + fact environments
 
-(define-type -?e (Option -e))
+(define-type/pred -?e (Option -e))
 (define-type -Γ (Setof -e))
 (define -Γ∅ : -Γ ∅)
 
@@ -17,6 +17,21 @@
 (define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
   (syntax-rules () [(_ e) (-?@ 'not e)]))
+
+(:* -and/c-split -or/c-split : -?e → (Values -?e -?e))
+(define -and/c-split
+  (match-lambda
+    [(-@ (-st-mk (-id 'and/c 'Λ) 2) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac (-id 'and/c 'Λ) 2 0) c)
+               (-?@ (-st-ac (-id 'and/c 'Λ) 2 1) c))]))
+(define -or/c-split
+  (match-lambda
+    [(-@ (-st-mk (-id 'or/c 'Λ) 2) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac (-id 'or/c 'Λ) 2 0) c)
+               (-?@ (-st-ac (-id 'or/c 'Λ) 2 1) c))]))
+(: -not/c-neg : -?e → -?e)
+(define (-not/c-neg c) (-?@ (-st-ac (-id 'not/c 'Λ) 1 0) c))
+
 
 (: Γ+ : -Γ -?e * → -Γ)
 ;; Extend fact environment
@@ -166,7 +181,9 @@
   (struct -St [tag : -id] [fields : (Listof -α)])
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
-  (struct -=>i [dom : (Listof (Pairof Symbol -α))] [rng : -e] [ρ : -ρ] [Γ : -Γ])
+  (struct -=>i
+    [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
+    [rng : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -St/C [t : -id] [fields : (Listof -α)])
   (struct -μ/C [x : Symbol] [c : -α])
   (struct -X/C [ref : -α]))
@@ -188,9 +205,9 @@
 ;; closure forms
 (define-data -E
   (struct -↓ [e : -e] [ρ : -ρ])
-  ; `V` doesn't have any reference back to `E`, so it's not recursive
-  (struct -Mon [c : -V] [v : -V] [info : Mon-Info])
-  (struct -FC [c : -V] [v : -V] [lo : Mon-Party])
+  ; `V` and `e` don't have any reference back to `E`, so it's not recursive
+  (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info])
+  (struct -FC [c : -WV] [v : -WV] [lo : Mon-Party])
   (subset: -Ans
     -blm
     -WVs))
@@ -369,10 +386,10 @@
     [(-Clo xs e _ _) (show-e (-λ xs e))]
     [(-Ar γ α _) `(,(show-α γ) ◃ ,(show-α α))]
     [(-St t αs) `(,(-id-name t) ,@(map show-α αs))]
-    [(-=>i doms e ρ Γ) `(,@(for/list : (Listof Sexp) ([dom doms])
-                             (match-define (cons x γ) dom)
-                             `(,x : ,(show-α γ)))
-                         ↦ ,(show-e e))]
+    [(-=>i xs cs γs e ρ Γ)
+     `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
+           `(,x : ,(or (and c (show-e c)) (show-α γ))))
+       ↦ ,(show-e e))]
     [(-St/C t αs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-α αs))]
     [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
     [(-X/C α) `(X: ,(show-α α))]))

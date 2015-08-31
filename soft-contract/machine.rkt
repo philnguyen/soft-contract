@@ -37,18 +37,19 @@
     [args : (Listof -WV)]
     [args↓ : (Listof (Pairof Symbol -WV))]
     [fun : -V]
-    [rng : -↓]
+    [rng : -e]
+    [env : -ρ]
     [mon-info : Mon-Info])
-  (struct -φ.indy.rng [fun : -V] [args : (Listof -WV)] [min-info : Mon-Info])
+  (struct -φ.indy.rng [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info])
   (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])
   (struct -φ.rt.let [old-dom : (Setof Symbol)])
   ;; contract stuff
   (struct -φ.μc [x : Symbol])
   (struct -φ.struct/c
     [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)])
-  ;(struct -φ.=> [dom : (Listof -e)] [dom↓ : (Listof -WV)] [env : -ρ])
   (struct -φ.=>i
-    [dom : (Listof -e)] [dom↓ : (Listof -WV)] [xs : (Listof Symbol)] [rng : -e] [env : -ρ])
+    [dom : (Listof -e)] [dom↓ : (Listof -V)] [cs↓ : (Listof -?e)] [xs : (Listof Symbol)]
+    [rng : -e] [env : -ρ])
   )
 
 ;; Stack address
@@ -90,7 +91,7 @@
                     ([dom doms])
            (values (car dom) (cdr dom))))
        (define-values (σ* γs) (alloc-es σ cs))
-       (values σ* (-=>i (map (inst cons Symbol -α) xs γs) rng -ρ∅ -Γ∅))]
+       (values σ* (-=>i xs cs γs rng -ρ∅ -Γ∅))]
       [(-@ (-st-mk (-id (and t (or 'and/c 'or/c 'not/c)) 'Λ) _) cs _)
        (define-values (σ* αs) (alloc-es σ cs))
        (values σ* (-St (-id t 'Λ) αs))]
