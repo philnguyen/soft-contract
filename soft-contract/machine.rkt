@@ -33,9 +33,11 @@
   (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info])
   (struct -φ.indy.dom
     [pending : Symbol]
-    [doms : (Listof (Pairof Symbol -WV))]
+    [xs : (Listof Symbol)]
+    [cs : (Listof -?e)]
+    [Cs : (Listof -V)]
     [args : (Listof -WV)]
-    [args↓ : (Listof (Pairof Symbol -WV))]
+    [args↓ : (Map Symbol -WV)]
     [fun : -V]
     [rng : -e]
     [env : -ρ]

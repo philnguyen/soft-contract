@@ -125,7 +125,8 @@
         (↦@ (-W V #f) (make-list n -●) Γ τ σ Ξ M ☠)]
        [(and V (-Ar γ _ l³))
         (match/nd: #:tag ↦WVs/havoc/dep (-V → -ς) (σ@ σ γ)
-          [(-=>i xs _ _ _ _ _) (↦@ (-W V #f) (make-list (length xs) -●) Γ τ σ Ξ M ☠)])]
+          [(-=>i xs _ _ _ _ _)
+           (↦@ (-W V #f) (make-list (length xs) -●) Γ τ σ Ξ M ☠)])]
        [V
         (log-debug "havoc: ignore first-order value ~a" (show-V V))
         ∅])]
@@ -419,11 +420,18 @@
 
   (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -ς*)
   (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
-    (match* (xs cs Cs)
-      [('() '() '())
+    (define D (-↓ d ρ_d))
+    (define φ₁ (-φ.rt.@ Γ xs e_f e_xs))
+    (define τ₁ (-τ `(indy ,(-W Cs #f) ,D ,(-W (list V_g) #f) ,(-W V_xs #f)) Γ_d)) ; TODO
+    (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
+    (match* (xs cs Cs W_xs)
+      [('() '() '() '())
        (error '↦indy "TODO")]
-      [((cons x xs*) (cons c cs*) (cons C Cs*))
-       (error '↦indy "TODO")]))
+      [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
+       (define φ₂ (-φ.indy.dom x xs* cs* Cs* W_xs* (hash) V_g d ρ_d l³))
+       (define τ₂ (-τ `(indy ,(-W Cs* #f) ,D ,(-W (list V_g) #f) ,(-W (cdr V_xs) #f)) Γ_d))
+       (define Ξ₂ (⊔ Ξ₁ τ₂ (-κ φ₂ τ₁)))
+       (↦mon (-W C c) (-W (-W-x W_x) (-x x)) Γ_d τ₂ σ Ξ₂ M l³)]))
   
   (match V_f
     [(? -o? o) (↦δ o)]
@@ -454,7 +462,7 @@
      (-ς (-blm l+ lo C (list V)) Γ* τ σ Ξ M)]
     ['?
      (match C
-       [(-=>i xs cs Cs rng ρ_c Γ_c)
+       [(-=>i xs cs Cs d ρ_d Γ_d)
         ;; TODO: check for arity also
         (define-values (Γ-ok Γ-bad) (Γ+/-W∈W Γ W_v (-W 'procedure? 'procedure?)))
         (define ς-ok

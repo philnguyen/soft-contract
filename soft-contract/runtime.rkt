@@ -183,7 +183,7 @@
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
-    [rng : -e] [ρ : -ρ] [Γ : -Γ])
+    [rng : -e] [env : -ρ] [Γ : -Γ])
   (struct -St/C [t : -id] [fields : (Listof -α)])
   (struct -μ/C [x : Symbol] [c : -α])
   (struct -X/C [ref : -α]))
@@ -386,10 +386,10 @@
     [(-Clo xs e _ _) (show-e (-λ xs e))]
     [(-Ar γ α _) `(,(show-α γ) ◃ ,(show-α α))]
     [(-St t αs) `(,(-id-name t) ,@(map show-α αs))]
-    [(-=>i xs cs γs e ρ Γ)
+    [(-=>i xs cs γs d ρ Γ)
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : ,(or (and c (show-e c)) (show-α γ))))
-       ↦ ,(show-e e))]
+       ↦ ,(show-e d))]
     [(-St/C t αs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-α αs))]
     [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
     [(-X/C α) `(X: ,(show-α α))]))
