@@ -49,7 +49,7 @@
        (match-define (list (and W (-W V e))) Ws)
        (define prd (-st-p id n))
        (define ok-arg? (-?@ prd e))
-       (define Γ-ok (Γ+ Γ ok-arg?))
+       (define Γ-ok  (Γ+ Γ ok-arg?))
        (define Γ-bad (Γ+ Γ (-not ok-arg?)))
        (define (blm-bad-arg) (-AΓ (-blm l (show-o o) prd (list V)) Γ-bad))
        (match V

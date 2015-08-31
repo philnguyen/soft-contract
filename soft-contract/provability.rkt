@@ -229,13 +229,13 @@
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
 
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
-;; Join fact environments. Return `#f` to represent the bogus environment (⊥)
+;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
 (define (Γ⊓ Γ₀ Γ₁)
   (for/fold ([Γ : (Option -Γ) Γ₀]) ([e Γ₁])
     (and Γ (Γ⊓e Γ e))))
 
 (: Γ⊓e : -Γ -?e → (Option -Γ))
-;; Refine fact environment with expression.
+;; Refine path invariant with expression.
 ;; Note: `∅` is `⊤` (no assumption), `#f` is `⊥` (spurious, anything is true).
 ;; The operation doesn't guarantee absolute precision.
 ;; In general, it returns an upperbound of the right answer.

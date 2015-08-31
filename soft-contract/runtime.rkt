@@ -7,7 +7,7 @@
 ;; Provability result
 (define-type -R (U '✓ 'X '?))
 
-;;;;; Restricted expression + fact environments
+;;;;; Path invariants
 
 (define-type/pred -?e (Option -e))
 (define-type -Γ (Setof -e))
@@ -31,13 +31,6 @@
                (-?@ (-st-ac (-id 'or/c 'Λ) 2 1) c))]))
 (: -not/c-neg : -?e → -?e)
 (define (-not/c-neg c) (-?@ (-st-ac (-id 'not/c 'Λ) 1 0) c))
-
-
-(: Γ+ : -Γ -?e * → -Γ)
-;; Extend fact environment
-(define (Γ+ Γ . es)
-  (for/fold ([Γ* : -Γ Γ]) ([e es] #:when e)
-    (set-add Γ* e)))
 
 (: -?@ : -?e -?e * → -?e)
 ;; Smart constructor for application
@@ -95,6 +88,11 @@
             (for/list ([i (in-range n)])
               (-?@ (-st-ac (-id 'values 'Λ) n i) e))])]
     [_ (make-list n #f)]))
+
+(: Γ+ : -Γ -?e * → -Γ)
+(define (Γ+ Γ . es)
+  (for/fold ([Γ : -Γ Γ]) ([e es] #:when e)
+    (set-add Γ e)))
 
 (: FV-Γ : -Γ → (Setof Symbol))
 (define (FV-Γ Γ)
@@ -166,8 +164,8 @@
 
 (: Γ/ : -Γ Symbol -e → -Γ)
 (define (Γ/ Γ x e)
-  (for/fold ([Γ : -Γ Γ]) ([ei Γ])
-    (Γ+ Γ (e/ ei x e))))
+  (for/set: : -Γ ([ei Γ])
+    (e/ ei x e)))
 
 
 ;;;;; CLOSURE
@@ -213,7 +211,7 @@
     -WVs))
 
 (: Γ↓ : -Γ (Setof Symbol) → -Γ)
-;; Restrict fact environment's domain to given variable names
+;; Restrict path invariant to given variables
 (define (Γ↓ Γ xs)
   (for/set: : -Γ ([e Γ] #:when (subset? (FV e) xs)) e))
 

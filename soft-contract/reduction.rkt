@@ -299,7 +299,7 @@
     #;[(-φ.indy W_cs W_xs W_xs↓ rng (list l+ l- lo))
      (with-guarded-arity 1 l+ lo
        (error '↦WVs "TODO: indy"))]
-    ;; restore fact environment
+    ;; restore path invariant of previous block
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? φ Γ (-W Vs ?e)) ∅]
            [else
@@ -591,8 +591,8 @@
   (define params ; only care params that have corresponding args
     (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
 
-  ; Convert facts about parameters in new environment
-  ; to facts about arguments in old environment
+  ; Convert invariants about parameters in new environment
+  ; to invariants about arguments in old environment
   ; PRECOND: (FV e) ⊆ xs
   (define (convert [e : -e]) : -e
     (for/fold ([e e]) ([x xs] [e_x e_xs] #:when e_x)
