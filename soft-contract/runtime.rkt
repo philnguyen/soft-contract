@@ -434,3 +434,8 @@
 (define (show-σ σ)
   (for/list ([(α Vs) (in-hash σ)])
     `(,(show-α α) ↦ ,@(for/list : (Listof Sexp) ([V Vs]) (show-V V)))))
+
+(: show-?e : -?e → Sexp)
+(define (show-?e e)
+  (cond [e (show-e e)]
+        [else '⊘]))

@@ -151,7 +151,7 @@
 (define (--> cs d)
   (define doms
     (for/list : (Listof (Pairof Symbol -e)) ([c cs] [i (in-naturals)])
-      (define x (string->symbol (format "■~a" (n-sub i)))) ; hack
+      (define x (string->symbol (format "x•~a" (n-sub i)))) ; hack
       (cons x c)))
   (-->i doms d))
 
@@ -578,7 +578,7 @@
     [(-λ (list x) (-@ 'arity-includes? (list (-x x) (-b 0)) _)) `(arity-includes/c ,x)]
     [(-λ (list x) (-@ 'arity=? (list (-x x) (-b 0)) _)) `(arity=/c ,x)]
     [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
-    [(-λ (list _) (-b (not #f))) 'any/c]
+    [(-λ (list _) (-b #t)) 'any/c]
     [(-λ (list _) (-b #f)) 'none/c]
     [(-@ (-st-mk (-id 'null 'Λ) 0) (list) _) 'null]
     [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]

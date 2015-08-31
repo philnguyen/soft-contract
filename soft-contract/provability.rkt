@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "lang.rkt" "runtime.rkt")
-(provide Γ⊢V∈C Γ⊢oW Γ⊢e e⊢e ⊢e V∈p V≡ Γ⊢e≡
+(provide Γ⊢V∈C Γ⊢oW Γ⊢e V∈p V≡ Γ⊢e≡
          Γ⊓ Γ⊓e Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R)
 
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
@@ -28,61 +28,102 @@
 ;; Check if `e` evals to truth if all in `Γ` do
 (define (Γ⊢e Γ e)
   (cond
-    [e
-     (or-R
-      ; TODO: can't use `for/first` in TR
-      (for*/fold ([R : -R (⊢e e)])
-                 ([e* Γ]
-                  #:when (equal? '? R)
-                  [R* (in-value (e⊢e e* e))])
-        R*)
-      ((Γ⊢ₑₓₜ) Γ e))]
+    [e (or-R (Γ⊢₁e Γ e) ((Γ⊢ₑₓₜ) Γ e))]
     [else '?]))
 
-(: e⊢e : -?e -?e → -R)
-;; Check if `e₂` returns truth when `e₁` does
-(define (e⊢e e₁ e₂)
-  (match* ((⊢e e₁) (⊢e e₂))
-    [('X _) '✓]
-    [(_ '?)
-     (match* (e₁ e₂)
-       ; e ⇒ e
-       [(e e) '✓]
-       ; ¬e₁⇒¬e₂ ≡ e₂⇒e₁
-       [((-not e₁*) (-not e₂*))
-        (e⊢e e₂* e₁*)]
-       ; 
-       [(e₁ (-not e₂*))
-        (not-R (e⊢e e₁ e₂*))]
-       [((-@ (? -pred? p) (list e) _) (-@ (? -pred? q) (list e) _))
-        (p⇒p p q)]
-       [((-@ (? -pred? p) (list e) _) e)
-        (cond
-          [(truth-pred? p) '✓]
-          [(equal? p 'not) 'X]
-          [else '?])]
-       [(_ _) '?])]
-    [(_ R) R]))
+(: Γ⊢₁e : -Γ -e → -R)
+(define (Γ⊢₁e Γ e)
 
-(: ⊢e : -?e → -R)
-;; Check if expression returns truth
-(define ⊢e
-  (match-lambda
-    ;; values
-    [(-b #f) 'X]
-    [(? -•?) '?]
-    [(? -v?) '✓]
-    ;; constructors
-    [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
-    ;; special cases
-    [(-@ (or '= 'equal?) (list e e) _) '✓]
-    ;; ariths
-    [(-@ (? -o? o) xs _)
-     (match o
-       ['not (not-R (⊢e (car xs)))]
-       [(? -pred?) '?]
-       [_ '✓])]
-    [_ '?]))
+  (: ⊢e : -?e → -R)
+  ;; Check if expression returns truth
+  (define ⊢e
+    (match-lambda
+      ;; values
+      [(-b #f) 'X]
+      [(? -•?) '?]
+      [(? -v?) '✓]
+      ;; constructors
+      [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
+      ;; special cases
+      [(-@ (or '= 'equal?) (list e e) _) '✓]
+      ;; negation
+      [(-not e*) (not-R (⊢e e*))]
+      ;; ariths
+      [(-@ 'integer? (list e*) _)
+       (match e*
+         [(-b b) (decide-R (real? b))]
+         [(-@ o (list es ...) _)
+          (match o
+            [(or 'string-length #|TODO|# 'round 'floor 'ceiling) '✓]
+            [(or '+ '- '* 'add1 'sub1 'abs)
+             (cond [(for/and : Boolean ([ei es])
+                      (equal? '✓ (Γ⊢e Γ (-?@ 'integer? ei))))
+                    '✓]
+                   [else '?])]
+            [(or (? -pred?) (? -st-mk?)) 'X]
+            [_ '?])]
+         [_ '?])]
+      [(-@ 'real? (list e*) _)
+       (match e*
+         [(-b b) (decide-R (real? b))]
+         [(-@ o (list es ...) _)
+          (match o
+            [(or 'string-length 'round 'floor 'ceiling) '✓]
+            [(or '+ '- '* 'add1 'sub1 'abs)
+             (cond [(for/and : Boolean ([ei es])
+                      (equal? '✓ (Γ⊢e Γ (-?@ 'real? ei))))
+                    '✓]
+                   [else '?])]
+            [(or (? -pred?) (? -st-mk?)) 'X]
+            [_ '?])]
+         [_ '?])]
+      [(-@ 'number? (list e*) _)
+       (match e*
+         [(-b b) (decide-R (number? b))]
+         [(-@ o (list es ...) _)
+          (match o
+            [(or 'string-length 'round 'floor 'ceiling '+ '- '* 'add1 'sub1 'abs)
+             '✓]
+            [(or (? -pred?) (? -st-mk?)) 'X]
+            [_ '?])]
+         [_ '?])]
+      [(-@ (or (? -pred?) (? -st-ac?)) (list e) _) '?]
+      [(-@ (? -o?) _ _) '✓] ; happens to be so for now
+      [_ '?]))
+
+  (: e⊢e : -?e -?e → -R)
+  ;; Check if `e₂` returns truth when `e₁` does
+  (define (e⊢e e₁ e₂)
+    (match* ((⊢e e₁) (⊢e e₂))
+      [('X _) '✓]
+      [(_ '?)
+       (match* (e₁ e₂)
+         ; e ⇒ e
+         [(e e) '✓]
+         ; ¬e₁⇒¬e₂ ≡ e₂⇒e₁
+         [((-not e₁*) (-not e₂*))
+          (e⊢e e₂* e₁*)]
+         ; 
+         [(e₁ (-not e₂*))
+          (not-R (e⊢e e₁ e₂*))]
+         [((-@ (? -pred? p) (list e) _) (-@ (? -pred? q) (list e) _))
+          (p⇒p p q)]
+         [((-@ (? -pred? p) (list e) _) e)
+          (cond
+            [(truth-pred? p) '✓]
+            [(equal? p 'not) 'X]
+            [else '?])]
+         [(_ _) '?])]
+      [(_ R) R]))
+
+  (define ans
+    (or-R (⊢e e)
+          (for*/fold ([R : -R '?])
+                     ([e₀ Γ] #:when (equal? '? R)
+                      [R* (in-value (e⊢e e₀ e))])
+            R*)))
+  (printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans)
+  ans)
 
 (: V∈V : -V -V → -R)
 ;; Check whether value satisfies predicate
@@ -252,7 +293,8 @@
   (syntax-rules ()
     [(_) '?]
     [(_ R) R]
-    [(_ R₁ R ...) (match R₁ ['? (or-R R ...)] [ans ans])]))
+    [(_ R₁ R ...)
+     (match R₁ ['? (or-R R ...)] [ans ans])]))
 
 (: decide-R : Boolean → -R)
 (define decide-R (match-lambda [#t '✓] [#f 'X]))

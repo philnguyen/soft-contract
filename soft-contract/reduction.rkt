@@ -296,14 +296,47 @@
           (define φ* (-φ.mon.c W_V l³))
           (-ς/pushed C Γ φ* τ σ Ξ M)]))]
     ;; indy
-    #;[(-φ.indy W_cs W_xs W_xs↓ rng (list l+ l- lo))
-     (with-guarded-arity 1 l+ lo
-       (error '↦WVs "TODO: indy"))]
+    [(-φ.indy.dom x xs cs Cs W_xs doms↓ V_f d ρ_d l³)
+     (with-guarded-arity 1 'Λ 'Λ
+       (match-define (list V) Vs)
+       (define l³* (swap-parties l³))
+       (define doms↓* (cons (cons x (-W V ?e)) doms↓))
+       (match* (xs cs Cs W_xs)
+         [('() '() '() '())
+          (define args (map (inst cdr Symbol -WV) (reverse doms↓*))) ; TODO
+          (define φ* (-φ.indy.rng V_f args l³))
+          (-ς/pushed d ρ_d Γ φ* τ σ Ξ M)]
+         [((cons x* xs*) (cons c* cs*) (cons C* Cs*) (cons W_x* W_xs*))
+          (define W_c* (-W C* c*))
+          (define φ* (-φ.indy.dom x* xs* cs* Cs* W_xs* doms↓* V_f d ρ_d l³))
+          (define τ* (-τ (-Mon W_c* W_x* l³*) Γ))
+          (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
+          (↦mon W_c* W_x* Γ τ* σ Ξ* M l³*)]))]
+    [(-φ.indy.rng V_f args l³)
+     (match-define (list l+ l- lo) l³)
+     (with-guarded-arity 1 lo 'Λ
+       (match-define (list V) Vs)
+       (define W_d (-W V ?e))
+       (define W_f (-W V_f #f))
+       (define φ* (-φ.mon.v W_d l³))
+       (define τ* (-τ `(@ ,(-W (list V_f) #f)
+                          ,@(for/list : (Listof -WVs) ([arg args])
+                              (match-define (-W V_x e_x) arg)
+                              (-W (list V_x) e_x)))
+                      Γ))
+       (define Ξ* (⊔ Ξ τ* (-κ φ* τ)))
+       (↦@ W_f args Γ τ* σ Ξ* M lo))]
     ;; restore path invariant of previous block
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? φ Γ (-W Vs ?e)) ∅]
            [else
-            (define e_a (apply -?@ e_f e_xs))
+            (define e_a
+              ; take answer as `(f x …)` if possible,
+              ; otherwise a[x/e_x…]
+              ; TODO: confirm this won't blow up
+              (or (apply -?@ e_f e_xs)
+                  (for/fold ([e_a : -?e ?e]) ([x xs] [e_x e_xs])
+                    (and e_a e_x (e/ e_a x e_x)))))
             (-ς (-W (close-Γ Γ Vs) e_a) Γ₀ τ σ Ξ M)])]
     [(-φ.rt.let dom₀)
      (define e* (and ?e (⊆ (FV ?e) dom₀) ?e))
@@ -387,16 +420,16 @@
   (define e_a (apply -?@ e_f e_xs))
 
   (: ↦β : -formals -e -ρ -Γ → -ς*)
-  (define (↦β xs e ρ Γ)
+  (define (↦β xs e ρ_f Γ_f)
     (match xs
       [(? list? xs)
        (define-values (ρ* σ*)
-         (for/fold ([ρ* : -ρ ρ] [σ* : -σ σ])
+         (for/fold ([ρ* : -ρ ρ_f] [σ* : -σ σ])
                    ([x xs] [V_x V_xs] [ex e_xs])
            (define α (-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ∅)))
            (values (ρ+ ρ* x α) (⊔ σ* α (close-Γ Γ V_x)))))
        (define φ* (-φ.rt.@ Γ xs e_f e_xs))
-       (-ς/pushed e ρ* Γ φ* τ σ* Ξ M)]
+       (-ς/pushed e ρ* Γ_f φ* τ σ* Ξ M)]
       [(-varargs zs z) (error '↦@ "TODO: varargs")]))
 
   (: ↦δ : -o → -ς*)
@@ -426,12 +459,16 @@
     (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
     (match* (xs cs Cs W_xs)
       [('() '() '() '())
-       (error '↦indy "TODO")]
+       (define φ₂ (-φ.indy.rng V_f '() l³))
+       (-ς/pushed d ρ_d Γ_d φ₂ τ₁ σ Ξ₁ M)]
       [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
-       (define φ₂ (-φ.indy.dom x xs* cs* Cs* W_xs* (hash) V_g d ρ_d l³))
-       (define τ₂ (-τ `(indy ,(-W Cs* #f) ,D ,(-W (list V_g) #f) ,(-W (cdr V_xs) #f)) Γ_d))
+       (define l³* (swap-parties l³))
+       (define W_c (-W C c))
+       (define W_x* (-W (-W-x W_x) (-x x)))
+       (define φ₂ (-φ.indy.dom x xs* cs* Cs* W_xs* '() V_g d ρ_d l³))
+       (define τ₂ (-τ (-Mon W_c W_x* l³*) Γ_d))
        (define Ξ₂ (⊔ Ξ₁ τ₂ (-κ φ₂ τ₁)))
-       (↦mon (-W C c) (-W (-W-x W_x) (-x x)) Γ_d τ₂ σ Ξ₂ M l³)]))
+       (↦mon W_c W_x* Γ_d τ₂ σ Ξ₂ M l³*)]))
   
   (match V_f
     [(? -o? o) (↦δ o)]
@@ -604,10 +641,22 @@
 
   ; Check whether the propositions would contradict
   (define Γ₀* (Γ⊓ Γ₀ Γ*))
-  (cond
-    [Γ₀* (or (spurious? Γ₀* (-W Vs (and ?e (convert ?e))))
-             (spurious? Γ₀* (-W Vs (apply -?@ e_f e_xs))))]
-    [else #t]))
+  (define ans
+    (cond
+      [Γ₀* (or (spurious? Γ₀* (-W Vs (and ?e (convert ?e))))
+               (spurious? Γ₀* (-W Vs (apply -?@ e_f e_xs))))]
+      [else #t]))
+  
+  (begin ;; debug
+    (printf "Return from: ~a~n"
+            `(,e_f
+              ,@(for/list : (Listof Sexp) ([x xs] [e_x e_xs])
+                  `(,x ↦ ,(show-?e e_x)))))
+    (printf "Caller knows: ~a~n" (show-Γ Γ₀))
+    (printf "Callee knows: ~a~n" (show-Γ Γ))
+    (printf "Caller would know: ~a~n" (and Γ₀* (show-Γ Γ₀*)))
+    (printf "Spurious? ~a~n~n" ans))
+  ans)
 
 
 ;;;;; For testing only

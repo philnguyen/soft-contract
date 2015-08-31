@@ -101,6 +101,19 @@
                            ,@(for/list : (Listof Sexp) ([x xs] [arg args])
                                `(,x ↦ ,(and arg (show-e arg))))))]
         [(-φ.rt.let dom) `(rt/let ,@(set->list dom))]
+        [(-φ.=>i cs Cs↓ cs↓ xs e ρ)
+         `(=>i ,@(reverse (map show-V Cs↓)) □ ,@(map show-e cs))]
+        [(-φ.indy.dom x xs cs Cs args args↓ V_f d ρ l³)
+         `(indy-args ,x
+                     ,(reverse (map (inst car Symbol -WV) args↓))
+                     ,(for/list : (Listof Sexp) ([x xs] [C Cs])
+                        `(,x ▹ ,(show-V C)))
+                     ,(show-V V_f))]
+        [(-φ.indy.rng V_f args l³)
+         `(indy-rng ,(show-V V_f)
+                    ,(for/list : (Listof Sexp) ([arg args])
+                       (match-define (-W V e) arg)
+                       `(,(show-V V) @ ,(and e (show-e e)))))]
         [_ 'φ•]))
 
     (define (show-κ [κ : -κ]) : Sexp

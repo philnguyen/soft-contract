@@ -32,15 +32,15 @@
   (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info])
   (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info])
   (struct -φ.indy.dom
-    [pending : Symbol]
-    [xs : (Listof Symbol)]
-    [cs : (Listof -?e)]
-    [Cs : (Listof -V)]
-    [args : (Listof -WV)]
-    [args↓ : (Map Symbol -WV)]
-    [fun : -V]
-    [rng : -e]
-    [env : -ρ]
+    [pending : Symbol] ; variable for next current expression under evaluation
+    [xs : (Listof Symbol)] ; remaining variables
+    [cs : (Listof -?e)] ; remaining contracts
+    [Cs : (Listof -V)] ; remaining contracts
+    [args : (Listof -WV)] ; remaining arguments
+    [args↓ : (Listof (Pairof Symbol -WV))] ; evaluated arguments
+    [fun : -V] ; inner function
+    [rng : -e] ; range
+    [env : -ρ] ; range's context
     [mon-info : Mon-Info])
   (struct -φ.indy.rng [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info])
   (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])
