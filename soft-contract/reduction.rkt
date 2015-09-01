@@ -649,7 +649,7 @@
   
   (begin ;; debug
     (printf "Return from: ~a~n"
-            `(,e_f
+            `(,(show-?e e_f)
               ,@(for/list : (Listof Sexp) ([x xs] [e_x e_xs])
                   `(,x ↦ ,(show-?e e_x)))))
     (printf "Caller knows: ~a~n" (show-Γ Γ₀))
