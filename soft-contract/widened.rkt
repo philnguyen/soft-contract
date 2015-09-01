@@ -140,7 +140,7 @@
         (mmap-subtract Ξ₁ Ξ₀)
         (mmap-subtract M₁ M₀)))
 
-  (: dbg/ξ : Path-String → (Values (Integer → -ξ) (Integer Integer → -ξ) (Setof -Cfg)))
+  (: dbg/ξ : Path-String → (Values (Integer → -ξ) (Integer → -ξ) (Setof -Cfg)))
   (define (dbg/ξ p)
     (define ξ₀ (𝑰/ξ (files->prog (list p))))
     
@@ -153,10 +153,11 @@
           [else (values ξ evals)])))
     
     (define (step [n : Integer]) : -ξ
-      (hash-ref evals n (λ () (error 'dbg/ξ "undefined for ~a" (hash-count evals)))))
+      (hash-ref evals n (λ () (error 'dbg/ξ "only defined for [~a,~a]"
+                                     0 (- (hash-count evals) 1)))))
     
-    (define (diff [n₀ : Integer] [n₁ : Integer]) : -ξ
-      (ξ-subtract (step n₁) (step n₀)))
+    (define (diff [n : Integer]) : -ξ
+      (ξ-subtract (step n) (step (- n 1))))
 
     (define answers
       (let ()
@@ -169,5 +170,5 @@
 
   (define-values (f d ans) (dbg/ξ "test/programs/safe/1.rkt"))
   (define F (compose show-ξ f))
-  (define (D [n₀ : Integer] [n₁ : Integer]) (show-ξ (d n₀ n₁)))
+  (define (D [n : Integer]) (show-ξ (d n)))
   )
