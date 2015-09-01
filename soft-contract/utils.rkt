@@ -211,3 +211,13 @@
     [(_ f (e₁     e ...) (x ...))
      (let ([x₁ e₁])
        (@?* f (e ...) (x ... x₁)))]))
+
+;; For debuggings
+
+(define debugs : (Parameterof (Setof Symbol)) (make-parameter ∅))
+(define-syntax-rule (with-debug t e ...)
+  (parameterize ([debugs (set-add (debugs) t)]) e ...))
+(: dbg : Symbol String Any * → Void)
+(define (dbg t fmt . xs)
+  (when (∋ (debugs) t)
+    (apply printf fmt xs)))

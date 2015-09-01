@@ -5,7 +5,7 @@
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
-(provide ↦ ↦* dbg)
+(provide ↦ ↦*)
 
 (: ↦ : -ς → -ς*)
 ;; Steps a full state in the CEΓKSΞ machine
@@ -648,27 +648,19 @@
       [else #t]))
   
   (begin ;; debug
-    (printf "Return from: ~a~n"
-            `(,(show-?e e_f)
-              ,@(for/list : (Listof Sexp) ([x xs] [e_x e_xs])
-                  `(,x ↦ ,(show-?e e_x)))))
-    (printf "Caller knows: ~a~n" (show-Γ Γ₀))
-    (printf "Callee knows: ~a~n" (show-Γ Γ))
-    (printf "Caller would know: ~a~n" (and Γ₀* (show-Γ Γ₀*)))
-    (printf "Spurious? ~a~n~n" ans))
+    (dbg 'rt "Return from: ~a~n"
+         `(,(show-?e e_f)
+           ,@(for/list : (Listof Sexp) ([x xs] [e_x e_xs])
+               `(,x ↦ ,(show-?e e_x)))))
+    (dbg 'rt "Caller knows: ~a~n" (show-Γ Γ₀))
+    (dbg 'rt "Callee knows: ~a~n" (show-Γ Γ))
+    (dbg 'rt "Caller would know: ~a~n" (and Γ₀* (show-Γ Γ₀*)))
+    (dbg 'rt "Spurious? ~a~n~n" ans))
   ans)
 
 
 ;;;;; For testing only
-
-(begin
-  (define ↦* : (-ς* → -ς*)
-    (match-lambda
-      [(? set? s) (match/nd: #:tag ↦* (-ς → -ς) s [ς (↦ ς)])]
-      [(? -ς? ς) (↦ ς)]))
-
-  (: dbg : Path-String → (Integer → -ς*))
-  (define ((dbg p) n)
-    (for/fold ([ς : -ς* (𝑰 (files->prog (list p)))])
-              ([i (in-range n)])
-      (↦* ς))))
+(define ↦* : (-ς* → -ς*)
+  (match-lambda
+    [(? set? s) (match/nd: #:tag ↦* (-ς → -ς) s [ς (↦ ς)])]
+    [(? -ς? ς) (↦ ς)]))

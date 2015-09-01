@@ -122,7 +122,7 @@
                      ([e₀ Γ] #:when (equal? '? R)
                       [R* (in-value (e⊢e e₀ e))])
             R*)))
-  (printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans)
+  (dbg '⊢ "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans)
   ans)
 
 (: V∈V : -V -V → -R)

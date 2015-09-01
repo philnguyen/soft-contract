@@ -67,8 +67,8 @@
 ;; trying to decide whether value definitely proves or refutes predicate
 (: call-with : (Listof Sexp) (Listof Sexp) Sexp → -R)
 (define (call-with declarations premises conclusion)
-  (printf "Query:~n~a~n"
-          (pretty-format (append declarations premises (list conclusion)) 100))
+  (dbg 'z3 "Query:~n~a~n"
+       (pretty-format (append declarations premises (list conclusion)) 100))
   (match (call (pretty-format (append declarations premises (list conclusion)) 100))
     [(regexp #rx"^unsat") '✓]
     [(regexp #rx"^sat")
