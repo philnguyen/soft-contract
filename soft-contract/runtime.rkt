@@ -4,104 +4,19 @@
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
-;; Provability result
-(define-type -R (U '✓ 'X '?))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Path invariant
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;; Path invariants
-
-(define-type/pred -?e (Option -e))
+;; Path invariant represented by expressions known to evaluate to truth without effects
 (define-type -Γ (Setof -e))
 (define -Γ∅ : -Γ ∅)
+(define-type/pred -?e (Option -e))
 
-;; convenient syntax for negation
-(define-match-expander -not
-  (syntax-rules () [(_ e) (-@ 'not (list e) _)])
-  (syntax-rules () [(_ e) (-?@ 'not e)]))
-
-(:* -and/c-split -or/c-split : -?e → (Values -?e -?e))
-(define -and/c-split
-  (match-lambda
-    [(-@ (-st-mk (-id 'and/c 'Λ) 2) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac (-id 'and/c 'Λ) 2 0) c)
-               (-?@ (-st-ac (-id 'and/c 'Λ) 2 1) c))]))
-(define -or/c-split
-  (match-lambda
-    [(-@ (-st-mk (-id 'or/c 'Λ) 2) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac (-id 'or/c 'Λ) 2 0) c)
-               (-?@ (-st-ac (-id 'or/c 'Λ) 2 1) c))]))
-(: -not/c-neg : -?e → -?e)
-(define (-not/c-neg c) (-?@ (-st-ac (-id 'not/c 'Λ) 1 0) c))
-
-(: -struct/c-split : -?e Integer → (Listof -?e))
-(define (-struct/c-split c n)
-  (match c
-    [(-struct/c _ cs) cs]
-    [_ (for/list : (Listof -?e) ([i (in-range n)])
-         (-?@ (-st-ac (-id 'struct/c 'Λ) n i) c))]))
-
-(: -struct-split : -?e -id Integer → (Listof -?e))
-(define (-struct-split e id n)
-  (match e
-    [(-@ (-st-mk id n) es _) es]
-    [_ (for/list : (Listof -?e) ([i (in-range n)])
-         (-?@ (-st-ac id n i) e))]))
-
-(: -?@ : -?e -?e * → -?e)
-;; Smart constructor for application
-(define (-?@ f . xs)
-
-  (: access-same-value? : -id Integer (Listof -?e) → (Option -e))
-  (define (access-same-value? id n es)
-    (match es
-      [(cons (-@ (-st-ac id0 m0 0) (list e0) _) es*)
-       (and (equal? id id0)
-            (= n m0)
-            (for/and : Boolean ([i (in-range 1 n)] [ei es*])
-              (match ei
-                [(-@ (-st-ac jd mj j) (list ej) _)
-                 (and (= n mj) (= i j) (equal? id jd) (equal? e0 ej))]
-                [_ #f]))
-            e0)]
-      [_ #f]))
-  
-  (cond
-    [(and f (andmap (inst values -?e) xs))
-     (match* (f xs)
-       ; (not (not e)) = e
-       [('not (list (-not e))) e]
-       ; (car (cons e _)) = e
-       [((-st-ac id n i) (list (-@ (-st-mk id n) es _)))
-        (list-ref es i)]
-       ; (cons (car e) (cdr e)) = e
-       [((-st-mk id n) es)
-        (or (access-same-value? id n es)
-            (-@ f (cast xs (Listof -e)) 'Λ))]
-       [(f xs) (-@ f (cast xs (Listof -e)) 'Λ)])]
-    [else #f]))
-
-(: -?struct/c : -id (Listof -?e) → (Option -struct/c))
-(define (-?struct/c id fields)
-  (and (andmap (inst values -?e) fields)
-       (-struct/c id (cast fields (Listof -e)))))
-
-(: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
-(define (-?->i xs cs d)
-  (and d (andmap (inst values -?e) cs)
-       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) d)))
-
-(: split-values : -?e Integer → (Listof -?e))
-;; Split a pure expression `(values e ...)` into `(e ...)`
-(define (split-values e n)
-  (match e
-    [(-@ 'values es _)
-     (cond [(= n (length es)) es]
-           [else (error 'split-values "cannot split ~a values into ~a" (length es) n)])]
-    [(? -e?)
-     (cond [(= 1 n) (list e)]
-           [else #|hack|#
-            (for/list ([i (in-range n)])
-              (-?@ (-st-ac (-id 'values 'Λ) n i) e))])]
-    [_ (make-list n #f)]))
+(: Γ↓ : -Γ (Setof Symbol) → -Γ)
+;; Restrict path invariant to given variables
+(define (Γ↓ Γ xs)
+  (for/set: : -Γ ([e Γ] #:when (subset? (FV e) xs)) e))
 
 (: Γ+ : -Γ -?e * → -Γ)
 (define (Γ+ Γ . es)
@@ -113,76 +28,23 @@
   (for/fold ([xs : (Setof Symbol) ∅]) ([e : -e Γ])
     (set-union xs (FV e))))
 
-(: e/ : -e Symbol -e → -e)
-(define (e/ e x eₓ)
-  (let go ([e e])
-    (match e
-      [(-λ xs e*)
-       (cond [(binder-has? xs x) e]
-             [else (-λ xs (go e*))])]
-      [(-case-λ clauses)
-       (-case-λ
-        (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
-          (match-define (cons xs e*) clause)
-          (cond [(binder-has? xs x) clause]
-                [else (cons xs (go e*))])))]
-      [(? -v?) e]
-      [(-x z) (if (equal? x z) eₓ e)]
-      [(? -ref?) e]
-      [(-@ f xs l) (-@ (go f) (map go xs) l)]
-      [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
-      [(-wcm k v b) (-wcm (go k) (go v) (go b))]
-      [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
-      [(? -quote?) e]
-      [(-let-values bnds e* l)
-       (define-values (bnds-rev locals)
-         (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
-                    [locals : (Setof Symbol) ∅])
-                   ([bnd bnds])
-           (match-define (cons xs ex) bnd)
-           (values (cons (cons xs (go ex)) bnds-rev)
-                   (set-add-list locals xs))))
-       (define bnds* (reverse bnds-rev))
-       (define e**
-         (cond [(∋ locals x) e*]
-               [else (go e*)]))
-       (-let-values bnds* e** l)]
-      [(-letrec-values bnds e* l)
-       (define locals
-         (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
-           (set-add-list locals (car bnd))))
-       (cond
-         [(∋ locals x) e]
-         [else
-          (define bnds*
-            (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
-              (match-define (cons xs ex) bnd)
-              (cons xs (go ex))))
-          (-letrec-values bnds* (go e*) l)])]
-      [(-set! z e*) (-set! z (go e*))]
-      [(-amb es) (-amb (for/set: : (Setof -e) ([ei es]) (go ei)))]
-      [(-μ/c z c) (-μ/c z (go c))]
-      [(-->i doms rng)
-       (define-values (xs cs)
-         (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
-                    ([dom doms])
-           (values (car dom) (go (cdr dom)))))
-       (define rng*
-         (cond [(member x xs) rng]
-               [else (go rng)]))
-       (-->i (map (inst cons Symbol -e) xs cs) rng*)]
-      [(-struct/c t cs) (-struct/c t (map go cs))]
-      [_
-       (log-debug "e/: ignore substituting ~a" e)
-       e])))
-
 (: Γ/ : -Γ Symbol -e → -Γ)
 (define (Γ/ Γ x e)
   (for/set: : -Γ ([ei Γ])
     (e/ ei x e)))
 
+(define (show-?e [e : -?e]) : Sexp
+  (cond [e (show-e e)]
+        [else '⊘]))
 
-;;;;; CLOSURE
+(: show-Γ : -Γ → (Listof Sexp))
+(define (show-Γ Γ)
+  (for/list ([e Γ]) (show-e e)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Evaluated closure
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; blessed arrow, struct, and closed lambda
 (define-data -V
@@ -214,21 +76,6 @@
 (define (WVs->Vs [WVs : (Listof -WV)]) : -Vs
   ((inst map -V -WV) -W-x WVs))
 
-;; closure forms
-(define-data -E
-  (struct -↓ [e : -e] [ρ : -ρ])
-  ; `V` and `e` don't have any reference back to `E`, so it's not recursive
-  (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info])
-  (struct -FC [c : -WV] [v : -WV] [lo : Mon-Party])
-  (subset: -Ans
-    -blm
-    -WVs))
-
-(: Γ↓ : -Γ (Setof Symbol) → -Γ)
-;; Restrict path invariant to given variables
-(define (Γ↓ Γ xs)
-  (for/set: : -Γ ([e Γ] #:when (subset? (FV e) xs)) e))
-
 (: close : -v -ρ → -V)
 ;; Create closure from value syntax and environment
 (define (close v ρ)
@@ -247,13 +94,6 @@
     [(list Vs ...) (map (curry close-Γ Γ) Vs)]
     [(? -V?) V]))
 
-(: -⇓ : -e -ρ → -E)
-;; Close expression with restricted environment and some simplifications
-(define (-⇓ e ρ)
-  (cond
-    [(-v? e) (-W (list (close e ρ)) e)]
-    [else (-↓ e (ρ↓ ρ (FV e)))]))
-
 (: C-flat? : -σ -V → Boolean)
 ;; Check whether value is a flat contract
 (define (C-flat? σ V)
@@ -269,8 +109,37 @@
     [(-μ/C _ α) (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
     [_ #t]))
 
+(define (show-V [V : -V]) : Sexp
+  (match V
+    ['undefined 'undefined]
+    [(-b b) (show-b b)]
+    ['• '●]
+    [(? -o? o) (show-o o)]
+    [(-Clo* xs e _) (show-e (-λ xs e))]
+    [(-Clo xs e _ _) (show-e (-λ xs e))]
+    [(-Ar γ α _) `(,(show-α γ) ◃ ,(show-α α))]
+    [(-St t αs) `(,(-id-name t) ,@(map show-α αs))]
+    [(-=>i xs cs γs d ρ Γ)
+     `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
+           `(,x : (,(show-α γ) @ ,(show-?e c))))
+       ↦ ,(show-e d))]
+    [(-St/C t αs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-α αs))]
+    [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
+    [(-X/C α) `(X: ,(show-α α))]))
 
-;;;;; ENVIRONMENT
+(define (show-A [A : -A]) : Sexp
+  (match A
+    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
+    [(? list? Vs) (map show-V Vs)]))
+
+(define (show-WV [WV : -WV]) : (Listof Sexp)
+  (match-define (-W V e) WV)
+  `(,(show-V V) @ ,(show-?e e)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Environment
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; environment maps variable names to addresses
 (define-type -ρ (Map Symbol -α))
@@ -313,8 +182,14 @@
   (define s (if (-x? x) (-x-name x) x))
   (hash-ref ρ s))
 
+(define (show-ρ [ρ : -ρ]) : (Listof Sexp)
+  (for/list ([(x α) (in-hash ρ)])
+    `(,x ↦ ,(show-α α))))
 
-;;;;; ADDRESS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Value address
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-data -α
   ;; for top-level definition and contract
@@ -336,8 +211,12 @@
       [e (-α.val e)]
       [else (-α.opq id #f #|TODO|# i)])))
 
+(define show-α : (-α → Symbol) (unique-name 'α))
 
-;;;;; STORE
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Value store
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; store maps addresses to values
 (define-type -σ (MMap -α -V))
@@ -366,13 +245,14 @@
      (for*/set: : (Setof (Listof -V)) ([V (σ@ σ α)] [Vs Vss])
        (cons V Vs))]))
 
-;;;;; Summarization table
-(struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
-(define-type -M (MMap -e -Res))
-(define -M⊥ : -M (hash))
+(define (show-σ [σ : -σ]) : (Listof Sexp)
+  (for/list ([(α Vs) (in-hash σ)])
+    `(,(show-α α) ↦ ,@(for/list : (Listof Sexp) ([V Vs]) (show-V V)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Convenience
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define -Mt (-St (-id 'null 'Λ) (list)))
 (define -Any/C (-Clo '(x) -tt -ρ∅ -Γ∅))
@@ -386,64 +266,92 @@
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
 (define-type -AΓs (U -AΓ (Setof -AΓ)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; PRETTY PRINTING
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(: -?@ : -?e -?e * → -?e)
+;; Smart constructor for application
+(define (-?@ f . xs)
 
-(define show-α : (-α → Symbol) (unique-name 'α))
+  (: access-same-value? : -id Integer (Listof -?e) → (Option -e))
+  (define (access-same-value? id n es)
+    (match es
+      [(cons (-@ (-st-ac id0 m0 0) (list e0) _) es*)
+       (and (equal? id id0)
+            (= n m0)
+            (for/and : Boolean ([i (in-range 1 n)] [ei es*])
+              (match ei
+                [(-@ (-st-ac jd mj j) (list ej) _)
+                 (and (= n mj) (= i j) (equal? id jd) (equal? e0 ej))]
+                [_ #f]))
+            e0)]
+      [_ #f]))
+  
+  (cond
+    [(and f (andmap (inst values -?e) xs))
+     (match* (f xs)
+       ; (not (not e)) = e
+       [('not (list (-not e))) e]
+       ; (car (cons e _)) = e
+       [((-st-ac id n i) (list (-@ (-st-mk id n) es _)))
+        (list-ref es i)]
+       ; (cons (car e) (cdr e)) = e
+       [((-st-mk id n) es)
+        (or (access-same-value? id n es)
+            (-@ f (cast xs (Listof -e)) 'Λ))]
+       [(f xs) (-@ f (cast xs (Listof -e)) 'Λ)])]
+    [else #f]))
 
-(define (show-V [V : -V]) : Sexp
-  (match V
-    ['undefined 'undefined]
-    [(-b b) (show-b b)]
-    ['• '●]
-    [(? -o? o) (show-o o)]
-    [(-Clo* xs e _) (show-e (-λ xs e))]
-    [(-Clo xs e _ _) (show-e (-λ xs e))]
-    [(-Ar γ α _) `(,(show-α γ) ◃ ,(show-α α))]
-    [(-St t αs) `(,(-id-name t) ,@(map show-α αs))]
-    [(-=>i xs cs γs d ρ Γ)
-     `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
-           `(,x : (,(show-α γ) @ ,(show-?e c))))
-       ↦ ,(show-e d))]
-    [(-St/C t αs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-α αs))]
-    [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
-    [(-X/C α) `(X: ,(show-α α))]))
+;; convenient syntax for negation
+(define-match-expander -not
+  (syntax-rules () [(_ e) (-@ 'not (list e) _)])
+  (syntax-rules () [(_ e) (-?@ 'not e)]))
 
-(define (show-A [A : -A]) : Sexp
-  (match A
-    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
-    [(? list? Vs) (map show-V Vs)]))
+(:* -and/c-split -or/c-split : -?e → (Values -?e -?e))
+(define -and/c-split
+  (match-lambda
+    [(-@ (-st-mk (-id 'and/c 'Λ) 2) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac (-id 'and/c 'Λ) 2 0) c)
+               (-?@ (-st-ac (-id 'and/c 'Λ) 2 1) c))]))
+(define -or/c-split
+  (match-lambda
+    [(-@ (-st-mk (-id 'or/c 'Λ) 2) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac (-id 'or/c 'Λ) 2 0) c)
+               (-?@ (-st-ac (-id 'or/c 'Λ) 2 1) c))]))
+(: -not/c-neg : -?e → -?e)
+(define (-not/c-neg c) (-?@ (-st-ac (-id 'not/c 'Λ) 1 0) c))
 
-(define (show-Ans [Ans : -Ans]) : Sexp
-  (match Ans
-    [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
-    [(-W Vs e) `(,@(map show-V Vs) @ ,(show-?e e))]))
+(: -struct/c-split : -?e Integer → (Listof -?e))
+(define (-struct/c-split c n)
+  (match c
+    [(-struct/c _ cs) cs]
+    [_ (for/list : (Listof -?e) ([i (in-range n)])
+         (-?@ (-st-ac (-id 'struct/c 'Λ) n i) c))]))
 
-(: show-Γ : -Γ → (Listof Sexp))
-(define (show-Γ Γ)
-  (for/list ([e Γ]) (show-e e)))
+(: -struct-split : -?e -id Integer → (Listof -?e))
+(define (-struct-split e id n)
+  (match e
+    [(-@ (-st-mk id n) es _) es]
+    [_ (for/list : (Listof -?e) ([i (in-range n)])
+         (-?@ (-st-ac id n i) e))]))
 
-(define (show-ρ [ρ : -ρ]) : (Listof Sexp)
-  (for/list ([(x α) (in-hash ρ)])
-    `(,x ↦ ,(show-α α))))
+(: -?struct/c : -id (Listof -?e) → (Option -struct/c))
+(define (-?struct/c id fields)
+  (and (andmap (inst values -?e) fields)
+       (-struct/c id (cast fields (Listof -e)))))
 
-(define (show-E [E : -E]) : Sexp
-  (match E
-    [(-↓ e ρ) `(,(show-e e) ∣ ,@(show-ρ ρ))]
-    [(-Mon C V _) `(Mon ,(show-WV C) ,(show-WV V))]
-    [(-FC C V _) `(FC ,(show-WV C) ,(show-WV V))]
-    [(? -Ans? A) (show-Ans A)]))
+(: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
+(define (-?->i xs cs d)
+  (and d (andmap (inst values -?e) cs)
+       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) d)))
 
-(define (show-σ [σ : -σ]) : (Listof Sexp)
-  (for/list ([(α Vs) (in-hash σ)])
-    `(,(show-α α) ↦ ,@(for/list : (Listof Sexp) ([V Vs]) (show-V V)))))
-
-(define (show-?e [e : -?e]) : Sexp
-  (cond [e (show-e e)]
-        [else '⊘]))
-
-(define (show-WV [WV : -WV]) : (Listof Sexp)
-  (match-define (-W V e) WV)
-  `(,(show-V V) @ ,(show-?e e)))
-
+(: split-values : -?e Integer → (Listof -?e))
+;; Split a pure expression `(values e ...)` into `(e ...)`
+(define (split-values e n)
+  (match e
+    [(-@ 'values es _)
+     (cond [(= n (length es)) es]
+           [else (error 'split-values "cannot split ~a values into ~a" (length es) n)])]
+    [(? -e?)
+     (cond [(= 1 n) (list e)]
+           [else #|hack|#
+            (for/list ([i (in-range n)])
+              (-?@ (-st-ac (-id 'values 'Λ) n i) e))])]
+    [_ (make-list n #f)]))

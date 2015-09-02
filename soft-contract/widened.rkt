@@ -45,10 +45,6 @@
     [(and (equal? Cs* Cs) (equal? σ* σ) (equal? Ξ* Ξ) (equal? M* M)) #f]
     [else (-ξ Cs* σ* Ξ* M*)]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; PRETTY PRINTING
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (define (show-Cfg [C : -Cfg]) : (Listof Sexp)
   (match-define (-Cfg E Γ τ) C)
   `((E: ,(show-E E))

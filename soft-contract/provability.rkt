@@ -2,7 +2,11 @@
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "lang.rkt" "runtime.rkt")
 (provide Γ⊢V∈C Γ⊢oW Γ⊢e V∈p V≡ Γ⊢e≡
-         Γ⊓ Γ⊓e Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R)
+         Γ⊓ Γ⊓e Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R
+         -R)
+
+;; Provability result
+(define-type -R (U '✓ 'X '?))
 
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
   (make-parameter (λ (Γ e) (log-error "external solver not set") '?)))

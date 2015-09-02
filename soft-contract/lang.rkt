@@ -5,7 +5,8 @@
   [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
-;; prefixing types with dashes so i can use 1-letter variables without shadowing constructors
+;; I prefix types with dashes so I can use 1-letter variables without shadowing constructors
+
 
 (struct (X) -begin ([body : (Listof X)]) #:transparent)
 (define-type -begin/e (-begin -e))
@@ -14,6 +15,8 @@
 (define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
 (define-type Mon-Party Adhoc-Module-Path)
 (define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
+
+(struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
 (: swap-parties : Mon-Info → Mon-Info)
 ;; Swap positive and negative blame parties
@@ -26,10 +29,10 @@
   [((list e)) e]
   [(es) (-begin es)])
 
-(struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
-
-;; Definition of AST subset as in Racket reference 1.2.3.1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; AST subset definition as in Racket reference 1.2.3.1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type/pred Base
   (U Number Boolean String Symbol Keyword #|Sexp Bytes Regexp PRegexp|#))
@@ -458,39 +461,6 @@
     [(? list? l) (for/sum : Integer ([i l]) (count-xs i x))]
     [_ 0]))
 
-(: -ref->e : (Listof -module) -ref → -e)
-;; Search for definition in list of modules at given reference
-(define (-ref->e ms ref)
-  (match-define (-ref (-id name from) _) ref)
-  ;; FIXME:
-  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
-  (define m (path->module ms from name))
-  (match-define (-module _ (-plain-module-begin forms)) m)
-  (or (for/or : (U #f -e) ([form (in-list forms)])
-        (match form
-          [(-define-values (list x) e) (and (equal? x name) e)]
-          [(-define-values xs (-@ 'values vs _))
-           (for/or : (U #f -e) ([x xs] [v vs] #:when (equal? x name)) v)]
-          [_ #f]))
-      (error 'ref->e "Module `~a` does not define `~a`" from name)))
-
-(: -ref->ctc : (Listof -module) -ref → -e)
-;; Search for contract in list of modules at given reference
-(define (-ref->ctc ms ref)
-  (match-define (-ref (-id name from) _) ref)
-  ;; FIXME:
-  ;; - TR doesn't like `for*/or` so i use nested `for/or` instead
-  (define m (path->module ms from name))
-  (match-define (-module _ (-plain-module-begin forms)) m)
-  (or (for/or : (U #f -e) ([form (in-list forms)])
-        (match form
-          [(-provide specs)
-           (for/or : (U #f -e) ([spec (in-list specs)])
-             (match-define (-p/c-item x c) spec)
-             (and (equal? x name) c))]
-          [_ #f]))
-      (error 'ref->ctc "Module `~a` does not provide `~a`" from name)))
-
 (: path->module ([(Listof -module) Adhoc-Module-Path] [(U Symbol False)] . ->* . -module))
 ;; Search for module at given path, given list of modules.
 ;; The optional `ref-name` parameter is merely a hack for a more informative error message.
@@ -536,6 +506,70 @@
 (define (id/c id)
   (match-define (-id name path) id)
   (-id (string->symbol (format "~a/c" name)) path))
+
+(: e/ : -e Symbol -e → -e)
+;; Substitution
+(define (e/ e x eₓ)
+  (let go ([e e])
+    (match e
+      [(-λ xs e*)
+       (cond [(binder-has? xs x) e]
+             [else (-λ xs (go e*))])]
+      [(-case-λ clauses)
+       (-case-λ
+        (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+          (match-define (cons xs e*) clause)
+          (cond [(binder-has? xs x) clause]
+                [else (cons xs (go e*))])))]
+      [(? -v?) e]
+      [(-x z) (if (equal? x z) eₓ e)]
+      [(? -ref?) e]
+      [(-@ f xs l) (-@ (go f) (map go xs) l)]
+      [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
+      [(-wcm k v b) (-wcm (go k) (go v) (go b))]
+      [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
+      [(? -quote?) e]
+      [(-let-values bnds e* l)
+       (define-values (bnds-rev locals)
+         (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+                    [locals : (Setof Symbol) ∅])
+                   ([bnd bnds])
+           (match-define (cons xs ex) bnd)
+           (values (cons (cons xs (go ex)) bnds-rev)
+                   (set-add-list locals xs))))
+       (define bnds* (reverse bnds-rev))
+       (define e**
+         (cond [(∋ locals x) e*]
+               [else (go e*)]))
+       (-let-values bnds* e** l)]
+      [(-letrec-values bnds e* l)
+       (define locals
+         (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
+           (set-add-list locals (car bnd))))
+       (cond
+         [(∋ locals x) e]
+         [else
+          (define bnds*
+            (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
+              (match-define (cons xs ex) bnd)
+              (cons xs (go ex))))
+          (-letrec-values bnds* (go e*) l)])]
+      [(-set! z e*) (-set! z (go e*))]
+      [(-amb es) (-amb (for/set: : (Setof -e) ([ei es]) (go ei)))]
+      [(-μ/c z c) (-μ/c z (go c))]
+      [(-->i doms rng)
+       (define-values (xs cs)
+         (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
+                    ([dom doms])
+           (values (car dom) (go (cdr dom)))))
+       (define rng*
+         (cond [(member x xs) rng]
+               [else (go rng)]))
+       (-->i (map (inst cons Symbol -e) xs cs) rng*)]
+      [(-struct/c t cs) (-struct/c t (map go cs))]
+      [_
+       (log-debug "e/: ignore substituting ~a" e)
+       e])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
