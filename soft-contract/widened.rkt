@@ -171,7 +171,7 @@
     (values step diff answers))
 
   (define-values (f d ans)
-    (parameterize ([debugs {set '↦@}])
+    (parameterize ([debugs {set}])
       (dbg/ξ "test/programs/safe/1.rkt")))
   (define F (compose show-ξ f))
   (define (D [n : Integer]) (show-ξ (d n)))

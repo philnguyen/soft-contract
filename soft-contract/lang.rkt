@@ -630,6 +630,6 @@
     [(-->i doms rng) `(,@(for/list : (Listof Sexp) ([dom doms])
                            (match-define (cons x c) dom)
                            `(,x : ,(show-e c)))
-p                       ↦ ,(show-e rng))]
+                       ↦ ,(show-e rng))]
     [(-x/c x) x]
     [(-struct/c t cs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-e cs))]))
