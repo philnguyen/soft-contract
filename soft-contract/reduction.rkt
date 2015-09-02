@@ -126,10 +126,8 @@
             [(? list?) (length xs)]
             [(-varargs zs _) (+ 1 (length zs))]))
         (↦@ (-W V #f) (make-list n -●) Γ τ σ Ξ M ☠)]
-       [(and V (-Ar γ _ l³))
-        (match/nd: #:tag ↦WVs/havoc/dep (-V → -ς) (σ@ σ γ)
-          [(-=>i xs _ _ _ _ _)
-           (↦@ (-W V #f) (make-list (length xs) -●) Γ τ σ Ξ M ☠)])]
+       [(and V (-Ar xs _ _ _ _ _ _ _))
+        (↦@ (-W V #f) (make-list (length xs) -●) Γ τ σ Ξ M ☠)]
        [V
         (log-debug "havoc: ignore first-order value ~a" (show-V V))
         ∅])]
@@ -477,12 +475,10 @@
     [(? -o? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
     [(-Clo  xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]
-    [(-Ar γ α l³)
-     (match/nd: (-V → -ς) (σ@ σ γ)
-       [(-=>i xs cs γs d ρ_d Γ_d)
-        (match/nd: ((Listof -V) → -ς) (σ@/list σ γs) ; can explode very fast!!
-          [Cs (match/nd: (-V → -ς) (σ@ σ α)
-                [V_g (↦indy xs cs Cs d ρ_d Γ_d V_g l³)])])])]
+    [(-Ar xs cs γs d ρ_c Γ_c α l³)
+     (match/nd: ((Listof -V) → -ς) (σ@/list σ γs) ; can explode very fast!!
+       [Cs (match/nd: (-V → -ς) (σ@ σ α)
+             [V_g (↦indy xs cs Cs d ρ_c Γ_c V_g l³)])])]
     ['• (set-add (↦havoc) (↦opq))]
     [_ (-ς (-blm l 'apply 'procedure? (list V_f)) Γ τ σ Ξ M)]))
 
@@ -508,14 +504,11 @@
         (define ς-ok
           (and Γ-ok
                (let ()
-                 (define γ
-                   (cond [e_c (-α.val e_c)]
-                         [else (-α.opq (-id 'Ar 'Λ) #f #|FIXME|# 0)]))
                  (define α
                    (cond [e_v (-α.val e_v)]
                          [else (-α.opq (-id 'Ar 'Λ) #f #|FIXME|# 1)]))
-                 (define Ar (-Ar γ α l³))
-                 (define σ* (⊔ (⊔ σ α V) γ C))
+                 (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
+                 (define σ* (⊔ σ α V))
                  (-ς (-W (list Ar) #f #|TODO|#) Γ-ok τ σ* Ξ M))))
         (define ς-bad
           (and Γ-bad
