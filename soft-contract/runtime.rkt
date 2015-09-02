@@ -32,6 +32,20 @@
 (: -not/c-neg : -?e → -?e)
 (define (-not/c-neg c) (-?@ (-st-ac (-id 'not/c 'Λ) 1 0) c))
 
+(: -struct/c-split : -?e Integer → (Listof -?e))
+(define (-struct/c-split c n)
+  (match c
+    [(-struct/c _ cs) cs]
+    [_ (for/list : (Listof -?e) ([i (in-range n)])
+         (-?@ (-st-ac (-id 'struct/c 'Λ) n i) c))]))
+
+(: -struct-split : -?e -id Integer → (Listof -?e))
+(define (-struct-split e id n)
+  (match e
+    [(-@ (-st-mk id n) es _) es]
+    [_ (for/list : (Listof -?e) ([i (in-range n)])
+         (-?@ (-st-ac id n i) e))]))
+
 (: -?@ : -?e -?e * → -?e)
 ;; Smart constructor for application
 (define (-?@ f . xs)

@@ -81,6 +81,8 @@
         [(-↓ e ρ) `(,(show-e e) ,(show-ρ ρ))]
         [(-W Vs e) `(,@(map show-V Vs) @ ,(and e (show-e e)))]
         [(-blm l+ lo C V) `(blame ,l+ ,lo ,(show-V C) ,(map show-V V))]
+        [(-Mon (-W C ?c) (-W V ?v) l³)
+         `(Mon (,(show-V C) @ ,(show-?e ?c)) (,(show-V V) @ ,(show-?e ?v)))]
         [_ '♣]))
 
     (define show-φ : (-φ → Sexp)
@@ -168,7 +170,9 @@
     
     (values step diff answers))
 
-  (define-values (f d ans) (dbg/ξ "test/programs/safe/1.rkt"))
+  (define-values (f d ans)
+    (parameterize ([debugs {set '↦@}])
+      (dbg/ξ "test/programs/safe/1.rkt")))
   (define F (compose show-ξ f))
   (define (D [n : Integer]) (show-ξ (d n)))
   )

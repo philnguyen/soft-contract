@@ -419,6 +419,8 @@
       (values (-W-x W) (-W-e W))))
   (define e_a (apply -?@ e_f e_xs))
 
+  (dbg '↦@ "App:~n f: ~a~n xs: ~a~n" (show-V V_f) (map show-V V_xs))
+
   (: ↦β : -formals -e -ρ -Γ → -ς*)
   (define (↦β xs e ρ_f Γ_f)
     (match xs
@@ -459,7 +461,7 @@
     (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
     (match* (xs cs Cs W_xs)
       [('() '() '() '())
-       (define φ₂ (-φ.indy.rng V_f '() l³))
+       (define φ₂ (-φ.indy.rng V_g '() l³))
        (-ς/pushed d ρ_d Γ_d φ₂ τ₁ σ Ξ₁ M)]
       [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
        (define l³* (swap-parties l³))
@@ -522,8 +524,49 @@
           [ς-ok ς-ok]
           [ς-bad ς-bad]
           [else (error '↦mon "impossible")])]
-       [(-St/C id cs)
-        (error '↦mon "struct/c")]
+       [(-St/C id γs)
+        (define n (length γs))
+        (define k? (-st-p id n))
+        (define k (-st-mk id n))
+        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W Γ W_v (-W k? k?)))
+        (define ς-bad
+          (and Γ-bad
+               (-ς (-blm l+ lo k? (list V)) Γ-bad τ σ Ξ M)))
+        (define ς-ok
+          (and Γ-ok
+               (let ()
+                 (define Vss : (Setof (Listof -V))
+                   (match V
+                     [(-St _ αs) (σ@/list σ αs)]
+                     [_ {set (make-list n '•)}]))
+                 (define Dss : (Setof (Listof -V)) (σ@/list σ γs))
+                 (define e_ds (-struct/c-split e_c n))
+                 (define e_vs (-struct-split   e_v id n))
+                 (begin
+                   (dbg 'struct/c "Dss: ~a~n"
+                        (for/list : (Listof Sexp) ([Ds Dss])
+                          (for/list : (Listof Sexp) ([D Ds])
+                            (show-V D))))
+                   (dbg 'struct/c "Vss: ~a~n"
+                        (for/list : (Listof Sexp) ([Vs Vss])
+                          (for/list : (Listof Sexp) ([V Vs])
+                            (show-V V)))))
+                 (for*/set: : (Setof -ς) ([Ds Dss] [Vs Vss])
+                   (define mons : (Listof -Mon)
+                     (for/list ([D Ds] [V Vs] [e_d e_ds] [e_vi e_vs])
+                       (-Mon (-W D e_d) (-W V e_vi) l³)))
+                   (match mons
+                     ['() (-ς (-W (list (-St id '())) (-?@ k)) Γ-ok τ σ Ξ M)]
+                     [(cons mon mons*)
+                      (define φ (-φ.@ mons* (list (-W k k)) lo))
+                      (define τ* (-τ mon Γ-ok))
+                      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
+                      (-ς mon Γ-ok τ* σ Ξ* M)])))))
+        (cond
+          [(and ς-ok ς-bad) (set-add ς-ok ς-bad)]
+          [ς-ok ς-ok]
+          [ς-bad ς-bad]
+          [else (error '↦mon "impossible")])]
        [(-μ/C x c)
         (error '↦mon "μ/c")]
        [(-X/C x)
@@ -660,7 +703,39 @@
 
 
 ;;;;; For testing only
-(define ↦* : (-ς* → -ς*)
-  (match-lambda
-    [(? set? s) (match/nd: #:tag ↦* (-ς → -ς) s [ς (↦ ς)])]
-    [(? -ς? ς) (↦ ς)]))
+(begin
+  (define ↦* : (-ς* → -ς*)
+    (match-lambda
+      [(? set? s) (match/nd: #:tag ↦* (-ς → -ς) s [ς (↦ ς)])]
+      [(? -ς? ς) (↦ ς)]))
+
+  (: dbg/ς : Path-String → (Integer → -ς*))
+  (define (dbg/ς p)
+    (define m
+      (let go : (Map Integer -ς*) ([ςs : -ς* (𝑰 (files->prog (list p)))]
+                                   [i : Integer 0]
+                                   [m : (Map Integer -ς*) (hash)])
+           (define m* (hash-set m i ςs))
+
+           (begin
+             (printf "~a: ~a states~n" i (if (set? ςs) (set-count ςs) 1))
+             (cond
+               [(set? ςs)
+                (for ([ς ςs] [i (in-naturals)])
+                  (printf "~a:~n~a~n" i (show-ς ς)))]
+               [else (printf "~a:~n~a~n" 0 (show-ς ςs))]) 
+             (printf "Cont:")
+             (match (read)
+               ['stop (error "DONE")]
+               [_ (void)]))
+           
+           (cond
+             [(set? ςs)
+              (define-values (dones nexts) (set-partition final? ςs))
+              (cond [(set-empty? nexts) m*]
+                    [else (go (↦* nexts) (+ 1 i) m*)])]
+              [(final? ςs) m*]
+              [else (go (↦* ςs) (+ 1 i) m*)])))
+    (λ ([i : Integer])
+      (hash-ref m i (λ () (error 'dbg/ς "only defined for [~a,~a]"
+                                 0 (sub1 (hash-count m))))))))
