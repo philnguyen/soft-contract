@@ -542,8 +542,7 @@
 ;;;;; PRETTY PRINTING
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: show-b : Base → Sexp)
-(define (show-b x)
+(define (show-b [x : Base]) : Sexp
   (cond
     [(string? x) (format "\"~a\"" x)]
     [(or (symbol? x) (keyword? x)) `(quote ,x)]
@@ -552,9 +551,8 @@
      (substring s 0 (min (string-length s) 5))]
     [else x]))
 
-(: show-o : -o → Symbol)
 ;; Return operator's simple show-o for pretty-printing
-(define show-o
+(define show-o : (-o → Symbol)
   (match-lambda
    [(? symbol? s) s]
    [(-st-mk (-id t _) _) t]
@@ -564,8 +562,7 @@
    [(-st-ac (-id t _) _ i) (string->symbol (format "~a@~a" t i))]
    [(-st-p (-id t _) _) (string->symbol (format "~a?" t))]))
 
-(: show-e : -e → Sexp)
-(define (show-e e)
+(define (show-e [e : -e]) : Sexp
   (match e
     ; syntactic sugar
     [(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]

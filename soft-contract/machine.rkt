@@ -148,43 +148,82 @@
      (match-define (-ς E _ τ _ Ξ M) ς)
      (final? E τ Ξ)]))
 
-(define (show-ς [ς : -ς]) : Sexp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; PRETTY PRINTING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define show-τ : (-τ → Symbol) (unique-name 'τ))
+
+(define show-φ : (-φ → Sexp)
+  (match-lambda
+    [(-φ.if t e) `(if ,(show-E t) ,(show-E e))]
+    [(-φ.let-values x bnds bnds↓ _env body _ctx)
+     `(let (,@(reverse
+               (for/list : (Listof Sexp) ([(x W) (in-hash bnds↓)])
+                 `[,x ,(show-WV W)]))
+            [,x □]
+            ,@(for/list : (Listof Sexp) ([bnd bnds])
+                (match-define (cons x e_x) bnd)
+                `[,x ,(show-e e_x)]))
+        ,(show-e body))]
+    [(-φ.letrec-values x bnds _env body _ctx)
+     `(letrec ([,x □]
+               ,@(for/list : (Listof Sexp) ([bnd bnds])
+                   (match-define (cons x e_x) bnd)
+                   `[,x ,(show-e e_x)]))
+        ,(show-e body))]
+    [(? -φ.set!?) `set!…]
+    [(-φ.@ Es Ws _)
+     `(,@(reverse (map show-V (map (inst -W-x -V) Ws)))
+       □ ,@(map show-E Es))]
+    [(-φ.begin es _) `(begin ,@(map show-e es))]
+    [(-φ.begin0v es _) `(begin0 □ ,@(map show-e es))]
+    [(-φ.begin0e (-W Vs _) es _)
+     `(begin0 ,(map show-V Vs) ,@(map show-e es))]
+    [(-φ.mon.v ctc _)
+     `(mon ,(if (-E? ctc) (show-E ctc) (show-V (-W-x ctc))) □)]
+    [(-φ.mon.c val _)
+     `(mon □ ,(if (-E? val) (show-E val) (show-V (-W-x val))))]
+    [(-φ.indy.dom x xs cs Cs args args↓ fun rng _env _l³)
+     `(indy.dom
+       [,@(reverse
+           (for/list : (Listof Sexp) ([arg args↓])
+             (match-define (cons x W_x) arg)
+             `[,x ∈ ,(show-WV W_x)]))
+        (,x □)
+        ,@(for/list : (Listof Sexp) ([x xs] [c cs] [C Cs] [arg args])
+            `(mon ,(show-WV (-W C c)) ,(show-WV arg) as ,x))
+        ↦ ,(show-e rng)]
+       ,(show-V fun))]
+    [(-φ.indy.rng fun args _)
+     `(indy.rng (mon □ (,(show-V fun) ,@(map show-WV args))))]
+    [(-φ.rt.@ Γ xs f args)
+     `(rt ,(show-Γ Γ) (,(show-?e f)
+                       ,@(for/list : (Listof Sexp) ([x xs] [arg args])
+                           `(,x ↦ ,(show-?e arg)))))]
+    [(-φ.rt.let dom) `(rt/let ,@(set->list dom))]
+    [(-φ.μc x) `(μ/c ,x □)]
+    [(-φ.struct/c id cs _ρ cs↓)
+     `(,(-id-name (id/c id))
+       ,@(reverse (map show-WV cs↓))
+       □
+       ,@(map show-e cs))]
+    [(-φ.=>i cs Cs↓ cs↓ xs e ρ)
+     `(=>i ,@(reverse (map show-V Cs↓)) □ ,@(map show-e cs))]
+    ))
+
+(define (show-κ [κ : -κ]) : Sexp
+  (match-define (-κ φ τ) κ)
+  `(,(show-φ φ) ↝ ,(show-τ τ)))
+
+(define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
+  (for/list : (Listof Sexp) ([(τ κs) Ξ])
+    `(,(show-τ τ) ↦ ,@(for/list : (Listof Sexp) ([κ κs]) (show-κ κ)))))
+
+(define (show-ς [ς : -ς]) : (Listof Sexp)
   (match-define (-ς E Γ τ σ Ξ M) ς)
-
-  (define (show-τ [τ : -τ]) : Sexp
-    (match-define (-τ E Γ) τ)
-    (cond
-      [(-E? E) `(τ: ,(show-E E) ,(show-Γ Γ))]
-      [else `(τ: … ,(show-Γ Γ))]))
-
-  (define show-φ : (-φ → Sexp)
-    (match-lambda
-      [(-φ.if t e) `(if ,(show-E t) ,(show-E e))]
-      [(? -φ.let-values?) `let-values…]
-      [(? -φ.letrec-values?) `letrec-values…]
-      [(? -φ.set!?) `set!…]
-      [(-φ.@ Es Ws _)
-       `(,@(map show-E Es) ○
-         ,@(reverse (map show-V (map (inst -W-x -V) Ws))))]
-      [(-φ.begin es _) (map show-e es)]
-      [_ 'φ•]))
-
-  (define (show-κ [κ : -κ]) : Sexp
-    (match-define (-κ φ τ) κ)
-    `(κ: ,(show-φ φ) ,(show-τ τ)))
-
-  (define show-Ξ
-    (for/list : (Listof Sexp) ([(τ κs) (in-hash Ξ)])
-      `(,(show-τ τ) ↦ ,@(for/list : (Listof Sexp) ([κ κs]) (show-κ κ)))))
-  
-  `(,(show-E E)
-    ,(show-Γ Γ)
-    ,(show-τ τ)
-    ,(show-σ σ)
-    ,show-Ξ))
-
-(define (show-ς* [ς* : -ς*]) : Sexp
-  (cond
-    [(-ς? ς*) (show-ς ς*)]
-    [else (for/list : (Listof Sexp) ([ς ς*])
-            (show-ς ς))]))
+  `((E: ,(show-E E))
+    (Γ: ,@(show-Γ Γ))
+    (τ: ,(show-τ τ))
+    (σ: ,@(show-σ σ))
+    (Ξ: ,@(show-Ξ Ξ))))

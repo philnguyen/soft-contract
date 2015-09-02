@@ -212,6 +212,15 @@
      (let ([x₁ e₁])
        (@?* f (e ...) (x ... x₁)))]))
 
+(: unique-name (∀ (X) (Symbol → (X → Symbol))))
+;; Return function that computes unique name with given prefix for each object.
+;; No guarantee for consistency across different executions.
+(define (unique-name prefix)
+  (let ([m : (Map X Symbol) (make-hash)])
+    (λ ([x : X])
+      (hash-ref! m x (λ () (string->symbol
+                            (format "~a~a" prefix (n-sub (hash-count m)))))))))
+
 ;; For debuggings
 
 (define debugs : (Parameterof (Setof Symbol)) (make-parameter ∅))

@@ -45,93 +45,25 @@
     [(and (equal? Cs* Cs) (equal? σ* σ) (equal? Ξ* Ξ) (equal? M* M)) #f]
     [else (-ξ Cs* σ* Ξ* M*)]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; PRETTY PRINTING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (show-Cfg [C : -Cfg]) : (Listof Sexp)
+  (match-define (-Cfg E Γ τ) C)
+  `((E: ,(show-E E))
+    (Γ: ,@(show-Γ Γ))
+    (τ: ,(show-τ τ))))
+
+(define (show-ξ [ξ : -ξ]) : (Listof Sexp)
+  (match-define (-ξ Cs σ Ξ _M) ξ)
+  `(,(for/list : (Listof Sexp) ([C Cs]) (show-Cfg C))
+    (σ: ,@(show-σ σ))
+    (Ξ: ,@(show-Ξ Ξ))))
 
 ;;;;; For testing only
 (begin
 
-  (: alloc-int (∀ (X) (→ (X → Integer))))
-  (define (alloc-int)
-    (let ([m : (Map X Integer) (make-hash)])
-      (λ ([x : X]) : Integer
-         (hash-ref! m x (λ () (hash-count m))))))
-
-  (define alloc-τ ((inst alloc-int -τ)))
-  (define alloc-α ((inst alloc-int -α)))
-
-  (: show-ξ : -ξ → Sexp)
-  (define (show-ξ ξ)
-    (match-define (-ξ Cs σ Ξ M) ξ)
-
-    (define (show-α [α : -α]) : Symbol
-      (string->symbol (format "α~a" (n-sub (alloc-α α)))))
-    
-    (define show-σ
-      (for/list : (Listof Sexp) ([(α Vs) (in-hash σ)])
-        `(,(show-α α) ↦ ,@(for/list : (Listof Sexp) ([V Vs]) (show-V V)))))
-
-    (define (show-τ [τ : -τ]) : Symbol
-      (string->symbol (format "τ~a" (n-sub (alloc-τ τ)))))
-
-    (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
-      (for/list ([(x α) (in-hash ρ)])
-        `(,x ↦ ,(show-α α))))
-
-    (define (show-E [E : -E]) : Sexp
-      (match E
-        [(-↓ e ρ) `(,(show-e e) ,(show-ρ ρ))]
-        [(-W Vs e) `(,@(map show-V Vs) @ ,(and e (show-e e)))]
-        [(-blm l+ lo C V) `(blame ,l+ ,lo ,(show-V C) ,(map show-V V))]
-        [(-Mon (-W C ?c) (-W V ?v) l³)
-         `(Mon (,(show-V C) @ ,(show-?e ?c)) (,(show-V V) @ ,(show-?e ?v)))]
-        [_ '♣]))
-
-    (define show-φ : (-φ → Sexp)
-      (match-lambda
-        [(-φ.if t e) `(if ,(show-E t) ,(show-E e))]
-        [(? -φ.let-values?) `let-values…]
-        [(? -φ.letrec-values?) `letrec-values…]
-        [(? -φ.set!?) `set!…]
-        [(-φ.@ Es Ws _)
-         `(,@(reverse (map show-V (map (inst -W-x -V) Ws)))
-           □ ,@(map show-E Es))]
-        [(-φ.begin es _) `(begin ,@(map show-e es))]
-        [(-φ.begin0v es _) `(begin0 □ ,@(map show-e es))]
-        [(-φ.begin0e (-W Vs _) es _)
-         `(begin0 ,(map show-V Vs) ,@(map show-e es))]
-        [(-φ.rt.@ Γ xs f args)
-         `(rt ,(show-Γ Γ) (,(and f (show-e f))
-                           ,@(for/list : (Listof Sexp) ([x xs] [arg args])
-                               `(,x ↦ ,(and arg (show-e arg))))))]
-        [(-φ.rt.let dom) `(rt/let ,@(set->list dom))]
-        [(-φ.=>i cs Cs↓ cs↓ xs e ρ)
-         `(=>i ,@(reverse (map show-V Cs↓)) □ ,@(map show-e cs))]
-        [(-φ.indy.dom x xs cs Cs args args↓ V_f d ρ l³)
-         `(indy-args ,x
-                     ,(reverse (map (inst car Symbol -WV) args↓))
-                     ,(for/list : (Listof Sexp) ([x xs] [C Cs])
-                        `(,x ▹ ,(show-V C)))
-                     ,(show-V V_f))]
-        [(-φ.indy.rng V_f args l³)
-         `(indy-rng ,(show-V V_f)
-                    ,(for/list : (Listof Sexp) ([arg args])
-                       (match-define (-W V e) arg)
-                       `(,(show-V V) @ ,(and e (show-e e)))))]
-        [_ 'φ•]))
-
-    (define (show-κ [κ : -κ]) : Sexp
-      (match-define (-κ φ τ) κ)
-      `(κ: ,(show-φ φ) ,(show-τ τ)))
-
-    (define show-Ξ
-      (for/list : (Listof Sexp) ([(τ κs) (in-hash Ξ)])
-        `(,(show-τ τ) ↦ ,@(for/list : (Listof Sexp) ([κ κs]) (show-κ κ)))))
-    
-    `(,(for/list : (Listof Sexp) ([C Cs])
-         (match-define (-Cfg E Γ τ) C)
-         `(Cfg ,(show-E E) ,(show-Γ Γ) ,(show-τ τ)))
-      ,show-σ
-      ,show-Ξ))
-  
   (: ξ-subtract : -ξ -ξ → -ξ)
   ;; Compute new stuff in `ξ₁` not in `ξ₀`
   (define (ξ-subtract ξ₁ ξ₀)
@@ -159,12 +91,13 @@
                                      0 (- (hash-count evals) 1)))))
     
     (define (diff [n : Integer]) : -ξ
-      (ξ-subtract (step n) (step (- n 1))))
+      (cond
+        [(zero? n) (step 0)]
+        [else (ξ-subtract (step n) (step (- n 1)))]))
 
     (define answers
       (let ()
         (match-define (-ξ Cs* _ Ξ* _) (hash-ref evals (- (hash-count evals) 1)))
-
         (for*/set: : (Setof -Cfg) ([C Cs*] #:when (Cfg-final? C Ξ*))
           C)))
     
