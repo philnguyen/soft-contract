@@ -22,8 +22,7 @@
     [bnds : (Listof (Pairof (Listof Symbol) -e))]
     [env : -ρ]
     [body : -e]
-    [ctx : Mon-Party]
-    [old-dom : (Setof Symbol)])
+    [ctx : Mon-Party])
   (struct -φ.set! [α : -α])
   (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])

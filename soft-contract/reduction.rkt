@@ -109,8 +109,11 @@
                       ([x xs] [e_x (split-values e* (length xs))])
               (define α (-α.bnd x e_x Γ))
               (values (ρ+ ρ* x α) (⊔ σ α 'undefined)))))
-        (define φ (-φ.letrec-values xs bnds* ρ* e l (dom ρ)))
-        (-ς/pushed e* ρ* Γ φ τ σ* Ξ M)])]
+        (define φ₁ (-φ.rt.let (dom ρ)))
+        (define τ₁ (-τ `(letrec ,(-↓ e ρ)) Γ))
+        (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
+        (define φ₂ (-φ.letrec-values xs bnds* ρ* e l))
+        (-ς/pushed e* ρ* Γ φ₂ τ₁ σ* Ξ₁ M)])]
     [(-set! x e*)
      (define φ (-φ.set! (ρ@ ρ x)))
      (-ς/pushed e* ρ Γ φ τ σ Ξ M)]
@@ -216,7 +219,7 @@
           (define φ* (-φ.let-values xs* bnds* bnds↓* ρ e l))
           (-ς/pushed e* ρ Γ φ* τ σ Ξ M)]))]
     ;; letrec-values
-    [(-φ.letrec-values xs bnds ρ e l dom₀)
+    [(-φ.letrec-values xs bnds ρ e l)
      (define n (length xs))
      (with-guarded-arity n l 'letrec-values
        (define-values (Γ* σ*)
@@ -226,12 +229,10 @@
                    (⊔ σ* (ρ@ ρ x) V))))
        (match bnds
          ;; proceed to letrec's body
-         ['()
-          (define φ* (-φ.rt.let dom₀))
-          (-ς/pushed e ρ Γ* φ* τ σ* Ξ M)]
+         ['() (-ς (-⇓ e ρ) Γ* τ σ* Ξ M)]
          ;; proceed to next assigning clause
          [(cons (cons xs* e*) bnds*)
-          (define φ* (-φ.letrec-values xs* bnds* ρ e l dom₀))
+          (define φ* (-φ.letrec-values xs* bnds* ρ e l))
           (-ς/pushed e* ρ Γ* φ* τ σ* Ξ M)]))]
     [(-φ.set! α)
      (with-guarded-arity 1 'TODO 'set!
