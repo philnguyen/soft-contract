@@ -33,6 +33,10 @@
            ['X -ff]
            [_ '•]))
        (values σ (-AΓ (list V_a) Γ)))]
+
+    ;; Multiple values
+    ['values
+     (values σ (-AΓ (map (inst -W-x -V) Ws) Γ))]
     
     ;; Constructor
     [(-st-mk id n)

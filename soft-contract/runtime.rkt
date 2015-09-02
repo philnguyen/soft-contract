@@ -247,9 +247,12 @@
     [(list Vs ...) (map (curry close-Γ Γ) Vs)]
     [(? -V?) V]))
 
-(: -⇓ : -e -ρ → -↓)
-;; Close expression with restricted environment
-(define (-⇓ e ρ) (-↓ e (ρ↓ ρ (FV e))))
+(: -⇓ : -e -ρ → -E)
+;; Close expression with restricted environment and some simplifications
+(define (-⇓ e ρ)
+  (cond
+    [(-v? e) (-W (list (close e ρ)) e)]
+    [else (-↓ e (ρ↓ ρ (FV e)))]))
 
 (: C-flat? : -σ -V → Boolean)
 ;; Check whether value is a flat contract

@@ -71,14 +71,14 @@
     [(-begin es)
      (match es
        [(list) (-ς (-W -Void/Vs (-?@ -void)) Γ τ σ Ξ M)]
-       [(list e*) (-ς (-↓ e* ρ) Γ τ σ Ξ M)]
+       [(list e*) (-ς (-⇓ e* ρ) Γ τ σ Ξ M)]
        [(cons e* es*)
         (define φ (-φ.begin es* ρ))
         (-ς/pushed e* ρ Γ φ τ σ Ξ M)])]
     ;; evaluate first clause in `begin0` and push the remaining clauses
     [(-begin0 e₀ es)
      (cond
-       [(null? es) (-ς (-↓ e₀ ρ) Γ τ σ Ξ M)]
+       [(null? es) (-ς (-⇓ e₀ ρ) Γ τ σ Ξ M)]
        [else
         (define φ (-φ.begin0v es ρ))
         (-ς/pushed e₀ ρ Γ φ τ σ Ξ M)])]
@@ -93,14 +93,14 @@
     ;; let-values: evaluate the first argument (if there is) and push the rest
     [(-let-values bnds e* l)
      (match bnds
-       ['() (-ς (-↓ e* ρ) Γ τ σ Ξ M)]
+       ['() (-ς (-⇓ e* ρ) Γ τ σ Ξ M)]
        [(cons (cons xs eₓ) bnds*)
         (define φ (-φ.let-values xs bnds* (hash) ρ e* l))
         (-ς/pushed eₓ ρ Γ φ τ σ Ξ M)])]
     ;; letrec-values
     [(-letrec-values bnds e l)
      (match bnds
-       ['() (-ς (-↓ e ρ) Γ τ σ Ξ M)]
+       ['() (-ς (-⇓ e ρ) Γ τ σ Ξ M)]
        [(cons (cons xs e*) bnds*)
         (define-values (ρ* σ*)
           (for/fold ([ρ* : -ρ ρ] [σ* : -σ σ]) ([bnd bnds])
@@ -110,7 +110,7 @@
               (define α (-α.bnd x e_x Γ))
               (values (ρ+ ρ* x α) (⊔ σ α 'undefined)))))
         (define φ₁ (-φ.rt.let (dom ρ)))
-        (define τ₁ (-τ `(letrec ,(-↓ e ρ)) Γ))
+        (define τ₁ (-τ `(letrec ,(-⇓ e ρ)) Γ))
         (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
         (define φ₂ (-φ.letrec-values xs bnds* ρ* e l))
         (-ς/pushed e* ρ* Γ φ₂ τ₁ σ* Ξ₁ M)])]
@@ -256,7 +256,7 @@
     [(-φ.begin es ρ)
      (match es
        [(list) (-ς (-W -Void/Vs -void) Γ τ σ Ξ M)]
-       [(list e) (-ς (-↓ e ρ) Γ τ σ Ξ M)]
+       [(list e) (-ς (-⇓ e ρ) Γ τ σ Ξ M)]
        [(cons e es*)
         (define φ* (-φ.begin es* ρ))
         (-ς/pushed e ρ Γ φ* τ σ Ξ M)])]
@@ -456,7 +456,7 @@
 
   (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -ς*)
   (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
-    (define D (-↓ d ρ_d))
+    (define D (-⇓ d ρ_d))
     (define φ₁ (-φ.rt.@ Γ xs e_f e_xs))
     (define τ₁ (-τ `(indy ,(-W Cs #f) ,D ,(-W (list V_g) #f) ,(-W V_xs #f)) Γ_d)) ; TODO
     (define Ξ₁ (⊔ Ξ τ₁ (-κ φ₁ τ)))
@@ -653,9 +653,7 @@
 (define -ς/pushed
   (case-lambda
     [(e ρ Γ φ τ σ Ξ M) ; important not to restrict `Γ` for precision
-     (define FVs (FV e))
-     (define ρ* (ρ↓ ρ FVs))
-     (define E* (-↓ e ρ*))
+     (define E* (-⇓ e ρ))
      (define τ* (-τ E* Γ))
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
      (-ς E* Γ τ* σ Ξ* M)]
