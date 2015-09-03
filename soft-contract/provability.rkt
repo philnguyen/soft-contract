@@ -104,10 +104,10 @@
        (match* (e₁ e₂)
          ; e ⇒ e
          [(e e) '✓]
-         ; ¬e₁⇒¬e₂ ≡ e₂⇒e₁
+         ; NOTE: Don't abuse "contrapositive"
+         ; (¬e₁ ⊢ ¬e₂ : X) does not follow from (e₂ ⊢ e₁ : X)
          [((-not e₁*) (-not e₂*))
-          (e⊢e e₂* e₁*)]
-         ; 
+          (if (equal? '✓ (e⊢e e₂* e₁*)) '✓ '?)]
          [(e₁ (-not e₂*))
           (not-R (e⊢e e₁ e₂*))]
          [((-@ (? -pred? p) (list e) _) (-@ (? -pred? q) (list e) _))
@@ -160,6 +160,7 @@
        (match-define (-st-p id n) p)
        (match V
          [(-St id* _) (decide-R (equal? id id*))]
+         ['• '?]
          [_ 'X])]))
   (with-prim-checks integer? real? number? not boolean? string? symbol? keyword?))
 
