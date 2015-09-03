@@ -119,15 +119,19 @@
      (-ς/pushed e* ρ Γ φ τ σ Ξ M)]
     ;; @-havoc
     [(-@-havoc x)
+     (define (mk-args [n : Integer]) : (Listof -WV) ; FIXME hack
+       (build-list n (λ ([i : Integer])
+                       (define e (string->symbol (format "z•~a" (n-sub i))))
+                       (-W '• (-x e)))))
      (match/nd: #:tag ↦WVs/havoc/x (-V → -ς) (σ@ σ (ρ@ ρ x))
        [(and V (-Clo xs _ ρ Γ))
         (define n
           (match xs
             [(? list?) (length xs)]
             [(-varargs zs _) (+ 1 (length zs))]))
-        (↦@ (-W V #f) (make-list n -●) Γ τ σ Ξ M ☠)]
+        (↦@ (-W V x) (mk-args n) Γ τ σ Ξ M ☠)]
        [(and V (-Ar xs _ _ _ _ _ _ _))
-        (↦@ (-W V #f) (make-list (length xs) -●) Γ τ σ Ξ M ☠)]
+        (↦@ (-W V x) (mk-args (length xs)) Γ τ σ Ξ M ☠)]
        [V
         (log-debug "havoc: ignore first-order value ~a" (show-V V))
         ∅])]
@@ -316,9 +320,9 @@
      (with-guarded-arity 1 lo 'Λ
        (match-define (list V) Vs)
        (define W_d (-W V ?e))
-       (define W_f (-W V_f #f))
+       (define W_f (-W V_f (-x 'f•))) ; FIXME temp. hack
        (define φ* (-φ.mon.v W_d l³))
-       (define τ* (-τ `(@ ,(-W (list V_f) #f)
+       (define τ* (-τ `(@ ,(-W (list V_f) (-x 'f•))
                           ,@(for/list : (Listof -WVs) ([arg args])
                               (match-define (-W V_x e_x) arg)
                               (-W (list V_x) e_x)))
@@ -509,7 +513,7 @@
                          [else (-α.opq (-id 'Ar 'Λ) #f #|FIXME|# 1)]))
                  (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
                  (define σ* (⊔ σ α V))
-                 (-ς (-W (list Ar) #f #|TODO|#) Γ-ok τ σ* Ξ M))))
+                 (-ς (-W (list Ar) e_v #|TODO|#) Γ-ok τ σ* Ξ M))))
         (define ς-bad
           (and Γ-bad
                (-ς (-blm l+ lo 'procedure? (list V)) Γ-bad τ σ Ξ M)))
