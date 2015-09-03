@@ -651,7 +651,7 @@
     [(? -letrec-values?) '(letrec-values …) #|TODO|#]
     [(-set! x e) `(set! ,x ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(map show-e xs))]
-    [(-@-havoc x) `(apply ,(show-e x) •)]
+    [(-@-havoc x) `(havoc ,(show-e x))]
     [(-begin es) `(begin ,@(map show-e es))]
     [(-begin0 e es) `(begin ,(show-e e) ,@(map show-e es))]
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]

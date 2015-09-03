@@ -22,11 +22,13 @@
     -WVs))
 
 (: -⇓ : -e -ρ → -E)
-;; Close expression with restricted environment and some simplifications
+;; Close expression with restricted environment
+;; and perform some simplifications to compress trivial reduction steps
 (define (-⇓ e ρ)
-  (cond
-    [(-v? e) (-W (list (close e ρ)) e)]
-    [else (-↓ e (ρ↓ ρ (FV e)))]))
+  (match e
+    [(? -v? v) (-W (list (close v ρ)) v)]
+    [(-@ (and k (-st-mk id 0)) '() _) (-W (list (-St id '())) (-?@ k))]
+    [_ (-↓ e (ρ↓ ρ (FV e)))]))
 
 (define (show-E [E : -E]) : Sexp
   (match E
