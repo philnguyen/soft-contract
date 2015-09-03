@@ -17,11 +17,15 @@
     [(-ς (-FC C V l) Γ τ σ Ξ M)
      (↦FC C V Γ τ σ Ξ M l)]
     [(-ς (? -W? W) Γ τ σ Ξ M)
+     (define M* (M⊔ M τ W Γ))
      (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-       [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M)])]
+       [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M*)])]
     [(-ς (? -blm? blm) Γ τ σ Ξ M)
+     ;; just for debugging
+     (define M*
+       (M⊔ M τ (-W (list (-St (-id 'test 'Λ) '())) (-?@ (-st-mk (-id 'test 'Λ) 0))) Γ))
      (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-       [(-κ φ τ*) (↦blm blm Γ φ τ* σ Ξ M)])]
+       [(-κ φ τ*) (↦blm blm Γ φ τ* σ Ξ M* #|FIXME|#)])]
     [ς (error '↦ "unexpected: ~a" ς)]))
 
 (: ↦e : -e -ρ -Γ -τ -σ -Ξ -M → -ς*)

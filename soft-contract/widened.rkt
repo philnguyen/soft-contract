@@ -52,10 +52,11 @@
     (τ: ,(show-τ τ))))
 
 (define (show-ξ [ξ : -ξ]) : (Listof Sexp)
-  (match-define (-ξ Cs σ Ξ _M) ξ)
+  (match-define (-ξ Cs σ Ξ M) ξ)
   `(,(for/list : (Listof Sexp) ([C Cs]) (show-Cfg C))
     (σ: ,@(show-σ σ))
-    (Ξ: ,@(show-Ξ Ξ))))
+    (Ξ: ,@(show-Ξ Ξ))
+    (M: ,@(show-M M))))
 
 ;;;;; For testing only
 (begin
