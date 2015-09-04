@@ -497,7 +497,7 @@
   (match-define (-W V e_v) W_v)
   (match-define (list l+ l- lo) l³)
 
-  (match (Γ⊢V∈C M σ Γ W_v W_c)
+  (match (MσΓ⊢V∈C M σ Γ W_v W_c)
     ['✓
      (define Γ* (Γ+ Γ (-?@ e_c e_v)))
      (-ς (-W (list V) e_v) Γ* τ σ Ξ M)]

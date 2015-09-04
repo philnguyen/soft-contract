@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "lang.rkt" "runtime.rkt")
-(provide Γ⊢V∈C Γ⊢oW Γ⊢e V∈p V≡ Γ⊢e≡
+(provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e V∈p V≡ MσΓ⊢e≡
          Γ⊓ Γ⊓e Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R
          -R)
 
@@ -11,28 +11,28 @@
 (define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
   (make-parameter (λ (M σ Γ e) (log-warning "external solver not set") '?)))
 
-(: Γ⊢V∈C : -M -σ -Γ -WV -WV → -R)
+(: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check whether value satisfies (flat) contract
-(define (Γ⊢V∈C M σ Γ W_v W_c)
+(define (MσΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W V e_v) W_v)
   (match-define (-W C e_c) W_c)
-  (or-R (V∈V V C) (Γ⊢e M σ Γ (-?@ e_c e_v))))
+  (or-R (V∈V V C) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
 
-(: Γ⊢oW : -M -σ -Γ -pred -WV → -R)
+(: MσΓ⊢oW : -M -σ -Γ -pred -WV → -R)
 ;; Check whether value `W` satisfies predicate `p`
-(define (Γ⊢oW M σ Γ p W)
+(define (MσΓ⊢oW M σ Γ p W)
   (match-define (-W V e) W)
-  (or-R (V∈p V p) (Γ⊢e M σ Γ (-?@ p e))))
+  (or-R (V∈p V p) (MσΓ⊢e M σ Γ (-?@ p e))))
 
-(: Γ⊢e : -M -σ -Γ -?e → -R)
+(: MσΓ⊢e : -M -σ -Γ -?e → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
-(define (Γ⊢e M σ Γ e)
+(define (MσΓ⊢e M σ Γ e)
   (cond
-    [e (or-R (Γ⊢₁e M σ Γ e) ((Γ⊢ₑₓₜ) M σ Γ e))]
+    [e (or-R (MσΓ⊢₁e M σ Γ e) ((Γ⊢ₑₓₜ) M σ Γ e))]
     [else '?]))
 
-(: Γ⊢₁e : -M -σ -Γ -e → -R)
-(define (Γ⊢₁e M σ Γ e)
+(: MσΓ⊢₁e : -M -σ -Γ -e → -R)
+(define (MσΓ⊢₁e M σ Γ e)
 
   (: ⊢e : -e → -R)
   ;; Check if expression returns truth
@@ -58,7 +58,7 @@
               [(or 'string-length #|TODO|# 'round 'floor 'ceiling) '✓]
               [(or '+ '- '* 'add1 'sub1 'abs)
                (cond [(for/and : Boolean ([ei es])
-                        (equal? '✓ (Γ⊢e M σ Γ (-?@ 'integer? ei))))
+                        (equal? '✓ (MσΓ⊢e M σ Γ (-?@ 'integer? ei))))
                       '✓]
                      [else '?])]
               [(or (? -pred?) (? -st-mk?)) 'X]
@@ -72,7 +72,7 @@
               [(or 'string-length 'round 'floor 'ceiling) '✓]
               [(or '+ '- '* 'add1 'sub1 'abs)
                (cond [(for/and : Boolean ([ei es])
-                        (equal? '✓ (Γ⊢e M σ Γ (-?@ 'real? ei))))
+                        (equal? '✓ (MσΓ⊢e M σ Γ (-?@ 'real? ei))))
                       '✓]
                      [else '?])]
               [(or (? -pred?) (? -st-mk?)) 'X]
@@ -97,7 +97,7 @@
         [(-@ (or (? -pred?) (? -st-ac?)) (list e) _) '?]
         [(-@ (? -o?) _ _) '✓] ; happens to be so for now
         [_ '?]))
-    (dbg '⊢e "⊢ ~a : ~a~n" (show-e e) ans)
+    (dbg '⊢e "⊢ ~a : ~a~n~n" (show-e e) ans)
     ans)
 
   (: e⊢e : -e -e → -R)
@@ -125,7 +125,7 @@
               [else '?])]
            [(_ _) '?])]
         [(_ R) R]))
-    (dbg 'e⊢e "~a ⊢ ~a : ~a~n" (show-e e₁) (show-e e₂) ans)
+    (dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
     ans)
 
   (define ans
@@ -134,7 +134,7 @@
                      ([e₀ Γ] #:when (equal? '? R)
                       [R* (in-value (e⊢e e₀ e))])
             R*)))
-  (dbg '⊢ "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans)
+  (dbg '⊢ "~a; ~a; ~a ⊢ ~a : ~a~n~n" (show-σ σ) (show-M M) (show-Γ Γ) (show-e e) ans)
   ans)
 
 (: V∈V : -V -V → -R)
@@ -206,8 +206,8 @@
        ; other cases, `p` known to exclude `q` (be careful)
        [(_ _) 'X])]))
 
-(: Γ⊢e≡ : -M -σ -Γ -?e -?e → -R)
-(define (Γ⊢e≡ Γ M σ e₁ e₂)
+(: MσΓ⊢e≡ : -M -σ -Γ -?e -?e → -R)
+(define (MσΓ⊢e≡ Γ M σ e₁ e₂)
   (cond ; TODO: just this for now
     [(and e₁ e₂) (decide-R (equal? e₁ e₂))]
     [else '?]))
@@ -237,21 +237,21 @@
         [e
          (match V
            [(-St id αs)
-            (equal? 'X (Γ⊢e M σ Γ (-?@ (-st-mk id (length αs)) e)))]
+            (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-mk id (length αs)) e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
-            (equal? 'X (Γ⊢e M σ Γ (-?@ 'procedure? e)))]
+            (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
-            (equal? 'X (Γ⊢e M σ Γ (-?@ 'p? e)))] ...
+            (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'p? e)))] ...
            [(or (? -=>i?) (? -St/C?) (? -μ/C?) (? -X/C?))
             (for/or : Boolean ([p : -o '(procedure? p? ...)])
-              (equal? '✓ (Γ⊢e M σ Γ (-?@ p e))))]
+              (equal? '✓ (MσΓ⊢e M σ Γ (-?@ p e))))]
            ['undefined
             (match e
               [(-x x) (Γ-defines? Γ x)]
               [_ #f])]
            ['•
             (match e
-              [(-not e*) (equal? '✓ (Γ⊢e M σ Γ e*))]
+              [(-not e*) (equal? '✓ (MσΓ⊢e M σ Γ e*))]
               [_ #f])]
            [_ #f])]
         [else #f]))
@@ -273,7 +273,7 @@
 ;; Like `(Γ ⊓ W)` and `(Γ ⊓ ¬W)`, probably faster
 (define (Γ+/-W M σ Γ W)
   (match-define (-W V e) W)
-  (define proved (or-R (⊢V V) (Γ⊢e M σ Γ e)))
+  (define proved (or-R (⊢V V) (MσΓ⊢e M σ Γ e)))
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 
@@ -283,7 +283,7 @@
   (match-define (-W V e_v) W_V)
   (match-define (-W P e_p) W_P)
   (define ψ (-?@ e_p e_v))
-  (define proved (or-R (V∈V V P) (Γ⊢e M σ Γ ψ)))
+  (define proved (or-R (V∈V V P) (MσΓ⊢e M σ Γ ψ)))
   (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
 
@@ -299,7 +299,7 @@
 ;; The operation doesn't guarantee absolute precision.
 ;; In general, it returns an upperbound of the right answer.
 (define (Γ⊓e M σ Γ e)
-  (if (equal? 'X (Γ⊢e M σ Γ e)) #f (Γ+ Γ e)))
+  (if (equal? 'X (MσΓ⊢e M σ Γ e)) #f (Γ+ Γ e)))
 
 (: not-R : -R → -R)
 ;; Negate provability result
