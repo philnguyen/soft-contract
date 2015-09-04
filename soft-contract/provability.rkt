@@ -88,6 +88,12 @@
               [(or (? -pred?) (? -st-mk?)) 'X]
               [_ '?])]
            [_ '?])]
+        [(-@ 'boolean? (list e*) _)
+         (match e*
+           [(-b b) (decide-R (boolean? b))]
+           [(-@ (? -pred?) _ _) '✓]
+           [(-@ (? -st-mk?) _ _) 'X]
+           [_ '?])]
         [(-@ (or (? -pred?) (? -st-ac?)) (list e) _) '?]
         [(-@ (? -o?) _ _) '✓] ; happens to be so for now
         [_ '?]))
