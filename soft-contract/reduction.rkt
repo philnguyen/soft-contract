@@ -737,5 +737,5 @@
               [(final? ςs) m*]
               [else (go (↦* ςs) (+ 1 i) m*)])))
     (λ ([i : Integer])
-      (hash-ref m i (λ () (error 'dbg/ς "only defined for [~a,~a]"
-                                 0 (sub1 (hash-count m))))))))
+      (hash-ref m i (λ () (error 'dbg/ς "only defined for [0,~a]"
+                                 (sub1 (hash-count m))))))))

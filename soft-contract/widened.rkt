@@ -84,8 +84,8 @@
           [else (values ξ evals)])))
     
     (define (step [n : Integer]) : -ξ
-      (hash-ref evals n (λ () (error 'dbg/ξ "only defined for [~a,~a]"
-                                     0 (- (hash-count evals) 1)))))
+      (hash-ref evals n (λ () (error 'dbg/ξ "only defined for [0,~a]"
+                                     (- (hash-count evals) 1)))))
     
     (define (diff [n : Integer]) : -ξ
       (cond
