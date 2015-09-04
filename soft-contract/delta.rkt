@@ -66,12 +66,11 @@
              (values σ AΓs)]
             [else (values σ (blm-bad-arg))])]
          ['•
-          (define query (-?@ (-st-p id n) e))
           (define ans
             (match (Γ⊢e Γ ok-arg?)
               ['✓ (-AΓ (list '•) (Γ+ Γ ok-arg?))]
               ['X (blm-bad-arg)]
-              ['? {set (-AΓ (list '•) (Γ+ Γ ok-arg?))}]))
+              ['? {set (-AΓ (list '•) (Γ+ Γ ok-arg?)) (blm-bad-arg)}]))
           (values σ ans)]
          [_ (values σ (blm-bad-arg))]))]
 
