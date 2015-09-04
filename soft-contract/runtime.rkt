@@ -258,6 +258,27 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Summarization table
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
+(define-type -M (MMap -e -Res))
+(define -M⊥ : -M (hash))
+
+(: M⊔ : -M -e -WVs -Γ → -M)
+;; Update summarization table
+(define (M⊔ M e W Γ)
+  (match-define (-W _ ?e) W)
+  (⊔ M e (-Res ?e Γ)))
+
+(define (show-M [M : -M]) : (Listof Sexp)
+  (for/list : (Listof Sexp) ([(e Reses) M])
+    `(,(show-e e) ↝⋆ ,@(for/list : (Listof Sexp) ([Res Reses])
+                        (match-define (-Res e Γ) Res)
+                        `(,(show-?e e) : ,@(show-Γ Γ))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Convenience
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

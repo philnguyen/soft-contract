@@ -17,15 +17,15 @@
     [(-ς (-FC C V l) Γ τ σ Ξ M)
      (↦FC C V Γ τ σ Ξ M l)]
     [(-ς (? -W? W) Γ τ σ Ξ M)
-     (define M* (M⊔ M τ W Γ))
+     (define M*
+       (match τ
+         [(-τ (-↓ e _) _) (M⊔ M e W Γ)]
+         [_ M #|TODO|#]))
      (match/nd: (-κ → -ς) (hash-ref Ξ τ)
        [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M*)])]
     [(-ς (? -blm? blm) Γ τ σ Ξ M)
-     ;; just for debugging
-     (define M*
-       (M⊔ M τ (-W (list (-St (-id 'test 'Λ) '())) (-?@ (-st-mk (-id 'test 'Λ) 0))) Γ))
      (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-       [(-κ φ τ*) (↦blm blm Γ φ τ* σ Ξ M* #|FIXME|#)])]
+       [(-κ φ τ*) (↦blm blm Γ φ τ* σ Ξ M)])]
     [ς (error '↦ "unexpected: ~a" ς)]))
 
 (: ↦e : -e -ρ -Γ -τ -σ -Ξ -M → -ς*)
@@ -39,7 +39,7 @@
     [(? -x? x)
      (for*/set: : (Setof -ς) ([V (σ@ σ (ρ@ ρ x))]
                               [W (in-value (-W (list V) x))]
-                              #:unless (spurious? Γ W))
+                              #:unless (spurious? M σ Γ W))
        (match V
          ['undefined ; FIXME hack
           (-ς (-blm 'TODO 'Λ (-st-p (-id 'defined 'Λ) 1) (list 'undefined))
@@ -190,7 +190,7 @@
     [(-φ.if E₁ E₂)
      (match Vs
        [(list V)
-        (define-values (Γ_t Γ_f) (Γ+/-W Γ (-W V ?e)))
+        (define-values (Γ_t Γ_f) (Γ+/-W M σ Γ (-W V ?e)))
         (define ς_t (and Γ_t (-ς E₁ Γ_t τ σ Ξ M)))
         (define ς_f (and Γ_f (-ς E₂ Γ_f τ σ Ξ M)))
         (cond
@@ -335,7 +335,7 @@
        (↦@ W_f args Γ τ* σ Ξ* M lo))]
     ;; restore path invariant of previous block
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
-     (cond [(rt-spurious? φ Γ (-W Vs ?e)) ∅]
+     (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
            [else
             (define e_a
               ; take answer as `(f x …)` if possible,
@@ -411,7 +411,7 @@
 (define (↦blm blm Γ φ τ σ Ξ M)
   (match φ
     [(-φ.rt.@ Γ₀ _ _ _)
-     (cond [(rt-spurious? φ Γ) ∅]
+     (cond [(rt-spurious? M σ φ Γ) ∅]
            [else (-ς blm Γ₀ τ σ Ξ M)])]
     [(-φ.rt.let dom) (-ς blm (Γ↓ Γ dom) τ σ Ξ M)]
     [_ (-ς blm Γ τ σ Ξ M)]))
@@ -443,7 +443,7 @@
 
   (: ↦δ : -o → -ς*)
   (define (↦δ o)
-    (define-values (σ* AΓs) (δ σ Γ o W_xs l))
+    (define-values (σ* AΓs) (δ M σ Γ o W_xs l))
     (match/nd: (-AΓ → -ς) AΓs
       [(-AΓ (? -blm? blm) Γ*) (-ς blm         Γ* τ σ* Ξ M)]
       [(-AΓ (? list? Vs ) Γ*) (-ς (-W Vs e_a) Γ* τ σ* Ξ M)]))
@@ -497,7 +497,7 @@
   (match-define (-W V e_v) W_v)
   (match-define (list l+ l- lo) l³)
 
-  (match (Γ⊢V∈C Γ W_v W_c)
+  (match (Γ⊢V∈C M σ Γ W_v W_c)
     ['✓
      (define Γ* (Γ+ Γ (-?@ e_c e_v)))
      (-ς (-W (list V) e_v) Γ* τ σ Ξ M)]
@@ -508,7 +508,7 @@
      (match C
        [(-=>i xs cs Cs d ρ_d Γ_d)
         ;; TODO: check for arity also
-        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W Γ W_v (-W 'procedure? 'procedure?)))
+        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W 'procedure? 'procedure?)))
         (define ς-ok
           (and Γ-ok
                (let ()
@@ -530,7 +530,7 @@
         (define n (length γs))
         (define k? (-st-p id n))
         (define k (-st-mk id n))
-        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W Γ W_v (-W k? k?)))
+        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W k? k?)))
         (define ς-bad
           (and Γ-bad
                (-ς (-blm l+ lo k? (list V)) Γ-bad τ σ Ξ M)))
@@ -663,9 +663,9 @@
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
      (-ς E Γ τ* σ Ξ* M)]))
 
-(: rt-spurious? ([-φ.rt.@ -Γ] [-WVs] . ->* . Boolean))
+(: rt-spurious? ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . Boolean))
 ;; Check whether a returned result is spurious
-(define (rt-spurious? φ Γ [W (-W '() #f)])
+(define (rt-spurious? M σ φ Γ [W (-W '() #f)])
   (match-define (-W Vs ?e) W)
   (match-define (-φ.rt.@ Γ₀ xs e_f e_xs) φ)
   (define params ; only care params that have corresponding args
@@ -683,11 +683,11 @@
       (convert e)))
 
   ; Check whether the propositions would contradict
-  (define Γ₀* (Γ⊓ Γ₀ Γ*))
+  (define Γ₀* (Γ⊓ M σ Γ₀ Γ*))
   (define ans
     (cond
-      [Γ₀* (or (spurious? Γ₀* (-W Vs (and ?e (convert ?e))))
-               (spurious? Γ₀* (-W Vs (apply -?@ e_f e_xs))))]
+      [Γ₀* (or (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e))))
+               (spurious? M σ Γ₀* (-W Vs (apply -?@ e_f e_xs))))]
       [else #t]))
   
   (begin ;; debug

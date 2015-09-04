@@ -6,10 +6,10 @@
  )
 (provide (all-defined-out))
 
-(: δ : -σ -Γ -o (Listof -WV) Mon-Party → (Values -σ -AΓs))
+(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → (Values -σ -AΓs))
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
-(define (δ σ Γ o Ws l)
+(define (δ M σ Γ o Ws l)
   
   (define-syntax-rule (with-guarded-arity n e ...)
     (cond
@@ -28,7 +28,7 @@
      (with-guarded-arity 1
        (match-define (list W) Ws)
        (define V_a
-         (match (Γ⊢oW Γ o W)
+         (match (Γ⊢oW M σ Γ o W)
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
@@ -67,7 +67,7 @@
             [else (values σ (blm-bad-arg))])]
          ['•
           (define ans
-            (match (Γ⊢e Γ ok-arg?)
+            (match (Γ⊢e M σ Γ ok-arg?)
               ['✓ (-AΓ (list '•) (Γ+ Γ ok-arg?))]
               ['X (blm-bad-arg)]
               ['? {set (-AΓ (list '•) (Γ+ Γ ok-arg?)) (blm-bad-arg)}]))
@@ -81,7 +81,7 @@
        (match-define (-W V₁ e₁) W₁)
        (match-define (-W V₂ e₂) W₂)
        (define ans
-         (match (or-R (V≡ V₁ V₂) (Γ⊢e≡ Γ e₁ e₂))
+         (match (or-R (V≡ V₁ V₂) (Γ⊢e≡ M σ Γ e₁ e₂))
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
@@ -109,7 +109,7 @@
           (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
           (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
           (define ans
-            (match* ((Γ⊢oW Γ 'number? W₁) (Γ⊢oW Γ 'number? W₂))
+            (match* ((Γ⊢oW M σ Γ 'number? W₁) (Γ⊢oW M σ Γ 'number? W₂))
               [('X _) ans-bad₁]
               [(_ 'X) ans-bad₂]
               [('✓ '✓) ans-ok]
@@ -138,7 +138,7 @@
           (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
           (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
           (define ans
-            (match* ((Γ⊢oW Γ 'number? W₁) (Γ⊢oW Γ 'number? W₂))
+            (match* ((Γ⊢oW M σ Γ 'number? W₁) (Γ⊢oW M σ Γ 'number? W₂))
               [('X _) ans-bad₁]
               [(_ 'X) ans-bad₂]
               [('✓ '✓) ans-ok]
@@ -167,7 +167,7 @@
           (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
           (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
           (define ans
-            (match* ((Γ⊢oW Γ 'number? W₁) (Γ⊢oW Γ 'number? W₂))
+            (match* ((Γ⊢oW M σ Γ 'number? W₁) (Γ⊢oW M σ Γ 'number? W₂))
               [('X _) ans-bad₁]
               [(_ 'X) ans-bad₂]
               [('✓ '✓) ans-ok]
