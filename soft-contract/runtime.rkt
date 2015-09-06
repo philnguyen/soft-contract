@@ -228,6 +228,7 @@
 ;; store maps addresses to values
 (define-type -σ (MMap -α -V))
 (define -σ∅ : -σ (hash))
+(define-type -Δσ (ΔMap -α -V))
 
 (: σ@ : -σ -α → (Setof -V))
 ;; Look up the store for all values at given address
@@ -263,6 +264,7 @@
 
 (struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
 (define-type -M (MMap -e -Res))
+(define-type -ΔM (ΔMap -e -Res))
 (define -M⊥ : -M (hash))
 
 (: M⊔ : -M -e -WVs -Γ → -M)
