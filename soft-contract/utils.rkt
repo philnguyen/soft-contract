@@ -83,6 +83,7 @@
 (define-type (MMap X Y) (Map X (Setof Y)))
 (define-type (NeListof X) (Pairof X (Listof X)))
 (define-type Sexps (Listof Sexp))
+(define-type (ΔMap X Y) (Listof (Pairof X Y)))
 
 (: set-add-list : (∀ (A) (Setof A) (Listof A) → (Setof A)))
 ;; Add each element in given list to set
@@ -129,6 +130,11 @@
 (define (⊔/m m₁ m₂)
   (for/fold ([m : (MMap X Y) m₁]) ([(x ys) (in-hash m₂)])
     (⊔* m x ys)))
+
+(: Δ+ : (∀ (X Y) (ΔMap X Y) (MMap X Y) → (MMap X Y)))
+(define (Δ+ Δ m)
+  (for/fold ([m : (MMap X Y) m]) ([δ Δ])
+    (⊔ m (car δ) (cdr δ))))
 
 ;; Define set with shortened syntax for (imperative) adding and membership testing
 (define-syntax (define-set stx)
