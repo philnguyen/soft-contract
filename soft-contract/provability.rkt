@@ -3,7 +3,9 @@
          "utils.rkt" "lang.rkt" "runtime.rkt")
 (provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e V∈p V≡ MσΓ⊢e≡
          Γ⊓ Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R
-         -R)
+         -R
+         ;; debugging
+         MσΓ⊢₁e Γ⊢e)
 
 (define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
   (make-parameter (λ (M σ Γ e) (log-warning "external solver not set") '?)))
@@ -35,9 +37,9 @@
 
 (: MσΓ⊢e≡ : -M -σ -Γ -?e -?e → -R)
 (define (MσΓ⊢e≡ Γ M σ e₁ e₂)
-  (cond ; TODO: just this for now
-    [(and e₁ e₂) (decide-R (equal? e₁ e₂))]
-    [else '?]))
+  (match* (e₁ e₂)
+    [((-b b₁) (-b b₂)) (decide-R (equal? b₁ b₂))]
+    [(_ _) '?])) ; TODO just this for now
 
 (: spurious? : -M -σ -Γ -WVs → Boolean)
 ;; Check whether `e` cannot evaluate to `V` given `Γ` is true
@@ -154,7 +156,10 @@
         ;; constructors
         [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
         ;; special cases
-        [(-@ (or '= 'equal?) (list e e) _) '✓]
+        [(-@ (or '= 'equal?) (list e₁ e₂) _)
+         (match* (e₁ e₂)
+           [((-b b₁) (-b b₂)) (decide-R (equal? e₁ e₂))]
+           [(_ _) '?])] ; TODO just this for now
         ;; negation
         [(-not e*) (not-R (⊢e e*))]
         ;; ariths
