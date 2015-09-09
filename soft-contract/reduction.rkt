@@ -11,30 +11,24 @@
 ;; Steps a full state in the CEΓKSΞ machine
 (define ↦
   (match-lambda
-    [(-ς (-↓ e ρ) Γ τ σ Ξ M) (↦e e ρ Γ τ σ Ξ M)]
-    [(-ς (-Mon C V l³) Γ τ σ Ξ M)
-     (↦mon C V Γ τ σ Ξ M l³)]
-    [(-ς (-FC C V l) Γ τ σ Ξ M)
-     (↦FC C V Γ τ σ Ξ M l)]
-    [(-ς (? -W? W) Γ τ σ Ξ M)
-     (define M*
-       (match τ
-         [(-τ (-↓ e _) _) (M⊔ M e W Γ)]
-         [_ M #|TODO|#]))
-     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-       [(-κ φ τ*) (↦WVs W Γ φ τ* σ Ξ M*)])]
-    [(-ς (? -blm? blm) Γ τ σ Ξ M)
-     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-       [(-κ φ τ*) (↦blm blm Γ φ τ* σ Ξ M)])]
+    [(-ς (-↓ e ρ) Γ κ σ Ξ M) (↦e e ρ Γ κ σ Ξ M)]
+    [(-ς (-Mon C V l³) Γ κ σ Ξ M)
+     (↦mon C V Γ κ σ Ξ M l³)]
+    [(-ς (-FC C V l) Γ κ σ Ξ M)
+     (↦FC C V Γ κ σ Ξ M l)]
+    [(-ς (? -W? W) Γ κ σ Ξ M)
+     (↦κ W Γ κ σ Ξ M)]
+    [(-ς (? -blm? blm) Γ κ σ Ξ M)
+     (↦blm blm Γ κ σ Ξ M)]
     [ς (error '↦ "unexpected: ~a" ς)]))
 
-(: ↦e : -e -ρ -Γ -τ -σ -Ξ -M → -ς*)
+(: ↦e : -e -ρ -Γ -κ -σ -Ξ -M → -ς*)
 ;; Stepping rules for "eval" states
-(define (↦e e ρ Γ τ σ Ξ M)
+(define (↦e e ρ Γ κ σ Ξ M)
   (match e
     ;; close value
     [(? -v? v)
-     (-ς (-W (list (close v ρ)) v) Γ τ σ Ξ M)]
+     (-ς (-W (list (close v ρ)) v) Γ κ σ Ξ M)]
     ;; look up variable
     [(? -x? x)
      (for*/set: : (Setof -ς) ([V (σ@ σ (ρ@ ρ x))]
@@ -43,15 +37,15 @@
        (match V
          ['undefined ; FIXME hack
           (-ς (-blm 'TODO 'Λ (-st-p (-id 'defined 'Λ) 1) (list 'undefined))
-              Γ τ σ Ξ M)]
-         [_ (-ς W Γ τ σ Ξ M)]))]
+              Γ κ σ Ξ M)]
+         [_ (-ς W Γ κ σ Ξ M)]))]
     ;; look up top-level reference
     [(and ref (-ref (and id (-id name ctx*)) ctx))
      (cond
        ;; skip contract checking for self reference
        [(equal? ctx ctx*)
         (for/set: : (Setof -ς) ([V (σ@ σ (-α.def id))])
-          (-ς (-W (list V) ref) Γ τ σ Ξ M))]
+          (-ς (-W (list V) ref) Γ κ σ Ξ M))]
        ;; perform contract checking for cross-module reference
        [else
         ;; FIXME
@@ -59,33 +53,33 @@
         (define Cs (σ@ σ (-α.ctc id)))
         (match/nd: #:tag ↦e/ref/V (-V → -ς) Vs
           [V (match/nd: #:tag ↦e/ref/C (-V → -ς) Cs
-               [C (↦mon (-W C #f) (-W V ref) Γ τ σ Ξ M (list ctx* ctx ctx*))])])])]
+               [C (↦mon (-W C #f) (-W V ref) Γ κ σ Ξ M (list ctx* ctx ctx*))])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
      (define φ (-φ.@ (for/list : (Listof -E) ([x xs]) (-⇓ x ρ)) '() l))
-     (-ς/pushed f ρ Γ φ τ σ Ξ M)]
+     (-ς/pushed f ρ Γ φ κ σ Ξ M)]
     ;; evaluate scrutiny, pushing branches
     [(-if e₀ e₁ e₂)
      (define φ (-φ.if (-⇓ e₁ ρ) (-⇓ e₂ ρ)))
-     (-ς/pushed e₀ ρ Γ φ τ σ Ξ M)]
+     (-ς/pushed e₀ ρ Γ φ κ σ Ξ M)]
     ;; ignore continuation marks for now
     [(-wcm e_k e_v e_b)
      (error '↦e "TODO: wcm")]
     ;; evaluate first clause in `begin` and push remaining clauses
     [(-begin es)
      (match es
-       [(list) (-ς (-W -Void/Vs (-?@ -void)) Γ τ σ Ξ M)]
-       [(list e*) (-ς (-⇓ e* ρ) Γ τ σ Ξ M)]
+       [(list) (-ς (-W -Void/Vs (-?@ -void)) Γ κ σ Ξ M)]
+       [(list e*) (-ς (-⇓ e* ρ) Γ κ σ Ξ M)]
        [(cons e* es*)
         (define φ (-φ.begin es* ρ))
-        (-ς/pushed e* ρ Γ φ τ σ Ξ M)])]
+        (-ς/pushed e* ρ Γ φ κ σ Ξ M)])]
     ;; evaluate first clause in `begin0` and push the remaining clauses
     [(-begin0 e₀ es)
      (cond
-       [(null? es) (-ς (-⇓ e₀ ρ) Γ τ σ Ξ M)]
+       [(null? es) (-ς (-⇓ e₀ ρ) Γ κ σ Ξ M)]
        [else
         (define φ (-φ.begin0v es ρ))
-        (-ς/pushed e₀ ρ Γ φ τ σ Ξ M)])]
+        (-ς/pushed e₀ ρ Γ φ κ σ Ξ M)])]
     ;; quote
     [(-quote x)
      (define-values (V ?e)
@@ -93,18 +87,18 @@
          [(Base? x) (values (-b x) (-b x))]
          [(null? x) (values (-St (-id 'null 'Λ) '()) -null)]
          [else (error '↦e "TODO: quote")]))
-     (-ς (-W (list V) ?e) Γ τ σ Ξ M)]
+     (-ς (-W (list V) ?e) Γ κ σ Ξ M)]
     ;; let-values: evaluate the first argument (if there is) and push the rest
     [(-let-values bnds e* l)
      (match bnds
-       ['() (-ς (-⇓ e* ρ) Γ τ σ Ξ M)]
+       ['() (-ς (-⇓ e* ρ) Γ κ σ Ξ M)]
        [(cons (cons xs eₓ) bnds*)
         (define φ (-φ.let-values xs bnds* (hash) ρ e* l))
-        (-ς/pushed eₓ ρ Γ φ τ σ Ξ M)])]
+        (-ς/pushed eₓ ρ Γ φ κ σ Ξ M)])]
     ;; letrec-values
     [(-letrec-values bnds e l)
      (match bnds
-       ['() (-ς (-⇓ e ρ) Γ τ σ Ξ M)]
+       ['() (-ς (-⇓ e ρ) Γ κ σ Ξ M)]
        [(cons (cons xs e*) bnds*)
         (define-values (ρ* σ*)
           (for/fold ([ρ* : -ρ ρ] [σ* : -σ σ]) ([bnd bnds])

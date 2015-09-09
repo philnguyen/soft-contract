@@ -94,10 +94,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack address
-(struct -τ ([E : (U -E #|HACK|# (Listof (U Symbol -E)))] [Γ : -Γ]) #:transparent)
+
 
 ;; Stack
-(struct -κ ([top : -φ] [nxt : -τ]) #:transparent)
+(define-data -κ
+  (struct -τ [e : -e] [ρ : -ρ] [Γ : -Γ])
+  (struct -kont [frm : -φ] [e : -?e] [nxt : -κ]))
 
 ;; Stack store
 (define-type -Ξ (MMap -τ -κ))
@@ -164,8 +166,9 @@
     ))
 
 (define (show-κ [κ : -κ]) : Sexp
-  (match-define (-κ φ τ) κ)
-  `(,(show-φ φ) ↝ ,(show-τ τ)))
+  (match κ
+    [(? -τ? τ) (show-τ τ)]
+    [(-kont φ e κ*) `(,(show-φ φ) ↝ ,(show-κ κ*))]))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list : (Listof Sexp) ([(τ κs) Ξ])
@@ -176,11 +179,11 @@
 ;;;;; State (narrow)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -ς ([e : -E] [Γ : -Γ] [τ : -τ] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
-(struct -Δς ([e : -E] [Γ : -Γ] [τ : -τ] [δσ : -Δσ] [δΞ : -ΔΞ] [δM : -ΔM]) #:transparent)
+(struct -ς ([e : -E] [Γ : -Γ] [κ : -κ] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
+;(struct -Δς ([e : -E] [Γ : -Γ] [τ : -τ] [δσ : -Δσ] [δΞ : -ΔΞ] [δM : -ΔM]) #:transparent)
 
 (define-type -ς* (U -ς (Setof -ς)))
-(define-type -Δς* (U -Δς (Setof -Δς)))
+;(define-type -Δς* (U -Δς (Setof -Δς)))
 
 (: 𝑰 : -prog → -ς)
 ;; Load program to intial machine state
@@ -252,25 +255,28 @@
         [(? -module?) (error '𝑰 "TODO: sub-module forms")])))
 
   (define E₀ (-↓ e₀ -ρ∅))
-  (define τ₀ (-τ E₀ -Γ∅))
+  (define τ₀ (-τ e₀ -ρ∅ -Γ∅))
 
   (-ς E₀ -Γ∅ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 
 (: final? (case-> [-ς → Boolean]
-                  [-E -τ -Ξ → Boolean]))
+                  [-E -κ -Ξ → Boolean]))
 ;; Check whether state is final
 (define final?
   (case-lambda
-    [(E τ Ξ) (and (set-empty? (hash-ref Ξ τ)) (-Ans? E))]
+    [(E κ Ξ)
+     (and (-τ? κ)
+          (set-empty? (hash-ref Ξ κ))
+          (-Ans? E))]
     [(ς)
-     (match-define (-ς E _ τ _ Ξ M) ς)
-     (final? E τ Ξ)]))
+     (match-define (-ς E _ κ _ Ξ M) ς)
+     (final? E κ Ξ)]))
 
 (define (show-ς [ς : -ς]) : (Listof Sexp)
-  (match-define (-ς E Γ τ σ Ξ M) ς)
+  (match-define (-ς E Γ κ σ Ξ M) ς)
   `((E: ,(show-E E))
     (Γ: ,@(show-Γ Γ))
-    (τ: ,(show-τ τ))
+    (κ: ,(show-κ κ))
     (σ: ,@(show-σ σ))
     (Ξ: ,@(show-Ξ Ξ))
     (M: ,@(show-M M))))
