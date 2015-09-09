@@ -7,40 +7,34 @@
 
 (define-type -tσ Integer)
 (define-type -tΞ Integer)
-(define-type -tM Integer)
-(define-type -t (List -tσ -tΞ -tM))
+(define-type -t (List -tσ -tΞ))
 
-(define -t₀ : -t (list 0 0 0))
-
-(define (t-max [t₁ : -t] [t₂ : -t]) : -t
-  (match-define (list x₁ y₁ z₁) t₁)
-  (match-define (list x₂ y₂ z₂) t₂)
-  (list (max x₁ x₂) (max y₁ y₂) (max z₁ z₂)))
+(define -t₀ : -t (list 0 0))
 
 (define (t>= [t₁ : -t] [t₂ : -t]) : Boolean
-  (match-define (list x₁ y₁ z₁) t₁)
-  (match-define (list x₂ y₂ z₂) t₂)
-  (and (>= x₁ x₂) (>= y₁ y₂) (>= z₁ z₂)))
+  (match-define (list x₁ y₁) t₁)
+  (match-define (list x₂ y₂) t₂)
+  (and (>= x₁ x₂) (>= y₁ y₂)))
 
 ;; configuration
-(struct -Cfg ([e : -E] [Γ : -Γ] [τ : -τ]) #:transparent)
+(struct -Cfg ([e : -E] [Γ : -Γ] [κ : -κ]) #:transparent)
 ;; state with widened stores and summarization
 (struct -ξ ([S : (Map -Cfg -t)]
             [F : (Setof -Cfg)]
-            [tσ : -tσ] [σ : -σ] [σs : (Listof -σ)]
-            [tΞ : -tΞ] [Ξ : -Ξ] [Ξs : (Listof -Ξ)]
-            [tM : -tM] [M : -M] [Ms : (Listof -M)]) #:transparent)
+            [tσ : -tσ] [σ : -σ]
+            [tΞ : -tΞ] [Ξ : -Ξ]
+            [M : -M]) #:transparent)
 
 (: 𝑰/ξ : -prog → -ξ)
 ;; Load initial widened state
 (define (𝑰/ξ p)
-  (match-define (-ς E Γ τ σ Ξ M) (𝑰 p))
-  (define C (-Cfg E Γ τ))
-  (-ξ (hash C (list 0 0 0))
+  (match-define (-ς E Γ κ σ Ξ M) (𝑰 p))
+  (define C (-Cfg E Γ κ))
+  (-ξ (hash C (list 0 0))
       {set C}
-      0 σ (list σ)
-      0 Ξ (list Ξ)
-      0 M (list M)))
+      0 σ
+      0 Ξ
+      M))
 
 (: Cfg-final? : -Cfg -Ξ → Boolean)
 (define (Cfg-final? C Ξ)
@@ -51,13 +45,13 @@
 (define (ξ-done? ξ) (set-empty? (-ξ-F ξ)))
 
 (define (show-Cfg [C : -Cfg]) : (Listof Sexp)
-  (match-define (-Cfg E Γ τ) C)
+  (match-define (-Cfg E Γ κ) C)
   `((E: ,(show-E E))
     (Γ: ,@(show-Γ Γ))
-    (τ: ,(show-τ τ))))
+    (κ: ,(show-κ κ))))
 
 (define (show-ξ [ξ : -ξ]) : (Listof Sexp)
-  (match-define (-ξ S F _ σ _ _ Ξ _ _ M _) ξ)
+  (match-define (-ξ S F _ σ _ Ξ M) ξ)
   `((seen: ,@(for/list : (Listof Sexp) ([(C t) S])
                `(,@(show-Cfg C) ↦ ,@t)))
     (front: ,@(for/list : (Listof Sexp) ([C F]) (show-Cfg C)))
@@ -71,15 +65,16 @@
   [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
 
 (define-syntax-rule (profile* e ...)
-  ;(profile-thunk (λ () e ...) #:delay 0.0001)
-  (begin e ...)
+  (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 10)
+  ;(begin e ...)
   )
 
 (profile*
 
   (: ↦/ξ : -ξ → -ξ)
   (define (↦/ξ ξ)
-    (match-define (-ξ S F tσ σ σs tΞ Ξ Ξs tM M Ms) ξ)
+    (match-define (-ξ S F tσ σ tΞ Ξ M) ξ)
+    (dbg 'F "|F|: ~a~n" (set-count F))
     ; Compute the intermediate new (narrow states)
     (define I
       (for/fold ([I : (Setof -ς) ∅]) ([C F])
@@ -93,15 +88,8 @@
                 ([ςi I])
         (match-define (-ς _ _ _ σi Ξi Mi) ςi)
         (values (⊔/m σ* σi) (⊔/m Ξ* Ξi) (⊔/m M* Mi))))
-    (define-values (tσ* σs*)
-      (cond [(equal? σ σ*) (values tσ σs)]
-            [else (values (+ 1 tσ) (cons σ* σs))]))
-    (define-values (tΞ* Ξs*)
-      (cond [(equal? Ξ Ξ*) (values tΞ Ξs)]
-            [else (values (+ 1 tΞ) (cons Ξ* Ξs))]))
-    (define-values (tM* Ms*)
-      (cond [(equal? M M*) (values tM Ms)]
-            [else (values (+ 1 tM) (cons M* Ms))]))
+    (define tσ* (if (equal? σ σ*) tσ (+ 1 tσ)))
+    (define tΞ* (if (equal? Ξ Ξ*) tΞ (+ 1 tΞ)))
     ; Compute the next frontier and newly seen (narrow) states
     (define-values (F* S*)
       (for/fold ([F* : (Setof -Cfg) ∅] [S* : (Map -Cfg -t) S])
@@ -109,10 +97,10 @@
         (match-define (-ς Ei Γi τi _ _ _) ςi)
         (define Ci (-Cfg Ei Γi τi))
         (define ti (hash-ref S* Ci #f))
-        (define t* (list tσ* tΞ* tM*))
+        (define t* (list tσ* tΞ*))
         (cond [(and ti (t>= ti t*)) (values F* S*)]
               [else (values (set-add F* Ci) (hash-set S* Ci t*))])))
-    (-ξ S* F* tσ* σ* σs* tΞ* Ξ* Ξs* tM* M* Ms*))
+    (-ξ S* F* tσ* σ* tΞ* Ξ* M*))
 
   (: dbg/ξ : Path-String → (Integer → -ξ))
   (define (dbg/ξ p)
@@ -138,7 +126,7 @@
     
     (define answers
       (let ()
-        (match-define (-ξ S* F* _ σ* _ _ Ξ* _ _ M* _)
+        (match-define (-ξ S* F* _ σ* _ Ξ* M*)
           (hash-ref evals (- (hash-count evals) 1)))
         (printf "States: ~a~n" (hash-count S*))
         (printf "Steps: ~a~n" (hash-count evals))

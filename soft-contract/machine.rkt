@@ -99,11 +99,18 @@
 ;; Stack
 (define-data -κ
   (struct -τ [e : -e] [ρ : -ρ] [Γ : -Γ])
-  (struct -kont [frm : -φ] [e : -?e] [nxt : -κ]))
+  (struct -kont [frm : -φ] [nxt : -κ]))
+
+;; Push frames on top of existing stack
+;; TODO: Make it a function. How do they type `list*`??
+(define-syntax -kont*
+  (syntax-rules ()
+    [(_ κ) κ]
+    [(_ φ₁ φ* ... κ) (-kont φ₁ (-kont* φ* ... κ))]))
 
 ;; Stack store
-(define-type -Ξ (MMap -τ -κ))
-(define-type -ΔΞ (ΔMap -τ -κ))
+(define-type -Ξ (MMap -τ -kont))
+;(define-type -ΔΞ (ΔMap -τ -kont))
 
 (define show-τ : (-τ → Symbol) (unique-name 'τ))
 
@@ -168,7 +175,7 @@
 (define (show-κ [κ : -κ]) : Sexp
   (match κ
     [(? -τ? τ) (show-τ τ)]
-    [(-kont φ e κ*) `(,(show-φ φ) ↝ ,(show-κ κ*))]))
+    [(-kont φ κ*) `(,(show-φ φ) ↝ ,(show-κ κ*))]))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list : (Listof Sexp) ([(τ κs) Ξ])
