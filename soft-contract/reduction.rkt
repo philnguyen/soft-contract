@@ -648,20 +648,23 @@
     ;; FIXME recursive contract
     [_ (↦@ W_c (list W_v) Γ τ σ Ξ M l)]))
 
-(: -ς/pushed (case-> [-E    -Γ -φ -τ -σ -Ξ -M → -ς]
-                     [-e -ρ -Γ -φ -τ -σ -Ξ -M → -ς]))
+(: -ς/pushed (case-> [-E    -Γ -φ -τ -σ -Ξ -M → -ς*]
+                     [-e -ρ -Γ -φ -τ -σ -Ξ -M → -ς*]))
 ;; Proceed to the next `eval` state with given frame `φ` pushed
 (define -ς/pushed
   (case-lambda
     [(e ρ Γ φ τ σ Ξ M) ; important not to restrict `Γ` for precision
-     (define E* (-⇓ e ρ))
-     (define τ* (-τ E* Γ))
-     (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
-     (-ς E* Γ τ* σ Ξ* M)]
+     (match (-⇓ e ρ)
+       [(and E* (-↓ e* ρ*))
+        (define τ* (-τ E* Γ))
+        (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
+        (↦e e* ρ* Γ τ* σ Ξ* M)]
+       [(? -W? W)
+        (↦WVs W Γ φ τ σ Ξ M)])]
     [(E Γ φ τ σ Ξ M)
      (define τ* (-τ E Γ))
      (define Ξ* (⊔ Ξ τ* (-κ φ τ)))
-     (-ς E Γ τ* σ Ξ* M)]))
+     (↦ (-ς E Γ τ* σ Ξ* M))]))
 
 (: rt-spurious? ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . Boolean))
 ;; Check whether a returned result is spurious
