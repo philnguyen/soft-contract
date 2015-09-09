@@ -48,7 +48,7 @@
   (match-define (-Cfg E Γ κ) C)
   `((E: ,(show-E E))
     (Γ: ,@(show-Γ Γ))
-    (κ: ,(show-κ κ))))
+    (κ: ,(show-κ κ '□))))
 
 (define (show-ξ [ξ : -ξ]) : (Listof Sexp)
   (match-define (-ξ S F _ σ _ Ξ M) ξ)
@@ -65,8 +65,8 @@
   [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
 
 (define-syntax-rule (profile* e ...)
-  (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 10)
-  ;(begin e ...)
+  ;(profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 10)
+  (begin e ...)
   )
 
 (profile*
@@ -137,7 +137,7 @@
     step)
 
   (define f
-    (parameterize ([debugs {set}])
+    (parameterize ([debugs {set 'F}])
       (dbg/ξ "test/programs/safe/2.rkt")))
   (define F (compose show-ξ f))
   (void))
