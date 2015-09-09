@@ -66,7 +66,16 @@
     (M: ,@(show-M M))))
 
 ;;;;; For testing only
-(begin
+
+(require/typed profile
+  [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
+
+(define-syntax-rule (profile* e ...)
+  ;(profile-thunk (λ () e ...) #:delay 0.0001)
+  (begin e ...)
+  )
+
+(profile*
 
   (: ↦/ξ : -ξ → -ξ)
   (define (↦/ξ ξ)
@@ -99,9 +108,9 @@
                 ([ςi I])
         (match-define (-ς Ei Γi τi _ _ _) ςi)
         (define Ci (-Cfg Ei Γi τi))
-        (define ti (hash-ref S* Ci (λ () -t₀)))
+        (define ti (hash-ref S* Ci #f))
         (define t* (list tσ* tΞ* tM*))
-        (cond [(t>= ti t*) (values F* S*)]
+        (cond [(and ti (t>= ti t*)) (values F* S*)]
               [else (values (set-add F* Ci) (hash-set S* Ci t*))])))
     (-ξ S* F* tσ* σ* σs* tΞ* Ξ* Ξs* tM* M* Ms*))
 
@@ -143,4 +152,4 @@
     (parameterize ([debugs {set}])
       (dbg/ξ "test/programs/safe/2.rkt")))
   (define F (compose show-ξ f))
-  )
+  (void))
