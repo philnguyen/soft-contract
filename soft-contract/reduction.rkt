@@ -162,10 +162,10 @@
 (: ↦κ : -WVs -Γ -κ -σ -Ξ -M → -ς*)
 (define (↦κ WVs Γ κ σ Ξ M)
   (match κ
-    [(? -τ? τ)
-     ;; TODO probably update M here
+    [(and τ (-τ e _ _))
+     (match-define (-W _ ?e) WVs)
      (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-       [κ* (↦κ WVs Γ κ* σ Ξ M)])]
+       [κ* (↦κ WVs Γ κ* σ Ξ (⊔ M e (-Res ?e Γ)))])]
     [(-kont φ κ*) (↦φ WVs Γ φ κ* σ Ξ M)]))
 
 (: ↦φ : -WVs -Γ -φ -κ -σ -Ξ -M → -ς*)
