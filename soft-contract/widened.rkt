@@ -65,16 +65,15 @@
   [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
 
 (define-syntax-rule (profile* e ...)
-  ;(profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 10)
+  ;(profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 20)
   (begin e ...)
-  )
+)
 
 (profile*
 
   (: ↦/ξ : -ξ → -ξ)
   (define (↦/ξ ξ)
     (match-define (-ξ S F tσ σ tΞ Ξ M) ξ)
-    (dbg 'F "|F|: ~a~n" (set-count F))
     ; Compute the intermediate new (narrow states)
     (define I
       (for/fold ([I : (Setof -ς) ∅]) ([C F])
@@ -119,25 +118,24 @@
          [else (go (↦/ξ ξ) evals* (+ 1 i))])))
     (define t₂ (current-milliseconds))
     (printf "Time: ~as~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))
-    
-    (define (step [n : Integer]) : -ξ
-      (hash-ref evals n (λ () (error 'dbg/ξ "only defined for [0,~a]"
-                                     (- (hash-count evals) 1)))))
-    
-    (define answers
-      (let ()
-        (match-define (-ξ S* F* _ σ* _ Ξ* M*)
-          (hash-ref evals (- (hash-count evals) 1)))
-        (printf "States: ~a~n" (hash-count S*))
-        (printf "Steps: ~a~n" (hash-count evals))
-        (printf "|σ|: ~a~n" (hash-count σ*))
-        (printf "|Ξ|: ~a~n" (hash-count Ξ*))
-        (printf "|M|: ~a~n" (hash-count M*))))
-    
-    step)
 
-  (define f
-    (parameterize ([debugs {set 'F}])
-      (dbg/ξ "test/programs/safe/2.rkt")))
-  (define F (compose show-ξ f))
+    (let ()
+      (match-define (-ξ S* F* _ σ* _ Ξ* M*)
+        (hash-ref evals (- (hash-count evals) 1)))
+      (printf "States: ~a~n" (hash-count S*))
+      (printf "Steps: ~a~n" (hash-count evals))
+      (printf "|σ|: ~a~n" (hash-count σ*))
+      (printf "|Ξ|: ~a~n" (hash-count Ξ*))
+      (printf "|M|: ~a~n" (hash-count M*)))
+
+    (λ ([n : Integer])
+      (hash-ref evals n (λ () (error 'dbg/ξ "only defined for [0,~a]"
+                                     (- (hash-count evals) 1))))))
+
+  (define s (dbg/ξ "test/programs/safe/2.rkt"))
+  (define S (compose show-ξ s))
+  (define F (compose (inst second Sexp Sexp Sexp) S))
+  (define (fronts)
+    (for ([i (in-naturals)])
+      (printf "|F~a|: ~a~n" (n-sub i) (set-count (-ξ-F (s i))))))
   (void))

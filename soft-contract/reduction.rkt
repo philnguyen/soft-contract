@@ -11,7 +11,8 @@
 ;; Steps a full state in the CEΓKSΞ machine
 (define ↦
   (match-lambda
-    [(-ς (-↓ e ρ) Γ κ σ Ξ M) (↦e e ρ Γ κ σ Ξ M)]
+    [(-ς (-↓ e ρ) Γ κ σ Ξ M)
+     (↦e e ρ Γ κ σ Ξ M)]
     [(-ς (-Mon C V l³) Γ κ σ Ξ M)
      (↦mon C V Γ κ σ Ξ M l³)]
     [(-ς (-FC C V l) Γ κ σ Ξ M)
@@ -55,16 +56,16 @@
         ;; FIXME
         (define Vs (σ@ σ (-α.def id)))
         (define Cs (σ@ σ (-α.ctc id)))
-        (match/nd: #:tag ↦e/ref/V (-V → -ς) Vs
-          [V (match/nd: #:tag ↦e/ref/C (-V → -ς) Cs
-               [C (↦mon (-W C #f) (-W V ref) Γ κ σ Ξ M (list ctx* ctx ctx*))])])])]
+        (match/nd: (-V → -ς) Vs
+          [V (match/nd: (-V → -ς) Cs
+               [C (↦mon (-W C #f #|TODO|#) (-W V ref) Γ κ σ Ξ M (list ctx* ctx ctx*))])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
-     (define κ* (-kont (-φ.@ (for/list : (Listof -E) ([x xs]) (-↓ x ρ)) '() l) κ))
+     (define κ* (-kont (-φ.@ (for/list : (Listof -E) ([x xs]) (-⇓ x ρ)) '() l) κ))
      (↦e f ρ Γ κ* σ Ξ M)]
     ;; evaluate scrutiny, pushing branches
     [(-if e₀ e₁ e₂)
-     (↦e e₀ ρ Γ (-kont (-φ.if (-↓ e₁ ρ) (-↓ e₂ ρ)) κ) σ Ξ M)]
+     (↦e e₀ ρ Γ (-kont (-φ.if (-⇓ e₁ ρ) (-⇓ e₂ ρ)) κ) σ Ξ M)]
     ;; ignore continuation marks for now
     [(-wcm e_k e_v e_b)
      (error '↦e "TODO: wcm")]
@@ -94,15 +95,15 @@
      (match bnds
        ['() (↦e e* ρ Γ κ σ Ξ M)]
        [(cons (cons xs eₓ) bnds*)
-        (↦e eₓ ρ Γ (-kont (-φ.let-values xs bnds* (hash) ρ e* l) κ) σ Ξ M)])]
+        (↦e eₓ ρ Γ (-kont* (-φ.let-values xs bnds* (hash) ρ e* l) κ) σ Ξ M)])]
     ;; letrec-values
     [(-letrec-values bnds e l)
      (match bnds
        ['() (↦e e ρ Γ κ σ Ξ M)]
        [(cons (cons xs e*) bnds*)
+        ;; Extend environment with each variable initialized to `undefined`
         (define-values (ρ* σ*)
-          (for/fold ([ρ* : -ρ ρ] [σ* : -σ σ]) ([bnd bnds])
-            (define xs (car bnd))
+          (for*/fold ([ρ* : -ρ ρ] [σ* : -σ σ]) ([bnd bnds] [xs (in-value (car bnd))])
             (for/fold ([ρ* : -ρ ρ*] [σ* : -σ σ*])
                       ([x xs] [e_x (split-values e* (length xs))])
               (define α (-α.bnd x e_x Γ))
@@ -119,8 +120,8 @@
        (build-list n (λ ([i : Integer])
                        (define e (string->symbol (format "z•~a" (n-sub i))))
                        (-W '• (-x e)))))
-     (match/nd: #:tag ↦WVs/havoc/x (-V → -ς) (σ@ σ (ρ@ ρ x))
-       [(and V (-Clo xs _ ρ Γ))
+     (match/nd: (-V → -ς) (σ@ σ (ρ@ ρ x))
+       [(and V (or (-Clo* xs _ _) (-Clo xs _ _ _)))
         (define n
           (match xs
             [(? list?) (length xs)]
@@ -142,19 +143,16 @@
      (match doms
        ['()
         (define C (-=>i '() '() '() rng ρ Γ))
-        (define c (-?->i '() '() rng))
-        (-ς (-W (list C) c) Γ κ σ Ξ M)]
+        (-ς (-W (list C) e) Γ κ σ Ξ M)]
        [(cons dom doms*)
         (match-define (cons x c) dom)
-        (define-values (xs* cs*)
-          (for/lists ([xs* : (Listof Symbol)] [cs* : (Listof -e)]) ([dom doms*])
-            (values (car dom) (cdr dom))))
+        (define-values (xs* cs*) (unzip doms*))
         (↦e c ρ Γ (-kont (-φ.=>i cs* '() '() (cons x xs*) rng ρ) κ) σ Ξ M)])]
     [(-x/c x)
      (error '↦e "TODO: x/c")]
     [(-struct/c id cs)
      (match cs
-       ['() (-ς (-W (list (-St/C id '())) #f) Γ κ σ Ξ M)]
+       ['() (-ς (-W (list (-St/C id '())) e) Γ κ σ Ξ M)]
        [(cons c cs*)
         (↦e c ρ Γ (-kont (-φ.struct/c id cs* ρ '()) κ) σ Ξ M)])]
     ))
@@ -164,8 +162,9 @@
   (match κ
     [(and τ (-τ e _ _))
      (match-define (-W _ ?e) WVs)
-     (match/nd: (-κ → -ς) (hash-ref Ξ τ)
-       [κ* (↦κ WVs Γ κ* σ Ξ (⊔ M e (-Res ?e Γ)))])]
+     (define M* (⊔ M e (-Res ?e Γ)))
+     (match/nd: (-kont → -ς) (hash-ref Ξ τ)
+       [(-kont φ κ*) (↦φ WVs Γ φ κ* σ Ξ M*)])]
     [(-kont φ κ*) (↦φ WVs Γ φ κ* σ Ξ M)]))
 
 (: ↦φ : -WVs -Γ -φ -κ -σ -Ξ -M → -ς*)
@@ -240,19 +239,19 @@
      (with-guarded-arity 1 'TODO 'set!
        (define Γ* #|FIXME update!!|# Γ)
        (define σ* (⊔ σ α (first Vs)))
-       (-ς (-W -Void/Vs #f) Γ* κ σ* Ξ M))]
+       (-ς (-W -Void/Vs #f #|TODO: might not need to erase this|#) Γ* κ σ* Ξ M))]
     ;; Application
-    [(-φ.@ Es WVs l)
+    [(-φ.@ Es WVs↓ l)
      (with-guarded-arity 1 l 'apply
        (match-define (list V) Vs)
-       (define WVs* (cons (-W V ?e) WVs))
+       (define WVs↓* (cons (-W V ?e) WVs↓))
         (match Es
           ['()
-           (match-define (cons W_f W_xs) (reverse WVs*))
+           (match-define (cons W_f W_xs) (reverse WVs↓*))
            (↦@ W_f W_xs Γ κ σ Ξ M l)]
           ;; Swap next argument for evaluation
           [(cons E* Es*)
-           (-ς E* Γ (-kont (-φ.@ Es* WVs* l) κ) σ Ξ M)]))]
+           (-ς E* Γ (-kont (-φ.@ Es* WVs↓* l) κ) σ Ξ M)]))]
     ;; Begin
     [(-φ.begin es ρ)
      (match es
@@ -312,7 +311,7 @@
        (define W_f (-W V_f (-x 'f•))) ; FIXME temp. hack
        (define κ* (-kont (-φ.mon.v W_d l³) κ))
        (↦@ W_f args Γ κ* σ Ξ M lo))]
-    ;; restore path invariant of previous block
+    ;; restore path invariant in previous context
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
            [else
@@ -333,31 +332,28 @@
      (match Vs
        [(list V) (error '↦WVs "TODO: μ/c")]
        [_ (error '↦WVs "TODO: catch arity error for μ/c")])]
-    [(-φ.struct/c id es ρ WVs)
-     (match Vs
-       [(list V)
-        (define WVs* (cons (-W V ?e) WVs))
-        (match es
-          ['()
-           (define n (length WVs*))
-           (define-values (αs σ* es*)
-             ; accumulate new store and address list
-             ; which is reversed compard to `WVs*`, hence of the right order
-             (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()])
-                       ([WV WVs*] [i (in-range n)])
-               (match-define (-W V e) WV)
-               (define α
-                 (cond [e (-α.val e)]
-                       [else (-α.opq (id/c id) #f #|FIXME|# i)]))
-               (values (cons α αs)
-                       (⊔ σ* α V)
-                       (cons e es*))))
-           (define C (-St/C id αs))
-           (define e_C (-?struct/c id es*))
-           (-ς (-W (list C) e_C) Γ κ σ* Ξ M)]
-          [(cons e es*)
-           (↦e e ρ Γ (-kont (-φ.struct/c id es* ρ WVs*) κ) σ Ξ M)])]
-       [else (error '↦WVs "TODO: catch arity error for μ/c")])]
+    [(-φ.struct/c id es ρ WVs↓)
+     (with-guarded-arity 1 'TODO 'Λ
+       (match-define (list V) Vs)
+       (define WVs↓* (cons (-W V ?e) WVs↓))
+       (match es
+         ['()
+          (define n (length WVs↓*))
+          (define-values (αs σ* es*)
+            ; accumulate new store and address list
+            ; which is reversed compard to `WVs↓*`, hence of the right order
+            (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()])
+                      ([WV WVs↓*] [i (in-range n)])
+              (match-define (-W V e) WV)
+              (define α
+                (cond [e (-α.val e)]
+                      [else (-α.opq (id/c id) #f #|FIXME|# i)]))
+              (values (cons α αs) (⊔ σ* α V) (cons e es*))))
+          (define C (-St/C id αs))
+          (define e_C (-?struct/c id es*))
+          (-ς (-W (list C) e_C) Γ κ σ* Ξ M)]
+         [(cons e es*)
+          (↦e e ρ Γ (-kont (-φ.struct/c id es* ρ WVs↓*) κ) σ Ξ M)]))]
     [(-φ.=>i cs Cs↓ cs↓ xs rng ρ)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
@@ -373,9 +369,7 @@
               (define γ
                 (cond [c (-α.val c)]
                       [else (-α.opq (-id '->/i 'Λ) #f #|TODO|# i)]))
-              (values (cons γ γs)
-                      (⊔ σ* γ C)
-                      (cons c cs*))))
+              (values (cons γ γs) (⊔ σ* γ C) (cons c cs*))))
           (define C (-=>i xs cs* γs rng ρ Γ))
           (define e_C (-?->i xs cs* rng))
           (-ς (-W (list C) e_C) Γ κ σ* Ξ M)]
@@ -401,9 +395,7 @@
 (define (↦@ W_f W_xs Γ κ σ Ξ M l)
 
   (match-define (-W V_f e_f) W_f)
-  (define-values (V_xs e_xs)
-    (for/lists ([V_xs : (Listof -V)] [e_xs : (Listof -?e)]) ([W W_xs])
-      (values (-W-x W) (-W-e W))))
+  (define-values (V_xs e_xs) ((inst unzip-by -WV -V -?e) -W-x -W-e W_xs))
   (define e_a (apply -?@ e_f e_xs))
 
   (dbg '↦@ "App:~n f: ~a~n xs: ~a~n" (show-V V_f) (map show-V V_xs))
@@ -444,6 +436,7 @@
   (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -ς*)
   (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
     (define D (-⇓ d ρ_d))
+    ;; TODO: probably don't need these restoring frames anymore. Check again.
     (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
     (match* (xs cs Cs W_xs)
       [('() '() '() '())
@@ -461,7 +454,7 @@
     [(-Clo* xs e ρ_f    ) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
     [(-Clo  xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]
     [(-Ar xs cs γs d ρ_c Γ_c α l³)
-     (match/nd: ((Listof -V) → -ς) (σ@/list σ γs) ; can explode very fast!!
+     (match/nd: ((Listof -V) → -ς) (σ@/list σ γs) ; TODO can explode very fast!!
        [Cs (match/nd: (-V → -ς) (σ@ σ α)
              [V_g (↦indy xs cs Cs d ρ_c Γ_c V_g l³)])])]
     ['• (set-add (↦havoc) (↦opq))]
@@ -613,8 +606,8 @@
     [(-St (-id 'not/c 'Λ) (list γ))
      (match/nd: (-V → -ς) (σ@ σ γ)
        [C*
-        (define φ (-φ.@ '() (list (-W 'not 'not)) 'Λ))
-        (-ς (-FC (-W C* (-not/c-neg e_c)) W_v l) Γ (-kont φ κ) σ Ξ M)])]
+        (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) 'Λ) κ))
+        (-ς (-FC (-W C* (-not/c-neg e_c)) W_v l) Γ κ* σ Ξ M)])]
     ;; FIXME recursive contract
     [_ (↦@ W_c (list W_v) Γ κ σ Ξ M l)]))
 
