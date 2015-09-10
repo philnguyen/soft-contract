@@ -203,7 +203,8 @@
   (struct -α.def [id : -id])
   (struct -α.ctc [id : -id])
   ;; for lexical binding
-  (struct -α.bnd [x : Symbol] [arg : -?e] [inv : -Γ])
+  ;(struct -α.bnd [x : Symbol] [arg : -?e] [inv : -Γ])
+  Symbol
   ;; for immutable concrete field
   (struct -α.val [v : -e])
   ;; for mutable or opaque field
