@@ -165,6 +165,15 @@
         (values (set-add pass x) fail)
         (values pass (set-add fail x)))))
 
+(: unzip-by (∀ (A X Y) (A → X) (A → Y) (Listof A) → (Values (Listof X) (Listof Y))))
+(define (unzip-by f g l)
+  (for/lists ([xs : (Listof X)] [ys : (Listof Y)]) ([a : A l])
+    (values (f a) (g a))))
+
+(: unzip (∀ (X Y) (Listof (Pairof X Y)) → (Values (Listof X) (Listof Y))))
+(define (unzip l)
+  (unzip-by (inst car X Y) (inst cdr X Y) l))
+
 (define-syntax-rule (inc! x) (set! x (+ 1 x)))
 
 ;;;;; Pretty printing stuff
