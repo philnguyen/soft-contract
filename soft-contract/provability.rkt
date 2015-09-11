@@ -33,20 +33,7 @@
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
 ;; Check if `e` evals to truth given `M`, `σ`, `Γ`
 (define (MσΓ⊢₁e M σ Γ e)
-
-  (: go : Integer -Γ -e → -R)
-  (define (go depth Γ e)
-    (match (Γ⊢e Γ e)
-      ['?
-       (cond
-         [(> depth 0)
-          (define Γ-relevant (Γ↓ Γ (FV e)))
-          (define cases
-            )]
-         [else '?])]
-      [R R]))
-  
-  (go #|max depth|# 1))
+  (Γ⊢e Γ e))
 
 (: MσΓ⊢e≡ : -M -σ -Γ -?e -?e → -R)
 (define (MσΓ⊢e≡ Γ M σ e₁ e₂)
