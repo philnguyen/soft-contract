@@ -7,42 +7,22 @@
 
 (define-type -tσ Integer)
 (define-type -tΞ Integer)
-(define-type -t (List -tσ -tΞ))
+(define-type -t (Pairof -tσ -tΞ))
+(define -t₀ : -t (cons 0 0))
 
-(define -t₀ : -t (list 0 0))
-
+;; Check whether `t₁` subsumes `t₂`
 (define (t>= [t₁ : -t] [t₂ : -t]) : Boolean
-  (match-define (list x₁ y₁) t₁)
-  (match-define (list x₂ y₂) t₂)
+  (match-define (cons x₁ y₁) t₁)
+  (match-define (cons x₂ y₂) t₂)
   (and (>= x₁ x₂) (>= y₁ y₂)))
 
 ;; configuration
 (struct -Cfg ([e : -E] [Γ : -Γ] [κ : -κ]) #:transparent)
-;; state with widened stores and summarization
-(struct -ξ ([S : (Map -Cfg -t)]
-            [F : (Setof -Cfg)]
-            [tσ : -tσ] [σ : -σ]
-            [tΞ : -tΞ] [Ξ : -Ξ]
-            [M : -M]) #:transparent)
-
-(: 𝑰/ξ : -prog → -ξ)
-;; Load initial widened state
-(define (𝑰/ξ p)
-  (match-define (-ς E Γ κ σ Ξ M) (𝑰 p))
-  (define C (-Cfg E Γ κ))
-  (-ξ (hash C (list 0 0))
-      {set C}
-      0 σ
-      0 Ξ
-      M))
 
 (: Cfg-final? : -Cfg -Ξ → Boolean)
 (define (Cfg-final? C Ξ)
   (match-define (-Cfg E _ τ) C)
   (final? E τ Ξ))
-
-(: ξ-done? : -ξ → Boolean)
-(define (ξ-done? ξ) (set-empty? (-ξ-F ξ)))
 
 (define (show-Cfg [C : -Cfg]) : (Listof Sexp)
   (match-define (-Cfg E Γ κ) C)
@@ -50,92 +30,113 @@
     (Γ: ,@(show-Γ Γ))
     (κ: ,(show-κ κ '□))))
 
-(define (show-ξ [ξ : -ξ]) : (Listof Sexp)
-  (match-define (-ξ S F _ σ _ Ξ M) ξ)
-  `((seen: ,@(for/list : (Listof Sexp) ([(C t) S])
-               `(,@(show-Cfg C) ↦ ,@t)))
-    (front: ,@(for/list : (Listof Sexp) ([C F]) (show-Cfg C)))
-    (σ: ,@(show-σ σ))
-    (Ξ: ,@(show-Ξ Ξ))
-    (M: ,@(show-M M))))
+(define (show-S [S : (Map -Cfg -t)]) : (Listof Sexp)
+  (for/list : (Listof Sexp) ([(C t) S])
+    `(,@(show-Cfg C) ↦ ,t)))
 
-;;;;; For testing only
+;; For debugging only
+(begin
+  (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hash)))
+
+(: run : -prog → (Values (Map -Cfg -t) -σ -Ξ -M))
+(define (run p)
+  (match-define (-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) (𝑰 p))
+  (define C₀ (-Cfg E₀ Γ₀ κ₀))
+
+  (: step : (Map -Cfg -t) (Setof -Cfg) -tσ -σ -tΞ -Ξ -M →
+            (Values (Map -Cfg -t) (Setof -Cfg) -tσ -σ -tΞ -Ξ -M))
+  (define (step S F tσ σ tΞ Ξ M)
+
+    ;; for debugging only
+    (hash-set! evals (hash-count evals) (list S F σ Ξ M))
+
+    ; Intermediate new (narrow) states
+    (define I
+      (for/fold ([I : (Setof -ς) ∅]) ([Cfg F])
+        (match-define (-Cfg E Γ κ) Cfg)
+        (match (↦ (-ς E Γ κ σ Ξ M))
+          [(? set? s) (∪ I s)]
+          [(? -ς? ς) (set-add I ς)])))
+
+    ; Updated shared widened stores
+    (define-values (σ* Ξ* M*)
+      (for/fold ([σ* : -σ σ] [Ξ* : -Ξ Ξ] [M* : -M M]) ([ςi I])
+        (match-define (-ς _ _ _ σi Ξi Mi) ςi)
+        (values (⊔/m σ* σi) (⊔/m Ξ* Ξi) (⊔/m M* Mi))))
+    (define tσ* (if (equal? σ σ*) tσ (+ 1 tσ)))
+    (define tΞ* (if (equal? Ξ Ξ*) tΞ (+ 1 tΞ)))
+
+    ; Next frontier and updated seen states
+    (define-values (F* S*)
+      (for/fold ([F* : (Setof -Cfg) ∅] [S* : (Map -Cfg -t) S]) ([ςi I])
+        (match-define (-ς Ei Γi κi _ _ _) ςi)
+        (define Ci (-Cfg Ei Γi κi))
+        (define ti (hash-ref S* Ci #f))
+        (define t* (cons tσ* tΞ*))
+        (cond [(and ti (t>= ti t*)) (values F* S*)]
+              [else (values (set-add F* Ci) (hash-set S* Ci t*))])))
+    
+    (values S* F* tσ* σ* tΞ* Ξ* M*))
+
+  (let go : (Values (Map -Cfg -t) -σ -Ξ -M)
+       ([S : (Map -Cfg -t) (hash C₀ -t₀)]
+        [F : (Setof -Cfg) {set C₀}]
+        [tσ : -tσ 0]
+        [σ : -σ σ₀]
+        [tΞ : -tΞ 0]
+        [Ξ : -Ξ Ξ₀]
+        [M : -M M₀])
+    (define-values (S* F* tσ* σ* tΞ* Ξ* M*) (step S F tσ σ tΞ Ξ M))
+    (cond
+      [(set-empty? F*) (values S* σ* Ξ* M*)]
+      [else (go S* F* tσ* σ* tΞ* Ξ* M*)])))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Debugging
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require/typed profile
   [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
 
 (define-syntax-rule (profile* e ...)
-  ;(profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 20)
-  (begin e ...)
-)
+  #;(begin
+    (collect-garbage) (collect-garbage) (collect-garbage)
+    (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 20))
+  (begin (collect-garbage) (collect-garbage) (collect-garbage) e ...))
 
 (profile*
 
-  (: ↦/ξ : -ξ → -ξ)
-  (define (↦/ξ ξ)
-    (match-define (-ξ S F tσ σ tΞ Ξ M) ξ)
-    ; Compute the intermediate new (narrow states)
-    (define I
-      (for/fold ([I : (Setof -ς) ∅]) ([C F])
-        (match-define (-Cfg E Γ τ) C)
-        (match (↦ (-ς E Γ τ σ Ξ M))
-          [(? set? s) (∪ I s)]
-          [(? -ς? ς) (set-add I ς)])))
-    ; Compute the shared widened stores
-    (define-values (σ* Ξ* M*)
-      (for/fold ([σ* : -σ σ] [Ξ* : -Ξ Ξ] [M* : -M M])
-                ([ςi I])
-        (match-define (-ς _ _ _ σi Ξi Mi) ςi)
-        (values (⊔/m σ* σi) (⊔/m Ξ* Ξi) (⊔/m M* Mi))))
-    (define tσ* (if (equal? σ σ*) tσ (+ 1 tσ)))
-    (define tΞ* (if (equal? Ξ Ξ*) tΞ (+ 1 tΞ)))
-    ; Compute the next frontier and newly seen (narrow) states
-    (define-values (F* S*)
-      (for/fold ([F* : (Setof -Cfg) ∅] [S* : (Map -Cfg -t) S])
-                ([ςi I])
-        (match-define (-ς Ei Γi τi _ _ _) ςi)
-        (define Ci (-Cfg Ei Γi τi))
-        (define ti (hash-ref S* Ci #f))
-        (define t* (list tσ* tΞ*))
-        (cond [(and ti (t>= ti t*)) (values F* S*)]
-              [else (values (set-add F* Ci) (hash-set S* Ci t*))])))
-    (-ξ S* F* tσ* σ* tΞ* Ξ* M*))
+ (define t₁ (current-milliseconds))
+ (define-values (S* σ* Ξ* M*) (run (files->prog (list "test/programs/safe/2.rkt"))))
+ (define t₂ (current-milliseconds))
+ (printf "Time: ~a~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))
+ (printf "|S| = ~a~n" (hash-count S*))
+ (printf "|Steps| = ~a~n" (hash-count evals))
+ (printf "|σ| = ~a~n" (hash-count σ*))
+ (printf "|Ξ| = ~a~n" (hash-count Ξ*))
+ (printf "|M| = ~a~n" (hash-count M*))
 
-  (: dbg/ξ : Path-String → (Integer → -ξ))
-  (define (dbg/ξ p)
+ (define (f [n : Integer]) : (Setof -Cfg)
+   (match-define (list _ F _ _ _) (hash-ref evals n))
+   F)
 
-    ;; TODO: can't use `time` in TR...
-    (collect-garbage) (collect-garbage) (collect-garbage)
-    (define t₁ (current-milliseconds))
-    (define evals
-      (let go : (Map Integer -ξ)
-           ([ξ : -ξ (𝑰/ξ (files->prog (list p)))]
-            [evals : (Map Integer -ξ) (hash)]
-            [i : Integer 0])
-       (define evals* (hash-set evals i ξ))
-       (cond
-         [(ξ-done? ξ) evals*]
-         [else (go (↦/ξ ξ) evals* (+ 1 i))])))
-    (define t₂ (current-milliseconds))
-    (printf "Time: ~as~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))
+ (define (F [n : Integer])
+   (for/list : (Listof Sexp) ([C (f n)])
+     (show-Cfg C)))
 
-    (let ()
-      (match-define (-ξ S* F* _ σ* _ Ξ* M*)
-        (hash-ref evals (- (hash-count evals) 1)))
-      (printf "States: ~a~n" (hash-count S*))
-      (printf "Steps: ~a~n" (hash-count evals))
-      (printf "|σ|: ~a~n" (hash-count σ*))
-      (printf "|Ξ|: ~a~n" (hash-count Ξ*))
-      (printf "|M|: ~a~n" (hash-count M*)))
+ (define-values
+   (SS σσ ΞΞ MM)
+   (values
+    (show-S S*)
+    (show-σ σ*)
+    (show-Ξ Ξ*)
+    (show-M M*)))
 
-    (λ ([n : Integer])
-      (hash-ref evals n (λ () (error 'dbg/ξ "only defined for [0,~a]"
-                                     (- (hash-count evals) 1))))))
-
-  (define s (dbg/ξ "test/programs/safe/2.rkt"))
-  (define S (compose show-ξ s))
-  (define F (compose (inst second Sexp Sexp Sexp) S))
-  (define (fronts)
-    (for ([i (in-naturals)])
-      (printf "|F~a|: ~a~n" (n-sub i) (set-count (-ξ-F (s i))))))
-  (void))
+ (define (fronts)
+   (printf "Frontier sizes:~n")
+   (for ([i (in-range (hash-count evals))])
+     (match-define (list _ F _ _ _) (hash-ref evals i))
+     (printf " |F~a| = ~a~n" (n-sub i) (set-count F))))
+ 
+ (void))
