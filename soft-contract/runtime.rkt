@@ -264,6 +264,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
+(define -Res⊤ (-Res #f -Γ∅))
 (define-type -M (MMap -e -Res))
 (define-type -ΔM (ΔMap -e -Res))
 (define -M⊥ : -M (hash))
@@ -274,11 +275,13 @@
   (match-define (-W _ ?e) W)
   (⊔ M e (-Res ?e Γ)))
 
+(define (show-Res [r : -Res]) : (Listof Sexp)
+  (match-define (-Res e Γ) r)
+  `(,(show-?e e) : ,@(show-Γ Γ)))
+
 (define (show-M [M : -M]) : (Listof Sexp)
   (for/list : (Listof Sexp) ([(e Reses) M])
-    `(,(show-e e) ↝⋆ ,@(for/list : (Listof Sexp) ([Res Reses])
-                        (match-define (-Res e Γ) Res)
-                        `(,(show-?e e) : ,@(show-Γ Γ))))))
+    `(,(show-e e) ↝⋆ ,@(set-map Reses show-Res))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

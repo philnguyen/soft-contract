@@ -33,7 +33,20 @@
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
 ;; Check if `e` evals to truth given `M`, `σ`, `Γ`
 (define (MσΓ⊢₁e M σ Γ e)
-  (Γ⊢e Γ e))
+
+  (: go : Integer -Γ -e → -R)
+  (define (go depth Γ e)
+    (match (Γ⊢e Γ e)
+      ['?
+       (cond
+         [(> depth 0)
+          (define Γ-relevant (Γ↓ Γ (FV e)))
+          (define cases
+            )]
+         [else '?])]
+      [R R]))
+  
+  (go #|max depth|# 1))
 
 (: MσΓ⊢e≡ : -M -σ -Γ -?e -?e → -R)
 (define (MσΓ⊢e≡ Γ M σ e₁ e₂)
@@ -371,3 +384,52 @@
 
 (: decide-R : Boolean → -R)
 (define decide-R (match-lambda [#t '✓] [#f 'X]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: invert : -M -σ -id (Listof -e) → (Setof -Res))
+;; Given proposition `(p? v)`, generate an overapproximation of expressions
+;; that could have evaluated to it
+(define (invert M σ f args)
+
+  (match f
+    [(-ref id _)
+     (define α (-α.def id))
+     (match/nd: (-V → -Res) (σ@ σ α)
+       [(or (-Clo (? list? xs) e _ _) (-Clo* (? list? xs) e _))
+        ;; Convert invariant about parameters into one about arguments
+        (define (convert [e : -e]) : -e
+          (for/fold ([e : -e e]) ([x (assert xs)] [arg args])
+            (e/ e x arg)))
+        
+        (match/nd: (-Res → -Res) (hash-ref M (assert e))
+          [(-Res e-xs Γ-xs)
+           (define e-args (and e-xs (convert e-xs)))
+           (define Γ-args (for/set: : -Γ ([e Γ-xs]) (convert e)))
+           (-Res e-args Γ-args)])]
+        
+       [_ -Res⊤])]
+    [_
+     ; imprecise for now
+     (set -Res⊤)]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Debugging
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(begin
+  (define edb (-@ (-ref (-id 'list? 'Λ) 'phil) (list (-x 'arg)) 'Λ))
+  (define Γdb : -Γ {set edb})
+  (define σdb (⊔ -σ∅ (-α.def (-id 'list? 'Λ)) (-Clo '(z) (-b 'arbitrary) -ρ∅ -Γ∅)))
+  (define Mdb
+    (⊔
+     (⊔
+      (⊔ -M⊥ (-b 'arbitrary) (-Res (-b #t) (Γ+ -Γ∅ (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z)))))
+      (-b 'arbitrary)
+      (-Res (-b #f) (Γ+ -Γ∅ (-not (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z))) (-not (-?@ (-st-p (-id 'cons 'Λ) 0) (-x 'z))))))
+     (-b 'arbitrary)
+     (-Res (-?@ (-ref (-id 'list? 'Λ) 'phil) (-?@ -cdr (-x 'z))) (Γ+ -Γ∅ (-?@ -cons? (-x 'z)))))))
