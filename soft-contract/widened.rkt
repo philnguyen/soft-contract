@@ -100,10 +100,10 @@
   [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
 
 (define-syntax-rule (profile* e ...)
-  #;(begin
+  (begin
     (collect-garbage) (collect-garbage) (collect-garbage)
-    (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 20))
-  (begin (collect-garbage) (collect-garbage) (collect-garbage) e ...))
+    (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 5))
+  #;(begin (collect-garbage) (collect-garbage) (collect-garbage) e ...))
 
 (profile*
 

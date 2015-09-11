@@ -214,14 +214,14 @@
   (: alloc-e : -σ -e → (Values -σ -V))
   (define (alloc-e σ e)
     (match e
-      [(? -v?) (values σ (close-Γ -Γ∅ (close e -ρ∅)))]
+      [(? -v?) (values σ (close-Γ -Γ⊤ (close e -ρ⊥)))]
       [(-->i doms rng)
        (define-values (xs cs)
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                     ([dom doms])
            (values (car dom) (cdr dom))))
        (define-values (σ* γs) (alloc-es σ cs))
-       (values σ* (-=>i xs cs γs rng -ρ∅ -Γ∅))]
+       (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
       [(-@ (-st-mk (-id (and t (or 'and/c 'or/c 'not/c)) 'Λ) _) cs _)
        (define-values (σ* αs) (alloc-es σ cs))
        (values σ* (-St (-id t 'Λ) αs))]
@@ -234,7 +234,7 @@
   ;; Assuming each top-level variable binds a value for now.
   ;; TODO generalize.
   (define σ₀
-    (for*/fold ([σ : -σ -σ∅])
+    (for*/fold ([σ : -σ -σ⊥])
                ([m ms]
                 [form (-plain-module-begin-body (-module-body m))])
       (define mod-path (-module-path m))
@@ -263,10 +263,10 @@
         ;; submodule-form
         [(? -module?) (error '𝑰 "TODO: sub-module forms")])))
 
-  (define E₀ (-↓ e₀ -ρ∅))
-  (define τ₀ (-τ e₀ -ρ∅ -Γ∅))
+  (define E₀ (-↓ e₀ -ρ⊥))
+  (define τ₀ (-τ e₀ -ρ⊥ -Γ⊤))
 
-  (-ς E₀ -Γ∅ τ₀ σ₀ (hash τ₀ ∅) (hash)))
+  (-ς E₀ -Γ⊤ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 
 (: final? (case-> [-ς → Boolean]
                   [-E -κ -Ξ → Boolean]))

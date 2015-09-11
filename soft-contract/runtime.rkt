@@ -10,7 +10,7 @@
 
 ;; Path invariant represented by expressions known to evaluate to truth without effects
 (define-type -Γ (Setof -e))
-(define -Γ∅ : -Γ ∅)
+(define -Γ⊤ : -Γ ∅)
 (define-type/pred -?e (Option -e))
 
 (: Γ↓ : -Γ (Setof Symbol) → -Γ)
@@ -150,14 +150,14 @@
 
 ;; environment maps variable names to addresses
 (define-type -ρ (Map Symbol -α))
-(define -ρ∅ : -ρ (hash))
+(define -ρ⊥ : -ρ (hash))
 
 (: ρ↓ : -ρ (Setof Symbol) → -ρ)
 ;; Restrict environment's domain to given variable names
 (define (ρ↓ ρ xs)
   (cond ; reuse empty collection in special cases
-   [(set-empty? xs) -ρ∅]
-   [else (for/fold ([ρ* : -ρ -ρ∅]) ([x xs])
+   [(set-empty? xs) -ρ⊥]
+   [else (for/fold ([ρ* : -ρ -ρ⊥]) ([x xs])
            (hash-set ρ* x (ρ@ ρ x)))]))
 
 (: ρ+ : -ρ (U -x Symbol) -α → -ρ)
@@ -228,7 +228,7 @@
 
 ;; store maps addresses to values
 (define-type -σ (MMap -α -V))
-(define -σ∅ : -σ (hash))
+(define -σ⊥ : -σ (hash))
 (define-type -Δσ (ΔMap -α -V))
 
 (: σ@ : -σ -α → (Setof -V))
@@ -264,7 +264,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
-(define -Res⊤ (-Res #f -Γ∅))
+(define -Res⊤ (-Res #f -Γ⊤))
 (define-type -M (MMap -e -Res))
 (define-type -ΔM (ΔMap -e -Res))
 (define -M⊥ : -M (hash))
@@ -285,11 +285,36 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Operations on satisfiability result
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Satisfiability result
+(define-type -R (U '✓ 'X '?))
+
+(: not-R : -R → -R)
+;; Negate provability result
+(define not-R
+  (match-lambda ['✓ 'X] ['X '✓] [_ '?]))
+
+;; Use the first definite result
+(define-syntax or-R
+  (syntax-rules ()
+    [(_) '?]
+    [(_ R) R]
+    [(_ R₁ R ...)
+     (match R₁ ['? (or-R R ...)] [ans ans])]))
+
+(define (decide-R [x : Boolean]) : -R (if x '✓ 'X))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Convenience
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define -Mt (-St (-id 'null 'Λ) (list)))
-(define -Any/C (-Clo '(x) -tt -ρ∅ -Γ∅))
+(define -Any/C (-Clo '(x) -tt -ρ⊥ -Γ⊤))
 (define -id-cons (-id 'cons 'Λ))
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))

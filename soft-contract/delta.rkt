@@ -18,7 +18,7 @@
        (values
         σ
         (-AΓ (-blm l (show-o o)
-                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ∅ -Γ∅)
+                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ⊥ -Γ⊤)
                    (WVs->Vs Ws))
              Γ))]))
   

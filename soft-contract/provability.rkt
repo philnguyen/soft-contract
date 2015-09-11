@@ -350,30 +350,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Operations on satisfiability result
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Satisfiability result
-(define-type -R (U '✓ 'X '?))
-
-(: not-R : -R → -R)
-;; Negate provability result
-(define not-R
-  (match-lambda ['✓ 'X] ['X '✓] [_ '?]))
-
-;; Use the first definite result
-(define-syntax or-R
-  (syntax-rules ()
-    [(_) '?]
-    [(_ R) R]
-    [(_ R₁ R ...)
-     (match R₁ ['? (or-R R ...)] [ans ans])]))
-
-(: decide-R : Boolean → -R)
-(define decide-R (match-lambda [#t '✓] [#f 'X]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -411,12 +387,12 @@
 (begin
   (define edb (-@ (-ref (-id 'list? 'Λ) 'phil) (list (-x 'arg)) 'Λ))
   (define Γdb : -Γ {set edb})
-  (define σdb (⊔ -σ∅ (-α.def (-id 'list? 'Λ)) (-Clo '(z) (-b 'arbitrary) -ρ∅ -Γ∅)))
+  (define σdb (⊔ -σ⊥ (-α.def (-id 'list? 'Λ)) (-Clo '(z) (-b 'arbitrary) -ρ⊥ -Γ⊤)))
   (define Mdb
     (⊔
      (⊔
-      (⊔ -M⊥ (-b 'arbitrary) (-Res (-b #t) (Γ+ -Γ∅ (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z)))))
+      (⊔ -M⊥ (-b 'arbitrary) (-Res (-b #t) (Γ+ -Γ⊤ (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z)))))
       (-b 'arbitrary)
-      (-Res (-b #f) (Γ+ -Γ∅ (-not (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z))) (-not (-?@ (-st-p (-id 'cons 'Λ) 0) (-x 'z))))))
+      (-Res (-b #f) (Γ+ -Γ⊤ (-not (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z))) (-not (-?@ (-st-p (-id 'cons 'Λ) 0) (-x 'z))))))
      (-b 'arbitrary)
-     (-Res (-?@ (-ref (-id 'list? 'Λ) 'phil) (-?@ -cdr (-x 'z))) (Γ+ -Γ∅ (-?@ -cons? (-x 'z)))))))
+     (-Res (-?@ (-ref (-id 'list? 'Λ) 'phil) (-?@ -cdr (-x 'z))) (Γ+ -Γ⊤ (-?@ -cons? (-x 'z)))))))

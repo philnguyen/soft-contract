@@ -179,7 +179,7 @@
         [(= n (length Vs)) e ...]
         [else
          (-ς (-blm l+ lo
-                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ∅ -Γ∅)
+                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ⊥ -Γ⊤)
                    Vs)
              Γ κ σ Ξ M)])))
   
@@ -407,7 +407,7 @@
        (define-values (ρ* σ*)
          (for/fold ([ρ* : -ρ ρ_f] [σ* : -σ σ])
                    ([x xs] [V_x V_xs] [ex e_xs])
-           (define α x #;(-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ∅)))
+           (define α x #;(-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ⊤)))
            (values (ρ+ ρ* x α) (⊔ σ* α (close-Γ Γ V_x)))))
        (define τ (-τ e ρ* Γ_f))
        (define Ξ* (⊔ Ξ τ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ)))
