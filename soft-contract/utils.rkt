@@ -250,7 +250,7 @@
 (define (n-sub n)
   (cond
    [(< n 0) (format "₋~a" (n-sub (- n)))]
-   [(< n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
+   [(<= n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
    [else
     (define-values (q r) (quotient/remainder n 10))
     (string-append (n-sub q) (n-sub r))]))
