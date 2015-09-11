@@ -7,6 +7,12 @@
  redex/reduction-semantics
  [variables-not-in (Any Any → (Listof Symbol))])
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Customized definitions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax-rule (define** [id v] ...) (define-values (id ...) (values v ...)))
+
 (define-syntax define/memo
   (syntax-rules (: →)
     [(define/memo (f [x : τ] ...) : σ e ...)
@@ -44,6 +50,34 @@
 (define-syntax-rule (match? v p ...) (match v [p #t] ... [_ #f]))
 (define-syntax-rule (match-λ? p ...) (match-lambda [p #t] ... [_ #f]))
 
+;; define the same type for multiple identifiers
+(define-syntax (:* stx)
+  (syntax-parse stx
+    #:literals (:)
+    [(_ x:id ... : τ ...)
+     #'(begin (: x : τ ...) ...)]))
+
+;; Application with implicit #f for failure for expressions marked with (!)
+;; e.g. (@? cons (! #f) 2) --> #f
+;; e.g. (@? cons #f 2) --> ⟨1, 2⟩
+(define-syntax @?
+  (syntax-rules (!)
+    [(_ f e ...) (@?* f (e ...) ())]))
+(define-syntax @?*
+  (syntax-rules (!)
+    [(_ f ()             (x ...)) (f x ...)]
+    [(_ f ((! e₁) e ...) (x ...))
+     (let ([x₁ e₁])
+       (if x₁ (@?* f (e ...) (x ... x₁)) #f))]
+    [(_ f (e₁     e ...) (x ...))
+     (let ([x₁ e₁])
+       (@?* f (e ...) (x ... x₁)))]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Non-determinism
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; non-deterministic match. The types is to make it less awkard in pattern matching
 (define-syntax match/nd:
   (syntax-rules (→)
@@ -60,16 +94,25 @@
     [(_ #:tag tag (α → β) v [p e ...] ...)
      (match/nd: (α → β) v [p e ...] ... [x (error 'tag "unmatched: ~a" x)])]))
 
-;; define the same type for multiple identifiers
-(define-syntax (:* stx)
-  (syntax-parse stx
-    #:literals (:)
-    [(_ x:id ... : τ ...)
-     #'(begin (: x : τ ...) ...)]))
 
-(define-syntax-rule (define** [id v] ...) (define-values (id ...) (values v ...)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; List
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Abbreviations
+(: unzip-by (∀ (A X Y) (A → X) (A → Y) (Listof A) → (Values (Listof X) (Listof Y))))
+(define (unzip-by f g l)
+  (for/lists ([xs : (Listof X)] [ys : (Listof Y)]) ([a : A l])
+    (values (f a) (g a))))
+
+(: unzip (∀ (X Y) (Listof (Pairof X Y)) → (Values (Listof X) (Listof Y))))
+(define (unzip l)
+  (unzip-by (inst car X Y) (inst cdr X Y) l))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Set
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define ∅ : (Setof Nothing) (set))
 (define ∪ set-union)
 (define ∩ set-intersect)
@@ -79,11 +122,6 @@
 (define (∈ x xs) (∋ xs x))
 (define ⊆ subset?)
 (define -- set-subtract)
-(define-type Map HashTable)
-(define-type (MMap X Y) (Map X (Setof Y)))
-(define-type (NeListof X) (Pairof X (Listof X)))
-(define-type Sexps (Listof Sexp))
-(define-type (ΔMap X Y) (Listof (Pairof X Y)))
 
 (: set-add-list : (∀ (A) (Setof A) (Listof A) → (Setof A)))
 ;; Add each element in given list to set
@@ -100,6 +138,47 @@
     (match (channel-get c)
       [#f  (kill-thread t₁) #f]
       [ans (kill-thread t₂) ans])))
+
+;; Define set with shortened syntax for (imperative) adding and membership testing
+(define-syntax (define-set stx)
+  (syntax-case stx (:)
+    [(_ s : τ)
+     (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
+                   [s-add! (format-id #'s "~a-add!" #'s)]
+                   [s-add*! (format-id #'s "~a-add*!" #'s)]
+                   [s-union! (format-id #'s "~a-union!" #'s)])
+       #'(begin (define s : (Setof τ) ∅)
+                (define (s-has? [x : τ]) : Boolean (∋ s x))
+                (define (s-add! [x : τ]) (set! s (set-add s x)))
+                (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
+                (define (s-union! [xs : (Setof τ)]) (set! s (∪ s xs)))))]))
+
+(: set-partition : (∀ (X) (X → Boolean) (Setof X) → (Values (Setof X) (Setof X))))
+;; Partition set members into those that satisfy the predicate and the rest
+(define (set-partition p xs)
+  (for/fold ([pass : (Setof X) ∅] [fail : (Setof X) ∅]) ([x xs])
+    (if (p x)
+        (values (set-add pass x) fail)
+        (values pass (set-add fail x)))))
+
+(define-syntax for/union
+  (syntax-rules (: Setof)
+    [(_ : (Setof τ) (for-clauses ...) body ...)
+     (for/fold ([acc : (Setof τ) ∅]) (for-clauses ...)
+       (set-union acc (begin body ...)))]
+    [(_ (for-clauses ...) body ...)
+     (for/fold ([acc ∅]) (for-clauses ...)
+       (set-union acc (begin body ...)))]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Multi-map
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-type Map HashTable)
+(define-type (MMap X Y) (Map X (Setof Y)))
+(define-type (NeListof X) (Pairof X (Listof X)))
+(define-type (ΔMap X Y) (Listof (Pairof X Y)))
 
 ;; Return the domain of a finite function represented as a hashtable
 (: dom : (∀ (X Y) (Map X Y) → (Setof X)))
@@ -136,20 +215,6 @@
   (for/fold ([m : (MMap X Y) m]) ([δ Δ])
     (⊔ m (car δ) (cdr δ))))
 
-;; Define set with shortened syntax for (imperative) adding and membership testing
-(define-syntax (define-set stx)
-  (syntax-case stx (:)
-    [(_ s : τ)
-     (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
-                   [s-add! (format-id #'s "~a-add!" #'s)]
-                   [s-add*! (format-id #'s "~a-add*!" #'s)]
-                   [s-union! (format-id #'s "~a-union!" #'s)])
-       #'(begin (define s : (Setof τ) ∅)
-                (define (s-has? [x : τ]) : Boolean (∋ s x))
-                (define (s-add! [x : τ]) (set! s (set-add s x)))
-                (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
-                (define (s-union! [xs : (Setof τ)]) (set! s (∪ s xs)))))]))
-
 (: mmap-subtract : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
 ;; Compute bindings in `m₁` not in `m₀`
 (define (mmap-subtract m₁ m₀)
@@ -158,27 +223,13 @@
     (cond [(set-empty? δv) acc]
           [else (hash-set acc k δv)])))
 
-(: set-partition : (∀ (X) (X → Boolean) (Setof X) → (Values (Setof X) (Setof X))))
-(define (set-partition p xs)
-  (for/fold ([pass : (Setof X) ∅] [fail : (Setof X) ∅]) ([x xs])
-    (if (p x)
-        (values (set-add pass x) fail)
-        (values pass (set-add fail x)))))
 
-(: unzip-by (∀ (A X Y) (A → X) (A → Y) (Listof A) → (Values (Listof X) (Listof Y))))
-(define (unzip-by f g l)
-  (for/lists ([xs : (Listof X)] [ys : (Listof Y)]) ([a : A l])
-    (values (f a) (g a))))
-
-(: unzip (∀ (X Y) (Listof (Pairof X Y)) → (Values (Listof X) (Listof Y))))
-(define (unzip l)
-  (unzip-by (inst car X Y) (inst cdr X Y) l))
-
-(define-syntax-rule (inc! x) (set! x (+ 1 x)))
-
-;;;;; Pretty printing stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Pretty printing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (: sym-sub : Symbol → Symbol)
+;; Make all digits in symbol subscripts
 (define (sym-sub x)
   (string->symbol
    (list->string
@@ -189,43 +240,20 @@
         [else c])))))
 
 (: pretty : Any → String)
+;; Pretty print given object
 (define (pretty x)
   (parameterize ([pretty-print-columns 80])
     (string-trim (with-output-to-string (λ () (pretty-display x))))))
 
 (: n-sub : Integer → String)
+;; Return number as subscript string
 (define (n-sub n)
   (cond
    [(< n 0) (format "₋~a" (n-sub (- n)))]
-   [(<= 0 n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
-   [else (string-append (n-sub (quotient n 10)) (n-sub (remainder n 10)))]))
-
-(define (todo x) (error 'TODO "~a" x))
-
-(define-syntax for/union
-  (syntax-rules (: Setof)
-    [(_ : (Setof τ) (for-clauses ...) body ...)
-     (for/fold ([acc : (Setof τ) ∅]) (for-clauses ...)
-       (set-union acc (begin body ...)))]
-    [(_ (for-clauses ...) body ...)
-     (for/fold ([acc ∅]) (for-clauses ...)
-       (set-union acc (begin body ...)))]))
-
-;; Application with implicit #f for failure for expressions marked with (!)
-;; e.g. (@? cons (! #f) 2) --> #f
-;; e.g. (@? cons #f 2) --> ⟨1, 2⟩
-(define-syntax @?
-  (syntax-rules (!)
-    [(_ f e ...) (@?* f (e ...) ())]))
-(define-syntax @?*
-  (syntax-rules (!)
-    [(_ f ()             (x ...)) (f x ...)]
-    [(_ f ((! e₁) e ...) (x ...))
-     (let ([x₁ e₁])
-       (if x₁ (@?* f (e ...) (x ... x₁)) #f))]
-    [(_ f (e₁     e ...) (x ...))
-     (let ([x₁ e₁])
-       (@?* f (e ...) (x ... x₁)))]))
+   [(< n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
+   [else
+    (define-values (q r) (quotient/remainder n 10))
+    (string-append (n-sub q) (n-sub r))]))
 
 (: unique-name (∀ (X) (Symbol → (X → Symbol))))
 ;; Return function that computes unique name with given prefix for each object.
@@ -236,7 +264,10 @@
       (hash-ref! m x (λ () (string->symbol
                             (format "~a~a" prefix (n-sub (hash-count m)))))))))
 
-;; For debuggings
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Debuggings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define debugs : (Parameterof (Setof Symbol)) (make-parameter ∅))
 (define-syntax-rule (with-debug t e ...)
@@ -245,3 +276,11 @@
 (define (dbg t fmt . xs)
   (when (∋ (debugs) t)
     (apply printf fmt xs)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; abbreviations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-type Sexps (Listof Sexp))
+(define (todo x) (error 'TODO "~a" x))
