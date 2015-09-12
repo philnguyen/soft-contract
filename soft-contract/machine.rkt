@@ -110,7 +110,7 @@
 
 ;; Stack store
 (define-type -Ξ (MMap -τ -kont))
-;(define-type -ΔΞ (ΔMap -τ -kont))
+(define-type -ΔΞ (ΔMap -τ -kont))
 
 (define show-τ : (-τ → Symbol) (unique-name 'τ))
 
@@ -189,10 +189,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (struct -ς ([e : -E] [Γ : -Γ] [κ : -κ] [σ : -σ] [Ξ : -Ξ] [M : -M]) #:transparent)
-;(struct -Δς ([e : -E] [Γ : -Γ] [τ : -τ] [δσ : -Δσ] [δΞ : -ΔΞ] [δM : -ΔM]) #:transparent)
+(struct -Δς ([e : -E] [Γ : -Γ] [κ : -κ] [δσ : -Δσ] [δΞ : -ΔΞ] [δM : -ΔM]) #:transparent)
 
 (define-type -ς* (U -ς (Setof -ς)))
-;(define-type -Δς* (U -Δς (Setof -Δς)))
+(define-type -Δς* (U -Δς (Setof -Δς)))
 
 (: 𝑰 : -prog → -ς)
 ;; Load program to intial machine state

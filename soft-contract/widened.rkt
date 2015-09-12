@@ -52,24 +52,28 @@
 
     ; Intermediate new (narrow) states
     (define I
-      (for/fold ([I : (Setof -ς) ∅]) ([Cfg F])
+      (for/fold ([I : (Setof -Δς) ∅]) ([Cfg F])
         (match-define (-Cfg E Γ κ) Cfg)
         (match (↦ (-ς E Γ κ σ Ξ M))
           [(? set? s) (∪ I s)]
-          [(? -ς? ς) (set-add I ς)])))
+          [(? -Δς? ς) (set-add I ς)])))
 
     ; Updated shared widened stores
-    (define-values (σ* Ξ* M*)
-      (for/fold ([σ* : -σ σ] [Ξ* : -Ξ Ξ] [M* : -M M]) ([ςi I])
-        (match-define (-ς _ _ _ σi Ξi Mi) ςi)
-        (values (⊔/m σ* σi) (⊔/m Ξ* Ξi) (⊔/m M* Mi))))
-    (define tσ* (if (equal? σ σ*) tσ (+ 1 tσ)))
-    (define tΞ* (if (equal? Ξ Ξ*) tΞ (+ 1 tΞ)))
+    (define-values (σ* Ξ* M* δσ? δΞ?)
+      (for/fold ([σ* : -σ σ] [Ξ* : -Ξ Ξ] [M* : -M M] [δσ? : Boolean #f] [δΞ? : Boolean #f])
+                ([ςi I])
+        (match-define (-Δς _ _ _ δσi δΞi δMi) ςi)
+        (define-values (σ** δσi?) (Δ+ δσi σ*))
+        (define-values (Ξ** δΞi?) (Δ+ δΞi Ξ*))
+        (define-values (M** δMi?) (Δ+ δMi M*))
+        (values σ** Ξ** M** (or δσ? δσi?) (or δΞ? δΞi?))))
+    (define tσ* (if δσ? (+ 1 tσ) tσ))
+    (define tΞ* (if δΞ? (+ 1 tΞ) tΞ))
 
     ; Next frontier and updated seen states
     (define-values (F* S*)
       (for/fold ([F* : (Setof -Cfg) ∅] [S* : (Map -Cfg -t) S]) ([ςi I])
-        (match-define (-ς Ei Γi κi _ _ _) ςi)
+        (match-define (-Δς Ei Γi κi _ _ _) ςi)
         (define Ci (-Cfg Ei Γi κi))
         (define ti (hash-ref S* Ci #f))
         (define t* (cons tσ* tΞ*))
@@ -100,10 +104,10 @@
   [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
 
 (define-syntax-rule (profile* e ...)
-  (begin
+  #;(begin
     (collect-garbage) (collect-garbage) (collect-garbage)
     (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 5))
-  #;(begin (collect-garbage) (collect-garbage) (collect-garbage) e ...))
+  (begin (collect-garbage) (collect-garbage) (collect-garbage) e ...))
 
 (profile*
 

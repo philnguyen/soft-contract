@@ -6,7 +6,7 @@
  )
 (provide (all-defined-out))
 
-(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → (Values -σ -AΓs))
+(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → (Values -Δσ -AΓs))
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
 (define (δ M σ Γ o Ws l)
@@ -16,7 +16,7 @@
       [(= n (length Ws)) e ...]
       [else
        (values
-        σ
+        '()
         (-AΓ (-blm l (show-o o)
                    (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ⊥ -Γ⊤)
                    (WVs->Vs Ws))
@@ -32,20 +32,20 @@
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
-       (values σ (-AΓ (list V_a) Γ)))]
+       (values '() (-AΓ (list V_a) Γ)))]
 
     ;; Multiple values
     ['values
-     (values σ (-AΓ (map (inst -W-x -V) Ws) Γ))]
+     (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]
     
     ;; Constructor
     [(-st-mk id n)
      (with-guarded-arity n
        (define αs (alloc-immut-fields o Ws))
-       (define σ* : -σ
-         (for/fold ([σ* σ]) ([α αs] [W Ws])
-           (⊔ σ* α (close-Γ Γ (-W-x W)))))
-       (values σ* (-AΓ (list (-St id αs)) Γ)))]
+       (define δσ : -Δσ
+         (for/list ([α αs] [W Ws])
+           (cons α (close-Γ Γ (-W-x W)))))
+       (values δσ (-AΓ (list (-St id αs)) Γ)))]
     
     ;; Accessor
     [(-st-ac id n i)
@@ -63,16 +63,16 @@
              (define AΓs
                (for/set: : (Setof -AΓ) ([V (σ@ σ (list-ref αs i))])
                  (-AΓ (list V) Γ)))
-             (values σ AΓs)]
-            [else (values σ (blm-bad-arg))])]
+             (values '() AΓs)]
+            [else (values '() (blm-bad-arg))])]
          ['•
           (define ans
             (match (MσΓ⊢e M σ Γ ok-arg?)
               ['✓ (-AΓ (list '•) (Γ+ Γ ok-arg?))]
               ['X (blm-bad-arg)]
               ['? {set (-AΓ (list '•) (Γ+ Γ ok-arg?)) (blm-bad-arg)}]))
-          (values σ ans)]
-         [_ (values σ (blm-bad-arg))]))]
+          (values '() ans)]
+         [_ (values '() (blm-bad-arg))]))]
 
     ;; Equality
     ['equal?
@@ -85,7 +85,7 @@
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
-       (values σ (-AΓ (list ans) Γ)))]
+       (values '() (-AΓ (list ans) Γ)))]
 
     ;; Ariths
     ['+
@@ -103,7 +103,7 @@
          (-AΓ (-blm l '+ 'number? (list V)) Γ))
        (match* (V₁ V₂)
          [((-b (? number? n₁)) (-b (? number? n₂)))
-          (values σ (-AΓ (list (-b (+ n₁ n₂))) Γ))]
+          (values '() (-AΓ (list (-b (+ n₁ n₂))) Γ))]
          [(_ _)
           (define ans-ok   (-AΓ (list '•) Γ-ok))
           (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
@@ -116,7 +116,7 @@
               [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
               [('? '✓) {set ans-bad₁ ans-ok}]
               [('✓ '?) {set ans-bad₂ ans-ok}]))
-          (values σ ans)]))]
+          (values '() ans)]))]
     
     ['-
      (with-guarded-arity 2
@@ -132,7 +132,7 @@
          (-AΓ (-blm l '- 'number? (list V)) Γ))
        (match* (V₁ V₂)
          [((-b (? number? n₁)) (-b (? number? n₂)))
-          (values σ (-AΓ (list (-b (- n₁ n₂))) Γ))]
+          (values '() (-AΓ (list (-b (- n₁ n₂))) Γ))]
          [(_ _)
           (define ans-ok   (-AΓ (list '•) Γ-ok))
           (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
@@ -145,7 +145,7 @@
               [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
               [('? '✓) {set ans-bad₁ ans-ok}]
               [('✓ '?) {set ans-bad₂ ans-ok}]))
-          (values σ ans)]))]
+          (values '() ans)]))]
     
     ['*
      (with-guarded-arity 2
@@ -161,7 +161,7 @@
          (-AΓ (-blm l '* 'number? (list V)) Γ))
        (match* (V₁ V₂)
          [((-b (? number? n₁)) (-b (? number? n₂)))
-          (values σ (-AΓ (list (-b (* n₁ n₂))) Γ))]
+          (values '() (-AΓ (list (-b (* n₁ n₂))) Γ))]
          [(_ _)
           (define ans-ok   (-AΓ (list '•) Γ-ok))
           (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
@@ -174,7 +174,7 @@
               [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
               [('? '✓) {set ans-bad₁ ans-ok}]
               [('✓ '?) {set ans-bad₂ ans-ok}]))
-          (values σ ans)]))]
+          (values '() ans)]))]
     ))
 
 #|

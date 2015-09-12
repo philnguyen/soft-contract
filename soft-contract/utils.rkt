@@ -210,10 +210,13 @@
   (for/fold ([m : (MMap X Y) m₁]) ([(x ys) (in-hash m₂)])
     (⊔* m x ys)))
 
-(: Δ+ : (∀ (X Y) (ΔMap X Y) (MMap X Y) → (MMap X Y)))
+(: Δ+ : (∀ (X Y) (ΔMap X Y) (MMap X Y) → (Values (MMap X Y) Boolean)))
+;; Apply map delta to map
 (define (Δ+ Δ m)
-  (for/fold ([m : (MMap X Y) m]) ([δ Δ])
-    (⊔ m (car δ) (cdr δ))))
+  (for/fold ([m : (MMap X Y) m] [δ? : Boolean #f]) ([δ Δ])
+    (match-define (cons k v) δ)
+    (values (⊔ m k v)
+            (or δ? (not (∋ (hash-ref m k →∅) v))))))
 
 (: mmap-subtract : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
 ;; Compute bindings in `m₁` not in `m₀`
