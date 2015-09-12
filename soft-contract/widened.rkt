@@ -65,7 +65,7 @@
         (match-define (-Δς _ _ _ δσi δΞi δMi) ςi)
         (define-values (σ** δσi?) (Δ+ δσi σ*))
         (define-values (Ξ** δΞi?) (Δ+ δΞi Ξ*))
-        (define-values (M** δMi?) (Δ+ δMi M*))
+        (define-values (M** _   ) (Δ+ δMi M*))
         (values σ** Ξ** M** (or δσ? δσi?) (or δΞ? δΞi?))))
     (define tσ* (if δσ? (+ 1 tσ) tσ))
     (define tΞ* (if δΞ? (+ 1 tΞ) tΞ))
