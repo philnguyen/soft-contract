@@ -39,17 +39,20 @@
   (define (go d Γ)
     (match (Γ⊢e Γ e)
       ['?
-       (define Γs (invert-Γ M σ (Γ↓ Γ FVe)))
-       (cond ; if one subcase repeats, there can't be progress
-         [(∋ Γs Γ) '?]
+       (cond
+         [(< d 0) '?]
          [else
-          (define Rs
-            (for/set: : (Setof -R) ([Γi Γs])
-              (go (- d 1) Γi)))
-          (cond
-            [(equal? Rs {set '✓}) '✓]
-            [(equal? Rs {set 'X }) 'X ]
-            [else '?])])]
+          (define Γs (invert-Γ M σ (Γ↓ Γ FVe)))
+          (cond ; if one subcase repeats, there can't be progress
+            [(∋ Γs Γ) '?]
+            [else
+             (define Rs
+               (for/set: : (Setof -R) ([Γi Γs])
+                 (go (- d 1) Γi)))
+             (cond
+               [(equal? Rs {set '✓}) '✓]
+               [(equal? Rs {set 'X }) 'X ]
+               [else '?])])])]
       [R R]))
 
   (go 2 Γ))
