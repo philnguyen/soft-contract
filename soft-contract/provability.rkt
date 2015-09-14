@@ -33,7 +33,26 @@
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
 ;; Check if `e` evals to truth given `M`, `σ`, `Γ`
 (define (MσΓ⊢₁e M σ Γ e)
-  (Γ⊢e Γ e))
+  (define FVe (FV e))
+
+  (: go : Integer -Γ → -R)
+  (define (go d Γ)
+    (match (Γ⊢e Γ e)
+      ['?
+       (define Γs (invert-Γ M σ (Γ↓ Γ FVe)))
+       (cond ; if one subcase repeats, there can't be progress
+         [(∋ Γs Γ) '?]
+         [else
+          (define Rs
+            (for/set: : (Setof -R) ([Γi Γs])
+              (go (- d 1) Γi)))
+          (cond
+            [(equal? Rs {set '✓}) '✓]
+            [(equal? Rs {set 'X }) 'X ]
+            [else '?])])]
+      [R R]))
+
+  (go 2 Γ))
 
 (: MσΓ⊢e≡ : -M -σ -Γ -?e -?e → -R)
 (define (MσΓ⊢e≡ Γ M σ e₁ e₂)
@@ -233,9 +252,9 @@
             (p⇒p p q)]
            [((-@ (? -pred? p) (list e) _) e)
             (cond
-              [(truth-pred? p) '✓]
               [(equal? p 'not) 'X]
-              [else '?])]
+              [(equal? p 'boolean?) '?]
+              [else '✓])]
            [(_ _) '?])]
         [(_ R) R]))
     (dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
@@ -308,13 +327,6 @@
 (define (Γ-defines? Γ x)
   (for/or ([e Γ]) (∋ (FV e) x)))
 
-(: truth-pred? : -pred → Boolean)
-;; Does `(p? x)` imply `x` eval to truth?
-(define (truth-pred? p)
-  (case p
-    [(not boolean?) #f]
-    [else #t]))
-
 (: p⇒p : -pred -pred → -R)
 (define (p⇒p p q)
   (cond
@@ -379,10 +391,12 @@
 ;; that could have derived it
 (define (invert-Γ M σ Γ)
 
+  ; split environment into propositions that can be further unrolled and the rest
   (define-values (Γ-unrollable Γ₀)
     (set-partition (match-λ? (-@ (? -ref?) _ _)) Γ))
 
   (: go : (Setof -Γ) (Listof -e) → (Setof -Γ))
+  ; Join each base environment in `Γs` with each possible inversion of `φs`
   (define (go Γs φs)
     (match φs
       ['() Γs]
