@@ -353,31 +353,50 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: invert : -M -σ -id (Listof -e) → (Setof -Res))
+(: invert-e : -M -σ -id (Listof -e) → (Setof -Res))
 ;; Given proposition `(p? v)`, generate an overapproximation of expressions
 ;; that could have evaluated to it
-(define (invert M σ f args)
+(define (invert-e M σ f args)
 
-  (match f
-    [(-ref id _)
-     (define α (-α.def id))
-     (match/nd: (-V → -Res) (σ@ σ α)
-       [(or (-Clo (? list? xs) e _ _) (-Clo* (? list? xs) e _))
-        ;; Convert invariant about parameters into one about arguments
-        (define (convert [e : -e]) : -e
-          (for/fold ([e : -e e]) ([x (assert xs)] [arg args])
-            (e/ e x arg)))
+  (define α (-α.def f))
+  (match/nd: (-V → -Res) (σ@ σ α)
+    [(or (-Clo (? list? xs) e _ _) (-Clo* (? list? xs) e _))
+     ;; Convert invariant about parameters into one about arguments
+     (define (convert [e : -e]) : -e
+       (for/fold ([e : -e e]) ([x (assert xs)] [arg args])
+         (e/ e x arg)))
+     
+     (match/nd: (-Res → -Res) (hash-ref M (assert e))
+       [(-Res e-xs Γ-xs)
+        (define e-args (and e-xs (convert e-xs)))
+        (define Γ-args (for/set: : -Γ ([e Γ-xs]) (convert e)))
+        (-Res e-args Γ-args)])]
         
-        (match/nd: (-Res → -Res) (hash-ref M (assert e))
-          [(-Res e-xs Γ-xs)
-           (define e-args (and e-xs (convert e-xs)))
-           (define Γ-args (for/set: : -Γ ([e Γ-xs]) (convert e)))
-           (-Res e-args Γ-args)])]
-        
-       [_ -Res⊤])]
-    [_
-     ; imprecise for now
-     (set -Res⊤)]))
+    [_ (printf "2~n") -Res⊤]))
+
+(: invert-Γ : -M -σ -Γ → (Setof -Γ))
+;; Given propositions `Γ`, generate an overapproximation of environments
+;; that could have derived it
+(define (invert-Γ M σ Γ)
+
+  (define-values (Γ-unrollable Γ₀)
+    (set-partition (match-λ? (-@ (? -ref?) _ _)) Γ))
+
+  (: go : (Setof -Γ) (Listof -e) → (Setof -Γ))
+  (define (go Γs φs)
+    (match φs
+      ['() Γs]
+      [(cons φ φs*)
+       (match-define (-@ (-ref id _) xs _) φ)
+       (for*/fold ([acc : (Setof -Γ) ∅])
+                  ([kase : -Res (invert-e M σ id xs)]
+                   [Γ : -Γ (go Γs φs*)])
+         (match-define (-Res ψ_i Γ_i) kase)
+         (define Γ₁ (if ψ_i (Γ⊓e Γ ψ_i) Γ))
+         (define Γ₂ (and Γ₁ (Γ⊓ Γ₁ Γ_i)))
+         (if Γ₂ (set-add acc Γ₂) acc))]))
+
+  (go (set Γ₀) (set->list Γ-unrollable)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
