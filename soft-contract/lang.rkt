@@ -675,8 +675,18 @@
     [(? -o? o) (show-o o)]
     [(-x x) x]
     [(-ref x _) (-id-name x)]
-    [(-let-values _ _ _) '(let-values …) #|TODO|#]
-    [(? -letrec-values?) '(letrec-values …) #|TODO|#]
+    [(-let-values bnds body _)
+     `(let-values
+          ,(for/list : (Listof Sexp) ([bnd bnds])
+             (match-define (cons xs ex) bnd)
+             `(,xs ,(show-e ex)))
+        ,(show-e body))]
+    [(-letrec-values bnds body _)
+     `(let-values
+          ,(for/list : (Listof Sexp) ([bnd bnds])
+             (match-define (cons xs ex) bnd)
+             `(,xs ,(show-e ex)))
+        ,(show-e body))]
     [(-set! x e) `(set! ,x ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(map show-e xs))]
     [(-@-havoc x) `(havoc ,(show-e x))]
