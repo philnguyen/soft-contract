@@ -144,7 +144,7 @@
      (printf "  E: ~a~n" (show-E E))
      (printf "  Γ:")
      (for ([e Γ]) (printf " ~a" (show-e e)))
-     (printf "~n")))
+     (printf "~n~n")))
  
 
  (define (f [n : Integer]) : (Setof -Cfg)
