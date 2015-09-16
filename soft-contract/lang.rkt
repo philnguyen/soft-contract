@@ -412,12 +412,15 @@
 
   (if (⊆ exports defines) #f (-- exports defines)))
 
-(: binder-has? : -formals Symbol → Boolean)
+(: binder-has? : -formals (U Symbol -e) → Boolean)
 ;; returns whether a list of binding names has given name
 (define (binder-has? xs x)
-  (match xs
-    [(? list? xs) (and (member x xs) #t)] ; force boolean
-    [(-varargs zs z) (or (equal? z x) (and (member x zs) #t))]))
+  (define FVs (if (symbol? x) {set x} (FV x)))
+  (define binders
+    (match xs
+      [(? list? xs) xs]
+      [(-varargs zs z) (cons z zs)]))
+  (not (set-empty? (∩ FVs (list->set binders)))))
 
 (: count-xs : (U -e (Listof -e)) Symbol → Integer)
 ;; Count free occurences of variable with given name in expression(s)
@@ -508,19 +511,29 @@
   (match-define (-id name path) id)
   (-id (string->symbol (format "~a/c" name)) path))
 
-(: e/ : -e Symbol -e → -e)
+(: e/ : -e (U Symbol -e) -e → -e)
 ;; Substitution
 (define (e/ e x eₓ)
+
+  (: guard : -formals → Void)
+  (define guard
+    (cond
+      [(and (-e? x) (not (-x? x)))
+       (λ (xs)
+         (error 'e/ "variables in ~a captures ~a" xs (show-e e)))]
+      [else (λ (_) (void))]))
+  
   (let go ([e e])
     (match e
+      [(? (curry equal? x)) eₓ]
       [(-λ xs e*)
-       (cond [(binder-has? xs x) e]
+       (cond [(binder-has? xs x) (guard xs) e]
              [else (-λ xs (go e*))])]
       [(-case-λ clauses)
        (-case-λ
         (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
           (match-define (cons xs e*) clause)
-          (cond [(binder-has? xs x) clause]
+          (cond [(binder-has? xs x) (guard xs) clause]
                 [else (cons xs (go e*))])))]
       [(? -v?) e]
       [(-x z) (if (equal? x z) eₓ e)]
