@@ -442,18 +442,6 @@
 ;; Return #f otherwise (no change).
 (define (unfold M σ e₀)
 
-  (: params : (Listof -e) → (Option (Listof Symbol)))
-  ;; Extract variable names if it's a variable list. Return #f otherwise.
-  (define (params es)
-    (define xs↓
-      (for/fold ([xs↓ : (Option (Listof Symbol)) '()]) ([e es])
-        (cond
-          [xs↓ (match e
-                 [(-x x) (cons x xs↓)]
-                 [_ #f])]
-          [else #f])))
-    (and xs↓ (reverse xs↓)))
-
   (: go : -e → (Option (Setof -Res)))
   (define (go e)
     (match e
@@ -464,16 +452,13 @@
             [(-ref id _)
              (for/set: : (Setof -Res) ([res (invert-e M σ id xs)])
                (match-define (-Res (? -e? e*) Γ*) res)
-               (match* ((params xs) (find-calls e* id))
-                 [((? list? zs) rec-arg-lists)
-                  (define Γ**
-                    (for/fold ([Γ** : -Γ Γ*]) ([args rec-arg-lists])
-                      (define hyp
-                        (for/fold ([hyp : -e e₀]) ([z zs] [arg args])
-                          (e/ hyp z arg)))
-                      (Γ+ Γ** hyp)))
-                  (-Res e* Γ**)]
-                 [(_ _) res]))]
+               (define Γ** ; strengthen with induction hypotheses
+                 (for/fold ([Γ** : -Γ Γ*]) ([args (find-calls e* id)])
+                   (define hyp
+                     (for/fold ([hyp : -e e₀]) ([x xs] [arg args])
+                       (e/ hyp x arg)))
+                   (Γ+ Γ** hyp)))
+               (-Res e* Γ**))]
             [_ #f])]
          [(? set? reses)
           (for/set: : (Setof -Res) ([res reses])
