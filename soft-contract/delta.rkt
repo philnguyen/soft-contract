@@ -81,7 +81,7 @@
        (match-define (-W V₁ e₁) W₁)
        (match-define (-W V₂ e₂) W₂)
        (define ans
-         (match (or-R (V≡ V₁ V₂) (MσΓ⊢e≡ M σ Γ e₁ e₂))
+         (match (or-R (V≡ V₁ V₂) (MσΓ⊢e M σ Γ (-?@ 'equal? e₁ e₂)))
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
