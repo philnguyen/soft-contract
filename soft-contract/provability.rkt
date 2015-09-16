@@ -59,28 +59,31 @@
   (: go-rec : Integer -Γ -e → -R)
   ;; Try proving goal probably by rule induction
   (define (go-rec d Γ e)
-    (match (Γ⊢e Γ e) ; FIXME: shift things around. This is wasteful.
-      ['?
-       (cond
-         [(< d 0) '?]
-         [else
-          (match (unfold M σ e)
-            [(? set? cases)
-             (define anses
-               (for*/set: : (Setof -R)
-                          ([kase cases]
-                           [Γ* (in-value (-Res-Γ kase))]
-                           [e* (in-value (-Res-e kase))]
-                           [Γ** (in-value (Γ⊓ Γ Γ*))]
-                           #:when Γ**)
-                 (define-values (e** Γ***) (⇓₁ M σ Γ** (assert e*)))
-                 (go-rec (- d 1) Γ*** e**)))
-             (cond
-               [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
-               [(equal? anses {set 'X}) 'X]
-               [else '?])]
-            [else '?])])]
-      [R R]))
+    (define ans
+      (match (Γ⊢e Γ e) ; FIXME: shift things around. This is wasteful.
+        ['?
+         (cond
+           [(< d 0) '?]
+           [else
+            (match (unfold M σ e)
+              [(? set? cases)
+               (define anses
+                 (for*/set: : (Setof -R)
+                            ([kase cases]
+                             [Γ* (in-value (-Res-Γ kase))]
+                             [e* (in-value (-Res-e kase))]
+                             [Γ** (in-value (Γ⊓ Γ Γ*))]
+                             #:when Γ**)
+                   (define-values (e** Γ***) (⇓₁ M σ Γ** (assert e*)))
+                   (go-rec (- d 1) Γ*** e**)))
+               (cond
+                 [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
+                 [(equal? anses {set 'X}) 'X]
+                 [else '?])]
+              [else '?])])]
+        [R R]))
+    (dbg '⊢rec "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans)
+    ans)
 
   (or-R (go 2 Γ) (go-rec 2 Γ e)))
 
@@ -545,36 +548,46 @@
   (define -app-body (-b 'app-body))
   (define -len (-ref (-id 'len 'Λ) 'Λ))
   (define -len-body (-b 'len-body))
+  (define -map (-ref (-id 'map 'Λ) 'Λ))
+  (define -map-body (-b 'map-body))
   (define -l₁ (-x 'l₁))
   (define -l₂ (-x 'l₂))
   (define -xs (-x 'xs))
   (define -ys (-x 'ys))
-  (define edb
+  (define -f (-x 'f))
+  (define e-len-app
     (assert (-?@ 'equal?
                  (-?@ -len (-?@ -app -xs -ys))
                  (-?@ '+ (-?@ -len -xs) (-?@ -len -ys)))))
+  (define e-len-map
+    (assert (-?@ 'equal?
+                 (-?@ -len (-?@ -map -f -xs))
+                 (-?@ -len -xs))))
   ;(define Γdb : -Γ {set edb})
   (define σdb
-    (⊔ (⊔ -σ⊥ (-α.def (-id 'app 'Λ)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
-       (-α.def (-id 'len 'Λ)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤)))
+    (⊔
+     (⊔
+      (⊔ -σ⊥ (-α.def (-id 'app 'Λ)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
+      (-α.def (-id 'len 'Λ)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
+     (-α.def (-id 'map 'Λ)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
   (define Mdb
     (⊔
      (⊔
       (⊔
-       (⊔ -M⊥ -app-body (-Res -l₂ (Γ+ -Γ⊤ (-?@ -null? -l₁))))
-       -app-body
-       (-Res
-        (-?@ -cons (-?@ -car -l₁) (-?@ -app (-?@ -cdr -l₁) -l₂))
-        (Γ+ -Γ⊤ (-?@ -cons? -l₁))))
-      -len-body
-      (-Res (-b 0) (Γ+ -Γ⊤ (-?@ -null? (-x 'l)))))
-     -len-body
-     (-Res (-?@ '+ (-b 1) (-?@ -len (-?@ -cdr (-x 'l))))
-           (Γ+ -Γ⊤ (-?@ -cons? (-x 'l))))))
-  (define anses (set->list (assert (unfold Mdb σdb edb))))
-  (define anses*
-    (for/list : (Listof -Res) ([res anses])
-      (match-define (-Res e Γ) res)
-      (define-values (e* Γ*)
-        (⇓₁ Mdb σdb Γ (assert e)))
-      (-Res e* Γ*))))
+       (⊔
+        (⊔
+         (⊔ -M⊥ -app-body (-Res -l₂ (Γ+ -Γ⊤ (-?@ -null? -l₁))))
+         -app-body
+         (-Res
+          (-?@ -cons (-?@ -car -l₁) (-?@ -app (-?@ -cdr -l₁) -l₂))
+          (Γ+ -Γ⊤ (-?@ -cons? -l₁))))
+        -len-body
+        (-Res (-b 0) (Γ+ -Γ⊤ (-?@ -null? (-x 'l)))))
+       -len-body
+       (-Res (-?@ '+ (-b 1) (-?@ -len (-?@ -cdr (-x 'l))))
+             (Γ+ -Γ⊤ (-?@ -cons? (-x 'l)))))
+      -map-body
+      (-Res -null (Γ+ -Γ⊤ (-?@ -null? -xs))))
+     -map-body
+     (-Res (-?@ -cons (-?@ -f (-?@ -car -xs)) (-?@ -map -f (-?@ -cdr -xs)))
+           (Γ+ -Γ⊤ (-?@ -cons? -xs))))))
