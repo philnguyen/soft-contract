@@ -82,9 +82,10 @@
                  [else '?])]
               [else '?])])]
         [R R]))
-    (dbg '⊢rec "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans)
+    (dbg '⊢rec "~a ⊢~a ~a : ~a~n" (show-Γ Γ) (n-sub d) (show-e e) ans)
     ans)
 
+  (dbg '⊢rec "~n")
   (or-R (go 2 Γ) (go-rec 2 Γ e)))
 
 (: spurious? : -M -σ -Γ -WVs → Boolean)
@@ -243,6 +244,7 @@
          (match e*
            [(-b b) (decide-R (boolean? b))]
            [(-@ (? -pred?) _ _) '✓]
+           [(-@ 'equal? _ _) '✓]
            [(-@ (? -st-mk?) _ _) 'X]
            [_ '?])]
         [(-@ (-st-p id _) (list e*) _)
