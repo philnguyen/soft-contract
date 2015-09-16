@@ -355,6 +355,14 @@
        [((-st-mk id n) es)
         (or (access-same-value? id n es)
             (-@ f (cast xs (Listof -e)) 'Λ))]
+       ; ariths
+       [('+ (list-no-order (-b 0) e*)) (assert e* -e?)]
+       [('+ (list (-@ '+ (list e₁ e₂) _) e₃))
+        (-@ '+ (list e₁ (-@ '+ (list e₂ (assert e₃)) 'Λ)) 'Λ)]
+       [('* (list-no-order (-b 1) e*)) (assert e* -e?)]
+       [('* (list (-@ '* (list e₁ e₂) _) e₃))
+        (-@ '* (list e₁ (-@ '* (list e₂ (assert e₃)) 'Λ)) 'Λ)]
+       ; default
        [(f xs) (-@ f (cast xs (Listof -e)) 'Λ)])]
     [else #f]))
 

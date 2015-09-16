@@ -1,7 +1,7 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "lang.rkt" "runtime.rkt")
-(provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e V∈p V≡ MσΓ⊢e≡
+(provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e V∈p V≡
          Γ⊓ Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R
          -R
          ;; debugging
@@ -36,6 +36,7 @@
   (define FVe (FV e))
 
   (: go : Integer -Γ → -R)
+  ;; Try proving goal by probably repeatedly unfolding assumptions
   (define (go d Γ)
     (match (Γ⊢e Γ e)
       ['?
@@ -55,13 +56,33 @@
                [else '?])])])]
       [R R]))
 
-  (go 2 Γ))
+  (: go-rec : Integer -Γ -e → -R)
+  ;; Try proving goal probably by rule induction
+  (define (go-rec d Γ e)
+    (match (Γ⊢e Γ e) ; FIXME: shift things around. This is wasteful.
+      ['?
+       (cond
+         [(< d 0) '?]
+         [else
+          (match (unfold M σ e)
+            [(? set? cases)
+             (define anses
+               (for*/set: : (Setof -R)
+                          ([kase cases]
+                           [Γ* (in-value (-Res-Γ kase))]
+                           [e* (in-value (-Res-e kase))]
+                           [Γ** (in-value (Γ⊓ Γ Γ*))]
+                           #:when Γ**)
+                 (define-values (e** Γ***) (⇓₁ M σ Γ** (assert e*)))
+                 (go-rec (- d 1) Γ*** e**)))
+             (cond
+               [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
+               [(equal? anses {set 'X}) 'X]
+               [else '?])]
+            [else '?])])]
+      [R R]))
 
-(: MσΓ⊢e≡ : -M -σ -Γ -?e -?e → -R)
-(define (MσΓ⊢e≡ Γ M σ e₁ e₂)
-  (match* (e₁ e₂)
-    [((-b b₁) (-b b₂)) (decide-R (equal? b₁ b₂))]
-    [(_ _) '?])) ; TODO just this for now
+  (or-R (go 2 Γ) (go-rec 2 Γ e)))
 
 (: spurious? : -M -σ -Γ -WVs → Boolean)
 ;; Check whether `e` cannot evaluate to `V` given `Γ` is true
@@ -126,37 +147,6 @@
   (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
 
-(: unfold : -M -σ -Γ -id (Listof -e) → (Setof -Γ))
-;; Unfold (f e …) and attach them to `Γ`, discarding obvious inconsistency
-(define (unfold M σ Γ id args)
-  ;; TODO: if `id` is wrapped, there's a difference!!
-  (for/fold ([acc : (Setof -Γ) ∅])
-            ([defn (σ@ σ (-α.def id))])
-    (match defn
-      [(-Clo xs e _ _)
-       (cond
-         [(list? xs)
-          (for*/fold ([acc : (Setof -Γ) acc])
-                     ([res (hash-ref M e)]
-                      [e_a (in-value (-Res-e res))] #:when e_a
-                      [Γ_a (in-value (-Res-Γ res))])
-            (define e_a*
-              (for/fold ([e* : -e e_a]) ([x xs] [arg args])
-                (e/ e* x arg)))
-            (define Γ_a*
-              (for/fold ([Γ* : -Γ Γ_a]) ([x xs] [arg args])
-                (Γ/ Γ* x arg)))
-            (define Γ*
-              (for/fold ([Γ* : (Option -Γ) (Γ⊓e Γ e_a*)])
-                        ([e Γ_a*])
-                (and Γ* (Γ⊓e Γ* e))))
-            (cond [Γ* (set-add acc Γ*)]
-                  [else acc]))]
-         [else acc])]
-      [(? -o? o)
-       (define Γ* (Γ⊓e Γ (apply -?@ o args)))
-       (if Γ* (set-add acc Γ*) acc)])))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Operations without global tables
@@ -175,13 +165,36 @@
         [(-b #f) 'X]
         [(? -•?) '?]
         [(? -v?) '✓]
+        [(? (λ (x) (∋ Γ x))) '✓]
         ;; constructors
         [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
         ;; special cases
         [(-@ (or '= 'equal?) (list e₁ e₂) _)
          (match* (e₁ e₂)
-           [((-b b₁) (-b b₂)) (decide-R (equal? e₁ e₂))]
-           [(_ _) '?])] ; TODO just this for now
+           [((? -λ? v₁) (? -λ? v₂)) ; can't compare higher-order literals
+            (if (equal? v₁ v₂) '? 'X)]
+           [((? -•?) _) '?]
+           [(_ (? -•?)) '?]
+           [((? -v? v₁) (? -v? v₂)) (decide-R (equal? v₁ v₂))]
+           [((-x x) (-x y))
+            (if (equal? x y) '✓ '?)]
+           [((-@ f xs _) (-@ g ys _))
+            ; lose precision. Don't need `f = g, x = y` to prove `f(x) = g(y)`
+            (cond
+              [(and
+                (or
+                 (and (-λ? f) (equal? f g))
+                 (equal? '✓ (⊢e (-@ 'equal? (list f g) 'Λ))))
+                (= (length xs) (length ys)))
+               (define res
+                 (for/set: : (Setof -R) ([x xs] [y ys])
+                   (⊢e (-@ 'equal? (list x y) 'Λ))))
+               (cond
+                 [(or (set-empty? res) (equal? res {set '✓})) '✓]
+                 [(and (-st-mk? f) (∋ res 'X)) 'X]
+                 [else '?])]
+              [else '?])]
+           [(_ _) (if (equal? e₁ e₂) '✓ '?)])]
         ;; negation
         [(-not e*) (not-R (⊢e e*))]
         ;; ariths
@@ -229,7 +242,13 @@
            [(-@ (? -pred?) _ _) '✓]
            [(-@ (? -st-mk?) _ _) 'X]
            [_ '?])]
-        [(-@ (or (? -pred?) (? -st-ac?)) (list e) _) '?]
+        [(-@ (-st-p id _) (list e*) _)
+         (match e*
+           [(-@ (-st-mk id* _) _ _)
+            (decide-R (equal? id id*))]
+           [(or (? -b?) (? -λ?)) 'X]
+           [_ '?])]
+        [(-@ (? -st-ac?) (list e) _) '?]
         [(-@ (? -o?) _ _) '✓] ; happens to be so for now
         [_ '?]))
     (dbg '⊢e "⊢ ~a : ~a~n~n" (show-e e) ans)
@@ -387,7 +406,7 @@
         (define Γ-args (for/set: : -Γ ([e Γ-xs]) (convert e)))
         (-Res e-args Γ-args)])]
         
-    [_ (printf "2~n") -Res⊤]))
+    [_ -Res⊤]))
 
 (: invert-Γ : -M -σ -Γ → (Setof -Γ))
 ;; Given propositions `Γ`, generate an overapproximation of environments
@@ -415,20 +434,147 @@
 
   (go (set Γ₀) (set->list Γ-unrollable)))
 
+(: unfold : -M -σ -e → (Option (Setof -Res)))
+;; Unfold expression if it has an unfoldable sub-expression
+;; Return #f otherwise (no change).
+(define (unfold M σ e₀)
+
+  (: params : (Listof -e) → (Option (Listof Symbol)))
+  ;; Extract variable names if it's a variable list. Return #f otherwise.
+  (define (params es)
+    (define xs↓
+      (for/fold ([xs↓ : (Option (Listof Symbol)) '()]) ([e es])
+        (cond
+          [xs↓ (match e
+                 [(-x x) (cons x xs↓)]
+                 [_ #f])]
+          [else #f])))
+    (and xs↓ (reverse xs↓)))
+
+  (: go : -e → (Option (Setof -Res)))
+  (define (go e)
+    (match e
+      [(-@ f xs l)
+       (match (go* (cons f xs))
+         [#f
+          (match f
+            [(-ref id _)
+             (for/set: : (Setof -Res) ([res (invert-e M σ id xs)])
+               (match-define (-Res (? -e? e*) Γ*) res)
+               (match* ((params xs) (find-calls e* id))
+                 [((? list? zs) rec-arg-lists)
+                  (define Γ**
+                    (for/fold ([Γ** : -Γ Γ*]) ([args rec-arg-lists])
+                      (define hyp
+                        (for/fold ([hyp : -e e₀]) ([z zs] [arg args])
+                          (e/ hyp z arg)))
+                      (Γ+ Γ** hyp)))
+                  (-Res e* Γ**)]
+                 [(_ _) res]))]
+            [_ #f])]
+         [(? set? reses)
+          (for/set: : (Setof -Res) ([res reses])
+            (match-define (cons (cons f* xs*) Γ) res)
+            (-Res (apply -?@ f* xs*) Γ))])]
+      [_ #|TODO just this for now|# #f]))
+
+  (: go* : (Listof -e) → (Option (Setof (Pairof (Listof -e) -Γ))))
+  (define (go* es)
+    (match es
+      ['() #f]
+      [(cons e es*)
+       (match (go e)
+         [#f
+          (match (go* es*)
+            [#f #f]
+            [(? set? reses)
+             (for/set: : (Setof (Pairof (Listof -e) -Γ)) ([res reses])
+               (match-define (cons es** Γ) res)
+               (cons (cons e es**) Γ))])]
+         [(? set? reses)
+          (for/set: : (Setof (Pairof (Listof -e) -Γ)) ([res reses])
+            (match-define (-Res (? -e? #|FIXME|# e*) Γ) res)
+            (cons (cons e* es*) Γ))])]))
+
+  (go e₀))
+
+(: ⇓₁ : -M -σ -Γ -e → (Values -e -Γ))
+;; Unfold/evaluate expression only if there's only 1 branch 
+(define (⇓₁ M σ Γ e)
+
+  (: go : -Γ -e → (Values -e -Γ))
+  (define (go Γ e)
+    (match e
+      [(-@ f xs _)
+       (define-values (fxs* Γ*) (go* Γ (cons f xs)))
+       (match-define (cons f* xs*) fxs*)
+       (match f*
+         [(-ref id _)
+          (define reses*
+            (for*/set: : (Setof -Res)
+                       ([res (invert-e M σ id xs*)]
+                        [Γ* (in-value (-Res-Γ res))]
+                        [Γ** (in-value (Γ⊓ Γ Γ*))]
+                        #:when Γ**)
+              (-Res (-Res-e res) Γ**)))
+          (cond
+            [(= 1 (set-count reses*))
+             (match-define (-Res e* Γ*) (set-first reses*))
+             (go Γ* (assert e*))]
+            [else (values (assert (apply -?@ f* xs*)) Γ)])]
+         [_ (values (assert (apply -?@ f* xs*)) Γ)])]
+      [_ (values e Γ)]))
+
+  (: go* : -Γ (Listof -e) → (Values (Listof -e) -Γ))
+  (define (go* Γ es)
+    (define-values (es↓ Γ*)
+      (for/fold ([es↓ : (Listof -e) '()] [Γ : -Γ Γ]) ([e es])
+        (define-values (e* Γ*) (go Γ e))
+        (values (cons e* es↓) Γ*)))
+    (values (reverse es↓) Γ*))
+  
+  (go Γ e))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Debugging
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (begin
-  (define edb (-@ (-ref (-id 'list? 'Λ) 'phil) (list (-x 'arg)) 'Λ))
-  (define Γdb : -Γ {set edb})
-  (define σdb (⊔ -σ⊥ (-α.def (-id 'list? 'Λ)) (-Clo '(z) (-b 'arbitrary) -ρ⊥ -Γ⊤)))
+  (define -app (-ref (-id 'app 'Λ) 'Λ))
+  (define -app-body (-b 'app-body))
+  (define -len (-ref (-id 'len 'Λ) 'Λ))
+  (define -len-body (-b 'len-body))
+  (define -l₁ (-x 'l₁))
+  (define -l₂ (-x 'l₂))
+  (define -xs (-x 'xs))
+  (define -ys (-x 'ys))
+  (define edb
+    (assert (-?@ 'equal?
+                 (-?@ -len (-?@ -app -xs -ys))
+                 (-?@ '+ (-?@ -len -xs) (-?@ -len -ys)))))
+  ;(define Γdb : -Γ {set edb})
+  (define σdb
+    (⊔ (⊔ -σ⊥ (-α.def (-id 'app 'Λ)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
+       (-α.def (-id 'len 'Λ)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤)))
   (define Mdb
     (⊔
      (⊔
-      (⊔ -M⊥ (-b 'arbitrary) (-Res (-b #t) (Γ+ -Γ⊤ (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z)))))
-      (-b 'arbitrary)
-      (-Res (-b #f) (Γ+ -Γ⊤ (-not (-?@ (-st-p (-id 'null 'Λ) 0) (-x 'z))) (-not (-?@ (-st-p (-id 'cons 'Λ) 0) (-x 'z))))))
-     (-b 'arbitrary)
-     (-Res (-?@ (-ref (-id 'list? 'Λ) 'phil) (-?@ -cdr (-x 'z))) (Γ+ -Γ⊤ (-?@ -cons? (-x 'z)))))))
+      (⊔
+       (⊔ -M⊥ -app-body (-Res -l₂ (Γ+ -Γ⊤ (-?@ -null? -l₁))))
+       -app-body
+       (-Res
+        (-?@ -cons (-?@ -car -l₁) (-?@ -app (-?@ -cdr -l₁) -l₂))
+        (Γ+ -Γ⊤ (-?@ -cons? -l₁))))
+      -len-body
+      (-Res (-b 0) (Γ+ -Γ⊤ (-?@ -null? (-x 'l)))))
+     -len-body
+     (-Res (-?@ '+ (-b 1) (-?@ -len (-?@ -cdr (-x 'l))))
+           (Γ+ -Γ⊤ (-?@ -cons? (-x 'l))))))
+  (define anses (set->list (assert (unfold Mdb σdb edb))))
+  (define anses*
+    (for/list : (Listof -Res) ([res anses])
+      (match-define (-Res e Γ) res)
+      (define-values (e* Γ*)
+        (⇓₁ Mdb σdb Γ (assert e)))
+      (-Res e* Γ*))))

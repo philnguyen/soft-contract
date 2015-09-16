@@ -144,6 +144,7 @@
 (define -zero (-b 0))
 (define -one (-b 1))
 (define -void #|hack|# (-@ (-st-mk (-id 'void 'Λ) 0) '() 'Λ))
+(define -null? (-st-p (-id 'null 'Λ) 0))
 (define -null #|hack|# (-@ (-st-mk (-id 'null 'Λ) 0) '() 'Λ))
 (define -box? (-st-p (-id 'box 'Λ) 1))
 (define -unbox (-st-ac (-id 'box 'Λ) 1 0))
@@ -570,6 +571,20 @@
       [_
        (log-debug "e/: ignore substituting ~a" e)
        e])))
+
+(: find-calls : -e -id → (Setof (Listof -e)))
+;; Search for all invocations of `f-id` in `e`
+(define (find-calls e f-id)
+  (define-set calls : (Listof -e))
+  (let go : Void ([e e])
+       (match e
+         [(-@ f xs _)
+          (go f)
+          (for-each go xs)
+          (when (match? f (-ref (? (curry equal? f-id)) _))
+            (calls-add! xs))]
+         [_ (void)]))
+  calls)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
