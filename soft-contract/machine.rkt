@@ -174,7 +174,8 @@
      `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
     ))
 
-(define (show-κ [κ : -κ] [v : Sexp]) : Sexp
+(: show-κ ([-κ] [Sexp] . ->* . Sexp))
+(define (show-κ κ [v '□])
   (match κ
     [(? -τ? τ) `(,v ↝ ,(show-τ τ))]
     [(-kont φ κ*) (show-κ κ* (show-φ φ v))]))
