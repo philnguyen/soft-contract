@@ -21,14 +21,14 @@
 
 (: Cfg-final? : -Cfg -Ξ → Boolean)
 (define (Cfg-final? C Ξ)
-  (match-define (-Cfg E _ τ) C)
-  (final? E τ Ξ))
+  (match-define (-Cfg E _ κ) C)
+  (final? E κ Ξ))
 
 (define (show-Cfg [C : -Cfg]) : (Listof Sexp)
   (match-define (-Cfg E Γ κ) C)
   `((E: ,(show-E E))
     (Γ: ,@(show-Γ Γ))
-    (κ: ,(show-κ κ '□))))
+    (κ: ,(show-κ κ))))
 
 (define (show-S [S : (Map -Cfg -t)]) : (Listof Sexp)
   (for/list : (Listof Sexp) ([(C t) S])
@@ -38,7 +38,7 @@
 (begin
   (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hash)))
 
-(: run : -prog → (Values (Map -Cfg -t) -σ -Ξ -M))
+(: run : -prog → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run p)
   (match-define (-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) (𝑰 p))
   (define C₀ (-Cfg E₀ Γ₀ κ₀))
@@ -49,6 +49,17 @@
 
     ;; for debugging only
     (hash-set! evals (hash-count evals) (list S F σ Ξ M))
+    #;(begin ; debuggings
+      (printf "Step: ~a: ~a~n" (hash-count evals) (set-count F))
+      (for ([C F])
+        (match-define (-Cfg E Γ κ) C)
+        (printf "  E: ~a~n"   (show-E E))
+        (printf "  Γ:")
+        (for ([e Γ]) (printf " ~a" (show-e e)))
+        (printf "~n")
+        (printf "  κ: ~a~n~n" (show-κ κ)))
+      (when (equal? 'done (read))
+        (error "done")))
 
     ; Intermediate new (narrow) states
     (define I
@@ -82,7 +93,7 @@
     
     (values S* F* tσ* σ* tΞ* Ξ* M*))
 
-  (let go : (Values (Map -Cfg -t) -σ -Ξ -M)
+  (let go : (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)
        ([S : (Map -Cfg -t) (hash C₀ -t₀)]
         [F : (Setof -Cfg) {set C₀}]
         [tσ : -tσ 0]
@@ -92,7 +103,11 @@
         [M : -M M₀])
     (define-values (S* F* tσ* σ* tΞ* Ξ* M*) (step S F tσ σ tΞ Ξ M))
     (cond
-      [(set-empty? F*) (values S* σ* Ξ* M*)]
+      [(set-empty? F*)
+       (define A*
+         (for/set: : (Setof -Cfg) ([Cfg (in-hash-keys S)] #:when (Cfg-final? Cfg Ξ*))
+           Cfg))
+       (values S* A* σ* Ξ* M*)]
       [else (go S* F* tσ* σ* tΞ* Ξ* M*)])))
 
 
@@ -112,14 +127,25 @@
 (profile*
 
  (define t₁ (current-milliseconds))
- (define-values (S* σ* Ξ* M*) (run (files->prog (list "test/programs/safe/2.rkt"))))
+ (define-values (S* A* σ* Ξ* M*)
+   (parameterize ([debugs {set}])
+     (run (files->prog (list "test/programs/safe/2.rkt")))))
  (define t₂ (current-milliseconds))
- (printf "Time: ~a~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))
- (printf "|S| = ~a~n" (hash-count S*))
- (printf "|Steps| = ~a~n" (hash-count evals))
- (printf "|σ| = ~a~n" (hash-count σ*))
- (printf "|Ξ| = ~a~n" (hash-count Ξ*))
- (printf "|M| = ~a~n" (hash-count M*))
+ (begin ; debuggings
+   (printf "Time: ~a~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))
+   (printf "|S| = ~a~n" (hash-count S*))
+   (printf "|Steps| = ~a~n" (hash-count evals))
+   (printf "|σ| = ~a~n" (hash-count σ*))
+   (printf "|Ξ| = ~a~n" (hash-count Ξ*))
+   (printf "|M| = ~a~n" (hash-count M*))
+   (printf "Answers:~n")
+   (for ([Cfg A*])
+     (match-define (-Cfg E Γ _) Cfg)
+     (printf "  E: ~a~n" (show-E E))
+     (printf "  Γ:")
+     (for ([e Γ]) (printf " ~a" (show-e e)))
+     (printf "~n")))
+ 
 
  (define (f [n : Integer]) : (Setof -Cfg)
    (match-define (list _ F _ _ _) (hash-ref evals n))
