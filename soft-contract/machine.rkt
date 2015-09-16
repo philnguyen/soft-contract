@@ -30,7 +30,7 @@
     [(-@ (and k (-st-mk id 0)) '() _) (-W (list (-St id '())) (-?@ k))]
     [_ (-↓ e (ρ↓ ρ (FV e)))]))
 
-(define (show-E [E : -E]) : Sexp
+(define (show-E [E : -E]) : (Listof Sexp)
   (match E
     [(-↓ e ρ) `(,(show-e e) ∣ ,@(show-ρ ρ))]
     [(-Mon C V _) `(Mon ,(show-WV C) ,(show-WV V))]
@@ -114,7 +114,7 @@
 
 (define show-τ : (-τ → Symbol) (unique-name 'τ))
 
-(define (show-φ [φ : -φ] [v : Sexp]) : Sexp
+(define (show-φ [φ : -φ] [v : Sexp]) : (Listof Sexp)
   (match φ
     [(-φ.if t e) `(if ,v ,(show-E t) ,(show-E e))]
     [(-φ.let-values x bnds bnds↓ _env body _ctx)
@@ -174,7 +174,7 @@
      `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
     ))
 
-(: show-κ ([-κ] [Sexp] . ->* . Sexp))
+(: show-κ ([-κ] [Sexp] . ->* . (Listof Sexp)))
 (define (show-κ κ [v '□])
   (match κ
     [(? -τ? τ) `(,v ↝ ,(show-τ τ))]
@@ -284,9 +284,9 @@
 
 (define (show-ς [ς : -ς]) : (Listof Sexp)
   (match-define (-ς E Γ κ σ Ξ M) ς)
-  `((E: ,(show-E E))
+  `((E: ,@(show-E E))
     (Γ: ,@(show-Γ Γ))
-    (κ: ,(show-κ κ '□))
+    (κ: ,@(show-κ κ '□))
     (σ: ,@(show-σ σ))
     (Ξ: ,@(show-Ξ Ξ))
     (M: ,@(show-M M))))

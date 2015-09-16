@@ -26,9 +26,9 @@
 
 (define (show-Cfg [C : -Cfg]) : (Listof Sexp)
   (match-define (-Cfg E Γ κ) C)
-  `((E: ,(show-E E))
+  `((E: ,@(show-E E))
     (Γ: ,@(show-Γ Γ))
-    (κ: ,(show-κ κ))))
+    (κ: ,@(show-κ κ))))
 
 (define (show-S [S : (Map -Cfg -t)]) : (Listof Sexp)
   (for/list : (Listof Sexp) ([(C t) S])
