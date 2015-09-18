@@ -652,7 +652,7 @@
 
   ; Check whether the propositions would contradict
   ; TODO: pass `M` and `σ`
-  (define Γ₀* (Γ⊓ Γ₀ facts*))
+  (define Γ₀* (MσΓ⊓ M σ Γ₀ facts*))
   (define ans
     (cond
       [Γ₀* (or (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e))))

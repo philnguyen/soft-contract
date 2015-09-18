@@ -2,7 +2,7 @@
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "lang.rkt" "runtime.rkt")
 (provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e V∈p V≡
-         Γ⊓ Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R
+         MσΓ⊓ Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R
          -R
          ;; debugging
          MσΓ⊢₁e Γ⊢e)
@@ -88,6 +88,17 @@
 
   (dbg '⊢rec "~n")
   (or-R (go 2 Γ) (go-rec 2 Γ e)))
+
+(: MσΓ⊓e : -M -σ -Γ -?e → (Option -Γ))
+;; More powerful version of `Γ⊓`
+(define (MσΓ⊓e M σ Γ e)
+  (if (equal? 'X (MσΓ⊢e M σ Γ e)) #f (Γ+ Γ e)))
+
+(: MσΓ⊓ : -M -σ -Γ -es → (Option -Γ))
+;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
+(define (MσΓ⊓ M σ Γ es)
+  (for/fold ([Γ : (Option -Γ) Γ]) ([e es])
+    (and Γ (MσΓ⊓e M σ Γ e))))
 
 (: spurious? : -M -σ -Γ -WVs → Boolean)
 ;; Check whether `e` cannot evaluate to `V` given `Γ` is true
