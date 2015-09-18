@@ -143,7 +143,7 @@
      (match-define (-Cfg E Γ _) Cfg)
      (printf "  E: ~a~n" (show-E E))
      (printf "  Γ:")
-     (for ([e Γ]) (printf " ~a" (show-e e)))
+     (for ([e (show-Γ Γ)]) (printf " ~a" e))
      (printf "~n~n")))
  
 

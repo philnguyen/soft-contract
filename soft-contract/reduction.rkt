@@ -44,7 +44,7 @@
     ;; look up variable
     [(? -x? x)
      (for*/set: : (Setof -Δς) ([V (σ@ σ (ρ@ ρ x))]
-                               [W (in-value (-W (list V) x))]
+                               [W (in-value (-W (list V) (canonicalize Γ x)))]
                                #:unless (spurious? M σ Γ W))
        (match V
          ['undefined ; FIXME hack
@@ -172,7 +172,7 @@
   (match κ
     [(and τ (-τ e _ _))
      (match-define (-W _ ?e) WVs)
-     (define res (-Res ?e Γ))
+     (define res (-Res ?e (-Γ-facts Γ)))
      (define M* (⊔ M e res))
      (match/nd: (-kont → -Δς) (hash-ref Ξ τ)
        [(-kont φ κ*)
@@ -226,7 +226,7 @@
               (match-define (-W V ex) W)
               (define α x #;(-α.bnd x ex Γ))
               (values (ρ+ ρ* x α)
-                      (Γ+ Γ* (-?@ 'equal? (-x x) ex))
+                      (Γ-bind Γ* x ex)
                       (⊔ σ* α V)
                       (cons (cons α V) δσ))))
           (with-Δ δσ '() '() (↦e e ρ* Γ* (-kont (-φ.rt.let (dom ρ)) κ) σ* Ξ M))]
@@ -241,7 +241,7 @@
          (for/fold ([Γ* : -Γ Γ] [σ* : -σ σ] [δσ : -Δσ '()])
                    ([x xs] [V Vs] [ex (split-values ?e n)])
            (define α (ρ@ ρ x))
-           (values (Γ+ Γ* (-?@ 'equal? (-x x) ex))
+           (values (Γ-bind Γ* x ex)
                    (⊔ σ* α V)
                    (cons (cons α V) δσ))))
        (match bnds
@@ -645,13 +645,13 @@
     (for/fold ([e e]) ([x xs] [e_x e_xs] #:when e_x)
       (e/ e x e_x)))
   
-  (define Γ*
-    (for/set: : -Γ ([e Γ] #:when (⊆ (FV e) params))
+  (define facts*
+    (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) params))
       (convert e)))
 
   ; Check whether the propositions would contradict
   ; TODO: pass `M` and `σ`
-  (define Γ₀* (Γ⊓ Γ₀ Γ*))
+  (define Γ₀* (Γ⊓ Γ₀ facts*))
   (define ans
     (cond
       [Γ₀* (or (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e))))

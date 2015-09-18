@@ -27,7 +27,9 @@
 ;; Check if `e` evals to truth if all in `Γ` do
 (define (MσΓ⊢e M σ Γ e)
   (cond
-    [e (or-R (MσΓ⊢₁e M σ Γ e) ((Γ⊢ₑₓₜ) M σ Γ e))]
+    [e
+     (define e* (canonicalize Γ e))
+     (or-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) M σ Γ e*))]
     [else '?]))
 
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
@@ -70,12 +72,11 @@
                (define anses
                  (for*/set: : (Setof -R)
                             ([kase cases]
-                             [Γ* (in-value (-Res-Γ kase))]
-                             [e* (in-value (-Res-e kase))]
-                             [Γ** (in-value (Γ⊓ Γ Γ*))]
-                             #:when Γ**)
-                   (define-values (e** Γ***) (⇓₁ M σ Γ** (assert e*)))
-                   (go-rec (- d 1) Γ*** e**)))
+                             [ψs (in-value (-Res-facts kase))]
+                             [e* (in-value (-Res-e     kase))]
+                             [Γ* (in-value (Γ⊓ Γ ψs))] #:when Γ*)
+                   (define-values (e** Γ**) (⇓₁ M σ Γ* (assert e*)))
+                   (go-rec (- d 1) Γ** e**)))
                (cond
                  [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
                  [(equal? anses {set 'X}) 'X]
@@ -111,7 +112,7 @@
               (equal? '✓ (MσΓ⊢e M σ Γ (-?@ p e))))]
            ['undefined
             (match e
-              [(-x x) (Γ-defines? Γ x)]
+              [(-x x) (Γ-binds? Γ x)]
               [_ #f])]
            ['•
             (match e
@@ -169,7 +170,7 @@
         [(-b #f) 'X]
         [(? -•?) '?]
         [(? -v?) '✓]
-        [(? (λ (x) (∋ Γ x))) '✓]
+        [(? (curry Γ-has? Γ)) '✓]
         ;; constructors
         [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
         ;; special cases
@@ -292,7 +293,7 @@
       [e
        (or-R (⊢e e)
              (for*/fold ([R : -R '?])
-                        ([e₀ Γ] #:when (equal? '? R)
+                        ([e₀ (-Γ-facts Γ)] #:when (equal? '? R)
                          [R* (in-value (e⊢e e₀ e))])
                R*))]
       [else '?]))
@@ -349,11 +350,6 @@
    [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
    [(_ _) '?]))
 
-(: Γ-defines? : -Γ Symbol → Boolean)
-;; Check whether the variable is defined in given environment
-(define (Γ-defines? Γ x)
-  (for/or ([e Γ]) (∋ (FV e) x)))
-
 (: p⇒p : -pred -pred → -R)
 (define (p⇒p p q)
   (cond
@@ -373,10 +369,10 @@
        ; other cases, `p` known to exclude `q` (be careful)
        [(_ _) 'X])]))
 
-(: Γ⊓ : -Γ -Γ → (Option -Γ))
+(: Γ⊓ : -Γ -es → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
-(define (Γ⊓ Γ₀ Γ₁)
-  (for/fold ([Γ : (Option -Γ) Γ₀]) ([e Γ₁])
+(define (Γ⊓ Γ es)
+  (for/fold ([Γ : (Option -Γ) Γ]) ([e es])
     (and Γ (Γ⊓e Γ e))))
 
 (: Γ⊓e : -Γ -?e → (Option -Γ))
@@ -406,10 +402,10 @@
          (e/ e x arg)))
      
      (match/nd: (-Res → -Res) (hash-ref M (assert e))
-       [(-Res e-xs Γ-xs)
+       [(-Res e-xs ψ-xs)
         (define e-args (and e-xs (convert e-xs)))
-        (define Γ-args (for/set: : -Γ ([e Γ-xs]) (convert e)))
-        (-Res e-args Γ-args)])]
+        (define ψ-args (for/set: : -es ([ψ ψ-xs]) (convert ψ)))
+        (-Res e-args ψ-args)])]
         
     [_ -Res⊤]))
 
@@ -417,10 +413,11 @@
 ;; Given propositions `Γ`, generate an overapproximation of environments
 ;; that could have derived it
 (define (invert-Γ M σ Γ)
+  (match-define (-Γ bnds facts) Γ)
 
   ; split environment into propositions that can be further unrolled and the rest
-  (define-values (Γ-unrollable Γ₀)
-    (set-partition (match-λ? (-@ (? -ref?) _ _)) Γ))
+  (define-values (ψs-unrollable ψs₀)
+    (set-partition (match-λ? (-@ (? -ref?) _ _)) facts))
 
   (: go : (Setof -Γ) (Listof -e) → (Setof -Γ))
   ; Join each base environment in `Γs` with each possible inversion of `φs`
@@ -432,12 +429,12 @@
        (for*/fold ([acc : (Setof -Γ) ∅])
                   ([kase : -Res (invert-e M σ id xs)]
                    [Γ : -Γ (go Γs φs*)])
-         (match-define (-Res ψ_i Γ_i) kase)
+         (match-define (-Res ψ_i ψs_i) kase)
          (define Γ₁ (if ψ_i (Γ⊓e Γ ψ_i) Γ))
-         (define Γ₂ (and Γ₁ (Γ⊓ Γ₁ Γ_i)))
+         (define Γ₂ (and Γ₁ (Γ⊓ Γ₁ ψs_i)))
          (if Γ₂ (set-add acc Γ₂) acc))]))
 
-  (go (set Γ₀) (set->list Γ-unrollable)))
+  (go (set (-Γ bnds ψs₀)) (set->list ψs-unrollable)))
 
 (: unfold : -M -σ -e → (Option (Setof -Res)))
 ;; Unfold expression if it has an unfoldable sub-expression
@@ -453,22 +450,22 @@
           (match f
             [(-ref id _)
              (for/set: : (Setof -Res) ([res (invert-e M σ id xs)])
-               (match-define (-Res (? -e? e*) Γ*) res)
-               (define Γ** ; strengthen with induction hypotheses
-                 (for/fold ([Γ** : -Γ Γ*]) ([args (find-calls e* id)])
+               (match-define (-Res (? -e? e*) ψs) res)
+               (define ψs* ; strengthen with induction hypotheses
+                 (for/fold ([ψs* : -es ψs]) ([args (find-calls e* id)])
                    (define hyp
                      (for/fold ([hyp : -e e₀]) ([x xs] [arg args])
                        (e/ hyp x arg)))
-                   (Γ+ Γ** hyp)))
-               (-Res e* Γ**))]
+                   (set-add ψs* hyp)))
+               (-Res e* ψs*))]
             [_ #f])]
          [(? set? reses)
           (for/set: : (Setof -Res) ([res reses])
-            (match-define (cons (cons f* xs*) Γ) res)
-            (-Res (apply -?@ f* xs*) Γ))])]
+            (match-define (cons (cons f* xs*) ψs) res)
+            (-Res (apply -?@ f* xs*) ψs))])]
       [_ #|TODO just this for now|# #f]))
 
-  (: go* : (Listof -e) → (Option (Setof (Pairof (Listof -e) -Γ))))
+  (: go* : (Listof -e) → (Option (Setof (Pairof (Listof -e) -es))))
   (define (go* es)
     (match es
       ['() #f]
@@ -478,13 +475,13 @@
           (match (go* es*)
             [#f #f]
             [(? set? reses)
-             (for/set: : (Setof (Pairof (Listof -e) -Γ)) ([res reses])
-               (match-define (cons es** Γ) res)
-               (cons (cons e es**) Γ))])]
+             (for/set: : (Setof (Pairof (Listof -e) -es)) ([res reses])
+               (match-define (cons es** ψs) res)
+               (cons (cons e es**) ψs))])]
          [(? set? reses)
-          (for/set: : (Setof (Pairof (Listof -e) -Γ)) ([res reses])
-            (match-define (-Res (? -e? #|FIXME|# e*) Γ) res)
-            (cons (cons e* es*) Γ))])]))
+          (for/set: : (Setof (Pairof (Listof -e) -es)) ([res reses])
+            (match-define (-Res (? -e? #|FIXME|# e*) ψs) res)
+            (cons (cons e* es*) ψs))])]))
 
   (go e₀))
 
@@ -501,15 +498,14 @@
        (match f*
          [(-ref id _)
           (define reses*
-            (for*/set: : (Setof -Res)
+            (for*/set: : (Setof (Pairof -e -Γ))
                        ([res (invert-e M σ id xs*)]
-                        [Γ* (in-value (-Res-Γ res))]
-                        [Γ** (in-value (Γ⊓ Γ Γ*))]
-                        #:when Γ**)
-              (-Res (-Res-e res) Γ**)))
+                        [ψs (in-value (-Res-facts res))]
+                        [Γ* (in-value (Γ⊓ Γ ψs))] #:when Γ*)
+              (cons (assert (-Res-e res)) Γ*)))
           (cond
             [(= 1 (set-count reses*))
-             (match-define (-Res e* Γ*) (set-first reses*))
+             (match-define (cons e* Γ*) (set-first reses*))
              (go Γ* (assert e*))]
             [else (values (assert (apply -?@ f* xs*)) Γ)])]
          [_ (values (assert (apply -?@ f* xs*)) Γ)])]
@@ -563,18 +559,18 @@
       (⊔
        (⊔
         (⊔
-         (⊔ -M⊥ -app-body (-Res -l₂ (Γ+ -Γ⊤ (-?@ -null? -l₁))))
+         (⊔ -M⊥ -app-body (-Res -l₂ {set (assert (-?@ -null? -l₁))}))
          -app-body
          (-Res
           (-?@ -cons (-?@ -car -l₁) (-?@ -app (-?@ -cdr -l₁) -l₂))
-          (Γ+ -Γ⊤ (-?@ -cons? -l₁))))
+          {set (assert (-?@ -cons? -l₁))}))
         -len-body
-        (-Res (-b 0) (Γ+ -Γ⊤ (-?@ -null? (-x 'l)))))
+        (-Res (-b 0) {set (assert (-?@ -null? (-x 'l)))}))
        -len-body
        (-Res (-?@ '+ (-b 1) (-?@ -len (-?@ -cdr (-x 'l))))
-             (Γ+ -Γ⊤ (-?@ -cons? (-x 'l)))))
+             {set (assert (-?@ -cons? (-x 'l)))}))
       -map-body
-      (-Res -null (Γ+ -Γ⊤ (-?@ -null? -xs))))
+      (-Res -null {set (assert (-?@ -null? -xs))}))
      -map-body
      (-Res (-?@ -cons (-?@ -f (-?@ -car -xs)) (-?@ -map -f (-?@ -cdr -xs)))
-           (Γ+ -Γ⊤ (-?@ -cons? -xs))))))
+           {set (assert (-?@ -cons? -xs))}))))

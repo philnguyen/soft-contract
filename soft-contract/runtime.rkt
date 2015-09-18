@@ -8,30 +8,82 @@
 ;;;;; Path invariant
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Path invariant represented by expressions known to evaluate to truth without effects
-(define-type -Γ (Setof -e))
-(define -Γ⊤ : -Γ ∅)
+;; Path invariant represented by expressions known to evaluate to truth
+;; independent of mutable states
+;; The bindings `(x ≡ e)` are just a way of storing `(equal? x e)`
+;; for faster queries
+(struct -Γ ([bindings : (Map Symbol -e)] [facts : -es]) #:transparent)
+(define -Γ⊤ (-Γ (hash) ∅))
 (define-type/pred -?e (Option -e))
+
+(: canonicalize : (U -Γ (Map Symbol -e)) (U Symbol -e) → -e)
+;; Rewrite invariant in terms of lexically farthest variables possible
+(define (canonicalize Γ+bnds e)
+  (define bnds (if (-Γ? Γ+bnds) (-Γ-bindings Γ+bnds) Γ+bnds))
+  (match e ; avoid creating new objects in special cases
+    [(or (? symbol? x) (-x x))
+     (assert x) ; hack for TR
+     (hash-ref bnds x (λ () (-x x)))]
+    [(? -e?)
+     (for/fold ([e* : -e e]) ([(x ex) bnds])
+       (e/ e* x ex))]))
 
 (: Γ↓ : -Γ (Setof Symbol) → -Γ)
 ;; Restrict path invariant to given variables
 (define (Γ↓ Γ xs)
-  (for/set: : -Γ ([e Γ] #:when (subset? (FV e) xs)) e))
+  (match-define (-Γ bnds facts) Γ)
+  (cond ; avoid creating new identical object
+    [(equal? xs (dom bnds)) Γ]
+    [else
+     (define bnds*
+       ; should be the case: x ∈ xs ⇒ FV⟦bnds(e)⟧ ⊆ xs
+       (for/hash : (Map Symbol -e) ([(x e) bnds] #:when (∋ xs x))
+         (values x e)))
+     (define facts*
+       (for/set: : -es ([e facts] #:when (⊆ (FV e) xs)) e))
+     (-Γ bnds* facts*)]))
 
 (: Γ+ : -Γ -?e * → -Γ)
+;; Extend path invariant
 (define (Γ+ Γ . es)
-  (for/fold ([Γ : -Γ Γ]) ([e es] #:when e)
-    (set-add Γ e)))
+  (match-define (-Γ bnds facts) Γ)
+  (define facts*
+    (for/fold ([facts* : -es facts]) ([e es] #:when e)
+      (set-add facts* (canonicalize bnds e))))
+  (-Γ bnds facts*))
+
+(: Γ-bind : -Γ Symbol -?e → -Γ)
+;; Extend path invariant with given binding
+(define (Γ-bind Γ x e)
+  (cond
+    [e
+     (match-define (-Γ bnds facts) Γ)
+     (-Γ (hash-set bnds x (canonicalize bnds e)) facts)]
+    [else Γ]))
 
 (: FV-Γ : -Γ → (Setof Symbol))
-(define (FV-Γ Γ)
-  (for/fold ([xs : (Setof Symbol) ∅]) ([e : -e Γ])
-    (set-union xs (FV e))))
+(define (FV-Γ Γ) (dom (-Γ-bindings Γ)))
 
 (: Γ/ : -Γ Symbol -e → -Γ)
 (define (Γ/ Γ x e)
-  (for/set: : -Γ ([ei Γ])
-    (e/ ei x e)))
+  (match-define (-Γ bnds facts) Γ)
+  ; if variable is an alias for another expression `eₓ`,
+  ; perform substitution in terms of that expression `eₓ`
+  (define pt : (U Symbol -e) (hash-ref bnds x (λ () x)))
+  (define bnds*
+    (for/hash : (Map Symbol -e) ([(x e₀) bnds]) (values x (e/ e₀ pt e))))
+  (define facts*
+    (for/set: : -es ([e₀ facts]) (e/ e₀ pt e)))
+  (-Γ bnds* facts*))
+
+(: Γ-binds? : -Γ Symbol → Boolean)
+;; Check if variable is bound in path invariant
+(define (Γ-binds? Γ x)
+  (hash-has-key? (-Γ-bindings Γ) x))
+
+(: Γ-has? : -Γ -?e → Boolean)
+;; Check if `Γ` readily remembers `e`
+(define (Γ-has? Γ e) (∋ (-Γ-facts Γ) e))
 
 (define (show-?e [e : -?e]) : Sexp
   (cond [e (show-e e)]
@@ -39,7 +91,11 @@
 
 (: show-Γ : -Γ → (Listof Sexp))
 (define (show-Γ Γ)
-  (for/list ([e Γ]) (show-e e)))
+  (match-define (-Γ bnds facts) Γ)
+  `(,@(for/list : (Listof Sexp) ([(x e) bnds])
+        `(≡ ,x ,(show-e e)))
+    ,@(for/list : (Listof Sexp) ([e facts])
+        (show-e e))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -263,21 +319,21 @@
 ;;;;; Summarization table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -Res ([e : -?e] [Γ : -Γ]) #:transparent)
-(define -Res⊤ (-Res #f -Γ⊤))
+(struct -Res ([e : -?e] [facts : -es]) #:transparent)
+(define -Res⊤ (-Res #f ∅))
 (define-type -M (MMap -e -Res))
 (define-type -ΔM (ΔMap -e -Res))
 (define -M⊥ : -M (hash))
 
-(: M⊔ : -M -e -WVs -Γ → -M)
+(: M⊔ : -M -e -WVs -es → -M)
 ;; Update summarization table
-(define (M⊔ M e W Γ)
+(define (M⊔ M e W es)
   (match-define (-W _ ?e) W)
-  (⊔ M e (-Res ?e Γ)))
+  (⊔ M e (-Res ?e es)))
 
 (define (show-Res [r : -Res]) : (Listof Sexp)
-  (match-define (-Res e Γ) r)
-  `(,(show-?e e) : ,@(show-Γ Γ)))
+  (match-define (-Res e es) r)
+  `(,(show-?e e) : ,@(show-es es)))
 
 (define (show-M [M : -M]) : (Listof Sexp)
   (for/list : (Listof Sexp) ([(e Reses) M])

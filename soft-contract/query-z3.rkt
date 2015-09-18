@@ -33,7 +33,7 @@
             (cons `(declare-const ,x Real) decs)]
            [else decs])))
      (define premises
-       (for*/list : (Listof Sexp) ([e Γ] [s (in-value (t e))] #:when s)
+       (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)] [s (in-value (t e))] #:when s)
          `(assert ,s)))
      (call-with declarations premises conclusion)]
     [else '?]))
@@ -56,7 +56,7 @@
 (: γ : -Γ → (Listof Sexp))
 ;; Translate an environment into a list of expressions
 (define (γ Γ)
-  (for*/list : (Listof Sexp) ([e Γ] [s (in-value (t e))] #:when s) s))
+  (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)] [s (in-value (t e))] #:when s) s))
 
 ;; translate Racket symbol to Z3 symbol
 (: rkt→z3 : -r² → Symbol)

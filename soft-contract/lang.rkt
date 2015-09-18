@@ -7,7 +7,6 @@
 
 ;; I prefix types with dashes so I can use 1-letter variables without shadowing constructors
 
-
 (struct (X) -begin ([body : (Listof X)]) #:transparent)
 (define-type -begin/e (-begin -e))
 (define-type -begin/top (-begin -top-level-form))
@@ -113,7 +112,7 @@
   (struct -set! [x : Symbol] [e : -e])
 
   (struct -@-havoc [x : -x]) ; hack for havoc to detect argument's arity at runtime
-  (struct -amb [es : (Setof -e)])
+  (struct -amb [es : -es])
   
   ;; contract stuff
   (struct -μ/c [x : Symbol] [c : -e])
@@ -123,6 +122,8 @@
   #;(-and/c [l : .e] [r : .e])
   #;(-or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
+
+(define-type -es (Setof -e))
 
 (: -formal-names : -formals → (Setof Symbol))
 ;; Return all variable names in function's parameter list
@@ -569,7 +570,7 @@
               (cons xs (go ex))))
           (-letrec-values bnds* (go e*) l)])]
       [(-set! z e*) (-set! z (go e*))]
-      [(-amb es) (-amb (for/set: : (Setof -e) ([ei es]) (go ei)))]
+      [(-amb es) (-amb (for/set: : -es ([ei es]) (go ei)))]
       [(-μ/c z c) (-μ/c z (go c))]
       [(-->i doms rng)
        (define-values (xs cs)
@@ -647,7 +648,7 @@
        [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
        [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
        [(l r) `(or ,l ,r)])]
-    [(-@ (-st-mk (-id (and n (or 'and/c 'or/c 'not/c)) 'Λ) _) c* _) `(,n ,@(map show-e c*))]
+    [(-@ (-st-mk (-id (and n (or 'and/c 'or/c 'not/c)) 'Λ) _) c* _) `(,n ,@(show-es c*))]
     #| TODO obsolete? 
     [(-if (and e (-•ₗ α)) e₁ e₂)
     (match (σ@ σ α)
@@ -688,10 +689,10 @@
              `(,xs ,(show-e ex)))
         ,(show-e body))]
     [(-set! x e) `(set! ,x ,(show-e e))]
-    [(-@ f xs _) `(,(show-e f) ,@(map show-e xs))]
+    [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
     [(-@-havoc x) `(havoc ,(show-e x))]
-    [(-begin es) `(begin ,@(map show-e es))]
-    [(-begin0 e es) `(begin ,(show-e e) ,@(map show-e es))]
+    [(-begin es) `(begin ,@(show-es es))]
+    [(-begin0 e es) `(begin ,(show-e e) ,@(show-es es))]
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
@@ -701,4 +702,7 @@
                            `(,x : ,(show-e c)))
                        ↦ ,(show-e rng))]
     [(-x/c x) x]
-    [(-struct/c t cs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-e cs))]))
+    [(-struct/c t cs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(show-es cs))]))
+
+(define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
+  (for/list ([e es]) (show-e e)))
