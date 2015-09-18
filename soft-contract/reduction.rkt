@@ -123,7 +123,7 @@
                            κ))
         (with-Δ δσ '() '() (↦e e* ρ* Γ κ* σ* Ξ M))])]
     [(-set! x e*)
-     (↦e e* ρ Γ (-kont (-φ.set! (ρ@ ρ x)) κ) σ Ξ M)]
+     (↦e e* ρ Γ (-kont (-φ.set! x (ρ@ ρ x)) κ) σ Ξ M)]
     ;; @-havoc
     [(-@-havoc x)
      (define (mk-args [n : Integer]) : (Listof -WV) ; FIXME hack
@@ -252,10 +252,11 @@
          [(cons (cons xs* e*) bnds*)
           (with-Δ δσ '() '()
             (↦e e* ρ Γ* (-kont (-φ.letrec-values xs* bnds* ρ e l) κ) σ* Ξ M))]))]
-    [(-φ.set! α)
+    [(-φ.set! x α)
      (with-guarded-arity 1 'TODO 'set!
-       (define Γ* #|FIXME update!!|# Γ)
-       ; TODO: might not need to erase (set! x _)
+       (define Γ* (Γ-reset Γ x ?e))
+       ; TODO: might not need to erase `set! x e`
+       ; if `e` doesn't depend on mutable state
        (-Δς (-W -Void/Vs #f) Γ* κ (list (cons α (first Vs))) '() '()))]
     ;; Application
     [(-φ.@ Es WVs↓ l)

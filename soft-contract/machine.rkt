@@ -58,7 +58,7 @@
     [env : -ρ]
     [body : -e]
     [ctx : Mon-Party])
-  (struct -φ.set! [α : -α])
+  (struct -φ.set! [x : Symbol] [α : -α]) ; need both variable and address
   (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
@@ -132,7 +132,7 @@
                    (match-define (cons x e_x) bnd)
                    `[,x ,(show-e e_x)]))
         ,(show-e body))]
-    [(-φ.set! α) `(set! ,(show-α α) ,v)]
+    [(-φ.set! x _) `(set! ,x ,v)]
     [(-φ.@ Es Ws _)
      `(,@(reverse (map show-V (map (inst -W-x -V) Ws)))
        ,v ,@(map show-E Es))]

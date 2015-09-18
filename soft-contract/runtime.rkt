@@ -61,6 +61,22 @@
      (-Γ (hash-set bnds x (canonicalize bnds e)) facts)]
     [else Γ]))
 
+(: Γ-invalidate : -Γ Symbol → -Γ)
+;; Discard all propositions in `Γ` involving `x`
+(define (Γ-invalidate Γ x)
+  (match-define (-Γ bnds facts) Γ)
+  (define bnds*
+    (for/hash : (Map Symbol -e)
+              ([(z ez) bnds] #:unless (or (equal? z x) (∋ (FV ez) x)))
+      (values z ez)))
+  (define facts* (for/set: : -es ([e facts] #:unless (∋ (FV e) x)) e))
+  (-Γ bnds* facts*))
+
+(: Γ-reset : -Γ Symbol -?e → -Γ)
+;; Reset binding for variable `x`
+(define (Γ-reset Γ x e)
+  (Γ-bind (Γ-invalidate Γ x) x e))
+
 (: FV-Γ : -Γ → (Setof Symbol))
 (define (FV-Γ Γ) (dom (-Γ-bindings Γ)))
 
