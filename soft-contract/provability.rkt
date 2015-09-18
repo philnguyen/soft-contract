@@ -447,10 +447,10 @@
 
   (go (set (-Γ bnds ψs₀)) (set->list ψs-unrollable)))
 
-(: unfold : -M -σ -e → (Option (Setof -Res)))
-;; Unfold expression if it has an unfoldable sub-expression
-;; Return #f otherwise (no change).
-(define (unfold M σ e₀)
+(: unfold ([-M -σ -e] [(-id (Listof -e) → Boolean)] . ->* . (Option (Setof -Res))))
+;; Unfold the first appropriate expression according to `unfold-this-one?`.
+;; Return #f if couldn't find one to unfold.
+(define (unfold M σ e₀ [unfold-this-one? (λ (id args) #t)])
 
   (: go : -e → (Option (Setof -Res)))
   (define (go e)
@@ -460,15 +460,17 @@
          [#f
           (match f
             [(-ref id _)
-             (for/set: : (Setof -Res) ([res (invert-e M σ id xs)])
-               (match-define (-Res (? -e? e*) ψs) res)
-               (define ψs* ; strengthen with induction hypotheses
-                 (for/fold ([ψs* : -es ψs]) ([args (find-calls e* id)])
-                   (define hyp
-                     (for/fold ([hyp : -e e₀]) ([x xs] [arg args])
-                       (e/ hyp x arg)))
-                   (set-add ψs* hyp)))
-               (-Res e* ψs*))]
+             (and
+              (unfold-this-one? id xs)
+              (for/set: : (Setof -Res) ([res (invert-e M σ id xs)])
+                (match-define (-Res (? -e? e*) ψs) res)
+                (define ψs* ; strengthen with induction hypotheses
+                  (for/fold ([ψs* : -es ψs]) ([args (find-calls e* id)])
+                    (define hyp
+                      (for/fold ([hyp : -e e₀]) ([x xs] [arg args])
+                        (e/ hyp x arg)))
+                    (set-add ψs* hyp)))
+                (-Res e* ψs*)))]
             [_ #f])]
          [(? set? reses)
           (for/set: : (Setof -Res) ([res reses])
