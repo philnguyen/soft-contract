@@ -11,14 +11,14 @@
   (make-parameter (λ (M σ Γ e) (log-warning "external solver not set") '?)))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
-;; Check whether value satisfies (flat) contract
+;; Check if value satisfies (flat) contract
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W V e_v) W_v)
   (match-define (-W C e_c) W_c)
   (or-R (V∈V V C) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
 
 (: MσΓ⊢oW : -M -σ -Γ -pred -WV → -R)
-;; Check whether value `W` satisfies predicate `p`
+;; Check if value `W` satisfies predicate `p`
 (define (MσΓ⊢oW M σ Γ p W)
   (match-define (-W V e) W)
   (or-R (V∈p V p) (MσΓ⊢e M σ Γ (-?@ p e))))
@@ -101,7 +101,7 @@
     (and Γ (MσΓ⊓e M σ Γ e))))
 
 (: spurious? : -M -σ -Γ -WVs → Boolean)
-;; Check whether `e` cannot evaluate to `V` given `Γ` is true
+;; Check if `e` cannot evaluate to `V` given `Γ` is true
 ;;   return #t --> `(e ⇓ V)` is spurious
 ;;   return #f --> don't know (safe answer)
 (define (spurious? M σ Γ W)
@@ -225,7 +225,7 @@
            [(-b b) (decide-R (real? b))]
            [(-@ o (list es ...) _)
             (match o
-              [(or 'string-length #|TODO|# 'round 'floor 'ceiling) '✓]
+              [(or 'string-length 'vector-length #|TODO|# 'round 'floor 'ceiling) '✓]
               [(or '+ '- '* 'add1 'sub1 'abs)
                (cond [(for/and : Boolean ([ei es])
                         (equal? '✓ (Γ⊢e Γ (assert (-?@ 'integer? ei)))))
@@ -239,7 +239,7 @@
            [(-b b) (decide-R (real? b))]
            [(-@ o (list es ...) _)
             (match o
-              [(or 'string-length 'round 'floor 'ceiling) '✓]
+              [(or 'string-length 'vector-length 'round 'floor 'ceiling) '✓]
               [(or '+ '- '* 'add1 'sub1 'abs)
                (cond [(for/and : Boolean ([ei es])
                         (equal? '✓ (Γ⊢e Γ (assert (-?@ 'real? ei)))))
@@ -253,7 +253,8 @@
            [(-b b) (decide-R (number? b))]
            [(-@ o (list es ...) _)
             (match o
-              [(or 'string-length 'round 'floor 'ceiling '+ '- '* 'add1 'sub1 'abs)
+              [(or 'string-length 'vector-length 'round 'floor 'ceiling
+                   '+ '- '* 'add1 'sub1 'abs)
                '✓]
               [(or (? -pred?) (? -st-mk?)) 'X]
               [_ '?])]
@@ -318,7 +319,7 @@
   ans)
 
 (: ⊢V : -V → -R)
-;; Check whether value represents truth
+;; Check if value represents truth
 (define ⊢V
   (match-lambda
     [(-b #f) 'X]
@@ -326,7 +327,7 @@
     [_ '✓]))
 
 (: V∈V : -V -V → -R)
-;; Check whether value satisfies predicate
+;; Check if value satisfies predicate
 (define (V∈V V P)
   (cond
     [(-pred? P) (V∈p V P)]
@@ -338,7 +339,7 @@
        [_ '?])]))
 
 (: V∈p : -V -pred → -R)
-;; Check whether value satisfies predicate
+;; Check if value satisfies predicate
 (define (V∈p V p)
   (define-syntax-rule (with-prim-checks p? ...)
     (case p
@@ -352,6 +353,11 @@
          [(or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?)) '✓]
          ['• '?]
          [_ 'X])]
+      [(vector?)
+       (match V
+         [(? -Vector?) '✓]
+         ['• '?]
+         [_ 'X])]
       [else
        (match-define (-st-p id n) p)
        (match V
@@ -361,7 +367,7 @@
   (with-prim-checks integer? real? number? not boolean? string? symbol? keyword?))
 
 (: V≡ : -V -V → -R)
-;; Check whether 2 values are `equal?`
+;; Check if 2 values are `equal?`
 (define V≡
   (match-lambda**
    [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]

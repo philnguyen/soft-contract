@@ -395,6 +395,11 @@
     [(~or (~literal cdr) (~literal unsafe-cdr)) -cdr]
     [(~literal cons?) -cons?]
     [(~literal values) 'values]
+    [(~literal vector) 'vector]
+    [(~literal vector-ref) 'vector-ref]
+    [(~literal vector-set!) 'vector-set!]
+    [(~literal vector-length) 'vector-length]
+    [(~literal vector?) 'vector?]
     ;; Temporary ops
     [(~literal sqr) 'sqr]
     [_ #f]))

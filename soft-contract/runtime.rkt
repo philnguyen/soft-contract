@@ -128,6 +128,7 @@
     [rng : -e] [env : -ρ] [Γ : -Γ]
     [v : -α] [l³ : Mon-Info])
   (struct -St [tag : -id] [fields : (Listof -α)])
+  (struct -Vector [fields : (Listof -α)])
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -=>i

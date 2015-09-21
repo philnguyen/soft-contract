@@ -90,6 +90,30 @@
            [else '()]))
        (values δσ ans))]
 
+    ;; vector constructor
+    ['vector
+     (define αs (alloc-fields (-id 'vector 'Λ) (length Ws) pos Ws))
+     (define δσ : -Δσ
+       (for/list ([α αs] [W Ws])
+         (cons α (close-Γ Γ (-W-x W)))))
+     (values δσ (-AΓ (list (-Vector αs)) Γ))]
+
+    ['vector-length
+     (with-guarded-arity 1
+       (match-define (list W (-W V e)) Ws)
+       (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W (-W 'vector? 'vector?)))
+       (define ans-bad (and Γ-bad (-AΓ (-blm l (show-o o) 'vector? (list V)) Γ-bad)))
+       (define ans-ok
+         (and Γ-ok
+              (match V
+                [(-Vector αs) (-AΓ (list (-b (length αs))) Γ-ok)]
+                [_ (-AΓ (list '•) Γ-ok)])))
+       (define ans
+         (cond [(and ans-ok ans-bad) {set ans-ok ans-bad}]
+               [ans-ok ans-ok]
+               [else (assert ans-bad)]))
+       (values '() ans))]
+
     ;; Equality
     ['equal?
      (with-guarded-arity 2

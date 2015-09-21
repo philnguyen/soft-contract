@@ -83,12 +83,14 @@
             ;; `arity` is the number of fields in the struct
             (struct -st-p [tag : -id] [arity : Integer])
             'defined?
-            'number? 'real? 'integer? 'not 'boolean? 'string? 'symbol? 'procedure? 'keyword?)
+            'number? 'real? 'integer? 'not 'boolean? 'string? 'symbol? 'procedure? 'keyword?
+            'vector?)
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
           (struct -st-ac [tag : -id] [arity : Integer] [index : Integer])
           'add1 'sub1 'string-length 'sqrt
           'sin 'cos 'tan 'abs 'round 'floor 'ceiling 'log
+          'vector-length
           ;; temporary ops
           'sqr
           )
@@ -97,9 +99,10 @@
           'expt 'abs 'min 'max
           'arity=? 'arity>=? 'arity-includes?
           'remainder 'quotient
-          'set-box!
+          'vector-ref
           (struct -st-mut [tag : -id] [arity : Integer] [index : Integer]))
-        (struct -st-mk [tag : -id] [arity : Integer]))))
+        (struct -st-mk [tag : -id] [arity : Integer])
+        'vector 'vector-set!)))
   ;; lexical variables
   (struct -x [name : Symbol])
   ;; module references
