@@ -6,10 +6,11 @@
  )
 (provide (all-defined-out))
 
-(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → (Values -Δσ -AΓs))
+(: δ : -M -σ -Γ -o (Listof -WV) -src-loc → (Values -Δσ -AΓs))
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
-(define (δ M σ Γ o Ws l)
+(define (δ M σ Γ o Ws loc)
+  (match-define (-src-loc l pos) loc)
   
   (define-syntax-rule (with-guarded-arity n e ...)
     (cond
@@ -18,7 +19,7 @@
        (values
         '()
         (-AΓ (-blm l (show-o o)
-                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ⊥ -Γ⊤)
+                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤)
                    (WVs->Vs Ws))
              Γ))]))
   
@@ -41,7 +42,7 @@
     ;; Constructor
     [(-st-mk id n)
      (with-guarded-arity n
-       (define αs (alloc-immut-fields o Ws))
+       (define αs (alloc-fields id n pos Ws))
        (define δσ : -Δσ
          (for/list ([α αs] [W Ws])
            (cons α (close-Γ Γ (-W-x W)))))
@@ -52,27 +53,42 @@
      (with-guarded-arity 1
        (match-define (list (and W (-W V e))) Ws)
        (define prd (-st-p id n))
-       (define ok-arg? (-?@ prd e))
-       (define Γ-ok  (Γ+ Γ ok-arg?))
-       (define Γ-bad (Γ+ Γ (-not ok-arg?)))
-       (define (blm-bad-arg) (-AΓ (-blm l (show-o o) prd (list V)) Γ-bad))
-       (match V
-         [(-St id* αs)
-          (cond
-            [(equal? id id*)
-             (define AΓs
-               (for/set: : (Setof -AΓ) ([V (σ@ σ (list-ref αs i))])
-                 (-AΓ (list V) Γ)))
-             (values '() AΓs)]
-            [else (values '() (blm-bad-arg))])]
-         ['•
-          (define ans
-            (match (MσΓ⊢e M σ Γ ok-arg?)
-              ['✓ (-AΓ (list '•) (Γ+ Γ ok-arg?))]
-              ['X (blm-bad-arg)]
-              ['? {set (-AΓ (list '•) (Γ+ Γ ok-arg?)) (blm-bad-arg)}]))
-          (values '() ans)]
-         [_ (values '() (blm-bad-arg))]))]
+       (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W (-W prd prd)))
+       (define ans-ok
+         (and
+          Γ-ok
+          (match V
+            [(-St _ αs)
+             (for/set: : (Setof -AΓ) ([V (σ@ σ (list-ref αs i))])
+               (-AΓ (list V) Γ-ok))]
+            [_ (-AΓ (list '•) Γ-ok)])))
+       (define ans-bad
+         (and Γ-bad (-AΓ (-blm l (show-o o) prd (list V)) Γ-bad)))
+       (define ans
+         (cond [(and ans-ok ans-bad)
+                (cond [(set? ans-ok) (set-add ans-ok ans-bad)]
+                      [else {set ans-ok ans-bad}])]
+               [ans-ok ans-ok]
+               [else (assert ans-bad)]))
+       (values '() ans))]
+
+    ;; Mutator
+    [(-st-mut id n i)
+     (with-guarded-arity 2
+       (match-define (list (and W₁ (-W V₁ e₁)) (-W V₂ e₂)) Ws)
+       (define prd (-st-p id n))
+       (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W₁ (-W prd prd)))
+       (define ans-bad (and Γ-bad (-AΓ (-blm l (show-o o) prd (list V₁)) Γ-bad)))
+       (define ans-ok  (and Γ-ok  (-AΓ -Void/Vs Γ-ok)))
+       (define ans
+         (cond [(and ans-ok ans-bad) {set ans-ok ans-bad}]
+               [ans-ok ans-ok]
+               [else (assert ans-bad)]))
+       (define δσ
+         (match V₁
+           [(-St id* αs) (list (cons (list-ref αs i) V₂))]
+           [else '()]))
+       (values δσ ans))]
 
     ;; Equality
     ['equal?

@@ -136,9 +136,9 @@
           (match xs
             [(? list?) (length xs)]
             [(-varargs zs _) (+ 1 (length zs))]))
-        (↦@ (-W V x) (mk-args n) Γ κ σ Ξ M ☠)]
+        (↦@ (-W V x) (mk-args n) Γ κ σ Ξ M -havoc-src)]
        [(and V (-Ar xs _ _ _ _ _ _ _))
-        (↦@ (-W V x) (mk-args (length xs)) Γ κ σ Ξ M ☠)]
+        (↦@ (-W V x) (mk-args (length xs)) Γ κ σ Ξ M -havoc-src)]
        [V
         (log-debug "havoc: ignore first-order value ~a" (show-V V))
         ∅])]
@@ -147,9 +147,9 @@
      (match/nd: (-e → -Δς) es
        [ei (↦e ei ρ Γ κ σ Ξ M)])]
     ;; contract stuff
-    [(-μ/c x c)
+    [(-μ/c x c _)
      (error '↦e "TODO: μ/c")]
-    [(-->i doms rng)
+    [(-->i doms rng pos)
      (match doms
        ['()
         (define C (-=>i '() '() '() rng ρ Γ))
@@ -157,14 +157,14 @@
        [(cons dom doms*)
         (match-define (cons x c) dom)
         (define-values (xs* cs*) (unzip doms*))
-        (↦e c ρ Γ (-kont (-φ.=>i cs* '() '() (cons x xs*) rng ρ) κ) σ Ξ M)])]
+        (↦e c ρ Γ (-kont (-φ.=>i cs* '() '() (cons x xs*) rng ρ pos) κ) σ Ξ M)])]
     [(-x/c x)
      (error '↦e "TODO: x/c")]
-    [(-struct/c id cs)
+    [(-struct/c id cs pos)
      (match cs
        ['() (-Δς (-W (list (-St/C id '())) e) Γ κ '() '() '())]
        [(cons c cs*)
-        (↦e c ρ Γ (-kont (-φ.struct/c id cs* ρ '()) κ) σ Ξ M)])]
+        (↦e c ρ Γ (-kont (-φ.struct/c id cs* ρ '() pos) κ) σ Ξ M)])]
     ))
 
 (: ↦κ : -WVs -Γ -κ -σ -Ξ -M → -Δς*)
@@ -191,7 +191,7 @@
         [(= n (length Vs)) e ...]
         [else
          (-Δς (-blm l+ lo
-                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 'Λ) -ρ⊥ -Γ⊤)
+                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤)
                    Vs)
              Γ κ '() '() '())])))
   
@@ -259,17 +259,18 @@
        ; if `e` doesn't depend on mutable state
        (-Δς (-W -Void/Vs #f) Γ* κ (list (cons α (first Vs))) '() '()))]
     ;; Application
-    [(-φ.@ Es WVs↓ l)
+    [(-φ.@ Es WVs↓ loc)
+     (match-define (-src-loc l pos) loc)
      (with-guarded-arity 1 l 'apply
        (match-define (list V) Vs)
        (define WVs↓* (cons (-W V ?e) WVs↓))
         (match Es
           ['()
            (match-define (cons W_f W_xs) (reverse WVs↓*))
-           (↦@ W_f W_xs Γ κ σ Ξ M l)]
+           (↦@ W_f W_xs Γ κ σ Ξ M loc)]
           ;; Swap next argument for evaluation
           [(cons E* Es*)
-           (-Δς E* Γ (-kont (-φ.@ Es* WVs↓* l) κ) '() '() '())]))]
+           (-Δς E* Γ (-kont (-φ.@ Es* WVs↓* loc) κ) '() '() '())]))]
     ;; Begin
     [(-φ.begin es ρ)
      (match es
@@ -308,7 +309,7 @@
          [(-WV? C) (↦mon C W_V Γ κ σ Ξ M l³)]
          [else (-Δς C Γ (-kont (-φ.mon.c W_V l³) κ) '() '() '())]))]
     ;; indy
-    [(-φ.indy.dom x xs cs Cs W_xs doms↓ V_f d ρ_d l³)
+    [(-φ.indy.dom x xs cs Cs W_xs doms↓ V_f d ρ_d l³ pos)
      (with-guarded-arity 1 'Λ 'Λ
        (match-define (list V) Vs)
        (define l³* (swap-parties l³))
@@ -316,19 +317,19 @@
        (match* (xs cs Cs W_xs)
          [('() '() '() '())
           (define args (map (inst cdr Symbol -WV) (reverse doms↓*))) ; TODO
-          (↦e d ρ_d Γ (-kont (-φ.indy.rng V_f args l³) κ) σ Ξ M)]
+          (↦e d ρ_d Γ (-kont (-φ.indy.rng V_f args l³ pos) κ) σ Ξ M)]
          [((cons x* xs*) (cons c* cs*) (cons C* Cs*) (cons W_x* W_xs*))
           (define W_c* (-W C* c*))
-          (define κ* (-kont (-φ.indy.dom x* xs* cs* Cs* W_xs* doms↓* V_f d ρ_d l³) κ))
+          (define κ* (-kont (-φ.indy.dom x* xs* cs* Cs* W_xs* doms↓* V_f d ρ_d l³ pos) κ))
           (↦mon W_c* W_x* Γ κ* σ Ξ M l³*)]))]
-    [(-φ.indy.rng V_f args l³)
+    [(-φ.indy.rng V_f args l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
        (match-define (list V) Vs)
        (define W_d (-W V ?e))
        (define W_f (-W V_f (-x 'f•))) ; FIXME temp. hack
        (define κ* (-kont (-φ.mon.v W_d l³) κ))
-       (↦@ W_f args Γ κ* σ Ξ M lo))]
+       (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos)))]
     ;; restore path invariant in previous context
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
@@ -346,11 +347,11 @@
      (define Γ* (Γ↓ Γ dom₀))
      (-Δς (-W (close-Γ Γ Vs) e*) Γ* κ '() '() '())]
     ;; contract stuff
-    [(-φ.μc x)
+    [(-φ.μc x _)
      (match Vs
        [(list V) (error '↦WVs "TODO: μ/c")]
        [_ (error '↦WVs "TODO: catch arity error for μ/c")])]
-    [(-φ.struct/c id es ρ WVs↓)
+    [(-φ.struct/c id es ρ WVs↓ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
        (define WVs↓* (cons (-W V ?e) WVs↓))
@@ -363,9 +364,7 @@
             (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()] [δσ : -Δσ '()])
                       ([WV WVs↓*] [i (in-range n)])
               (match-define (-W V e) WV)
-              (define α
-                (cond [e (-α.val e)]
-                      [else (-α.opq (id/c id) #f #|FIXME|# i)]))
+              (define α (-α.fld (id/c id) pos i))
               (values (cons α αs)
                       (⊔ σ* α V)
                       (cons e es*)
@@ -374,8 +373,8 @@
           (define e_C (-?struct/c id es*))
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons e es*)
-          (↦e e ρ Γ (-kont (-φ.struct/c id es* ρ WVs↓*) κ) σ Ξ M)]))]
-    [(-φ.=>i cs Cs↓ cs↓ xs rng ρ)
+          (↦e e ρ Γ (-kont (-φ.struct/c id es* ρ WVs↓* pos) κ) σ Ξ M)]))]
+    [(-φ.=>i cs Cs↓ cs↓ xs rng ρ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
        (define Cs↓* (cons V Cs↓))
@@ -387,9 +386,7 @@
             ;; (domains are reversed compared to `Cs↓*`)
             (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()] [δσ : -Δσ '()])
                       ([C Cs↓*] [c cs↓*] [i (in-naturals)])
-              (define γ
-                (cond [c (-α.val c)]
-                      [else (-α.opq (-id '->/i 'Λ) #f #|TODO|# i)]))
+              (define γ (-α.fld (-id '-> 'Λ) pos i))
               (values (cons γ γs)
                       (⊔ σ* γ C)
                       (cons c cs*)
@@ -398,7 +395,7 @@
           (define e_C (-?->i xs cs* rng))
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons c cs*)
-          (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rng ρ) κ) σ Ξ M)]))]
+          (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rng ρ pos) κ) σ Ξ M)]))]
     ))
 
 (: ↦blm : -blm -Γ -κ -σ -Ξ -M → -Δς*)
@@ -414,9 +411,10 @@
        [(-φ.rt.let dom) (-Δς blm (Γ↓ Γ dom) κ* '() '() '())]
        [_ (↦blm blm Γ κ* σ Ξ M)])]))
 
-(: ↦@ : -WV (Listof -WV) -Γ -κ -σ -Ξ -M Mon-Party → -Δς*)
+(: ↦@ : -WV (Listof -WV) -Γ -κ -σ -Ξ -M -src-loc → -Δς*)
 ;; Stepping rules for function application
-(define (↦@ W_f W_xs Γ κ σ Ξ M l)
+(define (↦@ W_f W_xs Γ κ σ Ξ M loc)
+  (match-define (-src-loc l pos) loc)
 
   (match-define (-W V_f e_f) W_f)
   (define-values (V_xs e_xs) ((inst unzip-by -WV -V -?e) -W-x -W-e W_xs))
@@ -445,17 +443,17 @@
 
   (: ↦δ : -o → -Δς*)
   (define (↦δ o)
-    (define-values (δσ AΓs) (δ M σ Γ o W_xs l))
+    (define-values (δσ AΓs) (δ M σ Γ o W_xs loc))
     (match/nd: (-AΓ → -Δς) AΓs
       [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ δσ '() '())]
       [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ δσ '() '())]))
   
   (: ↦havoc : → (Setof -Δς))
   (define (↦havoc)
-    (define V_havoc (σ@₁ σ (-α.def havoc-id)))
-    (define W_havoc (-W V_havoc (-ref havoc-id l)))
+    (define V_havoc (σ@₁ σ (-α.def -havoc-id)))
+    (define W_havoc (-W V_havoc (-ref -havoc-id l)))
     (for/fold ([acc : (Setof -Δς) ∅]) ([W_x W_xs])
-      (match (↦@ W_havoc (list W_x) Γ κ σ Ξ M 'Λ)
+      (match (↦@ W_havoc (list W_x) Γ κ σ Ξ M -Λ)
         [(? set? s) (∪ acc s)]
         [(? -Δς? ς) (set-add acc ς)])))
 
@@ -469,13 +467,13 @@
     (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
     (match* (xs cs Cs W_xs)
       [('() '() '() '())
-       (define κ₂ (-kont (-φ.indy.rng V_g '() l³) κ₁))
+       (define κ₂ (-kont (-φ.indy.rng V_g '() l³ pos) κ₁))
        (↦e d ρ_d Γ_d κ₂ σ Ξ M)]
       [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
        (define l³* (swap-parties l³))
        (define W_c (-W C c))
        (define W_x* (-W (-W-x W_x) (-x x)))
-       (define κ₂ (-kont (-φ.indy.dom x xs* cs* Cs* W_xs* '() V_g d ρ_d l³) κ₁))
+       (define κ₂ (-kont (-φ.indy.dom x xs* cs* Cs* W_xs* '() V_g d ρ_d l³ pos) κ₁))
        (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³*)]))
   
   (match V_f
@@ -512,8 +510,8 @@
           (and Γ-ok
                (let ()
                  (define α
-                   (cond [e_v (-α.val e_v)]
-                         [else (-α.opq (-id 'Ar 'Λ) #f #|FIXME|# 1)]))
+                   (cond [e_v (-α.tmp e_v)]
+                         [else (-α.fld (-id 'Ar 'Λ) #f #|FIXME|# 0)]))
                  (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
                  (define δσ (list (cons α V)))
                  (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))))
@@ -550,7 +548,7 @@
                    (match mons
                      ['() (-Δς (-W (list (-St id '())) (-?@ k)) Γ-ok κ '() '() '())]
                      [(cons mon mons*)
-                      (define κ* (-kont (-φ.@ mons* (list (-W k k)) lo) κ))
+                      (define κ* (-kont (-φ.@ mons* (list (-W k k)) (-src-loc lo #f #|FIXME|#)) κ))
                       (-Δς mon Γ-ok κ* '() '() '())])))))
         (cond
           [(and ς-ok ς-bad) (set-add ς-ok ς-bad)]
@@ -602,7 +600,7 @@
                    Γ κ '() '() '())])])]
        [_
         (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
-        (↦@ W_c (list W_v) Γ κ* σ Ξ M lo)])]))
+        (↦@ W_c (list W_v) Γ κ* σ Ξ M (-src-loc lo #f #|TODO|#))])]))
 
 (: ↦FC : -WV -WV -Γ -κ -σ -Ξ -M Mon-Party → -Δς*)
 ;; Stepping rules for monitoring flat contracts
@@ -626,10 +624,10 @@
     [(-St (-id 'not/c 'Λ) (list γ))
      (match/nd: (-V → -Δς) (σ@ σ γ)
        [C*
-        (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) 'Λ) κ))
+        (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) -Λ) κ))
         (-Δς (-FC (-W C* (-not/c-neg e_c)) W_v l) Γ κ* '() '() '())])]
     ;; FIXME recursive contract
-    [_ (↦@ W_c (list W_v) Γ κ σ Ξ M l)]))
+    [_ (↦@ W_c (list W_v) Γ κ σ Ξ M (-src-loc l #f #|TODO|#))]))
 
 (: rt-spurious? ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . Boolean))
 ;; Check whether a returned result is spurious

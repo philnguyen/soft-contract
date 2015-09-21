@@ -133,7 +133,7 @@
                  (-st-p (-id ctor-name (cur-mod)) n)
                  (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
                    (-st-ac (-id ctor-name (cur-mod)) n i)))
-          'Λ))]
+          -Λ))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
      (define rhs (parse-e #'e))
@@ -174,7 +174,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (--> (parse-es #'(c ...)) (parse-e #'d))]
+     (--> (parse-es #'(c ...)) (parse-e #'d) (syntax-position stx))]
     ;; Dependent contract
     [(begin
        (#%plain-app
@@ -183,7 +183,9 @@
         (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
      ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
-     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...))) (parse-e #'d))]
+     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
+           (parse-e #'d)
+           (syntax-position stx))]
     ; FIXME: duplicate of above case, (let-values () e _ ...) == (begin () e _ ...)
     [(let-values ()
        (#%plain-app
@@ -192,26 +194,37 @@
         (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
        _ ...)
      ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
-     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...))) (parse-e #'d))]
+     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
+           (parse-e #'d)
+           (syntax-position stx))]
     ; FIXME: duplicate of above case, (begin e _ ...) == e
     [(#%plain-app
       (~literal fake:dynamic->i)
       (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
       (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
      ;(printf "dynamic->id₂: ~a~n" (syntax->datum #'d))
-     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...))) (parse-e #'d))]
+     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
+           (parse-e #'d)
+           (syntax-position stx))]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
-     (apply -and/c (parse-es #'(c ...)))]
+     (apply -and/c (map cons
+                        (parse-es #'(c ...))
+                        (map syntax-position (syntax->list #'(c ...)))))]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
-     (apply -or/c (parse-es #'(c ...)))]
+     (apply -or/c (map cons
+                       (parse-es #'(c ...))
+                       (map syntax-position (syntax->list #'(c ...)))))]
     ;; Negation
-    [(#%plain-app (~literal fake:not/c) c) (-not/c (parse-e #'c))]
+    [(#%plain-app (~literal fake:not/c) c)
+     (-not/c (parse-e #'c) (syntax-position stx))]
     [(#%plain-app (~literal fake:listof) c)
-     (-μ/c 'X (-or/c -null/c (-cons/c (parse-e #'c) (-x/c 'X))))]
+     (-μ/c 'X (-or/c -null/c (-cons/c (parse-e #'c) (-x/c 'X) (syntax-position stx))))]
     [(#%plain-app (~literal fake:list/c) c ...)
-     (apply -list/c (parse-es #'(c ...)))]
+     (apply -list/c (map cons
+                         (parse-es #'(c ...))
+                         (map syntax-position (syntax->list #'(c ...)))))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (-struct/c (-id (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
@@ -219,8 +232,13 @@
     [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
     [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c))]
     [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c))]
-    [(#%plain-app (~literal fake:cons/c) c d) (-cons/c (parse-e #'c) (parse-e #'d))]
-    [(#%plain-app (~literal fake:one-of/c) c ...) (apply -one-of/c (parse-es #'(c ...)))]
+    [(#%plain-app (~literal fake:cons/c) c d)
+     (-cons/c (parse-e #'c) (parse-e #'d) (syntax-position stx))]
+    [(#%plain-app (~literal fake:one-of/c) c ...)
+     (apply -one-of/c
+            (map cons
+                 (parse-es #'(c ...))
+                 (map syntax-position (syntax->list #'(c ...)))))]
     ; recursive contract reference. FIXME: code duplicate
     [(let-values () (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
      (-x/c (syntax-e #'x))]
@@ -245,7 +263,9 @@
      #:when (prefab-struct-key (syntax-e #'v))
      (todo 'struct)]
     [(#%plain-app f x ...)
-     (-@ (parse-e #'f) (parse-es #'(x ...)) (cur-mod))]
+     (-@ (parse-e #'f)
+         (parse-es #'(x ...))
+         (-src-loc (cur-mod) (syntax-position stx)))]
     [((~literal with-continuation-mark) e₀ e₁ e₂)
      (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
     [(begin e ...) (-begin/simp (parse-es #'(e ...)))]
@@ -323,7 +343,10 @@
     [e:boolean (-b (syntax-e #'e))]
     [e:id (-b (syntax-e #'e))]
     [e:keyword (-b (syntax-e #'e))]
-    [(l . r) (-@ -cons (list (parse-quote #'l) (parse-quote #'r)) (cur-mod))]
+    [(l . r)
+     (-@ -cons
+         (list (parse-quote #'l) (parse-quote #'r))
+         (-src-loc (cur-mod) (syntax-position stx)))]
     [() -null]
     [e (error 'parse-quote "unsupported quoted form: ~a" (syntax-e #'e))]))
 
@@ -366,7 +389,7 @@
     [(~literal abs) 'abs]
     [(~literal min) 'min]
     [(~literal max) 'max]
-    #;[(~literal set-box!) 'set-box!]
+    [(~literal set-box!) -set-box!]
     [(~literal cons) -cons]
     [(~or (~literal car) (~literal unsafe-car)) -car]
     [(~or (~literal cdr) (~literal unsafe-cdr)) -cdr]

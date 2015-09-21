@@ -59,7 +59,7 @@
     [body : -e]
     [ctx : Mon-Party])
   (struct -φ.set! [x : Symbol] [α : -α]) ; need both variable and address
-  (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : Mon-Party])
+  (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : -src-loc])
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
@@ -75,17 +75,20 @@
     [fun : -V] ; inner function
     [rng : -e] ; range
     [env : -ρ] ; range's context
-    [mon-info : Mon-Info])
-  (struct -φ.indy.rng [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info])
+    [mon-info : Mon-Info]
+    [pos : (Option Integer)])
+  (struct -φ.indy.rng
+    [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info] [pos : (Option Integer)])
   (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])
   (struct -φ.rt.let [old-dom : (Setof Symbol)])
   ;; contract stuff
-  (struct -φ.μc [x : Symbol])
+  (struct -φ.μc [x : Symbol] [pos : (Option Integer)])
   (struct -φ.struct/c
-    [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)])
+    [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
+    [pos : (Option Integer)])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [cs↓ : (Listof -?e)] [xs : (Listof Symbol)]
-    [rng : -e] [env : -ρ])
+    [rng : -e] [env : -ρ] [pos : (Option Integer)])
   )
 
 
@@ -144,7 +147,7 @@
      `(mon ,(if (-E? ctc) (show-E ctc) (show-V (-W-x ctc))) ,v)]
     [(-φ.mon.c val _)
      `(mon ,v ,(if (-E? val) (show-E val) (show-V (-W-x val))))]
-    [(-φ.indy.dom x xs cs Cs args args↓ fun rng _env _l³)
+    [(-φ.indy.dom x xs cs Cs args args↓ fun rng _env _ _)
      `(indy.dom
        [,@(reverse
            (for/list : (Listof Sexp) ([arg args↓])
@@ -155,7 +158,7 @@
             `(mon ,(show-WV (-W C c)) ,(show-WV arg) as ,x))
         ↦ ,(show-e rng)]
        ,(show-V fun))]
-    [(-φ.indy.rng fun args _)
+    [(-φ.indy.rng fun args _ _)
      `(indy.rng (mon ,v (,(show-V fun) ,@(map show-WV args))))]
     [(-φ.rt.@ Γ xs f args)
      `(rt ,(show-Γ Γ)
@@ -164,13 +167,13 @@
                `(,x ↦ ,(show-?e arg))))
           ,v)]
     [(-φ.rt.let dom) `(rt/let ,@(set->list dom) ,v)]
-    [(-φ.μc x) `(μ/c ,x ,v)]
-    [(-φ.struct/c id cs _ρ cs↓)
+    [(-φ.μc x _) `(μ/c ,x ,v)]
+    [(-φ.struct/c id cs _ρ cs↓ _)
      `(,(-id-name (id/c id))
        ,@(reverse (map show-WV cs↓))
        ,v
        ,@(map show-e cs))]
-    [(-φ.=>i cs Cs↓ cs↓ xs e ρ)
+    [(-φ.=>i cs Cs↓ cs↓ xs e ρ _)
      `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
     ))
 
@@ -202,13 +205,13 @@
 (define (𝑰 p)
   (match-define (-prog ms e₀) p)
 
-  (: alloc-es : -σ (Listof -e) → (Values -σ (Listof -α)))
-  (define (alloc-es σ es)
+  (: alloc-es : -σ -id (Option Integer) (Listof -e) → (Values -σ (Listof -α)))
+  (define (alloc-es σ id pos es)
     (define-values (σ* αs-rev)
       (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α) '()])
-                ([e es])
+                ([e es] [i (in-naturals)])
         (define-values (σ** V) (alloc-e σ* e))
-        (define α (-α.val e))
+        (define α (-α.fld id pos i))
         (values (⊔ σ** α V) (cons α αs-rev))))
     (values σ* (reverse αs-rev)))
 
@@ -216,18 +219,18 @@
   (define (alloc-e σ e)
     (match e
       [(? -v?) (values σ (close-Γ -Γ⊤ (close e -ρ⊥)))]
-      [(-->i doms rng)
+      [(-->i doms rng pos)
        (define-values (xs cs)
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                     ([dom doms])
            (values (car dom) (cdr dom))))
-       (define-values (σ* γs) (alloc-es σ cs))
+       (define-values (σ* γs) (alloc-es σ (-id '-> 'Λ) pos cs))
        (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
-      [(-@ (-st-mk (-id (and t (or 'and/c 'or/c 'not/c)) 'Λ) _) cs _)
-       (define-values (σ* αs) (alloc-es σ cs))
+      [(-@ (-st-mk (and id (-id (and t (or 'and/c 'or/c 'not/c)) _)) _) cs (-src-loc _ pos))
+       (define-values (σ* αs) (alloc-es σ id pos cs))
        (values σ* (-St (-id t 'Λ) αs))]
-      [(-struct/c id cs)
-       (define-values (σ* αs) (alloc-es σ cs))
+      [(-struct/c id cs pos)
+       (define-values (σ* αs) (alloc-es σ id pos cs))
        (values σ* (-St/C id αs))]
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
                 (show-e e))]))

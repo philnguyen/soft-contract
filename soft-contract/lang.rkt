@@ -14,8 +14,10 @@
 (define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
 (define-type Mon-Party Adhoc-Module-Path)
 (define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
-
+(struct -src-loc ([party : Mon-Party] [loc : (Option Integer)]) #:transparent)
 (struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
+
+(define -Λ (-src-loc 'Λ #f))
 
 (: swap-parties : Mon-Info → Mon-Info)
 ;; Swap positive and negative blame parties
@@ -95,13 +97,14 @@
           'expt 'abs 'min 'max
           'arity=? 'arity>=? 'arity-includes?
           'remainder 'quotient
-          'set-box!)
+          'set-box!
+          (struct -st-mut [tag : -id] [arity : Integer] [index : Integer]))
         (struct -st-mk [tag : -id] [arity : Integer]))))
   ;; lexical variables
   (struct -x [name : Symbol])
   ;; module references
   (struct -ref [id : -id] [ctx : Mon-Party])
-  (struct -@ [f : -e] [xs : (Listof -e)] [ctx : Mon-Party])
+  (struct -@ [f : -e] [xs : (Listof -e)] [loc : -src-loc])
   (struct -if [i : -e] [t : -e] [e : -e])
   (struct -wcm [key : -e] [val : -e] [body : -e])
   -begin/e
@@ -115,10 +118,10 @@
   (struct -amb [es : -es])
   
   ;; contract stuff
-  (struct -μ/c [x : Symbol] [c : -e])
-  (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e]) ; dependent function contract
+  (struct -μ/c [x : Symbol] [c : -e] [pos : (Option Integer)])
+  (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e] [pos : (Option Integer)])
   (struct -x/c [x : Symbol])
-  (struct -struct/c [tag : -id] [fields : (Listof -e)])
+  (struct -struct/c [tag : -id] [fields : (Listof -e)] [pos : (Option Integer)])
   #;(-and/c [l : .e] [r : .e])
   #;(-or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
@@ -144,21 +147,22 @@
 (define -cons? (-st-p (-id 'cons 'Λ) 2))
 (define -zero (-b 0))
 (define -one (-b 1))
-(define -void #|hack|# (-@ (-st-mk (-id 'void 'Λ) 0) '() 'Λ))
+(define -void #|hack|# (-@ (-st-mk (-id 'void 'Λ) 0) '() -Λ))
 (define -null? (-st-p (-id 'null 'Λ) 0))
-(define -null #|hack|# (-@ (-st-mk (-id 'null 'Λ) 0) '() 'Λ))
+(define -null #|hack|# (-@ (-st-mk (-id 'null 'Λ) 0) '() -Λ))
 (define -box? (-st-p (-id 'box 'Λ) 1))
 (define -unbox (-st-ac (-id 'box 'Λ) 1 0))
 (define -box (-st-mk (-id 'box 'Λ) 1))
+(define -set-box! (-st-mut (-id 'box 'Λ) 1 0))
 
-(: --> : (Listof -e) -e → -e)
+(: --> : (Listof -e) -e (Option Integer) → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
-(define (--> cs d)
+(define (--> cs d pos)
   (define doms
     (for/list : (Listof (Pairof Symbol -e)) ([c cs] [i (in-naturals)])
       (define x (string->symbol (format "x•~a" (n-sub i)))) ; hack
       (cons x c)))
-  (-->i doms d))
+  (-->i doms d pos))
 
 ;; Current restricted representation of program
 (struct -prog ([modules : (Listof -module)] [main : -e]) #:transparent)
@@ -208,14 +212,14 @@
     [(-amb es)
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (FV e)))]
-    [(-μ/c x e) (set-remove (FV e) x)]
-    [(-->i doms rng)
+    [(-μ/c x e _) (set-remove (FV e) x)]
+    [(-->i doms rng _)
      (define-values (bound FV_dom)
        (for/fold ([bound : (Setof Symbol) ∅] [FV_dom : (Setof Symbol) ∅]) ([dom doms])
          (match-define (cons x c) dom)
          (values (set-add bound x) (∪ FV_dom (FV c)))))
      (∪ FV_dom (-- (FV rng) bound))]
-    [(-struct/c _ cs)
+    [(-struct/c _ cs _)
      (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
        (∪ xs (FV c)))]
     [(? list? l)
@@ -259,9 +263,9 @@
          (checks# eₓ))
        (checks# e))]
    [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
-   [(-μ/c _ c) (checks# c)]
-   [(-->i cs d) (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs)) (checks# d))]
-   [(-struct/c _ cs) (checks# cs)]
+   [(-μ/c _ c _) (checks# c)]
+   [(-->i cs d _) (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs)) (checks# d))]
+   [(-struct/c _ cs _) (checks# cs)]
 
    [(-plain-module-begin xs) (checks# xs)]
    [(-module _ body) (checks# body)]
@@ -274,35 +278,46 @@
                [mk-or/c (-st-mk (-id 'or/c 'Λ) 2)]
                [mk-cons/c (-st-mk (-id 'cons/c 'Λ) 2)]
                [mk-not/c (-st-mk (-id 'not/c 'Λ) 1)])
-  (:* -and/c -or/c -one-of/c : -e * → -e)
+  (:* -and/c -or/c -one-of/c : (Pairof -e (Option Integer)) * → -e)
   (define -and/c
     (match-lambda*
       [(list) -any/c]
-      [(list c) c]
-      [(cons c cs) (-@ mk-and/c (list c (apply -and/c cs)) 'Λ)]))
+      [(list (cons c _)) c]
+      [(cons (cons c p) cs)
+       (-@ mk-and/c (list c (apply -and/c cs)) (-src-loc 'Λ p))]))
   (define -or/c
     (match-lambda*
       [(list) -none/c]
-      [(list c) c]
-      [(cons c cs) (-@ mk-or/c (list c (apply -or/c cs)) 'Λ)]))
+      [(list (cons c _)) c]
+      [(cons (cons c p) cs)
+       (-@ mk-or/c (list c (apply -or/c cs)) (-src-loc 'Λ p))]))
   (define -one-of/c
     (match-lambda*
       [(list) -none/c]
-      [(list e) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) 'Λ))]
-      [(cons e es) (-or/c (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) 'Λ)) (apply -one-of/c es))]))
+      [(list (cons e _)) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
+      [(cons (cons e p) es)
+       (-or/c (cons (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ)) p)
+              (cons (apply -one-of/c es) #f))]))
   
-  (: -cons/c : -e -e → -e)
-  (define (-cons/c c d) (-struct/c (-id 'cons 'Λ) (list c d)))
+  (: -cons/c : -e -e (Option Integer) → -e)
+  (define (-cons/c c d pos) (-struct/c (-id 'cons 'Λ) (list c d) pos))
 
-  (: -not/c : -e → -e)
-  (define (-not/c c) (-@ (-st-mk (-id 'not/c 'Λ) 1) (list c) 'Λ)))
+  (: -not/c : -e (Option Integer) → -e)
+  (define (-not/c c pos) (-@ (-st-mk (-id 'not/c 'Λ) 1) (list c) (-src-loc 'Λ pos))))
 
-(: -list/c : -e * → -e)
-(define (-list/c . cs) (foldr -cons/c -null/c cs))
+(: -list/c : (Pairof -e (Option Integer)) * → -e)
+(define (-list/c . cs)
+  (match cs
+    ['() -null/c]
+    [(cons (cons c p) cs*)
+     (-cons/c c (apply -list/c cs*) p)]))
 
-(: -list : -e * → -e)
+(: -list : (Pairof -e -src-loc) * → -e)
 (define (-list . es)
-  (foldr (λ ([eᵢ : -e] [es : -e]) (-@ -cons (list eᵢ es) 'Λ)) -null es))
+  (match es
+    ['() -null]
+    [(cons (cons e loc) es*)
+     (-@ -cons (list e (apply -list es*)) loc)]))
 
 ;; Macros
 (:* -and : -e * → -e)
@@ -317,13 +332,15 @@
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e)
   (define x (variable-not-in (set->list (FV e)) 'x₀))
-  (-λ (list x) (-and (-@ 'real? (list (-x x)) 'Λ) (-@ op (list (-x x) e) 'Λ))))
+  (-λ (list x) (-and (-@ 'real? (list (-x x)) -Λ) (-@ op (list (-x x) e) -Λ))))
 
-(define ☠ 'havoc) ; havoc module path
-(define havoc-id (-id 'havoc-id ☠)) ; havoc function id
+
+(define -havoc-path 'havoc)
+(define -havoc-id (-id 'havoc-id -havoc-path)) ; havoc function id
+(define -havoc-src (-src-loc -havoc-path #f)) ; havoc module path
 
 (define (havoc-ref-from [ctx : Mon-Party])
-  (-ref havoc-id ctx))
+  (-ref -havoc-id ctx))
 
 (: prog-accs : (Listof -module) → (Setof -st-ac))
 ;; Retrieve set of all public accessors from program
@@ -338,20 +355,20 @@
 (define (gen-havoc ms)
 
   ;;; Generate module
-  (define havoc-ref (havoc-ref-from ☠))
+  (define havoc-ref (havoc-ref-from -havoc-path))
   (define x (-x '☠))
   (define havoc-func ; only used by `verify` module, not `ce`
     (-λ (list '☠)
         (-amb/simp
-         (cons (-@ havoc-ref (list (-@-havoc x)) ☠)
+         (cons (-@ havoc-ref (list (-@-havoc x)) -havoc-src)
                (for/list : (Listof -@) ([ac (prog-accs ms)])
-                 (-@ havoc-ref (list (-@ ac (list x) ☠)) ☠))))))
+                 (-@ havoc-ref (list (-@ ac (list x) -havoc-src)) -havoc-src))))))
   (define m
-    (-module ☠
+    (-module -havoc-path
              (-plain-module-begin
               (list
-               (-define-values (list (-id-name havoc-id)) havoc-func)
-               (-provide (list (-p/c-item (-id-name havoc-id) -any/c)))))))
+               (-define-values (list (-id-name -havoc-id)) havoc-func)
+               (-provide (list (-p/c-item (-id-name -havoc-id) -any/c)))))))
 
   ;;; Generate expression
   (define-set refs : -ref)
@@ -376,7 +393,7 @@
   #;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (-amb/remember (for/list ([ref (in-set refs)])
-                     (-@ (•!) (list ref) ☠))))
+                     (-@ (•!) (list ref) -havoc-src))))
 
   #;(log-debug "~nhavoc-e:~n~a" expr)
 
@@ -455,14 +472,14 @@
            (count-xs body x))])]
     [(-@-havoc (-x z)) (if (equal? z x) 1 0)]
     [(-amb es) (for/sum : Integer ([e es]) (count-xs e x))]
-    [(-μ/c z c) (if (equal? z x) 0 (count-xs c x))]
-    [(-->i doms rng)
+    [(-μ/c z c _) (if (equal? z x) 0 (count-xs c x))]
+    [(-->i doms rng _)
      (define-values (bound k)
        (for/fold ([bound : (Setof Symbol) ∅] [k : Integer 0]) ([dom doms])
          (match-define (cons z c) dom)
          (values (set-add bound z) (+ k (count-xs c x)))))
      (+ k (if (set-member? bound x) 0 (count-xs rng x)))]
-    [(-struct/c _ cs) (count-xs cs x)]
+    [(-struct/c _ cs _) (count-xs cs x)]
     [(? list? l) (for/sum : Integer ([i l]) (count-xs i x))]
     [_ 0]))
 
@@ -498,9 +515,9 @@
       [(-letrec-values bnds e ctx)
        (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
-      [(-μ/c z c) (set-remove (go c) z)]
-      [(-->i cs d) (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs)) (go d))]
-      [(-struct/c t cs) (go* cs)]
+      [(-μ/c z c _) (set-remove (go c) z)]
+      [(-->i cs d _) (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs)) (go d))]
+      [(-struct/c t cs _) (go* cs)]
       [(-x/c x) (set x)]
       [_ ∅]))
   
@@ -571,8 +588,8 @@
           (-letrec-values bnds* (go e*) l)])]
       [(-set! z e*) (-set! z (go e*))]
       [(-amb es) (-amb (for/set: : -es ([ei es]) (go ei)))]
-      [(-μ/c z c) (-μ/c z (go c))]
-      [(-->i doms rng)
+      [(-μ/c z c p) (-μ/c z (go c) p)]
+      [(-->i doms rng p)
        (define-values (xs cs)
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                     ([dom doms])
@@ -580,8 +597,8 @@
        (define rng*
          (cond [(member x xs) rng]
                [else (go rng)]))
-       (-->i (map (inst cons Symbol -e) xs cs) rng*)]
-      [(-struct/c t cs) (-struct/c t (map go cs))]
+       (-->i (map (inst cons Symbol -e) xs cs) rng* p)]
+      [(-struct/c t cs p) (-struct/c t (map go cs) p)]
       [_
        (log-debug "e/: ignore substituting ~a" e)
        e])))
@@ -604,6 +621,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PRETTY PRINTING
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (show-src-loc [loc : -src-loc]) : Symbol
+  (match-define (-src-loc lab pos) loc)
+  (string->symbol (format "~a~a" lab (if pos (n-sub pos) ""))))
 
 (define (show-b [x : Base]) : Sexp
   (cond
@@ -696,13 +717,13 @@
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
-    [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
-    [(-->i doms rng) `(,@(for/list : (Listof Sexp) ([dom doms])
+    [(-μ/c x c _) `(μ/c (,x) ,(show-e c))]
+    [(-->i doms rng _) `(,@(for/list : (Listof Sexp) ([dom doms])
                            (match-define (cons x c) dom)
                            `(,x : ,(show-e c)))
                        ↦ ,(show-e rng))]
     [(-x/c x) x]
-    [(-struct/c t cs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(show-es cs))]))
+    [(-struct/c t cs _) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(show-es cs))]))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))

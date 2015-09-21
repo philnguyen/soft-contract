@@ -277,19 +277,16 @@
   ;; for lexical binding
   ;(struct -α.bnd [x : Symbol] [arg : -?e] [inv : -Γ])
   Symbol
-  ;; for immutable concrete field
-  (struct -α.val [v : -e])
+  ;; TODO: temp hack
+  (struct -α.tmp [v : -e])
   ;; for mutable or opaque field
-  (struct -α.opq [id : -id] [loc : (Option Integer)] [field : Integer]))
+  (struct -α.fld [id : -id] [loc : (Option Integer)] [idx : Integer]))
 
-(: alloc-immut-fields : -st-mk (Listof -WV) → (Listof -α))
-(define (alloc-immut-fields k Ws)
-  (match-define (-st-mk id n) k)
+(: alloc-fields : -id Integer (Option Integer) (Listof -WV) → (Listof -α))
+(define (alloc-fields id n loc Ws)
   (for/list ([W Ws] [i (in-range n)])
-    (match-define (-W V e) W)
-    (cond
-      [e (-α.val e)]
-      [else (-α.opq id #f #|TODO|# i)])))
+    (match-define (-W V _ #|TODO matters?|#) W)
+    (-α.fld id loc i)))
 
 (define show-α : (-α → Symbol) (unique-name 'α))
 
@@ -426,16 +423,16 @@
        ; (cons (car e) (cdr e)) = e
        [((-st-mk id n) es)
         (or (access-same-value? id n es)
-            (-@ f (cast xs (Listof -e)) 'Λ))]
+            (-@ f (cast xs (Listof -e)) -Λ))]
        ; ariths
        [('+ (list-no-order (-b 0) e*)) (assert e* -e?)]
        [('+ (list (-@ '+ (list e₁ e₂) _) e₃))
-        (-@ '+ (list e₁ (-@ '+ (list e₂ (assert e₃)) 'Λ)) 'Λ)]
+        (-@ '+ (list e₁ (-@ '+ (list e₂ (assert e₃)) -Λ)) -Λ)]
        [('* (list-no-order (-b 1) e*)) (assert e* -e?)]
        [('* (list (-@ '* (list e₁ e₂) _) e₃))
-        (-@ '* (list e₁ (-@ '* (list e₂ (assert e₃)) 'Λ)) 'Λ)]
+        (-@ '* (list e₁ (-@ '* (list e₂ (assert e₃)) -Λ)) -Λ)]
        ; default
-       [(f xs) (-@ f (cast xs (Listof -e)) 'Λ)])]
+       [(f xs) (-@ f (cast xs (Listof -e)) -Λ)])]
     [else #f]))
 
 ;; convenient syntax for negation
@@ -460,7 +457,7 @@
 (: -struct/c-split : -?e Integer → (Listof -?e))
 (define (-struct/c-split c n)
   (match c
-    [(-struct/c _ cs) cs]
+    [(-struct/c _ cs _) cs]
     [_ (for/list : (Listof -?e) ([i (in-range n)])
          (-?@ (-st-ac (-id 'struct/c 'Λ) n i) c))]))
 
@@ -474,12 +471,12 @@
 (: -?struct/c : -id (Listof -?e) → (Option -struct/c))
 (define (-?struct/c id fields)
   (and (andmap (inst values -?e) fields)
-       (-struct/c id (cast fields (Listof -e)))))
+       (-struct/c id (cast fields (Listof -e)) #f)))
 
 (: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
 (define (-?->i xs cs d)
   (and d (andmap (inst values -?e) cs)
-       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) d)))
+       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) d #f)))
 
 (: split-values : -?e Integer → (Listof -?e))
 ;; Split a pure expression `(values e ...)` into `(e ...)`

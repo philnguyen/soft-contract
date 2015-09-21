@@ -163,6 +163,12 @@
   (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
 
+(: Γ+/-e : -M -σ -Γ -?e → (Values (Option -Γ) (Option -Γ)))
+(define (Γ+/-e M σ Γ e)
+  (define proved (MσΓ⊢e M σ Γ e))
+  (values (if (equal? 'X proved) #f (Γ+ Γ e))
+          (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Operations without global tables
@@ -200,11 +206,11 @@
               [(and
                 (or
                  (and (-λ? f) (equal? f g))
-                 (equal? '✓ (⊢e (-@ 'equal? (list f g) 'Λ))))
+                 (equal? '✓ (⊢e (-@ 'equal? (list f g) -Λ))))
                 (= (length xs) (length ys)))
                (define res
                  (for/set: : (Setof -R) ([x xs] [y ys])
-                   (⊢e (-@ 'equal? (list x y) 'Λ))))
+                   (⊢e (-@ 'equal? (list x y) -Λ))))
                (cond
                  [(or (set-empty? res) (equal? res {set '✓})) '✓]
                  [(and (-st-mk? f) (∋ res 'X)) 'X]
