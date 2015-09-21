@@ -47,9 +47,6 @@
     [(_ τ (τ₁ clauses ...) (σ ...))
      #'(define-data′ τ (clauses ...) (τ₁ σ ...))]))
 
-(define-syntax-rule (match? v p ...) (match v [p #t] ... [_ #f]))
-(define-syntax-rule (match-λ? p ...) (match-lambda [p #t] ... [_ #f]))
-
 ;; define the same type for multiple identifiers
 (define-syntax (:* stx)
   (syntax-parse stx
@@ -72,6 +69,19 @@
     [(_ f (e₁     e ...) (x ...))
      (let ([x₁ e₁])
        (@?* f (e ...) (x ... x₁)))]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Pattern matching
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax-rule (match? v p ...) (match v [p #t] ... [_ #f]))
+(define-syntax-rule (match-λ? p ...) (match-lambda [p #t] ... [_ #f]))
+
+(define-match-expander ≡
+  (syntax-rules ()
+    [(_ e) (? (λ (v) (equal? v e)))]
+    [(_ x e) (? (λ (v) (equal? v e)) x)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
