@@ -179,7 +179,7 @@
       (for/and : Boolean ([V (σ@ σ α)])
         (C-flat? σ V))))
   (match V
-    [(-St (-id (or 'and/c 'or/c 'not/c) 'Λ) αs) (C-flat/list? αs)]
+    [(-St (or 'and/c 'or/c 'not/c) αs) (C-flat/list? αs)]
     [(-St/C _ αs) (C-flat/list? αs)]
     [(? -=>i?) #f]
     [(-μ/C _ α) (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
@@ -383,13 +383,12 @@
 ;;;;; Convenience
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define -Mt (-St (-id 'null 'Λ) (list)))
+(define -Mt (-St 'null (list)))
 (define -Any/C (-Clo '(x) -tt -ρ⊥ -Γ⊤))
-(define -id-cons (-id 'cons 'Λ))
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -● (-W '• #f))
-(define -Void/Vs (list (-St (-id 'void 'Λ) '())))
+(define -Void/Vs (list (-St 'void '())))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
@@ -444,23 +443,23 @@
 (:* -and/c-split -or/c-split : -?e → (Values -?e -?e))
 (define -and/c-split
   (match-lambda
-    [(-@ (-st-mk (-id 'and/c 'Λ) 2) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac (-id 'and/c 'Λ) 2 0) c)
-               (-?@ (-st-ac (-id 'and/c 'Λ) 2 1) c))]))
+    [(-@ (-st-mk 'and/c 2) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac 'and/c 2 0) c)
+               (-?@ (-st-ac 'and/c 2 1) c))]))
 (define -or/c-split
   (match-lambda
-    [(-@ (-st-mk (-id 'or/c 'Λ) 2) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac (-id 'or/c 'Λ) 2 0) c)
-               (-?@ (-st-ac (-id 'or/c 'Λ) 2 1) c))]))
+    [(-@ (-st-mk 'or/c 2) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac 'or/c 2 0) c)
+               (-?@ (-st-ac 'or/c 2 1) c))]))
 (: -not/c-neg : -?e → -?e)
-(define (-not/c-neg c) (-?@ (-st-ac (-id 'not/c 'Λ) 1 0) c))
+(define (-not/c-neg c) (-?@ (-st-ac 'not/c 1 0) c))
 
 (: -struct/c-split : -?e Integer → (Listof -?e))
 (define (-struct/c-split c n)
   (match c
     [(-struct/c _ cs _) cs]
     [_ (for/list : (Listof -?e) ([i (in-range n)])
-         (-?@ (-st-ac (-id 'struct/c 'Λ) n i) c))]))
+         (-?@ (-st-ac 'struct/c n i) c))]))
 
 (: -struct-split : -?e -id Integer → (Listof -?e))
 (define (-struct-split e id n)
@@ -490,5 +489,5 @@
      (cond [(= 1 n) (list e)]
            [else #|hack|#
             (for/list ([i (in-range n)])
-              (-?@ (-st-ac (-id 'values 'Λ) n i) e))])]
+              (-?@ (-st-ac 'values n i) e))])]
     [_ (make-list n #f)]))

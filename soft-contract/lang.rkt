@@ -14,9 +14,8 @@
 (define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
 (define-type Mon-Party Adhoc-Module-Path)
 (define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
-(struct -src-loc ([party : Mon-Party] [loc : (Option Integer)]) #:transparent)
-(struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
+(struct -src-loc ([party : Mon-Party] [loc : (Option Integer)]) #:transparent)
 (define -Λ (-src-loc 'Λ #f))
 
 (: swap-parties : Mon-Info → Mon-Info)
@@ -29,6 +28,23 @@
 (define/match (-begin/simp xs)
   [((list e)) e]
   [(es) (-begin es)])
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Identifier
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-data -id
+  ;; primitive ids as symbols to ease notation
+  'cons 'null 'void 'box 'and/c 'or/c 'not/c
+  ;; these are just (tmp) hacks for retaining expressions / allocation address
+  'values 'struct/c 'vector
+  ;; general user-defined id
+  (struct -id-local [name : Symbol] [ctx : Adhoc-Module-Path]))
+
+(define (-id-name [id : -id]) : Symbol
+  (cond [(symbol? id) id]
+        [else (-id-local-name id)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -143,20 +159,20 @@
 (define -ff (-b #f))
 (define -any/c (-λ '(x) -tt))
 (define -none/c (-λ '(x) -ff))
-(define -null/c (-st-p (-id 'null 'Λ) 0))
-(define -cons (-st-mk (-id 'cons 'Λ) 2))
-(define -car (-st-ac (-id 'cons 'Λ) 2 0))
-(define -cdr (-st-ac (-id 'cons 'Λ) 2 1))
-(define -cons? (-st-p (-id 'cons 'Λ) 2))
+(define -null/c (-st-p 'null 0))
+(define -cons (-st-mk 'cons 2))
+(define -car (-st-ac 'cons 2 0))
+(define -cdr (-st-ac 'cons 2 1))
+(define -cons? (-st-p 'cons 2))
 (define -zero (-b 0))
 (define -one (-b 1))
-(define -void #|hack|# (-@ (-st-mk (-id 'void 'Λ) 0) '() -Λ))
-(define -null? (-st-p (-id 'null 'Λ) 0))
-(define -null #|hack|# (-@ (-st-mk (-id 'null 'Λ) 0) '() -Λ))
-(define -box? (-st-p (-id 'box 'Λ) 1))
-(define -unbox (-st-ac (-id 'box 'Λ) 1 0))
-(define -box (-st-mk (-id 'box 'Λ) 1))
-(define -set-box! (-st-mut (-id 'box 'Λ) 1 0))
+(define -void #|hack|# (-@ (-st-mk 'void 0) '() -Λ))
+(define -null? (-st-p 'null 0))
+(define -null #|hack|# (-@ (-st-mk 'null 0) '() -Λ))
+(define -box? (-st-p 'box 1))
+(define -unbox (-st-ac 'box 1 0))
+(define -box (-st-mk 'box 1))
+(define -set-box! (-st-mut 'box 1 0))
 
 (: --> : (Listof -e) -e (Option Integer) → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
@@ -277,10 +293,9 @@
    [(? -o2?) 2]
    [_ 0]))
 
-(splicing-let ([mk-and/c (-st-mk (-id 'and/c 'Λ) 2)]
-               [mk-or/c (-st-mk (-id 'or/c 'Λ) 2)]
-               [mk-cons/c (-st-mk (-id 'cons/c 'Λ) 2)]
-               [mk-not/c (-st-mk (-id 'not/c 'Λ) 1)])
+(splicing-let ([mk-and/c (-st-mk 'and/c 2)]
+               [mk-or/c (-st-mk 'or/c 2)]
+               [mk-not/c (-st-mk 'not/c 1)])
   (:* -and/c -or/c -one-of/c : (Pairof -e (Option Integer)) * → -e)
   (define -and/c
     (match-lambda*
@@ -303,10 +318,10 @@
               (cons (apply -one-of/c es) #f))]))
   
   (: -cons/c : -e -e (Option Integer) → -e)
-  (define (-cons/c c d pos) (-struct/c (-id 'cons 'Λ) (list c d) pos))
+  (define (-cons/c c d pos) (-struct/c 'cons (list c d) pos))
 
   (: -not/c : -e (Option Integer) → -e)
-  (define (-not/c c pos) (-@ (-st-mk (-id 'not/c 'Λ) 1) (list c) (-src-loc 'Λ pos))))
+  (define (-not/c c pos) (-@ (-st-mk 'not/c 1) (list c) (-src-loc 'Λ pos))))
 
 (: -list/c : (Pairof -e (Option Integer)) * → -e)
 (define (-list/c . cs)
@@ -339,7 +354,7 @@
 
 
 (define -havoc-path 'havoc)
-(define -havoc-id (-id 'havoc-id -havoc-path)) ; havoc function id
+(define -havoc-id (-id-local 'havoc-id -havoc-path)) ; havoc function id
 (define -havoc-src (-src-loc -havoc-path #f)) ; havoc module path
 
 (define (havoc-ref-from [ctx : Mon-Party])
@@ -392,7 +407,7 @@
              #:when (-provide? form)
              [spec (in-list (-provide-specs form))])
         (log-debug "adding: ~a~n" (-p/c-item-id spec))
-        (refs-add! (-ref (-id (-p/c-item-id spec) path) '†)))]))
+        (refs-add! (-ref (-id-local (-p/c-item-id spec) path) '†)))]))
   #;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (-amb/remember (for/list ([ref (in-set refs)])
@@ -529,8 +544,10 @@
 (: id/c : -id → -id)
 ;; HACK
 (define (id/c id)
-  (match-define (-id name path) id)
-  (-id (string->symbol (format "~a/c" name)) path))
+  (match id
+    [(? symbol? s) (cast (string->symbol (format "~a/c" s)) -id)]
+    [(-id-local name path)
+     (-id-local (string->symbol (format "~a/c" name)) path)]))
 
 (: e/ : -e (U Symbol -e) -e → -e)
 ;; Substitution
@@ -642,12 +659,12 @@
 (define show-o : (-o → Symbol)
   (match-lambda
    [(? symbol? s) s]
-   [(-st-mk (-id t _) _) t]
-   [(-st-ac (-id 'cons 'Λ) 2 0) 'car]
-   [(-st-ac (-id 'cons 'Λ) 2 1) 'cdr]
-   [(-st-ac (-id 'box 'Λ) 1 0) 'unbox]
-   [(-st-ac (-id t _) _ i) (string->symbol (format "~a@~a" t i))]
-   [(-st-p (-id t _) _) (string->symbol (format "~a?" t))]))
+   [(-st-mk id _) (-id-name id)]
+   [(-st-ac 'cons 2 0) 'car]
+   [(-st-ac 'cons 2 1) 'cdr]
+   [(-st-ac 'box 1 0) 'unbox]
+   [(-st-ac id _ i) (string->symbol (format "~a@~a" (-id-name id) i))]
+   [(-st-p id _) (string->symbol (format "~a?" (-id-name id)))]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
@@ -664,7 +681,7 @@
     [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
     [(-λ (list _) (-b #t)) 'any/c]
     [(-λ (list _) (-b #f)) 'none/c]
-    [(-@ (-st-mk (-id 'null 'Λ) 0) (list) _) 'null]
+    [(-@ (-st-mk 'null 0) (list) _) 'null]
     [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]
     [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
      (match* ((show-e a) (show-e b))
@@ -672,7 +689,7 @@
        [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
        [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
        [(l r) `(or ,l ,r)])]
-    [(-@ (-st-mk (-id (and n (or 'and/c 'or/c 'not/c)) 'Λ) _) c* _) `(,n ,@(show-es c*))]
+    [(-@ (-st-mk (and n (or 'and/c 'or/c 'not/c)) _) c* _) `(,n ,@(show-es c*))]
     #| TODO obsolete? 
     [(-if (and e (-•ₗ α)) e₁ e₂)
     (match (σ@ σ α)
@@ -693,8 +710,8 @@
     [(-•ₗ n) (string->symbol (format "•~a" (n-sub n)))]
     [(-b b) (show-b b)]
     [(-st-mk t _) (-id-name t)]
-    [(-st-ac (-id 'cons 'Λ) _ 0) 'car]
-    [(-st-ac (-id 'cons 'Λ) _ 1) 'cdr]
+    [(-st-ac 'cons _ 0) 'car]
+    [(-st-ac 'cons _ 1) 'cdr]
     [(-st-ac t _ i) (string->symbol (format "~a@~a" (-id-name t) i))]
     [(-st-p t _) (string->symbol (format "~a?" (-id-name t)))]
     [(? -o? o) (show-o o)]

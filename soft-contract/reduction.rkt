@@ -48,11 +48,11 @@
                                #:unless (spurious? M σ Γ W))
        (match V
          ['undefined ; FIXME hack
-          (-Δς (-blm 'TODO 'Λ (-st-p (-id 'defined 'Λ) 1) (list 'undefined))
+          (-Δς (-blm 'TODO 'Λ (-st-p (-id-local 'defined 'Λ) 1) (list 'undefined))
               Γ κ '() '() '())]
          [_ (-Δς W Γ κ '() '() '())]))]
     ;; look up top-level reference
-    [(and ref (-ref (and id (-id name ctx*)) ctx))
+    [(and ref (-ref (and id (-id-local name ctx*)) ctx))
      (cond
        ;; skip contract checking for self reference
        [(equal? ctx ctx*)
@@ -94,7 +94,7 @@
      (define-values (V ?e)
        (cond
          [(Base? x) (values (-b x) (-b x))]
-         [(null? x) (values (-St (-id 'null 'Λ) '()) -null)]
+         [(null? x) (values (-St 'null '()) -null)]
          [else (error '↦e "TODO: quote")]))
      (-Δς (-W (list V) ?e) Γ κ '() '() '())]
     ;; let-values: evaluate the first argument (if there is) and push the rest
@@ -385,7 +385,7 @@
             ;; (domains are reversed compared to `Cs↓*`)
             (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()] [δσ : -Δσ '()])
                       ([C Cs↓*] [c cs↓*] [i (in-naturals)])
-              (define γ (-α.fld (-id '-> 'Λ) pos i))
+              (define γ (-α.fld (-id-local '-> 'Λ) pos i))
               (values (cons γ γs)
                       (⊔ σ* γ C)
                       (cons c cs*)
@@ -510,7 +510,7 @@
                (let ()
                  (define α
                    (cond [e_v (-α.tmp e_v)]
-                         [else (-α.fld (-id 'Ar 'Λ) #f #|FIXME|# 0)]))
+                         [else (-α.fld (-id-local 'Ar 'Λ) #f #|FIXME|# 0)]))
                  (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
                  (define δσ (list (cons α V)))
                  (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))))
@@ -556,7 +556,7 @@
         (error '↦mon "μ/c")]
        [(-X/C x)
         (error '↦mon "ref")]
-       [(-St (-id 'and/c 'Λ) (list γ₁ γ₂))
+       [(-St 'and/c (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
         (define-values (c₁ c₂) (-and/c-split e_c))
@@ -567,7 +567,7 @@
               (define κ* (-kont (-φ.mon.v (-W C₂ c₂) l³) κ))
               (define W_c₁ (-W C₁ c₁))
               (↦mon W_c₁ W_v Γ κ* σ Ξ M l³)])])]
-       [(-St (-id 'or/c 'Λ) (list γ₁ γ₂))
+       [(-St 'and/c (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
         (define-values (c₁ c₂) (-or/c-split e_c))
@@ -583,9 +583,9 @@
                  (define E* (-FC (-W C₁ c₁) W_v lo))
                  (-Δς E* Γ κ* '() '() '())])]
              [else
-              (-Δς (-blm lo 'Λ #|hack|# (-st-p (-id 'flat-contract? 'Λ) 1) (list C₁))
+              (-Δς (-blm lo 'Λ #|hack|# (-st-p (-id-local 'flat-contract? 'Λ) 1) (list C₁))
                    Γ κ '() '() '())])])]
-       [(-St (-id 'not/c 'Λ) (list α))
+       [(-St 'not/c (list α))
         (match/nd: (-V → -Δς) (σ@ σ α)
           [C*
            (cond
@@ -593,7 +593,7 @@
               (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
               (-Δς (-FC (-W C* (-not/c-neg e_c)) W_v lo) Γ κ* '() '() '())]
              [else
-              (-Δς (-blm lo 'Λ #|hack|# (-st-p (-id 'flat-contract? 'Λ) 1) (list C*))
+              (-Δς (-blm lo 'Λ #|hack|# (-st-p (-id-local 'flat-contract? 'Λ) 1) (list C*))
                    Γ κ '() '() '())])])]
        [_
         (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
@@ -605,7 +605,7 @@
   (match-define (-W C e_c) W_c)
   (match-define (-W V e_v) W_v)
   (match C
-    [(-St (-id (and t (or 'and/c 'or/c)) 'Λ) (list γ₁ γ₂))
+    [(-St (and t (or 'and/c 'or/c)) (list γ₁ γ₂))
      (define Cs₁ (σ@ σ γ₁))
      (define Cs₂ (σ@ σ γ₂))
      (define-values (c₁ c₂) (-and/c-split e_c))
@@ -618,7 +618,7 @@
                ['and/c (-φ.if (-FC W_v (-W C₂ c₂) l) (-W (list -ff) -ff))]
                ['or/c  (-φ.if (-W (list -tt) -tt) (-FC W_v (-W C₂ c₂) l))]))
            (-Δς (-FC (-W C₁ c₁) W_v l) Γ (-kont φ κ) '() '() '())])])]
-    [(-St (-id 'not/c 'Λ) (list γ))
+    [(-St 'not/c (list γ))
      (match/nd: (-V → -Δς) (σ@ σ γ)
        [C*
         (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) -Λ) κ))

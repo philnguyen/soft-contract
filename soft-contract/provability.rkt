@@ -552,11 +552,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (begin
-  (define -app (-ref (-id 'app 'Λ) 'Λ))
+  (define -app (-ref (-id-local 'app 'Λ) 'Λ))
   (define -app-body (-b 'app-body))
-  (define -len (-ref (-id 'len 'Λ) 'Λ))
+  (define -len (-ref (-id-local 'len 'Λ) 'Λ))
   (define -len-body (-b 'len-body))
-  (define -map (-ref (-id 'map 'Λ) 'Λ))
+  (define -map (-ref (-id-local 'map 'Λ) 'Λ))
   (define -map-body (-b 'map-body))
   (define -l₁ (-x 'l₁))
   (define -l₂ (-x 'l₂))
@@ -575,9 +575,9 @@
   (define σdb
     (⊔
      (⊔
-      (⊔ -σ⊥ (-α.def (-id 'app 'Λ)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
-      (-α.def (-id 'len 'Λ)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
-     (-α.def (-id 'map 'Λ)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
+      (⊔ -σ⊥ (-α.def (-id-local 'app 'Λ)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
+      (-α.def (-id-local 'len 'Λ)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
+     (-α.def (-id-local 'map 'Λ)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
   (define Mdb
     (⊔
      (⊔

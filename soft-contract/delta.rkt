@@ -92,7 +92,7 @@
 
     ;; vector constructor
     ['vector
-     (define αs (alloc-fields (-id 'vector 'Λ) (length Ws) pos Ws))
+     (define αs (alloc-fields 'vector (length Ws) pos Ws))
      (define δσ : -Δσ
        (for/list ([α αs] [W Ws])
          (cons α (close-Γ Γ (-W-x W)))))

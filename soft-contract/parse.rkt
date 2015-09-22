@@ -129,10 +129,10 @@
      (-define-values
       (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
       (-@ 'values
-          (list* (-st-mk (-id ctor-name (cur-mod)) n)
-                 (-st-p (-id ctor-name (cur-mod)) n)
+          (list* (-st-mk (-id-local ctor-name (cur-mod)) n)
+                 (-st-p (-id-local ctor-name (cur-mod)) n)
                  (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
-                   (-st-ac (-id ctor-name (cur-mod)) n i)))
+                   (-st-ac (-id-local ctor-name (cur-mod)) n i)))
           -Λ))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
@@ -226,7 +226,7 @@
                          (parse-es #'(c ...))
                          (map syntax-position (syntax->list #'(c ...)))))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
-     (-struct/c (-id (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
+     (-struct/c (-id-local (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
     [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
     [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
@@ -333,7 +333,7 @@
                          (resolved-module-path-name (module-path-index-resolve x)))))
                     src)
                _ _ _ _ _ _)
-         (-ref (-id (syntax-e #'i) src) (cur-mod))]))]))
+         (-ref (-id-local (syntax-e #'i) src) (cur-mod))]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)

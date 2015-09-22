@@ -224,11 +224,11 @@
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                     ([dom doms])
            (values (car dom) (cdr dom))))
-       (define-values (σ* γs) (alloc-es σ (-id '-> 'Λ) pos cs))
+       (define-values (σ* γs) (alloc-es σ (-id-local '-> 'Λ) pos cs))
        (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
-      [(-@ (-st-mk (and id (-id (and t (or 'and/c 'or/c 'not/c)) _)) _) cs (-src-loc _ pos))
-       (define-values (σ* αs) (alloc-es σ id pos cs))
-       (values σ* (-St (-id t 'Λ) αs))]
+      [(-@ (-st-mk (and t (or 'and/c 'or/c 'not/c)) _) cs (-src-loc _ pos))
+       (define-values (σ* αs) (alloc-es σ t pos cs))
+       (values σ* (-St t αs))]
       [(-struct/c id cs pos)
        (define-values (σ* αs) (alloc-es σ id pos cs))
        (values σ* (-St/C id αs))]
@@ -249,7 +249,7 @@
          (cond
            [(= 1 (length ids))
             (define-values (σ* V) (alloc-e σ e))
-            (⊔ σ* (-α.def (-id (car ids) mod-path)) V)]
+            (⊔ σ* (-α.def (-id-local (car ids) mod-path)) V)]
            [else
             (error '𝑰 "TODO: general top-level. For now can't handle `define-~a-values`"
                    (length ids))])]
@@ -259,7 +259,7 @@
          (for/fold ([σ : -σ σ]) ([spec specs])
            (match-define (-p/c-item x c) spec)
            (define-values (σ₁ C) (alloc-e σ c))
-           (define id (-id x mod-path))
+           (define id (-id-local x mod-path))
            (define σ₂ (⊔ σ₁ (-α.ctc id) C))
            (cond
              [(hash-has-key? σ₂ (-α.def id)) σ₂]
