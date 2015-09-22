@@ -206,8 +206,7 @@
         (cond
           [(and ς_t ς_f) {set ς_t ς_f}]
           [ς_t ς_t]
-          [ς_f ς_f]
-          [else (error '↦WVs "both if branches are bogus (!)")])]
+          [else (assert ς_f)])]
        [_ (error '↦WVs "TODO: catch wrong arity in conditional")])]
     ;; let-values
     [(-φ.let-values xs bnds bnds↓ ρ e l)
@@ -521,8 +520,7 @@
         (cond
           [(and ς-ok ς-bad) {set ς-ok ς-bad}]
           [ς-ok ς-ok]
-          [ς-bad ς-bad]
-          [else (error '↦mon "impossible")])]
+          [else (assert ς-bad)])]
        [(-St/C id γs)
         (define n (length γs))
         (define k? (-st-p id n))
@@ -553,8 +551,7 @@
         (cond
           [(and ς-ok ς-bad) (set-add ς-ok ς-bad)]
           [ς-ok ς-ok]
-          [ς-bad ς-bad]
-          [else (error '↦mon "impossible")])]
+          [else (assert ς-bad)])]
        [(-μ/C x c)
         (error '↦mon "μ/c")]
        [(-X/C x)
@@ -649,7 +646,6 @@
       (convert e)))
 
   ; Check whether the propositions would contradict
-  ; TODO: pass `M` and `σ`
   (define Γ₀* (MσΓ⊓ M σ Γ₀ facts*))
   (define ans
     (cond
