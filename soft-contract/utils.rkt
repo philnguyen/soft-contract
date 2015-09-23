@@ -80,8 +80,8 @@
 
 (define-match-expander ≡
   (syntax-rules ()
-    [(_ e) (? (λ (v) (equal? v e)))]
-    [(_ x e) (? (λ (v) (equal? v e)) x)]))
+    [(_ e  ) (? (λ (v) (equal? v e)))]
+    [(_ e x) (? (λ (v) (equal? v e)) x)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -290,6 +290,15 @@
   (when (∋ (debugs) t)
     (apply printf fmt xs)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Symbols
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define next-neg!
+  (let ([n : Negative-Integer -1])
+    (λ () : Negative-Integer
+      (begin0 n (set! n (- n 1))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; abbreviations
