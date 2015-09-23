@@ -280,6 +280,55 @@
        (∪ xs (FV e)))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅]))
 
+(: 𝐴 : (U -e (Listof -e)) → (Setof Symbol))
+;; Collect all asignable free variables
+(define (𝐴 e)
+  (match e
+    [(-x x) ∅]
+    [(-λ xs e)
+     (define bound
+       (match xs
+         [(-varargs zs z) (set-add (list->set zs) z)]
+         [(? list? xs) (list->set xs)]))
+     (-- (𝐴 e) bound)]
+    [(-@ f xs _)
+     (for/fold ([𝐴s (𝐴 f)]) ([x xs]) (∪ 𝐴s (𝐴 x)))]
+    [(-begin es) (𝐴 es)]
+    [(-begin0 e₀ es) (∪ (𝐴 e₀) (𝐴 es))]
+    [(-let-values bnds e _)
+     (define-values (bound 𝐴_rhs)
+       (for/fold ([bound : (Setof Symbol) ∅] [𝐴_rhs : (Setof Symbol) ∅]) ([bnd bnds])
+         (match-define (cons xs rhs) bnd)
+         (values (set-add-list bound xs) (∪ 𝐴_rhs (𝐴 rhs)))))
+     (∪ 𝐴_rhs (-- (𝐴 e) bound))]
+    [(-letrec-values bnds e _)
+     (define bound
+       (for/fold ([bound : (Setof Symbol) ∅]) ([bnd bnds])
+         (set-add-list bound (car bnd))))
+     (for/fold ([xs : (Setof Symbol) (-- (𝐴 e) bound)]) ([bnd bnds])
+       (-- (𝐴 (cdr bnd)) bound))]
+    [(-set! x e) (set-add (𝐴 e) x)]
+    [(-@-havoc x) ∅]
+    #;[(.apply f xs _) (set-union (𝐴 f d) (𝐴 xs d))]
+    [(-if e e₁ e₂) (∪ (𝐴 e) (𝐴 e₁) (𝐴 e₂))]
+    [(-amb es)
+     (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
+       (∪ xs (𝐴 e)))]
+    [(-μ/c x e _) (set-remove (𝐴 e) x)]
+    [(-->i doms rng _)
+     (define-values (bound 𝐴_dom)
+       (for/fold ([bound : (Setof Symbol) ∅] [𝐴_dom : (Setof Symbol) ∅]) ([dom doms])
+         (match-define (cons x c) dom)
+         (values (set-add bound x) (∪ 𝐴_dom (𝐴 c)))))
+     (∪ 𝐴_dom (-- (𝐴 rng) bound))]
+    [(-struct/c _ cs _)
+     (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
+       (∪ xs (𝐴 c)))]
+    [(? list? l)
+     (for/fold ([xs : (Setof Symbol) ∅]) ([e l])
+       (∪ xs (𝐴 e)))]
+    [_ (log-debug "𝐴⟦~a⟧ = ∅~n" e) ∅]))
+
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
 (define (closed? e) (set-empty? (FV e)))
