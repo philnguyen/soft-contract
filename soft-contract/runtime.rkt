@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set racket/function
-         "utils.rkt" "lang.rkt")
+         "utils.rkt" "ast.rkt")
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 

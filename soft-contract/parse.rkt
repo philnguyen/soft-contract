@@ -2,7 +2,7 @@
 (require racket/match racket/list racket/set racket/bool racket/function racket/math
          racket/unsafe/ops
          web-server/private/util
-         "utils.rkt" "lang.rkt" (only-in redex/reduction-semantics variable-not-in)
+         "utils.rkt" "ast.rkt" (only-in redex/reduction-semantics variable-not-in)
          syntax/parse syntax/modresolve racket/pretty racket/contract
          "expand.rkt"
          (prefix-in fake: "fake-contract.rkt"))

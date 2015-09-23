@@ -7,9 +7,25 @@
 
 ;; I prefix types with dashes so I can use 1-letter variables without shadowing constructors
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Parameterized begin
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (struct (X) -begin ([body : (Listof X)]) #:transparent)
 (define-type -begin/e (-begin -e))
 (define-type -begin/top (-begin -top-level-form))
+
+(: -begin/simp : (∀ (X) (Listof X) → (U X (-begin X))))
+;; Smart constructor for begin, simplifying single-expression case
+(define/match (-begin/simp xs)
+  [((list e)) e]
+  [(es) (-begin es)])
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Blame info
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
 (define-type Mon-Party Adhoc-Module-Path)
@@ -22,12 +38,6 @@
 ;; Swap positive and negative blame parties
 (define/match (swap-parties info)
   [((list + - o)) (list - + o)])
-
-(: -begin/simp : (∀ (X) (Listof X) → (U X (-begin X))))
-;; Smart constructor for begin, simplifying single-eession case
-(define/match (-begin/simp xs)
-  [((list e)) e]
-  [(es) (-begin es)])
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
