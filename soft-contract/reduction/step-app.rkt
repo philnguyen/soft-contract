@@ -1,0 +1,185 @@
+#lang typed/racket/base
+
+(require
+ racket/match racket/set racket/function
+ "../utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt" "../delta.rkt" "../machine.rkt"
+ "step-mon.rkt")
+
+(provide ↦@ rt-spurious?)
+
+(: ↦@ : -WV (Listof -WV) -Γ -κ -σ -Ξ -M -src-loc → -Δς*)
+;; Stepping rules for function application
+(define (↦@ W_f W_xs Γ κ σ Ξ M loc)
+
+  (match-define (-src-loc l pos) loc)
+
+  (match-define (-W V_f e_f) W_f)
+  (define-values (V_xs e_xs) ((inst unzip-by -WV -V -?e) -W-x -W-e W_xs))
+  (define e_a (apply -?@ e_f e_xs))
+
+  (dbg '↦@ "App:~n f: ~a~n xs: ~a~n" (show-V V_f) (map show-V V_xs))
+
+  (define-syntax-rule (with-guarded-arity n e ...)
+    (cond
+      [(= n (length W_xs)) e ...]
+      [else
+       (-Δς (-blm l 'Λ (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤) V_xs)
+            Γ κ '() '() '())]))
+
+  (: ↦β : -formals -e -ρ -Γ → -Δς*)
+  (define (↦β xs e ρ_f Γ_f)
+    (match xs
+      [(? list? xs)
+       (define-values (ρ* σ* δσ)
+         (for/fold ([ρ* : -ρ ρ_f] [σ* : -σ σ] [δσ : -Δσ '()])
+                   ([x xs] [V_x V_xs] [ex e_xs])
+           (define α x #;(-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ⊤)))
+           (define V_x* (close-Γ Γ V_x))
+           (values (ρ+ ρ* x α)
+                   (⊔ σ* α V_x*)
+                   (cons (cons α V_x*) δσ))))
+       (define τ (-τ e ρ* Γ_f))
+       (define κ* (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
+       (define δΞ (list (cons τ κ*)))
+       ;(define Ξ* (⊔ Ξ τ κ*))
+       (-Δς (-⇓ e ρ*) Γ_f τ δσ δΞ '())]
+      [(-varargs zs z) (error '↦@ "TODO: varargs")]))
+
+  (: ↦δ : -o → -Δς*)
+  (define (↦δ o)
+    (match/nd: (-AΓ → -Δς) (δ M σ Γ o W_xs loc)
+      [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ '() '() '())]
+      [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ '() '() '())]))
+  
+  (: ↦havoc : → (Setof -Δς))
+  (define (↦havoc)
+    (define V_havoc (σ@₁ σ (-α.def -havoc-id)))
+    (define W_havoc (-W V_havoc (-ref -havoc-id l)))
+    (for/fold ([acc : (Setof -Δς) ∅]) ([W_x W_xs])
+      (match (↦@ W_havoc (list W_x) Γ κ σ Ξ M -Λ)
+        [(? set? s) (∪ acc s)]
+        [(? -Δς? ς) (set-add acc ς)])))
+
+  (: ↦opq : → -Δς)
+  (define (↦opq) (-Δς (-W (list '•) e_a) Γ κ '() '() '()))
+
+  (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -Δς*)
+  (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
+    (define D (-⇓ d ρ_d))
+    ;; TODO: probably don't need these restoring frames anymore. Check again.
+    (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
+    (match* (xs cs Cs W_xs)
+      [('() '() '() '())
+       (define κ₂ (-kont (-φ.indy.rng V_g '() l³ pos) κ₁))
+       (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())]
+      [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
+       (define l³* (swap-parties l³))
+       (define W_c (-W C c))
+       (define W_x* (-W (-W-x W_x) (-x x)))
+       (define κ₂ (-kont (-φ.indy.dom x xs* cs* Cs* W_xs* '() V_g d ρ_d l³ pos) κ₁))
+       (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³*)]))
+
+  (: ↦con : -st-mk → -Δς)
+  (define (↦con k)
+    (match-define (-st-mk (and s (-struct-info id n _))) k)
+    (with-guarded-arity n
+      (define αs (alloc-fields s pos W_xs))
+      (define δσ : -Δσ
+        (for/list ([α αs] [W W_xs])
+          (cons α (close-Γ Γ (-W-x W)))))
+      (-Δς (-W (list (-St s αs)) e_a) Γ κ δσ '() '())))
+
+  (: ↦ac : -st-ac → -Δς*)
+  (define (↦ac o)
+    (match-define (-st-ac (and s (-struct-info id n _)) i) o)
+    (with-guarded-arity 1
+      (match-define (list (and W (-W V e))) W_xs)
+      (define prd (-st-p s))
+      (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W (-W prd prd)))
+      (define δς-ok
+        (and
+         Γ-ok
+         (match V
+           [(-St _ αs)
+            (for/set: : (Setof -Δς) ([V (σ@ σ (list-ref αs i))])
+              (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))]
+           [_ (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))
+      (define δς-bad
+        (and Γ-bad (-Δς (-blm l (show-o o) prd (list V)) Γ-bad κ '() '() '())))
+      (cond
+        [(and δς-ok δς-bad)
+         (cond [(set? δς-ok) (set-add δς-ok δς-bad)]
+               [else {set δς-ok δς-bad}])]
+        [δς-ok δς-ok]
+        [else (assert δς-bad)])))
+
+  (: ↦mut : -st-mut → -Δς*)
+  (define (↦mut o)
+    (with-guarded-arity 2
+      (match-define (-st-mut s i) o)
+      (match-define (list (and W₁ (-W V₁ e₁)) (-W V₂ e₂)) W_xs)
+      (define prd (-st-p s))
+      (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W₁ (-W prd prd)))
+      (define δς-bad
+        (and Γ-bad (-Δς (-blm l (show-o o) prd (list V₁)) Γ-bad κ '() '() '())))
+      (define δσ
+        (match V₁
+          [(-St _ αs) (list (cons (list-ref αs i) V₂))]
+          [else '()]))
+      (define δς-ok (and Γ-ok (-Δς (-W -Void/Vs e_a) Γ κ δσ '() '())))
+      (cond
+        [(and δς-ok δς-bad) {set δς-ok δς-bad}]
+        [δς-ok δς-ok]
+        [else (assert δς-bad)])))
+  
+  (match V_f
+    [(? -st-mk? k) (↦con k)]
+    [(? -st-ac? o) (↦ac o)]
+    [(? -st-mut? o) (↦mut o)]
+    [(? -o? o) (↦δ o)]
+    [(-Clo* xs e ρ_f    ) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
+    [(-Clo  xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]
+    [(-Ar xs cs γs d ρ_c Γ_c α l³)
+     (match/nd: ((Listof -V) → -Δς) (σ@/list σ γs) ; TODO can explode very fast!!
+       [Cs (match/nd: (-V → -Δς) (σ@ σ α)
+             [V_g (↦indy xs cs Cs d ρ_c Γ_c V_g l³)])])]
+    ['• (set-add (↦havoc) (↦opq))]
+    [_ (-Δς (-blm l 'apply 'procedure? (list V_f)) Γ κ '() '() '())]))
+
+(: rt-spurious? ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . Boolean))
+;; Check whether a returned result is spurious
+(define (rt-spurious? M σ φ Γ [W (-W '() #f)])
+  (match-define (-W Vs ?e) W)
+  (match-define (-φ.rt.@ Γ₀ xs e_f e_xs) φ)
+  (define params ; only care params that have corresponding args
+    (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
+
+  ; Convert invariants about parameters in new environment
+  ; to invariants about arguments in old environment
+  ; PRECOND: (FV e) ⊆ xs
+  (define (convert [e : -e]) : -e
+    (for/fold ([e e]) ([x xs] [e_x e_xs] #:when e_x)
+      (e/ e x e_x)))
+  
+  (define facts*
+    (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) params))
+      (convert e)))
+
+  ; Check whether the propositions would contradict
+  (define Γ₀* (MσΓ⊓ M σ Γ₀ facts*))
+  (define ans
+    (cond
+      [Γ₀* (or (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e))))
+               (spurious? M σ Γ₀* (-W Vs (apply -?@ e_f e_xs))))]
+      [else #t]))
+  
+  (begin ;; debug
+    (dbg 'rt "Return from: ~a~n"
+         `(,(show-?e e_f)
+           ,@(for/list : (Listof Sexp) ([x xs] [e_x e_xs])
+               `(,x ↦ ,(show-?e e_x)))))
+    (dbg 'rt "Caller knows: ~a~n" (show-Γ Γ₀))
+    (dbg 'rt "Callee knows: ~a~n" (show-Γ Γ))
+    (dbg 'rt "Caller would know: ~a~n" (and Γ₀* (show-Γ Γ₀*)))
+    (dbg 'rt "Spurious? ~a~n~n" ans))
+  ans)

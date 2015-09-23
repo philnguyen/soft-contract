@@ -1,0 +1,151 @@
+#lang typed/racket/base
+
+(require
+ racket/match racket/set racket/list
+ "../utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt" "../machine.rkt")
+
+(provide ↦mon ↦FC)
+
+(: ↦mon : -WV -WV -Γ -κ -σ -Ξ -M Mon-Info → -Δς*)
+;; Stepping rules for contract monitoring
+(define (↦mon W_c W_v Γ κ σ Ξ M l³)
+  (match-define (-W C e_c) W_c)
+  (match-define (-W V e_v) W_v)
+  (match-define (list l+ l- lo) l³)
+
+  (match (MσΓ⊢V∈C M σ Γ W_v W_c)
+    ['✓
+     (define Γ* (Γ+ Γ (-?@ e_c e_v)))
+     (-Δς (-W (list V) e_v) Γ* κ '() '() '())]
+    ['X
+     (define Γ* (Γ+ Γ (-not (-?@ e_c e_v))))
+     (-Δς (-blm l+ lo C (list V)) Γ* κ '() '() '())]
+    ['?
+     (match C
+       [(-=>i xs cs Cs d ρ_d Γ_d)
+        ;; TODO: check for arity also
+        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W 'procedure? 'procedure?)))
+        (define ς-ok
+          (and Γ-ok
+               (let ()
+                 (define α
+                   (cond [e_v (-α.tmp e_v)]
+                         [else (-α.fld (-id-local 'Ar 'Λ) #f #|FIXME|# 0)]))
+                 (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
+                 (define δσ (list (cons α V)))
+                 (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))))
+        (define ς-bad
+          (and Γ-bad
+               (-Δς (-blm l+ lo 'procedure? (list V)) Γ-bad κ '() '() '())))
+        (cond
+          [(and ς-ok ς-bad) {set ς-ok ς-bad}]
+          [ς-ok ς-ok]
+          [else (assert ς-bad)])]
+       [(-St/C s γs)
+        (define n (length γs))
+        (define k? (-st-p s))
+        (define k (-st-mk s))
+        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W k? k?)))
+        (define ς-bad
+          (and Γ-bad
+               (-Δς (-blm l+ lo k? (list V)) Γ-bad κ '() '() '())))
+        (define ς-ok
+          (and Γ-ok
+               (let ()
+                 (define Vss : (Setof (Listof -V))
+                   (match V
+                     [(-St _ αs) (σ@/list σ αs)]
+                     [_ {set (make-list n '•)}]))
+                 (define Dss : (Setof (Listof -V)) (σ@/list σ γs))
+                 (define e_ds (-struct/c-split e_c n))
+                 (define e_vs (-struct-split   e_v s))
+                 (for*/set: : (Setof -Δς) ([Ds Dss] [Vs Vss])
+                   (define mons : (Listof -Mon)
+                     (for/list ([D Ds] [V Vs] [e_d e_ds] [e_vi e_vs])
+                       (-Mon (-W D e_d) (-W V e_vi) l³)))
+                   (match mons
+                     ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ '() '() '())]
+                     [(cons mon mons*)
+                      (define κ* (-kont (-φ.@ mons* (list (-W k k)) (-src-loc lo #f #|FIXME|#)) κ))
+                      (-Δς mon Γ-ok κ* '() '() '())])))))
+        (cond
+          [(and ς-ok ς-bad) (set-add ς-ok ς-bad)]
+          [ς-ok ς-ok]
+          [else (assert ς-bad)])]
+       [(-μ/C x c)
+        (error '↦mon "μ/c")]
+       [(-X/C x)
+        (error '↦mon "ref")]
+       [(-St (≡ -s-and/c) (list γ₁ γ₂))
+        (define Cs₁ (σ@ σ γ₁))
+        (define Cs₂ (σ@ σ γ₂))
+        (define-values (c₁ c₂) (-and/c-split e_c))
+        (match/nd: (-V → -Δς) Cs₁
+          [C₁
+           (match/nd: (-V → -Δς) Cs₂
+             [C₂
+              (define κ* (-kont (-φ.mon.v (-W C₂ c₂) l³) κ))
+              (define W_c₁ (-W C₁ c₁))
+              (↦mon W_c₁ W_v Γ κ* σ Ξ M l³)])])]
+       [(-St (≡ -s-or/c) (list γ₁ γ₂))
+        (define Cs₁ (σ@ σ γ₁))
+        (define Cs₂ (σ@ σ γ₂))
+        (define-values (c₁ c₂) (-or/c-split e_c))
+        (match/nd: (-V → -Δς) Cs₁
+          [C₁
+           (cond
+             [(C-flat? σ C₁)
+              (match/nd: (-V → -Δς) Cs₂
+                [C₂
+                 (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³)
+                                          (-blm l+ lo C₁ (list V)))
+                                   κ))
+                 (define E* (-FC (-W C₁ c₁) W_v lo))
+                 (-Δς E* Γ κ* '() '() '())])]
+             [else
+              (-Δς (-blm lo 'Λ #|hack|#
+                         (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) (list C₁))
+                   Γ κ '() '() '())])])]
+       [(-St (≡ -s-not/c) (list α))
+        (match/nd: (-V → -Δς) (σ@ σ α)
+          [C*
+           (cond
+             [(C-flat? σ C*)
+              (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
+              (-Δς (-FC (-W C* (-not/c-neg e_c)) W_v lo) Γ κ* '() '() '())]
+             [else
+              (-Δς (-blm lo 'Λ #|hack|#
+                         (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) (list C*))
+                   Γ κ '() '() '())])])]
+       [_
+        (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
+        (-Δς (-W (list V) e_v) Γ
+             (-kont (-φ.@ '() (list W_c) (-src-loc lo #f #|TODO|#)) κ*) '() '() '())])]))
+
+(: ↦FC : -WV -WV -Γ -κ -σ -Ξ -M Mon-Party → -Δς*)
+;; Stepping rules for monitoring flat contracts
+(define (↦FC W_c W_v Γ κ σ Ξ M l)
+  (match-define (-W C e_c) W_c)
+  (match-define (-W V e_v) W_v)
+  (match C
+    [(-St (-struct-info (and t (or 'and/c 'or/c)) _ _) (list γ₁ γ₂))
+     (define Cs₁ (σ@ σ γ₁))
+     (define Cs₂ (σ@ σ γ₂))
+     (define-values (c₁ c₂) (-and/c-split e_c))
+     (match/nd: (-V → -Δς) Cs₁
+       [C₁
+        (match/nd: (-V → -Δς) Cs₂
+          [C₂
+           (define φ
+             (match t
+               ['and/c (-φ.if (-FC W_v (-W C₂ c₂) l) (-W (list -ff) -ff))]
+               ['or/c  (-φ.if (-W (list -tt) -tt) (-FC W_v (-W C₂ c₂) l))]))
+           (-Δς (-FC (-W C₁ c₁) W_v l) Γ (-kont φ κ) '() '() '())])])]
+    [(-St 'not/c (list γ))
+     (match/nd: (-V → -Δς) (σ@ σ γ)
+       [C*
+        (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) -Λ) κ))
+        (-Δς (-FC (-W C* (-not/c-neg e_c)) W_v l) Γ κ* '() '() '())])]
+    ;; FIXME recursive contract
+    [_ (-Δς (-W (list V) e_v) Γ
+            (-kont (-φ.@ '() (list W_c) (-src-loc l #f #|TODO|#)) κ) '() '() '())]))

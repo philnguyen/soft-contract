@@ -275,6 +275,13 @@
 
   (-ς E₀ -Γ⊤ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 
+(: with-Δ : -Δσ -ΔΞ -ΔM -Δς* → -Δς*)
+;; Append store deltas to given state delta
+(define (with-Δ δσ δΞ δM δς)
+  (match/nd: (-Δς → -Δς) δς
+    [(-Δς E Γ κ δσ* δΞ* δM*)
+     (-Δς E Γ κ (append δσ δσ*) (append δΞ δΞ*) (append δM δM*))]))
+
 (: final? (case-> [-ς → Boolean]
                   [-E -κ -Ξ → Boolean]))
 ;; Check whether state is final
