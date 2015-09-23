@@ -6,7 +6,7 @@
  )
 (provide (all-defined-out))
 
-(: δ : -M -σ -Γ -o (Listof -WV) -src-loc → (Values -Δσ -AΓs))
+(: δ : -M -σ -Γ -o (Listof -WV) -src-loc → -AΓs)
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
 (define (δ M σ Γ o Ws loc)
@@ -16,12 +16,10 @@
     (cond
       [(= n (length Ws)) e ...]
       [else
-       (values
-        '()
-        (-AΓ (-blm l (show-o o)
-                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤)
-                   (WVs->Vs Ws))
-             Γ))]))
+       (-AΓ (-blm l (show-o o)
+                  (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤)
+                  (WVs->Vs Ws))
+            Γ)]))
   
   (match o
     ;; Primitive predicate
@@ -33,10 +31,10 @@
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
-       (values '() (-AΓ (list V_a) Γ)))]
+       (-AΓ (list V_a) Γ))]
 
     ;; Multiple values
-    ['values (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]
+    ['values (-AΓ (map (inst -W-x -V) Ws) Γ)]
     
     ['vector-length
      (with-guarded-arity 1
@@ -48,11 +46,9 @@
               (match V
                 [(-Vector αs) (-AΓ (list (-b (length αs))) Γ-ok)]
                 [_ (-AΓ (list '•) Γ-ok)])))
-       (define ans
-         (cond [(and ans-ok ans-bad) {set ans-ok ans-bad}]
-               [ans-ok ans-ok]
-               [else (assert ans-bad)]))
-       (values '() ans))]
+       (cond [(and ans-ok ans-bad) {set ans-ok ans-bad}]
+             [ans-ok ans-ok]
+             [else (assert ans-bad)]))]
 
     ;; Equality
     ['equal?
@@ -65,7 +61,7 @@
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
-       (values '() (-AΓ (list ans) Γ)))]
+       (-AΓ (list ans) Γ))]
 
     ;; Ariths
     ['+
@@ -84,15 +80,13 @@
        (define ans-ok   (-AΓ (list '•) Γ-ok))
        (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
        (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
-       (define ans
-         (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
-           [('X _) ans-bad₁]
-           [(_ 'X) ans-bad₂]
-           [('✓ '✓) ans-ok]
-           [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
-           [('? '✓) {set ans-bad₁ ans-ok}]
-           [('✓ '?) {set ans-bad₂ ans-ok}]))
-       (values '() ans))]
+       (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
+         [('X _) ans-bad₁]
+         [(_ 'X) ans-bad₂]
+         [('✓ '✓) ans-ok]
+         [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
+         [('? '✓) {set ans-bad₁ ans-ok}]
+         [('✓ '?) {set ans-bad₂ ans-ok}]))]
     
     ['-
      (with-guarded-arity 2
@@ -109,15 +103,13 @@
        (define ans-ok   (-AΓ (list '•) Γ-ok))
        (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
        (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
-       (define ans
-         (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
-           [('X _) ans-bad₁]
-           [(_ 'X) ans-bad₂]
-           [('✓ '✓) ans-ok]
-           [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
-           [('? '✓) {set ans-bad₁ ans-ok}]
-           [('✓ '?) {set ans-bad₂ ans-ok}]))
-       (values '() ans))]
+       (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
+         [('X _) ans-bad₁]
+         [(_ 'X) ans-bad₂]
+         [('✓ '✓) ans-ok]
+         [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
+         [('? '✓) {set ans-bad₁ ans-ok}]
+         [('✓ '?) {set ans-bad₂ ans-ok}]))]
     
     ['*
      (with-guarded-arity 2
@@ -134,15 +126,13 @@
        (define ans-ok   (-AΓ (list '•) Γ-ok))
        (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
        (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
-       (define ans
-         (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
-           [('X _) ans-bad₁]
-           [(_ 'X) ans-bad₂]
-           [('✓ '✓) ans-ok]
-           [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
-           [('? '✓) {set ans-bad₁ ans-ok}]
-           [('✓ '?) {set ans-bad₂ ans-ok}]))
-       (values '() ans))]
+       (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
+         [('X _) ans-bad₁]
+         [(_ 'X) ans-bad₂]
+         [('✓ '✓) ans-ok]
+         [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
+         [('? '✓) {set ans-bad₁ ans-ok}]
+         [('✓ '?) {set ans-bad₂ ans-ok}]))]
     ))
 
 #|

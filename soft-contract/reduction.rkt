@@ -456,10 +456,9 @@
 
   (: ↦δ : -o → -Δς*)
   (define (↦δ o)
-    (define-values (δσ AΓs) (δ M σ Γ o W_xs loc))
-    (match/nd: (-AΓ → -Δς) AΓs
-      [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ δσ '() '())]
-      [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ δσ '() '())]))
+    (match/nd: (-AΓ → -Δς) (δ M σ Γ o W_xs loc)
+      [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ '() '() '())]
+      [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ '() '() '())]))
   
   (: ↦havoc : → (Setof -Δς))
   (define (↦havoc)
