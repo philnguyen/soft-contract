@@ -79,7 +79,7 @@
        [(-St (≡ -s-and/c) (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
-        (define-values (c₁ c₂) (-and/c-split e_c))
+        (match-define (list c₁ c₂) (-struct-split e_c -s-and/c))
         (match/nd: (-V → -Δς) Cs₁
           [C₁
            (match/nd: (-V → -Δς) Cs₂
@@ -90,7 +90,7 @@
        [(-St (≡ -s-or/c) (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
-        (define-values (c₁ c₂) (-or/c-split e_c))
+        (match-define (list c₁ c₂) (-struct-split e_c -s-or/c))
         (match/nd: (-V → -Δς) Cs₁
           [C₁
            (cond
@@ -111,8 +111,9 @@
           [C*
            (cond
              [(C-flat? σ C*)
+              (match-define (list e_c*) (-struct-split e_c -s-not/c))
               (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
-              (-Δς (-FC (-W C* (-not/c-neg e_c)) W_v lo) Γ κ* '() '() '())]
+              (-Δς (-FC (-W C* e_c*) W_v lo) Γ κ* '() '() '())]
              [else
               (-Δς (-blm lo 'Λ #|hack|#
                          (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) (list C*))
@@ -131,7 +132,7 @@
     [(-St (-struct-info (and t (or 'and/c 'or/c)) _ _) (list γ₁ γ₂))
      (define Cs₁ (σ@ σ γ₁))
      (define Cs₂ (σ@ σ γ₂))
-     (define-values (c₁ c₂) (-and/c-split e_c))
+     (match-define (list c₁ c₂) (-struct-split e_c -s-and/c))
      (match/nd: (-V → -Δς) Cs₁
        [C₁
         (match/nd: (-V → -Δς) Cs₂
@@ -145,7 +146,8 @@
      (match/nd: (-V → -Δς) (σ@ σ γ)
        [C*
         (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) -Λ) κ))
-        (-Δς (-FC (-W C* (-not/c-neg e_c)) W_v l) Γ κ* '() '() '())])]
+        (match-define (list e_c*) (-struct-split e_c -s-not/c))
+        (-Δς (-FC (-W C* e_c*) W_v l) Γ κ* '() '() '())])]
     ;; FIXME recursive contract
     [_ (-Δς (-W (list V) e_v) Γ
             (-kont (-φ.@ '() (list W_c) (-src-loc l #f #|TODO|#)) κ) '() '() '())]))

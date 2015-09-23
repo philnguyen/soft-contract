@@ -454,21 +454,6 @@
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
   (syntax-rules () [(_ e) (-?@ 'not e)]))
 
-(:* -and/c-split -or/c-split : -?e → (Values -?e -?e))
-(define -and/c-split
-  (match-lambda
-    [(-@ (-st-mk (≡ -s-and/c)) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac -s-and/c 0) c)
-               (-?@ (-st-ac -s-and/c 1) c))]))
-(define -or/c-split
-  (match-lambda
-    [(-@ (-st-mk (≡ -s-or/c)) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac -s-or/c 0) c)
-               (-?@ (-st-ac -s-or/c 1) c))]))
-(: -not/c-neg : -?e → -?e)
-(define (-not/c-neg c)
-  (-?@ (-st-ac -s-not/c 0) c))
-
 (: -struct/c-split : -?e Integer → (Listof -?e))
 (define (-struct/c-split c n)
   (match c
