@@ -127,14 +127,14 @@
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ]
     [v : -α] [l³ : Mon-Info])
-  (struct -St [tag : -id] [fields : (Listof -α)])
+  (struct -St [info : -struct-info] [fields : (Listof -α)])
   (struct -Vector [fields : (Listof -α)])
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ])
-  (struct -St/C [t : -id] [fields : (Listof -α)])
+  (struct -St/C [info : -struct-info] [fields : (Listof -α)])
   (struct -μ/C [x : Symbol] [c : -α])
   (struct -X/C [ref : -α]))
 (define-type -Vs (Listof -V))
@@ -198,12 +198,13 @@
             `(,x : (,(show-α γ) @ ,(show-?e c))))
         ↦ ,(show-e rng))
        ◃ ,(show-α α))]
-    [(-St t αs) `(,(-id-name t) ,@(map show-α αs))]
+    [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-=>i xs cs γs d ρ Γ)
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : (,(show-α γ) @ ,(show-?e c))))
        ↦ ,(show-e d))]
-    [(-St/C t αs) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(map show-α αs))]
+    [(-St/C s αs)
+     `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
     [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
     [(-X/C α) `(X: ,(show-α α))]))
 
@@ -281,10 +282,11 @@
   ;; TODO: temp hack
   (struct -α.tmp [v : -e])
   ;; for mutable or opaque field
-  (struct -α.fld [id : -id] [loc : (Option Integer)] [idx : Integer]))
+  (struct -α.fld [id : (U -id #|HACK|# Symbol)] [loc : (Option Integer)] [idx : Integer]))
 
-(: alloc-fields : -id Integer (Option Integer) (Listof -WV) → (Listof -α))
-(define (alloc-fields id n loc Ws)
+(: alloc-fields : -struct-info (Option Integer) (Listof -WV) → (Listof -α))
+(define (alloc-fields s loc Ws)
+  #|FIXME|# (match-define (-struct-info id n _) s)
   (for/list ([W Ws] [i (in-range n)])
     (match-define (-W V _ #|TODO matters?|#) W)
     (-α.fld id loc i)))
@@ -383,12 +385,12 @@
 ;;;;; Convenience
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define -Mt (-St 'null (list)))
+(define -Mt (-St -s-null (list)))
 (define -Any/C (-Clo '(x) -tt -ρ⊥ -Γ⊤))
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -● (-W '• #f))
-(define -Void/Vs (list (-St 'void '())))
+(define -Void/Vs (list (-St -s-void '())))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
@@ -398,18 +400,20 @@
 ;; Smart constructor for application
 (define (-?@ f . xs)
 
-  (: access-same-value? : -id Integer (Listof -?e) → (Option -e))
-  (define (access-same-value? id n es)
+  (: access-same-value? : -struct-info (Listof -?e) → (Option -e))
+  ;; If given expression list of the form like `(car e); (cdr e)`, return `e`.
+  ;; Otherwise just `#f`
+  (define (access-same-value? info es)
+    (define n (-struct-info-arity info))
     (match es
-      [(cons (-@ (-st-ac id0 m0 0) (list e0) _) es*)
-       (and (equal? id id0)
-            (= n m0)
+      [(cons (-@ (-st-ac info₀ 0) (list e₀) _) es*)
+       (and (equal? info info₀)
             (for/and : Boolean ([i (in-range 1 n)] [ei es*])
               (match ei
-                [(-@ (-st-ac jd mj j) (list ej) _)
-                 (and (= n mj) (= i j) (equal? id jd) (equal? e0 ej))]
+                [(-@ (-st-ac infoⱼ j) (list eⱼ) _)
+                 (and (equal? info infoⱼ) (= i j) (equal? e₀ eⱼ))]
                 [_ #f]))
-            e0)]
+            e₀)]
       [_ #f]))
   
   (cond
@@ -418,11 +422,11 @@
        ; (not (not e)) = e
        [('not (list (-not e))) e]
        ; (car (cons e _)) = e
-       [((-st-ac id n i) (list (-@ (-st-mk id n) es _)))
+       [((-st-ac s i) (list (-@ (-st-mk s) es _)))
         (list-ref es i)]
        ; (cons (car e) (cdr e)) = e
-       [((-st-mk id n) es)
-        (or (access-same-value? id n es)
+       [((-st-mk s) es)
+        (or (access-same-value? s es)
             (-@ f (cast xs (Listof -e)) -Λ))]
        ; ariths
        [('+ (list-no-order (-b 0) e*)) (assert e* -e?)]
@@ -443,35 +447,38 @@
 (:* -and/c-split -or/c-split : -?e → (Values -?e -?e))
 (define -and/c-split
   (match-lambda
-    [(-@ (-st-mk 'and/c 2) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac 'and/c 2 0) c)
-               (-?@ (-st-ac 'and/c 2 1) c))]))
+    [(-@ (-st-mk (≡ -s-and/c)) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac -s-and/c 0) c)
+               (-?@ (-st-ac -s-and/c 1) c))]))
 (define -or/c-split
   (match-lambda
-    [(-@ (-st-mk 'or/c 2) (list c d) _) (values c d)]
-    [c (values (-?@ (-st-ac 'or/c 2 0) c)
-               (-?@ (-st-ac 'or/c 2 1) c))]))
+    [(-@ (-st-mk (≡ -s-or/c)) (list c d) _) (values c d)]
+    [c (values (-?@ (-st-ac -s-or/c 0) c)
+               (-?@ (-st-ac -s-or/c 1) c))]))
 (: -not/c-neg : -?e → -?e)
-(define (-not/c-neg c) (-?@ (-st-ac 'not/c 1 0) c))
+(define (-not/c-neg c)
+  (-?@ (-st-ac -s-not/c 0) c))
 
 (: -struct/c-split : -?e Integer → (Listof -?e))
 (define (-struct/c-split c n)
   (match c
     [(-struct/c _ cs _) cs]
-    [_ (for/list : (Listof -?e) ([i (in-range n)])
-         (-?@ (-st-ac 'struct/c n i) c))]))
+    [_
+     (define s (-struct-info 'struct/c n ∅)) ; hack
+     (for/list : (Listof -?e) ([i (in-range n)])
+         (-?@ (-st-ac s i) c))]))
 
-(: -struct-split : -?e -id Integer → (Listof -?e))
-(define (-struct-split e id n)
+(: -struct-split : -?e -struct-info → (Listof -?e))
+(define (-struct-split e s)
   (match e
-    [(-@ (-st-mk id n) es _) es]
-    [_ (for/list : (Listof -?e) ([i (in-range n)])
-         (-?@ (-st-ac id n i) e))]))
+    [(-@ (-st-mk (≡ s)) es _) es]
+    [_ (for/list : (Listof -?e) ([i (in-range (-struct-info-arity s))])
+         (-?@ (-st-ac s i) e))]))
 
-(: -?struct/c : -id (Listof -?e) → (Option -struct/c))
-(define (-?struct/c id fields)
+(: -?struct/c : -struct-info (Listof -?e) → (Option -struct/c))
+(define (-?struct/c s fields)
   (and (andmap (inst values -?e) fields)
-       (-struct/c id (cast fields (Listof -e)) #f)))
+       (-struct/c s (cast fields (Listof -e)) #f)))
 
 (: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
 (define (-?->i xs cs d)
@@ -488,6 +495,7 @@
     [(? -e?)
      (cond [(= 1 n) (list e)]
            [else #|hack|#
+            (define s (-struct-info 'values n ∅))
             (for/list ([i (in-range n)])
-              (-?@ (-st-ac 'values n i) e))])]
+              (-?@ (-st-ac s i) e))])]
     [_ (make-list n #f)]))

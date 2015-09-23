@@ -112,8 +112,8 @@
       (cond
         [e
          (match V
-           [(-St id αs)
-            (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-mk id (length αs)) e)))]
+           [(-St s αs)
+            (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-p s) e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
@@ -266,10 +266,10 @@
            [(-@ 'equal? _ _) '✓]
            [(-@ (? -st-mk?) _ _) 'X]
            [_ '?])]
-        [(-@ (-st-p id _) (list e*) _)
+        [(-@ (-st-p s) (list e*) _)
          (match e*
-           [(-@ (-st-mk id* _) _ _)
-            (decide-R (equal? id id*))]
+           [(-@ (-st-mk s*) _ _)
+            (decide-R (equal? s s*))]
            [(or (? -b?) (? -λ?)) 'X]
            [_ '?])]
         [(-@ (? -st-ac?) (list e) _) '?]
@@ -359,9 +359,9 @@
          ['• '?]
          [_ 'X])]
       [else
-       (match-define (-st-p id n) p)
+       (match-define (-st-p s) p)
        (match V
-         [(-St id* _) (decide-R (equal? id id*))]
+         [(-St s* _) (decide-R (equal? s s*))]
          ['• '?]
          [_ 'X])]))
   (with-prim-checks integer? real? number? not boolean? string? symbol? keyword?))
@@ -377,10 +377,8 @@
 (define (p⇒p p q)
   (cond
     [(equal? p q) '✓]
-    [else
+    [else ; when p ≠ q
      (match* (p q)
-       ; structs
-       [((-st-p t _) (-st-p t _)) '✓]
        ; boolean
        [('not 'boolean?) '✓]
        [('boolean? 'not) '?]

@@ -48,7 +48,8 @@
                                #:unless (spurious? M σ Γ W))
        (match V
          ['undefined ; FIXME hack
-          (-Δς (-blm 'TODO 'Λ (-st-p (-id-local 'defined 'Λ) 1) (list 'undefined))
+          (-Δς (-blm 'TODO 'Λ (-st-p (-struct-info (-id-local 'defined 'Λ) 1 ∅))
+                     (list 'undefined))
               Γ κ '() '() '())]
          [_ (-Δς W Γ κ '() '() '())]))]
     ;; look up top-level reference
@@ -94,7 +95,7 @@
      (define-values (V ?e)
        (cond
          [(Base? x) (values (-b x) (-b x))]
-         [(null? x) (values (-St 'null '()) -null)]
+         [(null? x) (values (-St -s-null '()) -null)]
          [else (error '↦e "TODO: quote")]))
      (-Δς (-W (list V) ?e) Γ κ '() '() '())]
     ;; let-values: evaluate the first argument (if there is) and push the rest
@@ -350,29 +351,34 @@
      (match Vs
        [(list V) (error '↦WVs "TODO: μ/c")]
        [_ (error '↦WVs "TODO: catch arity error for μ/c")])]
-    [(-φ.struct/c id es ρ WVs↓ pos)
+    [(-φ.struct/c s es ρ WVs↓ pos)
      (with-guarded-arity 1 'TODO 'Λ
+       (match-define (-struct-info id n _) s)
        (match-define (list V) Vs)
        (define WVs↓* (cons (-W V ?e) WVs↓))
        (match es
          ['()
           (define n (length WVs↓*))
+          (define id/c
+            (match id
+              [(? symbol? s) (show/c s)]
+              [(-id-local s l) (-id-local (show/c s) l)]))
           (define-values (αs σ* es* δσ)
             ; accumulate new store and address list
             ; which is reversed compard to `WVs↓*`, hence of the right order
             (for/fold ([αs : (Listof -α) '()] [σ* : -σ σ] [es* : (Listof -?e) '()] [δσ : -Δσ '()])
                       ([WV WVs↓*] [i (in-range n)])
               (match-define (-W V e) WV)
-              (define α (-α.fld (id/c id) pos i))
+              (define α (-α.fld id/c pos i))
               (values (cons α αs)
                       (⊔ σ* α V)
                       (cons e es*)
                       (cons (cons α V) δσ))))
-          (define C (-St/C id αs))
-          (define e_C (-?struct/c id es*))
+          (define C (-St/C s αs))
+          (define e_C (-?struct/c s es*))
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons e es*)
-          (↦e e ρ Γ (-kont (-φ.struct/c id es* ρ WVs↓* pos) κ) σ Ξ M)]))]
+          (↦e e ρ Γ (-kont (-φ.struct/c s es* ρ WVs↓* pos) κ) σ Ξ M)]))]
     [(-φ.=>i cs Cs↓ cs↓ xs rng ρ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
@@ -521,10 +527,10 @@
           [(and ς-ok ς-bad) {set ς-ok ς-bad}]
           [ς-ok ς-ok]
           [else (assert ς-bad)])]
-       [(-St/C id γs)
+       [(-St/C s γs)
         (define n (length γs))
-        (define k? (-st-p id n))
-        (define k (-st-mk id n))
+        (define k? (-st-p s))
+        (define k (-st-mk s))
         (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W k? k?)))
         (define ς-bad
           (and Γ-bad
@@ -538,13 +544,13 @@
                      [_ {set (make-list n '•)}]))
                  (define Dss : (Setof (Listof -V)) (σ@/list σ γs))
                  (define e_ds (-struct/c-split e_c n))
-                 (define e_vs (-struct-split   e_v id n))
+                 (define e_vs (-struct-split   e_v s))
                  (for*/set: : (Setof -Δς) ([Ds Dss] [Vs Vss])
                    (define mons : (Listof -Mon)
                      (for/list ([D Ds] [V Vs] [e_d e_ds] [e_vi e_vs])
                        (-Mon (-W D e_d) (-W V e_vi) l³)))
                    (match mons
-                     ['() (-Δς (-W (list (-St id '())) (-?@ k)) Γ-ok κ '() '() '())]
+                     ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ '() '() '())]
                      [(cons mon mons*)
                       (define κ* (-kont (-φ.@ mons* (list (-W k k)) (-src-loc lo #f #|FIXME|#)) κ))
                       (-Δς mon Γ-ok κ* '() '() '())])))))

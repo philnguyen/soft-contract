@@ -40,19 +40,19 @@
      (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]
     
     ;; Constructor
-    [(-st-mk id n)
+    [(-st-mk (and s (-struct-info id n _)))
      (with-guarded-arity n
-       (define αs (alloc-fields id n pos Ws))
+       (define αs (alloc-fields s pos Ws))
        (define δσ : -Δσ
          (for/list ([α αs] [W Ws])
            (cons α (close-Γ Γ (-W-x W)))))
-       (values δσ (-AΓ (list (-St id αs)) Γ)))]
+       (values δσ (-AΓ (list (-St s αs)) Γ)))]
     
     ;; Accessor
-    [(-st-ac id n i)
+    [(-st-ac (and s (-struct-info id n _)) i)
      (with-guarded-arity 1
        (match-define (list (and W (-W V e))) Ws)
-       (define prd (-st-p id n))
+       (define prd (-st-p s))
        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W (-W prd prd)))
        (define ans-ok
          (and
@@ -73,10 +73,10 @@
        (values '() ans))]
 
     ;; Mutator
-    [(-st-mut id n i)
+    [(-st-mut (and s (-struct-info id n _)) i)
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ e₁)) (-W V₂ e₂)) Ws)
-       (define prd (-st-p id n))
+       (define prd (-st-p s))
        (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W₁ (-W prd prd)))
        (define ans-bad (and Γ-bad (-AΓ (-blm l (show-o o) prd (list V₁)) Γ-bad)))
        (define ans-ok  (and Γ-ok  (-AΓ -Void/Vs Γ-ok)))
@@ -86,13 +86,13 @@
                [else (assert ans-bad)]))
        (define δσ
          (match V₁
-           [(-St id* αs) (list (cons (list-ref αs i) V₂))]
+           [(-St _ αs) (list (cons (list-ref αs i) V₂))]
            [else '()]))
        (values δσ ans))]
 
     ;; vector constructor
     ['vector
-     (define αs (alloc-fields 'vector (length Ws) pos Ws))
+     (define αs (alloc-fields (-struct-info 'vector (length Ws) ∅) pos Ws))
      (define δσ : -Δσ
        (for/list ([α αs] [W Ws])
          (cons α (close-Γ Γ (-W-x W)))))

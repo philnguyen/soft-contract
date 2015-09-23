@@ -27,7 +27,8 @@
 (define (-⇓ e ρ)
   (match e
     [(? -v? v) (-W (list (close v ρ)) v)]
-    [(-@ (and k (-st-mk id 0)) '() _) (-W (list (-St id '())) (-?@ k))]
+    [(-@ (and k (-st-mk (and s (-struct-info _ 0 _)))) '() _)
+     (-W (list (-St s '())) (-?@ k))]
     [_ (-↓ e (ρ↓ ρ (FV e)))]))
 
 (define (show-E [E : -E]) : (Listof Sexp)
@@ -84,7 +85,7 @@
   ;; contract stuff
   (struct -φ.μc [x : Symbol] [pos : (Option Integer)])
   (struct -φ.struct/c
-    [name : -id] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
+    [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
     [pos : (Option Integer)])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [cs↓ : (Listof -?e)] [xs : (Listof Symbol)]
@@ -168,8 +169,8 @@
           ,v)]
     [(-φ.rt.let dom) `(rt/let ,@(set->list dom) ,v)]
     [(-φ.μc x _) `(μ/c ,x ,v)]
-    [(-φ.struct/c id cs _ρ cs↓ _)
-     `(,(-id-name (id/c id))
+    [(-φ.struct/c s cs _ρ cs↓ _)
+     `(,(show/c (show-struct-info s))
        ,@(reverse (map show-WV cs↓))
        ,v
        ,@(map show-e cs))]
@@ -205,8 +206,9 @@
 (define (𝑰 p)
   (match-define (-prog ms e₀) p)
 
-  (: alloc-es : -σ -id (Option Integer) (Listof -e) → (Values -σ (Listof -α)))
-  (define (alloc-es σ id pos es)
+  (: alloc-es : -σ -struct-info (Option Integer) (Listof -e) → (Values -σ (Listof -α)))
+  (define (alloc-es σ s pos es)
+    #|FIXME|# (define id (-struct-info-id s))
     (define-values (σ* αs-rev)
       (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α) '()])
                 ([e es] [i (in-naturals)])
@@ -224,14 +226,15 @@
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                     ([dom doms])
            (values (car dom) (cdr dom))))
-       (define-values (σ* γs) (alloc-es σ (-id-local '-> 'Λ) pos cs))
+       (define-values (σ* γs)
+         (alloc-es σ (#|HACK|# -struct-info (-id-local '-> 'Λ) (length cs) ∅) pos cs))
        (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
-      [(-@ (-st-mk (and t (or 'and/c 'or/c 'not/c)) _) cs (-src-loc _ pos))
-       (define-values (σ* αs) (alloc-es σ t pos cs))
-       (values σ* (-St t αs))]
-      [(-struct/c id cs pos)
-       (define-values (σ* αs) (alloc-es σ id pos cs))
-       (values σ* (-St/C id αs))]
+      [(-@ (-st-mk (and s (-struct-info (or 'and/c 'or/c 'not/c) _ _))) cs (-src-loc _ pos))
+       (define-values (σ* αs) (alloc-es σ s pos cs))
+       (values σ* (-St s αs))]
+      [(-struct/c s cs pos)
+       (define-values (σ* αs) (alloc-es σ s pos cs))
+       (values σ* (-St/C s αs))]
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
                 (show-e e))]))
 

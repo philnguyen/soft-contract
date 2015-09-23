@@ -57,6 +57,16 @@
         [else (-id-local-name id)]))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Struct info
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(struct -struct-info ([id : -id] [arity : Integer] [mutables : (Setof Integer)]) #:transparent)
+
+(define (show-struct-info [info : -struct-info]) : Symbol
+  (-id-name (-struct-info-id info)))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; AST subset definition as in Racket reference 1.2.3.1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -107,13 +117,13 @@
         (subset: -o1
           (subset: -pred
             ;; `arity` is the number of fields in the struct
-            (struct -st-p [tag : -id] [arity : Integer])
+            (struct -st-p [info : -struct-info])
             'defined?
             'number? 'real? 'integer? 'not 'boolean? 'string? 'symbol? 'procedure? 'keyword?
             'vector?)
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
-          (struct -st-ac [tag : -id] [arity : Integer] [index : Integer])
+          (struct -st-ac [info : -struct-info] [index : Integer])
           'add1 'sub1 'string-length 'sqrt
           'sin 'cos 'tan 'abs 'round 'floor 'ceiling 'log
           'vector-length
@@ -126,8 +136,8 @@
           'arity=? 'arity>=? 'arity-includes?
           'remainder 'quotient
           'vector-ref
-          (struct -st-mut [tag : -id] [arity : Integer] [index : Integer]))
-        (struct -st-mk [tag : -id] [arity : Integer])
+          (struct -st-mut [info : -struct-info] [index : Integer]))
+        (struct -st-mk [info : -struct-info])
         'vector 'vector-set!)))
   ;; lexical variables
   (struct -x [name : Symbol])
@@ -150,7 +160,7 @@
   (struct -μ/c [x : Symbol] [c : -e] [pos : (Option Integer)])
   (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e] [pos : (Option Integer)])
   (struct -x/c [x : Symbol])
-  (struct -struct/c [tag : -id] [fields : (Listof -e)] [pos : (Option Integer)])
+  (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : (Option Integer)])
   #;(-and/c [l : .e] [r : .e])
   #;(-or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
@@ -165,24 +175,38 @@
     [(-varargs xs x) (set-add (list->set xs) x)]))
 
 ;; frequently used constants
+
 (define -tt (-b #t))
 (define -ff (-b #f))
-(define -any/c (-λ '(x) -tt))
+(define -any/c  (-λ '(x) -tt))
 (define -none/c (-λ '(x) -ff))
-(define -null/c (-st-p 'null 0))
-(define -cons (-st-mk 'cons 2))
-(define -car (-st-ac 'cons 2 0))
-(define -cdr (-st-ac 'cons 2 1))
-(define -cons? (-st-p 'cons 2))
+
+(define -s-cons (-struct-info 'cons 2 ∅))
+(define -cons (-st-mk -s-cons))
+(define -car (-st-ac -s-cons 0))
+(define -cdr (-st-ac -s-cons 1))
+(define -cons? (-st-p -s-cons))
+
 (define -zero (-b 0))
 (define -one (-b 1))
-(define -void #|hack|# (-@ (-st-mk 'void 0) '() -Λ))
-(define -null? (-st-p 'null 0))
-(define -null #|hack|# (-@ (-st-mk 'null 0) '() -Λ))
-(define -box? (-st-p 'box 1))
-(define -unbox (-st-ac 'box 1 0))
-(define -box (-st-mk 'box 1))
-(define -set-box! (-st-mut 'box 1 0))
+
+(define -s-void (-struct-info 'void 0 ∅))
+(define -void #|hack|# (-@ (-st-mk -s-void) '() -Λ))
+
+(define -s-null (-struct-info 'null 0 ∅))
+(define -null? (-st-p -s-null))
+(define -null/c -null?)
+(define -null #|hack|# (-@ (-st-mk -s-null) '() -Λ))
+
+(define -s-box  (-struct-info 'box  1 {set 0}))
+(define -box? (-st-p -s-box))
+(define -unbox (-st-ac -s-box 0))
+(define -box (-st-mk -s-box))
+(define -set-box! (-st-mut -s-box 0))
+
+(define -s-and/c (-struct-info 'and/c 2 ∅))
+(define -s-or/c (-struct-info 'or/c 2 ∅))
+(define -s-not/c (-struct-info 'not/c 1 ∅))
 
 (: --> : (Listof -e) -e (Option Integer) → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
@@ -303,9 +327,9 @@
    [(? -o2?) 2]
    [_ 0]))
 
-(splicing-let ([mk-and/c (-st-mk 'and/c 2)]
-               [mk-or/c (-st-mk 'or/c 2)]
-               [mk-not/c (-st-mk 'not/c 1)])
+(splicing-let ([mk-and/c (-st-mk -s-and/c)]
+               [mk-or/c  (-st-mk -s-or/c )]
+               [mk-not/c (-st-mk -s-not/c)])
   (:* -and/c -or/c -one-of/c : (Pairof -e (Option Integer)) * → -e)
   (define -and/c
     (match-lambda*
@@ -328,10 +352,12 @@
               (cons (apply -one-of/c es) #f))]))
   
   (: -cons/c : -e -e (Option Integer) → -e)
-  (define (-cons/c c d pos) (-struct/c 'cons (list c d) pos))
+  (define (-cons/c c d pos)
+    (-struct/c -s-cons (list c d) pos))
 
   (: -not/c : -e (Option Integer) → -e)
-  (define (-not/c c pos) (-@ (-st-mk 'not/c 1) (list c) (-src-loc 'Λ pos))))
+  (define (-not/c c pos)
+    (-@ (-st-mk (-struct-info 'not/c 1 ∅)) (list c) (-src-loc 'Λ pos))))
 
 (: -list/c : (Pairof -e (Option Integer)) * → -e)
 (define (-list/c . cs)
@@ -551,13 +577,8 @@
   
   (go e))
 
-(: id/c : -id → -id)
-;; HACK
-(define (id/c id)
-  (match id
-    [(? symbol? s) (cast (string->symbol (format "~a/c" s)) -id)]
-    [(-id-local name path)
-     (-id-local (string->symbol (format "~a/c" name)) path)]))
+(define (show/c [s : Symbol]) : Symbol
+  (string->symbol (format "~a/c" s)))
 
 (: e/ : -e (U Symbol -e) -e → -e)
 ;; Substitution
@@ -669,12 +690,12 @@
 (define show-o : (-o → Symbol)
   (match-lambda
    [(? symbol? s) s]
-   [(-st-mk id _) (-id-name id)]
-   [(-st-ac 'cons 2 0) 'car]
-   [(-st-ac 'cons 2 1) 'cdr]
-   [(-st-ac 'box 1 0) 'unbox]
-   [(-st-ac id _ i) (string->symbol (format "~a@~a" (-id-name id) i))]
-   [(-st-p id _) (string->symbol (format "~a?" (-id-name id)))]))
+   [(-st-mk info) (show-struct-info info)]
+   [(-st-ac (≡ -s-cons) 0) 'car]
+   [(-st-ac (≡ -s-cons) 1) 'cdr]
+   [(-st-ac (≡ -s-box) 0) 'unbox]
+   [(-st-ac info i) (string->symbol (format "~a@~a" (show-struct-info info) i))]
+   [(-st-p info) (string->symbol (format "~a?" (show-struct-info info)))]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
@@ -691,7 +712,7 @@
     [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
     [(-λ (list _) (-b #t)) 'any/c]
     [(-λ (list _) (-b #f)) 'none/c]
-    [(-@ (-st-mk 'null 0) (list) _) 'null]
+    [(-@ (-st-mk (≡ -s-null)) (list) _) 'null]
     [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]
     [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
      (match* ((show-e a) (show-e b))
@@ -699,14 +720,8 @@
        [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
        [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
        [(l r) `(or ,l ,r)])]
-    [(-@ (-st-mk (and n (or 'and/c 'or/c 'not/c)) _) c* _) `(,n ,@(show-es c*))]
-    #| TODO obsolete? 
-    [(-if (and e (-•ₗ α)) e₁ e₂)
-    (match (σ@ σ α)
-    [(-b #f) (go ctx e₂)]
-    [(not '•) (go ctx e₁)]
-    [_ `(if ,(go ctx e) ,(go ctx e₁) ,(go ctx e₂))])]
-    |#
+    [(-@ (-st-mk (-struct-info (and n (or 'and/c 'or/c 'not/c)) _ _)) c* _)
+     `(,n ,@(show-es c*))]
     [(-if a b (-b #f))
      (match* ((show-e a) (show-e b))
        [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l Sexps) ,@(cast r Sexps))]
@@ -719,11 +734,6 @@
     [(-λ (-varargs xs rest) e) `(λ ,(cons xs rest) ,(show-e e))]
     [(-•ₗ n) (string->symbol (format "•~a" (n-sub n)))]
     [(-b b) (show-b b)]
-    [(-st-mk t _) (-id-name t)]
-    [(-st-ac 'cons _ 0) 'car]
-    [(-st-ac 'cons _ 1) 'cdr]
-    [(-st-ac t _ i) (string->symbol (format "~a@~a" (-id-name t) i))]
-    [(-st-p t _) (string->symbol (format "~a?" (-id-name t)))]
     [(? -o? o) (show-o o)]
     [(-x x) x]
     [(-ref x _) (-id-name x)]
@@ -753,7 +763,8 @@
                            `(,x : ,(show-e c)))
                        ↦ ,(show-e rng))]
     [(-x/c x) x]
-    [(-struct/c t cs _) `(,(string->symbol (format "~a/c" (-id-name t))) ,@(show-es cs))]))
+    [(-struct/c info cs _)
+     `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
