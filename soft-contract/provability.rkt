@@ -112,8 +112,8 @@
       (cond
         [e
          (match V
-           [(-St s αs)
-            (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-p s) e)))]
+           [(or (-St s _) (-St/checked s _ _ _))
+            (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-p (assert s)) e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
@@ -361,7 +361,8 @@
       [else
        (match-define (-st-p s) p)
        (match V
-         [(-St s* _) (decide-R (equal? s s*))]
+         [(or (-St s* _) (-St/checked s* _ _ _))
+          (decide-R (equal? s (assert s*)))]
          ['• '?]
          [_ 'X])]))
   (with-prim-checks integer? real? number? not boolean? string? symbol? keyword?))

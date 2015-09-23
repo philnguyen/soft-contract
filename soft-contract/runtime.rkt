@@ -128,6 +128,9 @@
     [rng : -e] [env : -ρ] [Γ : -Γ]
     [v : -α] [l³ : Mon-Info])
   (struct -St [info : -struct-info] [fields : (Listof -α)])
+  (struct -St/checked
+    [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
+    [unchecked : -α])
   (struct -Vector [fields : (Listof -α)])
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
@@ -180,6 +183,8 @@
         (C-flat? σ V))))
   (match V
     [(-St (or (≡ -s-and/c) (≡ -s-or/c) (≡ -s-not/c)) αs) (C-flat/list? αs)]
+    [(-St/checked _ _ _ α)
+     (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
     [(-St/C _ αs) (C-flat/list? αs)]
     [(? -=>i?) #f]
     [(-μ/C _ α) (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
@@ -199,6 +204,9 @@
         ↦ ,(show-e rng))
        ◃ ,(show-α α))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
+    [(-St/checked s γs _ _)
+     `(,(show-struct-info s)
+       ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓)))]
     [(-=>i xs cs γs d ρ Γ)
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : (,(show-α γ) @ ,(show-?e c))))
