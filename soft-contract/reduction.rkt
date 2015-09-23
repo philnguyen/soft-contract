@@ -419,6 +419,7 @@
 (: ↦@ : -WV (Listof -WV) -Γ -κ -σ -Ξ -M -src-loc → -Δς*)
 ;; Stepping rules for function application
 (define (↦@ W_f W_xs Γ κ σ Ξ M loc)
+
   (match-define (-src-loc l pos) loc)
 
   (match-define (-W V_f e_f) W_f)
@@ -426,6 +427,13 @@
   (define e_a (apply -?@ e_f e_xs))
 
   (dbg '↦@ "App:~n f: ~a~n xs: ~a~n" (show-V V_f) (map show-V V_xs))
+
+  (define-syntax-rule (with-guarded-arity n e ...)
+    (cond
+      [(= n (length W_xs)) e ...]
+      [else
+       (-Δς (-blm l 'Λ (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤) V_xs)
+            Γ κ '() '() '())]))
 
   (: ↦β : -formals -e -ρ -Γ → -Δς*)
   (define (↦β xs e ρ_f Γ_f)
@@ -480,8 +488,64 @@
        (define W_x* (-W (-W-x W_x) (-x x)))
        (define κ₂ (-kont (-φ.indy.dom x xs* cs* Cs* W_xs* '() V_g d ρ_d l³ pos) κ₁))
        (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³*)]))
+
+  (: ↦con : -st-mk → -Δς)
+  (define (↦con k)
+    (match-define (-st-mk (and s (-struct-info id n _))) k)
+    (with-guarded-arity n
+      (define αs (alloc-fields s pos W_xs))
+      (define δσ : -Δσ
+        (for/list ([α αs] [W W_xs])
+          (cons α (close-Γ Γ (-W-x W)))))
+      (-Δς (-W (list (-St s αs)) e_a) Γ κ δσ '() '())))
+
+  (: ↦ac : -st-ac → -Δς*)
+  (define (↦ac o)
+    (match-define (-st-ac (and s (-struct-info id n _)) i) o)
+    (with-guarded-arity 1
+      (match-define (list (and W (-W V e))) W_xs)
+      (define prd (-st-p s))
+      (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W (-W prd prd)))
+      (define δς-ok
+        (and
+         Γ-ok
+         (match V
+           [(-St _ αs)
+            (for/set: : (Setof -Δς) ([V (σ@ σ (list-ref αs i))])
+              (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))]
+           [_ (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))
+      (define δς-bad
+        (and Γ-bad (-Δς (-blm l (show-o o) prd (list V)) Γ-bad κ '() '() '())))
+      (cond
+        [(and δς-ok δς-bad)
+         (cond [(set? δς-ok) (set-add δς-ok δς-bad)]
+               [else {set δς-ok δς-bad}])]
+        [δς-ok δς-ok]
+        [else (assert δς-bad)])))
+
+  (: ↦mut : -st-mut → -Δς*)
+  (define (↦mut o)
+    (with-guarded-arity 2
+      (match-define (-st-mut s i) o)
+      (match-define (list (and W₁ (-W V₁ e₁)) (-W V₂ e₂)) W_xs)
+      (define prd (-st-p s))
+      (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W₁ (-W prd prd)))
+      (define δς-bad
+        (and Γ-bad (-Δς (-blm l (show-o o) prd (list V₁)) Γ-bad κ '() '() '())))
+      (define δσ
+        (match V₁
+          [(-St _ αs) (list (cons (list-ref αs i) V₂))]
+          [else '()]))
+      (define δς-ok (and Γ-ok (-Δς (-W -Void/Vs e_a) Γ κ δσ '() '())))
+      (cond
+        [(and δς-ok δς-bad) {set δς-ok δς-bad}]
+        [δς-ok δς-ok]
+        [else (assert δς-bad)])))
   
   (match V_f
+    [(? -st-mk? k) (↦con k)]
+    [(? -st-ac? o) (↦ac o)]
+    [(? -st-mut? o) (↦mut o)]
     [(? -o? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
     [(-Clo  xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]
