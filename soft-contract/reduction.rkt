@@ -562,7 +562,7 @@
         (error '↦mon "μ/c")]
        [(-X/C x)
         (error '↦mon "ref")]
-       [(-St 'and/c (list γ₁ γ₂))
+       [(-St (≡ -s-and/c) (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
         (define-values (c₁ c₂) (-and/c-split e_c))
@@ -573,7 +573,7 @@
               (define κ* (-kont (-φ.mon.v (-W C₂ c₂) l³) κ))
               (define W_c₁ (-W C₁ c₁))
               (↦mon W_c₁ W_v Γ κ* σ Ξ M l³)])])]
-       [(-St 'and/c (list γ₁ γ₂))
+       [(-St (≡ -s-or/c) (list γ₁ γ₂))
         (define Cs₁ (σ@ σ γ₁))
         (define Cs₂ (σ@ σ γ₂))
         (define-values (c₁ c₂) (-or/c-split e_c))
@@ -589,9 +589,10 @@
                  (define E* (-FC (-W C₁ c₁) W_v lo))
                  (-Δς E* Γ κ* '() '() '())])]
              [else
-              (-Δς (-blm lo 'Λ #|hack|# (-st-p (-id-local 'flat-contract? 'Λ) 1) (list C₁))
+              (-Δς (-blm lo 'Λ #|hack|#
+                         (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) (list C₁))
                    Γ κ '() '() '())])])]
-       [(-St 'not/c (list α))
+       [(-St (≡ -s-not/c) (list α))
         (match/nd: (-V → -Δς) (σ@ σ α)
           [C*
            (cond
@@ -599,7 +600,8 @@
               (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
               (-Δς (-FC (-W C* (-not/c-neg e_c)) W_v lo) Γ κ* '() '() '())]
              [else
-              (-Δς (-blm lo 'Λ #|hack|# (-st-p (-id-local 'flat-contract? 'Λ) 1) (list C*))
+              (-Δς (-blm lo 'Λ #|hack|#
+                         (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) (list C*))
                    Γ κ '() '() '())])])]
        [_
         (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
@@ -611,7 +613,7 @@
   (match-define (-W C e_c) W_c)
   (match-define (-W V e_v) W_v)
   (match C
-    [(-St (and t (or 'and/c 'or/c)) (list γ₁ γ₂))
+    [(-St (-struct-info (and t (or 'and/c 'or/c)) _ _) (list γ₁ γ₂))
      (define Cs₁ (σ@ σ γ₁))
      (define Cs₂ (σ@ σ γ₂))
      (define-values (c₁ c₂) (-and/c-split e_c))

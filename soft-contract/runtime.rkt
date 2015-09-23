@@ -179,7 +179,7 @@
       (for/and : Boolean ([V (σ@ σ α)])
         (C-flat? σ V))))
   (match V
-    [(-St (or 'and/c 'or/c 'not/c) αs) (C-flat/list? αs)]
+    [(-St (or (≡ -s-and/c) (≡ -s-or/c) (≡ -s-not/c)) αs) (C-flat/list? αs)]
     [(-St/C _ αs) (C-flat/list? αs)]
     [(? -=>i?) #f]
     [(-μ/C _ α) (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
