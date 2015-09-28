@@ -242,9 +242,10 @@
           (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rng ρ pos) κ) σ Ξ M)]))]
     [(-φ.struct/wrap s γs l³ pos)
      (with-guarded-arity 1 'TODO 'Λ
-       (match-define (list α) (alloc-fields s pos (list (-W (car Vs) ?e))))
+       ;; TODO: α should identify the unwrapped value instead of the wrapper
+       (define α (-α.wrp (-struct-info-id s) pos))
+       (define δσ (list (cons α (car Vs))))
        (define V* (-St/checked s γs l³ α))
-       (define δσ (list (cons α V*)))
        (-Δς (-W (list V*) ?e) Γ κ δσ '() '()))]
     ))
 

@@ -551,11 +551,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (begin
-  (define -app (-ref (-id-local 'app 'Λ) 'Λ #f))
+  (define -app (-ref (-id-local 'app 'Λ) 'Λ 0))
   (define -app-body (-b 'app-body))
-  (define -len (-ref (-id-local 'len 'Λ) 'Λ #f))
+  (define -len (-ref (-id-local 'len 'Λ) 'Λ 0))
   (define -len-body (-b 'len-body))
-  (define -map (-ref (-id-local 'map 'Λ) 'Λ #f))
+  (define -map (-ref (-id-local 'map 'Λ) 'Λ 0))
   (define -map-body (-b 'map-body))
   (define -l₁ (-x 'l₁))
   (define -l₂ (-x 'l₂))

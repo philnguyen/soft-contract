@@ -54,7 +54,7 @@
   (: ↦havoc : → (Setof -Δς))
   (define (↦havoc)
     (define V_havoc (σ@₁ σ (-α.def -havoc-id)))
-    (define W_havoc (-W V_havoc (-ref -havoc-id l #f)))
+    (define W_havoc (-W V_havoc (-ref -havoc-id l 0)))
     (for/fold ([acc : (Setof -Δς) ∅]) ([W_x W_xs])
       (match (↦@ W_havoc (list W_x) Γ κ σ Ξ M -Λ)
         [(? set? s) (∪ acc s)]
@@ -151,13 +151,13 @@
                      (for/set: : (Setof -Δς) ([C* (σ@ σ γ)] [V* (σ@ σ α)])
                        (define φ-mon (-φ.mon.v (-W C* #f) l³* pos))
                        (define φ-mut
-                         (-φ.@ '() (list (-W o o) (-W V* e₁)) (-src-loc lo #f #|TODO|#)))
+                         (-φ.@ '() (list (-W o o) (-W V* e₁)) (-src-loc lo pos)))
                        (define κ* (-kont* φ-mon φ-mut κ))
                        (-Δς (-W (list V₂) e₂) Γ-ok κ* '() '() '())))]
                   [else
                    (for/set: : (Setof -Δς) ([V* (σ@ σ α)])
                      (define φ-mut
-                       (-φ.@ '() (list (-W o o) (-W V* e₁)) (-src-loc lo #f #|TODO|#)))
+                       (-φ.@ '() (list (-W o o) (-W V* e₁)) (-src-loc lo pos)))
                      (define κ* (-kont φ-mut κ))
                      (-Δς (-W (list V*) e_x) Γ-ok κ* '() '() '()))])]
                [_

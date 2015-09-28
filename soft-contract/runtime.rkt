@@ -204,9 +204,10 @@
         ↦ ,(show-e rng))
        ◃ ,(show-α α))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
-    [(-St/checked s γs _ _)
-     `(,(show-struct-info s)
-       ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓)))]
+    [(-St/checked s γs _ α)
+     `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))
+       ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
+       ▹ ,(show-α α))]
     [(-=>i xs cs γs d ρ Γ)
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : (,(show-α γ) @ ,(show-?e c))))
@@ -290,9 +291,11 @@
   ;; TODO: temp hack
   (struct -α.tmp [v : -e])
   ;; for mutable or opaque field
-  (struct -α.fld [id : (U -id #|HACK|# Symbol)] [loc : (Option Integer)] [idx : Integer]))
+  (struct -α.fld [id : (U -id #|HACK|# Symbol)] [pos : Integer] [idx : Integer])
+  ;; for wrapped mutable struct
+  (struct -α.wrp [id : -id] [pos : Integer]))
 
-(: alloc-fields : -struct-info (Option Integer) (Listof -WV) → (Listof -α))
+(: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α))
 (define (alloc-fields s loc Ws)
   #|FIXME|# (match-define (-struct-info id n _) s)
   (for/list ([W Ws] [i (in-range n)])
@@ -479,12 +482,12 @@
 (: -?struct/c : -struct-info (Listof -?e) → (Option -struct/c))
 (define (-?struct/c s fields)
   (and (andmap (inst values -?e) fields)
-       (-struct/c s (cast fields (Listof -e)) #f)))
+       (-struct/c s (cast fields (Listof -e)) 0)))
 
 (: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
 (define (-?->i xs cs d)
   (and d (andmap (inst values -?e) cs)
-       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) d #f)))
+       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) d 0)))
 
 (: split-values : -?e Integer → (Listof -?e))
 ;; Split a pure expression `(values e ...)` into `(e ...)`

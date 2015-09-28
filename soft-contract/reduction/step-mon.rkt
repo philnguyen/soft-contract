@@ -6,7 +6,7 @@
 
 (provide ↦mon ↦FC)
 
-(: ↦mon : -WV -WV -Γ -κ -σ -Ξ -M Mon-Info (Option Integer) → -Δς*)
+(: ↦mon : -WV -WV -Γ -κ -σ -Ξ -M Mon-Info Integer → -Δς*)
 ;; Stepping rules for contract monitoring
 (define (↦mon W_c W_v Γ κ σ Ξ M l³ pos)
   (match-define (-W C e_c) W_c)
@@ -40,7 +40,7 @@
              (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
                                       (-blm l+ lo C₁ (list V)))
                                κ))
-             (define E* (-FC (-W C₁ c₁) W_v lo))
+             (define E* (-FC (-W C₁ c₁) W_v lo pos))
              (-Δς E* Γ κ* '() '() '())])]
          [else
           (-Δς (-blm lo 'Λ #|hack|#
@@ -55,7 +55,7 @@
          [(C-flat? σ C*)
           (match-define (list e_c*) (-struct-split e_c -s-not/c))
           (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
-          (-Δς (-FC (-W C* e_c*) W_v lo) Γ κ* '() '() '())]
+          (-Δς (-FC (-W C* e_c*) W_v lo pos) Γ κ* '() '() '())]
          [else
           (-Δς (-blm lo 'Λ #|hack|#
                      (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) (list C*))
@@ -70,7 +70,7 @@
            (let ()
              (define α
                (cond [e_v (-α.tmp e_v)]
-                     [else (-α.fld (-id-local 'Ar 'Λ) #f #|FIXME|# 0)]))
+                     [else (-α.fld (-id-local 'Ar 'Λ) pos 0)]))
              (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
              (define δσ (list (cons α V)))
              (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))))
@@ -130,7 +130,7 @@
                (match field-mons
                  ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ₁ '() '() '())]
                  [(cons mon mons*)
-                  (define φ-mon (-φ.@ mons* (list (-W k k)) (-src-loc lo #f #|FIXME|#)))
+                  (define φ-mon (-φ.@ mons* (list (-W k k)) (-src-loc lo pos)))
                   (define κ₂ (-kont φ-mon κ₁))
                   (-Δς mon Γ-ok κ₂ '() '() '())])))))
     (cond
@@ -157,11 +157,11 @@
        [_
         (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
         (-Δς (-W (list V) e_v) Γ
-             (-kont (-φ.@ '() (list W_c) (-src-loc lo #f #|TODO|#)) κ*) '() '() '())])]))
+             (-kont (-φ.@ '() (list W_c) (-src-loc lo pos)) κ*) '() '() '())])]))
 
-(: ↦FC : -WV -WV -Γ -κ -σ -Ξ -M Mon-Party → -Δς*)
+(: ↦FC : -WV -WV -Γ -κ -σ -Ξ -M Mon-Party Integer → -Δς*)
 ;; Stepping rules for monitoring flat contracts
-(define (↦FC W_c W_v Γ κ σ Ξ M l)
+(define (↦FC W_c W_v Γ κ σ Ξ M l pos)
   (match-define (-W C e_c) W_c)
   (match-define (-W V e_v) W_v)
   (match C
@@ -175,9 +175,9 @@
           [C₂
            (define φ
              (match t
-               ['and/c (-φ.if (-FC W_v (-W C₂ c₂) l) (-W (list -ff) -ff))]
-               ['or/c  (-φ.if (-W (list -tt) -tt) (-FC W_v (-W C₂ c₂) l))]))
-           (-Δς (-FC (-W C₁ c₁) W_v l) Γ (-kont φ κ) '() '() '())])])]
+               ['and/c (-φ.if (-FC W_v (-W C₂ c₂) l pos) (-W (list -ff) -ff))]
+               ['or/c  (-φ.if (-W (list -tt) -tt) (-FC W_v (-W C₂ c₂) l pos))]))
+           (-Δς (-FC (-W C₁ c₁) W_v l pos) Γ (-kont φ κ) '() '() '())])])]
     [(-St 'not/c (list γ))
      (match/nd: (-V → -Δς) (σ@ σ γ)
        [C*
@@ -186,4 +186,4 @@
         (-Δς (-FC (-W C* e_c*) W_v l) Γ κ* '() '() '())])]
     ;; FIXME recursive contract
     [_ (-Δς (-W (list V) e_v) Γ
-            (-kont (-φ.@ '() (list W_c) (-src-loc l #f #|TODO|#)) κ) '() '() '())]))
+            (-kont (-φ.@ '() (list W_c) (-src-loc l pos)) κ) '() '() '())]))

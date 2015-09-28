@@ -15,8 +15,8 @@
 (define-data -E
   (struct -↓ [e : -e] [ρ : -ρ])
   ; `V` and `e` don't have any reference back to `E`, so it's not recursive
-  (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : (Option Integer)])
-  (struct -FC [c : -WV] [v : -WV] [lo : Mon-Party])
+  (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : Integer])
+  (struct -FC [c : -WV] [v : -WV] [lo : Mon-Party] [pos : Integer])
   (subset: -Ans
     -blm
     -WVs))
@@ -35,7 +35,7 @@
   (match E
     [(-↓ e ρ) `(,(show-e e) ∣ ,@(show-ρ ρ))]
     [(-Mon C V _ _) `(Mon ,(show-WV C) ,(show-WV V))]
-    [(-FC C V _) `(FC ,(show-WV C) ,(show-WV V))]
+    [(-FC C V _ _) `(FC ,(show-WV C) ,(show-WV V))]
     [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
     [(-W Vs e) `(,@(map show-V Vs) @ ,(show-?e e))]))
 
@@ -64,8 +64,8 @@
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
-  (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : (Option Integer)])
-  (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info] [pos : (Option Integer)])
+  (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
+  (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.indy.dom
     [pending : Symbol] ; variable for next current expression under evaluation
     [xs : (Listof Symbol)] ; remaining variables
@@ -77,22 +77,22 @@
     [rng : -e] ; range
     [env : -ρ] ; range's context
     [mon-info : Mon-Info]
-    [pos : (Option Integer)])
+    [pos : Integer])
   (struct -φ.indy.rng
-    [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info] [pos : (Option Integer)])
+    [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])
   (struct -φ.rt.let [old-dom : (Setof Symbol)])
   ;; contract stuff
-  (struct -φ.μc [x : Symbol] [pos : (Option Integer)])
+  (struct -φ.μc [x : Symbol] [pos : Integer])
   (struct -φ.struct/c
     [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
-    [pos : (Option Integer)])
+    [pos : Integer])
   (struct -φ.struct/wrap
     [info : -struct-info] [contracts : (Listof (Option -α))]
-    [mon : Mon-Info] [pos : (Option Integer)])
+    [mon : Mon-Info] [pos : Integer])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [cs↓ : (Listof -?e)] [xs : (Listof Symbol)]
-    [rng : -e] [env : -ρ] [pos : (Option Integer)])
+    [rng : -e] [env : -ρ] [pos : Integer])
   )
 
 
@@ -212,7 +212,7 @@
 (define (𝑰 p)
   (match-define (-prog ms e₀) p)
 
-  (: alloc-es : -σ -struct-info (Option Integer) (Listof -e) → (Values -σ (Listof -α)))
+  (: alloc-es : -σ -struct-info Integer (Listof -e) → (Values -σ (Listof -α)))
   (define (alloc-es σ s pos es)
     #|FIXME|# (define id (-struct-info-id s))
     (define-values (σ* αs-rev)

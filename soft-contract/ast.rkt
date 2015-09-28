@@ -31,8 +31,8 @@
 (define-type Mon-Party Adhoc-Module-Path)
 (define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
 
-(struct -src-loc ([party : Mon-Party] [loc : (Option Integer)]) #:transparent)
-(define -Λ (-src-loc 'Λ #f))
+(struct -src-loc ([party : Mon-Party] [pos : Integer]) #:transparent)
+(define -Λ (-src-loc 'Λ (next-neg!)))
 
 (: swap-parties : Mon-Info → Mon-Info)
 ;; Swap positive and negative blame parties
@@ -142,7 +142,7 @@
   ;; lexical variables
   (struct -x [name : Symbol])
   ;; module references
-  (struct -ref [id : -id] [ctx : Mon-Party] [pos : (Option Integer)])
+  (struct -ref [id : -id] [ctx : Mon-Party] [pos : Integer])
   (struct -@ [f : -e] [xs : (Listof -e)] [loc : -src-loc])
   (struct -if [i : -e] [t : -e] [e : -e])
   (struct -wcm [key : -e] [val : -e] [body : -e])
@@ -157,10 +157,10 @@
   (struct -amb [es : -es])
   
   ;; contract stuff
-  (struct -μ/c [x : Symbol] [c : -e] [pos : (Option Integer)])
-  (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e] [pos : (Option Integer)])
+  (struct -μ/c [x : Symbol] [c : -e] [pos : Integer])
+  (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e] [pos : Integer])
   (struct -x/c [x : Symbol])
-  (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : (Option Integer)])
+  (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer])
   #;(-and/c [l : .e] [r : .e])
   #;(-or/c [l : .e] [r : .e])
   #;(.¬/c [c : .e]))
@@ -208,7 +208,7 @@
 (define -s-or/c (-struct-info 'or/c 2 ∅))
 (define -s-not/c (-struct-info 'not/c 1 ∅))
 
-(: --> : (Listof -e) -e (Option Integer) → -e)
+(: --> : (Listof -e) -e Integer → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
 (define (--> cs d pos)
   (define doms
@@ -379,7 +379,7 @@
 (splicing-let ([mk-and/c (-st-mk -s-and/c)]
                [mk-or/c  (-st-mk -s-or/c )]
                [mk-not/c (-st-mk -s-not/c)])
-  (:* -and/c -or/c -one-of/c : (Pairof -e (Option Integer)) * → -e)
+  (:* -and/c -or/c -one-of/c : (Pairof -e Integer) * → -e)
   (define -and/c
     (match-lambda*
       [(list) -any/c]
@@ -398,21 +398,21 @@
       [(list (cons e _)) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
       [(cons (cons e p) es)
        (-or/c (cons (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ)) p)
-              (cons (apply -one-of/c es) #f))]))
+              (cons (apply -one-of/c es) (next-neg!)))]))
   
-  (: -cons/c : -e -e (Option Integer) → -e)
+  (: -cons/c : -e -e Integer → -e)
   (define (-cons/c c d pos)
     (-struct/c -s-cons (list c d) pos))
 
-  (: -not/c : -e (Option Integer) → -e)
+  (: -not/c : -e Integer → -e)
   (define (-not/c c pos)
     (-@ (-st-mk (-struct-info 'not/c 1 ∅)) (list c) (-src-loc 'Λ pos))))
 
-(: -box/c : -e (Option Integer) → -e)
+(: -box/c : -e Integer → -e)
 (define (-box/c c pos)
   (-struct/c -s-box (list c) pos))
 
-(: -list/c : (Pairof -e (Option Integer)) * → -e)
+(: -list/c : (Pairof -e Integer) * → -e)
 (define (-list/c . cs)
   (match cs
     ['() -null/c]
@@ -444,9 +444,9 @@
 
 (define -havoc-path 'havoc)
 (define -havoc-id (-id-local 'havoc-id -havoc-path)) ; havoc function id
-(define -havoc-src (-src-loc -havoc-path #f)) ; havoc module path
+(define -havoc-src (-src-loc -havoc-path (next-neg!))) ; havoc module path
 
-(define (havoc-ref-from [ctx : Mon-Party] [pos : (Option Integer)])
+(define (havoc-ref-from [ctx : Mon-Party] [pos : Integer])
   (-ref -havoc-id ctx pos))
 
 (: prog-accs : (Listof -module) → (Setof -st-ac))
@@ -466,10 +466,10 @@
   (define havoc-func ; only used by `verify` module, not `ce`
     (-λ (list '☠)
         (-amb/simp
-         (cons (-@ (havoc-ref-from -havoc-path #f)
+         (cons (-@ (havoc-ref-from -havoc-path (next-neg!))
                    (list (-@-havoc x)) -havoc-src)
                (for/list : (Listof -@) ([ac (prog-accs ms)])
-                 (-@ (havoc-ref-from -havoc-path #f)
+                 (-@ (havoc-ref-from -havoc-path (next-neg!))
                      (list (-@ ac (list x) -havoc-src)) -havoc-src))))))
   (define m
     (-module -havoc-path
