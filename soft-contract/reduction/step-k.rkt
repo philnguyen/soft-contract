@@ -132,21 +132,21 @@
         (↦e e ρ Γ (-kont (-φ.begin0e W es* ρ) κ) σ Ξ M)])]
     ;; mon
     ; waiting on the contract
-    [(-φ.mon.c E (and l³ (list _ _ lo)))
+    [(-φ.mon.c E (and l³ (list _ _ lo)) pos)
      (with-guarded-arity 1 lo 'Λ
        (match-define (list C) Vs)
        (define W_C (-W C ?e))
        (cond
-         [(-WV? E) (↦mon W_C E Γ κ σ Ξ M l³)]
-         [else (-Δς E Γ (-kont (-φ.mon.v W_C l³) κ) '() '() '())]))]
+         [(-WV? E) (↦mon W_C E Γ κ σ Ξ M l³ pos)]
+         [else (-Δς E Γ (-kont (-φ.mon.v W_C l³ pos) κ) '() '() '())]))]
     ; waiting on the value to be checked
-    [(-φ.mon.v C (and l³ (list l+ _ lo)))
+    [(-φ.mon.v C (and l³ (list l+ _ lo)) pos)
      (with-guarded-arity 1 l+ lo
        (match-define (list V) Vs)
        (define W_V (-W V ?e))
        (cond
-         [(-WV? C) (↦mon C W_V Γ κ σ Ξ M l³)]
-         [else (-Δς C Γ (-kont (-φ.mon.c W_V l³) κ) '() '() '())]))]
+         [(-WV? C) (↦mon C W_V Γ κ σ Ξ M l³ pos)]
+         [else (-Δς C Γ (-kont (-φ.mon.c W_V l³ pos) κ) '() '() '())]))]
     ;; indy
     [(-φ.indy.dom x xs cs Cs W_xs doms↓ V_f d ρ_d l³ pos)
      (with-guarded-arity 1 'Λ 'Λ
@@ -160,14 +160,14 @@
          [((cons x* xs*) (cons c* cs*) (cons C* Cs*) (cons W_x* W_xs*))
           (define W_c* (-W C* c*))
           (define κ* (-kont (-φ.indy.dom x* xs* cs* Cs* W_xs* doms↓* V_f d ρ_d l³ pos) κ))
-          (↦mon W_c* W_x* Γ κ* σ Ξ M l³*)]))]
+          (↦mon W_c* W_x* Γ κ* σ Ξ M l³* pos)]))]
     [(-φ.indy.rng V_f args l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
        (match-define (list V) Vs)
        (define W_d (-W V ?e))
        (define W_f (-W V_f (-x 'f•))) ; FIXME temp. hack
-       (define κ* (-kont (-φ.mon.v W_d l³) κ))
+       (define κ* (-kont (-φ.mon.v W_d l³ pos) κ))
        (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos)))]
     ;; restore path invariant in previous context
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
@@ -240,6 +240,12 @@
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons c cs*)
           (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rng ρ pos) κ) σ Ξ M)]))]
+    [(-φ.struct/wrap s γs l³ pos)
+     (with-guarded-arity 1 'TODO 'Λ
+       (match-define (list α) (alloc-fields s pos (list (-W (car Vs) ?e))))
+       (define V* (-St/checked s γs l³ α))
+       (define δσ (list (cons α V*)))
+       (-Δς (-W (list V*) ?e) Γ κ δσ '() '()))]
     ))
 
 (: ↦blm : -blm -Γ -κ -σ -Ξ -M → -Δς*)

@@ -225,6 +225,8 @@
      (apply -list/c (map cons
                          (parse-es #'(c ...))
                          (map syntax-position (syntax->list #'(c ...)))))]
+    [(#%plain-app (~literal fake:box/c) c)
+     (-box/c (parse-e #'c) (syntax-position stx))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (-struct/c (-id-local (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
@@ -333,7 +335,7 @@
                          (resolved-module-path-name (module-path-index-resolve x)))))
                     src)
                _ _ _ _ _ _)
-         (-ref (-id-local (syntax-e #'i) src) (cur-mod))]))]))
+         (-ref (-id-local (syntax-e #'i) src) (cur-mod) (syntax-position stx))]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
@@ -389,8 +391,11 @@
     [(~literal abs) 'abs]
     [(~literal min) 'min]
     [(~literal max) 'max]
+    [(~literal box) -box]
     [(~literal set-box!) -set-box!]
+    [(~literal box?) -box?]
     [(~literal cons) -cons]
+    [(~literal unbox) -unbox]
     [(~or (~literal car) (~literal unsafe-car)) -car]
     [(~or (~literal cdr) (~literal unsafe-cdr)) -cdr]
     [(~literal cons?) -cons?]

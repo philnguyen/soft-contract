@@ -142,7 +142,7 @@
   ;; lexical variables
   (struct -x [name : Symbol])
   ;; module references
-  (struct -ref [id : -id] [ctx : Mon-Party])
+  (struct -ref [id : -id] [ctx : Mon-Party] [pos : (Option Integer)])
   (struct -@ [f : -e] [xs : (Listof -e)] [loc : -src-loc])
   (struct -if [i : -e] [t : -e] [e : -e])
   (struct -wcm [key : -e] [val : -e] [body : -e])
@@ -408,6 +408,10 @@
   (define (-not/c c pos)
     (-@ (-st-mk (-struct-info 'not/c 1 ∅)) (list c) (-src-loc 'Λ pos))))
 
+(: -box/c : -e (Option Integer) → -e)
+(define (-box/c c pos)
+  (-struct/c -s-box (list c) pos))
+
 (: -list/c : (Pairof -e (Option Integer)) * → -e)
 (define (-list/c . cs)
   (match cs
@@ -442,8 +446,8 @@
 (define -havoc-id (-id-local 'havoc-id -havoc-path)) ; havoc function id
 (define -havoc-src (-src-loc -havoc-path #f)) ; havoc module path
 
-(define (havoc-ref-from [ctx : Mon-Party])
-  (-ref -havoc-id ctx))
+(define (havoc-ref-from [ctx : Mon-Party] [pos : (Option Integer)])
+  (-ref -havoc-id ctx pos))
 
 (: prog-accs : (Listof -module) → (Setof -st-ac))
 ;; Retrieve set of all public accessors from program
@@ -458,14 +462,15 @@
 (define (gen-havoc ms)
 
   ;;; Generate module
-  (define havoc-ref (havoc-ref-from -havoc-path))
   (define x (-x '☠))
   (define havoc-func ; only used by `verify` module, not `ce`
     (-λ (list '☠)
         (-amb/simp
-         (cons (-@ havoc-ref (list (-@-havoc x)) -havoc-src)
+         (cons (-@ (havoc-ref-from -havoc-path #f)
+                   (list (-@-havoc x)) -havoc-src)
                (for/list : (Listof -@) ([ac (prog-accs ms)])
-                 (-@ havoc-ref (list (-@ ac (list x) -havoc-src)) -havoc-src))))))
+                 (-@ (havoc-ref-from -havoc-path #f)
+                     (list (-@ ac (list x) -havoc-src)) -havoc-src))))))
   (define m
     (-module -havoc-path
              (-plain-module-begin
@@ -492,7 +497,7 @@
              #:when (-provide? form)
              [spec (in-list (-provide-specs form))])
         (log-debug "adding: ~a~n" (-p/c-item-id spec))
-        (refs-add! (-ref (-id-local (-p/c-item-id spec) path) '†)))]))
+        (refs-add! (-ref (-id-local (-p/c-item-id spec) path) '† (next-neg!))))]))
   #;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (-amb/remember (for/list ([ref (in-set refs)])
@@ -712,7 +717,7 @@
          [(-@ f xs _)
           (go f)
           (for-each go xs)
-          (when (match? f (-ref (? (curry equal? f-id)) _))
+          (when (match? f (-ref (≡ f-id) _ _))
             (calls-add! xs))]
          [_ (void)]))
   calls)
@@ -739,12 +744,14 @@
 (define show-o : (-o → Symbol)
   (match-lambda
    [(? symbol? s) s]
-   [(-st-mk info) (show-struct-info info)]
+   [(-st-mk s) (show-struct-info s)]
    [(-st-ac (≡ -s-cons) 0) 'car]
    [(-st-ac (≡ -s-cons) 1) 'cdr]
    [(-st-ac (≡ -s-box) 0) 'unbox]
-   [(-st-ac info i) (string->symbol (format "~a@~a" (show-struct-info info) i))]
-   [(-st-p info) (string->symbol (format "~a?" (show-struct-info info)))]))
+   [(-st-ac s i) (string->symbol (format "~a@~a" (show-struct-info s) i))]
+   [(-st-p s) (string->symbol (format "~a?" (show-struct-info s)))]
+   [(-st-mut (≡ -s-box) 0) 'set-box!]
+   [(-st-mut s i) (string->symbol (format "set-~a-~a!" (show-struct-info s) i))]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
@@ -785,7 +792,7 @@
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) x]
-    [(-ref x _) (-id-name x)]
+    [(-ref x _ _) (-id-name x)]
     [(-let-values bnds body _)
      `(let-values
           ,(for/list : (Listof Sexp) ([bnd bnds])

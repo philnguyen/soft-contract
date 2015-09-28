@@ -26,7 +26,7 @@
               Γ κ '() '() '())]
          [_ (-Δς W Γ κ '() '() '())]))]
     ;; look up top-level reference
-    [(and ref (-ref (and id (-id-local name ctx*)) ctx))
+    [(and ref (-ref (and id (-id-local name ctx*)) ctx pos))
      (cond
        ;; skip contract checking for self reference
        [(equal? ctx ctx*)
@@ -39,7 +39,7 @@
         (define Cs (σ@ σ (-α.ctc id)))
         (match/nd: (-V → -Δς) Vs
           [V (match/nd: (-V → -Δς) Cs
-               [C (↦mon (-W C #f #|TODO|#) (-W V ref) Γ κ σ Ξ M (list ctx* ctx ctx*))])])])]
+               [C (↦mon (-W C #f #|TODO|#) (-W V ref) Γ κ σ Ξ M (list ctx* ctx ctx*) pos)])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
      (define κ* (-kont (-φ.@ (for/list : (Listof -E) ([x xs]) (-⇓ x ρ)) '() l) κ))

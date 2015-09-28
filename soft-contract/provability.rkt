@@ -447,7 +447,7 @@
     (match φs
       ['() Γs]
       [(cons φ φs*)
-       (match-define (-@ (-ref id _) xs _) φ)
+       (match-define (-@ (-ref id _ _) xs _) φ)
        (for*/fold ([acc : (Setof -Γ) ∅])
                   ([kase : -Res (invert-e M σ id xs)]
                    [Γ : -Γ (go Γs φs*)])
@@ -470,7 +470,7 @@
        (match (go* (cons f xs))
          [#f
           (match f
-            [(-ref id _)
+            [(-ref id _ _)
              (and
               (unfold-this-one? id xs)
               (for/set: : (Setof -Res) ([res (invert-e M σ id xs)])
@@ -520,7 +520,7 @@
        (define-values (fxs* Γ*) (go* Γ (cons f xs)))
        (match-define (cons f* xs*) fxs*)
        (match f*
-         [(-ref id _)
+         [(-ref id _ _)
           (define reses*
             (for*/set: : (Setof (Pairof -e -Γ))
                        ([res (invert-e M σ id xs*)]
@@ -551,11 +551,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (begin
-  (define -app (-ref (-id-local 'app 'Λ) 'Λ))
+  (define -app (-ref (-id-local 'app 'Λ) 'Λ #f))
   (define -app-body (-b 'app-body))
-  (define -len (-ref (-id-local 'len 'Λ) 'Λ))
+  (define -len (-ref (-id-local 'len 'Λ) 'Λ #f))
   (define -len-body (-b 'len-body))
-  (define -map (-ref (-id-local 'map 'Λ) 'Λ))
+  (define -map (-ref (-id-local 'map 'Λ) 'Λ #f))
   (define -map-body (-b 'map-body))
   (define -l₁ (-x 'l₁))
   (define -l₂ (-x 'l₂))

@@ -54,7 +54,7 @@
   (: ↦havoc : → (Setof -Δς))
   (define (↦havoc)
     (define V_havoc (σ@₁ σ (-α.def -havoc-id)))
-    (define W_havoc (-W V_havoc (-ref -havoc-id l)))
+    (define W_havoc (-W V_havoc (-ref -havoc-id l #f)))
     (for/fold ([acc : (Setof -Δς) ∅]) ([W_x W_xs])
       (match (↦@ W_havoc (list W_x) Γ κ σ Ξ M -Λ)
         [(? set? s) (∪ acc s)]
@@ -77,7 +77,7 @@
        (define W_c (-W C c))
        (define W_x* (-W (-W-x W_x) (-x x)))
        (define κ₂ (-kont (-φ.indy.dom x xs* cs* Cs* W_xs* '() V_g d ρ_d l³ pos) κ₁))
-       (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³*)]))
+       (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³* pos)]))
 
   (: ↦con : -st-mk → -Δς)
   (define (↦con k)
@@ -103,6 +103,20 @@
            [(-St _ αs)
             (for/set: : (Setof -Δς) ([V (σ@ σ (list-ref αs i))])
               (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))]
+           [(-St/checked s γs l³ α)
+            (define φ-select (-φ.@ '() (list (-W o o)) -Λ))
+            (define e_x (car e_xs))
+            (cond
+              [(list-ref γs i) =>
+               (λ ([γ : -α])
+                 (for/set: : (Setof -Δς) ([C* (σ@ σ γ)] [V* (σ@ σ α)])
+                   (define φ-mon (-φ.mon.v (-W C* #f) l³ pos))
+                   (define κ* (-kont* φ-select φ-mon κ))
+                   (-Δς (-W (list V*) e_x) Γ-ok κ* '() '() '())))]
+              [else
+               (define κ* (-kont φ-select κ))
+               (for/set: : (Setof -Δς) ([V* (σ@ σ α)])
+                 (-Δς (-W (list V*) e_x) Γ-ok κ* '() '() '()))])]
            [_ (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))
       (define δς-bad
         (and Γ-bad (-Δς (-blm l (show-o o) prd (list V)) Γ-bad κ '() '() '())))
@@ -122,13 +136,37 @@
       (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W₁ (-W prd prd)))
       (define δς-bad
         (and Γ-bad (-Δς (-blm l (show-o o) prd (list V₁)) Γ-bad κ '() '() '())))
-      (define δσ
-        (match V₁
-          [(-St _ αs) (list (cons (list-ref αs i) V₂))]
-          [else '()]))
-      (define δς-ok (and Γ-ok (-Δς (-W -Void/Vs e_a) Γ κ δσ '() '())))
+      (define δς-ok
+        (and Γ-ok
+             (match V₁
+               [(-St _ αs)
+                (define δσ (list (cons (list-ref αs i) V₂)))
+                (-Δς (-W -Void/Vs e_a) Γ-ok κ δσ '() '())]
+               [(-St/checked s γs (and l³ (list l+ l- lo)) α)
+                (define e_x (car e_xs))
+                (cond
+                  [(list-ref γs i) =>
+                   (λ ([γ : -α])
+                     (define l³* (list l- l+ lo))
+                     (for/set: : (Setof -Δς) ([C* (σ@ σ γ)] [V* (σ@ σ α)])
+                       (define φ-mon (-φ.mon.v (-W C* #f) l³* pos))
+                       (define φ-mut
+                         (-φ.@ '() (list (-W o o) (-W V* e₁)) (-src-loc lo #f #|TODO|#)))
+                       (define κ* (-kont* φ-mon φ-mut κ))
+                       (-Δς (-W (list V₂) e₂) Γ-ok κ* '() '() '())))]
+                  [else
+                   (for/set: : (Setof -Δς) ([V* (σ@ σ α)])
+                     (define φ-mut
+                       (-φ.@ '() (list (-W o o) (-W V* e₁)) (-src-loc lo #f #|TODO|#)))
+                     (define κ* (-kont φ-mut κ))
+                     (-Δς (-W (list V*) e_x) Γ-ok κ* '() '() '()))])]
+               [_
+                ;; TODO: unsound if V₂ concrete buggy higher-order and V₁ opaque
+                (-Δς (-W -Void/Vs e_a) Γ-ok κ '() '() '())])))
       (cond
-        [(and δς-ok δς-bad) {set δς-ok δς-bad}]
+        [(and δς-ok δς-bad)
+         (cond [(set? δς-ok) (set-add δς-ok δς-bad)]
+               [else {set δς-ok δς-bad}])]
         [δς-ok δς-ok]
         [else (assert δς-bad)])))
   

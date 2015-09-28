@@ -15,7 +15,7 @@
 (define-data -E
   (struct -↓ [e : -e] [ρ : -ρ])
   ; `V` and `e` don't have any reference back to `E`, so it's not recursive
-  (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info])
+  (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : (Option Integer)])
   (struct -FC [c : -WV] [v : -WV] [lo : Mon-Party])
   (subset: -Ans
     -blm
@@ -34,7 +34,7 @@
 (define (show-E [E : -E]) : (Listof Sexp)
   (match E
     [(-↓ e ρ) `(,(show-e e) ∣ ,@(show-ρ ρ))]
-    [(-Mon C V _) `(Mon ,(show-WV C) ,(show-WV V))]
+    [(-Mon C V _ _) `(Mon ,(show-WV C) ,(show-WV V))]
     [(-FC C V _) `(FC ,(show-WV C) ,(show-WV V))]
     [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
     [(-W Vs e) `(,@(map show-V Vs) @ ,(show-?e e))]))
@@ -64,8 +64,8 @@
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
-  (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info])
-  (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info])
+  (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : (Option Integer)])
+  (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info] [pos : (Option Integer)])
   (struct -φ.indy.dom
     [pending : Symbol] ; variable for next current expression under evaluation
     [xs : (Listof Symbol)] ; remaining variables
@@ -87,6 +87,9 @@
   (struct -φ.struct/c
     [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
     [pos : (Option Integer)])
+  (struct -φ.struct/wrap
+    [info : -struct-info] [contracts : (Listof (Option -α))]
+    [mon : Mon-Info] [pos : (Option Integer)])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [cs↓ : (Listof -?e)] [xs : (Listof Symbol)]
     [rng : -e] [env : -ρ] [pos : (Option Integer)])
@@ -144,9 +147,9 @@
     [(-φ.begin0v es _) `(begin0 ,v ,@(map show-e es))]
     [(-φ.begin0e (-W Vs _) es _)
      `(begin0 ,(map show-V Vs) ,@(map show-e es))]
-    [(-φ.mon.v ctc _)
+    [(-φ.mon.v ctc _ _)
      `(mon ,(if (-E? ctc) (show-E ctc) (show-V (-W-x ctc))) ,v)]
-    [(-φ.mon.c val _)
+    [(-φ.mon.c val _ _)
      `(mon ,v ,(if (-E? val) (show-E val) (show-V (-W-x val))))]
     [(-φ.indy.dom x xs cs Cs args args↓ fun rng _env _ _)
      `(indy.dom
@@ -174,6 +177,9 @@
        ,@(reverse (map show-WV cs↓))
        ,v
        ,@(map show-e cs))]
+    [(-φ.struct/wrap s cs _ _)
+     `(wrap ,(show/c (show-struct-info s))
+            ,@(for/list : (Listof Sexp) ([c cs]) (and c (show-α c))))]
     [(-φ.=>i cs Cs↓ cs↓ xs e ρ _)
      `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
     ))

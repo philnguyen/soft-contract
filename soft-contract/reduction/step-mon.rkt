@@ -6,9 +6,9 @@
 
 (provide ↦mon ↦FC)
 
-(: ↦mon : -WV -WV -Γ -κ -σ -Ξ -M Mon-Info → -Δς*)
+(: ↦mon : -WV -WV -Γ -κ -σ -Ξ -M Mon-Info (Option Integer) → -Δς*)
 ;; Stepping rules for contract monitoring
-(define (↦mon W_c W_v Γ κ σ Ξ M l³)
+(define (↦mon W_c W_v Γ κ σ Ξ M l³ pos)
   (match-define (-W C e_c) W_c)
   (match-define (-W V e_v) W_v)
   (match-define (list l+ l- lo) l³)
@@ -22,9 +22,9 @@
       [C₁
        (match/nd: (-V → -Δς) Cs₂
          [C₂
-          (define κ* (-kont (-φ.mon.v (-W C₂ c₂) l³) κ))
+          (define κ* (-kont (-φ.mon.v (-W C₂ c₂) l³ pos) κ))
           (define W_c₁ (-W C₁ c₁))
-          (↦mon W_c₁ W_v Γ κ* σ Ξ M l³)])]))
+          (↦mon W_c₁ W_v Γ κ* σ Ξ M l³ pos)])]))
 
   (: ↦or/c : -α -α → -Δς*)
   (define (↦or/c γ₁ γ₂)
@@ -37,7 +37,7 @@
          [(C-flat? σ C₁)
           (match/nd: (-V → -Δς) Cs₂
             [C₂
-             (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³)
+             (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
                                       (-blm l+ lo C₁ (list V)))
                                κ))
              (define E* (-FC (-W C₁ c₁) W_v lo))
@@ -84,32 +84,55 @@
   
   (: ↦struct/c : -struct-info (Listof -α) → -Δς*)
   (define (↦struct/c s γs)
-    (define n (length γs))
     (define k? (-st-p s))
     (define k (-st-mk s))
     (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W k? k?)))
+
+    ;; If struct tag does not match, blame right away
     (define ς-bad
-      (and Γ-bad
-           (-Δς (-blm l+ lo k? (list V)) Γ-bad κ '() '() '())))
+      (and Γ-bad (-Δς (-blm l+ lo k? (list V)) Γ-bad κ '() '() '())))
+
+    ;; If struct tag matches, monitor each field
+    ;; in addition to wrapping mutable field with contract
     (define ς-ok
       (and Γ-ok
            (let ()
-             (define Vss : (Setof (Listof -V))
+             (match-define (-struct-info _ n mutables) s)
+             (define e_ctcs (-struct/c-split e_c n))
+             (define e_flds (-struct-split   e_v s))
+
+             ;; look up possible field and contract lists
+             ;; TODO: this can explode fast. Delay?
+             (define fld-lsts : (Setof (Listof -V))
                (match V
                  [(-St _ αs) (σ@/list σ αs)]
-                 [_ {set (make-list n '•)}]))
-             (define Dss : (Setof (Listof -V)) (σ@/list σ γs))
-             (define e_ds (-struct/c-split e_c n))
-             (define e_vs (-struct-split   e_v s))
-             (for*/set: : (Setof -Δς) ([Ds Dss] [Vs Vss])
-               (define mons : (Listof -Mon)
-                 (for/list ([D Ds] [V Vs] [e_d e_ds] [e_vi e_vs])
-                   (-Mon (-W D e_d) (-W V e_vi) l³)))
-               (match mons
-                 ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ '() '() '())]
+                 [_ {set (make-list (-struct-info-arity s) '•)}]))
+             (define ctc-lsts : (Setof (Listof -V)) (σ@/list σ γs))
+
+             ;; If struct has 1+ mutable fields, wrap the contract before returning
+             (define κ₁
+               (cond [(set-empty? mutables) κ]
+                     [else
+                      (define φ-wrap
+                        (-φ.struct/wrap
+                         s
+                         (for/list : (Listof (Option -α)) ([γ γs] [i (in-naturals)])
+                           (and (∋ mutables i) γ))
+                         l³
+                         pos))
+                      (-kont φ-wrap κ)]))
+             
+             ;; Yield a monitoring state for each contract-list×field-list combination
+             (for*/set: : (Setof -Δς) ([ctc-lst ctc-lsts] [fld-lst fld-lsts])
+               (define field-mons : (Listof -Mon)
+                 (for/list ([Ci ctc-lst] [Vi fld-lst] [e_ctc e_ctcs] [e_fld e_flds])
+                   (-Mon (-W Ci e_ctc) (-W Vi e_fld) l³ pos)))
+               (match field-mons
+                 ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ₁ '() '() '())]
                  [(cons mon mons*)
-                  (define κ* (-kont (-φ.@ mons* (list (-W k k)) (-src-loc lo #f #|FIXME|#)) κ))
-                  (-Δς mon Γ-ok κ* '() '() '())])))))
+                  (define φ-mon (-φ.@ mons* (list (-W k k)) (-src-loc lo #f #|FIXME|#)))
+                  (define κ₂ (-kont φ-mon κ₁))
+                  (-Δς mon Γ-ok κ₂ '() '() '())])))))
     (cond
       [(and ς-ok ς-bad) (set-add ς-ok ς-bad)]
       [ς-ok ς-ok]
