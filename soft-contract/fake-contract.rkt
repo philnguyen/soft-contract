@@ -2,7 +2,7 @@
 
 (require (except-in racket/contract/base
                     -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
-                    one-of/c =/c >/c >=/c </c <=/c not/c cons/c
+                    one-of/c =/c >/c >=/c </c <=/c not/c cons/c box/c
                     recursive-contract)
          (for-syntax racket/base)
          racket/list)
@@ -18,7 +18,7 @@
          dynamic-recursive-contract
          =/c >/c >=/c </c <=/c
          not/c cons/c
-         one-of/c)
+         one-of/c box/c)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
@@ -38,6 +38,7 @@
 (define >=/c c:>=/c)
 (define not/c c:not/c)
 (define cons/c c:cons/c)
+(define box/c c:box/c)
 (define-syntax (struct/c stx) 
   (syntax-case stx ()
     [(_ name cs ...)
