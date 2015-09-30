@@ -115,7 +115,7 @@
       (subset: -o
         'values
         (subset: -o1
-          (subset: -pred
+          (subset: -pred₁
             ;; `arity` is the number of fields in the struct
             (struct -st-p [info : -struct-info])
             'defined?
@@ -131,9 +131,9 @@
           'sqr
           )
         (subset: -o2
-          'equal? '= '> '< '>= '<= '+ '- '* '/
+          (subset: -pred₂ 'equal? '= '> '< '>= '<= 'arity=? 'arity>=? 'arity-includes?)
+           '+ '- '* '/
           'expt 'abs 'min 'max
-          'arity=? 'arity>=? 'arity-includes?
           'remainder 'quotient
           'vector-ref
           (struct -st-mut [info : -struct-info] [index : Integer]))
@@ -166,6 +166,7 @@
   #;(.¬/c [c : .e]))
 
 (define-type -es (Setof -e))
+(define-type/pred -predₙ (U -pred₁ -pred₂))
 
 (: -formal-names : -formals → (Setof Symbol))
 ;; Return all variable names in function's parameter list
@@ -371,7 +372,7 @@
 
    [(-plain-module-begin xs) (checks# xs)]
    [(-module _ body) (checks# body)]
-   [(or (? -pred?) (? -st-mk?)) 0]
+   [(or (? -predₙ?) (? -st-mk?)) 0]
    [(? -o1?) 1]
    [(? -o2?) 2]
    [_ 0]))

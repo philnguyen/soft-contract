@@ -64,7 +64,7 @@
   (: ↦=>i : (Listof Symbol) (Listof -?e) (Listof -α) -e -ρ -Γ → -Δς*)
   (define (↦=>i xs cs Cs d ρ_d Γ_d)
     ;; TODO: check for arity also
-    (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W 'procedure? 'procedure?)))
+    (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ (-W 'procedure? 'procedure?) W_v))
     (define ς-ok
       (and Γ-ok
            (let ()
@@ -86,7 +86,7 @@
   (define (↦struct/c s γs)
     (define k? (-st-p s))
     (define k (-st-mk s))
-    (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W_v (-W k? k?)))
+    (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ (-W k? k?) W_v))
 
     ;; If struct tag does not match, blame right away
     (define ς-bad

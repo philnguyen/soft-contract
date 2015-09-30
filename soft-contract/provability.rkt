@@ -1,8 +1,8 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "ast.rkt" "runtime.rkt")
-(provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e V∈p V≡
-         MσΓ⊓ Γ+/-W Γ+/-W∈W spurious? or-R not-R decide-R
+(provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e p∋Vs V≡
+         MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious? or-R not-R decide-R
          -R
          ;; debugging
          MσΓ⊢₁e Γ⊢e)
@@ -15,13 +15,17 @@
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W V e_v) W_v)
   (match-define (-W C e_c) W_c)
-  (or-R (V∈V V C) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
+  (or-R (V∋Vs C V) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
 
-(: MσΓ⊢oW : -M -σ -Γ -pred -WV → -R)
+(: MσΓ⊢oW : -M -σ -Γ -predₙ -WV * → -R)
 ;; Check if value `W` satisfies predicate `p`
-(define (MσΓ⊢oW M σ Γ p W)
-  (match-define (-W V e) W)
-  (or-R (V∈p V p) (MσΓ⊢e M σ Γ (-?@ p e))))
+(define (MσΓ⊢oW M σ Γ p . Ws)
+  (define-values (Vs es)
+    (for/lists ([Vs : (Listof -V)] [e : (Listof -?e)])
+               ([W Ws])
+      (values (-W-x W) (-W-e W))))
+  (or-R (apply p∋Vs p Vs)
+        (MσΓ⊢e M σ Γ (apply -?@ p es))))
 
 (: MσΓ⊢e : -M -σ -Γ -?e → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
@@ -153,13 +157,16 @@
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 
-(: Γ+/-W∈W : -M -σ -Γ -WV -WV → (Values (Option -Γ) (Option -Γ)))
-;; Join the environment with `V∈P` and `V∉P`
-(define (Γ+/-W∈W M σ Γ W_V W_P)
-  (match-define (-W V e_v) W_V)
+(: Γ+/-W∋Ws : -M -σ -Γ -WV -WV * → (Values (Option -Γ) (Option -Γ)))
+;; Join the environment with `P(V…)` and `¬P(V…)`
+(define (Γ+/-W∋Ws M σ Γ W_P . W_Vs)
   (match-define (-W P e_p) W_P)
-  (define ψ (-?@ e_p e_v))
-  (define proved (or-R (V∈V V P) (MσΓ⊢e M σ Γ ψ)))
+  (define-values (Vs e_vs)
+    (for/lists ([Vs : (Listof -V)] [e_vs : (Listof -?e)])
+               ([W W_Vs])
+      (values (-W-x W) (-W-e W))))
+  (define ψ (apply -?@ e_p e_vs))
+  (define proved (or-R (apply V∋Vs P Vs) (MσΓ⊢e M σ Γ ψ)))
   (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
 
@@ -231,7 +238,7 @@
                         (equal? '✓ (Γ⊢e Γ (assert (-?@ 'integer? ei)))))
                       '✓]
                      [else '?])]
-              [(or (? -pred?) (? -st-mk?)) 'X]
+              [(or (? -predₙ?) (? -st-mk?)) 'X]
               [_ '?])]
            [_ '?])]
         [(-@ 'real? (list e*) _)
@@ -245,7 +252,7 @@
                         (equal? '✓ (Γ⊢e Γ (assert (-?@ 'real? ei)))))
                       '✓]
                      [else '?])]
-              [(or (? -pred?) (? -st-mk?)) 'X]
+              [(or (? -predₙ?) (? -st-mk?)) 'X]
               [_ '?])]
            [_ '?])]
         [(-@ 'number? (list e*) _)
@@ -256,13 +263,13 @@
               [(or 'string-length 'vector-length 'round 'floor 'ceiling
                    '+ '- '* 'add1 'sub1 'abs)
                '✓]
-              [(or (? -pred?) (? -st-mk?)) 'X]
+              [(or (? -predₙ?) (? -st-mk?)) 'X]
               [_ '?])]
            [_ '?])]
         [(-@ 'boolean? (list e*) _)
          (match e*
            [(-b b) (decide-R (boolean? b))]
-           [(-@ (? -pred?) _ _) '✓]
+           [(-@ (? -predₙ?) _ _) '✓]
            [(-@ 'equal? _ _) '✓]
            [(-@ (? -st-mk?) _ _) 'X]
            [_ '?])]
@@ -294,9 +301,9 @@
             (if (equal? '✓ (e⊢e e₂* e₁*)) '✓ '?)]
            [(e₁ (-not e₂*))
             (not-R (e⊢e e₁ e₂*))]
-           [((-@ (? -pred? p) (list e) _) (-@ (? -pred? q) (list e) _))
+           [((-@ (? -pred₁? p) (list e) _) (-@ (? -pred₁? q) (list e) _))
             (p⇒p p q)]
-           [((-@ (? -pred? p) (list e) _) e)
+           [((-@ (? -pred₁? p) (list e) _) e)
             (cond
               [(equal? p 'not) 'X]
               [(equal? p 'boolean?) '?]
@@ -326,46 +333,55 @@
     ['• '?]
     [_ '✓]))
 
-(: V∈V : -V -V → -R)
+(: V∋Vs : -V -V * → -R)
 ;; Check if value satisfies predicate
-(define (V∈V V P)
+(define (V∋Vs P . Vs)
   (cond
-    [(-pred? P) (V∈p V P)]
+    [(-predₙ? P) (apply p∋Vs P Vs)]
     [else
      (match P
        [(-Clo `(,x) (-b #f) _ _) 'X]
        [(-Clo `(,x) (? -v? v) _ _) (if (-•? v) '? '✓)]
-       [(-Clo `(,x) (-x x) _ _) (⊢V V)]
+       [(-Clo `(,x) (-x x) _ _) (⊢V (car Vs))] ; |Vs| = 1 guaranteed
        [_ '?])]))
 
-(: V∈p : -V -pred → -R)
+(: p∋Vs : -predₙ -V * → -R)
 ;; Check if value satisfies predicate
-(define (V∈p V p)
-  (define-syntax-rule (with-prim-checks p? ...)
+(define (p∋Vs p . Vs)
+  (define-syntax-rule (with-prim-checks [p?₁ ...] [p?₂ ...])
     (case p
-      [(p?)
-       (match V
-         [(-b (? p?)) '✓]
+      [(p?₁)
+       (match (car Vs)
+         [(-b (? p?₁)) '✓]
          ['• '?]
-         [_ 'X])] ...
+         [_ 'X])]
+      ...
+      [(p?₂) ; HACK for now for op's domain
+       (match Vs
+         [(list (-b (? real? b₁)) (-b (? real? b₂))) (decide-R (p?₂ b₁ b₂))]
+         [(list-no-order '• _ (... ...)) '?]
+         [_ 'X])]
+      ...
       [(procedure?)
-       (match V
+       (match (car Vs)
          [(or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?)) '✓]
          ['• '?]
          [_ 'X])]
       [(vector?)
-       (match V
+       (match (car Vs)
          [(? -Vector?) '✓]
          ['• '?]
          [_ 'X])]
       [else
        (match-define (-st-p s) p)
-       (match V
+       (match (car Vs)
          [(or (-St s* _) (-St/checked s* _ _ _))
           (decide-R (equal? s (assert s*)))]
          ['• '?]
          [_ 'X])]))
-  (with-prim-checks integer? real? number? not boolean? string? symbol? keyword?))
+  (with-prim-checks
+    [integer? real? number? not boolean? string? symbol? keyword?]
+    [< > = >= <=]))
 
 (: V≡ : -V -V → -R)
 ;; Check if 2 values are `equal?`
@@ -374,7 +390,7 @@
    [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
    [(_ _) '?]))
 
-(: p⇒p : -pred -pred → -R)
+(: p⇒p : -pred₁ -pred₁ → -R)
 (define (p⇒p p q)
   (cond
     [(equal? p q) '✓]

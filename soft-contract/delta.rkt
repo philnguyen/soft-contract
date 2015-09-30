@@ -23,11 +23,19 @@
   
   (match o
     ;; Primitive predicate
-    [(? -pred?)
+    [(? -pred₁?)
      (with-guarded-arity 1
-       (match-define (list W) Ws)
        (define V_a
-         (match (MσΓ⊢oW M σ Γ o W)
+         (match (apply MσΓ⊢oW M σ Γ o Ws)
+           ['✓ -tt]
+           ['X -ff]
+           [_ '•]))
+       (-AΓ (list V_a) Γ))]
+
+    [(? -pred₂?)
+     (with-guarded-arity 2
+       (define V_a
+         (match (apply MσΓ⊢oW M σ Γ o Ws)
            ['✓ -tt]
            ['X -ff]
            [_ '•]))
@@ -39,7 +47,7 @@
     ['vector-length
      (with-guarded-arity 1
        (match-define (list W (-W V e)) Ws)
-       (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W (-W 'vector? 'vector?)))
+       (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ (-W 'vector? 'vector?) W))
        (define ans-bad (and Γ-bad (-AΓ (-blm l (show-o o) 'vector? (list V)) Γ-bad)))
        (define ans-ok
          (and Γ-ok
@@ -66,40 +74,61 @@
     ;; Ariths
     ['+
      (with-guarded-arity 2
-       (match-define (list (and W₁ (-W V₁ e₁)) (and W₂ (-W V₂ e₂))) Ws)
-       (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W₁ (-W 'number? 'number?)))
-       (define-values (Γ-ok₂ Γ-bad₂)
-         (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ W₂ (-W 'number? 'number?))]
-               [else (values #f #f)]))
-       (define ans-ok   (and Γ-ok₂  (-AΓ (list '•) Γ-ok₂)))
-       (define ans-bad₁ (and Γ-bad₁ (-AΓ (-blm l '+ 'number? (list V₁)) Γ-bad₁)))
-       (define ans-bad₂ (and Γ-bad₂ (-AΓ (-blm l '+ 'number? (list V₂)) Γ-bad₂)))
-       (set* ans-ok ans-bad₁ ans-bad₂))]
+       (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
+       (define num? (-W 'number? 'number?))
+       (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '+ 'number? (list V)) Γ))
+       (Γ+/- M σ Γ
+             (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+             (cons (list num? W₁) (ans-bad V₁))
+             (cons (list num? W₂) (ans-bad V₂))))]
 
     ['-
      (with-guarded-arity 2
-       (match-define (list (and W₁ (-W V₁ e₁)) (and W₂ (-W V₂ e₂))) Ws)
-       (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W₁ (-W 'number? 'number?)))
-       (define-values (Γ-ok₂ Γ-bad₂)
-         (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ W₂ (-W 'number? 'number?))]
-               [else (values #f #f)]))
-       (define ans-ok   (and Γ-ok₂  (-AΓ (list '•) Γ-ok₂)))
-       (define ans-bad₁ (and Γ-bad₁ (-AΓ (-blm l '- 'number? (list V₁)) Γ-bad₁)))
-       (define ans-bad₂ (and Γ-bad₂ (-AΓ (-blm l '- 'number? (list V₂)) Γ-bad₂)))
-       (set* ans-ok ans-bad₁ ans-bad₂))]
+       (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
+       (define num? (-W 'number? 'number?))
+       (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '- 'number? (list V)) Γ))
+       (Γ+/- M σ Γ
+             (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+             (cons (list num? W₁) (ans-bad V₁))
+             (cons (list num? W₂) (ans-bad V₂))))]
 
     ['*
      (with-guarded-arity 2
-       (match-define (list (and W₁ (-W V₁ e₁)) (and W₂ (-W V₂ e₂))) Ws)
-       (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W₁ (-W 'number? 'number?)))
-       (define-values (Γ-ok₂ Γ-bad₂)
-         (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ W₂ (-W 'number? 'number?))]
-               [else (values #f #f)]))
-       (define ans-ok   (and Γ-ok₂  (-AΓ (list '•) Γ-ok₂)))
-       (define ans-bad₁ (and Γ-bad₁ (-AΓ (-blm l '* 'number? (list V₁)) Γ-bad₁)))
-       (define ans-bad₂ (and Γ-bad₂ (-AΓ (-blm l '* 'number? (list V₂)) Γ-bad₂)))
-       (set* ans-ok ans-bad₁ ans-bad₂))]
+       (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
+       (define num? (-W 'number? 'number?))
+       (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '* 'number? (list V)) Γ))
+       (Γ+/- M σ Γ
+             (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+             (cons (list num? W₁) (ans-bad V₁))
+             (cons (list num? W₂) (ans-bad V₂))))]
     ))
+
+(: Γ+/- (∀ (X) -M -σ -Γ (-Γ → X) (Pairof (Listof -WV) (-Γ → X)) * → (U X (Setof X))))
+;; Refine the environment with sequence of propositions
+;; and return (maybe) final sucessful environment
+;; along with each possible failure
+;; e.g. {} +/- ([num? n₁] [num? n₂]) -->
+;;      (values {num? n₁, num? n₂} {{¬ num? n₁}, {num? n₁, ¬ num? n₂}})
+(define (Γ+/- M σ Γ mk-ok . filters)
+  (define-values (Γ-ok ans-bads)
+    (for/fold ([Γ-ok : (Option -Γ) Γ]
+               [ans-bads : (Setof X) ∅])
+              ([filt filters])
+      (cond
+        [Γ-ok
+         (match-define (cons prop mk-bad) filt)
+         (match-define (cons W-p W-vs) prop)
+         (define-values (Γ-ok* Γ-bad*) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
+         (define ans-bads*
+           (cond [Γ-bad* (set-add ans-bads (mk-bad Γ-bad*))]
+                 [else ans-bads]))
+         (values Γ-ok* ans-bads*)]
+        [else (values #f ans-bads)])))
+  (define ans-ok (and Γ-ok (mk-ok Γ-ok)))
+  (cond [(set-empty? ans-bads) (or ans-ok ∅)]
+        [else (if ans-ok (set-add ans-bads ans-ok) ans-bads)]))
+
+
 
 #|
 (define-δ ; Identifiers `δ`, `σ`, `o`, `Vs`, and `l` are in scope

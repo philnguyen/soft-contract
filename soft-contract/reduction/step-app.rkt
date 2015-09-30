@@ -95,7 +95,7 @@
     (with-guarded-arity 1
       (match-define (list (and W (-W V e))) W_xs)
       (define prd (-st-p s))
-      (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W (-W prd prd)))
+      (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ (-W prd prd) W))
       (define δς-ok
         (and
          Γ-ok
@@ -133,7 +133,7 @@
       (match-define (-st-mut s i) o)
       (match-define (list (and W₁ (-W V₁ e₁)) (-W V₂ e₂)) W_xs)
       (define prd (-st-p s))
-      (define-values (Γ-ok Γ-bad) (Γ+/-W∈W M σ Γ W₁ (-W prd prd)))
+      (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ (-W prd prd) W₁))
       (define δς-bad
         (and Γ-bad (-Δς (-blm l (show-o o) prd (list V₁)) Γ-bad κ '() '() '())))
       (define δς-ok
@@ -172,8 +172,27 @@
 
   (: ↦vector-ref : → -Δς*)
   (define (↦vector-ref)
-    (with-guarded-arity 2
-      (error "TODO")))
+    (error "TODO")
+    #;(with-guarded-arity 2
+      (match-define (list (and W-vec (-W V-vec e-vec)) (and W-idx (-W V-idx e-idx))) W_xs)
+      (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W-vec (-W 'vector? 'vector?)))
+      (define-values (Γ-ok₂ Γ-bad₂)
+        (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ M σ Γ W-idx (-W 'integer? 'integer?))]
+              [else (values #f #f)]))
+      (define-values (Γ-ok₃ Γ-bad₃)
+        (cond [Γ-ok₂ (Γ+/-e M σ Γ-ok₂ (-?@ '>= e-idx (-b 0)))]
+              [else (values #f #f)]))
+      (define-values (Γ-ok₄ Γ-bad₄)
+        (cond
+          [Γ-ok₃
+           (match V-vec
+             [(-Vector fields)
+              (define N (length fields))
+              (match V-idx
+                [(-b i) #:when (<= i N) (values Γ-ok₄ #f)]
+                [_ ])]
+             [_ ])]
+          [else (values #f #f)]))))
 
   (: ↦vector-set! : → -Δς*)
   (define (↦vector-set!)
