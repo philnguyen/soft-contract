@@ -179,7 +179,8 @@
        ,@(map show-e cs))]
     [(-φ.struct/wrap s cs _ _)
      `(wrap ,(show/c (show-struct-info s))
-            ,@(for/list : (Listof Sexp) ([c cs]) (and c (show-α c))))]
+            ,@(for/list : (Listof Sexp) ([c cs]) (and c (show-α c)))
+            ,v)]
     [(-φ.=>i cs Cs↓ cs↓ xs e ρ _)
      `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
     ))
