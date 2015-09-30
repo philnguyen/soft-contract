@@ -208,6 +208,7 @@
      `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))
        ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
+    [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-=>i xs cs γs d ρ Γ)
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : (,(show-α γ) @ ,(show-?e c))))
@@ -293,7 +294,9 @@
   ;; for mutable or opaque field
   (struct -α.fld [id : (U -id #|HACK|# Symbol)] [pos : Integer] [idx : Integer])
   ;; for wrapped mutable struct
-  (struct -α.wrp [id : -id] [pos : Integer]))
+  (struct -α.wrp [id : -id] [pos : Integer])
+  ;; for vector
+  (struct -α.vct [pos : Integer] [idx : Integer]))
 
 (: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α))
 (define (alloc-fields s loc Ws)

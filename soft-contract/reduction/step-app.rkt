@@ -170,6 +170,16 @@
         [δς-ok δς-ok]
         [else (assert δς-bad)])))
 
+  (: ↦vector : → -Δς*)
+  (define (↦vector)
+    (define αs
+      (for/list : (Listof -α.vct) ([W W_xs] [i (in-naturals)])
+        (-α.vct pos i)))
+    (define δσ
+      (for/list : -Δσ ([α αs] [W W_xs])
+        (cons α (close-Γ Γ (-W-x W)))))
+    (-Δς (-W (list (-Vector αs)) e_a) Γ κ δσ '() '()))
+
   (: with-vector-bound-check : -M -σ -Γ -WV -WV (-Γ → -Δς*) → -Δς*)
   (define (with-vector-bound-check M σ Γ W-vec W-idx mk-ok)
     (match-define (-W V-vec e-vec) W-vec)
@@ -231,6 +241,7 @@
     [(? -st-mk? k) (↦con k)]
     [(? -st-ac? o) (↦ac o)]
     [(? -st-mut? o) (↦mut o)]
+    ['vector (↦vector)]
     ['vector-ref (↦vector-ref)]
     ['vector-set! (↦vector-set!)]
     [(? -o? o) (↦δ o)]
