@@ -46,7 +46,7 @@
     
     ['vector-length
      (with-guarded-arity 1
-       (match-define (list W (-W V _)) Ws)
+       (match-define (list (and W (-W V _))) Ws)
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ])
                  (match V

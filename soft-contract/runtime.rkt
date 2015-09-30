@@ -436,17 +436,19 @@
        ; (not (not e)) = e
        [('not (list (-not e))) e]
        ; (car (cons e _)) = e
+       [((-st-ac s i) (list (-@ (-st-mk s) es _)))
+        (list-ref es i)]
        [((-st-ac s i) (list x))
         (cond ; don't build up syntax when reading from mutable states
           [(∋ (-struct-info-mutables s) i) #f]
-          [else
-           (match x
-             [(-@ (-st-mk s) es _) (list-ref es i)]
-             [_ (-@ f (list (assert x)) -Λ)])])]
+          [else (-@ f (list (assert x)) -Λ)])]
        ; (cons (car e) (cdr e)) = e
        [((-st-mk s) es)
         (or (access-same-value? s es)
             (-@ f (cast xs (Listof -e)) -Λ))]
+       ; vector-length
+       [('vector-length (list (-@ 'vector xs _)))
+        (-b (length xs))]
        ; ariths
        [('+ (list-no-order (-b 0) e*)) (assert e* -e?)]
        [('+ (list (-@ '+ (list e₁ e₂) _) e₃))

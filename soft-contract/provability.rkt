@@ -280,6 +280,12 @@
            [(or (? -b?) (? -λ?)) 'X]
            [_ '?])]
         [(-@ (? -st-ac?) (list e) _) '?]
+        [(-@ '< (list e₁ e₂) _) ; HACK for now
+         (match* (e₁ e₂)
+           [((-b (? real? b₁)) (-b (? real? b₂)))
+            (decide-R (< b₁ b₂))]
+           [(_ _) '?])]
+        [(-@ (? -predₙ?) _ _) '?]
         [(-@ (? -o?) _ _) '✓] ; happens to be so for now
         [_ '?]))
     (dbg '⊢e "⊢ ~a : ~a~n~n" (show-e e) ans)
