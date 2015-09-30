@@ -169,11 +169,23 @@
                [else {set δς-ok δς-bad}])]
         [δς-ok δς-ok]
         [else (assert δς-bad)])))
+
+  (: ↦vector-ref : → -Δς*)
+  (define (↦vector-ref)
+    (with-guarded-arity 2
+      (error "TODO")))
+
+  (: ↦vector-set! : → -Δς*)
+  (define (↦vector-set!)
+    (with-guarded-arity 2
+      (error "TODO")))
   
   (match V_f
     [(? -st-mk? k) (↦con k)]
     [(? -st-ac? o) (↦ac o)]
     [(? -st-mut? o) (↦mut o)]
+    ['vector-ref (↦vector-ref)]
+    ['vector-set! (↦vector-set!)]
     [(? -o? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]
     [(-Clo  xs e ρ_f Γ_f) (↦β xs e ρ_f Γ_f)]

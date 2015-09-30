@@ -648,7 +648,7 @@
   
   (let go ([e e])
     (match e
-      [(? (curry equal? x)) eₓ]
+      [e #:when (equal? e x) eₓ]
       [(-λ xs e*)
        (cond [(binder-has? xs x) (guard xs) e]
              [else (-λ xs (go e*))])]

@@ -66,73 +66,39 @@
     ;; Ariths
     ['+
      (with-guarded-arity 2
-       (match-define (list W₁ W₂) Ws)
-       (list W₁ W₂)
-       (match-define (-W V₁ e₁) W₁)
-       (match-define (-W V₂ e₂) W₂)
-       (define ok-arg₁? (-?@ 'number? e₁))
-       (define ok-arg₂? (-?@ 'number? e₂))
-       (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
-       (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
-       (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
-       (define (blm-bad-arg [V : -V] [Γ : -Γ])
-         (-AΓ (-blm l '+ 'number? (list V)) Γ))
-       (define ans-ok   (-AΓ (list '•) Γ-ok))
-       (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
-       (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
-       (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
-         [('X _) ans-bad₁]
-         [(_ 'X) ans-bad₂]
-         [('✓ '✓) ans-ok]
-         [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
-         [('? '✓) {set ans-bad₁ ans-ok}]
-         [('✓ '?) {set ans-bad₂ ans-ok}]))]
-    
+       (match-define (list (and W₁ (-W V₁ e₁)) (and W₂ (-W V₂ e₂))) Ws)
+       (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W₁ (-W 'number? 'number?)))
+       (define-values (Γ-ok₂ Γ-bad₂)
+         (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ W₂ (-W 'number? 'number?))]
+               [else (values #f #f)]))
+       (define ans-ok   (and Γ-ok₂  (-AΓ (list '•) Γ-ok₂)))
+       (define ans-bad₁ (and Γ-bad₁ (-AΓ (-blm l '+ 'number? (list V₁)) Γ-bad₁)))
+       (define ans-bad₂ (and Γ-bad₂ (-AΓ (-blm l '+ 'number? (list V₂)) Γ-bad₂)))
+       (set* ans-ok ans-bad₁ ans-bad₂))]
+
     ['-
      (with-guarded-arity 2
-       (match-define (list W₁ W₂) Ws)
-       (match-define (-W V₁ e₁) W₁)
-       (match-define (-W V₂ e₂) W₂)
-       (define ok-arg₁? (-?@ 'number? e₁))
-       (define ok-arg₂? (-?@ 'number? e₂))
-       (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
-       (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
-       (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
-       (define (blm-bad-arg [V : -V] [Γ : -Γ])
-         (-AΓ (-blm l '- 'number? (list V)) Γ))
-       (define ans-ok   (-AΓ (list '•) Γ-ok))
-       (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
-       (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
-       (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
-         [('X _) ans-bad₁]
-         [(_ 'X) ans-bad₂]
-         [('✓ '✓) ans-ok]
-         [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
-         [('? '✓) {set ans-bad₁ ans-ok}]
-         [('✓ '?) {set ans-bad₂ ans-ok}]))]
-    
+       (match-define (list (and W₁ (-W V₁ e₁)) (and W₂ (-W V₂ e₂))) Ws)
+       (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W₁ (-W 'number? 'number?)))
+       (define-values (Γ-ok₂ Γ-bad₂)
+         (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ W₂ (-W 'number? 'number?))]
+               [else (values #f #f)]))
+       (define ans-ok   (and Γ-ok₂  (-AΓ (list '•) Γ-ok₂)))
+       (define ans-bad₁ (and Γ-bad₁ (-AΓ (-blm l '- 'number? (list V₁)) Γ-bad₁)))
+       (define ans-bad₂ (and Γ-bad₂ (-AΓ (-blm l '- 'number? (list V₂)) Γ-bad₂)))
+       (set* ans-ok ans-bad₁ ans-bad₂))]
+
     ['*
      (with-guarded-arity 2
-       (match-define (list W₁ W₂) Ws)
-       (match-define (-W V₁ e₁) W₁)
-       (match-define (-W V₂ e₂) W₂)
-       (define ok-arg₁? (-?@ 'number? e₁))
-       (define ok-arg₂? (-?@ 'number? e₂))
-       (define Γ-bad₁ (Γ+ Γ (-not ok-arg₁?)))
-       (define Γ-bad₂ (Γ+ Γ (-not ok-arg₂?)))
-       (define Γ-ok   (Γ+ Γ ok-arg₁? ok-arg₂?))
-       (define (blm-bad-arg [V : -V] [Γ : -Γ])
-         (-AΓ (-blm l '* 'number? (list V)) Γ))
-       (define ans-ok   (-AΓ (list '•) Γ-ok))
-       (define ans-bad₁ (blm-bad-arg V₁ Γ-bad₁))
-       (define ans-bad₂ (blm-bad-arg V₂ Γ-bad₂))
-       (match* ((MσΓ⊢oW M σ Γ 'number? W₁) (MσΓ⊢oW M σ Γ 'number? W₂))
-         [('X _) ans-bad₁]
-         [(_ 'X) ans-bad₂]
-         [('✓ '✓) ans-ok]
-         [('? '?) {set ans-bad₁ ans-bad₂ ans-ok}]
-         [('? '✓) {set ans-bad₁ ans-ok}]
-         [('✓ '?) {set ans-bad₂ ans-ok}]))]
+       (match-define (list (and W₁ (-W V₁ e₁)) (and W₂ (-W V₂ e₂))) Ws)
+       (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W₁ (-W 'number? 'number?)))
+       (define-values (Γ-ok₂ Γ-bad₂)
+         (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ W₂ (-W 'number? 'number?))]
+               [else (values #f #f)]))
+       (define ans-ok   (and Γ-ok₂  (-AΓ (list '•) Γ-ok₂)))
+       (define ans-bad₁ (and Γ-bad₁ (-AΓ (-blm l '* 'number? (list V₁)) Γ-bad₁)))
+       (define ans-bad₂ (and Γ-bad₂ (-AΓ (-blm l '* 'number? (list V₂)) Γ-bad₂)))
+       (set* ans-ok ans-bad₁ ans-bad₂))]
     ))
 
 #|

@@ -187,7 +187,7 @@
         [(-b #f) 'X]
         [(? -•?) '?]
         [(? -v?) '✓]
-        [(? (curry Γ-has? Γ)) '✓]
+        [e #:when (Γ-has? Γ e) '✓]
         ;; constructors
         [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
         ;; special cases
