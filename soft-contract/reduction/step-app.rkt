@@ -170,34 +170,62 @@
         [δς-ok δς-ok]
         [else (assert δς-bad)])))
 
+  (: with-vector-bound-check : -M -σ -Γ -WV -WV (-Γ → -Δς*) → -Δς*)
+  (define (with-vector-bound-check M σ Γ W-vec W-idx mk-ok)
+    (match-define (-W V-vec e-vec) W-vec)
+    (match-define (-W V-idx _    ) W-idx)
+    (define W-len
+      (let ([e-len (-?@ 'vector-length e-vec)]
+            [V-len
+             (match V-vec
+               [(-Vector αs) (-b (length αs))]
+               [_ '•])])
+        (-W V-len e-len)))
+    (define ((blm [V : -V] [p : -V]) [Γ : -Γ]) : -Δς
+      (-Δς (-blm l 'vector-ref p (list V)) Γ κ '() '() '()))
+    (define-values (ans-ok ans-bads)
+      (Γ+/- M σ Γ mk-ok
+            (cons (list (-W 'vector? 'vector?) W-vec)
+                  (blm 'vector? V-vec))
+            (cons (list (-W 'integer? 'integer?) W-idx)
+                  (blm 'integer? V-idx))
+            (cons (list (-W '>= '>=) W-idx (-W (-b 0) (-b 0)))
+                  (blm (-Clo '(x) (-@ '>= (list (-x 'x) (-b 0)) -Λ) -ρ⊥ -Γ⊤) V-idx))
+            (cons (list (-W '< '<) W-idx W-len)
+                  (blm (-Clo '(x) (-@ '< (list (-x 'x) (-x 'len_TODO)) -Λ) -ρ⊥ -Γ⊤) V-idx))))
+    (cond [(set? ans-ok) (∪ ans-ok ans-bads)]
+          [ans-ok (cond [(set-empty? ans-bads) ans-ok]
+                        [else (set-add ans-bads ans-ok)])]
+          [else ans-bads]))
+
   (: ↦vector-ref : → -Δς*)
   (define (↦vector-ref)
-    (error "TODO")
-    #;(with-guarded-arity 2
-      (match-define (list (and W-vec (-W V-vec e-vec)) (and W-idx (-W V-idx e-idx))) W_xs)
-      (define-values (Γ-ok₁ Γ-bad₁) (Γ+/-W∈W M σ Γ W-vec (-W 'vector? 'vector?)))
-      (define-values (Γ-ok₂ Γ-bad₂)
-        (cond [Γ-ok₁ (Γ+/-W∈W M σ Γ-ok₁ M σ Γ W-idx (-W 'integer? 'integer?))]
-              [else (values #f #f)]))
-      (define-values (Γ-ok₃ Γ-bad₃)
-        (cond [Γ-ok₂ (Γ+/-e M σ Γ-ok₂ (-?@ '>= e-idx (-b 0)))]
-              [else (values #f #f)]))
-      (define-values (Γ-ok₄ Γ-bad₄)
-        (cond
-          [Γ-ok₃
-           (match V-vec
-             [(-Vector fields)
-              (define N (length fields))
-              (match V-idx
-                [(-b i) #:when (<= i N) (values Γ-ok₄ #f)]
-                [_ ])]
-             [_ ])]
-          [else (values #f #f)]))))
+    (with-guarded-arity 2
+      (match-define (list (and W-vec (-W V-vec _)) (and W-idx (-W V-idx _))) W_xs)
+      (with-vector-bound-check M σ Γ W-vec W-idx
+        (λ ([Γ-ok : -Γ]) : -Δς*
+           (match* (V-vec V-idx)
+             [((-Vector αs) (-b (? exact-integer? i)))
+              (for/set: : (Setof -Δς) ([V (σ@ σ (list-ref αs i))])
+                (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))]
+             [(_ _)
+              (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))))
 
   (: ↦vector-set! : → -Δς*)
   (define (↦vector-set!)
-    (with-guarded-arity 2
-      (error "TODO")))
+    (with-guarded-arity 3
+      (match-define (list (and W-vec (-W V-vec e-vec))
+                          (and W-idx (-W V-idx _))
+                          (-W V-val _))
+        W_xs)
+      (with-vector-bound-check M σ Γ W-vec W-idx
+        (λ ([Γ-ok : -Γ]) : -Δς
+           (-Δς (-W -Void/Vs e_a) Γ-ok κ
+                (match* (V-vec V-idx)
+                  [((-Vector αs) (-b (? exact-integer? i)))
+                   (list (cons (list-ref αs i) V-val))]
+                  [(_ _) '()])
+                '() '())))))
   
   (match V_f
     [(? -st-mk? k) (↦con k)]

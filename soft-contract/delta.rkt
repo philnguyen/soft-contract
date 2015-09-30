@@ -46,17 +46,15 @@
     
     ['vector-length
      (with-guarded-arity 1
-       (match-define (list W (-W V e)) Ws)
-       (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ (-W 'vector? 'vector?) W))
-       (define ans-bad (and Γ-bad (-AΓ (-blm l (show-o o) 'vector? (list V)) Γ-bad)))
-       (define ans-ok
-         (and Γ-ok
-              (match V
-                [(-Vector αs) (-AΓ (list (-b (length αs))) Γ-ok)]
-                [_ (-AΓ (list '•) Γ-ok)])))
-       (cond [(and ans-ok ans-bad) {set ans-ok ans-bad}]
-             [ans-ok ans-ok]
-             [else (assert ans-bad)]))]
+       (match-define (list W (-W V _)) Ws)
+       (Γ+/-AΓ M σ Γ
+               (λ ([Γ-ok : -Γ])
+                 (match V
+                   [(-Vector αs) (-AΓ (list (-b (length αs))) Γ-ok)]
+                   [_ (-AΓ (list '•) Γ-ok)]))
+               (cons (list (-W 'vector? 'vector?) W)
+                     (λ ([Γ-bad : -Γ])
+                       (-AΓ (-blm l 'vector-length 'vector? (list V)) Γ-bad)))))]
 
     ;; Equality
     ['equal?
@@ -77,33 +75,34 @@
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
        (define num? (-W 'number? 'number?))
        (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '+ 'number? (list V)) Γ))
-       (Γ+/- M σ Γ
-             (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-             (cons (list num? W₁) (ans-bad V₁))
-             (cons (list num? W₂) (ans-bad V₂))))]
+       (Γ+/-AΓ M σ Γ
+               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+               (cons (list num? W₁) (ans-bad V₁))
+               (cons (list num? W₂) (ans-bad V₂))))]
 
     ['-
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
        (define num? (-W 'number? 'number?))
        (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '- 'number? (list V)) Γ))
-       (Γ+/- M σ Γ
-             (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-             (cons (list num? W₁) (ans-bad V₁))
-             (cons (list num? W₂) (ans-bad V₂))))]
+       (Γ+/-AΓ M σ Γ
+               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+               (cons (list num? W₁) (ans-bad V₁))
+               (cons (list num? W₂) (ans-bad V₂))))]
 
     ['*
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
        (define num? (-W 'number? 'number?))
        (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '* 'number? (list V)) Γ))
-       (Γ+/- M σ Γ
-             (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-             (cons (list num? W₁) (ans-bad V₁))
-             (cons (list num? W₂) (ans-bad V₂))))]
+       (Γ+/-AΓ M σ Γ
+               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+               (cons (list num? W₁) (ans-bad V₁))
+               (cons (list num? W₂) (ans-bad V₂))))]
     ))
 
-(: Γ+/- (∀ (X) -M -σ -Γ (-Γ → X) (Pairof (Listof -WV) (-Γ → X)) * → (U X (Setof X))))
+(: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X) (Pairof (Listof -WV) (-Γ → Y)) *
+           → (Values (Option X) (Setof Y))))
 ;; Refine the environment with sequence of propositions
 ;; and return (maybe) final sucessful environment
 ;; along with each possible failure
@@ -112,7 +111,7 @@
 (define (Γ+/- M σ Γ mk-ok . filters)
   (define-values (Γ-ok ans-bads)
     (for/fold ([Γ-ok : (Option -Γ) Γ]
-               [ans-bads : (Setof X) ∅])
+               [ans-bads : (Setof Y) ∅])
               ([filt filters])
       (cond
         [Γ-ok
@@ -124,9 +123,14 @@
                  [else ans-bads]))
          (values Γ-ok* ans-bads*)]
         [else (values #f ans-bads)])))
-  (define ans-ok (and Γ-ok (mk-ok Γ-ok)))
-  (cond [(set-empty? ans-bads) (or ans-ok ∅)]
-        [else (if ans-ok (set-add ans-bads ans-ok) ans-bads)]))
+  (values (and Γ-ok (mk-ok Γ-ok)) ans-bads))
+
+(: Γ+/-AΓ : -M -σ -Γ (-Γ → -AΓ) (Pairof (Listof -WV) (-Γ → -AΓ)) * → -AΓs)
+(define (Γ+/-AΓ M σ Γ mk-ok . filters)
+  (define-values (ans-ok ans-bads) (apply Γ+/- M σ Γ mk-ok filters))
+  (cond [ans-ok (cond [(set-empty? ans-bads) ans-ok]
+                      [else (set-add ans-bads ans-ok)])]
+        [else ans-bads]))
 
 
 
