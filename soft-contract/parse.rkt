@@ -227,6 +227,10 @@
                          (map syntax-position (syntax->list #'(c ...)))))]
     [(#%plain-app (~literal fake:box/c) c)
      (-box/c (parse-e #'c) (syntax-position stx))]
+    [(#%plain-app (~literal fake:vector/c) c ...)
+     (apply -vector/c (syntax-position stx) (parse-es #'(c ...)))]
+    [(#%plain-app (~literal fake:vectorof) c)
+     (-vectorof (parse-e #'c) (syntax-position stx))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (-struct/c (-id-local (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]

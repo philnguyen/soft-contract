@@ -154,15 +154,22 @@
      (for/fold ([acc ∅]) (for-clauses ...)
        (set-union acc (begin body ...)))]))
 
-(: set* (∀ (X) (Option X) * → (U X (Setof X))))
+;(: collect (∀ (X) (Option X) * → (U X (Setof X))))
 ;; Collect all non-#f value into set,
 ;; optionally unpack set of size 1
-(define (set* . xs)
-  (define xs*
-    (for/fold ([acc : (Setof X) ∅]) ([x xs] #:when x)
-      (set-add acc x)))
-  (cond [(= 1 (set-count xs*)) (set-first xs*)]
-        [else xs*]))
+(define-syntax collect
+  (syntax-rules ()
+    [(_) ∅]
+    [(_ x z ...)
+     (let ([x* x]
+           [z* (collect z ...)])
+       (cond [(set? x*)
+              (cond [(set? z*) (∪ x* z*)]
+                    [else (set-add x* z*)])]
+             [x*
+              (cond [(set? z*) (if (set-empty? z*) x* (set-add z* x*))]
+                    [else {set z* x*}])]
+             [else z*]))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

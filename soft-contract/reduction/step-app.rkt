@@ -120,12 +120,7 @@
            [_ (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))
       (define δς-bad
         (and Γ-bad (-Δς (-blm l (show-o o) prd (list V)) Γ-bad κ '() '() '())))
-      (cond
-        [(and δς-ok δς-bad)
-         (cond [(set? δς-ok) (set-add δς-ok δς-bad)]
-               [else {set δς-ok δς-bad}])]
-        [δς-ok δς-ok]
-        [else (assert δς-bad)])))
+      (collect δς-ok δς-bad)))
 
   (: ↦mut : -st-mut → -Δς*)
   (define (↦mut o)
@@ -163,12 +158,7 @@
                [_
                 ;; TODO: unsound if V₂ concrete buggy higher-order and V₁ opaque
                 (-Δς (-W -Void/Vs e_a) Γ-ok κ '() '() '())])))
-      (cond
-        [(and δς-ok δς-bad)
-         (cond [(set? δς-ok) (set-add δς-ok δς-bad)]
-               [else {set δς-ok δς-bad}])]
-        [δς-ok δς-ok]
-        [else (assert δς-bad)])))
+      (collect δς-ok δς-bad)))
 
   (: ↦vector : → -Δς*)
   (define (↦vector)

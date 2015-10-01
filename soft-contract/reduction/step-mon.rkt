@@ -77,10 +77,7 @@
     (define ς-bad
       (and Γ-bad
            (-Δς (-blm l+ lo 'procedure? (list V)) Γ-bad κ '() '() '())))
-    (cond
-      [(and ς-ok ς-bad) {set ς-ok ς-bad}]
-      [ς-ok ς-ok]
-      [else (assert ς-bad)]))
+    (collect ς-ok ς-bad))
   
   (: ↦struct/c : -struct-info (Listof -α) → -Δς*)
   (define (↦struct/c s γs)
@@ -133,10 +130,28 @@
                   (define φ-mon (-φ.@ mons* (list (-W k k)) (-src-loc lo pos)))
                   (define κ₂ (-kont φ-mon κ₁))
                   (-Δς mon Γ-ok κ₂ '() '() '())])))))
-    (cond
-      [(and ς-ok ς-bad) (set-add ς-ok ς-bad)]
-      [ς-ok ς-ok]
-      [else (assert ς-bad)]))
+    
+    (collect ς-ok ς-bad))
+
+  (: ↦vectorof : -α → -Δς*)
+  (define (↦vectorof α)
+    (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ (-W 'vector? 'vector?) W_v))
+
+    ;; Blame if it's not a vector
+    (define ς-bad
+      (and Γ-bad (-Δς (-blm l+ lo 'vector? (list V)) Γ-bad κ '() '() '())))
+
+    ;; Monitor each field if it's a vector
+    (define ς-ok
+      (and Γ-ok
+           (let ()
+             (error "TODO"))))
+    
+    (collect ς-ok ς-bad))
+
+  (: ↦vector/c : (Listof -α) → -Δς*)
+  (define (↦vector/c αs)
+    (error "TODO"))
 
   (match (MσΓ⊢V∈C M σ Γ W_v W_c)
     ['✓
@@ -154,6 +169,8 @@
        [(-St (≡ -s-and/c) (list γ₁ γ₂)) (↦and/c γ₁ γ₂)]
        [(-St (≡ -s-or/c ) (list γ₁ γ₂)) (↦or/c γ₁ γ₂)]
        [(-St (≡ -s-not/c) (list α)) (↦not/c α)]
+       [(-St (≡ -s-vectorof) (list α)) (↦vectorof α)]
+       [(-St (-struct-info 'vector/c _ _) αs) (↦vector/c αs)]
        [_
         (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
         (-Δς (-W (list V) e_v) Γ

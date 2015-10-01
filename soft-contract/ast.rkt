@@ -46,7 +46,7 @@
 
 (define-data -id
   ;; primitive ids as symbols to ease notation
-  'cons 'null 'void 'box 'and/c 'or/c 'not/c
+  'cons 'null 'void 'box 'and/c 'or/c 'not/c 'vectorof 'vector/c
   ;; these are just (tmp) hacks for retaining expressions / allocation address
   'values 'struct/c 'vector
   ;; general user-defined id
@@ -208,6 +208,7 @@
 (define -s-and/c (-struct-info 'and/c 2 ∅))
 (define -s-or/c (-struct-info 'or/c 2 ∅))
 (define -s-not/c (-struct-info 'not/c 1 ∅))
+(define -s-vectorof (-struct-info 'vectorof 1 ∅))
 
 (: --> : (Listof -e) -e Integer → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
@@ -426,6 +427,14 @@
     ['() -null]
     [(cons (cons e loc) es*)
      (-@ -cons (list e (apply -list es*)) loc)]))
+
+(: -vectorof : -e Integer → -e)
+(define (-vectorof e pos)
+  (-@ (-st-mk -s-vectorof) (list e) (-src-loc 'Λ pos)))
+
+(: -vector/c : Integer -e * → -e)
+(define (-vector/c pos . es)
+  (-@ (-st-mk (-struct-info 'vector/c (length es) ∅)) es (-src-loc 'Λ pos)))
 
 ;; Macros
 (:* -and : -e * → -e)

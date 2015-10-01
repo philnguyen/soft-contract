@@ -118,6 +118,8 @@
          (match V
            [(or (-St s _) (-St/checked s _ _ _))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-p (assert s)) e)))]
+           [(or (? -Vector?) (? -Vector/checked?))
+            (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'vector? e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
@@ -375,7 +377,7 @@
          [_ 'X])]
       [(vector?)
        (match (car Vs)
-         [(? -Vector?) '✓]
+         [(or (? -Vector?) (? -Vector/checked?)) '✓]
          ['• '?]
          [_ 'X])]
       [else
