@@ -6,7 +6,7 @@
          racket/port
          syntax/id-table
          syntax/parse
-         unstable/hash
+         racket/hash
          racket/contract/private/provide)
 
 (provide scv-ignore?)
