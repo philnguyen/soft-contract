@@ -184,13 +184,12 @@
   (define (with-vector-bound-check M σ Γ W-vec W-idx mk-ok)
     (match-define (-W V-vec e-vec) W-vec)
     (match-define (-W V-idx _    ) W-idx)
-    (define W-len
-      (let ([e-len (-?@ 'vector-length e-vec)]
-            [V-len
-             (match V-vec
-               [(-Vector αs) (-b (length αs))]
-               [_ '•])])
-        (-W V-len e-len)))
+    (define e-len (-?@ 'vector-length e-vec))
+    (define V-len
+      (match V-vec
+        [(-Vector αs) (-b (length αs))]
+        [_ '•]))
+    (define W-len (-W V-len e-len))
     (define ((blm [V : -V] [p : -V]) [Γ : -Γ]) : -Δς
       (-Δς (-blm l 'vector-ref p (list V)) Γ κ '() '() '()))
     (define-values (ans-ok ans-bads)
@@ -202,7 +201,7 @@
             (cons (list (-W '>= '>=) W-idx (-W (-b 0) (-b 0)))
                   (blm (-Clo '(x) (-@ '>= (list (-x 'x) (-b 0)) -Λ) -ρ⊥ -Γ⊤) V-idx))
             (cons (list (-W '< '<) W-idx W-len)
-                  (blm (-Clo '(x) (-@ '< (list (-x 'x) (-x 'len_TODO)) -Λ) -ρ⊥ -Γ⊤) V-idx))))
+                  (blm (-Clo '(x) (-@ '< (list (-x 'x) (or e-len (-W-x W-len))) -Λ) -ρ⊥ -Γ⊤) V-idx))))
     (cond [(set? ans-ok) (∪ ans-ok ans-bads)]
           [ans-ok (cond [(set-empty? ans-bads) ans-ok]
                         [else (set-add ans-bads ans-ok)])]
