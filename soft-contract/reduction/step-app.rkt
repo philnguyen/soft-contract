@@ -213,12 +213,17 @@
       (match-define (list (and W-vec (-W V-vec _)) (and W-idx (-W V-idx _))) W_xs)
       (with-vector-bound-check M σ Γ W-vec W-idx
         (λ ([Γ-ok : -Γ]) : -Δς*
-           (match* (V-vec V-idx)
-             [((-Vector αs) (-b (? exact-integer? i)))
-              (for/set: : (Setof -Δς) ([V (σ@ σ (list-ref αs i))])
-                (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))]
-             [(_ _)
-              (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))))
+           (match V-vec
+             [(-Vector αs)
+              (match V-idx
+                [(-b (? exact-integer? i))
+                 (for/set: : (Setof -Δς) ([V (σ@ σ (list-ref αs i))])
+                   (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))]
+                [_
+                 ;; FIXME ouch. This explodes fast.
+                 (for*/set: : (Setof -Δς) ([α αs] [V (σ@ σ α)])
+                   (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))])]
+             [_ (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))))
 
   (: ↦vector-set! : → -Δς*)
   (define (↦vector-set!)
@@ -229,12 +234,17 @@
         W_xs)
       (with-vector-bound-check M σ Γ W-vec W-idx
         (λ ([Γ-ok : -Γ]) : -Δς
-           (-Δς (-W -Void/Vs e_a) Γ-ok κ
-                (match* (V-vec V-idx)
-                  [((-Vector αs) (-b (? exact-integer? i)))
-                   (list (cons (list-ref αs i) V-val))]
-                  [(_ _) '()])
-                '() '())))))
+          (define δσ
+            (match V-vec
+              [(-Vector αs)
+               (match V-idx
+                 [(-b (? exact-integer? i))
+                  (list (cons (list-ref αs i) V-val))]
+                 [_ ;; FIXME ouch. This explodes
+                  (for/list : -Δσ ([α αs])
+                    (cons α V-val))])]
+              [_ '()]))
+           (-Δς (-W -Void/Vs e_a) Γ-ok κ δσ '() '())))))
   
   (match V_f
     [(? -st-mk? k) (↦con k)]
