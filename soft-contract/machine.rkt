@@ -45,6 +45,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-data -φ
+
+  ;; Standard stuff
   (struct -φ.if [t : -E] [e : -E])
   (struct -φ.let-values
     [pending : (Listof Symbol)]
@@ -64,6 +66,8 @@
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
+
+  ;; Represent next steps for contract checking
   (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.indy.dom
@@ -80,16 +84,19 @@
     [pos : Integer])
   (struct -φ.indy.rng
     [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info] [pos : Integer])
+  (struct -φ.mon.struct
+    [info : -struct-info] [ctcs : (Listof -α)] [cs : (Listof -?e)] [idx : Integer]
+    [vals↓ : (Listof -WV)] [target : -WV] [mon-info : Mon-Info] [pos : Integer])
+  
+  ;; Represent next step for escaping from a block
   (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])
   (struct -φ.rt.let [old-dom : (Setof Symbol)])
+  
   ;; contract stuff
   (struct -φ.μc [x : Symbol] [pos : Integer])
   (struct -φ.struct/c
     [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
     [pos : Integer])
-  (struct -φ.struct/wrap
-    [info : -struct-info] [contracts : (Listof (Option -α))]
-    [mon : Mon-Info] [pos : Integer])
   (struct -φ.=>i
     [dom : (Listof -e)] [dom↓ : (Listof -V)] [cs↓ : (Listof -?e)] [xs : (Listof Symbol)]
     [rng : -e] [env : -ρ] [pos : Integer])
@@ -164,6 +171,14 @@
        ,(show-V fun))]
     [(-φ.indy.rng fun args _ _)
      `(indy.rng (mon ,v (,(show-V fun) ,@(map show-WV args))))]
+    [(-φ.mon.struct s γs _cs i Ws↓ _ _ _)
+     (match-define-values (γs-done (cons γ-cur γs-left)) (split-at γs i))
+     `(mon/struct/c
+       ,@(for/list : (Listof Sexp) ([γ γs-done] [W (reverse Ws↓)])
+           `(,(show-α γ) ▹ ,(show-V (-W-x W))))
+       (,(show-α γ-cur) ,v)
+       ,@(for/list : (Listof Sexp) ([γ γs-left])
+           `(,(show-α γ) ▹ ??)))]
     [(-φ.rt.@ Γ xs f args)
      `(rt ,(show-Γ Γ)
           (,(show-?e f)
@@ -177,10 +192,6 @@
        ,@(reverse (map show-WV cs↓))
        ,v
        ,@(map show-e cs))]
-    [(-φ.struct/wrap s cs _ _)
-     `(wrap ,(show/c (show-struct-info s))
-            ,@(for/list : (Listof Sexp) ([c cs]) (and c (show-α c)))
-            ,v)]
     [(-φ.=>i cs Cs↓ cs↓ xs e ρ _)
      `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
     ))

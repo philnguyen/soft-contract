@@ -93,43 +93,17 @@
     ;; in addition to wrapping mutable field with contract
     (define ς-ok
       (and Γ-ok
-           (let ()
-             (match-define (-struct-info _ n mutables) s)
-             (define e_ctcs (-struct/c-split e_c n))
-             (define e_flds (-struct-split   e_v s))
-
-             ;; look up possible field and contract lists
-             ;; TODO: this can explode fast. Delay?
-             (define fld-lsts : (Setof (Listof -V))
-               (match V
-                 [(-St _ αs) (σ@/list σ αs)]
-                 [_ {set (make-list (-struct-info-arity s) '•)}]))
-             (define ctc-lsts : (Setof (Listof -V)) (σ@/list σ γs))
-
-             ;; If struct has 1+ mutable fields, wrap the contract before returning
-             (define κ₁
-               (cond [(set-empty? mutables) κ]
-                     [else
-                      (define φ-wrap
-                        (-φ.struct/wrap
-                         s
-                         (for/list : (Listof (Option -α)) ([γ γs] [i (in-naturals)])
-                           (and (∋ mutables i) γ))
-                         l³
-                         pos))
-                      (-kont φ-wrap κ)]))
-             
-             ;; Yield a monitoring state for each contract-list×field-list combination
-             (for*/set: : (Setof -Δς) ([ctc-lst ctc-lsts] [fld-lst fld-lsts])
-               (define field-mons : (Listof -Mon)
-                 (for/list ([Ci ctc-lst] [Vi fld-lst] [e_ctc e_ctcs] [e_fld e_flds])
-                   (-Mon (-W Ci e_ctc) (-W Vi e_fld) l³ pos)))
-               (match field-mons
-                 ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ₁ '() '() '())]
-                 [(cons mon mons*)
-                  (define φ-mon (-φ.@ mons* (list (-W k k)) (-src-loc lo pos)))
-                  (define κ₂ (-kont φ-mon κ₁))
-                  (-Δς mon Γ-ok κ₂ '() '() '())])))))
+           (match γs
+             ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ '() '() '())]
+             [(cons γ γs*)
+              (match-define (cons e_ci e_cs) (-struct/c-split e_c (length γs)))
+              (define φ₁ (-φ.mon.struct s γs e_cs 0 '() W_v l³ pos))
+              (define ac₀ (-st-ac s 0))
+              (define φ₃ (-φ.@ '() (list (-W ac₀ ac₀)) (-src-loc 'Λ pos)))
+              (for/set: : (Setof -Δς) ([C (σ@ σ γ)])
+                (define φ₂ (-φ.mon.v (-W C e_ci) l³ pos))
+                (define κ* (-kont* φ₃ φ₂ φ₁ κ))
+                (-Δς (-W (list V) e_v) Γ-ok κ* '() '() '()))])))
     
     (collect ς-ok ς-bad))
 

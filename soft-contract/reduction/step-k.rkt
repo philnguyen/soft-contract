@@ -169,6 +169,46 @@
        (define W_f (-W V_f (-x 'f•))) ; FIXME temp. hack
        (define κ* (-kont (-φ.mon.v W_d l³ pos) κ))
        (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos)))]
+    [(-φ.mon.struct s γs cs i Ws↓ W l³ pos)
+     (match-define (list l+ l- lo) l³)
+     (with-guarded-arity 1 lo 'Λ
+       (match-define (list V) Vs)
+       (define Ws↓* (cons (-W V ?e) Ws↓))
+       (match cs
+         ['()
+          (match-define (-struct-info _ n mutables) s)
+          (define Ws (reverse Ws↓*))
+          (define-values (Vs es)
+            (for/lists ([Vs : (Listof -V)] [es : (Listof -?e)])
+                       ([W Ws])
+              (values (-W-x W) (-W-e W))))
+          (define αs (alloc-fields s pos Ws))
+          (define V-inner (-St s αs))
+          (define δσ (map (inst cons -α -V) αs Vs))
+          (define e_a (apply -?@ (-st-mk s) es))
+          
+          ; If struct has 1+ mutable fields, wrap the contract before returning
+          (define-values (V* δσ*)
+            (cond
+            [(set-empty? mutables) (values V-inner δσ)]
+            [else
+             (define δσ* (cons (cons α V-inner) δσ))
+             (define α (-α.wrp (-struct-info-id s) pos))
+             (define γs*
+               (for/list : (Listof (Option -α)) ([γ γs] [i (in-naturals)])
+                 (and (∋ mutables i) γ)))
+             (define V-wrapped (-St/checked s γs* l³ α))
+             (values V-wrapped δσ*)]))
+          (-Δς (-W (list V*) e_a) Γ κ δσ* '() '())]
+         [(cons c cs*)
+          (define i* (+ i 1))
+          (define ac (-st-ac s i*))
+          (define φ₁ (-φ.mon.struct s γs cs* i* Ws↓* W l³ pos))
+          (define φ₃ (-φ.@ '() (list (-W ac ac)) (-src-loc 'Λ pos)))
+          (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
+            (define φ₂ (-φ.mon.v (-W C c) l³ pos))
+            (define κ* (-kont* φ₃ φ₂ φ₁ κ))
+            (-Δς (-W (list (-W-x W)) (-W-e W)) Γ κ* '() '() '()))]))]
     ;; restore path invariant in previous context
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
@@ -240,13 +280,6 @@
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons c cs*)
           (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rng ρ pos) κ) σ Ξ M)]))]
-    [(-φ.struct/wrap s γs l³ pos)
-     (with-guarded-arity 1 'TODO 'Λ
-       ;; TODO: α should identify the unwrapped value instead of the wrapper
-       (define α (-α.wrp (-struct-info-id s) pos))
-       (define δσ (list (cons α (car Vs))))
-       (define V* (-St/checked s γs l³ α))
-       (-Δς (-W (list V*) ?e) Γ κ δσ '() '()))]
     ))
 
 (: ↦blm : -blm -Γ -κ -σ -Ξ -M → -Δς*)
