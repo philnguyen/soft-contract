@@ -6,11 +6,17 @@
  )
 (provide (all-defined-out))
 
+(define -Wnumber? (-W 'number? 'number?))
+
 (: δ : -M -σ -Γ -o (Listof -WV) -src-loc → -AΓs)
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
 (define (δ M σ Γ o Ws loc)
   (match-define (-src-loc l pos) loc)
+  
+  (: ans-bad : Mon-Party Mon-Party -V -V → (-Γ → -AΓ))
+  (define ((ans-bad l+ lo P V) Γ)
+    (-AΓ (-blm l+ lo P (list V)) Γ))
   
   (define-syntax-rule (with-guarded-arity n e ...)
     (cond
@@ -20,6 +26,7 @@
                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤)
                   (WVs->Vs Ws))
             Γ)]))
+  
   
   (match o
     ;; Primitive predicate
@@ -68,37 +75,48 @@
            ['X -ff]
            [_ '•]))
        (-AΓ (list ans) Γ))]
+    
+    
 
     ;; Ariths
+    ['add1
+     (with-guarded-arity 1
+       (match-define (list (and W (-W V ?e))) Ws)
+       (Γ+/-AΓ M σ Γ
+               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+               (cons (list -Wnumber? W) (ans-bad l 'add1 'number? V))))]
+
+    ['sub1
+     (with-guarded-arity 1
+       (match-define (list (and W (-W V ?e))) Ws)
+       (Γ+/-AΓ M σ Γ
+               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
+               (cons (list -Wnumber? W) (ans-bad l 'sub1 'number? V))))]
+    
     ['+
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
-       (define num? (-W 'number? 'number?))
-       (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '+ 'number? (list V)) Γ))
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list num? W₁) (ans-bad V₁))
-               (cons (list num? W₂) (ans-bad V₂))))]
+               (cons (list -Wnumber? W₁) (ans-bad l '+ 'number? V₁))
+               (cons (list -Wnumber? W₂) (ans-bad l '+ 'number? V₂))))]
 
     ['-
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
-       (define num? (-W 'number? 'number?))
-       (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '- 'number? (list V)) Γ))
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list num? W₁) (ans-bad V₁))
-               (cons (list num? W₂) (ans-bad V₂))))]
+               (cons (list -Wnumber? W₁) (ans-bad l '- 'number? V₁))
+               (cons (list -Wnumber? W₂) (ans-bad l '- 'number? V₂))))]
 
     ['*
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
-       (define num? (-W 'number? 'number?))
-       (define ((ans-bad [V : -V]) [Γ : -Γ]) (-AΓ (-blm l '* 'number? (list V)) Γ))
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list num? W₁) (ans-bad V₁))
-               (cons (list num? W₂) (ans-bad V₂))))]
+               (cons (list -Wnumber? W₁) (ans-bad l '* 'number? V₁))
+               (cons (list -Wnumber? W₂) (ans-bad l '* 'number? V₂))))]
+
     ))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X) (Pairof (Listof -WV) (-Γ → Y)) *
