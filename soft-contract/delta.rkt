@@ -6,8 +6,6 @@
  )
 (provide (all-defined-out))
 
-(define -Wnumber? (-W 'number? 'number?))
-
 (: δ : -M -σ -Γ -o (Listof -WV) -src-loc → -AΓs)
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
@@ -84,38 +82,38 @@
        (match-define (list (and W (-W V ?e))) Ws)
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -Wnumber? W) (ans-bad l 'add1 'number? V))))]
+               (cons (list -number?/W W) (ans-bad l 'add1 'number? V))))]
 
     ['sub1
      (with-guarded-arity 1
        (match-define (list (and W (-W V ?e))) Ws)
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -Wnumber? W) (ans-bad l 'sub1 'number? V))))]
+               (cons (list -number?/W W) (ans-bad l 'sub1 'number? V))))]
     
     ['+
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -Wnumber? W₁) (ans-bad l '+ 'number? V₁))
-               (cons (list -Wnumber? W₂) (ans-bad l '+ 'number? V₂))))]
+               (cons (list -number?/W W₁) (ans-bad l '+ 'number? V₁))
+               (cons (list -number?/W W₂) (ans-bad l '+ 'number? V₂))))]
 
     ['-
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -Wnumber? W₁) (ans-bad l '- 'number? V₁))
-               (cons (list -Wnumber? W₂) (ans-bad l '- 'number? V₂))))]
+               (cons (list -number?/W W₁) (ans-bad l '- 'number? V₁))
+               (cons (list -number?/W W₂) (ans-bad l '- 'number? V₂))))]
 
     ['*
      (with-guarded-arity 2
        (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
        (Γ+/-AΓ M σ Γ
                (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -Wnumber? W₁) (ans-bad l '* 'number? V₁))
-               (cons (list -Wnumber? W₂) (ans-bad l '* 'number? V₂))))]
+               (cons (list -number?/W W₁) (ans-bad l '* 'number? V₁))
+               (cons (list -number?/W W₂) (ans-bad l '* 'number? V₂))))]
 
     ))
 

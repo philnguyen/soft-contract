@@ -298,8 +298,10 @@
   (struct -α.fld [id : (U -id #|HACK|# Symbol)] [pos : Integer] [idx : Integer])
   ;; for wrapped mutable struct
   (struct -α.wrp [id : -id] [pos : Integer])
-  ;; for vector
-  (struct -α.vct [pos : Integer] [idx : Integer]))
+  ;; for vector indices
+  (struct -α.vct [pos : Integer] [idx : Integer])
+  ;; for inner vector
+  (struct -α.inv [pos : Integer]))
 
 (: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α))
 (define (alloc-fields s loc Ws)
@@ -408,6 +410,15 @@
 (define -False/Vs (list -ff))
 (define -● (-W '• #f))
 (define -Void/Vs (list (-St -s-void '())))
+(define -integer?/W (-W 'integer? 'integer?))
+(define -number?/W (-W 'number? 'number?))
+(define -vector?/W (-W 'vector? 'vector?))
+(define -procedure?/W (-W 'procedure? 'procedure?))
+(define -=/W (-W '= '=))
+(define -Vector₀ (-Vector '()))
+
+(define (-Vector-ref [i : Integer]) : -V
+  (-Clo '(xᵥ) (-@ 'vector-ref (list (-x 'xᵥ) (-b i)) -Λ) -ρ⊥ -Γ⊤))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)

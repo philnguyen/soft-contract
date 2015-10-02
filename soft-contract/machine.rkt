@@ -87,6 +87,12 @@
   (struct -φ.mon.struct
     [info : -struct-info] [ctcs : (Listof -α)] [cs : (Listof -?e)] [idx : Integer]
     [vals↓ : (Listof -WV)] [target : -WV] [mon-info : Mon-Info] [pos : Integer])
+  (struct -φ.mon.vector/c ; no need to accumulated checked fields. Vector always wraps.
+    [ctcs : (Listof -α)] [cs : (Listof -?e)] [idx : Integer]
+    [target : -WV] [mon-info : Mon-Info] [pos : Integer])
+  (struct -φ.mon.vectorof
+    [ctc : -WV] [len : Integer] [idx : Integer]
+    [target : -WV] [mon-info : Mon-Info] [pos : Integer])
   
   ;; Represent next step for escaping from a block
   (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])
@@ -174,11 +180,17 @@
     [(-φ.mon.struct s γs _cs i Ws↓ _ _ _)
      (match-define-values (γs-done (cons γ-cur γs-left)) (split-at γs i))
      `(mon/struct/c
-       ,@(for/list : (Listof Sexp) ([γ γs-done] [W (reverse Ws↓)])
-           `(,(show-α γ) ▹ ,(show-V (-W-x W))))
+       (,@(for/list : (Listof Sexp) ([γ γs-done]) `(,(show-α γ) ▹ ✓))
+        (,(show-α γ-cur) ,v)
+        ,@(for/list : (Listof Sexp) ([γ γs-left]) `(,(show-α γ) ▹ ??))))]
+    [(-φ.mon.vector/c γs _ i _ _ _)
+     (match-define-values (γs-done (cons γ-cur γs-left)) (split-at γs i))
+     `(mon/vector/c
+       ,@(for/list : (Listof Sexp) ([γ γs-done]) `(,(show-α γ) ▹ ✓))
        (,(show-α γ-cur) ,v)
-       ,@(for/list : (Listof Sexp) ([γ γs-left])
-           `(,(show-α γ) ▹ ??)))]
+       ,@(for/list : (Listof Sexp) ([γ γs-left]) `(,(show-α γ) ▹ ??)))]
+    [(-φ.mon.vectorof Wc n i _ _ _)
+     `(mon/vectorof ,(show-V (-W-x Wc)) (... ,v ...))]
     [(-φ.rt.@ Γ xs f args)
      `(rt ,(show-Γ Γ)
           (,(show-?e f)
