@@ -190,15 +190,15 @@
           ; If struct has 1+ mutable fields, wrap the contract before returning
           (define-values (V* δσ*)
             (cond
-            [(set-empty? mutables) (values V-inner δσ)]
-            [else
-             (define δσ* (cons (cons α V-inner) δσ))
-             (define α (-α.wrp (-struct-info-id s) pos))
-             (define γs*
-               (for/list : (Listof (Option -α)) ([γ γs] [i (in-naturals)])
-                 (and (∋ mutables i) γ)))
-             (define V-wrapped (-St/checked s γs* l³ α))
-             (values V-wrapped δσ*)]))
+              [(set-empty? mutables) (values V-inner δσ)]
+              [else
+               (define α (-α.wrp (-struct-info-id s) pos))
+               (define δσ* (cons (cons α V-inner) δσ))
+               (define γs*
+                 (for/list : (Listof (Option -α)) ([γ γs] [i (in-naturals)])
+                   (and (∋ mutables i) γ)))
+               (define V-wrapped (-St/checked s γs* l³ α))
+               (values V-wrapped δσ*)]))
           (-Δς (-W (list V*) e_a) Γ κ δσ* '() '())]
          [(cons c cs*)
           (define i* (+ i 1))
