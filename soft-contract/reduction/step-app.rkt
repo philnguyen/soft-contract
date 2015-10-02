@@ -184,23 +184,20 @@
       (-Δς (-blm l 'vector-ref p (list V)) Γ κ '() '() '()))
     (define-values (ans-ok ans-bads)
       (Γ+/- M σ Γ mk-ok
-            (cons (list (-W 'vector? 'vector?) W-vec)
+            (cons (list -vector?/W W-vec)
                   (blm 'vector? V-vec))
-            (cons (list (-W 'integer? 'integer?) W-idx)
+            (cons (list -integer?/W W-idx)
                   (blm 'integer? V-idx))
             (cons (list (-W '>= '>=) W-idx (-W (-b 0) (-b 0)))
                   (blm (-Clo '(x) (-@ '>= (list (-x 'x) (-b 0)) -Λ) -ρ⊥ -Γ⊤) V-idx))
             (cons (list (-W '< '<) W-idx W-len)
                   (blm (-Clo '(x) (-@ '< (list (-x 'x) (or e-len (-W-x W-len))) -Λ) -ρ⊥ -Γ⊤) V-idx))))
-    (cond [(set? ans-ok) (∪ ans-ok ans-bads)]
-          [ans-ok (cond [(set-empty? ans-bads) ans-ok]
-                        [else (set-add ans-bads ans-ok)])]
-          [else ans-bads]))
+    (collect ans-ok ans-bads))
 
   (: ↦vector-ref : → -Δς*)
   (define (↦vector-ref)
     (with-guarded-arity 2
-      (match-define (list (and W-vec (-W V-vec _)) (and W-idx (-W V-idx _))) W_xs)
+      (match-define (list (and W-vec (-W V-vec e-vec)) (and W-idx (-W V-idx e-idx))) W_xs)
       (with-vector-bound-check M σ Γ W-vec W-idx
         (λ ([Γ-ok : -Γ]) : -Δς*
            (match V-vec
@@ -213,6 +210,18 @@
                  ;; FIXME ouch. This explodes fast.
                  (for*/set: : (Setof -Δς) ([α αs] [V (σ@ σ α)])
                    (-Δς (-W (list V) e_a) Γ-ok κ '() '() '()))])]
+             [(-Vector/checked γs l³ α)
+              (define Cs
+                (match V-idx
+                  [(-b (? exact-integer? i)) (σ@ σ (list-ref γs i))]
+                  [_ (for/union : (Setof -V) ([γ γs])
+                       (σ@ σ γ))]))
+              (define Vs (σ@ σ α))
+              (for*/set: : (Setof -Δς) ([C Cs] [V Vs])
+                (define φ₁ (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
+                (define φ₂ (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W) -Λ))
+                (define κ* (-kont* φ₂ φ₁ κ))
+                (-Δς (-W (list V) e-vec) Γ-ok κ* '() '() '()))]
              [_ (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))))
 
   (: ↦vector-set! : → -Δς*)
@@ -235,7 +244,7 @@
                     (cons α V-val))])]
               [_ '()]))
            (-Δς (-W -Void/Vs e_a) Γ-ok κ δσ '() '())))))
-  
+
   (match V_f
     [(? -st-mk? k) (↦con k)]
     [(? -st-ac? o) (↦ac o)]

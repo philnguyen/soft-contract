@@ -132,7 +132,7 @@
     [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
     [unchecked : -α])
   (struct -Vector [fields : (Listof -α)])
-  (struct -Vector/checked [contracts : (Listof -α)] [unchecked : -α])
+  (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α])
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -=>i
@@ -211,7 +211,7 @@
        ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
-    [(-Vector/checked γs α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
+    [(-Vector/checked γs _ α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
     [(-=>i xs cs γs d ρ Γ)
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : (,(show-α γ) @ ,(show-?e c))))
@@ -414,11 +414,9 @@
 (define -number?/W (-W 'number? 'number?))
 (define -vector?/W (-W 'vector? 'vector?))
 (define -procedure?/W (-W 'procedure? 'procedure?))
+(define -vector-ref/W (-W 'vector-ref 'vector-ref))
 (define -=/W (-W '= '=))
 (define -Vector₀ (-Vector '()))
-
-(define (-Vector-ref [i : Integer]) : -V
-  (-Clo '(xᵥ) (-@ 'vector-ref (list (-x 'xᵥ) (-b i)) -Λ) -ρ⊥ -Γ⊤))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
