@@ -259,7 +259,8 @@
        (define-values (σ* γs)
          (alloc-es σ (#|HACK|# -struct-info (-id-local '-> 'Λ) (length cs) ∅) pos cs))
        (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
-      [(-@ (-st-mk (and s (-struct-info (or 'and/c 'or/c 'not/c) _ _))) cs (-src-loc _ pos))
+      [(-@ (-st-mk (and s (-struct-info (or 'and/c 'or/c 'not/c 'vectorof 'vector/c) _ _)))
+           cs (-src-loc _ pos))
        (define-values (σ* αs) (alloc-es σ s pos cs))
        (values σ* (-St s αs))]
       [(-struct/c s cs pos)
