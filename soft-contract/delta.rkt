@@ -1,11 +1,62 @@
 #lang typed/racket/base
 (require
- racket/match racket/set racket/bool racket/math
+ racket/match racket/set racket/bool racket/math racket/contract
  "utils.rkt" "ast.rkt" "runtime.rkt" "provability.rkt"
+ (for-syntax racket/base syntax/parse racket/contract racket/pretty racket/match
+             racket/bool racket/list racket/function "prims.rkt")
  ;"make-delta.rkt"
  )
 (provide (all-defined-out))
 
+;; Language definition for `δ` begins here
+(begin-for-syntax
+
+  (define-syntax-class ctc
+    #:description "primitive contract"
+    (pattern (~or x:id ((~literal and/c) sub:id ...))))
+  
+  (define-syntax-class sig
+    #:description "primitive signature"
+    (pattern (d:ctc (~literal ->) r:ctc)))
+
+  (define/contract (generate-δ-clause M σ Γ o Ws loc row)
+    (syntax? syntax? syntax? syntax? syntax? syntax? syntax? . -> . (listof syntax?))
+    (syntax-parse row
+      [(#:predicate p:id)
+       (generate-δ-clause M σ Γ o Ws loc #`(#:predicate p (any/c)))]
+      [(#:predicate p:id (dom:ctc ...))
+       (list #`(error "TODO" (quote #,(syntax->datum #'p))))]
+      [(#:batch (ops:id ...) main:sig refinements:sig ...)
+       (apply
+        append
+        (for/list ([op (syntax->list #'(ops ...))])
+          (generate-δ-clause
+           M σ Γ o Ws loc
+           #`(#,op main refinements ... #:errors-when))))]
+      #;[(op:id main:sig refinements:sig ...)
+       (generate-δ-clause
+        M σ Γ o Ws loc
+        #`(op:id main:sig refinements:sig #:errors-when))]
+      #;[(op:id main:sig refinements:sig ... #:errors-when (d:ctc ...))
+       (list #`(error "TODO" (quote #,(syntax->datum #'op))))]))
+  
+  (define/contract (generate-δ-clauses M σ Γ o Ws loc)
+    (syntax? syntax? syntax? syntax? syntax? syntax? . -> . (listof syntax?))
+    (append-map (curry generate-δ-clause M σ Γ o Ws loc)
+                (syntax->list prims))))
+
+
+(define-syntax (generate-δ-body stx)
+  (syntax-parse stx
+    [(_ M:id σ:id Γ:id o:id Ws:id loc:id)
+     (define clauses (generate-δ-clauses #'M #'σ #'Γ #'o #'Ws #'loc))
+     #`(match o #,@clauses)]))
+
+(: δ : -M -σ -Γ -o (Listof -WV) -src-loc → -AΓs)
+(define (δ M σ Γ o Ws loc)
+  (generate-δ-body M σ Γ o Ws loc))
+
+#|
 (: δ : -M -σ -Γ -o (Listof -WV) -src-loc → -AΓs)
 ;; Interpret primitive operations.
 ;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
@@ -116,6 +167,7 @@
                (cons (list -number?/W W₂) (ans-bad l '* 'number? V₂))))]
 
     ))
+|#
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X) (Pairof (Listof -WV) (-Γ → Y)) *
            → (Values (Option X) (Setof Y))))
