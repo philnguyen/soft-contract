@@ -36,7 +36,8 @@
 
 ;; For debugging only
 (begin
-  (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hash)))
+  (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hash))
+  (define debug? : Boolean #t))
 
 (: run : -prog → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run p)
@@ -49,17 +50,17 @@
 
     ;; for debugging only
     (hash-set! evals (hash-count evals) (list S F σ Ξ M))
-    #;(begin ; debuggings
+    (when debug? ; debuggings
       (printf "Step: ~a: ~a~n" (hash-count evals) (set-count F))
       (for ([C F])
         (match-define (-Cfg E Γ κ) C)
         (printf "  E: ~a~n"   (show-E E))
-        (printf "  Γ:")
-        (for ([e Γ]) (printf " ~a" (show-e e)))
-        (printf "~n")
+        (printf "  Γ: ~a~n" (show-Γ Γ))
         (printf "  κ: ~a~n~n" (show-κ κ)))
-      (when (equal? 'done (read))
-        (error "done")))
+      (case (read)
+        [(done) (error "done")]
+        [(skip) (set! debug? #f)]
+        [else (void)]))
 
     ; Intermediate new (narrow) states
     (define I
