@@ -221,12 +221,11 @@
          [(cons c cs*)
           (define i* (+ 1 i))
           (define φ₁ (-φ.mon.vector/c γs cs* i* W l³ pos))
-          (define φ₃ (-φ.@ (list (-W (list (-b i*)) (-b i*)))
-                           (list -vector-ref/W) -Λ))
+          (define φ₃ (-φ.@ '() (list W -vector-ref/W) -Λ))
           (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
             (define φ₂ (-φ.mon.v (-W C c) l³ pos))
             (define κ* (-kont* φ₃ φ₂ φ₁ κ))
-            (-Δς (-W (list (-W-x W)) (-W-e W)) Γ κ* '() '() '()))]))]
+            (-Δς (-W (list (-b i*)) (-b i*)) Γ κ* '() '() '()))]))]
     ;; restore path invariant in previous context
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]

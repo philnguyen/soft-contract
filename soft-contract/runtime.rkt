@@ -415,6 +415,7 @@
 (define -vector?/W (-W 'vector? 'vector?))
 (define -procedure?/W (-W 'procedure? 'procedure?))
 (define -vector-ref/W (-W 'vector-ref 'vector-ref))
+(define -vector-set/W (-W 'vector-set! 'vector-set!))
 (define -=/W (-W '= '=))
 (define -Vector₀ (-Vector '()))
 

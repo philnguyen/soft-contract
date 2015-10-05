@@ -180,7 +180,7 @@
         [(-Vector αs) (-b (length αs))]
         [_ '•]))
     (define W-len (-W V-len e-len))
-    (define ((blm [V : -V] [p : -V]) [Γ : -Γ]) : -Δς
+    (define ((blm [p : -V] [V : -V]) [Γ : -Γ]) : -Δς
       (-Δς (-blm l 'vector-ref p (list V)) Γ κ '() '() '()))
     (define-values (ans-ok ans-bads)
       (Γ+/- M σ Γ mk-ok
@@ -214,7 +214,8 @@
               (define Cs
                 (match V-idx
                   [(-b (? exact-integer? i)) (σ@ σ (list-ref γs i))]
-                  [_ (for/union : (Setof -V) ([γ γs])
+                  [_ ; FIXME this explodes fast
+                   (for/union : (Setof -V) ([γ γs])
                        (σ@ σ γ))]))
               (define Vs (σ@ σ α))
               (for*/set: : (Setof -Δς) ([C Cs] [V Vs])
@@ -229,21 +230,35 @@
     (with-guarded-arity 3
       (match-define (list (and W-vec (-W V-vec e-vec))
                           (and W-idx (-W V-idx _))
-                          (-W V-val _))
+                          (-W V-val e-val))
         W_xs)
       (with-vector-bound-check M σ Γ W-vec W-idx
-        (λ ([Γ-ok : -Γ]) : -Δς
-          (define δσ
-            (match V-vec
-              [(-Vector αs)
-               (match V-idx
-                 [(-b (? exact-integer? i))
-                  (list (cons (list-ref αs i) V-val))]
-                 [_ ;; FIXME ouch. This explodes
-                  (for/list : -Δσ ([α αs])
-                    (cons α V-val))])]
-              [_ '()]))
-           (-Δς (-W -Void/Vs e_a) Γ-ok κ δσ '() '())))))
+        (λ ([Γ-ok : -Γ]) : -Δς*
+           (match V-vec
+             [(-Vector αs)
+              (define δσ
+                (match V-idx
+                  [(-b (? exact-integer? i))
+                   (list (cons (list-ref αs i) V-val))]
+                  [_ ;; FIXME ouch. This explodes
+                   (for/list : -Δσ ([α αs])
+                     (cons α V-val))]))
+              (-Δς (-W -Void/Vs e_a) Γ-ok κ δσ '() '())]
+             [(-Vector/checked γs l³ α)
+              (define Cs
+                (match V-idx
+                  [(-b (? exact-integer? i)) (σ@ σ (list-ref γs i))]
+                  [_ ; FIXME this explodes fast
+                   (for/union : (Setof -V) ([γ γs])
+                              (σ@ σ γ))]))
+              (define Vs (σ@ σ α))
+              (for/set: : (Setof -Δς) ([C Cs] [V Vs])
+                (define φ₁ (-φ.@ '() (list W-idx (-W V e-vec) -vector-set/W) -Λ))
+                (define φ₂ (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
+                (define κ* (-kont* φ₂ φ₁ κ))
+                (-Δς (-W (list V-val) e-val) Γ-ok κ* '() '() '()))]
+             [_
+              (-Δς (-W -Void/Vs e_a) Γ-ok κ '() '() '())])))))
 
   (match V_f
     [(? -st-mk? k) (↦con k)]
