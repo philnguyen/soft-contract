@@ -56,19 +56,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Pattern matching
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-syntax-rule (match? v p ...) (match v [p #t] ... [_ #f]))
-(define-syntax-rule (match-λ? p ...) (match-lambda [p #t] ... [_ #f]))
-
-(define-match-expander ≡
-  (syntax-rules ()
-    [(_ e  ) (? (λ (v) (equal? v e)))]
-    [(_ e x) (? (λ (v) (equal? v e)) x)]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Non-determinism
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

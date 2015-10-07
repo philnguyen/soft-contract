@@ -1,5 +1,5 @@
 #lang typed/racket
-(require racket/splicing "utils.rkt"
+(require racket/splicing "untyped-macros.rkt" "utils.rkt"
          (for-syntax racket/base racket/syntax))
 (require/typed redex/reduction-semantics
   [variable-not-in (Any Symbol → Symbol)])

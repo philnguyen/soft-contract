@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require racket/match racket/list racket/set racket/function
-         "utils.rkt" "ast.rkt")
+         "untyped-macros.rkt" "utils.rkt" "ast.rkt")
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
@@ -418,6 +418,9 @@
 (define -vector-set/W (-W 'vector-set! 'vector-set!))
 (define -=/W (-W '= '=))
 (define -Vector₀ (-Vector '()))
+
+(define (-=/C [n : Integer])
+  (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
