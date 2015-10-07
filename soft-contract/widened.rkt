@@ -1,7 +1,8 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function racket/format
- "utils.rkt" "ast.rkt" "runtime.rkt" "machine.rkt" "reduction/main.rkt")
+ "utils.rkt" "ast.rkt" "runtime.rkt" "machine.rkt" "reduction/main.rkt"
+ "provability.rkt" "query-z3.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 
@@ -129,7 +130,9 @@
 
  (define t₁ (current-milliseconds))
  (define-values (S* A* σ* Ξ* M*)
-   (parameterize ([debugs {set}])
+   (parameterize ([debugs {set}]
+                  [Γ⊢₀ Γ⊢e]
+                  [Γ⊢ₑₓₜ z3⊢])
      (run (files->prog (list "test/programs/safe/2.rkt")))))
  (define t₂ (current-milliseconds))
  (begin ; debuggings

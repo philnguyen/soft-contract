@@ -1,14 +1,15 @@
 #lang typed/racket/base
 (require racket/match racket/set racket/list racket/function racket/bool
          "utils.rkt" "ast.rkt" "runtime.rkt")
-(provide MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e p∋Vs V≡
+(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e Γ⊢e p∋Vs V≡
          MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious? or-R not-R decide-R
          -R
+         
          ;; debugging
-         MσΓ⊢₁e Γ⊢e)
+         MσΓ⊢₁e)
 
-(define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
-  (make-parameter (λ (M σ Γ e) (log-warning "external solver not set") '?)))
+(define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
+  (make-parameter (λ (Γ e) (log-warning "external solver not set") '?)))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check if value satisfies (flat) contract
@@ -33,7 +34,7 @@
   (cond
     [e
      (define e* (canonicalize Γ e))
-     (or-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) M σ Γ e*))]
+     (or-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) Γ e*))]
     [else '?]))
 
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
