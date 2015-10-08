@@ -2,13 +2,15 @@
 (require
  racket/match racket/set racket/bool racket/math racket/contract
  "utils.rkt" "ast.rkt" "runtime.rkt" "provability.rkt"
- (for-syntax racket/base syntax/parse racket/contract racket/pretty
-             racket/list racket/function racket/contract
+ (for-syntax racket/base racket/syntax syntax/parse racket/contract
+             racket/pretty racket/list racket/function racket/contract
              "untyped-macros.rkt" "utils.rkt" "prims.rkt")
  )
 (provide δ Γ+/-)
 
-(: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X) (Pairof (Listof -WV) (-Γ → Y)) *
+(: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
+           (U (List -WV (Listof -WV) (-Γ → Y))
+              (List 'not -WV (Listof -WV) (-Γ → Y))) *
            → (Values (Option X) (Setof Y))))
 ;; Refine the environment with sequence of propositions
 ;; and return (maybe) final sucessful environment
@@ -22,9 +24,14 @@
               ([filt filters])
       (cond
         [Γ-ok
-         (match-define (cons prop mk-bad) filt)
-         (match-define (cons W-p W-vs) prop)
-         (define-values (Γ-ok* Γ-bad*) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
+         (define-values (Γ-ok* Γ-bad* mk-bad)
+           (match filt
+             [(list W-p W-vs mk-bad)
+              (define-values (Γ-sat Γ-unsat) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
+              (values Γ-sat Γ-unsat mk-bad)]
+             [(list 'not W-p W-vs mk-bad)
+              (define-values (Γ-sat Γ-unsat) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
+              (values Γ-unsat Γ-sat mk-bad)]))
          (define ans-bads*
            (cond [Γ-bad* (set-add ans-bads (mk-bad Γ-bad*))]
                  [else ans-bads]))
@@ -32,7 +39,9 @@
         [else (values #f ans-bads)])))
   (values (and Γ-ok (mk-ok Γ-ok)) ans-bads))
 
-(: Γ+/-AΓ : -M -σ -Γ (-Γ → -AΓ) (Pairof (Listof -WV) (-Γ → -AΓ)) * → -AΓs)
+(: Γ+/-AΓ : -M -σ -Γ (-Γ → -AΓ)
+   (U (List -WV (Listof -WV) (-Γ → -AΓ))
+      (List 'not -WV (Listof -WV) (-Γ → -AΓ))) * → -AΓs)
 (define (Γ+/-AΓ M σ Γ mk-ok . filters)
   (define-values (ans-ok ans-bads) (apply Γ+/- M σ Γ mk-ok filters))
   (cond [ans-ok (cond [(set-empty? ans-bads) ans-ok]
@@ -54,7 +63,7 @@
 
   (define/contract (mk-sym name sub)
     (symbol? integer? . -> . identifier?)
-    (datum->syntax (M-id) (string->symbol (format "~a~a" name (n-sub sub)))))
+    (format-id (M-id) "~a~a" name (n-sub sub)))
 
   (define/contract (mk-quote id)
     (identifier? . -> . syntax?)
@@ -110,28 +119,36 @@
 
        (define/contract (gen-ok)
          (-> syntax?)
-         (define p?-ids
-           (syntax-parse main-dom
-             [(p?:id ...) (syntax->list #'(p? ...))]
-             [_ #f]))
-         (cond
-           [p?-ids
-            (define b-ids
-              (for/list ([_ e-ids] [i (in-naturals)])
-                (mk-sym 'b i)))
-            (define wraps
-              (for/list ([b-id b-ids] [p?-id p?-ids])
-                (syntax-parse p?-id
-                  [(~literal any/c) #`(-b #,b-id)]
-                  [_ #`(-b (? #,p?-id #,b-id))])))
-            (define _s (make-list (length b-ids) #'_))
-            (define V-stx
-              #`(match* #,e-ids
-                  [#,wraps (list (-b (#,(o-id) #,@b-ids)))]
-                  [#,_s -list•]))
-            #`(let ([Vs #,V-stx])
-                (-AΓ Vs #,(Γ-id)))]
-           [else #`(-AΓ -list• #,(Γ-id))]))
+
+         (define (mk-pat c)
+           (syntax-parse c
+             [p:id #`(? p)]
+             [((~literal not/c) p:id) #`(not (? p))]
+             [((~literal and/c) p ...)
+              #`(and #,@(map mk-pat (syntax->list #'(p ...))))]))
+
+         (define b-ids
+           (for/list ([_ e-ids] [i (in-naturals)])
+             (mk-sym 'b i)))
+         
+         (define wraps
+           (for/list ([b-id b-ids] [p-id main-dom])
+             (syntax-parse p-id
+               [(~literal any/c) #`(-b #,b-id)]
+               [p:id #`(-b (? p #,b-id))]
+               [((~literal not/c) p:id) #`(-b (not (? p #,b-id)))]
+               [((~literal and/c) p ...)
+                #`(-b (and #,@(map mk-pat (syntax->list #'(p ...))) #,b-id))])))
+         
+         (define _s (make-list (length b-ids) #'_))
+         
+         (define V-stx
+           #`(match* #,e-ids
+               [#,wraps (list (-b (#,(o-id) #,@b-ids)))]
+               [#,_s -list•]))
+         
+         #`(let ([Vs #,V-stx])
+             (-AΓ Vs #,(Γ-id))))
 
        (define/contract (gen-guard W-id V-id ctc)
          (identifier? identifier? syntax? . -> . (listof syntax?))
@@ -139,15 +156,15 @@
            [(~literal any/c) '()]
            [p:id
             (define qp #`(quote #,(syntax-e #'p)))
-            (define φ #`(list (-W #,qp #,qp) #,W-id))
-            (define mk-bad
-              #`(λ ([Γ-bad : -Γ])
-                  (-AΓ (-blm #,(l-id) (quote #,(o-id)) #,qp (list #,V-id)) Γ-bad)))
-            (list #`(cons #,φ #,mk-bad))]
+            (define mk-bad #`(ans-bad #,(l-id) (quote #,(o-id)) #,qp #,V-id))
+            (list #`(list (-W #,qp #,qp) (list #,W-id) #,mk-bad))]
            [((~literal and/c) p? ...)
             (append-map (curry gen-guard W-id V-id) (syntax->list #'(p? ...)))]
-           [((~literal not/c) p?:id)
-            (list #'(error "not/c"))]))
+           [((~literal not/c) p:id)
+            (define qp #`(quote #,(syntax-e #'p)))
+            (define mk-bad
+              #`(ans-bad #,(l-id) (quote #,(o-id)) (-not/C #,qp) #,V-id))
+            (list #`(list 'not (-W #,qp #,qp) (list #,W-id) #,mk-bad))]))
 
        (define/contract (check-args)
          (-> (listof syntax?))
@@ -183,10 +200,15 @@
                       [o-id #'o]
                       [Ws-id #'Ws]
                       [l-id #'l]
+                      ;; FIXME temp hack cos nested macro is too scary for me
                       [guard-arity-id #'guard-arity])
          (append-map gen-match-clause (syntax->list (convert-syntax prims)))))
      (define res
-       #`(case o #,@clauses [else (error 'δ "unhandled: ~a" o)]))
+       #`(begin
+           (: ans-bad : Mon-Party Mon-Party -V -V → (-Γ → -AΓ))
+           (define ((ans-bad l+ lo P V) Γ)
+             (-AΓ (-blm l+ lo P (list V)) Γ))
+           (case o #,@clauses [else (error 'δ "unhandled: ~a" o)])))
      (printf "Generated:~n~a~n" (pretty (syntax->datum res)))
      res]))
 
@@ -200,116 +222,3 @@
            [(list W ...) e ...]
            [_ (-AΓ (-blm l (assert o symbol?) (-=/C #,n) (WVs->Vs Ws)) Γ)])]))
   (gen-δ-body M σ Γ o Ws l with-guarded-arity))
-
-#|
-(: δ : -M -σ -Γ -o (Listof -WV) -src-loc → -AΓs)
-;; Interpret primitive operations.
-;; Return (Widened_Store × P((Result|Error)×Updated_Facts))
-(define (δ M σ Γ o Ws loc)
-  (match-define (-src-loc l pos) loc)
-  
-  (: ans-bad : Mon-Party Mon-Party -V -V → (-Γ → -AΓ))
-  (define ((ans-bad l+ lo P V) Γ)
-    (-AΓ (-blm l+ lo P (list V)) Γ))
-  
-  (define-syntax-rule (with-guarded-arity n e ...)
-    (cond
-      [(= n (length Ws)) e ...]
-      [else
-       (-AΓ (-blm l (show-o o)
-                  (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤)
-                  (WVs->Vs Ws))
-            Γ)]))
-  
-  
-  (match o
-    ;; Primitive predicate
-    [(? -pred₁?)
-     (with-guarded-arity 1
-       (define V_a
-         (match (apply MσΓ⊢oW M σ Γ o Ws)
-           ['✓ -tt]
-           ['X -ff]
-           [_ '•]))
-       (-AΓ (list V_a) Γ))]
-
-    [(? -pred₂?)
-     (with-guarded-arity 2
-       (define V_a
-         (match (apply MσΓ⊢oW M σ Γ o Ws)
-           ['✓ -tt]
-           ['X -ff]
-           [_ '•]))
-       (-AΓ (list V_a) Γ))]
-
-    ;; Multiple values
-    ['values (-AΓ (map (inst -W-x -V) Ws) Γ)]
-    
-    ['vector-length
-     (with-guarded-arity 1
-       (match-define (list (and W (-W V _))) Ws)
-       (Γ+/-AΓ M σ Γ
-               (λ ([Γ-ok : -Γ])
-                 (match V
-                   [(-Vector αs) (-AΓ (list (-b (length αs))) Γ-ok)]
-                   [_ (-AΓ (list '•) Γ-ok)]))
-               (cons (list (-W 'vector? 'vector?) W)
-                     (λ ([Γ-bad : -Γ])
-                       (-AΓ (-blm l 'vector-length 'vector? (list V)) Γ-bad)))))]
-
-    ;; Equality
-    ['equal?
-     (with-guarded-arity 2
-       (match-define (list W₁ W₂) Ws)
-       (match-define (-W V₁ e₁) W₁)
-       (match-define (-W V₂ e₂) W₂)
-       (define ans
-         (match (or-R (V≡ V₁ V₂) (MσΓ⊢e M σ Γ (-?@ 'equal? e₁ e₂)))
-           ['✓ -tt]
-           ['X -ff]
-           [_ '•]))
-       (-AΓ (list ans) Γ))]
-    
-    
-
-    ;; Ariths
-    ['add1
-     (with-guarded-arity 1
-       (match-define (list (and W (-W V ?e))) Ws)
-       (Γ+/-AΓ M σ Γ
-               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -number?/W W) (ans-bad l 'add1 'number? V))))]
-
-    ['sub1
-     (with-guarded-arity 1
-       (match-define (list (and W (-W V ?e))) Ws)
-       (Γ+/-AΓ M σ Γ
-               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -number?/W W) (ans-bad l 'sub1 'number? V))))]
-    
-    ['+
-     (with-guarded-arity 2
-       (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
-       (Γ+/-AΓ M σ Γ
-               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -number?/W W₁) (ans-bad l '+ 'number? V₁))
-               (cons (list -number?/W W₂) (ans-bad l '+ 'number? V₂))))]
-
-    ['-
-     (with-guarded-arity 2
-       (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
-       (Γ+/-AΓ M σ Γ
-               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -number?/W W₁) (ans-bad l '- 'number? V₁))
-               (cons (list -number?/W W₂) (ans-bad l '- 'number? V₂))))]
-
-    ['*
-     (with-guarded-arity 2
-       (match-define (list (and W₁ (-W V₁ _)) (and W₂ (-W V₂ _))) Ws)
-       (Γ+/-AΓ M σ Γ
-               (λ ([Γ-ok : -Γ]) (-AΓ (list '•) Γ-ok))
-               (cons (list -number?/W W₁) (ans-bad l '* 'number? V₁))
-               (cons (list -number?/W W₂) (ans-bad l '* 'number? V₂))))]
-
-    ))
-|#
