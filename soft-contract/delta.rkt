@@ -59,7 +59,6 @@
   (define/contract o-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract Ws-id (parameter/c identifier?) (make-parameter #f))
   (define/contract l-id  (parameter/c identifier?) (make-parameter #f))
-  (define/contract guard-arity-id (parameter/c identifier?) (make-parameter #f))
 
   (define/contract (mk-sym name sub)
     (symbol? integer? . -> . identifier?)
@@ -183,8 +182,7 @@
        
        (define/contract (gen-prim)
          (-> syntax?)
-         #`(#,(guard-arity-id) #,W-ids #,@(check-args)))
-       
+         #`(with-guarded-arity #,W-ids #,@(check-args)))
        
        (parameterize ([o-id #'op])
          (list #`[(op) #,(gen-prim)]))])))
@@ -192,19 +190,24 @@
 ;; Generate body of `δ`
 (define-syntax (gen-δ-body stx)
   (syntax-parse stx
-    [(_ M:id σ:id Γ:id o:id Ws:id l:id guard-arity:id)
+    [(_ M:id σ:id Γ:id o:id Ws:id l:id)
      (define clauses
        (parameterize ([M-id #'M]
                       [σ-id #'σ]
                       [Γ-id #'Γ]
                       [o-id #'o]
                       [Ws-id #'Ws]
-                      [l-id #'l]
-                      ;; FIXME temp hack cos nested macro is too scary for me
-                      [guard-arity-id #'guard-arity])
+                      [l-id #'l])
          (append-map gen-match-clause (syntax->list (convert-syntax prims)))))
      (define res
        #`(begin
+           (define-syntax (with-guarded-arity stx)
+             (syntax-parse stx
+               [(_ (W:id (... ...)) e (... ...))
+                (define n (length (syntax->list #'(W (... ...)))))
+                #`(match Ws
+                    [(list W (... ...)) e (... ...)]
+                    [_ (-AΓ (-blm l (assert o symbol?) (-=/C #,n) (WVs->Vs Ws)) Γ)])]))
            (: ans-bad : Mon-Party Mon-Party -V -V → (-Γ → -AΓ))
            (define ((ans-bad l+ lo P V) Γ)
              (-AΓ (-blm l+ lo P (list V)) Γ))
@@ -214,11 +217,4 @@
 
 (: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → -AΓs)
 (define (δ M σ Γ o Ws l)
-  (define-syntax (with-guarded-arity stx)
-    (syntax-parse stx
-      [(_ (W:id ...) e ...)
-       (define n (length (syntax->list #'(W ...))))
-       #`(match Ws
-           [(list W ...) e ...]
-           [_ (-AΓ (-blm l (assert o symbol?) (-=/C #,n) (WVs->Vs Ws)) Γ)])]))
-  (gen-δ-body M σ Γ o Ws l with-guarded-arity))
+  (gen-δ-body M σ Γ o Ws l))
