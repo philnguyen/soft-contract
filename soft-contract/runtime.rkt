@@ -422,6 +422,9 @@
 (define (-=/C [n : Integer])
   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤))
 
+(define (-not/C [v : -v])
+  (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) -Λ)) -Λ) -ρ⊥ -Γ⊤))
+
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
 (define-type -AΓs (U -AΓ (Setof -AΓ)))
