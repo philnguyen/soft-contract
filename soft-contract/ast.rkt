@@ -120,7 +120,8 @@
             (struct -st-p [info : -struct-info])
             'defined?
             'number? 'real? 'integer? 'not 'boolean? 'string? 'symbol? 'procedure? 'keyword?
-            'vector?)
+            'vector?
+            'zero? 'positive? 'negative?)
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
           (struct -st-ac [info : -struct-info] [index : Integer])
