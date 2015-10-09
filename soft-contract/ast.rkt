@@ -1,5 +1,5 @@
 #lang typed/racket
-(require racket/splicing "utils.rkt"
+(require racket/splicing "untyped-macros.rkt" "utils.rkt"
          (for-syntax racket/base racket/syntax))
 (require/typed redex/reduction-semantics
   [variable-not-in (Any Symbol → Symbol)])
@@ -120,7 +120,8 @@
             (struct -st-p [info : -struct-info])
             'defined?
             'number? 'real? 'integer? 'not 'boolean? 'string? 'symbol? 'procedure? 'keyword?
-            'vector?)
+            'vector?
+            'zero? 'positive? 'negative?)
           ;; `arity` is the number of fields in the struct
           ;; `index` is the index that this accesses
           (struct -st-ac [info : -struct-info] [index : Integer])
