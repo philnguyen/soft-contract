@@ -2,7 +2,8 @@
 
 (require
  racket/match racket/set racket/list
- "../utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt" "../machine.rkt" "../delta.rkt")
+ "../utils.rkt" "../untyped-macros.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt"
+ "../machine.rkt" "../delta.rkt")
 
 (provide ↦mon ↦FC)
 
@@ -147,8 +148,8 @@
                    (define φ₃ (-φ.@ '() (list W_v -vector-ref/W) -Λ))
                    (define κ* (-kont* φ₃ φ₂ φ₁ κ))
                    (-Δς (-W (list (-b 0)) (-b 0)) Γ-ok κ* '() '() '()))]))
-            (cons (list -vector?/W W_v) (blm l+ lo 'vector? V))
-            (cons (list -=/W -n/W -len/W)
+            (list -vector?/W (list W_v) (blm l+ lo 'vector? V))
+            (list -=/W (list -n/W -len/W)
                   (blm l+ lo
                        (-Clo '(x)
                              (assert (-?@ '= (-?@ 'vector-length (-x 'x)) (-b n)))

@@ -47,7 +47,7 @@
 
   (: ↦δ : -o → -Δς*)
   (define (↦δ o)
-    (match/nd: (-AΓ → -Δς) (δ M σ Γ o W_xs loc)
+    (match/nd: (-AΓ → -Δς) (δ M σ Γ o W_xs (-src-loc-party loc))
       [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ '() '() '())]
       [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ '() '() '())]))
   
@@ -184,13 +184,11 @@
       (-Δς (-blm l 'vector-ref p (list V)) Γ κ '() '() '()))
     (define-values (ans-ok ans-bads)
       (Γ+/- M σ Γ mk-ok
-            (cons (list -vector?/W W-vec)
-                  (blm 'vector? V-vec))
-            (cons (list -integer?/W W-idx)
-                  (blm 'integer? V-idx))
-            (cons (list (-W '>= '>=) W-idx (-W (-b 0) (-b 0)))
+            (list -vector?/W (list W-vec) (blm 'vector? V-vec))
+            (list -integer?/W (list W-idx) (blm 'integer? V-idx))
+            (list (-W '>= '>=) (list W-idx (-W (-b 0) (-b 0)))
                   (blm (-Clo '(x) (-@ '>= (list (-x 'x) (-b 0)) -Λ) -ρ⊥ -Γ⊤) V-idx))
-            (cons (list (-W '< '<) W-idx W-len)
+            (list (-W '< '<) (list W-idx W-len)
                   (blm (-Clo '(x) (-@ '< (list (-x 'x) (or e-len (-W-x W-len))) -Λ) -ρ⊥ -Γ⊤) V-idx))))
     (collect ans-ok ans-bads))
 
