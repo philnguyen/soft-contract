@@ -1,6 +1,7 @@
 #lang racket/base
-(require racket/math racket/contract)
-(provide prims)
+(require racket/match racket/math racket/contract racket/set
+         "untyped-macros.rkt" "utils.rkt")
+(provide prims implications)
 
 ;; FIXME annotation for side effects
 
@@ -82,12 +83,12 @@
      [#:batch (max min) ; FIXME varargs
       (real? real? → real?)
       (integer? integer? → integer?)]
-     [#:batch (gcd lcm) ; FIXME varargs, `rational?`
-      (integer? integer? → integer?)]
+     [#:batch (gcd lcm) ; FIXME varargs
+      (rational? rational? → rational?)]
      [#:batch (round floor ceiling truncate)
       (real? → real?)]
-     [#:batch (numerator denominator) ; FIXME `rational?`
-      (integer? → integer?)]
+     [#:batch (numerator denominator)
+      (rational? → integer?)]
      [rationalize
       (real? real? → real?)]
 
@@ -133,22 +134,22 @@
       (number? → real?)]
 
      ;; 4.2.2.6 Bitwise Operations
-     [#:batch (bitwise-ior bitwise-and bitwise-xor) ; FIXME varargs, `exact-integer?`
-      (integer? integer? → integer?)]
-     [bitwise-not ; FIXME `exact-integer?`
-      (integer? → integer?)]
-     [bitwise-bit-set? ; FIXME `exact?`
-      (integer? (and/c integer? (not/c negative?)) → boolean?)]
-     [bitwise-bit-field ; FIXME `exact?`, `start ≤ end`
-      (integer? (and/c integer? (not/c negative?)) (and/c integer? (not/c negative?)) → integer?)]
-     [arithmetic-shift ; FIXME exact
-      (integer? integer? → integer?)]
-     [integer-length ; FIXME exact
-      (integer? → integer?)]
+     [#:batch (bitwise-ior bitwise-and bitwise-xor) ; FIXME varargs
+      (exact-integer? exact-integer? → exact-integer?)]
+     [bitwise-not
+      (exact-integer? → exact-integer?)]
+     [bitwise-bit-set?
+      (exact-integer? exact-nonnegative-integer? → boolean?)]
+     [bitwise-bit-field ; FIXME `start ≤ end`
+      (exact-integer? exact-nonnegative-integer? exact-nonnegative-integer? → integer?)]
+     [arithmetic-shift
+      (exact-integer? exact-integer? → exact-integer?)]
+     [integer-length ; TODO post-con more precise than doc. Confirm.
+      (exact-integer? → exact-nonnegative-integer?)]
 
      ;; 4.2.2.7 Random Numbers
-     [random ; FIXME range, exact?, all usages
-      (integer? → integer?)]
+     [random ; FIXME range, all usages
+      (integer? → exact-nonnegative-integer?)]
      [random-seed
       (integer? → void?)]
      [make-pseudo-random-generator
@@ -185,8 +186,8 @@
       (number? → number?)]
      [#:batch (sinh cosh tanh)
       (number? → number?)]
-     [#:batch (exact-round exact-floor exact-ceiling exact-truncate) ; FIXME exact
-      (real? → integer?)]
+     [#:batch (exact-round exact-floor exact-ceiling exact-truncate)
+      (rational? → exact-integer?)]
      [order-of-magnitude
       ((and/c real? positive?) → integer?)]
      [nan?
@@ -199,9 +200,11 @@
      ;;;;; 4.3 Strings
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      
+     
      ;; 4.3.1 Constructors, Selectors, Mutators
-     [make-string ; FIXME exact, all usages
-      ((and/c integer? (not/c negative?)) char? → string?)]
+     [#:pred string?]
+     [make-string ; FIXME all usages
+      (exact-nonnegative-integer? char? → string?)]
      #;[string ; FIXME varargs
       (() #:rest char? →* string?)]
      [string->immutable-string
@@ -266,30 +269,167 @@
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     ;;;;; Misc
+     ;;;;; 4.4 Byte Strings
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+     ; TODO
+
      
-     [#:pred string?]
-     [#:pred symbol?]
-     [#:pred procedure?]
-     [#:pred keyword?]
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.5 Characters
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+     ;; 4.5.1 Characters and Scalar Values
+
      [#:pred char?]
+     [char->integer
+      (char? → exact-integer?)]
+     [integer->char ; FIXME range
+      (exact-integer? → char?)]
+     [char-utf-8-length ; FIXME range
+      (char? → exact-integer?)]
+     
+     ;; 4.5.2 Comparisons
+     [#:batch (char=? char<? char<=? char>? char>=?
+               char-ci=? char-ci<? char-ci<=? char-ci>? char-ci>=?) ; FIXME varargs
+      (char? char? → boolean?)]
+     
+     ;; 4.5.3 Classifications
+     [#:batch (char-alphabetic? char-lower-case? char-upper-case? char-title-case?
+               char-numeric? char-symbolic? char-punctuation? char-graphic?
+               char-whitespace? char-blank? char-iso-control? char-general-category)
+      (char? → boolean?)]
+     #;[make-known-char-range-list
+      (→ (listof (list/c exact-nonnegative-integer?
+                         exact-nonnegative-integer?
+                         boolean?)))]
+
+     ;; 4.5.4 Character Conversions
+     [#:batch (char-upcase char-downcase char-titlecase char-foldcase)
+      (char? → char?)]
+     
+     
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.6 Symbols
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+     [#:pred symbol?]
+     [#:pred symbol-interned? (symbol?)]
+     [#:pred symbol-unreadable? (symbol?)]
+     [symbol->string
+      (symbol? → string?)]
+     [#:batch (string->symbol string->uninterned-symbol string->unreadable-symbol)
+      (string? → symbol?)]
+     [gensym ; FIXME usage
+      (→ symbol?)]
+     [#:pred symbol<? (symbol? symbol?)] ; FIXME varargs
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.7 Regular Expressions
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
      [#:pred regexp?]
+
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.8 Keywords
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+     [#:pred keyword?]
+
+
+     
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.9 Pairs and Lists
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.10 Mutable Pairs and Lists
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+
+     
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.11 Vectors
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.12 Boxes
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.13 Hash Tables
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.14 Sequences and Streams
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.15 Dictionaries
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+
+     
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.16 Sets
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+
+
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.17 Procedures
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; TODO
+     [#:pred procedure?]
+
+     
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.18 Void
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     [#:pred void?]
+     [void ; FIXME varargs
+      (→ void?)]
+
+     
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ;;;;; 4.19 Undefined
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     ; Nothing for now
 ))
+
+
 
 ;; Declare implications between predicates.
 ;; Only need to do this for total predicates;
 ;; partial predicate like `even?` has a precondition of `integer?`,
 ;; and execution takes care of that.
 ;; Code generation should take care of transitivity, but redundancy is fine too.
-(define inferences
-  #'([integer? ⇒ real?]
-     [real? ⇒ number?]
-     [not ⇒ boolean?]
-     [exact? inexact? ⇒ number?]
-     [exact-integer? exact-nonnegative-integer? exact-positive-integer? ⇒ integer? exact?]
-     [exact-nonnegative-integer? ⇒ (not/c negative?)]
-     [exact-positive-integer? ⇒ positive?]
-     [inexact-real? ⇒ real?]
-     ;; exclusions
-     ))
+(define implications
+  '([zero? ⇒ integer?]
+    [integer? ⇒ rational?]
+    [real? ⇒ number?]
+    [not ⇒ boolean?]
+    [exact-integer? ⇒ integer?]
+    [exact-integer? ⇒ exact?]
+    [exact-nonnegative-integer? ⇒ exact?]
+    [exact-nonnegative-integer? ⇒ (not/c negative?)]
+    [exact-nonnegative-integer? ⇒ integer?]
+    [exact-positive-integer? ⇒ exact?]
+    [exact-positive-integer? ⇒ positive?]
+    [exact-positive-integer? ⇒ integer?]
+    [inexact-real? ⇒ real?]
+    [rational? ⇒ real?]
+    [#:partition number? {exact? inexact?}]
+    ))
