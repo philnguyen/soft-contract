@@ -48,6 +48,7 @@
 (define-data -id
   ;; primitive ids as symbols to ease notation
   'cons 'null 'void 'box 'and/c 'or/c 'not/c 'vectorof 'vector/c
+  'μ/c 'x/c
   ;; these are just (tmp) hacks for retaining expressions / allocation address
   'values 'struct/c 'vector
   ;; general user-defined id
@@ -113,7 +114,7 @@
     (subset: -•
       '•
       ;; `l` is a tag annotating which static location this opaque value came from
-      (struct -•ₗ [l : Natural]))
+      (struct -•ₗ [l : (U Natural Symbol)]))
     (subset: -prim
       ;; primitive values that can appear in syntax
       (struct -b [unboxed : Base])
@@ -393,7 +394,11 @@
 
   (: -not/c : -e Integer → -e)
   (define (-not/c c pos)
-    (-@ (-st-mk (-struct-info 'not/c 1 ∅)) (list c) (-src-loc 'Λ pos))))
+    (-@ (-st-mk (-struct-info 'not/c 1 ∅)) (list c) (-src-loc 'Λ pos)))
+
+  (: -listof : -e Integer → -e)
+  (define (-listof c pos)
+    (-μ/c 'X (-or/c (cons -null? pos) (cons (-cons/c c (-x/c 'X) pos) pos)) pos)))
 
 (: -box/c : -e Integer → -e)
 (define (-box/c c pos)
@@ -783,7 +788,10 @@
 
     [(-λ (list xs ...) e) `(λ ,xs ,(show-e e))]
     [(-λ (-varargs xs rest) e) `(λ ,(cons xs rest) ,(show-e e))]
-    [(-•ₗ n) (string->symbol (format "•~a" (n-sub n)))]
+    [(-•ₗ ℓ)
+     (cond
+       [(integer? ℓ) (string->symbol (format "•~a" (n-sub ℓ)))]
+       [else (string->symbol (format "•_~a" ℓ))])]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) x]

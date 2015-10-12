@@ -3,7 +3,7 @@
  racket/match racket/list racket/set racket/bool racket/function racket/math
  racket/unsafe/ops
  web-server/private/util
- "utils.rkt" "ast.rkt" (only-in redex/reduction-semantics variable-not-in)
+ "prims.rkt" "utils.rkt" "ast.rkt" (only-in redex/reduction-semantics variable-not-in)
  syntax/parse syntax/modresolve racket/pretty racket/contract
  "expand.rkt"
  (prefix-in fake: "fake-contract.rkt")
@@ -22,9 +22,6 @@
       (parse-top-level-form (do-expand-file path))))
   (define-values (havoc-m havoc-e) (gen-havoc ms))
   (-prog (cons havoc-m ms) havoc-e))
-
-;; TODO For testing only
-(define ids (box '()))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
@@ -338,6 +335,8 @@
         [#f (-x (syntax-e #'i))]
         [(list (app (λ (x)
                       (parameterize ([current-directory (directory-part (cur-mod))])
+                        (printf "part: ~a~n" (directory-part (cur-mod)))
+                        (printf "id: ~a~n" #'i)
                         (mod-path->mod-name
                          (resolved-module-path-name (module-path-index-resolve x)))))
                     src)
@@ -398,7 +397,7 @@
              #,@(append-map make-clause prims)
              [_ #f]))
        
-       (printf "parse-primitive:~n~a~n" (syntax->datum ans))
+       ;(printf "parse-primitive:~n~a~n" (syntax->datum ans))
        
        ans]))
 
@@ -417,6 +416,76 @@
   (syntax-parse spec
     [i:identifier (syntax-e #'i)]
     [_ (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
+
+;; Full primitive module generated from primtive table
+(define -mod-prim
+  (let ()
+    
+    (define/contract cache
+      (hash/c symbol? -e?)
+      (make-hash))
+
+    (define/contract (simple-parse s)
+      (any/c . -> . -e?)
+      (match s
+        [`(-> ,doms ... ,rng)
+         (--> (map simple-parse doms)
+              (simple-parse rng)
+              (next-neg!))]
+        [`(and/c ,cs ...)
+         (apply -and/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
+        [`(or/c ,cs ...)
+         (apply -or/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
+        [`(one-of/c ,cs ...)
+         (apply -one-of/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
+        [`(list/c ,cs ...)
+         (apply -list/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
+        [`(not/c ,c) (-not/c (simple-parse c) (next-neg!))]
+        [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
+        [(? symbol? s) s]))
+
+    (define/contract (make-defs dec)
+      (any/c . -> . (listof -define-values?))
+      (match dec
+        [(or `(#:pred ,s ,_ ...)
+             `(#:alias ,s ,_ ...)
+             `(,(? symbol? s) ,_ ...))
+         (list (-define-values (list s) s))]
+        [`(#:batch (,ss ...) ,_ ...)
+         (for/list ([s ss])
+           (-define-values (list s) s))]))
+
+    (define/contract (make-decs dec)
+      (any/c . -> . (listof -p/c-item?))
+      (match dec
+        [`(#:pred ,s ,doms? ...)
+         (define ctc
+           (match doms?
+             ['()
+              ;; optimize `(any/c . -> . boolean?)` to `any/c`
+              (hash-ref! cache s -any/c)]
+             [(list (list dom ...))
+              ; optimize `boolean?` to `any/c`
+              (hash-ref! cache s (--> (map simple-parse dom) -any/c (next-neg!)))]))
+         (list (-p/c-item s ctc))]
+        [`(#:alias ,s ,t)
+         (define ctc
+           (hash-ref cache t (λ () (error 'prims "`~a` aliases undeclared `~a`" s t))))
+         (list (-p/c-item s ctc))]
+        [`(,(? symbol? s) ,sig ,_ ...)
+         (define ctc (hash-ref! cache s (simple-parse sig)))
+         (list (-p/c-item s ctc))]
+        [`(#:batch (,ss ...) ,sig ,_ ...)
+         (define ctc (simple-parse sig))
+         (for/list ([s ss])
+           (-p/c-item s (hash-ref! cache s ctc)))]))
+
+    (-module
+     'Λ
+     (-plain-module-begin
+      (list*
+       (-provide (append-map make-decs prims))
+       (append-map make-defs prims))))))
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
