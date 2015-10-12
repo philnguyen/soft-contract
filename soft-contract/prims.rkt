@@ -1,6 +1,4 @@
 #lang racket/base
-(require racket/match racket/math racket/contract racket/set
-         "untyped-macros.rkt" "utils.rkt")
 (provide prims implications)
 
 ;; FIXME annotation for side effects
@@ -18,12 +16,12 @@
      [#:pred equal? (any/c any/c)]
      ;[#:pred eqv? (any/c any/c)]
      ;[#:pred eq? (any/c any/c)]
-     ;[#:pred equal?/recur (any/c any/c (any/c any/c → any/c) → any/c)]
+     ;[#:pred equal?/recur (any/c any/c (any/c any/c . -> . any/c) . -> . any/c)]
      [#:pred immutable?]
      [#:pred symbol=? (symbol? symbol?)]
      [#:pred boolean=? (boolean? boolean?)]
      [xor
-      (any/c any/c → any/c)]
+      (any/c any/c . -> . any/c)]
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.2 Numbers
@@ -51,46 +49,46 @@
      [#:pred exact? (number?)]
      [#:pred inexact? (number?)]
      [inexact->exact
-      (number? → exact?)]
+      (number? . -> . exact?)]
      [exact->inexact
-      (number? → inexact?)]
+      (number? . -> . inexact?)]
      [real->single-flonum
-      (real? → single-flonum?)]
+      (real? . -> . single-flonum?)]
      [real->double-flonum
-      (real? → flonum?)]
+      (real? . -> . flonum?)]
      
      ;;;;; 4.2.2 Generic Numerics
      
      ;; 4.2.2.1 Arithmetic
      [#:batch (+ - *) ; FIXME var-args
-      (number? number? → number?)
-      (real? real? → real?)
-      (integer? integer? → integer?)]
+      (number? number? . -> . number?)
+      (real? real? . -> . real?)
+      (integer? integer? . -> . integer?)]
      [/ ; FIXME varargs
-      (number? (and/c number? (not/c zero?)) → number?)
-      (real? real? → real?)]
+      (number? (and/c number? (not/c zero?)) . -> . number?)
+      (real? real? . -> . real?)]
      [#:batch (quotient remainder modulo)
-      (integer? (and/c integer? (not/c zero?)) → integer?)]
+      (integer? (and/c integer? (not/c zero?)) . -> . integer?)]
      #;[quotient/remainder
-      (integer? (and/c integer? (not/c zero?))) → integer? integer?] ; FIXME
+      (integer? (and/c integer? (not/c zero?))) . -> . integer? integer?] ; FIXME
      [#:batch (add1 sub1)
-      (number? → number?)
-      (real? → real?)
-      (integer? → integer?)]
+      (number? . -> . number?)
+      (real? . -> . real?)
+      (integer? . -> . integer?)]
      [abs
-      (real? → real?)
-      (integer? → integer?)]
+      (real? . -> . real?)
+      (integer? . -> . integer?)]
      [#:batch (max min) ; FIXME varargs
-      (real? real? → real?)
-      (integer? integer? → integer?)]
+      (real? real? . -> . real?)
+      (integer? integer? . -> . integer?)]
      [#:batch (gcd lcm) ; FIXME varargs
-      (rational? rational? → rational?)]
+      (rational? rational? . -> . rational?)]
      [#:batch (round floor ceiling truncate)
-      (real? → real?)]
+      (real? . -> . real?)]
      [#:batch (numerator denominator)
-      (rational? → integer?)]
+      (rational? . -> . integer?)]
      [rationalize
-      (real? real? → real?)]
+      (real? real? . -> . real?)]
 
      ;; 4.2.2.2 Number Comparison
      [#:pred = (number? number?)] ; FIXME varargs
@@ -101,62 +99,62 @@
 
      ;; 4.2.2.3 Powers and Roots
      [sqrt
-      (number? → number?)
-      (real? → real?)]
+      (number? . -> . number?)
+      (real? . -> . real?)]
      [integer-sqrt
-      (integer? → number?)
-      (real? → real?)]
+      (integer? . -> . number?)
+      (real? . -> . real?)]
      #;[integer-sqrt/remainder ; FIXME
-      (integer? → number? integer?)]
+      (integer? . -> . number? integer?)]
      [expt
-      (number? number? → number?)
-      (real? real? → real?)
+      (number? number? . -> . number?)
+      (real? real? . -> . real?)
       #:other-errors
       (zero? negative?)]
      [exp
-      (number? → number?)]
+      (number? . -> . number?)]
      [log
-      (number? → number?)]
+      (number? . -> . number?)]
 
      ;; 4.2.2.4 Trigonometric Functions
      [#:batch (log sin cos tan asin acos atan)
-      (number? → number?)
-      (real? → real?)]
+      (number? . -> . number?)
+      (real? . -> . real?)]
 
      ;; 4.2.2.5 Complex Numbers
      [#:batch (make-rectangular make-polar)
-      (real? real? → number?)]
+      (real? real? . -> . number?)]
      [#:batch (real-part imag-part)
-      (number? → real?)]
+      (number? . -> . real?)]
      [magnitude
-      (number? → (and/c real? (not/c negative?)))]
+      (number? . -> . (and/c real? (not/c negative?)))]
      [angle
-      (number? → real?)]
+      (number? . -> . real?)]
 
      ;; 4.2.2.6 Bitwise Operations
      [#:batch (bitwise-ior bitwise-and bitwise-xor) ; FIXME varargs
-      (exact-integer? exact-integer? → exact-integer?)]
+      (exact-integer? exact-integer? . -> . exact-integer?)]
      [bitwise-not
-      (exact-integer? → exact-integer?)]
+      (exact-integer? . -> . exact-integer?)]
      [bitwise-bit-set?
-      (exact-integer? exact-nonnegative-integer? → boolean?)]
+      (exact-integer? exact-nonnegative-integer? . -> . boolean?)]
      [bitwise-bit-field ; FIXME `start ≤ end`
-      (exact-integer? exact-nonnegative-integer? exact-nonnegative-integer? → integer?)]
+      (exact-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . integer?)]
      [arithmetic-shift
-      (exact-integer? exact-integer? → exact-integer?)]
+      (exact-integer? exact-integer? . -> . exact-integer?)]
      [integer-length ; TODO post-con more precise than doc. Confirm.
-      (exact-integer? → exact-nonnegative-integer?)]
+      (exact-integer? . -> . exact-nonnegative-integer?)]
 
      ;; 4.2.2.7 Random Numbers
      [random ; FIXME range, all usages
-      (integer? → exact-nonnegative-integer?)]
+      (integer? . -> . exact-nonnegative-integer?)]
      [random-seed
-      (integer? → void?)]
+      (integer? . -> . void?)]
      [make-pseudo-random-generator
-      (→ pseudo-random-generator?)]
+      (-> pseudo-random-generator?)]
      [#:pred pseudo-random-generator?]
      [current-pseudo-random-generator ; FIXME parameter
-      (→ pseudo-random-generator?)]
+      (-> pseudo-random-generator?)]
      ; FIXME rest
 
      ;; 4.2.2.8 System-Provided Randomness
@@ -164,36 +162,36 @@
 
      ;; 4.2.2.9 Number-String Conversions
      [number->string
-      (number? → string?)]
+      (number? . -> . string?)]
      [string->number
-      (string? → (or/c number? not))]
+      (string? . -> . (or/c number? not))]
      [real->decimal-string
-      (real? (and/c integer? (not/c negative?)) → string?)]
+      (real? (and/c integer? (not/c negative?)) . -> . string?)]
      ; FIXME rest, `bytes?`
      [system-big-endian?
-      (→ boolean?)]
+      (-> boolean?)]
 
      ;; 4.2.2.10 Extra Functions
      [#:batch (degrees->radians radians->degrees)
-      (real? → real?)]
+      (real? . -> . real?)]
      [sqr
-      (number? → number?)
-      (real? → real?)
-      (integer? → integer?)]
+      (number? . -> . number?)
+      (real? . -> . real?)
+      (integer? . -> . integer?)]
      [sgn ; FIXME precise
-      (real? → real?)]
+      (real? . -> . real?)]
      [conjugate
-      (number? → number?)]
+      (number? . -> . number?)]
      [#:batch (sinh cosh tanh)
-      (number? → number?)]
+      (number? . -> . number?)]
      [#:batch (exact-round exact-floor exact-ceiling exact-truncate)
-      (rational? → exact-integer?)]
+      (rational? . -> . exact-integer?)]
      [order-of-magnitude
-      ((and/c real? positive?) → integer?)]
+      ((and/c real? positive?) . -> . integer?)]
      [nan?
-      (real? → boolean?)]
+      (real? . -> . boolean?)]
      [infinite?
-      (real? → boolean?)]
+      (real? . -> . boolean?)]
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -204,66 +202,66 @@
      ;; 4.3.1 Constructors, Selectors, Mutators
      [#:pred string?]
      [make-string ; FIXME all usages
-      (exact-nonnegative-integer? char? → string?)]
+      (exact-nonnegative-integer? char? . -> . string?)]
      #;[string ; FIXME varargs
       (() #:rest char? →* string?)]
      [string->immutable-string
-      (string? → string?)]
+      (string? . -> . string?)]
      [string-length
-      (string? → integer?)
-      (string? → (not/c negative?))]
+      (string? . -> . integer?)
+      (string? . -> . (not/c negative?))]
      [string-ref
-      (string? (and/c integer? (not/c negative?)) → char?)]
+      (string? (and/c integer? (not/c negative?)) . -> . char?)]
      #;[string-set! ; FIXME mutable
-      ((and/c string? (not/c immutable?)) integer? char? → void?)]
+      ((and/c string? (not/c immutable?)) integer? char? . -> . void?)]
      [substring
-      (string? (and/c integer? (not/c negative?)) (and/c integer? (not/c negative?)) → string?)]
+      (string? (and/c integer? (not/c negative?)) (and/c integer? (not/c negative?)) . -> . string?)]
      [string-copy
-      (string → string?)]
+      (string . -> . string?)]
      #;[string-copy!] ; FIXME
      #;[string-fill!] ; FIXME
      [string-append ; FIXME varargs
-      (string? string? → string?)]
+      (string? string? . -> . string?)]
      #;[string->list
-      (string? → (listof char?))]
+      (string? . -> . (listof char?))]
      [list->string
-      ((listof char?) → string?)]
+      ((listof char?) . -> . string?)]
      [build-string
-      ((and/c integer? (not/c negative?)) ((and/c integer? (not/c negative?)) → string?))]
+      ((and/c integer? (not/c negative?)) ((and/c integer? (not/c negative?)) . -> . string?))]
      
      ;; 4.3.2 String Comparisons. FIXME varargs
      [#:batch (string=? string<? string<=? string>? string>=?
                string-ci=? string-ci<? string-ci<=? string-ci>? string-ci>=?)
-      (string? string? → boolean?)]
+      (string? string? . -> . boolean?)]
 
      ;; 4.3.3 String Conversions
      [#:batch (string-upcase string-downcase string-titlecase string-foldcase
                string-normalize-nfd string-normalize-nfkd string-normalize-nfc string-normalize-nfkc)
-      (string? → string?)]
+      (string? . -> . string?)]
 
      ;; 4.3.4 Locale-specific string operations 
      ; FIXME varargs
      [#:batch (string-locale=? string-locale<? string-locale>?
                string-locale-ci=? string-locale-ci<? string-locale-ci>?
                string-locale-upcase string-locale-downcase)
-      (string? → string?)]
+      (string? . -> . string?)]
 
      ;; 4.3.5 Additional String Functions
      #;[string-append* #;FIXME]
      #;[string-join
-      ((listof string?) → string?)]
+      ((listof string?) . -> . string?)]
      [string-normalize-spaces ; FIXME usages
-      (string? → string?)]
+      (string? . -> . string?)]
      [string-replace ; FIXME usages
-      (string? (or/c string? regexp?) string? → string?)]
+      (string? (or/c string? regexp?) string? . -> . string?)]
      #;[string-split ; FIXME usages
-      (string? → (listof string?))]
+      (string? . -> . (listof string?))]
      [string-trim ; FIXME usages
-      (string? → string?)]
+      (string? . -> . string?)]
      [non-empty-string?
-      (any/c → boolean?)]
+      (any/c . -> . boolean?)]
      [#:batch (string-contains? string-prefix? string-suffix?)
-      (string? string? → boolean?)]
+      (string? string? . -> . boolean?)]
 
      ;; 4.3.6 Converting Values to Strings. TODO
 
@@ -283,30 +281,30 @@
 
      [#:pred char?]
      [char->integer
-      (char? → exact-integer?)]
+      (char? . -> . exact-integer?)]
      [integer->char ; FIXME range
-      (exact-integer? → char?)]
+      (exact-integer? . -> . char?)]
      [char-utf-8-length ; FIXME range
-      (char? → exact-integer?)]
+      (char? . -> . exact-integer?)]
      
      ;; 4.5.2 Comparisons
      [#:batch (char=? char<? char<=? char>? char>=?
                char-ci=? char-ci<? char-ci<=? char-ci>? char-ci>=?) ; FIXME varargs
-      (char? char? → boolean?)]
+      (char? char? . -> . boolean?)]
      
      ;; 4.5.3 Classifications
      [#:batch (char-alphabetic? char-lower-case? char-upper-case? char-title-case?
                char-numeric? char-symbolic? char-punctuation? char-graphic?
                char-whitespace? char-blank? char-iso-control? char-general-category)
-      (char? → boolean?)]
+      (char? . -> . boolean?)]
      #;[make-known-char-range-list
-      (→ (listof (list/c exact-nonnegative-integer?
+      (-> (listof (list/c exact-nonnegative-integer?
                          exact-nonnegative-integer?
                          boolean?)))]
 
      ;; 4.5.4 Character Conversions
      [#:batch (char-upcase char-downcase char-titlecase char-foldcase)
-      (char? → char?)]
+      (char? . -> . char?)]
      
      
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -317,11 +315,11 @@
      [#:pred symbol-interned? (symbol?)]
      [#:pred symbol-unreadable? (symbol?)]
      [symbol->string
-      (symbol? → string?)]
+      (symbol? . -> . string?)]
      [#:batch (string->symbol string->uninterned-symbol string->unreadable-symbol)
-      (string? → symbol?)]
+      (string? . -> . symbol?)]
      [gensym ; FIXME usage
-      (→ symbol?)]
+      (-> symbol?)]
      [#:pred symbol<? (symbol? symbol?)] ; FIXME varargs
 
 
@@ -400,7 +398,7 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      [#:pred void?]
      [void ; FIXME varargs
-      (→ void?)]
+      (-> void?)]
 
      
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
