@@ -1,6 +1,7 @@
 #lang typed/racket
-(require racket/splicing "untyped-macros.rkt" "utils.rkt"
-         (for-syntax racket/base racket/syntax))
+(require
+ racket/splicing "untyped-macros.rkt" "utils.rkt"
+ (for-syntax racket/base racket/match racket/syntax syntax/parse "prims.rkt"))
 (require/typed redex/reduction-semantics
   [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
@@ -101,6 +102,10 @@
 
 (struct -plain-module-begin ([body : (Listof -module-level-form)]) #:transparent)
 
+;; Hack for now. This overlaps with ops like `values` and `vector`.
+;; But there seems to be no motivation of a more precise type. 
+(define-type -o-reg Symbol)
+
 (define-data -e
   (subset: -v
     (struct -λ [formals : -formals] [body : -e])
@@ -113,33 +118,15 @@
       ;; primitive values that can appear in syntax
       (struct -b [unboxed : Base])
       (subset: -o
-        'values
-        (subset: -o1
-          (subset: -pred₁
-            ;; `arity` is the number of fields in the struct
-            (struct -st-p [info : -struct-info])
-            'defined?
-            'number? 'real? 'integer? 'not 'boolean? 'string? 'symbol? 'procedure? 'keyword?
-            'vector?
-            'zero? 'positive? 'negative?)
-          ;; `arity` is the number of fields in the struct
-          ;; `index` is the index that this accesses
-          (struct -st-ac [info : -struct-info] [index : Integer])
-          'add1 'sub1 'string-length 'sqrt
-          'sin 'cos 'tan 'abs 'round 'floor 'ceiling 'log
-          'vector-length
-          ;; temporary ops
-          'sqr
-          )
-        (subset: -o2
-          (subset: -pred₂ 'equal? '= '> '< '>= '<= 'arity=? 'arity>=? 'arity-includes?)
-           '+ '- '* '/
-          'expt 'abs 'min 'max
-          'remainder 'quotient
-          'vector-ref
-          (struct -st-mut [info : -struct-info] [index : Integer]))
-        (struct -st-mk [info : -struct-info])
-        'vector 'vector-set!)))
+        -o-reg
+        'values 
+        ; vector
+        'vector 'vector-set! 'vector-ref 'vector-length
+        ; structs
+        (struct -st-p [info : -struct-info])
+        (struct -st-ac [info : -struct-info] [index : Integer])
+        (struct -st-mut [info : -struct-info] [index : Integer])
+        (struct -st-mk [info : -struct-info]))))
   ;; lexical variables
   (struct -x [name : Symbol])
   ;; module references
@@ -167,7 +154,6 @@
   #;(.¬/c [c : .e]))
 
 (define-type -es (Setof -e))
-(define-type/pred -predₙ (U -pred₁ -pred₂))
 
 (: -formal-names : -formals → (Setof Symbol))
 ;; Return all variable names in function's parameter list
@@ -374,9 +360,7 @@
 
    [(-plain-module-begin xs) (checks# xs)]
    [(-module _ body) (checks# body)]
-   [(or (? -predₙ?) (? -st-mk?)) 0]
-   [(? -o1?) 1]
-   [(? -o2?) 2]
+   ;; FIXME count up for primitives
    [_ 0]))
 
 (splicing-let ([mk-and/c (-st-mk -s-and/c)]
@@ -446,7 +430,7 @@
     [(list e) e]
     [(cons e es) (-if e (apply -and es) -ff)]))
 
-(: -comp/c : -o2 -e → -e)
+(: -comp/c : -e -e → -e)
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e)
   (define x (variable-not-in (set->list (FV e)) 'x₀))

@@ -6,7 +6,7 @@
 ;; FIXME annotation for side effects
 
 (define prims
-  #'(;; Total predicates
+  '(;; Total predicates
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.1 Booleans and Equality
