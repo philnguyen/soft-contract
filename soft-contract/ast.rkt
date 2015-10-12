@@ -1,7 +1,7 @@
 #lang typed/racket
 (require
  racket/splicing "untyped-macros.rkt" "utils.rkt"
- (for-syntax racket/base racket/match racket/syntax syntax/parse "prims.rkt"))
+ (for-syntax racket/base racket/match racket/syntax syntax/parse))
 (require/typed redex/reduction-semantics
   [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
@@ -74,7 +74,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type/pred Base
-  (U Number Boolean String Symbol Keyword #|Sexp Bytes Regexp PRegexp|#))
+  (U Number Boolean String Symbol Keyword Bytes Regexp PRegexp))
 
 (define-data -top-level-form
   -general-top-level-form
@@ -738,6 +738,7 @@
     [(and (real? x) (inexact? x))
      (define s (number->string x))
      (substring s 0 (min (string-length s) 5))]
+    [(or (regexp? x) (pregexp? x) (bytes? x)) (format "~a" x)]
     [else x]))
 
 ;; Return operator's simple show-o for pretty-printing
