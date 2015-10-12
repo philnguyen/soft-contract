@@ -1,10 +1,13 @@
-#lang racket/base
+#lang racket
 (require
- racket/match racket/list racket/set racket/bool racket/function racket/math
  racket/unsafe/ops
  web-server/private/util
- "prims.rkt" "utils.rkt" "ast.rkt" (only-in redex/reduction-semantics variable-not-in)
- syntax/parse syntax/modresolve racket/pretty racket/contract
+ 
+ "prims.rkt" "utils.rkt" "ast.rkt"
+ ;; For extra constants
+ racket/undefined racket/extflonum
+ (only-in redex/reduction-semantics variable-not-in)
+ syntax/parse syntax/modresolve
  "expand.rkt"
  (prefix-in fake: "fake-contract.rkt")
  (for-syntax racket/base racket/match racket/list racket/set syntax/parse racket/contract
@@ -335,8 +338,8 @@
         [#f (-x (syntax-e #'i))]
         [(list (app (λ (x)
                       (parameterize ([current-directory (directory-part (cur-mod))])
-                        (printf "part: ~a~n" (directory-part (cur-mod)))
-                        (printf "id: ~a~n" #'i)
+                        ;(printf "part: ~a~n" (directory-part (cur-mod)))
+                        ;(printf "id: ~a~n" #'i)
                         (mod-path->mod-name
                          (resolved-module-path-name (module-path-index-resolve x)))))
                     src)
@@ -367,7 +370,7 @@
     [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
 (define/contract (parse-primitive id)
-  (identifier?  . -> . (or/c #f -ref?))
+  (identifier?  . -> . (or/c #f -ref? -b?))
   (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
   
   (define-syntax (make-parse-clauses stx)
@@ -389,6 +392,8 @@
             (for/list ([s ss])
               #`[(~literal #,s)
                  (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+           [`(#:const ,s)
+            (list #`[(~literal #,s) (-b #,s)])]
            [`(,(? symbol? s) ,_ ...)
             (list #`[(~literal #,s)
                      (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]))
@@ -423,7 +428,7 @@
     
     (define/contract cache
       (hash/c symbol? -e?)
-      (make-hash))
+      (make-hasheq))
 
     (define/contract (simple-parse s)
       (any/c . -> . -e?)
@@ -440,9 +445,12 @@
          (apply -one-of/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
         [`(list/c ,cs ...)
          (apply -list/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
+        [`(cons/c ,c ,d)
+         (-cons/c (simple-parse c) (simple-parse d) (next-neg!))]
         [`(not/c ,c) (-not/c (simple-parse c) (next-neg!))]
         [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
-        [(? symbol? s) s]))
+        [(? symbol? s) s]
+        [(or (? number? x) (? boolean? x)) (-b x)]))
 
     (define/contract (make-defs dec)
       (any/c . -> . (listof -define-values?))
@@ -451,6 +459,7 @@
              `(#:alias ,s ,_ ...)
              `(,(? symbol? s) ,_ ...))
          (list (-define-values (list s) s))]
+        [`(#:const ,_) '()] ; no need. They're all inlined.
         [`(#:batch (,ss ...) ,_ ...)
          (for/list ([s ss])
            (-define-values (list s) s))]))
@@ -472,13 +481,14 @@
          (define ctc
            (hash-ref cache t (λ () (error 'prims "`~a` aliases undeclared `~a`" s t))))
          (list (-p/c-item s ctc))]
-        [`(,(? symbol? s) ,sig ,_ ...)
-         (define ctc (hash-ref! cache s (simple-parse sig)))
-         (list (-p/c-item s ctc))]
         [`(#:batch (,ss ...) ,sig ,_ ...)
          (define ctc (simple-parse sig))
          (for/list ([s ss])
-           (-p/c-item s (hash-ref! cache s ctc)))]))
+           (-p/c-item s (hash-ref! cache s ctc)))]
+        [`(#:const ,_) '()] ; no need. They're all inlined.
+        [`(,(? symbol? s) ,sig ,_ ...)
+         (define ctc (hash-ref! cache s (simple-parse sig)))
+         (list (-p/c-item s ctc))]))
 
     (-module
      'Λ
