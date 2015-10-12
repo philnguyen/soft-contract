@@ -64,7 +64,7 @@
       (number? number? . -> . number?)
       (real? real? . -> . real?)
       (integer? integer? . -> . integer?)]
-     [/ ; FIXME varargs
+     [/ ; FIXME varargs, consistent with racket's `/`
       (number? (and/c number? (not/c zero?)) . -> . number?)
       (real? real? . -> . real?)]
      [#:batch (quotient remainder modulo)
@@ -166,7 +166,7 @@
      [string->number
       (string? . -> . (or/c number? not))]
      [real->decimal-string
-      (real? (and/c integer? (not/c negative?)) . -> . string?)]
+      (real? exact-nonnegative-integer? . -> . string?)]
      ; FIXME rest, `bytes?`
      [system-big-endian?
       (-> boolean?)]
@@ -187,7 +187,7 @@
      [#:batch (exact-round exact-floor exact-ceiling exact-truncate)
       (rational? . -> . exact-integer?)]
      [order-of-magnitude
-      ((and/c real? positive?) . -> . integer?)]
+      ((and/c real? positive?) . -> . exact-integer?)]
      [nan?
       (real? . -> . boolean?)]
      [infinite?
@@ -208,14 +208,13 @@
      [string->immutable-string
       (string? . -> . string?)]
      [string-length
-      (string? . -> . integer?)
-      (string? . -> . (not/c negative?))]
+      (string? . -> . exact-nonnegative-integer?)]
      [string-ref
-      (string? (and/c integer? (not/c negative?)) . -> . char?)]
+      (string? exact-nonnegative-integer? . -> . char?)]
      #;[string-set! ; FIXME mutable
       ((and/c string? (not/c immutable?)) integer? char? . -> . void?)]
      [substring
-      (string? (and/c integer? (not/c negative?)) (and/c integer? (not/c negative?)) . -> . string?)]
+      (string? exact-nonnegative-integer? exact-nonnegative-integer? . -> . string?)]
      [string-copy
       (string . -> . string?)]
      #;[string-copy!] ; FIXME
@@ -227,7 +226,7 @@
      [list->string
       ((listof char?) . -> . string?)]
      [build-string
-      ((and/c integer? (not/c negative?)) ((and/c integer? (not/c negative?)) . -> . string?))]
+      (exact-nonnegative-integer? exact-nonnegative-integer? . -> . string?)]
      
      ;; 4.3.2 String Comparisons. FIXME varargs
      [#:batch (string=? string<? string<=? string>? string>=?
@@ -396,8 +395,8 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.18 Void
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     [#:pred void?]
-     [void ; FIXME varargs
+     ;[#:pred void?]
+     #;[void ; FIXME varargs
       (-> void?)]
 
      
