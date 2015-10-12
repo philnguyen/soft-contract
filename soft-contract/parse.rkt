@@ -1,11 +1,14 @@
 #lang racket/base
-(require racket/match racket/list racket/set racket/bool racket/function racket/math
-         racket/unsafe/ops
-         web-server/private/util
-         "utils.rkt" "ast.rkt" (only-in redex/reduction-semantics variable-not-in)
-         syntax/parse syntax/modresolve racket/pretty racket/contract
-         "expand.rkt"
-         (prefix-in fake: "fake-contract.rkt"))
+(require
+ racket/match racket/list racket/set racket/bool racket/function racket/math
+ racket/unsafe/ops
+ web-server/private/util
+ "utils.rkt" "ast.rkt" (only-in redex/reduction-semantics variable-not-in)
+ syntax/parse syntax/modresolve racket/pretty racket/contract
+ "expand.rkt"
+ (prefix-in fake: "fake-contract.rkt")
+ (for-syntax racket/base racket/match racket/list racket/set syntax/parse racket/contract
+             "prims.rkt"))
 (provide (all-defined-out) #;read-p #;on-•!)
 
 (define (dummy)
@@ -365,53 +368,42 @@
     [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
 (define/contract (parse-primitive id)
-  (identifier?  . -> . (or/c #f -o?))
+  (identifier?  . -> . (or/c #f -ref?))
   (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
-  (syntax-parse id
-    [(~literal number?) 'number?]
-    [(~literal real?) 'real?]
-    [(~literal integer?) 'integer?]
-    [(~literal false?) 'not]
-    [(~literal not) 'not]
-    [(~literal boolean?) 'boolean?]
-    [(~literal string?) 'string?]
-    [(~literal symbol?) 'symbol?]
-    [(~literal procedure?) 'procedure?]
-    [(~literal add1) 'add1]
-    [(~literal sub1) 'sub1]
-    [(~literal string-length) 'string-length]
-    [(~literal sqrt) 'sqrt]
-    [(~literal equal?) 'equal?]
-    [(~literal =) '=]
-    [(~literal >) '>]
-    [(~literal <) '<]
-    [(~literal >=) '>=]
-    [(~literal <=) '<=]
-    [(~literal +) '+]
-    [(~literal -) '-]
-    [(~literal *) '*]
-    [(~literal /) '/]
-    [(~literal expt) 'expt]
-    [(~literal abs) 'abs]
-    [(~literal min) 'min]
-    [(~literal max) 'max]
-    [(~literal box) -box]
-    [(~literal set-box!) -set-box!]
-    [(~literal box?) -box?]
-    [(~literal cons) -cons]
-    [(~literal unbox) -unbox]
-    [(~or (~literal car) (~literal unsafe-car)) -car]
-    [(~or (~literal cdr) (~literal unsafe-cdr)) -cdr]
-    [(~literal cons?) -cons?]
-    [(~literal values) 'values]
-    [(~literal vector) 'vector]
-    [(~literal vector-ref) 'vector-ref]
-    [(~literal vector-set!) 'vector-set!]
-    [(~literal vector-length) 'vector-length]
-    [(~literal vector?) 'vector?]
-    ;; Temporary ops
-    [(~literal sqr) 'sqr]
-    [_ #f]))
+  
+  (define-syntax (make-parse-clauses stx)
+    (syntax-parse stx
+      [(_ id:id)
+       ;; The reason we generate (syntax-parse) cases instead of set lookup
+       ;; is to ensure that the source refers to the right reference
+       (define/contract (make-clause dec)
+         (any/c . -> . (listof syntax?))
+         ;; FIXME: parse to *wrapped* instead of raw versions of primitives
+         (match dec
+           [`(#:pred ,s ,_ ...)
+            (list #`[(~literal #,s)
+                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+           [`(#:alias ,s ,_)
+            (list #`[(~literal #,s)
+                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+           [`(#:batch (,ss ...) ,_ ...)
+            (for/list ([s ss])
+              #`[(~literal #,s)
+                 (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+           [`(,(? symbol? s) ,_ ...)
+            (list #`[(~literal #,s)
+                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]))
+       (define ans 
+         #`(syntax-parse id
+             #,@(append-map make-clause prims)
+             [_ #f]))
+       
+       (printf "parse-primitive:~n~a~n" (syntax->datum ans))
+       
+       ans]))
+
+  ;; Read off from primitive table
+  (make-parse-clauses id))
 
 (define/contract (parse-provide-spec spec)
   (scv-syntax? . -> . -provide-spec?)
