@@ -9,7 +9,7 @@
 ;; FIXME annotation for side effects
 
 (define prims
-  '[;; Total predicates
+  '(;; Total predicates
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.1 Booleans and Equality
@@ -819,7 +819,7 @@
      ;;;;; 4.19 Undefined
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      [#:const undefined]
-])
+))
 
 (define impl?
   (match-λ?
