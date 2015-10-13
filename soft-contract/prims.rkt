@@ -820,11 +820,6 @@
      [#:const undefined]
 ))
 
-(define impl?
-  (match-λ?
-   `(,(? symbol?) ⇒ ,(? ctc?))
-   `(#:partition ,(? symbol?) (,(? symbol?) ...))))
-
 ;; Declare implications between predicates.
 ;; Only need to do this for total predicates;
 ;; partial predicate like `even?` has a precondition of `integer?`,
@@ -890,3 +885,8 @@
    `(#:batch (,(? symbol?) ...) ,(? ctc?) ...)
    `(,(? symbol?) ,(? ctc?) ...)
    `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)))
+
+(define impl?
+  (match-λ?
+   `(,(? symbol?) ⇒ ,(? ctc?))
+   `(#:partition ,(? symbol?) (,(? symbol?) ...))))
