@@ -396,7 +396,10 @@
             (list #`[(~literal #,s) (-b #,s)])]
            [`(,(? symbol? s) ,_ ...)
             (list #`[(~literal #,s)
-                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]))
+                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+           [r
+            (printf "unhandled in `make-parse-clauses` ~a~n" r)
+            '()]))
        (define ans 
          #`(syntax-parse id
              #,@(append-map make-clause prims)
@@ -462,7 +465,10 @@
         [`(#:const ,_) '()] ; no need. They're all inlined.
         [`(#:batch (,ss ...) ,_ ...)
          (for/list ([s ss])
-           (-define-values (list s) s))]))
+           (-define-values (list s) s))]
+        [r
+         (printf "unhandled in `make-defs`: ~a~n" r)
+         '()]))
 
     (define/contract (make-decs dec)
       (any/c . -> . (listof -p/c-item?))
@@ -488,7 +494,10 @@
         [`(#:const ,_) '()] ; no need. They're all inlined.
         [`(,(? symbol? s) ,sig ,_ ...)
          (define ctc (hash-ref! cache s (simple-parse sig)))
-         (list (-p/c-item s ctc))]))
+         (list (-p/c-item s ctc))]
+        [r
+         (printf "unhandled in `make-decs` ~a~n" r)
+         '()]))
 
     (-module
      'Λ

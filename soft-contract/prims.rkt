@@ -9,7 +9,7 @@
 ;; FIXME annotation for side effects
 
 (define prims
-  '(
+  '[
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.1 Booleans and Equality
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,9 +74,11 @@
       (number? number? . -> . number?)
       (real? real? . -> . real?)
       (integer? integer? . -> . integer?)]
-     [/ ; FIXME varargs, only error on exact 0
-      (number? (and/c number? (not/c zero?)) . -> . number?)
-      (real? real? . -> . real?)]
+     [/ ; FIXME varargs
+      (number? number? . -> . number?)
+      (real? real? . -> . real?)
+      #:other-errors
+      (any/c (and/c exact? zero?))]
      [#:batch (quotient remainder modulo) ; FIXME: only error on exact 0
       (integer? (and/c integer? (not/c zero?)) . -> . integer?)]
      #;[quotient/remainder
@@ -738,18 +740,216 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
      ;; 4.9.1 Constructors and Selectors
-     ;[#:pred pair?]
-     ;[#:pred null?]
-     #;[cons
-      (any/c any/c . -> . pair?)]
-     #;[car
-      (pair? . -> . any/c)]
-     #;[cdr
-      (pair? . -> . any/c)]
-     ;[#:const null]
-     ;[#:pred list?]
-     ; TODO
+     [#:struct-pred pair? cons]
+     [#:pred null?]
+     [#:struct-cons cons]
+     [#:struct-acc car cons 0]
+     [#:struct-acc cdr cons 1]
+     [#:const null]
+     [#:pred list?]
+     #;[list ; FIXME
+      (-> list?)]
+     #;[list* ; FIXME
+      (-> list?)]
+     [build-list
+      (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c) . -> . list?)]
+
+     ;; 4.9.2 List Operations
+     [length
+      (list? . -> . exact-nonnegative-integer?)]
+     [list-ref
+      (pair? exact-nonnegative-integer? . -> . any/c)]
+     [list-tail
+      (any/c exact-nonnegative-integer? . -> . any/c)]
+     [append ; FIXME usages
+      (list? list? . -> . list?)]
+     [reverse
+      (list? . -> . list?)]
+
+     ;; 4.9.3 List Iteration
+     [map ; FIXME usages
+      (procedure? list? . -> . list?)]
+     [#:batch (andmap ormap) ; FIXME usages
+      (procedure? list . -> . any/c)]
+     [for-each ; FIXME usages
+      (procedure? list? . -> . void?)]
+     [#:batch (foldl foldr) ; FIXME usages
+      (procedure? any/c list? . -> . any/c)]
      
+     ;; 4.9.4 List Filtering
+     [filter
+      ((any/c . -> . any/c) list? . -> . list?)]
+     [remove ; FIXME usages
+      (any/c list? . -> . list?)]
+     [#:batch (remq remv)
+      (any/c list? . -> . list?)]
+     [remove* ; FIXME usages
+      (list? list? . -> . list?)]
+     [#:batch (remq* remv*)
+      (list? list? . -> . list?)]
+     [sort ; FIXME usages
+      (list? (any/c any/c . -> . any/c) . -> . list?)]
+     
+     ;; 4.9.5 List Searching
+     [member ; FIXME usages
+      (any/c list? . -> . (or/c list? not))]
+     [#:batch (memv memq)
+      (any/c list? . -> . (or/c list? not))]
+     [memf ; TODO why doc only requires `procedure?` and not `arity-includes 1`
+      (procedure? list? . -> . (or/c list? not))]
+     [findf
+      (procedure? list? . -> . any/c)]
+     [assoc ; FIXME usages
+      (any/c (listof pair?) . -. . (or/c pair? not))]
+     [#:batch (assv assq)
+      (any/c (listof pair?) . -> . (or/c pair? not))]
+     [assf ; TODO why doc only requires `procedure?`
+      (procedure? list? . -> . (or/c pair? not))]
+
+     ;; 4.9.6 Pair Acesssor Shorthands
+     ; FIXME these are *opaque* for now. Make them composition of accessors
+     [#:batch (caar cdar)
+      ((cons/c pair? any/c) . -> . any/c)]
+     [#:batch (cadr cddr)
+      ((cons/c any/c pair?) . -> . any/c)]
+     [caaar
+      ((cons/c (cons/c pair? any/c) any/c) . -> . any/c)]
+     [caadr
+      ((cons/c any/c (cons/c pair? any/c)) . -> . any/c)]
+     [cadar
+      ((cons/c (cons/c any/c pair?) any/c) . -> . any/c)]
+     [caddr
+      ((cons/c any/c (cons/c any/c pair?)) . -> . any/c)]
+     [cdaar
+      ((cons/c (cons/c pair? any/c) any/c) . -> . any/c)]
+     [cdadr
+      ((cons/c any/c (cons/c pair? any/c)) . -> . any/c)]
+     [cddar
+      ((cons/c (cons/c any/c pair?) any/c) . -> . any/c)]
+     [cdddr
+      ((cons/c any/c (cons/c any/c pair?)) . -> . any/c)]
+     ; TODO rest of them
+
+     ;; 4.9.7 Additional List Functions and Synonyms
+     [#:const empty]
+     [#:alias cons? pair?]
+     [#:alias empty? null?]
+     [first
+      ((cons/c any/c list?) . -> . any/c)]
+     [rest
+      ((cons/c any/c list?) . -> . any/c)]
+     [second
+      ((cons/c any/c (cons/c any/c list?)) . -> . any/c)]
+     [third
+      ((cons/c any/c (cons/c any/c (cons/c any/c list?))) . -> . any/c)]
+     [fourth
+      ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))) . -> . any/c)]
+     [fifth
+      ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))) . -> . any/c)]
+     [sixth
+      ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))) . -> . any/c)]
+     [seventh
+      ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))) . -> . any/c)]
+     [eighth
+      ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))) . -> . any/c)]
+     [ninth
+      ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))))) . -> . any/c)]
+     [tenth
+      ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))))) . -> . any/c)]
+     [last
+      ((and/c list? (not/c empty?)) . -> . any/c)]
+     [last-pair
+      (pair? . -> . pair?)]
+     [make-list
+      (exact-nonnegative-integer? any/c . -> . list?)]
+     [list-update ; FIXME range
+      (list? exact-nonnegative-integer? (any/c . -> . any/c) . -> . list?)]
+     [list-set ; FIXME range
+      (list? exact-nonnegative-integer? any/c . -> . list?)]
+     [take ; FIXME range
+      (list? exact-nonnegative-integer? . -> . list?)]
+     [drop
+      (any/c exact-nonnegative-integer? . -> . any/c)]
+     #;[split-at ; FIXME
+      (any/c exact-nonnegative-integer? . -> . (values list? any/c))]
+     [takef
+      (any/c procedure? . -> . list?)]
+     [dropf
+      (any/c procedure? . -> . any/c)]
+     [splitf-at ; FIXME
+      (any/c procedure? . -> . (values list? any/c))]
+     [take-right
+      (any/c exact-nonnegative-integer? . -> . any/c)]
+     [drop-right
+      (any/c exact-nonnegative-integer? . -> . list?)]
+     #;[split-at-right ; FIXME
+      (any/c exact-nonnegative-integer? . -> . (values list? any/c))]
+     [takef-right
+      (any/c procedure? . -> . list?)]
+     [dropf-right
+      (any/c procedure? . -> . any/c)]
+     #;[splitf-at-right ; FIXME usages
+      (any/c procedure? . -> . (values list? any/c))]
+     [list-prefix? ; FIXME usages
+      (list? list? . -> . boolean?)]
+     [take-common-prefix ; FIXME usages
+      (list? list? . -> . list?)]
+     #;[drop-common-prefix ; FIXME usages
+      (list? list? . -> . (values list? list?))]
+     #;[split-common-prefix ; FIXME usages
+      (list? list? . -> . (values list? list? list?))]
+     [add-between ; FIXME usages
+      (list? any/c . -> . list?)]
+     [append* ; FIXME usages
+      ((listof list?) . -> . list?)]
+     [flatten
+      (any/c . -> . list?)]
+     [check-duplicates ; FIXME usages
+      (list? . -> . any/c)] ; simplified from doc's `(or/c any/c #f)`
+     [remove-duplicates ; FIXME usages
+      (list? . -> . list?)]
+     [filter-map ; FIXME usages
+      (procedure? list? . -> . list?)]
+     [count ; FIXME varargs
+      (procedure? list? . -> . exact-nonnegative-integer?)]
+     #;[partition
+      (procedure? list? . -> . (values list? list?))]
+     [range ; FIXME usages
+      (real? . -> . list?)]
+     [append-map ; FIXME varargs
+      (procedure? list? . -> . list?)]
+     [filter-not
+      ((any/c . -> . any/c) list? . -> . list?)]
+     [shuffle
+      (list? . -> . list?)]
+     [permutations
+      (list? . -> . list?)]
+     [in-permutations
+      (list? . -> . sequence?)]
+     [#:batch (argmin argmax)
+      ((any/c . -> . real?) (and/c pair? list?) . -> . any/c)]
+     [group-by ; FIXME usages
+      ((any/c . -> . any/c) list? . -> . (listof list?))]
+     [cartesian-produce ; FIXME varargs
+      (list? list? . -> . (listof list?))]
+     [remf
+      (procedure? list? . -> . list?)]
+     [remf*
+      (procedure? list? . -> . list?)]
+
+     ;; 4.9.8 Immutable Cyclic Data
+     [make-reader-graph
+      (any/c . -> . any/c)]
+     [#:pred placeholder?]
+     [make-placeholder
+      (any/c . -> . placeholder?)]
+     [placeholder-set!
+      (placeholder? any/c . -> . void?)]
+     [placeholder-get
+      (placeholder? . -> . any/c)]
+     [#:pred hash-placeholder?]
+     [#:batch (make-hash-placeholder make-hasheq-placeholder make-hasheqv-placeholder)
+      ((listof pair?) . -> . hash-placeholder?)]
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -818,7 +1018,7 @@
      ;;;;; 4.19 Undefined
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      [#:const undefined]
-))
+])
 
 ;; Declare implications between predicates.
 ;; Only need to do this for total predicates;
@@ -884,7 +1084,12 @@
    `(#:alias ,(? symbol?) ,(? symbol?))
    `(#:batch (,(? symbol?) ...) ,(? ctc?) ...)
    `(,(? symbol?) ,(? ctc?) ...)
-   `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)))
+   `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)
+   ;; new stuff
+   `(#:struct-pred ,(? symbol?) ,(? symbol?))
+   `(#:struct-cons ,(? symbol?))
+   `(#:struct-acc  ,(? symbol?) ,(? symbol?) ,(? exact-nonnegative-integer?))
+   `(#:struct-mut  ,(? symbol?) ,(? symbol?) ,(? exact-nonnegative-integer?))))
 
 (define impl?
   (match-λ?
