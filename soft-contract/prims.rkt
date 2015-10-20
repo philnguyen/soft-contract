@@ -9,7 +9,7 @@
 ;; FIXME annotation for side effects
 
 (define prims
-  '[
+  '(
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.1 Booleans and Equality
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -154,7 +154,7 @@
       (exact-integer? . -> . exact-nonnegative-integer?)]
 
      ;; 4.2.2.7 Random Numbers
-     [random ; FIXME range, all usages
+     [random ; FIXME range, all uses
       (integer? . -> . exact-nonnegative-integer?)]
      [random-seed
       (integer? . -> . void?)]
@@ -176,19 +176,19 @@
       (exact-positive-integer? . -> . bytes?)]
 
      ;; 4.2.2.9 Number-String Conversions
-     [number->string ; FIXME usages
+     [number->string ; FIXME uses
       (number? . -> . string?)]
-     [string->number ; FIXME usages
+     [string->number ; FIXME uses
       (string? . -> . (or/c number? not))]
-     [real->decimal-string ; FIXME usages
+     [real->decimal-string ; FIXME uses
       (real? exact-nonnegative-integer? . -> . string?)]
-     [integer-bytes->integer ; FIXME usages
+     [integer-bytes->integer ; FIXME uses
       (bytes? any/c . -> . exact-integer?)]
-     [integer->integer-bytes ; FIXME usages
+     [integer->integer-bytes ; FIXME uses
       (exact-integer? (one-of/c 2 4 8) any/c . -> . bytes?)]
-     [floating-point-bytes->real ; FIXME usages
+     [floating-point-bytes->real ; FIXME uses
       (bytes . -> . flonum?)]
-     [real->floating-point-bytes ; FIXME usages
+     [real->floating-point-bytes ; FIXME uses
       (real? (one-of/c 2 4 8) . -> . bytes?)]
      [system-big-endian? ; FIXME: opaque or machine dependent? (former probably)
       (-> boolean?)]
@@ -247,7 +247,7 @@
      [#:pred flvector?]
      #;[flvector
         (-> flvector?)]
-     [make-flvector ; FIXME usages
+     [make-flvector ; FIXME uses
       (exact-nonnegative-integer? flonum? . -> . flvector?)]
      [flvector-length
       (flvector? . -> . exact-nonnegative-integer?)]
@@ -255,13 +255,13 @@
       (flvector? exact-nonnegative-integer? . -> . flonum?)]
      [flvector-set!
       (flvector? exact-nonnegative-integer? flonum? . -> . flonum?)]
-     [flvector-copy ; FIXME usages
+     [flvector-copy ; FIXME uses
       (flvector? . -> . flvector?)]
-     [in-flvector ; FIXME usages
+     [in-flvector ; FIXME uses
       (flvector? . -> . sequence?)]
      #;[shared-flvector
       (-> flvector?)]
-     [make-shared-flvector ; FIXME usages
+     [make-shared-flvector ; FIXME uses
       (exact-nonnegative-integer? flonum? . -> . flvector?)]
 
      ;;;;; 4.2.4 Fixnums
@@ -292,7 +292,7 @@
      [#:pred fxvector?]
      #;[fxvector
       (-> fxvector?)]
-     [make-fxvector ; FIXME usages
+     [make-fxvector ; FIXME uses
       (exact-nonnegative-integer? fixnum? . -> . fxvector?)]
      [fxvector-length
       (fxvector? . -> . exact-nonnegative-integer?)]
@@ -300,13 +300,13 @@
       (fxvector? exact-nonnegative-integer? . -> . fixnum?)]
      [fxvector-set!
       (fxvector? exact-nonnegative-integer? fixnum? . -> . fixnum?)]
-     [fxvector-copy ; FIXME usages
+     [fxvector-copy ; FIXME uses
       (fxvector? . -> . fxvector?)]
-     [in-fxvector ; FIXME usages
+     [in-fxvector ; FIXME uses
       (fxvector? . -> . sequence?)]
      #;[shared-fxvector
       (-> fxvector?)]
-     [make-shared-fxvector ; FIXME usages
+     [make-shared-fxvector ; FIXME uses
       (exact-nonnegative-integer? fixnum? . -> . fxvector?)]
 
      ;;;;; 4.2.5 Extflonums
@@ -350,7 +350,7 @@
      [#:pred extflvector?]
      #;[extflvector
       (-> extflvector?)]
-     [make-extflvector ; FIXME usages
+     [make-extflvector ; FIXME uses
       (exact-nonnegative-integer? extflonum? . -> . extflvector?)]
      [extflvector-length
       (extflvector? . -> . exact-nonnegative-integer?)]
@@ -358,7 +358,7 @@
       (extflvector? exact-nonnegative-integer? . -> . extflonum?)]
      [extflvector-set!
       (extflvector? exact-nonnegative-integer? extflonum? . -> . extflonum?)]
-     [extflvector-copy ; FIXME usages
+     [extflvector-copy ; FIXME uses
       (extflvector? . -> . extflvector?)]
      [in-extflvector
       (extflvector? . -> . sequence?)]
@@ -366,7 +366,7 @@
       (exact-nonnegative-integer? . -> . extflvector?)]
 
      ;; 4.2.5.4 Extflonum Byte Strings
-     [floating-point-bytes->extfl ; FIXME usages
+     [floating-point-bytes->extfl ; FIXME uses
       (bytes . -> . extflonum?)]
      [extfl->floating-point-bytes
       (extflonum? . -> . bytes?)]
@@ -379,7 +379,7 @@
      
      ;; 4.3.1 Constructors, Selectors, Mutators
      [#:pred string?]
-     [make-string ; FIXME all usages
+     [make-string ; FIXME all uses
       (exact-nonnegative-integer? char? . -> . string?)]
      #;[string ; FIXME varargs
       (() #:rest char? →* string?)]
@@ -391,13 +391,13 @@
       (string? exact-nonnegative-integer? . -> . char?)]
      [string-set!
       ((and/c string? (not/c immutable?)) exact-nonnegative-integer? char? . -> . void?)]
-     [substring ; FIXME usages
+     [substring ; FIXME uses
       (string? exact-nonnegative-integer? exact-nonnegative-integer? . -> . string?)]
      [string-copy
       (string . -> . string?)]
-     [string-copy! ; FIXME usages
+     [string-copy! ; FIXME uses
       ((and/c string? (not/c immutable?)) exact-nonnegative-integer? string? . -> . void?)]
-     [string-fill! ; FIXME usages
+     [string-fill! ; FIXME uses
       ((and/c string? (not/c immutable?)) char? . -> . void?)]
      [string-append ; FIXME varargs
       (string? string? . -> . string?)]
@@ -428,22 +428,22 @@
 
      ;; 4.3.5 Additional String Functions
      #;[string-append* #;FIXME]
-     [string-join ; FIXME usages
+     [string-join ; FIXME uses
       ((listof string?) . -> . string?)]
-     [string-normalize-spaces ; FIXME usages
+     [string-normalize-spaces ; FIXME uses
       (string? . -> . string?)]
-     [string-replace ; FIXME usages
+     [string-replace ; FIXME uses
       (string? (or/c string? regexp?) string? . -> . string?)]
-     [string-split ; FIXME usages
+     [string-split ; FIXME uses
       (string? . -> . (listof string?))]
-     [string-trim ; FIXME usages
+     [string-trim ; FIXME uses
       (string? . -> . string?)]
      [#:pred non-empty-string?]
      [#:batch (string-contains? string-prefix? string-suffix?)
       (string? string? . -> . boolean?)]
 
      ;; 4.3.6 Converting Values to Strings.
-     [#:batch (~a ~v ~s ~e ~r ~.a ~.v ~.s) ; FIXME usages
+     [#:batch (~a ~v ~s ~e ~r ~.a ~.v ~.s) ; FIXME uses
       (any/c . -> . string?)]
 
 
@@ -453,7 +453,7 @@
 
      ;; 4.4.1 Constructors, Selectors, Mutators
      [#:pred bytes?]
-     [make-bytes ; FIXME usages
+     [make-bytes ; FIXME uses
       (exact-nonnegative-integer? byte? . -> . bytes?)]
      #;[bytes
       (-> bytes)]
@@ -466,11 +466,11 @@
       (bytes exact-nonnegative-integer? . -> . byte?)]
      [bytes-set!
       ((and/c bytes? (not/c immutable?)) exact-nonnegative-integer? byte? . -> . void?)]
-     [subbytes ; FIXME usages
+     [subbytes ; FIXME uses
       bytes? exact-nonnegative-integer? . -> . bytes?]
      [bytes-copy
       (bytes? . -> . bytes?)]
-     [bytes-copy! ; FIXME usages
+     [bytes-copy! ; FIXME uses
       ((and/c bytes? (not/c immutable?)) exact-nonnegative-integer? bytes? . -> . void?)]
      [bytes-fill!
       ((and/c bytes? (not/c immutable?)) byte? . -> . void?)]
@@ -480,7 +480,7 @@
       (bytes? . -> . (listof byte?))]
      [list->bytes
       ((listof byte?) . -> . bytes?)]
-     [make-shared-bytes ; FIXME usages
+     [make-shared-bytes ; FIXME uses
       (exact-nonnegative-integer? byte? . -> . bytes?)]
      #;[shared-bytes
       (-> bytes)]
@@ -491,16 +491,16 @@
       (bytes? bytes? . -> . boolean?)]
      
      ;; 4.4.3 Bytes to/from Characers, Decoding and Encoding
-     ; FIXME usages
+     ; FIXME uses
      [#:batch (bytes->string/utf-8 bytes->string/locale bytes->string/latin-1)
       (bytes? . -> . string?)]
      [#:batch (string->bytes/utf-8 string->bytes/locale string->bytes/latin-1)
       (string? . -> . bytes?)]
-     [string-utf-8-length ; FIXME usages
+     [string-utf-8-length ; FIXME uses
       (string? . -> . exact-nonnegative-integer?)]
-     [bytes-utf-8-length ; FIXME usages
+     [bytes-utf-8-length ; FIXME uses
       (bytes? . -> . exact-nonnegative-integer?)]
-     [#:batch (bytes-utf-8-ref bytes-utf-8-index) ; FIXME usages
+     [#:batch (bytes-utf-8-ref bytes-utf-8-index) ; FIXME uses
       (bytes? exact-nonnegative-integer? . -> . char?)]
 
      ;; 4.4.4 Bytes to Bytes Encoding Conversion
@@ -566,7 +566,7 @@
       (symbol? . -> . string?)]
      [#:batch (string->symbol string->uninterned-symbol string->unreadable-symbol)
       (string? . -> . symbol?)]
-     [gensym ; FIXME usage
+     [gensym ; FIXME use
       (-> symbol?)]
      [#:pred symbol<? (symbol? symbol?)] ; FIXME varargs
 
@@ -588,7 +588,7 @@
       (bytes? . -> . regexp?)]
      [byte-pregexp
       (bytes? . -> . pregexp?)]
-     [regexp-quote ; FIXME usages
+     [regexp-quote ; FIXME uses
       ((or/c string? bytes?) . -> . (or/c string? bytes?))
       (string? . -> . string?)
       (bytes? . -> . bytes?)]
@@ -596,47 +596,47 @@
       (exact-nonnegative-integer? . -> . (or/c regexp? byte-regexp?))]
 
      ;; 4.7.4 Regexp Matching
-     [regexp-match ; FIXME usages, precision
+     [regexp-match ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path? input-port?)
        . -> .
        any/c)]
-     [regexp-match* ; FIXME usages, precision
+     [regexp-match* ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path? input-port?)
        . -> .
        any/c)]
-     [regexp-try-match ; FIXME usages, precision
+     [regexp-try-match ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path? input-port?)
        . -> .
        any/c)]
-     [regexp-match-positions ; FIXME usages, precision
+     [regexp-match-positions ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path? input-port?)
        . -> .
        any/c)]
-     [regexp-match-positions* ; FIXME usages, precision
+     [regexp-match-positions* ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path? input-port?)
        . -> .
        any/c)]
-     [regexp-match? ; FIXME usages
+     [regexp-match? ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path? input-port?)
        . -> .
        boolean?)]
-     [regexp-match-exact? ; FIXME usages
+     [regexp-match-exact? ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path?)
        . -> .
        boolean?)]
-     [regexp-match-peek ; FIXME usages
+     [regexp-match-peek ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        input-port?
        . -> .
        (or/c (cons/c bytes? (listof (or/c bytes? not)))))]
-     [regexp-match-peek-positions ; FIXME usages
+     [regexp-match-peek-positions ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        input-port?
        . -> .
@@ -646,13 +646,13 @@
                                            exact-nonnegative-integer?)
                                    not)))
              not))]
-     [regexp-match-peek-immediate ; FIXME usages
+     [regexp-match-peek-immediate ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        input-port?
        . -> .
        (or/c (cons/c bytes? (listof (or/c bytes? not)))
              not))]
-     [regexp-match-peek-positions-immediate ; FIXME usages
+     [regexp-match-peek-positions-immediate ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        input-port?
        . -> .
@@ -662,7 +662,7 @@
                                            exact-nonnegative-integer?)
                                    not)))
              not))]
-     [regexp-match-peek-positions* ; FIXME usages, precision
+     [regexp-match-peek-positions* ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        input-port?
        . -> .
@@ -675,7 +675,7 @@
        (or/c string? bytes? path? input-port?)
        . -> .
        any/c)]
-     #;[regexp-match-positions/end ; FIXME usages
+     #;[regexp-match-positions/end ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? path? input-port?)
        . -> .
@@ -692,20 +692,20 @@
        any/c)]
 
      ;; 4.7.5 Regexp Splitting
-     [regexp-split ; FIXME usages, precision
+     [regexp-split ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes? input-port?)
        . -> .
        any/c)]
 
      ;; 4.7.6 Regexp Substitution
-     [regexp-replace ; FIXME usages, precision
+     [regexp-replace ; FIXME uses, precision
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes?)
        (or/c string? bytes? #|TODO more|#)
        . -> .
        any/c)]
-     [regexp-replace* ; FIXME usages
+     [regexp-replace* ; FIXME uses
       ((or/c string? bytes? regexp? byte-regexp?)
        (or/c string? bytes?)
        (or/c string? bytes? #|TODO more|#)
@@ -740,11 +740,11 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
      ;; 4.9.1 Constructors and Selectors
-     [#:struct-pred pair? cons]
+     [#:struct-pred pair? (cons #f #f)]
      [#:pred null?]
-     [#:struct-cons cons]
-     [#:struct-acc car cons 0]
-     [#:struct-acc cdr cons 1]
+     [#:struct-cons cons (cons #f #f)]
+     [#:struct-acc  car (cons #f #f) 0]
+     [#:struct-acc  cdr (cons #f #f) 1]
      [#:const null]
      [#:pred list?]
      #;[list ; FIXME
@@ -761,37 +761,37 @@
       (pair? exact-nonnegative-integer? . -> . any/c)]
      [list-tail
       (any/c exact-nonnegative-integer? . -> . any/c)]
-     [append ; FIXME usages
+     [append ; FIXME uses
       (list? list? . -> . list?)]
      [reverse
       (list? . -> . list?)]
 
      ;; 4.9.3 List Iteration
-     [map ; FIXME usages
+     [map ; FIXME uses
       (procedure? list? . -> . list?)]
-     [#:batch (andmap ormap) ; FIXME usages
+     [#:batch (andmap ormap) ; FIXME uses
       (procedure? list . -> . any/c)]
-     [for-each ; FIXME usages
+     [for-each ; FIXME uses
       (procedure? list? . -> . void?)]
-     [#:batch (foldl foldr) ; FIXME usages
+     [#:batch (foldl foldr) ; FIXME uses
       (procedure? any/c list? . -> . any/c)]
      
      ;; 4.9.4 List Filtering
      [filter
       ((any/c . -> . any/c) list? . -> . list?)]
-     [remove ; FIXME usages
+     [remove ; FIXME uses
       (any/c list? . -> . list?)]
      [#:batch (remq remv)
       (any/c list? . -> . list?)]
-     [remove* ; FIXME usages
+     [remove* ; FIXME uses
       (list? list? . -> . list?)]
      [#:batch (remq* remv*)
       (list? list? . -> . list?)]
-     [sort ; FIXME usages
+     [sort ; FIXME uses
       (list? (any/c any/c . -> . any/c) . -> . list?)]
      
      ;; 4.9.5 List Searching
-     [member ; FIXME usages
+     [member ; FIXME uses
       (any/c list? . -> . (or/c list? not))]
      [#:batch (memv memq)
       (any/c list? . -> . (or/c list? not))]
@@ -799,8 +799,8 @@
       (procedure? list? . -> . (or/c list? not))]
      [findf
       (procedure? list? . -> . any/c)]
-     [assoc ; FIXME usages
-      (any/c (listof pair?) . -. . (or/c pair? not))]
+     [assoc ; FIXME uses
+      (any/c (listof pair?) . -> . (or/c pair? not))]
      [#:batch (assv assq)
       (any/c (listof pair?) . -> . (or/c pair? not))]
      [assf ; TODO why doc only requires `procedure?`
@@ -888,33 +888,33 @@
       (any/c procedure? . -> . list?)]
      [dropf-right
       (any/c procedure? . -> . any/c)]
-     #;[splitf-at-right ; FIXME usages
+     #;[splitf-at-right ; FIXME uses
       (any/c procedure? . -> . (values list? any/c))]
-     [list-prefix? ; FIXME usages
+     [list-prefix? ; FIXME uses
       (list? list? . -> . boolean?)]
-     [take-common-prefix ; FIXME usages
+     [take-common-prefix ; FIXME uses
       (list? list? . -> . list?)]
-     #;[drop-common-prefix ; FIXME usages
+     #;[drop-common-prefix ; FIXME uses
       (list? list? . -> . (values list? list?))]
-     #;[split-common-prefix ; FIXME usages
+     #;[split-common-prefix ; FIXME uses
       (list? list? . -> . (values list? list? list?))]
-     [add-between ; FIXME usages
+     [add-between ; FIXME uses
       (list? any/c . -> . list?)]
-     [append* ; FIXME usages
+     [append* ; FIXME uses
       ((listof list?) . -> . list?)]
      [flatten
       (any/c . -> . list?)]
-     [check-duplicates ; FIXME usages
+     [check-duplicates ; FIXME uses
       (list? . -> . any/c)] ; simplified from doc's `(or/c any/c #f)`
-     [remove-duplicates ; FIXME usages
+     [remove-duplicates ; FIXME uses
       (list? . -> . list?)]
-     [filter-map ; FIXME usages
+     [filter-map ; FIXME uses
       (procedure? list? . -> . list?)]
      [count ; FIXME varargs
       (procedure? list? . -> . exact-nonnegative-integer?)]
      #;[partition
       (procedure? list? . -> . (values list? list?))]
-     [range ; FIXME usages
+     [range ; FIXME uses
       (real? . -> . list?)]
      [append-map ; FIXME varargs
       (procedure? list? . -> . list?)]
@@ -928,7 +928,7 @@
       (list? . -> . sequence?)]
      [#:batch (argmin argmax)
       ((any/c . -> . real?) (and/c pair? list?) . -> . any/c)]
-     [group-by ; FIXME usages
+     [group-by ; FIXME uses
       ((any/c . -> . any/c) list? . -> . (listof list?))]
      [cartesian-produce ; FIXME varargs
       (list? list? . -> . (listof list?))]
@@ -961,19 +961,160 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.11 Vectors
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     ; TODO
+     [#:pred vector?] ; FIXME alias for internal `vector?`
+     [make-vector
+      (exact-nonnegative-integer? any/c . -> . vector?)]
+     [vector ; FIXME varargs
+      (-> (and/c vector? (not/c immutable?)))]
+     [vector-immutable ; FIXME varargs
+      (-> (and/c vector? immutable?))]
+     [vector-length
+      (vector? . -> . exact-nonnegative-integer?)]
+     [vector-ref
+      (vector? exact-nonnegative-integer? . -> . any/c)]
+     [vector-set!
+      ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?)]
+     [vector->list
+      (vector? . -> . list?)]
+     [list->vector
+      (list? . -> . vector?)]
+     [vector->immutable-vector
+      (vector? . -> . (and/c vector? immutable?))]
+     [vector-fill!
+      ((and/c vector? (not/c immutable?)) any/c . -> . void?)]
+     [vector-copy! ; FIXME uses
+      ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? . -> . void?)]
+     #;[vector->values ; FIXME uses, var-values, `any` instead of `any/c`
+      (vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . any)]
+     [build-vector
+      (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c)
+                                  . -> . (and/c vector? (not/c immutable?)))]
+
+     ;; 4.11.1 Additional Vector Functions
+     [vector-set*! ; FIXME uses
+      ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?)]
+     [vector-map ; FIXME uses
+      (procedure? vector? . -> . vector?)]
+     [vector-map! ; FIXME uses
+      (procedure? (and/c vector? (not/c immutable?)) . -> . vector?)]
+     [vector-append ; FIXME varargs
+      (vector? vector? . -> . vector?)]
+     [vector-take
+      (vector? exact-nonnegative-integer? . -> . vector?)]
+     [vector-take-right
+      (vector? exact-nonnegative-integer? . -> . vector?)]
+     [vector-drop
+      (vector? exact-nonnegative-integer? . -> . vector?)]
+     [vector-drop-right
+      (vector? exact-nonnegative-integer? . -> . vector?)]
+     [vector-split-at
+      (vector? exact-nonnegative-integer? . -> . (values vector? vector?))]
+     [vector-split-at-right
+      (vector? exact-nonnegative-integer? . -> . (values vector? vector?))]
+     [vector-copy ; FIXME uses
+      (vector? . -> . vector?)]
+     [#:batch (vector-filter vector-filter-not)
+      ((any/c . -> . any/c) vector? . -> . vector?)]
+     [vector-count ; FIXME varargs
+      (procedure? vector? . -> . exact-nonnegative-integer?)]
+     [#:batch (vector-argmin vector-argmax)
+      ((any/c . -> . real?) vector? . -> . any/c)]
+     [#:batch (vector-member vector-memv vector-memq)
+      (any/c vector? . -> . (or/c exact-nonnegative-integer? not))]
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.12 Boxes
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     ; TODO
+     [#:struct-pred box? (box #t)]
+     [#:struct-cons box (box #t)]
+     ;[#:struct-cons box-immutable (box #f)]
+     [#:struct-acc unbox (box #t) 0]
+     [#:struct-mut set-box! (box #t) 0]
+     #;[box-cas!]
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.13 Hash Tables
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     ; TODO
+     [#:pred hash?]
+     [#:batch (hash-equal? hash-eqv? hash-eq? hash-weak?)
+      (hash? . -> . boolean?)]
+     [hash ; FIXME uses
+      (any/c any/c . -> . (and/c hash? hash-equal? immutable?))]
+     [hasheq ; FIXME uses
+      (any/c any/c . -> . (and/c hash? hash-eq? immutable?))]
+     [hasheqv
+      (any/c any/c . -> . (and/c hash? hash-eqv? immutable?))]
+     [make-hash ; FIXME uses
+      ((listof pair?) . -> . (and/c hash? hash-equal?))]
+     [make-hasheqv ; FIXME uses
+      ((listof pair?) . -> . (and/c hash? hash-eqv?))]
+     [make-hasheq ; FIXME uses
+      ((listof pair?) . -> . (and/c hash? hash-eq?))]
+     [make-weak-hash ; FIXME uses
+      ((listof pair?) . -> . (and/c hash? hash-equal? hash-weak?))]
+     [make-weak-hasheqv ; FIXME uses
+      ((listof pair?) . -> . (and/c hash? hash-eqv? hash-weak?))]
+     [make-weak-hasheq ; FIXME uses
+      ((listof pair?) . -> . (and/c hash? hash-eq? hash-weak?))]
+     [hash-set!
+      ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?)]
+     [hash-set*! ; FIXME uses
+      ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?)]
+     [hash-set ; FIXME refine with `eq?` and `eqv?`
+      ((and/c hash? immutable?) any/c any/c . -> . (and/c hash? immutable?))]
+     [hash-set* ; FIXME refine with `eq?` and `eqv?`
+      ((and/c hash? immutable?) any/c any/c . -> . (and/c hash? immutable?))]
+     [hash-ref ; FIXME uses
+      (hash? any/c . -> . any/c)]
+     [hash-ref! ; FIXME precision
+      (hash? any/c any/c . -> . any/c)]
+     [hash-has-key?
+      (hash? any/c . -> . boolean?)]
+     [hash-update! ; FIXME uses
+      ((and/c hash? (not/c immutable?)) any/c (any/c . -> . any/c) . -> . void?)]
+     [hash-update
+      ((and/c hash? immutable?) any/c (any/c . -> . any/c) . -> . (and/c hash? immutable?))]
+     [hash-remove!
+      ((and/c hash? (not/c immutable?)) any/c . -> . void?)]
+     [hash-remove
+      ((and/c hash? immutable?) any/c . -> . (and/c hash? immutable?))]
+     [hash-clear!
+      ((and/c hash? (not/c immutable?)) . -> . void?)]
+     [hash-clear
+      ((and/c hash? immutable?) . -> . (and/c hash? immutable?))]
+     [hash-copy-clear
+      (hash? . -> . hash?)]
+     [hash-map ; FIXME uses
+      (hash? (any/c any/c . -> . any/c) . -> . (listof any/c))]
+     [hash-keys
+      (hash? . -> . (listof any/c))]
+     [hash-values
+      (hash? . -> . (listof any/c))]
+     [hash->list ; simplified from doc's `(cons/c any/c any/c)`
+      (hash? . -> . (listof pair?))]
+     [hash-for-each ; FIXME uses
+      (hash? (any/c any/c . -> . any) . -> . void?)]
+     [hash-count
+      (hash? . -> . exact-nonnegative-integer?)]
+     [hash-empty?
+      (hash? . -> . boolean?)]
+     [hash-iterate-first
+      (hash? . -> . (or/c exact-nonnegative-integer? not))]
+     [hash-iterate-next
+      (hash? exact-nonnegative-integer? . -> . (or/c exact-nonnegative-integer? not))]
+     [#:batch (hash-iterate-key hash-iterate-value)
+      (hash? exact-nonnegative-integer? . -> . any/c)]
+     [hash-copy
+      (hash? . -> . (and/c hash? (not/c immutable?)))]
+     [#:batch (eq-hash-code eqv-hash-code equal-hash-code equal-secondary-hash-code)
+      (any/c . -> . fixnum?)]
+
+     ;; 4.13.1 Additional Hash Table Functions
+     ; FIXME wtf is `hash-can-functional-set?`
+     ;[hash-union ]
+     ;[hash-union!]
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -984,26 +1125,444 @@
 
      ;; 4.14.1.1 Predicate and Constructors
      [#:pred sequence?]
-     ; TODO
+     [in-range ; FIXME uses
+      (real? . -> . stream?)]
+     [in-naturals ; FIXME uses
+      (exact-nonnegative-integer? . -> . stream?)]
+     [in-list
+      (list? . -> . stream?)]
+     #;[in-mlist ; FIXME don't know about `mlist?`
+      (mlist? . -> . stream?)]
+     [in-vector ; FIXME uses
+      (vector? . -> . sequence?)]
+     [in-string ; FIXME uses
+      (string? . -> . sequence?)]
+     [in-bytes ; FIXME uses
+      (bytes? . -> . sequence?)]
+     [in-port ; FIXME uses
+      ((input-port? . -> . any/c) input-port? . -> . sequence?)]
+     [in-input-port-bytes
+      (input-port? . -> . sequence?)]
+     [in-input-port-chars
+      (input-port? . -> . sequence?)]
+     [in-lines ; FIXME uses
+      (input-port? (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one)
+                   . -> . sequence?)]
+     [in-bytes-lines ; FIXME uses
+      (input-port? (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one)
+                   . -> . sequence?)]
+     [in-hash
+      (hash? . -> . sequence?)]
+     [#:batch (in-hash-keys in-hash-values)
+      (hash? . -> . sequence?)]
+     [in-hash-pairs
+      (hash? . -> . sequence?)]
+     [in-directory ; FIXME uses
+      ((or/c path-string? not) . -> . sequence?)]
+     [in-producer ; FIXME uses
+      (procedure? . -> . sequence?)]
+     [in-value
+      (any/c . -> . sequence?)]
+     [in-indexed
+      (sequence? . -> . sequence?)]
+     [in-sequences ; FIXME varargs
+      (sequence? sequence? . -> . sequence?)]
+     [in-cycle ; FIXME varargs
+      (sequence? . -> . sequence?)]
+     [in-parallel ; FIXME varargs
+      (sequence? sequence? . -> . sequence?)]
+     [in-values-sequence
+      (sequence? . -> . sequence?)]
+     [in-values*-sequence
+      (sequence? . -> . sequence?)]
+     [#:batch (stop-before stop-after)
+      (sequence? (any/c . -> . any/c) . -> . sequence?)]
+     [make-do-sequence
+      ((-> (values (any/c . -> . any/c)
+                   (any/c . -> . any/c)
+                   any/c
+                   (or/c (any/c . -> . any/c) not)
+                   (or/c #;(() () #:rest list? . ->* . any/c) not)
+                   (or/c #;((any/c) () #:rest list? . ->* . any/c) not)))
+       . -> . sequence?)]
+     [#:const prop:sequence]
+
+     ;; 4.14.1.2 Sequence Conversion
+     [sequence->stream
+      (sequence? . -> . stream?)]
+     [sequence-generate
+      (sequence? . -> . (values (-> boolean?) (-> any)))]
+     [sequence-generate*
+      (sequence? . -> . (values (or/c list? not)
+                                (-> (values (or/c list? not) procedure?))))]
+     
+     ;; 4.14.1.3 Additional Sequence Operations
+     [#:const empty-sequence]
+     [sequence->list
+      (sequence? . -> . list?)]
+     [sequence-length
+      (sequence? . -> . exact-nonnegative-integer?)]
+     [sequence-ref
+      (sequence? exact-nonnegative-integer? . -> . any)]
+     [sequence-tail
+      (sequence? exact-nonnegative-integer? . -> . sequence?)]
+     [sequence-append ; FIXME varargs
+      (sequence? sequence? . -> . sequence?)]
+     [sequence-map
+      ((any/c . -> . any/c) sequence? . -> . sequence?)]
+     [#:batch (sequence-andmap sequence-ormap) ; FIXME generalize 1st arg to multi args
+      ((any/c . -> . boolean?) sequence? . -> . boolean?)]
+     [sequence-for-each ; FIXME generalize 1st arg to multi args
+      ((any/c . -> . any) sequence? . -> . void?)]
+     [sequence-fold ; FIXME generalize 1st arg
+      ((any/c any/c . -> . any/c) any/c sequence? . -> . any/c)]
+     [sequence-count ; FIXME precise arity for 1st arg
+      (procedure? sequence? . -> . exact-nonnegative-integer?)]
+     [sequence-filter ; FIXME generalize 1st arg to multi args
+      ((any/c . -> . boolean?) sequence? . -> . sequence?)]
+     [sequence-add-between
+      (sequence? any/c . -> . sequence?)]
+     #;[sequence/c ; FIXME uses, `contract?`
+      (any/c . -> . any/c)]
+
+     ; 4.14.1.3.1 Additional Sequence Constructors
+     #;[in-syntax
+      (syntax? . -> . sequence?)]
+     [in-slice
+      (exact-positive-integer? sequence? . -> . sequence?)]
+
+     ;;;;; 4.14.2 Streams
+     [#:pred stream?]
+     [#:pred stream-empty? (stream?)]
+     [stream-first
+      ((and/c stream? (not/c stream-empty?)) . -> . any)]
+     [stream-rest
+      ((and/c stream? (not/c stream-empty?)) . -> . stream?)]
+     [in-stream
+      (stream? . -> . sequence?)]
+     [#:const empty-stream]
+     [stream->list
+      (stream? . -> . list?)]
+     [stream-length
+      (stream? . -> . exact-nonnegative-integer?)]
+     [stream-ref
+      (stream? exact-nonnegative-integer? . -> . any)]
+     [stream-tail
+      (stream? exact-nonnegative-integer? . -> . stream?)]
+     [stream-append ; FIXME varargs
+      (stream? stream? . -> . stream?)]
+     [stream-map
+      (procedure? stream? . -> . stream?)]
+     [#:batch (stream-andmap stream-ormap) ; FIXME varargs on 1st
+      ((any/c . -> . boolean?) stream? . -> . boolean?)]
+     [stream-for-each ; FIXME varargs on 1st
+      ((any/c . -> . any) stream? . -> . void?)]
+     [stream-fold ; FIXME varargs on 1st
+      ((any/c any/c . -> . any) any/c stream? . -> . any/c)]
+     [stream-count ; FIXME varargs on 1st
+      (procedure? stream? . -> . exact-nonnegative-integer?)]
+     [stream-filter ; FIXME varargs on 1st
+      ((any/c . -> . boolean?) stream? . -> . stream?)]
+     [stream-add-between
+      (stream? any/c . -> . stream?)]
+     [#:const gen:stream]
+     [#:const prop:stream]
+     #;[stream/c ; FIXME contract
+      (contract? . -> . contract?)]
+
+     ;;;;; 4.14.3 Generators
+     [#:pred generator?]
+     #;[yield ; FIXME uses
+      (-> any)]
+     [generator-state
+      (generator? . -> . symbol?)]
+     [sequence->generator
+      (sequence? . -> . (-> any))]
+     [sequence->repeated-generator
+      (sequence? . -> . (-> any))]
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.15 Dictionaries
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     ; TODO
+
+     ;;;;; 4.15.1 Dictionary Predicates and Contracts
+     [#:pred dict?]
+     [dict-implements? ; FIXME varargs
+      (dict? symbol? . -> . boolean?)]
+     #;[dict-implements/c ; FIXME varargs, contracts
+      (symbol? . -> . flat-contract?)]
+     [#:pred dict-mutable? (dict?)]
+     [#:pred dict-can-remove-keys? (dict?)]
+     [#:pred dict-can-functional-set? (dict?)]
+
+     ;;;;; 4.15.2 Generic Dictionary Interface
+     [#:const prop:dict]
+     
+     ;; 4.15.2.1 Primitive Dictionary Methods
+     [dict-ref ; FIXME use
+      (dict? any/c . -> . any)]
+     [dict-set!
+      ((and/c dict? (not/c immutable?)) any/c any/c . -> . void?)]
+     [dict-set
+      ((and/c dict? immutable?) any/c any/c . -> . (and/c dict? immutable?))]
+     [dict-remove!
+      ((and/c dict? (not/c immutable?)) any/c . -> . void?)]
+     [dict-remove
+      ((and/c dict? immutable?) any/c . -> . (and/c dict? immutable?))]
+     [dict-iterate-first
+      (dict? . -> . any/c)]
+     [dict-iterate-next
+      (dict? any/c . -> . any/c)]
+     [dict-iterate-key
+      (dict? any/c . -> . any)]
+     [dict-iterate-value
+      (dict? any/c . -> . any)]
+
+     ;; 4.15.2.2 Derived Dictionary Methods
+     [#:pred dict-has-key? (dict? any/c)]
+     [dict-set*! ; FIXME use
+      ((and/c dict? (not/c immutable?)) any/c any/c . -> . void?)]
+     [dict-set* ; FIXME use
+      ((and/c dict? immutable?) any/c any/c . -> . (and/c dict? immutable?))]
+     [dict-ref!
+      (dict? any/c any/c . -> . any)]
+     [dict-update! ; FIXME use
+      ((and/c dict? (not/c immutable?)) any/c (any/c . -> . any/c) . -> . void?)]
+     [dict-update
+      ((and/c dict? immutable?) any/c (any/c . -> . any/c) . -> . (and/c dict? immutable?))]
+     [dict-map
+      (dict? (any/c any/c . -> . any/c) . -> . (listof any/c))]
+     [dict-for-each
+      (dict? (any/c any/c . -> . any) . -> . void?)]
+     [#:pred dict-empty? (dict?)]
+     [dict-count
+      (dict? . -> . exact-nonnegative-integer?)]
+     [dict-copy
+      (dict? . -> . dict?)]
+     [dict-clear
+      (dict? . -> . dict?)]
+     [dict-clear!
+      (dict? . -> . void?)]
+     [#:batch (dict-keys dict-values)
+      (dict? . -> . list?)]
+     [dict->list ; TODO more precise than doc. Confirm.
+      (dict? . -> . (listof pair?))]
+
+     ;;;;; 4.15.3 Dictionary Sequences
+     [in-dict
+      (dict? . -> . sequence?)]
+     [#:batch (in-dict-keys in-dict-values)
+      (dict? . -> . sequence?)]
+     [in-dict-pairs
+      (dict? . -> . sequence?)]
+     
+     ;;;;; 4.15.4 Contracted Dictionaries
+     [#:const prop:dict/contract]
+     #;[#:batch (dict-key-contract dict-value-contract dict-iter-contract) ; FIXME contract?
+      (dict? . -> . contract?)]
+
+     ;;;;; 4.15.5 Custom Hash Tables
+     ;[make-custom-hash-types ; FIXME uses, ->*
+     ; ((or/c (any/c any/c . -> . any/c)
+     ;        (any/c any/c (any/c any/c . -> . any/c) . -> . any/c))
+     ;  . -> . (values (any/c . -> . boolean?)
+     ;                 (any/c . -> . boolean?)
+     ;                 (any/c . -> . boolean?)
+     ;                 (any/c . -> . boolean?)
+     ;                 (->* [] [dict?] dict?)
+     ;                 (->* [] [dict?] dict?)
+     ;                 (->* [] [dict?] dict?)))]
+     [#:batch (make-custom-hash make-weak-custom-hash make-immutable-custom-hash) ; FIXME uses
+      ((or/c (any/c any/c . -> . any/c)
+             (any/c any/c (any/c any/c . -> . any/c) . -> . any/c))
+       . -> . dict?)]
 
      
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.16 Sets
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     ; TODO
+     
+     ;;;;; Hash Sets
+     [#:pred set-equal?]
+     [#:pred set-eqv?]
+     [#:pred set-eq?]
+     [#:pred set?]
+     [#:pred set-mutable?]
+     [#:pred set-weak?]
+     [set ; FIXME varargs
+      (-> (and/c generic-set? set-equal? set?))]
+     [seteqv ; FIXME varargs
+      (-> (and/c generic-set? set-eqv? set?))]
+     [seteq ; FIXME varargs
+      (-> (and/c generic-set? set-eq? set?))]
+     [mutable-set ; FIXME varargs
+      (-> (and/c generic-set? set-equal? set-mutable?))]
+     [mutable-seteqv ; FIXME varargs
+      (-> (and/c generic-set? set-eqv? set-mutable?))]
+     [mutable-seteq ; FIXME varargs
+      (-> (and/c generic-set? set-eq? set-mutable?))]
+     [weak-set ; FIXME varargs
+      (-> (and/c generic-set? set-equal? set-weak?))]
+     [weak-seteqv ; FIXME varargs
+      (-> (and/c generic-set? set-eqv? set-weak?))]
+     [weak-seteq ; FIXME varargs
+      (-> (and/c generic-set? set-eq? set-weak?))]
+     [list->set
+      (list? . -> . (and/c generic-set? set-equal? set?))]
+     [list->seteqv
+      (list? . -> . (and/c generic-set? set-eqv? set?))]
+     [list->seteq
+      (list? . -> . (and/c generic-set? set-eq? set?))]
+     [list->mutable-set
+      (list? . -> . (and/c generic-set? set-equal? set-mutable?))]
+     [list->mutable-seteqv
+      (list? . -> . (and/c generic-set? set-eqv? set-mutable?))]
+     [list->mutable-seteq
+      (list? . -> . (and/c generic-set? set-eq? set-mutable?))]
+     [list->weak-set
+      (list? . -> . (and/c generic-set? set-equal? set-weak?))]
+     [list->weak-seteqv
+      (list? . -> . (and/c generic-set? set-eqv? set-weak?))]
+     [list->weak-seteq
+      (list? . -> . (and/c generic-set? set-eq? set-weak?))]
+
+     ;;;;; 4.16.2 Set Predicates and Contracts
+     [#:pred generic-set?]
+     [#:pred set-implements (generic-set? symbol?)] ; FIXME varargs
+     #;[set-implements/c ; FIXME varargs, contract?
+      (symbol? . -> . flat-contract?)]
+     #;[set/c ; FIXME uses, contract?
+      (chaperone-contract? . -> . contract?)]
+
+     ;;;;; 4.16.3 Generic Set Interface
+     [#:const gen:set]
+
+     ;; 4.16.3.1 Set Methods
+     [#:pred set-member? (generic-set? any/c)]
+     [#:batch (set-add set-remove)
+      ((and/c generic-set? (not/c set-mutable?)) any/c . -> . generic-set?)]
+     [#:batch (set-add! set-remove!)
+      ((and/c generic-set? set-mutable?) any/c . -> . void?)]
+     [#:pred set-empty? (generic-set?)]
+     [set-count
+      (generic-set? . -> . exact-nonnegative-integer?)]
+     [set-first
+      ((and/c generic-set? (not/c set-empty?)) . -> . any/c)]
+     [set-rest ; TODO probably refine with (im)mutable? and other modifiers
+      ((and/c generic-set? (not/c set-empty?)) . -> . generic-set?)]
+     [set->stream
+      (generic-set? . -> . stream?)]
+     [set-copy
+      (generic-set? . -> . generic-set?)]
+     [set-copy-clear
+      (generic-set? . -> . (and/c generic-set? set-empty?))]
+     [set-clear
+      ((and/c generic-set? (not/c set-mutable?)) . -> . (and/c generic-set? set-empty?))]
+     [set-clear!
+      ((and/c generic-set? set-mutable?) . -> . void?)]
+     [set-union ; FIXME varargs, enforce sets of the same type
+      (generic-set? generic-set? . -> . generic-set?)]
+     [set-union! ; FIXME varargs, enforce sets of the same type
+      (generic-set? generic-set? . -> . void?)]
+     [set-intersect ; FIXME varargs
+      (generic-set? generic-set? . -> . generic-set?)]
+     [set-intersect! ; FIXME varargs
+      (generic-set? generic-set? . -> . void?)]
+     [set-subtract ; FIXME varargs
+      (generic-set? generic-set? . -> . generic-set?)]
+     [set-subtract! ; FIXME varargs
+      (generic-set? generic-set? . -> . void?)]
+     [set-symmetric-difference ; FIXME varargs
+      (generic-set? generic-set? . -> . generic-set?)]
+     [set-symmetric-difference! ; FIXME varargs
+      (generic-set? generic-set? . -> . void?)]
+     [#:batch (set=? subset? proper-subset?) ; FIXME enforce same `set` type
+      (generic-set? generic-set? . -> . boolean?)]
+     [set->list
+      (generic-set? . -> . list?)]
+     [set-map
+      (generic-set? (any/c . -> . any/c) . -> . (listof any/c))]
+     [set-for-each
+      (generic-set? (any/c . -> . any) . -> . void?)]
+     [in-set
+      (generic-set? . -> . sequence?)]
+
+     ;;;;; 4.16.4 Custom Hash Sets
+     [make-custom-set-types ; FIXME uses
+      ((or/c (any/c any/c . -> . any/c)
+             (any/c any/c (any/c any/c . -> . any/c) . -> . any/c))
+       . -> .
+       (values (any/c . -> . boolean?)
+               (any/c . -> . boolean?)
+               (any/c . -> . boolean?)
+               (any/c . -> . boolean?)
+               ([] [stream?] . ->* . generic-set?)
+               ([] [stream?] . ->* . generic-set?)
+               ([] [stream?] . ->* . generic-set?)))]
 
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.17 Procedures
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     ; TODO
      [#:pred procedure?]
+     [apply ; FIXME uses. This probably should be treated specially for precision
+      (procedure? (listof any/c) . -> . any)]
+     [compose ; FIXME uses
+      ((any/c . -> . any) (any/c . -> . any/c) . -> . (any/c . -> . any))]
+     [compose1 ; FIXME uses
+      ((any/c . -> . any) (any/c . -> . any/c) . -> . (any/c . -> . any))]
+     [procedure-rename
+      (procedure? symbol? . -> . procedure?)]
+     [procedure->method
+      (procedure? . -> . procedure?)]
+     [#:pred procedure-closure-contents-eq? (procedure? procedure?)]
+
+     ;; 4.17.1 Keywords and Arity
+     ;[keyword-apply #|FIXME uses|#]
+     [procedure-arity
+      (procedure? . -> . normalized-arity?)]
+     [#:pred procedure-arity?]
+     [#:pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)] ; FIXME uses
+     [procedure-reduce-arity
+      (procedure? procedure-arity? . -> . procedure?)]
+     [procedure-keywords
+      (procedure? . -> . (values (listof keyword?) (or/c (listof keyword?) not)))]
+     #;[make-keyword-procedure ; FIXME uses
+      ((((listof keyword?) list?) () #:rest list? . ->* . any) . -> . procedure?)]
+     [procedure-reduce-keyword-arity
+      (procedure? procedure-arity? (listof keyword?) (or/c (listof keyword?) not)
+                  . -> . procedure?)]
+     [#:struct-pred arity-at-least? (arity-at-least #f)]
+     [#:struct-cons arity-at-least (arity-at-least #f)]
+     [#:struct-acc  arity-at-least-value (arity-at-least #f) 0]
+     [#:alias make-arity-at-least arity-at-least]
+     [#:const prop:procedure]
+     [#:pred procedure-struct-type? (struct-type?)]
+     [procedure-extract-target
+      (procedure? . -> . (or/c procedure? not))]
+     [#:const prop:arity-string]
+     [#:const prop:checked-procedure]
+     [checked-procedure-check-and-extract
+      (struct-type? any/c (any/c any/c any/c . -> . any/c) any/c any/c . -> . any/c)]
+
+     ;; 4.17.2 Reflecting on Primitives
+     [#:pred primitive?]
+     [#:pred primitive-closure?]
+     [primitive-result-arity
+      (primitive? . -> . procedure-arity?)]
+     
+     ;; 4.17.3 Additional Higher-Order Functions
+     [identity (any/c . -> . any/c)]
+     [const (any . -> . procedure?)]
+     [negate (procedure? . -> . procedure?)]
+     ;[curry ] FIXME
+     ;[curryr] FIXME
+     [#:pred normalized-arity?]
+     [normalize-arity ; FIXME dependency
+      (procedure-arity? . -> . normalized-arity?)]
+     [#:pred arity=? (procedure-arity? procedure-arity?)]
+     [#:pred arity-includes? (procedure-arity? procedure-arity?)]
 
      
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1018,13 +1577,14 @@
      ;;;;; 4.19 Undefined
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      [#:const undefined]
-])
+))
 
 ;; Declare implications between predicates.
 ;; Only need to do this for total predicates;
 ;; partial predicate like `even?` has a precondition of `integer?`,
 ;; and execution takes care of that.
 ;; Code generation should take care of transitivity, but redundancy is fine too.
+;; TODO: reasonable to push this out to SMT solver?
 (define implications
   '(; numbers
     [zero? ⇒ byte?]
@@ -1057,6 +1617,28 @@
     [set? ⇒ sequence?]
     [input-port? ⇒ sequence?]
     [stream? ⇒ sequence?]
+    ;; Sets
+    [set-equal? ⇒ set?]
+    [set-eqv? ⇒ set?]
+    [set-eq? ⇒ set?]
+    [set-mutable? ⇒ set?]
+    [set-weak? ⇒ set?]
+    ;; Arity
+    [exact-nonnegative-integer? ⇒ procedure-arity?]
+    ))
+
+
+;; Experimental
+;; Admitted evaluation result of standard functions
+;; Probably won't scale...
+(define evals
+  '(
+    [(map f xs)
+     (null {(null? xs)})
+     ((cons (f (car xs)) (map f (cdr xs))) {(cons? xs)})]
+    [(list? xs)
+     (#t {(null? xs)})
+     ((list? (cdr xs)) {(cons? xs)})]
     ))
 
 
@@ -1064,17 +1646,23 @@
 ;;;;; Contracts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define struct-info?
+  (match-λ? `(,(? symbol?) ,(? boolean?) ...)))
+
+(define rng?
+  (match-λ? ctc? `(values ,(? ctc?) ...)))
+
 (define ctc?
   (match-λ?
    (? symbol?)
    `(not/c ,(? symbol?))
-   `(one-of/c ,(or (? number?) (? string?) (? symbol?) (? boolean?)) ...)
+   `(one-of/c ,(or (? number?) (? string?) `(quote ,(? symbol?)) (? boolean?)) ...)
    `(and/c ,(? ctc?) ...)
    `(or/c ,(? ctc?) ...)
    `(listof ,(? ctc?))
    `(list/c ,(? ctc?) ...)
    `(cons/c ,(? ctc?) ,(? ctc?))
-   `(,(? ctc?) ... . -> . ,(? ctc?))))
+   `(,(? ctc?) ... . -> . ,(? rng?))))
 
 (define dec?
   (match-λ?
@@ -1086,10 +1674,10 @@
    `(,(? symbol?) ,(? ctc?) ...)
    `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)
    ;; new stuff
-   `(#:struct-pred ,(? symbol?) ,(? symbol?))
-   `(#:struct-cons ,(? symbol?))
-   `(#:struct-acc  ,(? symbol?) ,(? symbol?) ,(? exact-nonnegative-integer?))
-   `(#:struct-mut  ,(? symbol?) ,(? symbol?) ,(? exact-nonnegative-integer?))))
+   `(#:struct-pred ,(? symbol?) ,(? struct-info?))
+   `(#:struct-cons ,(? symbol?) ,(? struct-info?))
+   `(#:struct-acc  ,(? symbol?) ,(? struct-info?) ,(? exact-nonnegative-integer?))
+   `(#:struct-mut  ,(? symbol?) ,(? struct-info?) ,(? exact-nonnegative-integer?))))
 
 (define impl?
   (match-λ?
