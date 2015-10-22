@@ -1265,7 +1265,6 @@
       ((any/c . -> . boolean?) stream? . -> . stream?)]
      [stream-add-between
       (stream? any/c . -> . stream?)]
-     [#:const gen:stream]
      [#:const prop:stream]
      #;[stream/c ; FIXME contract
       (contract? . -> . contract?)]
@@ -1436,7 +1435,6 @@
       (chaperone-contract? . -> . contract?)]
 
      ;;;;; 4.16.3 Generic Set Interface
-     [#:const gen:set]
 
      ;; 4.16.3.1 Set Methods
      [#:pred set-member? (generic-set? any/c)]
