@@ -103,10 +103,6 @@
 
 (struct -plain-module-begin ([body : (Listof -module-level-form)]) #:transparent)
 
-;; Hack for now. This overlaps with ops like `values` and `vector`.
-;; But there seems to be no motivation of a more precise type. 
-(define-type -o-reg Symbol)
-
 (define-data -e
   (subset: -v
     (struct -λ [formals : -formals] [body : -e])
@@ -118,12 +114,13 @@
     (subset: -prim
       ;; primitive values that can appear in syntax
       (struct -b [unboxed : Base])
+      ;; Represent *unsafe* operations without contract checks. 
+      ;; User code shouldn't have direct access to these.
+      ;; Generated `prim` module exports these operations wrapped in contract.
       (subset: -o
-        -o-reg
-        'values 
-        ; vector
-        'vector 'vector-set! 'vector-ref 'vector-length
-        ; structs
+        ; fixed
+        Symbol
+        ; user extensible
         (struct -st-p [info : -struct-info])
         (struct -st-ac [info : -struct-info] [index : Integer])
         (struct -st-mut [info : -struct-info] [index : Integer])
