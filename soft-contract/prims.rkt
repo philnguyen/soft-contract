@@ -8,8 +8,6 @@
 
 ;; FIXME annotation for side effects
 
-(define prims (append prims.04 prims.08))
-
 (define prims.04
   '(
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -27,8 +25,8 @@
      [gen:equal+hash any/c]
      [prop:equal+hash #|FIXME|# any/c]
 
-     [#:const true]
-     [#:const false]
+     [true  boolean?]
+     [false boolean?]
      [#:pred symbol=? (symbol? symbol?)]
      [#:pred boolean=? (boolean? boolean?)]
      [#:alias false? not]
@@ -196,8 +194,8 @@
       (-> boolean?)]
 
      ;; 4.2.2.10 Extra Functions
-     [#:const pi]
-     [#:const pi.f]
+     [pi   flonum?]
+     [pi.f single-flonum?]
      [#:batch (degrees->radians radians->degrees)
       (real? . -> . real?)]
      [sqr
@@ -346,7 +344,7 @@
       (real? . -> . flonum?)]
 
      ;; 4.2.5.2 Extflonum Constants
-     [#:const pi.t]
+     [pi.t extflonum?]
      
      ;; 4.2.5.3 Extflonum Vectors
      [#:pred extflvector?]
@@ -383,8 +381,8 @@
      [#:pred string?]
      [make-string ; FIXME all uses
       (exact-nonnegative-integer? char? . -> . string?)]
-     #;[string ; FIXME varargs
-      (() #:rest char? →* string?)]
+     [string
+      (() #:rest (listof char?) . ->* . string?)]
      [string->immutable-string
       (string? . -> . (and/c string? immutable?))]
      [string-length
@@ -401,8 +399,8 @@
       ((and/c string? (not/c immutable?)) exact-nonnegative-integer? string? . -> . void?)]
      [string-fill! ; FIXME uses
       ((and/c string? (not/c immutable?)) char? . -> . void?)]
-     [string-append ; FIXME varargs
-      (string? string? . -> . string?)]
+     [string-append
+      (() #:rest (listof string?) . ->* . string?)]
      [string->list
       (string? . -> . (listof char?))]
      [list->string
@@ -476,8 +474,8 @@
       ((and/c bytes? (not/c immutable?)) exact-nonnegative-integer? bytes? . -> . void?)]
      [bytes-fill!
       ((and/c bytes? (not/c immutable?)) byte? . -> . void?)]
-     [bytes-append ; FIXME varargs
-      (bytes? bytes? . -> . bytes?)]
+     [bytes-append
+      (() #:rest (listof bytes?) . ->* . bytes?)]
      [bytes->list
       (bytes? . -> . (listof byte?))]
      [list->bytes
@@ -742,15 +740,14 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
      ;; 4.9.1 Constructors and Selectors
-     [#:struct-pred pair? (cons #f #f)]
+     [pair? (any/c . -> . boolean?)]
      [#:pred null?]
-     [#:struct-cons cons (cons #f #f)]
-     [#:struct-acc  car (cons #f #f) 0]
-     [#:struct-acc  cdr (cons #f #f) 1]
-     [#:const null]
+     [cons (any/c any/c . -> . pair?)]
+     [car (pair? . -> . any/c)]
+     [cdr (pair? . -> . any/c)]
+     [null null?]
      [#:pred list?]
-     #;[list ; FIXME
-      (-> list?)]
+     [list (() #:rest list? . ->* . list?)]
      #;[list* ; FIXME
       (-> list?)]
      [build-list
@@ -833,7 +830,7 @@
      ; TODO rest of them
 
      ;; 4.9.7 Additional List Functions and Synonyms
-     [#:const empty]
+     [#:alias empty null]
      [#:alias cons? pair?]
      [#:alias empty? null?]
      [first
@@ -932,8 +929,8 @@
       ((any/c . -> . real?) (and/c pair? list?) . -> . any/c)]
      [group-by ; FIXME uses
       ((any/c . -> . any/c) list? . -> . (listof list?))]
-     [cartesian-produce ; FIXME varargs
-      (list? list? . -> . (listof list?))]
+     [cartesian-product ; FIXME varargs
+      (() #:rest (listof list?) . ->* . (listof list?))]
      [remf
       (procedure? list? . -> . list?)]
      [remf*
@@ -966,10 +963,10 @@
      [#:pred vector?] ; FIXME alias for internal `vector?`
      [make-vector
       (exact-nonnegative-integer? any/c . -> . vector?)]
-     [vector ; FIXME varargs
-      (-> (and/c vector? (not/c immutable?)))]
-     [vector-immutable ; FIXME varargs
-      (-> (and/c vector? immutable?))]
+     [vector
+      (() #:rest list? . ->* . (and/c vector? (not/c immutable?)))]
+     [vector-immutable
+      (() #:rest list? . ->* . (and/c vector? immutable?))]
      [vector-length
       (vector? . -> . exact-nonnegative-integer?)]
      [vector-ref
@@ -999,8 +996,8 @@
       (procedure? vector? . -> . vector?)]
      [vector-map! ; FIXME uses
       (procedure? (and/c vector? (not/c immutable?)) . -> . vector?)]
-     [vector-append ; FIXME varargs
-      (vector? vector? . -> . vector?)]
+     [vector-append
+      (() #:rest (listof vector?) . ->* . vector?)]
      [vector-take
       (vector? exact-nonnegative-integer? . -> . vector?)]
      [vector-take-right
@@ -1028,11 +1025,11 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.12 Boxes
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     [#:struct-pred box? (box #t)]
-     [#:struct-cons box (box #t)]
+     [#:pred box?]
+     [box (any/c . -> . box?)]
      ;[#:struct-cons box-immutable (box #f)]
-     [#:struct-acc unbox (box #t) 0]
-     [#:struct-mut set-box! (box #t) 0]
+     [unbox (box? . -> . any/c)]
+     [set-box! (box? any/c . -> . void?)]
      #;[box-cas!]
 
 
@@ -1167,12 +1164,12 @@
       (any/c . -> . sequence?)]
      [in-indexed
       (sequence? . -> . sequence?)]
-     [in-sequences ; FIXME varargs
-      (sequence? sequence? . -> . sequence?)]
-     [in-cycle ; FIXME varargs
-      (sequence? . -> . sequence?)]
-     [in-parallel ; FIXME varargs
-      (sequence? sequence? . -> . sequence?)]
+     [in-sequences
+      (() #:rest (listof sequence?) . ->* . sequence?)]
+     [in-cycle
+      (() #:rest (listof sequence?) . ->* . sequence?)]
+     [in-parallel
+      (() #:rest (listof sequence?) . ->* . sequence?)]
      [in-values-sequence
       (sequence? . -> . sequence?)]
      [in-values*-sequence
@@ -1184,10 +1181,10 @@
                    (any/c . -> . any/c)
                    any/c
                    (or/c (any/c . -> . any/c) not)
-                   (or/c #;(() () #:rest list? . ->* . any/c) not)
-                   (or/c #;((any/c) () #:rest list? . ->* . any/c) not)))
+                   (or/c (() () #:rest list? . ->* . any/c) not)
+                   (or/c ((any/c) () #:rest list? . ->* . any/c) not)))
        . -> . sequence?)]
-     [#:const prop:sequence]
+     [prop:sequence struct-type-property?]
 
      ;; 4.14.1.2 Sequence Conversion
      [sequence->stream
@@ -1199,7 +1196,7 @@
                                 (-> (values (or/c list? not) procedure?))))]
      
      ;; 4.14.1.3 Additional Sequence Operations
-     [#:const empty-sequence]
+     [empty-sequence sequence?]
      [sequence->list
       (sequence? . -> . list?)]
      [sequence-length
@@ -1208,8 +1205,8 @@
       (sequence? exact-nonnegative-integer? . -> . any)]
      [sequence-tail
       (sequence? exact-nonnegative-integer? . -> . sequence?)]
-     [sequence-append ; FIXME varargs
-      (sequence? sequence? . -> . sequence?)]
+     [sequence-append
+      (() #:rest (listof sequence?) . ->* . sequence?)]
      [sequence-map
       ((any/c . -> . any/c) sequence? . -> . sequence?)]
      [#:batch (sequence-andmap sequence-ormap) ; FIXME generalize 1st arg to multi args
@@ -1242,7 +1239,7 @@
       ((and/c stream? (not/c stream-empty?)) . -> . stream?)]
      [in-stream
       (stream? . -> . sequence?)]
-     [#:const empty-stream]
+     [empty-stream stream?]
      [stream->list
       (stream? . -> . list?)]
      [stream-length
@@ -1251,8 +1248,8 @@
       (stream? exact-nonnegative-integer? . -> . any)]
      [stream-tail
       (stream? exact-nonnegative-integer? . -> . stream?)]
-     [stream-append ; FIXME varargs
-      (stream? stream? . -> . stream?)]
+     [stream-append
+      (() #:rest (listof stream?) . ->* . stream?)]
      [stream-map
       (procedure? stream? . -> . stream?)]
      [#:batch (stream-andmap stream-ormap) ; FIXME varargs on 1st
@@ -1267,8 +1264,8 @@
       ((any/c . -> . boolean?) stream? . -> . stream?)]
      [stream-add-between
       (stream? any/c . -> . stream?)]
-     [#:const prop:stream]
-     #;[stream/c ; FIXME contract
+     [prop:stream struct-type-property?]
+     [stream/c
       (contract? . -> . contract?)]
 
      ;;;;; 4.14.3 Generators
@@ -1298,7 +1295,7 @@
      [#:pred dict-can-functional-set? (dict?)]
 
      ;;;;; 4.15.2 Generic Dictionary Interface
-     [#:const prop:dict]
+     [prop:dict struct-type-property?]
      
      ;; 4.15.2.1 Primitive Dictionary Methods
      [dict-ref ; FIXME use
@@ -1359,7 +1356,7 @@
       (dict? . -> . sequence?)]
      
      ;;;;; 4.15.4 Contracted Dictionaries
-     [#:const prop:dict/contract]
+     [prop:dict/contract struct-type-property?]
      #;[#:batch (dict-key-contract dict-value-contract dict-iter-contract) ; FIXME contract?
       (dict? . -> . contract?)]
 
@@ -1391,24 +1388,24 @@
      [#:pred set?]
      [#:pred set-mutable?]
      [#:pred set-weak?]
-     [set ; FIXME varargs
-      (-> (and/c generic-set? set-equal? set?))]
-     [seteqv ; FIXME varargs
-      (-> (and/c generic-set? set-eqv? set?))]
-     [seteq ; FIXME varargs
-      (-> (and/c generic-set? set-eq? set?))]
-     [mutable-set ; FIXME varargs
-      (-> (and/c generic-set? set-equal? set-mutable?))]
-     [mutable-seteqv ; FIXME varargs
-      (-> (and/c generic-set? set-eqv? set-mutable?))]
-     [mutable-seteq ; FIXME varargs
-      (-> (and/c generic-set? set-eq? set-mutable?))]
-     [weak-set ; FIXME varargs
-      (-> (and/c generic-set? set-equal? set-weak?))]
-     [weak-seteqv ; FIXME varargs
-      (-> (and/c generic-set? set-eqv? set-weak?))]
-     [weak-seteq ; FIXME varargs
-      (-> (and/c generic-set? set-eq? set-weak?))]
+     [set
+      (() #:rest list? . ->* . (and/c generic-set? set-equal? set?))]
+     [seteqv
+      (() #:rest list? . ->* . (and/c generic-set? set-eqv? set?))]
+     [seteq
+      (() #:rest list? . ->* . (and/c generic-set? set-eq? set?))]
+     [mutable-set
+      (() #:rest list? . ->* . (and/c generic-set? set-equal? set-mutable?))]
+     [mutable-seteqv
+      (() #:rest list? . ->* . (and/c generic-set? set-eqv? set-mutable?))]
+     [mutable-seteq
+      (() #:rest list? . ->* . (and/c generic-set? set-eq? set-mutable?))]
+     [weak-set
+      (() #:rest list? . ->* . (and/c generic-set? set-equal? set-weak?))]
+     [weak-seteqv
+      (() #:rest list? . ->* . (and/c generic-set? set-eqv? set-weak?))]
+     [weak-seteq
+      (() #:rest list? . ->* . (and/c generic-set? set-eq? set-weak?))]
      [list->set
       (list? . -> . (and/c generic-set? set-equal? set?))]
      [list->seteqv
@@ -1430,7 +1427,8 @@
 
      ;;;;; 4.16.2 Set Predicates and Contracts
      [#:pred generic-set?]
-     [#:pred set-implements (generic-set? symbol?)] ; FIXME varargs
+     [set-implements
+      ((generic-set?) #:rest (listof symbol?) . ->* . boolean?)]
      #;[set-implements/c ; FIXME varargs, contract?
       (symbol? . -> . flat-contract?)]
      #;[set/c ; FIXME uses, contract?
@@ -1461,22 +1459,22 @@
       ((and/c generic-set? (not/c set-mutable?)) . -> . (and/c generic-set? set-empty?))]
      [set-clear!
       ((and/c generic-set? set-mutable?) . -> . void?)]
-     [set-union ; FIXME varargs, enforce sets of the same type
-      (generic-set? generic-set? . -> . generic-set?)]
-     [set-union! ; FIXME varargs, enforce sets of the same type
-      (generic-set? generic-set? . -> . void?)]
-     [set-intersect ; FIXME varargs
-      (generic-set? generic-set? . -> . generic-set?)]
-     [set-intersect! ; FIXME varargs
-      (generic-set? generic-set? . -> . void?)]
-     [set-subtract ; FIXME varargs
-      (generic-set? generic-set? . -> . generic-set?)]
-     [set-subtract! ; FIXME varargs
-      (generic-set? generic-set? . -> . void?)]
-     [set-symmetric-difference ; FIXME varargs
-      (generic-set? generic-set? . -> . generic-set?)]
-     [set-symmetric-difference! ; FIXME varargs
-      (generic-set? generic-set? . -> . void?)]
+     [set-union ; FIXME enforce sets of the same type
+      ((generic-set?) #:rest (listof generic-set?) . ->* . generic-set?)]
+     [set-union! ; FIXME enforce sets of the same type
+      ((generic-set?) #:rest (listof generic-set?) . ->* . void?)]
+     [set-intersect
+      ((generic-set?) #:rest (listof generic-set?) . ->* . generic-set?)]
+     [set-intersect!
+      ((generic-set?) #:rest (listof generic-set?) . ->* . void?)]
+     [set-subtract
+      ((generic-set?) #:rest (listof generic-set?) . ->* . generic-set?)]
+     [set-subtract!
+      ((generic-set?) #:rest (listof generic-set?) . ->* . void?)]
+     [set-symmetric-difference
+      ((generic-set?) #:rest (listof generic-set?) . ->* . generic-set?)]
+     [set-symmetric-difference!
+      ((generic-set?) #:rest (listof generic-set?) . ->* . void?)]
      [#:batch (set=? subset? proper-subset?) ; FIXME enforce same `set` type
       (generic-set? generic-set? . -> . boolean?)]
      [set->list
@@ -1533,16 +1531,16 @@
      [procedure-reduce-keyword-arity
       (procedure? procedure-arity? (listof keyword?) (or/c (listof keyword?) not)
                   . -> . procedure?)]
-     [#:struct-pred arity-at-least? (arity-at-least #f)]
-     [#:struct-cons arity-at-least (arity-at-least #f)]
-     [#:struct-acc  arity-at-least-value (arity-at-least #f) 0]
+     [#:pred arity-at-least?]
+     [arity-at-least (exact-nonnegative-integer? . -> . arity-at-least?)]
+     [arity-at-least-value (arity-at-least? . -> . exact-nonnegative-integer?)]
      [#:alias make-arity-at-least arity-at-least]
-     [#:const prop:procedure]
+     [prop:procedure struct-type-property?]
      [#:pred procedure-struct-type? (struct-type?)]
      [procedure-extract-target
       (procedure? . -> . (or/c procedure? not))]
-     [#:const prop:arity-string]
-     [#:const prop:checked-procedure]
+     [prop:arity-string struct-type-property?]
+     [prop:checked-procedure struct-type-property?]
      [checked-procedure-check-and-extract
       (struct-type? any/c (any/c any/c any/c . -> . any/c) any/c any/c . -> . any/c)]
 
@@ -1569,14 +1567,13 @@
      ;;;;; 4.18 Void
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      [#:pred void?]
-     [void ; FIXME varargs
-      (-> void?)]
+     [void (() #:rest list? . ->* . void?)]
 
      
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.19 Undefined
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     [#:const undefined]
+     [undefined any/c]
 ))
 
 (define prims.08
@@ -1588,32 +1585,86 @@
 
     [flat-named-contract ; FIXME uses
      (any/c flat-contract? . -> . flat-contract?)]
-    [#:const any/c]
-    [#:const none/c]
-    [or/c ; FIXME uses
-     (contract? contract? . -> . contract?)]
-    [and/c ; FIXME uses
-     (contract? contract? . -> . contract?)]
-    [not/c
-     (flat-contract? . -> . flat-contract?)]
-    [#:batch (=/c </c >/c <=/c >=/c)
-     (real? . -> . flat-contract?)]
-    [between/c
-     (real? real? . -> . flat-contract?)]
+    [any/c (any/c . -> . (not/c not))]
+    [none/c (any/c . -> . not)]
+    [ or/c (() #:rest (listof contract?) . ->* . contract?)]
+    [and/c (() #:rest (listof contract?) . ->* . contract?)]
+    [not/c (flat-contract? . -> . flat-contract?)]
+    [=/c  (real? . -> . flat-contract?)]
+    [</c  (real? . -> . flat-contract?)]
+    [>/c  (real? . -> . flat-contract?)]
+    [<=/c (real? . -> . flat-contract?)]
+    [>=/c (real? . -> . flat-contract?)]
+    [between/c (real? real? . -> . flat-contract?)]
     [#:alias real-in between/c]
-    [integer-in
-     (exact-integer? exact-integer? . -> . flat-contract?)]
-    [char-in
-     (char? char? . -> . flat-contract?)]
+    [integer-in (exact-integer? exact-integer? . -> . flat-contract?)]
+    [char-in (char? char? . -> . flat-contract?)]
     [#:alias natural-number/c exact-nonnegative-integer?]
-    [string-len/c
-     (real? . -> . flat-contract?)]
+    [string-len/c (real? . -> . flat-contract?)]
     [#:alias false/c not]
     [#:pred printable/c]
     [one-of/c
-     ()]
+     (() #:rest (listof flat-contract?) . ->* . contract?)]
+    [symbols
+     (() #:rest (listof symbol?) . ->* . flat-contract?)]
+    [vectorof ; FIXME uses
+     (contract? . -> . contract?)]
+    [vector-immutableof (contract? . -> . contract?)]
+    [vector/c ; FIXME uses
+     (() #:rest (listof contract?) . ->* . contract?)]
+    [vector-immutable/c
+     (() #:rest (listof contract?) . ->* . contract?)]
+    [box/c ; FIXME uses
+     (contract? . -> . contract?)]
+    [box-immutable/c (contract? . -> . contract?)]
+    [listof (contract? . -> . list-contract?)]
+    [non-empty-listof (contract? . -> . list-contract?)]
+    [list*of (contract? . -> . contract?)]
+    [cons/c (contract? contract? . -> . contract?)]
+    [list/c
+     (() #:rest (listof contract?) . ->* . list-contract?)]
+    [syntax/c (flat-contract? . -> . flat-contract?)]
+    [parameter/c ; FIXME uses
+     (contract? . -> . contract?)]
+    [procedure-arity-includes/c
+     (exact-nonnegative-integer? . -> . flat-contract?)]
+    [hash/c ; FIXME uses
+     (chaperone-contract? contract? . -> . contract?)]
+    [channel/c (contract? . -> . contract?)]
+    [continuation-mark-key/c (contract? . -> . contract?)]
+    [evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]
+    [promise/c (contract? . -> . contract?)]
+    [flat-contract ((any/c . -> . any/c) . -> . flat-contract?)]
+    [flat-contract-predicate (flat-contract? . -> . (any/c . -> . any/c))]
 
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 8.2 Function Contracts
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [predicate/c contract?]
+    [the-unsupplied-arg unsupplied-arg?]
+    [#:pred unsupplied-arg?]
+
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 8.8 Contract Utilities
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [#:pred contract?]
+    [#:pred chaperone-contract?]
+    [#:pred impersonator-contract?]
+    [#:pred flat-contract?]
+    [#:pred list-contract?]
+    [contract-name (contract? . -> . any/c)]
+    [value-contract (has-contract? . -> . (or/c contract? not))]
+    [#:pred has-contract?]
+    [value-blame (has-blame? . -> . (or/c blame? not))]
+    [#:pred has-blame?]
+    [contract-projection (contract? . -> . (blame? . -> . (any/c . -> . any/c)))]
+    [make-none/c (any/c . -> . contract?)]
+    [contract-continuation-mark-key continuation-mark-key?]
     ))
+
+(define prims (append prims.04 prims.08))
+
 
 ;; Declare implications between predicates.
 ;; Only need to do this for total predicates;
@@ -1698,23 +1749,17 @@
    `(listof ,(? ctc?))
    `(list/c ,(? ctc?) ...)
    `(cons/c ,(? ctc?) ,(? ctc?))
-   `(,(? ctc?) ... . -> . ,(? rng?))))
+   `(,(? ctc?) ... . -> . ,(? rng?))
+   `(,(? (listof ctc?)) #:rest ,(? ctc?) . ->* . ,(? rng?))))
 
 (define dec?
   (match-λ?
-   `(#:escape ,(? symbol?))
-   `(#:const ,(? symbol?))
    `(#:pred ,(? symbol?))
    `(#:pred ,(? symbol?) (,(? ctc?) ...))
    `(#:alias ,(? symbol?) ,(? symbol?))
    `(#:batch (,(? symbol?) ...) ,(? ctc?) ...)
    `(,(? symbol?) ,(? ctc?) ...)
-   `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)
-   ;; new stuff
-   `(#:struct-pred ,(? symbol?) ,(? struct-info?))
-   `(#:struct-cons ,(? symbol?) ,(? struct-info?))
-   `(#:struct-acc  ,(? symbol?) ,(? struct-info?) ,(? exact-nonnegative-integer?))
-   `(#:struct-mut  ,(? symbol?) ,(? struct-info?) ,(? exact-nonnegative-integer?))))
+   `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)))
 
 (define impl?
   (match-λ?
