@@ -8,7 +8,9 @@
 
 ;; FIXME annotation for side effects
 
-(define prims
+(define prims (append prims.04 prims.08))
+
+(define prims.04
   '(
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.1 Booleans and Equality
@@ -1577,6 +1579,42 @@
      [#:const undefined]
 ))
 
+(define prims.08
+  ;; FIXME: many should be aliases to SCV's primitives for precision
+  '(
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 8.1 Data-structure Contracts
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    [flat-named-contract ; FIXME uses
+     (any/c flat-contract? . -> . flat-contract?)]
+    [#:const any/c]
+    [#:const none/c]
+    [or/c ; FIXME uses
+     (contract? contract? . -> . contract?)]
+    [and/c ; FIXME uses
+     (contract? contract? . -> . contract?)]
+    [not/c
+     (flat-contract? . -> . flat-contract?)]
+    [#:batch (=/c </c >/c <=/c >=/c)
+     (real? . -> . flat-contract?)]
+    [between/c
+     (real? real? . -> . flat-contract?)]
+    [#:alias real-in between/c]
+    [integer-in
+     (exact-integer? exact-integer? . -> . flat-contract?)]
+    [char-in
+     (char? char? . -> . flat-contract?)]
+    [#:alias natural-number/c exact-nonnegative-integer?]
+    [string-len/c
+     (real? . -> . flat-contract?)]
+    [#:alias false/c not]
+    [#:pred printable/c]
+    [one-of/c
+     ()]
+
+    ))
+
 ;; Declare implications between predicates.
 ;; Only need to do this for total predicates;
 ;; partial predicate like `even?` has a precondition of `integer?`,
@@ -1664,6 +1702,7 @@
 
 (define dec?
   (match-λ?
+   `(#:escape ,(? symbol?))
    `(#:const ,(? symbol?))
    `(#:pred ,(? symbol?))
    `(#:pred ,(? symbol?) (,(? ctc?) ...))
