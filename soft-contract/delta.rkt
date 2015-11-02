@@ -8,6 +8,13 @@
  )
 (provide δ Γ+/-)
 
+;; Concrete table for unsafe operations
+;(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → -AΓs)
+(: concrete-prim : Symbol → (Option (-M -σ -Γ (Listof -WV) → -AΓs)))
+(define (concrete s)
+  (case s
+    [else #f]))
+
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
            (U (List -WV (Listof -WV) (-Γ → Y))
               (List 'not -WV (Listof -WV) (-Γ → Y))) *
