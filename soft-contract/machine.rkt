@@ -241,7 +241,7 @@
     #|FIXME|# (define id (-struct-info-id s))
     (define-values (σ* αs-rev)
       (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α) '()])
-                ([e es] [i (in-naturals)])
+                ([(e i) (in-indexed es)])
         (define-values (σ** V) (alloc-e σ* e))
         (define α (-α.fld id pos i))
         (values (⊔ σ** α V) (cons α αs-rev))))

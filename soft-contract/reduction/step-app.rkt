@@ -163,7 +163,7 @@
   (: ↦vector : → -Δς*)
   (define (↦vector)
     (define αs
-      (for/list : (Listof -α.vct) ([W W_xs] [i (in-naturals)])
+      (for/list : (Listof -α.vct) ([(W i) (in-indexed W_xs)])
         (-α.vct pos i)))
     (define δσ
       (for/list : -Δσ ([α αs] [W W_xs])
@@ -207,7 +207,7 @@
                 [_
                  ;; If index opaque, return everything in addition to refining index
                  ;; FIXME ouch. This explodes fast.
-                 (for/fold ([acc : (Setof -Δς) ∅]) ([α αs] [i (in-naturals)])
+                 (for/fold ([acc : (Setof -Δς) ∅]) ([(α i) (in-indexed αs)])
                    (define ψ (-?@ '= e-idx (-b i)))
                    (match (MσΓ⊢e M σ Γ-ok ψ)
                      ['X acc]
@@ -217,7 +217,7 @@
                         (set-add acc (-Δς (-W (list V) e_a) Γ* κ '() '() '())))]))])]
              [(-Vector/checked γs l³ α)
               (for/fold ([acc : (Setof -Δς) ∅]) ([V (σ@ σ α)])
-                (for/fold ([acc : (Setof -Δς) acc]) ([γ γs] [i (in-naturals)])
+                (for/fold ([acc : (Setof -Δς) acc]) ([(γ i) (in-indexed γs)])
                   (define ψ (-?@ '= e-idx (-b i)))
                   (match (MσΓ⊢e M σ Γ-ok ψ)
                     ['X acc]

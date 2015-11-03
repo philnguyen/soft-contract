@@ -134,7 +134,7 @@
       (-@ 'values
           (list* (-st-mk (-id-local ctor-name (cur-mod)) n)
                  (-st-p (-id-local ctor-name (cur-mod)) n)
-                 (for/list ([accᵢ (in-list accs)] [i (in-naturals)])
+                 (for/list ([(accᵢ i) (in-indexed accs)])
                    (-st-ac (-id-local ctor-name (cur-mod)) n i)))
           -Λ))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract

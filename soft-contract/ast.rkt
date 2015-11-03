@@ -199,7 +199,7 @@
 ;; Make a non-dependent contract as a special case of dependent contract
 (define (--> cs d pos)
   (define doms
-    (for/list : (Listof (Pairof Symbol -e)) ([c cs] [i (in-naturals)])
+    (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "x•~a" (n-sub i)))) ; hack
       (cons x c)))
   (-->i doms d pos))

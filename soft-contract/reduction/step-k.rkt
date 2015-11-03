@@ -195,7 +195,7 @@
                (define α (-α.wrp (-struct-info-id s) pos))
                (define δσ* (cons (cons α V-inner) δσ))
                (define γs*
-                 (for/list : (Listof (Option -α)) ([γ γs] [i (in-naturals)])
+                 (for/list : (Listof (Option -α)) ([(γ i) (in-indexed γs)])
                    (and (∋ mutables i) γ)))
                (define V-wrapped (-St/checked s γs* l³ α))
                (values V-wrapped δσ*)]))
@@ -286,7 +286,7 @@
             ;; accumulate new store and address list for contract domains
             ;; (domains are reversed compared to `Cs↓*`)
             (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()] [δσ : -Δσ '()])
-                      ([C Cs↓*] [c cs↓*] [i (in-naturals)])
+                      ([(C i) (in-indexed Cs↓*)] [c cs↓*])
               (define γ (-α.fld (-id-local '-> 'Λ) pos i))
               (values (cons γ γs)
                       (⊔ σ* γ C)
