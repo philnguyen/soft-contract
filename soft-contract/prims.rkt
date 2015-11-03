@@ -1181,8 +1181,9 @@
                    (any/c . -> . any/c)
                    any/c
                    (or/c (any/c . -> . any/c) not)
-                   (or/c (() () #:rest list? . ->* . any/c) not)
-                   (or/c ((any/c) () #:rest list? . ->* . any/c) not)))
+                   ; FIXME optional arg
+                   #;(or/c (() () #:rest list? . ->* . any/c) not)
+                   #;(or/c ((any/c) () #:rest list? . ->* . any/c) not)))
        . -> . sequence?)]
      [prop:sequence struct-type-property?]
 
