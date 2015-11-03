@@ -740,11 +740,11 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
      ;; 4.9.1 Constructors and Selectors
-     [pair? (any/c . -> . boolean?)]
+     [#:struct-pred pair? (cons #f #f)]
      [#:pred null?]
-     [cons (any/c any/c . -> . pair?)]
-     [car (pair? . -> . any/c)]
-     [cdr (pair? . -> . any/c)]
+     [#:struct-cons cons (cons #f #f)]
+     [#:struct-acc car (cons #f #f) 0]
+     [#:struct-acc cdr (cons #f #f) 1]
      [null null?]
      [#:pred list?]
      [list (() #:rest list? . ->* . list?)]
@@ -1025,11 +1025,11 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      ;;;;; 4.12 Boxes
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     [#:pred box?]
-     [box (any/c . -> . box?)]
+     [#:struct-pred box? (box #t)]
+     [#:struct-cons box (box #t)]
      ;[#:struct-cons box-immutable (box #f)]
-     [unbox (box? . -> . any/c)]
-     [set-box! (box? any/c . -> . void?)]
+     [#:struct-acc unbox (box #t) 0]
+     [#:struct-mut set-box! (box #t) 0]
      #;[box-cas!]
 
 
@@ -1488,7 +1488,7 @@
       (generic-set? . -> . sequence?)]
 
      ;;;;; 4.16.4 Custom Hash Sets
-     [make-custom-set-types ; FIXME uses
+     #;[make-custom-set-types ; FIXME uses
       ((or/c (any/c any/c . -> . any/c)
              (any/c any/c (any/c any/c . -> . any/c) . -> . any/c))
        . -> .
@@ -1760,7 +1760,12 @@
    `(#:alias ,(? symbol?) ,(? symbol?))
    `(#:batch (,(? symbol?) ...) ,(? ctc?) ...)
    `(,(? symbol?) ,(? ctc?) ...)
-   `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)))
+   `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)
+   ;; struct stuff
+   `(#:struct-cons ,(? symbol?) ,(? struct-info?))
+   `(#:struct-pred ,(? symbol?) ,(? struct-info?))
+   `(#:struct-acc  ,(? symbol?) ,(? struct-info?) ,(? exact-nonnegative-integer?))
+   `(#:struct-mut  ,(? symbol?) ,(? struct-info?) ,(? exact-nonnegative-integer?))))
 
 (define impl?
   (match-λ?

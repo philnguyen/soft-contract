@@ -372,31 +372,40 @@
 (define/contract (parse-primitive id)
   (identifier?  . -> . (or/c #f -ref? -b?))
   (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
-  
+
   (define-syntax (make-parse-clauses stx)
     (syntax-parse stx
       [(_ id:id)
        ;; The reason we generate (syntax-parse) cases instead of set lookup
        ;; is to ensure that the source refers to the right reference
+
+       (define/contract cache (hash/c symbol? any/c) (make-hash))
+
        (define/contract (make-clause dec)
          (any/c . -> . (listof syntax?))
+
+         (define (make-ref s)
+           (symbol? . -> . syntax?)
+           #`(-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id)))
+         
          ;; FIXME: parse to *wrapped* instead of raw versions of primitives
          (match dec
            [`(#:pred ,s ,_ ...)
+            (list #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
+           [`(#:alias ,s ,t)
             (list #`[(~literal #,s)
-                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
-           [`(#:alias ,s ,_)
-            (list #`[(~literal #,s)
-                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+                     #,(hash-ref! cache t (λ () (error 'make-ref "~a aliases undeclared ~a" s t)))])]
            [`(#:batch (,ss ...) ,_ ...)
             (for/list ([s ss])
-              #`[(~literal #,s)
-                 (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+              #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
            [`(#:const ,s)
-            (list #`[(~literal #,s) (-b #,s)])]
-           [`(,(? symbol? s) ,_ ...)
-            (list #`[(~literal #,s)
-                     (-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id))])]
+            (list #`[(~literal #,s) #,(hash-ref! cache s #`(-b #,s))])]
+           [(or `(,(? symbol? s) ,_ ...)
+                `(#:struct-cons ,s ,_)
+                `(#:struct-pred ,s ,_)
+                `(#:struct-acc  ,s ,_ ,_)
+                `(#:struct-mut  ,s ,_ ,_))
+            (list #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
            [r
             (printf "unhandled in `make-parse-clauses` ~a~n" r)
             '()]))
@@ -440,6 +449,9 @@
          (--> (map simple-parse doms)
               (simple-parse rng)
               (next-neg!))]
+        [`(->* (,doms ...) #:rest ,rst ,rng)
+         (printf "Skipping ->* for now~n")
+         -any/c]
         [`(and/c ,cs ...)
          (apply -and/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
         [`(or/c ,cs ...)
@@ -452,20 +464,36 @@
          (-cons/c (simple-parse c) (simple-parse d) (next-neg!))]
         [`(not/c ,c) (-not/c (simple-parse c) (next-neg!))]
         [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
+        [`(values ,ctcs ...)
+         (-@ 'values (map simple-parse ctcs) (-src-loc 'Λ (next-neg!)))]
         [(? symbol? s) s]
+        [`(quote ,s) (-b s)]
         [(or (? number? x) (? boolean? x)) (-b x)]))
+
+    (define/contract (mk-struct-info x)
+      (any/c . -> . -struct-info?)
+      (match-define `(,t ,mut?s ...) x)
+      (-struct-info t (length mut?s) (for/set ([(mut? i) (in-indexed mut?s)] #:when mut?) i)))
 
     (define/contract (make-defs dec)
       (any/c . -> . (listof -define-values?))
       (match dec
         [(or `(#:pred ,s ,_ ...)
-             `(#:alias ,s ,_ ...)
              `(,(? symbol? s) ,_ ...))
          (list (-define-values (list s) s))]
+        [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:const ,_) '()] ; no need. They're all inlined.
         [`(#:batch (,ss ...) ,_ ...)
          (for/list ([s ss])
            (-define-values (list s) s))]
+        [`(#:struct-cons ,s ,si)
+         (list (-define-values (list s) (-st-mk (mk-struct-info si))))]
+        [`(#:struct-pred ,s ,si)
+         (list (-define-values (list s) (-st-p (mk-struct-info si))))]
+        [`(#:struct-acc ,s ,si ,i)
+         (list (-define-values (list s) (-st-ac (mk-struct-info si) i)))]
+        [`(#:struct-mut ,s ,si ,i)
+         (list (-define-values (list s) (-st-mut (mk-struct-info si) i)))]
         [r
          (printf "unhandled in `make-defs`: ~a~n" r)
          '()]))
@@ -483,10 +511,7 @@
               ; optimize `boolean?` to `any/c`
               (hash-ref! cache s (--> (map simple-parse dom) -any/c (next-neg!)))]))
          (list (-p/c-item s ctc))]
-        [`(#:alias ,s ,t)
-         (define ctc
-           (hash-ref cache t (λ () (error 'prims "`~a` aliases undeclared `~a`" s t))))
-         (list (-p/c-item s ctc))]
+        [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:batch (,ss ...) ,sig ,_ ...)
          (define ctc (simple-parse sig))
          (for/list ([s ss])
@@ -494,6 +519,22 @@
         [`(#:const ,_) '()] ; no need. They're all inlined.
         [`(,(? symbol? s) ,sig ,_ ...)
          (define ctc (hash-ref! cache s (simple-parse sig)))
+         (list (-p/c-item s ctc))]
+        [`(#:struct-cons ,s (,_ ,mut? ...))
+         (define ctc (hash-ref! cache s -any/c))
+         (printf "`make-decs`: FIXME: guard constructor arity~n")
+         (list (-p/c-item s ctc))]
+        [`(#:struct-pred ,s (,_ ,mut? ...))
+         (printf "`make-decs`: FIXME: guard arity 1~n")
+         (define ctc (hash-ref! cache s -any/c))
+         (list (-p/c-item s ctc))]
+        [`(#:struct-acc ,s (,t ,mut? ...) ,_)
+         (printf "`make-decs`: FIXME: guard tag in arg~n")
+         (define ctc (hash-ref! cache s -any/c))
+         (list (-p/c-item s ctc))]
+        [`(#:struct-mut ,s (,t ,mut? ...) ,_)
+         (printf "`make-decs`: FIXME: guard tag + arity in args~n")
+         (define ctc (hash-ref! cache s -any/c))
          (list (-p/c-item s ctc))]
         [r
          (printf "unhandled in `make-decs` ~a~n" r)
