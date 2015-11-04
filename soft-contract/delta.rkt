@@ -230,19 +230,12 @@
          (append-map generate-general-clauses
                      (syntax->list (convert-syntax prims)))))
      (define body-stx
-       #`(match o
-           [(? symbol? s)
-            (case o
-              #,@clauses
-              [else (error 'δ "unhandled: ~a" o)])]
-           [(-st-mk si) (apply-st-mk si M σ Γ Ws l)]
-           [(-st-p si) (apply-st-p si M σ Γ Ws l)]
-           [(-st-ac si i) (apply-st-ac si i M σ Γ Ws l)]
-           [(-st-mut si i) (apply-st-mut si i M σ Γ Ws l)]
-           [x (error 'δ "unhandled: ~a" x)]))
+       #`(case o
+           #,@clauses
+           [else (error 'δ "unhandled: ~a" o)]))
      (printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → -AΓs)
+(: δ : -M -σ -Γ Symbol (Listof -WV) Mon-Party → -AΓs)
 (define (δ M σ Γ o Ws l)
   (gen-δ-body M σ Γ o Ws l))
