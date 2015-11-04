@@ -1,6 +1,6 @@
 #lang typed/racket
 (require
- racket/splicing "untyped-macros.rkt" "utils.rkt"
+ racket/splicing racket/extflonum "untyped-macros.rkt" "utils.rkt"
  (for-syntax racket/base racket/match racket/syntax syntax/parse))
 (require/typed redex/reduction-semantics
   [variable-not-in (Any Symbol → Symbol)])
@@ -74,7 +74,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type/pred Base
-  (U Number Boolean String Symbol Keyword Bytes Regexp PRegexp))
+  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp))
 
 (define-data -top-level-form
   -general-top-level-form
@@ -736,6 +736,7 @@
      (define s (number->string x))
      (substring s 0 (min (string-length s) 5))]
     [(or (regexp? x) (pregexp? x) (bytes? x)) (format "~a" x)]
+    [(extflonum? x) (extfl->inexact x)]
     [else x]))
 
 ;; Return operator's simple show-o for pretty-printing
