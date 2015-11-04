@@ -15,9 +15,8 @@
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
 
-;; Concrete table for unsafe operations
-;(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → -AΓs)
 (: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) → -AΓs)))
+;; Concrete table for unsafe operations
 (define (concrete s)
   (case s
     [else #f]))
@@ -172,7 +171,7 @@
          (syntax-parse #'main
            [(x:ctc ... . (~literal ->) . y:ctc)
             (values (syntax->list #'(x ...)) #'y)]))
-
+            
        (define rhs
          (cond
            ; Operations on base values are straightforward to lift
@@ -196,15 +195,20 @@
 
             (define/contract e-ids (listof identifier?)
               (build-list (length doms) (λ (i) (datum->syntax #'op (mk-sym 'e i)))))
-            
+
             #`(match #,(Ws-id)
                 [(list #,@pat-bs)
                  (define ans (-b (op #,@b-ids)))
                  (-AΓ (list ans) #,(Γ-id))]
-                [_
-                 (-AΓ -list• #,(Γ-id))])]
+                [_ (-AΓ -list• #,(Γ-id))])]
            ; Other operations return `●` by default
-           [else #`(-AΓ -list• #,(Γ-id))]))
+           [else
+            #`(cond
+                [(concrete 'op)
+                 =>
+                 (λ ([f : (-M -σ -Γ (Listof -WV) → -AΓs)])
+                   (f #,(M-id) #,(σ-id) #,(Γ-id) #,(Ws-id)))]
+                [else (-AΓ -list• #,(Γ-id))])]))
        
        ;; generate lhs-rhs for specific `op`
        (list #`[(op) #,rhs])]
