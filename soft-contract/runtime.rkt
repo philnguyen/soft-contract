@@ -498,7 +498,7 @@
   (match e
     [(-@ (-st-mk (≡ s)) es _)
      (define mutables (-struct-info-mutables s))
-     (for/list ([e es] [i (in-naturals)])
+     (for/list ([(e i) (in-indexed es)])
        (if (∋ mutables i) #f e))]
     [_ (for/list : (Listof -?e) ([i (in-range (-struct-info-arity s))])
          (-?@ (-st-ac s i) e))]))
