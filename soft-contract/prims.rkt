@@ -1,10 +1,11 @@
 #lang racket/base
 (require racket/contract "untyped-macros.rkt")
 (provide
- dec? impl?
+ ctc? dec? impl?
  (contract-out
   [prims (listof dec?)]
-  [implications (listof impl?)]))
+  [implications (listof impl?)]
+  [base? (ctc? . -> . any)]))
 
 ;; FIXME annotation for side effects
 
@@ -155,7 +156,7 @@
 
      ;; 4.2.2.7 Random Numbers
      [random ; FIXME range, all uses
-      (integer? . -> . exact-nonnegative-integer?)]
+      (integer? pseudo-random-generator? . -> . exact-nonnegative-integer?)]
      [random-seed
       (integer? . -> . void?)]
      [make-pseudo-random-generator
@@ -239,7 +240,7 @@
      [make-flrectangular ; FIXME precision
       (flonum? flonum? . -> . number?)]
      [#:batch (flreal-part flimag-part) ; FIXME correct domain
-      (number? . -> . flonum?)]
+      (float-complex? . -> . flonum?)]
      [flrandom ; FIXME range
       (pseudo-random-generator? . -> . flonum?)]
 
@@ -327,7 +328,7 @@
       (extflonum? extflonum? . -> . extflonum?)]
      [#:batch (extflround extflfloor extflceiling extfltruncate)
       (extflonum? . -> . extflonum?)]
-     [#:batch (extflsin extflcos extfltan extflasin extflacons extflatan
+     [#:batch (extflsin extflcos extfltan extflasin extflacos extflatan
                extfllog extflexp extflsqrt)
       (extflonum? . -> . extflonum?)]
      [extflexpt
@@ -337,11 +338,11 @@
      [extfl->exact-integer
       (extflonum? . -> . exact-integer?)]
      [real->extfl
-      (real? . -> . extfl)]
+      (real? . -> . extflonum?)]
      [extfl->exact
-      (real? . -> . (and/c real? exact?))]
+      (extflonum? . -> . (and/c real? exact?))]
      [extfl->inexact
-      (real? . -> . flonum?)]
+      (extflonum? . -> . flonum?)]
 
      ;; 4.2.5.2 Extflonum Constants
      [pi.t extflonum?]
@@ -406,7 +407,7 @@
      [list->string
       ((listof char?) . -> . string?)]
      [build-string
-      (exact-nonnegative-integer? exact-nonnegative-integer? . -> . string?)]
+      (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . char?) . -> . string?)]
      
      ;; 4.3.2 String Comparisons. FIXME varargs
      [#:batch (string=? string<? string<=? string>? string>=?
@@ -422,8 +423,9 @@
      ;; 4.3.4 Locale-specific string operations 
      ; FIXME varargs
      [#:batch (string-locale=? string-locale<? string-locale>?
-               string-locale-ci=? string-locale-ci<? string-locale-ci>?
-               string-locale-upcase string-locale-downcase)
+               string-locale-ci=? string-locale-ci<? string-locale-ci>?)
+      (string? string? . -> . string?)]
+     [#:batch (string-locale-upcase string-locale-downcase)
       (string? . -> . string?)]
 
      ;; 4.3.5 Additional String Functions
@@ -1664,7 +1666,14 @@
     [contract-continuation-mark-key continuation-mark-key?]
     ))
 
-(define prims (append prims.04 prims.08))
+(define prims.math
+  '( 
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 1.2 Functions
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [#:pred float-complex?]))
+
+(define prims (append prims.04 prims.08 prims.math))
 
 
 ;; Declare implications between predicates.
@@ -1680,6 +1689,7 @@
     [fixnum? ⇒ integer?]
     [integer? ⇒ rational?]
     [real? ⇒ number?]
+    [float-complex? ⇒ number?]
     [not ⇒ boolean?]
     [exact-integer? ⇒ integer?]
     [exact-integer? ⇒ exact?]
@@ -1728,6 +1738,14 @@
      (#t {(null? xs)})
      ((list? (cdr xs)) {(cons? xs)})]
     ))
+
+;; Check if `s` is a contract specifying a base value 
+(define (base? s)
+  (case s
+    [(integer? real? number? exact-nonnegative-integer? flonum?
+      extflonum?
+      string? symbol? keyword? #|TODO|#) #t]
+    [else #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
