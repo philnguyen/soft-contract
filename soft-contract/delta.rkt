@@ -1,6 +1,6 @@
-#lang typed/racket/base
+#lang typed/racket
 (require
- racket/match racket/set racket/bool racket/math racket/contract
+ racket/flonum racket/extflonum math/base
  "utils.rkt" "ast.rkt" "runtime.rkt" "provability.rkt"
  (for-syntax racket/base racket/syntax syntax/parse racket/contract
              racket/pretty racket/list racket/function racket/contract
@@ -8,9 +8,16 @@
  )
 (provide δ Γ+/-)
 
+;; Different kinds of primitives:
+;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
+;; - Struct primitives (e.g. constructors, predicates, accessors, mutators): systematically generated
+;; - Other primitives:
+;;   * Return `●` by default. Depend on wrapped contract for more precision.
+;;   * Do more precise things if defined specially in `concrete` table.
+
 ;; Concrete table for unsafe operations
 ;(: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → -AΓs)
-(: concrete-prim : Symbol → (Option (-M -σ -Γ (Listof -WV) → -AΓs)))
+(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) → -AΓs)))
 (define (concrete s)
   (case s
     [else #f]))
@@ -55,7 +62,23 @@
                       [else (set-add ans-bads ans-ok)])]
         [else ans-bads]))
 
-(define -list• (list '•))
+(define -list• : (List -V) (list '•))
+
+(: apply-st-mk : -struct-info -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
+(define (apply-st-mk si M σ Γ Ws l)
+  (error "TODO"))
+
+(: apply-st-p : -struct-info -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
+(define (apply-st-p si M σ Γ Ws l)
+  (error "TODO"))
+
+(: apply-st-ac : -struct-info Integer -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
+(define (apply-st-ac si Integer M σ Γ Ws l)
+  (error "TODO"))
+
+(: apply-st-mut : -struct-info Integer -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
+(define (apply-st-mut si Integer M σ Γ Ws l)
+  (error "TODO"))
 
 ;; Language definition for `δ` begins here
 (begin-for-syntax
@@ -76,123 +99,118 @@
     #`(quote #,(syntax->datum id)))
 
   (define/hack (convert-syntax stx)
-    (datum->syntax #'here (syntax->datum stx)))
+    (datum->syntax #'here stx))
 
-  (define-syntax-class ctc₀
-    #:description "basic contract"
-    (pattern (~or x:id ((~literal not/c) y:id))))
+  (define-syntax-class rng
+    #:description "limited contract range"
+    (pattern (~or c:ctc ((~literal values) d:ctc ...))))
+
+  (define-syntax-class arr
+    #:description "limited function contract"
+    (pattern ((~literal ->) dom:ctc ... rng:ctc #;rng:rng)))
+
+  (define-syntax-class arr*
+    #:description "limited vararg contract"
+    (pattern ((~literal ->*) (dom:ctc ...) #:rest rest:ctc rng:rng)))
 
   (define-syntax-class ctc
-    #:description "primitive contract"
-    (pattern (~or ((~literal and/c) z:ctc₀ ...) x:ctc₀)))
-  
-  (define-syntax-class sig
-    #:description "primitive signature"
-    ;; Figure out the right one. FIXME `→` matches *everything*!!
-    (pattern (d:ctc ... (~literal →) r:ctc)))
+    #:description "limited contract"
+    (pattern (~or x:id
+                  ((~literal not/c) c:ctc)
+                  ((~literal one-of/c) d:ctc ...)
+                  ((~literal and/c) d:ctc ...)
+                  ((~literal or/c) d:ctc ...)
+                  ((~literal listof) c:ctc)
+                  ((~literal list/c) d:ctc ...)
+                  ((~literal cons/c) l:ctc r:ctc)
+                  a:arr
+                  a:arr*)))
 
-  ;; Split signature into domain and range
-  (define (sig->dom/rng sig)
-    (syntax? . -> . (values (listof syntax?) syntax?))
-    (syntax-parse sig ; FIXME why can't I use `with-syntax`? :(
-      [(x:ctc ... (~literal →) y:ctc)
-       (values (syntax->list #'(x ...)) #'y)]))
-
-  (define/contract (gen-match-clause row)
+  (define/contract (generate-general-clauses row)
     (syntax? . -> . (listof syntax?))
 
+    ;(printf "Generating for ~a~n" (syntax->datum row))
+
+    (define/contract (mk-struct-info t mut?s)
+      (symbol? (listof boolean?) . -> . syntax?)
+      (define muts (for/list ([(mut? i) (in-indexed mut?s)] #:when mut?) i))
+      (define n (length mut?s))
+      #`(-struct-info #,t #,n (set #,@(muts))))
+
     (syntax-parse row
-      ;; Shorthands
+
+      ;; Expand shorthand cases
       [(#:pred p:id)
-       (gen-match-clause #'(p (any/c → boolean?) #:other-errors))]
+       (generate-general-clauses #'(p (any/c . -> . boolean?) #:other-errors))]
       [(#:pred p:id (dom:ctc ...))
-       (gen-match-clause #'(p (dom ... → boolean?) #:other-errors))]
-      [(#:batch (ops:id ...) main:sig refinements:sig ...)
+       (generate-general-clauses #'(p (dom ... . -> . boolean?) #:other-errors))]
+      [(#:batch (ops:id ...) main:ctc refinements:ctc ...)
        (append-map
-        (λ (op) (gen-match-clause #`(#,op main refinements ...)))
+        (λ (op) (generate-general-clauses #`(#,op main refinements ...)))
         (syntax->list #'(ops ...)))]
-      [(op:id main:sig refinements:sig ...)
-       (gen-match-clause #'(op main refinements ... #:other-errors))]
-      ;; Generate case
-      [(op:id main:sig refinements:sig ... #:other-errors (guards:ctc ...) ...)
-       (define-values (main-dom main-rng) (sig->dom/rng #'main))
-       (define n (length main-dom))
-       (define W-ids (build-list n (curry mk-sym 'W)))
-       (define-values (V-ids e-ids)
-         (for/lists (V-ids e-ids)
-                    ([W-id W-ids] [i (in-naturals)])
-           (values (mk-sym 'V i) (mk-sym 'e i))))
+      [(op:id main:ctc refinements:ctc ...)
+       (generate-general-clauses #'(op main refinements ... #:other-errors))]
 
-       (define/contract (gen-ok)
-         (-> syntax?)
+      ;; Ignore non-symbol cases
+      [(~or (#:struct-cons _ ...)
+            (#:struct-pred _ ...)
+            (#:struct-acc _ ...)
+            (#:struct-mut _ ...))
+       '()]
 
-         (define (mk-pat c)
-           (syntax-parse c
-             [p:id #`(? p)]
-             [((~literal not/c) p:id) #`(not (? p))]
-             [((~literal and/c) p ...)
-              #`(and #,@(map mk-pat (syntax->list #'(p ...))))]))
+      ;; Handle generate case
+      [(op:id main:arr refinements:arr ... #:other-errors (guards:ctc ...) ...)
 
-         (define b-ids
-           (for/list ([_ e-ids] [i (in-naturals)])
-             (mk-sym 'b i)))
-         
-         (define wraps
-           (for/list ([b-id b-ids] [p-id main-dom])
-             (syntax-parse p-id
-               [(~literal any/c) #`(-b #,b-id)]
-               [p:id #`(-b (? p #,b-id))]
-               [((~literal not/c) p:id) #`(-b (not (? p #,b-id)))]
-               [((~literal and/c) p ...)
-                #`(-b (and #,@(map mk-pat (syntax->list #'(p ...))) #,b-id))])))
-         
-         (define _s (make-list (length b-ids) #'_))
-         
-         (define V-stx
-           #`(match* #,e-ids
-               [#,wraps (list (-b (#,(o-id) #,@b-ids)))]
-               [#,_s -list•]))
-         
-         #`(let ([Vs #,V-stx])
-             (-AΓ Vs #,(Γ-id))))
+       (define (mk-pat c)
+         (syntax-parse c
+           [p:id #`(? p)]
+           [((~literal not/c) p:id) #`(not (? p))]
+           [((~literal and/c) p ...)
+            #`(and #,@(map mk-pat (syntax->list #'(p ...))))]))
 
-       (define/contract (gen-guard W-id V-id ctc)
-         (identifier? identifier? syntax? . -> . (listof syntax?))
-         (syntax-parse ctc
-           [(~literal any/c) '()]
-           [p:id
-            (define qp #`(quote #,(syntax-e #'p)))
-            (define mk-bad #`(ans-bad #,(l-id) (quote #,(o-id)) #,qp #,V-id))
-            (list #`(list (-W #,qp #,qp) (list #,W-id) #,mk-bad))]
-           [((~literal and/c) p? ...)
-            (append-map (curry gen-guard W-id V-id) (syntax->list #'(p? ...)))]
-           [((~literal not/c) p:id)
-            (define qp #`(quote #,(syntax-e #'p)))
-            (define mk-bad
-              #`(ans-bad #,(l-id) (quote #,(o-id)) (-not/C #,qp) #,V-id))
-            (list #`(list 'not (-W #,qp #,qp) (list #,W-id) #,mk-bad))]))
+       (define-values (doms rng)
+         (syntax-parse #'main
+           [(x:ctc ... . (~literal ->) . y:ctc)
+            (values (syntax->list #'(x ...)) #'y)]))
 
-       (define/contract (check-args)
-         (-> (listof syntax?))
-         (define defs
-           (for/list ([W-id W-ids] [V-id V-ids] [e-id e-ids])
-             #`(match-define (-W #,V-id #,e-id) #,W-id)))
-         (define guards (append-map gen-guard W-ids V-ids main-dom))
-         (append
-          defs
-          (list
-           (if (null? guards)
-               (gen-ok)
-               #`(Γ+/-AΓ #,(M-id) #,(σ-id) #,(Γ-id)
-                         (λ ([Γ-ok : -Γ]) #,(parameterize ([Γ-id #'Γ-ok]) (gen-ok)))
-                         #,@guards)))))
+       (define rhs
+         (cond
+           ; Operations on base values are straightforward to lift
+           [(and (andmap (compose base? syntax->datum) doms)
+                 (base? (syntax->datum rng)))
+
+            (define/contract b-ids (listof identifier?)
+              (build-list (length doms) (λ (i) (datum->syntax #'op (mk-sym 'b i)))))
+
+            (define pat-bs
+              (for/list ([b-id b-ids] [p doms])
+                (define stx-b
+                  (syntax-parse p
+                    [p:id #`(-b (? p #,b-id))]
+                    [((~literal not/c) p:id) #`(-b (not (? p #,b-id)))]
+                    [((~literal and/c) p ...)
+                     #`(-b (and #,@(map mk-pat (syntax->list #'(p ...))) #,b-id))]
+                    [((~literal or/c) p ...)
+                     #`(-b (or #,@(map mk-pat (syntax->list #'(p ...))) #,b-id))]))
+                #`(-W _ #,stx-b)))
+
+            (define/contract e-ids (listof identifier?)
+              (build-list (length doms) (λ (i) (datum->syntax #'op (mk-sym 'e i)))))
+            
+            #`(match #,(Ws-id)
+                [(list #,@pat-bs)
+                 (define ans (-b (op #,@b-ids)))
+                 (-AΓ (list ans) #,(Γ-id))]
+                [_
+                 (-AΓ -list• #,(Γ-id))])]
+           ; Other operations return `●` by default
+           [else #`(-AΓ -list• #,(Γ-id))]))
        
-       (define/contract (gen-prim)
-         (-> syntax?)
-         #`(with-guarded-arity #,W-ids #,@(check-args)))
-       
-       (parameterize ([o-id #'op])
-         (list #`[(op) #,(gen-prim)]))])))
+       ;; generate lhs-rhs for specific `op`
+       (list #`[(op) #,rhs])]
+      [stx
+       (printf "`generate-general-clauses`: ignore ~a~n" (syntax->datum #'stx))
+       '()])))
 
 ;; Generate body of `δ`
 (define-syntax (gen-δ-body stx)
@@ -205,22 +223,21 @@
                       [o-id #'o]
                       [Ws-id #'Ws]
                       [l-id #'l])
-         (append-map gen-match-clause (syntax->list (convert-syntax prims)))))
-     (define res
-       #`(begin
-           (define-syntax (with-guarded-arity stx)
-             (syntax-parse stx
-               [(_ (W:id (... ...)) e (... ...))
-                (define n (length (syntax->list #'(W (... ...)))))
-                #`(match Ws
-                    [(list W (... ...)) e (... ...)]
-                    [_ (-AΓ (-blm l (assert o symbol?) (-=/C #,n) (WVs->Vs Ws)) Γ)])]))
-           (: ans-bad : Mon-Party Mon-Party -V -V → (-Γ → -AΓ))
-           (define ((ans-bad l+ lo P V) Γ)
-             (-AΓ (-blm l+ lo P (list V)) Γ))
-           (case o #,@clauses [else (error 'δ "unhandled: ~a" o)])))
-     (printf "Generated:~n~a~n" (pretty (syntax->datum res)))
-     res]))
+         (append-map generate-general-clauses
+                     (syntax->list (convert-syntax prims)))))
+     (define body-stx
+       #`(match o
+           [(? symbol? s)
+            (case o
+              #,@clauses
+              [else (error 'δ "unhandled: ~a" o)])]
+           [(-st-mk si) (apply-st-mk si M σ Γ Ws l)]
+           [(-st-p si) (apply-st-p si M σ Γ Ws l)]
+           [(-st-ac si i) (apply-st-ac si i M σ Γ Ws l)]
+           [(-st-mut si i) (apply-st-mut si i M σ Γ Ws l)]
+           [x (error 'δ "unhandled: ~a" x)]))
+     (printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
+     body-stx]))
 
 (: δ : -M -σ -Γ -o (Listof -WV) Mon-Party → -AΓs)
 (define (δ M σ Γ o Ws l)
