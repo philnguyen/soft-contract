@@ -50,7 +50,10 @@
       [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
       [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
       [(-x x) x]
-      [(-b b) b]
+      [(-b b)
+       (cond
+         [(or (number? b) (string? b)) b]
+         [else #f])]
       [_ #f])))
 
 (: γ : -Γ → (Listof Sexp))
