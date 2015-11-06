@@ -6,7 +6,7 @@
              racket/pretty racket/list racket/function racket/contract
              "untyped-macros.rkt" "utils.rkt" "prims.rkt")
  )
-(provide δ Γ+/-)
+(provide δ Γ+/- -list•)
 
 ;; Different kinds of primitives:
 ;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
@@ -15,10 +15,16 @@
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
 
-(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) → -AΓs)))
+(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → -AΓs)))
 ;; Concrete table for unsafe operations
 (define (concrete s)
   (case s
+    [(vector)
+     (error "TODO")]
+    [(vector-ref)
+     (error "TODO")]
+    [(vector-set!)
+     (error "TODO")]
     [else #f]))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
@@ -62,22 +68,6 @@
         [else ans-bads]))
 
 (define -list• : (List -V) (list '•))
-
-(: apply-st-mk : -struct-info -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
-(define (apply-st-mk si M σ Γ Ws l)
-  (error "TODO"))
-
-(: apply-st-p : -struct-info -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
-(define (apply-st-p si M σ Γ Ws l)
-  (error "TODO"))
-
-(: apply-st-ac : -struct-info Integer -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
-(define (apply-st-ac si Integer M σ Γ Ws l)
-  (error "TODO"))
-
-(: apply-st-mut : -struct-info Integer -M -σ -Γ (Listof -WV) Mon-Party → -AΓs)
-(define (apply-st-mut si Integer M σ Γ Ws l)
-  (error "TODO"))
 
 ;; Language definition for `δ` begins here
 (begin-for-syntax
@@ -206,8 +196,8 @@
             #`(cond
                 [(concrete 'op)
                  =>
-                 (λ ([f : (-M -σ -Γ (Listof -WV) → -AΓs)])
-                   (f #,(M-id) #,(σ-id) #,(Γ-id) #,(Ws-id)))]
+                 (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → -AΓs)])
+                   (f #,(M-id) #,(σ-id) #,(Γ-id) #,(Ws-id) #,(l-id)))]
                 [else (-AΓ -list• #,(Γ-id))])]))
        
        ;; generate lhs-rhs for specific `op`
@@ -236,6 +226,6 @@
      (printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ Symbol (Listof -WV) Mon-Party → -AΓs)
+(: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → -AΓs)
 (define (δ M σ Γ o Ws l)
   (gen-δ-body M σ Γ o Ws l))
