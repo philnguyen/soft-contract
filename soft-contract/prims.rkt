@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/contract "untyped-macros.rkt")
+(require racket/match racket/contract "untyped-macros.rkt")
 (provide
  ctc? dec? impl?
  (contract-out
@@ -1741,11 +1741,17 @@
 
 ;; Check if `s` is a contract specifying a base value 
 (define (base? s)
-  (case s
-    [(integer? real? number? exact-nonnegative-integer? flonum?
-      extflonum?
-      string? symbol? keyword? #|TODO|#) #t]
-    [else #f]))
+  (match s
+    [(? symbol? s)
+     (case s
+       [(integer? real? number? exact-nonnegative-integer? flonum?
+                  extflonum?
+                  string? symbol? keyword? #|TODO|#)
+        #t]
+       [else #f])]
+    [`(,(or 'and/c 'or/c 'not/c) ,cs ...)
+     (map base? cs)]
+    [_ #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
