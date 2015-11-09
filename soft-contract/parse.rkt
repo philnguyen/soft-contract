@@ -211,19 +211,18 @@
            (syntax-position stx))]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
-     (apply -and/c (map cons
-                        (parse-es #'(c ...))
-                        (map syntax-position (syntax->list #'(c ...)))))]
+     (-@ 'and/c (parse-es #'(c ...)) (-src-loc (cur-mod) (syntax-position stx)))]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
-     (apply -or/c (map cons
-                       (parse-es #'(c ...))
-                       (map syntax-position (syntax->list #'(c ...)))))]
+     (-@ 'or/c (parse-es #'(c ...)) (-src-loc (cur-mod) (syntax-position stx)))]
     ;; Negation
     [(#%plain-app (~literal fake:not/c) c)
-     (-not/c (parse-e #'c) (syntax-position stx))]
+     (-@ 'not/c (list (parse-e #'c)) (-src-loc (cur-mod) (syntax-position stx)))]
     [(#%plain-app (~literal fake:listof) c)
-     (-μ/c 'X (-or/c -null/c (-cons/c (parse-e #'c) (-x/c 'X) (syntax-position stx))))]
+     (-μ/c 'X
+       (-@ 'or/c (list -null/c
+                       (-cons/c (parse-e #'c) (-x/c 'X) (syntax-position stx)))
+           (cur-mod)))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (apply -list/c (map cons
                          (parse-es #'(c ...))
@@ -231,9 +230,9 @@
     [(#%plain-app (~literal fake:box/c) c)
      (-box/c (parse-e #'c) (syntax-position stx))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (apply -vector/c (syntax-position stx) (parse-es #'(c ...)))]
+     (-@ '-vector/c (parse-es #'(c ...)) (cur-mod))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-vectorof (parse-e #'c) (syntax-position stx))]
+     (-@ 'vectorof (parse-e #'c) (cur-mod))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (-struct/c (-id-local (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
@@ -453,16 +452,16 @@
          (printf "Skipping ->* for now~n")
          -any/c]
         [`(and/c ,cs ...)
-         (apply -and/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
+         (-@ 'and/c (map simple-parse cs) (-src-loc 'Λ (next-neg!)))]
         [`(or/c ,cs ...)
-         (apply -or/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
+         (-@ 'or/c (map simple-parse cs) (-src-loc 'Λ (next-neg!)))]
         [`(one-of/c ,cs ...)
          (apply -one-of/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
         [`(list/c ,cs ...)
          (apply -list/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
         [`(cons/c ,c ,d)
          (-cons/c (simple-parse c) (simple-parse d) (next-neg!))]
-        [`(not/c ,c) (-not/c (simple-parse c) (next-neg!))]
+        [`(not/c ,c) (-@ 'not/c (list (simple-parse c)) (-src-loc (cur-mod) (next-neg!)))]
         [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
         [`(values ,ctcs ...)
          (-@ 'values (map simple-parse ctcs) (-src-loc 'Λ (next-neg!)))]

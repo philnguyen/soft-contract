@@ -47,7 +47,7 @@
 
 (define-data -id
   ;; primitive ids as symbols to ease notation
-  'cons 'null 'void 'box 'and/c 'or/c 'not/c 'vectorof 'vector/c
+  'cons 'null 'void 'box
   'μ/c 'x/c
   ;; these are just (tmp) hacks for retaining expressions / allocation address
   'values 'struct/c 'vector
@@ -146,10 +146,7 @@
   (struct -μ/c [x : Symbol] [c : -e] [pos : Integer])
   (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e] [pos : Integer])
   (struct -x/c [x : Symbol])
-  (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer])
-  #;(-and/c [l : .e] [r : .e])
-  #;(-or/c [l : .e] [r : .e])
-  #;(.¬/c [c : .e]))
+  (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
 
 (define-type -es (Setof -e))
 
@@ -189,11 +186,6 @@
 (define -unbox (-st-ac -s-box 0))
 (define -box (-st-mk -s-box))
 (define -set-box! (-st-mut -s-box 0))
-
-(define -s-and/c (-struct-info 'and/c 2 ∅))
-(define -s-or/c (-struct-info 'or/c 2 ∅))
-(define -s-not/c (-struct-info 'not/c 1 ∅))
-(define -s-vectorof (-struct-info 'vectorof 1 ∅))
 
 (: --> : (Listof -e) -e Integer → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
@@ -361,41 +353,25 @@
    ;; FIXME count up for primitives
    [_ 0]))
 
-(splicing-let ([mk-and/c (-st-mk -s-and/c)]
-               [mk-or/c  (-st-mk -s-or/c )]
-               [mk-not/c (-st-mk -s-not/c)])
-  (:* -and/c -or/c -one-of/c : (Pairof -e Integer) * → -e)
-  (define -and/c
-    (match-lambda*
-      [(list) -any/c]
-      [(list (cons c _)) c]
-      [(cons (cons c p) cs)
-       (-@ mk-and/c (list c (apply -and/c cs)) (-src-loc 'Λ p))]))
-  (define -or/c
-    (match-lambda*
-      [(list) -none/c]
-      [(list (cons c _)) c]
-      [(cons (cons c p) cs)
-       (-@ mk-or/c (list c (apply -or/c cs)) (-src-loc 'Λ p))]))
-  (define -one-of/c
-    (match-lambda*
-      [(list) -none/c]
-      [(list (cons e _)) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
-      [(cons (cons e p) es)
-       (-or/c (cons (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ)) p)
-              (cons (apply -one-of/c es) (next-neg!)))]))
-  
-  (: -cons/c : -e -e Integer → -e)
-  (define (-cons/c c d pos)
-    (-struct/c -s-cons (list c d) pos))
+(:* -one-of/c : (Pairof -e Integer) * → -e)
+(define -one-of/c
+  (match-lambda*
+    [(list) -none/c]
+    [(list (cons e _)) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
+    [(cons (cons e pos) es)
+     (-@ 'or/c
+         (list
+          (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))
+          (apply -one-of/c es))
+         (-src-loc 'Λ pos))]))
 
-  (: -not/c : -e Integer → -e)
-  (define (-not/c c pos)
-    (-@ (-st-mk (-struct-info 'not/c 1 ∅)) (list c) (-src-loc 'Λ pos)))
+(: -cons/c : -e -e Integer → -e)
+(define (-cons/c c d pos)
+  (-struct/c -s-cons (list c d) pos))
 
-  (: -listof : -e Integer → -e)
-  (define (-listof c pos)
-    (-μ/c 'X (-or/c (cons -null? pos) (cons (-cons/c c (-x/c 'X) pos) pos)) pos)))
+(: -listof : -e Integer → -e)
+(define (-listof c pos)
+  (-μ/c 'X (-@ 'or/c (list -null? (-cons/c c (-x/c 'X) pos)) -Λ) pos))
 
 (: -box/c : -e Integer → -e)
 (define (-box/c c pos)
@@ -415,13 +391,6 @@
     [(cons (cons e loc) es*)
      (-@ -cons (list e (apply -list es*)) loc)]))
 
-(: -vectorof : -e Integer → -e)
-(define (-vectorof e pos)
-  (-@ (-st-mk -s-vectorof) (list e) (-src-loc 'Λ pos)))
-
-(: -vector/c : Integer -e * → -e)
-(define (-vector/c pos . es)
-  (-@ (-st-mk (-struct-info 'vector/c (length es) ∅)) es (-src-loc 'Λ pos)))
 
 ;; Macros
 (:* -and : -e * → -e)

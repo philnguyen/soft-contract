@@ -123,22 +123,33 @@
   'undefined
   -prim
   '•
-  (struct -Ar
-    [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
-    [rng : -e] [env : -ρ] [Γ : -Γ]
-    [v : -α] [l³ : Mon-Info])
+  ;; Structs
   (struct -St [info : -struct-info] [fields : (Listof -α)])
   (struct -St/checked
     [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
     [unchecked : -α])
+  ;; Vectors
   (struct -Vector [fields : (Listof -α)])
   (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α])
+  ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
+  (struct -Ar
+    [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
+    [rng : -e] [env : -ρ] [Γ : -Γ]
+    [v : -α] [l³ : Mon-Info])
+  ;; Contracts
+  ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
+  ; But these give rise to more special cases of stack frames
+  (struct -And/C [flat? : Boolean] [l : -α] [r : -α])
+  (struct -Or/C [flat? : Boolean] [l : -α] [r : -α])
+  (struct -Not/C [γ : -α])
+  (struct -Vectorof [γ : -α])
+  (struct -Vector/C [γs : (Listof -α)])
+  (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α)])
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ])
-  (struct -St/C [info : -struct-info] [fields : (Listof -α)])
   (struct -μ/C [x : Symbol] [c : -α])
   (struct -X/C [ref : -α]))
 (define-type -Vs (Listof -V))
@@ -174,24 +185,22 @@
     [(list Vs ...) (map (curry close-Γ Γ) Vs)]
     [(? -V?) V]))
 
-(: C-flat? : -σ -V → Boolean)
+(: C-flat? : -V → Boolean)
 ;; Check whether value is a flat contract
-(define (C-flat? σ V)
-  (define (C-flat/list? [αs : (Listof -α)]) : Boolean
-    ;; TODO: can't do for*/and in TR
-    (for/and ([α αs])
-      (for/and : Boolean ([V (σ@ σ α)])
-        (C-flat? σ V))))
+(define (C-flat? V)
   (match V
-    [(-St (or (≡ -s-and/c) (≡ -s-or/c) (≡ -s-not/c)) αs) (C-flat/list? αs)]
-    [(-St (-struct-info (or 'vectorof 'vector/c) _ _) αs) (C-flat/list? αs)]
-    [(-St/checked _ _ _ α)
-     (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
-    [(-St/C _ αs) (C-flat/list? αs)]
+    [(-And/C flat? _ _) flat?]
+    [(-Or/C flat? _ _) flat?]
+    [(? -Not/C?) #t]
+    [(-St/C flat? _ _) flat?]
+    [(or (? -Vectorof?) (? -Vector/C?)) #f]
     [(? -=>i?) #f]
-    [(-μ/C _ α) (for/and : Boolean ([V (σ@ σ α)]) (C-flat? σ V))]
-    [_ #t]))
+    [(or (? -Clo*?) (? -Clo?) (? -Ar?) (? -prim?)) #t]
+    [V
+     (printf "`C-flat?`: warning: receiving non-contract ~a~n" (show-V V))
+     #t]))
 
+;; Pretty-print evaluated value
 (define (show-V [V : -V]) : Sexp
   (match V
     ['undefined 'undefined]
@@ -212,11 +221,16 @@
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-Vector/checked γs _ α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
+    [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
+    [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
+    [(-Not/C γ) `(not/c ,(show-α γ))]
+    [(-Vectorof γ) `(vectorof ,(show-α γ))]
+    [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
     [(-=>i xs cs γs d ρ Γ)
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : (,(show-α γ) @ ,(show-?e c))))
        ↦ ,(show-e d))]
-    [(-St/C s αs)
+    [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
     [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
     [(-X/C α) `(X: ,(show-α α))]))
