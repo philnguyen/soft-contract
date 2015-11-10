@@ -1750,7 +1750,7 @@
         #t]
        [else #f])]
     [`(,(or 'and/c 'or/c 'not/c) ,cs ...)
-     (map base? cs)]
+     (andmap base? cs)]
     [_ #f]))
 
 
