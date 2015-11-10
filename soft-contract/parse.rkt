@@ -519,21 +519,27 @@
         [`(,(? symbol? s) ,sig ,_ ...)
          (define ctc (hash-ref! cache s (simple-parse sig)))
          (list (-p/c-item s ctc))]
-        [`(#:struct-cons ,s (,_ ,mut? ...))
-         (define ctc (hash-ref! cache s -any/c))
-         (printf "`make-decs`: FIXME: guard constructor arity~n")
+        [`(#:struct-cons ,s (,_ ,mut?s ...))
+         (define ctc (hash-ref! cache s
+                                (-->i (for/list ([i (length mut?s)])
+                                        (cons (string->symbol (format "k•~a" (n-sub i)))
+                                              -any/c))
+                                      -any/c
+                                      (next-neg!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-pred ,s (,_ ,mut? ...))
-         (printf "`make-decs`: FIXME: guard arity 1~n")
-         (define ctc (hash-ref! cache s -any/c))
+         (define ctc (hash-ref! cache s (-->i (list (cons 'p• -any/c)) -any/c (next-neg!))))
          (list (-p/c-item s ctc))]
-        [`(#:struct-acc ,s (,t ,mut? ...) ,_)
-         (printf "`make-decs`: FIXME: guard tag in arg~n")
-         (define ctc (hash-ref! cache s -any/c))
+        [`(#:struct-acc ,s ,si ,_)
+         (define ctc (hash-ref! cache s (-->i (list (cons 'a• (-st-p (mk-struct-info si))))
+                                              -any/c
+                                              (next-neg!))))
          (list (-p/c-item s ctc))]
-        [`(#:struct-mut ,s (,t ,mut? ...) ,_)
-         (printf "`make-decs`: FIXME: guard tag + arity in args~n")
-         (define ctc (hash-ref! cache s -any/c))
+        [`(#:struct-mut ,s ,si ,_)
+         (define ctc (hash-ref! cache s (-->i (list (cons 'm•₁ (-st-p (mk-struct-info si)))
+                                                    (cons 'm•₂ -any/c))
+                                              -any/c
+                                              (next-neg!))))
          (list (-p/c-item s ctc))]
         [r
          (printf "unhandled in `make-decs` ~a~n" r)
