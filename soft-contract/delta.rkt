@@ -15,17 +15,24 @@
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
 
-(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → -AΓs)))
+(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))))
 ;; Concrete table for unsafe operations
 (define (concrete s)
-  (case s
-    [(vector)
-     (error "TODO")]
-    [(vector-ref)
-     (error "TODO")]
-    [(vector-set!)
-     (error "TODO")]
-    [else #f]))
+  (define-syntax-rule (with-args (M σ Γ Ws loc) [t e ...] ...)
+    (case s
+      [(t)
+       (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -WV)] [loc : -src-loc])
+         e ...)]
+      ...
+      [else #f]))
+  
+  (with-args (M σ Γ Ws loc)
+    [vector? ; FIXME should be doing this in proof relation instead
+     (match Ws
+       [(list (-W (? -Vector?) e)) (values σ (-AΓ (list -tt) Γ))]
+       [(list (-W (? -Vector/checked?) _)) (values σ (-AΓ (list -tt) Γ))]
+       [(list (-W (list '•) _)) (values σ (-AΓ -list• Γ))]
+       [_ (values σ (-AΓ (list -ff) Γ))])]))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
            (U (List -WV (Listof -WV) (-Γ → Y))
@@ -180,7 +187,7 @@
                     [((~literal and/c) p ...)
                      #`(-b (and #,@(map mk-pat (syntax->list #'(p ...))) #,b-id))]
                     [((~literal or/c) p ...)
-                     #`(-b (or #,@(map mk-pat (syntax->list #'(p ...))) #,b-id))]))
+                     #`(-b (and (or #,@(map mk-pat (syntax->list #'(p ...)))) #,b-id))]))
                 #`(-W _ #,stx-b)))
 
             (define/contract e-ids (listof identifier?)
@@ -189,16 +196,16 @@
             #`(match #,(Ws-id)
                 [(list #,@pat-bs)
                  (define ans (-b (op #,@b-ids)))
-                 (-AΓ (list ans) #,(Γ-id))]
-                [_ (-AΓ -list• #,(Γ-id))])]
+                 (values #,(σ-id) (-AΓ (list ans) #,(Γ-id)))]
+                [_ (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])]
            ; Other operations return `●` by default
            [else
             #`(cond
                 [(concrete 'op)
                  =>
-                 (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → -AΓs)])
+                 (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))])
                    (f #,(M-id) #,(σ-id) #,(Γ-id) #,(Ws-id) #,(l-id)))]
-                [else (-AΓ -list• #,(Γ-id))])]))
+                [else (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])]))
        
        ;; generate lhs-rhs for specific `op`
        (list #`[(op) #,rhs])]
@@ -226,6 +233,6 @@
      (printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → -AΓs)
+(: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → (Values -σ -AΓs))
 (define (δ M σ Γ o Ws l)
   (gen-δ-body M σ Γ o Ws l))
