@@ -8,11 +8,6 @@
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
 
-(: fix : (∀ (X) (X → X) X → X))
-(define (fix f x)
-  (define x* (f x))
-  (if (equal? x x*) x (fix f x*)))
-
 ;; Compute a graph's reflexive-transitive closure
 (: refl-trans : Graph → Graph)
 (define (refl-trans m)
