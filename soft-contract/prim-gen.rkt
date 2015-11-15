@@ -14,8 +14,8 @@
 
   ;; Compute `m`'s reflexive closure
   (define m₀
-    (let ([refl
-           (λ ([m : Graph] [k : Symbol])
+    (let ([refl : (Graph Symbol → Graph)
+           (λ (m k)
              (hash-update m k (λ ([vs : (Setof Symbol)]) (set-add vs k)) →∅))])
       (for*/fold ([m : Graph m])
                  ([(l rs) (in-hash m)]
@@ -49,7 +49,6 @@
 
 (define-values (implications exclusions)
   (let ()
-
     ;; Compute first versions of graphs to start with
     (define-values (im ex)
       (for/fold ([im : Graph (hash)] [ex : Graph (hash)])
