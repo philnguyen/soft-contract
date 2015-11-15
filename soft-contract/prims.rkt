@@ -1694,7 +1694,7 @@
     [exact-integer? ⇒ integer?]
     [exact-integer? ⇒ exact?]
     [exact-nonnegative-integer? ⇒ exact?]
-    [exact-nonnegative-integer? ⇒ (not/c negative?)]
+    [#:exclusion exact-nonnegative-integer? negative?]
     [exact-nonnegative-integer? ⇒ integer?]
     [exact-positive-integer? ⇒ exact?]
     [exact-positive-integer? ⇒ positive?]
@@ -1723,6 +1723,9 @@
     [set-weak? ⇒ set?]
     ;; Arity
     [exact-nonnegative-integer? ⇒ procedure-arity?]
+
+    [#:exclusion
+     number? string? boolean? keyword? symbol?]
     ))
 
 
@@ -1793,5 +1796,6 @@
 
 (define impl?
   (match-λ?
-   `(,(? symbol?) ⇒ ,(? ctc?))
-   `(#:partition ,(? symbol?) (,(? symbol?) ...))))
+   `(,(? symbol?) ⇒ ,(? symbol?))
+   `(#:partition ,(? symbol?) (,(? symbol?) ...))
+   `(#:exclusion ,(? symbol?) ...)))
