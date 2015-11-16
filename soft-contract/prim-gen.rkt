@@ -2,11 +2,13 @@
 
 (require racket/match racket/set "utils.rkt")
 (require/typed "prims.rkt"
-  [(implications prims:implications) (Listof Any)])
+  [(implications prims:implications) (Listof Any)]
+  [(prims prims:prims) (Listof Any)])
 
-(provide Graph implications exclusions)
+(provide Graph implications exclusions prim-ranges prim-refinements-for-ranges)
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
+(define -graph∅ : Graph (hasheq))
 
 ;; Compute a graph's reflexive-transitive closure
 (: refl-trans : Graph → Graph)
@@ -41,15 +43,16 @@
 ;; Reverse a graph
 (: reverse-graph : Graph → Graph)
 (define (reverse-graph m)
-  (for*/fold ([m : Graph (hash)])
+  (for*/fold ([m : Graph -graph∅])
              ([(l rs) (in-hash m)] [r rs])
     (add-edge m r l)))
 
+;; Compute conservative implications and exclusions
 (define-values (implications exclusions)
   (let ()
     ;; Compute first versions of graphs to start with
     (define-values (im ex)
-      (for/fold ([im : Graph (hash)] [ex : Graph (hash)])
+      (for/fold ([im : Graph -graph∅] [ex : Graph -graph∅])
                 ([dec (in-list prims:implications)])
         (match dec
           [`(,(? symbol? l) ⇒ ,(? symbol? r))
@@ -81,3 +84,25 @@
                   [r* (in-set (hash-ref im*⁻¹ r))])
         (add-edge (add-edge ex l r*) r* l)))
     (values im* ex*)))
+
+
+;; Conservative subset of operators' ranges.
+(define prim-ranges
+  (for/fold ([m : (HashTable Symbol Symbol) (hasheq)])
+            ([dec (in-list prims:prims)])
+    (match dec
+      [`(#:pred ,(? symbol? s) ,_ ...) (hash-set m s 'boolean?)]
+      [`(#:batch (,ss ...) (,_ ... . -> . ,(? symbol? r)) ,_ ...)
+       (for/fold ([m : (HashTable Symbol Symbol) m])
+                 ([s ss])
+         (hash-set m (assert s symbol?) r))]
+      [`(,(? symbol? s)
+         (,_ ... . -> . ,(? symbol? r))
+         ,_ ...)
+       (hash-set m s r)]
+      [_ m])))
+
+;; Return refinements needed in operator's arguments in order for range to be satisfied
+(define prim-refinements-for-ranges : (HashTable Symbol (HashTable Symbol (Listof Symbol)))
+  ;; TODO
+  (hasheq))
