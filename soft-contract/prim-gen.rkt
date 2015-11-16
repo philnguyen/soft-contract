@@ -23,8 +23,6 @@
                   [r (in-set rs)])
         (refl m r))))
 
-  (printf "graph:~n~a~n" m₀)
-
   ;; Compute `m`'s transitive closure
   (fix
    (λ ([m : Graph])
