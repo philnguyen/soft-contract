@@ -1,6 +1,8 @@
 #lang typed/racket/base
-(require racket/match racket/set racket/list racket/function racket/bool
-         "untyped-macros.rkt" "utils.rkt" "ast.rkt" "runtime.rkt")
+(require
+ racket/match racket/set racket/list racket/function racket/bool
+ "untyped-macros.rkt" "utils.rkt" "ast.rkt" "runtime.rkt" "prim-gen.rkt"
+ (for-syntax racket/base racket/syntax racket/contract syntax/parse "utils.rkt" "prim-gen.rkt"))
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e Γ⊢e p∋Vs V≡
          MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious? or-R not-R decide-R
          -R
@@ -8,6 +10,8 @@
          ;; debugging
          MσΓ⊢₁e)
 
+;; External solver to be plugged in.
+;; Return trivial answer by default.
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
   (make-parameter (λ (Γ e) (log-warning "external solver not set") '?)))
 
@@ -18,7 +22,7 @@
   (match-define (-W C e_c) W_c)
   (or-R (V∋Vs C V) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
 
-(: MσΓ⊢oW : -M -σ -Γ -predₙ -WV * → -R)
+(: MσΓ⊢oW : -M -σ -Γ -o -WV * → -R)
 ;; Check if value `W` satisfies predicate `p`
 (define (MσΓ⊢oW M σ Γ p . Ws)
   (define-values (Vs es)
@@ -95,7 +99,7 @@
   (or-R (go 2 Γ) (go-rec 2 Γ e)))
 
 (: MσΓ⊓e : -M -σ -Γ -?e → (Option -Γ))
-;; More powerful version of `Γ⊓`
+;; More powerful version of `Γ⊓` that uses global tables
 (define (MσΓ⊓e M σ Γ e)
   (if (equal? 'X (MσΓ⊢e M σ Γ e)) #f (Γ+ Γ e)))
 
@@ -108,7 +112,7 @@
 (: spurious? : -M -σ -Γ -WVs → Boolean)
 ;; Check if `e` cannot evaluate to `V` given `Γ` is true
 ;;   return #t --> `(e ⇓ V)` is spurious
-;;   return #f --> don't know (safe answer)
+;;   return #f --> don't know (conservative answer)
 (define (spurious? M σ Γ W)
 
   (: spurious*? : -?e -V → Boolean)
@@ -184,115 +188,107 @@
 ;;;;; Operations without global tables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Syntax generation for checking whether argument satisfies predicate
+(begin-for-syntax
+
+  ;; Generate clauses like these:
+  ;; (case f
+  ;;   [(integer?)
+  ;;    (match xs
+  ;;      [(list (-b b))
+  ;;       (if (integer? b) '✓ 'X)]
+  ;;      [(list (-@ o xs))
+  ;;       (case o
+  ;;         [(+)
+  ;;          (match xs
+  ;;            [(list x₁ x₂)
+  ;;             (and-R (⊢@ 'integer? x₁) (⊢@ 'integer? x₂))]
+  ;;            [_ '?])]
+  ;;         ...
+  ;;         [else '?])])]
+  ;;   ...
+  ;;   [else '?])
+  (define/contract (precise-cases xs)
+    (identifier? . -> . (listof syntax?))
+    (for/list ([(rng matches) (in-hash prim-refinements-for-ranges)])
+      
+      (define/contract (dispatch-inner-op zs)
+        (identifier? . -> . (listof syntax?))
+        (for/list ([(o doms) (in-hash matches)])
+          (define/contract args (listof identifier?)
+            (for/list ([i (in-range (length doms))])
+              (datum->syntax #f (string->symbol (format "x~a" (n-sub i))))))
+          (define ⊢@ (datum->syntax xs '⊢@))
+          (define/contract preconds (listof syntax?)
+            (for/list ([dom doms] [arg args])
+              #`(eq? '✓ (#,⊢@ '#,dom (list #,arg)))))
+          #`[(#,o)
+             (match zs
+               [(list #,@args)
+                (cond
+                  [(and #,@preconds) '✓]
+                  [else '?])]
+               [_ '?])]))
+
+      #`[(#,rng)
+         (match #,xs
+           [(list (-b b))
+            (decide-R (#,rng b))]
+           [(list (-@ o zs _))
+            (case o
+              #,@(dispatch-inner-op #'zs)
+              [else '?])]
+           [_ '?])])))
+
 (: Γ⊢e : -Γ -?e → -R)
 ;; Check if `e` evals to truth given `M`
+;; This function reads off table `prims`
 (define (Γ⊢e Γ e)
+
+  (define boolean-excludes? : (Symbol → Boolean)
+    (let ([excluded (hash-ref exclusions 'boolean?)])
+      (λ (s) (∋ excluded s))))
 
   (: ⊢e : -e → -R)
   ;; Check if expression returns truth
   (define (⊢e e)
-    (define ans
-      (match e
-        ;; values
-        [(-b #f) 'X]
-        [(? -•?) '?]
-        [(? -v?) '✓]
-        [e #:when (Γ-has? Γ e) '✓]
-        ;; constructors
-        [(or (? -μ/c?) (? -->i?) (? -x/c?) (? -struct/c?)) '✓]
-        ;; special cases
-        [(-@ (or '= 'equal?) (list e₁ e₂) _)
-         (match* (e₁ e₂)
-           [((? -λ? v₁) (? -λ? v₂)) ; can't compare higher-order literals
-            (if (equal? v₁ v₂) '? 'X)]
-           [((? -•?) _) '?]
-           [(_ (? -•?)) '?]
-           [((? -v? v₁) (? -v? v₂)) (decide-R (equal? v₁ v₂))]
-           [((-x x) (-x y))
-            (if (equal? x y) '✓ '?)]
-           [((-@ f xs _) (-@ g ys _))
-            ; lose precision. Don't need `f = g, x = y` to prove `f(x) = g(y)`
-            (cond
-              [(and
-                (or
-                 (and (-λ? f) (equal? f g))
-                 (equal? '✓ (⊢e (-@ 'equal? (list f g) -Λ))))
-                (= (length xs) (length ys)))
-               (define res
-                 (for/set: : (Setof -R) ([x xs] [y ys])
-                   (⊢e (-@ 'equal? (list x y) -Λ))))
-               (cond
-                 [(or (set-empty? res) (equal? res {set '✓})) '✓]
-                 [(and (-st-mk? f) (∋ res 'X)) 'X]
-                 [else '?])]
-              [else '?])]
-           [(_ _) (if (equal? e₁ e₂) '✓ '?)])]
-        ;; negation
-        [(-not e*) (not-R (⊢e e*))]
-        ;; ariths
-        [(-@ 'integer? (list e*) _)
-         (match e*
-           [(-b b) (decide-R (real? b))]
-           [(-@ o (list es ...) _)
-            (match o
-              [(or 'string-length 'vector-length #|TODO|# 'round 'floor 'ceiling) '✓]
-              [(or '+ '- '* 'add1 'sub1 'abs)
-               (cond [(for/and : Boolean ([ei es])
-                        (equal? '✓ (Γ⊢e Γ (assert (-?@ 'integer? ei)))))
-                      '✓]
-                     [else '?])]
-              [(or (? -predₙ?) (? -st-mk?)) 'X]
-              [_ '?])]
-           [_ '?])]
-        [(-@ 'real? (list e*) _)
-         (match e*
-           [(-b b) (decide-R (real? b))]
-           [(-@ o (list es ...) _)
-            (match o
-              [(or 'string-length 'vector-length 'round 'floor 'ceiling) '✓]
-              [(or '+ '- '* 'add1 'sub1 'abs)
-               (cond [(for/and : Boolean ([ei es])
-                        (equal? '✓ (Γ⊢e Γ (assert (-?@ 'real? ei)))))
-                      '✓]
-                     [else '?])]
-              [(or (? -predₙ?) (? -st-mk?)) 'X]
-              [_ '?])]
-           [_ '?])]
-        [(-@ 'number? (list e*) _)
-         (match e*
-           [(-b b) (decide-R (number? b))]
-           [(-@ o (list es ...) _)
-            (match o
-              [(or 'string-length 'vector-length 'round 'floor 'ceiling
-                   '+ '- '* 'add1 'sub1 'abs)
-               '✓]
-              [(or (? -predₙ?) (? -st-mk?)) 'X]
-              [_ '?])]
-           [_ '?])]
-        [(-@ 'boolean? (list e*) _)
-         (match e*
-           [(-b b) (decide-R (boolean? b))]
-           [(-@ (? -predₙ?) _ _) '✓]
-           [(-@ 'equal? _ _) '✓]
-           [(-@ (? -st-mk?) _ _) 'X]
-           [_ '?])]
-        [(-@ (-st-p s) (list e*) _)
-         (match e*
-           [(-@ (-st-mk s*) _ _)
-            (decide-R (equal? s s*))]
-           [(or (? -b?) (? -λ?)) 'X]
-           [_ '?])]
-        [(-@ (? -st-ac?) (list e) _) '?]
-        [(-@ '< (list e₁ e₂) _) ; HACK for now
-         (match* (e₁ e₂)
-           [((-b (? real? b₁)) (-b (? real? b₂)))
-            (decide-R (< b₁ b₂))]
-           [(_ _) '?])]
-        [(-@ (? -predₙ?) _ _) '?]
-        [(-@ (? -o?) _ _) '✓] ; happens to be so for now
-        [_ '?]))
-    (dbg '⊢e "⊢ ~a : ~a~n~n" (show-e e) ans)
-    ans)
+    (match e
+      [(-b b) (if b '✓ 'X)]
+      [(? -v?) '✓]
+      [x #:when (Γ-has? Γ x) '✓]
+      [(-@ f xs _) (⊢@ f xs)]
+      [_ '?]))
+
+  (: ⊢@ : -e (Listof -e) → -R)
+  ;; Check if application returns truth
+  (define (⊢@ f xs)
+
+    ;; generate clauses checking if `(f xs)` returns truth
+    (define-syntax (generate-predicate-clauses stx)
+      (define ans
+        #`(case f
+            #,@(precise-cases #'xs)
+            [else '?]))
+      (printf "generated:~n~a~n" (syntax->datum ans))
+      ans)
+
+    (match f
+      ['not (not-R (⊢e (car xs)))] ; assume right arity
+      [(? symbol? f)
+       (define f-rng (hash-ref prim-ranges f #f))
+       (cond
+         [f-rng
+          (cond
+            [(boolean-excludes? f-rng) '✓]
+            [else (generate-predicate-clauses)])]
+         [else '?])]
+      [(? -st-mk?) '✓]
+      [(-st-p si)
+       (match xs
+         [(list (-@ (-st-mk sj) _ _)) ; TODO: No sub-struct for now.
+          (decide-R (equal? si sj))]
+         [else '?])]
+      [_ '?]))
 
   (: e⊢e : -e -e → -R)
   ;; Check if `e₂` returns truth when `e₁` does
@@ -310,13 +306,13 @@
             (if (equal? '✓ (e⊢e e₂* e₁*)) '✓ '?)]
            [(e₁ (-not e₂*))
             (not-R (e⊢e e₁ e₂*))]
-           [((-@ (? -pred₁? p) (list e) _) (-@ (? -pred₁? q) (list e) _))
-            (p⇒p p q)]
-           [((-@ (? -pred₁? p) (list e) _) e)
+           #;[((-@ (? -pred₁? p) (list e) _) (-@ (? -pred₁? q) (list e) _))
+            (p⇒p p q)] ; FIXME
+           #;[((-@ (? -pred₁? p) (list e) _) e)
             (cond
               [(equal? p 'not) 'X]
               [(equal? p 'boolean?) '?]
-              [else '✓])]
+              [else '✓])] ; FIXME
            [(_ _) '?])]
         [(_ R) R]))
     (dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
@@ -346,7 +342,7 @@
 ;; Check if value satisfies predicate
 (define (V∋Vs P . Vs)
   (cond
-    [(-predₙ? P) (apply p∋Vs P Vs)]
+    [(-o? P) (apply p∋Vs P Vs)] ; FIXME
     [else
      (match P
        [(-Clo `(,x) (-b #f) _ _) 'X]
@@ -354,8 +350,9 @@
        [(-Clo `(,x) (-x x) _ _) (⊢V (car Vs))] ; |Vs| = 1 guaranteed
        [_ '?])]))
 
-(: p∋Vs : -predₙ -V * → -R)
+(: p∋Vs : -o -V * → -R)
 ;; Check if value satisfies predicate
+;; This function reads off table `prims`
 (define (p∋Vs p . Vs)
   (define-syntax-rule (with-prim-checks [p?₁ ...] [p?₂ ...])
     (case p
@@ -399,22 +396,26 @@
    [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
    [(_ _) '?]))
 
-(: p⇒p : -pred₁ -pred₁ → -R)
+(: p⇒p : -o -o → -R)
+;; Return whether predicate `p` definitely implies or excludes `q`.
+;; This function reads off tables `implications` and `excludes`
+;; TODO:
+;; probably shift this to compile time to eliminate initial computation
+;; of the tables. But seems negligible for now.
 (define (p⇒p p q)
-  (cond
-    [(equal? p q) '✓]
-    [else ; when p ≠ q
-     (match* (p q)
-       ; boolean
-       [('not 'boolean?) '✓]
-       [('boolean? 'not) '?]
-       ; number
-       [('integer? (or 'real? 'number?)) '✓]
-       [('real? 'number?) '✓]
-       [('number? (or 'real? 'integer?)) '?]
-       [('real? 'integer?) '?]
-       ; other cases, `p` known to exclude `q` (be careful)
-       [(_ _) 'X])]))
+  (match* (p q)
+    [((? symbol? p) (? symbol? q))
+     (cond [(∋ (hash-ref implications p →∅) q) '✓]
+           [(∋ (hash-ref exclusions p →∅) q) 'X]
+           [else '?])]
+    [((-st-p si) (-st-p sj))
+     ;; TODO: no sub-struct for now. Probably changes later
+     (if (equal? si sj) '✓ 'X)]
+    [(_ _)
+     (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))
+                (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
+            'X]
+           [else '?])]))
 
 (: Γ⊓ : -Γ -es → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
