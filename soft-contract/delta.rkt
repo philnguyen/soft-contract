@@ -27,12 +27,7 @@
       [else #f]))
   
   (with-args (M σ Γ Ws loc)
-    [vector? ; FIXME should be doing this in proof relation instead
-     (match Ws
-       [(list (-W (? -Vector?) e)) (values σ (-AΓ (list -tt) Γ))]
-       [(list (-W (? -Vector/checked?) _)) (values σ (-AΓ (list -tt) Γ))]
-       [(list (-W (list '•) _)) (values σ (-AΓ -list• Γ))]
-       [_ (values σ (-AΓ (list -ff) Γ))])]))
+    ))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
            (U (List -WV (Listof -WV) (-Γ → Y))
