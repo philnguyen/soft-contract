@@ -2,6 +2,10 @@
 (require
  racket/match racket/set racket/list racket/function racket/bool
  "untyped-macros.rkt" "utils.rkt" "ast.rkt" "runtime.rkt" "prim-gen.rkt"
+ ; for generated code
+ (only-in racket/contract has-blame?)
+ math/base racket/dict racket/generator racket/stream racket/string
+ racket/extflonum racket/fixnum racket/flonum
  (for-syntax racket/base racket/syntax racket/contract syntax/parse "utils.rkt" "prim-gen.rkt"))
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e Γ⊢e p∋Vs V≡
          MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious? or-R not-R decide-R
@@ -194,7 +198,7 @@
   ;; Apply predicate on concrete base value
   (define/contract (generate-base-clauses b)
     (identifier? . -> . (listof syntax?))
-    (for/list ([p base-predicates])
+    (for/list ([p '() #;base-predicates])
       #`[(#,p) (decide-R (#,p #,b))]))
 
   ;; Inspect inner application to see if it satisfies predicate
@@ -274,7 +278,7 @@
              #,@(generate-app-clauses #'p #'zs)
              [else '?])]
           [_ '?]))
-      (printf "generated:~n~a~n" (syntax->datum ans))
+      ;(printf "generated:~n~a~n" (syntax->datum ans))
       ans)
 
     (match p
