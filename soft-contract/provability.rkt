@@ -201,6 +201,7 @@
   (define/contract (generate-app-clauses p zs)
     (identifier? identifier? . -> . (listof syntax?))
     (define ⊢@ (datum->syntax zs '⊢@))
+    (define p⇒p (datum->syntax zs 'p⇒p))
 
     (for/list ([(o o-rng) prim-ranges])
 
@@ -224,11 +225,18 @@
                [(list #,@args) (if (and #,@preconds) '✓ '?)]
                [_ '?])]))
 
-      #`[(#,o)
-         (case #,p
-           #,main-clause
-           #,@refined-clauses
-           [else '?])])))
+      (define rhs
+        (cond
+          [(null? refined-clauses)
+           #`(#,p⇒p '#,o-rng #,p)]
+          [else
+           #`(match (#,p⇒p '#,o-rng #,p)
+               ['?
+                (case #,p
+                  #,@refined-clauses
+                  [else '?])]
+               [ans ans])]))
+      #`[(#,o) #,rhs])))
 
 (: Γ⊢e : -Γ -?e → -R)
 ;; Check if `e` evals to truth given `M`
