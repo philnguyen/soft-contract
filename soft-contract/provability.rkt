@@ -191,54 +191,44 @@
 ;; Syntax generation for checking whether argument satisfies predicate
 (begin-for-syntax
 
-  ;; Generate clauses like these:
-  ;; (case f
-  ;;   [(integer?)
-  ;;    (match xs
-  ;;      [(list (-b b))
-  ;;       (if (integer? b) '✓ 'X)]
-  ;;      [(list (-@ o xs))
-  ;;       (case o
-  ;;         [(+)
-  ;;          (match xs
-  ;;            [(list x₁ x₂)
-  ;;             (and-R (⊢@ 'integer? x₁) (⊢@ 'integer? x₂))]
-  ;;            [_ '?])]
-  ;;         ...
-  ;;         [else '?])])]
-  ;;   ...
-  ;;   [else '?])
-  (define/contract (precise-cases xs)
+  ;; Apply predicate on concrete base value
+  (define/contract (generate-base-clauses b)
     (identifier? . -> . (listof syntax?))
-    (for/list ([(rng matches) (in-hash prim-refinements-for-ranges)])
+    (for/list ([p base-predicates])
+      #`[(#,p) (decide-R (#,p #,b))]))
+
+  ;; Inspect inner application to see if it satisfies predicate
+  (define/contract (generate-app-clauses p zs)
+    (identifier? identifier? . -> . (listof syntax?))
+    (define ⊢@ (datum->syntax zs '⊢@))
+
+    (for/list ([(o o-rng) prim-ranges])
+
+      ;; Default case: application's range matches predicate exactly
+      (define main-clause #`[(#,o-rng) '✓])
       
-      (define/contract (dispatch-inner-op zs)
-        (identifier? . -> . (listof syntax?))
-        (for/list ([(o doms) (in-hash matches)])
+      ;; Refined cases: predicate is more refined than application's coarsest range
+      (define/contract refined-clauses (listof syntax?)
+        (for/list ([(o-rng* o-doms) (hash-ref prim-refinements-for-ranges o (hasheq))])
+          
           (define/contract args (listof identifier?)
-            (for/list ([i (in-range (length doms))])
+            (for/list ([(_ i) (in-indexed o-doms)])
               (datum->syntax #f (string->symbol (format "x~a" (n-sub i))))))
-          (define ⊢@ (datum->syntax xs '⊢@))
+          
           (define/contract preconds (listof syntax?)
-            (for/list ([dom doms] [arg args])
+            (for/list ([dom o-doms] [arg args])
               #`(eq? '✓ (#,⊢@ '#,dom (list #,arg)))))
-          #`[(#,o)
-             (match zs
-               [(list #,@args)
-                (cond
-                  [(and #,@preconds) '✓]
-                  [else '?])]
+          
+          #`[(#,o-rng*)
+             (match #,zs
+               [(list #,@args) (if (and #,@preconds) '✓ '?)]
                [_ '?])]))
 
-      #`[(#,rng)
-         (match #,xs
-           [(list (-b b))
-            (decide-R (#,rng b))]
-           [(list (-@ o zs _))
-            (case o
-              #,@(dispatch-inner-op #'zs)
-              [else '?])]
-           [_ '?])])))
+      #`[(#,o)
+         (case #,p
+           #,main-clause
+           #,@refined-clauses
+           [else '?])])))
 
 (: Γ⊢e : -Γ -?e → -R)
 ;; Check if `e` evals to truth given `M`
@@ -246,8 +236,7 @@
 (define (Γ⊢e Γ e)
 
   (define boolean-excludes? : (Symbol → Boolean)
-    (let ([excluded (hash-ref exclusions 'boolean?)])
-      (λ (s) (∋ excluded s))))
+    (set->predicate (hash-ref exclusions 'boolean?)))
 
   (: ⊢e : -e → -R)
   ;; Check if expression returns truth
@@ -261,18 +250,25 @@
 
   (: ⊢@ : -e (Listof -e) → -R)
   ;; Check if application returns truth
-  (define (⊢@ f xs)
+  (define (⊢@ p xs)
 
-    ;; generate clauses checking if `(f xs)` returns truth
+    ;; generate clauses checking if `(p xs)` returns truth
     (define-syntax (generate-predicate-clauses stx)
       (define ans
-        #`(case f
-            #,@(precise-cases #'xs)
-            [else '?]))
+        #`(match xs
+          [(list (-b b))
+           (case p
+             #,@(generate-base-clauses #'b)
+             [else '?])]
+          [(list (-@ o zs _))
+           (case o
+             #,@(generate-app-clauses #'p #'zs)
+             [else '?])]
+          [_ '?]))
       (printf "generated:~n~a~n" (syntax->datum ans))
       ans)
 
-    (match f
+    (match p
       ['not (not-R (⊢e (car xs)))] ; assume right arity
       [(? symbol? f)
        (define f-rng (hash-ref prim-ranges f #f))
