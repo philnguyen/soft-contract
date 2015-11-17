@@ -200,8 +200,9 @@
   ;; Inspect inner application to see if it satisfies predicate
   (define/contract (generate-app-clauses p zs)
     (identifier? identifier? . -> . (listof syntax?))
-    (define ⊢@ (datum->syntax zs '⊢@))
+    (define ⊢e (datum->syntax zs '⊢e))
     (define p⇒p (datum->syntax zs 'p⇒p))
+    (define -Λ (datum->syntax zs '-Λ))
 
     (for/list ([(o o-rng) prim-ranges])
 
@@ -218,7 +219,7 @@
           
           (define/contract preconds (listof syntax?)
             (for/list ([dom o-doms] [arg args])
-              #`(eq? '✓ (#,⊢@ '#,dom (list #,arg)))))
+              #`(eq? '✓ (#,⊢e (-@ '#,dom (list #,arg) #,-Λ)))))
           
           #`[(#,o-rng*)
              (match #,zs
