@@ -5,7 +5,7 @@
   [(implications prims:implications) (Listof Any)]
   [(prims prims:prims) (Listof Any)])
 
-(provide Graph implications exclusions prim-ranges prim-refinements-for-ranges)
+(provide Graph implications exclusions base-predicates prim-ranges prim-refinements-for-ranges)
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
 (define -graph∅ : Graph (hasheq))
@@ -103,6 +103,41 @@
       [_ m])))
 
 ;; Return refinements needed in operator's arguments in order for range to be satisfied
-(define prim-refinements-for-ranges : (HashTable Symbol (HashTable Symbol (Listof Symbol)))
-  ;; TODO
-  (hasheq))
+(define prim-refinements-for-ranges
+  (let ()
+    (define h∅ : (HashTable Symbol (Listof Symbol)) (hasheq))
+
+    (: upd : (HashTable Symbol (HashTable Symbol (Listof Symbol))) Symbol Symbol (Listof Symbol)
+       → (HashTable Symbol (HashTable Symbol (Listof Symbol))))
+    (define (upd m f d cs)
+      (hash-update m f
+                   (λ ([refs : (HashTable Symbol (Listof Symbol))])
+                     (hash-set refs d cs))
+                   (λ () h∅)))
+
+    (: on-refinements : (HashTable Symbol (HashTable Symbol (Listof Symbol))) Symbol (Listof Any)
+                         → (HashTable Symbol (HashTable Symbol (Listof Symbol))))
+    (define (on-refinements m s refs)
+      (for/fold ([m : (HashTable Symbol (HashTable Symbol (Listof Symbol))) m])
+                ([ref refs])
+        (match ref
+          [`(,(? symbol? cs) ... . -> . ,(? symbol? d))
+           (upd m s d (cast cs (Listof Symbol)))]
+          [_ m])))
+
+    (for/fold ([m : (HashTable Symbol (HashTable Symbol (Listof Symbol))) (hasheq)])
+              ([dec (in-list prims:prims)])
+      (match dec
+        [`(#:batch (,(? symbol? ss) ...) ,_ ,refinements ...)
+         (for/fold ([m : (HashTable Symbol (HashTable Symbol (Listof Symbol))) m])
+                   ([s ss])
+           (on-refinements m (assert s symbol?) refinements))]
+        [`(,(? symbol? s) ,_ ,refinements ...)
+         (on-refinements m s refinements)]
+        [_ m]))))
+  
+
+(define base-predicates ; TODO
+  '(integer? real? number? exact-integer? inexact-real?
+    exact-nonnegative-integer? exact-positive-integer?
+    string? symbol? boolean?))
