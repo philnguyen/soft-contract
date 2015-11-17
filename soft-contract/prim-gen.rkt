@@ -137,7 +137,15 @@
         [_ m]))))
   
 
-(define base-predicates ; TODO
-  '(integer? real? number? exact-integer? inexact-real?
-    exact-nonnegative-integer? exact-positive-integer?
-    string? symbol? boolean?))
+;; FIXME: some predicates about vectors and streams and such shouldn't be here...
+(define base-predicates
+  (for/fold ([acc : (Listof Symbol) '()])
+            ([dec : Any (in-list prims:prims)])
+    (match dec
+      [`(#:pred ,(? symbol? s))
+       (cons s acc)]
+      [`(,(? symbol? s) (any/c . -> . boolean?) ,_ ...)
+       (cons s acc)]
+      [`(#:batch (,(? symbol? ss) ...) (any/c . -> . boolean?) ,_ ...)
+       (append (cast ss (Listof Symbol)) acc)]
+      [_ acc])))
