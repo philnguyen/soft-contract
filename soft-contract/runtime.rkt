@@ -1,6 +1,8 @@
 #lang typed/racket/base
-(require racket/match racket/list racket/set racket/function
-         "untyped-macros.rkt" "utils.rkt" "ast.rkt")
+(require
+ racket/match racket/list racket/set racket/function
+ "untyped-macros.rkt" "utils.rkt" "ast.rkt"
+ (for-syntax racket/base racket/contract racket/syntax syntax/parse "utils.rkt" "prim-gen.rkt"))
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
@@ -443,6 +445,13 @@
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
 (define-type -AΓs (U -AΓ (Setof -AΓ)))
 
+(begin-for-syntax
+
+  (define/contract (general-primitive-clauses f)
+    (identifier? . -> . (listof syntax?))
+    (printf "TODO: generate fancy expression simplification")
+    '()))
+
 (: -?@ : -?e -?e * → -?e)
 ;; Smart constructor for application
 (define (-?@ f . xs)
@@ -462,35 +471,48 @@
                 [_ #f]))
             e₀)]
       [_ #f]))
+
+  (define (default-case) : -e
+    (-@ (assert f) (cast xs (Listof -e)) -Λ))
+
+  (define-syntax (general-primitive-case stx)
+    #`(case f
+        #,@(general-primitive-clauses #'f)
+        [else (default-case)]))
   
   (cond
     [(and f (andmap (inst values -?e) xs))
-     (match* (f xs)
-       ; (not (not e)) = e
-       [('not (list (-not e))) e]
+     (match f
+       ; vector-length
+       ['vector-length
+        (match xs
+          [(list (-@ 'vector xs _)) (-b (length xs))]
+          [_ (default-case)])]
+
+       ; (not³ e) = (not e) 
+       ['not
+        (match xs
+          [(list (-not (and e* (-not _)))) e*]
+          [_ (default-case)])]
+       
        ; (car (cons e _)) = e
-       [((-st-ac s i) (list (-@ (-st-mk s) es _)))
-        (list-ref es i)]
-       [((-st-ac s i) (list x))
+       [(-st-ac s i)
+        (match xs
+          [(list (-@ (-st-mk s) es _)) (list-ref es i)]
+          [_ (default-case)])]
+       [(-st-ac s i)
+        (match-define (list x) xs)
         (cond ; don't build up syntax when reading from mutable states
           [(∋ (-struct-info-mutables s) i) #f]
           [else (-@ f (list (assert x)) -Λ)])]
+
        ; (cons (car e) (cdr e)) = e
-       [((-st-mk s) es)
-        (or (access-same-value? s es)
+       [(-st-mk s)
+        (or (access-same-value? s xs)
             (-@ f (cast xs (Listof -e)) -Λ))]
-       ; vector-length
-       [('vector-length (list (-@ 'vector xs _)))
-        (-b (length xs))]
-       ; ariths
-       [('+ (list-no-order (-b 0) e*)) (assert e* -e?)]
-       [('+ (list (-@ '+ (list e₁ e₂) _) e₃))
-        (-@ '+ (list e₁ (-@ '+ (list e₂ (assert e₃)) -Λ)) -Λ)]
-       [('* (list-no-order (-b 1) e*)) (assert e* -e?)]
-       [('* (list (-@ '* (list e₁ e₂) _) e₃))
-        (-@ '* (list e₁ (-@ '* (list e₂ (assert e₃)) -Λ)) -Λ)]
-       ; default
-       [(f xs) (-@ f (cast xs (Listof -e)) -Λ)])]
+
+       ; General case
+       [_ (general-primitive-case)])]
     [else #f]))
 
 ;; convenient syntax for negation
