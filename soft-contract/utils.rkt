@@ -158,6 +158,10 @@
                     [else {set z* x*}])]
              [else z*]))]))
 
+(: set->predicate (∀ (X) (Setof X) → (X → Boolean)))
+;; Convert set to predicate
+(define ((set->predicate xs) x) (∋ xs x))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Multi-map
