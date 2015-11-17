@@ -82,8 +82,8 @@
       (any/c (and/c exact? zero?))]
      [#:batch (quotient remainder modulo) ; FIXME: only error on exact 0
       (integer? (and/c integer? (not/c zero?)) . -> . integer?)]
-     #;[quotient/remainder
-      (integer? (and/c integer? (not/c zero?))) . -> . integer? integer?] ; FIXME
+     [quotient/remainder
+      (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?))]
      [#:batch (add1 sub1)
       (number? . -> . number?)
       (real? . -> . real?)
