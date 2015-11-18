@@ -1,7 +1,7 @@
 #lang racket/base
 (require racket/match racket/contract "untyped-macros.rkt")
 (provide
- ctc? dec? impl?
+ arr? arr*? ctc? dec? impl?
  (contract-out
   [prims (listof dec?)]
   [implications (listof impl?)]
@@ -1767,6 +1767,12 @@
 (define rng?
   (match-λ? ctc? `(values ,(? ctc?) ...)))
 
+(define arr?
+  (match-λ? `(,(? ctc?) ... . -> . ,(? rng?))))
+
+(define arr*?
+  (match-λ? `(,(? (listof ctc?)) #:rest ,(? ctc?) . ->* . ,(? rng?))))
+
 (define ctc?
   (match-λ?
    (? symbol?)
@@ -1777,8 +1783,8 @@
    `(listof ,(? ctc?))
    `(list/c ,(? ctc?) ...)
    `(cons/c ,(? ctc?) ,(? ctc?))
-   `(,(? ctc?) ... . -> . ,(? rng?))
-   `(,(? (listof ctc?)) #:rest ,(? ctc?) . ->* . ,(? rng?))))
+   arr?
+   arr*?))
 
 (define dec?
   (match-λ?

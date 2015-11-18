@@ -2,7 +2,7 @@
 (require
  racket/flonum racket/extflonum math/base
  "utils.rkt" "ast.rkt" "runtime.rkt" "provability.rkt"
- (for-syntax racket/base racket/syntax syntax/parse racket/contract
+ (for-syntax racket/base racket/match racket/syntax syntax/parse racket/contract
              racket/pretty racket/list racket/function racket/contract
              "untyped-macros.rkt" "utils.rkt" "prims.rkt")
  )
@@ -89,38 +89,12 @@
     (identifier? . -> . syntax?)
     #`(quote #,(syntax->datum id)))
 
-  (define/hack (convert-syntax stx)
-    (datum->syntax #'here stx))
-
-  (define-syntax-class rng
-    #:description "limited contract range"
-    (pattern (~or c:ctc ((~literal values) d:ctc ...))))
-
-  (define-syntax-class arr
-    #:description "limited function contract"
-    (pattern ((~literal ->) dom:ctc ... rng:ctc #;rng:rng)))
-
-  (define-syntax-class arr*
-    #:description "limited vararg contract"
-    (pattern ((~literal ->*) (dom:ctc ...) #:rest rest:ctc rng:rng)))
-
-  (define-syntax-class ctc
-    #:description "limited contract"
-    (pattern (~or x:id
-                  ((~literal not/c) c:ctc)
-                  ((~literal one-of/c) d:ctc ...)
-                  ((~literal and/c) d:ctc ...)
-                  ((~literal or/c) d:ctc ...)
-                  ((~literal listof) c:ctc)
-                  ((~literal list/c) d:ctc ...)
-                  ((~literal cons/c) l:ctc r:ctc)
-                  a:arr
-                  a:arr*)))
-
-  (define/contract (generate-general-clauses row)
-    (syntax? . -> . (listof syntax?))
+  (define/contract (generate-general-clauses dec)
+    (dec? . -> . (listof syntax?))
 
     ;(printf "Generating for ~a~n" (syntax->datum row))
+
+    (define/contract ctx syntax? (M-id))
 
     (define/contract (mk-struct-info t mut?s)
       (symbol? (listof boolean?) . -> . syntax?)
@@ -128,84 +102,82 @@
       (define n (length mut?s))
       #`(-struct-info #,t #,n (set #,@(muts))))
 
-    (syntax-parse row
+    (match dec
 
       ;; Expand shorthand cases
-      [(#:pred p:id)
-       (generate-general-clauses #'(p (any/c . -> . boolean?) #:other-errors))]
-      [(#:pred p:id (dom:ctc ...))
-       (generate-general-clauses #'(p (dom ... . -> . boolean?) #:other-errors))]
-      [(#:batch (ops:id ...) main:ctc refinements:ctc ...)
+      [`(#:pred ,p)
+       (generate-general-clauses `(,p (any/c . -> . boolean?) #:other-errors))]
+      [`(#:pred ,p (,dom ...))
+       (generate-general-clauses `(,p (,@dom . -> . boolean?) #:other-errors))]
+      [`(#:batch (,ops ...) ,(? ctc? main) ,(? ctc? refinements) ...)
        (append-map
-        (λ (op) (generate-general-clauses #`(#,op main refinements ...)))
-        (syntax->list #'(ops ...)))]
-      [(op:id main:ctc refinements:ctc ...)
-       (generate-general-clauses #'(op main refinements ... #:other-errors))]
+        (λ (op) (generate-general-clauses `(,op ,main ,@refinements #:other-errors)))
+        ops)]
+      [`(,(? symbol? op) ,(? arr? main) ,(? arr? refinements) ...)
+       (generate-general-clauses `(,op ,main ,@refinements #:other-errors))]
 
       ;; Ignore non-symbol cases
-      [(~or (#:struct-cons _ ...)
-            (#:struct-pred _ ...)
-            (#:struct-acc _ ...)
-            (#:struct-mut _ ...))
+      [(or `(#:struct-cons ,_ ...)
+           `(#:struct-pred ,_ ...)
+           `(#:struct-acc ,_ ...)
+           `(#:struct-mut ,_ ...))
        '()]
 
       ;; Handle generate case
-      [(op:id main:arr refinements:arr ... #:other-errors (guards:ctc ...) ...)
+      [`(,(? symbol? op) ,(? arr? main) ,(? arr? refinements) ... #:other-errors (,guards ...) ...)
 
-       (define (mk-pat c)
-         (syntax-parse c
-           [p:id #`(? p)]
-           [((~literal not/c) p:id) #`(not (? p))]
-           [((~literal and/c) p ...)
-            #`(and #,@(map mk-pat (syntax->list #'(p ...))))]))
+       (define/contract mk-pat (any/c . -> . syntax?)
+         (match-lambda
+           [(? symbol? p) #`(? #,p)]
+           [`(not/c ,(? symbol? p)) #`(not (? #,p))]
+           [`(and/c ,ps ...) #`(and #,@(map mk-pat ps))]))
 
        (define-values (doms rng)
-         (syntax-parse #'main
-           [(x:ctc ... . (~literal ->) . y:ctc)
-            (values (syntax->list #'(x ...)) #'y)]))
+         (match-let ([`(,x ... . -> . ,y) main])
+           (values x y)))
             
-       (define rhs
+       (define/contract rhs syntax?
          (cond
            ; Operations on base values are straightforward to lift
-           [(and (andmap (compose base? syntax->datum) doms)
-                 (base? (syntax->datum rng)))
+           [(and (andmap base? doms) (base? rng))
 
             (define/contract b-ids (listof identifier?)
-              (build-list (length doms) (λ (i) (datum->syntax #'op (mk-sym 'b i)))))
+              (build-list (length doms) (curry mk-sym 'b)))
 
             (define pat-bs
               (for/list ([b-id b-ids] [p doms])
                 (define stx-b
-                  (syntax-parse p
-                    [p:id #`(-b (? p #,b-id))]
-                    [((~literal not/c) p:id) #`(-b (not (? p #,b-id)))]
-                    [((~literal and/c) p ...)
-                     #`(-b (and #,@(map mk-pat (syntax->list #'(p ...))) #,b-id))]
-                    [((~literal or/c) p ...)
-                     #`(-b (and (or #,@(map mk-pat (syntax->list #'(p ...)))) #,b-id))]))
+                  (match p
+                    [(? symbol? p) #`(-b (? #,p #,b-id))]
+                    [`(not/c ,(? symbol? p)) #`(-b (not (? #,p #,b-id)))]
+                    [`(and/c ,ps ...)
+                     #`(-b (and #,@(map mk-pat ps) #,b-id))]
+                    [`(or/c ,ps ...)
+                     #`(-b (and (or #,@(map mk-pat ps)) #,b-id))]))
                 #`(-W _ #,stx-b)))
 
             (define/contract e-ids (listof identifier?)
-              (build-list (length doms) (λ (i) (datum->syntax #'op (mk-sym 'e i)))))
+              (build-list (length doms) (curry mk-sym 'e)))
 
             #`(match #,(Ws-id)
                 [(list #,@pat-bs)
-                 (define ans (-b (op #,@b-ids)))
+                 (define ans (-b (#,op #,@b-ids)))
                  (values #,(σ-id) (-AΓ (list ans) #,(Γ-id)))]
                 [_ (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])]
            ; Other operations return `●` by default
            [else
             #`(cond
-                [(concrete 'op)
+                [(concrete '#,op)
                  =>
                  (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))])
                    (f #,(M-id) #,(σ-id) #,(Γ-id) #,(Ws-id) #,(l-id)))]
                 [else (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])]))
        
        ;; generate lhs-rhs for specific `op`
-       (list #`[(op) #,rhs])]
-      [stx
-       (printf "`generate-general-clauses`: ignore ~a~n" (syntax->datum #'stx))
+       (list #`[(#,op) #,rhs])]
+
+      [dec
+       (printf "δ: ignore ~a~n" dec)
        '()])))
 
 ;; Generate body of `δ`
@@ -219,8 +191,7 @@
                       [o-id #'o]
                       [Ws-id #'Ws]
                       [l-id #'l])
-         (append-map generate-general-clauses
-                     (syntax->list (convert-syntax prims)))))
+         (append-map generate-general-clauses prims)))
      (define body-stx
        #`(case o
            #,@clauses
