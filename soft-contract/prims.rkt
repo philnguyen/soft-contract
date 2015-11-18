@@ -1749,7 +1749,7 @@
      (case s
        [(integer? real? number? exact-nonnegative-integer? flonum?
                   extflonum?
-                  string? symbol? keyword? #|TODO|#)
+                  string? symbol? keyword? char? #|TODO|#)
         #t]
        [else #f])]
     [`(,(or 'and/c 'or/c 'not/c) ,cs ...)

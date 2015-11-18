@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/match)
+(require racket/match racket/contract)
 
 ;; Macros defined in typed modules can't be used in untyped modules,
 ;; hence this module.
@@ -16,6 +16,18 @@
   (syntax-rules ()
     [(_ e  ) (? (λ (v) (equal? v e)))]
     [(_ e x) (? (λ (v) (equal? v e)) x)]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Syntax
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Convert contract to pattern
+(define/contract mk-pat (any/c . -> . syntax?)
+  (match-lambda
+    [(? symbol? p) #`(? #,p)]
+    [`(not/c ,(? symbol? p)) #`(not (? #,p))]
+    [`(and/c ,ps ...) #`(and #,@(map mk-pat ps))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

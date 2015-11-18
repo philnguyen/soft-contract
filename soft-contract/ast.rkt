@@ -74,7 +74,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type/pred Base
-  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp))
+  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char))
 
 (define-data -top-level-form
   -general-top-level-form

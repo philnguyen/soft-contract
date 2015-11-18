@@ -2,7 +2,10 @@
 (require
  racket/match racket/list racket/set racket/function
  "untyped-macros.rkt" "utils.rkt" "ast.rkt"
- (for-syntax racket/base racket/contract racket/syntax syntax/parse "utils.rkt" "prim-gen.rkt"))
+ ; for generated code
+ racket/math racket/flonum racket/extflonum racket/string
+ (for-syntax racket/base racket/match racket/list racket/contract racket/syntax syntax/parse
+             "untyped-macros.rkt" "utils.rkt" (prefix-in prims: "prims.rkt") "prim-gen.rkt"))
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
@@ -447,10 +450,47 @@
 
 (begin-for-syntax
 
-  (define/contract (general-primitive-clauses f)
-    (identifier? . -> . (listof syntax?))
-    (printf "TODO: generate fancy expression simplification")
-    '()))
+  (define/contract (general-primitive-clauses f xs)
+    (identifier? identifier? . -> . (listof syntax?))
+
+    (define default-case (datum->syntax f '(default-case)))
+
+    (define/contract (go dec)
+      (any/c . -> . (listof syntax?))
+      (match dec
+        [`(#:pred ,(? symbol? s))
+         (go `(,s (any/c . -> . boolean?) #:other-errors))]
+        [`(#:pred ,(? symbol? s) (,(? prims:ctc? cs) ...))
+         (go `(,s (,@cs . -> . boolean?) #:other-errors))]
+        [`(#:batch (,(? symbol? ss) ...) ,(? prims:arr? c) ,_ ...)
+         (append-map (λ (s) (go `(,s ,c #:other-errors))) ss)]
+        [`(,(? symbol? o) (,cs ... . -> . ,d) ,_ ...)
+
+         (cond
+           [(and (andmap prims:base? cs) (prims:base? d))
+            
+            (define b-ids
+              (for/list ([(_ i) (in-indexed cs)])
+                (datum->syntax #f (string->symbol (format "x~a" (n-sub i))))))
+            
+            (define/contract b-pats (listof syntax?)
+              (for/list ([b-id b-ids] [c cs])
+                (match c
+                  [(? symbol? p) #`(-b (? #,c #,b-id))]
+                  [`(not/c ,(? symbol? p)) #`(-b (not (? #,c #,b-id)))]
+                  [`(and/c ,ps ...)
+                   #`(-b (and #,@(map mk-pat ps) #,b-id))]
+                  [`(or/c ,ps ...)
+                   #`(-b (and (or #,@(map mk-pat ps)) #,b-id))])))
+            (list
+             #`[(#,o)
+                (match #,xs
+                  [(list #,@b-pats) (-b (#,o #,@b-ids))]
+                  [_ #,default-case])])]
+           [else '()])]
+        [_ '()]))
+    
+    (append-map go prims:prims)))
 
 (: -?@ : -?e -?e * → -?e)
 ;; Smart constructor for application
@@ -477,7 +517,7 @@
 
   (define-syntax (general-primitive-case stx)
     #`(case f
-        #,@(general-primitive-clauses #'f)
+        #,@(general-primitive-clauses #'f #'xs)
         [else (default-case)]))
   
   (cond

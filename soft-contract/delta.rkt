@@ -111,17 +111,8 @@
        '()]
 
       ;; Handle generate case
-      [`(,(? symbol? op) ,(? arr? main) ,(? arr? refinements) ... #:other-errors (,guards ...) ...)
-
-       (define/contract mk-pat (any/c . -> . syntax?)
-         (match-lambda
-           [(? symbol? p) #`(? #,p)]
-           [`(not/c ,(? symbol? p)) #`(not (? #,p))]
-           [`(and/c ,ps ...) #`(and #,@(map mk-pat ps))]))
-
-       (define-values (doms rng)
-         (match-let ([`(,x ... . -> . ,y) main])
-           (values x y)))
+      [`(,(? symbol? op) (,doms ... . -> . ,rng) ,(? arr? refinements) ...
+         #:other-errors (,guards ...) ...)
 
        (cond
          ; Return case clause for straightforward lifting of 1-st order case
@@ -157,7 +148,7 @@
          [else (list op)])]
 
       [dec
-       (printf "δ: ignore ~a~n" dec)
+       ;(printf "δ: ignore ~a~n" dec)
        '()])))
 
 ;; Generate body of `δ`
@@ -192,7 +183,7 @@
                     (f M σ Γ Ws l))]
                  [else (values σ (-AΓ -list• Γ))])]
               [else (error 'δ "unhandled: ~a" o)])]))
-     (printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
+     ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
 (: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → (Values -σ -AΓs))
