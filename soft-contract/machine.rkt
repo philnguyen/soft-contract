@@ -249,8 +249,13 @@
 
   (: alloc-e : -σ -e → (Values -σ -V))
   (define (alloc-e σ e)
+    
+    (define (error-ambig)
+      (error 'alloc-e "ambiguity when checking for flat contract"))
+    
     (match e
       [(? -v?) (values σ (close-Γ -Γ⊤ (close e -ρ⊥)))]
+      [(-ref (-id-local o 'Λ) _ _) (values σ o)]
       [(-->i doms rng pos)
        (define-values (xs cs)
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
@@ -259,13 +264,64 @@
        (define-values (σ* γs)
          (alloc-es σ (#|HACK|# -struct-info (-id-local '-> 'Λ) (length cs) ∅) pos cs))
        (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
-      [(-@ (-st-mk (and s (-struct-info (or 'and/c 'or/c 'not/c 'vectorof 'vector/c) _ _)))
+      [(-@ (-st-mk (and s (-struct-info (or ''vectorof 'vector/c) _ _)))
            cs (-src-loc _ pos))
        (define-values (σ* αs) (alloc-es σ s pos cs))
        (values σ* (-St s αs))]
+      [(-@ 'and/c (list c₁ c₂) l)
+       (define-values (σ* γ₁ γ₂)
+         (let ([pos (-src-loc-pos l)])
+           (define-values (σ₁ V₁) (alloc-e σ  c₁))
+           (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
+           (values σ₂ (-α.and/c-l pos) (-α.and/c-r pos))))
+       (values σ*
+               (-And/C (case (check-αs-flat σ* (list γ₁ γ₂))
+                         [(✓) #t]
+                         [(X) #f]
+                         [else (error-ambig)])
+                       γ₁
+                       γ₂))]
+      [(-@ 'or/c (list c₁ c₂) l)
+       (define-values (σ* γ₁ γ₂)
+         (let ([pos (-src-loc-pos l)])
+           (define-values (σ₁ V₁) (alloc-e σ  c₁))
+           (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
+           (values σ₂ (-α.or/c-l pos) (-α.or/c-r pos))))
+       (values σ*
+               (-Or/C (case (check-αs-flat σ* (list γ₁ γ₂))
+                        [(✓) #t]
+                        [(X) #f]
+                        [else (error-ambig)])
+                      γ₁
+                      γ₂))]
+      [(-@ 'not/c (list c) l)
+       (define-values (σ* γ)
+         (let-values ([(σ* V) (alloc-e σ c)])
+           (values σ* (-α.not/c (-src-loc-pos l)))))
+       (values σ* (-Not/C γ))]
+      [(-@ 'vectorof (list c) l)
+       (define-values (σ* γ)
+         (let-values ([(σ* V) (alloc-e σ c)])
+           (values σ* (-α.vectorof (-src-loc-pos l)))))
+       (values σ* (-Vectorof γ))]
+      [(-@ 'vector/c cs l)
+       (define-values (σ* γs-rev)
+         (let ([pos (-src-loc-pos l)])
+           (for/fold ([σ : -σ σ] [γs-rev : (Listof -α.vector/c) '()])
+                     ([(c i) (in-indexed cs)])
+             (define-values (σ* V) (alloc-e σ c))
+             (define γ (-α.vector/c pos i))
+             (values σ* (cons γ γs-rev)))))
+       (values σ* (-Vector/C (reverse γs-rev)))]
       [(-struct/c s cs pos)
        (define-values (σ* αs) (alloc-es σ s pos cs))
-       (values σ* (-St/C s αs))]
+       (values σ*
+               (-St/C (case (check-αs-flat σ* αs)
+                        [(✓) #t]
+                        [(X) #f]
+                        [(?) (error-ambig)])
+                      s
+                      αs))]
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
                 (show-e e))]))
 
@@ -297,7 +353,7 @@
            (define σ₂ (⊔ σ₁ (-α.ctc id) C))
            (cond
              [(hash-has-key? σ₂ (-α.def id)) σ₂]
-             [else (⊔ σ₂ (-α.def id) '•)]))]
+             [else (⊔ σ₂ (-α.def id) -●/V)]))]
         ;; submodule-form
         [(? -module?) (error '𝑰 "TODO: sub-module forms")])))
 

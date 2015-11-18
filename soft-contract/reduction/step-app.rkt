@@ -47,9 +47,10 @@
 
   (: ↦δ : Symbol → -Δς*)
   (define (↦δ o)
-    (match/nd: (-AΓ → -Δς) (δ M σ Γ o W_xs loc)
-      [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ '() '() '())]
-      [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ '() '() '())]))
+    (define-values (δσ AΓ) (δ M σ Γ o W_xs loc))
+    (match/nd: (-AΓ → -Δς) AΓ
+      [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ δσ '() '())]
+      [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ δσ '() '())]))
   
   (: ↦havoc : → (Setof -Δς))
   (define (↦havoc)

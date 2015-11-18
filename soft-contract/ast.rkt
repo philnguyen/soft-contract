@@ -50,7 +50,7 @@
   'cons 'null 'void 'box
   'μ/c 'x/c
   ;; these are just (tmp) hacks for retaining expressions / allocation address
-  'values 'struct/c 'vector
+  'values 'vector
   ;; general user-defined id
   (struct -id-local [name : Symbol] [ctx : Adhoc-Module-Path]))
 
@@ -108,7 +108,7 @@
     (struct -λ [formals : -formals] [body : -e])
     (struct -case-λ [body : (Listof (Pairof -formals -e))])
     (subset: -•
-      '•
+      ;;'•
       ;; `l` is a tag annotating which static location this opaque value came from
       (struct -•ₗ [l : (U Natural Symbol)]))
     (subset: -prim

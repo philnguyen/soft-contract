@@ -140,7 +140,7 @@
             (match e
               [(-x x) (Γ-binds? Γ x)]
               [_ #f])]
-           ['•
+           [(-●)
             (match e
               [(-not e*) (equal? '✓ (MσΓ⊢e M σ Γ e*))]
               [_ #f])]
@@ -344,7 +344,7 @@
 (define ⊢V
   (match-lambda
     [(-b #f) 'X]
-    ['• '?]
+    [(-●) '?]
     [_ '✓]))
 
 (: V∋Vs : -V -V * → -R)
@@ -368,31 +368,31 @@
       [(p?₁)
        (match (car Vs)
          [(-b (? p?₁)) '✓]
-         ['• '?]
+         [(-●) '?]
          [_ 'X])]
       ...
       [(p?₂) ; HACK for now for op's domain
        (match Vs
          [(list (-b (? real? b₁)) (-b (? real? b₂))) (decide-R (p?₂ b₁ b₂))]
-         [(list-no-order '• _ (... ...)) '?]
+         [(list-no-order (-●) _ (... ...)) '?]
          [_ 'X])]
       ...
       [(procedure?)
        (match (car Vs)
          [(or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?)) '✓]
-         ['• '?]
+         [(-●) '?]
          [_ 'X])]
       [(vector?)
        (match (car Vs)
          [(or (? -Vector?) (? -Vector/checked?)) '✓]
-         ['• '?]
+         [(-●) '?]
          [_ 'X])]
       [else
        (match-define (-st-p s) p)
        (match (car Vs)
          [(or (-St s* _) (-St/checked s* _ _ _))
           (decide-R (equal? s (assert s*)))]
-         ['• '?]
+         [(-●) '?]
          [_ 'X])]))
   (with-prim-checks
     [integer? real? number? not boolean? string? symbol? keyword?]

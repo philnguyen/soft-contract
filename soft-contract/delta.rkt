@@ -15,7 +15,7 @@
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
 
-(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))))
+(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))))
 ;; Concrete table for unsafe operations
 (define (concrete s)
   (define-syntax-rule (with-args (M σ Γ Ws loc) [t e ...] ...)
@@ -69,7 +69,7 @@
                       [else (set-add ans-bads ans-ok)])]
         [else ans-bads]))
 
-(define -list• : (List -V) (list '•))
+(define -list• : (List -V) (list -●/V))
 
 ;; Language definition for `δ` begins here
 (begin-for-syntax
@@ -141,8 +141,8 @@
               (match #,(Ws-id)
                 [(list #,@pat-bs)
                  (define ans (-b (#,op #,@b-ids)))
-                 (values #,(σ-id) (-AΓ (list ans) #,(Γ-id)))]
-                [_ (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])])]
+                 (values '() (-AΓ (list ans) #,(Γ-id)))]
+                [_ (values '() (-AΓ -list• #,(Γ-id)))])])]
          
          ; Just return operator name for complicated cases
          [else (list op)])]
@@ -179,13 +179,13 @@
                (cond
                  [(concrete o)
                   =>
-                  (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))])
+                  (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))])
                     (f M σ Γ Ws l))]
-                 [else (values σ (-AΓ -list• Γ))])]
+                 [else (values '() (-AΓ -list• Γ))])]
               [else (error 'δ "unhandled: ~a" o)])]))
      ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → (Values -σ -AΓs))
+(: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → (Values -Δσ -AΓs))
 (define (δ M σ Γ o Ws l)
   (gen-δ-body M σ Γ o Ws l))

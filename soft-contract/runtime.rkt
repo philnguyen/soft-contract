@@ -127,7 +127,7 @@
 (define-data -V
   'undefined
   -prim
-  '•
+  (struct -●)
   ;; Structs
   (struct -St [info : -struct-info] [fields : (Listof -α)])
   (struct -St/checked
@@ -178,7 +178,7 @@
   (match v
     [(-λ xs e) (-Clo* xs e (ρ↓ ρ (FV v)))]
     [(? -prim? v) v]
-    [(? -•ₗ? v) '•]
+    [(? -•ₗ? v) -●/V]
     [_ (error 'close "Not yet supported: ~a" v)]))
 
 (: close-Γ (case-> [-Γ -V → -V]
@@ -205,12 +205,33 @@
      (printf "`C-flat?`: warning: receiving non-contract ~a~n" (show-V V))
      #t]))
 
+(: check-α-flat : -σ -α → -R)
+;; Check whether contract at address is flat
+(define (check-α-flat σ α)
+  (define ans
+    (for/set: : (Setof Boolean) ([C (σ@ σ α)])
+      (C-flat? C)))
+  (match (set->list ans)
+    [(list #t) '✓]
+    [(list #f) 'X]
+    [xs (printf "Warning: flats and chaperones shared at 1 address~n") '?]))
+
+(: check-αs-flat : -σ (Listof -α) → -R)
+(define (check-αs-flat σ αs)
+  (define ans
+    (for/set: : (Setof -R) ([α αs])
+      (check-α-flat σ α)))
+  (match (set->list ans)
+    [(list '✓) '✓]
+    [(list _ ... 'X _ ...) 'X]
+    [_ '?]))
+
 ;; Pretty-print evaluated value
 (define (show-V [V : -V]) : Sexp
   (match V
     ['undefined 'undefined]
     [(-b b) (show-b b)]
-    ['• '●]
+    [(-●) '●]
     [(? -o? o) (show-o o)]
     [(-Clo* xs e _) (show-e (-λ xs e))]
     [(-Clo xs e _ _) (show-e (-λ xs e))]
@@ -308,19 +329,34 @@
   ;; for top-level definition and contract
   (struct -α.def [id : -id])
   (struct -α.ctc [id : -id])
+
   ;; for lexical binding
   ;(struct -α.bnd [x : Symbol] [arg : -?e] [inv : -Γ])
   Symbol
+
   ;; TODO: temp hack
   (struct -α.tmp [v : -e])
+
   ;; for mutable or opaque field
   (struct -α.fld [id : (U -id #|HACK|# Symbol)] [pos : Integer] [idx : Integer])
+
   ;; for wrapped mutable struct
   (struct -α.wrp [id : -id] [pos : Integer])
+
   ;; for vector indices
   (struct -α.vct [pos : Integer] [idx : Integer])
+
   ;; for inner vector
-  (struct -α.inv [pos : Integer]))
+  (struct -α.inv [pos : Integer])
+
+  ;; for contract components
+  (struct -α.and/c-l [pos : Integer])
+  (struct -α.and/c-r [pos : Integer])
+  (struct -α.or/c-l [pos : Integer])
+  (struct -α.or/c-r [pos : Integer])
+  (struct -α.not/c [pos : Integer])
+  (struct -α.vector/c [pos : Integer] [idx : Integer])
+  (struct -α.vectorof [pos : Integer]))
 
 (: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α))
 (define (alloc-fields s loc Ws)
@@ -427,7 +463,7 @@
 (define -Any/C (-Clo '(x) -tt -ρ⊥ -Γ⊤))
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
-(define -● (-W '• #f))
+(define -●/V (-●))
 (define -Void/Vs (list (-St -s-void '())))
 (define -integer?/W (-W 'integer? 'integer?))
 (define -number?/W (-W 'number? 'number?))
@@ -564,9 +600,9 @@
 (define (-struct/c-split c n)
   (match c
     [(-struct/c _ cs _) cs]
-    [_
-     (define s (-struct-info 'struct/c n ∅)) ; hack
-     (for/list : (Listof -?e) ([i (in-range n)])
+    [_ (make-list n #f)
+     #;(define s (-struct-info 'struct/c n ∅)) ; hack
+     #;(for/list : (Listof -?e) ([i (in-range n)])
          (-?@ (-st-ac s i) c))]))
 
 (: -struct-split : -?e -struct-info → (Listof -?e))
@@ -578,6 +614,12 @@
        (if (∋ mutables i) #f e))]
     [_ (for/list : (Listof -?e) ([i (in-range (-struct-info-arity s))])
          (-?@ (-st-ac s i) e))]))
+
+(: -app-split : -?e Symbol Integer → (Listof -?e))
+(define (-app-split e o n)
+  (match e
+    [(-@ (≡ o) es _) es]
+    [_ (make-list n #f)]))
 
 (: -?struct/c : -struct-info (Listof -?e) → (Option -struct/c))
 (define (-?struct/c s fields)

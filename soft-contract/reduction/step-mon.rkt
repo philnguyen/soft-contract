@@ -22,7 +22,7 @@
   (define (↦and/c γ₁ γ₂)
     (define Cs₁ (σ@ σ γ₁))
     (define Cs₂ (σ@ σ γ₂))
-    (match-define (list c₁ c₂) (-struct-split e_c -s-and/c))
+    (match-define (list c₁ c₂) (-app-split e_c 'and/c 2))
     (match/nd: (-V → -Δς) Cs₁
       [C₁
        (match/nd: (-V → -Δς) Cs₂
@@ -35,11 +35,11 @@
   (define (↦or/c γ₁ γ₂)
     (define Cs₁ (σ@ σ γ₁))
     (define Cs₂ (σ@ σ γ₂))
-    (match-define (list c₁ c₂) (-struct-split e_c -s-or/c))
+    (match-define (list c₁ c₂) (-app-split e_c 'or/c 2))
     (match/nd: (-V → -Δς) Cs₁
       [C₁
        (cond
-         [(C-flat? σ C₁)
+         [(C-flat? C₁)
           (match/nd: (-V → -Δς) Cs₂
             [C₂
              (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
@@ -57,8 +57,8 @@
     (match/nd: (-V → -Δς) (σ@ σ α)
       [C*
        (cond
-         [(C-flat? σ C*)
-          (match-define (list e_c*) (-struct-split e_c -s-not/c))
+         [(C-flat? C*)
+          (match-define (list e_c*) (-app-split e_c 'not/c 1))
           (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
           (-Δς (-FC (-W C* e_c*) W_v lo pos) Γ κ* '() '() '())]
          [else
@@ -133,7 +133,7 @@
             [(-Vector αs) (-b (length αs))]
             [else '•])
           (-?@ 'vector-length e_v)))
-    (define e_cs (-struct-split e_c (-struct-info 'vector/c n ∅)))
+    (define e_cs (-app-split e_c 'vector/c n))
     
     (define-values (δς-ok δς-bads)
       (Γ+/- M σ Γ
@@ -168,14 +168,14 @@
     ['?
      (match C
        [(-=>i xs cs Cs d ρ_d Γ_d) (↦=>i xs cs Cs d ρ_d Γ_d)]
-       [(-St/C s γs) (↦struct/c s γs)]
+       [(-St/C _ s γs) (↦struct/c s γs)]
        [(-μ/C x c) (error '↦mon "μ/c")]
        [(-X/C x) (error '↦mon "ref")]
-       [(-St (≡ -s-and/c) (list γ₁ γ₂)) (↦and/c γ₁ γ₂)]
-       [(-St (≡ -s-or/c ) (list γ₁ γ₂)) (↦or/c γ₁ γ₂)]
-       [(-St (≡ -s-not/c) (list α)) (↦not/c α)]
-       [(-St (≡ -s-vectorof) (list α)) (↦vectorof α)]
-       [(-St (-struct-info 'vector/c _ _) αs) (↦vector/c αs)]
+       [(-And/C _ γ₁ γ₂) (↦and/c γ₁ γ₂)]
+       [(-Or/C _ γ₁ γ₂) (↦or/c γ₁ γ₂)]
+       [(-Not/C α) (↦not/c α)]
+       [(-Vectorof α) (↦vectorof α)]
+       [(-Vector/C αs) (↦vector/c αs)]
        [_
         (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
         (-Δς (-W (list V) e_v) Γ
@@ -190,7 +190,7 @@
     [(-St (-struct-info (and t (or 'and/c 'or/c)) _ _) (list γ₁ γ₂))
      (define Cs₁ (σ@ σ γ₁))
      (define Cs₂ (σ@ σ γ₂))
-     (match-define (list c₁ c₂) (-struct-split e_c -s-and/c))
+     (match-define (list c₁ c₂) (-app-split e_c 'and/c 2))
      (match/nd: (-V → -Δς) Cs₁
        [C₁
         (match/nd: (-V → -Δς) Cs₂
@@ -204,7 +204,7 @@
      (match/nd: (-V → -Δς) (σ@ σ γ)
        [C*
         (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) -Λ) κ))
-        (match-define (list e_c*) (-struct-split e_c -s-not/c))
+        (match-define (list e_c*) (-app-split e_c 'not/c 1))
         (-Δς (-FC (-W C* e_c*) W_v l) Γ κ* '() '() '())])]
     ;; FIXME recursive contract
     [_ (-Δς (-W (list V) e_v) Γ
