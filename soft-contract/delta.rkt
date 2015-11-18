@@ -85,22 +85,8 @@
     (symbol? integer? . -> . identifier?)
     (format-id (M-id) "~a~a" name (n-sub sub)))
 
-  (define/contract (mk-quote id)
-    (identifier? . -> . syntax?)
-    #`(quote #,(syntax->datum id)))
-
   (define/contract (generate-general-clauses dec)
-    (dec? . -> . (listof syntax?))
-
-    ;(printf "Generating for ~a~n" (syntax->datum row))
-
-    (define/contract ctx syntax? (M-id))
-
-    (define/contract (mk-struct-info t mut?s)
-      (symbol? (listof boolean?) . -> . syntax?)
-      (define muts (for/list ([(mut? i) (in-indexed mut?s)] #:when mut?) i))
-      (define n (length mut?s))
-      #`(-struct-info #,t #,n (set #,@(muts))))
+    (dec? . -> . (or/c (listof syntax?) (listof symbol?)))
 
     (match dec
 
@@ -120,7 +106,8 @@
       [(or `(#:struct-cons ,_ ...)
            `(#:struct-pred ,_ ...)
            `(#:struct-acc ,_ ...)
-           `(#:struct-mut ,_ ...))
+           `(#:struct-mut ,_ ...)
+           `(#:alias ,_ ...))
        '()]
 
       ;; Handle generate case
@@ -135,46 +122,39 @@
        (define-values (doms rng)
          (match-let ([`(,x ... . -> . ,y) main])
            (values x y)))
-            
-       (define/contract rhs syntax?
-         (cond
-           ; Operations on base values are straightforward to lift
-           [(and (andmap base? doms) (base? rng))
 
-            (define/contract b-ids (listof identifier?)
-              (build-list (length doms) (curry mk-sym 'b)))
+       (cond
+         ; Return case clause for straightforward lifting of 1-st order case
+         [(and (andmap base? doms) (base? rng))
 
-            (define pat-bs
-              (for/list ([b-id b-ids] [p doms])
-                (define stx-b
-                  (match p
-                    [(? symbol? p) #`(-b (? #,p #,b-id))]
-                    [`(not/c ,(? symbol? p)) #`(-b (not (? #,p #,b-id)))]
-                    [`(and/c ,ps ...)
-                     #`(-b (and #,@(map mk-pat ps) #,b-id))]
-                    [`(or/c ,ps ...)
-                     #`(-b (and (or #,@(map mk-pat ps)) #,b-id))]))
-                #`(-W _ #,stx-b)))
+          (define/contract b-ids (listof identifier?)
+            (build-list (length doms) (curry mk-sym 'b)))
 
-            (define/contract e-ids (listof identifier?)
-              (build-list (length doms) (curry mk-sym 'e)))
+          (define pat-bs
+            (for/list ([b-id b-ids] [p doms])
+              (define stx-b
+                (match p
+                  [(? symbol? p) #`(-b (? #,p #,b-id))]
+                  [`(not/c ,(? symbol? p)) #`(-b (not (? #,p #,b-id)))]
+                  [`(and/c ,ps ...)
+                   #`(-b (and #,@(map mk-pat ps) #,b-id))]
+                  [`(or/c ,ps ...)
+                   #`(-b (and (or #,@(map mk-pat ps)) #,b-id))]))
+              #`(-W _ #,stx-b)))
 
-            #`(match #,(Ws-id)
+          (define/contract e-ids (listof identifier?)
+            (build-list (length doms) (curry mk-sym 'e)))
+
+          (list
+           #`[(#,op)
+              (match #,(Ws-id)
                 [(list #,@pat-bs)
                  (define ans (-b (#,op #,@b-ids)))
                  (values #,(σ-id) (-AΓ (list ans) #,(Γ-id)))]
-                [_ (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])]
-           ; Other operations return `●` by default
-           [else
-            #`(cond
-                [(concrete '#,op)
-                 =>
-                 (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))])
-                   (f #,(M-id) #,(σ-id) #,(Γ-id) #,(Ws-id) #,(l-id)))]
-                [else (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])]))
-       
-       ;; generate lhs-rhs for specific `op`
-       (list #`[(#,op) #,rhs])]
+                [_ (values #,(σ-id) (-AΓ -list• #,(Γ-id)))])])]
+         
+         ; Just return operator name for complicated cases
+         [else (list op)])]
 
       [dec
        (printf "δ: ignore ~a~n" dec)
@@ -184,17 +164,31 @@
 (define-syntax (gen-δ-body stx)
   (syntax-parse stx
     [(_ M:id σ:id Γ:id o:id Ws:id l:id)
-     (define clauses
+     (define-values (clauses names)
        (parameterize ([M-id #'M]
                       [σ-id #'σ]
                       [Γ-id #'Γ]
                       [o-id #'o]
                       [Ws-id #'Ws]
                       [l-id #'l])
-         (append-map generate-general-clauses prims)))
+         (for/fold ([clauses '()]
+                    [names '()])
+                   ([dec prims])
+           (match (generate-general-clauses dec)
+             ['() (values clauses names)]
+             [(cons x xs)
+              (cond [(symbol? x) (values clauses (cons x (append xs names)))]
+                    [else        (values (cons x (append xs clauses)) names)])]))))
      (define body-stx
        #`(case o
            #,@clauses
+           [(#,@names)
+            (cond
+              [(concrete o)
+               =>
+               (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))])
+                 (f M σ Γ Ws l))]
+              [else (values σ (-AΓ -list• Γ))])]
            [else (error 'δ "unhandled: ~a" o)]))
      (printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
