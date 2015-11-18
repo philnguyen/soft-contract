@@ -1,6 +1,6 @@
 #lang typed/racket
 (require
- racket/splicing racket/extflonum "untyped-macros.rkt" "utils.rkt"
+ racket/splicing racket/extflonum "untyped-utils.rkt" "utils.rkt"
  (for-syntax racket/base racket/match racket/syntax syntax/parse))
 (require/typed redex/reduction-semantics
   [variable-not-in (Any Symbol → Symbol)])

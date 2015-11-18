@@ -4,7 +4,7 @@
  "utils.rkt" "ast.rkt" "prim-gen.rkt" "runtime.rkt" "provability.rkt"
  (for-syntax racket/base racket/match racket/syntax syntax/parse racket/contract
              racket/pretty racket/list racket/function racket/contract
-             "untyped-macros.rkt" "utils.rkt" "prims.rkt")
+             "untyped-utils.rkt" "utils.rkt" "prims.rkt")
  )
 (provide δ Γ+/- -list•)
 

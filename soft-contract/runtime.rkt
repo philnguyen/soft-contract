@@ -1,11 +1,11 @@
 #lang typed/racket/base
 (require
  racket/match racket/list racket/set racket/function
- "untyped-macros.rkt" "utils.rkt" "ast.rkt"
+ "untyped-utils.rkt" "utils.rkt" "ast.rkt"
  ; for generated code
  racket/math racket/flonum racket/extflonum racket/string
  (for-syntax racket/base racket/match racket/list racket/contract racket/syntax syntax/parse
-             "untyped-macros.rkt" "utils.rkt" (prefix-in prims: "prims.rkt") "prim-gen.rkt"))
+             "untyped-utils.rkt" "utils.rkt" (prefix-in prims: "prims.rkt") "prim-gen.rkt"))
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 

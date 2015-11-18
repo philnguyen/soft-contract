@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/match racket/contract "untyped-macros.rkt")
+(require racket/match racket/contract "untyped-utils.rkt")
 (provide
  arr? arr*? ctc? dec? impl?
  (contract-out
