@@ -5,7 +5,8 @@
   [(implications prims:implications) (Listof Any)]
   [(prims prims:prims) (Listof Any)])
 
-(provide Graph implications exclusions base-predicates prim-ranges prim-refinements-for-ranges)
+(provide Graph implications exclusions
+         base-predicates prim-names prim-ranges prim-refinements-for-ranges)
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
 (define -graph∅ : Graph (hasheq))
@@ -84,6 +85,15 @@
                   [r* (in-set (hash-ref im*⁻¹ r))])
         (add-edge (add-edge ex l r*) r* l)))
     (values im* ex*)))
+
+(define prim-names
+  (for/fold ([names : (Setof Symbol) (seteq)])
+            ([dec (in-list prims:prims)])
+    (match dec
+      [`(#:pred ,(? symbol? s) ,_ ...) (set-add names s)]
+      [`(#:batch ,ss ,_ ...) (set-add-list names (cast ss (Listof Symbol)))]
+      [`(,(? symbol? s) ,_ ...) (set-add names s)]
+      [_ names])))
 
 
 ;; Conservative subset of operators' ranges.

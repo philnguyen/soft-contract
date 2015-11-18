@@ -1,7 +1,7 @@
 #lang typed/racket
 (require
  racket/flonum racket/extflonum math/base
- "utils.rkt" "ast.rkt" "runtime.rkt" "provability.rkt"
+ "utils.rkt" "ast.rkt" "prim-gen.rkt" "runtime.rkt" "provability.rkt"
  (for-syntax racket/base racket/match racket/syntax syntax/parse racket/contract
              racket/pretty racket/list racket/function racket/contract
              "untyped-macros.rkt" "utils.rkt" "prims.rkt")
@@ -182,14 +182,16 @@
      (define body-stx
        #`(case o
            #,@clauses
-           [(#,@names)
+           [else
             (cond
-              [(concrete o)
-               =>
-               (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))])
-                 (f M σ Γ Ws l))]
-              [else (values σ (-AΓ -list• Γ))])]
-           [else (error 'δ "unhandled: ~a" o)]))
+              [(∋ prim-names o)
+               (cond
+                 [(concrete o)
+                  =>
+                  (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -σ -AΓs))])
+                    (f M σ Γ Ws l))]
+                 [else (values σ (-AΓ -list• Γ))])]
+              [else (error 'δ "unhandled: ~a" o)])]))
      (printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
