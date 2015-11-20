@@ -269,31 +269,25 @@
        (define-values (σ* αs) (alloc-es σ s pos cs))
        (values σ* (-St s αs))]
       [(-@ 'and/c (list c₁ c₂) l)
-       (define-values (σ* γ₁ γ₂)
+       (define-values (σ* γ₁ γ₂ flat?)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
            (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
-           (values σ₂ (-α.and/c-l pos) (-α.and/c-r pos))))
-       (values σ*
-               (-And/C (case (check-αs-flat σ* (list γ₁ γ₂))
-                         [(✓) #t]
-                         [(X) #f]
-                         [else (error-ambig)])
-                       γ₁
-                       γ₂))]
+           (values σ₂
+                   (-α.and/c-l pos)
+                   (-α.and/c-r pos)
+                   (and (C-flat? V₁) (C-flat? V₂)))))
+       (values σ* (-And/C flat? γ₁ γ₂))]
       [(-@ 'or/c (list c₁ c₂) l)
-       (define-values (σ* γ₁ γ₂)
+       (define-values (σ* γ₁ γ₂ flat?)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
            (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
-           (values σ₂ (-α.or/c-l pos) (-α.or/c-r pos))))
-       (values σ*
-               (-Or/C (case (check-αs-flat σ* (list γ₁ γ₂))
-                        [(✓) #t]
-                        [(X) #f]
-                        [else (error-ambig)])
-                      γ₁
-                      γ₂))]
+           (values σ₂
+                   (-α.or/c-l pos)
+                   (-α.or/c-r pos)
+                   (and (C-flat? V₁) (C-flat? V₂)))))
+       (values σ* (-Or/C flat? γ₁ γ₂))]
       [(-@ 'not/c (list c) l)
        (define-values (σ* γ)
          (let-values ([(σ* V) (alloc-e σ c)])
@@ -359,6 +353,8 @@
 
   (define E₀ (-↓ e₀ -ρ⊥))
   (define τ₀ (-τ e₀ -ρ⊥ -Γ⊤))
+
+  (printf "Initial σ:~n~a~n" (hash-count σ₀))
 
   (-ς E₀ -Γ⊤ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 
