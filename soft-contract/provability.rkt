@@ -449,22 +449,24 @@
 ;; Given proposition `(p? v)`, generate an overapproximation of expressions
 ;; that could have evaluated to it
 (define (invert-e M σ f args)
-
-  (define α (-α.def f))
-  (match/nd: (-V → -Res) (σ@ σ α)
-    [(or (-Clo (? list? xs) e _ _) (-Clo* (? list? xs) e _))
-     ;; Convert invariant about parameters into one about arguments
-     (define (convert [e : -e]) : -e
-       (for/fold ([e : -e e]) ([x (assert xs)] [arg args])
-         (e/ e x arg)))
-     
-     (match/nd: (-Res → -Res) (hash-ref M (assert e))
-       [(-Res e-xs ψ-xs)
-        (define e-args (and e-xs (convert e-xs)))
-        (define ψ-args (for/set: : -es ([ψ ψ-xs]) (convert ψ)))
-        (-Res e-args ψ-args)])]
+  (match f
+    [(-id-local o 'Λ)
+     {set (-Res (apply -?@ o args) ∅)}]
+    [_
+     (define α (-α.def f))
+     (match/nd: (-V → -Res) (σ@ σ α)
+       [(or (-Clo (? list? xs) e _ _) (-Clo* (? list? xs) e _))
+        ;; Convert invariant about parameters into one about arguments
+        (define (convert [e : -e]) : -e
+          (for/fold ([e : -e e]) ([x (assert xs)] [arg args])
+            (e/ e x arg)))
         
-    [_ -Res⊤]))
+        (match/nd: (-Res → -Res) (hash-ref M (assert e))
+          [(-Res e-xs ψ-xs)
+           (define e-args (and e-xs (convert e-xs)))
+           (define ψ-args (for/set: : -es ([ψ ψ-xs]) (convert ψ)))
+           (-Res e-args ψ-args)])]
+       [_ -Res⊤])]))
 
 (: invert-Γ : -M -σ -Γ → (Setof -Γ))
 ;; Given propositions `Γ`, generate an overapproximation of environments
