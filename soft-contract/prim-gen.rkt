@@ -6,7 +6,8 @@
   [(prims prims:prims) (Listof Any)])
 
 (provide Graph implications exclusions
-         base-predicates prim-names prim-ranges prim-refinements-for-ranges)
+         base-predicates prim-names prim-ranges prim-refinements-for-ranges
+         ignore-for-now?)
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
 (define -graph∅ : Graph (hasheq))
@@ -159,3 +160,17 @@
       [`(#:batch (,(? symbol? ss) ...) (any/c . -> . boolean?) ,_ ...)
        (append (cast ss (Listof Symbol)) acc)]
       [_ acc])))
+
+;; Ignore predicates without TR bindings
+(define ignore-for-now?
+  (set->predicate
+   (list->set
+    '(procedure? vector?
+      pseudo-random-generator-vector? non-empty-string? string-contains?
+      string-prefix? string-suffix? placeholder? hash-placeholder?
+      stream? generator? 
+      set-equal? set-eqv? set-eq? set-mutable? set-weak? normalized-arity?
+      printable/c unsupplied-arg? contract? chaperone-contract? impersonator-contract?
+      flat-contract? list-contract? has-contract? has-blame?
+      even? odd? char-general-category
+      dict?))))

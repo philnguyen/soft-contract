@@ -2,9 +2,10 @@
 (require
  racket/flonum racket/extflonum math/base
  "utils.rkt" "ast.rkt" "prim-gen.rkt" "runtime.rkt" "provability.rkt"
- (for-syntax racket/base racket/match racket/syntax syntax/parse racket/contract
-             racket/pretty racket/list racket/function racket/contract
-             "untyped-utils.rkt" "utils.rkt" "prims.rkt")
+ (for-syntax
+  racket/base racket/match racket/syntax syntax/parse racket/contract
+  racket/pretty racket/list racket/function racket/contract
+  "untyped-utils.rkt" "utils.rkt" (except-in "prims.rkt" implications) "prim-gen.rkt")
  )
 (provide δ Γ+/- -●/Vs)
 
@@ -111,7 +112,8 @@
        '()]
 
       ;; Handle generate case
-      [`(,(? symbol? op) (,doms ... . -> . ,rng) ,(? arr? refinements) ...
+      [`(,(and (? symbol?) (not (? ignore-for-now?)) op)
+          (,doms ... . -> . ,rng) ,(? arr? refinements) ...
          #:other-errors (,guards ...) ...)
 
        (cond

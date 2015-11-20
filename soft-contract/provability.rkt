@@ -377,19 +377,7 @@
            [(list (or (? -Vector?) (? -Vector/checked?))) '✓]
            [(-●) '?]
            [_ 'X])]
-        #,@(generate-base-cases
-            #'Vs
-            ;; hack
-            (list->set
-             '(procedure? vector?
-               pseudo-random-generator-vector? non-empty-string? string-contains?
-               string-prefix? string-suffix? placeholder? hash-placeholder?
-               stream? generator? 
-               set-equal? set-eqv? set-eq? set-mutable? set-weak? normalized-arity?
-               printable/c unsupplied-arg? contract? chaperone-contract? impersonator-contract?
-               flat-contract? list-contract? has-contract? has-blame?
-               even? odd? char-general-category
-               dict?)))
+        #,@(generate-base-cases #'Vs)
         [else
          (match p
            [(? -st-mk?) '✓]
@@ -408,8 +396,8 @@
 
 ;; Generate clauses for checking satisfiability of base values
 (begin-for-syntax
-  (define/contract (generate-base-cases Vs ignored)
-    (identifier? (set/c symbol?) . -> . (listof syntax?))
+  (define/contract (generate-base-cases Vs)
+    (identifier? . -> . (listof syntax?))
 
     (define/contract (go dec)
       (any/c . -> . (listof syntax?))
@@ -422,7 +410,7 @@
          (append-map (λ (s) (go `(,s ,c #:other-errors))) ss)]
         [`(,(? symbol? s) ,(? arr? cs) ...)
          (go `(,s ,@cs #:other-errors))]
-        [`(,(and (? symbol?) (not (? (curry ∋ ignored))) s)
+        [`(,(and (? symbol?) (not (? ignore-for-now?)) s)
            (,(and (or (? base?) 'any/c) cs) ... . -> . boolean?) ,_ ...)
 
          (define b-ids

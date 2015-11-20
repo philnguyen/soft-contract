@@ -380,17 +380,16 @@
            (symbol? . -> . syntax?)
            #`(-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id)))
          
-         ;; FIXME: parse to *wrapped* instead of raw versions of primitives
          (match dec
            [`(#:pred ,s ,_ ...)
             (list #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
            [`(#:alias ,s ,t)
             (list #`[(~literal #,s)
                      #,(hash-ref! cache t (λ () (error 'make-ref "~a aliases undeclared ~a" s t)))])]
-           [`(#:batch (,ss ...) ,_ ...)
+           [`(#:batch (,ss ...) ,(? arr?) ,_ ...)
             (for/list ([s ss])
               #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
-           [`(#:const ,s)
+           [`(,(? symbol? s) ,(? base? c))
             (list #`[(~literal #,s) #,(hash-ref! cache s #`(-b #,s))])]
            [(or `(,(? symbol? s) ,_ ...)
                 `(#:struct-cons ,s ,_)
@@ -465,8 +464,9 @@
     (define/contract (make-defs dec)
       (any/c . -> . (listof -define-values?))
       (match dec
+        
         [(or `(#:pred ,s ,_ ...)
-             `(,(? symbol? s) ,_ ...))
+             `(,(? symbol? s) ,(? arr?) ,_ ...))
          (list (-define-values (list s) s))]
         [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:const ,_) '()] ; no need. They're all inlined.

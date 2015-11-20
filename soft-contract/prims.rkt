@@ -469,7 +469,7 @@
      [bytes-set!
       ((and/c bytes? (not/c immutable?)) exact-nonnegative-integer? byte? . -> . void?)]
      [subbytes ; FIXME uses
-      bytes? exact-nonnegative-integer? . -> . bytes?]
+      (bytes? exact-nonnegative-integer? . -> . bytes?)]
      [bytes-copy
       (bytes? . -> . bytes?)]
      [bytes-copy! ; FIXME uses
@@ -1748,9 +1748,9 @@
   (match s
     [(? symbol? s)
      (case s
-       [(integer? real? number? exact-nonnegative-integer? flonum?
+       [(integer? real? number? exact-nonnegative-integer? flonum? single-flonum?
                   extflonum?
-                  string? symbol? keyword? char? #|TODO|#)
+                  boolean? string? symbol? keyword? char? null? #|TODO|#)
         #t]
        [else #f])]
     [`(,(or 'and/c 'or/c 'not/c) ,cs ...)
@@ -1793,8 +1793,9 @@
    `(#:pred ,(? symbol?) (,(? ctc?) ...))
    `(#:alias ,(? symbol?) ,(? symbol?))
    `(#:batch (,(? symbol?) ...) ,(? ctc?) ...)
-   `(,(? symbol?) ,(? ctc?) ...)
-   `(,(? symbol?) ,(? ctc?) ... #:other-errors ,(list (? ctc?) ...) ...)
+   `(,(? symbol?) ,(? ctc?))
+   `(,(? symbol?) ,(? arr?) ,(? arr?) ...)
+   `(,(? symbol?) ,(? arr?) ,(? arr?) ... #:other-errors ,(list (? ctc?) ...) ...)
    ;; struct stuff
    `(#:struct-cons ,(? symbol?) ,(? struct-info?))
    `(#:struct-pred ,(? symbol?) ,(? struct-info?))

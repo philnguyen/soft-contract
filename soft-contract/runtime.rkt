@@ -1,11 +1,13 @@
 #lang typed/racket/base
 (require
- racket/match racket/list racket/set racket/function
+ racket/match racket/bool racket/list racket/set racket/function
  "untyped-utils.rkt" "utils.rkt" "ast.rkt"
  ; for generated code
  racket/math racket/flonum racket/extflonum racket/string
- (for-syntax racket/base racket/match racket/list racket/contract racket/syntax syntax/parse
-             "untyped-utils.rkt" "utils.rkt" (prefix-in prims: "prims.rkt") "prim-gen.rkt"))
+ (for-syntax
+  racket/base racket/set racket/function racket/match racket/list racket/contract
+  racket/syntax syntax/parse
+  "untyped-utils.rkt" "utils.rkt" (prefix-in prims: "prims.rkt") "prim-gen.rkt"))
 (require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
 (provide (all-defined-out))
 
@@ -500,7 +502,7 @@
          (go `(,s (,@cs . -> . boolean?) #:other-errors))]
         [`(#:batch (,(? symbol? ss) ...) ,(? prims:arr? c) ,_ ...)
          (append-map (λ (s) (go `(,s ,c #:other-errors))) ss)]
-        [`(,(? symbol? o) (,cs ... . -> . ,d) ,_ ...)
+        [`(,(and (? symbol?) (not (? ignore-for-now?)) o) (,cs ... . -> . ,d) ,_ ...)
 
          (cond
            [(and (andmap prims:base? cs) (prims:base? d))
