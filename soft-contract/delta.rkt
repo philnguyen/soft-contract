@@ -6,7 +6,7 @@
              racket/pretty racket/list racket/function racket/contract
              "untyped-utils.rkt" "utils.rkt" "prims.rkt")
  )
-(provide δ Γ+/- -list•)
+(provide δ Γ+/- -●/Vs)
 
 ;; Different kinds of primitives:
 ;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
@@ -69,7 +69,7 @@
                       [else (set-add ans-bads ans-ok)])]
         [else ans-bads]))
 
-(define -list• : (List -V) (list -●/V))
+(define -●/Vs : (List -V) (list -●/V))
 
 ;; Language definition for `δ` begins here
 (begin-for-syntax
@@ -142,7 +142,7 @@
                 [(list #,@pat-bs)
                  (define ans (-b (#,op #,@b-ids)))
                  (values '() (-AΓ (list ans) #,(Γ-id)))]
-                [_ (values '() (-AΓ -list• #,(Γ-id)))])])]
+                [_ (values '() (-AΓ -●/Vs #,(Γ-id)))])])]
          
          ; Just return operator name for complicated cases
          [else (list op)])]
@@ -181,7 +181,7 @@
                   =>
                   (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))])
                     (f M σ Γ Ws l))]
-                 [else (values '() (-AΓ -list• Γ))])]
+                 [else (values '() (-AΓ -●/Vs Γ))])]
               [else (error 'δ "unhandled: ~a" o)])]))
      ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
