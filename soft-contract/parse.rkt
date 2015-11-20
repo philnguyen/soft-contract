@@ -24,7 +24,7 @@
     (for/list ([path (in-list paths)])
       (parse-top-level-form (do-expand-file path))))
   (define-values (havoc-m havoc-e) (gen-havoc ms))
-  (-prog (cons havoc-m ms) havoc-e))
+  (-prog (list* havoc-m -mod-prim ms) havoc-e))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
@@ -155,8 +155,6 @@
     [(define-syntaxes _ ...) #f] 
     [_ (parse-e form)]))
 
-(define dummy-id #'dummy)
-
 (define/contract (parse-e stx)
   (scv-syntax? . -> . -e?)
   (log-debug "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
@@ -164,7 +162,7 @@
   (define/contract (parse-es es)
     ((and/c scv-syntax? (not/c identifier?)) . -> . (listof -e?))
     (map parse-e (syntax->list es)))
-  
+
   (syntax-parse stx
     #:literals
     (let-values letrec-values begin begin0 if #%plain-lambda #%top
@@ -211,18 +209,16 @@
            (syntax-position stx))]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
-     (-@ 'and/c (parse-es #'(c ...)) (-src-loc (cur-mod) (syntax-position stx)))]
+     (-and/c (cur-mod) (parse-es #'(c ...)))]
     ;; Disjunction
     [(#%plain-app (~literal fake:or/c) c ...)
-     (-@ 'or/c (parse-es #'(c ...)) (-src-loc (cur-mod) (syntax-position stx)))]
+     (-or/c (cur-mod) (parse-es #'(c ...)))]
     ;; Negation
     [(#%plain-app (~literal fake:not/c) c)
-     (-@ 'not/c (list (parse-e #'c)) (-src-loc (cur-mod) (syntax-position stx)))]
+     (-not/c (cur-mod) (parse-e #'c))]
     [(#%plain-app (~literal fake:listof) c)
      (-μ/c 'X
-       (-@ 'or/c (list -null/c
-                       (-cons/c (parse-e #'c) (-x/c 'X) (syntax-position stx)))
-           (cur-mod)))]
+       (-or/c (list -null/c (-cons/c (parse-e #'c) (-x/c 'X) (syntax-position stx)))))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (apply -list/c (map cons
                          (parse-es #'(c ...))
@@ -241,12 +237,9 @@
     [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c))]
     [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c))]
     [(#%plain-app (~literal fake:cons/c) c d)
-     (-cons/c (parse-e #'c) (parse-e #'d) (syntax-position stx))]
+     (-cons/c (parse-e #'c) (parse-e #'d))]
     [(#%plain-app (~literal fake:one-of/c) c ...)
-     (apply -one-of/c
-            (map cons
-                 (parse-es #'(c ...))
-                 (map syntax-position (syntax->list #'(c ...)))))]
+     (-one-of/c (cur-mod) (parse-es #'(c ...)))]
     ; recursive contract reference. FIXME: code duplicate
     [(let-values () (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
      (-x/c (syntax-e #'x))]
@@ -451,17 +444,12 @@
         [`(->* (,doms ...) #:rest ,rst ,rng)
          (printf "Skipping ->* for now~n")
          -any/c]
-        [`(and/c ,cs ...)
-         (-@ 'and/c (map simple-parse cs) (-src-loc 'Λ (next-neg!)))]
-        [`(or/c ,cs ...)
-         (-@ 'or/c (map simple-parse cs) (-src-loc 'Λ (next-neg!)))]
-        [`(one-of/c ,cs ...)
-         (apply -one-of/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
-        [`(list/c ,cs ...)
-         (apply -list/c (for/list ([c cs]) (cons (simple-parse c) (next-neg!))))]
-        [`(cons/c ,c ,d)
-         (-cons/c (simple-parse c) (simple-parse d) (next-neg!))]
-        [`(not/c ,c) (-@ 'not/c (list (simple-parse c)) (-src-loc (cur-mod) (next-neg!)))]
+        [`(and/c ,cs ...) (-and/c 'Λ (map simple-parse cs))]
+        [`(or/c  ,cs ...) (-or/c  'Λ (map simple-parse cs))]
+        [`(one-of/c ,cs ...) (-one-of/c 'Λ (map simple-parse cs))]
+        [`(list/c ,cs ...) (-list/c 'Λ (map simple-parse cs))]
+        [`(cons/c ,c ,d) (-cons/c (simple-parse c) (simple-parse d))]
+        [`(not/c ,c) (-not/c 'Λ (simple-parse c))]
         [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
         [`(values ,ctcs ...)
          (-@ 'values (map simple-parse ctcs) (-src-loc 'Λ (next-neg!)))]
