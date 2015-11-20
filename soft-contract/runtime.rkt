@@ -512,6 +512,7 @@
             (define/contract b-pats (listof syntax?)
               (for/list ([b-id b-ids] [c cs])
                 (match c
+                  ['any/c #`(-b #,b-id)]
                   [(? symbol? p) #`(-b (? #,c #,b-id))]
                   [`(not/c ,(? symbol? p)) #`(-b (not (? #,c #,b-id)))]
                   [`(and/c ,ps ...)

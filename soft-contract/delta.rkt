@@ -125,6 +125,7 @@
             (for/list ([b-id b-ids] [p doms])
               (define stx-b
                 (match p
+                  ['any/c #`(-b #,b-id)]
                   [(? symbol? p) #`(-b (? #,p #,b-id))]
                   [`(not/c ,(? symbol? p)) #`(-b (not (? #,p #,b-id)))]
                   [`(and/c ,ps ...)

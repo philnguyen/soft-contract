@@ -3,10 +3,12 @@
  racket/match racket/set racket/list racket/function racket/bool
  "untyped-utils.rkt" "utils.rkt" "ast.rkt" "runtime.rkt" "prim-gen.rkt"
  ; for generated code
- (only-in racket/contract has-blame?)
- math/base racket/dict racket/generator racket/stream racket/string
+ (except-in racket/contract -> ->*)
+ math/base racket/generator racket/stream racket/string
  racket/extflonum racket/fixnum racket/flonum
- (for-syntax racket/base racket/syntax racket/contract syntax/parse "utils.rkt" "prim-gen.rkt"))
+ (for-syntax
+  racket/base racket/match racket/list racket/set racket/function racket/syntax racket/contract syntax/parse
+  "untyped-utils.rkt" "utils.rkt" (only-in "prims.rkt" prims ctc? arr? base?) "prim-gen.rkt"))
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e Γ⊢e p∋Vs V≡
          MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious? or-R not-R decide-R
          -R
@@ -361,42 +363,91 @@
 
 (: p∋Vs : -o -V * → -R)
 ;; Check if value satisfies predicate
-;; This function reads off table `prims`
 (define (p∋Vs p . Vs)
-  (define-syntax-rule (with-prim-checks [p?₁ ...] [p?₂ ...])
-    (case p
-      [(p?₁)
-       (match (car Vs)
-         [(-b (? p?₁)) '✓]
-         [(-●) '?]
-         [_ 'X])]
-      ...
-      [(p?₂) ; HACK for now for op's domain
-       (match Vs
-         [(list (-b (? real? b₁)) (-b (? real? b₂))) (decide-R (p?₂ b₁ b₂))]
-         [(list-no-order (-●) _ (... ...)) '?]
-         [_ 'X])]
-      ...
-      [(procedure?)
-       (match (car Vs)
-         [(or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?)) '✓]
-         [(-●) '?]
-         [_ 'X])]
-      [(vector?)
-       (match (car Vs)
-         [(or (? -Vector?) (? -Vector/checked?)) '✓]
-         [(-●) '?]
-         [_ 'X])]
-      [else
-       (match-define (-st-p s) p)
-       (match (car Vs)
-         [(or (-St s* _) (-St/checked s* _ _ _))
-          (decide-R (equal? s (assert s*)))]
-         [(-●) '?]
-         [_ 'X])]))
-  (with-prim-checks
-    [integer? real? number? not boolean? string? symbol? keyword?]
-    [< > = >= <=]))
+  (define-syntax (generate stx)
+    (define ans
+      #`(case p
+        [(procedure?)
+         (match Vs
+           [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?))) '✓]
+           [(-●) '?]
+           [_ 'X])]
+        [(vector?)
+         (match Vs
+           [(list (or (? -Vector?) (? -Vector/checked?))) '✓]
+           [(-●) '?]
+           [_ 'X])]
+        #,@(generate-base-cases
+            #'Vs
+            ;; hack
+            (list->set
+             '(procedure? vector?
+               pseudo-random-generator-vector? non-empty-string? string-contains?
+               string-prefix? string-suffix? placeholder? hash-placeholder?
+               stream? generator? 
+               set-equal? set-eqv? set-eq? set-mutable? set-weak? normalized-arity?
+               printable/c unsupplied-arg? contract? chaperone-contract? impersonator-contract?
+               flat-contract? list-contract? has-contract? has-blame?
+               even? odd? char-general-category
+               dict?)))
+        [else
+         (match p
+           [(? -st-mk?) '✓]
+           [(? -st-mut?) '✓]
+           [(? -st-ac?) '✓]
+           [(-st-p si)
+            (match Vs
+              [(list (or (-St sj _) (-St/checked sj _ _ _)))
+               ;; TODO: no sub-struct for now. May change later.
+               (decide-R (equal? si (assert sj)))]
+              [(-●) '?]
+              [_ 'X])])]))
+    ;(printf "ans:~n~a~n" (syntax->datum ans))
+    ans)
+  (generate))
+
+;; Generate clauses for checking satisfiability of base values
+(begin-for-syntax
+  (define/contract (generate-base-cases Vs ignored)
+    (identifier? (set/c symbol?) . -> . (listof syntax?))
+
+    (define/contract (go dec)
+      (any/c . -> . (listof syntax?))
+      (match dec
+        [`(#:pred ,s)
+         (go `(,s (any/c . -> . boolean?) #:other-errors))]
+        [`(#:pred ,s (,(? ctc? cs) ...))
+         (go `(,s (,@cs . -> . boolean?) #:other-errors))]
+        [`(#:batch (,ss ...) ,(? arr? c) ,_ ...)
+         (append-map (λ (s) (go `(,s ,c #:other-errors))) ss)]
+        [`(,(? symbol? s) ,(? arr? cs) ...)
+         (go `(,s ,@cs #:other-errors))]
+        [`(,(and (? symbol?) (not (? (curry ∋ ignored))) s)
+           (,(and (or (? base?) 'any/c) cs) ... . -> . boolean?) ,_ ...)
+
+         (define b-ids
+           (for/list ([(c i) (in-indexed cs)])
+             (datum->syntax #f (string->symbol (format "b~a" (n-sub i))))))
+
+         (define/contract b-pats (listof syntax?)
+           (for/list ([b-id b-ids] [c cs])
+             (match c
+               ['any/c #`(-b #,b-id)]
+               [(? symbol? p) #`(-b (? #,c #,b-id))]
+               [`(not/c ,(? symbol? p)) #`(-b (not (? #,c #,b-id)))]
+               [`(and/c ,ps ...)
+                #`(-b (and #,@(map mk-pat ps) #,b-id))]
+               [`(or/c ,ps ...)
+                #`(-b (and (or #,@(map mk-pat ps)) #,b-id))])))
+         
+         (list #`[(#,s)
+                  (match #,Vs
+                    [(list #,@b-pats) (decide-R (#,s #,@b-ids))]
+                    [(list (-●) (... ...)) '?]
+                    [_ 'X])])]
+        [_ '()]))
+
+    (append-map go prims)))
 
 (: V≡ : -V -V → -R)
 ;; Check if 2 values are `equal?`
