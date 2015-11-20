@@ -103,7 +103,7 @@
      (define (mk-args [n : Integer]) : (Listof -WV) ; FIXME hack
        (build-list n (λ ([i : Integer])
                        (define e (string->symbol (format "z•~a" (n-sub i))))
-                       (-W '• (-x e)))))
+                       (-W -●/V (-x e)))))
      (match/nd: (-V → -Δς) (σ@ σ (ρ@ ρ x))
        [(and V (or (-Clo* xs _ _) (-Clo xs _ _ _)))
         (define n

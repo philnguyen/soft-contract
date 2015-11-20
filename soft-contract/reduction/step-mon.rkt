@@ -131,7 +131,7 @@
     (define -len/W
       (-W (match V
             [(-Vector αs) (-b (length αs))]
-            [else '•])
+            [else -●/V])
           (-?@ 'vector-length e_v)))
     (define e_cs (-app-split e_c 'vector/c n))
     

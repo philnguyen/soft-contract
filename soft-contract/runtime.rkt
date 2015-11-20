@@ -178,7 +178,7 @@
   (match v
     [(-λ xs e) (-Clo* xs e (ρ↓ ρ (FV v)))]
     [(? -prim? v) v]
-    [(? -•ₗ? v) -●/V]
+    [(? -•?) -●/V]
     [_ (error 'close "Not yet supported: ~a" v)]))
 
 (: close-Γ (case-> [-Γ -V → -V]

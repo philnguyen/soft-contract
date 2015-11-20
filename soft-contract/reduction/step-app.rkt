@@ -62,7 +62,7 @@
         [(? -Δς? ς) (set-add acc ς)])))
 
   (: ↦opq : → -Δς)
-  (define (↦opq) (-Δς (-W (list '•) e_a) Γ κ '() '() '()))
+  (define (↦opq) (-Δς (-W -●/Vs e_a) Γ κ '() '() '()))
 
   (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -Δς*)
   (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
@@ -85,7 +85,7 @@
     (match (MσΓ⊢oW M σ Γ (-st-p si) (car W_xs))
       ['✓ (-Δς (-W (list -tt) e_a) (Γ+ Γ e_a) κ '() '() '())]
       ['X (-Δς (-W (list -ff) e_a) (Γ+ Γ (-not e_a)) κ '() '() '())]
-      ['? (-Δς (-W -list• e_a) Γ κ '() '() '())]))
+      ['? (-Δς (-W -●/Vs e_a) Γ κ '() '() '())]))
 
   (: ↦con : -struct-info → -Δς)
   (define (↦con si)
@@ -118,7 +118,7 @@
           (define κ* (-kont φ-select κ))
           (for/set: : (Setof -Δς) ([V* (σ@ σ α)])
             (-Δς (-W (list V*) e_x) Γ κ* '() '() '()))])]
-      [_ (-Δς (-W (list '•) e_a) Γ κ '() '() '())]))
+      [_ (-Δς (-W -●/Vs e_a) Γ κ '() '() '())]))
 
   (: ↦mut : -struct-info Integer → -Δς*)
   (define (↦mut si i)
@@ -168,7 +168,7 @@
     (define V-len
       (match V-vec
         [(-Vector αs) (-b (length αs))]
-        [_ '•]))
+        [_ -●/V]))
     (define W-len (-W V-len e-len))
     (define ((blm [p : -V] [V : -V]) [Γ : -Γ]) : -Δς
       (-Δς (-blm l 'vector-ref p (list V)) Γ κ '() '() '()))
@@ -179,7 +179,7 @@
             (list (-W '>= '>=) (list W-idx (-W (-b 0) (-b 0)))
                   (blm (-Clo '(x) (-@ '>= (list (-x 'x) (-b 0)) -Λ) -ρ⊥ -Γ⊤) V-idx))
             (list (-W '< '<) (list W-idx W-len)
-                  (blm (-Clo '(x) (-@ '< (list (-x 'x) (or e-len (-W-x W-len))) -Λ) -ρ⊥ -Γ⊤) V-idx))))
+                  (blm (-Clo '(x) (-@ '< (list (-x 'x) (or e-len #|HACK|# (-x 'len))) -Λ) -ρ⊥ -Γ⊤) V-idx))))
     (collect ans-ok ans-bads))
 
   (: ↦vector-ref : → -Δς*)
@@ -219,7 +219,7 @@
                          (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W) -Λ))
                        (define κ* (-kont* φ₂ φ₁ κ))
                        (set-add acc (-Δς (-W (list V) e-vec) Γ* κ* '() '() '())))])))]
-             [_ (-Δς (-W (list '•) e_a) Γ-ok κ '() '() '())])))))
+             [_ (-Δς (-W -●/Vs e_a) Γ-ok κ '() '() '())])))))
 
   (: ↦vector-set! : → -Δς*)
   (define (↦vector-set!)
@@ -271,7 +271,7 @@
      (match/nd: ((Listof -V) → -Δς) (σ@/list σ γs) ; TODO can explode very fast!!
        [Cs (match/nd: (-V → -Δς) (σ@ σ α)
              [V_g (↦indy xs cs Cs d ρ_c Γ_c V_g l³)])])]
-    ['• (set-add (↦havoc) (↦opq))]
+    [(-●) (set-add (↦havoc) (↦opq))]
     [_ (-Δς (-blm l 'apply 'procedure? (list V_f)) Γ κ '() '() '())]))
 
 (: rt-spurious? ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . Boolean))

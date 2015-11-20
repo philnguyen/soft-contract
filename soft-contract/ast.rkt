@@ -107,10 +107,7 @@
   (subset: -v
     (struct -λ [formals : -formals] [body : -e])
     (struct -case-λ [body : (Listof (Pairof -formals -e))])
-    (subset: -•
-      ;;'•
-      ;; `l` is a tag annotating which static location this opaque value came from
-      (struct -•ₗ [l : (U Natural Symbol)]))
+    (struct -• [l : (U Natural Symbol)])
     (subset: -prim
       ;; primitive values that can appear in syntax
       (struct -b [unboxed : Base])
@@ -203,11 +200,11 @@
   (Listof Symbol)
   (struct -varargs [init : (Listof Symbol)] [rest : Symbol]))
 
-(: •! : → -•ₗ)
+(: •! : → -•)
 ;; Generate new labeled hole
 (define •!
   (let ([n : Natural 0])
-    (λ () (begin0 (-•ₗ n) (set! n (+ 1 n))))))
+    (λ () (begin0 (-• n) (set! n (+ 1 n))))))
 
 (: FV : (U -e (Listof -e)) → (Setof Symbol))
 ;; Compute free variables for expression. Return set of variable names.
@@ -353,43 +350,51 @@
    ;; FIXME count up for primitives
    [_ 0]))
 
-(:* -one-of/c : (Pairof -e Integer) * → -e)
-(define -one-of/c
-  (match-lambda*
+(: -app/c : -o Symbol (Listof -e) → -e)
+(define (-app/c o l es)
+  (match es
+    ['() -any/c]
+    [(list e) e]
+    [(cons e es*)
+     (-@ o (list e (-app/c o l es*)) (-src-loc l (next-neg!)))]))
+(define -and/c (curry -app/c 'and/c))
+(define -or/c  (curry -app/c 'or/c))
+
+(: -not/c : Symbol -e → -e)
+(define (-not/c l e)
+  (-@ 'not/c (list e) (-src-loc l (next-neg!))))
+
+(: -one-of/c : Symbol (Listof -e) → -e)
+(define (-one-of/c l es)
+  (match es
     [(list) -none/c]
-    [(list (cons e _)) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
-    [(cons (cons e pos) es)
-     (-@ 'or/c
-         (list
-          (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))
-          (apply -one-of/c es))
-         (-src-loc 'Λ pos))]))
+    [(list e) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
+    [(cons e es*)
+     (-or/c l (list (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))
+                    (-one-of/c l es*)))]))
 
-(: -cons/c : -e -e Integer → -e)
-(define (-cons/c c d pos)
-  (-struct/c -s-cons (list c d) pos))
+(: -cons/c : -e -e → -e)
+(define (-cons/c c d)
+  (-struct/c -s-cons (list c d) (next-neg!)))
 
-(: -listof : -e Integer → -e)
-(define (-listof c pos)
-  (-μ/c 'X (-@ 'or/c (list -null? (-cons/c c (-x/c 'X) pos)) -Λ) pos))
+(: -listof : Symbol -e → -e)
+(define (-listof l c)
+  (-μ/c 'X (-or/c l (list -null? (-cons/c c (-x/c 'X)))) (next-neg!)))
 
-(: -box/c : -e Integer → -e)
-(define (-box/c c pos)
-  (-struct/c -s-box (list c) pos))
+(: -box/c : -e → -e)
+(define (-box/c c)
+  (-struct/c -s-box (list c) (next-neg!)))
 
-(: -list/c : (Pairof -e Integer) * → -e)
-(define (-list/c . cs)
-  (match cs
-    ['() -null/c]
-    [(cons (cons c p) cs*)
-     (-cons/c c (apply -list/c cs*) p)]))
+(: -list/c : (Listof -e) → -e)
+(define (-list/c cs)
+  (foldr -cons/c -null/c cs))
 
-(: -list : (Pairof -e -src-loc) * → -e)
-(define (-list . es)
+(: -list : Symbol (Listof -e) → -e)
+(define (-list l es)
   (match es
     ['() -null]
-    [(cons (cons e loc) es*)
-     (-@ -cons (list e (apply -list es*)) loc)]))
+    [(cons e es*)
+     (-@ -cons (list e (-list l es*)) (-src-loc l (next-neg!)))]))
 
 
 ;; Macros
@@ -756,7 +761,7 @@
 
     [(-λ (list xs ...) e) `(λ ,xs ,(show-e e))]
     [(-λ (-varargs xs rest) e) `(λ ,(cons xs rest) ,(show-e e))]
-    [(-•ₗ ℓ)
+    [(-• ℓ)
      (cond
        [(integer? ℓ) (string->symbol (format "•~a" (n-sub ℓ)))]
        [else (string->symbol (format "•_~a" ℓ))])]
