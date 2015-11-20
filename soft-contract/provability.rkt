@@ -245,7 +245,6 @@
 
 (: Γ⊢e : -Γ -?e → -R)
 ;; Check if `e` evals to truth given `M`
-;; This function reads off table `prims`
 (define (Γ⊢e Γ e)
 
   (define boolean-excludes? : (Symbol → Boolean)
@@ -315,13 +314,14 @@
             (if (equal? '✓ (e⊢e e₂* e₁*)) '✓ '?)]
            [(e₁ (-not e₂*))
             (not-R (e⊢e e₁ e₂*))]
-           #;[((-@ (? -pred₁? p) (list e) _) (-@ (? -pred₁? q) (list e) _))
+           [((-@ (? -o? p) (list e) _) (-@ (? -o? q) (list e) _))
             (p⇒p p q)] ; FIXME
-           #;[((-@ (? -pred₁? p) (list e) _) e)
+           [((-@ (? -o? p) (list e) _) e)
             (cond
-              [(equal? p 'not) 'X]
-              [(equal? p 'boolean?) '?]
-              [else '✓])] ; FIXME
+              [(eq? 'not p) 'X]
+              [(and (symbol? p) (boolean-excludes? p)) '✓]
+              [(-st-p? p) '✓]
+              [else '?])]
            [(_ _) '?])]
         [(_ R) R]))
     (dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
@@ -407,10 +407,6 @@
 
 (: p⇒p : -o -o → -R)
 ;; Return whether predicate `p` definitely implies or excludes `q`.
-;; This function reads off tables `implications` and `excludes`
-;; TODO:
-;; probably shift this to compile time to eliminate initial computation
-;; of the tables. But seems negligible for now.
 (define (p⇒p p q)
   (match* (p q)
     [((? symbol? p) (? symbol? q))
@@ -419,7 +415,7 @@
            [else '?])]
     [((-st-p si) (-st-p sj))
      ;; TODO: no sub-struct for now. Probably changes later
-     (if (equal? si sj) '✓ 'X)]
+     (decide-R (equal? si sj))]
     [(_ _)
      (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))
                 (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
