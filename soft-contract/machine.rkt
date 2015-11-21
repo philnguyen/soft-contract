@@ -293,12 +293,12 @@
          (let-values ([(σ* V) (alloc-e σ c)])
            (values σ* (-α.not/c (-src-loc-pos l)))))
        (values σ* (-Not/C γ))]
-      [(-@ 'vectorof (list c) l)
+      [(-@ (or 'vectorof (-ref (-id-local 'vectorof 'Λ) _ _)) (list c) l)
        (define-values (σ* γ)
          (let-values ([(σ* V) (alloc-e σ c)])
            (values σ* (-α.vectorof (-src-loc-pos l)))))
        (values σ* (-Vectorof γ))]
-      [(-@ 'vector/c cs l)
+      [(-@ (or 'vector/c (-ref (-id-local 'vector/c 'Λ) _ _)) cs l)
        (define-values (σ* γs-rev)
          (let ([pos (-src-loc-pos l)])
            (for/fold ([σ : -σ σ] [γs-rev : (Listof -α.vector/c) '()])

@@ -131,7 +131,7 @@
      (define n (length accs))
      (-define-values
       (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
-      (-@ 'values
+      (-@ (-ref (-id-local 'values 'Λ) (cur-mod) (next-neg!))
           (list* (-st-mk (-id-local ctor-name (cur-mod)) n)
                  (-st-p (-id-local ctor-name (cur-mod)) n)
                  (for/list ([(accᵢ i) (in-indexed accs)])
@@ -175,7 +175,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (--> (parse-es #'(c ...)) (parse-e #'d) (syntax-position stx))]
+     (--> (parse-es #'(c ...)) (parse-e #'d) (next-neg!))]
     ;; Dependent contract
     [(begin
        (#%plain-app
@@ -186,7 +186,7 @@
      ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
      (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
            (parse-e #'d)
-           (syntax-position stx))]
+           (next-neg!))]
     ; FIXME: duplicate of above case, (let-values () e _ ...) == (begin () e _ ...)
     [(let-values ()
        (#%plain-app
@@ -197,7 +197,7 @@
      ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
      (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
            (parse-e #'d)
-           (syntax-position stx))]
+           (next-neg!))]
     ; FIXME: duplicate of above case, (begin e _ ...) == e
     [(#%plain-app
       (~literal fake:dynamic->i)
@@ -206,7 +206,7 @@
      ;(printf "dynamic->id₂: ~a~n" (syntax->datum #'d))
      (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
            (parse-e #'d)
-           (syntax-position stx))]
+           (next-neg!))]
     ;; Conjunction
     [(#%plain-app (~literal fake:and/c) c ...)
      (-and/c (cur-mod) (parse-es #'(c ...)))]
@@ -218,17 +218,19 @@
      (-not/c (cur-mod) (parse-e #'c))]
     [(#%plain-app (~literal fake:listof) c)
      (-μ/c 'X
-       (-or/c (list -null/c (-cons/c (parse-e #'c) (-x/c 'X) (syntax-position stx)))))]
+       (-or/c (list -null/c (-cons/c (parse-e #'c) (-x/c 'X) (next-neg!)))))]
     [(#%plain-app (~literal fake:list/c) c ...)
-     (apply -list/c (map cons
-                         (parse-es #'(c ...))
-                         (map syntax-position (syntax->list #'(c ...)))))]
+     (-list/c (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:box/c) c)
-     (-box/c (parse-e #'c) (syntax-position stx))]
+     (-box/c (parse-e #'c))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (-@ '-vector/c (parse-es #'(c ...)) (cur-mod))]
+     (-@ (-ref (-id-local 'vector/c 'Λ) (cur-mod) (next-neg!))
+         (parse-es #'(c ...))
+         (-src-loc (cur-mod) (next-neg!)))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-@ 'vectorof (parse-e #'c) (cur-mod))]
+     (-@ (-ref (-id-local 'vectorof 'Λ) (cur-mod) (next-neg!))
+         (parse-e #'c)
+         (-src-loc (cur-mod) (next-neg!)))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (-struct/c (-id-local (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
@@ -398,7 +400,7 @@
                 `(#:struct-mut  ,s ,_ ,_))
             (list #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
            [r
-            (printf "unhandled in `make-parse-clauses` ~a~n" r)
+            (log-warning "unhandled in `make-parse-clauses` ~a~n" r)
             '()]))
        (define ans 
          #`(syntax-parse id
@@ -441,12 +443,12 @@
               (simple-parse rng)
               (next-neg!))]
         [`(->* (,doms ...) #:rest ,rst ,rng)
-         (printf "Skipping ->* for now~n")
+         (log-warning "Skipping ->* for now~n")
          -any/c]
         [`(and/c ,cs ...) (-and/c 'Λ (map simple-parse cs))]
         [`(or/c  ,cs ...) (-or/c  'Λ (map simple-parse cs))]
         [`(one-of/c ,cs ...) (-one-of/c 'Λ (map simple-parse cs))]
-        [`(list/c ,cs ...) (-list/c 'Λ (map simple-parse cs))]
+        [`(list/c ,cs ...) (-list/c (map simple-parse cs))]
         [`(cons/c ,c ,d) (-cons/c (simple-parse c) (simple-parse d))]
         [`(not/c ,c) (-not/c 'Λ (simple-parse c))]
         [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
@@ -481,7 +483,7 @@
         [`(#:struct-mut ,s ,si ,i)
          (list (-define-values (list s) (-st-mut (mk-struct-info si) i)))]
         [r
-         (printf "unhandled in `make-defs`: ~a~n" r)
+         (log-warning "unhandled in `make-defs`: ~a~n" r)
          '()]))
 
     (define/contract (make-decs dec)
@@ -502,7 +504,6 @@
          (define ctc (simple-parse sig))
          (for/list ([s ss])
            (-p/c-item s (hash-ref! cache s ctc)))]
-        [`(#:const ,_) '()] ; no need. They're all inlined.
         [`(,(? symbol? s) ,sig ,_ ...)
          (define ctc (hash-ref! cache s (simple-parse sig)))
          (list (-p/c-item s ctc))]
@@ -529,7 +530,7 @@
                                               (next-neg!))))
          (list (-p/c-item s ctc))]
         [r
-         (printf "unhandled in `make-decs` ~a~n" r)
+         (log-warning "unhandled in `make-decs` ~a~n" r)
          '()]))
 
     (-module
@@ -555,8 +556,8 @@
 (for ([itm (-plain-module-begin-body (-module-body -mod-prim))])
   (match itm
     [(-define-values (list x) e)
-     (printf "(define ~a ~a)~n" x (show-e e))]
+     (printf "(define ~a ~a)~n" x e)]
     [(-provide decs)
      (for ([dec decs])
        (match-define (-p/c-item x c) dec)
-       (printf "(provide ~a ~a)~n" x (show-e c)))]))
+       (printf "(provide ~a ~a)~n" x c))]))
