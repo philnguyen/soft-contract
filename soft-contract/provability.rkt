@@ -377,9 +377,11 @@
            [(list (or (? -Vector?) (? -Vector/checked?))) '✓]
            [(-●) '?]
            [_ 'X])]
+        
         #,@(generate-base-cases #'Vs)
         [else
          (match p
+           [(? symbol?) '?]
            [(? -st-mk?) '✓]
            [(? -st-mut?) '✓]
            [(? -st-ac?) '✓]

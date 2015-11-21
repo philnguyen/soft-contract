@@ -268,7 +268,7 @@
            cs (-src-loc _ pos))
        (define-values (σ* αs) (alloc-es σ s pos cs))
        (values σ* (-St s αs))]
-      [(-@ 'and/c (list c₁ c₂) l)
+      [(-@ (or 'and/c (-ref (-id-local 'and/c 'Λ) _ _)) (list c₁ c₂) l)
        (define-values (σ* γ₁ γ₂ flat?)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
@@ -278,7 +278,7 @@
                    (-α.and/c-r pos)
                    (and (C-flat? V₁) (C-flat? V₂)))))
        (values σ* (-And/C flat? γ₁ γ₂))]
-      [(-@ 'or/c (list c₁ c₂) l)
+      [(-@ (or 'or/c (-ref (-id-local 'or/c 'Λ) _ _)) (list c₁ c₂) l)
        (define-values (σ* γ₁ γ₂ flat?)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
@@ -288,7 +288,7 @@
                    (-α.or/c-r pos)
                    (and (C-flat? V₁) (C-flat? V₂)))))
        (values σ* (-Or/C flat? γ₁ γ₂))]
-      [(-@ 'not/c (list c) l)
+      [(-@ (or 'not/c (-ref (-id-local 'not/c 'Λ) _ _)) (list c) l)
        (define-values (σ* γ)
          (let-values ([(σ* V) (alloc-e σ c)])
            (values σ* (-α.not/c (-src-loc-pos l)))))

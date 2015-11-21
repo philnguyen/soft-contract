@@ -1591,8 +1591,8 @@
      (any/c flat-contract? . -> . flat-contract?)]
     [any/c (any/c . -> . (not/c not))]
     [none/c (any/c . -> . not)]
-    ;[ or/c (() #:rest (listof contract?) . ->* . contract?)]
-    ;[and/c (() #:rest (listof contract?) . ->* . contract?)]
+    [ or/c (contract? contract? . -> . contract?)] ; FIXME uses
+    [and/c (contract? contract? . -> . contract?)] ; FIXME uses
     [not/c (flat-contract? . -> . flat-contract?)]
     [=/c  (real? . -> . flat-contract?)]
     [</c  (real? . -> . flat-contract?)]

@@ -350,21 +350,23 @@
    ;; FIXME count up for primitives
    [_ 0]))
 
-(: -app/c : -o Symbol (Listof -e) → -e)
+(: -app/c : Symbol Mon-Party (Listof -e) → -e)
 (define (-app/c o l es)
   (match es
     ['() -any/c]
     [(list e) e]
     [(cons e es*)
-     (-@ o (list e (-app/c o l es*)) (-src-loc l (next-neg!)))]))
+     (-@ (-ref (-id-local o 'Λ) l (next-neg!))
+         (list e (-app/c o l es*))
+         (-src-loc l (next-neg!)))]))
 (define -and/c (curry -app/c 'and/c))
 (define -or/c  (curry -app/c 'or/c))
 
-(: -not/c : Symbol -e → -e)
+(: -not/c : Mon-Party -e → -e)
 (define (-not/c l e)
-  (-@ 'not/c (list e) (-src-loc l (next-neg!))))
+  (-@ (-ref (-id-local 'not/c 'Λ) l (next-neg!)) (list e) (-src-loc l (next-neg!))))
 
-(: -one-of/c : Symbol (Listof -e) → -e)
+(: -one-of/c : Mon-Party (Listof -e) → -e)
 (define (-one-of/c l es)
   (match es
     [(list) -none/c]
@@ -377,7 +379,7 @@
 (define (-cons/c c d)
   (-struct/c -s-cons (list c d) (next-neg!)))
 
-(: -listof : Symbol -e → -e)
+(: -listof : Mon-Party -e → -e)
 (define (-listof l c)
   (-μ/c 'X (-or/c l (list -null? (-cons/c c (-x/c 'X)))) (next-neg!)))
 
@@ -389,7 +391,7 @@
 (define (-list/c cs)
   (foldr -cons/c -null/c cs))
 
-(: -list : Symbol (Listof -e) → -e)
+(: -list : Mon-Party (Listof -e) → -e)
 (define (-list l es)
   (match es
     ['() -null]
