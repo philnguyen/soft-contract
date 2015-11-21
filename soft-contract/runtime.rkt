@@ -193,7 +193,7 @@
     [(? -V?) V]))
 
 (: C-flat? : -V → Boolean)
-;; Check whether value is a flat contract
+;; Check whether contract is flat, assuming it's already a contract
 (define (C-flat? V)
   (match V
     [(-And/C flat? _ _) flat?]

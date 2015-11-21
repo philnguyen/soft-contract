@@ -367,31 +367,52 @@
   (define-syntax (generate stx)
     (define ans
       #`(case p
-        [(procedure?)
-         (match Vs
-           [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?))) '✓]
-           [(-●) '?]
-           [_ 'X])]
-        [(vector?)
-         (match Vs
-           [(list (or (? -Vector?) (? -Vector/checked?))) '✓]
-           [(-●) '?]
-           [_ 'X])]
-        
-        #,@(generate-base-cases #'Vs)
-        [else
-         (match p
-           [(? symbol?) '?]
-           [(? -st-mk?) '✓]
-           [(? -st-mut?) '✓]
-           [(? -st-ac?) '✓]
-           [(-st-p si)
-            (match Vs
-              [(list (or (-St sj _) (-St/checked sj _ _ _)))
-               ;; TODO: no sub-struct for now. May change later.
-               (decide-R (equal? si (assert sj)))]
-              [(-●) '?]
-              [_ 'X])])]))
+          ;; Insert manual rules here
+          [(procedure?)
+           (match Vs
+             [(list (-●)) '?]
+             [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?))) '✓]
+             [_ 'X])]
+          [(vector?)
+           (match Vs
+             [(list (-●)) '?]
+             [(list (or (? -Vector?) (? -Vector/checked?))) '✓]
+             [_ 'X])]
+          [(contract?)
+           (match Vs
+             [(list (-●)) '?]
+             [(list (or (? -And/C?) (? -Or/C?) (? -Not/C?) (? -St/C?)
+                        (? -Vectorof?) (? -Vector/C?) (? -=>i?)))
+              '✓]
+             [(list V)
+              '? ; TODO
+              #;(cond [(or (-b? V) (-Clo? V) (-Clo*? V) (symbol? V)) '✓]
+                    [else 'X])]
+             [_ '?])]
+          [(flat-contract?)
+           (match Vs
+             [(list (-●)) '?]
+             [(list (-And/C flat? _ _) (-Or/C flat? _ _)  (-St/C flat? _ _))
+              (decide-R flat?)]
+             [(list (? -Not/C?)) '✓]
+             [(list (-Clo (list _) _ _ _) (-Clo* (list _) _ _)) '✓]
+             [(list (or (? -Vectorof?) (? -Vector/C?) (? -=>i?))) 'X]
+             [_ '?])]
+          ;; Automatic stuff for base values and structs
+          #,@(generate-base-cases #'Vs)
+          [else
+           (match p
+             [(? symbol?) '?]
+             [(? -st-mk?) '✓]
+             [(? -st-mut?) '✓]
+             [(? -st-ac?) '✓]
+             [(-st-p si)
+              (match Vs
+                [(list (or (-St sj _) (-St/checked sj _ _ _)))
+                 ;; TODO: no sub-struct for now. May change later.
+                 (decide-R (equal? si (assert sj)))]
+                [(-●) '?]
+                [_ 'X])])]))
     ;(printf "ans:~n~a~n" (syntax->datum ans))
     ans)
   (generate))
