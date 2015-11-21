@@ -469,7 +469,6 @@
              `(,(? symbol? s) ,(? arr?) ,_ ...))
          (list (-define-values (list s) s))]
         [`(#:alias ,_ ,_) '()] ; taken care of
-        [`(#:const ,_) '()] ; no need. They're all inlined.
         [`(#:batch (,ss ...) ,_ ...)
          (for/list ([s ss])
            (-define-values (list s) s))]
@@ -551,3 +550,13 @@
 ;; Testing only
 (define (test . files)
   (files->prog files))
+
+#;
+(for ([itm (-plain-module-begin-body (-module-body -mod-prim))])
+  (match itm
+    [(-define-values (list x) e)
+     (printf "(define ~a ~a)~n" x (show-e e))]
+    [(-provide decs)
+     (for ([dec decs])
+       (match-define (-p/c-item x c) dec)
+       (printf "(provide ~a ~a)~n" x (show-e c)))]))
