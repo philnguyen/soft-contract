@@ -1614,7 +1614,7 @@
     [vectorof ; FIXME uses
      (contract? . -> . contract?)]
     [vector-immutableof (contract? . -> . contract?)]
-    #;[vector/c ; FIXME uses
+    [vector/c ; FIXME uses
      (() #:rest (listof contract?) . ->* . contract?)]
     #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]

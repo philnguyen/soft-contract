@@ -219,7 +219,7 @@
                    (match flats
                      [(list '✓ ...) '✓]
                      [(list _ ... 'X _ ...) 'X]
-                     [(list '? ...) '?]))])
+                     [_ '?]))])
   (: check-αs-flat : -σ (Listof -α) → -R)
   (define (check-αs-flat σ αs)
     (combine-flat
@@ -361,7 +361,8 @@
   (struct -α.or/c-r [pos : Integer])
   (struct -α.not/c [pos : Integer])
   (struct -α.vector/c [pos : Integer] [idx : Integer])
-  (struct -α.vectorof [pos : Integer]))
+  (struct -α.vectorof [pos : Integer])
+  (struct -α.struct/c [info : -struct-info] [pos : Integer] [idx : Integer]))
 
 (: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α))
 (define (alloc-fields s loc Ws)

@@ -15,20 +15,72 @@
 ;; - Other primitives:
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
-
 (: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))))
 ;; Concrete table for unsafe operations
 (define (concrete s)
-  (define-syntax-rule (with-args (M σ Γ Ws loc) [t e ...] ...)
-    (case s
-      [(t)
-       (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -WV)] [loc : -src-loc])
-         e ...)]
-      ...
-      [else #f]))
+  (define (error-arity [o : Symbol] [expect : Integer] [given : Integer])
+    (error 'δ "Invalid arity uncaught for `~a`: expect ~a, given ~a" o expect given))
   
-  (with-args (M σ Γ Ws loc)
-    ))
+  (with-args s (M σ Γ Ws loc)
+    [and/c
+     (match Ws
+       [(list (-W V₁ _) (-W V₂ _))
+        (define pos (-src-loc-pos loc))
+        (define α₁ (-α.and/c-l pos))
+        (define α₂ (-α.and/c-r pos))
+        (values (list (cons α₁ V₁) (cons α₂ V₂))
+                (-AΓ (list (-And/C (check-Cs-flat (list V₁ V₂)) α₁ α₂)) Γ))]
+       [Ws (error-arity 'and/c 2 (length Ws))])]
+    [or/c
+     (match Ws
+       [(list (-W V₁ _) (-W V₂ _))
+        (define pos (-src-loc-pos loc))
+        (define α₁ (-α.or/c-l pos))
+        (define α₂ (-α.or/c-r pos))
+        (values (list (cons α₁ V₁) (cons α₂ V₂))
+                (-AΓ (list (-Or/C (check-Cs-flat (list V₁ V₂)) α₁ α₂)) Γ))]
+       [Ws (error-arity 'or/c 2 (length Ws))])]
+    [not/c
+     (match Ws
+       [(list (-W V _))
+        (define α (-α.not/c (-src-loc-pos loc)))
+        (values (list (cons α V))
+                (-AΓ (list (-Not/C α)) Γ))]
+       [Ws (error-arity 'not/c 1 (length Ws))])]
+    [vectorof
+     (match Ws
+       [(list (-W V _))
+        (define α (-α.vectorof (-src-loc-pos loc)))
+        (values (list (cons α V))
+                (-AΓ (list (-Vectorof α)) Γ))]
+       [Ws (error-arity 'vectorof 1 (length Ws))])]
+    [vector/c
+     (define pos (-src-loc-pos loc))
+     (define-values (αs δσ)
+       (for/lists ([αs : (Listof -α)] [δσ : -Δσ])
+                  ([(W i) (in-indexed Ws)])
+         (define V (-W-x W))
+         (define α (-α.vector/c pos i))
+         (values α (cons α V))))
+     (values δσ (-AΓ (list (-Vector/C αs)) Γ))]))
+
+(define-syntax (with-args stx)
+  (syntax-parse stx
+    [(_ s:id (M:id σ:id Γ:id Ws:id loc:id) [t:id e ...] ...)
+     (for ([t-id (in-list (syntax->list #'(t ...)))])
+       (define t-sym (syntax->datum t-id))
+       (unless (∋ prim-names t-sym)
+         (raise-syntax-error
+          'with-args
+          (format "Undeclared primitive `~a`" t-sym)
+          #'([t e ...] ...)
+          t-id)))
+     #`(case s
+         [(t)
+          (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -WV)] [loc : -src-loc])
+            e ...)]
+         ...
+         [else #f])]))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
            (U (List -WV (Listof -WV) (-Γ → Y))
