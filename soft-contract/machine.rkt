@@ -269,25 +269,25 @@
        (define-values (σ* αs) (alloc-es σ s pos cs))
        (values σ* (-St s αs))]
       [(-@ (or 'and/c (-ref (-id-local 'and/c 'Λ) _ _)) (list c₁ c₂) l)
-       (define-values (σ* γ₁ γ₂ flat?)
+       (define-values (σ* γ₁ γ₂ flat)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
            (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
            (values σ₂
                    (-α.and/c-l pos)
                    (-α.and/c-r pos)
-                   (and (C-flat? V₁) (C-flat? V₂)))))
-       (values σ* (-And/C flat? γ₁ γ₂))]
+                   (check-Cs-flat (list V₁ V₂)))))
+       (values σ* (-And/C flat γ₁ γ₂))]
       [(-@ (or 'or/c (-ref (-id-local 'or/c 'Λ) _ _)) (list c₁ c₂) l)
-       (define-values (σ* γ₁ γ₂ flat?)
+       (define-values (σ* γ₁ γ₂ flat)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
            (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
            (values σ₂
                    (-α.or/c-l pos)
                    (-α.or/c-r pos)
-                   (and (C-flat? V₁) (C-flat? V₂)))))
-       (values σ* (-Or/C flat? γ₁ γ₂))]
+                   (check-Cs-flat (list V₁ V₂)))))
+       (values σ* (-Or/C flat γ₁ γ₂))]
       [(-@ (or 'not/c (-ref (-id-local 'not/c 'Λ) _ _)) (list c) l)
        (define-values (σ* γ)
          (let-values ([(σ* V) (alloc-e σ c)])
@@ -309,13 +309,7 @@
        (values σ* (-Vector/C (reverse γs-rev)))]
       [(-struct/c s cs pos)
        (define-values (σ* αs) (alloc-es σ s pos cs))
-       (values σ*
-               (-St/C (case (check-αs-flat σ* αs)
-                        [(✓) #t]
-                        [(X) #f]
-                        [(?) (error-ambig)])
-                      s
-                      αs))]
+       (values σ* (-St/C (check-αs-flat σ* αs) s αs))]
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
                 (show-e e))]))
 

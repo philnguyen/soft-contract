@@ -38,7 +38,7 @@
 ;; For debugging only
 (begin
   (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hash))
-  (define debug? : Boolean #t))
+  (define debug? : Boolean #f))
 
 (: run : -prog → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run p)

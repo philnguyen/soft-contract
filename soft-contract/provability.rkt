@@ -392,8 +392,7 @@
           [(flat-contract?)
            (match Vs
              [(list (-●)) '?]
-             [(list (-And/C flat? _ _) (-Or/C flat? _ _)  (-St/C flat? _ _))
-              (decide-R flat?)]
+             [(list (-And/C flat _ _) (-Or/C flat _ _)  (-St/C flat _ _)) (assert flat)]
              [(list (? -Not/C?)) '✓]
              [(list (-Clo (list _) _ _ _) (-Clo* (list _) _ _)) '✓]
              [(list (or (? -Vectorof?) (? -Vector/C?) (? -=>i?))) 'X]

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require
- racket/match racket/bool racket/list racket/set racket/function
+ racket/match racket/bool racket/list racket/set racket/function racket/splicing
  "untyped-utils.rkt" "utils.rkt" "ast.rkt"
  ; for generated code
  racket/math racket/flonum racket/extflonum racket/string
@@ -148,12 +148,12 @@
   ;; Contracts
   ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
   ; But these give rise to more special cases of stack frames
-  (struct -And/C [flat? : Boolean] [l : -α] [r : -α])
-  (struct -Or/C [flat? : Boolean] [l : -α] [r : -α])
+  (struct -And/C [flat : -R] [l : -α] [r : -α])
+  (struct -Or/C [flat : -R] [l : -α] [r : -α])
   (struct -Not/C [γ : -α])
   (struct -Vectorof [γ : -α])
   (struct -Vector/C [γs : (Listof -α)])
-  (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α)])
+  (struct -St/C [flat : -R] [info : -struct-info] [fields : (Listof -α)])
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ])
@@ -192,41 +192,44 @@
     [(list Vs ...) (map (curry close-Γ Γ) Vs)]
     [(? -V?) V]))
 
-(: C-flat? : -V → Boolean)
+(: check-C-flat : -V → -R)
 ;; Check whether contract is flat, assuming it's already a contract
-(define (C-flat? V)
+(define (check-C-flat V)
   (match V
-    [(-And/C flat? _ _) flat?]
-    [(-Or/C flat? _ _) flat?]
-    [(? -Not/C?) #t]
-    [(-St/C flat? _ _) flat?]
-    [(or (? -Vectorof?) (? -Vector/C?)) #f]
-    [(? -=>i?) #f]
-    [(or (? -Clo*?) (? -Clo?) (? -Ar?) (? -prim?)) #t]
-    [V
-     (printf "`C-flat?`: warning: receiving non-contract ~a~n" (show-V V))
-     #t]))
+    [(-And/C flat _ _) flat]
+    [(-Or/C flat _ _) flat]
+    [(? -Not/C?) '✓]
+    [(-St/C flat _ _) flat]
+    [(or (? -Vectorof?) (? -Vector/C?)) 'X]
+    [(? -=>i?) 'X]
+    [(or (? -Clo*?) (? -Clo?) (? -Ar?) (? -prim?)) '✓]
+    [V '?]))
 
 (: check-α-flat : -σ -α → -R)
 ;; Check whether contract at address is flat
 (define (check-α-flat σ α)
-  (define ans
-    (for/set: : (Setof Boolean) ([C (σ@ σ α)])
-      (C-flat? C)))
-  (match (set->list ans)
-    [(list #t) '✓]
-    [(list #f) 'X]
+  (match (for/list : (Listof -R) ([C (σ@ σ α)])
+           (check-C-flat C))
+    [(list '✓ ...) '✓]
+    [(list 'X ...) 'X]
     [xs (printf "Warning: flats and chaperones shared at 1 address~n") '?]))
 
-(: check-αs-flat : -σ (Listof -α) → -R)
-(define (check-αs-flat σ αs)
-  (define ans
-    (for/set: : (Setof -R) ([α αs])
-      (check-α-flat σ α)))
-  (match (set->list ans)
-    [(list '✓) '✓]
-    [(list _ ... 'X _ ...) 'X]
-    [_ '?]))
+(splicing-let ([combine-flat
+                (λ ([flats : (Listof -R)]) : -R
+                   (match flats
+                     [(list '✓ ...) '✓]
+                     [(list _ ... 'X _ ...) 'X]
+                     [(list '? ...) '?]))])
+  (: check-αs-flat : -σ (Listof -α) → -R)
+  (define (check-αs-flat σ αs)
+    (combine-flat
+     (for/list : (Listof -R) ([α αs])
+       (check-α-flat σ α))))
+
+  (: check-Cs-flat : (Listof -V) → -R)
+  ;; Check whether all contracts are flat
+  (define (check-Cs-flat Vs)
+    (combine-flat (map check-C-flat Vs))))
 
 ;; Pretty-print evaluated value
 (define (show-V [V : -V]) : Sexp
