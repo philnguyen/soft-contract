@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require
- racket/match racket/bool racket/list racket/set racket/function racket/splicing
+ racket/match racket/bool racket/list racket/set racket/function
  "untyped-utils.rkt" "utils.rkt" "ast.rkt"
  ; for generated code
  racket/math racket/flonum racket/extflonum racket/string
@@ -214,22 +214,22 @@
     [(list 'X ...) 'X]
     [xs (printf "Warning: flats and chaperones shared at 1 address~n") '?]))
 
-(splicing-let ([combine-flat
-                (λ ([flats : (Listof -R)]) : -R
-                   (match flats
-                     [(list '✓ ...) '✓]
-                     [(list _ ... 'X _ ...) 'X]
-                     [_ '?]))])
-  (: check-αs-flat : -σ (Listof -α) → -R)
-  (define (check-αs-flat σ αs)
-    (combine-flat
-     (for/list : (Listof -R) ([α αs])
-       (check-α-flat σ α))))
+(: check-flats : (Listof -R) → -R)
+;; Combine flat result of components to determine whether they compose a flat contract
+(define check-flats
+  (match-lambda
+    [(list '✓ ...) '✓]
+    [(list _ ... 'X _ ...) 'X]
+    [_ '?]))
 
-  (: check-Cs-flat : (Listof -V) → -R)
-  ;; Check whether all contracts are flat
-  (define (check-Cs-flat Vs)
-    (combine-flat (map check-C-flat Vs))))
+(: check-αs-flat : -σ (Listof -α) → -R)
+(define (check-αs-flat σ αs)
+  (check-flats (map (curry check-α-flat σ) αs)))
+
+(: check-Cs-flat : (Listof -V) → -R)
+;; Check whether all contracts are flat
+(define (check-Cs-flat Vs)
+  (check-flats (map check-C-flat Vs)))
 
 ;; Pretty-print evaluated value
 (define (show-V [V : -V]) : Sexp

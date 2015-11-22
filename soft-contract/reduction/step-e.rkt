@@ -136,7 +136,7 @@
      (error '↦e "TODO: x/c")]
     [(-struct/c id cs pos)
      (match cs
-       ['() (-Δς (-W (list (-St/C #t id '())) e) Γ κ '() '() '())]
+       ['() (-Δς (-W (list (-St/C '✓ id '())) e) Γ κ '() '() '())]
        [(cons c cs*)
         (↦e c ρ Γ (-kont (-φ.struct/c id cs* ρ '() pos) κ) σ Ξ M)])]
     ))
