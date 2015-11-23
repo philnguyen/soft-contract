@@ -371,7 +371,8 @@
           [(procedure?)
            (match Vs
              [(list (-●)) '?]
-             [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?))) '✓]
+             [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?) (? -Not/C?))) '✓]
+             [(list (-And/C flat _ _) (-Or/C flat _ _) (-St/C flat _ _)) (assert flat)]
              [_ 'X])]
           [(vector?)
            (match Vs
@@ -396,6 +397,9 @@
              [(list (? -Not/C?)) '✓]
              [(list (-Clo (list _) _ _ _) (-Clo* (list _) _ _)) '✓]
              [(list (or (? -Vectorof?) (? -Vector/C?) (? -=>i?))) 'X]
+             [(list (-Ar (list _) _ _ _ _ _ _ _)) '✓]
+             [(list (or (? -st-p?) (-st-mk (-struct-info _ 1 _)) (? -st-ac?))) '✓]
+             [(list (? o-arity-includes-1?)) '✓]
              [_ '?])]
           ;; Automatic stuff for base values and structs
           #,@(generate-base-cases #'Vs)

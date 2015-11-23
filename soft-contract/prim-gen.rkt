@@ -7,7 +7,7 @@
 
 (provide Graph implications exclusions
          base-predicates prim-names prim-ranges prim-refinements-for-ranges
-         ignore-for-now?)
+         ignore-for-now? o-arity-includes-1?)
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
 (define -graph∅ : Graph (hasheq))
@@ -174,3 +174,12 @@
       flat-contract? list-contract? has-contract? has-blame?
       even? odd? char-general-category
       dict?))))
+
+(define o-arity-includes-1?
+  (set->predicate
+   (for/fold ([acc : (Setof Symbol) ∅]) ([dec (in-list prims:prims)])
+     (match dec
+       [`(#:pred ,(? symbol? s)) (set-add acc s)]
+       [`(#:batch ,ss (,_ -> ,_) ,_ ...) (set-add-list acc (cast ss (Listof Symbol)))]
+       [`(,(? symbol? s) (,_ -> ,_) ,_ ...) (set-add acc s)]
+       [_ acc]))))
