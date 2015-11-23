@@ -5,7 +5,7 @@
  "../utils.rkt" "../untyped-utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt"
  "../machine.rkt" "../delta.rkt")
 
-(provide ↦mon ↦FC)
+(provide ↦mon)
 
 (: ↦mon : -WV -WV -Γ -κ -σ -Ξ -M Mon-Info Integer → -Δς*)
 ;; Stepping rules for contract monitoring
@@ -182,32 +182,3 @@
         (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
         (-Δς (-W (list V) e_v) Γ
              (-kont (-φ.@ '() (list W_c) (-src-loc lo pos)) κ*) '() '() '())])]))
-
-(: ↦FC : -WV -WV -Γ -κ -σ -Ξ -M Mon-Party Integer → -Δς*)
-;; Stepping rules for monitoring flat contracts
-(define (↦FC W_c W_v Γ κ σ Ξ M l pos)
-  (match-define (-W C e_c) W_c)
-  (match-define (-W V e_v) W_v)
-  (match C
-    [(-St (-struct-info (and t (or 'and/c 'or/c)) _ _) (list γ₁ γ₂))
-     (define Cs₁ (σ@ σ γ₁))
-     (define Cs₂ (σ@ σ γ₂))
-     (match-define (list c₁ c₂) (-app-split e_c 'and/c 2))
-     (match/nd: (-V → -Δς) Cs₁
-       [C₁
-        (match/nd: (-V → -Δς) Cs₂
-          [C₂
-           (define φ
-             (match t
-               ['and/c (-φ.if (-App W_v (-W C₂ c₂) (-src-loc l pos)) (-W (list -ff) -ff))]
-               ['or/c  (-φ.if (-W (list -tt) -tt) (-App W_v (-W C₂ c₂) (-src-loc l pos)))]))
-           (-Δς (-App (-W C₁ c₁) W_v (-src-loc l pos)) Γ (-kont φ κ) '() '() '())])])]
-    [(-St 'not/c (list γ))
-     (match/nd: (-V → -Δς) (σ@ σ γ)
-       [C*
-        (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) -Λ) κ))
-        (match-define (list e_c*) (-app-split e_c 'not/c 1))
-        (-Δς (-App (-W C* e_c*) W_v (-src-loc l pos)) Γ κ* '() '() '())])]
-    ;; FIXME recursive contract
-    [_ (-Δς (-W (list V) e_v) Γ
-            (-kont (-φ.@ '() (list W_c) (-src-loc l pos)) κ) '() '() '())]))
