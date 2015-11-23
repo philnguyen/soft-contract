@@ -532,9 +532,9 @@
     (-module
      'Λ
      (-plain-module-begin
-      (list*
-       (-provide (append-map make-decs prims))
-       (append-map make-defs prims))))))
+      ;; HACK: leave provide last because `𝑰` is hacky for now
+      `(,@(append-map make-defs prims)
+        ,(-provide (append-map make-decs prims)))))))
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
