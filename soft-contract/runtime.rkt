@@ -577,6 +577,14 @@
         (match xs
           [(list (-not (and e* (-not _)))) e*]
           [_ (default-case)])]
+       ['not/c
+        (match xs
+          [(list (-@ 'not/c (list (and e* (-@ 'not/c _ _))) _)) e*]
+          [_ (default-case)])]
+       [(-@ 'not/c (list f) _)
+        (match xs
+          [(list x) (-?@ 'not (-?@ f x))]
+          [_ (default-case)])]
        
        ; (car (cons e _)) = e
        [(-st-ac s i)
