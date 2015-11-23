@@ -14,8 +14,8 @@
      (↦e e ρ Γ κ σ Ξ M)]
     [(-ς (-Mon C V l³ pos) Γ κ σ Ξ M)
      (↦mon C V Γ κ σ Ξ M l³ pos)]
-    [(-ς (-FC C V l pos) Γ κ σ Ξ M)
-     (↦FC C V Γ κ σ Ξ M l pos)]
+    [(-ς (-App W_f W_x loc) Γ κ σ Ξ M)
+     (↦@ W_f (list W_x) Γ κ σ Ξ M loc)]
     [(-ς (? -W? W) Γ κ σ Ξ M)
      (↦κ W Γ κ σ Ξ M)]
     [(-ς (? -blm? blm) Γ κ σ Ξ M)

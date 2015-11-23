@@ -45,7 +45,7 @@
              (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
                                       (-blm l+ lo C₁ (list V)))
                                κ))
-             (define E* (-FC (-W C₁ c₁) W_v lo pos))
+             (define E* (-App (-W C₁ c₁) W_v (-src-loc lo pos)))
              (-Δς E* Γ κ* '() '() '())])]
          ['X
           ((blm lo 'Λ #|hack|#
@@ -57,17 +57,16 @@
   (define (↦not/c α)
     (match/nd: (-V → -Δς) (σ@ σ α)
       [C*
-       (match (check-C-flat C*)
-         ['✓
+       (case (check-C-flat C*)
+         [(✓)
           (match-define (list e_c*) (-app-split e_c 'not/c 1))
           (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
-          (-Δς (-FC (-W C* e_c*) W_v lo pos) Γ κ* '() '() '())]
-         ['X
+          (-Δς (-App (-W C* e_c*) W_v (-src-loc lo pos)) Γ κ* '() '() '())]
+         [(X)
           ((blm lo 'Λ #|hack|#
                 (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) C*)
            Γ)]
-         ['?
-          (error 'not/c "TODO")])]))
+         [(?) (error 'not/c "TODO")])]))
 
   (: ↦=>i : (Listof Symbol) (Listof -?e) (Listof -α) -e -ρ -Γ → -Δς*)
   (define (↦=>i xs cs Cs d ρ_d Γ_d)
@@ -175,7 +174,7 @@
        [(-μ/C x c) (error '↦mon "μ/c")]
        [(-X/C x) (error '↦mon "ref")]
        [(-And/C _ γ₁ γ₂) (↦and/c γ₁ γ₂)]
-       [(-Or/C _ γ₁ γ₂) (↦or/c γ₁ γ₂)]
+       [(-Or/C  _ γ₁ γ₂) (↦or/c  γ₁ γ₂)]
        [(-Not/C α) (↦not/c α)]
        [(-Vectorof α) (↦vectorof α)]
        [(-Vector/C αs) (↦vector/c αs)]
@@ -200,15 +199,15 @@
           [C₂
            (define φ
              (match t
-               ['and/c (-φ.if (-FC W_v (-W C₂ c₂) l pos) (-W (list -ff) -ff))]
-               ['or/c  (-φ.if (-W (list -tt) -tt) (-FC W_v (-W C₂ c₂) l pos))]))
-           (-Δς (-FC (-W C₁ c₁) W_v l pos) Γ (-kont φ κ) '() '() '())])])]
+               ['and/c (-φ.if (-App W_v (-W C₂ c₂) (-src-loc l pos)) (-W (list -ff) -ff))]
+               ['or/c  (-φ.if (-W (list -tt) -tt) (-App W_v (-W C₂ c₂) (-src-loc l pos)))]))
+           (-Δς (-App (-W C₁ c₁) W_v (-src-loc l pos)) Γ (-kont φ κ) '() '() '())])])]
     [(-St 'not/c (list γ))
      (match/nd: (-V → -Δς) (σ@ σ γ)
        [C*
         (define κ* (-kont (-φ.@ '() (list (-W 'not 'not)) -Λ) κ))
         (match-define (list e_c*) (-app-split e_c 'not/c 1))
-        (-Δς (-FC (-W C* e_c*) W_v l) Γ κ* '() '() '())])]
+        (-Δς (-App (-W C* e_c*) W_v (-src-loc l pos)) Γ κ* '() '() '())])]
     ;; FIXME recursive contract
     [_ (-Δς (-W (list V) e_v) Γ
             (-kont (-φ.@ '() (list W_c) (-src-loc l pos)) κ) '() '() '())]))

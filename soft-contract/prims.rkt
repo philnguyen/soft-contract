@@ -1724,6 +1724,8 @@
     [set-weak? ⇒ set?]
     ;; Arity
     [exact-nonnegative-integer? ⇒ procedure-arity?]
+    ;; Contracts
+    [flat-contract? ⇒ contract?]
 
     [#:exclusion
      number? string? boolean? keyword? symbol?]

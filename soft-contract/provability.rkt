@@ -385,10 +385,10 @@
              [(list (or (? -And/C?) (? -Or/C?) (? -Not/C?) (? -St/C?)
                         (? -Vectorof?) (? -Vector/C?) (? -=>i?)))
               '✓]
-             [(list V)
-              '? ; TODO
-              #;(cond [(or (-b? V) (-Clo? V) (-Clo*? V) (symbol? V)) '✓]
-                    [else 'X])]
+             [(list (-Ar (list _) _ _ _ _ _ _ _)) '✓]
+             [(list (or (? -st-p?) (-st-mk (-struct-info _ 1 _)) (? -st-ac?))) '✓]
+             [(list (? o-arity-includes-1?)) '✓]
+             [(list V) '?]
              [_ '?])]
           [(flat-contract?)
            (match Vs
