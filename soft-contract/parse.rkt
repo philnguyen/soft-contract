@@ -207,15 +207,6 @@
      (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
            (parse-e #'d)
            (next-neg!))]
-    ;; Conjunction
-    [(#%plain-app (~literal fake:and/c) c ...)
-     (-and/c (cur-mod) (parse-es #'(c ...)))]
-    ;; Disjunction
-    [(#%plain-app (~literal fake:or/c) c ...)
-     (-or/c (cur-mod) (parse-es #'(c ...)))]
-    ;; Negation
-    [(#%plain-app (~literal fake:not/c) c)
-     (-not/c (cur-mod) (parse-e #'c))]
     [(#%plain-app (~literal fake:listof) c)
      (-μ/c 'X
        (-or/c (list -null/c (-cons/c (parse-e #'c) (-x/c 'X) (next-neg!)))))]
@@ -323,6 +314,9 @@
     [(~literal positive?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal negative?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal zero?) (parse-e #'(#%plain-lambda (x) (#%plain-app = x 0)))]
+    [(~literal fake:not/c) (-ref (-id-local 'not/c 'Λ) (cur-mod) (next-neg!))]
+    [(~literal fake:and/c) (-ref (-id-local 'and/c 'Λ) (cur-mod) (next-neg!))]
+    [(~literal fake:or/c ) (-ref (-id-local 'or/c  'Λ) (cur-mod) (next-neg!))]
     
     [i:identifier
      (or
@@ -338,7 +332,9 @@
                          (resolved-module-path-name (module-path-index-resolve x)))))
                     src)
                _ _ _ _ _ _)
-         (-ref (-id-local (syntax-e #'i) src) (cur-mod) (syntax-position stx))]))]))
+         (when (equal? 'not/c (syntax-e #'i))
+           (error "done"))
+         (-ref (-id-local (syntax-e #'i) src) (cur-mod) (next-neg!))]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
@@ -380,7 +376,7 @@
 
          (define (make-ref s)
            (symbol? . -> . syntax?)
-           #`(-ref (-id-local '#,s 'Λ) (cur-mod) (syntax-position id)))
+           #`(-ref (-id-local '#,s 'Λ) (cur-mod) (next-neg!)))
          
          (match dec
            [`(#:pred ,s ,_ ...)
