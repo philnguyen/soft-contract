@@ -324,10 +324,10 @@
         ;; general top-level form
         [(? -e?) σ]
         [(-define-values ids e)
-         (cond
-           [(= 1 (length ids))
+         (match ids
+           [(list id)
             (define-values (σ* V) (alloc-e σ e))
-            (⊔ σ* (-α.def (-id-local (car ids) mod-path)) V)]
+            (⊔ σ* (-α.def (-id-local id mod-path)) V)]
            [else
             (error '𝑰 "TODO: general top-level. For now can't handle `define-~a-values`"
                    (length ids))])]
