@@ -176,14 +176,14 @@
 
     (collect δς-ok δς-bads))
 
-  (match (MσΓ⊢V∈C M σ Γ W_v W_c)
-    ['✓
+  (case (MσΓ⊢V∈C M σ Γ W_v W_c)
+    [(✓)
      (define Γ* (Γ+ Γ (-?@ e_c e_v)))
      (-Δς (-W (list V) e_v) Γ* κ '() '() '())]
-    ['X
+    [(X)
      (define Γ* (Γ+ Γ (-not (-?@ e_c e_v))))
      (-Δς (-blm l+ lo C (list V)) Γ* κ '() '() '())]
-    ['?
+    [(?)
      (match C
        [(-=>i xs cs Cs d ρ_d Γ_d) (↦=>i xs cs Cs d ρ_d Γ_d)]
        [(-St/C _ s γs) (↦struct/c s γs)]

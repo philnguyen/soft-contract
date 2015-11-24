@@ -19,8 +19,8 @@
      (for*/set: : (Setof -Δς) ([V (σ@ σ (ρ@ ρ x))]
                                [W (in-value (-W (list V) (canonicalize Γ x)))]
                                #:unless (spurious? M σ Γ W))
-       (match V
-         ['undefined ; FIXME hack
+       (case V
+         [(undefined) ; FIXME hack
           (-Δς (-blm 'TODO 'Λ (-st-p (-struct-info (-id-local 'defined 'Λ) 1 ∅))
                      (list 'undefined))
               Γ κ '() '() '())]
