@@ -36,10 +36,11 @@
     (define Cs₁ (σ@ σ γ₁))
     (define Cs₂ (σ@ σ γ₂))
     (match-define (list c₁ c₂) (-app-split e_c 'or/c 2))
+
     (match/nd: (-V → -Δς) Cs₁
       [C₁
-       (match (check-C-flat C₁)
-         ['✓
+       (case (check-C-flat C₁)
+         [(✓)
           (match/nd: (-V → -Δς) Cs₂
             [C₂
              (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
@@ -47,11 +48,11 @@
                                κ))
              (define E* (-App (-W C₁ c₁) W_v (-src-loc lo pos)))
              (-Δς E* Γ κ* '() '() '())])]
-         ['X
+         [(X)
           ((blm lo 'Λ #|hack|#
                 (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅))
                 C₁) Γ)]
-         ['? (error 'or/c "TODO")])]))
+         [(?) (error 'or/c "TODO")])]))
 
   (: ↦not/c : -α → -Δς*)
   (define (↦not/c α)
