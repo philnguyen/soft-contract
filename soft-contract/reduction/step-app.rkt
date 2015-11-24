@@ -287,8 +287,9 @@
     (with-guarded-arity 1
       (match-define (list (-W V_x e_x)) W_xs)
       (define φ-not (-φ.@ '() (list (-W 'not 'not)) loc))
+      (match-define (list e*) (-app-split e_f 'not/c 1))
       (for/set: : (Setof -Δς) ([C Cs])
-        (define φ (-φ.@ '() (list (-W C #|HACK|# (-?@ 'not/c e_f))) loc))
+        (define φ (-φ.@ '() (list (-W C e*)) loc))
         (-Δς (-W (list V_x) e_x) Γ (-kont* φ φ-not κ) '() '() '()))))
 
   (match V_f
