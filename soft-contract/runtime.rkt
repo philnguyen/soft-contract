@@ -540,6 +540,9 @@
   (cond
     [(and f (andmap (inst values -?e) xs))
      (match f
+       ['any/c -tt]
+       ['none/c -ff]
+
        ; vector-length
        ['vector-length
         (match xs
@@ -559,7 +562,7 @@
         (match xs
           [(list x) (-?@ 'not (-?@ f x))]
           [_ (default-case)])]
-       
+
        ; (car (cons e _)) = e
        [(-st-ac s i)
         (match xs

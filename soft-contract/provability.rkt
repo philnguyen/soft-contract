@@ -284,6 +284,8 @@
 
     (match p
       ['not (not-R (⊢e (car xs)))] ; assume right arity
+      ['any/c '✓]
+      ['none/c 'X]
       [(? symbol? f)
        (define f-rng (hash-ref prim-ranges f #f))
        (cond
@@ -401,6 +403,8 @@
              [(list (or (? -st-p?) (-st-mk (-struct-info _ 1 _)) (? -st-ac?))) '✓]
              [(list (? o-arity-includes-1?)) '✓]
              [_ '?])]
+          [(any/c) '✓]
+          [(none/c) 'X]
           ;; Automatic stuff for base values and structs
           #,@(generate-base-cases #'Vs)
           [else
@@ -474,6 +478,9 @@
 ;; Return whether predicate `p` definitely implies or excludes `q`.
 (define (p⇒p p q)
   (match* (p q)
+    [(_ 'any/c) '✓]
+    [('none/c _) '✓]
+    [(_ 'none/c) 'X]
     [((? symbol? p) (? symbol? q))
      (cond [(∋ (hash-ref implications p →∅) q) '✓]
            [(∋ (hash-ref exclusions p →∅) q) 'X]
