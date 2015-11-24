@@ -272,6 +272,25 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Specialized match
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax (define-datum-map stx)
+  
+  (define-syntax-class dtm
+    #:description "restricted datum"
+    (pattern (~or n:number x:id b:boolean)))
+  
+  (syntax-parse stx
+    #:literals (: →)
+    [(_ f:id : (α → β) [d:dtm v] ... #:else k)
+     #'(define f
+         (let ([m : (HashTable α β) (make-hasheq)])
+           (hash-set! m 'd v) ...
+           (λ ([x : α]) (hash-ref m x (λ () (k x))))))]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Controlled evaluation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
