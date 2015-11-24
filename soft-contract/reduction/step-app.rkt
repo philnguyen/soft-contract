@@ -256,45 +256,31 @@
              [_
               (-Δς (-W -Void/Vs e_a) Γ-ok κ '() '() '())])))))
 
-  (: ↦and/c : -R (Setof -V) (Setof -V) → -Δς*)
-  (define (↦and/c R Cs Ds)
+  (: ↦and/c : (Setof -V) (Setof -V) → -Δς*)
+  (define (↦and/c Cs Ds)
     (with-guarded-arity 1
       (match-define (list (and W_x (-W V_x e_x))) W_xs)
       (match-define (list e_c e_d) (-app-split e_f 'and/c 2))
-      (define (ok)
-        (for*/fold ([acc : (Setof -Δς) ∅])
-                   ([C Cs]
-                    [W_C (in-value (-W C e_c))]
-                    [φ.C (in-value (-φ.@ '() (list W_C) loc))]
-                    [D Ds])
-          (define φ.D (-φ.if (-App (-W D e_d) W_x loc) (-W (list -ff) -ff)))
-          (set-add acc (-Δς (-W (list V_x) e_x) Γ (-kont* φ.C φ.D κ) '() '() '()))))
-      (define (err)
-        (-Δς (-blm l 'Λ 'flat-contract? (list V_f)) Γ κ '() '() '()))
-      (case R
-        [(✓) (ok)]
-        [(X) (err)]
-        [(?) (set-add (ok) (err))])))
+      (for*/fold ([acc : (Setof -Δς) ∅])
+                 ([C Cs]
+                  [W_C (in-value (-W C e_c))]
+                  [φ.C (in-value (-φ.@ '() (list W_C) loc))]
+                  [D Ds])
+        (define φ.D (-φ.if (-App (-W D e_d) W_x loc) (-W (list -ff) -ff)))
+        (set-add acc (-Δς (-W (list V_x) e_x) Γ (-kont* φ.C φ.D κ) '() '() '())))))
 
-  (: ↦or/c : -R (Setof -V) (Setof -V) → -Δς*)
-  (define (↦or/c R Cs Ds)
+  (: ↦or/c : (Setof -V) (Setof -V) → -Δς*)
+  (define (↦or/c Cs Ds)
     (with-guarded-arity 1
       (match-define (list (and W_x (-W V_x e_x))) W_xs)
       (match-define (list e_c e_d) (-app-split e_f 'or/c 2))
-      (define (ok)
-        (for*/fold ([acc : (Setof -Δς) ∅])
-                   ([C Cs]
-                    [W_C (in-value (-W C e_c))]
-                    [φ.C (in-value (-φ.@ '() (list W_C) loc))]
-                    [D Ds])
-          (define φ.D (-φ.if #|FIXME sloppy|# (-W (list -tt) -tt) (-App (-W D e_d) W_x loc)))
-          (set-add acc (-Δς (-W (list V_x) e_x) Γ (-kont* φ.C φ.D κ) '() '() '()))))
-      (define (err)
-        (-Δς (-blm l 'Λ 'flat-contract? (list V_f)) Γ κ '() '() '()))
-      (case R
-        [(✓) (ok)]
-        [(X) (err)]
-        [(?) (set-add (ok) (err))])))
+      (for*/fold ([acc : (Setof -Δς) ∅])
+                 ([C Cs]
+                  [W_C (in-value (-W C e_c))]
+                  [φ.C (in-value (-φ.@ '() (list W_C) loc))]
+                  [D Ds])
+        (define φ.D (-φ.if #|FIXME sloppy|# (-W (list -tt) -tt) (-App (-W D e_d) W_x loc)))
+        (set-add acc (-Δς (-W (list V_x) e_x) Γ (-kont* φ.C φ.D κ) '() '() '())))))
 
   (: ↦not/c : (Setof -V) → -Δς*)
   (define (↦not/c Cs)
@@ -313,8 +299,8 @@
     ['vector (↦vector)]
     ['vector-ref (↦vector-ref)]
     ['vector-set! (↦vector-set!)]
-    [(-And/C flat α₁ α₂) (↦and/c flat (σ@ σ α₁) (σ@ σ α₂))]
-    [(-Or/C  flat α₁ α₂) (↦or/c  flat (σ@ σ α₁) (σ@ σ α₂))]
+    [(-And/C #t α₁ α₂) (↦and/c (σ@ σ α₁) (σ@ σ α₂))]
+    [(-Or/C  #t α₁ α₂) (↦or/c  (σ@ σ α₁) (σ@ σ α₂))]
     [(-Not/C α) (↦not/c (σ@ σ α))]
     [(? symbol? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f)))]

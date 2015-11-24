@@ -259,14 +259,14 @@
             (match id
               [(? symbol? s) (show/c s)]
               [(-id-local s l) (-id-local (show/c s) l)]))
-          (define-values (αs σ* es* δσ flat)
+          (define-values (αs σ* es* δσ flat?)
             ; accumulate new store and address list
             ; which is reversed compard to `WVs↓*`, hence of the right order
             (for/fold ([αs : (Listof -α) '()]
                        [σ* : -σ σ]
                        [es* : (Listof -?e) '()]
                        [δσ : -Δσ '()]
-                       [flat : -R '✓])
+                       [flat? : Boolean #t])
                       ([WV WVs↓*] [i (in-range n)])
               (match-define (-W V e) WV)
               (define α (-α.fld id/c pos i))
@@ -274,8 +274,8 @@
                       (⊔ σ* α V)
                       (cons e es*)
                       (cons (cons α V) δσ)
-                      (check-flats (list flat (check-C-flat V))))))
-          (define C (-St/C flat s αs))
+                      (and flat? (C-flat? V)))))
+          (define C (-St/C flat? s αs))
           (define e_C (-?struct/c s es*))
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons e es*)

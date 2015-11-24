@@ -39,8 +39,8 @@
 
     (match/nd: (-V → -Δς) Cs₁
       [C₁
-       (case (check-C-flat C₁)
-         [(✓)
+       (cond
+         [(C-flat? C₁)
           (match/nd: (-V → -Δς) Cs₂
             [C₂
              (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
@@ -48,26 +48,24 @@
                                κ))
              (define E* (-App (-W C₁ c₁) W_v (-src-loc lo pos)))
              (-Δς E* Γ κ* '() '() '())])]
-         [(X)
+         [else
           ((blm lo 'Λ #|hack|#
                 (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅))
-                C₁) Γ)]
-         [(?) (error 'or/c "TODO")])]))
+                C₁) Γ)])]))
 
   (: ↦not/c : -α → -Δς*)
   (define (↦not/c α)
     (match/nd: (-V → -Δς) (σ@ σ α)
       [C*
-       (case (check-C-flat C*)
-         [(✓)
+       (cond 
+         [(C-flat? C*)
           (match-define (list e_c*) (-app-split e_c 'not/c 1))
           (define κ* (-kont (-φ.if (-blm l+ lo C (list V)) (-W (list V) e_v)) κ))
           (-Δς (-App (-W C* e_c*) W_v (-src-loc lo pos)) Γ κ* '() '() '())]
-         [(X)
+         [else
           ((blm lo 'Λ #|hack|#
                 (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) C*)
-           Γ)]
-         [(?) (error 'not/c "TODO")])]))
+           Γ)])]))
 
   (: ↦=>i : (Listof Symbol) (Listof -?e) (Listof -α) -e -ρ -Γ → -Δς*)
   (define (↦=>i xs cs Cs d ρ_d Γ_d)

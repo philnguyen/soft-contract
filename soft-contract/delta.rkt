@@ -29,7 +29,7 @@
         (define α₁ (-α.and/c-l pos))
         (define α₂ (-α.and/c-r pos))
         (values (list (cons α₁ V₁) (cons α₂ V₂))
-                (-AΓ (list (-And/C (check-Cs-flat (list V₁ V₂)) α₁ α₂)) Γ))]
+                (-AΓ (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)) Γ))]
        [Ws (error-arity 'and/c 2 (length Ws))])]
     [or/c
      (match Ws
@@ -38,7 +38,7 @@
         (define α₁ (-α.or/c-l pos))
         (define α₂ (-α.or/c-r pos))
         (values (list (cons α₁ V₁) (cons α₂ V₂))
-                (-AΓ (list (-Or/C (check-Cs-flat (list V₁ V₂)) α₁ α₂)) Γ))]
+                (-AΓ (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)) Γ))]
        [Ws (error-arity 'or/c 2 (length Ws))])]
     [not/c
      (match Ws

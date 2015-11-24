@@ -269,25 +269,25 @@
        (define-values (σ* αs) (alloc-es σ s pos cs))
        (values σ* (-St s αs))]
       [(-@ (or 'and/c (-ref (-id-local 'and/c 'Λ) _ _)) (list c₁ c₂) l)
-       (define-values (σ* γ₁ γ₂ flat)
+       (define-values (σ* γ₁ γ₂ flat?)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
            (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
            (values σ₂
                    (-α.and/c-l pos)
                    (-α.and/c-r pos)
-                   (check-Cs-flat (list V₁ V₂)))))
-       (values σ* (-And/C flat γ₁ γ₂))]
+                   (and (C-flat? V₁) (C-flat? V₂)))))
+       (values σ* (-And/C flat? γ₁ γ₂))]
       [(-@ (or 'or/c (-ref (-id-local 'or/c 'Λ) _ _)) (list c₁ c₂) l)
-       (define-values (σ* γ₁ γ₂ flat)
+       (define-values (σ* γ₁ γ₂ flat?)
          (let ([pos (-src-loc-pos l)])
            (define-values (σ₁ V₁) (alloc-e σ  c₁))
            (define-values (σ₂ V₂) (alloc-e σ₁ c₂))
            (values σ₂
                    (-α.or/c-l pos)
                    (-α.or/c-r pos)
-                   (check-Cs-flat (list V₁ V₂)))))
-       (values σ* (-Or/C flat γ₁ γ₂))]
+                   (and (C-flat? V₁) (C-flat? V₂)))))
+       (values σ* (-Or/C flat? γ₁ γ₂))]
       [(-@ (or 'not/c (-ref (-id-local 'not/c 'Λ) _ _)) (list c) l)
        (define-values (σ* γ)
          (let-values ([(σ* V) (alloc-e σ c)])
@@ -308,8 +308,13 @@
              (values σ* (cons γ γs-rev)))))
        (values σ* (-Vector/C (reverse γs-rev)))]
       [(-struct/c s cs pos)
-       (define-values (σ* αs) (alloc-es σ s pos cs))
-       (values σ* (-St/C (check-αs-flat σ* αs) s αs))]
+       (define-values (σ* αs-rev flat?)
+         (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α) '()] [flat? : Boolean #t])
+                   ([(c i) (in-indexed cs)])
+           (define-values (σ_i V) (alloc-e σ* c))
+           (define α (-α.struct/c s pos i))
+           (values (⊔ σ_i α V) (cons α αs-rev) (and flat? (C-flat? V)))))
+       (values σ* (-St/C flat? s (reverse αs-rev)))]
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
                 (show-e e))]))
 

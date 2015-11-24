@@ -148,12 +148,12 @@
   ;; Contracts
   ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
   ; But these give rise to more special cases of stack frames
-  (struct -And/C [flat : -R] [l : -α] [r : -α])
-  (struct -Or/C [flat : -R] [l : -α] [r : -α])
+  (struct -And/C [flat? : Boolean] [l : -α] [r : -α])
+  (struct -Or/C [flat? : Boolean] [l : -α] [r : -α])
   (struct -Not/C [γ : -α])
   (struct -Vectorof [γ : -α])
   (struct -Vector/C [γs : (Listof -α)])
-  (struct -St/C [flat : -R] [info : -struct-info] [fields : (Listof -α)])
+  (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α)])
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ])
@@ -192,44 +192,18 @@
     [(list Vs ...) (map (curry close-Γ Γ) Vs)]
     [(? -V?) V]))
 
-(: check-C-flat : -V → -R)
+(: C-flat? : -V → Boolean)
 ;; Check whether contract is flat, assuming it's already a contract
-(define (check-C-flat V)
+(define (C-flat? V)
   (match V
-    [(-And/C flat _ _) flat]
-    [(-Or/C flat _ _) flat]
-    [(? -Not/C?) '✓]
-    [(-St/C flat _ _) flat]
-    [(or (? -Vectorof?) (? -Vector/C?)) 'X]
-    [(? -=>i?) 'X]
-    [(or (? -Clo*?) (? -Clo?) (? -Ar?) (? -prim?)) '✓]
-    [V '?]))
-
-(: check-α-flat : -σ -α → -R)
-;; Check whether contract at address is flat
-(define (check-α-flat σ α)
-  (match (for/list : (Listof -R) ([C (σ@ σ α)])
-           (check-C-flat C))
-    [(list '✓ ...) '✓]
-    [(list 'X ...) 'X]
-    [xs (printf "Warning: flats and chaperones shared at 1 address~n") '?]))
-
-(: check-flats : (Listof -R) → -R)
-;; Combine flat result of components to determine whether they compose a flat contract
-(define check-flats
-  (match-lambda
-    [(list '✓ ...) '✓]
-    [(list _ ... 'X _ ...) 'X]
-    [_ '?]))
-
-(: check-αs-flat : -σ (Listof -α) → -R)
-(define (check-αs-flat σ αs)
-  (check-flats (map (curry check-α-flat σ) αs)))
-
-(: check-Cs-flat : (Listof -V) → -R)
-;; Check whether all contracts are flat
-(define (check-Cs-flat Vs)
-  (check-flats (map check-C-flat Vs)))
+    [(-And/C flat? _ _) flat?]
+    [(-Or/C flat? _ _) flat?]
+    [(? -Not/C?) #t]
+    [(-St/C flat? _ _) flat?]
+    [(or (? -Vectorof?) (? -Vector/C?)) #f]
+    [(? -=>i?) #f]
+    [(or (? -Clo*?) (? -Clo?) (? -Ar?) (? -prim?)) #t]
+    [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
 ;; Pretty-print evaluated value
 (define (show-V [V : -V]) : Sexp
