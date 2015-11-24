@@ -93,6 +93,11 @@
   (struct -φ.mon.vectorof
     [ctc : -WV] [len : Integer] [idx : Integer]
     [target : -WV] [mon-info : Mon-Info] [pos : Integer])
+
+  ;; Accumulate higher-order contracts with passing first-order checks
+  (struct -φ.filter-fo
+    [queue : (Listof -WV)] [passed : (Listof -WV)] [current : -WV] [value : -WV]
+    [mon-info : Mon-Info] [pos : Integer])
   
   ;; Represent next step for escaping from a block
   (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])

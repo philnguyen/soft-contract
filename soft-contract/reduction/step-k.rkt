@@ -226,6 +226,60 @@
             (define φ₂ (-φ.mon.v (-W C c) l³ pos))
             (define κ* (-kont* φ₃ φ₂ φ₁ κ))
             (-Δς (-W (list (-b i*)) (-b i*)) Γ κ* '() '() '()))]))]
+    ;; Accumulate higher-order contracts with passing first-order checks
+    [(-φ.filter-fo W_Cs W_Cs↓ W_C (and W_v (-W V_v e_v)) (and l³ (list l+ l- lo)) pos)
+     (define-values (Γ_t Γ_f) (Γ+/-W M σ Γ (-W (car Vs) ?e)))
+     (define δς_t : (Option -Δς)
+       (and Γ_t
+            (let ()
+              (define W_Cs↓* (cons W_C W_Cs↓))
+              (match W_Cs
+                ['()
+                 (match W_Cs↓*
+                   ['()
+                    (-Δς (-blm l+ lo '|or/c (none passed)| (list V_v)) Γ_t κ '() '() '())]
+                   [(list W_C)
+                    (define κ* (-kont (-φ.mon.v W_C l³ pos) κ))
+                    (-Δς (-W (list V_v) e_v) Γ_t κ* '() '() '())]
+                   [_
+                    (-Δς (-blm l+ lo '|or/c (first-order-ly indistinguishable)| (list V_v))
+                         Γ_t κ '() '() '())])]
+                [(cons W_C* W_Cs*)
+                 (define κ*
+                   (-kont*
+                    (-φ.filter-fo W_Cs* W_Cs↓* W_C* W_v l³ pos)
+                    (-φ.@ '()
+                          (list (-W 'contract-first-order-passes? 'contract-first-order-passes?) W_C*)
+                          (-src-loc lo pos))
+                    κ))
+                 (-Δς (-W (list V_v) e_v) Γ_t κ* '() '() '())]))))
+     (define δς_f : (Option -Δς)
+       (and Γ_f
+            (let ()
+              (match W_Cs
+                ['()
+                 (match W_Cs↓
+                   ['()
+                    (-Δς (-blm l+ lo '|or/c (none passed)| (list V_v)) Γ_f κ '() '() '())]
+                   [(list W_C)
+                    (define κ* (-kont (-φ.mon.v W_C l³ pos) κ))
+                    (-Δς (-W (list V_v) e_v) Γ_f κ* '() '() '())]
+                   [_
+                    (-Δς (-blm l+ lo '|or/c (first-order-ly indistinguishable)| (list V_v))
+                         Γ_f κ '() '() '())])]
+                [(cons W_C* W_Cs*)
+                 (define κ*
+                   (-kont*
+                    (-φ.filter-fo W_Cs* W_Cs↓ W_C* W_v l³ pos)
+                    (-φ.@ '()
+                          (list (-W 'contract-first-order-passes? 'contract-first-order-passes?) W_C*)
+                          (-src-loc lo pos))
+                    κ))
+                 (-Δς (-W (list V_v) e_v) Γ_f κ* '() '() '())]))))
+     (cond
+       [(and δς_t δς_f) {set δς_t δς_f}]
+       [δς_t δς_t]
+       [else (assert δς_f)])]
     ;; restore path invariant in previous context
     [(-φ.rt.@ Γ₀ xs e_f e_xs)
      (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]

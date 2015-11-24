@@ -1648,6 +1648,12 @@
     [the-unsupplied-arg unsupplied-arg?]
     [#:pred unsupplied-arg?]
 
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 8.8 Contract Utilities
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; TODO
+    [contract-first-order-passes?
+     (contract? any/c . -> . boolean?)]
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;;;;; 8.8 Contract Utilities

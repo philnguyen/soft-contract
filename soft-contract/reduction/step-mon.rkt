@@ -39,6 +39,7 @@
 
     (match/nd: (-V → -Δς) Cs₁
       [C₁
+       (define W_C₁ (-W C₁ c₁))
        (cond
          [(C-flat? C₁)
           (match/nd: (-V → -Δς) Cs₂
@@ -46,12 +47,28 @@
              (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
                                       (-blm l+ lo C₁ (list V)))
                                κ))
-             (define E* (-App (-W C₁ c₁) W_v (-src-loc lo pos)))
+             (define E* (-App W_C₁ W_v (-src-loc lo pos)))
              (-Δς E* Γ κ* '() '() '())])]
-         [else
-          ((blm lo 'Λ #|hack|#
-                (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅))
-                C₁) Γ)])]))
+         [else ;; C₁ is chaperone
+          (match/nd: (-V → -Δς) Cs₂
+            [C₂
+             (define W_C₂ (-W C₂ c₂))
+             (cond
+               [(C-flat? C₂)
+                (define κ* (-kont (-φ.if (-Mon W_C₁ W_v l³ pos)
+                                         (-blm l+ lo C₂ (list V)))
+                                  κ))
+                (define E* (-App W_C₂ W_v (-src-loc lo pos)))
+                (-Δς E* Γ κ* '() '() '())]
+               [else ; Both C₁ and C₂ are chaperones
+                (define κ*
+                  (-kont*
+                   (-φ.filter-fo (list W_C₂) '() W_C₁ W_v l³ pos)
+                   (-φ.@ '()
+                         (list W_C₁ (-W 'contract-first-order-passes? 'contract-first-order-passes?))
+                         (-src-loc lo pos))
+                   κ))
+                (-Δς (-W (list V) e_v) Γ κ* '() '() '())])])])]))
 
   (: ↦not/c : -α → -Δς*)
   (define (↦not/c α)
