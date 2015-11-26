@@ -351,6 +351,8 @@
    [_ 0]))
 
 (: -app/c : Symbol Mon-Party (Listof -e) → -e)
+;; Local definition only used for `-and/c` and `-or/c`.
+;; Can't use this in `splicing-local` or `splicing-letrec` b/c of type annotations...
 (define (-app/c o l es)
   (match es
     ['() -any/c]
