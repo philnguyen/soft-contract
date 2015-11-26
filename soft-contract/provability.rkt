@@ -10,8 +10,7 @@
   racket/base racket/match racket/list racket/set racket/function racket/syntax racket/contract syntax/parse
   "untyped-utils.rkt" "utils.rkt" (only-in "prims.rkt" prims ctc? arr? base?) "prim-gen.rkt"))
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e Γ⊢e p∋Vs V≡
-         MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious? or-R not-R decide-R
-         -R
+         MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious?
          
          ;; debugging
          MσΓ⊢₁e)
@@ -26,7 +25,7 @@
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W V e_v) W_v)
   (match-define (-W C e_c) W_c)
-  (or-R (V∋Vs C V) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
+  (first-R (V∋Vs C V) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
 
 (: MσΓ⊢oW : -M -σ -Γ -o -WV * → -R)
 ;; Check if value `W` satisfies predicate `p`
@@ -35,8 +34,8 @@
     (for/lists ([Vs : (Listof -V)] [e : (Listof -?e)])
                ([W Ws])
       (values (-W-x W) (-W-e W))))
-  (or-R (apply p∋Vs p Vs)
-        (MσΓ⊢e M σ Γ (apply -?@ p es))))
+  (first-R (apply p∋Vs p Vs)
+           (MσΓ⊢e M σ Γ (apply -?@ p es))))
 
 (: MσΓ⊢e : -M -σ -Γ -?e → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
@@ -44,7 +43,7 @@
   (cond
     [e
      (define e* (canonicalize Γ e))
-     (or-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) Γ e*))]
+     (first-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) Γ e*))]
     [else '?]))
 
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
@@ -102,7 +101,7 @@
     ans)
 
   (dbg '⊢rec "~n")
-  (or-R (go 2 Γ) (go-rec 2 Γ e)))
+  (first-R (go 2 Γ) (go-rec 2 Γ e)))
 
 (: MσΓ⊓e : -M -σ -Γ -?e → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
@@ -166,7 +165,7 @@
 ;; Like `(Γ ⊓ W)` and `(Γ ⊓ ¬W)`, probably faster
 (define (Γ+/-W M σ Γ W)
   (match-define (-W V e) W)
-  (define proved (or-R (⊢V V) (MσΓ⊢e M σ Γ e)))
+  (define proved (first-R (⊢V V) (MσΓ⊢e M σ Γ e)))
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 
@@ -179,7 +178,7 @@
                ([W W_Vs])
       (values (-W-x W) (-W-e W))))
   (define ψ (apply -?@ e_p e_vs))
-  (define proved (or-R (apply V∋Vs P Vs) (MσΓ⊢e M σ Γ ψ)))
+  (define proved (first-R (apply V∋Vs P Vs) (MσΓ⊢e M σ Γ ψ)))
   (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
 
@@ -334,11 +333,11 @@
   (define ans
     (cond
       [e
-       (or-R (⊢e e)
-             (for*/fold ([R : -R '?])
-                        ([e₀ (-Γ-facts Γ)] #:when (equal? '? R)
-                         [R* (in-value (e⊢e e₀ e))])
-               R*))]
+       (first-R (⊢e e)
+                (for*/fold ([R : -R '?])
+                           ([e₀ (-Γ-facts Γ)] #:when (equal? '? R)
+                            [R* (in-value (e⊢e e₀ e))])
+                  R*))]
       [else '?]))
   (dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-?e e) ans)
   ans)

@@ -422,17 +422,15 @@
 (define not-R
   (match-lambda ['✓ 'X] ['X '✓] [_ '?]))
 
-;; Use the first definite result
-(define-syntax or-R
+;; Take the first definite result
+(define-syntax first-R
   (syntax-rules ()
     [(_) '?]
     [(_ R) R]
     [(_ R₁ R ...)
-     (match R₁ ['? (or-R R ...)] [ans ans])]))
+     (match R₁ ['? (first-R R ...)] [ans ans])]))
 
 (define (decide-R [x : Boolean]) : -R (if x '✓ 'X))
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -464,6 +462,7 @@
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)
 (define-type -AΓs (U -AΓ (Setof -AΓ)))
 
+;; Helper syntax definition(s) for `-?@`
 (begin-for-syntax
 
   (define/contract (general-primitive-clauses f xs)
