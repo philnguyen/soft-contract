@@ -24,7 +24,7 @@
           (-Δς (-blm 'TODO 'Λ (-st-p (-struct-info (-id-local 'defined 'Λ) 1 ∅))
                      (list 'undefined))
               Γ κ '() '() '())]
-         [_ (-Δς W Γ κ '() '() '())]))]
+         [else (-Δς W Γ κ '() '() '())]))]
     ;; look up top-level reference
     [(and ref (-ref (and id (-id-local name ctx*)) ctx pos))
      (cond
