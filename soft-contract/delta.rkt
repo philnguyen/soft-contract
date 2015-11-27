@@ -15,9 +15,9 @@
 ;; - Other primitives:
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
-(: concrete : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))))
-;; Concrete table for unsafe operations
-(define (concrete s)
+(: concrete-impl : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))))
+;; Table for (semi-)concrete implementations
+(define (concrete-impl s)
   (define (error-arity [o : Symbol] [expect : Integer] [given : Integer])
     (error 'δ "Invalid arity uncaught for `~a`: expect ~a, given ~a" o expect given))
   
@@ -169,7 +169,17 @@
          #:other-errors (,guards ...) ...)
 
        (cond
-         ; Return case clause for straightforward lifting of 1-st order case
+         ; Return case clause for straightforward lifting of predicates
+         [(∋ base-predicates op)
+          (list
+           #`[(#,op)
+              (define Vs
+                (case (apply MσΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,op #,(Ws-id))
+                  [(✓) (list -tt)]
+                  [(X) (list -ff)]
+                  [else -●/Vs]))
+              (values '() (-AΓ Vs #,(Γ-id)))])]
+         ; Return case clause for straightforward lifting of other 1st order operators
          [(and (andmap base? doms) (base? rng))
 
           (define/contract b-ids (listof identifier?)
@@ -187,17 +197,16 @@
                   [`(or/c ,ps ...)
                    #`(-b (and (or #,@(map mk-pat ps)) #,b-id))]))
               #`(-W _ #,stx-b)))
-
-          (define/contract e-ids (listof identifier?)
-            (build-list (length doms) (curry mk-sym 'e)))
-
+          
           (list
            #`[(#,op)
-              (match #,(Ws-id)
-                [(list #,@pat-bs)
-                 (define ans (-b (#,op #,@b-ids)))
-                 (values '() (-AΓ (list ans) #,(Γ-id)))]
-                [_ (values '() (-AΓ -●/Vs #,(Γ-id)))])])]
+              (define Vs
+                (match #,(Ws-id)
+                  [(list #,@pat-bs)
+                   (define ans (-b (#,op #,@b-ids)))
+                   (list ans)]
+                  [_ -●/Vs]))
+              (values '() (-AΓ Vs #,(Γ-id)))])]
          
          ; Just return operator name for complicated cases
          [else (list op)])]
@@ -217,9 +226,9 @@
                       [o-id #'o]
                       [Ws-id #'Ws]
                       [l-id #'l])
-         (for/fold ([clauses '()]
-                    [names '()])
-                   ([dec prims])
+         ;; Accumulate clauses for straightforwardly lifted operators
+         ;; and names for opaque operators
+         (for/fold ([clauses '()] [names '()]) ([dec prims])
            (match (generate-general-clauses dec)
              ['() (values clauses names)]
              [(cons x xs)
@@ -232,7 +241,7 @@
             (cond
               [(∋ prim-names o)
                (cond
-                 [(concrete o)
+                 [(concrete-impl o)
                   =>
                   (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))])
                     (f M σ Γ Ws l))]
