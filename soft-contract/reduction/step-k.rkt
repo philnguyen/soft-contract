@@ -248,9 +248,7 @@
                  (define κ*
                    (-kont*
                     (-φ.filter-fo W_Cs* W_Cs↓* W_C* W_v l³ pos)
-                    (-φ.@ '()
-                          (list (-W 'contract-first-order-passes? 'contract-first-order-passes?) W_C*)
-                          (-src-loc lo pos))
+                    (-φ.@ '() (list -contract-first-order-passes?/W W_C*) (-src-loc lo pos))
                     κ))
                  (-Δς (-W (list V_v) e_v) Γ_t κ* '() '() '())]))))
      (define δς_f : (Option -Δς)
@@ -271,9 +269,7 @@
                  (define κ*
                    (-kont*
                     (-φ.filter-fo W_Cs* W_Cs↓ W_C* W_v l³ pos)
-                    (-φ.@ '()
-                          (list (-W 'contract-first-order-passes? 'contract-first-order-passes?) W_C*)
-                          (-src-loc lo pos))
+                    (-φ.@ '() (list -contract-first-order-passes?/W W_C*) (-src-loc lo pos))
                     κ))
                  (-Δς (-W (list V_v) e_v) Γ_f κ* '() '() '())]))))
      (cond

@@ -450,6 +450,8 @@
 (define -vector-ref/W (-W 'vector-ref 'vector-ref))
 (define -vector-set/W (-W 'vector-set! 'vector-set!))
 (define -=/W (-W '= '=))
+(define -contract-first-order-passes?/W
+  (-W 'contract-first-order-passes? 'contract-first-order-passes?))
 (define -Vector₀ (-Vector '()))
 
 (define (-=/C [n : Integer])

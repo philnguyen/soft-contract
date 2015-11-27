@@ -16,7 +16,7 @@
   (struct -↓ [e : -e] [ρ : -ρ])
   ; `V` and `e` don't have any reference back to `E`, so it's not recursive
   (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : Integer])
-  (struct -App [f : -WV] [v : -WV] [ctx : -src-loc])
+  (struct -App [f : -WV] [xs : (Listof -WV)] [ctx : -src-loc])
   (subset: -Ans
     -blm
     -WVs))
@@ -35,7 +35,7 @@
   (match E
     [(-↓ e ρ) `(,(show-e e) ∣ ,@(show-ρ ρ))]
     [(-Mon C V _ _) `(Mon ,(show-WV C) ,(show-WV V))]
-    [(-App F V _) `(App ,(show-WV F) ,(show-WV V))]
+    [(-App F Vs _) `(App ,(show-WV F) ,@(map show-WV Vs))]
     [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
     [(-W Vs e) `(,@(map show-V Vs) @ ,(show-?e e))]))
 
