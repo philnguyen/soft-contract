@@ -367,7 +367,17 @@
            [(X) (-Δς (-W (list -ff) (-?@ (-st-p si) e_v)) Γ κ '() '() '())]
            [else (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
         [(-=>i xs _ _ _ _ _) ; check arity
-         (error "TODO")]
+         (cond
+           [(-procedure-arity V)
+            =>
+            (λ ([ar : -Arity])
+              (define ans
+                (cond
+                  [(-arity-includes? ar (length xs)) (-W (list -tt) -tt)]
+                  [else (-W (list -ff) -ff)]))
+              (-Δς ans Γ κ '() '() '()))]
+           [else
+            (-Δς (-W -●/Vs (-?@ 'contract-first-order-passes e_c e_v)) Γ κ '() '() '())])]
         [(or (? -Clo?) (? -Clo*?) (? -o?) (? -Ar?))
          (↦@ W_C (list W_V) Γ κ σ Ξ M loc)])))
 
