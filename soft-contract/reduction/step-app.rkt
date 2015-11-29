@@ -266,7 +266,7 @@
                   [W_C (in-value (-W C e_c))]
                   [φ.C (in-value (-φ.@ '() (list W_C) loc))]
                   [D Ds])
-        (define φ.D (-φ.if (-App (-W D e_d) W_x loc) (-W (list -ff) -ff)))
+        (define φ.D (-φ.if (-App (-W D e_d) (list W_x) loc) (-W (list -ff) -ff)))
         (set-add acc (-Δς (-W (list V_x) e_x) Γ (-kont* φ.C φ.D κ) '() '() '())))))
 
   (: ↦or/c : (Setof -V) (Setof -V) → -Δς*)
@@ -279,7 +279,8 @@
                   [W_C (in-value (-W C e_c))]
                   [φ.C (in-value (-φ.@ '() (list W_C) loc))]
                   [D Ds])
-        (define φ.D (-φ.if #|FIXME sloppy|# (-W (list -tt) -tt) (-App (-W D e_d) W_x loc)))
+        (define φ.D (-φ.if (-W (list -tt) -tt) #|FIXME sloppy|#
+                           (-App (-W D e_d) (list W_x) loc)))
         (set-add acc (-Δς (-W (list V_x) e_x) Γ (-kont* φ.C φ.D κ) '() '() '())))))
 
   (: ↦not/c : (Setof -V) → -Δς*)
@@ -291,6 +292,84 @@
       (for/set: : (Setof -Δς) ([C Cs])
         (define φ (-φ.@ '() (list (-W C e*)) loc))
         (-Δς (-W (list V_x) e_x) Γ (-kont* φ φ-not κ) '() '() '()))))
+  
+  (: ↦contract-first-order-passes? : → -Δς*)
+  (define (↦contract-first-order-passes?)
+    (with-guarded-arity 2
+      (match-define (list (and W_C (-W C e_c)) (and W_V (-W V e_v))) W_xs)
+      (match-define (list c₁ c₂) (-app-split e_c 'and/c 2))
+      (match C
+        [(-And/C _ α₁ α₂)
+         (for*/set: : (Setof -Δς)
+                    ([C₁ (σ@ σ α₁)]
+                     [φ₁ (in-value (-φ.@ '() (list -contract-first-order-passes?/W (-W C₁ c₁)) loc))]
+                     [C₂ (σ@ σ α₂)])
+           (define κ*
+             (-kont* φ₁
+                     (-φ.if (-App -contract-first-order-passes?/W (list (-W C₂ c₂) W_V) loc)
+                            (-W (list -ff) -ff))
+                     κ))
+           (-Δς (-W (list V) e_v) Γ κ* '() '() '()))]
+        [(-Or/C flat? α₁ α₂)
+         (for*/set: : (Setof -Δς)
+                    ([C₁ (σ@ σ α₁)]
+                     [φ₁ (in-value (-φ.@ '() (list -contract-first-order-passes?/W (-W C₁ c₁)) loc))]
+                     [C₂ (σ@ σ α₂)])
+           (define κ*
+             (-kont* φ₁
+                     (-φ.if (-W (list -tt) -tt)
+                            (-App -contract-first-order-passes?/W
+                                  (list (-W C₂ c₂) W_V)
+                                  loc))
+                     κ))
+           (-Δς (-W (list V) e_v) Γ κ* '() '() '()))]
+        [(-Not/C α)
+         (↦@ W_C (list W_V) Γ κ σ Ξ M loc)]
+        [(-St/C flat? si γs)
+         (case (MσΓ⊢oW M σ Γ (-st-p si) W_V)
+           [(✓)
+            (define n (length γs))
+            (define cs (-struct/c-split e_c n))
+            (define vs (-app-split e_v (-st-mk si) n))
+            (define cvs : (Listof (Pairof -?e -?e)) (map (inst cons -?e -?e) cs vs))
+            (match V
+              [(-St _ #|≡ si|# αs)
+               ;; TODO: this explodes like crazy...
+               (match* (γs αs)
+                 [('() '())
+                  (-Δς (-W (list -tt) -tt) Γ κ '() '() '())]
+                 [((cons γ γs*) (cons α αs*))
+                  (match-define (cons (cons c₀ v₀) cvs*) cvs)
+                  (for*/set: : (Setof -Δς)
+                             ([C₀ (in-set (σ@ σ γ))]
+                              [V₀ (in-set (σ@ σ α))]
+                              [E₀ (in-value (-W (list V₀) v₀))]
+                              [φ₀ (in-value
+                                   (-φ.@ '()
+                                         (list -contract-first-order-passes?/W (-W C₀ c₀))
+                                         loc))]
+                              [Cs* (in-set (σ@/list σ γs*))]
+                              [Vs* (in-set (σ@/list σ αs*))])
+                    (define κ*
+                      (foldr
+                       (λ ([Ci : -V] [Vi : -V] [cvi : (Pairof -?e -?e)] [κ : -κ])
+                         (-kont (-φ.if (-App -contract-first-order-passes?/W
+                                             (list (-W Ci (car cvi)) (-W Vi (cdr cvi)))
+                                             loc)
+                                       (-W (list -ff) -ff))
+                                κ))
+                       κ
+                       Cs*
+                       Vs*
+                       cvs*))
+                    (-Δς E₀ Γ (-kont φ₀ κ*) '() '() '()))])]
+              [_ (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
+           [(X) (-Δς (-W (list -ff) (-?@ (-st-p si) e_v)) Γ κ '() '() '())]
+           [else (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
+        [(-=>i xs _ _ _ _ _) ; check arity
+         (error "TODO")]
+        [(or (? -Clo?) (? -Clo*?) (? -o?) (? -Ar?))
+         (↦@ W_C (list W_V) Γ κ σ Ξ M loc)])))
 
   (match V_f
     [(-st-p si) (↦pred si)]
@@ -300,6 +379,7 @@
     ['vector (↦vector)]
     ['vector-ref (↦vector-ref)]
     ['vector-set! (↦vector-set!)]
+    ['contract-first-order-passes? (↦contract-first-order-passes?)]
     [(-And/C #t α₁ α₂) (↦and/c (σ@ σ α₁) (σ@ σ α₂))]
     [(-Or/C  #t α₁ α₂) (↦or/c  (σ@ σ α₁) (σ@ σ α₂))]
     [(-Not/C α) (↦not/c (σ@ σ α))]
