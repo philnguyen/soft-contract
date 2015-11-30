@@ -547,7 +547,7 @@
 (define (invert-e M σ f args)
   (define ans
     (match f
-    #;[(-id-local o 'Λ)
+    [(-id-local o 'Λ)
      {set (-Res (apply -?@ o args) ∅)}]
     [_
      (define α (-α.def f))
