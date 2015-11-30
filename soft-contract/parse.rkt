@@ -129,25 +129,28 @@
      (define/contract ctor-name symbol? (syntax-e #'ctor))
      (define/contract accs (listof identifier?) (syntax->list #'(acc ...)))
      (define n (length accs))
+     (define si (-struct-info (-id-local ctor-name (cur-mod)) n ∅))
      (-define-values
       (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
       (-@ (-ref (-id-local 'values 'Λ) (cur-mod) (next-neg!))
-          (list* (-st-mk (-id-local ctor-name (cur-mod)) n)
-                 (-st-p (-id-local ctor-name (cur-mod)) n)
+          (list* (-st-mk si)
+                 (-st-p si)
                  (for/list ([(accᵢ i) (in-indexed accs)])
-                   (-st-ac (-id-local ctor-name (cur-mod)) n i)))
+                   (-st-ac si i)))
           -Λ))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
      (define rhs (parse-e #'e))
      (define frees (free-x/c rhs))
      (cond
-       [(set-empty? frees) (-define-values (list lhs) rhs)]
-       [(set-empty? (-- frees lhs)) (-define-values (list lhs) (-μ/c lhs rhs))]
+       [(set-empty? frees)
+        (-define-values (list lhs) rhs)]
+       [(set-empty? (set-remove frees lhs))
+        (-define-values (list lhs) (-μ/c lhs rhs (next-neg!)))]
        [else
         (error 'TODO
                "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
-               lhs (set-first (-- frees lhs)))])]
+               lhs (set-first (set-remove frees lhs)))])]
     [(define-values (x:identifier ...) e)
      (-define-values (syntax->datum #'(x ...)) (parse-e #'e))]
     [(#%require spec ...)
@@ -177,39 +180,29 @@
        _ ...)
      (--> (parse-es #'(c ...)) (parse-e #'d) (next-neg!))]
     ;; Dependent contract
-    [(begin
-       (#%plain-app
-        (~literal fake:dynamic->i)
-        (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-        (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
-       _ ...)
-     ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
-     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
-           (parse-e #'d)
-           (next-neg!))]
-    ; FIXME: duplicate of above case, (let-values () e _ ...) == (begin () e _ ...)
-    [(let-values ()
-       (#%plain-app
-        (~literal fake:dynamic->i)
-        (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-        (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
-       _ ...)
-     ;(printf "dynamic->id₁: ~a~n" (syntax->datum #'d))
-     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
-           (parse-e #'d)
-           (next-neg!))]
-    ; FIXME: duplicate of above case, (begin e _ ...) == e
-    [(#%plain-app
-      (~literal fake:dynamic->i)
-      (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-      (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
-     ;(printf "dynamic->id₂: ~a~n" (syntax->datum #'d))
+    [(~or (begin
+            (#%plain-app
+             (~literal fake:dynamic->i)
+             (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+             (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+            _ ...)
+          (let-values ()
+            (#%plain-app
+             (~literal fake:dynamic->i)
+             (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+             (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+            _ ...)
+          (#%plain-app
+           (~literal fake:dynamic->i)
+           (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+           (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
      (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
            (parse-e #'d)
            (next-neg!))]
     [(#%plain-app (~literal fake:listof) c)
      (-μ/c 'X
-       (-or/c (list -null/c (-cons/c (parse-e #'c) (-x/c 'X) (next-neg!)))))]
+       (-or/c (cur-mod) (list -null/c (-cons/c (parse-e #'c) (-x/c 'X))))
+       (next-neg!))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (-list/c (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:box/c) c)
@@ -223,7 +216,10 @@
          (parse-e #'c)
          (-src-loc (cur-mod) (next-neg!)))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
-     (-struct/c (-id-local (syntax-e #'tag) (cur-mod)) (parse-es #'(c ...)))]
+     (define si (-struct-info (-id-local (syntax-e #'tag) (cur-mod))
+                              (length (syntax->list #'(c ...)))
+                              ∅))
+     (-struct/c si (parse-es #'(c ...)) (next-neg!))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
     [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
     [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
@@ -233,10 +229,9 @@
      (-cons/c (parse-e #'c) (parse-e #'d))]
     [(#%plain-app (~literal fake:one-of/c) c ...)
      (-one-of/c (cur-mod) (parse-es #'(c ...)))]
-    ; recursive contract reference. FIXME: code duplicate
-    [(let-values () (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
-     (-x/c (syntax-e #'x))]
-    [(begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
+    [(~or (let-values ()
+            (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
+          (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...))
      (-x/c (syntax-e #'x))]
     [(#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...)
      (-x/c (syntax-e #'x))]
