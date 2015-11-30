@@ -427,8 +427,27 @@
 (: prog-accs : (Listof -module) → (Setof -st-ac))
 ;; Retrieve set of all public accessors from program
 (define (prog-accs ms)
-  ;; FIXME: generate accessors properly
-  {set})
+  (define-values (defs decs)
+    (for*/fold ([defs : (HashTable Symbol -st-ac) (hash)]
+                [decs : (Setof Symbol) {set}])
+               ([m ms]
+                [form (-plain-module-begin-body (-module-body m))])
+      (match form
+        [(-provide specs)
+         (define decs*
+           (for/fold ([decs : (Setof Symbol) decs])
+                     ([spec specs])
+             (set-add decs (-p/c-item-id spec))))
+         (values defs decs*)]
+        [(-define-values (list id) e)
+         (define defs*
+           (match e
+             [(? -st-ac? ac) (hash-set defs id ac)]
+             [_ defs]))
+         (values defs* decs)]
+        [_ (values defs decs)])))
+  (for/set: : (Setof -st-ac) ([(id ac) (in-hash defs)] #:when (∋ decs id))
+    ac))
 
 (: gen-havoc : (Listof -module) → (Values -module -e))
 ;; Generate:
@@ -446,6 +465,7 @@
                (for/list : (Listof -@) ([ac (prog-accs ms)])
                  (-@ (havoc-ref-from -havoc-path (next-neg!))
                      (list (-@ ac (list x) -havoc-src)) -havoc-src))))))
+
   (define m
     (-module -havoc-path
              (-plain-module-begin
@@ -499,19 +519,21 @@
 (: module-opaque? : -module → (U #f (Setof Symbol)))
 ;; Check whether module is opaque, returning the set of opaque exports if so
 (define (module-opaque? m)
-  (match-define (-module _ (-plain-module-begin body)) m)
-  
-  (define-values (exports defines)
-    (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])
-              ([e (in-list body)])
-      (match e
-        [(-provide specs)
-         (values (set-add-list exports (map -p/c-item-id specs)) defines)]
-        [(-define-values xs _)
-         (values exports (set-add-list defines xs))]
-        [_ (values exports defines)])))
+  (match-define (-module p (-plain-module-begin body)) m)
+  (cond
+    [(equal? p 'Λ) #|HACK|# ∅]
+    [else
+     (define-values (exports defines)
+       (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])
+                 ([e (in-list body)])
+         (match e
+           [(-provide specs)
+            (values (set-add-list exports (map -p/c-item-id specs)) defines)]
+           [(-define-values xs _)
+            (values exports (set-add-list defines xs))]
+           [_ (values exports defines)])))
 
-  (if (⊆ exports defines) #f (-- exports defines)))
+     (if (⊆ exports defines) #f (-- exports defines))]))
 
 (: binder-has? : -formals (U Symbol -e) → Boolean)
 ;; returns whether a list of binding names has given name

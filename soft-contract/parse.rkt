@@ -23,7 +23,7 @@
   (define/contract ms (listof -module?)
     (for/list ([path (in-list paths)])
       (parse-top-level-form (do-expand-file path))))
-  (define-values (havoc-m havoc-e) (gen-havoc ms))
+  (define-values (havoc-m havoc-e) (gen-havoc (cons -mod-prim ms)))
   (-prog (list* havoc-m -mod-prim ms) havoc-e))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
