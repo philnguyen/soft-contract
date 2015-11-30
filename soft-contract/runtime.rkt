@@ -588,10 +588,24 @@
                    #`(-b (and #,@(map mk-pat ps) #,b-id))]
                   [`(or/c ,ps ...)
                    #`(-b (and (or #,@(map mk-pat ps)) #,b-id))])))
+
             (list
              #`[(#,o)
                 (match #,xs
                   [(list #,@b-pats) (-b (#,o #,@b-ids))]
+                  #,@(cond
+                       [(hash-ref prims:left-ids o #f) =>
+                        (λ (lid) (list #`[(list (-b #,lid) e) e]))]
+                       [else '()])
+                  #,@(cond
+                       [(hash-ref prims:right-ids o #f) =>
+                        (λ (rid) (list #`[(list e (-b #,rid)) e]))]
+                       [else '()])
+                  #,@(cond
+                       [(∋ prims:assocs o)
+                        (list #`[(list (-@ '#,o (list e₁ e₂) _) e₃)
+                                 (-?@ '#,o e₁ (-?@ '#,o e₂ e₃))])]
+                       [else '()])
                   [_ #,default-case])])]
            [else '()])]
         [_ '()]))
@@ -650,6 +664,13 @@
        [(-@ 'not/c (list f) _)
         (match xs
           [(list x) (-?@ 'not (-?@ f x))]
+          [_ (default-case)])]
+
+       ; TODO: handle `equal?` generally
+       ['equal?
+        (match xs
+          [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
+          [(list x x) -tt]
           [_ (default-case)])]
 
        ; (car (cons e _)) = e

@@ -1,11 +1,14 @@
 #lang racket/base
-(require racket/match racket/contract "untyped-utils.rkt")
+(require racket/match racket/set racket/contract "untyped-utils.rkt")
 (provide
  arr? arr*? ctc? dec? impl?
  (contract-out
   [prims (listof dec?)]
   [implications (listof impl?)]
-  [base? (ctc? . -> . any)]))
+  [base? (ctc? . -> . any)]
+  [assocs (set/c symbol?)]
+  [left-ids (hash/c symbol? (not/c not))]
+  [right-ids (hash/c symbol? (not/c not))]))
 
 ;; FIXME annotation for side effects
 
@@ -1736,6 +1739,20 @@
     [#:exclusion
      number? string? boolean? keyword? symbol?]
     ))
+
+;; Operations that are associative
+(define assocs
+  (set '+ '*)) ; FIXME: not true for floats...
+
+;; Identities for operations
+(define left-ids
+  (hash '+ 0
+        '* 1))
+(define right-ids
+  (hash '+ 0
+        '* 1
+        '- 0
+        '/ 1))
 
 
 ;; Experimental

@@ -285,6 +285,35 @@
       ['not (not-R (⊢e (car xs)))] ; assume right arity
       ['any/c '✓]
       ['none/c 'X]
+      ['equal?
+       (match xs
+         [(list e₁ e₂)
+          (match* (e₁ e₂)
+            [((? -λ? v₁) (? -λ? v₂)) ; can't compare higher-order literals
+             (if (equal? v₁ v₂) '? 'X)]
+            [((? -•?) _) '?]
+            [(_ (? -•?)) '?]
+            [((? -v? v₁) (? -v? v₂)) (decide-R (equal? v₁ v₂))]
+            [((-x x) (-x y))
+             (if (equal? x y) '✓ '?)]
+            [((-@ f xs _) (-@ g ys _))
+             ; lose precision. Don't need `f = g, x = y` to prove `f(x) = g(y)`
+             (cond
+               [(and
+                 (or
+                  (and (-λ? f) (equal? f g))
+                  (equal? '✓ (⊢e (-@ 'equal? (list f g) -Λ))))
+                 (= (length xs) (length ys)))
+                (define res
+                  (for/set: : (Setof -R) ([x xs] [y ys])
+                    (⊢e (-@ 'equal? (list x y) -Λ))))
+                (cond
+                  [(or (set-empty? res) (equal? res {set '✓})) '✓]
+                  [(and (-st-mk? f) (∋ res 'X)) 'X]
+                  [else '?])]
+               [else '?])]
+            [(_ _) (if (equal? e₁ e₂) '✓ '?)])]
+         [_ #|TODO|# '?])]
       [(? symbol? f)
        (define f-rng (hash-ref prim-ranges f #f))
        (cond
@@ -516,8 +545,9 @@
 ;; Given proposition `(p? v)`, generate an overapproximation of expressions
 ;; that could have evaluated to it
 (define (invert-e M σ f args)
-  (match f
-    [(-id-local o 'Λ)
+  (define ans
+    (match f
+    #;[(-id-local o 'Λ)
      {set (-Res (apply -?@ o args) ∅)}]
     [_
      (define α (-α.def f))
@@ -534,6 +564,8 @@
            (define ψ-args (for/set: : -es ([ψ ψ-xs]) (convert ψ)))
            (-Res e-args ψ-args)])]
        [_ -Res⊤])]))
+  ;(printf "insert-e: ~a ~a ↦ ~a~n" f (map show-e args) (map show-Res (set->list ans)))
+  ans)
 
 (: invert-Γ : -M -σ -Γ → (Setof -Γ))
 ;; Given propositions `Γ`, generate an overapproximation of environments
@@ -569,7 +601,8 @@
 
   (: go : -e → (Option (Setof -Res)))
   (define (go e)
-    (match e
+    (define ans
+      (match e
       [(-@ f xs l)
        (match (go* (cons f xs))
          [#f
@@ -592,9 +625,12 @@
             (match-define (cons (cons f* xs*) ψs) res)
             (-Res (apply -?@ f* xs*) ψs))])]
       [_ #|TODO just this for now|# #f]))
+    ;(printf "go: ~a ↦ ~a~n" e (and ans (map show-Res (set->list ans))))
+    ans)
 
   (: go* : (Listof -e) → (Option (Setof (Pairof (Listof -e) -es))))
   (define (go* es)
+    (define ans
     (match es
       ['() #f]
       [(cons e es*)
@@ -610,6 +646,8 @@
           (for/set: : (Setof (Pairof (Listof -e) -es)) ([res reses])
             (match-define (-Res (? -e? #|FIXME|# e*) ψs) res)
             (cons (cons e* es*) ψs))])]))
+    ;(printf "go*: ~a ↦ ~a~n" es ans)
+    ans)
 
   (go e₀))
 
@@ -649,17 +687,14 @@
   
   (go Γ e))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Debugging
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(begin
-  (define -app (-ref (-id-local 'app 'Λ) 'Λ 0))
+(module+ test
+  (require typed/rackunit)
+  
+  (define -app (-ref (-id-local 'app '†) '† 0))
   (define -app-body (-b 'app-body))
-  (define -len (-ref (-id-local 'len 'Λ) 'Λ 0))
+  (define -len (-ref (-id-local 'len '†) '† 0))
   (define -len-body (-b 'len-body))
-  (define -map (-ref (-id-local 'map 'Λ) 'Λ 0))
+  (define -map (-ref (-id-local 'map '†) '† 0))
   (define -map-body (-b 'map-body))
   (define -l₁ (-x 'l₁))
   (define -l₂ (-x 'l₂))
@@ -678,9 +713,9 @@
   (define σdb
     (⊔
      (⊔
-      (⊔ -σ⊥ (-α.def (-id-local 'app 'Λ)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
-      (-α.def (-id-local 'len 'Λ)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
-     (-α.def (-id-local 'map 'Λ)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
+      (⊔ -σ⊥ (-α.def (-id-local 'app '†)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
+      (-α.def (-id-local 'len '†)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
+     (-α.def (-id-local 'map '†)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
   (define Mdb
     (⊔
      (⊔
@@ -701,4 +736,8 @@
       (-Res -null {set (assert (-?@ -null? -xs))}))
      -map-body
      (-Res (-?@ -cons (-?@ -f (-?@ -car -xs)) (-?@ -map -f (-?@ -cdr -xs)))
-           {set (assert (-?@ -cons? -xs))}))))
+           {set (assert (-?@ -cons? -xs))})))
+
+  (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-app) '✓)
+  (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-map) '✓)
+  )
