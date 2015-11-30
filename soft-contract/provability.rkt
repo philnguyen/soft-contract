@@ -690,6 +690,43 @@
 (module+ test
   (require typed/rackunit)
   
+  (define-syntax-rule (check-✓ e) (check-equal? e '✓))
+  (define-syntax-rule (check-X e) (check-equal? e 'X))
+  (define-syntax-rule (check-? e) (check-equal? e '?))
+
+  ;; V ∈ p
+  (check-✓ (p∋Vs 'not (-b #f)))
+  (check-✓ (p∋Vs 'boolean? (-b #f)))
+  (check-✓ (p∋Vs 'integer? (-b 1)))
+  (check-✓ (p∋Vs 'real? (-b 1)))
+  (check-✓ (p∋Vs 'number? (-b 1)))
+  (check-✓ (p∋Vs 'procedure? (-Clo '(x) (-b 1) -ρ⊥ -Γ⊤)))
+  (check-✓ (p∋Vs 'procedure? 'procedure?))
+  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.tmp (-b 1)) (-α.tmp (-b 2))))))
+  (check-X (p∋Vs 'number? (-St -s-cons (list (-α.tmp (-b 1)) (-α.tmp (-b 2))))))
+  (check-X (p∋Vs 'integer? (-b 1.5)))
+  (check-X (p∋Vs 'real? (-b 1+1i)))
+  (check-? (p∋Vs 'integer? -●/V))
+
+  ;; ⊢ e
+  (check-✓ (Γ⊢e -Γ⊤ 'not))
+  (check-✓ (Γ⊢e -Γ⊤ (-b 0)))
+  (check-X (Γ⊢e -Γ⊤ (-b #f)))
+  (check-? (Γ⊢e -Γ⊤ (-x 'x)))
+  (check-X (Γ⊢e -Γ⊤ (-?@ 'not (-b 0))))
+  (check-✓ (Γ⊢e -Γ⊤ (-?@ 'equal? (-x 'x) (-x 'x))))
+  (check-✓ (Γ⊢e -Γ⊤ (-?@ '+ (-x 'x) (-x 'y))))
+  
+  ;; Γ ⊢ e
+  (check-✓ (Γ⊢e (Γ+ -Γ⊤ (-?@ -cons? (-x 'x))) (-x 'x)))
+  (check-✓ (Γ⊢e (Γ+ -Γ⊤ (-?@ 'integer? (-x 'x))) (-?@ 'real? (-x 'x))))
+  (check-✓ (Γ⊢e (Γ+ -Γ⊤ (-?@ 'not (-?@ 'number? (-x 'x))))
+                (-?@ 'not (-?@ 'integer? (-x 'x)))))
+  (check-X (Γ⊢e (Γ+ -Γ⊤ (-?@ 'not (-x 'x))) (-x 'x)))
+  (check-? (Γ⊢e (Γ+ -Γ⊤ (-?@ 'number? (-x 'x)))
+                (-?@ 'integer? (-x 'x))))
+
+  ;; MσΓ⊢e for recursive properties
   (define -app (-ref (-id-local 'app '†) '† 0))
   (define -app-body (-b 'app-body))
   (define -len (-ref (-id-local 'len '†) '† 0))
@@ -740,4 +777,4 @@
 
   (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-app) '✓)
   (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-map) '✓)
-  )
+)

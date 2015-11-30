@@ -692,6 +692,18 @@
        ; General case
        [_ (general-primitive-case)])]
     [else #f]))
+(module+ test
+  (require typed/rackunit)
+  (check-equal? (-?@ 'not (-?@ 'not (-?@ 'not (-x 'x)))) (-?@ 'not (-x 'x)))
+  (check-equal? (-?@ -car (-?@ -cons (-b 1) (-x 'x))) (-b 1))
+  (check-equal? (-?@ '+ (-x 'x) (-b 0)) (-x 'x))
+  (check-equal? (-?@ '+ (-b 0) (-x 'x)) (-x 'x))
+  (check-equal? (-?@ '* (-?@ '* (-x 'x) (-x 'y)) (-x 'z))
+                (-?@ '* (-x 'x) (-?@ '* (-x 'y) (-x 'z))))
+  (let ([e (assert (-?@ '+ (-x 'x) (-x 'y)))])
+    (check-equal? (-?@ -cons (-?@ -car e) (-?@ -cdr e)) e)
+    (check-equal? (-?@ -cons (-?@ -cdr e) (-?@ -car e))
+                  (-@ -cons (list (-@ -cdr (list e) -Λ) (-@ -car (list e) -Λ)) -Λ))))
 
 ;; convenient syntax for negation
 (define-match-expander -not
