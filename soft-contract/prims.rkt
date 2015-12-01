@@ -1676,6 +1676,14 @@
     [contract-continuation-mark-key continuation-mark-key?]
     ))
 
+(define prims.10
+  '(
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 10.1 Multiple Values
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [values ([] #:rest list? . ->* . any)])
+  )
+
 (define prims.math
   '( 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1683,7 +1691,7 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     [#:pred float-complex?]))
 
-(define prims (append prims.04 prims.08 prims.math))
+(define prims (append prims.04 prims.08 prims.10 prims.math))
 
 
 ;; Declare implications between predicates.

@@ -62,7 +62,9 @@
          (define V (-W-x W))
          (define α (-α.vector/c pos i))
          (values α (cons α V))))
-     (values δσ (-AΓ (list (-Vector/C αs)) Γ))]))
+     (values δσ (-AΓ (list (-Vector/C αs)) Γ))]
+    [values
+     (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]))
 
 (define-syntax (with-args stx)
   (syntax-parse stx
