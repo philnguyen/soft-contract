@@ -53,7 +53,7 @@
     ;; evaluate first clause in `begin` and push remaining clauses
     [(-begin es)
      (match es
-       [(list) (-Δς (-W -Void/Vs (-?@ -void)) Γ κ '() '() '())]
+       [(list) (-Δς (-W -Void/Vs (-b (void))) Γ κ '() '() '())]
        [(list e*) (↦e e* ρ Γ κ σ Ξ M)]
        [(cons e* es*)
         (↦e e* ρ Γ (-kont (-φ.begin es* ρ) κ) σ Ξ M)])]
@@ -68,7 +68,7 @@
      (define-values (V ?e)
        (cond
          [(Base? x) (values (-b x) (-b x))]
-         [(null? x) (values (-St -s-null '()) -null)]
+         [(null? x) (values -Null -null)]
          [else (error '↦e "TODO: quote")]))
      (-Δς (-W (list V) ?e) Γ κ '() '() '())]
     ;; let-values: evaluate the first argument (if there is) and push the rest

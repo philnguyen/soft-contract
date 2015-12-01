@@ -525,12 +525,12 @@
 ;;;;; Convenience
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define -Mt (-St -s-null (list)))
+(define -Null -null)
 (define -Any/C (-Clo '(x) -tt -ρ⊥ -Γ⊤))
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -●/V (-●))
-(define -Void/Vs (list (-St -s-void '())))
+(define -Void/Vs (list (-b (void))))
 (define -integer?/W (-W 'integer? 'integer?))
 (define -number?/W (-W 'number? 'number?))
 (define -vector?/W (-W 'vector? 'vector?))
@@ -645,6 +645,7 @@
      (match f
        ['any/c -tt]
        ['none/c -ff]
+       ['void (-b (void))]
 
        ; vector-length
        ['vector-length

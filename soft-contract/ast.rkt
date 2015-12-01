@@ -47,8 +47,7 @@
 
 (define-data -id
   ;; primitive ids as symbols to ease notation
-  'cons 'null 'void 'box
-  'μ/c 'x/c
+  'cons 'box 'μ/c 'x/c
   ;; these are just (tmp) hacks for retaining expressions / allocation address
   'values 'vector
   ;; general user-defined id
@@ -74,7 +73,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type/pred Base
-  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char))
+  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void))
 
 (define-data -top-level-form
   -general-top-level-form
@@ -160,6 +159,7 @@
 (define -ff (-b #f))
 (define -any/c  (-λ '(x) -tt))
 (define -none/c (-λ '(x) -ff))
+(define -null (-b null))
 
 (define -s-cons (-struct-info 'cons 2 ∅))
 (define -cons (-st-mk -s-cons))
@@ -169,14 +169,6 @@
 
 (define -zero (-b 0))
 (define -one (-b 1))
-
-(define -s-void (-struct-info 'void 0 ∅))
-(define -void #|hack|# (-@ (-st-mk -s-void) '() -Λ))
-
-(define -s-null (-struct-info 'null 0 ∅))
-(define -null? (-st-p -s-null))
-(define -null/c -null?)
-(define -null #|hack|# (-@ (-st-mk -s-null) '() -Λ))
 
 (define -s-box  (-struct-info 'box  1 {set 0}))
 (define -box? (-st-p -s-box))
@@ -383,7 +375,7 @@
 
 (: -listof : Mon-Party -e → -e)
 (define (-listof l c)
-  (-μ/c 'X (-or/c l (list -null? (-cons/c c (-x/c 'X)))) (next-neg!)))
+  (-μ/c 'X (-or/c l (list 'null? (-cons/c c (-x/c 'X)))) (next-neg!)))
 
 (: -box/c : -e → -e)
 (define (-box/c c)
@@ -391,7 +383,7 @@
 
 (: -list/c : (Listof -e) → -e)
 (define (-list/c cs)
-  (foldr -cons/c -null/c cs))
+  (foldr -cons/c 'null? cs))
 
 (: -list : Mon-Party (Listof -e) → -e)
 (define (-list l es)
@@ -737,6 +729,7 @@
      (substring s 0 (min (string-length s) 5))]
     [(or (regexp? x) (pregexp? x) (bytes? x)) (format "~a" x)]
     [(extflonum? x) (extfl->inexact x)]
+    [(void? x) 'void]
     [else x]))
 
 ;; Return operator's simple show-o for pretty-printing
@@ -767,7 +760,6 @@
     [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
     [(-λ (list _) (-b #t)) 'any/c]
     [(-λ (list _) (-b #f)) 'none/c]
-    [(-@ (-st-mk (≡ -s-null)) (list) _) 'null]
     [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]
     [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
      (match* ((show-e a) (show-e b))

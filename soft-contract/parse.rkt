@@ -201,7 +201,7 @@
            (next-neg!))]
     [(#%plain-app (~literal fake:listof) c)
      (-μ/c 'X
-       (-or/c (cur-mod) (list -null/c (-cons/c (parse-e #'c) (-x/c 'X))))
+       (-or/c (cur-mod) (list 'null? (-cons/c (parse-e #'c) (-x/c 'X))))
        (next-neg!))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (-list/c (parse-es #'(c ...)))]
@@ -303,9 +303,7 @@
     
     ;; Hacks for now
     [(~literal null) -null]
-    [(~literal null?) -null/c]
     [(~literal empty) -null]
-    [(~literal empty?) -null/c]
     [(~literal positive?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal negative?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
     [(~literal zero?) (parse-e #'(#%plain-lambda (x) (#%plain-app = x 0)))]
@@ -445,7 +443,7 @@
         [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
         [`(values ,ctcs ...)
          (-@ 'values (map simple-parse ctcs) (-src-loc 'Λ (next-neg!)))]
-        [(? symbol? s) s]
+        [(? symbol? s) (-ref (-id-local s 'Λ) 'Λ (next-neg!))]
         [`(quote ,s) (-b s)]
         [(or (? number? x) (? boolean? x)) (-b x)]))
 

@@ -64,7 +64,9 @@
          (values α (cons α V))))
      (values δσ (-AΓ (list (-Vector/C αs)) Γ))]
     [values
-     (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]))
+     (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]
+    [void
+     (values '() (-AΓ (list (-b (void))) Γ))]))
 
 (define-syntax (with-args stx)
   (syntax-parse stx

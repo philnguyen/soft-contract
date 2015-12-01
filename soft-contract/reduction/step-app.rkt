@@ -2,7 +2,8 @@
 
 (require
  racket/match racket/set racket/function
- "../utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt" "../delta.rkt" "../machine.rkt"
+ "../untyped-utils.rkt" "../utils.rkt" "../ast.rkt" "../runtime.rkt"
+ "../provability.rkt" "../delta.rkt" "../machine.rkt"
  "step-mon.rkt")
 
 (provide ↦@ rt-spurious?)
@@ -100,10 +101,11 @@
     (match-define (-struct-info id n _) si)
     (match-define (list (and W (-W V e))) W_xs)
     (match V
-      [(-St _ αs)
+      [(-St (≡ si) αs)
+       (printf "ac: ~a ~a @ ~a~n" (show-struct-info si) (show-V V) i)
        (for/set: : (Setof -Δς) ([V (σ@ σ (list-ref αs i))])
          (-Δς (-W (list V) e_a) Γ κ '() '() '()))]
-      [(-St/checked s γs l³ α)
+      [(-St/checked (≡ si) γs l³ α)
        (define o (-st-ac si i))
        (define φ-select (-φ.@ '() (list (-W o o)) -Λ))
        (define e_x (car e_xs))
@@ -118,7 +120,8 @@
           (define κ* (-kont φ-select κ))
           (for/set: : (Setof -Δς) ([V* (σ@ σ α)])
             (-Δς (-W (list V*) e_x) Γ κ* '() '() '()))])]
-      [_ (-Δς (-W -●/Vs e_a) Γ κ '() '() '())]))
+      [(-●) (-Δς (-W -●/Vs e_a) Γ κ '() '() '())]
+      [_ ∅]))
 
   (: ↦mut : -struct-info Integer → -Δς*)
   (define (↦mut si i)

@@ -759,18 +759,18 @@
       (⊔
        (⊔
         (⊔
-         (⊔ -M⊥ -app-body (-Res -l₂ {set (assert (-?@ -null? -l₁))}))
+         (⊔ -M⊥ -app-body (-Res -l₂ {set (assert (-?@ 'null? -l₁))}))
          -app-body
          (-Res
           (-?@ -cons (-?@ -car -l₁) (-?@ -app (-?@ -cdr -l₁) -l₂))
           {set (assert (-?@ -cons? -l₁))}))
         -len-body
-        (-Res (-b 0) {set (assert (-?@ -null? (-x 'l)))}))
+        (-Res (-b 0) {set (assert (-?@ 'null? (-x 'l)))}))
        -len-body
        (-Res (-?@ '+ (-b 1) (-?@ -len (-?@ -cdr (-x 'l))))
              {set (assert (-?@ -cons? (-x 'l)))}))
       -map-body
-      (-Res -null {set (assert (-?@ -null? -xs))}))
+      (-Res 'null? {set (assert (-?@ 'null? -xs))}))
      -map-body
      (-Res (-?@ -cons (-?@ -f (-?@ -car -xs)) (-?@ -map -f (-?@ -cdr -xs)))
            {set (assert (-?@ -cons? -xs))})))

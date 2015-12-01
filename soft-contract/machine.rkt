@@ -358,7 +358,7 @@
   (define E₀ (-↓ e₀ -ρ⊥))
   (define τ₀ (-τ e₀ -ρ⊥ -Γ⊤))
 
-  (printf "Initial σ:~n~a~n" (hash-count σ₀))
+  ;(printf "Initial σ:~n~a~n" (hash-count σ₀))
 
   (-ς E₀ -Γ⊤ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 

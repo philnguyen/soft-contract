@@ -94,9 +94,7 @@
     [(-φ.set! x α)
      (with-guarded-arity 1 'TODO 'set!
        (define Γ* (Γ-reset Γ x ?e))
-       ; TODO: might not need to erase `set! x e`
-       ; if `e` doesn't depend on mutable state
-       (-Δς (-W -Void/Vs #f) Γ* κ (list (cons α (car Vs))) '() '()))]
+       (-Δς (-W -Void/Vs (-b (void))) Γ* κ (list (cons α (car Vs))) '() '()))]
     ;; Application
     [(-φ.@ Es WVs↓ loc)
      (match-define (-src-loc l pos) loc)
@@ -113,7 +111,7 @@
     ;; Begin
     [(-φ.begin es ρ)
      (match es
-       [(list) (-Δς (-W -Void/Vs -void) Γ κ '() '() '())]
+       [(list) (-Δς (-W -Void/Vs (-b (void))) Γ κ '() '() '())]
        [(list e) (↦e e ρ Γ κ σ Ξ M)]
        [(cons e es*)
         (↦e e ρ Γ (-kont (-φ.begin es* ρ) κ) σ Ξ M)])]
