@@ -514,7 +514,7 @@
     (match-lambda
       [(or (-Clo xs _ _ _) (-Clo* xs _ _)) (-formals-arity (assert xs))]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?)) 1]
-      [(-=>i xs _ _ _ _ _) (length xs)]
+      [(-Ar xs _ _ _ _ _ _ _) (length xs)]
       [(? -st-p?) 1]
       [(-st-mk (-struct-info _ n _)) n]
       [(? -st-ac?) 1]

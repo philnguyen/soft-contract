@@ -84,19 +84,21 @@
 
   (: ↦=>i : (Listof Symbol) (Listof -?e) (Listof -α) -e -ρ -Γ → -Δς*)
   (define (↦=>i xs cs Cs d ρ_d Γ_d)
-    ;; TODO: check for arity also
-    (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ -procedure?/W W_v))
-    (define ς-ok
-      (and Γ-ok
-           (let ()
-             (define α
-               (cond [e_v (-α.tmp e_v)]
-                     [else (-α.fld (-id-local 'Ar 'Λ) pos 0)]))
-             (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
-             (define δσ (list (cons α V)))
-             (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))))
-    (define ς-bad (and Γ-bad ((blm l+ lo 'procedure? V) Γ-bad)))
-    (collect ς-ok ς-bad))
+    (define -bn (-b (length xs)))
+    (define-values (δς-ok δς-bads)
+      (Γ+/- M σ Γ
+            (λ ([Γ-ok : -Γ])
+              (define α
+                (cond [e_v (-α.tmp e_v)]
+                      [else (-α.fld (-id-local 'Ar 'Λ) pos 0)]))
+              (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
+              (define δσ (list (cons α V)))
+              (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))
+            (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))
+            (list -arity-includes?/W
+                  (list W_v (-W -bn -bn))
+                  (blm l+ lo (-Arity-Includes/C (length xs)) V))))
+    (collect δς-ok δς-bads))
   
   (: ↦struct/c : -struct-info (Listof -α) → -Δς*)
   (define (↦struct/c s γs)
