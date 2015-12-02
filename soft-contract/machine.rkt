@@ -260,7 +260,7 @@
     
     (match e
       [(? -v?) (values σ (close-Γ -Γ⊤ (close e -ρ⊥)))]
-      [(-ref (-id-local o 'Λ) _ _) (values σ o)]
+      [(-ref (-id-local o 'Λ) _ _) (values σ (prim-name->unsafe-prim o))]
       [(-->i doms rng pos)
        (define-values (xs cs)
          (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
@@ -357,8 +357,6 @@
 
   (define E₀ (-↓ e₀ -ρ⊥))
   (define τ₀ (-τ e₀ -ρ⊥ -Γ⊤))
-
-  ;(printf "Initial σ:~n~a~n" (hash-count σ₀))
 
   (-ς E₀ -Γ⊤ τ₀ σ₀ (hash τ₀ ∅) (hash)))
 

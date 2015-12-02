@@ -4,6 +4,8 @@
  (for-syntax racket/base racket/match racket/syntax syntax/parse))
 (require/typed redex/reduction-semantics
   [variable-not-in (Any Symbol → Symbol)])
+(require/typed "prims.rkt"
+  [prims (Listof Any)])
 (provide (all-defined-out))
 
 ;; I prefix types with dashes so I can use 1-letter variables without shadowing constructors
@@ -710,6 +712,36 @@
             (calls-add! xs))]
          [_ (void)]))
   calls)
+
+(: prim-name->unsafe-prim : Symbol → -o)
+;; Convert primitive name to (unsafe) primitive
+(define prim-name->unsafe-prim
+  (let ([specials : (HashTable Symbol -o) (make-hasheq)]
+        [aliases : (HashTable Symbol Symbol) (make-hasheq)]
+        [mk-struct-info : (Any → -struct-info)
+         (match-lambda
+           [`(,(? symbol? t) ,(? boolean? bs) ...)
+            (-struct-info (-id-local t 'Λ)
+                          (length bs)
+                          (for/set: : (Setof Integer) ([(b i) (in-indexed bs)] #:when b) i))])])
+    (for ([dec prims])
+      (match dec
+        [`(#:alias ,(? symbol? x) ,(? symbol? y))
+         (hash-set! aliases x y)]
+        [`(#:struct-cons ,(? symbol? x) ,si)
+         (hash-set! specials x (-st-mk (mk-struct-info si)))]
+        [`(#:struct-pred ,(? symbol? x) ,si)
+         (hash-set! specials x (-st-p (mk-struct-info si)))]
+        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-integer? i))
+         (hash-set! specials x (-st-ac (mk-struct-info si) i))]
+        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-integer? i))
+         (hash-set! specials x (-st-mut (mk-struct-info si) i))]
+        [_ (void)]))
+    (λ (x)
+      (cond
+        [(hash-ref specials x #f)]
+        [(hash-ref aliases x #f) => prim-name->unsafe-prim]
+        [else x]))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
