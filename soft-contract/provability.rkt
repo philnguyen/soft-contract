@@ -9,6 +9,8 @@
  (for-syntax
   racket/base racket/match racket/list racket/set racket/function racket/syntax racket/contract syntax/parse
   "untyped-utils.rkt" "utils.rkt" (only-in "prims.rkt" prims ctc? arr? base?) "prim-gen.rkt"))
+(require/typed "prims.rkt"
+  [base? (Any → Boolean)])
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e Γ⊢e p∋Vs V≡
          MσΓ⊓ Γ+/-W Γ+/-W∋Ws Γ+/-e spurious?
          
@@ -199,8 +201,39 @@
   ;; Apply predicate on concrete base value
   (define/contract (generate-base-clauses b)
     (identifier? . -> . (listof syntax?))
-    (for/list ([p '() #;base-predicates])
-      #`[(#,p) (decide-R (#,p #,b))]))
+
+    (define/contract (go dec)
+      (any/c . -> . (listof syntax?))
+      (match dec
+        [`(#:pred ,(? symbol? s))
+         (go `(,s (any/c . -> . boolean?) #:other-errors))]
+        [`(#:pred ,(? symbol? s) (,(? ctc? cs) ...))
+         (go `(,s (,@cs . -> . boolean?) #:other-errors))]
+        [`(#:batch (,(? symbol? ss) ...) ,(? arr? c) ,_ ...)
+         (append-map (λ (s) (go `(,s ,c #:other-errors))) ss)]
+        [`(,(and (? symbol?) (not (? ignore-for-now?)) o) (,c . -> . ,d) ,_ ...)
+
+         (cond
+           [(base? o)
+            
+            (define/contract (cond-b c)
+              (any/c . -> . syntax?)
+              (match c
+                ['any/c #`#t]
+                [(? symbol? p) #`(#,p #,b)]
+                [`(not/c ,(? symbol? p)) #`(not (#,p #,b))]
+                [`(and/c ,ps ...) #`(and #,@(map cond-b ps))]
+                [`(or/c ,ps ...) #`(or #,@(map cond-b ps))]))
+
+            (list
+             #`[(#,o)
+                (cond
+                  [#,(cond-b c) (decide-R (#,o #,b))]
+                  [else '?])])]
+           [else '()])]
+        [_ '()]))
+    
+    (append-map go prims))
 
   ;; Inspect inner application to see if it satisfies predicate
   (define/contract (generate-app-clauses p zs)
@@ -269,15 +302,18 @@
     (define-syntax (generate-predicate-clauses stx)
       (define ans
         #`(match xs
-          [(list (-b b))
-           (case p
-             #,@(generate-base-clauses #'b)
-             [else '?])]
-          [(list (-@ o zs _))
-           (case o
-             #,@(generate-app-clauses #'p #'zs)
-             [else '?])]
-          [_ '?]))
+            [(list (-b b))
+             (case p
+               #,@(generate-base-clauses #'b)
+               [else (if (-st-p? p) 'X '?)])]
+            [(list (-@ o zs _))
+             (case o
+               #,@(generate-app-clauses #'p #'zs)
+               [else
+                (cond
+                  [(and (-st-mk? o) (base? p)) 'X]
+                  [else '?])])]
+            [_ '?]))
       ;(printf "generated:~n~a~n" (syntax->datum ans))
       ans)
 
@@ -314,20 +350,30 @@
                [else '?])]
             [(_ _) (if (equal? e₁ e₂) '✓ '?)])]
          [_ #|TODO|# '?])]
-      [(? symbol? f)
-       (define f-rng (hash-ref prim-ranges f #f))
+      [(? symbol?)
        (cond
-         [f-rng
-          (cond
-            [(boolean-excludes? f-rng) '✓]
-            [else (generate-predicate-clauses)])]
+         [(hash-ref prim-ranges p #f) =>
+          (λ ([p-rng : Symbol])
+            (cond
+              [(boolean-excludes? p-rng) '✓]
+              [else (generate-predicate-clauses)]))]
          [else '?])]
       [(? -st-mk?) '✓]
       [(-st-p si)
        (match xs
          [(list (-@ (-st-mk sj) _ _)) ; TODO: No sub-struct for now.
           (decide-R (equal? si sj))]
-         [else '?])]
+         [(list (-b _)) 'X]
+         [(list (-@ (? symbol? f) _ _))
+          (cond ;; HACK for now
+            [(hash-ref prim-ranges f #f)
+             =>
+             (λ ([f-rng : Symbol])
+               (cond
+                 [(∋ (set 'integer? 'real? 'number? 'vector? 'boolean? 'not 'null?) f-rng) 'X]
+                 [else '?]))]
+            [else '?])]
+         [_ '?])]
       [_ '?]))
 
   (: e⊢e : -e -e → -R)
@@ -716,6 +762,8 @@
   (check-X (Γ⊢e -Γ⊤ (-?@ 'not (-b 0))))
   (check-✓ (Γ⊢e -Γ⊤ (-?@ 'equal? (-x 'x) (-x 'x))))
   (check-✓ (Γ⊢e -Γ⊤ (-?@ '+ (-x 'x) (-x 'y))))
+  (check-X (Γ⊢e -Γ⊤ (-?@ -cons? -null)))
+  (check-X (Γ⊢e -Γ⊤ (-?@ 'null? (-?@ -cons (-b 0) (-b 1)))))
   
   ;; Γ ⊢ e
   (check-✓ (Γ⊢e (Γ+ -Γ⊤ (-?@ -cons? (-x 'x))) (-x 'x)))
@@ -770,7 +818,7 @@
        (-Res (-?@ '+ (-b 1) (-?@ -len (-?@ -cdr (-x 'l))))
              {set (assert (-?@ -cons? (-x 'l)))}))
       -map-body
-      (-Res 'null? {set (assert (-?@ 'null? -xs))}))
+      (-Res -null {set (assert (-?@ 'null? -xs))}))
      -map-body
      (-Res (-?@ -cons (-?@ -f (-?@ -car -xs)) (-?@ -map -f (-?@ -cdr -xs)))
            {set (assert (-?@ -cons? -xs))})))

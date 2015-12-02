@@ -1745,7 +1745,7 @@
     [flat-contract? ⇒ contract?]
 
     [#:exclusion
-     number? string? boolean? keyword? symbol?]
+     number? string? boolean? keyword? symbol? void? null?]
     ))
 
 ;; Operations that are associative
