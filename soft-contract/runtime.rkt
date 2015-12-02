@@ -8,7 +8,10 @@
   racket/base racket/set racket/function racket/match racket/list racket/contract
   racket/syntax syntax/parse
   "untyped-utils.rkt" "utils.rkt" (prefix-in prims: "prims.rkt") "prim-gen.rkt"))
-(require/typed redex/reduction-semantics [variable-not-in (Any Symbol → Symbol)])
+(require/typed redex/reduction-semantics
+  [variable-not-in (Any Symbol → Symbol)])
+(require/typed "prims.rkt"
+  [(prims prims:prims) (Listof Any)])
 (provide (all-defined-out))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -479,19 +482,46 @@
     [(? list? ars₂) (for/and ([ari ars₂]) (-arity-includes? ar₁ ari))]))
 
 (: -procedure-arity : -V → (Option -Arity))
-(define (-procedure-arity V)
+;; Return given value's arity
+(define -procedure-arity
+  (let ()
+    
+    (define (-formals-arity [xs : -formals]) : -Arity
+      (cond
+        [(-varargs? xs) (-Arity-At-Least (length (-varargs-init xs)))]
+        [else (length xs)]))
 
-  (define (-formals-arity [xs : -formals]) : -Arity
-    (cond
-      [(-varargs? xs) (-Arity-At-Least (length (-varargs-init xs)))]
-      [else (length xs)]))
+    (define arity-table
+      (for/fold ([m : (HashTable Symbol -Arity) (hasheq)]) ([dec prims:prims])
+        (match dec
+          [`(#:pred ,(? symbol? s)) (hash-set m s 1)]
+          [`(#:pred ,(? symbol? s) (,xs ...)) (hash-set m s (length xs))]
+          [`(#:batch (,ss ...) (,xs ... . -> . ,_) ,_ ...)
+           (define n (length xs))
+           (for/fold ([m : (HashTable Symbol -Arity) m]) ([s ss])
+             (hash-set m (assert s symbol?) n))]
+          [`(#:batch (,ss ...) (,xs #:rest ,_ . ->* . ,_) ,_ ...)
+           (define n (-Arity-At-Least (length (assert xs list?))))
+           (for/fold ([m : (HashTable Symbol -Arity) m]) ([s ss])
+             (hash-set m (assert s symbol?) n))]
+          [`(,(? symbol? s) (,xs ... -> ,_) ,_ ...)
+           (hash-set m s (length xs))]
+          [`(,(? symbol? s) (,xs #:rest ,_ ->* ,_) ,_ ...)
+           (hash-set m s (-Arity-At-Least (length (assert xs list?))))]
+          [_ m])))
 
-  (match V
-    [(or (-Clo xs _ _ _) (-Clo* xs _ _)) (-formals-arity (assert xs))]
-    [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?)) 1]
-    [(-=>i xs _ _ _ _ _) (length xs)]
-    [(-●) #f]
-    [_ (error '-procedure-arity "called on a non-procedure ~a" (show-V V))]))
+
+    (match-lambda
+      [(or (-Clo xs _ _ _) (-Clo* xs _ _)) (-formals-arity (assert xs))]
+      [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?)) 1]
+      [(-=>i xs _ _ _ _ _) (length xs)]
+      [(? -st-p?) 1]
+      [(-st-mk (-struct-info _ n _)) n]
+      [(? -st-ac?) 1]
+      [(? -st-mut?) 2]
+      [(? symbol? s) (hash-ref arity-table s)]
+      [(-●) #f]
+      [V (error '-procedure-arity "called on a non-procedure ~a" (show-V V))])))
 
 (module+ test
   (require typed/rackunit)
@@ -537,6 +567,7 @@
 (define -procedure?/W (-W 'procedure? 'procedure?))
 (define -vector-ref/W (-W 'vector-ref 'vector-ref))
 (define -vector-set/W (-W 'vector-set! 'vector-set!))
+(define -arity-includes?/W (-W 'arity-includes? 'arity-includes?))
 (define -=/W (-W '= '=))
 (define -contract-first-order-passes?/W
   (-W 'contract-first-order-passes? 'contract-first-order-passes?))
@@ -547,6 +578,9 @@
 
 (define (-not/C [v : -v])
   (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) -Λ)) -Λ) -ρ⊥ -Γ⊤))
+
+(define (-Arity-Includes/C [n : Integer])
+  (-Clo '(x) (-@ 'arity-includes? (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)

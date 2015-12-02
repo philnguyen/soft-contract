@@ -479,6 +479,16 @@
              [_ '?])]
           [(any/c) '✓]
           [(none/c) 'X]
+          [(arity-includes?)
+           (match Vs
+             [(list V_f V_n)
+              (cond
+                [(-procedure-arity V_f) =>
+                 (λ ([a : -Arity])
+                   (match V_n
+                     [(-b (? exact-integer? n)) (decide-R (-arity-includes? a n))]
+                     [_ '?]))]
+                [else '?])])]
           ;; Automatic stuff for base values and structs
           #,@(generate-base-cases #'Vs)
           [else
