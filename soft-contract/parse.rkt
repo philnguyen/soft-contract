@@ -237,8 +237,8 @@
      (-x/c (syntax-e #'x))]
 
     ;; primitive contracts
-    [(~literal fake:any/c) -any/c]
-    [(~literal fake:none/c) -none/c]
+    [(~literal fake:any/c) 'any/c]
+    [(~literal fake:none/c) 'none/c]
     
     ;; Literals
     [v:str (-b (syntax->datum #'v))]
@@ -433,7 +433,7 @@
               (next-neg!))]
         [`(->* (,doms ...) #:rest ,rst ,rng)
          (log-warning "Skipping ->* for now~n")
-         -any/c]
+         'any/c]
         [`(and/c ,cs ...) (-and/c 'Λ (map simple-parse cs))]
         [`(or/c  ,cs ...) (-or/c  'Λ (map simple-parse cs))]
         [`(one-of/c ,cs ...) (-one-of/c 'Λ (map simple-parse cs))]
@@ -483,10 +483,10 @@
            (match doms?
              ['()
               ;; optimize `(any/c . -> . boolean?)` to `any/c`
-              (hash-ref! cache s -any/c)]
+              (hash-ref! cache s 'any/c)]
              [(list (list dom ...))
               ; optimize `boolean?` to `any/c`
-              (hash-ref! cache s (--> (map simple-parse dom) -any/c (next-neg!)))]))
+              (hash-ref! cache s (--> (map simple-parse dom) 'any/c (next-neg!)))]))
          (list (-p/c-item s ctc))]
         [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:batch (,ss ...) ,sig ,_ ...)
@@ -500,22 +500,22 @@
          (define ctc (hash-ref! cache s
                                 (-->i (for/list ([i (length mut?s)])
                                         (cons (string->symbol (format "k•~a" (n-sub i)))
-                                              -any/c))
-                                      -any/c
+                                              'any/c))
+                                      'any/c
                                       (next-neg!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-pred ,s (,_ ,mut? ...))
-         (define ctc (hash-ref! cache s (-->i (list (cons 'p• -any/c)) -any/c (next-neg!))))
+         (define ctc (hash-ref! cache s (-->i (list (cons 'p• 'any/c)) 'any/c (next-neg!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-acc ,s ,si ,_)
          (define ctc (hash-ref! cache s (-->i (list (cons 'a• (-st-p (mk-struct-info si))))
-                                              -any/c
+                                              'any/c
                                               (next-neg!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-mut ,s ,si ,_)
          (define ctc (hash-ref! cache s (-->i (list (cons 'm•₁ (-st-p (mk-struct-info si)))
-                                                    (cons 'm•₂ -any/c))
-                                              -any/c
+                                                    (cons 'm•₂ 'any/c))
+                                              'any/c
                                               (next-neg!))))
          (list (-p/c-item s ctc))]
         [r

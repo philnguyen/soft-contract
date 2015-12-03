@@ -159,8 +159,6 @@
 
 (define -tt (-b #t))
 (define -ff (-b #f))
-(define -any/c  (-λ '(x) -tt))
-(define -none/c (-λ '(x) -ff))
 (define -null (-b null))
 
 (define -s-cons (-struct-info 'cons 2 ∅))
@@ -349,7 +347,7 @@
 ;; Can't use this in `splicing-local` or `splicing-letrec` b/c of type annotations...
 (define (-app/c o l es)
   (match es
-    ['() -any/c]
+    ['() 'any/c]
     [(list e) e]
     [(cons e es*)
      (-@ (-ref (-id-local o 'Λ) l (next-neg!))
@@ -365,7 +363,7 @@
 (: -one-of/c : Mon-Party (Listof -e) → -e)
 (define (-one-of/c l es)
   (match es
-    [(list) -none/c]
+    [(list) 'none/c]
     [(list e) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
     [(cons e es*)
      (-or/c l (list (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))
@@ -465,7 +463,7 @@
              (-plain-module-begin
               (list
                (-define-values (list (-id-name -havoc-id)) havoc-func)
-               (-provide (list (-p/c-item (-id-name -havoc-id) -any/c)))))))
+               (-provide (list (-p/c-item (-id-name -havoc-id) 'any/c)))))))
 
   ;;; Generate expression
   (define-set refs : -ref)
@@ -790,8 +788,8 @@
     [(-λ (list x) (-@ 'arity-includes? (list (-x x) (-b 0)) _)) `(arity-includes/c ,x)]
     [(-λ (list x) (-@ 'arity=? (list (-x x) (-b 0)) _)) `(arity=/c ,x)]
     [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
-    [(-λ (list _) (-b #t)) 'any/c]
-    [(-λ (list _) (-b #f)) 'none/c]
+    ;[(-λ (list _) (-b #t)) 'any/c]
+    ;[(-λ (list _) (-b #f)) 'none/c]
     [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]
     [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
      (match* ((show-e a) (show-e b))
