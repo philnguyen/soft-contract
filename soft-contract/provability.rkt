@@ -289,6 +289,7 @@
   (define (⊢e e)
     (match e
       [(-b b) (if b '✓ 'X)]
+      [(? -•?) '?]
       [(? -v?) '✓]
       [x #:when (Γ-has? Γ x) '✓]
       [(-@ f xs _) (⊢@ f xs)]
