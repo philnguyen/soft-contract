@@ -504,12 +504,11 @@
            (define n (-Arity-At-Least (length (assert xs list?))))
            (for/fold ([m : (HashTable Symbol -Arity) m]) ([s ss])
              (hash-set m (assert s symbol?) n))]
-          [`(,(? symbol? s) (,xs ... -> ,_) ,_ ...)
+          [`(,(? symbol? s) (,xs ... . -> . ,_) ,_ ...)
            (hash-set m s (length xs))]
-          [`(,(? symbol? s) (,xs #:rest ,_ ->* ,_) ,_ ...)
+          [`(,(? symbol? s) (,xs #:rest ,_ . ->* . ,_) ,_ ...)
            (hash-set m s (-Arity-At-Least (length (assert xs list?))))]
           [_ m])))
-
 
     (match-lambda
       [(or (-Clo xs _ _ _) (-Clo* xs _ _)) (-formals-arity (assert xs))]
