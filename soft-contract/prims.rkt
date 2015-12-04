@@ -79,10 +79,8 @@
       (real? real? . -> . real?)
       (integer? integer? . -> . integer?)]
      [/ ; FIXME varargs
-      (number? number? . -> . number?)
-      (real? real? . -> . real?)
-      #:other-errors
-      (any/c (and/c exact? zero?))]
+      (number? (and/c number? (or/c inexact? (not/c zero?))) . -> . number?)
+      (real? real? . -> . real?)]
      [#:batch (quotient remainder modulo) ; FIXME: only error on exact 0
       (integer? (and/c integer? (not/c zero?)) . -> . integer?)]
      [quotient/remainder
@@ -322,7 +320,7 @@
      [#:batch (extfl+ extfl- extfl*)
       (extflonum? extflonum? . -> . extflonum?)]
      [extfl/
-      (extflonum? (and/c extflonum? (not/c zero?)) . -> . extflonum?)]
+      (extflonum? extflonum? . -> . extflonum?)]
      [extflabs
       (extflonum? . -> . extflonum?)]
      [#:batch (extfl= extfl< extfl> extfl<= extfl>=)
@@ -1781,9 +1779,10 @@
   (match s
     [(? symbol? s)
      (case s
-       [(integer? real? number? exact-nonnegative-integer? flonum? single-flonum?
-                  extflonum?
-                  boolean? string? symbol? keyword? char? null? #|TODO|#)
+       [(integer? real? number? zero?
+         inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
+         extflonum?
+         boolean? string? symbol? keyword? char? null? #|TODO|#)
         #t]
        [else #f])]
     [`(,(or 'and/c 'or/c 'not/c) ,cs ...)

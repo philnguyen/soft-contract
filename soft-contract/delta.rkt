@@ -196,28 +196,17 @@
               (values '() (-AΓ Vs #,(Γ-id)))])]
          ; Return case clause for straightforward lifting of other 1st order operators
          [(and (andmap base? doms) (base? rng))
+          (define/contract b-syms (listof symbol?)
+            (build-list (length doms) (λ (i) (string->symbol (format "e~a" (n-sub i))))))
+          (define/contract b-ids (listof identifier?) (map (curry datum->syntax (M-id)) b-syms))
+          (define b-pats (for/list ([b-id b-ids]) #`(-W _ (-b #,b-id))))
+          (define b-conds (datum->syntax (M-id) (-sexp-and (map mk-cond b-syms doms))))
 
-          (define/contract b-ids (listof identifier?)
-            (build-list (length doms) (curry mk-sym 'b)))
-
-          (define pat-bs
-            (for/list ([b-id b-ids] [p doms])
-              (define stx-b
-                (match p
-                  ['any/c #`(-b #,b-id)]
-                  [(? symbol? p) #`(-b (? #,p #,b-id))]
-                  [`(not/c ,(? symbol? p)) #`(-b (not (? #,p #,b-id)))]
-                  [`(and/c ,ps ...)
-                   #`(-b (and #,@(map mk-pat ps) #,b-id))]
-                  [`(or/c ,ps ...)
-                   #`(-b (and (or #,@(map mk-pat ps)) #,b-id))]))
-              #`(-W _ #,stx-b)))
-          
           (list
            #`[(#,op)
               (define Vs
                 (match #,(Ws-id)
-                  [(list #,@pat-bs)
+                  [(list #,@b-pats) #:when #,b-conds
                    (define ans (-b (#,op #,@b-ids)))
                    (list ans)]
                   [_ -●/Vs]))

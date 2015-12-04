@@ -605,27 +605,18 @@
         [`(,(and (? symbol?) (not (? ignore-for-now?)) o) (,cs ... . -> . ,d) ,_ ...)
 
          (cond
-           [(and (andmap prims:base? cs) (prims:base? d))
+           [(or (prims:base? o) (and (andmap prims:base? cs) (prims:base? d)))
             
-            (define b-ids
-              (for/list ([(_ i) (in-indexed cs)])
-                (datum->syntax #f (string->symbol (format "x~a" (n-sub i))))))
-            
-            (define/contract b-pats (listof syntax?)
-              (for/list ([b-id b-ids] [c cs])
-                (match c
-                  ['any/c #`(-b #,b-id)]
-                  [(? symbol? p) #`(-b (? #,c #,b-id))]
-                  [`(not/c ,(? symbol? p)) #`(-b (not (? #,c #,b-id)))]
-                  [`(and/c ,ps ...)
-                   #`(-b (and #,@(map mk-pat ps) #,b-id))]
-                  [`(or/c ,ps ...)
-                   #`(-b (and (or #,@(map mk-pat ps)) #,b-id))])))
+            (define/contract b-syms (listof symbol?)
+              (build-list (length cs) (λ (i) (string->symbol (format "x~a" (n-sub i))))))
+            (define/contract b-ids (listof identifier?) (map (curry datum->syntax f) b-syms))
+            (define b-pats (for/list ([b-id b-ids]) #`(-b #,b-id)))
+            (define b-conds (datum->syntax f (-sexp-and (map mk-cond b-syms cs))))
 
             (list
              #`[(#,o)
                 (match #,xs
-                  [(list #,@b-pats) (-b (#,o #,@b-ids))]
+                  [(list #,@b-pats) #:when #,b-conds (-b (#,o #,@b-ids))]
                   #,@(cond
                        [(hash-ref prims:left-ids o #f) =>
                         (λ (lid) (list #`[(list (-b #,lid) e) e]))]
@@ -643,7 +634,9 @@
            [else '()])]
         [_ '()]))
     
-    (append-map go prims:prims)))
+    (define ans (append-map go prims:prims))
+    ;(printf "~a~n" (pretty (map syntax->datum ans)))
+    ans))
 
 (: -?@ : -?e -?e * → -?e)
 ;; Smart constructor for application
@@ -690,6 +683,8 @@
        ['not
         (match xs
           [(list (-not (and e* (-not _)))) e*]
+          [(list (-not (-b x))) (-b (not (not x)))]
+          [(list (-b x)) (-b (not x))]
           [_ (default-case)])]
        ['not/c
         (match xs
