@@ -67,7 +67,7 @@
     [vector/c
      (define pos (-src-loc-pos loc))
      (define-values (αs δσ)
-       (for/lists ([αs : (Listof -α)] [δσ : -Δσ])
+       (for/lists ([αs : (Listof -α.vector/c)] [δσ : -Δσ])
                   ([(W i) (in-indexed Ws)])
          (define V (-W-x W))
          (define α (-α.vector/c pos i))

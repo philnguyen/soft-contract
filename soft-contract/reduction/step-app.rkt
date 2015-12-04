@@ -82,7 +82,8 @@
     (match* (xs cs Cs W_xs)
       [('() '() '() '())
        (define κ₂ (-kont (-φ.indy.rng V_g '() l³ pos) κ₁))
-       (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())]
+       (define ρ_d* #|FIXME extend?|# ρ_d)
+       (-Δς (-⇓ d ρ_d*) Γ_d κ₂ '() '() '())]
       [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
        (define l³* (swap-parties l³))
        (define W_c (-W C c))

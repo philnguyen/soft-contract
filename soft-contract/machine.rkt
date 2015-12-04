@@ -308,7 +308,7 @@
        (values σ* (-Vector/C (reverse γs-rev)))]
       [(-struct/c s cs pos)
        (define-values (σ* αs-rev flat?)
-         (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α) '()] [flat? : Boolean #t])
+         (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α.struct/c) '()] [flat? : Boolean #t])
                    ([(c i) (in-indexed cs)])
            (define-values (σ_i V) (alloc-e σ* c))
            (define α (-α.struct/c s pos i))

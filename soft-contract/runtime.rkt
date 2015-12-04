@@ -134,13 +134,13 @@
   -prim
   (struct -●)
   ;; Structs
-  (struct -St [info : -struct-info] [fields : (Listof -α)])
+  (struct -St [info : -struct-info] [fields : (Listof -α.fld)])
   (struct -St/checked
     [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
-    [unchecked : -α])
+    [unchecked : -α.wrp])
   ;; Vectors
-  (struct -Vector [fields : (Listof -α)])
-  (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α])
+  (struct -Vector [fields : (Listof -α.vct)])
+  (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α.inv])
   ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
@@ -151,12 +151,12 @@
   ;; Contracts
   ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
   ; But these give rise to more special cases of stack frames
-  (struct -And/C [flat? : Boolean] [l : -α] [r : -α])
-  (struct -Or/C [flat? : Boolean] [l : -α] [r : -α])
-  (struct -Not/C [γ : -α])
-  (struct -Vectorof [γ : -α])
-  (struct -Vector/C [γs : (Listof -α)])
-  (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α)])
+  (struct -And/C [flat? : Boolean] [l : -α.and/c-l] [r : -α.and/c-r])
+  (struct -Or/C [flat? : Boolean] [l : -α.or/c-l] [r : -α.or/c-r])
+  (struct -Not/C [γ : -α.not/c])
+  (struct -Vectorof [γ : -α.vectorof])
+  (struct -Vector/C [γs : (Listof -α.vector/c)])
+  (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ])
@@ -320,7 +320,7 @@
   (struct -α.tmp [v : -e])
 
   ;; for mutable or opaque field
-  (struct -α.fld [id : (U -id #|HACK|# Symbol)] [pos : Integer] [idx : Integer])
+  (struct -α.fld [id : -id] [pos : Integer] [idx : Integer])
 
   ;; for wrapped mutable struct
   (struct -α.wrp [id : -id] [pos : Integer])
@@ -339,9 +339,10 @@
   (struct -α.not/c [pos : Integer])
   (struct -α.vector/c [pos : Integer] [idx : Integer])
   (struct -α.vectorof [pos : Integer])
-  (struct -α.struct/c [info : -struct-info] [pos : Integer] [idx : Integer]))
+  (struct -α.struct/c [info : -struct-info] [pos : Integer] [idx : Integer])
+  )
 
-(: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α))
+(: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α.fld))
 (define (alloc-fields s loc Ws)
   #|FIXME|# (match-define (-struct-info id n _) s)
   (for/list ([W Ws] [i (in-range n)])
