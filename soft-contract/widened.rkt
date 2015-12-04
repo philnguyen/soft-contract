@@ -1,7 +1,10 @@
 #lang typed/racket/base
+
+(provide (all-defined-out)) ; TODO
+
 (require
  racket/match racket/set racket/list racket/bool racket/function racket/format
- "utils.rkt" "ast.rkt" "runtime.rkt" "machine.rkt" "reduction/main.rkt"
+ "untyped-utils.rkt" "utils.rkt" "ast.rkt" "runtime.rkt" "machine.rkt" "reduction/main.rkt"
  "provability.rkt" "query-z3.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
@@ -37,7 +40,7 @@
 
 ;; For debugging only
 (begin
-  (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hash))
+  (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hasheq))
   (define debug? : Boolean #f))
 
 (: run : -prog → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
@@ -107,70 +110,77 @@
     (cond
       [(set-empty? F*)
        (define A*
-         (for/set: : (Setof -Cfg) ([Cfg (in-hash-keys S)] #:when (Cfg-final? Cfg Ξ*))
+         (for/set: : (Setof -Cfg) ([Cfg (in-hash-keys S)]
+                                   #:when (Cfg-final? Cfg Ξ*)
+                                   #:unless (match? Cfg (-Cfg (-blm (or 'Λ '†) _ _ _) _ _)))
            Cfg))
        (values S* A* σ* Ξ* M*)]
       [else (go S* F* tσ* σ* tΞ* Ξ* M*)])))
+
+(: run-files : Path-String * → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
+(define (run-files . paths)
+  (run (files->prog paths)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Debugging
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(require/typed profile
-  [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
+(module+ test
+  (require/typed profile
+    [profile-thunk ([(→ Void)] [#:delay Real #:repeat Integer] . ->* . Void)])
 
-(define-syntax-rule (profile* e ...)
-  #;(begin
-    (collect-garbage) (collect-garbage) (collect-garbage)
-    (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 5))
-  (begin (collect-garbage) (collect-garbage) (collect-garbage) e ...))
+  (define-syntax-rule (profile* e ...)
+    #;(begin
+        (collect-garbage) (collect-garbage) (collect-garbage)
+        (profile-thunk (λ () e ...) #:delay 0.0001 #:repeat 5))
+    (begin (collect-garbage) (collect-garbage) (collect-garbage) e ...))
 
-(profile*
+  (profile*
 
- (define t₁ (current-milliseconds))
- (define-values (S* A* σ* Ξ* M*)
-   (parameterize ([debugs {set}]
-                  [Γ⊢₀ Γ⊢e]
-                  [Γ⊢ₑₓₜ z3⊢])
-     (run (files->prog (list "test/programs/safe/2.rkt")))))
- (define t₂ (current-milliseconds))
- (begin ; debuggings
-   (printf "Time: ~a~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))
-   (printf "|S| = ~a~n" (hash-count S*))
-   (printf "|Steps| = ~a~n" (hash-count evals))
-   (printf "|σ| = ~a~n" (hash-count σ*))
-   (printf "|Ξ| = ~a~n" (hash-count Ξ*))
-   (printf "|M| = ~a~n" (hash-count M*))
-   (printf "Answers:~n")
-   (for ([Cfg A*])
-     (match-define (-Cfg E Γ _) Cfg)
-     (printf "  E: ~a~n" (show-E E))
-     (printf "  Γ:")
-     (for ([e (show-Γ Γ)]) (printf " ~a" e))
-     (printf "~n~n")))
- 
+   (define t₁ (current-milliseconds))
+   (define-values (S* A* σ* Ξ* M*)
+     (parameterize ([debugs {set}]
+                    [Γ⊢₀ Γ⊢e]
+                    [Γ⊢ₑₓₜ z3⊢])
+       (run (files->prog (list "test/programs/safe/2.rkt")))))
+   (define t₂ (current-milliseconds))
+   (begin ; debuggings
+     (printf "Time: ~a~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))
+     (printf "|S| = ~a~n" (hash-count S*))
+     (printf "|Steps| = ~a~n" (hash-count evals))
+     (printf "|σ| = ~a~n" (hash-count σ*))
+     (printf "|Ξ| = ~a~n" (hash-count Ξ*))
+     (printf "|M| = ~a~n" (hash-count M*))
+     (printf "Answers:~n")
+     (for ([Cfg A*])
+       (match-define (-Cfg E Γ _) Cfg)
+       (printf "  E: ~a~n" (show-E E))
+       (printf "  Γ:")
+       (for ([e (show-Γ Γ)]) (printf " ~a" e))
+       (printf "~n~n")))
+   
 
- (define (f [n : Integer]) : (Setof -Cfg)
-   (match-define (list _ F _ _ _) (hash-ref evals n))
-   F)
+   (define (f [n : Integer]) : (Setof -Cfg)
+     (match-define (list _ F _ _ _) (hash-ref evals n))
+     F)
 
- (define (F [n : Integer])
-   (for/list : (Listof Sexp) ([C (f n)])
-     (show-Cfg C)))
+   (define (F [n : Integer])
+     (for/list : (Listof Sexp) ([C (f n)])
+       (show-Cfg C)))
 
- (define-values
-   (SS σσ ΞΞ MM)
-   (values
-    (show-S S*)
-    (show-σ σ*)
-    (show-Ξ Ξ*)
-    (show-M M*)))
+   (define-values
+     (SS σσ ΞΞ MM)
+     (values
+      (show-S S*)
+      (show-σ σ*)
+      (show-Ξ Ξ*)
+      (show-M M*)))
 
- (define (fronts)
-   (printf "Frontier sizes:~n")
-   (for ([i (in-range (hash-count evals))])
-     (match-define (list _ F _ _ _) (hash-ref evals i))
-     (printf " |F~a| = ~a~n" (n-sub i) (set-count F))))
- 
- (void))
+   (define (fronts)
+     (printf "Frontier sizes:~n")
+     (for ([i (in-range (hash-count evals))])
+       (match-define (list _ F _ _ _) (hash-ref evals i))
+       (printf " |F~a| = ~a~n" (n-sub i) (set-count F))))
+   
+   (void)))
