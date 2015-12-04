@@ -161,16 +161,6 @@
        ;; TODO: unsound if V₂ concrete buggy higher-order and V₁ opaque
        (-Δς (-W -Void/Vs e_a) Γ κ '() '() '())]))
 
-  (: ↦vector : → -Δς*)
-  (define (↦vector)
-    (define αs
-      (for/list : (Listof -α.vct) ([(W i) (in-indexed W_xs)])
-        (-α.vct pos i)))
-    (define δσ
-      (for/list : -Δσ ([α αs] [W W_xs])
-        (cons α (close-Γ Γ (-W-x W)))))
-    (-Δς (-W (list (-Vector αs)) e_a) Γ κ δσ '() '()))
-
   (: with-vector-bound-check : -M -σ -Γ -WV -WV (-Γ → -Δς*) → -Δς*)
   (define (with-vector-bound-check M σ Γ W-vec W-idx mk-ok)
     (match-define (-W V-vec e-vec) W-vec)
@@ -391,7 +381,6 @@
     [(-st-mk si) (↦con si)]
     [(-st-ac si i) (↦ac si i)]
     [(-st-mut si i) (↦mut si i)]
-    ['vector (↦vector)]
     ['vector-ref (↦vector-ref)]
     ['vector-set! (↦vector-set!)]
     ['contract-first-order-passes? (↦contract-first-order-passes?)]

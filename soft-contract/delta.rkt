@@ -47,6 +47,16 @@
         (values (list (cons α V))
                 (-AΓ (list (-Not/C α)) Γ))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
+
+    [vector
+     (define pos (-src-loc-pos loc))
+     (define αs
+       (for/list : (Listof -α.vct) ([(W i) (in-indexed Ws)])
+         (-α.vct pos i)))
+     (define δσ
+       (for/list : -Δσ ([α αs] [W Ws])
+         (cons α (close-Γ Γ (-W-x W)))))
+     (values δσ (-AΓ (list (-Vector αs)) Γ))]
     [vectorof
      (match Ws
        [(list (-W V _))
@@ -63,8 +73,10 @@
          (define α (-α.vector/c pos i))
          (values α (cons α V))))
      (values δσ (-AΓ (list (-Vector/C αs)) Γ))]
+    
     [values
      (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]
+    
     [void
      (values '() (-AΓ (list (-b (void))) Γ))]
     [arity-includes?

@@ -457,7 +457,7 @@
       (match dec
         
         [(or `(#:pred ,s ,_ ...)
-             `(,(? symbol? s) ,(? arr?) ,_ ...))
+             `(,(? symbol? s) ,(or (? arr?) (? arr*?)) ,_ ...))
          (list (-define-values (list s) s))]
         [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:batch (,ss ...) ,_ ...)
