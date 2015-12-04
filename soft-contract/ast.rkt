@@ -816,7 +816,10 @@
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) x]
-    [(-ref x _ _) (-id-name x)]
+    [(-ref x _ _)
+     (match x ;; hack
+       [(-id-local name 'Λ) (string->symbol (format "_~a_" name))]
+       [_ (-id-name x)])]
     [(-let-values bnds body _)
      `(let-values
           ,(for/list : (Listof Sexp) ([bnd bnds])
