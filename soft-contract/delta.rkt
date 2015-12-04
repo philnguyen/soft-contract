@@ -204,13 +204,16 @@
 
           (list
            #`[(#,op)
-              (define Vs
-                (match #,(Ws-id)
-                  [(list #,@b-pats) #:when #,b-conds
-                   (define ans (-b (#,op #,@b-ids)))
-                   (list ans)]
-                  [_ -●/Vs]))
-              (values '() (-AΓ Vs #,(Γ-id)))])]
+              (match #,(Ws-id)
+                [(list #,@b-pats)
+                 (cond
+                   [#,b-conds
+                    (define ans (-b (#,op #,@b-ids)))
+                    (values '() (-AΓ (list ans) #,(Γ-id)))]
+                   [else ; spurious
+                    (printf "Warning: spurious use of unsafe operation ~a~n" '#,op)
+                    (values '() ∅)])]
+                [_ (values '() (-AΓ -●/Vs #,(Γ-id)))])])]
          
          ; Just return operator name for complicated cases
          [else (list op)])]
