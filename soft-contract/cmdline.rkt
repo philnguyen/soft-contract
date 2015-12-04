@@ -1,19 +1,18 @@
 #lang typed/racket/base
 
 (require "expand.rkt" racket/cmdline racket/list racket/pretty
-         "lang.rkt"
-         (only-in "check.rkt" feedback))
+         "ast.rkt"
+         (only-in "check.rkt" analyze))
 (require/typed "parse.rkt"
-  [files->prog ((Listof Path-String) → .prog)])
+  [files->prog ((Listof Path-String) → -prog)])
 
-(define fnames
+(define fname
   (cast (command-line #:program "raco soft-contract"
-                        #:args (fname . fnames)
-                        (cons fname fnames))
-          (Listof Path-String)))
+                      #:args (fname) ; TODO re-enable file list
+                      fname)
+        Path-String))
 
-(define prog (files->prog fnames))
-(feedback prog)
+(analyze fname)
 
 ;; FIXME
 #;(define (find/havoc-provides submod) null)

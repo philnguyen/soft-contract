@@ -1,126 +1,124 @@
 #lang typed/racket/base
-(provide feedback exn:fail:contract:counterexample? exn:fail:contract:maybe?)
-(require racket/match racket/list racket/port racket/string racket/set
-         racket/pretty
-         (only-in "utils.rkt" match? pretty n-sub define-set)
-         (only-in "lang.rkt" .prog -begin Mon-Party)
-         (only-in "machine.rkt" .ς)
-         (only-in "verify/machine.rkt" [ev verify])
-         (only-in "runtime.rkt" .blm? .blm .σ .σ?)
-         (only-in "show.rkt" show-V show-A show-ce)
-         (only-in "ce/machine.rkt" [ev find-error])
-         (only-in "ce/model.rkt" model))
+(provide analyze try-verify try-refute
+         exn:fail:contract:counterexample exn:fail:contract:counterexample?
+         exn:fail:contract:maybe exn:fail:contract:maybe?
+         exn:scv exn:scv?)
+(require
+ racket/match racket/list racket/port racket/string racket/set
+ racket/pretty
+ 
+ ;; For verification
+ "untyped-utils.rkt" "utils.rkt" "ast.rkt" "runtime.rkt"
+ (prefix-in ve: "widened.rkt")
 
-(: feedback ([.prog] [Integer] . ->* . Void))
-(define (feedback prog [timeout 30])
-  ;;(eprintf ">>> program is:\n")
-  ;;(pretty-print prog (current-error-port))
-  (match (run prog timeout)
+ ;; For legacy counter-exapmle stuff
+ 
+ )
+
+;; Raise different exceptions for definite counterexample and probable contract violation
+(struct exn:fail:contract:counterexample exn:fail:contract () #:transparent)
+(struct exn:fail:contract:maybe exn:fail:contract () #:transparent)
+(define-type exn:scv (U exn:fail:contract:maybe exn:fail:contract:counterexample))
+(define-predicate exn:scv? exn:scv)
+
+(define-type Err-Result (List 'blame Mon-Party Mon-Party Any Any))
+(define-data Result
+  'timeout
+  (subset: Ce-Result
+           'safe
+           Err-Result
+           (List 'ce Err-Result Any)
+           exn)
+  (subset: Ve-Result
+           (Listof Err-Result)
+           exn))
+
+(: analyze ([Path-String] [Integer] . ->* . Void))
+;; Analyze program at given path
+(define (analyze path [timeout 60])
+  (match (run path timeout)
     ['timeout (printf "Timeout after ~a seconds~n" timeout)]
     [(or 'safe (list)) (printf "Program is safe~n")]
-    [(list 'blame l⁺ lᵒ v c)
-     (raise-contract-error l⁺ lᵒ v c)]
-    [(list 'ce (list 'blame l⁺ lᵒ v c) ce)
-     (raise-contract-error l⁺ lᵒ v c ce)]
+    [(list 'blame l+ lo v c)
+     (raise-scv-contract-error l+ lo v c)]
+    [(list 'ce (list 'blame l+ lo v c) ce)
+     (raise-scv-contract-error l+ lo v c ce)]
+    [(cons (list 'blame l+ lo v c) _) ; Raise first error
+     (raise-scv-contract-error l+ lo v c)]
     [(? exn? e)
-     (error (exn-message e))]
-    [(cons (list 'blame l⁺ lᵒ v c) _)
-     ;; Raise first error
-     (raise-contract-error l⁺ lᵒ v c)]))
+     (error (exn-message e))]))
 
-(define-type Result (U 'timeout Ce-Result Ve-Result))
-(define-type Ce-Result (U 'safe Err-Result (List 'ce Err-Result Any) exn))
-(define-type Ve-Result (U (Listof Err-Result) exn))
-(define-type Err-Result (List 'blame Mon-Party Mon-Party Any Any))
-
-(: run : .prog Integer → Result)
-;; Verify + Seek counterexamples at the same time, whichever finishes first
-(define (run prog timeout)
+(: run : Path-String Integer → Result)
+;; Concurrently verify + seek counterexamples in given time
+(define (run path timeout)
   (define c : (Channelof Result) (make-channel))
-  (define verify-thread (thread (λ () (channel-put c (try-verify prog)))))
-  (define ce-thread (thread (λ () (channel-put c (try-find-ce prog)))))
+  (define verify-thread (thread (λ () (channel-put c (try-verify path)))))
+  (define refute-thread (thread (λ () (channel-put c (try-refute path)))))
   (define timeout-thread (thread (λ () (sleep timeout) (channel-put c 'timeout))))
+  
   (define (kill-all)
-    (kill-thread verify-thread)
-    (kill-thread ce-thread)
-    (kill-thread timeout-thread))
+    (for-each kill-thread (list verify-thread refute-thread timeout-thread)))
+  
   (match (channel-get c)
     [(and err (or (cons 'blame _) (cons (cons 'blame _) _)))
-     ;; Wait for (maybe) counterexample, unless timeout
+     ;; Wait for (probable) counter-example, unless timeout
      (match (channel-get c)
        ['timeout (kill-all) err]
        [res (kill-all) res])]
-    [result (kill-all) result]))
+    [res (kill-all) res]))
 
-(: try-verify : .prog → Ve-Result)
-;; Run verification on program
-(define (try-verify p)
+(: try-verify : Path-String → Ve-Result)
+;; Attempt to verify correct program or warn about probable contract violation
+(define (try-verify path)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    (define ςs (verify p))
-    ;;(printf "`try-verify` gives:~n~a~n" ςs)
-    (for/list : (Listof Err-Result) ([ς ςs] #:when (match? ς (.ς (? .blm?) _ _)))
-      (match-define (.ς (.blm l⁺ lᵒ v c) σ _) ς)
-      (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c)))))
+    (define-values (_t Cfgs _σ _Ξ _M) (ve:run-files path))
 
-(: try-find-ce : .prog → Ce-Result)
-;; Run counterexample on program
-(define (try-find-ce p)
+    (remove-duplicates
+     (for/list : (Listof Err-Result)
+               ([Cfg Cfgs] #:when (match? Cfg (ve:-Cfg (? -blm?) _ _)))
+       (match-define (ve:-Cfg (-blm l+ lo C Vs) _ _) Cfg)
+       (list 'blame l+ lo (show-V C) (map show-V Vs))))))
+
+(: dbg-verify : Path-String → (U (Listof ve:-Cfg) exn))
+(define (dbg-verify path)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    #;(printf "CE read~n")
-    (define ans (find-error p))
-    ;;(printf "`try-find-ce` gives:~n~a~n" ans)
-    (match ans
-      [#f #;(printf "CE says safe~n") 'safe]
-      [(cons σ^ (.blm l⁺ lᵒ v c))
-        #;(printf "CE says CE~n")
-       (match (model p σ^)
-         [#f (list 'blame l⁺ lᵒ (show-V σ^ v) (show-V σ^ c))]
-         [(? .σ? σ) (list 'ce (list 'blame l⁺ lᵒ (show-V σ v) (show-V σ c))
-                          (show-ce p σ))])])))
+    (define-values (_t Cfgs _σ _Ξ _M) (ve:run-files path))
+    (set->list Cfgs)))
+  
 
-(struct exn:fail:contract:counterexample exn:fail:contract () #:transparent)
-(struct exn:fail:contract:maybe exn:fail:contract () #:transparent)
+(: try-refute : Path-String → Ce-Result)
+;; Attempt to search for erroneous inputs, or prove absence of one in rare cases
+(define (try-refute path)
+  (with-handlers ([exn:fail? (λ ([e : exn]) e)])
+    (sleep 300) ;; Disable counterexample for now
+    (try-refute path)))
 
-(: raise-contract-error ([Any Any Any Any] [Any] . ->* . Void))
-(define (raise-contract-error l⁺ lᵒ v c [ce #f])
+(: raise-scv-contract-error ([Any Any Any Any] [Any] . ->* . Nothing))
+;; FIXME: fix stuff with `replace-struct-●`
+(define (raise-scv-contract-error l+ lo v c [ce #f])
   (define sure? #t)
+  
   (define parties
-    (cond [(equal? l⁺ lᵒ) (format "'~a' violates its own contract." l⁺)]
-          [(equal? lᵒ 'Λ) (format "'~a' violates a contract in an application." l⁺)]
-          [else (format "'~a' violates '~a'." l⁺ lᵒ)]))
+    (cond [(equal? l+ lo) (format "'~a' violates its own contract." l+)]
+          [(equal? lo 'Λ) (format "'~a' violates a contract in an application." l+)]
+          [else (format "'~a' violates '~a'." l+ lo)]))
+  
   (define reason : String
-    (match* (v c)
-      [(_ `(arity=/c ,_)) "Wrong arity"]
-      [(_ _)
-       (match (replace-struct● v)
-         [(and v `(begin (struct ,_ ()) ... ,_))
-          (format "Value produced by~n ~a~nviolates predicate~n ~a"
-                  (pretty v)
-                  (pretty (replace-struct● c)))]
-         [`(• ,cs ...)
-          (set! sure? #f)
-          (format "~a~n~a~nviolates predicate~n ~a"
-                  (match (length cs)
-                    [0 "Arbitrary value"]
-                    [1 "Value constrained by contract"]
-                    [_ "Value constrained by contracts"])
-                  (string-join (for/list : (Listof String) ([c cs]) (format " ~a" (pretty c))) "\n")
-                  (pretty (replace-struct● c)))]
-         [_
-          (format "Value~n ~a~nviolates predicate~n ~a"
-                  (pretty v)
-                  (pretty (replace-struct● c)))])]))
+    (match c
+      [`(arity=/c ,_) "Wrong arity"]
+      [_ (format "Value~n ~a~nviolates predicate~n ~a" (pretty v) (pretty c))]))
+  
   (define ce-prog
     (cond [ce (format "An example module that breaks it:~n ~a"
                       (pretty `(module user racket
-                                (require (submod "\"..\"" ,l⁺))
-                                ,(replace-struct● ce))))]
+                                 (require (submod "\"..\"" ,l+))
+                                 ce)))]
           [else ""]))
+
   (cond [sure? (raise-counterexample parties reason ce-prog)]
         [else (raise-maybe-contract-violation parties reason)]))
 
-(: raise-counterexample : String String String → Nothing)
-(define (raise-counterexample parties reason ce)
+(define (raise-counterexample [parties : String] [reason : String] [ce : String]) : Nothing
   (raise (exn:fail:contract:counterexample
           (format "Contract violation: ~a~n~a~n~a~n"
                   parties
@@ -128,8 +126,7 @@
                   ce)
           (current-continuation-marks))))
 
-(: raise-maybe-contract-violation : String String → Nothing)
-(define (raise-maybe-contract-violation parties reason)
+(define (raise-maybe-contract-violation [parties : String] [reason : String]) : Nothing
   (raise (exn:fail:contract:maybe
           (format "Possible contract violation: ~a~n~a~n"
                   parties
@@ -142,7 +139,7 @@
 
   (define-set new-names : Symbol)
   
-  (define e′
+  (define e*
     (let go! : Any ([e : Any e])
       (match e
         [`(struct● ,tag)
@@ -155,4 +152,4 @@
   (-begin
    `(,@(for/list : (Listof Any) ([name (in-set new-names)])
          `(struct ,name ()))
-     ,e′)))
+     ,e*)))
