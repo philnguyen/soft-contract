@@ -44,9 +44,7 @@
          [(C-flat? C₁)
           (match/nd: (-V → -Δς) Cs₂
             [C₂
-             (define κ* (-kont (-φ.if (-Mon (-W C₂ c₂) W_v l³ pos)
-                                      (-blm l+ lo C₁ (list V)))
-                               κ))
+             (define κ* (-kont (-φ.if (-W (list V) e_v) (-Mon (-W C₂ c₂) W_v l³ pos)) κ))
              (define E* (-App W_C₁ (list W_v) (-src-loc lo pos)))
              (-Δς E* Γ κ* '() '() '())])]
          [else ;; C₁ is chaperone
@@ -55,9 +53,7 @@
              (define W_C₂ (-W C₂ c₂))
              (cond
                [(C-flat? C₂)
-                (define κ* (-kont (-φ.if (-Mon W_C₁ W_v l³ pos)
-                                         (-blm l+ lo C₂ (list V)))
-                                  κ))
+                (define κ* (-kont (-φ.if (-W (list V) e_v) (-Mon W_C₁ W_v l³ pos)) κ))
                 (define E* (-App W_C₂ (list W_v) (-src-loc lo pos)))
                 (-Δς E* Γ κ* '() '() '())]
                [else ; Both C₁ and C₂ are chaperones
