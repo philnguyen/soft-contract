@@ -303,6 +303,7 @@
        (match es
          ['()
           (define n (length WVs↓*))
+          (define id (-struct-info-id s))
           (define-values (αs σ* es* δσ flat?)
             ; accumulate new store and address list
             ; which is reversed compard to `WVs↓*`, hence of the right order
@@ -313,7 +314,7 @@
                        [flat? : Boolean #t])
                       ([WV WVs↓*] [i (in-range n)])
               (match-define (-W V e) WV)
-              (define α (-α.struct/c s pos i))
+              (define α (-α.struct/c id pos i))
               (values (cons α αs)
                       (⊔ σ* α V)
                       (cons e es*)

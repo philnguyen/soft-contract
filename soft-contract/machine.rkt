@@ -307,11 +307,12 @@
              (values (⊔ σ* γ V) (cons γ γs-rev)))))
        (values σ* (-Vector/C (reverse γs-rev)))]
       [(-struct/c s cs pos)
+       (define id (-struct-info-id s))
        (define-values (σ* αs-rev flat?)
          (for/fold ([σ* : -σ σ] [αs-rev : (Listof -α.struct/c) '()] [flat? : Boolean #t])
                    ([(c i) (in-indexed cs)])
            (define-values (σ_i V) (alloc-e σ* c))
-           (define α (-α.struct/c s pos i))
+           (define α (-α.struct/c id pos i))
            (values (⊔ σ_i α V) (cons α αs-rev) (and flat? (C-flat? V)))))
        (values σ* (-St/C flat? s (reverse αs-rev)))]
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"

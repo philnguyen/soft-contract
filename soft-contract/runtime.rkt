@@ -339,7 +339,7 @@
   (struct -α.not/c [pos : Integer])
   (struct -α.vector/c [pos : Integer] [idx : Integer])
   (struct -α.vectorof [pos : Integer])
-  (struct -α.struct/c [info : -struct-info] [pos : Integer] [idx : Integer])
+  (struct -α.struct/c [id : -id] [pos : Integer] [idx : Integer])
   )
 
 (: alloc-fields : -struct-info Integer (Listof -WV) → (Listof -α.fld))
