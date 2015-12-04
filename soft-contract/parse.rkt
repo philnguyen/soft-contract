@@ -304,9 +304,6 @@
     ;; Hacks for now
     [(~literal null) -null]
     [(~literal empty) -null]
-    [(~literal positive?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
-    [(~literal negative?) (parse-e #'(#%plain-lambda (x) (#%plain-app > x 0)))]
-    [(~literal zero?) (parse-e #'(#%plain-lambda (x) (#%plain-app = x 0)))]
     [(~literal fake:not/c) (-ref (-id-local 'not/c 'Λ) (cur-mod) (next-neg!))]
     [(~literal fake:and/c) (-ref (-id-local 'and/c 'Λ) (cur-mod) (next-neg!))]
     [(~literal fake:or/c ) (-ref (-id-local 'or/c  'Λ) (cur-mod) (next-neg!))]
