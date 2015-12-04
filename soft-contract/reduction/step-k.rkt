@@ -190,7 +190,7 @@
             (cond
               [(set-empty? mutables) (values V-inner δσ)]
               [else
-               (define α (-α.wrp (-struct-info-id s) pos))
+               (define α (-α.st* (-struct-info-id s) pos))
                (define δσ* (cons (cons α V-inner) δσ))
                (define γs*
                  (for/list : (Listof (Option -α)) ([(γ i) (in-indexed γs)])
@@ -212,7 +212,7 @@
      (with-guarded-arity 1 lo 'Λ
        (match cs
          ['()
-          (define α (-α.inv pos))
+          (define α (-α.vct pos))
           (define δσ (list (cons α (-W-x W))))
           (define V/wrapped (-Vector/checked γs l³ α))
           (-Δς (-W (list (-W-x W)) (-W-e W)) Γ κ δσ '() '())]

@@ -137,10 +137,10 @@
   (struct -St [info : -struct-info] [fields : (Listof -α.fld)])
   (struct -St/checked
     [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
-    [unchecked : -α.wrp])
+    [unchecked : -α.st*])
   ;; Vectors
-  (struct -Vector [fields : (Listof -α.vct)])
-  (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α.inv])
+  (struct -Vector [fields : (Listof -α.idx)])
+  (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α.vct])
   ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
@@ -323,13 +323,13 @@
   (struct -α.fld [id : -id] [pos : Integer] [idx : Integer])
 
   ;; for wrapped mutable struct
-  (struct -α.wrp [id : -id] [pos : Integer])
+  (struct -α.st* [id : -id] [pos : Integer])
 
   ;; for vector indices
-  (struct -α.vct [pos : Integer] [idx : Integer])
+  (struct -α.idx [pos : Integer] [idx : Integer])
 
   ;; for inner vector
-  (struct -α.inv [pos : Integer])
+  (struct -α.vct [pos : Integer])
 
   ;; for contract components
   (struct -α.and/c-l [pos : Integer])

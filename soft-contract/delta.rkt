@@ -51,8 +51,8 @@
     [vector
      (define pos (-src-loc-pos loc))
      (define αs
-       (for/list : (Listof -α.vct) ([(W i) (in-indexed Ws)])
-         (-α.vct pos i)))
+       (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
+         (-α.idx pos i)))
      (define δσ
        (for/list : -Δσ ([α αs] [W Ws])
          (cons α (close-Γ Γ (-W-x W)))))
