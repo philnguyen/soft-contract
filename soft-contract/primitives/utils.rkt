@@ -1,20 +1,19 @@
 #lang typed/racket/base
 
-(require racket/match racket/set "utils.rkt")
-(require/typed "prims.rkt"
+(require racket/match racket/set "../utils/set.rkt" "../utils/function.rkt")
+(require/typed "declarations.rkt"
   [(implications prims:implications) (Listof Any)]
   [(prims prims:prims) (Listof Any)])
 
 (provide Graph implications exclusions
-         base-predicates prim-names prim-ranges prim-refinements-for-ranges
-         ignore-for-now? o-arity-includes-1?)
+         base? base-predicates prim-names prim-ranges prim-refinements-for-ranges
+         ignore-for-now?)
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
 (define -graph∅ : Graph (hasheq))
 
 ;; Compute a graph's reflexive-transitive closure
-(: refl-trans : Graph → Graph)
-(define (refl-trans m)
+(define (refl-trans [m : Graph]) : Graph
 
   ;; Compute `m`'s reflexive closure
   (define m₀
@@ -38,13 +37,11 @@
    m₀))
 
 ;; Add edge to graph
-(: add-edge : Graph Symbol Symbol → Graph)
-(define (add-edge m l r)
+(define (add-edge [m : Graph] [l : Symbol] [r : Symbol]) : Graph
   (hash-update m l (λ ([rs : (Setof Symbol)]) (set-add rs r)) →∅))
 
 ;; Reverse a graph
-(: reverse-graph : Graph → Graph)
-(define (reverse-graph m)
+(define (reverse-graph [m : Graph]) : Graph
   (for*/fold ([m : Graph -graph∅])
              ([(l rs) (in-hash m)] [r rs])
     (add-edge m r l)))
@@ -175,11 +172,17 @@
       even? odd? char-general-category
       dict?))))
 
-(define o-arity-includes-1?
-  (set->predicate
-   (for/fold ([acc : (Setof Symbol) ∅]) ([dec (in-list prims:prims)])
-     (match dec
-       [`(#:pred ,(? symbol? s)) (set-add acc s)]
-       [`(#:batch ,ss (,_ -> ,_) ,_ ...) (set-add-list acc (cast ss (Listof Symbol)))]
-       [`(,(? symbol? s) (,_ -> ,_) ,_ ...) (set-add acc s)]
-       [_ acc]))))
+;; Check if `s` is a contract specifying a base value 
+(define (base? [s : Sexp]) : Boolean
+  (match s
+    [(? symbol? s)
+     (case s
+       [(integer? real? number? zero?
+         inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
+         extflonum?
+         boolean? string? symbol? keyword? char? null? #|TODO|#)
+        #t]
+       [else #f])]
+    [`(,(or 'and/c 'or/c 'not/c) ,cs ...)
+     (andmap base? (cast cs (Listof Sexp)))]
+    [_ #f]))

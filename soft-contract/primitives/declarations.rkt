@@ -1,11 +1,10 @@
 #lang racket/base
-(require racket/match racket/set racket/contract "untyped-utils.rkt")
+(require racket/match racket/set racket/contract "../utils/untyped-macros.rkt")
 (provide
  arr? arr*? ctc? dec? impl?
  (contract-out
   [prims (listof dec?)]
   [implications (listof impl?)]
-  [base? (ctc? . -> . any)]
   [assocs (set/c symbol?)]
   [left-ids (hash/c symbol? (not/c not))]
   [right-ids (hash/c symbol? (not/c not))]))
@@ -1773,21 +1772,6 @@
      (#t {(null? xs)})
      ((list? (cdr xs)) {(cons? xs)})]
     ))
-
-;; Check if `s` is a contract specifying a base value 
-(define (base? s)
-  (match s
-    [(? symbol? s)
-     (case s
-       [(integer? real? number? zero?
-         inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
-         extflonum?
-         boolean? string? symbol? keyword? char? null? #|TODO|#)
-        #t]
-       [else #f])]
-    [`(,(or 'and/c 'or/c 'not/c) ,cs ...)
-     (andmap base? cs)]
-    [_ #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
