@@ -1,0 +1,109 @@
+#lang typed/racket/base
+
+(provide gen-havoc)
+
+(require racket/match racket/set "../utils/pretty.rkt" "../utils/set.rkt" "definition.rkt" "consts.rkt")
+
+(define -havoc-path 'havoc)
+(define -havoc-id (-id-local 'havoc-id -havoc-path)) ; havoc function id
+(define -havoc-src (-src-loc -havoc-path (next-neg!))) ; havoc module path
+
+(define (havoc-ref-from [ctx : Mon-Party] [pos : Integer])
+  (-ref -havoc-id ctx pos))
+
+(: prog-accs : (Listof -module) → (Setof -st-ac))
+;; Retrieve set of all public accessors from program
+(define (prog-accs ms)
+  (define-values (defs decs)
+    (for*/fold ([defs : (HashTable Symbol -st-ac) (hash)]
+                [decs : (Setof Symbol) {set}])
+               ([m ms]
+                [form (-plain-module-begin-body (-module-body m))])
+      (match form
+        [(-provide specs)
+         (define decs*
+           (for/fold ([decs : (Setof Symbol) decs])
+                     ([spec specs])
+             (set-add decs (-p/c-item-id spec))))
+         (values defs decs*)]
+        [(-define-values (list id) e)
+         (define defs*
+           (match e
+             [(? -st-ac? ac) (hash-set defs id ac)]
+             [_ defs]))
+         (values defs* decs)]
+        [_ (values defs decs)])))
+  (for/set: : (Setof -st-ac) ([(id ac) (in-hash defs)] #:when (∋ decs id))
+    ac))
+
+(: gen-havoc : (Listof -module) → (Values -module -e))
+;; Generate:
+;; - havoc module
+;; - expression havoc-ing exported identifiers from all concrete modules
+(define (gen-havoc ms)
+
+  ;;; Generate module
+  (define x (-x '☠))
+  (define havoc-func ; only used by `verify` module, not `ce`
+    (-λ (list '☠)
+        (-amb/simp
+         (cons (-@ (havoc-ref-from -havoc-path (next-neg!))
+                   (list (-@-havoc x)) -havoc-src)
+               (for/list : (Listof -@) ([ac (prog-accs ms)])
+                 (-@ (havoc-ref-from -havoc-path (next-neg!))
+                     (list (-@ ac (list x) -havoc-src)) -havoc-src))))))
+
+  (define m
+    (-module -havoc-path
+             (-plain-module-begin
+              (list
+               (-define-values (list (-id-name -havoc-id)) havoc-func)
+               (-provide (list (-p/c-item (-id-name -havoc-id) 'any/c)))))))
+
+  ;;; Generate expression
+  (define-set refs : -ref)
+  #;(log-debug "~nmodules: ~n~a~n" ms)
+  (for ([m (in-list ms)])
+    (cond
+      [(module-opaque? m)
+       =>
+       (λ (s)
+         (log-debug "Omit havocking opaque module `~a`. Provided but undefined: ~a~n"
+                   (-module-path m)
+                   (set->list s)))]
+     [else
+      #;(log-debug "Havocking transparent module ~a~n" (-module-path m))
+      (match-define (-module path (-plain-module-begin forms)) m)
+      #;(eprintf "Insert exported identifiers from module ~a to unknown contexts~n" path)
+      (for* ([form (in-list forms)]
+             #:when (-provide? form)
+             [spec (in-list (-provide-specs form))])
+        (log-debug "adding: ~a~n" (-p/c-item-id spec))
+        (refs-add! (-ref (-id-local (-p/c-item-id spec) path) '† (next-neg!))))]))
+  #;(log-debug "~nrefs: ~a~n" refs)
+  (define expr
+    (-amb/remember (for/list ([ref (in-set refs)])
+                     (-@ (•!) (list ref) -havoc-src))))
+
+  #;(log-debug "~nhavoc-e:~n~a" expr)
+
+  (values m expr))
+
+(: module-opaque? : -module → (U #f (Setof Symbol)))
+;; Check whether module is opaque, returning the set of opaque exports if so
+(define (module-opaque? m)
+  (match-define (-module p (-plain-module-begin body)) m)
+  (cond
+    [(equal? p 'Λ) #|HACK|# ∅]
+    [else
+     (define-values (exports defines)
+       (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])
+                 ([e (in-list body)])
+         (match e
+           [(-provide specs)
+            (values (set-add-list exports (map -p/c-item-id specs)) defines)]
+           [(-define-values xs _)
+            (values exports (set-add-list defines xs))]
+           [_ (values exports defines)])))
+
+     (if (⊆ exports defines) #f (-- exports defines))]))
