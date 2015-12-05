@@ -1,9 +1,13 @@
 #lang typed/racket/base
-(require racket/match racket/list racket/set racket/string racket/bool
-         racket/port racket/system racket/function racket/pretty
-         "utils.rkt" "ast.rkt" "runtime.rkt")
 
 (provide z3⊢ Γ⊢₀)
+
+(require
+ racket/match racket/pretty racket/port racket/system
+ "../../utils/def.rkt" "../../utils/set.rkt" "../../utils/eval.rkt" "../../utils/debug.rkt"
+ "../../ast/definition.rkt" "../../ast/meta-functions.rkt"
+ "../../runtime/path-inv.rkt" "../../runtime/simp.rkt"
+ "../result.rkt")
 
 (define-type Z3-Num (U 'Int 'Real))
 
