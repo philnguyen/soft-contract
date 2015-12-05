@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-e)
+(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-e Γ+/-)
 
 (require
  racket/match racket/set racket/bool
@@ -181,6 +181,46 @@
   (define proved (MσΓ⊢e M σ Γ e))
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
+
+(: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
+           (U (List -WV (Listof -WV) (-Γ → Y))
+              (List 'not -WV (Listof -WV) (-Γ → Y))) *
+           → (Values (Option X) (Setof Y))))
+;; Refine the environment with sequence of propositions
+;; and return (maybe) final sucessful environment
+;; along with each possible failure
+;; e.g. {} +/- ([num? n₁] [num? n₂]) -->
+;;      (values {num? n₁, num? n₂} {{¬ num? n₁}, {num? n₁, ¬ num? n₂}})
+(define (Γ+/- M σ Γ mk-ok . filters)
+  (define-values (Γ-ok ans-bads)
+    (for/fold ([Γ-ok : (Option -Γ) Γ]
+               [ans-bads : (Setof Y) ∅])
+              ([filt filters])
+      (cond
+        [Γ-ok
+         (define-values (Γ-ok* Γ-bad* mk-bad)
+           (match filt
+             [(list W-p W-vs mk-bad)
+              (define-values (Γ-sat Γ-unsat) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
+              (values Γ-sat Γ-unsat mk-bad)]
+             [(list 'not W-p W-vs mk-bad)
+              (define-values (Γ-sat Γ-unsat) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
+              (values Γ-unsat Γ-sat mk-bad)]))
+         (define ans-bads*
+           (cond [Γ-bad* (set-add ans-bads (mk-bad Γ-bad*))]
+                 [else ans-bads]))
+         (values Γ-ok* ans-bads*)]
+        [else (values #f ans-bads)])))
+  (values (and Γ-ok (mk-ok Γ-ok)) ans-bads))
+
+(: Γ+/-AΓ : -M -σ -Γ (-Γ → -AΓ)
+            (U (List -WV (Listof -WV) (-Γ → -AΓ))
+            (List 'not -WV (Listof -WV) (-Γ → -AΓ))) * → -AΓs)
+(define (Γ+/-AΓ M σ Γ mk-ok . filters)
+  (define-values (ans-ok ans-bads) (apply Γ+/- M σ Γ mk-ok filters))
+  (cond [ans-ok (cond [(set-empty? ans-bads) ans-ok]
+                      [else (set-add ans-bads ans-ok)])]
+        [else ans-bads]))
 
 (module+ test
   (require typed/rackunit "../utils/map.rkt" "../runtime/addr.rkt" "../runtime/env.rkt" "for-test.rkt")

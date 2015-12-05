@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
-(require racket/match racket/sandbox racket/file typed/rackunit
-         "../ast.rkt" "../parse.rkt" "../check.rkt")
+(require
+ racket/match racket/sandbox racket/file typed/rackunit
+ "../check.rkt")
 
 (: verify : Path-String → (U Void exn:scv))
 (define (verify p)

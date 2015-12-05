@@ -4,8 +4,12 @@
 
 (require
  racket/match racket/set racket/list racket/bool racket/function racket/format
- "untyped-utils.rkt" "utils.rkt" "ast.rkt" "runtime.rkt" "machine.rkt" "reduction/main.rkt"
- "provability.rkt" "query-z3.rkt")
+ "utils/set.rkt" "utils/map.rkt" "utils/untyped-macros.rkt" "utils/debug.rkt" "utils/pretty.rkt"
+ "ast/definition.rkt"
+ "runtime/path-inv.rkt" "runtime/val.rkt" "runtime/summ.rkt" "runtime/store.rkt"
+ "reduction/main.rkt"
+ "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/query-z3.rkt"
+ "machine.rkt")
 (require/typed "parse.rkt"
   [files->prog ((Listof Path-String) → -prog)])
 

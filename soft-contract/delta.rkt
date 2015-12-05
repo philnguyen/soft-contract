@@ -10,9 +10,9 @@
   racket/base racket/match racket/syntax syntax/parse racket/contract
   racket/pretty racket/list racket/function racket/contract
   "utils/sexp-stx.rkt" "utils/pretty.rkt" "utils/set.rkt"
-  (except-in "primitives/declarations.rkt" implications) "primitives/utils.rkt")
+  (except-in "primitives/declarations.rkt" implications base?) "primitives/utils.rkt")
  )
-(provide δ Γ+/- -●/Vs)
+(provide δ -●/Vs)
 
 ;; Different kinds of primitives:
 ;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
@@ -114,45 +114,7 @@
          ...
          [else #f])]))
 
-(: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
-           (U (List -WV (Listof -WV) (-Γ → Y))
-              (List 'not -WV (Listof -WV) (-Γ → Y))) *
-           → (Values (Option X) (Setof Y))))
-;; Refine the environment with sequence of propositions
-;; and return (maybe) final sucessful environment
-;; along with each possible failure
-;; e.g. {} +/- ([num? n₁] [num? n₂]) -->
-;;      (values {num? n₁, num? n₂} {{¬ num? n₁}, {num? n₁, ¬ num? n₂}})
-(define (Γ+/- M σ Γ mk-ok . filters)
-  (define-values (Γ-ok ans-bads)
-    (for/fold ([Γ-ok : (Option -Γ) Γ]
-               [ans-bads : (Setof Y) ∅])
-              ([filt filters])
-      (cond
-        [Γ-ok
-         (define-values (Γ-ok* Γ-bad* mk-bad)
-           (match filt
-             [(list W-p W-vs mk-bad)
-              (define-values (Γ-sat Γ-unsat) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
-              (values Γ-sat Γ-unsat mk-bad)]
-             [(list 'not W-p W-vs mk-bad)
-              (define-values (Γ-sat Γ-unsat) (apply Γ+/-W∋Ws M σ Γ-ok W-p W-vs))
-              (values Γ-unsat Γ-sat mk-bad)]))
-         (define ans-bads*
-           (cond [Γ-bad* (set-add ans-bads (mk-bad Γ-bad*))]
-                 [else ans-bads]))
-         (values Γ-ok* ans-bads*)]
-        [else (values #f ans-bads)])))
-  (values (and Γ-ok (mk-ok Γ-ok)) ans-bads))
 
-(: Γ+/-AΓ : -M -σ -Γ (-Γ → -AΓ)
-   (U (List -WV (Listof -WV) (-Γ → -AΓ))
-      (List 'not -WV (Listof -WV) (-Γ → -AΓ))) * → -AΓs)
-(define (Γ+/-AΓ M σ Γ mk-ok . filters)
-  (define-values (ans-ok ans-bads) (apply Γ+/- M σ Γ mk-ok filters))
-  (cond [ans-ok (cond [(set-empty? ans-bads) ans-ok]
-                      [else (set-add ans-bads ans-ok)])]
-        [else ans-bads]))
 
 (define -●/Vs : (List -V) (list -●/V))
 

@@ -6,9 +6,11 @@
 (require
  racket/match racket/list racket/port racket/string racket/set
  racket/pretty
- 
+
+ "utils/def.rkt" "utils/untyped-macros.rkt" "utils/pretty.rkt" "utils/set.rkt"
+ "ast/definition.rkt"
+ "runtime/val.rkt"
  ;; For verification
- "untyped-utils.rkt" "utils.rkt" "ast.rkt" "runtime.rkt"
  (prefix-in ve: "widened.rkt")
 
  ;; For legacy counter-exapmle stuff

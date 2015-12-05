@@ -2,8 +2,14 @@
 
 (require
  racket/match racket/set racket/function
- "../untyped-utils.rkt" "../utils.rkt" "../ast.rkt" "../runtime.rkt"
- "../provability.rkt" "../delta.rkt" "../machine.rkt"
+ "../utils/list.rkt" "../utils/debug.rkt" "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt"
+ "../utils/untyped-macros.rkt"
+ "../ast/definition.rkt" "../ast/havoc.rkt" "../ast/meta-functions.rkt"
+ "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
+ "../runtime/addr.rkt" "../runtime/path-inv.rkt" "../runtime/arity.rkt" "../runtime/summ.rkt"
+ "../delta.rkt"
+ "../machine.rkt"
+ "../proof-relation/main.rkt"
  "step-mon.rkt")
 
 (provide ↦@ rt-spurious?)
@@ -100,7 +106,7 @@
 
   (: ↦con : -struct-info → -Δς)
   (define (↦con si)
-    (define αs (alloc-fields si pos W_xs))
+    (define αs (alloc-fields si pos))
     (define δσ : -Δσ
       (for/list ([α αs] [W W_xs])
         (cons α (close-Γ Γ (-W-x W)))))

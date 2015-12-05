@@ -1,7 +1,9 @@
 #lang typed/racket/base
 (require
  racket/match
- "../utils.rkt" "../runtime.rkt" "../machine.rkt"
+ "../utils/non-det.rkt"
+ "../runtime/val.rkt"
+ "../machine.rkt"
  "step-e.rkt" "step-k.rkt" "step-app.rkt" "step-mon.rkt")
 
 (provide ↦)

@@ -2,8 +2,12 @@
 
 (require
  racket/match racket/set racket/list
- "../utils.rkt" "../untyped-utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt"
- "../machine.rkt" "../delta.rkt")
+ "../utils/non-det.rkt" "../utils/set.rkt"
+ "../ast/definition.rkt"
+ "../runtime/val.rkt" "../runtime/store.rkt" "../runtime/simp.rkt" "../runtime/addr.rkt"
+ "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt"
+ "../proof-relation/main.rkt"
+ "../machine.rkt")
 
 (provide ↦mon)
 

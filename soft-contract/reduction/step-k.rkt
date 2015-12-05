@@ -2,7 +2,12 @@
 
 (require
  racket/match racket/set
- "../utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt" "../machine.rkt"
+ "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt"
+ "../ast/definition.rkt" "../ast/meta-functions.rkt"
+ "../runtime/val.rkt" "../runtime/summ.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
+ "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
+ "../proof-relation/main.rkt"
+ "../machine.rkt"
  "step-e.rkt" "step-app.rkt" "step-mon.rkt")
 
 (provide ↦κ ↦blm)
@@ -180,7 +185,7 @@
             (for/lists ([Vs : (Listof -V)] [es : (Listof -?e)])
                        ([W Ws])
               (values (-W-x W) (-W-e W))))
-          (define αs (alloc-fields s pos Ws))
+          (define αs (alloc-fields s pos))
           (define V-inner (-St s αs))
           (define δσ (map (inst cons -α -V) αs Vs))
           (define e_a (apply -?@ (-st-mk s) es))

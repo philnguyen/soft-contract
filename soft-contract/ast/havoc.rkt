@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide gen-havoc)
+(provide gen-havoc -havoc-id -havoc-src)
 
 (require
  racket/match racket/set

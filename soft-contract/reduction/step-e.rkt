@@ -2,7 +2,12 @@
 
 (require
  racket/match
- "../utils.rkt" "../ast.rkt" "../runtime.rkt" "../provability.rkt" "../machine.rkt"
+ "../utils/list.rkt" "../utils/non-det.rkt" "../utils/pretty.rkt" "../utils/set.rkt" "../utils/map.rkt"
+ "../ast/definition.rkt" "../ast/havoc.rkt"
+ "../runtime/val.rkt" "../runtime/store.rkt" "../runtime/env.rkt" "../runtime/simp.rkt"
+ "../runtime/addr.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt"
+ "../proof-relation/main.rkt"
+ "../machine.rkt"
  "step-app.rkt" "step-mon.rkt")
 
 (provide ↦e)
