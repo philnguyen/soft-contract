@@ -1,11 +1,16 @@
 #lang typed/racket
 (require
  racket/flonum racket/extflonum math/base
- "utils.rkt" "ast.rkt" "prim-gen.rkt" "runtime.rkt" "provability.rkt"
+ "utils/set.rkt"
+ "primitives/utils.rkt"
+ "ast/definition.rkt"
+ "runtime/val.rkt" "runtime/addr.rkt" "runtime/arity.rkt" "runtime/store.rkt" "runtime/path-inv.rkt" "runtime/summ.rkt"
+ "proof-relation/main.rkt"
  (for-syntax
   racket/base racket/match racket/syntax syntax/parse racket/contract
   racket/pretty racket/list racket/function racket/contract
-  "untyped-utils.rkt" "utils.rkt" (except-in "prims.rkt" implications) "prim-gen.rkt")
+  "utils/sexp-stx.rkt" "utils/pretty.rkt" "utils/set.rkt"
+  (except-in "primitives/declarations.rkt" implications) "primitives/utils.rkt")
  )
 (provide δ Γ+/- -●/Vs)
 
@@ -212,7 +217,7 @@
             (build-list (length doms) (λ (i) (string->symbol (format "e~a" (n-sub i))))))
           (define/contract b-ids (listof identifier?) (map (curry datum->syntax (M-id)) b-syms))
           (define b-pats (for/list ([b-id b-ids]) #`(-W _ (-b #,b-id))))
-          (define b-conds (datum->syntax (M-id) (-sexp-and (map mk-cond b-syms doms))))
+          (define b-conds (datum->syntax (M-id) (sexp-and (map mk-cond b-syms doms))))
 
           (list
            #`[(#,op)
