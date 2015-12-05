@@ -2,7 +2,9 @@
 
 (provide gen-havoc)
 
-(require racket/match racket/set "../utils/pretty.rkt" "../utils/set.rkt" "definition.rkt" "consts.rkt")
+(require
+ racket/match racket/set
+ "../utils/pretty.rkt" "../utils/set.rkt" "definition.rkt")
 
 (define -havoc-path 'havoc)
 (define -havoc-id (-id-local 'havoc-id -havoc-path)) ; havoc function id
