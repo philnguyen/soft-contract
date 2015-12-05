@@ -6,8 +6,10 @@
   [(prims prims:prims) (Listof Any)])
 
 (provide Graph implications exclusions
-         base? base-predicates prim-names prim-ranges prim-refinements-for-ranges
+         base-predicates prim-names prim-ranges prim-refinements-for-ranges
          ignore-for-now?)
+(require/typed/provide "declarations.rkt"
+  [base? (Sexp → Boolean)])
 
 (define-type Graph (HashTable Symbol (Setof Symbol)))
 (define -graph∅ : Graph (hasheq))
@@ -171,18 +173,3 @@
       flat-contract? list-contract? has-contract? has-blame?
       even? odd? char-general-category
       dict?))))
-
-;; Check if `s` is a contract specifying a base value 
-(define (base? [s : Sexp]) : Boolean
-  (match s
-    [(? symbol? s)
-     (case s
-       [(integer? real? number? zero?
-         inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
-         extflonum?
-         boolean? string? symbol? keyword? char? null? #|TODO|#)
-        #t]
-       [else #f])]
-    [`(,(or 'and/c 'or/c 'not/c) ,cs ...)
-     (andmap base? (cast cs (Listof Sexp)))]
-    [_ #f]))

@@ -1,7 +1,7 @@
 #lang racket/base
 (require racket/match racket/set racket/contract "../utils/untyped-macros.rkt")
 (provide
- arr? arr*? ctc? dec? impl?
+ base? arr? arr*? ctc? dec? impl?
  (contract-out
   [prims (listof dec?)]
   [implications (listof impl?)]
@@ -1759,19 +1759,20 @@
         '- 0
         '/ 1))
 
-
-;; Experimental
-;; Admitted evaluation result of standard functions
-;; Probably won't scale...
-(define evals
-  '(
-    [(map f xs)
-     (null {(null? xs)})
-     ((cons (f (car xs)) (map f (cdr xs))) {(cons? xs)})]
-    [(list? xs)
-     (#t {(null? xs)})
-     ((list? (cdr xs)) {(cons? xs)})]
-    ))
+;; Check if `s` is a contract specifying a base value 
+(define (base? s)
+  (match s
+    [(? symbol? s)
+     (case s
+       [(integer? real? number? zero?
+         inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
+         extflonum?
+         boolean? string? symbol? keyword? char? null? #|TODO|#)
+        #t]
+       [else #f])]
+    [`(,(or 'and/c 'or/c 'not/c) ,cs ...)
+     (andmap base? cs)]
+    [_ #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

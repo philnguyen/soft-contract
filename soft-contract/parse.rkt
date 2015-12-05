@@ -2,8 +2,9 @@
 (require
  racket/unsafe/ops
  web-server/private/util
- 
- "prims.rkt" "utils.rkt" "ast.rkt"
+ "utils/debug.rkt" "utils/pretty.rkt" "utils/set.rkt"
+ "primitives/declarations.rkt"
+ "ast/definition.rkt" "ast/havoc.rkt" "ast/meta-functions.rkt"
  ;; For extra constants
  racket/undefined racket/extflonum
  (only-in redex/reduction-semantics variable-not-in)
@@ -11,12 +12,8 @@
  "expand.rkt"
  (prefix-in fake: "fake-contract.rkt")
  (for-syntax racket/base racket/match racket/list racket/set syntax/parse racket/contract
-             "prims.rkt"))
-(provide (all-defined-out) #;read-p #;on-•!)
-
-(define (dummy)
-  (log-warning "Misreading syntax, returning dummy expression")
-  (-b 'FIXME-dummy-data))
+             "primitives/declarations.rkt"))
+(provide (all-defined-out))
 
 (define/contract (files->prog paths)
   ((listof path-string?) . -> . -prog?)
@@ -353,7 +350,10 @@
   (identifier?  . -> . (or/c #f -ref? -b?))
   (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
 
+  
+
   (define-syntax (make-parse-clauses stx)
+
     (syntax-parse stx
       [(_ id:id)
        ;; The reason we generate (syntax-parse) cases instead of set lookup
