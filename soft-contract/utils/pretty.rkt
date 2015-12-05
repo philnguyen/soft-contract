@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide sym-sub pretty n-sub unique-name)
+(provide sym-sub pretty n-sub unique-name next-neg!)
 (require racket/pretty racket/string racket/port)
 
 (: sym-sub : Symbol → Symbol)

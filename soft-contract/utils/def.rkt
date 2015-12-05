@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide define-data :*)
+(provide define-data define-type/pred :*)
 
 (require
  (for-syntax racket/base racket/syntax syntax/parse))
