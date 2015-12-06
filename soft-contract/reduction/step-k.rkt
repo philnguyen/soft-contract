@@ -290,12 +290,14 @@
      (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
            [else
             (define e_a
-              ; take answer as `(f x …)` if possible,
-              ; otherwise a[x/e_x…]
-              ; TODO: confirm this won't blow up
-              (or (apply -?@ e_f e_xs)
-                  (for/fold ([e_a : -?e ?e]) ([x xs] [e_x e_xs])
-                    (and e_a e_x (e/ e_a x e_x)))))
+              (or
+               ; take answer as `(f x …)` if possible,
+               (apply -?@ e_f e_xs)
+               ; otherwise a[x/e_x…]
+               ; TODO: confirm this won't blow up
+               (and ?e
+                    (andmap (λ (x) x) e_xs)
+                    (e/list (map -x xs) (cast e_xs (Listof -e)) ?e))))
             (-Δς (-W (close-Γ Γ Vs) e_a) Γ₀ κ '() '() '())])]
     [(-φ.rt.let dom₀)
      (define e* (and ?e (⊆ (FV ?e) dom₀) ?e))

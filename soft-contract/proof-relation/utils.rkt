@@ -22,9 +22,10 @@
      (match/nd: (-V → -Res) (σ@ σ α)
        [(or (-Clo (? list? xs) e _ _) (-Clo* (? list? xs) e _))
         ;; Convert invariant about parameters into one about arguments
-        (define (convert [e : -e]) : -e
-          (for/fold ([e : -e e]) ([x (assert xs)] [arg args])
-            (e/ e x arg)))
+        (define convert
+          (e/map
+           (for/hash : (HashTable -e -e) ([x (assert xs)] [arg args])
+             (values (-x x) arg))))
         
         (match/nd: (-Res → -Res) (hash-ref M (assert e))
           [(-Res e-xs ψ-xs)
@@ -82,9 +83,7 @@
                 (match-define (-Res (? -e? e*) ψs) res)
                 (define ψs* ; strengthen with induction hypotheses
                   (for/fold ([ψs* : -es ψs]) ([args (find-calls e* id)])
-                    (define hyp
-                      (for/fold ([hyp : -e e₀]) ([x xs] [arg args])
-                        (e/ hyp x arg)))
+                    (define hyp (e/list xs args e₀))
                     (set-add ψs* hyp)))
                 (-Res e* ψs*)))]
             [_ #f])]

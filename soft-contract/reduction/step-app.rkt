@@ -414,9 +414,10 @@
   ; Convert invariants about parameters in new environment
   ; to invariants about arguments in old environment
   ; PRECOND: (FV e) ⊆ xs
-  (define (convert [e : -e]) : -e
-    (for/fold ([e e]) ([x xs] [e_x e_xs] #:when e_x)
-      (e/ e x e_x)))
+  (define convert
+    (e/map
+     (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
+       (values (-x x) e_x))))
   
   (define facts*
     (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) params))

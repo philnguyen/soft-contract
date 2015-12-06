@@ -1,14 +1,16 @@
 #lang typed/racket/base
 
 (provide
- FV 𝐴 closed? checks# count-xs free-x/c e/ find-calls binder-has? prim-name->unsafe-prim)
+ FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/list find-calls prim-name->unsafe-prim)
 
 (require
- racket/match racket/set
+ racket/match racket/set racket/function
  "../utils/set.rkt" "../utils/untyped-macros.rkt" "definition.rkt")
 
 (require/typed "../primitives/declarations.rkt"
   [prims (Listof Any)])
+(require/typed racket/base
+  [hash-empty? ((HashTable -e -e) → Boolean)])
 
 (: FV : (U -e (Listof -e)) → (Setof Symbol))
 ;; Compute free variables for expression. Return set of variable names.
@@ -227,79 +229,82 @@
   
   (go e))
 
-(: e/ : -e (U Symbol -e) -e → -e)
-;; Substitution
-(define (e/ e x eₓ)
+(: e/ : -e -e -e → -e)
+;; Substitution, where `x` can be an (open) term rather than just a free variable.
+(define (e/ x eₓ e)
+  ((e/map (hash e eₓ)) e))
 
-  (: guard : -formals → Void)
-  (define guard
+(: e/list : (Listof -e) (Listof -e) -e → -e)
+;; Simultaneous subtitution
+(define (e/list xs exs e)
+  (define m
+    (for/hash : (HashTable -e -e) ([x xs] [ex exs])
+      (values x ex)))
+  ((e/map m) e))
+
+(: e/map : (HashTable -e -e) → (-e → -e))
+(define ((e/map m) e)
+  (let go ([m m] [e e])
     (cond
-      [(and (-e? x) (not (-x? x)))
-       (λ (xs)
-         (error 'e/ "variables in ~a captures ~a" xs e))]
-      [else (λ (_) (void))]))
-  
-  (let go ([e e])
-    (match e
-      [e #:when (equal? e x) eₓ]
-      [(-λ xs e*)
-       (cond [(binder-has? xs x) (guard xs) e]
-             [else (-λ xs (go e*))])]
-      [(-case-λ clauses)
-       (-case-λ
-        (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
-          (match-define (cons xs e*) clause)
-          (cond [(binder-has? xs x) (guard xs) clause]
-                [else (cons xs (go e*))])))]
-      [(? -v?) e]
-      [(-x z) (if (equal? x z) eₓ e)]
-      [(? -ref?) e]
-      [(-@ f xs l) (-@ (go f) (map go xs) l)]
-      [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
-      [(-wcm k v b) (-wcm (go k) (go v) (go b))]
-      [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
-      [(? -quote?) e]
-      [(-let-values bnds e* l)
-       (define-values (bnds-rev locals)
-         (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
-                    [locals : (Setof Symbol) ∅])
-                   ([bnd bnds])
-           (match-define (cons xs ex) bnd)
-           (values (cons (cons xs (go ex)) bnds-rev)
-                   (set-add-list locals xs))))
-       (define bnds* (reverse bnds-rev))
-       (define e**
-         (cond [(∋ locals x) e*]
-               [else (go e*)]))
-       (-let-values bnds* e** l)]
-      [(-letrec-values bnds e* l)
-       (define locals
-         (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
-           (set-add-list locals (car bnd))))
-       (cond
-         [(∋ locals x) e]
-         [else
+      [(hash-empty? m) e]
+      [(hash-ref m e #f) => values]
+      [else
+       (match e
+         [(-λ xs e*) (-λ xs (go (shrink m xs) e*))]
+         [(-case-λ clauses)
+          (-case-λ
+           (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+             (match-define (cons xs e*) clause)
+             (cons xs (go (shrink m xs) e*))))]
+         [(? -v?) e]
+         [(? -ref?) e]
+         [(-@ f xs l) (-@ (go m f) (map (curry go m) xs) l)]
+         [(-if e₀ e₁ e₂) (-if (go m e₀) (go m e₁) (go m e₂))]
+         [(-wcm k v b) (-wcm (go m k) (go m v) (go m b))]
+         [(-begin0 e₀ es) (-begin0 (go m e₀) (map (curry go m) es))]
+         [(? -quote?) e]
+         [(-let-values bnds e* l)
+          (define-values (bnds-rev locals)
+            (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+                       [locals : (Setof Symbol) ∅])
+                      ([bnd bnds])
+              (match-define (cons xs ex) bnd)
+              (values (cons (cons xs (go m ex)) bnds-rev)
+                      (set-add-list locals xs))))
+          (define m* (shrink m (set->list locals)))
+          (-let-values (reverse bnds-rev) (go m* e*) l)]
+         [(-letrec-values bnds e* l)
+          (define xs
+            (set->list
+             (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
+               (set-add-list locals (car bnd)))))
+          (define m* (shrink m xs))
           (define bnds*
             (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
               (match-define (cons xs ex) bnd)
-              (cons xs (go ex))))
-          (-letrec-values bnds* (go e*) l)])]
-      [(-set! z e*) (-set! z (go e*))]
-      [(-amb es) (-amb (for/set: : -es ([ei es]) (go ei)))]
-      [(-μ/c z c p) (-μ/c z (go c) p)]
-      [(-->i doms rng p)
-       (define-values (xs cs)
-         (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
-                    ([dom doms])
-           (values (car dom) (go (cdr dom)))))
-       (define rng*
-         (cond [(member x xs) rng]
-               [else (go rng)]))
-       (-->i (map (inst cons Symbol -e) xs cs) rng* p)]
-      [(-struct/c t cs p) (-struct/c t (map go cs) p)]
-      [_
-       (log-debug "e/: ignore substituting ~a" e)
-       e])))
+              (cons xs (go m* ex))))
+          (-letrec-values bnds* (go m* e*) l)]
+         [(-set! z e*) (-set! z (go m e*))]
+         [(-amb es) (-amb (for/set: : -es ([ei es]) (go m ei)))]
+         [(-μ/c z c p) (-μ/c z (go m c) p)]
+         [(-->i doms rng p)
+          (define-values (xs cs)
+            (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
+                       ([dom doms])
+              (values (car dom) (go m (cdr dom)))))
+          (define rng* (go (shrink m xs) rng))
+          (-->i (map (inst cons Symbol -e) xs cs) rng* p)]
+         [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
+         [_
+          (log-debug "e/: ignore substituting ~a" e)
+          e])])))
+
+;; Shrink domain of `m` to not be included by `xs`
+(define (shrink [m : (HashTable -e -e)] [xs : -formals]) : (HashTable -e -e)
+  (for/fold ([m* : (HashTable -e -e) m])
+            ([x (in-hash-keys m)] #:when (binder-has? xs x))
+    (cond [(-x? x) (hash-remove m* x)]
+          [else (error 'e/m "unexpected")])))
 
 (: find-calls : -e -id → (Setof (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`
@@ -315,15 +320,16 @@
          [_ (void)]))
   calls)
 
-(: binder-has? : -formals (U Symbol -e) → Boolean)
+(: binder-has? : -formals (U Symbol -e) → (Option (Setof Symbol)))
 ;; returns whether a list of binding names has given name
 (define (binder-has? xs x)
   (define FVs (if (symbol? x) {set x} (FV x)))
   (define binders
     (match xs
-      [(? list? xs) xs]
-      [(-varargs zs z) (cons z zs)]))
-  (not (set-empty? (∩ FVs (list->set binders)))))
+      [(? list? xs) (list->set xs)]
+      [(-varargs zs z) (set-add (list->set zs) z)]))
+  (define captured (∩ FVs binders))
+  (and (not (set-empty? captured)) captured))
 
 (: prim-name->unsafe-prim : Symbol → -o)
 ;; Convert primitive name to (unsafe) primitive

@@ -24,8 +24,10 @@
      (assert x) ; hack for TR
      (hash-ref bnds x (λ () (-x x)))]
     [(? -e?)
-     (for/fold ([e* : -e e]) ([(x ex) bnds])
-       (e/ e* x ex))]))
+     (define m
+       (for/hash : (HashTable -e -e) ([(x ex) bnds])
+         (values (-x x) ex)))
+     ((e/map m) e)]))
 
 (: Γ↓ : -Γ (Setof Symbol) → -Γ)
 ;; Restrict path invariant to given variables
@@ -84,11 +86,13 @@
   (match-define (-Γ bnds facts) Γ)
   ; if variable is an alias for another expression `eₓ`,
   ; perform substitution in terms of that expression `eₓ`
-  (define pt : (U Symbol -e) (hash-ref bnds x (λ () x)))
+  (define pt (hash-ref bnds x (λ () (-x x))))
   (define bnds*
-    (for/hash : (Map Symbol -e) ([(x e₀) bnds]) (values x (e/ e₀ pt e))))
+    (for/hash : (Map Symbol -e) ([(x e₀) bnds])
+      (values x (e/ pt e e₀))))
   (define facts*
-    (for/set: : -es ([e₀ facts]) (e/ e₀ pt e)))
+    (for/set: : -es ([e₀ facts])
+      (e/ pt e e₀)))
   (-Γ bnds* facts*))
 
 (: Γ-binds? : -Γ Symbol → Boolean)
