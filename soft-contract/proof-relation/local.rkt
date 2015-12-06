@@ -225,6 +225,12 @@
 (: p∋Vs : -o -V * → -R)
 ;; Check if value satisfies predicate
 (define (p∋Vs p . Vs)
+  
+  (define (check-proc-arity-1 [V : -V]) : -R
+    (match (p∋Vs 'procedure? V)
+      ['✓ (decide-R (-arity-includes? (assert (-procedure-arity V)) 1))]
+      [ans ans]))
+
   (match p
     [(? -st-mk?) '✓]
     [(? -st-mut?) '✓]
@@ -252,19 +258,13 @@
           [_ 'X])]
        [(contract?)
         (match Vs
-          [(list V)
-           (cond
-             [(-procedure-arity V) =>
-              (λ ([a : -Arity]) (decide-R (-arity-includes? a 1)))]
-             [else '?])]
+          [(list (or (? -=>i?) (? -And/C?) (? -Or/C?) (? -Not/C?)
+                     (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -μ/C?) (? -X/C?))) '✓]
+          [(list V) (check-proc-arity-1 V)]
           [_ '?])]
        [(flat-contract?)
         (match Vs
-          [(list V)
-           (cond
-             [(-procedure-arity V) =>
-              (λ ([a : -Arity]) (decide-R (-arity-includes? a 1)))]
-             [else '?])]
+          [(list V) (check-proc-arity-1 V)]
           [_ '?])]
        [(any/c) '✓]
        [(none/c) 'X]
