@@ -82,14 +82,13 @@
 
   (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -Δς*)
   (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
-    (define D (-⇓ d ρ_d))
     ;; TODO: probably don't need these restoring frames anymore. Check again.
     (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
     (match* (xs cs Cs W_xs)
       [('() '() '() '())
+       ;; If there's no argument, skip monitoring arguments and start evaluating range
        (define κ₂ (-kont (-φ.indy.rng V_g '() l³ pos) κ₁))
-       (define ρ_d* #|FIXME extend?|# ρ_d)
-       (-Δς (-⇓ d ρ_d*) Γ_d κ₂ '() '() '())]
+       (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())]
       [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
        (define l³* (swap-parties l³))
        (define W_c (-W C c))

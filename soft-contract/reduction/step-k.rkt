@@ -158,8 +158,14 @@
        (define doms↓* (cons (cons x (-W V ?e)) doms↓))
        (match* (xs cs Cs W_xs)
          [('() '() '() '())
-          (define args (map (inst cdr Symbol -WV) (reverse doms↓*))) ; TODO
-          (↦e d ρ_d Γ (-kont (-φ.indy.rng V_f args l³ pos) κ) σ Ξ M)]
+          (define-values (args zs δσ)
+            (for/lists ([args : (Listof -WV)] [zs : (Listof Symbol)] [δσ : -Δσ])
+                       ([dom (reverse doms↓*)])
+              (match-define (cons x (and W (-W V_x e_x))) dom)
+              (values W x (cons x V_x))))
+          (define ρ_d* (ρ++ ρ_d zs #|TODO ok?|# zs))
+          (with-Δ δσ '() '()
+            (↦e d ρ_d* Γ (-kont (-φ.indy.rng V_f args l³ pos) κ) σ Ξ M))]
          [((cons x* xs*) (cons c* cs*) (cons C* Cs*) (cons W_x* W_xs*))
           (define W_c* (-W C* c*))
           (define κ* (-kont (-φ.indy.dom x* xs* cs* Cs* W_xs* doms↓* V_f d ρ_d l³ pos) κ))
