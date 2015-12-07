@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require "../parse.rkt")
+(require "../parse/main.rkt")
 (require rackunit)
 
 (for* ([dir (list "programs/safe" "programs/fail" "programs/fail-ce")]

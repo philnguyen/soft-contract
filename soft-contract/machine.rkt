@@ -3,10 +3,9 @@
  racket/match racket/set racket/list racket/bool racket/function
  "utils/def.rkt" "utils/pretty.rkt" "utils/map.rkt" "utils/set.rkt" "utils/non-det.rkt"
  "ast/definition.rkt" "ast/meta-functions.rkt"
+ "parse/main.rkt"
  "runtime/env.rkt" "runtime/val.rkt" "runtime/path-inv.rkt" "runtime/addr.rkt" "runtime/store.rkt"
  "runtime/summ.rkt")
-(require/typed "parse.rkt"
-  [files->prog ((Listof Path-String) → -prog)])
 
 (provide (all-defined-out))
 

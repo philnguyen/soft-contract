@@ -6,13 +6,11 @@
  racket/match racket/set racket/list racket/bool racket/function racket/format
  "utils/set.rkt" "utils/map.rkt" "utils/untyped-macros.rkt" "utils/debug.rkt" "utils/pretty.rkt"
  "ast/definition.rkt"
+ "parse/main.rkt"
  "runtime/path-inv.rkt" "runtime/val.rkt" "runtime/summ.rkt" "runtime/store.rkt"
  "reduction/main.rkt"
  "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/query-z3.rkt"
  "machine.rkt")
-(require/typed "parse.rkt"
-  [files->prog ((Listof Path-String) → -prog)]
-  [init-prim (Listof -module-level-form)])
 
 (define-type -tσ Integer)
 (define-type -tΞ Integer)

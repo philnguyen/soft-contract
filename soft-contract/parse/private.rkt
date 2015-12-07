@@ -2,17 +2,17 @@
 (require
  racket/unsafe/ops
  web-server/private/util
- "utils/debug.rkt" "utils/pretty.rkt" "utils/set.rkt"
- "primitives/declarations.rkt"
- "ast/definition.rkt" "ast/havoc.rkt" "ast/meta-functions.rkt"
+ "../utils/debug.rkt" "../utils/pretty.rkt" "../utils/set.rkt"
+ "../primitives/declarations.rkt"
+ "../ast/definition.rkt" "../ast/havoc.rkt" "../ast/meta-functions.rkt"
  ;; For extra constants
  racket/undefined racket/extflonum
  (only-in redex/reduction-semantics variable-not-in)
  syntax/parse syntax/modresolve
  "expand.rkt"
- (prefix-in fake: "fake-contract.rkt")
+ (prefix-in fake: "../fake-contract.rkt")
  (for-syntax racket/base racket/match racket/list racket/set syntax/parse racket/contract
-             "primitives/declarations.rkt"))
+             "../primitives/declarations.rkt"))
 (provide (all-defined-out))
 
 (define/contract (files->prog paths)

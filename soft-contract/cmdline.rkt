@@ -1,10 +1,8 @@
 #lang typed/racket/base
 
-(require "expand.rkt" racket/cmdline racket/list racket/pretty
-         "ast.rkt"
-         (only-in "check.rkt" analyze))
-(require/typed "parse.rkt"
-  [files->prog ((Listof Path-String) → -prog)])
+(require
+ racket/cmdline racket/list racket/pretty
+ (only-in "check.rkt" analyze))
 
 (define fname
   (cast (command-line #:program "raco soft-contract"
