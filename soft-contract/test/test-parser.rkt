@@ -1,7 +1,5 @@
-#lang racket/base
-
-(require "../parse/main.rkt")
-(require rackunit)
+#lang typed/racket/base
+(require typed/rackunit "../parse/main.rkt")
 
 (for* ([dir (list "programs/safe" "programs/fail" "programs/fail-ce")]
        [file (in-directory dir)])

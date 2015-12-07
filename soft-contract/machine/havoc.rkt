@@ -24,13 +24,13 @@
                ([m ms]
                 [form (-plain-module-begin-body (-module-body m))])
       (match form
-        [(-provide specs)
+        [(-provide _ specs)
          (define decs*
            (for/fold ([decs : (Setof Symbol) decs])
                      ([spec specs])
              (set-add decs (-p/c-item-id spec))))
          (values defs decs*)]
-        [(-define-values (list id) e)
+        [(-define-values _ (list id) e)
          (define defs*
            (match e
              [(? -st-ac? ac) (hash-set defs id ac)]
@@ -95,9 +95,9 @@
        (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])
                  ([e (in-list body)])
          (match e
-           [(-provide specs)
+           [(-provide _ specs)
             (values (set-add-list exports (map -p/c-item-id specs)) defines)]
-           [(-define-values xs _)
+           [(-define-values _ xs _)
             (values exports (set-add-list defines xs))]
            [_ (values exports defines)])))
 

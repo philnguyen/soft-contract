@@ -73,7 +73,7 @@
     #:literals (#%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                 call-with-values)
     [(#%provide spec ...)
-     (-provide (map parse-provide-spec (syntax->list #'(spec ...))))]
+     (-provide (cur-mod) (map parse-provide-spec (syntax->list #'(spec ...))))]
     [(#%declare _ ...) (todo '#%declare)]
     [(begin-for-syntax _ ...) #|ignore|# #f]
     
@@ -89,7 +89,8 @@
      #;(debug "x: ~a~nc: ~a~n"
              (identifier? (car (syntax->list #'(x ...))))
              (identifier? (car (syntax->list #'(c ...)))))
-     (-provide (for/list ([x (in-list (syntax->datum #'(x ...)))]
+     (-provide (cur-mod)
+               (for/list ([x (in-list (syntax->datum #'(x ...)))]
                           [c (in-list (syntax->list #'(c ...)))])
                  (-p/c-item x (parse-e c))))]
     
@@ -125,6 +126,7 @@
      (define n (length accs))
      (define si (-struct-info (-id-local ctor-name (cur-mod)) n ∅))
      (-define-values
+      (cur-mod)
       (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
       (-@ (-ref (-id-local 'values 'Λ) (cur-mod) (next-neg!))
           (list* (-st-mk si)
@@ -138,15 +140,15 @@
      (define frees (free-x/c rhs))
      (cond
        [(set-empty? frees)
-        (-define-values (list lhs) rhs)]
+        (-define-values (cur-mod) (list lhs) rhs)]
        [(set-empty? (set-remove frees lhs))
-        (-define-values (list lhs) (-μ/c lhs rhs (next-neg!)))]
+        (-define-values (cur-mod) (list lhs) (-μ/c lhs rhs (next-neg!)))]
        [else
         (error 'TODO
                "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
                lhs (set-first (set-remove frees lhs)))])]
     [(define-values (x:identifier ...) e)
-     (-define-values (syntax->datum #'(x ...)) (parse-e #'e))]
+     (-define-values (cur-mod) (syntax->datum #'(x ...)) (parse-e #'e))]
     [(#%require spec ...)
      (-require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
@@ -452,19 +454,19 @@
         
         [(or `(#:pred ,s ,_ ...)
              `(,(? symbol? s) ,(or (? arr?) (? arr*?)) ,_ ...))
-         (list (-define-values (list s) s))]
+         (list (-define-values 'Λ (list s) s))]
         [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:batch (,ss ...) ,_ ...)
          (for/list ([s ss])
-           (-define-values (list s) s))]
+           (-define-values 'Λ (list s) s))]
         [`(#:struct-cons ,s ,si)
-         (list (-define-values (list s) (-st-mk (mk-struct-info si))))]
+         (list (-define-values 'Λ (list s) (-st-mk (mk-struct-info si))))]
         [`(#:struct-pred ,s ,si)
-         (list (-define-values (list s) (-st-p (mk-struct-info si))))]
+         (list (-define-values 'Λ (list s) (-st-p (mk-struct-info si))))]
         [`(#:struct-acc ,s ,si ,i)
-         (list (-define-values (list s) (-st-ac (mk-struct-info si) i)))]
+         (list (-define-values 'Λ (list s) (-st-ac (mk-struct-info si) i)))]
         [`(#:struct-mut ,s ,si ,i)
-         (list (-define-values (list s) (-st-mut (mk-struct-info si) i)))]
+         (list (-define-values 'Λ (list s) (-st-mut (mk-struct-info si) i)))]
         [r
          (log-warning "unhandled in `make-defs`: ~a~n" r)
          '()]))
@@ -518,7 +520,7 @@
     
     ;; HACK: leave provide last because `𝑰` is hacky for now
     `(,@(append-map make-defs prims)
-      ,(-provide (append-map make-decs prims)))))
+      ,(-provide 'Λ (append-map make-decs prims)))))
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
@@ -531,13 +533,3 @@
 ;; Testing only
 (define (test . files)
   (files->modules files))
-
-#;
-(for ([itm (-plain-module-begin-body (-module-body -mod-prim))])
-  (match itm
-    [(-define-values (list x) e)
-     (printf "(define ~a ~a)~n" x e)]
-    [(-provide decs)
-     (for ([dec decs])
-       (match-define (-p/c-item x c) dec)
-       (printf "(provide ~a ~a)~n" x c))]))

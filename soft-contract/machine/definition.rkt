@@ -71,9 +71,8 @@
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
 
   ;; Top-level stuff
-  (struct -φ.top [items : (Listof -module-level-form)])
-  (struct -φ.def [xs : (Listof Symbol)] [path : Adhoc-Module-Path])
-  (struct -φ.ctc [items : (Listof -p/c-item)] [x : Symbol])
+  (struct -φ.def [path : Adhoc-Module-Path] [xs : (Listof Symbol)])
+  (struct -φ.ctc [path : Adhoc-Module-Path] [items : (Listof -p/c-item)] [current : Symbol])
 
   ;; Represent next steps for contract checking
   (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
@@ -336,7 +335,7 @@
       (match form
         ;; general top-level form
         [(? -e?) σ]
-        [(-define-values ids e)
+        [(-define-values _ ids e)
          (match ids
            [(list id)
             (define-values (σ* V) (alloc-e σ e))
@@ -346,7 +345,7 @@
                    (length ids))])]
         [(? -require?) σ]
         ;; provide
-        [(-provide specs)
+        [(-provide _ specs)
          (for/fold ([σ : -σ σ]) ([spec specs])
            (match-define (-p/c-item x c) spec)
            (define-values (σ₁ C) (alloc-e σ c))

@@ -68,12 +68,12 @@
 
 (define-data -module-level-form
   -general-top-level-form
-  (struct -provide [specs : (Listof -provide-spec)])
+  (struct -provide [from : Adhoc-Module-Path] [specs : (Listof -provide-spec)])
   -submodule-form)
 
 (define-data -general-top-level-form
   -e
-  (struct -define-values [ids : (Listof Symbol)] [e : -e])
+  (struct -define-values [from : Adhoc-Module-Path] [ids : (Listof Symbol)] [e : -e])
   (struct -require [specs : (Listof -require-spec)]))
 
 (define-data -submodule-form
