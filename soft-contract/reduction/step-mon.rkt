@@ -7,7 +7,7 @@
  "../runtime/val.rkt" "../runtime/store.rkt" "../runtime/simp.rkt" "../runtime/addr.rkt"
  "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt"
  "../proof-relation/main.rkt"
- "../machine.rkt")
+ "../machine/definition.rkt")
 
 (provide ↦mon)
 

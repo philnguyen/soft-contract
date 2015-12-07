@@ -3,7 +3,7 @@
  racket/match
  "../utils/non-det.rkt"
  "../runtime/val.rkt"
- "../machine.rkt"
+ "../machine/definition.rkt"
  "step-e.rkt" "step-k.rkt" "step-app.rkt" "step-mon.rkt")
 
 (provide ↦)

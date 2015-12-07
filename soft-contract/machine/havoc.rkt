@@ -4,7 +4,9 @@
 
 (require
  racket/match racket/set
- "../utils/pretty.rkt" "../utils/set.rkt" "definition.rkt")
+ "../utils/pretty.rkt" "../utils/set.rkt" "../utils/map.rkt"
+ "../ast/definition.rkt"
+ "../runtime/val.rkt" "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt")
 
 (define -havoc-path 'havoc)
 (define -havoc-id (-id-local 'havoc-id -havoc-path)) ; havoc function id
@@ -38,33 +40,25 @@
   (for/set: : (Setof -st-ac) ([(id ac) (in-hash defs)] #:when (∋ decs id))
     ac))
 
-(: gen-havoc : (Listof -module) → (Values -module -e))
-;; Generate:
-;; - havoc module
-;; - expression havoc-ing exported identifiers from all concrete modules
+(: gen-havoc : (Listof -module) → (Values -Clo -e))
+;; Allocate `havoc` in `σ` and return `e` that havocs each value
 (define (gen-havoc ms)
 
-  ;;; Generate module
+  ;; Generate value
   (define x (-x '☠))
-  (define havoc-func ; only used by `verify` module, not `ce`
-    (-λ (list '☠)
-        (-amb/simp
-         (cons (-@ (havoc-ref-from -havoc-path (next-neg!))
-                   (list (-@-havoc x)) -havoc-src)
-               (for/list : (Listof -@) ([ac (prog-accs ms)])
-                 (-@ (havoc-ref-from -havoc-path (next-neg!))
-                     (list (-@ ac (list x) -havoc-src)) -havoc-src))))))
+  (define clo-havoc ; only used by `verify` module, not `ce`
+    (-Clo '(☠)
+          (-amb/simp
+           (cons (-@ (havoc-ref-from -havoc-path (next-neg!))
+                     (list (-@-havoc x)) -havoc-src)
+                 (for/list : (Listof -@) ([ac (prog-accs ms)])
+                   (-@ (havoc-ref-from -havoc-path (next-neg!))
+                       (list (-@ ac (list x) -havoc-src)) -havoc-src))))
+          -ρ⊥ -Γ⊤))
 
-  (define m
-    (-module -havoc-path
-             (-plain-module-begin
-              (list
-               (-define-values (list (-id-name -havoc-id)) havoc-func)
-               (-provide (list (-p/c-item (-id-name -havoc-id) 'any/c)))))))
-
-  ;;; Generate expression
+  ;; Generate havoc-ing expression
   (define-set refs : -ref)
-  #;(log-debug "~nmodules: ~n~a~n" ms)
+  ;(log-debug "~nmodules: ~n~a~n" ms)
   (for ([m (in-list ms)])
     (cond
       [(module-opaque? m)
@@ -77,19 +71,18 @@
       #;(log-debug "Havocking transparent module ~a~n" (-module-path m))
       (match-define (-module path (-plain-module-begin forms)) m)
       #;(eprintf "Insert exported identifiers from module ~a to unknown contexts~n" path)
-      (for* ([form (in-list forms)]
-             #:when (-provide? form)
+      (for* ([form (in-list forms)] #:when (-provide? form)
              [spec (in-list (-provide-specs form))])
         (log-debug "adding: ~a~n" (-p/c-item-id spec))
         (refs-add! (-ref (-id-local (-p/c-item-id spec) path) '† (next-neg!))))]))
-  #;(log-debug "~nrefs: ~a~n" refs)
+  ;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (-amb/remember (for/list ([ref (in-set refs)])
                      (-@ (•!) (list ref) -havoc-src))))
 
-  #;(log-debug "~nhavoc-e:~n~a" expr)
+  ;(log-debug "~nhavoc-e:~n~a" expr)
 
-  (values m expr))
+  (values clo-havoc expr))
 
 (: module-opaque? : -module → (U #f (Setof Symbol)))
 ;; Check whether module is opaque, returning the set of opaque exports if so

@@ -1,11 +1,12 @@
 #lang typed/racket/base
 (require
  racket/match racket/set racket/list racket/bool racket/function
- "utils/def.rkt" "utils/pretty.rkt" "utils/map.rkt" "utils/set.rkt" "utils/non-det.rkt"
- "ast/definition.rkt" "ast/meta-functions.rkt"
- "parse/main.rkt"
- "runtime/env.rkt" "runtime/val.rkt" "runtime/path-inv.rkt" "runtime/addr.rkt" "runtime/store.rkt"
- "runtime/summ.rkt")
+ "../utils/def.rkt" "../utils/pretty.rkt" "../utils/map.rkt" "../utils/set.rkt" "../utils/non-det.rkt"
+ "../ast/definition.rkt" "../ast/meta-functions.rkt"
+ "../parse/main.rkt"
+ "../runtime/env.rkt" "../runtime/val.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
+ "../runtime/store.rkt" "../runtime/summ.rkt"
+ "havoc.rkt")
 
 (provide (all-defined-out))
 
@@ -68,6 +69,11 @@
   (struct -φ.begin [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
+
+  ;; Top-level stuff
+  (struct -φ.top [items : (Listof -module-level-form)])
+  (struct -φ.def [xs : (Listof Symbol)] [path : Adhoc-Module-Path])
+  (struct -φ.ctc [items : (Listof -p/c-item)] [x : Symbol])
 
   ;; Represent next steps for contract checking
   (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
@@ -236,12 +242,11 @@
 (define-type -ς* (U -ς (Setof -ς)))
 (define-type -Δς* (U -Δς (Setof -Δς)))
 
-(: 𝑰 : -prog (Listof -module-level-form) → -ς)
+(: 𝑰 : (Listof -module) (Listof -module-level-form) → -ς)
 ;; Load program to intial machine state
 ;; FIXME: allow expressions in top-levels and execute them instead,
 ;;        then initialize top-levels to `undefined`
-(define (𝑰 p init-prim)
-  (match-define (-prog ms e₀) p)
+(define (𝑰 ms init-prim)
 
   (: alloc-es : -σ -struct-info Integer (Listof -e) → (Values -σ (Listof -α)))
   (define (alloc-es σ s pos es)
@@ -320,10 +325,14 @@
       [e (error '𝑰 "TODO: execute general expression. For now can't handle ~a"
                 (show-e e))]))
 
+  ;; Generate havoc function and top-level expression
+  (define-values (havoc e_hv) (gen-havoc ms))
+
   ;; Assuming each top-level variable binds a value for now.
   ;; TODO generalize.
   (define σ₀
-    (for/fold ([σ : -σ -σ⊥]) ([form init-prim])
+    (for/fold ([σ : -σ (⊔ -σ⊥ (-α.def -havoc-id) havoc)])
+              ([form init-prim])
       (match form
         ;; general top-level form
         [(? -e?) σ]
@@ -348,6 +357,8 @@
              [else (⊔ σ₂ (-α.def id) -●/V)]))]
         ;; submodule-form
         [(? -module?) (error '𝑰 "TODO: sub-module forms")])))
+
+  (define e₀ #|FIXME|# e_hv)
 
   (define E₀ (-↓ e₀ -ρ⊥))
   (define τ₀ (-τ e₀ -ρ⊥ -Γ⊤))

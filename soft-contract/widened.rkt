@@ -10,7 +10,7 @@
  "runtime/path-inv.rkt" "runtime/val.rkt" "runtime/summ.rkt" "runtime/store.rkt"
  "reduction/main.rkt"
  "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/query-z3.rkt"
- "machine.rkt")
+ "machine/definition.rkt")
 
 (define-type -tσ Integer)
 (define-type -tΞ Integer)
@@ -46,9 +46,9 @@
   (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hasheq))
   (define debug? : Boolean #f))
 
-(: run : -prog → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
-(define (run p)
-  (match-define (-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) (𝑰 p init-prim))
+(: run : (Listof -module) → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
+(define (run ms)
+  (match-define (-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) (𝑰 ms init-prim))
   (define C₀ (-Cfg E₀ Γ₀ κ₀))
 
   (: step : (Map -Cfg -t) (Setof -Cfg) -tσ -σ -tΞ -Ξ -M →
@@ -122,7 +122,7 @@
 
 (: run-files : Path-String * → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run-files . paths)
-  (run (files->prog paths)))
+  (run (files->modules paths)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -146,7 +146,7 @@
      (parameterize ([debugs {set}]
                     [Γ⊢₀ Γ⊢e]
                     [Γ⊢ₑₓₜ z3⊢])
-       (run (files->prog (list "test/programs/safe/2.rkt")))))
+       (run (files->modules (list "test/programs/safe/2.rkt")))))
    (define t₂ (current-milliseconds))
    (begin ; debuggings
      (printf "Time: ~a~n" (~r (exact->inexact (/ (- t₂ t₁) 1000)) #:precision 4))

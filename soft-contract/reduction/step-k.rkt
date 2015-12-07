@@ -7,7 +7,7 @@
  "../runtime/val.rkt" "../runtime/summ.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
  "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
  "../proof-relation/main.rkt"
- "../machine.rkt"
+ "../machine/definition.rkt"
  "step-e.rkt" "step-app.rkt" "step-mon.rkt")
 
 (provide ↦κ ↦blm)

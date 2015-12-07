@@ -4,7 +4,7 @@
  web-server/private/util
  "../utils/debug.rkt" "../utils/pretty.rkt" "../utils/set.rkt"
  "../primitives/declarations.rkt"
- "../ast/definition.rkt" "../ast/havoc.rkt" "../ast/meta-functions.rkt"
+ "../ast/definition.rkt" "../ast/meta-functions.rkt"
  ;; For extra constants
  racket/undefined racket/extflonum
  (only-in redex/reduction-semantics variable-not-in)
@@ -15,13 +15,10 @@
              "../primitives/declarations.rkt"))
 (provide (all-defined-out))
 
-(define/contract (files->prog paths)
-  ((listof path-string?) . -> . -prog?)
-  (define/contract ms (listof -module?)
-    (for/list ([path (in-list paths)])
-      (parse-top-level-form (do-expand-file path))))
-  (define-values (havoc-m havoc-e) (gen-havoc ms))
-  (-prog (cons havoc-m ms) havoc-e))
+(define/contract (files->modules paths)
+  ((listof path-string?) . -> . (listof -module?))
+  (for/list ([path (in-list paths)])
+    (parse-top-level-form (do-expand-file path))))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
@@ -533,7 +530,7 @@
 
 ;; Testing only
 (define (test . files)
-  (files->prog files))
+  (files->modules files))
 
 #;
 (for ([itm (-plain-module-begin-body (-module-body -mod-prim))])

@@ -4,11 +4,11 @@
  racket/match racket/set racket/function
  "../utils/list.rkt" "../utils/debug.rkt" "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt"
  "../utils/untyped-macros.rkt"
- "../ast/definition.rkt" "../ast/havoc.rkt" "../ast/meta-functions.rkt"
+ "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
  "../runtime/addr.rkt" "../runtime/path-inv.rkt" "../runtime/arity.rkt" "../runtime/summ.rkt"
  "../delta.rkt"
- "../machine.rkt"
+ "../machine/definition.rkt" "../machine/havoc.rkt"
  "../proof-relation/main.rkt"
  "step-mon.rkt")
 

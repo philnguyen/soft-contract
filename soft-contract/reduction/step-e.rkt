@@ -3,11 +3,11 @@
 (require
  racket/match
  "../utils/list.rkt" "../utils/non-det.rkt" "../utils/pretty.rkt" "../utils/set.rkt" "../utils/map.rkt"
- "../ast/definition.rkt" "../ast/havoc.rkt"
+ "../ast/definition.rkt"
  "../runtime/val.rkt" "../runtime/store.rkt" "../runtime/env.rkt" "../runtime/simp.rkt"
  "../runtime/addr.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt"
  "../proof-relation/main.rkt"
- "../machine.rkt"
+ "../machine/definition.rkt" "../machine/havoc.rkt"
  "step-app.rkt" "step-mon.rkt")
 
 (provide ↦e)
