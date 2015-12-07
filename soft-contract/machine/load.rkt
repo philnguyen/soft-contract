@@ -3,7 +3,7 @@
 (provide 𝑰)
 
 (require
- racket/match racket/list racket/function
+ racket/match racket/list
  "../utils/map.rkt" "../utils/set.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/addr.rkt" "../runtime/val.rkt" "../runtime/env.rkt" "../runtime/path-inv.rkt"
@@ -50,7 +50,12 @@
         [(? -module?) (error '𝑰 "TODO: sub-module forms")])))
 
   (define top-exps
-    (append-map (compose -plain-module-begin-body -module-body) ms))
+    (append-map
+     (λ ([m : -module]) : (Listof (U -define-values -provide))
+       (for/list ([e (-plain-module-begin-body (-module-body m))]
+                  #:when (or (-define-values? e) (-provide? e)))
+         e))
+     ms))
 
   (define τ₀ (-τ e_hv -ρ⊥ -Γ⊤))
   (define Ξ₀ : -Ξ (hash τ₀ ∅))
