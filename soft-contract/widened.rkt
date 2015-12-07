@@ -11,7 +11,8 @@
  "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/query-z3.rkt"
  "machine.rkt")
 (require/typed "parse.rkt"
-  [files->prog ((Listof Path-String) → -prog)])
+  [files->prog ((Listof Path-String) → -prog)]
+  [init-prim (Listof -module-level-form)])
 
 (define-type -tσ Integer)
 (define-type -tΞ Integer)
@@ -49,7 +50,7 @@
 
 (: run : -prog → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run p)
-  (match-define (-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) (𝑰 p))
+  (match-define (-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) (𝑰 p init-prim))
   (define C₀ (-Cfg E₀ Γ₀ κ₀))
 
   (: step : (Map -Cfg -t) (Setof -Cfg) -tσ -σ -tΞ -Ξ -M →

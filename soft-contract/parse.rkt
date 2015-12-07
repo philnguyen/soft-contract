@@ -20,8 +20,8 @@
   (define/contract ms (listof -module?)
     (for/list ([path (in-list paths)])
       (parse-top-level-form (do-expand-file path))))
-  (define-values (havoc-m havoc-e) (gen-havoc (cons -mod-prim ms)))
-  (-prog (list* havoc-m -mod-prim ms) havoc-e))
+  (define-values (havoc-m havoc-e) (gen-havoc ms))
+  (-prog (cons havoc-m ms) havoc-e))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
@@ -414,7 +414,7 @@
     [_ (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
 
 ;; Full primitive module generated from primtive table
-(define -mod-prim
+(define/contract init-prim (listof -module-level-form?)
   (let ()
     
     (define/contract cache
@@ -518,13 +518,10 @@
         [r
          (log-warning "unhandled in `make-decs` ~a~n" r)
          '()]))
-
-    (-module
-     'Λ
-     (-plain-module-begin
-      ;; HACK: leave provide last because `𝑰` is hacky for now
-      `(,@(append-map make-defs prims)
-        ,(-provide (append-map make-decs prims)))))))
+    
+    ;; HACK: leave provide last because `𝑰` is hacky for now
+    `(,@(append-map make-defs prims)
+      ,(-provide (append-map make-decs prims)))))
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)

@@ -237,11 +237,11 @@
 (define-type -ς* (U -ς (Setof -ς)))
 (define-type -Δς* (U -Δς (Setof -Δς)))
 
-(: 𝑰 : -prog → -ς)
+(: 𝑰 : -prog (Listof -module-level-form) → -ς)
 ;; Load program to intial machine state
 ;; FIXME: allow expressions in top-levels and execute them instead,
 ;;        then initialize top-levels to `undefined`
-(define (𝑰 p)
+(define (𝑰 p init-prim)
   (match-define (-prog ms e₀) p)
 
   (: alloc-es : -σ -struct-info Integer (Listof -e) → (Values -σ (Listof -α)))
@@ -324,10 +324,7 @@
   ;; Assuming each top-level variable binds a value for now.
   ;; TODO generalize.
   (define σ₀
-    (for*/fold ([σ : -σ -σ⊥])
-               ([m ms]
-                [form (-plain-module-begin-body (-module-body m))])
-      (define mod-path (-module-path m))
+    (for/fold ([σ : -σ -σ⊥]) ([form init-prim])
       (match form
         ;; general top-level form
         [(? -e?) σ]
@@ -335,7 +332,7 @@
          (match ids
            [(list id)
             (define-values (σ* V) (alloc-e σ e))
-            (⊔ σ* (-α.def (-id-local id mod-path)) V)]
+            (⊔ σ* (-α.def (-id-local id 'Λ)) V)]
            [else
             (error '𝑰 "TODO: general top-level. For now can't handle `define-~a-values`"
                    (length ids))])]
@@ -345,7 +342,7 @@
          (for/fold ([σ : -σ σ]) ([spec specs])
            (match-define (-p/c-item x c) spec)
            (define-values (σ₁ C) (alloc-e σ c))
-           (define id (-id-local x mod-path))
+           (define id (-id-local x 'Λ))
            (define σ₂ (⊔ σ₁ (-α.ctc id) C))
            (cond
              [(hash-has-key? σ₂ (-α.def id)) σ₂]
