@@ -10,7 +10,7 @@
  "runtime/path-inv.rkt" "runtime/val.rkt" "runtime/summ.rkt" "runtime/store.rkt"
  "reduction/main.rkt"
  "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/query-z3.rkt"
- "machine/definition.rkt")
+ "machine/definition.rkt" "machine/load.rkt")
 
 (define-type -tσ Integer)
 (define-type -tΞ Integer)
