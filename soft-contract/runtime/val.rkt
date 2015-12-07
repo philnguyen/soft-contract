@@ -147,6 +147,7 @@
 (define -False/Vs (list -ff))
 (define -●/V (-●))
 (define -Void/Vs (list (-b (void))))
+(define -Void/W (-W -Void/Vs (-b (void))))
 (define -integer?/W (-W 'integer? 'integer?))
 (define -number?/W (-W 'number? 'number?))
 (define -vector?/W (-W 'vector? 'vector?))

@@ -143,7 +143,7 @@
     (match V₁
       [(-St _ αs)
        (define δσ (list (cons (list-ref αs i) V₂)))
-       (-Δς (-W -Void/Vs e_a) Γ κ δσ '() '())]
+       (-Δς -Void/W Γ κ δσ '() '())]
       [(-St/checked s γs (and l³ (list l+ l- lo)) α)
        (define e_x (car e_xs))
        (define o (-st-mut si i))
@@ -165,7 +165,7 @@
             (-Δς (-W (list V*) e_x) Γ κ* '() '() '()))])]
       [_
        ;; TODO: unsound if V₂ concrete buggy higher-order and V₁ opaque
-       (-Δς (-W -Void/Vs e_a) Γ κ '() '() '())]))
+       (-Δς -Void/W Γ κ '() '() '())]))
 
   (: with-vector-bound-check : -M -σ -Γ -WV -WV (-Γ → -Δς*) → -Δς*)
   (define (with-vector-bound-check M σ Γ W-vec W-idx mk-ok)
@@ -244,7 +244,7 @@
                 [_ ;; FIXME ouch. This explodes
                  (for/list : -Δσ ([α αs])
                    (cons α V-val))]))
-            (-Δς (-W -Void/Vs e_a) Γ-ok κ δσ '() '())]
+            (-Δς -Void/W Γ-ok κ δσ '() '())]
            [(-Vector/checked γs l³ α)
             (define Cs
               (match V-idx
@@ -259,7 +259,7 @@
               (define κ* (-kont* φ₂ φ₁ κ))
               (-Δς (-W (list V-val) e-val) Γ-ok κ* '() '() '()))]
            [_
-            (-Δς (-W -Void/Vs e_a) Γ-ok κ '() '() '())]))))
+            (-Δς -Void/W Γ-ok κ '() '() '())]))))
 
   (: ↦and/c : (Setof -V) (Setof -V) → -Δς*)
   (define (↦and/c Cs Ds)

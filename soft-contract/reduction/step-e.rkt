@@ -58,7 +58,7 @@
     ;; evaluate first clause in `begin` and push remaining clauses
     [(-begin es)
      (match es
-       [(list) (-Δς (-W -Void/Vs (-b (void))) Γ κ '() '() '())]
+       [(list) (-Δς -Void/W Γ κ '() '() '())]
        [(list e*) (↦e e* ρ Γ κ σ Ξ M)]
        [(cons e* es*)
         (↦e e* ρ Γ (-kont (-φ.begin es* ρ) κ) σ Ξ M)])]

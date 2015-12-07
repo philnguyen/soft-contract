@@ -33,14 +33,31 @@
   (define-syntax-rule (with-guarded-arity n l+ lo e ...)
     (let ([n* n])
       (cond
-        [(= n (length Vs)) e ...]
+        [(= n* (length Vs)) e ...]
         [else
          (-Δς (-blm l+ lo
-                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤)
+                   (-Clo '(x) (-@ '= (list (-x 'x) (-b n*)) -Λ) -ρ⊥ -Γ⊤)
                    Vs)
              Γ κ '() '() '())])))
   
   (match φ
+    ;; top
+    [(-φ.def l xs)
+     (with-guarded-arity (length xs) l 'Λ
+       (define δσ
+         (for/list : -Δσ ([x xs] [V Vs])
+           (cons (-α.def (-id-local x l)) V)))
+       (-Δς -Void/W Γ κ δσ '() '()))]
+    [(-φ.ctc l itms x)
+     (with-guarded-arity 1 l 'Λ
+       (define δσ (list (cons (-α.ctc (-id-local x l)) (car Vs))))
+       (match itms
+         ['()
+          (-Δς -Void/W Γ κ δσ '() '())]
+         [(cons (-p/c-item x* c*) itms*)
+          (define κ* (-kont (-φ.ctc l itms* x*) κ))
+          (with-Δ δσ '() '()
+            (↦e c* -ρ⊥ Γ κ* σ Ξ M))]))]
     ;; Conditional
     [(-φ.if E₁ E₂)
      (match Vs
@@ -99,7 +116,7 @@
     [(-φ.set! x α)
      (with-guarded-arity 1 'TODO 'set!
        (define Γ* (Γ-reset Γ x ?e))
-       (-Δς (-W -Void/Vs (-b (void))) Γ* κ (list (cons α (car Vs))) '() '()))]
+       (-Δς -Void/W Γ* κ (list (cons α (car Vs))) '() '()))]
     ;; Application
     [(-φ.@ Es WVs↓ loc)
      (match-define (-src-loc l pos) loc)
@@ -116,7 +133,7 @@
     ;; Begin
     [(-φ.begin es ρ)
      (match es
-       [(list) (-Δς (-W -Void/Vs (-b (void))) Γ κ '() '() '())]
+       [(list) (-Δς -Void/W Γ κ '() '() '())]
        [(list e) (↦e e ρ Γ κ σ Ξ M)]
        [(cons e es*)
         (↦e e ρ Γ (-kont (-φ.begin es* ρ) κ) σ Ξ M)])]
