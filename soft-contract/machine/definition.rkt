@@ -19,6 +19,8 @@
   ; `V` and `e` don't have any reference back to `E`, so it's not recursive
   (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : Integer])
   (struct -App [f : -WV] [xs : (Listof -WV)] [ctx : -src-loc])
+  -define-values
+  -provide
   (subset: -Ans
     -blm
     -WVs))
@@ -38,6 +40,11 @@
     [(-↓ e ρ) `(,(show-e e) ∣ ,@(show-ρ ρ))]
     [(-Mon C V _ _) `(Mon ,(show-WV C) ,(show-WV V))]
     [(-App F Vs _) `(App ,(show-WV F) ,@(map show-WV Vs))]
+    [(-define-values _ xs e) `(define-values xs ,(show-e e))]
+    [(-provide _ items)
+     `(provide ,@(for/list : (Listof Sexp) ([i items])
+                   (match-let ([(-p/c-item x c) i])
+                     `(,x ,(show-e c)))))]
     [(-blm l+ lo V C) `(blame ,l+ ,lo ,(show-V V) ,(map show-V C))]
     [(-W Vs e) `(,@(map show-V Vs) @ ,(show-?e e))]))
 
@@ -70,6 +77,7 @@
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
 
   ;; Top-level stuff
+  (struct -φ.top [items : (Listof -module-level-form)] [e : -e])
   (struct -φ.def [path : Adhoc-Module-Path] [xs : (Listof Symbol)])
   (struct -φ.ctc [path : Adhoc-Module-Path] [items : (Listof -p/c-item)] [current : Symbol])
 
@@ -123,9 +131,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stack
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Stack address
-
 
 ;; Stack
 (define-data -κ
