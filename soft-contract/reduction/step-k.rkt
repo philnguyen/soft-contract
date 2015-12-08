@@ -51,9 +51,9 @@
      (define n (length xs))
      (with-guarded-arity n l 'Λ
        (define-values (δσ ids)
-         (for/lists ([δσ : -Δσ] [ids : (Listof -id-local)])
+         (for/lists ([δσ : -Δσ] [ids : (Listof -id)])
                     ([x xs] [V Vs])
-           (define id (-id-local x l))
+           (define id (-id x l))
            (values (cons (-α.def id) V) id)))
        (define e?s (split-values ?e n))
        (define Γ*
@@ -62,7 +62,7 @@
        (-Δς -Void/W Γ* κ δσ '() '()))]
     [(-φ.ctc l itms x)
      (with-guarded-arity 1 l 'Λ
-       (define δσ (list (cons (-α.ctc (-id-local x l)) (car Vs))))
+       (define δσ (list (cons (-α.ctc (-id x l)) (car Vs))))
        (match itms
          ['()
           (-Δς -Void/W Γ κ δσ '() '())]
@@ -380,7 +380,7 @@
             ;; (domains are reversed compared to `Cs↓*`)
             (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()] [δσ : -Δσ '()])
                       ([(C i) (in-indexed Cs↓*)] [c cs↓*])
-              (define γ (-α.fld (-id-local '-> 'Λ) pos i))
+              (define γ (-α.fld (-id '-> 'Λ) pos i))
               (values (cons γ γs)
                       (⊔ σ* γ C)
                       (cons c cs*)

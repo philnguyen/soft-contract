@@ -31,7 +31,7 @@
          (match ids
            [(list id)
             (define-values (σ* V) (alloc-e σ e))
-            (⊔ σ* (-α.def (-id-local id 'Λ)) V)]
+            (⊔ σ* (-α.def (-id id 'Λ)) V)]
            [else
             (error '𝑰 "TODO: general top-level. For now can't handle `define-~a-values`"
                    (length ids))])]
@@ -41,7 +41,7 @@
          (for/fold ([σ : -σ σ]) ([spec specs])
            (match-define (-p/c-item x c) spec)
            (define-values (σ₁ C) (alloc-e σ c))
-           (define id (-id-local x 'Λ))
+           (define id (-id x 'Λ))
            (define σ₂ (⊔ σ₁ (-α.ctc id) C))
            (cond
              [(hash-has-key? σ₂ (-α.def id)) σ₂]
@@ -76,20 +76,20 @@
   
   (match e
     [(? -v?) (values σ (close-Γ -Γ⊤ (close e -ρ⊥)))]
-    [(-ref (-id-local o 'Λ) _ _) (values σ (prim-name->unsafe-prim o))]
+    [(-ref (-id o 'Λ) _ _) (values σ (prim-name->unsafe-prim o))]
     [(-->i doms rng pos)
      (define-values (xs cs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                   ([dom doms])
          (values (car dom) (cdr dom))))
      (define-values (σ* γs)
-       (alloc-es σ (#|HACK|# -struct-info (-id-local '-> 'Λ) (length cs) ∅) pos cs))
+       (alloc-es σ (#|HACK|# -struct-info (-id '-> 'Λ) (length cs) ∅) pos cs))
      (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
     [(-@ (-st-mk (and s (-struct-info (or ''vectorof 'vector/c) _ _)))
          cs (-src-loc _ pos))
      (define-values (σ* αs) (alloc-es σ s pos cs))
      (values σ* (-St s αs))]
-    [(-@ (or 'and/c (-ref (-id-local 'and/c 'Λ) _ _)) (list c₁ c₂) l)
+    [(-@ (or 'and/c (-ref (-id 'and/c 'Λ) _ _)) (list c₁ c₂) l)
      (define pos (-src-loc-pos l))
      (define γ₁ (-α.and/c-l pos))
      (define γ₂ (-α.and/c-r pos))
@@ -97,7 +97,7 @@
      (define-values (σ₂ V₂) (alloc-e (⊔ σ₁ γ₁ V₁) c₂))
      (define flat? (and (C-flat? V₁) (C-flat? V₂)))
      (values (⊔ σ₂ γ₂ V₂) (-And/C flat? γ₁ γ₂))]
-    [(-@ (or 'or/c (-ref (-id-local 'or/c 'Λ) _ _)) (list c₁ c₂) l)
+    [(-@ (or 'or/c (-ref (-id 'or/c 'Λ) _ _)) (list c₁ c₂) l)
      (define pos (-src-loc-pos l))
      (define γ₁ (-α.or/c-l pos))
      (define γ₂ (-α.or/c-r pos))
@@ -105,15 +105,15 @@
      (define-values (σ₂ V₂) (alloc-e (⊔ σ₁ γ₁ V₁) c₂))
      (define flat? (and (C-flat? V₁) (C-flat? V₂)))
      (values (⊔ σ₂ γ₂ V₂) (-Or/C flat? γ₁ γ₂))]
-    [(-@ (or 'not/c (-ref (-id-local 'not/c 'Λ) _ _)) (list c) l)
+    [(-@ (or 'not/c (-ref (-id 'not/c 'Λ) _ _)) (list c) l)
      (define-values (σ* V) (alloc-e σ c))
      (define γ (-α.not/c (-src-loc-pos l)))
      (values (⊔ σ* γ V) (-Not/C γ))]
-    [(-@ (or 'vectorof (-ref (-id-local 'vectorof 'Λ) _ _)) (list c) l)
+    [(-@ (or 'vectorof (-ref (-id 'vectorof 'Λ) _ _)) (list c) l)
      (define-values (σ* V) (alloc-e σ c))
      (define γ (-α.vectorof (-src-loc-pos l)))
      (values (⊔ σ* γ V) (-Vectorof γ))]
-    [(-@ (or 'vector/c (-ref (-id-local 'vector/c 'Λ) _ _)) cs l)
+    [(-@ (or 'vector/c (-ref (-id 'vector/c 'Λ) _ _)) cs l)
      (define-values (σ* γs-rev)
        (let ([pos (-src-loc-pos l)])
          (for/fold ([σ : -σ σ] [γs-rev : (Listof -α.vector/c) '()])

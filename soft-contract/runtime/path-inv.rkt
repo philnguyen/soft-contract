@@ -11,11 +11,11 @@
 ;; independent of mutable states
 ;; The bindings `(x ≡ e)` are just a way of storing `(equal? x e)`
 ;; for faster queries
-(struct -Γ ([bindings : (Map (U Symbol -id-local) -e)] [facts : -es]) #:transparent)
+(struct -Γ ([bindings : (Map (U Symbol -id) -e)] [facts : -es]) #:transparent)
 (define -Γ⊤ (-Γ (hash) ∅))
 (define-type/pred -?e (Option -e))
 
-(: canonicalize : (U -Γ (Map (U Symbol -id-local) -e)) -e → -e)
+(: canonicalize : (U -Γ (Map (U Symbol -id) -e)) -e → -e)
 ;; Rewrite invariant in terms of lexically farthest variables possible
 (define (canonicalize Γ+bnds e)
   (define bnds (if (-Γ? Γ+bnds) (-Γ-bindings Γ+bnds) Γ+bnds))
@@ -32,7 +32,7 @@
   (match-define (-Γ bnds facts) Γ)
   (define bnds*
     ; should be the case: x ∈ xs ⇒ FV⟦bnds(e)⟧ ⊆ xs
-    (for/hash : (Map (U Symbol -id-local) -e) ([(x e) bnds] #:when (or (-id-local? x) (∋ xs x)))
+    (for/hash : (Map (U Symbol -id) -e) ([(x e) bnds] #:when (or (-id? x) (∋ xs x)))
       (values x e)))
   (define facts*
     (for/set: : -es ([e facts] #:when (⊆ (FV e) xs)) e))
@@ -51,7 +51,7 @@
       (set-add facts* (canonicalize bnds e))))
   (-Γ bnds facts*))
 
-(: Γ-bind : -Γ (U Symbol -id-local) -?e → -Γ)
+(: Γ-bind : -Γ (U Symbol -id) -?e → -Γ)
 ;; Extend path invariant with given binding
 (define (Γ-bind Γ x e)
   (cond
@@ -65,7 +65,7 @@
 (define (Γ-invalidate Γ x)
   (match-define (-Γ bnds facts) Γ)
   (define bnds*
-    (for/hash : (Map (U Symbol -id-local) -e) ([(z ez) bnds] #:unless (or (equal? z x) (∋ (FV ez) x)))
+    (for/hash : (Map (U Symbol -id) -e) ([(z ez) bnds] #:unless (or (equal? z x) (∋ (FV ez) x)))
       (values z ez)))
   (define facts* (for/set: : -es ([e facts] #:unless (∋ (FV e) x)) e))
   (-Γ bnds* facts*))
@@ -87,7 +87,7 @@
   ; perform substitution in terms of that expression `eₓ`
   (define pt (hash-ref bnds x (λ () (-x x))))
   (define bnds*
-    (for/hash : (Map (U Symbol -id-local) -e) ([(x e₀) bnds])
+    (for/hash : (Map (U Symbol -id) -e) ([(x e₀) bnds])
       (values x (e/ pt e e₀))))
   (define facts*
     (for/set: : -es ([e₀ facts])
@@ -117,7 +117,7 @@
   `(,@(for/list : (Listof Sexp) ([(x e) bnds])
         (define name
           (match x
-            [(-id-local name _) name]
+            [(-id name _) name]
             [(? symbol? x) x]))
         `(≡ ,name ,(show-e e)))
     ,@(for/list : (Listof Sexp) ([e facts])

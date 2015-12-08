@@ -124,11 +124,11 @@
      (define/contract ctor-name symbol? (syntax-e #'ctor))
      (define/contract accs (listof identifier?) (syntax->list #'(acc ...)))
      (define n (length accs))
-     (define si (-struct-info (-id-local ctor-name (cur-mod)) n ∅))
+     (define si (-struct-info (-id ctor-name (cur-mod)) n ∅))
      (-define-values
       (cur-mod)
       (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
-      (-@ (-ref (-id-local 'values 'Λ) (cur-mod) (next-neg!))
+      (-@ (-ref (-id 'values 'Λ) (cur-mod) (next-neg!))
           (list* (-st-mk si)
                  (-st-p si)
                  (for/list ([(accᵢ i) (in-indexed accs)])
@@ -204,15 +204,15 @@
     [(#%plain-app (~literal fake:box/c) c)
      (-box/c (parse-e #'c))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (-@ (-ref (-id-local 'vector/c 'Λ) (cur-mod) (next-neg!))
+     (-@ (-ref (-id 'vector/c 'Λ) (cur-mod) (next-neg!))
          (parse-es #'(c ...))
          (-src-loc (cur-mod) (next-neg!)))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-@ (-ref (-id-local 'vectorof 'Λ) (cur-mod) (next-neg!))
+     (-@ (-ref (-id 'vectorof 'Λ) (cur-mod) (next-neg!))
          (parse-e #'c)
          (-src-loc (cur-mod) (next-neg!)))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
-     (define si (-struct-info (-id-local (syntax-e #'tag) (cur-mod))
+     (define si (-struct-info (-id (syntax-e #'tag) (cur-mod))
                               (length (syntax->list #'(c ...)))
                               ∅))
      (-struct/c si (parse-es #'(c ...)) (next-neg!))]
@@ -300,9 +300,9 @@
     ;; Hacks for now
     [(~literal null) -null]
     [(~literal empty) -null]
-    [(~literal fake:not/c) (-ref (-id-local 'not/c 'Λ) (cur-mod) (next-neg!))]
-    [(~literal fake:and/c) (-ref (-id-local 'and/c 'Λ) (cur-mod) (next-neg!))]
-    [(~literal fake:or/c ) (-ref (-id-local 'or/c  'Λ) (cur-mod) (next-neg!))]
+    [(~literal fake:not/c) (-ref (-id 'not/c 'Λ) (cur-mod) (next-neg!))]
+    [(~literal fake:and/c) (-ref (-id 'and/c 'Λ) (cur-mod) (next-neg!))]
+    [(~literal fake:or/c ) (-ref (-id 'or/c  'Λ) (cur-mod) (next-neg!))]
     
     [i:identifier
      (or
@@ -320,7 +320,7 @@
                _ _ _ _ _ _)
          (when (equal? 'not/c (syntax-e #'i))
            (error "done"))
-         (-ref (-id-local (syntax-e #'i) src) (cur-mod) (next-neg!))]))]))
+         (-ref (-id (syntax-e #'i) src) (cur-mod) (next-neg!))]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
@@ -365,7 +365,7 @@
 
          (define (make-ref s)
            (symbol? . -> . syntax?)
-           #`(-ref (-id-local '#,s 'Λ) (cur-mod) (next-neg!)))
+           #`(-ref (-id '#,s 'Λ) (cur-mod) (next-neg!)))
          
          (match dec
            [`(#:pred ,s ,_ ...)
@@ -439,7 +439,7 @@
         [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
         [`(values ,ctcs ...)
          (-@ 'values (map simple-parse ctcs) (-src-loc 'Λ (next-neg!)))]
-        [(? symbol? s) (-ref (-id-local s 'Λ) 'Λ (next-neg!))]
+        [(? symbol? s) (-ref (-id s 'Λ) 'Λ (next-neg!))]
         [`(quote ,s) (-b s)]
         [(or (? number? x) (? boolean? x)) (-b x)]))
 

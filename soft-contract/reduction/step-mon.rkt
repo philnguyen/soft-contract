@@ -79,7 +79,7 @@
           (-Δς (-App (-W C* e_c*) (list W_v) (-src-loc lo pos)) Γ κ* '() '() '())]
          [else
           ((blm lo 'Λ #|hack|#
-                (-st-p (-struct-info (-id-local 'flat-contract? 'Λ) 1 ∅)) C*)
+                (-st-p (-struct-info (-id 'flat-contract? 'Λ) 1 ∅)) C*)
            Γ)])]))
 
   (: ↦=>i : (Listof Symbol) (Listof -?e) (Listof -α) -e -ρ -Γ → -Δς*)
@@ -90,7 +90,7 @@
             (λ ([Γ-ok : -Γ])
               (define α
                 (cond [e_v (-α.tmp e_v)]
-                      [else (-α.fld (-id-local 'Ar 'Λ) pos 0)]))
+                      [else (-α.fld (-id 'Ar 'Λ) pos 0)]))
               (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
               (define δσ (list (cons α V)))
               (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))

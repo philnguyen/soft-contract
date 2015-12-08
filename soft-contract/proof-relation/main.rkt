@@ -225,11 +225,11 @@
 (module+ test
   (require typed/rackunit "../utils/map.rkt" "../runtime/addr.rkt" "../runtime/env.rkt" "for-test.rkt")
 
-  (define -app (-ref (-id-local 'app '†) '† 0))
+  (define -app (-ref (-id 'app '†) '† 0))
   (define -app-body (-b 'app-body))
-  (define -len (-ref (-id-local 'len '†) '† 0))
+  (define -len (-ref (-id 'len '†) '† 0))
   (define -len-body (-b 'len-body))
-  (define -map (-ref (-id-local 'map '†) '† 0))
+  (define -map (-ref (-id 'map '†) '† 0))
   (define -map-body (-b 'map-body))
   (define -l₁ (-x 'l₁))
   (define -l₂ (-x 'l₂))
@@ -248,9 +248,9 @@
   (define σdb
     (⊔
      (⊔
-      (⊔ -σ⊥ (-α.def (-id-local 'app '†)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
-      (-α.def (-id-local 'len '†)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
-     (-α.def (-id-local 'map '†)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
+      (⊔ -σ⊥ (-α.def (-id 'app '†)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
+      (-α.def (-id 'len '†)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
+     (-α.def (-id 'map '†)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
   (define Mdb
     (⊔
      (⊔

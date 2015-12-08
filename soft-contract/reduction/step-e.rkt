@@ -26,12 +26,12 @@
                                #:unless (spurious? M σ Γ W))
        (case V
          [(undefined) ; FIXME hack
-          (-Δς (-blm 'TODO 'Λ (-st-p (-struct-info (-id-local 'defined 'Λ) 1 ∅))
+          (-Δς (-blm 'TODO 'Λ (-st-p (-struct-info (-id 'defined 'Λ) 1 ∅))
                      (list 'undefined))
               Γ κ '() '() '())]
          [else (-Δς W Γ κ '() '() '())]))]
     ;; look up top-level reference
-    [(and ref (-ref (and id (-id-local name ctx*)) ctx pos))
+    [(and ref (-ref (and id (-id name ctx*)) ctx pos))
      (cond
        ;; skip contract checking for self reference
        [(equal? ctx ctx*)

@@ -404,7 +404,7 @@
         [mk-struct-info : (Any → -struct-info)
          (match-lambda
            [`(,(? symbol? t) ,(? boolean? bs) ...)
-            (-struct-info (-id-local t 'Λ)
+            (-struct-info (-id t 'Λ)
                           (length bs)
                           (for/set: : (Setof Integer) ([(b i) (in-indexed bs)] #:when b) i))])])
     (for ([dec prims])

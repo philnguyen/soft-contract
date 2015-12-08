@@ -9,7 +9,7 @@
  "../runtime/val.rkt" "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt")
 
 (define -havoc-path 'havoc)
-(define -havoc-id (-id-local 'havoc-id -havoc-path)) ; havoc function id
+(define -havoc-id (-id 'havoc-id -havoc-path)) ; havoc function id
 (define -havoc-src (-src-loc -havoc-path (next-neg!))) ; havoc module path
 
 (define (havoc-ref-from [ctx : Mon-Party] [pos : Integer])
@@ -74,7 +74,7 @@
       (for* ([form (in-list forms)] #:when (-provide? form)
              [spec (in-list (-provide-specs form))])
         (log-debug "adding: ~a~n" (-p/c-item-id spec))
-        (refs-add! (-ref (-id-local (-p/c-item-id spec) path) '† (next-neg!))))]))
+        (refs-add! (-ref (-id (-p/c-item-id spec) path) '† (next-neg!))))]))
   ;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (-amb/remember (for/list ([ref (in-set refs)])

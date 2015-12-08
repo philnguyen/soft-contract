@@ -199,7 +199,7 @@
     [(? -e?)
      (cond [(= 1 n) (list e)]
            [else #|hack|#
-            (define s (-struct-info 'values n ∅))
+            (define s (-struct-info -id-values n ∅))
             (for/list ([i (in-range n)])
               (-?@ (-st-ac s i) e))])]
     [_ (make-list n #f)]))

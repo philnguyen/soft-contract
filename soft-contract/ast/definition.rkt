@@ -26,17 +26,7 @@
 (define -Λ (-src-loc 'Λ (next-neg!)))
 
 ;; Identifier as a name and where it's from
-(define-data -id
-  ;; primitive ids as symbols to ease notation
-  'cons 'box
-  ;; these are just (tmp) hacks for retaining expressions / allocation address
-  'values
-  ;; general user-defined id
-  (struct -id-local [name : Symbol] [ctx : Adhoc-Module-Path]))
-
-(define (-id-name [id : -id]) : Symbol
-  (cond [(symbol? id) id]
-        [else (-id-local-name id)]))
+(struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
 ;; Struct meta data
 (struct -struct-info ([id : -id] [arity : Integer] [mutables : (Setof Integer)]) #:transparent)
@@ -144,7 +134,9 @@
 (define -ff (-b #f))
 (define -null (-b null))
 
-(define -s-cons (-struct-info 'cons 2 ∅))
+(define -id-values (-id 'values 'Λ))
+(define -id-cons (-id 'cons 'Λ))
+(define -s-cons (-struct-info -id-cons 2 ∅))
 (define -cons (-st-mk -s-cons))
 (define -car (-st-ac -s-cons 0))
 (define -cdr (-st-ac -s-cons 1))
@@ -153,7 +145,8 @@
 (define -zero (-b 0))
 (define -one (-b 1))
 
-(define -s-box  (-struct-info 'box  1 {set 0}))
+(define -id-box (-id 'box 'Λ))
+(define -s-box  (-struct-info -id-box 1 {set 0}))
 (define -box? (-st-p -s-box))
 (define -unbox (-st-ac -s-box 0))
 (define -box (-st-mk -s-box))
@@ -176,7 +169,7 @@
         ['() 'any/c]
         [(list e) e]
         [(cons e es*)
-         (-@ (-ref (-id-local o 'Λ) l (next-neg!))
+         (-@ (-ref (-id o 'Λ) l (next-neg!))
              (list e (-app/c o l es*))
              (-src-loc l (next-neg!)))]))
     (values (curry -app/c 'and/c)
@@ -184,7 +177,7 @@
 
 (: -not/c : Mon-Party -e → -e)
 (define (-not/c l e)
-  (-@ (-ref (-id-local 'not/c 'Λ) l (next-neg!)) (list e) (-src-loc l (next-neg!))))
+  (-@ (-ref (-id 'not/c 'Λ) l (next-neg!)) (list e) (-src-loc l (next-neg!))))
 
 (: -one-of/c : Mon-Party (Listof -e) → -e)
 (define (-one-of/c l es)
@@ -333,10 +326,10 @@
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) x]
-    [(-ref x _ _)
-     (match x ;; hack
-       [(-id-local name 'Λ) (string->symbol (format "_~a_" name))]
-       [_ (-id-name x)])]
+    [(-ref (-id x p) _ _)
+     (case p ;; hack
+       [(Λ) (string->symbol (format "_~a_" x))]
+       [else x])]
     [(-let-values bnds body _)
      `(let-values
           ,(for/list : (Listof Sexp) ([bnd bnds])

@@ -338,7 +338,9 @@
 
 
 (module+ test
-  (require "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt" "for-test.rkt")
+  (require "../ast/definition.rkt"
+           "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
+           "for-test.rkt")
   
   ;; V ∈ p
   (check-✓ (p∋Vs 'not (-b #f)))
@@ -348,8 +350,8 @@
   (check-✓ (p∋Vs 'number? (-b 1)))
   (check-✓ (p∋Vs 'procedure? (-Clo '(x) (-b 1) -ρ⊥ -Γ⊤)))
   (check-✓ (p∋Vs 'procedure? 'procedure?))
-  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld 'cons 0 0) (-α.fld 'cons 0 1)))))
-  (check-X (p∋Vs 'number? (-St -s-cons (list (-α.fld 'cons 0 0) (-α.fld 'cons 0 1)))))
+  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld -id-cons 0 0) (-α.fld -id-cons 0 1)))))
+  (check-X (p∋Vs 'number? (-St -s-cons (list (-α.fld -id-cons 0 0) (-α.fld -id-cons 0 1)))))
   (check-X (p∋Vs 'integer? (-b 1.5)))
   (check-X (p∋Vs 'real? (-b 1+1i)))
   (check-? (p∋Vs 'integer? -●/V))
