@@ -138,7 +138,7 @@
     [(-μ/c x c)
      (↦e c ρ Γ (-kont (-φ.μ/c x) κ) σ Ξ M)]
     [(-x/c pos)
-     (-Δς (-W (list (-μ/C (-α.μ/c pos))) (-x/c pos)) Γ κ '() '() '())]
+     (-Δς (-W (list (-x/C (-α.x/c pos))) (-x/c pos)) Γ κ '() '() '())]
     [(-x/c.tmp x)
      (error '↦e "Unexpected reference to recursive contract ~a" x)]
     [(-struct/c id cs pos)

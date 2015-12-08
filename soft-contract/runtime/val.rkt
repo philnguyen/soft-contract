@@ -40,7 +40,8 @@
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ])
-  (struct -μ/C [c : -α.μ/c]))
+  (struct -x/C [c : -α.x/c])
+  )
 (define-type -Vs (Listof -V))
 
 (define-data -A
@@ -89,6 +90,7 @@
     [(or (? -Vectorof?) (? -Vector/C?)) #f]
     [(? -=>i?) #f]
     [(or (? -Clo*?) (? -Clo?) (? -Ar?) (? -prim?)) #t]
+    [(? -x/C?) #t]
     [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
 ;; Pretty-print evaluated value
@@ -123,7 +125,7 @@
        ↦ ,(show-e d))]
     [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
-    [(-μ/C (-α.μ/c x)) `(μ/C ,(show-x/c x))]))
+    [(-x/C (-α.x/c x)) `(recursive-contract ,(show-x/c x))]))
 
 (define (show-A [A : -A]) : Sexp
   (match A

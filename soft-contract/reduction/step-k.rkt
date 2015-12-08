@@ -336,7 +336,7 @@
     [(-φ.μ/c x)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
-       (define δσ (list (cons (-α.μ/c x) V)))
+       (define δσ (list (cons (-α.x/c x) V)))
        (-Δς (-W (list V) (-?μ/c x ?e)) Γ κ δσ '() '()))]
     [(-φ.struct/c s es ρ WVs↓ pos)
      (with-guarded-arity 1 'TODO 'Λ

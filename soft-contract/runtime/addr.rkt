@@ -41,7 +41,7 @@
   (struct -α.vector/c [pos : Integer] [idx : Integer])
   (struct -α.vectorof [pos : Integer])
   (struct -α.struct/c [id : -id] [pos : Integer] [idx : Integer])
-  (struct -α.μ/c [pos : Integer])
+  (struct -α.x/c [pos : Integer])
   )
 
 (: alloc-fields : -struct-info Integer → (Listof -α.fld))
