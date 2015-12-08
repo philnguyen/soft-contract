@@ -9,7 +9,7 @@
  "parse/main.rkt"
  "runtime/path-inv.rkt" "runtime/val.rkt" "runtime/summ.rkt" "runtime/store.rkt"
  "reduction/main.rkt"
- "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/query-z3.rkt"
+ "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/z3.rkt"
  "machine/definition.rkt" "machine/load.rkt")
 
 (define-type -tσ Integer)
@@ -101,24 +101,27 @@
     
     (values S* F* tσ* σ* tΞ* Ξ* M*))
 
-  (let go : (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)
-       ([S : (Map -Cfg -t) (hash C₀ -t₀)]
-        [F : (Setof -Cfg) {set C₀}]
-        [tσ : -tσ 0]
-        [σ : -σ σ₀]
-        [tΞ : -tΞ 0]
-        [Ξ : -Ξ Ξ₀]
-        [M : -M M₀])
-    (define-values (S* F* tσ* σ* tΞ* Ξ* M*) (step S F tσ σ tΞ Ξ M))
-    (cond
-      [(set-empty? F*)
-       (define A*
-         (for/set: : (Setof -Cfg) ([Cfg (in-hash-keys S)]
-                                   #:when (Cfg-final? Cfg Ξ*)
-                                   #:unless (match? Cfg (-Cfg (-blm (or 'Λ '†) _ _ _) _ _)))
-           Cfg))
-       (values S* A* σ* Ξ* M*)]
-      [else (go S* F* tσ* σ* tΞ* Ξ* M*)])))
+  (parameterize ([Γ⊢₀ Γ⊢e] ; z3 needs this
+                 [Γ⊢ₑₓₜ z3⊢] ; internal needs this
+                 )
+    (let go : (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)
+      ([S : (Map -Cfg -t) (hash C₀ -t₀)]
+       [F : (Setof -Cfg) {set C₀}]
+       [tσ : -tσ 0]
+       [σ : -σ σ₀]
+       [tΞ : -tΞ 0]
+       [Ξ : -Ξ Ξ₀]
+       [M : -M M₀])
+      (define-values (S* F* tσ* σ* tΞ* Ξ* M*) (step S F tσ σ tΞ Ξ M))
+      (cond
+        [(set-empty? F*)
+         (define A*
+           (for/set: : (Setof -Cfg) ([Cfg (in-hash-keys S)]
+                                     #:when (Cfg-final? Cfg Ξ*)
+                                     #:unless (match? Cfg (-Cfg (-blm (or 'Λ '†) _ _ _) _ _)))
+             Cfg))
+         (values S* A* σ* Ξ* M*)]
+        [else (go S* F* tσ* σ* tΞ* Ξ* M*)]))))
 
 (: run-files : Path-String * → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run-files . paths)

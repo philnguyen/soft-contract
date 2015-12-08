@@ -446,7 +446,7 @@
     (define/contract (mk-struct-info x)
       (any/c . -> . -struct-info?)
       (match-define `(,t ,mut?s ...) x)
-      (-struct-info t (length mut?s) (for/set ([(mut? i) (in-indexed mut?s)] #:when mut?) i)))
+      (-struct-info (-id t 'Λ) (length mut?s) (for/set ([(mut? i) (in-indexed mut?s)] #:when mut?) i)))
 
     (define/contract (make-defs dec)
       (any/c . -> . (listof -define-values?))
