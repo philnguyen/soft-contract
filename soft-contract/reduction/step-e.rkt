@@ -125,9 +125,6 @@
     [(-amb es)
      (match/nd: (-e → -Δς) es
        [ei (↦e ei ρ Γ κ σ Ξ M)])]
-    ;; contract stuff
-    [(-μ/c x c _)
-     (error '↦e "TODO: μ/c")]
     [(-->i doms rng pos)
      (match doms
        ['()
@@ -137,8 +134,13 @@
         (match-define (cons x c) dom)
         (define-values (xs* cs*) (unzip doms*))
         (↦e c ρ Γ (-kont (-φ.=>i cs* '() '() (cons x xs*) rng ρ pos) κ) σ Ξ M)])]
-    [(-x/c x)
-     (error '↦e "TODO: x/c")]
+    ;; contract stuff
+    [(-μ/c x c)
+     (↦e c ρ Γ (-kont (-φ.μ/c x) κ) σ Ξ M)]
+    [(-x/c pos)
+     (-Δς (-W (list (-μ/C (-α.μ/c pos))) (-x/c pos)) Γ κ '() '() '())]
+    [(-x/c.tmp x)
+     (error '↦e "Unexpected reference to recursive contract ~a" x)]
     [(-struct/c id cs pos)
      (match cs
        ['() (-Δς (-W (list (-St/C #t id '())) e) Γ κ '() '() '())]

@@ -11,38 +11,36 @@
 ;; independent of mutable states
 ;; The bindings `(x ≡ e)` are just a way of storing `(equal? x e)`
 ;; for faster queries
-(struct -Γ ([bindings : (Map Symbol -e)] [facts : -es]) #:transparent)
+(struct -Γ ([bindings : (Map (U Symbol -id-local) -e)] [facts : -es]) #:transparent)
 (define -Γ⊤ (-Γ (hash) ∅))
 (define-type/pred -?e (Option -e))
 
-(: canonicalize : (U -Γ (Map Symbol -e)) (U Symbol -e) → -e)
+(: canonicalize : (U -Γ (Map (U Symbol -id-local) -e)) -e → -e)
 ;; Rewrite invariant in terms of lexically farthest variables possible
 (define (canonicalize Γ+bnds e)
   (define bnds (if (-Γ? Γ+bnds) (-Γ-bindings Γ+bnds) Γ+bnds))
-  (match e ; avoid creating new objects in special cases
-    [(or (? symbol? x) (-x x))
-     (assert x) ; hack for TR
-     (hash-ref bnds x (λ () (-x x)))]
-    [(? -e?)
-     (define m
-       (for/hash : (HashTable -e -e) ([(x ex) bnds])
-         (values (-x x) ex)))
-     ((e/map m) e)]))
+  (define f
+    (match-lambda
+      [(-x x)        (hash-ref bnds x  #f)]
+      [(-ref id _ _) (hash-ref bnds id #f)]
+      [_ #f]))
+  ((e/fun f) e))
 
 (: Γ↓ : -Γ (Setof Symbol) → -Γ)
 ;; Restrict path invariant to given variables
 (define (Γ↓ Γ xs)
   (match-define (-Γ bnds facts) Γ)
-  (cond ; avoid creating new identical object
-    [(equal? xs (dom bnds)) Γ]
-    [else
-     (define bnds*
-       ; should be the case: x ∈ xs ⇒ FV⟦bnds(e)⟧ ⊆ xs
-       (for/hash : (Map Symbol -e) ([(x e) bnds] #:when (∋ xs x))
-         (values x e)))
-     (define facts*
-       (for/set: : -es ([e facts] #:when (⊆ (FV e) xs)) e))
-     (-Γ bnds* facts*)]))
+  (define bnds*
+    ; should be the case: x ∈ xs ⇒ FV⟦bnds(e)⟧ ⊆ xs
+    (for/hash : (Map (U Symbol -id-local) -e) ([(x e) bnds] #:when (or (-id-local? x) (∋ xs x)))
+      (values x e)))
+  (define facts*
+    (for/set: : -es ([e facts] #:when (⊆ (FV e) xs)) e))
+  (-Γ bnds* facts*))
+
+(: Γ↓∅ : -Γ → -Γ)
+;; Drop all free variables in path-invariant
+(define (Γ↓∅ Γ) (Γ↓ Γ ∅))
 
 (: Γ+ : -Γ -?e * → -Γ)
 ;; Extend path invariant
@@ -53,7 +51,7 @@
       (set-add facts* (canonicalize bnds e))))
   (-Γ bnds facts*))
 
-(: Γ-bind : -Γ Symbol -?e → -Γ)
+(: Γ-bind : -Γ (U Symbol -id-local) -?e → -Γ)
 ;; Extend path invariant with given binding
 (define (Γ-bind Γ x e)
   (cond
@@ -67,8 +65,7 @@
 (define (Γ-invalidate Γ x)
   (match-define (-Γ bnds facts) Γ)
   (define bnds*
-    (for/hash : (Map Symbol -e)
-              ([(z ez) bnds] #:unless (or (equal? z x) (∋ (FV ez) x)))
+    (for/hash : (Map (U Symbol -id-local) -e) ([(z ez) bnds] #:unless (or (equal? z x) (∋ (FV ez) x)))
       (values z ez)))
   (define facts* (for/set: : -es ([e facts] #:unless (∋ (FV e) x)) e))
   (-Γ bnds* facts*))
@@ -79,7 +76,9 @@
   (Γ-bind (Γ-invalidate Γ x) x e))
 
 (: FV-Γ : -Γ → (Setof Symbol))
-(define (FV-Γ Γ) (dom (-Γ-bindings Γ)))
+(define (FV-Γ Γ)
+  (for/set: : (Setof Symbol) ([x (in-hash-keys (-Γ-bindings Γ))] #:when (symbol? x))
+    x))
 
 (: Γ/ : -Γ Symbol -e → -Γ)
 (define (Γ/ Γ x e)
@@ -88,7 +87,7 @@
   ; perform substitution in terms of that expression `eₓ`
   (define pt (hash-ref bnds x (λ () (-x x))))
   (define bnds*
-    (for/hash : (Map Symbol -e) ([(x e₀) bnds])
+    (for/hash : (Map (U Symbol -id-local) -e) ([(x e₀) bnds])
       (values x (e/ pt e e₀))))
   (define facts*
     (for/set: : -es ([e₀ facts])
@@ -116,6 +115,10 @@
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
   (match-define (-Γ bnds facts) Γ)
   `(,@(for/list : (Listof Sexp) ([(x e) bnds])
-        `(≡ ,x ,(show-e e)))
+        (define name
+          (match x
+            [(-id-local name _) name]
+            [(? symbol? x) x]))
+        `(≡ ,name ,(show-e e)))
     ,@(for/list : (Listof Sexp) ([e facts])
         (show-e e))))

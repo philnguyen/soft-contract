@@ -77,7 +77,7 @@
   (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
 
   ;; Top-level stuff
-  (struct -φ.top [items : (Listof -module-level-form)] [e : -e])
+  (struct -φ.top [items : (Listof (U -define-values -provide))] [e : -e])
   (struct -φ.def [path : Adhoc-Module-Path] [xs : (Listof Symbol)])
   (struct -φ.ctc [path : Adhoc-Module-Path] [items : (Listof -p/c-item)] [current : Symbol])
 
@@ -118,7 +118,7 @@
   (struct -φ.rt.let [old-dom : (Setof Symbol)])
   
   ;; contract stuff
-  (struct -φ.μc [x : Symbol] [pos : Integer])
+  (struct -φ.μ/c [pos : Integer])
   (struct -φ.struct/c
     [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
     [pos : Integer])
@@ -214,7 +214,7 @@
                `(,x ↦ ,(show-?e arg))))
           ,v)]
     [(-φ.rt.let dom) `(rt/let ,@(set->list dom) ,v)]
-    [(-φ.μc x _) `(μ/c ,x ,v)]
+    [(-φ.μ/c x) `(μ/c ,(show-x/c x) ,v)]
     [(-φ.struct/c s cs _ρ cs↓ _)
      `(,(show/c (show-struct-info s))
        ,@(reverse (map show-WV cs↓))
@@ -222,6 +222,13 @@
        ,@(map show-e cs))]
     [(-φ.=>i cs Cs↓ cs↓ xs e ρ _)
      `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
+    [(-φ.top itms e)
+     `(,@(map show-module-level-form itms) ,(show-e e))]
+    [(-φ.def _ xs) `(define-values ,xs ,v)]
+    [(-φ.ctc _ itms x)
+     `(provide
+       ,@(map show-provide-spec itms)
+       [,x ,v])]
     ))
 
 (: show-κ ([-κ] [Sexp] . ->* . (Listof Sexp)))

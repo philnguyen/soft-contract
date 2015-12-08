@@ -28,7 +28,7 @@
 ;; Identifier as a name and where it's from
 (define-data -id
   ;; primitive ids as symbols to ease notation
-  'cons 'box 'μ/c 'x/c
+  'cons 'box
   ;; these are just (tmp) hacks for retaining expressions / allocation address
   'values 'vector
   ;; general user-defined id
@@ -124,9 +124,10 @@
   (struct -amb [es : -es])
   
   ;; contract stuff
-  (struct -μ/c [x : Symbol] [c : -e] [pos : Integer])
+  (struct -μ/c [pos : Integer] [c : -e])
   (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e] [pos : Integer])
-  (struct -x/c [x : Symbol])
+  (struct -x/c.tmp [x : Symbol]) ; hack
+  (struct -x/c [pos : Integer])
   (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
 
 (define-type -es (Setof -e))
@@ -200,7 +201,8 @@
 
 (: -listof : Mon-Party -e → -e)
 (define (-listof l c)
-  (-μ/c 'X (-or/c l (list 'null? (-cons/c c (-x/c 'X)))) (next-neg!)))
+  (define pos (next-neg!))
+  (-μ/c pos (-or/c l (list 'null? (-cons/c c (-x/c pos))))))
 
 (: -box/c : -e → -e)
 (define (-box/c c)
@@ -261,6 +263,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Pretty Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define show-x/c : (Integer → Symbol) (unique-name 'x))
 
 (define (show-src-loc [loc : -src-loc]) : Symbol
   (match-define (-src-loc lab pos) loc)
@@ -353,12 +357,13 @@
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
-    [(-μ/c x c _) `(μ/c (,x) ,(show-e c))]
+    [(-μ/c x c) `(μ/c (,(show-x/c x)) ,(show-e c))]
     [(-->i doms rng _) `(,@(for/list : (Listof Sexp) ([dom doms])
                            (match-define (cons x c) dom)
                            `(,x : ,(show-e c)))
                        ↦ ,(show-e rng))]
-    [(-x/c x) x]
+    [(-x/c.tmp x) x]
+    [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)
      `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]))
 
@@ -370,3 +375,22 @@
 
 (define (show-struct-info [info : -struct-info]) : Symbol
   (-id-name (-struct-info-id info)))
+
+(define show-module-level-form : (-module-level-form → Sexp)
+  (match-lambda
+    [(-provide _ specs) `(provide ,@(map show-provide-spec specs))]
+    [(? -general-top-level-form? m) (show-general-top-level-form m)]))
+
+(define show-general-top-level-form : (-general-top-level-form → Sexp)
+  (match-lambda
+    [(? -e? e) (show-e e)]
+    [(-define-values _ xs e) `(define-values ,xs ,(show-e e))]
+    [(-require specs) `(require ,@(map show-require-spec specs))]))
+
+(define show-provide-spec : (-provide-spec → Sexp)
+  (match-lambda
+    [(-p/c-item x c) `(,x ,(show-e c))]))
+
+(define show-require-spec : (-require-spec → Sexp)
+  values)
+

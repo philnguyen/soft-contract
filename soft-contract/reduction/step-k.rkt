@@ -42,12 +42,24 @@
   
   (match φ
     ;; top
+    [(-φ.top itms e)
+     (match itms
+       ['() (↦e e -ρ⊥ Γ κ σ Ξ M)]
+       [(cons itm itms*)
+        (-Δς itm Γ (-kont (-φ.top itms* e) κ) '() '() '())])]
     [(-φ.def l xs)
-     (with-guarded-arity (length xs) l 'Λ
-       (define δσ
-         (for/list : -Δσ ([x xs] [V Vs])
-           (cons (-α.def (-id-local x l)) V)))
-       (-Δς -Void/W Γ κ δσ '() '()))]
+     (define n (length xs))
+     (with-guarded-arity n l 'Λ
+       (define-values (δσ ids)
+         (for/lists ([δσ : -Δσ] [ids : (Listof -id-local)])
+                    ([x xs] [V Vs])
+           (define id (-id-local x l))
+           (values (cons (-α.def id) V) id)))
+       (define e?s (split-values ?e n))
+       (define Γ*
+         (for/fold ([Γ : -Γ Γ]) ([id ids] [e?i e?s])
+           (Γ-bind Γ id e?i)))
+       (-Δς -Void/W Γ* κ δσ '() '()))]
     [(-φ.ctc l itms x)
      (with-guarded-arity 1 l 'Λ
        (define δσ (list (cons (-α.ctc (-id-local x l)) (car Vs))))
@@ -321,10 +333,11 @@
      (define Γ* (Γ↓ Γ dom₀))
      (-Δς (-W (close-Γ Γ Vs) e*) Γ* κ '() '() '())]
     ;; contract stuff
-    [(-φ.μc x _)
-     (match Vs
-       [(list V) (error '↦WVs "TODO: μ/c")]
-       [_ (error '↦WVs "TODO: catch arity error for μ/c")])]
+    [(-φ.μ/c x)
+     (with-guarded-arity 1 'TODO 'Λ
+       (match-define (list V) Vs)
+       (define δσ (list (cons (-α.μ/c x) V)))
+       (-Δς (-W (list V) (-?μ/c x ?e)) Γ κ δσ '() '()))]
     [(-φ.struct/c s es ρ WVs↓ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (-struct-info id n _) s)

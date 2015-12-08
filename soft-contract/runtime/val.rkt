@@ -40,8 +40,7 @@
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
     [rng : -e] [env : -ρ] [Γ : -Γ])
-  (struct -μ/C [x : Symbol] [c : -α])
-  (struct -X/C [ref : -α]))
+  (struct -μ/C [c : -α.μ/c]))
 (define-type -Vs (Listof -V))
 
 (define-data -A
@@ -124,8 +123,7 @@
        ↦ ,(show-e d))]
     [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
-    [(-μ/C x α) `(μ/C (,x) ,(show-α α))]
-    [(-X/C α) `(X: ,(show-α α))]))
+    [(-μ/C (-α.μ/c x)) `(μ/C ,(show-x/c x))]))
 
 (define (show-A [A : -A]) : Sexp
   (match A

@@ -259,7 +259,7 @@
        [(contract?)
         (match Vs
           [(list (or (? -=>i?) (? -And/C?) (? -Or/C?) (? -Not/C?)
-                     (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -μ/C?) (? -X/C?))) '✓]
+                     (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -μ/C?))) '✓]
           [(list V) (check-proc-arity-1 V)]
           [_ '?])]
        [(flat-contract?)

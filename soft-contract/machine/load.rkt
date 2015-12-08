@@ -63,7 +63,7 @@
   (define-values (E₀ κ₀)
     (match top-exps
       ['() (values (-↓ e_hv -ρ⊥) τ₀)]
-      [(cons (and (or (? -define-values?) (? -provide?)) e†) exps)
+      [(cons e† exps)
        (values e† (-kont (-φ.top exps e_hv) τ₀))]))
 
   (-ς E₀ -Γ⊤ κ₀ σ₀ Ξ₀ -M⊥))

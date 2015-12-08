@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide
- FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/list find-calls prim-name->unsafe-prim)
+ FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list find-calls prim-name->unsafe-prim)
 
 (require
  racket/match racket/set racket/function
@@ -47,7 +47,7 @@
     [(-amb es)
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (FV e)))]
-    [(-μ/c x e _) (set-remove (FV e) x)]
+    [(-μ/c _ e) (FV e)]
     [(-->i doms rng _)
      (define-values (bound FV_dom)
        (for/fold ([bound : (Setof Symbol) ∅] [FV_dom : (Setof Symbol) ∅]) ([dom doms])
@@ -96,7 +96,7 @@
     [(-amb es)
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (𝐴 e)))]
-    [(-μ/c x e _) (set-remove (𝐴 e) x)]
+    [(-μ/c _ e) (𝐴 e)]
     [(-->i doms rng _)
      (define-values (bound 𝐴_dom)
        (for/fold ([bound : (Setof Symbol) ∅] [𝐴_dom : (Setof Symbol) ∅]) ([dom doms])
@@ -147,7 +147,7 @@
          (checks# eₓ))
        (checks# e))]
    [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
-   [(-μ/c _ c _) (checks# c)]
+   [(-μ/c _ c) (checks# c)]
    [(-->i cs d _) (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs)) (checks# d))]
    [(-struct/c _ cs _) (checks# cs)]
 
@@ -188,7 +188,7 @@
            (count-xs body x))])]
     [(-@-havoc (-x z)) (if (equal? z x) 1 0)]
     [(-amb es) (for/sum : Integer ([e es]) (count-xs e x))]
-    [(-μ/c z c _) (if (equal? z x) 0 (count-xs c x))]
+    [(-μ/c _ c) (count-xs c x)]
     [(-->i doms rng _)
      (define-values (bound k)
        (for/fold ([bound : (Setof Symbol) ∅] [k : Integer 0]) ([dom doms])
@@ -221,10 +221,10 @@
       [(-letrec-values bnds e ctx)
        (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
-      [(-μ/c z c _) (set-remove (go c) z)]
+      [(-μ/c _ c) (go c)]
       [(-->i cs d _) (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs)) (go d))]
       [(-struct/c t cs _) (go* cs)]
-      [(-x/c x) (set x)]
+      [(-x/c.tmp x) (set x)]
       [_ ∅]))
   
   (go e))
@@ -286,7 +286,7 @@
           (-letrec-values bnds* (go m* e*) l)]
          [(-set! z e*) (-set! z (go m e*))]
          [(-amb es) (-amb (for/set: : -es ([ei es]) (go m ei)))]
-         [(-μ/c z c p) (-μ/c z (go m c) p)]
+         [(-μ/c z c) (-μ/c z (go m c))]
          [(-->i doms rng p)
           (define-values (xs cs)
             (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
@@ -299,12 +299,77 @@
           (log-debug "e/: ignore substituting ~a" e)
           e])])))
 
+(: e/fun : (-e → (Option -e)) → (-e → -e))
+;; Duplicate code as `e/map` for now for some efficiency of `e/map`
+(define ((e/fun f) e)
+
+  (let go ([f f] [e e])
+    (cond
+      [(f e) => values]
+      [else
+       (match e
+         [(-λ xs e*) (-λ xs (go (shrink-f f xs) e*))]
+         [(-case-λ clauses)
+          (-case-λ
+           (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+             (match-define (cons xs e*) clause)
+             (cons xs (go (shrink-f f xs) e*))))]
+         [(? -v?) e]
+         [(? -ref?) e]
+         [(-@ g xs l) (-@ (go f g) (map (curry go f) xs) l)]
+         [(-if e₀ e₁ e₂) (-if (go f e₀) (go f e₁) (go f e₂))]
+         [(-wcm k v b) (-wcm (go f k) (go f v) (go f b))]
+         [(-begin0 e₀ es) (-begin0 (go f e₀) (map (curry go f) es))]
+         [(? -quote?) e]
+         [(-let-values bnds e* l)
+          (define-values (bnds-rev locals)
+            (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+                       [locals : (Setof Symbol) ∅])
+                      ([bnd bnds])
+              (match-define (cons xs ex) bnd)
+              (values (cons (cons xs (go f ex)) bnds-rev)
+                      (set-add-list locals xs))))
+          (define f* (shrink-f f (set->list locals)))
+          (-let-values (reverse bnds-rev) (go f* e*) l)]
+         [(-letrec-values bnds e* l)
+          (define xs
+            (set->list
+             (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
+               (set-add-list locals (car bnd)))))
+          (define f* (shrink-f f xs))
+          (define bnds*
+            (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
+              (match-define (cons xs ex) bnd)
+              (cons xs (go f* ex))))
+          (-letrec-values bnds* (go f* e*) l)]
+         [(-set! z e*) (-set! z (go f e*))]
+         [(-amb es) (-amb (for/set: : -es ([ei es]) (go f ei)))]
+         [(-μ/c z c) (-μ/c z (go f c))]
+         [(-->i doms rng p)
+          (define-values (xs cs)
+            (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
+                       ([dom doms])
+              (values (car dom) (go f (cdr dom)))))
+          (define rng* (go (shrink-f f xs) rng))
+          (-->i (map (inst cons Symbol -e) xs cs) rng* p)]
+         [(-struct/c t cs p) (-struct/c t (map (curry go f) cs) p)]
+         [_
+          (log-debug "e/: ignore substituting ~a" e)
+          e])])))
+
 ;; Shrink domain of `m` to not be included by `xs`
 (define (shrink [m : (HashTable -e -e)] [xs : -formals]) : (HashTable -e -e)
   (for/fold ([m* : (HashTable -e -e) m])
             ([x (in-hash-keys m)] #:when (binder-has? xs x))
     (cond [(-x? x) (hash-remove m* x)]
           [else (error 'e/m "unexpected")])))
+
+(define (shrink-f [f : (-e → (Option -e))] [xs : -formals]) : (-e → (Option -e))
+  (define shadows
+    (match xs
+      [(-varargs zs z) (set-add (list->set zs) z)]
+      [(? list?) (list->set xs)]))
+  (λ (e) (and (set-empty? (∩ shadows (FV e))) (f e))))
 
 (: find-calls : -e -id → (Setof (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`

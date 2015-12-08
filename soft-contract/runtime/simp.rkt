@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide -?@ -not -struct/c-split -struct-split -app-split -?struct/c -?->i split-values)
+(provide -?@ -not -struct/c-split -struct-split -app-split -?struct/c -?->i -?μ/c split-values)
 
 (require
  racket/match racket/bool racket/list racket/math racket/flonum racket/extflonum racket/string
@@ -176,6 +176,8 @@
   (match e
     [(-@ (≡ o) es _) es]
     [_ (make-list n #f)]))
+
+(define (-?μ/c [x : Integer] [e : -?e]) (and e (-μ/c x e)))
 
 (: -?struct/c : -struct-info (Listof -?e) → (Option -struct/c))
 (define (-?struct/c s fields)

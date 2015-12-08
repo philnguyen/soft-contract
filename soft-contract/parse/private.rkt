@@ -142,7 +142,9 @@
        [(set-empty? frees)
         (-define-values (cur-mod) (list lhs) rhs)]
        [(set-empty? (set-remove frees lhs))
-        (-define-values (cur-mod) (list lhs) (-μ/c lhs rhs (next-neg!)))]
+        (define pos (next-neg!))
+        (-define-values (cur-mod) (list lhs)
+           (-μ/c pos (e/ (-x/c.tmp lhs) (-x/c pos) rhs)))]
        [else
         (error 'TODO
                "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
@@ -196,9 +198,7 @@
            (parse-e #'d)
            (next-neg!))]
     [(#%plain-app (~literal fake:listof) c)
-     (-μ/c 'X
-       (-or/c (cur-mod) (list 'null? (-cons/c (parse-e #'c) (-x/c 'X))))
-       (next-neg!))]
+     (-listof (cur-mod) (parse-e #'c))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (-list/c (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:box/c) c)
@@ -228,9 +228,9 @@
     [(~or (let-values ()
             (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
           (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...))
-     (-x/c (syntax-e #'x))]
+     (-x/c.tmp (syntax-e #'x))]
     [(#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...)
-     (-x/c (syntax-e #'x))]
+     (-x/c.tmp (syntax-e #'x))]
 
     ;; primitive contracts
     [(~literal fake:any/c) 'any/c]
