@@ -163,7 +163,7 @@
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
-  (let ()
+  (let () 
     (define (-app/c [o : Symbol] [l : Mon-Party] [es : (Listof -e)]) : -e
       (match es
         ['() 'any/c]

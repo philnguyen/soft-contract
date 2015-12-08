@@ -62,6 +62,15 @@
        (∪ xs (FV e)))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅]))
 
+(module+ test
+  (require typed/rackunit)
+  
+  (check-equal? (FV -tt) ∅)
+  (check-equal? (FV (-λ '(x) (-x 'x))) ∅)
+  (check-equal? (FV (-x 'x)) {set 'x})
+  (check-equal? (FV (-ref (-id 'cons 'Λ) 'l 0)) ∅)
+  (check-equal? (FV (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) -Λ)))) {set 'f}))
+
 (: 𝐴 : (U -e (Listof -e)) → (Setof Symbol))
 ;; Collect all asignable free variables
 (define (𝐴 e)
