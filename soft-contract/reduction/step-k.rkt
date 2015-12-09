@@ -385,7 +385,7 @@
                       (⊔ σ* γ C)
                       (cons c cs*)
                       (cons (cons γ C) δσ))))
-          (define C (-=>i xs cs* γs rng ρ Γ))
+          (define C (-=>i xs cs* γs #f rng ρ Γ))
           (define e_C (-?->i xs cs* rng))
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons c cs*)

@@ -186,8 +186,21 @@
 
 (: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
 (define (-?->i xs cs d)
-  (and d (andmap (inst values -?e) cs)
-       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) d 0)))
+  (and d
+       (andmap (inst values -?e) cs)
+       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) #f d 0)))
+
+(: -?->i* : (Listof Symbol) (Listof -?e) Symbol -?e -?e -> (Option -->i))
+(define (-?->i* xs cs x-rst c-rst d)
+  (and d
+       c-rst
+       (andmap (inst values -?e) cs)
+       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e)))
+             (cons x-rst c-rst)
+             d
+             0)))
+
+
 
 (: split-values : -?e Integer → (Listof -?e))
 ;; Split a pure expression `(values e ...)` into `(e ...)`

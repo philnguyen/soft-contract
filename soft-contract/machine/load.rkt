@@ -77,14 +77,21 @@
   (match e
     [(? -v?) (values σ (close-Γ -Γ⊤ (close e -ρ⊥)))]
     [(-ref (-id o 'Λ) _ _) (values σ (prim-name->unsafe-prim o))]
-    [(-->i doms rng pos)
+    [(-->i doms rst rng pos)
      (define-values (xs cs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                   ([dom doms])
          (values (car dom) (cdr dom))))
      (define-values (σ* γs)
        (alloc-es σ (#|HACK|# -struct-info (-id '-> 'Λ) (length cs) ∅) pos cs))
-     (values σ* (-=>i xs cs γs rng -ρ⊥ -Γ⊤))]
+     (define-values (σ** Rst)
+       (match rst
+         [#f (values σ* #f)]
+         [(cons x c)
+          (define-values (σ** C) (alloc-e σ* c))
+          (define α (-α.fld (-id '-> 'Λ) pos (length cs)))
+          (values (⊔ σ** α C) (list x c α))]))
+     (values σ* (-=>i xs cs γs Rst rng -ρ⊥ -Γ⊤))]
     [(-@ (-st-mk (and s (-struct-info (or ''vectorof 'vector/c) _ _)))
          cs (-src-loc _ pos))
      (define-values (σ* αs) (alloc-es σ s pos cs))

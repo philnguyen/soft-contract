@@ -367,14 +367,15 @@
             [_ (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
          [(X) (-Δς (-W (list -ff) (-?@ (-st-p si) e_v)) Γ κ '() '() '())]
          [else (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
-      [(-=>i xs _ _ _ _ _) ; check arity
+      [(-=>i xs _ _ rst _ _ _) ; check arity
        (cond
          [(-procedure-arity V)
           =>
           (λ ([ar : -Arity])
             (define ans
               (cond
-                [(-arity-includes? ar (length xs)) (-W (list -tt) -tt)]
+                [(-arity-includes? ar (if rst (-Arity-At-Least (length xs)) (length xs)))
+                 (-W (list -tt) -tt)]
                 [else (-W (list -ff) -ff)]))
             (-Δς ans Γ κ '() '() '()))]
          [else
@@ -396,7 +397,9 @@
     [(? symbol? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (with-guarded-arity (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f))))]
     [(-Clo  xs e ρ_f Γ_f) (with-guarded-arity (↦β xs e ρ_f Γ_f))]
-    [(-Ar xs cs γs d ρ_c Γ_c α l³)
+    [(-Ar (-=>i xs cs γs rst d ρ_c Γ_c) α l³)
+     (when rst
+       (error '↦@ "varargs"))
      (match/nd: ((Listof -V) → -Δς) (σ@/list σ γs) ; TODO can explode very fast!!
        [Cs (match/nd: (-V → -Δς) (σ@ σ α)
              [V_g (with-guarded-arity (↦indy xs cs Cs d ρ_c Γ_c V_g l³))])])]

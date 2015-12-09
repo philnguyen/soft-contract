@@ -82,21 +82,23 @@
                 (-st-p (-struct-info (-id 'flat-contract? 'Λ) 1 ∅)) C*)
            Γ)])]))
 
-  (: ↦=>i : (Listof Symbol) (Listof -?e) (Listof -α) -e -ρ -Γ → -Δς*)
-  (define (↦=>i xs cs Cs d ρ_d Γ_d)
-    (define -bn (-b (length xs)))
+  (: ↦=>i : -=>i → -Δς*)
+  (define (↦=>i C)
+    (match-define (-=>i xs cs Cs Rst d ρ_d Γ_d) C)
+    (define -bn (-b (if Rst (arity-at-least (length xs)) (length xs))))
     (define-values (δς-ok δς-bads)
       (Γ+/- M σ Γ
             (λ ([Γ-ok : -Γ])
               (define α
                 (cond [e_v (-α.tmp e_v)]
                       [else (-α.fld (-id 'Ar 'Λ) pos 0)]))
-              (define Ar (-Ar xs cs Cs d ρ_d Γ_d α l³))
+              (define Ar (-Ar C α l³))
               (define δσ (list (cons α V)))
               (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))
             (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))
             (list -arity-includes?/W
                   (list W_v (-W -bn -bn))
+                  ;; FIXME not really the right violated contract
                   (blm l+ lo (-Arity-Includes/C (length xs)) V))))
     (collect δς-ok δς-bads))
   
@@ -185,7 +187,7 @@
      (-Δς (-blm l+ lo C (list V)) Γ* κ '() '() '())]
     [(?)
      (match C
-       [(-=>i xs cs Cs d ρ_d Γ_d) (↦=>i xs cs Cs d ρ_d Γ_d)]
+       [(-=>i xs cs Cs Rst d ρ_d Γ_d) (↦=>i C)]
        [(-St/C _ s γs) (↦struct/c s γs)]
        [(-x/C x) (error '↦mon "x/C")]
        [(-And/C _ γ₁ γ₂) (↦and/c γ₁ γ₂)]

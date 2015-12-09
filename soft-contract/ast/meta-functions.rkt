@@ -48,12 +48,14 @@
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (FV e)))]
     [(-μ/c _ e) (FV e)]
-    [(-->i doms rng _)
+    [(-->i doms rst rng _)
      (define-values (bound FV_dom)
        (for/fold ([bound : (Setof Symbol) ∅] [FV_dom : (Setof Symbol) ∅]) ([dom doms])
          (match-define (cons x c) dom)
          (values (set-add bound x) (∪ FV_dom (FV c)))))
-     (∪ FV_dom (-- (FV rng) bound))]
+     (∪ FV_dom
+        (if rst (FV (cdr rst)) ∅)
+        (-- (FV rng) (if rst (set-add bound (car rst)) bound)))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
        (∪ xs (FV c)))]
@@ -106,12 +108,14 @@
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (𝐴 e)))]
     [(-μ/c _ e) (𝐴 e)]
-    [(-->i doms rng _)
+    [(-->i doms rst rng _)
      (define-values (bound 𝐴_dom)
        (for/fold ([bound : (Setof Symbol) ∅] [𝐴_dom : (Setof Symbol) ∅]) ([dom doms])
          (match-define (cons x c) dom)
          (values (set-add bound x) (∪ 𝐴_dom (𝐴 c)))))
-     (∪ 𝐴_dom (-- (𝐴 rng) bound))]
+     (∪ 𝐴_dom
+        (if rst (𝐴 (cdr rst)) ∅)
+        (-- (𝐴 rng) (if rst (set-add bound (car rst)) bound)))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
        (∪ xs (𝐴 c)))]
@@ -157,7 +161,10 @@
        (checks# e))]
    [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
    [(-μ/c _ c) (checks# c)]
-   [(-->i cs d _) (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs)) (checks# d))]
+   [(-->i cs r d _)
+    (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs))
+       (if r (checks# (cdr r)) 0)
+       (checks# d))]
    [(-struct/c _ cs _) (checks# cs)]
 
    [(-plain-module-begin xs) (checks# xs)]
@@ -198,9 +205,11 @@
     [(-@-havoc (-x z)) (if (equal? z x) 1 0)]
     [(-amb es) (for/sum : Integer ([e es]) (count-xs e x))]
     [(-μ/c _ c) (count-xs c x)]
-    [(-->i doms rng _)
+    [(-->i doms rst rng _)
      (define-values (bound k)
-       (for/fold ([bound : (Setof Symbol) ∅] [k : Integer 0]) ([dom doms])
+       (for/fold ([bound : (Setof Symbol) (if rst (set (car rst)) ∅)]
+                  [k : Integer (if rst (count-xs (cdr rst) x) 0)])
+                 ([dom doms])
          (match-define (cons z c) dom)
          (values (set-add bound z) (+ k (count-xs c x)))))
      (+ k (if (set-member? bound x) 0 (count-xs rng x)))]
@@ -231,7 +240,10 @@
        (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
       [(-μ/c _ c) (go c)]
-      [(-->i cs d _) (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs)) (go d))]
+      [(-->i cs rst d _)
+       (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs))
+          (if rst (go (cdr rst)) ∅)
+          (go d))]
       [(-struct/c t cs _) (go* cs)]
       [(-x/c.tmp x) (set x)]
       [_ ∅]))
@@ -296,13 +308,16 @@
          [(-set! z e*) (-set! z (go m e*))]
          [(-amb es) (-amb (for/set: : -es ([ei es]) (go m ei)))]
          [(-μ/c z c) (-μ/c z (go m c))]
-         [(-->i doms rng p)
+         [(-->i doms rst rng p)
           (define-values (xs cs)
             (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                        ([dom doms])
               (values (car dom) (go m (cdr dom)))))
-          (define rng* (go (shrink m xs) rng))
-          (-->i (map (inst cons Symbol -e) xs cs) rng* p)]
+          (define rng* (go (shrink m (if rst (cons (car rst) xs) xs)) rng))
+          (-->i (map (inst cons Symbol -e) xs cs)
+                (and rst (cons (car rst) (go m (cdr rst))))
+                rng*
+                p)]
          [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" e)
@@ -354,13 +369,16 @@
          [(-set! z e*) (-set! z (go f e*))]
          [(-amb es) (-amb (for/set: : -es ([ei es]) (go f ei)))]
          [(-μ/c z c) (-μ/c z (go f c))]
-         [(-->i doms rng p)
+         [(-->i doms rst rng p)
           (define-values (xs cs)
             (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
                        ([dom doms])
               (values (car dom) (go f (cdr dom)))))
-          (define rng* (go (shrink-f f xs) rng))
-          (-->i (map (inst cons Symbol -e) xs cs) rng* p)]
+          (define rng* (go (shrink-f f (if rst (cons (car rst) xs) xs)) rng))
+          (-->i (map (inst cons Symbol -e) xs cs)
+                (and rst (cons (car rst) (go f (cdr rst))))
+                rng*
+                p)]
          [(-struct/c t cs p) (-struct/c t (map (curry go f) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" e)

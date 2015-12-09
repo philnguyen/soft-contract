@@ -57,6 +57,12 @@
         [(-varargs? xs) (-Arity-At-Least (length (-varargs-init xs)))]
         [else (length xs)]))
 
+    (define (-guard-arity [guard : -=>i]) : -Arity
+      (match-define (-=>i xs _ _ rst _ _ _) guard)
+      (define n (length xs))
+      (cond [rst (-Arity-At-Least n)]
+            [else n]))
+
     (define arity-table
       (for/fold ([m : (HashTable Symbol -Arity) (hasheq)]) ([dec prims:prims])
         (match dec
@@ -79,7 +85,7 @@
     (match-lambda
       [(or (-Clo xs _ _ _) (-Clo* xs _ _)) (-formals-arity (assert xs))]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?)) 1]
-      [(-Ar xs _ _ _ _ _ _ _) (length xs)]
+      [(-Ar guard _ _) (-guard-arity guard)]
       [(? -st-p?) 1]
       [(-st-mk (-struct-info _ n _)) n]
       [(? -st-ac?) 1]

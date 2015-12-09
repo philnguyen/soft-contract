@@ -48,7 +48,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type/pred Base
-  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void))
+  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void
+     arity-at-least))
 
 (define-data -top-level-form
   -general-top-level-form
@@ -115,7 +116,11 @@
   
   ;; contract stuff
   (struct -μ/c [pos : Integer] [c : -e])
-  (struct -->i [dom : (Listof (Pairof Symbol -e))] [rng : -e] [pos : Integer])
+  (struct -->i
+    [dom : (Listof (Pairof Symbol -e))]
+    [rest-dom : (Option (Pairof Symbol -e))]
+    [rng : -e]
+    [pos : Integer])
   (struct -x/c.tmp [x : Symbol]) ; hack
   (struct -x/c [pos : Integer])
   (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
@@ -159,7 +164,7 @@
     (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "x•~a" (n-sub i)))) ; hack
       (cons x c)))
-  (-->i doms d pos))
+  (-->i doms #f d pos))
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
@@ -273,6 +278,7 @@
     [(or (regexp? x) (pregexp? x) (bytes? x)) (format "~a" x)]
     [(extflonum? x) (extfl->inexact x)]
     [(void? x) 'void]
+    [(arity-at-least? x) `(arity-at-least ,(arity-at-least-value x))]
     [else x]))
 
 ;; Return operator's simple show-o for pretty-printing
@@ -351,10 +357,10 @@
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
     [(-μ/c x c) `(μ/c (,(show-x/c x)) ,(show-e c))]
-    [(-->i doms rng _) `(,@(for/list : (Listof Sexp) ([dom doms])
-                           (match-define (cons x c) dom)
-                           `(,x : ,(show-e c)))
-                       ↦ ,(show-e rng))]
+    [(-->i doms _ rng _) `(,@(for/list : (Listof Sexp) ([dom doms])
+                               (match-define (cons x c) dom)
+                               `(,x : ,(show-e c)))
+                           ↦ ,(show-e rng))]
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)

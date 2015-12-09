@@ -24,10 +24,7 @@
   ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
-  (struct -Ar
-    [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
-    [rng : -e] [env : -ρ] [Γ : -Γ]
-    [v : -α] [l³ : Mon-Info])
+  (struct -Ar [#|ok, no recursion|# guard : -=>i] [v : -α] [l³ : Mon-Info])
   ;; Contracts
   ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
   ; But these give rise to more special cases of stack frames
@@ -39,6 +36,7 @@
   (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
   (struct -=>i
     [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
+    [rst : (Option (List Symbol -?e -α))]
     [rng : -e] [env : -ρ] [Γ : -Γ])
   (struct -x/C [c : -α.x/c])
   )
@@ -102,11 +100,7 @@
     [(? -o? o) (show-o o)]
     [(-Clo* xs e _) (show-e (-λ xs e))]
     [(-Clo xs e _ _) (show-e (-λ xs e))]
-    [(-Ar xs cs γs rng env Γ α l³)
-     `((,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
-            `(,x : (,(show-α γ) @ ,(show-?e c))))
-        ↦ ,(show-e rng))
-       ◃ ,(show-α α))]
+    [(-Ar guard α l³) `(,(show-V guard) ◃ ,(show-α α))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St/checked s γs _ α)
      `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))
@@ -119,7 +113,14 @@
     [(-Not/C γ) `(not/c ,(show-α γ))]
     [(-Vectorof γ) `(vectorof ,(show-α γ))]
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
-    [(-=>i xs cs γs d ρ Γ)
+    [(-=>i xs cs γs rst d ρ Γ)
+     ;; TODO: show ->*
+     `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
+              `(,x ,(show-α γ) @ ,(show-?e c)))
+           ,@(match rst
+               [(list x* c* γ*) `(#:rest (,x* ,(show-α γ*) @ ,(show-?e c*)))]
+               [_ '()])
+           (res ,xs ,(show-e d)))
      `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
            `(,x : (,(show-α γ) @ ,(show-?e c))))
        ↦ ,(show-e d))]

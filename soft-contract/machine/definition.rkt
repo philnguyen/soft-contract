@@ -123,7 +123,10 @@
     [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
     [pos : Integer])
   (struct -φ.=>i
-    [dom : (Listof -e)] [dom↓ : (Listof -V)] [cs↓ : (Listof -?e)] [xs : (Listof Symbol)]
+    [dom : (Listof -e)]
+    [dom↓ : (Listof -V)]
+    [cs↓ : (Listof -?e)]
+    [xs : (Listof Symbol)]
     [rng : -e] [env : -ρ] [pos : Integer])
   )
 
