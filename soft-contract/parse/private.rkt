@@ -176,7 +176,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (--> (parse-es #'(c ...)) (parse-e #'d) (next-neg!))]
+     (--> (parse-es #'(c ...)) (parse-e #'d))]
     ;; Dependent contract
     [(~or (begin
             (#%plain-app
@@ -425,9 +425,7 @@
       (any/c . -> . -e?)
       (match s
         [`(-> ,doms ... ,rng)
-         (--> (map simple-parse doms)
-              (simple-parse rng)
-              (next-neg!))]
+         (--> (map simple-parse doms) (simple-parse rng))]
         [`(->* (,doms ...) #:rest ,rst ,rng)
          (log-warning "Skipping ->* for now~n")
          'any/c]
@@ -483,7 +481,7 @@
               (hash-ref! cache s 'any/c)]
              [(list (list dom ...))
               ; optimize `boolean?` to `any/c`
-              (hash-ref! cache s (--> (map simple-parse dom) 'any/c (next-neg!)))]))
+              (hash-ref! cache s (--> (map simple-parse dom) 'any/c))]))
          (list (-p/c-item s ctc))]
         [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:batch (,ss ...) ,sig ,_ ...)

@@ -157,14 +157,24 @@
 (define -box (-st-mk -s-box))
 (define -set-box! (-st-mut -s-box 0))
 
-(: --> : (Listof -e) -e Integer → -e)
+(: --> : (Listof -e) -e → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
-(define (--> cs d pos)
+(define (--> cs d)
   (define doms
     (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "x•~a" (n-sub i)))) ; hack
       (cons x c)))
-  (-->i doms #f d pos))
+  (-->i doms #f d (next-neg!)))
+
+(: -->* : (Listof -e) -e -e → -e)
+;; Make a non-dependnet vararg contract
+(define (-->* cs rst d)
+  (define doms
+    (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
+      (define x (string->symbol (format "v•~a" (n-sub i))))
+      (cons x c)))
+  (define x-rst (string->symbol (format "rst•~a" (n-sub (length cs)))))
+  (-->i doms (cons x-rst rst) d (next-neg!)))
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
