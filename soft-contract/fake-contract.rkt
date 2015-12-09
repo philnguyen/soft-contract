@@ -13,7 +13,7 @@
          -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out
          recursive-contract
          dynamic-provide/contract
-         dynamic->i
+         dynamic->i dynamic->* 
          dynamic-struct/c
          dynamic-recursive-contract
          =/c >/c >=/c </c <=/c
@@ -46,6 +46,7 @@
     [(_ name cs ...)
      #`(begin (dynamic-struct/c name cs ...)
               (scv:ignore (c:struct/c name cs ...)))]))
+(define dynamic->* c:dynamic->*)
 (define-syntax-rule (->i ([id ctc] ...) (_res (id* ...) result))
   (begin (dynamic->i (list (list 'id ctc) ...) (λ (id* ...) result))
          (scv:ignore (c:->i ([id ctc] ...) (_res (id* ...) result)))))

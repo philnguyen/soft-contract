@@ -158,7 +158,7 @@
 
 (define/contract (parse-e stx)
   (scv-syntax? . -> . -e?)
-  (log-debug "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
+  (printf "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
 
   (define/contract (parse-es es)
     ((and/c scv-syntax? (not/c identifier?)) . -> . (listof -e?))
@@ -172,7 +172,7 @@
                 #%variable-reference set! list)
     ;;; Contracts
     ;; Non-dependent function contract
-    [(let-values ([(_) #|TODO|# _]
+    [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
@@ -198,6 +198,15 @@
            #f
            (parse-e #'d)
            (next-neg!))]
+    ;; independent varargs
+    [(let-values ([(_) (~literal fake:dynamic->*)]
+                  [(_) (#%plain-app list inits ...)]
+                  [(_) rst]
+                  [(_) rng])
+       _ ...)
+     (-->* (map parse-e (syntax->list #'(inits ...)))
+           (parse-e #'rst)
+           (parse-e #'rng))]
     [(#%plain-app (~literal fake:listof) c)
      (-listof (cur-mod) (parse-e #'c))]
     [(#%plain-app (~literal fake:list/c) c ...)
