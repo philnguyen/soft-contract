@@ -189,7 +189,9 @@
      (match C
        [(-=>i xs cs Cs Rst d ρ_d Γ_d) (↦=>i C)]
        [(-St/C _ s γs) (↦struct/c s γs)]
-       [(-x/C x) (error '↦mon "x/C")]
+       [(-x/C α)
+        (match/nd: (-V → -Δς) (σ@ σ α)
+          [C* (↦mon (-W C* (-x/c (-α.x/c-pos α))) W_v Γ κ σ Ξ M l³ pos)])]
        [(-And/C _ γ₁ γ₂) (↦and/c γ₁ γ₂)]
        [(-Or/C  _ γ₁ γ₂) (↦or/c  γ₁ γ₂)]
        [(-Not/C α) (↦not/c α)]

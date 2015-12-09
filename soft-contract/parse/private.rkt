@@ -195,6 +195,7 @@
            (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
            (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
      (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
+           #f
            (parse-e #'d)
            (next-neg!))]
     [(#%plain-app (~literal fake:listof) c)
@@ -497,20 +498,23 @@
                                 (-->i (for/list ([i (length mut?s)])
                                         (cons (string->symbol (format "k•~a" (n-sub i)))
                                               'any/c))
+                                      #f
                                       'any/c
                                       (next-neg!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-pred ,s (,_ ,mut? ...))
-         (define ctc (hash-ref! cache s (-->i (list (cons 'p• 'any/c)) 'any/c (next-neg!))))
+         (define ctc (hash-ref! cache s (-->i (list (cons 'p• 'any/c)) #f 'any/c (next-neg!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-acc ,s ,si ,_)
          (define ctc (hash-ref! cache s (-->i (list (cons 'a• (-st-p (mk-struct-info si))))
+                                              #f
                                               'any/c
                                               (next-neg!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-mut ,s ,si ,_)
          (define ctc (hash-ref! cache s (-->i (list (cons 'm•₁ (-st-p (mk-struct-info si)))
                                                     (cons 'm•₂ 'any/c))
+                                              #f
                                               'any/c
                                               (next-neg!))))
          (list (-p/c-item s ctc))]
