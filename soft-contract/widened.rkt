@@ -44,7 +44,7 @@
 ;; For debugging only
 (begin
   (define evals : (Map Integer (List (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)) (make-hasheq))
-  (define debug? : Boolean #t))
+  (define debug? : Boolean #f))
 
 (: run : (Listof -module) → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run ms)
