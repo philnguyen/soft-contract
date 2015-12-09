@@ -158,7 +158,7 @@
 
 (define/contract (parse-e stx)
   (scv-syntax? . -> . -e?)
-  (printf "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
+  (log-debug "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
 
   (define/contract (parse-es es)
     ((and/c scv-syntax? (not/c identifier?)) . -> . (listof -e?))
