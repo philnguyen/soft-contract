@@ -228,7 +228,7 @@
   
   (define (check-proc-arity-1 [V : -V]) : -R
     (match (p∋Vs 'procedure? V)
-      ['✓ (decide-R (-arity-includes? (assert (-procedure-arity V)) 1))]
+      ['✓ (decide-R (arity-includes? (assert (-procedure-arity V)) 1))]
       [ans ans]))
 
   (match p
@@ -273,9 +273,9 @@
           [(list V_f V_n)
            (cond
              [(-procedure-arity V_f) =>
-              (λ ([a : -Arity])
+              (λ ([a : Arity])
                 (match V_n
-                  [(-b (? exact-integer? n)) (decide-R (-arity-includes? a n))]
+                  [(-b (? simple-arity? n)) (decide-R (arity-includes? a n))]
                   [_ '?]))]
              [else '?])])]
        ;; Default rules for operations on base values rely on simplification from `-?@`

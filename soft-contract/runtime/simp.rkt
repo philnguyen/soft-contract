@@ -202,7 +202,7 @@
 
 
 
-(: split-values : -?e Integer → (Listof -?e))
+(: split-values : -?e Natural → (Listof -?e))
 ;; Split a pure expression `(values e ...)` into `(e ...)`
 (define (split-values e n)
   (match e

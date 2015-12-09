@@ -29,7 +29,7 @@
 (struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
 ;; Struct meta data
-(struct -struct-info ([id : -id] [arity : Integer] [mutables : (Setof Integer)]) #:transparent)
+(struct -struct-info ([id : -id] [arity : Natural] [mutables : (Setof Integer)]) #:transparent)
 
 ;; Formal parameters
 (define-data -formals

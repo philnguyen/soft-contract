@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (require
- racket/match racket/set racket/function
+ racket/match racket/set (except-in racket/function arity-includes?)
  "../utils/list.rkt" "../utils/debug.rkt" "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt"
  "../utils/untyped-macros.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
@@ -33,7 +33,7 @@
         [a =>
          (λ (a)
            (cond
-             [(-arity-includes? a n) e ...]
+             [(arity-includes? a n) e ...]
              [else (-Δς (-blm l 'Λ (-Arity-Includes/C n) (list V_f)) Γ κ '() '() '())]))]
         [else
          (unless (-●? V_f)
@@ -369,13 +369,14 @@
          [else (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
       [(-=>i xs _ _ rst _ _ _) ; check arity
        (cond
-         [(-procedure-arity V)
-          =>
-          (λ ([ar : -Arity])
+         [(-procedure-arity V) =>
+          (λ ([ar : Arity])
+            (define target-arity
+              (let ([n (length xs)])
+                (if rst (arity-at-least n) n)))
             (define ans
               (cond
-                [(-arity-includes? ar (if rst (-Arity-At-Least (length xs)) (length xs)))
-                 (-W (list -tt) -tt)]
+                [(arity-includes? ar target-arity) (-W (list -tt) -tt)]
                 [else (-W (list -ff) -ff)]))
             (-Δς ans Γ κ '() '() '()))]
          [else

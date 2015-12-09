@@ -88,10 +88,10 @@
      (match-define (list (-W V_f _) (-W V_n _)) Ws)
      (cond
        [(-procedure-arity V_f) =>
-        (λ ([a : -Arity])
+        (λ ([a : Arity])
           (match V_n
-            [(-b (? exact-integer? n))
-             (define ans (if (-arity-includes? a n) -tt -ff))
+            [(-b (? simple-arity? n))
+             (define ans (if (arity-includes? a n) -tt -ff))
              (values '() (-AΓ (list ans) Γ))]
             [else (values '() (-AΓ -●/Vs Γ))]))]
        [else (values '() (-AΓ -●/Vs Γ))])]))
