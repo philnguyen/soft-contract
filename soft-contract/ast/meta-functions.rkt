@@ -412,15 +412,18 @@
          [_ (void)]))
   calls)
 
+(: -formals-names : -formals → (Setof Symbol))
+;; Return all names that a formal list binds
+(define -formals-names
+  (match-lambda
+    [(-varargs xs x) (set-add (list->set xs) x)]
+    [(? list? xs) (list->set xs)]))
+
 (: binder-has? : -formals (U Symbol -e) → (Option (Setof Symbol)))
 ;; returns whether a list of binding names has given name
 (define (binder-has? xs x)
   (define FVs (if (symbol? x) {set x} (FV x)))
-  (define binders
-    (match xs
-      [(? list? xs) (list->set xs)]
-      [(-varargs zs z) (set-add (list->set zs) z)]))
-  (define captured (∩ FVs binders))
+  (define captured (∩ FVs (-formals-names xs)))
   (and (not (set-empty? captured)) captured))
 
 (: prim-name->unsafe-prim : Symbol → -o)

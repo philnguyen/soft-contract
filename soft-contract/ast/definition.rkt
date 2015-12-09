@@ -71,7 +71,7 @@
   (struct -module [path : Adhoc-Module-Path] [body : -plain-module-begin]))
 
 (define-data -provide-spec
-  (struct -p/c-item [id : Symbol] [spec : -e] #|TODO|#))
+  (struct -p/c-item [id : Symbol] [spec : -e]))
 
 (define-data -require-spec
   Adhoc-Module-Path #|TODO|#)

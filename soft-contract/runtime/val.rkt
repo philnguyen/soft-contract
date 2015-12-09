@@ -3,8 +3,8 @@
 (provide (all-defined-out))
 
 (require
- racket/match racket/function
- "../utils/def.rkt" "../utils/map.rkt"
+ racket/match racket/function racket/set
+ "../utils/def.rkt" "../utils/map.rkt" "../utils/set.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "env.rkt" "path-inv.rkt" "addr.rkt")
 
@@ -114,16 +114,21 @@
     [(-Vectorof γ) `(vectorof ,(show-α γ))]
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
     [(-=>i xs cs γs rst d ρ Γ)
-     ;; TODO: show ->*
-     `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
-              `(,x ,(show-α γ) @ ,(show-?e c)))
-           ,@(match rst
-               [(list x* c* γ*) `(#:rest (,x* ,(show-α γ*) @ ,(show-?e c*)))]
-               [_ '()])
-           (res ,xs ,(show-e d)))
-     `(,@(for/list : (Listof Sexp) ([x xs] [c cs] [γ γs])
-           `(,x : (,(show-α γ) @ ,(show-?e c))))
-       ↦ ,(show-e d))]
+     (define dep? (not (set-empty? (∩ (FV d) (list->set xs)))))
+     (match* (dep? rst)
+       [(#f #f)
+        `(,@(map show-?e cs) . -> . ,(show-e d))]
+       [(#f (list x* c* γ*))
+        `(,(map show-?e cs) #:rest ,(show-?e c*) . ->* . ,(show-e d))]
+       [(#t #f)
+        `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
+                 `(,x ,(show-?e c)))
+              (res ,xs ,(show-e d)))]
+       [(#t (list x* c* γ*))
+        `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
+                 `(,x ,(show-?e c)))
+              #:rest (,x* ,(show-?e c*))
+              (res ,xs ,(show-e d)))])]
     [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
     [(-x/C (-α.x/c x)) `(recursive-contract ,(show-x/c x))]))
