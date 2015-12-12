@@ -1,9 +1,11 @@
 #lang typed/racket/base
 
-(provide -?@ -not -struct/c-split -struct-split -app-split -?struct/c -?->i -?μ/c split-values)
+(provide
+ -?@ -not -struct/c-split -struct-split -app-split -?struct/c -?->i -?μ/c split-values bind-args)
 
 (require
- racket/match racket/bool racket/list racket/math racket/flonum racket/extflonum racket/string
+ racket/match racket/bool racket/list racket/math racket/flonum racket/extflonum
+ racket/string racket/function
  "../utils/untyped-macros.rkt" "../utils/set.rkt" "../ast/definition.rkt" "path-inv.rkt"
  (for-syntax
   racket/base racket/contract racket/match racket/list racket/function
@@ -200,8 +202,6 @@
              d
              0)))
 
-
-
 (: split-values : -?e Natural → (Listof -?e))
 ;; Split a pure expression `(values e ...)` into `(e ...)`
 (define (split-values e n)
@@ -216,6 +216,17 @@
             (for/list ([i (in-range n)])
               (-?@ (-st-ac s i) e))])]
     [_ (make-list n #f)]))
+
+(: bind-args : -formals (Listof -?e) → (Values (Listof Symbol) (Listof -?e)))
+;; Bind arguments to formals at `?e` level.
+;; Return 2 lists for parameters and arguments of equal lengths.
+(define (bind-args xs es)
+  (match xs
+    [(? list? xs) (values xs es)]
+    [(-varargs xs x)
+     (define-values (es-init es-rest) (split-at es (length xs)))
+     (values `(,@xs ,x)
+             `(,@es-init ,(foldr (curry -?@ -cons) -null es-rest)))]))
 
 (module+ test
   (require typed/rackunit)

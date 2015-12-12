@@ -2,7 +2,10 @@
 
 (provide (all-defined-out))
 
-(require racket/match racket/set "../utils/map.rkt" "addr.rkt" "val.rkt")
+(require
+ racket/match racket/set racket/list
+ "../utils/map.rkt" "../ast/definition.rkt"
+ "path-inv.rkt" "addr.rkt" "val.rkt" "env.rkt")
 
 ;; store maps addresses to values
 (define-type -σ (MMap -α -V))
@@ -35,3 +38,38 @@
 (define (show-σ [σ : -σ]) : (Listof Sexp)
   (for/list ([(α Vs) (in-hash σ)])
     `(,(show-α α) ↦ ,@(for/list : (Listof Sexp) ([V Vs]) (show-V V)))))
+
+(: alloc : -Γ -ρ -formals (Listof -V) Integer → (Values -Δσ -ρ))
+(define (alloc Γ ρ xs Vs pos)
+
+  (: alloc-varargs : (Listof -V) → (Values -Δσ -V))
+  ;; Given list of value, allocate it in store for varargs,
+  ;; returning the store different and the arg list
+  (define (alloc-varargs Vs)
+    (let go ([Vs : (Listof -V) Vs] [i : Integer 0])
+      (match Vs
+        ['() (values '() -Null)]
+        [(cons V Vs*)
+         (define-values (δσ V-rest) (go Vs* (+ 1 i)))
+         (define α-car (-α.var-car pos i))
+         (define α-cdr (-α.var-cdr pos i))
+         (values (list* (cons α-car (close-Γ Γ V))
+                        (cons α-cdr V-rest)
+                        δσ)
+                 (-St -s-cons (list α-car α-cdr)))])))
+
+  (: alloc-list : -ρ (Listof Symbol) (Listof -V) → (Values -Δσ -ρ))
+  (define (alloc-list ρ xs Vs)
+    (for/fold ([δσ : -Δσ '()] [ρ : -ρ ρ]) ([x xs] [V Vs])
+      (define α x)
+      (values (cons (cons α (close-Γ Γ V)) δσ)
+              (ρ+ ρ x α))))
+
+  (match xs
+    [(-varargs xs-init x-rest)
+     (define-values (Vs-init Vs-rest) (split-at Vs (length xs-init)))
+     (define-values (δσ₀ ρ₀) (alloc-list ρ xs-init Vs-init))
+     (define-values (δσ₁ V-rest) (alloc-varargs Vs-rest))
+     (values `(,(cons x-rest V-rest) ,@δσ₀ ,@δσ₁)
+             (ρ+ ρ₀ x-rest x-rest))]
+    [(? list? xs) (alloc-list ρ xs Vs)]))

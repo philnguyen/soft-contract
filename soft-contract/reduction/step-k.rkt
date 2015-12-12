@@ -187,12 +187,12 @@
        (define doms↓* (cons (cons x (-W V ?e)) doms↓))
        (match* (xs cs Cs W_xs)
          [('() '() '() '())
-          (define-values (args zs δσ)
-            (for/lists ([args : (Listof -WV)] [zs : (Listof Symbol)] [δσ : -Δσ])
+          (define-values (args zs Vs)
+            (for/lists ([args : (Listof -WV)] [zs : (Listof Symbol)] [Vs : (Listof -V)])
                        ([dom (reverse doms↓*)])
               (match-define (cons x (and W (-W V_x e_x))) dom)
-              (values W x (cons x V_x))))
-          (define ρ_d* (ρ++ ρ_d zs #|TODO ok?|# zs))
+              (values W x V_x)))
+          (define-values (δσ ρ_d*) (alloc Γ ρ_d zs Vs pos))
           (with-Δ δσ '() '()
             (↦e d ρ_d* Γ (-kont (-φ.indy.rng V_f args l³ pos) κ) σ Ξ M))]
          [((cons x* xs*) (cons c* cs*) (cons C* Cs*) (cons W_x* W_xs*))
@@ -315,9 +315,10 @@
        [δς_t δς_t]
        [else (assert δς_f)])]
     ;; restore path invariant in previous context
-    [(-φ.rt.@ Γ₀ xs e_f e_xs)
+    [(-φ.rt.@ Γ₀ xs* e_f e_xs*)
      (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
            [else
+            (define-values (xs e_xs) (bind-args xs* e_xs*))
             (define e_a
               (or
                ; take answer as `(f x …)` if possible,

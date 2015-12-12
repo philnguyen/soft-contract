@@ -22,23 +22,6 @@
   (define s (if (-x? x) (-x-name x) x))
   (hash-set ρ s α))
 
-(: ρ++ : -ρ -formals (Listof -α) → -ρ)
-;; Extend environment with given parameter and argument lists
-(define (ρ++ ρ xs αs)
-  (match xs
-    [(? list? xs)
-     (for/fold ([ρ : -ρ ρ]) ([x xs] [α αs])
-       (hash-set ρ x α))]
-    [(-varargs init rest)
-     (let go ([ρ ρ] [xs xs] [αs αs])
-       (match* (xs αs)
-         [((cons x xs*) (cons α αs*))
-          (go (hash-set ρ x α) xs* αs*)]
-         [('() αs)
-          (error 'ρ++ "TODO: varargs")]
-         [((cons _ _) _)
-          (error 'ρ++ "more parameters than arguments")]))]))
-
 (: ρ@ : -ρ (U -x Symbol) → -α)
 ;; Look up environment for address at given variable
 (define (ρ@ ρ x)

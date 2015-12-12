@@ -114,7 +114,7 @@
     [mon-info : Mon-Info] [pos : Integer])
   
   ;; Represent next step for escaping from a block
-  (struct -φ.rt.@ [Γ : -Γ] [xs : (Listof Symbol)] [f : -?e] [args : (Listof -?e)])
+  (struct -φ.rt.@ [Γ : -Γ] [xs : -formals] [f : -?e] [args : (Listof -?e)])
   (struct -φ.rt.let [old-dom : (Setof Symbol)])
   
   ;; contract stuff
@@ -211,11 +211,18 @@
     [(-φ.mon.vectorof Wc n i _ _ _)
      `(mon/vectorof ,(show-V (-W-x Wc)) (... ,v ...))]
     [(-φ.rt.@ Γ xs f args)
-     `(rt ,(show-Γ Γ)
-          (,(show-?e f)
-           ,@(for/list : (Listof Sexp) ([x xs] [arg args])
-               `(,x ↦ ,(show-?e arg))))
-          ,v)]
+     (define (show-bnds [xs : (Listof Symbol)] [args : (Listof -?e)]) : (Listof Sexp)
+       (for/list : (Listof Sexp) ([x xs] [arg args])
+         `(,x ↦ ,(show-?e arg))))
+     
+     (define bnds
+       (match xs
+         [(? list? xs) (show-bnds xs args)]
+         [(-varargs zs z)
+          (define-values (args-init args-rest) (split-at args (length zs)))
+          `(,@(show-bnds zs args-init) `(,z ↦ ,(map show-?e args-rest)))]))
+     
+     `(rt ,(show-Γ Γ) (,(show-?e f) ,@bnds) ,v)]
     [(-φ.rt.let dom) `(rt/let ,@(set->list dom) ,v)]
     [(-φ.μ/c x) `(μ/c ,(show-x/c x) ,v)]
     [(-φ.struct/c s cs _ρ cs↓ _)

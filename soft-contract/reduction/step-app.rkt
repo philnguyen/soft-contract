@@ -44,22 +44,11 @@
 
   (: ↦β : -formals -e -ρ -Γ → -Δς*)
   (define (↦β xs e ρ_f Γ_f)
-    (match xs
-      [(? list? xs)
-       (define-values (ρ* σ* δσ)
-         (for/fold ([ρ* : -ρ ρ_f] [σ* : -σ σ] [δσ : -Δσ '()])
-                   ([x xs] [V_x V_xs] [ex e_xs])
-           (define α x #;(-α.bnd x ex (if ex (Γ↓ Γ (FV ex)) -Γ⊤)))
-           (define V_x* (close-Γ Γ V_x))
-           (values (ρ+ ρ* x α)
-                   (⊔ σ* α V_x*)
-                   (cons (cons α V_x*) δσ))))
-       (define τ (-τ e ρ* Γ_f))
-       (define κ* (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
-       (define δΞ (list (cons τ κ*)))
-       ;(define Ξ* (⊔ Ξ τ κ*))
-       (-Δς (-⇓ e ρ*) Γ_f τ δσ δΞ '())]
-      [(-varargs zs z) (error '↦@ "TODO: varargs")]))
+    (define-values (δσ ρ*) (alloc Γ ρ_f xs V_xs pos))
+    (define τ (-τ e ρ* Γ_f))
+    (define κ* (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
+    (define δΞ (list (cons τ κ*)))
+    (-Δς (-⇓ e ρ*) Γ_f τ δσ δΞ '()))
 
   (: ↦δ : Symbol → -Δς*)
   (define (↦δ o)
@@ -411,7 +400,9 @@
 ;; Check whether a returned result is spurious
 (define (rt-spurious? M σ φ Γ [W (-W '() #f)])
   (match-define (-W Vs ?e) W)
-  (match-define (-φ.rt.@ Γ₀ xs e_f e_xs) φ)
+  (match-define (-φ.rt.@ Γ₀ xs* e_f e_xs*) φ)
+  (define-values (xs e_xs) (bind-args xs* e_xs*))
+  
   (define params ; only care params that have corresponding args
     (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
 

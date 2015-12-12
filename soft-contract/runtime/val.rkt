@@ -14,7 +14,7 @@
   -prim
   (struct -●)
   ;; Structs
-  (struct -St [info : -struct-info] [fields : (Listof -α.fld)])
+  (struct -St [info : -struct-info] [fields : (Listof (U -α.fld -α.var-car -α.var-cdr))])
   (struct -St/checked
     [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
     [unchecked : -α.st*])
