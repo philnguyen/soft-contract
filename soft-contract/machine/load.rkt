@@ -12,8 +12,6 @@
 
 (: 𝑰 : (Listof -module) (Listof -module-level-form) → -ς)
 ;; Load program to intial machine state
-;; FIXME: allow expressions in top-levels and execute them instead,
-;;        then initialize top-levels to `undefined`
 (define (𝑰 ms init-prim)
 
   ;; Generate havoc function and top-level expression

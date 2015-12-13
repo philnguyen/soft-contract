@@ -127,6 +127,9 @@
     [dom↓ : (Listof -V)]
     [cs↓ : (Listof -?e)]
     [xs : (Listof Symbol)]
+    [rst : (U #f #|no rest|#
+              (Pairof Symbol -e) #|unevaluated|#
+              Symbol #|pending|#)]
     [rng : -e] [env : -ρ] [pos : Integer])
   )
 
@@ -230,8 +233,14 @@
        ,@(reverse (map show-WV cs↓))
        ,v
        ,@(map show-e cs))]
-    [(-φ.=>i cs Cs↓ cs↓ xs e ρ _)
-     `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
+    [(-φ.=>i cs Cs↓ cs↓ xs rst e ρ _)
+     (match rst
+       [#f
+        `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
+       [(? symbol?)
+        `(=>i* ,@(reverse (map show-V Cs↓)) ,@(map show-e cs) #:rest [,rst ,v])]
+       [(cons x* e*)
+        `(=>i* ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs) #:rest [,x* ,(show-e e*)])])]
     [(-φ.top itms e)
      `(,@(map show-module-level-form itms) ,(show-e e))]
     [(-φ.def _ xs) `(define-values ,xs ,v)]

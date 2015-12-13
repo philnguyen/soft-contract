@@ -369,28 +369,34 @@
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons e es*)
           (↦e e ρ Γ (-kont (-φ.struct/c s es* ρ WVs↓* pos) κ) σ Ξ M)]))]
-    [(-φ.=>i cs Cs↓ cs↓ xs rng ρ pos)
+    [(-φ.=>i cs Cs↓ cs↓ xs rst rng ρ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
        (define Cs↓* (cons V Cs↓))
        (define cs↓* (cons ?e cs↓))
        (match cs
          ['()
-          (define-values (γs σ* cs* δσ)
-            ;; accumulate new store and address list for contract domains
-            ;; (domains are reversed compared to `Cs↓*`)
-            (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()] [δσ : -Δσ '()])
-                      ([(C i) (in-indexed Cs↓*)] [c cs↓*])
-              (define γ (-α.fld (-id '-> 'Λ) pos i))
-              (values (cons γ γs)
-                      (⊔ σ* γ C)
-                      (cons c cs*)
-                      (cons (cons γ C) δσ))))
-          (define C (-=>i xs cs* γs #f rng ρ Γ))
-          (define e_C (-?->i xs cs* rng))
-          (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
+          (match rst
+            [(cons x* e*)
+             (error "TODO")]
+            [(? symbol? x*)
+             (error "TODO")]
+            [#f
+             (define-values (γs σ* cs* δσ)
+               ;; accumulate new store and address list for contract domains
+               ;; (domains are reversed compared to `Cs↓*`)
+               (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()] [δσ : -Δσ '()])
+                         ([(C i) (in-indexed Cs↓*)] [c cs↓*])
+                 (define γ (-α.fld (-id '-> 'Λ) pos i))
+                 (values (cons γ γs)
+                         (⊔ σ* γ C)
+                         (cons c cs*)
+                         (cons (cons γ C) δσ))))
+             (define C (-=>i xs cs* γs #f rng ρ Γ))
+             (define e_C (-?->i xs cs* rng))
+             (-Δς (-W (list C) e_C) Γ κ δσ '() '())])]
          [(cons c cs*)
-          (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rng ρ pos) κ) σ Ξ M)]))]
+          (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rst rng ρ pos) κ) σ Ξ M)]))]
     ))
 
 (: ↦blm : -blm -Γ -κ -σ -Ξ -M → -Δς*)

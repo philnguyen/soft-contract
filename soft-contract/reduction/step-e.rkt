@@ -128,16 +128,18 @@
      (match/nd: (-e → -Δς) es
        [ei (↦e ei ρ Γ κ σ Ξ M)])]
     [(-->i doms rst rng pos)
-     (when rst
-       (error '↦e "varargs"))
      (match doms
        ['()
-        (define C (-=>i '() '() '() #f rng ρ Γ))
-        (-Δς (-W (list C) e) Γ κ '() '() '())]
+        (match rst
+          [(cons x* e*)
+           (↦e e* ρ Γ (-kont (-φ.=>i '() '() '() '() x* rng ρ pos) κ) σ Ξ M)]
+          [_
+           (define C (-=>i '() '() '() #f rng ρ Γ))
+           (-Δς (-W (list C) e) Γ κ '() '() '())])]
        [(cons dom doms*)
         (match-define (cons x c) dom)
         (define-values (xs* cs*) (unzip doms*))
-        (↦e c ρ Γ (-kont (-φ.=>i cs* '() '() (cons x xs*) rng ρ pos) κ) σ Ξ M)])]
+        (↦e c ρ Γ (-kont (-φ.=>i cs* '() '() (cons x xs*) rst rng ρ pos) κ) σ Ξ M)])]
     ;; contract stuff
     [(-μ/c x c)
      (↦e c ρ Γ (-kont (-φ.μ/c x) κ) σ Ξ M)]
