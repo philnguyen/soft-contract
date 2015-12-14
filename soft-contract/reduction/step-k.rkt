@@ -2,7 +2,7 @@
 
 (require
  racket/match racket/set racket/function
- "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt" "../utils/list.rkt"
+ "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt" "../utils/list.rkt" "../utils/debug.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/summ.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
  "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
@@ -192,7 +192,7 @@
             [(list x* W_c* W_vs)
              (define-values (Vs es) ((inst unzip-by -WV -V -?e) -W-x -W-e W_vs))
              (define-values (δσ V-rst) (alloc-varargs Γ Vs pos))
-             (define e-rst (foldr (curry -?@ -cons) -null es))
+             (define e-rst (-?list es))
              (define κ* (-kont (-φ.indy.rst x* doms V_f d ρ_d l³ pos) κ))
              ; (postpone allocating init args until later)
              (with-Δ δσ '() '()
@@ -438,12 +438,16 @@
 (: ↦blm : -blm -Γ -κ -σ -Ξ -M → -Δς*)
 ;; Either propagate error or eliminate a spurious one
 (define (↦blm blm Γ κ σ Ξ M)
-  (match κ
-    [(? -τ? τ) (-Δς blm Γ τ '() '() '())]
-    [(-kont φ κ*)
-     (match φ
-       [(-φ.rt.@ Γ₀ _ _ _)
-        (cond [(rt-spurious? M σ φ Γ) ∅]
-              [else (-Δς blm Γ₀ κ* '() '() '())])]
-       [(-φ.rt.let dom) (-Δς blm (Γ↓ Γ dom) κ* '() '() '())]
-       [_ (↦blm blm Γ κ* σ Ξ M)])]))
+  (match-define (-blm l+ _ _ _) blm)
+  (case l+
+    [(Λ † havoc) ∅]
+    [else
+     (match κ
+       [(? -τ? τ) (-Δς blm Γ τ '() '() '())]
+       [(-kont φ κ*)
+        (match φ
+          [(-φ.rt.@ Γ₀ _ _ _)
+           (cond [(parameterize ([debugs (set 'rt)]) (rt-spurious? M σ φ Γ)) ∅]
+                 [else (-Δς blm Γ₀ κ* '() '() '())])]
+          [(-φ.rt.let dom) (-Δς blm (Γ↓ Γ dom) κ* '() '() '())]
+          [_ (↦blm blm Γ κ* σ Ξ M)])])]))

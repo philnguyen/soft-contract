@@ -90,7 +90,7 @@
          [(list x* W_c* W_vs)
           (define-values (Vs es) ((inst unzip-by -WV -V -?e) -W-x -W-e W_vs))
           (define-values (δσ V-rst) (alloc-varargs Γ Vs pos))
-          (define e-rst (foldr (curry -?@ -cons) -null es))
+          (define e-rst (-?list es))
           (define κ₂ (-kont (-φ.indy.rst x* '() V_g d ρ_d l³ pos) κ₁))
           (define l³* (swap-parties l³))
           (with-Δ δσ '() '()

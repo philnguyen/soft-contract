@@ -88,8 +88,8 @@
 ;; Check whether module is opaque, returning the set of opaque exports if so
 (define (module-opaque? m)
   (match-define (-module p (-plain-module-begin body)) m)
-  (cond
-    [(equal? p 'Λ) #|HACK|# ∅]
+  (case p
+    [(Λ † havoc) #|HACK|# ∅]
     [else
      (define-values (exports defines)
        (for/fold ([exports : (Setof Symbol) ∅] [defines : (Setof Symbol) ∅])

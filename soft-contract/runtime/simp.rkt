@@ -98,6 +98,9 @@
   (cond
     [(and f (andmap (inst values -?e) xs))
      (match f
+       ;; If we already obtained a value, safe and unsafe shouldn't be different
+       [(-ref (-id o 'Λ) _ _) (apply -?@ o xs)] 
+       
        ['any/c -tt]
        ['none/c -ff]
        ['void (-b (void))]
@@ -237,8 +240,7 @@
     [(? list? xs) (values xs es)]
     [(-varargs xs x)
      (define-values (es-init es-rest) (split-at es (length xs)))
-     (values `(,@xs ,x)
-             `(,@es-init ,(foldr (curry -?@ -cons) -null es-rest)))]))
+     (values `(,@xs ,x) `(,@es-init ,(-?list es-rest)))]))
 
 (: check-?es : (Listof -?e) → (Option (Listof -e)))
 (define (check-?es e?s)
