@@ -345,7 +345,23 @@
        [else (assert δς_f)])]
     ;; restore path invariant in previous context
     [(-φ.rt.@ Γ₀ xs* e_f e_xs*)
-     (cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
+     (cond
+       [(rt-strengthen M σ φ Γ (-W Vs ?e)) =>
+        (λ ([Γ₀* : -Γ])
+          (define-values (xs e_xs) (bind-args xs* e_xs*))
+          (define e_a
+            (or
+             ; take answer as `(f x …)` if possible
+             (apply -?@ e_f e_xs)
+             ; otherwise [e/e_x…]a
+             ; TODO: confirm this won't blow up
+             (and ?e
+                  (andmap (λ (x) x) e_xs)
+                  (e/list (map -x xs) (cast e_xs (Listof -e)) ?e))))
+          (-Δς (-W (close-Γ Γ Vs) e_a) Γ₀* κ '() '() '()))]
+       [else ∅])
+     
+     #;(cond [(rt-spurious? M σ φ Γ (-W Vs ?e)) ∅]
            [else
             (define-values (xs e_xs) (bind-args xs* e_xs*))
             (define e_a
@@ -447,7 +463,11 @@
        [(-kont φ κ*)
         (match φ
           [(-φ.rt.@ Γ₀ _ _ _)
-           (cond [(parameterize ([debugs (set 'rt)]) (rt-spurious? M σ φ Γ)) ∅]
+           (cond
+             [(parameterize ([debugs (set 'rt)]) (rt-strengthen M σ φ Γ)) =>
+              (λ ([Γ₀* : -Γ]) (-Δς blm Γ₀* κ* '() '() '()))]
+             [else ∅])
+           #;(cond [(parameterize ([debugs (set 'rt)]) (rt-spurious? M σ φ Γ)) ∅]
                  [else (-Δς blm Γ₀ κ* '() '() '())])]
           [(-φ.rt.let dom) (-Δς blm (Γ↓ Γ dom) κ* '() '() '())]
           [_ (↦blm blm Γ κ* σ Ξ M)])])]))

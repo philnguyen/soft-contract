@@ -12,7 +12,7 @@
  "../proof-relation/main.rkt"
  "step-mon.rkt")
 
-(provide ↦@ rt-spurious?)
+(provide ↦@ rt-strengthen)
 
 (: ↦@ : -WV (Listof -WV) -Γ -κ -σ -Ξ -M -src-loc → -Δς*)
 ;; Stepping rules for function application
@@ -442,9 +442,9 @@
     [(-●) (with-guarded-arity (set-add (↦havoc) (↦opq)))]
     [_ (-Δς (-blm l 'apply 'procedure? (list V_f)) Γ κ '() '() '())]))
 
-(: rt-spurious? ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . Boolean))
-;; Check whether a returned result is spurious
-(define (rt-spurious? M σ φ Γ [W (-W '() #f)])
+(: rt-strengthen ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . (Option -Γ)))
+;; Compute a strengthened path invariant on return, or `#f` if it's spurious
+(define (rt-strengthen M σ φ Γ [W (-W '() #f)])
   (match-define (-W Vs ?e) W)
   (match-define (-φ.rt.@ Γ₀ xs* e_f e_xs*) φ)
   (define-values (xs e_xs) (bind-args xs* e_xs*))
@@ -452,26 +452,21 @@
   (define params ; only care params that have corresponding args
     (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
 
-  ; Convert invariants about parameters in new environment
-  ; to invariants about arguments in old environment
-  ; PRECOND: (FV e) ⊆ xs
+  ; Function for converting invariants about parameters in callee's environment
+  ; into invariants about arguments in caller's environment
+  ; PRECOND: FV⟦e⟧ ⊆ xs
   (define convert
     (e/map
      (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
        (values (-x x) e_x))))
-  
-  (define facts*
+
+  (define facts-from-callee
     (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) params))
       (convert e)))
 
-  ; Check whether the propositions would contradict
-  (define Γ₀* (MσΓ⊓ M σ Γ₀ facts*))
-  (define ans
-    (cond
-      [Γ₀* (or (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e))))
-               (spurious? M σ Γ₀* (-W Vs (apply -?@ e_f e_xs))))]
-      [else #t]))
-  
+  ; Check if the propositions would contradict
+  (define Γ₀* (MσΓ⊓ M σ Γ₀ facts-from-callee))
+
   (begin ;; debug
     (dbg 'rt "Return from: ~a~n"
          `(,(show-?e e_f)
@@ -479,6 +474,11 @@
                `(,x ↦ ,(show-?e e_x)))))
     (dbg 'rt "Caller knows: ~a~n" (show-Γ Γ₀))
     (dbg 'rt "Callee knows: ~a~n" (show-Γ Γ))
-    (dbg 'rt "Caller would know: ~a~n" (and Γ₀* (show-Γ Γ₀*)))
-    (dbg 'rt "Spurious? ~a~n~n" ans))
-  ans)
+    (dbg 'rt "Caller would know: ~a~n~n" (and Γ₀* (show-Γ Γ₀*))))
+
+  (cond
+    [(and Γ₀*
+          (not (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e)))))
+          (not (spurious? M σ Γ₀* (-W Vs (apply -?@ e_f e_xs)))))
+     Γ₀*]
+    [else #f]))
