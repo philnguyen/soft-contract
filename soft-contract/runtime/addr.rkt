@@ -23,8 +23,8 @@
   ;; for mutable or opaque field
   (struct -α.fld [id : -id] [pos : Integer] [idx : Integer])
   ; for Cons/varargs
-  (struct -α.var-car [pos : Integer] [idx : Integer])
-  (struct -α.var-cdr [pos : Integer] [idx : Integer])
+  (struct -α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list
+  (struct -α.var-cdr [pos : Integer] [idx : Natural])
 
   ;; for wrapped mutable struct
   (struct -α.st* [id : -id] [pos : Integer])

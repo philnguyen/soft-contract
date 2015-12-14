@@ -1,8 +1,8 @@
 #lang typed/racket/base
 
 (require
- racket/match racket/set
- "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt"
+ racket/match racket/set racket/function
+ "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt" "../utils/list.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/summ.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
  "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
@@ -180,33 +180,62 @@
          [(-WV? C) (↦mon C W_V Γ κ σ Ξ M l³ pos)]
          [else (-Δς C Γ (-kont (-φ.mon.c W_V l³ pos) κ) '() '() '())]))]
     ;; indy
-    [(-φ.indy.dom x xs cs Cs W_xs doms↓ V_f d ρ_d l³ pos)
+    [(-φ.indy.dom x args doms↓ Rst V_f d ρ_d l³ pos)
      (with-guarded-arity 1 'Λ 'Λ
        (match-define (list V) Vs)
        (define l³* (swap-parties l³))
        (define doms↓* (cons (cons x (-W V ?e)) doms↓))
-       (match* (xs cs Cs W_xs)
-         [('() '() '() '())
-          (define-values (args zs Vs)
-            (for/lists ([args : (Listof -WV)] [zs : (Listof Symbol)] [Vs : (Listof -V)])
-                       ([dom (reverse doms↓*)])
-              (match-define (cons x (and W (-W V_x e_x))) dom)
-              (values W x V_x)))
-          (define-values (δσ ρ_d*) (alloc Γ ρ_d zs Vs pos))
-          (with-Δ δσ '() '()
-            (↦e d ρ_d* Γ (-kont (-φ.indy.rng V_f args l³ pos) κ) σ Ξ M))]
-         [((cons x* xs*) (cons c* cs*) (cons C* Cs*) (cons W_x* W_xs*))
-          (define W_c* (-W C* c*))
-          (define κ* (-kont (-φ.indy.dom x* xs* cs* Cs* W_xs* doms↓* V_f d ρ_d l³ pos) κ))
+       (match args
+         ['()
+          (define doms (reverse doms↓*))
+          (match Rst
+            [(list x* W_c* W_vs)
+             (define-values (Vs es) ((inst unzip-by -WV -V -?e) -W-x -W-e W_vs))
+             (define-values (δσ V-rst) (alloc-varargs Γ Vs pos))
+             (define e-rst (foldr (curry -?@ -cons) -null es))
+             (define κ* (-kont (-φ.indy.rst x* doms V_f d ρ_d l³ pos) κ))
+             ; (postpone allocating init args until later)
+             (with-Δ δσ '() '()
+               (↦mon W_c* (-W V-rst e-rst) Γ κ* σ Ξ M l³* pos))]
+            [#f
+             (define-values (args zs Vs)
+               (for/lists ([args : (Listof -WV)] [zs : (Listof Symbol)] [Vs : (Listof -V)])
+                          ([dom doms])
+                 (match-define (cons x (and W (-W V_x e_x))) dom)
+                 (values W x V_x)))
+             (define-values (δσ ρ_d*) (alloc Γ ρ_d zs Vs pos))
+             (with-Δ δσ '() '()
+               (↦e d ρ_d* Γ (-kont (-φ.indy.rng V_f args #f l³ pos) κ) σ Ξ M))])]
+         [(cons (list x* (and W_c* (-W C* c*)) W_x*) args*)
+          (define κ* (-kont (-φ.indy.dom x* args* doms↓* Rst V_f d ρ_d l³ pos) κ))
           (↦mon W_c* W_x* Γ κ* σ Ξ M l³* pos)]))]
-    [(-φ.indy.rng V_f args l³ pos)
+    [(-φ.indy.rst x* doms V_f d ρ_d l³ pos)
+     (with-guarded-arity 1 'Λ 'Λ
+       (define-values (δσ₀ ρ_d₀) (alloc Γ ρ_d (list x*) Vs pos))
+       (define-values (args xs₀ Vs₀)
+         (for/lists ([args : (Listof -WV)] [xs : (Listof Symbol)] [Vs : (Listof -V)])
+                    ([dom doms])
+           (match-define (cons x (and W (-W V_x e_x))) dom)
+           (values W x V_x)))
+       (define-values (δσ₁ ρ_d₁) (alloc Γ ρ_d₀ xs₀ Vs₀ pos))
+       (with-Δ (append δσ₀ δσ₁) '() '()
+         (↦e d ρ_d₁ Γ (-kont (-φ.indy.rng V_f args (-W (car Vs) ?e) l³ pos) κ) σ Ξ M)))]
+    [(-φ.indy.rng V_f args Rst l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
        (match-define (list V) Vs)
        (define W_d (-W V ?e))
        (define W_f (-W V_f (-x 'f•))) ; FIXME temp. hack
        (define κ* (-kont (-φ.mon.v W_d l³ pos) κ))
-       (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos)))]
+       (match Rst
+         [(and W-rst (-W V-rst e-rst))
+          (match/nd: ((Listof -V) → -Δς) (unalloc-varargs σ V-rst)
+            [Vs-rst
+             (define es-rst (-?unlist e-rst (length Vs-rst)))
+             (define Ws-rst (map (inst -W -V) Vs-rst es-rst))
+             (↦@ W_f (append args Ws-rst) Γ κ* σ Ξ M (-src-loc lo pos))])]
+         [#f
+          (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos))]))]
     [(-φ.mon.struct s γs cs i Ws↓ W l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
@@ -369,34 +398,41 @@
           (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
          [(cons e es*)
           (↦e e ρ Γ (-kont (-φ.struct/c s es* ρ WVs↓* pos) κ) σ Ξ M)]))]
-    [(-φ.=>i cs Cs↓ cs↓ xs rst rng ρ pos)
+    [(-φ.=>i cs WCs↓ xs rst rng ρ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
-       (define Cs↓* (cons V Cs↓))
-       (define cs↓* (cons ?e cs↓))
        (match cs
          ['()
           (match rst
             [(cons x* e*)
-             (error "TODO")]
+             (define WCs↓* (cons (-W V ?e) WCs↓))
+             (↦e e* ρ Γ (-kont (-φ.=>i '() WCs↓* xs x* rng ρ pos) κ) σ Ξ M)]
             [(? symbol? x*)
-             (error "TODO")]
-            [#f
-             (define-values (γs σ* cs* δσ)
-               ;; accumulate new store and address list for contract domains
-               ;; (domains are reversed compared to `Cs↓*`)
-               (for/fold ([γs : (Listof -α) '()] [σ* : -σ σ] [cs* : (Listof -?e) '()] [δσ : -Δσ '()])
-                         ([(C i) (in-indexed Cs↓*)] [c cs↓*])
+             (define-values (Doms₀ cs₀ δσ₀)
+               (for/lists ([Doms : (Listof (List Symbol -?e -α))] [cs* : (Listof -?e)] [δσ : -Δσ])
+                          ([(WC i) (in-indexed (reverse WCs↓))] [x xs])
+                 (match-define (-W C c) WC)
                  (define γ (-α.fld (-id '-> 'Λ) pos i))
-                 (values (cons γ γs)
-                         (⊔ σ* γ C)
-                         (cons c cs*)
-                         (cons (cons γ C) δσ))))
-             (define C (-=>i xs cs* γs #f rng ρ Γ))
+                 (values (list x c γ) c (cons γ C))))
+             (define γ* (-α.fld (-id '-> 'Λ) pos (length xs)))
+             (define δσ (cons (cons γ* V) δσ₀))
+             (define C (-=>i Doms₀ (list x* ?e γ*) rng ρ Γ))
+             (define e_C (-?->i* xs cs₀ x* ?e rng))
+             (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
+            [#f
+             (define WCs↓* (cons (-W V ?e) WCs↓))
+             (define-values (Doms cs* δσ)
+               (for/lists ([Doms : (Listof (List Symbol -?e -α))] [cs* : (Listof -?e)] [δσ : -Δσ])
+                          ([(WC i) (in-indexed (reverse WCs↓*))] [x xs])
+                 (match-define (-W C c) WC)
+                 (define γ (-α.fld (-id '-> 'Λ) pos i)) ; TODO: separate addr type?
+                 (values (list x c γ) c (cons γ C))))
+             (define C (-=>i Doms #f rng ρ Γ))
              (define e_C (-?->i xs cs* rng))
              (-Δς (-W (list C) e_C) Γ κ δσ '() '())])]
          [(cons c cs*)
-          (↦e c ρ Γ (-kont (-φ.=>i cs* Cs↓* cs↓* xs rst rng ρ pos) κ) σ Ξ M)]))]
+          (define WCs↓* (cons (-W V ?e) WCs↓))
+          (↦e c ρ Γ (-kont (-φ.=>i cs* WCs↓* xs rst rng ρ pos) κ) σ Ξ M)]))]
     ))
 
 (: ↦blm : -blm -Γ -κ -σ -Ξ -M → -Δς*)

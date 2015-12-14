@@ -86,18 +86,24 @@
   (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.indy.dom
     [pending : Symbol] ; variable for next current expression under evaluation
-    [xs : (Listof Symbol)] ; remaining variables
-    [cs : (Listof -?e)] ; remaining contracts
-    [Cs : (Listof -V)] ; remaining contracts
-    [args : (Listof -WV)] ; remaining arguments
-    [args↓ : (Listof (Pairof Symbol -WV))] ; evaluated arguments
+    [args : (Listof (List Symbol -WV -WV))] ; remaining contracts and arguments to monitor
+    [args↓ : (Listof (Pairof Symbol -WV))] ; evaluated arguments, reversed
+    [Rst : (Option (List Symbol -WV (Listof -WV)))] ; rest of varargs
+    [fun : -V] ; inner function
+    [rng : -e] ; range
+    [env : -ρ] ; range's context
+    [mon-info : Mon-Info]
+    [pos : Integer])
+  (struct -φ.indy.rst
+    [pending : Symbol] ; variable for varargs
+    [args : (Listof (Pairof Symbol -WV))] ; init, monitored arguments, in right order
     [fun : -V] ; inner function
     [rng : -e] ; range
     [env : -ρ] ; range's context
     [mon-info : Mon-Info]
     [pos : Integer])
   (struct -φ.indy.rng
-    [fun : -V] [args : (Listof -WV)] [mon-info : Mon-Info] [pos : Integer])
+    [fun : -V] [args : (Listof -WV)] [rst : (Option -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.struct
     [info : -struct-info] [ctcs : (Listof -α)] [cs : (Listof -?e)] [idx : Integer]
     [vals↓ : (Listof -WV)] [target : -WV] [mon-info : Mon-Info] [pos : Integer])
@@ -124,8 +130,7 @@
     [pos : Integer])
   (struct -φ.=>i
     [dom : (Listof -e)]
-    [dom↓ : (Listof -V)]
-    [cs↓ : (Listof -?e)]
+    [dom↓ : (Listof -WV)]
     [xs : (Listof Symbol)]
     [rst : (U #f #|no rest|#
               (Pairof Symbol -e) #|unevaluated|#
@@ -186,19 +191,30 @@
      `(mon ,(if (-E? ctc) (show-E ctc) (show-V (-W-x ctc))) ,v)]
     [(-φ.mon.c val _ _)
      `(mon ,v ,(if (-E? val) (show-E val) (show-V (-W-x val))))]
-    [(-φ.indy.dom x xs cs Cs args args↓ fun rng _env _ _)
+    [(-φ.indy.dom x args args↓ Rst fun rng _env _ _)
+     (define show-Rst
+       (match Rst
+         [(list x* WC* WVs)
+          `(#:rest (mon ,(show-WV WC*) (list ,@(map show-WV WVs)) as ,x*))]
+         [#f '()]))
      `(indy.dom
        [,@(reverse
            (for/list : (Listof Sexp) ([arg args↓])
              (match-define (cons x W_x) arg)
              `[,x ∈ ,(show-WV W_x)]))
         (,x ,v)
-        ,@(for/list : (Listof Sexp) ([x xs] [c cs] [C Cs] [arg args])
-            `(mon ,(show-WV (-W C c)) ,(show-WV arg) as ,x))
+        ,@(for/list : (Listof Sexp) ([arg : (List Symbol -WV -WV) args])
+            (match-define (list x WC WV) arg)
+            `(mon ,(show-WV WC) ,(show-WV WV) as ,x))
+        ,@show-Rst
         ↦ ,(show-e rng)]
        ,(show-V fun))]
-    [(-φ.indy.rng fun args _ _)
-     `(indy.rng (mon ,v (,(show-V fun) ,@(map show-WV args))))]
+    [(-φ.indy.rng fun args rst _ _)
+     (define show-rst
+       (cond
+         [rst `(#:rest ,(show-WV rst))]
+         [else '()]))
+     `(indy.rng (mon ,v (,(show-V fun) ,@(map show-WV args) ,@show-rst)))]
     [(-φ.mon.struct s γs _cs i Ws↓ _ _ _)
      (match-define-values (γs-done (cons γ-cur γs-left)) (split-at γs i))
      `(mon/struct/c
@@ -233,14 +249,14 @@
        ,@(reverse (map show-WV cs↓))
        ,v
        ,@(map show-e cs))]
-    [(-φ.=>i cs Cs↓ cs↓ xs rst e ρ _)
+    [(-φ.=>i cs WCs↓ xs rst e ρ _)
      (match rst
        [#f
-        `(=>i ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs))]
+        `(=>i ,@(reverse (map show-WV WCs↓)) ,v ,@(map show-e cs))]
        [(? symbol?)
-        `(=>i* ,@(reverse (map show-V Cs↓)) ,@(map show-e cs) #:rest [,rst ,v])]
+        `(=>i* ,@(reverse (map show-WV WCs↓)) ,@(map show-e cs) #:rest [,rst ,v])]
        [(cons x* e*)
-        `(=>i* ,@(reverse (map show-V Cs↓)) ,v ,@(map show-e cs) #:rest [,x* ,(show-e e*)])])]
+        `(=>i* ,@(reverse (map show-WV WCs↓)) ,v ,@(map show-e cs) #:rest [,x* ,(show-e e*)])])]
     [(-φ.top itms e)
      `(,@(map show-module-level-form itms) ,(show-e e))]
     [(-φ.def _ xs) `(define-values ,xs ,v)]

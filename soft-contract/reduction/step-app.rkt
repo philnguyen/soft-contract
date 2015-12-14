@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (require
- racket/match racket/set (except-in racket/function arity-includes?)
+ racket/match racket/set racket/list (except-in racket/function arity-includes?)
  "../utils/list.rkt" "../utils/debug.rkt" "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt"
  "../utils/untyped-macros.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
@@ -69,20 +69,40 @@
   (: ↦opq : → -Δς)
   (define (↦opq) (-Δς (-W -●/Vs e_a) Γ κ '() '() '()))
 
-  (: ↦indy : (Listof Symbol) (Listof -?e) (Listof -V) -e -ρ -Γ -V Mon-Info → -Δς*)
-  (define (↦indy xs cs Cs d ρ_d Γ_d V_g l³)
+  (: ↦indy : (Listof (List Symbol -WV -WV))
+              (Option (List Symbol -WV (Listof -WV)))
+              -e -ρ -Γ -V Mon-Info → -Δς*)
+  (define (↦indy args Rst d ρ_d Γ_d V_g l³)
     ;; TODO: probably don't need these restoring frames anymore. Check again.
+    (define-values (xs₀ e_xs₀)
+      (for/lists ([xs₀ : (Listof Symbol)] [e_xs₀ : (Listof -?e)])
+                 ([arg : (List Symbol -WV -WV) args])
+        (match-define (list x _ (-W _ e)) arg)
+        (values x e)))
+    (define-values (xs e_xs)
+      (match Rst
+        [(list x* _ WVs) (values (-varargs xs₀ x*) (append e_xs₀ (map (inst -W-e Any) WVs)))]
+        [#f (values xs₀ e_xs₀)]))
     (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
-    (match* (xs cs Cs W_xs)
-      [('() '() '() '())
-       ;; If there's no argument, skip monitoring arguments and start evaluating range
-       (define κ₂ (-kont (-φ.indy.rng V_g '() l³ pos) κ₁))
-       (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())]
-      [((cons x xs*) (cons c cs*) (cons C Cs*) (cons W_x W_xs*))
+    (match args
+      ['()
+       (match Rst
+         [(list x* W_c* W_vs)
+          (define-values (Vs es) ((inst unzip-by -WV -V -?e) -W-x -W-e W_vs))
+          (define-values (δσ V-rst) (alloc-varargs Γ Vs pos))
+          (define e-rst (foldr (curry -?@ -cons) -null es))
+          (define κ₂ (-kont (-φ.indy.rst x* '() V_g d ρ_d l³ pos) κ₁))
+          (define l³* (swap-parties l³))
+          (with-Δ δσ '() '()
+            (↦mon W_c* (-W V-rst e-rst) Γ κ₂ σ Ξ M l³* pos))]
+         [#f
+          ;; If there's no argument, skip monitoring arguments and start evaluating range
+          (define κ₂ (-kont (-φ.indy.rng V_g '() #f l³ pos) κ₁))
+          (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())])]
+      [(cons (list x W_c W_x) args*)
        (define l³* (swap-parties l³))
-       (define W_c (-W C c))
        (define W_x* (-W (-W-x W_x) (-x x)))
-       (define κ₂ (-kont (-φ.indy.dom x xs* cs* Cs* W_xs* '() V_g d ρ_d l³ pos) κ₁))
+       (define κ₂ (-kont (-φ.indy.dom x args* '() Rst V_g d ρ_d l³ pos) κ₁))
        (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³* pos)]))
 
   (: ↦pred : -struct-info → -Δς)
@@ -356,13 +376,13 @@
             [_ (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
          [(X) (-Δς (-W (list -ff) (-?@ (-st-p si) e_v)) Γ κ '() '() '())]
          [else (-Δς (-W -●/Vs (-?@ (-st-p si) e_v)) Γ κ '() '() '())])]
-      [(-=>i xs _ _ rst _ _ _) ; check arity
+      [(-=>i Doms Rst _ _ _) ; check arity
        (cond
          [(-procedure-arity V) =>
           (λ ([ar : Arity])
             (define target-arity
-              (let ([n (length xs)])
-                (if rst (arity-at-least n) n)))
+              (let ([n (length Doms)])
+                (if Rst (arity-at-least n) n)))
             (define ans
               (cond
                 [(arity-includes? ar target-arity) (-W (list -tt) -tt)]
@@ -387,12 +407,38 @@
     [(? symbol? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (with-guarded-arity (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f))))]
     [(-Clo  xs e ρ_f Γ_f) (with-guarded-arity (↦β xs e ρ_f Γ_f))]
-    [(-Ar (-=>i xs cs γs rst d ρ_c Γ_c) α l³)
-     (when rst
-       (error '↦@ "varargs"))
+    [(-Ar (-=>i Doms Rst d ρ_c Γ_c) α l³)
+     (define-values (xs cs γs)
+       (for/lists ([xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)])
+                  ([Dom : (List Symbol -?e -α) Doms])
+         (match-define (list x c γ) Dom)
+         (values x c γ)))
      (match/nd: ((Listof -V) → -Δς) (σ@/list σ γs) ; TODO can explode very fast!!
-       [Cs (match/nd: (-V → -Δς) (σ@ σ α)
-             [V_g (with-guarded-arity (↦indy xs cs Cs d ρ_c Γ_c V_g l³))])])]
+       [Cs
+        (define WCs (map (inst -W -V) Cs cs))
+        (match/nd: (-V → -Δς) (σ@ σ α)
+          [V_g
+           (with-guarded-arity
+             (match Rst
+               [(list x* c* γ*)
+                (define n (length Doms))
+                (define-values (es-init es-rest) (split-at e_xs n))
+                (define-values (Vs-init Vs-rest) (split-at V_xs n))
+                (define args-init
+                  (for/list : (Listof (List Symbol -WV -WV))
+                            ([x xs] [c cs] [C Cs] [V Vs-init] [e es-init])
+                    (list x (-W C c) (-W V e))))
+                (define WV-rest (map (inst -W -V) Vs-rest es-rest))
+                (match/nd: (-V → -Δς) (σ@ σ γ*)
+                  [C*
+                   (define Rst* (list x* (-W C* c*) WV-rest))
+                   (↦indy args-init Rst* d ρ_c Γ_c V_g l³)])]
+               [#f
+                (define args
+                  (for/list : (Listof (List Symbol -WV -WV))
+                            ([x xs] [c cs] [C Cs] [V V_xs] [e e_xs])
+                    (list x (-W C c) (-W V e))))
+                (↦indy args #f d ρ_c Γ_c V_g l³)]))])])]
     [(-●) (with-guarded-arity (set-add (↦havoc) (↦opq)))]
     [_ (-Δς (-blm l 'apply 'procedure? (list V_f)) Γ κ '() '() '())]))
 

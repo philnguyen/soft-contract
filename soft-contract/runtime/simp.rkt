@@ -1,7 +1,9 @@
 #lang typed/racket/base
 
 (provide
- -?@ -not -struct/c-split -struct-split -app-split -?struct/c -?->i -?μ/c split-values bind-args)
+ -?@ -not -struct/c-split -struct-split -app-split -?struct/c -?->i -?->i* -?μ/c split-values
+ -?list -?unlist
+ bind-args)
 
 (require
  racket/match racket/bool racket/list racket/math racket/flonum racket/extflonum
@@ -173,6 +175,14 @@
     [_ (for/list : (Listof -?e) ([i (in-range (-struct-info-arity s))])
          (-?@ (-st-ac s i) e))]))
 
+(define (-?list [es : (Listof -?e)]) : -?e
+  (foldr (curry -?@ -cons) -null es))
+
+(define (-?unlist [e : -?e] [n : Natural]) : (Listof -?e)
+  (let go ([e : -?e e] [n : Integer n])
+    (cond [(> n 0) (cons (-?@ -car e) (go (-?@ -cdr e) (- n 1)))]
+          [else '()])))
+
 (: -app-split : -?e -o Integer → (Listof -?e))
 (define (-app-split e o n)
   (match e
@@ -187,17 +197,19 @@
        (-struct/c s (cast fields (Listof -e)) 0)))
 
 (: -?->i : (Listof Symbol) (Listof -?e) -?e -> (Option -->i))
-(define (-?->i xs cs d)
+(define (-?->i xs ?cs d)
+  (define cs (check-?es ?cs))
   (and d
-       (andmap (inst values -?e) cs)
-       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e))) #f d 0)))
+       cs
+       (-->i (map (inst cons Symbol -e) xs cs) #f d 0)))
 
 (: -?->i* : (Listof Symbol) (Listof -?e) Symbol -?e -?e -> (Option -->i))
-(define (-?->i* xs cs x-rst c-rst d)
+(define (-?->i* xs ?cs x-rst c-rst d)
+  (define cs (check-?es ?cs))
   (and d
+       cs
        c-rst
-       (andmap (inst values -?e) cs)
-       (-->i (map (inst cons Symbol -e) xs (cast cs (Listof -e)))
+       (-->i (map (inst cons Symbol -e) xs cs)
              (cons x-rst c-rst)
              d
              0)))
@@ -227,6 +239,16 @@
      (define-values (es-init es-rest) (split-at es (length xs)))
      (values `(,@xs ,x)
              `(,@es-init ,(foldr (curry -?@ -cons) -null es-rest)))]))
+
+(: check-?es : (Listof -?e) → (Option (Listof -e)))
+(define (check-?es e?s)
+  (let go ([e?s : (Listof -?e) e?s])
+    (match e?s
+      ['() '()]
+      [(cons ?e e?s*)
+       (and ?e
+            (let ([es (go e?s*)])
+              (and es (cons ?e es))))])))
 
 (module+ test
   (require typed/rackunit)

@@ -35,7 +35,7 @@
   (struct -Vector/C [γs : (Listof -α.vector/c)])
   (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
   (struct -=>i
-    [xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)]
+    [doms : (Listof (List Symbol -?e -α))]
     [rst : (Option (List Symbol -?e -α))]
     [rng : -e] [env : -ρ] [Γ : -Γ])
   (struct -x/C [c : -α.x/c])
@@ -113,7 +113,12 @@
     [(-Not/C γ) `(not/c ,(show-α γ))]
     [(-Vectorof γ) `(vectorof ,(show-α γ))]
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
-    [(-=>i xs cs γs rst d ρ Γ)
+    [(-=>i doms rst d ρ Γ)
+     (define-values (xs cs)
+       (for/lists ([xs : (Listof Symbol)] [cs : (Listof -?e)])
+                  ([dom : (List Symbol -?e -α) doms])
+         (match-define (list x c _) dom)
+         (values x c)))
      (define dep? (not (set-empty? (∩ (FV d) (list->set xs)))))
      (match* (dep? rst)
        [(#f #f)
@@ -171,6 +176,3 @@
 
 (define (-not/C [v : -v])
   (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) -Λ)) -Λ) -ρ⊥ -Γ⊤))
-
-(define (-Arity-Includes/C [n : Integer])
-  (-Clo '(x) (-@ 'arity-includes? (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤))

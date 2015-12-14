@@ -5,7 +5,7 @@
  "../utils/non-det.rkt" "../utils/set.rkt"
  "../ast/definition.rkt"
  "../runtime/val.rkt" "../runtime/store.rkt" "../runtime/simp.rkt" "../runtime/addr.rkt"
- "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt"
+ "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/arity.rkt"
  "../proof-relation/main.rkt"
  "../machine/definition.rkt")
 
@@ -84,8 +84,9 @@
 
   (: ↦=>i : -=>i → -Δς*)
   (define (↦=>i C)
-    (match-define (-=>i xs cs Cs Rst d ρ_d Γ_d) C)
-    (define -bn (-b (if Rst (arity-at-least (length xs)) (length xs))))
+    (match-define (-=>i Doms Rst d ρ_d Γ_d) C)
+    (define n (length Doms))
+    (define -bn (-b (if Rst (arity-at-least n) n)))
     (define-values (δς-ok δς-bads)
       (Γ+/- M σ Γ
             (λ ([Γ-ok : -Γ])
@@ -98,8 +99,7 @@
             (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))
             (list -arity-includes?/W
                   (list W_v (-W -bn -bn))
-                  ;; FIXME not really the right violated contract
-                  (blm l+ lo (-Arity-Includes/C (length xs)) V))))
+                  (blm l+ lo (-Arity-Includes/C n) V))))
     (collect δς-ok δς-bads))
   
   (: ↦struct/c : -struct-info (Listof -α) → -Δς*)
@@ -187,7 +187,7 @@
      (-Δς (-blm l+ lo C (list V)) Γ* κ '() '() '())]
     [(?)
      (match C
-       [(-=>i xs cs Cs Rst d ρ_d Γ_d) (↦=>i C)]
+       [(? -=>i?) (↦=>i C)]
        [(-St/C _ s γs) (↦struct/c s γs)]
        [(-x/C α)
         (match/nd: (-V → -Δς) (σ@ σ α)

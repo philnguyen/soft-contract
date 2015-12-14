@@ -116,8 +116,9 @@
             [(? list?) (length xs)]
             [(-varargs zs _) (+ 1 (length zs))]))
         (↦@ (-W V x) (mk-args n) Γ κ σ Ξ M -havoc-src)]
-       [(and V (-Ar (-=>i xs _ _ rst _ _ _) _ _))
-        (define args (mk-args (if rst (+ 1 (length xs)) (length xs))))
+       [(and V (-Ar (-=>i Doms Rst _ _ _) _ _))
+        (define n (length Doms))
+        (define args (mk-args (if Rst (+ 1 n) n)))
         ;; TODO: opaque rest list, not opaque 1-list!!
         (↦@ (-W V x) args Γ κ σ Ξ M -havoc-src)]
        [V
@@ -132,14 +133,14 @@
        ['()
         (match rst
           [(cons x* e*)
-           (↦e e* ρ Γ (-kont (-φ.=>i '() '() '() '() x* rng ρ pos) κ) σ Ξ M)]
+           (↦e e* ρ Γ (-kont (-φ.=>i '() '() '() x* rng ρ pos) κ) σ Ξ M)]
           [_
-           (define C (-=>i '() '() '() #f rng ρ Γ))
+           (define C (-=>i '() #f rng ρ Γ))
            (-Δς (-W (list C) e) Γ κ '() '() '())])]
        [(cons dom doms*)
         (match-define (cons x c) dom)
         (define-values (xs* cs*) (unzip doms*))
-        (↦e c ρ Γ (-kont (-φ.=>i cs* '() '() (cons x xs*) rst rng ρ pos) κ) σ Ξ M)])]
+        (↦e c ρ Γ (-kont (-φ.=>i cs* '() (cons x xs*) rst rng ρ pos) κ) σ Ξ M)])]
     ;; contract stuff
     [(-μ/c x c)
      (↦e c ρ Γ (-kont (-φ.μ/c x) κ) σ Ξ M)]

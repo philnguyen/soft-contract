@@ -89,7 +89,10 @@
           (define-values (σ** C) (alloc-e σ* c))
           (define α (-α.fld (-id '-> 'Λ) pos (length cs)))
           (values (⊔ σ** α C) (list x c α))]))
-     (values σ* (-=>i xs cs γs Rst rng -ρ⊥ -Γ⊤))]
+     (define Doms
+       (for/list : (Listof (List Symbol -?e -α)) ([x xs] [c cs] [γ γs])
+         (list x c γ)))
+     (values σ* (-=>i Doms Rst rng -ρ⊥ -Γ⊤))]
     [(-@ (-st-mk (and s (-struct-info (or ''vectorof 'vector/c) _ _)))
          cs (-src-loc _ pos))
      (define-values (σ* αs) (alloc-es σ s pos cs))

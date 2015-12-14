@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require racket/match "../ast/definition.rkt" "../utils/def.rkt" "val.rkt")
+(require racket/match "../ast/definition.rkt" "../utils/def.rkt" "val.rkt" "env.rkt" "path-inv.rkt")
 (require/typed "../primitives/declarations.rkt"
  [(prims prims:prims) (Listof Any)])
 
@@ -27,10 +27,9 @@
         [else (length xs)]))
 
     (define (-guard-arity [guard : -=>i]) : Arity
-      (match-define (-=>i xs _ _ rst _ _ _) guard)
-      (define n (length xs))
-      (cond [rst (arity-at-least n)]
-            [else n]))
+      (match-define (-=>i doms rst _ _ _) guard)
+      (define n (length doms))
+      (if rst (arity-at-least n) n))
 
     (define arity-table
       (for/fold ([m : (HashTable Symbol Arity) (hasheq)]) ([dec prims:prims])
@@ -62,3 +61,6 @@
       [(? symbol? s) (hash-ref arity-table s)]
       [(-●) #f]
       [V (error '-procedure-arity "called on a non-procedure ~a" (show-V V))])))
+
+(define (-Arity-Includes/C [n : (U Natural arity-at-least)])
+  (-Clo '(x) (-@ 'arity-includes? (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤))

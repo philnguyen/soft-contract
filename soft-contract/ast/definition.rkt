@@ -344,7 +344,7 @@
     [(-x x) x]
     [(-ref (-id x p) _ _)
      (case p ;; hack
-       [(Λ) (string->symbol (format "_~a_" x))]
+       [(Λ) (string->symbol (format "「~a」" x))]
        [else x])]
     [(-let-values bnds body _)
      `(let-values
