@@ -388,8 +388,7 @@
 (define (shrink [m : (HashTable -e -e)] [xs : -formals]) : (HashTable -e -e)
   (for/fold ([m* : (HashTable -e -e) m])
             ([x (in-hash-keys m)] #:when (binder-has? xs x))
-    (cond [(-x? x) (hash-remove m* x)]
-          [else (error 'e/m "unexpected")])))
+    (hash-remove m* x)))
 
 (define (shrink-f [f : (-e → (Option -e))] [xs : -formals]) : (-e → (Option -e))
   (define shadows
@@ -403,13 +402,13 @@
 (define (find-calls e f-id)
   (define-set calls : (Listof -e))
   (let go : Void ([e e])
-       (match e
-         [(-@ f xs _)
-          (go f)
-          (for-each go xs)
-          (when (match? f (-ref (≡ f-id) _ _))
-            (calls-add! xs))]
-         [_ (void)]))
+    (match e
+      [(-@ f xs _)
+       (go f)
+       (for-each go xs)
+       (when (match? f (-ref (≡ f-id) _ _))
+         (calls-add! xs))]
+      [_ (void)]))
   calls)
 
 (: -formals-names : -formals → (Setof Symbol))
