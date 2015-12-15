@@ -341,7 +341,7 @@
        [else (string->symbol (format "•_~a" ℓ))])]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
-    [(-x x) x]
+    [(-x x) (string->symbol (format "ₓ~a" x))]
     [(-ref (-id x p) _ _)
      (case p ;; hack
        [(Λ) (string->symbol (format "「~a」" x))]

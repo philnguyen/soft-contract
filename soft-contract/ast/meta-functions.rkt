@@ -253,7 +253,7 @@
 (: e/ : -e -e -e → -e)
 ;; Substitution, where `x` can be an (open) term rather than just a free variable.
 (define (e/ x eₓ e)
-  ((e/map (hash e eₓ)) e))
+  ((e/map (hash x eₓ)) e))
 
 (: e/list : (Listof -e) (Listof -e) -e → -e)
 ;; Simultaneous subtitution
