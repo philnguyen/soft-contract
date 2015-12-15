@@ -24,7 +24,7 @@
   ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
-  (struct -Ar [#|ok, no recursion|# guard : -=>i] [v : -α] [l³ : Mon-Info])
+  (struct -Ar [#|ok, no recursion|# guard : -=>i] [v : (Pairof -α -?e)] [l³ : Mon-Info])
   ;; Contracts
   ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
   ; But these give rise to more special cases of stack frames
@@ -100,7 +100,7 @@
     [(? -o? o) (show-o o)]
     [(-Clo* xs e _) (show-e (-λ xs e))]
     [(-Clo xs e _ _) (show-e (-λ xs e))]
-    [(-Ar guard α l³) `(,(show-V guard) ◃ ,(show-α α))]
+    [(-Ar guard (cons α ?e) l³) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-?e ?e)))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St/checked s γs _ α)
      `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))

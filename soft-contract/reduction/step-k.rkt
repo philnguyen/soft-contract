@@ -220,12 +220,11 @@
        (define-values (δσ₁ ρ_d₁) (alloc Γ ρ_d₀ xs₀ Vs₀ pos))
        (with-Δ (append δσ₀ δσ₁) '() '()
          (↦e d ρ_d₁ Γ (-kont (-φ.indy.rng V_f args (-W (car Vs) ?e) l³ pos) κ) σ Ξ M)))]
-    [(-φ.indy.rng V_f args Rst l³ pos)
+    [(-φ.indy.rng W_f args Rst l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
        (match-define (list V) Vs)
        (define W_d (-W V ?e))
-       (define W_f (-W V_f (-x 'f•))) ; FIXME temp. hack
        (define κ* (-kont (-φ.mon.v W_d l³ pos) κ))
        (match Rst
          [(and W-rst (-W V-rst e-rst))
@@ -464,7 +463,7 @@
         (match φ
           [(-φ.rt.@ Γ₀ _ _ _)
            (cond
-             [(parameterize ([debugs (set 'rt)]) (rt-strengthen M σ φ Γ)) =>
+             [(parameterize ([debugs ∅ #;(set 'rt)]) (rt-strengthen M σ φ Γ)) =>
               (λ ([Γ₀* : -Γ]) (-Δς blm Γ₀* κ* '() '() '()))]
              [else ∅])
            #;(cond [(parameterize ([debugs (set 'rt)]) (rt-spurious? M σ φ Γ)) ∅]

@@ -89,7 +89,7 @@
     [args : (Listof (List Symbol -WV -WV))] ; remaining contracts and arguments to monitor
     [args↓ : (Listof (Pairof Symbol -WV))] ; evaluated arguments, reversed
     [Rst : (Option (List Symbol -WV (Listof -WV)))] ; rest of varargs
-    [fun : -V] ; inner function
+    [fun : -WV] ; inner function
     [rng : -e] ; range
     [env : -ρ] ; range's context
     [mon-info : Mon-Info]
@@ -97,13 +97,13 @@
   (struct -φ.indy.rst
     [pending : Symbol] ; variable for varargs
     [args : (Listof (Pairof Symbol -WV))] ; init, monitored arguments, in right order
-    [fun : -V] ; inner function
+    [fun : -WV] ; inner function
     [rng : -e] ; range
     [env : -ρ] ; range's context
     [mon-info : Mon-Info]
     [pos : Integer])
   (struct -φ.indy.rng
-    [fun : -V] [args : (Listof -WV)] [rst : (Option -WV)] [mon-info : Mon-Info] [pos : Integer])
+    [fun : -WV] [args : (Listof -WV)] [rst : (Option -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.struct
     [info : -struct-info] [ctcs : (Listof -α)] [cs : (Listof -?e)] [idx : Integer]
     [vals↓ : (Listof -WV)] [target : -WV] [mon-info : Mon-Info] [pos : Integer])
@@ -208,13 +208,13 @@
             `(mon ,(show-WV WC) ,(show-WV WV) as ,x))
         ,@show-Rst
         ↦ ,(show-e rng)]
-       ,(show-V fun))]
+       ,(show-WV fun))]
     [(-φ.indy.rng fun args rst _ _)
      (define show-rst
        (cond
          [rst `(#:rest ,(show-WV rst))]
          [else '()]))
-     `(indy.rng (mon ,v (,(show-V fun) ,@(map show-WV args) ,@show-rst)))]
+     `(indy.rng (mon ,v (,(show-WV fun) ,@(map show-WV args) ,@show-rst)))]
     [(-φ.mon.struct s γs _cs i Ws↓ _ _ _)
      (match-define-values (γs-done (cons γ-cur γs-left)) (split-at γs i))
      `(mon/struct/c

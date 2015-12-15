@@ -7,9 +7,10 @@
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
  "../runtime/addr.rkt" "../runtime/path-inv.rkt" "../runtime/arity.rkt" "../runtime/summ.rkt"
+ "../runtime/simp.rkt"
  "../delta.rkt"
  "../machine/definition.rkt" "../machine/havoc.rkt"
- "../proof-relation/main.rkt"
+ "../proof-relation/local.rkt" "../proof-relation/main.rkt"
  "step-mon.rkt")
 
 (provide ↦@ rt-strengthen)
@@ -44,11 +45,32 @@
 
   (: ↦β : -formals -e -ρ -Γ → -Δς*)
   (define (↦β xs e ρ_f Γ_f)
-    (define-values (δσ ρ*) (alloc Γ ρ_f xs V_xs pos))
-    (define τ (-τ e ρ* Γ_f))
-    (define κ* (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
-    (define δΞ (list (cons τ κ*)))
-    (-Δς (-⇓ e ρ*) Γ_f τ δσ δΞ '()))
+    
+    (define Γ_f* ; the strengthened path invariant for callee
+      (cond
+        [(check-?es e_xs) =>
+         (λ ([e_xs : (Listof -e)])
+           (define FVs-caller (FV e_xs))
+           (define φs-caller (-Γ-facts Γ))
+           (define-values (xs* es*) (bind-args xs e_xs))
+           (define convert
+             (e/map
+              (for/hash : (HashTable -e -e) ([x xs*] [e_x (cast es* (Listof -e))])
+                (values e_x x))))
+           (define φs-callee
+             (for/set: : (Setof -e) ([φ φs-caller] #:when (⊆ (FV φ) FVs-caller))
+               (convert φ)))
+           (Γ⊓ Γ_f φs-callee))]
+        [else #f]))
+    
+    (cond
+      [Γ_f*
+       (define-values (δσ ρ*) (alloc Γ ρ_f xs V_xs pos))
+       (define τ (-τ e ρ* Γ_f*))
+       (define κ* (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
+       (define δΞ (list (cons τ κ*)))
+       (-Δς (-⇓ e ρ*) Γ_f* τ δσ δΞ '())]
+      [else ∅]))
 
   (: ↦δ : Symbol → -Δς*)
   (define (↦δ o)
@@ -71,9 +93,8 @@
 
   (: ↦indy : (Listof (List Symbol -WV -WV))
               (Option (List Symbol -WV (Listof -WV)))
-              -e -ρ -Γ -V Mon-Info → -Δς*)
-  (define (↦indy args Rst d ρ_d Γ_d V_g l³)
-    ;; TODO: probably don't need these restoring frames anymore. Check again.
+              -e -ρ -Γ -WV Mon-Info → -Δς*)
+  (define (↦indy args Rst d ρ_d Γ_d W_g l³)
     (define-values (xs₀ e_xs₀)
       (for/lists ([xs₀ : (Listof Symbol)] [e_xs₀ : (Listof -?e)])
                  ([arg : (List Symbol -WV -WV) args])
@@ -83,6 +104,7 @@
       (match Rst
         [(list x* _ WVs) (values (-varargs xs₀ x*) (append e_xs₀ (map (inst -W-e Any) WVs)))]
         [#f (values xs₀ e_xs₀)]))
+    ;; TODO: probably don't need these restoring frames anymore. Check again.
     (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
     (match args
       ['()
@@ -91,18 +113,18 @@
           (define-values (Vs es) ((inst unzip-by -WV -V -?e) -W-x -W-e W_vs))
           (define-values (δσ V-rst) (alloc-varargs Γ Vs pos))
           (define e-rst (-?list es))
-          (define κ₂ (-kont (-φ.indy.rst x* '() V_g d ρ_d l³ pos) κ₁))
+          (define κ₂ (-kont (-φ.indy.rst x* '() W_g d ρ_d l³ pos) κ₁))
           (define l³* (swap-parties l³))
           (with-Δ δσ '() '()
             (↦mon W_c* (-W V-rst e-rst) Γ κ₂ σ Ξ M l³* pos))]
          [#f
           ;; If there's no argument, skip monitoring arguments and start evaluating range
-          (define κ₂ (-kont (-φ.indy.rng V_g '() #f l³ pos) κ₁))
+          (define κ₂ (-kont (-φ.indy.rng W_g '() #f l³ pos) κ₁))
           (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())])]
       [(cons (list x W_c W_x) args*)
        (define l³* (swap-parties l³))
        (define W_x* (-W (-W-x W_x) (-x x)))
-       (define κ₂ (-kont (-φ.indy.dom x args* '() Rst V_g d ρ_d l³ pos) κ₁))
+       (define κ₂ (-kont (-φ.indy.dom x args* '() Rst W_g d ρ_d l³ pos) κ₁))
        (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³* pos)]))
 
   (: ↦pred : -struct-info → -Δς)
@@ -407,7 +429,7 @@
     [(? symbol? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (with-guarded-arity (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f))))]
     [(-Clo  xs e ρ_f Γ_f) (with-guarded-arity (↦β xs e ρ_f Γ_f))]
-    [(-Ar (-=>i Doms Rst d ρ_c Γ_c) α l³)
+    [(-Ar (-=>i Doms Rst d ρ_c Γ_c) (cons α e_g) l³)
      (define-values (xs cs γs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)])
                   ([Dom : (List Symbol -?e -α) Doms])
@@ -432,13 +454,13 @@
                 (match/nd: (-V → -Δς) (σ@ σ γ*)
                   [C*
                    (define Rst* (list x* (-W C* c*) WV-rest))
-                   (↦indy args-init Rst* d ρ_c Γ_c V_g l³)])]
+                   (↦indy args-init Rst* d ρ_c Γ_c (-W V_g e_g) l³)])]
                [#f
                 (define args
                   (for/list : (Listof (List Symbol -WV -WV))
                             ([x xs] [c cs] [C Cs] [V V_xs] [e e_xs])
                     (list x (-W C c) (-W V e))))
-                (↦indy args #f d ρ_c Γ_c V_g l³)]))])])]
+                (↦indy args #f d ρ_c Γ_c (-W V_g e_f) l³)]))])])]
     [(-●) (with-guarded-arity (set-add (↦havoc) (↦opq)))]
     [_ (-Δς (-blm l 'apply 'procedure? (list V_f)) Γ κ '() '() '())]))
 
@@ -452,13 +474,18 @@
   (define params ; only care params that have corresponding args
     (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
 
+  (define ans_caller (apply -?@ e_f e_xs))
+
   ; Function for converting invariants about parameters in callee's environment
   ; into invariants about arguments in caller's environment
   ; PRECOND: FV⟦e⟧ ⊆ xs
   (define convert
     (e/map
-     (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
-       (values (-x x) e_x))))
+     (let ()
+       (define m
+         (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
+           (values (-x x) e_x)))
+       (if (and ?e ans_caller) (hash-set m ?e ans_caller) m))))
 
   (define facts-from-callee
     (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) params))
@@ -477,8 +504,6 @@
     (dbg 'rt "Caller would know: ~a~n~n" (and Γ₀* (show-Γ Γ₀*))))
 
   (cond
-    [(and Γ₀*
-          (not (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e)))))
-          (not (spurious? M σ Γ₀* (-W Vs (apply -?@ e_f e_xs)))))
+    [(and Γ₀* (not (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e))))))
      Γ₀*]
     [else #f]))

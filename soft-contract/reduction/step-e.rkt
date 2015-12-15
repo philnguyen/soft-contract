@@ -36,15 +36,18 @@
        ;; skip contract checking for self reference
        [(equal? ctx ctx*)
         (for/set: : (Setof -Δς) ([V (σ@ σ (-α.def id))])
-          (-Δς (-W (list V) ref) Γ κ '() '() '()))]
+          (define ?e (if (-o? V) V ref))
+          (-Δς (-W (list V) ?e) Γ κ '() '() '()))]
        ;; perform contract checking for cross-module reference
        [else
         ;; FIXME
         (define Vs (σ@ σ (-α.def id)))
         (define Cs (σ@ σ (-α.ctc id)))
         (match/nd: (-V → -Δς) Vs
-          [V (match/nd: (-V → -Δς) Cs
-               [C (↦mon (-W C #f #|TODO|#) (-W V ref) Γ κ σ Ξ M (list ctx* ctx ctx*) pos)])])])]
+          [V
+           (define ?e (if (-o? V) V ref))
+           (match/nd: (-V → -Δς) Cs
+             [C (↦mon (-W C #f #|TODO|#) (-W V ?e) Γ κ σ Ξ M (list ctx* ctx ctx*) pos)])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
      (define κ* (-kont (-φ.@ (for/list : (Listof -E) ([x xs]) (-⇓ x ρ)) '() l) κ))

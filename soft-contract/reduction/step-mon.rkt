@@ -3,7 +3,7 @@
 (require
  racket/match racket/set racket/list
  "../utils/non-det.rkt" "../utils/set.rkt"
- "../ast/definition.rkt"
+ "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/store.rkt" "../runtime/simp.rkt" "../runtime/addr.rkt"
  "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/arity.rkt"
  "../proof-relation/main.rkt"
@@ -93,7 +93,8 @@
               (define α
                 (cond [e_v (-α.tmp e_v)]
                       [else (-α.fld (-id 'Ar 'Λ) pos 0)]))
-              (define Ar (-Ar C α l³))
+              (define ?e (and e_v (closed? e_v) e_v))
+              (define Ar (-Ar C (cons α ?e) l³))
               (define δσ (list (cons α V)))
               (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))
             (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))

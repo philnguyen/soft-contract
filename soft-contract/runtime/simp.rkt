@@ -2,7 +2,7 @@
 
 (provide
  -?@ -not -struct/c-split -struct-split -app-split -?struct/c -?->i -?->i* -?μ/c split-values
- -?list -?unlist
+ -?list -?unlist check-?es
  bind-args)
 
 (require
