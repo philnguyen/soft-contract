@@ -4,7 +4,8 @@
  "utils/set.rkt"
  "primitives/utils.rkt"
  "ast/definition.rkt"
- "runtime/val.rkt" "runtime/addr.rkt" "runtime/arity.rkt" "runtime/store.rkt" "runtime/path-inv.rkt" "runtime/summ.rkt"
+ "runtime/val.rkt" "runtime/addr.rkt" "runtime/arity.rkt" "runtime/store.rkt" "runtime/path-inv.rkt"
+ "runtime/summ.rkt" "runtime/simp.rkt"
  "proof-relation/main.rkt"
  (for-syntax
   racket/base racket/match racket/syntax syntax/parse racket/contract
@@ -181,18 +182,44 @@
           (define b-pats (for/list ([b-id b-ids]) #`(-W _ (-b #,b-id))))
           (define b-conds (datum->syntax (M-id) (sexp-and (map mk-cond b-syms doms))))
 
+          (define-values (W-pats W-ids e-ids)
+            (for/lists (W-pats W-ids e-ids) ([i (length doms)])
+              (define W-id (datum->syntax (M-id) (string->symbol (format "W~a" (n-sub i)))))
+              (define e-id (datum->syntax (M-id) (string->symbol (format "e~a" (n-sub i)))))
+              (values #`(and #,W-id (-W _ #,e-id)) W-id e-id)))
+          (define refinement-clauses
+            (for/list ([ref refinements])
+              (match-define `(,(? symbol? dom-chks) ... . -> . ,(? symbol? rng-chk)) ref)
+              (define arg-checks
+                (for/list ([dom-chk dom-chks] [W-id W-ids])
+                  #`(equal? '✓ (MσΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,dom-chk #,W-id))))
+              (define precond ; make it a little prettier
+                (match arg-checks
+                  [(list e) e]
+                  [_ #`(and #,@arg-checks)]))
+              #`[#,precond
+                 (values '() (-AΓ -●/Vs (Γ+ #,(Γ-id) (-?@ '#,rng-chk (-?@ '#,op #,@e-ids)))))]))
+
           (list
            #`[(#,op)
               (match #,(Ws-id)
+                ; straightforward lifting for concrete operands
                 [(list #,@b-pats)
                  (cond
                    [#,b-conds
                     (define ans (-b (#,op #,@b-ids)))
                     (values '() (-AΓ (list ans) #,(Γ-id)))]
                    [else ; spurious
-                    (printf "Warning: spurious use of unsafe operation ~a~n" '#,op)
+                    (printf "Internal: Incorrect use of `~a` flows to `δ`~n" '#,op)
                     (values '() ∅)])]
-                [_ (values '() (-AΓ -●/Vs #,(Γ-id)))])])]
+                #,(cond
+                    [(null? refinement-clauses)
+                     #`[_ (values '() (-AΓ -●/Vs #,(Γ-id)))]]
+                    [else
+                     #`[(list #,@W-pats)
+                        (cond
+                          #,@refinement-clauses
+                          [else (values '() (-AΓ -●/Vs #,(Γ-id)))])]]))])]
          
          ; Just return operator name for complicated cases
          [else (list op)])]
@@ -212,8 +239,8 @@
                       [o-id #'o]
                       [Ws-id #'Ws]
                       [l-id #'l])
-         ;; Accumulate clauses for straightforwardly lifted operators
-         ;; and names for opaque operators
+         ;; Accumulate `clauses` for straightforwardly lifted operators
+         ;; and `names` for opaque operators
          (for/fold ([clauses '()] [names '()]) ([dec prims])
            (match (generate-general-clauses dec)
              ['() (values clauses names)]
@@ -227,8 +254,7 @@
             (cond
               [(∋ prim-names o)
                (cond
-                 [(concrete-impl o)
-                  =>
+                 [(concrete-impl o) =>
                   (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))])
                     (f M σ Γ Ws l))]
                  [else (values '() (-AΓ -●/Vs Γ))])]

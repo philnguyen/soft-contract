@@ -55,8 +55,9 @@
            (define-values (xs* es*) (bind-args xs e_xs))
            (define convert
              (e/map
-              (for/hash : (HashTable -e -e) ([x xs*] [e_x (cast es* (Listof -e))])
-                (values e_x x))))
+              (for/hash : (HashTable -e -e) ([x xs*] [e_x (cast es* (Listof -e))]
+                                             #:unless (set-empty? (FV e_x)))
+                (values e_x (-x x)))))
            (define φs-callee
              (for/set: : (Setof -e) ([φ φs-caller] #:when (⊆ (FV φ) FVs-caller))
                (convert φ)))
@@ -121,11 +122,27 @@
           ;; If there's no argument, skip monitoring arguments and start evaluating range
           (define κ₂ (-kont (-φ.indy.rng W_g '() #f l³ pos) κ₁))
           (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())])]
-      [(cons (list x W_c W_x) args*)
+      [(cons (list x W_c (and W_x (-W V_x e_x))) args*)
        (define l³* (swap-parties l³))
-       (define W_x* (-W (-W-x W_x) (-x x)))
+       (define W_x* (-W V_x (-x x)))
+       (define Γ_d*
+         (cond
+           [e_x
+            (define FVs (FV e_x))
+            (define φs-outer (-Γ-facts Γ))
+            (define φs-inner
+              (for*/set: : (Setof -e) ([φ φs-outer]
+                                       [FV-φ (in-value (FV φ))]
+                                       #:when (⊆ FV-φ FVs)
+                                       #:unless (set-empty? FV-φ)
+                                       [φ* (in-value (e/ e_x (-x x) φ))]
+                                       #:when (⊆ (FV φ*) {set x}))
+                φ*))
+            (define Γ* (Γ⊓ Γ_d φs-inner))
+            (if Γ* Γ* Γ_d)]
+           [else Γ_d]))
        (define κ₂ (-kont (-φ.indy.dom x args* '() Rst W_g d ρ_d l³ pos) κ₁))
-       (↦mon W_c W_x* Γ_d κ₂ σ Ξ M l³* pos)]))
+       (↦mon W_c W_x* Γ_d* κ₂ σ Ξ M l³* pos)]))
 
   (: ↦pred : -struct-info → -Δς)
   (define (↦pred si)

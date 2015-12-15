@@ -75,8 +75,8 @@
      ;; 4.2.2.1 Arithmetic
      [#:batch (+ - *) ; FIXME var-args
       (number? number? . -> . number?)
-      (real? real? . -> . real?)
-      (integer? integer? . -> . integer?)]
+      (integer? integer? . -> . integer?)
+      (real? real? . -> . real?)]
      [/ ; FIXME varargs
       (number? (and/c number? (or/c inexact? (not/c zero?))) . -> . number?)
       (real? real? . -> . real?)]
@@ -86,14 +86,14 @@
       (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?))]
      [#:batch (add1 sub1)
       (number? . -> . number?)
-      (real? . -> . real?)
-      (integer? . -> . integer?)]
+      (integer? . -> . integer?)
+      (real? . -> . real?)]
      [abs
-      (real? . -> . real?)
-      (integer? . -> . integer?)]
+      (integer? . -> . integer?)
+      (real? . -> . real?)]
      [#:batch (max min) ; FIXME varargs
-      (real? real? . -> . real?)
-      (integer? integer? . -> . integer?)]
+      (integer? integer? . -> . integer?)
+      (real? real? . -> . real?)]
      [#:batch (gcd lcm) ; FIXME varargs
       (rational? rational? . -> . rational?)]
      [#:batch (round floor ceiling truncate)
