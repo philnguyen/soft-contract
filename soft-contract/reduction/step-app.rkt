@@ -61,9 +61,13 @@
            (define φs-callee
              (for/set: : (Setof -e) ([φ φs-caller] #:when (⊆ (FV φ) FVs-caller))
                (convert φ)))
-           (Γ⊓ Γ_f φs-callee))]
+           (define Γ* (Γ⊓ Γ_f φs-callee))
+           (and Γ*
+                (for/fold ([Γ* : -Γ Γ*]) ([x xs*] [e es*]
+                                          #:when (and e (closed? e)))
+                  (Γ-bind Γ* x e))))]
         [else #f]))
-    
+
     (cond
       [Γ_f*
        (define-values (δσ ρ*) (alloc Γ ρ_f xs V_xs pos))
@@ -124,7 +128,6 @@
           (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())])]
       [(cons (list x W_c (and W_x (-W V_x e_x))) args*)
        (define l³* (swap-parties l³))
-       (define W_x* (-W V_x (-x x)))
        (define Γ_d*
          (cond
            [e_x
@@ -139,10 +142,14 @@
                                        #:when (⊆ (FV φ*) {set x}))
                 φ*))
             (define Γ* (Γ⊓ Γ_d φs-inner))
-            (if Γ* Γ* Γ_d)]
+            (and Γ* (Γ-bind Γ* x e_x))]
            [else Γ_d]))
-       (define κ₂ (-kont (-φ.indy.dom x args* '() Rst W_g d ρ_d l³ pos) κ₁))
-       (↦mon W_c W_x* Γ_d* κ₂ σ Ξ M l³* pos)]))
+       (cond
+         [Γ_d*
+          (define W_x* (-W V_x (canonicalize Γ_d* (-x x))))
+          (define κ₂ (-kont (-φ.indy.dom x args* '() Rst W_g d ρ_d l³ pos) κ₁))
+          (↦mon W_c W_x* Γ_d* κ₂ σ Ξ M l³* pos)]
+         [else ∅])]))
 
   (: ↦pred : -struct-info → -Δς)
   (define (↦pred si)

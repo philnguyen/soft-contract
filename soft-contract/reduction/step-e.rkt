@@ -21,8 +21,9 @@
      (-Δς (-W (list (close v ρ)) v) Γ κ '() '() '())]
     ;; look up variable
     [(? -x? x)
+     (define e_x (canonicalize Γ x))
      (for*/set: : (Setof -Δς) ([V (σ@ σ (ρ@ ρ x))]
-                               [W (in-value (-W (list V) (canonicalize Γ x)))]
+                               [W (in-value (-W (list V) e_x))]
                                #:unless (spurious? M σ Γ W))
        (case V
          [(undefined) ; FIXME hack
@@ -112,18 +113,19 @@
        (build-list n (λ ([i : Integer])
                        (define e (string->symbol (format "z•~a" (n-sub i))))
                        (-W -●/V (-x e)))))
+     (define e_x (canonicalize Γ x))
      (match/nd: (-V → -Δς) (σ@ σ (ρ@ ρ x))
        [(and V (or (-Clo* xs _ _) (-Clo xs _ _ _)))
         (define n
           (match xs
             [(? list?) (length xs)]
             [(-varargs zs _) (+ 1 (length zs))]))
-        (↦@ (-W V x) (mk-args n) Γ κ σ Ξ M -havoc-src)]
+        (↦@ (-W V e_x) (mk-args n) Γ κ σ Ξ M -havoc-src)]
        [(and V (-Ar (-=>i Doms Rst _ _ _) _ _))
         (define n (length Doms))
         (define args (mk-args (if Rst (+ 1 n) n)))
         ;; TODO: opaque rest list, not opaque 1-list!!
-        (↦@ (-W V x) args Γ κ σ Ξ M -havoc-src)]
+        (↦@ (-W V e_x) args Γ κ σ Ξ M -havoc-src)]
        [V
         (log-debug "havoc: ignore first-order value ~a" (show-V V))
         ∅])]

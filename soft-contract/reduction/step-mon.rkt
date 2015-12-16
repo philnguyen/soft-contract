@@ -96,7 +96,7 @@
               (define ?e (and e_v (closed? e_v) e_v))
               (define Ar (-Ar C (cons α ?e) l³))
               (define δσ (list (cons α V)))
-              (-Δς (-W (list Ar) e_v #|TODO|#) Γ-ok κ δσ '() '()))
+              (-Δς (-W (list Ar) ?e) Γ-ok κ δσ '() '()))
             (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))
             (list -arity-includes?/W
                   (list W_v (-W -bn -bn))
