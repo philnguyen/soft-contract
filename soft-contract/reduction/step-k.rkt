@@ -74,6 +74,7 @@
     [(-φ.if E₁ E₂)
      (match Vs
        [(list V)
+        ;(printf "scrutiny is ~a~n" (show-?e ?e))
         (define-values (Γ_t Γ_f) (Γ+/-W M σ Γ (-W V ?e)))
         (define ς_t (and Γ_t (-Δς E₁ Γ_t κ '() '() '())))
         (define ς_f (and Γ_f (-Δς E₂ Γ_f κ '() '() '())))
@@ -349,14 +350,20 @@
         (λ ([Γ₀* : -Γ])
           (define-values (xs e_xs) (bind-args xs* e_xs*))
           (define e_a
-            (or
-             ; take answer as `(f x …)` if possible
-             (apply -?@ e_f e_xs)
-             ; otherwise [e/e_x…]a
-             ; TODO: confirm this won't blow up
-             (and ?e
-                  (andmap (λ (x) x) e_xs)
-                  (e/list (map -x xs) (cast e_xs (Listof -e)) ?e))))
+            (cond
+              [(-λ? e_f)
+               (and ?e
+                    (andmap (λ (x) x) e_xs)
+                    (e/list (map -x xs) (cast e_xs (Listof -e)) ?e))]
+              [else
+               (or
+                ; take answer as `(f x …)` if possible
+                (apply -?@ e_f e_xs)
+                ; otherwise [e/e_x…]a
+                ; TODO: confirm this won't blow up
+                (and ?e
+                     (andmap (λ (x) x) e_xs)
+                     (e/list (map -x xs) (cast e_xs (Listof -e)) ?e)))]))
           (-Δς (-W (close-Γ Γ Vs) e_a) Γ₀* κ '() '() '()))]
        [else ∅])
      
