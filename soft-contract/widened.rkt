@@ -101,9 +101,7 @@
     
     (values S* F* tσ* σ* tΞ* Ξ* M*))
 
-  (parameterize ([Γ⊢₀ Γ⊢e] ; z3 needs this
-                 [Γ⊢ₑₓₜ z3⊢] ; internal needs this
-                 )
+  (parameterize ([Γ⊢ₑₓₜ z3⊢])
     (let go : (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M)
       ([S : (Map -Cfg -t) (hash C₀ -t₀)]
        [F : (Setof -Cfg) {set C₀}]

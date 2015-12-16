@@ -1,92 +1,123 @@
 #lang typed/racket/base
 
-(provide z3⊢ Γ⊢₀)
+(provide z3⊢ #|for debugging|# exp->sym)
 
 (require
- racket/match racket/pretty racket/port racket/system
+ racket/match racket/port racket/system racket/string racket/function
  "../../utils/def.rkt" "../../utils/set.rkt" "../../utils/eval.rkt" "../../utils/debug.rkt"
+ "../../utils/pretty.rkt"
  "../../ast/definition.rkt" "../../ast/meta-functions.rkt"
  "../../runtime/path-inv.rkt" "../../runtime/simp.rkt"
  "../result.rkt")
 
-(define-type Z3-Num (U 'Int 'Real))
-
-;; Base proof relation
-(define Γ⊢₀ : (Parameterof (-Γ -?e → -R))
-  (make-parameter
-   (λ (Γ e)
-     (log-error "base prover not set")
-     '?)))
-
-;; binary operators on reals
-(define-type/pred -r² (U '+ '- '* '/ '> '< '>= '<= '= 'equal?))
-
 ;; Query external solver for provability relation
 (: z3⊢ : -Γ -e → -R)
 (define (z3⊢ Γ e)
-  (define FVs (∪ (FV-Γ Γ) (FV e)))
-  (define conclusion (t e))
+  ;(printf "~a~n⊢~n~a~n~n" (show-Γ Γ) (show-e e))
+  (define-values (decls declared-exps) (Γ->decls Γ))
   (cond
-    [conclusion
-     (define declarations
-       (for/fold ([decs : (Listof Sexp) '()]) ([x FVs])
-         (cond
-           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'integer? (-x x))))
-            (cons `(declare-const ,x Int) decs)]
-           [(equal? '✓ ((Γ⊢₀) Γ (-?@ 'real? (-x x))))
-            (cons `(declare-const ,x Real) decs)]
-           [else decs])))
-     (define premises
-       (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)] [s (in-value (t e))] #:when s)
-         `(assert ,s)))
-     (call-with declarations premises conclusion)]
+    [(exp->Z3 declared-exps e) =>
+     (λ ([concl : Sexp])
+       (call-with decls (Γ->premises declared-exps Γ) concl))]
     [else '?]))
 
 
-(: t : -e → (Option Sexp))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-type Z3-Type (U 'Int 'Real))
+
+;; binary operators on reals
+(define-type/pred Handled-Z3-pred (U 'integer? 'real?))
+(define-type/pred Handled-Z3-op (U '+ '- '* '/ '> '< '>= '<= '= 'equal?))
+
+(define (handled-Z3-pred->Z3-Type [t : Handled-Z3-pred]) : Z3-Type
+  (case t
+    [(integer?) 'Int]
+    [(real?) 'Real]))
+
+;; Convert each expression to a fresh memoized symbol
+(define exp->sym : (case-> [→ (HashTable -e Symbol)]
+                           (-e → Symbol))
+  (unique-name 'x_ #:subscript? #f))
+
+(: Γ->decls : -Γ → (Values (Listof Sexp) (Setof -e)))
+;; Extract declarations from environment
+(define (Γ->decls Γ)
+  (define-set declared-exprs : -e)
+
+  (define (more-precise-than? [T₁ : Z3-Type] [T₂ : Z3-Type])
+    (match* (T₁ T₂)
+      [('Int 'Real) #t]
+      [(_ _) #f]))
+
+  (define typeofs
+    (for/fold ([typeofs : (HashTable Symbol Z3-Type) (hasheq)])
+              ([φ (-Γ-facts Γ)])
+      (match φ
+        [(-@ (? Handled-Z3-pred? o) (list e) _)
+         (declared-exprs-add! e)
+         (define T (handled-Z3-pred->Z3-Type o))
+         (define x (exp->sym e))
+         (hash-update typeofs x
+                      (λ ([old : Z3-Type])
+                        (if (T . more-precise-than? . old) T old))
+                      (λ () T))]
+        [_ typeofs])))
+  
+  (define decls
+    (for/list : (Listof Sexp) ([(x T) (in-hash typeofs)])
+      `(declare-const ,x ,T)))
+
+  (values decls declared-exprs))
+
+(: exp->Z3 : (Setof -e) -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
 ;; Translate restricted syntax into Z3 sexp
-(define (t e)
+(define (exp->Z3 declared e)
   (let go : (Option Sexp) ([e : -e e])
     (match e
-      [(-@ (? -r²? r) (list e₁ e₂) _)
-       (@? list (rkt→z3 r) (! (go e₁)) (! (go e₂)))]
+      [(-@ (? Handled-Z3-op? o) (list e₁ e₂) _)
+       (@? list (o->Z3 o) (! (go e₁)) (! (go e₂)))]
       [(-@ 'add1 (list e) _) (@? list '+ (! (go e)) 1)]
       [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
       [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
-      [(-x x) x]
-      [(-b b)
-       (cond
-         [(or (number? b) (string? b)) b]
-         [else #f])]
-      [_ #f])))
+      [(-b b) (and (or (number? b) #;(string b)) b)]
+      [_ (if (∋ declared e) (exp->sym e) #f)])))
 
-(: γ : -Γ → (Listof Sexp))
-;; Translate an environment into a list of expressions
-(define (γ Γ)
-  (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)] [s (in-value (t e))] #:when s) s))
+(: Γ->premises : (Setof -e) -Γ → (Listof Sexp))
+;; Translate an environment into a list of Z3 premises
+(define (Γ->premises declared Γ)
+  (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)]
+                              [s (in-value (exp->Z3 declared e))] #:when s)
+    s))
 
 ;; translate Racket symbol to Z3 symbol
-(: rkt→z3 : -r² → Symbol)
-(define rkt→z3
-  (match-lambda ['equal? '=] [r r]))
+(: o->Z3 : Handled-Z3-op → Symbol)
+(define (o->Z3 o)
+  (case o
+    [(equal?) '=]
+    [else o]))
 
 ;; Perform query/ies with given declarations, assertions, and conclusion,
 ;; trying to decide whether value definitely proves or refutes predicate
 (: call-with : (Listof Sexp) (Listof Sexp) Sexp → -R)
-(define (call-with declarations premises conclusion)
-  (dbg 'z3 "Query:~n~a~n"
-       (pretty-format (append declarations premises (list conclusion)) 100))
-  (match (call (pretty-format (append declarations premises (list conclusion)) 100))
-    [(regexp #rx"^unsat") '✓]
+(define (call-with decls prems concl)
+  (define assert-prems
+    (for/list : (Listof Sexp) ([prem prems]) `(assert ,prem)))
+  (match (call `(,@decls ,@assert-prems (assert ,concl) (check-sat)))
+    [(regexp #rx"^unsat") 'X]
     [(regexp #rx"^sat")
-     (match (call (format "~a~n~a~n(assert ~a)~n(check-sat)~n" declarations premises conclusion))
-       [(regexp #rx"^unsat") 'X]
-       [_ #;(log-debug "?~n") '?])]
-    [_ #;(log-debug "?~n")'?]))
+     (match (call `(,@decls ,@assert-prems (assert (not ,concl)) (check-sat)))
+       [(regexp #rx"^unsat") '✓]
+       [(regexp #rx"^sat"  ) '?]
+       [res (printf "get unexpected result '~a' from Z3~n" res) '?])]
+    [res (printf "get unexpected result '~a' from Z3~n" res) '?]))
 
 ;; Perform system call to solver with given query
-(: call : String → String)
-(define (call query)
-  (log-debug "Called with:~n~a~n~n" query)
+(: call : (Listof Sexp) → String)
+(define (call cmds)
+  (define query-str (string-join (map (curry format "~a") cmds) "\n"))
+  (log-debug "query:~n~a~n~n" query-str)
   (with-output-to-string
-   (λ () (system (format "echo \"~a\" | z3 -in -smt2" query)))))
+   (λ () (system (format "echo \"~a\" | z3 -in -smt2" query-str)))))

@@ -30,15 +30,20 @@
     (define-values (q r) (quotient/remainder n 10))
     (string-append (n-sub q) (n-sub r))]))
 
-(: unique-name (∀ (X) ([Symbol] [#:subscript? Boolean] . ->* . (X → Symbol))))
+(: unique-name (∀ (X) ([Symbol] [#:subscript? Boolean] . ->* .
+                       (case-> [→ (HashTable X Symbol)] ; for debugging only
+                               [X → Symbol]))))
 ;; Return function that computes unique name with given prefix for each object.
 ;; No guarantee for consistency across different executions.
 (define (unique-name prefix #:subscript? [subscript? #t])
   (let ([m : (HashTable X Symbol) (make-hash)]
         [f : (Integer → Any) (if subscript? n-sub values)])
-    (λ ([x : X])
-      (hash-ref! m x (λ () (string->symbol
-                            (format "~a~a" prefix (f (hash-count m)))))))))
+    (case-lambda
+      [() (for/hash : (HashTable X Symbol) ([(k v) m])
+            (values k v))]
+      [(x)
+       (hash-ref! m x (λ () (string->symbol
+                             (format "~a~a" prefix (f (hash-count m))))))])))
 
 ;; Generate the next unique negative integer
 (define next-neg!

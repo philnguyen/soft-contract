@@ -12,7 +12,7 @@
 ;; External solver to be plugged in.
 ;; Return trivial answer by default.
 (define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
-  (make-parameter (λ (Γ e) (log-warning "external solver not set") '?)))
+  (make-parameter (λ (Γ e) (error "external solver not set"))))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check if value satisfies (flat) contract
