@@ -7,12 +7,13 @@
  "../../utils/def.rkt" "../../utils/set.rkt" "../../utils/eval.rkt" "../../utils/debug.rkt"
  "../../utils/pretty.rkt"
  "../../ast/definition.rkt" "../../ast/meta-functions.rkt"
- "../../runtime/path-inv.rkt" "../../runtime/simp.rkt"
+ "../../runtime/path-inv.rkt" "../../runtime/simp.rkt" "../../runtime/store.rkt"
+ "../../runtime/summ.rkt"
  "../result.rkt")
 
 ;; Query external solver for provability relation
-(: z3⊢ : -Γ -e → -R)
-(define (z3⊢ Γ e)
+(: z3⊢ : -M -σ -Γ -e → -R)
+(define (z3⊢ M σ Γ e)
   ;(printf "~a~n⊢~n~a~n~n" (show-Γ Γ) (show-e e))
   (define-values (decls declared-exps) (Γ->decls Γ))
   (cond
@@ -118,6 +119,6 @@
 (: call : (Listof Sexp) → String)
 (define (call cmds)
   (define query-str (string-join (map (curry format "~a") cmds) "\n"))
-  (log-debug "query:~n~a~n~n" query-str)
+  (printf "query:~n~a~n~n" query-str)
   (with-output-to-string
    (λ () (system (format "echo \"~a\" | z3 -in -smt2" query-str)))))

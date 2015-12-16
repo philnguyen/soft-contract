@@ -11,8 +11,8 @@
 
 ;; External solver to be plugged in.
 ;; Return trivial answer by default.
-(define Γ⊢ₑₓₜ : (Parameterof (-Γ -e → -R))
-  (make-parameter (λ (Γ e) (error "external solver not set"))))
+(define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
+  (make-parameter (λ (M σ Γ e) (error "external solver not set"))))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check if value satisfies (flat) contract
@@ -37,7 +37,7 @@
   (cond
     [e
      (define e* (canonicalize Γ e))
-     (first-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) Γ e*))]
+     (first-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) M σ Γ e*))]
     [else '?]))
 
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
