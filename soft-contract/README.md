@@ -23,6 +23,19 @@ To run the analysis on a file `example.rkt`, run:
 
 > racket cmdline.rkt example.rkt
 
+In order to be used with SCV, the file `example.rkt` should declare:
+
+```{racket}
+(require soft-contract/fake-contract)
+```
+
+And provide bindings as well as contracts *at the end*:
+
+```{racket}
+(provide/contract
+  [f (integer? . -> . integer?)])
+```
+
 
 (Experimental) New features
 =========================================
