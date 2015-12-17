@@ -30,7 +30,7 @@
         (match/nd: (-Res → -Res) (hash-ref M (assert e))
           [(-Res e-xs ψ-xs)
            (define e-args (and e-xs (convert e-xs)))
-           (define ψ-args (for/set: : -es ([ψ ψ-xs]) (convert ψ)))
+           (define ψ-args (map/set convert ψ-xs))
            (-Res e-args ψ-args)])]
        [_ -Res⊤])]))
   ;(printf "insert-e: ~a ~a ↦ ~a~n" f (map show-e args) (map show-Res (set->list ans)))

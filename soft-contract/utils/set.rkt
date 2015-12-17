@@ -1,7 +1,9 @@
 #lang typed/racket/base
 
 ;; This module provides abbreviations and extra tools for dealing with sets
-(provide ∅ ∪ ∩ →∅ ∋ ∈ ⊆ -- set-add-list define-set set-partition for/union collect set->predicate)
+(provide
+ ∅ ∪ ∩ →∅ ∋ ∈ ⊆ --
+ set-add-list define-set set-partition for/union collect set->predicate map/set)
 
 (require
  racket/set
@@ -73,3 +75,8 @@
 (: set->predicate (∀ (X) (Setof X) → (X → Boolean)))
 ;; Convert set to predicate
 (define ((set->predicate xs) x) (∋ xs x))
+
+(: map/set (∀ (X Y) (X → Y) (Setof X) → (Setof Y)))
+;; Like `map`, but for set
+(define (map/set f xs)
+  (for/set: : (Setof Y) ([x : X xs]) (f x)))

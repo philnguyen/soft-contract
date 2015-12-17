@@ -3,7 +3,7 @@
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-e Γ+/-)
 
 (require
- racket/match racket/set racket/bool
+ racket/match racket/set racket/bool racket/function
  "../utils/set.rkt" "../utils/debug.rkt" "../utils/pretty.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/store.rkt"
@@ -57,9 +57,7 @@
           (cond ; if one subcase repeats, there can't be progress
             [(∋ Γs Γ) '?]
             [else
-             (define Rs
-               (for/set: : (Setof -R) ([Γi Γs])
-                 (go (- d 1) Γi)))
+             (define Rs (map/set (curry go (- d 1)) Γs))
              (cond
                [(equal? Rs {set '✓}) '✓]
                [(equal? Rs {set 'X }) 'X ]

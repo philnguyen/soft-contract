@@ -306,7 +306,7 @@
               (cons xs (go m* ex))))
           (-letrec-values bnds* (go m* e*) l)]
          [(-set! z e*) (-set! z (go m e*))]
-         [(-amb es) (-amb (for/set: : -es ([ei es]) (go m ei)))]
+         [(-amb es) (-amb (map/set (curry go m) es))]
          [(-μ/c z c) (-μ/c z (go m c))]
          [(-->i doms rst rng p)
           (define-values (xs cs)
@@ -367,7 +367,7 @@
               (cons xs (go f* ex))))
           (-letrec-values bnds* (go f* e*) l)]
          [(-set! z e*) (-set! z (go f e*))]
-         [(-amb es) (-amb (for/set: : -es ([ei es]) (go f ei)))]
+         [(-amb es) (-amb (map/set (curry go f) es))]
          [(-μ/c z c) (-μ/c z (go f c))]
          [(-->i doms rst rng p)
           (define-values (xs cs)
