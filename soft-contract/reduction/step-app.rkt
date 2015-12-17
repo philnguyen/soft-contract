@@ -131,6 +131,7 @@
        (define Γ_d*
          (cond
            [e_x
+            ; convert caller's facts to callee's facts
             (define FVs (FV e_x))
             (define φs-outer (-Γ-facts Γ))
             (define φs-inner
@@ -141,8 +142,13 @@
                                        [φ* (in-value (e/ e_x (-x x) φ))]
                                        #:when (⊆ (FV φ*) {set x}))
                 φ*))
-            (define Γ* (Γ⊓ Γ_d φs-inner))
-            (and Γ* (Γ-bind Γ* x e_x))]
+            ; canonicalize propositions if needed
+            (cond
+              [(and e_x (closed? e_x))
+               (define Γ* (Γ-bind Γ_d x e_x))
+               (define φs-inner* (map/set (curry canonicalize Γ*) φs-inner))
+               (Γ⊓ Γ* φs-inner*)]
+              [else (Γ⊓ Γ_d φs-inner)])]
            [else Γ_d]))
        (cond
          [Γ_d*
