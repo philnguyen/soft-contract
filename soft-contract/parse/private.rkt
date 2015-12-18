@@ -219,7 +219,7 @@
          (-src-loc (cur-mod) (next-neg!)))]
     [(#%plain-app (~literal fake:vectorof) c)
      (-@ (-ref (-id 'vectorof 'Λ) (cur-mod) (next-neg!))
-         (parse-e #'c)
+         (list (parse-e #'c))
          (-src-loc (cur-mod) (next-neg!)))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (define si (-struct-info (-id (syntax-e #'tag) (cur-mod))
