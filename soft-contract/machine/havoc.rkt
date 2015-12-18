@@ -46,15 +46,26 @@
 
   ;; Generate value
   (define x (-x '☠))
+  (define acs-for-struct
+    (for/fold ([m : (HashTable -struct-info (Setof -st-ac)) (hash)])
+              ([ac (prog-accs ms)])
+      (match-define (-st-ac si _) ac)
+      (hash-update m si (λ ([acs : (Setof -st-ac)]) (set-add acs ac)) (λ () {set ac}))))
+  (define alts
+    (cons
+     (cons (-@ 'procedure? (list x) -havoc-src)
+           (-@ (havoc-ref-from -havoc-path (next-neg!))
+                     (list (-@-havoc x)) -havoc-src))
+     (for/list : (Listof (Pairof -e -e)) ([(si acs) acs-for-struct])
+       (cons (-@ (-st-p si) (list x) -havoc-src)
+             (-amb/simp
+              (for/list : (Listof -@) ([ac acs])
+                (-@ (havoc-ref-from -havoc-path (next-neg!))
+                    (list (-@ ac (list x) -havoc-src))
+                    -havoc-src)))))))
+  (define havoc-body (-cond alts (-amb ∅)))
   (define clo-havoc ; only used by `verify` module, not `ce`
-    (-Clo '(☠)
-          (-amb/simp
-           (cons (-@ (havoc-ref-from -havoc-path (next-neg!))
-                     (list (-@-havoc x)) -havoc-src)
-                 (for/list : (Listof -@) ([ac (prog-accs ms)])
-                   (-@ (havoc-ref-from -havoc-path (next-neg!))
-                       (list (-@ ac (list x) -havoc-src)) -havoc-src))))
-          -ρ⊥ -Γ⊤))
+    (-Clo '(☠) havoc-body -ρ⊥ -Γ⊤))
 
   ;; Generate havoc-ing expression
   (define-set refs : -ref)

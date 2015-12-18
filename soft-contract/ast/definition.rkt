@@ -157,6 +157,15 @@
 (define -box (-st-mk -s-box))
 (define -set-box! (-st-mut -s-box 0))
 
+(: -cond : (Listof (Pairof -e -e)) -e → -e)
+;; Make `cond` at object language level, expanding to `if`
+(define (-cond cases default)
+  (foldr (λ ([alt : (Pairof -e -e)] [els : -e])
+           (match-define (cons cnd thn) alt)
+           (-if cnd thn els))
+         default
+         cases))
+
 (: --> : (Listof -e) -e → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
 (define (--> cs d)
