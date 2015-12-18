@@ -26,8 +26,8 @@
           (e/map
            (for/hash : (HashTable -e -e) ([x (assert xs)] [arg args])
              (values (-x x) arg))))
-        
-        (match/nd: (-Res → -Res) (hash-ref M (assert e))
+      
+        (match/nd: (-Res → -Res) (hash-ref M (assert e) (λ () -Res⊤))
           [(-Res e-xs ψ-xs)
            (define e-args (and e-xs (convert e-xs)))
            (define ψ-args (map/set convert ψ-xs))
@@ -80,12 +80,14 @@
              (and
               (unfold-this-one? id xs)
               (for/set: : (Setof -Res) ([res (invert-e M σ id xs)])
-                (match-define (-Res (? -e? e*) ψs) res)
-                (define ψs* ; strengthen with induction hypotheses
-                  (for/fold ([ψs* : -es ψs]) ([args (find-calls e* id)])
-                    (define hyp (e/list xs args e₀))
-                    (set-add ψs* hyp)))
-                (-Res e* ψs*)))]
+                (match res
+                  [(-Res (? -e? e*) ψs)
+                   (define ψs* ; strengthen with induction hypotheses
+                     (for/fold ([ψs* : -es ψs]) ([args (find-calls e* id)])
+                       (define hyp (e/list xs args e₀))
+                       (set-add ψs* hyp)))
+                   (-Res e* ψs*)]
+                  [_ #|TODO|# -Res⊤])))]
             [_ #f])]
          [(? set? reses)
           (for/set: : (Setof -Res) ([res reses])
@@ -110,7 +112,7 @@
                (match-define (cons es** ψs) res)
                (cons (cons e es**) ψs))])]
          [(? set? reses)
-          (for/set: : (Setof (Pairof (Listof -e) -es)) ([res reses])
+          (for/set: : (Setof (Pairof (Listof -e) -es)) ([res reses] #:when (-Res-e res))
             (match-define (-Res (? -e? #|FIXME|# e*) ψs) res)
             (cons (cons e* es*) ψs))])]))
     ;(printf "go*: ~a ↦ ~a~n" es ans)
@@ -134,12 +136,13 @@
             (for*/set: : (Setof (Pairof -e -Γ))
                        ([res (invert-e M σ id xs*)]
                         [ψs (in-value (-Res-facts res))]
+                        [e* (in-value (-Res-e res))] #:when e* ; TODO
                         [Γ* (in-value (Γ⊓ Γ ψs))] #:when Γ*)
-              (cons (assert (-Res-e res)) Γ*)))
+              (cons e* Γ*)))
           (cond
             [(= 1 (set-count reses*))
              (match-define (cons e* Γ*) (set-first reses*))
-             (go Γ* (assert e*))]
+             (if e* (go Γ* e*) e)]
             [else (values (assert (apply -?@ f* xs*)) Γ)])]
          [_ (values (assert (apply -?@ f* xs*)) Γ)])]
       [_ (values e Γ)]))

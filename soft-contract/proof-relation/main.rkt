@@ -12,7 +12,7 @@
 ;; External solver to be plugged in.
 ;; Return trivial answer by default.
 (define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
-  (make-parameter (λ (M σ Γ e) (error "external solver not set"))))
+  (make-parameter (λ (M σ Γ e) (printf "Warning: external solver not set") '?)))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check if value satisfies (flat) contract
@@ -81,8 +81,11 @@
                              [ψs (in-value (-Res-facts kase))]
                              [e* (in-value (-Res-e     kase))]
                              [Γ* (in-value (Γ⊓ Γ ψs))] #:when Γ*)
-                   (define-values (e** Γ**) (⇓₁ M σ Γ* (assert e*)))
-                   (go-rec (- d 1) Γ** e**)))
+                   (cond
+                     [e*
+                      (define-values (e** Γ**) (⇓₁ M σ Γ* (assert e*)))
+                      (go-rec (- d 1) Γ** e**)]
+                     [else '?])))
                (cond
                  [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
                  [(equal? anses {set 'X}) 'X]
