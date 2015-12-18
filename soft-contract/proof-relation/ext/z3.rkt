@@ -58,6 +58,12 @@
       [('Int 'Real) #t]
       [(_ _) #f]))
 
+  (define (upd-if-better [m : (HashTable Symbol Z3-Type)] [x : Symbol] [T : Z3-Type])
+    (hash-update m x
+                 (λ ([old-T : Z3-Type])
+                   (if (T . more-precise-than? . old-T) T old-T))
+                 (λ () T)))
+
   (define typeofs
     (for/fold ([typeofs : (HashTable Symbol Z3-Type) (hasheq)])
               ([φ (-Γ-facts Γ)])
@@ -66,10 +72,24 @@
          (declared-exprs-add! e)
          (define T (handled-Z3-pred->Z3-Type o))
          (define x (exp->sym e))
-         (hash-update typeofs x
-                      (λ ([old : Z3-Type])
-                        (if (T . more-precise-than? . old) T old))
-                      (λ () T))]
+         (upd-if-better typeofs x T)]
+        [(-@ (or '= 'equal?) (list e₁ e₂) _)
+         (define (make-use-of-equal?! [b : Base] [e : -e])
+           (define T
+             (cond [(exact-integer? b) 'Int]
+                   [(real? b) 'Real]
+                   [else #f]))
+           (cond
+             [T
+              (declared-exprs-add! e)
+              (define x (exp->sym e))
+              (upd-if-better typeofs x T)]
+             [else typeofs]))
+         (match* (e₁ e₂)
+           [((? -b?) (? -b?)) typeofs]
+           [((-b b₁) _) (make-use-of-equal?! b₁ e₂)]
+           [(_ (-b b₂)) (make-use-of-equal?! b₂ e₁)]
+           [(_ _) typeofs])]
         [_ typeofs])))
   
   (define decls
