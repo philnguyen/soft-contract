@@ -2,11 +2,11 @@
 
 (provide (all-defined-out))
 
-(require racket/set racket/match "../utils/map.rkt" "../ast/definition.rkt" "addr.rkt")
+(require racket/set racket/match "../ast/definition.rkt" "addr.rkt")
 
 ;; environment maps variable names to addresses
-(define-type -ρ (Map Symbol -α))
-(define -ρ⊥ : -ρ (hash))
+(define-type -ρ (HashTable Symbol -α.x))
+(define -ρ⊥ : -ρ (hasheq))
 
 (: ρ↓ : -ρ (Setof Symbol) → -ρ)
 ;; Restrict environment's domain to given variable names
@@ -16,13 +16,13 @@
    [else (for/fold ([ρ* : -ρ -ρ⊥]) ([x xs])
            (hash-set ρ* x (ρ@ ρ x)))]))
 
-(: ρ+ : -ρ (U -x Symbol) -α → -ρ)
+(: ρ+ : -ρ (U -x Symbol) -α.x → -ρ)
 ;; Extend environment with new mapping from symbol to address
 (define (ρ+ ρ x α)
   (define s (if (-x? x) (-x-name x) x))
   (hash-set ρ s α))
 
-(: ρ@ : -ρ (U -x Symbol) → -α)
+(: ρ@ : -ρ (U -x Symbol) → -α.x)
 ;; Look up environment for address at given variable
 (define (ρ@ ρ x)
   (define s (if (-x? x) (-x-name x) x))

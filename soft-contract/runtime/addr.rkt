@@ -5,7 +5,7 @@
 (require
  racket/match
  "../utils/def.rkt" "../utils/pretty.rkt"
- "../ast/definition.rkt")
+ "../ast/definition.rkt" "path-inv.rkt")
 
 ;; Just to make it easy to catch mis-allocation
 (define-data -α
@@ -14,8 +14,8 @@
   (struct -α.ctc [id : -id])
 
   ;; for lexical binding
-  ;(struct -α.bnd [x : Symbol] [arg : -?e] [inv : -Γ])
-  Symbol
+  (struct -α.x [x : Symbol] #;[arg : -?e] [inv : -Γ])
+  ;Symbol
 
   ;; TODO: temp hack
   (struct -α.tmp [v : -e])
