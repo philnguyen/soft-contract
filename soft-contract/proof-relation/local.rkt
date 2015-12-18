@@ -185,11 +185,15 @@
               [(and (symbol? p) (boolean-excludes? p)) '✓]
               [(-st-p? p) '✓]
               [else '?])]
+           [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
+            (⊢@ p (list e₂))]
+           [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
+            (⊢@ p (list e₁))]
            [(_ _) '?])]
         [(_ R) R]))
     (dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
     ans)
-  
+
   (define ans
     (cond
       [e
