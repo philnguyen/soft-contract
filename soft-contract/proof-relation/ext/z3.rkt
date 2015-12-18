@@ -7,6 +7,7 @@
  "../../utils/def.rkt" "../../utils/set.rkt" "../../utils/eval.rkt" "../../utils/debug.rkt"
  "../../utils/pretty.rkt" "../../utils/untyped-macros.rkt"
  "../../ast/definition.rkt" "../../ast/meta-functions.rkt"
+ "../../primitives/utils.rkt"
  "../../runtime/path-inv.rkt" "../../runtime/simp.rkt" "../../runtime/store.rkt"
  "../../runtime/summ.rkt"
  "../utils.rkt"
@@ -31,13 +32,16 @@
 (define-type Z3-Type (U 'Int 'Real))
 
 ;; binary operators on reals
-(define-type/pred Handled-Z3-pred (U 'integer? 'real?))
+(define-type/pred Handled-Z3-pred
+  (U 'integer? 'exact-integer? 'exact-positive-integer? 'exact-nonnegative-integer?
+     'inexact-real? 'rational? 'fixnum? 'flonum? 'single-flonum? 'double-flonum? 'real?))
 (define-type/pred Handled-Z3-op (U '+ '- '* '/ '> '< '>= '<= '= 'equal?))
 
 (define (handled-Z3-pred->Z3-Type [t : Handled-Z3-pred]) : Z3-Type
-  (case t
-    [(integer?) 'Int]
-    [(real?) 'Real]))
+  (cond
+    [(∋ (hash-ref implications t →∅) 'integer?) 'Int]
+    [(∋ (hash-ref implications t →∅) 'real?) 'Real]
+    [else (error 'handled-Z3-pred->Z3-Type "unexpected ~a" t)]))
 
 ;; Convert each expression to a fresh memoized symbol
 (define exp->sym : (case-> [→ (HashTable -e Symbol)]
@@ -87,6 +91,12 @@
       [(-@ 'add1 (list e) _) (@? list '+ (! (go e)) 1)]
       [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
       [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
+      [(-@ 'zero? (list e) _) (@? list '= (! (go e)) 0)]
+      [(-@ 'negative? (list e) _) (@? list '< (! (go e)) 0)]
+      [(-@ (or 'positive? 'exact-positive-integer?) (list e) _) (@? list '> (! (go e)) 0)]
+      [(-@ 'exact-nonnegative-integer? (list e) _) (@? list '>= (! (go e)) 0)]
+      [(-@ 'even? (list e) _) (@? list '= (@? list 'mod (! (go e)) 2) 0)]
+      [(-@ 'odd? (list e) _) (@? list '= (@? list 'mod (! (go e)) 2) 1)]
       [(-b b) (and (or (number? b) #;(string b)) b)]
       [_ (and (∋ declared e) (exp->sym e))])))
 

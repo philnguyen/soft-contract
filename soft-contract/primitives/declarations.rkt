@@ -1717,6 +1717,9 @@
     [inexact-real? ⇒ real?]
     [rational? ⇒ real?]
     [#:partition number? {exact? inexact?}]
+    [flonum? ⇒ inexact-real?]
+    [single-flonum? ⇒ flonum?]
+    [double-flonum? ⇒ flonum?]
     ; sequence
     [exact-nonnegative-integer? ⇒ sequence?]
     [string? ⇒ sequence?]
