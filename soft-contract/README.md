@@ -89,3 +89,5 @@ It doens't work for library functions.
 * [ ] reasonable counterexamples, focusing on stateless ones.
       (Stateful one can trivially cheat with internal counter, then appropriate value for *ith* invocation,
        which is not that helpful to programmer).
+* [ ] non-dependent contract is currently just special case of dependent.
+      Range is re-evaluated at each application, which makes a difference if there are side effects.
