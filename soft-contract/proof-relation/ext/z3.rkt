@@ -88,7 +88,7 @@
       [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
       [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
       [(-b b) (and (or (number? b) #;(string b)) b)]
-      [_ (if (∋ declared e) (exp->sym e) #f)])))
+      [_ (and (∋ declared e) (exp->sym e))])))
 
 (: Γ->premises : (Setof -e) -M -σ -Γ → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises
