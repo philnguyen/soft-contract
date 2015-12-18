@@ -158,7 +158,7 @@
      [random ; FIXME range, all uses
       (integer? pseudo-random-generator? . -> . exact-nonnegative-integer?)]
      [random-seed
-      (integer? . -> . void?)]
+      ((and/c exact-integer? positive?) . -> . void?)]
      [make-pseudo-random-generator
       (-> pseudo-random-generator?)]
      [#:pred pseudo-random-generator?]
@@ -1742,7 +1742,7 @@
     [flat-contract? ⇒ contract?]
 
     [#:exclusion
-     number? string? boolean? keyword? symbol? void? null?]
+     number? string? boolean? keyword? symbol? void? null? procedure?]
     ))
 
 ;; Operations that are associative
@@ -1767,7 +1767,7 @@
        [(integer? real? number? zero?
          inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
          extflonum?
-         boolean? string? symbol? keyword? char? null? #|TODO|#)
+         boolean? string? symbol? keyword? char? null? void? #|TODO|#)
         #t]
        [else #f])]
     [`(,(or 'and/c 'or/c 'not/c) ,cs ...)

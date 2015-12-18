@@ -3,7 +3,7 @@
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-e Γ+/-)
 
 (require
- racket/match racket/set racket/bool
+ racket/match racket/set racket/bool racket/function
  "../utils/set.rkt" "../utils/debug.rkt" "../utils/pretty.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/store.rkt"
@@ -12,7 +12,7 @@
 ;; External solver to be plugged in.
 ;; Return trivial answer by default.
 (define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
-  (make-parameter (λ (M σ Γ e) (error "external solver not set"))))
+  (make-parameter (λ (M σ Γ e) (printf "Warning: external solver not set") '?)))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check if value satisfies (flat) contract
@@ -57,9 +57,7 @@
           (cond ; if one subcase repeats, there can't be progress
             [(∋ Γs Γ) '?]
             [else
-             (define Rs
-               (for/set: : (Setof -R) ([Γi Γs])
-                 (go (- d 1) Γi)))
+             (define Rs (map/set (curry go (- d 1)) Γs))
              (cond
                [(equal? Rs {set '✓}) '✓]
                [(equal? Rs {set 'X }) 'X ]
@@ -83,8 +81,11 @@
                              [ψs (in-value (-Res-facts kase))]
                              [e* (in-value (-Res-e     kase))]
                              [Γ* (in-value (Γ⊓ Γ ψs))] #:when Γ*)
-                   (define-values (e** Γ**) (⇓₁ M σ Γ* (assert e*)))
-                   (go-rec (- d 1) Γ** e**)))
+                   (cond
+                     [e*
+                      (define-values (e** Γ**) (⇓₁ M σ Γ* (assert e*)))
+                      (go-rec (- d 1) Γ** e**)]
+                     [else '?])))
                (cond
                  [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
                  [(equal? anses {set 'X}) 'X]

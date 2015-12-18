@@ -5,10 +5,11 @@
 (require
  racket/match racket/port racket/system racket/string racket/function
  "../../utils/def.rkt" "../../utils/set.rkt" "../../utils/eval.rkt" "../../utils/debug.rkt"
- "../../utils/pretty.rkt"
+ "../../utils/pretty.rkt" "../../utils/untyped-macros.rkt"
  "../../ast/definition.rkt" "../../ast/meta-functions.rkt"
  "../../runtime/path-inv.rkt" "../../runtime/simp.rkt" "../../runtime/store.rkt"
  "../../runtime/summ.rkt"
+ "../utils.rkt"
  "../result.rkt")
 
 ;; Query external solver for provability relation
@@ -17,9 +18,9 @@
   ;(printf "~a~n⊢~n~a~n~n" (show-Γ Γ) (show-e e))
   (define-values (decls declared-exps) (Γ->decls Γ))
   (cond
-    [(exp->Z3 declared-exps e) =>
+    [(exp->Z3 M σ Γ declared-exps e) =>
      (λ ([concl : Sexp])
-       (call-with decls (Γ->premises declared-exps Γ) concl))]
+       (call-with decls (Γ->premises declared-exps M σ Γ) concl))]
     [else '?]))
 
 
@@ -73,10 +74,13 @@
 
   (values decls declared-exprs))
 
-(: exp->Z3 : (Setof -e) -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
+(: exp->Z3 : -M -σ -Γ (Setof -e) -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
 ;; Translate restricted syntax into Z3 sexp
-(define (exp->Z3 declared e)
-  (let go : (Option Sexp) ([e : -e e])
+(define (exp->Z3 M σ Γ declared e)
+  (define-values (e* _) (⇓₁ M σ Γ e))
+  #;(when (match? e (-@ '= _ _))
+    (printf "~a ⊢ ~a ⇓₁ ~a~n" (show-Γ Γ) (show-e e) (show-e e*)))
+  (let go : (Option Sexp) ([e : -e e*])
     (match e
       [(-@ (? Handled-Z3-op? o) (list e₁ e₂) _)
        (@? list (o->Z3 o) (! (go e₁)) (! (go e₂)))]
@@ -84,13 +88,13 @@
       [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
       [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
       [(-b b) (and (or (number? b) #;(string b)) b)]
-      [_ (if (∋ declared e) (exp->sym e) #f)])))
+      [_ (and (∋ declared e) (exp->sym e))])))
 
-(: Γ->premises : (Setof -e) -Γ → (Listof Sexp))
+(: Γ->premises : (Setof -e) -M -σ -Γ → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises
-(define (Γ->premises declared Γ)
+(define (Γ->premises declared M σ Γ)
   (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)]
-                              [s (in-value (exp->Z3 declared e))] #:when s)
+                              [s (in-value (exp->Z3 M σ Γ declared e))] #:when s)
     s))
 
 ;; translate Racket symbol to Z3 symbol
@@ -119,6 +123,6 @@
 (: call : (Listof Sexp) → String)
 (define (call cmds)
   (define query-str (string-join (map (curry format "~a") cmds) "\n"))
-  (printf "query:~n~a~n~n" query-str)
+  ;(printf "query:~n~a~n~n" query-str)
   (with-output-to-string
    (λ () (system (format "echo \"~a\" | z3 -in -smt2" query-str)))))
