@@ -22,7 +22,6 @@
   (define f
     (match-lambda
       [(-x x)        (hash-ref bnds x  #f)]
-      [(-ref id _ _) (hash-ref bnds id #f)]
       [_ #f]))
   ((e/fun f) e))
 
