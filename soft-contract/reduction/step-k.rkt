@@ -207,8 +207,9 @@
              (define-values (δσ ρ_d*) (alloc Γ ρ_d zs Vs pos))
              (with-Δ δσ '() '()
                (↦e d ρ_d* Γ (-kont (-φ.indy.rng V_f args #f l³ pos) κ) σ Ξ M))])]
-         [(cons (list x* (and W_c* (-W C* c*)) W_x*) args*)
+         [(cons (list x* (and W_c* (-W C* c*)) (-W V_x e_x)) args*)
           (define κ* (-kont (-φ.indy.dom x* args* doms↓* Rst V_f d ρ_d l³ pos) κ))
+          (define W_x* (-W V_x (canonicalize Γ (-x x*))))
           (↦mon W_c* W_x* Γ κ* σ Ξ M l³* pos)]))]
     [(-φ.indy.rst x* doms V_f d ρ_d l³ pos)
      (with-guarded-arity 1 'Λ 'Λ

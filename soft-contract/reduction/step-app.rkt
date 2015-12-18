@@ -100,62 +100,78 @@
               (Option (List Symbol -WV (Listof -WV)))
               -e -ρ -Γ -WV Mon-Info → -Δς*)
   (define (↦indy args Rst d ρ_d Γ_d W_g l³)
+    ; Initial parameters and arguments
     (define-values (xs₀ e_xs₀)
       (for/lists ([xs₀ : (Listof Symbol)] [e_xs₀ : (Listof -?e)])
                  ([arg : (List Symbol -WV -WV) args])
         (match-define (list x _ (-W _ e)) arg)
         (values x e)))
+    ; Parameters and arguments
     (define-values (xs e_xs)
       (match Rst
         [(list x* _ WVs) (values (-varargs xs₀ x*) (append e_xs₀ (map (inst -W-e Any) WVs)))]
         [#f (values xs₀ e_xs₀)]))
-    ;; TODO: probably don't need these restoring frames anymore. Check again.
+    
     (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
-    (match args
-      ['()
-       (match Rst
-         [(list x* W_c* W_vs)
-          (define-values (Vs es) ((inst unzip-by -WV -V -?e) -W-x -W-e W_vs))
-          (define-values (δσ V-rst) (alloc-varargs Γ Vs pos))
-          (define e-rst (-?list es))
-          (define κ₂ (-kont (-φ.indy.rst x* '() W_g d ρ_d l³ pos) κ₁))
+    ;; Convert caller's invariants to callee's invariants
+    (define Γ_d*
+      (let-values ([(xs* e_xs*) (bind-args xs e_xs)])
+        (define convert
+          (e/map
+           (for/hash : (HashTable -e -e) ([x xs*] [e e_xs*] #:when e)
+             (values e (-x x)))))
+        (define params (list->set xs*))
+        (define φs-caller (-Γ-facts Γ))
+        (define φs-callee
+          (for*/set: : (Setof -e) ([φ φs-caller]
+                                   [FV-φ (in-value (FV φ))]
+                                   #:when (set-empty? (∩ FV-φ params))
+                                   #:unless (set-empty? FV-φ) ; prevents blow-up
+                                   [φ* (in-value (convert φ))]
+                                   #:when (⊆ (FV φ*) params))
+            φ*))
+        ; Canonicalize propositions if needed
+        (define Γ_d₀
+          (for/fold ([Γ : -Γ Γ_d]) ([x xs*]
+                                    [e_x e_xs*]
+                                    #:when e_x
+                                    #:when (⊆ (FV e_x) params))
+            (Γ-bind Γ x e_x)))
+        (define φs-callee* (map/set (curry canonicalize Γ_d₀) φs-callee))
+        (Γ⊓ Γ_d₀ φs-callee*)))
+
+    #|(printf "Binding ~a~n" (for/list : (Listof Any) ([x xs₀] [e e_xs₀])
+                             `(,(show-e x) ↦ ,(show-?e e))))
+    (printf "Caller knows: ~a~n" (show-Γ Γ))
+    (printf "Callee knows: ~a~n" (show-Γ Γ_d))
+    (printf "Starting argument, knowing ~a~n" (and Γ_d* (show-Γ Γ_d*)))|#
+    
+    (cond
+      [Γ_d*
+       (match args
+         ['()
+          (match Rst
+            [(list x* W_c* W_vs)
+             (define-values (Vs es) ((inst unzip-by -WV -V -?e) -W-x -W-e W_vs))
+             (define-values (δσ V-rst) (alloc-varargs Γ Vs pos))
+             (define e-rst (-?list es))
+             (define κ₂ (-kont (-φ.indy.rst x* '() W_g d ρ_d l³ pos) κ₁))
+             (define l³* (swap-parties l³))
+             (with-Δ δσ '() '()
+               (↦mon W_c* (-W V-rst e-rst) Γ κ₂ σ Ξ M l³* pos))]
+            [#f
+             ;; If there's no argument, skip monitoring arguments and start evaluating range
+             (define κ₂ (-kont (-φ.indy.rng W_g '() #f l³ pos) κ₁))
+             (-Δς (-⇓ d ρ_d) Γ_d* κ₂ '() '() '())])]
+         [(cons (list x W_c (-W V_x e_x)) args*)
           (define l³* (swap-parties l³))
-          (with-Δ δσ '() '()
-            (↦mon W_c* (-W V-rst e-rst) Γ κ₂ σ Ξ M l³* pos))]
-         [#f
-          ;; If there's no argument, skip monitoring arguments and start evaluating range
-          (define κ₂ (-kont (-φ.indy.rng W_g '() #f l³ pos) κ₁))
-          (-Δς (-⇓ d ρ_d) Γ_d κ₂ '() '() '())])]
-      [(cons (list x W_c (and W_x (-W V_x e_x))) args*)
-       (define l³* (swap-parties l³))
-       (define Γ_d*
-         (cond
-           [e_x
-            ; convert caller's facts to callee's facts
-            (define FVs (FV e_x))
-            (define φs-outer (-Γ-facts Γ))
-            (define φs-inner
-              (for*/set: : (Setof -e) ([φ φs-outer]
-                                       [FV-φ (in-value (FV φ))]
-                                       #:when (⊆ FV-φ FVs)
-                                       #:unless (set-empty? FV-φ)
-                                       [φ* (in-value (e/ e_x (-x x) φ))]
-                                       #:when (⊆ (FV φ*) {set x}))
-                φ*))
-            ; canonicalize propositions if needed
-            (cond
-              [(and e_x (closed? e_x))
-               (define Γ* (Γ-bind Γ_d x e_x))
-               (define φs-inner* (map/set (curry canonicalize Γ*) φs-inner))
-               (Γ⊓ Γ* φs-inner*)]
-              [else (Γ⊓ Γ_d φs-inner)])]
-           [else Γ_d]))
-       (cond
-         [Γ_d*
-          (define W_x* (-W V_x (canonicalize Γ_d* (-x x))))
-          (define κ₂ (-kont (-φ.indy.dom x args* '() Rst W_g d ρ_d l³ pos) κ₁))
-          (↦mon W_c W_x* Γ_d* κ₂ σ Ξ M l³* pos)]
-         [else ∅])]))
+          (cond
+            [Γ_d*
+             (define W_x* (-W V_x (canonicalize Γ_d* (-x x))))
+             (define κ₂ (-kont (-φ.indy.dom x args* '() Rst W_g d ρ_d l³ pos) κ₁))
+             (↦mon W_c W_x* Γ_d* κ₂ σ Ξ M l³* pos)]
+            [else ∅])])]
+      [else ∅]))
 
   (: ↦pred : -struct-info → -Δς)
   (define (↦pred si)
