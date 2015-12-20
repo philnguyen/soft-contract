@@ -166,12 +166,12 @@
          default
          cases))
 
-(: --> : (Listof -e) -e → -e)
+(: --> : Symbol (Listof -e) -e → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
-(define (--> cs d)
+(define (--> prefix cs d)
   (define doms
     (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
-      (define x (string->symbol (format "x•~a" (n-sub i)))) ; hack
+      (define x (string->symbol (format "~a•~a" prefix (n-sub i)))) ; hack
       (cons x c)))
   (-->i doms #f d (next-neg!)))
 
