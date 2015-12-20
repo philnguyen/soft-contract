@@ -488,7 +488,7 @@
           [V_g
            (with-guarded-arity
              (match Rst
-               [(list x* c* γ*)
+               [(cons x* (and γ* (-α.rst c*)))
                 (define n (length Doms))
                 (define-values (es-init es-rest) (split-at e_xs n))
                 (define-values (Vs-init Vs-rest) (split-at V_xs n))
@@ -499,7 +499,7 @@
                 (define WV-rest (map (inst -W -V) Vs-rest es-rest))
                 (match/nd: (-V → -Δς) (σ@ σ γ*)
                   [C*
-                   (define Rst* (list x* (-W C* c*) WV-rest))
+                   (define Rst* (list x* (-W C* (and (-e? c*) c*)) WV-rest))
                    (↦indy args-init Rst* d ρ_c Γ_c (-W V_g e_g) l³)])]
                [#f
                 (define args

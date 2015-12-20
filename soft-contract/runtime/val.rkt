@@ -135,16 +135,16 @@
      (match* (dep? rst)
        [(#f #f)
         `(,@(map show-?e cs) . -> . ,(show-e d))]
-       [(#f (list x* c* γ*))
-        `(,(map show-?e cs) #:rest ,(show-?e c*) . ->* . ,(show-e d))]
+       [(#f (cons x* (and γ* (-α.rst c*))))
+        `(,(map show-?e cs) #:rest ,(if (-e? c*) (show-e c*) (show-α γ*)) . ->* . ,(show-e d))]
        [(#t #f)
         `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
                  `(,x ,(show-?e c)))
               (res ,xs ,(show-e d)))]
-       [(#t (list x* c* γ*))
+       [(#t (cons x* (and γ* (-α.rst c*))))
         `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
                  `(,x ,(show-?e c)))
-              #:rest (,x* ,(show-?e c*))
+              #:rest (,x* ,(if (-e? c*) (show-e c*) (show-α γ*)))
               (res ,xs ,(show-e d)))])]
     [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
