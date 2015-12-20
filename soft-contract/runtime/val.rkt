@@ -35,8 +35,8 @@
   (struct -Vector/C [γs : (Listof -α.vector/c)])
   (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
   (struct -=>i
-    [doms : (Listof (List Symbol -?e -α))]
-    [rst : (Option (List Symbol -?e -α))]
+    [doms : (Listof (Pairof Symbol -α.dom))]
+    [rst : (Option (Pairof Symbol -α.rst))]
     [rng : -e] [env : -ρ] [Γ : -Γ])
   (struct -x/C [c : -α.x/c])
   )
@@ -91,6 +91,18 @@
     [(? -x/C?) #t]
     [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
+(: V->?e : -V → -?e)
+;; Recover value's syntax from evaluated value
+(define V->?e
+  (match-lambda
+    [(-And/C _ (-α.and/c-l (? -e? c₁)) (-α.and/c-r (? -e? c₂))) (-@ 'and/c (list c₁ c₂) -Λ)]
+    [(-Or/C  _ (-α.or/c-l  (? -e? c₁)) (-α.or/c-r  (? -e? c₂))) (-@ 'or/c  (list c₁ c₂) -Λ)]
+    [(-Not/C (-α.not/c (? -e? c))) (-@ 'not/c (list c) -Λ)]
+    [(-Vectorof (-α.vectorof (? -e? c))) (-@ 'vectorof (list c) -Λ)]
+    [(-Vector/C (list (-α.vector/c (? -e? cs)) ...)) (-@ 'vector/c (cast cs (Listof -e)) -Λ)]
+    [(-St/C _ si (list (-α.struct/c (? -e? cs)) ...)) (-struct/c si (cast cs (Listof -e)) 0)]
+    [_ #f]))
+
 ;; Pretty-print evaluated value
 (define (show-V [V : -V]) : Sexp
   (match V
@@ -116,9 +128,9 @@
     [(-=>i doms rst d ρ Γ)
      (define-values (xs cs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -?e)])
-                  ([dom : (List Symbol -?e -α) doms])
-         (match-define (list x c _) dom)
-         (values x c)))
+                  ([dom : (Pairof Symbol -α.dom) doms])
+         (match-define (cons x (-α.dom c)) dom)
+         (values x (and (-e? c) c))))
      (define dep? (not (set-empty? (∩ (FV d) (list->set xs)))))
      (match* (dep? rst)
        [(#f #f)

@@ -48,7 +48,7 @@
           [V
            (define ?e (if (-o? V) V ref))
            (match/nd: (-V → -Δς) Cs
-             [C (↦mon (-W C #f #|TODO|#) (-W V ?e) Γ κ σ Ξ M (list ctx* ctx ctx*) pos)])])])]
+             [C (↦mon (-W C (V->?e C)) (-W V ?e) Γ κ σ Ξ M (list ctx* ctx ctx*) pos)])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
      (define κ* (-kont (-φ.@ (for/list : (Listof -E) ([x xs]) (-⇓ x ρ)) '() l) κ))

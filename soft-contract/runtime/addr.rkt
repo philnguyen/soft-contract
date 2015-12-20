@@ -21,7 +21,7 @@
   (struct -α.tmp [v : -e])
 
   ;; for mutable or opaque field
-  (struct -α.fld [id : -id] [pos : Integer] [idx : Integer])
+  (struct -α.fld [ctx : (U -e (List -id Integer Integer))])
   ; for Cons/varargs
   (struct -α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list
   (struct -α.var-cdr [pos : Integer] [idx : Natural])
@@ -36,20 +36,23 @@
   (struct -α.vct [pos : Integer])
 
   ;; for contract components
-  (struct -α.and/c-l [pos : Integer])
-  (struct -α.and/c-r [pos : Integer])
-  (struct -α.or/c-l [pos : Integer])
-  (struct -α.or/c-r [pos : Integer])
-  (struct -α.not/c [pos : Integer])
-  (struct -α.vector/c [pos : Integer] [idx : Integer])
-  (struct -α.vectorof [pos : Integer])
-  (struct -α.struct/c [id : -id] [pos : Integer] [idx : Integer])
+  (struct -α.and/c-l [ctx : (U Integer -e)])
+  (struct -α.and/c-r [ctx : (U Integer -e)])
+  (struct -α.or/c-l [ctx : (U Integer -e)])
+  (struct -α.or/c-r [ctx : (U Integer -e)])
+  (struct -α.not/c [ctx : (U Integer -e)])
+  (struct -α.vector/c [ctx : (U (Pairof Integer Integer) -e)])
+  (struct -α.vectorof [ctx : (U Integer -e)])
+  (struct -α.struct/c [ctx : (U (List -id Integer Integer) -e)])
   (struct -α.x/c [pos : Integer])
+  (struct -α.dom [ctx : (U (Pairof Integer Integer) -e)])
+  (struct -α.rst [ctx : (U Integer -e)])
   )
 
-(: alloc-fields : -struct-info Integer → (Listof -α.fld))
-(define (alloc-fields s loc)
+(: alloc-fields : -struct-info (Listof -?e) Integer → (Listof -α.fld))
+(define (alloc-fields s args pos)
   (match-define (-struct-info id n _) s)
-  (for/list ([i n]) (-α.fld id loc i)))
+  (for/list ([i n] [?e args])
+    (-α.fld (or ?e (list id pos i)))))
 
 (define show-α : (-α → Symbol) (unique-name 'α))

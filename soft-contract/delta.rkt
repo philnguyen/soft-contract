@@ -75,8 +75,8 @@
      (define-values (αs δσ)
        (for/lists ([αs : (Listof -α.vector/c)] [δσ : -Δσ])
                   ([(W i) (in-indexed Ws)])
-         (define V (-W-x W))
-         (define α (-α.vector/c pos i))
+         (match-define (-W V e) W)
+         (define α (-α.vector/c (if e e (cons pos i))))
          (values α (cons α V))))
      (values δσ (-AΓ (list (-Vector/C αs)) Γ))]
     

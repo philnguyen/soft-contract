@@ -182,7 +182,7 @@
 
   (: ↦con : -struct-info → -Δς)
   (define (↦con si)
-    (define αs (alloc-fields si pos))
+    (define αs (alloc-fields si e_xs pos))
     (define δσ : -Δσ
       (for/list ([α αs] [W W_xs])
         (cons α (close-Γ Γ (-W-x W)))))
@@ -478,9 +478,9 @@
     [(-Ar (-=>i Doms Rst d ρ_c Γ_c) (cons α e_g) l³)
      (define-values (xs cs γs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)])
-                  ([Dom : (List Symbol -?e -α) Doms])
-         (match-define (list x c γ) Dom)
-         (values x c γ)))
+                  ([Dom : (Pairof Symbol -α.dom) Doms])
+         (match-define (cons x (and γ (-α.dom c))) Dom)
+         (values x (and (-e? c) c) γ)))
      (match/nd: ((Listof -V) → -Δς) (σ@/list σ γs) ; TODO can explode very fast!!
        [Cs
         (define WCs (map (inst -W -V) Cs cs))
