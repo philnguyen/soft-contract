@@ -263,7 +263,7 @@
                (define α (-α.st* (-struct-info-id s) pos))
                (define δσ* (cons (cons α V-inner) δσ))
                (define γs*
-                 (for/list : (Listof (Option -α)) ([(γ i) (in-indexed γs)])
+                 (for/list : (Listof (Option -α.struct/c)) ([(γ i) (in-indexed γs)])
                    (and (∋ mutables i) γ)))
                (define V-wrapped (-St/checked s γs* l³ α))
                (values V-wrapped δσ*)]))

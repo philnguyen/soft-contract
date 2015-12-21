@@ -16,11 +16,11 @@
   ;; Structs
   (struct -St [info : -struct-info] [fields : (Listof (U -α.fld -α.var-car -α.var-cdr))])
   (struct -St/checked
-    [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
+    [info : -struct-info] [contracts : (Listof (Option -α.struct/c))] [mon : Mon-Info]
     [unchecked : -α.st*])
   ;; Vectors
   (struct -Vector [fields : (Listof -α.idx)])
-  (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α.vct])
+  (struct -Vector/checked [contracts : (Listof -α.vector/c)] [mon : Mon-Info] [unchecked : -α.vct])
   ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])

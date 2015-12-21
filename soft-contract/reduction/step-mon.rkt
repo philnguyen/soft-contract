@@ -103,7 +103,7 @@
                   (blm l+ lo (-Arity-Includes/C n) V))))
     (collect δς-ok δς-bads))
   
-  (: ↦struct/c : -struct-info (Listof -α) → -Δς*)
+  (: ↦struct/c : -struct-info (Listof -α.struct/c) → -Δς*)
   (define (↦struct/c s γs)
     (define k? (-st-p s))
     (define k (-st-mk s))
@@ -144,7 +144,7 @@
     
     (collect ς-ok ς-bad))
 
-  (: ↦vector/c : (Listof -α) → -Δς*)
+  (: ↦vector/c : (Listof -α.vector/c) → -Δς*)
   (define (↦vector/c γs)
     (define n (length γs))
     (define -n/W (let ([v (-b n)]) (-W v v)))
