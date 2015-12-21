@@ -244,10 +244,10 @@
     [(list e) e]
     [(cons e es) (-if e (apply -and es) -ff)]))
 
-(: -comp/c : -e -e → -e)
+(: -comp/c : Symbol -e → -e)
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e)
-  (define x 'x•)
+  (define x (string->symbol (format "~a•~a" op (n-sub (next-nat!)))))
   (-λ (list x) (-and (-@ 'real? (list (-x x)) -Λ) (-@ op (list (-x x) e) -Λ))))
 
 (: -amb/simp : (Listof -e) → -e)

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide sym-sub pretty n-sub unique-name next-neg!)
+(provide sym-sub pretty n-sub unique-name next-neg! next-nat!)
 (require racket/pretty racket/string racket/port)
 
 (: sym-sub : Symbol → Symbol)
@@ -50,3 +50,8 @@
   (let ([n : Negative-Integer -1])
     (λ () : Negative-Integer
       (begin0 n (set! n (- n 1))))))
+
+(define next-nat!
+  (let ([n : Natural 0])
+    (λ () : Natural
+       (begin0 n (set! n (+ n 1))))))
