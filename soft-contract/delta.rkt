@@ -95,7 +95,15 @@
              (define ans (if (arity-includes? a n) -tt -ff))
              (values '() (-AΓ (list ans) Γ))]
             [else (values '() (-AΓ -●/Vs Γ))]))]
-       [else (values '() (-AΓ -●/Vs Γ))])]))
+       [else (values '() (-AΓ -●/Vs Γ))])]
+
+    [equal?
+     (define Vs
+       (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
+         [(✓) (list -tt)]
+         [(X) (list -ff)]
+         [(?) -●/Vs]))
+     (values '() (-AΓ Vs Γ))]))
 
 (define-syntax (with-args stx)
   (syntax-parse stx
