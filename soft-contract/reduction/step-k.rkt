@@ -270,9 +270,8 @@
           (-Δς (-W (list V*) e_a) Γ κ δσ* '() '())]
          [(cons c cs*)
           (define i* (+ i 1))
-          (define ac (-st-ac s i*))
           (define φ₁ (-φ.mon.struct s γs cs* i* Ws↓* W l³ pos))
-          (define φ₃ (-φ.@ '() (list (-W ac ac)) (-src-loc 'Λ pos)))
+          (define φ₃ (-φ.@ '() (list (-W (-st-ac s i*) #f)) (-src-loc 'Λ pos)))
           (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
             (define φ₂ (-φ.mon.v (-W C c) l³ pos))
             (define κ* (-kont* φ₃ φ₂ φ₁ κ))
@@ -390,7 +389,8 @@
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
        (define δσ (list (cons (-α.x/c x) V)))
-       (-Δς (-W (list V) (-?μ/c x ?e)) Γ κ δσ '() '()))]
+       (define ?c (-?μ/c x ?e))
+       (-Δς (-W (list V) (and ?e ?c (unroll x ?c ?e))) Γ κ δσ '() '()))]
     [(-φ.struct/c s es ρ WVs↓ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (-struct-info id n _) s)
