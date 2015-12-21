@@ -244,7 +244,7 @@
        [(list (or (-St sj _) (-St/checked sj _ _ _)))
         ;; TODO: no sub-struct for now. May change later.
         (decide-R (equal? si (assert sj)))]
-       [(-●) '?]
+       [(list (-●)) '?]
        [_ 'X])]
     [(? symbol?)
      (case p
