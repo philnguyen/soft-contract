@@ -253,7 +253,7 @@
         (match Vs
           [(list (-●)) '?]
           [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?) (? -Not/C?))) '✓]
-          [(list (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _)) (decide-R flat?)]
+          [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
           [_ 'X])]
        [(vector?)
         (match Vs

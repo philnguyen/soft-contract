@@ -28,6 +28,8 @@
     (error 'δ "Invalid arity uncaught for `~a`: expect ~a, given ~a" o expect given))
   
   (with-args s (M σ Γ Ws loc)
+    [any/c  (values '() (-AΓ (list -tt) Γ))]
+    [none/c (values '() (-AΓ (list -ff) Γ))]
     [and/c
      (match Ws
        [(list (-W V₁ _) (-W V₂ _))
@@ -100,6 +102,14 @@
     [equal?
      (define Vs
        (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
+         [(✓) (list -tt)]
+         [(X) (list -ff)]
+         [(?) -●/Vs]))
+     (values '() (-AΓ Vs Γ))]
+    
+    [procedure?
+     (define Vs
+       (case (apply MσΓ⊢oW M σ Γ 'procedure? Ws)
          [(✓) (list -tt)]
          [(X) (list -ff)]
          [(?) -●/Vs]))

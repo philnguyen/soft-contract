@@ -52,7 +52,7 @@
 
     (match-lambda
       [(or (-Clo xs _ _ _) (-Clo* xs _ _)) (-formals-arity (assert xs))]
-      [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?)) 1]
+      [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _)) 1]
       [(-Ar guard _ _) (-guard-arity guard)]
       [(? -st-p?) 1]
       [(-st-mk (-struct-info _ n _)) n]

@@ -371,6 +371,32 @@
     (for/set: : (Setof -Δς) ([C Cs])
       (define φ (-φ.@ '() (list (-W C e*)) loc))
       (-Δς (-W (list V_x) e_x) Γ (-kont* φ φ-not κ) '() '() '())))
+
+  (: ↦struct/c : -struct-info (Setof (Listof -V)) → -Δς*)
+  (define (↦struct/c si field-lists)
+    (match-define (list (-W V_x e_x)) W_xs)
+    (define φ₀
+      (let ([p? (-st-p si)])
+        (-φ.@ '() (list (-W p? p?)) loc)))
+    (define cs (-struct/c-split e_f (-struct-info-arity si)))
+    (define vs (-struct-split e_x si))
+    (match/nd: ((Listof -V) → -Δς) field-lists
+      [Cs
+       (define W_cs (map (inst -W -V) Cs cs))
+       (match V_x
+         [(-St (≡ si) αs)
+          (for/set: : (Setof -Δς) ([Vs (σ@/list σ αs)])
+            (define W_vs (map (inst -W -V) Vs vs))
+            (define κ*
+              (foldr (λ ([W_c : -WV] [W_v : -WV] [κ : -κ])
+                       (define φ (-φ.if (-App W_c (list W_v) loc) (-W (list -ff) -ff)))
+                       (-kont φ κ))
+                     κ
+                     W_cs
+                     W_vs))
+            (-Δς (-W (list V_x) e_x) Γ (-kont φ₀ κ*) '() '() '()))]
+         [(-●) (-Δς (-W -●/Vs e_a) Γ κ '() '() '())]
+         [_ (-Δς (-W (list -ff) e_a) Γ κ '() '() '())])]))
   
   (: ↦contract-first-order-passes? : → -Δς*)
   (define (↦contract-first-order-passes?)
@@ -472,6 +498,7 @@
     [(-And/C #t α₁ α₂) (with-guarded-arity (↦and/c (σ@ σ α₁) (σ@ σ α₂)))]
     [(-Or/C  #t α₁ α₂) (with-guarded-arity (↦or/c (σ@ σ α₁) (σ@ σ α₂)))]
     [(-Not/C α) (with-guarded-arity (↦not/c (σ@ σ α)))]
+    [(-St/C #t si αs) (with-guarded-arity (↦struct/c si (σ@/list σ αs)))]
     [(? symbol? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (with-guarded-arity (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f))))]
     [(-Clo  xs e ρ_f Γ_f) (with-guarded-arity (↦β xs e ρ_f Γ_f))]
