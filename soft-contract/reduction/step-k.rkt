@@ -282,17 +282,35 @@
        (match cs
          ['()
           (define α (-α.vct pos))
-          (define δσ (list (cons α (-W-x W))))
+          (match-define (-W V-inner e-inner) W)
+          (define δσ (list (cons α V-inner)))
           (define V/wrapped (-Vector/checked γs l³ α))
-          (-Δς (-W (list (-W-x W)) (-W-e W)) Γ κ δσ '() '())]
+          (-Δς (-W (list V-inner) e-inner) Γ κ δσ '() '())]
          [(cons c cs*)
           (define i* (+ 1 i))
-          (define φ₁ (-φ.mon.vector/c γs cs* i* W l³ pos))
-          (define φ₃ (-φ.@ '() (list W -vector-ref/W) -Λ))
+          (define φ-chk-rest (-φ.mon.vector/c γs cs* i* W l³ pos))
+          (define φ-ref (-φ.@ '() (list W -vector-ref/W) -Λ))
           (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
-            (define φ₂ (-φ.mon.v (-W C c) l³ pos))
-            (define κ* (-kont* φ₃ φ₂ φ₁ κ))
+            (define φ-chk (-φ.mon.v (-W C c) l³ pos))
+            (define κ* (-kont* φ-ref φ-chk φ-chk-rest κ))
             (-Δς (-W (list (-b i*)) (-b i*)) Γ κ* '() '() '()))]))]
+    [(-φ.mon.vectorof (cons γ W-c) n i W l³ pos)
+     (match-define (list l+ l- lo) l³)
+     (with-guarded-arity 1 lo 'Λ
+       (define i* (+ 1 i))
+       (cond
+         [(< i* n)
+          (define φ-chk-rest (-φ.mon.vectorof (cons γ W-c) n i* W l³ pos))
+          (define φ-chk (-φ.mon.v W-c l³ pos))
+          (define φ-ref (-φ.@ '() (list W -vector-ref/W) -Λ))
+          (define κ* (-kont* φ-ref φ-chk φ-chk-rest κ))
+          (-Δς (-W (list (-b i*)) (-b i*)) Γ κ* '() '() '())]
+         [else
+          (define α (-α.vct pos))
+          (match-define (-W V-inner e-inner) W)
+          (define δσ (list (cons α V-inner)))
+          (define V/wrapped (-Vector/same γ l³ α))
+          (-Δς (-W (list V-inner) e-inner) Γ κ δσ '() '())]))]
     ;; Accumulate higher-order contracts with passing first-order checks
     [(-φ.filter-fo W_Cs W_Cs↓ W_C (and W_v (-W V_v e_v)) (and l³ (list l+ l- lo)) pos)
      (define-values (Γ_t Γ_f) (Γ+/-W M σ Γ (-W (car Vs) ?e)))

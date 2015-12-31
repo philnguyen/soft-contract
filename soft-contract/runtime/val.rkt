@@ -21,6 +21,7 @@
   ;; Vectors
   (struct -Vector [fields : (Listof -α.idx)])
   (struct -Vector/checked [contracts : (Listof -α.vector/c)] [mon : Mon-Info] [unchecked : -α.vct])
+  (struct -Vector/same [contract : -α.vectorof] [mon : Mon-Info] [unchecked : -α.vct])
   ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
@@ -120,6 +121,7 @@
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-Vector/checked γs _ α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
+    [(-Vector/same γ _ α) `(vector/same ,(show-α γ) ▹ ,(show-α α))]
     [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
     [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
     [(-Not/C γ) `(not/c ,(show-α γ))]
@@ -169,6 +171,7 @@
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -●/V (-●))
+(define -●/Vs : (List -V) (list -●/V))
 (define -Void/Vs (list (-b (void))))
 (define -Void/W (-W -Void/Vs (-b (void))))
 (define -integer?/W (-W 'integer? 'integer?))

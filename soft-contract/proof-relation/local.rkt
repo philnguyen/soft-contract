@@ -258,7 +258,7 @@
        [(vector?)
         (match Vs
           [(list (-●)) '?]
-          [(list (or (? -Vector?) (? -Vector/checked?))) '✓]
+          [(list (or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))) '✓]
           [_ 'X])]
        [(contract?)
         (match Vs

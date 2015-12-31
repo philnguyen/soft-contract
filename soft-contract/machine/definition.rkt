@@ -111,7 +111,7 @@
     [ctcs : (Listof -α.vector/c)] [cs : (Listof -?e)] [idx : Integer]
     [target : -WV] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.vectorof
-    [ctc : -WV] [len : Integer] [idx : Integer]
+    [ctc : (Pairof -α.vectorof -WV)] [len : Integer] [idx : Integer]
     [target : -WV] [mon-info : Mon-Info] [pos : Integer])
 
   ;; Accumulate higher-order contracts with passing first-order checks
@@ -229,7 +229,7 @@
        ,@(for/list : (Listof Sexp) ([γ γs-done]) `(,(show-α γ) ▹ ✓))
        (,(show-α γ-cur) ,v)
        ,@(for/list : (Listof Sexp) ([γ γs-left]) `(,(show-α γ) ▹ ??)))]
-    [(-φ.mon.vectorof Wc n i _ _ _)
+    [(-φ.mon.vectorof (cons _ Wc) n i _ _ _)
      `(mon/vectorof ,(show-V (-W-x Wc)) (... ,v ...))]
     [(-φ.rt.@ Γ xs f args)
      (define (show-bnds [xs : (Listof Symbol)] [args : (Listof -?e)]) : (Listof Sexp)

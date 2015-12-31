@@ -13,7 +13,7 @@
   "utils/sexp-stx.rkt" "utils/pretty.rkt" "utils/set.rkt"
   (except-in "primitives/declarations.rkt" implications base?) "primitives/utils.rkt")
  )
-(provide δ -●/Vs)
+(provide δ)
 
 ;; Different kinds of primitives:
 ;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
@@ -132,10 +132,6 @@
             e ...)]
          ...
          [else #f])]))
-
-
-
-(define -●/Vs : (List -V) (list -●/V))
 
 ;; Language definition for `δ` begins here
 (begin-for-syntax

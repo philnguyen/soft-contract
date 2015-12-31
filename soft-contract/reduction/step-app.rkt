@@ -252,6 +252,7 @@
     (define V-len
       (match V-vec
         [(-Vector αs) (-b (length αs))]
+        [(-Vector/checked γs _ _) (-b (length γs))]
         [_ -●/V]))
     (define W-len (-W V-len e-len))
     (define ((blm [p : -V] [V : -V]) [Γ : -Γ]) : -Δς
@@ -281,27 +282,37 @@
                ;; If index opaque, return everything in addition to refining index
                ;; FIXME ouch. This explodes fast.
                (for/fold ([acc : (Setof -Δς) ∅]) ([(α i) (in-indexed αs)])
-                 (define ψ (-?@ '= e-idx (-b i)))
-                 (match (MσΓ⊢e M σ Γ-ok ψ)
-                   ['X acc]
-                   [_
-                    (define Γ* (Γ+ Γ-ok ψ))
+                 (case (MσΓ⊢oW M σ Γ-ok '= W-idx (-W (-b i) (-b i)))
+                   [(X) acc]
+                   [else
+                    (define Γ* (Γ+ Γ-ok (-?@ '= e-idx (-b i))))
                     (for/fold ([acc : (Setof -Δς) acc]) ([V (σ@ σ α)])
                       (set-add acc (-Δς (-W (list V) e_a) Γ* κ '() '() '())))]))])]
            [(-Vector/checked γs l³ α)
-            (for/fold ([acc : (Setof -Δς) ∅]) ([V (σ@ σ α)])
-              (for/fold ([acc : (Setof -Δς) acc]) ([(γ i) (in-indexed γs)])
-                (define ψ (-?@ '= e-idx (-b i)))
-                (match (MσΓ⊢e M σ Γ-ok ψ)
-                  ['X acc]
-                  [_
-                   (define Γ* (Γ+ Γ-ok ψ))
-                   (for/fold ([acc : (Setof -Δς) acc]) ([C (σ@ σ γ)])
-                     (define φ₁ (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
-                     (define φ₂
-                       (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W) -Λ))
-                     (define κ* (-kont* φ₂ φ₁ κ))
-                     (set-add acc (-Δς (-W (list V) e-vec) Γ* κ* '() '() '())))])))]
+            (define φ-ref
+              (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W)
+                    (-src-loc (first l³) pos)))
+            (for*/fold ([acc : (Setof -Δς) ∅])
+                       ([V (σ@ σ α)]
+                        [(γ i) (in-indexed γs)])
+              (case (MσΓ⊢oW M σ Γ-ok '= W-idx (-W (-b i) (-b i)))
+                [(X) acc]
+                [else
+                 (define Γ* (Γ+ Γ-ok (-?@ '= e-idx (-b i))))
+                 (for/fold ([acc : (Setof -Δς) acc]) ([C (σ@ σ γ)])
+                   (define φ-mon (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
+                   (define κ* (-kont* φ-ref φ-mon κ))
+                   (set-add acc (-Δς (-W (list V) e-vec) Γ* κ* '() '() '())))]))]
+           [(-Vector/same γ l³ α)
+            (define φ-ref
+              (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W)
+                    (-src-loc (first l³) pos)))
+            (for*/set: : (Setof -Δς)
+                       ([C (σ@ σ γ)]
+                        [φ-mon (in-value (-φ.mon.v (-W C #f #|TODO|#) l³ pos))]
+                        [κ* (in-value (-kont* φ-ref φ-mon κ))]
+                        [V (σ@ σ α)])
+              (-Δς (-W (list V) e-vec) Γ κ* '() '() '()))]
            [_ (-Δς (-W -●/Vs e_a) Γ-ok κ '() '() '())]))))
 
   (: ↦vector-set! : → -Δς*)
@@ -331,10 +342,23 @@
                             (σ@ σ γ))]))
             (define Vs (σ@ σ α))
             (for/set: : (Setof -Δς) ([C Cs] [V Vs])
-              (define φ₁ (-φ.@ '() (list W-idx (-W V e-vec) -vector-set/W) -Λ))
-              (define φ₂ (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
-              (define κ* (-kont* φ₂ φ₁ κ))
+              (define φ-set
+              (-φ.@ '() (list W-idx (-W V e-vec) -vector-set/W)
+                    (-src-loc (first l³) pos)))
+              (define φ-mon (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
+              (define κ* (-kont* φ-mon φ-set κ))
               (-Δς (-W (list V-val) e-val) Γ-ok κ* '() '() '()))]
+           [(-Vector/same γ l³ α)
+            (for*/set: : (Setof -Δς)
+                       ([C (σ@ σ γ)]
+                        [φ-mon (in-value (-φ.mon.v (-W C #f #|TODO|#) l³ pos))]
+                        [V (σ@ σ α)]
+                        [φ-set
+                         (in-value
+                          (-φ.@ '() (list W-idx (-W V e-vec) -vector-set/W)
+                                (-src-loc (first l³) pos)))]
+                        [κ* (in-value (-kont* φ-mon φ-set κ))])
+              (-Δς (-W (list V-val) e-val) Γ κ* '() '() '()))]
            [_
             (-Δς -Void/W Γ-ok κ '() '() '())]))))
 

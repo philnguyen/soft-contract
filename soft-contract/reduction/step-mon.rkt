@@ -129,20 +129,41 @@
     
     (collect ς-ok ς-bad))
 
-  (: ↦vectorof : -α → -Δς*)
+  (: ↦vectorof : -α.vectorof → -Δς*)
   (define (↦vectorof α)
     (define-values (Γ-ok Γ-bad) (Γ+/-W∋Ws M σ Γ -vector?/W W_v))
 
-    ;; Blame if it's not a vector
-    (define ς-bad (and Γ-bad ((blm l+ lo 'vector? V) Γ-bad)))
-
-    ;; Monitor each field if it's a vector
-    (define ς-ok
-      (and Γ-ok
-           (let ()
-             (error "TODO"))))
+    (define-values (δς-ok δς-bad)
+      (Γ+/- M σ Γ
+            (λ ([Γ-ok : -Γ])
+              (define n : (Option Integer)
+                (match V
+                  [(-Vector αs) (length αs)]
+                  [(-Vector/checked γs _ _) (length γs)]
+                  [_ (match (-?@ 'vector-length e_v)
+                       [(-b (? exact-integer? n)) n]
+                       [_ #f])]))
+              (cond
+                [n =>
+                 (λ ([n : Integer])
+                   (for/set: : (Setof -Δς) ([C (σ@ σ α)])
+                     (define W-c (-W C #f #|TODO|#))
+                     (define φ-chk-rest (-φ.mon.vectorof (cons α W-c) n 1 (-W V e_v) l³ pos))
+                     (define φ-chk-val (-φ.mon.v W-c l³ pos))
+                     (define φ-ref (-φ.@ '() (list W_v -vector-ref/W) -Λ))
+                     (define κ* (-kont* φ-ref φ-chk-val φ-chk-rest κ))
+                     (-Δς (-W (list (-b 0)) (-b 0)) Γ-ok κ* '() '() '())))]
+                [else
+                 ;; Reference with opaque index and monitor.
+                 ;; This is not really sound if vector contains thunks with side effects.
+                 (for/set: : (Setof -Δς) ([C (σ@ σ α)])
+                   (define φ-chk-val (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
+                   (define φ-ref (-φ.@ '() (list W_v -vector-ref/W) -Λ))
+                   (define κ* (-kont* φ-ref φ-chk-val κ))
+                   (-Δς (-W -●/Vs #f) Γ-ok κ* '() '() '()))]))
+            (list -vector?/W (list W_v) (blm l+ lo 'vector? V)))) 
     
-    (collect ς-ok ς-bad))
+    (collect δς-ok δς-bad))
 
   (: ↦vector/c : (Listof -α.vector/c) → -Δς*)
   (define (↦vector/c γs)
@@ -151,6 +172,7 @@
     (define -len/W
       (-W (match V
             [(-Vector αs) (-b (length αs))]
+            [(-Vector/checked γs _ _) (-b (length γs))]
             [else -●/V])
           (-?@ 'vector-length e_v)))
     (define e_cs (-app-split e_c 'vector/c n))
@@ -162,11 +184,11 @@
                 ['() (-Δς (-W (list -Vector₀) (-?@ 'vector)) Γ-ok κ '() '() '())]
                 [(cons γ _)
                  (match-define (cons e_c₀ e_cs*) e_cs)
-                 (define φ₁ (-φ.mon.vector/c γs e_cs* 0 W_v l³ pos))
+                 (define φ-chk-rest (-φ.mon.vector/c γs e_cs* 0 W_v l³ pos))
                  (for/set: : (Setof -Δς) ([C (σ@ σ γ)])
-                   (define φ₂ (-φ.mon.v (-W C e_c₀) l³ pos))
-                   (define φ₃ (-φ.@ '() (list W_v -vector-ref/W) -Λ))
-                   (define κ* (-kont* φ₃ φ₂ φ₁ κ))
+                   (define φ-chk-val (-φ.mon.v (-W C e_c₀) l³ pos))
+                   (define φ-ref (-φ.@ '() (list W_v -vector-ref/W) -Λ))
+                   (define κ* (-kont* φ-ref φ-chk-val φ-chk-rest κ))
                    (-Δς (-W (list (-b 0)) (-b 0)) Γ-ok κ* '() '() '()))]))
             (list -vector?/W (list W_v) (blm l+ lo 'vector? V))
             (list -=/W (list -n/W -len/W)

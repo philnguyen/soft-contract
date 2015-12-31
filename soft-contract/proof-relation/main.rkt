@@ -123,7 +123,7 @@
          (match V
            [(or (-St s _) (-St/checked s _ _ _))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-p (assert s)) e)))]
-           [(or (? -Vector?) (? -Vector/checked?))
+           [(or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'vector? e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'procedure? e)))]
