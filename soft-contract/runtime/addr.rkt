@@ -55,4 +55,4 @@
   (for/list ([i n] [?e args])
     (-α.fld (or ?e (list id pos i)))))
 
-(define show-α : (-α → Symbol) (unique-name 'α))
+(define-values (show-α show-α⁻¹) ((inst unique-name -α) 'α))

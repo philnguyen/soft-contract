@@ -159,9 +159,7 @@
 (define-type -Ξ (MMap -τ -kont))
 (define-type -ΔΞ (ΔMap -τ -kont))
 
-(define show-τ : (case-> (-τ → Symbol)
-                         (→ (HashTable -τ Symbol)))
-  (unique-name 'τ))
+(define-values (show-τ show-τ⁻¹) ((inst unique-name -τ) 'τ))
 
 (define (show-φ [φ : -φ] [v : Sexp]) : (Listof Sexp)
   (match φ

@@ -281,7 +281,7 @@
 ;;;;; Pretty Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define show-x/c : (Integer → Symbol) (unique-name 'x))
+(define-values (show-x/c show-x/c⁻¹) ((inst unique-name Integer) 'x))
 
 (define (show-src-loc [loc : -src-loc]) : Symbol
   (match-define (-src-loc lab pos) loc)

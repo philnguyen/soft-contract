@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide z3⊢ #|for debugging|# exp->sym)
+(provide z3⊢ #|for debugging|# exp->sym sym->exp)
 
 (require
  racket/match racket/port racket/system racket/string racket/function racket/set
@@ -50,9 +50,7 @@
 
 ;; Convert each expression to a fresh memoized symbol
 ;; I expose this publically just for debugging
-(define exp->sym : (case-> [→ (HashTable -e Symbol)]
-                           (-e → Symbol))
-  (unique-name 'x_ #:subscript? #f))
+(define-values (exp->sym sym->exp) ((inst unique-name -e) 'x_ #:subscript? #f))
 
 (: Γ->decls : -Γ → (Values (Listof Sexp) (-e → (Option (Pairof Symbol Z3-Type)))))
 ;; Extract declarations from environment
@@ -169,26 +167,32 @@
     [(? symbol? x) {set x}]
     [_ ∅]))
 
+(define-type Sat-Result
+  (U 'Unsat
+     (List 'Sat (Option (HashTable Symbol Real)))
+     'Unknown))
+
 ;; Perform query/ies with given declarations, assertions, and conclusion,
 ;; trying to decide whether value definitely proves or refutes predicate
 (: call-with : (Listof Sexp) (Listof Sexp) Sexp → -R)
 (define (call-with decls prems concl)
-  
-  (define assert-prems : (Listof Sexp)
-    (for/list ([prem prems]) `(assert ,prem)))
-  
-  (define (maybe-warn [res : String])
-    (unless (regexp-match? #rx"^unknown" res)
-      (printf "get unexpected result '~a' from Z3~n" res)))
-  
-  (match (call `(,@decls ,@assert-prems (assert ,concl) (check-sat)))
-    [(regexp #rx"^unsat") 'X]
-    [(regexp #rx"^sat")
-     (match (call `(,@decls ,@assert-prems (assert (not ,concl)) (check-sat)))
-       [(regexp #rx"^unsat") '✓]
-       [(regexp #rx"^sat"  ) '?]
-       [res (maybe-warn res) '?])]
-    [res (maybe-warn res) '?]))
+  (case (check-sat decls (cons concl prems))
+    [(Unsat) 'X]
+    [(Unknown) '?]
+    [else
+     (case (check-sat decls (cons `(not ,concl) prems))
+       [(Unsat) '✓]
+       [else '?])]))
+
+(: check-sat ([(Listof Sexp) (Listof Sexp)] [#:produce-model? Boolean] . ->* . Sat-Result))
+;; Check if given model is possible
+(define (check-sat decls props #:produce-model? [produce-model? #f])
+
+  (define assertions : (Listof Sexp)
+    (for/list ([prop props]) `(assert ,prop)))
+
+  (txt->sat-result
+   (call `(,@decls ,@assertions (check-sat) ,@(if produce-model? '((get-model)) '())))))
 
 ;; Perform system call to solver with given query
 (: call : (Listof Sexp) → String)
@@ -199,3 +203,37 @@
       (λ () (system (format "echo \"~a\" | z3 -in -smt2" query-str)))))
   ;(printf "query:~n~a~nget: ~a~n~n" query-str ans)
   ans)
+
+(: txt->sat-result : String → Sat-Result)
+(define (txt->sat-result str)
+  (match str
+    [(regexp #rx"^unsat") 'Unsat]
+    [(regexp #rx"^sat(.*)" (list _ (? string? mdl-str)))
+     (with-input-from-string mdl-str
+       (λ ()
+         (match (parameterize ([read-decimal-as-inexact #f])
+                  (read))
+           [(list 'model lines ...)
+            #;(begin
+                (printf "Model:~n")
+                (for ([l lines]) (printf "~a~n" l)))
+            (define m
+              (for/hash : (HashTable Symbol Real) ([line : Any (in-list lines)])
+                (match-define `(define-fun ,(? symbol? a) () ,_ ,e) line)
+                #;(printf "e: ~a~n" e)
+                (define res
+                  (let go : Real ([e : Any e])
+                       (match e
+                         [`(+ ,eᵢ ...) (apply + (map go eᵢ))]
+                         [`(- ,e₁ ,eᵢ ...) (apply - (go e₁) (map go eᵢ))]
+                         [`(* ,eᵢ ...) (apply * (map go eᵢ))]
+                         [`(/ ,e₁ ,eᵢ ...) (apply / (go e₁) (map go eᵢ))]
+                         [`(,(or '^ '** 'expt) ,e₁ ,e₂) (assert (expt (go e₁) (go e₂)) real?)]
+                         [(? real? x) x])))
+                (values a res)))
+            `(Sat ,m)]
+           [_ `(Sat #f)])))]
+    [res
+     (unless (regexp-match? #rx"^unknown" res)
+       (printf "get unexpected result '~a' from Z3~n" res))
+     'Unknown]))
