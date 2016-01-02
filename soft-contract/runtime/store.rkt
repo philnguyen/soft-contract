@@ -49,8 +49,8 @@
       [(cons V Vs*)
        (define-values (δσ V-rest) (go Vs* (- i 1)))
        (define i* (assert i exact-nonnegative-integer?))
-       (define α-car (-α.var-car pos i*))
-       (define α-cdr (-α.var-cdr pos i*))
+       (define α-car ((mk-α.var-car) pos i*))
+       (define α-cdr ((mk-α.var-cdr) pos i*))
        (values (list* (cons α-car (close-Γ Γ V))
                       (cons α-cdr V-rest)
                       δσ)
@@ -73,7 +73,7 @@
   (: alloc-list : -ρ (Listof Symbol) (Listof -V) → (Values -Δσ -ρ))
   (define (alloc-list ρ xs Vs)
     (for/fold ([δσ : -Δσ '()] [ρ : -ρ ρ]) ([x xs] [V Vs])
-      (define α (-α.x (cons x Γ)))
+      (define α ((mk-α.x) (cons x Γ)))
       (values (cons (cons α (close-Γ Γ V)) δσ)
               (ρ+ ρ x α))))
 
@@ -82,7 +82,7 @@
      (define-values (Vs-init Vs-rest) (split-at Vs (length xs-init)))
      (define-values (δσ₀ ρ₀) (alloc-list ρ xs-init Vs-init))
      (define-values (δσ₁ V-rest) (alloc-varargs Γ Vs-rest pos))
-     (define α-rest (-α.x (cons x-rest Γ)))
+     (define α-rest ((mk-α.x) (cons x-rest Γ)))
      (values `(,(cons α-rest V-rest) ,@δσ₀ ,@δσ₁)
              (ρ+ ρ₀ x-rest α-rest))]
     [(? list? xs) (alloc-list ρ xs Vs)]))

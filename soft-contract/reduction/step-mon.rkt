@@ -90,7 +90,7 @@
     (define-values (δς-ok δς-bads)
       (Γ+/- M σ Γ
             (λ ([Γ-ok : -Γ])
-              (define α (-α.fld (list (-id 'Ar 'Λ) pos 0)))
+              (define α ((mk-α.fld) (list (-id 'Ar 'Λ) pos 0)))
               (define ?e (and e_v (closed? e_v) e_v))
               (define Ar (-Ar C (cons α ?e) l³))
               (define δσ (list (cons α V)))
