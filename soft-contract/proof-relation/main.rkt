@@ -4,15 +4,17 @@
 
 (require
  racket/match racket/set racket/bool racket/function
- "../utils/set.rkt" "../utils/debug.rkt" "../utils/pretty.rkt"
+ "../utils/set.rkt" "../utils/debug.rkt" "../utils/pretty.rkt" "../utils/def.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/store.rkt"
  "result.rkt" "local.rkt" "utils.rkt")
 
 ;; External solver to be plugged in.
 ;; Return trivial answer by default.
-(define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
-  (make-parameter (λ (M σ Γ e) (printf "Warning: external solver not set") '?)))
+(define-parameter Γ⊢ₑₓₜ : (-M -σ -Γ -e → -R)
+  (λ (M σ Γ e)
+    (printf "Warning: external solver not set")
+    '?))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check if value satisfies (flat) contract
