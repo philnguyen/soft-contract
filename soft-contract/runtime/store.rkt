@@ -73,7 +73,7 @@
   (: alloc-list : -ρ (Listof Symbol) (Listof -V) → (Values -Δσ -ρ))
   (define (alloc-list ρ xs Vs)
     (for/fold ([δσ : -Δσ '()] [ρ : -ρ ρ]) ([x xs] [V Vs])
-      (define α (-α.x x Γ))
+      (define α (-α.x (cons x Γ)))
       (values (cons (cons α (close-Γ Γ V)) δσ)
               (ρ+ ρ x α))))
 
@@ -82,7 +82,7 @@
      (define-values (Vs-init Vs-rest) (split-at Vs (length xs-init)))
      (define-values (δσ₀ ρ₀) (alloc-list ρ xs-init Vs-init))
      (define-values (δσ₁ V-rest) (alloc-varargs Γ Vs-rest pos))
-     (define α-rest (-α.x x-rest Γ))
+     (define α-rest (-α.x (cons x-rest Γ)))
      (values `(,(cons α-rest V-rest) ,@δσ₀ ,@δσ₁)
              (ρ+ ρ₀ x-rest α-rest))]
     [(? list? xs) (alloc-list ρ xs Vs)]))

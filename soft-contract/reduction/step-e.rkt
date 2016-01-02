@@ -97,7 +97,7 @@
                      ([bnd bnds] [xs (in-value (car bnd))])
             (for/fold ([ρ* : -ρ ρ*] [σ* : -σ σ*] [δσ : -Δσ δσ])
                       ([x xs] [e_x (split-values e* (length xs))])
-              (define α (-α.x x Γ))
+              (define α (-α.x (cons x Γ)))
               (values (ρ+ ρ* x α)
                       (⊔ σ α 'undefined)
                       (cons (cons α 'undefined) δσ)))))

@@ -14,16 +14,13 @@
   (struct -α.ctc [id : -id])
 
   ;; for lexical binding
-  (struct -α.x [x : Symbol] #;[arg : -?e] [inv : -Γ])
+  (struct -α.x [ctx : (U Integer (Pairof Symbol -Γ))])
   ;Symbol
-
-  ;; TODO: temp hack
-  (struct -α.tmp [v : -e])
 
   ;; for mutable or opaque field
   (struct -α.fld [ctx : (U -e (List -id Integer Integer))])
   ; for Cons/varargs
-  (struct -α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list
+  (struct -α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list 
   (struct -α.var-cdr [pos : Integer] [idx : Natural])
 
   ;; for wrapped mutable struct

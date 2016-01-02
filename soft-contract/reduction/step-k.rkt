@@ -98,7 +98,7 @@
             (for/fold ([ρ* : -ρ ρ] [Γ* : -Γ Γ] [σ* : -σ σ] [δσ : -Δσ '()])
                       ([(x W) (in-hash bnds↓*)])
               (match-define (-W V ex) W)
-              (define α (-α.x x Γ))
+              (define α (-α.x (cons x Γ)))
               (values (ρ+ ρ* x α)
                       (Γ-bind Γ* x ex)
                       (⊔ σ* α V)
