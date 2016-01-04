@@ -10,7 +10,7 @@
  "../runtime/store.rkt" "../runtime/summ.rkt"
  "definition.rkt" "havoc.rkt")
 
-(: 𝑰 : (Listof -module) (Listof -module-level-form) → -ς)
+(: 𝑰 : (Listof -module) (Listof -module-level-form) → (Values -ς -e))
 ;; Load program to intial machine state
 (define (𝑰 ms init-prim)
 
@@ -63,7 +63,7 @@
       [(cons e† exps)
        (values e† (-kont (-φ.top exps e_hv) τ₀))]))
 
-  (-ς E₀ -Γ⊤ κ₀ σ₀ Ξ₀ -M⊥))
+  (values (-ς E₀ -Γ⊤ κ₀ σ₀ Ξ₀ -M⊥) e_hv))
 
 (: alloc-e : -σ -e → (Values -σ -V -e))
 (define (alloc-e σ e)
