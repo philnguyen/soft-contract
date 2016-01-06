@@ -74,8 +74,9 @@
 (define-parameter mk-α.dom : ((U Integer (Pairof Integer Integer) -e) → -α.dom) -α.dom)
 (define-parameter mk-α.rst : ((U Integer -e) → -α.rst) -α.rst)
 
-(define-syntax-rule (make-fresh-func f) (λ _ (f (next-nat!))))
-(define-syntax-rule (make-fresh-func₂ f) (λ (x _) (f x (next-nat!))))
+(define fresh-addr! (make-nat-src))
+(define-syntax-rule (make-fresh-func f) (λ (x) (if (-e? x) (f x) (f (fresh-addr!)))))
+(define-syntax-rule (make-fresh-func₂ f) (λ (x _) (f x (fresh-addr!))))
 
 (define-syntax-rule (with-concrete-allocation e ...)
   (parameterize ([mk-α.x (make-fresh-func -α.x)]

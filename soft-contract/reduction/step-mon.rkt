@@ -87,6 +87,11 @@
     (match-define (-=>i Doms Rst d ρ_d Γ_d) C)
     (define n (length Doms))
     (define -bn (-b (if Rst (arity-at-least n) n)))
+    (define W-arity
+      (let ([a (-procedure-arity V)]
+            [e (-?@ 'procedure-arity (and e_v (closed? e_v) e_v))])
+        (define V (if a (-b a) (-●)))
+        (-W V e)))
     (define-values (δς-ok δς-bads)
       (Γ+/- M σ Γ
             (λ ([Γ-ok : -Γ])
@@ -97,7 +102,7 @@
               (-Δς (-W (list Ar) ?e) Γ-ok κ δσ '() '()))
             (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))
             (list -arity-includes?/W
-                  (list W_v (-W -bn -bn))
+                  (list W-arity (-W -bn -bn))
                   (blm l+ lo (-Arity-Includes/C n) V))))
     (collect δς-ok δς-bads))
   

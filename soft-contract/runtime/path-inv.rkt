@@ -4,7 +4,7 @@
 
 (require
  racket/match racket/set
- "../utils/set.rkt" "../utils/def.rkt" "../utils/map.rkt"
+ "../utils/set.rkt" "../utils/def.rkt" "../utils/map.rkt" "../utils/untyped-macros.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt")
 
 ;; Path invariant represented by expressions known to evaluate to truth
@@ -101,6 +101,14 @@
 (: Γ-has? : -Γ -?e → Boolean)
 ;; Check if `Γ` readily remembers `e`
 (define (Γ-has? Γ e) (∋ (-Γ-facts Γ) e))
+
+(: concretized? : -Γ -?e → (Option -λ))
+;; Check whether the given expression has been concretized during execution
+(define (concretized? Γ f)
+  (for/or : (Option -λ) ([φ (-Γ-facts Γ)])
+    (match φ
+      [(-@ 'equal? (list (≡ f) (? -λ? lam)) _) lam]
+      [_ #f])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -12,9 +12,8 @@
  "runtime/val.rkt"
  ;; For verification
  (prefix-in ve: "widened.rkt")
-
- ;; For legacy counter-exapmle stuff
- 
+ ;; For counter-exapmle
+ (prefix-in ce: "refute.rkt")
  )
 
 ;; Raise different exceptions for definite counterexample and probable contract violation
@@ -73,7 +72,7 @@
 ;; Attempt to verify correct program or warn about probable contract violation
 (define (try-verify path)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    (define-values (_t Cfgs _σ _Ξ _M) (ve:run-files path))
+    (define-values (_t Cfgs _σ _Ξ _M) (ve:verify-files path))
 
     (remove-duplicates
      (for/list : (Listof Err-Result)
@@ -84,16 +83,21 @@
 (: dbg-verify : Path-String → (U (Listof ve:-Cfg) exn))
 (define (dbg-verify path)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    (define-values (_t Cfgs _σ _Ξ _M) (ve:run-files path))
+    (define-values (_t Cfgs _σ _Ξ _M) (ve:verify-files path))
     (set->list Cfgs)))
-  
 
 (: try-refute : Path-String → Ce-Result)
 ;; Attempt to search for erroneous inputs, or prove absence of one in rare cases
 (define (try-refute path)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    (sleep 300) ;; Disable counterexample for now
-    (try-refute path)))
+    (cond
+      [(ce:refute-files path) =>
+       (match-lambda
+         [(cons (-blm l+ lo C Vs) e†)
+          (if e†
+              (list 'ce (list 'blame l+ lo (show-V C) (map show-V Vs)) (show-e e†))
+              (list 'blame l+ lo (show-V C) (map show-V Vs)))])]
+      [else 'safe])))
 
 (: raise-scv-contract-error ([Any Any Any Any] [Any] . ->* . Nothing))
 ;; FIXME: fix stuff with `replace-struct-●`

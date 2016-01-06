@@ -22,8 +22,10 @@
   (list - + o))
 
 ;; Source location
+(define next-loc! (make-neg-src))
+(define next-subscript! (make-nat-src))
 (struct -src-loc ([party : Mon-Party] [pos : Integer]) #:transparent)
-(define -Λ (-src-loc 'Λ (next-neg!)))
+(define -Λ (-src-loc 'Λ (next-loc!)))
 
 ;; Identifier as a name and where it's from
 (struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
@@ -47,9 +49,11 @@
 ;;;;; AST subset definition as in Racket reference 1.2.3.1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define-type Arity (U Natural arity-at-least (Listof (U Natural arity-at-least))))
+(define-predicate Arity? Arity)
 (define-type/pred Base
   (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void
-     arity-at-least))
+     Arity))
 
 (define-data -top-level-form
   -general-top-level-form
@@ -82,7 +86,7 @@
   (subset: -v
     (struct -λ [formals : -formals] [body : -e])
     (struct -case-λ [body : (Listof (Pairof -formals -e))])
-    (struct -• [l : (U Natural Symbol)])
+    (struct -• [l : Natural])
     (subset: -prim
       ;; primitive values that can appear in syntax
       (struct -b [unboxed : Base])
@@ -173,7 +177,7 @@
     (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "~a•~a" prefix (n-sub i)))) ; hack
       (cons x c)))
-  (-->i doms #f d (next-neg!)))
+  (-->i doms #f d (next-loc!)))
 
 (: -->* : (Listof -e) -e -e → -e)
 ;; Make a non-dependnet vararg contract
@@ -183,7 +187,7 @@
       (define x (string->symbol (format "v•~a" (n-sub i))))
       (cons x c)))
   (define x-rst (string->symbol (format "rst•~a" (n-sub (length cs)))))
-  (-->i doms (cons x-rst rst) d (next-neg!)))
+  (-->i doms (cons x-rst rst) d (next-loc!)))
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
@@ -193,15 +197,15 @@
         ['() 'any/c]
         [(list e) e]
         [(cons e es*)
-         (-@ (-ref (-id o 'Λ) l (next-neg!))
+         (-@ (-ref (-id o 'Λ) l (next-loc!))
              (list e (-app/c o l es*))
-             (-src-loc l (next-neg!)))]))
+             (-src-loc l (next-loc!)))]))
     (values (curry -app/c 'and/c)
             (curry -app/c 'or/c))))
 
 (: -not/c : Mon-Party -e → -e)
 (define (-not/c l e)
-  (-@ (-ref (-id 'not/c 'Λ) l (next-neg!)) (list e) (-src-loc l (next-neg!))))
+  (-@ (-ref (-id 'not/c 'Λ) l (next-loc!)) (list e) (-src-loc l (next-loc!))))
 
 (: -one-of/c : Mon-Party (Listof -e) → -e)
 (define (-one-of/c l es)
@@ -214,16 +218,16 @@
 
 (: -cons/c : -e -e → -e)
 (define (-cons/c c d)
-  (-struct/c -s-cons (list c d) (next-neg!)))
+  (-struct/c -s-cons (list c d) (next-loc!)))
 
 (: -listof : Mon-Party -e → -e)
 (define (-listof l c)
-  (define pos (next-neg!))
+  (define pos (next-loc!))
   (-μ/c pos (-or/c l (list 'null? (-cons/c c (-x/c pos))))))
 
 (: -box/c : -e → -e)
 (define (-box/c c)
-  (-struct/c -s-box (list c) (next-neg!)))
+  (-struct/c -s-box (list c) (next-loc!)))
 
 (: -list/c : (Listof -e) → -e)
 (define (-list/c cs)
@@ -234,7 +238,7 @@
   (match es
     ['() -null]
     [(cons e es*)
-     (-@ -cons (list e (-list l es*)) (-src-loc l (next-neg!)))]))
+     (-@ -cons (list e (-list l es*)) (-src-loc l (next-loc!)))]))
 
 (:* -and : -e * → -e)
 ;; Return ast representing conjuction of 2 expressions
@@ -247,7 +251,7 @@
 (: -comp/c : Symbol -e → -e)
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e)
-  (define x (string->symbol (format "~a•~a" op (n-sub (next-nat!)))))
+  (define x (string->symbol (format "~a•~a" op (n-sub (next-subscript!)))))
   (-λ (list x) (-and (-@ 'real? (list (-x x)) -Λ) (-@ op (list (-x x) e) -Λ))))
 
 (: -amb/simp : (Listof -e) → -e)
@@ -298,6 +302,7 @@
     [(extflonum? x) (extfl->inexact x)]
     [(void? x) 'void]
     [(arity-at-least? x) `(arity-at-least ,(arity-at-least-value x))]
+    [(list? x) `(list ,@(map show-b x))]
     [else x]))
 
 ;; Return operator's simple show-o for pretty-printing
@@ -322,9 +327,6 @@
     [(-λ (list x) (-@ '< (list (-x x) e*) _)) `(</c ,(show-e e*))]
     [(-λ (list x) (-@ '>= (list (-x x) e*) _)) `(≥/c ,(show-e e*))]
     [(-λ (list x) (-@ '<= (list (-x x) e*) _)) `(≤/c ,(show-e e*))]
-    [(-λ (list x) (-@ 'arity-includes? (list (-x x) (-b 0)) _)) `(arity-includes/c ,x)]
-    [(-λ (list x) (-@ 'arity=? (list (-x x) (-b 0)) _)) `(arity=/c ,x)]
-    [(-λ (list x) (-@ 'arity>=? (list (-x x) (-b 0)) _)) `(arity≥/c ,x)]
     [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]
     [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
      (match* ((show-e a) (show-e b))

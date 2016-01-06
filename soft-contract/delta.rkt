@@ -13,7 +13,7 @@
   "utils/sexp-stx.rkt" "utils/pretty.rkt" "utils/set.rkt"
   (except-in "primitives/declarations.rkt" implications base?) "primitives/utils.rkt")
  )
-(provide δ)
+(provide δ concrete?)
 
 (define-parameter concrete? : Boolean #f)
 
@@ -115,7 +115,8 @@
          [(✓) (list -tt)]
          [(X) (list -ff)]
          [(?) -●/Vs]))
-     (values '() (-AΓ Vs Γ))]))
+     (values '() (-AΓ Vs Γ))]
+    ))
 
 (define-syntax (with-args stx)
   (syntax-parse stx

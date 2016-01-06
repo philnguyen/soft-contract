@@ -315,3 +315,9 @@
     (σ: ,@(show-σ σ))
     (Ξ: ,@(show-Ξ Ξ))
     (M: ,@(show-M M))))
+
+(define (show-Δς [δς : -Δς]) : (Listof Sexp)
+  (match-define (-Δς E Γ κ δσ δΞ δM) δς)
+  `((E: ,@(show-E E))
+    (Γ: ,@(show-Γ Γ))
+    (κ: ,@(show-κ κ '□))))

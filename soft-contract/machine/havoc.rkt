@@ -10,7 +10,7 @@
 
 (define -havoc-path 'havoc)
 (define -havoc-id (-id 'havoc-id -havoc-path)) ; havoc function id
-(define -havoc-src (-src-loc -havoc-path (next-neg!))) ; havoc module path
+(define -havoc-src (-src-loc -havoc-path (next-loc!))) ; havoc module path
 
 (define (havoc-ref-from [ctx : Mon-Party] [pos : Integer])
   (-ref -havoc-id ctx pos))
@@ -54,13 +54,13 @@
   (define alts
     (cons
      (cons (-@ 'procedure? (list x) -havoc-src)
-           (-@ (havoc-ref-from -havoc-path (next-neg!))
+           (-@ (havoc-ref-from -havoc-path (next-loc!))
                      (list (-@-havoc x)) -havoc-src))
      (for/list : (Listof (Pairof -e -e)) ([(si acs) acs-for-struct])
        (cons (-@ (-st-p si) (list x) -havoc-src)
              (-amb/simp
               (for/list : (Listof -@) ([ac acs])
-                (-@ (havoc-ref-from -havoc-path (next-neg!))
+                (-@ (havoc-ref-from -havoc-path (next-loc!))
                     (list (-@ ac (list x) -havoc-src))
                     -havoc-src)))))))
   (define havoc-body (-cond alts (-amb ∅)))
@@ -85,7 +85,7 @@
       (for* ([form (in-list forms)] #:when (-provide? form)
              [spec (in-list (-provide-specs form))])
         (log-debug "adding: ~a~n" (-p/c-item-id spec))
-        (refs-add! (-ref (-id (-p/c-item-id spec) path) '† (next-neg!))))]))
+        (refs-add! (-ref (-id (-p/c-item-id spec) path) '† (next-loc!))))]))
   ;(log-debug "~nrefs: ~a~n" refs)
   (define expr
     (-amb/remember (for/list ([ref (in-set refs)])

@@ -6,10 +6,6 @@
 (require/typed "../primitives/declarations.rkt"
  [(prims prims:prims) (Listof Any)])
 
-;; Use Racket's representation of arity to make it a bit easier to manipulate things in proof rules.
-;; In the object language, it's the executed language's lists, so more awkward.
-(define-type Arity (U Natural arity-at-least (Listof (U Natural arity-at-least))))
-
 (require/typed/provide racket/function
   [arity-includes? (Arity Arity → Boolean)])
 
@@ -63,4 +59,4 @@
       [V (error '-procedure-arity "called on a non-procedure ~a" (show-V V))])))
 
 (define (-Arity-Includes/C [n : (U Natural arity-at-least)])
-  (-Clo '(x) (-@ 'arity-includes? (list (-x 'x) (-b n)) -Λ) -ρ⊥ -Γ⊤))
+  (-Clo '(x) (-@ 'arity-includes? (list (-@ 'procedure-arity (list (-x 'x)) -Λ) (-b n)) -Λ) -ρ⊥ -Γ⊤))

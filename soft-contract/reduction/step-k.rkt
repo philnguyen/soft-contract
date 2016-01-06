@@ -235,8 +235,7 @@
              (define es-rst (-?unlist e-rst (length Vs-rst)))
              (define Ws-rst (map (inst -W -V) Vs-rst es-rst))
              (↦@ W_f (append args Ws-rst) Γ κ* σ Ξ M (-src-loc lo pos))])]
-         [#f
-          (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos))]))]
+         [#f (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos))]))]
     [(-φ.mon.struct s γs cs i Ws↓ W l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
@@ -362,7 +361,7 @@
        [δς_t δς_t]
        [else (assert δς_f)])]
     ;; restore path invariant in previous context
-    [(-φ.rt.@ Γ₀ xs* e_f e_xs*)
+    [(and φ (-φ.rt.@ Γ₀ xs* e_f e_xs*))
      (cond
        [(rt-strengthen M σ φ Γ (-W Vs ?e)) =>
         (λ ([Γ₀* : -Γ])
@@ -373,6 +372,7 @@
                (and ?e
                     (andmap (λ (x) x) e_xs)
                     (e/list (map -x xs) (cast e_xs (Listof -e)) ?e))]
+              [(and ?e (closed? ?e)) ?e]
               [else
                (or
                 ; take answer as `(f x …)` if possible

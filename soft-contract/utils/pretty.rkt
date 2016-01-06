@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide sym-sub pretty n-sub unique-name next-neg! next-nat!)
+(provide sym-sub pretty n-sub unique-name make-nat-src make-neg-src)
 (require racket/pretty racket/string racket/port)
 
 (: sym-sub : Symbol → Symbol)
@@ -46,13 +46,12 @@
                   y)))
    (λ (y) (hash-ref m⁻¹ y))))
 
-;; Generate the next unique negative integer
-(define next-neg!
+;; Create generator for next natural/negative
+(define (make-neg-src)
   (let ([n : Negative-Integer -1])
     (λ () : Negative-Integer
-      (begin0 n (set! n (- n 1))))))
-
-(define next-nat!
+       (begin0 n (set! n (- n 1))))))
+(define (make-nat-src)
   (let ([n : Natural 0])
     (λ () : Natural
        (begin0 n (set! n (+ n 1))))))

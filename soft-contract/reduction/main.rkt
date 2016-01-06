@@ -1,13 +1,13 @@
 #lang typed/racket/base
 (require
  racket/match
- "../utils/non-det.rkt"
+ "../utils/non-det.rkt" "../utils/map.rkt"
  "../ast/definition.rkt"
- "../runtime/val.rkt" "../runtime/env.rkt"
+ "../runtime/val.rkt" "../runtime/env.rkt" "../runtime/addr.rkt"
  "../machine/definition.rkt"
  "step-e.rkt" "step-k.rkt" "step-app.rkt" "step-mon.rkt")
 
-(provide ↦)
+(provide ↦ ↦/ς)
 
 (: ↦ : -ς → -Δς*)
 ;; Steps a full state in the CEΓKSΞ machine
@@ -35,3 +35,15 @@
           [κ* (↦blm blm Γ κ* σ Ξ M)])]
        [_ (↦blm blm Γ κ σ Ξ M)])]
     [ς (error '↦ "unexpected: ~a" ς)]))
+
+(: ↦/ς : -ς → -ς*)
+;; Like `↦`, but apply all the δs, for compatibility.
+;; This is probably bad for performance.
+(define (↦/ς ς)
+  (match-define (-ς _ _ _ σ Ξ M) ς)
+  (match/nd: (-Δς → -ς) (↦ ς)
+    [(-Δς E Γ κ δσ δΞ δM)
+     (define-values (σ* σ?) (Δ+ δσ σ))
+     (define-values (Ξ* Ξ?) (Δ+ δΞ Ξ))
+     (define-values (M* M?) (Δ+ δM M))
+     (-ς E Γ κ σ* Ξ* M*)]))

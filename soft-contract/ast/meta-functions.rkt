@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide
- FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim)
+ FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
+ opq-exp?)
 
 (require
  racket/match racket/set racket/function
@@ -487,3 +488,17 @@
         [(hash-ref specials x #f)]
         [(hash-ref aliases x #f) => prim-name->unsafe-prim]
         [else x]))))
+
+(: opq-exp? : -e → Boolean)
+;; Check if expression has •
+(define (opq-exp? e)
+  (match e
+    [(? -•?) #t]
+    [(-if e₁ e₂ e₃) (or (opq-exp? e₁) (opq-exp? e₂) (opq-exp? e₃))]
+    [(-wcm k v b) (or (opq-exp? k) (opq-exp? v) (opq-exp? b))]
+    [(-begin0 e₀ es) (or (opq-exp? e₀) (ormap opq-exp? es))]
+    [(-let-values _ b _) (opq-exp? b)]
+    [(-letrec-values _ b _) (opq-exp? b)]
+    [(-set! _ e*) (opq-exp? e*)]
+    [(-@ f xs _) (or (opq-exp? f) (ormap opq-exp? xs))]
+    [_ #f]))

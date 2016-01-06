@@ -1744,6 +1744,9 @@
     ;; Contracts
     [flat-contract? ⇒ contract?]
 
+    ; made up predicate to mark internally used mapping
+    [δ-case? ⇒ procedure?]
+
     [#:exclusion
      number? string? boolean? keyword? symbol? void? null? procedure?]
     ))

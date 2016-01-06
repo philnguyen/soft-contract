@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide z3⊢ #|for debugging|# exp->sym sym->exp)
+(provide z3⊢ get-model #|for debugging|# exp->sym sym->exp)
 
 (require
  racket/match racket/port racket/system racket/string racket/function racket/set
@@ -17,22 +17,65 @@
 (: z3⊢ : -M -σ -Γ -e → -R)
 (define (z3⊢ M σ Γ e)
   ;(printf "~a~n⊢~n~a~n~n" (show-Γ Γ) (show-e e))
-  (define-values (decls e->dec) (Γ->decls Γ))
-  (cond
-    [(exp->Z3 e->dec M σ Γ e) =>
-     (λ ([concl : Sexp])
-       (define decls*
-         (match concl
-           [(or `(is_int ,e*) `(not (is_int ,e*)) `(not (not (is_int ,e*)))) #:when e*
-            (hack-decls-for-is-int decls (Z3-FV e*))]
-           [_ decls]))
-       (call-with decls* (Γ->premises e->dec M σ Γ) concl))]
-    [else '?]))
+  (match (Γe->Z3 M σ Γ e)
+    [(list decls prems concl)
+     (call-with decls prems concl)]
+    [#f '?]))
+
+(: get-model : -M -σ -Γ → (Option (HashTable -e Base)))
+;; Generate a model for given path invariant
+(define (get-model M σ Γ)
+  (define-values (decls props) (Γ->Z3 M σ Γ))
+  (match (check-sat decls props #:produce-model? #t)
+    ['Unsat (error 'get-model "unsat")]
+    ['Unknown (error 'get-model "unknown")]
+    [`(Sat ,m) #:when m
+     (for/hash : (HashTable -e Base) ([(x v) m])
+       (values (sym->exp x) v))]
+    [`(Sat #f) #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: Γe->Z3 : -M -σ -Γ -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
+;; Translate path invariant into Z3 declarations and formula
+(define (Γe->Z3 M σ Γ e)
+  (define-values (decls₀ e->dec) (Γ->decls Γ))
+  (cond
+    [(exp->Z3 e->dec M σ Γ e) =>
+     (λ ([concl : Sexp])
+       (define decls (hack-decls-for-is_int decls₀ (FV-for-is_int concl)))
+       (list decls (Γ->premises e->dec M σ Γ) concl))]
+    [else #f]))
+
+(: Γ->Z3 : -M -σ -Γ → (Values (Listof Sexp) (Listof Sexp)))
+;; Translate path invariant into Z3 declarations and formula
+(define (Γ->Z3 M σ Γ)
+  (define-values (decls₀ e->dec) (Γ->decls Γ))
+  (define props (Γ->premises e->dec M σ Γ))
+  (define adjusted-vars-for-is_int
+    (for/fold ([xs : (Setof Symbol) ∅]) ([prop props])
+      (∪ xs (FV-for-is_int prop))))
+  (define decls (hack-decls-for-is_int decls₀ adjusted-vars-for-is_int))
+  (values decls props))
+
+;; Z3's `is_int` doesn't work well if variables are declared as `Int` instead of `Real`
+(define (hack-decls-for-is_int [decls : (Listof Sexp)] [xs : (Setof Symbol)])
+  (for/list : (Listof Sexp) ([decl decls])
+    (match decl
+      [`(declare-const ,x Int) #:when (∋ xs x)
+       `(declare-const ,x Real)]
+      [_ decl])))
+
+(: FV-for-is_int : Sexp → (Setof Symbol))
+;; Check if formula is of form `(... (is_int e))`. Return all FV in `e` if so.
+(define (FV-for-is_int e)
+  (match e
+    [(or `(is_int ,e*) `(not (is_int ,e*)) `(not (not (is_int ,e*)))) #:when e*
+     (Z3-FV e*)]
+    [_ ∅]))
 
 (define-type Z3-Type (U 'Int 'Real))
 
@@ -151,14 +194,6 @@
   (case o
     [(equal?) '=]
     [else o]))
-
-;; Z3's `is_int` doesn't work well if variables are declared as `Int` instead of `Real`
-(define (hack-decls-for-is-int [decls : (Listof Sexp)] [xs : (Setof Symbol)]) : (Listof Sexp)
-  (for/list ([decl decls])
-    (match decl
-      [`(declare-const ,x Int) #:when (∋ xs x)
-       `(declare-const ,x Real)]
-      [_ decl])))
 
 ;; Extract all free variables in Z3 clause
 (define Z3-FV : (Sexp → (Setof Symbol))

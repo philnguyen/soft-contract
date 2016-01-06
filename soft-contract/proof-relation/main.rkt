@@ -163,6 +163,7 @@
 (define (Γ+/-W M σ Γ W)
   (match-define (-W V e) W)
   (define proved (first-R (⊢V V) (MσΓ⊢e M σ Γ e)))
+  ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-WV W) proved)
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 

@@ -274,14 +274,9 @@
        [(none/c) 'X]
        [(arity-includes?)
         (match Vs
-          [(list V_f V_n)
-           (cond
-             [(-procedure-arity V_f) =>
-              (λ ([a : Arity])
-                (match V_n
-                  [(-b (? simple-arity? n)) (decide-R (arity-includes? a n))]
-                  [_ '?]))]
-             [else '?])])]
+          [(list (-b (? Arity? a)) (-b (? Arity? b)))
+           (decide-R (arity-includes? a b))]
+          [_ '?])]
        ;; Default rules for operations on base values rely on simplification from `-?@`
        [else
         (cond

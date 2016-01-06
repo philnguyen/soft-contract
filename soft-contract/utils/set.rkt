@@ -3,10 +3,10 @@
 ;; This module provides abbreviations and extra tools for dealing with sets
 (provide
  ∅ ∪ ∩ →∅ ∋ ∈ ⊆ --
- set-add-list define-set set-partition for/union collect set->predicate map/set)
+ set-add-list define-set set-partition for/union collect merge set->predicate map/set)
 
 (require
- racket/set
+ racket/match racket/set
  (for-syntax racket/base racket/syntax))
 
 (define ∅ : (Setof Nothing) (set))
@@ -71,6 +71,17 @@
               (cond [(set? z*) (if (set-empty? z*) x* (set-add z* x*))]
                     [else {set z* x*}])]
              [else z*]))]))
+
+;(: merge (∀ (X) (U X (Setof X)) * → (U X (Setof X))))
+(define-syntax merge
+  (syntax-rules ()
+    [(_) ∅]
+    [(_ x) x]
+    [(_ x xs ...)
+     (let ([xs↓ (merge xs ...)]
+           [x↓ x])
+       (cond [(set? xs↓) (if (set? x↓) (∪ x↓ xs↓) (set-add xs↓ x↓))]
+             [else (if (set? x↓) (set-add x↓ xs↓) {set x↓ xs↓})]))]))
 
 (: set->predicate (∀ (X) (Setof X) → (X → Boolean)))
 ;; Convert set to predicate
