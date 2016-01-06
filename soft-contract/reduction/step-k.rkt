@@ -98,7 +98,7 @@
             (for/fold ([ρ* : -ρ ρ] [Γ* : -Γ Γ] [σ* : -σ σ] [δσ : -Δσ '()])
                       ([(x W) (in-hash bnds↓*)])
               (match-define (-W V ex) W)
-              (define α x #;(-α.bnd x ex Γ))
+              (define α ((mk-α.x) (cons x Γ)))
               (values (ρ+ ρ* x α)
                       (Γ-bind Γ* x ex)
                       (⊔ σ* α V)
@@ -235,8 +235,7 @@
              (define es-rst (-?unlist e-rst (length Vs-rst)))
              (define Ws-rst (map (inst -W -V) Vs-rst es-rst))
              (↦@ W_f (append args Ws-rst) Γ κ* σ Ξ M (-src-loc lo pos))])]
-         [#f
-          (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos))]))]
+         [#f (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos))]))]
     [(-φ.mon.struct s γs cs i Ws↓ W l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
@@ -250,7 +249,7 @@
             (for/lists ([Vs : (Listof -V)] [es : (Listof -?e)])
                        ([W Ws])
               (values (-W-x W) (-W-e W))))
-          (define αs (alloc-fields s pos))
+          (define αs (alloc-fields s es pos))
           (define V-inner (-St s αs))
           (define δσ (map (inst cons -α -V) αs Vs))
           (define e_a (apply -?@ (-st-mk s) es))
@@ -260,19 +259,18 @@
             (cond
               [(set-empty? mutables) (values V-inner δσ)]
               [else
-               (define α (-α.st* (-struct-info-id s) pos))
+               (define α ((mk-α.st*) (-struct-info-id s) pos))
                (define δσ* (cons (cons α V-inner) δσ))
                (define γs*
-                 (for/list : (Listof (Option -α)) ([(γ i) (in-indexed γs)])
+                 (for/list : (Listof (Option -α.struct/c)) ([(γ i) (in-indexed γs)])
                    (and (∋ mutables i) γ)))
                (define V-wrapped (-St/checked s γs* l³ α))
                (values V-wrapped δσ*)]))
           (-Δς (-W (list V*) e_a) Γ κ δσ* '() '())]
          [(cons c cs*)
           (define i* (+ i 1))
-          (define ac (-st-ac s i*))
           (define φ₁ (-φ.mon.struct s γs cs* i* Ws↓* W l³ pos))
-          (define φ₃ (-φ.@ '() (list (-W ac ac)) (-src-loc 'Λ pos)))
+          (define φ₃ (-φ.@ '() (list (-W (-st-ac s i*) #f)) (-src-loc 'Λ pos)))
           (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
             (define φ₂ (-φ.mon.v (-W C c) l³ pos))
             (define κ* (-kont* φ₃ φ₂ φ₁ κ))
@@ -282,18 +280,36 @@
      (with-guarded-arity 1 lo 'Λ
        (match cs
          ['()
-          (define α (-α.vct pos))
-          (define δσ (list (cons α (-W-x W))))
+          (define α ((mk-α.vct) pos))
+          (match-define (-W V-inner e-inner) W)
+          (define δσ (list (cons α V-inner)))
           (define V/wrapped (-Vector/checked γs l³ α))
-          (-Δς (-W (list (-W-x W)) (-W-e W)) Γ κ δσ '() '())]
+          (-Δς (-W (list V-inner) e-inner) Γ κ δσ '() '())]
          [(cons c cs*)
           (define i* (+ 1 i))
-          (define φ₁ (-φ.mon.vector/c γs cs* i* W l³ pos))
-          (define φ₃ (-φ.@ '() (list W -vector-ref/W) -Λ))
+          (define φ-chk-rest (-φ.mon.vector/c γs cs* i* W l³ pos))
+          (define φ-ref (-φ.@ '() (list W -vector-ref/W) -Λ))
           (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
-            (define φ₂ (-φ.mon.v (-W C c) l³ pos))
-            (define κ* (-kont* φ₃ φ₂ φ₁ κ))
+            (define φ-chk (-φ.mon.v (-W C c) l³ pos))
+            (define κ* (-kont* φ-ref φ-chk φ-chk-rest κ))
             (-Δς (-W (list (-b i*)) (-b i*)) Γ κ* '() '() '()))]))]
+    [(-φ.mon.vectorof (cons γ W-c) n i W l³ pos)
+     (match-define (list l+ l- lo) l³)
+     (with-guarded-arity 1 lo 'Λ
+       (define i* (+ 1 i))
+       (cond
+         [(< i* n)
+          (define φ-chk-rest (-φ.mon.vectorof (cons γ W-c) n i* W l³ pos))
+          (define φ-chk (-φ.mon.v W-c l³ pos))
+          (define φ-ref (-φ.@ '() (list W -vector-ref/W) -Λ))
+          (define κ* (-kont* φ-ref φ-chk φ-chk-rest κ))
+          (-Δς (-W (list (-b i*)) (-b i*)) Γ κ* '() '() '())]
+         [else
+          (define α ((mk-α.vct) pos))
+          (match-define (-W V-inner e-inner) W)
+          (define δσ (list (cons α V-inner)))
+          (define V/wrapped (-Vector/same γ l³ α))
+          (-Δς (-W (list V-inner) e-inner) Γ κ δσ '() '())]))]
     ;; Accumulate higher-order contracts with passing first-order checks
     [(-φ.filter-fo W_Cs W_Cs↓ W_C (and W_v (-W V_v e_v)) (and l³ (list l+ l- lo)) pos)
      (define-values (Γ_t Γ_f) (Γ+/-W M σ Γ (-W (car Vs) ?e)))
@@ -345,7 +361,7 @@
        [δς_t δς_t]
        [else (assert δς_f)])]
     ;; restore path invariant in previous context
-    [(-φ.rt.@ Γ₀ xs* e_f e_xs*)
+    [(and φ (-φ.rt.@ Γ₀ xs* e_f e_xs*))
      (cond
        [(rt-strengthen M σ φ Γ (-W Vs ?e)) =>
         (λ ([Γ₀* : -Γ])
@@ -356,6 +372,7 @@
                (and ?e
                     (andmap (λ (x) x) e_xs)
                     (e/list (map -x xs) (cast e_xs (Listof -e)) ?e))]
+              [(and ?e (closed? ?e)) ?e]
               [else
                (or
                 ; take answer as `(f x …)` if possible
@@ -390,7 +407,8 @@
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (list V) Vs)
        (define δσ (list (cons (-α.x/c x) V)))
-       (-Δς (-W (list V) (-?μ/c x ?e)) Γ κ δσ '() '()))]
+       (define ?c (-?μ/c x ?e))
+       (-Δς (-W (list V) (and ?e ?c (unroll x ?c ?e))) Γ κ δσ '() '()))]
     [(-φ.struct/c s es ρ WVs↓ pos)
      (with-guarded-arity 1 'TODO 'Λ
        (match-define (-struct-info id n _) s)
@@ -410,7 +428,7 @@
                        [flat? : Boolean #t])
                       ([WV WVs↓*] [i (in-range n)])
               (match-define (-W V e) WV)
-              (define α (-α.struct/c id pos i))
+              (define α ((mk-α.struct/c) (or e (list id pos i))))
               (values (cons α αs)
                       (⊔ σ* α V)
                       (cons e es*)
@@ -432,24 +450,24 @@
              (↦e e* ρ Γ (-kont (-φ.=>i '() WCs↓* xs x* rng ρ pos) κ) σ Ξ M)]
             [(? symbol? x*)
              (define-values (Doms₀ cs₀ δσ₀)
-               (for/lists ([Doms : (Listof (List Symbol -?e -α))] [cs* : (Listof -?e)] [δσ : -Δσ])
+               (for/lists ([Doms : (Listof (Pairof Symbol -α.dom))] [cs* : (Listof -?e)] [δσ : -Δσ])
                           ([(WC i) (in-indexed (reverse WCs↓))] [x xs])
                  (match-define (-W C c) WC)
-                 (define γ (-α.fld (-id '-> 'Λ) pos i))
-                 (values (list x c γ) c (cons γ C))))
-             (define γ* (-α.fld (-id '-> 'Λ) pos (length xs)))
+                 (define γ ((mk-α.dom) (or c (cons pos i))))
+                 (values (cons x γ) c (cons γ C))))
+             (define γ* ((mk-α.rst) (or ?e pos)))
              (define δσ (cons (cons γ* V) δσ₀))
-             (define C (-=>i Doms₀ (list x* ?e γ*) rng ρ Γ))
+             (define C (-=>i Doms₀ (cons x* γ*) rng ρ Γ))
              (define e_C (-?->i* xs cs₀ x* ?e rng))
              (-Δς (-W (list C) e_C) Γ κ δσ '() '())]
             [#f
              (define WCs↓* (cons (-W V ?e) WCs↓))
              (define-values (Doms cs* δσ)
-               (for/lists ([Doms : (Listof (List Symbol -?e -α))] [cs* : (Listof -?e)] [δσ : -Δσ])
+               (for/lists ([Doms : (Listof (Pairof Symbol -α.dom))] [cs* : (Listof -?e)] [δσ : -Δσ])
                           ([(WC i) (in-indexed (reverse WCs↓*))] [x xs])
                  (match-define (-W C c) WC)
-                 (define γ (-α.fld (-id '-> 'Λ) pos i)) ; TODO: separate addr type?
-                 (values (list x c γ) c (cons γ C))))
+                 (define γ ((mk-α.dom) (or c (cons pos i))))
+                 (values (cons x γ) c (cons γ C))))
              (define C (-=>i Doms #f rng ρ Γ))
              (define e_C (-?->i xs cs* rng))
              (-Δς (-W (list C) e_C) Γ κ δσ '() '())])]

@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide
- FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list find-calls prim-name->unsafe-prim)
+ FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
+ opq-exp?)
 
 (require
  racket/match racket/set racket/function
@@ -320,7 +321,7 @@
                 p)]
          [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
          [_
-          (log-debug "e/: ignore substituting ~a" e)
+          (log-debug "e/: ignore substituting ~a" (show-e e))
           e])])))
 
 (: e/fun : (-e → (Option -e)) → (-e → -e))
@@ -383,6 +384,39 @@
          [_
           (log-debug "e/: ignore substituting ~a" e)
           e])])))
+
+(: unroll : Integer -e -e → -e)
+;; Unroll reference to recursive contract
+(define (unroll x c e)
+  (let go ([e : -e e])
+
+    (: go-bnd (∀ (X) (Pairof X -e) → (Pairof X -e)))
+    (define (go-bnd bnd)
+      (match-define (cons xs e) bnd)
+      (cons xs (go e)))
+
+    (match e
+      [(-λ xs e*) (-λ xs (go e*))]
+      [(-case-λ clauses) (-case-λ (map (inst go-bnd -formals) clauses))]
+      [(-@ f xs l) (-@ (go f) (map go xs) l)]
+      [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
+      [(-wcm k v b) (-wcm (go k) (go v) (go b))]
+      [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
+      [(-let-values bnds e* l)
+       (-let-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*) l)]
+      [(-letrec-values bnds e* l)
+       (-letrec-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*) l)]
+      [(-set! z e*) (-set! z (go e*))]
+      [(-amb es) (-amb (map/set go es))]
+      [(-μ/c z e*) (if (= z x) e (-μ/c z (go e*)))]
+      [(-->i doms rst rng pos)
+       (-->i (map (inst go-bnd Symbol) doms) (and rst (go-bnd rst)) (go rng) pos)]
+      [(-struct/c si cs pos) (-struct/c si (map go cs) pos)]
+      [(-x/c z) (if (= z x) c e)]
+      [_
+       (log-debug "unroll: ignore ~a" (show-e e))
+       e])))
+
 
 ;; Shrink domain of `m` to not be included by `xs`
 (define (shrink [m : (HashTable -e -e)] [xs : -formals]) : (HashTable -e -e)
@@ -454,3 +488,17 @@
         [(hash-ref specials x #f)]
         [(hash-ref aliases x #f) => prim-name->unsafe-prim]
         [else x]))))
+
+(: opq-exp? : -e → Boolean)
+;; Check if expression has •
+(define (opq-exp? e)
+  (match e
+    [(? -•?) #t]
+    [(-if e₁ e₂ e₃) (or (opq-exp? e₁) (opq-exp? e₂) (opq-exp? e₃))]
+    [(-wcm k v b) (or (opq-exp? k) (opq-exp? v) (opq-exp? b))]
+    [(-begin0 e₀ es) (or (opq-exp? e₀) (ormap opq-exp? es))]
+    [(-let-values _ b _) (opq-exp? b)]
+    [(-letrec-values _ b _) (opq-exp? b)]
+    [(-set! _ e*) (opq-exp? e*)]
+    [(-@ f xs _) (or (opq-exp? f) (ormap opq-exp? xs))]
+    [_ #f]))

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide define-data define-type/pred :*)
+(provide define-data define-type/pred define-parameter :*)
 
 (require
  (for-syntax racket/base racket/syntax syntax/parse))
@@ -26,6 +26,11 @@
               (define-data′ τ (clauses ...) (k σ ...)))]
     [(_ τ (τ₁ clauses ...) (σ ...))
      #'(define-data′ τ (clauses ...) (τ₁ σ ...))]))
+
+;; Shorthand for defining parameter
+(define-syntax define-parameter
+  (syntax-rules (:)
+    [(_ x : τ v) (define x : (Parameterof τ) (make-parameter v))]))
 
 ;; define the same type for multiple identifiers
 (define-syntax (:* stx)

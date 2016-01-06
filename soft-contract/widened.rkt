@@ -7,8 +7,9 @@
  "utils/set.rkt" "utils/map.rkt" "utils/untyped-macros.rkt" "utils/debug.rkt" "utils/pretty.rkt"
  "ast/definition.rkt"
  "parse/main.rkt"
- "runtime/path-inv.rkt" "runtime/val.rkt" "runtime/summ.rkt" "runtime/store.rkt"
- "reduction/main.rkt"
+ "runtime/path-inv.rkt" "runtime/val.rkt" "runtime/summ.rkt" "runtime/store.rkt" "runtime/addr.rkt"
+ "delta.rkt"
+ "reduction/main.rkt" "reduction/step-app.rkt"
  "proof-relation/main.rkt" "proof-relation/local.rkt" "proof-relation/ext/z3.rkt"
  "machine/definition.rkt" "machine/load.rkt")
 
@@ -48,7 +49,7 @@
 
 (: run : (Listof -module) → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
 (define (run ms)
-  (match-define (-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) (𝑰 ms init-prim))
+  (match-define-values ((-ς E₀ Γ₀ κ₀ σ₀ Ξ₀ M₀) _) (𝑰 ms init-prim))
   (define C₀ (-Cfg E₀ Γ₀ κ₀))
 
   (: step : (Map -Cfg -t) (Setof -Cfg) -tσ -σ -tΞ -Ξ -M →
@@ -121,6 +122,6 @@
          (values S* A* σ* Ξ* M*)]
         [else (go S* F* tσ* σ* tΞ* Ξ* M*)]))))
 
-(: run-files : Path-String * → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
-(define (run-files . paths)
+(: verify-files : Path-String * → (Values (Map -Cfg -t) (Setof -Cfg) -σ -Ξ -M))
+(define (verify-files . paths)
   (run (files->modules paths)))

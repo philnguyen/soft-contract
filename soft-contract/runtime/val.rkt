@@ -16,11 +16,12 @@
   ;; Structs
   (struct -St [info : -struct-info] [fields : (Listof (U -α.fld -α.var-car -α.var-cdr))])
   (struct -St/checked
-    [info : -struct-info] [contracts : (Listof (Option -α))] [mon : Mon-Info]
+    [info : -struct-info] [contracts : (Listof (Option -α.struct/c))] [mon : Mon-Info]
     [unchecked : -α.st*])
   ;; Vectors
   (struct -Vector [fields : (Listof -α.idx)])
-  (struct -Vector/checked [contracts : (Listof -α)] [mon : Mon-Info] [unchecked : -α.vct])
+  (struct -Vector/checked [contracts : (Listof -α.vector/c)] [mon : Mon-Info] [unchecked : -α.vct])
+  (struct -Vector/same [contract : -α.vectorof] [mon : Mon-Info] [unchecked : -α.vct])
   ;; Functions
   (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
   (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
@@ -35,8 +36,8 @@
   (struct -Vector/C [γs : (Listof -α.vector/c)])
   (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
   (struct -=>i
-    [doms : (Listof (List Symbol -?e -α))]
-    [rst : (Option (List Symbol -?e -α))]
+    [doms : (Listof (Pairof Symbol -α.dom))]
+    [rst : (Option (Pairof Symbol -α.rst))]
     [rng : -e] [env : -ρ] [Γ : -Γ])
   (struct -x/C [c : -α.x/c])
   )
@@ -91,6 +92,18 @@
     [(? -x/C?) #t]
     [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
+(: V->?e : -V → -?e)
+;; Recover value's syntax from evaluated value
+(define V->?e
+  (match-lambda
+    [(-And/C _ (-α.and/c-l (? -e? c₁)) (-α.and/c-r (? -e? c₂))) (-@ 'and/c (list c₁ c₂) -Λ)]
+    [(-Or/C  _ (-α.or/c-l  (? -e? c₁)) (-α.or/c-r  (? -e? c₂))) (-@ 'or/c  (list c₁ c₂) -Λ)]
+    [(-Not/C (-α.not/c (? -e? c))) (-@ 'not/c (list c) -Λ)]
+    [(-Vectorof (-α.vectorof (? -e? c))) (-@ 'vectorof (list c) -Λ)]
+    [(-Vector/C (list (-α.vector/c (? -e? cs)) ...)) (-@ 'vector/c (cast cs (Listof -e)) -Λ)]
+    [(-St/C _ si (list (-α.struct/c (? -e? cs)) ...)) (-struct/c si (cast cs (Listof -e)) 0)]
+    [_ #f]))
+
 ;; Pretty-print evaluated value
 (define (show-V [V : -V]) : Sexp
   (match V
@@ -108,6 +121,7 @@
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-Vector/checked γs _ α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
+    [(-Vector/same γ _ α) `(vector/same ,(show-α γ) ▹ ,(show-α α))]
     [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
     [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
     [(-Not/C γ) `(not/c ,(show-α γ))]
@@ -116,23 +130,23 @@
     [(-=>i doms rst d ρ Γ)
      (define-values (xs cs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -?e)])
-                  ([dom : (List Symbol -?e -α) doms])
-         (match-define (list x c _) dom)
-         (values x c)))
+                  ([dom : (Pairof Symbol -α.dom) doms])
+         (match-define (cons x (-α.dom c)) dom)
+         (values x (and (-e? c) c))))
      (define dep? (not (set-empty? (∩ (FV d) (list->set xs)))))
      (match* (dep? rst)
        [(#f #f)
         `(,@(map show-?e cs) . -> . ,(show-e d))]
-       [(#f (list x* c* γ*))
-        `(,(map show-?e cs) #:rest ,(show-?e c*) . ->* . ,(show-e d))]
+       [(#f (cons x* (and γ* (-α.rst c*))))
+        `(,(map show-?e cs) #:rest ,(if (-e? c*) (show-e c*) (show-α γ*)) . ->* . ,(show-e d))]
        [(#t #f)
         `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
                  `(,x ,(show-?e c)))
               (res ,xs ,(show-e d)))]
-       [(#t (list x* c* γ*))
+       [(#t (cons x* (and γ* (-α.rst c*))))
         `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
                  `(,x ,(show-?e c)))
-              #:rest (,x* ,(show-?e c*))
+              #:rest (,x* ,(if (-e? c*) (show-e c*) (show-α γ*)))
               (res ,xs ,(show-e d)))])]
     [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
@@ -157,6 +171,7 @@
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -●/V (-●))
+(define -●/Vs : (List -V) (list -●/V))
 (define -Void/Vs (list (-b (void))))
 (define -Void/W (-W -Void/Vs (-b (void))))
 (define -integer?/W (-W 'integer? 'integer?))

@@ -2,9 +2,9 @@
 
 (provide debugs with-debug dbg todo)
 
-(require "set.rkt")
+(require "set.rkt" "def.rkt")
 
-(define debugs : (Parameterof (Setof Symbol)) (make-parameter ∅))
+(define-parameter debugs : (Setof Symbol) ∅)
 
 (define-syntax-rule (with-debug t e ...)
   (parameterize ([debugs (set-add (debugs) t)]) e ...))

@@ -3,7 +3,7 @@
 (require
  racket/match racket/set racket/list (except-in racket/function arity-includes?)
  "../utils/list.rkt" "../utils/debug.rkt" "../utils/map.rkt" "../utils/non-det.rkt" "../utils/set.rkt"
- "../utils/untyped-macros.rkt"
+ "../utils/untyped-macros.rkt" "../utils/def.rkt" "../utils/pretty.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
  "../runtime/addr.rkt" "../runtime/path-inv.rkt" "../runtime/arity.rkt" "../runtime/summ.rkt"
@@ -13,7 +13,107 @@
  "../proof-relation/local.rkt" "../proof-relation/main.rkt"
  "step-mon.rkt")
 
-(provide ↦@ rt-strengthen)
+(provide ↦@ rt-strengthen ↦opq ↦opq/verify ↦opq/ce)
+
+(: ↦opq/verify : -?e (Listof -WV) -?e -Γ -κ -σ -Ξ -M -src-loc → (Setof -Δς))
+(define (↦opq/verify _ W-xs e-a Γ κ σ Ξ M loc)
+  (define δς-● (-Δς (-W -●/Vs e-a) Γ κ '() '() '()))
+    (define W-hv
+      (let ([V-hv (σ@₁ σ (-α.def -havoc-id))]
+            [l (-src-loc-party loc)])
+        (-W V-hv (-ref -havoc-id l 0))))
+    (for/fold ([acc : (Setof -Δς) {set δς-●}]) ([W-x W-xs])
+      (match (↦@ W-hv (list W-x) Γ κ σ Ξ M -Λ)
+        [(? set? s) (∪ acc s)]
+        [(? -Δς? ς) (set-add acc ς)])))
+
+(: ↦opq/ce : -?e (Listof -WV) -?e -Γ -κ -σ -Ξ -M -src-loc → -Δς*)
+(define (↦opq/ce e-f W-xs e-a Γ κ σ Ξ M loc)
+
+  (: ↦opq/ce₁ : -WV → -Δς*)
+  (define (↦opq/ce₁ W-x)
+    (match-define (-W V-x e-x) W-x)
+    
+    (define case-const
+      (let ([v• (•!)])
+        (define fun (-λ '(_) v•))
+        (define Γ* (Γ+ Γ (-?@ 'equal? e-f fun) (-?@ 'equal? (-?@ e-f e-x) v•)))
+        (-Δς (-W -●/Vs v•) Γ* κ '() '() '())))
+
+    (define case-dep
+      (let ([•₁ (•!)]
+            [•₂ (•!)])
+        (define e
+          (-if (-@ 'procedure? (list (-x 'X₀)) -Λ)
+               (-λ '(Y₀) (-@ (-@ •₁ (list (-x 'X₀)) -Λ) (list (-x 'Y₀)) -Λ))
+               (-@ •₂ (list (-x 'X₀)) -Λ)))
+        (define fun (-λ '(X₀) e))
+        (define Γ* (Γ+ Γ (-?@ 'equal? e-f fun)
+                         (-?@ 'procedure? •₁)
+                         (-?@ 'δ-case? •₂)))
+        (define clo (-Clo '(X₀) e -ρ⊥ (Γ↓ Γ* ∅)))
+        (↦@ (-W clo fun) (list W-x) Γ* κ σ Ξ M loc)))
+
+    (define case-havoc
+      (let ([apply-n-args
+             (λ ([n : Natural])
+               (define hv• (•!))                     
+               (define e• (-@ hv• (list (-@ (-x 'F₀) (for/list ([_ n]) (•!)) -Λ)) -Λ))
+               (define f• (-λ '(F₀) e•))
+               (define Γ* (Γ+ Γ (-?@ 'equal? e-f f•)
+                              (-?@ 'procedure? hv•)
+                              (-?@ '= (-?@ 'procedure-arity hv•) (-b 1))))
+               (define V• (-Clo '(F₀) e• -ρ⊥ (Γ↓ Γ* ∅)))
+               (↦@ (-W V• f•) (list W-x) Γ* κ σ Ξ M loc))])
+        (match V-x
+          [(-Clo xs _ _ _)
+           (apply-n-args
+            (match xs
+              [(-varargs zs _) (+ 1 (length zs))]
+              [(? list? xs) (length xs)]))]
+          [(-Ar (-=>i doms rst _ _ _) _ _)
+           (apply-n-args (if rst (+ 1 (length doms)) (length doms)))]
+          [(or (-St si _) (-St/checked si _ _ _)) #:when si
+           (define • (•!))
+           (for/fold ([δςs : (Setof -Δς) ∅])
+                     ([i (-struct-info-arity si)])
+             (define ac (-st-ac si i))
+             (define e• (-@ • (list (-@ ac (list (-x 'S₀)) -Λ)) -Λ))
+             (define f• (-λ '(S₀) e•))
+             (define Γ* (Γ+ Γ (-?@ 'equal? e-f f•)))
+             (define V• (-Clo '(S₀) e• -ρ⊥ (Γ↓ Γ* ∅)))
+             (define res (↦@ (-W V• f•) (list W-x) Γ* κ σ Ξ M loc))
+             (if (set? res) (∪ res δςs) (set-add δςs res)))]
+          [_ ∅])))
+
+    (merge case-const case-dep case-havoc))
+  
+  (match W-xs
+    ;; Pure 0-arg function must be constant
+    [(list)
+     (define res (•!))
+     (define Γ* (Γ+ Γ (-?@ 'equal? e-f (-λ '() res))))
+     (-Δς (-W -●/Vs res) Γ* κ '() '() '())]
+    ;; Defer
+    [(list W-x) (↦opq/ce₁ W-x)]
+    ;; Non-deterministically pick 1 arg to havoc, and remember choice
+    [_
+     (define f• (•!))
+     (define n (length W-xs))
+     (define xs
+       (build-list n (λ ([i : Integer]) (string->symbol (format "X~a" (n-sub i))))))
+     (for/fold ([reses : (Setof -Δς) ∅])
+               ([(W-x i) (in-indexed W-xs)]
+                [x-i (in-list xs)])
+       (define loc (-src-loc 'havoc (next-loc!)))
+       (define body (-@ f• (list x-i) loc))
+       (define fun (-λ xs body))
+       (define clo (-Clo xs body -ρ⊥ -Γ⊤))
+       (define Γ* (Γ+ Γ (-?@ 'equal? e-f fun)))
+       (define ans (↦@ (-W clo fun) (list W-x) Γ* κ σ Ξ M loc))
+       (if (set? ans) (∪ ans reses) (set-add reses ans)))]))
+
+(define-parameter ↦opq : (-?e (Listof -WV) -?e -Γ -κ -σ -Ξ -M -src-loc → -Δς*) ↦opq/verify)
 
 (: ↦@ : -WV (Listof -WV) -Γ -κ -σ -Ξ -M -src-loc → -Δς*)
 ;; Stepping rules for function application
@@ -30,18 +130,20 @@
   (define-syntax-rule (with-guarded-arity e ...)
     (let ([n (length W_xs)]
           [a (-procedure-arity V_f)])
+      (define (blm)
+        (-Δς (-blm l 'Λ (-Arity-Includes/C n) (list V_f)) Γ κ '() '() '()))
       (cond
         [a =>
          (λ (a)
-           (cond
-             [(arity-includes? a n) e ...]
-             [else (-Δς (-blm l 'Λ (-Arity-Includes/C n) (list V_f)) Γ κ '() '() '())]))]
+           (cond [(arity-includes? a n) e ...]
+                 [else (blm)]))]
         [else
-         (unless (-●? V_f)
-           (printf "Warning: no arity for ~a~n" (show-V V_f)))
-         (define ans (begin e ...))
-         (cond [(set? ans) (set-add ans (-Δς (-W (list -●/V) #f) Γ κ '() '() '()))]
-               [else {set ans (-Δς (-W (list -●/V) #f) Γ κ '() '() '())}])])))
+         (case (Γ⊢e Γ (-?@ 'arity-includes? (-?@ 'procedure-arity e_f) (-b n)))
+           [(✓) e ...]
+           [(X) (blm)]
+           [(?)
+            (define ans (begin e ...))
+            (if (set? ans) (set-add ans (blm)) {set ans (blm)})])])))
 
   (: ↦β : -formals -e -ρ -Γ → -Δς*)
   (define (↦β xs e ρ_f Γ_f)
@@ -56,7 +158,7 @@
            (define convert
              (e/map
               (for/hash : (HashTable -e -e) ([x xs*] [e_x (cast es* (Listof -e))]
-                                             #:unless (set-empty? (FV e_x)))
+                                             #:when (or (opq-exp? e_x) (not (set-empty? (FV e_x)))))
                 (values e_x (-x x)))))
            (define φs-callee
              (for/set: : (Setof -e) ([φ φs-caller] #:when (⊆ (FV φ) FVs-caller))
@@ -84,18 +186,6 @@
       [(-AΓ (? -blm? blm) Γ*) (-Δς blm         Γ* κ δσ '() '())]
       [(-AΓ (? list? Vs ) Γ*) (-Δς (-W Vs e_a) Γ* κ δσ '() '())]))
   
-  (: ↦havoc : → (Setof -Δς))
-  (define (↦havoc)
-    (define V_havoc (σ@₁ σ (-α.def -havoc-id)))
-    (define W_havoc (-W V_havoc (-ref -havoc-id l 0)))
-    (for/fold ([acc : (Setof -Δς) ∅]) ([W_x W_xs])
-      (match (↦@ W_havoc (list W_x) Γ κ σ Ξ M -Λ)
-        [(? set? s) (∪ acc s)]
-        [(? -Δς? ς) (set-add acc ς)])))
-
-  (: ↦opq : → -Δς)
-  (define (↦opq) (-Δς (-W -●/Vs e_a) Γ κ '() '() '()))
-
   (: ↦indy : (Listof (List Symbol -WV -WV))
               (Option (List Symbol -WV (Listof -WV)))
               -e -ρ -Γ -WV Mon-Info → -Δς*)
@@ -126,7 +216,7 @@
           (for*/set: : (Setof -e) ([φ φs-caller]
                                    [FV-φ (in-value (FV φ))]
                                    #:when (set-empty? (∩ FV-φ params))
-                                   #:unless (set-empty? FV-φ) ; prevents blow-up
+                                   #:when (or (opq-exp? φ) (not (set-empty? FV-φ))) ; prevents blow-up
                                    [φ* (in-value (convert φ))]
                                    #:when (⊆ (FV φ*) params))
             φ*))
@@ -182,7 +272,7 @@
 
   (: ↦con : -struct-info → -Δς)
   (define (↦con si)
-    (define αs (alloc-fields si pos))
+    (define αs (alloc-fields si e_xs pos))
     (define δσ : -Δσ
       (for/list ([α αs] [W W_xs])
         (cons α (close-Γ Γ (-W-x W)))))
@@ -252,6 +342,7 @@
     (define V-len
       (match V-vec
         [(-Vector αs) (-b (length αs))]
+        [(-Vector/checked γs _ _) (-b (length γs))]
         [_ -●/V]))
     (define W-len (-W V-len e-len))
     (define ((blm [p : -V] [V : -V]) [Γ : -Γ]) : -Δς
@@ -281,27 +372,37 @@
                ;; If index opaque, return everything in addition to refining index
                ;; FIXME ouch. This explodes fast.
                (for/fold ([acc : (Setof -Δς) ∅]) ([(α i) (in-indexed αs)])
-                 (define ψ (-?@ '= e-idx (-b i)))
-                 (match (MσΓ⊢e M σ Γ-ok ψ)
-                   ['X acc]
-                   [_
-                    (define Γ* (Γ+ Γ-ok ψ))
+                 (case (MσΓ⊢oW M σ Γ-ok '= W-idx (-W (-b i) (-b i)))
+                   [(X) acc]
+                   [else
+                    (define Γ* (Γ+ Γ-ok (-?@ '= e-idx (-b i))))
                     (for/fold ([acc : (Setof -Δς) acc]) ([V (σ@ σ α)])
                       (set-add acc (-Δς (-W (list V) e_a) Γ* κ '() '() '())))]))])]
            [(-Vector/checked γs l³ α)
-            (for/fold ([acc : (Setof -Δς) ∅]) ([V (σ@ σ α)])
-              (for/fold ([acc : (Setof -Δς) acc]) ([(γ i) (in-indexed γs)])
-                (define ψ (-?@ '= e-idx (-b i)))
-                (match (MσΓ⊢e M σ Γ-ok ψ)
-                  ['X acc]
-                  [_
-                   (define Γ* (Γ+ Γ-ok ψ))
-                   (for/fold ([acc : (Setof -Δς) acc]) ([C (σ@ σ γ)])
-                     (define φ₁ (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
-                     (define φ₂
-                       (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W) -Λ))
-                     (define κ* (-kont* φ₂ φ₁ κ))
-                     (set-add acc (-Δς (-W (list V) e-vec) Γ* κ* '() '() '())))])))]
+            (define φ-ref
+              (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W)
+                    (-src-loc (first l³) pos)))
+            (for*/fold ([acc : (Setof -Δς) ∅])
+                       ([V (σ@ σ α)]
+                        [(γ i) (in-indexed γs)])
+              (case (MσΓ⊢oW M σ Γ-ok '= W-idx (-W (-b i) (-b i)))
+                [(X) acc]
+                [else
+                 (define Γ* (Γ+ Γ-ok (-?@ '= e-idx (-b i))))
+                 (for/fold ([acc : (Setof -Δς) acc]) ([C (σ@ σ γ)])
+                   (define φ-mon (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
+                   (define κ* (-kont* φ-ref φ-mon κ))
+                   (set-add acc (-Δς (-W (list V) e-vec) Γ* κ* '() '() '())))]))]
+           [(-Vector/same γ l³ α)
+            (define φ-ref
+              (-φ.@ (list (-W (list V-idx) e-idx)) (list -vector-ref/W)
+                    (-src-loc (first l³) pos)))
+            (for*/set: : (Setof -Δς)
+                       ([C (σ@ σ γ)]
+                        [φ-mon (in-value (-φ.mon.v (-W C #f #|TODO|#) l³ pos))]
+                        [κ* (in-value (-kont* φ-ref φ-mon κ))]
+                        [V (σ@ σ α)])
+              (-Δς (-W (list V) e-vec) Γ κ* '() '() '()))]
            [_ (-Δς (-W -●/Vs e_a) Γ-ok κ '() '() '())]))))
 
   (: ↦vector-set! : → -Δς*)
@@ -331,10 +432,23 @@
                             (σ@ σ γ))]))
             (define Vs (σ@ σ α))
             (for/set: : (Setof -Δς) ([C Cs] [V Vs])
-              (define φ₁ (-φ.@ '() (list W-idx (-W V e-vec) -vector-set/W) -Λ))
-              (define φ₂ (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
-              (define κ* (-kont* φ₂ φ₁ κ))
+              (define φ-set
+              (-φ.@ '() (list W-idx (-W V e-vec) -vector-set/W)
+                    (-src-loc (first l³) pos)))
+              (define φ-mon (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
+              (define κ* (-kont* φ-mon φ-set κ))
               (-Δς (-W (list V-val) e-val) Γ-ok κ* '() '() '()))]
+           [(-Vector/same γ l³ α)
+            (for*/set: : (Setof -Δς)
+                       ([C (σ@ σ γ)]
+                        [φ-mon (in-value (-φ.mon.v (-W C #f #|TODO|#) l³ pos))]
+                        [V (σ@ σ α)]
+                        [φ-set
+                         (in-value
+                          (-φ.@ '() (list W-idx (-W V e-vec) -vector-set/W)
+                                (-src-loc (first l³) pos)))]
+                        [κ* (in-value (-kont* φ-mon φ-set κ))])
+              (-Δς (-W (list V-val) e-val) Γ κ* '() '() '()))]
            [_
             (-Δς -Void/W Γ-ok κ '() '() '())]))))
 
@@ -371,6 +485,32 @@
     (for/set: : (Setof -Δς) ([C Cs])
       (define φ (-φ.@ '() (list (-W C e*)) loc))
       (-Δς (-W (list V_x) e_x) Γ (-kont* φ φ-not κ) '() '() '())))
+
+  (: ↦struct/c : -struct-info (Setof (Listof -V)) → -Δς*)
+  (define (↦struct/c si field-lists)
+    (match-define (list (-W V_x e_x)) W_xs)
+    (define φ₀
+      (let ([p? (-st-p si)])
+        (-φ.@ '() (list (-W p? p?)) loc)))
+    (define cs (-struct/c-split e_f (-struct-info-arity si)))
+    (define vs (-struct-split e_x si))
+    (match/nd: ((Listof -V) → -Δς) field-lists
+      [Cs
+       (define W_cs (map (inst -W -V) Cs cs))
+       (match V_x
+         [(-St (≡ si) αs)
+          (for/set: : (Setof -Δς) ([Vs (σ@/list σ αs)])
+            (define W_vs (map (inst -W -V) Vs vs))
+            (define κ*
+              (foldr (λ ([W_c : -WV] [W_v : -WV] [κ : -κ])
+                       (define φ (-φ.if (-App W_c (list W_v) loc) (-W (list -ff) -ff)))
+                       (-kont φ κ))
+                     κ
+                     W_cs
+                     W_vs))
+            (-Δς (-W (list V_x) e_x) Γ (-kont φ₀ κ*) '() '() '()))]
+         [(-●) (-Δς (-W -●/Vs e_a) Γ κ '() '() '())]
+         [_ (-Δς (-W (list -ff) e_a) Γ κ '() '() '())])]))
   
   (: ↦contract-first-order-passes? : → -Δς*)
   (define (↦contract-first-order-passes?)
@@ -472,15 +612,16 @@
     [(-And/C #t α₁ α₂) (with-guarded-arity (↦and/c (σ@ σ α₁) (σ@ σ α₂)))]
     [(-Or/C  #t α₁ α₂) (with-guarded-arity (↦or/c (σ@ σ α₁) (σ@ σ α₂)))]
     [(-Not/C α) (with-guarded-arity (↦not/c (σ@ σ α)))]
+    [(-St/C #t si αs) (with-guarded-arity (↦struct/c si (σ@/list σ αs)))]
     [(? symbol? o) (↦δ o)]
     [(-Clo* xs e ρ_f    ) (with-guarded-arity (↦β xs e ρ_f (Γ↓ Γ (dom ρ_f))))]
     [(-Clo  xs e ρ_f Γ_f) (with-guarded-arity (↦β xs e ρ_f Γ_f))]
     [(-Ar (-=>i Doms Rst d ρ_c Γ_c) (cons α e_g) l³)
      (define-values (xs cs γs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -?e)] [γs : (Listof -α)])
-                  ([Dom : (List Symbol -?e -α) Doms])
-         (match-define (list x c γ) Dom)
-         (values x c γ)))
+                  ([Dom : (Pairof Symbol -α.dom) Doms])
+         (match-define (cons x (and γ (-α.dom c))) Dom)
+         (values x (and (-e? c) c) γ)))
      (match/nd: ((Listof -V) → -Δς) (σ@/list σ γs) ; TODO can explode very fast!!
        [Cs
         (define WCs (map (inst -W -V) Cs cs))
@@ -488,7 +629,7 @@
           [V_g
            (with-guarded-arity
              (match Rst
-               [(list x* c* γ*)
+               [(cons x* (and γ* (-α.rst c*)))
                 (define n (length Doms))
                 (define-values (es-init es-rest) (split-at e_xs n))
                 (define-values (Vs-init Vs-rest) (split-at V_xs n))
@@ -499,7 +640,7 @@
                 (define WV-rest (map (inst -W -V) Vs-rest es-rest))
                 (match/nd: (-V → -Δς) (σ@ σ γ*)
                   [C*
-                   (define Rst* (list x* (-W C* c*) WV-rest))
+                   (define Rst* (list x* (-W C* (and (-e? c*) c*)) WV-rest))
                    (↦indy args-init Rst* d ρ_c Γ_c (-W V_g e_g) l³)])]
                [#f
                 (define args
@@ -507,7 +648,17 @@
                             ([x xs] [c cs] [C Cs] [V V_xs] [e e_xs])
                     (list x (-W C c) (-W V e))))
                 (↦indy args #f d ρ_c Γ_c (-W V_g e_f) l³)]))])])]
-    [(-●) (with-guarded-arity (set-add (↦havoc) (↦opq)))]
+    [(-●)
+     (with-guarded-arity
+       (cond
+         [(concretized? Γ e_f) =>
+          (match-lambda
+            [(and vf (-λ xs e))
+             (define Vf (-Clo xs e -ρ⊥ (Γ↓ Γ ∅)))
+             (↦@ (-W Vf vf) W_xs Γ κ σ Ξ M loc)])]
+         [(equal? '✓ (Γ⊢e Γ (-?@ 'δ-case? e_f)))
+          (-Δς (-W -●/Vs e_a) Γ κ '() '() '())]
+         [else ((↦opq) e_f W_xs e_a Γ κ σ Ξ M loc)]))]
     [_ (-Δς (-blm l 'apply 'procedure? (list V_f)) Γ κ '() '() '())]))
 
 (: rt-strengthen ([-M -σ -φ.rt.@ -Γ] [-WVs] . ->* . (Option -Γ)))
@@ -527,11 +678,11 @@
   ; PRECOND: FV⟦e⟧ ⊆ xs
   (define convert
     (e/map
-     (let ()
-       (define m
-         (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
-           (values (-x x) e_x)))
-       (if (and ?e ans_caller) (hash-set m ?e ans_caller) m))))
+     (let ([m (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
+                (values (-x x) e_x))])
+       (if (and ?e ans_caller (not (closed? ?e)))
+           (hash-set m ?e ans_caller)
+           m))))
 
   (define facts-from-callee
     (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) params))

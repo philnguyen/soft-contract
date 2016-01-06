@@ -48,7 +48,7 @@
           [V
            (define ?e (if (-o? V) V ref))
            (match/nd: (-V → -Δς) Cs
-             [C (↦mon (-W C #f #|TODO|#) (-W V ?e) Γ κ σ Ξ M (list ctx* ctx ctx*) pos)])])])]
+             [C (↦mon (-W C (V->?e C)) (-W V ?e) Γ κ σ Ξ M (list ctx* ctx ctx*) pos)])])])]
     ;; evaluate function position, pushing arguments
     [(-@ f xs l)
      (define κ* (-kont (-φ.@ (for/list : (Listof -E) ([x xs]) (-⇓ x ρ)) '() l) κ))
@@ -97,7 +97,7 @@
                      ([bnd bnds] [xs (in-value (car bnd))])
             (for/fold ([ρ* : -ρ ρ*] [σ* : -σ σ*] [δσ : -Δσ δσ])
                       ([x xs] [e_x (split-values e* (length xs))])
-              (define α x #;(-α.bnd x e_x Γ))
+              (define α ((mk-α.x) (cons x Γ)))
               (values (ρ+ ρ* x α)
                       (⊔ σ α 'undefined)
                       (cons (cons α 'undefined) δσ)))))

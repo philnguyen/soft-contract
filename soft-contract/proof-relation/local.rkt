@@ -185,11 +185,15 @@
               [(and (symbol? p) (boolean-excludes? p)) '✓]
               [(-st-p? p) '✓]
               [else '?])]
+           [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
+            (⊢@ p (list e₂))]
+           [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
+            (⊢@ p (list e₁))]
            [(_ _) '?])]
         [(_ R) R]))
     (dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
     ans)
-  
+
   (define ans
     (cond
       [e
@@ -240,7 +244,7 @@
        [(list (or (-St sj _) (-St/checked sj _ _ _)))
         ;; TODO: no sub-struct for now. May change later.
         (decide-R (equal? si (assert sj)))]
-       [(-●) '?]
+       [(list (-●)) '?]
        [_ 'X])]
     [(? symbol?)
      (case p
@@ -249,12 +253,12 @@
         (match Vs
           [(list (-●)) '?]
           [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?) (? -Not/C?))) '✓]
-          [(list (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _)) (decide-R flat?)]
+          [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
           [_ 'X])]
        [(vector?)
         (match Vs
           [(list (-●)) '?]
-          [(list (or (? -Vector?) (? -Vector/checked?))) '✓]
+          [(list (or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))) '✓]
           [_ 'X])]
        [(contract?)
         (match Vs
@@ -270,14 +274,9 @@
        [(none/c) 'X]
        [(arity-includes?)
         (match Vs
-          [(list V_f V_n)
-           (cond
-             [(-procedure-arity V_f) =>
-              (λ ([a : Arity])
-                (match V_n
-                  [(-b (? simple-arity? n)) (decide-R (arity-includes? a n))]
-                  [_ '?]))]
-             [else '?])])]
+          [(list (-b (? Arity? a)) (-b (? Arity? b)))
+           (decide-R (arity-includes? a b))]
+          [_ '?])]
        ;; Default rules for operations on base values rely on simplification from `-?@`
        [else
         (cond
@@ -350,8 +349,8 @@
   (check-✓ (p∋Vs 'number? (-b 1)))
   (check-✓ (p∋Vs 'procedure? (-Clo '(x) (-b 1) -ρ⊥ -Γ⊤)))
   (check-✓ (p∋Vs 'procedure? 'procedure?))
-  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld -id-cons 0 0) (-α.fld -id-cons 0 1)))))
-  (check-X (p∋Vs 'number? (-St -s-cons (list (-α.fld -id-cons 0 0) (-α.fld -id-cons 0 1)))))
+  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld -tt) (-α.fld -ff)))))
+  (check-X (p∋Vs 'number? (-St -s-cons (list (-α.fld -ff) (-α.fld -tt)))))
   (check-X (p∋Vs 'integer? (-b 1.5)))
   (check-X (p∋Vs 'real? (-b 1+1i)))
   (check-? (p∋Vs 'integer? -●/V))

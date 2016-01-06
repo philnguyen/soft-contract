@@ -4,15 +4,17 @@
 
 (require
  racket/match racket/set racket/bool racket/function
- "../utils/set.rkt" "../utils/debug.rkt" "../utils/pretty.rkt"
+ "../utils/set.rkt" "../utils/debug.rkt" "../utils/pretty.rkt" "../utils/def.rkt"
  "../ast/definition.rkt" "../ast/meta-functions.rkt"
  "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/store.rkt"
  "result.rkt" "local.rkt" "utils.rkt")
 
 ;; External solver to be plugged in.
 ;; Return trivial answer by default.
-(define Γ⊢ₑₓₜ : (Parameterof (-M -σ -Γ -e → -R))
-  (make-parameter (λ (M σ Γ e) (printf "Warning: external solver not set") '?)))
+(define-parameter Γ⊢ₑₓₜ : (-M -σ -Γ -e → -R)
+  (λ (M σ Γ e)
+    (printf "Warning: external solver not set")
+    '?))
 
 (: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
 ;; Check if value satisfies (flat) contract
@@ -123,7 +125,7 @@
          (match V
            [(or (-St s _) (-St/checked s _ _ _))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-p (assert s)) e)))]
-           [(or (? -Vector?) (? -Vector/checked?))
+           [(or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'vector? e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
             (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'procedure? e)))]
@@ -161,6 +163,7 @@
 (define (Γ+/-W M σ Γ W)
   (match-define (-W V e) W)
   (define proved (first-R (⊢V V) (MσΓ⊢e M σ Γ e)))
+  ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-WV W) proved)
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 

@@ -92,7 +92,7 @@
      (-provide (cur-mod)
                (for/list ([x (in-list (syntax->datum #'(x ...)))]
                           [c (in-list (syntax->list #'(c ...)))])
-                 (-p/c-item x (parse-e c))))]
+                 (-p/c-item x (parameterize ([indep-prefix x]) (parse-e c)))))]
     
     [_ (or (parse-general-top-level-form form)
            (parse-submodule-form form))]))
@@ -128,7 +128,7 @@
      (-define-values
       (cur-mod)
       (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
-      (-@ (-ref (-id 'values 'Λ) (cur-mod) (next-neg!))
+      (-@ (-ref (-id 'values 'Λ) (cur-mod) (next-loc!))
           (list* (-st-mk si)
                  (-st-p si)
                  (for/list ([(accᵢ i) (in-indexed accs)])
@@ -142,7 +142,7 @@
        [(set-empty? frees)
         (-define-values (cur-mod) (list lhs) rhs)]
        [(set-empty? (set-remove frees lhs))
-        (define pos (next-neg!))
+        (define pos (next-loc!))
         (-define-values (cur-mod) (list lhs)
            (-μ/c pos (e/ (-x/c.tmp lhs) (-x/c pos) rhs)))]
        [else
@@ -155,6 +155,8 @@
      (-require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
     [_ (parse-e form)]))
+
+(define/contract indep-prefix (parameter/c symbol?) (make-parameter 'x))
 
 (define/contract (parse-e stx)
   (scv-syntax? . -> . -e?)
@@ -176,7 +178,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (--> (parse-es #'(c ...)) (parse-e #'d))]
+     (--> (indep-prefix) (parse-es #'(c ...)) (parse-e #'d))]
     ;; Dependent contract
     [(~or (begin
             (#%plain-app
@@ -197,7 +199,7 @@
      (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
            #f
            (parse-e #'d)
-           (next-neg!))]
+           (next-loc!))]
     ;; independent varargs
     [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list inits ...)]
@@ -214,18 +216,18 @@
     [(#%plain-app (~literal fake:box/c) c)
      (-box/c (parse-e #'c))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (-@ (-ref (-id 'vector/c 'Λ) (cur-mod) (next-neg!))
+     (-@ (-ref (-id 'vector/c 'Λ) (cur-mod) (next-loc!))
          (parse-es #'(c ...))
-         (-src-loc (cur-mod) (next-neg!)))]
+         (-src-loc (cur-mod) (next-loc!)))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-@ (-ref (-id 'vectorof 'Λ) (cur-mod) (next-neg!))
+     (-@ (-ref (-id 'vectorof 'Λ) (cur-mod) (next-loc!))
          (list (parse-e #'c))
-         (-src-loc (cur-mod) (next-neg!)))]
+         (-src-loc (cur-mod) (next-loc!)))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (define si (-struct-info (-id (syntax-e #'tag) (cur-mod))
                               (length (syntax->list #'(c ...)))
                               ∅))
-     (-struct/c si (parse-es #'(c ...)) (next-neg!))]
+     (-struct/c si (parse-es #'(c ...)) (next-loc!))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
     [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
     [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
@@ -310,9 +312,9 @@
     ;; Hacks for now
     [(~literal null) -null]
     [(~literal empty) -null]
-    [(~literal fake:not/c) (-ref (-id 'not/c 'Λ) (cur-mod) (next-neg!))]
-    [(~literal fake:and/c) (-ref (-id 'and/c 'Λ) (cur-mod) (next-neg!))]
-    [(~literal fake:or/c ) (-ref (-id 'or/c  'Λ) (cur-mod) (next-neg!))]
+    [(~literal fake:not/c) (-ref (-id 'not/c 'Λ) (cur-mod) (next-loc!))]
+    [(~literal fake:and/c) (-ref (-id 'and/c 'Λ) (cur-mod) (next-loc!))]
+    [(~literal fake:or/c ) (-ref (-id 'or/c  'Λ) (cur-mod) (next-loc!))]
     
     [i:identifier
      (or
@@ -330,7 +332,7 @@
                _ _ _ _ _ _)
          (when (equal? 'not/c (syntax-e #'i))
            (error "done"))
-         (-ref (-id (syntax-e #'i) src) (cur-mod) (next-neg!))]))]))
+         (-ref (-id (syntax-e #'i) src) (cur-mod) (next-loc!))]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
@@ -375,7 +377,7 @@
 
          (define (make-ref s)
            (symbol? . -> . syntax?)
-           #`(-ref (-id '#,s 'Λ) (cur-mod) (next-neg!)))
+           #`(-ref (-id '#,s 'Λ) (cur-mod) (next-loc!)))
          
          (match dec
            [`(#:pred ,s ,_ ...)
@@ -430,26 +432,28 @@
       (hash/c symbol? -e?)
       (make-hasheq))
 
-    (define/contract (simple-parse s)
-      (any/c . -> . -e?)
-      (match s
-        [`(-> ,doms ... ,rng)
-         (--> (map simple-parse doms) (simple-parse rng))]
-        [`(->* (,doms ...) #:rest ,rst ,rng)
-         (log-warning "Skipping ->* for now~n")
-         'any/c]
-        [`(and/c ,cs ...) (-and/c 'Λ (map simple-parse cs))]
-        [`(or/c  ,cs ...) (-or/c  'Λ (map simple-parse cs))]
-        [`(one-of/c ,cs ...) (-one-of/c 'Λ (map simple-parse cs))]
-        [`(list/c ,cs ...) (-list/c (map simple-parse cs))]
-        [`(cons/c ,c ,d) (-cons/c (simple-parse c) (simple-parse d))]
-        [`(not/c ,c) (-not/c 'Λ (simple-parse c))]
-        [`(listof ,c) (-listof (simple-parse c) (next-neg!))]
-        [`(values ,ctcs ...)
-         (-@ 'values (map simple-parse ctcs) (-src-loc 'Λ (next-neg!)))]
-        [(? symbol? s) (-ref (-id s 'Λ) 'Λ (next-neg!))]
-        [`(quote ,s) (-b s)]
-        [(or (? number? x) (? boolean? x)) (-b x)]))
+    (define/contract (simple-parse o-name s)
+      (symbol? any/c . -> . -e?)
+      
+      (let go ([s s])
+        (match s
+          [`(-> ,doms ... ,rng)
+           (--> o-name (map go doms) (go rng))]
+          [`(->* (,doms ...) #:rest ,rst ,rng)
+           (log-warning "Skipping ->* for now~n")
+           'any/c]
+          [`(and/c ,cs ...) (-and/c 'Λ (map go cs))]
+          [`(or/c  ,cs ...) (-or/c  'Λ (map go cs))]
+          [`(one-of/c ,cs ...) (-one-of/c 'Λ (map go cs))]
+          [`(list/c ,cs ...) (-list/c (map go cs))]
+          [`(cons/c ,c ,d) (-cons/c (go c) (go d))]
+          [`(not/c ,c) (-not/c 'Λ (go c))]
+          [`(listof ,c) (-listof (go c) (next-loc!))]
+          [`(values ,ctcs ...)
+           (-@ 'values (map go ctcs) (-src-loc 'Λ (next-loc!)))]
+          [(? symbol? s) (-ref (-id s 'Λ) 'Λ (next-loc!))]
+          [`(quote ,s) (-b s)]
+          [(or (? number? x) (? boolean? x)) (-b x)])))
 
     (define/contract (mk-struct-info x)
       (any/c . -> . -struct-info?)
@@ -490,15 +494,14 @@
               (hash-ref! cache s 'any/c)]
              [(list (list dom ...))
               ; optimize `boolean?` to `any/c`
-              (hash-ref! cache s (--> (map simple-parse dom) 'any/c))]))
+              (hash-ref! cache s (--> s (map (curry simple-parse s) dom) 'any/c))]))
          (list (-p/c-item s ctc))]
         [`(#:alias ,_ ,_) '()] ; taken care of
         [`(#:batch (,ss ...) ,sig ,_ ...)
-         (define ctc (simple-parse sig))
          (for/list ([s ss])
-           (-p/c-item s (hash-ref! cache s ctc)))]
+           (-p/c-item s (hash-ref! cache s (simple-parse s sig))))]
         [`(,(? symbol? s) ,sig ,_ ...)
-         (define ctc (hash-ref! cache s (simple-parse sig)))
+         (define ctc (hash-ref! cache s (simple-parse s sig)))
          (list (-p/c-item s ctc))]
         [`(#:struct-cons ,s (,_ ,mut?s ...))
          (define ctc (hash-ref! cache s
@@ -507,23 +510,23 @@
                                               'any/c))
                                       #f
                                       'any/c
-                                      (next-neg!))))
+                                      (next-loc!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-pred ,s (,_ ,mut? ...))
-         (define ctc (hash-ref! cache s (-->i (list (cons 'p• 'any/c)) #f 'any/c (next-neg!))))
+         (define ctc (hash-ref! cache s (-->i (list (cons 'p• 'any/c)) #f 'any/c (next-loc!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-acc ,s ,si ,_)
          (define ctc (hash-ref! cache s (-->i (list (cons 'a• (-st-p (mk-struct-info si))))
                                               #f
                                               'any/c
-                                              (next-neg!))))
+                                              (next-loc!))))
          (list (-p/c-item s ctc))]
         [`(#:struct-mut ,s ,si ,_)
          (define ctc (hash-ref! cache s (-->i (list (cons 'm•₁ (-st-p (mk-struct-info si)))
                                                     (cons 'm•₂ 'any/c))
                                               #f
                                               'any/c
-                                              (next-neg!))))
+                                              (next-loc!))))
          (list (-p/c-item s ctc))]
         [r
          (log-warning "unhandled in `make-decs` ~a~n" r)

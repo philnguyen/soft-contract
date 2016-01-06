@@ -1717,6 +1717,9 @@
     [inexact-real? ⇒ real?]
     [rational? ⇒ real?]
     [#:partition number? {exact? inexact?}]
+    [flonum? ⇒ inexact-real?]
+    [single-flonum? ⇒ flonum?]
+    [double-flonum? ⇒ flonum?]
     ; sequence
     [exact-nonnegative-integer? ⇒ sequence?]
     [string? ⇒ sequence?]
@@ -1740,6 +1743,9 @@
     [exact-nonnegative-integer? ⇒ procedure-arity?]
     ;; Contracts
     [flat-contract? ⇒ contract?]
+
+    ; made up predicate to mark internally used mapping
+    [δ-case? ⇒ procedure?]
 
     [#:exclusion
      number? string? boolean? keyword? symbol? void? null? procedure?]

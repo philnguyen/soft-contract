@@ -105,13 +105,13 @@
   (struct -φ.indy.rng
     [fun : -WV] [args : (Listof -WV)] [rst : (Option -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.struct
-    [info : -struct-info] [ctcs : (Listof -α)] [cs : (Listof -?e)] [idx : Integer]
+    [info : -struct-info] [ctcs : (Listof -α.struct/c)] [cs : (Listof -?e)] [idx : Integer]
     [vals↓ : (Listof -WV)] [target : -WV] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.vector/c ; no need to accumulated checked fields. Vector always wraps.
-    [ctcs : (Listof -α)] [cs : (Listof -?e)] [idx : Integer]
+    [ctcs : (Listof -α.vector/c)] [cs : (Listof -?e)] [idx : Integer]
     [target : -WV] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.vectorof
-    [ctc : -WV] [len : Integer] [idx : Integer]
+    [ctc : (Pairof -α.vectorof -WV)] [len : Integer] [idx : Integer]
     [target : -WV] [mon-info : Mon-Info] [pos : Integer])
 
   ;; Accumulate higher-order contracts with passing first-order checks
@@ -159,9 +159,7 @@
 (define-type -Ξ (MMap -τ -kont))
 (define-type -ΔΞ (ΔMap -τ -kont))
 
-(define show-τ : (case-> (-τ → Symbol)
-                         (→ (HashTable -τ Symbol)))
-  (unique-name 'τ))
+(define-values (show-τ show-τ⁻¹) ((inst unique-name -τ) 'τ))
 
 (define (show-φ [φ : -φ] [v : Sexp]) : (Listof Sexp)
   (match φ
@@ -229,7 +227,7 @@
        ,@(for/list : (Listof Sexp) ([γ γs-done]) `(,(show-α γ) ▹ ✓))
        (,(show-α γ-cur) ,v)
        ,@(for/list : (Listof Sexp) ([γ γs-left]) `(,(show-α γ) ▹ ??)))]
-    [(-φ.mon.vectorof Wc n i _ _ _)
+    [(-φ.mon.vectorof (cons _ Wc) n i _ _ _)
      `(mon/vectorof ,(show-V (-W-x Wc)) (... ,v ...))]
     [(-φ.rt.@ Γ xs f args)
      (define (show-bnds [xs : (Listof Symbol)] [args : (Listof -?e)]) : (Listof Sexp)
@@ -317,3 +315,9 @@
     (σ: ,@(show-σ σ))
     (Ξ: ,@(show-Ξ Ξ))
     (M: ,@(show-M M))))
+
+(define (show-Δς [δς : -Δς]) : (Listof Sexp)
+  (match-define (-Δς E Γ κ δσ δΞ δM) δς)
+  `((E: ,@(show-E E))
+    (Γ: ,@(show-Γ Γ))
+    (κ: ,@(show-κ κ '□))))
