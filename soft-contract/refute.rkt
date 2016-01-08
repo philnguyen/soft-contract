@@ -10,7 +10,8 @@
  "proof-relation/main.rkt" "proof-relation/ext/z3.rkt" "proof-relation/local.rkt"
  "delta.rkt"
  "reduction/step-app.rkt" "reduction/main.rkt"
- "machine/definition.rkt" "machine/load.rkt")
+ "machine/definition.rkt" "machine/load.rkt"
+ "instantiation.rkt")
 
 (: refute-files : Path-String * → (Option (Pairof -blm (Option -e))))
 ;; Read in modules and try to find a counterexample
@@ -29,7 +30,7 @@
     [(search {set ς₀}) =>
      (match-lambda
        [(list blm Γ mappings)
-        (cons blm (and mappings (concretize-e Γ mappings e†)))])]
+        (cons blm (and mappings (instan Γ mappings e†)))])]
     [else #f]))
 
 (define debug? #f)
@@ -98,122 +99,9 @@
      ]
     [_ (set-add front ς)]))
 
-(: concretize-e : -Γ (HashTable -e Base) -e → -e)
-(define (concretize-e Γ mappings e)
-  (when debug?
-    (printf "concretize:~n")
-    (printf "  Γ: ~a~n" (show-Γ Γ))
-    (printf "  mappings: ~a~n" mappings)
-    (printf "  e: ~a~n" (show-e e)))
-
-  (match-define (-Γ _ φs) Γ)
-
-  (let go ([e e])
-    (cond
-      [(hash-ref mappings e #f) => -b]
-      [else
-       (match e
-         [(-λ xs e*) (-λ xs (go e*))]
-         [(-case-λ clauses)
-          (-case-λ (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
-                     (match-define (cons xs e*) clause)
-                     (cons xs (go e*))))]
-         [(and v (-• ℓ))
-          (cond
-            [(concretized? Γ v) => go]
-            [else (blind-guess Γ ℓ)])]
-         [(-@ f xs loc)
-          (define xs* (map go xs))
-          (define (maybe-inline [ef : -e])
-            (match ef
-              [(-λ (? list? formals) bod)
-               (cond
-                 [(or (andmap arg-inlinable? xs*)
-                      (for/and : Boolean ([x formals]) (<= (count-xs bod x) 1)))
-                  (go (e/list (map -x formals) xs* bod))]
-                 [else ; default to `let`
-                  (-let-values
-                   (for/list : (Listof (Pairof (Listof Symbol) -e)) ([x formals] [ex xs*])
-                     (cons (list x) ex))
-                   (go bod)
-                   'havoc)])]
-              [_ (-@ (go ef) xs* loc)]))
-
-          (define (cases [f : -•] [x : -e]) : -e
-            (define k→v
-              (hash->list
-               (for/fold ([acc : (HashTable -v -e) (hash)]) ([(k v) mappings])
-                 (match k
-                   [(-@ (≡ f) (list ek) _)
-                    (define k
-                      (cond
-                        [(-v? ek) ek]
-                        [(hash-ref mappings ek #f) => -b]
-                        [else (error 'cases "unexpected ~a" (show-e ek))]))
-                    (hash-set acc k (-b v))]
-                   [_ acc]))))
-            (match k→v
-              ['() (-b 0)]
-              [(cons (cons k₀ v₀) kvs)
-               (foldr
-                (λ ([p : (Pairof -v -e)] [acc : -e])
-                  (-if (-@ 'equal? (list x (car p)) -Λ) (cdr p) acc))
-                v₀
-                kvs)]))
-
-          (match f
-            [(? -•? v)
-             (cond [(concretized? Γ v) => maybe-inline]
-                   [(equal? '✓ (Γ⊢e Γ (-?@ 'δ-case? v))) (cases v (car xs*))]
-                   [else (-begin/simp xs*)])]
-            [_ (maybe-inline f)])]
-         [(-if e₀ e₁ e₂)
-          (case (Γ⊢e Γ e₀)
-            [(✓) (go e₁)]
-            [(X) (go e₂)]
-            [else (-if (go e₀) (go e₁) (go e₂))])]
-         [(-wcm k v b) (-wcm (go k) (go v) (go b))]
-         [(-begin es) (-begin (map go es))]
-         [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
-         [(-let-values bnds bod ctx)
-          (-let-values
-           (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
-             (match-define (cons xs ex) bnd)
-             (cons xs (go ex)))
-           (go bod)
-           ctx)]
-         [(-letrec-values bnds bod ctx)
-          (-letrec-values
-           (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
-             (match-define (cons xs ex) bnd)
-             (cons xs (go ex)))
-           (go bod)
-           ctx)]
-         [(-set! x e*) (-set! x (go e*))]
-         [(-μ/c x c) (-μ/c x (go c))]
-         [(-->i doms rst rng pos)
-          (-->i
-           (for/list : (Listof (Pairof Symbol -e)) ([dom doms])
-             (match-define (cons x c) dom)
-             (cons x (go c)))
-           (match rst
-             [(cons x* c*) (cons x* (go c*))]
-             [#f #f])
-           (go rng)
-           pos)]
-         [(-struct/c si cs pos) (-struct/c si (map go cs) pos)]
-         [e e])])))
-
 ;; See if it's ok to inline the application
 (define (arg-inlinable? [e : -e])
   (or (-x? e) (-ref? e) (-prim? e)))
-
-(: blind-guess : -Γ Natural → -e)
-;; Instantiate the value at given opaque label such that it doesn't contradict path condition
-(define (blind-guess -Γ ℓ)
-  (define v (-• ℓ))
-  #;(error "TODO")
-  (-b (string->symbol (format "TODO-~a" ℓ))))
 
 (define (dbg-show [ς : -ς]) : (Listof Sexp)
   (match-define (-ς E Γ κ _ _ _) ς)

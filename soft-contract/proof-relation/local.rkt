@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢e ⊢V V∋Vs p∋Vs V≡ p⇒p Γ⊓ Γ⊓e)
+(provide Γ⊢e ⊢V V∋Vs p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred)
 
 (require
  racket/match racket/set
@@ -312,6 +312,11 @@
      (cond [(∋ (hash-ref implications p →∅) q) '✓]
            [(∋ (hash-ref exclusions p →∅) q) 'X]
            [else '?])]
+    [(p 'values)
+     (case p
+       [(not) 'X]
+       [(any/c) '?]
+       [else '✓])]
     [((-st-p si) (-st-p sj))
      ;; TODO: no sub-struct for now. Probably changes later
      (decide-R (equal? si sj))]
@@ -334,6 +339,17 @@
 ;; In general, it returns an upperbound of the right answer.
 (define (Γ⊓e Γ e)
   (if (equal? 'X (Γ⊢e Γ e)) #f (Γ+ Γ e)))
+
+(: most-specific-pred : -Γ -e → -o)
+;; Return the most specific predicate in path-invariant describing given expression
+(define (most-specific-pred Γ e)
+  (for/fold ([best : -o 'any/c]) ([φ (-Γ-facts Γ)])
+    (match φ
+      [(-@ (? -o? o) (list (≡ e)) _) #:when (equal? '✓ (p⇒p o best))
+       o]
+      [(or (≡ e) (-not (-not (≡ e)))) #:when (and e (equal? '✓ (p⇒p 'values best)))
+       'values]
+      [_ best])))
 
 
 (module+ test

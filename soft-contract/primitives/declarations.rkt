@@ -1770,7 +1770,7 @@
   (match s
     [(? symbol? s)
      (case s
-       [(integer? real? number? zero?
+       [(integer? rational? real? number? zero?
          inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
          extflonum?
          boolean? string? symbol? keyword? char? null? void? #|TODO|#)
