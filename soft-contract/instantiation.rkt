@@ -1,8 +1,8 @@
 #lang typed/racket/base
 
 (require
- racket/match
- "utils/debug.rkt" "utils/untyped-macros.rkt"
+ racket/match racket/set
+ "utils/set.rkt" "utils/debug.rkt" "utils/untyped-macros.rkt" "utils/pretty.rkt"
  "ast/definition.rkt" "ast/meta-functions.rkt"
  "runtime/path-inv.rkt" "runtime/simp.rkt"
  "proof-relation/local.rkt" "proof-relation/ext/z3.rkt")
@@ -226,6 +226,22 @@
         (gen-string v• 5)
         (gen-string v• 6)
         (fail-gen 'string? v•))]))
+
+  (define (gen-procedure [v• : -e])
+    (define arities
+      (for/fold ([arities : (Setof Natural) ∅]) ([φ (-Γ-facts Γ)])
+        (match φ
+          [(-@ (or '= 'equal? 'arity-includes?)
+               (list (-@ 'procedure-arity (list (≡ v•)) _)
+                     (-b (? exact-nonnegative-integer? n)))
+               _)
+           (set-add arities n)]
+          [_ arities])))
+    (match (set->list arities)
+      [(list) (-λ '() -tt)]
+      [(list n)
+       (-λ (build-list n (λ ([i : Integer]) (string->symbol (format "x~a" (n-sub i))))) -tt)]
+      [_ (-λ (-varargs '() 'args) -tt)]))
   
   (define (gen-non-false [v• : -e])
     (or (guard v• -tt)
@@ -252,6 +268,7 @@
        [(number?) (gen-number e•)]
        [(symbol?) (gen-symbol e•)]
        [(string?) (gen-string e•)]
+       [(procedure?) (gen-procedure e•)]
        [(values) (gen-non-false e•)]
        [(any/c) (gen-any e•)]
        [else (error 'blind-guess "unhandled predicate ~a" o)])]
