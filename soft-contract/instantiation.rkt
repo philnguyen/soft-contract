@@ -52,26 +52,44 @@
               [_ (-@ (go ef) xs* loc)]))
 
           (define (cases [f : -•] [x : -e]) : -e
-            (define k→v
-              (hash->list
-               (for/fold ([acc : (HashTable -v -e) (hash)]) ([(k v) mappings])
-                 (match k
-                   [(-@ (≡ f) (list ek) _)
-                    (define k
-                      (cond
-                        [(-v? ek) ek]
-                        [(hash-ref mappings ek #f) => -b]
-                        [else (error 'cases "unexpected ~a" (show-e ek))]))
-                    (hash-set acc k (-b v))]
-                   [_ acc]))))
-            (match k→v
+            
+            (define uses
+              (set->list
+               (for*/set: : (Setof -v) ([φ (-Γ-facts Γ)]
+                                        [args (find-calls φ f)])
+                 (match args
+                   [(list (? -v? arg)) arg]
+                   [_ (error 'instan "TODO: multiple args")]))))
+
+            (printf "uses for ~a: ~a~n" (show-e f) (map show-e uses))
+            
+            (define arg->res
+              (let ([solved
+                     (for/fold ([acc : (HashTable -v -e) (hash)]) ([(e b) mappings])
+                       (match e
+                         [(-@ (≡ f) (list x) _)
+                          (define arg
+                            (cond
+                              [(-v? x) x]
+                              [(hash-ref mappings x #f) => -b]
+                              [else (error 'cases "unexpected ~a" (show-e x))]))
+                          (hash-set acc arg (-b b))]
+                         [_ acc]))])
+                (printf "solved: ~a~n"
+                        (for/list : (Listof Sexp) ([(k v) solved])
+                          `(,(show-e k) ↦ ,(show-e v))))
+                (λ ([arg : -v]) : -e
+                  (or (hash-ref solved arg #f)
+                      (blind-guess Γ mappings (-@ f (list arg) -Λ))))))
+            
+            (match uses
               ['() (-b 0)]
-              [(cons (cons k₀ v₀) kvs)
+              [(cons arg₀ args)
                (foldr
-                (λ ([p : (Pairof -v -e)] [acc : -e])
-                  (-if (-@ 'equal? (list x (car p)) -Λ) (cdr p) acc))
-                v₀
-                kvs)]))
+                (λ ([arg : -v] [acc : -e])
+                  (-if (-@ 'equal? (list x arg) -Λ) (arg->res arg) acc))
+                (arg->res arg₀)
+                args)]))
 
           (match f
             [(? -•? v)

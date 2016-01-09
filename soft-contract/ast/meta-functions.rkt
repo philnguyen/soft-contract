@@ -431,7 +431,7 @@
       [(? list?) (list->set xs)]))
   (λ (e) (and (set-empty? (∩ shadows (FV e))) (f e))))
 
-(: find-calls : -e -id → (Setof (Listof -e)))
+(: find-calls : -e (U -id -•) → (Setof (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`
 (define (find-calls e f-id)
   (define-set calls : (Listof -e))
@@ -440,7 +440,7 @@
       [(-@ f xs _)
        (go f)
        (for-each go xs)
-       (when (match? f (-ref (≡ f-id) _ _))
+       (when (match? f (-ref (≡ f-id) _ _) (≡ f-id))
          (calls-add! xs))]
       [_ (void)]))
   calls)
