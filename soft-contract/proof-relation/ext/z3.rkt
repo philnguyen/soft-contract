@@ -16,9 +16,9 @@
 ;; Query external solver for provability relation
 (: z3⊢ : -M -σ -Γ -e → -R)
 (define (z3⊢ M σ Γ e)
-  ;(printf "~a~n⊢~n~a~n~n" (show-Γ Γ) (show-e e))
   (match (Γe->Z3 M σ Γ e)
     [(list decls prems concl)
+     ;(printf "Γ: ~a~ntranslates to~n~a~n~a~n~a~n" (show-Γ Γ) decls prems concl)
      (call-with decls prems concl)]
     [#f '?]))
 
@@ -46,8 +46,10 @@
   (cond
     [(exp->Z3 e->dec M σ Γ e) =>
      (λ ([concl : Sexp])
-       (define decls (hack-decls-for-is_int decls₀ (FV-for-is_int concl)))
-       (list decls (Γ->premises e->dec M σ Γ) concl))]
+       (define xs-adjusted (FV-for-is_int concl))
+       (define-values (decls is_int-premises) (hack-decls-for-is_int decls₀ xs-adjusted))
+       (define premises (append is_int-premises (Γ->premises e->dec M σ Γ)))
+       (list decls premises concl))]
     [else #f]))
 
 (: Γ->Z3 : -M -σ -Γ → (Values (Listof Sexp) (Listof Sexp)))
@@ -58,16 +60,19 @@
   (define adjusted-vars-for-is_int
     (for/fold ([xs : (Setof Symbol) ∅]) ([prop props])
       (∪ xs (FV-for-is_int prop))))
-  (define decls (hack-decls-for-is_int decls₀ adjusted-vars-for-is_int))
-  (values decls props))
+  (define-values (decls is_int-premises) (hack-decls-for-is_int decls₀ adjusted-vars-for-is_int))
+  (values decls (append is_int-premises props)))
 
+(: hack-decls-for-is_int : (Listof Sexp) (Setof Symbol) → (Values (Listof Sexp) (Listof Sexp)))
 ;; Z3's `is_int` doesn't work well if variables are declared as `Int` instead of `Real`
-(define (hack-decls-for-is_int [decls : (Listof Sexp)] [xs : (Setof Symbol)])
-  (for/list : (Listof Sexp) ([decl decls])
-    (match decl
-      [`(declare-const ,x Int) #:when (∋ xs x)
-       `(declare-const ,x Real)]
-      [_ decl])))
+(define (hack-decls-for-is_int decls xs)
+  (values
+   (for/list ([decl decls])
+     (match decl
+       [`(declare-const ,x Int) #:when (∋ xs x)
+        `(declare-const ,x Real)]
+       [_ decl]))
+   (for/list ([x xs]) `(is_int ,x))))
 
 (: FV-for-is_int : Sexp → (Setof Symbol))
 ;; Check if formula is of form `(... (is_int e))`. Return all FV in `e` if so.
