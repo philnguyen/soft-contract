@@ -219,7 +219,7 @@
      (match-define-values (γs-done (cons γ-cur γs-left)) (split-at γs i))
      `(mon/struct/c
        (,@(for/list : (Listof Sexp) ([γ γs-done]) `(,(show-α γ) ▹ ✓))
-        (,(show-α γ-cur) ,v)
+        (,(show-α γ-cur) ▹ ,v)
         ,@(for/list : (Listof Sexp) ([γ γs-left]) `(,(show-α γ) ▹ ??))))]
     [(-φ.mon.vector/c γs _ i _ _ _)
      (match-define-values (γs-done (cons γ-cur γs-left)) (split-at γs i))

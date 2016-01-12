@@ -46,11 +46,13 @@
      (when debug?
        (cond
          [(-ς? front*)
-          (printf "Done:~n~a~n~n" (dbg-show front*))]
+          (printf "Done:~n")
+          (print-ς front*)]
          [else
           (printf "~a. front: ~a~n" (hash-count steps) (set-count front*))
           (for ([ς* front*])
-            (printf "  ~a~n" (dbg-show ς*))
+            (print-ς ς*)
+            (printf "~n")
             (⊔! steps (hash-count steps) (-ς-σ ς*)))
           (case (read)
             [(skip) (set! debug? #f)]
@@ -65,27 +67,15 @@
 
 (: batch-step : (Setof -ς) → (U -ς (Setof -ς)))
 (define (batch-step front)
-  (define ans
-    (for/fold ([next : (U -ς (Setof -ς)) ∅]) ([ς front])
-      (cond
-        [(-ς? next) next] ; Should use #:break, but TR doesn't like it
-        [else
-         (match (↦/ς ς)
-           [(? -ς? ς*) (on-new-state next ς*)]
-           [(? set? ςs)
-            (for/fold ([next : (U -ς (Setof -ς)) next]) ([ς* ςs])
-              (if (-ς? next) next (on-new-state next ς*)))])])))
-  #;(when debug?
-    (printf "batch-step of (~a) :~n  ~a~nis (~a) ~n  ~a~n~n"
-            (set-count front)
-            (set-map front dbg-show)
-            (if (set? ans) (set-count ans) 1)
-            (if (set? ans) (set-map ans dbg-show) (dbg-show ans)))
-    (case (read)
-      [(skip) (set! debug? #f)]
-      [(done) (error "DONE")]
-      [else (void)]))
-  ans)
+  (for/fold ([next : (U -ς (Setof -ς)) ∅]) ([ς front])
+    (cond
+      [(-ς? next) next] ; Should use #:break, but TR doesn't like it
+      [else
+       (match (↦/ς ς)
+         [(? -ς? ς*) (on-new-state next ς*)]
+         [(? set? ςs)
+          (for/fold ([next : (U -ς (Setof -ς)) next]) ([ς* ςs])
+            (if (-ς? next) next (on-new-state next ς*)))])])))
 
 (: on-new-state : (Setof -ς) -ς → (U -ς (Setof -ς)))
 (define (on-new-state front ς)
@@ -103,8 +93,6 @@
 (define (arg-inlinable? [e : -e])
   (or (-x? e) (-ref? e) (-prim? e)))
 
-(define (dbg-show [ς : -ς]) : (Listof Sexp)
+(define (print-ς [ς : -ς]) : Void
   (match-define (-ς E Γ κ _ _ _) ς)
-  `((E: ,@(show-E E))
-    (Γ: ,@(show-Γ Γ))
-    (κ: ,@(show-κ κ))))
+  (printf "  E: ~a~n  Γ: ~a~n  κ: ~a~n" (show-E E) (show-Γ Γ) (show-κ κ)))

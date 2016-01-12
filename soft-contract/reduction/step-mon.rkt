@@ -7,6 +7,7 @@
  "../runtime/val.rkt" "../runtime/store.rkt" "../runtime/simp.rkt" "../runtime/addr.rkt"
  "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/arity.rkt"
  "../proof-relation/main.rkt"
+ "../delta.rkt"
  "../machine/definition.rkt")
 
 (provide ↦mon)
@@ -124,7 +125,8 @@
              [(cons γ γs*)
               (match-define (cons e_ci e_cs) (-struct/c-split e_c (length γs)))
               (define φ₁ (-φ.mon.struct s γs e_cs 0 '() W_v l³ pos))
-              (define φ₃ (-φ.@ '() (list (-W (-st-ac s 0) #f)) (-src-loc 'Λ pos)))
+              (define φ₃
+                (-φ.@ '() (list (-W (-st-ac s 0) (and (concrete?) (-st-ac s 0)))) (-src-loc 'Λ pos)))
               (for/set: : (Setof -Δς) ([C (σ@ σ γ)])
                 (define φ₂ (-φ.mon.v (-W C e_ci) l³ pos))
                 (define κ* (-kont* φ₃ φ₂ φ₁ κ))

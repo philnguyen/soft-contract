@@ -7,6 +7,7 @@
  "../runtime/val.rkt" "../runtime/summ.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
  "../runtime/simp.rkt" "../runtime/env.rkt" "../runtime/store.rkt"
  "../proof-relation/main.rkt"
+ "../delta.rkt"
  "../machine/definition.rkt"
  "step-e.rkt" "step-app.rkt" "step-mon.rkt")
 
@@ -270,7 +271,8 @@
          [(cons c cs*)
           (define i* (+ i 1))
           (define φ₁ (-φ.mon.struct s γs cs* i* Ws↓* W l³ pos))
-          (define φ₃ (-φ.@ '() (list (-W (-st-ac s i*) #f)) (-src-loc 'Λ pos)))
+          (define φ₃
+            (-φ.@ '() (list (-W (-st-ac s i*) (and (concrete?) (-st-ac s i*)))) (-src-loc 'Λ pos)))
           (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
             (define φ₂ (-φ.mon.v (-W C c) l³ pos))
             (define κ* (-kont* φ₃ φ₂ φ₁ κ))
