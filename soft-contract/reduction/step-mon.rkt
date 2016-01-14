@@ -40,22 +40,26 @@
   (define (↦or/c γ₁ γ₂)
     (define Cs₁ (σ@ σ γ₁))
     (define Cs₂ (σ@ σ γ₂))
-    (match-define (list c₁ c₂) (-app-split e_c 'or/c 2))
+    (match-define (list c₁* c₂*) (-app-split e_c 'or/c 2))
 
+    ;; temp HACK
+    (define (maybe-concretize [C : -V] [c : -?e]) : -?e
+      (if (concrete?) (if (-e? C) C c) c))
+    
     (match/nd: (-V → -Δς) Cs₁
       [C₁
-       (define W_C₁ (-W C₁ c₁))
+       (define W_C₁ (-W C₁ (maybe-concretize C₁ c₁*)))
        (cond
          [(C-flat? C₁)
           (match/nd: (-V → -Δς) Cs₂
             [C₂
-             (define κ* (-kont (-φ.if (-W (list V) e_v) (-Mon (-W C₂ c₂) W_v l³ pos)) κ))
+             (define κ* (-kont (-φ.if (-W (list V) e_v) (-Mon (-W C₂ (maybe-concretize C₂ c₂*)) W_v l³ pos)) κ))
              (define E* (-App W_C₁ (list W_v) (-src-loc lo pos)))
              (-Δς E* Γ κ* '() '() '())])]
          [else ;; C₁ is chaperone
           (match/nd: (-V → -Δς) Cs₂
             [C₂
-             (define W_C₂ (-W C₂ c₂))
+             (define W_C₂ (-W C₂ (maybe-concretize C₂ c₂*)))
              (cond
                [(C-flat? C₂)
                 (define κ* (-kont (-φ.if (-W (list V) e_v) (-Mon W_C₁ W_v l³ pos)) κ))
@@ -124,12 +128,12 @@
              ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ '() '() '())]
              [(cons γ γs*)
               (match-define (cons e_ci e_cs) (-struct/c-split e_c (length γs)))
-              (define φ₁ (-φ.mon.struct s γs e_cs 0 '() W_v l³ pos))
-              (define φ₃
+              (define φ-mon (-φ.mon.struct s γs e_cs 0 '() W_v l³ pos))
+              (define φ-ac
                 (-φ.@ '() (list (-W (-st-ac s 0) (and (concrete?) (-st-ac s 0)))) (-src-loc 'Λ pos)))
               (for/set: : (Setof -Δς) ([C (σ@ σ γ)])
-                (define φ₂ (-φ.mon.v (-W C e_ci) l³ pos))
-                (define κ* (-kont* φ₃ φ₂ φ₁ κ))
+                (define φ-chk (-φ.mon.v (-W C e_ci) l³ pos))
+                (define κ* (-kont* φ-ac φ-chk φ-mon κ))
                 (-Δς (-W (list V) e_v) Γ-ok κ* '() '() '()))])))
     
     (collect ς-ok ς-bad))

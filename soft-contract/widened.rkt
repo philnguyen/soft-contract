@@ -117,7 +117,7 @@
          (define A*
            (for/set: : (Setof -Cfg) ([Cfg (in-hash-keys S)]
                                      #:when (Cfg-final? Cfg Ξ*)
-                                     #:unless (match? Cfg (-Cfg (-blm (or 'Λ '†) _ _ _) _ _)))
+                                     #:unless (match? Cfg (-Cfg (-blm (or 'Λ '† 'havoc) _ _ _) _ _)))
              Cfg))
          (values S* A* σ* Ξ* M*)]
         [else (go S* F* tσ* σ* tΞ* Ξ* M*)]))))
