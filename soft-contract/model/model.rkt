@@ -93,6 +93,7 @@
         ((V @ S) Γ κ σ)
         Var
         (where V ,(hash-ref (term σ) (hash-ref (term ρ) (term x))))
+        ; Reading from an asignable variable does not a refinable symbolic value
         (where S ,(if (redex-match? λ-sym !x (term x)) #f (term x)))]
    [--> ((b _) Γ κ σ)
         ((b @ b) Γ κ σ)
@@ -261,6 +262,7 @@
 (define-metafunction λ-sym
   ⊢V : V -> R
   [(⊢V ●) ?]
+  [(⊢V ●-integer) ?]
   [(⊢V 0) X]
   [(⊢V _) ✓])
 
@@ -298,9 +300,12 @@
   ⊢oV : o V -> R
   [(⊢oV o? ●) ?]
   [(⊢oV integer? n) ✓]
+  [(⊢oV integer? ●-integer) ✓]
   [(⊢oV not 0) ✓]
+  [(⊢oV not ●-integer) ?]
   [(⊢oV procedure? (Clo _ _ _ _)) ✓]
   [(⊢oV procedure? o) ✓]
+  [(⊢oV procedure? ●-procedure) ✓]
   [(⊢oV _ _) X])
 
 ;; Strengthen path condition `Γ_1` with `Γ_2` or `#f` for provably spurious one
@@ -321,7 +326,7 @@
 (define-metafunction λ-sym
   δ : l Γ o W -> (Γ A)
   [(δ _ Γ o? (name W (_ @ S)))
-   (Γ (● @ (@S o? S)))
+   (Γ (●-integer @ (@S o? S)))
    (where ? (Γ⊢oW Γ o? W))]
   [(δ _ Γ o? (name W (_ @ S)))
    (Γ (1 @ (@S o? S)))
@@ -333,7 +338,7 @@
    (Γ (n_1 @ n_1))
    (where n_1 ,(+ 1 (term n)))]
   [(δ _ Γ add1 (name W (_ @ S)))
-   (Γ_ok (● @ (@S add1 S)))
+   (Γ_ok (●-integer @ (@S add1 S)))
    (where (Γ_ok _) (Γ+/-oW Γ integer? W))]
   [(δ l Γ add1 W)
    (Γ_bad (blame l "add1 non-integer"))
