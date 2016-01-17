@@ -34,7 +34,7 @@
     [else #f]))
 
 (define debug? #f)
-(define steps : (HashTable Integer (Setof -σ)) (make-hasheq))
+(define debug-step : Natural 0)
 
 (: search : (Setof -ς) → (Option (List -blm -Γ (Option (HashTable -e Base)))))
 ;; Execute from given frontier
@@ -47,23 +47,26 @@
        (cond
          [(-ς? front*)
           (printf "Done:~n")
-          (print-ς front*)]
+          (print-ς (assert front* -ς?))]
          [else
-          (printf "~a. front: ~a~n" (hash-count steps) (set-count front*))
-          (for ([ς* front*])
+          (printf "~a. front: ~a~n"
+                  (begin0 debug-step (set! debug-step (+ 1 debug-step)))
+                  (set-count (assert front* set?)))
+          (define front*-list (set->list (assert front* set?)))
+          (for ([(ς* i) (in-indexed front*-list)])
+            (printf "~a:~n" i)
             (print-ς ς*)
-            (printf "~n")
-            (⊔! steps (hash-count steps) (-ς-σ ς*)))
-          (case (read)
-            [(skip) (set! debug? #f)]
-            [(done) (error "DONE")]
-            [else (void)])
-          (printf "~n")]))
-     (cond
-       [(set? front*) (search front*)]
-       [else
-        (match-define (-ς (? -blm? blm) Γ _ σ _ M) front*)
-        (list blm Γ (get-model M σ Γ))])]))
+            (printf "~n"))
+          (match (read)
+            ['skip (set! debug? #f)]
+            ['done (error "DONE")]
+            [(? exact-integer? i) ; explore specific branch
+             (set! front* (set (list-ref front*-list i)))]
+            [_ (void)])]))
+     (match front*
+       [(-ς (? -blm? blm) Γ _ σ _ M)
+        (list blm Γ (get-model M σ Γ))]
+       [(? set? s) (search s)])]))
 
 (: batch-step : (Setof -ς) → (U -ς (Setof -ς)))
 (define (batch-step front)
