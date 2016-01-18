@@ -23,17 +23,16 @@
 (define-type exn:scv (U exn:fail:contract:maybe exn:fail:contract:counterexample))
 (define-predicate exn:scv? exn:scv)
 
-(define-type Err-Result (List 'blame Mon-Party Mon-Party Any Any))
 (define-data Result
   'timeout
   (subset: Ce-Result
-           'safe
-           Err-Result
-           (List 'ce Err-Result Any)
-           exn)
+    'safe
+    (struct Without-Ce [l+ : Mon-Party] [lo : Mon-Party] [val : Any] [ctc : Any])
+    (struct With-Ce [blm : Without-Ce] [ce : Any])
+    exn)
   (subset: Ve-Result
-           (Listof Err-Result)
-           exn))
+    (Listof Without-Ce) ; empty list indicate safety
+    exn))
 
 (: analyze ([Path-String] [#:timeout Integer #:timeout-ok? Boolean] . ->* . Void))
 ;; Analyze program at given path
@@ -44,11 +43,11 @@
      (cond [timeout-ok? (printf msg)]
            [else (raise (exn:fail:timeout msg (current-continuation-marks)))])]
     [(or 'safe (list)) (printf "Program is safe~n")]
-    [(list 'blame l+ lo v c)
+    [(Without-Ce l+ lo v c)
      (raise-scv-contract-error l+ lo v c)]
-    [(list 'ce (list 'blame l+ lo v c) ce)
+    [(With-Ce (Without-Ce l+ lo v c) ce)
      (raise-scv-contract-error l+ lo v c ce)]
-    [(cons (list 'blame l+ lo v c) _) ; Raise first error
+    [(cons (Without-Ce l+ lo v c) _) ; Raise first error
      (raise-scv-contract-error l+ lo v c)]
     [(? exn? e)
      (error (exn-message e))]))
@@ -57,32 +56,28 @@
 ;; Concurrently verify + seek counterexamples in given time
 (define (run path timeout)
   (define c : (Channelof Result) (make-channel))
-  (define verify-thread (thread (λ () (channel-put c (try-verify path)))))
-  (define refute-thread (thread (λ () (channel-put c (try-refute path)))))
+  (define  verify-thread (thread (λ () (channel-put c (try-verify path)))))
+  (define  refute-thread (thread (λ () (sleep 300) #;(channel-put c (try-refute path)))))
   (define timeout-thread (thread (λ () (sleep timeout) (channel-put c 'timeout))))
   
-  (define (kill-all)
-    (for-each kill-thread (list verify-thread refute-thread timeout-thread)))
-  
-  (match (channel-get c)
-    [(and err (or (cons 'blame _) (cons (cons 'blame _) _)))
-     ;; Wait for (probable) counter-example, unless timeout
-     (match (channel-get c)
-       ['timeout (kill-all) err]
-       [res (kill-all) res])]
-    [res (kill-all) res]))
+  (begin0
+      (match (channel-get c)
+        [(? cons? blms) ; blame from verifier can be unsure -> wait for refuter and see
+         (match (channel-get c)
+           ['timeout blms]
+           [res res])]
+        [res res])
+    (for-each kill-thread (list verify-thread refute-thread timeout-thread))))
 
 (: try-verify : Path-String → Ve-Result)
 ;; Attempt to verify correct program or warn about probable contract violation
 (define (try-verify path)
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     (define-values (_t Cfgs _σ _Ξ _M) (ve:verify-files path))
-
     (remove-duplicates
-     (for/list : (Listof Err-Result)
-               ([Cfg Cfgs] #:when (match? Cfg (ve:-Cfg (? -blm?) _ _)))
+     (for/list : (Listof Without-Ce) ([Cfg Cfgs] #:when (match? Cfg (ve:-Cfg (? -blm?) _ _)))
        (match-define (ve:-Cfg (-blm l+ lo C Vs) _ _) Cfg)
-       (list 'blame l+ lo (show-V C) (map show-V Vs))))))
+       (Without-Ce l+ lo (show-V C) (map show-V Vs))))))
 
 (: dbg-verify : Path-String → (U (Listof ve:-Cfg) exn))
 (define (dbg-verify path)
@@ -98,9 +93,8 @@
       [(ce:refute-files path) =>
        (match-lambda
          [(cons (-blm l+ lo C Vs) e†)
-          (if e†
-              (list 'ce (list 'blame l+ lo (show-V C) (map show-V Vs)) (show-e e†))
-              (list 'blame l+ lo (show-V C) (map show-V Vs)))])]
+          (define wo-ce (Without-Ce l+ lo (show-V C) (map show-V Vs)))
+          (if e† (With-Ce wo-ce e†) wo-ce)])]
       [else 'safe])))
 
 (: raise-scv-contract-error ([Any Any Any Any] [Any] . ->* . Nothing))
