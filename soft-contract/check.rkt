@@ -19,6 +19,7 @@
 ;; Raise different exceptions for definite counterexample and probable contract violation
 (struct exn:fail:contract:counterexample exn:fail:contract () #:transparent)
 (struct exn:fail:contract:maybe exn:fail:contract () #:transparent)
+(struct exn:fail:timeout exn:fail () #:transparent)
 (define-type exn:scv (U exn:fail:contract:maybe exn:fail:contract:counterexample))
 (define-predicate exn:scv? exn:scv)
 
@@ -34,11 +35,14 @@
            (Listof Err-Result)
            exn))
 
-(: analyze ([Path-String] [Integer] . ->* . Void))
+(: analyze ([Path-String] [#:timeout Integer #:timeout-ok? Boolean] . ->* . Void))
 ;; Analyze program at given path
-(define (analyze path [timeout 60])
+(define (analyze path #:timeout [timeout 60] #:timeout-ok? [timeout-ok? #t])
   (match (run path timeout)
-    ['timeout (printf "Timeout after ~a seconds~n" timeout)]
+    ['timeout
+     (define msg (format "Timeout after ~a seconds~n" timeout))
+     (cond [timeout-ok? (printf msg)]
+           [else (raise (exn:fail:timeout msg (current-continuation-marks)))])]
     [(or 'safe (list)) (printf "Program is safe~n")]
     [(list 'blame l+ lo v c)
      (raise-scv-contract-error l+ lo v c)]
