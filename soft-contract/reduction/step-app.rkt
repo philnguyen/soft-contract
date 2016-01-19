@@ -147,37 +147,11 @@
 
   (: ↦β : -formals -e -ρ -Γ → -Δς*)
   (define (↦β xs e ρ_f Γ_f)
-    
-    (define Γ_f* ; the strengthened path invariant for callee
-      (cond
-        [(check-?es e_xs) =>
-         (λ ([e_xs : (Listof -e)])
-           (define FVs-caller (FV e_xs))
-           (define φs-caller (-Γ-facts Γ))
-           (define-values (xs* es*) (bind-args xs e_xs))
-           (define convert
-             (e/map
-              (for/hash : (HashTable -e -e) ([x xs*] [e_x (cast es* (Listof -e))]
-                                             #:when (or (opq-exp? e_x) (not (set-empty? (FV e_x)))))
-                (values e_x (-x x)))))
-           (define φs-callee
-             (for/set: : (Setof -e) ([φ φs-caller] #:when (⊆ (FV φ) FVs-caller))
-               (convert φ)))
-           (define Γ* (Γ⊓ Γ_f φs-callee))
-           (and Γ*
-                (for/fold ([Γ* : -Γ Γ*]) ([x xs*] [e es*]
-                                          #:when (and e (closed? e)))
-                  (Γ-bind Γ* x e))))]
-        [else #f]))
-
-    (cond
-      [Γ_f*
-       (define-values (δσ ρ*) (alloc Γ ρ_f xs V_xs pos))
-       (define τ (-τ e ρ* Γ_f*))
-       (define κ* (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
-       (define δΞ (list (cons τ κ*)))
-       (-Δς (-⇓ e ρ*) Γ_f* τ δσ δΞ '())]
-      [else ∅]))
+    (define-values (δσ ρ*) (alloc Γ ρ_f xs V_xs pos))
+    (define τ (-τ e ρ* Γ_f))
+    (define κ* (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
+    (define δΞ (list (cons τ κ*)))
+    (-Δς (-⇓ e ρ*) Γ_f τ δσ δΞ '()))
 
   (: ↦δ : Symbol → -Δς*)
   (define (↦δ o)
@@ -647,7 +621,7 @@
                   (for/list : (Listof (List Symbol -WV -WV))
                             ([x xs] [c cs] [C Cs] [V V_xs] [e e_xs])
                     (list x (-W C c) (-W V e))))
-                (↦indy args #f d ρ_c Γ_c (-W V_g e_f) l³)]))])])]
+                (↦indy args #f d ρ_c Γ_c (-W V_g e_g) l³)]))])])]
     [(-●)
      (with-guarded-arity
        (cond
