@@ -10,7 +10,7 @@
   (check-not-exn
    (λ ()
      (with-handlers ([exn:scv? (λ ([e : exn:scv]) (set! ans e))])
-       (analyze p))))
+       (analyze p #:timeout-ok? #f))))
   ans)
 
 (: check-verify-safe : Path-String → Any)
