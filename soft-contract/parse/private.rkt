@@ -178,7 +178,8 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (--> (indep-prefix) (parse-es #'(c ...)) (parse-e #'d))]
+     (parameterize ([indep-prefix (string->symbol (format "~a_" (indep-prefix)))])
+       (--> (indep-prefix) (parse-es #'(c ...)) (parse-e #'d)))]
     ;; Dependent contract
     [(~or (begin
             (#%plain-app
@@ -196,19 +197,21 @@
            (~literal fake:dynamic->i)
            (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
            (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
-     (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
-           #f
-           (parse-e #'d)
-           (next-loc!))]
+     (parameterize ([indep-prefix (string->symbol (format "~a_" (indep-prefix)))])
+       (-->i (map cons (syntax->datum #'(z ...)) (parse-es #'(cₓ ...)))
+             #f
+             (parse-e #'d)
+             (next-loc!)))]
     ;; independent varargs
     [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list inits ...)]
                   [(_) rst]
                   [(_) rng])
        _ ...)
-     (-->* (map parse-e (syntax->list #'(inits ...)))
-           (parse-e #'rst)
-           (parse-e #'rng))]
+     (parameterize ([indep-prefix (string->symbol (format "~a_" (indep-prefix)))])
+       (-->* (map parse-e (syntax->list #'(inits ...)))
+             (parse-e #'rst)
+             (parse-e #'rng)))]
     [(#%plain-app (~literal fake:listof) c)
      (-listof (cur-mod) (parse-e #'c))]
     [(#%plain-app (~literal fake:list/c) c ...)
