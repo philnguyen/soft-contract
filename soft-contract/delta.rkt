@@ -108,6 +108,14 @@
          [(X) (list -ff)]
          [(?) -●/Vs]))
      (values '() (-AΓ Vs Γ))]
+
+    [= ; duplicate of `equal?` (args already guarded by contracts)
+     (define Vs
+       (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
+         [(✓) (list -tt)]
+         [(X) (list -ff)]
+         [(?) -●/Vs]))
+     (values '() (-AΓ Vs Γ))]
     
     [procedure?
      (define Vs
@@ -278,23 +286,19 @@
               (cond [(symbol? x) (values clauses (cons x (append xs names)))]
                     [else        (values (cons x (append xs clauses)) names)])]))))
      (define body-stx
-       #`(case o
-           #,@clauses
-           [else
-            (cond
-              [(∋ prim-names o)
-               (cond
-                 [(concrete-impl o) =>
-                  (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))])
-                    (f M σ Γ Ws l))]
-                 [else (values '() (-AΓ -●/Vs Γ))])]
-              [else (error 'δ "unhandled: ~a" o)])]))
+       #`(if (∋ prim-names o)
+             (cond
+               [(concrete-impl o) =>
+                (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))])
+                  (f M σ Γ Ws l))]
+               [else
+                (case o
+                  #,@clauses
+                  [else (values '() (-AΓ -●/Vs Γ))])])
+             (error 'δ "unhandled: ~a" o)))
      ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
 (: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → (Values -Δσ -AΓs))
 (define (δ M σ Γ o Ws l)
   (gen-δ-body M σ Γ o Ws l))
-
-
-                

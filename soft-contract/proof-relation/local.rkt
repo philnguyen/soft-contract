@@ -121,7 +121,7 @@
       ['not (not-R (⊢e (car xs)))] ; assume right arity
       ['any/c '✓]
       ['none/c 'X]
-      ['equal?
+      [(or 'equal? '=)
        (match xs
          [(list e₁ e₂)
           (match* (e₁ e₂)

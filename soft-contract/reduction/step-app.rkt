@@ -125,7 +125,7 @@
   (define-values (V_xs e_xs) ((inst unzip-by -WV -V -?e) -W-x -W-e W_xs))
   (define e_a (apply -?@ e_f e_xs))
 
-  (dbg '↦@ "App:~n f: ~a~n xs: ~a~n" (show-V V_f) (map show-V V_xs))
+  (dbg '↦@ "App:~n f: ~a~n xs: ~a~n" (show-WV W_f) (map show-WV W_xs))
 
   (define-syntax-rule (with-guarded-arity e ...)
     (let ([n (length W_xs)]
@@ -175,7 +175,7 @@
       (match Rst
         [(list x* _ WVs) (values (-varargs xs₀ x*) (append e_xs₀ (map (inst -W-e Any) WVs)))]
         [#f (values xs₀ e_xs₀)]))
-    
+
     (define κ₁ (-kont (-φ.rt.@ Γ xs e_f e_xs) κ))
     ;; Convert caller's invariants to callee's invariants
     (define Γ_d*
@@ -642,25 +642,24 @@
   (match-define (-φ.rt.@ Γ₀ xs* e_f e_xs*) φ)
   (define-values (xs e_xs) (bind-args xs* e_xs*))
   
-  (define params ; only care params that have corresponding args
-    (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x))
-
   (define ans_caller (apply -?@ e_f e_xs))
 
   ; Function for converting invariants about parameters in callee's environment
   ; into invariants about arguments in caller's environment
   ; PRECOND: FV⟦e⟧ ⊆ xs
-  (define convert
-    (e/map
-     (let ([m (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
+  (define-values (convert FV-ans)
+    (let ([m₀ (for/hash : (HashTable -e -e) ([x xs] [e_x e_xs] #:when e_x)
                 (values (-x x) e_x))])
-       (if (and ?e ans_caller (not (closed? ?e)))
-           (hash-set m ?e ans_caller)
-           m))))
+      (if (and ?e ans_caller (not (closed? ?e)))
+          (values (e/map (hash-set m₀ ?e ans_caller)) (FV ?e))
+          (values (e/map m₀) #f))))
 
   (define facts-from-callee
-    (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) params))
-      (convert e)))
+    (let* ([params ; only care params that have corresponding args
+            (for/set: : (Setof Symbol) ([x xs] [e_x e_xs] #:when e_x) x)]
+           [FVs (if FV-ans (∪ params FV-ans) params)])
+      (for/set: : -es ([e (-Γ-facts Γ)] #:when (⊆ (FV e) FVs))
+        (convert e))))
 
   ; Check if the propositions would contradict
   (define Γ₀* (MσΓ⊓ M σ Γ₀ facts-from-callee))
@@ -672,9 +671,12 @@
                `(,x ↦ ,(show-?e e_x)))))
     (dbg 'rt "Caller knows: ~a~n" (show-Γ Γ₀))
     (dbg 'rt "Callee knows: ~a~n" (show-Γ Γ))
-    (dbg 'rt "Caller would know: ~a~n~n" (and Γ₀* (show-Γ Γ₀*))))
+    (dbg 'rt "Caller would know: ~a~n" (and Γ₀* (show-Γ Γ₀*))))
 
   (cond
     [(and Γ₀* (not (spurious? M σ Γ₀* (-W Vs (and ?e (convert ?e))))))
+     (dbg 'rt "not spurious~n~n")
      Γ₀*]
-    [else #f]))
+    [else
+     (dbg 'rt "spurious~n~n")
+     #f]))
