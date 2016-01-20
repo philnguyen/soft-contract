@@ -94,17 +94,20 @@
     (define -bn (-b (if Rst (arity-at-least n) n)))
     (define W-arity
       (let ([a (-procedure-arity V)]
-            [e (-?@ 'procedure-arity (and e_v (closed? e_v) e_v))])
+            [e (-?@ 'procedure-arity e_v)])
         (define V (if a (-b a) (-●)))
         (-W V e)))
     (define-values (δς-ok δς-bads)
       (Γ+/- M σ Γ
             (λ ([Γ-ok : -Γ])
               (define α ((mk-α.fld) (list (-id 'Ar 'Λ) pos 0)))
-              (define ?e (and e_v (closed? e_v) e_v))
-              (define Ar (-Ar C (cons α ?e) l³))
+              (define C* ; remember that the function is valid
+                (let ([Γ_d* (Γ+ Γ_d (-?@ 'procedure? e_v)
+                                (-?@ 'arity-includes? (-?@ 'procedure-arity e_v) -bn))])
+                  (-=>i Doms Rst d ρ_d Γ_d*)))
+              (define Ar (-Ar C* (cons α e_v) l³))
               (define δσ (list (cons α V)))
-              (-Δς (-W (list Ar) ?e) Γ-ok κ δσ '() '()))
+              (-Δς (-W (list Ar) (and e_v (closed? e_v) e_v)) Γ-ok κ δσ '() '()))
             (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))
             (list -arity-includes?/W
                   (list W-arity (-W -bn -bn))
@@ -162,14 +165,11 @@
                      (define φ-ref (-φ.@ '() (list W_v -vector-ref/W) -Λ))
                      (define κ* (-kont* φ-ref φ-chk-val φ-chk-rest κ))
                      (-Δς (-W (list (-b 0)) (-b 0)) Γ-ok κ* '() '() '())))]
-                [else
-                 ;; Reference with opaque index and monitor.
-                 ;; This is not really sound if vector contains thunks with side effects.
-                 (for/set: : (Setof -Δς) ([C (σ@ σ α)])
-                   (define φ-chk-val (-φ.mon.v (-W C #f #|TODO|#) l³ pos))
-                   (define φ-ref (-φ.@ '() (list W_v -vector-ref/W) -Λ))
-                   (define κ* (-kont* φ-ref φ-chk-val κ))
-                   (-Δς (-W -●/Vs #f) Γ-ok κ* '() '() '()))]))
+                [else ; vector with opaque length can't have opaque content, no need to check elements!
+                 (define α.unchecked ((mk-α.vct) pos))
+                 (define δσ (list (cons α.unchecked V)))
+                 (define W* (-W (list (-Vector/same α l³ α.unchecked)) e_v))
+                 (-Δς W* Γ-ok κ δσ '() '())]))
             (list -vector?/W (list W_v) (blm l+ lo 'vector? V)))) 
     
     (collect δς-ok δς-bad))
