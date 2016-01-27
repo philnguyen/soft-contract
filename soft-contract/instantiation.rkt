@@ -260,6 +260,12 @@
       [(list n)
        (-λ (build-list n (λ ([i : Integer]) (string->symbol (format "x~a" (n-sub i))))) -tt)]
       [_ (-λ (-varargs '() 'args) -tt)]))
+
+  (define (gen-opq-struct [v• : -e])
+    (define fresh-id (string->symbol (format "●~a" (n-sub (random 1000)))))
+    (define fresh-m (string->symbol (format "m~a" (n-sub (random 1000)))))
+    (define si (-struct-info (-id fresh-id fresh-m) 1 ∅))
+    (-@ (-st-mk si) (list (-b 0)) -Λ))
   
   (define (gen-non-false [v• : -e])
     (or (guard v• -tt)
@@ -267,6 +273,7 @@
          (gen-number v•)
          (gen-symbol v•)
          (gen-string v•)
+         (gen-opq-struct v•)
          (fail-gen 'values v•))))
 
   (define (gen-any [v• : -e]) : (U -b -@)
