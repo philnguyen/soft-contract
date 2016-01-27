@@ -79,12 +79,6 @@
        (match-define (ve:-Cfg (-blm l+ lo C Vs) _ _) Cfg)
        (Without-Ce l+ lo (show-V C) (map show-V Vs))))))
 
-(: dbg-verify : Path-String → (U (Listof ve:-Cfg) exn))
-(define (dbg-verify path)
-  (with-handlers ([exn:fail? (λ ([e : exn]) e)])
-    (define-values (_t Cfgs _σ _Ξ _M) (ve:verify-files path))
-    (set->list Cfgs)))
-
 (: try-refute : Path-String → Ce-Result)
 ;; Attempt to search for erroneous inputs, or prove absence of one in rare cases
 (define (try-refute path)
