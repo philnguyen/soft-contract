@@ -22,7 +22,8 @@
      (define M* (⊔ M e res))
      (match/nd: (-kont → -Δς) (hash-ref Ξ τ)
        [(-kont φ κ*)
-        (with-Δ '() '() (list (cons e res)) (↦φ WVs Γ φ κ* σ Ξ M*))])]
+        (with-Δ '() '() (list (cons e res))
+          (↦φ WVs Γ φ κ* σ Ξ M*))])]
     [(-kont φ κ*) (↦φ WVs Γ φ κ* σ Ξ M)]))
 
 (: ↦φ : -WVs -Γ -φ -κ -σ -Ξ -M → -Δς*)
@@ -237,25 +238,21 @@
              (define Ws-rst (map (inst -W -V) Vs-rst es-rst))
              (↦@ W_f (append args Ws-rst) Γ κ* σ Ξ M (-src-loc lo pos))])]
          [#f (↦@ W_f args Γ κ* σ Ξ M (-src-loc lo pos))]))]
-    [(-φ.mon.struct s γs cs i Ws↓ W l³ pos)
+    [(-φ.mon.struct s γs cs i Vs↓ W-unchecked l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
        (match-define (list V) Vs)
-       (define Ws↓* (cons (-W V ?e) Ws↓))
+       (define Vs↓* (cons V Vs↓))
        (match cs
          ['()
+          (match-define (-W V-uc e-uc) W-unchecked)
           (match-define (-struct-info _ n mutables) s)
-          (define Ws (reverse Ws↓*))
-          (define-values (Vs es)
-            (for/lists ([Vs : (Listof -V)] [es : (Listof -?e)])
-                       ([W Ws])
-              (values (-W-x W) (-W-e W))))
-          (define αs (alloc-fields s es pos))
+          (define Vs* (reverse Vs↓*))
+          (define αs (alloc-fields s (-struct-split e-uc s) pos))
           (define V-inner (-St s αs))
-          (define δσ (map (inst cons -α -V) αs Vs))
-          (define e_a (apply -?@ (-st-mk s) es))
+          (define δσ (map (inst cons -α -V) αs Vs*))
           
-          ; If struct has 1+ mutable fields, wrap the contract before returning
+          ; If struct has 1+ mutable fields, wrap with contract before returning
           (define-values (V* δσ*)
             (cond
               [(set-empty? mutables) (values V-inner δσ)]
@@ -267,16 +264,18 @@
                    (and (∋ mutables i) γ)))
                (define V-wrapped (-St/checked s γs* l³ α))
                (values V-wrapped δσ*)]))
-          (-Δς (-W (list V*) e_a) Γ κ δσ* '() '())]
+          (-Δς (-W (list V*) e-uc) Γ κ δσ* '() '())]
          [(cons c cs*)
           (define i* (+ i 1))
-          (define φ₁ (-φ.mon.struct s γs cs* i* Ws↓* W l³ pos))
-          (define φ₃
-            (-φ.@ '() (list (-W (-st-ac s i*) (and (concrete?) (-st-ac s i*)))) (-src-loc 'Λ pos)))
+          (define φ-mon (-φ.mon.struct s γs cs* i* Vs↓* W-unchecked l³ pos))
+          (define φ-acc
+            (let* ([ac (-st-ac s i*)]
+                   [e_ac (and (concrete?) ac)])
+              (-φ.@ '() (list (-W ac e_ac)) (-src-loc 'Λ pos))))
           (for/set: : (Setof -Δς) ([C (σ@ σ (list-ref γs i*))])
-            (define φ₂ (-φ.mon.v (-W C c) l³ pos))
-            (define κ* (-kont* φ₃ φ₂ φ₁ κ))
-            (-Δς (-W (list (-W-x W)) (-W-e W)) Γ κ* '() '() '()))]))]
+            (define φ-chk (-φ.mon.v (-W C c) l³ pos))
+            (define κ* (-kont* φ-acc φ-chk φ-mon κ))
+            (-Δς (-W (list (-W-x W-unchecked)) (-W-e W-unchecked)) Γ κ* '() '() '()))]))]
     [(-φ.mon.vector/c γs cs i W l³ pos)
      (match-define (list l+ l- lo) l³)
      (with-guarded-arity 1 lo 'Λ
@@ -367,6 +366,7 @@
      (cond
        [(rt-strengthen M σ φ Γ (-W Vs ?e)) =>
         (λ ([Γ₀* : -Γ])
+          ;(printf "rt: ~a~n" (show-φ φ '□))
           (define-values (xs e_xs) (bind-args xs* e_xs*))
           (define e_a
             (cond

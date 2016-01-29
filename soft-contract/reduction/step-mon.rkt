@@ -107,7 +107,7 @@
                   (-=>i Doms Rst d ρ_d Γ_d*)))
               (define Ar (-Ar C* (cons α e_v) l³))
               (define δσ (list (cons α V)))
-              (-Δς (-W (list Ar) (and e_v (closed? e_v) e_v)) Γ-ok κ δσ '() '()))
+              (-Δς (-W (list Ar) e_v) Γ-ok κ δσ '() '()))
             (list -procedure?/W (list W_v) (blm l+ lo 'procedure? V))
             (list -arity-includes?/W
                   (list W-arity (-W -bn -bn))
@@ -130,12 +130,14 @@
            (match γs
              ['() (-Δς (-W (list (-St s '())) (-?@ k)) Γ-ok κ '() '() '())]
              [(cons γ γs*)
-              (match-define (cons e_ci e_cs) (-struct/c-split e_c (length γs)))
-              (define φ-mon (-φ.mon.struct s γs e_cs 0 '() W_v l³ pos))
+              (match-define (cons c₀ cs) (-struct/c-split e_c (length γs)))
+              (define φ-mon (-φ.mon.struct s γs cs 0 '() W_v l³ pos))
               (define φ-ac
-                (-φ.@ '() (list (-W (-st-ac s 0) (and (concrete?) (-st-ac s 0)))) (-src-loc 'Λ pos)))
+                (let* ([ac (-st-ac s 0)]
+                       [e_ac (and (concrete?) ac)])
+                  (-φ.@ '() (list (-W ac e_ac)) (-src-loc 'Λ pos))))
               (for/set: : (Setof -Δς) ([C (σ@ σ γ)])
-                (define φ-chk (-φ.mon.v (-W C e_ci) l³ pos))
+                (define φ-chk (-φ.mon.v (-W C c₀) l³ pos))
                 (define κ* (-kont* φ-ac φ-chk φ-mon κ))
                 (-Δς (-W (list V) e_v) Γ-ok κ* '() '() '()))])))
     
@@ -229,6 +231,6 @@
        [(-Vectorof α) (↦vectorof α)]
        [(-Vector/C αs) (↦vector/c αs)]
        [_
-        (define κ* (-kont (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))) κ))
-        (-Δς (-W (list V) e_v) Γ
-             (-kont (-φ.@ '() (list W_c) (-src-loc lo pos)) κ*) '() '() '())])]))
+        (define φ-chk (-φ.if (-W (list V) e_v) (-blm l+ lo C (list V))))
+        (define φ-app (-φ.@ '() (list W_c) (-src-loc lo pos)))
+        (-Δς (-W (list V) e_v) Γ (-kont* φ-app φ-chk κ) '() '() '())])]))

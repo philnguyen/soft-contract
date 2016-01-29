@@ -106,7 +106,7 @@
     [fun : -WV] [args : (Listof -WV)] [rst : (Option -WV)] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.struct
     [info : -struct-info] [ctcs : (Listof -α.struct/c)] [cs : (Listof -?e)] [idx : Integer]
-    [vals↓ : (Listof -WV)] [target : -WV] [mon-info : Mon-Info] [pos : Integer])
+    [vals↓ : (Listof -V)] [unchecked : -WV] [mon-info : Mon-Info] [pos : Integer])
   (struct -φ.mon.vector/c ; no need to accumulated checked fields. Vector always wraps.
     [ctcs : (Listof -α.vector/c)] [cs : (Listof -?e)] [idx : Integer]
     [target : -WV] [mon-info : Mon-Info] [pos : Integer])
