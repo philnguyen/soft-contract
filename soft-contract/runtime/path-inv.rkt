@@ -13,7 +13,8 @@
 ;; for faster queries
 (struct -Γ ([bindings : (Map (U Symbol -id) -e)] [facts : -es]) #:transparent)
 (define -Γ⊤ (-Γ (hash) ∅))
-(define-type/pred -?e (Option -e))
+(define-type/pred -s (Option -e))
+(define-type/pred -?e #|TODO legacy|# -s)
 
 (: canonicalize : (U -Γ (Map (U Symbol -id) -e)) -e → -e)
 ;; Rewrite invariant in terms of lexically farthest variables possible

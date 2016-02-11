@@ -34,9 +34,8 @@
 (struct -struct-info ([id : -id] [arity : Natural] [mutables : (Setof Integer)]) #:transparent)
 
 ;; Formal parameters
-(define-data -formals
-  (Listof Symbol)
-  (struct -varargs [init : (Listof Symbol)] [rest : Symbol]))
+(-formals . ::= . (Listof Symbol)
+                  (struct -varargs [init : (Listof Symbol)] [rest : Symbol]))
 
 ;; Return all variable names in function's parameter list
 (define (-formal-names [xs : -formals]) : (Setof Symbol)
@@ -55,45 +54,39 @@
   (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void
      Arity))
 
-(define-data -top-level-form
-  -general-top-level-form
-  -e
-  -module
-  -begin/top)
+(-top-level-form . ::= . -general-top-level-form
+                         -e
+                         -module
+                         -begin/top)
 
-(define-data -module-level-form
-  -general-top-level-form
-  (struct -provide [from : Adhoc-Module-Path] [specs : (Listof -provide-spec)])
-  -submodule-form)
+(-module-level-form . ::= . -general-top-level-form
+                            (struct -provide [from : Adhoc-Module-Path] [specs : (Listof -provide-spec)])
+                            -submodule-form)
 
-(define-data -general-top-level-form
-  -e
-  (struct -define-values [from : Adhoc-Module-Path] [ids : (Listof Symbol)] [e : -e])
-  (struct -require [specs : (Listof -require-spec)]))
+(-general-top-level-form . ::= . -e
+                                 (struct -define-values [from : Adhoc-Module-Path] [ids : (Listof Symbol)] [e : -e])
+                                 (struct -require [specs : (Listof -require-spec)]))
 
-(define-data -submodule-form
-  (struct -module [path : Adhoc-Module-Path] [body : -plain-module-begin]))
+(-submodule-form . ::= . (struct -module [path : Adhoc-Module-Path] [body : -plain-module-begin]))
 
-(define-data -provide-spec
-  (struct -p/c-item [id : Symbol] [spec : -e]))
+(-provide-spec . ::= . (struct -p/c-item [id : Symbol] [spec : -e]))
 
-(define-data -require-spec
-  Adhoc-Module-Path #|TODO|#)
+(-require-spec . ::= . Adhoc-Module-Path #|TODO|#)
 
 (struct -plain-module-begin ([body : (Listof -module-level-form)]) #:transparent)
 
-(define-data -e
-  (subset: -v
+(-e . ::= .
+  (-v . ::=* .
     (struct -λ [formals : -formals] [body : -e])
     (struct -case-λ [body : (Listof (Pairof -formals -e))])
     (struct -• [l : Natural])
-    (subset: -prim
+    (-prim . ::=* .
       ;; primitive values that can appear in syntax
       (struct -b [unboxed : Base])
       ;; Represent *unsafe* operations without contract checks. 
       ;; User code shouldn't have direct access to these.
       ;; Generated `prim` module exports these operations wrapped in contract.
-      (subset: -o
+      (-o . ::=* .
         ; fixed
         Symbol
         ; user extensible

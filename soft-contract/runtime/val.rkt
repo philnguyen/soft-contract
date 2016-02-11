@@ -9,7 +9,7 @@
  "env.rkt" "path-inv.rkt" "addr.rkt")
 
 ;; blessed arrow, struct, and closed lambda, etc.
-(define-data -V
+(-V . ::= .
   'undefined
   -prim
   (struct -●)
@@ -43,7 +43,7 @@
   )
 (define-type -Vs (Listof -V))
 
-(define-data -A
+(-A . ::= .
   -Vs
   (struct -blm [violator : Mon-Party] [origin : Mon-Party] [v : -V] [c : -Vs]))
 

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide define-data define-type/pred define-parameter :*)
+(provide ::= define-type/pred define-parameter :*)
 
 (require
  (for-syntax racket/base racket/syntax syntax/parse))
@@ -13,19 +13,27 @@
                         (define-predicate τ? τ)))]))
 
 ;; define data-type hierarchy
-(define-syntax-rule (define-data τ σ ...)
-  (define-data′ τ (σ ...) ()))
-(define-syntax (define-data′ stx)
-  (syntax-case stx (subset: struct)
+(define-syntax-rule (τ . ::= . σ ...)
+  (τ . ::=/ac . (σ ...) ()))
+(define-syntax (::=/ac stx)
+  (syntax-parse stx
+    #:literals (struct :)
     [(_ τ () (σ ...)) #'(define-type/pred τ (U σ ...))]
-    [(_ τ ((subset: τ′ clauses′ ...) clauses ...) (σ ...))
-     #'(begin (define-data′ τ′ (clauses′ ...) ())
-              (define-data′ τ (clauses ...) (τ′ σ ...)))]
-    [(_ τ ((struct k f ...) clauses ...) (σ ...))
-     #'(begin (struct k (f ...) #:transparent)
-              (define-data′ τ (clauses ...) (k σ ...)))]
+    [(_ τ ((τ₀ . (~literal ::=*) . clauses₀ ...) clauses ...) (σ ...))
+     #'(begin (τ₀ . ::=/ac . (clauses₀ ...) ())
+              (τ  . ::=/ac . (clauses ...) (τ₀ σ ...)))]
+    [(_ τ ((struct k [f : t] ...) clauses ...) (σ ...))
+     #'(begin (struct k ([f : t] ...) #:transparent)
+              (τ . ::=/ac . (clauses ...) (k σ ...)))]
+    [(_ τ ((struct k [ts ...]) clauses ...) (σ ...))
+     (define fields
+       (for/list ([(t i) (in-indexed (syntax->list #'(ts ...)))])
+         (define x (string->symbol (format "x_~a" i)))
+         #`(#,x : #,t)))
+     #`(begin (struct k #,fields #:transparent)
+              (τ . ::=/ac . (clauses ...) (k σ ...)))]
     [(_ τ (τ₁ clauses ...) (σ ...))
-     #'(define-data′ τ (clauses ...) (τ₁ σ ...))]))
+     #'(τ . ::=/ac . (clauses ...) (τ₁ σ ...))]))
 
 ;; Shorthand for defining parameter
 (define-syntax define-parameter

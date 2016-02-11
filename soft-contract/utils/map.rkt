@@ -2,7 +2,7 @@
 
 (provide
  Map MMap NeListof ΔMap
- dom ⊔ ⊔! ⊔* ⊔!* ⊔/m Δ+ mmap-subtract)
+ dom ⊔ ⊔! ⊔* ⊔!* ⊔/m m∋ m@ Δ+ mmap-subtract)
 
 (require racket/match racket/set "set.rkt")
 
@@ -46,13 +46,17 @@
 (define (Δ+ Δ m)
   (for/fold ([m : (MMap X Y) m] [δ? : Boolean #f]) ([δ Δ])
     (match-define (cons k v) δ)
-    (values (⊔ m k v)
-            (or δ? (not (∋ (hash-ref m k →∅) v))))))
+    (values (⊔ m k v) (or δ? (not (m∋ m k v))))))
 
 (: mmap-subtract : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
 ;; Compute bindings in `m₁` not in `m₀`
 (define (mmap-subtract m₁ m₀)
   (for/fold ([acc : (MMap X Y) (hash)]) ([(k v) (in-hash m₁)])
-    (define δv (set-subtract v (hash-ref m₀ k →∅)))
-    (cond [(set-empty? δv) acc]
-          [else (hash-set acc k δv)])))
+    (define δv (set-subtract v (m@ m₀ k)))
+    (if (set-empty? δv) acc (hash-set acc k δv))))
+
+(: m∋ (∀ (X Y) (MMap X Y) X Y → Boolean))
+(define (m∋ m x y) (∋ (m@ m x) y))
+
+(: m@ (∀ (X Y) (MMap X Y) X → (Setof Y)))
+(define (m@ m x) (hash-ref m x →∅))

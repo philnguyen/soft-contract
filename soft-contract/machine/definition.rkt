@@ -14,16 +14,14 @@
 ;;;;; Closure forms
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-data -E
+(-E . ::= .
   (struct -↓ [e : -e] [ρ : -ρ])
   ; `V` and `e` don't have any reference back to `E`, so it's not recursive
   (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : Integer])
   (struct -App [f : -WV] [xs : (Listof -WV)] [ctx : -src-loc])
   -define-values
   -provide
-  (subset: -Ans
-    -blm
-    -WVs))
+  (-Ans . ::=* . -blm -WVs))
 
 (: -⇓ : -e -ρ → -E)
 ;; Close expression with restricted environment
@@ -53,7 +51,7 @@
 ;;;;; Continuation frames
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-data -φ
+(-φ . ::= .
 
   ;; Standard stuff
   (struct -φ.if [t : -E] [e : -E])
@@ -144,7 +142,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack
-(define-data -κ
+(-κ . ::= .
   (struct -τ [e : -e] [ρ : -ρ] [Γ : -Γ])
   (struct -kont [frm : -φ] [nxt : -κ]))
 

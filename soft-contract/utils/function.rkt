@@ -1,9 +1,12 @@
 #lang typed/racket/base
 
-(provide fix)
+(provide fix apply/values)
 
 (: fix : (∀ (X) (X → X) X → X))
 ;; Compute `f`'s fixpoint starting from `x`
 (define (fix f x)
   (define x* (f x))
   (if (equal? x x*) x (fix f x*)))
+
+(define-syntax-rule (apply/values f x)
+  (call-with-values (λ () x) f))

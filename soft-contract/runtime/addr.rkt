@@ -8,7 +8,7 @@
  "../ast/definition.rkt" "path-inv.rkt")
 
 ;; Just to make it easy to catch mis-allocation
-(define-data -α
+(-α . ::= .
   ;; for top-level definition and contract
   (struct -α.def [id : -id])
   (struct -α.ctc [id : -id])

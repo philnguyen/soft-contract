@@ -23,14 +23,14 @@
 (define-type exn:scv (U exn:fail:contract:maybe exn:fail:contract:counterexample))
 (define-predicate exn:scv? exn:scv)
 
-(define-data Result
+(Result . ::= .
   'timeout
-  (subset: Ce-Result
+  (Ce-Result . ::=* .
     'safe
     (struct Without-Ce [l+ : Mon-Party] [lo : Mon-Party] [val : Any] [ctc : Any])
     (struct With-Ce [blm : Without-Ce] [ce : Any])
     exn)
-  (subset: Ve-Result
+  (Ve-Result . ::=* .
     (Listof Without-Ce) ; empty list indicate safety
     exn))
 
