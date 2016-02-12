@@ -1,0 +1,27 @@
+raco test: (submod "main.rkt" test)
+safe/mochi-new:
+  a-max & 18 & 33 & 1 & 528 \\
+  fold_fun_list & 20 & 32 & 3 & 70.5 \\
+  fold_left & 14 & 27 & 1 & 2028.4 \\
+  fold_right & 14 & 27 & 1 & 2468.5 \\
+  forall_leq & 13 & 23 & 1 & 21 \\
+  harmonic & 14 & 26 & 1 & 381.6 \\
+  length & 13 & 24 & 1 & 14.5 \\
+  map_filter & 21 & 51 & 1 & 2083.1 \\
+  risers & 26 & 61 & 1 & 38.9 \\
+  search & 14 & 26 & 1 & 2386.5 \\
+  zip_unzip & 27 & 62 & 1 & 2064.4 \\
+Summary for "mochi-new" & 194 & 392 & 3 & 60427/5s \\
+fail-ce/mochi-new:
+  a-max & 18 & 33 & 1 & 294.1 \\
+  fold_fun_list & 20 & 32 & 3 & 543.2 \\
+  fold_left & 14 & 27 & 1 & 145.5 \\
+  fold_right & 14 & 27 & 1 & 184.1 \\
+  forall_leq & 13 & 23 & 1 & 335 \\
+  harmonic & 14 & 26 & 1 & 101.2 \\
+  length & 13 & 24 & 1 & 104.4 \\
+  map_filter & 21 & 51 & 1 & 399.3 \\
+  risers & 25 & 52 & 1 & 267.3 \\
+  search & 14 & 26 & 1 & 28.1 \\
+  zip_unzip & 27 & 60 & 1 & 758.8 \\
+Summary for "mochi-new" & 193 & 381 & 3 & 3161s \\
