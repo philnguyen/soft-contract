@@ -264,7 +264,7 @@
       (values x ex)))
   ((e/map m) e))
 
-(: e/map : (HashTable -e -e) → (-e → -e))
+(: e/map : (HashTable -e -e) → -e → -e)
 (define ((e/map m) e)
   (let go ([m m] [e e])
     (cond
@@ -324,7 +324,7 @@
           (log-debug "e/: ignore substituting ~a" (show-e e))
           e])])))
 
-(: e/fun : (-e → (Option -e)) → (-e → -e))
+(: e/fun : (-e → (Option -e)) → -e → -e)
 ;; Duplicate code as `e/map` for now for some efficiency of `e/map`
 (define ((e/fun f) e)
 

@@ -35,7 +35,7 @@
 
 ;; Formal parameters
 (-formals . ::= . (Listof Symbol)
-                  (struct -varargs [init : (Listof Symbol)] [rest : Symbol]))
+                  (-varargs [init : (Listof Symbol)] [rest : Symbol]))
 
 ;; Return all variable names in function's parameter list
 (define (-formal-names [xs : -formals]) : (Setof Symbol)
@@ -48,11 +48,8 @@
 ;;;;; AST subset definition as in Racket reference 1.2.3.1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type Arity (U Natural arity-at-least (Listof (U Natural arity-at-least))))
-(define-predicate Arity? Arity)
-(define-type/pred Base
-  (U Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void
-     Arity))
+(Arity . ::= . Natural arity-at-least (Listof (U Natural arity-at-least)))
+(Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void Arity)
 
 (-top-level-form . ::= . -general-top-level-form
                          -e
@@ -60,67 +57,65 @@
                          -begin/top)
 
 (-module-level-form . ::= . -general-top-level-form
-                            (struct -provide [from : Adhoc-Module-Path] [specs : (Listof -provide-spec)])
+                            (-provide [from : Adhoc-Module-Path] [specs : (Listof -provide-spec)])
                             -submodule-form)
 
 (-general-top-level-form . ::= . -e
-                                 (struct -define-values [from : Adhoc-Module-Path] [ids : (Listof Symbol)] [e : -e])
-                                 (struct -require [specs : (Listof -require-spec)]))
+                                 (-define-values [from : Adhoc-Module-Path] [ids : (Listof Symbol)] [e : -e])
+                                 (-require (Listof -require-spec)))
 
-(-submodule-form . ::= . (struct -module [path : Adhoc-Module-Path] [body : -plain-module-begin]))
+(-submodule-form . ::= . (-module [path : Adhoc-Module-Path] [body : -plain-module-begin]))
 
-(-provide-spec . ::= . (struct -p/c-item [id : Symbol] [spec : -e]))
+(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e]))
 
 (-require-spec . ::= . Adhoc-Module-Path #|TODO|#)
 
 (struct -plain-module-begin ([body : (Listof -module-level-form)]) #:transparent)
 
-(-e . ::= .
-  (-v . ::=* .
-    (struct -λ [formals : -formals] [body : -e])
-    (struct -case-λ [body : (Listof (Pairof -formals -e))])
-    (struct -• [l : Natural])
-    (-prim . ::=* .
-      ;; primitive values that can appear in syntax
-      (struct -b [unboxed : Base])
-      ;; Represent *unsafe* operations without contract checks. 
-      ;; User code shouldn't have direct access to these.
-      ;; Generated `prim` module exports these operations wrapped in contract.
-      (-o . ::=* .
-        ; fixed
-        Symbol
-        ; user extensible
-        (struct -st-p [info : -struct-info])
-        (struct -st-ac [info : -struct-info] [index : Integer])
-        (struct -st-mut [info : -struct-info] [index : Integer])
-        (struct -st-mk [info : -struct-info]))))
-  ;; lexical variables
-  (struct -x [name : Symbol])
-  ;; module references
-  (struct -ref [id : -id] [ctx : Mon-Party] [pos : Integer])
-  (struct -@ [f : -e] [xs : (Listof -e)] [loc : -src-loc])
-  (struct -if [i : -e] [t : -e] [e : -e])
-  (struct -wcm [key : -e] [val : -e] [body : -e])
-  -begin/e
-  (struct -begin0 [e0 : -e] [es : (Listof -e)])
-  (struct -quote [v : Any])
-  (struct -let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
-  (struct -letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
-  (struct -set! [x : Symbol] [e : -e])
+(-e . ::= . -v
+            (-x Symbol) ; lexical variables 
+            (-ref [id : -id] [ctx : Mon-Party] [pos : Integer]) ; module references
+            (-@ -e (Listof -e) -src-loc)
+            (-if -e -e -e)
+            (-wcm [key : -e] [val : -e] [body : -e])
+            -begin/e
+            (-begin0 -e (Listof -e))
+            (-quote Any)
+            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
+            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
+            (-set! Symbol -e)
 
-  (struct -@-havoc [x : -x]) ; hack for havoc to detect argument's arity at runtime
-  (struct -amb [es : -es])
-  
-  ;; contract stuff
-  (struct -μ/c [pos : Integer] [c : -e])
-  (struct -->i
-    [dom : (Listof (Pairof Symbol -e))]
-    [rest-dom : (Option (Pairof Symbol -e))]
-    [rng : -e]
-    [pos : Integer])
-  (struct -x/c.tmp [x : Symbol]) ; hack
-  (struct -x/c [pos : Integer])
-  (struct -struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
+            (-@-havoc -x) ; hack for havoc to detect argument's arity at runtime
+            (-amb (Setof -e))
+            
+            ;; contract stuff
+            (-μ/c Integer -e)
+            (-->i
+             [dom : (Listof (Pairof Symbol -e))]
+             [rest-dom : (Option (Pairof Symbol -e))]
+             [rng : -e]
+             [pos : Integer])
+            (-x/c.tmp Symbol) ; hack
+            (-x/c Integer)
+            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
+
+(-v . ::= . -prim
+            (-λ -formals -e)
+            (-case-λ (Listof (Pairof -formals -e)))
+            (-• Natural))
+
+(-prim . ::= . ;; Represent *unsafe* operations without contract checks. 
+               ;; User code shouldn't have direct access to these.
+               ;; Generated `prim` module exports these operations wrapped in contract. -o (-b Base)
+               -o
+               ;; primitive values that can appear in syntax
+               (-b [unboxed : Base]))
+
+(-o . ::= . Symbol
+           (-st-p -struct-info)
+           (-st-ac -struct-info Integer)
+           (-st-mut -struct-info Integer)
+           (-st-mk -struct-info))
 
 (define-type -es (Setof -e))
 
@@ -406,4 +401,3 @@
 
 (define show-require-spec : (-require-spec → Sexp)
   values)
-

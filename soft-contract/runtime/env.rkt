@@ -19,13 +19,13 @@
 (: ρ+ : -ρ (U -x Symbol) -α.x → -ρ)
 ;; Extend environment with new mapping from symbol to address
 (define (ρ+ ρ x α)
-  (define s (if (-x? x) (-x-name x) x))
+  (define s (match x [(-x s) s] [(? symbol? s) s]))
   (hash-set ρ s α))
 
 (: ρ@ : -ρ (U -x Symbol) → -α.x)
 ;; Look up environment for address at given variable
 (define (ρ@ ρ x)
-  (define s (if (-x? x) (-x-name x) x))
+  (define s (match x [(-x s) s] [(? symbol? s) s]))
   (hash-ref ρ s))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)

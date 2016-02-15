@@ -8,43 +8,42 @@
  "../ast/definition.rkt" "path-inv.rkt")
 
 ;; Just to make it easy to catch mis-allocation
-(-α . ::= .
-  ;; for top-level definition and contract
-  (struct -α.def [id : -id])
-  (struct -α.ctc [id : -id])
+(-α . ::= . ;; for top-level definition and contract
+            (-α.def -id)
+            (-α.ctc -id)
 
-  ;; for lexical binding
-  (struct -α.x [ctx : (U Integer (Pairof Symbol -Γ))])
-  ;Symbol
+            ;; for lexical binding
+            (-α.x (U Integer (Pairof Symbol -Γ)))
+            ;Symbol
 
-  ;; for mutable or opaque field
-  (struct -α.fld [ctx : (U Integer -e (List -id Integer Integer))])
-  ; for Cons/varargs
-  (struct -α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list 
-  (struct -α.var-cdr [pos : Integer] [idx : Natural])
+            ;; for mutable or opaque field
+            (-α.fld (U Integer -e (List -id Integer Integer)))
+            ; for Cons/varargs
+            (-α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list 
+            (-α.var-cdr [pos : Integer] [idx : Natural])
 
-  ;; for wrapped mutable struct
-  (struct -α.st* [id : -id] [pos : Integer])
+            ;; for wrapped mutable struct
+            (-α.st* [id : -id] [pos : Integer])
 
-  ;; for vector indices
-  (struct -α.idx [pos : Integer] [idx : Integer])
+            ;; for vector indices
+            (-α.idx [pos : Integer] [idx : Integer])
 
-  ;; for inner vector
-  (struct -α.vct [pos : Integer])
+            ;; for inner vector
+            (-α.vct [pos : Integer])
 
-  ;; for contract components
-  (struct -α.and/c-l [ctx : (U Integer -e)])
-  (struct -α.and/c-r [ctx : (U Integer -e)])
-  (struct -α.or/c-l [ctx : (U Integer -e)])
-  (struct -α.or/c-r [ctx : (U Integer -e)])
-  (struct -α.not/c [ctx : (U Integer -e)])
-  (struct -α.vector/c [ctx : (U Integer (Pairof Integer Integer) -e)])
-  (struct -α.vectorof [ctx : (U Integer -e)])
-  (struct -α.struct/c [ctx : (U Integer (List -id Integer Integer) -e)])
-  (struct -α.x/c [pos : Integer])
-  (struct -α.dom [ctx : (U Integer (Pairof Integer Integer) -e)])
-  (struct -α.rst [ctx : (U Integer -e)])
-  )
+            ;; for contract components
+            (-α.and/c-l (U Integer -e))
+            (-α.and/c-r (U Integer -e))
+            (-α.or/c-l (U Integer -e))
+            (-α.or/c-r (U Integer -e))
+            (-α.not/c (U Integer -e))
+            (-α.vector/c (U Integer (Pairof Integer Integer) -e))
+            (-α.vectorof (U Integer -e))
+            (-α.struct/c (U Integer (List -id Integer Integer) -e))
+            (-α.x/c [pos : Integer])
+            (-α.dom (U Integer (Pairof Integer Integer) -e))
+            (-α.rst (U Integer -e))
+            )
 
 (: alloc-fields : -struct-info (Listof -?e) Integer → (Listof -α.fld))
 (define (alloc-fields s args pos)

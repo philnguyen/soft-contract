@@ -20,19 +20,14 @@
 (struct exn:fail:contract:counterexample exn:fail:contract () #:transparent)
 (struct exn:fail:contract:maybe exn:fail:contract () #:transparent)
 (struct exn:fail:timeout exn:fail () #:transparent)
-(define-type exn:scv (U exn:fail:contract:maybe exn:fail:contract:counterexample))
-(define-predicate exn:scv? exn:scv)
+(exn:scv . ::= . exn:fail:contract:maybe exn:fail:contract:counterexample)
 
-(Result . ::= .
-  'timeout
-  (Ce-Result . ::=* .
-    'safe
-    (struct Without-Ce [l+ : Mon-Party] [lo : Mon-Party] [val : Any] [ctc : Any])
-    (struct With-Ce [blm : Without-Ce] [ce : Any])
-    exn)
-  (Ve-Result . ::=* .
-    (Listof Without-Ce) ; empty list indicate safety
-    exn))
+(Ce-Result . ::= . 'safe
+                   (-Without-Ce [l+ : Mon-Party] [lo : Mon-Party] [val : Any] [ctc : Any])
+                   (-With-Ce [blm : -Without-Ce] [ce : Any])
+                   exn)
+(Ve-Result . ::= . (Listof -Without-Ce) exn) ; empty list indicate safety
+(Result . ::= . 'timeout Ve-Result Ce-Result)
 
 (: analyze ([Path-String] [#:timeout Integer #:timeout-ok? Boolean] . ->* . Void))
 ;; Analyze program at given path
@@ -43,11 +38,11 @@
      (cond [timeout-ok? (printf msg)]
            [else (raise (exn:fail:timeout msg (current-continuation-marks)))])]
     [(or 'safe (list)) (printf "Program is safe~n")]
-    [(Without-Ce l+ lo v c)
+    [(-Without-Ce l+ lo v c)
      (raise-scv-contract-error l+ lo v c)]
-    [(With-Ce (Without-Ce l+ lo v c) ce)
+    [(-With-Ce (-Without-Ce l+ lo v c) ce)
      (raise-scv-contract-error l+ lo v c ce)]
-    [(cons (Without-Ce l+ lo v c) _) ; Raise first error
+    [(cons (-Without-Ce l+ lo v c) _) ; Raise first error
      (raise-scv-contract-error l+ lo v c)]
     [(? exn? e)
      (error (exn-message e))]))
@@ -75,9 +70,9 @@
   (with-handlers ([exn:fail? (λ ([e : exn]) e)])
     (define-values (_t Cfgs _σ _Ξ _M) (ve:verify-files path))
     (remove-duplicates
-     (for/list : (Listof Without-Ce) ([Cfg Cfgs] #:when (match? Cfg (ve:-Cfg (? -blm?) _ _)))
+     (for/list : (Listof -Without-Ce) ([Cfg Cfgs] #:when (match? Cfg (ve:-Cfg (? -blm?) _ _)))
        (match-define (ve:-Cfg (-blm l+ lo C Vs) _ _) Cfg)
-       (Without-Ce l+ lo (show-V C) (map show-V Vs))))))
+       (-Without-Ce l+ lo (show-V C) (map show-V Vs))))))
 
 (: try-refute : Path-String → Ce-Result)
 ;; Attempt to search for erroneous inputs, or prove absence of one in rare cases
@@ -87,8 +82,8 @@
       [(ce:refute-files path) =>
        (match-lambda
          [(cons (-blm l+ lo C Vs) e†)
-          (define wo-ce (Without-Ce l+ lo (show-V C) (map show-V Vs)))
-          (if e† (With-Ce wo-ce e†) wo-ce)])]
+          (define wo-ce (-Without-Ce l+ lo (show-V C) (map show-V Vs)))
+          (if e† (-With-Ce wo-ce e†) wo-ce)])]
       [else 'safe])))
 
 (: raise-scv-contract-error ([Any Any Any Any] [Any] . ->* . Nothing))

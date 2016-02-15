@@ -9,43 +9,41 @@
  "env.rkt" "path-inv.rkt" "addr.rkt")
 
 ;; blessed arrow, struct, and closed lambda, etc.
-(-V . ::= .
-  'undefined
-  -prim
-  (struct -●)
-  ;; Structs
-  (struct -St [info : -struct-info] [fields : (Listof (U -α.fld -α.var-car -α.var-cdr))])
-  (struct -St/checked
-    [info : -struct-info] [contracts : (Listof (Option -α.struct/c))] [mon : Mon-Info]
-    [unchecked : -α.st*])
-  ;; Vectors
-  (struct -Vector [fields : (Listof -α.idx)])
-  (struct -Vector/checked [contracts : (Listof -α.vector/c)] [mon : Mon-Info] [unchecked : -α.vct])
-  (struct -Vector/same [contract : -α.vectorof] [mon : Mon-Info] [unchecked : -α.vct])
-  ;; Functions
-  (struct -Clo* [xs : -formals] [e : -e] [ρ : -ρ]) ; unescaped closure
-  (struct -Clo [xs : -formals] [e : -e] [ρ : -ρ] [Γ : -Γ])
-  (struct -Ar [#|ok, no recursion|# guard : -=>i] [v : (Pairof -α -?e)] [l³ : Mon-Info])
-  ;; Contracts
-  ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
-  ; But these give rise to more special cases of stack frames
-  (struct -And/C [flat? : Boolean] [l : -α.and/c-l] [r : -α.and/c-r])
-  (struct -Or/C [flat? : Boolean] [l : -α.or/c-l] [r : -α.or/c-r])
-  (struct -Not/C [γ : -α.not/c])
-  (struct -Vectorof [γ : -α.vectorof])
-  (struct -Vector/C [γs : (Listof -α.vector/c)])
-  (struct -St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
-  (struct -=>i
-    [doms : (Listof (Pairof Symbol -α.dom))]
-    [rst : (Option (Pairof Symbol -α.rst))]
-    [rng : -e] [env : -ρ] [Γ : -Γ])
-  (struct -x/C [c : -α.x/c])
-  )
+(-V . ::= . 'undefined
+            -prim
+            (-●)
+            ;; Structs
+            (-St -struct-info (Listof (U -α.fld -α.var-car -α.var-cdr)))
+            (-St/checked
+              [info : -struct-info] [contracts : (Listof (Option -α.struct/c))] [mon : Mon-Info]
+              [unchecked : -α.st*])
+            ;; Vectors
+            (-Vector (Listof -α.idx))
+            (-Vector/checked [contracts : (Listof -α.vector/c)] [mon : Mon-Info] [unchecked : -α.vct])
+            (-Vector/same [contract : -α.vectorof] [mon : Mon-Info] [unchecked : -α.vct])
+            ;; Functions
+            (-Clo* -formals -e -ρ) ; unescaped closure
+            (-Clo -formals -e -ρ -Γ)
+            (-Ar [#|ok, no recursion|# guard : -=>i] [v : (Pairof -α -?e)] [l³ : Mon-Info])
+            ;; Contracts
+            ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
+            ; But these give rise to more special cases of stack frames
+            (-And/C [flat? : Boolean] [l : -α.and/c-l] [r : -α.and/c-r])
+            (-Or/C [flat? : Boolean] [l : -α.or/c-l] [r : -α.or/c-r])
+            (-Not/C [γ : -α.not/c])
+            (-Vectorof [γ : -α.vectorof])
+            (-Vector/C [γs : (Listof -α.vector/c)])
+            (-St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
+            (-=>i
+              [doms : (Listof (Pairof Symbol -α.dom))]
+              [rst : (Option (Pairof Symbol -α.rst))]
+              [rng : -e] [env : -ρ] [Γ : -Γ])
+            (-x/C -α.x/c)
+            )
 (define-type -Vs (Listof -V))
 
-(-A . ::= .
-  -Vs
-  (struct -blm [violator : Mon-Party] [origin : Mon-Party] [v : -V] [c : -Vs]))
+(-A . ::= . -Vs
+            (-blm [violator : Mon-Party] [origin : Mon-Party] [v : -V] [c : -Vs]))
 
 ;; Use this adhoc type instead of `cons` to avoid using `inst`
 (struct -AΓ ([A : -A] [Γ : -Γ]) #:transparent)

@@ -14,14 +14,14 @@
 ;;;;; Closure forms
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-E . ::= .
-  (struct -↓ [e : -e] [ρ : -ρ])
-  ; `V` and `e` don't have any reference back to `E`, so it's not recursive
-  (struct -Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : Integer])
-  (struct -App [f : -WV] [xs : (Listof -WV)] [ctx : -src-loc])
-  -define-values
-  -provide
-  (-Ans . ::=* . -blm -WVs))
+(-E . ::= . (-↓ -e -ρ)
+            ; `V` and `e` don't have any reference back to `E`, so it's not recursive
+            (-Mon [c : -WV] [v : -WV] [info : Mon-Info] [pos : Integer])
+            (-App -WV (Listof -WV) -src-loc)
+            -define-values
+            -provide
+            -Ans)
+(-Ans . ::= . -blm -WVs)
 
 (: -⇓ : -e -ρ → -E)
 ;; Close expression with restricted environment
@@ -51,89 +51,87 @@
 ;;;;; Continuation frames
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-φ . ::= .
+(-φ . ::= . ;; Standard stuff
+            (-φ.if -E -E)
+            (-φ.let-values
+             [pending : (Listof Symbol)]
+             [bnds : (Listof (Pairof (Listof Symbol) -e))]
+             [bnds↓ : (Map Symbol -WV)]
+             [env : -ρ]
+             [body : -e]
+             [ctx : Mon-Party])
+            (-φ.letrec-values
+              [pending : (Listof Symbol)]
+              [bnds : (Listof (Pairof (Listof Symbol) -e))]
+              [env : -ρ]
+              [body : -e]
+              [ctx : Mon-Party])
+            (-φ.set! Symbol -α) ; need both variable and address
+            (-φ.@ (Listof -E) (Listof -WV) -src-loc)
+            (-φ.begin (Listof -e) -ρ)
+            (-φ.begin0v (Listof -e) -ρ)
+            (-φ.begin0e -WVs (Listof -e) -ρ)
 
-  ;; Standard stuff
-  (struct -φ.if [t : -E] [e : -E])
-  (struct -φ.let-values
-    [pending : (Listof Symbol)]
-    [bnds : (Listof (Pairof (Listof Symbol) -e))]
-    [bnds↓ : (Map Symbol -WV)]
-    [env : -ρ]
-    [body : -e]
-    [ctx : Mon-Party])
-  (struct -φ.letrec-values
-    [pending : (Listof Symbol)]
-    [bnds : (Listof (Pairof (Listof Symbol) -e))]
-    [env : -ρ]
-    [body : -e]
-    [ctx : Mon-Party])
-  (struct -φ.set! [x : Symbol] [α : -α]) ; need both variable and address
-  (struct -φ.@ [es : (Listof -E)] [vs : (Listof -WV)] [ctx : -src-loc])
-  (struct -φ.begin [es : (Listof -e)] [env : -ρ])
-  (struct -φ.begin0v [es : (Listof -e)] [env : -ρ])
-  (struct -φ.begin0e [V : -WVs] [es : (Listof -e)] [env : -ρ])
+            ;; Top-level stuff
+            (-φ.top [items : (Listof (U -define-values -provide))] [e : -e])
+            (-φ.def [path : Adhoc-Module-Path] [xs : (Listof Symbol)])
+            (-φ.ctc [path : Adhoc-Module-Path] [items : (Listof -p/c-item)] [current : Symbol])
 
-  ;; Top-level stuff
-  (struct -φ.top [items : (Listof (U -define-values -provide))] [e : -e])
-  (struct -φ.def [path : Adhoc-Module-Path] [xs : (Listof Symbol)])
-  (struct -φ.ctc [path : Adhoc-Module-Path] [items : (Listof -p/c-item)] [current : Symbol])
+            ;; Represent next steps for contract checking
+            (-φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
+            (-φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
+            (-φ.indy.dom
+              [pending : Symbol] ; variable for next current expression under evaluation
+              [args : (Listof (List Symbol -WV -WV))] ; remaining contracts and arguments to monitor
+              [args↓ : (Listof (Pairof Symbol -WV))] ; evaluated arguments, reversed
+              [Rst : (Option (List Symbol -WV (Listof -WV)))] ; rest of varargs
+              [fun : -WV] ; inner function
+              [rng : -e] ; range
+              [env : -ρ] ; range's context
+              [mon-info : Mon-Info]
+              [pos : Integer])
+            (-φ.indy.rst
+              [pending : Symbol] ; variable for varargs
+              [args : (Listof (Pairof Symbol -WV))] ; init, monitored arguments, in right order
+              [fun : -WV] ; inner function
+              [rng : -e] ; range
+              [env : -ρ] ; range's context
+              [mon-info : Mon-Info]
+              [pos : Integer])
+            (-φ.indy.rng
+              [fun : -WV] [args : (Listof -WV)] [rst : (Option -WV)] [mon-info : Mon-Info] [pos : Integer])
+            (-φ.mon.struct
+              [info : -struct-info] [ctcs : (Listof -α.struct/c)] [cs : (Listof -?e)] [idx : Integer]
+              [vals↓ : (Listof -V)] [unchecked : -WV] [mon-info : Mon-Info] [pos : Integer])
+            (-φ.mon.vector/c ; no need to accumulated checked fields. Vector always wraps.
+              [ctcs : (Listof -α.vector/c)] [cs : (Listof -?e)] [idx : Integer]
+              [target : -WV] [mon-info : Mon-Info] [pos : Integer])
+            (-φ.mon.vectorof
+              [ctc : (Pairof -α.vectorof -WV)] [len : Integer] [idx : Integer]
+              [target : -WV] [mon-info : Mon-Info] [pos : Integer])
 
-  ;; Represent next steps for contract checking
-  (struct -φ.mon.v [ctc : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
-  (struct -φ.mon.c [val : (U -E -WV)] [mon-info : Mon-Info] [pos : Integer])
-  (struct -φ.indy.dom
-    [pending : Symbol] ; variable for next current expression under evaluation
-    [args : (Listof (List Symbol -WV -WV))] ; remaining contracts and arguments to monitor
-    [args↓ : (Listof (Pairof Symbol -WV))] ; evaluated arguments, reversed
-    [Rst : (Option (List Symbol -WV (Listof -WV)))] ; rest of varargs
-    [fun : -WV] ; inner function
-    [rng : -e] ; range
-    [env : -ρ] ; range's context
-    [mon-info : Mon-Info]
-    [pos : Integer])
-  (struct -φ.indy.rst
-    [pending : Symbol] ; variable for varargs
-    [args : (Listof (Pairof Symbol -WV))] ; init, monitored arguments, in right order
-    [fun : -WV] ; inner function
-    [rng : -e] ; range
-    [env : -ρ] ; range's context
-    [mon-info : Mon-Info]
-    [pos : Integer])
-  (struct -φ.indy.rng
-    [fun : -WV] [args : (Listof -WV)] [rst : (Option -WV)] [mon-info : Mon-Info] [pos : Integer])
-  (struct -φ.mon.struct
-    [info : -struct-info] [ctcs : (Listof -α.struct/c)] [cs : (Listof -?e)] [idx : Integer]
-    [vals↓ : (Listof -V)] [unchecked : -WV] [mon-info : Mon-Info] [pos : Integer])
-  (struct -φ.mon.vector/c ; no need to accumulated checked fields. Vector always wraps.
-    [ctcs : (Listof -α.vector/c)] [cs : (Listof -?e)] [idx : Integer]
-    [target : -WV] [mon-info : Mon-Info] [pos : Integer])
-  (struct -φ.mon.vectorof
-    [ctc : (Pairof -α.vectorof -WV)] [len : Integer] [idx : Integer]
-    [target : -WV] [mon-info : Mon-Info] [pos : Integer])
-
-  ;; Accumulate higher-order contracts with passing first-order checks
-  (struct -φ.filter-fo
-    [queue : (Listof -WV)] [passed : (Listof -WV)] [current : -WV] [value : -WV]
-    [mon-info : Mon-Info] [pos : Integer])
-  
-  ;; Represent next step for escaping from a block
-  (struct -φ.rt.@ [Γ : -Γ] [xs : -formals] [f : -?e] [args : (Listof -?e)])
-  (struct -φ.rt.let [old-dom : (Setof Symbol)])
-  
-  ;; contract stuff
-  (struct -φ.μ/c [pos : Integer])
-  (struct -φ.struct/c
-    [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
-    [pos : Integer])
-  (struct -φ.=>i
-    [dom : (Listof -e)]
-    [dom↓ : (Listof -WV)]
-    [xs : (Listof Symbol)]
-    [rst : (U #f #|no rest|#
-              (Pairof Symbol -e) #|unevaluated|#
-              Symbol #|pending|#)]
-    [rng : -e] [env : -ρ] [pos : Integer])
+            ;; Accumulate higher-order contracts with passing first-order checks
+            (-φ.filter-fo
+              [queue : (Listof -WV)] [passed : (Listof -WV)] [current : -WV] [value : -WV]
+              [mon-info : Mon-Info] [pos : Integer])
+            
+            ;; Represent next step for escaping from a block
+            (-φ.rt.@ [Γ : -Γ] [xs : -formals] [f : -?e] [args : (Listof -?e)])
+            (-φ.rt.let [old-dom : (Setof Symbol)])
+            
+            ;; contract stuff
+            (-φ.μ/c [pos : Integer])
+            (-φ.struct/c
+              [info : -struct-info] [fields : (Listof -e)] [env : -ρ] [fields↓ : (Listof -WV)]
+              [pos : Integer])
+            (-φ.=>i
+              [dom : (Listof -e)]
+              [dom↓ : (Listof -WV)]
+              [xs : (Listof Symbol)]
+              [rst : (U #f #|no rest|#
+                        (Pairof Symbol -e) #|unevaluated|#
+                        Symbol #|pending|#)]
+              [rng : -e] [env : -ρ] [pos : Integer])
   )
 
 
@@ -142,9 +140,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack
-(-κ . ::= .
-  (struct -τ [e : -e] [ρ : -ρ] [Γ : -Γ])
-  (struct -kont [frm : -φ] [nxt : -κ]))
+(-κ . ::= . (-τ -e -ρ -Γ) (-kont -φ -κ))
 
 ;; Push frames on top of existing stack
 ;; TODO: Make it a function. How do they type `list*`??
