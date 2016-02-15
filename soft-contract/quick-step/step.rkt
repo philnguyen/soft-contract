@@ -7,14 +7,24 @@
  "runtime.rkt" "continuation.rkt")
 
 (: ev : -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
+;; Execute function body `ℬ`
 (define (ev M Ξ σ ℬ)
-  (match-define (-ℬ ⟦e⟧ _) ℬ)
-  (apply/values (collect M Ξ ℬ) (⟦e⟧ M σ ℬ)))
+  (match-define (-ℬ ⟦e⟧ ρ) ℬ)
+  ;; start of function body, so trivial path condition `⊤Γ` and aliasing `⊤𝒳`
+  (apply/values (collect M Ξ ℬ) (⟦e⟧ M σ ρ ⊤Γ ⊤𝒳)))
 
 (: co : -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
+;; Resume computation `Co`
 (define (co M Ξ σ Co)
   (match-define (-Co (-ℛ ℬ ℋ) As) Co)
-  (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℋ As) M σ ℬ)))
+  (match-define (-ℬ _ ρ) ℬ)
+  (match-define (-ℋ Γ 𝒳 f 𝒳* ℰ) ℋ)
+
+  (define As* : (Setof -A)
+    ;; TODO: use `Γ`, `f`, and `𝒳*` to filter out spurious returns from `As`
+    (error "TODO"))
+  
+  (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) M σ ρ Γ 𝒳)))
 
 (: ⟦_⟧ : -e → -⟦e⟧)
 ;; Compile expresion to mapping from store to (potentially suspended) results
@@ -22,62 +32,54 @@
   (match e
     [(-λ xs e*)
      (define ⟦e*⟧ (⟦_⟧ e*))
-     (λ (_M _σ ℬ)
-       (match-define (-ℬ _ ρ) ℬ)
+     (λ (M σ ρ Γ 𝒳)
        (values ⊥σ {set (-A ⊤Γ (-W (list (-Clo xs ⟦e*⟧ ρ)) e))} ∅))]
     [(-case-λ body) (error '⟦_⟧ "TODO: case-λ")]
     [(? -prim? p)
      (λ _
        (values ⊥σ {set (-A ⊤Γ (-W (list p) p))} ∅))]
     [(-x x)
-     (λ (M σ ℬ)
-       (match-define (-ℬ _ ρ) ℬ)
-       (define e-x (canonicalize ρ x))
+     (λ (M σ ρ Γ 𝒳)
+       (define s (canonicalize 𝒳 x))
        (define As
-         (for/set: : (℘ -A) ([V (hash-ref σ (ρ@ ρ x))])
+         (for/set: : (℘ -A) ([V (σ@ σ (ρ@ ρ x))])
            ;; TODO: remove spurious values
            (define A
              (case V
                [(undefined) ; FIXME hack
                 (-blm 'TODO 'Λ (-st-p (-struct-info (-id 'defined 'Λ) 1 ∅)) (list 'undefined))]
-               [else (-W (list V) e-x)]))
+               [else (-W (list V) s)]))
            (-A ⊤Γ A)))
        (values ⊥σ As ∅))]
     [(and ref (-ref (and id (-id name l-from)) l-ctx pos))
-     (λ (M σ ℬ)
+     (λ (M σ ρ Γ 𝒳)
        (cond
          [(equal? l-from l-ctx)
           (define As
-            (for/set: : (℘ -A) ([V (hash-ref σ (-α.def id))])
+            (for/set: : (℘ -A) ([V (σ@ σ (-α.def id))])
               (define s (if (-o? V) V ref))
               (-A ⊤Γ (-W (list V) s))))
           (values ⊥σ As ∅)]
          [else
-          (define Vs (hash-ref σ (-α.def id)))
-          (define Cs (hash-ref σ (-α.ctc id)))
+          (define Vs (σ@ σ (-α.def id)))
+          (define Cs (σ@ σ (-α.ctc id)))
           (error '⟦_⟧ "TODO: mon")]))]
     [(-@ f xs l)
      ((⟦-ℰ.@⟧ '() (map ⟦_⟧ xs) l) (⟦_⟧ f))]
     [(-if e₀ e₁ e₂)
      ((⟦-ℰ.if⟧ (⟦_⟧ e₁) (⟦_⟧ e₂)) (⟦_⟧ e₀))]))
 
-(: ℰ⟦_⟧ : -ℋ (℘ -A) → -⟦e⟧)
+(: ℰ⟦_⟧ : -ℰ (℘ -A) → -⟦e⟧)
 ;; Plug results `As` into hole `ℰ` and resume computation
 ;; Stacks `ℰ` are also finite, but I can't compile them away ahead of time because they depend on `V`
 ;; computed at "runtime". Using functions instead of flat values to represent `ℰ` may genereate
 ;; infinitely many equivalent but distinct (Racket-level) functions.
 ;; Memoization might help, but I doubt it speeds up anything.
 ;; So I'll keep things simple for now.
-(define (ℰ⟦_⟧ ℋ As)
-  (match-define (-ℋ Γ f param->arg ℰ) ℋ)
-  ;; TODO: use `Γ`, `f`, and `param->arg` to filter out spurious returns from `As`
-  (: propagate-returns : (℘ -A) → (℘ -A))
-  (define (propagate-returns As) (error "TODO"))
-  (define As* (propagate-returns As))
-
+(define (ℰ⟦_⟧ ℰ As)
   (let go ([ℰ : -ℰ ℰ])
     (match ℰ
-      ['□ (λ _ (values ⊥σ As* ∅))]
+      ['□ (λ _ (values ⊥σ As ∅))]
       [(-ℰ.if ℰ* ⟦e₁⟧ ⟦e₂⟧)
        ((⟦-ℰ.if⟧ ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
       [(-ℰ.@ WVs ℰ* ⟦e⟧s loc)
