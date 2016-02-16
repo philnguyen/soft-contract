@@ -13,6 +13,7 @@
 
 (define-type -ρ (HashTable Symbol -α))
 (define ρ@ : (-ρ Symbol → -α) hash-ref)
+(define ρ+ : (-ρ Symbol -α → -ρ) hash-set)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -24,6 +25,9 @@
 (define ⊤Γ : -Γ ∅) ; the more it grows, the more precise
 (define-type -𝒳 (HashTable Symbol -e))
 (define ⊤𝒳 : -𝒳 (hash)) ; the more it grows, the more precise
+
+(: Γ+ : -Γ -s → -Γ)
+(define (Γ+ Γ s) (if s (set-add Γ s) Γ))
 
 (: canonicalize : -𝒳 Symbol → -e)
 ;; Canonicalize a variable
@@ -93,7 +97,7 @@
 (struct -blm ([violator : Mon-Party] [origin : Mon-Party] [c : -V] [v : (Listof -V)]) #:transparent)
 
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
-(struct -W¹ ([V : (Listof -V)] [s : -s]) #:transparent)
+(struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (-Res . ::= . -W -blm)
 (struct -A ([cnd : -Γ] [res : -Res]) #:transparent)
 
@@ -138,6 +142,7 @@
 ;; path condition and information for converting answer's symbols
 (struct -ℋ ([pc : -Γ] [aliases : -𝒳] [f : -s] [param->arg : -𝒳] [ℰ : -ℰ]) #:transparent)
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Address
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -146,7 +151,7 @@
             (-α.def -id)
             (-α.ctc -id)
             ; for binding
-            (-α.x Symbol -⟦e⟧ -Γ)
+            (-α.x Symbol -Γ) ; 1-CFA ish, TODO: fix
             ; for mutable or opaque field
             (-α.fld (U Integer -e (List -id Integer Integer)))
             ; for Cons/varargs
@@ -187,7 +192,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-syntax-rule (for*/ans (clause ...) e ...)
-  (for*/fold ([δσ : -Δσ ⊥σ] [As : (℘ -A) ∅] [ℋs : (℘ -ℐ) ∅])
+  (for*/fold ([δσ : -Δσ ⊥σ] [As : (℘ -A) ∅] [ℐs : (℘ -ℐ) ∅])
              (clause ...)
-    (define-values (δσ* As* ℐs*) (begin e ...))
+    (define-values (δσ* As* ℐs*) (let () e ...))
     (values (⊔/m δσ δσ*) (∪ As As*) (∪ ℐs ℐs*))))
+
+(define-syntax ⊔/ans
+  (syntax-rules ()
+    [(_) (⊥ans)]
+    [(_ ans) ans]
+    [(_ ans₁ ans ...)
+     (let-values ([(δσ₁ As₁ ℐs₁) ans₁]
+                  [(δσ₂ As₂ ℐs₂) (⊔/ans ans ...)])
+       (values (⊔/m δσ₁ δσ₂) (∪ As₁ As₂) (∪ ℐs₁ ℐs₂)))]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Shorhands
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax-rule (⊥ans) (values ⊥σ ∅ ∅))
+(define-syntax-rule (with-Γ Γ e) (if Γ e (⊥ans)))

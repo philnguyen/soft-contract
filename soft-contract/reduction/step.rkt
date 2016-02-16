@@ -21,8 +21,9 @@
   (match-define (-ℋ Γ 𝒳 f 𝒳* ℰ) ℋ)
 
   (define As* : (Setof -A)
-    ;; TODO: use `Γ`, `f`, and `𝒳*` to filter out spurious returns from `As`
-    (error "TODO"))
+    (begin
+      (printf "TODO: use `Γ`, `f`, and `𝒳*` to filter out spurious returns~n")
+      As))
   
   (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) M σ ρ Γ 𝒳)))
 
@@ -33,23 +34,23 @@
     [(-λ xs e*)
      (define ⟦e*⟧ (⟦_⟧ e*))
      (λ (M σ ρ Γ 𝒳)
-       (values ⊥σ {set (-A ⊤Γ (-W (list (-Clo xs ⟦e*⟧ ρ)) e))} ∅))]
+       (values ⊥σ {set (-A Γ (-W (list (-Clo xs ⟦e*⟧ ρ)) e))} ∅))]
     [(-case-λ body) (error '⟦_⟧ "TODO: case-λ")]
     [(? -prim? p)
-     (λ _
-       (values ⊥σ {set (-A ⊤Γ (-W (list p) p))} ∅))]
+     (λ (M σ ρ Γ 𝒳)
+       (values ⊥σ {set (-A Γ (-W (list p) p))} ∅))]
     [(-x x)
      (λ (M σ ρ Γ 𝒳)
        (define s (canonicalize 𝒳 x))
        (define As
          (for/set: : (℘ -A) ([V (σ@ σ (ρ@ ρ x))])
-           ;; TODO: remove spurious values
+           (printf "TODO: use path condition to remove spurious lookup~n")
            (define A
              (case V
                [(undefined) ; FIXME hack
                 (-blm 'TODO 'Λ (-st-p (-struct-info (-id 'defined 'Λ) 1 ∅)) (list 'undefined))]
                [else (-W (list V) s)]))
-           (-A ⊤Γ A)))
+           (-A Γ A)))
        (values ⊥σ As ∅))]
     [(and ref (-ref (and id (-id name l-from)) l-ctx pos))
      (λ (M σ ρ Γ 𝒳)
@@ -71,8 +72,8 @@
 
 (: ℰ⟦_⟧ : -ℰ (℘ -A) → -⟦e⟧)
 ;; Plug results `As` into hole `ℰ` and resume computation
-;; Stacks `ℰ` are also finite, but I can't compile them away ahead of time because they depend on `V`
-;; computed at "runtime". Using functions instead of flat values to represent `ℰ` may genereate
+;; Stacks `ℰ` are also finite, but I can't compile them ahead of time because they depend on
+;; "run-time" `V`. Using functions instead of flat values to represent `ℰ` may genereate
 ;; infinitely many equivalent but distinct (Racket-level) functions.
 ;; Memoization might help, but I doubt it speeds up anything.
 ;; So I'll keep things simple for now.
@@ -84,6 +85,7 @@
        ((⟦-ℰ.if⟧ ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
       [(-ℰ.@ WVs ℰ* ⟦e⟧s loc)
        ((⟦-ℰ.@⟧ WVs ⟦e⟧s loc) (go ℰ*))])))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
