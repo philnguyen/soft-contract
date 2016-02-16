@@ -1,44 +1,12 @@
 #lang typed/racket/base
 
+(provide (all-defined-out)
+         (all-from-out "path-condition.rkt" "addr.rkt" "env.rkt"))
+
 (require
  racket/match racket/set
- "../utils/def.rkt" "../utils/set.rkt" "../utils/map.rkt"
- "../ast/definition.rkt" "../ast/meta-functions.rkt")
-
-(provide (all-defined-out))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Environment
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-type -ρ (HashTable Symbol -α))
-(define ρ@ : (-ρ Symbol → -α) hash-ref)
-(define ρ+ : (-ρ Symbol -α → -ρ) hash-set)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Path condition
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(-s . ::= . -e #f)
-(-Γ . ::= . (℘ -e))
-(define ⊤Γ : -Γ ∅) ; the more it grows, the more precise
-(define-type -𝒳 (HashTable Symbol -e))
-(define ⊤𝒳 : -𝒳 (hash)) ; the more it grows, the more precise
-
-(: Γ+ : -Γ -s → -Γ)
-(define (Γ+ Γ s) (if s (set-add Γ s) Γ))
-
-(: canonicalize : -𝒳 Symbol → -e)
-;; Canonicalize a variable
-(define (canonicalize 𝒳 x) (hash-ref 𝒳 x (λ () (-x x))))
-
-(: canonicalize-e : -𝒳 -e → -e)
-;; Canonicalize an expression
-(define (canonicalize-e 𝒳 e)
-  ((e/map (for/hash : (HashTable -e -e) ([(x e-x) 𝒳])
-            (values (-x x) e-x)))
-   e))
+ "../utils/main.rkt" "../ast/main.rkt"
+ "path-condition.rkt" "addr.rkt" "env.rkt")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -94,37 +62,11 @@
               [rng : -ℬ])
             (-x/C [c : -α.x/c]))
 
-(struct -blm ([violator : Mon-Party] [origin : Mon-Party] [c : -V] [v : (Listof -V)]) #:transparent)
+(-Res . ::= . (-W [Vs : (Listof -V)] [s : -s])
+              (-blm [violator : Mon-Party] [origin : Mon-Party] [c : -V] [v : (Listof -V)]))
 
-(struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
-(-Res . ::= . -W -blm)
 (struct -A ([cnd : -Γ] [res : -Res]) #:transparent)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Blocks
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Compiled expression
-(define-type -⟦e⟧ (-M -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
-(define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
-
-;; Evaluation "unit" / "stack address"
-(struct -ℬ ([exp : -⟦e⟧] [env : -ρ]) #:transparent)
-
-;; Continued evaluation
-(struct -Co ([cont : -ℛ] [ans : (℘ -A)]) #:transparent)
-
-;; Suspended, "intermediate" expression ℐ ≡ ℋ[ℬ]
-(struct -ℐ ([hole : -ℋ] ; caller's hole
-            [target : -ℬ] ; callee's context/address
-            ) #:transparent)
-
-;; Return point / continuation (deliberately distinct from `-ℋ`)
-(struct -ℛ ([ctx : -ℬ] ; caller's context/address
-            [hole : -ℋ] ; caller's continuation and path condition
-            ) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,47 +86,33 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Address
+;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-α . ::= . ; For top-level definition and contract
-            (-α.def -id)
-            (-α.ctc -id)
-            ; for binding
-            (-α.x Symbol -Γ) ; 1-CFA ish, TODO: fix
-            ; for mutable or opaque field
-            (-α.fld (U Integer -e (List -id Integer Integer)))
-            ; for Cons/varargs
-            (-α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list 
-            (-α.var-cdr [pos : Integer] [idx : Natural])
+(define-type -⟦e⟧ (-M -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
+(define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
 
-            ;; for wrapped mutable struct
-            (-α.st* [id : -id] [pos : Integer])
 
-            ;; for vector indices
-            (-α.idx [pos : Integer] [idx : Integer])
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Blocks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-            ;; for inner vector
-            (-α.vct [pos : Integer])
 
-            ;; for contract components
-            (-α.and/c-l (U Integer -e))
-            (-α.and/c-r (U Integer -e))
-            (-α.or/c-l (U Integer -e))
-            (-α.or/c-r (U Integer -e))
-            (-α.not/c (U Integer -e))
-            (-α.vector/c (U Integer (Pairof Integer Integer) -e))
-            (-α.vectorof (U Integer -e))
-            (-α.struct/c (U Integer (List -id Integer Integer) -e))
-            (-α.x/c [pos : Integer])
-            (-α.dom (U Integer (Pairof Integer Integer) -e))
-            (-α.rst (U Integer -e)))
+;; Evaluation "unit" / "stack address"
+(struct -ℬ ([exp : -⟦e⟧] [env : -ρ]) #:transparent)
 
-(: alloc-fields : -struct-info (Listof -s) Integer → (Listof -α.fld))
-(define (alloc-fields s args pos)
-  (match-define (-struct-info id n _) s)
-  (for/list ([i n] [?e args])
-    (-α.fld (or ?e (list id pos i)))))
+;; Continued evaluation
+(struct -Co ([cont : -ℛ] [ans : (℘ -A)]) #:transparent)
+
+;; Suspended, "intermediate" expression ℐ ≡ ℋ[ℬ]
+(struct -ℐ ([hole : -ℋ] ; caller's hole
+            [target : -ℬ] ; callee's context/address
+            ) #:transparent)
+
+;; Return point / continuation (deliberately distinct from `-ℋ`)
+(struct -ℛ ([ctx : -ℬ] ; caller's context/address
+            [hole : -ℋ] ; caller's continuation and path condition
+            ) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
