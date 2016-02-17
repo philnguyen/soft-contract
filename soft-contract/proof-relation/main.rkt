@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-e Γ+/-)
+(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-s Γ+/-)
 
 (require
  racket/match racket/set racket/bool (except-in racket/function arity-includes?)
@@ -20,7 +20,7 @@
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W V e_v) W_v)
   (match-define (-W C e_c) W_c)
-  (MσΓ⊢e M σ Γ (-?@ e_c e_v)))
+  (MσΓ⊢s M σ Γ (-?@ e_c e_v)))
 
 (: MσΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`
@@ -29,11 +29,11 @@
     (for/lists ([Vs : (Listof -V)] [s : (Listof -s)]) ([W Ws])
       (values (-W¹-V W) (-W¹-s W))))
   (first-R (apply p∋Vs p Vs)
-           (MσΓ⊢e M σ Γ (apply -?@ p ss))))
+           (MσΓ⊢s M σ Γ (apply -?@ p ss))))
 
-(: MσΓ⊢e : -M -σ -Γ -s → -R)
+(: MσΓ⊢s : -M -σ -Γ -s → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
-(define (MσΓ⊢e M σ Γ s)
+(define (MσΓ⊢s M σ Γ s)
   ;; TODO make sure `s` has been canonicalized
   (if s (first-R (MσΓ⊢₁e M σ Γ s) ((Γ⊢ₑₓₜ) M σ Γ s)) '?))
 
@@ -98,16 +98,16 @@
   ;(first-R (go 2 Γ) (go-rec 2 Γ e))
   (Γ⊢e Γ e))
 
-(: MσΓ⊓e : -M -σ -Γ -s → (Option -Γ))
+(: MσΓ⊓s : -M -σ -Γ -s → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
-(define (MσΓ⊓e M σ Γ e)
-  (if (equal? 'X (MσΓ⊢e M σ Γ e)) #f (Γ+ Γ e)))
+(define (MσΓ⊓s M σ Γ e)
+  (if (equal? 'X (MσΓ⊢s M σ Γ e)) #f (Γ+ Γ e)))
 
 (: MσΓ⊓ : -M -σ -Γ -es → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
 (define (MσΓ⊓ M σ Γ es)
   (for/fold ([Γ : (Option -Γ) Γ]) ([e es])
-    (and Γ (MσΓ⊓e M σ Γ e))))
+    (and Γ (MσΓ⊓s M σ Γ e))))
 
 (: spurious? : -M -σ -Γ -W → Boolean)
 ;; Check if `e` cannot evaluate to `V` given `Γ` is true
@@ -122,20 +122,20 @@
         [e
          (match V
            [(or (-St s _) (-St/checked s _ _ _))
-            (equal? 'X (MσΓ⊢e M σ Γ (-?@ (-st-p (assert s)) e)))]
+            (equal? 'X (MσΓ⊢s M σ Γ (-?@ (-st-p (assert s)) e)))]
            [(or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))
-            (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'vector? e)))]
+            (equal? 'X (MσΓ⊢s M σ Γ (-?@ 'vector? e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
-            (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'procedure? e)))]
+            (equal? 'X (MσΓ⊢s M σ Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
-            (equal? 'X (MσΓ⊢e M σ Γ (-?@ 'p? e)))] ...
+            (equal? 'X (MσΓ⊢s M σ Γ (-?@ 'p? e)))] ...
            [(or (? -=>i?) (? -St/C?) (? -x/C?))
             (for/or : Boolean ([p : -o '(procedure? p? ...)])
-              (equal? '✓ (MσΓ⊢e M σ Γ (-?@ p e))))]
+              (equal? '✓ (MσΓ⊢s M σ Γ (-?@ p e))))]
            ['undefined (equal? '✓ (Γ⊢e Γ (-?@ 'defined? e)))]
            [(-●)
             (match e
-              [(-not e*) (equal? '✓ (MσΓ⊢e M σ Γ e*))]
+              [(-not e*) (equal? '✓ (MσΓ⊢s M σ Γ e*))]
               [_ #f])]
            [_ #f])]
         [else #f]))
@@ -157,7 +157,7 @@
 ;; Like `(Γ ⊓ W)` and `(Γ ⊓ ¬W)`, probably faster
 (define (Γ+/-W M σ Γ W)
   (match-define (-W V e) W)
-  (define proved (first-R (⊢V V) (MσΓ⊢e M σ Γ e)))
+  (define proved (first-R (⊢V V) (MσΓ⊢s M σ Γ e)))
   ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-W¹ W) proved)
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
@@ -171,15 +171,17 @@
                ([W W-Vs])
       (values (-W¹-V W) (-W¹-s W))))
   (define ψ (apply -?@ s-p s-vs))
-  (define proved (MσΓ⊢e M σ Γ ψ))
-  (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
-          (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
+  (case (MσΓ⊢s M σ Γ ψ)
+    [(✓)  (values (Γ+ Γ ψ) #f)]
+    [(✗)  (values #f       (Γ+ Γ (-not ψ)))]
+    [else (values (Γ+ Γ ψ) (Γ+ Γ (-not ψ)))]))
 
-(: Γ+/-e : -M -σ -Γ -s → (Values (Option -Γ) (Option -Γ)))
-(define (Γ+/-e M σ Γ e)
-  (define proved (MσΓ⊢e M σ Γ e))
-  (values (if (equal? 'X proved) #f (Γ+ Γ e))
-          (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
+(: Γ+/-s : -M -σ -Γ -s → (Values (Option -Γ) (Option -Γ)))
+(define (Γ+/-s M σ Γ s)
+  (case (MσΓ⊢s M σ Γ s)
+    [(✓)  (values (Γ+ Γ s) #f)]
+    [(✗)  (values #f       (Γ+ Γ (-not s)))]
+    [else (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
            (U (List -W¹ (Listof -W¹) (-Γ → Y))
@@ -273,6 +275,6 @@
      (-Res (-?@ -cons (-?@ -f (-?@ -car -xs)) (-?@ -map -f (-?@ -cdr -xs)))
            {set (assert (-?@ -cons? -xs))})))
 
-  (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-app) '✓)
-  (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-map) '✓))
+  (check-equal? (MσΓ⊢s Mdb σdb -Γ⊤ e-len-app) '✓)
+  (check-equal? (MσΓ⊢s Mdb σdb -Γ⊤ e-len-map) '✓))
 |#
