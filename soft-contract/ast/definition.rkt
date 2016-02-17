@@ -298,12 +298,12 @@
   (match-lambda
    [(? symbol? s) s]
    [(-st-mk s) (show-struct-info s)]
-   [(-st-ac (≡ -s-cons) 0) 'car]
-   [(-st-ac (≡ -s-cons) 1) 'cdr]
-   [(-st-ac (≡ -s-box) 0) 'unbox]
+   [(-st-ac (== -s-cons) 0) 'car]
+   [(-st-ac (== -s-cons) 1) 'cdr]
+   [(-st-ac (== -s-box) 0) 'unbox]
    [(-st-ac s i) (string->symbol (format "~a@~a" (show-struct-info s) i))]
    [(-st-p s) (string->symbol (format "~a?" (show-struct-info s)))]
-   [(-st-mut (≡ -s-box) 0) 'set-box!]
+   [(-st-mut (== -s-box) 0) 'set-box!]
    [(-st-mut s i) (string->symbol (format "set-~a-~a!" (show-struct-info s) i))]))
 
 (define (show-e [e : -e]) : Sexp
@@ -332,8 +332,7 @@
        [(l r) `(and ,l ,r)])]
     [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
 
-    [(-λ (list xs ...) e) `(λ ,xs ,(show-e e))]
-    [(-λ (-varargs xs rest) e) `(λ ,(cons xs rest) ,(show-e e))]
+    [(-λ xs e) `(λ ,(show-formals xs) ,(show-e e))]
     [(-• ℓ)
      (cond
        [(integer? ℓ) (string->symbol (format "•~a" (n-sub ℓ)))]
@@ -401,3 +400,8 @@
 
 (define show-require-spec : (-require-spec → Sexp)
   values)
+
+(define show-formals : (-formals → Sexp)
+  (match-lambda
+    [(-varargs xs rst) (cons xs rst)]
+    [(? list? l) l]))

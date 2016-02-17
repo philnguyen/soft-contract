@@ -440,7 +440,7 @@
       [(-@ f xs _)
        (go f)
        (for-each go xs)
-       (when (match? f (-ref (≡ f-id) _ _) (≡ f-id))
+       (when (match? f (-ref (== f-id) _ _) (== f-id))
          (calls-add! xs))]
       [_ (void)]))
   calls)
