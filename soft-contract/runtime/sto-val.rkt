@@ -104,9 +104,11 @@
 
 (-Res . ::= . (-W [Vs : (Listof -V)] [s : -s])
               (-blm [violator : Mon-Party] [origin : Mon-Party] [c : -V] [v : (Listof -V)]))
+(-Res/V . ::= . (Listof -V) -blm)
 
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -A ([cnd : -Γ] [res : -Res]) #:transparent)
+(struct -A* ([cnd : -Γ] [res : -Res/V]) #:transparent)
 
 ;; Constants & 'Macros'
 (define -Null -null)
@@ -129,6 +131,19 @@
 ;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) ⊥ρ))
 ;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) -Λ)) -Λ) ⊥ρ))
 
+(: C-flat? : -V → Boolean)
+;; Check whether contract is flat, assuming it's already a contract
+(define (C-flat? V)
+  (match V
+    [(-And/C flat? _ _) flat?]
+    [(-Or/C flat? _ _) flat?]
+    [(? -Not/C?) #t]
+    [(-St/C flat? _ _) flat?]
+    [(or (? -Vectorof?) (? -Vector/C?)) #f]
+    [(? -=>i?) #f]
+    [(or (? -Clo?) (? -Ar?) (? -prim?)) #t]
+    [(? -x/C?) #t]
+    [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
 (define (show-V [V : -V]) : Sexp
   (match V

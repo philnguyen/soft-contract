@@ -1,21 +1,14 @@
 #lang typed/racket
 (require
  racket/flonum racket/extflonum math/base
- "utils/set.rkt" "utils/def.rkt"
- "primitives/utils.rkt"
- "ast/definition.rkt"
- "runtime/val.rkt" "runtime/addr.rkt" "runtime/arity.rkt" "runtime/store.rkt" "runtime/path-inv.rkt"
- "runtime/summ.rkt" "runtime/simp.rkt"
- "proof-relation/main.rkt"
+ "utils/main.rkt" "primitives/utils.rkt" "ast/definition.rkt" "runtime/main.rkt" "proof-relation/main.rkt"
  (for-syntax
   racket/base racket/match racket/syntax syntax/parse racket/contract
   racket/pretty racket/list racket/function racket/contract
-  "utils/sexp-stx.rkt" "utils/pretty.rkt" "utils/set.rkt"
+  "utils/main.rkt"
   (except-in "primitives/declarations.rkt" implications base?) "primitives/utils.rkt")
  )
-(provide δ concrete?)
-
-(define-parameter concrete? : Boolean #f)
+(provide δ)
 
 ;; Different kinds of primitives:
 ;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
@@ -23,107 +16,105 @@
 ;; - Other primitives:
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
-(: concrete-impl : Symbol → (Option (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))))
+(: concrete-impl : Symbol → (Option (-M -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))))
 ;; Table for (semi-)concrete implementations
 (define (concrete-impl s)
   (define (error-arity [o : Symbol] [expect : Integer] [given : Integer])
     (error 'δ "Invalid arity uncaught for `~a`: expect ~a, given ~a" o expect given))
   
   (with-args s (M σ Γ Ws loc)
-    [any/c  (values '() (-AΓ (list -tt) Γ))]
-    [none/c (values '() (-AΓ (list -ff) Γ))]
+    [any/c  (values ⊥σ (-A* Γ (list -tt)))]
+    [none/c (values ⊥σ (-A* Γ (list -ff)))]
     [and/c
      (match Ws
-       [(list (-W V₁ _) (-W V₂ _))
+       [(list (-W¹ V₁ _) (-W¹ V₂ _))
         (define pos (-src-loc-pos loc))
-        (define α₁ ((mk-α.and/c-l) pos))
-        (define α₂ ((mk-α.and/c-r) pos))
-        (values (list (cons α₁ V₁) (cons α₂ V₂))
-                (-AΓ (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)) Γ))]
+        (define α₁ (-α.and/c-l pos))
+        (define α₂ (-α.and/c-r pos))
+        (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
+                (-A* Γ (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂))))]
        [Ws (error-arity 'and/c 2 (length Ws))])]
     [or/c
      (match Ws
-       [(list (-W V₁ _) (-W V₂ _))
+       [(list (-W¹ V₁ _) (-W¹ V₂ _))
         (define pos (-src-loc-pos loc))
-        (define α₁ ((mk-α.or/c-l) pos))
-        (define α₂ ((mk-α.or/c-r) pos))
-        (values (list (cons α₁ V₁) (cons α₂ V₂))
-                (-AΓ (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)) Γ))]
+        (define α₁ (-α.or/c-l pos))
+        (define α₂ (-α.or/c-r pos))
+        (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
+                (-A* Γ (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂))))]
        [Ws (error-arity 'or/c 2 (length Ws))])]
     [not/c
      (match Ws
-       [(list (-W V _))
-        (define α ((mk-α.not/c) (-src-loc-pos loc)))
-        (values (list (cons α V))
-                (-AΓ (list (-Not/C α)) Γ))]
+       [(list (-W¹ V _))
+        (define α (-α.not/c (-src-loc-pos loc)))
+        (values (⊔ ⊥σ α V) (-A* Γ (list (-Not/C α))))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
 
     [vector
      (define pos (-src-loc-pos loc))
      (define αs
        (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
-         ((mk-α.idx) pos i)))
+         (-α.idx pos i)))
      (define δσ
-       (for/list : -Δσ ([α αs] [W Ws])
-         (cons α (close-Γ Γ (-W-x W)))))
-     (values δσ (-AΓ (list (-Vector αs)) Γ))]
+       (for/fold ([δσ : -Δσ ⊥σ]) ([α αs] [W Ws])
+         (⊔ δσ α (-W¹-V W))))
+     (values δσ (-A* Γ (list (-Vector αs))))]
     [vectorof
      (match Ws
-       [(list (-W V _))
-        (define α ((mk-α.vectorof) (-src-loc-pos loc)))
-        (values (list (cons α V))
-                (-AΓ (list (-Vectorof α)) Γ))]
+       [(list (-W¹ V _))
+        (define α (-α.vectorof (-src-loc-pos loc)))
+        (values (⊔ ⊥σ α V) (-A* Γ (list (-Vectorof α))))]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
     [vector/c
      (define pos (-src-loc-pos loc))
-     (define-values (αs δσ)
-       (for/lists ([αs : (Listof -α.vector/c)] [δσ : -Δσ])
-                  ([(W i) (in-indexed Ws)])
-         (match-define (-W V e) W)
-         (define α ((mk-α.vector/c) (if e e (cons pos i))))
-         (values α (cons α V))))
-     (values δσ (-AΓ (list (-Vector/C αs)) Γ))]
+     (define-values (αs-rev δσ)
+       (for/fold ([αs-rev : (Listof -α.vector/c) '()] [δσ : -Δσ ⊥σ])
+                 ([(W i) (in-indexed Ws)])
+         (match-define (-W¹ V s) W)
+         (define α (-α.vector/c (if s s (cons pos i))))
+         (values (cons α αs-rev) (⊔ δσ α V))))
+     (values δσ (-A* Γ (list (-Vector/C (reverse αs-rev)))))]
     
     [values
-     (values '() (-AΓ (map (inst -W-x -V) Ws) Γ))]
+     (values ⊥σ (-A* Γ (map -W¹-V Ws)))]
     
     [void
-     (values '() (-AΓ (list (-b (void))) Γ))]
+     (values ⊥σ (-A* Γ (list (-b (void)))))]
     [arity-includes?
-     (match-define (list (-W V_f _) (-W V_n _)) Ws)
+     (match-define (list (-W¹ V_f _) (-W¹ V_n _)) Ws)
      (cond
-       [(-procedure-arity V_f) =>
+       [(V-arity V_f) =>
         (λ ([a : Arity])
           (match V_n
             [(-b (? simple-arity? n))
              (define ans (if (arity-includes? a n) -tt -ff))
-             (values '() (-AΓ (list ans) Γ))]
-            [else (values '() (-AΓ -●/Vs Γ))]))]
-       [else (values '() (-AΓ -●/Vs Γ))])]
+             (values ⊥σ (-A* Γ (list ans)))]
+            [else (values ⊥σ (-A* Γ -●/Vs))]))]
+       [else (values ⊥σ (-A* Γ -●/Vs))])]
 
     [equal?
      (define Vs
        (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
          [(✓) (list -tt)]
-         [(X) (list -ff)]
+         [(✗) (list -ff)]
          [(?) -●/Vs]))
-     (values '() (-AΓ Vs Γ))]
+     (values ⊥σ (-A* Γ Vs))]
 
     [= ; duplicate of `equal?` (args already guarded by contracts)
      (define Vs
        (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
          [(✓) (list -tt)]
-         [(X) (list -ff)]
+         [(✗) (list -ff)]
          [(?) -●/Vs]))
-     (values '() (-AΓ Vs Γ))]
+     (values ⊥σ (-A* Γ Vs))]
     
     [procedure?
      (define Vs
        (case (apply MσΓ⊢oW M σ Γ 'procedure? Ws)
          [(✓) (list -tt)]
-         [(X) (list -ff)]
+         [(✗) (list -ff)]
          [(?) -●/Vs]))
-     (values '() (-AΓ Vs Γ))]
+     (values ⊥σ (-A* Γ Vs))]
     ))
 
 (define-syntax (with-args stx)
@@ -139,7 +130,7 @@
           t-id)))
      #`(case s
          [(t)
-          (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -WV)] [loc : -src-loc])
+          (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -W¹)] [loc : -src-loc])
             e ...)]
          ...
          [else #f])]))
@@ -196,23 +187,23 @@
               (define Vs
                 (case (apply MσΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,op #,(Ws-id))
                   [(✓) (list -tt)]
-                  [(X) (list -ff)]
+                  [(✗) (list -ff)]
                   [else -●/Vs]))
-              (values '() (-AΓ Vs #,(Γ-id)))])]
+              (values ⊥σ (-A* #,(Γ-id) Vs))])]
          ; Return case clause for straightforward lifting of other 1st order operators
          [(and (andmap base? doms) (base? rng))
           (define/contract b-syms (listof symbol?)
             (build-list (length doms) (λ (i) (string->symbol (format "e~a" (n-sub i))))))
           (define/contract b-ids (listof identifier?) (map (curry datum->syntax (M-id)) b-syms))
-          (define b-pats/abs  (for/list ([b-id b-ids]) #`(-W _ (-b #,b-id))))
-          (define b-pats/conc (for/list ([b-id b-ids]) #`(-W (-b #,b-id) _)))
+          (define b-pats/abs  (for/list ([b-id b-ids]) #`(-W¹ _ (-b #,b-id))))
+          (define b-pats/conc (for/list ([b-id b-ids]) #`(-W¹ (-b #,b-id) _)))
           (define b-conds (datum->syntax (M-id) (sexp-and (map mk-cond b-syms doms))))
 
           (define-values (W-pats W-ids e-ids)
             (for/lists (W-pats W-ids e-ids) ([i (length doms)])
               (define W-id (datum->syntax (M-id) (string->symbol (format "W~a" (n-sub i)))))
               (define e-id (datum->syntax (M-id) (string->symbol (format "e~a" (n-sub i)))))
-              (values #`(and #,W-id (-W _ #,e-id)) W-id e-id)))
+              (values #`(and #,W-id (-W¹ _ #,e-id)) W-id e-id)))
           (define refinement-clauses
             (for/list ([ref refinements])
               (match-define `(,(? symbol? dom-chks) ... . -> . ,(? symbol? rng-chk)) ref)
@@ -224,40 +215,33 @@
                   [(list e) e]
                   [_ #`(and #,@arg-checks)]))
               #`[#,precond
-                 (values '() (-AΓ -●/Vs (Γ+ #,(Γ-id) (-?@ '#,rng-chk (-?@ '#,op #,@e-ids)))))]))
+                 (values ⊥σ (-A* (Γ+ #,(Γ-id) (-?@ '#,rng-chk (-?@ '#,op #,@e-ids))) -●/Vs))]))
 
           (define maybe-refine
             (cond
               [(null? refinement-clauses)
-               #`[_ (values '() (-AΓ -●/Vs #,(Γ-id)))]]
+               #`[_ (values ⊥σ (-A* #,(Γ-id) -●/Vs))]]
               [else
                #`[(list #,@W-pats)
                   (cond
                     #,@refinement-clauses
-                    [else (values '() (-AΓ -●/Vs #,(Γ-id)))])]]))
+                    [else (values ⊥σ (-A* #,(Γ-id) -●/Vs))])]]))
 
           (define case-lift
             #`(cond
                 [#,b-conds
                  (define ans (-b (#,op #,@b-ids)))
-                 (values '() (-AΓ (list ans) #,(Γ-id)))]
+                 (values ⊥σ (-A* #,(Γ-id) (list ans)))]
                 [else ; spurious
                  (printf "Internal: Incorrect use of `~a` flows to `δ`~n" '#,op)
-                 (values '() ∅)]))
+                 (values ⊥σ #|HACK, ignored result|# (-A* #,(Γ-id) (-blm 'havoc 'Λ 'spurious '())))]))
 
           (list
            #`[(#,op)
-              (cond
-                [(concrete?)
-                 (match #,(Ws-id)
-                   ; straightforward lifting for concrete operands
-                   [(list #,@b-pats/conc) #,case-lift]
-                   #,maybe-refine)]
-                [else
-                 (match #,(Ws-id)
-                   ; straightforward lifting for concrete operands
-                   [(list #,@b-pats/abs) #,case-lift]
-                   #,maybe-refine)])])]
+              (match #,(Ws-id)
+                ; straightforward lifting for concrete operands
+                [(list #,@b-pats/abs) #,case-lift]
+                #,maybe-refine)])]
          
          ; Just return operator name for complicated cases
          [else (list op)])]
@@ -289,16 +273,38 @@
        #`(if (∋ prim-names o)
              (cond
                [(concrete-impl o) =>
-                (λ ([f : (-M -σ -Γ (Listof -WV) -src-loc → (Values -Δσ -AΓs))])
+                (λ ([f : (-M -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))])
                   (f M σ Γ Ws l))]
                [else
                 (case o
                   #,@clauses
-                  [else (values '() (-AΓ -●/Vs Γ))])])
+                  [else (values ⊥σ (-A* Γ -●/Vs))])])
              (error 'δ "unhandled: ~a" o)))
      ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ Symbol (Listof -WV) -src-loc → (Values -Δσ -AΓs))
+(: δ : -M -σ -Γ Symbol (Listof -W¹) -src-loc → (Values -Δσ -A*))
 (define (δ M σ Γ o Ws l)
   (gen-δ-body M σ Γ o Ws l))
+
+
+(module+ test
+  (require typed/rackunit)
+  
+  (: check-δ/b : Symbol (Listof Base) Base → Any)
+  ;; Test δ's concrete fragment
+  (define (check-δ/b o bs bₐ)
+    (define Ws (for/list : (Listof -W¹) ([b bs]) (-W¹ (-b b) (-b b))))
+    (define-values (δσ A) (δ ⊥M ⊥σ ⊤Γ o Ws -Λ))
+    (match-define (-A* _ Vs) A)
+    (check-true (list? Vs))
+    (check-true (= 1 (length (assert Vs list?))))
+    (match-define (list V) Vs)
+    (check-true (-b? V))
+    (match-define (-b a) V)
+    (check-equal? a bₐ))
+
+  (check-δ/b '+ '(1 2) 3)
+  (check-δ/b 'string-length '("") 0)
+  (check-δ/b '/ '(4 3) 4/3)
+  (check-δ/b 'integer? '(4.0) #t))

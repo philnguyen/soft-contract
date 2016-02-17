@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide V-arity)
+(provide V-arity simple-arity?)
 
 (require
  racket/match
@@ -60,3 +60,6 @@
       [V
        (printf "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
        #f])))
+
+(define (simple-arity? x)
+  (or (exact-nonnegative-integer? x) (arity-at-least? x)))
