@@ -307,4 +307,5 @@
   (check-δ/b '+ '(1 2) 3)
   (check-δ/b 'string-length '("") 0)
   (check-δ/b '/ '(4 3) 4/3)
-  (check-δ/b 'integer? '(4.0) #t))
+  (check-δ/b 'integer? '(4.0) #t)
+  (check-δ/b 'exact-integer? '(4.0) #f))

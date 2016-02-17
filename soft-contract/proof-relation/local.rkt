@@ -98,7 +98,7 @@
                   [(and (-st-mk? o) (base? p)) '✗]
                   [else '?])])]
             [_ '?]))
-      ;(printf "generated:~n~a~n" (syntax->datum ans))
+      ;(printf "generated:~n~a~n" (pretty (syntax->datum ans)))
       ans)
 
     (match p

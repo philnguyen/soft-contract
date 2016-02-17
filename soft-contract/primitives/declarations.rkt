@@ -235,7 +235,7 @@
       (flonum? flonum? . -> . flonum?)]
      [->fl
       (exact-integer? . -> . flonum?)]
-     [fl->exact-integer?
+     [fl->exact-integer
       (flonum? . -> . exact-integer?)]
      [make-flrectangular ; FIXME precision
       (flonum? flonum? . -> . number?)]
@@ -1771,7 +1771,7 @@
     [(? symbol? s)
      (case s
        [(integer? rational? real? number? zero?
-         inexact? inexact-real? exact-nonnegative-integer? flonum? single-flonum?
+         inexact? inexact-real? exact-integer? exact-nonnegative-integer? flonum? single-flonum?
          extflonum?
          boolean? string? symbol? keyword? char? null? void? #|TODO|#)
         #t]
