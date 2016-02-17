@@ -2,14 +2,14 @@
 
 (provide (all-defined-out))
 
-(require racket/match)
+(require racket/match "../utils/def.rkt")
 
-(define-type -R (U '✓ 'X '?))
+(-R . ::= . '✓ '✗ '?)
 
 (: not-R : -R → -R)
 ;; Negate provability result
-(define not-R
-  (match-lambda ['✓ 'X] ['X '✓] [_ '?]))
+(define (not-R R)
+  (case R [(✓) '✗] [(✗) '✓] [else '?]))
 
 ;; Take the first definite result
 (define-syntax first-R
@@ -19,4 +19,4 @@
     [(_ R₁ R ...)
      (match R₁ ['? (first-R R ...)] [ans ans])]))
 
-(define (decide-R [x : Boolean]) : -R (if x '✓ 'X))
+(define (decide-R [x : Boolean]) : -R (if x '✓ '✗))

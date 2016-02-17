@@ -108,13 +108,35 @@
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -A ([cnd : -Γ] [res : -Res]) #:transparent)
 
+;; Constants & 'Macros'
+(define -Null -null)
+(define -True/Vs  (list -tt))
+(define -False/Vs (list -ff))
+(define -●/V (-●))
+(define -●/Vs : (List -V) (list -●/V))
+(define -Void/Vs (list (-b (void))))
+(define -Void/W (-W -Void/Vs (-b (void))))
+(define -integer?/W (-W¹ 'integer? 'integer?))
+(define -number?/W (-W¹ 'number? 'number?))
+(define -vector?/W (-W¹ 'vector? 'vector?))
+(define -procedure?/W (-W¹ 'procedure? 'procedure?))
+(define -vector-ref/W (-W¹ 'vector-ref 'vector-ref))
+(define -vector-set/W (-W¹ 'vector-set! 'vector-set!))
+(define -arity-includes?/W (-W¹ 'arity-includes? 'arity-includes?))
+(define -=/W (-W¹ '= '=))
+(define -contract-first-order-passes?/W (-W¹ 'contract-first-order-passes? 'contract-first-order-passes?))
+(define -Vector₀ (-Vector '()))
+;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) ⊥ρ))
+;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) -Λ)) -Λ) ⊥ρ))
+
+
 (define (show-V [V : -V]) : Sexp
   (match V
     ['undefined 'undefined]
     [(-b b) (show-b b)]
     [(-●) '●]
     [(? -o? o) (show-o o)]
-    [(-Clo xs ⟦e⟧ ρ) `(λ ,(show-formals xs) …)]
+    [(-Clo xs _ _) `(λ ,(show-formals xs) …)]
     [(-Ar guard (cons α s) l³) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St/checked s γs _ α)

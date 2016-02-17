@@ -1,13 +1,13 @@
 #lang typed/racket/base
 
-(provide Γ⊢e ⊢V V∋Vs p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred)
+(provide Γ⊢e ⊢V p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred)
 
 (require
  racket/match racket/set
- "../utils/set.rkt" "../utils/debug.rkt" "../utils/untyped-macros.rkt"
+ "../utils/main.rkt"
  "../primitives/utils.rkt"
  "../ast/definition.rkt"
- "../runtime/path-inv.rkt" "../runtime/simp.rkt" "../runtime/val.rkt" "../runtime/arity.rkt"
+ "../runtime/main.rkt"
  "result.rkt"
  (for-syntax
   racket/base racket/contract
@@ -63,7 +63,7 @@
 (define boolean-excludes? : (Symbol → Boolean)
     (set->predicate (hash-ref exclusions 'boolean?)))
 
-(: Γ⊢e : -Γ -?e → -R)
+(: Γ⊢e : -Γ -s → -R)
 ;; Check if `e` evals to truth given `M`
 (define (Γ⊢e Γ e)
 
@@ -71,10 +71,10 @@
   ;; Check if expression returns truth
   (define (⊢e e)
     (match e
-      [(-b b) (if b '✓ 'X)]
+      [(-b b) (if b '✓ '✗)]
       [(? -•?) '?]
       [(? -v?) '✓]
-      [x #:when (Γ-has? Γ x) '✓]
+      [x #:when (∋ Γ x) '✓]
       [(-@ f xs _) (⊢@ f xs)]
       [_ '?]))
 
@@ -95,7 +95,7 @@
                #,@(generate-app-clauses #'p #'zs)
                [else
                 (cond
-                  [(and (-st-mk? o) (base? p)) 'X]
+                  [(and (-st-mk? o) (base? p)) '✗]
                   [else '?])])]
             [_ '?]))
       ;(printf "generated:~n~a~n" (syntax->datum ans))
@@ -107,26 +107,26 @@
        (match xs
          [(list (-@ (-st-mk sj) _ _)) ; TODO: No sub-struct for now.
           (decide-R (equal? si sj))]
-         [(list (-b _)) 'X]
+         [(list (-b _)) '✗]
          [(list (-@ (? symbol? f) _ _))
           (cond ;; HACK for now
             [(hash-ref prim-ranges f #f)
              =>
              (λ ([f-rng : Symbol])
                (cond
-                 [(∋ (set 'integer? 'real? 'number? 'vector? 'boolean? 'not 'null?) f-rng) 'X]
+                 [(∋ (set 'integer? 'real? 'number? 'vector? 'boolean? 'not 'null?) f-rng) '✗]
                  [else '?]))]
             [else '?])]
          [_ '?])]
       ['not (not-R (⊢e (car xs)))] ; assume right arity
       ['any/c '✓]
-      ['none/c 'X]
+      ['none/c '✗]
       [(or 'equal? '=)
        (match xs
          [(list e₁ e₂)
           (match* (e₁ e₂)
             [((? -λ? v₁) (? -λ? v₂)) ; can't compare higher-order literals
-             (if (equal? v₁ v₂) '? 'X)]
+             (if (equal? v₁ v₂) '? '✗)]
             [((? -•?) _) '?]
             [(_ (? -•?)) '?]
             [((? -v? v₁) (? -v? v₂)) (decide-R (equal? v₁ v₂))]
@@ -145,7 +145,7 @@
                     (⊢e (-@ 'equal? (list x y) -Λ))))
                 (cond
                   [(or (set-empty? res) (equal? res {set '✓})) '✓]
-                  [(and (-st-mk? f) (∋ res 'X)) 'X]
+                  [(and (-st-mk? f) (∋ res '✗)) '✗]
                   [else '?])]
                [else '?])]
             [(_ _) (if (equal? e₁ e₂) '✓ '?)])]
@@ -166,13 +166,13 @@
   (define (e⊢e e₁ e₂)
     (define ans
       (match* ((⊢e e₁) (⊢e e₂))
-        [('X _) '✓]
+        [('✗ _) '✓]
         [(_ '?)
          (match* (e₁ e₂)
            ; e ⇒ e
            [(e e) '✓]
            ; NOTE: Don't abuse "contrapositive"
-           ; (¬e₁ ⊢ ¬e₂ : X) does not follow from (e₂ ⊢ e₁ : X)
+           ; (¬e₁ ⊢ ¬e₂ : ✗) does not follow from (e₂ ⊢ e₁ : ✗)
            [((-not e₁*) (-not e₂*))
             (if (equal? '✓ (e⊢e e₂* e₁*)) '✓ '?)]
            [(e₁ (-not e₂*))
@@ -181,7 +181,7 @@
             (p⇒p p q)] ; FIXME
            [((-@ (? -o? p) (list e) _) e)
             (cond
-              [(eq? 'not p) 'X]
+              [(eq? 'not p) '✗]
               [(and (symbol? p) (boolean-excludes? p)) '✓]
               [(-st-p? p) '✓]
               [else '?])]
@@ -199,32 +199,20 @@
       [e
        (first-R (⊢e e)
                 (for*/fold ([R : -R '?])
-                           ([e₀ (-Γ-facts Γ)] #:when (equal? '? R)
+                           ([e₀ Γ] #:when (equal? '? R)
                             [R* (in-value (e⊢e e₀ e))])
                   R*))]
       [else '?]))
-  (dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-?e e) ans)
+  (dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-s e) ans)
   ans)
 
 (: ⊢V : -V → -R)
 ;; Check if value represents truth
 (define ⊢V
   (match-lambda
-    [(-b #f) 'X]
+    [(-b #f) '✗]
     [(-●) '?]
     [_ '✓]))
-
-(: V∋Vs : -V -V * → -R)
-;; Check if value satisfies predicate
-(define (V∋Vs P . Vs)
-  (cond
-    [(-o? P) (apply p∋Vs P Vs)] ; FIXME
-    [else
-     (match P
-       [(-Clo `(,x) (-b #f) _ _) 'X]
-       [(-Clo `(,x) (? -v? v) _ _) (if (-•? v) '? '✓)]
-       [(-Clo `(,x) (-x x) _ _) (⊢V (car Vs))] ; |Vs| = 1 guaranteed
-       [_ '?])]))
 
 (: p∋Vs : -o -V * → -R)
 ;; Check if value satisfies predicate
@@ -232,7 +220,7 @@
   
   (define (check-proc-arity-1 [V : -V]) : -R
     (match (p∋Vs 'procedure? V)
-      ['✓ (decide-R (arity-includes? (assert (-procedure-arity V)) 1))]
+      ['✓ (decide-R (arity-includes? (assert (V-arity V)) 1))]
       [ans ans]))
 
   (match p
@@ -245,21 +233,21 @@
         ;; TODO: no sub-struct for now. May change later.
         (decide-R (equal? si (assert sj)))]
        [(list (-●)) '?]
-       [_ 'X])]
+       [_ '✗])]
     [(? symbol?)
      (case p
        ;; Insert manual rules here
        [(procedure?)
         (match Vs
           [(list (-●)) '?]
-          [(list (or (? -o?) (? -Clo?) (? -Clo*?) (? -Ar?) (? -Not/C?))) '✓]
+          [(list (or (? -o?) (? -Clo?) (? -Ar?) (? -Not/C?))) '✓]
           [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
-          [_ 'X])]
+          [_ '✗])]
        [(vector?)
         (match Vs
           [(list (-●)) '?]
           [(list (or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))) '✓]
-          [_ 'X])]
+          [_ '✗])]
        [(contract?)
         (match Vs
           [(list (or (? -=>i?) (? -And/C?) (? -Or/C?) (? -Not/C?)
@@ -271,7 +259,7 @@
           [(list V) (check-proc-arity-1 V)]
           [_ '?])]
        [(any/c) '✓]
-       [(none/c) 'X]
+       [(none/c) '✗]
        [(arity-includes?)
         (match Vs
           [(list (-b (? Arity? a)) (-b (? Arity? b)))
@@ -290,7 +278,7 @@
                          [(-b b) (decide-R (and b #|force boolean|# #t))]
                          [_ '?])]
                       [(list (? -●?) ...) '?]
-                      [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) 'X]
+                      [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) '✗]
                                [else '?])])]))]
           [else '?])])]))
 
@@ -307,14 +295,14 @@
   (match* (p q)
     [(_ 'any/c) '✓]
     [('none/c _) '✓]
-    [(_ 'none/c) 'X]
+    [(_ 'none/c) '✗]
     [((? symbol? p) (? symbol? q))
      (cond [(∋ (hash-ref implications p →∅) q) '✓]
-           [(∋ (hash-ref exclusions p →∅) q) 'X]
+           [(∋ (hash-ref exclusions p →∅) q) '✗]
            [else '?])]
     [(p 'values)
      (case p
-       [(not) 'X]
+       [(not) '✗]
        [(any/c) '?]
        [else '✓])]
     [((-st-p si) (-st-p sj))
@@ -323,7 +311,7 @@
     [(_ _)
      (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))
                 (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
-            'X]
+            '✗]
            [else '?])]))
 
 (: Γ⊓ : -Γ -es → (Option -Γ))
@@ -332,30 +320,28 @@
   (for/fold ([Γ : (Option -Γ) Γ]) ([e es])
     (and Γ (Γ⊓e Γ e))))
 
-(: Γ⊓e : -Γ -?e → (Option -Γ))
+(: Γ⊓e : -Γ -s → (Option -Γ))
 ;; Refine path invariant with expression.
 ;; Note: `∅` is `⊤` (no assumption), `#f` is `⊥` (spurious, anything is true).
 ;; The operation doesn't guarantee absolute precision.
 ;; In general, it returns an upperbound of the right answer.
 (define (Γ⊓e Γ e)
-  (if (equal? 'X (Γ⊢e Γ e)) #f (Γ+ Γ e)))
+  (if (equal? '✗ (Γ⊢e Γ e)) #f (Γ+ Γ e)))
 
 (: most-specific-pred : -Γ -e → -o)
 ;; Return the most specific predicate in path-invariant describing given expression
 (define (most-specific-pred Γ e)
-  (for/fold ([best : -o 'any/c]) ([φ (-Γ-facts Γ)])
+  (for/fold ([best : -o 'any/c]) ([φ Γ])
     (match φ
-      [(-@ (? -o? o) (list (≡ e)) _) #:when (equal? '✓ (p⇒p o best))
+      [(-@ (? -o? o) (list (== e)) _) #:when (equal? '✓ (p⇒p o best))
        o]
-      [(or (≡ e) (-not (-not (≡ e)))) #:when (and e (equal? '✓ (p⇒p 'values best)))
+      [(or (== e) (-not (-not (== e)))) #:when (and e (equal? '✓ (p⇒p 'values best)))
        'values]
       [_ best])))
 
 
 (module+ test
-  (require "../ast/definition.rkt"
-           "../runtime/env.rkt" "../runtime/path-inv.rkt" "../runtime/addr.rkt"
-           "for-test.rkt")
+  (require "../ast/definition.rkt" "../runtime/main.rkt" "for-test.rkt")
   
   ;; V ∈ p
   (check-✓ (p∋Vs 'not (-b #f)))
@@ -363,30 +349,30 @@
   (check-✓ (p∋Vs 'integer? (-b 1)))
   (check-✓ (p∋Vs 'real? (-b 1)))
   (check-✓ (p∋Vs 'number? (-b 1)))
-  (check-✓ (p∋Vs 'procedure? (-Clo '(x) (-b 1) -ρ⊥ -Γ⊤)))
+  (check-✓ (p∋Vs 'procedure? (-Clo '(x) (λ _ (⊥ans)) ⊥ρ)))
   (check-✓ (p∋Vs 'procedure? 'procedure?))
   (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld -tt) (-α.fld -ff)))))
-  (check-X (p∋Vs 'number? (-St -s-cons (list (-α.fld -ff) (-α.fld -tt)))))
-  (check-X (p∋Vs 'integer? (-b 1.5)))
-  (check-X (p∋Vs 'real? (-b 1+1i)))
+  (check-✗ (p∋Vs 'number? (-St -s-cons (list (-α.fld -ff) (-α.fld -tt)))))
+  (check-✗ (p∋Vs 'integer? (-b 1.5)))
+  (check-✗ (p∋Vs 'real? (-b 1+1i)))
   (check-? (p∋Vs 'integer? -●/V))
 
   ;; ⊢ e
-  (check-✓ (Γ⊢e -Γ⊤ 'not))
-  (check-✓ (Γ⊢e -Γ⊤ (-b 0)))
-  (check-X (Γ⊢e -Γ⊤ (-b #f)))
-  (check-? (Γ⊢e -Γ⊤ (-x 'x)))
-  (check-X (Γ⊢e -Γ⊤ (-?@ 'not (-b 0))))
-  (check-✓ (Γ⊢e -Γ⊤ (-?@ 'equal? (-x 'x) (-x 'x))))
-  (check-✓ (Γ⊢e -Γ⊤ (-?@ '+ (-x 'x) (-x 'y))))
-  (check-X (Γ⊢e -Γ⊤ (-?@ -cons? -null)))
-  (check-X (Γ⊢e -Γ⊤ (-?@ 'null? (-?@ -cons (-b 0) (-b 1)))))
+  (check-✓ (Γ⊢e ⊤Γ 'not))
+  (check-✓ (Γ⊢e ⊤Γ (-b 0)))
+  (check-✗ (Γ⊢e ⊤Γ (-b #f)))
+  (check-? (Γ⊢e ⊤Γ (-x 'x)))
+  (check-✗ (Γ⊢e ⊤Γ (-?@ 'not (-b 0))))
+  (check-✓ (Γ⊢e ⊤Γ (-?@ 'equal? (-x 'x) (-x 'x))))
+  (check-✓ (Γ⊢e ⊤Γ (-?@ '+ (-x 'x) (-x 'y))))
+  (check-✗ (Γ⊢e ⊤Γ (-?@ -cons? -null)))
+  (check-✗ (Γ⊢e ⊤Γ (-?@ 'null? (-?@ -cons (-b 0) (-b 1)))))
   
   ;; Γ ⊢ e
-  (check-✓ (Γ⊢e (Γ+ -Γ⊤ (-?@ -cons? (-x 'x))) (-x 'x)))
-  (check-✓ (Γ⊢e (Γ+ -Γ⊤ (-?@ 'integer? (-x 'x))) (-?@ 'real? (-x 'x))))
-  (check-✓ (Γ⊢e (Γ+ -Γ⊤ (-?@ 'not (-?@ 'number? (-x 'x))))
+  (check-✓ (Γ⊢e (Γ+ ⊤Γ (-?@ -cons? (-x 'x))) (-x 'x)))
+  (check-✓ (Γ⊢e (Γ+ ⊤Γ (-?@ 'integer? (-x 'x))) (-?@ 'real? (-x 'x))))
+  (check-✓ (Γ⊢e (Γ+ ⊤Γ (-?@ 'not (-?@ 'number? (-x 'x))))
                 (-?@ 'not (-?@ 'integer? (-x 'x)))))
-  (check-X (Γ⊢e (Γ+ -Γ⊤ (-?@ 'not (-x 'x))) (-x 'x)))
-  (check-? (Γ⊢e (Γ+ -Γ⊤ (-?@ 'number? (-x 'x)))
+  (check-✗ (Γ⊢e (Γ+ ⊤Γ (-?@ 'not (-x 'x))) (-x 'x)))
+  (check-? (Γ⊢e (Γ+ ⊤Γ (-?@ 'number? (-x 'x)))
                 (-?@ 'integer? (-x 'x)))))

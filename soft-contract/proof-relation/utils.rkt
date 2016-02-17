@@ -4,11 +4,9 @@
 
 (require
  racket/match racket/set
- "../utils/non-det.rkt" "../utils/set.rkt" "../utils/untyped-macros.rkt"
- "../ast/definition.rkt" "../ast/meta-functions.rkt"
- "../runtime/addr.rkt" "../runtime/val.rkt" "../runtime/summ.rkt" "../runtime/store.rkt" "../runtime/simp.rkt" "../runtime/path-inv.rkt"
- "local.rkt")
+ "../utils/main.rkt" "../ast/main.rkt" "../runtime/main.rkt" "local.rkt")
 
+#|
 (: invert-e : -M -σ -id (Listof -e) → (Setof -Res))
 ;; Given proposition `(p? v)`, generate an overapproximation of expressions
 ;; that could have evaluated to it
@@ -20,7 +18,7 @@
     [_
      (define α (-α.def f))
      (match/nd: (-V → -Res) (σ@ σ α)
-       [(or (-Clo (? list? xs) e _ _) (-Clo* (? list? xs) e _))
+       [(-Clo (? list? xs) ⟦e⟧ _)
         ;; Convert invariant about parameters into one about arguments
         (define convert
           (e/map
@@ -35,7 +33,9 @@
        [_ -Res⊤])]))
   ;(printf "insert-e: ~a ~a ↦ ~a~n" f (map show-e args) (map show-Res (set->list ans)))
   ans)
+|#
 
+#|
 (: invert-Γ : -M -σ -Γ → (Setof -Γ))
 ;; Given propositions `Γ`, generate an overapproximation of environments
 ;; that could have derived it
@@ -62,7 +62,9 @@
          (if Γ₂ (set-add acc Γ₂) acc))]))
 
   (go (set (-Γ bnds ψs₀)) (set->list ψs-unrollable)))
+|#
 
+#|
 (: unfold ([-M -σ -e] [(-id (Listof -e) → Boolean)] . ->* . (Option (Setof -Res))))
 ;; Unfold the first appropriate expression according to `unfold-this-one?`.
 ;; Return #f if couldn't find one to unfold.
@@ -119,7 +121,9 @@
     ans)
 
   (go e₀))
+|#
 
+#|
 (: ⇓₁ : -M -σ -Γ -e → (Values -e -Γ))
 ;; Unfold/evaluate expression only if there's only 1 branch 
 (define (⇓₁ M σ Γ e)
@@ -156,3 +160,4 @@
     (values (reverse es↓) Γ*))
   
   (go Γ e))
+|#

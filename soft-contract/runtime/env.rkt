@@ -5,6 +5,7 @@
 (require "addr.rkt")
 
 (define-type -ρ (HashTable Symbol -α))
+(define ⊥ρ : -ρ (hasheq))
 (define ρ@ : (-ρ Symbol → -α) hash-ref)
 (define ρ+ : (-ρ Symbol -α → -ρ) hash-set)
 

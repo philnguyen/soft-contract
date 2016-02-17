@@ -3,10 +3,9 @@
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢e MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-e Γ+/-)
 
 (require
- racket/match racket/set racket/bool racket/function
- "../utils/set.rkt" "../utils/debug.rkt" "../utils/pretty.rkt" "../utils/def.rkt"
- "../ast/definition.rkt" "../ast/meta-functions.rkt"
- "../runtime/val.rkt" "../runtime/simp.rkt" "../runtime/path-inv.rkt" "../runtime/summ.rkt" "../runtime/store.rkt"
+ racket/match racket/set racket/bool (except-in racket/function arity-includes?)
+ "../utils/main.rkt" "../ast/main.rkt"
+ "../runtime/main.rkt"
  "result.rkt" "local.rkt" "utils.rkt")
 
 ;; External solver to be plugged in.
@@ -16,37 +15,33 @@
     (printf "Warning: external solver not set")
     '?))
 
-(: MσΓ⊢V∈C : -M -σ -Γ -WV -WV → -R)
+(: MσΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W V e_v) W_v)
   (match-define (-W C e_c) W_c)
-  (first-R (V∋Vs C V) (MσΓ⊢e M σ Γ (-?@ e_c e_v))))
+  (MσΓ⊢e M σ Γ (-?@ e_c e_v)))
 
-(: MσΓ⊢oW : -M -σ -Γ -o -WV * → -R)
+(: MσΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`
 (define (MσΓ⊢oW M σ Γ p . Ws)
-  (define-values (Vs es)
-    (for/lists ([Vs : (Listof -V)] [e : (Listof -?e)])
-               ([W Ws])
-      (values (-W-x W) (-W-e W))))
+  (define-values (Vs ss)
+    (for/lists ([Vs : (Listof -V)] [s : (Listof -s)]) ([W Ws])
+      (values (-W¹-V W) (-W¹-s W))))
   (first-R (apply p∋Vs p Vs)
-           (MσΓ⊢e M σ Γ (apply -?@ p es))))
+           (MσΓ⊢e M σ Γ (apply -?@ p ss))))
 
-(: MσΓ⊢e : -M -σ -Γ -?e → -R)
+(: MσΓ⊢e : -M -σ -Γ -s → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
-(define (MσΓ⊢e M σ Γ e)
-  (cond
-    [e
-     (define e* (canonicalize Γ e))
-     (first-R (MσΓ⊢₁e M σ Γ e*) ((Γ⊢ₑₓₜ) M σ Γ e*))]
-    [else '?]))
+(define (MσΓ⊢e M σ Γ s)
+  ;; TODO make sure `s` has been canonicalized
+  (if s (first-R (MσΓ⊢₁e M σ Γ s) ((Γ⊢ₑₓₜ) M σ Γ s)) '?))
 
 (: MσΓ⊢₁e : -M -σ -Γ -e → -R)
 ;; Check if `e` evals to truth given `M`, `σ`, `Γ`
 (define (MσΓ⊢₁e M σ Γ e)
-  (define FVe (FV e))
 
+  #|
   (: go : Integer -Γ → -R)
   ;; Try proving goal by probably repeatedly unfolding assumptions
   (define (go d Γ)
@@ -65,7 +60,9 @@
                [(equal? Rs {set 'X }) 'X ]
                [else '?])])])]
       [R R]))
+  |#
 
+  #|
   (: go-rec : Integer -Γ -e → -R)
   ;; Try proving goal probably by rule induction
   (define (go-rec d Γ e)
@@ -96,11 +93,12 @@
         [R R]))
     (dbg '⊢rec "~a ⊢~a ~a : ~a~n" (show-Γ Γ) (n-sub d) (show-e e) ans)
     ans)
+  |#
 
-  (dbg '⊢rec "~n")
-  (first-R (go 2 Γ) (go-rec 2 Γ e)))
+  ;(first-R (go 2 Γ) (go-rec 2 Γ e))
+  (Γ⊢e Γ e))
 
-(: MσΓ⊓e : -M -σ -Γ -?e → (Option -Γ))
+(: MσΓ⊓e : -M -σ -Γ -s → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
 (define (MσΓ⊓e M σ Γ e)
   (if (equal? 'X (MσΓ⊢e M σ Γ e)) #f (Γ+ Γ e)))
@@ -111,13 +109,13 @@
   (for/fold ([Γ : (Option -Γ) Γ]) ([e es])
     (and Γ (MσΓ⊓e M σ Γ e))))
 
-(: spurious? : -M -σ -Γ -WVs → Boolean)
+(: spurious? : -M -σ -Γ -W → Boolean)
 ;; Check if `e` cannot evaluate to `V` given `Γ` is true
 ;;   return #t --> `(e ⇓ V)` is spurious
 ;;   return #f --> don't know (conservative answer)
 (define (spurious? M σ Γ W)
 
-  (: spurious*? : -?e -V → Boolean)
+  (: spurious*? : -s -V → Boolean)
   (define (spurious*? e V)
     (define-syntax-rule (with-prim-checks p? ...)
       (cond
@@ -134,10 +132,7 @@
            [(or (? -=>i?) (? -St/C?) (? -x/C?))
             (for/or : Boolean ([p : -o '(procedure? p? ...)])
               (equal? '✓ (MσΓ⊢e M σ Γ (-?@ p e))))]
-           ['undefined
-            (match e
-              [(-x x) (Γ-binds? Γ x)]
-              [_ #f])]
+           ['undefined (equal? '✓ (Γ⊢e Γ (-?@ 'defined? e)))]
            [(-●)
             (match e
               [(-not e*) (equal? '✓ (MσΓ⊢e M σ Γ e*))]
@@ -158,37 +153,37 @@
        [(list V) (spurious*? e V)]
        [_ #f])]))
 
-(: Γ+/-W : -M -σ -Γ -WV → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-W : -M -σ -Γ -W¹ → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ W)` and `(Γ ⊓ ¬W)`, probably faster
 (define (Γ+/-W M σ Γ W)
   (match-define (-W V e) W)
   (define proved (first-R (⊢V V) (MσΓ⊢e M σ Γ e)))
-  ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-WV W) proved)
+  ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-W¹ W) proved)
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 
-(: Γ+/-W∋Ws : -M -σ -Γ -WV -WV * → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-W∋Ws : -M -σ -Γ -W¹ -W¹ * → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `P(V…)` and `¬P(V…)`
-(define (Γ+/-W∋Ws M σ Γ W_P . W_Vs)
-  (match-define (-W P e_p) W_P)
-  (define-values (Vs e_vs)
-    (for/lists ([Vs : (Listof -V)] [e_vs : (Listof -?e)])
-               ([W W_Vs])
-      (values (-W-x W) (-W-e W))))
-  (define ψ (apply -?@ e_p e_vs))
-  (define proved (first-R (apply V∋Vs P Vs) (MσΓ⊢e M σ Γ ψ)))
+(define (Γ+/-W∋Ws M σ Γ W-P . W-Vs)
+  (match-define (-W¹ P s-p) W-P)
+  (define-values (Vs s-vs)
+    (for/lists ([Vs : (Listof -V)] [s-vs : (Listof -s)])
+               ([W W-Vs])
+      (values (-W¹-V W) (-W¹-s W))))
+  (define ψ (apply -?@ s-p s-vs))
+  (define proved (MσΓ⊢e M σ Γ ψ))
   (values (if (equal? 'X proved) #f (Γ+ Γ ψ))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not ψ)))))
 
-(: Γ+/-e : -M -σ -Γ -?e → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-e : -M -σ -Γ -s → (Values (Option -Γ) (Option -Γ)))
 (define (Γ+/-e M σ Γ e)
   (define proved (MσΓ⊢e M σ Γ e))
   (values (if (equal? 'X proved) #f (Γ+ Γ e))
           (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
-           (U (List -WV (Listof -WV) (-Γ → Y))
-              (List 'not -WV (Listof -WV) (-Γ → Y))) *
+           (U (List -W¹ (Listof -W¹) (-Γ → Y))
+              (List 'not -W¹ (Listof -W¹) (-Γ → Y))) *
            → (Values (Option X) (Setof Y))))
 ;; Refine the environment with sequence of propositions
 ;; and return (maybe) final sucessful environment
@@ -217,15 +212,16 @@
         [else (values #f ans-bads)])))
   (values (and Γ-ok (mk-ok Γ-ok)) ans-bads))
 
-(: Γ+/-AΓ : -M -σ -Γ (-Γ → -AΓ)
-            (U (List -WV (Listof -WV) (-Γ → -AΓ))
-            (List 'not -WV (Listof -WV) (-Γ → -AΓ))) * → -AΓs)
+(: Γ+/-AΓ : -M -σ -Γ (-Γ → -A)
+            (U (List -W¹ (Listof -W¹) (-Γ → -A))
+            (List 'not -W¹ (Listof -W¹) (-Γ → -A))) * → (U -A (℘ -A)))
 (define (Γ+/-AΓ M σ Γ mk-ok . filters)
   (define-values (ans-ok ans-bads) (apply Γ+/- M σ Γ mk-ok filters))
   (cond [ans-ok (cond [(set-empty? ans-bads) ans-ok]
                       [else (set-add ans-bads ans-ok)])]
         [else ans-bads]))
 
+#|
 (module+ test
   (require typed/rackunit "../utils/map.rkt" "../runtime/addr.rkt" "../runtime/env.rkt" "for-test.rkt")
 
@@ -252,7 +248,7 @@
   (define σdb
     (⊔
      (⊔
-      (⊔ -σ⊥ (-α.def (-id 'app '†)) (-Clo '(l₁ l₂) -app-body -ρ⊥ -Γ⊤))
+      (⊔ ⊥σ (-α.def (-id 'app '†)) (-Clo '(l₁ l₂) -app-body -ρ⊥))
       (-α.def (-id 'len '†)) (-Clo '(l) -len-body -ρ⊥ -Γ⊤))
      (-α.def (-id 'map '†)) (-Clo '(f xs) -map-body -ρ⊥ -Γ⊤)))
   (define Mdb
@@ -279,3 +275,4 @@
 
   (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-app) '✓)
   (check-equal? (MσΓ⊢e Mdb σdb -Γ⊤ e-len-map) '✓))
+|#

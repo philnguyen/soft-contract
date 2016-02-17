@@ -1,5 +1,7 @@
 #lang typed/racket/base
 
+(provide V-arity)
+
 (require
  racket/match
  "../ast/definition.rkt" "sto-val.rkt")
