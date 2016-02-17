@@ -32,6 +32,16 @@
    e))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Pretty printing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (show-s [s : -s]) (if s (show-e s) '∅))
+(define (show-Γ [Γ : -Γ]) (set-map Γ show-e))
+(define (show-𝒳 [𝒳 : -𝒳]) : (Listof Sexp)
+  (for/list ([(x e) 𝒳]) `(,x ↦ ,(show-e e))))
+
+
 (module+ test
   (require typed/rackunit)
 
