@@ -109,6 +109,7 @@
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -A ([cnd : -Γ] [res : -Res]) #:transparent)
 (struct -A* ([cnd : -Γ] [res : -Res/V]) #:transparent)
+(define -A/V? (match-λ? (-A _ (? -W?))))
 
 ;; Constants & 'Macros'
 (define -Null -null)
@@ -211,25 +212,45 @@
 ;;;;; Evaluation context
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-ℰ . ::= . '□
+(-ℰ . ::= . ;; Different type of context. Hack for now. I may de-hack some day but not a big problem. 
+            (-ℰₚ.modules [cur-mod : -ℰ] [mods : (Listof -⟦e⟧)] [top : -⟦e⟧])
+            ;; Different type of context. Hack for now. I may de-hack some day but not a big problem.
+            (-ℰ.def [mod-name : Adhoc-Module-Path] [lhs : (Listof Symbol)] [rhs : -ℰ])
+            (-ℰ.dec [name : -id] [ctc : -ℰ])
+            
+            ;; Regular context
+            '□
             (-ℰ.if -ℰ -⟦e⟧ -⟦e⟧)
             (-ℰ.@ (Listof -W¹) -ℰ (Listof -⟦e⟧) -src-loc)
-            #;(-ℰ.begin -ℰ (Listof -⟦e⟧))
+            (-ℰ.begin -ℰ (Listof -⟦e⟧))
             #;(-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
             #;(-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧)))
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; path condition and information for converting answer's symbols
-(struct -ℋ ([pc : -Γ] [aliases : -𝒳] [f : -s] [param->arg : -𝒳] [ℰ : -ℰ]) #:transparent)
+(struct -ℋ ([pc : -Γ] [aliases : -𝒳] [f : -s] [param->arg : -𝒳] [ctx : -ℰ]) #:transparent)
 
-
-(: show-ℰ ([-ℰ] [Symbol] . ->* . Sexp))
+(: show-ℰ ([-ℰ] [Sexp] . ->* . Sexp))
 (define (show-ℰ ℰ [in-hole '□])
   (let loop ([ℰ : -ℰ ℰ])
     (match ℰ
+      [(-ℰₚ.modules ℰ* ⟦m⟧s ⟦e⟧)
+       `(,(loop ℰ*)
+         ,(format "…~a modules…" (length ⟦m⟧s))
+         ,"…top-level…")]
+      [(-ℰ.def _ xs ℰ*)
+       (define rhs (loop ℰ*))
+       (match xs
+         [(list x) `(define        ,x  ,rhs)]
+         [_        `(define-values ,xs ,rhs)])]
+      [(-ℰ.dec id ℰ*)
+       `(provide/contract [,(-id-name id) ,(loop ℰ*)])]
+      
       ['□ in-hole]
       [(-ℰ.if ℰ* _ _) `(if ,(loop ℰ*) … …)]
-      [(-ℰ.@ Ws ℰ* ⟦e⟧s _) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))])))
+      [(-ℰ.@ Ws ℰ* ⟦e⟧s _) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
+      [(-ℰ.begin ℰ* ⟦e⟧s)
+       `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))])))
 
 (define (show-ℋ [ℋ : -ℋ])
   (match-define (-ℋ Γ 𝒳 f 𝒳* ℰ) ℋ)
@@ -241,7 +262,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type -⟦e⟧ (-M -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
-(define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

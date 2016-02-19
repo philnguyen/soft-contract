@@ -2,9 +2,8 @@
 
 (require
  racket/match racket/set
- "../utils/set.rkt" "../utils/function.rkt" "../utils/map.rkt"
- "../ast/definition.rkt"
- "runtime.rkt" "continuation.rkt")
+ "../utils/main.rkt" "../ast/definition.rkt" "../runtime/main.rkt" "continuation.rkt")
+
 
 (: ev : -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
 ;; Execute function body `ℬ`
@@ -27,15 +26,41 @@
   
   (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) M σ ρ Γ 𝒳)))
 
-(: ⟦_⟧ : -e → -⟦e⟧)
+(: ⇓ₚ : (Listof -module) -e → -⟦e⟧)
+;; Compile list of modules
+(define (⇓ₚ ms e)
+  (match ms
+    [(cons m ms*) ((↝.modules (map ⇓ₘ ms*) (⇓ e)) (⇓ₘ m))]
+    [_ (⇓ e)]))
+
+(: ⇓ₘ : -module → -⟦e⟧)
+;; Compile module
+(define (⇓ₘ m)
+  (match-define (-module p (-plain-module-begin ds)) m)
+  
+  (: ⇓pc : -provide-spec → -⟦e⟧)
+  (define (⇓pc spec)
+    (match-define (-p/c-item x c) spec)
+    ((↝.dec (-id x p)) (⇓ c)))
+
+  (: ⇓d : -module-level-form → -⟦e⟧)
+  (define (⇓d d)
+    (match d
+      [(-define-values _ xs e) ((↝.def p xs) (⇓ e))]
+      [(-provide _ specs) ((↝.begin (map ⇓pc specs)) ⟦void⟧)]
+      [(? -e? e) (⇓ e)]))
+
+  ((↝.begin (map ⇓d ds)) ⟦void⟧))
+
+(: ⇓ : -e → -⟦e⟧)
 ;; Compile expresion to mapping from store to (potentially suspended) results
-(define (⟦_⟧ e)
+(define (⇓ e)
   (match e
     [(-λ xs e*)
-     (define ⟦e*⟧ (⟦_⟧ e*))
+     (define ⟦e*⟧ (⇓ e*))
      (λ (M σ ρ Γ 𝒳)
        (values ⊥σ {set (-A Γ (-W (list (-Clo xs ⟦e*⟧ ρ)) e))} ∅))]
-    [(-case-λ body) (error '⟦_⟧ "TODO: case-λ")]
+    [(-case-λ body) (error '⇓ "TODO: case-λ")]
     [(? -prim? p)
      (λ (M σ ρ Γ 𝒳)
        (values ⊥σ {set (-A Γ (-W (list p) p))} ∅))]
@@ -64,27 +89,34 @@
          [else
           (define Vs (σ@ σ (-α.def id)))
           (define Cs (σ@ σ (-α.ctc id)))
-          (error '⟦_⟧ "TODO: mon")]))]
+          (error '⇓ "TODO: mon")]))]
     [(-@ f xs l)
-     ((⟦-ℰ.@⟧ '() (map ⟦_⟧ xs) l) (⟦_⟧ f))]
+     ((↝.@ '() (map ⇓ xs) l) (⇓ f))]
     [(-if e₀ e₁ e₂)
-     ((⟦-ℰ.if⟧ (⟦_⟧ e₁) (⟦_⟧ e₂)) (⟦_⟧ e₀))]))
+     ((↝.if (⇓ e₁) (⇓ e₂)) (⇓ e₀))]
+    [(-begin es)
+     (match es
+       [(cons e* es*) ((↝.begin (map ⇓ es*)) (⇓ e*))]
+       [_ ⟦void⟧])]))
 
 (: ℰ⟦_⟧ : -ℰ (℘ -A) → -⟦e⟧)
 ;; Plug results `As` into hole `ℰ` and resume computation
-;; Stacks `ℰ` are also finite, but I can't compile them ahead of time because they depend on
-;; "run-time" `V`. Using functions instead of flat values to represent `ℰ` may genereate
+;; Stacks `ℰ` are also finite, but I can't "compile" them ahead of time because they depend on
+;; "run-time" `V`. Using functions instead of flat values to represent `ℰ` may generate
 ;; infinitely many equivalent but distinct (Racket-level) functions.
 ;; Memoization might help, but I doubt it speeds up anything.
 ;; So I'll keep things simple for now.
 (define (ℰ⟦_⟧ ℰ As)
   (let go ([ℰ : -ℰ ℰ])
     (match ℰ
+      ;; Hacky forms
+      [(-ℰₚ.modules ℰ* ⟦m⟧s ⟦e⟧) ((↝.modules ⟦m⟧s ⟦e⟧) (go ℰ*))]
+      [(-ℰ.def m xs ℰ*) ((↝.def m xs) (go ℰ*))]
+      [(-ℰ.dec id ℰ*) ((↝.dec id) (go ℰ*))]
+      ;; Regular forms
       ['□ (λ _ (values ⊥σ As ∅))]
-      [(-ℰ.if ℰ* ⟦e₁⟧ ⟦e₂⟧)
-       ((⟦-ℰ.if⟧ ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
-      [(-ℰ.@ WVs ℰ* ⟦e⟧s loc)
-       ((⟦-ℰ.@⟧ WVs ⟦e⟧s loc) (go ℰ*))])))
+      [(-ℰ.if ℰ* ⟦e₁⟧ ⟦e₂⟧) ((↝.if ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
+      [(-ℰ.@ WVs ℰ* ⟦e⟧s loc) ((↝.@ WVs ⟦e⟧s loc) (go ℰ*))])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,7 +128,7 @@
 (define ((collect M Ξ ℬ) δσ As ℐs)
   
   (define δM : -ΔM
-    (let ([ΔAs (set-subtract (m@ M ℬ) As)])
+    (let ([ΔAs (set-subtract As (m@ M ℬ))])
       (if (set-empty? ΔAs) ⊥M (hash ℬ ΔAs))))
   
   (define δΞ
@@ -109,3 +141,20 @@
       (⊔ δΞ ℬ* ℛ)))
   
   (values δM δΞ δσ))
+
+(: ⇓const : Base → -⟦e⟧)
+(define (⇓const b)
+  (define W (let ([B (-b b)]) (-W (list B) B)))
+  (λ (M σ ρ Γ 𝒳)
+    (values ⊥σ {set (-A Γ W)} ∅)))
+
+(define ⟦void⟧ (⇓const (void)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Testing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (ev₁ [e : -e])
+  (define-values (δM δΞ δσ) (ev ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ e) ⊥ρ)))
+  (values (show-M δM) (show-Ξ δΞ) (show-σ δσ)))
