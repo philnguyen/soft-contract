@@ -377,6 +377,13 @@
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
 
+(define (show-module [m : -module]) : Sexp
+  (match-define (-module path (-plain-module-begin forms)) m)
+  `(module ,path
+    ,@(map show-module-level-form forms)))
+
+
+
 (define (show/c [s : Symbol]) : Symbol
   (string->symbol (format "~a/c" s)))
 
