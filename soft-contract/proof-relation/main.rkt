@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ spurious? Γ+/-W Γ+/-W∋Ws Γ+/-s Γ+/-)
+(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ spurious? Γ+/-V Γ+/-W∋Ws Γ+/-s Γ+/-)
 
 (require
  racket/match racket/set racket/bool (except-in racket/function arity-includes?)
@@ -153,14 +153,10 @@
        [(list V) (spurious*? e V)]
        [_ #f])]))
 
-(: Γ+/-W : -M -σ -Γ -W¹ → (Values (Option -Γ) (Option -Γ)))
-;; Like `(Γ ⊓ W)` and `(Γ ⊓ ¬W)`, probably faster
-(define (Γ+/-W M σ Γ W)
-  (match-define (-W V e) W)
-  (define proved (first-R (⊢V V) (MσΓ⊢s M σ Γ e)))
-  ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-W¹ W) proved)
-  (values (if (equal? 'X proved) #f (Γ+ Γ e))
-          (if (equal? '✓ proved) #f (Γ+ Γ (-not e)))))
+(: Γ+/-V : -M -σ -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
+;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
+(define (Γ+/-V M σ Γ V s)
+  (Γ+/-R (first-R (⊢V V) (MσΓ⊢s M σ Γ s)) Γ s))
 
 (: Γ+/-W∋Ws : -M -σ -Γ -W¹ -W¹ * → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `P(V…)` and `¬P(V…)`
@@ -171,17 +167,11 @@
                ([W W-Vs])
       (values (-W¹-V W) (-W¹-s W))))
   (define ψ (apply -?@ s-p s-vs))
-  (case (MσΓ⊢s M σ Γ ψ)
-    [(✓)  (values (Γ+ Γ ψ) #f)]
-    [(✗)  (values #f       (Γ+ Γ (-not ψ)))]
-    [else (values (Γ+ Γ ψ) (Γ+ Γ (-not ψ)))]))
+  (Γ+/-R (MσΓ⊢s M σ Γ ψ) Γ ψ))
 
 (: Γ+/-s : -M -σ -Γ -s → (Values (Option -Γ) (Option -Γ)))
 (define (Γ+/-s M σ Γ s)
-  (case (MσΓ⊢s M σ Γ s)
-    [(✓)  (values (Γ+ Γ s) #f)]
-    [(✗)  (values #f       (Γ+ Γ (-not s)))]
-    [else (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
+  (Γ+/-R (MσΓ⊢s M σ Γ s) Γ s))
 
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
            (U (List -W¹ (Listof -W¹) (-Γ → Y))
@@ -222,6 +212,19 @@
   (cond [ans-ok (cond [(set-empty? ans-bads) ans-ok]
                       [else (set-add ans-bads ans-ok)])]
         [else ans-bads]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: Γ+/-R : -R -Γ -s → (Values (Option -Γ) (Option -Γ)))
+;; Given `s`'s satisfiability in `Γ`, strengthen `Γ` both ways. `#f` represents a bogus path condition.
+(define (Γ+/-R R Γ s)
+  (case R
+    [(✓)  (values (Γ+ Γ s) #f)]
+    [(✗)  (values #f       (Γ+ Γ (-not s)))]
+    [else (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
 
 #|
 (module+ test
