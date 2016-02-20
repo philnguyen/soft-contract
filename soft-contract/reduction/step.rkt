@@ -1,9 +1,20 @@
 #lang typed/racket/base
 
+(provide ev ev* co co* ⇓ₚ ⇓ₘ ⇓)
+
 (require
  racket/match racket/set
  "../utils/main.rkt" "../ast/definition.rkt" "../runtime/main.rkt" "continuation.rkt")
 
+(: ev* : -M -Ξ -σ (℘ -ℬ) → (Values -ΔM -ΔΞ -Δσ))
+(define (ev* M Ξ σ ℬs)
+  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([ℬ ℬs])
+    (ev M Ξ σ ℬ)))
+
+(: co* : -M -Ξ -σ (℘ -Co) → (Values -ΔM -ΔΞ -Δσ))
+(define (co* M Ξ σ Cos)
+  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([Co Cos])
+    (co M Ξ σ Co)))
 
 (: ev : -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
 ;; Execute function body `ℬ`
