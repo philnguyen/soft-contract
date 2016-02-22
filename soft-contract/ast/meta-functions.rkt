@@ -2,11 +2,11 @@
 
 (provide
  FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
- opq-exp?)
+ opq-exp? α-rename)
 
 (require
  racket/match racket/set racket/function
- "../utils/set.rkt" "../utils/untyped-macros.rkt" "definition.rkt")
+ "../utils/main.rkt" "../utils/untyped-macros.rkt" "definition.rkt")
 
 (require/typed "../primitives/declarations.rkt"
   [prims (Listof Any)])
@@ -502,3 +502,102 @@
     [(-set! _ e*) (opq-exp? e*)]
     [(-@ f xs _) (or (opq-exp? f) (ormap opq-exp? xs))]
     [_ #f]))
+
+(: α-rename : -e → -e)
+;; Make sure each binding has a unique name
+(define (α-rename e)
+  (define-type S->S (HashTable Symbol Symbol))
+  ;; Map each bound name to its ith appearance. `0` means first, no need to rename
+  (define ith : (HashTable Symbol Natural) (make-hasheq))
+
+  (: new-binder! : S->S Symbol → (Values S->S Symbol))
+  (define (new-binder! names x)
+    (cond
+      [(hash-ref ith x #f) =>
+       (λ (i) (hash-set! ith x (+ 1 i)))]
+      [else (hash-set! ith x 0)])
+    (define x*
+      (match (hash-ref ith x)
+        [0 x]
+        [i (string->symbol (format "~a~a" x (n-sub i)))]))
+    (values (hash-set names x x*) x*))
+
+  (: new-binders! : S->S (Listof Symbol) → (Values S->S (Listof Symbol)))
+  (define (new-binders! m xs)
+    (define-values (m* xs*-rev)
+      (for/fold ([m* : S->S m] [xs*-rev : (Listof Symbol) '()])
+                ([x xs])
+        (define-values (m** x*) (new-binder! m* x))
+        (values m** (cons x* xs*-rev))))
+    (values m* (reverse xs*-rev)))
+
+  (: new-formals! : S->S -formals → (values S->S -formals))
+  (define (new-formals! m xs)
+    (match xs
+      [(-varargs zs z)
+       (define-values (m₁ zs*) (new-binders! m zs))
+       (define-values (m₂ z*) (new-binder! m₁ z))
+       (values m₂ (-varargs zs* z*))]
+      [(? list? xs) (new-binders! m xs)]))
+
+  (let go! ([m : S->S (hasheq)] [e : -e e])
+    (match e
+      [(-λ xs e*)
+       (define-values (m* xs*) (new-formals! m xs))
+       (-λ xs* (go! m* e*))]
+      [(-case-λ clauses)
+       (-case-λ
+        (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+          (match-define (cons xs e*) clause)
+          (define-values (m* xs*) (new-formals! m xs))
+          (cons xs* (go! m* e*))))]
+      [(-x x) (-x (hash-ref m x))]
+      [(-@ f xs loc) (-@ (go! m f) (map (curry go! m) xs) loc)]
+      [(-if e₀ e₁ e₂) (-if (go! m e₀) (go! m e₁) (go! m e₂))]
+      [(-wcm k v b) (-wcm (go! m k) (go! m v) (go! m b))]
+      [(-begin es) (-begin (map (curry go! m) es))]
+      [(-begin0 e₀ es) (-begin0 (go! m e₀) (map (curry go! m) es))]
+      [(-let-values bnds bod ctx)
+       (define-values (m* bnds*-rev)
+         (for/fold ([m* : S->S m] [bnds*-rev : (Listof (Pairof (Listof Symbol) -e)) '()])
+                   ([bnd bnds])
+           (match-define (cons xs eₓ) bnd)
+           (define-values (m** xs*) (new-binders! m* xs))
+           (define eₓ* (go! m #|important|# eₓ))
+           (values m** (cons (cons xs* eₓ*) bnds*-rev))))
+       (define bod* (go! m* bod))
+       (-let-values (reverse bnds*-rev) bod* ctx)]
+      [(-letrec-values bnds bod ctx)
+       (define-values (xss es) (unzip bnds))
+       (define-values (m* xss*-rev)
+         (for/fold ([m* : S->S m] [xss*-rev : (Listof (Listof Symbol)) '()])
+                   ([xs xss])
+           (define-values (m** xs*) (new-binders! m* xs))
+           (values m** (cons xs* xss*-rev))))
+       (define es* (map (curry go! m*) es))
+       (define bod* (go! m* bod))
+       (define bnds* (map (inst cons (Listof Symbol) -e) (reverse xss*-rev) es*))
+       (-letrec-values bnds* bod* ctx)]
+      [(-set! x e*) (-set! (hash-ref m x) (go! m e*))]
+      [(-@-havoc (-x x)) (-@-havoc (-x (hash-ref m x)))]
+      [(-amb es) (-amb (map/set (curry go! m) es))]
+      [(-μ/c x c) (-μ/c x (go! m c))]
+      [(-->i doms rst rng pos)
+       (define-values (m₁ dom*-rev)
+         (for/fold ([m* : S->S m] [doms* : (Listof (Pairof Symbol -e)) '()])
+                   ([dom doms])
+           (match-define (cons x c) dom)
+           (define-values (m** x*) (new-binder! m* x))
+           (define c* (go! m c))
+           (values m** (cons (cons x* c*) doms*))))
+       (define-values (m₂ rst*)
+         (match rst
+           [#f (values m₁ #f)]
+           [(cons x c)
+            (let-values ([(m₂ x*) (new-binder! m₁ x)])
+              (values m₂ (cons x* (go! m c))))]))
+       (define rng* (go! m₂ rng))
+       (-->i (reverse dom*-rev) rst* rng* pos)]
+      [(-struct/c si cs pos)
+       (-struct/c si (map (curry go! m) cs) pos)]
+      [_ e])))

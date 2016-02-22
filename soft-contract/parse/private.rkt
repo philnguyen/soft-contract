@@ -2,9 +2,7 @@
 (require
  racket/unsafe/ops
  web-server/private/util
- "../utils/debug.rkt" "../utils/pretty.rkt" "../utils/set.rkt"
- "../primitives/declarations.rkt"
- "../ast/definition.rkt" "../ast/meta-functions.rkt"
+ "../utils/main.rkt" "../primitives/declarations.rkt" "../ast/main.rkt"
  ;; For extra constants
  racket/undefined racket/extflonum
  (only-in redex/reduction-semantics variable-not-in)
