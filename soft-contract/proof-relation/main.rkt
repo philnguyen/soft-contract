@@ -25,9 +25,7 @@
 (: MσΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`
 (define (MσΓ⊢oW M σ Γ p . Ws)
-  (define-values (Vs ss)
-    (for/lists ([Vs : (Listof -V)] [s : (Listof -s)]) ([W Ws])
-      (values (-W¹-V W) (-W¹-s W))))
+  (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
   (first-R (apply p∋Vs p Vs)
            (MσΓ⊢s M σ Γ (apply -?@ p ss))))
 
@@ -162,10 +160,7 @@
 ;; Join the environment with `P(V…)` and `¬P(V…)`
 (define (Γ+/-W∋Ws M σ Γ W-P . W-Vs)
   (match-define (-W¹ P s-p) W-P)
-  (define-values (Vs s-vs)
-    (for/lists ([Vs : (Listof -V)] [s-vs : (Listof -s)])
-               ([W W-Vs])
-      (values (-W¹-V W) (-W¹-s W))))
+  (define-values (Vs s-vs) (unzip-by -W¹-V -W¹-s W-Vs))
   (define ψ (apply -?@ s-p s-vs))
   (Γ+/-R (MσΓ⊢s M σ Γ ψ) Γ ψ))
 
