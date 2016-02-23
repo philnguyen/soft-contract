@@ -6,7 +6,7 @@
  "../ast/definition.rkt"
  "../parse/main.rkt"
  "../runtime/main.rkt"
- "step.rkt" "init.rkt")
+ "step.rkt" #;"init.rkt")
 
 (: run-files : Path-String * → (℘ -A))
 (define (run-files . ps)
@@ -15,15 +15,18 @@
 (: run : (Listof -module) → (℘ -A))
 (define (run ms)
   
-  (: loop : (HashTable -ℬ -σ) (℘ -ℬ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
-  (define (loop seen ℬs Cos M Ξ σ)
+  (: loop : (HashTable -ℬ -σ) (℘ -ℬ) (℘ -Co) -G -M -Ξ -σ → (Values -M -Ξ -σ))
+  (define (loop seen ℬs Cos G M Ξ σ)
     (cond
       [(and (set-empty? ℬs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
+       
        ;; Widen global tables
-       (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ ℬs) (co* M Ξ σ Cos)))
+       (define-values (δM δΞ δσ) (⊔³ (ev* G M Ξ σ ℬs) (co* G M Ξ σ Cos)))
        (define-values (M* Ξ* σ*) (⊔³ (values M Ξ σ) (values δM δΞ δσ)))
+       (define G* #|TODO|# G)
+
        ;; Check for un-explored configuation (≃ ⟨e, ρ, σ⟩)
        (define-values (ℬs* seen*)
          (for/fold ([ℬs* : (℘ -ℬ) ∅] [seen* : (HashTable -ℬ -σ) seen])
@@ -37,11 +40,12 @@
                                   [As (in-value (M@ M* ℬ))] #:unless (set-empty? As)
                                   [ℛ (in-set ℛs)])
               (-Co ℛ As))))
-       (loop seen* ℬs* Cos* M* Ξ* σ*)]))
+       
+       (loop seen* ℬs* Cos* G* M* Ξ* σ*)]))
 
-  (define-values (σ₀ e₀) (𝑰 ms))
+  (define-values (σ₀ e₀) (values ⊥σ (-b (void))) #;(𝑰 ms))
   (define ℬ₀ (-ℬ (⇓ₚ ms e₀) ⊥ρ))
-  (define-values (M Ξ σ) (loop (hash ℬ₀ σ₀) {set ℬ₀} ∅ ⊥M ⊥Ξ σ₀))
+  (define-values (M Ξ σ) (loop (hash ℬ₀ σ₀) {set ℬ₀} ∅ ⊥G ⊥M ⊥Ξ σ₀))
   (M@ M ℬ₀))
 
 
@@ -58,3 +62,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Test
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module+ test
+  (require typed/rackunit)
+  )

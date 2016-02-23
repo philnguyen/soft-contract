@@ -6,26 +6,26 @@
  racket/match racket/set
  "../utils/main.rkt" "../ast/definition.rkt" "../runtime/main.rkt" "continuation.rkt")
 
-(: ev* : -M -Ξ -σ (℘ -ℬ) → (Values -ΔM -ΔΞ -Δσ))
-(define (ev* M Ξ σ ℬs)
+(: ev* : -G -M -Ξ -σ (℘ -ℬ) → (Values -ΔM -ΔΞ -Δσ))
+(define (ev* G M Ξ σ ℬs)
   (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([ℬ ℬs])
-    (ev M Ξ σ ℬ)))
+    (ev G M Ξ σ ℬ)))
 
-(: co* : -M -Ξ -σ (℘ -Co) → (Values -ΔM -ΔΞ -Δσ))
-(define (co* M Ξ σ Cos)
+(: co* : -G -M -Ξ -σ (℘ -Co) → (Values -ΔM -ΔΞ -Δσ))
+(define (co* G M Ξ σ Cos)
   (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([Co Cos])
-    (co M Ξ σ Co)))
+    (co G M Ξ σ Co)))
 
-(: ev : -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
+(: ev : -G -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
 ;; Execute function body `ℬ`
-(define (ev M Ξ σ ℬ)
+(define (ev G M Ξ σ ℬ)
   (match-define (-ℬ ⟦e⟧ ρ) ℬ)
   ;; start of function body, so trivial path condition `⊤Γ` and aliasing `⊤𝒳`
-  (apply/values (collect M Ξ ℬ) (⟦e⟧ M σ ρ ⊤Γ ⊤𝒳)))
+  (apply/values (collect M Ξ ℬ) (⟦e⟧ G σ ρ ⊤Γ ⊤𝒳)))
 
-(: co : -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
+(: co : -G -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
 ;; Resume computation `Co`
-(define (co M Ξ σ Co)
+(define (co G M Ξ σ Co)
   (match-define (-Co (-ℛ ℬ ℋ) As) Co)
   (match-define (-ℬ _ ρ) ℬ)
   (match-define (-ℋ Γ 𝒳 f 𝒳* ℰ) ℋ)
@@ -35,7 +35,7 @@
       (printf "TODO: use `Γ`, `f`, and `𝒳*` to filter out spurious returns~n")
       As))
   
-  (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) M σ ρ Γ 𝒳)))
+  (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) G σ ρ Γ 𝒳)))
 
 (: ⇓ₚ : (Listof -module) -e → -⟦e⟧)
 ;; Compile list of modules
@@ -69,14 +69,14 @@
   (match e
     [(-λ xs e*)
      (define ⟦e*⟧ (⇓ e*))
-     (λ (M σ ρ Γ 𝒳)
+     (λ (G σ ρ Γ 𝒳)
        (values ⊥σ {set (-A Γ (-W (list (-Clo xs ⟦e*⟧ ρ)) e))} ∅))]
     [(-case-λ body) (error '⇓ "TODO: case-λ")]
     [(? -prim? p)
-     (λ (M σ ρ Γ 𝒳)
+     (λ (G σ ρ Γ 𝒳)
        (values ⊥σ {set (-A Γ (-W (list p) p))} ∅))]
     [(-x x)
-     (λ (M σ ρ Γ 𝒳)
+     (λ (G σ ρ Γ 𝒳)
        (define s (canonicalize 𝒳 x))
        (define As
          (for/set: : (℘ -A) ([V (σ@ σ (ρ@ ρ x))])
@@ -89,7 +89,7 @@
            (-A Γ A)))
        (values ⊥σ As ∅))]
     [(and ref (-ref (and id (-id name l-from)) l-ctx pos))
-     (λ (M σ ρ Γ 𝒳)
+     (λ (G σ ρ Γ 𝒳)
        (cond
          [(equal? l-from l-ctx)
           (define As
@@ -117,7 +117,7 @@
      (cond
        [(Base? q)
         (define b (-b q))
-        (λ (M σ ρ Γ 𝒳)
+        (λ (G σ ρ Γ 𝒳)
           (values ⊥σ {set (-A Γ (-W (list b) b))} ∅))]
        [else (error '⇓ "TODO: (quote ~a)" q)])]
     [(-let-values bnds bod l)
@@ -138,8 +138,8 @@
     [(-@-havoc (-x x)) (↝.havoc x)]
     [(-amb es)
      (define ⟦e⟧s (set-map es ⇓))
-     (λ (M σ ρ Γ 𝒳)
-       (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ ρ Γ 𝒳)))]
+     (λ (G σ ρ Γ 𝒳)
+       (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ G σ ρ Γ 𝒳)))]
     [(-μ/c x c) ((↝.μ/c x) (⇓ c))]
     [(-->i doms rst rng pos)
      (define ⟦rng⟧ (⇓ rng))
@@ -148,18 +148,18 @@
          [(cons x c) (cons x (⇓ c))]
          [#f #f]))
      (define ⟦dom⟧s
-       (for/list ([dom doms*])
+       (for/list : (Listof (Pairof Symbol -⟦e⟧)) ([dom doms])
          (match-define (cons x c) dom)
          (cons x (⇓ c))))
      (error '⇓ "TODO -->i")
      (match ⟦dom⟧s
        [(cons ⟦c⟧ ⟦c⟧s)
-        ]
+        (error "TODO")]
        [_
-        (λ (M σ ρ Γ 𝒳)
+        (λ (G σ ρ Γ 𝒳)
           (values ⊥σ {set (-A Γ (-=>i '() ))}))])]
     [(-x/c x)
-     (λ (M σ ρ Γ 𝒳)
+     (λ (G σ ρ Γ 𝒳)
        (define As
          (for/set: : (℘ -A) ([V (σ@ σ (-α.x/c x))])
            (-A Γ (-W (list V) e))))
@@ -167,7 +167,7 @@
     [(-struct/c si cs pos)
      (match cs
        ['()
-        (λ (M σ ρ Γ 𝒳)
+        (λ (G σ ρ Γ 𝒳)
           (define V (-St/C #t si '()))
           (define W (-W (list V) e))
           (values ⊥σ {set (-A Γ W)} ∅))]
@@ -227,7 +227,7 @@
 (: ⇓const : Base → -⟦e⟧)
 (define (⇓const b)
   (define W (let ([B (-b b)]) (-W (list B) B)))
-  (λ (M σ ρ Γ 𝒳)
+  (λ (G σ ρ Γ 𝒳)
     (values ⊥σ {set (-A Γ W)} ∅)))
 
 (define ⟦void⟧ (⇓const (void)))
@@ -238,5 +238,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (ev₁ [e : -e])
-  (define-values (δM δΞ δσ) (ev ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ e) ⊥ρ)))
+  (define-values (δM δΞ δσ) (ev ⊥G ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ e) ⊥ρ)))
   (values (show-M δM) (show-Ξ δΞ) (show-σ δσ)))

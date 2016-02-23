@@ -54,6 +54,7 @@
   (for/list ([(ℬ ℛs) Ξ])
     `(,(show-ℬ ℬ) ↦ ,@(set-map ℛs show-ℛ))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Memo Table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -66,6 +67,16 @@
 (define (show-M [M : -M]) : (Listof Sexp)
   (for/list ([(ℬ As) M])
     `(,(show-ℬ ℬ) ↦ ,@(set-map As show-A))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Path condition store
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Map path-condition address to possible path-condition, result, and renaming
+(define-type -G (HashTable (Pairof -γ -ρ) (℘ (List -Γ -s -𝒳))))
+(define ⊥G : -G (hash))
+(define G@ : (-G (Pairof -γ -ρ) → (℘ (List -Γ -s -𝒳))) hash-ref)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -270,7 +281,7 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-M -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
+(define-type -⟦e⟧ (-G -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -17,17 +17,17 @@
       [(cons ⟦m⟧ ⟦m⟧s*) ((↝.modules ⟦m⟧s* ⟦e⟧) ⟦m⟧)]
       ['() ⟦e⟧]))
   
-  (λ (M σ ρ Γ 𝒳)
+  (λ (G σ ρ Γ 𝒳)
     (apply/values
      (acc
       σ
       (λ (ℰ) (-ℰₚ.modules ℰ ⟦m⟧s ⟦e⟧))
-      (λ (σ* Γ* Vs s) (⟦e⟧ₚ M σ* ρ Γ* 𝒳)))
-     (⟦e⟧* M σ ρ Γ 𝒳))))
+      (λ (σ* Γ* Vs s) (⟦e⟧ₚ G σ* ρ Γ* 𝒳)))
+     (⟦e⟧* G σ ρ Γ 𝒳))))
 
 (: ↝.def : Adhoc-Module-Path (Listof Symbol) → -⟦e⟧ → -⟦e⟧)
 ;; Define top-level `xs` to be values from `⟦e⟧`
-(define (((↝.def m xs) ⟦e⟧) M σ ρ Γ 𝒳)
+(define (((↝.def m xs) ⟦e⟧) G σ ρ Γ 𝒳)
   (apply/values
    (acc
     σ
@@ -39,12 +39,12 @@
             (define α (-α.def (-id x m)))
             (⊔ δσ α V)))
         (values δσ {set (-A Γ* -Void/W)} ∅))))
-    (⟦e⟧ M σ ρ Γ 𝒳)))
+    (⟦e⟧ G σ ρ Γ 𝒳)))
 
 (: ↝.dec : -id → -⟦e⟧ → -⟦e⟧)
 ;; Make `⟦c⟧`. the contract for `id`.
 ;; TODO: Perform contract checking at this time instead of when referencing `id`
-(define (((↝.dec id) ⟦c⟧) M σ ρ Γ 𝒳)
+(define (((↝.dec id) ⟦c⟧) G σ ρ Γ 𝒳)
   (apply/values
    (acc
     σ
@@ -53,10 +53,10 @@
       (with-guarded-arity 1 ((-id-ctx id) Γ* Vs)
         (match-define (list V) Vs)
         (values (⊔ ⊥σ (-α.ctc id) V) {set (-A Γ* -Void/W)} ∅))))
-   (⟦c⟧ M σ ρ Γ 𝒳)))
+   (⟦c⟧ G σ ρ Γ 𝒳)))
 
 (: ↝.if : -⟦e⟧ -⟦e⟧ → -⟦e⟧ → -⟦e⟧)
-(define (((↝.if ⟦e₁⟧ ⟦e₂⟧) ⟦e₀⟧) M σ ρ Γ 𝒳)
+(define (((↝.if ⟦e₁⟧ ⟦e₂⟧) ⟦e₀⟧) G σ ρ Γ 𝒳)
   (apply/values
    (acc
     σ
@@ -64,13 +64,13 @@
     (λ (σ* Γ* Vs s)
       (with-guarded-arity 1 ('TODO Γ* Vs)
         (match-define (list V) Vs)
-        (define-values (Γ₁ Γ₂) (Γ+/-V M σ* Γ* V s))
-        (⊔/ans (with-Γ Γ₁ (⟦e₁⟧ M σ* ρ Γ* 𝒳))
-               (with-Γ Γ₂ (⟦e₂⟧ M σ* ρ Γ* 𝒳))))))
-    (⟦e₀⟧ M σ ρ Γ 𝒳)))
+        (define-values (Γ₁ Γ₂) (Γ+/-V G σ* Γ* V s))
+        (⊔/ans (with-Γ Γ₁ (⟦e₁⟧ G σ* ρ Γ* 𝒳))
+               (with-Γ Γ₂ (⟦e₂⟧ G σ* ρ Γ* 𝒳))))))
+    (⟦e₀⟧ G σ ρ Γ 𝒳)))
 
 (: ↝.@ : (Listof -W¹) (Listof -⟦e⟧) -src-loc → -⟦e⟧ → -⟦e⟧)
-(define (((↝.@ Ws ⟦e⟧s loc) ⟦e⟧) M σ ρ Γ 𝒳)
+(define (((↝.@ Ws ⟦e⟧s loc) ⟦e⟧) G σ ρ Γ 𝒳)
 
   (define l (-src-loc-party loc))
 
@@ -78,11 +78,11 @@
     (match ⟦e⟧s
       [(cons ⟦e⟧* ⟦e⟧s*)
        (λ (σ* Γ* W)
-         (((↝.@ (cons W Ws) ⟦e⟧s* loc) ⟦e⟧*) M σ* ρ Γ* 𝒳))]
+         (((↝.@ (cons W Ws) ⟦e⟧s* loc) ⟦e⟧*) G σ* ρ Γ* 𝒳))]
       [_
        (λ (σ* Γ* W)
          (match-define (cons W-f W-xs) (reverse (cons W Ws)))
-         (ap M σ* Γ* 𝒳 W-f W-xs loc))]))
+         (ap G σ* Γ* 𝒳 W-f W-xs loc))]))
 
   (apply/values
    (acc
@@ -92,20 +92,20 @@
       (with-guarded-arity 1 (l Γ* Vs)
         (match-define (list V) Vs)
         (cont σ* Γ* (-W¹ V s)))))
-   (⟦e⟧ M σ ρ Γ 𝒳)))
+   (⟦e⟧ G σ ρ Γ 𝒳)))
 
 (: ↝.begin : (Listof -⟦e⟧) → -⟦e⟧ → -⟦e⟧)
 (define ((↝.begin ⟦e⟧s) ⟦e⟧)
   (match ⟦e⟧s
     [(cons ⟦e⟧* ⟦e⟧s*)
      (define ⟦eᵣ⟧ ((↝.begin ⟦e⟧s*) ⟦e⟧*))
-     (λ (M σ ρ Γ 𝒳)
+     (λ (G σ ρ Γ 𝒳)
        (apply/values
         (acc
          σ
          (λ (ℰ) (-ℰ.begin ℰ ⟦e⟧s))
-         (λ (σ* Γ* Vs s) (⟦eᵣ⟧ M σ* ρ Γ* 𝒳)))
-        (⟦e⟧ M σ ρ Γ 𝒳)))]
+         (λ (σ* Γ* Vs s) (⟦eᵣ⟧ G σ* ρ Γ* 𝒳)))
+        (⟦e⟧ G σ ρ Γ 𝒳)))]
     [_ ⟦e⟧]))
 
 (: ↝.begin0.v : (Listof -⟦e⟧) → -⟦e⟧ → -⟦e⟧)
@@ -113,19 +113,19 @@
 (define ((↝.begin0.v ⟦e⟧s) ⟦e⟧)
   (match ⟦e⟧s
     [(cons ⟦e⟧* ⟦e⟧s*)
-     (λ (M σ ρ Γ 𝒳)
+     (λ (G σ ρ Γ 𝒳)
        (apply/values
         (acc
          σ
          (λ (ℰ) (-ℰ.begin0.v ℰ ⟦e⟧s))
          (λ (σ* Γ* Vs s)
            (define ⟦eᵣ⟧ ((↝.begin0.e (-W Vs s) ⟦e⟧s*) ⟦e⟧*))
-           (⟦eᵣ⟧ M σ* ρ Γ* 𝒳)))
-        (⟦e⟧ M σ ρ Γ 𝒳)))]
+           (⟦eᵣ⟧ G σ* ρ Γ* 𝒳)))
+        (⟦e⟧ G σ ρ Γ 𝒳)))]
     ['() ⟦e⟧]))
 
 (: ↝.begin0.e : -W (Listof -⟦e⟧) → -⟦e⟧ → -⟦e⟧)
-(define (((↝.begin0.e W ⟦e⟧s) ⟦e⟧) M σ ρ Γ 𝒳)
+(define (((↝.begin0.e W ⟦e⟧s) ⟦e⟧) G σ ρ Γ 𝒳)
   (match ⟦e⟧s
     [(cons ⟦e⟧* ⟦e⟧s*)
      (apply/values
@@ -133,8 +133,8 @@
        σ
        (λ (ℰ) (-ℰ.begin0.e W ℰ ⟦e⟧s))
        (λ (σ* Γ* Vs s)
-         (((↝.begin0.e W ⟦e⟧s*) ⟦e⟧*) M σ* ρ Γ* 𝒳)))
-      (⟦e⟧ M σ ρ Γ 𝒳))]
+         (((↝.begin0.e W ⟦e⟧s*) ⟦e⟧*) G σ* ρ Γ* 𝒳)))
+      (⟦e⟧ G σ ρ Γ 𝒳))]
     ['() (values ⊥σ {set (-A Γ W)} ∅)]))
 
 (: ↝.let-values : (Listof (Pairof Symbol -W¹))
@@ -143,7 +143,7 @@
                   -⟦e⟧
                   Mon-Party
                   → -⟦e⟧ → -⟦e⟧)
-(define (((↝.let-values x-Ws xs xs-⟦e⟧s ⟦e⟧ l) ⟦eₓ⟧) M σ ρ Γ 𝒳)
+(define (((↝.let-values x-Ws xs xs-⟦e⟧s ⟦e⟧ l) ⟦eₓ⟧) G σ ρ Γ 𝒳)
   (apply/values
    (acc
     σ
@@ -161,7 +161,7 @@
            (split-values s n)))
         (match xs-⟦e⟧s
           [(cons (cons xs* ⟦e⟧*) xs-⟦e⟧s*)
-           (((↝.let-values x-Ws* xs* xs-⟦e⟧s* ⟦e⟧ l) ⟦e⟧*) M σ* ρ Γ* 𝒳)]
+           (((↝.let-values x-Ws* xs* xs-⟦e⟧s* ⟦e⟧ l) ⟦e⟧*) G σ* ρ Γ* 𝒳)]
           ['()
            (define-values (ρ* δσ 𝒳*)
              (for/fold ([ρ* : -ρ ρ] [δσ : -Δσ ⊥σ] [𝒳* : -𝒳 𝒳]) ([x-W x-Ws*])
@@ -170,11 +170,11 @@
                (define 𝒳** (if s (hash-set 𝒳* x s) 𝒳*))
                (values (hash-set ρ* x α) (⊔ δσ α V) 𝒳**)))
            (define σ** (⊔/m σ* δσ))
-           (⊔/ans (values δσ ∅ ∅) (⟦e⟧ M σ** ρ* Γ* 𝒳*))]))))
-   (⟦eₓ⟧ M σ ρ Γ 𝒳)))
+           (⊔/ans (values δσ ∅ ∅) (⟦e⟧ G σ** ρ* Γ* 𝒳*))]))))
+   (⟦eₓ⟧ G σ ρ Γ 𝒳)))
 
 (: ↝.set! : Symbol → -⟦e⟧ → -⟦e⟧)
-(define (((↝.set! x) ⟦e⟧) M σ ρ Γ 𝒳)
+(define (((↝.set! x) ⟦e⟧) G σ ρ Γ 𝒳)
   (apply/values
    (acc
     σ
@@ -183,10 +183,10 @@
       (with-guarded-arity 1 ('TODO Γ* Vs)
         (match-define (list V) Vs)
         (values (⊔ ⊥σ (ρ@ ρ x) V) {set (-A Γ* -Void/W)} ∅))))
-   (⟦e⟧ M σ ρ Γ 𝒳)))
+   (⟦e⟧ G σ ρ Γ 𝒳)))
 
 (: ↝.μ/c : Integer → -⟦e⟧ → -⟦e⟧)
-(define (((↝.μ/c x) ⟦c⟧) M σ ρ Γ 𝒳)
+(define (((↝.μ/c x) ⟦c⟧) G σ ρ Γ 𝒳)
   (apply/values
    (acc
     σ
@@ -194,15 +194,15 @@
     (λ (σ* Γ* Vs s)
       (with-guarded-arity 1 ('TODO Γ* Vs)
         (values ⊥σ {set (-A Γ* (-W Vs s))} ∅))))
-   (⟦c⟧ M σ ρ Γ 𝒳)))
+   (⟦c⟧ G σ ρ Γ 𝒳)))
 
 (: ↝.havoc : Symbol → -⟦e⟧)
-(define ((↝.havoc x) M σ ρ Γ 𝒳)
+(define ((↝.havoc x) G σ ρ Γ 𝒳)
   (define Vs (σ@ σ (ρ@ ρ x)))
   (error '↝.havoc "TODO"))
 
 (: ↝.struct/c : -struct-info (Listof -W¹) (Listof -⟦e⟧) Integer → -⟦e⟧ → -⟦e⟧)
-(define (((↝.struct/c si Ws ⟦c⟧s pos) ⟦c⟧) M σ ρ Γ 𝒳)
+(define (((↝.struct/c si Ws ⟦c⟧s pos) ⟦c⟧) G σ ρ Γ 𝒳)
   (apply/values
    (acc
     σ
@@ -213,7 +213,7 @@
         (define Ws* (cons (-W¹ V s) Ws))
         (match ⟦c⟧s
           [(cons ⟦c⟧* ⟦c⟧s*)
-           (((↝.struct/c si Ws* ⟦c⟧s* pos) ⟦c⟧*) M σ* ρ Γ* 𝒳)]
+           (((↝.struct/c si Ws* ⟦c⟧s* pos) ⟦c⟧*) G σ* ρ Γ* 𝒳)]
           ['()
            (define-values (δσ αs cs flat?) ; αs reverses Ws, which is reversed
              (for/fold ([δσ : -Δσ ⊥σ] [αs : (Listof -α.struct/c) '()]
@@ -224,11 +224,11 @@
                (values (⊔ δσ α C) (cons α αs) (cons c cs) (and flat? (C-flat? C)))))
            (define V (-St/C flat? si αs))
            (values δσ {set (-A Γ (-W (list V) (-?struct/c si cs)))} ∅)]))))
-   (⟦c⟧ M σ ρ Γ 𝒳)))
+   (⟦c⟧ G σ ρ Γ 𝒳)))
 
-(: ap : -M -σ -Γ -𝒳 -W¹ (Listof -W¹) -src-loc → (Values -Δσ (℘ -A) (℘ -ℐ)))
+(: ap : -G -σ -Γ -𝒳 -W¹ (Listof -W¹) -src-loc → (Values -Δσ (℘ -A) (℘ -ℐ)))
 ;; Apply value `Wₕ` to arguments `Wₓ`s, returning store widening, answers, and suspended computation
-(define (ap M σ Γ 𝒳 Wₕ Wₓs loc)
+(define (ap G σ Γ 𝒳 Wₕ Wₓs loc)
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
 
@@ -236,7 +236,7 @@
 
   ;; Apply primitive
   (define (ap/δ [o : Symbol])
-    (define-values (δσ A*) (δ M σ Γ o Wₓs loc))
+    (define-values (δσ A*) (δ G σ Γ o Wₓs loc))
     (match-define (-A* Γₐ res) A*)
     (define Wₐ (if (list? res) (-W res (apply -?@ o sₓs)) res))
     (values δσ {set (-A Γₐ Wₐ)} ∅))

@@ -16,13 +16,13 @@
 ;; - Other primitives:
 ;;   * Return `●` by default. Depend on wrapped contract for more precision.
 ;;   * Do more precise things if defined specially in `concrete` table.
-(: concrete-impl : Symbol → (Option (-M -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))))
+(: concrete-impl : Symbol → (Option (-G -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))))
 ;; Table for (semi-)concrete implementations
 (define (concrete-impl s)
   (define (error-arity [o : Symbol] [expect : Integer] [given : Integer])
     (error 'δ "Invalid arity uncaught for `~a`: expect ~a, given ~a" o expect given))
   
-  (with-args s (M σ Γ Ws loc)
+  (with-args s (G σ Γ Ws loc)
     [any/c  (values ⊥σ (-A* Γ (list -tt)))]
     [none/c (values ⊥σ (-A* Γ (list -ff)))]
     [and/c
@@ -94,7 +94,7 @@
 
     [equal?
      (define Vs
-       (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
+       (case (apply GσΓ⊢oW G σ Γ 'equal? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
          [(?) -●/Vs]))
@@ -102,7 +102,7 @@
 
     [= ; duplicate of `equal?` (args already guarded by contracts)
      (define Vs
-       (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
+       (case (apply GσΓ⊢oW G σ Γ 'equal? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
          [(?) -●/Vs]))
@@ -110,7 +110,7 @@
     
     [procedure?
      (define Vs
-       (case (apply MσΓ⊢oW M σ Γ 'procedure? Ws)
+       (case (apply GσΓ⊢oW G σ Γ 'procedure? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
          [(?) -●/Vs]))
@@ -130,7 +130,7 @@
           t-id)))
      #`(case s
          [(t)
-          (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -W¹)] [loc : -src-loc])
+          (λ ([M : -G] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -W¹)] [loc : -src-loc])
             e ...)]
          ...
          [else #f])]))
@@ -138,7 +138,7 @@
 ;; Language definition for `δ` begins here
 (begin-for-syntax
 
-  (define/contract M-id  (parameter/c identifier?) (make-parameter #f))
+  (define/contract G-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract σ-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract Γ-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract o-id  (parameter/c identifier?) (make-parameter #f))
@@ -147,7 +147,7 @@
 
   (define/contract (mk-sym name sub)
     (symbol? integer? . -> . identifier?)
-    (format-id (M-id) "~a~a" name (n-sub sub)))
+    (format-id (G-id) "~a~a" name (n-sub sub)))
 
   (define/contract (generate-general-clauses dec)
     (dec? . -> . (or/c (listof syntax?) (listof symbol?)))
@@ -185,7 +185,7 @@
           (list
            #`[(#,op)
               (define Vs
-                (case (apply MσΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,op #,(Ws-id))
+                (case (apply GσΓ⊢oW #,(G-id) #,(σ-id) #,(Γ-id) '#,op #,(Ws-id))
                   [(✓) (list -tt)]
                   [(✗) (list -ff)]
                   [else -●/Vs]))
@@ -194,22 +194,22 @@
          [(and (andmap base? doms) (base? rng))
           (define/contract b-syms (listof symbol?)
             (build-list (length doms) (λ (i) (string->symbol (format "e~a" (n-sub i))))))
-          (define/contract b-ids (listof identifier?) (map (curry datum->syntax (M-id)) b-syms))
+          (define/contract b-ids (listof identifier?) (map (curry datum->syntax (G-id)) b-syms))
           (define b-pats/abs  (for/list ([b-id b-ids]) #`(-W¹ _ (-b #,b-id))))
           (define b-pats/conc (for/list ([b-id b-ids]) #`(-W¹ (-b #,b-id) _)))
-          (define b-conds (datum->syntax (M-id) (sexp-and (map mk-cond b-syms doms))))
+          (define b-conds (datum->syntax (G-id) (sexp-and (map mk-cond b-syms doms))))
 
           (define-values (W-pats W-ids e-ids)
             (for/lists (W-pats W-ids e-ids) ([i (length doms)])
-              (define W-id (datum->syntax (M-id) (string->symbol (format "W~a" (n-sub i)))))
-              (define e-id (datum->syntax (M-id) (string->symbol (format "e~a" (n-sub i)))))
+              (define W-id (datum->syntax (G-id) (string->symbol (format "W~a" (n-sub i)))))
+              (define e-id (datum->syntax (G-id) (string->symbol (format "e~a" (n-sub i)))))
               (values #`(and #,W-id (-W¹ _ #,e-id)) W-id e-id)))
           (define refinement-clauses
             (for/list ([ref refinements])
               (match-define `(,(? symbol? dom-chks) ... . -> . ,(? symbol? rng-chk)) ref)
               (define arg-checks
                 (for/list ([dom-chk dom-chks] [W-id W-ids])
-                  #`(equal? '✓ (MσΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,dom-chk #,W-id))))
+                  #`(equal? '✓ (GσΓ⊢oW #,(G-id) #,(σ-id) #,(Γ-id) '#,dom-chk #,W-id))))
               (define precond ; make it a little prettier
                 (match arg-checks
                   [(list e) e]
@@ -253,9 +253,9 @@
 ;; Generate body of `δ`
 (define-syntax (gen-δ-body stx)
   (syntax-parse stx
-    [(_ M:id σ:id Γ:id o:id Ws:id l:id)
+    [(_ G:id σ:id Γ:id o:id Ws:id l:id)
      (define-values (clauses names)
-       (parameterize ([M-id #'M]
+       (parameterize ([G-id #'G]
                       [σ-id #'σ]
                       [Γ-id #'Γ]
                       [o-id #'o]
@@ -273,8 +273,8 @@
        #`(if (∋ prim-names o)
              (cond
                [(concrete-impl o) =>
-                (λ ([f : (-M -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))])
-                  (f M σ Γ Ws l))]
+                (λ ([f : (-G -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))])
+                  (f G σ Γ Ws l))]
                [else
                 (case o
                   #,@clauses
@@ -283,9 +283,9 @@
      ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ Symbol (Listof -W¹) -src-loc → (Values -Δσ -A*))
-(define (δ M σ Γ o Ws l)
-  (gen-δ-body M σ Γ o Ws l))
+(: δ : -G -σ -Γ Symbol (Listof -W¹) -src-loc → (Values -Δσ -A*))
+(define (δ G σ Γ o Ws l)
+  (gen-δ-body G σ Γ o Ws l))
 
 
 (module+ test
@@ -295,7 +295,7 @@
   ;; Test δ's concrete fragment
   (define (check-δ/b o bs bₐ)
     (define Ws (for/list : (Listof -W¹) ([b bs]) (-W¹ (-b b) (-b b))))
-    (define-values (δσ A) (δ ⊥M ⊥σ ⊤Γ o Ws -Λ))
+    (define-values (δσ A) (δ ⊥G ⊥σ ⊤Γ o Ws -Λ))
     (match-define (-A* _ Vs) A)
     (check-true (list? Vs))
     (check-true (= 1 (length (assert Vs list?))))
