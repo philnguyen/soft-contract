@@ -223,8 +223,17 @@
             (-ℰ.if -ℰ -⟦e⟧ -⟦e⟧)
             (-ℰ.@ (Listof -W¹) -ℰ (Listof -⟦e⟧) -src-loc)
             (-ℰ.begin -ℰ (Listof -⟦e⟧))
-            #;(-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
-            #;(-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧)))
+            (-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
+            (-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧))
+            (-ℰ.let-values (Listof (Pairof Symbol -W¹))
+                           (Listof Symbol)
+                           -ℰ
+                           (Listof (Pairof (Listof Symbol) -⟦e⟧))
+                           -⟦e⟧
+                           Mon-Party)
+            (-ℰ.set! Symbol -ℰ)
+            (-ℰ.μ/c Integer -ℰ)
+            (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; path condition and information for converting answer's symbols

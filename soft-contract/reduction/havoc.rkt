@@ -21,7 +21,7 @@
   (define defs : (HashTable Symbol -st-ac) (make-hasheq))
   (define decs : (HashTable Symbol #t) (make-hasheq))
   (for* ([m ms]
-         [form (-plain-module-begin-body (-module-body m))])
+         [form (-module-body m)])
     (match form
       [(-provide _ specs)
        (for-each
@@ -81,7 +81,7 @@
                     (set->list s)))]
       [else
        #;(log-debug "Havocking transparent module ~a~n" (-module-path m))
-       (match-define (-module path (-plain-module-begin forms)) m)
+       (match-define (-module path forms) m)
        #;(eprintf "Insert exported identifiers from module ~a to unknown contexts~n" path)
        (for* ([form (in-list forms)] #:when (-provide? form)
               [spec (in-list (-provide-specs form))])
@@ -94,7 +94,7 @@
 (: module-opaque? : -module → (U #f (Setof Symbol)))
 ;; Check whether module is opaque, returning the set of opaque exports if so
 (define (module-opaque? m)
-  (match-define (-module p (-plain-module-begin body)) m)
+  (match-define (-module p body) m)
   (case p
     [(Λ † havoc) #|HACK|# ∅]
     [else

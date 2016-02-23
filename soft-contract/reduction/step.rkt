@@ -47,7 +47,7 @@
 (: ⇓ₘ : -module → -⟦e⟧)
 ;; Compile module
 (define (⇓ₘ m)
-  (match-define (-module p (-plain-module-begin ds)) m)
+  (match-define (-module p ds) m)
   
   (: ⇓pc : -provide-spec → -⟦e⟧)
   (define (⇓pc spec)
@@ -105,10 +105,74 @@
      ((↝.@ '() (map ⇓ xs) l) (⇓ f))]
     [(-if e₀ e₁ e₂)
      ((↝.if (⇓ e₁) (⇓ e₂)) (⇓ e₀))]
+    [(-wcm k v b)
+     (error '⇓ "TODO: wcm")]
     [(-begin es)
      (match es
        [(cons e* es*) ((↝.begin (map ⇓ es*)) (⇓ e*))]
-       [_ ⟦void⟧])]))
+       [_ ⟦void⟧])]
+    [(-begin0 e₀ es)
+     ((↝.begin0.v (map ⇓ es)) (⇓ e₀))]
+    [(-quote q)
+     (cond
+       [(Base? q)
+        (define b (-b q))
+        (λ (M σ ρ Γ 𝒳)
+          (values ⊥σ {set (-A Γ (-W (list b) b))} ∅))]
+       [else (error '⇓ "TODO: (quote ~a)" q)])]
+    [(-let-values bnds bod l)
+     (define ⟦bod⟧ (⇓ bod))
+     (define-values (xss es) (unzip bnds))
+     (match* (xss (map ⇓ es))
+       [('() '()) ⟦bod⟧]
+       [((cons xs₀ xss*) (cons ⟦eₓ⟧₀ ⟦eₓ⟧s*))
+        ((↝.let-values '() xs₀ (map (inst cons (Listof Symbol) -⟦e⟧) xss* ⟦eₓ⟧s*) ⟦bod⟧ l) ⟦eₓ⟧₀)])]
+    [(-letrec-values bnds bod ctx)
+     (define ⟦bod⟧ (⇓ bod))
+     (define-values (xss es) (unzip bnds))
+     (match* (xss (map ⇓ es))
+       [('() '()) ⟦bod⟧]
+       [((cons xs₀ xss*) (cons ⟦eₓ⟧₀ ⟦eₓ⟧s*))
+        (error '⇓ "TODO: letrec")])]
+    [(-set! x e*) ((↝.set! x) (⇓ e*))]
+    [(-@-havoc (-x x)) (↝.havoc x)]
+    [(-amb es)
+     (define ⟦e⟧s (set-map es ⇓))
+     (λ (M σ ρ Γ 𝒳)
+       (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ ρ Γ 𝒳)))]
+    [(-μ/c x c) ((↝.μ/c x) (⇓ c))]
+    [(-->i doms rst rng pos)
+     (define ⟦rng⟧ (⇓ rng))
+     (define ⟦rst⟧
+       (match rst
+         [(cons x c) (cons x (⇓ c))]
+         [#f #f]))
+     (define ⟦dom⟧s
+       (for/list ([dom doms*])
+         (match-define (cons x c) dom)
+         (cons x (⇓ c))))
+     (error '⇓ "TODO -->i")
+     (match ⟦dom⟧s
+       [(cons ⟦c⟧ ⟦c⟧s)
+        ]
+       [_
+        (λ (M σ ρ Γ 𝒳)
+          (values ⊥σ {set (-A Γ (-=>i '() ))}))])]
+    [(-x/c x)
+     (λ (M σ ρ Γ 𝒳)
+       (define As
+         (for/set: : (℘ -A) ([V (σ@ σ (-α.x/c x))])
+           (-A Γ (-W (list V) e))))
+       (values ⊥σ As ∅))]
+    [(-struct/c si cs pos)
+     (match cs
+       ['()
+        (λ (M σ ρ Γ 𝒳)
+          (define V (-St/C #t si '()))
+          (define W (-W (list V) e))
+          (values ⊥σ {set (-A Γ W)} ∅))]
+       [(cons c cs*)
+        ((↝.struct/c si '() (map ⇓ cs*) pos) (⇓ c))])]))
 
 (: ℰ⟦_⟧ : -ℰ (℘ -A) → -⟦e⟧)
 ;; Plug results `As` into hole `ℰ` and resume computation
@@ -127,7 +191,14 @@
       ;; Regular forms
       ['□ (λ _ (values ⊥σ As ∅))]
       [(-ℰ.if ℰ* ⟦e₁⟧ ⟦e₂⟧) ((↝.if ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
-      [(-ℰ.@ WVs ℰ* ⟦e⟧s loc) ((↝.@ WVs ⟦e⟧s loc) (go ℰ*))])))
+      [(-ℰ.@ WVs ℰ* ⟦e⟧s loc) ((↝.@ WVs ⟦e⟧s loc) (go ℰ*))]
+      [(-ℰ.begin ℰ* ⟦e⟧s) ((↝.begin ⟦e⟧s) (go ℰ*))]
+      [(-ℰ.begin0.v ℰ* ⟦e⟧s) ((↝.begin0.v ⟦e⟧s) (go ℰ*))]
+      [(-ℰ.begin0.e W ℰ* ⟦e⟧s) ((↝.begin0.e W ⟦e⟧s) (go ℰ*))]
+      [(-ℰ.let-values xs-Ws xs ℰ* xs-⟦e⟧s ⟦e⟧ l)
+       ((↝.let-values xs-Ws xs xs-⟦e⟧s ⟦e⟧ l) (go ℰ*))]
+      [(-ℰ.set! x ℰ*) ((↝.set! x) (go ℰ*))]
+      [(-ℰ.μ/c x ℰ*) ((↝.μ/c x) (go ℰ*))])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
