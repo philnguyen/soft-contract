@@ -64,13 +64,11 @@
                                  (-define-values [from : Adhoc-Module-Path] [ids : (Listof Symbol)] [e : -e])
                                  (-require (Listof -require-spec)))
 
-(-submodule-form . ::= . (-module [path : Adhoc-Module-Path] [body : -plain-module-begin]))
+(-submodule-form . ::= . (-module [path : Adhoc-Module-Path] [body : (Listof -module-level-form)]))
 
 (-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e]))
 
 (-require-spec . ::= . Adhoc-Module-Path #|TODO|#)
-
-(struct -plain-module-begin ([body : (Listof -module-level-form)]) #:transparent)
 
 (-e . ::= . -v
             (-x Symbol) ; lexical variables 
@@ -97,7 +95,10 @@
              [pos : Integer])
             (-x/c.tmp Symbol) ; hack
             (-x/c Integer)
-            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
+            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer])
+
+            ;; Hack for use as address in path-condition store. Not for use as a normal program expression
+            (-γ -e))
 
 (-v . ::= . -prim
             (-λ -formals -e)
@@ -372,13 +373,16 @@
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)
-     `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]))
+     `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]
+    [(? -γ? γ) (show-γ γ)]))
+
+(define-values (show-γ show-γ⁻¹) ((inst unique-name -γ) 'γ))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
 
 (define (show-module [m : -module]) : Sexp
-  (match-define (-module path (-plain-module-begin forms)) m)
+  (match-define (-module path forms) m)
   `(module ,path
     ,@(map show-module-level-form forms)))
 

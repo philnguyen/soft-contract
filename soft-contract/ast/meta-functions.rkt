@@ -135,7 +135,6 @@
                        -e
                        -module
                        -begin/top
-                       -plain-module-begin
                        -module-level-form
                        -prog
                        (Listof X))) → Integer)
@@ -168,7 +167,6 @@
        (checks# d))]
    [(-struct/c _ cs _) (checks# cs)]
 
-   [(-plain-module-begin xs) (checks# xs)]
    [(-module _ body) (checks# body)]
    ;; FIXME count up for primitives
    [_ 0]))

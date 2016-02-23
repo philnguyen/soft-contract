@@ -14,8 +14,8 @@
 
 (: rename-module : -module → -module)
 (define (rename-module m)
-  (match-define (-module p (-plain-module-begin forms)) m)
-  (-module p (-plain-module-begin (map rename-module-level-form forms))))
+  (match-define (-module p forms) m)
+  (-module p (map rename-module-level-form forms)))
 
 (: rename-module-level-form : -module-level-form → -module-level-form)
 (define rename-module-level-form

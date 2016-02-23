@@ -48,17 +48,16 @@
      (-module
       mod-name
       (parameterize ([cur-mod mod-name])
-        (-plain-module-begin
-         (filter
-          values
-          (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
-                     #:when
-                     (syntax-parse formᵢ
-                       [((~literal module) (~literal configure-runtime) _ ...) #f]
-                       [_ #t])
-                     #:when
-                     (scv-syntax? formᵢ))
-            (parse-module-level-form formᵢ))))))]
+        (filter
+         values
+         (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
+                    #:when
+                    (syntax-parse formᵢ
+                      [((~literal module) (~literal configure-runtime) _ ...) #f]
+                      [_ #t])
+                    #:when
+                    (scv-syntax? formᵢ))
+           (parse-module-level-form formᵢ)))))]
     [((~literal begin) form ...)
      (-begin/simp (map parse-top-level-form (syntax->list #'(form ...))))]
     [((~literal #%expression) e) (parse-e #'e)]
@@ -102,7 +101,7 @@
     [((~literal module) id path ((~literal #%plain-module-begin) d ...))
      (-module
       (path->string (simplify-path (syntax-source #'id)))
-      (-plain-module-begin (map parse-module-level-form (syntax->list #'(d ...)))))]
+      (map parse-module-level-form (syntax->list #'(d ...))))]
     [((~literal module*) _ ...) (todo 'module*)]
     [_ #f]))
 
