@@ -147,7 +147,7 @@
   (apply/values
    (acc
     σ
-    (λ (ℰ) (-ℰ.let-values x-Ws xs ℰ xs-⟦e⟧s ⟦e⟧ l))
+    (λ (ℰ) (-ℰ.let-values x-Ws (cons xs ℰ) xs-⟦e⟧s ⟦e⟧ l))
     (λ (σ* Γ* Vs s)
       (define n (length xs))
       (with-guarded-arity n (l Γ* Vs)

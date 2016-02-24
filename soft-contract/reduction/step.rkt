@@ -207,7 +207,7 @@
       [(-ℰ.begin ℰ* ⟦e⟧s) ((↝.begin ⟦e⟧s) (go ℰ*))]
       [(-ℰ.begin0.v ℰ* ⟦e⟧s) ((↝.begin0.v ⟦e⟧s) (go ℰ*))]
       [(-ℰ.begin0.e W ℰ* ⟦e⟧s) ((↝.begin0.e W ⟦e⟧s) (go ℰ*))]
-      [(-ℰ.let-values xs-Ws xs ℰ* xs-⟦e⟧s ⟦e⟧ l)
+      [(-ℰ.let-values xs-Ws (cons xs ℰ*) xs-⟦e⟧s ⟦e⟧ l)
        ((↝.let-values xs-Ws xs xs-⟦e⟧s ⟦e⟧ l) (go ℰ*))]
       [(-ℰ.set! x ℰ*) ((↝.set! x) (go ℰ*))]
       [(-ℰ.μ/c x ℰ*) ((↝.μ/c x) (go ℰ*))])))

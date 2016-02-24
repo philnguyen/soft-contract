@@ -249,8 +249,7 @@
             (-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
             (-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧))
             (-ℰ.let-values (Listof (Pairof Symbol -W¹))
-                           (Listof Symbol)
-                           -ℰ
+                           (Pairof (Listof Symbol) -ℰ)
                            (Listof (Pairof (Listof Symbol) -⟦e⟧))
                            -⟦e⟧
                            Mon-Party)
