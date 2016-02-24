@@ -241,7 +241,9 @@
               (match #,(Ws-id)
                 ; straightforward lifting for concrete operands
                 [(list #,@b-pats/abs) #,case-lift]
-                #,maybe-refine)])]
+                [_ (values ⊥σ (-A* #,(Γ-id) -●/Vs))]
+                ;#,maybe-refine ; TODO: see if eager refinement is still neccessary
+                )])]
          
          ; Just return operator name for complicated cases
          [else (list op)])]
