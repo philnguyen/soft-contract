@@ -40,6 +40,12 @@
        (define-values (M* Ξ* σ*) (⊔³ (values M Ξ σ) (values δM δΞ δσ)))
        (define G* (G⊔ G δM Ξ))
 
+       #;(begin
+         (printf "δM:~n~a~n" (show-M δM))
+         (printf "δΞ:~n~a~n" (show-Ξ δΞ))
+         (printf "δσ:~n~a~n" (show-σ δσ))
+         (printf "~n"))
+
        ;; Check for un-explored configuation (≃ ⟨e, ρ, σ⟩)
        (define-values (ℬs* seen*)
          (for/fold ([ℬs* : (℘ -ℬ) ∅] [seen* : (HashTable -ℬ -σ) seen])
@@ -105,4 +111,21 @@
 
 (module+ test
   (require typed/rackunit)
+  
+  (define -Y
+    (-λ '(f)
+     (-λ '(x)
+      (-@ (-@ (-λ '(g) (-@ (-x 'f) (list (-λ '(x) (-@ (-@ (-x 'g) (list (-x 'g)) -Λ) (list (-x 'x)) -Λ))) -Λ))
+              (list (-λ '(g) (-@ (-x 'f) (list (-λ '(x) (-@ (-@ (-x 'g) (list (-x 'g)) -Λ) (list (-x 'x)) -Λ))) -Λ)))
+              -Λ)
+          (list (-x 'x))
+          -Λ))))
+  (define -rep
+    (-λ '(rep)
+     (-λ '(n)
+      (-if (-@ 'zero? (list (-x 'n)) -Λ)
+           (-b 0)
+           (-@ 'add1 (list (-@ (-x 'rep) (list (-@ 'sub1 (list (-x 'n)) -Λ)) -Λ)) -Λ)))))
+  (define -rep-prog
+    (α-rename (-@ (-@ -Y (list -rep) -Λ) (list (-b 0)) -Λ)))
   )
