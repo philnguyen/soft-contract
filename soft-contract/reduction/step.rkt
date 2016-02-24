@@ -90,15 +90,17 @@
      (λ (G σ ρ Γ 𝒳)
        (define s (canonicalize 𝒳 x))
        (define As
-         (for*/set: : (℘ -A) ([V (σ@ σ (ρ@ ρ x))]
-                              [W (in-value (-W (list V) s))]
-                              #:unless (spurious? G σ Γ W))
-           (define res
-             (case V
-               [(undefined) ; FIXME hack
-                (-blm 'TODO 'Λ (-st-p (-struct-info (-id 'defined 'Λ) 1 ∅)) (list 'undefined))]
-               [else W]))
-           (-A Γ res)))
+         (for*/fold ([As : (℘ -A) ∅])
+                    ([V (σ@ σ (ρ@ ρ x))]
+                     [W (in-value (-W (list V) s))]
+                     #:unless (spurious? G σ Γ W))
+           (case V
+             [(undefined) ; FIXME hack
+              (cond
+                [(hash-has-key? 𝒳 x) As]
+                [else
+                 (set-add As (-A Γ (-blm 'TODO 'Λ (-st-p (-struct-info (-id 'defined 'Λ) 1 ∅)) (list 'undefined))))])]
+             [else (set-add As (-A Γ W))])))
        (values ⊥σ As ∅))]
     [(and ref (-ref (and id (-id name l-from)) l-ctx pos))
      (λ (G σ ρ Γ 𝒳)
@@ -134,18 +136,31 @@
        [else (error '⇓ "TODO: (quote ~a)" q)])]
     [(-let-values bnds bod l)
      (define ⟦bod⟧ (⇓ bod))
-     (define-values (xss es) (unzip bnds))
-     (match* (xss (map ⇓ es))
-       [('() '()) ⟦bod⟧]
-       [((cons xs₀ xss*) (cons ⟦eₓ⟧₀ ⟦eₓ⟧s*))
-        ((↝.let-values '() xs₀ (map (inst cons (Listof Symbol) -⟦e⟧) xss* ⟦eₓ⟧s*) ⟦bod⟧ l) ⟦eₓ⟧₀)])]
-    [(-letrec-values bnds bod ctx)
+     (define xs-⟦e⟧s
+       (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
+         (match-define (cons xs eₓ) bnd)
+         (cons xs (⇓ eₓ))))
+     (match xs-⟦e⟧s 
+       ['() ⟦bod⟧]
+       [(cons (cons xs₀ ⟦e⟧₀) xs-⟦eₓ⟧s*)
+        ((↝.let-values '() xs₀ xs-⟦eₓ⟧s* ⟦bod⟧ l) ⟦e⟧₀)])]
+    [(-letrec-values bnds bod l)
      (define ⟦bod⟧ (⇓ bod))
-     (define-values (xss es) (unzip bnds))
-     (match* (xss (map ⇓ es))
-       [('() '()) ⟦bod⟧]
-       [((cons xs₀ xss*) (cons ⟦eₓ⟧₀ ⟦eₓ⟧s*))
-        (error '⇓ "TODO: letrec")])]
+     (define xs-⟦e⟧s
+       (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
+         (match-define (cons xs eₓ) bnd)
+         (cons xs (⇓ eₓ))))
+     (match xs-⟦e⟧s
+       ['() ⟦bod⟧]
+       [(cons (cons xs₀ ⟦e⟧₀) xs-⟦e⟧s*)
+        (define all-xs (for*/set: : (℘ Symbol) ([xs-⟦e⟧ xs-⟦e⟧s] [x (car xs-⟦e⟧)]) x))
+        (λ (G σ ρ Γ 𝒳)
+          (define-values (δσ ρ*)
+            (for*/fold ([δσ : -Δσ ⊥σ] [ρ : -ρ ρ]) ([x all-xs])
+              (define α (-α.x x Γ))
+              (values (⊔ δσ α 'undefined) (hash-set ρ x α))))
+          (define σ* (⊔/m σ δσ))
+          (((↝.letrec-values all-xs ρ* xs₀ xs-⟦e⟧s* ⟦bod⟧ l) ⟦e⟧₀) G σ* ρ* Γ 𝒳))])]
     [(-set! x e*) ((↝.set! x) (⇓ e*))]
     [(-@-havoc (-x x)) (↝.havoc x)]
     [(-amb es)

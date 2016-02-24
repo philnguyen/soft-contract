@@ -8,7 +8,7 @@
 
 (require
  racket/match racket/set
- "../utils/main.rkt" "../ast/definition.rkt" "../runtime/main.rkt" "../proof-relation/main.rkt" "../delta.rkt")
+ "../utils/main.rkt" "../ast/main.rkt" "../runtime/main.rkt" "../proof-relation/main.rkt" "../delta.rkt")
 
 (: ↝.modules : (Listof -⟦e⟧) -⟦e⟧ → -⟦e⟧ → -⟦e⟧)
 (define ((↝.modules ⟦m⟧s ⟦e⟧) ⟦e⟧*)
@@ -172,6 +172,60 @@
            (define σ** (⊔/m σ* δσ))
            (⊔/ans (values δσ ∅ ∅) (⟦e⟧ G σ** ρ* Γ* 𝒳*))]))))
    (⟦eₓ⟧ G σ ρ Γ 𝒳)))
+
+(: ↝.letrec-values : (℘ Symbol) -ρ (Listof Symbol) (Listof (Pairof (Listof Symbol) -⟦e⟧)) -⟦e⟧ Mon-Party → -⟦e⟧ → -⟦e⟧)
+(define (((↝.letrec-values xs-all ρ* xs xs-⟦e⟧s ⟦e⟧ l) ⟦eₓ⟧) G σ ρ Γ 𝒳)
+  (apply/values
+   (acc
+    σ
+    (λ (ℰ) (-ℰ.letrec-values xs-all ρ* (cons xs ℰ) xs-⟦e⟧s ⟦e⟧ l))
+    (λ (σ* Γ* Vs s)
+      (define n (length xs))
+      (define-values (δσ 𝒳*)
+        (for/fold ([δσ : -Δσ ⊥σ] [𝒳 : -𝒳 𝒳])
+                  ([x xs] [V Vs] [sₓ (split-values s n)])
+          (define α (ρ@ ρ* x))
+          (values (⊔ δσ α V) (if sₓ (hash-set 𝒳 x sₓ) 𝒳))))
+      (define σ** (⊔/m σ* δσ))
+      (with-guarded-arity n (l Γ* Vs)
+        (match xs-⟦e⟧s
+          [(cons (cons xs* ⟦e⟧*) xs-⟦e⟧s*)
+           (⊔/ans
+             (values δσ ∅ ∅)
+             (((↝.letrec-values xs-all ρ* xs* xs-⟦e⟧s* ⟦e⟧ l) ⟦e⟧*) G σ** ρ* Γ* 𝒳*))]
+          ['()
+           ;; Erase irrelevant part of path conditions
+           (define-values (δσ* As ℐs) (⟦e⟧ G σ** ρ* Γ 𝒳*))
+           (define (trim-s [s : -s]) : -s
+             (and s (set-empty? (∩ xs-all (fv s))) s))
+           (define (trim-Γ [Γ : -Γ])
+             (for*/set: : -Γ ([e Γ] [s (in-value (trim-s s))] #:when s)
+               s))
+           (define (trim-𝒳 [𝒳 : -𝒳])
+             (for/hash : -𝒳 ([(x e) 𝒳] #:unless (∋ xs-all x))
+               (values x e)))
+           (define As*
+             (for/set: : (℘ -A) ([A As])
+               (match-define (-A Γ res) A)
+               (define Γ* (trim-Γ Γ))
+               (define res*
+                 (match res
+                   [(-W Vs s) (-W Vs (trim-s s))]
+                   [blm blm]))
+               (-A Γ* res*)))
+           (define ℐs*
+             (for/set: : (℘ -ℐ) ([ℐ ℐs])
+               (match-define (-ℐ (-ℋ Γ 𝒳 f bnds ℰ) ℬ) ℐ)
+               (define Γ* (trim-Γ Γ))
+               (define 𝒳* (trim-𝒳 𝒳))
+               (define f* (trim-s f))
+               (define bnds*
+                 (for/list : (Listof (Pairof Symbol -s)) ([bnd bnds])
+                   (match-define (cons x s) bnd)
+                   (cons x (trim-s s))))
+               (-ℐ (-ℋ Γ* 𝒳* f* bnds* ℰ) ℬ)))
+           (values (⊔/m δσ δσ*) As* ℐs*)]))))
+   (⟦eₓ⟧ G σ ρ* Γ 𝒳)))
 
 (: ↝.set! : Symbol → -⟦e⟧ → -⟦e⟧)
 (define (((↝.set! x) ⟦e⟧) G σ ρ Γ 𝒳)

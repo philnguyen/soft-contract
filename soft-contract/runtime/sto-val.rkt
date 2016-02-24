@@ -253,6 +253,12 @@
                            (Listof (Pairof (Listof Symbol) -⟦e⟧))
                            -⟦e⟧
                            Mon-Party)
+            (-ℰ.letrec-values (℘ Symbol)
+                              -ρ
+                              (Pairof (Listof Symbol) -ℰ)
+                              (Listof (Pairof (Listof Symbol) -⟦e⟧))
+                              -⟦e⟧
+                              Mon-Party)
             (-ℰ.set! Symbol -ℰ)
             (-ℰ.μ/c Integer -ℰ)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
