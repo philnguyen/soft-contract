@@ -17,9 +17,14 @@
 (define (Γ+ [Γ : -Γ] [s : -s])
   (if s (set-add Γ s) Γ))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Aliasing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; Mapping remembering the "canonicalization" of a variable in terms of the lexically farthest possible variable(s)
 (define-type -𝒳 (HashTable Symbol -e))
-(define ⊤𝒳 : -𝒳 (hash)) ; the more it grows, the more precise
+(define ⊤𝒳 : -𝒳 (hasheq)) ; the more it grows, the more precise
 
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
 (define (canonicalize [𝒳 : -𝒳] [x : Symbol])

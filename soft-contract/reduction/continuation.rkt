@@ -250,8 +250,8 @@
            (define α (-α.x x Γ))
            (values (⊔ δσ α V) (ρ+ ρ* x α)))]
         [_ (error 'ap "TODO: varargs")]))
-    (define 𝒳* (for/hash : -𝒳 ([x xs] [s sₓs] #:when s) (values x s)))
-    (values δσ ∅ {set (-ℐ (-ℋ Γ 𝒳 sₕ 𝒳* '□) (-ℬ ⟦e⟧ ρ*))}))
+    (define bnds (map (inst cons Symbol -s) xs sₓs))
+    (values δσ ∅ {set (-ℐ (-ℋ Γ 𝒳 sₕ bnds '□) (-ℬ ⟦e⟧ ρ*))}))
   
   (match Vₕ
     [(-Clo xs ⟦e⟧ ρ) (ap/β xs ⟦e⟧ ρ)]

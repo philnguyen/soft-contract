@@ -4,7 +4,7 @@
 
 (require
  racket/match racket/set
- "../utils/main.rkt" "../ast/definition.rkt" "../runtime/main.rkt" "continuation.rkt")
+ "../utils/main.rkt" "../ast/definition.rkt" "../runtime/main.rkt" "../proof-relation/main.rkt" "continuation.rkt")
 
 (: ev* : -G -M -Ξ -σ (℘ -ℬ) → (Values -ΔM -ΔΞ -Δσ))
 (define (ev* G M Ξ σ ℬs)
@@ -28,12 +28,23 @@
 (define (co G M Ξ σ Co)
   (match-define (-Co (-ℛ ℬ ℋ) As) Co)
   (match-define (-ℬ _ ρ) ℬ)
-  (match-define (-ℋ Γ 𝒳 f 𝒳* ℰ) ℋ)
+  (match-define (-ℋ Γ 𝒳 f bnds ℰ) ℋ)
 
   (define As* : (Setof -A)
-    (begin
+    (let ()
       (printf "TODO: use `Γ`, `f`, and `𝒳*` to filter out spurious returns~n")
-      As))
+      
+      (define args (map (inst cdr Symbol -s) bnds))
+      (define fargs (apply -?@ f args))
+      (map/set
+       (match-lambda
+         [(-A _ res)
+          (-A
+           Γ
+           (match res
+             [(-W Vs s) (-W Vs (and s fargs (-γ fargs)))]
+             [blm blm]))])
+       As)))
   
   (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) G σ ρ Γ 𝒳)))
 
@@ -79,14 +90,15 @@
      (λ (G σ ρ Γ 𝒳)
        (define s (canonicalize 𝒳 x))
        (define As
-         (for/set: : (℘ -A) ([V (σ@ σ (ρ@ ρ x))])
-           (printf "TODO: use path condition to remove spurious lookup~n")
-           (define A
+         (for*/set: : (℘ -A) ([V (σ@ σ (ρ@ ρ x))]
+                              [W (in-value (-W (list V) s))]
+                              #:unless (spurious? G σ Γ W))
+           (define res
              (case V
                [(undefined) ; FIXME hack
                 (-blm 'TODO 'Λ (-st-p (-struct-info (-id 'defined 'Λ) 1 ∅)) (list 'undefined))]
-               [else (-W (list V) s)]))
-           (-A Γ A)))
+               [else W]))
+           (-A Γ res)))
        (values ⊥σ As ∅))]
     [(and ref (-ref (and id (-id name l-from)) l-ctx pos))
      (λ (G σ ρ Γ 𝒳)

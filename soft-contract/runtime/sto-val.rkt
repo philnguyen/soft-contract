@@ -15,7 +15,7 @@
 (define-type -σ (HashTable -α (℘ -V)))
 (define-type -Δσ -σ)
 (define ⊥σ : -σ (hash))
-(define σ@ : (-σ -α → (℘ -V)) hash-ref)
+(define σ@ : (-σ -α → (℘ -V)) m@)
 
 ;; Look up store for exactly 1 value
 (define (σ@¹ [σ : -σ] [α : -α])
@@ -48,7 +48,7 @@
 (define-type -Ξ (HashTable -ℬ (℘ -ℛ)))
 (define-type -ΔΞ -Ξ)
 (define ⊥Ξ : -Ξ (hash))
-(define Ξ@ : (-Ξ -ℬ → (℘ -ℛ)) hash-ref)
+(define Ξ@ : (-Ξ -ℬ → (℘ -ℛ)) m@)
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(ℬ ℛs) Ξ])
@@ -62,7 +62,7 @@
 (define-type -M (HashTable -ℬ (℘ -A)))
 (define-type -ΔM -M)
 (define ⊥M : -M (hash))
-(define M@ : (-M -ℬ → (℘ -A)) hash-ref)
+(define M@ : (-M -ℬ → (℘ -A)) m@)
 
 (define (show-M [M : -M]) : (Listof Sexp)
   (for/list ([(ℬ As) M])
@@ -73,10 +73,22 @@
 ;;;;; Path condition store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(struct -G.key ([expr : -γ] [ctx : -ρ]) #:transparent)
+(struct -G.val ([cnd : -Γ] [res : -s] [renaming : -𝒳]) #:transparent)
+
 ;; Map path-condition address to possible path-condition, result, and renaming
-(define-type -G (HashTable (Pairof -γ -ρ) (℘ (List -Γ -s -𝒳))))
+(define-type -G (HashTable -G.key (℘ -G.val)))
 (define ⊥G : -G (hash))
-(define G@ : (-G (Pairof -γ -ρ) → (℘ (List -Γ -s -𝒳))) hash-ref)
+(define G@ : (-G -G.key → (℘ -G.val)) hash-ref) ; looking up something not there is an error
+
+(define (show-G [G : -G]) : (Listof Sexp)
+  (for/list ([(k vs) G])
+    (match-define (-G.key γ ρ) k)
+    `(,(show-γ γ) ,(show-ρ ρ)
+      ↦
+      ,@(for/list : (Listof Sexp) ([v vs])
+          (match-define (-G.val Γ s 𝒳) v)
+          `(,(show-Γ Γ) ,(show-s s) ,(show-𝒳 𝒳))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -163,7 +175,7 @@
     [(-b b) (show-b b)]
     [(-●) '●]
     [(? -o? o) (show-o o)]
-    [(-Clo xs _ _) `(λ ,(show-formals xs) …)]
+    [(-Clo xs ⟦e⟧ ρ) `(Clo ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
     [(-Ar guard (cons α s) l³) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St/checked s γs _ α)
@@ -178,7 +190,7 @@
     [(-Not/C γ) `(not/c ,(show-α γ))]
     [(-Vectorof γ) `(vectorof ,(show-α γ))]
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
-    [(-=>i doms rst _ ρ)
+    [(-=>i doms rst ⟦d⟧ ρ)
      (define-values (xs cs)
        (for/lists ([xs : (Listof Symbol)] [cs : (Listof -s)])
                   ([dom : (Pairof Symbol -α.dom) doms])
@@ -188,12 +200,12 @@
        [#f
         `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
                  `(,x ,(show-s c)))
-              (res ,xs …))]
+              (res ,xs ,(show-⟦e⟧ ⟦d⟧)))]
        [(cons x* (and γ* (-α.rst c*)))
         `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
                  `(,x ,(show-s c)))
               #:rest (,x* ,(if (-e? c*) (show-e c*) (show-α γ*)))
-              (res ,xs …))])]
+              (res ,xs ,(show-⟦e⟧ ⟦d⟧)))])]
     [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
     [(-x/C (-α.x/c x)) `(recursive-contract ,(show-x/c x))]))
@@ -248,7 +260,9 @@
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; path condition and information for converting answer's symbols
-(struct -ℋ ([pc : -Γ] [aliases : -𝒳] [f : -s] [param->arg : -𝒳] [ctx : -ℰ]) #:transparent)
+(struct -ℋ ([pc : -Γ] [aliases : -𝒳]
+            [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
+            [ctx : -ℰ]) #:transparent)
 
 (: show-ℰ ([-ℰ] [Sexp] . ->* . Sexp))
 (define (show-ℰ ℰ [in-hole '□])
@@ -273,8 +287,15 @@
        `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))])))
 
 (define (show-ℋ [ℋ : -ℋ])
-  (match-define (-ℋ Γ 𝒳 f 𝒳* ℰ) ℋ)
-  `(ℋ ,(show-Γ Γ) ,(show-𝒳 𝒳) ,(show-s f) ,(show-𝒳 𝒳*) ,(show-ℰ ℰ)))
+  (match-define (-ℋ Γ 𝒳 f bnds ℰ) ℋ)
+  `(ℋ ,(show-Γ Γ) ,(show-𝒳 𝒳) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
+
+(: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
+(define (show-bnds bnds) (map show-bnd bnds))
+
+(define (show-bnd [x-s : (Pairof Symbol -s)])
+  (match-define (cons x s) x-s)
+  `(,x ↦ ,(show-s s)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -282,6 +303,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type -⟦e⟧ (-G -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
+(define-values (show-⟦e⟧ show-⟦e⟧⁻¹) ((inst unique-name -⟦e⟧) '⟦e⟧))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -306,8 +328,8 @@
             ) #:transparent)
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ _ ρ) ℬ)
-  `(ℬ … ,(hash-keys ρ)))
+  (match-define (-ℬ ⟦e⟧ ρ) ℬ)
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ)))
 
 (define (show-Co [Co : -Co]) : Sexp
   (match-define (-Co ℛ ans) Co)

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide
- FV 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
+ fv 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
  opq-exp? α-rename)
 
 (require
@@ -13,9 +13,9 @@
 (require/typed racket/base
   [hash-empty? ((HashTable -e -e) → Boolean)])
 
-(: FV : (U -e (Listof -e)) → (Setof Symbol))
+(: fv : (U -e (Listof -e)) → (Setof Symbol))
 ;; Compute free variables for expression. Return set of variable names.
-(define (FV e)
+(define (fv e)
   (match e
     [(-x x) {set x}]
     [(-λ xs e)
@@ -23,56 +23,56 @@
        (match xs
          [(-varargs zs z) (set-add (list->set zs) z)]
          [(? list? xs) (list->set xs)]))
-     (-- (FV e) bound)]
+     (-- (fv e) bound)]
     [(-@ f xs _)
-     (for/fold ([FVs (FV f)]) ([x xs]) (∪ FVs (FV x)))]
-    [(-begin es) (FV es)]
-    [(-begin0 e₀ es) (∪ (FV e₀) (FV es))]
+     (for/fold ([FVs (fv f)]) ([x xs]) (∪ FVs (fv x)))]
+    [(-begin es) (fv es)]
+    [(-begin0 e₀ es) (∪ (fv e₀) (fv es))]
     [(-let-values bnds e _)
      (define-values (bound FV_rhs)
        (for/fold ([bound : (Setof Symbol) ∅] [FV_rhs : (Setof Symbol) ∅]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
-         (values (set-add-list bound xs) (∪ FV_rhs (FV rhs)))))
-     (∪ FV_rhs (-- (FV e) bound))]
+         (values (set-add-list bound xs) (∪ FV_rhs (fv rhs)))))
+     (∪ FV_rhs (-- (fv e) bound))]
     [(-letrec-values bnds e _)
      (define bound
        (for/fold ([bound : (Setof Symbol) ∅]) ([bnd bnds])
          (set-add-list bound (car bnd))))
      
-     (for/fold ([xs : (Setof Symbol) (-- (FV e) bound)]) ([bnd bnds])
-       (-- (FV (cdr bnd)) bound))]
-    [(-set! x e) (set-add (FV e) x)]
-    [(-@-havoc x) (FV x)]
-    #;[(.apply f xs _) (set-union (FV f d) (FV xs d))]
-    [(-if e e₁ e₂) (∪ (FV e) (FV e₁) (FV e₂))]
+     (for/fold ([xs : (Setof Symbol) (-- (fv e) bound)]) ([bnd bnds])
+       (-- (fv (cdr bnd)) bound))]
+    [(-set! x e) (set-add (fv e) x)]
+    [(-@-havoc x) (fv x)]
+    #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
+    [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
     [(-amb es)
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
-       (∪ xs (FV e)))]
-    [(-μ/c _ e) (FV e)]
+       (∪ xs (fv e)))]
+    [(-μ/c _ e) (fv e)]
     [(-->i doms rst rng _)
      (define-values (bound FV_dom)
        (for/fold ([bound : (Setof Symbol) ∅] [FV_dom : (Setof Symbol) ∅]) ([dom doms])
          (match-define (cons x c) dom)
-         (values (set-add bound x) (∪ FV_dom (FV c)))))
+         (values (set-add bound x) (∪ FV_dom (fv c)))))
      (∪ FV_dom
-        (if rst (FV (cdr rst)) ∅)
-        (-- (FV rng) (if rst (set-add bound (car rst)) bound)))]
+        (if rst (fv (cdr rst)) ∅)
+        (-- (fv rng) (if rst (set-add bound (car rst)) bound)))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
-       (∪ xs (FV c)))]
+       (∪ xs (fv c)))]
     [(? list? l)
      (for/fold ([xs : (Setof Symbol) ∅]) ([e l])
-       (∪ xs (FV e)))]
+       (∪ xs (fv e)))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅]))
 
 (module+ test
   (require typed/rackunit)
   
-  (check-equal? (FV -tt) ∅)
-  (check-equal? (FV (-λ '(x) (-x 'x))) ∅)
-  (check-equal? (FV (-x 'x)) {set 'x})
-  (check-equal? (FV (-ref (-id 'cons 'Λ) 'l 0)) ∅)
-  (check-equal? (FV (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) -Λ)))) {set 'f}))
+  (check-equal? (fv -tt) ∅)
+  (check-equal? (fv (-λ '(x) (-x 'x))) ∅)
+  (check-equal? (fv (-x 'x)) {set 'x})
+  (check-equal? (fv (-ref (-id 'cons 'Λ) 'l 0)) ∅)
+  (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) -Λ)))) {set 'f}))
 
 (: 𝐴 : (U -e (Listof -e)) → (Setof Symbol))
 ;; Collect all asignable free variables
@@ -127,7 +127,7 @@
 
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
-(define (closed? e) (set-empty? (FV e)))
+(define (closed? e) (set-empty? (fv e)))
 
 (: checks# : (Rec X (U -top-level-form
                        -e
@@ -427,7 +427,7 @@
     (match xs
       [(-varargs zs z) (set-add (list->set zs) z)]
       [(? list?) (list->set xs)]))
-  (λ (e) (and (set-empty? (∩ shadows (FV e))) (f e))))
+  (λ (e) (and (set-empty? (∩ shadows (fv e))) (f e))))
 
 (: find-calls : -e (U -id -•) → (Setof (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`
@@ -453,7 +453,7 @@
 (: binder-has? : -formals (U Symbol -e) → (Option (Setof Symbol)))
 ;; returns whether a list of binding names has given name
 (define (binder-has? xs x)
-  (define FVs (if (symbol? x) {set x} (FV x)))
+  (define FVs (if (symbol? x) {set x} (fv x)))
   (define captured (∩ FVs (-formals-names xs)))
   (and (not (set-empty? captured)) captured))
 
@@ -599,3 +599,4 @@
       [(-struct/c si cs pos)
        (-struct/c si (map (curry go! m) cs) pos)]
       [_ e])))
+
