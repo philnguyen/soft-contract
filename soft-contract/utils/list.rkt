@@ -1,6 +1,8 @@
 #lang typed/racket/base
 
-(provide unzip-by unzip)
+(provide NeListof unzip-by unzip)
+
+(define-type (NeListof X) (Pairof X (Listof X)))
 
 (: unzip-by (∀ (A X Y) (A → X) (A → Y) (Listof A) → (Values (Listof X) (Listof Y))))
 ;; Given a pair of functions, split list into 2
