@@ -12,7 +12,7 @@
 ;; Return trivial answer by default.
 (define-parameter Γ⊢ₑₓₜ : (-G -σ -Γ -e → -R)
   (λ (G σ Γ e)
-    (printf "Warning: external solver not set")
+    (printf "Warning: external solver not set~n")
     '?))
 
 (: GσΓ⊢V∈C : -G -σ -Γ -W¹ -W¹ → -R)
@@ -55,7 +55,7 @@
              (define Rs (map/set (curry go (- d 1)) Γs))
              (cond
                [(equal? Rs {set '✓}) '✓]
-               [(equal? Rs {set 'X }) 'X ]
+               [(equal? Rs {set '✗ }) '✗ ]
                [else '?])])])]
       [R R]))
   |#
@@ -85,7 +85,7 @@
                      [else '?])))
                (cond
                  [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
-                 [(equal? anses {set 'X}) 'X]
+                 [(equal? anses {set '✗}) '✗]
                  [else '?])]
               [else '?])])]
         [R R]))
@@ -99,7 +99,7 @@
 (: GσΓ⊓s : -G -σ -Γ -s → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
 (define (GσΓ⊓s G σ Γ e)
-  (if (equal? 'X (GσΓ⊢s G σ Γ e)) #f (Γ+ Γ e)))
+  (if (equal? '✗ (GσΓ⊢s G σ Γ e)) #f (Γ+ Γ e)))
 
 (: GσΓ⊓ : -G -σ -Γ -es → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
@@ -120,13 +120,13 @@
         [e
          (match V
            [(or (-St s _) (-St/checked s _ _ _))
-            (equal? 'X (GσΓ⊢s G σ Γ (-?@ (-st-p (assert s)) e)))]
+            (equal? '✗ (GσΓ⊢s G σ Γ (-?@ (-st-p (assert s)) e)))]
            [(or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))
-            (equal? 'X (GσΓ⊢s G σ Γ (-?@ 'vector? e)))]
+            (equal? '✗ (GσΓ⊢s G σ Γ (-?@ 'vector? e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
-            (equal? 'X (GσΓ⊢s G σ Γ (-?@ 'procedure? e)))]
+            (equal? '✗ (GσΓ⊢s G σ Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
-            (equal? 'X (GσΓ⊢s G σ Γ (-?@ 'p? e)))] ...
+            (equal? '✗ (GσΓ⊢s G σ Γ (-?@ 'p? e)))] ...
            [(or (? -=>i?) (? -St/C?) (? -x/C?))
             (for/or : Boolean ([p : -o '(procedure? p? ...)])
               (equal? '✓ (GσΓ⊢s G σ Γ (-?@ p e))))]
