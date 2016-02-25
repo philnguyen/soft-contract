@@ -46,9 +46,7 @@
           (-A
            Γ
            (match res
-             [(-W Vs s)
-              (define γ (and s fargs (-γ (assert f) (cast args (Listof -e)) 𝒳*)))
-              (-W Vs γ)]
+             [(-W Vs s) (-W Vs (and s fargs))]
              [blm blm]))])
        As)))
   

@@ -95,12 +95,7 @@
              [pos : Integer])
             (-x/c.tmp Symbol) ; hack
             (-x/c Integer)
-            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer])
-
-            ;; Hack for use as path-condition address. Not for use as a normal program expression
-            (-γ [fun : -e]
-                [args : (Listof -e)]
-                [renaming : (HashTable Symbol -e)]))
+            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
 
 (-v . ::= . -prim
             (-λ -formals -e)
@@ -375,8 +370,7 @@
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)
-     `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]
-    [(-γ f xs 𝒳) `(,(show-e f) ,@(map show-e xs))]))
+     `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
@@ -385,8 +379,6 @@
   (match-define (-module path forms) m)
   `(module ,path
     ,@(map show-module-level-form forms)))
-
-
 
 (define (show/c [s : Symbol]) : Symbol
   (string->symbol (format "~a/c" s)))
