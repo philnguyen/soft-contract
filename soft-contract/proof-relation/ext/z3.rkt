@@ -12,18 +12,18 @@
  "../result.rkt")
 
 ;; Query external solver for provability relation
-(: z3⊢ : -G -σ -Γ -e → -R)
-(define (z3⊢ G σ Γ e)
-  (match (Γe->Z3 G σ Γ e)
+(: z3⊢ : -M -σ -Γ -e → -R)
+(define (z3⊢ M σ Γ e)
+  (match (Γe->Z3 M σ Γ e)
     [(list decls prems concl)
      ;(printf "Γ: ~a~ntranslates to~n~a~n~a~n~a~n" (show-Γ Γ) decls prems concl)
      (call-with decls prems concl)]
     [#f '?]))
 
-(: get-model : -G -σ -Γ → (Option (HashTable -e Base)))
+(: get-model : -M -σ -Γ → (Option (HashTable -e Base)))
 ;; Generate a model for given path invariant
-(define (get-model G σ Γ)
-  (define-values (decls props) (Γ->Z3 G σ Γ))
+(define (get-model M σ Γ)
+  (define-values (decls props) (Γ->Z3 M σ Γ))
   (match (check-sat decls props #:produce-model? #t)
     ['Unsat (error 'get-model "unsat")]
     ['Unknown (error 'get-model "unknown")]
@@ -37,24 +37,24 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: Γe->Z3 : -G -σ -Γ -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
+(: Γe->Z3 : -M -σ -Γ -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
 ;; Translate path invariant into Z3 declarations and formula
-(define (Γe->Z3 G σ Γ e)
+(define (Γe->Z3 M σ Γ e)
   (define-values (decls₀ e->dec) (Γ->decls Γ))
   (cond
-    [(exp->Z3 e->dec G σ Γ e) =>
+    [(exp->Z3 e->dec M σ Γ e) =>
      (λ ([concl : Sexp])
        (define xs-adjusted (FV-for-is_int concl))
        (define-values (decls is_int-premises) (hack-decls-for-is_int decls₀ xs-adjusted))
-       (define premises (append is_int-premises (Γ->premises e->dec G σ Γ)))
+       (define premises (append is_int-premises (Γ->premises e->dec M σ Γ)))
        (list decls premises concl))]
     [else #f]))
 
-(: Γ->Z3 : -G -σ -Γ → (Values (Listof Sexp) (Listof Sexp)))
+(: Γ->Z3 : -M -σ -Γ → (Values (Listof Sexp) (Listof Sexp)))
 ;; Translate path invariant into Z3 declarations and formula
-(define (Γ->Z3 G σ Γ)
+(define (Γ->Z3 M σ Γ)
   (define-values (decls₀ e->dec) (Γ->decls Γ))
-  (define props (Γ->premises e->dec G σ Γ))
+  (define props (Γ->premises e->dec M σ Γ))
   (define adjusted-vars-for-is_int
     (for/fold ([xs : (Setof Symbol) ∅]) ([prop props])
       (∪ xs (FV-for-is_int prop))))
@@ -152,7 +152,7 @@
                  (let ([x (exp->sym e)])
                    (cons x (hash-ref typeofs x)))))))
 
-(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) -G -σ -Γ -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
+(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) -M -σ -Γ -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
 ;; Translate restricted syntax into Z3 sexp
 (define (exp->Z3 e->dec M σ Γ e)
   ;(define-values (e* _) (⇓₁ M σ Γ e))
@@ -184,7 +184,7 @@
            [(cons x _) x]
            [#f #f])])))
 
-(: Γ->premises : (-e → (Option (Pairof Symbol Z3-Type))) -G -σ -Γ → (Listof Sexp))
+(: Γ->premises : (-e → (Option (Pairof Symbol Z3-Type))) -M -σ -Γ → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises
 (define (Γ->premises e->dec M σ Γ)
   (for*/list : (Listof Sexp) ([e Γ]

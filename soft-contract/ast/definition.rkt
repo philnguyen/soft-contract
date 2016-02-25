@@ -97,8 +97,10 @@
             (-x/c Integer)
             (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer])
 
-            ;; Hack for use as address in path-condition store. Not for use as a normal program expression
-            (-γ -e))
+            ;; Hack for use as path-condition address. Not for use as a normal program expression
+            (-γ [fun : -e]
+                [args : (Listof -e)]
+                [renaming : (HashTable Symbol -e)]))
 
 (-v . ::= . -prim
             (-λ -formals -e)
@@ -374,9 +376,7 @@
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)
      `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]
-    [(? -γ? γ) (show-γ γ)]))
-
-(define-values (show-γ show-γ⁻¹) ((inst unique-name -γ) 'γ))
+    [(-γ f xs 𝒳) `(,(show-e f) ,@(map show-e xs))]))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))

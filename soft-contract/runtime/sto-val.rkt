@@ -70,28 +70,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Path condition store
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(struct -G.key ([expr : -γ] [ctx : -ρ]) #:transparent)
-(struct -G.val ([cnd : -Γ] [res : -s] [renaming : -𝒳]) #:transparent)
-
-;; Map path-condition address to possible path-condition, result, and renaming
-(define-type -G (HashTable -G.key (℘ -G.val)))
-(define ⊥G : -G (hash))
-(define G@ : (-G -G.key → (℘ -G.val)) hash-ref) ; looking up something not there is an error
-
-(define (show-G [G : -G]) : (Listof Sexp)
-  (for/list ([(k vs) G])
-    (match-define (-G.key γ ρ) k)
-    `(,(show-γ γ) ,(show-ρ ρ)
-      ↦
-      ,@(for/list : (Listof Sexp) ([v vs])
-          (match-define (-G.val Γ s 𝒳) v)
-          `(,(show-Γ Γ) ,(show-s s) ,(show-𝒳 𝒳))))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -261,6 +239,13 @@
                               Mon-Party)
             (-ℰ.set! Symbol -ℰ)
             (-ℰ.μ/c Integer -ℰ)
+            (-ℰ.-->i (Listof (Pairof Symbol -W¹))
+                     (Pairof Symbol -ℰ)
+                     (Listof (Pairof Symbol -⟦e⟧))
+                     -⟦e⟧
+                     -e
+                     -ρ
+                     Integer)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
 
 ;; A "hole" ℋ is an evaluation context augmented with
@@ -307,7 +292,7 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-G -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
+(define-type -⟦e⟧ (-M -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
 (define-values (show-⟦e⟧ show-⟦e⟧⁻¹) ((inst unique-name -⟦e⟧) '⟦e⟧))
 
 

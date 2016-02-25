@@ -6,26 +6,26 @@
  racket/match racket/set
  "../utils/main.rkt" "../ast/definition.rkt" "../runtime/main.rkt" "../proof-relation/main.rkt" "continuation.rkt")
 
-(: ev* : -G -M -Ξ -σ (℘ -ℬ) → (Values -ΔM -ΔΞ -Δσ))
-(define (ev* G M Ξ σ ℬs)
+(: ev* : -M -Ξ -σ (℘ -ℬ) → (Values -ΔM -ΔΞ -Δσ))
+(define (ev* M Ξ σ ℬs)
   (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([ℬ ℬs])
-    (ev G M Ξ σ ℬ)))
+    (ev M Ξ σ ℬ)))
 
-(: co* : -G -M -Ξ -σ (℘ -Co) → (Values -ΔM -ΔΞ -Δσ))
-(define (co* G M Ξ σ Cos)
+(: co* : -M -Ξ -σ (℘ -Co) → (Values -ΔM -ΔΞ -Δσ))
+(define (co* M Ξ σ Cos)
   (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([Co Cos])
-    (co G M Ξ σ Co)))
+    (co M Ξ σ Co)))
 
-(: ev : -G -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
+(: ev : -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
 ;; Execute function body `ℬ`
-(define (ev G M Ξ σ ℬ)
+(define (ev M Ξ σ ℬ)
   (match-define (-ℬ ⟦e⟧ ρ) ℬ)
   ;; start of function body, so trivial path condition `⊤Γ` and aliasing `⊤𝒳`
-  (apply/values (collect M Ξ ℬ) (⟦e⟧ G σ ρ ⊤Γ ⊤𝒳)))
+  (apply/values (collect M Ξ ℬ) (⟦e⟧ M σ ρ ⊤Γ ⊤𝒳)))
 
-(: co : -G -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
+(: co : -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
 ;; Resume computation `Co`
-(define (co G M Ξ σ Co)
+(define (co M Ξ σ Co)
   (match-define (-Co (-ℛ ℬ ℋ) As) Co)
   (match-define (-ℬ _ ρ) ℬ)
   (match-define (-ℋ Γ 𝒳 f bnds ℰ) ℋ)
@@ -34,19 +34,25 @@
     (let ()
       (printf "TODO: use `Γ`, `f`, and `𝒳*` to filter out spurious returns~n")
       
+      (define 𝒳*
+        (for/hash : -𝒳 ([bnd bnds] #:when (cdr bnd))
+          (values (car bnd) (cdr bnd))))
       (define args (map (inst cdr Symbol -s) bnds))
       (define fargs (apply -?@ f args))
+      
       (map/set
        (match-lambda
          [(-A _ res)
           (-A
            Γ
            (match res
-             [(-W Vs s) (-W Vs (and s fargs (-γ fargs)))]
+             [(-W Vs s)
+              (define γ (and s fargs (-γ (assert f) (cast args (Listof -e)) 𝒳*)))
+              (-W Vs γ)]
              [blm blm]))])
        As)))
   
-  (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) G σ ρ Γ 𝒳)))
+  (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) M σ ρ Γ 𝒳)))
 
 (: ⇓ₚ : (Listof -module) -e → -⟦e⟧)
 ;; Compile list of modules
@@ -70,7 +76,10 @@
     (match d
       [(-define-values _ xs e) ((↝.def p xs) (⇓ e))]
       [(-provide _ specs) ((↝.begin (map ⇓pc specs)) ⟦void⟧)]
-      [(? -e? e) (⇓ e)]))
+      [(? -e? e) (⇓ e)]
+      [_
+       (printf "⇓d: ignore ~a~n" (show-module-level-form d))
+       ⟦void⟧]))
 
   ((↝.begin (map ⇓d ds)) ⟦void⟧))
 
@@ -86,6 +95,9 @@
     [(? -prim? p)
      (λ (G σ ρ Γ 𝒳)
        (values ⊥σ {set (-A Γ (-W (list p) p))} ∅))]
+    [(-• i)
+     (λ (G σ ρ Γ 𝒳)
+       (values ⊥σ {set (-A Γ (-W -●/Vs e))} ∅))]
     [(-x x)
      (λ (G σ ρ Γ 𝒳)
        (define s (canonicalize 𝒳 x))
@@ -109,12 +121,17 @@
           (define As
             (for/set: : (℘ -A) ([V (σ@ σ (-α.def id))])
               (define s (if (-o? V) V ref))
-              (-A ⊤Γ (-W (list V) s))))
+              (-A Γ (-W (list V) s))))
           (values ⊥σ As ∅)]
          [else
           (define Vs (σ@ σ (-α.def id)))
           (define Cs (σ@ σ (-α.ctc id)))
-          (error '⇓ "TODO: mon")]))]
+          (printf "TODO: monitor value at module 'provide' time instead~n")
+          (define As
+            (for/set: : (℘ -A) ([V (σ@ σ (-α.def id))])
+              (define s (if (-o? V) V ref))
+              (-A Γ (-W (list V) s))))
+          (values ⊥σ As ∅)]))]
     [(-@ f xs l)
      ((↝.@ '() (map ⇓ xs) l) (⇓ f))]
     [(-if e₀ e₁ e₂)
@@ -178,13 +195,19 @@
        (for/list : (Listof (Pairof Symbol -⟦e⟧)) ([dom doms])
          (match-define (cons x c) dom)
          (cons x (⇓ c))))
-     (error '⇓ "TODO -->i")
+
+     (when ⟦rng⟧
+       (printf "ignore #:rest arg for now~n"))
+
      (match ⟦dom⟧s
-       [(cons ⟦c⟧ ⟦c⟧s)
-        (error "TODO")]
-       [_
+       [(cons (cons x ⟦c⟧) ⟦dom⟧s*)
         (λ (G σ ρ Γ 𝒳)
-          (values ⊥σ {set (-A Γ (-=>i '() ))}))])]
+          (((↝.-->i '() x ⟦dom⟧s* ⟦rng⟧ rng ρ pos) ⟦c⟧) G σ ρ Γ 𝒳))]
+       [_
+        (define d (-?->i '() '() rng))
+        (λ (G σ ρ Γ 𝒳)
+          (define D (-=>i '() #f ⟦rng⟧ ρ))
+          (values ⊥σ {set (-A Γ (-W (list D) d))} ∅))])]
     [(-x/c x)
      (λ (G σ ρ Γ 𝒳)
        (define As
@@ -265,5 +288,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (ev₁ [e : -e])
-  (define-values (δM δΞ δσ) (ev ⊥G ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ e) ⊥ρ)))
+  (define-values (δM δΞ δσ) (ev ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ e) ⊥ρ)))
   (values (show-M δM) (show-Ξ δΞ) (show-σ δσ)))
