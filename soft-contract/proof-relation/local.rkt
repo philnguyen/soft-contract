@@ -314,10 +314,10 @@
             '✗]
            [else '?])]))
 
-(: Γ⊓ : -Γ -es → (Option -Γ))
+(: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
-(define (Γ⊓ Γ es)
-  (for/fold ([Γ : (Option -Γ) Γ]) ([e es])
+(define (Γ⊓ Γ Γ*)
+  (for/fold ([Γ : (Option -Γ) Γ]) ([e Γ*])
     (and Γ (Γ⊓e Γ e))))
 
 (: Γ⊓e : -Γ -s → (Option -Γ))
