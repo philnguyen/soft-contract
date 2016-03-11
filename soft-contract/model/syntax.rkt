@@ -14,7 +14,7 @@
   [•  ::= (side-condition (name • variable) (regexp-match? #rx"•.+" (symbol->string (term •))))]
   [b  ::= o n]
   [n  ::= integer]
-  [o  ::= o? add1]
+  [o  ::= o? add1 sub1]
   [o? ::= procedure? integer? not] ;; all total predicates
   [l  ::= #|blame label|# (side-condition (name l variable) (regexp-match? #rx"ℓ.+" (symbol->string (term l))))]
   [!x ::= (side-condition (name !x variable) (regexp-match? #rx"!.+" (symbol->string (term !x))))]
@@ -22,10 +22,11 @@
   [xs ::= (side-condition (name xs any) ((set/c symbol?) (term xs)))]
 
   ;; Machine (local) configuration without global stores
-  [ς ::= (E Γ κ) #|HACK|# Spurious]
+  [ς ::= (E Γ κ 𝒞) #|HACK|# Spurious]
   [E ::= (e ρ) A]
   [A ::= W blm]
   [blm ::= (blame l string)]
+  [𝒞 ::= (𝒸 n)]
 
   ;; Path-condition is set (conjunction) of:
   ;; - expression known to have evaluated to truth
@@ -58,7 +59,7 @@
   ;; A stack consists of standard frame, except the tail is an address to
   ;; the rest of the stack
   [κ ::= (φ ... τ)]
-  [φ ::= (if e e ρ) (e ρ l) (W l) (set! x α) (havoc W S) (rt Γ S [x ↦ S])]
+  [φ ::= (if e e ρ) (e ρ l) (W l) (set! x α) (havoc W S) (rt 𝒞 Γ S [x ↦ S])]
   [τ ::= (side-condition (name τ variable) (regexp-match? #rx"τ.+" (symbol->string (term τ))))]
 
   ;; Stack store maps stack address to possible resuming contexts
@@ -215,7 +216,7 @@
         (for/set ([e (Γ-props (term Γ))] #:unless (has-x? e)) e))
       (define rests
         (for*/set ([γ (Γ-rests (term Γ))]
-                   [e_x (in-value (second (third γ)))]
+                   [e_x (in-value (third (third γ)))]
                    #:unless (has-x? e_x))
           γ))
       (make-Γ e->e props rests))])
@@ -234,7 +235,7 @@
         (for/set ([e (Γ-props (term Γ))] #:unless (drop? e)) e))
       (define rests
         (for*/set ([γ (Γ-rests (term Γ))]
-                   [e_x (in-value (second (third γ)))]
+                   [e_x (in-value (third (third γ)))]
                    #:unless (drop? e_x))
           γ))
       (make-Γ e->e props rests))])
@@ -260,16 +261,23 @@
    ,(for/fold ([m (term any_m1)]) ([(k vs) (term any_m2)])
       (hash-update m k (λ (s) (set-union s vs)) set))])
 
+(define next-nat!
+  (let ([x 0])
+    (λ ()
+      (begin0 x (set! x (+ 1 x))))))
+
 ;; Smart constructor for application of symbolic values with some simplifications
 (define-metafunction λ-sym
   @S : S S -> S
   [(@S _ ... #f _ ...) #f]
   [(@S o •) (o • ℓΛ)]
   [(@S add1 n) ,(add1 (term n))]
+  [(@S sub1 n) ,(sub1 (term n))]
   [(@S integer? n) 1]
   [(@S integer? v) 0]
   [(@S procedure? n) 0]
   [(@S procedure? (add1 _)) 0]
+  [(@S procedure? (sub1 _)) 0]
   [(@S procedure? (λ _ _)) 1]
   [(@S procedure? o) 1]
   [(@S not 0) 1]
@@ -279,10 +287,41 @@
 
 (define-metafunction λ-sym
   -let : ([x e]) e e ... -> e
-  [(-let ([x e_x]) e_0 e ...) ((λ (x) (-begin e_0 e ...)) e_x ℓΛ)])
+  [(-let ([x e_x]) e_0 e ...)
+   ((λ (x) (-begin e_0 e ...)) e_x l)
+   (where l ,(string->symbol (format "ℓΛ~a" (n-sub (next-nat!)))))])
+
+(define-metafunction λ-sym
+  -let* : ([x e] ...) e e ... -> e
+  [(-let* () e ...) (-begin e ...)]
+  [(-let* ([x_1 e_1] [x_i e_i] ...) e ...)
+   (-let ([x_1 e_1]) (-let* ([x_i e_i] ...) e ...))])
 
 (define-metafunction λ-sym
   -begin : e e ... -> e
   [(-begin e) e]
   [(-begin e_0 e ...)
    (-let ([□ e_0]) (-begin e ...))])
+
+(define-metafunction λ-sym
+  -or : e e ... -> e
+  [(-or e) e]
+  [(-or e_1 e ...) (if e_1 1 (-or e ...))])
+
+(define-metafunction λ-sym
+  -and : e e ... -> e
+  [(-and e) e]
+  [(-and e_1 e ...) (if e_1 (-and e ...) 0)])
+
+(define-values (n+ n∋ n->xs) (make-bitset))
+(define-metafunction λ-sym
+  𝒞+ : 𝒞 (e l) -> 𝒞
+  [(𝒞+ (𝒸 n) any) (𝒸 ,(n+ (term n) (term any)))])
+
+;; Return all live addresses
+#;(define-metafunction λ-sym
+  ℒ : ς σ Ξ M -> (set set)
+  [(ℒ (E Γ κ _) σ Ξ M)
+   ,(let ()
+      ;; Imperative depth-first
+      (define ))])
