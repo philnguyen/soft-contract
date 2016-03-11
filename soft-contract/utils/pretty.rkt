@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide sym-sub pretty n-sub unique-name make-nat-src make-neg-src)
+(provide sym-sub pretty n-sub make-nat-src make-neg-src)
 (require racket/pretty racket/string racket/port)
 
 (: sym-sub : Symbol → Symbol)
@@ -29,22 +29,6 @@
    [else
     (define-values (q r) (quotient/remainder n 10))
     (string-append (n-sub q) (n-sub r))]))
-
-(: unique-name (∀ (X) ([Symbol] [#:subscript? Boolean] . ->* . (Values (X → Symbol) (Symbol → X)))))
-;; Return function that computes unique name with given prefix for each object.
-;; No guarantee for consistency across different executions.
-(define (unique-name prefix #:subscript? [subscript? #t])
-  (define m : (HashTable X Symbol) (make-hash))
-  (define m⁻¹ : (HashTable Symbol X) (make-hasheq))
-  (define f : (Integer → Any) (if subscript? n-sub values))
-  (values
-   (λ (x)
-     (hash-ref! m x
-                (λ ()
-                  (define y (string->symbol (format "~a~a" prefix (f (hash-count m)))))
-                  (hash-set! m⁻¹ y x)
-                  y)))
-   (λ (y) (hash-ref m⁻¹ y))))
 
 ;; Create generator for next natural/negative
 (define (make-neg-src)

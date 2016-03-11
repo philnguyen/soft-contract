@@ -293,7 +293,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type -⟦e⟧ (-M -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
-(define-values (show-⟦e⟧ show-⟦e⟧⁻¹) ((inst unique-name -⟦e⟧) '⟦e⟧))
+(define-values (show-⟦e⟧ show-⟦e⟧⁻¹ count-⟦e⟧) ((inst unique-sym -⟦e⟧) '⟦e⟧))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -332,6 +332,15 @@
 (define (show-ℛ [ℛ : -ℛ]) : Sexp
   (match-define (-ℛ ℬ ℋ) ℛ)
   `(ℛ ,(show-ℬ ℬ) ,(show-ℋ ℋ)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Fixed
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-parameter set!-able? : (℘ (Pairof Symbol -e)) ∅)
+(define-parameter σv : (HashTable -id -V) ((inst hash -id -V)))
+(define-parameter σc : (HashTable -id -V) ((inst hash -id -V)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

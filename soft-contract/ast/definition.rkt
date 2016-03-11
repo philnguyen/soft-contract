@@ -4,7 +4,7 @@
 
 (require
  racket/match racket/set racket/function racket/extflonum 
- "../utils/untyped-macros.rkt" "../utils/sexp-stx.rkt" "../utils/def.rkt" "../utils/pretty.rkt" "../utils/set.rkt")
+ "../utils/main.rkt")
 
 ;; Parameterized begin
 (struct (X) -begin ([body : (Listof X)]) #:transparent)
@@ -271,7 +271,7 @@
 ;;;;; Pretty Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-values (show-x/c show-x/c⁻¹) ((inst unique-name Integer) 'x))
+(define-values (show-x/c show-x/c⁻¹ count-x/c) ((inst unique-sym Integer) 'x))
 
 (define (show-src-loc [loc : -src-loc]) : Symbol
   (match-define (-src-loc lab pos) loc)

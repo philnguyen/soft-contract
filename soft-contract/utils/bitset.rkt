@@ -2,25 +2,15 @@
 
 (provide make-bitset)
 
+(require "unique.rkt")
+
 (: make-bitset (∀ (X) (→ (Values (Natural X → Natural)
                                  (Natural X → Boolean)
                                  ; for debugging only
                                  (Natural → (Listof X))))))
 ;; Create a bit-set for `X`. No guarantee about consistency across multiple program runs.
 (define (make-bitset)
-  (define m   : (HashTable X Natural) (make-hash))
-  (define m⁻¹ : (HashTable Natural X) (make-hasheq))
-
-  (: x->ith : X → Natural)
-  (define (x->ith x)
-    (hash-ref! m x (λ ()
-                     (define i (hash-count m))
-                     (hash-set! m⁻¹ i x)
-                     i)))
-
-  (: ith->x : Natural → X)
-  (define (ith->x i)
-    (hash-ref m⁻¹ i (λ () (error 'ith⁻¹ "No element indexed ~a" i))))
+  (define-values (x->ith ith->x _) ((inst unique-nat X)))
 
   (: bs->xs : Natural → (Listof X))
   (define (bs->xs bs)

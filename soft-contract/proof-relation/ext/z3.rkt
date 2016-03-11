@@ -96,7 +96,7 @@
 
 ;; Convert each expression to a fresh memoized symbol
 ;; I expose this publically just for debugging
-(define-values (exp->sym sym->exp) ((inst unique-name -e) 'x_ #:subscript? #f))
+(define-values (exp->sym sym->exp _) ((inst unique-sym -e) 'x_ #:transform-index values))
 
 (: Γ->decls : -Γ → (Values (Listof Sexp) (-e → (Option (Pairof Symbol Z3-Type)))))
 ;; Extract declarations from environment

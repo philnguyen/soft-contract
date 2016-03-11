@@ -46,4 +46,4 @@
   (for/list ([i n] [?e args])
     (-α.fld (or ?e (list id pos i)))))
 
-(define-values (show-α show-α⁻¹) ((inst unique-name -α) 'α))
+(define-values (show-α show-α⁻¹ count-α) ((inst unique-sym -α) 'α))
