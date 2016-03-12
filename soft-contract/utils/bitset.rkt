@@ -10,7 +10,7 @@
                                  (Natural → (Listof X))))))
 ;; Create a bit-set for `X`. No guarantee about consistency across multiple program runs.
 (define (make-bitset)
-  (define-values (x->ith ith->x _) ((inst unique-nat X)))
+  (define-values (x->ith ith->x _) ((inst unique-nat X) #:hacked-warning 4096))
 
   (: bs->xs : Natural → (Listof X))
   (define (bs->xs bs)
