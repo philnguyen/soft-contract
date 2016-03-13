@@ -8,8 +8,7 @@
 (require
  racket/match racket/bool racket/list racket/math racket/flonum racket/extflonum
  racket/string racket/function
- "../utils/main.rkt" "../ast/definition.rkt"
- "path-condition.rkt"
+ "../utils/main.rkt" "../ast/definition.rkt" "sto-val.rkt"
  (for-syntax
   racket/base racket/contract racket/match racket/list racket/function
   "../utils/main.rkt"
@@ -201,23 +200,10 @@
   (and (andmap (inst values -s) fields)
        (-struct/c s (cast fields (Listof -e)) 0)))
 
-(: -?->i : (Listof Symbol) (Listof -s) -s -> (Option -->i))
-(define (-?->i xs ?cs d)
-  (define cs (check-ss ?cs))
-  (and d
-       cs
-       (-->i (map (inst cons Symbol -e) xs cs) #f d 0)))
-
-(: -?->i* : (Listof Symbol) (Listof -s) Symbol -s -s -> (Option -->i))
-(define (-?->i* xs ?cs x-rst c-rst d)
-  (define cs (check-ss ?cs))
-  (and d
-       cs
-       c-rst
-       (-->i (map (inst cons Symbol -e) xs cs)
-             (cons x-rst c-rst)
-             d
-             0)))
+(: -?->i : (Listof -s) (Option -λ) -> (Option -->i))
+(define (-?->i cs mk-d)
+  (define cs* (check-ss cs))
+  (and mk-d cs* (-->i cs* mk-d 0)))
 
 (: split-values : -s Natural → (Listof -s))
 ;; Split a pure expression `(values e ...)` into `(e ...)`

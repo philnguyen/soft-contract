@@ -67,6 +67,8 @@
 ;; Check if `e` evals to truth given `M`
 (define (Γ⊢e Γ e)
 
+  (match-define (-Γ facts _ _) Γ)
+
   (: ⊢e : -e → -R)
   ;; Check if expression returns truth
   (define (⊢e e)
@@ -74,7 +76,7 @@
       [(-b b) (if b '✓ '✗)]
       [(? -•?) '?]
       [(? -v?) '✓]
-      [x #:when (∋ Γ x) '✓]
+      [x #:when (∋ facts x) '✓]
       [(-@ f xs _) (⊢@ f xs)]
       [_ '?]))
 
@@ -199,7 +201,7 @@
       [e
        (first-R (⊢e e)
                 (for*/fold ([R : -R '?])
-                           ([e₀ Γ] #:when (equal? '? R)
+                           ([e₀ facts] #:when (equal? '? R)
                             [R* (in-value (e⊢e e₀ e))])
                   R*))]
       [else '?]))
@@ -317,8 +319,8 @@
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
 (define (Γ⊓ Γ Γ*)
-  (for/fold ([Γ : (Option -Γ) Γ]) ([e Γ*])
-    (and Γ (Γ⊓e Γ e))))
+  (for/fold ([Γ : (Option -Γ) Γ]) ([φ (-Γ-facts Γ*)])
+    (and Γ (Γ⊓e Γ φ))))
 
 (: Γ⊓e : -Γ -s → (Option -Γ))
 ;; Refine path invariant with expression.
@@ -331,7 +333,7 @@
 (: most-specific-pred : -Γ -e → -o)
 ;; Return the most specific predicate in path-invariant describing given expression
 (define (most-specific-pred Γ e)
-  (for/fold ([best : -o 'any/c]) ([φ Γ])
+  (for/fold ([best : -o 'any/c]) ([φ (-Γ-facts Γ)])
     (match φ
       [(-@ (? -o? o) (list (== e)) _) #:when (equal? '✓ (p⇒p o best))
        o]
@@ -349,7 +351,7 @@
   (check-✓ (p∋Vs 'integer? (-b 1)))
   (check-✓ (p∋Vs 'real? (-b 1)))
   (check-✓ (p∋Vs 'number? (-b 1)))
-  (check-✓ (p∋Vs 'procedure? (-Clo '(x) (λ _ (⊥ans)) ⊥ρ)))
+  (check-✓ (p∋Vs 'procedure? (-Clo '(x) (λ _ (⊥ans)) ⊥ρ ⊤Γ)))
   (check-✓ (p∋Vs 'procedure? 'procedure?))
   (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld -tt) (-α.fld -ff)))))
   (check-✗ (p∋Vs 'number? (-St -s-cons (list (-α.fld -ff) (-α.fld -tt)))))

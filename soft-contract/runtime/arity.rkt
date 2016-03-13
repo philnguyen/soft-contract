@@ -22,9 +22,10 @@
         [(? list? xs) (length xs)]))
 
     (define (guard-arity [guard : -=>i]) : Arity
-      (match-define (-=>i doms rst _ _) guard)
-      (define n (length doms))
-      (if rst (arity-at-least n) n))
+      (match-define (-=>i _ (-Clo xs _ _ _)) guard)
+      (match xs
+        [(? list? xs) (length xs)]
+        [(-varargs xs _) (arity-at-least (length xs))]))
 
     (define arity-table
       (for/fold ([m : (HashTable Symbol Arity) (hasheq)]) ([dec prims:prims])
@@ -48,7 +49,7 @@
           [_ m])))
 
     (match-lambda
-      [(-Clo xs _ _) (formals-arity xs)]
+      [(-Clo xs _ _ _) (formals-arity xs)]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _)) 1]
       [(-Ar guard _ _) (guard-arity guard)]
       [(? -st-p?) 1]
