@@ -6,7 +6,9 @@
 (require/typed racket/syntax
   [format-symbol (String Any * → Symbol)])
 
-(: unique-nat (∀ (X) ([] [#:hacked-warning (Option Natural)] . ->* . (Values (X → Natural) (Natural → X) (→ Natural)))))
+(: unique-nat (∀ (X) ([] [#:hacked-warning (Option Natural)]
+                      . ->* .
+                      (Values (X → Natural) (Natural → X) (→ Natural)))))
 ;; Return a bijection between `X` and ℤ.
 ;; No guarantee of consistency across multiple program runs.
 (define (unique-nat #:hacked-warning [N #f])
