@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide
- fv 𝐴 closed? checks# count-xs free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
+ fv 𝐴 closed? checks# free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
  opq-exp? α-rename)
 
 (require
@@ -49,14 +49,7 @@
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (fv e)))]
     [(-μ/c _ e) (fv e)]
-    [(-->i doms rst rng _)
-     (define-values (bound FV_dom)
-       (for/fold ([bound : (Setof Symbol) ∅] [FV_dom : (Setof Symbol) ∅]) ([dom doms])
-         (match-define (cons x c) dom)
-         (values (set-add bound x) (∪ FV_dom (fv c)))))
-     (∪ FV_dom
-        (if rst (fv (cdr rst)) ∅)
-        (-- (fv rng) (if rst (set-add bound (car rst)) bound)))]
+    [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
        (∪ xs (fv c)))]
@@ -109,14 +102,7 @@
      (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
        (∪ xs (𝐴 e)))]
     [(-μ/c _ e) (𝐴 e)]
-    [(-->i doms rst rng _)
-     (define-values (bound 𝐴_dom)
-       (for/fold ([bound : (Setof Symbol) ∅] [𝐴_dom : (Setof Symbol) ∅]) ([dom doms])
-         (match-define (cons x c) dom)
-         (values (set-add bound x) (∪ 𝐴_dom (𝐴 c)))))
-     (∪ 𝐴_dom
-        (if rst (𝐴 (cdr rst)) ∅)
-        (-- (𝐴 rng) (if rst (set-add bound (car rst)) bound)))]
+    [(-->i cs mk-d _) (apply ∪ (𝐴 mk-d) (map 𝐴 cs))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
        (∪ xs (𝐴 c)))]
@@ -161,60 +147,12 @@
        (checks# e))]
    [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
    [(-μ/c _ c) (checks# c)]
-   [(-->i cs r d _)
-    (+ (checks# ((inst map -e (Pairof Symbol -e)) cdr cs))
-       (if r (checks# (cdr r)) 0)
-       (checks# d))]
+   [(-->i cs mk-d _) (+ (checks# cs) (checks# mk-d))]
    [(-struct/c _ cs _) (checks# cs)]
 
    [(-module _ body) (checks# body)]
    ;; FIXME count up for primitives
    [_ 0]))
-
-(: count-xs : (U -e (Listof -e)) Symbol → Integer)
-;; Count free occurences of variable with given name in expression(s)
-(define (count-xs e x)
-  (match e
-    [(-x z) (if (equal? z x) 1 0)]
-    [(-λ xs e) (if (binder-has? xs x) 0 (count-xs e x))]
-    [(-case-λ clauses)
-     (for/sum : Integer ([clause clauses])
-       (match-define (cons xs e) clause)
-       (if (binder-has? xs x) 0 (count-xs e x)))]
-    [(-@ f xs _) (+ (count-xs f x) (count-xs xs x))]
-    [(-if e e₁ e₂) (+ (count-xs e x) (count-xs e₁ x) (count-xs e₂ x))]
-    [(-wcm k v b) (+ (count-xs k x) (count-xs v x) (count-xs b x))]
-    [(-begin es) (count-xs es x)]
-    [(-let-values bnds body _)
-     (define-values (bound k)
-       (for/fold ([bound : (Setof Symbol) ∅] [k : Integer 0]) ([bnd bnds])
-         (match-define (cons xs e) bnd)
-         (values (set-add-list bound xs) (+ k (count-xs e x)))))
-     (+ k (if (set-member? bound x) 0 (count-xs body x)))]
-    [(-letrec-values bnds body _)
-     (define bound
-       (for/fold ([bound : (Setof Symbol) ∅]) ([bnd bnds])
-         (set-add-list bound (car bnd))))
-     (cond
-       [(set-member? bound x) 0]
-       [else
-        (+ (for/sum : Integer ([bnd bnds])
-             (count-xs (cdr bnd) x))
-           (count-xs body x))])]
-    [(-@-havoc (-x z)) (if (equal? z x) 1 0)]
-    [(-amb es) (for/sum : Integer ([e es]) (count-xs e x))]
-    [(-μ/c _ c) (count-xs c x)]
-    [(-->i doms rst rng _)
-     (define-values (bound k)
-       (for/fold ([bound : (Setof Symbol) (if rst (set (car rst)) ∅)]
-                  [k : Integer (if rst (count-xs (cdr rst) x) 0)])
-                 ([dom doms])
-         (match-define (cons z c) dom)
-         (values (set-add bound z) (+ k (count-xs c x)))))
-     (+ k (if (set-member? bound x) 0 (count-xs rng x)))]
-    [(-struct/c _ cs _) (count-xs cs x)]
-    [(? list? l) (for/sum : Integer ([i l]) (count-xs i x))]
-    [_ 0]))
 
 (: free-x/c : -e → (Setof Symbol))
 ;; Return all free references to recursive contracts inside term
@@ -239,10 +177,7 @@
        (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
       [(-μ/c _ c) (go c)]
-      [(-->i cs rst d _)
-       (∪ (go* ((inst map -e (Pairof Symbol -e)) cdr cs))
-          (if rst (go (cdr rst)) ∅)
-          (go d))]
+      [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
       [(-struct/c t cs _) (go* cs)]
       [(-x/c.tmp x) (set x)]
       [_ ∅]))
@@ -307,16 +242,10 @@
          [(-set! z e*) (-set! z (go m e*))]
          [(-amb es) (-amb (map/set (curry go m) es))]
          [(-μ/c z c) (-μ/c z (go m c))]
-         [(-->i doms rst rng p)
-          (define-values (xs cs)
-            (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
-                       ([dom doms])
-              (values (car dom) (go m (cdr dom)))))
-          (define rng* (go (shrink m (if rst (cons (car rst) xs) xs)) rng))
-          (-->i (map (inst cons Symbol -e) xs cs)
-                (and rst (cons (car rst) (go m (cdr rst))))
-                rng*
-                p)]
+         [(-->i cs mk-d pos)
+          (-->i (map (curry go m) cs)
+                (assert (go m mk-d) -λ?)
+                pos)]
          [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" (show-e e))
@@ -368,16 +297,10 @@
          [(-set! z e*) (-set! z (go f e*))]
          [(-amb es) (-amb (map/set (curry go f) es))]
          [(-μ/c z c) (-μ/c z (go f c))]
-         [(-->i doms rst rng p)
-          (define-values (xs cs)
-            (for/lists ([xs : (Listof Symbol)] [cs : (Listof -e)])
-                       ([dom doms])
-              (values (car dom) (go f (cdr dom)))))
-          (define rng* (go (shrink-f f (if rst (cons (car rst) xs) xs)) rng))
-          (-->i (map (inst cons Symbol -e) xs cs)
-                (and rst (cons (car rst) (go f (cdr rst))))
-                rng*
-                p)]
+         [(-->i cs mk-d pos)
+          (-->i (map (curry go f) cs)
+                (assert (go f mk-d) -λ?)
+                pos)]
          [(-struct/c t cs p) (-struct/c t (map (curry go f) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" e)
@@ -407,8 +330,8 @@
       [(-set! z e*) (-set! z (go e*))]
       [(-amb es) (-amb (map/set go es))]
       [(-μ/c z e*) (if (= z x) e (-μ/c z (go e*)))]
-      [(-->i doms rst rng pos)
-       (-->i (map (inst go-bnd Symbol) doms) (and rst (go-bnd rst)) (go rng) pos)]
+      [(-->i cs mk-d pos)
+       (-->i (map go cs) (assert (go mk-d) -λ?) pos)]
       [(-struct/c si cs pos) (-struct/c si (map go cs) pos)]
       [(-x/c z) (if (= z x) c e)]
       [_
@@ -580,22 +503,10 @@
       [(-@-havoc (-x x)) (-@-havoc (-x (hash-ref m x)))]
       [(-amb es) (-amb (map/set (curry go! m) es))]
       [(-μ/c x c) (-μ/c x (go! m c))]
-      [(-->i doms rst rng pos)
-       (define-values (m₁ dom*-rev)
-         (for/fold ([m* : S->S m] [doms* : (Listof (Pairof Symbol -e)) '()])
-                   ([dom doms])
-           (match-define (cons x c) dom)
-           (define-values (m** x*) (new-binder! m* x))
-           (define c* (go! m c))
-           (values m** (cons (cons x* c*) doms*))))
-       (define-values (m₂ rst*)
-         (match rst
-           [#f (values m₁ #f)]
-           [(cons x c)
-            (let-values ([(m₂ x*) (new-binder! m₁ x)])
-              (values m₂ (cons x* (go! m c))))]))
-       (define rng* (go! m₂ rng))
-       (-->i (reverse dom*-rev) rst* rng* pos)]
+      [(-->i cs mk-d pos)
+       (-->i (map (curry go! m) cs)
+             (assert (go! m mk-d) -λ?)
+             pos)]
       [(-struct/c si cs pos)
        (-struct/c si (map (curry go! m) cs) pos)]
       [_ e])))

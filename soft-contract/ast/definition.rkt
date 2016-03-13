@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require
- racket/match racket/set racket/function racket/extflonum 
+ racket/match racket/set racket/list racket/function racket/extflonum 
  "../utils/main.rkt")
 
 ;; Parameterized begin
@@ -88,11 +88,7 @@
             
             ;; contract stuff
             (-μ/c Integer -e)
-            (-->i
-             [dom : (Listof (Pairof Symbol -e))]
-             [rest-dom : (Option (Pairof Symbol -e))]
-             [rng : -e]
-             [pos : Integer])
+            (-->i [doms : (Listof -e)] [rng : -λ] [pos : Integer])
             (-x/c.tmp Symbol) ; hack
             (-x/c Integer)
             (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
@@ -158,22 +154,25 @@
 
 (: --> : Symbol (Listof -e) -e → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
+;; TODO: *special* construct for non-dependent contract with eagerly evaluated range
 (define (--> prefix cs d)
-  (define doms
-    (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
+  (define-values (doms xs)
+    (for/lists ([doms : (Listof -e)] [xs : (Listof Symbol)])
+               ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "~a•~a" prefix (n-sub i)))) ; hack
-      (cons x c)))
-  (-->i doms #f d (next-loc!)))
+      (values c x)))
+  (-->i doms (-λ xs d) (next-loc!)))
 
 (: -->* : (Listof -e) -e -e → -e)
-;; Make a non-dependnet vararg contract
+;; Make a non-dependent vararg contract
 (define (-->* cs rst d)
-  (define doms
-    (for/list : (Listof (Pairof Symbol -e)) ([(c i) (in-indexed cs)])
+  (define-values (doms xs)
+    (for/lists ([doms : (Listof -e)] [xs : (Listof Symbol)])
+               ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "v•~a" (n-sub i))))
-      (cons x c)))
+      (values c x)))
   (define x-rst (string->symbol (format "rst•~a" (n-sub (length cs)))))
-  (-->i doms (cons x-rst rst) d (next-loc!)))
+  (-->i (append doms (list rst)) (-λ (-varargs xs x-rst) d) (next-loc!)))
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
@@ -363,10 +362,18 @@
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
     [(-μ/c x c) `(μ/c (,(show-x/c x)) ,(show-e c))]
-    [(-->i doms _ rng _) `(,@(for/list : (Listof Sexp) ([dom doms])
-                               (match-define (cons x c) dom)
-                               `(,x : ,(show-e c)))
-                           ↦ ,(show-e rng))]
+    [(-->i cs (-λ xs d) _)
+     (match xs
+       [(? list? xs)
+        `(,@(for/list : (Listof Sexp) ([c cs] [x xs])
+              `(,x : ,(show-e c)))
+          ↦ ,(show-e d))]
+       [(-varargs xs₀ x)
+        (define-values (cs₀ c) (split-at cs (length xs₀)))
+        `(,@(for/list : (Listof Sexp) ([c cs₀] [x xs₀])
+              `(,x : ,(show-e c)))
+          #:rest `(,x : ,(show-e c))
+          ↦ ,(show-e d))])]
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)

@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require
- racket/match racket/set
+ racket/match racket/set racket/list
  "../utils/main.rkt" "../ast/main.rkt"
  "path-condition.rkt" "addr.rkt" "env.rkt")
 
@@ -17,16 +17,17 @@
 (define ⊥σ : -σ (hash))
 (define σ@ : (-σ -α → (℘ -V)) m@)
 
-;; Look up store for exactly 1 value
+;; Look up store expecting exactly 1 value
 (define (σ@¹ [σ : -σ] [α : -α])
   (define Vs (hash-ref σ α))
   (match (set-count Vs)
     [1 (set-first Vs)]
     [n
-     (error 'σ@¹ "expect store to have exactly 1 value at address ~a, found ~a: ~a~n"
+     (error 'σ@¹ "expect exactly 1 value at address ~a, found ~a: ~a~n"
             (show-α α) n (set-map Vs show-V))]))
 
 (: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
+;; Look up store at addresses. Return all possible combinations
 (define (σ@/list σ αs)
   (match αs
     [(cons α αs*)
@@ -35,10 +36,6 @@
      (for*/set: : (℘ (Listof -V)) ([V Vs] [Vs Vss])
        (cons V Vs))]
     ['() {set '()}]))
-
-(define (show-σ [σ : -σ]) : (Listof Sexp)
-  (for/list ([(α Vs) σ])
-    `(,(show-α α) ↦ ,@(set-map Vs show-V))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -50,10 +47,6 @@
 (define ⊥Ξ : -Ξ (hash))
 (define Ξ@ : (-Ξ -ℬ → (℘ -ℛ)) m@)
 
-(define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
-  (for/list ([(ℬ ℛs) Ξ])
-    `(,(show-ℬ ℬ) ↦ ,@(set-map ℛs show-ℛ))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Memo Table
@@ -63,10 +56,6 @@
 (define-type -ΔM -M)
 (define ⊥M : -M (hash))
 (define M@ : (-M -ℬ → (℘ -A)) m@)
-
-(define (show-M [M : -M]) : (Listof Sexp)
-  (for/list ([(ℬ As) M])
-    `(,(show-ℬ ℬ) ↦ ,@(set-map As show-A))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -85,7 +74,7 @@
             (-Vector/checked [contracts : (Listof -α.vector/c)] [mon : Mon-Info] [unchecked : -α.vct])
             (-Vector/same [contract : -α.vectorof] [mon : Mon-Info] [unchecked : -α.vct])
             ;; Functions
-            (-Clo -formals -⟦e⟧ -ρ)
+            (-Clo -formals -⟦e⟧ -ρ -Γ)
             (-Ar [#|ok, no recursion|# guard : -=>i] [v : (Pairof -α -s)] [l³ : Mon-Info])
             ;; Contracts
             ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
@@ -96,11 +85,7 @@
             (-Vectorof -α.vectorof)
             (-Vector/C (Listof -α.vector/c))
             (-St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
-            (-=>i
-              [doms : (Listof (Pairof Symbol -α.dom))]
-              [rst : (Option (Pairof Symbol -α.rst))]
-              [rng : -⟦e⟧]
-              [rng-env : -ρ])
+            (-=>i [doms : (Listof -α.dom)] [#|ok, no recursion|# rng : -Clo])
             (-x/C [c : -α.x/c]))
 
 (-Res . ::= . (-W [Vs : (Listof -V)] [s : -s])
@@ -147,67 +132,6 @@
     [(? -x/C?) #t]
     [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
-(define (show-V [V : -V]) : Sexp
-  (match V
-    ['undefined 'undefined]
-    [(-b b) (show-b b)]
-    [(-●) '●]
-    [(? -o? o) (show-o o)]
-    [(-Clo xs ⟦e⟧ ρ) `(Clo ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
-    [(-Ar guard (cons α s) l³) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
-    [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
-    [(-St/checked s γs _ α)
-     `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))
-       ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
-       ▹ ,(show-α α))]
-    [(-Vector αs) `(vector ,@(map show-α αs))]
-    [(-Vector/checked γs _ α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
-    [(-Vector/same γ _ α) `(vector/same ,(show-α γ) ▹ ,(show-α α))]
-    [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
-    [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
-    [(-Not/C γ) `(not/c ,(show-α γ))]
-    [(-Vectorof γ) `(vectorof ,(show-α γ))]
-    [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
-    [(-=>i doms rst ⟦d⟧ ρ)
-     (define-values (xs cs)
-       (for/lists ([xs : (Listof Symbol)] [cs : (Listof -s)])
-                  ([dom : (Pairof Symbol -α.dom) doms])
-         (match-define (cons x (-α.dom c)) dom)
-         (values x (and (-e? c) c))))
-     (match rst
-       [#f
-        `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
-                 `(,x ,(show-s c)))
-              (res ,xs ,(show-⟦e⟧ ⟦d⟧)))]
-       [(cons x* (and γ* (-α.rst c*)))
-        `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
-                 `(,x ,(show-s c)))
-              #:rest (,x* ,(if (-e? c*) (show-e c*) (show-α γ*)))
-              (res ,xs ,(show-⟦e⟧ ⟦d⟧)))])]
-    [(-St/C _ s αs)
-     `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
-    [(-x/C (-α.x/c x)) `(recursive-contract ,(show-x/c x))]))
-
-(define (show-A [A : -A])
-  (match-define (-A Γ Res) A)
-  `(A: ,(show-Γ Γ) ,(show-Res Res)))
-
-(define (show-Res [Res : -Res]) : Sexp
-  (cond [(-W? Res) (show-W Res)]
-        [else (show-blm Res)]))
-
-(define (show-W [W : -W]) : Sexp
-  (match-define (-W Vs s) W)
-  `(,@(map show-V Vs) @ ,(show-s s)))
-
-(define (show-W¹ [W : -W¹]) : Sexp
-  (match-define (-W¹ V s) W)
-  `(,(show-V V) @ ,(show-s s)))
-
-(define (show-blm [blm : -blm]) : Sexp
-  (match-define (-blm l+ lo C Vs) blm)
-  `(blame ,l+ ,lo ,(show-V C) ,(map show-V Vs)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Evaluation context
@@ -232,68 +156,81 @@
                            -⟦e⟧
                            Mon-Party)
             (-ℰ.letrec-values (℘ Symbol)
-                              -ρ
+                              -Δρ
                               (Pairof (Listof Symbol) -ℰ)
                               (Listof (Pairof (Listof Symbol) -⟦e⟧))
                               -⟦e⟧
                               Mon-Party)
             (-ℰ.set! Symbol -ℰ)
             (-ℰ.μ/c Integer -ℰ)
-            (-ℰ.-->i (Listof (Pairof Symbol -W¹))
-                     (Pairof Symbol -ℰ)
-                     (Listof (Pairof Symbol -⟦e⟧))
-                     -⟦e⟧
-                     -e
-                     -ρ
-                     Integer)
+            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -λ Integer)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
 
 ;; A "hole" ℋ is an evaluation context augmented with
-;; path condition and information for converting answer's symbols
-(struct -ℋ ([pc : -Γ] [aliases : -𝒳]
-            [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
+;; caller's path condition and information for renaming callee's symbols
+(struct -ℋ ([pc : -Γ] [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
             [ctx : -ℰ]) #:transparent)
 
-(: show-ℰ ([-ℰ] [Sexp] . ->* . Sexp))
-(define (show-ℰ ℰ [in-hole '□])
-  (let loop ([ℰ : -ℰ ℰ])
-    (match ℰ
-      [(-ℰₚ.modules ℰ* ⟦m⟧s ⟦e⟧)
-       `(,(loop ℰ*)
-         ,(format "…~a modules…" (length ⟦m⟧s))
-         ,"…top-level…")]
-      [(-ℰ.def _ xs ℰ*)
-       (define rhs (loop ℰ*))
-       (match xs
-         [(list x) `(define        ,x  ,rhs)]
-         [_        `(define-values ,xs ,rhs)])]
-      [(-ℰ.dec id ℰ*)
-       `(provide/contract [,(-id-name id) ,(loop ℰ*)])]
-      
-      ['□ in-hole]
-      [(-ℰ.if ℰ* _ _) `(if ,(loop ℰ*) … …)]
-      [(-ℰ.@ Ws ℰ* ⟦e⟧s _) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
-      [(-ℰ.begin ℰ* ⟦e⟧s)
-       `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))])))
 
-(define (show-ℋ [ℋ : -ℋ])
-  (match-define (-ℋ Γ 𝒳 f bnds ℰ) ℋ)
-  `(ℋ ,(show-Γ Γ) ,(show-𝒳 𝒳) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Path condition
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
-(define (show-bnds bnds) (map show-bnd bnds))
+;; Symbolic value is either pure, refinable expression, or the conservative unrefinable `#f`
+(-s . ::= . -e #f)
 
-(define (show-bnd [x-s : (Pairof Symbol -s)])
-  (match-define (cons x s) x-s)
-  `(,x ↦ ,(show-s s)))
+;; Path condition is set of (pure) expression known to have evaluated to non-#f
+(struct -Γ ([facts : (℘ -e)]
+            [aliases : (HashTable Symbol -e)]
+            [tails : (℘ -ℬ)]) #:transparent)
+(define ⊤Γ (-Γ ∅ (hasheq) ∅))
+
+(: Γ+ : -Γ -s → -Γ)
+;; Strengthen path condition `Γ` with `s`
+(define (Γ+ Γ s)
+  (cond [s (match-define (-Γ φs as ts) Γ)
+           (-Γ (set-add φs s) as ts)]
+        [else Γ]))
+
+(: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
+;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
+(define (canonicalize X x)
+  (cond [(-Γ? X) (canonicalize (-Γ-aliases X) x)]
+        [else (hash-ref X x (λ () (-x x)))]))
+
+;; Return an expression canonicalizing given expression in terms of lexically farthest possible variable(s)
+(: canonicalize-e : (U -Γ (HashTable Symbol -e)) -e → -e)
+(define (canonicalize-e X e)
+  (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
+        [else
+         ((e/map (for/hash : (HashTable -e -e) ([(x e-x) X])
+                   (values (-x x) e-x)))
+          e)]))
+
+(module+ test
+  (require typed/rackunit)
+
+  (check-equal? (Γ+ ⊤Γ #f) ⊤Γ)
+  (check-equal? (canonicalize-e (hash 'x (-@ '+ (list (-b 1) (-b 2)) -Λ))
+                                (-@ '+ (list (-x 'x) (-x 'y)) -Λ))
+                (-@ '+ (list (-@ '+ (list (-b 1) (-b 2)) -Λ) (-x 'y)) -Λ)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Call history
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-type -𝒞 Natural)
+(define-type Caller-Ctx Integer)
+(define-values (𝒞₀ 𝒞+ decode-𝒞) ((inst make-indexed-set (Pairof -⟦e⟧ Caller-Ctx))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-M -σ -ρ -Γ -𝒳 → (Values -Δσ (℘ -A) (℘ -ℐ))))
-(define-values (show-⟦e⟧ show-⟦e⟧⁻¹ count-⟦e⟧) ((inst unique-sym -⟦e⟧) '⟦e⟧))
+(define-type -⟦e⟧ (-M -σ -ℬ → (Values -Δσ (℘ -A) (℘ -ℐ))))
+(define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -302,12 +239,12 @@
 
 
 ;; Evaluation "unit" / "stack address"
-(struct -ℬ ([exp : -⟦e⟧] [env : -ρ]) #:transparent)
+(struct -ℬ ([exp : -⟦e⟧] [env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
 
 ;; Continued evaluation
 (struct -Co ([cont : -ℛ] [ans : (℘ -A)]) #:transparent)
 
-;; Suspended, "intermediate" expression ℐ ≡ ℋ[ℬ]
+;; Suspended, "intermediate" expression ℐ ≃ ℋ[ℬ]
 (struct -ℐ ([hole : -ℋ] ; caller's hole
             [target : -ℬ] ; callee's context/address
             ) #:transparent)
@@ -316,22 +253,6 @@
 (struct -ℛ ([ctx : -ℬ] ; caller's context/address
             [hole : -ℋ] ; caller's continuation and path condition
             ) #:transparent)
-
-(define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ ⟦e⟧ ρ) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ)))
-
-(define (show-Co [Co : -Co]) : Sexp
-  (match-define (-Co ℛ ans) Co)
-  `(Co ,(show-ℛ ℛ) ,(set-map ans show-A)))
-
-(define (show-ℐ [ℐ : -ℐ]) : Sexp
-  (match-define (-ℐ ℋ ℬ) ℐ)
-  `(ℐ ,(show-ℋ ℋ) ,(show-ℬ ℬ)))
-
-(define (show-ℛ [ℛ : -ℛ]) : Sexp
-  (match-define (-ℛ ℬ ℋ) ℛ)
-  `(ℛ ,(show-ℬ ℬ) ,(show-ℋ ℋ)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -369,3 +290,143 @@
 
 (define-syntax-rule (⊥ans) (values ⊥σ ∅ ∅))
 (define-syntax-rule (with-Γ Γ e) (if Γ e (⊥ans)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Pretty printing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (show-σ [σ : -σ]) : (Listof Sexp)
+  (for/list ([(α Vs) σ])
+    `(,(show-α α) ↦ ,@(set-map Vs show-V))))
+
+(define (show-s [s : -s]) (if s (show-e s) '∅))
+
+(define (show-Γ [Γ : -Γ]) : (Listof Sexp)
+  (match-define (-Γ φs as ts) Γ)
+  `(,(set-map φs show-e) ‖ ,(set-map ts show-ℬ)))
+
+(define (show-𝒳 [𝒳 : -𝒳]) : (Listof Sexp)
+  (for/list ([(x e) 𝒳]) `(,x ↦ ,(show-e e))))
+
+(define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
+  (for/list ([(ℬ ℛs) Ξ])
+    `(,(show-ℬ ℬ) ↦ ,@(set-map ℛs show-ℛ))))
+
+(define (show-M [M : -M]) : (Listof Sexp)
+  (for/list ([(ℬ As) M])
+    `(,(show-ℬ ℬ) ↦ ,@(set-map As show-A))))
+
+(define (show-V [V : -V]) : Sexp
+  (match V
+    ['undefined 'undefined]
+    [(-b b) (show-b b)]
+    [(-●) '●]
+    [(? -o? o) (show-o o)]
+    [(-Clo xs ⟦e⟧ ρ _) `(Clo ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
+    [(-Ar guard (cons α s) l³) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
+    [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
+    [(-St/checked s γs _ α)
+     `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))
+       ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
+       ▹ ,(show-α α))]
+    [(-Vector αs) `(vector ,@(map show-α αs))]
+    [(-Vector/checked γs _ α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
+    [(-Vector/same γ _ α) `(vector/same ,(show-α γ) ▹ ,(show-α α))]
+    [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
+    [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
+    [(-Not/C γ) `(not/c ,(show-α γ))]
+    [(-Vectorof γ) `(vectorof ,(show-α γ))]
+    [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
+    [(-=>i γs (-Clo xs ⟦d⟧ _ _))
+     (define cs : (Listof -s)
+       (for/list ([γ : -α.dom γs])
+         (match-define (-α.dom c) γ)
+         (and (-e? c) c)))
+     (match xs
+       [(? list? xs)
+        `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
+                 `(,x ,(show-s c)))
+              (res ,xs ,(show-⟦e⟧ ⟦d⟧)))]
+       [(-varargs xs₀ x)
+        (define n (length xs₀))
+        (match-define-values (γs₀ (list γ)) (split-at γs n))
+        (match-define-values (cs₀ (list c)) (split-at cs n))
+        `(->i ,(for/list : (Listof Sexp) ([x xs₀] [γ γs₀] [c cs₀])
+                 `(,x ,(show-s c)))
+              #:rest (,x ,(if (-e? γ) (show-e γ) (show-α γ)))
+              (res ,(cons xs₀ x) ,(show-⟦e⟧ ⟦d⟧)))])]
+    [(-St/C _ s αs)
+     `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
+    [(-x/C (-α.x/c x)) `(recursive-contract ,(show-x/c x))]))
+
+(define (show-A [A : -A])
+  (match-define (-A Γ Res) A)
+  `(A: ,(show-Γ Γ) ,(show-Res Res)))
+
+(define (show-Res [Res : -Res]) : Sexp
+  (cond [(-W? Res) (show-W Res)]
+        [else (show-blm Res)]))
+
+(define (show-W [W : -W]) : Sexp
+  (match-define (-W Vs s) W)
+  `(,@(map show-V Vs) @ ,(show-s s)))
+
+(define (show-W¹ [W : -W¹]) : Sexp
+  (match-define (-W¹ V s) W)
+  `(,(show-V V) @ ,(show-s s)))
+
+(define (show-blm [blm : -blm]) : Sexp
+  (match-define (-blm l+ lo C Vs) blm)
+  `(blame ,l+ ,lo ,(show-V C) ,(map show-V Vs)))
+
+(: show-ℰ ([-ℰ] [Sexp] . ->* . Sexp))
+(define (show-ℰ ℰ [in-hole '□])
+  (let loop ([ℰ : -ℰ ℰ])
+    (match ℰ
+      [(-ℰₚ.modules ℰ* ⟦m⟧s ⟦e⟧)
+       `(,(loop ℰ*)
+         ,(format "…~a modules…" (length ⟦m⟧s))
+         ,"…top-level…")]
+      [(-ℰ.def _ xs ℰ*)
+       (define rhs (loop ℰ*))
+       (match xs
+         [(list x) `(define        ,x  ,rhs)]
+         [_        `(define-values ,xs ,rhs)])]
+      [(-ℰ.dec id ℰ*)
+       `(provide/contract [,(-id-name id) ,(loop ℰ*)])]
+      
+      ['□ in-hole]
+      [(-ℰ.if ℰ* _ _) `(if ,(loop ℰ*) … …)]
+      [(-ℰ.@ Ws ℰ* ⟦e⟧s _) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
+      [(-ℰ.begin ℰ* ⟦e⟧s)
+       `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))])))
+
+(define (show-ℋ [ℋ : -ℋ])
+  (match-define (-ℋ Γ f bnds ℰ) ℋ)
+  `(ℋ ,(show-Γ Γ) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
+
+(: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
+(define (show-bnds bnds) (map show-bnd bnds))
+
+(define (show-bnd [x-s : (Pairof Symbol -s)])
+  (match-define (cons x s) x-s)
+  `(,x ↦ ,(show-s s)))
+
+(define-values (show-⟦e⟧ show-⟦e⟧⁻¹ count-⟦e⟧) ((inst unique-sym -⟦e⟧) '⟦e⟧))
+
+(define (show-ℬ [ℬ : -ℬ]) : Sexp
+  (match-define (-ℬ ⟦e⟧ ρ Γ 𝒞) ℬ)
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ) ,𝒞 ,(show-Γ Γ)))
+
+(define (show-Co [Co : -Co]) : Sexp
+  (match-define (-Co ℛ ans) Co)
+  `(Co ,(show-ℛ ℛ) ,(set-map ans show-A)))
+
+(define (show-ℐ [ℐ : -ℐ]) : Sexp
+  (match-define (-ℐ ℋ ℬ) ℐ)
+  `(ℐ ,(show-ℋ ℋ) ,(show-ℬ ℬ)))
+
+(define (show-ℛ [ℛ : -ℛ]) : Sexp
+  (match-define (-ℛ ℬ ℋ) ℛ)
+  `(ℛ ,(show-ℬ ℬ) ,(show-ℋ ℋ)))
