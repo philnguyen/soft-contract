@@ -88,14 +88,15 @@
             (-=>i [doms : (Listof -α.dom)] [#|ok, no recursion|# rng : -Clo])
             (-x/C [c : -α.x/c]))
 
-(-Res . ::= . (-W [Vs : (Listof -V)] [s : -s])
-              (-blm [violator : Mon-Party] [origin : Mon-Party] [c : -V] [v : (Listof -V)]))
-(-Res/V . ::= . (Listof -V) -blm)
-
+(struct -blm ([violator : Mon-Party] [origin : Mon-Party]
+              [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
-(struct -A ([cnd : -Γ] [res : -Res]) #:transparent)
-(struct -A* ([cnd : -Γ] [res : -Res/V]) #:transparent)
-(define -A/V? (match-λ? (-A _ (? -W?))))
+(struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
+(struct -Wns ([cnd : -Γ] [W : -W]) #:transparent)
+(struct -Ens ([cnd : -Γ] [blm : -blm]) #:transparent)
+(-A . ::= . -Wns -Ens)
+(-A* . ::= . (Listof -V) -blm)
+
 
 ;; Constants & 'Macros'
 (define -Null -null)
@@ -239,7 +240,7 @@
 
 
 ;; Evaluation "unit" / "stack address"
-(struct -ℬ ([exp : -⟦e⟧] [env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
+(struct -ℬ ([code : -⟦e⟧] [env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
 
 ;; Continued evaluation
 (struct -Co ([cont : -ℛ] [ans : (℘ -A)]) #:transparent)
@@ -361,12 +362,9 @@
     [(-x/C (-α.x/c x)) `(recursive-contract ,(show-x/c x))]))
 
 (define (show-A [A : -A])
-  (match-define (-A Γ Res) A)
-  `(A: ,(show-Γ Γ) ,(show-Res Res)))
-
-(define (show-Res [Res : -Res]) : Sexp
-  (cond [(-W? Res) (show-W Res)]
-        [else (show-blm Res)]))
+  (match A
+    [(-Wns Γ W) `(W: ,(show-W W) ,(show-Γ Γ))]
+    [(-Ens Γ b) `(E: ,(show-blm b) ,(show-Γ Γ))]))
 
 (define (show-W [W : -W]) : Sexp
   (match-define (-W Vs s) W)
@@ -377,8 +375,8 @@
   `(,(show-V V) @ ,(show-s s)))
 
 (define (show-blm [blm : -blm]) : Sexp
-  (match-define (-blm l+ lo C Vs) blm)
-  `(blame ,l+ ,lo ,(show-V C) ,(map show-V Vs)))
+  (match-define (-blm l+ lo Cs Vs) blm)
+  `(blame ,l+ ,lo ,(map show-V Cs) ,(map show-V Vs)))
 
 (: show-ℰ ([-ℰ] [Sexp] . ->* . Sexp))
 (define (show-ℰ ℰ [in-hole '□])
