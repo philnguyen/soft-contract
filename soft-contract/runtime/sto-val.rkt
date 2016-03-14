@@ -16,6 +16,11 @@
 (define ρ@ : (-ρ Symbol → -α) hash-ref)
 (define ρ+ : (-ρ Symbol -α → -ρ) hash-set)
 
+(: ρ++ : -ρ -Δρ → -ρ)
+(define (ρ++ ρ δρ)
+  (for/fold ([ρ : -ρ ρ]) ([(x α) δρ])
+    (hash-set ρ x α)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value Store
@@ -92,9 +97,9 @@
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
-(struct -Wns ([cnd : -Γ] [W : -W]) #:transparent)
-(struct -Ens ([cnd : -Γ] [blm : -blm]) #:transparent)
-(-A . ::= . -Wns -Ens)
+(struct -ΓW ([cnd : -Γ] [W : -W]) #:transparent)
+(struct -ΓE ([cnd : -Γ] [blm : -blm]) #:transparent)
+(-A . ::= . -ΓW -ΓE)
 (-A* . ::= . (Listof -V) -blm)
 
 
@@ -156,15 +161,14 @@
                            (Listof (Pairof (Listof Symbol) -⟦e⟧))
                            -⟦e⟧
                            Mon-Party)
-            (-ℰ.letrec-values (℘ Symbol)
-                              -Δρ
+            (-ℰ.letrec-values -Δρ
                               (Pairof (Listof Symbol) -ℰ)
                               (Listof (Pairof (Listof Symbol) -⟦e⟧))
                               -⟦e⟧
                               Mon-Party)
             (-ℰ.set! Symbol -ℰ)
             (-ℰ.μ/c Integer -ℰ)
-            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -λ Integer)
+            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ Integer)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
 
 ;; A "hole" ℋ is an evaluation context augmented with
@@ -183,14 +187,25 @@
 ;; Path condition is set of (pure) expression known to have evaluated to non-#f
 (struct -Γ ([facts : (℘ -e)]
             [aliases : (HashTable Symbol -e)]
-            [tails : (℘ -ℬ)]) #:transparent)
+            [tails : (℘ -γ)]) #:transparent)
 (define ⊤Γ (-Γ ∅ (hasheq) ∅))
+
+;; Path condition tail is block and renaming information
+(struct -γ ([callee : -ℬ]
+            [fun : -s]
+            [param->arg : (Listof (Pairof Symbol -s))]) #:transparent)
 
 (: Γ+ : -Γ -s → -Γ)
 ;; Strengthen path condition `Γ` with `s`
 (define (Γ+ Γ s)
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ (set-add φs s) as ts)]
+        [else Γ]))
+
+(: -Γ-with-aliases : -Γ Symbol -s → -Γ)
+(define (-Γ-with-aliases Γ x s)
+  (cond [s (match-define (-Γ φs as ts) Γ)
+           (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
 
 (: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
@@ -223,7 +238,7 @@
 
 (define-type -𝒞 Natural)
 (define-type Caller-Ctx Integer)
-(define-values (𝒞₀ 𝒞+ decode-𝒞) ((inst make-indexed-set (Pairof -⟦e⟧ Caller-Ctx))))
+(define-values (𝒞∅ 𝒞+ decode-𝒞) ((inst make-indexed-set (Pairof -⟦e⟧ Caller-Ctx))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -274,7 +289,7 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-M -σ -ℬ → (Values -Δσ (℘ -Wns) (℘ -Ens) (℘ -ℐ))))
+(define-type -⟦e⟧ (-M -σ -ℬ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ))))
 (define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
 
 
@@ -299,6 +314,18 @@
             [hole : -ℋ] ; caller's continuation and path condition
             ) #:transparent)
 
+(: -ℬ-with-Γ : -ℬ -Γ → -ℬ)
+(define (-ℬ-with-Γ ℬ Γ)
+  (cond [(eq? Γ (-ℬ-cnd ℬ)) ℬ] ; common case, keep old instance
+        [else (match-define (-ℬ ⟦e⟧ ρ _ 𝒞) ℬ)
+              (-ℬ ⟦e⟧ ρ Γ 𝒞)]))
+
+(: -ℬ-with-ρ : -ℬ -ρ → -ℬ)
+(define (-ℬ-with-ρ ℬ ρ)
+  (cond [(eq? ρ (-ℬ-env ℬ)) ℬ]
+        [else (match-define (-ℬ ⟦e⟧ _ Γ 𝒞) ℬ)
+              (-ℬ ⟦e⟧ ρ Γ 𝒞)]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Fixed
@@ -314,19 +341,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-syntax-rule (for*/ans (clause ...) e ...)
-  (for*/fold ([δσ : -Δσ ⊥σ] [Wns : (℘ -Wns) ∅] [Ens : (℘ -Ens) ∅] [ℐs : (℘ -ℐ) ∅])
+  (for*/fold ([δσ : -Δσ ⊥σ] [ΓW : (℘ -ΓW) ∅] [ΓE : (℘ -ΓE) ∅] [ℐs : (℘ -ℐ) ∅])
              (clause ...)
-    (define-values (δσ* Wns* Ens* ℐs*) (let () e ...))
-    (values (⊔/m δσ δσ*) (∪ Wns Wns*) (∪ Ens Ens*) (∪ ℐs ℐs*))))
+    (define-values (δσ* ΓW* ΓE* ℐs*) (let () e ...))
+    (values (⊔/m δσ δσ*) (∪ ΓW ΓW*) (∪ ΓE ΓE*) (∪ ℐs ℐs*))))
 
 (define-syntax ⊔/ans
   (syntax-rules ()
     [(_) (⊥ans)]
     [(_ ans) ans]
     [(_ ans₁ ans ...)
-     (let-values ([(δσ₁ As₁ ℐs₁) ans₁]
-                  [(δσ₂ As₂ ℐs₂) (⊔/ans ans ...)])
-       (values (⊔/m δσ₁ δσ₂) (∪ As₁ As₂) (∪ ℐs₁ ℐs₂)))]))
+     (let-values ([(δσ₁ Ws₁ Es₁ ℐs₁) ans₁]
+                  [(δσ₂ Ws₂ Es₂ ℐs₂) (⊔/ans ans ...)])
+       (values (⊔/m δσ₁ δσ₂) (∪ Ws₁ Ws₂) (∪ Es₁ Es₂) (∪ ℐs₁ ℐs₂)))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -349,7 +376,7 @@
 
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
   (match-define (-Γ φs as ts) Γ)
-  `(,(set-map φs show-e) ‖ ,(set-map ts show-ℬ)))
+  `(,(set-map φs show-e) ‖ ,(set-map ts show-γ)))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(ℬ ℛs) Ξ])
@@ -404,8 +431,8 @@
 
 (define (show-A [A : -A])
   (match A
-    [(-Wns Γ W) `(W: ,(show-W W) ,(show-Γ Γ))]
-    [(-Ens Γ b) `(E: ,(show-blm b) ,(show-Γ Γ))]))
+    [(-ΓW Γ W) `(W: ,(show-W W) ,(show-Γ Γ))]
+    [(-ΓE Γ b) `(E: ,(show-blm b) ,(show-Γ Γ))]))
 
 (define (show-W [W : -W]) : Sexp
   (match-define (-W Vs s) W)
@@ -474,3 +501,9 @@
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
   (for/list ([(x α) ρ]) `(,x ↦ ,(show-α α))))
+
+(define (show-γ (γ : -γ)) : (Listof Sexp)
+  (match-define (-γ ℬ f xs) γ)
+  `(γ ,(show-ℬ ℬ) @ (,(show-s f)
+                     ,@(for/list : (Listof Sexp) ([x-s xs])
+                         `[,(car x-s) ↦ ,(show-s (cdr x-s))]))))
