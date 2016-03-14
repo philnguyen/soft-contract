@@ -116,7 +116,7 @@
 
   (define typeofs
     (for/fold ([typeofs : (HashTable Symbol Z3-Type) (hasheq)])
-              ([φ Γ])
+              ([φ (-Γ-facts Γ)])
       (match φ
         [(-@ (? Handled-Z3-pred? o) (list e) _)
          (define T (handled-Z3-pred->Z3-Type o))
@@ -187,7 +187,7 @@
 (: Γ->premises : (-e → (Option (Pairof Symbol Z3-Type))) -M -σ -Γ → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises
 (define (Γ->premises e->dec M σ Γ)
-  (for*/list : (Listof Sexp) ([e Γ]
+  (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)]
                               [s (in-value (exp->Z3 e->dec M σ Γ e))] #:when s)
     s))
 
