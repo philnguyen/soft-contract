@@ -274,7 +274,7 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-M -σ -ℬ → (Values -Δσ (℘ -A) (℘ -ℐ))))
+(define-type -⟦e⟧ (-M -σ -ℬ → (Values -Δσ (℘ -Wns) (℘ -Ens) (℘ -ℐ))))
 (define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
 
 
@@ -314,10 +314,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-syntax-rule (for*/ans (clause ...) e ...)
-  (for*/fold ([δσ : -Δσ ⊥σ] [As : (℘ -A) ∅] [ℐs : (℘ -ℐ) ∅])
+  (for*/fold ([δσ : -Δσ ⊥σ] [Wns : (℘ -Wns) ∅] [Ens : (℘ -Ens) ∅] [ℐs : (℘ -ℐ) ∅])
              (clause ...)
-    (define-values (δσ* As* ℐs*) (let () e ...))
-    (values (⊔/m δσ δσ*) (∪ As As*) (∪ ℐs ℐs*))))
+    (define-values (δσ* Wns* Ens* ℐs*) (let () e ...))
+    (values (⊔/m δσ δσ*) (∪ Wns Wns*) (∪ Ens Ens*) (∪ ℐs ℐs*))))
 
 (define-syntax ⊔/ans
   (syntax-rules ()
@@ -333,7 +333,7 @@
 ;;;;; Shorhands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-syntax-rule (⊥ans) (values ⊥σ ∅ ∅))
+(define-syntax-rule (⊥ans) (values ⊥σ ∅ ∅ ∅))
 (define-syntax-rule (with-Γ Γ e) (if Γ e (⊥ans)))
 
 
