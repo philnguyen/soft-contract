@@ -4,8 +4,17 @@
 
 (require
  racket/match racket/set racket/list
- "../utils/main.rkt" "../ast/main.rkt"
- "path-condition.rkt" "addr.rkt" "env.rkt")
+ "../utils/main.rkt" "../ast/main.rkt")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Environment
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-type -ρ (HashTable Symbol -α))
+(define-type -Δρ -ρ)
+(define ⊥ρ : -ρ (hasheq))
+(define ρ@ : (-ρ Symbol → -α) hash-ref)
+(define ρ+ : (-ρ Symbol -α → -ρ) hash-set)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -16,15 +25,6 @@
 (define-type -Δσ -σ)
 (define ⊥σ : -σ (hash))
 (define σ@ : (-σ -α → (℘ -V)) m@)
-
-;; Look up store expecting exactly 1 value
-(define (σ@¹ [σ : -σ] [α : -α])
-  (define Vs (hash-ref σ α))
-  (match (set-count Vs)
-    [1 (set-first Vs)]
-    [n
-     (error 'σ@¹ "expect exactly 1 value at address ~a, found ~a: ~a~n"
-            (show-α α) n (set-map Vs show-V))]))
 
 (: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
 ;; Look up store at addresses. Return all possible combinations
@@ -227,6 +227,50 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Value address
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(-α . ::= . ; For top-level definition and contract
+            (-α.def -id)
+            (-α.ctc -id)
+            ; for binding
+            (-α.x Symbol -𝒞)
+            ; for mutable or opaque field
+            (-α.fld (U Integer -e (List -id Integer Integer)))
+            ; for Cons/varargs
+            (-α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list 
+            (-α.var-cdr [pos : Integer] [idx : Natural])
+
+            ;; for wrapped mutable struct
+            (-α.st* [id : -id] [pos : Integer])
+
+            ;; for vector indices
+            (-α.idx [pos : Integer] [idx : Integer])
+
+            ;; for inner vector
+            (-α.vct [pos : Integer])
+
+            ;; for contract components
+            (-α.and/c-l (U Integer -e))
+            (-α.and/c-r (U Integer -e))
+            (-α.or/c-l (U Integer -e))
+            (-α.or/c-r (U Integer -e))
+            (-α.not/c (U Integer -e))
+            (-α.vector/c (U Integer (Pairof Integer Integer) -e))
+            (-α.vectorof (U Integer -e))
+            (-α.struct/c (U Integer (List -id Integer Integer) -e))
+            (-α.x/c [pos : Integer])
+            (-α.dom (U Integer (Pairof Integer Integer) -e))
+            (-α.rst (U Integer -e)))
+
+(: alloc-fields : -struct-info (Listof -s) Integer → (Listof -α.fld))
+(define (alloc-fields s args pos)
+  (match-define (-struct-info id n _) s)
+  (for/list ([i n] [?e args])
+    (-α.fld (or ?e (list id pos i)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -306,9 +350,6 @@
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
   (match-define (-Γ φs as ts) Γ)
   `(,(set-map φs show-e) ‖ ,(set-map ts show-ℬ)))
-
-(define (show-𝒳 [𝒳 : -𝒳]) : (Listof Sexp)
-  (for/list ([(x e) 𝒳]) `(,x ↦ ,(show-e e))))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(ℬ ℛs) Ξ])
@@ -428,3 +469,8 @@
 (define (show-ℛ [ℛ : -ℛ]) : Sexp
   (match-define (-ℛ ℬ ℋ) ℛ)
   `(ℛ ,(show-ℬ ℬ) ,(show-ℋ ℋ)))
+
+(define-values (show-α show-α⁻¹ count-α) ((inst unique-sym -α) 'α))
+
+(define (show-ρ [ρ : -ρ]) : (Listof Sexp)
+  (for/list ([(x α) ρ]) `(,x ↦ ,(show-α α))))
