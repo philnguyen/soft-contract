@@ -511,7 +511,7 @@
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ ⟦e⟧ ρ Γ 𝒞) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ) ,𝒞 ,(show-Γ Γ)))
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ) ,(show-𝒞 𝒞) ,(show-Γ Γ)))
 
 (define (show-Co [Co : -Co]) : Sexp
   (match-define (-Co ℛ ℬ ans) Co)
@@ -524,6 +524,9 @@
 (define (show-ℛ [ℛ : -ℛ]) : Sexp
   (match-define (-ℛ ℬ ℋ) ℛ)
   `(ℛ ,(show-ℬ ℬ) ,(show-ℋ ℋ)))
+
+(define (show-𝒞 [𝒞 : -𝒞]) : Symbol
+  (string->symbol (format "𝒞~a" (n-sub 𝒞))))
 
 (define-values (show-α show-α⁻¹ count-αs) ((inst unique-sym -α) 'α))
 
