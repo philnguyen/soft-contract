@@ -168,7 +168,7 @@
                               Mon-Party)
             (-ℰ.set! Symbol -ℰ)
             (-ℰ.μ/c Integer -ℰ)
-            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ Integer)
+            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ Integer)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
 
 ;; A "hole" ℋ is an evaluation context augmented with
@@ -183,6 +183,14 @@
 
 ;; Symbolic value is either pure, refinable expression, or the conservative unrefinable `#f`
 (-s . ::= . -e #f)
+
+(: s↓ : -s (℘ Symbol) → -s)
+;; Restrict symbol to given set of free variables
+(define (s↓ s xs)
+  (and s (e↓ s xs)))
+(: e↓ : -e (℘ Symbol) → -s)
+(define (e↓ e xs)
+  (and (⊆ (fv e) xs) e))
 
 ;; Path condition is set of (pure) expression known to have evaluated to non-#f
 (struct -Γ ([facts : (℘ -e)]
@@ -207,6 +215,26 @@
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
+
+(: Γ↓ : -Γ (℘ Symbol) → -Γ)
+;; Restrict path-condition to given free variables
+(define (Γ↓ Γ xs)
+
+  (match-define (-Γ φs as γs) Γ)
+  (define φs*
+    (for*/set: : (℘ -e) ([φ φs] [φ* (in-value (e↓ φ xs))] #:when φ*)
+      φ*))
+  (define as*
+    (for/hash : (HashTable Symbol -e) ([(x e) as] #:when (∋ xs x))
+      (values x e)))
+  (define γs*
+    (for*/set: : (℘ -γ) ([γ γs]
+                         #:when (s↓ (-γ-fun γ) xs)
+                         #:when
+                         (for/and : Boolean ([p (-γ-param->arg γ)])
+                           (and (s↓ (cdr p) xs) #t))) ; force boolean :(
+      γ))
+  (-Γ φs* as* γs*))
 
 (: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
@@ -302,7 +330,7 @@
 (struct -ℬ ([code : -⟦e⟧] [env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
 
 ;; Continued evaluation
-(struct -Co ([cont : -ℛ] [ans : (℘ -A)]) #:transparent)
+(struct -Co ([cont : -ℛ] [callee : -ℬ] [ans : (℘ -A)]) #:transparent)
 
 ;; Suspended, "intermediate" expression ℐ ≃ ℋ[ℬ]
 (struct -ℐ ([hole : -ℋ] ; caller's hole
@@ -486,7 +514,7 @@
   `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ) ,𝒞 ,(show-Γ Γ)))
 
 (define (show-Co [Co : -Co]) : Sexp
-  (match-define (-Co ℛ ans) Co)
+  (match-define (-Co ℛ ℬ ans) Co)
   `(Co ,(show-ℛ ℛ) ,(set-map ans show-A)))
 
 (define (show-ℐ [ℐ : -ℐ]) : Sexp
@@ -497,13 +525,9 @@
   (match-define (-ℛ ℬ ℋ) ℛ)
   `(ℛ ,(show-ℬ ℬ) ,(show-ℋ ℋ)))
 
-(define-values (show-α show-α⁻¹ count-α) ((inst unique-sym -α) 'α))
+(define-values (show-α show-α⁻¹ count-αs) ((inst unique-sym -α) 'α))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
   (for/list ([(x α) ρ]) `(,x ↦ ,(show-α α))))
 
-(define (show-γ (γ : -γ)) : (Listof Sexp)
-  (match-define (-γ ℬ f xs) γ)
-  `(γ ,(show-ℬ ℬ) @ (,(show-s f)
-                     ,@(for/list : (Listof Sexp) ([x-s xs])
-                         `[,(car x-s) ↦ ,(show-s (cdr x-s))]))))
+(define-values (show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ))

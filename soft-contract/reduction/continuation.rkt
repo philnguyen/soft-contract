@@ -208,7 +208,7 @@
           (for/fold ([δσ : -Δσ ⊥σ] [Γ₁ : -Γ Γ₀])
                     ([x xs] [V Vs] [sₓ (split-values s n)])
             (values (⊔ δσ (ρ@ δρ x) V)
-                    (if sₓ (-Γ-with-aliases Γ₁ x sₓ) Γ₁))))
+                    (Γ+ (if sₓ (-Γ-with-aliases Γ₁ x sₓ) Γ₁) (-?@ 'defined? (-x x))))))
         (define σ₁ (⊔/m σ₀ δσ))
         
         (match xs-⟦e⟧s
@@ -224,56 +224,32 @@
            ;; Free variables that outside of `letrec` understands
            (define xs₀ (list->set (hash-keys ρ)))
 
-           (: trim-s : -s → -s)
-           ;; Only keep symbol if it still make sense out of `letrec`'s scope
-           (define (trim-s s)
-             (and s (⊆ (fv s) xs₀) s))
-
-           (: trim-Γ : -Γ → -Γ)
-           ;; Only keep facts that still make sense out of `letrec`'s scope
-           (define (trim-Γ Γ)
-             (match-define (-Γ φs as γs) Γ₁)
-             (define φs*
-               (for*/set: : (℘ -e) ([φ φs] [φ* (in-value (trim-s φ))] #:when φ*)
-                 φ*))
-             (define as*
-               (for/hash : (HashTable Symbol -e) ([(x e) as] #:when (∋ xs₀ x))
-                 (values x e)))
-             (define γs*
-               (for*/set: : (℘ -γ) ([γ γs]
-                                    #:when (trim-s (-γ-fun γ))
-                                    #:when
-                                    (for/and : Boolean ([p (-γ-param->arg γ)])
-                                      (and (trim-s (cdr p)) #t))) ; force boolean :(
-                 γ))
-             (-Γ φs* as* γs*))
-             
            (define ΓWs*
              (map/set
               (match-lambda
                 [(-ΓW Γ (-W Vs s))
-                 (-ΓW (trim-Γ Γ) (-W Vs (trim-s s)))])
+                 (-ΓW (Γ↓ Γ xs₀) (-W Vs (s↓ s xs₀)))])
               ΓWs))
            
            (define ΓEs*
              (map/set
               (match-lambda
                 [(-ΓE Γ blm)
-                 (-ΓE (trim-Γ Γ) blm)])
+                 (-ΓE (Γ↓ Γ xs₀) blm)])
               ΓEs))
            
            (define ℐs*
              (map/set
               (match-lambda
                 [(-ℐ (-ℋ Γ f bnds ℰ) ℬ)
-                 (define Γ* (trim-Γ Γ))
-                 (define f* (trim-s f))
+                 (define Γ* (Γ↓ Γ xs₀))
+                 (define f* (s↓ f xs₀))
                  (define bnds*
                    (for/list : (Listof (Pairof Symbol -s)) ([bnd bnds])
                      (match-define (cons x s) bnd)
-                     (cons x (trim-s s))))
+                     (cons x (s↓ s xs₀))))
                  (-ℐ (-ℋ Γ* f* bnds* ℰ) ℬ)])
-             ℐs))
+              ℐs))
            
            (values (⊔/m δσ δσ*) ΓWs* ΓEs* ℐs*)]))))
    (⟦eₓ⟧ M σ ℬ*)))
@@ -303,12 +279,12 @@
         (values ⊥σ {set (-ΓW Γ* W)} ∅ ∅))))
    (⟦c⟧ M σ ℬ)))
 
-(: ↝.-->i : (Listof -W¹) (Listof -⟦e⟧) -⟦e⟧ Integer → -⟦ℰ⟧)
-(define (((↝.-->i Ws ⟦c⟧s ⟦mk-d⟧ l) ⟦e⟧) M σ ℬ)
+(: ↝.-->i : (Listof -W¹) (Listof -⟦e⟧) -W¹ Integer → -⟦ℰ⟧)
+(define (((↝.-->i Ws ⟦c⟧s Mk-D l) ⟦e⟧) M σ ℬ)
   (apply/values
    (acc
     σ
-    (λ (ℰ) (-ℰ.-->i Ws ℰ ⟦c⟧s ⟦mk-d⟧ l))
+    (λ (ℰ) (-ℰ.-->i Ws ℰ ⟦c⟧s Mk-D l))
     (λ (σ* Γ* W)
       (match-define (-W Vs s) W)
       (with-guarded-arity 1 ('TODO Γ* Vs)
@@ -316,27 +292,24 @@
         (define Ws* (cons (-W¹ V s) Ws))
         (match ⟦c⟧s
           [(cons ⟦c⟧ ⟦c⟧s*)
-           (((↝.-->i Ws* ⟦c⟧s* ⟦mk-d⟧ l) ⟦c⟧) M σ* (-ℬ-with-Γ ℬ Γ*))]
+           (((↝.-->i Ws* ⟦c⟧s* Mk-D l) ⟦c⟧) M σ* (-ℬ-with-Γ ℬ Γ*))]
           ['()
-           (define-values (δσ αs cs) ; `αs` and `cs` reverses `Ws*`, which is reversed
-             (for/fold ([δσ : -Δσ ⊥σ] [αs : (Listof -α.dom) '()] [cs : (Listof -s) '()])
-                       ([(W i) (in-indexed Ws*)])
-               (match-define (-W¹ C c) W)
-               (define α (-α.dom (cons l i)))
-               (values (⊔ δσ α C) (cons α αs) (cons c cs))))
-           
-           (define ℬ* (-ℬ-with-Γ ℬ Γ*))
-           (define-values (_δσ ΓClos _ΓEs _ℐs) (⟦mk-d⟧ M σ* ℬ*))
-           (begin ; `⟦mk-d⟧` should only be a λ!!
-             (assert (= 0 (hash-count _δσ)))
-             (assert (set-empty? _ΓEs))
-             (assert (set-empty? _ℐs))
-             (assert (= 1 (set-count ΓClos))))
-           (match-define (-ΓW Γ** (-W (list (? -Clo? Mk-D)) mk-d)) ΓClos)
-           (define C (-=>i αs Mk-D))
-           (define c (-?->i cs mk-d))
-           (values δσ {set (-ΓW Γ** (-W (list C) c))} ∅ ∅)]))))
+           (mk-=>i Γ* Ws* Mk-D l)]))))
    (⟦e⟧ M σ ℬ)))
+
+(: mk-=>i : -Γ (Listof -W¹) -W¹ Integer → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+;; Given *reversed* list of domains and range-maker, create indy contract
+(define (mk-=>i Γ Ws Mk-D l)
+  (define-values (δσ αs cs) ; `αs` and `cs` reverses `Ws`, which is reversed
+    (for/fold ([δσ : -Δσ ⊥σ] [αs : (Listof -α.dom) '()] [cs : (Listof -s) '()])
+              ([(W i) (in-indexed Ws)])
+      (match-define (-W¹ C c) W)
+      (define α (-α.dom (cons l i)))
+      (values (⊔ δσ α C) (cons α αs) (cons c cs))))
+  (match-define (-W¹ D d) Mk-D)
+  (define C (-=>i αs (assert D -Clo?)))
+  (define c (-?->i cs (and d (assert d -λ?))))
+  (values δσ {set (-ΓW Γ (-W (list C) c))} ∅ ∅))
 
 (: ↝.havoc : Symbol → -⟦e⟧)
 (define ((↝.havoc x) M σ ℬ)

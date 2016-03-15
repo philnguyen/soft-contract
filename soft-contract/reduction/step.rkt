@@ -8,56 +8,58 @@
 
 (: ev* : -M -Ξ -σ (℘ -ℬ) → (Values -ΔM -ΔΞ -Δσ))
 (define (ev* M Ξ σ ℬs)
-  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([ℬ ℬs])
+  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ])
+            ([ℬ ℬs])
     (ev M Ξ σ ℬ)))
 
 (: co* : -M -Ξ -σ (℘ -Co) → (Values -ΔM -ΔΞ -Δσ))
 (define (co* M Ξ σ Cos)
-  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ]) ([Co Cos])
+  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ])
+            ([Co Cos])
     (co M Ξ σ Co)))
 
 (: ev : -M -Ξ -σ -ℬ → (Values -ΔM -ΔΞ -Δσ))
 ;; Execute function body `ℬ`
 (define (ev M Ξ σ ℬ)
-  (match-define (-ℬ ⟦e⟧ ρ) ℬ)
-  ;; start of function body, so trivial path condition `⊤Γ` and aliasing `⊤𝒳`
-  (apply/values (collect M Ξ ℬ) (⟦e⟧ M σ ρ ⊤Γ ⊤𝒳)))
+  (apply/values (collect M Ξ ℬ) ((-ℬ-code ℬ) M σ ℬ)))
 
 (: co : -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
-;; Resume computation `Co`
+;; Resume computation `ℋ[A]`, propagating errors and plugging values into hole.
 (define (co M Ξ σ Co)
-  (match-define (-Co (-ℛ ℬ ℋ) As) Co)
-  (match-define (-ℬ _ ρ) ℬ)
-  (match-define (-ℋ Γ 𝒳 f bnds ℰ) ℋ)
+  (match-define (-Co (-ℛ ℬ₀ ℋ₀) ℬ As) Co)
+  (match-define (-ℋ Γ₀ f bnds ℰ) ℋ₀)
 
-  (define As* : (Setof -A)
+  ;; Propagate errors and plug values into hole
+  (define-values (ΓWs ΓEs)
     (let ()
-      (printf "TODO: use `Γ`, `f`, and `𝒳*` to filter out spurious returns~n")
+      (printf "TODO: use path-conditions from caller+callee to eliminate spurious returns~n")
       
-      (define 𝒳*
-        (for/hash : -𝒳 ([bnd bnds] #:when (cdr bnd))
-          (values (car bnd) (cdr bnd))))
       (define args (map (inst cdr Symbol -s) bnds))
       (define fargs (apply -?@ f args))
       
-      (map/set
-       (match-lambda
-         [(-A _ res)
-          (-A
-           Γ
-           (match res
-             [(-W Vs s) (-W Vs (and s fargs))]
-             [blm blm]))])
-       As)))
+      (for/fold ([ΓWs : (℘ -ΓW) ∅] [ΓEs : (℘ -ΓE) ∅])
+                ([A As])
+        (define Γ₀*
+          (match-let ([(-Γ φs as γs) Γ₀]
+                      [γ (-γ ℬ f bnds)])
+            (-Γ φs as (set-add γs γ))))
+        (match A
+          [(-ΓW Γ (-W Vs s))
+           (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and s fargs)))) ΓEs)]
+          [(-ΓE Γ blm)
+           (values ΓWs (set-add ΓEs (-ΓE Γ₀* blm)))]))))
   
-  (apply/values (collect M Ξ ℬ) ((ℰ⟦_⟧ ℰ As*) M σ ρ Γ 𝒳)))
+  (let ([col (collect M Ξ ℬ₀)])
+    (⊔³ (apply/values col ((ℰ⟦_⟧ ℰ ΓWs) M σ ℬ₀))
+        (apply/values col (values ⊥σ ∅ ΓEs ∅)))))
+  
 
 (: ⇓ₚ : (Listof -module) -e → -⟦e⟧)
 ;; Compile list of modules
 (define (⇓ₚ ms e)
   (match ms
-    [(cons m ms*) ((↝.modules (map ⇓ₘ ms*) (⇓ e)) (⇓ₘ m))]
-    [_ (⇓ e)]))
+    ['() (⇓ e)]
+    [(cons m ms*) ((↝.modules (map ⇓ₘ ms*) (⇓ e)) (⇓ₘ m))]))
 
 (: ⇓ₘ : -module → -⟦e⟧)
 ;; Compile module
@@ -82,54 +84,59 @@
   ((↝.begin (map ⇓d ds)) ⟦void⟧))
 
 (: ⇓ : -e → -⟦e⟧)
-;; Compile expresion to mapping from store to (potentially suspended) results
+;; Compile expresion to computation
 (define (⇓ e)
   (match e
     [(-λ xs e*)
      (define ⟦e*⟧ (⇓ e*))
-     (λ (G σ ρ Γ 𝒳)
-       (values ⊥σ {set (-A Γ (-W (list (-Clo xs ⟦e*⟧ ρ)) e))} ∅))]
+     (λ (M σ ℬ)
+       (match-define (-ℬ _ ρ Γ _) ℬ)
+       (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) e))} ∅ ∅))]
     [(-case-λ body) (error '⇓ "TODO: case-λ")]
     [(? -prim? p)
-     (λ (G σ ρ Γ 𝒳)
-       (values ⊥σ {set (-A Γ (-W (list p) p))} ∅))]
+     (λ (M σ ℬ)
+       (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W (list p) p))} ∅ ∅))]
     [(-• i)
-     (λ (G σ ρ Γ 𝒳)
-       (values ⊥σ {set (-A Γ (-W -●/Vs e))} ∅))]
+     (λ (M σ ℬ)
+       (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W -●/Vs e))} ∅ ∅))]
     [(-x x)
-     (λ (G σ ρ Γ 𝒳)
-       (define s (canonicalize 𝒳 x))
-       (define As
-         (for*/fold ([As : (℘ -A) ∅])
+     (λ (M σ ℬ)
+       (match-define (-ℬ _ ρ Γ 𝒞) ℬ)
+       (define s (canonicalize Γ x))
+       (define-values (ΓWs ΓEs)
+         (for*/fold ([ΓWs : (℘ -ΓW) ∅]
+                     [ΓEs : (℘ -ΓE) ∅])
                     ([V (σ@ σ (ρ@ ρ x))]
                      [W (in-value (-W (list V) s))]
-                     #:unless (spurious? G σ Γ W))
+                     #:unless (spurious? M σ Γ W))
            (case V
-             [(undefined) ; FIXME hack
-              (cond
-                [(hash-has-key? 𝒳 x) As]
-                [else
-                 (set-add As (-A Γ (-blm 'TODO 'Λ (-st-p (-struct-info (-id 'defined 'Λ) 1 ∅)) (list 'undefined))))])]
-             [else (set-add As (-A Γ W))])))
-       (values ⊥σ As ∅))]
+             [(undefined) ; spurious `undefined` should have been eliminated by `spurious?`
+              (values
+               ΓWs
+               (set-add
+                ΓEs
+                (-ΓE Γ (-blm 'TODO 'Λ (list 'defined?) (list 'undefined)))))]
+             [else (values (set-add ΓWs (-ΓW Γ W)) ΓEs)])))
+       (values ⊥σ ΓWs ΓEs ∅))]
     [(and ref (-ref (and id (-id name l-from)) l-ctx pos))
-     (λ (G σ ρ Γ 𝒳)
-       (cond
-         [(equal? l-from l-ctx)
-          (define As
-            (for/set: : (℘ -A) ([V (σ@ σ (-α.def id))])
+     (cond
+       [(equal? l-from l-ctx)
+        (λ (M σ ℬ)
+          (define Γ (-ℬ-cnd ℬ))
+          (define ΓWs
+            (for/set: : (℘ -ΓW) ([V (σ@ σ (-α.def id))])
               (define s (if (-o? V) V ref))
-              (-A Γ (-W (list V) s))))
-          (values ⊥σ As ∅)]
-         [else
-          (define Vs (σ@ σ (-α.def id)))
-          (define Cs (σ@ σ (-α.ctc id)))
-          (printf "TODO: monitor value at module 'provide' time instead~n")
-          (define As
-            (for/set: : (℘ -A) ([V (σ@ σ (-α.def id))])
+              (-ΓW Γ (-W (list V) s))))
+          (values ⊥σ ΓWs ∅ ∅))]
+       [else
+        (λ (M σ ℬ)
+          (printf "FIXME: ignore `~a`'s contract for now.~n" (-id-name id))
+          (define Γ (-ℬ-cnd ℬ))
+          (define ΓWs
+            (for/set: : (℘ -ΓW) ([V (σ@ σ (-α.def id))])
               (define s (if (-o? V) V ref))
-              (-A Γ (-W (list V) s))))
-          (values ⊥σ As ∅)]))]
+              (-ΓW Γ (-W (list V) s))))
+          (values ⊥σ ΓWs ∅ ∅))])]
     [(-@ f xs l)
      ((↝.@ '() (map ⇓ xs) l) (⇓ f))]
     [(-if e₀ e₁ e₂)
@@ -139,105 +146,99 @@
     [(-begin es)
      (match es
        [(cons e* es*) ((↝.begin (map ⇓ es*)) (⇓ e*))]
-       [_ ⟦void⟧])]
+       ['() ⟦void⟧])]
     [(-begin0 e₀ es)
      ((↝.begin0.v (map ⇓ es)) (⇓ e₀))]
     [(-quote q)
      (cond
        [(Base? q)
         (define b (-b q))
-        (λ (G σ ρ Γ 𝒳)
-          (values ⊥σ {set (-A Γ (-W (list b) b))} ∅))]
+        (λ (M σ ℬ)
+          (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W (list b) b))} ∅ ∅))]
        [else (error '⇓ "TODO: (quote ~a)" q)])]
-    [(-let-values bnds bod l)
-     (define ⟦bod⟧ (⇓ bod))
+    [(-let-values xs-es e l)
+     (define ⟦e⟧ (⇓ e))
      (define xs-⟦e⟧s
-       (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
-         (match-define (cons xs eₓ) bnd)
+       (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([xs-e xs-es])
+         (match-define (cons xs eₓ) xs-e)
          (cons xs (⇓ eₓ))))
      (match xs-⟦e⟧s 
-       ['() ⟦bod⟧]
+       ['() ⟦e⟧]
        [(cons (cons xs₀ ⟦e⟧₀) xs-⟦eₓ⟧s*)
-        ((↝.let-values '() xs₀ xs-⟦eₓ⟧s* ⟦bod⟧ l) ⟦e⟧₀)])]
-    [(-letrec-values bnds bod l)
-     (define ⟦bod⟧ (⇓ bod))
+        ((↝.let-values '() xs₀ xs-⟦eₓ⟧s* ⟦e⟧ l) ⟦e⟧₀)])]
+    [(-letrec-values xs-es e l)
+     (define ⟦e⟧ (⇓ e))
      (define xs-⟦e⟧s
-       (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
-         (match-define (cons xs eₓ) bnd)
+       (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([xs-e xs-es])
+         (match-define (cons xs eₓ) xs-e)
          (cons xs (⇓ eₓ))))
      (match xs-⟦e⟧s
-       ['() ⟦bod⟧]
+       ['() ⟦e⟧]
        [(cons (cons xs₀ ⟦e⟧₀) xs-⟦e⟧s*)
-        (define all-xs (for*/set: : (℘ Symbol) ([xs-⟦e⟧ xs-⟦e⟧s] [x (car xs-⟦e⟧)]) x))
-        (λ (G σ ρ Γ 𝒳)
-          (define-values (δσ ρ*)
-            (for*/fold ([δσ : -Δσ ⊥σ] [ρ : -ρ ρ]) ([x all-xs])
-              (define α (-α.x x Γ))
-              (values (⊔ δσ α 'undefined) (hash-set ρ x α))))
+        (λ (M σ ℬ)
+          (define 𝒞 (-ℬ-hist ℬ))
+          (define-values (δσ δρ)
+            (for*/fold ([δσ : -Δσ ⊥σ] [δρ : -Δρ ⊥ρ])
+                       ([xs-⟦e⟧ xs-⟦e⟧s] [x (car xs-⟦e⟧)])
+              (define α (-α.x x 𝒞))
+              (values (⊔ δσ α 'undefined)
+                      (hash-set δρ x α))))
           (define σ* (⊔/m σ δσ))
-          (((↝.letrec-values all-xs ρ* xs₀ xs-⟦e⟧s* ⟦bod⟧ l) ⟦e⟧₀) G σ* ρ* Γ 𝒳))])]
+          (((↝.letrec-values δρ xs₀ xs-⟦e⟧s* ⟦e⟧ l) ⟦e⟧₀) M σ* ℬ))])]
     [(-set! x e*) ((↝.set! x) (⇓ e*))]
     [(-@-havoc (-x x)) (↝.havoc x)]
     [(-amb es)
      (define ⟦e⟧s (set-map es ⇓))
-     (λ (G σ ρ Γ 𝒳)
-       (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ G σ ρ Γ 𝒳)))]
+     (λ (M σ ℬ)
+       (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ ℬ)))]
     [(-μ/c x c) ((↝.μ/c x) (⇓ c))]
-    [(-->i doms rst rng pos)
-     (define ⟦rng⟧ (⇓ rng))
-     (define ⟦rst⟧
-       (match rst
-         [(cons x c) (cons x (⇓ c))]
-         [#f #f]))
-     (define ⟦dom⟧s
-       (for/list : (Listof (Pairof Symbol -⟦e⟧)) ([dom doms])
-         (match-define (cons x c) dom)
-         (cons x (⇓ c))))
-
-     (when ⟦rng⟧
-       (printf "ignore #:rest arg for now~n"))
-
-     (match ⟦dom⟧s
-       [(cons (cons x ⟦c⟧) ⟦dom⟧s*)
-        (λ (G σ ρ Γ 𝒳)
-          (((↝.-->i '() x ⟦dom⟧s* ⟦rng⟧ rng ρ pos) ⟦c⟧) G σ ρ Γ 𝒳))]
-       [_
-        (define d (-?->i '() '() rng))
-        (λ (G σ ρ Γ 𝒳)
-          (define D (-=>i '() #f ⟦rng⟧ ρ))
-          (values ⊥σ {set (-A Γ (-W (list D) d))} ∅))])]
+    [(-->i cs (and mk-d (-λ xs d)) l)
+     (define ⟦d⟧ (⇓ d))
+     (match (map ⇓ cs)
+       ['()
+        (define c (-?->i '() mk-d))
+        (λ (M σ ℬ)
+          (match-define (-ℬ _ ρ Γ _) ℬ)
+          (define Mk-D (-W¹ (-Clo xs ⟦d⟧ ρ Γ) mk-d))
+          (mk-=>i Γ '() Mk-D l))]
+       [(cons ⟦c⟧ ⟦c⟧s*)
+        (λ (M σ ℬ)
+          (match-define (-ℬ _ ρ Γ _) ℬ)
+          (define Mk-D (-W¹ (-Clo xs ⟦d⟧ ρ Γ) mk-d))
+          (((↝.-->i '() ⟦c⟧s* Mk-D l) ⟦c⟧) M σ ℬ))])]
     [(-x/c x)
-     (λ (G σ ρ Γ 𝒳)
-       (define As
-         (for/set: : (℘ -A) ([V (σ@ σ (-α.x/c x))])
-           (-A Γ (-W (list V) e))))
-       (values ⊥σ As ∅))]
-    [(-struct/c si cs pos)
+     (λ (M σ ℬ)
+       (define Γ (-ℬ-cnd ℬ))
+       (define ΓWs
+         (for/set: : (℘ -ΓW) ([V (σ@ σ (-α.x/c x))])
+           (-ΓW Γ (-W (list V) e))))
+       (values ⊥σ ΓWs ∅ ∅))]
+    [(-struct/c si cs l)
      (match cs
        ['()
-        (λ (G σ ρ Γ 𝒳)
+        (λ (M σ ℬ)
           (define V (-St/C #t si '()))
           (define W (-W (list V) e))
-          (values ⊥σ {set (-A Γ W)} ∅))]
+          (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) W)} ∅ ∅))]
        [(cons c cs*)
-        ((↝.struct/c si '() (map ⇓ cs*) pos) (⇓ c))])]))
+        ((↝.struct/c si '() (map ⇓ cs*) l) (⇓ c))])]))
 
-(: ℰ⟦_⟧ : -ℰ (℘ -A) → -⟦e⟧)
-;; Plug results `As` into hole `ℰ` and resume computation
-;; Stacks `ℰ` are also finite, but I can't "compile" them ahead of time because they depend on
+(: ℰ⟦_⟧ : -ℰ (℘ -ΓW) → -⟦e⟧)
+;; Plug answers `ΓWs` into hole `ℰ` and resume computation
+;; Stacks `ℰ` are finite, but I can't "compile" them ahead of time because they depend on
 ;; "run-time" `V`. Using functions instead of flat values to represent `ℰ` may generate
 ;; infinitely many equivalent but distinct (Racket-level) functions.
 ;; Memoization might help, but I doubt it speeds up anything.
 ;; So I'll keep things simple for now.
-(define (ℰ⟦_⟧ ℰ As)
-  (let go ([ℰ : -ℰ ℰ])
+(define (ℰ⟦_⟧ ℰ ΓWs)
+  (let go : -⟦e⟧ ([ℰ : -ℰ ℰ])
     (match ℰ
       ;; Hacky forms
       [(-ℰₚ.modules ℰ* ⟦m⟧s ⟦e⟧) ((↝.modules ⟦m⟧s ⟦e⟧) (go ℰ*))]
       [(-ℰ.def m xs ℰ*) ((↝.def m xs) (go ℰ*))]
       [(-ℰ.dec id ℰ*) ((↝.dec id) (go ℰ*))]
       ;; Regular forms
-      ['□ (λ _ (values ⊥σ As ∅))]
+      ['□ (λ _ (values ⊥σ ΓWs ∅ ∅))]
       [(-ℰ.if ℰ* ⟦e₁⟧ ⟦e₂⟧) ((↝.if ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
       [(-ℰ.@ WVs ℰ* ⟦e⟧s loc) ((↝.@ WVs ⟦e⟧s loc) (go ℰ*))]
       [(-ℰ.begin ℰ* ⟦e⟧s) ((↝.begin ⟦e⟧s) (go ℰ*))]
@@ -245,21 +246,32 @@
       [(-ℰ.begin0.e W ℰ* ⟦e⟧s) ((↝.begin0.e W ⟦e⟧s) (go ℰ*))]
       [(-ℰ.let-values xs-Ws (cons xs ℰ*) xs-⟦e⟧s ⟦e⟧ l)
        ((↝.let-values xs-Ws xs xs-⟦e⟧s ⟦e⟧ l) (go ℰ*))]
+      [(-ℰ.letrec-values δρ (cons xs ℰ*) xs-⟦e⟧s ⟦e⟧ l)
+       ((↝.letrec-values δρ xs xs-⟦e⟧s ⟦e⟧ l) (go ℰ*))]
       [(-ℰ.set! x ℰ*) ((↝.set! x) (go ℰ*))]
-      [(-ℰ.μ/c x ℰ*) ((↝.μ/c x) (go ℰ*))])))
-
+      [(-ℰ.μ/c x ℰ*) ((↝.μ/c x) (go ℰ*))]
+      [(-ℰ.-->i Cs ℰ* ⟦c⟧s ⟦mk-d⟧ l)
+       ((↝.-->i Cs ⟦c⟧s ⟦mk-d⟧ l) (go ℰ*))]
+      [(-ℰ.struct/c si Cs ℰ* ⟦c⟧s l)
+       ((↝.struct/c si Cs ⟦c⟧s l) (go ℰ*))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: collect : -M -Ξ -ℬ → -Δσ (℘ -A) (℘ -ℐ) → (Values -ΔM -ΔΞ -Δσ))
+(define-syntax-rule (⊔³ x y)
+  (let-values ([(m₁ m₂ m₃) x]
+               [(n₁ n₂ n₃) y])
+    (values (⊔/m m₁ n₁) (⊔/m m₂ n₂) (⊔/m m₃ n₃))))
+
+(: collect : -M -Ξ -ℬ → -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ) → (Values -ΔM -ΔΞ -Δσ))
 ;; Collect evaluation results into store deltas
-(define ((collect M Ξ ℬ) δσ As ℐs)
+(define ((collect M Ξ ℬ) δσ ΓWs ΓEs ℐs)
   
   (define δM : -ΔM
-    (let ([ΔAs (set-subtract As (m@ M ℬ))])
-      (if (set-empty? ΔAs) ⊥M (hash ℬ ΔAs))))
+    (let* ([As (M@ M ℬ)]
+           [δ-As (-- (∪ ΓWs ΓEs) As)])
+      (if (set-empty? δ-As) ⊥M (hash ℬ δ-As))))
   
   (define δΞ
     (for*/fold ([δΞ : -ΔΞ ⊥Ξ])
@@ -275,8 +287,8 @@
 (: ⇓const : Base → -⟦e⟧)
 (define (⇓const b)
   (define W (let ([B (-b b)]) (-W (list B) B)))
-  (λ (G σ ρ Γ 𝒳)
-    (values ⊥σ {set (-A Γ W)} ∅)))
+  (λ (M σ ℬ)
+    (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) W)} ∅ ∅)))
 
 (define ⟦void⟧ (⇓const (void)))
 
@@ -285,6 +297,6 @@
 ;;;;; Testing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (ev₁ [e : -e])
+#;(define (ev₁ [e : -e])
   (define-values (δM δΞ δσ) (ev ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ e) ⊥ρ)))
   (values (show-M δM) (show-Ξ δΞ) (show-σ δσ)))
