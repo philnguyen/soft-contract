@@ -29,7 +29,10 @@
 (define-type -σ (HashTable -α (℘ -V)))
 (define-type -Δσ -σ)
 (define ⊥σ : -σ (hash))
-(define σ@ : (-σ -α → (℘ -V)) m@)
+
+(: σ@ : -σ -α → (℘ -V))
+(define (σ@ σ α)
+  (hash-ref σ α (λ () (error 'σ@ "non-existent address ~a" α))))
 
 (: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
 ;; Look up store at addresses. Return all possible combinations
