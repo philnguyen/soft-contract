@@ -64,7 +64,7 @@
   (check-equal? (fv -tt) ∅)
   (check-equal? (fv (-λ '(x) (-x 'x))) ∅)
   (check-equal? (fv (-x 'x)) {set 'x})
-  (check-equal? (fv (-ref (-id 'cons 'Λ) 'l 0)) ∅)
+  (check-equal? (fv (-ref (-𝒾 'cons 'Λ) 'l 0)) ∅)
   (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) -Λ)))) {set 'f}))
 
 (: 𝐴 : (U -e (Listof -e)) → (℘ Symbol))
@@ -352,16 +352,16 @@
       [(? list?) (list->set xs)]))
   (λ (e) (and (set-empty? (∩ shadows (fv e))) (f e))))
 
-(: find-calls : -e (U -id -•) → (℘ (Listof -e)))
-;; Search for all invocations of `f-id` in `e`
-(define (find-calls e f-id)
+(: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
+;; Search for all invocations of `f-𝒾` in `e`
+(define (find-calls e f-𝒾)
   (define-set calls : (Listof -e))
   (let go : Void ([e e])
     (match e
       [(-@ f xs _)
        (go f)
        (for-each go xs)
-       (when (match? f (-ref (== f-id) _ _) (== f-id))
+       (when (match? f (-ref (== f-𝒾) _ _) (== f-𝒾))
          (calls-add! xs))]
       [_ (void)]))
   calls)
@@ -388,7 +388,7 @@
         [mk-struct-info : (Any → -struct-info)
          (match-lambda
            [`(,(? symbol? t) ,(? boolean? bs) ...)
-            (-struct-info (-id t 'Λ)
+            (-struct-info (-𝒾 t 'Λ)
                           (length bs)
                           (for/set: : (℘ Integer) ([(b i) (in-indexed bs)] #:when b) i))])])
     (for ([dec prims])

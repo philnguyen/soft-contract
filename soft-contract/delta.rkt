@@ -21,19 +21,19 @@
 ;; contracts. (These are unsafe primitives).
 ;; Current range of `δ` contains `blm`, which is just a hack for returning spurious result.
 ;; Also, `δ` needs not refine path condition
-(: concrete-impl : Symbol → (Option (-M -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))))
+(: concrete-impl : Symbol → (Option (-M -σ -Γ (Listof -W¹) -ℓ → (Values -Δσ -A*))))
 ;; Table for (semi-)concrete implementations
 (define (concrete-impl s)
   (define (error-arity [o : Symbol] [expect : Integer] [given : Integer])
     (error 'δ "Invalid arity uncaught for `~a`: expect ~a, given ~a" o expect given))
   
-  (with-args s (M σ Γ Ws loc)
+  (with-args s (M σ Γ Ws ℓ)
     [any/c  (values ⊥σ (list -tt))]
     [none/c (values ⊥σ (list -ff))]
     [and/c
      (match Ws
        [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define pos (-src-loc-pos loc))
+        (define pos (-ℓ-pos ℓ))
         (define α₁ (-α.and/c-l pos))
         (define α₂ (-α.and/c-r pos))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
@@ -42,7 +42,7 @@
     [or/c
      (match Ws
        [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define pos (-src-loc-pos loc))
+        (define pos (-ℓ-pos ℓ))
         (define α₁ (-α.or/c-l pos))
         (define α₂ (-α.or/c-r pos))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
@@ -51,12 +51,12 @@
     [not/c
      (match Ws
        [(list (-W¹ V _))
-        (define α (-α.not/c (-src-loc-pos loc)))
+        (define α (-α.not/c (-ℓ-pos ℓ)))
         (values (⊔ ⊥σ α V) (list (-Not/C α)))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
 
     [vector
-     (define pos (-src-loc-pos loc))
+     (define pos (-ℓ-pos ℓ))
      (define αs
        (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
          (-α.idx pos i)))
@@ -67,11 +67,11 @@
     [vectorof
      (match Ws
        [(list (-W¹ V _))
-        (define α (-α.vectorof (-src-loc-pos loc)))
+        (define α (-α.vectorof (-ℓ-pos ℓ)))
         (values (⊔ ⊥σ α V) (list (-Vectorof α)))]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
     [vector/c
-     (define pos (-src-loc-pos loc))
+     (define pos (-ℓ-pos ℓ))
      (define-values (αs-rev δσ)
        (for/fold ([αs-rev : (Listof -α.vector/c) '()] [δσ : -Δσ ⊥σ])
                  ([(W i) (in-indexed Ws)])
@@ -122,7 +122,7 @@
 
 (define-syntax (with-args stx)
   (syntax-parse stx
-    [(_ s:id (M:id σ:id Γ:id Ws:id loc:id) [t:id e ...] ...)
+    [(_ s:id (M:id σ:id Γ:id Ws:id ℓ:id) [t:id e ...] ...)
      (for ([t-id (in-list (syntax->list #'(t ...)))])
        (define t-sym (syntax->datum t-id))
        (unless (∋ prim-names t-sym)
@@ -133,7 +133,7 @@
           t-id)))
      #`(case s
          [(t)
-          (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -W¹)] [loc : -src-loc])
+          (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -W¹)] [ℓ : -ℓ])
             e ...)]
          ...
          [else #f])]))
@@ -278,7 +278,7 @@
        #`(if (∋ prim-names o)
              (cond
                [(concrete-impl o) =>
-                (λ ([f : (-M -σ -Γ (Listof -W¹) -src-loc → (Values -Δσ -A*))])
+                (λ ([f : (-M -σ -Γ (Listof -W¹) -ℓ → (Values -Δσ -A*))])
                   (f M σ Γ Ws l))]
                [else
                 (case o
@@ -288,7 +288,7 @@
      ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ Symbol (Listof -W¹) -src-loc → (Values -Δσ -A*))
+(: δ : -M -σ -Γ Symbol (Listof -W¹) -ℓ → (Values -Δσ -A*))
 (define (δ M σ Γ o Ws l)
   (gen-δ-body M σ Γ o Ws l))
 

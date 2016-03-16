@@ -39,14 +39,14 @@
             
             (define/contract b-syms (listof symbol?)
               (build-list (length cs) (λ (i) (string->symbol (format "x~a" (n-sub i))))))
-            (define/contract b-ids (listof identifier?) (map (curry datum->syntax f) b-syms))
-            (define b-pats (for/list ([b-id b-ids]) #`(-b #,b-id)))
+            (define/contract b-𝒾s (listof identifier?) (map (curry datum->syntax f) b-syms))
+            (define b-pats (for/list ([b-𝒾 b-𝒾s]) #`(-b #,b-𝒾)))
             (define b-conds (datum->syntax f (sexp-and (map mk-cond b-syms cs))))
 
             (list
              #`[(#,o)
                 (match #,xs
-                  [(list #,@b-pats) #:when #,b-conds (-b (#,o #,@b-ids))]
+                  [(list #,@b-pats) #:when #,b-conds (-b (#,o #,@b-𝒾s))]
                   #,@(cond
                        [(hash-ref prims:left-ids o #f) =>
                         (λ (lid) (list #`[(list (-b #,lid) e) e]))]
@@ -100,7 +100,7 @@
     [(and f (andmap (inst values -s) xs))
      (match f
        ;; If we already obtained a value, safe and unsafe shouldn't be different
-       [(-ref (-id o 'Λ) _ _) (apply -?@ o xs)] 
+       [(-ref (-𝒾 o 'Λ) _ _) (apply -?@ o xs)] 
        
        ['any/c -tt]
        ['none/c -ff]
@@ -215,7 +215,7 @@
     [(? -e?)
      (cond [(= 1 n) (list e)]
            [else #|hack|#
-            (define s (-struct-info -id-values n ∅))
+            (define s (-struct-info -𝒾-values n ∅))
             (for/list ([i (in-range n)])
               (-?@ (-st-ac s i) e))])]
     [_ (make-list n #f)]))

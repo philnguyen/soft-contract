@@ -38,24 +38,24 @@
       (with-guarded-arity (length xs) (m Γ* Vs)
         (define δσ
           (for/fold ([δσ : -Δσ ⊥σ]) ([x xs] [V Vs])
-            (define α (-α.def (-id x m)))
+            (define α (-α.def (-𝒾 x m)))
             (⊔ δσ α V)))
         (values δσ {set (-ΓW Γ* -Void/W)} ∅ ∅))))
     (⟦e⟧ M σ ℬ)))
 
-(: ↝.dec : -id → -⟦ℰ⟧)
-;; Make `⟦c⟧`. the contract for `id`.
-;; TODO: Perform contract checking at this time instead of when referencing `id`
-(define (((↝.dec id) ⟦c⟧) M σ ℬ)
+(: ↝.dec : -𝒾 → -⟦ℰ⟧)
+;; Make `⟦c⟧`. the contract for `𝒾`.
+;; TODO: Perform contract checking at this time instead of when referencing `𝒾`
+(define (((↝.dec 𝒾) ⟦c⟧) M σ ℬ)
   (apply/values
    (acc
     σ
-    (λ (ℰ) (-ℰ.dec id ℰ))
+    (λ (ℰ) (-ℰ.dec 𝒾 ℰ))
     (λ (σ* Γ* W)
       (define Vs (-W-Vs W))
-      (with-guarded-arity 1 ((-id-ctx id) Γ* Vs)
+      (with-guarded-arity 1 ((-𝒾-ctx 𝒾) Γ* Vs)
         (match-define (list V) Vs)
-        (values (⊔ ⊥σ (-α.ctc id) V) {set (-ΓW Γ* -Void/W)} ∅ ∅))))
+        (values (⊔ ⊥σ (-α.ctc 𝒾) V) {set (-ΓW Γ* -Void/W)} ∅ ∅))))
    (⟦c⟧ M σ ℬ)))
 
 (: ↝.if : -⟦e⟧ -⟦e⟧ → -⟦ℰ⟧)
@@ -73,15 +73,15 @@
                (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℬ-with-Γ ℬ Γ₂)))))))
     (⟦e₀⟧ M σ ℬ)))
 
-(: ↝.@ : (Listof -W¹) (Listof -⟦e⟧) -src-loc → -⟦ℰ⟧)
-(define (((↝.@ Ws ⟦e⟧s loc) ⟦e⟧) M σ ℬ)
+(: ↝.@ : (Listof -W¹) (Listof -⟦e⟧) -ℓ → -⟦ℰ⟧)
+(define (((↝.@ Ws ⟦e⟧s ℓ) ⟦e⟧) M σ ℬ)
 
-  (define l (-src-loc-party loc))
+  (define l (-ℓ-party ℓ))
 
   (apply/values
    (acc
     σ
-    (λ (ℰ) (-ℰ.@ Ws ℰ ⟦e⟧s loc))
+    (λ (ℰ) (-ℰ.@ Ws ℰ ⟦e⟧s ℓ))
     (λ (σ* Γ* W)
       (match-define (-W Vs s) W)
       (with-guarded-arity 1 (l Γ* Vs)
@@ -91,9 +91,9 @@
         (match ⟦e⟧s ; TODO: move this dispatch out?
           ['()
            (match-define (cons Wₕ Wₓs) (reverse Ws*))
-           (ap M σ* ℬ* Wₕ Wₓs loc)]
+           (ap M σ* ℬ* Wₕ Wₓs ℓ)]
           [(cons ⟦e⟧* ⟦e⟧s*)
-           (((↝.@ Ws* ⟦e⟧s* loc) ⟦e⟧*) M σ* ℬ*)]))))
+           (((↝.@ Ws* ⟦e⟧s* ℓ) ⟦e⟧*) M σ* ℬ*)]))))
    (⟦e⟧ M σ ℬ)))
 
 (: ↝.begin : (Listof -⟦e⟧) → -⟦ℰ⟧)
@@ -344,9 +344,9 @@
            (values δσ {set (-ΓW Γ* (-W (list V) (-?struct/c si cs)))} ∅ ∅)]))))
    (⟦c⟧ M σ ℬ)))
 
-(: ap : -M -σ -ℬ -W¹ (Listof -W¹) -src-loc → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+(: ap : -M -σ -ℬ -W¹ (Listof -W¹) -ℓ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
 ;; Apply value `Wₕ` to arguments `Wₓ`s, returning store widening, answers, and suspended computation
-(define (ap M σ ℬ₀ Wₕ Wₓs loc)
+(define (ap M σ ℬ₀ Wₕ Wₓs ℓ)
   (match-define (-ℬ ⟦e⟧₀ ρ₀ Γ₀ 𝒞₀) ℬ₀)
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
@@ -357,7 +357,7 @@
   (: ap/δ : Symbol → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
   ;; Apply primitive
   (define (ap/δ o)
-    (define-values (δσ A*) (δ M σ Γ₀ o Wₓs loc))
+    (define-values (δσ A*) (δ M σ Γ₀ o Wₓs ℓ))
     (cond [(list? A*)
            (values δσ {set (-ΓW Γ₀ (-W A* sₐ))} ∅ ∅)]
           ;; Rely on `δ` giving no error
@@ -366,7 +366,7 @@
   (: ap/β : -formals -⟦e⟧ -ρ -Γ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
   ;; Apply λ abstraction
   (define (ap/β xs ⟦e⟧ ρ Γ₁)
-    (define 𝒞₁ (𝒞+ 𝒞₀ (cons ⟦e⟧ (-src-loc-pos loc))))
+    (define 𝒞₁ (𝒞+ 𝒞₀ (cons ⟦e⟧ (-ℓ-pos ℓ))))
     (define-values (δσ ρ₁)
       (match xs
         [(? list? xs)
@@ -395,7 +395,7 @@
     [(-●) ; FIXME havoc
      (printf "ap: ●~n")
      (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
-    [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm (-src-loc-party loc) 'Λ (list 'procedure?) (list Vₕ)))} ∅)]))
+    [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm (-ℓ-party ℓ) 'Λ (list 'procedure?) (list Vₕ)))} ∅)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

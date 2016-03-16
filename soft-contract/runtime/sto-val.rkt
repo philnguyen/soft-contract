@@ -150,12 +150,12 @@
             (-ℰₚ.modules [cur-mod : -ℰ] [mods : (Listof -⟦e⟧)] [top : -⟦e⟧])
             ;; Different type of context. Hack for now. I may de-hack some day but not a big problem.
             (-ℰ.def [mod-name : Adhoc-Module-Path] [lhs : (Listof Symbol)] [rhs : -ℰ])
-            (-ℰ.dec [name : -id] [ctc : -ℰ])
+            (-ℰ.dec [name : -𝒾] [ctc : -ℰ])
             
             ;; Regular context
             '□
             (-ℰ.if -ℰ -⟦e⟧ -⟦e⟧)
-            (-ℰ.@ (Listof -W¹) -ℰ (Listof -⟦e⟧) -src-loc)
+            (-ℰ.@ (Listof -W¹) -ℰ (Listof -⟦e⟧) -ℓ)
             (-ℰ.begin -ℰ (Listof -⟦e⟧))
             (-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
             (-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧))
@@ -277,18 +277,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (-α . ::= . ; For top-level definition and contract
-            (-α.def -id)
-            (-α.ctc -id)
+            (-α.def -𝒾)
+            (-α.ctc -𝒾)
             ; for binding
             (-α.x Symbol -𝒞)
             ; for mutable or opaque field
-            (-α.fld (U Integer -e (List -id Integer Integer)))
+            (-α.fld (U Integer -e (List -𝒾 Integer Integer)))
             ; for Cons/varargs
             (-α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list 
             (-α.var-cdr [pos : Integer] [idx : Natural])
 
             ;; for wrapped mutable struct
-            (-α.st* [id : -id] [pos : Integer])
+            (-α.st* [id : -𝒾] [pos : Integer])
 
             ;; for vector indices
             (-α.idx [pos : Integer] [idx : Integer])
@@ -304,16 +304,16 @@
             (-α.not/c (U Integer -e))
             (-α.vector/c (U Integer (Pairof Integer Integer) -e))
             (-α.vectorof (U Integer -e))
-            (-α.struct/c (U Integer (List -id Integer Integer) -e))
+            (-α.struct/c (U Integer (List -𝒾 Integer Integer) -e))
             (-α.x/c [pos : Integer])
             (-α.dom (U Integer (Pairof Integer Integer) -e))
             (-α.rst (U Integer -e)))
 
 (: alloc-fields : -struct-info (Listof -s) Integer → (Listof -α.fld))
 (define (alloc-fields s args pos)
-  (match-define (-struct-info id n _) s)
+  (match-define (-struct-info 𝒾 n _) s)
   (for/list ([i n] [?e args])
-    (-α.fld (or ?e (list id pos i)))))
+    (-α.fld (or ?e (list 𝒾 pos i)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -363,8 +363,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-parameter set!-able? : (℘ (Pairof Symbol -e)) ∅)
-(define-parameter σv : (HashTable -id -V) ((inst hash -id -V)))
-(define-parameter σc : (HashTable -id -V) ((inst hash -id -V)))
+(define-parameter σv : (HashTable -𝒾 -V) ((inst hash -𝒾 -V)))
+(define-parameter σc : (HashTable -𝒾 -V) ((inst hash -𝒾 -V)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -490,8 +490,8 @@
        (match xs
          [(list x) `(define        ,x  ,rhs)]
          [_        `(define-values ,xs ,rhs)])]
-      [(-ℰ.dec id ℰ*)
-       `(provide/contract [,(-id-name id) ,(loop ℰ*)])]
+      [(-ℰ.dec 𝒾 ℰ*)
+       `(provide/contract [,(-𝒾-name 𝒾) ,(loop ℰ*)])]
       
       ['□ in-hole]
       [(-ℰ.if ℰ* _ _) `(if ,(loop ℰ*) … …)]

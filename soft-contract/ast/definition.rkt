@@ -14,24 +14,23 @@
 ;; Temporary definition of module path
 (define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
 (define-type Mon-Party Adhoc-Module-Path)
-(define-type Mon-Info (List Mon-Party Mon-Party Mon-Party))
+(struct Mon-Info ([pos : Mon-Party] [neg : Mon-Party] [src : Mon-Party]) #:transparent)
 
 ;; Swap positive and negative blame parties
-(define (swap-parties [info : Mon-Info]) : Mon-Info
-  (match-define (list + - o) info)
-  (list - + o))
+(define swap-parties : (Mon-Info → Mon-Info)
+  (match-lambda [(Mon-Info l+ l- lo) (Mon-Info l- l+ lo)]))
 
 ;; Source location
-(define next-loc! (make-neg-src))
+(define +loc! (make-neg-src))
 (define next-subscript! (make-nat-src))
-(struct -src-loc ([party : Mon-Party] [pos : Integer]) #:transparent)
-(define -Λ (-src-loc 'Λ (next-loc!)))
+(struct -ℓ ([party : Mon-Party] [pos : Integer]) #:transparent)
+(define -Λ (-ℓ 'Λ (+loc!)))
 
-;; Identifier as a name and where it's from
-(struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
+;; Identifier as a name and its source
+(struct -𝒾 ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
 ;; Struct meta data
-(struct -struct-info ([id : -id] [arity : Natural] [mutables : (℘ Integer)]) #:transparent)
+(struct -struct-info ([id : -𝒾] [arity : Natural] [mutables : (℘ Integer)]) #:transparent)
 
 ;; Formal parameters
 (-formals . ::= . (Listof Symbol)
@@ -72,8 +71,8 @@
 
 (-e . ::= . -v
             (-x Symbol) ; lexical variables 
-            (-ref [id : -id] [ctx : Mon-Party] [pos : Integer]) ; module references
-            (-@ -e (Listof -e) -src-loc)
+            (-ref [id : -𝒾] [ctx : Mon-Party] [pos : Integer]) ; module references
+            (-@ -e (Listof -e) -ℓ)
             (-if -e -e -e)
             (-wcm [key : -e] [val : -e] [body : -e])
             -begin/e
@@ -125,9 +124,9 @@
 (define -ff (-b #f))
 (define -null (-b null))
 
-(define -id-values (-id 'values 'Λ))
-(define -id-cons (-id 'cons 'Λ))
-(define -s-cons (-struct-info -id-cons 2 ∅))
+(define -𝒾-values (-𝒾 'values 'Λ))
+(define -𝒾-cons (-𝒾 'cons 'Λ))
+(define -s-cons (-struct-info -𝒾-cons 2 ∅))
 (define -cons (-st-mk -s-cons))
 (define -car (-st-ac -s-cons 0))
 (define -cdr (-st-ac -s-cons 1))
@@ -136,8 +135,8 @@
 (define -zero (-b 0))
 (define -one (-b 1))
 
-(define -id-box (-id 'box 'Λ))
-(define -s-box  (-struct-info -id-box 1 {set 0}))
+(define -𝒾-box (-𝒾 'box 'Λ))
+(define -s-box  (-struct-info -𝒾-box 1 {set 0}))
 (define -box? (-st-p -s-box))
 (define -unbox (-st-ac -s-box 0))
 (define -box (-st-mk -s-box))
@@ -161,7 +160,7 @@
                ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "~a•~a" prefix (n-sub i)))) ; hack
       (values c x)))
-  (-->i doms (-λ xs d) (next-loc!)))
+  (-->i doms (-λ xs d) (+loc!)))
 
 (: -->* : (Listof -e) -e -e → -e)
 ;; Make a non-dependent vararg contract
@@ -172,7 +171,7 @@
       (define x (string->symbol (format "v•~a" (n-sub i))))
       (values c x)))
   (define x-rst (string->symbol (format "rst•~a" (n-sub (length cs)))))
-  (-->i (append doms (list rst)) (-λ (-varargs xs x-rst) d) (next-loc!)))
+  (-->i (append doms (list rst)) (-λ (-varargs xs x-rst) d) (+loc!)))
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
@@ -182,15 +181,15 @@
         ['() 'any/c]
         [(list e) e]
         [(cons e es*)
-         (-@ (-ref (-id o 'Λ) l (next-loc!))
+         (-@ (-ref (-𝒾 o 'Λ) l (+loc!))
              (list e (-app/c o l es*))
-             (-src-loc l (next-loc!)))]))
+             (-ℓ l (+loc!)))]))
     (values (curry -app/c 'and/c)
             (curry -app/c 'or/c))))
 
 (: -not/c : Mon-Party -e → -e)
 (define (-not/c l e)
-  (-@ (-ref (-id 'not/c 'Λ) l (next-loc!)) (list e) (-src-loc l (next-loc!))))
+  (-@ (-ref (-𝒾 'not/c 'Λ) l (+loc!)) (list e) (-ℓ l (+loc!))))
 
 (: -one-of/c : Mon-Party (Listof -e) → -e)
 (define (-one-of/c l es)
@@ -203,16 +202,16 @@
 
 (: -cons/c : -e -e → -e)
 (define (-cons/c c d)
-  (-struct/c -s-cons (list c d) (next-loc!)))
+  (-struct/c -s-cons (list c d) (+loc!)))
 
 (: -listof : Mon-Party -e → -e)
 (define (-listof l c)
-  (define pos (next-loc!))
+  (define pos (+loc!))
   (-μ/c pos (-or/c l (list 'null? (-cons/c c (-x/c pos))))))
 
 (: -box/c : -e → -e)
 (define (-box/c c)
-  (-struct/c -s-box (list c) (next-loc!)))
+  (-struct/c -s-box (list c) (+loc!)))
 
 (: -list/c : (Listof -e) → -e)
 (define (-list/c cs)
@@ -223,7 +222,7 @@
   (match es
     ['() -null]
     [(cons e es*)
-     (-@ -cons (list e (-list l es*)) (-src-loc l (next-loc!)))]))
+     (-@ -cons (list e (-list l es*)) (-ℓ l (+loc!)))]))
 
 (:* -and : -e * → -e)
 ;; Return ast representing conjuction of 2 expressions
@@ -272,9 +271,9 @@
 
 (define-values (show-x/c show-x/c⁻¹ count-x/c) ((inst unique-sym Integer) 'x))
 
-(define (show-src-loc [loc : -src-loc]) : Symbol
-  (match-define (-src-loc lab pos) loc)
-  (string->symbol (format "~a~a" lab (if pos (n-sub pos) ""))))
+(define (show-ℓ [ℓ : -ℓ]) : Symbol
+  (match-define (-ℓ l n) ℓ)
+  (string->symbol (format "~a~a" l (n-sub n))))
 
 (define (show-b [x : Base]) : Sexp
   (cond
@@ -337,7 +336,7 @@
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) (string->symbol (format "ₓ~a" x))]
-    [(-ref (-id x p) _ _)
+    [(-ref (-𝒾 x p) _ _)
      (case p ;; hack
        [(Λ) (string->symbol (format "「~a」" x))]
        [else x])]
@@ -391,7 +390,7 @@
   (string->symbol (format "~a/c" s)))
 
 (define (show-struct-info [info : -struct-info]) : Symbol
-  (-id-name (-struct-info-id info)))
+  (-𝒾-name (-struct-info-id info)))
 
 (define show-module-level-form : (-module-level-form → Sexp)
   (match-lambda
