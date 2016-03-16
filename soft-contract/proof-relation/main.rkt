@@ -73,7 +73,7 @@
             (match (unfold M σ e)
               [(? set? cases)
                (define anses
-                 (for*/set: : (Setof -R)
+                 (for*/set: : (℘ -R)
                             ([kase cases]
                              [ψs (in-value (-Res-facts kase))]
                              [e* (in-value (-Res-e     kase))]
@@ -171,7 +171,7 @@
 (: Γ+/- (∀ (X Y) -M -σ -Γ (-Γ → X)
            (U (List -W¹ (Listof -W¹) (-Γ → Y))
               (List 'not -W¹ (Listof -W¹) (-Γ → Y))) *
-           → (Values (Option X) (Setof Y))))
+           → (Values (Option X) (℘ Y))))
 ;; Refine the environment with sequence of propositions
 ;; and return (maybe) final sucessful environment
 ;; along with each possible failure
@@ -180,7 +180,7 @@
 (define (Γ+/- M σ Γ mk-ok . filters)
   (define-values (Γ-ok ans-bads)
     (for/fold ([Γ-ok : (Option -Γ) Γ]
-               [ans-bads : (Setof Y) ∅])
+               [ans-bads : (℘ Y) ∅])
               ([filt filters])
       (cond
         [Γ-ok

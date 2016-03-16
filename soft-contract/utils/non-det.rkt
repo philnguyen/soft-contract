@@ -10,10 +10,10 @@
     [(_ (α → β) v [p e ...] ...)
      (let ()
        (define x v)
-       (define f : (α → (U β (Setof β)))
+       (define f : (α → (U β (℘ β)))
          (match-lambda [p e ...] ... [x (error 'match/nd "unmatched: ~a" x)]))
        (cond
-         [(set? x) (for/fold ([acc : (Setof β) ∅]) ([xᵢ x])
+         [(set? x) (for/fold ([acc : (℘ β) ∅]) ([xᵢ x])
                      (define y (f xᵢ))
                      (if (set? y) (set-union acc y) (set-add acc y)))]
          [else (f x)]))]

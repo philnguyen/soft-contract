@@ -143,7 +143,7 @@
                   (equal? '✓ (⊢e (-@ 'equal? (list f g) -Λ))))
                  (= (length xs) (length ys)))
                 (define res
-                  (for/set: : (Setof -R) ([x xs] [y ys])
+                  (for/set: : (℘ -R) ([x xs] [y ys])
                     (⊢e (-@ 'equal? (list x y) -Λ))))
                 (cond
                   [(or (set-empty? res) (equal? res {set '✓})) '✓]

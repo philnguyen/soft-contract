@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require racket/match racket/set "../utils/set.rkt" "../utils/function.rkt")
+(require racket/match racket/set "../utils/main.rkt")
 (require/typed "declarations.rkt"
   [(implications prims:implications) (Listof Any)]
   [(prims prims:prims) (Listof Any)])
@@ -11,7 +11,7 @@
 (require/typed/provide "declarations.rkt"
   [base? (Sexp → Boolean)])
 
-(define-type Graph (HashTable Symbol (Setof Symbol)))
+(define-type Graph (HashTable Symbol (℘ Symbol)))
 (define -graph∅ : Graph (hasheq))
 
 ;; Compute a graph's reflexive-transitive closure
@@ -21,7 +21,7 @@
   (define m₀
     (let ([refl : (Graph Symbol → Graph)
            (λ (m k)
-             (hash-update m k (λ ([vs : (Setof Symbol)]) (set-add vs k)) →∅))])
+             (hash-update m k (λ ([vs : (℘ Symbol)]) (set-add vs k)) →∅))])
       (for*/fold ([m : Graph m])
                  ([(l rs) (in-hash m)]
                   [m (in-value (refl m l))]
@@ -33,14 +33,14 @@
    (λ ([m : Graph])
      (for/hash : Graph ([(l rs) (in-hash m)])
        (define rs*
-         (for/fold ([rs* : (Setof Symbol) rs]) ([r rs])
+         (for/fold ([rs* : (℘ Symbol) rs]) ([r rs])
            (∪ rs* (hash-ref m r))))
        (values l rs*)))
    m₀))
 
 ;; Add edge to graph
 (define (add-edge [m : Graph] [l : Symbol] [r : Symbol]) : Graph
-  (hash-update m l (λ ([rs : (Setof Symbol)]) (set-add rs r)) →∅))
+  (hash-update m l (λ ([rs : (℘ Symbol)]) (set-add rs r)) →∅))
 
 ;; Reverse a graph
 (define (reverse-graph [m : Graph]) : Graph
@@ -87,7 +87,7 @@
     (values im* ex*)))
 
 (define prim-names
-  (for/fold ([names : (Setof Symbol) (seteq)])
+  (for/fold ([names : (℘ Symbol) (seteq)])
             ([dec (in-list prims:prims)])
     (match dec
       [`(#:pred ,(? symbol? s) ,_ ...) (set-add names s)]
@@ -149,7 +149,7 @@
 
 ;; FIXME: some predicates about vectors and streams and such shouldn't be here...
 (define base-predicates
-  (for/fold ([acc : (Setof Symbol) ∅])
+  (for/fold ([acc : (℘ Symbol) ∅])
             ([dec : Any (in-list prims:prims)])
     (match dec
       [`(#:pred ,(? symbol? s))

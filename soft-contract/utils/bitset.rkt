@@ -40,13 +40,13 @@
 (: make-indexed-set (∀ (X) (→ (Values Natural
                                       (Natural X → Natural)
                                       ;; Debugging
-                                      (Natural → (Setof X))))))
-;; Thin layer of `unique-nat` over (Setof X), with short-hand for addition
+                                      (Natural → (℘ X))))))
+;; Thin layer of `unique-nat` over (℘ X), with short-hand for addition
 ;; Let `n` be the number of `call-site` × `function-body`.
 ;; This is more compact than `bitset` for the average case where we don't have all 2ⁿ subsets.
 ;; But in the worst case, this caches all 2ⁿ subsets, while `bitset` only caches `n` elements.
 (define (make-indexed-set)
-  (define-values (f f⁻¹ _) ((inst unique-nat (Setof X))))
+  (define-values (f f⁻¹ _) ((inst unique-nat (℘ X))))
 
   (values
    ;; Empty

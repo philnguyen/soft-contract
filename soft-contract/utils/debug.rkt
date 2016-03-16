@@ -4,7 +4,7 @@
 
 (require "set.rkt" "def.rkt")
 
-(define-parameter debugs : (Setof Symbol) ∅)
+(define-parameter debugs : (℘ Symbol) ∅)
 
 (define-syntax-rule (with-debug t e ...)
   (parameterize ([debugs (set-add (debugs) t)]) e ...))

@@ -31,14 +31,14 @@
 (struct -id ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
 ;; Struct meta data
-(struct -struct-info ([id : -id] [arity : Natural] [mutables : (Setof Integer)]) #:transparent)
+(struct -struct-info ([id : -id] [arity : Natural] [mutables : (℘ Integer)]) #:transparent)
 
 ;; Formal parameters
 (-formals . ::= . (Listof Symbol)
                   (-varargs [init : (Listof Symbol)] [rest : Symbol]))
 
 ;; Return all variable names in function's parameter list
-(define (-formal-names [xs : -formals]) : (Setof Symbol)
+(define (-formal-names [xs : -formals]) : (℘ Symbol)
   (match xs
     [(? list?) (list->set xs)]
     [(-varargs xs* x) (set-add (list->set xs*) x)]))
@@ -84,7 +84,7 @@
             (-set! Symbol -e)
 
             (-@-havoc -x) ; hack for havoc to detect argument's arity at runtime
-            (-amb (Setof -e))
+            (-amb (℘ -e))
             
             ;; contract stuff
             (-μ/c Integer -e)
@@ -111,7 +111,7 @@
            (-st-mut -struct-info Integer)
            (-st-mk -struct-info))
 
-(define-type -es (Setof -e))
+(define-type -es (℘ -e))
 
 ;; Current restricted representation of program
 (struct -prog ([modules : (Listof -module)] [main : -e]) #:transparent)
@@ -415,3 +415,5 @@
   (match-lambda
     [(-varargs xs rst) (cons xs rst)]
     [(? list? l) l]))
+
+

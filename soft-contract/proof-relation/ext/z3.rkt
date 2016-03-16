@@ -56,12 +56,12 @@
   (define-values (decls₀ e->dec) (Γ->decls Γ))
   (define props (Γ->premises e->dec M σ Γ))
   (define adjusted-vars-for-is_int
-    (for/fold ([xs : (Setof Symbol) ∅]) ([prop props])
+    (for/fold ([xs : (℘ Symbol) ∅]) ([prop props])
       (∪ xs (FV-for-is_int prop))))
   (define-values (decls is_int-premises) (hack-decls-for-is_int decls₀ adjusted-vars-for-is_int))
   (values decls (append is_int-premises props)))
 
-(: hack-decls-for-is_int : (Listof Sexp) (Setof Symbol) → (Values (Listof Sexp) (Listof Sexp)))
+(: hack-decls-for-is_int : (Listof Sexp) (℘ Symbol) → (Values (Listof Sexp) (Listof Sexp)))
 ;; Z3's `is_int` doesn't work well if variables are declared as `Int` instead of `Real`
 (define (hack-decls-for-is_int decls xs)
   (values
@@ -72,7 +72,7 @@
        [_ decl]))
    (for/list ([x xs]) `(is_int ,x))))
 
-(: FV-for-is_int : Sexp → (Setof Symbol))
+(: FV-for-is_int : Sexp → (℘ Symbol))
 ;; Check if formula is of form `(... (is_int e))`. Return all FV in `e` if so.
 (define (FV-for-is_int e)
   (match e
@@ -199,9 +199,9 @@
     [else o]))
 
 ;; Extract all free variables in Z3 clause
-(define Z3-FV : (Sexp → (Setof Symbol))
+(define Z3-FV : (Sexp → (℘ Symbol))
   (match-lambda
-    [`(,_ ,es ...) (for/union : (Setof Symbol) ([e es]) (Z3-FV (cast e Sexp)))]
+    [`(,_ ,es ...) (for/union : (℘ Symbol) ([e es]) (Z3-FV (cast e Sexp)))]
     [(? symbol? x) {set x}]
     [_ ∅]))
 

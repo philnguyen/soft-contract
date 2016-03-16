@@ -13,7 +13,7 @@
 (require/typed racket/base
   [hash-empty? ((HashTable -e -e) → Boolean)])
 
-(: fv : (U -e (Listof -e)) → (Setof Symbol))
+(: fv : (U -e (Listof -e)) → (℘ Symbol))
 ;; Compute free variables for expression. Return set of variable names.
 (define (fv e)
   (match e
@@ -30,31 +30,31 @@
     [(-begin0 e₀ es) (∪ (fv e₀) (fv es))]
     [(-let-values bnds e _)
      (define-values (bound FV_rhs)
-       (for/fold ([bound : (Setof Symbol) ∅] [FV_rhs : (Setof Symbol) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Symbol) ∅] [FV_rhs : (℘ Symbol) ∅]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ FV_rhs (fv rhs)))))
      (∪ FV_rhs (-- (fv e) bound))]
     [(-letrec-values bnds e _)
      (define bound
-       (for/fold ([bound : (Setof Symbol) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Symbol) ∅]) ([bnd bnds])
          (set-add-list bound (car bnd))))
      
-     (for/fold ([xs : (Setof Symbol) (-- (fv e) bound)]) ([bnd bnds])
+     (for/fold ([xs : (℘ Symbol) (-- (fv e) bound)]) ([bnd bnds])
        (-- (fv (cdr bnd)) bound))]
     [(-set! x e) (set-add (fv e) x)]
     [(-@-havoc x) (fv x)]
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
     [(-amb es)
-     (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
+     (for/fold ([xs : (℘ Symbol) ∅]) ([e es])
        (∪ xs (fv e)))]
     [(-μ/c _ e) (fv e)]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
     [(-struct/c _ cs _)
-     (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
+     (for/fold ([xs : (℘ Symbol) ∅]) ([c cs])
        (∪ xs (fv c)))]
     [(? list? l)
-     (for/fold ([xs : (Setof Symbol) ∅]) ([e l])
+     (for/fold ([xs : (℘ Symbol) ∅]) ([e l])
        (∪ xs (fv e)))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅]))
 
@@ -67,7 +67,7 @@
   (check-equal? (fv (-ref (-id 'cons 'Λ) 'l 0)) ∅)
   (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) -Λ)))) {set 'f}))
 
-(: 𝐴 : (U -e (Listof -e)) → (Setof Symbol))
+(: 𝐴 : (U -e (Listof -e)) → (℘ Symbol))
 ;; Collect all asignable free variables
 (define (𝐴 e)
   (match e
@@ -84,30 +84,30 @@
     [(-begin0 e₀ es) (∪ (𝐴 e₀) (𝐴 es))]
     [(-let-values bnds e _)
      (define-values (bound 𝐴_rhs)
-       (for/fold ([bound : (Setof Symbol) ∅] [𝐴_rhs : (Setof Symbol) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Symbol) ∅] [𝐴_rhs : (℘ Symbol) ∅]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ 𝐴_rhs (𝐴 rhs)))))
      (∪ 𝐴_rhs (-- (𝐴 e) bound))]
     [(-letrec-values bnds e _)
      (define bound
-       (for/fold ([bound : (Setof Symbol) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Symbol) ∅]) ([bnd bnds])
          (set-add-list bound (car bnd))))
-     (for/fold ([xs : (Setof Symbol) (-- (𝐴 e) bound)]) ([bnd bnds])
+     (for/fold ([xs : (℘ Symbol) (-- (𝐴 e) bound)]) ([bnd bnds])
        (-- (𝐴 (cdr bnd)) bound))]
     [(-set! x e) (set-add (𝐴 e) x)]
     [(-@-havoc x) ∅]
     #;[(.apply f xs _) (set-union (𝐴 f d) (𝐴 xs d))]
     [(-if e e₁ e₂) (∪ (𝐴 e) (𝐴 e₁) (𝐴 e₂))]
     [(-amb es)
-     (for/fold ([xs : (Setof Symbol) ∅]) ([e es])
+     (for/fold ([xs : (℘ Symbol) ∅]) ([e es])
        (∪ xs (𝐴 e)))]
     [(-μ/c _ e) (𝐴 e)]
     [(-->i cs mk-d _) (apply ∪ (𝐴 mk-d) (map 𝐴 cs))]
     [(-struct/c _ cs _)
-     (for/fold ([xs : (Setof Symbol) ∅]) ([c cs])
+     (for/fold ([xs : (℘ Symbol) ∅]) ([c cs])
        (∪ xs (𝐴 c)))]
     [(? list? l)
-     (for/fold ([xs : (Setof Symbol) ∅]) ([e l])
+     (for/fold ([xs : (℘ Symbol) ∅]) ([e l])
        (∪ xs (𝐴 e)))]
     [_ (log-debug "𝐴⟦~a⟧ = ∅~n" e) ∅]))
 
@@ -154,28 +154,28 @@
    ;; FIXME count up for primitives
    [_ 0]))
 
-(: free-x/c : -e → (Setof Symbol))
+(: free-x/c : -e → (℘ Symbol))
 ;; Return all free references to recursive contracts inside term
 (define (free-x/c e)
 
-  (: go* : (Listof -e) → (Setof Symbol))
-  (define (go* xs) (for/union : (Setof Symbol) ([x xs]) (go x)))
+  (: go* : (Listof -e) → (℘ Symbol))
+  (define (go* xs) (for/union : (℘ Symbol) ([x xs]) (go x)))
 
-  (: go : -e → (Setof Symbol))
+  (: go : -e → (℘ Symbol))
   (define (go e)
     (match e
       [(-λ xs e) (go e)]
       [(-case-λ body)
-       (for/union : (Setof Symbol) ([p body]) (go (cdr p)))]
+       (for/union : (℘ Symbol) ([p body]) (go (cdr p)))]
       [(-@ f xs ctx) (∪ (go f) (go* xs))]
       [(-if i t e) (∪ (go i) (go t) (go e))]
       [(-wcm k v b) (∪ (go k) (go v) (go b))]
       [(-begin0 e es) (∪ (go e) (go* es))]
       [(-let-values bnds e ctx)
-       (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+       (∪ (for/union : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-letrec-values bnds e ctx)
-       (∪ (for/union : (Setof Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
-      [(-amb es) (for/union : (Setof Symbol) ([e es]) (go e))]
+       (∪ (for/union : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+      [(-amb es) (for/union : (℘ Symbol) ([e es]) (go e))]
       [(-μ/c _ c) (go c)]
       [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
       [(-struct/c t cs _) (go* cs)]
@@ -221,7 +221,7 @@
          [(-let-values bnds e* l)
           (define-values (bnds-rev locals)
             (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
-                       [locals : (Setof Symbol) ∅])
+                       [locals : (℘ Symbol) ∅])
                       ([bnd bnds])
               (match-define (cons xs ex) bnd)
               (values (cons (cons xs (go m ex)) bnds-rev)
@@ -231,7 +231,7 @@
          [(-letrec-values bnds e* l)
           (define xs
             (set->list
-             (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
+             (for/fold ([locals : (℘ Symbol) ∅]) ([bnd bnds])
                (set-add-list locals (car bnd)))))
           (define m* (shrink m xs))
           (define bnds*
@@ -276,7 +276,7 @@
          [(-let-values bnds e* l)
           (define-values (bnds-rev locals)
             (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
-                       [locals : (Setof Symbol) ∅])
+                       [locals : (℘ Symbol) ∅])
                       ([bnd bnds])
               (match-define (cons xs ex) bnd)
               (values (cons (cons xs (go f ex)) bnds-rev)
@@ -286,7 +286,7 @@
          [(-letrec-values bnds e* l)
           (define xs
             (set->list
-             (for/fold ([locals : (Setof Symbol) ∅]) ([bnd bnds])
+             (for/fold ([locals : (℘ Symbol) ∅]) ([bnd bnds])
                (set-add-list locals (car bnd)))))
           (define f* (shrink-f f xs))
           (define bnds*
@@ -352,7 +352,7 @@
       [(? list?) (list->set xs)]))
   (λ (e) (and (set-empty? (∩ shadows (fv e))) (f e))))
 
-(: find-calls : -e (U -id -•) → (Setof (Listof -e)))
+(: find-calls : -e (U -id -•) → (℘ (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`
 (define (find-calls e f-id)
   (define-set calls : (Listof -e))
@@ -366,14 +366,14 @@
       [_ (void)]))
   calls)
 
-(: -formals-names : -formals → (Setof Symbol))
+(: -formals-names : -formals → (℘ Symbol))
 ;; Return all names that a formal list binds
 (define -formals-names
   (match-lambda
     [(-varargs xs x) (set-add (list->set xs) x)]
     [(? list? xs) (list->set xs)]))
 
-(: binder-has? : -formals (U Symbol -e) → (Option (Setof Symbol)))
+(: binder-has? : -formals (U Symbol -e) → (Option (℘ Symbol)))
 ;; returns whether a list of binding names has given name
 (define (binder-has? xs x)
   (define FVs (if (symbol? x) {set x} (fv x)))
@@ -390,7 +390,7 @@
            [`(,(? symbol? t) ,(? boolean? bs) ...)
             (-struct-info (-id t 'Λ)
                           (length bs)
-                          (for/set: : (Setof Integer) ([(b i) (in-indexed bs)] #:when b) i))])])
+                          (for/set: : (℘ Integer) ([(b i) (in-indexed bs)] #:when b) i))])])
     (for ([dec prims])
       (match dec
         [`(#:alias ,(? symbol? x) ,(? symbol? y))
