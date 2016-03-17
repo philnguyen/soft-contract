@@ -22,7 +22,6 @@
     (identifier? identifier? . -> . (listof syntax?))
     (define ⊢e (datum->syntax zs '⊢e))
     (define p⇒p (datum->syntax zs 'p⇒p))
-    (define -Λ (datum->syntax zs '-Λ))
 
     (for/list ([(o o-rng) prim-ranges])
 
@@ -39,7 +38,7 @@
           
           (define/contract preconds (listof syntax?)
             (for/list ([dom o-doms] [arg args])
-              #`(eq? '✓ (#,⊢e (-@ '#,dom (list #,arg) #,-Λ)))))
+              #`(eq? '✓ (#,⊢e (-@ '#,dom (list #,arg) 0)))))
           
           #`[(#,o-rng*)
              (match #,zs
@@ -140,11 +139,11 @@
                [(and
                  (or
                   (and (-λ? f) (equal? f g))
-                  (equal? '✓ (⊢e (-@ 'equal? (list f g) -Λ))))
+                  (eq? '✓ (⊢e (-@ 'equal? (list f g) 0))))
                  (= (length xs) (length ys)))
                 (define res
                   (for/set: : (℘ -R) ([x xs] [y ys])
-                    (⊢e (-@ 'equal? (list x y) -Λ))))
+                    (⊢e (-@ 'equal? (list x y) 0))))
                 (cond
                   [(or (set-empty? res) (equal? res {set '✓})) '✓]
                   [(and (-st-mk? f) (∋ res '✗)) '✗]

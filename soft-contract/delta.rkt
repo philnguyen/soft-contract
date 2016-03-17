@@ -33,33 +33,30 @@
     [and/c
      (match Ws
        [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define pos (-ℓ-pos ℓ))
-        (define α₁ (-α.and/c-l pos))
-        (define α₂ (-α.and/c-r pos))
+        (define α₁ (-α.and/c-l ℓ))
+        (define α₂ (-α.and/c-r ℓ))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
                 (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)))]
        [Ws (error-arity 'and/c 2 (length Ws))])]
     [or/c
      (match Ws
        [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define pos (-ℓ-pos ℓ))
-        (define α₁ (-α.or/c-l pos))
-        (define α₂ (-α.or/c-r pos))
+        (define α₁ (-α.or/c-l ℓ))
+        (define α₂ (-α.or/c-r ℓ))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
                 (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)))]
        [Ws (error-arity 'or/c 2 (length Ws))])]
     [not/c
      (match Ws
        [(list (-W¹ V _))
-        (define α (-α.not/c (-ℓ-pos ℓ)))
+        (define α (-α.not/c ℓ))
         (values (⊔ ⊥σ α V) (list (-Not/C α)))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
 
     [vector
-     (define pos (-ℓ-pos ℓ))
      (define αs
        (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
-         (-α.idx pos i)))
+         (-α.idx ℓ i)))
      (define δσ
        (for/fold ([δσ : -Δσ ⊥σ]) ([α αs] [W Ws])
          (⊔ δσ α (-W¹-V W))))
@@ -67,16 +64,15 @@
     [vectorof
      (match Ws
        [(list (-W¹ V _))
-        (define α (-α.vectorof (-ℓ-pos ℓ)))
+        (define α (-α.vectorof ℓ))
         (values (⊔ ⊥σ α V) (list (-Vectorof α)))]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
     [vector/c
-     (define pos (-ℓ-pos ℓ))
      (define-values (αs-rev δσ)
        (for/fold ([αs-rev : (Listof -α.vector/c) '()] [δσ : -Δσ ⊥σ])
                  ([(W i) (in-indexed Ws)])
          (match-define (-W¹ V s) W)
-         (define α (-α.vector/c (if s s (cons pos i))))
+         (define α (-α.vector/c (if s s (cons ℓ i))))
          (values (cons α αs-rev) (⊔ δσ α V))))
      (values δσ (list (-Vector/C (reverse αs-rev))))]
     
@@ -146,7 +142,7 @@
   (define/contract Γ-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract o-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract Ws-id (parameter/c identifier?) (make-parameter #f))
-  (define/contract l-id  (parameter/c identifier?) (make-parameter #f))
+  (define/contract ℓ-id  (parameter/c identifier?) (make-parameter #f))
 
   (define/contract (mk-sym name sub)
     (symbol? integer? . -> . identifier?)
@@ -258,14 +254,14 @@
 ;; Generate body of `δ`
 (define-syntax (gen-δ-body stx)
   (syntax-parse stx
-    [(_ M:id σ:id Γ:id o:id Ws:id l:id)
+    [(_ M:id σ:id Γ:id o:id Ws:id ℓ:id)
      (define-values (clauses names)
        (parameterize ([M-id #'M]
                       [σ-id #'σ]
                       [Γ-id #'Γ]
                       [o-id #'o]
                       [Ws-id #'Ws]
-                      [l-id #'l])
+                      [ℓ-id #'ℓ])
          ;; Accumulate `clauses` for straightforwardly lifted operators
          ;; and `names` for opaque operators
          (for/fold ([clauses '()] [names '()]) ([dec prims])
@@ -279,7 +275,7 @@
              (cond
                [(concrete-impl o) =>
                 (λ ([f : (-M -σ -Γ (Listof -W¹) -ℓ → (Values -Δσ -A*))])
-                  (f M σ Γ Ws l))]
+                  (f M σ Γ Ws ℓ))]
                [else
                 (case o
                   #,@clauses
@@ -289,8 +285,8 @@
      body-stx]))
 
 (: δ : -M -σ -Γ Symbol (Listof -W¹) -ℓ → (Values -Δσ -A*))
-(define (δ M σ Γ o Ws l)
-  (gen-δ-body M σ Γ o Ws l))
+(define (δ M σ Γ o Ws ℓ)
+  (gen-δ-body M σ Γ o Ws ℓ))
 
 
 (module+ test
@@ -300,7 +296,7 @@
   ;; Test δ's concrete fragment
   (define (check-δ/b o bs bₐ)
     (define Ws (for/list : (Listof -W¹) ([b bs]) (-W¹ (-b b) (-b b))))
-    (define-values (δσ Vs) (δ ⊥M ⊥σ ⊤Γ o Ws -Λ))
+    (define-values (δσ Vs) (δ ⊥M ⊥σ ⊤Γ o Ws 0))
     (check-true (list? Vs))
     (check-equal? ((inst length -V) (cast Vs (Listof -V))) 1)
     (match-define (list V) Vs)

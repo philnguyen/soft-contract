@@ -52,43 +52,46 @@
   (let ([col (collect M Ξ ℬ₀)])
     (⊔³ (apply/values col ((ℰ⟦_⟧ ℰ ΓWs) M σ ℬ₀))
         (apply/values col (values ⊥σ ∅ ΓEs ∅)))))
-  
 
 (: ⇓ₚ : (Listof -module) -e → -⟦e⟧)
 ;; Compile list of modules
 (define (⇓ₚ ms e)
   (match ms
-    ['() (⇓ e)]
-    [(cons m ms*) ((↝.modules (map ⇓ₘ ms*) (⇓ e)) (⇓ₘ m))]))
+    ['() (⇓ '† e)]
+    [(cons m ms*) ((↝.modules (map ⇓ₘ ms*) (⇓ '† e)) (⇓ₘ m))]))
 
 (: ⇓ₘ : -module → -⟦e⟧)
 ;; Compile module
 (define (⇓ₘ m)
-  (match-define (-module p ds) m)
+  (match-define (-module l ds) m)
   
   (: ⇓pc : -provide-spec → -⟦e⟧)
   (define (⇓pc spec)
     (match-define (-p/c-item x c) spec)
-    ((↝.dec (-id x p)) (⇓ c)))
+    ((↝.dec (-𝒾 x l)) (⇓ l c)))
 
   (: ⇓d : -module-level-form → -⟦e⟧)
   (define (⇓d d)
     (match d
-      [(-define-values _ xs e) ((↝.def p xs) (⇓ e))]
-      [(-provide _ specs) ((↝.begin (map ⇓pc specs)) ⟦void⟧)]
-      [(? -e? e) (⇓ e)]
+      [(-define-values xs e) ((↝.def l xs) (⇓ l e))]
+      [(-provide specs) ((↝.begin (map ⇓pc specs)) ⟦void⟧)]
+      [(? -e? e) (⇓ l e)]
       [_
        (printf "⇓d: ignore ~a~n" (show-module-level-form d))
        ⟦void⟧]))
 
   ((↝.begin (map ⇓d ds)) ⟦void⟧))
 
-(: ⇓ : -e → -⟦e⟧)
+(: ⇓ : Mon-Party -e → -⟦e⟧)
 ;; Compile expresion to computation
-(define (⇓ e)
+(define (⇓ l e)
+
+  (: ↓ : -e → -⟦e⟧)
+  (define (↓ e) (⇓ l e))
+  
   (match e
     [(-λ xs e*)
-     (define ⟦e*⟧ (⇓ e*))
+     (define ⟦e*⟧ (↓ e*))
      (λ (M σ ℬ)
        (match-define (-ℬ _ ρ Γ _) ℬ)
        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) e))} ∅ ∅))]
@@ -118,37 +121,38 @@
                 (-ΓE Γ (-blm 'TODO 'Λ (list 'defined?) (list 'undefined)))))]
              [else (values (set-add ΓWs (-ΓW Γ W)) ΓEs)])))
        (values ⊥σ ΓWs ΓEs ∅))]
-    [(and ref (-ref (and id (-id name l-from)) l-ctx pos))
+    [(and ref (-ref (and 𝒾 (-𝒾 x l₀)) ℓ))
+     (define α (-α.def 𝒾))
      (cond
-       [(equal? l-from l-ctx)
+       [(equal? l₀ l)
         (λ (M σ ℬ)
           (define Γ (-ℬ-cnd ℬ))
           (define ΓWs
-            (for/set: : (℘ -ΓW) ([V (σ@ σ (-α.def id))])
+            (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
               (define s (if (-o? V) V ref))
               (-ΓW Γ (-W (list V) s))))
           (values ⊥σ ΓWs ∅ ∅))]
        [else
         (λ (M σ ℬ)
-          (printf "FIXME: ignore `~a`'s contract for now.~n" (-id-name id))
+          (printf "FIXME: ignore `~a`'s contract for now.~n" x)
           (define Γ (-ℬ-cnd ℬ))
           (define ΓWs
-            (for/set: : (℘ -ΓW) ([V (σ@ σ (-α.def id))])
+            (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
               (define s (if (-o? V) V ref))
               (-ΓW Γ (-W (list V) s))))
           (values ⊥σ ΓWs ∅ ∅))])]
-    [(-@ f xs l)
-     ((↝.@ '() (map ⇓ xs) l) (⇓ f))]
+    [(-@ f xs ℓ)
+     ((↝.@ l ℓ '() (map ↓ xs)) (↓ f))]
     [(-if e₀ e₁ e₂)
-     ((↝.if (⇓ e₁) (⇓ e₂)) (⇓ e₀))]
+     ((↝.if l (↓ e₁) (↓ e₂)) (↓ e₀))]
     [(-wcm k v b)
      (error '⇓ "TODO: wcm")]
     [(-begin es)
      (match es
-       [(cons e* es*) ((↝.begin (map ⇓ es*)) (⇓ e*))]
+       [(cons e* es*) ((↝.begin (map ↓ es*)) (↓ e*))]
        ['() ⟦void⟧])]
     [(-begin0 e₀ es)
-     ((↝.begin0.v (map ⇓ es)) (⇓ e₀))]
+     ((↝.begin0.v (map ↓ es)) (↓ e₀))]
     [(-quote q)
      (cond
        [(Base? q)
@@ -156,22 +160,22 @@
         (λ (M σ ℬ)
           (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W (list b) b))} ∅ ∅))]
        [else (error '⇓ "TODO: (quote ~a)" q)])]
-    [(-let-values xs-es e l)
-     (define ⟦e⟧ (⇓ e))
+    [(-let-values xs-es e)
      (define xs-⟦e⟧s
        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([xs-e xs-es])
          (match-define (cons xs eₓ) xs-e)
-         (cons xs (⇓ eₓ))))
+         (cons xs (↓ eₓ))))
+     (define ⟦e⟧ (↓ e))
      (match xs-⟦e⟧s 
        ['() ⟦e⟧]
        [(cons (cons xs₀ ⟦e⟧₀) xs-⟦eₓ⟧s*)
-        ((↝.let-values '() xs₀ xs-⟦eₓ⟧s* ⟦e⟧ l) ⟦e⟧₀)])]
-    [(-letrec-values xs-es e l)
-     (define ⟦e⟧ (⇓ e))
+        ((↝.let-values l '() xs₀ xs-⟦eₓ⟧s* ⟦e⟧) ⟦e⟧₀)])]
+    [(-letrec-values xs-es e)
      (define xs-⟦e⟧s
        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([xs-e xs-es])
          (match-define (cons xs eₓ) xs-e)
-         (cons xs (⇓ eₓ))))
+         (cons xs (↓ eₓ))))
+     (define ⟦e⟧ (↓ e))
      (match xs-⟦e⟧s
        ['() ⟦e⟧]
        [(cons (cons xs₀ ⟦e⟧₀) xs-⟦e⟧s*)
@@ -184,17 +188,17 @@
               (values (⊔ δσ α 'undefined)
                       (hash-set δρ x α))))
           (define σ* (⊔/m σ δσ))
-          (((↝.letrec-values δρ xs₀ xs-⟦e⟧s* ⟦e⟧ l) ⟦e⟧₀) M σ* ℬ))])]
-    [(-set! x e*) ((↝.set! x) (⇓ e*))]
+          (((↝.letrec-values l δρ xs₀ xs-⟦e⟧s* ⟦e⟧) ⟦e⟧₀) M σ* ℬ))])]
+    [(-set! x e*) ((↝.set! x) (↓ e*))]
     [(-@-havoc (-x x)) (↝.havoc x)]
     [(-amb es)
-     (define ⟦e⟧s (set-map es ⇓))
+     (define ⟦e⟧s (set-map es ↓))
      (λ (M σ ℬ)
        (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ ℬ)))]
-    [(-μ/c x c) ((↝.μ/c x) (⇓ c))]
+    [(-μ/c x c) ((↝.μ/c l x) (↓ c))]
     [(-->i cs (and mk-d (-λ xs d)) l)
-     (define ⟦d⟧ (⇓ d))
-     (match (map ⇓ cs)
+     (define ⟦d⟧ (↓ d))
+     (match (map ↓ cs)
        ['()
         (define c (-?->i '() mk-d))
         (λ (M σ ℬ)
@@ -221,7 +225,7 @@
           (define W (-W (list V) e))
           (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) W)} ∅ ∅))]
        [(cons c cs*)
-        ((↝.struct/c si '() (map ⇓ cs*) l) (⇓ c))])]))
+        ((↝.struct/c si '() (map ↓ cs*) l) (↓ c))])]))
 
 (: ℰ⟦_⟧ : -ℰ (℘ -ΓW) → -⟦e⟧)
 ;; Plug answers `ΓWs` into hole `ℰ` and resume computation
@@ -239,21 +243,22 @@
       [(-ℰ.dec id ℰ*) ((↝.dec id) (go ℰ*))]
       ;; Regular forms
       ['□ (λ _ (values ⊥σ ΓWs ∅ ∅))]
-      [(-ℰ.if ℰ* ⟦e₁⟧ ⟦e₂⟧) ((↝.if ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
-      [(-ℰ.@ WVs ℰ* ⟦e⟧s loc) ((↝.@ WVs ⟦e⟧s loc) (go ℰ*))]
+      [(-ℰ.if l ℰ* ⟦e₁⟧ ⟦e₂⟧) ((↝.if l ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
+      [(-ℰ.@ l ℓ WVs ℰ* ⟦e⟧s) ((↝.@ l ℓ WVs ⟦e⟧s) (go ℰ*))]
       [(-ℰ.begin ℰ* ⟦e⟧s) ((↝.begin ⟦e⟧s) (go ℰ*))]
       [(-ℰ.begin0.v ℰ* ⟦e⟧s) ((↝.begin0.v ⟦e⟧s) (go ℰ*))]
       [(-ℰ.begin0.e W ℰ* ⟦e⟧s) ((↝.begin0.e W ⟦e⟧s) (go ℰ*))]
-      [(-ℰ.let-values xs-Ws (cons xs ℰ*) xs-⟦e⟧s ⟦e⟧ l)
-       ((↝.let-values xs-Ws xs xs-⟦e⟧s ⟦e⟧ l) (go ℰ*))]
-      [(-ℰ.letrec-values δρ (cons xs ℰ*) xs-⟦e⟧s ⟦e⟧ l)
-       ((↝.letrec-values δρ xs xs-⟦e⟧s ⟦e⟧ l) (go ℰ*))]
+      [(-ℰ.let-values l xs-Ws (cons xs ℰ*) xs-⟦e⟧s ⟦e⟧)
+       ((↝.let-values l xs-Ws xs xs-⟦e⟧s ⟦e⟧) (go ℰ*))]
+      [(-ℰ.letrec-values l δρ (cons xs ℰ*) xs-⟦e⟧s ⟦e⟧)
+       ((↝.letrec-values l δρ xs xs-⟦e⟧s ⟦e⟧) (go ℰ*))]
       [(-ℰ.set! x ℰ*) ((↝.set! x) (go ℰ*))]
-      [(-ℰ.μ/c x ℰ*) ((↝.μ/c x) (go ℰ*))]
+      [(-ℰ.μ/c l x ℰ*) ((↝.μ/c l x) (go ℰ*))]
       [(-ℰ.-->i Cs ℰ* ⟦c⟧s ⟦mk-d⟧ l)
        ((↝.-->i Cs ⟦c⟧s ⟦mk-d⟧ l) (go ℰ*))]
       [(-ℰ.struct/c si Cs ℰ* ⟦c⟧s l)
        ((↝.struct/c si Cs ⟦c⟧s l) (go ℰ*))])))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
@@ -298,5 +303,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (ev₁ [e : -e])
-  (define-values (δM δΞ δσ) (ev ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ e) ⊥ρ ⊤Γ 𝒞∅)))
+  (define-values (δM δΞ δσ) (ev ⊥M ⊥Ξ ⊥σ (-ℬ (⇓ 'test e) ⊥ρ ⊤Γ 𝒞∅)))
   (values (show-M δM) (show-Ξ δΞ) (show-σ δσ)))

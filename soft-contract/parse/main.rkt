@@ -19,10 +19,9 @@
 (: rename-module-level-form : -module-level-form → -module-level-form)
 (define rename-module-level-form
   (match-lambda
-    [(-define-values p xs e) (-define-values p xs (α-rename e))]
-    [(-provide p specs)
+    [(-define-values xs e) (-define-values xs (α-rename e))]
+    [(-provide specs)
      (-provide
-      p
       (for/list ([spec specs])
         (match-define (-p/c-item x c) spec)
         (-p/c-item x (α-rename c))))]

@@ -124,8 +124,8 @@
 (define -=/W (-W¹ '= '=))
 (define -contract-first-order-passes?/W (-W¹ 'contract-first-order-passes? 'contract-first-order-passes?))
 (define -Vector₀ (-Vector '()))
-;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) -Λ) ⊥ρ))
-;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) -Λ)) -Λ) ⊥ρ))
+;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
+;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))
 
 (: C-flat? : -V → Boolean)
 ;; Check whether contract is flat, assuming it's already a contract
@@ -154,23 +154,23 @@
             
             ;; Regular context
             '□
-            (-ℰ.if -ℰ -⟦e⟧ -⟦e⟧)
-            (-ℰ.@ (Listof -W¹) -ℰ (Listof -⟦e⟧) -ℓ)
+            (-ℰ.if Mon-Party -ℰ -⟦e⟧ -⟦e⟧)
+            (-ℰ.@ Mon-Party -ℓ (Listof -W¹) -ℰ (Listof -⟦e⟧))
             (-ℰ.begin -ℰ (Listof -⟦e⟧))
             (-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
             (-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧))
-            (-ℰ.let-values (Listof (Pairof Symbol -W¹))
+            (-ℰ.let-values Mon-Party
+                           (Listof (Pairof Symbol -W¹))
                            (Pairof (Listof Symbol) -ℰ)
                            (Listof (Pairof (Listof Symbol) -⟦e⟧))
-                           -⟦e⟧
-                           Mon-Party)
-            (-ℰ.letrec-values -Δρ
+                           -⟦e⟧)
+            (-ℰ.letrec-values Mon-Party
+                              -Δρ
                               (Pairof (Listof Symbol) -ℰ)
                               (Listof (Pairof (Listof Symbol) -⟦e⟧))
-                              -⟦e⟧
-                              Mon-Party)
+                              -⟦e⟧)
             (-ℰ.set! Symbol -ℰ)
-            (-ℰ.μ/c Integer -ℰ)
+            (-ℰ.μ/c Mon-Party Integer -ℰ)
             (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ Integer)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
 
@@ -258,9 +258,9 @@
   (require typed/rackunit)
 
   (check-equal? (Γ+ ⊤Γ #f) ⊤Γ)
-  (check-equal? (canonicalize-e (hash 'x (-@ '+ (list (-b 1) (-b 2)) -Λ))
-                                (-@ '+ (list (-x 'x) (-x 'y)) -Λ))
-                (-@ '+ (list (-@ '+ (list (-b 1) (-b 2)) -Λ) (-x 'y)) -Λ)))
+  (check-equal? (canonicalize-e (hash 'x (-@ '+ (list (-b 1) (-b 2)) 0))
+                                (-@ '+ (list (-x 'x) (-x 'y)) 0))
+                (-@ '+ (list (-@ '+ (list (-b 1) (-b 2)) 0) (-x 'y)) 0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -494,8 +494,8 @@
        `(provide/contract [,(-𝒾-name 𝒾) ,(loop ℰ*)])]
       
       ['□ in-hole]
-      [(-ℰ.if ℰ* _ _) `(if ,(loop ℰ*) … …)]
-      [(-ℰ.@ Ws ℰ* ⟦e⟧s _) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
+      [(-ℰ.if _ ℰ* _ _) `(if ,(loop ℰ*) … …)]
+      [(-ℰ.@ _ _ Ws ℰ* ⟦e⟧s) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
       [(-ℰ.begin ℰ* ⟦e⟧s)
        `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))])))
 

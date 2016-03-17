@@ -28,13 +28,13 @@
      (for/fold ([FVs (fv f)]) ([x xs]) (∪ FVs (fv x)))]
     [(-begin es) (fv es)]
     [(-begin0 e₀ es) (∪ (fv e₀) (fv es))]
-    [(-let-values bnds e _)
+    [(-let-values bnds e)
      (define-values (bound FV_rhs)
        (for/fold ([bound : (℘ Symbol) ∅] [FV_rhs : (℘ Symbol) ∅]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ FV_rhs (fv rhs)))))
      (∪ FV_rhs (-- (fv e) bound))]
-    [(-letrec-values bnds e _)
+    [(-letrec-values bnds e)
      (define bound
        (for/fold ([bound : (℘ Symbol) ∅]) ([bnd bnds])
          (set-add-list bound (car bnd))))
@@ -64,8 +64,8 @@
   (check-equal? (fv -tt) ∅)
   (check-equal? (fv (-λ '(x) (-x 'x))) ∅)
   (check-equal? (fv (-x 'x)) {set 'x})
-  (check-equal? (fv (-ref (-𝒾 'cons 'Λ) 'l 0)) ∅)
-  (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) -Λ)))) {set 'f}))
+  (check-equal? (fv (-ref (-𝒾 'cons 'Λ) 0)) ∅)
+  (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) 0)))) {set 'f}))
 
 (: 𝐴 : (U -e (Listof -e)) → (℘ Symbol))
 ;; Collect all asignable free variables
@@ -82,13 +82,13 @@
      (for/fold ([𝐴s (𝐴 f)]) ([x xs]) (∪ 𝐴s (𝐴 x)))]
     [(-begin es) (𝐴 es)]
     [(-begin0 e₀ es) (∪ (𝐴 e₀) (𝐴 es))]
-    [(-let-values bnds e _)
+    [(-let-values bnds e)
      (define-values (bound 𝐴_rhs)
        (for/fold ([bound : (℘ Symbol) ∅] [𝐴_rhs : (℘ Symbol) ∅]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ 𝐴_rhs (𝐴 rhs)))))
      (∪ 𝐴_rhs (-- (𝐴 e) bound))]
-    [(-letrec-values bnds e _)
+    [(-letrec-values bnds e)
      (define bound
        (for/fold ([bound : (℘ Symbol) ∅]) ([bnd bnds])
          (set-add-list bound (car bnd))))
@@ -129,18 +129,18 @@
   (match-lambda
    [(? list? es) (for/sum : Integer ([e (in-list es)]) (checks# e))]
    [(-prog ms e) (+ (checks# ms) (checks# e))]
-   [(-define-values _ _ e) (checks# e)]
+   [(-define-values _ e) (checks# e)]
    [(-λ _ e) (checks# e)]
    [(-@ f xs _) (+ 1 (checks# f) (checks# xs))]
    [(-if i t e) (+ (checks# i) (checks# t) (checks# e))]
    [(-wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
    [(-begin0 e es) (+ (checks# e) (checks# es))]
-   [(-let-values bindings e _)
+   [(-let-values bindings e)
     (+ (for/sum : Integer ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
        (checks# e))]
-   [(-letrec-values bindings e _)
+   [(-letrec-values bindings e)
     (+ (for/sum : Integer ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
@@ -171,9 +171,9 @@
       [(-if i t e) (∪ (go i) (go t) (go e))]
       [(-wcm k v b) (∪ (go k) (go v) (go b))]
       [(-begin0 e es) (∪ (go e) (go* es))]
-      [(-let-values bnds e ctx)
+      [(-let-values bnds e)
        (∪ (for/union : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
-      [(-letrec-values bnds e ctx)
+      [(-letrec-values bnds e)
        (∪ (for/union : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (℘ Symbol) ([e es]) (go e))]
       [(-μ/c _ c) (go c)]
@@ -218,7 +218,7 @@
          [(-wcm k v b) (-wcm (go m k) (go m v) (go m b))]
          [(-begin0 e₀ es) (-begin0 (go m e₀) (map (curry go m) es))]
          [(? -quote?) e]
-         [(-let-values bnds e* l)
+         [(-let-values bnds e*)
           (define-values (bnds-rev locals)
             (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
                        [locals : (℘ Symbol) ∅])
@@ -227,8 +227,8 @@
               (values (cons (cons xs (go m ex)) bnds-rev)
                       (set-add-list locals xs))))
           (define m* (shrink m (set->list locals)))
-          (-let-values (reverse bnds-rev) (go m* e*) l)]
-         [(-letrec-values bnds e* l)
+          (-let-values (reverse bnds-rev) (go m* e*))]
+         [(-letrec-values bnds e*)
           (define xs
             (set->list
              (for/fold ([locals : (℘ Symbol) ∅]) ([bnd bnds])
@@ -238,7 +238,7 @@
             (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
               (match-define (cons xs ex) bnd)
               (cons xs (go m* ex))))
-          (-letrec-values bnds* (go m* e*) l)]
+          (-letrec-values bnds* (go m* e*))]
          [(-set! z e*) (-set! z (go m e*))]
          [(-amb es) (-amb (map/set (curry go m) es))]
          [(-μ/c z c) (-μ/c z (go m c))]
@@ -273,7 +273,7 @@
          [(-wcm k v b) (-wcm (go f k) (go f v) (go f b))]
          [(-begin0 e₀ es) (-begin0 (go f e₀) (map (curry go f) es))]
          [(? -quote?) e]
-         [(-let-values bnds e* l)
+         [(-let-values bnds e*)
           (define-values (bnds-rev locals)
             (for/fold ([bnds-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
                        [locals : (℘ Symbol) ∅])
@@ -282,8 +282,8 @@
               (values (cons (cons xs (go f ex)) bnds-rev)
                       (set-add-list locals xs))))
           (define f* (shrink-f f (set->list locals)))
-          (-let-values (reverse bnds-rev) (go f* e*) l)]
-         [(-letrec-values bnds e* l)
+          (-let-values (reverse bnds-rev) (go f* e*))]
+         [(-letrec-values bnds e*)
           (define xs
             (set->list
              (for/fold ([locals : (℘ Symbol) ∅]) ([bnd bnds])
@@ -293,7 +293,7 @@
             (for/list : (Listof (Pairof (Listof Symbol) -e)) ([bnd bnds])
               (match-define (cons xs ex) bnd)
               (cons xs (go f* ex))))
-          (-letrec-values bnds* (go f* e*) l)]
+          (-letrec-values bnds* (go f* e*))]
          [(-set! z e*) (-set! z (go f e*))]
          [(-amb es) (-amb (map/set (curry go f) es))]
          [(-μ/c z c) (-μ/c z (go f c))]
@@ -323,10 +323,10 @@
       [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
       [(-wcm k v b) (-wcm (go k) (go v) (go b))]
       [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
-      [(-let-values bnds e* l)
-       (-let-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*) l)]
-      [(-letrec-values bnds e* l)
-       (-letrec-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*) l)]
+      [(-let-values bnds e*)
+       (-let-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*))]
+      [(-letrec-values bnds e*)
+       (-letrec-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*))]
       [(-set! z e*) (-set! z (go e*))]
       [(-amb es) (-amb (map/set go es))]
       [(-μ/c z e*) (if (= z x) e (-μ/c z (go e*)))]
@@ -353,15 +353,15 @@
   (λ (e) (and (set-empty? (∩ shadows (fv e))) (f e))))
 
 (: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
-;; Search for all invocations of `f-𝒾` in `e`
-(define (find-calls e f-𝒾)
+;; Search for all invocations of `f-id` in `e`
+(define (find-calls e f-id)
   (define-set calls : (Listof -e))
   (let go : Void ([e e])
     (match e
       [(-@ f xs _)
        (go f)
        (for-each go xs)
-       (when (match? f (-ref (== f-𝒾) _ _) (== f-𝒾))
+       (when (match? f (-ref (== f-id) _) (== f-id))
          (calls-add! xs))]
       [_ (void)]))
   calls)
@@ -388,9 +388,11 @@
         [mk-struct-info : (Any → -struct-info)
          (match-lambda
            [`(,(? symbol? t) ,(? boolean? bs) ...)
-            (-struct-info (-𝒾 t 'Λ)
-                          (length bs)
-                          (for/set: : (℘ Integer) ([(b i) (in-indexed bs)] #:when b) i))])])
+            (-struct-info
+             (-𝒾 t 'Λ)
+             (length bs)
+             (for/set: : (℘ Natural) ([b bs] [i : Natural (in-naturals)] #:when b)
+               i))])])
     (for ([dec prims])
       (match dec
         [`(#:alias ,(? symbol? x) ,(? symbol? y))
@@ -399,9 +401,9 @@
          (hash-set! specials x (-st-mk (mk-struct-info si)))]
         [`(#:struct-pred ,(? symbol? x) ,si)
          (hash-set! specials x (-st-p (mk-struct-info si)))]
-        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-integer? i))
+        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-nonnegative-integer? i))
          (hash-set! specials x (-st-ac (mk-struct-info si) i))]
-        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-integer? i))
+        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-nonnegative-integer? i))
          (hash-set! specials x (-st-mut (mk-struct-info si) i))]
         [_ (void)]))
     (λ (x)
@@ -418,8 +420,8 @@
     [(-if e₁ e₂ e₃) (or (opq-exp? e₁) (opq-exp? e₂) (opq-exp? e₃))]
     [(-wcm k v b) (or (opq-exp? k) (opq-exp? v) (opq-exp? b))]
     [(-begin0 e₀ es) (or (opq-exp? e₀) (ormap opq-exp? es))]
-    [(-let-values _ b _) (opq-exp? b)]
-    [(-letrec-values _ b _) (opq-exp? b)]
+    [(-let-values _ b) (opq-exp? b)]
+    [(-letrec-values _ b) (opq-exp? b)]
     [(-set! _ e*) (opq-exp? e*)]
     [(-@ f xs _) (or (opq-exp? f) (ormap opq-exp? xs))]
     [_ #f]))
@@ -478,7 +480,7 @@
       [(-wcm k v b) (-wcm (go! m k) (go! m v) (go! m b))]
       [(-begin es) (-begin (map (curry go! m) es))]
       [(-begin0 e₀ es) (-begin0 (go! m e₀) (map (curry go! m) es))]
-      [(-let-values bnds bod ctx)
+      [(-let-values bnds bod)
        (define-values (m* bnds*-rev)
          (for/fold ([m* : S->S m] [bnds*-rev : (Listof (Pairof (Listof Symbol) -e)) '()])
                    ([bnd bnds])
@@ -487,8 +489,8 @@
            (define eₓ* (go! m #|important|# eₓ))
            (values m** (cons (cons xs* eₓ*) bnds*-rev))))
        (define bod* (go! m* bod))
-       (-let-values (reverse bnds*-rev) bod* ctx)]
-      [(-letrec-values bnds bod ctx)
+       (-let-values (reverse bnds*-rev) bod*)]
+      [(-letrec-values bnds bod)
        (define-values (xss es) (unzip bnds))
        (define-values (m* xss*-rev)
          (for/fold ([m* : S->S m] [xss*-rev : (Listof (Listof Symbol)) '()])
@@ -498,7 +500,7 @@
        (define es* (map (curry go! m*) es))
        (define bod* (go! m* bod))
        (define bnds* (map (inst cons (Listof Symbol) -e) (reverse xss*-rev) es*))
-       (-letrec-values bnds* bod* ctx)]
+       (-letrec-values bnds* bod*)]
       [(-set! x e*) (-set! (hash-ref m x) (go! m e*))]
       [(-@-havoc (-x x)) (-@-havoc (-x (hash-ref m x)))]
       [(-amb es) (-amb (map/set (curry go! m) es))]

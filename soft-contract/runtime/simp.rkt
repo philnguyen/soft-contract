@@ -89,7 +89,7 @@
       [_ #f]))
 
   (define (default-case) : -e
-    (-@ (assert f) (cast xs (Listof -e)) -Λ))
+    (-@ (assert f) (cast xs (Listof -e)) 0))
 
   (define-syntax (general-primitive-case stx)
     #`(case f
@@ -100,7 +100,7 @@
     [(and f (andmap (inst values -s) xs))
      (match f
        ;; If we already obtained a value, safe and unsafe shouldn't be different
-       [(-ref (-𝒾 o 'Λ) _ _) (apply -?@ o xs)] 
+       [(-ref (-𝒾 o 'Λ) _) (apply -?@ o xs)] 
        
        ['any/c -tt]
        ['none/c -ff]
@@ -144,12 +144,12 @@
         (match-define (list x) xs)
         (cond ; don't build up syntax when reading from mutable states
           [(∋ (-struct-info-mutables s) i) #f]
-          [else (-@ f (list (assert x)) -Λ)])]
+          [else (-@ f (list (assert x)) 0)])]
 
        ; (cons (car e) (cdr e)) = e
        [(-st-mk s)
         (or (access-same-value? s xs)
-            (-@ f (cast xs (Listof -e)) -Λ))]
+            (-@ f (cast xs (Listof -e)) 0))]
 
        ; General case
        [_ (general-primitive-case)])]
@@ -176,7 +176,7 @@
      (define mutables (-struct-info-mutables s))
      (for/list ([(e i) (in-indexed es)])
        (if (∋ mutables i) #f e))]
-    [_ (for/list : (Listof -s) ([i (in-range (-struct-info-arity s))])
+    [_ (for/list : (Listof -s) ([i : Natural (-struct-info-arity s)])
          (-?@ (-st-ac s i) e))]))
 
 (define (-?list [es : (Listof -s)]) : -s
@@ -216,7 +216,7 @@
      (cond [(= 1 n) (list e)]
            [else #|hack|#
             (define s (-struct-info -𝒾-values n ∅))
-            (for/list ([i (in-range n)])
+            (for/list ([i : Natural n])
               (-?@ (-st-ac s i) e))])]
     [_ (make-list n #f)]))
 
@@ -251,4 +251,4 @@
   (let ([e (assert (-?@ '+ (-x 'x) (-x 'y)))])
     (check-equal? (-?@ -cons (-?@ -car e) (-?@ -cdr e)) e)
     (check-equal? (-?@ -cons (-?@ -cdr e) (-?@ -car e))
-                  (-@ -cons (list (-@ -cdr (list e) -Λ) (-@ -car (list e) -Λ)) -Λ))))
+                  (-@ -cons (list (-@ -cdr (list e) 0) (-@ -car (list e) 0)) 0))))

@@ -10,8 +10,7 @@
  "step.rkt")
 
 (define havoc-path 'havoc)
-(define havoc-id (-id 'havoc-id havoc-path))
-(define havoc-src (-src-loc havoc-path (next-loc!)))
+(define havoc-id (-𝒾 'havoc-id havoc-path))
 
 (: prog-accs : (Listof -module) → (℘ -st-ac))
 ;; Retrieve set of all public accessors from program
@@ -23,11 +22,11 @@
   (for* ([m ms]
          [form (-module-body m)])
     (match form
-      [(-provide _ specs)
+      [(-provide specs)
        (for-each
         (match-lambda [(-p/c-item x _) (hash-set! decs x #t)])
         specs)]
-      [(-define-values _ (list x) (? -st-ac? e))
+      [(-define-values (list x) (? -st-ac? e))
        (hash-set! defs x e)]
       [_ (void)]))
   
@@ -40,8 +39,8 @@
 ;; Only used by `verify` module, not `ce`
 (define (gen-havoc-Clo ms)
 
-  (define (havoc-ref-from [ctx : Mon-Party] [pos : Integer])
-    (-ref havoc-id ctx pos))
+  (define (havoc-ref!)
+    (-ref havoc-id (+ℓ!)))
 
   (define x (-x '☠))
 
@@ -54,20 +53,19 @@
   
   (define alts
     (cons
-     (cons (-@ 'procedure? (list x) havoc-src)
-           (-@ (havoc-ref-from havoc-path (next-loc!))
-               (list (-@-havoc x)) havoc-src))
+     (cons (-@ 'procedure? (list x) (+ℓ!))
+           (-@ (havoc-ref!) (list (-@-havoc x)) (+ℓ!)))
      (for/list : (Listof (Pairof -e -e)) ([(si acs) acs-for-struct])
-       (cons (-@ (-st-p si) (list x) havoc-src)
+       (cons (-@ (-st-p si) (list x) (+ℓ!))
              (-amb/simp
               (for/list : (Listof -@) ([ac acs])
-                (-@ (havoc-ref-from havoc-path (next-loc!))
-                    (list (-@ ac (list x) havoc-src))
-                    havoc-src)))))))
+                (-@ (havoc-ref!)
+                    (list (-@ ac (list x) (+ℓ!)))
+                    (+ℓ!))))))))
   
   (define havoc-body (-cond alts (-amb ∅)))
   
-  (-Clo '(☠) (⇓ havoc-body) ⊥ρ ⊤Γ))
+  (-Clo '(☠) (⇓ havoc-path havoc-body) ⊥ρ ⊤Γ))
 
 (: gen-havoc-exp : (Listof -module) → -e)
 ;; Generate havoc top-level expression havoc-king modules' exports
@@ -79,8 +77,8 @@
     (for* ([form forms] #:when (-provide? form)
            [spec (-provide-specs form)])
       (match-define (-p/c-item x _) spec)
-      (refs-add! (-ref (-id x path) '† (next-loc!)))))
+      (refs-add! (-ref (-𝒾 x path) (+ℓ!)))))
   
   (-amb/remember (for/list ([ref (in-set refs)])
-                   (-@ (•!) (list ref) havoc-src))))
+                   (-@ (•!) (list ref) (+ℓ!)))))
 

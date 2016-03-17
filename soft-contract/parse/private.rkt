@@ -62,7 +62,7 @@
     #:literals (#%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                 call-with-values)
     [(#%provide spec ...)
-     (-provide (cur-mod) (map parse-provide-spec (syntax->list #'(spec ...))))]
+     (-provide (map parse-provide-spec (syntax->list #'(spec ...))))]
     [(#%declare _ ...) (todo '#%declare)]
     [(begin-for-syntax _ ...) #|ignore|# #f]
     
@@ -75,8 +75,7 @@
         (~literal fake:dynamic-provide/contract)
         (#%plain-app (~literal list) x:id c:expr) ...))
       _)
-     (-provide (cur-mod)
-               (for/list ([x (syntax->datum #'(x ...))]
+     (-provide (for/list ([x (syntax->datum #'(x ...))]
                           [c (syntax->list #'(c ...))])
                  (-p/c-item x (parameterize ([indep-prefix x]) (parse-e c)))))]
     
@@ -112,31 +111,30 @@
      (define n (length accs))
      (define si (-struct-info (-𝒾 ctor-name (cur-mod)) n ∅))
      (-define-values
-      (cur-mod)
       (list* ctor-name (syntax-e #'pred) (map syntax-e accs))
-      (-@ (-ref (-𝒾 'values 'Λ) (cur-mod) (+loc!))
+      (-@ (-ref (-𝒾 'values 'Λ) (+ℓ!))
           (list* (-st-mk si)
                  (-st-p si)
                  (for/list ([(accᵢ i) (in-indexed accs)])
                    (-st-ac si i)))
-          -Λ))]
+          0))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
      (define rhs (parse-e #'e))
      (define frees (free-x/c rhs))
      (cond
        [(set-empty? frees)
-        (-define-values (cur-mod) (list lhs) rhs)]
+        (-define-values (list lhs) rhs)]
        [(set-empty? (set-remove frees lhs))
-        (define pos (+loc!))
-        (-define-values (cur-mod) (list lhs)
+        (define pos (+ℓ!))
+        (-define-values (list lhs)
            (-μ/c pos (e/ (-x/c.tmp lhs) (-x/c pos) rhs)))]
        [else
         (error 'TODO
                "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
                lhs (set-first (set-remove frees lhs)))])]
     [(define-values (x:identifier ...) e)
-     (-define-values (cur-mod) (syntax->datum #'(x ...)) (parse-e #'e))]
+     (-define-values (syntax->datum #'(x ...)) (parse-e #'e))]
     [(#%require spec ...)
      (-require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
@@ -186,7 +184,7 @@
      (parameterize ([indep-prefix (string->symbol (format "~a_" (indep-prefix)))])
        (define cs (parse-es #'(cₓ ...)))
        (define mk-d (-λ (syntax->datum #'(z ...)) (parse-e #'d)))
-       (-->i cs mk-d (+loc!)))]
+       (-->i cs mk-d (+ℓ!)))]
     ;; independent varargs
     [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list inits ...)]
@@ -198,24 +196,24 @@
              (parse-e #'rst)
              (parse-e #'rng)))]
     [(#%plain-app (~literal fake:listof) c)
-     (-listof (cur-mod) (parse-e #'c))]
+     (-listof (parse-e #'c))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (-list/c (parse-es #'(c ...)))]
     [(#%plain-app (~literal fake:box/c) c)
      (-box/c (parse-e #'c))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (-@ (-ref (-𝒾 'vector/c 'Λ) (cur-mod) (+loc!))
+     (-@ (-ref (-𝒾 'vector/c 'Λ) (+ℓ!))
          (parse-es #'(c ...))
-         (-ℓ (cur-mod) (+loc!)))]
+         (+ℓ!))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-@ (-ref (-𝒾 'vectorof 'Λ) (cur-mod) (+loc!))
+     (-@ (-ref (-𝒾 'vectorof 'Λ) (+ℓ!))
          (list (parse-e #'c))
-         (-ℓ (cur-mod) (+loc!)))]
+         (+ℓ!))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
      (define si (-struct-info (-𝒾 (syntax-e #'tag) (cur-mod))
                               (length (syntax->list #'(c ...)))
                               ∅))
-     (-struct/c si (parse-es #'(c ...)) (+loc!))]
+     (-struct/c si (parse-es #'(c ...)) (+ℓ!))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
     [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
     [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
@@ -224,7 +222,7 @@
     [(#%plain-app (~literal fake:cons/c) c d)
      (-cons/c (parse-e #'c) (parse-e #'d))]
     [(#%plain-app (~literal fake:one-of/c) c ...)
-     (-one-of/c (cur-mod) (parse-es #'(c ...)))]
+     (-one-of/c (parse-es #'(c ...)))]
     [(~or (let-values ()
             (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
           (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...))
@@ -244,7 +242,7 @@
     [(#%plain-app f x ...)
      (-@ (parse-e #'f)
          (parse-es #'(x ...))
-         (-ℓ (cur-mod) (+loc!)))]
+         (+ℓ!))]
     [((~literal with-continuation-mark) e₀ e₁ e₂)
      (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
     [(begin e ...) (-begin/simp (parse-es #'(e ...)))]
@@ -256,8 +254,7 @@
       (for/list ([binding (syntax->list #'(bindings ...))])
         (syntax-parse binding
           [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
-      (-begin/simp (parse-es #'(b ...)))
-      (cur-mod))]
+      (-begin/simp (parse-es #'(b ...))))]
     [(set! x e) (-set! (syntax-e #'x) (parse-e #'e))]
     [(#%plain-lambda fmls b ...+)
      (-λ (parse-formals #'fmls) (-begin/simp (parse-es #'(b ...))))]
@@ -274,8 +271,7 @@
       (for/list ([bnd (syntax->list #'(bindings ...))])
         (syntax-parse bnd
           [((x ...) eₓ) (cons (syntax->datum #'(x ...)) (parse-e #'eₓ))]))
-      (-begin/simp (parse-es #'(b ...)))
-      (cur-mod))]
+      (-begin/simp (parse-es #'(b ...))))]
     [(quote e) (parse-quote #'e)]
     [(quote-syntax e) (todo 'quote-syntax)]
     [((~literal #%top) . id)
@@ -286,11 +282,11 @@
     ;; Hacks for now. TODO: need this anymore??
     ;[(~literal null) -null]
     ;[(~literal empty) -null]
-    [(~literal fake:any/c) (-ref (-𝒾 'any/c 'Λ) (cur-mod) (+loc!))]
-    [(~literal fake:none/c) (-ref (-𝒾 'none/c 'Λ) (cur-mod) (+loc!))]
-    [(~literal fake:not/c) (-ref (-𝒾 'not/c 'Λ) (cur-mod) (+loc!))]
-    [(~literal fake:and/c) (-ref (-𝒾 'and/c 'Λ) (cur-mod) (+loc!))]
-    [(~literal fake:or/c ) (-ref (-𝒾 'or/c  'Λ) (cur-mod) (+loc!))]
+    [(~literal fake:any/c) (-ref (-𝒾 'any/c 'Λ) (+ℓ!))]
+    [(~literal fake:none/c) (-ref (-𝒾 'none/c 'Λ) (+ℓ!))]
+    [(~literal fake:not/c) (-ref (-𝒾 'not/c 'Λ) (+ℓ!))]
+    [(~literal fake:and/c) (-ref (-𝒾 'and/c 'Λ) (+ℓ!))]
+    [(~literal fake:or/c ) (-ref (-𝒾 'or/c  'Λ) (+ℓ!))]
     
     [i:identifier
      (or
@@ -308,7 +304,7 @@
                _ _ _ _ _ _)
          (when (equal? 'not/c (syntax-e #'i))
            (error "done"))
-         (-ref (-𝒾 (syntax-e #'i) src) (cur-mod) (+loc!))]))]))
+         (-ref (-𝒾 (syntax-e #'i) src) (+ℓ!))]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
@@ -317,7 +313,7 @@
     [(l . r)
      (-@ -cons
          (list (parse-quote #'l) (parse-quote #'r))
-         (-ℓ (cur-mod) (+loc!)))]
+         (+ℓ!))]
     [() -null]
     [e (error 'parse-quote "unsupported quoted form: ~a" (syntax-e #'e))]))
 
@@ -348,7 +344,7 @@
 
          (define (make-ref s)
            (symbol? . -> . syntax?)
-           #`(-ref (-𝒾 '#,s 'Λ) (cur-mod) (+loc!)))
+           #`(-ref (-𝒾 '#,s 'Λ) (+ℓ!)))
          
          (match dec
            [`(#:pred ,s ,_ ...)

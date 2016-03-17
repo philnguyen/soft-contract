@@ -21,16 +21,15 @@
   (match-lambda [(Mon-Info l+ l- lo) (Mon-Info l- l+ lo)]))
 
 ;; Source location
-(define +loc! (make-neg-src))
+(define +ℓ! (make-neg-src))
 (define next-subscript! (make-nat-src))
-(struct -ℓ ([party : Mon-Party] [pos : Integer]) #:transparent)
-(define -Λ (-ℓ 'Λ (+loc!)))
+(define-type -ℓ Integer)
 
 ;; Identifier as a name and its source
 (struct -𝒾 ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
 ;; Struct meta data
-(struct -struct-info ([id : -𝒾] [arity : Natural] [mutables : (℘ Integer)]) #:transparent)
+(struct -struct-info ([id : -𝒾] [arity : Natural] [mutables : (℘ Natural)]) #:transparent)
 
 ;; Formal parameters
 (-formals . ::= . (Listof Symbol)
@@ -56,11 +55,11 @@
                          -begin/top)
 
 (-module-level-form . ::= . -general-top-level-form
-                            (-provide [from : Adhoc-Module-Path] [specs : (Listof -provide-spec)])
+                            (-provide [specs : (Listof -provide-spec)])
                             -submodule-form)
 
 (-general-top-level-form . ::= . -e
-                                 (-define-values [from : Adhoc-Module-Path] [ids : (Listof Symbol)] [e : -e])
+                                 (-define-values [ids : (Listof Symbol)] [e : -e])
                                  (-require (Listof -require-spec)))
 
 (-submodule-form . ::= . (-module [path : Adhoc-Module-Path] [body : (Listof -module-level-form)]))
@@ -71,26 +70,26 @@
 
 (-e . ::= . -v
             (-x Symbol) ; lexical variables 
-            (-ref [id : -𝒾] [ctx : Mon-Party] [pos : Integer]) ; module references
+            (-ref [id : -𝒾] [ℓ : -ℓ]) ; module references
             (-@ -e (Listof -e) -ℓ)
             (-if -e -e -e)
             (-wcm [key : -e] [val : -e] [body : -e])
             -begin/e
             (-begin0 -e (Listof -e))
             (-quote Any)
-            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
-            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e] [ctx : Mon-Party])
+            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
+            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
             (-set! Symbol -e)
 
             (-@-havoc -x) ; hack for havoc to detect argument's arity at runtime
             (-amb (℘ -e))
             
             ;; contract stuff
-            (-μ/c Integer -e)
-            (-->i [doms : (Listof -e)] [rng : -λ] [pos : Integer])
+            (-μ/c -ℓ -e)
+            (-->i [doms : (Listof -e)] [rng : -λ] [pos : -ℓ])
             (-x/c.tmp Symbol) ; hack
-            (-x/c Integer)
-            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : Integer]))
+            (-x/c -ℓ)
+            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : -ℓ]))
 
 (-v . ::= . -prim
             (-λ -formals -e)
@@ -106,8 +105,8 @@
 
 (-o . ::= . Symbol
            (-st-p -struct-info)
-           (-st-ac -struct-info Integer)
-           (-st-mut -struct-info Integer)
+           (-st-ac -struct-info Natural)
+           (-st-mut -struct-info Natural)
            (-st-mk -struct-info))
 
 (define-type -es (℘ -e))
@@ -160,7 +159,7 @@
                ([(c i) (in-indexed cs)])
       (define x (string->symbol (format "~a•~a" prefix (n-sub i)))) ; hack
       (values c x)))
-  (-->i doms (-λ xs d) (+loc!)))
+  (-->i doms (-λ xs d) (+ℓ!)))
 
 (: -->* : (Listof -e) -e -e → -e)
 ;; Make a non-dependent vararg contract
@@ -171,58 +170,56 @@
       (define x (string->symbol (format "v•~a" (n-sub i))))
       (values c x)))
   (define x-rst (string->symbol (format "rst•~a" (n-sub (length cs)))))
-  (-->i (append doms (list rst)) (-λ (-varargs xs x-rst) d) (+loc!)))
+  (-->i (append doms (list rst)) (-λ (-varargs xs x-rst) d) (+ℓ!)))
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
   (let () 
-    (define (-app/c [o : Symbol] [l : Mon-Party] [es : (Listof -e)]) : -e
+    (: -app/c : Symbol (Listof -e) → -e)
+    (define (-app/c o es) : -e
       (match es
         ['() 'any/c]
         [(list e) e]
         [(cons e es*)
-         (-@ (-ref (-𝒾 o 'Λ) l (+loc!))
-             (list e (-app/c o l es*))
-             (-ℓ l (+loc!)))]))
-    (values (curry -app/c 'and/c)
-            (curry -app/c 'or/c))))
+         (-@ (-ref (-𝒾 o 'Λ) (+ℓ!)) (list e (-app/c o es*)) (+ℓ!))]))
+    (values (curry -app/c 'and/c) (curry -app/c 'or/c))))
 
-(: -not/c : Mon-Party -e → -e)
-(define (-not/c l e)
-  (-@ (-ref (-𝒾 'not/c 'Λ) l (+loc!)) (list e) (-ℓ l (+loc!))))
+(: -not/c : -e → -e)
+(define (-not/c e)
+  (-@ (-ref (-𝒾 'not/c 'Λ) (+ℓ!)) (list e) (+ℓ!)))
 
-(: -one-of/c : Mon-Party (Listof -e) → -e)
-(define (-one-of/c l es)
+(: -one-of/c : (Listof -e) → -e)
+(define (-one-of/c es)
   (match es
     [(list) 'none/c]
-    [(list e) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))]
+    [(list e) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) (+ℓ!)))]
     [(cons e es*)
-     (-or/c l (list (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) -Λ))
-                    (-one-of/c l es*)))]))
+     (-or/c (list (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) (+ℓ!)))
+                  (-one-of/c es*)))]))
 
 (: -cons/c : -e -e → -e)
 (define (-cons/c c d)
-  (-struct/c -s-cons (list c d) (+loc!)))
+  (-struct/c -s-cons (list c d) (+ℓ!)))
 
-(: -listof : Mon-Party -e → -e)
-(define (-listof l c)
-  (define pos (+loc!))
-  (-μ/c pos (-or/c l (list 'null? (-cons/c c (-x/c pos))))))
+(: -listof : -e → -e)
+(define (-listof c)
+  (define ℓ (+ℓ!))
+  (-μ/c ℓ (-or/c (list 'null? (-cons/c c (-x/c ℓ))))))
 
 (: -box/c : -e → -e)
 (define (-box/c c)
-  (-struct/c -s-box (list c) (+loc!)))
+  (-struct/c -s-box (list c) (+ℓ!)))
 
 (: -list/c : (Listof -e) → -e)
 (define (-list/c cs)
   (foldr -cons/c 'null? cs))
 
-(: -list : Mon-Party (Listof -e) → -e)
-(define (-list l es)
+(: -list : (Listof -e) → -e)
+(define (-list es)
   (match es
     ['() -null]
     [(cons e es*)
-     (-@ -cons (list e (-list l es*)) (-ℓ l (+loc!)))]))
+     (-@ -cons (list e (-list es*)) (+ℓ!))]))
 
 (:* -and : -e * → -e)
 ;; Return ast representing conjuction of 2 expressions
@@ -236,7 +233,8 @@
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e)
   (define x (string->symbol (format "~a•~a" op (n-sub (next-subscript!)))))
-  (-λ (list x) (-and (-@ 'real? (list (-x x)) -Λ) (-@ op (list (-x x) e) -Λ))))
+  (-λ (list x) (-and (-@ 'real? (list (-x x)) (+ℓ!))
+                     (-@ op (list (-x x) e) (+ℓ!)))))
 
 (: -amb/simp : (Listof -e) → -e)
 ;; Smart constructor for `amb` with simplification for 1-expression case
@@ -269,11 +267,10 @@
 ;;;;; Pretty Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-values (show-x/c show-x/c⁻¹ count-x/c) ((inst unique-sym Integer) 'x))
+(define-values (show-x/c show-x/c⁻¹ count-x/c) ((inst unique-sym -ℓ) 'x))
 
 (define (show-ℓ [ℓ : -ℓ]) : Symbol
-  (match-define (-ℓ l n) ℓ)
-  (string->symbol (format "~a~a" l (n-sub n))))
+  (string->symbol (format "ℓ~a" (n-sub ℓ))))
 
 (define (show-b [x : Base]) : Sexp
   (cond
@@ -329,24 +326,21 @@
     [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
 
     [(-λ xs e) `(λ ,(show-formals xs) ,(show-e e))]
-    [(-• ℓ)
-     (cond
-       [(integer? ℓ) (string->symbol (format "•~a" (n-sub ℓ)))]
-       [else (string->symbol (format "•_~a" ℓ))])]
+    [(-• i) (string->symbol (format "•~a" (n-sub i)))]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) (string->symbol (format "ₓ~a" x))]
-    [(-ref (-𝒾 x p) _ _)
+    [(-ref (-𝒾 x p) _)
      (case p ;; hack
-       [(Λ) (string->symbol (format "「~a」" x))]
+       [(Λ) (string->symbol (format "_~a" x))]
        [else x])]
-    [(-let-values bnds body _)
+    [(-let-values bnds body)
      `(let-values
           ,(for/list : (Listof Sexp) ([bnd bnds])
              (match-define (cons xs ex) bnd)
              `(,xs ,(show-e ex)))
         ,(show-e body))]
-    [(-letrec-values bnds body _)
+    [(-letrec-values bnds body)
      `(let-values
           ,(for/list : (Listof Sexp) ([bnd bnds])
              (match-define (cons xs ex) bnd)
@@ -394,13 +388,13 @@
 
 (define show-module-level-form : (-module-level-form → Sexp)
   (match-lambda
-    [(-provide _ specs) `(provide ,@(map show-provide-spec specs))]
+    [(-provide specs) `(provide ,@(map show-provide-spec specs))]
     [(? -general-top-level-form? m) (show-general-top-level-form m)]))
 
 (define show-general-top-level-form : (-general-top-level-form → Sexp)
   (match-lambda
     [(? -e? e) (show-e e)]
-    [(-define-values _ xs e) `(define-values ,xs ,(show-e e))]
+    [(-define-values xs e) `(define-values ,xs ,(show-e e))]
     [(-require specs) `(require ,@(map show-require-spec specs))]))
 
 (define show-provide-spec : (-provide-spec → Sexp)
