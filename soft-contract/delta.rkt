@@ -21,42 +21,43 @@
 ;; contracts. (These are unsafe primitives).
 ;; Current range of `δ` contains `blm`, which is just a hack for returning spurious result.
 ;; Also, `δ` needs not refine path condition
-(: concrete-impl : Symbol → (Option (-M -σ -Γ (Listof -W¹) -ℓ → (Values -Δσ -A*))))
+(: concrete-impl : Symbol →
+                   (Option (-𝒞 -ℓ -M -σ -Γ (Listof -W¹) → (Values -Δσ -A*))))
 ;; Table for (semi-)concrete implementations
 (define (concrete-impl s)
   (define (error-arity [o : Symbol] [expect : Integer] [given : Integer])
     (error 'δ "Invalid arity uncaught for `~a`: expect ~a, given ~a" o expect given))
   
-  (with-args s (M σ Γ Ws ℓ)
+  (with-args s (𝒞 l ℓ M σ Γ Ws)
     [any/c  (values ⊥σ (list -tt))]
     [none/c (values ⊥σ (list -ff))]
     [and/c
      (match Ws
        [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define α₁ (-α.and/c-l ℓ))
-        (define α₂ (-α.and/c-r ℓ))
+        (define α₁ (-α.and/c-l (cons ℓ 𝒞)))
+        (define α₂ (-α.and/c-r (cons ℓ 𝒞)))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
                 (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)))]
        [Ws (error-arity 'and/c 2 (length Ws))])]
     [or/c
      (match Ws
        [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define α₁ (-α.or/c-l ℓ))
-        (define α₂ (-α.or/c-r ℓ))
+        (define α₁ (-α.or/c-l (cons ℓ 𝒞)))
+        (define α₂ (-α.or/c-r (cons ℓ 𝒞)))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
                 (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)))]
        [Ws (error-arity 'or/c 2 (length Ws))])]
     [not/c
      (match Ws
        [(list (-W¹ V _))
-        (define α (-α.not/c ℓ))
+        (define α (-α.not/c (cons ℓ 𝒞)))
         (values (⊔ ⊥σ α V) (list (-Not/C α)))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
 
     [vector
      (define αs
        (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
-         (-α.idx ℓ i)))
+         (-α.idx ℓ 𝒞 (assert i exact-nonnegative-integer?))))
      (define δσ
        (for/fold ([δσ : -Δσ ⊥σ]) ([α αs] [W Ws])
          (⊔ δσ α (-W¹-V W))))
@@ -64,15 +65,15 @@
     [vectorof
      (match Ws
        [(list (-W¹ V _))
-        (define α (-α.vectorof ℓ))
+        (define α (-α.vectorof (cons ℓ 𝒞)))
         (values (⊔ ⊥σ α V) (list (-Vectorof α)))]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
     [vector/c
      (define-values (αs-rev δσ)
        (for/fold ([αs-rev : (Listof -α.vector/c) '()] [δσ : -Δσ ⊥σ])
-                 ([(W i) (in-indexed Ws)])
+                 ([W Ws] [i : Natural (in-naturals)])
          (match-define (-W¹ V s) W)
-         (define α (-α.vector/c (if s s (cons ℓ i))))
+         (define α (-α.vector/c (list ℓ 𝒞 i)))
          (values (cons α αs-rev) (⊔ δσ α V))))
      (values δσ (list (-Vector/C (reverse αs-rev))))]
     
@@ -118,7 +119,7 @@
 
 (define-syntax (with-args stx)
   (syntax-parse stx
-    [(_ s:id (M:id σ:id Γ:id Ws:id ℓ:id) [t:id e ...] ...)
+    [(_ s:id (𝒞:id l:id ℓ:id M:id σ:id Γ:id Ws:id) [t:id e ...] ...)
      (for ([t-id (in-list (syntax->list #'(t ...)))])
        (define t-sym (syntax->datum t-id))
        (unless (∋ prim-names t-sym)
@@ -129,20 +130,21 @@
           t-id)))
      #`(case s
          [(t)
-          (λ ([M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -W¹)] [ℓ : -ℓ])
+          (λ ([𝒞 : -𝒞] [ℓ : -ℓ] [M : -M] [σ : -σ] [Γ : -Γ] [Ws  : (Listof -W¹)])
             e ...)]
          ...
          [else #f])]))
 
 ;; Language definition for `δ` begins here
 (begin-for-syntax
-
+  (define/contract 𝒞-id  (parameter/c identifier?) (make-parameter #f))
+  (define/contract ℓ-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract M-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract σ-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract Γ-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract o-id  (parameter/c identifier?) (make-parameter #f))
   (define/contract Ws-id (parameter/c identifier?) (make-parameter #f))
-  (define/contract ℓ-id  (parameter/c identifier?) (make-parameter #f))
+  
 
   (define/contract (mk-sym name sub)
     (symbol? integer? . -> . identifier?)
@@ -254,14 +256,15 @@
 ;; Generate body of `δ`
 (define-syntax (gen-δ-body stx)
   (syntax-parse stx
-    [(_ M:id σ:id Γ:id o:id Ws:id ℓ:id)
+    [(_ 𝒞:id ℓ:id M:id σ:id Γ:id o:id Ws:id)
      (define-values (clauses names)
-       (parameterize ([M-id #'M]
+       (parameterize ([𝒞-id #'𝒞]
+                      [ℓ-id #'ℓ]
+                      [M-id #'M]
                       [σ-id #'σ]
                       [Γ-id #'Γ]
                       [o-id #'o]
-                      [Ws-id #'Ws]
-                      [ℓ-id #'ℓ])
+                      [Ws-id #'Ws])
          ;; Accumulate `clauses` for straightforwardly lifted operators
          ;; and `names` for opaque operators
          (for/fold ([clauses '()] [names '()]) ([dec prims])
@@ -274,8 +277,8 @@
        #`(if (∋ prim-names o)
              (cond
                [(concrete-impl o) =>
-                (λ ([f : (-M -σ -Γ (Listof -W¹) -ℓ → (Values -Δσ -A*))])
-                  (f M σ Γ Ws ℓ))]
+                (λ ([f : (-𝒞 -ℓ -M -σ -Γ (Listof -W¹) → (Values -Δσ -A*))])
+                  (f 𝒞 ℓ M σ Γ Ws))]
                [else
                 (case o
                   #,@clauses
@@ -284,9 +287,9 @@
      ;(printf "Generated:~n~a~n" (pretty (syntax->datum body-stx)))
      body-stx]))
 
-(: δ : -M -σ -Γ Symbol (Listof -W¹) -ℓ → (Values -Δσ -A*))
-(define (δ M σ Γ o Ws ℓ)
-  (gen-δ-body M σ Γ o Ws ℓ))
+(: δ : -𝒞 -ℓ -M -σ -Γ Symbol (Listof -W¹) → (Values -Δσ -A*))
+(define (δ 𝒞 ℓ M σ Γ o Ws)
+  (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
 
 
 (module+ test
@@ -296,7 +299,7 @@
   ;; Test δ's concrete fragment
   (define (check-δ/b o bs bₐ)
     (define Ws (for/list : (Listof -W¹) ([b bs]) (-W¹ (-b b) (-b b))))
-    (define-values (δσ Vs) (δ ⊥M ⊥σ ⊤Γ o Ws 0))
+    (define-values (δσ Vs) (δ 0 0 ⊥M ⊥σ ⊤Γ o Ws))
     (check-true (list? Vs))
     (check-equal? ((inst length -V) (cast Vs (Listof -V))) 1)
     (match-define (list V) Vs)

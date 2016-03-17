@@ -288,21 +288,23 @@
       (with-guarded-arity 1 ('TODO Γ* Vs)
         (match-define (list V) Vs)
         (define Ws* (cons (-W¹ V s) Ws))
+        (define ℬ* (-ℬ-with-Γ ℬ Γ*))
         (match ⟦c⟧s
           [(cons ⟦c⟧ ⟦c⟧s*)
-           (((↝.-->i Ws* ⟦c⟧s* Mk-D ℓ) ⟦c⟧) M σ* (-ℬ-with-Γ ℬ Γ*))]
+           (((↝.-->i Ws* ⟦c⟧s* Mk-D ℓ) ⟦c⟧) M σ* ℬ*)]
           ['()
-           (mk-=>i Γ* Ws* Mk-D ℓ)]))))
+           (mk-=>i ℬ* Ws* Mk-D ℓ)]))))
    (⟦e⟧ M σ ℬ)))
 
-(: mk-=>i : -Γ (Listof -W¹) -W¹ Integer → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+(: mk-=>i : -ℬ (Listof -W¹) -W¹ -ℓ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
 ;; Given *reversed* list of domains and range-maker, create indy contract
-(define (mk-=>i Γ Ws Mk-D ℓ)
+(define (mk-=>i ℬ Ws Mk-D ℓ)
+  (match-define (-ℬ _ _ Γ 𝒞) ℬ)
   (define-values (δσ αs cs) ; `αs` and `cs` reverses `Ws`, which is reversed
     (for/fold ([δσ : -Δσ ⊥σ] [αs : (Listof -α.dom) '()] [cs : (Listof -s) '()])
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
-      (define α (-α.dom (cons ℓ i)))
+      (define α (-α.dom (list ℓ 𝒞 (assert i exact-nonnegative-integer?))))
       (values (⊔ δσ α C) (cons α αs) (cons c cs))))
   (match-define (-W¹ D d) Mk-D)
   (define C (-=>i αs (assert D -Clo?)))
@@ -329,6 +331,7 @@
           [(cons ⟦c⟧* ⟦c⟧s*)
            (((↝.struct/c si Ws* ⟦c⟧s* ℓ) ⟦c⟧*) M σ* (-ℬ-with-Γ ℬ Γ*))]
           ['()
+           (define 𝒞 (-ℬ-hist ℬ))
            (define-values (δσ αs cs flat?) ; `αs` and `cs` reverse `Ws`, which is reversed
              (for/fold ([δσ : -Δσ ⊥σ]
                         [αs : (Listof -α.struct/c) '()]
@@ -336,7 +339,7 @@
                         [flat? : Boolean #t])
                        ([(W i) (in-indexed Ws*)])
                (match-define (-W¹ C c) W)
-               (define α (-α.struct/c (list (-struct-info-id si) ℓ i)))
+               (define α (-α.struct/c (list ℓ 𝒞 (assert i exact-nonnegative-integer?))))
                (values (⊔ δσ α C) (cons α αs) (cons c cs) (and flat? (C-flat? C)))))
            (define V (-St/C flat? si αs))
            (values δσ {set (-ΓW Γ* (-W (list V) (-?struct/c si cs)))} ∅ ∅)]))))
@@ -355,7 +358,7 @@
   (: ap/δ : Symbol → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
   ;; Apply primitive
   (define (ap/δ o)
-    (define-values (δσ A*) (δ M σ Γ₀ o Wₓs ℓ))
+    (define-values (δσ A*) (δ 𝒞₀ ℓ M σ Γ₀ o Wₓs))
     (cond [(list? A*)
            (values δσ {set (-ΓW Γ₀ (-W A* sₐ))} ∅ ∅)]
           ;; Rely on `δ` giving no error

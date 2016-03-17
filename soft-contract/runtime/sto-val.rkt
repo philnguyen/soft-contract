@@ -281,39 +281,37 @@
             (-α.ctc -𝒾)
             ; for binding
             (-α.x Symbol -𝒞)
-            ; for mutable or opaque field
-            (-α.fld (U Integer -e (List -𝒾 Integer Integer)))
+            ; for struct field
+            (-α.fld [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
             ; for Cons/varargs
-            (-α.var-car [pos : Integer] [idx : Natural]) ; idx helps prevent infinite list 
-            (-α.var-cdr [pos : Integer] [idx : Natural])
+            (-α.var-car [pos : -ℓ] [ctx : -𝒞] [idx : Natural]) ; idx prevents infinite list 
+            (-α.var-cdr [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
 
             ;; for wrapped mutable struct
-            (-α.st* [id : -𝒾] [pos : Integer])
+            (-α.st* [id : -𝒾] [pos : -ℓ] [ctx : -𝒞])
 
             ;; for vector indices
-            (-α.idx [pos : Integer] [idx : Integer])
+            (-α.idx [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
 
             ;; for inner vector
-            (-α.vct [pos : Integer])
+            (-α.vct [pos : -ℓ] [ctx : -𝒞])
 
             ;; for contract components
-            (-α.and/c-l (U Integer -e))
-            (-α.and/c-r (U Integer -e))
-            (-α.or/c-l (U Integer -e))
-            (-α.or/c-r (U Integer -e))
-            (-α.not/c (U Integer -e))
-            (-α.vector/c (U Integer (Pairof Integer Integer) -e))
-            (-α.vectorof (U Integer -e))
-            (-α.struct/c (U Integer (List -𝒾 Integer Integer) -e))
-            (-α.x/c [pos : Integer])
-            (-α.dom (U Integer (Pairof Integer Integer) -e))
-            (-α.rst (U Integer -e)))
+            (-α.and/c-l (U (Pairof -ℓ -𝒞) -e))
+            (-α.and/c-r (U (Pairof -ℓ -𝒞) -e))
+            (-α.or/c-l (U (Pairof -ℓ -𝒞) -e))
+            (-α.or/c-r (U (Pairof -ℓ -𝒞) -e))
+            (-α.not/c (U (Pairof -ℓ -𝒞) -e))
+            (-α.vector/c (U (List -ℓ -𝒞 Natural) -e))
+            (-α.vectorof (U (Pairof -ℓ -𝒞) -e))
+            (-α.struct/c (U (List -ℓ -𝒞 Natural) -e))
+            (-α.x/c [pos : -ℓ])
+            (-α.dom (U (List -ℓ -𝒞 Natural) -e)))
 
-(: alloc-fields : -struct-info (Listof -s) Integer → (Listof -α.fld))
-(define (alloc-fields s args pos)
-  (match-define (-struct-info 𝒾 n _) s)
-  (for/list ([i n] [?e args])
-    (-α.fld (or ?e (list 𝒾 pos i)))))
+(: alloc-fields : -ℓ -𝒞 Natural → (Listof -α.fld))
+(define (alloc-fields ℓ 𝒞 n)
+  (for/list ([i : Natural n])
+    (-α.fld ℓ 𝒞 i)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -458,7 +456,7 @@
               (res ,(cons xs₀ x) ,(show-⟦e⟧ ⟦d⟧)))])]
     [(-St/C _ s αs)
      `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
-    [(-x/C (-α.x/c x)) `(recursive-contract ,(show-x/c x))]))
+    [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
 
 (define (show-A [A : -A])
   (match A

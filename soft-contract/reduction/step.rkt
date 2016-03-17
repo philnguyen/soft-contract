@@ -204,7 +204,7 @@
         (λ (M σ ℬ)
           (match-define (-ℬ _ ρ Γ _) ℬ)
           (define Mk-D (-W¹ (-Clo xs ⟦d⟧ ρ Γ) mk-d))
-          (mk-=>i Γ '() Mk-D l))]
+          (mk-=>i ℬ '() Mk-D l))]
        [(cons ⟦c⟧ ⟦c⟧s*)
         (λ (M σ ℬ)
           (match-define (-ℬ _ ρ Γ _) ℬ)
