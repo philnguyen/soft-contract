@@ -2,6 +2,8 @@
 
 (provide sym-sub pretty n-sub make-nat-src make-neg-src)
 (require racket/pretty racket/string racket/port)
+(require/typed/provide racket/syntax
+  [format-symbol (String Any * → Symbol)])
 
 (: sym-sub : Symbol → Symbol)
 ;; Make all digits in symbol subscripts

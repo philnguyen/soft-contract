@@ -3,7 +3,10 @@
 (provide ::= define-type/pred define-parameter :*)
 
 (require
- (for-syntax racket/base racket/syntax syntax/parse "pretty.rkt"))
+ (for-syntax racket/base
+             (except-in racket/syntax format-symbol)
+             syntax/parse
+             "pretty.rkt"))
 
 ;; Define type `t` along with predicate `t?`
 (define-syntax (define-type/pred stx)

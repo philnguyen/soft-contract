@@ -3,8 +3,6 @@
 (provide unique-nat unique-sym)
 
 (require "pretty.rkt")
-(require/typed racket/syntax
-  [format-symbol (String Any * → Symbol)])
 
 (: unique-nat (∀ (X) ([] [#:hacked-warning (Option Natural)]
                       . ->* .
