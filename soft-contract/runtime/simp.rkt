@@ -8,7 +8,7 @@
 (require
  racket/match racket/bool racket/list racket/math racket/flonum racket/extflonum
  racket/string racket/function
- "../utils/main.rkt" "../ast/definition.rkt" "sto-val.rkt"
+ "../utils/main.rkt" "../ast/definition.rkt" "definition.rkt"
  (for-syntax
   racket/base racket/contract racket/match racket/list racket/function
   "../utils/main.rkt"

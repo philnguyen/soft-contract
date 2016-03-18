@@ -4,7 +4,7 @@
 
 (require
  racket/match
- "../ast/definition.rkt" "sto-val.rkt")
+ "../ast/definition.rkt" "definition.rkt")
 
 (require/typed/provide racket/function
   [arity-includes? (Arity Arity → Boolean)])

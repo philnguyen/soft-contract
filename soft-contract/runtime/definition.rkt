@@ -16,11 +16,6 @@
 (define ρ@ : (-ρ Symbol → -α) hash-ref)
 (define ρ+ : (-ρ Symbol -α → -ρ) hash-set)
 
-(: ρ++ : -ρ -Δρ → -ρ)
-(define (ρ++ ρ δρ)
-  (for/fold ([ρ : -ρ ρ]) ([(x α) δρ])
-    (hash-set ρ x α)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value Store
@@ -33,18 +28,6 @@
 (: σ@ : -σ -α → (℘ -V))
 (define (σ@ σ α)
   (hash-ref σ α (λ () (error 'σ@ "non-existent address ~a" α))))
-
-(: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
-;; Look up store at addresses. Return all possible combinations
-(define (σ@/list σ αs)
-  (match αs
-    [(cons α αs*)
-     (define Vs (σ@ σ α))
-     (define Vss (σ@/list σ αs*))
-     (for*/set: : (℘ (Listof -V)) ([V Vs] [Vs Vss])
-       (cons V Vs))]
-    ['() {set '()}]))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stack Store
@@ -78,10 +61,10 @@
             (-Clo -formals -⟦e⟧ -ρ -Γ)
             
             ;; Proxied higher-order values
-            (-Ar [guard : #|ok, no rec|# -=>i] [v : (Pairof -α -s)] [ctx : (Option Mon-Info)])
-            (-St* [info : -struct-info] [ctcs : (Listof (Option -α.struct/c))] [val : -α.st] [ctx : (Option Mon-Info)])
-            (-Vector/hetero [ctcs : (Listof -α.vector/c)] [val : -α.vct] [ctx : (Option Mon-Info)])
-            (-Vector/homo [ctc : -α.vectorof] [val : -α.vct] [ctx : (Option Mon-Info)])
+            (-Ar [guard : #|ok, no rec|# -=>i] [v : (Pairof -α -s)] [ctx : Mon-Info])
+            (-St* [info : -struct-info] [ctcs : (Listof (Option -α.struct/c))] [val : -α.st] [ctx : Mon-Info])
+            (-Vector/hetero [ctcs : (Listof -α.vector/c)] [val : -α.vct] [ctx : Mon-Info])
+            (-Vector/homo [ctc : -α.vectorof] [val : -α.vct] [ctx : Mon-Info])
             
             -C)
 
@@ -89,11 +72,12 @@
 (-C . ::= . (-And/C [flat? : Boolean] [l : -α.and/c-l] [r : -α.and/c-r])
             (-Or/C [flat? : Boolean] [l : -α.or/c-l] [r : -α.or/c-r])
             (-Not/C -α.not/c)
-            (-Vectorof -α.vectorof)
-            (-Vector/C (Listof -α.vector/c))
-            (-St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
+            (-x/C [c : -α.x/c])
+            ;; Guards for higher-order values
             (-=>i [doms : (Listof -α.dom)] [#|ok, no recursion|# rng : -Clo])
-            (-x/C [c : -α.x/c]))
+            (-St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
+            (-Vectorof -α.vectorof)
+            (-Vector/C (Listof -α.vector/c)))
 
 (struct -blm ([violator : Mon-Party] [origin : Mon-Party]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
@@ -103,42 +87,6 @@
 (struct -ΓE ([cnd : -Γ] [blm : -blm]) #:transparent)
 (-A . ::= . -ΓW -ΓE)
 (-A* . ::= . (Listof -V) -blm)
-
-
-;; Constants & 'Macros'
-(define -Null -null)
-(define -True/Vs  (list -tt))
-(define -False/Vs (list -ff))
-(define -●/V (-●))
-(define -●/Vs : (List -V) (list -●/V))
-(define -Void/Vs (list (-b (void))))
-(define -Void/W (-W -Void/Vs (-b (void))))
-(define -integer?/W (-W¹ 'integer? 'integer?))
-(define -number?/W (-W¹ 'number? 'number?))
-(define -vector?/W (-W¹ 'vector? 'vector?))
-(define -procedure?/W (-W¹ 'procedure? 'procedure?))
-(define -vector-ref/W (-W¹ 'vector-ref 'vector-ref))
-(define -vector-set/W (-W¹ 'vector-set! 'vector-set!))
-(define -arity-includes?/W (-W¹ 'arity-includes? 'arity-includes?))
-(define -=/W (-W¹ '= '=))
-(define -contract-first-order-passes?/W (-W¹ 'contract-first-order-passes? 'contract-first-order-passes?))
-(define -Vector₀ (-Vector '()))
-;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
-;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))
-
-(: C-flat? : -V → Boolean)
-;; Check whether contract is flat, assuming it's already a contract
-(define (C-flat? V)
-  (match V
-    [(-And/C flat? _ _) flat?]
-    [(-Or/C flat? _ _) flat?]
-    [(? -Not/C?) #t]
-    [(-St/C flat? _ _) flat?]
-    [(or (? -Vectorof?) (? -Vector/C?)) #f]
-    [(? -=>i?) #f]
-    [(or (? -Clo?) (? -Ar?) (? -prim?)) #t]
-    [(? -x/C?) #t]
-    [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,24 +134,17 @@
 ;; Symbolic value is either pure, refinable expression, or the conservative unrefinable `#f`
 (-s . ::= . -e #f)
 
-(: s↓ : -s (℘ Symbol) → -s)
-;; Restrict symbol to given set of free variables
-(define (s↓ s xs)
-  (and s (e↓ s xs)))
-(: e↓ : -e (℘ Symbol) → -s)
-(define (e↓ e xs)
-  (and (⊆ (fv e) xs) e))
-
 ;; Path condition is set of (pure) expression known to have evaluated to non-#f
 (struct -Γ ([facts : (℘ -e)]
             [aliases : (HashTable Symbol -e)]
             [tails : (℘ -γ)]) #:transparent)
-(define ⊤Γ (-Γ ∅ (hasheq) ∅))
 
 ;; Path condition tail is block and renaming information
 (struct -γ ([callee : -ℬ]
             [fun : -s]
             [param->arg : (Listof (Pairof Symbol -s))]) #:transparent)
+
+(define ⊤Γ (-Γ ∅ (hasheq) ∅))
 
 (: Γ+ : -Γ -s → -Γ)
 ;; Strengthen path condition `Γ` with `s`
@@ -217,49 +158,6 @@
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
-
-(: Γ↓ : -Γ (℘ Symbol) → -Γ)
-;; Restrict path-condition to given free variables
-(define (Γ↓ Γ xs)
-
-  (match-define (-Γ φs as γs) Γ)
-  (define φs*
-    (for*/set: : (℘ -e) ([φ φs] [φ* (in-value (e↓ φ xs))] #:when φ*)
-      φ*))
-  (define as*
-    (for/hash : (HashTable Symbol -e) ([(x e) as] #:when (∋ xs x))
-      (values x e)))
-  (define γs*
-    (for*/set: : (℘ -γ) ([γ γs]
-                         #:when (s↓ (-γ-fun γ) xs)
-                         #:when
-                         (for/and : Boolean ([p (-γ-param->arg γ)])
-                           (and (s↓ (cdr p) xs) #t))) ; force boolean :(
-      γ))
-  (-Γ φs* as* γs*))
-
-(: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
-;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
-(define (canonicalize X x)
-  (cond [(-Γ? X) (canonicalize (-Γ-aliases X) x)]
-        [else (hash-ref X x (λ () (-x x)))]))
-
-;; Return an expression canonicalizing given expression in terms of lexically farthest possible variable(s)
-(: canonicalize-e : (U -Γ (HashTable Symbol -e)) -e → -e)
-(define (canonicalize-e X e)
-  (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
-        [else
-         ((e/map (for/hash : (HashTable -e -e) ([(x e-x) X])
-                   (values (-x x) e-x)))
-          e)]))
-
-(module+ test
-  (require typed/rackunit)
-
-  (check-equal? (Γ+ ⊤Γ #f) ⊤Γ)
-  (check-equal? (canonicalize-e (hash 'x (-@ '+ (list (-b 1) (-b 2)) 0))
-                                (-@ '+ (list (-x 'x) (-x 'y)) 0))
-                (-@ '+ (list (-@ '+ (list (-b 1) (-b 2)) 0) (-x 'y)) 0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -307,11 +205,6 @@
             (-α.x/c [pos : -ℓ])
             (-α.dom (U (List -ℓ -𝒞 Natural) -e)))
 
-(: alloc-fields : -ℓ -𝒞 Natural → (Listof -α.fld))
-(define (alloc-fields ℓ 𝒞 n)
-  (for/list ([i : Natural n])
-    (-α.fld ℓ 𝒞 i)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Compiled expression
@@ -341,18 +234,6 @@
 (struct -ℛ ([ctx : -ℬ] ; caller's context/address
             [hole : -ℋ] ; caller's continuation and path condition
             ) #:transparent)
-
-(: -ℬ-with-Γ : -ℬ -Γ → -ℬ)
-(define (-ℬ-with-Γ ℬ Γ)
-  (cond [(eq? Γ (-ℬ-cnd ℬ)) ℬ] ; common case, keep old instance
-        [else (match-define (-ℬ ⟦e⟧ ρ _ 𝒞) ℬ)
-              (-ℬ ⟦e⟧ ρ Γ 𝒞)]))
-
-(: -ℬ-with-ρ : -ℬ -ρ → -ℬ)
-(define (-ℬ-with-ρ ℬ ρ)
-  (cond [(eq? ρ (-ℬ-env ℬ)) ℬ]
-        [else (match-define (-ℬ ⟦e⟧ _ Γ 𝒞) ℬ)
-              (-ℬ ⟦e⟧ ρ Γ 𝒞)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
