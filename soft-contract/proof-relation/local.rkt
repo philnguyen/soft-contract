@@ -230,7 +230,7 @@
     [(? -st-ac?) '✓]
     [(-st-p si)
      (match Vs
-       [(list (or (-St sj _) (-St/checked sj _ _ _)))
+       [(list (or (-St sj _) (-St* sj _ _ _)))
         ;; TODO: no sub-struct for now. May change later.
         (decide-R (equal? si (assert sj)))]
        [(list (-●)) '?]
@@ -247,7 +247,7 @@
        [(vector?)
         (match Vs
           [(list (-●)) '?]
-          [(list (or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))) '✓]
+          [(list (or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))) '✓]
           [_ '✗])]
        [(contract?)
         (match Vs

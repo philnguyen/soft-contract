@@ -45,7 +45,6 @@
 
 (: ↝.dec : -𝒾 → -⟦ℰ⟧)
 ;; Make `⟦c⟧`. the contract for `𝒾`.
-;; TODO: Perform contract checking at this time instead of when referencing `𝒾`
 (define (((↝.dec 𝒾) ⟦c⟧) M σ ℬ)
   (apply/values
    (acc
@@ -53,9 +52,13 @@
     (λ (ℰ) (-ℰ.dec 𝒾 ℰ))
     (λ (σ* Γ* W)
       (define Vs (-W-Vs W))
-      (with-guarded-arity 1 ((-𝒾-ctx 𝒾) Γ* Vs)
-        (match-define (list V) Vs)
-        (values (⊔ ⊥σ (-α.ctc 𝒾) V) {set (-ΓW Γ* -Void/W)} ∅ ∅))))
+      (match-define (-𝒾 x l) 𝒾)
+      (with-guarded-arity 1 (l Γ* Vs)
+        (match-define (list C) Vs)
+        (define Vs (σ@ σ (-α.def 𝒾)))
+        (define ℬ* (-ℬ-with-Γ ℬ Γ*))
+        (for*/ans ([V Vs])
+          (mon (Mon-Info l 'dummy l) M σ ℬ* C V)))))
    (⟦c⟧ M σ ℬ)))
 
 (: ↝.if : Mon-Party -⟦e⟧ -⟦e⟧ → -⟦ℰ⟧)
@@ -397,6 +400,10 @@
      (printf "ap: ●~n")
      (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
     [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)]))
+
+(: mon : Mon-Info -M -σ -ℬ -V -V → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+(define (mon l³ M σ ℬ C V)
+  (error 'mon "TODO"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

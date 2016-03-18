@@ -74,20 +74,19 @@
             -prim
             (-●)
             (-St -struct-info (Listof (U -α.fld -α.var-car -α.var-cdr)))
-            (-St/checked
-              [info : -struct-info] [contracts : (Listof (Option -α.struct/c))] [mon : Mon-Info]
-              [unchecked : -α.st*])
-            ;; Vectors
             (-Vector (Listof -α.idx))
-            (-Vector/checked [contracts : (Listof -α.vector/c)] [mon : Mon-Info] [unchecked : -α.vct])
-            (-Vector/same [contract : -α.vectorof] [mon : Mon-Info] [unchecked : -α.vct])
-            ;; Functions
             (-Clo -formals -⟦e⟧ -ρ -Γ)
-            (-Ar [#|ok, no recursion|# guard : -=>i] [v : (Pairof -α -s)] [l³ : Mon-Info])
-            ;; Contracts
-            ; Treat `and/c`, `or/c` specially to deal with `chaperone?`
-            ; But these give rise to more special cases of stack frames
-            (-And/C [flat? : Boolean] [l : -α.and/c-l] [r : -α.and/c-r])
+            
+            ;; Proxied higher-order values
+            (-Ar [guard : #|ok, no rec|# -=>i] [v : (Pairof -α -s)] [ctx : (Option Mon-Info)])
+            (-St* [info : -struct-info] [ctcs : (Listof (Option -α.struct/c))] [val : -α.st] [ctx : (Option Mon-Info)])
+            (-Vector/hetero [ctcs : (Listof -α.vector/c)] [val : -α.vct] [ctx : (Option Mon-Info)])
+            (-Vector/homo [ctc : -α.vectorof] [val : -α.vct] [ctx : (Option Mon-Info)])
+            
+            -C)
+
+;; Contract combinators
+(-C . ::= . (-And/C [flat? : Boolean] [l : -α.and/c-l] [r : -α.and/c-r])
             (-Or/C [flat? : Boolean] [l : -α.or/c-l] [r : -α.or/c-r])
             (-Not/C -α.not/c)
             (-Vectorof -α.vectorof)
@@ -278,7 +277,7 @@
 
 (-α . ::= . ; For top-level definition and contract
             (-α.def -𝒾)
-            (-α.ctc -𝒾)
+            (-α.wrp -𝒾)
             ; for binding
             (-α.x Symbol -𝒞)
             ; for struct field
@@ -288,7 +287,7 @@
             (-α.var-cdr [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
 
             ;; for wrapped mutable struct
-            (-α.st* [id : -𝒾] [pos : -ℓ] [ctx : -𝒞])
+            (-α.st [id : -𝒾] [pos : -ℓ] [ctx : -𝒞])
 
             ;; for vector indices
             (-α.idx [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
@@ -422,15 +421,15 @@
     [(-●) '●]
     [(? -o? o) (show-o o)]
     [(-Clo xs ⟦e⟧ ρ _) `(Clo ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
-    [(-Ar guard (cons α s) l³) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
+    [(-Ar guard (cons α s) _) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
-    [(-St/checked s γs _ α)
+    [(-St* s γs α _)
      `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))
        ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
-    [(-Vector/checked γs _ α) `(vector/wrapped ,@(map show-α γs) ▹ ,(show-α α))]
-    [(-Vector/same γ _ α) `(vector/same ,(show-α γ) ▹ ,(show-α α))]
+    [(-Vector/hetero γs α _) `(vector/hetero ,@(map show-α γs) ▹ ,(show-α α))]
+    [(-Vector/homo γ α _) `(vector/homo ,(show-α γ) ▹ ,(show-α α))]
     [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
     [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
     [(-Not/C γ) `(not/c ,(show-α γ))]

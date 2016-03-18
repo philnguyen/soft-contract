@@ -119,9 +119,9 @@
       (cond
         [e
          (match V
-           [(or (-St s _) (-St/checked s _ _ _))
+           [(or (-St s _) (-St* s _ _ _))
             (equal? '✗ (MσΓ⊢s M σ Γ (-?@ (-st-p (assert s)) e)))]
-           [(or (? -Vector?) (? -Vector/checked?) (? -Vector/same?))
+           [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
             (equal? '✗ (MσΓ⊢s M σ Γ (-?@ 'vector? e)))]
            [(or (? -Clo?) (? -Ar?) (? -o?))
             (equal? '✗ (MσΓ⊢s M σ Γ (-?@ 'procedure? e)))]
