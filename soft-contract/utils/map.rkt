@@ -24,10 +24,10 @@
 (define (⊔! m x y)
   (hash-update! m x (λ ([s : (℘ Y)]) (set-add s y)) →∅))
 
-(: ⊔* : (∀ (X Y) (MMap X Y) X (℘ Y) → (MMap X Y)))
-;; m ⊔ [x ↦ ys]
-(define (⊔* m x ys)
-  (hash-update m x (λ ([s : (℘ Y)]) (∪ s ys)) →∅))
+(define-syntax ⊔*
+  (syntax-rules ()
+    [(_ m) m]
+    [(_ m [x y] p ...) (⊔* (⊔ m x y) p ...)]))
 
 (: ⊔!* : (∀ (X Y) (MMap X Y) X (℘ Y) → Void))
 ;; mutate `m` to `m ⊔ [x ↦ ys]`
@@ -37,7 +37,7 @@
 (: ⊔/m : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
 (define (⊔/m m₁ m₂)
   (for/fold ([m : (MMap X Y) m₁]) ([(x ys) (in-hash m₂)])
-    (⊔* m x ys)))
+    (hash-update m x (λ ([s : (℘ Y)]) (∪ s ys)) →∅)))
 
 (: mmap-subtract : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
 ;; Compute bindings in `m₁` not in `m₀`
