@@ -122,9 +122,10 @@
              [else (values (set-add ΓWs (-ΓW Γ W)) ΓEs)])))
        (values ⊥σ ΓWs ΓEs ∅))]
     [(and ref (-ref (and 𝒾 (-𝒾 x l₀)) ℓ))
-     (define α (-α.def 𝒾))
      (cond
+       ;; same-module referencing returns unwrapped version
        [(equal? l₀ l)
+        (define α (-α.def 𝒾))
         (λ (M σ ℬ)
           (define Γ (-ℬ-cnd ℬ))
           (define ΓWs
@@ -132,14 +133,16 @@
               (define s (if (-o? V) V ref))
               (-ΓW Γ (-W (list V) s))))
           (values ⊥σ ΓWs ∅ ∅))]
+       ;; cross-module referencing returns wrapped version
+       ;;  and (hack) supply the negative context
        [else
+        (define α (-α.wrp 𝒾))
         (λ (M σ ℬ)
-          (printf "FIXME: ignore `~a`'s contract for now.~n" x)
           (define Γ (-ℬ-cnd ℬ))
           (define ΓWs
             (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
               (define s (if (-o? V) V ref))
-              (-ΓW Γ (-W (list V) s))))
+              (-ΓW Γ (-W (list (supply-negative-party l V)) s))))
           (values ⊥σ ΓWs ∅ ∅))])]
     [(-@ f xs ℓ)
      ((↝.@ l ℓ '() (map ↓ xs)) (↓ f))]
