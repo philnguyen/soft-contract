@@ -111,6 +111,13 @@
      (apply/values alloc-And/C (alloc-Cs σ ss))]
     [`(or/c ,ss ...)
      (apply/values alloc-Or/C  (alloc-Cs σ ss))]
+    [`(cons/c ,s₁ ,s₂)
+     (define-values (σ₁ C c) (alloc-C σ  s₁))
+     (define-values (σ₂ D d) (alloc-C σ₁ s₂))
+     (define flat? (and (C-flat? C) (C-flat? D)))
+     (values (⊔* σ₂ [c C] [d D])
+             (-St/C flat? -s-cons (list c d))
+             (assert (-?struct/c -s-cons (list c d))))]
     [`(listof ,s*)
      (printf "TODO: alloc 'listof~n")
      (values σ 'any/c 'any/c)]

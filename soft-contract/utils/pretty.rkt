@@ -35,7 +35,7 @@
 (: suffixed-syms : Symbol Integer → (Listof Symbol))
 ;; Return list of `n` symbols suffixed by indices `[0..n-1]`
 (define (suffixed-syms x n)
-  (build-list n (λ ([i : Natural]) (format-symbol "~a~a" x i))))
+  (build-list n (λ ([i : Natural]) (format-symbol "~a~a" x (n-sub i)))))
 
 ;; Create generator for next natural/negative
 (define (make-neg-src)
