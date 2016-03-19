@@ -69,15 +69,21 @@
             -C)
 
 ;; Contract combinators
-(-C . ::= . (-And/C [flat? : Boolean] [l : -α.and/c-l] [r : -α.and/c-r])
-            (-Or/C [flat? : Boolean] [l : -α.or/c-l] [r : -α.or/c-r])
-            (-Not/C -α.not/c)
-            (-x/C [c : -α.x/c])
+(-C . ::= . (-And/C [flat? : Boolean]
+                    [l : (U -α.and/c-l -α.cnst)]
+                    [r : (U -α.and/c-r -α.cnst)])
+            (-Or/C [flat? : Boolean]
+                   [l : (U -α.or/c-l -α.cnst)]
+                   [r : (U -α.or/c-r -α.cnst)])
+            (-Not/C (U -α.not/c -α.cnst))
+            (-x/C [c : (U -α.x/c -α.cnst)])
             ;; Guards for higher-order values
-            (-=>i [doms : (Listof -α.dom)] [#|ok, no recursion|# rng : -Clo])
-            (-St/C [flat? : Boolean] [info : -struct-info] [fields : (Listof -α.struct/c)])
-            (-Vectorof -α.vectorof)
-            (-Vector/C (Listof -α.vector/c)))
+            (-=>i [doms : (Listof (U -α.dom -α.cnst))] [#|ok, no recursion|# rng : -Clo])
+            (-St/C [flat? : Boolean]
+                   [info : -struct-info]
+                   [fields : (Listof (U -α.struct/c -α.cnst))])
+            (-Vectorof (U -α.vectorof -α.cnst))
+            (-Vector/C (Listof (U -α.vector/c -α.cnst))))
 
 (struct -blm ([violator : Mon-Party] [origin : Mon-Party]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
@@ -172,7 +178,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value address
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+(-α.cnst . ::= . -e)
 (-α . ::= . ; For top-level definition and contract
             (-α.def -𝒾)
             (-α.wrp -𝒾)
@@ -194,16 +200,18 @@
             (-α.vct [pos : -ℓ] [ctx : -𝒞])
 
             ;; for contract components
-            (-α.and/c-l (U (Pairof -ℓ -𝒞) -e))
-            (-α.and/c-r (U (Pairof -ℓ -𝒞) -e))
-            (-α.or/c-l (U (Pairof -ℓ -𝒞) -e))
-            (-α.or/c-r (U (Pairof -ℓ -𝒞) -e))
-            (-α.not/c (U (Pairof -ℓ -𝒞) -e))
-            (-α.vector/c (U (List -ℓ -𝒞 Natural) -e))
-            (-α.vectorof (U (Pairof -ℓ -𝒞) -e))
-            (-α.struct/c (U (List -ℓ -𝒞 Natural) -e))
+            (-α.and/c-l [pos : -ℓ] [ctx : -𝒞])
+            (-α.and/c-r [pos : -ℓ] [ctx : -𝒞])
+            (-α.or/c-l [pos : -ℓ] [ctx : -𝒞])
+            (-α.or/c-r [pos : -ℓ] [ctx : -𝒞])
+            (-α.not/c [pos : -ℓ] [ctx : -𝒞])
+            (-α.vector/c [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
+            (-α.vectorof [pos : -ℓ] [ctx : -𝒞])
+            (-α.struct/c [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
             (-α.x/c [pos : -ℓ])
-            (-α.dom (U (List -ℓ -𝒞 Natural) -e)))
+            (-α.dom [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
+
+            -α.cnst)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -318,9 +326,8 @@
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
     [(-=>i γs (-Clo xs ⟦d⟧ _ _))
      (define cs : (Listof -s)
-       (for/list ([γ : -α.dom γs])
-         (match-define (-α.dom c) γ)
-         (and (-e? c) c)))
+       (for/list ([γ : -α γs])
+         (and (-e? γ) γ)))
      (match xs
        [(? list? xs)
         `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])

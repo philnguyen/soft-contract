@@ -12,28 +12,6 @@
 (define havoc-path 'havoc)
 (define havoc-id (-𝒾 'havoc-id havoc-path))
 
-(: prog-accs : (Listof -module) → (℘ -st-ac))
-;; Retrieve set of all public accessors from program
-(define (prog-accs ms)
-  
-  ;; Collect all defined accessors (`defs`) and exported identifiers (`decs`)
-  (define defs : (HashTable Symbol -st-ac) (make-hasheq))
-  (define decs : (HashTable Symbol #t    ) (make-hasheq))
-  (for* ([m ms]
-         [form (-module-body m)])
-    (match form
-      [(-provide specs)
-       (for-each
-        (match-lambda [(-p/c-item x _) (hash-set! decs x #t)])
-        specs)]
-      [(-define-values (list x) (? -st-ac? e))
-       (hash-set! defs x e)]
-      [_ (void)]))
-  
-  ;; Return exported accessors
-  (for/set: : (℘ -st-ac) ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
-    ac))
-
 (: gen-havoc-Clo : (Listof -module) → -Clo)
 ;; Generate the unknown context
 ;; Only used by `verify` module, not `ce`
@@ -82,3 +60,24 @@
   (-amb/remember (for/list ([ref (in-set refs)])
                    (-@ (•!) (list ref) (+ℓ!)))))
 
+(: prog-accs : (Listof -module) → (℘ -st-ac))
+;; Retrieve set of all public accessors from program
+(define (prog-accs ms)
+  
+  ;; Collect all defined accessors (`defs`) and exported identifiers (`decs`)
+  (define defs : (HashTable Symbol -st-ac) (make-hasheq))
+  (define decs : (HashTable Symbol #t    ) (make-hasheq))
+  (for* ([m ms]
+         [form (-module-body m)])
+    (match form
+      [(-provide specs)
+       (for-each
+        (match-lambda [(-p/c-item x _) (hash-set! decs x #t)])
+        specs)]
+      [(-define-values (list x) (? -st-ac? e))
+       (hash-set! defs x e)]
+      [_ (void)]))
+  
+  ;; Return exported accessors
+  (for/set: : (℘ -st-ac) ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
+    ac))

@@ -122,6 +122,7 @@
 (define -tt (-b #t))
 (define -ff (-b #f))
 (define -null (-b null))
+(define -void (-b (void)))
 
 (define -𝒾-values (-𝒾 'values 'Λ))
 (define -𝒾-cons (-𝒾 'cons 'Λ))

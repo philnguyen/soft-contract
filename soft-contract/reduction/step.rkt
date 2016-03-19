@@ -96,12 +96,11 @@
        (match-define (-ℬ _ ρ Γ _) ℬ)
        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) e))} ∅ ∅))]
     [(-case-λ body) (error '⇓ "TODO: case-λ")]
-    [(? -prim? p)
-     (λ (M σ ℬ)
-       (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W (list p) p))} ∅ ∅))]
+    [(? -prim? p) (⇓ₚᵣₘ p)]
     [(-• i)
+     (define W (-W -●/Vs e))
      (λ (M σ ℬ)
-       (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W -●/Vs e))} ∅ ∅))]
+       (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) W)} ∅ ∅))]
     [(-x x)
      (λ (M σ ℬ)
        (match-define (-ℬ _ ρ Γ 𝒞) ℬ)
@@ -292,13 +291,23 @@
   
   (values δM δΞ δσ))
 
-(: ⇓const : Base → -⟦e⟧)
-(define (⇓const b)
-  (define W (let ([B (-b b)]) (-W (list B) B)))
-  (λ (M σ ℬ)
-    (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) W)} ∅ ∅)))
+;; Memoized because `Λ` needs a ridiculous number of these
 
-(define ⟦void⟧ (⇓const (void)))
+(define ⇓ₚᵣₘ : (-prim → -⟦e⟧) 
+  (let ([meq : (HashTable Any -⟦e⟧) (make-hasheq)] ; `eq` doesn't work for String but ok
+        [m   : (HashTable Any -⟦e⟧) (make-hash  )])
+    
+    (define (ret-p [p : -prim]) : -⟦e⟧
+      (define W (-W (list p) p))
+      (λ (M σ ℬ)
+        (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) W)} ∅ ∅)))
+    
+    (match-lambda
+      [(? symbol? o)  (hash-ref! meq o (λ () (ret-p o)))]
+      [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
+      [p              (hash-ref! m   p (λ () (ret-p p)))])))
+
+(define ⟦void⟧ (⇓ₚᵣₘ -void))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

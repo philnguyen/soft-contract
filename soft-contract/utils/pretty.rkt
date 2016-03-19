@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide sym-sub pretty n-sub make-nat-src make-neg-src)
+(provide (all-defined-out))
 (require racket/pretty racket/string racket/port)
 (require/typed/provide racket/syntax
   [format-symbol (String Any * → Symbol)])
@@ -31,6 +31,11 @@
    [else
     (define-values (q r) (quotient/remainder n 10))
     (string-append (n-sub q) (n-sub r))]))
+
+(: suffixed-syms : Symbol Integer → (Listof Symbol))
+;; Return list of `n` symbols suffixed by indices `[0..n-1]`
+(define (suffixed-syms x n)
+  (build-list n (λ ([i : Natural]) (format-symbol "~a~a" x i))))
 
 ;; Create generator for next natural/negative
 (define (make-neg-src)
