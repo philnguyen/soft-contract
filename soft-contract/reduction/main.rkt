@@ -13,12 +13,14 @@
  "step.rkt"
  "init.rkt")
 
-(: run-files : Path-String * → (℘ -A))
+(: run-files : Path-String * → (Values Sexp #|debugging|# Sexp Sexp))
 (define (run-files . ps)
   (define ms (files->modules ps))
   (define-values (σ₀ e₀) (𝑰 ms))
   (define-values (As M Ξ σ) (run (⇓ₚ ms e₀) σ₀))
-  As)
+  (values (set-map As show-A)
+          (show-M M)
+          (show-Ξ Ξ)))
 
 (: run-e : -e → (Values Sexp #|for debugging|# Sexp Sexp Sexp))
 (define (run-e e)

@@ -98,7 +98,7 @@
   (log-debug "parse-general-top-level-form:~n~a~n" (pretty (syntax->datum form)))
   (syntax-parse form
     #:literals (define-syntaxes define-values #%require let-values #%plain-app values
-                 call-with-values)
+                call-with-values #%plain-lambda)
     [(define-values (_ ctor pred acc ...)
        (let-values ([(_ ...)
                      (let-values ()
@@ -138,7 +138,11 @@
     [(#%require spec ...)
      (-require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes _ ...) #f] 
-    [_ (parse-e form)]))
+    ;;; HACKED
+    [(#%plain-app call-with-values (#%plain-lambda () e) print-values) ; FIXME `print-values`
+     (parse-e #'e)]
+    [_
+     (parse-e form)]))
 
 (define/contract indep-prefix (parameter/c symbol?) (make-parameter 'x))
 
@@ -153,9 +157,10 @@
   (syntax-parse stx
     #:literals
     (let-values letrec-values begin begin0 if #%plain-lambda #%top
-                module* module #%plain-app quote #%require quote-syntax
-                with-continuation-mark #%declare #%provide case-lambda
-                #%variable-reference set! list)
+     module* module #%plain-app quote #%require quote-syntax
+     with-continuation-mark #%declare #%provide case-lambda
+     #%variable-reference set! list)
+
     ;;; Contracts
     ;; Non-dependent function contract
     [(let-values ([(_) (~literal fake:dynamic->*)]

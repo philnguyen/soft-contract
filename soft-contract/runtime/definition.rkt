@@ -382,7 +382,31 @@
       [(-ℰ.if _ ℰ* _ _) `(if ,(loop ℰ*) … …)]
       [(-ℰ.@ _ _ Ws ℰ* ⟦e⟧s) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
       [(-ℰ.begin ℰ* ⟦e⟧s)
-       `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))])))
+       `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))]
+      [(-ℰ.let-values _ xWs (cons xs ℰ*) xs-es e)
+       `(let (,@(for/list : (Listof Sexp) ([xW xWs])
+                  (match-define (cons x W) xW)
+                  `(,x ,(show-W¹ W)))
+              `(,x ,(loop ℰ*))
+              ,@(for/list : (Listof Sexp) ([xs-e xs-es])
+                  (match-define (cons x e) xs-e)
+                  `(,xs ,(show-⟦e⟧ e))))
+          ,(show-⟦e⟧ e))]
+      [(-ℰ.letrec-values _ _ (cons xs ℰ*) xs-es e)
+       `(letrec ((,xs ,(loop ℰ*))
+                 ,@(for/list : (Listof Sexp) ([xs-e xs-es])
+                     (match-define (cons xs e) xs-e)
+                     `(,xs (show-⟦e⟧ e))))
+          ,(show-⟦e⟧ e))]
+      [(-ℰ.set! x ℰ*) `(set! ,x ,(loop ℰ*))]
+      [(-ℰ.μ/c _ x ℰ*) `(μ/c ,x ,(loop ℰ*))]
+      [(-ℰ.-->i Cs ℰ* cs (-W¹ (-Clo xs _ _ _) d) _)
+       `(,@(map show-W¹ Cs) ,(loop ℰ*) ,@(map show-⟦e⟧ cs) ,(show-s d))]
+      [(-ℰ.struct/c s Cs ℰ* cs _)
+       `(,(format-symbol "~a/c" (-𝒾-name (-struct-info-id s)))
+         ,@(map show-W¹ Cs)
+         ,(loop ℰ*)
+         ,(map show-⟦e⟧ cs))])))
 
 (define (show-ℋ [ℋ : -ℋ])
   (match-define (-ℋ Γ f bnds ℰ) ℋ)
