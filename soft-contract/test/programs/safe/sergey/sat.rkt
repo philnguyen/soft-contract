@@ -3,7 +3,6 @@
 
 (require soft-contract/fake-contract)
 
-
 (define phi
   (λ (x1)
     (λ (x2)
@@ -31,6 +30,6 @@
                                 (try (λ (n5)
                                        (try (λ (n6)
                                               (try (λ (n7)
-                                                     ((((((p n1) n2) n3) n4) n5) n6) n7))))))))))))))))
+                                                     (((((((p n1) n2) n3) n4) n5) n6) n7)))))))))))))))))
 
 (sat-solve-7 phi)
