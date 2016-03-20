@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide 𝑰)
+(provide 𝑰 σ₀)
 
 (require
  racket/match
@@ -23,11 +23,7 @@
 (define (𝑰 ms)
   (define e† (gen-havoc-exp ms))
   (define hv (gen-havoc-Clo ms))
-  (define σ₀
-    (for/fold ([σ : -σ (⊔ ⊥σ (-α.def havoc-id) hv)])
-              ([dec prims])
-      (alloc σ dec)))
-  (values σ₀ e†))
+  (values (⊔ σ₀ (-α.def havoc-id) hv) e†))
 
 (: ⇓ : -e → -⟦e⟧)
 (define (⇓ e) (⇓/l 'Λ e))
@@ -236,3 +232,7 @@
      (length mut?s)
      (for/set: : (℘ Natural) ([mut? mut?s] [i : Natural (in-naturals)] #:when mut?)
        i))))
+
+(define σ₀
+  (for/fold ([σ : -σ ⊥σ]) ([dec prims])
+    (alloc σ dec)))

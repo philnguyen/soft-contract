@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ev ev* co co* ⇓ₚ ⇓ₘ ⇓ ⊔³)
+(provide ev ev* co co* ⇓ₚ ⇓ₘₛ ⇓ₘ ⇓ ⊔³)
 
 (require
  racket/match racket/set
@@ -29,12 +29,10 @@
   (match-define (-Co (-ℛ ℬ₀ ℋ₀) ℬ As) Co)
   (match-define (-ℋ ρ₀ Γ₀ f bnds ℰ) ℋ₀)
 
-  (printf "Returning to ~a in ~a~n" (show-ℋ ℋ₀) (show-ℬ ℬ₀))
-
   ;; Propagate errors and plug values into hole
   (define-values (ΓWs ΓEs)
     (let ()
-      (printf "TODO: use path-conditions from caller+callee to eliminate spurious returns~n")
+      ;(printf "TODO: use path-conditions from caller+callee to eliminate spurious returns~n")
       
       (define args (map (inst cdr Symbol -s) bnds))
       (define fargs (apply -?@ f args))
@@ -56,7 +54,8 @@
         (apply/values col (values ⊥σ ∅ ΓEs ∅)))))
 
 (: ⇓ₚ : (Listof -module) -e → -⟦e⟧)
-;; Compile list of modules
+;; Compile list of modules and top-level expression into computation that
+;; runs modules and the top level expression and returns top-level expression's result
 (define (⇓ₚ ms e)
   (define ⟦e⟧ (⇓ '† e))
   (match (map ⇓ₘ ms)
@@ -64,7 +63,7 @@
     [(cons ⟦m⟧ ⟦m⟧s) ((↝.begin (append ⟦m⟧s (list ⟦e⟧))) ⟦m⟧)]))
 
 (: ⇓ₘₛ : (Listof -module) → -⟦e⟧)
-;; Compile list of module into computation that runs modules and return
+;; Compile list of modules into computation that runs modules and return
 ;; last module's last expression's result
 (define (⇓ₘₛ ms)
   (match (map ⇓ₘ ms)
@@ -255,7 +254,6 @@
   (let go : -⟦e⟧ ([ℰ : -ℰ ℰ])
     (match ℰ
       ;; Hacky forms
-      [(-ℰₚ.modules ℰ* ⟦m⟧s ⟦e⟧) ((↝.modules ⟦m⟧s ⟦e⟧) (go ℰ*))]
       [(-ℰ.def m xs ℰ*) ((↝.def m xs) (go ℰ*))]
       [(-ℰ.dec id ℰ*) ((↝.dec id) (go ℰ*))]
       ;; Regular forms

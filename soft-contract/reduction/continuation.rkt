@@ -10,22 +10,6 @@
  racket/match racket/set racket/list
  "../utils/main.rkt" "../ast/main.rkt" "../runtime/main.rkt" "../proof-relation/main.rkt" "../delta.rkt")
 
-(: ↝.modules : (Listof -⟦e⟧) -⟦e⟧ → -⟦ℰ⟧)
-(define ((↝.modules ⟦m⟧s ⟦e⟧) ⟦e⟧ᵢ)
-  (define ⟦e⟧ᵣ
-    (match ⟦m⟧s
-      ['() ⟦e⟧]
-      [(cons ⟦m⟧ ⟦m⟧s*) ((↝.modules ⟦m⟧s* ⟦e⟧) ⟦m⟧)]))
-  
-  (λ (M σ ℬ)
-    (apply/values
-     (acc
-      σ
-      (λ (ℰ) (-ℰₚ.modules ℰ ⟦m⟧s ⟦e⟧))
-      (λ (σ* Γ* W) (⟦e⟧ᵣ M σ* (-ℬ-with-Γ ℬ Γ*))))
-     (⟦e⟧ᵢ M σ ℬ))))
-
-
 (: ↝.def : Adhoc-Module-Path (Listof Symbol) → -⟦ℰ⟧)
 ;; Define top-level `xs` to be values from `⟦e⟧`
 (define (((↝.def l xs) ⟦e⟧) M σ ℬ)

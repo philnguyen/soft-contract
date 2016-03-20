@@ -99,9 +99,7 @@
 ;;;;; Evaluation context
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-ℰ . ::= . ;; Different type of context. Hack for now. I may de-hack some day but not a big problem. 
-            (-ℰₚ.modules [cur-mod : -ℰ] [mods : (Listof -⟦e⟧)] [top : -⟦e⟧])
-            ;; Different type of context. Hack for now. I may de-hack some day but not a big problem.
+(-ℰ . ::= . ;; Different type of context. Hack for now. I may de-hack some day but not a big problem.
             (-ℰ.def [mod-name : Adhoc-Module-Path] [lhs : (Listof Symbol)] [rhs : -ℰ])
             (-ℰ.dec [name : -𝒾] [ctc : -ℰ])
             
@@ -367,10 +365,6 @@
 (define (show-ℰ ℰ [in-hole '□])
   (let loop ([ℰ : -ℰ ℰ])
     (match ℰ
-      [(-ℰₚ.modules ℰ* ⟦m⟧s ⟦e⟧)
-       `(,(loop ℰ*)
-         ,(format "…~a modules…" (length ⟦m⟧s))
-         ,"…top-level…")]
       [(-ℰ.def _ xs ℰ*)
        (define rhs (loop ℰ*))
        (match xs

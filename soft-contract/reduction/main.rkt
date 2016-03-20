@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide run-files run run-e)
+(provide run-files havoc-files run-e run)
 
 (require
  racket/match racket/set
@@ -13,11 +13,10 @@
  "step.rkt"
  "init.rkt")
 
-(: run-file : Path-String → (Values Sexp #|debugging|# Sexp Sexp))
-(define (run-files p)
-  (define ms (files->modules (list p)))
-  (define-values (σ₀ _) (𝑰 ms))
-  (define-values (As M Ξ σ) (run (⇓ₚ ms e₀) σ₀))
+(: run-files : Path-String * → (Values Sexp #|debugging|# Sexp Sexp))
+(define (run-files . ps)
+  (define ms (files->modules ps))
+  (define-values (As M Ξ σ) (run (⇓ₘₛ ms) σ₀))
   (values (set-map As show-A)
           (show-M M)
           (show-Ξ Ξ)))
@@ -25,8 +24,8 @@
 (: havoc-files : Path-String * → (Values Sexp #|debugging|# Sexp Sexp))
 (define (havoc-files . ps)
   (define ms (files->modules ps))
-  (define-values (σ₀ e₀) (𝑰 ms))
-  (define-values (As M Ξ σ) (run (⇓ₚ ms e₀) σ₀))
+  (define-values (σ₁ e₁) (𝑰 ms))
+  (define-values (As M Ξ σ) (run (⇓ₚ ms e₁) σ₁))
   (values (set-map As show-A)
           (show-M M)
           (show-Ξ Ξ)))
