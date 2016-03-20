@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-;(provide run-files run run-e)
+(provide run-files run run-e)
 
 (require
  racket/match racket/set
