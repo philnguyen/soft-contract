@@ -77,7 +77,6 @@
 
 (: ↝.@ : Mon-Party -ℓ (Listof -W¹) (Listof -⟦e⟧) → -⟦ℰ⟧)
 (define (((↝.@ l ℓ Ws ⟦e⟧s) ⟦e⟧) M σ ℬ)
-
   (apply/values
    (acc
     σ
@@ -241,14 +240,14 @@
            (define ℐs*
              (map/set
               (match-lambda
-                [(-ℐ (-ℋ Γ f bnds ℰ) ℬ)
+                [(-ℐ (-ℋ ρ Γ f bnds ℰ) ℬ)
                  (define Γ* (Γ↓ Γ xs₀))
                  (define f* (s↓ f xs₀))
                  (define bnds*
                    (for/list : (Listof (Pairof Symbol -s)) ([bnd bnds])
                      (match-define (cons x s) bnd)
                      (cons x (s↓ s xs₀))))
-                 (-ℐ (-ℋ Γ* f* bnds* ℰ) ℬ)])
+                 (-ℐ (-ℋ ρ Γ* f* bnds* ℰ) ℬ)])
               ℐs))
            
            (values (⊔/m δσ δσ*) ΓWs* ΓEs* ℐs*)]))))
@@ -380,7 +379,7 @@
         [_ (error 'ap/β "TODO: varargs")]))
     (define bnds (map (inst cons Symbol -s) xs sₓs))
     (define ℬ₁ (-ℬ ⟦e⟧ ρ₁ Γ₁ 𝒞₁))
-    (values δσ ∅ ∅ {set (-ℐ (-ℋ Γ₀ sₕ bnds '□) ℬ₁)}))
+    (values δσ ∅ ∅ {set (-ℐ (-ℋ ρ₀ Γ₀ sₕ bnds '□) ℬ₁)}))
   
   (match Vₕ
     [(-Clo xs ⟦e⟧ ρ Γ) (ap/β xs ⟦e⟧ ρ Γ)]
@@ -418,8 +417,8 @@
   (define ℐs*
     (map/set
      (match-lambda
-       [(-ℐ (-ℋ Γ s 𝒳    ℰ ) ℬ)
-        (-ℐ (-ℋ Γ s 𝒳 (f ℰ)) ℬ)])
+       [(-ℐ (-ℋ ρ Γ s 𝒳    ℰ ) ℬ)
+        (-ℐ (-ℋ ρ Γ s 𝒳 (f ℰ)) ℬ)])
      ℐs))
   (define σ* (⊔/m σ δσ))
   (for/fold ([δσ : -Δσ δσ] [ΓWs* : (℘ -ΓW) ∅] [ΓEs* : (℘ -ΓE) ΓEs] [ℐs* : (℘ -ℐ) ℐs*])

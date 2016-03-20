@@ -247,7 +247,7 @@
 (: -amb/remember : (Listof -e) → -e)
 ;; Return ast representing "remembered" non-determinism
 (define/match (-amb/remember es)
-  [((list)) -ff]
+  [((list)) (-b 'end-of-amb)]
   [((list e)) e]
   [((cons e es)) (-if (•!) e (-amb/remember es))])
 

@@ -129,7 +129,7 @@
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; caller's path condition and information for renaming callee's symbols
-(struct -ℋ ([pc : -Γ] [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
+(struct -ℋ ([env : -ρ] [pc : -Γ] [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
             [ctx : -ℰ]) #:transparent)
 
 
@@ -220,6 +220,7 @@
 
 (define-type -⟦e⟧ (-M -σ -ℬ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ))))
 (define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
+(define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -293,7 +294,7 @@
 
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
   (match-define (-Γ φs as ts) Γ)
-  `(,(set-map φs show-e) ‖ ,(set-map ts show-γ)))
+  `(,@(set-map φs show-e) ,@(set-map ts show-γ)))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(ℬ ℛs) Ξ])
@@ -387,7 +388,7 @@
        `(let (,@(for/list : (Listof Sexp) ([xW xWs])
                   (match-define (cons x W) xW)
                   `(,x ,(show-W¹ W)))
-              `(,x ,(loop ℰ*))
+              (,xs ,(loop ℰ*))
               ,@(for/list : (Listof Sexp) ([xs-e xs-es])
                   (match-define (cons x e) xs-e)
                   `(,xs ,(show-⟦e⟧ e))))
@@ -409,7 +410,7 @@
          ,(map show-⟦e⟧ cs))])))
 
 (define (show-ℋ [ℋ : -ℋ])
-  (match-define (-ℋ Γ f bnds ℰ) ℋ)
+  (match-define (-ℋ ρ Γ f bnds ℰ) ℋ)
   `(ℋ ,(show-Γ Γ) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
 
 (: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
@@ -419,11 +420,11 @@
   (match-define (cons x s) x-s)
   `(,x ↦ ,(show-s s)))
 
-(define-values (show-⟦e⟧ show-⟦e⟧⁻¹ count-⟦e⟧) ((inst unique-sym -⟦e⟧) '⟦e⟧))
+(define-values (show-⟦e⟧ show-⟦e⟧⁻¹ count-⟦e⟧) ((inst unique-sym -⟦e⟧) 'e))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ ⟦e⟧ ρ Γ 𝒞) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ) ,(show-𝒞 𝒞) ,(show-Γ Γ)))
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ) ,(show-𝒞 𝒞) #;,(show-Γ Γ)))
 
 (define (show-Co [Co : -Co]) : Sexp
   (match-define (-Co ℛ ℬ ans) Co)

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide unique-nat unique-sym)
+(provide (all-defined-out))
 
 (require "pretty.rkt")
 
@@ -43,6 +43,22 @@
    (λ (s)
      (hash-ref m⁻¹ s (λ () (error 'unique-sym "No element for `~a`" s))))
    (λ () (hash-count m))))
+
+(: make-memo (∀ (X Y) (→ (Values (X Y → X) (X → Y)))))
+;; Remember mapping X → Y
+(define (make-memo)
+  (define m : (HashTable X Y) (make-hash))
+  (values
+   (λ (x y) (hash-set! m x y) x)
+   (λ (x) (hash-ref m x))))
+
+(: make-memoeq (∀ (X Y) (→ (Values (X Y → X) (X → Y)))))
+;; Remember mapping X → Y
+(define (make-memoeq)
+  (define m : (HashTable X Y) (make-hasheq))
+  (values
+   (λ (x y) (hash-set! m x y) x)
+   (λ (x) (hash-ref m x))))
 
 (module+ test
   (require typed/rackunit)

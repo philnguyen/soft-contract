@@ -13,8 +13,17 @@
  "step.rkt"
  "init.rkt")
 
-(: run-files : Path-String * → (Values Sexp #|debugging|# Sexp Sexp))
-(define (run-files . ps)
+(: run-file : Path-String → (Values Sexp #|debugging|# Sexp Sexp))
+(define (run-files p)
+  (define ms (files->modules (list p)))
+  (define-values (σ₀ _) (𝑰 ms))
+  (define-values (As M Ξ σ) (run (⇓ₚ ms e₀) σ₀))
+  (values (set-map As show-A)
+          (show-M M)
+          (show-Ξ Ξ)))
+
+(: havoc-files : Path-String * → (Values Sexp #|debugging|# Sexp Sexp))
+(define (havoc-files . ps)
   (define ms (files->modules ps))
   (define-values (σ₀ e₀) (𝑰 ms))
   (define-values (As M Ξ σ) (run (⇓ₚ ms e₀) σ₀))
@@ -24,7 +33,8 @@
 
 (: run-e : -e → (Values Sexp #|for debugging|# Sexp Sexp Sexp))
 (define (run-e e)
-  (define-values (As M Ξ σ) (run (⇓ 'top e) ⊥σ))
+  (define-values (σ₀ _) (𝑰 '()))
+  (define-values (As M Ξ σ) (run (⇓ 'top e) σ₀))
   (values (set-map As show-A) (show-M M) (show-Ξ Ξ) (show-σ σ)))
 
 (: run : -⟦e⟧ -σ → (Values (℘ -A) #|for debugging|# -M -Ξ -σ))
