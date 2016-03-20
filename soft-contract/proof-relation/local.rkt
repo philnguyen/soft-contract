@@ -192,7 +192,7 @@
             (⊢@ p (list e₁))]
            [(_ _) '?])]
         [(_ R) R]))
-    (dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
+    ;(dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
     ans)
 
   (define ans
@@ -204,7 +204,7 @@
                             [R* (in-value (e⊢e e₀ e))])
                   R*))]
       [else '?]))
-  (dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-s e) ans)
+  ;(dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-s e) ans)
   ans)
 
 (: ⊢V : -V → -R)

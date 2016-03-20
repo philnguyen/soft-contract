@@ -13,28 +13,24 @@
  "step.rkt"
  "init.rkt")
 
-(: run-files : Path-String * → (Values Sexp #|debugging|# Sexp Sexp))
+(: run-files : Path-String * → (Values (℘ -A) #|debugging|# -M -Ξ))
 (define (run-files . ps)
   (define ms (files->modules ps))
   (define-values (As M Ξ σ) (run (⇓ₘₛ ms) σ₀))
-  (values (set-map As show-A)
-          (show-M M)
-          (show-Ξ Ξ)))
+  (values As M Ξ))
 
-(: havoc-files : Path-String * → (Values Sexp #|debugging|# Sexp Sexp))
+(: havoc-files : Path-String * → (Values (℘ -A) #|debugging|# -M -Ξ))
 (define (havoc-files . ps)
   (define ms (files->modules ps))
   (define-values (σ₁ e₁) (𝑰 ms))
   (define-values (As M Ξ σ) (run (⇓ₚ ms e₁) σ₁))
-  (values (set-map As show-A)
-          (show-M M)
-          (show-Ξ Ξ)))
+  (values As M Ξ))
 
-(: run-e : -e → (Values Sexp #|for debugging|# Sexp Sexp Sexp))
+(: run-e : -e → (Values (℘ -A) #|for debugging|# -M -Ξ))
 (define (run-e e)
   (define-values (σ₀ _) (𝑰 '()))
   (define-values (As M Ξ σ) (run (⇓ 'top e) σ₀))
-  (values (set-map As show-A) (show-M M) (show-Ξ Ξ) (show-σ σ)))
+  (values As M Ξ))
 
 (: run : -⟦e⟧ -σ → (Values (℘ -A) #|for debugging|# -M -Ξ -σ))
 ;; Run compiled program on initial heap
