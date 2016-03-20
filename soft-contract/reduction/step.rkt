@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ev ev* co co* ⇓ₚ ⇓ₘ ⇓)
+(provide ev ev* co co* ⇓ₚ ⇓ₘ ⇓ ⊔³)
 
 (require
  racket/match racket/set

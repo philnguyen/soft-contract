@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-;(provide 𝑰)
+(provide 𝑰)
 
 (require
  racket/match
@@ -59,9 +59,10 @@
     [`(,(? symbol? o) ,(? arr? sig) ,_ ...)
      (define-values (σ* C c) (alloc-C σ sig))
      (alloc-Ar-o σ* o (assert C -=>i?) (assert c -->i?))]
-    [`(,(? symbol? o) ,_ ...)
-     (printf "alloc: ignoring ~a~n" o)
+    [`(,(? symbol? o) ,(? arr*? sig) ...)
+     (printf "TODO: ->* for ~a~n" o)
      σ]
+    [`(,(? symbol? o) ,_ ...) σ]
     [`(#:struct-cons ,(? symbol? o) ,si)
      (define s (mk-struct-info si))
      (alloc-Ar σ o (-st-mk s) (make-list (-struct-info-arity s) 'any/c) (⇓ (-st-p s)))]
@@ -105,7 +106,7 @@
      (define σ₂ (⊔ σ₁ c* C*))
      (values σ₂ (-Not/C c*) (-not/c c*))]
     [`(one-of/c ,ss ...)
-     (printf "TODO: alloc one-of/c~n")
+     (printf "TODO: one-of/c~n")
      (values σ 'any/c 'any/c)]
     [`(and/c ,ss ...)
      (apply/values alloc-And/C (alloc-Cs σ ss))]
