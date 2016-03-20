@@ -83,7 +83,10 @@
   (: ⇓d : -module-level-form → -⟦e⟧)
   (define (⇓d d)
     (match d
-      [(-define-values xs e) ((↝.def l xs) (⇓ l e))]
+      [(-define-values xs e)
+       (define αs : (Listof -α.def)
+         (for/list ([x xs]) (-α.def (-𝒾 x l))))
+       ((↝.def l αs) (⇓ l e))]
       [(-provide specs) ((↝.begin (map ⇓pc specs)) ⟦void⟧)]
       [(? -e? e) (⇓ l e)]
       [_

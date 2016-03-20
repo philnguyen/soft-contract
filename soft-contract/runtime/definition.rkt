@@ -100,7 +100,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (-ℰ . ::= . ;; Different type of context. Hack for now. I may de-hack some day but not a big problem.
-            (-ℰ.def [mod-name : Adhoc-Module-Path] [lhs : (Listof Symbol)] [rhs : -ℰ])
+            (-ℰ.def [l : Mon-Party] [addrs : (Listof (U -α.def -α.wrp))] [rhs : -ℰ])
             (-ℰ.dec [name : -𝒾] [ctc : -ℰ])
             
             ;; Regular context
@@ -365,11 +365,11 @@
 (define (show-ℰ ℰ [in-hole '□])
   (let loop ([ℰ : -ℰ ℰ])
     (match ℰ
-      [(-ℰ.def _ xs ℰ*)
+      [(-ℰ.def _ αs ℰ*)
        (define rhs (loop ℰ*))
-       (match xs
-         [(list x) `(define        ,x  ,rhs)]
-         [_        `(define-values ,xs ,rhs)])]
+       (match αs
+         [(list α) `(define        ,(show-α α)      ,rhs)]
+         [_        `(define-values ,(map show-α αs) ,rhs)])]
       [(-ℰ.dec 𝒾 ℰ*)
        `(provide/contract [,(-𝒾-name 𝒾) ,(loop ℰ*)])]
       
