@@ -8,7 +8,7 @@
                "path-cond.rkt"
                "val.rkt"
                "addr.rkt"
-               "block.rkt"))
+               "local.rkt"))
 (require "simp.rkt"
          "definition.rkt"
          "arity.rkt"
@@ -17,4 +17,4 @@
          "path-cond.rkt"
          "val.rkt"
          "addr.rkt"
-         "block.rkt")
+         "local.rkt")

@@ -36,15 +36,15 @@
 ;; Run compiled program on initial heap
 (define (run ⟦e⟧₀ σ₀)
   
-  (: loop : (HashTable -ℬ -σ) (℘ -ℬ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
-  (define (loop seen ℬs Cos M Ξ σ)
+  (: loop : (HashTable -τ -σ) (℘ -τ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
+  (define (loop seen τs Cos M Ξ σ)
     (cond
-      [(and (set-empty? ℬs) (set-empty? Cos))
+      [(and (set-empty? τs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
        
        ;; Widen global tables
-       (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ ℬs) (co* M Ξ σ Cos)))
+       (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ τs) (co* M Ξ σ Cos)))
        (define-values (M* Ξ* σ*) (⊔³ (values M Ξ σ) (values δM δΞ δσ)))
 
        #;(begin
@@ -54,24 +54,24 @@
          (printf "~n"))
 
        ;; Check for un-explored configuation (≃ ⟨e, ρ, σ⟩)
-       (define-values (ℬs* seen*)
-         (for/fold ([ℬs* : (℘ -ℬ) ∅] [seen* : (HashTable -ℬ -σ) seen])
-                   ([ℬ (in-hash-keys δΞ)] #:unless (equal? (hash-ref seen -ℬ #f) σ*))
-           (values (set-add ℬs* ℬ) (hash-set seen* ℬ σ*))))
+       (define-values (τs* seen*)
+         (for/fold ([τs* : (℘ -τ) ∅] [seen* : (HashTable -τ -σ) seen])
+                   ([τ (in-hash-keys δΞ)] #:unless (equal? (hash-ref seen τ #f) σ*))
+           (values (set-add τs* τ) (hash-set seen* τ σ*))))
        (define Cos*
-         (∪ (for*/set: : (℘ -Co) ([(ℬ As) (in-hash δM)] #:unless (set-empty? As)
-                                  [ℛ (in-set (Ξ@ Ξ* ℬ))])
-              (-Co ℛ ℬ As))
-            (for*/set: : (℘ -Co) ([(ℬ ℛs) (in-hash δΞ)]
-                                  [As (in-value (M@ M* ℬ))] #:unless (set-empty? As)
+         (∪ (for*/set: : (℘ -Co) ([(τ As) (in-hash δM)] #:unless (set-empty? As)
+                                  [ℛ (in-set (Ξ@ Ξ* τ))])
+              (-Co ℛ τ As))
+            (for*/set: : (℘ -Co) ([(τ ℛs) (in-hash δΞ)]
+                                  [As (in-value (M@ M* τ))] #:unless (set-empty? As)
                                   [ℛ (in-set ℛs)])
-              (-Co ℛ ℬ As))))
+              (-Co ℛ τ As))))
        
-       (loop seen* ℬs* Cos* M* Ξ* σ*)]))
+       (loop seen* τs* Cos* M* Ξ* σ*)]))
 
-  (define ℬ₀ (-ℬ ⟦e⟧₀ ⊥ρ ⊤Γ 𝒞∅))
+  (define τ₀ (-ℬ ⟦e⟧₀ ℒ∅))
   (define-values (M Ξ σ)
     (parameterize ([Γ⊢ₑₓₜ z3⊢])
-      (loop (hash ℬ₀ σ₀) {set ℬ₀} ∅ ⊥M ⊥Ξ σ₀)))
-  (values (M@ M ℬ₀) M Ξ σ))
+      (loop (hash τ₀ σ₀) {set τ₀} ∅ ⊥M ⊥Ξ σ₀)))
+  (values (M@ M τ₀) M Ξ σ))
 

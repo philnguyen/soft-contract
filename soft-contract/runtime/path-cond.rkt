@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require racket/match "../utils/set.rkt" "../ast/main.rkt" "definition.rkt")
+(require racket/match racket/set "../utils/set.rkt" "../ast/main.rkt" "definition.rkt")
 
 (: s↓ : -s (℘ Symbol) → -s)
 ;; Restrict symbol to given set of free variables
@@ -46,6 +46,11 @@
          ((e/map (for/hash : (HashTable -e -e) ([(x e-x) X])
                    (values (-x x) e-x)))
           e)]))
+
+(: -Γ-plus-γ : -Γ -γ → -Γ)
+(define (-Γ-plus-γ Γ γ)
+  (match-define (-Γ φs as γs) Γ)
+  (-Γ φs as (set-add γs γ)))
 
 (module+ test
   (require typed/rackunit)

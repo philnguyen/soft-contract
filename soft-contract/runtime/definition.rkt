@@ -33,20 +33,20 @@
 ;;;;; Stack Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -Ξ (HashTable -ℬ (℘ -ℛ)))
+(define-type -Ξ (HashTable -τ (℘ -ℛ)))
 (define-type -ΔΞ -Ξ)
 (define ⊥Ξ : -Ξ (hash))
-(define Ξ@ : (-Ξ -ℬ → (℘ -ℛ)) m@)
+(define Ξ@ : (-Ξ -τ → (℘ -ℛ)) m@)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Memo Table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -M (HashTable -ℬ (℘ -A)))
+(define-type -M (HashTable -τ (℘ -A)))
 (define-type -ΔM -M)
 (define ⊥M : -M (hash))
-(define M@ : (-M -ℬ → (℘ -A)) m@)
+(define M@ : (-M -τ → (℘ -A)) m@)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -127,8 +127,8 @@
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; caller's path condition and information for renaming callee's symbols
-(struct -ℋ ([env : -ρ] [pc : -Γ] [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
-            [ctx : -ℰ]) #:transparent)
+(struct -ℋ ([ctx : -ℒ] [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
+            [hole : -ℰ]) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,7 +144,7 @@
             [tails : (℘ -γ)]) #:transparent)
 
 ;; Path condition tail is block and renaming information
-(struct -γ ([callee : -ℬ]
+(struct -γ ([callee : -τ]
             [fun : -s]
             [param->arg : (Listof (Pairof Symbol -s))]) #:transparent)
 
@@ -216,7 +216,7 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-M -σ -ℬ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ))))
+(define-type -⟦e⟧ (-M -σ -ℒ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ))))
 (define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
@@ -225,20 +225,26 @@
 ;;;;; Blocks
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Stack-address / Evaluation "check-point"
+(-τ . ::= . ;; Function body
+            (-ℬ [code : -⟦e⟧] [ctx : -ℒ])
+            ;; Contract monitoring
+            (-ℳ [l³ : Mon-Info] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
 
-;; Evaluation "unit" / "stack address"
-(struct -ℬ ([code : -⟦e⟧] [env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
+;; Local context
+(struct -ℒ ([env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
+(define ℒ∅ (-ℒ ⊥ρ ⊤Γ 𝒞∅))
 
 ;; Continued evaluation
-(struct -Co ([cont : -ℛ] [callee : -ℬ] [ans : (℘ -A)]) #:transparent)
+(struct -Co ([cont : -ℛ] [callee : -τ] [ans : (℘ -A)]) #:transparent)
 
 ;; Suspended, "intermediate" expression ℐ ≃ ℋ[ℬ]
 (struct -ℐ ([hole : -ℋ] ; caller's hole
-            [target : -ℬ] ; callee's context/address
+            [target : -τ] ; callee's context/address
             ) #:transparent)
 
 ;; Return point / continuation (deliberately distinct from `-ℋ`)
-(struct -ℛ ([ctx : -ℬ] ; caller's context/address
+(struct -ℛ ([ctx : -τ] ; caller's context/address
             [hole : -ℋ] ; caller's continuation and path condition
             ) #:transparent)
 
@@ -295,12 +301,12 @@
   `(,@(set-map φs show-e) ,@(set-map ts show-γ)))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
-  (for/list ([(ℬ ℛs) Ξ])
-    `(,(show-ℬ ℬ) ↦ ,@(set-map ℛs show-ℛ))))
+  (for/list ([(τ ℛs) Ξ])
+    `(,(show-τ τ) ↦ ,@(set-map ℛs show-ℛ))))
 
 (define (show-M [M : -M]) : (Listof Sexp)
-  (for/list ([(ℬ As) M])
-    `(,(show-ℬ ℬ) ↦ ,@(set-map As show-A))))
+  (for/list ([(τ As) M])
+    `(,(show-τ τ) ↦ ,@(set-map As show-A))))
 
 (define (show-V [V : -V]) : Sexp
   (match V
@@ -404,8 +410,8 @@
          ,(map show-⟦e⟧ cs))])))
 
 (define (show-ℋ [ℋ : -ℋ])
-  (match-define (-ℋ ρ Γ f bnds ℰ) ℋ)
-  `(ℋ ,(show-Γ Γ) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
+  (match-define (-ℋ ℒ f bnds ℰ) ℋ)
+  `(ℋ ,(show-ℒ ℒ) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
 
 (: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
 (define (show-bnds bnds) (map show-bnd bnds))
@@ -416,21 +422,33 @@
 
 (define-values (show-⟦e⟧ show-⟦e⟧⁻¹ count-⟦e⟧) ((inst unique-sym -⟦e⟧) 'e))
 
+(define (show-τ [τ : -τ]) : Sexp
+  (cond [(-ℬ? τ) (show-ℬ τ)]
+        [else (show-ℳ τ)]))
+
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ ⟦e⟧ ρ Γ 𝒞) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys ρ) ,(show-𝒞 𝒞) #;,(show-Γ Γ)))
+  (match-define (-ℬ ⟦e⟧ ℒ) ℬ)
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(show-ℒ ℒ)))
+
+(define (show-ℳ [ℳ : -ℳ]) : Sexp
+  (match-define (-ℳ l³ W-C W-V ℒ) ℳ)
+  `(mon ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
+
+(define (show-ℒ [ℒ : -ℒ]) : Sexp
+  (match-define (-ℒ ρ Γ 𝒞) ℒ)
+  `(,@(show-ρ ρ) @ ,(show-𝒞 𝒞)))
 
 (define (show-Co [Co : -Co]) : Sexp
-  (match-define (-Co ℛ ℬ ans) Co)
+  (match-define (-Co ℛ τ ans) Co)
   `(Co ,(show-ℛ ℛ) ,(set-map ans show-A)))
 
 (define (show-ℐ [ℐ : -ℐ]) : Sexp
-  (match-define (-ℐ ℋ ℬ) ℐ)
-  `(ℐ ,(show-ℋ ℋ) ,(show-ℬ ℬ)))
+  (match-define (-ℐ ℋ τ) ℐ)
+  `(ℐ ,(show-ℋ ℋ) ,(show-τ τ)))
 
 (define (show-ℛ [ℛ : -ℛ]) : Sexp
-  (match-define (-ℛ ℬ ℋ) ℛ)
-  `(ℛ ,(show-ℬ ℬ) ,(show-ℋ ℋ)))
+  (match-define (-ℛ τ ℋ) ℛ)
+  `(ℛ ,(show-τ τ) ,(show-ℋ ℋ)))
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Symbol
   (string->symbol (format "𝒞~a" (n-sub 𝒞))))

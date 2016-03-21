@@ -10,7 +10,7 @@
          "helpers.rkt")
 
 (: ↝.if : Mon-Party -⟦e⟧ -⟦e⟧ → -⟦ℰ⟧)
-(define (((↝.if l ⟦e₁⟧ ⟦e₂⟧) ⟦e₀⟧) M σ ℬ)
+(define (((↝.if l ⟦e₁⟧ ⟦e₂⟧) ⟦e₀⟧) M σ ℒ)
   (apply/values
    (acc
     σ
@@ -20,7 +20,7 @@
       (with-guarded-arity 1 (l Γ* Vs)
         (match-define (list V) Vs)
         (define-values (Γ₁ Γ₂) (Γ+/-V M σ* Γ* V s))
-        (⊔/ans (with-Γ Γ₁ (⟦e₁⟧ M σ* (-ℬ-with-Γ ℬ Γ₁)))
-               (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℬ-with-Γ ℬ Γ₂)))))))
-    (⟦e₀⟧ M σ ℬ)))
+        (⊔/ans (with-Γ Γ₁ (⟦e₁⟧ M σ* (-ℒ-with-Γ ℒ Γ₁)))
+               (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℒ-with-Γ ℒ Γ₂)))))))
+    (⟦e₀⟧ M σ ℒ)))
 

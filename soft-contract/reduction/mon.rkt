@@ -19,13 +19,13 @@
   (match-define (-W¹ V v) W-V)
   (match-define (Mon-Info l+ _ lo) l³)
   
-  (λ (M σ ℬ)
-    (define Γ (-ℬ-cnd ℬ))
+  (λ (M σ ℒ)
+    (define Γ (-ℒ-cnd ℒ))
     (case (MσΓ⊢V∈C M σ Γ W-C W-V)
       [(✓)
-       (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W (list V) v))} ∅ ∅)]
+       (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅)]
       [(✗)
-       (values ⊥σ ∅ {set (-ΓE (-ℬ-cnd ℬ) (-blm l+ lo (list C) (list V)))} ∅)]
+       (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo (list C) (list V)))} ∅)]
       [(?)
        (define f ; TODO: make them thunks inside this function instead?
          (cond
@@ -38,7 +38,7 @@
            [(-Vectorof? C) mon-vectorof]
            [(-Vector/C? C) mon-vector/c]
            [else           mon-flat    ]))
-       ((f l³ W-C W-V) M σ ℬ)])))
+       ((f l³ W-C W-V) M σ ℒ)])))
 
 (: mon-=>i : Mon-Info -W¹ -W¹ → -⟦e⟧)
 (define (mon-=>i l³ W-C W-V)
@@ -56,7 +56,7 @@
 (define (mon-and/c l³ W-C W-V)
   (match-define (-W¹ (-And/C _ α₁ α₂) c) W-C)
   (match-define (list c₁ c₂) (-app-split c 'and/c 2))
-  (λ (M σ ℬ)
+  (λ (M σ ℒ)
     (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
        (error "TODO"))))
 
@@ -73,11 +73,11 @@
   (define ⟦e⟧ₑᵣ (mk-⟦e⟧ₑᵣ l³ W-C W-V))
   (define lo (Mon-Info-src l³))
   (define ⟦ℰ⟧ (↝.if lo ⟦e⟧ₑᵣ ⟦e⟧ₒₖ))
-  (λ (M σ ℬ)
+  (λ (M σ ℒ)
     (for*/ans ([C* (σ@ σ α)])
       (assert C* C-flat?)
       (define W-C* (-W¹ C* c*))
-      ((⟦ℰ⟧ (ap lo 0 W-C* (list W-V))) M σ ℬ))))
+      ((⟦ℰ⟧ (ap lo 0 W-C* (list W-V))) M σ ℒ))))
 
 (: mon-vectorof : Mon-Info -W¹ -W¹ → -⟦e⟧)
 (define (mon-vectorof l³ α V)
@@ -100,13 +100,13 @@
   (with-memo (-W¹ → -⟦e⟧)
     (λ (W-V)
       (match-define (-W¹ V v) W-V)
-      (λ (M σ ℬ)
-        (values ⊥σ {set (-ΓW (-ℬ-cnd ℬ) (-W (list V) v))} ∅ ∅)))))
+      (λ (M σ ℒ)
+        (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅)))))
 (define mk-⟦e⟧ₑᵣ
   (with-memo (Mon-Info -W¹ -W¹ → -⟦e⟧)
     (λ (l³ W-C W-V)
       (define C (-W¹-V W-C))
       (define V (-W¹-V W-V))
       (match-define (Mon-Info l+ _ lo) l³)
-      (λ (M σ ℬ)
-        (values ⊥σ ∅ {set (-ΓE (-ℬ-cnd ℬ) (-blm l+ lo (list C) (list V)))} ∅)))))
+      (λ (M σ ℒ)
+        (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo (list C) (list V)))} ∅)))))

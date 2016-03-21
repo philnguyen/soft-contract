@@ -12,8 +12,8 @@
 
 (: ap : Mon-Party -ℓ -W¹ (Listof -W¹) → -⟦e⟧)
 ;; Apply value `Wₕ` to arguments `Wₓ`s, returning store widening, answers, and suspended computation
-(define ((ap l ℓ Wₕ Wₓs) M σ ℬ₀)
-  (match-define (-ℬ ⟦e⟧₀ ρ₀ Γ₀ 𝒞₀) ℬ₀)
+(define ((ap l ℓ Wₕ Wₓs) M σ ℒ₀)
+  (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
   (define sₐ (apply -?@ sₕ sₓs))
@@ -36,14 +36,14 @@
     (define-values (δσ ρ₁)
       (match xs
         [(? list? xs)
-         (for/fold ([δσ : -Δσ ⊥σ] [ρ₁ : -ρ ρ])
+         (for/fold ([δσ : -Δσ ⊥σ] [ρ : -ρ ρ])
                    ([x xs] [V Vₓs])
            (define α (-α.x x 𝒞₁))
-           (values (⊔ δσ α V) (ρ+ ρ₁ x α)))]
+           (values (⊔ δσ α V) (ρ+ ρ x α)))]
         [_ (error 'ap/β "TODO: varargs")]))
     (define bnds (map (inst cons Symbol -s) xs sₓs))
-    (define ℬ₁ (-ℬ ⟦e⟧ ρ₁ Γ₁ 𝒞₁))
-    (values δσ ∅ ∅ {set (-ℐ (-ℋ ρ₀ Γ₀ sₕ bnds '□) ℬ₁)}))
+    (define ℬ₁ (-ℬ ⟦e⟧ (-ℒ ρ₁ Γ₁ 𝒞₁)))
+    (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ sₕ bnds '□) ℬ₁)}))
   
   (match Vₕ
     [(-Clo xs ⟦e⟧ ρ Γ) (ap/β xs ⟦e⟧ ρ Γ)]
