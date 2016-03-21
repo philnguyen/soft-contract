@@ -64,7 +64,7 @@
 
 (-submodule-form . ::= . (-module [path : Adhoc-Module-Path] [body : (Listof -module-level-form)]))
 
-(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e]))
+(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e] [loc : -ℓ]))
 
 (-require-spec . ::= . Adhoc-Module-Path #|TODO|#)
 
@@ -400,7 +400,7 @@
 
 (define show-provide-spec : (-provide-spec → Sexp)
   (match-lambda
-    [(-p/c-item x c) `(,x ,(show-e c))]))
+    [(-p/c-item x c _) `(,x ,(show-e c))]))
 
 (define show-require-spec : (-require-spec → Sexp)
   values)

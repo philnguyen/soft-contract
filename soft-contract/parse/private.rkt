@@ -77,7 +77,7 @@
       _)
      (-provide (for/list ([x (syntax->datum #'(x ...))]
                           [c (syntax->list #'(c ...))])
-                 (-p/c-item x (parameterize ([indep-prefix x]) (parse-e c)))))]
+                 (-p/c-item x (parameterize ([indep-prefix x]) (parse-e c)) (+ℓ!))))]
     
     [_ (or (parse-general-top-level-form form)
            (parse-submodule-form form))]))

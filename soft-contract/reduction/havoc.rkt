@@ -54,7 +54,7 @@
     (match-define (-module path forms) m)
     (for* ([form forms] #:when (-provide? form)
            [spec (-provide-specs form)])
-      (match-define (-p/c-item x _) spec)
+      (match-define (-p/c-item x _ _) spec)
       (refs-add! (-ref (-𝒾 x path) (+ℓ!)))))
   
   (-amb/remember (for/list ([ref (in-set refs)])
@@ -72,7 +72,7 @@
     (match form
       [(-provide specs)
        (for-each
-        (match-lambda [(-p/c-item x _) (hash-set! decs x #t)])
+        (match-lambda [(-p/c-item x _ _) (hash-set! decs x #t)])
         specs)]
       [(-define-values (list x) (? -st-ac? e))
        (hash-set! defs x e)]

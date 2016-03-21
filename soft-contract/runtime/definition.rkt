@@ -101,7 +101,7 @@
 
 (-ℰ . ::= . ;; Different type of context. Hack for now. I may de-hack some day but not a big problem.
             (-ℰ.def [l : Mon-Party] [addrs : (Listof (U -α.def -α.wrp))] [rhs : -ℰ])
-            (-ℰ.dec [name : -𝒾] [ctc : -ℰ])
+            (-ℰ.dec -𝒾 -ℰ -ℓ)
             
             ;; Regular context
             '□
@@ -124,8 +124,8 @@
             (-ℰ.μ/c Mon-Party Integer -ℰ)
             (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ Integer)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer)
-            (-ℰ.mon.v Mon-Info -ℰ [val : (U -⟦e⟧ -W¹)])
-            (-ℰ.mon.c Mon-Info [ctc : (U -⟦e⟧ -W¹)] -ℰ)
+            (-ℰ.mon.v Mon-Info -ℓ -ℰ [val : (U -⟦e⟧ -W¹)])
+            (-ℰ.mon.c Mon-Info -ℓ [ctc : (U -⟦e⟧ -W¹)] -ℰ)
             )
 
 ;; A "hole" ℋ is an evaluation context augmented with
@@ -211,6 +211,7 @@
             (-α.struct/c [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
             (-α.x/c [pos : -ℓ])
             (-α.dom [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
+            (-α.rng [pos : -ℓ] [ctx : -𝒞])
 
             -α.cnst)
 
@@ -232,7 +233,7 @@
 (-τ . ::= . ;; Function body
             (-ℬ [code : -⟦e⟧] [ctx : -ℒ])
             ;; Contract monitoring
-            (-ℳ [l³ : Mon-Info] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
+            (-ℳ [l³ : Mon-Info] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
 
 ;; Local context
 (struct -ℒ ([env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
@@ -379,7 +380,7 @@
        (match αs
          [(list α) `(define        ,(show-α α)      ,rhs)]
          [_        `(define-values ,(map show-α αs) ,rhs)])]
-      [(-ℰ.dec 𝒾 ℰ*)
+      [(-ℰ.dec 𝒾 ℰ* _)
        `(provide/contract [,(-𝒾-name 𝒾) ,(loop ℰ*)])]
       
       ['□ in-hole]
@@ -411,9 +412,9 @@
          ,@(map show-W¹ Cs)
          ,(loop ℰ*)
          ,(map show-⟦e⟧ cs))]
-      [(-ℰ.mon.v _ ℰ* Val)
+      [(-ℰ.mon.v _ _ ℰ* Val)
        `(mon ,(loop ℰ*) ,(if (-W¹? Val) (show-W¹ Val) (show-⟦e⟧ Val)))]
-      [(-ℰ.mon.c _ Ctc ℰ*)
+      [(-ℰ.mon.c _ _ Ctc ℰ*)
        `(mon ,(if (-W¹? Ctc) (show-W¹ Ctc) (show-⟦e⟧ Ctc)) ,(loop ℰ*))])))
 
 (define (show-ℋ [ℋ : -ℋ])
@@ -438,7 +439,7 @@
   `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(show-ℒ ℒ)))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
-  (match-define (-ℳ l³ W-C W-V ℒ) ℳ)
+  (match-define (-ℳ l³ ℓ W-C W-V ℒ) ℳ)
   `(mon ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
 
 (define (show-ℒ [ℒ : -ℒ]) : Sexp

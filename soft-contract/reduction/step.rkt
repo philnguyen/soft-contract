@@ -29,7 +29,7 @@
    (collect M Ξ τ)
    (match τ
      [(-ℬ ⟦e⟧ ℒ) (⟦e⟧ M σ ℒ)]
-     [(-ℳ l³ W-C W-V ℒ) ((mon l³ W-C W-V) M σ ℒ)])))
+     [(-ℳ l³ ℓ W-C W-V ℒ) ((mon l³ ℓ W-C W-V) M σ ℒ)])))
 
 (: co : -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
 ;; Resume computation `ℋ[A]`, propagating errors and plugging values into hole.
@@ -81,8 +81,8 @@
   
   (: ⇓pc : -provide-spec → -⟦e⟧)
   (define (⇓pc spec)
-    (match-define (-p/c-item x c) spec)
-    ((↝.dec (-𝒾 x l)) (⇓ l c)))
+    (match-define (-p/c-item x c ℓ) spec)
+    ((↝.dec (-𝒾 x l) ℓ) (⇓ l c)))
 
   (: ⇓d : -module-level-form → -⟦e⟧)
   (define (⇓d d)
@@ -262,7 +262,7 @@
     (match ℰ
       ;; Hacky forms
       [(-ℰ.def m xs ℰ*) ((↝.def m xs) (go ℰ*))]
-      [(-ℰ.dec id ℰ*) ((↝.dec id) (go ℰ*))]
+      [(-ℰ.dec 𝒾 ℰ* ℓ) ((↝.dec 𝒾 ℓ) (go ℰ*))]
       ;; Regular forms
       ['□ (λ _ (values ⊥σ ΓWs ∅ ∅))]
       [(-ℰ.if l ℰ* ⟦e₁⟧ ⟦e₂⟧) ((↝.if l ⟦e₁⟧ ⟦e₂⟧) (go ℰ*))]
@@ -280,10 +280,10 @@
        ((↝.-->i Cs ⟦c⟧s ⟦mk-d⟧ l) (go ℰ*))]
       [(-ℰ.struct/c si Cs ℰ* ⟦c⟧s l)
        ((↝.struct/c si Cs ⟦c⟧s l) (go ℰ*))]
-      [(-ℰ.mon.v l³ ℰ* Val)
-       ((↝.mon.v l³ Val) (go ℰ*))]
-      [(-ℰ.mon.c l³ Ctc ℰ*)
-       ((↝.mon.c l³ Ctc) (go ℰ*))])))
+      [(-ℰ.mon.v l³ ℓ ℰ* Val)
+       ((↝.mon.v l³ ℓ Val) (go ℰ*))]
+      [(-ℰ.mon.c l³ ℓ Ctc ℰ*)
+       ((↝.mon.c l³ ℓ Ctc) (go ℰ*))])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

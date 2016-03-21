@@ -35,13 +35,13 @@
         (values δσ {set (-ΓW Γ* -Void/W)} ∅ ∅))))
     (⟦e⟧ M σ ℒ)))
 
-(: ↝.dec : -𝒾 → -⟦ℰ⟧)
+(: ↝.dec : -𝒾 -ℓ → -⟦ℰ⟧)
 ;; Make `⟦c⟧`. the contract for `𝒾`.
-(define (((↝.dec 𝒾) ⟦c⟧) M σ ℒ)
+(define (((↝.dec 𝒾 ℓ) ⟦c⟧) M σ ℒ)
   (apply/values
    (acc
     σ
-    (λ (ℰ) (-ℰ.dec 𝒾 ℰ))
+    (λ (ℰ) (-ℰ.dec 𝒾 ℰ ℓ))
     (λ (σ* Γ* W)
       (match-define (-W Vs c) W)
       (define l (-𝒾-ctx 𝒾))
@@ -53,10 +53,8 @@
         (define W-C (-W¹ C c))
         (define l³ (Mon-Info l 'dummy l))
         (for*/ans ([V (σ@ σ (-α.def 𝒾))])
-          ((⟦ℰ⟧-wrp (mon l³ W-C (-W¹ V v))) M σ* ℒ*)))))
+          ((⟦ℰ⟧-wrp (mon l³ ℓ W-C (-W¹ V v))) M σ* ℒ*)))))
    (⟦c⟧ M σ ℒ)))
-
-
 
 (: ↝.@ : Mon-Party -ℓ (Listof -W¹) (Listof -⟦e⟧) → -⟦ℰ⟧)
 (define (((↝.@ l ℓ Ws ⟦e⟧s) ⟦e⟧) M σ ℒ)

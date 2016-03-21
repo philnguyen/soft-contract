@@ -18,8 +18,8 @@
 (: MσΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
-  (match-define (-W V e_v) W_v)
-  (match-define (-W C e_c) W_c)
+  (match-define (-W¹ V e_v) W_v)
+  (match-define (-W¹ C e_c) W_c)
   (MσΓ⊢s M σ Γ (-?@ e_c e_v)))
 
 (: MσΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)

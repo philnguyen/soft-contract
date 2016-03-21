@@ -23,7 +23,7 @@
     [(-provide specs)
      (-provide
       (for/list ([spec specs])
-        (match-define (-p/c-item x c) spec)
-        (-p/c-item x (α-rename c))))]
+        (match-define (-p/c-item x c ℓ) spec)
+        (-p/c-item x (α-rename c) ℓ)))]
     [(? -require? d) d]
     [(? -e? e) (α-rename e)]))
