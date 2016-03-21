@@ -6,13 +6,14 @@
          racket/set
          "../utils/main.rkt"
          "../ast/definition.rkt"
-         "../runtime/definition.rkt"
+         "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "helpers.rkt"
          "continuation-if.rkt"
          "ap.rkt")
 
 (: mon : Mon-Info -W¹ -W¹ → -⟦e⟧)
+;; Monitor contract.
 (define (mon l³ W-C W-V)
   (match-define (-W¹ C _) W-C)
   (match-define (-W¹ V v) W-V)
@@ -26,55 +27,73 @@
       [(✗)
        (values ⊥σ ∅ {set (-ΓE (-ℬ-cnd ℬ) (-blm l+ lo (list C) (list V)))} ∅)]
       [(?)
-       (match C
-         [(? -=>i? C) ((mon-=>i l³ C V) M σ ℬ)]
-         [(-St/C _ s αs) ((mon-struct/c l³ s αs V) M σ ℬ)]
-         [(-x/C α) ((mon-x/c l³ α V) M σ ℬ)]
-         [(-And/C _ α₁ α₂) ((mon-and/c l³ α₁ α₂ V) M σ ℬ)]
-         [(-Or/C  _ α₁ α₂) ((mon-or/c  l³ α₁ α₂ V) M σ ℬ)]
-         [(-Not/C α) ((mon-not/c l³ α V) M σ ℬ)]
-         [(-Vectorof α) ((mon-vectorof l³ α V) M σ ℬ)]
-         [(-Vector/C αs) ((mon-vector/c l³ αs V) M σ ℬ)]
-         [_ ((mon-flat l³ W-C W-V) M σ ℬ)])])))
+       (define f ; TODO: make them thunks inside this function instead?
+         (cond
+           [(-=>i? C)      mon-=>i     ]
+           [(-St/C? C)     mon-struct/c]
+           [(-x/C? C)      mon-x/c     ]
+           [(-And/C? C)    mon-and/c   ]
+           [(-Or/C?  C)    mon-or/c    ]
+           [(-Not/C? C)    mon-not/c   ]
+           [(-Vectorof? C) mon-vectorof]
+           [(-Vector/C? C) mon-vector/c]
+           [else           mon-flat    ]))
+       ((f l³ W-C W-V) M σ ℬ)])))
 
-(: mon-=>i : Mon-Info -=>i -V → -⟦e⟧)
-(define (mon-=>i l³ C V)
+(: mon-=>i : Mon-Info -W¹ -W¹ → -⟦e⟧)
+(define (mon-=>i l³ W-C W-V)
   (error "TODO"))
 
-(: mon-struct/c : Mon-Info -struct-info (Listof -α) -V → -⟦e⟧)
-(define (mon-struct/c l³ s αs V)
+(: mon-struct/c : Mon-Info -W¹ -W¹ → -⟦e⟧)
+(define (mon-struct/c l³ W-C W-V)
   (error "TODO"))
 
-(: mon-x/c : Mon-Info -α -V → -⟦e⟧)
-(define (mon-x/c l³ α V)
+(: mon-x/c : Mon-Info -W¹ -W¹ → -⟦e⟧)
+(define (mon-x/c l³ W-C W-V)
   (error "TODO"))
 
-(: mon-and/c : Mon-Info -α -α -V → -⟦e⟧)
-(define (mon-and/c l³ α₁ α₂ V)
+(: mon-and/c : Mon-Info -W¹ -W¹ → -⟦e⟧)
+(define (mon-and/c l³ W-C W-V)
+  (match-define (-W¹ (-And/C _ α₁ α₂) c) W-C)
+  (match-define (list c₁ c₂) (-app-split c 'and/c 2))
+  (λ (M σ ℬ)
+    (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
+       (error "TODO"))))
+
+(: mon-or/c : Mon-Info -W¹ -W¹ → -⟦e⟧)
+(define (mon-or/c l³ W-C W-V)
   (error "TODO"))
 
-(: mon-or/c : Mon-Info -α -α -V → -⟦e⟧)
-(define (mon-or/c l³ α₁ α₂ V)
-  (error "TODO"))
+(: mon-not/c : Mon-Info -W¹ -W¹ → -⟦e⟧)
+;; Monitor negation contract. It must be flat.
+(define (mon-not/c l³ W-C W-V)
+  (match-define (-W¹ (-Not/C α) c) W-C)
+  (match-define (list c*) (-app-split c 'not/c 1))
+  (define ⟦e⟧ₒₖ (mk-⟦e⟧ₒₖ W-V))
+  (define ⟦e⟧ₑᵣ (mk-⟦e⟧ₑᵣ l³ W-C W-V))
+  (define lo (Mon-Info-src l³))
+  (define ⟦ℰ⟧ (↝.if lo ⟦e⟧ₑᵣ ⟦e⟧ₒₖ))
+  (λ (M σ ℬ)
+    (for*/ans ([C* (σ@ σ α)])
+      (assert C* C-flat?)
+      (define W-C* (-W¹ C* c*))
+      ((⟦ℰ⟧ (ap lo 0 W-C* (list W-V))) M σ ℬ))))
 
-(: mon-not/c : Mon-Info -α -V → -⟦e⟧)
-(define (mon-not/c l³ α V)
-  (error "TODO"))
-
-(: mon-vectorof : Mon-Info -α -V → -⟦e⟧)
+(: mon-vectorof : Mon-Info -W¹ -W¹ → -⟦e⟧)
 (define (mon-vectorof l³ α V)
   (error "TODO"))
 
-(: mon-vector/c : Mon-Info (Listof -α) -V → -⟦e⟧)
+(: mon-vector/c : Mon-Info -W¹ -W¹ → -⟦e⟧)
 (define (mon-vector/c l³ αs V)
   (error "TODO"))
 
 (: mon-flat : Mon-Info -W¹ -W¹ → -⟦e⟧)
+;; Monitor flat contract
 (define (mon-flat l³ W-C W-V)
   (define ⟦e⟧ₒₖ (mk-⟦e⟧ₒₖ W-V))
   (define ⟦e⟧ₑᵣ (mk-⟦e⟧ₑᵣ l³ W-C W-V))
   (define lo (Mon-Info-src l³))
-  ((↝.if lo ⟦e⟧ₒₖ ⟦e⟧ₑᵣ) (ap (Mon-Info-src l³) 0 W-C (list W-V))))
+  ((↝.if lo ⟦e⟧ₒₖ ⟦e⟧ₑᵣ) (ap lo 0 W-C (list W-V))))
 
 ;; memoize these to avoid generating infinitely many compiled expressions
 (define mk-⟦e⟧ₒₖ
