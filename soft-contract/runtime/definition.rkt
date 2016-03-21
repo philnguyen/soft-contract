@@ -123,7 +123,10 @@
             (-ℰ.set! Symbol -ℰ)
             (-ℰ.μ/c Mon-Party Integer -ℰ)
             (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ Integer)
-            (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer))
+            (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer)
+            (-ℰ.mon.v Mon-Info -ℰ [val : (U -⟦e⟧ -W¹)])
+            (-ℰ.mon.c Mon-Info [ctc : (U -⟦e⟧ -W¹)] -ℰ)
+            )
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; caller's path condition and information for renaming callee's symbols
@@ -407,7 +410,11 @@
        `(,(format-symbol "~a/c" (-𝒾-name (-struct-info-id s)))
          ,@(map show-W¹ Cs)
          ,(loop ℰ*)
-         ,(map show-⟦e⟧ cs))])))
+         ,(map show-⟦e⟧ cs))]
+      [(-ℰ.mon.v _ ℰ* Val)
+       `(mon ,(loop ℰ*) ,(if (-W¹? Val) (show-W¹ Val) (show-⟦e⟧ Val)))]
+      [(-ℰ.mon.c _ Ctc ℰ*)
+       `(mon ,(if (-W¹? Ctc) (show-W¹ Ctc) (show-⟦e⟧ Ctc)) ,(loop ℰ*))])))
 
 (define (show-ℋ [ℋ : -ℋ])
   (match-define (-ℋ ℒ f bnds ℰ) ℋ)

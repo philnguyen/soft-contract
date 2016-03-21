@@ -8,8 +8,7 @@
          "../ast/definition.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
-         "continuation.rkt"
-         "mon.rkt")
+         "continuation.rkt")
 
 (: ev* : -M -Ξ -σ (℘ -τ) → (Values -ΔM -ΔΞ -Δσ))
 (define (ev* M Ξ σ τs)
@@ -280,7 +279,11 @@
       [(-ℰ.-->i Cs ℰ* ⟦c⟧s ⟦mk-d⟧ l)
        ((↝.-->i Cs ⟦c⟧s ⟦mk-d⟧ l) (go ℰ*))]
       [(-ℰ.struct/c si Cs ℰ* ⟦c⟧s l)
-       ((↝.struct/c si Cs ⟦c⟧s l) (go ℰ*))])))
+       ((↝.struct/c si Cs ⟦c⟧s l) (go ℰ*))]
+      [(-ℰ.mon.v l³ ℰ* Val)
+       ((↝.mon.v l³ Val) (go ℰ*))]
+      [(-ℰ.mon.c l³ Ctc ℰ*)
+       ((↝.mon.c l³ Ctc) (go ℰ*))])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

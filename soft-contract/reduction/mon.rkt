@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide mon)
+(provide mon ↝.mon.v ↝.mon.c)
 
 (require racket/match
          racket/set
@@ -53,6 +53,7 @@
   (error "TODO"))
 
 (: mon-and/c : Mon-Info -W¹ -W¹ → -⟦e⟧)
+;; Monitor contract conjunction by decomposing into nesting checks
 (define (mon-and/c l³ W-C W-V)
   (match-define (-W¹ (-And/C _ α₁ α₂) c) W-C)
   (match-define (list c₁ c₂) (-app-split c 'and/c 2))
@@ -94,6 +95,48 @@
   (define ⟦e⟧ₑᵣ (mk-⟦e⟧ₑᵣ l³ W-C W-V))
   (define lo (Mon-Info-src l³))
   ((↝.if lo ⟦e⟧ₒₖ ⟦e⟧ₑᵣ) (ap lo 0 W-C (list W-V))))
+
+(: ↝.mon.v : Mon-Info (U -⟦e⟧ -W¹) → -⟦ℰ⟧)
+;; Waiting on contract to monitor
+(define ((↝.mon.v l³ Val) ⟦c⟧)
+  (define lo (Mon-Info-src l³))
+  (λ (M σ ℒ)
+    (apply/values
+     (acc
+      σ
+      (λ (ℰ) (-ℰ.mon.v l³ ℰ Val))
+      (λ (σ* Γ* W)
+        (match-define (-W Vs c) W)
+        (with-guarded-arity 1 (lo Γ* Vs)
+          (match-define (list C) Vs)
+          (define W-C (-W¹ C c))
+          ;; If target is evaluated, check it, otherwise evaluate it before checking
+          (define ⟦mon⟧
+            (cond [(-W¹? Val) (   mon   l³ W-C  Val)]
+                  [else       ((↝.mon.c l³ W-C) Val)]))
+          (⟦mon⟧ M σ* (-ℒ-with-Γ ℒ Γ*)))))
+     (⟦c⟧ M σ ℒ))))
+
+(: ↝.mon.c : Mon-Info (U -⟦e⟧ -W¹) → -⟦ℰ⟧)
+;; Waiting on value to monitor
+(define ((↝.mon.c l³ Ctc) ⟦e⟧)
+  (define lo (Mon-Info-src l³))
+  (λ (M σ ℒ)
+    (apply/values
+     (acc
+      σ
+      (λ (ℰ) (-ℰ.mon.c l³ Ctc ℰ))
+      (λ (σ* Γ* W)
+        (match-define (-W Vs v) W)
+        (with-guarded-arity 1 (lo Γ* Vs)
+          (match-define (list V) Vs)
+          (define W-V (-W¹ V v))
+          ;; If contract is evaluated, check with it, otherwise evaluate it before checking
+          (define ⟦mon⟧
+            (cond [(-W¹? Ctc) (   mon   l³ Ctc  W-V)]
+                  [else       ((↝.mon.v l³ W-V) Ctc)]))
+          (⟦mon⟧ M σ* (-ℒ-with-Γ ℒ Γ*)))))
+     (⟦e⟧ M σ ℒ))))
 
 ;; memoize these to avoid generating infinitely many compiled expressions
 (define mk-⟦e⟧ₒₖ

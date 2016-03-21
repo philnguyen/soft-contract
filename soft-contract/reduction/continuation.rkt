@@ -5,7 +5,8 @@
 ;; This is factored out because it's used in both compilation `⇓` and resumption `ℰ⟦_⟧`.
 
 (provide (all-defined-out)
-         (all-from-out "continuation-if.rkt"))
+         (all-from-out "continuation-if.rkt")
+         (all-from-out "mon.rkt"))
 
 (require
  racket/match racket/set racket/list
