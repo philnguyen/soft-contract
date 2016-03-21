@@ -4,7 +4,8 @@
 ;; returning ⟦e⟧→⟦e⟧.
 ;; This is factored out because it's used in both compilation `⇓` and resumption `ℰ⟦_⟧`.
 
-(provide (all-defined-out))
+(provide (all-defined-out)
+         (all-from-out "continuation-if.rkt"))
 
 (require
  racket/match racket/set racket/list
@@ -12,6 +13,8 @@
  "../ast/main.rkt"
  "../runtime/main.rkt"
  "../proof-relation/main.rkt"
+ "helpers.rkt"
+ "continuation-if.rkt"
  "ap.rkt"
  "mon.rkt")
 
@@ -52,20 +55,7 @@
           ((⟦ℰ⟧-wrp (mon l³ W-C (-W¹ V v))) M σ* ℬ*)))))
    (⟦c⟧ M σ ℬ)))
 
-(: ↝.if : Mon-Party -⟦e⟧ -⟦e⟧ → -⟦ℰ⟧)
-(define (((↝.if l ⟦e₁⟧ ⟦e₂⟧) ⟦e₀⟧) M σ ℬ)
-  (apply/values
-   (acc
-    σ
-    (λ (ℰ) (-ℰ.if l ℰ ⟦e₁⟧ ⟦e₂⟧))
-    (λ (σ* Γ* W)
-      (match-define (-W Vs s) W)
-      (with-guarded-arity 1 (l Γ* Vs)
-        (match-define (list V) Vs)
-        (define-values (Γ₁ Γ₂) (Γ+/-V M σ* Γ* V s))
-        (⊔/ans (with-Γ Γ₁ (⟦e₁⟧ M σ* (-ℬ-with-Γ ℬ Γ₁)))
-               (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℬ-with-Γ ℬ Γ₂)))))))
-    (⟦e₀⟧ M σ ℬ)))
+
 
 (: ↝.@ : Mon-Party -ℓ (Listof -W¹) (Listof -⟦e⟧) → -⟦ℰ⟧)
 (define (((↝.@ l ℓ Ws ⟦e⟧s) ⟦e⟧) M σ ℬ)
@@ -339,34 +329,4 @@
    (⟦c⟧ M σ ℬ)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Helpers
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: acc : -σ (-ℰ → -ℰ) (-σ -Γ -W → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
-        → -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)
-        → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
-;; Bind-ish. Takes care of store widening.
-;; Caller takes care of stack accumulation and what to do with result.
-(define ((acc σ f comp) δσ ΓWs ΓEs ℐs)
-  (define ℐs*
-    (map/set
-     (match-lambda
-       [(-ℐ (-ℋ ρ Γ s 𝒳    ℰ ) ℬ)
-        (-ℐ (-ℋ ρ Γ s 𝒳 (f ℰ)) ℬ)])
-     ℐs))
-  (define σ* (⊔/m σ δσ))
-  (for/fold ([δσ : -Δσ δσ] [ΓWs* : (℘ -ΓW) ∅] [ΓEs* : (℘ -ΓE) ΓEs] [ℐs* : (℘ -ℐ) ℐs*])
-            ([ΓW ΓWs])
-    (match-define (-ΓW Γ* W) ΓW)
-    (define-values (δσ+ ΓWs+ ΓEs+ ℐs+) (comp σ* Γ* W))
-    (values (⊔/m δσ δσ+) (∪ ΓWs* ΓWs+) (∪ ΓEs* ΓEs+) (∪ ℐs* ℐs+))))
-
-(define-syntax-rule (with-guarded-arity n* (l Γ Vs) e ...)
-  (let ([n n*]
-        [m (length Vs)])
-    (cond
-      [(= n m) e ...]
-      [else
-       (define Cs (make-list n 'any/c))
-       (values ⊥σ ∅ {set (-ΓE Γ (-blm l 'Λ Cs Vs))} ∅)])))
