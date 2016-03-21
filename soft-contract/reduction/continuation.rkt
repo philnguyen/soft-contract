@@ -82,7 +82,7 @@
         (match ⟦e⟧s ; TODO: move this dispatch out?
           ['()
            (match-define (cons Wₕ Wₓs) (reverse Ws*))
-           (ap l ℓ M σ* ℬ* Wₕ Wₓs)]
+           ((ap l ℓ Wₕ Wₓs) M σ* ℬ*)]
           [(cons ⟦e⟧* ⟦e⟧s*)
            (((↝.@ l ℓ Ws* ⟦e⟧s*) ⟦e⟧*) M σ* ℬ*)]))))
    (⟦e⟧ M σ ℬ)))
