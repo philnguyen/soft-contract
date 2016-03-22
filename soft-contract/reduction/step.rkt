@@ -122,25 +122,7 @@
       (define W (-W -●/Vs e))
       (λ (M σ ℒ)
         (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) W)} ∅ ∅))]
-     [(-x x)
-      (λ (M σ ℒ)
-        (match-define (-ℒ ρ Γ 𝒞) ℒ)
-        (define s (canonicalize Γ x))
-        (define-values (ΓWs ΓEs)
-          (for*/fold ([ΓWs : (℘ -ΓW) ∅]
-                      [ΓEs : (℘ -ΓE) ∅])
-                     ([V (σ@ σ (ρ@ ρ x))]
-                      [W (in-value (-W (list V) s))]
-                      #:unless (spurious? M σ Γ W))
-            (case V
-              [(undefined) ; spurious `undefined` should have been eliminated by `spurious?`
-               (values
-                ΓWs
-                (set-add
-                 ΓEs
-                 (-ΓE Γ (-blm 'TODO 'Λ (list 'defined?) (list 'undefined)))))]
-              [else (values (set-add ΓWs (-ΓW Γ W)) ΓEs)])))
-        (values ⊥σ ΓWs ΓEs ∅))]
+     [(-x x) (⇓ₓ x)]
      [(and ref (-ref (and 𝒾 (-𝒾 x l₀)) ℓ))
       (cond
         ;; same-module referencing returns unwrapped version

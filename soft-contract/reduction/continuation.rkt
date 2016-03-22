@@ -6,7 +6,6 @@
 
 (provide (all-defined-out)
          (all-from-out "continuation-if.rkt")
-         (all-from-out "mon.rkt")
          (all-from-out "ap.rkt"))
 
 (require
@@ -17,8 +16,7 @@
  "../proof-relation/main.rkt"
  "helpers.rkt"
  "continuation-if.rkt"
- "ap.rkt"
- "mon.rkt")
+ "ap.rkt")
 
 (: ↝.def : Mon-Party (Listof (U -α.def -α.wrp)) → -⟦ℰ⟧)
 ;; Define top-level `xs` to be values from `⟦e⟧`

@@ -7,7 +7,8 @@
          racket/set
          "../utils/main.rkt"
          "../ast/definition.rkt"
-         "../runtime/definition.rkt")
+         "../runtime/main.rkt"
+         "../proof-relation/main.rkt")
 
 (: acc : -σ (-ℰ → -ℰ) (-σ -Γ -W → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
         → -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)
@@ -49,6 +50,26 @@
       [(? symbol? o)  (hash-ref! meq o (λ () (ret-p o)))]
       [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
+
+(define/memoeq (⇓ₓ [x : Symbol]) : -⟦e⟧
+  (λ (M σ ℒ)
+    (match-define (-ℒ ρ Γ 𝒞) ℒ)
+    (define s (canonicalize Γ x))
+    (define-values (ΓWs ΓEs)
+      (for*/fold ([ΓWs : (℘ -ΓW) ∅]
+                  [ΓEs : (℘ -ΓE) ∅])
+                 ([V (σ@ σ (ρ@ ρ x))]
+                  [W (in-value (-W (list V) s))]
+                  #:unless (spurious? M σ Γ W))
+        (case V
+          [(undefined) ; spurious `undefined` should have been eliminated by `spurious?`
+           (values
+            ΓWs
+            (set-add
+             ΓEs
+             (-ΓE Γ (-blm 'TODO 'Λ (list 'defined?) (list 'undefined)))))]
+          [else (values (set-add ΓWs (-ΓW Γ W)) ΓEs)])))
+    (values ⊥σ ΓWs ΓEs ∅)))
 
 (define/memo (ret-W¹ [W : -W¹]) : -⟦e⟧
   (match-define (-W¹ V v) W)
