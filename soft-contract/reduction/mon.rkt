@@ -12,9 +12,8 @@
          "continuation-if.rkt"
          "ap.rkt")
 
-(: mon : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor contract.
-(define (mon l³ ℓ W-C W-V)
+(define/memo (mon [l³ : Mon-Info] [ℓ : -ℓ] [W-C : -W¹] [W-V : -W¹]) : -⟦e⟧
   (match-define (-W¹ C _) W-C)
   (match-define (-W¹ V v) W-V)
   (match-define (Mon-Info l+ _ lo) l³)
@@ -102,12 +101,14 @@
 (: mon-not/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor negation contract. It must be flat.
 (define (mon-not/c l³ ℓ W-C W-V)
-  (match-define (-W¹ (-Not/C α) c) W-C)
+  (match-define (Mon-Info l+ _ lo) l³)
+  (match-define (-W¹ (and C (-Not/C α)) c) W-C)
+  (match-define (-W¹ V _) W-V)
   (match-define (list c*) (-app-split c 'not/c 1))
-  (define ⟦e⟧ₒₖ (mk-⟦e⟧ₒₖ W-V))
-  (define ⟦e⟧ₑᵣ (mk-⟦e⟧ₑᵣ l³ W-C W-V))
-  (define lo (Mon-Info-src l³))
-  (define ⟦ℰ⟧ (↝.if lo ⟦e⟧ₑᵣ ⟦e⟧ₒₖ))
+  (define ⟦ℰ⟧
+    (let ([⟦e⟧ₒₖ (ret-W¹ W-V)]
+          [⟦e⟧ₑᵣ (blm l+ lo (list C) (list V))])
+      (↝.if lo ⟦e⟧ₑᵣ ⟦e⟧ₒₖ)))
   (λ (M σ ℒ)
     (for*/ans ([C* (σ@ σ α)])
       (assert C* C-flat?)
@@ -125,10 +126,14 @@
 (: mon-flat : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor flat contract
 (define (mon-flat l³ ℓ W-C W-V)
-  (define ⟦e⟧ₒₖ (mk-⟦e⟧ₒₖ W-V))
-  (define ⟦e⟧ₑᵣ (mk-⟦e⟧ₑᵣ l³ W-C W-V))
-  (define lo (Mon-Info-src l³))
-  ((↝.if lo ⟦e⟧ₒₖ ⟦e⟧ₑᵣ) (ap lo 0 W-C (list W-V))))
+  (match-define (Mon-Info l+ _ lo) l³)
+  (match-define (-W¹ C _) W-C)
+  (match-define (-W¹ V _) W-V)
+  (define ⟦ℰ⟧
+    (let ([⟦e⟧ₒₖ (ret-W¹ W-V)]
+          [⟦e⟧ₑᵣ (blm l+ lo (list C) (list V))])
+      (↝.if lo ⟦e⟧ₒₖ ⟦e⟧ₑᵣ)))
+  (⟦ℰ⟧ (ap lo 0 W-C (list W-V))))
 
 (: ↝.mon.v : Mon-Info -ℓ (U -⟦e⟧ -W¹) → -⟦ℰ⟧)
 ;; Waiting on contract to monitor
@@ -173,17 +178,6 @@
      (⟦e⟧ M σ ℒ))))
 
 ;; memoize these to avoid generating infinitely many compiled expressions
-(define mk-⟦e⟧ₒₖ
-  (with-memo (-W¹ → -⟦e⟧)
-    (λ (W-V)
-      (match-define (-W¹ V v) W-V)
-      (λ (M σ ℒ)
-        (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅)))))
-(define mk-⟦e⟧ₑᵣ
-  (with-memo (Mon-Info -W¹ -W¹ → -⟦e⟧)
-    (λ (l³ W-C W-V)
-      (define C (-W¹-V W-C))
-      (define V (-W¹-V W-V))
-      (match-define (Mon-Info l+ _ lo) l³)
-      (λ (M σ ℒ)
-        (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo (list C) (list V)))} ∅)))))
+(define/memo (blm [l+ : Mon-Party] [lo : Mon-Party] [Cs : (Listof -V)] [Vs : (Listof -V)]) : -⟦e⟧
+  (λ (M σ ℒ)
+    (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo Cs Vs))} ∅)))

@@ -12,6 +12,7 @@
 (define -●/Vs : (List -V) (list -●/V))
 (define -Void/Vs (list (-b (void))))
 (define -Void/W (-W -Void/Vs (-b (void))))
+(define -not/W (-W¹ 'not 'not))
 (define -integer?/W (-W¹ 'integer? 'integer?))
 (define -number?/W (-W¹ 'number? 'number?))
 (define -vector?/W (-W¹ 'vector? 'vector?))

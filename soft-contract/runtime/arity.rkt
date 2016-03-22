@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide V-arity simple-arity?)
+(provide V-arity formals-arity guard-arity simple-arity?)
 
 (require
  racket/match
@@ -11,22 +11,21 @@
 (require/typed "../primitives/declarations.rkt"
   [(prims prims:prims) (Listof Any)])
 
+(define formals-arity : (-formals → Arity)
+  (match-lambda
+    [(-varargs init _) (arity-at-least (length init))]
+    [(? list? xs) (length xs)]))
+
+(define (guard-arity [guard : -=>i]) : Arity
+  (match-define (-=>i _ (-Clo xs _ _ _)) guard)
+  (match xs
+    [(? list? xs) (length xs)]
+    [(-varargs xs _) (arity-at-least (length xs))]))
+
 (: V-arity : -V → (Option Arity))
 ;; Return given value's arity, or `#f` if it's not a procedure
 (define V-arity
   (let ()
-    
-    (define formals-arity : (-formals → Arity)
-      (match-lambda
-        [(-varargs init _) (arity-at-least (length init))]
-        [(? list? xs) (length xs)]))
-
-    (define (guard-arity [guard : -=>i]) : Arity
-      (match-define (-=>i _ (-Clo xs _ _ _)) guard)
-      (match xs
-        [(? list? xs) (length xs)]
-        [(-varargs xs _) (arity-at-least (length xs))]))
-
     (define arity-table
       (for/fold ([m : (HashTable Symbol Arity) (hasheq)]) ([dec prims:prims])
         (match dec

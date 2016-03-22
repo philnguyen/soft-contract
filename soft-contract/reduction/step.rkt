@@ -8,6 +8,7 @@
          "../ast/definition.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
+         "helpers.rkt"
          "continuation.rkt")
 
 (: ev* : -M -Ξ -σ (℘ -τ) → (Values -ΔM -ΔΞ -Δσ))
@@ -314,24 +315,6 @@
       (⊔ δΞ τ* ℛ)))
   
   (values δM δΞ δσ))
-
-;; Memoized because `Λ` needs a ridiculous number of these
-
-(define ⇓ₚᵣₘ : (-prim → -⟦e⟧) 
-  (let ([meq : (HashTable Any -⟦e⟧) (make-hasheq)] ; `eq` doesn't work for String but ok
-        [m   : (HashTable Any -⟦e⟧) (make-hash  )])
-    
-    (define (ret-p [p : -prim]) : -⟦e⟧
-      (define W (-W (list p) p))
-      (λ (M σ ℒ)
-        (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) W)} ∅ ∅)))
-    
-    (match-lambda
-      [(? symbol? o)  (hash-ref! meq o (λ () (ret-p o)))]
-      [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
-      [p              (hash-ref! m   p (λ () (ret-p p)))])))
-
-(define ⟦void⟧ (⇓ₚᵣₘ -void))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

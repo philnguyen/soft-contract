@@ -6,7 +6,8 @@
 
 (provide (all-defined-out)
          (all-from-out "continuation-if.rkt")
-         (all-from-out "mon.rkt"))
+         (all-from-out "mon.rkt")
+         (all-from-out "ap.rkt"))
 
 (require
  racket/match racket/set racket/list
@@ -55,26 +56,6 @@
         (for*/ans ([V (σ@ σ (-α.def 𝒾))])
           ((⟦ℰ⟧-wrp (mon l³ ℓ W-C (-W¹ V v))) M σ* ℒ*)))))
    (⟦c⟧ M σ ℒ)))
-
-(: ↝.@ : Mon-Party -ℓ (Listof -W¹) (Listof -⟦e⟧) → -⟦ℰ⟧)
-(define (((↝.@ l ℓ Ws ⟦e⟧s) ⟦e⟧) M σ ℒ)
-  (apply/values
-   (acc
-    σ
-    (λ (ℰ) (-ℰ.@ l ℓ Ws ℰ ⟦e⟧s))
-    (λ (σ* Γ* W)
-      (match-define (-W Vs s) W)
-      (with-guarded-arity 1 (l Γ* Vs)
-        (match-define (list V) Vs)
-        (define Ws* (cons (-W¹ V s) Ws))
-        (define ℒ* (-ℒ-with-Γ ℒ Γ*))
-        (match ⟦e⟧s ; TODO: move this dispatch out?
-          ['()
-           (match-define (cons Wₕ Wₓs) (reverse Ws*))
-           ((ap l ℓ Wₕ Wₓs) M σ* ℒ*)]
-          [(cons ⟦e⟧* ⟦e⟧s*)
-           (((↝.@ l ℓ Ws* ⟦e⟧s*) ⟦e⟧*) M σ* ℒ*)]))))
-   (⟦e⟧ M σ ℒ)))
 
 (: ↝.begin : (Listof -⟦e⟧) → -⟦ℰ⟧)
 (define ((↝.begin ⟦e⟧s) ⟦e⟧)
