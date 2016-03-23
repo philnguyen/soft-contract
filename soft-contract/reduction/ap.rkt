@@ -86,27 +86,48 @@
       (define ℬ₁ (-ℬ ⟦e⟧ (-ℒ ρ₁ Γ₁ 𝒞₁)))
       (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ sₕ bnds '□) ℬ₁)}))
 
-    (: ap/Ar : -=>i -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (: ap/Ar : -=> -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/Ar C Vᵤ l³)
       (match-define (Mon-Info l+ l- lo) l³)
       (define l³* (Mon-Info l- l+ lo))
+      (match-define (-=> αs β) C)
+      (define Wᵤ (-W¹ Vᵤ   sₕ)) ;; Inner function
+      
+      (match αs
+        ['() ; no arg
+         (for*/ans ([D (σ@ σ β)])
+           (define ⟦ap⟧ : -⟦e⟧ (ap lo ℓ Wᵤ '()))
+           (define W-D (-W¹ D #f))
+           (((↝.mon.c l³ ℓ W-D) ⟦ap⟧) M σ ℒ₀))]
+        [(cons α αs*)
+         (for*/ans ([Cs (σ@/list σ αs)] [D (σ@ σ β)])
+           (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
+             (for/list : (Listof -⟦e⟧) ([C Cs] [Wₓ Wₓs])
+               (mon l³* ℓ (-W¹ C #f) Wₓ)))
+           (define ⟦ap⟧ : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ) ⟦mon-x⟧s) ⟦mon-x⟧))
+           (define comp : -⟦e⟧ ((↝.mon.c l³ ℓ (-W¹ D #f)) ⟦ap⟧))
+           (comp M σ ℒ₀))]))
+
+    (: ap/indy : -=>i -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (define (ap/indy C Vᵤ l³)
+      (match-define (Mon-Info l+ l- lo) l³)
+      (define l³* (Mon-Info l- l+ lo))
       (match-define (-=>i αs (and Mk-D (-Clo xs _ _ _))) C)
+      (define W-rng (-W¹ Mk-D #f)) ;; Contract range maker
+      (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
       
       (match xs
         [(? list? xs)
+         (define xs⇓ (map ⇓ₓ xs))
          (for*/ans ([Cs (σ@/list σ αs)])
            ;; TODO: make sure it's ok to reuse variables `xs`
                    
            ;; Monitor arguments
            (define ⟦mon-x⟧s : (Listof -⟦e⟧)
-             (for/list ([C Cs] [Vₓ Vₓs] [sₓ sₓs])
+             (for/list ([C Cs] [Wₓ Wₓs])
                (define W-C (-W¹ C  #f))
-               (define W-V (-W¹ Vₓ sₓ))
-               (mon l³* ℓ W-C W-V)))
+               (mon l³* ℓ W-C Wₓ)))
            
-           (define xs⇓ (map ⇓ₓ xs))
-           (define W-rng (-W¹ Mk-D #f)) ;; Contract range maker
-           (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
            ;; TODO: make sure it's ok to not memoize these run-time generated computations
            (define comp
              (match* (xs ⟦mon-x⟧s)
@@ -219,9 +240,10 @@
       [(-Clo xs ⟦e⟧ ρ Γ)
        (with-guarded-arity (formals-arity xs)
          (ap/β xs ⟦e⟧ ρ Γ))]
-      [(-Ar (? -=>i? C) α l³)
+      [(-Ar C α l³)
        (with-guarded-arity (guard-arity C)
-         (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar C Vᵤ l³)))]
+         (cond [(-=>? C) (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar   C Vᵤ l³))]
+               [else     (for*/ans ([Vᵤ (σ@ σ α)]) (ap/indy C Vᵤ l³))]))]
       [(-And/C #t α₁ α₂)
        (with-guarded-arity 1
          (match-define (list c₁ c₂) (-app-split sₕ 'and/c 2))
@@ -254,6 +276,17 @@
   (match-define (-W¹ C _) W-C)
   (match-define (-W¹ V v) W-V)
   (match-define (Mon-Info l+ _ lo) l³)
+  (define mon*
+    (cond
+      [(-=>_? C)      mon-=>_     ]
+      [(-St/C? C)     mon-struct/c]
+      [(-x/C? C)      mon-x/c     ]
+      [(-And/C? C)    mon-and/c   ]
+      [(-Or/C?  C)    mon-or/c    ]
+      [(-Not/C? C)    mon-not/c   ]
+      [(-Vectorof? C) mon-vectorof]
+      [(-Vector/C? C) mon-vector/c]
+      [else           mon-flat    ]))
   
   (λ (M σ ℒ)
     (define Γ (-ℒ-cnd ℒ))
@@ -263,29 +296,23 @@
       [(✗)
        (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo (list C) (list V)))} ∅)]
       [(?)
-       (define f ; TODO: make them thunks inside this function instead?
-         (cond
-           [(-=>i? C)      mon-=>i     ]
-           [(-St/C? C)     mon-struct/c]
-           [(-x/C? C)      mon-x/c     ]
-           [(-And/C? C)    mon-and/c   ]
-           [(-Or/C?  C)    mon-or/c    ]
-           [(-Not/C? C)    mon-not/c   ]
-           [(-Vectorof? C) mon-vectorof]
-           [(-Vector/C? C) mon-vector/c]
-           [else           mon-flat    ]))
-       ((f l³ ℓ W-C W-V) M σ ℒ)])))
+       ((mon* l³ ℓ W-C W-V) M σ ℒ)])))
 
-(: mon-=>i : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
-(define (mon-=>i l³ ℓ W-C W-V)
-  (match-define (-W¹ (and guard (-=>i _ (-Clo xs _ _ _))) c) W-C)
+(: mon-=>_ : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
+(define (mon-=>_ l³ ℓ W-C W-V)
+  (match-define (-W¹ grd c) W-C)
   (match-define (-W¹ V v) W-V)
   (match-define (Mon-Info l+ _ lo) l³)
   
   (define arity
-    (let ([b (-b (match xs
-                   [(? list? xs) (length xs)]
-                   [(-varargs zs z) (arity-at-least (length zs))]))])
+    (let ([a
+           (match grd
+             [(-=> αs _) (length αs)]
+             [(-=>i _ (-Clo xs _ _ _))
+              (match xs
+                [(? list? xs) (length xs)]
+                [(-varargs zs z) (arity-at-least (length zs))])])])
+      (define b (-b a))
       (-W¹ b b)))
   
   (λ (M σ ℒ)
@@ -304,7 +331,7 @@
     (define δσ : -Δσ ⊥σ)
     (when Γ₁₁
       (define α (-α.rng ℓ (-ℒ-hist ℒ)))
-      (define Ar (-Ar guard α l³))
+      (define Ar (-Ar grd α l³))
       (ΓWs-add! (-ΓW Γ₁₁ (-W (list Ar) v)))
       (set! δσ (⊔ ⊥σ α V)))
     (when Γ₁₂

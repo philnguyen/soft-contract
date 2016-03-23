@@ -252,7 +252,7 @@
           [_ '✗])]
        [(contract?)
         (match Vs
-          [(list (or (? -=>i?) (? -And/C?) (? -Or/C?) (? -Not/C?)
+          [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?)
                      (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?))) '✓]
           [(list V) (check-proc-arity-1 V)]
           [_ '?])]

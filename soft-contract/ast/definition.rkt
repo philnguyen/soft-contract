@@ -87,6 +87,7 @@
             
             ;; contract stuff
             (-μ/c -ℓ -e)
+            (--> [doms : (Listof -e)] [rng : -e] [pos : -ℓ])
             (-->i [doms : (Listof -e)] [rng : -λ] [pos : -ℓ])
             (-x/c.tmp Symbol) ; hack
             (-x/c -ℓ)
@@ -149,15 +150,9 @@
          default
          cases))
 
-(: --> : (Listof -e) -e → -e)
-;; Make a non-dependent contract as a special case of dependent contract
-;; TODO: *special* construct for non-dependent contract with eagerly evaluated range
-(define (--> cs d)
-  (define xs (map (λ (_) (+x!)) cs))
-  (-->i cs (-λ xs d) (+ℓ!)))
-
 (: -->* : (Listof -e) -e -e → -e)
 ;; Make a non-dependent vararg contract
+;; TODO: separate case for non-dependent varargs
 (define (-->* cs rst d)
   (define xs (-varargs (map (λ (_) (+x!)) cs) (+x!)))
   (-->i (append cs (list rst)) (-λ xs d) (+ℓ!)))
@@ -357,6 +352,8 @@
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
     [(-μ/c x c) `(μ/c (,(show-x/c x)) ,(show-e c))]
+    [(--> cs d _)
+     `(,@(map show-e cs) . -> . ,(show-e d))]
     [(-->i cs (-λ xs d) _)
      (match xs
        [(? list? xs)

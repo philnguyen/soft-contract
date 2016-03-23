@@ -127,7 +127,7 @@
             (equal? '✗ (MσΓ⊢s M σ Γ (-?@ 'procedure? e)))]
            [(-b (? p?))
             (equal? '✗ (MσΓ⊢s M σ Γ (-?@ 'p? e)))] ...
-           [(or (? -=>i?) (? -St/C?) (? -x/C?))
+           [(or (? -=>_?) (? -St/C?) (? -x/C?))
             (for/or : Boolean ([p : -o '(procedure? p? ...)])
               (equal? '✓ (MσΓ⊢s M σ Γ (-?@ p e))))]
            ['undefined (equal? '✓ (Γ⊢e Γ (-?@ 'defined? e)))]

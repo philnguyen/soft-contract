@@ -40,39 +40,39 @@
   (match s
     [`(#:pred ,(? symbol? o))
      (define-values (σ* C c) (alloc-C σ '(any/c . -> . boolean?)))
-     (alloc-Ar-o σ* o (assert C -=>i?) (assert c -->i?))]
+     (alloc-Ar-o σ* o (assert C -=>?) (assert c -->?))]
     [`(#:pred ,(? symbol? o) (,cs ...))
      (define-values (σ* C c) (alloc-C σ `(,@cs . -> . boolean?)))
-     (alloc-Ar-o σ* o (assert C -=>i?) (assert c -->i?))]
+     (alloc-Ar-o σ* o (assert C -=>?) (assert c -->?))]
     [`(#:alias ,_  ,_) ; should have been taken care of by parser
      σ]
     [`(#:batch (,os ...) ,(? arr? sig) ,_ ...)
      (define-values (σ* C c) (alloc-C σ sig))
-     (assert C -=>i?)
-     (assert c -->i?)
+     (assert C -=>?)
+     (assert c -->?)
      (for/fold ([σ* : -σ σ*]) ([o os])
        (alloc-Ar-o σ* (assert o symbol?) C c))]
     [`(,(? symbol? o) ,(? arr? sig) ,_ ...)
      (define-values (σ* C c) (alloc-C σ sig))
-     (alloc-Ar-o σ* o (assert C -=>i?) (assert c -->i?))]
+     (alloc-Ar-o σ* o (assert C -=>?) (assert c -->?))]
     [`(,(? symbol? o) ,(? arr*? sig) ...)
      (printf "TODO: ->* for ~a~n" o)
      σ]
     [`(,(? symbol? o) ,_ ...) σ]
     [`(#:struct-cons ,(? symbol? o) ,si)
      (define s (mk-struct-info si))
-     (alloc-Ar σ o (-st-mk s) (make-list (-struct-info-arity s) 'any/c) (⇓ (-st-p s)))]
+     (alloc-Ar σ o (-st-mk s) (make-list (-struct-info-arity s) 'any/c) (-st-p s))]
     [`(#:struct-pred ,(? symbol? o) ,si)
      (define s (mk-struct-info si))
-     (alloc-Ar σ o (-st-p s) (list 'any/c) -⟦boolean?⟧)]
+     (alloc-Ar σ o (-st-p s) (list 'any/c) 'boolean?)]
     [`(#:struct-acc ,(? symbol? o) ,si ,(? exact-nonnegative-integer? i))
      (define s (mk-struct-info si))
-     (alloc-Ar σ o (-st-p s) (list (-st-p s)) -⟦any/c⟧)]
+     (alloc-Ar σ o (-st-p s) (list (-st-p s)) 'any/c)]
     [`(#:struct-mut ,(? symbol? o) ,si ,(? exact-nonnegative-integer? i))
      (define s (mk-struct-info si))
-     (alloc-Ar σ o (-st-mut s i) (list (-st-p s) 'any/c) -⟦void?⟧)]))
+     (alloc-Ar σ o (-st-mut s i) (list (-st-p s) 'any/c) 'void?)]))
 
-(: alloc-Ar-o : -σ Symbol -=>i -e → -σ)
+(: alloc-Ar-o : -σ Symbol -=> -e → -σ)
 ;; Allocate wrapped and unwrapped version of primitive `o` in store `σ`
 (define (alloc-Ar-o σ o C c)
   (define-values (α₀ α₁)
@@ -81,17 +81,17 @@
   (define O (-Ar C α₀ -l³-dummy))
   (⊔* σ [α₀ o] [α₁ O]))
 
-(: alloc-Ar : -σ Symbol -o (Listof -prim) -⟦e⟧ → -σ)
+(: alloc-Ar : -σ Symbol -o (Listof -prim) -prim → -σ)
 ;; Allocate unsafe and (non-dependently) contracted versions of operator `o` at name `s`
-(define (alloc-Ar σ s o cs ⟦d⟧)
+(define (alloc-Ar σ s o cs d)
   (define-values (α₀ α₁)
     (let ([𝒾 (-𝒾 s 'Λ)])
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
-  (define-values (σ* αs) (alloc-prims σ cs))
-  (define xs (build-list (length αs) (λ (_) (+x!))))
-  (define C (-=>i αs (-Clo xs ⟦d⟧ ⊥ρ ⊤Γ)))
+  (define-values (σ₁ αs) (alloc-prims σ cs))
+  (define-values (σ₂ β ) (alloc-prim  σ₁ d))
+  (define C (-=> αs β))
   (define O (-Ar C α₀ -l³-dummy))
-  (⊔* σ* [α₀ o] [α₁ O]))
+  (⊔* σ₂ [α₀ o] [α₁ O]))
 
 (: alloc-C : -σ Any → (Values -σ -V -e))
 ;; "Evaluate" restricted contract forms
@@ -123,12 +123,12 @@
      (apply/values alloc-List/C (alloc-Cs σ ss))]
     [`(,doms ... . -> . ,rng)
      (define-values (σ₁ Cs cs) (alloc-Cs σ doms))
-     (define-values (σ₂ αs) (alloc-consts σ Cs cs))
-     (define xs (build-list (length Cs) (λ (_) (+x!))))
-     (define d (simple-parse rng))
-     (define C (-=>i αs (-Clo xs (⇓ d) ⊥ρ ⊤Γ)))
-     (define c (-->i cs (-λ xs d) 0))
-     (values σ₂ C c)]
+     (define-values (σ₂ αs) (alloc-consts σ₁ Cs cs))
+     (define-values (σ₃ D d) (alloc-C σ₂ rng))
+     (define-values (σ₄ β) (alloc-const σ₃ D d))
+     (define C (-=> αs β))
+     (define c (--> cs d 0))
+     (values σ₄ C c)]
     [`((,doms ...) #:rest ,rst . ->* . d)
      (printf "TODO: alloc ->*~n")
      (values σ 'any/c 'any/c)]
@@ -186,9 +186,19 @@
              (-St/C flat? -s-cons (list cₗ cᵣ))
              (assert (-?struct/c -s-cons (list cₗ cᵣ))))]))
 
+(: alloc-prim : -σ -prim → (Values -σ -α.cnst))
+(define (alloc-prim σ p)
+  (alloc-const σ p p))
+
 (: alloc-prims : -σ (Listof -prim) → (Values -σ (Listof -α.cnst)))
 (define (alloc-prims σ ps)
   (alloc-consts σ ps ps))
+
+(: alloc-const : -σ -V -e → (Values -σ -α.cnst))
+;; Allocate value `V` known to have been evaluted to by constant expression `e`
+;; This is used internally for `Λ` module only to reduce ridiculous allocation
+(define (alloc-const σ V v)
+  (values (⊔ σ v V) v))
 
 (: alloc-consts : -σ (Listof -V) (Listof -e) → (Values -σ (Listof -α.cnst)))
 ;; Allocate values `Vs` known to have been evaluated by constant expressions `es`
@@ -216,10 +226,7 @@
     [`(list/c ,ss ...) (-list/c (map simple-parse ss))]
     [`(cons/c ,l ,r) (-cons/c (simple-parse l) (simple-parse r))]
     [`(,cs ... . -> . ,d)
-     (define xs (suffixed-syms '_ (length cs)))
-     (-->i (map simple-parse cs)
-           (-λ xs (simple-parse d))
-           0)]
+     (--> (map simple-parse cs) (simple-parse d) 0)]
     [`(values ,ss ...)
      (-@ 'values (map simple-parse ss) 0)]
     [s 

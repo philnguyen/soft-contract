@@ -176,7 +176,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (--> (parse-es #'(c ...)) (parse-e #'d))]
+     (--> (parse-es #'(c ...)) (parse-e #'d) (+ℓ!))]
     ;; Dependent contract
     [(~or (begin
             (#%plain-app

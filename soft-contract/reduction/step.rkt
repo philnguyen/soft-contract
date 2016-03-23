@@ -204,7 +204,13 @@
       (λ (M σ ℒ)
         (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ ℒ)))]
      [(-μ/c x c) ((↝.μ/c l x) (↓ c))]
-     [(-->i cs (and mk-d (-λ xs d)) l)
+     [(--> cs d ℓ)
+      (define ⟦c⟧s (map ↓ cs))
+      (define ⟦d⟧ (↓ d))
+      (match ⟦c⟧s
+        ['() ((↝.-->.rng l '() ℓ) (↓ d))]
+        [(cons ⟦c⟧ ⟦c⟧s*) ((↝.-->.dom l '() ⟦c⟧s* ⟦d⟧ ℓ) ⟦c⟧)])]
+     [(-->i cs (and mk-d (-λ xs d)) ℓ)
       (define ⟦d⟧ (↓ d))
       (match (map ↓ cs)
         ['()
@@ -212,12 +218,12 @@
          (λ (M σ ℒ)
            (match-define (-ℒ ρ Γ _) ℒ)
            (define Mk-D (-W¹ (-Clo xs ⟦d⟧ ρ Γ) mk-d))
-           (mk-=>i ℒ '() Mk-D l))]
+           (mk-=>i ℒ '() Mk-D ℓ))]
         [(cons ⟦c⟧ ⟦c⟧s*)
          (λ (M σ ℒ)
            (match-define (-ℒ ρ Γ _) ℒ)
            (define Mk-D (-W¹ (-Clo xs ⟦d⟧ ρ Γ) mk-d))
-           (((↝.-->i '() ⟦c⟧s* Mk-D l) ⟦c⟧) M σ ℒ))])]
+           (((↝.-->i '() ⟦c⟧s* Mk-D ℓ) ⟦c⟧) M σ ℒ))])]
      [(-x/c x)
       (λ (M σ ℒ)
         (define Γ (-ℒ-cnd ℒ))

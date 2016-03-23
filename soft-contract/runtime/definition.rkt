@@ -61,7 +61,7 @@
             (-Clo -formals -⟦e⟧ -ρ -Γ)
             
             ;; Proxied higher-order values
-            (-Ar [guard : #|ok, no rec|# -=>i] [v : -α] [ctx : Mon-Info])
+            (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
             (-St* [info : -struct-info] [ctcs : (Listof (Option -α.struct/c))] [val : -α.st] [ctx : Mon-Info])
             (-Vector/hetero [ctcs : (Listof -α.vector/c)] [val : -α.vct] [ctx : Mon-Info])
             (-Vector/homo [ctc : -α.vectorof] [val : -α.vct] [ctx : Mon-Info])
@@ -78,12 +78,16 @@
             (-Not/C (U -α.not/c -α.cnst))
             (-x/C [c : (U -α.x/c -α.cnst)])
             ;; Guards for higher-order values
-            (-=>i [doms : (Listof (U -α.dom -α.cnst))] [#|ok, no recursion|# rng : -Clo])
+            -=>_
             (-St/C [flat? : Boolean]
                    [info : -struct-info]
                    [fields : (Listof (U -α.struct/c -α.cnst))])
             (-Vectorof (U -α.vectorof -α.cnst))
             (-Vector/C (Listof (U -α.vector/c -α.cnst))))
+
+;; Function contracts
+(-=>_ . ::= . (-=>  [doms : (Listof (U -α.dom -α.cnst))] [rng : -α])
+              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [#|ok, no recursion|# rng : -Clo]))
 
 (struct -blm ([violator : Mon-Party] [origin : Mon-Party]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
@@ -122,8 +126,10 @@
                               -⟦e⟧)
             (-ℰ.set! Var-Name -ℰ)
             (-ℰ.μ/c Mon-Party Integer -ℰ)
-            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ Integer)
-            (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer)
+            (-ℰ.-->.dom (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ -ℓ)
+            (-ℰ.-->.rng (Listof -W¹) -ℰ -ℓ)
+            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ -ℓ)
+            (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) -ℓ)
             (-ℰ.mon.v Mon-Info -ℓ -ℰ [val : (U -⟦e⟧ -W¹)])
             (-ℰ.mon.c Mon-Info -ℓ [ctc : (U -⟦e⟧ -W¹)] -ℰ)
             )
@@ -334,6 +340,7 @@
     [(-Not/C γ) `(not/c ,(show-α γ))]
     [(-Vectorof γ) `(vectorof ,(show-α γ))]
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
+    [(-=> αs β) `(,@(map show-α αs) . -> . ,(show-α β))]
     [(-=>i γs (-Clo xs ⟦d⟧ _ _))
      (define cs : (Listof -s)
        (for/list ([γ : -α γs])

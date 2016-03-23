@@ -16,11 +16,13 @@
     [(-varargs init _) (arity-at-least (length init))]
     [(? list? xs) (length xs)]))
 
-(define (guard-arity [guard : -=>i]) : Arity
-  (match-define (-=>i _ (-Clo xs _ _ _)) guard)
-  (match xs
-    [(? list? xs) (length xs)]
-    [(-varargs xs _) (arity-at-least (length xs))]))
+(define guard-arity : (-=>_ → Arity)
+  (match-lambda
+    [(-=> αs _) (length αs)]
+    [(-=>i _ (-Clo xs _ _ _))
+     (match xs
+       [(? list? xs) (length xs)]
+       [(-varargs xs _) (arity-at-least (length xs))])]))
 
 (: V-arity : -V → (Option Arity))
 ;; Return given value's arity, or `#f` if it's not a procedure

@@ -49,6 +49,7 @@
      (for/fold ([xs : (℘ Var-Name) ∅]) ([e es])
        (∪ xs (fv e)))]
     [(-μ/c _ e) (fv e)]
+    [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (℘ Var-Name) ∅]) ([c cs])
@@ -102,6 +103,7 @@
      (for/fold ([xs : (℘ Var-Name) ∅]) ([e es])
        (∪ xs (𝐴 e)))]
     [(-μ/c _ e) (𝐴 e)]
+    [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (𝐴 mk-d) (map 𝐴 cs))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (℘ Var-Name) ∅]) ([c cs])
@@ -145,6 +147,7 @@
        (checks# e))]
    [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
    [(-μ/c _ c) (checks# c)]
+   [(--> cs d _) (+ (checks# cs) (checks# d))]
    [(-->i cs mk-d _) (+ (checks# cs) (checks# mk-d))]
    [(-struct/c _ cs _) (checks# cs)]
 
@@ -175,6 +178,7 @@
        (∪ (for/union : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-amb es) (for/union : (℘ Symbol) ([e es]) (go e))]
       [(-μ/c _ c) (go c)]
+      [(--> cs d _) (∪ (go* cs) (go d))]
       [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
       [(-struct/c t cs _) (go* cs)]
       [(-x/c.tmp x) (set x)]
@@ -240,10 +244,11 @@
          [(-set! z e*) (-set! z (go m e*))]
          [(-amb es) (-amb (map/set (curry go m) es))]
          [(-μ/c z c) (-μ/c z (go m c))]
-         [(-->i cs mk-d pos)
+         [(--> cs d ℓ) (--> (map (curry go m) cs) (go m d) ℓ)]
+         [(-->i cs mk-d ℓ)
           (-->i (map (curry go m) cs)
                 (assert (go m mk-d) -λ?)
-                pos)]
+                ℓ)]
          [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" (show-e e))
@@ -295,10 +300,11 @@
          [(-set! z e*) (-set! z (go f e*))]
          [(-amb es) (-amb (map/set (curry go f) es))]
          [(-μ/c z c) (-μ/c z (go f c))]
-         [(-->i cs mk-d pos)
+         [(--> cs d ℓ) (--> (map (curry go f) cs) (go f d) ℓ)]
+         [(-->i cs mk-d ℓ)
           (-->i (map (curry go f) cs)
                 (assert (go f mk-d) -λ?)
-                pos)]
+                ℓ)]
          [(-struct/c t cs p) (-struct/c t (map (curry go f) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" e)
@@ -328,9 +334,10 @@
       [(-set! z e*) (-set! z (go e*))]
       [(-amb es) (-amb (map/set go es))]
       [(-μ/c z e*) (if (= z x) e (-μ/c z (go e*)))]
-      [(-->i cs mk-d pos)
-       (-->i (map go cs) (assert (go mk-d) -λ?) pos)]
-      [(-struct/c si cs pos) (-struct/c si (map go cs) pos)]
+      [(--> cs d ℓ) (--> (map go cs) (go d) ℓ)]
+      [(-->i cs mk-d ℓ)
+       (-->i (map go cs) (assert (go mk-d) -λ?) ℓ)]
+      [(-struct/c si cs ℓ) (-struct/c si (map go cs) ℓ)]
       [(-x/c z) (if (= z x) c e)]
       [_
        (log-debug "unroll: ignore ~a" (show-e e))
@@ -508,11 +515,12 @@
       ;[(-@-havoc (-x x)) (-@-havoc (-x (hash-ref m x)))]
       [(-amb es) (-amb (map/set (curry go! m) es))]
       [(-μ/c x c) (-μ/c x (go! m c))]
-      [(-->i cs mk-d pos)
+      [(--> cs d ℓ) (--> (map (curry go! m) cs) (go! m d) ℓ)]
+      [(-->i cs mk-d ℓ)
        (-->i (map (curry go! m) cs)
              (assert (go! m mk-d) -λ?)
-             pos)]
-      [(-struct/c si cs pos)
-       (-struct/c si (map (curry go! m) cs) pos)]
+             ℓ)]
+      [(-struct/c si cs ℓ)
+       (-struct/c si (map (curry go! m) cs) ℓ)]
       [_ e])))
 
