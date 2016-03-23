@@ -267,7 +267,7 @@
 (define-values (show-x/c show-x/c⁻¹ count-x/c) ((inst unique-sym -ℓ) 'x))
 
 (define (show-ℓ [ℓ : -ℓ]) : Symbol
-  (string->symbol (format "ℓ~a" (n-sub ℓ))))
+  (format-symbol "ℓ~a" (n-sub ℓ)))
 
 (define (show-b [x : Base]) : Sexp
   (cond
@@ -291,10 +291,10 @@
    [(-st-ac (== -s-cons) 0) 'car]
    [(-st-ac (== -s-cons) 1) 'cdr]
    [(-st-ac (== -s-box) 0) 'unbox]
-   [(-st-ac s i) (string->symbol (format "~a@~a" (show-struct-info s) i))]
-   [(-st-p s) (string->symbol (format "~a?" (show-struct-info s)))]
+   [(-st-ac s i) (format-symbol "~a@~a" (show-struct-info s) i)]
+   [(-st-p s) (format-symbol "~a?" (show-struct-info s))]
    [(-st-mut (== -s-box) 0) 'set-box!]
-   [(-st-mut s i) (string->symbol (format "set-~a-~a!" (show-struct-info s) i))]))
+   [(-st-mut s i) (format-symbol "set-~a-~a!" (show-struct-info s) i)]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
@@ -323,7 +323,7 @@
     [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
 
     [(-λ xs e) `(λ ,(show-formals xs) ,(show-e e))]
-    [(-• i) (string->symbol (format "•~a" (n-sub i)))]
+    [(-• i) (format-symbol "•~a" (n-sub i))]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x)
@@ -331,7 +331,7 @@
            [else (format-symbol "𝐱~a" (n-sub x))])]
     [(-ref (-𝒾 x p) _)
      (case p ;; hack
-       [(Λ) (string->symbol (format "_~a" x))]
+       [(Λ) (format-symbol "_~a" x)]
        [else x])]
     [(-let-values bnds body)
      `(let-values
@@ -370,7 +370,7 @@
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)
-     `(,(string->symbol (format "~a/c" (show-struct-info info))) ,@(show-es cs))]))
+     `(,(format-symbol "~a/c" (show-struct-info info)) ,@(show-es cs))]))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
@@ -379,9 +379,6 @@
   (match-define (-module path forms) m)
   `(module ,path
     ,@(map show-module-level-form forms)))
-
-(define (show/c [s : Symbol]) : Symbol
-  (string->symbol (format "~a/c" s)))
 
 (define (show-struct-info [info : -struct-info]) : Symbol
   (-𝒾-name (-struct-info-id info)))

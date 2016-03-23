@@ -205,7 +205,7 @@
          ; Return case clause for straightforward lifting of other 1st order operators
          [(and (andmap base? doms) (base? rng))
           (define/contract b-syms (listof symbol?)
-            (build-list (length doms) (λ (i) (string->symbol (format "e~a" (n-sub i))))))
+            (build-list (length doms) (λ (i) (format-symbol "e~a" (n-sub i)))))
           (define/contract b-ids (listof identifier?) (map (curry datum->syntax (M-id)) b-syms))
           (define b-pats/abs  (for/list ([b-id b-ids]) #`(-W¹ _ (-b #,b-id))))
           (define b-pats/conc (for/list ([b-id b-ids]) #`(-W¹ (-b #,b-id) _)))
@@ -213,8 +213,8 @@
 
           (define-values (W-pats W-ids e-ids)
             (for/lists (W-pats W-ids e-ids) ([i (length doms)])
-              (define W-id (datum->syntax (M-id) (string->symbol (format "W~a" (n-sub i)))))
-              (define e-id (datum->syntax (M-id) (string->symbol (format "e~a" (n-sub i)))))
+              (define W-id (datum->syntax (M-id) (format-symbol "W~a" (n-sub i))))
+              (define e-id (datum->syntax (M-id) (format-symbol "e~a" (n-sub i))))
               (values #`(and #,W-id (-W¹ _ #,e-id)) W-id e-id)))
           #;(define refinement-clauses
             (for/list ([ref refinements])

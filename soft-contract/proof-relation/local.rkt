@@ -34,7 +34,7 @@
           
           (define/contract args (listof identifier?)
             (for/list ([(_ i) (in-indexed o-doms)])
-              (datum->syntax #f (string->symbol (format "x~a" (n-sub i))))))
+              (datum->syntax #f (format-symbol "x~a" (n-sub i)))))
           
           (define/contract preconds (listof syntax?)
             (for/list ([dom o-doms] [arg args])

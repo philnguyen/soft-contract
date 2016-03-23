@@ -322,7 +322,7 @@
     [(-Ar guard (cons α s) _) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St* s γs α _)
-     `(,(string->symbol (format "~a/wrapped" (show-struct-info s)))
+     `(,(format-symbol "~a/wrapped" (show-struct-info s))
        ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
@@ -351,7 +351,7 @@
               #:rest (,x ,(if (-e? γ) (show-e γ) (show-α γ)))
               (res ,(cons xs₀ x) ,(show-⟦e⟧ ⟦d⟧)))])]
     [(-St/C _ s αs)
-     `(,(string->symbol (format "~a/c" (show-struct-info s))) ,@(map show-α αs))]
+     `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α αs))]
     [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
 
 (define (show-A [A : -A])
@@ -461,7 +461,7 @@
   `(ℛ ,(show-τ τ) ,(show-ℋ ℋ)))
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Symbol
-  (string->symbol (format "𝒞~a" (n-sub 𝒞))))
+  (format-symbol "𝒞~a" (n-sub 𝒞)))
 
 (define-values (show-α show-α⁻¹ count-αs) ((inst unique-sym -α) 'α))
 

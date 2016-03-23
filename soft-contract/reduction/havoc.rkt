@@ -20,7 +20,9 @@
   (define (havoc-ref!)
     (-ref havoc-id (+ℓ!)))
 
-  (define x (-x '☠))
+  (define x (+x!))
+  (define 𝐱 (-x x))
+  (define 𝐱s (list 𝐱))
 
   (define acs-for-struct
     (for/fold ([m : (HashTable -struct-info (℘ -st-ac)) (hash)])
@@ -31,19 +33,19 @@
   
   (define alts
     (cons
-     (cons (-@ 'procedure? (list x) (+ℓ!))
-           (-@ (havoc-ref!) (list (-@-havoc x)) (+ℓ!)))
+     (cons (-@ 'procedure? 𝐱s (+ℓ!))
+           (-@ (havoc-ref!) (list (-@-havoc 𝐱)) (+ℓ!)))
      (for/list : (Listof (Pairof -e -e)) ([(si acs) acs-for-struct])
-       (cons (-@ (-st-p si) (list x) (+ℓ!))
+       (cons (-@ (-st-p si) 𝐱s (+ℓ!))
              (-amb/simp
               (for/list : (Listof -@) ([ac acs])
                 (-@ (havoc-ref!)
-                    (list (-@ ac (list x) (+ℓ!)))
+                    (list (-@ ac 𝐱s (+ℓ!)))
                     (+ℓ!))))))))
   
   (define havoc-body (-cond alts (-amb ∅)))
   
-  (-Clo '(☠) (⇓ havoc-path havoc-body) ⊥ρ ⊤Γ))
+  (-Clo (list x) (⇓ havoc-path havoc-body) ⊥ρ ⊤Γ))
 
 (: gen-havoc-exp : (Listof -module) → -e)
 ;; Generate havoc top-level expression havoc-king modules' exports

@@ -41,7 +41,7 @@
          (syntax-parse f
            [(_ (~literal :) _) f]
            [t
-            (define x (string->symbol (format "~a" (n-sub i))))
+            (define x (format-symbol "~a" (n-sub i)))
             #`(#,x : t)])))
      #`(begin (struct k #,fields #:transparent)
               (τ . ::=/ac . (clauses ...) (k σ ...)))]
