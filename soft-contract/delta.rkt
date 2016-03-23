@@ -102,6 +102,11 @@
              (values ⊥σ (list ans))]
             [else (values ⊥σ -●/Vs)]))]
        [else (values ⊥σ -●/Vs)])]
+    [procedure-arity
+     (match-define (list (-W¹ V _)) Ws)
+     (cond
+       [(V-arity V) => (λ ([a : Arity]) (values ⊥σ (list (-b a))))]
+       [else (values ⊥σ -●/Vs)])]
 
     [equal?
      (define Vs

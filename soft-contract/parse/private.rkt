@@ -106,7 +106,6 @@
      #f]
     [(#%plain-app call-with-values (#%plain-lambda () e) print-values:id)
      #:when (equal? 'print-values (syntax->datum #'print-values))
-     (printf "gotcha")
      (parse-e #'e)]
 
     [(define-values (_ ctor pred acc ...)
