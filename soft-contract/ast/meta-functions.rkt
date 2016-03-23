@@ -122,13 +122,11 @@
                        -module
                        -begin/top
                        -module-level-form
-                       -prog
                        (Listof X))) → Integer)
 ;; Statically count number of unsafe operations needing checks
 (define checks#
   (match-lambda
    [(? list? es) (for/sum : Integer ([e (in-list es)]) (checks# e))]
-   [(-prog ms e) (+ (checks# ms) (checks# e))]
    [(-define-values _ e) (checks# e)]
    [(-λ _ e) (checks# e)]
    [(-@ f xs _) (+ 1 (checks# f) (checks# xs))]
