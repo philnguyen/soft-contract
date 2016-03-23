@@ -369,7 +369,9 @@
 
 (define (show-blm [blm : -blm]) : Sexp
   (match-define (-blm l+ lo Cs Vs) blm)
-  `(blame ,l+ ,lo ,(map show-V Cs) ,(map show-V Vs)))
+  (match* (Cs Vs)
+    [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
+    [(_ _) `(blame ,l+ ,lo ,(map show-V Cs) ,(map show-V Vs))]))
 
 (: show-ℰ ([-ℰ] [Sexp] . ->* . Sexp))
 (define (show-ℰ ℰ [in-hole '□])

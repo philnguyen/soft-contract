@@ -77,7 +77,7 @@
       _)
      (-provide (for/list ([x (syntax->datum #'(x ...))]
                           [c (syntax->list #'(c ...))])
-                 (-p/c-item x (parameterize ([indep-prefix x]) (parse-e c)) (+ℓ!))))]
+                 (-p/c-item x (parse-e c) (+ℓ!))))]
     
     [_ (or (parse-general-top-level-form form)
            (parse-submodule-form form))]))
@@ -104,8 +104,9 @@
     [(define-values _ (#%plain-app do-partial-app _ ...))
      #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app))
      #f]
-    [(#%plain-app call-with-values (#%plain-lambda () e) print-values)
+    [(#%plain-app call-with-values (#%plain-lambda () e) print-values:id)
      #:when (equal? 'print-values (syntax->datum #'print-values))
+     (printf "gotcha")
      (parse-e #'e)]
 
     [(define-values (_ ctor pred acc ...)
@@ -150,8 +151,6 @@
     [_
      (parse-e form)]))
 
-(define/contract indep-prefix (parameter/c symbol?) (make-parameter 'x))
-
 (define/contract (parse-e stx)
   (scv-syntax? . -> . -e?)
   (log-debug "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
@@ -167,14 +166,18 @@
      with-continuation-mark #%declare #%provide case-lambda
      #%variable-reference set! list)
 
+    ;; HACK for incomplete pattern matching error
+    [(#%plain-app f _ ...)
+     #:when (equal? 'match:error (syntax->datum #'f))
+     (-error "incomplete pattern matching")]
+
     ;;; Contracts
     ;; Non-dependent function contract
     [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (parameterize ([indep-prefix (string->symbol (format "~a_" (indep-prefix)))])
-       (--> (indep-prefix) (parse-es #'(c ...)) (parse-e #'d)))]
+     (--> (parse-es #'(c ...)) (parse-e #'d))]
     ;; Dependent contract
     [(~or (begin
             (#%plain-app
@@ -192,20 +195,18 @@
            (~literal fake:dynamic->i)
            (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
            (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
-     (parameterize ([indep-prefix (string->symbol (format "~a_" (indep-prefix)))])
-       (define cs (parse-es #'(cₓ ...)))
-       (define mk-d (-λ (syntax->datum #'(z ...)) (parse-e #'d)))
-       (-->i cs mk-d (+ℓ!)))]
+     (define cs (parse-es #'(cₓ ...)))
+     (define mk-d (-λ (syntax->datum #'(z ...)) (parse-e #'d)))
+     (-->i cs mk-d (+ℓ!))]
     ;; independent varargs
     [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list inits ...)]
                   [(_) rst]
                   [(_) rng])
        _ ...)
-     (parameterize ([indep-prefix (string->symbol (format "~a_" (indep-prefix)))])
-       (-->* (map parse-e (syntax->list #'(inits ...)))
-             (parse-e #'rst)
-             (parse-e #'rng)))]
+     (-->* (map parse-e (syntax->list #'(inits ...)))
+           (parse-e #'rst)
+           (parse-e #'rng))]
     [(#%plain-app (~literal fake:listof) c)
      (-listof (parse-e #'c))]
     [(#%plain-app (~literal fake:list/c) c ...)
@@ -284,7 +285,7 @@
           [((x ...) eₓ) (cons (syntax->datum #'(x ...)) (parse-e #'eₓ))]))
       (-begin/simp (parse-es #'(b ...))))]
     [(quote e) (parse-quote #'e)]
-    [(quote-syntax e) (todo 'quote-syntax)]
+    [(quote-syntax e) (error 'parse-e "TODO: (quote-syntax ~a)" (syntax->datum #'e))]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
     [(#%variable-reference) (todo '#%variable-reference)]

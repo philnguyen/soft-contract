@@ -80,6 +80,8 @@
             (-letrec-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
             (-set! Var-Name -e)
 
+            (-error String)
+
             (-@-havoc -x) ; hack for havoc to detect argument's arity at runtime
             (-amb (℘ -e))
             
@@ -348,6 +350,7 @@
     [(-@-havoc x) `(havoc ,(show-e x))]
     [(-begin es) `(begin ,@(show-es es))]
     [(-begin0 e es) `(begin ,(show-e e) ,@(show-es es))]
+    [(-error msg) `(error ,msg)]
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]

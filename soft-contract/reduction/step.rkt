@@ -195,6 +195,7 @@
            (define σ* (⊔/m σ δσ))
            (((↝.letrec-values l δρ xs₀ xs-⟦e⟧s* ⟦e⟧) ⟦e⟧₀) M σ* ℒ))])]
      [(-set! x e*) ((↝.set! x) (↓ e*))]
+     [(-error msg) (blm l 'Λ '() (list (-b msg)))] ;; HACK
      [(-@-havoc (-x x)) (↝.havoc x)]
      [(-amb es)
       (define ⟦e⟧s (set-map es ↓))

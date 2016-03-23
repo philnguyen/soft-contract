@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ap ↝.@ mon ↝.mon.c ↝.mon.v)
+(provide ap ↝.@ mon ↝.mon.c ↝.mon.v blm)
 
 (require racket/match
          racket/set
