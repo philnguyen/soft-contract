@@ -215,7 +215,8 @@
     [(-●) '?]
     [_ '✓]))
 
-(: p∋Vs : -o -V * → -R)
+
+(: p∋Vs : -V -V * → -R)
 ;; Check if value satisfies predicate
 (define (p∋Vs p . Vs)
   
@@ -281,7 +282,8 @@
                       [(list (? -●?) ...) '?]
                       [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) '✗]
                                [else '?])])]))]
-          [else '?])])]))
+          [else '?])])]
+    [_ '?]))
 
 (: V≡ : -V -V → -R)
 ;; Check if 2 values are `equal?`

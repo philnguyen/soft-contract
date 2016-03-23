@@ -162,7 +162,8 @@
   (match-define (-W¹ P s-p) W-P)
   (define-values (Vs s-vs) (unzip-by -W¹-V -W¹-s W-Vs))
   (define ψ (apply -?@ s-p s-vs))
-  (Γ+/-R (MσΓ⊢s M σ Γ ψ) Γ ψ))
+  (define R (first-R (apply p∋Vs P Vs) (MσΓ⊢s M σ Γ ψ)))
+  (Γ+/-R R Γ ψ))
 
 (: Γ+/-s : -M -σ -Γ -s → (Values (Option -Γ) (Option -Γ)))
 (define (Γ+/-s M σ Γ s)
@@ -217,9 +218,9 @@
 ;; Given `s`'s satisfiability in `Γ`, strengthen `Γ` both ways. `#f` represents a bogus path condition.
 (define (Γ+/-R R Γ s)
   (case R
-    [(✓)  (values (Γ+ Γ s) #f)]
-    [(✗)  (values #f       (Γ+ Γ (-not s)))]
-    [else (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
+    [(✓) (values (Γ+ Γ s) #f)]
+    [(✗) (values #f       (Γ+ Γ (-not s)))]
+    [(?) (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
 
 #|
 (module+ test
