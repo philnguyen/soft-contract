@@ -43,7 +43,7 @@
   (define-values (ΓWs ΓEs)
     (let ()
       ; TODO: use path-conditions from caller+callee to eliminate spurious returns
-      (define args (map (inst cdr Symbol -s) bnds))
+      (define args (map (inst cdr Var-Name -s) bnds))
       (define fargs (apply -?@ f args))
       (define Γ₀ (-ℒ-cnd ℒ₀))
       (for/fold ([ΓWs : (℘ -ΓW) ∅] [ΓEs : (℘ -ΓE) ∅])
@@ -167,7 +167,7 @@
         [else (error '⇓ "TODO: (quote ~a)" q)])]
      [(-let-values xs-es e)
       (define xs-⟦e⟧s
-        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([xs-e xs-es])
+        (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧)) ([xs-e xs-es])
           (match-define (cons xs eₓ) xs-e)
           (cons xs (↓ eₓ))))
       (define ⟦e⟧ (↓ e))
@@ -177,7 +177,7 @@
          ((↝.let-values l '() xs₀ xs-⟦eₓ⟧s* ⟦e⟧) ⟦e⟧₀)])]
      [(-letrec-values xs-es e)
       (define xs-⟦e⟧s
-        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([xs-e xs-es])
+        (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧)) ([xs-e xs-es])
           (match-define (cons xs eₓ) xs-e)
           (cons xs (↓ eₓ))))
       (define ⟦e⟧ (↓ e))

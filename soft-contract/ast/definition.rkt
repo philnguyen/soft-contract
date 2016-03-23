@@ -25,6 +25,11 @@
 (define next-subscript! (make-nat-src))
 (define-type -ℓ Integer)
 
+;; Symbol names are used for source code. Integers are used for generated.
+;; Keep this eq?-able
+(Var-Name . ::= . Symbol Integer)
+(define +x! (make-nat-src))
+
 ;; Identifier as a name and its source
 (struct -𝒾 ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
 
@@ -32,14 +37,8 @@
 (struct -struct-info ([id : -𝒾] [arity : Natural] [mutables : (℘ Natural)]) #:transparent)
 
 ;; Formal parameters
-(-formals . ::= . (Listof Symbol)
-                  (-varargs [init : (Listof Symbol)] [rest : Symbol]))
-
-;; Return all variable names in function's parameter list
-(define (-formal-names [xs : -formals]) : (℘ Symbol)
-  (match xs
-    [(? list?) (list->set xs)]
-    [(-varargs xs* x) (set-add (list->set xs*) x)]))
+(-formals . ::= . (Listof Var-Name)
+                  (-varargs [init : (Listof Var-Name)] [rest : Var-Name]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -69,7 +68,7 @@
 (-require-spec . ::= . Adhoc-Module-Path #|TODO|#)
 
 (-e . ::= . -v
-            (-x Symbol) ; lexical variables 
+            (-x Var-Name) ; lexical variables 
             (-ref [id : -𝒾] [ℓ : -ℓ]) ; module references
             (-@ -e (Listof -e) -ℓ)
             (-if -e -e -e)
@@ -77,9 +76,9 @@
             -begin/e
             (-begin0 -e (Listof -e))
             (-quote Any)
-            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
-            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
-            (-set! Symbol -e)
+            (-let-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
+            (-letrec-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
+            (-set! Var-Name -e)
 
             (-@-havoc -x) ; hack for havoc to detect argument's arity at runtime
             (-amb (℘ -e))
@@ -151,27 +150,18 @@
          default
          cases))
 
-(: --> : Symbol (Listof -e) -e → -e)
+(: --> : (Listof -e) -e → -e)
 ;; Make a non-dependent contract as a special case of dependent contract
 ;; TODO: *special* construct for non-dependent contract with eagerly evaluated range
-(define (--> prefix cs d)
-  (define-values (doms xs)
-    (for/lists ([doms : (Listof -e)] [xs : (Listof Symbol)])
-               ([(c i) (in-indexed cs)])
-      (define x (string->symbol (format "~a•~a" prefix (n-sub i)))) ; hack
-      (values c x)))
-  (-->i doms (-λ xs d) (+ℓ!)))
+(define (--> cs d)
+  (define xs (map (λ (_) (+x!)) cs))
+  (-->i cs (-λ xs d) (+ℓ!)))
 
 (: -->* : (Listof -e) -e -e → -e)
 ;; Make a non-dependent vararg contract
 (define (-->* cs rst d)
-  (define-values (doms xs)
-    (for/lists ([doms : (Listof -e)] [xs : (Listof Symbol)])
-               ([(c i) (in-indexed cs)])
-      (define x (string->symbol (format "v•~a" (n-sub i))))
-      (values c x)))
-  (define x-rst (string->symbol (format "rst•~a" (n-sub (length cs)))))
-  (-->i (append doms (list rst)) (-λ (-varargs xs x-rst) d) (+ℓ!)))
+  (define xs (-varargs (map (λ (_) (+x!)) cs) (+x!)))
+  (-->i (append cs (list rst)) (-λ xs d) (+ℓ!)))
 
 ;; Make conjunctive and disjunctive contracts
 (define-values (-and/c -or/c)
@@ -193,9 +183,12 @@
 (define (-one-of/c es)
   (match es
     [(list) 'none/c]
-    [(list e) (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) (+ℓ!)))]
+    [(list e)
+     (define x (+x!))
+     (-λ (list x) (-@ 'equal? (list (-x x) e) (+ℓ!)))]
     [(cons e es*)
-     (-or/c (list (-λ (list 'x₀) (-@ 'equal? (list (-x 'x₀) e) (+ℓ!)))
+     (define x (+x!))
+     (-or/c (list (-λ (list x) (-@ 'equal? (list (-x x) e) (+ℓ!)))
                   (-one-of/c es*)))]))
 
 (: -cons/c : -e -e → -e)
@@ -233,9 +226,10 @@
 (: -comp/c : Symbol -e → -e)
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e)
-  (define x (string->symbol (format "~a•~a" op (n-sub (next-subscript!)))))
-  (-λ (list x) (-and (-@ 'real? (list (-x x)) (+ℓ!))
-                     (-@ op (list (-x x) e) (+ℓ!)))))
+  (define x (+x!))
+  (define 𝐱 (-x x))
+  (-λ (list x)
+      (-and (-@ 'real? (list 𝐱) (+ℓ!)) (-@ op (list 𝐱 e) (+ℓ!)))))
 
 (: -amb/simp : (Listof -e) → -e)
 ;; Smart constructor for `amb` with simplification for 1-expression case
@@ -330,7 +324,9 @@
     [(-• i) (string->symbol (format "•~a" (n-sub i)))]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
-    [(-x x) (string->symbol (format "ₓ~a" x))]
+    [(-x x)
+     (cond [(symbol? x) (format-symbol "ₓ~a" x)]
+           [else (format-symbol "𝐱~a" (n-sub x))])]
     [(-ref (-𝒾 x p) _)
      (case p ;; hack
        [(Λ) (string->symbol (format "_~a" x))]
@@ -409,5 +405,3 @@
   (match-lambda
     [(-varargs xs rst) (cons xs rst)]
     [(? list? l) l]))
-
-

@@ -103,9 +103,9 @@
         (⟦e⟧ M σ ℒ)))]))
 
 (: ↝.let-values : Mon-Party
-                  (Listof (Pairof Symbol -W¹))
-                  (Listof Symbol)
-                  (Listof (Pairof (Listof Symbol) -⟦e⟧))
+                  (Listof (Pairof Var-Name -W¹))
+                  (Listof Var-Name)
+                  (Listof (Pairof (Listof Var-Name) -⟦e⟧))
                   -⟦e⟧
                   → -⟦ℰ⟧)
 (define (((↝.let-values l x-Ws xs xs-⟦e⟧s ⟦e⟧) ⟦eₓ⟧) M σ ℒ)
@@ -119,7 +119,7 @@
       (with-guarded-arity n (l Γ* Vs)
         (define x-Ws*
           (foldr
-           (λ ([x : Symbol] [V : -V] [s : -s] [x-Ws* : (Listof (Pairof Symbol -W¹))])
+           (λ ([x : Var-Name] [V : -V] [s : -s] [x-Ws* : (Listof (Pairof Var-Name -W¹))])
              (cons (cons x (-W¹ V s)) x-Ws*))
            x-Ws
            xs
@@ -146,8 +146,8 @@
 
 (: ↝.letrec-values : Mon-Party
                      -Δρ
-                     (Listof Symbol)
-                     (Listof (Pairof (Listof Symbol) -⟦e⟧))
+                     (Listof Var-Name)
+                     (Listof (Pairof (Listof Var-Name) -⟦e⟧))
                      -⟦e⟧
                      → -⟦ℰ⟧)
 (define (((↝.letrec-values l δρ xs xs-⟦e⟧s ⟦e⟧) ⟦eₓ⟧) M σ ℒ)
@@ -204,7 +204,7 @@
                  (define Γ* (Γ↓ (-ℒ-cnd ℒ) xs₀))
                  (define f* (s↓ f xs₀))
                  (define bnds*
-                   (for/list : (Listof (Pairof Symbol -s)) ([bnd bnds])
+                   (for/list : (Listof (Pairof Var-Name -s)) ([bnd bnds])
                      (match-define (cons x s) bnd)
                      (cons x (s↓ s xs₀))))
                  (-ℐ (-ℋ (-ℒ-with-Γ ℒ Γ*) f* bnds* ℰ) τ)])
@@ -213,7 +213,7 @@
            (values (⊔/m δσ δσ*) ΓWs* ΓEs* ℐs*)]))))
    (⟦eₓ⟧ M σ ℒ*)))
 
-(: ↝.set! : Symbol → -⟦ℰ⟧)
+(: ↝.set! : Var-Name → -⟦ℰ⟧)
 (define (((↝.set! x) ⟦e⟧) M σ ℒ)
   (apply/values
    (acc
@@ -272,7 +272,7 @@
   (define c (-?->i cs (and d (assert d -λ?))))
   (values δσ {set (-ΓW Γ (-W (list C) c))} ∅ ∅))
 
-(: ↝.havoc : Symbol → -⟦e⟧)
+(: ↝.havoc : Var-Name → -⟦e⟧)
 (define ((↝.havoc x) M σ ℒ)
   (define Vs (σ@ σ (ρ@ (-ℒ-env ℒ) x)))
   (error '↝.havoc "TODO"))

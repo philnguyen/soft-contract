@@ -10,11 +10,11 @@
 ;;;;; Environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -ρ (HashTable Symbol -α))
+(define-type -ρ (HashTable Var-Name -α))
 (define-type -Δρ -ρ)
 (define ⊥ρ : -ρ (hasheq))
-(define ρ@ : (-ρ Symbol → -α) hash-ref)
-(define ρ+ : (-ρ Symbol -α → -ρ) hash-set)
+(define ρ@ : (-ρ Var-Name → -α) hash-ref)
+(define ρ+ : (-ρ Var-Name -α → -ρ) hash-set)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -111,16 +111,16 @@
             (-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
             (-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧))
             (-ℰ.let-values Mon-Party
-                           (Listof (Pairof Symbol -W¹))
-                           (Pairof (Listof Symbol) -ℰ)
-                           (Listof (Pairof (Listof Symbol) -⟦e⟧))
+                           (Listof (Pairof Var-Name -W¹))
+                           (Pairof (Listof Var-Name) -ℰ)
+                           (Listof (Pairof (Listof Var-Name) -⟦e⟧))
                            -⟦e⟧)
             (-ℰ.letrec-values Mon-Party
                               -Δρ
-                              (Pairof (Listof Symbol) -ℰ)
-                              (Listof (Pairof (Listof Symbol) -⟦e⟧))
+                              (Pairof (Listof Var-Name) -ℰ)
+                              (Listof (Pairof (Listof Var-Name) -⟦e⟧))
                               -⟦e⟧)
-            (-ℰ.set! Symbol -ℰ)
+            (-ℰ.set! Var-Name -ℰ)
             (-ℰ.μ/c Mon-Party Integer -ℰ)
             (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ Integer)
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) Integer)
@@ -130,7 +130,7 @@
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; caller's path condition and information for renaming callee's symbols
-(struct -ℋ ([ctx : -ℒ] [f : -s] [param->arg : (Listof (Pairof Symbol -s))]
+(struct -ℋ ([ctx : -ℒ] [f : -s] [param->arg : (Listof (Pairof Var-Name -s))]
             [hole : -ℰ]) #:transparent)
 
 
@@ -143,13 +143,13 @@
 
 ;; Path condition is set of (pure) expression known to have evaluated to non-#f
 (struct -Γ ([facts : (℘ -e)]
-            [aliases : (HashTable Symbol -e)]
+            [aliases : (HashTable Var-Name -e)]
             [tails : (℘ -γ)]) #:transparent)
 
 ;; Path condition tail is block and renaming information
 (struct -γ ([callee : -τ]
             [fun : -s]
-            [param->arg : (Listof (Pairof Symbol -s))]) #:transparent)
+            [param->arg : (Listof (Pairof Var-Name -s))]) #:transparent)
 
 (define ⊤Γ (-Γ ∅ (hasheq) ∅))
 
@@ -160,7 +160,7 @@
            (-Γ (set-add φs s) as ts)]
         [else Γ]))
 
-(: -Γ-with-aliases : -Γ Symbol -s → -Γ)
+(: -Γ-with-aliases : -Γ Var-Name -s → -Γ)
 (define (-Γ-with-aliases Γ x s)
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ φs (hash-set as x s) ts)]
@@ -184,7 +184,7 @@
             (-α.def -𝒾)
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Symbol -𝒞)
+            (-α.x Var-Name -𝒞)
             ; for struct field
             (-α.fld [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
             ; for Cons/varargs
@@ -257,7 +257,7 @@
 ;;;;; Fixed
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-parameter set!-able? : (℘ (Pairof Symbol -e)) ∅)
+(define-parameter set!-able? : (℘ (Pairof Var-Name -e)) ∅)
 (define-parameter σv : (HashTable -𝒾 -V) ((inst hash -𝒾 -V)))
 (define-parameter σc : (HashTable -𝒾 -V) ((inst hash -𝒾 -V)))
 
@@ -421,10 +421,10 @@
   (match-define (-ℋ ℒ f bnds ℰ) ℋ)
   `(ℋ ,(show-ℒ ℒ) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
 
-(: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
+(: show-bnds : (Listof (Pairof Var-Name -s)) → (Listof Sexp))
 (define (show-bnds bnds) (map show-bnd bnds))
 
-(define (show-bnd [x-s : (Pairof Symbol -s)])
+(define (show-bnd [x-s : (Pairof Var-Name -s)])
   (match-define (cons x s) x-s)
   `(,x ↦ ,(show-s s)))
 

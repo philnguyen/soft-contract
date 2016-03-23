@@ -82,7 +82,7 @@
              (define α (-α.x x 𝒞₁))
              (values (⊔ δσ α V) (ρ+ ρ x α)))]
           [_ (error 'ap/β "TODO: varargs")]))
-      (define bnds (map (inst cons Symbol -s) xs sₓs))
+      (define bnds (map (inst cons Var-Name -s) xs sₓs))
       (define ℬ₁ (-ℬ ⟦e⟧ (-ℒ ρ₁ Γ₁ 𝒞₁)))
       (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ sₕ bnds '□) ℬ₁)}))
 
@@ -106,6 +106,7 @@
                (mon l³* ℓ W-C W-V)))
 
            ;; references to checked arguments
+           ;; FIXME generate using Int
            (define zs : (Listof Symbol)
              (for/list ([(_ i) (in-indexed xs)])
                (format-symbol "x~a" (n-sub i))))

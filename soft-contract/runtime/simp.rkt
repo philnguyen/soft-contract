@@ -220,7 +220,7 @@
               (-?@ (-st-ac s i) e))])]
     [_ (make-list n #f)]))
 
-(: bind-args : -formals (Listof -s) → (Values (Listof Symbol) (Listof -s)))
+(: bind-args : -formals (Listof -s) → (Values (Listof Var-Name) (Listof -s)))
 ;; Bind arguments to formals at `?e` level.
 ;; Return 2 lists for parameters and arguments of equal lengths.
 (define (bind-args xs es)

@@ -4,15 +4,15 @@
 
 (require racket/match racket/set "../utils/set.rkt" "../ast/main.rkt" "definition.rkt")
 
-(: s↓ : -s (℘ Symbol) → -s)
+(: s↓ : -s (℘ Var-Name) → -s)
 ;; Restrict symbol to given set of free variables
 (define (s↓ s xs)
   (and s (e↓ s xs)))
-(: e↓ : -e (℘ Symbol) → -s)
+(: e↓ : -e (℘ Var-Name) → -s)
 (define (e↓ e xs)
   (and (⊆ (fv e) xs) e))
 
-(: Γ↓ : -Γ (℘ Symbol) → -Γ)
+(: Γ↓ : -Γ (℘ Var-Name) → -Γ)
 ;; Restrict path-condition to given free variables
 (define (Γ↓ Γ xs)
 
@@ -21,7 +21,7 @@
     (for*/set: : (℘ -e) ([φ φs] [φ* (in-value (e↓ φ xs))] #:when φ*)
       φ*))
   (define as*
-    (for/hash : (HashTable Symbol -e) ([(x e) as] #:when (∋ xs x))
+    (for/hash : (HashTable Var-Name -e) ([(x e) as] #:when (∋ xs x))
       (values x e)))
   (define γs*
     (for*/set: : (℘ -γ) ([γ γs]
@@ -32,14 +32,14 @@
       γ))
   (-Γ φs* as* γs*))
 
-(: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
+(: canonicalize : (U -Γ (HashTable Var-Name -e)) Var-Name → -e)
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
 (define (canonicalize X x)
   (cond [(-Γ? X) (canonicalize (-Γ-aliases X) x)]
         [else (hash-ref X x (λ () (-x x)))]))
 
 ;; Return an expression canonicalizing given expression in terms of lexically farthest possible variable(s)
-(: canonicalize-e : (U -Γ (HashTable Symbol -e)) -e → -e)
+(: canonicalize-e : (U -Γ (HashTable Var-Name -e)) -e → -e)
 (define (canonicalize-e X e)
   (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
         [else

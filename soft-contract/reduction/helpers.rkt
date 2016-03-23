@@ -51,7 +51,7 @@
       [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
-(define/memoeq (⇓ₓ [x : Symbol]) : -⟦e⟧
+(define/memoeq (⇓ₓ [x : Var-Name]) : -⟦e⟧
   (λ (M σ ℒ)
     (match-define (-ℒ ρ Γ 𝒞) ℒ)
     (define s (canonicalize Γ x))
