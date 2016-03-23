@@ -52,8 +52,10 @@
         (match A
           [(-ΓW Γ (-W Vs s))
            (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and s fargs)))) ΓEs)]
-          [(-ΓE Γ blm)
-           (values ΓWs (set-add ΓEs (-ΓE Γ₀* blm)))]))))
+          [(-ΓE Γ (and blm (-blm l+ _ _ _)))
+           (case l+ ; ignore blamings on system, top-level, and havoc
+             [(Λ † havoc) (values ΓWs ΓEs)]
+             [else (values ΓWs (set-add ΓEs (-ΓE Γ₀* blm)))])]))))
   
   (define-values (δσ* ΓWs* ΓEs* ℐs*) ((ℰ⟦_⟧ ℰ ΓWs) M σ ℒ₀))
   (apply/values (collect M Ξ τ₀) (values δσ* ΓWs* (∪ ΓEs ΓEs*) ℐs*)))

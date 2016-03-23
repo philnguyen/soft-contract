@@ -222,6 +222,7 @@
 
 (define-type -⟦e⟧ (-M -σ -ℒ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ))))
 (define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
+(define ⊥⟦e⟧ : -⟦e⟧ (λ (M σ ℒ) (values ⊥σ ∅ ∅ ∅)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
 

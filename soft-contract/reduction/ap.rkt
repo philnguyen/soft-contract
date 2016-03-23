@@ -308,7 +308,13 @@
       (ΓWs-add! (-ΓW Γ₁₁ (-W (list Ar) v)))
       (set! δσ (⊔ ⊥σ α V)))
     (when Γ₁₂
-      (ΓEs-add! (-ΓE Γ₁₂ (-blm l+ lo (list (-W¹-V arity)) (list V)))))
+      (define C #|HACK|#
+        (match arity
+          [(-W¹ (-b (? integer? n)) _)
+           (format-symbol "(arity-includes/c ~a)" n)]
+          [(-W¹ (-b (arity-at-least n)) _)
+           (format-symbol "(arity-at-least/c ~a)" n)]))
+      (ΓEs-add! (-ΓE Γ₁₂ (-blm l+ lo (list C) (list V)))))
     (when Γ₂
       (ΓEs-add! (-ΓE Γ₂ (-blm l+ lo (list 'procedure?) (list V)))))
     (values δσ ΓWs ΓEs ∅)))
@@ -532,7 +538,11 @@
 
 
 ;; memoize these to avoid generating infinitely many compiled expressions
-(define/memo (blm [l+ : Mon-Party] [lo : Mon-Party] [Cs : (Listof -V)] [Vs : (Listof -V)]) : -⟦e⟧
-  (λ (M σ ℒ)
-    (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo Cs Vs))} ∅)))
+(define/memo (blm [l+ : Mon-Party] [lo : Mon-Party]
+                  [Cs : (Listof -V)] [Vs : (Listof -V)]) : -⟦e⟧
+  (case l+ ; ignore blames on system, top-level, and havoc
+    [(Λ † havoc) ⊥⟦e⟧]
+    [else
+     (λ (M σ ℒ)
+       (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo Cs Vs))} ∅))]))
 
