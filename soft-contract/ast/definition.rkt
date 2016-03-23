@@ -112,9 +112,6 @@
 
 (define-type -es (℘ -e))
 
-;; Current restricted representation of program
-(struct -prog ([modules : (Listof -module)] [main : -e]) #:transparent)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Constants & 'Macros'
@@ -323,6 +320,11 @@
     [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
 
     [(-λ xs e) `(λ ,(show-formals xs) ,(show-e e))]
+    [(-case-λ clauses)
+     `(case-lambda
+        ,@(for/list : (Listof Sexp) ([clause clauses])
+            (match-define (cons xs e) clause)
+            `(,(show-formals xs) ,(show-e e))))]
     [(-• i) (format-symbol "•~a" (n-sub i))]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
@@ -391,7 +393,11 @@
 (define show-general-top-level-form : (-general-top-level-form → Sexp)
   (match-lambda
     [(? -e? e) (show-e e)]
-    [(-define-values xs e) `(define-values ,xs ,(show-e e))]
+    [(-define-values xs e)
+     (match* (xs e)
+       [((list f) (-λ xs e*)) `(define (,f ,@(show-formals xs)) ,(show-e e*))]
+       [((list x) _) `(define ,x ,(show-e e))]
+       [(_ _) `(define-values ,xs ,(show-e e))])]
     [(-require specs) `(require ,@(map show-require-spec specs))]))
 
 (define show-provide-spec : (-provide-spec → Sexp)
