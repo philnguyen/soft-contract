@@ -88,7 +88,8 @@
     (let ([𝒾 (-𝒾 s 'Λ)])
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
   (define-values (σ* αs) (alloc-prims σ cs))
-  (define C (-=>i αs (-Clo (suffixed-syms '_ (length αs)) ⟦d⟧ ⊥ρ ⊤Γ)))
+  (define xs (build-list (length αs) (λ (_) (+x!))))
+  (define C (-=>i αs (-Clo xs ⟦d⟧ ⊥ρ ⊤Γ)))
   (define O (-Ar C α₀ -l³-dummy))
   (⊔* σ* [α₀ o] [α₁ O]))
 
@@ -123,7 +124,7 @@
     [`(,doms ... . -> . ,rng)
      (define-values (σ₁ Cs cs) (alloc-Cs σ doms))
      (define-values (σ₂ αs) (alloc-consts σ Cs cs))
-     (define xs (suffixed-syms '_ (length Cs)))
+     (define xs (build-list (length Cs) (λ (_) (+x!))))
      (define d (simple-parse rng))
      (define C (-=>i αs (-Clo xs (⇓ d) ⊥ρ ⊤Γ)))
      (define c (-->i cs (-λ xs d) 0))
