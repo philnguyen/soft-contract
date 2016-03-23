@@ -78,7 +78,7 @@
   (define-values (α₀ α₁)
     (let ([𝒾 (-𝒾 o 'Λ)])
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
-  (define O (-Ar C (cons α₀ o) -l³-dummy))
+  (define O (-Ar C α₀ -l³-dummy))
   (⊔* σ [α₀ o] [α₁ O]))
 
 (: alloc-Ar : -σ Symbol -o (Listof -prim) -⟦e⟧ → -σ)
@@ -89,7 +89,7 @@
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
   (define-values (σ* αs) (alloc-prims σ cs))
   (define C (-=>i αs (-Clo (suffixed-syms '_ (length αs)) ⟦d⟧ ⊥ρ ⊤Γ)))
-  (define O (-Ar C (cons α₀ o) -l³-dummy))
+  (define O (-Ar C α₀ -l³-dummy))
   (⊔* σ* [α₀ o] [α₁ O]))
 
 (: alloc-C : -σ Any → (Values -σ -V -e))

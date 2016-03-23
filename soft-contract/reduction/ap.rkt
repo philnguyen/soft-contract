@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ap ↝.@ mon ↝.mon.c ↝.mon.v blm)
+(provide ap ↝.@ mon ↝.mon.c ↝.mon.v blm ↝.let-values ↝.letrec-values)
 
 (require racket/match
          racket/set
@@ -86,59 +86,43 @@
       (define ℬ₁ (-ℬ ⟦e⟧ (-ℒ ρ₁ Γ₁ 𝒞₁)))
       (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ sₕ bnds '□) ℬ₁)}))
 
-    (: ap/Ar : -=>i -V -s Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
-    (define (ap/Ar C Vᵤ sᵤ l³)
+    (: ap/Ar : -=>i -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (define (ap/Ar C Vᵤ l³)
       (match-define (Mon-Info l+ l- lo) l³)
       (define l³* (Mon-Info l- l+ lo))
       (match-define (-=>i αs (and Mk-D (-Clo xs _ _ _))) C)
-      (define cs
-        (match sₕ
-          [(-->i cs _ _) cs]
-          [_ (make-list (length αs) #f)]))
+      
       (match xs
         [(? list? xs)
          (for*/ans ([Cs (σ@/list σ αs)])
+           ;; TODO: make sure it's ok to reuse variables `xs`
+                   
            ;; Monitor arguments
-           (define ⟦mon-arg⟧s : (Listof -⟦e⟧)
-             (for/list ([C Cs] [c cs] [Vₓ Vₓs] [sₓ sₓs])
-               (define W-C (-W¹ C  c ))
+           (define ⟦mon-x⟧s : (Listof -⟦e⟧)
+             (for/list ([C Cs] [Vₓ Vₓs] [sₓ sₓs])
+               (define W-C (-W¹ C  #f))
                (define W-V (-W¹ Vₓ sₓ))
                (mon l³* ℓ W-C W-V)))
-
-           ;; references to checked arguments
-           ;; FIXME generate using Int
-           (define zs : (Listof Symbol)
-             (for/list ([(_ i) (in-indexed xs)])
-               (format-symbol "x~a" (n-sub i))))
-           (define ⟦z⟧s (map ⇓ₓ zs))
-
-           ;; Apply inner function
-           (define ⟦inner-ap⟧ : -⟦e⟧
-             (match ⟦z⟧s
-               ['() (ap lo ℓ (-W¹ Vᵤ sᵤ) '())]
-               [(cons ⟦z⟧ ⟦z⟧s*)
-                ((↝.@ lo ℓ (list (-W¹ Vᵤ sᵤ)) ⟦z⟧s*) ⟦z⟧)]))
-
-           ;; Compute range
-           (define ⟦D⟧ : -⟦e⟧
-             (let ([W-D (-W¹ Mk-D #|FIXME|# #f)])
-               (match ⟦z⟧s
-                 ['() (ap lo ℓ W-D '())]
-                 [(cons ⟦z⟧ ⟦z⟧s*)
-                  ((↝.@ lo ℓ (list W-D) ⟦z⟧s*) ⟦z⟧)])))
-
-           ;; Check inner application's result
-           (define ⟦mon-rng⟧ : -⟦e⟧
-             ((↝.mon.v l³ ℓ ⟦inner-ap⟧) ⟦D⟧))
-
-           ;; Use checked arguments to compute range and check inner application
-           (define comp
-             (let ([Ap-n-Mon (-W¹ (-Clo zs ⟦mon-rng⟧ ⊥ρ ⊤Γ) #|FIXME|# #f)])
-               (match ⟦mon-arg⟧s
-                 ['() (ap lo ℓ Ap-n-Mon '())]
-                 [(cons ⟦mon-arg⟧ ⟦mon-arg⟧s*)
-                  ((↝.@ lo ℓ (list Ap-n-Mon) ⟦mon-arg⟧s*) ⟦mon-arg⟧)])))
            
+           (define xs⇓ (map ⇓ₓ xs))
+           (define W-rng (-W¹ Mk-D #f)) ;; Contract range maker
+           (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
+           ;; TODO: make sure it's ok to not memoize these run-time generated computations
+           (define comp
+             (match* (xs ⟦mon-x⟧s)
+               [('() '()) ; 0-arg
+                (define ⟦mk-d⟧ : -⟦e⟧ (ap lo ℓ W-rng '()))
+                (define ⟦ap⟧   : -⟦e⟧ (ap lo ℓ Wᵤ    '()))
+                ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)]
+               [((cons x xs*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
+                (define ⟦mon-y⟧ : -⟦e⟧
+                  (let ([⟦mk-d⟧ : -⟦e⟧ ((↝.@ lo ℓ (list W-rng) (cdr xs⇓)) (car xs⇓))]
+                        [⟦ap⟧   : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ   ) (cdr xs⇓)) (car xs⇓))])
+                    ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)))
+                (define bnds : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
+                  (for/list ([x xs*] [⟦x⟧ ⟦mon-x⟧s*])
+                    (cons (list x) ⟦x⟧)))
+                ((↝.let-values lo '() (list x) bnds ⟦mon-y⟧) ⟦mon-x⟧)]))
            (comp M σ ℒ₀))]
         [(-varargs zs z)
          (error 'ap "Apply variable arity arrow")]))
@@ -235,10 +219,9 @@
       [(-Clo xs ⟦e⟧ ρ Γ)
        (with-guarded-arity (formals-arity xs)
          (ap/β xs ⟦e⟧ ρ Γ))]
-      [(-Ar (? -=>i? C) (cons α fᵤ) l³)
+      [(-Ar (? -=>i? C) α l³)
        (with-guarded-arity (guard-arity C)
-         (for*/ans ([Vᵤ (σ@ σ α)])
-                   (ap/Ar C Vᵤ fᵤ l³)))]
+         (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar C Vᵤ l³)))]
       [(-And/C #t α₁ α₂)
        (with-guarded-arity 1
          (match-define (list c₁ c₂) (-app-split sₕ 'and/c 2))
@@ -321,7 +304,7 @@
     (define δσ : -Δσ ⊥σ)
     (when Γ₁₁
       (define α (-α.rng ℓ (-ℒ-hist ℒ)))
-      (define Ar (-Ar guard (cons α v) l³))
+      (define Ar (-Ar guard α l³))
       (ΓWs-add! (-ΓW Γ₁₁ (-W (list Ar) v)))
       (set! δσ (⊔ ⊥σ α V)))
     (when Γ₁₂
@@ -431,7 +414,125 @@
           (⟦mon⟧ M σ* (-ℒ-with-Γ ℒ Γ*)))))
      (⟦e⟧ M σ ℒ))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Let-binding
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: ↝.let-values : Mon-Party
+                  (Listof (Pairof Var-Name -W¹))
+                  (Listof Var-Name)
+                  (Listof (Pairof (Listof Var-Name) -⟦e⟧))
+                  -⟦e⟧
+                  → -⟦ℰ⟧)
+(define (((↝.let-values l x-Ws xs xs-⟦e⟧s ⟦e⟧) ⟦eₓ⟧) M σ ℒ)
+  (apply/values
+   (acc
+    σ
+    (λ (ℰ) (-ℰ.let-values l x-Ws (cons xs ℰ) xs-⟦e⟧s ⟦e⟧))
+    (λ (σ* Γ* W)
+      (match-define (-W Vs s) W)
+      (define n (length xs))
+      (with-guarded-arity n (l Γ* Vs)
+        (define x-Ws*
+          (foldr
+           (λ ([x : Var-Name] [V : -V] [s : -s] [x-Ws* : (Listof (Pairof Var-Name -W¹))])
+             (cons (cons x (-W¹ V s)) x-Ws*))
+           x-Ws
+           xs
+           Vs
+           (split-values s n)))
+        (match xs-⟦e⟧s ; TODO dispatch outside?
+          ['()
+           (match-define (-ℒ ρ _ 𝒞) ℒ)
+           (define-values (ρ* δσ Γ**)
+             (for/fold ([ρ* : -ρ ρ] [δσ : -Δσ ⊥σ] [Γ** : -Γ Γ*])
+                       ([x-W x-Ws*])
+               (match-define (cons x (-W¹ V s)) x-W)
+               (define α (-α.x x 𝒞))
+               (values (hash-set ρ* x α)
+                       (⊔ δσ α V)
+                       (-Γ-with-aliases Γ* x s))))
+           (define σ** (⊔/m σ* δσ))
+           (⊔/ans (values δσ ∅ ∅ ∅)
+                  (⟦e⟧ M σ** (-ℒ ρ* Γ** 𝒞)))]
+          [(cons (cons xs* ⟦e⟧*) xs-⟦e⟧s*)
+           (((↝.let-values l x-Ws* xs* xs-⟦e⟧s* ⟦e⟧) ⟦e⟧*) M σ* (-ℒ-with-Γ ℒ Γ*))]
+          ))))
+   (⟦eₓ⟧ M σ ℒ)))
+
+(: ↝.letrec-values : Mon-Party
+                     -Δρ
+                     (Listof Var-Name)
+                     (Listof (Pairof (Listof Var-Name) -⟦e⟧))
+                     -⟦e⟧
+                     → -⟦ℰ⟧)
+(define (((↝.letrec-values l δρ xs xs-⟦e⟧s ⟦e⟧) ⟦eₓ⟧) M σ ℒ)
+  ;; FIXME: inefficient. `ρ*` is recomputed many times
+  (define ρ (-ℒ-env ℒ))
+  (define ℒ* (-ℒ-with-ρ ℒ (ρ++ ρ δρ)))
+  (apply/values
+   (acc
+    σ
+    (λ (ℰ) (-ℰ.letrec-values l δρ (cons xs ℰ) xs-⟦e⟧s ⟦e⟧))
+    (λ (σ₀ Γ₀ W)
+      (define n (length xs))
+      (match-define (-W Vs s) W)
+      (with-guarded-arity n (l Γ₀ Vs)
+        ;; Update/widen store and path condition
+        (define-values (δσ Γ₁)
+          (for/fold ([δσ : -Δσ ⊥σ] [Γ₁ : -Γ Γ₀])
+                    ([x xs] [V Vs] [sₓ (split-values s n)])
+            (values (⊔ δσ (ρ@ δρ x) V)
+                    (Γ+ (if sₓ (-Γ-with-aliases Γ₁ x sₓ) Γ₁) (-?@ 'defined? (-x x))))))
+        (define σ₁ (⊔/m σ₀ δσ))
+        
+        (match xs-⟦e⟧s
+          [(cons (cons xs* ⟦e⟧*) xs-⟦e⟧s*)
+           (⊔/ans
+             (values δσ ∅ ∅ ∅)
+             (((↝.letrec-values l δρ xs* xs-⟦e⟧s* ⟦e⟧) ⟦e⟧*) M σ₁ (-ℒ-with-Γ ℒ Γ₁)))]
+          ['()
+           (define-values (δσ* ΓWs ΓEs ℐs) (⟦e⟧ M σ (-ℒ-with-Γ ℒ* Γ₁)))
+           
+           ;;; Erase irrelevant part of path conditions after executing letrec body
+
+           ;; Free variables that outside of `letrec` understands
+           (define xs₀ (list->set (hash-keys ρ)))
+
+           (define ΓWs*
+             (map/set
+              (match-lambda
+                [(-ΓW Γ (-W Vs s))
+                 (-ΓW (Γ↓ Γ xs₀) (-W Vs (s↓ s xs₀)))])
+              ΓWs))
+           
+           (define ΓEs*
+             (map/set
+              (match-lambda
+                [(-ΓE Γ blm)
+                 (-ΓE (Γ↓ Γ xs₀) blm)])
+              ΓEs))
+           
+           (define ℐs*
+             (map/set
+              (match-lambda
+                [(-ℐ (-ℋ ℒ f bnds ℰ) τ)
+                 (define Γ* (Γ↓ (-ℒ-cnd ℒ) xs₀))
+                 (define f* (s↓ f xs₀))
+                 (define bnds*
+                   (for/list : (Listof (Pairof Var-Name -s)) ([bnd bnds])
+                     (match-define (cons x s) bnd)
+                     (cons x (s↓ s xs₀))))
+                 (-ℐ (-ℋ (-ℒ-with-Γ ℒ Γ*) f* bnds* ℰ) τ)])
+              ℐs))
+           
+           (values (⊔/m δσ δσ*) ΓWs* ΓEs* ℐs*)]))))
+   (⟦eₓ⟧ M σ ℒ*)))
+
+
 ;; memoize these to avoid generating infinitely many compiled expressions
 (define/memo (blm [l+ : Mon-Party] [lo : Mon-Party] [Cs : (Listof -V)] [Vs : (Listof -V)]) : -⟦e⟧
   (λ (M σ ℒ)
     (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo Cs Vs))} ∅)))
+

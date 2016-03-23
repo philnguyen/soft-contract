@@ -61,7 +61,7 @@
             (-Clo -formals -⟦e⟧ -ρ -Γ)
             
             ;; Proxied higher-order values
-            (-Ar [guard : #|ok, no rec|# -=>i] [v : (Pairof -α -s)] [ctx : Mon-Info])
+            (-Ar [guard : #|ok, no rec|# -=>i] [v : -α] [ctx : Mon-Info])
             (-St* [info : -struct-info] [ctcs : (Listof (Option -α.struct/c))] [val : -α.st] [ctx : Mon-Info])
             (-Vector/hetero [ctcs : (Listof -α.vector/c)] [val : -α.vct] [ctx : Mon-Info])
             (-Vector/homo [ctc : -α.vectorof] [val : -α.vct] [ctx : Mon-Info])
@@ -319,7 +319,7 @@
     [(-●) '●]
     [(? -o? o) (show-o o)]
     [(-Clo xs ⟦e⟧ ρ _) `(Clo ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
-    [(-Ar guard (cons α s) _) `(,(show-V guard) ◃ (,(show-α α) @ ,(show-s s)))]
+    [(-Ar guard α _) `(,(show-V guard) ◃ ,(show-α α))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St* s γs α _)
      `(,(format-symbol "~a/wrapped" (show-struct-info s))
