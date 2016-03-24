@@ -36,13 +36,3 @@
 ;; Return list of `n` symbols suffixed by indices `[0..n-1]`
 (define (suffixed-syms x n)
   (build-list n (λ ([i : Natural]) (format-symbol "~a~a" x (n-sub i)))))
-
-;; Create generator for next natural/negative
-(define (make-neg-src)
-  (let ([n : Negative-Integer -1])
-    (λ () : Negative-Integer
-       (begin0 n (set! n (- n 1))))))
-(define (make-nat-src)
-  (let ([n : Natural 0])
-    (λ () : Natural
-       (begin0 n (set! n (+ n 1))))))

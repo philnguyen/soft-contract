@@ -4,6 +4,20 @@
 
 (require "pretty.rkt")
 
+;; Create generator for next pos/natural/negative
+(define (make-neg-src)
+  (let ([n : Negative-Integer -1])
+    (λ () : Negative-Integer
+       (begin0 n (set! n (- n 1))))))
+(define (make-nat-src)
+  (let ([n : Natural 0])
+    (λ () : Natural
+       (begin0 n (set! n (+ n 1))))))
+(define (make-pos-src)
+  (let ([n : Positive-Integer 1])
+    (λ () : Positive-Integer
+       (begin0 n (set! n (+ n 1))))))
+
 (: unique-nat (∀ (X) ([] [#:hacked-warning (Option Natural)]
                       . ->* .
                       (Values (X → Natural) (Natural → X) (→ Natural)))))

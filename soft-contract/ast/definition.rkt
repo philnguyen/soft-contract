@@ -21,7 +21,7 @@
   (match-lambda [(Mon-Info l+ l- lo) (Mon-Info l- l+ lo)]))
 
 ;; Source location
-(define +ℓ! (make-neg-src))
+(define +ℓ! (make-pos-src))
 (define next-subscript! (make-nat-src))
 (define-type -ℓ Integer)
 
