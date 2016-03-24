@@ -59,8 +59,8 @@
       (match-define (-p/c-item x _ _) spec)
       (refs-add! (-ref (-𝒾 x path) (+ℓ!)))))
   
-  (-amb/remember (for/list ([ref (in-set refs)])
-                   (-@ (•!) (list ref) (+ℓ!)))))
+  (-amb/simp (for/list ([ref (in-set refs)])
+               (-@ (•!) (list ref) (+ℓ!)))))
 
 (: prog-accs : (Listof -module) → (℘ -st-ac))
 ;; Retrieve set of all public accessors from program

@@ -6,6 +6,7 @@
 
 (provide (all-defined-out)
          (all-from-out "continuation-if.rkt")
+         (all-from-out "continuation-amb.rkt")
          (all-from-out "ap.rkt"))
 
 (require
@@ -16,44 +17,45 @@
  "../proof-relation/main.rkt"
  "helpers.rkt"
  "continuation-if.rkt"
+ "continuation-amb.rkt"
  "ap.rkt")
 
 (: ↝.def : Mon-Party (Listof (U -α.def -α.wrp)) → -⟦ℰ⟧)
 ;; Define top-level `xs` to be values from `⟦e⟧`
-(define (((↝.def l αs) ⟦e⟧) M σ ℒ)
-  (apply/values
-   (acc
-    σ
-    (λ (ℰ) (-ℰ.def l αs ℰ))
-    (λ (σ* Γ* W)
-      (define Vs (-W-Vs W))
-      (with-guarded-arity (length αs) (l Γ* Vs)
-        (define δσ
-          (for/fold ([δσ : -Δσ ⊥σ]) ([α αs] [V Vs])
-            (⊔ δσ α V)))
-        (values δσ {set (-ΓW Γ* -Void/W)} ∅ ∅))))
-    (⟦e⟧ M σ ℒ)))
+(define ((↝.def l αs) ⟦e⟧)
+  (define (ℰ+ [ℰ : -ℰ]) (-ℰ.def l αs ℰ))
+  (define (kont [σ : -σ] [Γ : -Γ] [W : -W])
+    (define Vs (-W-Vs W))
+    (with-guarded-arity (length αs) (l Γ Vs)
+      (define δσ
+        (for/fold ([δσ : -Δσ ⊥σ]) ([α αs] [V Vs])
+          (⊔ δσ α V)))
+      (values δσ {set (-ΓW Γ -Void/W)} ∅ ∅)))
+  (λ (M σ ℒ)
+    (apply/values (acc σ ℰ+ kont) (⟦e⟧ M σ ℒ))))
 
 (: ↝.dec : -𝒾 -ℓ → -⟦ℰ⟧)
 ;; Make `⟦c⟧`. the contract for `𝒾`.
-(define (((↝.dec 𝒾 ℓ) ⟦c⟧) M σ ℒ)
-  (apply/values
-   (acc
-    σ
-    (λ (ℰ) (-ℰ.dec 𝒾 ℰ ℓ))
-    (λ (σ* Γ* W)
-      (match-define (-W Vs c) W)
-      (define l (-𝒾-ctx 𝒾))
-      (with-guarded-arity 1 (l Γ* Vs)
-        (match-define (list C) Vs)
-        (define ℒ* (-ℒ-with-Γ ℒ Γ*))
-        (define ⟦ℰ⟧-wrp (↝.def l (list (-α.wrp 𝒾))))
-        (define v (-ref 𝒾 0))
-        (define W-C (-W¹ C c))
-        (define l³ (Mon-Info l 'dummy l))
-        (for*/ans ([V (σ@ σ (-α.def 𝒾))])
-          ((⟦ℰ⟧-wrp (mon l³ ℓ W-C (-W¹ V v))) M σ* ℒ*)))))
-   (⟦c⟧ M σ ℒ)))
+(define ((↝.dec 𝒾 ℓ) ⟦c⟧)
+  (define (ℰ+ [ℰ : -ℰ]) (-ℰ.dec 𝒾 ℰ ℓ))
+  (define l (-𝒾-ctx 𝒾))
+  (define ⟦ℰ⟧-wrp (↝.def l (list (-α.wrp 𝒾))))
+  (define v (-ref 𝒾 0))
+  (define l³ (Mon-Info l 'dummy l))
+  (λ (M σ ℒ)
+    (apply/values
+     (acc
+      σ
+      ℰ+
+      (λ (σ* Γ* W)
+        (match-define (-W Vs c) W)
+        (with-guarded-arity 1 (l Γ* Vs)
+          (match-define (list C) Vs)
+          (define ℒ* (-ℒ-with-Γ ℒ Γ*))
+          (define W-C (-W¹ C c))
+          (for*/ans ([V (σ@ σ (-α.def 𝒾))])
+            ((⟦ℰ⟧-wrp (mon l³ ℓ W-C (-W¹ V v))) M σ* ℒ*)))))
+     (⟦c⟧ M σ ℒ))))
 
 (: ↝.begin : (Listof -⟦e⟧) → -⟦ℰ⟧)
 (define ((↝.begin ⟦e⟧s) ⟦e⟧)
@@ -103,29 +105,33 @@
         (⟦e⟧ M σ ℒ)))]))
 
 (: ↝.set! : Var-Name → -⟦ℰ⟧)
-(define (((↝.set! x) ⟦e⟧) M σ ℒ)
-  (apply/values
-   (acc
-    σ
-    (λ (ℰ) (-ℰ.set! x ℰ))
-    (λ (σ* Γ* W)
-      (match-define (-W Vs s) W)
-      (with-guarded-arity 1 ('TODO Γ* Vs)
-        (match-define (list V) Vs)
-        (define α (ρ@ (-ℒ-env ℒ) x))
-        (values (⊔ ⊥σ α V) {set (-ΓW Γ* -Void/W)} ∅ ∅))))
-   (⟦e⟧ M σ ℒ)))
+(define ((↝.set! x) ⟦e⟧)
+  (define (ℰ+ [ℰ : -ℰ]) (-ℰ.set! x ℰ))
+  (λ (M σ ℒ)
+    (apply/values
+     (acc
+      σ
+      ℰ+
+      (λ (σ* Γ* W)
+        (match-define (-W Vs s) W)
+        (with-guarded-arity 1 ('TODO Γ* Vs)
+          (match-define (list V) Vs)
+          (define α (ρ@ (-ℒ-env ℒ) x))
+          (values (⊔ ⊥σ α V) {set (-ΓW Γ* -Void/W)} ∅ ∅))))
+     (⟦e⟧ M σ ℒ))))
 
 (: ↝.μ/c : Mon-Party Integer → -⟦ℰ⟧)
-(define (((↝.μ/c l x) ⟦c⟧) M σ ℒ)
-  (apply/values
-   (acc
-    σ
-    (λ (ℰ) (-ℰ.μ/c l x ℰ))
-    (λ (σ* Γ* W)
-      (with-guarded-arity 1 (l Γ* (-W-Vs W))
-        (values ⊥σ {set (-ΓW Γ* W)} ∅ ∅))))
-   (⟦c⟧ M σ ℒ)))
+(define ((↝.μ/c l x) ⟦c⟧)
+  (define (ℰ+ [ℰ : -ℰ]) (-ℰ.μ/c l x ℰ))
+  (λ (M σ ℒ)
+    (apply/values
+     (acc
+      σ
+      ℰ+
+      (λ (σ* Γ* W)
+        (with-guarded-arity 1 (l Γ* (-W-Vs W))
+          (values ⊥σ {set (-ΓW Γ* W)} ∅ ∅))))
+     (⟦c⟧ M σ ℒ))))
 
 (: ↝.-->.dom : Mon-Party (Listof -W¹) (Listof -⟦e⟧) -⟦e⟧ -ℓ → -⟦ℰ⟧)
 (define ((↝.-->.dom l Ws ⟦c⟧s ⟦d⟧ ℓ) ⟦c⟧)
@@ -239,6 +245,3 @@
            (define V (-St/C flat? si αs))
            (values δσ {set (-ΓW Γ* (-W (list V) (-?struct/c si cs)))} ∅ ∅)]))))
    (⟦c⟧ M σ ℒ)))
-
-
-

@@ -11,7 +11,8 @@
          "../proof-relation/main.rkt"
          "../delta.rkt"
          "helpers.rkt"
-         "continuation-if.rkt")
+         "continuation-if.rkt"
+         "continuation-amb.rkt")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -19,24 +20,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (: ↝.@ : Mon-Party -ℓ (Listof -W¹) (Listof -⟦e⟧) → -⟦ℰ⟧)
-(define (((↝.@ l ℓ Ws ⟦e⟧s) ⟦e⟧) M σ ℒ)
-  (apply/values
-   (acc
-    σ
-    (λ (ℰ) (-ℰ.@ l ℓ Ws ℰ ⟦e⟧s))
-    (λ (σ* Γ* W)
-      (match-define (-W Vs s) W)
-      (with-guarded-arity 1 (l Γ* Vs)
-        (match-define (list V) Vs)
-        (define Ws* (cons (-W¹ V s) Ws))
-        (define ℒ* (-ℒ-with-Γ ℒ Γ*))
-        (match ⟦e⟧s ; TODO: move this dispatch out?
-          ['()
-           (match-define (cons Wₕ Wₓs) (reverse Ws*))
-           ((ap l ℓ Wₕ Wₓs) M σ* ℒ*)]
-          [(cons ⟦e⟧* ⟦e⟧s*)
-           (((↝.@ l ℓ Ws* ⟦e⟧s*) ⟦e⟧*) M σ* ℒ*)]))))
-   (⟦e⟧ M σ ℒ)))
+(define ((↝.@ l ℓ Ws ⟦e⟧s) ⟦e⟧)
+  (define (ℰ+ [ℰ : -ℰ]) (-ℰ.@ l ℓ Ws ℰ ⟦e⟧s))
+  (λ (M σ ℒ)
+    (apply/values
+     (acc
+      σ
+      ℰ+
+      (λ (σ* Γ* W)
+        (match-define (-W Vs s) W)
+        (with-guarded-arity 1 (l Γ* Vs)
+          (match-define (list V) Vs)
+          (define Ws* (cons (-W¹ V s) Ws))
+          (define ℒ* (-ℒ-with-Γ ℒ Γ*))
+          (match ⟦e⟧s ; TODO: move this dispatch out?
+            ['()
+             (match-define (cons Wₕ Wₓs) (reverse Ws*))
+             ((ap l ℓ Wₕ Wₓs) M σ* ℒ*)]
+            [(cons ⟦e⟧* ⟦e⟧s*)
+             (((↝.@ l ℓ Ws* ⟦e⟧s*) ⟦e⟧*) M σ* ℒ*)]))))
+     (⟦e⟧ M σ ℒ))))
 
 ;; Apply value `Wₕ` to arguments `Wₓ`s, returning store widening, answers, and suspended computation
 (define/memo (ap [l : Mon-Party] [ℓ : -ℓ] [Wₕ : -W¹] [Wₓs : (Listof -W¹)]) : -⟦e⟧
@@ -90,31 +93,31 @@
     (define (ap/Ar C Vᵤ l³)
       (match-define (Mon-Info l+ l- lo) l³)
       (define l³* (Mon-Info l- l+ lo))
+      (define Wᵤ (-W¹ Vᵤ sₕ)) ;; Inner function
       (match-define (-=> αs β) C)
-      (define Wᵤ (-W¹ Vᵤ   sₕ)) ;; Inner function
       
       (match αs
         ['() ; no arg
+         (define ⟦ap⟧ : -⟦e⟧ (ap lo ℓ Wᵤ '()))
          (for*/ans ([D (σ@ σ β)])
-           (define ⟦ap⟧ : -⟦e⟧ (ap lo ℓ Wᵤ '()))
-           (define W-D (-W¹ D #f))
-           (((↝.mon.c l³ ℓ W-D) ⟦ap⟧) M σ ℒ₀))]
+           (((↝.mon.c l³ ℓ (-W¹ D #f)) ⟦ap⟧) M σ ℒ₀))]
         [(cons α αs*)
-         (for*/ans ([Cs (σ@/list σ αs)] [D (σ@ σ β)])
+         (for*/ans ([Cs (σ@/list σ αs)])
            (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
              (for/list : (Listof -⟦e⟧) ([C Cs] [Wₓ Wₓs])
                (mon l³* ℓ (-W¹ C #f) Wₓ)))
            (define ⟦ap⟧ : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ) ⟦mon-x⟧s) ⟦mon-x⟧))
-           (define comp : -⟦e⟧ ((↝.mon.c l³ ℓ (-W¹ D #f)) ⟦ap⟧))
-           (comp M σ ℒ₀))]))
+           (for*/ans ([D (σ@ σ β)])
+             (define comp : -⟦e⟧ ((↝.mon.c l³ ℓ (-W¹ D #f)) ⟦ap⟧))
+             (comp M σ ℒ₀)))]))
 
     (: ap/indy : -=>i -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/indy C Vᵤ l³)
       (match-define (Mon-Info l+ l- lo) l³)
       (define l³* (Mon-Info l- l+ lo))
+      (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
       (match-define (-=>i αs (and Mk-D (-Clo xs _ _ _))) C)
       (define W-rng (-W¹ Mk-D #f)) ;; Contract range maker
-      (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
       
       (match xs
         [(? list? xs)
@@ -125,24 +128,23 @@
            ;; Monitor arguments
            (define ⟦mon-x⟧s : (Listof -⟦e⟧)
              (for/list ([C Cs] [Wₓ Wₓs])
-               (define W-C (-W¹ C  #f))
-               (mon l³* ℓ W-C Wₓ)))
+               (mon l³* ℓ (-W¹ C #f) Wₓ)))
            
            ;; TODO: make sure it's ok to not memoize these run-time generated computations
            (define comp
-             (match* (xs ⟦mon-x⟧s)
-               [('() '()) ; 0-arg
+             (match* (xs xs⇓ ⟦mon-x⟧s)
+               [('() '() '()) ; 0-arg
                 (define ⟦mk-d⟧ : -⟦e⟧ (ap lo ℓ W-rng '()))
                 (define ⟦ap⟧   : -⟦e⟧ (ap lo ℓ Wᵤ    '()))
                 ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)]
-               [((cons x xs*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
+               [((cons x xs*) (cons x⇓ xs⇓*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
                 (define ⟦mon-y⟧ : -⟦e⟧
-                  (let ([⟦mk-d⟧ : -⟦e⟧ ((↝.@ lo ℓ (list W-rng) (cdr xs⇓)) (car xs⇓))]
-                        [⟦ap⟧   : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ   ) (cdr xs⇓)) (car xs⇓))])
+                  (let ([⟦mk-d⟧ : -⟦e⟧ ((↝.@ lo ℓ (list W-rng) xs⇓*) x⇓)]
+                        [⟦ap⟧   : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ   ) xs⇓*) x⇓)])
                     ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)))
                 (define bnds : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
-                  (for/list ([x xs*] [⟦x⟧ ⟦mon-x⟧s*])
-                    (cons (list x) ⟦x⟧)))
+                  (for/list ([xᵢ xs*] [⟦mon-xᵢ⟧ ⟦mon-x⟧s*])
+                    (cons (list xᵢ) ⟦mon-xᵢ⟧)))
                 ((↝.let-values lo '() (list x) bnds ⟦mon-y⟧) ⟦mon-x⟧)]))
            (comp M σ ℒ₀))]
         [(-varargs zs z)
@@ -169,15 +171,15 @@
     (: ap/contract-first-order-passes? : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/contract-first-order-passes?)
       (match-define (list WC WV) Wₓs)
-      (error "TODO"))
+      (error 'contract-first-order-passes? "TODO"))
 
     (: ap/st-p : -struct-info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/st-p s)
       (define ans
         (case (MσΓ⊢oW M σ Γ₀ (-st-p s) (car Wₓs))
-          [(✓) (-ΓW (Γ+ Γ₀ sₐ)        (-W (list -tt) sₐ))]
-          [(✗) (-ΓW (Γ+ Γ₀ (-not sₐ)) (-W (list -ff) sₐ))]
-          [(?) (-ΓW     Γ₀            (-W -●/Vs      sₐ))]))
+          [(✓) (-ΓW (Γ+ Γ₀ sₐ)        (-W -True/Vs  sₐ))]
+          [(✗) (-ΓW (Γ+ Γ₀ (-not sₐ)) (-W -False/Vs sₐ))]
+          [(?) (-ΓW     Γ₀            (-W -●/Vs     sₐ))]))
       (values ⊥σ {set ans} ∅ ∅))
 
     (: ap/st-mk : -struct-info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
@@ -204,7 +206,7 @@
              (-ΓW Γ₀ (-W (list Vₐ) sₐ))))
          (values ⊥σ ans ∅ ∅)]
         [(-St* (== s) _ _ _)
-         (error 'struct-accesor "TODO: wrapped struct")]
+         (error 'struct-accessor "TODO: wrapped struct")]
         [(-●) ; error must have been catched from ouside. This is the unsafe version
          (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
         [_ (⊥ans)]))
@@ -220,6 +222,21 @@
     (: ap/vector-set! : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-set!)
       (error 'error-set! "TODO"))
+
+    (: ap/● : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (define (ap/●)
+
+      (define ΓW-● {set (-ΓW Γ₀ (-W -●/Vs sₐ))})
+
+      (: ap/●¹ : -W¹ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+      (define (ap/●¹ Wₓ)
+        (match-define (-W¹ Vₓ sₓ) Wₓ)
+        (error "TODO"))
+
+      (⊔/ans (values ⊥σ ΓW-● ∅ ∅)
+             (for*/ans ([Wₓ Wₓs]) (ap/●¹ Wₓ))))
+
+    
     
     (match Vₕ
       
@@ -261,9 +278,7 @@
                    (ap/Not/C (-W¹ C* c*))))]
       [(-St/C #t si αs)
        (error 'ap "St/C")]
-      [(-●) ; FIXME havoc
-       (printf "ap: ●~n")
-       (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
+      [(-●) (ap/●)]
       [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)])))
 
 

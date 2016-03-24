@@ -14,3 +14,10 @@
      (for*/set: : (℘ (Listof -V)) ([V Vs] [Vs Vss])
        (cons V Vs))]
     ['() {set '()}]))
+
+(: σ@¹ : -σ -α → -V)
+;; Look up store, asserting that exactly 1 value resides there
+(define (σ@¹ σ α)
+  (define Vs (σ@ σ α))
+  (assert (= 1 (set-count Vs)))
+  (set-first Vs))

@@ -199,10 +199,7 @@
      [(-set! x e*) ((↝.set! x) (↓ e*))]
      [(-error msg) (blm l 'Λ '() (list (-b msg)))] ;; HACK
      [(-@-havoc (-x x)) (↝.havoc x)]
-     [(-amb es)
-      (define ⟦e⟧s (set-map es ↓))
-      (λ (M σ ℒ)
-        (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ ℒ)))]
+     [(-amb es) (↝.amb (set-map es ↓))]
      [(-μ/c x c) ((↝.μ/c l x) (↓ c))]
      [(--> cs d ℓ)
       (define ⟦c⟧s (map ↓ cs))
