@@ -232,9 +232,9 @@
              (define Clauses* (cons Cs* Clauses))
              (match clauses
                ['()
-                (error "TODO")]
+                (error '↝.case-> "TODO")]
                [(cons clause clauses*)
-                (error "TODO")])]
+                (error '↝.case-> "TODO")])]
             [(cons ⟦c⟧* ⟦c⟧s*)
              (((↝.case-> l ℓ Clauses Cs* ⟦c⟧s* clauses) ⟦c⟧*) M σ* ℒ*)]))))
      (⟦c⟧ M σ ℒ))))

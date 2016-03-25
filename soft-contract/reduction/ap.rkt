@@ -229,16 +229,10 @@
 
     (: ap/● : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/●)
-
-      (define ΓW-● {set (-ΓW Γ₀ (-W -●/Vs sₐ))})
-
-      (: ap/●¹ : -W¹ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
-      (define (ap/●¹ Wₓ)
-        (match-define (-W¹ Vₓ sₓ) Wₓ)
-        (error "TODO"))
-
-      (⊔/ans (values ⊥σ ΓW-● ∅ ∅)
-             (for*/ans ([Wₓ Wₓs]) (ap/●¹ Wₓ))))
+      (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def (-𝒾 'havoc-id 'havoc))) #f))
+      (⊔/ans (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)
+             (for*/ans ([Wₓ Wₓs])
+               ((ap 'Λ ℓ Wₕᵥ (list Wₓ)) M σ ℒ₀))))
     
     (match Vₕ
       
@@ -366,11 +360,11 @@
 
 (: mon-struct/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-struct/c l³ ℓ W-C W-V)
-  (error "TODO"))
+  (error 'mon-struct/c "TODO"))
 
 (: mon-x/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-x/c l³ ℓ W-C W-V)
-  (error "TODO"))
+  (error 'mon-x/c "TODO"))
 
 (: mon-and/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor contract conjunction by decomposing into nesting checks
@@ -384,7 +378,7 @@
 
 (: mon-or/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-or/c l³ ℓ W-C W-V)
-  (error "TODO"))
+  (error 'mon-or/c "TODO"))
 
 (: mon-not/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor negation contract. It must be flat.
@@ -405,11 +399,11 @@
 
 (: mon-vectorof : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-vectorof l³ ℓ α V)
-  (error "TODO"))
+  (error 'mon-vectorof "TODO"))
 
 (: mon-vector/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-vector/c l³ ℓ αs V)
-  (error "TODO"))
+  (error 'mon-vector/c "TODO"))
 
 (: mon-flat : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor flat contract
