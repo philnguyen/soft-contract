@@ -52,36 +52,24 @@
               [(or (? -Clo?) (? -Ar?) (? -Case-Clo?))
                (define a (V-arity V))
                (define ℓ-V● (+ℓ/memo! 'arity a))
+
+               (define (hv/arity [k : Natural]) : -⟦e⟧
+                 (define ⟦V-●⟧
+                   (cond
+                     [(> k 0) ((↝.@ havoc-path ℓ-V● (list W) (make-list (- k 1) ⟦●⟧)) ⟦●⟧)]
+                     [else    (ap havoc-path ℓ-V● W '())]))
+                 (define ⟦hv-⸨V-●⸩⟧ ((↝.@ havoc-path (ℓₕᵥ 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
+                 (define ⟦hv-V⟧     ((↝.@ havoc-path (ℓₕᵥ 1) '() (list ⟦rt-V⟧)) ⟦hv⟧))
+                 (define ⟦hv-⸨V-●⸩∷hv-V⟧ ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧))
+                 (↝.amb (list ⟦hv-⸨V-●⸩∷hv-V⟧ ⟦●⟧)))
+               
                (match a
-                 [(arity-at-least k) ; just k+1 for now
-                  (define ⟦V-●⟧ ((↝.@ havoc-path ℓ-V● (list W) (make-list k ⟦●⟧)) ⟦●⟧))
-                  (define ⟦hv-⸨V-●⸩⟧ ((↝.@ havoc-path (ℓₕᵥ 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
-                  (define ⟦hv-V⟧     ((↝.@ havoc-path (ℓₕᵥ 1) '() (list ⟦rt-V⟧)) ⟦hv⟧))
-                  (↝.amb (list ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧)
-                               ⟦●⟧))]
-                 [(? integer? k)
-                  (define ⟦V-●⟧
-                    (cond
-                      [(> k 0) ((↝.@ havoc-path ℓ-V● (list W) (make-list (- k 1) ⟦●⟧)) ⟦●⟧)]
-                      [else    (ap havoc-path ℓ-V● W '())]))
-                  (define ⟦hv-⸨V-●⸩⟧ ((↝.@ havoc-path (ℓₕᵥ 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
-                  (define ⟦hv-V⟧     ((↝.@ havoc-path (ℓₕᵥ 1) '() (list ⟦rt-V⟧)) ⟦hv⟧))
-                  (↝.amb (list ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧)
-                               ⟦●⟧))]
+                 [(arity-at-least k) (hv/arity (+ 1 k))] ; TODO
+                 [(? integer? k) (hv/arity k)]
                  [(? list? ks)
-                  (define ⟦clause⟧s : (Listof -⟦e⟧)
-                    (for/list ([k ks])
-                      (cond
-                        [(exact-nonnegative-integer? k)
-                         (define ⟦V-●⟧
-                           (cond
-                             [(> k 0) ((↝.@ havoc-path ℓ-V● (list W) (make-list (- k 1) ⟦●⟧)) ⟦●⟧)]
-                             [else    (ap havoc-path ℓ-V● W '())]))
-                         (define ⟦hv-⸨V-●⸩⟧ ((↝.@ havoc-path (ℓₕᵥ 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
-                         (define ⟦hv-V⟧     ((↝.@ havoc-path (ℓₕᵥ 1) '() (list ⟦rt-V⟧)) ⟦hv⟧))
-                         ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧)]
-                        [else (error 'havoc"TODO: ~a" k)])))
-                  (↝.amb (cons ⟦●⟧ ⟦clause⟧s))]
+                  (↝.amb (for/list : (Listof -⟦e⟧) ([k ks])
+                           (cond [(integer? k) (hv/arity k)]
+                                 [else (error 'havoc"TODO: ~a" k)])))]
                  [_ ⊥⟦e⟧])
 
                ]
