@@ -4,7 +4,7 @@
 
 (require racket/match
          racket/set
-         racket/list
+         (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
@@ -150,6 +150,10 @@
         [(-varargs zs z)
          (error 'ap "Apply variable arity arrow")]))
 
+    (: ap/case : -Case-> -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (define (ap/case C Vᵤ l³)
+      (error 'ap/case "TODO"))
+
     (: ap/And/C : -W¹ -W¹ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/And/C WC₁ WC₂)
       (define ⟦e⟧₁ (ap l ℓ WC₁ Wₓs))
@@ -235,8 +239,6 @@
 
       (⊔/ans (values ⊥σ ΓW-● ∅ ∅)
              (for*/ans ([Wₓ Wₓs]) (ap/●¹ Wₓ))))
-
-    
     
     (match Vₕ
       
@@ -259,8 +261,9 @@
          (ap/β xs ⟦e⟧ ρ Γ))]
       [(-Ar C α l³)
        (with-guarded-arity (guard-arity C)
-         (cond [(-=>? C) (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar   C Vᵤ l³))]
-               [else     (for*/ans ([Vᵤ (σ@ σ α)]) (ap/indy C Vᵤ l³))]))]
+         (cond [(-=>? C)  (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar   C Vᵤ l³))]
+               [(-=>i? C) (for*/ans ([Vᵤ (σ@ σ α)]) (ap/indy C Vᵤ l³))]
+               [else      (for*/ans ([Vᵤ (σ@ σ α)]) (ap/case C Vᵤ l³))]))]
       [(-And/C #t α₁ α₂)
        (with-guarded-arity 1
          (match-define (list c₁ c₂) (-app-split sₕ 'and/c 2))

@@ -5,15 +5,25 @@
 
 (provide (all-defined-out))
 
-(require
- racket/match racket/bool racket/list racket/math racket/flonum racket/extflonum
- racket/string racket/function
- "../utils/main.rkt" "../ast/definition.rkt" "definition.rkt"
- (for-syntax
-  racket/base racket/contract racket/match racket/list racket/function
-  "../utils/main.rkt"
-  (prefix-in prims: "../primitives/declarations.rkt")
-  "../primitives/utils.rkt"))
+(require racket/match
+         racket/bool
+         (except-in racket/list remove-duplicates)
+         racket/math
+         racket/flonum
+         racket/extflonum
+         racket/string
+         racket/function
+         "../utils/main.rkt"
+         "../ast/definition.rkt"
+         "definition.rkt"
+         (for-syntax racket/base
+                     racket/contract
+                     racket/match
+                     (except-in racket/list remove-duplicates)
+                     racket/function
+                     "../utils/main.rkt"
+                     (prefix-in prims: "../primitives/declarations.rkt")
+                     "../primitives/utils.rkt"))
 
 ;; Helper syntax definition(s) for `-?@`
 (begin-for-syntax
@@ -193,7 +203,7 @@
     [(-@ (== o) es _) es]
     [_ (make-list n #f)]))
 
-(define (-?μ/c [x : Integer] [e : -s]) (and e (-μ/c x e)))
+(define (-?μ/c [x : -ℓ] [e : -s]) (and e (-μ/c x e)))
 
 (: -?struct/c : -struct-info (Listof -s) → (Option -struct/c))
 (define (-?struct/c s fields)

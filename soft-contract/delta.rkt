@@ -13,7 +13,7 @@
   syntax/parse
   racket/contract
   racket/pretty
-  racket/list
+  (except-in racket/list remove-duplicates)
   racket/function
   racket/contract
   "utils/main.rkt"

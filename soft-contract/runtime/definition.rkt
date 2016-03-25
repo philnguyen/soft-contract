@@ -2,9 +2,11 @@
 
 (provide (all-defined-out))
 
-(require
- racket/match racket/set racket/list
- "../utils/main.rkt" "../ast/main.rkt")
+(require racket/match
+         racket/set
+         (except-in racket/list remove-duplicates)
+         "../utils/main.rkt"
+         "../ast/main.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Environment
@@ -58,7 +60,7 @@
             (-●)
             (-St -struct-info (Listof (U -α.fld -α.var-car -α.var-cdr)))
             (-Vector (Listof -α.idx))
-            (-Clo -formals -⟦e⟧ -ρ -Γ)
+            -Fn
             
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
@@ -67,6 +69,9 @@
             (-Vector/homo [ctc : -α.vectorof] [val : -α.vct] [ctx : Mon-Info])
             
             -C)
+
+(-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
+             (-Case-Clo (Listof (Pairof (Listof Var-Name) -⟦e⟧)) -ρ -Γ))
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
@@ -87,7 +92,8 @@
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (Listof (U -α.dom -α.cnst))] [rng : -α])
-              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [#|ok, no recursion|# rng : -Clo]))
+              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [#|ok, no recursion|# rng : -Clo])
+              (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng))))
 
 (struct -blm ([violator : Mon-Party] [origin : Mon-Party]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
@@ -129,6 +135,11 @@
             (-ℰ.-->.dom (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ -ℓ)
             (-ℰ.-->.rng (Listof -W¹) -ℰ -ℓ)
             (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ -ℓ)
+            (-ℰ.case-> Mon-Party
+                       -ℓ
+                       (Listof (Listof -W¹))
+                       (Listof -W¹) -ℰ (Listof -⟦e⟧)
+                       (Listof (Listof -⟦e⟧)))
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) -ℓ)
             (-ℰ.mon.v Mon-Info -ℓ -ℰ [val : (U -⟦e⟧ -W¹)])
             (-ℰ.mon.c Mon-Info -ℓ [ctc : (U -⟦e⟧ -W¹)] -ℰ)
@@ -326,6 +337,11 @@
     [(-●) '●]
     [(? -o? o) (show-o o)]
     [(-Clo xs ⟦e⟧ ρ _) `(Clo ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
+    [(-Case-Clo clauses ρ Γ)
+     `(Case-Clo
+       ,@(for/list : (Listof Sexp) ([clause clauses])
+           (match-define (cons xs _) clause)
+           `(,xs …)))]
     [(-Ar guard α _) `(,(show-V guard) ◃ ,(show-α α))]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St* s γs α _)
@@ -358,6 +374,11 @@
                  `(,x ,(show-s c)))
               #:rest (,x ,(if (-e? γ) (show-e γ) (show-α γ)))
               (res ,(cons xs₀ x) ,(show-⟦e⟧ ⟦d⟧)))])]
+    [(-Case-> cases)
+     `(case->
+       ,@(for/list : (Listof Sexp) ([kase cases])
+           (match-define (cons αs β) kase)
+           `(,@(map show-α αs) . -> . ,(show-α β))))]
     [(-St/C _ s αs)
      `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α αs))]
     [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
@@ -415,8 +436,14 @@
           ,(show-⟦e⟧ e))]
       [(-ℰ.set! x ℰ*) `(set! ,x ,(loop ℰ*))]
       [(-ℰ.μ/c _ x ℰ*) `(μ/c ,x ,(loop ℰ*))]
+      [(-ℰ.-->.dom Ws ℰ* ⟦c⟧s ⟦d⟧ _)
+       `ℰ.-->.dom]
+      [(-ℰ.-->.rng Ws ℰ* _)
+       `ℰ.-->.rng]
       [(-ℰ.-->i Cs ℰ* cs (-W¹ (-Clo xs _ _ _) d) _)
        `(,@(map show-W¹ Cs) ,(loop ℰ*) ,@(map show-⟦e⟧ cs) ,(show-s d))]
+      [(-ℰ.case-> _ _ _ _ _ _ _)
+       `ℰ.case->]
       [(-ℰ.struct/c s Cs ℰ* cs _)
        `(,(format-symbol "~a/c" (-𝒾-name (-struct-info-id s)))
          ,@(map show-W¹ Cs)

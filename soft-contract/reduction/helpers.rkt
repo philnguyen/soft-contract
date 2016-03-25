@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/match
-         racket/list
+         (except-in racket/list remove-duplicates)
          racket/set
          "../utils/main.rkt"
          "../ast/definition.rkt"

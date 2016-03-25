@@ -51,10 +51,10 @@
   (syntax-rules (:)
     [(_ : τ (for-clauses ...) body ...)
      (for/fold ([acc : τ ∅]) (for-clauses ...)
-       (set-union acc (begin body ...)))]
+       (set-union acc (let () body ...)))]
     [(_ (for-clauses ...) body ...)
      (for/fold ([acc ∅]) (for-clauses ...)
-       (set-union acc (begin body ...)))]))
+       (set-union acc (let () body ...)))]))
 
 ;(: collect (∀ (X) (Option X) * → (U X (℘ X))))
 ;; Collect all non-#f value into set,

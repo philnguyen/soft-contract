@@ -2,17 +2,16 @@
 
 (provide 𝑰 σ₀)
 
-(require
- racket/match
- racket/set
- racket/list
- "../utils/main.rkt"
- "../ast/definition.rkt"
- "../runtime/main.rkt"
- ;"havoc.rkt"
- (only-in "step.rkt" [⇓ ⇓/l])
- "continuation.rkt"
- "havoc.rkt")
+(require racket/match
+         racket/set
+         (except-in racket/list remove-duplicates)
+         "../utils/main.rkt"
+         "../ast/definition.rkt"
+         "../runtime/main.rkt"
+         ;"havoc.rkt"
+         (only-in "step.rkt" [⇓ ⇓/l])
+         "continuation.rkt"
+         "havoc.rkt")
 (require/typed "../primitives/declarations.rkt"
   [prims (Listof Any)]
   [arr? (Any → Boolean)]
@@ -23,7 +22,7 @@
 (define (𝑰 ms)
   (define e† (gen-havoc-exp ms))
   (define hv (gen-havoc-Clo ms))
-  (values (⊔ σ₀ (-α.def havoc-id) hv) e†))
+  (values (⊔ σ₀ (-α.def havoc-𝒾) hv) e†))
 
 (: ⇓ : -e → -⟦e⟧)
 (define (⇓ e) (⇓/l 'Λ e))

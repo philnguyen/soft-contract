@@ -2,9 +2,12 @@
 
 (provide (all-defined-out))
 
-(require
- racket/match racket/set racket/list racket/function racket/extflonum 
- "../utils/main.rkt")
+(require racket/match
+         racket/set
+         (except-in racket/list remove-duplicates)
+         racket/function
+         racket/extflonum 
+         "../utils/main.rkt")
 
 ;; Parameterized begin
 (struct (X) -begin ([body : (Listof X)]) #:transparent)
@@ -20,10 +23,17 @@
 (define swap-parties : (Mon-Info → Mon-Info)
   (match-lambda [(Mon-Info l+ l- lo) (Mon-Info l- l+ lo)]))
 
-;; Source location
-(define +ℓ! (make-pos-src))
-(define next-subscript! (make-nat-src))
-(define-type -ℓ Integer)
+(define-type -ℓ Natural)
+
+;; Source location generator. It's hacked to remember fixed location for havoc
+(: +ℓ! : → -ℓ)
+(: +ℓ/memo! : (U 'arity 'ac 'hv-ref) Any → -ℓ)
+(define-values (+ℓ! +ℓ/memo!)
+  (let ([n : -ℓ 1]
+        [m : (HashTable (Pairof Symbol Any) -ℓ) (make-hash)])
+    (values
+     (λ () (begin0 n (set! n (+ 1 n))))
+     (λ (tag x) (hash-ref! m (cons tag x) +ℓ!)))))
 
 ;; Symbol names are used for source code. Integers are used for generated.
 ;; Keep this eq?-able
@@ -79,23 +89,21 @@
             (-let-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
             (-letrec-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
             (-set! Var-Name -e)
-
             (-error String)
-
-            (-@-havoc -x) ; hack for havoc to detect argument's arity at runtime
             (-amb (℘ -e))
             
             ;; contract stuff
             (-μ/c -ℓ -e)
             (--> [doms : (Listof -e)] [rng : -e] [pos : -ℓ])
             (-->i [doms : (Listof -e)] [rng : -λ] [pos : -ℓ])
+            (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] -ℓ)
             (-x/c.tmp Symbol) ; hack
             (-x/c -ℓ)
             (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : -ℓ]))
 
 (-v . ::= . -prim
             (-λ -formals -e)
-            (-case-λ (Listof (Pairof -formals -e)))
+            (-case-λ (Listof (Pairof (Listof Var-Name) -e)))
             (-• Natural))
 
 (-prim . ::= . ;; Represent *unsafe* operations without contract checks. 
@@ -344,7 +352,6 @@
         ,(show-e body))]
     [(-set! x e) `(set! ,x ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
-    [(-@-havoc x) `(havoc ,(show-e x))]
     [(-begin es) `(begin ,@(show-es es))]
     [(-begin0 e es) `(begin ,(show-e e) ,@(show-es es))]
     [(-error msg) `(error ,msg)]
@@ -366,6 +373,10 @@
               `(,x : ,(show-e c)))
           #:rest `(,x : ,(show-e c))
           ↦ ,(show-e d))])]
+    [(-case-> clauses _)
+     (for/list : (Listof Sexp) ([clause clauses])
+       (match-define (cons cs d) clause)
+       `(,@(map show-e cs) . -> . ,(show-e d)))]
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)

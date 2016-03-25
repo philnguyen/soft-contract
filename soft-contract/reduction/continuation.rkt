@@ -9,16 +9,17 @@
          (all-from-out "continuation-amb.rkt")
          (all-from-out "ap.rkt"))
 
-(require
- racket/match racket/set racket/list
- "../utils/main.rkt"
- "../ast/main.rkt"
- "../runtime/main.rkt"
- "../proof-relation/main.rkt"
- "helpers.rkt"
- "continuation-if.rkt"
- "continuation-amb.rkt"
- "ap.rkt")
+(require racket/match
+         racket/set
+         (except-in racket/list remove-duplicates)
+         "../utils/main.rkt"
+         "../ast/main.rkt"
+         "../runtime/main.rkt"
+         "../proof-relation/main.rkt"
+         "helpers.rkt"
+         "continuation-if.rkt"
+         "continuation-amb.rkt"
+         "ap.rkt")
 
 (: ↝.def : Mon-Party (Listof (U -α.def -α.wrp)) → -⟦ℰ⟧)
 ;; Define top-level `xs` to be values from `⟦e⟧`
@@ -212,12 +213,33 @@
   (define c (-?->i cs (and d (assert d -λ?))))
   (values δσ {set (-ΓW Γ (-W (list C) c))} ∅ ∅))
 
-(: ↝.havoc : Var-Name → -⟦e⟧)
-(define ((↝.havoc x) M σ ℒ)
-  (define Vs (σ@ σ (ρ@ (-ℒ-env ℒ) x)))
-  (error '↝.havoc "TODO"))
+(: ↝.case-> : Mon-Party -ℓ (Listof (Listof -W¹)) (Listof -W¹) (Listof -⟦e⟧) (Listof (Listof -⟦e⟧)) → -⟦ℰ⟧)
+(define ((↝.case-> l ℓ Clauses Cs ⟦c⟧s clauses) ⟦c⟧)
+  
+  (λ (M σ ℒ)
+    (apply/values
+     (acc
+      σ
+      (λ (ℰ) (-ℰ.case-> l ℓ Clauses Cs ℰ ⟦c⟧s clauses))
+      (λ (σ* Γ* W)
+        (match-define (-W Vs s) W)
+        (with-guarded-arity 1 (l Γ* Vs)
+          (match-define (list C) Vs)
+          (define Cs* (cons (-W¹ C s) Cs))
+          (define ℒ* (-ℒ-with-Γ ℒ Γ*))
+          (match ⟦c⟧s
+            ['()
+             (define Clauses* (cons Cs* Clauses))
+             (match clauses
+               ['()
+                (error "TODO")]
+               [(cons clause clauses*)
+                (error "TODO")])]
+            [(cons ⟦c⟧* ⟦c⟧s*)
+             (((↝.case-> l ℓ Clauses Cs* ⟦c⟧s* clauses) ⟦c⟧*) M σ* ℒ*)]))))
+     (⟦c⟧ M σ ℒ))))
 
-(: ↝.struct/c : -struct-info (Listof -W¹) (Listof -⟦e⟧) Integer → -⟦ℰ⟧)
+(: ↝.struct/c : -struct-info (Listof -W¹) (Listof -⟦e⟧) -ℓ → -⟦ℰ⟧)
 (define (((↝.struct/c si Ws ⟦c⟧s ℓ) ⟦c⟧) M σ ℒ)
   (apply/values
    (acc

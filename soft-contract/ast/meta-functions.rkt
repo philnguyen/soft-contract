@@ -42,7 +42,6 @@
      (for/fold ([xs : (℘ Var-Name) (-- (fv e) bound)]) ([bnd bnds])
        (-- (fv (cdr bnd)) bound))]
     [(-set! x e) (set-add (fv e) x)]
-    [(-@-havoc x) (fv x)]
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
     [(-amb es)
@@ -51,6 +50,10 @@
     [(-μ/c _ e) (fv e)]
     [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
+    [(-case-> clauses _)
+     (for/union : (℘ Var-Name) ([clause clauses])
+       (match-define (cons cs d) clause)
+       (apply ∪ (fv d) (map fv cs)))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (℘ Var-Name) ∅]) ([c cs])
        (∪ xs (fv c)))]
@@ -96,7 +99,6 @@
      (for/fold ([xs : (℘ Var-Name) (-- (𝐴 e) bound)]) ([bnd bnds])
        (-- (𝐴 (cdr bnd)) bound))]
     [(-set! x e) (set-add (𝐴 e) x)]
-    [(-@-havoc x) ∅]
     #;[(.apply f xs _) (set-union (𝐴 f d) (𝐴 xs d))]
     [(-if e e₁ e₂) (∪ (𝐴 e) (𝐴 e₁) (𝐴 e₂))]
     [(-amb es)
@@ -105,6 +107,10 @@
     [(-μ/c _ e) (𝐴 e)]
     [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (𝐴 mk-d) (map 𝐴 cs))]
+    [(-case-> clauses _)
+     (for/union : (℘ Var-Name) ([clause clauses])
+       (match-define (cons cs d) clause)
+       (apply ∪ (𝐴 d) (map 𝐴 cs)))]
     [(-struct/c _ cs _)
      (for/fold ([xs : (℘ Var-Name) ∅]) ([c cs])
        (∪ xs (𝐴 c)))]
@@ -149,6 +155,10 @@
    [(-μ/c _ c) (checks# c)]
    [(--> cs d _) (+ (checks# cs) (checks# d))]
    [(-->i cs mk-d _) (+ (checks# cs) (checks# mk-d))]
+   [(-case-> clauses _)
+    (for/sum : Integer ([clause clauses])
+      (match-define (cons cs d) clause)
+      (+ (checks# cs) (checks# d)))]
    [(-struct/c _ cs _) (checks# cs)]
 
    [(-module _ body) (checks# body)]
@@ -180,6 +190,10 @@
       [(-μ/c _ c) (go c)]
       [(--> cs d _) (∪ (go* cs) (go d))]
       [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
+      [(-case-> clauses _)
+       (for/union : (℘ Symbol) ([clause clauses])
+         (match-define (cons cs d) clause)
+         (∪ (go d) (go* cs)))]
       [(-struct/c t cs _) (go* cs)]
       [(-x/c.tmp x) (set x)]
       [_ ∅]))
@@ -210,7 +224,7 @@
          [(-λ xs e*) (-λ xs (go (shrink m xs) e*))]
          [(-case-λ clauses)
           (-case-λ
-           (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+           (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
              (match-define (cons xs e*) clause)
              (cons xs (go (shrink m xs) e*))))]
          [(? -v?) e]
@@ -249,6 +263,12 @@
           (-->i (map (curry go m) cs)
                 (assert (go m mk-d) -λ?)
                 ℓ)]
+         [(-case-> clauses ℓ)
+          (define clauses* : (Listof (Pairof (Listof -e) -e))
+            (for/list ([clause clauses])
+              (match-define (cons cs d) clause)
+              (cons (map (curry go m) cs) (go m d))))
+          (-case-> clauses* ℓ)]
          [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" (show-e e))
@@ -266,7 +286,7 @@
          [(-λ xs e*) (-λ xs (go (shrink-f f xs) e*))]
          [(-case-λ clauses)
           (-case-λ
-           (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+           (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
              (match-define (cons xs e*) clause)
              (cons xs (go (shrink-f f xs) e*))))]
          [(? -v?) e]
@@ -305,6 +325,12 @@
           (-->i (map (curry go f) cs)
                 (assert (go f mk-d) -λ?)
                 ℓ)]
+         [(-case-> clauses ℓ)
+          (define clauses* : (Listof (Pairof (Listof -e) -e))
+            (for/list ([clause clauses])
+              (match-define (cons cs d) clause)
+              (cons (map (curry go f) cs) (go f d))))
+          (-case-> clauses* ℓ)]
          [(-struct/c t cs p) (-struct/c t (map (curry go f) cs) p)]
          [_
           (log-debug "e/: ignore substituting ~a" e)
@@ -322,7 +348,7 @@
 
     (match e
       [(-λ xs e*) (-λ xs (go e*))]
-      [(-case-λ clauses) (-case-λ (map (inst go-bnd -formals) clauses))]
+      [(-case-λ clauses) (-case-λ (map (inst go-bnd (Listof Var-Name)) clauses))]
       [(-@ f xs l) (-@ (go f) (map go xs) l)]
       [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
       [(-wcm k v b) (-wcm (go k) (go v) (go b))]
@@ -337,6 +363,12 @@
       [(--> cs d ℓ) (--> (map go cs) (go d) ℓ)]
       [(-->i cs mk-d ℓ)
        (-->i (map go cs) (assert (go mk-d) -λ?) ℓ)]
+      [(-case-> clauses ℓ)
+       (define clauses* : (Listof (Pairof (Listof -e) -e))
+         (for/list ([clause clauses])
+           (match-define (cons cs d) clause)
+           (cons (map go cs) (go d))))
+       (-case-> clauses* ℓ)]
       [(-struct/c si cs ℓ) (-struct/c si (map go cs) ℓ)]
       [(-x/c z) (if (= z x) c e)]
       [_
@@ -480,9 +512,9 @@
        (-λ xs* (go! m* e*))]
       [(-case-λ clauses)
        (-case-λ
-        (for/list : (Listof (Pairof -formals -e)) ([clause clauses])
+        (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
           (match-define (cons xs e*) clause)
-          (define-values (m* xs*) (new-formals! m xs))
+          (define-values (m* xs*) (new-binders! m xs))
           (cons xs* (go! m* e*))))]
       [(-x (? symbol? x)) (-x (hash-ref m x))]
       [(-@ f xs loc) (-@ (go! m f) (map (curry go! m) xs) loc)]
@@ -512,7 +544,6 @@
        (define bnds* (map (inst cons (Listof Var-Name) -e) (reverse xss*-rev) es*))
        (-letrec-values bnds* bod*)]
       [(-set! (? symbol? x) e*) (-set! (hash-ref m x) (go! m e*))]
-      ;[(-@-havoc (-x x)) (-@-havoc (-x (hash-ref m x)))]
       [(-amb es) (-amb (map/set (curry go! m) es))]
       [(-μ/c x c) (-μ/c x (go! m c))]
       [(--> cs d ℓ) (--> (map (curry go! m) cs) (go! m d) ℓ)]
@@ -520,6 +551,12 @@
        (-->i (map (curry go! m) cs)
              (assert (go! m mk-d) -λ?)
              ℓ)]
+      [(-case-> clauses ℓ)
+       (define clauses* : (Listof (Pairof (Listof -e) -e))
+         (for/list ([clause clauses])
+           (match-define (cons cs d) clause)
+           (cons (map (curry go! m) cs) (go! m d))))
+       (-case-> clauses* ℓ)]
       [(-struct/c si cs ℓ)
        (-struct/c si (map (curry go! m) cs) ℓ)]
       [_ e])))

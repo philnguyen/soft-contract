@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide NeListof unzip-by unzip)
+(provide NeListof unzip-by unzip remove-duplicates)
 
 (define-type (NeListof X) (Pairof X (Listof X)))
 
@@ -14,3 +14,11 @@
 ;; Unzip list of pairs into 2 lists
 (define (unzip l)
   (unzip-by (inst car X Y) (inst cdr X Y) l))
+
+(: remove-duplicates (∀ (X) (Listof X) → (Listof X)))
+;; Can't re-use standard one, because parameteric contract messes with equality
+(define (remove-duplicates xs)
+  (define seen : (HashTable X #t) (make-hash))
+  (for/list ([x xs] #:unless (hash-has-key? seen x))
+    (hash-set! seen x #t)
+    x))

@@ -2,9 +2,10 @@
 
 (provide V-arity formals-arity guard-arity simple-arity?)
 
-(require
- racket/match
- "../ast/definition.rkt" "definition.rkt")
+(require racket/match
+         "../utils/list.rkt"
+         "../ast/definition.rkt"
+         "definition.rkt")
 
 (require/typed/provide racket/function
   [arity-includes? (Arity Arity → Boolean)])
@@ -51,6 +52,11 @@
 
     (match-lambda
       [(-Clo xs _ _ _) (formals-arity xs)]
+      [(-Case-Clo clauses _ _)
+       (remove-duplicates
+        (for/list : (Listof Natural) ([clause clauses])
+          (match-define (cons xs _) clause)
+          (length xs)))]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _)) 1]
       [(-Ar guard _ _) (guard-arity guard)]
       [(? -st-p?) 1]

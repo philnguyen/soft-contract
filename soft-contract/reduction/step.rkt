@@ -118,7 +118,14 @@
       (λ (M σ ℒ)
         (match-define (-ℒ ρ Γ _) ℒ)
         (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) e))} ∅ ∅))]
-     [(-case-λ body) (error '⇓ "TODO: case-λ")]
+     [(-case-λ clauses)
+      (define ⟦clause⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
+        (for/list ([clause clauses])
+          (match-define (cons xs e) clause)
+          (cons xs (↓ e))))
+      (λ (M σ ℒ)
+        (match-define (-ℒ ρ Γ _) ℒ)
+        (values ⊥σ {set (-ΓW Γ (-W (list (-Case-Clo ⟦clause⟧s ρ Γ)) e))} ∅ ∅))]
      [(? -prim? p) (⇓ₚᵣₘ p)]
      [(-• i)
       (define W (-W -●/Vs e))
@@ -198,7 +205,6 @@
            (((↝.letrec-values l δρ xs₀ xs-⟦e⟧s* ⟦e⟧) ⟦e⟧₀) M σ* ℒ))])]
      [(-set! x e*) ((↝.set! x) (↓ e*))]
      [(-error msg) (blm l 'Λ '() (list (-b msg)))] ;; HACK
-     [(-@-havoc (-x x)) (↝.havoc x)]
      [(-amb es) (↝.amb (set-map es ↓))]
      [(-μ/c x c) ((↝.μ/c l x) (↓ c))]
      [(--> cs d ℓ)
@@ -221,6 +227,17 @@
            (match-define (-ℒ ρ Γ _) ℒ)
            (define Mk-D (-W¹ (-Clo xs ⟦d⟧ ρ Γ) mk-d))
            (((↝.-->i '() ⟦c⟧s* Mk-D ℓ) ⟦c⟧) M σ ℒ))])]
+     [(-case-> clauses ℓ)
+      (define ⟦clause⟧s : (Listof (Listof -⟦e⟧))
+        (for/list ([clause clauses])
+          (match-define (cons cs d) clause)
+          `(,@(map ↓ cs) ,(↓ d))))
+      (match ⟦clause⟧s
+        ['()
+         (λ (M σ ℒ)
+           (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list (-Case-> '())) e))} ∅ ∅))]
+        [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
+         ((↝.case-> l ℓ '() '() ⟦c⟧s ⟦clause⟧s*) ⟦c⟧)])]
      [(-x/c x)
       (λ (M σ ℒ)
         (define Γ (-ℒ-cnd ℒ))
