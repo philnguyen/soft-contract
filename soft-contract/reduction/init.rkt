@@ -55,7 +55,7 @@
      (define-values (σ* C c) (alloc-C σ sig))
      (alloc-Ar-o σ* o (assert C -=>?) (assert c -->?))]
     [`(,(? symbol? o) ,(? arr*? sig) ...)
-     (printf "TODO: ->* for ~a~n" o)
+     (log-warning "TODO: ->* for ~a~n" o)
      σ]
     [`(,(? symbol? o) ,_ ...) σ]
     [`(#:struct-cons ,(? symbol? o) ,si)
@@ -102,7 +102,7 @@
      (define σ₂ (⊔ σ₁ c* C*))
      (values σ₂ (-Not/C c*) (-not/c c*))]
     [`(one-of/c ,ss ...)
-     (printf "TODO: one-of/c~n")
+     (log-warning "TODO: one-of/c~n")
      (values σ 'any/c 'any/c)]
     [`(and/c ,ss ...)
      (apply/values alloc-And/C (alloc-Cs σ ss))]
@@ -116,7 +116,7 @@
              (-St/C flat? -s-cons (list c d))
              (assert (-?struct/c -s-cons (list c d))))]
     [`(listof ,s*)
-     (printf "TODO: alloc 'listof~n")
+     (log-warning "TODO: alloc 'listof~n")
      (values σ 'any/c 'any/c)]
     [`(list/c ,ss ...)
      (apply/values alloc-List/C (alloc-Cs σ ss))]
@@ -129,10 +129,10 @@
      (define c (--> cs d 0))
      (values σ₄ C c)]
     [`((,doms ...) #:rest ,rst . ->* . d)
-     (printf "TODO: alloc ->*~n")
+     (log-warning "TODO: alloc ->*~n")
      (values σ 'any/c 'any/c)]
     [s
-     (printf "alloc: ignoring ~a~n" s)
+     (log-warning "alloc: ignoring ~a~n" s)
      (values σ 'any/c 'any/c)]))
 
 (: alloc-Cs : -σ (Listof Any) → (Values -σ (Listof -V) (Listof -e)))

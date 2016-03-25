@@ -97,7 +97,7 @@
       [(-provide specs) ((↝.begin (map ⇓pc specs)) ⟦void⟧)]
       [(? -e? e) (⇓ l e)]
       [_
-       (printf "⇓d: ignore ~a~n" (show-module-level-form d))
+       (log-warning "⇓d: ignore ~a~n" (show-module-level-form d))
        ⟦void⟧]))
 
   (match (map ⇓d ds)

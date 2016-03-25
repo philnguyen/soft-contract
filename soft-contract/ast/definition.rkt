@@ -385,7 +385,7 @@
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
 
-(define (show-module [m : -module]) : Sexp
+(define (show-module [m : -module]) : (Listof Sexp)
   (match-define (-module path forms) m)
   `(module ,path
     ,@(map show-module-level-form forms)))
