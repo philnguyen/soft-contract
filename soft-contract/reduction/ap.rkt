@@ -58,7 +58,7 @@
           [(arity-includes? a n) e ...]
           [else
            ;; HACK for error message, but probably no need for fix
-           (define blm (-blm l 'Λ (list (format-symbol "~a values" a)) (list (-b n))))
+           (define blm (-blm l 'Λ (list (format-symbol "~a arguments" a)) (list (-b n))))
            (values ⊥σ ∅ {set (-ΓE Γ₀ blm)} ∅)])))
 
     ;; Different handlers depending on the type of `Wₕ`.
