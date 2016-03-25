@@ -342,7 +342,11 @@
        ,@(for/list : (Listof Sexp) ([clause clauses])
            (match-define (cons xs _) clause)
            `(,xs …)))]
-    [(-Ar guard α _) `(,(show-V guard) ◃ ,(show-α α))]
+    [(-Ar guard α _)
+     (match α
+       [(-α.def 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
+       [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
+       [_ `(,(show-V guard) ◃ ,(show-α α))])]
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St* s γs α _)
      `(,(format-symbol "~a/wrapped" (show-struct-info s))

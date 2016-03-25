@@ -43,7 +43,7 @@
   (match a
     [(-ΓW _ (-W Vs _)) (show-Vs Vs)]
     [(-ΓE _ (-blm l+ lo Cs Vs))
-     `(blame ,l+ ,lo (contract: (show-Vs Cs)) (value: (show-Vs Vs)))]))
+     `(blame ,l+ ,lo (contract: ,(show-Vs Cs)) (value: ,(show-Vs Vs)))]))
 
 (case mode
   [(expand)
@@ -51,9 +51,17 @@
    (pretty-write (show-module m))]
   [(light)
    (define-values (ans M Ξ) (run-files fname))
-   (for ([A ans])
-     (pretty-write (show-a A)))]
+   (cond
+     [(set-empty? ans)
+      (printf "Safe~n")]
+     [else
+      (for ([A ans])
+        (pretty-write (show-a A)))])]
   [(havoc)
    (define-values (ans M Ξ) (havoc-files fname))
-   (for ([A ans])
-     (pretty-write (show-a A)))])
+   (cond
+     [(set-empty? ans)
+      (printf "Safe~n")]
+     [else
+      (for ([A ans])
+        (pretty-write (show-a A)))])])
