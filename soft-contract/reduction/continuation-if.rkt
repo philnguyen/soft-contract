@@ -20,6 +20,10 @@
       (with-guarded-arity 1 (l Γ* Vs)
         (match-define (list V) Vs)
         (define-values (Γ₁ Γ₂) (Γ+/-V M σ* Γ* V s))
+        #;(printf "branching on ~a with ~a and ~a~n"
+                (show-W¹ (-W¹ V s))
+                (and Γ₁ (show-Γ Γ₁))
+                (and Γ₂ (show-Γ Γ₂)))
         (⊔/ans (with-Γ Γ₁ (⟦e₁⟧ M σ* (-ℒ-with-Γ ℒ Γ₁)))
                (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℒ-with-Γ ℒ Γ₂)))))))
     (⟦e₀⟧ M σ ℒ)))

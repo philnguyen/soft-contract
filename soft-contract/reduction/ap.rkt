@@ -45,7 +45,7 @@
 (define/memo (ap [l : Mon-Party] [ℓ : -ℓ] [Wₕ : -W¹] [Wₓs : (Listof -W¹)]) : -⟦e⟧
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
-  (define sₐ (apply -?@ sₕ sₓs))
+  (define sₐ (apply -?@ (or (V->s Vₕ) sₕ) sₓs))
 
   (: blm-arity : Arity Natural → -blm)
   (define (blm-arity required provided)
@@ -54,6 +54,13 @@
 
   (λ (M σ ℒ₀)
     (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
+
+    (begin ; debugging
+      (printf "About to apply ~a ~a -> ~a in ~a~n"
+              (show-W¹ Wₕ)
+              (map show-W¹ Wₓs)
+              (show-s sₐ)
+              (show-ℒ ℒ₀)))
 
     ;; Make sure `Wₕ` handles the number of arguments passed
     (define-syntax-rule (with-guarded-arity a* e ...)
@@ -231,7 +238,8 @@
 
     (: ap/● : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/●)
-      (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def (-𝒾 'havoc-id 'havoc))) #f))
+      (define havoc-𝒾 (-𝒾 'havoc-id 'havoc))
+      (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) (-ref havoc-𝒾 0)))
       (⊔/ans (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)
              (for*/ans ([Wₓ Wₓs])
                ((ap 'Λ ℓ Wₕᵥ (list Wₓ)) M σ ℒ₀))))
@@ -275,17 +283,23 @@
                [else      (for*/ans ([Vᵤ (σ@ σ α)]) (ap/case C Vᵤ l³))]))]
       [(-And/C #t α₁ α₂)
        (with-guarded-arity 1
-         (match-define (list c₁ c₂) (-app-split sₕ 'and/c 2))
+         (match-define (list c₁ c₂)
+           (cond [(and (-e? α₁) (-e? α₂)) (list α₁ α₂)]
+                 [else (-app-split sₕ 'and/c 2)]))
          (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
                    (ap/And/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
       [(-Or/C #t α₁ α₂)
        (with-guarded-arity 1
-         (match-define (list c₁ c₂) (-app-split sₕ 'or/c 2))
+         (match-define (list c₁ c₂)
+           (cond [(and (-e? α₁) (-e? α₂)) (list α₁ α₂)]
+                 [else (-app-split sₕ 'or/c 2)]))
          (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
                    (ap/Or/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
       [(-Not/C α)
        (with-guarded-arity 1
-         (match-define (list c*) (-app-split sₕ 'not/c 1))
+         (match-define (list c*)
+           (cond [(-e? α) (list α)]
+                 [else (-app-split sₕ 'not/c 1)]))
          (for*/ans ([C* (σ@ σ α)])
                    (ap/Not/C (-W¹ C* c*))))]
       [(-St/C #t si αs)

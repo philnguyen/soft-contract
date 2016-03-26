@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ spurious? Γ+/-V Γ+/-W∋Ws Γ+/-s Γ+/-
-         invert-γ invert-Γ)
+         invert-γ invert-Γ
+         plausible-rt?)
 
 (require racket/match
          racket/set
@@ -31,7 +32,17 @@
 (: MσΓ⊢s : -M -σ -Γ -s → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
 (define (MσΓ⊢s M σ Γ s)
-  (MσΓ*⊢s M σ {set Γ} s))
+  (define ans (MσΓ*⊢s M σ {set Γ} s))
+  #;(begin
+    (printf "~a ⊢ ~a : ~a ~n" (show-Γ Γ) (show-s s) ans)
+    (unless (set-empty? (-Γ-tails Γ))
+      (for* ([γ (-Γ-tails Γ)]
+             [τ (in-value (-γ-callee γ))])
+        (printf "  ~a ↦~n" (show-τ τ))
+        (for ([A (M@ M τ)])
+          (printf "      ~a~n" (show-A A)))))
+    (printf "~n"))
+  ans)
 
 (: MσΓ*⊢s ([-M -σ (℘ -Γ) -s] [#:depth Natural] . ->* . -R))
 ;; Check if proposition is provable in all possible path conditions
@@ -41,7 +52,7 @@
     [else
      (define-values (✓Γ ✗Γ ?Γ) (partition-Γs Γs s))
 
-     (begin ; just debugging
+     #;(begin ; just debugging
        (printf "worlds:~n")
        (for ([Γ Γs])
          (printf "  ~a ⊢ ~a : ~a~n"
@@ -56,7 +67,10 @@
        [(#f #f _ ) '?]
        [(_  #t #t) '✓]
        [(#t #f #t) '✗]
-       [(_  _  #f) (MσΓ*⊢s M σ ?Γ s #:depth (- d 1))])]))
+       [(_  _  #f)
+        (define Γs* (invert-Γs M ?Γ))
+        (cond [(equal? Γs* ?Γ) '?]
+              [else (MσΓ*⊢s M σ Γs* s #:depth (- d 1))])])]))
 
 (: MσΓ⊓s : -M -σ -Γ -s → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
@@ -196,28 +210,37 @@
   (define sₕₑ (apply -?@ sₕ sₑ))
   (define all-args? (andmap (compose1 not not) sₑ))
 
-  (for/fold ([Γs : (℘ -Γ) ∅]) ([A (M@ M τ)])
-    (define Γ*
-      (match A
-        [(-ΓW Γ₀ (-W Vs sₐ))
-         ;; When returning callee's `eₐ` to caller's `f eₓ ...":
-         ;; - unfold eₐ to [x/eₓ]eₐ if possible
-         ;; - if not, replace `eₐ` with `f eₓ ...`
-         (define sₐ* (s↓ sₐ xs))
-         (define sₕₑ* (and all-args? sₐ* ((e/map m₀) sₐ*)))
-         (define m
-           (if sₐ*
-               (cond [sₕₑ* (hash-set m₀ sₐ* sₕₑ*)]
-                     [sₕₑ  (hash-set m₀ sₐ* sₕₑ )]
-                     [else m₀])
-               m₀))
-         (Γ⊓ Γ (Γ/ m (Γ↓ Γ₀ xs)))]
-        [(-ΓE Γ₀ _)
-         (Γ⊓ Γ (Γ/ m₀ (Γ↓ Γ₀ xs)))]))
-    (match Γ* ; Throw away the inverted hypothesis
-      [(-Γ φs as γs)
-       (set-add Γs (-Γ φs as (set-remove γs γ)))]
-      [#f Γs])))
+  (define ans
+    (for/fold ([Γs : (℘ -Γ) ∅]) ([A (M@ M τ)])
+      (define Γ*
+        (match A
+          [(-ΓW Γ₀ (-W Vs sₐ))
+           ;; When returning callee's `eₐ` to caller's `f eₓ ...":
+           ;; - unfold eₐ to [x/eₓ]eₐ if possible
+           ;; - if not, replace `eₐ` with `f eₓ ...`
+           (define sₐ* (s↓ sₐ xs))
+           (define sₕₑ* (and all-args? sₐ* ((e/map m₀) sₐ*)))
+           (define m
+             (if sₐ*
+                 (cond [sₕₑ* (hash-set m₀ sₐ* sₕₑ*)]
+                       [sₕₑ  (hash-set m₀ sₐ* sₕₑ )]
+                       [else m₀])
+                 m₀))
+           (Γ⊓ Γ (Γ/ m (Γ↓ Γ₀ xs)))]
+          [(-ΓE Γ₀ _)
+           (Γ⊓ Γ (Γ/ m₀ (Γ↓ Γ₀ xs)))]))
+      (match Γ* ; Throw away the inverted hypothesis
+        [(-Γ φs as γs)
+         (set-add Γs (-Γ φs as (set-remove γs γ)))]
+        [#f Γs])))
+  
+  #;(begin ; debugging
+    (printf "Invert ~a at ~a, getting:~n" (show-Γ Γ) (show-γ γ))
+    (for ([Γ ans])
+      (printf "  ~a~n" (show-Γ Γ))))
+  
+  ans
+  )
 
 (: invert-Γ : -M -Γ → (℘ -Γ))
 ;; Invert all tails in path condition
@@ -228,12 +251,16 @@
     (for/union : (℘ -Γ) ([Γ Γs])
        (invert-γ M Γ γ))))
 
+(: invert-Γs : -M (℘ -Γ) → (℘ -Γ))
+(define (invert-Γs M Γs)
+  (for/union : (℘ -Γ) ([Γ Γs])
+    (invert-Γ M Γ)))
+
 (: invertⁿ-Γ : Natural -M -Γ → (℘ -Γ))
 ;; Invert all tails in path condition `n` times
 (define (invertⁿ-Γ n M Γ)
   (for/fold ([Γs : (℘ -Γ) {set Γ}]) ([_ n])
-    (for/union : (℘ -Γ) ([Γ Γs])
-       (invert-Γ M Γ))))
+    (invert-Γs M Γs)))
 
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Less powerful version of `Γ` that only proves things using local assumptions
@@ -248,6 +275,42 @@
   (match Γ₀*
     [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
     [#f #f]))
+
+(: plausible-rt? : -Γ -s (Listof (Pairof Var-Name -s)) -Γ -s → Boolean)
+;; Checks if `Γ` under renaming `(f bnds)` can be a conjunct of `Γ₀`
+;; - `#f` means a definite spurious return
+;; - `#t` means a conservative plausible return
+(define (plausible-rt? Γ₀ f bnds Γ sₐ)
+  (define-values (xs args) (unzip bnds))
+  (define fargs (apply -?@ f args))
+  (define all-args? (andmap (compose1 not not) args))
+  (define m₀
+    (for/hash : (HashTable -e -e) ([x xs] [arg args] #:when arg)
+      (values (-x x) arg)))
+  
+  (define fargs* (and sₐ ((e/map m₀) sₐ)))
+  (define m
+    (cond
+      [(and sₐ fargs*) (hash-set m₀ sₐ fargs*)]
+      [(and sₐ fargs ) (hash-set m₀ sₐ fargs )]
+      [else m₀]))
+
+  (define Γ* (Γ/ m Γ))
+  (define Γ₀* (Γ⊓ Γ₀ Γ))
+
+  #;(begin ; debugging
+    (printf "plausible? ~a [~a ~a] ~a [~a]~n"
+            (show-Γ Γ₀)
+            (show-s f)
+            (for/list : (Listof Sexp) ([bnd bnds]) `(,(car bnd) ↦ ,(show-s (cdr bnd))))
+            (show-Γ Γ)
+            (show-s sₐ))
+    (printf "  substitutions: ~a~n"
+            (for/list : (Listof Sexp) ([(x y) m]) `(,(show-e x) ↦ ,(show-e y))))
+    (printf "  would-be conjunction: ~a~n" (and Γ* (show-Γ Γ*)))
+    (printf "  would-be path-cond: ~a~n" (and Γ₀* (show-Γ Γ₀*))))
+
+  (and Γ₀* #t))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -42,20 +42,27 @@
   ;; Propagate errors and plug values into hole
   (define-values (ΓWs ΓEs)
     (let ()
-      ; TODO: use path-conditions from caller+callee to eliminate spurious returns
-      (define args (map (inst cdr Var-Name -s) bnds))
+      (define-values (xs args) (unzip bnds))
       (define fargs (apply -?@ f args))
       (define Γ₀ (-ℒ-cnd ℒ₀))
+
       (for/fold ([ΓWs : (℘ -ΓW) ∅] [ΓEs : (℘ -ΓE) ∅])
                 ([A As])
-        (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
         (match A
           [(-ΓW Γ (-W Vs s))
-           (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and s fargs)))) ΓEs)]
+           (cond
+             [(plausible-rt? Γ₀ f bnds Γ s)
+              (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
+              (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and s fargs)))) ΓEs)]
+             [else (values ΓWs ΓEs)])]
           [(-ΓE Γ (and blm (-blm l+ _ _ _)))
-           (case l+ ; ignore blamings on system, top-level, and havoc
-             [(Λ † havoc) (values ΓWs ΓEs)]
-             [else (values ΓWs (set-add ΓEs (-ΓE Γ₀* blm)))])]))))
+           (cond
+             [(plausible-rt? Γ₀ f bnds Γ #f)
+              (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
+              (case l+ ; ignore blamings on system, top-level, and havoc
+                [(Λ † havoc) (values ΓWs ΓEs)]
+                [else (values ΓWs (set-add ΓEs (-ΓE Γ₀* blm)))])]
+             [else (values ΓWs ΓEs)])]))))
   
   (define-values (δσ* ΓWs* ΓEs* ℐs*) ((ℰ⟦_⟧ ℰ ΓWs) M σ ℒ₀))
   (apply/values (collect M Ξ τ₀) (values δσ* ΓWs* (∪ ΓEs ΓEs*) ℐs*)))

@@ -477,7 +477,7 @@
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ ⟦e⟧ ℒ) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(show-ℒ ℒ)))
+  `(ℬ … ,(show-ℒ ℒ)))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ l³ ℓ W-C W-V ℒ) ℳ)
