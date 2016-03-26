@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢e ⊢V p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred)
+(provide Γ⊢ₑₓₜ Γ⊢e partition-Γs ⊢V p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred)
 
 (require
  racket/match racket/set
@@ -13,6 +13,13 @@
   racket/base racket/contract
   "../utils/pretty.rkt" 
   "../primitives/utils.rkt"))
+
+;; External solver to be plugged in.
+;; Return trivial answer by default.
+(define-parameter Γ⊢ₑₓₜ : (-Γ -e → -R)
+  (λ (Γ e)
+    (printf "Warning: external solver not set~n")
+    '?))
 
 ;; Syntax generation for checking whether argument satisfies predicate
 (begin-for-syntax
@@ -198,14 +205,30 @@
   (define ans
     (cond
       [e
-       (first-R (⊢e e)
-                (for*/fold ([R : -R '?])
-                           ([e₀ facts] #:when (equal? '? R)
-                            [R* (in-value (e⊢e e₀ e))])
-                  R*))]
+       (first-R
+        (⊢e e)
+        (for*/fold ([R : -R '?])
+                   ([e₀ facts] #:when (equal? '? R)
+                    [R* (in-value (e⊢e e₀ e))])
+          R*)
+        ((Γ⊢ₑₓₜ) Γ e))]
       [else '?]))
   ;(dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-s e) ans)
   ans)
+
+(: partition-Γs : (℘ -Γ) -s → (Values (℘ -Γ) (℘ -Γ) (℘ -Γ)))
+;; Given a set of path-conditions, partition them into those that
+;; proves, refute, and ambig the proposition, respectively
+(define (partition-Γs Γs s)
+  (define-set ✓Γ : -Γ)
+  (define-set ✗Γ : -Γ)
+  (define-set ?Γ : -Γ)
+  (for ([Γ Γs])
+    (case (Γ⊢e Γ s)
+      [(✓) (✓Γ-add! Γ)]
+      [(✗) (✗Γ-add! Γ)]
+      [(?) (?Γ-add! Γ)]))
+  (values ✓Γ ✗Γ ?Γ))
 
 (: ⊢V : -V → -R)
 ;; Check if value represents truth

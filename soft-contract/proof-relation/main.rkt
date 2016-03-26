@@ -14,13 +14,6 @@
          "local.rkt"
          "utils.rkt")
 
-;; External solver to be plugged in.
-;; Return trivial answer by default.
-(define-parameter Γ⊢ₑₓₜ : (-M -σ -Γ -e → -R)
-  (λ (M σ Γ e)
-    (printf "Warning: external solver not set~n")
-    '?))
-
 (: MσΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
@@ -38,69 +31,20 @@
 (: MσΓ⊢s : -M -σ -Γ -s → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
 (define (MσΓ⊢s M σ Γ s)
-  ;; TODO make sure `s` has been canonicalized
-  (if s (first-R (MσΓ⊢₁e M σ Γ s) ((Γ⊢ₑₓₜ) M σ Γ s)) '?))
+  (MσΓ*⊢s M σ {set Γ} s))
 
-(: MσΓ⊢₁e : -M -σ -Γ -e → -R)
-;; Check if `e` evals to truth given `M`, `σ`, `Γ`
-(define (MσΓ⊢₁e M σ Γ e)
-
-  #|
-  (: go : Integer -Γ → -R)
-  ;; Try proving goal by probably repeatedly unfolding assumptions
-  (define (go d Γ)
-    (match (Γ⊢e Γ e)
-      ['?
-       (cond
-         [(< d 0) '?]
-         [else
-          (define Γs (invert-Γ M σ (Γ↓ Γ FVe)))
-          (cond ; if one subcase repeats, there can't be progress
-            [(∋ Γs Γ) '?]
-            [else
-             (define Rs (map/set (curry go (- d 1)) Γs))
-             (cond
-               [(equal? Rs {set '✓}) '✓]
-               [(equal? Rs {set '✗ }) '✗ ]
-               [else '?])])])]
-      [R R]))
-  |#
-
-  #|
-  (: go-rec : Integer -Γ -e → -R)
-  ;; Try proving goal probably by rule induction
-  (define (go-rec d Γ e)
-    (define ans
-      (match (Γ⊢e Γ e) ; FIXME: shift things around. This is wasteful.
-        ['?
-         (cond
-           [(< d 0) '?]
-           [else
-            (match (unfold M σ e)
-              [(? set? cases)
-               (define anses
-                 (for*/set: : (℘ -R)
-                            ([kase cases]
-                             [ψs (in-value (-Res-facts kase))]
-                             [e* (in-value (-Res-e     kase))]
-                             [Γ* (in-value (Γ⊓ Γ ψs))] #:when Γ*)
-                   (cond
-                     [e*
-                      (define-values (e** Γ**) (⇓₁ M σ Γ* (assert e*)))
-                      (go-rec (- d 1) Γ** e**)]
-                     [else '?])))
-               (cond
-                 [(or (set-empty? anses) (equal? anses {set '✓})) '✓]
-                 [(equal? anses {set '✗}) '✗]
-                 [else '?])]
-              [else '?])])]
-        [R R]))
-    (dbg '⊢rec "~a ⊢~a ~a : ~a~n" (show-Γ Γ) (n-sub d) (show-e e) ans)
-    ans)
-  |#
-
-  ;(first-R (go 2 Γ) (go-rec 2 Γ e))
-  (Γ⊢e Γ e))
+(: MσΓ*⊢s ([-M -σ (℘ -Γ) -s] [#:depth Natural] . ->* . -R))
+;; Check if proposition is provable in all possible path conditions
+(define (MσΓ*⊢s M σ Γs s #:depth [d 5])
+  (cond
+    [(or (not s) (<= d 0)) '?]
+    [else
+     (define-values (✓Γ ✗Γ ?Γ) (partition-Γs Γs s))
+     (match* ((set-empty? ✓Γ) (set-empty? ✗Γ) (set-empty? ?Γ))
+       [(#f #f _ ) '?]
+       [(_  #t #t) '✓]
+       [(#t #f #t) '✗]
+       [(_  _  #f) (MσΓ*⊢s M σ ?Γ s #:depth (- d 1))])]))
 
 (: MσΓ⊓s : -M -σ -Γ -s → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
@@ -252,22 +196,17 @@
 ;; Invert all tails in path condition
 (define (invert-Γ M Γ)
   (match-define (-Γ _ _ γs) Γ)
-  (let loop ([Γs : (℘ -Γ) {set Γ}] [γs : (Listof -γ) (set->list γs)])
-    (match γs
-      ['() Γs]
-      [(cons γ γs*)
-       (define Γs*
-         (for/union : (℘ -Γ) ([Γ Γs])
-           (invert-γ M Γ γ)))
-       (loop Γs* γs*)])))
+  (for/fold ([Γs : (℘ -Γ) {set Γ}])
+            ([γ γs])
+    (for/union : (℘ -Γ) ([Γ Γs])
+       (invert-γ M Γ γ))))
 
 (: invertⁿ-Γ : Natural -M -Γ → (℘ -Γ))
 ;; Invert all tails in path condition `n` times
 (define (invertⁿ-Γ n M Γ)
-  (cond [(> n 0)
-         (for/union : (℘ -Γ) ([Γ* (in-set (invert-Γ M Γ))])
-           (invertⁿ-Γ (- n 1) M Γ))]
-        [else {set Γ}]))
+  (for/fold ([Γs : (℘ -Γ) {set Γ}]) ([_ n])
+    (for/union : (℘ -Γ) ([Γ Γs])
+       (invert-Γ M Γ))))
 
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Less powerful version of `Γ` that only proves things using local assumptions

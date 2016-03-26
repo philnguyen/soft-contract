@@ -2,28 +2,32 @@
 
 (provide z3⊢ get-model #|for debugging|# exp->sym sym->exp)
 
-(require
- racket/match racket/port racket/system racket/string (except-in racket/function arity-includes?) racket/set
- "../../utils/main.rkt"
- "../../ast/main.rkt"
- "../../primitives/utils.rkt"
- "../../runtime/main.rkt"
- "../utils.rkt"
- "../result.rkt")
+(require racket/match
+         racket/port
+         racket/system
+         racket/string
+         (except-in racket/function arity-includes?)
+         racket/set
+         "../../utils/main.rkt"
+         "../../ast/main.rkt"
+         "../../primitives/utils.rkt"
+         "../../runtime/main.rkt"
+         "../utils.rkt"
+         "../result.rkt")
 
 ;; Query external solver for provability relation
-(: z3⊢ : -M -σ -Γ -e → -R)
-(define (z3⊢ M σ Γ e)
-  (match (Γe->Z3 M σ Γ e)
+(: z3⊢ : -Γ -e → -R)
+(define (z3⊢ Γ e)
+  (match (Γe->Z3 Γ e)
     [(list decls prems concl)
      ;(printf "Γ: ~a~ntranslates to~n~a~n~a~n~a~n" (show-Γ Γ) decls prems concl)
      (call-with decls prems concl)]
     [#f '?]))
 
-(: get-model : -M -σ -Γ → (Option (HashTable -e Base)))
+(: get-model : -Γ → (Option (HashTable -e Base)))
 ;; Generate a model for given path invariant
-(define (get-model M σ Γ)
-  (define-values (decls props) (Γ->Z3 M σ Γ))
+(define (get-model Γ)
+  (define-values (decls props) (Γ->Z3 Γ))
   (match (check-sat decls props #:produce-model? #t)
     ['Unsat (error 'get-model "unsat")]
     ['Unknown (error 'get-model "unknown")]
@@ -37,24 +41,24 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: Γe->Z3 : -M -σ -Γ -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
+(: Γe->Z3 : -Γ -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
 ;; Translate path invariant into Z3 declarations and formula
-(define (Γe->Z3 M σ Γ e)
+(define (Γe->Z3 Γ e)
   (define-values (decls₀ e->dec) (Γ->decls Γ))
   (cond
-    [(exp->Z3 e->dec M σ Γ e) =>
+    [(exp->Z3 e->dec Γ e) =>
      (λ ([concl : Sexp])
        (define xs-adjusted (FV-for-is_int concl))
        (define-values (decls is_int-premises) (hack-decls-for-is_int decls₀ xs-adjusted))
-       (define premises (append is_int-premises (Γ->premises e->dec M σ Γ)))
+       (define premises (append is_int-premises (Γ->premises e->dec Γ)))
        (list decls premises concl))]
     [else #f]))
 
-(: Γ->Z3 : -M -σ -Γ → (Values (Listof Sexp) (Listof Sexp)))
+(: Γ->Z3 : -Γ → (Values (Listof Sexp) (Listof Sexp)))
 ;; Translate path invariant into Z3 declarations and formula
-(define (Γ->Z3 M σ Γ)
+(define (Γ->Z3 Γ)
   (define-values (decls₀ e->dec) (Γ->decls Γ))
-  (define props (Γ->premises e->dec M σ Γ))
+  (define props (Γ->premises e->dec Γ))
   (define adjusted-vars-for-is_int
     (for/fold ([xs : (℘ Symbol) ∅]) ([prop props])
       (∪ xs (FV-for-is_int prop))))
@@ -152,12 +156,9 @@
                  (let ([x (exp->sym e)])
                    (cons x (hash-ref typeofs x)))))))
 
-(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) -M -σ -Γ -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
+(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) -Γ -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
 ;; Translate restricted syntax into Z3 sexp
-(define (exp->Z3 e->dec M σ Γ e)
-  ;(define-values (e* _) (⇓₁ M σ Γ e))
-  #;(when (match? e (-@ '= _ _))
-    (printf "~a ⊢ ~a ⇓₁ ~a~n" (show-Γ Γ) (show-e e) (show-e e*)))
+(define (exp->Z3 e->dec Γ e)
   (let go : (Option Sexp) ([e : -e e])
     (match e
       [(-@ (? Handled-Z3-op? o) (list e₁ e₂) _)
@@ -184,11 +185,11 @@
            [(cons x _) x]
            [#f #f])])))
 
-(: Γ->premises : (-e → (Option (Pairof Symbol Z3-Type))) -M -σ -Γ → (Listof Sexp))
+(: Γ->premises : (-e → (Option (Pairof Symbol Z3-Type))) -Γ → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises
-(define (Γ->premises e->dec M σ Γ)
+(define (Γ->premises e->dec Γ)
   (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)]
-                              [s (in-value (exp->Z3 e->dec M σ Γ e))] #:when s)
+                              [s (in-value (exp->Z3 e->dec Γ e))] #:when s)
     s))
 
 ;; translate Racket symbol to Z3 symbol
