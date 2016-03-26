@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         (except-in racket/function arity-includes?)
          (except-in racket/list remove-duplicates)
          "../utils/set.rkt"
          "../ast/definition.rkt"
@@ -17,11 +18,15 @@
 (define x (+x!))
 (define 𝐱 (-x x))
 (define 𝐱s (list 𝐱))
-(define ⟦●⟧ : -⟦e⟧
+(define ⟦hv⟧ : -⟦e⟧ (⇓ havoc-path (-ref havoc-𝒾 0)))
+
+(define (arg-● [k : Arity] [i : Integer]) : -⟦e⟧
   (λ (M σ ℒ)
-    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs #f))} ∅ ∅)))
-(define ⟦hv⟧ : -⟦e⟧
-  (⇓ havoc-path (-ref havoc-𝒾 (+ℓ!))))
+    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs (-x (+x/memo! 'hv k i))))} ∅ ∅)))
+
+(define (rt-● [k : Arity]) : -⟦e⟧
+  (λ (M σ ℒ)
+    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs (-x (+x/memo! 'hv-rt k))))} ∅ ∅)))
 
 (: gen-havoc-Clo : (Listof -module) → -Clo)
 ;; Generate the unknown context
@@ -50,7 +55,9 @@
                (define ℓ-V● (+ℓ/memo! 'opq-ap k))
                (define ⟦V-●⟧
                  (cond
-                   [(> k 0) ((↝.@ havoc-path ℓ-V● (list W) (make-list (- k 1) ⟦●⟧)) ⟦●⟧)]
+                   [(> k 0)
+                    (match-define (cons ⟦●⟧₀ ⟦●⟧s) (build-list k (curry arg-● k)))
+                    ((↝.@ havoc-path ℓ-V● (list W) ⟦●⟧s) ⟦●⟧₀)]
                    [else    (ap havoc-path ℓ-V● W '())]))
                (define ⟦hv-⸨V-●⸩⟧
                  ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
@@ -60,15 +67,15 @@
              
              (match a
                [(arity-at-least k)
-                (↝.amb (list ⟦●⟧ (hv/arity (+ 1 k))))] ; TODO
+                (↝.amb (list (rt-● a) (hv/arity (+ 1 k))))] ; TODO
                [(? integer? k)
-                (↝.amb (list ⟦●⟧ (hv/arity k)))]
+                (↝.amb (list (rt-● a) (hv/arity k)))]
                [(? list? ks)
                 (define cases : (Listof -⟦e⟧)
                   (for/list ([k ks])
                     (cond [(integer? k) (hv/arity k)]
                           [else (error 'havoc "TODO: ~a" k)])))
-                (↝.amb (cons ⟦●⟧ cases))]
+                (↝.amb (cons (rt-● a) cases))]
                [_ ⊥⟦e⟧])]
 
             ;; If it's a struct, havoc all publically accessible fields

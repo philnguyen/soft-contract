@@ -38,7 +38,14 @@
 ;; Symbol names are used for source code. Integers are used for generated.
 ;; Keep this eq?-able
 (Var-Name . ::= . Symbol Integer)
-(define +x! (make-nat-src))
+(: +x! : → Integer)
+(: +x/memo! : (U 'hv 'hv-rt) Any * → Integer)
+(define-values (+x! +x/memo!)
+  (let ([n : Integer 0]
+        [m : (HashTable (Listof Any) Integer) (make-hash)])
+    (values
+     (λ () (begin0 n (set! n (+ 1 n))))
+     (λ (tag . xs) (hash-ref! m (cons tag xs) +x!)))))
 
 ;; Identifier as a name and its source
 (struct -𝒾 ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
