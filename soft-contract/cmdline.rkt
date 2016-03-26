@@ -59,9 +59,9 @@
         (pretty-write (show-a A)))])]
   [(havoc)
    (define-values (ans M Ξ) (havoc-files fname))
-   (cond
-     [(set-empty? ans)
-      (printf "Safe~n")]
-     [else
-      (for ([A ans])
-        (pretty-write (show-a A)))])])
+   (define safe? : Boolean #t)
+   (for ([A ans] #:when (-ΓE? A))
+     (set! safe? #f)
+     (pretty-write (show-a A)))
+   (when safe?
+     (printf "Safe~n"))])
