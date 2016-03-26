@@ -56,18 +56,19 @@
                  ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
                (define ⟦hv-V⟧
                  ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 1) '() (list ⟦V⟧)) ⟦hv⟧))
-               (define ⟦hv-⸨V-●⸩∷hv-V⟧ ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧))
-               (↝.amb (list ⟦hv-⸨V-●⸩∷hv-V⟧ ⟦●⟧)))
+               ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧))
              
              (match a
-               [(arity-at-least k) (hv/arity (+ 1 k))] ; TODO
-               [(? integer? k) (hv/arity k)]
+               [(arity-at-least k)
+                (↝.amb (list ⟦●⟧ (hv/arity (+ 1 k))))] ; TODO
+               [(? integer? k)
+                (↝.amb (list ⟦●⟧ (hv/arity k)))]
                [(? list? ks)
                 (define cases : (Listof -⟦e⟧)
                   (for/list ([k ks])
                     (cond [(integer? k) (hv/arity k)]
                           [else (error 'havoc "TODO: ~a" k)])))
-                (↝.amb cases)]
+                (↝.amb (cons ⟦●⟧ cases))]
                [_ ⊥⟦e⟧])]
 
             ;; If it's a struct, havoc all publically accessible fields

@@ -46,7 +46,12 @@
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
   (define sₐ (apply -?@ sₕ sₓs))
-  
+
+  (: blm-arity : Arity Natural → -blm)
+  (define (blm-arity required provided)
+    ;; HACK for error message, but probably no need to fix
+    (-blm l 'Λ (list (format-symbol "~a arguments" required)) (list (-b provided))))
+
   (λ (M σ ℒ₀)
     (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
 
@@ -56,10 +61,7 @@
             [a a*])
         (cond
           [(arity-includes? a n) e ...]
-          [else
-           ;; HACK for error message, but probably no need for fix
-           (define blm (-blm l 'Λ (list (format-symbol "~a arguments" a)) (list (-b n))))
-           (values ⊥σ ∅ {set (-ΓE Γ₀ blm)} ∅)])))
+          [else (values ⊥σ ∅ {set (-ΓE Γ₀ (blm-arity a n))} ∅)])))
 
     ;; Different handlers depending on the type of `Wₕ`.
     ;; Lots of free variables from above.
@@ -253,6 +255,19 @@
       [(-Clo xs ⟦e⟧ ρ Γ)
        (with-guarded-arity (formals-arity xs)
          (ap/β xs ⟦e⟧ ρ Γ))]
+      [(-Case-Clo clauses ρ Γ)
+       (define n (length Wₓs))
+       (define clause
+         (for/or : (Option (Pairof (Listof Var-Name) -⟦e⟧)) ([clause clauses])
+           (match-define (cons xs _) clause)
+           (and (equal? n (length xs)) clause)))
+       (cond
+         [clause
+          (match-define (cons xs ⟦e⟧) clause)
+          (ap/β xs ⟦e⟧ ρ Γ)]
+         [else
+          (define a (assert (V-arity Vₕ)))
+          (values ⊥σ ∅ {set (-ΓE Γ₀ (blm-arity a n))} ∅)])]
       [(-Ar C α l³)
        (with-guarded-arity (guard-arity C)
          (cond [(-=>? C)  (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar   C Vᵤ l³))]
