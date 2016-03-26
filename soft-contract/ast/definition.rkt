@@ -27,13 +27,13 @@
 
 ;; Source location generator. It's hacked to remember fixed location for havoc
 (: +ℓ! : → -ℓ)
-(: +ℓ/memo! : (U 'arity 'ac 'hv-ref) Any → -ℓ)
+(: +ℓ/memo! : (U 'hv-ref 'hv-ap 'opq-ap 'ac-ap) Any * → -ℓ)
 (define-values (+ℓ! +ℓ/memo!)
   (let ([n : -ℓ 1]
-        [m : (HashTable (Pairof Symbol Any) -ℓ) (make-hash)])
+        [m : (HashTable (Listof Any) -ℓ) (make-hash)])
     (values
      (λ () (begin0 n (set! n (+ 1 n))))
-     (λ (tag x) (hash-ref! m (cons tag x) +ℓ!)))))
+     (λ (tag . xs) (hash-ref! m (cons tag xs) +ℓ!)))))
 
 ;; Symbol names are used for source code. Integers are used for generated.
 ;; Keep this eq?-able

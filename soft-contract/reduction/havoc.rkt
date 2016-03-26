@@ -23,72 +23,77 @@
 (define ⟦hv⟧ : -⟦e⟧
   (⇓ havoc-path (-ref havoc-𝒾 (+ℓ!))))
 
-(define (ℓₕᵥ [i : Natural]) : -ℓ
-  (+ℓ/memo! 'hv-ref i))
-
 (: gen-havoc-Clo : (Listof -module) → -Clo)
 ;; Generate the unknown context
 ;; Only used by `verify` module, not `ce`
 (define (gen-havoc-Clo ms)
 
-  (define acs-for-struct
-    (for/fold ([m : (HashTable -struct-info (℘ -st-ac)) (hash)])
-              ([ac (prog-accs ms)])
-      (match-define (-st-ac si _) ac)
-      (hash-update m si (λ ([acs : (℘ -st-ac)]) (set-add acs ac)) →∅)))
+  (define acs (prog-accs ms))
 
   (define ⟦e⟧ : -⟦e⟧
-    (let ()
-     
-      (λ (M σ ℒ)
-        (for*/ans ([V (σ@ σ (ρ@ (-ℒ-env ℒ) x))])
-          (define W (-W¹ V 𝐱))
-          (define ⟦rt-V⟧ : -⟦e⟧
-            (λ (M σ ℒ)
-              (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) 𝐱))} ∅ ∅)))
-          (define comp : -⟦e⟧
-            (match V
-              [(or (-●) (? -prim?)) ⊥⟦e⟧] ; ignore first-order and opaque
-              [(or (? -Clo?) (? -Ar?) (? -Case-Clo?))
-               (define a (V-arity V))
-               (define ℓ-V● (+ℓ/memo! 'arity a))
+    (λ (M σ ℒ)
+      (for*/ans ([V (σ@ σ (ρ@ (-ℒ-env ℒ) x))])
+        (define W (-W¹ V 𝐱))
+        (define ⟦V⟧ : -⟦e⟧
+          (λ (M σ ℒ)
+            (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) 𝐱))} ∅ ∅)))
+        (define comp : -⟦e⟧
+          (match V
+            ;; Ignore first-order and opaque values
+            [(or (-●) (? -prim?)) ⊥⟦e⟧]
+            
+            ;; Give an appropriate number of arguments to function
+            [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
+             (define a (V-arity V))
 
-               (define (hv/arity [k : Natural]) : -⟦e⟧
-                 (define ⟦V-●⟧
-                   (cond
-                     [(> k 0) ((↝.@ havoc-path ℓ-V● (list W) (make-list (- k 1) ⟦●⟧)) ⟦●⟧)]
-                     [else    (ap havoc-path ℓ-V● W '())]))
-                 (define ⟦hv-⸨V-●⸩⟧ ((↝.@ havoc-path (ℓₕᵥ 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
-                 (define ⟦hv-V⟧     ((↝.@ havoc-path (ℓₕᵥ 1) '() (list ⟦rt-V⟧)) ⟦hv⟧))
-                 (define ⟦hv-⸨V-●⸩∷hv-V⟧ ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧))
-                 (↝.amb (list ⟦hv-⸨V-●⸩∷hv-V⟧ ⟦●⟧)))
-               
-               (match a
-                 [(arity-at-least k) (hv/arity (+ 1 k))] ; TODO
-                 [(? integer? k) (hv/arity k)]
-                 [(? list? ks)
-                  (↝.amb (for/list : (Listof -⟦e⟧) ([k ks])
-                           (cond [(integer? k) (hv/arity k)]
-                                 [else (error 'havoc"TODO: ~a" k)])))]
-                 [_ ⊥⟦e⟧])
+             (define (hv/arity [k : Natural]) : -⟦e⟧
+               (define ℓ-V● (+ℓ/memo! 'opq-ap k))
+               (define ⟦V-●⟧
+                 (cond
+                   [(> k 0) ((↝.@ havoc-path ℓ-V● (list W) (make-list (- k 1) ⟦●⟧)) ⟦●⟧)]
+                   [else    (ap havoc-path ℓ-V● W '())]))
+               (define ⟦hv-⸨V-●⸩⟧
+                 ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
+               (define ⟦hv-V⟧
+                 ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 1) '() (list ⟦V⟧)) ⟦hv⟧))
+               (define ⟦hv-⸨V-●⸩∷hv-V⟧ ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧))
+               (↝.amb (list ⟦hv-⸨V-●⸩∷hv-V⟧ ⟦●⟧)))
+             
+             (match a
+               [(arity-at-least k) (hv/arity (+ 1 k))] ; TODO
+               [(? integer? k) (hv/arity k)]
+               [(? list? ks)
+                (define cases : (Listof -⟦e⟧)
+                  (for/list ([k ks])
+                    (cond [(integer? k) (hv/arity k)]
+                          [else (error 'havoc "TODO: ~a" k)])))
+                (↝.amb cases)]
+               [_ ⊥⟦e⟧])]
 
-               ]
-              [(or (-St s _) (-St* s _ _ _)) #:when s
-               (define ⟦hv-field⟧s : (Listof -⟦e⟧)
-                 (for/list ([ac (hash-ref acs-for-struct s →∅)])
-                   (define Ac (-W¹ ac ac))
-                   (define ⟦ac-V⟧      ((↝.@ havoc-path (+ℓ/memo! 'ac ac) (list Ac) '()) ⟦rt-V⟧))
-                   (define ⟦hv-⸨ac-V⸩⟧ ((↝.@ havoc-path (ℓₕᵥ 3 #|FIXME|#) '() (list ⟦ac-V⟧)) ⟦hv⟧))
-                   (define ⟦hv-V⟧      ((↝.@ havoc-path (ℓₕᵥ 4 #|FIXME|#) '() (list ⟦rt-V⟧)) ⟦hv⟧))
-                   ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨ac-V⸩⟧)))
-               (↝.amb ⟦hv-field⟧s)]
-              [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
-               (log-warning "TODO: havoc vector")
-               ⊥⟦e⟧]
-              [(? -C?)
-               (log-warning "TODO: havoc contract combinators")
-               ⊥⟦e⟧]))
-          (comp M σ ℒ)))))
+            ;; If it's a struct, havoc all publically accessible fields
+            [(or (-St s _) (-St* s _ _ _)) #:when s
+             (define ⟦hv-field⟧s : (Listof -⟦e⟧)
+               (for/list ([ac (hash-ref acs s →∅)])
+                 (define Ac (-W¹ ac ac))
+                 (define ⟦ac-V⟧
+                   ((↝.@ havoc-path (+ℓ/memo! 'ac-ap ac) (list Ac) '()) ⟦V⟧))
+                 (define ⟦hv-⸨ac-V⸩⟧
+                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap ac 0) '() (list ⟦ac-V⟧)) ⟦hv⟧))
+                 (define ⟦hv-V⟧
+                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap ac 1) '() (list ⟦V⟧)) ⟦hv⟧))
+                 ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨ac-V⸩⟧)))
+             (↝.amb ⟦hv-field⟧s)]
+            
+            ;; Havoc vector's content before erasing the vector with unknowns
+            [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
+             (log-warning "TODO: havoc vector")
+             ⊥⟦e⟧]
+
+            ;; Apply contract to unknown values
+            [(? -C?)
+             (log-warning "TODO: havoc contract combinators")
+             ⊥⟦e⟧]))
+        (comp M σ ℒ))))
 
   (-Clo (list x) ⟦e⟧ ⊥ρ ⊤Γ))
 
@@ -107,8 +112,8 @@
   (-amb/simp (for/list ([ref (in-set refs)])
                (-@ (•!) (list ref) (+ℓ!)))))
 
-(: prog-accs : (Listof -module) → (℘ -st-ac))
-;; Retrieve set of all public accessors from program
+(: prog-accs : (Listof -module) → (HashTable -struct-info (℘ -st-ac)))
+;; Retrieve set of all public accessors from program, grouped by struct
 (define (prog-accs ms)
   
   ;; Collect all defined accessors (`defs`) and exported identifiers (`decs`)
@@ -126,6 +131,7 @@
       [_ (void)]))
   
   ;; Return exported accessors
-  (∪ (for/set: : (℘ -st-ac) ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
-       ac)
-     {set -car -cdr}))
+  (for/fold ([m : (HashTable -struct-info (℘ -st-ac)) (hash -s-cons {set -car -cdr})])
+            ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
+    (match-define (-st-ac s _) ac)
+    (hash-update m s (λ ([acs : (℘ -st-ac)]) (set-add acs ac)) →∅)))
