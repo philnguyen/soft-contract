@@ -1,12 +1,18 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ spurious? Γ+/-V Γ+/-W∋Ws Γ+/-s Γ+/-)
+(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ spurious? Γ+/-V Γ+/-W∋Ws Γ+/-s Γ+/-
+         invert-γ invert-Γ)
 
-(require
- racket/match racket/set racket/bool (except-in racket/function arity-includes?)
- "../utils/main.rkt" "../ast/main.rkt"
- "../runtime/main.rkt"
- "result.rkt" "local.rkt" "utils.rkt")
+(require racket/match
+         racket/set
+         racket/bool
+         (except-in racket/function arity-includes?)
+         "../utils/main.rkt"
+         "../ast/main.rkt"
+         "../runtime/main.rkt"
+         "result.rkt"
+         "local.rkt"
+         "utils.rkt")
 
 ;; External solver to be plugged in.
 ;; Return trivial answer by default.
@@ -208,6 +214,74 @@
   (cond [ans-ok (cond [(set-empty? ans-bads) ans-ok]
                       [else (set-add ans-bads ans-ok)])]
         [else ans-bads]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Inversion
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: invert-γ : -M -Γ -γ → (℘ -Γ))
+;; Invert "hypothesis" `γ` in path-condition `Γ`.
+;; May return multiple (refined) path-conditions due to imprecision
+(define (invert-γ M Γ γ)
+  (match-define (-Γ φs as γs) Γ)
+  (assert (∋ γs γ))
+
+  (match-define (-γ τ sₕ x→as) γ)
+  (define m₀
+    (for/fold ([m : (HashTable -e -e) (hash)]) ([x→a (in-list x→as)])
+      (match-define (cons x sₓ) x→a)
+      (if sₓ (hash-set m (-x x) sₓ) m)))
+
+  (define sₕₓ (apply -?@ sₕ (map (inst cdr Var-Name -s) x→as)))
+
+  (for/fold ([Γs : (℘ -Γ) ∅]) ([A (M@ M τ)])
+    (define Γ*
+      (match A
+        [(-ΓW Γ₀ (-W Vs sₐ))
+         (define m (if (and sₕₓ sₐ) (hash-set m₀ sₕₓ sₐ) m₀))
+         (Γ⊓ Γ (Γ/ m Γ₀))]
+        [(-ΓE Γ₀ _)
+         (Γ⊓ Γ (Γ/ m₀ Γ₀))]))
+    (match Γ* ; Throw away the inverted hypothesis
+      [(-Γ φs as γs)
+       (set-add Γs (-Γ φs as (set-remove γs γ)))]
+      [#f Γs])))
+
+(: invert-Γ : -M -Γ → (℘ -Γ))
+;; Invert all tails in path condition
+(define (invert-Γ M Γ)
+  (match-define (-Γ _ _ γs) Γ)
+  (let loop ([Γs : (℘ -Γ) {set Γ}] [γs : (Listof -γ) (set->list γs)])
+    (match γs
+      ['() Γs]
+      [(cons γ γs*)
+       (define Γs*
+         (for/union : (℘ -Γ) ([Γ Γs])
+           (invert-γ M Γ γ)))
+       (loop Γs* γs*)])))
+
+(: invertⁿ-Γ : Natural -M -Γ → (℘ -Γ))
+;; Invert all tails in path condition `n` times
+(define (invertⁿ-Γ n M Γ)
+  (cond [(> n 0)
+         (for/union : (℘ -Γ) ([Γ* (in-set (invert-Γ M Γ))])
+           (invertⁿ-Γ (- n 1) M Γ))]
+        [else {set Γ}]))
+
+(: Γ⊓ : -Γ -Γ → (Option -Γ))
+;; Less powerful version of `Γ` that only proves things using local assumptions
+(define (Γ⊓ Γ₀ Γ₁)
+  (match-define (-Γ φs₁ _ γs₁) Γ₁)
+  (define Γ₀*
+    (for/fold ([Γ₀ : (Option -Γ) Γ₀]) ([φ₁ φs₁])
+      (and Γ₀
+           (case (Γ⊢e Γ₀ φ₁)
+             [(✓ ?) (Γ+ Γ₀ φ₁)]
+             [(✗)   #f]))))
+  (match Γ₀*
+    [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
+    [#f #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

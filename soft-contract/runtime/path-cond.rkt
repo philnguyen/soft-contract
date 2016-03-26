@@ -2,7 +2,11 @@
 
 (provide (all-defined-out))
 
-(require racket/match racket/set "../utils/set.rkt" "../ast/main.rkt" "definition.rkt")
+(require racket/match
+         racket/set
+         "../utils/set.rkt"
+         "../ast/main.rkt"
+         "definition.rkt")
 
 (: s↓ : -s (℘ Var-Name) → -s)
 ;; Restrict symbol to given set of free variables
@@ -51,6 +55,28 @@
 (define (-Γ-plus-γ Γ γ)
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (set-add γs γ)))
+
+(: Γ/ : (HashTable -e -e) -Γ → -Γ)
+;; Substitute free occurrences of `x` with `e` in path condition  
+(define (Γ/ m Γ)
+  (match-define (-Γ φs as γs) Γ)
+  (define subst (e/map m))
+  (define φs* (map/set subst φs))
+  (define as*
+    (for/hash : (HashTable Var-Name -e) ([(x e) as])
+      (values x (subst e))))
+  (define γs*
+    (map/set
+     (match-lambda
+       [(-γ τ sₕ x→args)
+        (define x→args* : (Listof (Pairof Var-Name -s))
+          (for/list ([x→arg (in-list x→args)])
+            (match-define (cons x s) x→arg)
+            (cons x (and s (subst s)))))
+        (define sₕ* (and sₕ (subst sₕ)))
+        (-γ τ sₕ* x→args*)])
+     γs))
+  (-Γ φs* as* γs*))
 
 (module+ test
   (require typed/rackunit)
