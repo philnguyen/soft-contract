@@ -40,6 +40,18 @@
     [(or (not s) (<= d 0)) '?]
     [else
      (define-values (✓Γ ✗Γ ?Γ) (partition-Γs Γs s))
+
+     (begin ; just debugging
+       (printf "worlds:~n")
+       (for ([Γ Γs])
+         (printf "  ~a ⊢ ~a : ~a~n"
+                 (show-Γ Γ)
+                 (show-s s)
+                 (cond [(∋ ✓Γ Γ) '✓]
+                       [(∋ ✗Γ Γ) '✗]
+                       [(∋ ?Γ Γ) '?]
+                       [else (error 'MσΓ*⊢s "wrong")]))))
+     
      (match* ((set-empty? ✓Γ) (set-empty? ✗Γ) (set-empty? ?Γ))
        [(#f #f _ ) '?]
        [(_  #t #t) '✓]
@@ -172,21 +184,36 @@
   (assert (∋ γs γ))
 
   (match-define (-γ τ sₕ x→as) γ)
-  (define m₀
-    (for/fold ([m : (HashTable -e -e) (hash)]) ([x→a (in-list x→as)])
+  (define-values (m₀ xs)
+    (for/fold ([m : (HashTable -e -e) (hash)]
+               [xs : (℘ Var-Name) ∅])
+              ([x→a (in-list x→as)])
       (match-define (cons x sₓ) x→a)
-      (if sₓ (hash-set m (-x x) sₓ) m)))
+      (values (if sₓ (hash-set m (-x x) sₓ) m)
+              (set-add xs x))))
 
-  (define sₕₓ (apply -?@ sₕ (map (inst cdr Var-Name -s) x→as)))
+  (define-values (sₓ sₑ) (unzip x→as))
+  (define sₕₑ (apply -?@ sₕ sₑ))
+  (define all-args? (andmap (compose1 not not) sₑ))
 
   (for/fold ([Γs : (℘ -Γ) ∅]) ([A (M@ M τ)])
     (define Γ*
       (match A
         [(-ΓW Γ₀ (-W Vs sₐ))
-         (define m (if (and sₕₓ sₐ) (hash-set m₀ sₕₓ sₐ) m₀))
-         (Γ⊓ Γ (Γ/ m Γ₀))]
+         ;; When returning callee's `eₐ` to caller's `f eₓ ...":
+         ;; - unfold eₐ to [x/eₓ]eₐ if possible
+         ;; - if not, replace `eₐ` with `f eₓ ...`
+         (define sₐ* (s↓ sₐ xs))
+         (define sₕₑ* (and all-args? sₐ* ((e/map m₀) sₐ*)))
+         (define m
+           (if sₐ*
+               (cond [sₕₑ* (hash-set m₀ sₐ* sₕₑ*)]
+                     [sₕₑ  (hash-set m₀ sₐ* sₕₑ )]
+                     [else m₀])
+               m₀))
+         (Γ⊓ Γ (Γ/ m (Γ↓ Γ₀ xs)))]
         [(-ΓE Γ₀ _)
-         (Γ⊓ Γ (Γ/ m₀ Γ₀))]))
+         (Γ⊓ Γ (Γ/ m₀ (Γ↓ Γ₀ xs)))]))
     (match Γ* ; Throw away the inverted hypothesis
       [(-Γ φs as γs)
        (set-add Γs (-Γ φs as (set-remove γs γ)))]
