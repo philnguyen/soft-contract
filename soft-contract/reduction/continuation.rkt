@@ -168,11 +168,11 @@
           (define β (-α.rng ℓ 𝒞))
           (define-values (δσ αs cs) ; αs reverses Ws, which is reversed
             (for/fold ([δσ : -Δσ (hash β {set D})]
-                       [αs : (Listof -α.dom) '()]
+                       [αs : (Listof (U -α.cnst -α.dom)) '()]
                        [cs : (Listof -s) '()])
                       ([W Ws] [i : Natural (in-naturals)])
-              (define α (-α.dom ℓ 𝒞 i))
               (match-define (-W¹ C c) W)
+              (define α (or (keep-if-const c) (-α.dom ℓ 𝒞 i)))
               (values (⊔ δσ α C) (cons α αs) (cons c cs))))
           (define G (-=> αs β))
           (define g (-?-> cs d))
@@ -203,10 +203,11 @@
 (define (mk-=>i ℒ Ws Mk-D ℓ)
   (match-define (-ℒ _ Γ 𝒞) ℒ)
   (define-values (δσ αs cs) ; `αs` and `cs` reverses `Ws`, which is reversed
-    (for/fold ([δσ : -Δσ ⊥σ] [αs : (Listof -α.dom) '()] [cs : (Listof -s) '()])
+    (for/fold ([δσ : -Δσ ⊥σ] [αs : (Listof (U -α.cnst -α.dom)) '()] [cs : (Listof -s) '()])
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
-      (define α (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?)))
+      (define α (or (keep-if-const c)
+                    (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?))))
       (values (⊔ δσ α C) (cons α αs) (cons c cs))))
   (match-define (-W¹ D d) Mk-D)
   (define C (-=>i αs (assert D -Clo?)))
@@ -257,12 +258,13 @@
            (define 𝒞 (-ℒ-hist ℒ))
            (define-values (δσ αs cs flat?) ; `αs` and `cs` reverse `Ws`, which is reversed
              (for/fold ([δσ : -Δσ ⊥σ]
-                        [αs : (Listof -α.struct/c) '()]
+                        [αs : (Listof (U -α.cnst -α.struct/c)) '()]
                         [cs : (Listof -s) '()]
                         [flat? : Boolean #t])
                        ([(W i) (in-indexed Ws*)])
                (match-define (-W¹ C c) W)
-               (define α (-α.struct/c ℓ 𝒞 (assert i exact-nonnegative-integer?)))
+               (define α (or (keep-if-const c)
+                             (-α.struct/c ℓ 𝒞 (assert i exact-nonnegative-integer?))))
                (values (⊔ δσ α C) (cons α αs) (cons c cs) (and flat? (C-flat? C)))))
            (define V (-St/C flat? si αs))
            (values δσ {set (-ΓW Γ* (-W (list V) (-?struct/c si cs)))} ∅ ∅)]))))

@@ -44,24 +44,24 @@
     [none/c (values ⊥σ (list -ff))]
     [and/c
      (match Ws
-       [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define α₁ (-α.and/c-l ℓ 𝒞))
-        (define α₂ (-α.and/c-r ℓ 𝒞))
+       [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
+        (define α₁ (or (keep-if-const s₁) (-α.and/c-l ℓ 𝒞)))
+        (define α₂ (or (keep-if-const s₂) (-α.and/c-r ℓ 𝒞)))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
                 (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)))]
        [Ws (error-arity 'and/c 2 (length Ws))])]
     [or/c
      (match Ws
-       [(list (-W¹ V₁ _) (-W¹ V₂ _))
-        (define α₁ (-α.or/c-l ℓ 𝒞))
-        (define α₂ (-α.or/c-r ℓ 𝒞))
+       [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
+        (define α₁ (or (keep-if-const s₁) (-α.or/c-l ℓ 𝒞)))
+        (define α₂ (or (keep-if-const s₂) (-α.or/c-r ℓ 𝒞)))
         (values (⊔ (⊔ ⊥σ α₁ V₁) α₂ V₂)
                 (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂)))]
        [Ws (error-arity 'or/c 2 (length Ws))])]
     [not/c
      (match Ws
-       [(list (-W¹ V _))
-        (define α (-α.not/c ℓ 𝒞))
+       [(list (-W¹ V s))
+        (define α (or (keep-if-const s) (-α.not/c ℓ 𝒞)))
         (values (⊔ ⊥σ α V) (list (-Not/C α)))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
 
@@ -75,16 +75,16 @@
      (values δσ (list (-Vector αs)))]
     [vectorof
      (match Ws
-       [(list (-W¹ V _))
-        (define α (-α.vectorof ℓ 𝒞))
+       [(list (-W¹ V s))
+        (define α (or (keep-if-const s) (-α.vectorof ℓ 𝒞)))
         (values (⊔ ⊥σ α V) (list (-Vectorof α)))]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
     [vector/c
      (define-values (αs-rev δσ)
-       (for/fold ([αs-rev : (Listof -α.vector/c) '()] [δσ : -Δσ ⊥σ])
+       (for/fold ([αs-rev : (Listof (U -α.cnst -α.vector/c)) '()] [δσ : -Δσ ⊥σ])
                  ([W Ws] [i : Natural (in-naturals)])
          (match-define (-W¹ V s) W)
-         (define α (-α.vector/c ℓ 𝒞 i))
+         (define α (or (keep-if-const s) (-α.vector/c ℓ 𝒞 i)))
          (values (cons α αs-rev) (⊔ δσ α V))))
      (values δσ (list (-Vector/C (reverse αs-rev))))]
     

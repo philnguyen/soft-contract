@@ -45,7 +45,7 @@
 (define/memo (ap [l : Mon-Party] [ℓ : -ℓ] [Wₕ : -W¹] [Wₓs : (Listof -W¹)]) : -⟦e⟧
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
-  (define sₐ (apply -?@ (or (V->s Vₕ) sₕ) sₓs))
+  (define sₐ (apply -?@ sₕ sₓs))
 
   (: blm-arity : Arity Natural → -blm)
   (define (blm-arity required provided)
@@ -104,20 +104,22 @@
       (define l³* (Mon-Info l- l+ lo))
       (define Wᵤ (-W¹ Vᵤ sₕ)) ;; Inner function
       (match-define (-=> αs β) C)
+      (define cs : (Listof -s) (for/list ([α αs]) (and (-e? α) α)))
+      (define d (and (-e? β) β))
       
       (match αs
         ['() ; no arg
          (define ⟦ap⟧ : -⟦e⟧ (ap lo ℓ Wᵤ '()))
          (for*/ans ([D (σ@ σ β)])
-           (((↝.mon.c l³ ℓ (-W¹ D #f)) ⟦ap⟧) M σ ℒ₀))]
+           (((↝.mon.c l³ ℓ (-W¹ D d)) ⟦ap⟧) M σ ℒ₀))]
         [(cons α αs*)
          (for*/ans ([Cs (σ@/list σ αs)])
            (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
-             (for/list : (Listof -⟦e⟧) ([C Cs] [Wₓ Wₓs])
-               (mon l³* ℓ (-W¹ C #f) Wₓ)))
+             (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs])
+               (mon l³* ℓ (-W¹ C c) Wₓ)))
            (define ⟦ap⟧ : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ) ⟦mon-x⟧s) ⟦mon-x⟧))
            (for*/ans ([D (σ@ σ β)])
-             (define comp : -⟦e⟧ ((↝.mon.c l³ ℓ (-W¹ D #f)) ⟦ap⟧))
+             (define comp : -⟦e⟧ ((↝.mon.c l³ ℓ (-W¹ D d)) ⟦ap⟧))
              (comp M σ ℒ₀)))]))
 
     (: ap/indy : -=>i -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
@@ -127,6 +129,7 @@
       (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
       (match-define (-=>i αs (and Mk-D (-Clo xs _ _ _))) C)
       (define W-rng (-W¹ Mk-D #f)) ;; Contract range maker
+      (define cs : (Listof -s) (for/list ([α αs]) (and (-e? α) α)))
       
       (match xs
         [(? list? xs)
@@ -136,8 +139,8 @@
                    
            ;; Monitor arguments
            (define ⟦mon-x⟧s : (Listof -⟦e⟧)
-             (for/list ([C Cs] [Wₓ Wₓs])
-               (mon l³* ℓ (-W¹ C #f) Wₓ)))
+             (for/list ([C Cs] [c cs] [Wₓ Wₓs])
+               (mon l³* ℓ (-W¹ C c) Wₓ)))
            
            ;; TODO: make sure it's ok to not memoize these run-time generated computations
            (define comp
@@ -283,23 +286,25 @@
                [else      (for*/ans ([Vᵤ (σ@ σ α)]) (ap/case C Vᵤ l³))]))]
       [(-And/C #t α₁ α₂)
        (with-guarded-arity 1
-         (match-define (list c₁ c₂)
-           (cond [(and (-e? α₁) (-e? α₂)) (list α₁ α₂)]
-                 [else (-app-split sₕ 'and/c 2)]))
+         (define-values (c₁ c₂)
+           (match-let ([(list s₁ s₂) (-app-split sₕ 'and/c 2)])
+             (values (or s₁ (and (-e? α₁) α₁))
+                     (or s₂ (and (-e? α₂) α₂)))))
          (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
                    (ap/And/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
       [(-Or/C #t α₁ α₂)
        (with-guarded-arity 1
-         (match-define (list c₁ c₂)
-           (cond [(and (-e? α₁) (-e? α₂)) (list α₁ α₂)]
-                 [else (-app-split sₕ 'or/c 2)]))
+         (define-values (c₁ c₂)
+           (match-let ([(list s₁ s₂) (-app-split sₕ 'or/c 2)])
+             (values (or s₁ (and (-e? α₁) α₁))
+                     (or s₂ (and (-e? α₂) α₂)))))
          (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
                    (ap/Or/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
       [(-Not/C α)
        (with-guarded-arity 1
-         (match-define (list c*)
-           (cond [(-e? α) (list α)]
-                 [else (-app-split sₕ 'not/c 1)]))
+         (define c*
+           (match-let ([(list s) (-app-split sₕ 'not/c 1)])
+             (or s (and (-e? α) α))))
          (for*/ans ([C* (σ@ σ α)])
                    (ap/Not/C (-W¹ C* c*))))]
       [(-St/C #t si αs)

@@ -6,6 +6,7 @@
 (provide (all-defined-out))
 
 (require racket/match
+         racket/set
          racket/bool
          (except-in racket/list remove-duplicates)
          racket/math
@@ -14,7 +15,7 @@
          racket/string
          racket/function
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "definition.rkt"
          (for-syntax racket/base
                      racket/contract
@@ -254,6 +255,12 @@
        (and s
             (let ([es (go ss*)])
               (and es (cons s es))))])))
+
+(: keep-if-const : -s → -s)
+;; Keep expression if it evaluates to a fixed value
+(define (keep-if-const s)
+  ;; TODO: update to work with mutable states
+  (and s (set-empty? (fv s)) s))
 
 (module+ test
   (require typed/rackunit)
