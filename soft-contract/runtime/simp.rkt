@@ -111,7 +111,13 @@
     [(and f (andmap (inst values -s) xs))
      (match f
        ;; If we already obtained a value, safe and unsafe shouldn't be different
-       [(-ref (-𝒾 o 'Λ) _) (apply -?@ o xs)] 
+       [(-ref (-𝒾 o 'Λ) _)
+        (define o*
+          (case o 
+            [(cons?) -cons?] ; TEMP HACK
+            [(box?) -box?]   ; TEMP HACK
+            [else o]))
+        (apply -?@ o* xs)] 
        
        ['any/c -tt]
        ['none/c -ff]

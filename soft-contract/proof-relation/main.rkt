@@ -294,10 +294,8 @@
             (for/list : (Listof Sexp) ([bnd bnds]) `(,(car bnd) ↦ ,(show-s (cdr bnd))))
             (show-Γ Γ)
             (show-s sₐ))
-    (printf "  substitutions: ~a~n"
-            (for/list : (Listof Sexp) ([(x y) m]) `(,(show-e x) ↦ ,(show-e y))))
     (printf "  would-be conjunction: ~a~n" (and Γ* (show-Γ Γ*)))
-    (printf "  would-be path-cond: ~a~n" (and Γ₀* (show-Γ Γ₀*))))
+    (printf "  would-be path-cond: ~a~n" (and Γ₀** (show-Γ Γ₀**))))
 
   (and Γ₀** #t))
 
