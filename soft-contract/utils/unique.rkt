@@ -58,21 +58,21 @@
      (hash-ref m⁻¹ s (λ () (error 'unique-sym "No element for `~a`" s))))
    (λ () (hash-count m))))
 
-(: make-memo (∀ (X Y) (→ (Values (X Y → X) (X → Y)))))
+(: make-memo (∀ (X Y) (→ (Values (X Y → X) (X → (Option Y))))))
 ;; Remember mapping X → Y
 (define (make-memo)
   (define m : (HashTable X Y) (make-hash))
   (values
    (λ (x y) (hash-set! m x y) x)
-   (λ (x) (hash-ref m x))))
+   (λ (x) (hash-ref m x #f))))
 
-(: make-memoeq (∀ (X Y) (→ (Values (X Y → X) (X → Y)))))
+(: make-memoeq (∀ (X Y) (→ (Values (X Y → X) (X → (Option Y))))))
 ;; Remember mapping X → Y
 (define (make-memoeq)
   (define m : (HashTable X Y) (make-hasheq))
   (values
    (λ (x y) (hash-set! m x y) x)
-   (λ (x) (hash-ref m x))))
+   (λ (x) (hash-ref m x #f))))
 
 (module+ test
   (require typed/rackunit)

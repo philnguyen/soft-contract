@@ -469,7 +469,10 @@
   (match-define (cons x s) x-s)
   `(,x ↦ ,(show-s s)))
 
-(define-values (show-⟦e⟧ show-⟦e⟧⁻¹ count-⟦e⟧) ((inst unique-sym -⟦e⟧) 'e))
+(define (show-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : Sexp
+  (match (recall-e ⟦e⟧)
+    [(? -e? e) (show-e e)]
+    [#f '…]))
 
 (define (show-τ [τ : -τ]) : Sexp
   (cond [(-ℬ? τ) (show-ℬ τ)]
@@ -477,7 +480,7 @@
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ ⟦e⟧ ℒ) ℬ)
-  `(ℬ … ,(show-ℒ ℒ)))
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys (-ℒ-env ℒ))))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ l³ ℓ W-C W-V ℒ) ℳ)
@@ -485,7 +488,7 @@
 
 (define (show-ℒ [ℒ : -ℒ]) : Sexp
   (match-define (-ℒ ρ Γ 𝒞) ℒ)
-  `(,@(show-ρ ρ) @ ,(show-𝒞 𝒞)))
+  `(,@(show-ρ ρ) @ ,(show-Γ Γ) @,(show-𝒞 𝒞)))
 
 (define (show-Co [Co : -Co]) : Sexp
   (match-define (-Co ℛ τ ans) Co)

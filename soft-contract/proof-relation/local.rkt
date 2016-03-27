@@ -216,19 +216,21 @@
   ;(dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-s e) ans)
   ans)
 
-(: partition-Γs : (℘ -Γ) -s → (Values (℘ -Γ) (℘ -Γ) (℘ -Γ)))
+(: partition-Γs : (℘ (Pairof -Γ -s))
+                → (Values (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s))))
 ;; Given a set of path-conditions, partition them into those that
 ;; proves, refute, and ambig the proposition, respectively
-(define (partition-Γs Γs s)
-  (define-set ✓Γ : -Γ)
-  (define-set ✗Γ : -Γ)
-  (define-set ?Γ : -Γ)
-  (for ([Γ Γs])
+(define (partition-Γs ps)
+  (define-set ✓s : (Pairof -Γ -s))
+  (define-set ✗s : (Pairof -Γ -s))
+  (define-set ?s : (Pairof -Γ -s))
+  (for ([p ps])
+    (match-define (cons Γ s) p)
     (case (Γ⊢e Γ s)
-      [(✓) (✓Γ-add! Γ)]
-      [(✗) (✗Γ-add! Γ)]
-      [(?) (?Γ-add! Γ)]))
-  (values ✓Γ ✗Γ ?Γ))
+      [(✓) (✓s-add! p)]
+      [(✗) (✗s-add! p)]
+      [(?) (?s-add! p)]))
+  (values ✓s ✗s ?s))
 
 (: ⊢V : -V → -R)
 ;; Check if value represents truth

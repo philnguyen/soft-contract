@@ -62,7 +62,7 @@
   (λ (M σ ℒ₀)
     (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
 
-    (begin ; debugging
+    #;(begin ; debugging
       (printf "About to apply ~a ~a -> ~a in ~a~n"
               (show-W¹ Wₕ)
               (map show-W¹ Wₓs)
@@ -253,7 +253,6 @@
       (⊔/ans (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)
              (for*/ans ([Wₓ Wₓs])
                ((ap 'Λ ℓ Wₕᵥ (list Wₓ)) M σ ℒ₀))))
-    
     (match Vₕ
       
       ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped

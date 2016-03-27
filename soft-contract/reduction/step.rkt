@@ -50,6 +50,14 @@
                 ([A As])
         (match A
           [(-ΓW Γ (-W Vs s))
+           #;(printf "plausible-rt?:~n  Caller: ~a : ~a ~a~n   Callee: ~a : ~a~n"
+                   (show-τ τ₀)
+                   (show-s f)
+                   (for/list : (Listof Sexp) ([bnd bnds])
+                     (match-define (cons x e) bnd)
+                     `(,x ↦ ,(show-s e)))
+                   (show-τ τ)
+                   (show-W (-W Vs s)))
            (cond
              [(plausible-rt? Γ₀ f bnds Γ s)
               (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
