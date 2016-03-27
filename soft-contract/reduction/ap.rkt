@@ -418,7 +418,26 @@
 
 (: mon-or/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-or/c l³ ℓ W-C W-V)
-  (error 'mon-or/c "TODO"))
+  (match-define (Mon-Info l+ _ lo) l³)
+  (match-define (-W¹ (-Or/C flat? α₁ α₂) c) W-C)
+  (define-values (c₁ c₂)
+    (match-let ([(list s₁ s₂) (-app-split c 'or/c 2)])
+      (values (or s₁ (and (-e? α₁) α₁))
+              (or s₂ (and (-e? α₂) α₂)))))
+  (define ⟦ok⟧ (ret-W¹ W-V))
+  (λ (M σ ℒ)
+    (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
+      (cond
+        [(C-flat? C₁)
+         (define ⟦chk⟧ (ap lo ℓ (-W¹ C₁ c₁) (list W-V)))
+         (define ⟦mon⟧ (mon l³ ℓ (-W¹ C₂ c₂) W-V))
+         (((↝.if lo ⟦ok⟧ ⟦mon⟧) ⟦chk⟧) M σ ℒ)]
+        [(C-flat? C₂)
+         (define ⟦chk⟧ (ap lo ℓ (-W¹ C₂ c₂) (list W-V)))
+         (define ⟦mon⟧ (mon l³ ℓ (-W¹ C₁ c₁) W-V))
+         (((↝.if lo ⟦ok⟧ ⟦mon⟧) ⟦chk⟧) M σ ℒ)]
+        [else ; both are chaperones, error for now (TODO: real semantics: distinguish by 1st order)
+         (error 'or/c "No more than 1 higher-order disjunct for now")]))))
 
 (: mon-not/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor negation contract. It must be flat.
