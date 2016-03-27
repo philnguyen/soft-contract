@@ -165,7 +165,7 @@
           (match-define (list D) Vs)
           (define ℒ* (-ℒ-with-Γ ℒ Γ*))
           (define 𝒞 (-ℒ-hist ℒ))
-          (define β (-α.rng ℓ 𝒞))
+          (define β (or (keep-if-const d) (-α.rng ℓ 𝒞)))
           (define-values (δσ αs cs) ; αs reverses Ws, which is reversed
             (for/fold ([δσ : -Δσ (hash β {set D})]
                        [αs : (Listof (U -α.cnst -α.dom)) '()]

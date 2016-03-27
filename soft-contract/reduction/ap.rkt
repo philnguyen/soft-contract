@@ -45,7 +45,14 @@
 (define/memo (ap [l : Mon-Party] [ℓ : -ℓ] [Wₕ : -W¹] [Wₓs : (Listof -W¹)]) : -⟦e⟧
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
-  (define sₐ (apply -?@ sₕ sₓs))
+  (define sₐ
+    (let ([sₕ* (or sₕ
+                   (match Vₕ
+                     [(? -prim? o) o]
+                     [(-Ar _ (-α.def (-𝒾 o 'Λ)) _) o]
+                     [(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
+                     [_ #f]))])
+      (apply -?@ sₕ* sₓs)))
 
   (: blm-arity : Arity Natural → -blm)
   (define (blm-arity required provided)
@@ -333,10 +340,10 @@
       [(-Vectorof? C) mon-vectorof]
       [(-Vector/C? C) mon-vector/c]
       [else           mon-flat    ]))
-  
+
   (λ (M σ ℒ)
     (define Γ (-ℒ-cnd ℒ))
-    (case (MσΓ⊢V∈C M σ Γ W-C W-V)
+    (case (MσΓ⊢V∈C M σ Γ W-V W-C)
       [(✓)
        (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅)]
       [(✗)

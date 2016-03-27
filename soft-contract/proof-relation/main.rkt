@@ -20,7 +20,7 @@
 (define (MσΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W¹ V e_v) W_v)
   (match-define (-W¹ C e_c) W_c)
-  (MσΓ⊢s M σ Γ (-?@ e_c e_v)))
+  (first-R (p∋Vs C V) (MσΓ⊢s M σ Γ (-?@ e_c e_v))))
 
 (: MσΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`
@@ -34,7 +34,7 @@
 (define (MσΓ⊢s M σ Γ s)
   (define ans (MσΓ*⊢s M σ {set Γ} s))
   #;(begin
-    (printf "~a ⊢ ~a : ~a ~n" (show-Γ Γ) (show-s s) ans)
+    (printf "chk: ~a ⊢ ~a : ~a ~n" (show-Γ Γ) (show-s s) ans)
     (unless (set-empty? (-Γ-tails Γ))
       (for* ([γ (-Γ-tails Γ)]
              [τ (in-value (-γ-callee γ))])
@@ -61,7 +61,8 @@
                  (cond [(∋ ✓Γ Γ) '✓]
                        [(∋ ✗Γ Γ) '✗]
                        [(∋ ?Γ Γ) '?]
-                       [else (error 'MσΓ*⊢s "wrong")]))))
+                       [else (error 'MσΓ*⊢s "wrong")])))
+       (printf "~n"))
      
      (match* ((set-empty? ✓Γ) (set-empty? ✗Γ) (set-empty? ?Γ))
        [(#f #f _ ) '?]
