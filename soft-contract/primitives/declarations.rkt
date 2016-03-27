@@ -742,11 +742,12 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
      ;; 4.9.1 Constructors and Selectors
-     [#:struct-pred pair? (cons #f #f)]
+     
      [#:pred null?]
      [#:struct-cons cons (cons #f #f)]
      [#:struct-acc car (cons #f #f) 0]
      [#:struct-acc cdr (cons #f #f) 1]
+     [#:struct-pred cons? (cons #f #f)]
      [null null?]
      [#:pred list?]
      [list (() #:rest list? . ->* . list?)]
@@ -833,7 +834,7 @@
 
      ;; 4.9.7 Additional List Functions and Synonyms
      [#:alias empty null]
-     [#:alias cons? pair?]
+     [#:alias pair? cons?]
      [#:alias empty? null?]
      [first
       ((cons/c any/c list?) . -> . any/c)]
