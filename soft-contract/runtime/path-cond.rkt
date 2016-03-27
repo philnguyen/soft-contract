@@ -65,18 +65,20 @@
   (define as*
     (for/hash : (HashTable Var-Name -e) ([(x e) as])
       (values x (subst e))))
-  (define γs*
-    (map/set
-     (match-lambda
-       [(-γ τ sₕ x→args)
-        (define x→args* : (Listof (Pairof Var-Name -s))
-          (for/list ([x→arg (in-list x→args)])
-            (match-define (cons x s) x→arg)
-            (cons x (and s (subst s)))))
-        (define sₕ* (and sₕ (subst sₕ)))
-        (-γ τ sₕ* x→args*)])
-     γs))
+  (define γs* (map/set (γ/ m) γs))
   (-Γ φs* as* γs*))
+
+(: γ/ : (HashTable -e -e) → -γ → -γ)
+(define ((γ/ m) γ)
+  (match-define (-γ τ sₕ bnds) γ)
+  (define subst (e/map m))
+  (define bnds* : (Listof (Pairof Var-Name -s))
+    (for/list ([bnd bnds])
+      (match-define (cons x s) bnd)
+      (cons x (and s (subst s)))))
+  (define sₕ* (and sₕ (subst sₕ)))
+  (-γ τ sₕ* bnds*))
+
 
 (module+ test
   (require typed/rackunit)

@@ -248,7 +248,7 @@
           (cons Γ
                 (for/fold ([h₁ : (HashTable -e -e) h₀]) ([(k v) h])
                   (hash-set h₁ k v))))
-        (invert-γ M Γ₀ γ)))))
+        (invert-γ M Γ₀ ((γ/ h₀) γ))))))
 
 (: invert-ps : -M (℘ (Pairof -Γ -s)) → (℘ (Pairof -Γ -s)))
 (define (invert-ps M ps)
