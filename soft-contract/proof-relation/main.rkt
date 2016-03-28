@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ spurious? Γ+/-V Γ+/-W∋Ws Γ+/-s Γ+/-
-         invert-γ invert-Γ
+         invert-Γ
          plausible-rt?)
 
 (require racket/match
@@ -200,7 +200,7 @@
 ;; `fvs` are extra free variables that caller and callee agree upon
 (define (invert-γ M Γ γ [fvs ∅])
   (match-define (-Γ φs as γs) Γ)
-  (assert (∋ γs γ))
+  ; (assert (∋ γs γ)) Not that important as long as `invert-γ` is private
 
   (match-define (-γ τ sₕ bnds) γ)
   (define-values (m₀ xs₀) (bnds->subst bnds))
@@ -233,6 +233,21 @@
   ans
   )
 
+#|
+(: invert-Γ* ([-M -Γ] [(℘ Var-Name)] . ->* . (Values -Γ (HashTable -e -e))))
+;; Invert path-condition as long as it doesn't split
+(define (invert-Γ* M Γ [fvs ∅])
+  (match-define (-Γ φs as γs) Γ)
+  (for*/fold ([Γ : -Γ Γ] [h : (HashTable -e -e) (hash)])
+             ([γ γs]
+              [τ (in-value (-γ-callee γ))]
+              #:when (= 1 (set-count (M@ M τ))))
+    (define ps (invert-γ M Γ γ))
+    (assert (= 1 (set-count ps)))
+    (match-define (cons Γ* h*) (set-first ps))
+    (values Γ* (hash-merge h h*))))
+|#
+
 (: invert-Γ : -M -Γ → (℘ (Pairof -Γ (HashTable -e -e))))
 ;; Invert all tails in path condition
 (define (invert-Γ M Γ)
@@ -245,9 +260,7 @@
        (map/set
         (λ ([p : (Pairof -Γ (HashTable -e -e))])
           (match-define (cons Γ h) p)
-          (cons Γ
-                (for/fold ([h₁ : (HashTable -e -e) h₀]) ([(k v) h])
-                  (hash-set h₁ k v))))
+          (cons Γ (hash-merge h₀ h)))
         (invert-γ M Γ₀ ((γ/ h₀) γ))))))
 
 (: invert-ps : -M (℘ (Pairof -Γ -s)) → (℘ (Pairof -Γ -s)))
@@ -274,12 +287,12 @@
     [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
     [#f #f]))
 
-(: plausible-rt? ([-Γ -s (Listof (Pairof Var-Name -s)) -Γ -s] [(℘ Var-Name)]
+(: plausible-rt? ([-M -σ -Γ -s (Listof (Pairof Var-Name -s)) -Γ -s] [(℘ Var-Name)]
                   . ->* . Boolean))
 ;; Checks if `Γ` under renaming `(f bnds)` can be a conjunct of `Γ₀`
 ;; - `#f` means a definite spurious return
 ;; - `#t` means a conservative plausible return
-(define (plausible-rt? Γ₀ f bnds Γ sₐ [fvs ∅])
+(define (plausible-rt? M σ Γ₀ f bnds Γ sₐ [fvs ∅])
   (define-values (m₀ xs₀) (bnds->subst bnds))
   (define-values (mₑₑ mₑᵣ) (mk-subst m₀ (∪ xs₀ fvs) f bnds sₐ))
 

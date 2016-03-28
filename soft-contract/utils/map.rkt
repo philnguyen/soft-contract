@@ -1,8 +1,6 @@
 #lang typed/racket/base
 
-(provide
- Map MMap
- dom ⊔ ⊔! ⊔* ⊔!* ⊔/m m∋ m@ mmap-subtract m↓)
+(provide (all-defined-out))
 
 (require racket/match racket/set "set.rkt")
 
@@ -57,3 +55,8 @@
 (define (m↓ m xs)
   (for/hash : (Map X Y) ([(k v) m] #:when (∋ xs k))
     (values k v)))
+
+(: hash-merge (∀ (X Y) (HashTable X Y) (HashTable X Y) → (HashTable X Y)))
+(define (hash-merge m₁ m₂)
+  (for/fold ([m : (HashTable X Y) m₁]) ([(k v) m₂])
+    (hash-set m k v)))

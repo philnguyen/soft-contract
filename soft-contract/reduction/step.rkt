@@ -53,13 +53,13 @@
         (match A
           [(-ΓW Γ (-W Vs s))
            (cond
-             [(plausible-rt? Γ₀ f bnds Γ s fvs)
+             [(plausible-rt? M σ Γ₀ f bnds Γ s fvs)
               (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
               (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and s fargs)))) ΓEs)]
              [else (values ΓWs ΓEs)])]
           [(-ΓE Γ (and blm (-blm l+ _ _ _)))
            (cond
-             [(plausible-rt? Γ₀ f bnds Γ #f fvs)
+             [(plausible-rt? M σ Γ₀ f bnds Γ #f fvs)
               (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
               (case l+ ; ignore blamings on system, top-level, and havoc
                 [(Λ † havoc) (values ΓWs ΓEs)]

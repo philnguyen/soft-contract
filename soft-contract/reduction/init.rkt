@@ -56,7 +56,7 @@
      (alloc-Ar-o σ* o (assert C -=>?) (assert c -->?))]
     [`(,(? symbol? o) ,(? arr*? sig) ...)
      (log-warning "TODO: ->* for ~a~n" o)
-     σ]
+     (⊔* σ [(-α.def (-𝒾 o 'Λ)) o] [(-α.wrp (-𝒾 o 'Λ)) o])]
     [`(,(? symbol? o) ,_ ...) σ]
     [`(#:struct-cons ,(? symbol? o) ,si)
      (define s (mk-struct-info si))
