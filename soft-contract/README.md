@@ -23,13 +23,18 @@ To run the analysis on a file `example.rkt`, run:
 
 > racket cmdline.rkt example.rkt
 
+By default, the tool "havocs" all exported values from the module.
+To just run the module from top to bottom without havoc-ing, use `-r`:
+
+> racket cmdline.rkt -r test/programs/safe/sat.rkt
+
 In order to be used with SCV, the file `example.rkt` should declare:
 
 ```{racket}
 (require soft-contract/fake-contract)
 ```
 
-And provide bindings as well as contracts *at the end*:
+And provide bindings as well as contracts *at the end* of the file:
 
 ```{racket}
 (provide/contract
