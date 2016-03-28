@@ -5,7 +5,7 @@
 (require racket/match
          racket/set
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "helpers.rkt"
@@ -45,19 +45,21 @@
       (define-values (xs args) (unzip bnds))
       (define fargs (apply -?@ f args))
       (define Γ₀ (-ℒ-cnd ℒ₀))
+      (define fvs (if f (fv f) ∅))
+      ;(printf "fvs: ~a~n" (set->list fvs))
 
       (for/fold ([ΓWs : (℘ -ΓW) ∅] [ΓEs : (℘ -ΓE) ∅])
                 ([A As])
         (match A
           [(-ΓW Γ (-W Vs s))
            (cond
-             [(plausible-rt? Γ₀ f bnds Γ s)
+             [(plausible-rt? Γ₀ f bnds Γ s fvs)
               (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
               (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and s fargs)))) ΓEs)]
              [else (values ΓWs ΓEs)])]
           [(-ΓE Γ (and blm (-blm l+ _ _ _)))
            (cond
-             [(plausible-rt? Γ₀ f bnds Γ #f)
+             [(plausible-rt? Γ₀ f bnds Γ #f fvs)
               (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
               (case l+ ; ignore blamings on system, top-level, and havoc
                 [(Λ † havoc) (values ΓWs ΓEs)]

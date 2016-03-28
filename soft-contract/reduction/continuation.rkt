@@ -210,9 +210,11 @@
                     (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?))))
       (values (⊔ δσ α C) (cons α αs) (cons c cs))))
   (match-define (-W¹ D d) Mk-D)
-  (define C (-=>i αs (assert D -Clo?)))
+  (define γ (or (keep-if-const d) (-α.rng ℓ 𝒞)))
+  (define δσ* (⊔ δσ γ D))
+  (define C (-=>i αs γ))
   (define c (-?->i cs (and d (assert d -λ?))))
-  (values δσ {set (-ΓW Γ (-W (list C) c))} ∅ ∅))
+  (values δσ* {set (-ΓW Γ (-W (list C) c))} ∅ ∅))
 
 (: ↝.case-> : Mon-Party -ℓ (Listof (Listof -W¹)) (Listof -W¹) (Listof -⟦e⟧) (Listof (Listof -⟦e⟧)) → -⟦ℰ⟧)
 (define ((↝.case-> l ℓ Clauses Cs ⟦c⟧s clauses) ⟦c⟧)

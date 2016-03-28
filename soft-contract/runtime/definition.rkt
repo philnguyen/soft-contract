@@ -92,7 +92,7 @@
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (Listof (U -α.dom -α.cnst))] [rng : -α])
-              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [#|ok, no recursion|# rng : -Clo])
+              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [mk-rng : -α])
               (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng))))
 
 (struct -blm ([violator : Mon-Party] [origin : Mon-Party]
@@ -361,23 +361,12 @@
     [(-Vectorof γ) `(vectorof ,(show-α γ))]
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
     [(-=> αs β) `(,@(map show-α αs) . -> . ,(show-α β))]
-    [(-=>i γs (-Clo xs ⟦d⟧ _ _))
+    [(-=>i γs α)
      (define cs : (Listof -s)
        (for/list ([γ : -α γs])
          (and (-e? γ) γ)))
-     (match xs
-       [(? list? xs)
-        `(->i ,(for/list : (Listof Sexp) ([x xs] [c cs])
-                 `(,x ,(show-s c)))
-              (res ,xs ,(show-⟦e⟧ ⟦d⟧)))]
-       [(-varargs xs₀ x)
-        (define n (length xs₀))
-        (match-define-values (γs₀ (list γ)) (split-at γs n))
-        (match-define-values (cs₀ (list c)) (split-at cs n))
-        `(->i ,(for/list : (Listof Sexp) ([x xs₀] [γ γs₀] [c cs₀])
-                 `(,x ,(show-s c)))
-              #:rest (,x ,(if (-e? γ) (show-e γ) (show-α γ)))
-              (res ,(cons xs₀ x) ,(show-⟦e⟧ ⟦d⟧)))])]
+     (define d : -s (and (-e? d) d))
+     `(,@(map show-s cs) . ->i . ,(show-s d))]
     [(-Case-> cases)
      `(case->
        ,@(for/list : (Listof Sexp) ([kase cases])

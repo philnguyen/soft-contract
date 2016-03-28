@@ -20,10 +20,10 @@
 (define guard-arity : (-=>_ → Arity)
   (match-lambda
     [(-=> αs _) (length αs)]
-    [(-=>i _ (-Clo xs _ _ _))
-     (match xs
-       [(? list? xs) (length xs)]
-       [(-varargs xs _) (arity-at-least (length xs))])]))
+    [(-=>i _ β)
+     (match β
+       [(-λ xs _) (formals-arity xs)]
+       [_ (error 'guard-arity "unhandled")])]))
 
 (: V-arity : -V → (Option Arity))
 ;; Return given value's arity, or `#f` if it's not a procedure
