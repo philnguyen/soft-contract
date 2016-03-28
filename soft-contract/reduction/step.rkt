@@ -255,11 +255,7 @@
          ((↝.case-> l ℓ '() '() ⟦c⟧s ⟦clause⟧s*) ⟦c⟧)])]
      [(-x/c x)
       (λ (M σ ℒ)
-        (define Γ (-ℒ-cnd ℒ))
-        (define ΓWs
-          (for/set: : (℘ -ΓW) ([V (σ@ σ (-α.x/c x))])
-            (-ΓW Γ (-W (list V) e))))
-        (values ⊥σ ΓWs ∅ ∅))]
+        (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list (-x/C (-α.x/c x))) e))} ∅ ∅))]
      [(-struct/c si cs l)
       (match cs
         ['()

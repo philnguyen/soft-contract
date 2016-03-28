@@ -131,7 +131,7 @@
                               (Listof (Pairof (Listof Var-Name) -⟦e⟧))
                               -⟦e⟧)
             (-ℰ.set! Var-Name -ℰ)
-            (-ℰ.μ/c Mon-Party Integer -ℰ)
+            (-ℰ.μ/c Mon-Party -ℓ -ℰ)
             (-ℰ.-->.dom (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ -ℓ)
             (-ℰ.-->.rng (Listof -W¹) -ℰ -ℓ)
             (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ -ℓ)

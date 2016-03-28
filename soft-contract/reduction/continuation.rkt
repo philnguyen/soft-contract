@@ -121,7 +121,7 @@
           (values (⊔ ⊥σ α V) {set (-ΓW Γ* -Void/W)} ∅ ∅))))
      (⟦e⟧ M σ ℒ))))
 
-(: ↝.μ/c : Mon-Party Integer → -⟦ℰ⟧)
+(: ↝.μ/c : Mon-Party -ℓ → -⟦ℰ⟧)
 (define ((↝.μ/c l x) ⟦c⟧)
   (define (ℰ+ [ℰ : -ℰ]) (-ℰ.μ/c l x ℰ))
   (λ (M σ ℒ)
@@ -130,8 +130,10 @@
       σ
       ℰ+
       (λ (σ* Γ* W)
-        (with-guarded-arity 1 (l Γ* (-W-Vs W))
-          (values ⊥σ {set (-ΓW Γ* W)} ∅ ∅))))
+        (match-define (-W Vs v) W)
+        (with-guarded-arity 1 (l Γ* Vs)
+          (match-define (list V) Vs)
+          (values (⊔ ⊥σ (-α.x/c x) V) {set (-ΓW Γ* W)} ∅ ∅))))
      (⟦c⟧ M σ ℒ))))
 
 (: ↝.-->.dom : Mon-Party (Listof -W¹) (Listof -⟦e⟧) -⟦e⟧ -ℓ → -⟦ℰ⟧)

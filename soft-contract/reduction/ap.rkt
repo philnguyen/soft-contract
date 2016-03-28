@@ -256,7 +256,7 @@
       (⊔/ans (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)
              (for*/ans ([Wₓ Wₓs])
                ((ap 'Λ ℓ Wₕᵥ (list Wₓ)) M σ ℒ₀))))
-    (match Vₕ
+    (define-values (a b c d) (match Vₕ
       
       ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped
       ;; by proxies, and contract checking is arbitrarily deep
@@ -319,7 +319,9 @@
       [(-St/C #t si αs)
        (error 'ap "St/C")]
       [(-●) (ap/●)]
-      [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)])))
+      [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)]))
+    ;(printf "Ap: ~a ~a --> ~a | ~a~n" (show-W¹ Wₕ) (map show-W¹ Wₓs) (set-map b show-A) (set-map d show-ℐ))
+    (values a b c d)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -403,11 +405,69 @@
 
 (: mon-struct/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-struct/c l³ ℓ W-C W-V)
-  (error 'mon-struct/c "TODO"))
+  (match-define (-W¹ C c) W-C)
+  (match-define (-W¹ V v) W-V)
+  (match-define (Mon-Info l+ _ lo) l³)
+  (match-define (-St/C flat? s αs) C)
+  (define cs (-struct/c-split c (-struct-info-arity s)))
+  
+  (define ⟦field⟧s : (Listof -⟦e⟧)
+    (for/list ([(α i) (in-indexed αs)])
+      (define ac (-st-ac s (assert i exact-nonnegative-integer?)))
+      (ap lo ℓ (-W¹ ac ac) (list (-W¹ V v)))))
+  
+  (match V
+    [(or (-St (== s) _) (-St* (== s) _ _ _))
+     (λ (M σ ℒ)
+       (for*/ans ([Cs (σ@/list σ αs)])
+         (define ⟦mon-field⟧s : (Listof -⟦e⟧)
+           (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
+             ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
+         (define comp : -⟦e⟧
+           (match ⟦mon-field⟧s
+             ['()
+              (λ (M σ ℒ)
+                (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
+             [(cons ⟦mon-field⟧ ⟦mon-field⟧s*)
+              (define k (-st-mk s))
+              ((↝.@ lo ℓ (list (-W¹ k k)) ⟦mon-field⟧s*) ⟦mon-field⟧)]))
+         (comp M σ ℒ)))]
+    [(-●)
+     (define p (-st-p s))
+     (λ (M σ ℒ)
+       (for*/ans ([Cs (σ@/list σ αs)])
+         (define ⟦blm⟧ (blm l+ lo (list (-st-p s)) (list V)))
+         (define ⟦mon-field⟧s : (Listof -⟦e⟧)
+           (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
+             ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
+         (define ⟦mk⟧ : -⟦e⟧
+           (match ⟦mon-field⟧s
+             ['()
+              (λ (M σ ℒ)
+                (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
+             [(cons ⟦mon-field⟧ ⟦mon-field⟧s*)
+              (define k (-st-mk s))
+              ((↝.@ lo ℓ (list (-W¹ k k)) ⟦mon-field⟧s*) ⟦mon-field⟧)]))
+         (define comp
+           ((↝.if lo ⟦mk⟧ ⟦blm⟧) (ap lo ℓ (-W¹ p p) (list W-V))))
+         (comp M σ ℒ)))]
+    [_ (blm l+ lo (list C) (list V))]))
 
 (: mon-x/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-x/c l³ ℓ W-C W-V)
-  (error 'mon-x/c "TODO"))
+  (match-define (-W¹ C c) W-C)
+  (match-define (-W¹ V v) W-V)
+  (match-define (-x/C α) C)
+  
+  (match W-V
+    [(-●)
+     (λ (M σ ℒ)
+       (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) V))} ∅ ∅))]
+    [_
+     (λ (M σ ℒ)
+       (for*/ans ([C* (σ@ σ α)])
+         (define W-C* (-W¹ C* c))
+         (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ #f '() '□) (-ℳ l³ ℓ W-C* W-V ℒ))})))]))
 
 (: mon-and/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor contract conjunction by decomposing into nesting checks
@@ -642,7 +702,8 @@
 (define/memo (blm [l+ : Mon-Party] [lo : Mon-Party]
                   [Cs : (Listof -V)] [Vs : (Listof -V)]) : -⟦e⟧
   (case l+ ; ignore blames on system, top-level, and havoc
-    [(Λ † havoc) ⊥⟦e⟧]
+    [(Λ † havoc)
+     ⊥⟦e⟧]
     [else
      (λ (M σ ℒ)
        (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo Cs Vs))} ∅))]))
