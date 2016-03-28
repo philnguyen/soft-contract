@@ -336,9 +336,9 @@
     [(-b b) (show-b b)]
     [(-●) '●]
     [(? -o? o) (show-o o)]
-    [(-Clo xs ⟦e⟧ ρ _) `(Clo ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
+    [(-Clo xs ⟦e⟧ ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧))]
     [(-Case-Clo clauses ρ Γ)
-     `(Case-Clo
+     `(case-lambda
        ,@(for/list : (Listof Sexp) ([clause clauses])
            (match-define (cons xs _) clause)
            `(,xs …)))]
