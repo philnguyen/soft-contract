@@ -12,7 +12,6 @@
          "../../ast/main.rkt"
          "../../primitives/utils.rkt"
          "../../runtime/main.rkt"
-         "../utils.rkt"
          "../result.rkt")
 
 ;; Query external solver for provability relation
