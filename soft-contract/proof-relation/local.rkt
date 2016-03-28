@@ -204,6 +204,7 @@
 
   (define ans
     (cond
+      [(∋ facts -ff) '✓]
       [e
        (first-R
         (⊢e e)
