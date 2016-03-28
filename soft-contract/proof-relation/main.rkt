@@ -12,8 +12,7 @@
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "result.rkt"
-         "local.rkt"
-         "utils.rkt")
+         "local.rkt")
 
 (: MσΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
