@@ -50,6 +50,9 @@
     [(<= d 0) '?]
     [else
      (define-values (✓s ✗s ?s) (partition-Γs ps))
+     (define ✓-mt? (set-empty? ✓s))
+     (define ✗-mt? (set-empty? ✗s))
+     (define ?-mt? (set-empty? ?s))
 
      #;(begin ; just debugging
        (printf "worlds:~n")
@@ -63,17 +66,18 @@
                        [(∋ ?s p) '?]
                        [else (error 'MσΓ*⊢s "wrong")])))
        (printf "~n"))
-     
-     (match* ((set-empty? ✓s) (set-empty? ✗s) (set-empty? ?s))
-       [(#f #f _ ) '?]
-       [(_  #t #t) '✓]
-       [(#t #f #t) '✗]
-       [(_  _  #f)
-        (define ps* (invert-ps M ?s))
-        ;; TODO
-        (cond [(equal? ps* ?s) '?]
-              [else
-               (MσΓ*⊢s M σ ps* #:depth (- d 1))])])]))
+
+     (cond
+       [?-mt? (cond [✗-mt? '✓]
+                    [✓-mt? '✗]
+                    [else '?])]
+       [else  (cond [✗-mt? (case (MσΓ*⊢s M σ (invert-ps M ?s) #:depth (- d 1))
+                             [(✓)   '✓]
+                             [(✗ ?) '?])]
+                    [✓-mt? (case (MσΓ*⊢s M σ (invert-ps M ?s) #:depth (- d 1))
+                             [(✗)   '✗]
+                             [(✓ ?) '?])]
+                    [else '?])])]))
 
 (: MσΓ⊓s : -M -σ -Γ -s → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
@@ -193,84 +197,78 @@
 ;;;;; Inversion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: invert-γ ([-M -Γ -γ] [(℘ Var-Name)] . ->* . (℘ (Pairof -Γ (HashTable -e -e)))))
+(: invert-γ : -M -Γ -γ → (℘ (Pairof -Γ (HashTable -e -e))))
 ;; Invert "hypothesis" `γ` in path-condition `Γ`.
 ;; May return multiple (refined) path-conditions due to imprecision
-;; `fvs` are extra free variables that caller and callee agree upon
-(define (invert-γ M Γ γ [fvs ∅])
+(define (invert-γ M Γ γ)
   (match-define (-Γ φs as γs) Γ)
   ; (assert (∋ γs γ)) Not that important as long as `invert-γ` is private
-
   (match-define (-γ τ sₕ bnds) γ)
-  (define-values (m₀ xs₀) (bnds->subst bnds))
-  (define xs (∪ fvs xs₀))
+  (define m₀ (bnds->subst bnds))
+  
+  ;; If `sₕ` was created in caller's block, its free variables and callers agree (assuming α-renaming)
+  (define xs (set-add-list (fvₛ sₕ) (map (inst car Var-Name -s) bnds)))
+  
   (define h∅ : (HashTable -e -e) (hash))
 
   (define ans
-    (for/fold ([Γs : (℘ (Pairof -Γ (HashTable -e -e))) ∅]) ([A (M@ M τ)])
+    (for/fold ([ps : (℘ (Pairof -Γ (HashTable -e -e))) ∅]) ([A (M@ M τ)])
       (match-define (cons Γ* mₑᵣ)
         (match A
           [(-ΓW Γ₀ (-W Vs sₐ))
-           ;; When returning callee's `eₐ` to caller's `f eₓ ...":
-           ;; - unfold eₐ to [x/eₓ]eₐ if possible
-           ;; - if not, replace `eₐ` with `f eₓ ...`
-           (define-values (mₑₑ mₑᵣ) (mk-subst m₀ xs sₕ bnds sₐ))
-           (cons (Γ⊓ (Γ/ mₑᵣ Γ) (Γ/ mₑₑ (Γ↓ Γ₀ xs))) mₑᵣ)]
+           (define-values (mₑₑ mₑᵣ) (mk-subst m₀ sₕ bnds sₐ))
+           (cons (Γ⊓ (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))
+                     (Γ/ mₑₑ (Γ↓ Γ₀ xs)))
+                 mₑᵣ)]
           [(-ΓE Γ₀ _)
-           (cons (Γ⊓ Γ (Γ/ m₀ (Γ↓ Γ₀ xs))) h∅)]))
-      (match Γ*
-        [(-Γ φs as γs)
-         ; Throw away inverted hypothesis
-         (set-add Γs (cons (-Γ φs as (set-remove γs γ)) mₑᵣ))]
-        [#f Γs])))
+           (cons (Γ⊓ (-Γ-minus-γ Γ γ)
+                     (Γ/ m₀ (Γ↓ Γ₀ xs)))
+                 h∅)]))
+      (if Γ* (set-add ps (cons Γ* mₑᵣ)) ps)))
   
   #;(begin ; debugging
     (printf "Invert ~a at ~a, getting:~n" (show-Γ Γ) (show-γ γ))
     (for ([Γ ans])
       (printf "  ~a~n" (show-Γ Γ))))
   
-  ans
-  )
-
-#|
-(: invert-Γ* ([-M -Γ] [(℘ Var-Name)] . ->* . (Values -Γ (HashTable -e -e))))
-;; Invert path-condition as long as it doesn't split
-(define (invert-Γ* M Γ [fvs ∅])
-  (match-define (-Γ φs as γs) Γ)
-  (for*/fold ([Γ : -Γ Γ] [h : (HashTable -e -e) (hash)])
-             ([γ γs]
-              [τ (in-value (-γ-callee γ))]
-              #:when (= 1 (set-count (M@ M τ))))
-    (define ps (invert-γ M Γ γ))
-    (assert (= 1 (set-count ps)))
-    (match-define (cons Γ* h*) (set-first ps))
-    (values Γ* (hash-merge h h*))))
-|#
+  ans)
 
 (: invert-Γ : -M -Γ → (℘ (Pairof -Γ (HashTable -e -e))))
-;; Invert all tails in path condition
+;; Invert all tails in path condition, accumulating substitutions that (heuristically)
+;; should also be applied to unfold goal into a more provable form.
+;; This does not invert new tails added as a result of inverting existing ones.
 (define (invert-Γ M Γ)
   (match-define (-Γ _ _ γs) Γ)
-  (define h∅ : (HashTable -e -e) (hash))
-  (for/fold ([ps : (℘ (Pairof -Γ (HashTable -e -e))) {set (cons Γ h∅)}])
+  (define m∅ : (HashTable -e -e) (hash))
+  (for/fold ([ps : (℘ (Pairof -Γ (HashTable -e -e))) {set (cons Γ m∅)}])
             ([γ γs])
     (for/union : (℘ (Pairof -Γ (HashTable -e -e))) ([p ps])
-       (match-define (cons Γ₀ h₀) p)
+       (match-define (cons Γ₀ m₀) p)
        (map/set
         (λ ([p : (Pairof -Γ (HashTable -e -e))])
-          (match-define (cons Γ h) p)
-          (cons Γ (hash-merge h₀ h)))
-        (invert-γ M Γ₀ ((γ/ h₀) γ))))))
+          (match-define (cons Γ m) p)
+          (cons Γ (hash-merge m₀ m)))
+        (invert-γ M Γ₀ ((γ/ m₀) γ))))))
 
 (: invert-ps : -M (℘ (Pairof -Γ -s)) → (℘ (Pairof -Γ -s)))
 (define (invert-ps M ps)
-  (for/union : (℘ (Pairof -Γ -s)) ([p ps])
+  (define ans
+    (for/union : (℘ (Pairof -Γ -s)) ([p ps])
     (match-define (cons Γ s) p)
-    (define ans
-      (for/set: : (℘ (Pairof -Γ -s)) ([p-h (invert-Γ M Γ)])
-      (match-define (cons Γ* h) p-h)
-      (cons Γ* (and s ((e/map h) s))))) 
-    ans))
+    (for/set: : (℘ (Pairof -Γ -s)) ([Γ-m (invert-Γ M Γ)])
+      (match-define (cons Γ* m) Γ-m)
+      (cons Γ* (and s ((e/map* m) s))))))
+  #;(begin
+    (printf "Invert:~n")
+    (for ([p ps])
+      (match-define (cons Γ s) p)
+      (printf "  - ~a ⊢ ~a~n" (show-Γ Γ) (show-s s)))
+    (printf "Into: ~n")
+    (for ([p ans])
+      (match-define (cons Γ s) p)
+      (printf "  - ~a ⊢ ~a~n" (show-Γ Γ) (show-s s)))
+    (printf "~n"))
+  ans)
 
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Less powerful version of `Γ` that only proves things using local assumptions
@@ -286,14 +284,13 @@
     [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
     [#f #f]))
 
-(: plausible-rt? ([-M -σ -Γ -s (Listof (Pairof Var-Name -s)) -Γ -s] [(℘ Var-Name)]
-                  . ->* . Boolean))
+(: plausible-rt? : -M -σ -Γ -s (Listof (Pairof Var-Name -s)) -Γ -s → Boolean)
 ;; Checks if `Γ` under renaming `(f bnds)` can be a conjunct of `Γ₀`
 ;; - `#f` means a definite spurious return
 ;; - `#t` means a conservative plausible return
-(define (plausible-rt? M σ Γ₀ f bnds Γ sₐ [fvs ∅])
-  (define-values (m₀ xs₀) (bnds->subst bnds))
-  (define-values (mₑₑ mₑᵣ) (mk-subst m₀ (∪ xs₀ fvs) f bnds sₐ))
+(define (plausible-rt? M σ Γ₀ f bnds Γ sₐ)
+  (define m₀ (bnds->subst bnds))
+  (define-values (mₑₑ mₑᵣ) (mk-subst m₀ f bnds sₐ))
 
   (define Γ* (Γ/ mₑₑ Γ))
   (define Γ₀* (Γ/ mₑᵣ Γ₀))
@@ -307,33 +304,39 @@
             (show-Γ Γ)
             (show-s sₐ))
     (printf "  would-be conjunction: ~a~n" (and Γ* (show-Γ Γ*)))
-    (printf "  would-be path-cond: ~a~n" (and Γ₀** (show-Γ Γ₀**))))
+    (printf "  would-be path-cond: ~a~n~n" (and Γ₀** (show-Γ Γ₀**))))
 
   (and Γ₀** #t))
 
-(: bnds->subst : (Listof (Pairof Var-Name -s)) → (Values (HashTable -e -e) (℘ Var-Name)))
+(: bnds->subst : (Listof (Pairof Var-Name -s)) → (HashTable -e -e))
 (define (bnds->subst bnds)
-  (for/fold ([m : (HashTable -e -e) (hash)]
-             [xs : (℘ Var-Name) ∅])
-            ([bnd bnds])
-    (match-define (cons x s) bnd)
-    (values (if s (hash-set m (-x x) s) m)
-            (set-add xs x))))
+  (for*/hash : (HashTable -e -e) ([bnd bnds]
+                                  [s (in-value (cdr bnd))] #:when s
+                                  [x (in-value (car bnd))])
+    (values (-x x) s)))
 
-(: mk-subst : (HashTable -e -e) (℘ Var-Name) -s (Listof (Pairof Var-Name -s)) -s
+(: mk-subst : (HashTable -e -e) -s (Listof (Pairof Var-Name -s)) -s
             → (Values (HashTable -e -e) (HashTable -e -e)))
 ;; Given caller's parameters and arguments and callee's result,
-;; Creating a substitution to convert callee's proposition
-;; to caller's meaningful proposition.
-;; The first map is for callee, second for caller
-(define (mk-subst m₀ xs f bnds a)
-  (define args (map (inst cdr Var-Name -s) bnds))
-  (define all-args? (andmap (compose1 not not) args))
+;; Create a substitution to convert callee's propositions
+;; to caller's meaningful propositions.
+;; Return 2 maps: first map is for callee, second for caller (for possible unfoldings)
+(define (mk-subst m₀ f bnds a)
+  (define-values (xs₀ args) (unzip bnds))
+  (define xs (∪ (list->set xs₀) (fvₛ f)))
+
+  ;; Caller's result as the function call
   (define fargs (apply -?@ f args))
-  (define a* (s↓ a xs))
-  (define fargs* (and all-args? a* ((e/map m₀) a*)))
+  
+  ;; Unfold caller's result to callee's result if callee's result is in terms
+  ;; of only variables caller understands
+  (define fargs*
+    (let ([all-args? (andmap (inst values Any) args)]
+          [a* (s↓ a xs)])
+      (and all-args? a* ((e/map m₀) a*))))
+  
   (if a
-      (cond [(and fargs fargs*) ; unfold and get rid of `f` if possible
+      (cond [(and fargs fargs*) ; unfold if possible
              (values (hash-set m₀ a fargs*) (hash fargs fargs*))]
             [fargs
              (values (hash-set m₀ a fargs ) (hash))]

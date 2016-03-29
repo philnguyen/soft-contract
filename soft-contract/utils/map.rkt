@@ -60,3 +60,8 @@
 (define (hash-merge m₁ m₂)
   (for/fold ([m : (HashTable X Y) m₁]) ([(k v) m₂])
     (hash-set m k v)))
+
+(: map/hash (∀ (X Y Z) (Y → Z) (HashTable X Y) → (HashTable X Z)))
+(define (map/hash f m)
+  (for/hash : (HashTable X Z) ([(x y) m])
+    (values x (f y))))

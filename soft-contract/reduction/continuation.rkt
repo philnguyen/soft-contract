@@ -142,7 +142,7 @@
     (apply/values
      (acc
       σ
-      (λ (ℰ) (-ℰ.-->.dom Ws ℰ ⟦c⟧s ⟦d⟧ ℓ))
+      (λ (ℰ) (-ℰ.-->.dom l Ws ℰ ⟦c⟧s ⟦d⟧ ℓ))
       (λ (σ* Γ* W)
         (match-define (-W Vs s) W)
         (with-guarded-arity 1 (l Γ* Vs)
@@ -160,7 +160,7 @@
     (apply/values
      (acc
       σ
-      (λ (ℰ) (-ℰ.-->.rng Ws ℰ ℓ))
+      (λ (ℰ) (-ℰ.-->.rng l Ws ℰ ℓ))
       (λ (σ* Γ* W)
         (match-define (-W Vs d) W)
         (with-guarded-arity 1 (l Γ* Vs)

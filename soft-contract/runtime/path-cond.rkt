@@ -56,6 +56,11 @@
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (set-add γs γ)))
 
+(: -Γ-minus-γ : -Γ -γ → -Γ)
+(define (-Γ-minus-γ Γ γ)
+  (match-define (-Γ φs as γs) Γ)
+  (-Γ φs as (set-remove γs γ)))
+
 (: Γ/ : (HashTable -e -e) -Γ → -Γ)
 ;; Substitute free occurrences of `x` with `e` in path condition  
 (define (Γ/ m Γ)
@@ -78,6 +83,9 @@
       (cons x (and s (subst s)))))
   (define sₕ* (and sₕ (subst sₕ)))
   (-γ τ sₕ* bnds*))
+
+(: fvₛ : -s → (℘ Var-Name))
+(define (fvₛ s) (if s (fv s) ∅))
 
 
 (module+ test

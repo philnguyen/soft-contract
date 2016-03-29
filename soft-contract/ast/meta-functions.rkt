@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide
- fv 𝐴 closed? checks# free-x/c e/ e/map e/fun e/list unroll find-calls prim-name->unsafe-prim
+ fv 𝐴 closed? checks# free-x/c e/ e/map e/map* e/fun e/list unroll find-calls prim-name->unsafe-prim
  α-rename)
 
 (require
@@ -273,6 +273,16 @@
          [_
           (log-debug "e/: ignore substituting ~a" (show-e e))
           e])])))
+
+(: e/map* : (HashTable -e -e) → -e → -e)
+;; Repeatedly substitute until the expression doesn't get smaller
+(define ((e/map* m) e)
+  (define f (e/map m))
+  (let loop ([e : -e e] [n : Natural (count-leaves e)])
+    (define e* (f e))
+    (define n* (count-leaves e*))
+    (cond [(< n* n) (loop e* n*)]
+          [else e])))
 
 (: e/fun : (-e → (Option -e)) → -e → -e)
 ;; Duplicate code as `e/map` for now for some efficiency of `e/map`
@@ -547,3 +557,38 @@
        (-struct/c si (map (curry go! m) cs) ℓ)]
       [_ e])))
 
+(: count-leaves : -e → Natural)
+;; No idea if #leaves or #nodes is more meaningful measurement. Pick one for now.
+(define count-leaves
+  (match-lambda
+    [(-λ _ e) (count-leaves e)]
+    [(-case-λ clauses)
+     (for/sum : Natural ([clause clauses])
+       (match-define (cons _ e) clause)
+       (count-leaves e))]
+    [(-@ e es _) (+ (count-leaves e) (count-leaves* es))]
+    [(-if e e₁ e₂) (+ (count-leaves e) (count-leaves e₁) (count-leaves e₂))]
+    [(-wcm k v b) (+ (count-leaves k) (count-leaves k) (count-leaves b))]
+    [(-begin es) (count-leaves* es)]
+    [(-begin0 e es) (+ (count-leaves e) (count-leaves* es))]
+    [(or (-let-values bnds e) (-letrec-values bnds e)) #:when (and bnds e)
+     (+ (for/sum : Natural ([bnd bnds])
+          (match-define (cons _ e) bnd)
+          (count-leaves e))
+        (count-leaves e))]
+    [(-set! _ e) (count-leaves e)]
+    [(? -error?) 1]
+    [(-amb es) (count-leaves* es)]
+    [(-μ/c _ c) (count-leaves c)]
+    [(-->  cs d _) (+ (count-leaves* cs) (count-leaves d))]
+    [(-->i cs d _) (+ (count-leaves* cs) (count-leaves d))]
+    [(-case-> clauses _)
+     (for/sum : Natural ([clause clauses])
+       (match-define (cons cs d) clause)
+       (+ (count-leaves* cs) (count-leaves d)))]
+    [(-struct/c _ cs _) (count-leaves* cs)]
+    [_ 1]))
+
+(: count-leaves* : (Sequenceof -e) → Natural)
+(define (count-leaves* es)
+  (for/sum : Natural ([e es]) (count-leaves e)))
