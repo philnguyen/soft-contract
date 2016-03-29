@@ -293,8 +293,14 @@
        ((↝.letrec-values l δρ xs xs-⟦e⟧s ⟦e⟧) (go ℰ*))]
       [(-ℰ.set! x ℰ*) ((↝.set! x) (go ℰ*))]
       [(-ℰ.μ/c l x ℰ*) ((↝.μ/c l x) (go ℰ*))]
+      [(-ℰ.-->.dom l Cs ℰ* ⟦c⟧s ⟦d⟧ ℓ)
+       ((↝.-->.dom l Cs ⟦c⟧s ⟦d⟧ ℓ) (go ℰ*))]
+      [(-ℰ.-->.rng l Cs ℰ* ℓ)
+       ((↝.-->.rng l Cs ℓ) (go ℰ*))]
       [(-ℰ.-->i Cs ℰ* ⟦c⟧s ⟦mk-d⟧ l)
        ((↝.-->i Cs ⟦c⟧s ⟦mk-d⟧ l) (go ℰ*))]
+      [(-ℰ.case-> l ℓ Css Cs ℰ* ⟦c⟧s ⟦c⟧ss)
+       ((↝.case-> l ℓ Css Cs ⟦c⟧s ⟦c⟧ss) (go ℰ*))]
       [(-ℰ.struct/c si Cs ℰ* ⟦c⟧s l)
        ((↝.struct/c si Cs ⟦c⟧s l) (go ℰ*))]
       [(-ℰ.mon.v l³ ℓ ℰ* Val)
