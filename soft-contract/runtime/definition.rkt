@@ -132,8 +132,8 @@
                               -⟦e⟧)
             (-ℰ.set! Var-Name -ℰ)
             (-ℰ.μ/c Mon-Party -ℓ -ℰ)
-            (-ℰ.-->.dom (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ -ℓ)
-            (-ℰ.-->.rng (Listof -W¹) -ℰ -ℓ)
+            (-ℰ.-->.dom Mon-Party (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ -ℓ)
+            (-ℰ.-->.rng Mon-Party (Listof -W¹) -ℰ -ℓ)
             (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ -ℓ)
             (-ℰ.case-> Mon-Party
                        -ℓ
@@ -322,6 +322,15 @@
   (match-define (-Γ φs as ts) Γ)
   `(,@(set-map φs show-e) ,@(set-map ts show-γ)))
 
+(define (show-M-Γ [M : -M] [Γ : -Γ]) : (List Sexp (Listof Sexp))
+  (match-define (-Γ _ _ γs) Γ)
+  (define ts : (Listof Sexp)
+    (for/list ([γ γs])
+      (match-define (-γ τ f bnds) γ)
+      (define As (M@ M τ))
+      `(,(show-γ γ) ≡ (,(show-τ τ) (,(show-s f) ,@(map show-bnd bnds))) ↦ ,@(set-map As show-A))))
+  (list (show-Γ Γ) ts))
+
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(τ ℛs) Ξ])
     `(,(show-τ τ) ↦ ,@(set-map ℛs show-ℛ))))
@@ -429,9 +438,9 @@
           ,(show-⟦e⟧ e))]
       [(-ℰ.set! x ℰ*) `(set! ,x ,(loop ℰ*))]
       [(-ℰ.μ/c _ x ℰ*) `(μ/c ,x ,(loop ℰ*))]
-      [(-ℰ.-->.dom Ws ℰ* ⟦c⟧s ⟦d⟧ _)
+      [(-ℰ.-->.dom _ Ws ℰ* ⟦c⟧s ⟦d⟧ _)
        `ℰ.-->.dom]
-      [(-ℰ.-->.rng Ws ℰ* _)
+      [(-ℰ.-->.rng _ Ws ℰ* _)
        `ℰ.-->.rng]
       [(-ℰ.-->i Cs ℰ* cs (-W¹ (-Clo xs _ _ _) d) _)
        `(,@(map show-W¹ Cs) ,(loop ℰ*) ,@(map show-⟦e⟧ cs) ,(show-s d))]
