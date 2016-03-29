@@ -459,10 +459,10 @@
   (match-define (-W¹ V v) W-V)
   (match-define (-x/C α) C)
   
-  (match W-V
+  (match V
     [(-●)
      (λ (M σ ℒ)
-       (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) V))} ∅ ∅))]
+       (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
     [_
      (λ (M σ ℒ)
        (for*/ans ([C* (σ@ σ α)])
