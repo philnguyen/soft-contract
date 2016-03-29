@@ -282,7 +282,7 @@
     (define e* (f e))
     (define n* (count-leaves e*))
     (cond [(< n* n) (loop e* n*)]
-          [else e])))
+          [else #|significant, substitute at least once more|# e*])))
 
 (: e/fun : (-e → (Option -e)) → -e → -e)
 ;; Duplicate code as `e/map` for now for some efficiency of `e/map`
