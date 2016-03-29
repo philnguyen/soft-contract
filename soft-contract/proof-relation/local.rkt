@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ Γ⊢e partition-Γs ⊢V p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred)
+(provide Γ⊢ₑₓₜ Γ⊢e partition-Γs ⊢V p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred ensure-simple-consistency)
 
 (require
  racket/match racket/set
@@ -214,7 +214,7 @@
           R*)
         ((Γ⊢ₑₓₜ) Γ e))]
       [else '?]))
-  ;(dbg '⊢ "~a ⊢ ~a : ~a~n~n"(show-Γ Γ) (show-s e) ans)
+  ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-s e) ans)
   ans)
 
 (: partition-Γs : (℘ (Pairof -Γ -s))
@@ -367,6 +367,18 @@
       [(or (== e) (-not (-not (== e)))) #:when (and e (equal? '✓ (p⇒p 'values best)))
        'values]
       [_ best])))
+
+(: ensure-simple-consistency : (Option -Γ) → (Option -Γ))
+;; Throw away obviously inconsistent path-condition
+(define (ensure-simple-consistency Γ)
+  (match Γ
+    [(-Γ φs _ _)
+     (define obviously-inconsistent?
+       (or (∋ φs -ff)
+           (for/or : Boolean ([φ φs])
+             (∋ φs (assert (-not φ))))))
+     (if obviously-inconsistent? #f Γ)]
+    [#f #f]))
 
 
 (module+ test

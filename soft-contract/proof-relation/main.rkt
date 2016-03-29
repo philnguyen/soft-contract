@@ -54,6 +54,26 @@
      (define ✗-mt? (set-empty? ✗s))
      (define ?-mt? (set-empty? ?s))
 
+     (define ans
+       (cond
+         [?-mt? (cond [✗-mt? '✓]
+                      [✓-mt? '✗]
+                      [else '?])]
+         [else  (cond [✗-mt?
+                       (define ps* (invert-ps M ?s))
+                       (cond [(equal? ps* ?s) '?]
+                             [✓-mt? (MσΓ*⊢s M σ ps* #:depth (- d 1))]
+                             [else (case (MσΓ*⊢s M σ ps* #:depth (- d 1))
+                                     [(✓)   '✓]
+                                     [(✗ ?) '?])])]
+                      [✓-mt?
+                       (define ps* (invert-ps M ?s))
+                       (cond [(equal? ps* ?s) '?]
+                             [else
+                              (case (MσΓ*⊢s M σ ps* #:depth (- d 1))
+                                [(✗)   '✗]
+                                [(✓ ?) '?])])]
+                      [else '?])]))
      #;(begin ; just debugging
        (printf "worlds:~n")
        (for ([p ps])
@@ -67,28 +87,26 @@
                        [else (error 'MσΓ*⊢s "wrong")])))
        (printf "~n"))
 
-     (cond
-       [?-mt? (cond [✗-mt? '✓]
-                    [✓-mt? '✗]
-                    [else '?])]
-       [else  (cond [✗-mt? (case (MσΓ*⊢s M σ (invert-ps M ?s) #:depth (- d 1))
-                             [(✓)   '✓]
-                             [(✗ ?) '?])]
-                    [✓-mt? (case (MσΓ*⊢s M σ (invert-ps M ?s) #:depth (- d 1))
-                             [(✗)   '✗]
-                             [(✓ ?) '?])]
-                    [else '?])])]))
+     ans]))
 
 (: MσΓ⊓s : -M -σ -Γ -s → (Option -Γ))
 ;; More powerful version of `Γ⊓` that uses global tables
 (define (MσΓ⊓s M σ Γ e)
   (if (equal? '✗ (MσΓ⊢s M σ Γ e)) #f (Γ+ Γ e)))
 
-(: MσΓ⊓ : -M -σ -Γ -es → (Option -Γ))
+(: MσΓ⊓ : -M -σ -Γ -Γ → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
-(define (MσΓ⊓ M σ Γ es)
-  (for/fold ([Γ : (Option -Γ) Γ]) ([e es])
-    (and Γ (MσΓ⊓s M σ Γ e))))
+(define (MσΓ⊓ M σ Γ₀ Γ₁)
+  (match-define (-Γ φs₁ _ γs₁) Γ₁)
+  (define Γ₀*
+    (for/fold ([Γ₀ : (Option -Γ) Γ₀]) ([φ₁ φs₁])
+      (and Γ₀
+           (case (MσΓ⊢s M σ Γ₀ φ₁)
+             [(✓ ?) (Γ+ Γ₀ φ₁)]
+             [(✗)   #f]))))
+  (match Γ₀*
+    [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
+    [#f #f]))
 
 (: spurious? : -M -σ -Γ -W → Boolean)
 ;; Check if `e` cannot evaluate to `V` given `Γ` is true
@@ -217,12 +235,12 @@
         (match A
           [(-ΓW Γ₀ (-W Vs sₐ))
            (define-values (mₑₑ mₑᵣ) (mk-subst m₀ sₕ bnds sₐ))
-           (cons (Γ⊓ (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))
-                     (Γ/ mₑₑ (Γ↓ Γ₀ xs)))
+           (cons (ensure-simple-consistency (Γ⊓ (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))
+                                                (Γ/ mₑₑ (Γ↓ Γ₀ xs))))
                  mₑᵣ)]
           [(-ΓE Γ₀ _)
-           (cons (Γ⊓ (-Γ-minus-γ Γ γ)
-                     (Γ/ m₀ (Γ↓ Γ₀ xs)))
+           (cons (ensure-simple-consistency (Γ⊓ (-Γ-minus-γ Γ γ)
+                                                (Γ/ m₀ (Γ↓ Γ₀ xs))))
                  h∅)]))
       (if Γ* (set-add ps (cons Γ* mₑᵣ)) ps)))
   
@@ -292,9 +310,9 @@
   (define m₀ (bnds->subst bnds))
   (define-values (mₑₑ mₑᵣ) (mk-subst m₀ f bnds sₐ))
 
-  (define Γ* (Γ/ mₑₑ Γ))
-  (define Γ₀* (Γ/ mₑᵣ Γ₀))
-  (define Γ₀** (Γ⊓ Γ₀* Γ*))
+  (define Γ*  (ensure-simple-consistency (Γ/ mₑₑ Γ )))
+  (define Γ₀* (ensure-simple-consistency (Γ/ mₑᵣ Γ₀)))
+  (define Γ₀** (and Γ* Γ₀* (MσΓ⊓ M σ Γ₀* Γ*)))
 
   #;(begin ; debugging
     (printf "plausible? ~a [~a ~a] ~a [~a]~n"
