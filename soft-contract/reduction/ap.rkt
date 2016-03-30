@@ -136,7 +136,7 @@
       (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
       (match-define (-=>i αs γ) C)
       (define cs : (Listof -s) (for/list ([α αs]) (and (-e? α) α)))
-      (define mk-d (and (-e? γ) γ))
+      (define mk-d (and (-λ? γ) γ))
 
       (for*/ans ([Mk-D (σ@ σ γ)])
         (match-define (-Clo xs _ _ _) Mk-D)
@@ -193,6 +193,24 @@
     (define (ap/Not/C WC*)
       (define ⟦e⟧* (ap l ℓ WC* Wₓs))
       (((↝.@ l ℓ (list -not/W) '()) ⟦e⟧*) M σ ℒ₀))
+
+    (: ap/St/C : -struct-info (Listof -W¹) → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (define (ap/St/C s W-Cs)
+      (match-define (list Wₓ) Wₓs)
+      (match-define (-W¹ Vₓ _) Wₓ)
+      (match Vₓ
+        [(or (-St (== s) _) (-St* (== s) _ _ _) (-●))
+         (define ⟦chk-field⟧s : (Listof -⟦e⟧)
+           (for/list ([(W-C i) (in-indexed W-Cs)])
+             (define Ac
+               (let ([ac (-st-ac s (assert i exact-nonnegative-integer?))])
+                 (-W¹ ac ac)))
+             ((↝.@ l ℓ (list W-C) '()) (ap l ℓ Ac (list Wₓ)))))
+         (define P (let ([p (-st-p s)]) (-W¹ p p)))
+         (define comp ((↝.and l ⟦chk-field⟧s) (ap l ℓ P (list Wₓ))))
+         (comp M σ ℒ₀)]
+        [_
+         (values ⊥σ {set (-ΓW Γ₀ (-W -False/Vs -ff))} ∅ ∅)]))
 
     (: ap/contract-first-order-passes? : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/contract-first-order-passes?)
@@ -256,7 +274,7 @@
       (⊔/ans (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)
              (for*/ans ([Wₓ Wₓs])
                ((ap 'Λ ℓ Wₕᵥ (list Wₓ)) M σ ℒ₀))))
-    (define-values (a b c d) (match Vₕ
+    (match Vₕ
       
       ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped
       ;; by proxies, and contract checking is arbitrarily deep
@@ -316,12 +334,16 @@
              (or s (and (-e? α) α))))
          (for*/ans ([C* (σ@ σ α)])
                    (ap/Not/C (-W¹ C* c*))))]
-      [(-St/C #t si αs)
-       (error 'ap "St/C")]
+      [(-St/C #t s αs)
+       (with-guarded-arity 1
+         (define cs : (Listof -s)
+           (for/list ([s (-struct/c-split sₕ (-struct-info-arity s))]
+                      [α αs])
+             (or s (and (-e? α) α))))
+         (for*/ans ([Cs (σ@/list σ αs)])
+           (ap/St/C s (map -W¹ Cs cs))))]
       [(-●) (ap/●)]
-      [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)]))
-    ;(printf "Ap: ~a ~a --> ~a | ~a~n" (show-W¹ Wₕ) (map show-W¹ Wₓs) (set-map b show-A) (set-map d show-ℐ))
-    (values a b c d)))
+      [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
