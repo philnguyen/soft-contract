@@ -160,6 +160,8 @@
          [_ #|TODO|# '?])]
       [(? symbol?)
        (cond
+         [(and (eq? p 'boolean?) (match? xs (list (-@ (? -st-p?) _ _)))) '✓]
+         [(and (eq? p 'procedure?) (match? xs (list (or (? -λ?) (? -case-λ?))))) '✓]
          [(hash-ref prim-ranges p #f) =>
           (λ ([p-rng : Symbol])
             (cond
