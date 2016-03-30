@@ -63,7 +63,7 @@
                 call-with-values)
     [(#%provide spec ...)
      (-provide (map parse-provide-spec (syntax->list #'(spec ...))))]
-    [(#%declare _ ...) (todo '#%declare)]
+    [(#%declare _ ...) (error 'parse-module-level-form "TODO: '#%declare")]
     [(begin-for-syntax _ ...) #|ignore|# #f]
     
     ;; Hack for reading our fake-contracts:
@@ -90,7 +90,7 @@
      (-module
       (path->string (simplify-path (syntax-source #'id)))
       (map parse-module-level-form (syntax->list #'(d ...))))]
-    [((~literal module*) _ ...) (todo 'module*)]
+    [((~literal module*) _ ...) (error 'parse-submodule-form "TODO: 'module*")]
     [_ #f]))
 
 (define/contract (parse-general-top-level-form form)
@@ -244,12 +244,12 @@
     ;; Literals
     [(~or v:str v:number v:boolean) (-b (syntax->datum #'v))]
     ;; Ignore sub-modules
-    [(module _ ...) (todo 'submodule)]
-    [(module* _ ...) (todo 'module*)]
-    [(#%declare _) (todo '#%declare)]
+    [(module _ ...) (error 'parse-e "TODO: module")]
+    [(module* _ ...) (error 'parse-e "TODO: module*")]
+    [(#%declare _) (error 'parse-e "TODO: #%declare")]
     [_
      #:when (prefab-struct-key (syntax-e #'v))
-     (todo 'struct)]
+     (error 'parse-e "TODO: non-top-level struct")]
     [(#%plain-app f x ...)
      (-@ (parse-e #'f)
          (parse-es #'(x ...))
@@ -287,8 +287,9 @@
     [(quote-syntax e) (error 'parse-e "TODO: (quote-syntax ~a)" (syntax->datum #'e))]
     [((~literal #%top) . id)
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
-    [(#%variable-reference) (todo '#%variable-reference)]
-    [(#%variable-reference id) (todo (format "#%variable-reference ~a" (syntax->datum #'id)))]
+    [(#%variable-reference) (error 'parse-e "TODO: #%variable-reference")]
+    [(#%variable-reference id)
+     (error 'parse-e "TODO: #%variable-reference ~a" (syntax->datum #'id))]
     
     ;; Hacks for now. TODO: need this anymore??
     ;[(~literal null) -null]

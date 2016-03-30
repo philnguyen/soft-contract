@@ -1,17 +1,13 @@
 #lang typed/racket/base
 
-(provide debugs with-debug dbg todo)
+(provide (all-defined-out))
 
-(require "set.rkt" "def.rkt")
+;; Evaluate `e ...`, bind to `x ...`, run debuggings `d ...`, then return `x ...`
+(define-syntax-rule (with-debugging ((x ...) e ...) d ...)
+  (let-values ([(x ...) (let () e ...)])
+    d ...
+    (values x ...)))
 
-(define-parameter debugs : (℘ Symbol) ∅)
+(define-syntax-rule (with-debugging/off ((x ...) e ...) d ...)
+  (let () e ...))
 
-(define-syntax-rule (with-debug t e ...)
-  (parameterize ([debugs (set-add (debugs) t)]) e ...))
-
-(: dbg : Symbol String Any * → Void)
-(define (dbg t fmt . xs)
-  (when (∋ (debugs) t)
-    (apply printf fmt xs)))
-
-(define (todo x) (error 'TODO "~a" x))

@@ -33,13 +33,11 @@
 (define (MσΓ⊢s M σ Γ s)
   (define ans (MσΓ*⊢s M σ {set (cons Γ s)}))
   #;(begin
-    (printf "chk: ~a ⊢ ~a : ~a ~n" (show-Γ Γ) (show-s s) ans)
-    (unless (set-empty? (-Γ-tails Γ))
-      (for* ([γ (-Γ-tails Γ)]
-             [τ (in-value (-γ-callee γ))])
-        (printf "  ~a ↦~n" (show-τ τ))
-        (for ([A (M@ M τ)])
-          (printf "      ~a~n" (show-A A)))))
+    (define-values (sΓ sγs) (show-M-Γ M Γ))
+    (define ss (show-s s))
+    (printf "chk: ~a ⊢ ~a : ~a ~n" sΓ ss ans)
+    (for ([sγ sγs])
+      (printf "  - ~a~n" sγ))
     (printf "~n"))
   ans)
 
@@ -272,10 +270,17 @@
 (define (invert-ps M ps)
   (define ans
     (for/union : (℘ (Pairof -Γ -s)) ([p ps])
-    (match-define (cons Γ s) p)
-    (for/set: : (℘ (Pairof -Γ -s)) ([Γ-m (invert-Γ M Γ)])
-      (match-define (cons Γ* m) Γ-m)
-      (cons Γ* (and s ((e/map* m) s))))))
+      (match-define (cons Γ s) p)
+      (for/set: : (℘ (Pairof -Γ -s)) ([Γ-m (invert-Γ M Γ)])
+        (match-define (cons Γ* m) Γ-m)
+        (define s* (and s ((e/map* m) s)))
+        #;(begin
+          (printf "map:~n")
+          (for ([(x y) m])
+            (printf "  ~a ↦ ~a~n" (show-e x) (show-e y)))
+          (printf "applied: ~a ↦ ~a~n" (show-s s) (show-s s*))
+          (printf "~n"))
+        (cons Γ* s*))))
   #;(begin
     (printf "Invert:~n")
     (for ([p ps])
