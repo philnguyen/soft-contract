@@ -290,6 +290,12 @@
     (define-values (δσ* ΓW* ΓE* ℐs*) (let () e ...))
     (values (⊔/m δσ δσ*) (∪ ΓW ΓW*) (∪ ΓE ΓE*) (∪ ℐs ℐs*))))
 
+(define-syntax-rule (for*/Δm (clause ...) e ...)
+  (for*/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ])
+             (clause ...)
+    (define-values (δM* δΞ* δσ*) (let () e ...))
+    (values (⊔/m δM δM*) (⊔/m δΞ δΞ*) (⊔/m δσ δσ*))))
+
 (define-syntax ⊔/ans
   (syntax-rules ()
     [(_) (⊥ans)]
@@ -322,14 +328,14 @@
   (match-define (-Γ φs as ts) Γ)
   `(,@(set-map φs show-e) ,@(set-map ts show-γ)))
 
-(define (show-M-Γ [M : -M] [Γ : -Γ]) : (List Sexp (Listof Sexp))
+(define (show-M-Γ [M : -M] [Γ : -Γ]) : (Values Sexp (Listof Sexp))
   (match-define (-Γ _ _ γs) Γ)
   (define ts : (Listof Sexp)
     (for/list ([γ γs])
       (match-define (-γ τ f bnds) γ)
       (define As (M@ M τ))
       `(,(show-γ γ) ≡ (,(show-τ τ) (,(show-s f) ,@(map show-bnd bnds))) ↦ ,@(set-map As show-A))))
-  (list (show-Γ Γ) ts))
+  (values (show-Γ Γ) ts))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(τ ℛs) Ξ])

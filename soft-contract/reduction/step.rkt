@@ -13,24 +13,48 @@
 
 (: ev* : -M -Ξ -σ (℘ -τ) → (Values -ΔM -ΔΞ -Δσ))
 (define (ev* M Ξ σ τs)
-  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ])
-            ([τ τs])
-    (ev M Ξ σ τ)))
+  (with-debugging/off
+    ((δM δΞ δσ) (for*/Δm ([τ τs]) (ev M Ξ σ τ)))
+    (printf "ev*:~n")
+    (for ([τ τs])
+      (printf "  - ~a~n" (show-τ τ)))
+    (printf "Answers:~n")
+    (for ([(τ As) δM])
+      (printf "  - ~a ↦~n" (show-τ τ))
+      (for ([A As])
+        (printf "    + ~a~n" (show-A A))))
+    (printf "Returns:~n")
+    (for ([(τ ℛs) δΞ])
+      (printf "  - ~a ↦~n" (show-τ τ))
+      (for ([ℛ ℛs])
+        (printf "    + ~a~n" (show-ℛ ℛ))))
+    (printf "~n")))
 
 (: co* : -M -Ξ -σ (℘ -Co) → (Values -ΔM -ΔΞ -Δσ))
 (define (co* M Ξ σ Cos)
-  (for/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ])
-            ([Co Cos])
-    (co M Ξ σ Co)))
+  (for*/Δm ([Co Cos]) (co M Ξ σ Co)))
 
 (: ev : -M -Ξ -σ -τ → (Values -ΔM -ΔΞ -Δσ))
 ;; Execute check-point `τ`, which is either function block `ℬ` for contract checking `ℳ`
 (define (ev M Ξ σ τ)
   (apply/values
    (collect M Ξ τ)
-   (match τ
-     [(-ℬ ⟦e⟧ ℒ) (⟦e⟧ M σ ℒ)]
-     [(-ℳ l³ ℓ W-C W-V ℒ) ((mon l³ ℓ W-C W-V) M σ ℒ)])))
+   (with-debugging/off
+     ((δσ ΓWs ΓEs ℐs)
+      (match τ
+        [(-ℬ ⟦e⟧ ℒ) (⟦e⟧ M σ ℒ)]
+        [(-ℳ l³ ℓ W-C W-V ℒ) ((mon l³ ℓ W-C W-V) M σ ℒ)]))
+     (printf "ev: ~a~n" (show-τ τ))
+     (printf "Answers:~n")
+     (for ([A ΓWs])
+       (printf "  - ~a~n" (show-A A)))
+     (printf "Errors:~n")
+     (for ([A ΓEs])
+       (printf "  - ~a~n" (show-A A)))
+     (printf "Pending:~n")
+     (for ([ℐ ℐs])
+       (printf "  - ~a~n" (show-ℐ ℐ)))
+     (printf "~n"))))
 
 (: co : -M -Ξ -σ -Co → (Values -ΔM -ΔΞ -Δσ))
 ;; Resume computation `ℋ[A]`, propagating errors and plugging values into hole.
@@ -333,6 +357,27 @@
                 [ℛ  (in-value (-ℛ τ ℋ))]
                 #:unless (m∋ Ξ τ* ℛ))
       (⊔ δΞ τ* ℛ)))
+
+  #;(begin
+    (printf "Collect:~n")
+    (printf "  - Answers:~n")
+    (for ([A ΓWs]) (printf "    + ~a~n" (show-A A)))
+    (printf "  - Errors:~n")
+    (for ([A ΓEs]) (printf "    + ~a~n" (show-A A)))
+    (printf "  - Pendings:~n")
+    (for ([ℐ ℐs ]) (printf "    + ~a~n" (show-ℐ ℐ)))
+    (printf "Result:~n")
+    (printf "  - Answers:~n")
+    (for ([(τ As) δM])
+      (printf "    + ~a ↦~n" (show-τ τ))
+      (for ([A As])
+        (printf "      * ~a~n" (show-A A))))
+    (printf "  - Returns:~n")
+    (for ([(τ ℛs) δΞ])
+      (printf "    + ~a ↦~n" (show-τ τ))
+      (for ([ℛ ℛs])
+        (printf "      * ~a~n" (show-ℛ ℛ))))
+    (printf "~n"))
   
   (values δM δΞ δσ))
 
