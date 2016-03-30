@@ -748,6 +748,8 @@
      [#:struct-acc car (cons #f #f) 0]
      [#:struct-acc cdr (cons #f #f) 1]
      [#:struct-pred cons? (cons #f #f)]
+     [#:alias unsafe-car car]
+     [#:alias unsafe-cdr cdr]
      [null null?]
      [#:pred list?]
      [list (() #:rest list? . ->* . list?)]
