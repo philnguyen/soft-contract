@@ -19,7 +19,7 @@
       (match-define (-W Vs s) W)
       (with-guarded-arity 1 (l Γ* Vs)
         (match-define (list V) Vs)
-        (define-values (Γ₁ Γ₂) (Γ+/-V M σ* Γ* V s))
+        (define-values (Γ₁ Γ₂) (Γ+/-V M Γ* V s))
         
         (with-debugging/off
           ((δσ ΓWs ΓEs ℐs)

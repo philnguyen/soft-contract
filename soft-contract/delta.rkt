@@ -110,7 +110,7 @@
 
     [equal?
      (define Vs
-       (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
+       (case (apply MΓ⊢oW M Γ 'equal? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
          [(?) -●/Vs]))
@@ -118,7 +118,7 @@
 
     [= ; duplicate of `equal?` (args already guarded by contracts)
      (define Vs
-       (case (apply MσΓ⊢oW M σ Γ 'equal? Ws)
+       (case (apply MΓ⊢oW M Γ 'equal? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
          [(?) -●/Vs]))
@@ -126,7 +126,7 @@
     
     [procedure?
      (define Vs
-       (case (apply MσΓ⊢oW M σ Γ 'procedure? Ws)
+       (case (apply MΓ⊢oW M Γ 'procedure? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
          [(?) -●/Vs]))
@@ -202,7 +202,7 @@
           (list
            #`[(#,op)
               (define Vs
-                (case (apply MσΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,op #,(Ws-id))
+                (case (apply MΓ⊢oW #,(M-id) #,(Γ-id) '#,op #,(Ws-id))
                   [(✓) (list -tt)]
                   [(✗) (list -ff)]
                   [else -●/Vs]))

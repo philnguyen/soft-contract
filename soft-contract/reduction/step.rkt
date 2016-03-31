@@ -73,19 +73,21 @@
       (for/fold ([ΓWs : (℘ -ΓW) ∅] [ΓEs : (℘ -ΓE) ∅])
                 ([A As])
         (match A
-          [(-ΓW Γ (-W Vs s))
+          [(-ΓW Γ (and W (-W Vs sₐ)))
            (cond
-             [(plausible-rt? M σ Γ₀ f bnds Γ s)
+             [(plausible-ΓW? M Γ₀ f bnds Γ W)
               (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
-              (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and s fargs)))) ΓEs)]
+              (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and sₐ fargs))))
+                      ΓEs)]
              [else (values ΓWs ΓEs)])]
-          [(-ΓE Γ (and blm (-blm l+ _ _ _)))
+          [(-ΓE Γ (and E (-blm l+ _ _ _)))
            (cond
-             [(plausible-rt? M σ Γ₀ f bnds Γ #f)
-              (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
-              (case l+ ; ignore blamings on system, top-level, and havoc
+             [(plausible-ΓE? M Γ₀ f bnds Γ E)
+              (case l+
                 [(Λ † havoc) (values ΓWs ΓEs)]
-                [else (values ΓWs (set-add ΓEs (-ΓE Γ₀* blm)))])]
+                [else
+                 (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
+                 (values ΓWs (set-add ΓEs (-ΓE Γ₀* E)))])]
              [else (values ΓWs ΓEs)])]))))
   
   (define-values (δσ* ΓWs* ΓEs* ℐs*) ((ℰ⟦_⟧ ℰ ΓWs) M σ ℒ₀))

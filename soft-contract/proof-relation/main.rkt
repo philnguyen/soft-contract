@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ MσΓ⊢V∈C MσΓ⊢oW MσΓ⊢s MσΓ⊓ Γ+/-V Γ+/-W∋Ws
-         plausible-W? plausible-rt?
+(provide Γ⊢ₑₓₜ MΓ⊢V∈C MΓ⊢oW MΓ⊢s MΓ⊓ Γ+/-V Γ+/-W∋Ws
+         plausible-ΓW? plausible-ΓE?
          (all-from-out "local.rkt")
          (all-from-out "inversion.rkt"))
 
@@ -16,24 +16,24 @@
          "local.rkt"
          "inversion.rkt")
 
-(: MσΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
+(: MΓ⊢V∈C : -M -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
-(define (MσΓ⊢V∈C M σ Γ W_v W_c)
+(define (MΓ⊢V∈C M Γ W_v W_c)
   (match-define (-W¹ V e_v) W_v)
   (match-define (-W¹ C e_c) W_c)
-  (first-R (p∋Vs C V) (MσΓ⊢s M σ Γ (-?@ e_c e_v))))
+  (first-R (p∋Vs C V) (MΓ⊢s M Γ (-?@ e_c e_v))))
 
-(: MσΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
+(: MΓ⊢oW : -M -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`
-(define (MσΓ⊢oW M σ Γ p . Ws)
+(define (MΓ⊢oW M Γ p . Ws)
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
   (first-R (apply p∋Vs p Vs)
-           (MσΓ⊢s M σ Γ (apply -?@ p ss))))
+           (MΓ⊢s M Γ (apply -?@ p ss))))
 
-(: MσΓ⊢s : -M -σ -Γ -s → -R)
+(: MΓ⊢s : -M -Γ -s → -R)
 ;; Check if `e` evals to truth if all in `Γ` do
-(define (MσΓ⊢s M σ Γ s)
-  (with-debugging/off ((ans) (MσΓ*⊢s M σ {set (cons Γ s)}))
+(define (MΓ⊢s M Γ s)
+  (with-debugging/off ((ans) (MΓ*⊢s M {set (cons Γ s)}))
     (define-values (sΓ sγs) (show-M-Γ M Γ))
     (define ss (show-s s))
     (printf "chk: ~a ⊢ ~a : ~a ~n" sΓ ss ans)
@@ -41,11 +41,11 @@
       (printf "  - ~a~n" sγ))
     (printf "~n")))
 
-(: MσΓ*⊢s ([-M -σ (℘ (Pairof -Γ -s))] [#:depth Natural] . ->* . -R))
+(: MΓ*⊢s ([-M (℘ (Pairof -Γ -s))] [#:depth Natural] . ->* . -R))
 ;; Check if pair of ⟨path-condition, proposition⟩ is provable
 ;; This function inverts the path-condition up to finite depth if it can't
 ;; give a definite answer
-(define (MσΓ*⊢s M σ ps #:depth [d 5])
+(define (MΓ*⊢s M ps #:depth [d 5])
   (cond
     [(<= d 0) '?]
     [else
@@ -63,15 +63,15 @@
           [else  (cond [✗-mt?
                         (define ps* (invert-ps M ?s))
                         (cond [(equal? ps* ?s) '?]
-                              [✓-mt? (MσΓ*⊢s M σ ps* #:depth (- d 1))]
-                              [else (case (MσΓ*⊢s M σ ps* #:depth (- d 1))
+                              [✓-mt? (MΓ*⊢s M ps* #:depth (- d 1))]
+                              [else (case (MΓ*⊢s M ps* #:depth (- d 1))
                                       [(✓)   '✓]
                                       [(✗ ?) '?])])]
                        [✓-mt?
                         (define ps* (invert-ps M ?s))
                         (cond [(equal? ps* ?s) '?]
                               [else
-                               (case (MσΓ*⊢s M σ ps* #:depth (- d 1))
+                               (case (MΓ*⊢s M ps* #:depth (- d 1))
                                  [(✗)   '✗]
                                  [(✓ ?) '?])])]
                        [else '?])]))
@@ -84,35 +84,35 @@
                  (cond [(∋ ✓s p) '✓]
                        [(∋ ✗s p) '✗]
                        [(∋ ?s p) '?]
-                       [else (error 'MσΓ*⊢s "wrong")])))
+                       [else (error 'MΓ*⊢s "wrong")])))
        (printf "~n"))]))
 
-(: MσΓ⊓ : -M -σ -Γ -Γ → (Option -Γ))
+(: MΓ⊓ : -M -Γ -Γ → (Option -Γ))
 ;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
-(define (MσΓ⊓ M σ Γ₀ Γ₁)
+(define (MΓ⊓ M Γ₀ Γ₁)
   (match-define (-Γ φs₁ _ γs₁) Γ₁)
   (define Γ₀*
     (for/fold ([Γ₀ : (Option -Γ) Γ₀]) ([φ₁ φs₁])
       (and Γ₀
-           (case (MσΓ⊢s M σ Γ₀ φ₁)
+           (case (MΓ⊢s M Γ₀ φ₁)
              [(✓ ?) (Γ+ Γ₀ φ₁)]
              [(✗)   #f]))))
   (match Γ₀*
     [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
     [#f #f]))
 
-(: Γ+/-V : -M -σ -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
-(define (Γ+/-V M σ Γ V s)
-  (Γ+/-R (first-R (⊢V V) (MσΓ⊢s M σ Γ s)) Γ s))
+(define (Γ+/-V M Γ V s)
+  (Γ+/-R (first-R (⊢V V) (MΓ⊢s M Γ s)) Γ s))
 
-(: Γ+/-W∋Ws : -M -σ -Γ -W¹ -W¹ * → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-W∋Ws : -M -Γ -W¹ -W¹ * → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `P(V…)` and `¬P(V…)`
-(define (Γ+/-W∋Ws M σ Γ W-P . W-Vs)
+(define (Γ+/-W∋Ws M Γ W-P . W-Vs)
   (match-define (-W¹ P s-p) W-P)
   (define-values (Vs s-vs) (unzip-by -W¹-V -W¹-s W-Vs))
   (define ψ (apply -?@ s-p s-vs))
-  (define R (first-R (apply p∋Vs P Vs) (MσΓ⊢s M σ Γ ψ)))
+  (define R (first-R (apply p∋Vs P Vs) (MΓ⊢s M Γ ψ)))
   (Γ+/-R R Γ ψ))
 
 
@@ -120,17 +120,27 @@
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: plausible-rt? : -M -σ -Γ -s (Listof (Pairof Var-Name -s)) -Γ -s → Boolean)
+(: plausible-ΓW? : -M -Γ -s (Listof (Pairof Var-Name -s)) -Γ -W → Boolean)
+;; Check if returned value is plausible
+(define (plausible-ΓW? M Γ₀ f bnds Γₐ Wₐ)
+  (error "TODO"))
+
+(: plausible-ΓE? : -M -Γ -s (Listof (Pairof Var-Name -s)) -Γ -blm → Boolean)
+;; Check if propagated blame is plausible
+(define (plausible-ΓE? M Γ₀ f bnds Γₐ blm)
+  (error "TODO"))
+
+(: plausible-rt? : -M -Γ -s (Listof (Pairof Var-Name -s)) -Γ -s → Boolean)
 ;; Checks if `Γ` under renaming `(f bnds)` can be a conjunct of `Γ₀`
 ;; - `#f` means a definite spurious return
 ;; - `#t` means a conservative plausible return
-(define (plausible-rt? M σ Γ₀ f bnds Γ sₐ)
+(define (plausible-rt? M Γ₀ f bnds Γ sₐ)
   (define m₀ (bnds->subst bnds))
   (define-values (mₑₑ mₑᵣ) (mk-subst m₀ f bnds sₐ))
 
   (define Γ*  (ensure-simple-consistency (Γ/ mₑₑ Γ )))
   (define Γ₀* (ensure-simple-consistency (Γ/ mₑᵣ Γ₀)))
-  (define Γ₀** (and Γ* Γ₀* (MσΓ⊓ M σ Γ₀* Γ*)))
+  (define Γ₀** (and Γ* Γ₀* (MΓ⊓ M Γ₀* Γ*)))
 
   #;(begin ; debugging
     (printf "plausible? ~a [~a ~a] ~a [~a]~n"

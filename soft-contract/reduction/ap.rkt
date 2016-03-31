@@ -173,6 +173,7 @@
            (error 'ap "Apply variable arity arrow")])))
 
     (: ap/case : -Case-> -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    ;; Apply function wrapped in `case->`
     (define (ap/case C Vᵤ l³)
       (error 'ap/case "TODO"))
 
@@ -220,7 +221,7 @@
     (: ap/st-p : -struct-info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/st-p s)
       (define ans
-        (case (MσΓ⊢oW M σ Γ₀ (-st-p s) (car Wₓs))
+        (case (MΓ⊢oW M Γ₀ (-st-p s) (car Wₓs))
           [(✓) (-ΓW (Γ+ Γ₀ sₐ)        (-W -True/Vs  sₐ))]
           [(✗) (-ΓW (Γ+ Γ₀ (-not sₐ)) (-W -False/Vs sₐ))]
           [(?) (-ΓW     Γ₀            (-W -●/Vs     sₐ))]))
@@ -369,7 +370,7 @@
 
   (λ (M σ ℒ)
     (define Γ (-ℒ-cnd ℒ))
-    (case (MσΓ⊢V∈C M σ Γ W-V W-C)
+    (case (MΓ⊢V∈C M Γ W-V W-C)
       [(✓)
        (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅)]
       [(✗)
@@ -397,13 +398,13 @@
   (λ (M σ ℒ)
     ;; Perform first-order checks for procedure?-ness and arity before wrapping
     (define Γ (-ℒ-cnd ℒ))
-    (define-values (Γ₁ Γ₂) (Γ+/-W∋Ws M σ Γ -procedure?/W W-V))
+    (define-values (Γ₁ Γ₂) (Γ+/-W∋Ws M Γ -procedure?/W W-V))
     (define-values (Γ₁₁ Γ₁₂)
       (if Γ₁
           (let ([A (V-arity V)]
                 [a (-?@ 'procedure-arity v)])
             (define W-a (-W¹ (if A (-b A) -●/V) a))
-            (Γ+/-W∋Ws M σ Γ₁ -arity-includes?/W W-a arity))
+            (Γ+/-W∋Ws M Γ₁ -arity-includes?/W W-a arity))
           (values #f #f)))
     (define-set ΓWs : -ΓW)
     (define-set ΓEs : -ΓE)
