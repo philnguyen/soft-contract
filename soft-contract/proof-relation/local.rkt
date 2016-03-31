@@ -1,21 +1,24 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ Γ⊢e partition-Γs ⊢V p∋Vs V≡ p⇒p Γ⊓ Γ⊓e most-specific-pred ensure-simple-consistency)
+(provide Γ⊢ₑₓₜ Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓
+         ensure-simple-consistency
+         plausible-Γ-s? plausible-W? plausible-V-s?)
 
-(require
- racket/match racket/set
- "../utils/main.rkt"
- "../primitives/utils.rkt"
- "../ast/definition.rkt"
- "../runtime/main.rkt"
- "result.rkt"
- (for-syntax
-  racket/base racket/contract
-  "../utils/pretty.rkt" 
-  "../primitives/utils.rkt"))
+(require racket/match
+         racket/set
+         racket/bool
+         (except-in racket/function arity-includes?)
+         "../utils/main.rkt"
+         "../primitives/utils.rkt"
+         "../ast/definition.rkt"
+         "../runtime/main.rkt"
+         "result.rkt"
+         (for-syntax
+          racket/base racket/contract
+          "../utils/pretty.rkt" 
+          "../primitives/utils.rkt"))
 
-;; External solver to be plugged in.
-;; Return trivial answer by default.
+;; External solver to be plugged in. Return trivial answer by default.
 (define-parameter Γ⊢ₑₓₜ : (-Γ -e → -R)
   (λ (Γ e)
     (printf "Warning: external solver not set~n")
@@ -67,22 +70,29 @@
 
 ;; Check whether predicate excludes boolean
 (define boolean-excludes? : (Symbol → Boolean)
-    (set->predicate (hash-ref exclusions 'boolean?)))
+  (set->predicate (hash-ref exclusions 'boolean?)))
 
 (: Γ⊢e : -Γ -s → -R)
 ;; Check if `e` evals to truth given `M`
 (define (Γ⊢e Γ e)
-
-  (match-define (-Γ facts _ _) Γ)
+  (match-define (-Γ φs _ _) Γ)
+  
+  ;; It's not always desirable to have rule `{… #f …} ⊢ e : ✓`, because
+  ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
+  ;; This is a problem with precision rather than soundness, but I want
+  ;; (obviously) inconsistent path-conditions to not exist in the first place.
+  (when (∋ φs -ff)
+    (error 'Γ⊢e "Attempt to prove/refute with inconsistent path-condition"))
 
   (: ⊢e : -e → -R)
   ;; Check if expression returns truth
   (define (⊢e e)
     (match e
       [(-b b) (if b '✓ '✗)]
+      [φ #:when (∋ φs φ) '✓]
+      [φ #:when (∋ φs (-not φ)) '✗]
       [(? -•?) '?]
       [(? -v?) '✓]
-      [x #:when (∋ facts x) '✓]
       [(-@ f xs _) (⊢@ f xs)]
       [_ '?]))
 
@@ -174,55 +184,125 @@
   (: e⊢e : -e -e → -R)
   ;; Check if `e₂` returns truth when `e₁` does
   (define (e⊢e e₁ e₂)
-    (define ans
-      (match* ((⊢e e₁) (⊢e e₂))
-        [('✗ _) '✓]
-        [(_ '?)
-         (match* (e₁ e₂)
-           ; e ⇒ e
-           [(e e) '✓]
-           ; NOTE: Don't abuse "contrapositive"
-           ; (¬e₁ ⊢ ¬e₂ : ✗) does not follow from (e₂ ⊢ e₁ : ✗)
-           [((-not e₁*) (-not e₂*))
-            (if (equal? '✓ (e⊢e e₂* e₁*)) '✓ '?)]
-           [(e₁ (-not e₂*))
-            (not-R (e⊢e e₁ e₂*))]
-           [((-@ (? -o? p) (list e) _) (-@ (? -o? q) (list e) _))
-            (p⇒p p q)] ; FIXME
-           [((-@ (? -o? p) (list e) _) e)
-            (cond
-              [(eq? 'not p) '✗]
-              [(and (symbol? p) (boolean-excludes? p)) '✓]
-              [(-st-p? p) '✓]
-              [else '?])]
-           [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
-            (⊢@ p (list e₂))]
-           [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
-            (⊢@ p (list e₁))]
-           [(_ _) '?])]
-        [(_ R) R]))
-    ;(dbg 'e⊢e "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)
-    ans)
+    (with-debugging/off
+      ((ans)
+       (match* ((⊢e e₁) (⊢e e₂))
+         [('✗ _) '✓]
+         [(_ '?)
+          (match* (e₁ e₂)
+            ; e ⇒ e
+            [(e e) '✓]
+            ; NOTE: Don't abuse "contrapositive"
+            ; (¬e₁ ⊢ ¬e₂ : ✗) does not follow from (e₂ ⊢ e₁ : ✗)
+            [((-not e₁*) (-not e₂*))
+             (case (e⊢e e₂* e₁*)
+               [(✓)   '✓]
+               [(✗ ?) '?])]
+            [(e₁ (-not e₂*))
+             (not-R (e⊢e e₁ e₂*))]
+            [((-@ (? -o? p) (list e) _) (-@ (? -o? q) (list e) _))
+             (p⇒p p q)] ; FIXME
+            [((-@ (? -o? p) (list e) _) e)
+             (cond
+               [(eq? 'not p) '✗]
+               [(and (symbol? p) (boolean-excludes? p)) '✓]
+               [(-st-p? p) '✓]
+               [else '?])]
+            [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
+             (⊢@ p (list e₂))]
+            [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
+             (⊢@ p (list e₁))]
+            [(_ _) '?])]
+         [(_ R) R]))
+      (printf "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)))
 
-  (define ans
+  (with-debugging/off
+    ((ans)
+     (cond
+       [e
+        (first-R
+         (⊢e e)
+         (for*/fold ([R : -R '?])
+                    ([e₀ φs] #:when (eq? '? R)
+                     [R* (in-value (e⊢e e₀ e))])
+           R*)
+         ((Γ⊢ₑₓₜ) Γ e))]
+       [else '?]))
+    (printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-s e) ans)))
+
+(: plausible-Γ-s? : -Γ -s → Boolean)
+(define (plausible-Γ-s? Γ s)
+  (not (eq? '✗ (Γ⊢e Γ s))))
+
+(: plausible-W? : -Γ (Listof -V) -s → Boolean)
+;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `Γ`
+;; - #f indicates a definitely bogus case
+;; - #t indicates (conservative) plausibility
+(define (plausible-W? Γ Vs s)
+  (match* (Vs s)
+    [(_ (-@ 'values es _))
+     (and (= (length Vs) (length es))
+          (for/and : Boolean ([V Vs] [e es])
+            (plausible-V-s? Γ V e)))]
+    [((list V) _) #:when s
+     (plausible-V-s? Γ V s)]
+    [(_ (or (? -v?) (-@ (? -prim?) _ _))) #f] ; length(Vs) ≠ 1, length(s) = 1
+    [(_ #f) #t]))
+
+(: plausible-V-s? : -Γ -V -s → Boolean)
+(define (plausible-V-s? Γ V s)
+  (define-syntax-rule (with-prim-checks p? ...)
     (cond
-      [(∋ facts -ff) '✓]
-      [e
-       (first-R
-        (⊢e e)
-        (for*/fold ([R : -R '?])
-                   ([e₀ facts] #:when (equal? '? R)
-                    [R* (in-value (e⊢e e₀ e))])
-          R*)
-        ((Γ⊢ₑₓₜ) Γ e))]
-      [else '?]))
-  ;(printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-s e) ans)
-  ans)
+      [s
+       (match V
+         [(or (-St si _) (-St* si _ _ _)) #:when si
+          (plausible-Γ-s? Γ (-?@ (-st-p si) s))]
+         [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
+          (plausible-Γ-s? Γ (-?@ 'vector? s))]
+         [(or (? -Clo?) (? -Ar?) (? -o?))
+          (plausible-Γ-s? Γ (-?@ 'procedure? s))]
+         [(-b (? p?))
+          (and (plausible-Γ-s? Γ (-?@ 'p? s))
+               (implies (-b? s) (equal? V s)))] ...
+         [(or (? -=>_?) (? -St/C?) (? -x/C?))
+          (for/and : Boolean ([p : -o '(procedure? p? ...)])
+            (case (Γ⊢e Γ (-?@ p s))
+              [(✓)   #f]
+              [(✗ ?) #t]))]
+         ['undefined
+          (case (Γ⊢e Γ (-?@ 'defined? s))
+            [(✗ ?) #t]
+            [(✓)   #f])]
+         [(-●)
+          (match s
+            [(-not s*)
+             (case (Γ⊢e Γ s*)
+               [(✗ ?) #t]
+               [(✓)   #f])]
+            [_ #t])]
+         [_ #t])]
+      [else #t]))
+  
+  ;; order matters for precision, in the presence of subtypes
+  (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
+
+(: Γ⊓ : -Γ -Γ → (Option -Γ))
+;; Join 2 path conditions, eliminating obvious inconsistencies
+(define (Γ⊓ Γ₀ Γ₁)
+  (match-define (-Γ φs₁ _ γs₁) Γ₁)
+  (define Γ₀*
+    (for/fold ([Γ₀ : (Option -Γ) Γ₀]) ([φ₁ φs₁])
+      (and Γ₀
+           (case (Γ⊢e Γ₀ φ₁)
+             [(✓ ?) (Γ+ Γ₀ φ₁)]
+             [(✗)   #f]))))
+  (match Γ₀* ; note that `γs₁` are added without checking
+    [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
+    [#f #f]))
 
 (: partition-Γs : (℘ (Pairof -Γ -s))
                 → (Values (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s))))
-;; Given a set of path-conditions, partition them into those that
-;; proves, refute, and ambig the proposition, respectively
+;; Partition set of ⟨path-condition, proposition⟩ pairs by provability
 (define (partition-Γs ps)
   (define-set ✓s : (Pairof -Γ -s))
   (define-set ✗s : (Pairof -Γ -s))
@@ -242,7 +322,6 @@
     [(-b #f) '✗]
     [(-●) '?]
     [_ '✓]))
-
 
 (: p∋Vs : -V -V * → -R)
 ;; Check if value satisfies predicate
@@ -345,46 +424,24 @@
             '✗]
            [else '?])]))
 
-(: Γ⊓ : -Γ -Γ → (Option -Γ))
-;; Join path invariants. Return `#f` to represent the bogus environment (⊥)
-(define (Γ⊓ Γ Γ*)
-  (for/fold ([Γ : (Option -Γ) Γ]) ([φ (-Γ-facts Γ*)])
-    (and Γ (Γ⊓e Γ φ))))
-
-(: Γ⊓e : -Γ -s → (Option -Γ))
-;; Refine path invariant with expression.
-;; Note: `∅` is `⊤` (no assumption), `#f` is `⊥` (spurious, anything is true).
-;; The operation doesn't guarantee absolute precision.
-;; In general, it returns an upperbound of the right answer.
-(define (Γ⊓e Γ e)
-  (if (equal? '✗ (Γ⊢e Γ e)) #f (Γ+ Γ e)))
-
-(: most-specific-pred : -Γ -e → -o)
-;; Return the most specific predicate in path-invariant describing given expression
-(define (most-specific-pred Γ e)
-  (for/fold ([best : -o 'any/c]) ([φ (-Γ-facts Γ)])
-    (match φ
-      [(-@ (? -o? o) (list (== e)) _) #:when (equal? '✓ (p⇒p o best))
-       o]
-      [(or (== e) (-not (-not (== e)))) #:when (and e (equal? '✓ (p⇒p 'values best)))
-       'values]
-      [_ best])))
-
 (: ensure-simple-consistency : (Option -Γ) → (Option -Γ))
 ;; Throw away obviously inconsistent path-condition
 (define (ensure-simple-consistency Γ)
   (match Γ
-    [(-Γ φs _ _)
-     (define obviously-inconsistent?
-       (or (∋ φs -ff)
-           (for/or : Boolean ([φ φs])
-             (∋ φs (assert (-not φ))))))
-     (if obviously-inconsistent? #f Γ)]
+    [(-Γ φs as γs)
+     (define-values (plausible? _)
+       (for/fold ([plausible? : Boolean #t] [Γ : -Γ (-Γ ∅ as γs)])
+                 ([φ φs])
+         (values (plausible-Γ-s? Γ φ) (Γ+ Γ φ))))
+     (and plausible? Γ)]
     [#f #f]))
 
 
 (module+ test
-  (require "../ast/definition.rkt" "../runtime/main.rkt" "for-test.rkt")
+  (require typed/rackunit
+           "../ast/definition.rkt"
+           "../runtime/main.rkt"
+           "for-test.rkt")
   
   ;; V ∈ p
   (check-✓ (p∋Vs 'not (-b #f)))
@@ -418,4 +475,13 @@
                 (-?@ 'not (-?@ 'integer? (-x 'x)))))
   (check-✗ (Γ⊢e (Γ+ ⊤Γ (-?@ 'not (-x 'x))) (-x 'x)))
   (check-? (Γ⊢e (Γ+ ⊤Γ (-?@ 'number? (-x 'x)))
-                (-?@ 'integer? (-x 'x)))))
+                (-?@ 'integer? (-x 'x))))
+
+  ;; plausibility
+  (check-false (plausible-W? ⊤Γ (list (-b 1)) (-b 2)))
+  (check-false (plausible-W? ⊤Γ (list (-b 1) (-b 2)) (-b 3)))
+  (check-false (plausible-W? ⊤Γ (list (-b 1) (-b 2)) (-?@ 'values (-b 1) (-b 3))))
+  (check-false (plausible-W? ⊤Γ (list -tt) -ff))
+  (check-true  (plausible-W? ⊤Γ (list -tt) -tt))
+  (check-false (plausible-W? (Γ+ ⊤Γ (-not (-x 'x))) (list (-b 0)) (-x 'x)))
+  )

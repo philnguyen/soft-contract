@@ -58,17 +58,15 @@
     (define-values (ΓWs ΓEs)
       (for*/fold ([ΓWs : (℘ -ΓW) ∅]
                   [ΓEs : (℘ -ΓE) ∅])
-                 ([V (σ@ σ (ρ@ ρ x))]
-                  [W (in-value (-W (list V) s))]
-                  #:unless (spurious? M σ Γ W))
+                 ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? Γ V s))
         (case V
-          [(undefined) ; spurious `undefined` should have been eliminated by `spurious?`
+          [(undefined)
            (values
             ΓWs
             (set-add
              ΓEs
              (-ΓE Γ (-blm 'TODO 'Λ (list 'defined?) (list 'undefined)))))]
-          [else (values (set-add ΓWs (-ΓW Γ W)) ΓEs)])))
+          [else (values (set-add ΓWs (-ΓW Γ (-W (list V) s))) ΓEs)])))
     (values ⊥σ ΓWs ΓEs ∅)))
 
 (define/memo (ret-W¹ [W : -W¹]) : -⟦e⟧
