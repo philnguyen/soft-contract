@@ -148,20 +148,19 @@
      (cond
        [(<= d 0) #t]
        [(-v? s) #f]
+       [(not s) #t]
+       ;; plausible if path-condition witnessed blame from `s`
        [(for/or : Boolean ([γ γs])
           (match γ
             [(-γ _ bnd (-blm (== l+) (== lo) _ _))
-             (define s* (binding->fargs bnd))
-             (printf "blm: comparing ~a to ~a~n" (show-s s) (show-s s*))
-             (equal? s s*)]
+             (equal? s (binding->fargs bnd))]
             [_ #f]))
         #t]
+       ;; implausible if path-condition witnessed successful return from `s`
        [(for/or : Boolean ([γ γs])
           (match γ
             [(-γ _ bnd #f)
-             (define s* (binding->fargs bnd))
-             (printf "val: comparing ~a to ~a~n" (show-s s) (show-s s*))
-             (equal? s s*)]
+             (equal? s (binding->fargs bnd))]
             [_ #f]))
         #f]
        [else
