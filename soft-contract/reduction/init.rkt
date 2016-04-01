@@ -66,7 +66,7 @@
      (alloc-Ar σ o (-st-p s) (list 'any/c) 'boolean?)]
     [`(#:struct-acc ,(? symbol? o) ,si ,(? exact-nonnegative-integer? i))
      (define s (mk-struct-info si))
-     (alloc-Ar σ o (-st-p s) (list (-st-p s)) 'any/c)]
+     (alloc-Ar σ o (-st-ac s i) (list (-st-p s)) 'any/c)]
     [`(#:struct-mut ,(? symbol? o) ,si ,(? exact-nonnegative-integer? i))
      (define s (mk-struct-info si))
      (alloc-Ar σ o (-st-mut s i) (list (-st-p s) 'any/c) 'void?)]))
