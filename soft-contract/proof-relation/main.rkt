@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
+(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
          plausible-return? plausible-blame?
          (all-from-out "local.rkt")
          (all-from-out "inversion.rkt"))

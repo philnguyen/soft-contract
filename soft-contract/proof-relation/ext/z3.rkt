@@ -19,8 +19,9 @@
 (define (z3⊢ Γ e)
   (match (Γe->Z3 Γ e)
     [(list decls prems concl)
-     ;(printf "Γ: ~a~ntranslates to~n~a~n~a~n~a~n" (show-Γ Γ) decls prems concl)
-     (call-with decls prems concl)]
+     (with-debugging/off
+       ((ans) (call-with decls prems concl))
+       (printf "Z3: ~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans))]
     [#f '?]))
 
 (: get-model : -Γ → (Option (HashTable -e Base)))
@@ -236,11 +237,11 @@
 (: call : (Listof Sexp) → String)
 (define (call cmds)
   (define query-str (string-join (map (curry format "~a") cmds) "\n"))
-  (define ans
-    (with-output-to-string
-      (λ () (system (format "echo \"~a\" | z3 -in -smt2" query-str)))))
-  ;(printf "query:~n~a~nget: ~a~n~n" query-str ans)
-  ans)
+  (with-debugging/off
+    ((ans)
+     (with-output-to-string
+       (λ () (system (format "echo \"~a\" | z3 -in -smt2" query-str)))))
+    (printf "query:~n~a~nget: ~a~n~n" query-str ans)))
 
 (: txt->sat-result : String → Sat-Result)
 (define (txt->sat-result str)
