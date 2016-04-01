@@ -60,30 +60,30 @@
 ;; Resume computation `ℋ[A]`, propagating errors and plugging values into hole.
 (define (co M Ξ σ Co)
   (match-define (-Co (-ℛ τ₀ ℋ₀) τ As) Co)
-  (match-define (-ℋ ℒ₀ f bnds ℰ) ℋ₀)
+  (match-define (-ℋ ℒ₀ bnd ℰ) ℋ₀)
   ;; Note: in general, `ℒ₀` can be more "updated" than in `τ₀`, because of e.g. `let`
 
   ;; Propagate errors and plug values into hole
   (define-values (ΓWs ΓEs)
     (let ()
-      (define-values (xs args) (unzip bnds))
-      (define fargs (apply -?@ f args))
+      (match-define (-binding f xs x->e) bnd)
+      (define fargs (binding->fargs bnd))
       (define Γ₀ (-ℒ-cnd ℒ₀))
 
       (for/fold ([ΓWs : (℘ -ΓW) ∅] [ΓEs : (℘ -ΓE) ∅])
                 ([A As])
         (match A
           [(-ΓW Γ (and W (-W Vs sₐ)))
-           (define γ (-γ τ f bnds #f))
+           (define γ (-γ τ bnd #f))
            (cond
-             [(plausible-return? M Γ₀ f bnds Γ W)
+             [(plausible-return? M Γ₀ bnd Γ W)
               (define Γ₀* (-Γ-plus-γ Γ₀ γ))
               (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and sₐ fargs)))) ΓEs)]
              [else (values ΓWs ΓEs)])]
           [(-ΓE Γ (and E (-blm l+ lo _ _)))
-           (define γ (-γ τ f bnds (cons l+ lo)))
+           (define γ (-γ τ bnd (cons l+ lo)))
            (cond
-             [(plausible-blame? M Γ₀ f bnds Γ E)
+             [(plausible-blame? M Γ₀ bnd Γ E)
               (case l+
                 [(Λ † havoc) (values ΓWs ΓEs)]
                 [else

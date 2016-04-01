@@ -19,8 +19,8 @@
   (define ℐs*
     (map/set
      (match-lambda
-       [(-ℐ (-ℋ ℒ h xs    ℰ ) τ)
-        (-ℐ (-ℋ ℒ h xs (f ℰ)) τ)])
+       [(-ℐ (-ℋ ℒ bnd    ℰ ) τ)
+        (-ℐ (-ℋ ℒ bnd (f ℰ)) τ)])
      ℐs))
   (define σ* (⊔/m σ δσ))
   (for/fold ([δσ : -Δσ δσ] [ΓWs* : (℘ -ΓW) ∅] [ΓEs* : (℘ -ΓE) ΓEs] [ℐs* : (℘ -ℐ) ℐs*])

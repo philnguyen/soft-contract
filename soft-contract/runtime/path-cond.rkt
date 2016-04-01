@@ -4,7 +4,7 @@
 
 (require racket/match
          racket/set
-         "../utils/set.rkt"
+         "../utils/main.rkt"
          "../ast/main.rkt"
          "definition.rkt"
          "simp.rkt")
@@ -29,13 +29,20 @@
     (for/hash : (HashTable Var-Name -e) ([(x e) as] #:when (∋ xs x))
       (values x e)))
   (define γs*
-    (for*/set: : (℘ -γ) ([γ γs]
-                         #:when (s↓ (-γ-fun γ) xs)
-                         #:when
-                         (for/and : Boolean ([p (-γ-param->arg γ)])
-                           (and (s↓ (cdr p) xs) #t))) ; force boolean :(
-      γ))
+    (for*/set: : (℘ -γ) ([γ γs])
+      (match-define (-γ τ bnd blm) γ)
+      (-γ τ (bnd↓ bnd xs) blm)))
   (-Γ φs* as* γs*))
+
+(: bnd↓ : -binding (℘ Var-Name) → -binding)
+(define (bnd↓ bnd fvs)
+  (match-define (-binding f xs x->e) bnd)
+  (define f* (s↓ f fvs))
+  (define x->e*
+    (for*/hash : (HashTable Var-Name -e) ([(x e) x->e]
+                                          [e* (in-value (s↓ e fvs))] #:when e*)
+      (values x e*)))
+  (-binding f* xs x->e*))
 
 (: canonicalize : (U -Γ (HashTable Var-Name -e)) Var-Name → -e)
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
@@ -76,28 +83,38 @@
 
 (: γ/ : (HashTable -e -e) → -γ → -γ)
 (define ((γ/ m) γ)
-  (match-define (-γ τ sₕ bnds blm) γ)
+  (match-define (-γ τ bnd blm) γ)
+  (-γ τ ((binding/ m) bnd) blm))
+
+(: binding/ : (HashTable -e -e) → -binding → -binding)
+(define ((binding/ m) bnd)
+  (match-define (-binding f xs x->e) bnd)
   (define subst (e/map m))
-  (define bnds* : (Listof (Pairof Var-Name -s))
-    (for/list ([bnd bnds])
-      (match-define (cons x s) bnd)
-      (cons x (and s (subst s)))))
-  (define sₕ* (and sₕ (subst sₕ)))
-  (-γ τ sₕ* bnds* blm))
+  (define f* (and f (subst f)))
+  (define x->e* (map/hash subst x->e))
+  (-binding f* xs x->e*))
 
 (: γ->fargs : -γ → -s)
 (define (γ->fargs γ)
-  (match-define (-γ _ f bnds _) γ)
-  (fbnds->fargs f bnds))
+  (match-define (-γ _ bnd _) γ)
+  (binding->fargs bnd))
 
-(: fbnds->fargs : -s (Listof (Pairof Var-Name -s)) → -s)
-(define (fbnds->fargs f bnds)
-  (define args (map (inst cdr Var-Name -s) bnds))
-  (apply -?@ f args))
+(: binding->fargs : -binding → -s)
+(define (binding->fargs bnd)
+  (apply -?@ (-binding-fun bnd) (-binding-args bnd)))
 
 (: fvₛ : -s → (℘ Var-Name))
 (define (fvₛ s) (if s (fv s) ∅))
 
+(define (show-M-Γ [M : -M] [Γ : -Γ]) : (Values Sexp (Listof Sexp))
+  (match-define (-Γ _ _ γs) Γ)
+  (define ts : (Listof Sexp)
+    (for/list ([γ γs])
+      (match-define (-γ τ bnd blm) γ)
+      (define As (M@ M τ))
+      (define ↦ (if blm '↦ₑ '↦ᵥ))
+      `(,(show-γ γ) ≡ (,(show-τ τ) @ ,(show-binding bnd)) ,↦ ,@(set-map As show-A))))
+  (values (show-Γ Γ) ts))
 
 (module+ test
   (require typed/rackunit)

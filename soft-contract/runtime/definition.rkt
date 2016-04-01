@@ -147,8 +147,7 @@
 
 ;; A "hole" ℋ is an evaluation context augmented with
 ;; caller's path condition and information for renaming callee's symbols
-(struct -ℋ ([ctx : -ℒ] [f : -s] [param->arg : (Listof (Pairof Var-Name -s))]
-            [hole : -ℰ]) #:transparent)
+(struct -ℋ ([ctx : -ℒ] [bnd : -binding] [hole : -ℰ]) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -166,9 +165,11 @@
 ;; Path condition tail is callee block and renaming information,
 ;; also indicating whether the call raised a blame or not
 (struct -γ ([callee : -τ] ; be careful with this. May build up infinitely
-            [fun : -s]
-            [param->arg : (Listof (Pairof Var-Name -s))]
+            [binding : -binding]
             [blm : (Option (Pairof Mon-Party Mon-Party))]) #:transparent)
+(struct -binding ([fun : -s]
+                  [params : (Listof Var-Name)]
+                  [param->arg : (HashTable Var-Name -e)]))
 
 (define ⊤Γ (-Γ ∅ (hasheq) ∅))
 
@@ -184,6 +185,16 @@
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
+
+(: -binding-args : -binding → (Listof -s))
+(define (-binding-args bnd)
+  (match-define (-binding _ xs x->e) bnd)
+  (for/list ([x xs]) (hash-ref x->e x #f)))
+
+(: -binding-dom : -binding → (℘ Var-Name))
+(define (-binding-dom bnd)
+  (match-define (-binding _ _ x->e) bnd)
+  (list->set (hash-keys x->e)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -330,16 +341,6 @@
   (match-define (-Γ φs as ts) Γ)
   `(,@(set-map φs show-e) ,@(set-map ts show-γ)))
 
-(define (show-M-Γ [M : -M] [Γ : -Γ]) : (Values Sexp (Listof Sexp))
-  (match-define (-Γ _ _ γs) Γ)
-  (define ts : (Listof Sexp)
-    (for/list ([γ γs])
-      (match-define (-γ τ f bnds blm) γ)
-      (define As (M@ M τ))
-      (define ↦ (if blm '↦ₑ '↦ᵥ))
-      `(,(show-γ γ) ≡ (,(show-τ τ) (,(show-s f) ,@(map show-bnd bnds))) ,↦ ,@(set-map As show-A))))
-  (values (show-Γ Γ) ts))
-
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(τ ℛs) Ξ])
     `(,(show-τ τ) ↦ ,@(set-map ℛs show-ℛ))))
@@ -466,8 +467,8 @@
        `(mon ,(if (-W¹? Ctc) (show-W¹ Ctc) (show-⟦e⟧ Ctc)) ,(loop ℰ*))])))
 
 (define (show-ℋ [ℋ : -ℋ])
-  (match-define (-ℋ ℒ f bnds ℰ) ℋ)
-  `(ℋ ,(show-ℒ ℒ) ,(cons (show-s f) (show-bnds bnds)) ,(show-ℰ ℰ)))
+  (match-define (-ℋ ℒ bnd ℰ) ℋ)
+  `(ℋ ,(show-ℒ ℒ) ,(show-binding bnd) ,(show-ℰ ℰ)))
 
 (: show-bnds : (Listof (Pairof Var-Name -s)) → (Listof Sexp))
 (define (show-bnds bnds) (map show-bnd bnds))
@@ -518,3 +519,13 @@
   (for/list ([(x α) ρ]) `(,x ↦ ,(show-α α))))
 
 (define-values (show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ))
+
+(define (show-binding [bnd : -binding]) : (Listof Sexp)
+  (match-define (-binding f xs x->e) bnd)
+  (define bnds
+    (for/list : (Listof Sexp) ([x xs])
+      `(,x ↦ ,(show-s (hash-ref x->e x #f)))))
+  (define fvs
+    (for/list : (Listof Sexp) ([(x e) x->e] #:unless (member x xs))
+      `(,x ↦ ,(show-e e))))
+  `(,(show-s f) ,@bnds ‖ ,@fvs))

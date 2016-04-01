@@ -105,24 +105,24 @@
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: plausible-return? : -M -Γ -s (Listof (Pairof Var-Name -s)) -Γ -W → Boolean)
+(: plausible-return? : -M -Γ -binding -Γ -W → Boolean)
 ;; Check if returned value is plausible
-(define (plausible-return? M Γₑᵣ f bnds Γₑₑ Wₑₑ)
+(define (plausible-return? M Γₑᵣ bnd Γₑₑ Wₑₑ)
   (match-define (-W Vs sₑₑ) Wₑₑ)
   (define-values (mₑₑ mₑᵣ sₑᵣ)
-    (let ([m₀ (bnds->subst bnds)])
-      (mk-subst m₀ f bnds sₑₑ)))
+    (let ([m₀ (bnds->subst bnd)])
+      (mk-subst m₀ bnd sₑₑ)))
   (define Γₑᵣ₊ (ensure-simple-consistency (Γ/ mₑₑ Γₑₑ)))
   (define Γₑᵣ₁ (ensure-simple-consistency (Γ/ mₑᵣ Γₑᵣ)))
   (define Γₑᵣ₂ (and Γₑᵣ₁ Γₑᵣ₊ (Γ⊓ Γₑᵣ₁ Γₑᵣ₊)))
   (and Γₑᵣ₂ (plausible-W/M? M Γₑᵣ₂ Vs sₑᵣ)))
 
-(: plausible-blame? : -M -Γ -s (Listof (Pairof Var-Name -s)) -Γ -blm → Boolean)
+(: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
 ;; Check if propagated blame is plausible
-(define (plausible-blame? M Γₑᵣ f bnds Γₑₑ blm)
+(define (plausible-blame? M Γₑᵣ bnd Γₑₑ blm)
   (define-values (mₑₑ mₑᵣ sₑᵣ)
-    (let ([m₀ (bnds->subst bnds)])
-      (mk-subst m₀ f bnds #f)))
+    (let ([m₀ (bnds->subst bnd)])
+      (mk-subst m₀ bnd #f)))
   (define Γₑᵣ₊ (ensure-simple-consistency (Γ/ mₑₑ Γₑₑ)))
   (define Γₑᵣ₁ (and Γₑᵣ₊ (Γ⊓ Γₑᵣ Γₑᵣ₊)))
   (match-define (-blm l+ lo _ _) blm)
@@ -143,23 +143,23 @@
 ;; Check if it's plausible that function call at symbol `s` has raised blame `blm`
 (define (plausible-blm/M? M Γ s l+ lo #:depth [d 5])
   (define γs (-Γ-tails Γ))
-  (with-debugging
+  (with-debugging/off
     ((ans)
      (cond
        [(<= d 0) #t]
        [(-v? s) #f]
        [(for/or : Boolean ([γ γs])
           (match γ
-            [(-γ _ f bnds (-blm (== l+) (== lo) _ _))
-             (define s* (fbnds->fargs f bnds))
+            [(-γ _ bnd (-blm (== l+) (== lo) _ _))
+             (define s* (binding->fargs bnd))
              (printf "blm: comparing ~a to ~a~n" (show-s s) (show-s s*))
              (equal? s s*)]
             [_ #f]))
         #t]
        [(for/or : Boolean ([γ γs])
           (match γ
-            [(-γ _ f bnds #f)
-             (define s* (fbnds->fargs f bnds))
+            [(-γ _ bnd #f)
+             (define s* (binding->fargs bnd))
              (printf "val: comparing ~a to ~a~n" (show-s s) (show-s s*))
              (equal? s s*)]
             [_ #f]))
@@ -181,33 +181,6 @@
     (printf "where:~n")
     (for ([s sγs]) (printf "  - ~a~n" s))
     (printf "~n")))
-
-
-#|
-(: plausible-rt? : -M -Γ -s (Listof (Pairof Var-Name -s)) -Γ -s → Boolean)
-;; Checks if `Γ` under renaming `(f bnds)` can be a conjunct of `Γ₀`
-;; - `#f` means a definite spurious return
-;; - `#t` means a conservative plausible return
-(define (plausible-rt? M Γ₀ f bnds Γ sₐ)
-  (define m₀ (bnds->subst bnds))
-  (define-values (mₑₑ mₑᵣ) (mk-subst m₀ f bnds sₐ))
-
-  (define Γ*  (ensure-simple-consistency (Γ/ mₑₑ Γ )))
-  (define Γ₀* (ensure-simple-consistency (Γ/ mₑᵣ Γ₀)))
-  (define Γ₀** (and Γ* Γ₀* (MΓ⊓ M Γ₀* Γ*)))
-
-  #;(begin ; debugging
-    (printf "plausible? ~a [~a ~a] ~a [~a]~n"
-            (show-Γ Γ₀)
-            (show-s f)
-            (for/list : (Listof Sexp) ([bnd bnds]) `(,(car bnd) ↦ ,(show-s (cdr bnd))))
-            (show-Γ Γ)
-            (show-s sₐ))
-    (printf "  would-be conjunction: ~a~n" (and Γ* (show-Γ Γ*)))
-    (printf "  would-be path-cond: ~a~n~n" (and Γ₀** (show-Γ Γ₀**))))
-
-  (and Γ₀** #t))
-|#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

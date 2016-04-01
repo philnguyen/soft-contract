@@ -6,7 +6,7 @@
          racket/set
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "../delta.rkt"
@@ -103,7 +103,22 @@
           [_ (error 'ap/β "TODO: varargs")]))
       (define bnds (map (inst cons Var-Name -s) xs sₓs))
       (define ℬ₁ (-ℬ ⟦e⟧ (-ℒ ρ₁ Γ₁ 𝒞₁)))
-      (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ sₕ bnds '□) ℬ₁)}))
+      (define bnd
+        (let* ([fvs
+                ;; It is important to take *all* of the caller's inscope variables,
+                ;; rather than the invoked lambda's free variables.
+                ;; Due to `canonicalize`, a refinement inside the closure
+                ;; may refer to a variable not (directly) in the callee's scope
+                (if (-λ? sₕ) (list->set (hash-keys ρ₀)) ∅)]
+               [param->arg
+                (for/hash : (HashTable Var-Name -e) ([x (assert xs list?)] [sₓ sₓs] #:when sₓ)
+                  (values x sₓ))]
+               [mapping
+                (for/fold ([mapping : (HashTable Var-Name -e) param->arg]) ([x fvs])
+                  (assert (not (hash-has-key? mapping x)))
+                  (hash-set mapping x (canonicalize Γ₀ x)))])
+          (-binding sₕ xs mapping)))
+      (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ bnd '□) ℬ₁)}))
 
     (: ap/Ar : -=> -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/Ar C Vᵤ l³)
@@ -490,7 +505,8 @@
      (λ (M σ ℒ)
        (for*/ans ([C* (σ@ σ α)])
          (define W-C* (-W¹ C* c))
-         (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ #f '() '□) (-ℳ l³ ℓ W-C* W-V ℒ))})))]))
+         (define bnd #|FIXME|# (-binding #f '() (hash)))
+         (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℳ l³ ℓ W-C* W-V ℒ))})))]))
 
 (: mon-and/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor contract conjunction by decomposing into nesting checks
@@ -707,14 +723,10 @@
            (define ℐs*
              (map/set
               (match-lambda
-                [(-ℐ (-ℋ ℒ f bnds ℰ) τ)
+                [(-ℐ (-ℋ ℒ bnd ℰ) τ)
                  (define Γ* (Γ↓ (-ℒ-cnd ℒ) xs₀))
-                 (define f* (s↓ f xs₀))
-                 (define bnds*
-                   (for/list : (Listof (Pairof Var-Name -s)) ([bnd bnds])
-                     (match-define (cons x s) bnd)
-                     (cons x (s↓ s xs₀))))
-                 (-ℐ (-ℋ (-ℒ-with-Γ ℒ Γ*) f* bnds* ℰ) τ)])
+                 (define bnd* (bnd↓ bnd xs₀))
+                 (-ℐ (-ℋ (-ℒ-with-Γ ℒ Γ*) bnd* ℰ) τ)])
               ℐs))
            
            (values (⊔/m δσ δσ*) ΓWs* ΓEs* ℐs*)]))))
