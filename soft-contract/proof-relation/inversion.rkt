@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide invert-ps bnds->subst mk-subst)
+(provide invert-ps invert-Γ bnds->subst mk-subst)
 
 (require racket/match
          racket/set
@@ -59,7 +59,7 @@
 (define (invert-γ M Γ γ)
   (match-define (-Γ φs as γs) Γ)
   ; (assert (∋ γs γ)) Not that important as long as `invert-γ` is private
-  (match-define (-γ τ sₕ bnds) γ)
+  (match-define (-γ τ sₕ bnds blm) γ)
   (define h∅ : (HashTable -e -e) (hash))
   (define m₀ (bnds->subst bnds))
   
@@ -68,23 +68,34 @@
   (define xs (set-add-list (fvₛ sₕ) (map (inst car Var-Name -s) bnds)))
 
   (with-debugging/off
-   ((ans)
-    (for/fold ([ps : (℘ (Pairof -Γ (HashTable -e -e))) ∅])
-              ([A (M@ M τ)]
-               ;; It's ok to throw away blames, because `invert-γ`
-               ;; is only used internally for inverting path-conditions obtained
-               ;; from successful returns
-               #:when (-ΓW? A))
-      (match-define (-ΓW Γ₀ (-W Vs sₐ)) A)
-      (define-values (mₑₑ mₑᵣ) (mk-subst m₀ sₕ bnds sₐ))
-
-      (define Γ*
-        (ensure-simple-consistency (Γ⊓ (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))
-                                       (Γ/ mₑₑ (Γ↓ Γ₀ xs)))))
-      (if Γ* (set-add ps (cons Γ* mₑᵣ)) ps)))
-   (printf "Invert ~a at ~a, getting:~n" (show-Γ Γ) (show-γ γ))
-   (for ([Γ ans])
-     (printf "  ~a~n" (show-Γ Γ)))))
+    ((ans)
+     (for/fold ([ps : (℘ (Pairof -Γ (HashTable -e -e))) ∅])
+               ([A (M@ M τ)])
+       (match* (A blm)
+         [((-ΓW Γ₀ (-W Vs sₐ)) #f)
+          (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ sₕ bnds sₐ))
+          (define Γ*
+            (ensure-simple-consistency (Γ⊓ (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))
+                                           (Γ/ mₑₑ (Γ↓ Γ₀ xs)))))
+          (if Γ* (set-add ps (cons Γ* mₑᵣ)) ps)]
+         [((-ΓE Γ₀ (-blm l+ lo _ _)) (cons l+ lo))
+          (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ sₕ bnds #f))
+          (define Γ*
+            (ensure-simple-consistency (Γ⊓ (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))
+                                           (Γ/ mₑₑ (Γ↓ Γ₀ xs)))))
+          (if Γ* (set-add ps (cons Γ* mₑᵣ)) ps)]
+         [(_ _) ps])))
+    (define-values (sΓ sγs) (show-M-Γ M Γ))
+    (printf "Invert ~a at ~a, where:~n" sΓ (show-γ γ))
+    (for ([s sγs]) (printf "  - ~a~n" s))
+    (printf "Getting:~n")
+    (for ([p ans])
+      (match-define (cons Γ m) p)
+      (printf "  - ~a with ~a~n"
+              (show-Γ Γ)
+              (for/list : (Listof Sexp) ([(x y) m])
+                `(,(show-e x) ↦ ,(show-e y)))))
+    (printf "~n")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,13 +111,13 @@
     (values (-x x) s)))
 
 (: mk-subst : (HashTable -e -e) -s (Listof (Pairof Var-Name -s)) -s
-            → (Values (HashTable -e -e) (HashTable -e -e)))
+            → (Values (HashTable -e -e) (HashTable -e -e) -s))
 ;; Given caller's parameters and arguments and callee's result,
 ;; Create a substitution to convert callee's propositions to caller's propositions.
-;; Return 2 maps: first map is for callee, second for caller
+;; Return 2 maps: first map is for callee, second for caller, plus unfolding of result
 (define (mk-subst m₀ f bnds a)
-  (define-values (xs₀ args) (unzip bnds))
-  (define xs (∪ (list->set xs₀) (fvₛ f)))
+  (define-values (xs args) (unzip bnds))
+  (define fvs (∪ (list->set xs) (fvₛ f)))
 
   ;; Caller's result as the function call
   (define fargs (apply -?@ f args))
@@ -115,14 +126,14 @@
   ;; of only variables caller understands
   (define fargs*
     (let ([all-args? (andmap (inst values Any) args)]
-          [a* (s↓ a xs)])
+          [a* (s↓ a fvs)])
       (and all-args? a* ((e/map m₀) a*))))
   
-  (if a
-      (cond [(and fargs fargs*) ; unfold if possible
-             (values (hash-set m₀ a fargs*) (hash fargs fargs*))]
-            [fargs
-             (values (hash-set m₀ a fargs ) (hash))]
-            [else
-             (values m₀ (hash))])
-      (values m₀ (hash))))
+  (define sₐ (or fargs* fargs))
+
+  (cond
+    [(and a fargs fargs*)
+     (values (hash-set m₀ a fargs*) (hash fargs fargs*) sₐ)]
+    [(and a fargs)
+     (values (hash-set m₀ a fargs ) (hash) sₐ)]
+    [else (values m₀ (hash) sₐ)]))

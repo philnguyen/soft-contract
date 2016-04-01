@@ -73,15 +73,15 @@
   (set->predicate (hash-ref exclusions 'boolean?)))
 
 (: Γ⊢e : -Γ -s → -R)
-;; Check if `e` evals to truth given `M`
+;; Check if `e` evals to truth, knowing `Γ`
 (define (Γ⊢e Γ e)
   (match-define (-Γ φs _ _) Γ)
   
-  ;; It's not always desirable to have rule `{… #f …} ⊢ e : ✓`, because
-  ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
-  ;; This is a problem with precision rather than soundness, but I want
-  ;; (obviously) inconsistent path-conditions to not exist in the first place.
   (when (∋ φs -ff)
+    ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
+    ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
+    ;; This is a problem with precision rather than soundness, but I want
+    ;; (obviously) inconsistent path-conditions to not exist in the first place.
     (error 'Γ⊢e "Attempt to prove/refute with inconsistent path-condition"))
 
   (: ⊢e : -e → -R)
@@ -231,8 +231,7 @@
     (printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-s e) ans)))
 
 (: plausible-Γ-s? : -Γ -s → Boolean)
-(define (plausible-Γ-s? Γ s)
-  (not (eq? '✗ (Γ⊢e Γ s))))
+(define (plausible-Γ-s? Γ s) (not (eq? '✗ (Γ⊢e Γ s))))
 
 (: plausible-W? : -Γ (Listof -V) -s → Boolean)
 ;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `Γ`
@@ -429,10 +428,13 @@
 (define (ensure-simple-consistency Γ)
   (match Γ
     [(-Γ φs as γs)
-     (define-values (plausible? _)
-       (for/fold ([plausible? : Boolean #t] [Γ : -Γ (-Γ ∅ as γs)])
-                 ([φ φs])
-         (values (plausible-Γ-s? Γ φ) (Γ+ Γ φ))))
+     (define plausible? : Boolean ; should not depend on `φs` traversal order
+       (let loop ([Γ : -Γ (-Γ ∅ as γs)]
+                  [φs : (Listof -e) (set->list φs)])
+         (match φs
+           ['() #t]
+           [(cons φ φs*) (and (plausible-Γ-s? Γ φ)
+                              (loop (Γ+ Γ φ) φs*))])))
      (and plausible? Γ)]
     [#f #f]))
 

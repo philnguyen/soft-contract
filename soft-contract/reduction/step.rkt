@@ -74,19 +74,20 @@
                 ([A As])
         (match A
           [(-ΓW Γ (and W (-W Vs sₐ)))
+           (define γ (-γ τ f bnds #f))
            (cond
-             [(plausible-ΓW? M Γ₀ f bnds Γ W)
-              (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
-              (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and sₐ fargs))))
-                      ΓEs)]
+             [(plausible-return? M Γ₀ f bnds Γ W)
+              (define Γ₀* (-Γ-plus-γ Γ₀ γ))
+              (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and sₐ fargs)))) ΓEs)]
              [else (values ΓWs ΓEs)])]
-          [(-ΓE Γ (and E (-blm l+ _ _ _)))
+          [(-ΓE Γ (and E (-blm l+ lo _ _)))
+           (define γ (-γ τ f bnds (cons l+ lo)))
            (cond
-             [(plausible-ΓE? M Γ₀ f bnds Γ E)
+             [(plausible-blame? M Γ₀ f bnds Γ E)
               (case l+
                 [(Λ † havoc) (values ΓWs ΓEs)]
                 [else
-                 (define Γ₀* (-Γ-plus-γ Γ₀ (-γ τ f bnds)))
+                 (define Γ₀* (-Γ-plus-γ Γ₀ γ))
                  (values ΓWs (set-add ΓEs (-ΓE Γ₀* E)))])]
              [else (values ΓWs ΓEs)])]))))
   

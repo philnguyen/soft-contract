@@ -6,7 +6,8 @@
          racket/set
          "../utils/set.rkt"
          "../ast/main.rkt"
-         "definition.rkt")
+         "definition.rkt"
+         "simp.rkt")
 
 (: s↓ : -s (℘ Var-Name) → -s)
 ;; Restrict symbol to given set of free variables
@@ -75,14 +76,24 @@
 
 (: γ/ : (HashTable -e -e) → -γ → -γ)
 (define ((γ/ m) γ)
-  (match-define (-γ τ sₕ bnds) γ)
+  (match-define (-γ τ sₕ bnds blm) γ)
   (define subst (e/map m))
   (define bnds* : (Listof (Pairof Var-Name -s))
     (for/list ([bnd bnds])
       (match-define (cons x s) bnd)
       (cons x (and s (subst s)))))
   (define sₕ* (and sₕ (subst sₕ)))
-  (-γ τ sₕ* bnds*))
+  (-γ τ sₕ* bnds* blm))
+
+(: γ->fargs : -γ → -s)
+(define (γ->fargs γ)
+  (match-define (-γ _ f bnds _) γ)
+  (fbnds->fargs f bnds))
+
+(: fbnds->fargs : -s (Listof (Pairof Var-Name -s)) → -s)
+(define (fbnds->fargs f bnds)
+  (define args (map (inst cdr Var-Name -s) bnds))
+  (apply -?@ f args))
 
 (: fvₛ : -s → (℘ Var-Name))
 (define (fvₛ s) (if s (fv s) ∅))

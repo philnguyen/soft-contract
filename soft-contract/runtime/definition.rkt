@@ -163,10 +163,12 @@
             [aliases : (HashTable Var-Name -e)]
             [tails : (℘ -γ)]) #:transparent)
 
-;; Path condition tail is block and renaming information
-(struct -γ ([callee : -τ]
+;; Path condition tail is callee block and renaming information,
+;; also indicating whether the call raised a blame or not
+(struct -γ ([callee : -τ] ; be careful with this. May build up infinitely
             [fun : -s]
-            [param->arg : (Listof (Pairof Var-Name -s))]) #:transparent)
+            [param->arg : (Listof (Pairof Var-Name -s))]
+            [blm : (Option (Pairof Mon-Party Mon-Party))]) #:transparent)
 
 (define ⊤Γ (-Γ ∅ (hasheq) ∅))
 
@@ -332,9 +334,10 @@
   (match-define (-Γ _ _ γs) Γ)
   (define ts : (Listof Sexp)
     (for/list ([γ γs])
-      (match-define (-γ τ f bnds) γ)
+      (match-define (-γ τ f bnds blm) γ)
       (define As (M@ M τ))
-      `(,(show-γ γ) ≡ (,(show-τ τ) (,(show-s f) ,@(map show-bnd bnds))) ↦ ,@(set-map As show-A))))
+      (define ↦ (if blm '↦ₑ '↦ᵥ))
+      `(,(show-γ γ) ≡ (,(show-τ τ) (,(show-s f) ,@(map show-bnd bnds))) ,↦ ,@(set-map As show-A))))
   (values (show-Γ Γ) ts))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
