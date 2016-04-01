@@ -428,13 +428,9 @@
 (define (ensure-simple-consistency Γ)
   (match Γ
     [(-Γ φs as γs)
-     (define plausible? : Boolean ; should not depend on `φs` traversal order
-       (let loop ([Γ : -Γ (-Γ ∅ as γs)]
-                  [φs : (Listof -e) (set->list φs)])
-         (match φs
-           ['() #t]
-           [(cons φ φs*) (and (plausible-Γ-s? Γ φ)
-                              (loop (Γ+ Γ φ) φs*))])))
+     (define plausible? ; should not depend on `φs` traversal order
+       (not (for/or : Boolean ([φ φs])
+              (or (equal? φ -ff) (∋ φs (-not φ))))))
      (and plausible? Γ)]
     [#f #f]))
 
