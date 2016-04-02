@@ -64,9 +64,9 @@
             
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
-            (-St* [info : -struct-info] [ctcs : (Listof (Option -α.struct/c))] [val : -α.st] [ctx : Mon-Info])
-            (-Vector/hetero [ctcs : (Listof -α.vector/c)] [val : -α.vct] [ctx : Mon-Info])
-            (-Vector/homo [ctc : -α.vectorof] [val : -α.vct] [ctx : Mon-Info])
+            (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : Mon-Info])
+            (-Vector/hetero [ctcs : (Listof -α)] [val : -α.vct] [ctx : Mon-Info])
+            (-Vector/homo [ctc : -α] [val : -α.vct] [ctx : Mon-Info])
             
             -C)
 
@@ -143,6 +143,9 @@
             (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) -ℓ)
             (-ℰ.mon.v Mon-Info -ℓ -ℰ [val : (U -⟦e⟧ -W¹)])
             (-ℰ.mon.c Mon-Info -ℓ [ctc : (U -⟦e⟧ -W¹)] -ℰ)
+
+            ;; Hopefully can eliminate these eventually
+            (-ℰ.wrap.st -struct-info (Listof -α) -α.st Mon-Info -ℰ)
             )
 
 ;; A "hole" ℋ is an evaluation context augmented with

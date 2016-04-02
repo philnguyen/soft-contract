@@ -22,6 +22,7 @@
 (define -arity-includes?/W (-W¹ 'arity-includes? 'arity-includes?))
 (define -=/W (-W¹ '= '=))
 (define -contract-first-order-passes?/W (-W¹ 'contract-first-order-passes? 'contract-first-order-passes?))
+(define -vector-length/W (-W¹ 'vector-length 'vector-length))
 (define -Vector₀ (-Vector '()))
 ;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
 ;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))

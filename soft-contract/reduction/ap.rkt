@@ -12,7 +12,9 @@
          "../delta.rkt"
          "helpers.rkt"
          "continuation-if.rkt"
-         "continuation-amb.rkt")
+         "continuation-amb.rkt"
+         "continuation-begin.rkt"
+         "wrap.rkt")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -61,13 +63,6 @@
 
   (λ (M σ ℒ₀)
     (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
-
-    #;(begin ; debugging
-      (printf "About to apply ~a ~a -> ~a in ~a~n"
-              (show-W¹ Wₕ)
-              (map show-W¹ Wₓs)
-              (show-s sₐ)
-              (show-ℒ ℒ₀)))
 
     ;; Make sure `Wₕ` handles the number of arguments passed
     (define-syntax-rule (with-guarded-arity a* e ...)
@@ -265,9 +260,20 @@
            (for/set: : (℘ -ΓW) ([Vₐ (σ@ σ (list-ref αs i))])
              (-ΓW Γ₀ (-W (list Vₐ) sₐ))))
          (values ⊥σ ans ∅ ∅)]
-        [(-St* (== s) _ _ _)
-         (error 'struct-accessor "TODO: wrapped struct")]
-        [(-●) ; error must have been catched from ouside. This is the unsafe version
+        [(-St* (== s) αs α l³)
+         (match-define (Mon-Info _ _ lo) l³)
+         (define Ac (let ([ac (-st-ac s i)]) (-W¹ ac ac)))
+         (cond
+           [(list-ref αs i) =>
+            (λ ([γ : -α])
+              (define c (and (-e? γ) γ))
+              (for*/ans ([C (σ@ σ γ)] [Vₓ* (σ@ σ α)])
+                 (define W-c (-W¹ C c))
+                 (((↝.mon.c l³ ℓ W-c) (ap lo ℓ Ac (list (-W¹ Vₓ* sₓ)))) M σ ℒ₀)))]
+           [else
+            (for*/ans ([Vₓ* (σ@ σ α)])
+              ((ap lo ℓ Ac (list (-W¹ Vₓ* sₓ))) M σ ℒ₀))])]
+        [(-●) ; error must have been caught from ouside. This is the unsafe version
          (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
         [_ (⊥ans)]))
 
@@ -277,7 +283,48 @@
 
     (: ap/vector-ref : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-ref)
-      (error 'vector-ref "TODO"))
+      (match-define (list Wᵥ Wᵢ) Wₓs)
+      (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+      (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
+      (match Vᵥ
+        [(-Vector αs)
+         (match Vᵢ
+           [(-b (? exact-integer? i)) #:when (<= 0 i (sub1 (length αs)))
+            (define ΓWs
+              (for/set: : (℘ -ΓW) ([V (σ@ σ (list-ref αs i))])
+                (-ΓW Γ₀ (-W (list V) sₐ))))
+            (values ⊥σ ΓWs ∅ ∅)]
+           [_
+            (define ΓWs
+              (for*/set: : (℘ -ΓW) ([α αs] [V (σ@ σ α)])
+                (-ΓW Γ₀ (-W (list V) sₐ))))
+            (values ⊥σ ΓWs ∅ ∅)])]
+        [(-Vector/hetero γs α l³)
+         (match-define (Mon-Info _ _ lo) l³)
+         (match Vᵢ
+           [(-b (? exact-integer? i)) #:when (<= 0 i (sub1 (length γs)))
+            (define γ (list-ref γs i))
+            (define c (and (-e? γ) γ))
+            (for*/ans ([C (σ@ σ γ)] [Vᵥ* (σ@ σ α)])
+              (define W-c (-W¹ C c))
+              (define Wᵥ* (-W¹ Vᵥ* sᵥ))
+              (((↝.mon.c l³ ℓ W-c) (ap lo ℓ -vector-ref/W (list Wᵥ* Wᵢ))) M σ ℒ₀))]
+           [_ ; TODO: remember index
+            (for*/ans ([γ γs] [C (σ@ σ γ)] [Vᵥ* (σ@ σ α)])
+              (define c (and (-e? γ) γ))
+              (define W-c (-W¹ C c))
+              (define Wᵥ* (-W¹ Vᵥ* sᵥ))
+              (((↝.mon.c l³ ℓ W-c) (ap lo ℓ -vector-ref/W (list Wᵥ* Wᵢ))) M σ ℒ₀))])]
+        [(-Vector/homo γ α l³) ; TODO: remember index
+         (match-define (Mon-Info _ _ lo) l³)
+         (for*/ans ([C (σ@ σ γ)] [Vᵥ* (σ@ σ α)])
+           (define c (and (-e? γ) γ))
+           (define W-c (-W¹ C c))
+           (define Wᵥ* (-W¹ Vᵥ* sᵥ))
+           (((↝.mon.c l³ ℓ W-c) (ap lo ℓ -vector-ref/W (list Wᵥ* Wᵢ))) M σ ℒ₀))]
+        [(-●)
+         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
+        [_ (⊥ans)]))
 
     (: ap/vector-set! : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-set!)
@@ -448,47 +495,48 @@
   (match-define (Mon-Info l+ _ lo) l³)
   (match-define (-St/C flat? s αs) C)
   (define cs (-struct/c-split c (-struct-info-arity s)))
+  (define p (-st-p s))
+  (define K (let ([k (-st-mk s)]) (-W¹ k k)))
+  (define muts (-struct-info-mutables s))
   
   (define ⟦field⟧s : (Listof -⟦e⟧)
     (for/list ([(α i) (in-indexed αs)])
       (define ac (-st-ac s (assert i exact-nonnegative-integer?)))
       (ap lo ℓ (-W¹ ac ac) (list (-W¹ V v)))))
   
-  (match V
+  (match V ; FIXME code duplicate
     [(or (-St (== s) _) (-St* (== s) _ _ _))
-     (λ (M σ ℒ)
-       (for*/ans ([Cs (σ@/list σ αs)])
-         (define ⟦mon-field⟧s : (Listof -⟦e⟧)
-           (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
-             ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
-         (define comp : -⟦e⟧
-           (match ⟦mon-field⟧s
-             ['()
-              (λ (M σ ℒ)
-                (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
-             [(cons ⟦mon-field⟧ ⟦mon-field⟧s*)
-              (define k (-st-mk s))
-              ((↝.@ lo ℓ (list (-W¹ k k)) ⟦mon-field⟧s*) ⟦mon-field⟧)]))
-         (comp M σ ℒ)))]
+     (match ⟦field⟧s
+       ['()
+        (λ (M σ ℒ)
+          (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
+       [_
+        (λ (M σ ℒ)
+          (for*/ans ([Cs (σ@/list σ αs)])
+            (match-define (cons ⟦mon-field⟧ ⟦mon-field⟧s)
+              (for/list : (Listof -⟦e⟧) ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
+                ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
+            (define ⟦cons⟧ ((↝.@ lo ℓ (list K) ⟦mon-field⟧s) ⟦mon-field⟧))
+            (define α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ)))
+            (define comp (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧)))
+            (comp M σ ℒ)))])]
     [(-●)
-     (define p (-st-p s))
-     (λ (M σ ℒ)
-       (for*/ans ([Cs (σ@/list σ αs)])
-         (define ⟦blm⟧ (blm l+ lo (list (-st-p s)) (list V)))
-         (define ⟦mon-field⟧s : (Listof -⟦e⟧)
-           (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
-             ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
-         (define ⟦mk⟧ : -⟦e⟧
-           (match ⟦mon-field⟧s
-             ['()
-              (λ (M σ ℒ)
-                (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
-             [(cons ⟦mon-field⟧ ⟦mon-field⟧s*)
-              (define k (-st-mk s))
-              ((↝.@ lo ℓ (list (-W¹ k k)) ⟦mon-field⟧s*) ⟦mon-field⟧)]))
-         (define comp
-           ((↝.if lo ⟦mk⟧ ⟦blm⟧) (ap lo ℓ (-W¹ p p) (list W-V))))
-         (comp M σ ℒ)))]
+     (match ⟦field⟧s
+       ['()
+        (λ (M σ ℒ)
+          (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
+       [_
+        (λ (M σ ℒ)
+          (for*/ans ([Cs (σ@/list σ αs)])
+            (define ⟦blm⟧ (blm l+ lo (list (-st-p s)) (list V)))
+            (match-define (cons ⟦mon-field⟧ ⟦mon-field⟧s)
+              (for/list : (Listof -⟦e⟧) ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
+                ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
+            (define ⟦cons⟧ ((↝.@ lo ℓ (list K) ⟦mon-field⟧s) ⟦mon-field⟧))
+            (define α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ)))
+            (define ⟦mk⟧ (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧)))
+            (define comp ((↝.if lo ⟦mk⟧ ⟦blm⟧) (ap lo ℓ (-W¹ p p) (list W-V))))
+            (comp M σ ℒ)))])]
     [_ (blm l+ lo (list C) (list V))]))
 
 (: mon-x/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
@@ -563,8 +611,38 @@
   (error 'mon-vectorof "TODO"))
 
 (: mon-vector/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
-(define (mon-vector/c l³ ℓ αs V)
-  (error 'mon-vector/c "TODO"))
+(define (mon-vector/c l³ ℓ W-c Wᵥ)
+  (match-define (Mon-Info l+ _ lo) l³)
+  (match-define (-W¹ Vᵥ vᵥ) Wᵥ)
+  (match-define (-W¹ C  c ) W-c)
+  (match-define (-Vector/C αs) C)
+  (define n (length αs))
+  (define N (let ([b (-b n)]) (-W¹ b b)))
+  (define cs
+    (let ([ss (-app-split c 'vector/c n)])
+      (for/list : (Listof -s) ([s ss] [α αs])
+        (or s (and (-e? α) α)))))
+  (define ⟦chk-vct⟧ (ap lo ℓ -vector?/W (list Wᵥ)))
+  (define ⟦chk-len⟧
+    (let ([⟦len⟧ (ap lo ℓ -vector-length/W (list Wᵥ))])
+      ((↝.@ lo ℓ (list N -=/W) '()) ⟦len⟧)))
+  (define ⟦blm-vct⟧ (blm l+ lo (list 'vector?) (list Vᵥ)))
+  (define ⟦blm-len⟧ (blm l+ lo (list (format-symbol "length ~a" n)) (list Vᵥ)))
+
+  (λ (M σ ℒ)
+    (for*/ans ([Cs (σ@/list σ αs)])
+      (define ⟦mon-fld⟧s
+        (for/list : (Listof -⟦e⟧) ([C* Cs] [c* cs] [i (in-naturals)])
+          (define W-c* (-W¹ C* c*))
+          (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
+          (define ⟦ref⟧ (ap lo ℓ -vector-ref/W (list Wᵥ Wᵢ)))
+          ((↝.mon.c l³ ℓ W-c*) ⟦ref⟧)))
+      (define ⟦wrp⟧
+        (match-let ([(cons ⟦e⟧ ⟦e⟧s)
+                     (append ⟦mon-fld⟧s (list (wrap.vct.hetero l³ ℓ αs Wᵥ)))])
+          ((↝.begin ⟦e⟧s) ⟦e⟧)))
+      (define comp ((↝.if lo ((↝.if lo ⟦wrp⟧ ⟦blm-len⟧) ⟦chk-len⟧) ⟦blm-vct⟧) ⟦chk-vct⟧))
+      (comp M σ ℒ))))
 
 (: mon-flat : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor flat contract

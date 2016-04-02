@@ -9,7 +9,8 @@
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "helpers.rkt"
-         "continuation.rkt")
+         "continuation.rkt"
+         "wrap.rkt")
 
 (: ev* : -M -Ξ -σ (℘ -τ) → (Values -ΔM -ΔΞ -Δσ))
 (define (ev* M Ξ σ τs)
@@ -331,7 +332,9 @@
       [(-ℰ.mon.v l³ ℓ ℰ* Val)
        ((↝.mon.v l³ ℓ Val) (go ℰ*))]
       [(-ℰ.mon.c l³ ℓ Ctc ℰ*)
-       ((↝.mon.c l³ ℓ Ctc) (go ℰ*))])))
+       ((↝.mon.c l³ ℓ Ctc) (go ℰ*))]
+      [(-ℰ.wrap.st s αs α l³ ℰ*)
+       ((↝.wrap.st s αs α l³) (go ℰ*))])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
