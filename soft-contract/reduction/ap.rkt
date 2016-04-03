@@ -299,29 +299,26 @@
               (for*/set: : (℘ -ΓW) ([α αs] [V (σ@ σ α)])
                 (-ΓW Γ₀ (-W (list V) sₐ))))
             (values ⊥σ ΓWs ∅ ∅)])]
-        [(-Vector/hetero γs α l³)
+        [(-Vector/hetero αs l³)
          (match-define (Mon-Info _ _ lo) l³)
          (match Vᵢ
-           [(-b (? exact-integer? i)) #:when (<= 0 i (sub1 (length γs)))
-            (define γ (list-ref γs i))
-            (define c (and (-e? γ) γ))
-            (for*/ans ([C (σ@ σ γ)] [Vᵥ* (σ@ σ α)])
+           [(-b (? exact-integer? i)) #:when (<= 0 i (sub1 (length αs)))
+            (define α (list-ref αs i))
+            (define c (and (-e? α) α))
+            (for*/ans ([C (σ@ σ α)])
               (define W-c (-W¹ C c))
-              (define Wᵥ* (-W¹ Vᵥ* sᵥ))
-              (((↝.mon.c l³ ℓ W-c) (ap lo ℓ -vector-ref/W (list Wᵥ* Wᵢ))) M σ ℒ₀))]
+              ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ ℒ₀))]
            [_ ; TODO: remember index
-            (for*/ans ([γ γs] [C (σ@ σ γ)] [Vᵥ* (σ@ σ α)])
-              (define c (and (-e? γ) γ))
+            (for*/ans ([α αs] [C (σ@ σ α)])
+              (define c (and (-e? α) α))
               (define W-c (-W¹ C c))
-              (define Wᵥ* (-W¹ Vᵥ* sᵥ))
-              (((↝.mon.c l³ ℓ W-c) (ap lo ℓ -vector-ref/W (list Wᵥ* Wᵢ))) M σ ℒ₀))])]
-        [(-Vector/homo γ α l³) ; TODO: remember index
+              ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ ℒ₀))])]
+        [(-Vector/homo α l³) ; TODO: remember index
          (match-define (Mon-Info _ _ lo) l³)
-         (for*/ans ([C (σ@ σ γ)] [Vᵥ* (σ@ σ α)])
-           (define c (and (-e? γ) γ))
+         (define c (and (-e? α) α))
+         (for*/ans ([C (σ@ σ α)])
            (define W-c (-W¹ C c))
-           (define Wᵥ* (-W¹ Vᵥ* sᵥ))
-           (((↝.mon.c l³ ℓ W-c) (ap lo ℓ -vector-ref/W (list Wᵥ* Wᵢ))) M σ ℒ₀))]
+           ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ ℒ₀))]
         [(-●)
          (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
         [_ (⊥ans)]))
@@ -628,18 +625,25 @@
       ((↝.@ lo ℓ (list N -=/W) '()) ⟦len⟧)))
   (define ⟦blm-vct⟧ (blm l+ lo (list 'vector?) (list Vᵥ)))
   (define ⟦blm-len⟧ (blm l+ lo (list (format-symbol "length ~a" n)) (list Vᵥ)))
+  (define ⟦mk⟧ : -⟦e⟧
+    (let ([V* (-Vector/hetero αs l³)])
+      (λ (M σ ℒ)
+        (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V*) vᵥ))} ∅ ∅))))
 
   (λ (M σ ℒ)
+    (define Wₕᵥ
+      (let ([havoc-𝒾 (-𝒾 'havoc-id 'havoc)])
+        (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) (-ref havoc-𝒾 0))))
     (for*/ans ([Cs (σ@/list σ αs)])
-      (define ⟦mon-fld⟧s
+      (define ⟦hv-fld⟧s
         (for/list : (Listof -⟦e⟧) ([C* Cs] [c* cs] [i (in-naturals)])
           (define W-c* (-W¹ C* c*))
           (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
           (define ⟦ref⟧ (ap lo ℓ -vector-ref/W (list Wᵥ Wᵢ)))
-          ((↝.mon.c l³ ℓ W-c*) ⟦ref⟧)))
+          (define ⟦mon⟧ ((↝.mon.c l³ ℓ W-c*) ⟦ref⟧))
+          ((↝.@ 'Λ ℓ (list Wₕᵥ) '()) ⟦mon⟧)))
       (define ⟦wrp⟧
-        (match-let ([(cons ⟦e⟧ ⟦e⟧s)
-                     (append ⟦mon-fld⟧s (list (wrap.vct.hetero l³ ℓ αs Wᵥ)))])
+        (match-let ([(cons ⟦e⟧ ⟦e⟧s) (append ⟦hv-fld⟧s (list ⟦mk⟧))])
           ((↝.begin ⟦e⟧s) ⟦e⟧)))
       (define comp ((↝.if lo ((↝.if lo ⟦wrp⟧ ⟦blm-len⟧) ⟦chk-len⟧) ⟦blm-vct⟧) ⟦chk-vct⟧))
       (comp M σ ℒ))))

@@ -49,8 +49,8 @@
      (-Ar C α (Mon-Info l+ l      lo))]
     [(-St* s αs α (Mon-Info l+ 'dummy lo))
      (-St* s αs α (Mon-Info l+ l      lo))]
-    [(-Vector/hetero αs α (Mon-Info l+ 'dummy lo))
-     (-Vector/hetero αs α (Mon-Info l+ l      lo))]
-    [(-Vector/homo C α (Mon-Info l+ 'dummy lo))
-     (-Vector/homo C α (Mon-Info l+ l      lo))]
+    [(-Vector/hetero αs (Mon-Info l+ 'dummy lo))
+     (-Vector/hetero αs (Mon-Info l+ l      lo))]
+    [(-Vector/homo α (Mon-Info l+ 'dummy lo))
+     (-Vector/homo α (Mon-Info l+ l      lo))]
     [_ V]))

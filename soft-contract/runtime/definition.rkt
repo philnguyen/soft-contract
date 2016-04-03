@@ -65,8 +65,8 @@
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
             (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : Mon-Info])
-            (-Vector/hetero [ctcs : (Listof -α)] [val : -α.vct] [ctx : Mon-Info])
-            (-Vector/homo [ctc : -α] [val : -α.vct] [ctx : Mon-Info])
+            (-Vector/hetero [ctcs : (Listof -α)] [ctx : Mon-Info])
+            (-Vector/homo [ctc : -α] [ctx : Mon-Info])
             
             -C)
 
@@ -230,9 +230,6 @@
             ;; for vector indices
             (-α.idx [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
 
-            ;; for inner vector
-            (-α.vct [pos : -ℓ] [ctx : -𝒞])
-
             ;; for contract components
             (-α.and/c-l [pos : -ℓ] [ctx : -𝒞])
             (-α.and/c-r [pos : -ℓ] [ctx : -𝒞])
@@ -375,8 +372,8 @@
        ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
-    [(-Vector/hetero γs α _) `(vector/hetero ,@(map show-α γs) ▹ ,(show-α α))]
-    [(-Vector/homo γ α _) `(vector/homo ,(show-α γ) ▹ ,(show-α α))]
+    [(-Vector/hetero γs _) `(vector/hetero ,@(map show-α γs))]
+    [(-Vector/homo γ _) `(vector/homo ,(show-α γ))]
     [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
     [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
     [(-Not/C γ) `(not/c ,(show-α γ))]
