@@ -27,7 +27,7 @@
 
 ;; Source location generator. It's hacked to remember fixed location for havoc
 (: +ℓ! : → -ℓ)
-(: +ℓ/memo! : (U 'hv-ref 'hv-ap 'opq-ap 'ac-ap) Any * → -ℓ)
+(: +ℓ/memo! : (U 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
 (define-values (+ℓ! +ℓ/memo!)
   (let ([n : -ℓ 1]
         [m : (HashTable (Listof Any) -ℓ) (make-hash)])

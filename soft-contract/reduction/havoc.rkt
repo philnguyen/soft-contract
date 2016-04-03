@@ -59,11 +59,11 @@
                     (match-define (cons ⟦●⟧₀ ⟦●⟧s) (build-list k (curry arg-● k)))
                     ((↝.@ havoc-path ℓ-V● (list W) ⟦●⟧s) ⟦●⟧₀)]
                    [else    (ap havoc-path ℓ-V● W '())]))
-               (define ⟦hv-⸨V-●⸩⟧
+               (define ⟦hv-⟮V-●⟯⟧
                  ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
                (define ⟦hv-V⟧
                  ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 1) '() (list ⟦V⟧)) ⟦hv⟧))
-               ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨V-●⸩⟧))
+               ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⟮V-●⟯⟧))
              
              (match a
                [(arity-at-least k)
@@ -85,17 +85,29 @@
                  (define Ac (-W¹ ac ac))
                  (define ⟦ac-V⟧
                    ((↝.@ havoc-path (+ℓ/memo! 'ac-ap ac) (list Ac) '()) ⟦V⟧))
-                 (define ⟦hv-⸨ac-V⸩⟧
+                 (define ⟦hv-⟮ac-V⟯⟧
                    ((↝.@ havoc-path (+ℓ/memo! 'hv-ap ac 0) '() (list ⟦ac-V⟧)) ⟦hv⟧))
                  (define ⟦hv-V⟧
                    ((↝.@ havoc-path (+ℓ/memo! 'hv-ap ac 1) '() (list ⟦V⟧)) ⟦hv⟧))
-                 ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⸨ac-V⸩⟧)))
+                 ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⟮ac-V⟯⟧)))
              (↝.amb ⟦hv-field⟧s)]
             
             ;; Havoc vector's content before erasing the vector with unknowns
-            [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
-             (log-warning "TODO: havoc vector")
-             ⊥⟦e⟧]
+            ;; Approximate vectors are already erased
+            [(-Vector/hetero _ _) ⊥⟦e⟧]
+            [(-Vector/homo _ _) ⊥⟦e⟧]
+            [(-Vector αs)
+             (define ⟦hv-field⟧s : (Listof -⟦e⟧)
+               (for/list ([(α i) (in-indexed αs)])
+                 (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
+                 (define ⟦ac-i⟧
+                   ((↝.@ havoc-path (+ℓ/memo! 'vref i) (list Wᵢ -vector-ref/W) '()) ⟦V⟧))
+                 (define ⟦hv-⟮ac-i⟯⟧
+                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 'ref i 0) '() (list ⟦ac-i⟧)) ⟦hv⟧))
+                 (define ⟦hv-V⟧
+                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 'ref i 1) '() (list ⟦V⟧)) ⟦hv⟧))
+                 ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⟮ac-i⟯⟧)))
+             (↝.amb ⟦hv-field⟧s)]
 
             ;; Apply contract to unknown values
             [(? -C?)
