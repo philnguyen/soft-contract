@@ -974,10 +974,13 @@
       (() #:rest list? . ->* . (and/c vector? immutable?))]
      [vector-length
       (vector? . -> . exact-nonnegative-integer?)]
+     [#:alias unsafe-vector-length vector-length]
      [vector-ref
       (vector? exact-nonnegative-integer? . -> . any/c)]
+     [#:alias unsafe-vector-ref vector-ref]
      [vector-set!
       ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?)]
+     [#:alias unsafe-vector-set! vector-set!]
      [vector->list
       (vector? . -> . list?)]
      [list->vector
