@@ -152,7 +152,8 @@
       (define ⟦e*⟧ (↓ e*))
       (λ (M σ ℒ)
         (match-define (-ℒ ρ Γ _) ℒ)
-        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) e))} ∅ ∅))]
+        (define s (canonicalize-e Γ e))
+        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) s))} ∅ ∅))]
      [(-case-λ clauses)
       (define ⟦clause⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
         (for/list ([clause clauses])

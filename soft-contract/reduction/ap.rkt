@@ -386,76 +386,87 @@
       (⊔/ans (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)
              (for*/ans ([Wₓ Wₓs])
                ((ap 'Λ ℓ Wₕᵥ (list Wₓ)) M σ ℒ₀))))
-    (match Vₕ
-      
-      ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped
-      ;; by proxies, and contract checking is arbitrarily deep
-      ;; Also, there's no need to check for preconditions, because they should have been caught
-      ;; by wrapping contracts
-      [(-st-p s)     (ap/st-p   s  )]
-      [(-st-mk s)    (ap/st-mk  s  )]
-      [(-st-ac s i)  (ap/st-ac  s i)]
-      [(-st-mut s i) (ap/st-mut s i)]
-      ['contract-first-order-passes? (ap/contract-first-order-passes?)]
-      ['vector-ref  (ap/vector-ref )]
-      ['vector-set! (ap/vector-set!)]
-      
-      ;; Regular stuff
-      [(? symbol? o) (ap/δ o)]
-      [(-Clo xs ⟦e⟧ ρ Γ)
-       (with-guarded-arity (formals-arity xs)
-         (ap/β xs ⟦e⟧ ρ Γ))]
-      [(-Case-Clo clauses ρ Γ)
-       (define n (length Wₓs))
-       (define clause
-         (for/or : (Option (Pairof (Listof Var-Name) -⟦e⟧)) ([clause clauses])
-           (match-define (cons xs _) clause)
-           (and (equal? n (length xs)) clause)))
-       (cond
-         [clause
-          (match-define (cons xs ⟦e⟧) clause)
-          (ap/β xs ⟦e⟧ ρ Γ)]
-         [else
-          (define a (assert (V-arity Vₕ)))
-          (values ⊥σ ∅ {set (-ΓE Γ₀ (blm-arity a n))} ∅)])]
-      [(-Ar C α l³)
-       (with-guarded-arity (guard-arity C)
-         (cond [(-=>? C)  (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar   C Vᵤ l³))]
-               [(-=>i? C) (for*/ans ([Vᵤ (σ@ σ α)]) (ap/indy C Vᵤ l³))]
-               [else      (for*/ans ([Vᵤ (σ@ σ α)]) (ap/case C Vᵤ l³))]))]
-      [(-And/C #t α₁ α₂)
-       (with-guarded-arity 1
-         (define-values (c₁ c₂)
-           (match-let ([(list s₁ s₂) (-app-split sₕ 'and/c 2)])
-             (values (or s₁ (and (-e? α₁) α₁))
-                     (or s₂ (and (-e? α₂) α₂)))))
-         (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
-                   (ap/And/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
-      [(-Or/C #t α₁ α₂)
-       (with-guarded-arity 1
-         (define-values (c₁ c₂)
-           (match-let ([(list s₁ s₂) (-app-split sₕ 'or/c 2)])
-             (values (or s₁ (and (-e? α₁) α₁))
-                     (or s₂ (and (-e? α₂) α₂)))))
-         (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
-                   (ap/Or/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
-      [(-Not/C α)
-       (with-guarded-arity 1
-         (define c*
-           (match-let ([(list s) (-app-split sₕ 'not/c 1)])
-             (or s (and (-e? α) α))))
-         (for*/ans ([C* (σ@ σ α)])
-                   (ap/Not/C (-W¹ C* c*))))]
-      [(-St/C #t s αs)
-       (with-guarded-arity 1
-         (define cs : (Listof -s)
-           (for/list ([s (-struct/c-split sₕ (-struct-info-arity s))]
-                      [α αs])
-             (or s (and (-e? α) α))))
-         (for*/ans ([Cs (σ@/list σ αs)])
-           (ap/St/C s (map -W¹ Cs cs))))]
-      [(-●) (ap/●)]
-      [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)])))
+
+    (with-debugging/off
+      ((δσ ΓWs ΓEs ℐs)
+       (match Vₕ
+         
+         ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped
+         ;; by proxies, and contract checking is arbitrarily deep
+         ;; Also, there's no need to check for preconditions, because they should have been caught
+         ;; by wrapping contracts
+         [(-st-p s)     (ap/st-p   s  )]
+         [(-st-mk s)    (ap/st-mk  s  )]
+         [(-st-ac s i)  (ap/st-ac  s i)]
+         [(-st-mut s i) (ap/st-mut s i)]
+         ['contract-first-order-passes? (ap/contract-first-order-passes?)]
+         ['vector-ref  (ap/vector-ref )]
+         ['vector-set! (ap/vector-set!)]
+         
+         ;; Regular stuff
+         [(? symbol? o) (ap/δ o)]
+         [(-Clo xs ⟦e⟧ ρ Γ)
+          (with-guarded-arity (formals-arity xs)
+            (ap/β xs ⟦e⟧ ρ Γ))]
+         [(-Case-Clo clauses ρ Γ)
+          (define n (length Wₓs))
+          (define clause
+            (for/or : (Option (Pairof (Listof Var-Name) -⟦e⟧)) ([clause clauses])
+              (match-define (cons xs _) clause)
+              (and (equal? n (length xs)) clause)))
+          (cond
+            [clause
+             (match-define (cons xs ⟦e⟧) clause)
+             (ap/β xs ⟦e⟧ ρ Γ)]
+            [else
+             (define a (assert (V-arity Vₕ)))
+             (values ⊥σ ∅ {set (-ΓE Γ₀ (blm-arity a n))} ∅)])]
+         [(-Ar C α l³)
+          (with-guarded-arity (guard-arity C)
+            (cond [(-=>? C)  (for*/ans ([Vᵤ (σ@ σ α)]) (ap/Ar   C Vᵤ l³))]
+                  [(-=>i? C) (for*/ans ([Vᵤ (σ@ σ α)]) (ap/indy C Vᵤ l³))]
+                  [else      (for*/ans ([Vᵤ (σ@ σ α)]) (ap/case C Vᵤ l³))]))]
+         [(-And/C #t α₁ α₂)
+          (with-guarded-arity 1
+            (define-values (c₁ c₂)
+              (match-let ([(list s₁ s₂) (-app-split sₕ 'and/c 2)])
+                (values (or s₁ (and (-e? α₁) α₁))
+                        (or s₂ (and (-e? α₂) α₂)))))
+            (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
+              (ap/And/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
+         [(-Or/C #t α₁ α₂)
+          (with-guarded-arity 1
+            (define-values (c₁ c₂)
+              (match-let ([(list s₁ s₂) (-app-split sₕ 'or/c 2)])
+                (values (or s₁ (and (-e? α₁) α₁))
+                        (or s₂ (and (-e? α₂) α₂)))))
+            (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
+              (ap/Or/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
+         [(-Not/C α)
+          (with-guarded-arity 1
+            (define c*
+              (match-let ([(list s) (-app-split sₕ 'not/c 1)])
+                (or s (and (-e? α) α))))
+            (for*/ans ([C* (σ@ σ α)])
+              (ap/Not/C (-W¹ C* c*))))]
+         [(-St/C #t s αs)
+          (with-guarded-arity 1
+            (define cs : (Listof -s)
+              (for/list ([s (-struct/c-split sₕ (-struct-info-arity s))]
+                         [α αs])
+                (or s (and (-e? α) α))))
+            (for*/ans ([Cs (σ@/list σ αs)])
+              (ap/St/C s (map -W¹ Cs cs))))]
+         [(-●) (ap/●)]
+         [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)]))
+      (printf "Ap: ~a ~a:~n" (show-W¹ Wₕ) (map show-W¹ Wₓs))
+      (printf "answers:~n")
+      (for ([A ΓWs]) (printf "  - ~a~n" (show-A A)))
+      (printf "errors:~n")
+      (for ([A ΓEs]) (printf "  - ~a~n" (show-A A)))
+      (printf "pending:~n")
+      (for ([ℐ  ℐs]) (printf "  - ~a~n" (show-ℐ ℐ)))
+      (printf "~n"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
