@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
-         plausible-return? plausible-blame?
+         plausible-return? plausible-blame? plausible-index? plausible-indices
          (all-from-out "local.rkt")
          (all-from-out "inversion.rkt"))
 
@@ -27,8 +27,11 @@
 ;; Check if value `W` satisfies predicate `p`
 (define (MΓ⊢oW M Γ p . Ws)
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
-  (first-R (apply p∋Vs p Vs)
-           (MΓ⊢s M Γ (apply -?@ p ss))))
+  (with-debugging/off
+    ((R)
+     (first-R (apply p∋Vs p Vs)
+              (MΓ⊢s M Γ (apply -?@ p ss))))
+    (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))
 
 (: MΓ⊢s : -M -Γ -s → -R)
 ;; Check if `s` is provable in `Γ`
@@ -193,3 +196,20 @@
     [(✓) (values (Γ+ Γ s) #f)]
     [(✗) (values #f       (Γ+ Γ (-not s)))]
     [(?) (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
+
+(: plausible-index? : -M -Γ -W¹ Natural → Boolean)
+(define (plausible-index? M Γ W i)
+  (case (MΓ⊢oW M Γ 'integer? W)
+    [(✓ ?)
+     (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
+     (case (MΓ⊢oW M Γ '= W Wᵢ)
+       [(✗) #f]
+       [else #t])]
+    [else #f]))
+
+(: plausible-indices : -M -Γ -W¹ Natural Natural → (Listof Natural))
+(define (plausible-indices M Γ W lo hi)
+  (for*/list : (Listof Natural) ([i (in-range lo hi)]
+                                 #:when (exact-nonnegative-integer? i) ; hack for TR
+                                 #:when (plausible-index? M Γ W i))
+    i))

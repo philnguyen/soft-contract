@@ -2,7 +2,10 @@
 
 (provide (all-defined-out))
 
-(require racket/match "../ast/definition.rkt" "definition.rkt")
+(require racket/match
+         "../utils/function.rkt"
+         "../ast/definition.rkt"
+         "definition.rkt")
 
 ;; Constants & 'Macros'
 (define -Null -null)
@@ -24,6 +27,7 @@
 (define -contract-first-order-passes?/W (-W¹ 'contract-first-order-passes? 'contract-first-order-passes?))
 (define -vector-length/W (-W¹ 'vector-length 'vector-length))
 (define -Vector₀ (-Vector '()))
+(define -Zero/W (-W¹ -zero -zero))
 ;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
 ;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))
 

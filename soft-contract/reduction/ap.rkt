@@ -59,7 +59,7 @@
   (: blm-arity : Arity Natural → -blm)
   (define (blm-arity required provided)
     ;; HACK for error message, but probably no need to fix
-    (-blm l 'Λ (list (format-symbol "~a arguments" required)) (list (-b provided))))
+    (-blm l 'Λ (list (format-symbol "~a arguments" required)) Vₓs))
 
   (λ (M σ ℒ₀)
     (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
@@ -279,7 +279,28 @@
 
     (: ap/st-mut : -struct-info Natural → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/st-mut s i)
-      (error '|struct mutator| "TODO"))
+      (match-define (list Wₛ Wᵥ) Wₓs)
+      (match-define (-W¹ Vₛ sₛ) Wₛ)
+      (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+      (match Vᵥ
+        [(-St (== s) αs)
+         (define α (list-ref αs i))
+         (values (⊔ σ α Vᵥ) {set (-ΓW Γ₀ (-W -Void/Vs sₐ))} ∅ ∅)]
+        [(-St* (== s) γs α l³)
+         (match-define (Mon-Info l+ l- lo) l³)
+         (define l³* (Mon-Info l- l+ lo))
+         (match-define (? -α? γ) (list-ref γs i))
+         (define c (and (-e? γ) γ))
+         (define Mut (let ([mut (-st-mut s i)]) (-W¹ mut mut)))
+         (for*/ans ([C (σ@ σ γ)] [Vₛ* (σ@ σ α)])
+           (define W-c (-W¹ C c))
+           (define Wₛ* (-W¹ Vₛ* sₛ))
+           (define ⟦chk⟧ (mon l³* ℓ W-c Wᵥ))
+           (define comp ((↝.@ lo ℓ (list Wₛ* Mut) '()) ⟦chk⟧))
+           (comp M σ ℒ₀))]
+        [(-●) ; error must have been caught from outside. This is the unsafe version
+         (values ⊥σ {set (-ΓW Γ₀ (-W -Void/Vs sₐ))} ∅ ∅)]
+        [_ (⊥ans)]))
 
     (: ap/vector-ref : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-ref)
@@ -288,32 +309,23 @@
       (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
       (match Vᵥ
         [(-Vector αs)
-         (match Vᵢ
-           [(-b (? exact-integer? i)) #:when (<= 0 i (sub1 (length αs)))
-            (define ΓWs
-              (for/set: : (℘ -ΓW) ([V (σ@ σ (list-ref αs i))])
-                (-ΓW Γ₀ (-W (list V) sₐ))))
-            (values ⊥σ ΓWs ∅ ∅)]
-           [_
-            (define ΓWs
-              (for*/set: : (℘ -ΓW) ([α αs] [V (σ@ σ α)])
-                (-ΓW Γ₀ (-W (list V) sₐ))))
-            (values ⊥σ ΓWs ∅ ∅)])]
+         (for*/ans ([(α i) (in-indexed αs)]
+                    #:when (exact-nonnegative-integer? i) ; hack for TR
+                    #:when (plausible-index? M Γ₀ Wᵢ i)
+                    [Γ* (in-value (Γ+ Γ₀ (-?@ '= sᵢ (-b i))))]
+                    [V (σ@ σ α)])
+           (values ⊥σ {set (-ΓW Γ* (-W (list V) sₐ))} ∅ ∅))]
         [(-Vector/hetero αs l³)
          (match-define (Mon-Info _ _ lo) l³)
-         (match Vᵢ
-           [(-b (? exact-integer? i)) #:when (<= 0 i (sub1 (length αs)))
-            (define α (list-ref αs i))
-            (define c (and (-e? α) α))
-            (for*/ans ([C (σ@ σ α)])
-              (define W-c (-W¹ C c))
-              ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ ℒ₀))]
-           [_ ; TODO: remember index
-            (for*/ans ([α αs] [C (σ@ σ α)])
-              (define c (and (-e? α) α))
-              (define W-c (-W¹ C c))
-              ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ ℒ₀))])]
-        [(-Vector/homo α l³) ; TODO: remember index
+         (for*/ans ([(α i) (in-indexed αs)]
+                    #:when (exact-nonnegative-integer? i) ; hack for TR
+                    #:when (plausible-index? M Γ₀ Wᵢ i)
+                    [Γ* (in-value (Γ+ Γ₀ (-?@ '= sᵢ (-b i))))]
+                    [c (in-value (and (-e? α) α))]
+                    [C (σ@ σ α)])
+           (define W-c (-W¹ C c))
+           ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ (-ℒ-with-Γ ℒ₀ Γ*)))]
+        [(-Vector/homo α l³)
          (match-define (Mon-Info _ _ lo) l³)
          (define c (and (-e? α) α))
          (for*/ans ([C (σ@ σ α)])
@@ -325,7 +337,47 @@
 
     (: ap/vector-set! : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-set!)
-      (error 'error-set! "TODO"))
+      (match-define (list Wᵥ Wᵢ Wᵤ) Wₓs)
+      (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+      (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
+      (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
+      (define Wₕᵥ
+        (let ([havoc-𝒾 (-𝒾 'havoc-id 'havoc)])
+          (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) (-ref havoc-𝒾 0))))
+      (match Vᵥ
+        [(-Vector αs)
+         (for*/ans ([(α i) (in-indexed αs)]
+                    #:when (exact-nonnegative-integer? i) ; hack for TR
+                    #:when (plausible-index? M Γ₀ Wᵢ i))
+           (define Γ* (Γ+ Γ₀ (-?@ '= sᵢ (-b i))))
+           (values (⊔ ⊥σ α Vᵤ) {set (-ΓW Γ* (-W -Void/Vs sₐ))} ∅ ∅))]
+        [(-Vector/hetero αs l³)
+         (match-define (Mon-Info l+ l- lo) l³)
+         (define l³* (swap-parties l³))
+         (for*/ans ([(α i) (in-indexed αs)]
+                    #:when (exact-nonnegative-integer? i) ; hack for TR
+                    #:when (plausible-index? M Γ₀ Wᵢ i)
+                    [Γ* (in-value (Γ+ Γ₀ (-?@ '= sᵢ (-b i))))]
+                    [c (in-value (and (-e? α) α))]
+                    [C (σ@ σ α)])
+           (define W-c (-W¹ C c))
+           (define ⟦chk⟧ (mon l³* ℓ W-c Wᵤ))
+           (define ⟦hv⟧ ((↝.@ 'havoc ℓ (list Wₕᵥ) '()) ⟦chk⟧))
+           (define comp ((↝.begin (list ⟦void⟧)) (⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧)))
+           (comp M σ (-ℒ-with-Γ ℒ₀ Γ*)))]
+        [(-Vector/homo α l³)
+         (define c (and (-e? α) α))
+         (define l³* (swap-parties l³))
+         (for*/ans ([C (σ@ σ α)])
+           (define W-c (-W¹ C c))
+           (define ⟦chk⟧ (mon l³* ℓ W-c Wᵤ))
+           (define ⟦hv⟧ ((↝.@ 'havoc ℓ (list Wₕᵥ) '()) ⟦chk⟧))
+           (define comp ((↝.begin (list ⟦void⟧)) (⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧)))
+           (comp M σ ℒ₀))]
+        [(-●)
+         (define ⟦hv⟧ (ap 'havoc ℓ Wₕᵥ (list Wᵤ)))
+         ((⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧) M σ ℒ₀)]
+        [_ (⊥ans)]))
 
     (: ap/● : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/●)
@@ -429,13 +481,13 @@
 
   (λ (M σ ℒ)
     (define Γ (-ℒ-cnd ℒ))
-    (case (MΓ⊢V∈C M Γ W-V W-C)
-      [(✓)
-       (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅)]
-      [(✗)
-       (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo (list C) (list V)))} ∅)]
-      [(?)
-       ((mon* l³ ℓ W-C W-V) M σ ℒ)])))
+    (with-debugging/off
+      ((δσ ΓWs ΓEs ℐs)
+       (case (MΓ⊢V∈C M Γ W-V W-C)
+         [(✓) (values ⊥σ {set (-ΓW Γ (-W (list V) v))} ∅ ∅)]
+         [(✗) (values ⊥σ ∅ {set (-ΓE Γ (-blm l+ lo (list C) (list V)))} ∅)]
+         [(?) ((mon* l³ ℓ W-C W-V) M σ ℒ)]))
+      (printf "mon ⟨~a,~a⟩ ~a ~a~n" l+ lo (show-W¹ W-C) (show-W¹ W-V)))))
 
 (: mon-=>_ : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-=>_ l³ ℓ W-C W-V)
@@ -540,18 +592,15 @@
 (define (mon-x/c l³ ℓ W-C W-V)
   (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
-  (match-define (-x/C α) C)
-  
-  (match V
-    [(-●)
-     (λ (M σ ℒ)
-       (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
-    [_
-     (λ (M σ ℒ)
-       (for*/ans ([C* (σ@ σ α)])
-         (define W-C* (-W¹ C* c))
-         (define bnd #|FIXME|# (-binding #f '() (hash)))
-         (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℳ l³ ℓ W-C* W-V ℒ))})))]))
+  (match-define (-x/C (and α (-α.x/c ℓ))) C)
+  (define x (- ℓ)) ; FIXME hack
+  (define 𝐱 (-x x))
+  (λ (M σ ℒ)
+    (for*/ans ([C* (σ@ σ α)])
+      (define W-C* (-W¹ C* c))
+      (define W-V* (-W¹ V 𝐱))
+      (define bnd #|FIXME Hack|# (-binding 'values (list x) (if v (hash x v) (hash))))
+      (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℳ l³ ℓ W-C* W-V* ℒ))}))))
 
 (: mon-and/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor contract conjunction by decomposing into nesting checks
@@ -627,7 +676,8 @@
          (define ⟦hv⟧s : (Listof -⟦e⟧)
            (for/list ([(V* i) (in-indexed Vs)])
              (define ⟦chk⟧ (mon l³ ℓ (-W¹ C c) (-W¹ V* (-?@ 'vector-ref sᵥ (-b i)))))
-             ((↝.@ lo ℓ (list Wₕᵥ) '()) ⟦chk⟧)))
+             (define ⟦hv⟧ ((↝.@ lo ℓ (list Wₕᵥ) '()) ⟦chk⟧))
+             (⊔/⟦e⟧ ⟦void⟧ ⟦hv⟧)))
          (define comp
            (match-let ([(cons ⟦e⟧ ⟦e⟧s) (append ⟦hv⟧s (list ⟦erase⟧ ⟦rt⟧))])
              ((↝.begin ⟦e⟧s) ⟦e⟧)))
@@ -691,7 +741,8 @@
           (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
           (define ⟦ref⟧ (ap lo ℓ -vector-ref/W (list Wᵥ Wᵢ)))
           (define ⟦mon⟧ ((↝.mon.c l³ ℓ W-c*) ⟦ref⟧))
-          ((↝.@ 'Λ ℓ (list Wₕᵥ) '()) ⟦mon⟧)))
+          (define ⟦hv⟧ ((↝.@ 'Λ ℓ (list Wₕᵥ) '()) ⟦mon⟧))
+          (⊔/⟦e⟧ ⟦void⟧ ⟦hv⟧)))
       (define ⟦erase⟧ : -⟦e⟧
         (match Vᵥ
           [(-Vector αs)

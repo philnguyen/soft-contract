@@ -16,7 +16,8 @@
 (: run-files : Path-String * → (Values (℘ -A) #|debugging|# -M -Ξ))
 (define (run-files . ps)
   (define ms (files->modules ps))
-  (define-values (As M Ξ σ) (run (⇓ₘₛ ms) σ₀))
+  (define-values (σ₁ _) (𝑰 ms))
+  (define-values (As M Ξ σ) (run (⇓ₘₛ ms) σ₁))
   (values As M Ξ))
 
 (: havoc-files : Path-String * → (Values (℘ -A) #|debugging|# -M -Ξ))

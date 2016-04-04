@@ -125,6 +125,10 @@
        ['any/c -tt]
        ['none/c -ff]
        ['void (-b (void))]
+       ['values
+        (match xs
+          [(list x) x]
+          [_ (default-case)])]
 
        ; vector-length
        ['vector-length

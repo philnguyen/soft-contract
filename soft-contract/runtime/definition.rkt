@@ -81,7 +81,7 @@
                    [l : (U -α.or/c-l -α.cnst)]
                    [r : (U -α.or/c-r -α.cnst)])
             (-Not/C (U -α.not/c -α.cnst))
-            (-x/C [c : (U -α.x/c -α.cnst)])
+            (-x/C [c : (U -α.x/c)])
             ;; Guards for higher-order values
             -=>_
             (-St/C [flat? : Boolean]
@@ -318,6 +318,11 @@
                   [(δσ₂ Ws₂ Es₂ ℐs₂) (⊔/ans ans ...)])
        (values (⊔/m δσ₁ δσ₂) (∪ Ws₁ Ws₂) (∪ Es₁ Es₂) (∪ ℐs₁ ℐs₂)))]))
 
+(: ⊔/⟦e⟧ : -⟦e⟧ -⟦e⟧ → -⟦e⟧)
+(define (⊔/⟦e⟧ ⟦e⟧₁ ⟦e⟧₂)
+  (λ (M σ ℒ)
+    (⊔/ans (⟦e⟧₁ M σ ℒ) (⟦e⟧₂ M σ ℒ))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Shorhands
@@ -369,7 +374,7 @@
     [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
     [(-St* s γs α _)
      `(,(format-symbol "~a/wrapped" (show-struct-info s))
-       ,@(for/list : (Listof Symbol) ([γ γs]) (if γ (show-α γ) '✓))
+       ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-Vector/hetero γs _) `(vector/hetero ,@(map show-α γs))]
@@ -513,7 +518,12 @@
 (define (show-𝒞 [𝒞 : -𝒞]) : Symbol
   (format-symbol "𝒞~a" (n-sub 𝒞)))
 
-(define-values (show-α show-α⁻¹ count-αs) ((inst unique-sym -α) 'α))
+(define-values (show-α show-α⁻¹)
+  (let-values ([(α->symbol symbol->α _) ((inst unique-sym -α) 'α)])
+    (values
+     (λ ([α : -α]) : Sexp
+        (if (-e? α) (show-e α) (α->symbol α)))
+     symbol->α)))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
   (for/list ([(x α) ρ]) `(,x ↦ ,(show-α α))))

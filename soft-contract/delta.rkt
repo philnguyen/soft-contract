@@ -73,6 +73,19 @@
        (for/fold ([δσ : -Δσ ⊥σ]) ([α αs] [W Ws])
          (⊔ δσ α (-W¹-V W))))
      (values δσ (list (-Vector αs)))]
+    [vector?
+     (match Ws
+       [(list W)
+        (case (MΓ⊢oW M Γ 'vector? W)
+          [(✓) (values ⊥σ -True/Vs )]
+          [(✗) (values ⊥σ -False/Vs)]
+          [(?) (values ⊥σ -●/Vs    )])]
+       [_ (values ⊥σ -●/Vs)])]
+    [vector-length
+     (match Ws
+       [(list (-W¹ (-Vector αs) _))
+        (values ⊥σ (list (-b (length αs))))]
+       [_ (values ⊥σ -●/Vs)])]
     [vectorof
      (match Ws
        [(list (-W¹ V s))
