@@ -79,13 +79,13 @@
         (case (MΓ⊢oW M Γ 'vector? W)
           [(✓) (values ⊥σ -True/Vs )]
           [(✗) (values ⊥σ -False/Vs)]
-          [(?) (values ⊥σ -●/Vs    )])]
-       [_ (values ⊥σ -●/Vs)])]
+          [(?) (values ⊥σ -Bool/Vs )])]
+       [_ (values ⊥σ -Bool/Vs)])]
     [vector-length
      (match Ws
        [(list (-W¹ (-Vector αs) _))
         (values ⊥σ (list (-b (length αs))))]
-       [_ (values ⊥σ -●/Vs)])]
+       [_ (values ⊥σ -Nat/Vs)])]
     [vectorof
      (match Ws
        [(list (-W¹ V s))
@@ -113,8 +113,8 @@
             [(-b (? simple-arity? n))
              (define ans (if (arity-includes? a n) -tt -ff))
              (values ⊥σ (list ans))]
-            [else (values ⊥σ -●/Vs)]))]
-       [else (values ⊥σ -●/Vs)])]
+            [else (values ⊥σ -Bool/Vs)]))]
+       [else (values ⊥σ -Bool/Vs)])]
     [procedure-arity
      (match-define (list (-W¹ V _)) Ws)
      (cond
@@ -126,7 +126,7 @@
        (case (apply MΓ⊢oW M Γ 'equal? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
-         [(?) -●/Vs]))
+         [(?) -Bool/Vs]))
      (values ⊥σ Vs)]
 
     [= ; duplicate of `equal?` (args already guarded by contracts)
@@ -134,7 +134,7 @@
        (case (apply MΓ⊢oW M Γ 'equal? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
-         [(?) -●/Vs]))
+         [(?) -Bool/Vs]))
      (values ⊥σ Vs)]
     
     [procedure?
@@ -142,7 +142,7 @@
        (case (apply MΓ⊢oW M Γ 'procedure? Ws)
          [(✓) (list -tt)]
          [(✗) (list -ff)]
-         [(?) -●/Vs]))
+         [(?) -Bool/Vs]))
      (values ⊥σ Vs)]
     ))
 
@@ -218,7 +218,7 @@
                 (case (apply MΓ⊢oW #,(M-id) #,(Γ-id) '#,op #,(Ws-id))
                   [(✓) (list -tt)]
                   [(✗) (list -ff)]
-                  [else -●/Vs]))
+                  [else -Bool/Vs]))
               (values ⊥σ Vs)])]
          ; Return case clause for straightforward lifting of other 1st order operators
          [(and (andmap base? doms) (base? rng))
@@ -271,7 +271,7 @@
               (match #,(Ws-id)
                 ; straightforward lifting for concrete operands
                 [(list #,@b-pats/abs) #,case-lift]
-                [_ (values ⊥σ -●/Vs)]
+                [_ (values ⊥σ (list (-● (set '#,rng))))]
                 ;#,maybe-refine ; TODO: see if eager refinement is still neccessary
                 )])]
          

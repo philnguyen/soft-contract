@@ -330,6 +330,7 @@
            (define W-c (-W¹ C c))
            ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ ℒ₀))]
         [_
+         ;(printf "Warning: unsafe-vector-ref given non-vector: ~a ~n" (show-V Vᵥ))
          (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]))
 
     (: ap/vector-set! : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
@@ -497,7 +498,14 @@
          [(✓) (values ⊥σ {set (-ΓW Γ (-W (list V) v))} ∅ ∅)]
          [(✗) (values ⊥σ ∅ {set (-ΓE Γ (-blm l+ lo (list C) (list V)))} ∅)]
          [(?) ((mon* l³ ℓ W-C W-V) M σ ℒ)]))
-      (printf "mon ⟨~a,~a⟩ ~a ~a~n" l+ lo (show-W¹ W-C) (show-W¹ W-V)))))
+      (printf "mon ⟨~a,~a⟩ ~a ~a~n" l+ lo (show-W¹ W-C) (show-W¹ W-V))
+      (printf "answers:~n")
+      (for ([A ΓWs]) (printf "  - ~a~n" (show-A A)))
+      (printf "errors:~n")
+      (for ([A ΓEs]) (printf "  - ~a~n" (show-A A)))
+      (printf "pending:~n")
+      (for ([ℐ  ℐs]) (printf "  - ~a~n" (show-ℐ ℐ)))
+      (printf "~n"))))
 
 (: mon-=>_ : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 (define (mon-=>_ l³ ℓ W-C W-V)
@@ -562,7 +570,7 @@
     (for/list ([(α i) (in-indexed αs)])
       (define ac (-st-ac s (assert i exact-nonnegative-integer?)))
       (ap lo ℓ (-W¹ ac ac) (list (-W¹ V v)))))
-  
+
   (match V ; FIXME code duplicate
     [(or (-St (== s) _) (-St* (== s) _ _ _))
      (match ⟦field⟧s
@@ -595,7 +603,15 @@
             (define α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ)))
             (define ⟦mk⟧ (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧)))
             (define comp ((↝.if lo ⟦mk⟧ ⟦blm⟧) (ap lo ℓ (-W¹ p p) (list W-V))))
-            (comp M σ ℒ)))])]
+            (with-debugging/off ((δσ ΓWs ΓEs ℐs) (comp M σ ℒ))
+              (printf "mon struct/c ⟨~a, ~a⟩ ~a ~a~n" l+ lo (show-W¹ W-C) (show-W¹ W-V))
+              (printf "answers:~n")
+              (for ([A ΓWs]) (printf "  - ~a~n" (show-A A)))
+              (printf "errors:~n")
+              (for ([A ΓEs]) (printf "  - ~a~n" (show-A A)))
+              (printf "pending:~n")
+              (for ([ℐ  ℐs]) (printf "  - ~a~n" (show-ℐ ℐ)))
+              (printf "~n"))))])]
     [_ (blm l+ lo (list C) (list V))]))
 
 (: mon-x/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
@@ -630,18 +646,21 @@
     (match-let ([(list s₁ s₂) (-app-split c 'or/c 2)])
       (values (or s₁ (and (-e? α₁) α₁))
               (or s₂ (and (-e? α₂) α₂)))))
-  (define ⟦ok⟧ (ret-W¹ W-V))
+  (define (⟦ok⟧ [W-C : -W¹]) ;; HACK to make sure it's wrapped
+    (mon l³ ℓ W-C W-V))
   (λ (M σ ℒ)
     (for*/ans ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
+      (define W-C₁ (-W¹ C₁ c₁))
+      (define W-C₂ (-W¹ C₂ c₂))
       (cond
         [(C-flat? C₁)
-         (define ⟦chk⟧ (ap lo ℓ (-W¹ C₁ c₁) (list W-V)))
-         (define ⟦mon⟧ (mon l³ ℓ (-W¹ C₂ c₂) W-V))
-         (((↝.if lo ⟦ok⟧ ⟦mon⟧) ⟦chk⟧) M σ ℒ)]
+         (define ⟦chk⟧ (ap lo ℓ W-C₁ (list W-V)))
+         (define ⟦mon⟧ (mon l³ ℓ W-C₂ W-V))
+         (((↝.if lo (⟦ok⟧ W-C₁) ⟦mon⟧) ⟦chk⟧) M σ ℒ)]
         [(C-flat? C₂)
-         (define ⟦chk⟧ (ap lo ℓ (-W¹ C₂ c₂) (list W-V)))
-         (define ⟦mon⟧ (mon l³ ℓ (-W¹ C₁ c₁) W-V))
-         (((↝.if lo ⟦ok⟧ ⟦mon⟧) ⟦chk⟧) M σ ℒ)]
+         (define ⟦chk⟧ (ap lo ℓ W-C₂ (list W-V)))
+         (define ⟦mon⟧ (mon l³ ℓ W-C₁ W-V))
+         (((↝.if lo (⟦ok⟧ W-C₂) ⟦mon⟧) ⟦chk⟧) M σ ℒ)]
         [else ; both are chaperones, error for now (TODO: real semantics: distinguish by 1st order)
          (error 'or/c "No more than 1 higher-order disjunct for now")]))))
 

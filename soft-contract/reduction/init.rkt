@@ -30,7 +30,7 @@
 (define -⟦boolean?⟧ (⇓ (-ref (-𝒾 'boolean? 'Λ) 0)))
 (define -⟦any/c⟧ (⇓ (-ref (-𝒾 'any/c 'Λ) 0)))
 (define -⟦void?⟧ (⇓ (-ref (-𝒾 'void? 'Λ) 0)))
-(define -l³-dummy (Mon-Info 'Λ 'dummy 'Λ))
+;(define -l³-dummy (Mon-Info 'Λ 'dummy 'Λ))
 
 (: alloc : -σ Any → -σ)
 ;; Allocate primitives wrapped with contracts.
@@ -77,7 +77,7 @@
   (define-values (α₀ α₁)
     (let ([𝒾 (-𝒾 o 'Λ)])
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
-  (define O (-Ar C α₀ -l³-dummy))
+  (define O (-Ar C α₀ (Mon-Info o 'dummy o)))
   (⊔* σ [α₀ o] [α₁ O]))
 
 (: alloc-Ar : -σ Symbol -o (Listof -prim) -prim → -σ)
@@ -89,7 +89,7 @@
   (define-values (σ₁ αs) (alloc-prims σ cs))
   (define-values (σ₂ β ) (alloc-prim  σ₁ d))
   (define C (-=> αs β))
-  (define O (-Ar C α₀ -l³-dummy))
+  (define O (-Ar C α₀ (Mon-Info (show-o o) 'dummy (show-o o))))
   (⊔* σ₂ [α₀ o] [α₁ O]))
 
 (: alloc-C : -σ Any → (Values -σ -V -e))

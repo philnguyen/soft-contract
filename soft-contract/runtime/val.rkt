@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/match
+         racket/set
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "definition.rkt")
@@ -12,7 +13,9 @@
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -●/V (-● ∅))
-(define -●/Vs : (List -V) (list -●/V))
+(define -●/Vs (list -●/V))
+(define -Bool/Vs (list (-● {set 'boolean?})))
+(define -Nat/Vs (list (-● {set 'exact-nonnegative-integer?})))
 (define -Void/Vs (list (-b (void))))
 (define -Void/W (-W -Void/Vs (-b (void))))
 (define -not/W (-W¹ 'not 'not))
