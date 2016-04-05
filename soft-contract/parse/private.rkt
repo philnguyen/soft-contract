@@ -13,9 +13,11 @@
              "../primitives/declarations.rkt"))
 (provide (all-defined-out))
 
-(define/contract (files->modules paths)
-  ((listof path-string?) . -> . (listof -module?))
-  (map (compose1 parse-top-level-form do-expand-file) paths))
+(define/contract (file->module p)
+  (path-string? . -> . -module?)
+  (define p* (make-strawman p))
+  (match-define (-module _ body) (parse-top-level-form (do-expand-file p*)))
+  (-module p body))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
@@ -70,10 +72,10 @@
     [(#%plain-app
       call-with-values
       (#%plain-lambda
-       ()
-       (#%plain-app
-        (~literal fake:dynamic-provide/contract)
-        (#%plain-app (~literal list) x:id c:expr) ...))
+        ()
+        (#%plain-app
+         (~literal fake:dynamic-provide/contract)
+         (#%plain-app (~literal list) x:id c:expr) ...))
       _)
      (-provide (for/list ([x (syntax->datum #'(x ...))]
                           [c (syntax->list #'(c ...))])
@@ -403,6 +405,24 @@
     [i:identifier (syntax-e #'i)]
     [_ (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum spec)) 'dummy-require]))
 
+;; Given path, insert fake-contract require and write to temp file
+(define/contract (make-strawman p)
+  (path-string? . -> . path-string?)
+  (match (file->lines p)
+    ;; If already required, leave alone (backward compatibility for existing tests)
+    [(list _ ... l _ ...)
+     #:when (regexp-match? #rx"^(require soft-contract/fake-contract)" l)
+     p]
+    ;; Otherwise, assume expected format, then insert at 2 line
+    [(list ls₀ ... (and l (regexp #rx"^#lang .+")) ls₁ ...)
+     (define lines* `(,@ls₀ ,l "(require soft-contract/fake-contract)" ,@ls₁))
+     (define p* (make-temporary-file "scv_strawman_~a.rkt"))
+     (log-debug "Create strawman for `~a` at `~a`~n" p p*)
+     (display-lines-to-file lines* p* #:exists 'replace)
+     p*]
+    [_
+     (error "expect '~a' to be non-empty, with #lang declaration on 1 line" p)]))
+
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
   (path-string? . -> . any/c)
@@ -410,6 +430,3 @@
              #:unless (scv-ignore? stxᵢ))
     (syntax->datum stxᵢ)))
 
-;; Testing only
-(define (test . files)
-  (files->modules files))

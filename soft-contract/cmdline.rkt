@@ -10,7 +10,7 @@
          "ast/definition.rkt"
          "parse/main.rkt"
          "runtime/definition.rkt"
-         (only-in "reduction/main.rkt" run-files havoc-files))
+         (only-in "reduction/main.rkt" run-file havoc-file))
 
 (Mode . ::= . 'light 'havoc 'expand)
 (define mode : Mode 'havoc)
@@ -47,10 +47,10 @@
 
 (case mode
   [(expand)
-   (match-define (list m) (files->modules (list fname)))
+   (define m (file->module fname))
    (pretty-write (show-module m))]
   [(light)
-   (define-values (ans M Ξ) (run-files fname))
+   (define-values (ans M Ξ) (run-file fname))
    (cond
      [(set-empty? ans)
       (printf "Safe~n")]
@@ -58,7 +58,7 @@
       (for ([A ans])
         (pretty-write (show-a A)))])]
   [(havoc)
-   (define-values (ans M Ξ) (havoc-files fname))
+   (define-values (ans M Ξ) (havoc-file fname))
    (define safe? : Boolean #t)
    (for ([A ans] #:when (-ΓE? A))
      (set! safe? #f)

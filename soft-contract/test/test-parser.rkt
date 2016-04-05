@@ -9,4 +9,4 @@
     [(regexp-match-exact? #rx".*rkt" (path->string file))
      (printf "Rkt: ~a~n" file)
      (define str (path->string file))
-     (test-case str (test-not-exn str (λ () (files->modules (list str)))))]))
+     (test-case str (test-not-exn str (λ () (file->module str))))]))

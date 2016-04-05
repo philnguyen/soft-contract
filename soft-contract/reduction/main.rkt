@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide run-files havoc-files run-e run)
+(provide run-file havoc-file run-e run)
 
 (require
  racket/match racket/set
@@ -13,18 +13,18 @@
  "step.rkt"
  "init.rkt")
 
-(: run-files : Path-String * → (Values (℘ -A) #|debugging|# -M -Ξ))
-(define (run-files . ps)
-  (define ms (files->modules ps))
-  (define-values (σ₁ _) (𝑰 ms))
-  (define-values (As M Ξ σ) (run (⇓ₘₛ ms) σ₁))
+(: run-file : Path-String → (Values (℘ -A) #|debugging|# -M -Ξ))
+(define (run-file p)
+  (define m (file->module p))
+  (define-values (σ₁ _) (𝑰 (list m)))
+  (define-values (As M Ξ σ) (run (⇓ₘ m) σ₁))
   (values As M Ξ))
 
-(: havoc-files : Path-String * → (Values (℘ -A) #|debugging|# -M -Ξ))
-(define (havoc-files . ps)
-  (define ms (files->modules ps))
-  (define-values (σ₁ e₁) (𝑰 ms))
-  (define-values (As M Ξ σ) (run (⇓ₚ ms e₁) σ₁))
+(: havoc-file : Path-String → (Values (℘ -A) #|debugging|# -M -Ξ))
+(define (havoc-file p)
+  (define m (file->module p))
+  (define-values (σ₁ e₁) (𝑰 (list m)))
+  (define-values (As M Ξ σ) (run (⇓ₚ (list m) e₁) σ₁))
   (values As M Ξ))
 
 (: run-e : -e → (Values (℘ -A) #|for debugging|# -M -Ξ))
