@@ -1754,7 +1754,7 @@
     [δ-case? ⇒ procedure?]
 
     [#:exclusion
-     number? string? boolean? keyword? symbol? void? null? procedure?]
+     number? string? boolean? keyword? symbol? void? null? procedure? vector?]
     ))
 
 ;; Operations that are associative
