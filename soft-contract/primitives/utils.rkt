@@ -32,9 +32,7 @@
   (fix
    (λ ([m : Graph])
      (for/hash : Graph ([(l rs) (in-hash m)])
-       (define rs*
-         (for/fold ([rs* : (℘ Symbol) rs]) ([r rs])
-           (∪ rs* (hash-ref m r))))
+       (define rs* (∪ rs (for/union : (℘ Symbol) ([r rs]) (hash-ref m r))))
        (values l rs*)))
    m₀))
 
@@ -77,13 +75,16 @@
            (values im* ex*)])))
     
     (define im* (refl-trans im))
-    (define im*⁻¹ (reverse-graph im*))
-    (define ex* ; ⟦a ⇒ ¬b, c ⇒ b⟧ ⇒ a ⇒ ¬c
-      (for*/fold ([ex : Graph ex])
-                 ([(l rs) (in-hash ex)]
-                  [r (in-set rs)]
-                  [r* (in-set (hash-ref im*⁻¹ r))])
-        (add-edge (add-edge ex l r*) r* l)))
+    (define ex*
+      (let ([im*⁻¹ (reverse-graph im*)])
+        (fix
+         (λ ([ex : Graph]) ; ⟦a ⇒ ¬b, c ⇒ b⟧ ⇒ a ⇒ ¬c
+           (for*/fold ([ex : Graph ex])
+                      ([(l rs) (in-hash ex)]
+                       [r (in-set rs)]
+                       [r* (in-set (hash-ref im*⁻¹ r))])
+             (add-edge (add-edge ex l r*) r* l)))
+         ex)))
     (values im* ex*)))
 
 (define prim-names
