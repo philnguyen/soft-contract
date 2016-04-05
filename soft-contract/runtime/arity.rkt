@@ -64,7 +64,7 @@
       [(? -st-ac?) 1]
       [(? -st-mut?) 2]
       [(? symbol? o) (hash-ref arity-table o)]
-      [(-●) #f]
+      [(-● _) #f]
       [V
        (printf "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
        #f])))

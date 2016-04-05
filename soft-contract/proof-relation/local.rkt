@@ -272,13 +272,11 @@
           (case (Γ⊢e Γ (-?@ 'defined? s))
             [(✗ ?) #t]
             [(✓)   #f])]
-         [(-●)
-          (match s
-            [(-not s*)
-             (case (Γ⊢e Γ s*)
-               [(✗ ?) #t]
-               [(✓)   #f])]
-            [_ #t])]
+         [(-● ps)
+          (define Γ*
+            (let ([φs (for*/set: : (℘ -e) ([p ps] [s (in-value (-?@ p s))] #:when s) s)])
+              (-Γ φs (hash) ∅)))
+          (and (Γ⊓ Γ Γ*) #t)]
          [_ #t])]
       [else #t]))
   
@@ -319,7 +317,13 @@
 (define ⊢V
   (match-lambda
     [(-b #f) '✗]
-    [(-●) '?]
+    [(-● ps)
+     (or (for*/or : (U #f '✓ '✗) ([p ps])
+           (case (p⇒p p 'not)
+             [(✓) '✗]
+             [(✗) '✓]
+             [(?) #f]))
+         '?)]
     [_ '✓]))
 
 (: p∋Vs : -V -V * → -R)
@@ -331,65 +335,74 @@
       ['✓ (decide-R (arity-includes? (assert (V-arity V)) 1))]
       [ans ans]))
 
-  (match p
-    [(? -st-mk?) '✓]
-    [(? -st-mut?) '✓]
-    [(? -st-ac?) '✓]
-    [(-st-p si)
-     (match Vs
-       [(list (or (-St sj _) (-St* sj _ _ _)))
-        ;; TODO: no sub-struct for now. May change later.
-        (decide-R (equal? si (assert sj)))]
-       [(list (-●)) '?]
-       [_ '✗])]
-    [(? symbol?)
-     (case p
-       ;; Insert manual rules here
-       [(procedure?)
+  (match Vs
+    [(list (-● ps)) #:when (-o? p)
+     (or (for/or : (U #f '✓ '✗) ([q ps])
+           (case (p⇒p q p)
+             [(✓) '✓]
+             [(✗) '✗]
+             [(?) #f]))
+         '?)]
+    [_
+     (match p
+       [(? -st-mk?) '✓]
+       [(? -st-mut?) '✓]
+       [(? -st-ac?) '✓]
+       [(-st-p si)
         (match Vs
-          [(list (-●)) '?]
-          [(list (or (? -o?) (? -Clo?) (? -Ar?) (? -Not/C?))) '✓]
-          [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
+          [(list (or (-St sj _) (-St* sj _ _ _)))
+           ;; TODO: no sub-struct for now. May change later.
+           (decide-R (equal? si (assert sj)))]
+          [(list (-● _)) '?]
           [_ '✗])]
-       [(vector?)
-        (match Vs
-          [(list (-●)) '?]
-          [(list (or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))) '✓]
-          [_ '✗])]
-       [(contract?)
-        (match Vs
-          [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?)
-                     (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?))) '✓]
-          [(list V) (check-proc-arity-1 V)]
-          [_ '?])]
-       [(flat-contract?)
-        (match Vs
-          [(list V) (check-proc-arity-1 V)]
-          [_ '?])]
-       [(any/c) '✓]
-       [(none/c) '✗]
-       [(arity-includes?)
-        (match Vs
-          [(list (-b (? Arity? a)) (-b (? Arity? b)))
-           (decide-R (arity-includes? a b))]
-          [_ '?])]
-       ;; Default rules for operations on base values rely on simplification from `-?@`
-       [else
-        (cond
-          [(hash-ref prim-ranges p #f) =>
-           (λ ([p-rng : Symbol]) : -R
-             (cond [(boolean-excludes? p-rng) '✓]
-                   [else
-                    (match Vs
-                      [(list (? -b? bs) ...)
-                       (match (apply -?@ p (cast bs (Listof -b)))
-                         [(-b b) (decide-R (and b #|force boolean|# #t))]
-                         [_ '?])]
-                      [(list (? -●?) ...) '?]
-                      [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) '✗]
-                               [else '?])])]))]
-          [else '?])])]
-    [_ '?]))
+       [(? symbol?)
+        (case p
+          ;; Insert manual rules here
+          [(procedure?)
+           (match Vs
+             [(list (-● _)) '?]
+             [(list (or (? -o?) (? -Clo?) (? -Ar?) (? -Not/C?))) '✓]
+             [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
+             [_ '✗])]
+          [(vector?)
+           (match Vs
+             [(list (-● _)) '?]
+             [(list (or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))) '✓]
+             [_ '✗])]
+          [(contract?)
+           (match Vs
+             [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?)
+                        (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?))) '✓]
+             [(list V) (check-proc-arity-1 V)]
+             [_ '?])]
+          [(flat-contract?)
+           (match Vs
+             [(list V) (check-proc-arity-1 V)]
+             [_ '?])]
+          [(any/c) '✓]
+          [(none/c) '✗]
+          [(arity-includes?)
+           (match Vs
+             [(list (-b (? Arity? a)) (-b (? Arity? b)))
+              (decide-R (arity-includes? a b))]
+             [_ '?])]
+          ;; Default rules for operations on base values rely on simplification from `-?@`
+          [else
+           (cond
+             [(hash-ref prim-ranges p #f) =>
+              (λ ([p-rng : Symbol]) : -R
+                 (cond [(boolean-excludes? p-rng) '✓]
+                       [else
+                        (match Vs
+                          [(list (? -b? bs) ...)
+                           (match (apply -?@ p (cast bs (Listof -b)))
+                             [(-b b) (decide-R (and b #|force boolean|# #t))]
+                             [_ '?])]
+                          [(list (? -●?) ...) '?]
+                          [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) '✗]
+                                   [else '?])])]))]
+             [else '?])])]
+       [_ '?])]))
 
 (: V≡ : -V -V → -R)
 ;; Check if 2 values are `equal?`

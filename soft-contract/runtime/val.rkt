@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/match
-         "../utils/function.rkt"
+         "../utils/main.rkt"
          "../ast/definition.rkt"
          "definition.rkt")
 
@@ -11,7 +11,7 @@
 (define -Null -null)
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
-(define -●/V (-●))
+(define -●/V (-● ∅))
 (define -●/Vs : (List -V) (list -●/V))
 (define -Void/Vs (list (-b (void))))
 (define -Void/W (-W -Void/Vs (-b (void))))

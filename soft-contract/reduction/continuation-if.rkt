@@ -3,6 +3,7 @@
 (provide ↝.if ↝.and)
 
 (require racket/match
+         racket/set
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
@@ -20,11 +21,23 @@
       (with-guarded-arity 1 (l Γ* Vs)
         (match-define (list V) Vs)
         (define-values (Γ₁ Γ₂) (Γ+/-V M Γ* V s))
+
+        (define-values (δσ₁ ΓWs₁ ΓEs₁ ℐs₁) (with-Γ Γ₁ (⟦e₁⟧ M σ* (-ℒ-with-Γ ℒ Γ₁))))
+        (define-values (δσ₂ ΓWs₂ ΓEs₂ ℐs₂) (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℒ-with-Γ ℒ Γ₂))))
+        
+        (define ΓWs₁* ; tmp hack
+          (match s
+            [(-@ (? -o? p) (list x) _)
+             (for/set: : (℘ -ΓW) ([A ΓWs₁])
+               (match A
+                 [(-ΓW Γ (-W (list (-● ps            )) (== x)))
+                  (-ΓW Γ (-W (list (-● (set-add ps p))) x))]
+                 [_ A]))]
+            [_ ΓWs₁]))
         
         (with-debugging/off
           ((δσ ΓWs ΓEs ℐs)
-           (⊔/ans (with-Γ Γ₁ (⟦e₁⟧ M σ* (-ℒ-with-Γ ℒ Γ₁)))
-                  (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℒ-with-Γ ℒ Γ₂)))))
+           (values (⊔/m δσ₁ δσ₂) (∪ ΓWs₁* ΓWs₂) (∪ ΓEs₁ ΓEs₂) (∪ ℐs₁ ℐs₂)))
           (begin
             (printf "branching on ~a @ ~a:~n" (show-W¹ (-W¹ V s)) (show-Γ Γ*))
             (cond

@@ -45,7 +45,7 @@
         (define comp : -⟦e⟧
           (match V
             ;; Ignore first-order and opaque values
-            [(or (-●) (? -prim?)) ⊥⟦e⟧]
+            [(or (-● _) (? -prim?)) ⊥⟦e⟧]
             
             ;; Give an appropriate number of arguments to function
             [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))

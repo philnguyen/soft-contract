@@ -210,7 +210,7 @@
       (match-define (list Wₓ) Wₓs)
       (match-define (-W¹ Vₓ _) Wₓ)
       (match Vₓ
-        [(or (-St (== s) _) (-St* (== s) _ _ _) (-●))
+        [(or (-St (== s) _) (-St* (== s) _ _ _) (-● _))
          (define ⟦chk-field⟧s : (Listof -⟦e⟧)
            (for/list ([(W-C i) (in-indexed W-Cs)])
              (define Ac
@@ -273,9 +273,8 @@
            [else
             (for*/ans ([Vₓ* (σ@ σ α)])
               ((ap lo ℓ Ac (list (-W¹ Vₓ* sₓ))) M σ ℒ₀))])]
-        [(-●) ; error must have been caught from ouside. This is the unsafe version
-         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
-        [_ (⊥ans)]))
+        [_ ; error must have been caught from ouside. This is the unsafe version
+         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]))
 
     (: ap/st-mut : -struct-info Natural → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/st-mut s i)
@@ -298,9 +297,8 @@
            (define ⟦chk⟧ (mon l³* ℓ W-c Wᵥ))
            (define comp ((↝.@ lo ℓ (list Wₛ* Mut) '()) ⟦chk⟧))
            (comp M σ ℒ₀))]
-        [(-●) ; error must have been caught from outside. This is the unsafe version
-         (values ⊥σ {set (-ΓW Γ₀ (-W -Void/Vs sₐ))} ∅ ∅)]
-        [_ (⊥ans)]))
+        [_ ; error must have been caught from outside. This is the unsafe version
+         (values ⊥σ {set (-ΓW Γ₀ (-W -Void/Vs sₐ))} ∅ ∅)]))
 
     (: ap/vector-ref : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-ref)
@@ -331,9 +329,8 @@
          (for*/ans ([C (σ@ σ α)])
            (define W-c (-W¹ C c))
            ((mon l³ ℓ W-c (-W¹ -●/V sₐ)) M σ ℒ₀))]
-        [(-●)
-         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
-        [_ (⊥ans)]))
+        [_
+         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]))
 
     (: ap/vector-set! : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-set!)
@@ -374,10 +371,9 @@
            (define ⟦hv⟧ ((↝.@ 'havoc ℓ (list Wₕᵥ) '()) ⟦chk⟧))
            (define comp ((↝.begin (list ⟦void⟧)) (⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧)))
            (comp M σ ℒ₀))]
-        [(-●)
+        [_
          (define ⟦hv⟧ (ap 'havoc ℓ Wₕᵥ (list Wᵤ)))
-         ((⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧) M σ ℒ₀)]
-        [_ (⊥ans)]))
+         ((⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧) M σ ℒ₀)]))
 
     (: ap/● : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/●)
@@ -457,7 +453,10 @@
                 (or s (and (-e? α) α))))
             (for*/ans ([Cs (σ@/list σ αs)])
               (ap/St/C s (map -W¹ Cs cs))))]
-         [(-●) (ap/●)]
+         [(-● _)
+          (case (MΓ⊢oW M Γ₀ 'procedure? Wₕ)
+            [(✓ ?) (ap/●)]
+            [(✗) (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)])]
          [_ (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l 'Λ (list 'procedure?) (list Vₕ)))} ∅)]))
       (printf "Ap: ~a ~a:~n" (show-W¹ Wₕ) (map show-W¹ Wₓs))
       (printf "answers:~n")
@@ -580,7 +579,7 @@
             (define α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ)))
             (define comp (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧)))
             (comp M σ ℒ)))])]
-    [(-●)
+    [(-● _)
      (match ⟦field⟧s
        ['()
         (λ (M σ ℒ)
@@ -713,7 +712,7 @@
          (define ⟦chk⟧ ((↝.mon.c l³ ℓ (-W¹ C c)) ⟦inner⟧))
          (define comp ((↝.begin (list ⟦rt⟧)) ⟦chk⟧))
          (comp M σ ℒ)))]
-    [(-●)
+    [(-● _)
      (define ⟦chk-vct⟧ (ap lo ℓ -vector?/W (list Wᵥ)))
      ((↝.if lo ⟦rt⟧ (blm l+ lo (list 'vector?) (list Vᵥ))) ⟦chk-vct⟧)]
     [_ (blm l+ lo (list 'vector?) (list Vᵥ))]))

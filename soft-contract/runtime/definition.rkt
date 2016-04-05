@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         racket/string
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt")
@@ -57,7 +58,7 @@
 
 (-V . ::= . 'undefined
             -prim
-            (-●)
+            (-● (℘ -o))
             (-St -struct-info (Listof (U -α.fld -α.var-car -α.var-cdr)))
             (-Vector (Listof -α.idx))
             -Fn
@@ -358,7 +359,8 @@
   (match V
     ['undefined 'undefined]
     [(-b b) (show-b b)]
-    [(-●) '●]
+    [(-● ps)
+     (string->symbol (string-join (map symbol->string (cons '● (set-map ps show-o))) "_"))]
     [(? -o? o) (show-o o)]
     [(-Clo xs ⟦e⟧ ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧))]
     [(-Case-Clo clauses ρ Γ)
