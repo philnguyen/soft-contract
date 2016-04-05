@@ -338,9 +338,7 @@
     [(-• i) (format-symbol "•~a" (n-sub i))]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
-    [(-x x)
-     (cond [(symbol? x) (format-symbol "ₓ~a" x)]
-           [else (format-symbol "𝐱~a" (n-sub x))])]
+    [(-x x) (show-Var-Name x)]
     [(-ref (-𝒾 x p) _)
      (case p ;; hack
        [(Λ) (format-symbol "_~a" x)]
@@ -424,5 +422,9 @@
 
 (define show-formals : (-formals → Sexp)
   (match-lambda
-    [(-varargs xs rst) (cons xs rst)]
-    [(? list? l) l]))
+    [(-varargs xs rst) (cons (map show-Var-Name xs) (show-Var-Name rst))]
+    [(? list? l) (map show-Var-Name l)]))
+
+(define (show-Var-Name [x : Var-Name]) : Symbol
+  (cond [(integer? x) (format-symbol "𝐱~a" (n-sub x))]
+        [else x]))
