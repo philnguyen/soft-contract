@@ -17,7 +17,7 @@
   (path-string? . -> . -module?)
   (define p* (make-strawman p))
   (match-define (-module _ body) (parse-top-level-form (do-expand-file p*)))
-  (-module p body))
+  (-module p (move-provides-to-end body)))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
@@ -422,6 +422,16 @@
      p*]
     [_
      (error "expect '~a' to be non-empty, with #lang declaration on 1 line" p)]))
+
+(define/contract (move-provides-to-end forms)
+  ((listof -module-level-form?) . -> . (listof -module-level-form?))
+  (define-values (provides others)
+    (for/fold ([provides '()] [others '()])
+              ([form forms])
+      (cond
+        [(-provide? form) (values (cons form provides) others)]
+        [else (values provides (cons form others))])))
+  (append (reverse others) (reverse provides)))
 
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
