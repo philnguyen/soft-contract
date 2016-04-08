@@ -16,8 +16,8 @@
 (define/contract (file->module p)
   (path-string? . -> . -module?)
   (define p* (make-strawman p))
-  (match-define (-module _ body) (parse-top-level-form (do-expand-file p*)))
-  (-module p (move-provides-to-end body)))
+  (match-define (-module l body) (parse-top-level-form (do-expand-file p*)))
+  (-module l (move-provides-to-end body)))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
