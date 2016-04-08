@@ -411,7 +411,7 @@
   (match (file->lines p)
     ;; If already required, leave alone (backward compatibility for existing tests)
     [(list _ ... l _ ...)
-     #:when (regexp-match? #rx"^(require soft-contract/fake-contract)" l)
+     #:when (regexp-match? #rx"(require soft-contract/fake-contract)" l)
      p]
     ;; Otherwise, assume expected format, then insert at 2 line
     [(list ls₀ ... (and l (regexp #rx"^#lang .+")) ls₁ ...)
