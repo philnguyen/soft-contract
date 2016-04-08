@@ -155,6 +155,7 @@
 (define -unbox (-st-ac -s-box 0))
 (define -box (-st-mk -s-box))
 (define -set-box! (-st-mut -s-box 0))
+(define -pred (--> (list 'any/c) 'boolean? 0))
 
 (: -cond : (Listof (Pairof -e -e)) -e → -e)
 ;; Make `cond` at object language level, expanding to `if`

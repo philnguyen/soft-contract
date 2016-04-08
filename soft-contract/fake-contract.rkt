@@ -16,6 +16,7 @@
          dynamic->i dynamic->* 
          dynamic-struct/c
          dynamic-recursive-contract
+         dynamic-struct-out
          =/c >/c >=/c </c <=/c
          not/c cons/c
          one-of/c box/c vector/c vectorof)
@@ -55,6 +56,8 @@
 
 (define (dynamic-struct/c . _) (void))
 
+(define (dynamic-struct-out . _) (void))
+
 (define-syntax-rule (-> cs ... result-c) (dynamic->* #:mandatory-domain-contracts (list cs ...)
                                                      #:range-contracts (list result-c)))
 (define-syntax-rule (->* (cs ...) #:rest rest-c result-c)
@@ -71,10 +74,16 @@
 (require (for-syntax syntax/parse))
 
 (define-syntax (provide stx)
-  (syntax-parse stx #:literals (contract-out)
-    [(_ (~or i:id (contract-out [p/i:id ctc:expr] ...)) ...)
-     #'(begin (scv:ignore (r:provide i ... (contract-out [p/i ctc] ...) ...))
-              (dynamic-provide/contract (list i any/c) ... (list p/i ctc) ... ...))]))
+  (syntax-parse stx #:literals (contract-out struct)
+    [(_ (~or i:id (contract-out (~or [p/i:id ctc:expr]
+                                     [struct s:id ([ac:id dom:expr] ...)]) ...)) ...)
+     #'(begin (scv:ignore
+               (r:provide i ...
+                          (contract-out [p/i ctc] ...) ...))
+              (dynamic-provide/contract
+               (list i any/c) ...
+               (list p/i ctc) ... ...
+               (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
 
 ;; Phil's clueless hack for `recursive-contract`
 (define-syntax-rule (recursive-contract x type ...)
