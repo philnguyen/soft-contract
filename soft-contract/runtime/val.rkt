@@ -31,6 +31,7 @@
 (define -vector-length/W (-W¹ 'vector-length 'vector-length))
 (define -Vector₀ (-Vector '()))
 (define -Zero/W (-W¹ -zero -zero))
+(define -unsafe-struct-ref/W (-W¹ 'unsafe-struct-ref 'unsafe-struct-ref))
 ;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
 ;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))
 

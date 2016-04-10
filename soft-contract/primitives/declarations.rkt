@@ -1703,7 +1703,7 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     [#:pred float-complex?]))
 
-(define prims (append prims.04 prims.08 prims.10 prims.math))
+(define prims (append prims.04 prims.08 prims.10 prims.17 prims.math))
 
 
 ;; Declare implications between predicates.

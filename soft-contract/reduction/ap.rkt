@@ -254,6 +254,8 @@
       (define n (-struct-info-arity s))
       (match-define (list Wₓ) Wₓs)
       (match-define (-W¹ Vₓ sₓ) Wₓ)
+      (define ac (-st-ac s i))
+      (define p (-st-p s))
       (match Vₓ
         [(-St (== s) αs)
          (define ans
@@ -262,7 +264,7 @@
          (values ⊥σ ans ∅ ∅)]
         [(-St* (== s) αs α l³)
          (match-define (Mon-Info _ _ lo) l³)
-         (define Ac (let ([ac (-st-ac s i)]) (-W¹ ac ac)))
+         (define Ac (-W¹ ac ac))
          (cond
            [(list-ref αs i) =>
             (λ ([γ : -α])
@@ -273,14 +275,25 @@
            [else
             (for*/ans ([Vₓ* (σ@ σ α)])
               ((ap lo ℓ Ac (list (-W¹ Vₓ* sₓ))) M σ ℒ₀))])]
-        [_ ; error must have been caught from ouside. This is the unsafe version
-         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]))
+        [(-● _)
+         (define ⟦ok⟧ : -⟦e⟧
+           (λ (M σ ℒ)
+             (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs sₐ))} ∅ ∅)))
+         (define ⟦er⟧ : -⟦e⟧
+           (λ (M σ ℒ)
+             (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l (show-o ac) (list p) (list Vₓ)))} ∅)))
+         (define comp ((↝.if 'Λ ⟦ok⟧ ⟦er⟧) (ap 'Λ ℓ (-W¹ p p) (list Wₓ))))
+         (comp M σ ℒ₀)]
+        [_
+         (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l (show-o ac) (list p) (list Vₓ)))} ∅)]))
 
     (: ap/st-mut : -struct-info Natural → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/st-mut s i)
       (match-define (list Wₛ Wᵥ) Wₓs)
       (match-define (-W¹ Vₛ sₛ) Wₛ)
       (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+      (define mut (-st-mut s i))
+      (define p (-st-p s))
       (match Vᵥ
         [(-St (== s) αs)
          (define α (list-ref αs i))
@@ -290,15 +303,64 @@
          (define l³* (Mon-Info l- l+ lo))
          (match-define (? -α? γ) (list-ref γs i))
          (define c (and (-e? γ) γ))
-         (define Mut (let ([mut (-st-mut s i)]) (-W¹ mut mut)))
+         (define Mut (-W¹ mut mut))
          (for*/ans ([C (σ@ σ γ)] [Vₛ* (σ@ σ α)])
            (define W-c (-W¹ C c))
            (define Wₛ* (-W¹ Vₛ* sₛ))
            (define ⟦chk⟧ (mon l³* ℓ W-c Wᵥ))
            (define comp ((↝.@ lo ℓ (list Wₛ* Mut) '()) ⟦chk⟧))
            (comp M σ ℒ₀))]
-        [_ ; error must have been caught from outside. This is the unsafe version
-         (values ⊥σ {set (-ΓW Γ₀ (-W -Void/Vs sₐ))} ∅ ∅)]))
+        [(-● _)
+         (define p (-st-p s))
+         (define ⟦ok⟧ : -⟦e⟧ ; TODO havoc
+           (let* ([havoc-𝒾 (-𝒾 'havoc-id 'havoc)]
+                  [Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) (-ref havoc-𝒾 0))]
+                  [⟦hv⟧ (ap 'Λ ℓ Wₕᵥ (list Wᵥ))])
+             (⊔/⟦e⟧ ((↝.begin (list ⟦void⟧)) ⟦hv⟧)
+                    ⟦void⟧)))
+         (define ⟦er⟧ : -⟦e⟧
+           (λ (M σ ℒ)
+             (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l (show-o mut) (list p) (list Vₛ)))} ∅)))
+         (define comp ((↝.if 'Λ ⟦ok⟧ ⟦er⟧) (ap 'Λ ℓ (-W¹ p p) (list Wₛ))))
+         (comp M σ ℒ₀)]
+        [_
+         (values ⊥σ ∅ {set (-ΓE Γ₀ (-blm l (show-o mut) (list p) (list Vₛ)))} ∅)]))
+
+    (: ap/unsafe-struct-ref : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (define (ap/unsafe-struct-ref)
+      (match-define (list Wᵥ Wᵢ) Wₓs)
+      (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+      (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
+      (match Vᵥ ; FIXME this implementation assumes no user program calls unsafe-struct-ref
+        [(-St (-struct-info _ n _) αs)
+         (for*/ans ([(α i) (in-indexed αs)]
+                    #:when (exact-nonnegative-integer? i) ; hack for TR
+                    #:when (plausible-index? M Γ₀ Wᵢ i)
+                    [Γ* (in-value (Γ+ Γ₀ (-?@ '= sᵢ (-b i))))]
+                    [V (σ@ σ α)])
+           (values ⊥σ {set (-ΓW Γ* (-W (list V) sₐ))} ∅ ∅))]
+        [(-St* (-struct-info _ n _) γs α l³)
+         (match-define (Mon-Info _ _ lo) l³)
+         (for*/ans ([(γ i) (in-indexed γs)]
+                    #:when (exact-nonnegative-integer? i) ; hack for TR
+                    #:when (plausible-index? M Γ₀ Wᵢ i)
+                    [Γ* (in-value (Γ+ Γ₀ (-?@ '= sᵢ (-b i))))]
+                    [c (in-value (and (-e? γ) γ))]
+                    [V (σ@ σ α)]
+                    [C (if γ (σ@ σ γ) {set #f})])
+            (define comp
+              (cond
+                [C
+                 (define W-c (-W¹ C c))
+                 ((↝.mon.c l³ ℓ W-c) (ap lo ℓ -unsafe-struct-ref/W (list (-W¹ V sᵥ))))]
+                [else
+                 (ap lo ℓ -unsafe-struct-ref/W (list (-W¹ V sᵥ)))]))
+            (comp M σ (-ℒ-with-Γ ℒ₀ Γ*)))]
+        [_ (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]))
+    
+    (: ap/unsafe-struct-set! : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+    (define (ap/unsafe-struct-set!)
+      (error 'ap/unsafe-struct-set! "TODO"))
 
     (: ap/vector-ref : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/vector-ref)
@@ -394,11 +456,13 @@
          ;; by wrapping contracts
          [(-st-p s)     (ap/st-p   s  )]
          [(-st-mk s)    (ap/st-mk  s  )]
-         [(-st-ac s i)  (ap/st-ac  s i)]
-         [(-st-mut s i) (ap/st-mut s i)]
+         [(-st-ac  s i) (with-guarded-arity 1 (ap/st-ac  s i))]
+         [(-st-mut s i) (with-guarded-arity 2 (ap/st-mut s i))]
          ['contract-first-order-passes? (ap/contract-first-order-passes?)]
          ['vector-ref  (ap/vector-ref )]
          ['vector-set! (ap/vector-set!)]
+         ['unsafe-struct-ref (ap/unsafe-struct-ref)]
+         ['unsafe-struct-set! (ap/unsafe-struct-set!)]
          
          ;; Regular stuff
          [(? symbol? o) (ap/δ o)]
