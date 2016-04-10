@@ -110,7 +110,7 @@
                   (values x sₓ))]
                [mapping
                 (for/fold ([mapping : (HashTable Var-Name -e) param->arg]) ([x fvs])
-                  (assert (not (hash-has-key? mapping x)))
+                  ;(assert (not (hash-has-key? mapping x))) ; FIXME is this neccessary?
                   (hash-set mapping x (canonicalize Γ₀ x)))])
           (-binding sₕ xs mapping)))
       (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ bnd '□) ℬ₁)}))
