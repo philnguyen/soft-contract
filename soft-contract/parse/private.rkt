@@ -167,9 +167,14 @@
      (-define-values (syntax->datum #'(x ...)) (parse-e #'e))]
     [(#%require spec ...)
      (-require (map parse-require-spec (syntax->list #'(spec ...))))]
-    [(define-syntaxes _ ...) #f] 
-    [_
-     (parse-e form)]))
+    [(define-syntaxes (k:id) ; constructor alias
+       (#%plain-app
+        (~literal make-self-ctor-checked-struct-info)
+        _ _
+        (#%plain-lambda () (quote-syntax k1:id))))
+     (-define-values (list (syntax-e #'k1)) (-ref (-𝒾 (syntax-e #'k) (cur-mod)) 0))]
+    [(define-syntaxes () ...) #f]
+    [_ (parse-e form)]))
 
 (define/contract (parse-e stx)
   (scv-syntax? . -> . -e?)
@@ -241,8 +246,10 @@
      (-@ (-ref (-𝒾 'vectorof 'Λ) (+ℓ!))
          (list (parse-e #'c))
          (+ℓ!))]
-    [(begin (#%plain-app (~literal fake:dynamic-struct/c) tag:id c ...) _ ...)
-     (define si (-struct-info (-𝒾 (syntax-e #'tag) (cur-mod))
+    [(begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
+            (#%plain-app _ _ _ _ (quote k) _ ...)
+            _ ...)
+     (define si (-struct-info (-𝒾 (syntax-e #'k) (cur-mod))
                               (length (syntax->list #'(c ...)))
                               ∅))
      (-struct/c si (parse-es #'(c ...)) (+ℓ!))]
