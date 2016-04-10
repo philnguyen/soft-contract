@@ -173,7 +173,8 @@
             [blm : (Option (Pairof Mon-Party Mon-Party))]) #:transparent)
 (struct -binding ([fun : -s]
                   [params : (Listof Var-Name)]
-                  [param->arg : (HashTable Var-Name -e)]))
+                  [param->arg : (HashTable Var-Name -e)])
+  #:transparent)
 
 (define ⊤Γ (-Γ ∅ (hasheq) ∅))
 
@@ -338,7 +339,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (show-σ [σ : -σ]) : (Listof Sexp)
-  (for/list ([(α Vs) σ])
+  (for/list ([(α Vs) σ]
+             #:when (or (-α.x? α) (-α.idx? α) (-α.st? α)))
     `(,(show-α α) ↦ ,@(set-map Vs show-V))))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
@@ -484,10 +486,11 @@
   (match-define (cons x s) x-s)
   `(,x ↦ ,(show-s s)))
 
-(define (show-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : Sexp
-  (match (recall-e ⟦e⟧)
-    [(? -e? e) (show-e e)]
-    [#f '…]))
+(define show-⟦e⟧ : (-⟦e⟧ → Sexp)
+  (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
+    (λ (⟦e⟧)
+      (cond [(recall-e ⟦e⟧) => show-e]
+            [else (⟦e⟧->symbol ⟦e⟧)]))))
 
 (define (show-τ [τ : -τ]) : Sexp
   (cond [(-ℬ? τ) (show-ℬ τ)]
@@ -517,20 +520,34 @@
   (match-define (-ℛ τ ℋ) ℛ)
   `(ℛ ,(show-τ τ) ,(show-ℋ ℋ)))
 
-(define (show-𝒞 [𝒞 : -𝒞]) : Symbol
-  (format-symbol "𝒞~a" (n-sub 𝒞)))
+(define-parameter verbose? : Boolean #f)
+
+(define (show-𝒞 [𝒞 : -𝒞]) : Sexp
+  (cond [(verbose?)
+         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧ Caller-Ctx) (decode-𝒞 𝒞)])
+           (match-define (cons ⟦e⟧ ℓ) ctx)
+           `(,(show-⟦e⟧ ⟦e⟧) @ ,ℓ))]
+        [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
 
 (define-values (show-α show-α⁻¹)
   (let-values ([(α->symbol symbol->α _) ((inst unique-sym -α) 'α)])
     (values
-     (λ ([α : -α]) : Sexp
-        (if (-e? α) (show-e α) (α->symbol α)))
+     (match-lambda
+       [(? -e? α) (show-e α)]
+       [(-α.x x 𝒞) (format-symbol "~a_~a" (show-Var-Name x) 𝒞)]
+       [(? -α? α) (α->symbol α)])
      symbol->α)))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
-  (for/list ([(x α) ρ]) `(,x ↦ ,(show-α α))))
+  (for/list ([(x α) ρ]) `(,(show-Var-Name x) ↦ ,(show-α α))))
 
-(define-values (show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ))
+(define show-γ : (-γ → Sexp)
+  (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
+    (λ (γ)
+      (cond [(verbose?)
+             (match-define (-γ τ bnd blm) γ)
+             `(,(show-τ τ) ‖ ,(show-binding bnd) ‖ ,blm)]
+            [else (show-γ γ)]))))
 
 (define (show-binding [bnd : -binding]) : (Listof Sexp)
   (match-define (-binding f xs x->e) bnd)
