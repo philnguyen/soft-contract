@@ -279,9 +279,7 @@
          (define ⟦ok⟧ : -⟦e⟧
            (λ (M σ ℒ)
              (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs sₐ))} ∅ ∅)))
-         (define ⟦er⟧ : -⟦e⟧
-           (λ (M σ ℒ)
-             (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l (show-o ac) (list p) (list Vₓ)))} ∅)))
+         (define ⟦er⟧ : -⟦e⟧ (blm l (show-o ac) (list p) (list Vₓ)))
          (define comp ((↝.if 'Λ ⟦ok⟧ ⟦er⟧) (ap 'Λ ℓ (-W¹ p p) (list Wₓ))))
          (comp M σ ℒ₀)]
         [_
@@ -318,9 +316,7 @@
                   [⟦hv⟧ (ap 'Λ ℓ Wₕᵥ (list Wᵥ))])
              (⊔/⟦e⟧ ((↝.begin (list ⟦void⟧)) ⟦hv⟧)
                     ⟦void⟧)))
-         (define ⟦er⟧ : -⟦e⟧
-           (λ (M σ ℒ)
-             (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l (show-o mut) (list p) (list Vₛ)))} ∅)))
+         (define ⟦er⟧ : -⟦e⟧ (blm l (show-o mut) (list p) (list Vₛ)))
          (define comp ((↝.if 'Λ ⟦ok⟧ ⟦er⟧) (ap 'Λ ℓ (-W¹ p p) (list Wₛ))))
          (comp M σ ℒ₀)]
         [_
@@ -1025,4 +1021,3 @@
     [else
      (λ (M σ ℒ)
        (values ⊥σ ∅ {set (-ΓE (-ℒ-cnd ℒ) (-blm l+ lo Cs Vs))} ∅))]))
-
