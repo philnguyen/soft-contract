@@ -748,8 +748,6 @@
      [#:struct-acc car (cons #f #f) 0]
      [#:struct-acc cdr (cons #f #f) 1]
      [#:struct-pred cons? (cons #f #f)]
-     [#:alias unsafe-car car]
-     [#:alias unsafe-cdr cdr]
      [null null?]
      [#:pred list?]
      [list (() #:rest list? . ->* . list?)]
@@ -974,13 +972,10 @@
       (() #:rest list? . ->* . (and/c vector? immutable?))]
      [vector-length
       (vector? . -> . exact-nonnegative-integer?)]
-     [#:alias unsafe-vector-length vector-length]
      [vector-ref
       (vector? exact-nonnegative-integer? . -> . any/c)]
-     [#:alias unsafe-vector-ref vector-ref]
      [vector-set!
       ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?)]
-     [#:alias unsafe-vector-set! vector-set!]
      [vector->list
       (vector? . -> . list?)]
      [list->vector
@@ -1686,6 +1681,20 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     [values ([] #:rest list? . ->* . any)])
   )
+
+(define prims.17
+  '(
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 17.2 Unsafe Data Extraction
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [#:alias unsafe-car car]
+    [#:alias unsafe-cdr cdr]
+    [#:alias unsafe-vector-length vector-length]
+    [#:alias unsafe-vector-ref vector-ref]
+    [#:alias unsafe-vector-set! vector-set!]
+    [unsafe-struct-ref (any/c exact-nonnegative-integer? . -> . any/c)]
+    [unsafe-struct-set! (any/c exact-nonnegative-integer? any/c . -> . any/c)]
+    ))
 
 (define prims.math
   '( 
