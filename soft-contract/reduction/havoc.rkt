@@ -20,10 +20,6 @@
 (define 𝐱s (list 𝐱))
 (define ⟦hv⟧ : -⟦e⟧ (⇓ havoc-path (-ref havoc-𝒾 0)))
 
-(define (arg-● [k : Arity] [i : Integer]) : -⟦e⟧
-  (λ (M σ ℒ)
-    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs (-x (+x/memo! 'hv k i))))} ∅ ∅)))
-
 (define (rt-● [k : Arity]) : -⟦e⟧
   (λ (M σ ℒ)
     (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs (-x (+x/memo! 'hv-rt k))))} ∅ ∅)))
@@ -38,6 +34,15 @@
   (define ⟦e⟧ : -⟦e⟧
     (λ (M σ ℒ)
       (for*/ans ([V (σ@ σ (ρ@ (-ℒ-env ℒ) x))])
+        #;(begin
+          (match-define (-ℒ ρ Γ 𝒞) ℒ)
+          (printf "havoc: ~a~n" (show-V V))
+          (printf "  - ρ: ~a~n" (show-ρ ρ))
+          (printf "  - Γ: ~a~n" (show-Γ Γ))
+          (printf "  - 𝒞: ~a~n" (parameterize ([verbose? #t]) (show-𝒞 𝒞)))
+          (printf "  - σ: ~a~n" (show-σ σ))
+          (printf "~n"))
+        
         (define W (-W¹ V 𝐱))
         (define ⟦V⟧ : -⟦e⟧
           (λ (M σ ℒ)
@@ -52,13 +57,10 @@
              (define a (V-arity V))
 
              (define (hv/arity [k : Natural]) : -⟦e⟧
-               (define ℓ-V● (+ℓ/memo! 'opq-ap k))
                (define ⟦V-●⟧
-                 (cond
-                   [(> k 0)
-                    (match-define (cons ⟦●⟧₀ ⟦●⟧s) (build-list k (curry arg-● k)))
-                    ((↝.@ havoc-path ℓ-V● (list W) ⟦●⟧s) ⟦●⟧₀)]
-                   [else    (ap havoc-path ℓ-V● W '())]))
+                 (let ([args : (Listof -W¹)
+                        (for/list ([i k]) (-W¹ -●/V (-x (+x/memo! 'hv k i))))])
+                   (ap havoc-path (+ℓ/memo! 'opq-ap k) W args)))
                (define ⟦hv-⟮V-●⟯⟧
                  ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
                (define ⟦hv-V⟧
