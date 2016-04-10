@@ -459,7 +459,9 @@
         [(hash-ref aliases x #f) => prim-name->unsafe-prim]
         [else x]))))
 
-(: α-rename : -e → -e)
+(: α-rename : (case->
+               [-e → -e]
+               [-module → -module]))
 ;; Make sure each binding has a unique name
 (define (α-rename e)
   (define-type S->S (HashTable Symbol Symbol))
@@ -501,7 +503,22 @@
        (values m₂ (-varargs zs* z*))]
       [(? list? xs) (new-binders! m xs)]))
 
-  (let go! ([m : S->S (hasheq)] [e : -e e])
+  (define (go-m! [m : S->S] [modl : -module]) : -module
+    (match-define (-module p forms) modl)
+    (define forms*
+      (for/list : (Listof -module-level-form) ([form forms])
+        (match form
+          [(-define-values xs e) (-define-values xs (go! m e))]
+          [(-provide specs)
+           (-provide
+            (for/list ([spec specs])
+              (match-define (-p/c-item x c ℓ) spec)
+              (-p/c-item x (go! m c) ℓ)))]
+          [(? -require? d) d]
+          [(? -e? e) (go! m e)])))
+    (-module p forms*))
+
+  (define (go! [m : S->S] [e : -e]) : -e
     (match e
       [(-λ xs e*)
        (define-values (m* xs*) (new-formals! m xs))
@@ -555,7 +572,10 @@
        (-case-> clauses* ℓ)]
       [(-struct/c si cs ℓ)
        (-struct/c si (map (curry go! m) cs) ℓ)]
-      [_ e])))
+      [_ e]))
+
+  (cond [(-e? e) (go! (hasheq) e)]
+        [else (go-m! (hasheq) e)]))
 
 (: count-leaves : -e → Natural)
 ;; No idea if #leaves or #nodes is more meaningful measurement. Pick one for now.
