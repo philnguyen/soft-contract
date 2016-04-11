@@ -47,7 +47,7 @@
 (: M⊢Γs ([-M (℘ (Pairof -Γ -s))] [#:depth Natural] . ->* . -R))
 ;; Check if all pairs of ⟨Γ, s⟩ are provable.
 ;; This function inverts the path-condition up to finite depth
-(define (M⊢Γs M ps #:depth [d 5])
+(define (M⊢Γs M ps #:depth [d 4])
   (cond
     [(<= d 0) '?]
     [else
@@ -132,7 +132,7 @@
   (and Γₑᵣ₁ (plausible-blm/M? M Γₑᵣ₁ sₑᵣ l+ lo)))
 
 (: plausible-W/M? ([-M -Γ (Listof -V) -s] [#:depth Natural] . ->* . Boolean))
-(define (plausible-W/M? M Γ Vs s #:depth [d 5])
+(define (plausible-W/M? M Γ Vs s #:depth [d 2])
   (cond
     [(<= d 0) #t]
     [else
@@ -144,7 +144,7 @@
 
 (: plausible-blm/M? ([-M -Γ -s Mon-Party Mon-Party] [#:depth Natural] . ->* . Boolean))
 ;; Check if it's plausible that function call at symbol `s` has raised blame `blm`
-(define (plausible-blm/M? M Γ s l+ lo #:depth [d 5])
+(define (plausible-blm/M? M Γ s l+ lo #:depth [d 3])
   (define γs (-Γ-tails Γ))
   (with-debugging/off
     ((ans)

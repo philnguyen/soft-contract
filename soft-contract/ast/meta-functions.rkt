@@ -215,64 +215,72 @@
 
 (: e/map : (HashTable -e -e) → -e → -e)
 (define ((e/map m) e)
-  (let go ([m m] [e e])
-    (cond
-      [(hash-empty? m) e]
-      [(hash-ref m e #f) => values]
-      [else
-       (match e
-         [(-λ xs e*) (-λ xs (go (shrink m xs) e*))]
-         [(-case-λ clauses)
-          (-case-λ
-           (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
-             (match-define (cons xs e*) clause)
-             (cons xs (go (shrink m xs) e*))))]
-         [(? -v?) e]
-         [(? -ref?) e]
-         [(-@ f xs l) (-@ (go m f) (map (curry go m) xs) l)]
-         [(-if e₀ e₁ e₂) (-if (go m e₀) (go m e₁) (go m e₂))]
-         [(-wcm k v b) (-wcm (go m k) (go m v) (go m b))]
-         [(-begin0 e₀ es) (-begin0 (go m e₀) (map (curry go m) es))]
-         [(? -quote?) e]
-         [(-let-values bnds e*)
-          (define-values (bnds-rev locals)
-            (for/fold ([bnds-rev : (Listof (Pairof (Listof Var-Name) -e)) '()]
-                       [locals : (℘ Var-Name) ∅])
-                      ([bnd bnds])
-              (match-define (cons xs ex) bnd)
-              (values (cons (cons xs (go m ex)) bnds-rev)
-                      (set-add-list locals xs))))
-          (define m* (shrink m (set->list locals)))
-          (-let-values (reverse bnds-rev) (go m* e*))]
-         [(-letrec-values bnds e*)
-          (define xs
-            (set->list
-             (for/fold ([locals : (℘ Var-Name) ∅]) ([bnd bnds])
-               (set-add-list locals (car bnd)))))
-          (define m* (shrink m xs))
-          (define bnds*
-            (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([bnd bnds])
-              (match-define (cons xs ex) bnd)
-              (cons xs (go m* ex))))
-          (-letrec-values bnds* (go m* e*))]
-         [(-set! z e*) (-set! z (go m e*))]
-         [(-amb es) (-amb (map/set (curry go m) es))]
-         [(-μ/c z c) (-μ/c z (go m c))]
-         [(--> cs d ℓ) (--> (map (curry go m) cs) (go m d) ℓ)]
-         [(-->i cs mk-d ℓ)
-          (-->i (map (curry go m) cs)
-                (assert (go m mk-d) -λ?)
-                ℓ)]
-         [(-case-> clauses ℓ)
-          (define clauses* : (Listof (Pairof (Listof -e) -e))
-            (for/list ([clause clauses])
-              (match-define (cons cs d) clause)
-              (cons (map (curry go m) cs) (go m d))))
-          (-case-> clauses* ℓ)]
-         [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
-         [_
-          (log-debug "e/: ignore substituting ~a" (show-e e))
-          e])])))
+  (with-debugging/off
+    ((eₐ)
+     (let go : -e ([m m] [e e])
+       (cond
+         [(hash-empty? m) e]
+         [(hash-ref m e #f) => values]
+         [else
+          (match e
+            [(-λ xs e*) (-λ xs (go (shrink m xs) e*))]
+            [(-case-λ clauses)
+             (-case-λ
+              (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
+                (match-define (cons xs e*) clause)
+                (cons xs (go (shrink m xs) e*))))]
+            [(? -v?) e]
+            [(? -ref?) e]
+            [(-@ f xs l) (-@ (go m f) (map (curry go m) xs) l)]
+            [(-if e₀ e₁ e₂) (-if (go m e₀) (go m e₁) (go m e₂))]
+            [(-wcm k v b) (-wcm (go m k) (go m v) (go m b))]
+            [(-begin0 e₀ es) (-begin0 (go m e₀) (map (curry go m) es))]
+            [(? -quote?) e]
+            [(-let-values bnds e*)
+             (define-values (bnds-rev locals)
+               (for/fold ([bnds-rev : (Listof (Pairof (Listof Var-Name) -e)) '()]
+                          [locals : (℘ Var-Name) ∅])
+                         ([bnd bnds])
+                 (match-define (cons xs ex) bnd)
+                 (values (cons (cons xs (go m ex)) bnds-rev)
+                         (set-add-list locals xs))))
+             (define m* (shrink m (set->list locals)))
+             (-let-values (reverse bnds-rev) (go m* e*))]
+            [(-letrec-values bnds e*)
+             (define xs
+               (set->list
+                (for/fold ([locals : (℘ Var-Name) ∅]) ([bnd bnds])
+                  (set-add-list locals (car bnd)))))
+             (define m* (shrink m xs))
+             (define bnds*
+               (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([bnd bnds])
+                 (match-define (cons xs ex) bnd)
+                 (cons xs (go m* ex))))
+             (-letrec-values bnds* (go m* e*))]
+            [(-set! z e*) (-set! z (go m e*))]
+            [(-amb es) (-amb (map/set (curry go m) es))]
+            [(-μ/c z c) (-μ/c z (go m c))]
+            [(--> cs d ℓ) (--> (map (curry go m) cs) (go m d) ℓ)]
+            [(-->i cs mk-d ℓ)
+             (-->i (map (curry go m) cs)
+                   (assert (go m mk-d) -λ?)
+                   ℓ)]
+            [(-case-> clauses ℓ)
+             (define clauses* : (Listof (Pairof (Listof -e) -e))
+               (for/list ([clause clauses])
+                 (match-define (cons cs d) clause)
+                 (cons (map (curry go m) cs) (go m d))))
+             (-case-> clauses* ℓ)]
+            [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
+            [_
+             (log-debug "e/: ignore substituting ~a" (show-e e))
+             e])])))
+    (printf "e/map: ~a~n"
+            (for/list : (Listof Sexp) ([(x y) m])
+              `(,(show-e x) ↦ ,(show-e y))))
+    (printf "  - from: ~a~n" (show-e e))
+    (printf "  - to  : ~a~n" (show-e eₐ))
+    (printf "~n")))
 
 (: e/map* : (HashTable -e -e) → -e → -e)
 ;; Repeatedly substitute until the expression doesn't get smaller
