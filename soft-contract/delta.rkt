@@ -234,28 +234,32 @@
               (define W-id (datum->syntax (M-id) (format-symbol "W~a" (n-sub i))))
               (define e-id (datum->syntax (M-id) (format-symbol "e~a" (n-sub i))))
               (values #`(and #,W-id (-W¹ _ #,e-id)) W-id e-id)))
-          #;(define refinement-clauses
+          
+          (define refinement-clauses
             (for/list ([ref refinements])
               (match-define `(,(? symbol? dom-chks) ... . -> . ,(? symbol? rng-chk)) ref)
               (define arg-checks
                 (for/list ([dom-chk dom-chks] [W-id W-ids])
-                  #`(equal? '✓ (MσΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,dom-chk #,W-id))))
+                  #`(eq? '✓ (MΓ⊢oW #,(M-id) #,(Γ-id) '#,dom-chk #,W-id))))
               (define precond ; make it a little prettier
                 (match arg-checks
                   [(list e) e]
                   [_ #`(and #,@arg-checks)]))
               #`[#,precond
-                 (values ⊥σ (-A* (Γ+ #,(Γ-id) (-?@ '#,rng-chk (-?@ '#,op #,@e-ids))) -●/Vs))]))
+                 (values ⊥σ (list (-● {set '#,rng-chk})))]))
 
-          #;(define maybe-refine
+          ;; Eager refinement is necessary for performance.
+          ;; Otherwise even things like (fact _) returns `integer?` rather than `number?`
+          ;; need induction from outside
+          (define maybe-refine
             (cond
               [(null? refinement-clauses)
-               #`[_ (values ⊥σ (-A* #,(Γ-id) -●/Vs))]]
+               #`[_ (values ⊥σ (list (-● {set '#,rng})))]]
               [else
                #`[(list #,@W-pats)
                   (cond
                     #,@refinement-clauses
-                    [else (values ⊥σ (-A* #,(Γ-id) -●/Vs))])]]))
+                    [else (values ⊥σ (list (-● {set '#,rng})))])]]))
 
           (define case-lift
             #`(cond
@@ -271,8 +275,8 @@
               (match #,(Ws-id)
                 ; straightforward lifting for concrete operands
                 [(list #,@b-pats/abs) #,case-lift]
-                [_ (values ⊥σ (list (-● (set '#,rng))))]
-                ;#,maybe-refine ; TODO: see if eager refinement is still neccessary
+                ;[_ (values ⊥σ (list (-● (set '#,rng))))]
+                #,maybe-refine 
                 )])]
          
          ; Just return operator name for complicated cases

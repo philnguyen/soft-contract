@@ -75,6 +75,7 @@
      ;; 4.2.2.1 Arithmetic
      [#:batch (+ - *) ; FIXME var-args
       (number? number? . -> . number?)
+      (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)]
      [/ ; FIXME varargs
@@ -92,6 +93,7 @@
       (integer? . -> . integer?)
       (real? . -> . real?)]
      [#:batch (max min) ; FIXME varargs
+      (exact-nonnegative-integer?  exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)]
      [#:batch (gcd lcm) ; FIXME varargs
