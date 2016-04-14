@@ -1,8 +1,8 @@
 #lang typed/racket/base
 
-(provide es⊢e es⊢ₑₓₜe Γ⊢e partition-Γs ⊢V p∋Vs #;Γ⊓ es⊓
+(provide es⊢e es⊢ₑₓₜe Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓ es⊓
          ensure-simple-consistency
-         plausible-Γ-s? plausible-W? plausible-V-s?)
+         plausible-es-s? plausible-W? plausible-V-s?)
 
 (require racket/match
          racket/set
@@ -229,52 +229,50 @@
     (printf "~a ⊢ ~a : ~a~n" (set-map es show-e) (show-s e) ans)))
 
 (define (Γ⊢e [Γ : -Γ] [e : -s]) (es⊢e (-Γ-facts Γ) e))
-(define (plausible-Γ-s? [Γ : -Γ] [s : -s]) (not (eq? '✗ (Γ⊢e Γ s))))
+(define (plausible-es-s? [φs : (℘ -e)] [s : -s]) (not (eq? '✗ (es⊢e φs s))))
 
-(: plausible-W? : -Γ (Listof -V) -s → Boolean)
-;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `Γ`
+(: plausible-W? : (℘ -e) (Listof -V) -s → Boolean)
+;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `φs`
 ;; - #f indicates a definitely bogus case
 ;; - #t indicates (conservative) plausibility
-(define (plausible-W? Γ Vs s)
+(define (plausible-W? φs Vs s)
   (match* (Vs s)
     [(_ (-@ 'values es _))
      (and (= (length Vs) (length es))
           (for/and : Boolean ([V Vs] [e es])
-            (plausible-V-s? Γ V e)))]
+            (plausible-V-s? φs V e)))]
     [((list V) _) #:when s
-     (plausible-V-s? Γ V s)]
+     (plausible-V-s? φs V s)]
     [(_ (or (? -v?) (-@ (? -prim?) _ _))) #f] ; length(Vs) ≠ 1, length(s) = 1
     [(_ #f) #t]))
 
-(: plausible-V-s? : -Γ -V -s → Boolean)
-(define (plausible-V-s? Γ V s)
+(: plausible-V-s? : (℘ -e) -V -s → Boolean)
+(define (plausible-V-s? φs V s)
   (define-syntax-rule (with-prim-checks p? ...)
     (cond
       [s
        (match V
          [(or (-St si _) (-St* si _ _ _)) #:when si
-          (plausible-Γ-s? Γ (-?@ (-st-p si) s))]
+          (plausible-es-s? φs (-?@ (-st-p si) s))]
          [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
-          (plausible-Γ-s? Γ (-?@ 'vector? s))]
+          (plausible-es-s? φs (-?@ 'vector? s))]
          [(or (? -Clo?) (? -Ar?) (? -o?))
-          (plausible-Γ-s? Γ (-?@ 'procedure? s))]
+          (plausible-es-s? φs (-?@ 'procedure? s))]
          [(-b (? p?))
-          (and (plausible-Γ-s? Γ (-?@ 'p? s))
+          (and (plausible-es-s? φs (-?@ 'p? s))
                (implies (-b? s) (equal? V s)))] ...
          [(or (? -=>_?) (? -St/C?) (? -x/C?))
           (for/and : Boolean ([p : -o '(procedure? p? ...)])
-            (case (Γ⊢e Γ (-?@ p s))
+            (case (es⊢e φs (-?@ p s))
               [(✓)   #f]
               [(✗ ?) #t]))]
          ['undefined
-          (case (Γ⊢e Γ (-?@ 'defined? s))
+          (case (es⊢e φs (-?@ 'defined? s))
             [(✗ ?) #t]
             [(✓)   #f])]
          [(-● ps)
-          (define Γ*
-            (let ([φs (for*/set: : (℘ -e) ([p ps] [s (in-value (-?@ p s))] #:when s) s)])
-              (-Γ φs (hash) ∅)))
-          (and (Γ⊓ Γ Γ*) #t)]
+          (define φs* (for*/set: : (℘ -e) ([p ps] [s (in-value (-?@ p s))] #:when s) s))
+          (and (es⊓ φs φs*) #t)]
          [_ #t])]
       [else #t]))
   
@@ -438,13 +436,20 @@
             '✗]
            [else '?])]))
 
-(: ensure-simple-consistency : (Option (℘ -e)) → (Option (℘ -e)))
-(define (ensure-simple-consistency φs)
-  (and φs
-       (let ([plausible?
-              (not (for/or : Boolean ([φ φs])
-                     (or (equal? φ -ff) (∋ φs (-not φ)))))])
-         (and plausible? φs))))
+(: ensure-simple-consistency (case->
+                               [#f → #f]
+                               [(℘ -e) → (Option (℘ -e))]
+                               [-Γ → (Option -Γ)]))
+(define ensure-simple-consistency
+  (match-lambda
+    [(? set? φs)
+     (define plausible?
+       (not (for/or : Boolean ([φ φs])
+              (or (equal? φ -ff) (∋ φs (-not φ))))))
+     (and plausible? φs)]
+    [(and (-Γ φs _ _) Γ)
+     (and (ensure-simple-consistency φs) Γ)]
+    [_ #f]))
 
 
 (module+ test
@@ -468,30 +473,28 @@
   (check-? (p∋Vs 'integer? -●/V))
 
   ;; ⊢ e
-  (check-✓ (Γ⊢e ⊤Γ 'not))
-  (check-✓ (Γ⊢e ⊤Γ (-b 0)))
-  (check-✗ (Γ⊢e ⊤Γ (-b #f)))
-  (check-? (Γ⊢e ⊤Γ (-x 'x)))
-  (check-✗ (Γ⊢e ⊤Γ (-?@ 'not (-b 0))))
-  (check-✓ (Γ⊢e ⊤Γ (-?@ 'equal? (-x 'x) (-x 'x))))
-  (check-✓ (Γ⊢e ⊤Γ (-?@ '+ (-x 'x) (-x 'y))))
-  (check-✗ (Γ⊢e ⊤Γ (-?@ -cons? -null)))
-  (check-✗ (Γ⊢e ⊤Γ (-?@ 'null? (-?@ -cons (-b 0) (-b 1)))))
+  (check-✓ (es⊢e ∅ 'not))
+  (check-✓ (es⊢e ∅ (-b 0)))
+  (check-✗ (es⊢e ∅ (-b #f)))
+  (check-? (es⊢e ∅ (-x 'x)))
+  (check-✗ (es⊢e ∅ (-?@ 'not (-b 0))))
+  (check-✓ (es⊢e ∅ (-?@ 'equal? (-x 'x) (-x 'x))))
+  (check-✓ (es⊢e ∅ (-?@ '+ (-x 'x) (-x 'y))))
+  (check-✗ (es⊢e ∅ (-?@ -cons? -null)))
+  (check-✗ (es⊢e ∅ (-?@ 'null? (-?@ -cons (-b 0) (-b 1)))))
   
   ;; Γ ⊢ e
-  (check-✓ (Γ⊢e (Γ+ ⊤Γ (-?@ -cons? (-x 'x))) (-x 'x)))
-  (check-✓ (Γ⊢e (Γ+ ⊤Γ (-?@ 'integer? (-x 'x))) (-?@ 'real? (-x 'x))))
-  (check-✓ (Γ⊢e (Γ+ ⊤Γ (-?@ 'not (-?@ 'number? (-x 'x))))
-                (-?@ 'not (-?@ 'integer? (-x 'x)))))
-  (check-✗ (Γ⊢e (Γ+ ⊤Γ (-?@ 'not (-x 'x))) (-x 'x)))
-  (check-? (Γ⊢e (Γ+ ⊤Γ (-?@ 'number? (-x 'x)))
-                (-?@ 'integer? (-x 'x))))
+  (check-✓ (es⊢e {set (assert (-?@ -cons? (-x 'x)))} (-x 'x)))
+  (check-✓ (es⊢e {set (assert (-?@ 'integer? (-x 'x)))} (-?@ 'real? (-x 'x))))
+  (check-✓ (es⊢e {set (assert (-?@ 'not (-?@ 'number? (-x 'x))))} (-?@ 'not (-?@ 'integer? (-x 'x)))))
+  (check-✗ (es⊢e {set (assert (-?@ 'not (-x 'x)))} (-x 'x)))
+  (check-? (es⊢e {set (assert (-?@ 'number? (-x 'x)))} (-?@ 'integer? (-x 'x))))
 
   ;; plausibility
-  (check-false (plausible-W? ⊤Γ (list (-b 1)) (-b 2)))
-  (check-false (plausible-W? ⊤Γ (list (-b 1) (-b 2)) (-b 3)))
-  (check-false (plausible-W? ⊤Γ (list (-b 1) (-b 2)) (-?@ 'values (-b 1) (-b 3))))
-  (check-false (plausible-W? ⊤Γ (list -tt) -ff))
-  (check-true  (plausible-W? ⊤Γ (list -tt) -tt))
-  (check-false (plausible-W? (Γ+ ⊤Γ (-not (-x 'x))) (list (-b 0)) (-x 'x)))
+  (check-false (plausible-W? ∅ (list (-b 1)) (-b 2)))
+  (check-false (plausible-W? ∅ (list (-b 1) (-b 2)) (-b 3)))
+  (check-false (plausible-W? ∅ (list (-b 1) (-b 2)) (-?@ 'values (-b 1) (-b 3))))
+  (check-false (plausible-W? ∅ (list -tt) -ff))
+  (check-true  (plausible-W? ∅ (list -tt) -tt))
+  (check-false (plausible-W? {set (assert (-not (-x 'x)))} (list (-b 0)) (-x 'x)))
   )

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
-         ;plausible-return? plausible-blame? plausible-index? plausible-indices
+         plausible-return? plausible-blame? plausible-index? plausible-indices
          (all-from-out "local.rkt")
          (all-from-out "inversion.rkt"))
 
@@ -108,7 +108,7 @@
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#;#;(: plausible-return? : -M -Γ -binding -Γ -W → Boolean)
+(: plausible-return? : -M -Γ -binding -Γ -W → Boolean)
 ;; Check if returned value is plausible
 (define (plausible-return? M Γₑᵣ bnd Γₑₑ Wₑₑ)
   (match-define (-W Vs sₑₑ) Wₑₑ)
@@ -118,9 +118,9 @@
   (define Γₑᵣ₊ (ensure-simple-consistency (Γ/ mₑₑ Γₑₑ)))
   (define Γₑᵣ₁ (ensure-simple-consistency (Γ/ mₑᵣ Γₑᵣ)))
   (define Γₑᵣ₂ (and Γₑᵣ₁ Γₑᵣ₊ (Γ⊓ Γₑᵣ₁ Γₑᵣ₊)))
-  (and Γₑᵣ₂ (plausible-W/M? M Γₑᵣ₂ Vs sₑᵣ)))
+  (and Γₑᵣ₂ (implies sₑᵣ (plausible-W/M? M (inj-cfg Γₑᵣ₂ sₑᵣ) Vs))))
 
-#;#;(: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
+(: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
 ;; Check if propagated blame is plausible
 (define (plausible-blame? M Γₑᵣ bnd Γₑₑ blm)
   (define-values (mₑₑ mₑᵣ sₑᵣ)
@@ -129,49 +129,49 @@
   (define Γₑᵣ₊ (ensure-simple-consistency (Γ/ mₑₑ Γₑₑ)))
   (define Γₑᵣ₁ (and Γₑᵣ₊ (Γ⊓ Γₑᵣ Γₑᵣ₊)))
   (match-define (-blm l+ lo _ _) blm)
-  (and Γₑᵣ₁ (plausible-blm/M? M Γₑᵣ₁ sₑᵣ l+ lo)))
+  (and Γₑᵣ₁ (implies sₑᵣ (plausible-blm/M? M (inj-cfg Γₑᵣ₁ sₑᵣ) l+ lo))))
 
-#;#;(: plausible-W/M? ([-M -Γ (Listof -V) -s] [#:depth Natural] . ->* . Boolean))
-(define (plausible-W/M? M Γ Vs s #:depth [d 5])
+(: plausible-W/M? ([-M -cfg (Listof -V)] [#:depth Natural] . ->* . Boolean))
+(define (plausible-W/M? M cfg Vs #:depth [d 5])
   (cond
     [(<= d 0) #t]
     [else
-     (and (plausible-W? Γ Vs s)
-          (for/or : Boolean ([p (invert-Γ M Γ)])
-            (match-define (cons Γ* m) p)
-            (define s* (and s ((e/map m) s)))
-            (plausible-W/M? M Γ* Vs s* #:depth (- d 1))))]))
+     (match-define (-cfg (-ctx φs _ _) s) cfg)
+     (and (plausible-W? φs Vs s)
+          (for/or : Boolean ([cfg* (invert-cfg M cfg)])
+            (plausible-W/M? M cfg* Vs #:depth (- d 1))))]))
 
-#;#;(: plausible-blm/M? ([-M -Γ -s Mon-Party Mon-Party] [#:depth Natural] . ->* . Boolean))
+(: plausible-blm/M? ([-M -cfg Mon-Party Mon-Party] [#:depth Natural] . ->* . Boolean))
 ;; Check if it's plausible that function call at symbol `s` has raised blame `blm`
-(define (plausible-blm/M? M Γ s l+ lo #:depth [d 3])
-  (define γs (-Γ-tails Γ))
+(define (plausible-blm/M? M cfg l+ lo #:depth [d 5])
   (with-debugging/off
     ((ans)
+     (match-define (-cfg (-ctx _ γʰs _) s) cfg)
      (cond
        [(<= d 0) #t]
        [(-v? s) #f]
-       [(not s) #t]
        ;; plausible if path-condition witnessed blame from `s`
-       [(for/or : Boolean ([γ γs])
-          (match γ
-            [(-γ _ bnd (-blm (== l+) (== lo) _ _))
+       [(for/or : Boolean ([γʰ γʰs])
+          (match γʰ
+            [(-γʰ (-γ _ bnd (-blm (== l+) (== lo) _ _)) _)
              (equal? s (binding->fargs bnd))]
             [_ #f]))
         #t]
        ;; implausible if path-condition witnessed successful return from `s`
-       [(for/or : Boolean ([γ γs])
-          (match γ
-            [(-γ _ bnd #f)
+       [(for/or : Boolean ([γʰ γʰs])
+          (match γʰ
+            [(-γʰ (-γ _ bnd #f) _)
              (equal? s (binding->fargs bnd))]
             [_ #f]))
         #f]
        [else
-        (for/or : Boolean ([p (invert-Γ M Γ)])
-          (match-define (cons Γ* m) p)
-          (or (equal? Γ* Γ)
-              (let ([s* (and s ((e/map m) s))])
-                (plausible-blm/M? M Γ* s* l+ lo #:depth (- d 1)))))]))
+        (for/or : Boolean ([cfg* (invert-cfg M cfg)])
+          (if (equal? cfg* cfg)
+              #t
+              (plausible-blm/M? M cfg* l+ lo #:depth (- d 1))))]))
+    (match-define (-cfg (-ctx φs γʰs _) s) cfg)
+    (define γs (map/set -γʰ-tail γʰs))
+    (define Γ (-Γ φs (hash) γs))
     (define-values (sΓ sγs) (show-M-Γ M Γ))
     (printf "plausible-blm? ~a ⊢ (blm ~a ~a) @ ~a : ~a~n" sΓ l+ lo (show-s s) ans)
     (printf "evaled: ~a~n"

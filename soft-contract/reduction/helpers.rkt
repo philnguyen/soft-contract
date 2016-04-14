@@ -55,10 +55,11 @@
   (λ (M σ ℒ)
     (match-define (-ℒ ρ Γ 𝒞) ℒ)
     (define s (canonicalize Γ x))
+    (define φs (-Γ-facts Γ))
     (define-values (ΓWs ΓEs)
       (for*/fold ([ΓWs : (℘ -ΓW) ∅]
                   [ΓEs : (℘ -ΓE) ∅])
-                 ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? Γ V s))
+                 ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V s))
         (case V
           [(undefined)
            (values

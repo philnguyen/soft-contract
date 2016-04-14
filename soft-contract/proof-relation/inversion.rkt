@@ -1,8 +1,9 @@
 #lang typed/racket/base
 
-(provide -ctx Γ->ctx invert-ctx invert-ctxs 
-         -cfg inj-cfg invert-cfg invert-cfgs
-         bnds->subst mk-subst)
+(provide (struct-out -ctx) (struct-out -γʰ) Γ->ctx invert-ctx invert-ctxs 
+         (struct-out -cfg) inj-cfg invert-cfg invert-cfgs
+         bnds->subst mk-subst
+         )
 
 (require racket/match
          racket/set
@@ -16,8 +17,8 @@
 (struct -γʰ ([tail : -γ] [hist : (℘ -τ)]) #:transparent)
 ;; A proof context contains hypotheses, invertible hypotheses, and rewriting hints
 (struct -ctx ([facts : (℘ -e)] [tails : (℘ -γʰ)] [m : (HashTable -e -e)]) #:transparent)
-;; Proof configuration is proof context paired with goal
-(struct -cfg ([ctx : -ctx] [goal : -e]) #:transparent)
+;; Proof configuration is proof context paired with an expression (may or may not be a goal)
+(struct -cfg ([ctx : -ctx] [expr : -e]) #:transparent)
 
 ;; Load initial proof configuration
 (define (inj-cfg [Γ : -Γ] [e : -e]) (-cfg (Γ->ctx Γ) e))
@@ -46,10 +47,17 @@
 (define (invert-ctx M ctx)
   (match-define (-ctx φs γʰs m) ctx)
   (define ctx₀ (-ctx φs ∅ m))
-  (for/fold ([acc : (℘ -ctx) {set ctx₀}])
-            ([γʰ γʰs])
-    (for/union : (℘ -ctx) ([ctxᵢ acc])
-       (invert-γ M ctxᵢ γʰ))))
+  (with-debugging/off
+    ((ctxs)
+     (for/fold ([acc : (℘ -ctx) {set ctx₀}])
+               ([γʰ γʰs])
+       (for/union : (℘ -ctx) ([ctxᵢ acc])
+                  (invert-γ M ctxᵢ γʰ))))
+    (printf "invert-ctx: ~a | ~a ~n" (set-map φs show-e) (map show-γ (set-map γʰs -γʰ-tail)))
+    (for ([ctx ctxs])
+      (match-define (-ctx φs _ _) ctx)
+      (printf "  - ~a~n" (set-map φs show-e)))
+    (printf "~n")))
 
 (: invert-γ : -M -ctx -γʰ → (℘ -ctx))
 (define (invert-γ M ctx γʰ)

@@ -8,7 +8,7 @@
  "../ast/main.rkt"
  "../parse/main.rkt"
  "../runtime/main.rkt"
- (only-in "../proof-relation/main.rkt" Γ⊢ₑₓₜ)
+ (only-in "../proof-relation/main.rkt" es⊢ₑₓₜe)
  (only-in "../proof-relation/ext/z3.rkt" z3⊢)
  "step.rkt"
  "init.rkt")
@@ -72,6 +72,6 @@
 
   (define τ₀ (-ℬ ⟦e⟧₀ ℒ∅))
   (define-values (M Ξ σ)
-    (parameterize ([Γ⊢ₑₓₜ z3⊢])
+    (parameterize ([es⊢ₑₓₜe z3⊢])
       (loop (hash τ₀ σ₀) {set τ₀} ∅ ⊥M ⊥Ξ σ₀)))
   (values (M@ M τ₀) M Ξ σ))
