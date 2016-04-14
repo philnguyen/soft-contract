@@ -283,14 +283,12 @@
     (printf "~n")))
 
 (: e/map* : (HashTable -e -e) → -e → -e)
-;; Repeatedly substitute until the expression doesn't get smaller
+;; Repeatedly substitute until it's fixed. May not terminate. Use with care.
 (define ((e/map* m) e)
   (define f (e/map m))
-  (let loop ([e : -e e] [n : Natural (count-leaves e)])
+  (let loop ([e : -e e])
     (define e* (f e))
-    (define n* (count-leaves e*))
-    (cond [(< n* n) (loop e* n*)]
-          [else #|significant, substitute at least once more|# e*])))
+    (if (equal? e* e) e (loop e*))))
 
 (: e/fun : (-e → (Option -e)) → -e → -e)
 ;; Duplicate code as `e/map` for now for some efficiency of `e/map`
@@ -585,6 +583,7 @@
   (cond [(-e? e) (go! (hasheq) e)]
         [else (go-m! (hasheq) e)]))
 
+#|
 (: count-leaves : -e → Natural)
 ;; No idea if #leaves or #nodes is more meaningful measurement. Pick one for now.
 (define count-leaves
@@ -620,3 +619,4 @@
 (: count-leaves* : (Sequenceof -e) → Natural)
 (define (count-leaves* es)
   (for/sum : Natural ([e es]) (count-leaves e)))
+|#

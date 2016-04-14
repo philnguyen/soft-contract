@@ -15,19 +15,19 @@
          "../result.rkt")
 
 ;; Query external solver for provability relation
-(: z3⊢ : -Γ -e → -R)
-(define (z3⊢ Γ e)
-  (match (Γe->Z3 Γ e)
+(: z3⊢ : (℘ -e) -e → -R)
+(define (z3⊢ φs e)
+  (match (es⊢e->Z3 φs e)
     [(list decls prems concl)
      (with-debugging/off
        ((ans) (call-with decls prems concl))
-       (printf "Z3: ~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-e e) ans))]
+       (printf "Z3: ~a ⊢ ~a : ~a~n" (set-map φs show-e) (show-e e) ans))]
     [#f '?]))
 
-(: get-model : -Γ → (Option (HashTable -e Base)))
+(: get-model : (℘ -e) → (Option (HashTable -e Base)))
 ;; Generate a model for given path invariant
-(define (get-model Γ)
-  (define-values (decls props) (Γ->Z3 Γ))
+(define (get-model φs)
+  (define-values (decls props) (es->Z3 φs))
   (match (check-sat decls props #:produce-model? #t)
     ['Unsat (error 'get-model "unsat")]
     ['Unknown (error 'get-model "unknown")]
@@ -41,24 +41,24 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: Γe->Z3 : -Γ -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
-;; Translate path invariant into Z3 declarations and formula
-(define (Γe->Z3 Γ e)
-  (define-values (decls₀ e->dec) (Γ->decls Γ))
+(: es⊢e->Z3 : (℘ -e) -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
+;; Translate path condition and goal into Z3 declarations and formula
+(define (es⊢e->Z3 φs e)
+  (define-values (decls₀ e->dec) (es->decls φs))
   (cond
-    [(exp->Z3 e->dec Γ e) =>
+    [(exp->Z3 e->dec φs e) =>
      (λ ([concl : Sexp])
        (define xs-adjusted (FV-for-is_int concl))
        (define-values (decls is_int-premises) (hack-decls-for-is_int decls₀ xs-adjusted))
-       (define premises (append is_int-premises (Γ->premises e->dec Γ)))
+       (define premises (append is_int-premises (es->premises e->dec φs)))
        (list decls premises concl))]
     [else #f]))
 
-(: Γ->Z3 : -Γ → (Values (Listof Sexp) (Listof Sexp)))
-;; Translate path invariant into Z3 declarations and formula
-(define (Γ->Z3 Γ)
-  (define-values (decls₀ e->dec) (Γ->decls Γ))
-  (define props (Γ->premises e->dec Γ))
+(: es->Z3 : (℘ -e) → (Values (Listof Sexp) (Listof Sexp)))
+;; Translate path condition into Z3 declarations and formula
+(define (es->Z3 φs)
+  (define-values (decls₀ e->dec) (es->decls φs))
+  (define props (es->premises e->dec φs))
   (define adjusted-vars-for-is_int
     (for/fold ([xs : (℘ Symbol) ∅]) ([prop props])
       (∪ xs (FV-for-is_int prop))))
@@ -84,13 +84,12 @@
      (Z3-FV e*)]
     [_ ∅]))
 
-(define-type Z3-Type (U 'Int 'Real))
+(Z3-Type . ::= . 'Int 'Real)
 
 ;; binary operators on reals
-(define-type/pred Handled-Z3-pred
-  (U 'integer? 'exact-integer? 'exact-positive-integer? 'exact-nonnegative-integer?
-     'inexact-real? 'rational? 'fixnum? 'flonum? 'single-flonum? 'double-flonum? 'real?))
-(define-type/pred Handled-Z3-op (U '+ '- '* '/ '> '< '>= '<= '= 'equal?))
+(Handled-Z3-pred . ::= . 'integer? 'exact-integer? 'exact-positive-integer? 'exact-nonnegative-integer?
+                         'inexact-real? 'rational? 'fixnum? 'flonum? 'single-flonum? 'double-flonum? 'real?)
+(Handled-Z3-op . ::= . '+ '- '* '/ '> '< '>= '<= '= 'equal?)
 
 (define (handled-Z3-pred->Z3-Type [t : Handled-Z3-pred]) : Z3-Type
   (cond
@@ -102,9 +101,9 @@
 ;; I expose this publically just for debugging
 (define-values (exp->sym sym->exp _) ((inst unique-sym -e) 'x_ #:transform-index values))
 
-(: Γ->decls : -Γ → (Values (Listof Sexp) (-e → (Option (Pairof Symbol Z3-Type)))))
+(: es->decls : (℘ -e) → (Values (Listof Sexp) (-e → (Option (Pairof Symbol Z3-Type)))))
 ;; Extract declarations from environment
-(define (Γ->decls Γ)
+(define (es->decls φs)
   (define-set declared-exprs : -e)
 
   (define (more-precise-than? [T₁ : Z3-Type] [T₂ : Z3-Type])
@@ -120,7 +119,7 @@
 
   (define typeofs
     (for/fold ([typeofs : (HashTable Symbol Z3-Type) (hasheq)])
-              ([φ (-Γ-facts Γ)])
+              ([φ φs])
       (match φ
         [(-@ (? Handled-Z3-pred? o) (list e) _)
          (define T (handled-Z3-pred->Z3-Type o))
@@ -156,9 +155,9 @@
                  (let ([x (exp->sym e)])
                    (cons x (hash-ref typeofs x)))))))
 
-(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) -Γ -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
+(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -e) -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
 ;; Translate restricted syntax into Z3 sexp
-(define (exp->Z3 e->dec Γ e)
+(define (exp->Z3 e->dec φs e)
   (let go : (Option Sexp) ([e : -e e])
     (match e
       [(-@ (? Handled-Z3-op? o) (list e₁ e₂) _)
@@ -185,11 +184,11 @@
            [(cons x _) x]
            [#f #f])])))
 
-(: Γ->premises : (-e → (Option (Pairof Symbol Z3-Type))) -Γ → (Listof Sexp))
+(: es->premises : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -e) → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises
-(define (Γ->premises e->dec Γ)
-  (for*/list : (Listof Sexp) ([e (-Γ-facts Γ)]
-                              [s (in-value (exp->Z3 e->dec Γ e))] #:when s)
+(define (es->premises e->dec φs)
+  (for*/list : (Listof Sexp) ([e φs]
+                              [s (in-value (exp->Z3 e->dec φs e))] #:when s)
     s))
 
 ;; translate Racket symbol to Z3 symbol
@@ -206,10 +205,9 @@
     [(? symbol? x) {set x}]
     [_ ∅]))
 
-(define-type Sat-Result
-  (U 'Unsat
-     (List 'Sat (Option (HashTable Symbol Real)))
-     'Unknown))
+(define-type Sat-Result (U 'Unsat
+                           (List 'Sat (Option (HashTable Symbol Real)))
+                           'Unknown))
 
 ;; Perform query/ies with given declarations, assertions, and conclusion,
 ;; trying to decide whether value definitely proves or refutes predicate

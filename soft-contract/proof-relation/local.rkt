@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢ₑₓₜ Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓
+(provide es⊢e es⊢ₑₓₜe Γ⊢e partition-Γs ⊢V p∋Vs #;Γ⊓ es⊓
          ensure-simple-consistency
          plausible-Γ-s? plausible-W? plausible-V-s?)
 
@@ -19,8 +19,8 @@
           "../primitives/utils.rkt"))
 
 ;; External solver to be plugged in. Return trivial answer by default.
-(define-parameter Γ⊢ₑₓₜ : (-Γ -e → -R)
-  (λ (Γ e)
+(define-parameter es⊢ₑₓₜe : ((℘ -e) -e → -R)
+  (λ _
     (printf "Warning: external solver not set~n")
     '?))
 
@@ -72,17 +72,15 @@
 (define boolean-excludes? : (Symbol → Boolean)
   (set->predicate (hash-ref exclusions 'boolean?)))
 
-(: Γ⊢e : -Γ -s → -R)
-;; Check if `e` evals to truth, knowing `Γ`
-(define (Γ⊢e Γ e)
-  (match-define (-Γ φs _ _) Γ)
-  
+(: es⊢e : (℘ -e) -s → -R)
+(define (es⊢e φs e)
+
   (when (∋ φs -ff)
     ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
     ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
     ;; This is a problem with precision rather than soundness, but I want
     ;; (obviously) inconsistent path-conditions to not exist in the first place.
-    (error 'Γ⊢e "Attempt to prove/refute with inconsistent path-condition"))
+    (error 'es⊢e "Attempt to prove/refute with inconsistent path-condition"))
 
   (: ⊢e : -e → -R)
   ;; Check if expression returns truth
@@ -226,12 +224,12 @@
                     ([e₀ φs] #:when (eq? '? R)
                      [R* (in-value (e⊢e e₀ e))])
            R*)
-         ((Γ⊢ₑₓₜ) Γ e))]
+         ((es⊢ₑₓₜe) φs e))]
        [else '?]))
-    (printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-s e) ans)))
+    (printf "~a ⊢ ~a : ~a~n" (set-map es show-e) (show-s e) ans)))
 
-(: plausible-Γ-s? : -Γ -s → Boolean)
-(define (plausible-Γ-s? Γ s) (not (eq? '✗ (Γ⊢e Γ s))))
+(define (Γ⊢e [Γ : -Γ] [e : -s]) (es⊢e (-Γ-facts Γ) e))
+(define (plausible-Γ-s? [Γ : -Γ] [s : -s]) (not (eq? '✗ (Γ⊢e Γ s))))
 
 (: plausible-W? : -Γ (Listof -V) -s → Boolean)
 ;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `Γ`
@@ -283,19 +281,23 @@
   ;; order matters for precision, in the presence of subtypes
   (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
 
+(: es⊓ : (℘ -e) (℘ -e) → (Option (℘ -e)))
+(define (es⊓ es₀ es₁)
+  (for/fold ([es₀ : (Option (℘ -e)) es₀]) ([e₁ es₁])
+    (and es₀
+         (case (es⊢e es₀ e₁)
+           [(✓ ?) (set-add es₀ e₁)]
+           [(✗)   #f]))))
+
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Join 2 path conditions, eliminating obvious inconsistencies
 (define (Γ⊓ Γ₀ Γ₁)
-  (match-define (-Γ φs₁ _ γs₁) Γ₁)
-  (define Γ₀*
-    (for/fold ([Γ₀ : (Option -Γ) Γ₀]) ([φ₁ φs₁])
-      (and Γ₀
-           (case (Γ⊢e Γ₀ φ₁)
-             [(✓ ?) (Γ+ Γ₀ φ₁)]
-             [(✗)   #f]))))
-  (match Γ₀* ; note that `γs₁` are added without checking
-    [(-Γ φs₀ as₀ γs₀) (-Γ φs₀ as₀ (∪ γs₀ γs₁))]
-    [#f #f]))
+  (match-define (-Γ φs₀ as₀ γs₀) Γ₀)
+  (match-define (-Γ φs₁ _   γs₁) Γ₁)
+  (cond
+    [(es⊓ φs₀ φs₁) =>
+     (λ ([φs₀* : (℘ -e)]) (-Γ φs₀* as₀ (∪ γs₀ γs₁)))]
+    [else #f]))
 
 (: partition-Γs : (℘ (Pairof -Γ -s))
                 → (Values (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s))))
@@ -436,16 +438,13 @@
             '✗]
            [else '?])]))
 
-(: ensure-simple-consistency : (Option -Γ) → (Option -Γ))
-;; Throw away obviously inconsistent path-condition
-(define (ensure-simple-consistency Γ)
-  (match Γ
-    [(-Γ φs as γs)
-     (define plausible? ; should not depend on `φs` traversal order
-       (not (for/or : Boolean ([φ φs])
-              (or (equal? φ -ff) (∋ φs (-not φ))))))
-     (and plausible? Γ)]
-    [#f #f]))
+(: ensure-simple-consistency : (Option (℘ -e)) → (Option (℘ -e)))
+(define (ensure-simple-consistency φs)
+  (and φs
+       (let ([plausible?
+              (not (for/or : Boolean ([φ φs])
+                     (or (equal? φ -ff) (∋ φs (-not φ)))))])
+         (and plausible? φs))))
 
 
 (module+ test

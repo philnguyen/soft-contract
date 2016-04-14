@@ -17,14 +17,17 @@
 (define (e↓ e xs)
   (and (⊆ (fv e) xs) e))
 
+(: φs↓ : (℘ -e) (℘ Var-Name) → (℘ -e))
+(define (φs↓ φs xs)
+  (for*/set: : (℘ -e) ([φ φs] [φ* (in-value (e↓ φ xs))] #:when φ*)
+    φ*))
+
 (: Γ↓ : -Γ (℘ Var-Name) → -Γ)
 ;; Restrict path-condition to given free variables
 (define (Γ↓ Γ xs)
 
   (match-define (-Γ φs as γs) Γ)
-  (define φs*
-    (for*/set: : (℘ -e) ([φ φs] [φ* (in-value (e↓ φ xs))] #:when φ*)
-      φ*))
+  (define φs* (φs↓ φs xs))
   (define as*
     (for/hash : (HashTable Var-Name -e) ([(x e) as] #:when (∋ xs x))
       (values x e)))
@@ -89,6 +92,9 @@
       (printf "  - from: ~a~n" (show-Γ Γ))
       (printf "  - to  : ~a~n" (show-Γ Γₐ))
       (printf "~n"))))
+
+(: φs/ : (HashTable -e -e) (℘ -e) → (℘ -e))
+(define (φs/ m φs) (map/set (e/map m) φs))
 
 (: γ/ : (HashTable -e -e) → -γ → -γ)
 (define ((γ/ m) γ)

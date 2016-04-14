@@ -1,6 +1,8 @@
 #lang typed/racket/base
 
-(provide invert-ps invert-Γ bnds->subst mk-subst)
+(provide -ctx Γ->ctx invert-ctx invert-ctxs 
+         -cfg inj-cfg invert-cfg invert-cfgs
+         bnds->subst mk-subst)
 
 (require racket/match
          racket/set
@@ -9,103 +11,93 @@
          "../runtime/main.rkt"
          "local.rkt")
 
-(: invert-ps : -M (℘ (Pairof -Γ -s)) → (℘ (Pairof -Γ -s)))
-;; Invert path-condition `Γ` and rewrite symbolic value `s` accordingly
-(define (invert-ps M ps)
-  (with-debugging/off
-    ((ans)
-     (for/union : (℘ (Pairof -Γ -s)) ([p ps])
-       (match-define (cons Γ s) p)
-       (for/set: : (℘ (Pairof -Γ -s)) ([Γ-m (invert-Γ M Γ)])
-         (match-define (cons Γ* m) Γ-m)
-         (define s* (and s ((e/map* m) s)))
-         #;(begin
-             (printf "map:~n")
-             (for ([(x y) m])
-               (printf "  ~a ↦ ~a~n" (show-e x) (show-e y)))
-             (printf "applied: ~a ↦ ~a~n" (show-s s) (show-s s*))
-             (printf "~n"))
-         (cons Γ* s*))))
-    (printf "Invert:~n")
-    (for ([p ps])
-      (match-define (cons Γ s) p)
-      (printf "  - ~a ⊢ ~a~n" (show-Γ Γ) (show-s s)))
-    (printf "Into: ~n")
-    (for ([p ans])
-      (match-define (cons Γ s) p)
-      (printf "  - ~a ⊢ ~a~n" (show-Γ Γ) (show-s s)))
-    (printf "~n")))
 
-(: invert-Γ : -M -Γ → (℘ (Pairof -Γ (HashTable -e -e))))
-;; Invert all tails in path condition, accumulating substitutions that (heuristically)
-;; should also be applied to unfold expressions into a more provable form.
-;; This does not invert new tails added as a result of inverting existing ones.
-(define (invert-Γ M Γ)
-  (match-define (-Γ _ _ γs) Γ)
-  (define m∅ : (HashTable -e -e) (hash))
-  (with-debugging/off
-    ((ans)
-     (for/fold ([ps : (℘ (Pairof -Γ (HashTable -e -e))) {set (cons Γ m∅)}])
-               ([γ γs])
-       (for/union : (℘ (Pairof -Γ (HashTable -e -e))) ([p ps])
-         (match-define (cons Γ₀ m₀) p)
-         (map/set
-          (λ ([p : (Pairof -Γ (HashTable -e -e))])
-            (match-define (cons Γ m) p)
-            (cons Γ (hash-merge m₀ m)))
-          (invert-γ M Γ₀ γ #;((γ/ m₀) γ))))))
-    (printf "Invert ~a into:~n" (show-Γ Γ))
-    (for ([p ans])
-      (match-define (cons Γ m) p)
-      (define-values (sΓ sγs) (show-M-Γ M Γ))
-      (printf "  - ~a @ ~a~n"
-              sΓ
-              (for/list : (Listof Sexp) ([(x y) m])
-                `(,(show-e x) ↦ ,(show-e y))))
-      (for ([s sγs]) (printf "    + ~a~n" s)))
-    (printf "~n")))
+;; Path-condition tail tagged with inversion history
+(struct -γʰ ([tail : -γ] [hist : (℘ -τ)]) #:transparent)
+;; A proof context contains hypotheses, invertible hypotheses, and rewriting hints
+(struct -ctx ([facts : (℘ -e)] [tails : (℘ -γʰ)] [m : (HashTable -e -e)]) #:transparent)
+;; Proof configuration is proof context paired with goal
+(struct -cfg ([ctx : -ctx] [goal : -e]) #:transparent)
 
-(: invert-γ : -M -Γ -γ → (℘ (Pairof -Γ (HashTable -e -e))))
-;; Invert "hypothesis" `γ` in path-condition `Γ`.
-;; May return multiple (refined) path-conditions due to imprecision
-(define (invert-γ M Γ γ)
-  (match-define (-Γ φs as γs) Γ)
-  ; (assert (∋ γs γ)) Not that important as long as `invert-γ` is private
+;; Load initial proof configuration
+(define (inj-cfg [Γ : -Γ] [e : -e]) (-cfg (Γ->ctx Γ) e))
+
+(define (Γ->ctx [Γ : -Γ]) : -ctx
+  (match-define (-Γ φs _ γs) Γ)
+  (define γʰs (for/set: : (℘ -γʰ) ([γ γs]) (-γʰ γ ∅)))
+  (-ctx φs γʰs (hash)))
+
+(: invert-cfg : -M -cfg → (℘ -cfg))
+(define (invert-cfg M cfg)
+  (match-define (-cfg ctx e) cfg)
+  (for/set: : (℘ -cfg) ([ctx* (invert-ctx M ctx)])
+    (match-define (-ctx _ _ m) ctx*)
+    (-cfg ctx* ((e/map* m) e))))
+
+(: invert-cfgs : -M (℘ -cfg) → (℘ -cfg))
+(define (invert-cfgs M cfgs)
+  (for/union : (℘ -cfg) ([cfg cfgs]) (invert-cfg M cfg)))
+
+(: invert-ctxs : -M (℘ -ctx) → (℘ -ctx))
+(define (invert-ctxs M ctxs)
+  (for/union : (℘ -ctx) ([ctx ctxs]) (invert-ctx M ctx)))
+
+(: invert-ctx : -M -ctx → (℘ -ctx))
+(define (invert-ctx M ctx)
+  (match-define (-ctx φs γʰs m) ctx)
+  (define ctx₀ (-ctx φs ∅ m))
+  (for/fold ([acc : (℘ -ctx) {set ctx₀}])
+            ([γʰ γʰs])
+    (for/union : (℘ -ctx) ([ctxᵢ acc])
+       (invert-γ M ctxᵢ γʰ))))
+
+(: invert-γ : -M -ctx -γʰ → (℘ -ctx))
+(define (invert-γ M ctx γʰ)
+  (match-define (-ctx φs γʰs m) ctx)
+  (match-define (-γʰ γ τs) γʰ)
   (match-define (-γ τ bnd blm) γ)
-  (define h∅ : (HashTable -e -e) (hash))
-  (define m₀ (bnds->subst bnd))
-  
-  (define xs (-binding-dom bnd))
 
-  (with-debugging/off
-    ((ans)
-     (for/fold ([ps : (℘ (Pairof -Γ (HashTable -e -e))) ∅])
+  (cond
+    ;; Just truncate this branch for now.
+    ;; TODO: need more care for sound induction without accidentally admitting non-sense
+    [(∋ τs τ)
+     {set ctx}]
+    ;; Invert for new hypotheses and tails
+    [else
+     (define h∅ : (HashTable -e -e) (hash))
+     (define m₀ (bnds->subst bnd))
+     (define fvs (-binding-dom bnd))
+     (define τs* (set-add τs τ))
+     
+     (: on-ans : (℘ -ctx) (℘ -e) (℘ -γ) -s → (℘ -ctx))
+     (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
+       (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ bnd sₑₑ))
+       (define φsₑᵣ₊ (ensure-simple-consistency (φs/ mₑₑ (φs↓ φsₑₑ fvs))))
+       (define φsₑᵣ  (ensure-simple-consistency (φs/ mₑᵣ φs)))
+       (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
+       (define γʰs*
+         (for/set: : (℘ -γʰ) ([γₑₑ γsₑₑ])
+           (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
+           (-γʰ γₑᵣ τs*)))
+       (cond
+         [φs*
+          (define m*
+            (for/fold ([m : (HashTable -e -e) m]) ([(x y) mₑᵣ])
+              (cond
+                [(hash-ref m x #f) => (λ (y*) (assert (equal? y* y)))])
+              (hash-set m x y)))
+          (define ctx* (-ctx φs* (∪ γʰs γʰs*) m*))
+          (set-add acc ctx*)]
+         [else acc]))
+     
+     (for/fold ([acc : (℘ -ctx) ∅])
                ([A (M@ M τ)])
-       (match* (A blm) ; FIXME duplicate code
-         [((-ΓW Γ₀ (-W Vs sₐ)) #f)
-          (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ bnd sₐ))
-          (define Γₑᵣ₊ (ensure-simple-consistency (Γ/ mₑₑ (Γ↓ Γ₀ xs))))
-          (define Γₑᵣ  (ensure-simple-consistency (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))))
-          (define Γ* (and Γₑᵣ₊ Γₑᵣ (Γ⊓ Γₑᵣ Γₑᵣ₊)))
-          (if Γ* (set-add ps (cons Γ* mₑᵣ)) ps)]
-         [((-ΓE Γ₀ (-blm l+ lo _ _)) (cons l+ lo))
-          (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ bnd #f))
-          (define Γₑᵣ₊ (ensure-simple-consistency (Γ/ mₑₑ (Γ↓ Γ₀ xs))))
-          (define Γₑᵣ  (ensure-simple-consistency (Γ/ mₑᵣ (-Γ-minus-γ Γ γ))))
-          (define Γ* (and Γₑᵣ Γₑᵣ₊ (Γ⊓ Γₑᵣ Γₑᵣ₊)))
-          (if Γ* (set-add ps (cons Γ* mₑᵣ)) ps)]
-         [(_ _) ps])))
-    (define-values (sΓ sγs) (show-M-Γ M Γ))
-    (printf "Invert ~a at ~a, dom: ~a, where:~n" sΓ (show-γ γ) (set->list xs))
-    (for ([s sγs]) (printf "  - ~a~n" s))
-    (printf "Getting:~n")
-    (for ([p ans])
-      (match-define (cons Γ m) p)
-      (printf "  - ~a with ~a~n"
-              (show-Γ Γ)
-              (for/list : (Listof Sexp) ([(x y) m])
-                `(,(show-e x) ↦ ,(show-e y)))))
-    (printf "~n")))
+       (match* (A blm)
+         [((-ΓW (-Γ φs₀ _ γs₀) (-W _ sₐ)) #f)
+          (on-ans acc φs₀ γs₀ sₐ)]
+         [((-ΓE (-Γ φs₀ _ γs₀) (-blm l+ lo _ _)) (cons l+ lo))
+          (on-ans acc φs₀ γs₀ #f)]
+         [(_ _) acc]))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

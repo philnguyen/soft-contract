@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
-         plausible-return? plausible-blame? plausible-index? plausible-indices
+         ;plausible-return? plausible-blame? plausible-index? plausible-indices
          (all-from-out "local.rkt")
          (all-from-out "inversion.rkt"))
 
@@ -36,7 +36,7 @@
 (: MΓ⊢s : -M -Γ -s → -R)
 ;; Check if `s` is provable in `Γ`
 (define (MΓ⊢s M Γ s)
-  (with-debugging/off ((ans) (M⊢Γs M {set (cons Γ s)}))
+  (with-debugging/off ((ans) (if s (⊢cfg M (inj-cfg Γ s)) '?))
     (define-values (sΓ sγs) (show-M-Γ M Γ))
     (define ss (show-s s))
     (printf "chk: ~a ⊢ ~a : ~a ~n" sΓ ss ans)
@@ -44,14 +44,14 @@
       (printf "  - ~a~n" sγ))
     (printf "~n")))
 
-(: M⊢Γs ([-M (℘ (Pairof -Γ -s))] [#:depth Natural] . ->* . -R))
-;; Check if all pairs of ⟨Γ, s⟩ are provable.
-;; This function inverts the path-condition up to finite depth
-(define (M⊢Γs M ps #:depth [d 4])
+(define (⊢cfg [M : -M] [cfg : -cfg]) (⊢cfgs M {set cfg}))
+
+(: ⊢cfgs ([-M (℘ -cfg)] [#:depth Natural] . ->* . -R))
+(define (⊢cfgs M cfgs #:depth [d 5])
   (cond
     [(<= d 0) '?]
     [else
-     (define-values (✓s ✗s ?s) (partition-Γs ps))
+     (define-values (✓s ✗s ?s) (partition-cfgs cfgs))
      (define ✓-mt? (set-empty? ✓s))
      (define ✗-mt? (set-empty? ✗s))
      (define ?-mt? (set-empty? ?s))
@@ -59,34 +59,34 @@
      (with-debugging/off
        ((ans)
         (cond
-          [?-mt? (cond [✗-mt? '✓]
-                       [✓-mt? '✗]
-                       [else '?])]
-          [else  (cond [✗-mt?
-                        (define ps* (invert-ps M ?s))
-                        (cond [(equal? ps* ?s) '?]
-                              [✓-mt? (M⊢Γs M ps* #:depth (- d 1))]
-                              [else (case (M⊢Γs M ps* #:depth (- d 1))
-                                      [(✓)   '✓]
-                                      [(✗ ?) '?])])]
-                       [✓-mt?
-                        (define ps* (invert-ps M ?s))
-                        (cond [(equal? ps* ?s) '?]
-                              [else
-                               (case (M⊢Γs M ps* #:depth (- d 1))
-                                 [(✗)   '✗]
-                                 [(✓ ?) '?])])]
-                       [else '?])]))
+          [?-mt? (cond [✗-mt? '✓] [✓-mt? '✗] [else '?])]
+          [else
+           (cond [✗-mt?
+                  (define cfgs* (invert-cfgs M cfgs))
+                  (cond
+                    [(equal? cfgs* cfgs) '?]
+                    [✓-mt? (⊢cfgs M cfgs* #:depth (- d 1))]
+                    [else (case (⊢cfgs M cfgs* #:depth (- d 1))
+                            [(✓)   '✓]
+                            [(✗ ?) '?])])]
+                 [✓-mt?
+                  (define cfgs* (invert-cfgs M cfgs))
+                  (cond
+                    [(equal? cfgs* cfgs) '?]
+                    [else (case (⊢cfgs M cfgs* #:depth (- d 1))
+                            [(✗)   '✗]
+                            [(✓ ?) '?])])]
+                 [else '?])]))
        (printf "worlds:~n")
-       (for ([p ✓s])
-         (match-define (cons Γ s) p)
-         (printf "  - ~a ⊢ ~a : ✓~n" (show-Γ Γ) (show-s s)))
-       (for ([p ✗s])
-         (match-define (cons Γ s) p)
-         (printf "  - ~a ⊢ ~a : ✗~n" (show-Γ Γ) (show-s s)))
-       (for ([p ?s])
-         (match-define (cons Γ s) p)
-         (printf "  - ~a ⊢ ~a : ?~n" (show-Γ Γ) (show-s s)))
+       (for ([ctx ✓s])
+         (match-define (-cfg (-ctx φs _ _) e) cfg)
+         (printf "  - ~a ⊢ ~a : ✓~n" (set-map φs show-e) (show-e e)))
+       (for ([ctx ✗s])
+         (match-define (-cfg (-ctx φs _ _) e) cfg)
+         (printf "  - ~a ⊢ ~a : ✗~n" (set-map φs show-e) (show-e e)))
+       (for ([ctx ?s])
+         (match-define (-cfg (-ctx φs _ _) e) cfg)
+         (printf "  - ~a ⊢ ~a : ?~n" (set-map φs show-e) (show-e e)))
        (printf "~n"))]))
 
 (: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
@@ -108,7 +108,7 @@
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: plausible-return? : -M -Γ -binding -Γ -W → Boolean)
+#;#;(: plausible-return? : -M -Γ -binding -Γ -W → Boolean)
 ;; Check if returned value is plausible
 (define (plausible-return? M Γₑᵣ bnd Γₑₑ Wₑₑ)
   (match-define (-W Vs sₑₑ) Wₑₑ)
@@ -120,7 +120,7 @@
   (define Γₑᵣ₂ (and Γₑᵣ₁ Γₑᵣ₊ (Γ⊓ Γₑᵣ₁ Γₑᵣ₊)))
   (and Γₑᵣ₂ (plausible-W/M? M Γₑᵣ₂ Vs sₑᵣ)))
 
-(: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
+#;#;(: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
 ;; Check if propagated blame is plausible
 (define (plausible-blame? M Γₑᵣ bnd Γₑₑ blm)
   (define-values (mₑₑ mₑᵣ sₑᵣ)
@@ -131,8 +131,8 @@
   (match-define (-blm l+ lo _ _) blm)
   (and Γₑᵣ₁ (plausible-blm/M? M Γₑᵣ₁ sₑᵣ l+ lo)))
 
-(: plausible-W/M? ([-M -Γ (Listof -V) -s] [#:depth Natural] . ->* . Boolean))
-(define (plausible-W/M? M Γ Vs s #:depth [d 2])
+#;#;(: plausible-W/M? ([-M -Γ (Listof -V) -s] [#:depth Natural] . ->* . Boolean))
+(define (plausible-W/M? M Γ Vs s #:depth [d 5])
   (cond
     [(<= d 0) #t]
     [else
@@ -142,7 +142,7 @@
             (define s* (and s ((e/map m) s)))
             (plausible-W/M? M Γ* Vs s* #:depth (- d 1))))]))
 
-(: plausible-blm/M? ([-M -Γ -s Mon-Party Mon-Party] [#:depth Natural] . ->* . Boolean))
+#;#;(: plausible-blm/M? ([-M -Γ -s Mon-Party Mon-Party] [#:depth Natural] . ->* . Boolean))
 ;; Check if it's plausible that function call at symbol `s` has raised blame `blm`
 (define (plausible-blm/M? M Γ s l+ lo #:depth [d 3])
   (define γs (-Γ-tails Γ))
@@ -188,6 +188,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: partition-cfgs : (℘ -cfg) → (Values (℘ -cfg) (℘ -cfg) (℘ -cfg)))
+;; Paritition proof configurations into provable, refutable, and don't know
+(define (partition-cfgs cfgs)
+  (define-set ✓s : -cfg)
+  (define-set ✗s : -cfg)
+  (define-set ?s : -cfg)
+  (for ([cfg cfgs])
+    (match-define (-cfg (-ctx φs _ _) e) cfg)
+    (case (es⊢e φs e)
+      [(✓) (✓s-add! cfg)]
+      [(✗) (✗s-add! cfg)]
+      [(?) (?s-add! cfg)]))
+  (values ✓s ✗s ?s))
 
 (: Γ+/-R : -R -Γ -s → (Values (Option -Γ) (Option -Γ)))
 ;; Given `s`'s satisfiability in `Γ`, strengthen `Γ` both ways. `#f` represents a bogus path condition.
