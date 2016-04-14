@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide es⊢e es⊢ₑₓₜe Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓ es⊓
+(provide es⊢e es⊢ₑₓₜe lite? Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓ es⊓
          ensure-simple-consistency
          plausible-es-s? plausible-W? plausible-V-s?)
 
@@ -23,6 +23,8 @@
   (λ _
     (printf "Warning: external solver not set~n")
     '?))
+
+(define-parameter lite? : Boolean #f)
 
 ;; Syntax generation for checking whether argument satisfies predicate
 (begin-for-syntax
@@ -224,7 +226,7 @@
                     ([e₀ φs] #:when (eq? '? R)
                      [R* (in-value (e⊢e e₀ e))])
            R*)
-         ((es⊢ₑₓₜe) φs e))]
+         (if (lite?) '? ((es⊢ₑₓₜe) φs e)))]
        [else '?]))
     (printf "~a ⊢ ~a : ~a~n" (set-map es show-e) (show-s e) ans)))
 

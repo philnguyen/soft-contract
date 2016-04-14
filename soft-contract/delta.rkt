@@ -257,9 +257,10 @@
                #`[_ (values ⊥σ (list (-● {set '#,rng})))]]
               [else
                #`[(list #,@W-pats)
-                  (cond
-                    #,@refinement-clauses
-                    [else (values ⊥σ (list (-● {set '#,rng})))])]]))
+                  (parameterize ([lite? #t])
+                    (cond
+                      #,@refinement-clauses
+                      [else (values ⊥σ (list (-● {set '#,rng})))]))]]))
 
           (define case-lift
             #`(cond
