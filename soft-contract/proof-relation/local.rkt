@@ -228,7 +228,7 @@
            R*)
          (if (lite?) '? ((es⊢ₑₓₜe) φs e)))]
        [else '?]))
-    (printf "~a ⊢ ~a : ~a~n" (set-map es show-e) (show-s e) ans)))
+    (printf "~a ⊢ ~a : ~a~n" (set-map φs show-e) (show-s e) ans)))
 
 (define (Γ⊢e [Γ : -Γ] [e : -s]) (es⊢e (-Γ-facts Γ) e))
 (define (plausible-es-s? [φs : (℘ -e)] [s : -s]) (not (eq? '✗ (es⊢e φs s))))
@@ -254,6 +254,13 @@
     (cond
       [s
        (match V
+         ['undefined ; (ugly) This needs to come before (? -o?)
+          (cond
+            [(-v? s) #f]
+            [else
+             (case (es⊢e φs (-?@ 'defined? s))
+               [(✗ ?) #t]
+               [(✓)   #f])])]
          [(or (-St si _) (-St* si _ _ _)) #:when si
           (plausible-es-s? φs (-?@ (-st-p si) s))]
          [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
@@ -268,10 +275,6 @@
             (case (es⊢e φs (-?@ p s))
               [(✓)   #f]
               [(✗ ?) #t]))]
-         ['undefined
-          (case (es⊢e φs (-?@ 'defined? s))
-            [(✗ ?) #t]
-            [(✓)   #f])]
          [(-● ps)
           (define φs* (for*/set: : (℘ -e) ([p ps] [s (in-value (-?@ p s))] #:when s) s))
           (and (es⊓ φs φs*) #t)]
@@ -279,7 +282,8 @@
       [else #t]))
   
   ;; order matters for precision, in the presence of subtypes
-  (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
+  (with-debugging/off ((ans) (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
+    (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-e) (show-V V) (show-s s) ans)))
 
 (: es⊓ : (℘ -e) (℘ -e) → (Option (℘ -e)))
 (define (es⊓ es₀ es₁)

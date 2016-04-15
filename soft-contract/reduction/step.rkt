@@ -167,7 +167,7 @@
       (define W (-W -●/Vs e))
       (λ (M σ ℒ)
         (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) W)} ∅ ∅))]
-     [(-x x) (⇓ₓ x)]
+     [(-x x) (⇓ₓ l x)]
      [(and ref (-ref (and 𝒾 (-𝒾 x l₀)) ℓ))
       (define V->s : (-V → -s)
         (match-lambda

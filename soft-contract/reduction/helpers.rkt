@@ -51,7 +51,7 @@
       [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
-(define/memoeq (⇓ₓ [x : Var-Name]) : -⟦e⟧
+(define/memo (⇓ₓ [l : Mon-Party] [x : Var-Name]) : -⟦e⟧
   (λ (M σ ℒ)
     (match-define (-ℒ ρ Γ 𝒞) ℒ)
     (define s (canonicalize Γ x))
@@ -66,7 +66,7 @@
             ΓWs
             (set-add
              ΓEs
-             (-ΓE Γ (-blm 'TODO 'Λ (list 'defined?) (list 'undefined)))))]
+             (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
           [else (values (set-add ΓWs (-ΓW Γ (-W (list V) s))) ΓEs)])))
     (values ⊥σ ΓWs ΓEs ∅)))
 

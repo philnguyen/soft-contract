@@ -159,6 +159,11 @@
           [(list x x) -tt]
           [_ (default-case)])]
 
+       ['defined?
+         (match xs
+           [(list (? -v?)) -tt]
+           [_ (default-case)])]
+
        ; (car (cons e _)) = e
        [(-st-ac s i)
         (match xs

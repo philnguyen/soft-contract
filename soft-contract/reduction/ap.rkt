@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         (except-in racket/function arity-includes?)
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt"
@@ -153,7 +154,7 @@
         (define W-rng (-W¹ Mk-D mk-d))
         (match xs
           [(? list? xs)
-           (define xs⇓ (map ⇓ₓ xs))
+           (define xs⇓ (map (curry ⇓ₓ lo) xs))
            (for*/ans ([Cs (σ@/list σ αs)])
               ;; TODO: make sure it's ok to reuse variables `xs`
                      
