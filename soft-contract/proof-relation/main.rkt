@@ -19,9 +19,12 @@
 (: MΓ⊢V∈C : -M -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
 (define (MΓ⊢V∈C M Γ W_v W_c)
-  (match-define (-W¹ V v) W_v)
-  (match-define (-W¹ C c) W_c)
-  (first-R (p∋Vs C V) (MΓ⊢s M Γ (-?@ c v))))
+  (with-debugging/off
+    ((ans)
+     (match-define (-W¹ V v) W_v)
+     (match-define (-W¹ C c) W_c)
+     (first-R (p∋Vs C V) (MΓ⊢s M Γ (-?@ c v))))
+    (printf "~a ⊢ ~a ∈ ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c))))
 
 (: MΓ⊢oW : -M -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`

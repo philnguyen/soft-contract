@@ -164,6 +164,11 @@
            [(list (? -v?)) -tt]
            [_ (default-case)])]
 
+       ['immutable?
+        (match xs
+          [(list (-@ 'vector _ _)) -ff]
+          [_ (default-case)])]
+
        ; (car (cons e _)) = e
        [(-st-ac s i)
         (match xs

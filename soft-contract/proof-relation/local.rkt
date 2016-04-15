@@ -398,6 +398,10 @@
              [(list (-b (? Arity? a)) (-b (? Arity? b)))
               (decide-R (arity-includes? a b))]
              [_ '?])]
+          [(immutable?) ;; always true for now because no support for immutable vectors
+           (match Vs
+             [(list (? -●?)) '?]
+             [_ '✗])]
           ;; Default rules for operations on base values rely on simplification from `-?@`
           [else
            (cond
