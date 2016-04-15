@@ -95,7 +95,11 @@
              (define m*
                (for/fold ([m : (HashTable -e -e) m]) ([(x y) mₑᵣ])
                  (cond
-                   [(hash-ref m x #f) => (λ (y*) (assert (equal? y* y)))])
+                   [(hash-ref m x #f) =>
+                    (λ (y*)
+                      (unless (equal? y* y)
+                        (log-warning "replacing ~a ↦ ~a with ~a ↦ ~a~n"
+                                     (show-e x) (show-e y*) (show-e x) (show-e y))))])
                  (hash-set m x y)))
              (define ctx* (-ctx φs* (∪ γʰs γʰs*) m*))
              (set-add acc ctx*)]
