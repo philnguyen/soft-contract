@@ -971,6 +971,7 @@
                     ([x xs] [V Vs] [sₓ (split-values s n)])
             (values (⊔ δσ (ρ@ δρ x) V)
                     (Γ+ (if sₓ (-Γ-with-aliases Γ₁ x sₓ) Γ₁) (-?@ 'defined? (-x x))))))
+        
         (define σ₁ (⊔/m σ₀ δσ))
         
         (match xs-⟦e⟧s
@@ -979,7 +980,7 @@
              (values δσ ∅ ∅ ∅)
              (((↝.letrec-values l δρ xs* xs-⟦e⟧s* ⟦e⟧) ⟦e⟧*) M σ₁ (-ℒ-with-Γ ℒ Γ₁)))]
           ['()
-           (define-values (δσ* ΓWs ΓEs ℐs) (⟦e⟧ M σ (-ℒ-with-Γ ℒ* Γ₁)))
+           (define-values (δσ* ΓWs ΓEs ℐs) (⟦e⟧ M σ₁ (-ℒ-with-Γ ℒ* Γ₁)))
            
            ;;; Erase irrelevant part of path conditions after executing letrec body
 
