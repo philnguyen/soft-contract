@@ -351,7 +351,7 @@
              `(,xs ,(show-e ex)))
         ,(show-e body))]
     [(-letrec-values bnds body)
-     `(let-values
+     `(letrec-values
           ,(for/list : (Listof Sexp) ([bnd bnds])
              (match-define (cons xs ex) bnd)
              `(,xs ,(show-e ex)))
