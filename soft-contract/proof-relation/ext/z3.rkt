@@ -238,7 +238,7 @@
   (with-debugging/off
     ((ans)
      (with-output-to-string
-       (λ () (system (format "echo \"~a\" | z3 -in -smt2" query-str)))))
+       (λ () (system (format "echo \"~a\" | z3 -T:5 -in -smt2" query-str)))))
     (printf "query:~n~a~nget: ~a~n~n" query-str ans)))
 
 (: txt->sat-result : String → Sat-Result)
