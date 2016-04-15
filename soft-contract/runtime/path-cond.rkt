@@ -72,30 +72,6 @@
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (set-remove γs γ)))
 
-(: Γ/ : (HashTable -e -e) -Γ → -Γ)
-;; Substitute free occurrences of `x` with `e` in path condition  
-(define (Γ/ m Γ)
-  (with-debugging/off
-    ((Γₐ)
-     (match-define (-Γ φs as γs) Γ)
-     (define subst (e/map m))
-     (define φs* (map/set subst φs))
-     (define as*
-       (for/hash : (HashTable Var-Name -e) ([(x e) as])
-         (values x (subst e))))
-     (define γs* (map/set (γ/ m) γs))
-     (-Γ φs* as* γs*))
-    (parameterize ([verbose? #t])
-      (printf "Γ/: ~a~n"
-              (for/list : (Listof Sexp) ([(x y) m])
-                `(,(show-e x) ↦ ,(show-e y))))
-      (printf "  - from: ~a~n" (show-Γ Γ))
-      (printf "  - to  : ~a~n" (show-Γ Γₐ))
-      (printf "~n"))))
-
-(: φs/ : (HashTable -e -e) (℘ -e) → (℘ -e))
-(define (φs/ m φs) (map/set (e/map m) φs))
-
 (: γ/ : (HashTable -e -e) → -γ → -γ)
 (define ((γ/ m) γ)
   (match-define (-γ τ bnd blm) γ)

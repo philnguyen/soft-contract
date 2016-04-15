@@ -45,6 +45,11 @@
 ;; Translate path condition and goal into Z3 declarations and formula
 (define (es⊢e->Z3 φs e)
   (define-values (decls₀ e->dec) (es->decls φs))
+  #;(begin
+    (printf "es⊢e->Z3:~n")
+    (printf "  - ~a ⊢ ~a~n" (set-map φs show-e) (show-e e))
+    (printf "  -> decls₀: ~a~n" decls₀)
+    (printf "~n"))
   (cond
     [(exp->Z3 e->dec φs e) =>
      (λ ([concl : Sexp])
@@ -158,31 +163,34 @@
 (: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -e) -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
 ;; Translate restricted syntax into Z3 sexp
 (define (exp->Z3 e->dec φs e)
-  (let go : (Option Sexp) ([e : -e e])
-    (match e
-      [(-@ (? Handled-Z3-op? o) (list e₁ e₂) _)
-       (@? list (o->Z3 o) (! (go e₁)) (! (go e₂)))]
-      [(-@ 'add1 (list e) _) (@? list '+ (! (go e)) 1)]
-      [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
-      [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
-      [(-@ 'zero? (list e) _) (@? list '= (! (go e)) 0)]
-      [(-@ 'negative? (list e) _) (@? list '< (! (go e)) 0)]
-      [(-@ (or 'positive? 'exact-positive-integer?) (list e) _) (@? list '> (! (go e)) 0)]
-      [(-@ 'exact-nonnegative-integer? (list e) _) (@? list '>= (! (go e)) 0)]
-      [(-@ 'even? (list e) _) (@? list '= (@? list 'mod (! (go e)) 2) 0)]
-      [(-@ 'odd? (list e) _) (@? list '= (@? list 'mod (! (go e)) 2) 1)]
-      [(-@ 'integer? (list e) _)
-       (cond
-         [(go e) =>
-          (λ ([z3-e : Sexp])
-            (match (e->dec e)
-              [(or #f (cons _ 'Real)) `(is_int ,z3-e)]
-              [_ #f]))]
-         [else #f])]
-      [(-b b) (and (or (number? b) #;(string b)) b)]
-      [_ (match (e->dec e)
-           [(cons x _) x]
-           [#f #f])])))
+  (with-debugging/off
+    ((ans)
+     (let go : (Option Sexp) ([e : -e e])
+       (match e
+         [(-@ (? Handled-Z3-op? o) (list e₁ e₂) _)
+          (@? list (o->Z3 o) (! (go e₁)) (! (go e₂)))]
+         [(-@ 'add1 (list e) _) (@? list '+ (! (go e)) 1)]
+         [(-@ 'sub1 (list e) _) (@? list '- (! (go e)) 1)]
+         [(-@ 'not (list e) _) (@? list 'not (! (go e)))]
+         [(-@ 'zero? (list e) _) (@? list '= (! (go e)) 0)]
+         [(-@ 'negative? (list e) _) (@? list '< (! (go e)) 0)]
+         [(-@ (or 'positive? 'exact-positive-integer?) (list e) _) (@? list '> (! (go e)) 0)]
+         [(-@ 'exact-nonnegative-integer? (list e) _) (@? list '>= (! (go e)) 0)]
+         [(-@ 'even? (list e) _) (@? list '= (@? list 'mod (! (go e)) 2) 0)]
+         [(-@ 'odd? (list e) _) (@? list '= (@? list 'mod (! (go e)) 2) 1)]
+         [(-@ 'integer? (list e) _)
+          (cond
+            [(go e) =>
+             (λ ([z3-e : Sexp])
+               (match (e->dec e)
+                 [(or #f (cons _ 'Real)) `(is_int ,z3-e)]
+                 [_ #f]))]
+            [else #f])]
+         [(-b b) (and (or (number? b) #;(string b)) b)]
+         [_ (match (e->dec e)
+              [(cons x _) x]
+              [#f #f])])))
+    (printf "exp->Z3: ~a ↦ ~a~n" (show-e e) ans)))
 
 (: es->premises : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -e) → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises

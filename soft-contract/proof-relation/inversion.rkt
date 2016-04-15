@@ -3,6 +3,7 @@
 (provide (struct-out -ctx) (struct-out -γʰ) Γ->ctx invert-ctx invert-ctxs 
          (struct-out -cfg) inj-cfg invert-cfg invert-cfgs
          bnds->subst mk-subst
+         show-γʰ
          )
 
 (require racket/match
@@ -53,10 +54,10 @@
                ([γʰ γʰs])
        (for/union : (℘ -ctx) ([ctxᵢ acc])
                   (invert-γ M ctxᵢ γʰ))))
-    (printf "invert-ctx: ~a | ~a ~n" (set-map φs show-e) (map show-γ (set-map γʰs -γʰ-tail)))
+    (printf "invert-ctx: ~a, ~a ~n" (set-map φs show-e) (set-map γʰs show-γʰ))
     (for ([ctx ctxs])
-      (match-define (-ctx φs _ _) ctx)
-      (printf "  - ~a~n" (set-map φs show-e)))
+      (match-define (-ctx φs γʰs _) ctx)
+      (printf "  - ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ)))
     (printf "~n")))
 
 (: invert-γ : -M -ctx -γʰ → (℘ -ctx))
@@ -65,47 +66,54 @@
   (match-define (-γʰ γ τs) γʰ)
   (match-define (-γ τ bnd blm) γ)
 
-  (cond
-    ;; Just truncate this branch for now.
-    ;; TODO: need more care for sound induction without accidentally admitting non-sense
-    [(∋ τs τ)
-     {set ctx}]
-    ;; Invert for new hypotheses and tails
-    [else
-     (define h∅ : (HashTable -e -e) (hash))
-     (define m₀ (bnds->subst bnd))
-     (define fvs (-binding-dom bnd))
-     (define τs* (set-add τs τ))
-     
-     (: on-ans : (℘ -ctx) (℘ -e) (℘ -γ) -s → (℘ -ctx))
-     (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
-       (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ bnd sₑₑ))
-       (define φsₑᵣ₊ (ensure-simple-consistency (φs/ mₑₑ (φs↓ φsₑₑ fvs))))
-       (define φsₑᵣ  (ensure-simple-consistency (φs/ mₑᵣ φs)))
-       (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
-       (define γʰs*
-         (for/set: : (℘ -γʰ) ([γₑₑ γsₑₑ])
-           (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
-           (-γʰ γₑᵣ τs*)))
-       (cond
-         [φs*
-          (define m*
-            (for/fold ([m : (HashTable -e -e) m]) ([(x y) mₑᵣ])
-              (cond
-                [(hash-ref m x #f) => (λ (y*) (assert (equal? y* y)))])
-              (hash-set m x y)))
-          (define ctx* (-ctx φs* (∪ γʰs γʰs*) m*))
-          (set-add acc ctx*)]
-         [else acc]))
-     
-     (for/fold ([acc : (℘ -ctx) ∅])
-               ([A (M@ M τ)])
-       (match* (A blm)
-         [((-ΓW (-Γ φs₀ _ γs₀) (-W _ sₐ)) #f)
-          (on-ans acc φs₀ γs₀ sₐ)]
-         [((-ΓE (-Γ φs₀ _ γs₀) (-blm l+ lo _ _)) (cons l+ lo))
-          (on-ans acc φs₀ γs₀ #f)]
-         [(_ _) acc]))]))
+  (with-debugging/off
+    ((ctxs)
+     (cond
+       ;; Just truncate this branch for now.
+       ;; TODO: need more care for sound induction without accidentally admitting non-sense
+       [(∋ τs τ)
+        {set ctx}]
+       ;; Invert for new hypotheses and tails
+       [else
+        (define h∅ : (HashTable -e -e) (hash))
+        (define m₀ (bnds->subst bnd))
+        (define fvs (-binding-dom bnd))
+        (define τs* (set-add τs τ))
+        
+        (: on-ans : (℘ -ctx) (℘ -e) (℘ -γ) -s → (℘ -ctx))
+        (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
+          (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ bnd sₑₑ))
+          (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
+          (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
+          (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
+          (define γʰs*
+            (for/set: : (℘ -γʰ) ([γₑₑ γsₑₑ])
+              (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
+              (-γʰ γₑᵣ τs*)))
+          (cond
+            [φs*
+             (define m*
+               (for/fold ([m : (HashTable -e -e) m]) ([(x y) mₑᵣ])
+                 (cond
+                   [(hash-ref m x #f) => (λ (y*) (assert (equal? y* y)))])
+                 (hash-set m x y)))
+             (define ctx* (-ctx φs* (∪ γʰs γʰs*) m*))
+             (set-add acc ctx*)]
+            [else acc]))
+        
+        (for/fold ([acc : (℘ -ctx) ∅])
+                  ([A (M@ M τ)])
+          (match* (A blm)
+            [((-ΓW (-Γ φs₀ _ γs₀) (-W _ sₐ)) #f)
+             (on-ans acc φs₀ γs₀ sₐ)]
+            [((-ΓE (-Γ φs₀ _ γs₀) (-blm l+ lo _ _)) (cons l+ lo))
+             (on-ans acc φs₀ γs₀ #f)]
+            [(_ _) acc]))]))
+    (printf "invert-γ: ~a, ~a @ ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ) (show-γʰ γʰ))
+    (for ([ctx* ctxs])
+      (match-define (-ctx φs γʰs _) ctx*)
+      (printf "  - ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ)))
+    (printf "~n")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,3 +152,5 @@
     [(and a fargs)
      (values (hash-set m₀ a fargs ) (hash) sₐ)]
     [else (values m₀ (hash) sₐ)]))
+
+(define (show-γʰ [γʰ : -γʰ]) (show-γ (-γʰ-tail γʰ)))

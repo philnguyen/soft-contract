@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide es⊢e es⊢ₑₓₜe lite? Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓ es⊓
-         ensure-simple-consistency
+         φs/ensure-consistency Γ/ensure-consistency
          plausible-es-s? plausible-W? plausible-V-s?)
 
 (require racket/match
@@ -10,7 +10,7 @@
          (except-in racket/function arity-includes?)
          "../utils/main.rkt"
          "../primitives/utils.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "../runtime/main.rkt"
          "result.rkt"
          (for-syntax
@@ -283,11 +283,17 @@
 
 (: es⊓ : (℘ -e) (℘ -e) → (Option (℘ -e)))
 (define (es⊓ es₀ es₁)
-  (for/fold ([es₀ : (Option (℘ -e)) es₀]) ([e₁ es₁])
-    (and es₀
-         (case (es⊢e es₀ e₁)
-           [(✓ ?) (set-add es₀ e₁)]
-           [(✗)   #f]))))
+  (with-debugging/off
+    ((ans)
+     (for/fold ([es₀ : (Option (℘ -e)) es₀]) ([e₁ es₁])
+       (and es₀
+            (case (es⊢e es₀ e₁)
+              [(✓ ?) (set-add es₀ e₁)]
+              [(✗)   #f]))))
+    (printf "es⊓:~n")
+    (printf "  - ~a~n" (set-map es₀ show-e))
+    (printf "  - ~a~n" (set-map es₁ show-e))
+    (printf "  --> ~a~n~n" (and ans (set-map ans show-e)))))
 
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Join 2 path conditions, eliminating obvious inconsistencies
@@ -438,20 +444,47 @@
             '✗]
            [else '?])]))
 
-(: ensure-simple-consistency (case->
-                               [#f → #f]
-                               [(℘ -e) → (Option (℘ -e))]
-                               [-Γ → (Option -Γ)]))
-(define ensure-simple-consistency
-  (match-lambda
-    [(? set? φs)
-     (define plausible?
-       (not (for/or : Boolean ([φ φs])
-              (or (equal? φ -ff) (∋ φs (-not φ))))))
-     (and plausible? φs)]
-    [(and (-Γ φs _ _) Γ)
-     (and (ensure-simple-consistency φs) Γ)]
-    [_ #f]))
+(: φs/ensure-consistency : (HashTable -e -e) (℘ -e) → (Option (℘ -e)))
+;; Substitute and throw away inconsistent path-condition
+(define (φs/ensure-consistency m φs)
+  (define subst (e/map m))
+  (define-values (acc φs*)
+    (for/fold ([acc : (Option (℘ -e)) φs]
+               [φs* : (℘ -e) ∅])
+              ([φ φs])
+      (cond
+        [acc
+         (define φ* (subst φ))
+         (if (and (not (equal? φ* φ)) (eq? '✗ (es⊢e acc φ*)))
+             (values #f ∅)
+             (values (set-add acc φ*) (set-add φs* φ*)))]
+        [else (values #f ∅)])))
+  (and acc φs*))
+
+(: Γ/ensure-consistency : (HashTable -e -e) -Γ → (Option -Γ))
+;; Substitute free occurrences of `x` with `e` in path condition  
+;; Throw away inconsistent path-condition
+(define (Γ/ensure-consistency m Γ)
+  (with-debugging/off
+    ((Γₐ)
+     (match-define (-Γ φs as γs) Γ)
+     (define φs* (φs/ensure-consistency m φs))
+     (cond
+       [φs*
+        (define as*
+          (let ([subst (e/map m)])
+            (for/hash : (HashTable Var-Name -e) ([(x e) as])
+              (values x (subst e)))))
+        (define γs* (map/set (γ/ m) γs))
+        (-Γ φs* as* γs*)]
+       [else #f]))
+    (parameterize ([verbose? #t])
+      (printf "Γ/: ~a~n"
+              (for/list : (Listof Sexp) ([(x y) m])
+                `(,(show-e x) ↦ ,(show-e y))))
+      (printf "  - from: ~a~n" (show-Γ Γ))
+      (printf "  - to  : ~a~n" (show-Γ Γₐ))
+      (printf "~n"))))
 
 
 (module+ test
