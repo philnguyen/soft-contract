@@ -14,4 +14,4 @@
     (bubble-sort vec)))
 
 (provide/contract
- [bubble-sort ((vectorof string?) . -> . void?)])
+ [bubble-sort ((vectorof integer?) . -> . void?)])
