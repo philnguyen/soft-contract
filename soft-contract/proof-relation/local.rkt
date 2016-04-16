@@ -2,7 +2,8 @@
 
 (provide es⊢e es⊢ₑₓₜe lite? Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓ es⊓
          φs/ensure-consistency Γ/ensure-consistency
-         plausible-es-s? plausible-W? plausible-V-s?)
+         plausible-es-s? plausible-W? plausible-V-s?
+         first-R)
 
 (require racket/match
          racket/set

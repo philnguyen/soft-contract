@@ -239,8 +239,9 @@
             (for/list ([ref refinements])
               (match-define `(,(? symbol? dom-chks) ... . -> . ,(? symbol? rng-chk)) ref)
               (define arg-checks
-                (for/list ([dom-chk dom-chks] [W-id W-ids])
-                  #`(eq? '✓ (MΓ⊢oW #,(M-id) #,(Γ-id) '#,dom-chk #,W-id))))
+                (for/list ([dom-chk dom-chks] [W-id W-ids] [e-id e-ids])
+                  #`(eq? '✓ (first-R (p∋Vs '#,dom-chk (-W¹-V #,W-id))
+                                     (Γ⊢e #,(Γ-id) (-?@ '#,dom-chk #,e-id))))))
               (define precond ; make it a little prettier
                 (match arg-checks
                   [(list e) e]
