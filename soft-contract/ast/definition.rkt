@@ -367,18 +367,13 @@
     [(-μ/c x c) `(μ/c (,(show-x/c x)) ,(show-e c))]
     [(--> cs d _)
      `(,@(map show-e cs) . -> . ,(show-e d))]
-    [(-->i cs (-λ xs d) _)
+    [(-->i cs (and d (-λ xs _)) _)
      (match xs
        [(? list? xs)
-        `(,@(for/list : (Listof Sexp) ([c cs] [x xs])
-              `(,x : ,(show-e c)))
-          ↦ ,(show-e d))]
+        `(,@(map show-e cs) ↦ ,(show-e d))]
        [(-varargs xs₀ x)
         (define-values (cs₀ c) (split-at cs (length xs₀)))
-        `(,@(for/list : (Listof Sexp) ([c cs₀] [x xs₀])
-              `(,x : ,(show-e c)))
-          #:rest `(,x : ,(show-e c))
-          ↦ ,(show-e d))])]
+        `(,@(map show-e cs₀) #:rest ,@(map show-e c) ↦ ,(show-e d))])]
     [(-case-> clauses _)
      (for/list : (Listof Sexp) ([clause clauses])
        (match-define (cons cs d) clause)
