@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         (except-in racket/function arity-includes?)
          "../utils/main.rkt"
          "../ast/main.rkt"
          "definition.rkt"
@@ -99,13 +100,14 @@
 
 (define (show-M-Γ [M : -M] [Γ : -Γ]) : (Values Sexp (Listof Sexp))
   (match-define (-Γ _ _ γs) Γ)
-  (define ts : (Listof Sexp)
-    (for/list ([γ γs])
-      (match-define (-γ τ bnd blm) γ)
-      (define As (M@ M τ))
-      (define ↦ (if blm '↦ₑ '↦ᵥ))
-      `(,(show-γ γ) ≡ (,(show-τ τ) @ ,(show-binding bnd)) ,↦ ,@(set-map As show-A))))
+  (define ts (set-map γs (curry show-M-γ M)))
   (values (show-Γ Γ) ts))
+
+(define (show-M-γ [M : -M] [γ : -γ]) : (Listof Sexp)
+  (match-define (-γ τ bnd blm) γ)
+  (define As (M@ M τ))
+  (define ↦ (if blm '↦ₑ '↦ᵥ))
+  `(,(show-γ γ) ≡ (,(show-τ τ) @ ,(show-binding bnd)) ,↦ ,@(set-map As show-A)))
 
 (module+ test
   (require typed/rackunit)
