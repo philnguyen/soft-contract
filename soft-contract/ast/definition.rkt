@@ -157,6 +157,8 @@
 (define -set-box! (-st-mut -s-box 0))
 (define -pred (--> (list 'any/c) 'boolean? 0))
 
+(define m∅ : (HashTable -e -e) (hash))
+
 (: -cond : (Listof (Pairof -e -e)) -e → -e)
 ;; Make `cond` at object language level, expanding to `if`
 (define (-cond cases default)
@@ -424,3 +426,6 @@
 (define (show-Var-Name [x : Var-Name]) : Symbol
   (cond [(integer? x) (format-symbol "𝐱~a" (n-sub x))]
         [else x]))
+
+(define (show-e-map [m : (HashTable -e -e)]) : (Listof Sexp)
+  (for/list ([(x y) m]) `(,(show-e x) ↦ ,(show-e y))))

@@ -199,7 +199,9 @@
 (: -binding-dom : -binding → (℘ Var-Name))
 (define (-binding-dom bnd)
   (match-define (-binding _ _ x->e) bnd)
-  (list->set (hash-keys x->e)))
+  (apply set-union
+         (list->set (hash-keys x->e))
+         (map fv (hash-values x->e))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

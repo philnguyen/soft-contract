@@ -75,7 +75,6 @@
         {set ctx}]
        ;; Invert for new hypotheses and tails
        [else
-        (define h∅ : (HashTable -e -e) (hash))
         (define m₀ (bnds->subst bnd))
         (define fvs (-binding-dom bnd))
         (define τs* (set-add τs τ))
@@ -90,20 +89,28 @@
             (for/set: : (℘ -γʰ) ([γₑₑ γsₑₑ])
               (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
               (-γʰ γₑᵣ τs*)))
-          (cond
-            [φs*
-             (define m*
-               (for/fold ([m : (HashTable -e -e) m]) ([(x y) mₑᵣ])
-                 (cond
-                   [(hash-ref m x #f) =>
-                    (λ (y*)
-                      (unless (equal? y* y)
-                        (log-warning "replacing ~a ↦ ~a with ~a ↦ ~a~n"
-                                     (show-e x) (show-e y*) (show-e x) (show-e y))))])
-                 (hash-set m x y)))
-             (define ctx* (-ctx φs* (∪ γʰs γʰs*) m*))
-             (set-add acc ctx*)]
-            [else acc]))
+          (with-debugging/off
+            ((ctxs)
+             (cond
+               [φs*
+                (define m*
+                  (for/fold ([m : (HashTable -e -e) m]) ([(x y) mₑᵣ])
+                    (cond
+                      [(hash-ref m x #f) =>
+                       (λ (y*)
+                         (unless (equal? y* y)
+                           (log-warning "replacing ~a ↦ ~a with ~a ↦ ~a~n"
+                                        (show-e x) (show-e y*) (show-e x) (show-e y))))])
+                    (hash-set m x y)))
+                (define ctx* (-ctx φs* (∪ γʰs γʰs*) m*))
+                (set-add acc ctx*)]
+               [else acc]))
+            (printf "on-ans:~n")
+            (printf "  - callee knows: ~a~n" (set-map φsₑₑ show-e))
+            (printf "  - calle res: ~a~n" (and sₑₑ (show-e sₑₑ)))
+            (printf "  - caller addition: ~a~n" (and φsₑᵣ₊ (set-map φsₑᵣ₊ show-e)))
+            (printf "  - caller final: ~a~n" (and φs* (set-map φs* show-e)))
+            (printf "~n")))
         
         (for/fold ([acc : (℘ -ctx) ∅])
                   ([A (M@ M τ)])
@@ -128,7 +135,7 @@
 ;; Convert list of `param -> arg` to hashtable
 (define (bnds->subst bnd)
   (match-define (-binding _ _ x->e) bnd)
-  (for*/hash : (HashTable -e -e) ([(x e) x->e])
+  (for/hash : (HashTable -e -e) ([(x e) x->e])
     (values (-x x) e)))
 
 (: mk-subst : (HashTable -e -e) -binding -s → (Values (HashTable -e -e) (HashTable -e -e) -s))
@@ -140,21 +147,54 @@
   (define args (-binding-args bnd))
   (define dom (-binding-dom bnd))
   (define fargs (apply -?@ f args))
+  (define-values (fargs↓ mₐ) (β* fargs))
   
   ;; Unfold caller's result to callee's result if callee's result is in terms
   ;; of only variables caller understands
-  (define fargs*
+  (define fargsₐ
     (let ([all-args? (andmap (inst values Any) args)]
-          [a* (s↓ a dom)])
+          [a* (s↓ (and a ((e/map mₐ) a)) dom)])
       (and all-args? a* ((e/map m₀) a*))))
   
-  (define sₐ (or fargs* fargs))
+  (with-debugging/off
+    ((mₑₑ mₑᵣ sₐ)
+     (cond
+       [(and a fargs fargs↓ fargsₐ)
+        (values (hash-set m₀ a fargsₐ) (hash fargs fargsₐ fargs↓ fargsₐ) fargsₐ)]
+       [(and a fargs fargs↓)
+        (values (hash-set m₀ a fargs↓) m∅ fargs↓)]
+       [else (values m₀ m∅ fargs↓)]))
+    (printf "mk-subst:~n")
+    (printf "  - m₀: ~a~n" (show-e-map m₀))
+    (printf "  - bnd: ~a~n" (show-binding bnd))
+    (printf "  - fvs: ~a~n" (set-map dom show-Var-Name))
+    (printf "  - mₑₑ: ~a~n" (show-e-map mₑₑ))
+    (printf "  - mₑᵣ: ~a~n" (show-e-map mₑᵣ))
+    (printf "  - sₐ: ~a~n" (show-s sₐ))
+    (printf "~n")))
 
-  (cond
-    [(and a fargs fargs*)
-     (values (hash-set m₀ a fargs*) (hash fargs fargs*) sₐ)]
-    [(and a fargs)
-     (values (hash-set m₀ a fargs ) (hash) sₐ)]
-    [else (values m₀ (hash) sₐ)]))
+(: β* : -s → (Values -s (HashTable -e -e)))
+;; Take β-normal form. Assume the user of this function knows for sure it exists.
+(define (β* s)
+  (with-debugging/off
+    ((sₐ mₐ)
+     (define m : (HashTable -e -e) m∅)
+     (: go! (case-> [#f → #f] [-e → -e] [-s → -s]))
+     (define (go! s)
+       (match s
+         [(-@ f args _)
+          (match* ((go! f) (map go! args))
+            [((-λ (? list? xs) e) args*)
+             (for ([x xs] [arg args*])
+               (set! m (hash-set m (-x x) arg)))
+             (go! ((e/map m) e))]
+            [(f* args*) (-@ f* args* 0)])]
+         [_ s]))
+     (define sₐ (go! s))
+     (values sₐ m))
+    (printf "β* ~a -> ~a, ~a~n"
+            (show-s s)
+            (show-s sₐ)
+            (show-e-map mₐ))))
 
 (define (show-γʰ [γʰ : -γʰ]) (show-γ (-γʰ-tail γʰ)))
