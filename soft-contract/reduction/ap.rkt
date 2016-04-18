@@ -121,7 +121,7 @@
       (match-define (Mon-Info l+ l- lo) l³)
       (define l³* (Mon-Info l- l+ lo))
       (define Wᵤ (-W¹ Vᵤ sₕ)) ;; Inner function
-      (match-define (-=> αs β) C)
+      (match-define (-=> αs β _) C)
       (define cs : (Listof -s) (for/list ([α αs]) (and (-e? α) α)))
       (define d (and (-e? β) β))
       
@@ -132,20 +132,20 @@
            (((↝.mon.c l³ ℓ (-W¹ D d)) ⟦ap⟧) M σ ℒ₀))]
         [(cons α αs*)
          (for*/ans ([Cs (σ@/list σ αs)])
-           (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
-             (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs])
-               (mon l³* ℓ (-W¹ C c) Wₓ)))
-           (define ⟦ap⟧ : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ) ⟦mon-x⟧s) ⟦mon-x⟧))
-           (for*/ans ([D (σ@ σ β)])
-             (define comp : -⟦e⟧ ((↝.mon.c l³ ℓ (-W¹ D d)) ⟦ap⟧))
-             (comp M σ ℒ₀)))]))
+            (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
+              (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs])
+            (mon l³* ℓ (-W¹ C c) Wₓ)))
+            (define ⟦ap⟧ : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ) ⟦mon-x⟧s) ⟦mon-x⟧))
+            (for*/ans ([D (σ@ σ β)])
+              (define comp : -⟦e⟧ ((↝.mon.c l³ ℓ (-W¹ D d)) ⟦ap⟧))
+              (comp M σ ℒ₀)))]))
 
     (: ap/indy : -=>i -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/indy C Vᵤ l³)
       (match-define (Mon-Info l+ l- lo) l³)
       (define l³* (Mon-Info l- l+ lo))
       (define Wᵤ    (-W¹ Vᵤ   sₕ)) ;; Inner function
-      (match-define (-=>i αs γ) C)
+      (match-define (-=>i αs γ _) C)
       (define cs : (Listof -s) (for/list ([α αs]) (and (-e? α) α)))
       (define mk-d (and (-λ? γ) γ))
 
@@ -577,8 +577,8 @@
   (define arity
     (let ([a
            (match grd
-             [(-=> αs _) (length αs)]
-             [(-=>i _ β)
+             [(-=> αs _ _) (length αs)]
+             [(-=>i _ β _)
               (match β
                 [(-λ xs _) (formals-arity xs)]
                 [_ #f])])])
@@ -600,10 +600,13 @@
     (define-set ΓEs : -ΓE)
     (define δσ : -Δσ ⊥σ)
     (when Γ₁₁
-      (define α (-α.rng ℓ (-ℒ-hist ℒ)))
+      (define grd-ℓ
+        (cond [(-=>? grd) (-=>-pos grd)]
+              [else (-=>i-pos grd)]))
+      (define α (-α.fn ℓ grd-ℓ (-ℒ-hist ℒ)))
       (define Ar (-Ar grd α l³))
       (ΓWs-add! (-ΓW Γ₁₁ (-W (list Ar) v)))
-      (set! δσ (⊔ ⊥σ α V)))
+      (set! δσ (⊔ δσ α V)))
     (when Γ₁₂
       (define C #|HACK|#
         (match arity
@@ -890,14 +893,16 @@
       (λ (ℰ) (-ℰ.mon.c l³ ℓ Ctc ℰ))
       (λ (σ* Γ* W)
         (match-define (-W Vs v) W)
-        (with-guarded-arity 1 (lo Γ* Vs)
-          (match-define (list V) Vs)
-          (define W-V (-W¹ V v))
-          ;; If contract is evaluated, check with it, otherwise evaluate it before checking
-          (define ⟦mon⟧
-            (cond [(-W¹? Ctc) (   mon   l³ ℓ Ctc  W-V)]
-                  [else       ((↝.mon.v l³ ℓ W-V) Ctc)]))
-          (⟦mon⟧ M σ* (-ℒ-with-Γ ℒ Γ*)))))
+        (with-debugging
+          ((δσ ΓWs ΓEs ℐs)
+           (with-guarded-arity 1 (lo Γ* Vs)
+             (match-define (list V) Vs)
+             (define W-V (-W¹ V v))
+             ;; If contract is evaluated, check with it, otherwise evaluate it before checking
+             (define ⟦mon⟧
+               (cond [(-W¹? Ctc) (   mon   l³ ℓ Ctc  W-V)]
+                     [else       ((↝.mon.v l³ ℓ W-V) Ctc)]))
+             (⟦mon⟧ M σ* (-ℒ-with-Γ ℒ Γ*)))))))
      (⟦e⟧ M σ ℒ))))
 
 

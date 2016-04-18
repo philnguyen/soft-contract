@@ -88,7 +88,7 @@
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
   (define-values (σ₁ αs) (alloc-prims σ cs))
   (define-values (σ₂ β ) (alloc-prim  σ₁ d))
-  (define C (-=> αs β))
+  (define C (-=> αs β (+ℓ!)))
   (define O (-Ar C α₀ (Mon-Info (show-o o) 'dummy (show-o o))))
   (⊔* σ₂ [α₀ o] [α₁ O]))
 
@@ -125,7 +125,7 @@
      (define-values (σ₂ αs) (alloc-consts σ₁ Cs cs))
      (define-values (σ₃ D d) (alloc-C σ₂ rng))
      (define-values (σ₄ β) (alloc-const σ₃ D d))
-     (define C (-=> αs β))
+     (define C (-=> αs β (+ℓ!)))
      (define c (--> cs d 0))
      (values σ₄ C c)]
     [`((,doms ...) #:rest ,rst . ->* . d)

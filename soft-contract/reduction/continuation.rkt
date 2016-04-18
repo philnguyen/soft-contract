@@ -133,7 +133,7 @@
               (match-define (-W¹ C c) W)
               (define α (or (keep-if-const c) (-α.dom ℓ 𝒞 i)))
               (values (⊔ δσ α C) (cons α αs) (cons c cs))))
-          (define G (-=> αs β))
+          (define G (-=> αs β ℓ))
           (define g (-?-> cs d))
           (values δσ {set (-ΓW Γ* (-W (list G) g))} ∅ ∅))))
      (⟦d⟧ M σ ℒ))))
@@ -171,7 +171,7 @@
   (match-define (-W¹ D d) Mk-D)
   (define γ (or (keep-if-const d) (-α.rng ℓ 𝒞)))
   (define δσ* (⊔ δσ γ D))
-  (define C (-=>i αs γ))
+  (define C (-=>i αs γ ℓ))
   (define c (-?->i cs (and d (assert d -λ?))))
   (values δσ* {set (-ΓW Γ (-W (list C) c))} ∅ ∅))
 

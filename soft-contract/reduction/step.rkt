@@ -277,7 +277,7 @@
       (match ⟦clause⟧s
         ['()
          (λ (M σ ℒ)
-           (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list (-Case-> '())) e))} ∅ ∅))]
+           (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list (-Case-> '() ℓ)) e))} ∅ ∅))]
         [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
          ((↝.case-> l ℓ '() '() ⟦c⟧s ⟦clause⟧s*) ⟦c⟧)])]
      [(-x/c x)

@@ -19,8 +19,8 @@
 
 (define guard-arity : (-=>_ → Arity)
   (match-lambda
-    [(-=> αs _) (length αs)]
-    [(-=>i _ β)
+    [(-=> αs _ _) (length αs)]
+    [(-=>i _ β _)
      (match β
        [(-λ xs _) (formals-arity xs)]
        [_ (error 'guard-arity "unhandled")])]))

@@ -92,9 +92,9 @@
             (-Vector/C (Listof (U -α.vector/c -α.cnst))))
 
 ;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (Listof (U -α.dom -α.cnst))] [rng : -α])
-              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [mk-rng : -α])
-              (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng))))
+(-=>_ . ::= . (-=>  [doms : (Listof (U -α.dom -α.cnst))] [rng : -α] [pos : -ℓ])
+              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [mk-rng : -α] [pos : -ℓ])
+              (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng)) [pos : -ℓ]))
 
 (struct -blm ([violator : Mon-Party] [origin : Mon-Party]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
@@ -246,6 +246,7 @@
             (-α.x/c [pos : -ℓ])
             (-α.dom [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
             (-α.rng [pos : -ℓ] [ctx : -𝒞])
+            (-α.fn [mon-pos : -ℓ] [guard-pos : -ℓ] [ctx : -𝒞])
 
             -α.cnst)
 
@@ -342,7 +343,7 @@
 
 (define (show-σ [σ : -σ]) : (Listof Sexp)
   (for/list ([(α Vs) σ]
-             #:when (or (-α.x? α) (-α.idx? α) (-α.st? α)))
+             #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
     `(,(show-α α) ↦ ,@(set-map Vs show-V))))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
@@ -390,14 +391,14 @@
     [(-Not/C γ) `(not/c ,(show-α γ))]
     [(-Vectorof γ) `(vectorof ,(show-α γ))]
     [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
-    [(-=> αs β) `(,@(map show-α αs) . -> . ,(show-α β))]
-    [(-=>i γs α)
+    [(-=> αs β _) `(,@(map show-α αs) . -> . ,(show-α β))]
+    [(-=>i γs α _)
      (define cs : (Listof -s)
        (for/list ([γ : -α γs])
          (and (-e? γ) γ)))
      (define d : -s (and (-e? d) d))
      `(,@(map show-s cs) . ->i . ,(show-s d))]
-    [(-Case-> cases)
+    [(-Case-> cases _)
      `(case->
        ,@(for/list : (Listof Sexp) ([kase cases])
            (match-define (cons αs β) kase)
