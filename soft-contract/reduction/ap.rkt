@@ -240,9 +240,10 @@
 
     (: ap/st-mk : -struct-info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/st-mk s)
+      (define 𝒾 (-struct-info-id s))
       (define αs : (Listof -α.fld)
         (for/list ([i : Natural (-struct-info-arity s)])
-          (-α.fld ℓ 𝒞₀ i)))
+          (-α.fld 𝒾 ℓ 𝒞₀ i)))
       (define δσ
         (for/fold ([δσ : -Δσ ⊥σ])
                   ([α αs] [W Wₓs])

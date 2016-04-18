@@ -7,7 +7,6 @@
                "sto.rkt"
                "path-cond.rkt"
                "val.rkt"
-               "addr.rkt"
                "local.rkt"))
 (require "simp.rkt"
          "definition.rkt"
@@ -16,5 +15,4 @@
          "sto.rkt"
          "path-cond.rkt"
          "val.rkt"
-         "addr.rkt"
          "local.rkt")

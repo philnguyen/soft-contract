@@ -760,15 +760,15 @@
 
      ;; 4.9.2 List Operations
      [length
-      (list? . -> . exact-nonnegative-integer?)]
+      ((listof any/c) . -> . exact-nonnegative-integer?)]
      [list-ref
       (pair? exact-nonnegative-integer? . -> . any/c)]
      [list-tail
       (any/c exact-nonnegative-integer? . -> . any/c)]
      [append ; FIXME uses
-      (list? list? . -> . list?)]
+      ((listof any/c) (listof any/c) . -> . (listof any/c))]
      [reverse
-      (list? . -> . list?)]
+      ((listof any/c) . -> . (listof any/c))]
 
      ;; 4.9.3 List Iteration
      [map ; FIXME uses

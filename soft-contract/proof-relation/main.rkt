@@ -24,7 +24,7 @@
      (match-define (-W¹ V v) W_v)
      (match-define (-W¹ C c) W_c)
      (first-R (p∋Vs C V) (MΓ⊢s M Γ (-?@ c v))))
-    (printf "~a ⊢ ~a ∈ ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c))))
+    (printf "~a ⊢ ~a ∈ ~a : ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans)))
 
 (: MΓ⊢oW : -M -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`

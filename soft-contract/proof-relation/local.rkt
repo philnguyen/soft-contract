@@ -247,7 +247,7 @@
     [((list V) _) #:when s
      (plausible-V-s? φs V s)]
     [(_ (or (? -v?) (-@ (? -prim?) _ _))) #f] ; length(Vs) ≠ 1, length(s) = 1
-    [(_ #f) #t]))
+    [(_ _) #t]))
 
 (: plausible-V-s? : (℘ -e) -V -s → Boolean)
 (define (plausible-V-s? φs V s)
@@ -266,7 +266,7 @@
           (plausible-es-s? φs (-?@ (-st-p si) s))]
          [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
           (plausible-es-s? φs (-?@ 'vector? s))]
-         [(or (? -Clo?) (? -Ar?) (? -o?))
+         [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
           (plausible-es-s? φs (-?@ 'procedure? s))]
          [(-b (? p?))
           (and (plausible-es-s? φs (-?@ 'p? s))
@@ -374,7 +374,7 @@
           [(procedure?)
            (match Vs
              [(list (-● _)) '?]
-             [(list (or (? -o?) (? -Clo?) (? -Ar?) (? -Not/C?))) '✓]
+             [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?))) '✓]
              [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
              [_ '✗])]
           [(vector?)
@@ -510,8 +510,8 @@
   (check-✓ (p∋Vs 'number? (-b 1)))
   (check-✓ (p∋Vs 'procedure? (-Clo '(x) (λ _ (⊥ans)) ⊥ρ ⊤Γ)))
   (check-✓ (p∋Vs 'procedure? 'procedure?))
-  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld 0 0 0) (-α.fld 0 0 1)))))
-  (check-✗ (p∋Vs 'number? (-St -s-cons (list (-α.fld 0 0 0) (-α.fld 0 0 1)))))
+  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld -𝒾-cons 0 0 0) (-α.fld -𝒾-cons 0 0 1)))))
+  (check-✗ (p∋Vs 'number? (-St -s-cons (list (-α.fld -𝒾-cons 0 0 0) (-α.fld -𝒾-cons 0 0 1)))))
   (check-✗ (p∋Vs 'integer? (-b 1.5)))
   (check-✗ (p∋Vs 'real? (-b 1+1i)))
   (check-? (p∋Vs 'integer? -●/V))
