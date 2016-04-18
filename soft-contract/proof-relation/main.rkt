@@ -65,17 +65,17 @@
           [?-mt? (cond [✗-mt? '✓] [✓-mt? '✗] [else '?])]
           [else
            (cond [✗-mt?
-                  (define cfgs* (invert-cfgs M cfgs))
+                  (define cfgs* (invert-cfgs M ?s))
                   (cond
-                    [(equal? cfgs* cfgs) '?]
+                    [(equal? cfgs* ?s) '?]
                     [✓-mt? (⊢cfgs M cfgs* #:depth (- d 1))]
                     [else (case (⊢cfgs M cfgs* #:depth (- d 1))
                             [(✓)   '✓]
                             [(✗ ?) '?])])]
                  [✓-mt?
-                  (define cfgs* (invert-cfgs M cfgs))
+                  (define cfgs* (invert-cfgs M ?s))
                   (cond
-                    [(equal? cfgs* cfgs) '?]
+                    [(equal? cfgs* ?s) '?]
                     [else (case (⊢cfgs M cfgs* #:depth (- d 1))
                             [(✗)   '✗]
                             [(✓ ?) '?])])]
