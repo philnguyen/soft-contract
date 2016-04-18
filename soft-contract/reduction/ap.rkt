@@ -235,7 +235,7 @@
         (case (MΓ⊢oW M Γ₀ (-st-p s) (car Wₓs))
           [(✓) (-ΓW (Γ+ Γ₀ sₐ)        (-W -True/Vs  sₐ))]
           [(✗) (-ΓW (Γ+ Γ₀ (-not sₐ)) (-W -False/Vs sₐ))]
-          [(?) (-ΓW     Γ₀            (-W -●/Vs     sₐ))]))
+          [(?) (-ΓW     Γ₀            (-W -Bool/Vs  sₐ))]))
       (values ⊥σ {set ans} ∅ ∅))
 
     (: ap/st-mk : -struct-info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
