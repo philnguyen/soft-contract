@@ -173,7 +173,7 @@
         _ _
         (#%plain-lambda () (quote-syntax k1:id))))
      (-define-values (list (syntax-e #'k1)) (-ref (-𝒾 (syntax-e #'k) (cur-mod)) 0))]
-    [(define-syntaxes () ...) #f]
+    [(define-syntaxes _ ...) #f]
     [_ (parse-e form)]))
 
 (define/contract (parse-e stx)
@@ -355,7 +355,8 @@
          (list (parse-quote #'l) (parse-quote #'r))
          (+ℓ!))]
     [() -null]
-    [e (error 'parse-quote "unsupported quoted form: ~a" (syntax-e #'e))]))
+    [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (+ℓ!))]
+    [e (error 'parse-quote "unsupported quoted form: ~a" (syntax->datum #'e))]))
 
 ;; Parse given `formals` to extend environment
 (define/contract (parse-formals formals)
