@@ -25,6 +25,10 @@
   (define m (file->module p))
   (define-values (σ₁ e₁) (𝑰 (list m)))
   (define-values (As M Ξ σ) (run (⇓ₚ (list m) e₁) σ₁))
+  #;(begin
+    (printf "final σ:~n")
+    (for ([r (show-σ σ)])
+      (printf "  - ~a~n" r)))
   (values As M Ξ))
 
 (: run-e : -e → (Values (℘ -A) #|for debugging|# -M -Ξ))

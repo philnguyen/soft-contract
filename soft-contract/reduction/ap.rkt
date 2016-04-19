@@ -894,7 +894,7 @@
       (λ (ℰ) (-ℰ.mon.c l³ ℓ Ctc ℰ))
       (λ (σ* Γ* W)
         (match-define (-W Vs v) W)
-        (with-debugging
+        (with-debugging/off
           ((δσ ΓWs ΓEs ℐs)
            (with-guarded-arity 1 (lo Γ* Vs)
              (match-define (list V) Vs)
