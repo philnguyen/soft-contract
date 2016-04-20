@@ -158,7 +158,7 @@
 
      ;; 4.2.2.7 Random Numbers
      [random ; FIXME range, all uses
-      (integer? pseudo-random-generator? . -> . exact-nonnegative-integer?)]
+      (integer? . -> . exact-nonnegative-integer?)]
      [random-seed
       ((and/c exact-integer? positive?) . -> . void?)]
      [make-pseudo-random-generator
