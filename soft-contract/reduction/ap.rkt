@@ -60,7 +60,11 @@
   (: blm-arity : Arity Natural → -blm)
   (define (blm-arity required provided)
     ;; HACK for error message, but probably no need to fix
-    (-blm l 'Λ (list (format-symbol "~a arguments" required)) Vₓs))
+    (define msg : Symbol
+      (cond
+        [sₕ (format-symbol "~a requires ~a arguments" (show-e sₕ) required)]
+        [else (format-symbol "require ~a arguments" required)]))
+    (-blm l 'Λ (list msg) Vₓs))
 
   (λ (M σ ℒ₀)
     (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
