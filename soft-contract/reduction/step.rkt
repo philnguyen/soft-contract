@@ -172,8 +172,9 @@
       (define V->s : (-V → -s)
         (match-lambda
           [(? -o? o) o]
-          ;[(-Ar _ (-α.def (-𝒾 o 'Λ)) _) o]
-          ;[(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
+          [(-Ar _ (? -o? o) _) o]
+          [(-Ar _ (-α.def (-𝒾 o 'Λ)) _) o]
+          [(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
           [_ #f]))
       (cond
         ;; same-module referencing returns unwrapped version
@@ -183,7 +184,7 @@
            (define Γ (-ℒ-cnd ℒ))
            (define ΓWs
              (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
-               (define s (or (V->s V) ref)) 
+               (define s (or (V->s V) ref))
                (-ΓW Γ (-W (list V) s))))
            (values ⊥σ ΓWs ∅ ∅))]
         ;; cross-module referencing returns wrapped version
