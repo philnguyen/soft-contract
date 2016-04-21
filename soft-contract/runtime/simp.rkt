@@ -110,18 +110,6 @@
   (cond
     [(and f (andmap (inst values -s) xs))
      (match f
-       ;; If we already obtained a value, safe and unsafe shouldn't be different
-       [(-ref (-𝒾 o 'Λ) _)
-        (define o*
-          (case o ; TEMP HACKS
-            [(cons?) -cons?]
-            [(car) -car]
-            [(cdr) -cdr]
-            [(box?) -box?]
-            [(unbox) -unbox]
-            [else o]))
-        (apply -?@ o* xs)] 
-       
        ['any/c -tt]
        ['none/c -ff]
        ['void (-b (void))]

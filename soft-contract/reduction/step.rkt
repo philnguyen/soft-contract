@@ -150,10 +150,12 @@
    (match e
      [(-λ xs e*)
       (define ⟦e*⟧ (↓ e*))
+      (define fv⟦e⟧ (fv e))
       (λ (M σ ℒ)
         (match-define (-ℒ ρ Γ _) ℒ)
         (define s (canonicalize-e Γ e))
-        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) s))} ∅ ∅))]
+        (define ρ↓ (m↓ ρ fv⟦e⟧))
+        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ↓ Γ)) s))} ∅ ∅))]
      [(-case-λ clauses)
       (define ⟦clause⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
         (for/list ([clause clauses])
@@ -169,13 +171,31 @@
         (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) W)} ∅ ∅))]
      [(-x x) (⇓ₓ l x)]
      [(and ref (-ref (and 𝒾 (-𝒾 x l₀)) ℓ))
-      (define V->s : (-V → -s)
+
+      (define (name->o [x : Symbol]) : -o
+        (case x
+          [(cons) -cons]
+          [(cons?) -cons?]
+          [(car) -car]
+          [(cdr) -cdr]
+          [(box) -box]
+          [(box?) -box?]
+          [(unbox) -unbox]
+          [else x]))
+      
+      (define V->s : (-V → (Option -o))
         (match-lambda
           [(? -o? o) o]
+          [(-Ar _ (or (? symbol? o) (-α.def (-𝒾 o 'Λ)) (-α.wrp (-𝒾 o 'Λ))) _) #:when o
+           (name->o o)]
           [(-Ar _ (? -o? o) _) o]
-          [(-Ar _ (-α.def (-𝒾 o 'Λ)) _) o]
-          [(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
-          [_ #f]))
+          [V #f]))
+
+      ;; If we already obtained a value, safe and unsafe shouldn't be different
+      (define sₐ : -s
+        (case l₀
+          [(Λ) (name->o x)]
+          [else ref]))
       (cond
         ;; same-module referencing returns unwrapped version
         [(equal? l₀ l)
@@ -184,7 +204,7 @@
            (define Γ (-ℒ-cnd ℒ))
            (define ΓWs
              (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
-               (define s (or (V->s V) ref))
+               (define s (or (V->s V) sₐ))
                (-ΓW Γ (-W (list V) s))))
            (values ⊥σ ΓWs ∅ ∅))]
         ;; cross-module referencing returns wrapped version
@@ -195,7 +215,7 @@
            (define Γ (-ℒ-cnd ℒ))
            (define ΓWs
              (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
-               (define s (or (V->s V) ref))
+               (define s (or (V->s V) sₐ))
                (-ΓW Γ (-W (list (supply-negative-party l V)) s))))
            (values ⊥σ ΓWs ∅ ∅))])]
      [(-@ f xs ℓ)
