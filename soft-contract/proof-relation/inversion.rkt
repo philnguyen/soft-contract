@@ -54,7 +54,7 @@
                ([γʰ (reverse γʰs)]) ; TODO: foldr or manual loop instead?
        (for/union : (℘ -ctx) ([ctxᵢ acc])
           (invert-γ M ctxᵢ γʰ))))
-    (printf "invert-ctx: ~a, ~a~n" (set-map φs show-e) (set show-γʰ γʰs))
+    (printf "invert-ctx: ~a, ~a~n" (set-map φs show-e) (map show-γʰ γʰs))
     (printf "mapping:~n")
     (for ([r (show-e-map m)])
       (printf "    + ~a~n" r))
