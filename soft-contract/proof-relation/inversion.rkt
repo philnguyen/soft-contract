@@ -17,7 +17,7 @@
 ;; Path-condition tail tagged with inversion history
 (struct -γʰ ([tail : -γ] [hist : (℘ -τ)]) #:transparent)
 ;; A proof context contains hypotheses, invertible hypotheses, and rewriting hints
-(struct -ctx ([facts : (℘ -e)] [tails : (℘ -γʰ)] [m : (HashTable -e -e)]) #:transparent)
+(struct -ctx ([facts : (℘ -e)] [tails : (Listof -γʰ)] [m : (HashTable -e -e)]) #:transparent)
 ;; Proof configuration is proof context paired with an expression (may or may not be a goal)
 (struct -cfg ([ctx : -ctx] [expr : -e]) #:transparent)
 
@@ -26,7 +26,7 @@
 
 (define (Γ->ctx [Γ : -Γ]) : -ctx
   (match-define (-Γ φs _ γs) Γ)
-  (define γʰs (for/set: : (℘ -γʰ) ([γ γs]) (-γʰ γ ∅)))
+  (define γʰs (for/list : (Listof -γʰ) ([γ γs]) (-γʰ γ ∅)))
   (-ctx φs γʰs (hash)))
 
 (: invert-cfg : -M -cfg → (℘ -cfg))
@@ -47,21 +47,21 @@
 (: invert-ctx : -M -ctx → (℘ -ctx))
 (define (invert-ctx M ctx)
   (match-define (-ctx φs γʰs m) ctx)
-  (define ctx₀ (-ctx φs ∅ m))
+  (define ctx₀ (-ctx φs '() m))
   (with-debugging/off
     ((ctxs)
      (for/fold ([acc : (℘ -ctx) {set ctx₀}])
-               ([γʰ γʰs])
+               ([γʰ (reverse γʰs)]) ; TODO: foldr or manual loop instead?
        (for/union : (℘ -ctx) ([ctxᵢ acc])
           (invert-γ M ctxᵢ γʰ))))
-    (printf "invert-ctx: ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ))
+    (printf "invert-ctx: ~a, ~a~n" (set-map φs show-e) (set show-γʰ γʰs))
     (printf "mapping:~n")
     (for ([r (show-e-map m)])
       (printf "    + ~a~n" r))
     (printf "result:~n")
     (for ([ctx ctxs])
       (match-define (-ctx φs γʰs m) ctx)
-      (printf "  - ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ))
+      (printf "  - ~a, ~a~n" (set-map φs show-e) (map show-γʰ γʰs))
       (printf "    mapping:~n")
       (for ([r (show-e-map m)])
         (printf "    + ~a~n" r)))
@@ -86,22 +86,22 @@
         (define fvs (-binding-dom bnd))
         (define τs* (set-add τs τ))
         
-        (: on-ans : (℘ -ctx) (℘ -e) (℘ -γ) -s → (℘ -ctx))
+        (: on-ans : (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
         (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
           (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
-          (define mₑᵣ (e-map-union m δmₑᵣ))
+          (define mₑᵣ (combine-e-map m δmₑᵣ))
           (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
           (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
           (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
-          (define γʰs*
-            (for/set: : (℘ -γʰ) ([γₑₑ γsₑₑ])
+          (define δγʰs
+            (for/list : (Listof -γʰ) ([γₑₑ γsₑₑ])
               (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
               (-γʰ γₑᵣ τs*)))
           (with-debugging/off
             ((ctxs)
              (cond
                [φs*
-                (define ctx* (-ctx φs* (∪ γʰs γʰs*) mₑᵣ))
+                (define ctx* (-ctx φs* (append δγʰs γʰs) mₑᵣ))
                 (set-add acc ctx*)]
                [else acc]))
             (printf "on-ans:~n")
@@ -119,16 +119,24 @@
             [((-ΓE (-Γ φs₀ _ γs₀) (-blm l+ lo _ _)) (cons l+ lo))
              (on-ans acc φs₀ γs₀ #f)]
             [(_ _) acc]))]))
-    (printf "invert-γ: ~a, ~a @ ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ) (show-γʰ γʰ))
+    (printf "invert-γ: ~a, ~a @ ~a~n" (set-map φs show-e) (map show-γʰ γʰs) (show-γʰ γʰ))
     (for ([ctx* ctxs])
       (match-define (-ctx φs γʰs _) ctx*)
-      (printf "  - ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ)))
+      (printf "  - ~a, ~a~n" (set-map φs show-e) (map show-γʰ γʰs)))
     (printf "~n")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: combine-e-map : (HashTable -e -e) (HashTable -e -e) → (HashTable -e -e))
+(define (combine-e-map m δm)
+  (define f (e/map* m))
+  (define δm*
+    (for/hash : (HashTable -e -e) ([(x y) δm])
+      (values (f x) (f y))))
+  (e-map-union m δm*))
 
 (: bnds->subst : -binding → (HashTable -e -e))
 ;; Convert list of `param -> arg` to hashtable

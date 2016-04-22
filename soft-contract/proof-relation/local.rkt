@@ -302,12 +302,12 @@
 
 (: Γ⊓ : -Γ -Γ → (Option -Γ))
 ;; Join 2 path conditions, eliminating obvious inconsistencies
-(define (Γ⊓ Γ₀ Γ₁)
-  (match-define (-Γ φs₀ as₀ γs₀) Γ₀)
-  (match-define (-Γ φs₁ _   γs₁) Γ₁)
+(define (Γ⊓ Γ δΓ)
+  (match-define (-Γ  φs as  γs)  Γ)
+  (match-define (-Γ δφs _  δγs) δΓ)
   (cond
-    [(es⊓ φs₀ φs₁) =>
-     (λ ([φs₀* : (℘ -e)]) (-Γ φs₀* as₀ (∪ γs₀ γs₁)))]
+    [(es⊓ φs δφs) =>
+     (λ ([φs* : (℘ -e)]) (-Γ φs* as (append δγs γs)))]
     [else #f]))
 
 (: partition-Γs : (℘ (Pairof -Γ -s))
@@ -490,7 +490,7 @@
           (let ([subst (e/map* m)])
             (for/hash : (HashTable Var-Name -e) ([(x e) as])
               (values x (subst e)))))
-        (define γs* (map/set (γ/ m) γs))
+        (define γs* (map (γ/ m) γs))
         (-Γ φs* as* γs*)]
        [else #f]))
     (parameterize ([verbose? #t])

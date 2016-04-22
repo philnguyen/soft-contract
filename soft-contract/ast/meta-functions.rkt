@@ -286,7 +286,7 @@
 ;; Repeatedly substitute until it's fixed. May not terminate. Use with care.
 (define ((e/map* m) e)
   (define f (e/map m))
-  (with-debugging
+  (with-debugging/off
     ((ans)
      (let loop : -e ([e : -e e])
        (define e* (f e))

@@ -162,9 +162,13 @@
 (-s . ::= . -e #f)
 
 ;; Path condition is set of (pure) expression known to have evaluated to non-#f
+;; Tails are addresses to other path-condition "chunks" from function calls,
+;; each paired with appropriate renaming.
+;; Tails are ordered from least to most recent application.
+;; Order is important for effective rewriting.
 (struct -Γ ([facts : (℘ -e)]
             [aliases : (HashTable Var-Name -e)]
-            [tails : (℘ -γ)]) #:transparent)
+            [tails : (Listof -γ)]) #:transparent)
 
 ;; Path condition tail is callee block and renaming information,
 ;; also indicating whether the call raised a blame or not
@@ -176,7 +180,7 @@
                   [param->arg : (HashTable Var-Name -e)])
   #:transparent)
 
-(define ⊤Γ (-Γ ∅ (hasheq) ∅))
+(define ⊤Γ (-Γ ∅ (hasheq) '()))
 
 (: Γ+ : -Γ -s → -Γ)
 ;; Strengthen path condition `Γ` with `s`
@@ -349,8 +353,8 @@
 (define (show-s [s : -s]) (if s (show-e s) '∅))
 
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
-  (match-define (-Γ φs as ts) Γ)
-  `(,@(set-map φs show-e) ,@(set-map ts show-γ)))
+  (match-define (-Γ φs _ γs) Γ)
+  `(,@(set-map φs show-e) ,@(map show-γ γs)))
 
 (define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
   (for/list ([(τ ℛs) Ξ])

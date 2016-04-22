@@ -33,7 +33,7 @@
     (for/hash : (HashTable Var-Name -e) ([(x e) as] #:when (∋ xs x))
       (values x e)))
   (define γs*
-    (for*/set: : (℘ -γ) ([γ γs])
+    (for/list : (Listof -γ) ([γ γs])
       (match-define (-γ τ bnd blm) γ)
       (-γ τ (bnd↓ bnd xs) blm)))
   (-Γ φs* as* γs*))
@@ -66,12 +66,7 @@
 (: -Γ-plus-γ : -Γ -γ → -Γ)
 (define (-Γ-plus-γ Γ γ)
   (match-define (-Γ φs as γs) Γ)
-  (-Γ φs as (set-add γs γ)))
-
-(: -Γ-minus-γ : -Γ -γ → -Γ)
-(define (-Γ-minus-γ Γ γ)
-  (match-define (-Γ φs as γs) Γ)
-  (-Γ φs as (set-remove γs γ)))
+  (-Γ φs as (cons γ γs)))
 
 (: γ/ : (HashTable -e -e) → -γ → -γ)
 (define ((γ/ m) γ)
@@ -100,8 +95,8 @@
 
 (define (show-M-Γ [M : -M] [Γ : -Γ]) : (Values Sexp (Listof Sexp))
   (match-define (-Γ _ _ γs) Γ)
-  (define ts (set-map γs (curry show-M-γ M)))
-  (values (show-Γ Γ) ts))
+  (values (show-Γ Γ)
+          (map (curry show-M-γ M) γs)))
 
 (define (show-M-γ [M : -M] [γ : -γ]) : (Listof Sexp)
   (match-define (-γ τ bnd blm) γ)
