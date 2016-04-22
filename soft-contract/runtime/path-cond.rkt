@@ -81,7 +81,7 @@
 (: binding/ : (HashTable -e -e) → -binding → -binding)
 (define ((binding/ m) bnd)
   (match-define (-binding f xs x->e) bnd)
-  (define subst (e/map m))
+  (define subst (e/map* m))
   (define f* (and f (subst f)))
   (define x->e* (map/hash subst x->e))
   (-binding f* xs x->e*))

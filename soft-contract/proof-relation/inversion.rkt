@@ -53,11 +53,18 @@
      (for/fold ([acc : (℘ -ctx) {set ctx₀}])
                ([γʰ γʰs])
        (for/union : (℘ -ctx) ([ctxᵢ acc])
-                  (invert-γ M ctxᵢ γʰ))))
-    (printf "invert-ctx: ~a, ~a ~n" (set-map φs show-e) (set-map γʰs show-γʰ))
+          (invert-γ M ctxᵢ γʰ))))
+    (printf "invert-ctx: ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ))
+    (printf "mapping:~n")
+    (for ([r (show-e-map m)])
+      (printf "    + ~a~n" r))
+    (printf "result:~n")
     (for ([ctx ctxs])
-      (match-define (-ctx φs γʰs _) ctx)
-      (printf "  - ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ)))
+      (match-define (-ctx φs γʰs m) ctx)
+      (printf "  - ~a, ~a~n" (set-map φs show-e) (set-map γʰs show-γʰ))
+      (printf "    mapping:~n")
+      (for ([r (show-e-map m)])
+        (printf "    + ~a~n" r)))
     (printf "~n")))
 
 (: invert-γ : -M -ctx -γʰ → (℘ -ctx))
@@ -81,7 +88,8 @@
         
         (: on-ans : (℘ -ctx) (℘ -e) (℘ -γ) -s → (℘ -ctx))
         (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
-          (define-values (mₑₑ mₑᵣ _) (mk-subst m₀ bnd sₑₑ))
+          (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
+          (define mₑᵣ (e-map-union m δmₑᵣ))
           (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
           (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
           (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
@@ -93,16 +101,7 @@
             ((ctxs)
              (cond
                [φs*
-                (define m*
-                  (for/fold ([m : (HashTable -e -e) m]) ([(x y) mₑᵣ])
-                    (cond
-                      [(hash-ref m x #f) =>
-                       (λ (y*)
-                         (unless (equal? y* y)
-                           (log-warning "replacing ~a ↦ ~a with ~a ↦ ~a~n"
-                                        (show-e x) (show-e y*) (show-e x) (show-e y))))])
-                    (hash-set m x y)))
-                (define ctx* (-ctx φs* (∪ γʰs γʰs*) m*))
+                (define ctx* (-ctx φs* (∪ γʰs γʰs*) mₑᵣ))
                 (set-add acc ctx*)]
                [else acc]))
             (printf "on-ans:~n")
@@ -153,8 +152,8 @@
   ;; of only variables caller understands
   (define fargsₐ
     (let ([all-args? (andmap (inst values Any) args)]
-          [a* (s↓ (and a ((e/map mₐ) a)) dom)])
-      (and all-args? a* ((e/map m₀) a*))))
+          [a* (s↓ (and a ((e/map* mₐ) a)) dom)])
+      (and all-args? a* ((e/map* m₀) a*))))
   
   (with-debugging/off
     ((mₑₑ mₑᵣ sₐ)
