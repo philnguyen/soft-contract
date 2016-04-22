@@ -37,6 +37,8 @@
   (define-values (As M Ξ σ) (run (⇓ 'top e) σ₀))
   (values As M Ξ))
 
+
+(define count : Natural 0)
 (: run : -⟦e⟧ -σ → (Values (℘ -A) #|for debugging|# -M -Ξ -σ))
 ;; Run compiled program on initial heap
 (define (run ⟦e⟧₀ σ₀)
@@ -47,16 +49,13 @@
       [(and (set-empty? τs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
+       #;(begin
+         (set! count (+ 1 count))
+         (printf "iter: ~a, ⟨~a, ~a⟩~n" count (set-count τs) (set-count Cos)))
        
        ;; Widen global tables
        (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ τs) (co* M Ξ σ Cos)))
        (define-values (M* Ξ* σ*) (⊔³ (values M Ξ σ) (values δM δΞ δσ)))
-
-       #;(begin
-         (printf "δM:~n~a~n" (show-M δM))
-         (printf "δΞ:~n~a~n" (show-Ξ δΞ))
-         (printf "δσ:~n~a~n" (show-σ δσ))
-         (printf "~n"))
 
        ;; Check for un-explored configuation (≃ ⟨e, ρ, σ⟩)
        (define-values (τs* seen*)

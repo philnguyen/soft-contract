@@ -152,10 +152,11 @@
       (define ⟦e*⟧ (↓ e*))
       (define fv⟦e⟧ (fv e))
       (λ (M σ ℒ)
+        ;; Note: It's important *not* to restrict the environment on closing.
+        ;; That prevents eliminating some inconsistent paths.
         (match-define (-ℒ ρ Γ _) ℒ)
         (define s (canonicalize-e Γ e))
-        (define ρ↓ (m↓ ρ fv⟦e⟧))
-        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ↓ Γ)) s))} ∅ ∅))]
+        (values ⊥σ {set (-ΓW Γ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) s))} ∅ ∅))]
      [(-case-λ clauses)
       (define ⟦clause⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
         (for/list ([clause clauses])
