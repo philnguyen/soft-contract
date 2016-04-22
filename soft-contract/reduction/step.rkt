@@ -172,30 +172,20 @@
      [(-x x) (⇓ₓ l x)]
      [(and ref (-ref (and 𝒾 (-𝒾 x l₀)) ℓ))
 
-      (define (name->o [x : Symbol]) : -o
-        (case x
-          [(cons) -cons]
-          [(cons?) -cons?]
-          [(car) -car]
-          [(cdr) -cdr]
-          [(box) -box]
-          [(box?) -box?]
-          [(unbox) -unbox]
-          [else x]))
-      
-      (define V->s : (-V → (Option -o))
-        (match-lambda
-          [(? -o? o) o]
-          [(-Ar _ (or (? symbol? o) (-α.def (-𝒾 o 'Λ)) (-α.wrp (-𝒾 o 'Λ))) _) #:when o
-           (name->o o)]
-          [(-Ar _ (? -o? o) _) o]
-          [V #f]))
+      (: V->s : -σ -V → (Option -o))
+      (define (V->s σ V) 
+        (with-debugging/off
+          ((ans)
+           (match V
+             [(? -o? o) o]
+             [(-Ar _ (? -o? o) _) o]
+             [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
+              (match (hash-ref σ α)
+                [(? set? s) #:when (= 1 (set-count s)) (V->s σ (set-first s))]
+                [_ #f])]
+             [V #f]))
+          (printf "V->s: ~a ↦ ~a~n" V ans)))
 
-      ;; If we already obtained a value, safe and unsafe shouldn't be different
-      (define sₐ : -s
-        (case l₀
-          [(Λ) (name->o x)]
-          [else ref]))
       (cond
         ;; same-module referencing returns unwrapped version
         [(equal? l₀ l)
@@ -204,7 +194,7 @@
            (define Γ (-ℒ-cnd ℒ))
            (define ΓWs
              (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
-               (define s (or (V->s V) sₐ))
+               (define s (or (V->s σ V) ref))
                (-ΓW Γ (-W (list V) s))))
            (values ⊥σ ΓWs ∅ ∅))]
         ;; cross-module referencing returns wrapped version
@@ -215,7 +205,7 @@
            (define Γ (-ℒ-cnd ℒ))
            (define ΓWs
              (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
-               (define s (or (V->s V) sₐ))
+               (define s (or (V->s σ V) ref))
                (-ΓW Γ (-W (list (supply-negative-party l V)) s))))
            (values ⊥σ ΓWs ∅ ∅))])]
      [(-@ f xs ℓ)

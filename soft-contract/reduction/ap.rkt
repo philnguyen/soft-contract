@@ -608,7 +608,7 @@
       (define grd-ℓ
         (cond [(-=>? grd) (-=>-pos grd)]
               [else (-=>i-pos grd)]))
-      (define α (-α.fn ℓ grd-ℓ (-ℒ-hist ℒ)))
+      (define α (or (keep-if-const v) (-α.fn ℓ grd-ℓ (-ℒ-hist ℒ))))
       (define Ar (-Ar grd α l³))
       (ΓWs-add! (-ΓW Γ₁₁ (-W (list Ar) v)))
       (set! δσ (⊔ δσ α V)))
