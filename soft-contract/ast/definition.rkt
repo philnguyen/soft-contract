@@ -309,7 +309,7 @@
 (define (show-e [e : -e]) : Sexp
   (match e
     ; syntactic sugar
-    [(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]
+    #|[(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]
     [(-λ (list x) (-@ 'equal? (list (-x x) e*) _)) `(≡/c ,(show-e e*))]
     [(-λ (list x) (-@ '> (list (-x x) e*) _)) `(>/c ,(show-e e*))]
     [(-λ (list x) (-@ '< (list (-x x) e*) _)) `(</c ,(show-e e*))]
@@ -321,9 +321,7 @@
        [(`(or ,l ...) `(or ,r ...)) `(or ,@(cast l Sexps) ,@(cast r Sexps))]
        [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
        [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
-       [(l r) `(or ,l ,r)])]
-    [(-@ (-st-mk (-struct-info (and n (or 'and/c 'or/c 'not/c)) _ _)) c* _)
-     `(,n ,@(show-es c*))]
+       [(l r) `(or ,l ,r)])]|#
     [(-if a b (-b #f))
      (match* ((show-e a) (show-e b))
        [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l Sexps) ,@(cast r Sexps))]
