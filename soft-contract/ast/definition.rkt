@@ -193,15 +193,20 @@
 
 (: -one-of/c : (Listof -e) → -e)
 (define (-one-of/c es)
-  (match es
-    [(list) 'none/c]
-    [(list e)
+  (cond
+    [(null? es) 'none/c]
+    [else
      (define x (+x!))
-     (-λ (list x) (-@ 'equal? (list (-x x) e) (+ℓ!)))]
-    [(cons e es*)
-     (define x (+x!))
-     (-or/c (list (-λ (list x) (-@ 'equal? (list (-x x) e) (+ℓ!)))
-                  (-one-of/c es*)))]))
+     (define 𝐱 (-x x))
+     (define body : -e
+       (let build-body ([es : (Listof -e) es])
+         (match es
+           [(list e) (-@ 'equal? (list 𝐱 e) (+ℓ!))]
+           [(cons e es*)
+            (-if (-@ 'equal? (list 𝐱 e) (+ℓ!))
+                 -tt
+                 (build-body es*))])))
+     (-λ (list x) body)]))
 
 (: -cons/c : -e -e → -e)
 (define (-cons/c c d)
