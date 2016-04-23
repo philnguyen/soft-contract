@@ -505,7 +505,8 @@
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ ⟦e⟧ ℒ) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(hash-keys (-ℒ-env ℒ))))
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧)
+      ,(if (verbose?) (show-ℒ ℒ) (hash-keys (-ℒ-env ℒ)))))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ l³ ℓ W-C W-V ℒ) ℳ)
@@ -513,7 +514,7 @@
 
 (define (show-ℒ [ℒ : -ℒ]) : Sexp
   (match-define (-ℒ ρ Γ 𝒞) ℒ)
-  `(,@(show-ρ ρ) @ ,(show-Γ Γ) @,(show-𝒞 𝒞)))
+  `(,@(show-ρ ρ) @ ,(show-Γ Γ) @ ,(show-𝒞 𝒞)))
 
 (define (show-Co [Co : -Co]) : Sexp
   (match-define (-Co ℛ τ ans) Co)
@@ -533,7 +534,7 @@
   (cond [(verbose?)
          (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧ Caller-Ctx) (decode-𝒞 𝒞)])
            (match-define (cons ⟦e⟧ ℓ) ctx)
-           `(,(show-⟦e⟧ ⟦e⟧) @ ,ℓ))]
+           `(,(format-symbol "ℓ~a" (n-sub ℓ)) ↝ ,(show-⟦e⟧ ⟦e⟧)))]
         [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
 
 (define-values (show-α show-α⁻¹)
