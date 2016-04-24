@@ -86,7 +86,7 @@
 
 (-e . ::= . -v
             (-x Var-Name) ; lexical variables 
-            (-ref [id : -𝒾] [ℓ : -ℓ]) ; module references
+            -𝒾 ; module references
             (-@ -e (Listof -e) -ℓ)
             (-if -e -e -e)
             (-wcm [key : -e] [val : -e] [body : -e])
@@ -184,12 +184,12 @@
         ['() 'any/c]
         [(list e) e]
         [(cons e es*)
-         (-@ (-ref (-𝒾 o 'Λ) (+ℓ!)) (list e (-app/c o es*)) (+ℓ!))]))
+         (-@ (-𝒾 o 'Λ) (list e (-app/c o es*)) (+ℓ!))]))
     (values (curry -app/c 'and/c) (curry -app/c 'or/c))))
 
 (: -not/c : -e → -e)
 (define (-not/c e)
-  (-@ (-ref (-𝒾 'not/c 'Λ) (+ℓ!)) (list e) (+ℓ!)))
+  (-@ (-𝒾 'not/c 'Λ) (list e) (+ℓ!)))
 
 (: -one-of/c : (Listof -e) → -e)
 (define (-one-of/c es)
@@ -345,7 +345,7 @@
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) (show-Var-Name x)]
-    [(-ref (-𝒾 x p) _)
+    [(-𝒾 x p)
      (case p ;; hack
        [(Λ) (format-symbol "_~a" x)]
        [else x])]

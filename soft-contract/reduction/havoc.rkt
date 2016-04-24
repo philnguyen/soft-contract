@@ -18,7 +18,7 @@
 (define x (+x!))
 (define 𝐱 (-x x))
 (define 𝐱s (list 𝐱))
-(define ⟦hv⟧ : -⟦e⟧ (⇓ havoc-path (-ref havoc-𝒾 0)))
+(define ⟦hv⟧ : -⟦e⟧ (⇓ havoc-path havoc-𝒾))
 
 (define (rt-● [k : Arity]) : -⟦e⟧
   (λ (M σ ℒ)
@@ -122,14 +122,14 @@
 (: gen-havoc-exp : (Listof -module) → -e)
 ;; Generate havoc top-level expression havoc-king modules' exports
 (define (gen-havoc-exp ms)
-  (define-set refs : -ref)
+  (define-set refs : -𝒾)
   
   (for ([m (in-list ms)])
     (match-define (-module path forms) m)
     (for* ([form forms] #:when (-provide? form)
            [spec (-provide-specs form)])
       (match-define (-p/c-item x _ _) spec)
-      (refs-add! (-ref (-𝒾 x path) (+ℓ!)))))
+      (refs-add! (-𝒾 x path))))
   
   (-amb/simp (for/list ([ref (in-set refs)])
                (-@ (•!) (list ref) (+ℓ!)))))

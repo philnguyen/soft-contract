@@ -25,10 +25,6 @@
   (define m (file->module p))
   (define-values (σ₁ e₁) (𝑰 (list m)))
   (define-values (As M Ξ σ) (run (⇓ₚ (list m) e₁) σ₁))
-  #;(begin
-    (printf "final σ:~n")
-    (for ([r (show-σ σ)])
-      (printf "  - ~a~n" r)))
   (values As M Ξ))
 
 (: run-e : -e → (Values (℘ -A) #|for debugging|# -M -Ξ))
@@ -49,9 +45,25 @@
       [(and (set-empty? τs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
-       #;(begin
+       #;(parameterize ([verbose? #t])
          (set! count (+ 1 count))
-         (printf "iter: ~a, ⟨~a, ~a⟩~n" count (set-count τs) (set-count Cos)))
+         (define num-τs (set-count τs))
+         (define num-Cos (set-count Cos))
+         (printf "iter: ~a, ⟨~a, ~a⟩ ≡ ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
+         #;(begin
+           (printf "~a τs:~n" num-τs)
+           (for ([τ τs])
+             (printf "  - ~a~n" (show-τ τ)))
+           (printf "~a Cos:~n" num-Cos)
+           (for ([Co Cos])
+             (printf "  - ~a~n" (show-Co Co)))
+           (printf "σ:~n")
+           (for ([r (show-σ σ)])
+             (printf "  - ~a~n" r)))
+         #;(case (read)
+           [(done) (error "done")]
+           [else (void)])
+         (printf "~n"))
        
        ;; Widen global tables
        (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ τs) (co* M Ξ σ Cos)))

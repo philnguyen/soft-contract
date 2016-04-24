@@ -5,7 +5,6 @@
          racket/cmdline
          (except-in racket/list remove-duplicates)
          racket/pretty
-         ;(only-in "check.rkt" analyze)
          "utils/main.rkt"
          "ast/definition.rkt"
          "parse/main.rkt"

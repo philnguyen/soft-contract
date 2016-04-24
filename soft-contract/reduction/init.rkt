@@ -27,9 +27,9 @@
 (: ⇓ : -e → -⟦e⟧)
 (define (⇓ e) (⇓/l 'Λ e))
 
-(define -⟦boolean?⟧ (⇓ (-ref (-𝒾 'boolean? 'Λ) 0)))
-(define -⟦any/c⟧ (⇓ (-ref (-𝒾 'any/c 'Λ) 0)))
-(define -⟦void?⟧ (⇓ (-ref (-𝒾 'void? 'Λ) 0)))
+(define -⟦boolean?⟧ (⇓ (-𝒾 'boolean? 'Λ)))
+(define -⟦any/c⟧ (⇓ (-𝒾 'any/c 'Λ)))
+(define -⟦void?⟧ (⇓ (-𝒾 'void? 'Λ)))
 ;(define -l³-dummy (Mon-Info 'Λ 'dummy 'Λ))
 
 (: alloc : -σ Any → -σ)

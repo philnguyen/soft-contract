@@ -171,7 +171,7 @@
       (λ (M σ ℒ)
         (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) W)} ∅ ∅))]
      [(-x x) (⇓ₓ l x)]
-     [(and ref (-ref (and 𝒾 (-𝒾 x l₀)) ℓ))
+     [(and 𝒾 (-𝒾 x l₀))
 
       (: V->s : -σ -V → (Option -o))
       (define (V->s σ V) 
@@ -195,7 +195,7 @@
            (define Γ (-ℒ-cnd ℒ))
            (define ΓWs
              (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
-               (define s (or (V->s σ V) ref))
+               (define s (or (V->s σ V) 𝒾))
                (-ΓW Γ (-W (list V) s))))
            (values ⊥σ ΓWs ∅ ∅))]
         ;; cross-module referencing returns wrapped version
@@ -206,7 +206,7 @@
            (define Γ (-ℒ-cnd ℒ))
            (define ΓWs
              (for/set: : (℘ -ΓW) ([V (σ@ σ α)])
-               (define s (or (V->s σ V) ref))
+               (define s (or (V->s σ V) 𝒾))
                (-ΓW Γ (-W (list (supply-negative-party l V)) s))))
            (values ⊥σ ΓWs ∅ ∅))])]
      [(-@ f xs ℓ)

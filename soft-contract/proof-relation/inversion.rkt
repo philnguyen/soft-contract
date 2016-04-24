@@ -27,7 +27,7 @@
 (define (Γ->ctx [Γ : -Γ]) : -ctx
   (match-define (-Γ φs _ γs) Γ)
   (define γʰs (for/list : (Listof -γʰ) ([γ γs]) (-γʰ γ ∅)))
-  (-ctx φs γʰs (hash)))
+  (-ctx φs γʰs m∅))
 
 (: invert-cfg : -M -cfg → (℘ -cfg))
 (define (invert-cfg M cfg)
@@ -120,9 +120,13 @@
              (on-ans acc φs₀ γs₀ #f)]
             [(_ _) acc]))]))
     (printf "invert-γ: ~a, ~a @ ~a~n" (set-map φs show-e) (map show-γʰ γʰs) (show-γʰ γʰ))
+    (printf "mappings:~n")
+    (for ([(x y) m]) (printf "    + ~a ↦ ~a~n" x y))
     (for ([ctx* ctxs])
-      (match-define (-ctx φs γʰs _) ctx*)
-      (printf "  - ~a, ~a~n" (set-map φs show-e) (map show-γʰ γʰs)))
+      (match-define (-ctx φs γʰs m) ctx*)
+      (printf "  - ~a, ~a~n" (set-map φs show-e) (map show-γʰ γʰs))
+      (printf "    mapping:~n")
+      (for ([r (show-e-map m)]) (printf "    + ~a~n" r)))
     (printf "~n")))
 
 

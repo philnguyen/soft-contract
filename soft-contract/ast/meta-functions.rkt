@@ -86,7 +86,7 @@
   (check-equal? (fv -tt) ∅)
   (check-equal? (fv (-λ '(x) (-x 'x))) ∅)
   (check-equal? (fv (-x 'x)) {set 'x})
-  (check-equal? (fv (-ref (-𝒾 'cons 'Λ) 0)) ∅)
+  (check-equal? (fv (-𝒾 'cons 'Λ)) ∅)
   (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) 0)))) {set 'f}))
 
 (: 𝐴 : (U -e (Listof -e)) → (℘ Var-Name))
@@ -248,7 +248,7 @@
                 (match-define (cons xs e*) clause)
                 (cons xs (go (shrink m xs) e*))))]
             [(? -v?) e]
-            [(? -ref?) e]
+            [(? -𝒾?) e]
             [(-@ f xs _) (apply -@/simp (go m f) (map (curry go m) xs))]
             [(-if e₀ e₁ e₂) (-if (go m e₀) (go m e₁) (go m e₂))]
             [(-wcm k v b) (-wcm (go m k) (go m v) (go m b))]
@@ -333,7 +333,7 @@
              (match-define (cons xs e*) clause)
              (cons xs (go (shrink-f f xs) e*))))]
          [(? -v?) e]
-         [(? -ref?) e]
+         [(? -𝒾?) e]
          [(-@ g xs l) (-@ (go f g) (map (curry go f) xs) l)]
          [(-if e₀ e₁ e₂) (-if (go f e₀) (go f e₁) (go f e₂))]
          [(-wcm k v b) (-wcm (go f k) (go f v) (go f b))]
@@ -436,12 +436,12 @@
 ;; Search for all invocations of `f-id` in `e`
 (define (find-calls e f-id)
   (define-set calls : (Listof -e))
-  (let go : Void ([e e])
+  (let go! : Void ([e e])
     (match e
       [(-@ f xs _)
-       (go f)
-       (for-each go xs)
-       (when (match? f (-ref (== f-id) _) (== f-id))
+       (go! f)
+       (for-each go! xs)
+       (when (equal? f f-id)
          (calls-add! xs))]
       [_ (void)]))
   calls)

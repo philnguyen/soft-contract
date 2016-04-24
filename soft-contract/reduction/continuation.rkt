@@ -43,7 +43,6 @@
   (define (ℰ+ [ℰ : -ℰ]) (-ℰ.dec 𝒾 ℰ ℓ))
   (define l (-𝒾-ctx 𝒾))
   (define ⟦ℰ⟧-wrp (↝.def l (list (-α.wrp 𝒾))))
-  (define v (-ref 𝒾 0))
   (define l³ (Mon-Info l 'dummy l))
   (λ (M σ ℒ)
     (apply/values
@@ -57,7 +56,7 @@
           (define ℒ* (-ℒ-with-Γ ℒ Γ*))
           (define W-C (-W¹ C c))
           (for*/ans ([V (σ@ σ (-α.def 𝒾))])
-            ((⟦ℰ⟧-wrp (mon l³ ℓ W-C (-W¹ V v))) M σ* ℒ*)))))
+            ((⟦ℰ⟧-wrp (mon l³ ℓ W-C (-W¹ V 𝒾))) M σ* ℒ*)))))
      (⟦c⟧ M σ ℒ))))
 
 

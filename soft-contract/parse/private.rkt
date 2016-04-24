@@ -142,7 +142,7 @@
      (define si (-struct-info (-𝒾 ctor (cur-mod)) n ∅))
      (-define-values
       (list* ctor (syntax-e #'pred) (map syntax-e accs))
-      (-@ (-ref (-𝒾 'values 'Λ) (+ℓ!))
+      (-@ (-𝒾 'values 'Λ)
           (list* (-st-mk si)
                  (-st-p si)
                  (for/list ([(accᵢ i) (in-indexed accs)])
@@ -172,7 +172,7 @@
         (~literal make-self-ctor-checked-struct-info)
         _ _
         (#%plain-lambda () (quote-syntax k1:id))))
-     (-define-values (list (syntax-e #'k1)) (-ref (-𝒾 (syntax-e #'k) (cur-mod)) 0))]
+     (-define-values (list (syntax-e #'k1)) (-𝒾 (syntax-e #'k) (cur-mod)))]
     [(define-syntaxes _ ...) #f]
     [_ (parse-e form)]))
 
@@ -239,13 +239,9 @@
     [(#%plain-app (~literal fake:box/c) c)
      (-box/c (parse-e #'c))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (-@ (-ref (-𝒾 'vector/c 'Λ) (+ℓ!))
-         (parse-es #'(c ...))
-         (+ℓ!))]
+     (-@ (-𝒾 'vector/c 'Λ) (parse-es #'(c ...)) (+ℓ!))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-@ (-ref (-𝒾 'vectorof 'Λ) (+ℓ!))
-         (list (parse-e #'c))
-         (+ℓ!))]
+     (-@ (-𝒾 'vectorof 'Λ) (list (parse-e #'c)) (+ℓ!))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
             (#%plain-app _ _ _ _ (quote k) _ ...)
             _ ...)
@@ -322,11 +318,11 @@
     ;; Hacks for now. TODO: need this anymore??
     ;[(~literal null) -null]
     ;[(~literal empty) -null]
-    [(~literal fake:any/c) (-ref (-𝒾 'any/c 'Λ) (+ℓ!))]
-    [(~literal fake:none/c) (-ref (-𝒾 'none/c 'Λ) (+ℓ!))]
-    [(~literal fake:not/c) (-ref (-𝒾 'not/c 'Λ) (+ℓ!))]
-    [(~literal fake:and/c) (-ref (-𝒾 'and/c 'Λ) (+ℓ!))]
-    [(~literal fake:or/c ) (-ref (-𝒾 'or/c  'Λ) (+ℓ!))]
+    [(~literal fake:any/c) (-𝒾 'any/c 'Λ)]
+    [(~literal fake:none/c) (-𝒾 'none/c 'Λ)]
+    [(~literal fake:not/c) (-𝒾 'not/c 'Λ)]
+    [(~literal fake:and/c) (-𝒾 'and/c 'Λ)]
+    [(~literal fake:or/c ) (-𝒾 'or/c  'Λ)]
     
     [i:identifier
      (or
@@ -344,7 +340,7 @@
                _ _ _ _ _ _)
          (when (equal? 'not/c (syntax-e #'i))
            (error "done"))
-         (-ref (-𝒾 (syntax-e #'i) src) (+ℓ!))]))]))
+         (-𝒾 (syntax-e #'i) src)]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
@@ -368,7 +364,7 @@
 
 ;; Return primitive with given `id`
 (define/contract (parse-primitive id)
-  (identifier?  . -> . (or/c #f -ref? -b?))
+  (identifier?  . -> . (or/c #f -𝒾? -b?))
   (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
 
   (define-syntax (make-parse-clauses stx)
@@ -385,7 +381,7 @@
 
          (define (make-ref s)
            (symbol? . -> . syntax?)
-           #`(-ref (-𝒾 '#,s 'Λ) (+ℓ!)))
+           #`(-𝒾 '#,s 'Λ))
          
          (match dec
            [`(#:pred ,s ,_ ...)
