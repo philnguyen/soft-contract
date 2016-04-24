@@ -8,7 +8,7 @@
   [SNAKE/C contract?]
   [WORLD/C contract?]
   [struct posn ([x real?] [y real?])]
-  [posn=? (POSN/C POSN/C . -> . real?)]
+  [posn=? (POSN/C POSN/C . -> . boolean?)]
   [struct snake ([dir DIR/C] [segs (and cons? (listof POSN/C))])]
   [struct world ([snake SNAKE/C] [food POSN/C])]
   ;; const
