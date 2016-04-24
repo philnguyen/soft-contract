@@ -70,6 +70,7 @@
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
             (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : Mon-Info])
+            (-St● [info : -struct-info])
             (-Vector/hetero [ctcs : (Listof -α)] [ctx : Mon-Info])
             (-Vector/homo [ctc : -α] [ctx : Mon-Info])
             
@@ -394,6 +395,8 @@
      `(,(format-symbol "~a/wrapped" (show-struct-info s))
        ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
+    [(-St● s)
+     `(,(show-struct-info s) ,@(make-list (-struct-info-arity s) '●))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-Vector/hetero γs _) `(vector/hetero ,@(map show-α γs))]
     [(-Vector/homo γ _) `(vector/homo ,(show-α γ))]

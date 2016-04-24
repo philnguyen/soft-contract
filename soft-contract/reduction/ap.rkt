@@ -215,7 +215,7 @@
       (match-define (list Wₓ) Wₓs)
       (match-define (-W¹ Vₓ _) Wₓ)
       (match Vₓ
-        [(or (-St (== s) _) (-St* (== s) _ _ _) (-● _))
+        [(or (-St (== s) _) (-St* (== s) _ _ _) (-St● (== s)) (-● _))
          (define ⟦chk-field⟧s : (Listof -⟦e⟧)
            (for/list ([(W-C i) (in-indexed W-Cs)])
              (define Ac
@@ -281,6 +281,8 @@
            [else
             (for*/ans ([Vₓ* (σ@ σ α)])
               ((ap lo ℓ Ac (list (-W¹ Vₓ* sₓ))) M σ ℒ₀))])]
+        [(-St● (== s))
+         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
         [(-● _)
          (define ⟦ok⟧ : -⟦e⟧
            (λ (M σ ℒ)
@@ -301,7 +303,7 @@
       (match Vᵥ
         [(-St (== s) αs)
          (define α (list-ref αs i))
-         (values (⊔ σ α Vᵥ) {set (-ΓW Γ₀ (-W -Void/Vs sₐ))} ∅ ∅)]
+         (values (⊔ σ α Vᵥ) {set (-ΓW Γ₀ -Void/W)} ∅ ∅)]
         [(-St* (== s) γs α l³)
          (match-define (Mon-Info l+ l- lo) l³)
          (define l³* (Mon-Info l- l+ lo))
@@ -314,6 +316,8 @@
            (define ⟦chk⟧ (mon l³* ℓ W-c Wᵥ))
            (define comp ((↝.@ lo ℓ (list Wₛ* Mut) '()) ⟦chk⟧))
            (comp M σ ℒ₀))]
+        [(-St● (== s))
+         (values ⊥σ {set (-ΓW Γ₀ -Void/W)} ∅ ∅)]
         [(-● _)
          (define p (-st-p s))
          (define ⟦ok⟧ : -⟦e⟧ ; TODO havoc
@@ -357,6 +361,8 @@
                 [else
                  (ap lo ℓ -unsafe-struct-ref/W (list (-W¹ V sᵥ)))]))
             (comp M σ (-ℒ-with-Γ ℒ₀ Γ*)))]
+        [(-St● _)
+         (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]
         [_ (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)]))
     
     (: ap/unsafe-struct-set! : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
@@ -409,7 +415,7 @@
                     #:when (exact-nonnegative-integer? i) ; hack for TR
                     #:when (plausible-index? M Γ₀ Wᵢ i))
            (define Γ* (Γ+ Γ₀ (-?@ '= sᵢ (-b i))))
-           (values (⊔ ⊥σ α Vᵤ) {set (-ΓW Γ* (-W -Void/Vs sₐ))} ∅ ∅))]
+           (values (⊔ ⊥σ α Vᵤ) {set (-ΓW Γ* -Void/W)} ∅ ∅))]
         [(-Vector/hetero αs l³)
          (match-define (Mon-Info l+ l- lo) l³)
          (define l³* (swap-parties l³))
@@ -652,11 +658,12 @@
             (define α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ)))
             (define comp (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧)))
             (comp M σ ℒ)))])]
-    [(-● _)
+    [(or (-● _) (-St● (== s)))
+     (define V● (-St● s))
      (match ⟦field⟧s
        ['()
         (λ (M σ ℒ)
-          (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅))]
+          (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V●) v))} ∅ ∅))]
        [_
         (λ (M σ ℒ)
           (for*/ans ([Cs (σ@/list σ αs)])
