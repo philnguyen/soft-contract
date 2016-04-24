@@ -12,9 +12,6 @@
          "step.rkt"
          "continuation.rkt")
 
-(define havoc-path 'havoc)
-(define havoc-𝒾 (-𝒾 'havoc-id havoc-path))
-
 (define x (+x!))
 (define 𝐱 (-x x))
 (define 𝐱s (list 𝐱))

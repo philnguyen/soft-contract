@@ -317,9 +317,8 @@
         [(-● _)
          (define p (-st-p s))
          (define ⟦ok⟧ : -⟦e⟧ ; TODO havoc
-           (let* ([havoc-𝒾 (-𝒾 'havoc-id 'havoc)]
-                  [Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)]
-                  [⟦hv⟧ (ap 'Λ ℓ Wₕᵥ (list Wᵥ))])
+           (let* ([Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)]
+                  [⟦hv⟧ (ap havoc-path ℓ Wₕᵥ (list Wᵥ))])
              (⊔/⟦e⟧ ((↝.begin (list ⟦void⟧)) ⟦hv⟧)
                     ⟦void⟧)))
          (define ⟦er⟧ : -⟦e⟧ (blm l (show-o mut) (list p) (list Vₛ)))
@@ -403,9 +402,7 @@
       (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
       (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
       (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
-      (define Wₕᵥ
-        (let ([havoc-𝒾 (-𝒾 'havoc-id 'havoc)])
-          (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)))
+      (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾))
       (match Vᵥ
         [(-Vector αs)
          (for*/ans ([(α i) (in-indexed αs)]
@@ -424,7 +421,7 @@
                     [C (σ@ σ α)])
            (define W-c (-W¹ C c))
            (define ⟦chk⟧ (mon l³* ℓ W-c Wᵤ))
-           (define ⟦hv⟧ ((↝.@ 'havoc ℓ (list Wₕᵥ) '()) ⟦chk⟧))
+           (define ⟦hv⟧ ((↝.@ havoc-path ℓ (list Wₕᵥ) '()) ⟦chk⟧))
            (define comp ((↝.begin (list ⟦void⟧)) (⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧)))
            (comp M σ (-ℒ-with-Γ ℒ₀ Γ*)))]
         [(-Vector/homo α l³)
@@ -433,16 +430,15 @@
          (for*/ans ([C (σ@ σ α)])
            (define W-c (-W¹ C c))
            (define ⟦chk⟧ (mon l³* ℓ W-c Wᵤ))
-           (define ⟦hv⟧ ((↝.@ 'havoc ℓ (list Wₕᵥ) '()) ⟦chk⟧))
+           (define ⟦hv⟧ ((↝.@ havoc-path ℓ (list Wₕᵥ) '()) ⟦chk⟧))
            (define comp ((↝.begin (list ⟦void⟧)) (⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧)))
            (comp M σ ℒ₀))]
         [_
-         (define ⟦hv⟧ (ap 'havoc ℓ Wₕᵥ (list Wᵤ)))
+         (define ⟦hv⟧ (ap havoc-path ℓ Wₕᵥ (list Wᵤ)))
          ((⊔/⟦e⟧ ⟦hv⟧ ⟦void⟧) M σ ℒ₀)]))
 
     (: ap/● : → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/●)
-      (define havoc-𝒾 (-𝒾 'havoc-id 'havoc))
       (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾))
       (⊔/ans (values ⊥σ {set (-ΓW Γ₀ (-W -●/Vs sₐ))} ∅ ∅)
              (for*/ans ([Wₓ Wₓs])
@@ -767,9 +763,7 @@
          (λ (M σ ℒ)
            (values δσ {set (-ΓW (-ℒ-cnd ℒ) -Void/W)} ∅ ∅))))
      (λ (M σ ℒ)
-       (define Wₕᵥ
-         (let ([havoc-𝒾 (-𝒾 'havoc-id 'havoc)])
-           (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)))
+       (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾))
        (for*/ans ([C (σ@ σ α)] [Vs (σ@/list σ αs)])
          (define ⟦hv⟧s : (Listof -⟦e⟧)
            (for/list ([(V* i) (in-indexed Vs)])
@@ -829,9 +823,7 @@
         (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V*) vᵥ))} ∅ ∅))))
 
   (λ (M σ ℒ)
-    (define Wₕᵥ
-      (let ([havoc-𝒾 (-𝒾 'havoc-id 'havoc)])
-        (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)))
+    (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾))
     (for*/ans ([Cs (σ@/list σ αs)])
       (define ⟦hv-fld⟧s : (Listof -⟦e⟧)
         (for/list ([C* Cs] [c* cs] [i (in-naturals)])

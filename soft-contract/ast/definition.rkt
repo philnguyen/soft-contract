@@ -157,6 +157,9 @@
 (define -set-box! (-st-mut -s-box 0))
 (define -pred (--> (list 'any/c) 'boolean? 0))
 
+(define havoc-path 'havoc)
+(define havoc-𝒾 (-𝒾 'havoc-id havoc-path))
+
 (define m∅ : (HashTable -e -e) (hash))
 
 (: -cond : (Listof (Pairof -e -e)) -e → -e)

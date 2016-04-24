@@ -561,8 +561,8 @@
   (match-define (-binding f xs x->e) bnd)
   (define bnds
     (for/list : (Listof Sexp) ([x xs])
-      `(,x ↦ ,(show-s (hash-ref x->e x #f)))))
+      `(,(show-Var-Name x) ↦ ,(show-s (hash-ref x->e x #f)))))
   (define fvs
     (for/list : (Listof Sexp) ([(x e) x->e] #:unless (member x xs))
-      `(,x ↦ ,(show-e e))))
+      `(,(show-Var-Name x) ↦ ,(show-e e))))
   `(,(show-s f) ,@bnds ‖ ,@fvs))
