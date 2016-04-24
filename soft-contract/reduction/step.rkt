@@ -173,7 +173,7 @@
      [(-x x) (⇓ₓ l x)]
      [(and 𝒾 (-𝒾 x l₀))
 
-      (: V->s : -σ -V → (Option -o))
+      (: V->s : -σ -V → -s)
       (define (V->s σ V) 
         (with-debugging/off
           ((ans)
@@ -184,7 +184,18 @@
               (match (hash-ref σ α)
                 [(? set? s) #:when (= 1 (set-count s)) (V->s σ (set-first s))]
                 [_ #f])]
-             [V #f]))
+             [(-Clo xs ⟦e⟧ ρ _) #:when (ρ-empty? ρ)
+              (cond [(recall-e ⟦e⟧) => (λ ([e : -e]) (-λ xs e))] ; hack
+                    [else #f])]
+             [(-St s αs) (apply -?@ (-st-mk s) (αs->ss αs))]
+             [(-St/C _ s αs) (-?struct/c s (αs->ss αs))]
+             [(-And/C _ αₗ αᵣ) (-?@ 'and/c (α->s αₗ) (α->s αᵣ))]
+             [(-Or/C  _ αₗ αᵣ) (-?@ 'or/c  (α->s αₗ) (α->s αᵣ))]
+             [(-Not/C α) (-?@ 'not/c (α->s α))]
+             [(-Vector/C αs) (apply -?@ 'vector/c (αs->ss αs))]
+             [(-Vectorof α) (-?@ 'vectorof (α->s α))]
+             [(-x/C (-α.x/c ℓ)) (-x/c ℓ)]
+             [_ #f]))
           (printf "V->s: ~a ↦ ~a~n" V ans)))
 
       (cond

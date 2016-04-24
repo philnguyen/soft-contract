@@ -27,12 +27,12 @@
 
 (: -struct/c-split : -s Integer → (Listof -s))
 (define (-struct/c-split c n)
-  (match c
-    [(-struct/c _ cs _) cs]
-    [_ (make-list n #f)
-     #;(define s (-struct-info 'struct/c n ∅)) ; hack
-     #;(for/list : (Listof -s) ([i (in-range n)])
-         (-?@ (-st-ac s i) c))]))
+  (with-debugging/off
+    ((ans)
+     (match c
+       [(-struct/c _ cs _) cs]
+       [_ (make-list n #f)]))
+    (printf "struct/c-split: ~a -> ~a~n" (show-s c) (map show-s ans))))
 
 (: -struct-split : -s -struct-info → (Listof -s))
 (define (-struct-split e s)

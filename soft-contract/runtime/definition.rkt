@@ -8,6 +8,10 @@
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt")
+(require/typed racket/base
+  [(hash-empty? ρ-empty?) (-ρ → Boolean)])
+(provide ρ-empty?)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Environment
@@ -253,6 +257,9 @@
             (-α.fn [mon-pos : -ℓ] [guard-pos : -ℓ] [ctx : -𝒞])
 
             -α.cnst)
+
+(define (α->s [α : -α]) : -s (and (-e? α) α))
+(define (αs->ss [αs : (Listof -α)]) : (Listof -s) (map α->s αs))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
