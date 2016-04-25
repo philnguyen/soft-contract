@@ -9,7 +9,7 @@
   [WORLD/C contract?]
   [struct posn ([x real?] [y real?])]
   [posn=? (POSN/C POSN/C . -> . boolean?)]
-  [struct snake ([dir DIR/C] [segs (and cons? (listof POSN/C))])]
+  [struct snake ([dir DIR/C] [segs (and/c cons? (listof POSN/C))])]
   [struct world ([snake SNAKE/C] [food POSN/C])]
   ;; const
   [WORLD (-> WORLD/C)]
@@ -83,7 +83,7 @@
 (define (SEGMENT-IMAGE)  (circle (SEGMENT-RADIUS) "solid" "red"))
 (define (FOOD-RADIUS) (SEGMENT-RADIUS))
 (define (FOOD-IMAGE)  (circle (FOOD-RADIUS) "solid" "green"))
-(define (WORLD) (world (snake "right" (cons (posn 5 3) empty))
+(define (WORLD) (world (snake 'right (cons (posn 5 3) empty))
                        (posn 8 12)))
 
 
@@ -201,10 +201,10 @@
 
 ;; handle-key : World String -> World
 (define (handle-key w ke)
-  (cond [(equal? ke "w") (world-change-dir w "up")]
-        [(equal? ke "s") (world-change-dir w "down")]
-        [(equal? ke "a") (world-change-dir w "left")]
-        [(equal? ke "d") (world-change-dir w "right")]
+  (cond [(equal? ke "w") (world-change-dir w 'up)]
+        [(equal? ke "s") (world-change-dir w 'down)]
+        [(equal? ke "a") (world-change-dir w 'left)]
+        [(equal? ke "d") (world-change-dir w 'right)]
         [else w]))
 
 ;; game-over? : World -> Boolean
