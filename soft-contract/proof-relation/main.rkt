@@ -36,16 +36,20 @@
               (MΓ⊢s M Γ (apply -?@ p ss))))
     (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))
 
+(define last : Integer 0)
 (: MΓ⊢s : -M -Γ -s → -R)
 ;; Check if `s` is provable in `Γ`
 (define (MΓ⊢s M Γ s)
   (with-debugging/off ((ans) (if s (⊢cfg M (inj-cfg Γ s)) '?))
     (define-values (sΓ sγs) (show-M-Γ M Γ))
     (define ss (show-s s))
-    (printf "chk: ~a ⊢ ~a : ~a ~n" sΓ ss ans)
+    (printf "chk: ~a ⊢ ~a : ~a~n" sΓ ss ans)
     (for ([sγ sγs])
       (printf "  - ~a~n" sγ))
-    (printf "~n")))
+    (define cur (current-milliseconds))
+    (define δ (- cur last))
+    (set! last cur)
+    (printf "~a~n~n" δ)))
 
 (define (⊢cfg [M : -M] [cfg : -cfg]) (⊢cfgs M {set cfg}))
 
@@ -80,17 +84,19 @@
                             [(✗)   '✗]
                             [(✓ ?) '?])])]
                  [else '?])]))
-       (printf "worlds:~n")
-       (for ([cfg ✓s])
-         (match-define (-cfg (-ctx φs γʰs _) e) cfg)
-         (printf "  - ~a, ~a ⊢ ~a : ✓~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e)))
-       (for ([cfg ✗s])
-         (match-define (-cfg (-ctx φs γʰs _) e) cfg)
-         (printf "  - ~a, ~a ⊢ ~a : ✗~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e)))
-       (for ([cfg ?s])
-         (match-define (-cfg (-ctx φs γʰs _) e) cfg)
-         (printf "  - ~a, ~a ⊢ ~a : ?~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e)))
-       (printf "~n"))]))
+       (printf "~a~a~n" (build-string (* 2 (- 5 d)) (λ _ #\space)) (set-count cfgs))
+       #;(begin
+         (printf "worlds:~n")
+         (for ([cfg ✓s])
+           (match-define (-cfg (-ctx φs γʰs _) e) cfg)
+           (printf "  - ~a, ~a ⊢ ~a : ✓~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e)))
+         (for ([cfg ✗s])
+           (match-define (-cfg (-ctx φs γʰs _) e) cfg)
+           (printf "  - ~a, ~a ⊢ ~a : ✗~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e)))
+         (for ([cfg ?s])
+           (match-define (-cfg (-ctx φs γʰs _) e) cfg)
+           (printf "  - ~a, ~a ⊢ ~a : ?~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e))))
+       #;(printf "~n"))]))
 
 (: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
