@@ -262,7 +262,7 @@
              (case (es⊢e φs (-?@ 'defined? s))
                [(✗ ?) #t]
                [(✓)   #f])])]
-         [(or (-St si _) (-St* si _ _ _) (-St● si)) #:when si
+         [(or (-St si _) (-St* si _ _ _)) #:when si
           (plausible-es-s? φs (-?@ (-st-p si) s))]
          [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
           (plausible-es-s? φs (-?@ 'vector? s))]
@@ -365,10 +365,14 @@
           [(? -st-ac?) '✓]
           [(-st-p si)
            (match Vs
-             [(list (or (-St sj _) (-St* sj _ _ _) (-St● sj)))
+             [(list (or (-St sj _) (-St* sj _ _ _)))
               ;; TODO: no sub-struct for now. May change later.
               (decide-R (equal? si (assert sj)))]
-             [(list (-● _)) '?]
+             [(list (-● ps))
+              (or (for/or : (U '✓ '✗ #f) ([p ps] #:when (-st-p? p))
+                    (match-define (-st-p s) p)
+                    (decide-R (equal? s si)))
+                  '?)]
              [_ '✗])]
           [(-Ar _ (or (? -o? o) (-α.def (-𝒾 (? -o? o) 'Λ)) (-α.wrp (-𝒾 (? -o? o) 'Λ))) _)
            #:when o

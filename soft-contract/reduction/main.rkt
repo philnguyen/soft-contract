@@ -49,7 +49,7 @@
          (set! count (+ 1 count))
          (define num-τs (set-count τs))
          (define num-Cos (set-count Cos))
-         (printf "iter: ~a, ⟨~a, ~a⟩ ≡ ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
+         (printf "iter ~a: ⟨~a, ~a⟩ ≡ ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
          #;(begin
            (printf "~a τs:~n" num-τs)
            (for ([τ τs])

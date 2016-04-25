@@ -44,7 +44,8 @@
      ((δσ ΓWs ΓEs ℐs)
       (match τ
         [(-ℬ ⟦e⟧ ℒ) (⟦e⟧ M σ ℒ)]
-        [(-ℳ l³ ℓ W-C W-V ℒ) ((mon l³ ℓ W-C W-V) M σ ℒ)]))
+        [(-ℳ l³ ℓ W-C W-V ℒ) ((mon l³ ℓ W-C W-V) M σ ℒ)]
+        [(-ℱ l ℓ W-C W-V ℒ) ((flat-chk l ℓ W-C W-V) M σ ℒ)]))
      (printf "ev: ~a~n" (show-τ τ))
      (printf "Answers:~n")
      (for ([A ΓWs])
@@ -79,7 +80,15 @@
            (cond
              [(plausible-return? M Γ₀ bnd Γ W)
               (define Γ₀* (-Γ-plus-γ Γ₀ γ))
-              (values (set-add ΓWs (-ΓW Γ₀* (-W Vs (and sₐ fargs)))) ΓEs)]
+              (define sₐ*
+                (and sₐ
+                     (match fargs ; HACK
+                       [(-@ 'fc (list x) _) 
+                        (match Vs
+                          [(list (-b #f)) -ff]
+                          [(list (-b #t) _) (-?@ 'values -tt x)])]
+                       [_ fargs])))
+              (values (set-add ΓWs (-ΓW Γ₀* (-W Vs sₐ*))) ΓEs)]
              [else (values ΓWs ΓEs)])]
           [(-ΓE Γ (and E (-blm l+ lo _ _)))
            (define γ (-γ τ bnd (cons l+ lo)))
@@ -358,7 +367,19 @@
       [(-ℰ.mon.c l³ ℓ Ctc ℰ*)
        ((↝.mon.c l³ ℓ Ctc) (go ℰ*))]
       [(-ℰ.wrap.st s αs α l³ ℰ*)
-       ((↝.wrap.st s αs α l³) (go ℰ*))])))
+       ((↝.wrap.st s αs α l³) (go ℰ*))]
+      [(-ℰ.fc l ℓ W-C ℰ*)
+       ((↝.fc l ℓ W-C) (go ℰ*))]
+      [(-ℰ.fc.and/c l ℓ W-Cₗ W-Cᵣ ℰ*)
+       ((↝.fc.and/c l ℓ W-Cₗ W-Cᵣ) (go ℰ*))]
+      [(-ℰ.fc.or/c l ℓ W-Cₗ W-Cᵣ W-V ℰ*)
+       ((↝.fc.or/c l ℓ W-Cₗ W-Cᵣ W-V) (go ℰ*))]
+      [(-ℰ.fc.not/c l ℓ W-C W-V ℰ*)
+       ((↝.fc.not/c l ℓ W-C W-V) (go ℰ*))]
+      [(-ℰ.fc.struct/c l ℓ s Ws ⟦e⟧s ℰ*)
+       ((↝.fc.struct/c l ℓ s Ws ⟦e⟧s) (go ℰ*))]
+      [(-ℰ.or/c ℓ W-C ⟦e⟧ ℰ*)
+       ((↝.or/c ℓ W-C ⟦e⟧) (go ℰ*))])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

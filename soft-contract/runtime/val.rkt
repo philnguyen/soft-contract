@@ -62,3 +62,22 @@
     [(-Vector/homo α (Mon-Info l+ 'dummy lo))
      (-Vector/homo α (Mon-Info l+ l      lo))]
     [_ V]))
+
+(: V+ : -σ -V -V → -V)
+;; refine opaque value with predicate
+(define (V+ σ V P)
+  
+  (define (simplify [P : -V]) : -V
+    (match P
+      [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
+       (define Vs (hash-ref σ α))
+       (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
+             [else P])]
+      [_ P]))
+
+  (match V
+    [(-● ps)
+     (match (simplify P)
+       [(? -o? o) (-● (set-add ps o))]
+       [_ V])]
+    [_ V]))

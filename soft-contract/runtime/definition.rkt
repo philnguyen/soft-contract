@@ -70,7 +70,6 @@
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
             (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : Mon-Info])
-            (-St● [info : -struct-info])
             (-Vector/hetero [ctcs : (Listof -α)] [ctx : Mon-Info])
             (-Vector/homo [ctc : -α] [ctx : Mon-Info])
             
@@ -152,6 +151,14 @@
 
             ;; Hopefully can eliminate these eventually
             (-ℰ.wrap.st -struct-info (Listof -α) -α.st Mon-Info -ℰ)
+
+            ;; For flat-checks
+            (-ℰ.fc Mon-Party -ℓ -W¹ -ℰ)
+            (-ℰ.fc.and/c Mon-Party -ℓ -W¹ -W¹ -ℰ)
+            (-ℰ.fc.or/c Mon-Party -ℓ -W¹ -W¹ -W¹ -ℰ)
+            (-ℰ.fc.not/c Mon-Party -ℓ -W¹ -W¹ -ℰ)
+            (-ℰ.fc.struct/c Mon-Party -ℓ -struct-info (Listof -W¹) (Listof -⟦e⟧) -ℰ)
+            (-ℰ.or/c -ℓ -W¹ -⟦e⟧ -ℰ)
             )
 
 ;; A "hole" ℋ is an evaluation context augmented with
@@ -281,7 +288,9 @@
 (-τ . ::= . ;; Function body
             (-ℬ [code : -⟦e⟧] [ctx : -ℒ])
             ;; Contract monitoring
-            (-ℳ [l³ : Mon-Info] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
+            (-ℳ [l³ : Mon-Info] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
+            ;; Flat checking
+            (-ℱ [l : Mon-Party] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
 
 ;; Local context
 (struct -ℒ ([env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
@@ -395,8 +404,6 @@
      `(,(format-symbol "~a/wrapped" (show-struct-info s))
        ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
-    [(-St● s)
-     `(,(show-struct-info s) ,@(make-list (-struct-info-arity s) '●))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-Vector/hetero γs _) `(vector/hetero ,@(map show-α γs))]
     [(-Vector/homo γ _) `(vector/homo ,(show-α γ))]
@@ -490,7 +497,19 @@
       [(-ℰ.mon.v _ _ ℰ* Val)
        `(mon ,(loop ℰ*) ,(if (-W¹? Val) (show-W¹ Val) (show-⟦e⟧ Val)))]
       [(-ℰ.mon.c _ _ Ctc ℰ*)
-       `(mon ,(if (-W¹? Ctc) (show-W¹ Ctc) (show-⟦e⟧ Ctc)) ,(loop ℰ*))])))
+       `(mon ,(if (-W¹? Ctc) (show-W¹ Ctc) (show-⟦e⟧ Ctc)) ,(loop ℰ*))]
+      [(-ℰ.fc l ℓ W ℰ*)
+       `(fc ,(show-W¹ W) ,(loop ℰ*))]
+      [(-ℰ.fc.and/c l ℓ W-C W-V ℰ*)
+       `(fc.and/c ,(show-W¹ W-C) ,(show-W¹ W-V) ,(loop ℰ*))]
+      [(-ℰ.fc.or/c l ℓ W-Cₗ W-Cᵣ W-V ℰ*)
+       `(fc.or/c ,(show-W¹ W-Cₗ) ,(show-W¹ W-Cᵣ) ,(show-W¹ W-V) ,(loop ℰ*))]
+      [(-ℰ.fc.not/c l ℓ W-C W-V ℰ*)
+       `(fc.not/c ,(show-W¹ W-C) ,(show-W¹ W-V) ,(loop ℰ*))]
+      [(-ℰ.fc.struct/c l ℓ s W-Cs ⟦e⟧s ℰ*)
+       `(fc.struct/c ,(show-struct-info s) ,@(reverse (map show-W¹ W-Cs)) ,(loop ℰ*) ,@(map show-⟦e⟧ ⟦e⟧s))]
+      [(-ℰ.or/c l W ⟦e⟧ ℰ*)
+       `(or/c ,(show-W¹ W) ,(show-⟦e⟧ ⟦e⟧) ,(loop ℰ*))])))
 
 (define (show-ℋ [ℋ : -ℋ])
   (match-define (-ℋ ℒ bnd ℰ) ℋ)
@@ -511,7 +530,8 @@
 
 (define (show-τ [τ : -τ]) : Sexp
   (cond [(-ℬ? τ) (show-ℬ τ)]
-        [else (show-ℳ τ)]))
+        [(-ℳ? τ) (show-ℳ τ)]
+        [else    (show-ℱ τ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ ⟦e⟧ ℒ) ℬ)
@@ -521,6 +541,10 @@
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ l³ ℓ W-C W-V ℒ) ℳ)
   `(mon ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
+
+(define (show-ℱ [ℱ : -ℱ]) : Sexp
+  (match-define (-ℱ l ℓ W-C W-V ℒ) ℱ)
+  `(fc ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
 
 (define (show-ℒ [ℒ : -ℒ]) : Sexp
   (match-define (-ℒ ρ Γ 𝒞) ℒ)

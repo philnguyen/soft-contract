@@ -19,4 +19,5 @@
     [(_ R₁ R ...)
      (match R₁ ['? (first-R R ...)] [ans ans])]))
 
-(define (decide-R [x : Boolean]) : -R (if x '✓ '✗))
+(: decide-R : Boolean → (U '✓ '✗))
+(define (decide-R x) (if x '✓ '✗))
