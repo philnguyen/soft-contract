@@ -196,6 +196,10 @@
      #:when (equal? 'match:error (syntax->datum #'f))
      (-error "incomplete pattern matching")]
 
+    ;; HACK for time-apply in nucleic2
+    [(let-values ([_ (#%plain-app (~literal time-apply) (#%plain-lambda () e) (~literal null))]) _ ...)
+     (parse-e #'e)]
+
     ;;; Contracts
     ;; Non-dependent function contract
     [(let-values ([(_) (~literal fake:dynamic->*)]
