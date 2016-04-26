@@ -49,20 +49,31 @@
          (set! count (+ 1 count))
          (define num-τs (set-count τs))
          (define num-Cos (set-count Cos))
+         (define τs-list (set->list τs))
+         (define Cos-list (set->list Cos))
          (printf "iter ~a: ⟨~a, ~a⟩ ≡ ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
-         #;(begin
+         (begin
            (printf "~a τs:~n" num-τs)
-           (for ([τ τs]) (printf "  - ~a~n" (show-τ τ)))
+           (for ([(τ i) (in-indexed τs-list)])
+             (printf "  -~a ~a~n" (n-sub i) (show-τ τ)))
            (printf "~a Cos:~n" num-Cos)
-           (for ([Co Cos]) (printf "  - ~a~n" (show-Co Co)))
+           (for ([(Co i) (in-indexed Cos-list)])
+             (printf "  -~a ~a~n" (n-sub (+ i num-τs)) (show-Co Co)))
            (printf "σ:~n")
            (for ([r (show-σ σ)]) (printf "  - ~a~n" r))
-           (printf "M:~n")
-           (for ([(τ As) M])
+           #;(printf "M:~n")
+           #;(for ([(τ As) M])
              (printf "  - (~a) ~a~n" (set-count As) (show-τ τ))
              (for ([A As]) (printf "      ↦ ~a~n" (show-A A)))))
-         #;(case (read)
-           [(done) (error "done")]
+         (match (read) ; interactive
+           ['done (error "done")]
+           [(? exact-nonnegative-integer? i)
+            (cond [(<= 0 i (sub1 num-τs))
+                   (set! τs {set (list-ref τs-list i)})
+                   (set! Cos ∅)]
+                  [else
+                   (set! τs ∅)
+                   (set! Cos {set (list-ref Cos-list (- i num-τs))})])]
            [else (void)])
          (printf "~n"))
        

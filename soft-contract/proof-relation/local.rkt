@@ -187,35 +187,44 @@
   (define (e⊢e e₁ e₂)
     (with-debugging/off
       ((ans)
-       (match* ((⊢e e₁) (⊢e e₂))
-         [('✗ _) '✓]
-         [(_ '?)
-          (match* (e₁ e₂)
-            ; e ⇒ e
-            [(e e) '✓]
-            ; NOTE: Don't abuse "contrapositive"
-            ; (¬e₁ ⊢ ¬e₂ : ✗) does not follow from (e₂ ⊢ e₁ : ✗)
-            [((-not e₁*) (-not e₂*))
-             (case (e⊢e e₂* e₁*)
-               [(✓)   '✓]
-               [(✗ ?) '?])]
-            [(e₁ (-not e₂*))
-             (not-R (e⊢e e₁ e₂*))]
-            [((-@ (? -o? p) (list e) _) (-@ (? -o? q) (list e) _))
-             (p⇒p p q)] ; FIXME
-            [((-@ (? -o? p) (list e) _) e)
-             (cond
-               [(eq? 'not p) '✗]
-               [(and (symbol? p) (boolean-excludes? p)) '✓]
-               [(-st-p? p) '✓]
-               [else '?])]
-            [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
-             (⊢@ p (list e₂))]
-            [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
-             (⊢@ p (list e₁))]
-            [(_ _) '?])]
-         [(_ R) R]))
-      (printf "~a ⊢ ~a : ~a~n~n" (show-e e₁) (show-e e₂) ans)))
+       ;; (⊢e e₂) is not redundant, because this may be just a sub-exp of the original goal
+       (case (⊢e e₁)
+         [(✗) '✓]
+         [else
+          (match (⊢e e₂)
+            ['?
+             (match* (e₁ e₂)
+               ; e ⇒ e
+               [(e e) '✓]
+               ; NOTE: Don't abuse "contrapositive"
+               ; (¬e₁ ⊢ ¬e₂ : ✗) does not follow from (e₂ ⊢ e₁ : ✗)
+               [((-not e₁*) (-not e₂*))
+                (case (e⊢e e₂* e₁*)
+                  [(✓)   '✓]
+                  [(✗ ?) '?])]
+               [(e₁ (-not e₂*))
+                (not-R (e⊢e e₁ e₂*))]
+               [((-@ (? -o? p) (list e) _) (-@ (? -o? q) (list e) _))
+                (p⇒p p q)] ; FIXME
+               [((-@ (? -o? p) (list e) _) e)
+                (cond
+                  [(eq? 'not p) '✗]
+                  [(and (symbol? p) (boolean-excludes? p)) '✓]
+                  [(-st-p? p) '✓]
+                  [else '?])]
+               [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
+                (⊢@ p (list e₂))]
+               [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
+                (⊢@ p (list e₁))]
+               [((-@ (or '= 'equal?) (list e (-b b₁)) _)
+                 (-@ (or '= 'equal?) (list e (-b b₂)) _))
+                (decide-R (equal? b₁ b₂))]
+               [((-@ (or '= 'equal?) (list (-b b₁) e) _)
+                 (-@ (or '= 'equal?) (list (-b b₂) e) _))
+                (decide-R (equal? b₁ b₂))]
+               [(_ _) '?])]
+            [R R])]))
+      (printf "~a ⊢ ~a : ~a~n" (show-e e₁) (show-e e₂) ans)))
 
   (with-debugging/off
     ((ans)
