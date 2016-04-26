@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide
- fv 𝐴 closed? checks# free-x/c e/ e/map e/map* e/fun e/list unroll find-calls prim-name->unsafe-prim
+ fv 𝐴 closed? checks# free-x/c e/ e/map #;e/map* e/fun e/list unroll find-calls prim-name->unsafe-prim
  α-rename e-map-union -@/simp)
 
 (require racket/match

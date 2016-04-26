@@ -45,14 +45,14 @@
       [(and (set-empty? τs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
-       #;(parameterize ([verbose? #t])
+       (parameterize ([verbose? #t])
          (set! count (+ 1 count))
          (define num-τs (set-count τs))
          (define num-Cos (set-count Cos))
          (define τs-list (set->list τs))
          (define Cos-list (set->list Cos))
-         (printf "iter ~a: ⟨~a, ~a⟩ ≡ ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
-         (begin
+         (printf "iter ~a: ~a + ~a = ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
+         #;(begin ; verbose
            (printf "~a τs:~n" num-τs)
            (for ([(τ i) (in-indexed τs-list)])
              (printf "  -~a ~a~n" (n-sub i) (show-τ τ)))
@@ -65,7 +65,7 @@
            #;(for ([(τ As) M])
              (printf "  - (~a) ~a~n" (set-count As) (show-τ τ))
              (for ([A As]) (printf "      ↦ ~a~n" (show-A A)))))
-         (match (read) ; interactive
+         #;(match (read) ; interactive
            ['done (error "done")]
            [(? exact-nonnegative-integer? i)
             (cond [(<= 0 i (sub1 num-τs))

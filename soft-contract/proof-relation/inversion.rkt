@@ -37,7 +37,7 @@
      (match-define (-cfg ctx e) cfg)
      (for/set: : (℘ -cfg) ([ctx* (invert-ctx M ctx)])
        (match-define (-ctx _ _ m) ctx*)
-       (-cfg ctx* ((e/map* m) e))))
+       (-cfg ctx* ((e/map m) e))))
     (define δ (- (current-milliseconds) last))
     (when (> δ 1000)
       (define (printf-cfg [cfg : -cfg])
@@ -159,7 +159,7 @@
 
 (: combine-e-map : (HashTable -e -e) (HashTable -e -e) → (HashTable -e -e))
 (define (combine-e-map m δm)
-  (define f (e/map* m))
+  (define f (e/map m))
   (define δm*
     (for/hash : (HashTable -e -e) ([(x y) δm])
       (values (f x) (f y))))
@@ -187,8 +187,8 @@
   ;; of only variables caller understands
   (define fargsₐ
     (let ([all-args? (andmap (inst values Any) args)]
-          [a* (s↓ (and a ((e/map* mₐ) a)) dom)])
-      (and all-args? a* ((e/map* m₀) a*))))
+          [a* (s↓ (and a ((e/map mₐ) a)) dom)])
+      (and all-args? a* ((e/map m₀) a*))))
   
   (with-debugging/off
     ((mₑₑ mₑᵣ sₐ)
