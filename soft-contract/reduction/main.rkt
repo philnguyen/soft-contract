@@ -41,42 +41,44 @@
   
   (: loop : (HashTable -τ -σ) (℘ -τ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
   (define (loop seen τs Cos M Ξ σ)
+    
+    ;; Debugging
+    #;(parameterize ([verbose? #t])
+      (set! count (+ 1 count))
+      (define num-τs (set-count τs))
+      (define num-Cos (set-count Cos))
+      (define τs-list (set->list τs))
+      (define Cos-list (set->list Cos))
+      (printf "iter ~a: ~a + ~a = ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
+      (begin ; verbose
+        (printf "~a τs:~n" num-τs)
+        (for ([(τ i) (in-indexed τs-list)])
+          (printf "  -~a ~a~n" (n-sub i) (show-τ τ)))
+        (printf "~a Cos:~n" num-Cos)
+        (for ([(Co i) (in-indexed Cos-list)])
+          (printf "  -~a ~a~n" (n-sub (+ i num-τs)) (show-Co Co)))
+        (printf "σ:~n")
+        (for ([r (show-σ σ)]) (printf "  - ~a~n" r))
+        #;(printf "M:~n")
+        #;(for ([(τ As) M])
+            (printf "  - (~a) ~a~n" (set-count As) (show-τ τ))
+            (for ([A As]) (printf "      ↦ ~a~n" (show-A A)))))
+      #;(match (read) ; interactive
+          ['done (error "done")]
+          [(? exact-nonnegative-integer? i)
+           (cond [(<= 0 i (sub1 num-τs))
+                  (set! τs {set (list-ref τs-list i)})
+                  (set! Cos ∅)]
+                 [else
+                  (set! τs ∅)
+                  (set! Cos {set (list-ref Cos-list (- i num-τs))})])]
+          [else (void)])
+      (printf "~n"))
+    
     (cond
       [(and (set-empty? τs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
-       (parameterize ([verbose? #t])
-         (set! count (+ 1 count))
-         (define num-τs (set-count τs))
-         (define num-Cos (set-count Cos))
-         (define τs-list (set->list τs))
-         (define Cos-list (set->list Cos))
-         (printf "iter ~a: ~a + ~a = ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
-         #;(begin ; verbose
-           (printf "~a τs:~n" num-τs)
-           (for ([(τ i) (in-indexed τs-list)])
-             (printf "  -~a ~a~n" (n-sub i) (show-τ τ)))
-           (printf "~a Cos:~n" num-Cos)
-           (for ([(Co i) (in-indexed Cos-list)])
-             (printf "  -~a ~a~n" (n-sub (+ i num-τs)) (show-Co Co)))
-           (printf "σ:~n")
-           (for ([r (show-σ σ)]) (printf "  - ~a~n" r))
-           #;(printf "M:~n")
-           #;(for ([(τ As) M])
-             (printf "  - (~a) ~a~n" (set-count As) (show-τ τ))
-             (for ([A As]) (printf "      ↦ ~a~n" (show-A A)))))
-         #;(match (read) ; interactive
-           ['done (error "done")]
-           [(? exact-nonnegative-integer? i)
-            (cond [(<= 0 i (sub1 num-τs))
-                   (set! τs {set (list-ref τs-list i)})
-                   (set! Cos ∅)]
-                  [else
-                   (set! τs ∅)
-                   (set! Cos {set (list-ref Cos-list (- i num-τs))})])]
-           [else (void)])
-         (printf "~n"))
-       
        ;; Widen global tables
        (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ τs) (co* M Ξ σ Cos)))
        (define-values (M* Ξ* σ*) (⊔³ (values M Ξ σ) (values δM δΞ δσ)))
