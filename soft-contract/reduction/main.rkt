@@ -38,7 +38,7 @@
 (: run : -⟦e⟧ -σ → (Values (℘ -A) #|for debugging|# -M -Ξ -σ))
 ;; Run compiled program on initial heap
 (define (run ⟦e⟧₀ σ₀)
-  
+  ;(define last : Integer (current-seconds))
   (: loop : (HashTable -τ -σ) (℘ -τ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
   (define (loop seen τs Cos M Ξ σ)
     
@@ -47,11 +47,15 @@
       (set! count (+ 1 count))
       (define num-τs (set-count τs))
       (define num-Cos (set-count Cos))
-      (define τs-list (set->list τs))
-      (define Cos-list (set->list Cos))
-      (printf "iter ~a: ~a + ~a = ~a~n" count num-τs num-Cos (+ num-τs num-Cos))
-      (begin ; verbose
+      (let* ([now (current-seconds)]
+             [δ (- now last)])
+        (set! last now)
+        (printf "  ~as~n" δ))
+      (printf "iter ~a: ~a (~a + ~a)~n" count (+ num-τs num-Cos) num-τs num-Cos)
+      #;(begin ; verbose
         (printf "~a τs:~n" num-τs)
+        (define τs-list (set->list τs))
+        (define Cos-list (set->list Cos))
         (for ([(τ i) (in-indexed τs-list)])
           (printf "  -~a ~a~n" (n-sub i) (show-τ τ)))
         (printf "~a Cos:~n" num-Cos)
@@ -62,7 +66,8 @@
         #;(printf "M:~n")
         #;(for ([(τ As) M])
             (printf "  - (~a) ~a~n" (set-count As) (show-τ τ))
-            (for ([A As]) (printf "      ↦ ~a~n" (show-A A)))))
+            (for ([A As]) (printf "      ↦ ~a~n" (show-A A))))
+        (printf "~n"))
       #;(match (read) ; interactive
           ['done (error "done")]
           [(? exact-nonnegative-integer? i)
@@ -72,8 +77,7 @@
                  [else
                   (set! τs ∅)
                   (set! Cos {set (list-ref Cos-list (- i num-τs))})])]
-          [else (void)])
-      (printf "~n"))
+          [else (void)]))
     
     (cond
       [(and (set-empty? τs) (set-empty? Cos))
