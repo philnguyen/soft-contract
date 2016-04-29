@@ -47,12 +47,11 @@
   [tetra-rotate-ccw (TETRA/C . -> . TETRA/C)]
   [tetra-rotate-cw (TETRA/C . -> . TETRA/C)]
   [tetra-overlaps-blocks? (TETRA/C BSET/C . -> . boolean?)]
-  [build-tetra-blocks (COLOR/C real? real? integer? integer? integer? integer? integer? integer? integer? integer?
-                               . -> .  TETRA/C)]
+  [build-tetra-blocks (COLOR/C real? real? integer? integer? integer? integer? integer? integer? integer? integer? . -> .  TETRA/C)]; poz
   [tetra-change-color (TETRA/C COLOR/C . -> . TETRA/C)]
   ;; world
-  [world-key-move (WORLD/C string? . -> . WORLD/C)]
-  [next-world (WORLD/C (and/c cons? (listof TETRA/C)) . -> . WORLD/C)]
+  [world-key-move (WORLD/C string? . -> . WORLD/C)] ; 3m
+  [next-world (WORLD/C (and/c cons? (listof TETRA/C)) . -> . WORLD/C)] ; loops
   [ghost-blocks (WORLD/C . -> . BSET/C)]
   ;; image
   [image? (any/c . -> . boolean?)]
@@ -62,14 +61,14 @@
   [place-image (image? real? real? image? . -> . image?)]
   [empty-scene (real? real? . -> . image?)]
   ;; aux
-  [list-pick-random ((and cons? (listof TETRA/C)) . -> . TETRA/C)]
+  [list-pick-random ((and/c cons? (listof TETRA/C)) . -> . TETRA/C)] ; loops
   [neg-1 integer?] ;; ha!
   ;; visual
   [world->image (WORLD/C . -> . image?)]
   [blocks->image (BSET/C . -> . image?)]
   [block->image (BLOCK/C . -> . image?)]
   [place-block (BLOCK/C image? . -> . image?)]
-  [world0 ((and/c cons? (listof TETRA/C)) . -> . WORLD/C)]
+  [world0 ((and/c cons? (listof TETRA/C)) . -> . WORLD/C)] ; loops
   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -162,7 +161,7 @@
 
 (define (foldr f a xs)
   (cond [(null? xs) a]
-        [else (cons (f (car xs)) (foldr f a (cdr xs)))]))
+        [else (f (car xs) (foldr f a (cdr xs)))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
