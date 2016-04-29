@@ -23,7 +23,7 @@
 ;; convenient syntax for negation
 (define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
-  (syntax-rules () [(_ e) (-?@ 'not e)]))
+  (syntax-rules () [(_ e) (-@ 'not (list e) 0)]))
 
 (: -struct/c-split : -s Integer → (Listof -s))
 (define (-struct/c-split c n)
