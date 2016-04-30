@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide
- fv 𝐴 closed? checks# free-x/c e/ e/map #;e/map* e/fun e/list unroll find-calls prim-name->unsafe-prim
+ fv 𝐴 closed? checks# free-x/c e/ e/map unroll find-calls prim-name->unsafe-prim
  α-rename e-map-union -@/simp)
 
 (require racket/match
@@ -223,14 +223,6 @@
 (define (e/ x eₓ e)
   ((e/map (hash x eₓ)) e))
 
-(: e/list : (Listof -e) (Listof -e) -e → -e)
-;; Simultaneous subtitution
-(define (e/list xs exs e)
-  (define m
-    (for/hash : (HashTable -e -e) ([x xs] [ex exs])
-      (values x ex)))
-  ((e/map m) e))
-
 (: e/map : (HashTable -e -e) → -e → -e)
 (define ((e/map m) e)
   (with-debugging/off
@@ -299,90 +291,6 @@
     (printf "  - from: ~a~n" (show-e e))
     (printf "  - to  : ~a~n" (show-e eₐ))
     (printf "~n")))
-
-(: e/map* : (HashTable -e -e) → -e → -e)
-;; Repeatedly substitute until it's fixed. May not terminate. Use with care.
-(define ((e/map* m) e)
-  (define f (e/map m))
-  (with-debugging/off
-    ((ans)
-     (define SAFE-GUARD 100)
-     (let loop : -e ([e : -e e] [countdown : Integer SAFE-GUARD])
-       (when (<= countdown 0)
-         (printf "rewriting ~a:~n" (show-e e))
-         (for ([r (show-e-map m)]) (printf "  - ~a~n" r))
-         (error 'e/map* "Unexpected excessive rewriting (~a+ times)" SAFE-GUARD))
-       (define e* (f e))
-       (if (equal? e* e) e (loop e* (sub1 countdown)))))
-    (printf "e/map*~n")
-    (printf "  - map:~n")
-    (for ([r (show-e-map m)])
-      (printf "    + ~a~n" r))
-    (printf "  - from: ~a~n" (show-e e))
-    (printf "  - to  : ~a~n" (show-e ans))
-    (printf "~n")))
-
-(: e/fun : (-e → (Option -e)) → -e → -e)
-;; Duplicate code as `e/map` for now for some efficiency of `e/map`
-(define ((e/fun f) e)
-
-  (let go ([f f] [e e])
-    (cond
-      [(f e) => values]
-      [else
-       (match e
-         [(-λ xs e*) (-λ xs (go (shrink-f f xs) e*))]
-         [(-case-λ clauses)
-          (-case-λ
-           (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
-             (match-define (cons xs e*) clause)
-             (cons xs (go (shrink-f f xs) e*))))]
-         [(? -v?) e]
-         [(? -𝒾?) e]
-         [(-@ g xs l) (-@ (go f g) (map (curry go f) xs) l)]
-         [(-if e₀ e₁ e₂) (-if (go f e₀) (go f e₁) (go f e₂))]
-         [(-wcm k v b) (-wcm (go f k) (go f v) (go f b))]
-         [(-begin0 e₀ es) (-begin0 (go f e₀) (map (curry go f) es))]
-         [(? -quote?) e]
-         [(-let-values bnds e*)
-          (define-values (bnds-rev locals)
-            (for/fold ([bnds-rev : (Listof (Pairof (Listof Var-Name) -e)) '()]
-                       [locals : (℘ Var-Name) ∅])
-                      ([bnd bnds])
-              (match-define (cons xs ex) bnd)
-              (values (cons (cons xs (go f ex)) bnds-rev)
-                      (set-add-list locals xs))))
-          (define f* (shrink-f f (set->list locals)))
-          (-let-values (reverse bnds-rev) (go f* e*))]
-         [(-letrec-values bnds e*)
-          (define xs
-            (set->list
-             (for/fold ([locals : (℘ Var-Name) ∅]) ([bnd bnds])
-               (set-add-list locals (car bnd)))))
-          (define f* (shrink-f f xs))
-          (define bnds*
-            (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([bnd bnds])
-              (match-define (cons xs ex) bnd)
-              (cons xs (go f* ex))))
-          (-letrec-values bnds* (go f* e*))]
-         [(-set! z e*) (-set! z (go f e*))]
-         [(-amb es) (-amb (map/set (curry go f) es))]
-         [(-μ/c z c) (-μ/c z (go f c))]
-         [(--> cs d ℓ) (--> (map (curry go f) cs) (go f d) ℓ)]
-         [(-->i cs mk-d ℓ)
-          (-->i (map (curry go f) cs)
-                (assert (go f mk-d) -λ?)
-                ℓ)]
-         [(-case-> clauses ℓ)
-          (define clauses* : (Listof (Pairof (Listof -e) -e))
-            (for/list ([clause clauses])
-              (match-define (cons cs d) clause)
-              (cons (map (curry go f) cs) (go f d))))
-          (-case-> clauses* ℓ)]
-         [(-struct/c t cs p) (-struct/c t (map (curry go f) cs) p)]
-         [_
-          (log-debug "e/: ignore substituting ~a" e)
-          e])])))
 
 (: unroll : Integer -e -e → -e)
 ;; Unroll reference to recursive contract
