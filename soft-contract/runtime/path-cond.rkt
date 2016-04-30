@@ -59,8 +59,9 @@
 (define (canonicalize-e X e)
   (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
         [else
-         ((e/map (for/hash : (HashTable -e -e) ([(x e-x) X])
-                   (values (-x x) e-x)))
+         (e/map
+          (for/hash : (HashTable -e -e) ([(x e-x) X])
+            (values (-x x) e-x))
           e)]))
 
 (: -Γ-plus-γ : -Γ -γ → -Γ)
@@ -76,7 +77,7 @@
 (: binding/ : (HashTable -e -e) → -binding → -binding)
 (define ((binding/ m) bnd)
   (match-define (-binding f xs x->e) bnd)
-  (define subst (e/map m))
+  (define subst (curry e/map m))
   (define f* (and f (subst f)))
   (define x->e* (map/hash subst x->e))
   (-binding f* xs x->e*))

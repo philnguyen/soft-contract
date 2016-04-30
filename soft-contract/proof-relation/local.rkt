@@ -476,14 +476,13 @@
 (: φs/ensure-consistency : (HashTable -e -e) (℘ -e) → (Option (℘ -e)))
 ;; Substitute and throw away inconsistent path-condition
 (define (φs/ensure-consistency m φs)
-  (define subst (e/map m))
   (define-values (acc φs*)
     (for/fold ([acc : (Option (℘ -e)) φs]
                [φs* : (℘ -e) ∅])
               ([φ φs])
       (cond
         [acc
-         (define φ* (subst φ))
+         (define φ* (e/map m φ))
          (if (and (not (equal? φ* φ)) (eq? '✗ (es⊢e acc φ*)))
              (values #f ∅)
              (values (set-add acc φ*) (set-add φs* φ*)))]
@@ -501,9 +500,8 @@
      (cond
        [φs*
         (define as*
-          (let ([subst (e/map m)])
-            (for/hash : (HashTable Var-Name -e) ([(x e) as])
-              (values x (subst e)))))
+          (for/hash : (HashTable Var-Name -e) ([(x e) as])
+            (values x (e/map m e))))
         (define γs* (map (γ/ m) γs))
         (-Γ φs* as* γs*)]
        [else #f]))

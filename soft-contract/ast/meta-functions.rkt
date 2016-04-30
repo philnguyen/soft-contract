@@ -221,10 +221,9 @@
 (: e/ : -e -e -e → -e)
 ;; Substitution, where `x` can be an (open) term rather than just a free variable.
 (define (e/ x eₓ e)
-  ((e/map (hash x eₓ)) e))
+  (e/map (hash x eₓ) e))
 
-(: e/map : (HashTable -e -e) → -e → -e)
-(define ((e/map m) e)
+(define/memo (e/map [m : (HashTable -e -e)] [e : -e]) : -e
   (with-debugging/off
     ((eₐ)
      (let go : -e ([m m] [e e])

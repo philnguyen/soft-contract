@@ -37,7 +37,7 @@
      (match-define (-cfg ctx e) cfg)
      (for/set: : (℘ -cfg) ([ctx* (invert-ctx M ctx)])
        (match-define (-ctx _ _ m) ctx*)
-       (-cfg ctx* ((e/map m) e))))
+       (-cfg ctx* (e/map m e))))
     (define δ (- (current-milliseconds) last))
     (when (> δ 1000)
       (define (printf-cfg [cfg : -cfg])
@@ -159,10 +159,9 @@
 
 (: combine-e-map : (HashTable -e -e) (HashTable -e -e) → (HashTable -e -e))
 (define (combine-e-map m δm)
-  (define f (e/map m))
   (define δm*
     (for/hash : (HashTable -e -e) ([(x y) δm])
-      (values (f x) (f y))))
+      (values (e/map m x) (e/map m y))))
   (e-map-union m δm*))
 
 (: bnds->subst : -binding → (HashTable -e -e))
@@ -187,8 +186,8 @@
   ;; of only variables caller understands
   (define fargsₐ
     (let ([all-args? (andmap (inst values Any) args)]
-          [a* (s↓ (and a ((e/map mₐ) a)) dom)])
-      (and all-args? a* ((e/map m₀) a*))))
+          [a* (s↓ (and a (e/map mₐ a)) dom)])
+      (and all-args? a* (e/map m₀ a*))))
   
   (with-debugging/off
     ((mₑₑ mₑᵣ sₐ)
@@ -221,7 +220,7 @@
             [((-λ (? list? xs) e) args*)
              (for ([x xs] [arg args*])
                (set! m (hash-set m (-x x) arg)))
-             (go! ((e/map m) e))]
+             (go! (e/map m e))]
             [(f* args*) (-@ f* args* 0)])]
          [_ s]))
      (define sₐ (go! s))
