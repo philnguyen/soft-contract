@@ -576,7 +576,7 @@
     (values
      (match-lambda
        [(? -e? α) (show-e α)]
-       [(-α.x x 𝒞) (format-symbol "~a_~a" (show-Var-Name x) 𝒞)]
+       [(-α.x x 𝒞) (format-symbol "~a_~a" (show-Var-Name x) (n-sub 𝒞))]
        [(? -α? α) (α->symbol α)])
      symbol->α)))
 
