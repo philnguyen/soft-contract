@@ -667,9 +667,10 @@
             (match-define (cons ⟦mon-field⟧ ⟦mon-field⟧s)
               (for/list : (Listof -⟦e⟧) ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
                 ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
-            (define ⟦cons⟧ ((↝.@ lo ℓ (list K) ⟦mon-field⟧s) ⟦mon-field⟧))
-            (define α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ)))
-            (define ⟦mk⟧ (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧)))
+            (define ⟦mk⟧
+              (let ([⟦cons⟧ ((↝.@ lo ℓ (list K) ⟦mon-field⟧s) ⟦mon-field⟧)]
+                    [α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ))])
+                (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧))))
             (define comp ((↝.if lo ⟦mk⟧ ⟦blm⟧) (ap lo ℓ (-W¹ p p) (list W-V))))
             (with-debugging/off ((δσ ΓWs ΓEs ℐs) (comp M σ ℒ))
               (printf "mon struct/c ⟨~a, ~a⟩ ~a ~a~n" l+ lo (show-W¹ W-C) (show-W¹ W-V))
