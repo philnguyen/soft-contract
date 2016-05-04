@@ -655,15 +655,15 @@
             (define comp (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧)))
             (comp M σ ℒ)))])]
     [(-● _)
-     (define V● (-● {set (-st-p s)}))
+     (define ⟦chk⟧ (ap lo ℓ (-W¹ p p) (list W-V)))
+     (define ⟦blm⟧ (blm l+ lo (list (-st-p s)) (list V)))
      (match ⟦field⟧s
        ['()
-        (λ (M σ ℒ)
-          (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V●) v))} ∅ ∅))]
+        (define ⟦mk⟧ (ret-W¹ W-V))
+        ((↝.if lo ⟦mk⟧ ⟦blm⟧) ⟦chk⟧)]
        [_
         (λ (M σ ℒ)
           (for*/ans ([Cs (σ@/list σ αs)])
-            (define ⟦blm⟧ (blm l+ lo (list (-st-p s)) (list V)))
             (match-define (cons ⟦mon-field⟧ ⟦mon-field⟧s)
               (for/list : (Listof -⟦e⟧) ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s])
                 ((↝.mon.c l³ ℓ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
@@ -671,7 +671,7 @@
               (let ([⟦cons⟧ ((↝.@ lo ℓ (list K) ⟦mon-field⟧s) ⟦mon-field⟧)]
                     [α (-α.st (-struct-info-id s) ℓ (-ℒ-hist ℒ))])
                 (if (set-empty? muts) ⟦cons⟧ ((↝.wrap.st s αs α l³) ⟦cons⟧))))
-            (define comp ((↝.if lo ⟦mk⟧ ⟦blm⟧) (ap lo ℓ (-W¹ p p) (list W-V))))
+            (define comp ((↝.if lo ⟦mk⟧ ⟦blm⟧) ⟦chk⟧))
             (with-debugging/off ((δσ ΓWs ΓEs ℐs) (comp M σ ℒ))
               (printf "mon struct/c ⟨~a, ~a⟩ ~a ~a~n" l+ lo (show-W¹ W-C) (show-W¹ W-V))
               (printf "answers:~n")
