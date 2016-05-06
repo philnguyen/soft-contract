@@ -94,6 +94,37 @@
 (: fvₛ : -s → (℘ Var-Name))
 (define (fvₛ s) (if s (fv s) ∅))
 
+(: invalidate : -Γ Var-Name → -Γ)
+;; Throw away anything known about `x` in `Γ`
+(define (invalidate Γ x)
+  (match-define (-Γ φs as γs) Γ)
+  (define φs*
+    (for/set: : (℘ -e) ([φ φs] #:unless (∋ (fv φ) x))
+      φ))
+  (define as*
+    (for/hash: : (HashTable Var-Name -e) ([(z e) as]
+                                          #:unless (eq? z x)
+                                          #:unless (∋ (fv e) x))
+      (values z e)))
+  (define γs*
+    (for/list : (Listof -γ) ([γ γs])
+      (match-define (-γ τ bnd blm) γ)
+      (match-define (-binding f xs x->e) bnd)
+      (define bnd*
+        (let ([f* (if (∋ (fvₛ f) x) #f f)]
+              [x->e*
+               (for/hash: : (HashTable Var-Name -e) ([(z e) x->e]
+                                                     #:unless (∋ (fv e) x))
+                 (values z e))])
+          (-binding f* xs x->e*)))
+      (-γ τ bnd* blm)))
+  (-Γ φs* as* γs*))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Pretty printing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (show-M-Γ [M : -M] [Γ : -Γ]) : (Values Sexp (Listof Sexp))
   (match-define (-Γ _ _ γs) Γ)
   (values (show-Γ Γ)

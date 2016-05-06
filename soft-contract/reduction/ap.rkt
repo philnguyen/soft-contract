@@ -695,7 +695,10 @@
       (define W-C* (-W¹ C* c))
       (define W-V* (-W¹ V 𝐱))
       (define bnd #|FIXME Hack|# (-binding 'values (list x) (if v (hash x v) (hash))))
-      (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℳ l³ ℓ W-C* W-V* ℒ))}))))
+      (define ℒ*
+        (let ([Γ (-ℒ-cnd ℒ)])
+          (-ℒ-with-Γ ℒ (invalidate Γ x))))
+      (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℳ l³ ℓ W-C* W-V* ℒ*))}))))
 
 (: mon-and/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
 ;; Monitor contract conjunction by decomposing into nesting checks
@@ -732,7 +735,8 @@
             (((↝.or/c ℓ W-C₂ ⟦mon⟧) ⟦chk⟧) M σ ℒ)]
            [else ; both are chaperones, error for now (TODO: real semantics: distinguish by 1st order)
             (error 'or/c "No more than 1 higher-order disjunct for now")]))
-        (printf "mon (or/c ~a ~a) ~a" (show-W¹ W-C₁) (show-W¹ W-C₂) (show-W¹ W-V))
+        (printf "mon (or/c ~a ~a) ~a~n" (show-W¹ W-C₁) (show-W¹ W-C₂) (show-W¹ W-V))
+        (printf "- cnd: ~a~n" (show-Γ (-ℒ-cnd ℒ)))
         (printf "- ans:~n")
         (for ([A ΓWs]) (printf "  + ~a~n" (show-A A)))
         (printf "- ers:~n")
