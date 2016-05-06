@@ -461,7 +461,7 @@
       
       ['□ in-hole]
       [(-ℰ.if _ ℰ* _ _) `(if ,(loop ℰ*) … …)]
-      [(-ℰ.@ _ _ Ws ℰ* ⟦e⟧s) `(,@(map show-W¹ Ws) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
+      [(-ℰ.@ _ _ Ws ℰ* ⟦e⟧s) `(,@(map show-W¹ (reverse Ws)) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
       [(-ℰ.begin ℰ* ⟦e⟧s)
        `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))]
       [(-ℰ.let-values _ xWs (cons xs ℰ*) xs-es e)
@@ -540,11 +540,11 @@
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ l³ ℓ W-C W-V ℒ) ℳ)
-  `(mon ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
+  `(ℳ ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
 
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
   (match-define (-ℱ l ℓ W-C W-V ℒ) ℱ)
-  `(fc ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
+  `(ℱ ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
 
 (define (show-ℒ [ℒ : -ℒ]) : Sexp
   (match-define (-ℒ ρ Γ 𝒞) ℒ)

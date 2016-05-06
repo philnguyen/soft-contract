@@ -52,7 +52,7 @@
         (set! last now)
         (printf "  ~as~n" δ))
       (printf "iter ~a: ~a (~a + ~a)~n" count (+ num-τs num-Cos) num-τs num-Cos)
-      #;(begin ; verbose
+      (begin ; verbose
         (printf "~a τs:~n" num-τs)
         (define τs-list (set->list τs))
         (define Cos-list (set->list Cos))
@@ -63,12 +63,22 @@
           (printf "  -~a ~a~n" (n-sub (+ i num-τs)) (show-Co Co)))
         (printf "σ:~n")
         (for ([r (show-σ σ)]) (printf "  - ~a~n" r))
-        #;(printf "M:~n")
-        #;(for ([(τ As) M])
-            (printf "  - (~a) ~a~n" (set-count As) (show-τ τ))
-            (for ([A As]) (printf "      ↦ ~a~n" (show-A A))))
+        (begin ; show memo table
+          (printf "M:~n")
+          (for ([(τ As) M])
+            (define n (set-count As))
+            (printf "  - ~a ~n" (show-τ τ))
+            (for ([(A i) (in-indexed As)])
+              (printf "      ↦~a~a ~a~n" (n-sup (add1 i)) (n-sub n) (show-A A)))))
+        (begin ; show stack store
+          (printf "Ξ:~n")
+          (for ([(τ ℛs) Ξ])
+            (define n (set-count ℛs))
+            (printf "  - ~a ~n" (show-τ τ))
+            (for ([(ℛ i) (in-indexed ℛs)])
+              (printf "      ↦~a~a ~a~n" (n-sup (add1 i)) (n-sub n) (show-ℛ ℛ)))))
         (printf "~n"))
-      #;(match (read) ; interactive
+      (match (read) ; interactive
           ['done (error "done")]
           [(? exact-nonnegative-integer? i)
            (cond [(<= 0 i (sub1 num-τs))

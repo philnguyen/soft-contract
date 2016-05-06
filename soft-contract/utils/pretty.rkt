@@ -22,15 +22,24 @@
   (parameterize ([pretty-print-columns 80])
     (string-trim (with-output-to-string (λ () (pretty-display x))))))
 
-(: n-sub : Integer → String)
-;; Return number as subscript string
-(define (n-sub n)
-  (cond
-   [(< n 0) (format "₋~a" (n-sub (- n)))]
-   [(<= n 9) (substring "₀₁₂₃₄₅₆₇₈₉" n (+ n 1))]
-   [else
-    (define-values (q r) (quotient/remainder n 10))
-    (string-append (n-sub q) (n-sub r))]))
+;; Return superscript and subscript for given number
+(define-values (n-sub n-sup)
+  (let ([subs : (Vectorof Symbol) #(₀ ₁ ₂ ₃ ₄ ₅ ₆ ₇ ₈ ₉)]
+        [sups : (Vectorof Symbol) #(⁰ ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹)])
+    (: with-digits : Symbol (Vectorof Symbol) → Integer → Symbol)
+    (define (with-digits neg ds)
+      (: go : Natural → Symbol)
+      (define (go n)
+        (cond
+          [(<= n 9) (vector-ref ds n)]
+          [else
+           (define-values (q r) (quotient/remainder n 10))
+           (format-symbol "~a~a" (go q) (go r))]))
+      (λ (n)
+        (if (>= n 0)
+            (go n)
+            (format-symbol "~a~a" neg (go (- n))))))
+    (values (with-digits '₋ subs) (with-digits '⁻ sups))))
 
 (: suffixed-syms : Symbol Integer → (Listof Symbol))
 ;; Return list of `n` symbols suffixed by indices `[0..n-1]`
