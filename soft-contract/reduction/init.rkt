@@ -22,7 +22,7 @@
 (define (𝑰 ms)
   (define e† (gen-havoc-exp ms))
   (define hv (gen-havoc-Clo ms))
-  (values (⊔ σ₀ (-α.def havoc-𝒾) hv) e†))
+  (values (⊔* σ₀ [(-α.def havoc-𝒾) hv] [(-α.wrp havoc-𝒾) hv]) e†))
 
 (: ⇓ : -e → -⟦e⟧)
 (define (⇓ e) (⇓/l 'Λ e))

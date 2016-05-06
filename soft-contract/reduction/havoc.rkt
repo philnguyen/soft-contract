@@ -129,7 +129,7 @@
       (refs-add! (-𝒾 x path))))
   
   (-amb/simp (for/list ([ref (in-set refs)])
-               (-@ (•!) (list ref) (+ℓ!)))))
+               (-@ havoc-𝒾 (list ref) (+ℓ!)))))
 
 (: prog-accs : (Listof -module) → (HashTable -struct-info (℘ -st-ac)))
 ;; Retrieve set of all public accessors from program, grouped by struct
