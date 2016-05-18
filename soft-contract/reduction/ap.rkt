@@ -103,7 +103,6 @@
              (define α (-α.x x 𝒞₁))
              (values (⊔ δσ α V) (ρ+ ρ x α)))]
           [_ (error 'ap/β "TODO: varargs")]))
-      (define bnds (map (inst cons Var-Name -s) xs sₓs))
       (define ℬ₁ (-ℬ ⟦e⟧ (-ℒ ρ₁ Γ₁ 𝒞₁)))
       (define bnd
         (let* ([fvs
@@ -111,16 +110,29 @@
                 ;; rather than the invoked lambda's free variables.
                 ;; Due to `canonicalize`, a refinement inside the closure
                 ;; may refer to a variable not (directly) in the callee's scope
-                (if (-λ? sₕ) (list->set (hash-keys ρ₀)) ∅)]
+                ;; FIXME: due to a temp. hack for top-level reference,
+                ;; `sₕ` being `λ` doesn't neccessarily mean it's created in this block
+                ;; but if that's the case, the λ won't have FVs
+                (if (-λ? sₕ)
+                    (set-subtract (list->set (hash-keys ρ₀))
+                                  (list->set (assert xs list?)))
+                    ∅)]
                [param->arg
                 (for/hash : (HashTable Var-Name -e) ([x (assert xs list?)] [sₓ sₓs] #:when sₓ)
                   (values x sₓ))]
                [mapping
                 (for/fold ([mapping : (HashTable Var-Name -e) param->arg]) ([x fvs])
-                  ;(assert (not (hash-has-key? mapping x))) ; FIXME is this neccessary?
+                  (assert (not (hash-has-key? mapping x))) ; FIXME is this neccessary?
                   (hash-set mapping x (canonicalize Γ₀ x)))])
           (-binding sₕ xs mapping)))
-      (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ bnd '□) ℬ₁)}))
+      (with-debugging/off
+        ((δσ ΓWs ΓEs ℐs) (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ bnd '□) ℬ₁)}))
+        (printf "β:~n")
+        (printf "- f : ~a~n" (show-W¹ Wₕ))
+        (printf "- xs:~n")
+        (for ([Wₓ Wₓs])
+          (printf "  + ~a~n" (show-W¹ Wₓ)))
+        (printf "- ℐ: ~a~n~n" (show-ℐ (set-first ℐs)))))
 
     (: ap/Ar : -=> -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     (define (ap/Ar C Vᵤ l³)

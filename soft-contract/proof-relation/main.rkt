@@ -126,7 +126,14 @@
   (define Γₑᵣ₊ (Γ/ensure-consistency mₑₑ Γₑₑ))
   (define Γₑᵣ₁ (Γ/ensure-consistency mₑᵣ Γₑᵣ))
   (define Γₑᵣ₂ (and Γₑᵣ₁ Γₑᵣ₊ (Γ⊓ Γₑᵣ₁ Γₑᵣ₊)))
-  (and Γₑᵣ₂ (implies sₑᵣ (plausible-W/M? M (inj-cfg Γₑᵣ₂ sₑᵣ) Vs))))
+  (with-debugging/off
+    ((ans) (and Γₑᵣ₂ (implies sₑᵣ (plausible-W/M? M (inj-cfg Γₑᵣ₂ sₑᵣ) Vs))))
+    (printf "plausble-rt:~n")
+    (printf "- caller: ~a~n" (show-Γ Γₑᵣ))
+    (printf "- callee: ~a~n" (show-Γ Γₑₑ))
+    (printf "- res: ~a~n" (show-W Wₑₑ))
+    (printf "- bnd: ~a~n" (show-binding bnd))
+    (printf "- plausible?: ~a~n~n" ans)))
 
 (: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
 ;; Check if propagated blame is plausible
@@ -137,7 +144,14 @@
   (define Γₑᵣ₊ (Γ/ensure-consistency mₑₑ Γₑₑ))
   (define Γₑᵣ₁ (and Γₑᵣ₊ (Γ⊓ Γₑᵣ Γₑᵣ₊)))
   (match-define (-blm l+ lo _ _) blm)
-  (and Γₑᵣ₁ (implies sₑᵣ (plausible-blm/M? M (inj-cfg Γₑᵣ₁ sₑᵣ) l+ lo))))
+  (with-debugging/off
+    ((ans)
+     (and Γₑᵣ₁ (implies sₑᵣ (plausible-blm/M? M (inj-cfg Γₑᵣ₁ sₑᵣ) l+ lo))))
+    (printf "plasible-blame? ~a~n" (show-blm blm))
+    (printf "- caller: ~a~n" (show-Γ Γₑᵣ))
+    (printf "- bnd: ~a~n" (show-binding bnd))
+    (printf "- callee: ~a~n" (show-Γ Γₑₑ))
+    (printf "- plausible? ~a~n~n" ans)))
 
 (: plausible-W/M? ([-M -cfg (Listof -V)] [#:depth Natural] . ->* . Boolean))
 (define (plausible-W/M? M cfg Vs #:depth [d 5])

@@ -65,3 +65,19 @@
 (define (map/hash f m)
   (for/hash : (HashTable X Z) ([(x y) m])
     (values x (f y))))
+
+(: span (∀ (X Y) (MMap X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
+(define (span m xs₀ f)
+  (define-set touched : X)
+  (define (go! [x : X]) : Void
+    (cond
+      [(∋ touched x) (void)]
+      [else
+       (touched-add! x)
+       (for ([y (in-set (hash-ref m x))])
+         (go*! (f y)))]))
+  (define (go*! [xs : (℘ X)]) : Void
+    (for ([x (in-set xs)])
+      (go! x)))
+  (go*! xs₀)
+  touched)

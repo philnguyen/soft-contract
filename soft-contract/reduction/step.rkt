@@ -396,17 +396,24 @@
 (define ((collect M Ξ τ) δσ ΓWs ΓEs ℐs)
   
   (define δM : -ΔM
-    (let* ([As (M@ M τ)]
+    ;; Cannot just throw away seen `δM`. Need to take into account current global `σ`
+    ;; A reasonable thing to do can be throwing away `δM` with old `σ`,
+    ;; But that may not be worth it.
+    #;(let* ([As (M@ M τ)]
            [δ-As (-- (∪ ΓWs ΓEs) As)])
-      (if (set-empty? δ-As) ⊥M (hash τ δ-As))))
+      (if (set-empty? δ-As) ⊥M (hash τ δ-As)))
+    (let ([δAs (∪ ΓWs ΓEs)])
+      (if (set-empty? δAs) ⊥M (hash τ (∪ ΓWs ΓEs)))))
   
   (define δΞ
+    ;; Cannot just throw away seen `δΞ`. Need to take into account current global `σ`
     (for*/fold ([δΞ : -ΔΞ ⊥Ξ])
                ([ℐ ℐs]
                 [ℋ  (in-value (-ℐ-hole ℐ))]
                 [τ* (in-value (-ℐ-target ℐ))]
                 [ℛ  (in-value (-ℛ τ ℋ))]
-                #:unless (m∋ Ξ τ* ℛ))
+                ;#:unless (m∋ Ξ τ* ℛ)
+                )
       (⊔ δΞ τ* ℛ)))
 
   #;(begin

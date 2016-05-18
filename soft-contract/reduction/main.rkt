@@ -38,83 +38,128 @@
 (: run : -⟦e⟧ -σ → (Values (℘ -A) #|for debugging|# -M -Ξ -σ))
 ;; Run compiled program on initial heap
 (define (run ⟦e⟧₀ σ₀)
-  ;(define last : Integer (current-seconds))
-  (: loop : (HashTable -τ -σ) (℘ -τ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
-  (define (loop seen τs Cos M Ξ σ)
-    
-    ;; Debugging
-    #;(parameterize ([verbose? #t])
-      (set! count (+ 1 count))
-      (define num-τs (set-count τs))
-      (define num-Cos (set-count Cos))
-      (let* ([now (current-seconds)]
-             [δ (- now last)])
-        (set! last now)
-        (printf "  ~as~n" δ))
-      (printf "iter ~a: ~a (~a + ~a)~n" count (+ num-τs num-Cos) num-τs num-Cos)
-      (begin ; verbose
-        (printf "~a τs:~n" num-τs)
-        (define τs-list (set->list τs))
-        (define Cos-list (set->list Cos))
-        (for ([(τ i) (in-indexed τs-list)])
-          (printf "  -~a ~a~n" (n-sub i) (show-τ τ)))
-        (printf "~a Cos:~n" num-Cos)
-        (for ([(Co i) (in-indexed Cos-list)])
-          (printf "  -~a ~a~n" (n-sub (+ i num-τs)) (show-Co Co)))
-        (printf "σ:~n")
-        (for ([r (show-σ σ)]) (printf "  - ~a~n" r))
-        (begin ; show memo table
-          (printf "M:~n")
-          (for ([(τ As) M])
-            (define n (set-count As))
-            (printf "  - ~a ~n" (show-τ τ))
-            (for ([(A i) (in-indexed As)])
-              (printf "      ↦~a~a ~a~n" (n-sup (add1 i)) (n-sub n) (show-A A)))))
-        (begin ; show stack store
-          (printf "Ξ:~n")
-          (for ([(τ ℛs) Ξ])
-            (define n (set-count ℛs))
-            (printf "  - ~a ~n" (show-τ τ))
-            (for ([(ℛ i) (in-indexed ℛs)])
-              (printf "      ↦~a~a ~a~n" (n-sup (add1 i)) (n-sub n) (show-ℛ ℛ)))))
-        (printf "~n"))
-      (match (read) ; interactive
-          ['done (error "done")]
-          [(? exact-nonnegative-integer? i)
-           (cond [(<= 0 i (sub1 num-τs))
-                  (set! τs {set (list-ref τs-list i)})
-                  (set! Cos ∅)]
-                 [else
-                  (set! τs ∅)
-                  (set! Cos {set (list-ref Cos-list (- i num-τs))})])]
-          [else (void)]))
+  (define-type Seen-τ (HashTable -τ -σ))
+  (define-type Seen-Co (HashTable (List -ℛ -τ -A) -M))
+  ;(define-type Seen-Table (HashTable (U -τ (List -ℛ -τ -A)) (List -M #;-Ξ -σ)))
+  
+  (: loop : Seen-τ Seen-Co (℘ -τ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
+  (define (loop seen-τs seen-Cos τs Cos M Ξ σ)
     
     (cond
       [(and (set-empty? τs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
+       
+       #;(begin ;; Pre-iter debuggings
+         (define last : Integer (current-seconds))
+         (set! count (+ 1 count))
+         (define num-τs (set-count τs))
+         (define num-Cos (set-count Cos))
+         (printf "iter ~a: ~a (~a + ~a)~n" count (+ num-τs num-Cos) num-τs num-Cos)
+         #;(begin ; verbose
+           (printf "~a τs:~n" num-τs)
+           (define τs-list (set->list τs))
+           (define Cos-list (set->list Cos))
+           (for ([(τ i) (in-indexed τs-list)])
+             (printf "  -~a ~a~n" (n-sub i) (show-τ τ)))
+           (printf "~a Cos:~n" num-Cos)
+           (for ([(Co i) (in-indexed Cos-list)])
+             (printf "  -~a ~a~n" (n-sub (+ i num-τs)) (show-Co Co)))))
+
        ;; Widen global tables
        (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ τs) (co* M Ξ σ Cos)))
        (define-values (M* Ξ* σ*) (⊔³ (values M Ξ σ) (values δM δΞ δσ)))
 
-       ;; Check for un-explored configuation (≃ ⟨e, ρ, σ⟩)
-       (define-values (τs* seen*)
-         (for/fold ([τs* : (℘ -τ) ∅] [seen* : (HashTable -τ -σ) seen])
-                   ([τ (in-hash-keys δΞ)] #:unless (equal? (hash-ref seen τ #f) σ*))
-           (values (set-add τs* τ) (hash-set seen* τ σ*))))
-       (define Cos*
-         (∪ (for*/set: : (℘ -Co) ([(τ As) (in-hash δM)] #:unless (set-empty? As)
-                                  [ℛ (in-set (Ξ@ Ξ* τ))])
-              (-Co ℛ τ As))
-            (for*/set: : (℘ -Co) ([(τ ℛs) (in-hash δΞ)]
-                                  [As (in-value (M@ M* τ))] #:unless (set-empty? As)
-                                  [ℛ (in-set ℛs)])
-              (-Co ℛ τ As))))
+       ;; Check for un-explored execution of function bodies (≃ ⟨e, ρ, σ⟩)
+       (define-values (τs* seen-τs*)
+         (for/fold ([τs* : (℘ -τ) ∅] [seen-τs* : Seen-τ seen-τs])
+                   ([τ (in-hash-keys δΞ)] #:unless (equal? (hash-ref seen-τs τ #f) σ*))
+           (values (set-add τs* τ) (hash-set seen-τs* τ σ*))))
+
+       ;; Check for un-explored returns
+       (define-values (Cos* seen-Cos*)
+         (let ([!Cos : (℘ -Co) ∅]
+               [!seen-Cos : Seen-Co seen-Cos])
+
+           (define (Γ->τs [Γ : -Γ]) : (℘ -τ)
+             (match-define (-Γ _ _ γs) Γ)
+             (for/set: : (℘ -τ) ([γ γs])
+               (-γ-callee γ)))
+
+           (: with-ret! : -ℛ -τ (℘ -A) → Void)
+           ;; Update next returns to resume and seen nodes (imperatively)
+           (define (with-ret! ℛ τ As)
+
+             ;; Compute relevant part of memo table
+             (define caller-τs
+               (match-let ([(-ℛ τ (-ℋ (-ℒ _ Γ _) _ _)) ℛ])
+                 (set-add (Γ->τs Γ) τ)))
+
+             (define As*
+               (for*/set: : (℘ -A) ([A As]
+                                    [k (in-value (list ℛ τ A))]
+                                    [callee-τs
+                                     (in-value
+                                      (match A
+                                        [(-ΓW Γ _) (set-add (Γ->τs Γ) τ)]
+                                        [(-ΓE Γ _) (set-add (Γ->τs Γ) τ)]))]
+                                    [M** (in-value (m↓ M* (∪ caller-τs callee-τs)))]
+                                    #:unless (equal? (hash-ref !seen-Cos k #f) M**)
+                                    )
+                 (set! !seen-Cos (hash-set !seen-Cos k M**))
+                 A))
+             (unless (set-empty? As*)
+               (set! !Cos (set-add !Cos (-Co ℛ τ As*)))))
+
+           ;; Plug each new result into known return edges
+           (for* ([(τ As) (in-hash δM)] #:unless (set-empty? As)
+                  [ℛ (in-set (Ξ@ Ξ* τ))])
+             (with-ret! ℛ τ As))
+           ;; Plug known result into each new return edge
+           (for* ([(τ ℛs) (in-hash δΞ)]
+                  [As (in-value (M@ M* τ))] #:unless (set-empty? As)
+                  [ℛ (in-set ℛs)])
+             (with-ret! ℛ τ As))
+
+           (values !Cos !seen-Cos)))
+
+       ;; Post-iter Debugging
+       #;(parameterize ([verbose? #t])
+
+         (: show-m (∀ (X Y) ([Sexp (X → Sexp) (Y → Sexp) (MMap X Y)]
+                             [#:filter (X → Boolean)]
+                             . ->* . Void)))
+         (define (show-m l show-x show-y m #:filter [show-x? (λ (_) #t)])
+           (printf "~a:~n" l)
+           (for ([(x ys) m] #:when (show-x? x))
+             (define n (set-count ys))
+             (printf "  - ~a~n" (show-x x))
+             (for ([(y i) (in-indexed ys)])
+               (printf "      ↦~a~a ~a~n" (n-sup (add1 i)) (n-sub n) (show-y y)))))
+
+         #;((inst show-m -α -V) 'σ* show-α show-V σ* #:filter (λ (α) (not (or (-α.def? α) (-α.wrp? α) (-e? α)))))
+         #;((inst show-m -τ -A) 'M* show-τ show-A M*)
+         #;((inst show-m -τ -ℛ) 'δΞ show-τ show-ℛ δΞ)
+         (let* ([now (current-seconds)]
+                [δ (- now last)])
+           (set! last now)
+           (printf "time: ~as~n" δ))
+         #;(match (read) ; interactive
+           ['done (error "done")]
+           [(? exact-nonnegative-integer? i)
+            (cond [(<= 0 i (sub1 num-τs))
+                   (set! τs {set (list-ref τs-list i)})
+                   (set! Cos ∅)]
+                  [else
+                   (set! τs ∅)
+                   (set! Cos {set (list-ref Cos-list (- i num-τs))})])]
+           [else (void)])
+         (printf "~n"))
        
-       (loop seen* τs* Cos* M* Ξ* σ*)]))
+       (loop seen-τs* seen-Cos* τs* Cos* M* Ξ* σ*)]))
 
   (define τ₀ (-ℬ ⟦e⟧₀ ℒ∅))
   (define-values (M Ξ σ)
     (parameterize ([es⊢ₑₓₜe z3⊢])
-      (loop (hash τ₀ σ₀) {set τ₀} ∅ ⊥M ⊥Ξ σ₀)))
+      (loop (hash τ₀ σ₀) (hash) {set τ₀} ∅ ⊥M ⊥Ξ σ₀)))
   (values (M@ M τ₀) M Ξ σ))
