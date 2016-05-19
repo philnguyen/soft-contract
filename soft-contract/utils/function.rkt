@@ -33,3 +33,15 @@
        (let ([m : (HashTable X Y) (make-hasheq)])
          (λ ([x : X])
            (hash-ref! m x (λ () : Y e ...)))))]))
+
+(: memoize (∀ (X Y) (X → Y) → X → Y))
+(define (memoize f)
+  (let ([m : (HashTable X Y) (make-hash)])
+    (λ (x)
+      (hash-ref! m x (λ () (f x))))))
+
+(: memoizeeq (∀ (X Y) (X → Y) → X → Y))
+(define (memoizeeq f)
+  (let ([m : (HashTable X Y) (make-hasheq)])
+    (λ (x)
+      (hash-ref! m x (λ () (f x))))))
