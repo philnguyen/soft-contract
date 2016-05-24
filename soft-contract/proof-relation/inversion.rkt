@@ -120,7 +120,7 @@
         (define fvs (-binding-dom bnd))
         (define τs* (set-add τs τ))
         
-        (: on-ans : (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
+        #;#;(: on-ans : (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
         ;; Return the case unless it's inconsistent
         (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
           (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
@@ -152,9 +152,9 @@
                   ([A (M@ M τ)])
           (match* (A blm)
             [((-ΓW (-Γ φs₀ _ γs₀) (-W _ sₐ)) #f)
-             (on-ans acc φs₀ γs₀ sₐ)]
+             (on-ans m₀ bnd m fvs φs τs* γʰs #||# acc φs₀ γs₀ sₐ)]
             [((-ΓE (-Γ φs₀ _ γs₀) (-blm l+ lo _ _)) (cons l+ lo))
-             (on-ans acc φs₀ γs₀ #f)]
+             (on-ans m₀ bnd m fvs φs τs* γʰs #||# acc φs₀ γs₀ #f)]
             [(_ _) acc]))]))
     (parameterize ([verbose? #t])
       (when (>= (set-count ctxs) 20)
@@ -167,6 +167,45 @@
           (printf "    mapping:~n")
           (for ([r (show-e-map m)]) (printf "    + ~a~n" r)))
         (printf "~n")))))
+
+;(: on-ans : (HashTable -e -e) -binding (HashTable -e -e) (℘ Var-Name) (℘ -e) (℘ -τ) (Listof -γʰ) #||# (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
+;; Return the case unless it's inconsistent
+;; [experiment] Lifted out and memoized
+(define/memo (on-ans [m₀ : (HashTable -e -e)]
+                     [bnd : -binding]
+                     [m : (HashTable -e -e)]
+                     [fvs : (℘ Var-Name)]
+                     [φs : (℘ -e)]
+                     [τs* : (℘ -τ)]
+                     [γʰs : (Listof -γʰ)]
+                     #||#
+                     [acc : (℘ -ctx)]
+                     [φsₑₑ : (℘ -e)]
+                     [γsₑₑ : (Listof -γ)]
+                     [sₑₑ : -s]
+                     ) : (℘ -ctx)
+  (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
+  (define mₑᵣ (combine-e-map m δmₑᵣ))
+  (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
+  (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
+  (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
+  (define δγʰs
+    (for/list : (Listof -γʰ) ([γₑₑ γsₑₑ])
+      (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
+      (-γʰ γₑᵣ τs*)))
+  (with-debugging/off
+    ((ctxs)
+     (cond
+       [φs*
+        (define ctx* (-ctx φs* (append δγʰs γʰs) mₑᵣ))
+        (set-add acc ctx*)]
+       [else acc]))
+    (printf "on-ans:~n")
+    (printf "  - callee knows: ~a~n" (set-map φsₑₑ show-e))
+    (printf "  - calle res: ~a~n" (and sₑₑ (show-e sₑₑ)))
+    (printf "  - caller addition: ~a~n" (and φsₑᵣ₊ (set-map φsₑᵣ₊ show-e)))
+    (printf "  - caller final: ~a~n" (and φs* (set-map φs* show-e)))
+    (printf "~n")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
