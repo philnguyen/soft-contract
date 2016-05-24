@@ -14,32 +14,47 @@
          "local.rkt")
 
 
-;; Path-condition tail tagged with inversion history
+;; Path-condition tail tagged with inversion history (to recognize repeated unfoldings)
 (struct -γʰ ([tail : -γ] [hist : (℘ -τ)]) #:transparent)
 ;; A proof context contains hypotheses, invertible hypotheses, and rewriting hints
 (struct -ctx ([facts : (℘ -e)] [tails : (Listof -γʰ)] [m : (HashTable -e -e)]) #:transparent)
 ;; Proof configuration is proof context paired with an expression (may or may not be a goal)
 (struct -cfg ([ctx : -ctx] [expr : -e]) #:transparent)
 
+(: inj-cfg : -Γ -e → -cfg)
 ;; Load initial proof configuration
-(define (inj-cfg [Γ : -Γ] [e : -e]) (-cfg (Γ->ctx Γ) e))
+(define (inj-cfg Γ e) (-cfg (Γ->ctx Γ) e))
 
-(define (Γ->ctx [Γ : -Γ]) : -ctx
+(: Γ->ctx : -Γ → -ctx)
+;; Convert path-condition into proof context (ready to be inverted when neccessary)
+(define (Γ->ctx Γ)
   (match-define (-Γ φs _ γs) Γ)
   (define γʰs (for/list : (Listof -γʰ) ([γ γs]) (-γʰ γ ∅)))
   (-ctx φs γʰs m∅))
 
+(: invert-cfgs : -M (℘ -cfg) → (℘ -cfg))
+(define (invert-cfgs M cfgs)
+  (for/union : (℘ -cfg) ([cfg cfgs]) (invert-cfg M cfg)))
+
 (: invert-cfg : -M -cfg → (℘ -cfg))
+;; Invert all tails in proof configuration,
+;; returning possible configuration(s) resulting in the current one
+;; E.g. if memo table M has full evaluation results of `list?`:
+;;      ⟨{cons? y}; {list? x, list? y}; (equal? x y)⟩
+;;      --> (SPURIOUS) ⟨{nil? x, nil? y, cons? y}; {}; (equal? x y)⟩
+;;      --> ⟨{nil? x, cons? y}; {list? (cdr y)}; (equal? x y)⟩
+;;      --> (SPURIOUS) ⟨{cons? x, nil? y ,cons? y}; {list? (cdr x)}; (equal? x y)⟩
+;;      --> ⟨{cons? x, cons? y}; {list? (cdr x), list? (cdr y)}; (equal? x y)⟩
 (define (invert-cfg M cfg)
   ;(define last (current-milliseconds))
   (with-debugging/off
     ((ans)
      (match-define (-cfg ctx e) cfg)
+     ;; For each resulting inverted context, rewrite the expression accordingly
      (for/set: : (℘ -cfg) ([ctx* (invert-ctx M ctx)])
        (match-define (-ctx _ _ m) ctx*)
        (-cfg ctx* (e/map m e))))
-    (define δ (- (current-milliseconds) last))
-    (when (> δ 1000)
+    #;(when (> δ 1000)
       (define (printf-cfg [cfg : -cfg])
         (match-define (-cfg (-ctx φs γʰs m) e) cfg)
         (for ([φ φs])
@@ -56,20 +71,17 @@
         (printf "~a:~n" i)
         (printf-cfg cfgᵢ)))))
 
-(: invert-cfgs : -M (℘ -cfg) → (℘ -cfg))
-(define (invert-cfgs M cfgs)
-  (for/union : (℘ -cfg) ([cfg cfgs]) (invert-cfg M cfg)))
-
 (: invert-ctxs : -M (℘ -ctx) → (℘ -ctx))
 (define (invert-ctxs M ctxs)
   (for/union : (℘ -ctx) ([ctx ctxs]) (invert-ctx M ctx)))
 
 (: invert-ctx : -M -ctx → (℘ -ctx))
+;; Invert all tails in proof context, returning possible context(s) resulting in current one
 (define (invert-ctx M ctx)
   (match-define (-ctx φs γʰs m) ctx)
-  (define ctx₀ (-ctx φs '() m))
   (with-debugging/off
     ((ctxs)
+     (define ctx₀ (-ctx φs '() m))
      (for/fold ([acc : (℘ -ctx) {set ctx₀}])
                ([γʰ (reverse γʰs)]) ; TODO: foldr or manual loop instead?
        (for/union : (℘ -ctx) ([ctxᵢ acc])
@@ -88,16 +100,17 @@
     (printf "~n")))
 
 (: invert-γ : -M -ctx -γʰ → (℘ -ctx))
+;; Invert tail `γ` in proof context, returing possible contexts resulting in current one
 (define (invert-γ M ctx γʰ)
   (match-define (-ctx φs γʰs m) ctx)
   (match-define (-γʰ γ τs) γʰ)
   (match-define (-γ τ bnd₀ blm) γ)
   (define bnd ((binding/ m) bnd₀))
-
+  
   (with-debugging/off
     ((ctxs)
      (cond
-       ;; Just truncate this branch for now.
+       ;; Just stop here for now.
        ;; TODO: need more care for sound induction without accidentally admitting non-sense
        [(∋ τs τ)
         {set ctx}]
@@ -108,6 +121,7 @@
         (define τs* (set-add τs τ))
         
         (: on-ans : (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
+        ;; Return the case unless it's inconsistent
         (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
           (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
           (define mₑᵣ (combine-e-map m δmₑᵣ))
@@ -132,6 +146,8 @@
             (printf "  - caller final: ~a~n" (and φs* (set-map φs* show-e)))
             (printf "~n")))
         
+        ;; For each observed result from memo table, unfold and accumulate the case
+        ;; unless it's inconsistent
         (for/fold ([acc : (℘ -ctx) ∅])
                   ([A (M@ M τ)])
           (match* (A blm)
