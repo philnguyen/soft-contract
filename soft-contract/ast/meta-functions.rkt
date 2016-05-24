@@ -232,7 +232,10 @@
          [(hash-ref m e #f) => values]
          [else
           (match e
-            [(-λ xs e*) (-λ xs (go (shrink m xs) e*))]
+            [(-λ xs e*)
+             ;; only substitute if there's FV, preventing unneccessary substitution and zero-ing out of application labels
+             (cond [(set-empty? (fv e)) e]
+                   [else (-λ xs (go (shrink m xs) e*))])]
             [(-case-λ clauses)
              (-case-λ
               (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
