@@ -81,3 +81,21 @@
       (go! x)))
   (go*! xs₀)
   touched)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; TMP hack for profiling
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define data : (Listof (Pairof Any Integer)) '())
+(define (accum-data! [d : Any] [n : Integer])
+  (set! data (cons (cons d n) data)))
+
+(require racket/list)
+(define (extract-best) : (Listof (Pairof Any Integer))
+  (define data* : (Listof (Pairof Any Integer))
+    (sort
+     data
+     (λ ([x₁ : (Pairof Any Integer)] [x₂ : (Pairof Any Integer)])
+       (> (cdr x₁) (cdr x₂)))))
+  (take data* (min (length data*) 10)))
