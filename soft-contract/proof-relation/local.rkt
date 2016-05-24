@@ -473,9 +473,9 @@
             '✗]
            [else '?])]))
 
-(: φs/ensure-consistency : (HashTable -e -e) (℘ -e) → (Option (℘ -e)))
+;(: φs/ensure-consistency : (HashTable -e -e) (℘ -e) → (Option (℘ -e)))
 ;; Substitute and throw away inconsistent path-condition
-(define (φs/ensure-consistency m φs)
+(define/memo (φs/ensure-consistency [m : (HashTable -e -e)] [φs : (℘ -e)]) : (Option (℘ -e))
   (define-values (acc φs*)
     (for/fold ([acc : (Option (℘ -e)) φs]
                [φs* : (℘ -e) ∅])
