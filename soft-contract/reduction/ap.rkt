@@ -1208,7 +1208,7 @@
            ;;; Erase irrelevant part of path conditions after executing letrec body
 
            ;; Free variables that outside of `letrec` understands
-           (define xs₀ (list->set (hash-keys ρ)))
+           (define xs₀ (list->seteq (hash-keys ρ)))
 
            (define ΓWs*
              (map/set
