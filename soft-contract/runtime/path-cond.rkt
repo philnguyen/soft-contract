@@ -33,7 +33,7 @@
   (match-define (-Γ φs as γs) Γ)
   (define φs* (φs↓ φs xs))
   (define as*
-    (for/hash : (HashTable Var-Name -φ) ([(x φ) as] #:when (∋ xs x))
+    (for/hasheq : (HashTable Var-Name -φ) ([(x φ) as] #:when (∋ xs x))
       (values x φ)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
@@ -82,7 +82,7 @@
   (match-define (-binding f xs x->φ) bnd)
   (define f* (and f (φ/map m f)))
   (define x->φ*
-    (for/hash : (HashTable Var-Name -φ) ([(x φ) x->φ])
+    (for/hasheq : (HashTable Var-Name -φ) ([(x φ) x->φ])
       (values x (φ/map m φ))))
   (-binding f* xs x->φ*))
 
@@ -115,9 +115,9 @@
     (for/set: : (℘ -φ) ([φ φs] #:unless (∋ (fv-φ φ) x))
       φ))
   (define as*
-    (for/hash: : (HashTable Var-Name -φ) ([(z φ) as]
-                                          #:unless (eq? z x)
-                                          #:unless (∋ (fv-φ φ) x))
+    (for/hasheq : (HashTable Var-Name -φ) ([(z φ) as]
+                                           #:unless (eq? z x)
+                                           #:unless (∋ (fv-φ φ) x))
       (values z φ)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
@@ -126,7 +126,7 @@
       (define bnd*
         (let ([f* (if (∋ (fv-φ f) x) #f f)]
               [x->φ*
-               (for/hash: : (HashTable Var-Name -φ) ([(z φ) x->φ]
+               (for/hasheq : (HashTable Var-Name -φ) ([(z φ) x->φ]
                                                      #:unless (∋ (fv-φ φ) x))
                  (values z φ))])
           (-binding f* xs x->φ*)))

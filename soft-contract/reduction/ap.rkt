@@ -114,11 +114,11 @@
                 ;; `sₕ` being `λ` doesn't neccessarily mean it's created in this block
                 ;; but if that's the case, the λ won't have FVs
                 (if (-λ? sₕ)
-                    (set-subtract (list->set (hash-keys ρ₀))
-                                  (list->set (assert xs list?)))
+                    (set-subtract (list->seteq (hash-keys ρ₀))
+                                  (list->seteq (assert xs list?)))
                     ∅)]
                [param->arg
-                (for/hash : (HashTable Var-Name -φ) ([x (assert xs list?)] [sₓ sₓs] #:when sₓ)
+                (for/hasheq : (HashTable Var-Name -φ) ([x (assert xs list?)] [sₓ sₓs] #:when sₓ)
                   (values x (e->φ sₓ)))]
                [mapping
                 (for/fold ([mapping : (HashTable Var-Name -φ) param->arg]) ([x fvs])

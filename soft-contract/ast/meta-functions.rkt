@@ -36,12 +36,12 @@
 ;; Compute free variables for expression. Return set of variable names.
 (define (fv e)
   (match e
-    [(-x x) {set x}]
+    [(-x x) {seteq x}]
     [(-λ xs e)
      (define bound
        (match xs
-         [(-varargs zs z) (set-add (list->set zs) z)]
-         [(? list? xs) (list->set xs)]))
+         [(-varargs zs z) (set-add (list->seteq zs) z)]
+         [(? list? xs) (list->seteq xs)]))
      (-- (fv e) bound)]
     [(-@ f xs _)
      (for/fold ([FVs (fv f)]) ([x xs]) (∪ FVs (fv x)))]
@@ -49,13 +49,13 @@
     [(-begin0 e₀ es) (∪ (fv e₀) (fv es))]
     [(-let-values bnds e)
      (define-values (bound FV_rhs)
-       (for/fold ([bound : (℘ Var-Name) ∅] [FV_rhs : (℘ Var-Name) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Var-Name) ∅eq] [FV_rhs : (℘ Var-Name) ∅eq]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ FV_rhs (fv rhs)))))
      (∪ FV_rhs (-- (fv e) bound))]
     [(-letrec-values bnds e)
      (define bound
-       (for/fold ([bound : (℘ Var-Name) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Var-Name) ∅eq]) ([bnd bnds])
          (set-add-list bound (car bnd))))
      
      (for/fold ([xs : (℘ Var-Name) (-- (fv e) bound)]) ([bnd bnds])
@@ -64,22 +64,22 @@
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
     [(-amb es)
-     (for/fold ([xs : (℘ Var-Name) ∅]) ([e es])
+     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([e es])
        (∪ xs (fv e)))]
     [(-μ/c _ e) (fv e)]
     [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
     [(-case-> clauses _)
-     (for/union : (℘ Var-Name) ([clause clauses])
+     (for/unioneq : (℘ Var-Name) ([clause clauses])
        (match-define (cons cs d) clause)
        (apply ∪ (fv d) (map fv cs)))]
     [(-struct/c _ cs _)
-     (for/fold ([xs : (℘ Var-Name) ∅]) ([c cs])
+     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([c cs])
        (∪ xs (fv c)))]
     [(? list? l)
-     (for/fold ([xs : (℘ Var-Name) ∅]) ([e l])
+     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([e l])
        (∪ xs (fv e)))]
-    [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅]))
+    [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
 
 (module+ test
   (require typed/rackunit)
@@ -94,12 +94,12 @@
 ;; Collect all asignable free variables
 (define (𝐴 e)
   (match e
-    [(-x x) ∅]
+    [(-x x) ∅eq]
     [(-λ xs e)
      (define bound
        (match xs
-         [(-varargs zs z) (set-add (list->set zs) z)]
-         [(? list? xs) (list->set xs)]))
+         [(-varargs zs z) (set-add (list->seteq zs) z)]
+         [(? list? xs) (list->seteq xs)]))
      (-- (𝐴 e) bound)]
     [(-@ f xs _)
      (for/fold ([𝐴s (𝐴 f)]) ([x xs]) (∪ 𝐴s (𝐴 x)))]
@@ -107,13 +107,13 @@
     [(-begin0 e₀ es) (∪ (𝐴 e₀) (𝐴 es))]
     [(-let-values bnds e)
      (define-values (bound 𝐴_rhs)
-       (for/fold ([bound : (℘ Var-Name) ∅] [𝐴_rhs : (℘ Var-Name) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Var-Name) ∅eq] [𝐴_rhs : (℘ Var-Name) ∅eq]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ 𝐴_rhs (𝐴 rhs)))))
      (∪ 𝐴_rhs (-- (𝐴 e) bound))]
     [(-letrec-values bnds e)
      (define bound
-       (for/fold ([bound : (℘ Var-Name) ∅]) ([bnd bnds])
+       (for/fold ([bound : (℘ Var-Name) ∅eq]) ([bnd bnds])
          (set-add-list bound (car bnd))))
      (for/fold ([xs : (℘ Var-Name) (-- (𝐴 e) bound)]) ([bnd bnds])
        (-- (𝐴 (cdr bnd)) bound))]
@@ -121,22 +121,22 @@
     #;[(.apply f xs _) (set-union (𝐴 f d) (𝐴 xs d))]
     [(-if e e₁ e₂) (∪ (𝐴 e) (𝐴 e₁) (𝐴 e₂))]
     [(-amb es)
-     (for/fold ([xs : (℘ Var-Name) ∅]) ([e es])
+     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([e es])
        (∪ xs (𝐴 e)))]
     [(-μ/c _ e) (𝐴 e)]
     [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (𝐴 mk-d) (map 𝐴 cs))]
     [(-case-> clauses _)
-     (for/union : (℘ Var-Name) ([clause clauses])
+     (for/unioneq : (℘ Var-Name) ([clause clauses])
        (match-define (cons cs d) clause)
        (apply ∪ (𝐴 d) (map 𝐴 cs)))]
     [(-struct/c _ cs _)
-     (for/fold ([xs : (℘ Var-Name) ∅]) ([c cs])
+     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([c cs])
        (∪ xs (𝐴 c)))]
     [(? list? l)
-     (for/fold ([xs : (℘ Var-Name) ∅]) ([e l])
+     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([e l])
        (∪ xs (𝐴 e)))]
-    [_ (log-debug "𝐴⟦~a⟧ = ∅~n" e) ∅]))
+    [_ (log-debug "𝐴⟦~a⟧ = ∅~n" e) ∅eq]))
 
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
@@ -189,33 +189,33 @@
 (define (free-x/c e)
 
   (: go* : (Listof -e) → (℘ Symbol))
-  (define (go* xs) (for/union : (℘ Symbol) ([x xs]) (go x)))
+  (define (go* xs) (for/unioneq : (℘ Symbol) ([x xs]) (go x)))
 
   (: go : -e → (℘ Symbol))
   (define (go e)
     (match e
       [(-λ xs e) (go e)]
       [(-case-λ body)
-       (for/union : (℘ Symbol) ([p body]) (go (cdr p)))]
+       (for/unioneq : (℘ Symbol) ([p body]) (go (cdr p)))]
       [(-@ f xs ctx) (∪ (go f) (go* xs))]
       [(-if i t e) (∪ (go i) (go t) (go e))]
       [(-wcm k v b) (∪ (go k) (go v) (go b))]
       [(-begin0 e es) (∪ (go e) (go* es))]
       [(-let-values bnds e)
-       (∪ (for/union : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+       (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-letrec-values bnds e)
-       (∪ (for/union : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
-      [(-amb es) (for/union : (℘ Symbol) ([e es]) (go e))]
+       (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+      [(-amb es) (for/unioneq : (℘ Symbol) ([e es]) (go e))]
       [(-μ/c _ c) (go c)]
       [(--> cs d _) (∪ (go* cs) (go d))]
       [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
       [(-case-> clauses _)
-       (for/union : (℘ Symbol) ([clause clauses])
+       (for/unioneq : (℘ Symbol) ([clause clauses])
          (match-define (cons cs d) clause)
          (∪ (go d) (go* cs)))]
       [(-struct/c t cs _) (go* cs)]
-      [(-x/c.tmp x) (set x)]
-      [_ ∅]))
+      [(-x/c.tmp x) (seteq x)]
+      [_ ∅eq]))
   
   (go e))
 
@@ -619,7 +619,7 @@
                    [⦇e⦈s  : (Listof -φ)])
                   ([clause clauses])
          (match-define (cons xs eₓ) clause)
-         (values xs (list->set xs) (e->φ eₓ))))
+         (values xs (list->seteq xs) (e->φ eₓ))))
      (with-m (m)
        (-case-λ
         (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([xs xss] [fvs fvss] [⦇e⦈ ⦇e⦈s])
@@ -653,7 +653,7 @@
     [(-let-values bnds e*)
      (define-values (formals-rev locals ⦇e⦈s-rev)
        (for/fold ([formals-rev : (Listof (Listof Var-Name)) '()]
-                  [locals : (℘ Var-Name) ∅]
+                  [locals : (℘ Var-Name) ∅eq]
                   [⦇e⦈s-rev : (Listof -φ) '()])
                  ([bnd bnds])
          (match-define (cons xs eₓ) bnd)
@@ -671,7 +671,7 @@
     [(-letrec-values bnds e*)
      (define-values (formals-rev locals ⦇e⦈s-rev)
        (for/fold ([formals-rev : (Listof (Listof Var-Name)) '()]
-                  [locals : (℘ Var-Name) ∅]
+                  [locals : (℘ Var-Name) ∅eq]
                   [⦇e⦈s-rev : (Listof -φ) '()])
                  ([bnd bnds])
          (match-define (cons xs eₓ) bnd)
@@ -748,8 +748,8 @@
 (: formals->names : -formals → (℘ Var-Name))
 (define (formals->names xs)
   (cond
-    [(-varargs? xs) (set-add (list->set (-varargs-init xs)) (-varargs-rest xs))]
-    [else (list->set xs)]))
+    [(-varargs? xs) (set-add (list->seteq (-varargs-init xs)) (-varargs-rest xs))]
+    [else (list->seteq xs)]))
 
 (define -⦇ff⦈ (e->φ -ff))
 (define -⦇values⦈ (e->φ 'values))

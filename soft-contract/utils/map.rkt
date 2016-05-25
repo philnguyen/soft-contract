@@ -53,8 +53,13 @@
 (: m↓ : (∀ (X Y) (Map X Y) (℘ X) → (Map X Y)))
 ;; Restrict map to given domain
 (define (m↓ m xs)
-  (for/hash : (Map X Y) ([(k v) m] #:when (∋ xs k))
-    (values k v)))
+  (cond
+    [(hash-eq? m)
+     (for/hasheq : (Map X Y) ([(k v) m] #:when (∋ xs k))
+       (values k v))]
+    [else
+     (for/hash : (Map X Y) ([(k v) m] #:when (∋ xs k))
+       (values k v))]))
 
 (: hash-merge (∀ (X Y) (HashTable X Y) (HashTable X Y) → (HashTable X Y)))
 (define (hash-merge m₁ m₂)
@@ -63,8 +68,13 @@
 
 (: map/hash (∀ (X Y Z) (Y → Z) (HashTable X Y) → (HashTable X Z)))
 (define (map/hash f m)
-  (for/hash : (HashTable X Z) ([(x y) m])
-    (values x (f y))))
+  (cond
+    [(hash-eq? m)
+     (for/hasheq : (HashTable X Z) ([(x y) m])
+       (values x (f y)))]
+    [else
+     (for/hash : (HashTable X Z) ([(x y) m])
+       (values x (f y)))]))
 
 (: span (∀ (X Y) (MMap X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
 (define (span m xs₀ f)

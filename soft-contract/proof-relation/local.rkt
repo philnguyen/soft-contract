@@ -121,7 +121,7 @@
            =>
            (λ ([f-rng : Symbol])
              (cond
-               [(∋ (set 'integer? 'real? 'number? 'vector? 'boolean? 'not 'null?) f-rng) '✗]
+               [(∋ (seteq 'integer? 'real? 'number? 'vector? 'boolean? 'not 'null?) f-rng) '✗]
                [else '?]))]
           [else '?])]
        [_ '?])]
@@ -148,10 +148,10 @@
                 (eq? '✓ (⊢e (-@ 'equal? (list f g) 0))))
                (= (length xs) (length ys)))
               (define res
-                (for/set: : (℘ -R) ([x xs] [y ys])
+                (for/seteq: : (℘ -R) ([x xs] [y ys])
                   (⊢e (-@ 'equal? (list x y) 0))))
               (cond
-                [(or (set-empty? res) (equal? res {set '✓})) '✓]
+                [(or (set-empty? res) (equal? res {seteq '✓})) '✓]
                 [(and (-st-mk? f) (∋ res '✗)) '✗]
                 [else '?])]
              [else '?])]
@@ -506,7 +506,7 @@
      (cond
        [φs*
         (define as*
-          (for/hash : (HashTable Var-Name -φ) ([(x φ) as])
+          (for/hasheq : (HashTable Var-Name -φ) ([(x φ) as])
             (values x (φ/map m φ))))
         (define γs* (map (γ/ m) γs))
         (-Γ φs* as* γs*)]

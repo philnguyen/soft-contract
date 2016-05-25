@@ -1770,17 +1770,17 @@
 
 ;; Operations that are associative
 (define assocs
-  (set '+ '*)) ; FIXME: not true for floats...
+  (seteq '+ '*)) ; FIXME: not true for floats...
 
 ;; Identities for operations
 (define left-ids
-  (hash '+ 0
-        '* 1))
+  (hasheq '+ 0
+          '* 1))
 (define right-ids
-  (hash '+ 0
-        '* 1
-        '- 0
-        '/ 1))
+  (hasheq '+ 0
+          '* 1
+          '- 0
+          '/ 1))
 
 ;; Check if `s` is a contract specifying a base value 
 (define (base? s)

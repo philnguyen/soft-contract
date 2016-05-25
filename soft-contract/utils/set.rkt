@@ -2,8 +2,9 @@
 
 ;; This module provides abbreviations and extra tools for dealing with sets
 (provide
- ℘ ∅ ∅eq ∪ ∩ →∅ ∋ ∈ ⊆ --
- set-add-list define-set set-partition for/union collect merge set->predicate map/set)
+ ℘ ∅ ∅eq ∪ ∩ →∅ →∅eq ∋ ∈ ⊆ --
+ set-add-list define-set set-partition collect merge set->predicate map/set
+ for/union for/unioneq for/seteq:)
 
 (require
  racket/match racket/set
@@ -15,6 +16,7 @@
 (define ∪ set-union)
 (define ∩ set-intersect)
 (define →∅ : (→ (℘ Nothing)) (λ () ∅))
+(define →∅eq : (→ (℘ Nothing)) (λ () ∅eq))
 (define ∋ set-member?)
 (define #:∀ (X) (∈ [x : X] [xs : (℘ X)]) : Boolean (∋ xs x))
 (define ⊆ subset?)
@@ -52,10 +54,19 @@
   (syntax-rules (:)
     [(_ : τ (for-clauses ...) body ...)
      (for/fold ([acc : τ ∅]) (for-clauses ...)
-       (set-union acc (let () body ...)))]
-    [(_ (for-clauses ...) body ...)
-     (for/fold ([acc ∅]) (for-clauses ...)
        (set-union acc (let () body ...)))]))
+
+(define-syntax for/unioneq
+  (syntax-rules (:)
+    [(_ : τ (for-clauses ...) body ...)
+     (for/fold ([acc : τ ∅eq]) (for-clauses ...)
+       (set-union acc (let () body ...)))]))
+
+(define-syntax for/seteq:
+  (syntax-rules (:)
+    [(_ : τ (for-clauses ...) body ...)
+     (for/fold ([acc : τ ∅eq]) (for-clauses ...)
+       (set-add acc (let () body ...)))]))
 
 ;(: collect (∀ (X) (Option X) * → (U X (℘ X))))
 ;; Collect all non-#f value into set,

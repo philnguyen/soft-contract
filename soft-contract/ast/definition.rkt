@@ -150,7 +150,7 @@
 (define -one (-b 1))
 
 (define -𝒾-box (-𝒾 'box 'Λ))
-(define -s-box  (-struct-info -𝒾-box 1 {set 0}))
+(define -s-box  (-struct-info -𝒾-box 1 {seteq 0}))
 (define -box? (-st-p -s-box))
 (define -unbox (-st-ac -s-box 0))
 (define -box (-st-mk -s-box))

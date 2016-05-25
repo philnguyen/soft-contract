@@ -21,7 +21,7 @@
   (define m₀
     (let ([refl : (Graph Symbol → Graph)
            (λ (m k)
-             (hash-update m k (λ ([vs : (℘ Symbol)]) (set-add vs k)) →∅))])
+             (hash-update m k (λ ([vs : (℘ Symbol)]) (set-add vs k)) →∅eq))])
       (for*/fold ([m : Graph m])
                  ([(l rs) (in-hash m)]
                   [m (in-value (refl m l))]
@@ -32,13 +32,13 @@
   (fix
    (λ ([m : Graph])
      (for/hash : Graph ([(l rs) (in-hash m)])
-       (define rs* (∪ rs (for/union : (℘ Symbol) ([r rs]) (hash-ref m r))))
+       (define rs* (∪ rs (for/unioneq : (℘ Symbol) ([r rs]) (hash-ref m r))))
        (values l rs*)))
    m₀))
 
 ;; Add edge to graph
 (define (add-edge [m : Graph] [l : Symbol] [r : Symbol]) : Graph
-  (hash-update m l (λ ([rs : (℘ Symbol)]) (set-add rs r)) →∅))
+  (hash-update m l (λ ([rs : (℘ Symbol)]) (set-add rs r)) →∅eq))
 
 ;; Reverse a graph
 (define (reverse-graph [m : Graph]) : Graph
@@ -150,7 +150,7 @@
 
 ;; FIXME: some predicates about vectors and streams and such shouldn't be here...
 (define base-predicates
-  (for/fold ([acc : (℘ Symbol) ∅])
+  (for/fold ([acc : (℘ Symbol) ∅eq])
             ([dec : Any (in-list prims:prims)])
     (match dec
       [`(#:pred ,(? symbol? s))

@@ -212,7 +212,7 @@
 (: -binding-dom : -binding → (℘ Var-Name))
 (define (-binding-dom bnd)
   (match-define (-binding _ _ x->φ) bnd)
-  (for/union : (℘ Var-Name) ([(x φ) x->φ])
+  (for/unioneq : (℘ Var-Name) ([(x φ) x->φ])
      (set-add (fv (φ->e φ)) x)))
 
 
