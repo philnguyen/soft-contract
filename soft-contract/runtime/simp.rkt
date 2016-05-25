@@ -85,7 +85,7 @@
     [(? -e?)
      (cond [(= 1 n) (list e)]
            [else #|hack|#
-            (define s (-struct-info -𝒾-values n ∅))
+            (define s (-struct-info -𝒾-values n ∅eq))
             (for/list ([i : Natural n])
               (-?@ (-st-ac s i) e))])]
     [_ (make-list n #f)]))

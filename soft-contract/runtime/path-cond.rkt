@@ -102,10 +102,10 @@
   (apply -?@ f args))
 
 (: fvₛ : -s → (℘ Var-Name))
-(define (fvₛ s) (if s (fv s) ∅))
+(define (fvₛ s) (if s (fv s) ∅eq))
 
 (: fv-φ : -?φ → (℘ Var-Name))
-(define (fv-φ φ) (if φ (fv (φ->e φ)) ∅))
+(define (fv-φ φ) (if φ (fv (φ->e φ)) ∅eq))
 
 (: invalidate : -Γ Var-Name → -Γ)
 ;; Throw away anything known about `x` in `Γ`

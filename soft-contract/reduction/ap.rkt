@@ -116,7 +116,7 @@
                 (if (-λ? sₕ)
                     (set-subtract (list->seteq (hash-keys ρ₀))
                                   (list->seteq (assert xs list?)))
-                    ∅)]
+                    ∅eq)]
                [param->arg
                 (for/hasheq : (HashTable Var-Name -φ) ([x (assert xs list?)] [sₓ sₓs] #:when sₓ)
                   (values x (e->φ sₓ)))]

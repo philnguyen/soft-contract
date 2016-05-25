@@ -462,8 +462,8 @@
     [('none/c _) '✓]
     [(_ 'none/c) '✗]
     [((? symbol? p) (? symbol? q))
-     (cond [(∋ (hash-ref implications p →∅) q) '✓]
-           [(∋ (hash-ref exclusions p →∅) q) '✗]
+     (cond [(∋ (hash-ref implications p →∅eq) q) '✓]
+           [(∋ (hash-ref exclusions p →∅eq) q) '✗]
            [else '?])]
     [(p 'values)
      (case p
@@ -484,15 +484,15 @@
 (define/memo (φs/ensure-consistency [m : (HashTable -e -e)] [φs : (℘ -φ)]) : (Option (℘ -φ))
   (define-values (acc φs*)
     (for/fold ([acc : (Option (℘ -φ)) φs]
-               [φs* : (℘ -φ) ∅])
+               [φs* : (℘ -φ) ∅eq])
               ([φ φs])
       (cond
         [acc
          (define φ* (φ/map m φ))
          (if (and (not (eq? φ* φ)) (eq? '✗ (φs⊢φ acc φ*)))
-             (values #f ∅)
+             (values #f ∅eq)
              (values (set-add acc φ*) (set-add φs* φ*)))]
-        [else (values #f ∅)])))
+        [else (values #f ∅eq)])))
   (and acc φs*))
 
 (: Γ/ensure-consistency : (HashTable -e -e) -Γ → (Option -Γ))

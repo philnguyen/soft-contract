@@ -89,7 +89,7 @@
      (define cs (syntax->list #'(c ...)))
      (define n (length cs))
      (define s-name (syntax-e #'s))
-     (define si (-struct-info (-𝒾 s-name (cur-mod)) n ∅))
+     (define si (-struct-info (-𝒾 s-name (cur-mod)) n ∅eq))
      (define st-doms (map parse-e cs))
      (define st-p (-struct/c si st-doms (+ℓ!)))
      (define dec-constr (-p/c-item (syntax-e #'s) (--> st-doms st-p (+ℓ!)) (+ℓ!)))
@@ -139,7 +139,7 @@
      (define ctor (syntax-e #'ctor-name))
      (define/contract accs (listof identifier?) (syntax->list #'(acc ...)))
      (define n (length accs))
-     (define si (-struct-info (-𝒾 ctor (cur-mod)) n ∅))
+     (define si (-struct-info (-𝒾 ctor (cur-mod)) n ∅eq))
      (-define-values
       (list* ctor (syntax-e #'pred) (map syntax-e accs))
       (-@ (-𝒾 'values 'Λ)
@@ -251,7 +251,7 @@
             _ ...)
      (define si (-struct-info (-𝒾 (syntax-e #'k) (cur-mod))
                               (length (syntax->list #'(c ...)))
-                              ∅))
+                              ∅eq))
      (-struct/c si (parse-es #'(c ...)) (+ℓ!))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
     [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
