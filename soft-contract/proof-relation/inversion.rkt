@@ -190,14 +190,14 @@
     (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
     (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
     (define φs* (and φsₑᵣ φsₑᵣ₊ (φs⊓ φsₑᵣ φsₑᵣ₊)))
-    (define δγʰs
-      (for/list : (Listof -γʰ) ([γₑₑ γsₑₑ])
-        (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
-        (-γʰ γₑᵣ τs*)))
     (with-debugging/off
       ((ctxs)
        (cond
          [φs*
+          (define δγʰs
+            (for/list : (Listof -γʰ) ([γₑₑ γsₑₑ])
+              (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
+              (-γʰ γₑᵣ τs*)))
           (define ctx* (-ctx φs* (append δγʰs γʰs) mₑᵣ))
           (set-add acc ctx*)]
          [else acc]))
