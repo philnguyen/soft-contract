@@ -118,13 +118,13 @@
                                   (list->set (assert xs list?)))
                     ∅)]
                [param->arg
-                (for/hash : (HashTable Var-Name -e) ([x (assert xs list?)] [sₓ sₓs] #:when sₓ)
-                  (values x sₓ))]
+                (for/hash : (HashTable Var-Name -φ) ([x (assert xs list?)] [sₓ sₓs] #:when sₓ)
+                  (values x (e->φ sₓ)))]
                [mapping
-                (for/fold ([mapping : (HashTable Var-Name -e) param->arg]) ([x fvs])
+                (for/fold ([mapping : (HashTable Var-Name -φ) param->arg]) ([x fvs])
                   (assert (not (hash-has-key? mapping x))) ; FIXME is this neccessary?
-                  (hash-set mapping x (canonicalize Γ₀ x)))])
-          (-binding sₕ xs mapping)))
+                  (hash-set mapping x (e->φ (canonicalize Γ₀ x))))])
+          (-binding (s->φ sₕ) xs mapping)))
       (with-debugging/off
         ((δσ ΓWs ΓEs ℐs) (values δσ ∅ ∅ {set (-ℐ (-ℋ ℒ₀ bnd '□) ℬ₁)}))
         (printf "β:~n")
@@ -706,7 +706,7 @@
     (for*/ans ([C* (σ@ σ α)])
       (define W-C* (-W¹ C* c))
       (define W-V* (-W¹ V 𝐱))
-      (define bnd #|FIXME Hack|# (-binding 'values (list x) (if v (hash x v) (hash))))
+      (define bnd #|FIXME Hack|# (-binding -⦇values⦈ (list x) (if v (hasheq x (e->φ v)) (hash))))
       (define ℒ*
         (let ([Γ (-ℒ-cnd ℒ)])
           (-ℒ-with-Γ ℒ (invalidate Γ x))))
@@ -1009,7 +1009,7 @@
        (for*/ans ([C* (σ@ σ α)])
          (define W-C* (-W¹ C* c))
          (define W-V* (-W¹ V 𝐱))
-         (define bnd #|FIXME Hack|# (-binding 'fc (list x) (if v (hash x v) (hash))))
+         (define bnd #|FIXME Hack|# (-binding -⦇fc⦈ (list x) (if v (hasheq x (e->φ v)) (hash))))
          (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℱ l ℓ W-C* W-V* ℒ))})))]
     [_
      (define ⟦ap⟧ (ap l ℓ W-C (list W-V)))

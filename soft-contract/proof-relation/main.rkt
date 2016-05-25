@@ -219,7 +219,7 @@
   (define-set ?s : -cfg)
   (for ([cfg cfgs])
     (match-define (-cfg (-ctx φs _ _) e) cfg)
-    (case (es⊢e φs e)
+    (case (φs⊢e φs e)
       [(✓) (✓s-add! cfg)]
       [(✗) (✗s-add! cfg)]
       [(?) (?s-add! cfg)]))

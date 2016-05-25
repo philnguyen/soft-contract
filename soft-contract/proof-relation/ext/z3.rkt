@@ -15,16 +15,16 @@
          "../result.rkt")
 
 ;; Query external solver for provability relation
-(: z3⊢ : (℘ -e) -e → -R)
+(: z3⊢ : (℘ -φ) -e → -R)
 (define (z3⊢ φs e)
-  (match (es⊢e->Z3 φs e)
+  (match (φs⊢e->Z3 φs e)
     [(list decls prems concl)
      (with-debugging/off
        ((ans) (call-with decls prems concl))
-       (printf "Z3: ~a ⊢ ~a : ~a~n" (set-map φs show-e) (show-e e) ans))]
+       (printf "Z3: ~a ⊢ ~a : ~a~n" (set-map φs show-φ) (show-e e) ans))]
     [#f '?]))
 
-(: get-model : (℘ -e) → (Option (HashTable -e Base)))
+(: get-model : (℘ -φ) → (Option (HashTable -e Base)))
 ;; Generate a model for given path invariant
 (define (get-model φs)
   (define-values (decls props) (es->Z3 φs))
@@ -41,9 +41,9 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: es⊢e->Z3 : (℘ -e) -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
+(: φs⊢e->Z3 : (℘ -φ) -e →  (Option (List (Listof Sexp) (Listof Sexp) Sexp)))
 ;; Translate path condition and goal into Z3 declarations and formula
-(define (es⊢e->Z3 φs e)
+(define (φs⊢e->Z3 φs e)
   (define-values (decls₀ e->dec) (es->decls φs))
   #;(begin
     (printf "es⊢e->Z3:~n")
@@ -59,7 +59,7 @@
        (list decls premises concl))]
     [else #f]))
 
-(: es->Z3 : (℘ -e) → (Values (Listof Sexp) (Listof Sexp)))
+(: es->Z3 : (℘ -φ) → (Values (Listof Sexp) (Listof Sexp)))
 ;; Translate path condition into Z3 declarations and formula
 (define (es->Z3 φs)
   (define-values (decls₀ e->dec) (es->decls φs))
@@ -106,7 +106,7 @@
 ;; I expose this publically just for debugging
 (define-values (exp->sym sym->exp _) ((inst unique-sym -e) 'x_ #:transform-index values))
 
-(: es->decls : (℘ -e) → (Values (Listof Sexp) (-e → (Option (Pairof Symbol Z3-Type)))))
+(: es->decls : (℘ -φ) → (Values (Listof Sexp) (-e → (Option (Pairof Symbol Z3-Type)))))
 ;; Extract declarations from environment
 (define (es->decls φs)
   (define-set declared-exprs : -e)
@@ -125,7 +125,7 @@
   (define typeofs
     (for/fold ([typeofs : (HashTable Symbol Z3-Type) (hasheq)])
               ([φ φs])
-      (match φ
+      (match (φ->e φ)
         [(-@ (? Handled-Z3-pred? o) (list e) _)
          (define T (handled-Z3-pred->Z3-Type o))
          (declared-exprs-add! e)
@@ -160,7 +160,7 @@
                  (let ([x (exp->sym e)])
                    (cons x (hash-ref typeofs x)))))))
 
-(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -e) -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
+(: exp->Z3 : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -φ) -e → (Option Sexp)) ; not great for doc, #f ∈ Sexp
 ;; Translate restricted syntax into Z3 sexp
 (define (exp->Z3 e->dec φs e)
   (with-debugging/off
@@ -192,11 +192,11 @@
               [#f #f])])))
     (printf "exp->Z3: ~a ↦ ~a~n" (show-e e) ans)))
 
-(: es->premises : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -e) → (Listof Sexp))
+(: es->premises : (-e → (Option (Pairof Symbol Z3-Type))) (℘ -φ) → (Listof Sexp))
 ;; Translate an environment into a list of Z3 premises
 (define (es->premises e->dec φs)
-  (for*/list : (Listof Sexp) ([e φs]
-                              [s (in-value (exp->Z3 e->dec φs e))] #:when s)
+  (for*/list : (Listof Sexp) ([φ φs]
+                              [s (in-value (exp->Z3 e->dec φs (φ->e φ)))] #:when s)
     s))
 
 ;; translate Racket symbol to Z3 symbol

@@ -18,9 +18,12 @@
 (define (e↓ e xs)
   (and (⊆ (fv e) xs) e))
 
-(: φs↓ : (℘ -e) (℘ Var-Name) → (℘ -e))
+(: φ↓ : -?φ (℘ Var-Name) → -?φ)
+(define (φ↓ φ xs) (and φ (e↓ (φ->e φ) xs) φ))
+
+(: φs↓ : (℘ -φ) (℘ Var-Name) → (℘ -φ))
 (define (φs↓ φs xs)
-  (for*/set: : (℘ -e) ([φ φs] [φ* (in-value (e↓ φ xs))] #:when φ*)
+  (for*/set: : (℘ -φ) ([φ φs] [φ* (in-value (φ↓ φ xs))] #:when φ*)
     φ*))
 
 (: Γ↓ : -Γ (℘ Var-Name) → -Γ)
@@ -30,8 +33,8 @@
   (match-define (-Γ φs as γs) Γ)
   (define φs* (φs↓ φs xs))
   (define as*
-    (for/hash : (HashTable Var-Name -e) ([(x e) as] #:when (∋ xs x))
-      (values x e)))
+    (for/hash : (HashTable Var-Name -φ) ([(x φ) as] #:when (∋ xs x))
+      (values x φ)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
       (match-define (-γ τ bnd blm) γ)
@@ -40,29 +43,29 @@
 
 (: bnd↓ : -binding (℘ Var-Name) → -binding)
 (define (bnd↓ bnd fvs)
-  (match-define (-binding f xs x->e) bnd)
-  (define f* (s↓ f fvs))
-  (define x->e*
-    (for*/hash : (HashTable Var-Name -e) ([(x e) x->e]
-                                          [e* (in-value (s↓ e fvs))] #:when e*)
-      (values x e*)))
-  (-binding f* xs x->e*))
+  (match-define (-binding f xs x->φ) bnd)
+  (define f* (φ↓ f fvs))
+  (define x->φ*
+    (for*/hash : (HashTable Var-Name -φ) ([(x φ) x->φ]
+                                          [φ* (in-value (φ↓ φ fvs))] #:when φ*)
+      (values x φ*)))
+  (-binding f* xs x->φ*))
 
-(: canonicalize : (U -Γ (HashTable Var-Name -e)) Var-Name → -e)
+(: canonicalize : (U -Γ (HashTable Var-Name -φ)) Var-Name → -e)
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
 (define (canonicalize X x)
   (cond [(-Γ? X) (canonicalize (-Γ-aliases X) x)]
-        [else (hash-ref X x (λ () (-x x)))]))
+        [(hash-ref X x #f) => φ->e]
+        [else (-x x)]))
 
 ;; Return an expression canonicalizing given expression in terms of lexically farthest possible variable(s)
-(: canonicalize-e : (U -Γ (HashTable Var-Name -e)) -e → -e)
+(: canonicalize-e : (U -Γ (HashTable Var-Name -φ)) -e → -e)
 (define (canonicalize-e X e)
   (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
         [else
-         (e/map
-          (for/hash : (HashTable -e -e) ([(x e-x) X])
-            (values (-x x) e-x))
-          e)]))
+         ((e->φ e)
+          (for/hash : (HashTable -e -e) ([(x φₓ) X])
+            (values (-x x) (φ->e φₓ))))]))
 
 (: -Γ-plus-γ : -Γ -γ → -Γ)
 (define (-Γ-plus-γ Γ γ)
@@ -72,15 +75,16 @@
 (: γ/ : (HashTable -e -e) → -γ → -γ)
 (define ((γ/ m) γ)
   (match-define (-γ τ bnd blm) γ)
-  (-γ τ ((binding/ m) bnd) blm))
+  (-γ τ (binding/ m bnd) blm))
 
-(: binding/ : (HashTable -e -e) → -binding → -binding)
-(define ((binding/ m) bnd)
-  (match-define (-binding f xs x->e) bnd)
-  (define subst (curry e/map m))
-  (define f* (and f (subst f)))
-  (define x->e* (map/hash subst x->e))
-  (-binding f* xs x->e*))
+(: binding/ : (HashTable -e -e) -binding → -binding)
+(define (binding/ m bnd)
+  (match-define (-binding f xs x->φ) bnd)
+  (define f* (and f (φ/map m f)))
+  (define x->φ*
+    (for/hash : (HashTable Var-Name -φ) ([(x φ) x->φ])
+      (values x (φ/map m φ))))
+  (-binding f* xs x->φ*))
 
 (: γ->fargs : -γ → -s)
 (define (γ->fargs γ)
@@ -89,34 +93,43 @@
 
 (: binding->fargs : -binding → -s)
 (define (binding->fargs bnd)
-  (apply -?@ (-binding-fun bnd) (-binding-args bnd)))
+  (match-define (-binding φₕ xs x->φ) bnd)
+  (define f (and φₕ (φ->e φₕ)))
+  (define args : (Listof -s)
+    (for/list ([x xs])
+      (cond [(hash-ref x->φ x #f) => φ->e]
+            [else #f])))
+  (apply -?@ f args))
 
 (: fvₛ : -s → (℘ Var-Name))
 (define (fvₛ s) (if s (fv s) ∅))
+
+(: fv-φ : -?φ → (℘ Var-Name))
+(define (fv-φ φ) (if φ (fv (φ->e φ)) ∅))
 
 (: invalidate : -Γ Var-Name → -Γ)
 ;; Throw away anything known about `x` in `Γ`
 (define (invalidate Γ x)
   (match-define (-Γ φs as γs) Γ)
   (define φs*
-    (for/set: : (℘ -e) ([φ φs] #:unless (∋ (fv φ) x))
+    (for/set: : (℘ -φ) ([φ φs] #:unless (∋ (fv-φ φ) x))
       φ))
   (define as*
-    (for/hash: : (HashTable Var-Name -e) ([(z e) as]
+    (for/hash: : (HashTable Var-Name -φ) ([(z φ) as]
                                           #:unless (eq? z x)
-                                          #:unless (∋ (fv e) x))
-      (values z e)))
+                                          #:unless (∋ (fv-φ φ) x))
+      (values z φ)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
       (match-define (-γ τ bnd blm) γ)
-      (match-define (-binding f xs x->e) bnd)
+      (match-define (-binding f xs x->φ) bnd)
       (define bnd*
-        (let ([f* (if (∋ (fvₛ f) x) #f f)]
-              [x->e*
-               (for/hash: : (HashTable Var-Name -e) ([(z e) x->e]
-                                                     #:unless (∋ (fv e) x))
-                 (values z e))])
-          (-binding f* xs x->e*)))
+        (let ([f* (if (∋ (fv-φ f) x) #f f)]
+              [x->φ*
+               (for/hash: : (HashTable Var-Name -φ) ([(z φ) x->φ]
+                                                     #:unless (∋ (fv-φ φ) x))
+                 (values z φ))])
+          (-binding f* xs x->φ*)))
       (-γ τ bnd* blm)))
   (-Γ φs* as* γs*))
 
@@ -140,6 +153,6 @@
   (require typed/rackunit)
 
   (check-equal? (Γ+ ⊤Γ #f) ⊤Γ)
-  (check-equal? (canonicalize-e (hash 'x (-@ '+ (list (-b 1) (-b 2)) 0))
+  (check-equal? (canonicalize-e (hash 'x (e->φ (-@ '+ (list (-b 1) (-b 2)) 0)))
                                 (-@ '+ (list (-x 'x) (-x 'y)) 0))
-                (-@ '+ (list (-@ '+ (list (-b 1) (-b 2)) 0) (-x 'y)) 0)))
+                (-@ '+ (list (-b 1) (-@ '+ (list (-b 2) (-x 'y)) 0)) 0)))

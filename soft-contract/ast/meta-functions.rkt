@@ -1,8 +1,9 @@
 #lang typed/racket/base
 
 (provide
- fv 𝐴 closed? checks# free-x/c e/ e/map unroll find-calls prim-name->unsafe-prim
- α-rename e-map-union -@/simp)
+ fv 𝐴 closed? checks# free-x/c unroll find-calls prim-name->unsafe-prim
+ α-rename e-map-union -@/simp
+ -φ e->φ φ->e e/map φ/map e/ -⦇ff⦈ -⦇values⦈ -⦇fc⦈)
 
 (require racket/match
          racket/set
@@ -218,82 +219,6 @@
   
   (go e))
 
-(: e/ : -e -e -e → -e)
-;; Substitution, where `x` can be an (open) term rather than just a free variable.
-(define (e/ x eₓ e)
-  (e/map (hash x eₓ) e))
-
-(define/memo (e/map [m : (HashTable -e -e)] [e : -e]) : -e
-  (with-debugging/off
-    ((eₐ)
-     (let go : -e ([m m] [e e])
-       (cond
-         [(hash-empty? m) e]
-         [(hash-ref m e #f) => values]
-         [else
-          (match e
-            [(-λ xs e*)
-             ;; only substitute if there's FV, preventing unneccessary substitution and zero-ing out of application labels
-             (cond [(set-empty? (fv e)) e]
-                   [else (-λ xs (go (shrink m xs) e*))])]
-            [(-case-λ clauses)
-             (-case-λ
-              (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
-                (match-define (cons xs e*) clause)
-                (cons xs (go (shrink m xs) e*))))]
-            [(? -v?) e]
-            [(? -𝒾?) e]
-            [(-@ f xs _) (apply -@/simp (go m f) (map (curry go m) xs))]
-            [(-if e₀ e₁ e₂) (-if (go m e₀) (go m e₁) (go m e₂))]
-            [(-wcm k v b) (-wcm (go m k) (go m v) (go m b))]
-            [(-begin0 e₀ es) (-begin0 (go m e₀) (map (curry go m) es))]
-            [(? -quote?) e]
-            [(-let-values bnds e*)
-             (define-values (bnds-rev locals)
-               (for/fold ([bnds-rev : (Listof (Pairof (Listof Var-Name) -e)) '()]
-                          [locals : (℘ Var-Name) ∅])
-                         ([bnd bnds])
-                 (match-define (cons xs ex) bnd)
-                 (values (cons (cons xs (go m ex)) bnds-rev)
-                         (set-add-list locals xs))))
-             (define m* (shrink m (set->list locals)))
-             (-let-values (reverse bnds-rev) (go m* e*))]
-            [(-letrec-values bnds e*)
-             (define xs
-               (set->list
-                (for/fold ([locals : (℘ Var-Name) ∅]) ([bnd bnds])
-                  (set-add-list locals (car bnd)))))
-             (define m* (shrink m xs))
-             (define bnds*
-               (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([bnd bnds])
-                 (match-define (cons xs ex) bnd)
-                 (cons xs (go m* ex))))
-             (-letrec-values bnds* (go m* e*))]
-            [(-set! z e*) (-set! z (go m e*))]
-            [(-amb es) (-amb (map/set (curry go m) es))]
-            [(-μ/c z c) (-μ/c z (go m c))]
-            [(--> cs d ℓ) (--> (map (curry go m) cs) (go m d) ℓ)]
-            [(-->i cs mk-d ℓ)
-             (-->i (map (curry go m) cs)
-                   (assert (go m mk-d) -λ?)
-                   ℓ)]
-            [(-case-> clauses ℓ)
-             (define clauses* : (Listof (Pairof (Listof -e) -e))
-               (for/list ([clause clauses])
-                 (match-define (cons cs d) clause)
-                 (cons (map (curry go m) cs) (go m d))))
-             (-case-> clauses* ℓ)]
-            [(-struct/c t cs p) (-struct/c t (map (curry go m) cs) p)]
-            [_
-             (log-debug "e/: ignore substituting ~a" (show-e e))
-             e])])))
-    (printf "e/map: ~a~n"
-            (for/list : (Listof Sexp) ([(x y) m])
-              `(,(show-e x) ↦ ,(show-e y))))
-    (printf "  - from: ~a~n" (show-e e))
-    (printf "  - to  : ~a~n" (show-e eₐ))
-    (printf "~n")))
-
 (: unroll : Integer -e -e → -e)
 ;; Unroll reference to recursive contract
 (define (unroll x c e)
@@ -333,20 +258,6 @@
        (log-debug "unroll: ignore ~a" (show-e e))
        e])))
 
-
-;; Shrink domain of `m` to not be included by `xs`
-(define (shrink [m : (HashTable -e -e)] [xs : -formals]) : (HashTable -e -e)
-  (for/fold ([m* : (HashTable -e -e) m])
-            ([x (in-hash-keys m)] #:when (binder-has? xs x))
-    (hash-remove m* x)))
-
-(define (shrink-f [f : (-e → (Option -e))] [xs : -formals]) : (-e → (Option -e))
-  (define shadows
-    (match xs
-      [(-varargs zs z) (set-add (list->set zs) z)]
-      [(? list?) (list->set xs)]))
-  (λ (e) (and (set-empty? (∩ shadows (fv e))) (f e))))
-
 (: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`
 (define (find-calls e f-id)
@@ -360,20 +271,6 @@
          (calls-add! xs))]
       [_ (void)]))
   calls)
-
-(: -formals-names : -formals → (℘ Var-Name))
-;; Return all names that a formal list binds
-(define -formals-names
-  (match-lambda
-    [(-varargs xs x) (set-add (list->set xs) x)]
-    [(? list? xs) (list->set xs)]))
-
-(: binder-has? : -formals (U Var-Name -e) → (Option (℘ Var-Name)))
-;; returns whether a list of binding names has given name
-(define (binder-has? xs x)
-  (define FVs (if (Var-Name? x) {set x} (fv x)))
-  (define captured (∩ FVs (-formals-names xs)))
-  (and (not (set-empty? captured)) captured))
 
 (: prim-name->unsafe-prim : Symbol → -o)
 ;; Convert primitive name to (unsafe) primitive
@@ -686,3 +583,174 @@
 
     ; General case
     [_ (general-primitive-case)]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Substitution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Compiled symbol ready for substitution
+(define-type -φ ((HashTable -e -e) → -e))
+
+(define/memo (e->φ [e : -e]) : -φ
+
+  (define-syntax-rule (with-m (m) body ...)
+    (let ([memo : (HashTable (HashTable -e -e) -e) (make-hash)])
+      (λ (m)
+        (cond [(hash-empty? m) e]
+              [(hash-ref m e #f) => values]
+              [else (hash-ref! memo m (λ () body ...))]))))
+
+  (match e
+    [_ #:when (set-empty? (fv e))
+     (log-debug "⦇e⦈: optimize for closed term ~a~n" (show-e e))
+     (λ (m)
+       (cond [(hash-ref m e #f) => values]
+             [else e]))]
+    [(-λ xs e*)
+     (define ⦇e*⦈ (e->φ e*))
+     (define fvs (formals->names xs))
+     (with-m (m)
+       (-λ xs (⦇e*⦈ (shrink m fvs))))]
+    [(-case-λ clauses)
+     (define-values (xss fvss ⦇e⦈s)
+       (for/lists ([xss  : (Listof (Listof Var-Name))]
+                   [fvss : (Listof (℘ Var-Name))]
+                   [⦇e⦈s  : (Listof -φ)])
+                  ([clause clauses])
+         (match-define (cons xs eₓ) clause)
+         (values xs (list->set xs) (e->φ eₓ))))
+     (with-m (m)
+       (-case-λ
+        (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([xs xss] [fvs fvss] [⦇e⦈ ⦇e⦈s])
+          (cons xs (⦇e⦈ (shrink m fvs))))))]
+    [(-@ f xs _)
+     (define ⦇f⦈ (e->φ f))
+     (define ⦇x⦈s (map e->φ xs))
+     (with-m (m)
+       (apply -@/simp (⦇f⦈ m) (for/list : (Listof -e) ([⦇x⦈ ⦇x⦈s]) (⦇x⦈ m))))]
+    [(-if e₀ e₁ e₂)
+     (define ⦇e₀⦈ (e->φ e₀))
+     (define ⦇e₁⦈ (e->φ e₁))
+     (define ⦇e₂⦈ (e->φ e₂))
+     (with-m (m)
+       (-if (⦇e₀⦈ m) (⦇e₁⦈ m) (⦇e₂⦈ m)))]
+    [(-wcm k v b)
+     (define ⦇k⦈ (e->φ k))
+     (define ⦇v⦈ (e->φ v))
+     (define ⦇b⦈ (e->φ b))
+     (with-m (m)
+       (-wcm (⦇k⦈ m) (⦇v⦈ m) (⦇b⦈ m)))]
+    [(-begin es)
+     (define ⦇e⦈s (map e->φ es))
+     (with-m (m)
+       (-begin (for/list : (Listof -e) ([⦇e⦈ ⦇e⦈s]) (⦇e⦈ m))))]
+    [(-begin0 e₀ es)
+     (define ⦇e₀⦈ (e->φ e₀))
+     (define ⦇e⦈s (map e->φ es))
+     (with-m (m)
+       (-begin0 (⦇e₀⦈ m) (for/list ([⦇e⦈ ⦇e⦈s]) (⦇e⦈ m))))]
+    [(-let-values bnds e*)
+     (define-values (formals-rev locals ⦇e⦈s-rev)
+       (for/fold ([formals-rev : (Listof (Listof Var-Name)) '()]
+                  [locals : (℘ Var-Name) ∅]
+                  [⦇e⦈s-rev : (Listof -φ) '()])
+                 ([bnd bnds])
+         (match-define (cons xs eₓ) bnd)
+         (values (cons xs formals-rev)
+                 (set-add-list locals xs)
+                 (cons (e->φ eₓ) ⦇e⦈s-rev))))
+     (define ⦇e*⦈ (e->φ e*))
+     (with-m (m)
+       (define bnds*
+         (for/fold ([acc : (Listof (Pairof (Listof Var-Name) -e)) '()])
+                   ([xs (in-list formals-rev)]
+                    [⦇e⦈ (in-list ⦇e⦈s-rev)])
+           (cons (cons xs (⦇e⦈ m)) acc)))
+       (-let-values bnds* (⦇e*⦈ (shrink m locals))))]
+    [(-letrec-values bnds e*)
+     (define-values (formals-rev locals ⦇e⦈s-rev)
+       (for/fold ([formals-rev : (Listof (Listof Var-Name)) '()]
+                  [locals : (℘ Var-Name) ∅]
+                  [⦇e⦈s-rev : (Listof -φ) '()])
+                 ([bnd bnds])
+         (match-define (cons xs eₓ) bnd)
+         (values (cons xs formals-rev)
+                 (set-add-list locals xs)
+                 (cons (e->φ eₓ) ⦇e⦈s-rev))))
+     (define ⦇e*⦈ (e->φ e*))
+     (with-m (m)
+       (define m* (shrink m locals))
+       (define bnds*
+         (for/fold ([acc : (Listof (Pairof (Listof Var-Name) -e)) '()])
+                   ([xs (in-list formals-rev)]
+                    [⦇e⦈ (in-list ⦇e⦈s-rev)])
+           (cons (cons xs (⦇e⦈ m*)) acc)))
+       (-letrec-values bnds* (⦇e*⦈ m*)))]
+    [(-set! x e*)
+     (define ⦇e*⦈ (e->φ e*))
+     (with-m (m) (-set! x (⦇e*⦈ m)))]
+    [(-amb es)
+     (define ⦇e⦈s : (Listof -φ) (for/list ([e es]) (e->φ e)))
+     (with-m (m)
+       (-amb (for/set: : (℘ -e) ([⦇e⦈ ⦇e⦈s]) (⦇e⦈ m))))]
+    [(-μ/c z c)
+     (define ⦇c⦈ (e->φ c))
+     (with-m (m) (-μ/c z (⦇c⦈ m)))]
+    [(--> cs d ℓ)
+     (define ⦇c⦈s (map e->φ cs))
+     (define ⦇d⦈ (e->φ d))
+     (with-m (m)
+       (--> (for/list ([⦇c⦈ ⦇c⦈s]) (⦇c⦈ m)) (⦇d⦈ m) ℓ))]
+    [(-->i cs mk-d ℓ)
+     (define ⦇c⦈s (map e->φ cs))
+     (define ⦇mk-d⦈ (e->φ mk-d))
+     (with-m (m)
+       (-->i (for/list ([⦇c⦈ ⦇c⦈s]) (⦇c⦈ m)) (assert (⦇mk-d⦈ m) -λ?) ℓ))]
+    [(-case-> clauses ℓ)
+     (define ⦇clause⦈s : (Listof (Pairof (Listof -φ) -φ))
+       (for/list ([clause clauses])
+         (match-define (cons doms rng) clause)
+         (cons (map e->φ doms) (e->φ rng))))
+     (with-m (m)
+       (-case->
+        (for/list : (Listof (Pairof (Listof -e) -e)) ([⦇clause⦈ ⦇clause⦈s])
+          (match-define (cons ⦇dom⦈s ⦇rng⦈) ⦇clause⦈)
+          (cons (for/list : (Listof -e) ([⦇dom⦈ ⦇dom⦈s]) (⦇dom⦈ m))
+                (⦇rng⦈ m)))
+        ℓ))]
+    [(-struct/c t cs ℓ)
+     (define ⦇c⦈s (map e->φ cs))
+     (with-m (m)
+       (-struct/c t (for/list ([⦇c⦈ ⦇c⦈s]) (⦇c⦈ m)) ℓ))]
+    [_
+     (log-debug "e->φ: constant ~a" (show-e e))
+     (λ (m)
+       (cond
+         [(hash-ref m e #f) => values]
+         [else e]))]))
+
+(define (φ/map [m : (HashTable -e -e)] [φ : -φ]) (e->φ (φ m)))
+(define (φ->e [φ : -φ]) (φ m∅))
+(define (e/map [m : (HashTable -e -e)] [e : -e]) ((e->φ e) m))
+
+(: e/ : -e -e -e → -e)
+;; Substitution, where `x` can be an (open) term rather than just a free variable.
+(define (e/ x eₓ e) (e/map (hash x eₓ) e))
+
+(: shrink : (HashTable -e -e) (℘ Var-Name) → (HashTable -e -e))
+(define (shrink m xs)
+  (for/fold ([m* : (HashTable -e -e) m])
+            ([eₓ (in-hash-keys m)]
+             #:unless (set-empty? (∩ xs (fv eₓ))))
+    (hash-remove m* eₓ)))
+
+(: formals->names : -formals → (℘ Var-Name))
+(define (formals->names xs)
+  (cond
+    [(-varargs? xs) (set-add (list->set (-varargs-init xs)) (-varargs-rest xs))]
+    [else (list->set xs)]))
+
+(define -⦇ff⦈ (e->φ -ff))
+(define -⦇values⦈ (e->φ 'values))
+(define -⦇fc⦈ (e->φ 'fc))

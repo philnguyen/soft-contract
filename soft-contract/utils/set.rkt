@@ -2,7 +2,7 @@
 
 ;; This module provides abbreviations and extra tools for dealing with sets
 (provide
- ℘ ∅ ∪ ∩ →∅ ∋ ∈ ⊆ --
+ ℘ ∅ ∅eq ∪ ∩ →∅ ∋ ∈ ⊆ --
  set-add-list define-set set-partition for/union collect merge set->predicate map/set)
 
 (require
@@ -11,6 +11,7 @@
 
 (define-type ℘ Setof)
 (define ∅ : (℘ Nothing) (set))
+(define ∅eq : (℘ Nothing) (seteq))
 (define ∪ set-union)
 (define ∩ set-intersect)
 (define →∅ : (→ (℘ Nothing)) (λ () ∅))

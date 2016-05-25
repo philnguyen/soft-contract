@@ -8,7 +8,7 @@
  "../ast/main.rkt"
  "../parse/main.rkt"
  "../runtime/main.rkt"
- (only-in "../proof-relation/main.rkt" es⊢ₑₓₜe)
+ (only-in "../proof-relation/main.rkt" φs⊢ₑₓₜe)
  (only-in "../proof-relation/ext/z3.rkt" z3⊢)
  "step.rkt"
  "init.rkt")
@@ -50,7 +50,7 @@
        (values M Ξ σ)]
       [else
        
-       #;(begin ;; Pre-iter debuggings
+       (begin ;; Pre-iter debuggings
          (define last : Integer (current-seconds))
          (set! count (+ 1 count))
          (define num-τs (set-count τs))
@@ -124,7 +124,7 @@
            (values !Cos !seen-Cos)))
 
        ;; Post-iter Debugging
-       #;(parameterize ([verbose? #t])
+       (parameterize ([verbose? #t])
 
          (: show-m (∀ (X Y) ([Sexp (X → Sexp) (Y → Sexp) (MMap X Y)]
                              [#:filter (X → Boolean)]
@@ -160,6 +160,6 @@
 
   (define τ₀ (-ℬ ⟦e⟧₀ ℒ∅))
   (define-values (M Ξ σ)
-    (parameterize ([es⊢ₑₓₜe z3⊢])
+    (parameterize ([φs⊢ₑₓₜe z3⊢])
       (loop (hash τ₀ σ₀) (hash) {set τ₀} ∅ ⊥M ⊥Ξ σ₀)))
   (values (M@ M τ₀) M Ξ σ))

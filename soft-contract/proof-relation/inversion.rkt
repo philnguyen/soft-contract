@@ -17,7 +17,7 @@
 ;; Path-condition tail tagged with inversion history (to recognize repeated unfoldings)
 (struct -γʰ ([tail : -γ] [hist : (℘ -τ)]) #:transparent)
 ;; A proof context contains hypotheses, invertible hypotheses, and rewriting hints
-(struct -ctx ([facts : (℘ -e)] [tails : (Listof -γʰ)] [m : (HashTable -e -e)]) #:transparent)
+(struct -ctx ([facts : (℘ -φ)] [tails : (Listof -γʰ)] [m : (HashTable -e -e)]) #:transparent)
 ;; Proof configuration is proof context paired with an expression (may or may not be a goal)
 (struct -cfg ([ctx : -ctx] [expr : -e]) #:transparent)
 
@@ -105,7 +105,7 @@
   (match-define (-ctx φs γʰs m) ctx)
   (match-define (-γʰ γ τs) γʰ)
   (match-define (-γ τ bnd₀ blm) γ)
-  (define bnd ((binding/ m) bnd₀))
+  (define bnd (binding/ m bnd₀))
   
   (with-debugging/off
     ((ctxs)
@@ -175,12 +175,12 @@
                      [bnd : -binding]
                      [m : (HashTable -e -e)]
                      [fvs : (℘ Var-Name)]
-                     [φs : (℘ -e)]
+                     [φs : (℘ -φ)]
                      [τs* : (℘ -τ)]
                      [γʰs : (Listof -γʰ)]
                      #||#
                      [acc : (℘ -ctx)]
-                     [φsₑₑ : (℘ -e)]
+                     [φsₑₑ : (℘ -φ)]
                      [γsₑₑ : (Listof -γ)]
                      [sₑₑ : -s]
                      ) : (℘ -ctx)
@@ -188,7 +188,7 @@
   (define mₑᵣ (combine-e-map m δmₑᵣ))
   (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
   (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
-  (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
+  (define φs* (and φsₑᵣ φsₑᵣ₊ (φs⊓ φsₑᵣ φsₑᵣ₊)))
   (define δγʰs
     (for/list : (Listof -γʰ) ([γₑₑ γsₑₑ])
       (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
@@ -222,19 +222,22 @@
 (: bnds->subst : -binding → (HashTable -e -e))
 ;; Convert list of `param -> arg` to hashtable
 (define (bnds->subst bnd)
-  (match-define (-binding _ _ x->e) bnd)
-  (for/hash : (HashTable -e -e) ([(x e) x->e])
-    (values (-x x) e)))
+  (match-define (-binding _ _ x->φ) bnd)
+  (for/hash : (HashTable -e -e) ([(x φ) x->φ])
+    (values (-x x) (φ->e φ))))
 
 (: mk-subst : (HashTable -e -e) -binding -s → (Values (HashTable -e -e) (HashTable -e -e) -s))
 ;; Given caller's parameters and arguments and callee's result,
 ;; Create a substitution to convert callee's propositions to caller's propositions.
 ;; Return 2 maps: first map is for callee, second for caller, plus unfolding of result
 (define (mk-subst m₀ bnd a)
-  (match-define (-binding f xs x->e) bnd)
-  (define args (-binding-args bnd))
+  (match-define (-binding f xs x->φ) bnd)
+  (define args : (Listof -s)
+    (for/list ([x xs])
+      (cond [(hash-ref x->φ x #f) => φ->e]
+            [else #f])))
   (define dom (-binding-dom bnd))
-  (define fargs (apply -?@ f args))
+  (define fargs (apply -?@ (and f (φ->e f)) args))
   (define-values (fargs↓ mₐ) (β* fargs))
   
   ;; Unfold caller's result to callee's result if callee's result is in terms
