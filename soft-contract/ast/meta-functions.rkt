@@ -599,11 +599,7 @@
 
   (match e
     [_ #:when (set-empty? (fv e))
-     (log-debug "⦇e⦈: optimize for closed term ~a~n" (show-e e))
-     (letrec ([φ : -φ (λ (m)
-                        (cond [(hash-ref m φ #f) => φ->e]
-                              [else e]))])
-       φ)]
+     (with-m (m) e)]
     [(-λ xs e*)
      (define ⦇e*⦈ (e->φ e*))
      (define fvs (formals->names xs))
@@ -722,11 +718,7 @@
        (-struct/c t (for/list ([⦇c⦈ ⦇c⦈s]) (⦇c⦈ m)) ℓ))]
     [_
      (log-debug "e->φ: constant ~a" (show-e e))
-     (letrec ([φ : -φ (λ (m)
-                        (cond
-                          [(hash-ref m φ #f) => φ->e]
-                          [else e]))])
-       φ)]))
+     (with-m (m) e)]))
 
 (define (φ/map [m : (HashTable -φ -φ)] [φ : -φ]) (e->φ (φ m)))
 (define (φ->e [φ : -φ]) (φ m∅))
