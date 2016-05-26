@@ -64,20 +64,20 @@
   (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
         [else
          ((e->φ e)
-          (for/hasheq : (HashTable -φ -e) ([(x φₓ) X])
-            (values (e->φ (-x x)) (φ->e φₓ))))]))
+          (for/hasheq : (HashTable -φ -φ) ([(x φₓ) X])
+            (values (e->φ (-x x)) φₓ)))]))
 
 (: -Γ-plus-γ : -Γ -γ → -Γ)
 (define (-Γ-plus-γ Γ γ)
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (cons γ γs)))
 
-(: γ/ : (HashTable -φ -e) → -γ → -γ)
+(: γ/ : (HashTable -φ -φ) → -γ → -γ)
 (define ((γ/ m) γ)
   (match-define (-γ τ bnd blm) γ)
   (-γ τ (binding/ m bnd) blm))
 
-(: binding/ : (HashTable -φ -e) -binding → -binding)
+(: binding/ : (HashTable -φ -φ) -binding → -binding)
 (define (binding/ m bnd)
   (match-define (-binding f xs x->φ) bnd)
   (define f* (and f (φ/map m f)))

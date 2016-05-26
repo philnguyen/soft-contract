@@ -580,9 +580,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Compiled symbol ready for substitution
-(define-type -φ ((HashTable -φ -e) → -e))
+(define-type -φ ((HashTable -φ -φ) → -e))
 (define-type -?φ (Option -φ))
-(define m∅ : (HashTable -φ -e) (hasheq))
+(define m∅ : (HashTable -φ -φ) (hasheq))
 
 (: fv-φ : -?φ → (℘ Var-Name))
 (define (fv-φ φ) (if φ (fv (φ->e φ)) ∅eq))
@@ -590,10 +590,10 @@
 (define/memo (e->φ [e : -e]) : -φ
 
   (define-syntax-rule (with-m (m) body ...)
-    (let ([memo : (HashTable (HashTable -φ -e) -e) (make-hash)])
+    (let ([memo : (HashTable (HashTable -φ -φ) -e) (make-hash)])
       (letrec ([φ : -φ (λ (m)
                          (cond [(hash-empty? m) e]
-                               [(hash-ref m φ #f) => values]
+                               [(hash-ref m φ #f) => φ->e]
                                [else (hash-ref! memo m (λ () body ...))]))])
         φ)))
 
@@ -601,7 +601,7 @@
     [_ #:when (set-empty? (fv e))
      (log-debug "⦇e⦈: optimize for closed term ~a~n" (show-e e))
      (letrec ([φ : -φ (λ (m)
-                        (cond [(hash-ref m φ #f) => values]
+                        (cond [(hash-ref m φ #f) => φ->e]
                               [else e]))])
        φ)]
     [(-λ xs e*)
@@ -724,21 +724,21 @@
      (log-debug "e->φ: constant ~a" (show-e e))
      (letrec ([φ : -φ (λ (m)
                         (cond
-                          [(hash-ref m φ #f) => values]
+                          [(hash-ref m φ #f) => φ->e]
                           [else e]))])
        φ)]))
 
-(define (φ/map [m : (HashTable -φ -e)] [φ : -φ]) (e->φ (φ m)))
+(define (φ/map [m : (HashTable -φ -φ)] [φ : -φ]) (e->φ (φ m)))
 (define (φ->e [φ : -φ]) (φ m∅))
-(define (e/map [m : (HashTable -φ -e)] [e : -e]) ((e->φ e) m))
+(define (e/map [m : (HashTable -φ -φ)] [e : -e]) ((e->φ e) m))
 
 (: e/ : -e -e -e → -e)
 ;; Substitution, where `x` can be an (open) term rather than just a free variable.
-(define (e/ x eₓ e) (e/map (hasheq (e->φ x) eₓ) e))
+(define (e/ x eₓ e) (e/map (hasheq (e->φ x) (e->φ eₓ)) e))
 
-(: shrink : (HashTable -φ -e) (℘ Var-Name) → (HashTable -φ -e))
+(: shrink : (HashTable -φ -φ) (℘ Var-Name) → (HashTable -φ -φ))
 (define (shrink m xs)
-  (for/fold ([m* : (HashTable -φ -e) m])
+  (for/fold ([m* : (HashTable -φ -φ) m])
             ([φₓ (in-hash-keys m)]
              #:unless (set-empty? (∩ xs (fv-φ φₓ))))
     (hash-remove m* φₓ)))
@@ -749,15 +749,15 @@
     [(-varargs? xs) (set-add (list->seteq (-varargs-init xs)) (-varargs-rest xs))]
     [else (list->seteq xs)]))
 
-(: e-map-union : (HashTable -φ -e) (HashTable -φ -e) → (HashTable -φ -e))
+(: e-map-union : (HashTable -φ -φ) (HashTable -φ -φ) → (HashTable -φ -φ))
 (define (e-map-union m δm)
-  (for/fold ([m : (HashTable -φ -e) m])
+  (for/fold ([m : (HashTable -φ -φ) m])
             ([(x y) δm])
     (cond
       [(hash-ref m x #f) =>
        (λ (y*)
          (unless (equal? y* y)
-           (log-warning "e-map-union: ~a ↦ ~a, updated to ~a~n" (show-φ x) (show-e y*) (show-e y))))])
+           (log-warning "e-map-union: ~a ↦ ~a, updated to ~a~n" (show-φ x) (show-φ y*) (show-φ y))))])
     (hash-set m x y)))
 
 (define (show-φ [φ : -φ]) (show-e (φ->e φ)))
