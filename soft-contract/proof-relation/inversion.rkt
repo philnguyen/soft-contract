@@ -17,7 +17,7 @@
 ;; Path-condition tail tagged with inversion history (to recognize repeated unfoldings)
 (struct -γʰ ([tail : -γ] [hist : (℘ -τ)]) #:transparent)
 ;; A proof context contains hypotheses, invertible hypotheses, and rewriting hints
-(struct -ctx ([facts : (℘ -φ)] [tails : (Listof -γʰ)] [m : (HashTable -e -e)]) #:transparent)
+(struct -ctx ([facts : (℘ -φ)] [tails : (Listof -γʰ)] [m : (HashTable -φ -e)]) #:transparent)
 ;; Proof configuration is proof context paired with an expression (may or may not be a goal)
 (struct -cfg ([ctx : -ctx] [expr : -e]) #:transparent)
 
@@ -169,12 +169,12 @@
           (for ([r (show-e-map m)]) (printf "    + ~a~n" r)))
         (printf "~n")))))
 
-;(: on-ans : (HashTable -e -e) -binding (HashTable -e -e) (℘ Var-Name) (℘ -e) (℘ -τ) (Listof -γʰ) #||# (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
+;(: on-ans : (HashTable -φ -e) -binding (HashTable -φ -e) (℘ Var-Name) (℘ -e) (℘ -τ) (Listof -γʰ) #||# (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
 ;; Return the case unless it's inconsistent
 ;; [experiment] Lifted out and memoized
-(define/memo (on-ans [m₀ : (HashTable -e -e)]
+(define/memo (on-ans [m₀ : (HashTable -φ -e)]
                      [bnd : -binding]
-                     [m : (HashTable -e -e)]
+                     [m : (HashTable -φ -e)]
                      [fvs : (℘ Var-Name)]
                      [φs : (℘ -φ)]
                      [τs* : (℘ -τ)]
@@ -214,21 +214,21 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: combine-e-map : (HashTable -e -e) (HashTable -e -e) → (HashTable -e -e))
+(: combine-e-map : (HashTable -φ -e) (HashTable -φ -e) → (HashTable -φ -e))
 (define (combine-e-map m δm)
   (define δm*
-    (for/hash : (HashTable -e -e) ([(x y) δm])
-      (values (e/map m x) (e/map m y))))
+    (for/hasheq : (HashTable -φ -e) ([(x y) δm])
+      (values (φ/map m x) (e/map m y))))
   (e-map-union m δm*))
 
-(: bnds->subst : -binding → (HashTable -e -e))
+(: bnds->subst : -binding → (HashTable -φ -e))
 ;; Convert list of `param -> arg` to hashtable
 (define (bnds->subst bnd)
   (match-define (-binding _ _ x->φ) bnd)
-  (for/hash : (HashTable -e -e) ([(x φ) x->φ])
-    (values (-x x) (φ->e φ))))
+  (for/hasheq : (HashTable -φ -e) ([(x φ) x->φ])
+    (values (e->φ (-x x)) (φ->e φ))))
 
-(: mk-subst : (HashTable -e -e) -binding -s → (Values (HashTable -e -e) (HashTable -e -e) -s))
+(: mk-subst : (HashTable -φ -e) -binding -s → (Values (HashTable -φ -e) (HashTable -φ -e) -s))
 ;; Given caller's parameters and arguments and callee's result,
 ;; Create a substitution to convert callee's propositions to caller's propositions.
 ;; Return 2 maps: first map is for callee, second for caller, plus unfolding of result
@@ -253,9 +253,9 @@
     ((mₑₑ mₑᵣ sₐ)
      (cond
        [(and a fargs fargs↓ fargsₐ)
-        (values (hash-set m₀ a fargsₐ) (hash fargs fargsₐ fargs↓ fargsₐ) fargsₐ)]
+        (values (hash-set m₀ (e->φ a) fargsₐ) (hasheq (e->φ fargs) fargsₐ (e->φ fargs↓) fargsₐ) fargsₐ)]
        [(and a fargs fargs↓)
-        (values (hash-set m₀ a fargs↓) m∅ fargs↓)]
+        (values (hash-set m₀ (e->φ a) fargs↓) m∅ fargs↓)]
        [else (values m₀ m∅ fargs↓)]))
     (printf "mk-subst:~n")
     (printf "  - m₀: ~a~n" (show-e-map m₀))
@@ -266,12 +266,12 @@
     (printf "  - sₐ: ~a~n" (show-s sₐ))
     (printf "~n")))
 
-(: β* : -s → (Values -s (HashTable -e -e)))
+(: β* : -s → (Values -s (HashTable -φ -e)))
 ;; Take β-normal form. Assume the user of this function knows for sure it exists.
 (define (β* s)
   (with-debugging/off
     ((sₐ mₐ)
-     (define m : (HashTable -e -e) m∅)
+     (define m : (HashTable -φ -e) m∅)
      (: go! (case-> [#f → #f] [-e → -e] [-s → -s]))
      (define (go! s)
        (match s
@@ -279,7 +279,7 @@
           (match* ((go! f) (map go! args))
             [((-λ (? list? xs) e) args*)
              (for ([x xs] [arg args*])
-               (set! m (hash-set m (-x x) arg)))
+               (set! m (hash-set m (e->φ (-x x)) arg)))
              (go! (e/map m e))]
             [(f* args*) (-@ f* args* 0)])]
          [_ s]))

@@ -194,7 +194,7 @@
               (plausible-blm/M? M cfg* l+ lo #:depth (- d 1))))]))
     (match-define (-cfg (-ctx φs γʰs _) s) cfg)
     (define γs (map -γʰ-tail γʰs))
-    (define Γ (-Γ φs (hash) γs))
+    (define Γ (-Γ φs (hasheq) γs))
     (define-values (sΓ sγs) (show-M-Γ M Γ))
     (printf "plausible-blm? ~a ⊢ (blm ~a ~a) @ ~a : ~a~n" sΓ l+ lo (show-s s) ans)
     (printf "evaled: ~a~n"

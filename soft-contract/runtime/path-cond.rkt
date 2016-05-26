@@ -64,20 +64,20 @@
   (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
         [else
          ((e->φ e)
-          (for/hash : (HashTable -e -e) ([(x φₓ) X])
-            (values (-x x) (φ->e φₓ))))]))
+          (for/hasheq : (HashTable -φ -e) ([(x φₓ) X])
+            (values (e->φ (-x x)) (φ->e φₓ))))]))
 
 (: -Γ-plus-γ : -Γ -γ → -Γ)
 (define (-Γ-plus-γ Γ γ)
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (cons γ γs)))
 
-(: γ/ : (HashTable -e -e) → -γ → -γ)
+(: γ/ : (HashTable -φ -e) → -γ → -γ)
 (define ((γ/ m) γ)
   (match-define (-γ τ bnd blm) γ)
   (-γ τ (binding/ m bnd) blm))
 
-(: binding/ : (HashTable -e -e) -binding → -binding)
+(: binding/ : (HashTable -φ -e) -binding → -binding)
 (define (binding/ m bnd)
   (match-define (-binding f xs x->φ) bnd)
   (define f* (and f (φ/map m f)))
@@ -103,9 +103,6 @@
 
 (: fvₛ : -s → (℘ Var-Name))
 (define (fvₛ s) (if s (fv s) ∅eq))
-
-(: fv-φ : -?φ → (℘ Var-Name))
-(define (fv-φ φ) (if φ (fv (φ->e φ)) ∅eq))
 
 (: invalidate : -Γ Var-Name → -Γ)
 ;; Throw away anything known about `x` in `Γ`

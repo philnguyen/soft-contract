@@ -706,7 +706,7 @@
     (for*/ans ([C* (σ@ σ α)])
       (define W-C* (-W¹ C* c))
       (define W-V* (-W¹ V 𝐱))
-      (define bnd #|FIXME Hack|# (-binding -⦇values⦈ (list x) (if v (hasheq x (e->φ v)) (hash))))
+      (define bnd #|FIXME Hack|# (-binding -⦇values⦈ (list x) (if v (hasheq x (e->φ v)) (hasheq))))
       (define ℒ*
         (let ([Γ (-ℒ-cnd ℒ)])
           (-ℒ-with-Γ ℒ (invalidate Γ x))))
@@ -1009,7 +1009,7 @@
        (for*/ans ([C* (σ@ σ α)])
          (define W-C* (-W¹ C* c))
          (define W-V* (-W¹ V 𝐱))
-         (define bnd #|FIXME Hack|# (-binding -⦇fc⦈ (list x) (if v (hasheq x (e->φ v)) (hash))))
+         (define bnd #|FIXME Hack|# (-binding -⦇fc⦈ (list x) (if v (hasheq x (e->φ v)) (hasheq))))
          (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℱ l ℓ W-C* W-V* ℒ))})))]
     [_
      (define ⟦ap⟧ (ap l ℓ W-C (list W-V)))

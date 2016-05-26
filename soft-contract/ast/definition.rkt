@@ -160,8 +160,6 @@
 (define havoc-path 'havoc)
 (define havoc-𝒾 (-𝒾 'havoc-id havoc-path))
 
-(define m∅ : (HashTable -e -e) (hash))
-
 (: -cond : (Listof (Pairof -e -e)) -e → -e)
 ;; Make `cond` at object language level, expanding to `if`
 (define (-cond cases default)

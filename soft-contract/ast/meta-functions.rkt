@@ -3,7 +3,8 @@
 (provide
  fv 𝐴 closed? checks# free-x/c unroll find-calls prim-name->unsafe-prim
  α-rename e-map-union -@/simp
- -φ e->φ φ->e e/map φ/map e/ -⦇ff⦈ -⦇values⦈ -⦇fc⦈)
+ -φ e->φ φ->e e/map φ/map e/ show-φ show-?φ fv-φ -φ -?φ m∅
+ -⦇ff⦈ -⦇values⦈ -⦇fc⦈)
 
 (require racket/match
          racket/set
@@ -30,7 +31,7 @@
 (require/typed "../primitives/declarations.rkt"
   [prims (Listof Any)])
 (require/typed racket/base
-  [hash-empty? ((HashTable -e -e) → Boolean)])
+  [hash-empty? (Any #|hack|# → Boolean)])
 
 (: fv : (U -e (Listof -e)) → (℘ Var-Name))
 ;; Compute free variables for expression. Return set of variable names.
@@ -422,17 +423,6 @@
   (cond [(-e? e) (go! (hasheq) e)]
         [else (go-m! (hasheq) e)]))
 
-(: e-map-union : (HashTable -e -e) (HashTable -e -e) → (HashTable -e -e))
-(define (e-map-union m δm)
-  (for/fold ([m : (HashTable -e -e) m])
-            ([(x y) δm])
-    (cond
-      [(hash-ref m x #f) =>
-       (λ (y*)
-         (unless (equal? y* y)
-           (log-warning "e-map-union: ~a ↦ ~a, updated to ~a~n" (show-e x) (show-e y*) (show-e y))))])
-    (hash-set m x y)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; helpers
@@ -590,23 +580,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Compiled symbol ready for substitution
-(define-type -φ ((HashTable -e -e) → -e))
+(define-type -φ ((HashTable -φ -e) → -e))
+(define-type -?φ (Option -φ))
+(define m∅ : (HashTable -φ -e) (hasheq))
+
+(: fv-φ : -?φ → (℘ Var-Name))
+(define (fv-φ φ) (if φ (fv (φ->e φ)) ∅eq))
 
 (define/memo (e->φ [e : -e]) : -φ
 
   (define-syntax-rule (with-m (m) body ...)
-    (let ([memo : (HashTable (HashTable -e -e) -e) (make-hash)])
-      (λ (m)
-        (cond [(hash-empty? m) e]
-              [(hash-ref m e #f) => values]
-              [else (hash-ref! memo m (λ () body ...))]))))
+    (let ([memo : (HashTable (HashTable -φ -e) -e) (make-hash)])
+      (letrec ([φ : -φ (λ (m)
+                         (cond [(hash-empty? m) e]
+                               [(hash-ref m φ #f) => values]
+                               [else (hash-ref! memo m (λ () body ...))]))])
+        φ)))
 
   (match e
     [_ #:when (set-empty? (fv e))
      (log-debug "⦇e⦈: optimize for closed term ~a~n" (show-e e))
-     (λ (m)
-       (cond [(hash-ref m e #f) => values]
-             [else e]))]
+     (letrec ([φ : -φ (λ (m)
+                        (cond [(hash-ref m φ #f) => values]
+                              [else e]))])
+       φ)]
     [(-λ xs e*)
      (define ⦇e*⦈ (e->φ e*))
      (define fvs (formals->names xs))
@@ -725,31 +722,46 @@
        (-struct/c t (for/list ([⦇c⦈ ⦇c⦈s]) (⦇c⦈ m)) ℓ))]
     [_
      (log-debug "e->φ: constant ~a" (show-e e))
-     (λ (m)
-       (cond
-         [(hash-ref m e #f) => values]
-         [else e]))]))
+     (letrec ([φ : -φ (λ (m)
+                        (cond
+                          [(hash-ref m φ #f) => values]
+                          [else e]))])
+       φ)]))
 
-(define (φ/map [m : (HashTable -e -e)] [φ : -φ]) (e->φ (φ m)))
+(define (φ/map [m : (HashTable -φ -e)] [φ : -φ]) (e->φ (φ m)))
 (define (φ->e [φ : -φ]) (φ m∅))
-(define (e/map [m : (HashTable -e -e)] [e : -e]) ((e->φ e) m))
+(define (e/map [m : (HashTable -φ -e)] [e : -e]) ((e->φ e) m))
 
 (: e/ : -e -e -e → -e)
 ;; Substitution, where `x` can be an (open) term rather than just a free variable.
-(define (e/ x eₓ e) (e/map (hash x eₓ) e))
+(define (e/ x eₓ e) (e/map (hasheq (e->φ x) eₓ) e))
 
-(: shrink : (HashTable -e -e) (℘ Var-Name) → (HashTable -e -e))
+(: shrink : (HashTable -φ -e) (℘ Var-Name) → (HashTable -φ -e))
 (define (shrink m xs)
-  (for/fold ([m* : (HashTable -e -e) m])
-            ([eₓ (in-hash-keys m)]
-             #:unless (set-empty? (∩ xs (fv eₓ))))
-    (hash-remove m* eₓ)))
+  (for/fold ([m* : (HashTable -φ -e) m])
+            ([φₓ (in-hash-keys m)]
+             #:unless (set-empty? (∩ xs (fv-φ φₓ))))
+    (hash-remove m* φₓ)))
 
 (: formals->names : -formals → (℘ Var-Name))
 (define (formals->names xs)
   (cond
     [(-varargs? xs) (set-add (list->seteq (-varargs-init xs)) (-varargs-rest xs))]
     [else (list->seteq xs)]))
+
+(: e-map-union : (HashTable -φ -e) (HashTable -φ -e) → (HashTable -φ -e))
+(define (e-map-union m δm)
+  (for/fold ([m : (HashTable -φ -e) m])
+            ([(x y) δm])
+    (cond
+      [(hash-ref m x #f) =>
+       (λ (y*)
+         (unless (equal? y* y)
+           (log-warning "e-map-union: ~a ↦ ~a, updated to ~a~n" (show-φ x) (show-e y*) (show-e y))))])
+    (hash-set m x y)))
+
+(define (show-φ [φ : -φ]) (show-e (φ->e φ)))
+(define (show-?φ [φ : -?φ]) (if φ (show-e (φ->e φ)) '∅))
 
 (define -⦇ff⦈ (e->φ -ff))
 (define -⦇values⦈ (e->φ 'values))

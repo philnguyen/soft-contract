@@ -479,9 +479,9 @@
             '✗]
            [else '?])]))
 
-;(: φs/ensure-consistency : (HashTable -e -e) (℘ -e) → (Option (℘ -e)))
+;(: φs/ensure-consistency : (HashTable -φ -e) (℘ -e) → (Option (℘ -e)))
 ;; Substitute and throw away inconsistent path-condition
-(define/memo (φs/ensure-consistency [m : (HashTable -e -e)] [φs : (℘ -φ)]) : (Option (℘ -φ))
+(define/memo (φs/ensure-consistency [m : (HashTable -φ -e)] [φs : (℘ -φ)]) : (Option (℘ -φ))
   (define-values (acc φs*)
     (for/fold ([acc : (Option (℘ -φ)) φs]
                [φs* : (℘ -φ) ∅eq])
@@ -495,7 +495,7 @@
         [else (values #f ∅eq)])))
   (and acc φs*))
 
-(: Γ/ensure-consistency : (HashTable -e -e) -Γ → (Option -Γ))
+(: Γ/ensure-consistency : (HashTable -φ -e) -Γ → (Option -Γ))
 ;; Substitute free occurrences of `x` with `e` in path condition  
 ;; Throw away inconsistent path-condition
 (define (Γ/ensure-consistency m Γ)

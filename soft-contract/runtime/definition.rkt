@@ -172,7 +172,6 @@
 
 ;; Symbolic value is either pure, refinable expression, or the conservative unrefinable `#f`
 (-s . ::= . -e #f)
-(define-type -?φ (Option -φ))
 (define (s->φ [s : -s]) (and s (e->φ s)))
 
 ;; Path condition is set of (pure) expression known to have evaluated to non-#f
@@ -596,6 +595,3 @@
     (for/list : (Listof Sexp) ([(x φ) x->φ] #:unless (member x xs))
       `(,(show-Var-Name x) ↦ ,(show-φ φ))))
   `(,(show-?φ f) ,@bnds ‖ ,@fvs))
-
-(define (show-φ [φ : -φ]) (show-e (φ->e φ)))
-(define (show-?φ [φ : (Option -φ)]) (show-s (and φ (φ->e φ))))
