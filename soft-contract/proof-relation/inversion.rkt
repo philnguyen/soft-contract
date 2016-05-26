@@ -105,7 +105,6 @@
   (match-define (-ctx φs γʰs m) ctx)
   (match-define (-γʰ γ τs) γʰ)
   (match-define (-γ τ bnd₀ blm) γ)
-  (define bnd (binding/ m bnd₀))
   
   (with-debugging/off
     ((ctxs)
@@ -116,35 +115,10 @@
         {set ctx}]
        ;; Invert for new hypotheses and tails
        [else
+        (define bnd (binding/ m bnd₀))
         (define m₀ (bnds->subst bnd))
         (define fvs (-binding-dom bnd))
         (define τs* (set-add τs τ))
-        
-        #;#;(: on-ans : (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
-        ;; Return the case unless it's inconsistent
-        (define (on-ans acc φsₑₑ γsₑₑ sₑₑ)
-          (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
-          (define mₑᵣ (combine-e-map m δmₑᵣ))
-          (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
-          (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
-          (define φs* (and φsₑᵣ φsₑᵣ₊ (es⊓ φsₑᵣ φsₑᵣ₊)))
-          (define δγʰs
-            (for/list : (Listof -γʰ) ([γₑₑ γsₑₑ])
-              (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
-              (-γʰ γₑᵣ τs*)))
-          (with-debugging/off
-            ((ctxs)
-             (cond
-               [φs*
-                (define ctx* (-ctx φs* (append δγʰs γʰs) mₑᵣ))
-                (set-add acc ctx*)]
-               [else acc]))
-            (printf "on-ans:~n")
-            (printf "  - callee knows: ~a~n" (set-map φsₑₑ show-e))
-            (printf "  - calle res: ~a~n" (and sₑₑ (show-e sₑₑ)))
-            (printf "  - caller addition: ~a~n" (and φsₑᵣ₊ (set-map φsₑᵣ₊ show-e)))
-            (printf "  - caller final: ~a~n" (and φs* (set-map φs* show-e)))
-            (printf "~n")))
         
         (define f-on-ans (on-ans m₀ bnd m fvs φs τs* γʰs))
         ;; For each observed result from memo table, unfold and accumulate the case
