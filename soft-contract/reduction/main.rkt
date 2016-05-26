@@ -17,14 +17,18 @@
 (define (run-file p)
   (define m (file->module p))
   (define-values (σ₁ _) (𝑰 (list m)))
-  (define-values (As M Ξ σ) (run (⇓ₘ m) σ₁))
+  (define-values (As M Ξ σ)
+    (parameterize ([set!-able? (set->predicate (module-𝐴 m))])
+      (run (⇓ₘ m) σ₁)))
   (values As M Ξ))
 
 (: havoc-file : Path-String → (Values (℘ -A) #|debugging|# -M -Ξ))
 (define (havoc-file p)
   (define m (file->module p))
   (define-values (σ₁ e₁) (𝑰 (list m)))
-  (define-values (As M Ξ σ) (run (⇓ₚ (list m) e₁) σ₁))
+  (define-values (As M Ξ σ)
+    (parameterize ([set!-able? (set->predicate (module-𝐴 m))])
+      (run (⇓ₚ (list m) e₁) σ₁)))
   #;(begin
     (define best (extract-best))
     (printf "~a out of ~a:~n" (length best) (length data))
@@ -49,7 +53,9 @@
 (: run-e : -e → (Values (℘ -A) #|for debugging|# -M -Ξ))
 (define (run-e e)
   (define-values (σ₀ _) (𝑰 '()))
-  (define-values (As M Ξ σ) (run (⇓ 'top e) σ₀))
+  (define-values (As M Ξ σ)
+    (parameterize ([set!-able? (set->predicate (𝐴 e))])
+      (run (⇓ 'top e) σ₀)))
   (values As M Ξ))
 
 

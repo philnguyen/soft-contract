@@ -309,7 +309,7 @@
 ;;;;; Fixed
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-parameter set!-able? : (℘ (Pairof Var-Name -e)) ∅)
+(define-parameter set!-able? : (Var-Name → Boolean) (λ (_) (error 'set!-able? "uninitialized")))
 (define-parameter σv : (HashTable -𝒾 -V) ((inst hash -𝒾 -V)))
 (define-parameter σc : (HashTable -𝒾 -V) ((inst hash -𝒾 -V)))
 

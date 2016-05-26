@@ -52,23 +52,42 @@
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
 (define/memo (⇓ₓ [l : Mon-Party] [x : Var-Name]) : -⟦e⟧
-  (λ (M σ ℒ)
-    (match-define (-ℒ ρ Γ 𝒞) ℒ)
-    (define s (canonicalize Γ x))
-    (define φs (-Γ-facts Γ))
-    (define-values (ΓWs ΓEs)
-      (for*/fold ([ΓWs : (℘ -ΓW) ∅]
-                  [ΓEs : (℘ -ΓE) ∅])
-                 ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V s))
-        (case V
-          [(undefined)
-           (values
-            ΓWs
-            (set-add
-             ΓEs
-             (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
-          [else (values (set-add ΓWs (-ΓW Γ (-W (list V) s))) ΓEs)])))
-    (values ⊥σ ΓWs ΓEs ∅)))
+  (cond
+    [((set!-able?) x)
+     (λ (M σ ℒ)
+       (match-define (-ℒ ρ Γ 𝒞) ℒ)
+       (define φs (-Γ-facts Γ))
+       (define-values (ΓWs ΓEs)
+         (for*/fold ([ΓWs : (℘ -ΓW) ∅]
+                     [ΓEs : (℘ -ΓE) ∅])
+                    ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V #f))
+           (case V
+             [(undefined)
+              (values
+               ΓWs
+               (set-add
+                ΓEs
+                (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
+             [else (values (set-add ΓWs (-ΓW Γ (-W (list V) #f))) ΓEs)])))
+       (values ⊥σ ΓWs ΓEs ∅))]
+    [else
+     (λ (M σ ℒ)
+       (match-define (-ℒ ρ Γ 𝒞) ℒ)
+       (define s (canonicalize Γ x))
+       (define φs (-Γ-facts Γ))
+       (define-values (ΓWs ΓEs)
+         (for*/fold ([ΓWs : (℘ -ΓW) ∅]
+                     [ΓEs : (℘ -ΓE) ∅])
+                    ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V s))
+           (case V
+             [(undefined)
+              (values
+               ΓWs
+               (set-add
+                ΓEs
+                (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
+             [else (values (set-add ΓWs (-ΓW Γ (-W (list V) s))) ΓEs)])))
+       (values ⊥σ ΓWs ΓEs ∅))]))
 
 (define/memo (ret-W¹ [W : -W¹]) : -⟦e⟧
   (match-define (-W¹ V v) W)

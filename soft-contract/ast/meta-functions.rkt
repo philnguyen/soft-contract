@@ -1,10 +1,6 @@
 #lang typed/racket/base
 
-(provide
- fv 𝐴 closed? checks# free-x/c unroll find-calls prim-name->unsafe-prim
- α-rename e-map-union -@/simp
- -φ e->φ φ->e e/map φ/map e/ show-φ show-?φ fv-φ -φ -?φ m∅
- -⦇ff⦈ -⦇values⦈ -⦇fc⦈)
+(provide (all-defined-out))
 
 (require racket/match
          racket/set
@@ -138,6 +134,23 @@
      (for/fold ([xs : (℘ Var-Name) ∅eq]) ([e l])
        (∪ xs (𝐴 e)))]
     [_ (log-debug "𝐴⟦~a⟧ = ∅~n" e) ∅eq]))
+
+(: module-𝐴 : -module → (℘ Var-Name))
+(define (module-𝐴 m)
+  (match-define (-module _ forms) m)
+  (for/unioneq : (℘ Var-Name) ([form forms])
+    (match form
+      [(-provide specs)
+       (for/unioneq : (℘ Var-Name) ([spec specs])
+         (match-define (-p/c-item _ c _) spec)
+         (𝐴 c))]
+      [(-define-values _ e) (𝐴 e)]
+      [_ ∅eq])))
+
+(: modules-𝐴 : (Listof -module) → (℘ Var-Name))
+(define (modules-𝐴 ms)
+  (for/unioneq : (℘ Var-Name) ([m ms])
+    (module-𝐴 m)))
 
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
