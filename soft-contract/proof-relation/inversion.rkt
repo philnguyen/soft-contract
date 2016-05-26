@@ -115,21 +115,19 @@
         {set ctx}]
        ;; Invert for new hypotheses and tails
        [else
-        (define bnd (binding/ m bnd₀))
-        (define m₀ (bnds->subst bnd))
-        (define fvs (-binding-dom bnd))
-        (define τs* (set-add τs τ))
         
-        (define f-on-ans (on-ans m₀ bnd m fvs φs τs* γʰs))
+        (define f-on-ans (on-ans bnd₀ m (set-add τs τ) φs γʰs))
         ;; For each observed result from memo table, unfold and accumulate the case
         ;; unless it's inconsistent
         (for/fold ([acc : (℘ -ctx) ∅])
                   ([A (M@ M τ)])
           (match* (A blm)
             [((-ΓW (-Γ φs₀ _ γs₀) (-W _ sₐ)) #f)
-             (f-on-ans acc φs₀ γs₀ sₐ)]
+             (define ctx* (f-on-ans φs₀ γs₀ sₐ))
+             (if ctx* (set-add acc ctx*) acc)]
             [((-ΓE (-Γ φs₀ _ γs₀) (-blm l+ lo _ _)) (cons l+ lo))
-             (f-on-ans acc φs₀ γs₀ #f)]
+             (define ctx* (f-on-ans φs₀ γs₀ #f))
+             (if ctx* (set-add acc ctx*) acc)]
             [(_ _) acc]))]))
     (parameterize ([verbose? #t])
       (when (>= (set-count ctxs) 20)
@@ -143,22 +141,22 @@
           (for ([r (show-e-map m)]) (printf "    + ~a~n" r)))
         (printf "~n")))))
 
-;(: on-ans : (HashTable -φ -φ) -binding (HashTable -φ -φ) (℘ Var-Name) (℘ -e) (℘ -τ) (Listof -γʰ) #||# (℘ -ctx) (℘ -e) (Listof -γ) -s → (℘ -ctx))
 ;; Return the case unless it's inconsistent
 ;; [experiment] Lifted out and memoized
-(define/memo (on-ans [m₀ : (HashTable -φ -φ)]
-                     [bnd : -binding]
+(define/memo (on-ans [bnd₀ : -binding]
                      [m : (HashTable -φ -φ)]
-                     [fvs : (℘ Var-Name)]
-                     [φs : (℘ -φ)]
                      [τs* : (℘ -τ)]
+                     [φs : (℘ -φ)]
                      [γʰs : (Listof -γʰ)])
-             : ((℘ -ctx) (℘ -φ) (Listof -γ) -s → (℘ -ctx))
+             : ((℘ -φ) (Listof -γ) -s → (Option -ctx))
 
-  (define/memo (f [acc : (℘ -ctx)]
-                  [φsₑₑ : (℘ -φ)]
+  (define bnd (binding/ m bnd₀))
+  (define m₀ (bnds->subst bnd))
+  (define fvs (-binding-dom bnd))
+
+  (define/memo (f [φsₑₑ : (℘ -φ)]
                   [γsₑₑ : (Listof -γ)]
-                  [sₑₑ : -s]) : (℘ -ctx)
+                  [sₑₑ : -s]) : (Option -ctx)
     (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
     (define mₑᵣ (combine-e-map m δmₑᵣ))
     (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
@@ -172,9 +170,8 @@
             (for/list : (Listof -γʰ) ([γₑₑ γsₑₑ])
               (define γₑᵣ ((γ/ mₑₑ) γₑₑ))
               (-γʰ γₑᵣ τs*)))
-          (define ctx* (-ctx φs* (append δγʰs γʰs) mₑᵣ))
-          (set-add acc ctx*)]
-         [else acc]))
+          (-ctx φs* (append δγʰs γʰs) mₑᵣ)]
+         [else #f]))
       (printf "on-ans:~n")
       (printf "  - callee knows: ~a~n" (set-map φsₑₑ show-e))
       (printf "  - calle res: ~a~n" (and sₑₑ (show-e sₑₑ)))

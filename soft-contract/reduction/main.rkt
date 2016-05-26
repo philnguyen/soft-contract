@@ -182,3 +182,4 @@
     (parameterize ([φs⊢ₑₓₜe z3⊢])
       (loop (hash τ₀ σ₀) (hash) {set τ₀} ∅ ⊥M ⊥Ξ σ₀)))
   (values (M@ M τ₀) M Ξ σ))
+
