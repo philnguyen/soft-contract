@@ -120,7 +120,7 @@
         ;; For each observed result from memo table, unfold and accumulate the case
         ;; unless it's inconsistent
         (for/fold ([acc : (℘ -ctx) ∅])
-                  ([A (M@ M τ)])
+                  ([A (in-set (M@ M τ))])
           (match* (A blm)
             [((-ΓW (-Γ φs₀ _ γs₀) (-W _ sₐ)) #f)
              (define ctx* (f-on-ans φs₀ γs₀ sₐ))
@@ -159,8 +159,8 @@
                   [sₑₑ : -s]) : (Option -ctx)
     (define-values (mₑₑ δmₑᵣ _) (mk-subst m₀ bnd sₑₑ))
     (define mₑᵣ (combine-e-map m δmₑᵣ))
-    (define φsₑᵣ₊ (φs/ensure-consistency mₑₑ (φs↓ φsₑₑ fvs)))
-    (define φsₑᵣ  (φs/ensure-consistency mₑᵣ φs))
+    (define φsₑᵣ₊ (φs/ensure-consistencyₑₑ mₑₑ (φs↓ φsₑₑ fvs)))
+    (define φsₑᵣ  (φs/ensure-consistencyₑᵣ mₑᵣ φs))
     (define φs* (and φsₑᵣ φsₑᵣ₊ (φs⊓ φsₑᵣ φsₑᵣ₊)))
     (with-debugging/off
       ((ctxs)

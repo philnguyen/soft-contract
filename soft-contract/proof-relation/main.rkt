@@ -124,8 +124,8 @@
   (define-values (mₑₑ mₑᵣ sₑᵣ)
     (let ([m₀ (bnds->subst bnd)])
       (mk-subst m₀ bnd sₑₑ)))
-  (define Γₑᵣ₊ (Γ/ensure-consistency mₑₑ Γₑₑ))
-  (define Γₑᵣ₁ (Γ/ensure-consistency mₑᵣ Γₑᵣ))
+  (define Γₑᵣ₊ (Γ/ensure-consistencyₑₑ mₑₑ Γₑₑ))
+  (define Γₑᵣ₁ (Γ/ensure-consistencyₑᵣ mₑᵣ Γₑᵣ))
   (define Γₑᵣ₂ (and Γₑᵣ₁ Γₑᵣ₊ (Γ⊓ Γₑᵣ₁ Γₑᵣ₊)))
   (with-debugging/off
     ((ans) (and Γₑᵣ₂ (implies sₑᵣ (plausible-W/M? M (inj-cfg Γₑᵣ₂ sₑᵣ) Vs))))
@@ -142,7 +142,7 @@
   (define-values (mₑₑ mₑᵣ sₑᵣ)
     (let ([m₀ (bnds->subst bnd)])
       (mk-subst m₀ bnd #f)))
-  (define Γₑᵣ₊ (Γ/ensure-consistency mₑₑ Γₑₑ))
+  (define Γₑᵣ₊ (Γ/ensure-consistencyₑₑ mₑₑ Γₑₑ))
   (define Γₑᵣ₁ (and Γₑᵣ₊ (Γ⊓ Γₑᵣ Γₑᵣ₊)))
   (match-define (-blm l+ lo _ _) blm)
   (with-debugging/off

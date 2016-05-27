@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide φs⊢e φs⊢ₑₓₜe lite? Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓ φs⊓
-         φs/ensure-consistency Γ/ensure-consistency
+         ;φs/ensure-consistency Γ/ensure-consistency
+         φs/ensure-consistencyₑₑ φs/ensure-consistencyₑᵣ Γ/ensure-consistencyₑₑ Γ/ensure-consistencyₑᵣ
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 
@@ -479,13 +480,26 @@
             '✗]
            [else '?])]))
 
-;(: φs/ensure-consistency : (HashTable -φ -φ) (℘ -e) → (Option (℘ -e)))
+(define/memo (φs/ensure-consistencyₑₑ [m : (HashTable -φ -φ)] [φs : (℘ -φ)]) : (Option (℘ -φ))
+  (for/fold ([acc : (Option (℘ -φ)) ∅eq])
+            ([φ (in-set φs)])
+    (cond
+      [acc
+       (define φ* (φ/map m φ))
+       (cond
+         [(eq? φ* φ) (set-add acc φ)]
+         [else
+          (case (φs⊢φ acc φ*)
+            [(✗) #f]
+            [else (set-add acc φ*)])])]
+      [else #f])))
+
 ;; Substitute and throw away inconsistent path-condition
-(define/memo (φs/ensure-consistency [m : (HashTable -φ -φ)] [φs : (℘ -φ)]) : (Option (℘ -φ))
+(define/memo (φs/ensure-consistencyₑᵣ [m : (HashTable -φ -φ)] [φs : (℘ -φ)]) : (Option (℘ -φ))
   (define-values (acc φs*)
     (for/fold ([acc : (Option (℘ -φ)) φs]
                [φs* : (℘ -φ) ∅eq])
-              ([φ φs])
+              ([φ (in-set φs)])
       (cond
         [acc
          (define φ* (φ/map m φ))
@@ -495,29 +509,35 @@
         [else (values #f ∅eq)])))
   (and acc φs*))
 
-(: Γ/ensure-consistency : (HashTable -φ -φ) -Γ → (Option -Γ))
+(:* Γ/ensure-consistencyₑₑ Γ/ensure-consistencyₑᵣ : (HashTable -φ -φ) -Γ → (Option -Γ))
 ;; Substitute free occurrences of `x` with `e` in path condition  
 ;; Throw away inconsistent path-condition
-(define (Γ/ensure-consistency m Γ)
-  (with-debugging/off
-    ((Γₐ)
-     (match-define (-Γ φs as γs) Γ)
-     (define φs* (φs/ensure-consistency m φs))
-     (cond
-       [φs*
-        (define as*
-          (for/hasheq : (HashTable Var-Name -φ) ([(x φ) as])
-            (values x (φ/map m φ))))
-        (define γs* (map (γ/ m) γs))
-        (-Γ φs* as* γs*)]
-       [else #f]))
-    (parameterize ([verbose? #t])
-      (printf "Γ/: ~a~n"
-              (for/list : (Listof Sexp) ([(x y) m])
-                `(,(show-e x) ↦ ,(show-e y))))
-      (printf "  - from: ~a~n" (show-Γ Γ))
-      (printf "  - to  : ~a~n" (show-Γ Γₐ))
-      (printf "~n"))))
+(define-values (Γ/ensure-consistencyₑₑ Γ/ensure-consistencyₑᵣ)
+  (let ()
+    (: mk-Γ/ensure-consistency :
+       ((HashTable -φ -φ) (℘ -φ) → (Option (℘ -φ))) → (HashTable -φ -φ) -Γ → (Option -Γ))
+    (define ((mk-Γ/ensure-consistency φs/) m Γ)
+      (with-debugging/off
+        ((Γₐ)
+         (match-define (-Γ φs as γs) Γ)
+         (define φs* (φs/ m φs))
+         (cond
+           [φs*
+            (define as*
+              (for/hasheq : (HashTable Var-Name -φ) ([(x φ) as])
+                (values x (φ/map m φ))))
+            (define γs* (map (γ/ m) γs))
+            (-Γ φs* as* γs*)]
+           [else #f]))
+        (parameterize ([verbose? #t])
+          (printf "Γ/: ~a~n"
+                  (for/list : (Listof Sexp) ([(x y) m])
+                    `(,(show-e x) ↦ ,(show-e y))))
+          (printf "  - from: ~a~n" (show-Γ Γ))
+          (printf "  - to  : ~a~n" (show-Γ Γₐ))
+          (printf "~n"))))
+    (values (mk-Γ/ensure-consistency φs/ensure-consistencyₑₑ)
+            (mk-Γ/ensure-consistency φs/ensure-consistencyₑᵣ))))
 
 
 (module+ test
