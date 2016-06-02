@@ -214,6 +214,20 @@
   (for/unioneq : (℘ Var-Name) ([(x φ) x->φ])
      (set-add (fv (φ->e φ)) x)))
 
+(: binding->s : -binding → -s)
+(define (binding->s bnd)
+  (match-define (-binding φₕ xs x->φ) bnd)
+  (cond
+    [φₕ
+     (define sₓs : (Listof -s)
+       (for/list ([x xs])
+         (cond [(hash-ref x->φ x #f) => φ->e]
+               [else #f])))
+     (cond [(andmap (inst values -s) sₓs)
+            (-@ (φ->e φₕ) (cast sₓs (Listof -e)) 0)]
+           [else #f])]
+    [else #f]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Call history
