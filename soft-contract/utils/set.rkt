@@ -3,7 +3,7 @@
 ;; This module provides abbreviations and extra tools for dealing with sets
 (provide
  ℘ ∅ ∅eq ∪ ∩ →∅ →∅eq ∋ ∈ ⊆ --
- set-add-list define-set set-partition collect merge set->predicate map/set
+ set-add-list define-set define-set set-partition collect merge set->predicate map/set
  for/union for/unioneq for/seteq:)
 
 (require
@@ -40,12 +40,24 @@
                 (define (s-has? [x : τ]) : Boolean (∋ s x))
                 (define (s-add! [x : τ]) (set! s (set-add s x)))
                 (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
+                (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs)))))]
+    [(_ s : τ #:eq? #t)
+     (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
+                   [s-add! (format-id #'s "~a-add!" #'s)]
+                   [s-add*! (format-id #'s "~a-add*!" #'s)]
+                   [s-union! (format-id #'s "~a-union!" #'s)])
+       #'(begin (define s : (℘ τ) ∅eq)
+                (define (s-has? [x : τ]) : Boolean (∋ s x))
+                (define (s-add! [x : τ]) (set! s (set-add s x)))
+                (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
                 (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs)))))]))
 
-(: set-partition (∀ (X) (X → Boolean) (℘ X) → (Values (℘ X) (℘ X))))
+(: set-partition (∀ (X) ([(X → Boolean) (℘ X)] [#:eq? Boolean]
+                         . ->* . (Values (℘ X) (℘ X)))))
 ;; Partition set members into those that satisfy the predicate and the rest
-(define (set-partition p xs)
-  (for/fold ([pass : (℘ X) ∅] [fail : (℘ X) ∅]) ([x xs])
+(define (set-partition p xs #:eq? [use-eq? #f])
+  (define s∅ (if use-eq? ∅eq ∅))
+  (for/fold ([pass : (℘ X) s∅] [fail : (℘ X) s∅]) ([x xs])
     (if (p x)
         (values (set-add pass x) fail)
         (values pass (set-add fail x)))))
