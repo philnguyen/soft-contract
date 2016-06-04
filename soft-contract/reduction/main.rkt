@@ -8,8 +8,6 @@
  "../ast/main.rkt"
  "../parse/main.rkt"
  "../runtime/main.rkt"
- (only-in "../proof-relation/main.rkt" φs⊢ₑₓₜe)
- (only-in "../proof-relation/ext/z3.rkt" z3⊢)
  "step.rkt"
  "init.rkt")
 
@@ -184,8 +182,5 @@
        (loop seen-τs* seen-Cos* τs* Cos* M* Ξ* σ*)]))
 
   (define τ₀ (-ℬ ⟦e⟧₀ ℒ∅))
-  (define-values (M Ξ σ)
-    (parameterize ([φs⊢ₑₓₜe z3⊢])
-      (loop (hash τ₀ σ₀) (hash) {set τ₀} ∅ ⊥M ⊥Ξ σ₀)))
+  (define-values (M Ξ σ) (loop (hash τ₀ σ₀) (hash) {set τ₀} ∅ ⊥M ⊥Ξ σ₀))
   (values (M@ M τ₀) M Ξ σ))
-

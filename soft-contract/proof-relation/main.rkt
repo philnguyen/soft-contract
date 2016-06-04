@@ -2,8 +2,7 @@
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
          plausible-return? plausible-blame? plausible-index? plausible-indices
-         (all-from-out "local.rkt")
-         (all-from-out "inversion.rkt"))
+         (all-from-out "local.rkt"))
 
 (require racket/match
          racket/set
@@ -14,7 +13,7 @@
          "../runtime/main.rkt"
          "result.rkt"
          "local.rkt"
-         "inversion.rkt")
+         "ext.rkt")
 
 (: MΓ⊢V∈C : -M -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
@@ -39,64 +38,12 @@
 (: MΓ⊢s : -M -Γ -s → -R)
 ;; Check if `s` is provable in `Γ`
 (define (MΓ⊢s M Γ s)
-  ;(define last (current-milliseconds))
-  (with-debugging/off ((ans) (if s (⊢cfg M (inj-cfg Γ s)) '?))
-    (define δ (- (current-milliseconds) last))
-    (accum-data! (list M Γ s ans) δ)
-    #;(when (> δ 1000)
-      (define-values (sΓ sγs) (show-M-Γ M Γ))
-      (define ss (show-s s))
-      (printf "chk: ~a ⊢ ~a : ~a~n" sΓ ss ans)
-      (for ([sγ sγs])
-        (printf "  - ~a~n" sγ))
-      (printf "~a~n~n" δ))))
-
-(define (⊢cfg [M : -M] [cfg : -cfg]) (⊢cfgs M {set cfg}))
-
-(: ⊢cfgs ([-M (℘ -cfg)] [#:depth Natural] . ->* . -R))
-(define (⊢cfgs M cfgs #:depth [d 5])
   (cond
-    [(<= d 0) '?]
-    [else
-     (define-values (✓s ✗s ?s) (partition-cfgs cfgs))
-     (define ✓-mt? (set-empty? ✓s))
-     (define ✗-mt? (set-empty? ✗s))
-     (define ?-mt? (set-empty? ?s))
-
-     (with-debugging/off
-       ((ans)
-        (cond
-          [?-mt? (cond [✗-mt? '✓] [✓-mt? '✗] [else '?])]
-          [else
-           (cond [✗-mt?
-                  (define cfgs* (invert-cfgs M ?s))
-                  (cond
-                    [(equal? cfgs* ?s) '?]
-                    [✓-mt? (⊢cfgs M cfgs* #:depth (- d 1))]
-                    [else (case (⊢cfgs M cfgs* #:depth (- d 1))
-                            [(✓)   '✓]
-                            [(✗ ?) '?])])]
-                 [✓-mt?
-                  (define cfgs* (invert-cfgs M ?s))
-                  (cond
-                    [(equal? cfgs* ?s) '?]
-                    [else (case (⊢cfgs M cfgs* #:depth (- d 1))
-                            [(✗)   '✗]
-                            [(✓ ?) '?])])]
-                 [else '?])]))
-       (printf "~a~a~n" (build-string (* 2 (- 5 d)) (λ _ #\space)) (set-count cfgs))
-       #;(begin
-         (printf "worlds:~n")
-         (for ([cfg ✓s])
-           (match-define (-cfg (-ctx φs γʰs _) e) cfg)
-           (printf "  - ~a, ~a ⊢ ~a : ✓~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e)))
-         (for ([cfg ✗s])
-           (match-define (-cfg (-ctx φs γʰs _) e) cfg)
-           (printf "  - ~a, ~a ⊢ ~a : ✗~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e)))
-         (for ([cfg ?s])
-           (match-define (-cfg (-ctx φs γʰs _) e) cfg)
-           (printf "  - ~a, ~a ⊢ ~a : ?~n" (set-map φs show-e) (map show-γʰ γʰs) (show-e e))))
-       #;(printf "~n"))]))
+    [s
+     (match (φs⊢e (-Γ-facts Γ) s)
+       ['? (ext-prove M Γ s)]
+       [R R])]
+    [else '?]))
 
 (: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
@@ -119,112 +66,23 @@
 
 (: plausible-return? : -M -Γ -binding -Γ -W → Boolean)
 ;; Check if returned value is plausible
+;; TODO: do we need this, or just try hard to eliminate at blames?
+;; TODO: is this now just a duplication of `plausible-blame?`
 (define (plausible-return? M Γₑᵣ bnd Γₑₑ Wₑₑ)
-  (match-define (-W Vs sₑₑ) Wₑₑ)
-  (define-values (mₑₑ mₑᵣ sₑᵣ)
-    (let ([m₀ (bnds->subst bnd)])
-      (mk-subst m₀ bnd sₑₑ)))
-  (define Γₑᵣ₊ (Γ/ensure-consistencyₑₑ mₑₑ Γₑₑ))
-  (define Γₑᵣ₁ (Γ/ensure-consistencyₑᵣ mₑᵣ Γₑᵣ))
-  (define Γₑᵣ₂ (and Γₑᵣ₁ Γₑᵣ₊ (Γ⊓ Γₑᵣ₁ Γₑᵣ₊)))
-  (with-debugging/off
-    ((ans) (and Γₑᵣ₂ (implies sₑᵣ (plausible-W/M? M (inj-cfg Γₑᵣ₂ sₑᵣ) Vs))))
-    (printf "plausble-rt:~n")
-    (printf "- caller: ~a~n" (show-Γ Γₑᵣ))
-    (printf "- callee: ~a~n" (show-Γ Γₑₑ))
-    (printf "- res: ~a~n" (show-W Wₑₑ))
-    (printf "- bnd: ~a~n" (show-binding bnd))
-    (printf "- plausible?: ~a~n~n" ans)))
+  ;(match-define (-W Vs sₑₑ) Wₑₑ)
+  (define m (bnds->subst bnd))
+  (Γ-plausible? M (Γ⧺ Γₑᵣ (Γ/ m Γₑₑ))))
 
 (: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
 ;; Check if propagated blame is plausible
 (define (plausible-blame? M Γₑᵣ bnd Γₑₑ blm)
-  (define-values (mₑₑ mₑᵣ sₑᵣ)
-    (let ([m₀ (bnds->subst bnd)])
-      (mk-subst m₀ bnd #f)))
-  (define Γₑᵣ₊ (Γ/ensure-consistencyₑₑ mₑₑ Γₑₑ))
-  (define Γₑᵣ₁ (and Γₑᵣ₊ (Γ⊓ Γₑᵣ Γₑᵣ₊)))
-  (match-define (-blm l+ lo _ _) blm)
-  (with-debugging/off
-    ((ans)
-     (and Γₑᵣ₁ (implies sₑᵣ (plausible-blm/M? M (inj-cfg Γₑᵣ₁ sₑᵣ) l+ lo))))
-    (printf "plasible-blame? ~a~n" (show-blm blm))
-    (printf "- caller: ~a~n" (show-Γ Γₑᵣ))
-    (printf "- bnd: ~a~n" (show-binding bnd))
-    (printf "- callee: ~a~n" (show-Γ Γₑₑ))
-    (printf "- plausible? ~a~n~n" ans)))
-
-(: plausible-W/M? ([-M -cfg (Listof -V)] [#:depth Natural] . ->* . Boolean))
-(define (plausible-W/M? M cfg Vs #:depth [d 5])
-  (cond
-    [(<= d 0) #t]
-    [else
-     (match-define (-cfg (-ctx φs _ _) s) cfg)
-     (and (plausible-W? φs Vs s)
-          (for/or : Boolean ([cfg* (invert-cfg M cfg)])
-            (plausible-W/M? M cfg* Vs #:depth (- d 1))))]))
-
-(: plausible-blm/M? ([-M -cfg Mon-Party Mon-Party] [#:depth Natural] . ->* . Boolean))
-;; Check if it's plausible that function call at symbol `s` has raised blame `blm`
-(define (plausible-blm/M? M cfg l+ lo #:depth [d 5])
-  (with-debugging/off
-    ((ans)
-     (match-define (-cfg (-ctx _ γʰs _) s) cfg)
-     (cond
-       [(<= d 0) #t]
-       [(-v? s) #f]
-       ;; plausible if path-condition witnessed blame from `s`
-       [(for/or : Boolean ([γʰ γʰs])
-          (match γʰ
-            [(-γʰ (-γ _ bnd (-blm (== l+) (== lo) _ _)) _)
-             (equal? s (binding->fargs bnd))]
-            [_ #f]))
-        #t]
-       ;; implausible if path-condition witnessed successful return from `s`
-       [(for/or : Boolean ([γʰ γʰs])
-          (match γʰ
-            [(-γʰ (-γ _ bnd #f) _)
-             (equal? s (binding->fargs bnd))]
-            [_ #f]))
-        #f]
-       [else
-        (for/or : Boolean ([cfg* (invert-cfg M cfg)])
-          (if (equal? cfg* cfg)
-              #t
-              (plausible-blm/M? M cfg* l+ lo #:depth (- d 1))))]))
-    (match-define (-cfg (-ctx φs γʰs _) s) cfg)
-    (define γs (map -γʰ-tail γʰs))
-    (define Γ (-Γ φs (hasheq) γs))
-    (define-values (sΓ sγs) (show-M-Γ M Γ))
-    (printf "plausible-blm? ~a ⊢ (blm ~a ~a) @ ~a : ~a~n" sΓ l+ lo (show-s s) ans)
-    (printf "evaled: ~a~n"
-            (for/list : (Listof Sexp) ([γ γs] #:unless (-γ-blm γ))
-              `(,(show-γ γ) ↦ ,(show-s (γ->fargs γ)))))
-    (printf "blamed: ~a~n"
-            (for/list : (Listof Sexp) ([γ γs] #:when (-γ-blm γ))
-              `(,(show-γ γ) ↦ ,(show-s (γ->fargs γ)))))
-    (printf "where:~n")
-    (for ([s sγs]) (printf "  - ~a~n" s))
-    (printf "~n")))
+  (define m (bnds->subst bnd))
+  (Γ-plausible? M (Γ⧺ Γₑᵣ (Γ/ m Γₑₑ))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(: partition-cfgs : (℘ -cfg) → (Values (℘ -cfg) (℘ -cfg) (℘ -cfg)))
-;; Paritition proof configurations into provable, refutable, and don't know
-(define (partition-cfgs cfgs)
-  (define-set ✓s : -cfg)
-  (define-set ✗s : -cfg)
-  (define-set ?s : -cfg)
-  (for ([cfg cfgs])
-    (match-define (-cfg (-ctx φs _ _) e) cfg)
-    (case (φs⊢e φs e)
-      [(✓) (✓s-add! cfg)]
-      [(✗) (✗s-add! cfg)]
-      [(?) (?s-add! cfg)]))
-  (values ✓s ✗s ?s))
 
 (: Γ+/-R : -R -Γ -s → (Values (Option -Γ) (Option -Γ)))
 ;; Given `s`'s satisfiability in `Γ`, strengthen `Γ` both ways. `#f` represents a bogus path condition.
@@ -250,3 +108,10 @@
                                  #:when (exact-nonnegative-integer? i) ; hack for TR
                                  #:when (plausible-index? M Γ W i))
     i))
+
+(: bnds->subst : -binding → (HashTable -φ -φ))
+;; Convert list of `param -> arg` to hashtable
+(define (bnds->subst bnd)
+  (match-define (-binding _ _ x->φ) bnd)
+  (for/hash : (HashTable -φ -φ) ([(x φ) x->φ])
+    (values (e->φ (-x x)) φ)))

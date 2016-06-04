@@ -76,7 +76,7 @@
 (define (Γ/ m Γ)
   (match-define (-Γ φs as γs) Γ)
   (define φs*
-    (for/set: : (℘ -φ) ([φ φs])
+    (for/seteq: : (℘ -φ) ([φ φs])
       (φ/map m φ)))
   (define as*
     (for/hash : (HashTable Var-Name -φ) ([(x φ) (in-hash as)])

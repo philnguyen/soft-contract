@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide φs⊢e ⊢V p∋Vs Γ⧺
+(provide Γ⊢e φs⊢e ⊢V p∋Vs Γ⧺
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 
@@ -160,6 +160,9 @@
        [else '?])]
     
     [_ '?]))
+
+(: Γ⊢e : -Γ -s → -R)
+(define (Γ⊢e Γ s) (φs⊢e (-Γ-facts Γ) s))
 
 (: φs⊢e : (℘ -φ) -s → -R)
 (define (φs⊢e φs e)

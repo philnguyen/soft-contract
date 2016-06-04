@@ -4,93 +4,114 @@
 
 (require racket/match
          racket/set
+         racket/string
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt")
 
-(define SMT-base : (Listof Sexp)
+(struct exn:scv:smt:unsupported exn () #:transparent)
+
+(define base-datatypes : (Listof Sexp)
   '(;; Unitype
     (declare-datatypes ()
       ((V ; TODO
-        Nil
-        (Cons (car V) (cdr V))
-        (R (unbox_R Real))
-        (B (unbox_B Bool))
-        (Clo (arity Int) (id Int)))))
+        Null
+        (N [real Real] [imag Real])
+        (B [unbox_B Bool])
+        (Op [name Int])
+        (Clo [arity Int] [id Int])
+        ;; structs with hard-coded arities
+        #;(St [tag Int] [fields Int] [content (Array Int V)]))))
     ;; Result
     (declare-datatypes ()
      ((A
        (Val (unbox_Val V))
        (Blm (blm_pos Int) (blm_src Int))
        None)))
-    ;; Primitive predicates
+    ))
+
+(define base-predicates : (Listof Sexp)
+  '(;; Primitive predicates
     (define-fun is_false ([x V]) Bool
       (= x (B false)))
     (define-fun is_truish ([x V]) Bool
       (not (is_false x)))
-    ;; Encodings of primitives
-    (define-fun op.> ((v1 V) (v2 V)) A
-      (if (exists ((r1 Real) (r2 Real))
-                  (and (= v1 (R r1))
-                       (= v2 (R r2))))
-          (Val (B (> (unbox_R v1) (unbox_R v2))))
-          None))
+    (define-fun is_proc ([x V]) Bool
+      (or (exists ((n Int)) (= x (Op n)))
+          (exists ((n Int) (id Int)) (= x (Clo n id)))))
+    (define-fun has_arity ((x V) (n Int)) Bool
+      ;; TODO primitives too
+      (exists ((id Int)) (= x (Clo n id))))
+    (define-fun is-R ([x V]) Bool
+      (and (is-N x) (= 0 (imag x))))
+    (define-fun is-Z ([x V]) Bool
+      (and (is-R x) (is_int (real x))))
     ))
+
+(define SMT-base : (Listof Sexp)
+  `(,@base-datatypes
+    ,@base-predicates))
 
 ;; SMT target language
 (define-type Term Sexp)
 (define-type Formula Sexp) ; Term of type Bool in SMT
-(define-type Assertion (List 'assert Formula))
-(define-type Dec-Const (List 'declare-const Symbol 'V))
-(define-type Dec-Fun (List 'declare-fun Symbol (Listof 'V) 'V))
-
-(struct Entry ([free-vars : (℘ Symbol)] [facts : (℘ Formula)] [expr : Term]) #:transparent)
+(struct Entry ([free-vars : (℘ Symbol)] [facts : (Listof Formula)] [expr : Term]) #:transparent)
 (struct App ([ctx : -τ] [params : (Listof Var-Name)]) #:transparent)
+(Defn-Entry . ::= . -o App)
 
 (: encode : -M -Γ -e → (Values (Listof Sexp) Sexp))
 ;; Encode query `M Γ ⊢ e : (✓|✗|?)`,
-;; spanning from `Γ, e`, only translate neccessary entries in `M`
+;; spanning from `Γ, e`, only translating neccessary entries in `M`
 (define (encode M Γ e)
   (define-values (refs top-entry) (encode-e ∅eq Γ e))
-  (let loop ([fronts : (℘ App) refs]
-             [seen : (℘ App) ∅]
+  (let loop ([fronts : (℘ Defn-Entry) refs]
+             [seen : (℘ Defn-Entry) ∅]
+             [def-prims : (℘ (Listof Sexp)) ∅]
              [def-funs : (HashTable App (Listof Entry)) (hash)])
     (cond
       [(set-empty? fronts)
-       (emit def-funs top-entry)]
+       (emit def-prims def-funs top-entry)]
       [else
-       (define-values (fronts* seen* def-funs*)
-         (for/fold ([fronts* : (℘ App) ∅]
-                    [seen* : (℘ App) seen]
-                    [def-funs* : (HashTable App (Listof Entry)) (hash)])
+       (define-values (fronts* seen* def-prims* def-funs*)
+         (for/fold ([fronts* : (℘ Defn-Entry) ∅]
+                    [seen* : (℘ Defn-Entry) seen]
+                    [def-prims* : (℘ (Listof Sexp)) def-prims]
+                    [def-funs* : (HashTable App (Listof Entry)) def-funs])
                    ([front fronts])
-           (match-define (App τ xs) front)
-           (define As (hash-ref M τ))
-           (define-values (refs entries) (encode-τ τ xs As))
-           (define def-funs** (hash-set def-funs* front entries))
+           (define-values (def-prims** def-funs** refs+)
+             (match front
+               [(App τ xs)
+                (define As (hash-ref M τ))
+                (define-values (refs entries) (encode-τ τ xs As))
+                (values def-prims* (hash-set def-funs* front entries) refs)]
+               [(? -o? o)
+                (values (set-add def-prims* (def-o o)) def-funs* ∅)]))
+           
            (define-values (fronts** seen**)
-             (for/fold ([fronts** : (℘ App) fronts*]
-                        [seen** : (℘ App) seen*])
-                       ([ref refs] #:unless (∋ seen** ref))
-               (values (set-add seen** ref)
-                       (set-add fronts** ref))))
-           (values fronts** seen** def-funs**)))
-       (loop fronts* seen* def-funs*)])))
+             (for/fold ([fronts** : (℘ Defn-Entry) fronts*]
+                        [seen** : (℘ Defn-Entry) seen*])
+                       ([ref refs+] #:unless (∋ seen** ref))
+               (values (set-add fronts** ref)
+                       (set-add seen** ref))))
+           (values fronts** seen** def-prims** def-funs**)))
+       (loop fronts* seen* def-prims* def-funs*)])))
 
 (: query-try-prove : -M -Γ -e → (Listof Sexp))
+;; Generate formulas whose `unsat`ness implies `M Γ ⊢ e : ✓`
 (define (query-try-prove M Γ e)
   (define-values (decs goal) (encode M Γ e))
   `(,@decs (assert (is_false ,goal)) (check-sat)))
 
 (: query-try-refute : -M -Γ -e → (Listof Sexp))
+;; Generate formulas whose `unsat`ness implies `M Γ ⊢ e : ✗`
 (define (query-try-refute M Γ e)
   (define-values (decs goal) (encode M Γ e))
   `(,@decs (assert (is_truish ,goal)) (check-sat)))
 
-(: encode-τ : -τ (Listof Var-Name) (℘ -A) → (Values (℘ App) (Listof Entry)))
+(: encode-τ : -τ (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) (Listof Entry)))
 (define (encode-τ τ xs As)
-  (define-set refs : App)
+  (define-set refs : Defn-Entry)
   (define tₓs (map ⦃x⦄ xs))
   (define fₕ (fun-name τ xs))
   (define tₐₚₚ `(,fₕ ,@tₓs))
@@ -105,36 +126,47 @@
                 (define-values (refs+ entry) (encode-e bound Γ sₐ))
                 (refs-union! refs+)
                 (match-define (Entry free-vars facts tₐ) entry)
-                (Entry free-vars (set-add facts `(= ,tₐₚₚ (Val ,tₐ))) tₐ)]
+                (Entry free-vars (cons `(= ,tₐₚₚ (Val ,tₐ)) facts) tₐ)]
                [else
                 (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
                 (refs-union! refs+)
                 (match-define (Entry free-vars facts _) entry)
                 (define xₐ (fresh-name!))
                 (Entry (set-add free-vars xₐ)
-                       (set-add facts `(= ,tₐₚₚ (Val ,xₐ)))
+                       (cons `(= ,tₐₚₚ (Val ,xₐ)) facts)
                        #|hack|# `(B false))])
              ]
             [(-ΓE Γ (-blm l+ lo _ _))
              (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
              (refs-union! refs+)
-             entry]))
-      ,(Entry ∅eq {set `(= ,tₐₚₚ None)} #f)))
+             (match-define (Entry free-vars facts _) entry)
+             (Entry free-vars
+                    (cons `(= ,tₐₚₚ (Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))) facts)
+                    #|hack|# `(B false))]))
+      ,(Entry ∅eq `{ (= ,tₐₚₚ None) } #f)))
   
   (values refs cases))
 
-(: encode-e : (℘ Var-Name) -Γ -e → (Values (℘ App) Entry))
+(: encode-e : (℘ Var-Name) -Γ -e → (Values (℘ Defn-Entry) Entry))
+;; Encode pathcondition `Γ` and expression `e`,
 (define (encode-e bound Γ e)
 
   (define-set free-vars : Symbol #:eq? #t)
-  (define-set asserts : Formula)
-  (define-set refs : App)
+  (define asserts-eval : (Listof Formula) '())
+  (define asserts-prop : (Listof Formula) '())
+  (define-set refs : Defn-Entry)
   (match-define (-Γ φs _ γs) Γ)
 
   (define (fresh-free!) : Symbol
     (define x (fresh-name!))
     (free-vars-add! x)
     x)
+
+  (define (assert-eval! [t : Term] [a : Term]) : Void
+    (set! asserts-eval (cons `(= ,t ,a) asserts-eval)))
+
+  (define (assert-prop! [φ : Formula]) : Void
+    (set! asserts-prop (cons φ asserts-prop)))
 
   (: ⦃app⦄-ok! : -τ -e (Listof Var-Name) (Listof -e) → Term)
   ;; Encode that `eₕ(eₓs)` has succcessfully returned
@@ -145,8 +177,8 @@
     (define xₐ (fresh-free!))
     (define arity (length xs))
     (refs-add! (App τ xs))
-    (asserts-add! `(exists ((id Int)) (= ,tₕ (Clo ,arity id))))
-    (asserts-add! `(= (,fₕ ,@tₓs) (Val ,xₐ)))
+    (assert-prop! `(exists ([id Int]) (= ,tₕ (Clo ,arity id))))
+    (assert-eval! `(,fₕ ,@tₓs) `(Val ,xₐ))
     xₐ)
 
   (: ⦃app⦄-err! : -τ -e (Listof Var-Name) (Listof -e) Mon-Party Mon-Party → Void)
@@ -157,7 +189,7 @@
     (define fₕ (fun-name τ xs))
     (define arity (length xs))
     (refs-add! (App τ xs))
-    (asserts-add! `(= (,fₕ ,@tₓs) (Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo)))))
+    (assert-eval! `(,fₕ ,@tₓs) `(Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))))
 
   ;; encode the fact that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : Term
@@ -171,24 +203,27 @@
        (define n (length xs))
        `(Clo ,n ,(next-int!))] ; TODO exists id instead
       [(-@ (? -o? o) es _)
+       (refs-add! o)
        (define tₒ (⦃o⦄ o))
        (define ts (map ⦃e⦄! es))
        (define xₐ (fresh-free!))
-       (asserts-add! `(= (,tₒ ,@ts) (Val ,xₐ)))
+       (assert-eval! `(,tₒ ,@ts) `(Val ,xₐ))
        xₐ]
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option Term) ([γ γs])
           (match-define (-γ τ bnd blm) γ)
           (match-define (-binding φₕ xs x->φ) bnd)
-          (cond
-            [(and (equal? eₕ (and φₕ (φ->e φₕ)))
-                  (for/and : Boolean ([x xs] [eₓ eₓs])
-                    (equal? eₓ (hash-ref x->φ x #f))))
-             
-             (⦃app⦄-ok! τ eₕ xs eₓs)]
-            [else #f]))
-        (fresh-free!))]
+          (cond [(equal? e (binding->s bnd))
+                 (⦃app⦄-ok! τ eₕ xs eₓs)]
+                [else #f]))
+        (begin
+          #;(printf "Can't find tail for ~a among ~a~n"
+                  (show-e e)
+                  (for/list : (Listof Sexp) ([γ γs])
+                    (match-define (-γ _ bnd _) γ)
+                    (show-s (binding->s bnd))))
+          (fresh-free!)))]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
 
   (: ⦃γ⦄! : -γ → Void)
@@ -205,30 +240,36 @@
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
   (for ([φ φs])
     (define t (⦃e⦄! (φ->e φ)))
-    (asserts-add! `(is_truish ,t)))
+    (assert-prop! `(is_truish ,t)))
   (define tₜₒₚ (⦃e⦄! e))
 
-  (values refs (Entry free-vars asserts tₜₒₚ)))
+  (values refs (Entry free-vars `(,@asserts-eval ,@asserts-prop) tₜₒₚ)))
 
-(: emit : (HashTable App (Listof Entry)) Entry → (Values (Listof Sexp) Sexp))
+(: emit : (℘ (Listof Sexp)) (HashTable App (Listof Entry)) Entry → (Values (Listof Sexp) Sexp))
 ;; Emit base and target to prove/refute
-(define (emit def-funs top)
+(define (emit def-prims def-funs top)
   (match-define (Entry consts facts goal) top)
+
+  (define emit-def-prims
+    (for/fold ([acc : (Listof Sexp) '()])
+              ([def-prim def-prims])
+      (append def-prim acc)))
   
   (define emit-def-funs
     (for/fold ([acc : (Listof Sexp) '()])
               ([(f-xs entries) def-funs])
-      (match-define (cons f xs) f-xs)
+      (match-define (App τ xs) f-xs)
       (define n (length xs))
       (define tₓs (map ⦃x⦄ xs))
+      (define fₕ (fun-name τ xs))
       (define decs
-        `((declare-fun ,(make-list n 'V) V)
+        `((declare-fun ,fₕ ,(make-list n 'V) A)
           (assert (forall ,(for/list : (Listof Sexp) ([x tₓs])
                              `[,x V])
-                          (or ,@(for/list ([entry entries])
+                          (or ,@(for/list : (Listof Formula) ([entry entries])
                                   (match-define (Entry xs facts _) entry)
                                   (define conj
-                                    (match (set->list facts)
+                                    (match facts
                                       ['() 'true]
                                       [(list φ) φ]
                                       [φs `(and ,@φs)]))
@@ -239,28 +280,28 @@
                                                    ,conj)])))))))
       (append decs acc)))
 
-  (define emit-dec-consts : (Listof Sexp)
-    (for/list ([x consts])
-      `(declare-const ,x V)))
+  (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
+  (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
 
-  (define emit-asserts : (Listof Sexp)
-    (for/list ([φ facts])
-      `(assert ,φ)))
-
-  (values (append SMT-base emit-def-funs emit-dec-consts emit-asserts)
+  (values `(,@SMT-base ,@emit-def-prims ,@emit-def-funs ,@emit-dec-consts ,@emit-asserts)
           goal))
 
-(: ⦃l⦄ : Mon-Party → Integer)
+(: ⦃l⦄ : Mon-Party → Natural)
 (define ⦃l⦄
-  (let ([m : (HashTable Mon-Party Integer) (make-hash)])
-    (λ (l) (hash-ref! m l (λ () (hash-count m))))))
+  (let-values ([(l->nat _₁ _₂) ((inst unique-nat Mon-Party))])
+    l->nat))
+
+(: ⦃struct-info⦄ : -struct-info → Natural)
+(define ⦃struct-info⦄
+  (let-values ([(si->nat _₁ _₂) ((inst unique-nat -struct-info))])
+    si->nat))
 
 (: ⦃b⦄ : Base → Term)
 (define (⦃b⦄ b)
   (match b
     [#f `(B false)]
     [#t `(B true)]
-    [(? real? r) `(R ,r)]
+    [(? number? x) `(N ,(real-part x) ,(imag-part x))]
     [_ (error '⦃e⦄! "base value: ~a" b)]))
 
 (: ⦃x⦄ : Var-Name → Symbol)
@@ -277,7 +318,7 @@
 (define fresh-name!
   (let ([i : Natural 0])
     (λ ()
-      (begin0 (format-symbol "v.~a" i)
+      (begin0 (format-symbol "i.~a" i)
         (set! i (+ 1 i))))))
 
 (: fun-name : -τ (Listof Var-Name) → Symbol)
@@ -293,7 +334,71 @@
     [(-st-mk s) (error "TODO")]
     [(-st-ac s _) (error "TODO")]
     [(-st-mut s _) (error "TODO")]
-    [(? symbol? o) (format-symbol "op.~a" o)]))
+    [(? symbol? o)
+     (format-symbol "o.~a" (string-replace (symbol->string o) "?" "_huh"))]))
+
+(: def-o : -o → (Listof Sexp))
+(define (def-o o)
+  (case o
+    [(not false?)
+     '{(define-fun o.not ([x V]) A
+         (Val (B (not (= x (B false))))))}]
+    [(+)
+     '{(define-fun o.+ ([x V] [y V]) A
+         (if (and (is-N x) (is-N y))
+             (Val (N (+ (real x) (real y))
+                     (+ (imag x) (imag y))))
+             None))
+       (assert (forall ([x Real] [y Real])
+                 (=> (and (is_int x) (is_int y)) (is_int (+ x y)))))}]
+    [(-)
+     '{(define-fun o.- ([x V] [y V]) A
+         (if (and (is-N x) (is-N y))
+             (Val (N (- (real x) (real y))
+                     (- (imag x) (imag y))))
+             None))
+       (assert (forall ([x Real] [y Real])
+                 (=> (and (is_int x) (is_int y)) (is_int (- x y)))))}]
+    [(*)
+     '{(define-fun o.* ([x V] [y V]) A
+         (if (and (is-N x) (is-N y))
+             (Val (N (- (* (real x) (real y))
+                        (* (imag x) (imag y)))
+                     (+ (* (real x) (imag y))
+                        (* (imag x) (real y)))))
+             None))
+       (assert (forall ([x Real] [y Real])
+                 (=> (and (is_int x) (is_int y)) (is_int (* x y)))))}]
+    [(=)
+     '{(define-fun o.= ([x V] [y V]) A
+         (if (and (is-N x) (is-N y))
+             (Val (B (= x y)))
+             None))}]
+    [(> < >= <=) (lift-ℝ²-𝔹 (assert o symbol?))]
+    [(equal?)
+     '{(define-fun o.equal_huh ([x V] [y V]) A
+         (Val (B (= x y))))}]
+    [(integer?)
+     '{(define-fun o.integer_huh ([x V]) A
+         (Val (B (exists ([r Real]) (and (is_int r) (= x (N r 0)))))))}]
+    [(real?)
+     '{(define-fun o.real_huh ([x V]) A
+         (Val (B (exists ([r Real]) (= x (N r 0))))))}]
+    [(number?) ; TODO
+     '{(define-fun o.number_huh ([x V]) A
+         (Val (B (exists ([r Real] [i Real]) (= x (N r i))))))}]
+    [(null? empty?)
+     '{(define-fun o.null_huh ([x V]) A
+         (val (B (= x Null))))}]
+    [else (raise (exn:scv:smt:unsupported (format "Unsupported: ~a" o) (current-continuation-marks)))]))
+
+(: lift-ℝ²-𝔹 : Symbol → (Listof Sexp))
+(define (lift-ℝ²-𝔹 o)
+  (define name (⦃o⦄ o))
+  `{(define-fun ,name ([x V] [y V]) A
+      (if (and (is-R x) (is-R y))
+          (Val (B (,o (real x) (real y))))
+          None))})
 
 (: next-int! : → Natural)
 (define next-int!
@@ -307,5 +412,10 @@
   
   (define +x (-x 'x))
   (define +y (-x 'y))
-  (query-try-prove ⊥M (Γ+ ⊤Γ (-@ '> (list +x (-b 4)) 0)) (-@ '> (list +x (-b 3)) 0)))
-
+  (define +z (-x 'z))
+  (encode ⊥M
+           (Γ+ ⊤Γ
+                (-@ 'integer? (list +x) 0)
+                (-@ 'integer? (list +y) 0)
+                (-@ '= (list +z (-@ '+ (list +x +y) 0)) 0))
+           (-@ 'integer? (list +z) 0)))
