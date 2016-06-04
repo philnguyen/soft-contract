@@ -131,9 +131,8 @@
                 (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
                 (refs-union! refs+)
                 (match-define (Entry free-vars facts _) entry)
-                (define xₐ (fresh-name!))
-                (Entry (set-add free-vars xₐ)
-                       (cons `(= ,tₐₚₚ (Val ,xₐ)) facts)
+                (Entry (set-add free-vars 'i.ans)
+                       (cons `(= ,tₐₚₚ (Val i.ans)) facts)
                        #|hack|# `(B false))])
              ]
             [(-ΓE Γ (-blm l+ lo _ _))
@@ -157,10 +156,13 @@
   (define-set refs : Defn-Entry)
   (match-define (-Γ φs _ γs) Γ)
 
-  (define (fresh-free!) : Symbol
-    (define x (fresh-name!))
-    (free-vars-add! x)
-    x)
+  (define fresh-free! : (→ Symbol)
+    (let ([i : Natural 0])
+      (λ ()
+        (define x (format-symbol "i.~a" i))
+        (set! i (+ 1 i))
+        (free-vars-add! x)
+        x)))
 
   (define (assert-eval! [t : Term] [a : Term]) : Void
     (set! asserts-eval (cons `(= ,t ,a) asserts-eval)))
@@ -314,13 +316,6 @@
                      [(integer? x) (format-symbol "x.~a" x)]
                      [else x]))))))
 
-(: fresh-name! : → Symbol)
-(define fresh-name!
-  (let ([i : Natural 0])
-    (λ ()
-      (begin0 (format-symbol "i.~a" i)
-        (set! i (+ 1 i))))))
-
 (: fun-name : -τ (Listof Var-Name) → Symbol)
 (define fun-name
   (let ([m : (HashTable (Pairof (Listof Var-Name) -τ) Symbol) (make-hash)])
@@ -379,14 +374,11 @@
      '{(define-fun o.equal_huh ([x V] [y V]) A
          (Val (B (= x y))))}]
     [(integer?)
-     '{(define-fun o.integer_huh ([x V]) A
-         (Val (B (exists ([r Real]) (and (is_int r) (= x (N r 0)))))))}]
+     '{(define-fun o.integer_huh ([x V]) A (Val (B (is-Z x))))}]
     [(real?)
-     '{(define-fun o.real_huh ([x V]) A
-         (Val (B (exists ([r Real]) (= x (N r 0))))))}]
+     '{(define-fun o.real_huh ([x V]) A (Val (B (is-R x))))}]
     [(number?) ; TODO
-     '{(define-fun o.number_huh ([x V]) A
-         (Val (B (exists ([r Real] [i Real]) (= x (N r i))))))}]
+     '{(define-fun o.number_huh ([x V]) A (Val (B (is-N x))))}]
     [(null? empty?)
      '{(define-fun o.null_huh ([x V]) A
          (val (B (= x Null))))}]

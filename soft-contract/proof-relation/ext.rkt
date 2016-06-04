@@ -25,14 +25,22 @@
 (: Γ-plausible? : -M -Γ → Boolean)
 (define (Γ-plausible? M Γ)
   (define-values (base _) (encode M Γ -ff))
-  (eq? 'Unsat (call `(,@base (check-sat)))))
+  (eq? 'Unsat (call `(,@base
+                      ";; Check if path-condition is plausible"
+                      (check-sat)))))
 
 (: check-sat : (Listof Sexp) Sexp → (Values Sat-Result Sat-Result))
 (define (check-sat asserts goal)
   ;; TODO: can't do batch with push/pop. The incremental solver freezes my computer
-  (match (call `(,@asserts (assert (is_false ,goal)) (check-sat)))
+  (match (call `(,@asserts
+                 ";; Unsat means M Γ ⊢ e : ✓"
+                 (assert (is_false ,goal))
+                 (check-sat)))
     ['Unsat (values 'Unsat 'Unknown)]
-    [r₁ (values r₁ (call `(,@asserts (assert (is_truish ,goal)) (check-sat))))]))
+    [r₁ (values r₁ (call `(,@asserts
+                           ";; Unsat means M Γ ⊢ e : ✗"
+                           (assert (is_truish ,goal))
+                           (check-sat))))]))
 
 (: call : (Listof Sexp) → Sat-Result)
 (define (call stms)
