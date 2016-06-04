@@ -195,8 +195,13 @@
 
   ;; encode the fact that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : Term
+    ;(printf "⦃e⦄!: ~a~n" (show-e e))
     (match e
       [(-b b) (⦃b⦄ b)]
+      [(? -𝒾? 𝒾)
+       (define t (⦃𝒾⦄ 𝒾))
+       (free-vars-add! t)
+       t]
       [(-x x)
        (define t (⦃x⦄ x))
        (cond [(∋ bound x) t]
@@ -306,15 +311,13 @@
     [(? number? x) `(N ,(real-part x) ,(imag-part x))]
     [_ (error '⦃e⦄! "base value: ~a" b)]))
 
+(: ⦃𝒾⦄ : -𝒾 → Symbol)
+(define (⦃𝒾⦄ 𝒾) (format-symbol "t.~a" (-𝒾-name 𝒾)))
+
 (: ⦃x⦄ : Var-Name → Symbol)
-(define ⦃x⦄
-  (let ([m : (HashTable Var-Name Symbol) (make-hasheq)])
-    (λ (x) ; TODO serious attempt
-      (hash-ref! m x
-                 (λ ()
-                   (cond
-                     [(integer? x) (format-symbol "x.~a" x)]
-                     [else x]))))))
+(define (⦃x⦄ x)
+  (cond [(integer? x) (format-symbol "x.~a" x)]
+        [else x]))
 
 (: fun-name : -τ (Listof Var-Name) → Symbol)
 (define fun-name
@@ -381,7 +384,20 @@
      '{(define-fun o.number_huh ([x V]) A (Val (B (is-N x))))}]
     [(null? empty?)
      '{(define-fun o.null_huh ([x V]) A
-         (val (B (= x Null))))}]
+         (Val (B (= x Null))))}]
+    [(procedure?)
+     '{(define-fun o.procedure_huh ([x V]) A
+         (Val (B (or (is-Op x) (is-Clo x)))))}]
+    [(arity-includes?)
+     '{(define-fun o.arity-includes_huh ([a V] [i V]) A
+         (if (and (#|TODO|# is-Z a) (is-Z i))
+             (Val (B (= a i)))
+             None))}]
+    [(procedure-arity)
+     '{(define-fun o.procedure-arity ([x V]) A
+         (if (is-Clo x)
+             (Val (N (arity x) 0))
+             None))}]
     [else (raise (exn:scv:smt:unsupported (format "Unsupported: ~a" o) (current-continuation-marks)))]))
 
 (: lift-ℝ²-𝔹 : Symbol → (Listof Sexp))
