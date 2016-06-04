@@ -72,8 +72,20 @@
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (cons γ γs)))
 
-(: γ/ : (HashTable -φ -φ) → -γ → -γ)
-(define ((γ/ m) γ)
+(: Γ/ : (HashTable -φ -φ) -Γ → -Γ)
+(define (Γ/ m Γ)
+  (match-define (-Γ φs as γs) Γ)
+  (define φs*
+    (for/set: : (℘ -φ) ([φ φs])
+      (φ/map m φ)))
+  (define as*
+    (for/hash : (HashTable Var-Name -φ) ([(x φ) (in-hash as)])
+      (values x (φ/map m φ))))
+  (define γs* (for/list : (Listof -γ) ([γ γs]) (γ/ m γ)))
+  (-Γ φs* as* γs*))
+
+(: γ/ : (HashTable -φ -φ) -γ → -γ)
+(define (γ/ m γ)
   (match-define (-γ τ bnd blm) γ)
   (-γ τ (binding/ m bnd) blm))
 
@@ -129,6 +141,23 @@
           (-binding f* xs x->φ*)))
       (-γ τ bnd* blm)))
   (-Γ φs* as* γs*))
+
+(: Γ⧺ : -Γ -Γ → -Γ)
+;; Combine path conditions
+(define (Γ⧺ Γ₁ Γ₂)
+  (match-define (-Γ φs₁ as₁ γs₁) Γ₁)
+  (match-define (-Γ φs₂ as₂ γs₂) Γ₂)
+  (-Γ (∪ φs₁ φs₂)
+      (for/fold ([as : (HashTable Var-Name -φ) as₁])
+                ([(x φₓ) (in-hash as₂)])
+        (cond
+          [(hash-ref as x #f) =>
+           (λ ([φ₀ : -φ])
+             (unless (equal? φ₀ φₓ)
+               (printf "Γ⧺: keeping ~a ≡ ~a instead of ~a~n" x (show-φ φ₀) (show-φ φₓ)))
+             as)]
+          [else (hash-set as x φₓ)]))
+      (append γs₁ γs₂)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

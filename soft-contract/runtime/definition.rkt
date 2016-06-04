@@ -195,12 +195,14 @@
 
 (define ⊤Γ (-Γ ∅eq (hasheq) '()))
 
-(: Γ+ : -Γ -s → -Γ)
+(: Γ+ : -Γ -s * → -Γ)
 ;; Strengthen path condition `Γ` with `s`
-(define (Γ+ Γ s)
-  (cond [s (match-define (-Γ φs as ts) Γ)
-           (-Γ (set-add φs (e->φ s)) as ts)]
-        [else Γ]))
+(define (Γ+ Γ . ss)
+  (match-define (-Γ φs as ts) Γ)
+  (define φs*
+    (for/fold ([φs : (℘ -φ) φs]) ([s ss] #:when s)
+      (set-add φs (e->φ s))))
+  (-Γ φs* as ts))
 
 (: -Γ-with-aliases : -Γ Var-Name -s → -Γ)
 (define (-Γ-with-aliases Γ x s)

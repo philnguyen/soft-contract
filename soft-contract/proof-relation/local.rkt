@@ -1,8 +1,6 @@
 #lang typed/racket/base
 
-(provide φs⊢e φs⊢ₑₓₜe lite? Γ⊢e partition-Γs ⊢V p∋Vs Γ⊓ φs⊓
-         ;φs/ensure-consistency Γ/ensure-consistency
-         φs/ensure-consistencyₑₑ φs/ensure-consistencyₑᵣ Γ/ensure-consistencyₑₑ Γ/ensure-consistencyₑᵣ
+(provide φs⊢e ⊢V p∋Vs Γ⧺
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 
@@ -19,14 +17,6 @@
           racket/base racket/contract
           "../utils/pretty.rkt" 
           "../primitives/utils.rkt"))
-
-;; External solver to be plugged in. Return trivial answer by default.
-(define-parameter φs⊢ₑₓₜe : ((℘ -φ) -e → -R)
-  (λ _
-    (printf "Warning: external solver not set~n")
-    '?))
-
-(define-parameter lite? : Boolean #f)
 
 ;; Syntax generation for checking whether argument satisfies predicate
 (begin-for-syntax
@@ -240,7 +230,7 @@
                     ([φ φs] #:when (eq? '? R)
                      [R* (in-value (e⊢e (φ->e φ) e))])
            R*)
-         (if (lite?) '? ((φs⊢ₑₓₜe) φs e)))]
+         '?)]
        [else '?]))
     (printf "~a ⊢ ~a : ~a~n" (set-map φs show-e) (show-s e) ans)))
 
@@ -248,7 +238,6 @@
   (cond [(∋ φs φ) '✓] ; fast case
         [else (φs⊢e φs (φ->e φ))]))
 
-(define (Γ⊢e [Γ : -Γ] [e : -s]) (φs⊢e (-Γ-facts Γ) e))
 (define (plausible-φs-s? [φs : (℘ -φ)] [s : -s]) (not (eq? '✗ (φs⊢e φs s))))
 
 (: plausible-W? : (℘ -φ) (Listof -V) -s → Boolean)
@@ -294,53 +283,20 @@
               [(✓)   #f]
               [(✗ ?) #t]))]
          [(-● ps)
-          (define φs* (for*/set: : (℘ -φ) ([p ps] [s (in-value (-?@ p s))] #:when s) (e->φ s)))
-          (and (φs⊓ φs φs*) #t)]
+          (define qs
+            (for/fold ([acc : (℘ -o) ∅])
+                      ([φ φs])
+              (match (φ->e φ)
+                [(-@ (? -o? o) (list (== s)) _) (set-add acc o)]
+                [_ acc])))
+          (not (for/or : Boolean ([p ps] [q qs])
+                 (eq? '✗ (p⇒p p q))))]
          [_ #t])]
       [else #t]))
   
   ;; order matters for precision, in the presence of subtypes
   (with-debugging/off ((ans) (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
     (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-e) (show-V V) (show-s s) ans)))
-
-(: φs⊓ : (℘ -φ) (℘ -φ) → (Option (℘ -φ)))
-(define (φs⊓ φs₀ φs₁)
-  (with-debugging/off
-    ((ans)
-     (for/fold ([φs₀ : (Option (℘ -φ)) φs₀]) ([φ₁ φs₁])
-       (and φs₀
-            (case (φs⊢φ φs₀ φ₁)
-              [(✓ ?) (set-add φs₀ φ₁)]
-              [(✗)   #f]))))
-    (printf "φs⊓:~n")
-    (printf "  - ~a~n" (set-map φs₀ show-φ))
-    (printf "  - ~a~n" (set-map φs₁ show-φ))
-    (printf "  --> ~a~n~n" (and ans (set-map ans show-φ)))))
-
-(: Γ⊓ : -Γ -Γ → (Option -Γ))
-;; Join 2 path conditions, eliminating obvious inconsistencies
-(define (Γ⊓ Γ δΓ)
-  (match-define (-Γ  φs as  γs)  Γ)
-  (match-define (-Γ δφs _  δγs) δΓ)
-  (cond
-    [(φs⊓ φs δφs) =>
-     (λ ([φs* : (℘ -φ)]) (-Γ φs* as (append δγs γs)))]
-    [else #f]))
-
-(: partition-Γs : (℘ (Pairof -Γ -s))
-                → (Values (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s)) (℘ (Pairof -Γ -s))))
-;; Partition set of ⟨path-condition, proposition⟩ pairs by provability
-(define (partition-Γs ps)
-  (define-set ✓s : (Pairof -Γ -s))
-  (define-set ✗s : (Pairof -Γ -s))
-  (define-set ?s : (Pairof -Γ -s))
-  (for ([p ps])
-    (match-define (cons Γ s) p)
-    (case (Γ⊢e Γ s)
-      [(✓) (✓s-add! p)]
-      [(✗) (✗s-add! p)]
-      [(?) (?s-add! p)]))
-  (values ✓s ✗s ?s))
 
 (: ⊢V : -V → -R)
 ;; Check if value represents truth
@@ -479,66 +435,6 @@
                 (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
             '✗]
            [else '?])]))
-
-(define/memo (φs/ensure-consistencyₑₑ [m : (HashTable -φ -φ)] [φs : (℘ -φ)]) : (Option (℘ -φ))
-  (for/fold ([acc : (Option (℘ -φ)) ∅eq])
-            ([φ (in-set φs)])
-    (cond
-      [acc
-       (define φ* (φ/map m φ))
-       (cond
-         [(eq? φ* φ) (set-add acc φ)]
-         [else
-          (case (φs⊢φ acc φ*)
-            [(✗) #f]
-            [else (set-add acc φ*)])])]
-      [else #f])))
-
-;; Substitute and throw away inconsistent path-condition
-(define/memo (φs/ensure-consistencyₑᵣ [m : (HashTable -φ -φ)] [φs : (℘ -φ)]) : (Option (℘ -φ))
-  (define-values (acc φs*)
-    (for/fold ([acc : (Option (℘ -φ)) φs]
-               [φs* : (℘ -φ) ∅eq])
-              ([φ (in-set φs)])
-      (cond
-        [acc
-         (define φ* (φ/map m φ))
-         (if (and (not (eq? φ* φ)) (eq? '✗ (φs⊢φ acc φ*)))
-             (values #f ∅eq)
-             (values (set-add acc φ*) (set-add φs* φ*)))]
-        [else (values #f ∅eq)])))
-  (and acc φs*))
-
-(:* Γ/ensure-consistencyₑₑ Γ/ensure-consistencyₑᵣ : (HashTable -φ -φ) -Γ → (Option -Γ))
-;; Substitute free occurrences of `x` with `e` in path condition  
-;; Throw away inconsistent path-condition
-(define-values (Γ/ensure-consistencyₑₑ Γ/ensure-consistencyₑᵣ)
-  (let ()
-    (: mk-Γ/ensure-consistency :
-       ((HashTable -φ -φ) (℘ -φ) → (Option (℘ -φ))) → (HashTable -φ -φ) -Γ → (Option -Γ))
-    (define ((mk-Γ/ensure-consistency φs/) m Γ)
-      (with-debugging/off
-        ((Γₐ)
-         (match-define (-Γ φs as γs) Γ)
-         (define φs* (φs/ m φs))
-         (cond
-           [φs*
-            (define as*
-              (for/hasheq : (HashTable Var-Name -φ) ([(x φ) as])
-                (values x (φ/map m φ))))
-            (define γs* (map (γ/ m) γs))
-            (-Γ φs* as* γs*)]
-           [else #f]))
-        (parameterize ([verbose? #t])
-          (printf "Γ/: ~a~n"
-                  (for/list : (Listof Sexp) ([(x y) m])
-                    `(,(show-e x) ↦ ,(show-e y))))
-          (printf "  - from: ~a~n" (show-Γ Γ))
-          (printf "  - to  : ~a~n" (show-Γ Γₐ))
-          (printf "~n"))))
-    (values (mk-Γ/ensure-consistency φs/ensure-consistencyₑₑ)
-            (mk-Γ/ensure-consistency φs/ensure-consistencyₑᵣ))))
-
 
 (module+ test
   (require typed/rackunit
