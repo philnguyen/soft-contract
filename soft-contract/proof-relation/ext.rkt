@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ext-prove Γ-plausible?)
+(provide ext-prove Γ-plausible? Timeout)
 
 (require racket/match
          racket/port
@@ -11,6 +11,10 @@
          "../runtime/main.rkt"
          "result.rkt"
          "translate.rkt")
+
+;; Max seconds per query
+;; TODO: possible to have something deterministic instead?
+(define-parameter Timeout : Natural 2)
 
 (Sat-Result . ::= . 'Unsat 'Sat 'Unknown 'Timeout)
 
@@ -25,9 +29,10 @@
 (: Γ-plausible? : -M -Γ → Boolean)
 (define (Γ-plausible? M Γ)
   (define-values (base _) (encode M Γ -ff))
-  (eq? 'Unsat (call `(,@base
-                      ";; Check if path-condition is plausible"
-                      (check-sat)))))
+  (not
+   (eq? 'Unsat (call `(,@base
+                       ";; Check if path-condition is plausible"
+                       (check-sat))))))
 
 (: check-sat : (Listof Sexp) Sexp → (Values Sat-Result Sat-Result))
 (define (check-sat asserts goal)
@@ -61,6 +66,7 @@
     (with-debugging
       ((ans)
        (with-output-to-string
-         (λ () (system (format "echo \"~a\" | z3 -T:5 -memory:1000 -in -smt2" query)))))
+         (λ ()
+           (system (format "echo \"~a\" | z3 -T:~a -memory:1000 -in -smt2" query (Timeout))))))
       (printf "query:~n~a~nget: ~a~n~n" query ans)))
   (txt->result res))

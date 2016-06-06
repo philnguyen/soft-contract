@@ -49,6 +49,15 @@
       (and (is-R x) (is_int (real x))))
     ))
 
+(define hack-for-is_int : (Listof Sexp)
+  '{(assert (forall ([x Real] [y Real])
+              (=> (and (is_int x) (is_int y)) (is_int (+ x y)))))
+    (assert (forall ([x Real] [y Real])
+              (=> (and (is_int x) (is_int y)) (is_int (- x y)))))
+    (assert (forall ([x Real] [y Real])
+              (=> (and (is_int x) (is_int y)) (is_int (* x y)))))
+    })
+
 (define SMT-base : (Listof Sexp)
   `(,@base-datatypes
     ,@base-predicates))
@@ -96,18 +105,6 @@
                        (set-add seen** ref))))
            (values fronts** seen** def-prims** def-funs**)))
        (loop fronts* seen* def-prims* def-funs*)])))
-
-(: query-try-prove : -M -Γ -e → (Listof Sexp))
-;; Generate formulas whose `unsat`ness implies `M Γ ⊢ e : ✓`
-(define (query-try-prove M Γ e)
-  (define-values (decs goal) (encode M Γ e))
-  `(,@decs (assert (is_false ,goal)) (check-sat)))
-
-(: query-try-refute : -M -Γ -e → (Listof Sexp))
-;; Generate formulas whose `unsat`ness implies `M Γ ⊢ e : ✗`
-(define (query-try-refute M Γ e)
-  (define-values (decs goal) (encode M Γ e))
-  `(,@decs (assert (is_truish ,goal)) (check-sat)))
 
 (: encode-τ : -τ (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) (Listof Entry)))
 (define (encode-τ τ xs As)
@@ -257,40 +254,51 @@
 (define (emit def-prims def-funs top)
   (match-define (Entry consts facts goal) top)
 
+  (define emit-hack-for-is_int : (Listof Sexp)
+    (cond [(should-include-hack-for-is_int? facts) hack-for-is_int]
+          [else '()]))
+  
   (define emit-def-prims
     (for/fold ([acc : (Listof Sexp) '()])
               ([def-prim def-prims])
       (append def-prim acc)))
   
-  (define emit-def-funs
-    (for/fold ([acc : (Listof Sexp) '()])
+  (define-values (emit-dec-funs emit-def-funs)
+    (for/fold ([decs : (Listof Sexp) '()]
+               [defs : (Listof Sexp) '()])
               ([(f-xs entries) def-funs])
       (match-define (App τ xs) f-xs)
       (define n (length xs))
       (define tₓs (map ⦃x⦄ xs))
       (define fₕ (fun-name τ xs))
-      (define decs
-        `((declare-fun ,fₕ ,(make-list n 'V) A)
-          (assert (forall ,(for/list : (Listof Sexp) ([x tₓs])
+      (values
+       (cons `(declare-fun ,fₕ ,(make-list n 'V) A) decs)
+       (cons `(assert (forall ,(for/list : (Listof Sexp) ([x tₓs])
                              `[,x V])
-                          (or ,@(for/list : (Listof Formula) ([entry entries])
-                                  (match-define (Entry xs facts _) entry)
-                                  (define conj
-                                    (match facts
-                                      ['() 'true]
-                                      [(list φ) φ]
-                                      [φs `(and ,@φs)]))
-                                  (cond
-                                    [(set-empty? xs) conj]
-                                    [else `(exists ,(for/list : (Listof Sexp) ([x xs])
-                                                      `(,x V))
-                                                   ,conj)])))))))
-      (append decs acc)))
+                        (or ,@(for/list : (Listof Formula) ([entry entries])
+                                (match-define (Entry xs facts _) entry)
+                                (define conj
+                                  (match facts
+                                    ['() 'true]
+                                    [(list φ) φ]
+                                    [φs `(and ,@φs)]))
+                                (cond
+                                  [(set-empty? xs) conj]
+                                  [else `(exists ,(for/list : (Listof Sexp) ([x xs])
+                                                    `(,x V))
+                                                 ,conj)])))))
+             defs))))
 
   (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
   (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
 
-  (values `(,@SMT-base ,@emit-def-prims ,@emit-def-funs ,@emit-dec-consts ,@emit-asserts)
+  (values `(,@SMT-base
+            ,@emit-def-prims
+            ,@emit-hack-for-is_int
+            ,@emit-dec-funs
+            ,@emit-def-funs
+            ,@emit-dec-consts
+            ,@emit-asserts)
           goal))
 
 (: ⦃l⦄ : Mon-Party → Natural)
@@ -346,17 +354,13 @@
          (if (and (is-N x) (is-N y))
              (Val (N (+ (real x) (real y))
                      (+ (imag x) (imag y))))
-             None))
-       (assert (forall ([x Real] [y Real])
-                 (=> (and (is_int x) (is_int y)) (is_int (+ x y)))))}]
+             None))}]
     [(-)
      '{(define-fun o.- ([x V] [y V]) A
          (if (and (is-N x) (is-N y))
              (Val (N (- (real x) (real y))
                      (- (imag x) (imag y))))
-             None))
-       (assert (forall ([x Real] [y Real])
-                 (=> (and (is_int x) (is_int y)) (is_int (- x y)))))}]
+             None))}]
     [(*)
      '{(define-fun o.* ([x V] [y V]) A
          (if (and (is-N x) (is-N y))
@@ -364,9 +368,7 @@
                         (* (imag x) (imag y)))
                      (+ (* (real x) (imag y))
                         (* (imag x) (real y)))))
-             None))
-       (assert (forall ([x Real] [y Real])
-                 (=> (and (is_int x) (is_int y)) (is_int (* x y)))))}]
+             None))}]
     [(=)
      '{(define-fun o.= ([x V] [y V]) A
          (if (and (is-N x) (is-N y))
@@ -414,6 +416,21 @@
     (λ ()
       (begin0 i (set! i (+ 1 i))))))
 
+(: should-include-hack-for-is_int? : (Listof Sexp) → Boolean)
+(define (should-include-hack-for-is_int? φs)
+  (and (has-op? φs 'o.integer_huh)
+       (for/or : Boolean ([o (in-list '(o.+ o.- o.*))])
+         (has-op? φs o))))
+
+(: has-op? : (Listof Sexp) Symbol → Boolean)
+(define (has-op? φs o)
+
+  (define go : (Sexp → Boolean)
+    (match-lambda
+      [(cons h t) (or (go h) (go t))]
+      [s (equal? s o)]))
+
+  (ormap go φs))
 
 (module+ test
   (require typed/rackunit)
