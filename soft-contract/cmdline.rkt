@@ -9,10 +9,12 @@
          "ast/definition.rkt"
          "parse/main.rkt"
          "runtime/definition.rkt"
-         (only-in "reduction/main.rkt" run-file havoc-file))
+         (only-in "reduction/main.rkt" run-file havoc-file)
+         "proof-relation/ext.rkt")
 
 (Mode . ::= . 'light 'havoc 'expand)
 (define mode : Mode 'havoc)
+(define timeout : Natural (Timeout))
 
 (define fname
   (cast
@@ -44,23 +46,24 @@
     [(-ΓE _ (-blm l+ lo Cs Vs))
      `(blame ,l+ ,lo (contract: ,(show-Vs Cs)) (value: ,(show-Vs Vs)))]))
 
-(case mode
-  [(expand)
-   (define m (file->module fname))
-   (pretty-write (show-module m))]
-  [(light)
-   (define-values (ans M Ξ) (run-file fname))
-   (cond
-     [(set-empty? ans)
-      (printf "Safe~n")]
-     [else
-      (for ([A ans])
-        (pretty-write (show-a A)))])]
-  [(havoc)
-   (define-values (ans M Ξ) (havoc-file fname))
-   (define safe? : Boolean #t)
-   (for ([A ans] #:when (-ΓE? A))
-     (set! safe? #f)
-     (pretty-write (show-a A)))
-   (when safe?
-     (printf "Safe~n"))])
+(parameterize ([Timeout timeout])
+  (case mode
+    [(expand)
+     (define m (file->module fname))
+     (pretty-write (show-module m))]
+    [(light)
+     (define-values (ans M Ξ) (run-file fname))
+     (cond
+       [(set-empty? ans)
+        (printf "Safe~n")]
+       [else
+        (for ([A ans])
+          (pretty-write (show-a A)))])]
+    [(havoc)
+     (define-values (ans M Ξ) (havoc-file fname))
+     (define safe? : Boolean #t)
+     (for ([A ans] #:when (-ΓE? A))
+       (set! safe? #f)
+       (pretty-write (show-a A)))
+     (when safe?
+       (printf "Safe~n"))]))
