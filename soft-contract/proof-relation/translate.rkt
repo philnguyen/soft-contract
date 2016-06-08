@@ -67,7 +67,15 @@
 (define-type Formula Sexp) ; Term of type Bool in SMT
 (struct Entry ([free-vars : (℘ Symbol)] [facts : (Listof Formula)] [expr : Term]) #:transparent)
 (struct App ([ctx : -τ] [params : (Listof Var-Name)]) #:transparent)
+(struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
 (Defn-Entry . ::= . -o App)
+(define-type Memo-Table
+  ;; Memo table maps each function application to a pair of formulas:
+  ;; - When the application succeeds
+  ;; - When the application goes wrong
+  (HashTable App Res))
+
+(define ∅memo : Memo-Table (hash))
 
 (: encode : -M -Γ -e → (Values (Listof Sexp) Sexp))
 ;; Encode query `M Γ ⊢ e : (✓|✗|?)`,
@@ -77,7 +85,7 @@
   (let loop ([fronts : (℘ Defn-Entry) refs]
              [seen : (℘ Defn-Entry) ∅]
              [def-prims : (℘ (Listof Sexp)) ∅]
-             [def-funs : (HashTable App (Listof Entry)) (hash)])
+             [def-funs : Memo-Table ∅memo])
     (cond
       [(set-empty? fronts)
        (emit def-prims def-funs top-entry)]
@@ -86,7 +94,7 @@
          (for/fold ([fronts* : (℘ Defn-Entry) ∅]
                     [seen* : (℘ Defn-Entry) seen]
                     [def-prims* : (℘ (Listof Sexp)) def-prims]
-                    [def-funs* : (HashTable App (Listof Entry)) def-funs])
+                    [def-funs* : Memo-Table def-funs])
                    ([front fronts])
            (define-values (def-prims** def-funs** refs+)
              (match front
@@ -106,7 +114,9 @@
            (values fronts** seen** def-prims** def-funs**)))
        (loop fronts* seen* def-prims* def-funs*)])))
 
-(: encode-τ : -τ (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) (Listof Entry)))
+(: encode-τ : -τ (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
+;; Translate memo-table entry `τ(xs) → {A…}` to pair of formulas for when application
+;; fails and passes
 (define (encode-τ τ xs As)
   (define-set refs : Defn-Entry)
   (define tₓs (map ⦃x⦄ xs))
@@ -114,34 +124,41 @@
   (define tₐₚₚ `(,fₕ ,@tₓs))
   (define bound (list->set xs))
   
-  (define cases : (Listof Entry)
-    `(,@(for/list : (Listof Entry) ([A As])
-          (match A
-            [(-ΓW Γ (-W _ sₐ))
-             (cond
-               [sₐ
-                (define-values (refs+ entry) (encode-e bound Γ sₐ))
-                (refs-union! refs+)
-                (match-define (Entry free-vars facts tₐ) entry)
-                (Entry free-vars (cons `(= ,tₐₚₚ (Val ,tₐ)) facts) tₐ)]
-               [else
-                (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
-                (refs-union! refs+)
-                (match-define (Entry free-vars facts _) entry)
-                (Entry (set-add free-vars 'i.ans)
-                       (cons `(= ,tₐₚₚ (Val i.ans)) facts)
-                       #|hack|# `(B false))])
-             ]
-            [(-ΓE Γ (-blm l+ lo _ _))
-             (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
+  ;; Accumulate pair of formulas describing conditions for succeeding and erroring
+  (define-values (oks ers)
+    (for/fold ([oks : (Listof Entry) '()]
+               [ers : (Listof Entry) '()])
+              ([A As])
+      (match A
+        [(-ΓW Γ (-W _ sₐ))
+         (define eₒₖ
+           (cond
+             [sₐ
+              (define-values (refs+ entry) (encode-e bound Γ sₐ))
+              (refs-union! refs+)
+              (match-define (Entry free-vars facts tₐₙₛ) entry)
+              (Entry free-vars
+                     (cons `(= ,tₐₚₚ (Val ,tₐₙₛ))
+                           facts)
+                     tₐₙₛ)]
+             [else
+              (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
+              (refs-union! refs+)
+              (match-define (Entry free-vars facts _) entry)
+              (Entry free-vars facts #|hack|# '(B false))]))
+         (values (cons eₒₖ oks) ers)]
+        [(-ΓE Γ (-blm l+ lo _ _))
+         (define eₑᵣ
+           (let-values ([(refs+ entry) (encode-e bound Γ #|hack|# -ff)])
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
-                    (cons `(= ,tₐₚₚ (Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))) facts)
-                    #|hack|# `(B false))]))
-      ,(Entry ∅eq `{ (= ,tₐₚₚ None) } #f)))
+                    (cons `(= ,tₐₚₚ (Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo)))
+                          facts)
+                    #|hack|# `(B false))))
+         (values oks (cons eₑᵣ ers))])))
   
-  (values refs cases))
+  (values refs (Res oks ers)))
 
 (: encode-e : (℘ Var-Name) -Γ -e → (Values (℘ Defn-Entry) Entry))
 ;; Encode pathcondition `Γ` and expression `e`,
@@ -204,7 +221,10 @@
              [else (free-vars-add! t) t])]
       [(-λ (? list? xs) e)
        (define n (length xs))
-       `(Clo ,n ,(next-int!))] ; TODO exists id instead
+       (define t (fresh-free!))
+       (assert-prop! `(is-Clo ,t))
+       (assert-prop! `(= (arity ,t) ,(length xs)))
+       t]
       [(-@ (? -o? o) es _)
        (define ts (map ⦃e⦄! es))
        (cond
@@ -253,7 +273,7 @@
 
   (values refs (Entry free-vars `(,@(reverse asserts-eval) ,@(reverse asserts-prop)) tₜₒₚ)))
 
-(: emit : (℘ (Listof Sexp)) (HashTable App (Listof Entry)) Entry → (Values (Listof Sexp) Sexp))
+(: emit : (℘ (Listof Sexp)) Memo-Table Entry → (Values (Listof Sexp) Sexp))
 ;; Emit base and target to prove/refute
 (define (emit def-prims def-funs top)
   (match-define (Entry consts facts goal) top)
@@ -270,28 +290,39 @@
   (define-values (emit-dec-funs emit-def-funs)
     (for/fold ([decs : (Listof Sexp) '()]
                [defs : (Listof Sexp) '()])
-              ([(f-xs entries) def-funs])
+              ([(f-xs res) def-funs])
       (match-define (App τ xs) f-xs)
       (define n (length xs))
       (define tₓs (map ⦃x⦄ xs))
       (define fₕ (fun-name τ xs))
+      (define tₐₚₚ `(,fₕ ,@tₓs))
+      (match-define (Res oks ers) res)
+
+      (: mk-cond : (Listof Entry) → (Listof Sexp))
+      (define (mk-cond entries)
+        (for/list ([entry entries])
+          (match-define (Entry xs facts _) entry)
+          (define conj (-tand facts))
+          (cond
+            [(set-empty? xs)
+             conj]
+            [else
+             (define exists-xs : (Listof Sexp) (for/list ([x xs]) `(,x V)))
+             `(exists ,exists-xs ,conj)])))
+
+      (define ok-conds (mk-cond oks))
+      (define er-conds (mk-cond ers))
+      (define params : (Listof Sexp) (for/list ([x tₓs]) `(,x V)))
+      
       (values
        (cons `(declare-fun ,fₕ ,(make-list n 'V) A) decs)
-       (cons `(assert (forall ,(for/list : (Listof Sexp) ([x tₓs])
-                             `[,x V])
-                        (or ,@(for/list : (Listof Formula) ([entry entries])
-                                (match-define (Entry xs facts _) entry)
-                                (define conj
-                                  (match facts
-                                    ['() 'true]
-                                    [(list φ) φ]
-                                    [φs `(and ,@φs)]))
-                                (cond
-                                  [(set-empty? xs) conj]
-                                  [else `(exists ,(for/list : (Listof Sexp) ([x xs])
-                                                    `(,x V))
-                                                 ,conj)])))))
-             defs))))
+       (list*
+        ;; For each function, generate implications from returns and blames
+        `(assert (forall ,params (! (=> (is-Val ,tₐₚₚ) ,(-tor ok-conds))
+                                    :pattern (,tₐₚₚ))))
+        `(assert (forall ,params (! (=> (is-Blm ,tₐₚₚ) ,(-tor er-conds))
+                                    :pattern (,tₐₚₚ))))
+        defs))))
 
   (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
   (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
@@ -458,6 +489,18 @@
       [s (equal? s o)]))
 
   (ormap go φs))
+
+(:* -tand -tor : (Listof Sexp) → Sexp)
+(define -tand
+  (match-lambda
+    ['() 'true]
+    [(list x) x]
+    [xs `(and ,@xs)]))
+(define -tor
+  (match-lambda
+    ['() 'false]
+    [(list x) x]
+    [xs `(or ,@xs)]))
 
 (module+ test
   (require typed/rackunit)
