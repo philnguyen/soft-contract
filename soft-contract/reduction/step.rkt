@@ -77,9 +77,9 @@
         (match A
           [(-ΓW Γ (and W (-W Vs sₐ)))
            (define γ (-γ τ bnd #f))
+           (define Γ₀* (-Γ-plus-γ Γ₀ γ))
            (cond
-             [(plausible-return? M Γ₀ bnd Γ W)
-              (define Γ₀* (-Γ-plus-γ Γ₀ γ))
+             [(plausible-return? M Γ₀* bnd Γ W)
               (define sₐ*
                 (and sₐ
                      (match fargs ; HACK
@@ -91,15 +91,15 @@
               (values (set-add ΓWs (-ΓW Γ₀* (-W Vs sₐ*))) ΓEs)]
              [else (values ΓWs ΓEs)])]
           [(-ΓE Γ (and E (-blm l+ lo _ _)))
-           (define γ (-γ τ bnd (cons l+ lo)))
-           (cond
-             [(plausible-blame? M Γ₀ bnd Γ E)
-              (case l+
-                [(Λ † havoc) (values ΓWs ΓEs)]
-                [else
-                 (define Γ₀* (-Γ-plus-γ Γ₀ γ))
-                 (values ΓWs (set-add ΓEs (-ΓE Γ₀* E)))])]
-             [else (values ΓWs ΓEs)])]))))
+           (case l+
+             [(Λ † havoc) (values ΓWs ΓEs)]
+             [else
+              (define γ (-γ τ bnd (cons l+ lo)))
+              (define Γ₀* (-Γ-plus-γ Γ₀ γ))
+              (cond
+                [(plausible-blame? M Γ₀* bnd Γ E)
+                 (values ΓWs (set-add ΓEs (-ΓE Γ₀* E)))]
+                [else (values ΓWs ΓEs)])])]))))
   
   (define-values (δσ* ΓWs* ΓEs* ℐs*) ((ℰ⟦_⟧ ℰ ΓWs) M σ ℒ₀))
   (apply/values (collect M Ξ τ₀) (values δσ* ΓWs* (∪ ΓEs ΓEs*) ℐs*)))

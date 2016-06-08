@@ -167,9 +167,8 @@
   (define (assert-prop! [φ : Formula]) : Void
     (set! asserts-prop (cons φ asserts-prop)))
 
-  (: ⦃app⦄-ok! : -τ -e (Listof Var-Name) (Listof -e) → Term)
   ;; Encode that `eₕ(eₓs)` has succcessfully returned
-  (define (⦃app⦄-ok! τ eₕ xs eₓs)
+  (define/memo (⦃app⦄-ok! [τ : -τ] [eₕ : -e] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
     (define tₕ (⦃e⦄! eₕ))
     (define tₓs (map ⦃e⦄! eₓs))
     (define fₕ (fun-name τ xs))
@@ -207,12 +206,14 @@
        (define n (length xs))
        `(Clo ,n ,(next-int!))] ; TODO exists id instead
       [(-@ (? -o? o) es _)
-       (refs-add! o)
-       (define tₒ (⦃o⦄ o))
        (define ts (map ⦃e⦄! es))
-       (define xₐ (fresh-free!))
-       (assert-eval! `(,tₒ ,@ts) `(Val ,xₐ))
-       xₐ]
+       (cond
+         [(o->pred o) => (λ ([f : ((Listof Term) → Term)]) (f ts))]
+         [else
+          (refs-add! o)
+          (define xₐ (fresh-free!))
+          (assert-eval! `(,(⦃o⦄ o) ,@ts) `(Val ,xₐ))
+          xₐ])]
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option Term) ([γ γs])
@@ -244,10 +245,13 @@
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
   (for ([φ φs])
     (define t (⦃e⦄! (φ->e φ)))
-    (assert-prop! `(is_truish ,t)))
+    (match t
+      [`(B (is_false (B ,φ))) (assert-prop! `(not ,φ))]
+      [`(B ,φ) (assert-prop! φ)]
+      [_ (assert-prop! `(is_truish ,t))]))
   (define tₜₒₚ (⦃e⦄! e))
 
-  (values refs (Entry free-vars `(,@asserts-eval ,@asserts-prop) tₜₒₚ)))
+  (values refs (Entry free-vars `(,@(reverse asserts-eval) ,@(reverse asserts-prop)) tₜₒₚ)))
 
 (: emit : (℘ (Listof Sexp)) (HashTable App (Listof Entry)) Entry → (Values (Listof Sexp) Sexp))
 ;; Emit base and target to prove/refute
@@ -343,12 +347,35 @@
     [(? symbol? o)
      (format-symbol "o.~a" (string-replace (symbol->string o) "?" "_huh"))]))
 
+(: o->pred : -o → (Option ((Listof Term) → Term)))
+(define (o->pred o)
+  (case o
+    [(number?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-N ,@ts)))]
+    [(real?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-R ,@ts)))]
+    [(integer?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-Z ,@ts)))]
+    [(equal?)
+     (λ ([ts : (Listof Term)])
+       `(B (= ,@ts)))]
+    [(not false?)
+     (λ ([ts : (Listof Term)])
+       (match ts
+         [(list `(B (is_false ,t))) `(B (is_truish ,t))]
+         [(list `(B (is_truish ,t))) `(B (is_false ,t))]
+         [ts `(B (is_false ,@ts))]))]
+    [else #f]))
+
 (: def-o : -o → (Listof Sexp))
 (define (def-o o)
   (case o
     [(not false?)
      '{(define-fun o.not ([x V]) A
-         (Val (B (not (= x (B false))))))}]
+         (Val (B (= x (B false)))))}]
     [(+)
      '{(define-fun o.+ ([x V] [y V]) A
          (if (and (is-N x) (is-N y))

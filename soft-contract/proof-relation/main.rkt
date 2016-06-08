@@ -69,15 +69,14 @@
 ;; TODO: do we need this, or just try hard to eliminate at blames?
 ;; TODO: is this now just a duplication of `plausible-blame?`
 (define (plausible-return? M Γₑᵣ bnd Γₑₑ Wₑₑ)
-  ;(match-define (-W Vs sₑₑ) Wₑₑ)
-  (define m (bnds->subst bnd))
-  (Γ-plausible? M (Γ⧺ Γₑᵣ (Γ/ m Γₑₑ))))
+  ;(match-define (-W _ sₑₑ) Wₑₑ)
+  (Γ-plausible? M (Γ⧺ Γₑᵣ (subst+restrict-Γ bnd Γₑₑ))))
 
 (: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
 ;; Check if propagated blame is plausible
 (define (plausible-blame? M Γₑᵣ bnd Γₑₑ blm)
-  (define m (bnds->subst bnd))
-  (Γ-plausible? M (Γ⧺ Γₑᵣ (Γ/ m Γₑₑ))))
+  ;(match-define (-blm l+ lo _ _) blm)
+  (Γ-plausible? M (Γ⧺ Γₑᵣ (subst+restrict-Γ bnd Γₑₑ))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -108,10 +107,3 @@
                                  #:when (exact-nonnegative-integer? i) ; hack for TR
                                  #:when (plausible-index? M Γ W i))
     i))
-
-(: bnds->subst : -binding → (HashTable -φ -φ))
-;; Convert list of `param -> arg` to hashtable
-(define (bnds->subst bnd)
-  (match-define (-binding _ _ x->φ) bnd)
-  (for/hash : (HashTable -φ -φ) ([(x φ) x->φ])
-    (values (e->φ (-x x)) φ)))

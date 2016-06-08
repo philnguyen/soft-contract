@@ -72,6 +72,22 @@
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (cons γ γs)))
 
+(: subst+restrict-s : -binding -s → -s)
+(define (subst+restrict-s bnd s)
+  (define dom (-binding-dom bnd))
+  (define m (bnds->subst bnd))
+  (cond [(s↓ s dom) => (λ ([e : -e]) (e/map m e))]
+        [else #f]))
+
+(: subst+restrict-Γ : -binding -Γ → -Γ)
+;; Restrict and substitute in callee's path-condition to what's meaningful to caller
+;; TODO: for more precision, maybe useful to existentialize the parts the caller doesn't
+;; understand
+(define (subst+restrict-Γ bnd Γ)
+  (define dom (-binding-dom bnd))
+  (define m (bnds->subst bnd))
+  (Γ/ m (Γ↓ Γ dom)))
+
 (: Γ/ : (HashTable -φ -φ) -Γ → -Γ)
 (define (Γ/ m Γ)
   (match-define (-Γ φs as γs) Γ)
@@ -158,6 +174,13 @@
              as)]
           [else (hash-set as x φₓ)]))
       (append γs₁ γs₂)))
+
+(: bnds->subst : -binding → (HashTable -φ -φ))
+;; Convert list of `param -> arg` to hashtable
+(define (bnds->subst bnd)
+  (match-define (-binding _ _ x->φ) bnd)
+  (for/hash : (HashTable -φ -φ) ([(x φ) x->φ])
+    (values (e->φ (-x x)) φ)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
