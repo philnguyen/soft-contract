@@ -12,8 +12,17 @@
 
 (struct exn:scv:smt:unsupported exn () #:transparent)
 
-(define base-datatypes : (Listof Sexp)
-  '(;; Unitype
+(: base-datatypes : (℘ Natural) → (Listof Sexp))
+(define (base-datatypes arities)
+  (define st-defs : (Listof Sexp)
+    (for/list ([n arities])
+      (define St_k (format-symbol "St_~a" n))
+      (define tag_k (format-symbol "tag_~a" n))
+      (define fields : (Listof Sexp)
+        (for/list ([i n]) `(,(format-symbol "field_~a_~a" n i) V)))
+      `(,St_k (,tag_k Int) ,@fields)))
+  
+  `(;; Unitype
     (declare-datatypes ()
       ((V ; TODO
         Null
@@ -22,7 +31,7 @@
         (Op [name Int])
         (Clo [arity Int] [id Int])
         ;; structs with hard-coded arities
-        #;(St [tag Int] [fields Int] [content (Array Int V)]))))
+        ,@st-defs)))
     ;; Result
     (declare-datatypes ()
      ((A
@@ -58,8 +67,9 @@
               (=> (and (is_int x) (is_int y)) (is_int (* x y)))))
     })
 
-(define SMT-base : (Listof Sexp)
-  `(,@base-datatypes
+(: SMT-base : (℘ Natural) → (Listof Sexp))
+(define (SMT-base struct-arities)
+  `(,@(base-datatypes struct-arities)
     ,@base-predicates))
 
 ;; SMT target language
@@ -75,20 +85,25 @@
   ;; - When the application goes wrong
   (HashTable App Res))
 
-(define ∅memo : Memo-Table (hash))
-
 (: encode : -M -Γ -e → (Values (Listof Sexp) Sexp))
 ;; Encode query `M Γ ⊢ e : (✓|✗|?)`,
 ;; spanning from `Γ, e`, only translating neccessary entries in `M`
 (define (encode M Γ e)
   (define-values (refs top-entry) (encode-e ∅eq Γ e))
   (let loop ([fronts : (℘ Defn-Entry) refs]
-             [seen : (℘ Defn-Entry) ∅]
+             [seen : (℘ Defn-Entry) refs]
              [def-prims : (℘ (Listof Sexp)) ∅]
-             [def-funs : Memo-Table ∅memo])
+             [def-funs : Memo-Table (hash)])
     (cond
       [(set-empty? fronts)
-       (emit def-prims def-funs top-entry)]
+       (define st-arities
+         (for/fold ([acc : (℘ Natural) ∅eq])
+                   ([entry seen])
+           (match entry
+             [(or (-st-mk s) (-st-p s) (-st-ac s _) (-st-mut s _)) #:when s
+              (set-add acc (-struct-info-arity s))]
+             [_ acc])))
+       (emit st-arities def-prims def-funs top-entry)]
       [else
        (define-values (fronts* seen* def-prims* def-funs*)
          (for/fold ([fronts* : (℘ Defn-Entry) ∅]
@@ -227,10 +242,10 @@
        t]
       [(-@ (? -o? o) es _)
        (define ts (map ⦃e⦄! es))
+       (refs-add! o)
        (cond
          [(o->pred o) => (λ ([f : ((Listof Term) → Term)]) (f ts))]
          [else
-          (refs-add! o)
           (define xₐ (fresh-free!))
           (assert-eval! `(,(⦃o⦄ o) ,@ts) `(Val ,xₐ))
           xₐ])]
@@ -273,9 +288,9 @@
 
   (values refs (Entry free-vars `(,@(reverse asserts-eval) ,@(reverse asserts-prop)) tₜₒₚ)))
 
-(: emit : (℘ (Listof Sexp)) Memo-Table Entry → (Values (Listof Sexp) Sexp))
+(: emit : (℘ Natural) (℘ (Listof Sexp)) Memo-Table Entry → (Values (Listof Sexp) Sexp))
 ;; Emit base and target to prove/refute
-(define (emit def-prims def-funs top)
+(define (emit struct-arities def-prims def-funs top)
   (match-define (Entry consts facts goal) top)
 
   (define emit-hack-for-is_int : (Listof Sexp)
@@ -327,7 +342,7 @@
   (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
   (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
 
-  (values `(,@SMT-base
+  (values `(,@(SMT-base struct-arities)
             ,@emit-def-prims
             ,@emit-hack-for-is_int
             ,@emit-dec-funs
@@ -371,10 +386,10 @@
 (: ⦃o⦄ : -o → Symbol)
 (define (⦃o⦄ o)
   (match o
-    [(-st-p s) (error "TODO")]
-    [(-st-mk s) (error "TODO")]
-    [(-st-ac s _) (error "TODO")]
-    [(-st-mut s _) (error "TODO")]
+    [(-st-p s) (st-p-name s)]
+    [(-st-mk s) (st-mk-name s)]
+    [(-st-ac s i) (st-ac-name s i)]
+    [(-st-mut s _) (error '⦃o⦄ "TODO: mutator for ~a" (st-name s))]
     [(? symbol? o)
      (format-symbol "o.~a" (string-replace (symbol->string o) "?" "_huh"))]))
 
@@ -390,6 +405,9 @@
     [(integer?)
      (λ ([ts : (Listof Term)])
        `(B (is-Z ,@ts)))]
+    [(procedure?)
+     (λ ([ts : (Listof Term)]) ; FIXME: prims also
+       `(B (is-Clo ,@ts)))]
     [(equal?)
      (λ ([ts : (Listof Term)])
        `(B (= ,@ts)))]
@@ -399,7 +417,15 @@
          [(list `(B (is_false ,t))) `(B (is_truish ,t))]
          [(list `(B (is_truish ,t))) `(B (is_false ,t))]
          [ts `(B (is_false ,@ts))]))]
-    [else #f]))
+    [else
+     (match o
+       [(-st-p s)
+        (match-define (-struct-info 𝒾 n _) s)
+        (define p (format-symbol "is-St_~a" n))
+        (define tag (format-symbol "tag_~a" n))
+        (λ ([ts : (Listof Term)])
+          `(B (and (,p ,@ts) (= (,tag ,@ts) ,(⦃struct-info⦄ s)))))]
+       [_ #f])]))
 
 (: def-o : -o → (Listof Sexp))
 (define (def-o o)
@@ -468,7 +494,33 @@
          (if (is-Clo x)
              (Val (N (arity x) 0))
              None))}]
-    [else (raise (exn:scv:smt:unsupported (format "Unsupported: ~a" o) (current-continuation-marks)))]))
+    [else
+     (match o
+       [(-st-p s)
+        (match-define (-struct-info _ n _) s)
+        (define is-St (format-symbol "is-St_~a" n))
+        (define tag (format-symbol "tag_~a" n))
+        `{(define-fun ,(st-p-name s) ((x V)) A
+            (Val (B (and (,is-St x) (= (,tag x) ,(⦃struct-info⦄ s))))))}]
+       [(-st-mk s)
+        (match-define (-struct-info _ n _) s)
+        (define params : (Listof Sexp) (for/list ([i n]) `(,(format-symbol "x~a" i) V)))
+        (define St (format-symbol "St_~a" n))
+        `{(define-fun ,(st-mk-name s) ,params A
+            (Val (,St ,(⦃struct-info⦄ s) ,@params)))}]
+       [(-st-ac s i)
+        (match-define (-struct-info _ n _) s)
+        (define is-St (format-symbol "is-St_~a" n))
+        (define field (format-symbol "field_~a_~a" n i))
+        (define tag (format-symbol "tag_~a" n))
+        `{(define-fun ,(st-ac-name s i) ((x V)) A
+            (if (and (,is-St x) (= (,tag x) ,(⦃struct-info⦄ s)))
+                (Val (,field x))
+                None))}]
+       [(-st-mut s _)
+        (error 'def-o "mutator for ~a" (st-name s))]
+       [_
+        (raise (exn:scv:smt:unsupported (format "Unsupported: ~a" o) (current-continuation-marks)))])]))
 
 (: lift-ℝ²-𝔹 : Symbol → (Listof Sexp))
 (define (lift-ℝ²-𝔹 o)
@@ -511,6 +563,11 @@
     ['() 'false]
     [(list x) x]
     [xs `(or ,@xs)]))
+
+(define (st-name [s : -struct-info]) : Symbol (-𝒾-name (-struct-info-id s)))
+(define (st-p-name [s : -struct-info]) : Symbol (format-symbol "st.~a?" (st-name s)))
+(define (st-mk-name [s : -struct-info]) : Symbol (format-symbol "st.~a" (st-name s)))
+(define (st-ac-name [s : -struct-info] [i : Natural]) : Symbol (format-symbol "st.~a_~a" (st-name s) i))
 
 (module+ test
   (require typed/rackunit)
