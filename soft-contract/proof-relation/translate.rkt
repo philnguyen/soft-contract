@@ -407,6 +407,16 @@
     [(not false?)
      '{(define-fun o.not ([x V]) A
          (Val (B (= x (B false)))))}]
+    [(add1)
+     '{(define-fun o.add1 ([x V]) A
+         (if (is-N x)
+             (Val (N (+ 1 (real x)) (imag x)))
+             None))}]
+    [(sub1)
+     '{(define-fun o.add1 ([x V]) A
+         (if (is-N x)
+             (Val (N (- (real x) 1) (imag x)))
+             None))}]
     [(+)
      '{(define-fun o.+ ([x V] [y V]) A
          (if (and (is-N x) (is-N y))
