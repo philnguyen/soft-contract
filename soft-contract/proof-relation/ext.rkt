@@ -68,5 +68,8 @@
        (with-output-to-string
          (λ ()
            (system (format "echo \"~a\" | z3 -T:~a -memory:1000 -in -smt2" query (Timeout))))))
-      (printf "query:~n~a~nget: ~a~n~n" query ans)))
+      (match ans
+        [(regexp #rx"^timeout")
+         (printf "query:~n~a~nget: ~a~n~n" query ans)]
+        [_ (void)])))
   (txt->result res))
