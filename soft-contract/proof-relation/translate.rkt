@@ -28,6 +28,9 @@
         Null
         (N [real Real] [imag Real])
         (B [unbox_B Bool])
+        (O [op Int])
+        (Sym [sym Int])
+        (Str [str Int])
         (Op [name Int])
         (Clo [arity Int] [id Int])
         ;; structs with hard-coded arities
@@ -230,6 +233,7 @@
        (define t (⦃𝒾⦄ 𝒾))
        (free-vars-add! t)
        t]
+      [(? -o? o) `(O ,(⦃o⦄ᵥ o))]
       [(-x x)
        (define t (⦃x⦄ x))
        (cond [(∋ bound x) t]
@@ -367,6 +371,8 @@
     [#f `(B false)]
     [#t `(B true)]
     [(? number? x) `(N ,(real-part x) ,(imag-part x))]
+    [(? symbol? s) `(Sym ,(⦃sym⦄ s))]
+    [(? string? s) `(Str ,(⦃str⦄ s))]
     [_ (error '⦃e⦄! "base value: ~a" b)]))
 
 (: ⦃𝒾⦄ : -𝒾 → Symbol)
@@ -392,6 +398,19 @@
     [(-st-mut s _) (error '⦃o⦄ "TODO: mutator for ~a" (st-name s))]
     [(? symbol? o)
      (format-symbol "o.~a" (string-replace (symbol->string o) "?" "_huh"))]))
+
+(: ⦃o⦄ᵥ : -o → Integer)
+(define ⦃o⦄ᵥ
+  (let ([m : (HashTable -o Integer) (make-hash)])
+    (λ (o) (hash-ref! m o (λ () (hash-count m))))))
+
+(define ⦃sym⦄ : (Symbol → Integer)
+  (let ([m : (HashTable Symbol Integer) (make-hasheq)])
+    (λ (s) (hash-ref! m s (λ () (hash-count m))))))
+
+(define ⦃str⦄ : (String → Integer)
+  (let ([m : (HashTable String Integer) (make-hash)])
+    (λ (s) (hash-ref! m s (λ () (hash-count m))))))
 
 (: o->pred : -o → (Option ((Listof Term) → Term)))
 (define (o->pred o)
