@@ -25,6 +25,7 @@
   `(;; Unitype
     (declare-datatypes ()
       ((V ; TODO
+        Undefined
         Null
         (N [real Real] [imag Real])
         (B [unbox_B Bool])
@@ -139,7 +140,7 @@
   (define-set refs : Defn-Entry)
   (define tₓs (map ⦃x⦄ xs))
   (define fₕ (fun-name τ xs))
-  (define tₐₚₚ `(,fₕ ,@tₓs))
+  (define tₐₚₚ (-tapp fₕ tₓs))
   (define bound (list->set xs))
   
   ;; Accumulate pair of formulas describing conditions for succeeding and erroring
@@ -211,7 +212,8 @@
     (define arity (length xs))
     (refs-add! (App τ xs))
     (assert-prop! `(exists ([id Int]) (= ,tₕ (Clo ,arity id))))
-    (assert-eval! `(,fₕ ,@tₓs) `(Val ,xₐ))
+    (define tₐₚₚ (-tapp fₕ tₓs))
+    (assert-eval! tₐₚₚ `(Val ,xₐ))
     xₐ)
 
   (: ⦃app⦄-err! : -τ -e (Listof Var-Name) (Listof -e) Mon-Party Mon-Party → Void)
@@ -251,7 +253,7 @@
          [(o->pred o) => (λ ([f : ((Listof Term) → Term)]) (f ts))]
          [else
           (define xₐ (fresh-free!))
-          (assert-eval! `(,(⦃o⦄ o) ,@ts) `(Val ,xₐ))
+          (assert-eval! (-tapp (⦃o⦄ o) ts) `(Val ,xₐ))
           xₐ])]
       [(-@ eₕ eₓs _)
        (or
@@ -283,11 +285,7 @@
 
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
   (for ([φ φs])
-    (define t (⦃e⦄! (φ->e φ)))
-    (match t
-      [`(B (is_false (B ,φ))) (assert-prop! `(not ,φ))]
-      [`(B ,φ) (assert-prop! φ)]
-      [_ (assert-prop! `(is_truish ,t))]))
+    (assert-prop! (tsimp (⦃e⦄! (φ->e φ)))))
   (define tₜₒₚ (⦃e⦄! e))
 
   (values refs (Entry free-vars `(,@(reverse asserts-eval) ,@(reverse asserts-prop)) tₜₒₚ)))
@@ -314,7 +312,7 @@
       (define n (length xs))
       (define tₓs (map ⦃x⦄ xs))
       (define fₕ (fun-name τ xs))
-      (define tₐₚₚ `(,fₕ ,@tₓs))
+      (define tₐₚₚ (-tapp fₕ tₓs))
       (match-define (Res oks ers) res)
 
       (: mk-cond : (Listof Entry) → (Listof Sexp))
@@ -332,15 +330,20 @@
       (define ok-conds (mk-cond oks))
       (define er-conds (mk-cond ers))
       (define params : (Listof Sexp) (for/list ([x tₓs]) `(,x V)))
+
+      (: assrt : (Listof Sexp) Sexp → Sexp)
+      (define (assrt params cnd)
+        `(assert
+          ,(cond
+             [(null? params) cnd]
+             [else `(forall ,params (! ,cnd :pattern ,tₐₚₚ))])))
       
       (values
        (cons `(declare-fun ,fₕ ,(make-list n 'V) A) decs)
        (list*
         ;; For each function, generate implications from returns and blames
-        `(assert (forall ,params (! (=> (is-Val ,tₐₚₚ) ,(-tor ok-conds))
-                                    :pattern (,tₐₚₚ))))
-        `(assert (forall ,params (! (=> (is-Blm ,tₐₚₚ) ,(-tor er-conds))
-                                    :pattern (,tₐₚₚ))))
+        (assrt params `(=> (is-Val ,tₐₚₚ) ,(-tor ok-conds)))
+        (assrt params `(=> (is-Blm ,tₐₚₚ) ,(-tor er-conds)))
         defs))))
 
   (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
@@ -373,6 +376,7 @@
     [(? number? x) `(N ,(real-part x) ,(imag-part x))]
     [(? symbol? s) `(Sym ,(⦃sym⦄ s))]
     [(? string? s) `(Str ,(⦃str⦄ s))]
+    [(list) `Null]
     [_ (error '⦃e⦄! "base value: ~a" b)]))
 
 (: ⦃𝒾⦄ : -𝒾 → Symbol)
@@ -380,8 +384,39 @@
 
 (: ⦃x⦄ : Var-Name → Symbol)
 (define (⦃x⦄ x)
+  
+  (: elim-sub/sup-scripts : String → String)
+  (define (elim-sub/sup-scripts s)
+
+    (: subst : Char → (Listof Char))
+    (define (subst c)
+      (case c
+        [(#\₀) '(#\_ #\_ #\0)]
+        [(#\₁) '(#\_ #\_ #\1)]
+        [(#\₂) '(#\_ #\_ #\2)]
+        [(#\₃) '(#\_ #\_ #\3)]
+        [(#\₄) '(#\_ #\_ #\4)]
+        [(#\₅) '(#\_ #\_ #\5)]
+        [(#\₆) '(#\_ #\_ #\6)]
+        [(#\₇) '(#\_ #\_ #\7)]
+        [(#\₈) '(#\_ #\_ #\8)]
+        [(#\₉) '(#\_ #\_ #\9)]
+        [(#\⁰) '(#\_ #\^ #\0)]
+        [(#\¹) '(#\_ #\^ #\1)]
+        [(#\²) '(#\_ #\^ #\2)]
+        [(#\³) '(#\_ #\^ #\3)]
+        [(#\⁴) '(#\_ #\^ #\4)]
+        [(#\⁵) '(#\_ #\^ #\5)]
+        [(#\⁶) '(#\_ #\^ #\6)]
+        [(#\⁷) '(#\_ #\^ #\7)]
+        [(#\⁸) '(#\_ #\^ #\8)]
+        [(#\⁹) '(#\_ #\^ #\9)]
+        [else (list c)]))
+
+    (list->string (append-map subst (string->list s))))
+
   (cond [(integer? x) (format-symbol "x.~a" x)]
-        [else x]))
+        [else (string->symbol (elim-sub/sup-scripts (symbol->string x)))]))
 
 (: fun-name : -τ (Listof Var-Name) → Symbol)
 (define fun-name
@@ -415,6 +450,9 @@
 (: o->pred : -o → (Option ((Listof Term) → Term)))
 (define (o->pred o)
   (case o
+    [(defined?)
+     (λ ([ts : (Listof Term)])
+       `(B (not (is-Undefined ,@ts))))]
     [(number?)
      (λ ([ts : (Listof Term)])
        `(B (is-N ,@ts)))]
@@ -424,6 +462,12 @@
     [(integer?)
      (λ ([ts : (Listof Term)])
        `(B (is-Z ,@ts)))]
+    [(symbol?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-Sym ,@ts)))]
+    [(string?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-Str ,@ts)))]
     [(procedure?)
      (λ ([ts : (Listof Term)]) ; FIXME: prims also
        `(B (is-Clo ,@ts)))]
@@ -449,6 +493,9 @@
 (: def-o : -o → (Listof Sexp))
 (define (def-o o)
   (case o
+    [(defined?)
+     '{(define-fun o.defined? ([x V]) A
+         (Val (B (not (= x Undefined)))))}]
     [(not false?)
      '{(define-fun o.not ([x V]) A
          (Val (B (= x (B false)))))}]
@@ -482,6 +529,19 @@
                      (+ (* (real x) (imag y))
                         (* (imag x) (real y)))))
              None))}]
+    [(/)
+     '{(define-fun o./ ([x V] [y V]) A
+         (if (and (is-N x) (is-N y))
+             (let ((a (real x))
+                   (b (imag x))
+                   (c (real y))
+                   (d (imag y)))
+               (let ((ccdd (+ (* c c) (* d d))))
+                 (if (= ccdd 0)
+                   None
+                   (Val (N (/ (+ (* a c) (* b d)) ccdd)
+                           (/ (- (* b c) (* a d)) ccdd))))))
+             None))}]
     [(=)
      '{(define-fun o.= ([x V] [y V]) A
          (if (and (is-N x) (is-N y))
@@ -497,6 +557,10 @@
      '{(define-fun o.real_huh ([x V]) A (Val (B (is-R x))))}]
     [(number?) ; TODO
      '{(define-fun o.number_huh ([x V]) A (Val (B (is-N x))))}]
+    [(symbol?)
+     '{(define-fun o.symbol_huh ([x V]) A (Val (B (is-Sym x))))}]
+    [(string?)
+     '{(define-fun o.string_huh ([x V]) A (Val (B (is-Str x))))}]
     [(null? empty?)
      '{(define-fun o.null_huh ([x V]) A
          (Val (B (= x Null))))}]
@@ -513,6 +577,17 @@
          (if (is-Clo x)
              (Val (N (arity x) 0))
              None))}]
+    [(string-length)
+     '{(declare-fun o.string-length (V) A)
+       (assert (forall ([x V])
+                       (! (iff (is-Str x)
+                               (exists ([n Int])
+                                       (and (= (o.string-length x) (Val (N n 0)))
+                                            (>= n 0))))
+                          :pattern (o.string-length x))))
+       (assert (forall ([x V])
+                       (! (iff (not (is-Str x)) (= (o.string-length x) None))
+                          :pattern (o.string-length x))))}]
     [else
      (match o
        [(-st-p s)
@@ -523,10 +598,14 @@
             (Val (B (and (,is-St x) (= (,tag x) ,(⦃struct-info⦄ s))))))}]
        [(-st-mk s)
         (match-define (-struct-info _ n _) s)
-        (define params : (Listof Sexp) (for/list ([i n]) `(,(format-symbol "x~a" i) V)))
+        (define-values (decs xs)
+          (for/lists ([decs : (Listof Sexp)] [xs : (Listof Symbol)])
+                     ([i n])
+            (define x (format-symbol "x~a" i))
+            (values `(,x V) x)))
         (define St (format-symbol "St_~a" n))
-        `{(define-fun ,(st-mk-name s) ,params A
-            (Val (,St ,(⦃struct-info⦄ s) ,@params)))}]
+        `{(define-fun ,(st-mk-name s) ,decs A
+            (Val (,St ,(⦃struct-info⦄ s) ,@xs)))}]
        [(-st-ac s i)
         (match-define (-struct-info _ n _) s)
         (define is-St (format-symbol "is-St_~a" n))
@@ -571,7 +650,7 @@
 
   (ormap go φs))
 
-(:* -tand -tor : (Listof Sexp) → Sexp)
+(:* -tand -tor : (Listof Term) → Term)
 (define -tand
   (match-lambda
     ['() 'true]
@@ -582,6 +661,17 @@
     ['() 'false]
     [(list x) x]
     [xs `(or ,@xs)]))
+
+(: -tapp : Term (Listof Term) → Term)
+(define (-tapp f xs) (if (null? xs) f `(,f ,@xs)))
+
+(: tsimp : Term → Sexp)
+(define (tsimp t)
+  (match t
+    [`(B (is_false (B ,φ))) `(not ,φ)]
+    [`(B (is_truish (B ,φ))) φ]
+    [`(B ,φ) φ]
+    [_ `(is_truish ,t)]))
 
 (define (st-name [s : -struct-info]) : Symbol (-𝒾-name (-struct-info-id s)))
 (define (st-p-name [s : -struct-info]) : Symbol (format-symbol "st.~a?" (st-name s)))
