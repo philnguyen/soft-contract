@@ -286,20 +286,14 @@
               [(✓)   #f]
               [(✗ ?) #t]))]
          [(-● ps)
-          (define qs
-            (for/fold ([acc : (℘ -o) ∅])
-                      ([φ φs])
-              (match (φ->e φ)
-                [(-@ (? -o? o) (list (== s)) _) (set-add acc o)]
-                [_ acc])))
-          (not (for/or : Boolean ([p ps] [q qs])
-                 (eq? '✗ (p⇒p p q))))]
+          (not (for/or : Boolean ([p ps])
+                 (equal? '✗ (φs⊢e φs (-@ p (list s) 0)))))]
          [_ #t])]
       [else #t]))
   
   ;; order matters for precision, in the presence of subtypes
   (with-debugging/off ((ans) (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
-    (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-e) (show-V V) (show-s s) ans)))
+    (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-φ) (show-V V) (show-s s) ans)))
 
 (: ⊢V : -V → -R)
 ;; Check if value represents truth
