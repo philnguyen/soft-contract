@@ -33,9 +33,9 @@
         (Sym [sym Int])
         (Str [str Int])
         (Clo [arity Int] [id Int])
-        (AndC [conj_l V] [conj_r V])
-        (OrC [disj_l V] [disj_r V])
-        (NotC [neg V])
+        (And/C [conj_l V] [conj_r V])
+        (Or/C [disj_l V] [disj_r V])
+        (Not/C [neg V])
         ;; structs with hard-coded arities
         ,@st-defs)))
     ;; Result
@@ -442,8 +442,7 @@
     [(-st-mk s) (st-mk-name s)]
     [(-st-ac s i) (st-ac-name s i)]
     [(-st-mut s _) (error '⦃o⦄ "TODO: mutator for ~a" (st-name s))]
-    [(? symbol? o)
-     (format-symbol "o.~a" (string-replace (symbol->string o) "?" "_huh"))]))
+    [(? symbol? o) (format-symbol "o.~a" o)]))
 
 (: ⦃o⦄ᵥ : -o → Integer)
 (define ⦃o⦄ᵥ
@@ -560,26 +559,26 @@
              None))}]
     [(> < >= <=) (lift-ℝ²-𝔹 (assert o symbol?))]
     [(equal?)
-     '{(define-fun o.equal_huh ([x V] [y V]) A
+     '{(define-fun o.equal? ([x V] [y V]) A
          (Val (B (= x y))))}]
     [(integer?)
-     '{(define-fun o.integer_huh ([x V]) A (Val (B (is-Z x))))}]
+     '{(define-fun o.integer? ([x V]) A (Val (B (is-Z x))))}]
     [(real?)
-     '{(define-fun o.real_huh ([x V]) A (Val (B (is-R x))))}]
+     '{(define-fun o.real? ([x V]) A (Val (B (is-R x))))}]
     [(number?) ; TODO
-     '{(define-fun o.number_huh ([x V]) A (Val (B (is-N x))))}]
+     '{(define-fun o.number? ([x V]) A (Val (B (is-N x))))}]
     [(symbol?)
-     '{(define-fun o.symbol_huh ([x V]) A (Val (B (is-Sym x))))}]
+     '{(define-fun o.symbol? ([x V]) A (Val (B (is-Sym x))))}]
     [(string?)
-     '{(define-fun o.string_huh ([x V]) A (Val (B (is-Str x))))}]
+     '{(define-fun o.string? ([x V]) A (Val (B (is-Str x))))}]
     [(null? empty?)
-     '{(define-fun o.null_huh ([x V]) A
+     '{(define-fun o.null? ([x V]) A
          (Val (B (= x Null))))}]
     [(procedure?)
-     '{(define-fun o.procedure_huh ([x V]) A
+     '{(define-fun o.procedure? ([x V]) A
          (Val (B (is_proc x))))}]
     [(arity-includes?)
-     '{(define-fun o.arity-includes_huh ([a V] [i V]) A
+     '{(define-fun o.arity-includes? ([a V] [i V]) A
          (if (and (#|TODO|# is-Z a) (is-Z i))
              (Val (B (= a i)))
              None))}]
@@ -600,11 +599,11 @@
                        (! (iff (not (is-Str x)) (= (o.string-length x) None))
                           :pattern (o.string-length x))))}]
     [(and/c)
-     '{(define-fun o.and/c ([l V] [r V]) A (Val (AndC l r)))}]
+     '{(define-fun o.and/c ([l V] [r V]) A (Val (And/C l r)))}]
     [(or/c)
-     '{(define-fun o.or/c ([l V] [r V]) A (Val (OrC l r)))}]
+     '{(define-fun o.or/c ([l V] [r V]) A (Val (Or/C l r)))}]
     [(not/c)
-     '{(define-fun o.not/c ([c V]) A (Val (NotC c)))}]
+     '{(define-fun o.not/c ([c V]) A (Val (Not/C c)))}]
     [else
      (match o
        [(-st-p s)
@@ -653,7 +652,7 @@
 
 (: should-include-hack-for-is_int? : (Listof Sexp) → Boolean)
 (define (should-include-hack-for-is_int? φs)
-  (and (has-op? φs 'o.integer_huh)
+  (and (has-op? φs 'o.integer?)
        (for/or : Boolean ([o (in-list '(o.+ o.- o.*))])
          (has-op? φs o))))
 
