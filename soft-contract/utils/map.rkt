@@ -108,4 +108,4 @@
      data
      (λ ([x₁ : (Pairof Any Integer)] [x₂ : (Pairof Any Integer)])
        (> (cdr x₁) (cdr x₂)))))
-  (take data* (min (length data*) 10)))
+  (take data* (min (length data*) 20)))

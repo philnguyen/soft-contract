@@ -23,8 +23,9 @@
 
 (: φs↓ : (℘ -φ) (℘ Var-Name) → (℘ -φ))
 (define (φs↓ φs xs)
-  (for*/set: : (℘ -φ) ([φ φs] [φ* (in-value (φ↓ φ xs))] #:when φ*)
-    φ*))
+  (for*/seteq: : (℘ -φ) ([φ φs]
+                         [φ* (in-value (φ↓ φ xs))] #:when φ*)
+     φ*))
 
 (: Γ↓ : -Γ (℘ Var-Name) → -Γ)
 ;; Restrict path-condition to given free variables
@@ -95,7 +96,7 @@
     (for/seteq: : (℘ -φ) ([φ φs])
       (φ/map m φ)))
   (define as*
-    (for/hash : (HashTable Var-Name -φ) ([(x φ) (in-hash as)])
+    (for/hasheq : (HashTable Var-Name -φ) ([(x φ) (in-hash as)])
       (values x (φ/map m φ))))
   (define γs* (for/list : (Listof -γ) ([γ γs]) (γ/ m γ)))
   (-Γ φs* as* γs*))
@@ -137,7 +138,7 @@
 (define (invalidate Γ x)
   (match-define (-Γ φs as γs) Γ)
   (define φs*
-    (for/set: : (℘ -φ) ([φ φs] #:unless (∋ (fv-φ φ) x))
+    (for/seteq: : (℘ -φ) ([φ φs] #:unless (∋ (fv-φ φ) x))
       φ))
   (define as*
     (for/hasheq : (HashTable Var-Name -φ) ([(z φ) as]

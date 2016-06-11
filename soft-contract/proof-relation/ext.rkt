@@ -20,11 +20,16 @@
 
 (: ext-prove : -M -Γ -e → -R)
 (define (ext-prove M Γ e)
-  (define-values (base goal) (encode M Γ e))
-  (match/values (check-sat base goal)
-    [('Unsat _) '✓]
-    [(_ 'Unsat) '✗]
-    [(_ _) '?]))
+  (define t₀ (current-milliseconds))
+  (with-debugging/off
+    ((ans)
+     (define-values (base goal) (encode M Γ e))
+     (match/values (check-sat base goal)
+       [('Unsat _) '✓]
+       [(_ 'Unsat) '✗]
+       [(_ _) '?]))
+    (define δt (- (current-milliseconds) t₀))
+    (accum-data! (list Γ e ans) δt)))
 
 (: Γ-plausible? : -M -Γ → Boolean)
 (define (Γ-plausible? M Γ)
@@ -61,15 +66,19 @@
   (define query
     (string-join (for/list : (Listof String) ([stm stms]) (format "~a" stm))
                  "\n"))
-  
+
+  ;(define t₀ (current-milliseconds))
   (define res
-    (with-debugging
+    (with-debugging/off
       ((ans)
        (with-output-to-string
          (λ ()
            (system (format "echo \"~a\" | z3 -T:~a -memory:1000 -in -smt2" query (Timeout))))))
       (match ans
-        [(regexp #rx"^timeout")
-         (printf "query:~n~a~nget: ~a~n~n" query ans)]
-        [_ (void)])))
+          [_ ;(regexp #rx"^timeout")
+           (printf "query:~n~a~nget: ~a~n~n" query ans)]
+          [_ (void)])
+      #;(begin
+        (define δt (- (current-milliseconds) t₀))
+        (accum-data! query δt))))
   (txt->result res))

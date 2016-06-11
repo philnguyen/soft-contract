@@ -34,6 +34,9 @@
         (Str [str Int])
         (Op [name Int])
         (Clo [arity Int] [id Int])
+        (AndC [conj_l V] [conj_r V])
+        (OrC [disj_l V] [disj_r V])
+        (NotC [neg V])
         ;; structs with hard-coded arities
         ,@st-defs)))
     ;; Result
@@ -255,6 +258,16 @@
           (define xₐ (fresh-free!))
           (assert-eval! (-tapp (⦃o⦄ o) ts) `(Val ,xₐ))
           xₐ])]
+      [(-@ (-@ 'and/c ps _) es _)
+       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (define φ (-tand (for/list ([t ts]) `(is_truish ,t))))
+       `(B ,φ)]
+      [(-@ (-@ 'or/c ps _) es _)
+       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (define φ (-tor (for/list ([t ts]) `(is_truish ,t))))
+       `(B ,φ)]
+      [(-@ (-@ 'not/c (list p) _) es _)
+       `(B (is_false ,(⦃e⦄! (-@ p es 0))))]
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option Term) ([γ γs])
@@ -588,6 +601,12 @@
        (assert (forall ([x V])
                        (! (iff (not (is-Str x)) (= (o.string-length x) None))
                           :pattern (o.string-length x))))}]
+    [(and/c)
+     '{(define-fun o.and/c ([l V] [r V]) A (Val (AndC l r)))}]
+    [(or/c)
+     '{(define-fun o.or/c ([l V] [r V]) A (Val (OrC l r)))}]
+    [(not/c)
+     '{(define-fun o.not/c ([c V]) A (Val (NotC c)))}]
     [else
      (match o
        [(-st-p s)
