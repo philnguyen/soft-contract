@@ -32,7 +32,6 @@
         (O [op Int])
         (Sym [sym Int])
         (Str [str Int])
-        (Op [name Int])
         (Clo [arity Int] [id Int])
         (AndC [conj_l V] [conj_r V])
         (OrC [disj_l V] [disj_r V])
@@ -54,8 +53,7 @@
     (define-fun is_truish ([x V]) Bool
       (not (is_false x)))
     (define-fun is_proc ([x V]) Bool
-      (or (exists ((n Int)) (= x (Op n)))
-          (exists ((n Int) (id Int)) (= x (Clo n id)))))
+      (or (is-O x) (is-Clo x)))
     (define-fun has_arity ((x V) (n Int)) Bool
       ;; TODO primitives too
       (exists ((id Int)) (= x (Clo n id))))
@@ -246,7 +244,7 @@
       [(-λ (? list? xs) e)
        (define n (length xs))
        (define t (fresh-free!))
-       (assert-prop! `(is-Clo ,t))
+       (assert-prop! `(is_proc ,t))
        (assert-prop! `(= (arity ,t) ,(length xs)))
        t]
       [(-@ (? -o? o) es _)
@@ -482,8 +480,8 @@
      (λ ([ts : (Listof Term)])
        `(B (is-Str ,@ts)))]
     [(procedure?)
-     (λ ([ts : (Listof Term)]) ; FIXME: prims also
-       `(B (is-Clo ,@ts)))]
+     (λ ([ts : (Listof Term)])
+       `(B (is_proc ,@ts)))]
     [(equal?)
      (λ ([ts : (Listof Term)])
        `(B (= ,@ts)))]
@@ -579,7 +577,7 @@
          (Val (B (= x Null))))}]
     [(procedure?)
      '{(define-fun o.procedure_huh ([x V]) A
-         (Val (B (or (is-Op x) (is-Clo x)))))}]
+         (Val (B (is_proc x))))}]
     [(arity-includes?)
      '{(define-fun o.arity-includes_huh ([a V] [i V]) A
          (if (and (#|TODO|# is-Z a) (is-Z i))
@@ -587,7 +585,7 @@
              None))}]
     [(procedure-arity)
      '{(define-fun o.procedure-arity ([x V]) A
-         (if (is-Clo x)
+         (if (is_proc x)
              (Val (N (arity x) 0))
              None))}]
     [(string-length)
