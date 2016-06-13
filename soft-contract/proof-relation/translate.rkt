@@ -604,6 +604,12 @@
      '{(define-fun o.or/c ([l V] [r V]) A (Val (Or/C l r)))}]
     [(not/c)
      '{(define-fun o.not/c ([c V]) A (Val (Not/C c)))}]
+    [(exact?)
+     '{(declare-fun o.exact? (V) A)
+       (assert (forall ([x V]) (exists ([b Bool]) (= (o.exact? x) (Val (B b))))))}]
+    [(inexact?)
+     '{(declare-fun o.inexact? (V) A)
+       (assert (forall ([x V]) (exists ([b Bool]) (= (o.inexact? x) (Val (B b))))))}]
     [else
      (match o
        [(-st-p s)
