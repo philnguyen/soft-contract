@@ -84,16 +84,16 @@
 
   ;(define t₀ (current-milliseconds))
   (define res
-    (with-debugging/off
+    (with-debugging
       ((ans)
        (with-output-to-string
          (λ ()
            (system (format "echo \"~a\" | z3 -T:~a -memory:1000 -in -smt2" query (Timeout))))))
-      #;(match ans
-          [_ ;(regexp #rx"^timeout")
+      (match ans
+          [(regexp #rx"^timeout")
            (printf "query:~n~a~nget: ~a~n~n" query ans)]
           [_ (void)])
-      (begin
+      #;(begin
         (define δt (- (current-milliseconds) t₀))
         (accum-data! query δt))))
   (txt->result res))

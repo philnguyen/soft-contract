@@ -32,10 +32,13 @@
         (O [op Int])
         (Sym [sym Int])
         (Str [str Int])
-        (Clo [arity Int] [id Int])
+        (Clo [arity Int] [clo_id Int])
         (And/C [conj_l V] [conj_r V])
         (Or/C [disj_l V] [disj_r V])
         (Not/C [neg V])
+        (Arr [unbox_Arr Int])
+        (ArrD [unbox_ArrD Int])
+        (Vec [unbox_Vec Int])
         ;; structs with hard-coded arities
         ,@st-defs)))
     ;; Result
@@ -56,7 +59,7 @@
       (or (is-O x) (is-Clo x)))
     (define-fun has_arity ((x V) (n Int)) Bool
       ;; TODO primitives too
-      (exists ((id Int)) (= x (Clo n id))))
+      (exists ((i Int)) (= x (Clo n i))))
     (define-fun is-R ([x V]) Bool
       (and (is-N x) (= 0 (imag x))))
     (define-fun is-Z ([x V]) Bool
@@ -107,6 +110,8 @@
            (match entry
              [(or (-st-mk s) (-st-p s) (-st-ac s _) (-st-mut s _)) #:when s
               (set-add acc (-struct-info-arity s))]
+             [(or 'list? 'list-ref 'map)
+              (set-add acc 2)]
              [_ acc])))
        (emit st-arities def-prims def-funs top-entry)]
       [else
@@ -212,7 +217,7 @@
     (define xₐ (fresh-free!))
     (define arity (length xs))
     (refs-add! (App τ xs))
-    (assert-prop! `(exists ([id Int]) (= ,tₕ (Clo ,arity id))))
+    (assert-prop! `(exists ([i Int]) (= ,tₕ (Clo ,arity i))))
     (define tₐₚₚ (-tapp fₕ tₓs))
     (assert-eval! tₐₚₚ `(Val ,xₐ))
     xₐ)
@@ -225,7 +230,7 @@
     (define fₕ (fun-name τ xs))
     (define arity (length xs))
     (refs-add! (App τ xs))
-    (assert-eval! `(,fₕ ,@tₓs) `(Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))))
+    (assert-eval! (-tapp fₕ tₓs) `(Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))))
 
   ;; encode the fact that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : Term
@@ -247,15 +252,8 @@
        (assert-prop! `(is_proc ,t))
        (assert-prop! `(= (arity ,t) ,(length xs)))
        t]
-      [(-@ (? -o? o) es _)
-       (define ts (map ⦃e⦄! es))
-       (refs-add! o)
-       (cond
-         [(o->pred o) => (λ ([f : ((Listof Term) → Term)]) (f ts))]
-         [else
-          (define xₐ (fresh-free!))
-          (assert-eval! (-tapp (⦃o⦄ o) ts) `(Val ,xₐ))
-          xₐ])]
+      
+      ;; Hacks for special applications go here
       [(-@ (-@ 'and/c ps _) es _)
        (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
        (define φ (-tand (for/list ([t ts]) `(is_truish ,t))))
@@ -266,6 +264,28 @@
        `(B ,φ)]
       [(-@ (-@ 'not/c (list p) _) es _)
        `(B (is_false ,(⦃e⦄! (-@ p es 0))))]
+      [(-@ 'list es _)
+       (define ts (map ⦃e⦄! es))
+       (foldr
+        (λ ([tₗ : Term] [tᵣ : Term])
+          (refs-add! -cons)
+          (define tₚ (fresh-free!))
+          (assert-eval! (-tapp (⦃o⦄ -cons) (list tₗ tᵣ)) `(Val ,tₚ))
+          tₚ)
+        'Null
+        ts)]
+      ;; End of hacks for special applications
+      
+      [(-@ (? -o? o) es _)
+       (define ts (map ⦃e⦄! es))
+       (refs-add! o)
+       (cond
+         [(o->pred o) => (λ ([f : ((Listof Term) → Term)]) (f ts))]
+         [else
+          (define xₐ (fresh-free!))
+          (assert-eval! (-tapp (⦃o⦄ o) ts) `(Val ,xₐ))
+          xₐ])]
+      
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option Term) ([γ γs])
@@ -281,6 +301,14 @@
                     (match-define (-γ _ bnd _) γ)
                     (show-s (binding->s bnd))))
           (fresh-free!)))]
+      [(? -->?)
+       (define t (fresh-free!))
+       (assert-prop! `(is-Arr ,t))
+       t]
+      [(? -->i?)
+       (define t (fresh-free!))
+       (assert-prop! `(is-ArrD ,t))
+       t]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
 
   (: ⦃γ⦄! : -γ → Void)
@@ -481,6 +509,12 @@
     [(procedure?)
      (λ ([ts : (Listof Term)])
        `(B (is_proc ,@ts)))]
+    [(boolean?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-B ,@ts)))]
+    [(vector?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-Vec ,@ts)))]
     [(equal?)
      (λ ([ts : (Listof Term)])
        `(B (= ,@ts)))]
@@ -509,13 +543,19 @@
     [(not false?)
      '{(define-fun o.not ([x V]) A
          (Val (B (= x (B false)))))}]
+    [(boolean?)
+     '{(define-fun o.boolean? ([x V]) A
+         (Val (B (is-B x))))}]
+    [(vector?)
+     '{(define-fun o.vector? ([x V]) A
+         (Val (B (is-Vec x))))}]
     [(add1)
      '{(define-fun o.add1 ([x V]) A
          (if (is-N x)
              (Val (N (+ 1 (real x)) (imag x)))
              None))}]
     [(sub1)
-     '{(define-fun o.add1 ([x V]) A
+     '{(define-fun o.sub1 ([x V]) A
          (if (is-N x)
              (Val (N (- (real x) 1) (imag x)))
              None))}]
@@ -577,6 +617,22 @@
     [(procedure?)
      '{(define-fun o.procedure? ([x V]) A
          (Val (B (is_proc x))))}]
+    [(list?)
+     `{(declare-fun is_list (V) Bool)
+       (assert (is_list Null))
+       (assert (forall ([h V] [t V])
+                       (=> (is_list t)
+                           (is_list (St_2 ,(⦃struct-info⦄ -s-cons) h t)))))
+       (define-fun o.list? ([x V]) A
+         (Val (B (is_list x))))}]
+    [(map)
+     `{(declare-fun o.map (V V) A)
+       (assert (forall ([f V]) (= (o.map f Null) (Val Null))))
+       (assert (forall ([f V] [h V] [t V] [a V] [fa V])
+                       (=> (= (o.map f t) (Val fa)) ; FIXME: need (f h) to terminate
+                           (exists ([b V])
+                                   (= (o.map f (St_2 ,(⦃struct-info⦄ -s-cons) h t))
+                                      (Val (St_2 ,(⦃struct-info⦄ -s-cons) b fa)))))))}]
     [(arity-includes?)
      '{(define-fun o.arity-includes? ([a V] [i V]) A
          (if (and (#|TODO|# is-Z a) (is-Z i))
@@ -610,6 +666,22 @@
     [(inexact?)
      '{(declare-fun o.inexact? (V) A)
        (assert (forall ([x V]) (exists ([b Bool]) (= (o.inexact? x) (Val (B b))))))}]
+    [(vector-length)
+     '{(declare-fun o.vector-length (V) A)
+       (assert (forall ([x V])
+                 (= (is-Vec x)
+                    (exists ([n Int])
+                            (and (>= n 0)
+                                 (= (o.vector-length x) (Val (N n 0))))))))
+       (assert (forall ([x V]) (= (not (is-Vec x)) (= (o.vector-length x) None))))}]
+    [(vector-ref)
+     '{(declare-fun o.vector-ref (V V) A)
+       (assert (forall ([v V] [i V])
+                 (= (and (is-Vec v) (is-Z i)) ; TODO bound
+                    (exists ([a V]) (= (o.vector-ref v i) (Val a))))))
+       (assert (forall ([v V] [i V])
+                 (= (not (and (is-Vec v) (is-Z i))) ; TODO bound
+                    (= (o.vector-ref v i) None))))}]
     [else
      (match o
        [(-st-p s)
