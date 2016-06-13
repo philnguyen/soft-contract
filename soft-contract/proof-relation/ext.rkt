@@ -28,8 +28,23 @@
        [('Unsat _) '✓]
        [(_ 'Unsat) '✗]
        [(_ _) '?]))
-    (define δt (- (current-milliseconds) t₀))
-    (accum-data! (list Γ e ans) δt)))
+    #;(begin ; manual profiling
+      (define δt (- (current-milliseconds) t₀))
+      (accum-data! (list Γ e ans) δt))
+    #;(begin
+      (match-define (-Γ φs _ γs) Γ)
+      (define-values (base goal) (encode M Γ e))
+      (for ([φ φs]) (printf "~a~n" (show-φ φ)))
+      (for ([γ γs])
+        (match-define (-γ _ bnd blm?) γ)
+        (printf "~a  blm? : ~a~n" (show-binding bnd) blm?))
+      (printf "-----------------------------------------~a~n" ans)
+      (printf "~a~n~n" (show-e e))
+      (printf "Translation:~n")
+      (for ([stm base]) (printf "~a~n" stm))
+      (printf "=========================================~n")
+      (printf "~a~n~n" goal))
+    ))
 
 (: Γ-plausible? : -M -Γ → Boolean)
 (define (Γ-plausible? M Γ)
@@ -52,8 +67,8 @@
                            (assert (is_truish ,goal))
                            (check-sat))))]))
 
-(: call : (Listof Sexp) → Sat-Result)
-(define (call stms)
+;(: call : (Listof Sexp) → Sat-Result)
+(define/memo (call [stms : (Listof Sexp)]) : Sat-Result
   
   (: txt->result : String → Sat-Result)
   (define/match (txt->result s)
@@ -74,11 +89,11 @@
        (with-output-to-string
          (λ ()
            (system (format "echo \"~a\" | z3 -T:~a -memory:1000 -in -smt2" query (Timeout))))))
-      (match ans
+      #;(match ans
           [_ ;(regexp #rx"^timeout")
            (printf "query:~n~a~nget: ~a~n~n" query ans)]
           [_ (void)])
-      #;(begin
+      (begin
         (define δt (- (current-milliseconds) t₀))
         (accum-data! query δt))))
   (txt->result res))
