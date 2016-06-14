@@ -549,6 +549,8 @@
 (: def-o : -o → (Listof Sexp))
 (define (def-o o)
   (case o
+    [(any/c) `{(define-fun o.any/c ([x V]) A (Val (B true)))}]
+    [(none/c) '{(define-fun o.none/c ([x V]) A (Val (B false)))}]
     [(defined?)
      '{(define-fun o.defined? ([x V]) A
          (Val (B (not (= x Undefined)))))}]
