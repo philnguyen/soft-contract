@@ -633,6 +633,13 @@
                            (exists ([b V])
                                    (= (o.map f (St_2 ,(⦃struct-info⦄ -s-cons) h t))
                                       (Val (St_2 ,(⦃struct-info⦄ -s-cons) b fa)))))))}]
+    [(append)
+     `{(declare-fun o.append (V V) A)
+       (assert (forall ([r V]) (= (o.append Null r) (Val r))))
+       (assert (forall ([h V] [t V] [r V] [tr V])
+                       (=> (= (o.append t r) (Val tr))
+                           (= (o.append (St_2 ,(⦃struct-info⦄ -s-cons) h t) r)
+                              (Val (St_2 ,(⦃struct-info⦄ -s-cons) h tr))))))}]
     [(arity-includes?)
      '{(define-fun o.arity-includes? ([a V] [i V]) A
          (if (and (#|TODO|# is-Z a) (is-Z i))

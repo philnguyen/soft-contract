@@ -6,6 +6,7 @@
          racket/port
          racket/system
          racket/string
+         racket/file
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
@@ -14,7 +15,7 @@
 
 ;; Max seconds per query
 ;; TODO: possible to have something deterministic instead?
-(define-parameter Timeout : Natural 2)
+(define-parameter Timeout : Natural 1)
 
 (Sat-Result . ::= . 'Unsat 'Sat 'Unknown 'Timeout)
 
@@ -67,8 +68,16 @@
                            (assert (is_truish ,goal))
                            (check-sat))))]))
 
+
+(define QUERY-FILE : Path (make-temporary-file "scv-z3-~a.smt2"))
+
 ;(: call : (Listof Sexp) → Sat-Result)
 (define/memo (call [stms : (Listof Sexp)]) : Sat-Result
+
+  (define (display-query)
+    (string-join
+     (for/list : (Listof String) ([stm stms]) (format "~a" stm))
+     "\n"))
   
   (: txt->result : String → Sat-Result)
   (define/match (txt->result s)
@@ -76,22 +85,20 @@
     [((regexp #rx"^sat(.*)")) 'Sat]
     [((regexp #rx"^unknown")) 'Unknown]
     [((regexp #rx"^timeout")) 'Timeout]
-    [(str) (error 'check-sat "unexpected output from solver: ~a~nquery:~n~a~n" str query)])
-
-  (define query
-    (string-join (for/list : (Listof String) ([stm stms]) (format "~a" stm))
-                 "\n"))
+    [(str) (error 'check-sat "unexpected output from solver: ~a~nquery:~n~a~n"
+                  str (display-query))])
 
   ;(define t₀ (current-milliseconds))
   (define res
-    (with-debugging
+    (with-debugging/off
       ((ans)
        (with-output-to-string
          (λ ()
-           (system (format "echo \"~a\" | z3 -T:~a -memory:1000 -in -smt2" query (Timeout))))))
+           (display-lines-to-file stms QUERY-FILE #:exists 'replace)
+           (system (format "z3 -T:~a -memory:2000 -smt2 ~a" (Timeout) QUERY-FILE)))))
       (match ans
           [(regexp #rx"^timeout")
-           (printf "query:~n~a~nget: ~a~n~n" query ans)]
+           (printf "query:~n~a~nget: ~a~n~n" (display-query) ans)]
           [_ (void)])
       #;(begin
         (define δt (- (current-milliseconds) t₀))
