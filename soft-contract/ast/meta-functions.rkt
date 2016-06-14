@@ -611,7 +611,7 @@
         φ)))
 
   (match e
-    [_ #:when (set-empty? (fv e))
+    [_ #:when (and (set-empty? (fv e)) (set-empty? (free-x/c e)))
      (with-m (m) e)]
     [(-λ xs e*)
      (define ⦇e*⦈ (e->φ e*))
@@ -771,3 +771,4 @@
 (define -⦇ff⦈ (e->φ -ff))
 (define -⦇values⦈ (e->φ 'values))
 (define -⦇fc⦈ (e->φ 'fc))
+
