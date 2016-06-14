@@ -285,6 +285,8 @@
             (case (φs⊢e φs (-?@ p s))
               [(✓)   #f]
               [(✗ ?) #t]))]
+         [(-b (list))
+          (plausible-φs-s? φs (-?@ 'null? s))]
          [(-● ps)
           (not (for/or : Boolean ([p ps])
                  (equal? '✗ (φs⊢e φs (-@ p (list s) 0)))))]
@@ -301,7 +303,7 @@
   (match-lambda
     [(-b #f) '✗]
     [(-● ps)
-     (or (for*/or : (U #f '✓ '✗) ([p ps])
+     (or (for/or : (U #f '✓ '✗) ([p ps])
            (case (p⇒p p 'not)
              [(✓) '✗]
              [(✗) '✓]

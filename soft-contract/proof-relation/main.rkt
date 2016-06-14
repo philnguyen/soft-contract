@@ -38,12 +38,23 @@
 (: MΓ⊢s : -M -Γ -s → -R)
 ;; Check if `s` is provable in `Γ`
 (define (MΓ⊢s M Γ s)
-  (cond
-    [s
-     (match (φs⊢e (-Γ-facts Γ) s)
-       ['? (ext-prove M Γ s)]
-       [R R])]
-    [else '?]))
+  (with-debugging/off
+    ((R)
+     (cond
+       [s
+        (match (φs⊢e (-Γ-facts Γ) s)
+          ['? (ext-prove M Γ s)]
+          [R R])]
+       [else '?]))
+    (when s
+      (match-define (-Γ φs _ γs) Γ)
+      (for ([φ φs]) (printf "~a~n" (show-φ φ)))
+      (for ([γ γs])
+        (match-define (-γ _ bnd blm?) γ)
+        (printf "~a ; blm?~a~n" (show-binding bnd) (and blm? #t))
+        (printf "-----------------------------------------~a~n" R)
+        (printf "~a~n~n" (show-e s))))
+    ))
 
 (: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
