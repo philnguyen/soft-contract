@@ -159,13 +159,16 @@
              (for ([(y i) (in-indexed ys)])
                (printf "      ↦~a~a ~a~n" (n-sup (add1 i)) (n-sub n) (show-y y)))))
 
-         ;((inst show-m -α -V) 'δσ show-α show-V δσ #:filter (λ (α) (not (or (-α.def? α) (-α.wrp? α) (-e? α)))))
-         ;((inst show-m -τ -A) 'δM show-τ show-A δM)
-         ;((inst show-m -τ -ℛ) 'δΞ show-τ show-ℛ δΞ)
+         #;(begin ; print global table deltas
+           ((inst show-m -α -V) 'δσ show-α show-V δσ #:filter (λ (α) (not (or (-α.def? α) (-α.wrp? α) (-e? α)))))
+           ((inst show-m -τ -A) 'δM show-τ show-A δM)
+           ((inst show-m -τ -ℛ) 'δΞ show-τ show-ℛ δΞ))
+         
          (let* ([now (current-seconds)]
                 [δ (- now last)])
            (set! last now)
            (printf "time: ~as~n" δ))
+         
          #;(match (read) ; interactive
            ['done (error "done")]
            [(? exact-nonnegative-integer? i)
