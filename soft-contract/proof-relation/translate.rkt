@@ -18,8 +18,7 @@
     (for/list ([n arities])
       (define St_k (format-symbol "St_~a" n))
       (define tag_k (format-symbol "tag_~a" n))
-      (define fields : (Listof Sexp)
-        (for/list ([i n]) `(,(format-symbol "field_~a_~a" n i) V)))
+      (define fields : (Listof Sexp) (for/list ([i n]) `(,(format-symbol "field_~a_~a" n i) V)))
       `(,St_k (,tag_k Int) ,@fields)))
   
   `(;; Unitype
@@ -36,6 +35,7 @@
         (And/C [conj_l V] [conj_r V])
         (Or/C [disj_l V] [disj_r V])
         (Not/C [neg V])
+        (St/C [unbox_st/c Int])
         (Arr [unbox_Arr Int])
         (ArrD [unbox_ArrD Int])
         (Vec [unbox_Vec Int])
@@ -264,6 +264,14 @@
        `(B ,φ)]
       [(-@ (-@ 'not/c (list p) _) es _)
        `(B (is_false ,(⦃e⦄! (-@ p es 0))))]
+      [(-@ (-struct/c s cs _) es _)
+       (define tₚ (⦃e⦄! (-@ (-st-p s) es 0)))
+       (define ts : (Listof Term)
+         (for/list ([(c i) (in-indexed cs)])
+           (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es 0))
+           (⦃e⦄! (-@ c (list eᵢ) 0))))
+       (define φ (-tand (for/list ([t (cons tₚ ts)]) `(is_truish ,t))))
+       `(B ,φ)]
       [(-@ 'list es _)
        (define ts (map ⦃e⦄! es))
        (foldr
@@ -308,6 +316,10 @@
       [(? -->i?)
        (define t (fresh-free!))
        (assert-prop! `(is-ArrD ,t))
+       t]
+      [(? -struct/c?)
+       (define t (fresh-free!))
+       (assert-prop! `(is-St/C ,t))
        t]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
 
