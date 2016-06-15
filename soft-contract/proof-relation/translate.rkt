@@ -387,11 +387,15 @@
       (: mk-cond : (Listof Entry) → (Listof Sexp))
       (define (mk-cond entries)
         (for/list ([entry entries])
-          (match-define (Entry xs facts _) entry)
+          (match-define (Entry xs* facts _) entry)
           (define conj (-tand facts))
+          (define xs : (Listof Symbol)
+            (for/list ([x xs*]
+                       #:unless (and (∋ consts x)
+                                     (regexp-match? #rx"^x." (symbol->string x))))
+              x))
           (cond
-            [(set-empty? xs)
-             conj]
+            [(null? xs) conj]
             [else
              (define exists-xs : (Listof Sexp) (for/list ([x xs]) `(,x V)))
              `(exists ,exists-xs ,conj)])))
@@ -421,9 +425,9 @@
   (values `(,@(SMT-base struct-arities)
             ,@emit-def-prims
             ,@emit-hack-for-is_int
+            ,@emit-dec-consts
             ,@emit-dec-funs
             ,@emit-def-funs
-            ,@emit-dec-consts
             ,@emit-asserts)
           goal))
 
