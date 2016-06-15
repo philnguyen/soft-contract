@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
-         plausible-return? plausible-blame? plausible-index? plausible-indices
+         #;plausible-return? #;plausible-blame?
+         plausible-pc? plausible-index? plausible-indices
          (all-from-out "local.rkt"))
 
 (require racket/match
@@ -75,32 +76,8 @@
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: plausible-return? : -M -Γ -binding -Γ -W → Boolean)
-;; Check if returned value is plausible
-;; TODO: do we need this, or just try hard to eliminate at blames?
-;; TODO: is this now just a duplication of `plausible-blame?`
-(define (plausible-return? M Γₑᵣ bnd Γₑₑ Wₑₑ)
-  ;(match-define (-W _ sₑₑ) Wₑₑ)
-  (Γ-plausible? M (Γ⧺ Γₑᵣ (subst+restrict-Γ bnd Γₑₑ))))
-
-(: plausible-blame? : -M -Γ -binding -Γ -blm → Boolean)
-;; Check if propagated blame is plausible
-(define (plausible-blame? M Γₑᵣ bnd Γₑₑ blm)
-  ;(match-define (-blm l+ lo _ _) blm)
-  (Γ-plausible? M (Γ⧺ Γₑᵣ (subst+restrict-Γ bnd Γₑₑ))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Helpers
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(: Γ+/-R : -R -Γ -s → (Values (Option -Γ) (Option -Γ)))
-;; Given `s`'s satisfiability in `Γ`, strengthen `Γ` both ways. `#f` represents a bogus path condition.
-(define (Γ+/-R R Γ s)
-  (case R
-    [(✓) (values (Γ+ Γ s) #f)]
-    [(✗) (values #f       (Γ+ Γ (-not s)))]
-    [(?) (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
+(: plausible-pc? : -M -Γ → Boolean)
+(define plausible-pc? ext-plausible-pc?)
 
 (: plausible-index? : -M -Γ -W¹ Natural → Boolean)
 (define (plausible-index? M Γ W i)
@@ -118,3 +95,16 @@
                                  #:when (exact-nonnegative-integer? i) ; hack for TR
                                  #:when (plausible-index? M Γ W i))
     i))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: Γ+/-R : -R -Γ -s → (Values (Option -Γ) (Option -Γ)))
+;; Given `s`'s satisfiability in `Γ`, strengthen `Γ` both ways. `#f` represents a bogus path condition.
+(define (Γ+/-R R Γ s)
+  (case R
+    [(✓) (values (Γ+ Γ s) #f)]
+    [(✗) (values #f       (Γ+ Γ (-not s)))]
+    [(?) (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))

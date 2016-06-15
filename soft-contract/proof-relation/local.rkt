@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢e φs⊢e ⊢V p∋Vs Γ⧺
+(provide Γ⊢e φs⊢e ⊢V p∋Vs
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 

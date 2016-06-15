@@ -79,7 +79,7 @@
            (define γ (-γ τ bnd #f))
            (define Γ₀* (-Γ-plus-γ Γ₀ γ))
            (cond
-             [(plausible-return? M Γ₀* bnd Γ W)
+             [(plausible-pc? M Γ₀*)
               (define sₐ*
                 (and sₐ
                      (match fargs ; HACK
@@ -97,7 +97,7 @@
               (define γ (-γ τ bnd (cons l+ lo)))
               (define Γ₀* (-Γ-plus-γ Γ₀ γ))
               (cond
-                [(plausible-blame? M Γ₀* bnd Γ E)
+                [(plausible-pc? M Γ₀*)
                  (values ΓWs (set-add ΓEs (-ΓE Γ₀* E)))]
                 [else (values ΓWs ΓEs)])])]))))
   

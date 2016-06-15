@@ -73,48 +73,6 @@
   (match-define (-Γ φs as γs) Γ)
   (-Γ φs as (cons γ γs)))
 
-(: subst+restrict-s : -binding -s → -s)
-(define (subst+restrict-s bnd s)
-  (define dom (-binding-dom bnd))
-  (define m (bnds->subst bnd))
-  (cond [(s↓ s dom) => (λ ([e : -e]) (e/map m e))]
-        [else #f]))
-
-(: subst+restrict-Γ : -binding -Γ → -Γ)
-;; Restrict and substitute in callee's path-condition to what's meaningful to caller
-;; TODO: for more precision, maybe useful to existentialize the parts the caller doesn't
-;; understand
-(define (subst+restrict-Γ bnd Γ)
-  (define dom (-binding-dom bnd))
-  (define m (bnds->subst bnd))
-  (Γ/ m (Γ↓ Γ dom)))
-
-(: Γ/ : (HashTable -φ -φ) -Γ → -Γ)
-(define (Γ/ m Γ)
-  (match-define (-Γ φs as γs) Γ)
-  (define φs*
-    (for/seteq: : (℘ -φ) ([φ φs])
-      (φ/map m φ)))
-  (define as*
-    (for/hasheq : (HashTable Var-Name -φ) ([(x φ) (in-hash as)])
-      (values x (φ/map m φ))))
-  (define γs* (for/list : (Listof -γ) ([γ γs]) (γ/ m γ)))
-  (-Γ φs* as* γs*))
-
-(: γ/ : (HashTable -φ -φ) -γ → -γ)
-(define (γ/ m γ)
-  (match-define (-γ τ bnd blm) γ)
-  (-γ τ (binding/ m bnd) blm))
-
-(: binding/ : (HashTable -φ -φ) -binding → -binding)
-(define (binding/ m bnd)
-  (match-define (-binding f xs x->φ) bnd)
-  (define f* (and f (φ/map m f)))
-  (define x->φ*
-    (for/hasheq : (HashTable Var-Name -φ) ([(x φ) x->φ])
-      (values x (φ/map m φ))))
-  (-binding f* xs x->φ*))
-
 (: γ->fargs : -γ → -s)
 (define (γ->fargs γ)
   (match-define (-γ _ bnd _) γ)
@@ -158,23 +116,6 @@
           (-binding f* xs x->φ*)))
       (-γ τ bnd* blm)))
   (-Γ φs* as* γs*))
-
-(: Γ⧺ : -Γ -Γ → -Γ)
-;; Combine path conditions
-(define (Γ⧺ Γ₁ Γ₂)
-  (match-define (-Γ φs₁ as₁ γs₁) Γ₁)
-  (match-define (-Γ φs₂ as₂ γs₂) Γ₂)
-  (-Γ (∪ φs₁ φs₂)
-      (for/fold ([as : (HashTable Var-Name -φ) as₁])
-                ([(x φₓ) (in-hash as₂)])
-        (cond
-          [(hash-ref as x #f) =>
-           (λ ([φ₀ : -φ])
-             (unless (equal? φ₀ φₓ)
-               (printf "Γ⧺: keeping ~a ≡ ~a instead of ~a~n" x (show-φ φ₀) (show-φ φₓ)))
-             as)]
-          [else (hash-set as x φₓ)]))
-      (append γs₁ γs₂)))
 
 (: bnds->subst : -binding → (HashTable -φ -φ))
 ;; Convert list of `param -> arg` to hashtable

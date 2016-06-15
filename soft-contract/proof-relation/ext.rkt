@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ext-prove Γ-plausible? Timeout)
+(provide ext-prove ext-plausible-pc? Timeout)
 
 (require racket/match
          racket/port
@@ -47,13 +47,14 @@
       (printf "~a~n~n" goal))
     ))
 
-(: Γ-plausible? : -M -Γ → Boolean)
-(define (Γ-plausible? M Γ)
-  (define-values (base _) (encode M Γ -ff))
-  (not
-   (eq? 'Unsat (call `(,@base
-                       ";; Check if path-condition is plausible"
-                       (check-sat))))))
+(: ext-plausible-pc? : -M -Γ → Boolean)
+(define (ext-plausible-pc? M Γ)
+  (define-values (base _) (encode M Γ #|HACK|# -ff))
+  (case (call `(,@base
+                ";; Check if path-condition is plausible"
+                (check-sat)))
+    [(Unsat) #f]
+    [else #t]))
 
 (: check-sat : (Listof Sexp) Sexp → (Values Sat-Result Sat-Result))
 (define (check-sat asserts goal)
