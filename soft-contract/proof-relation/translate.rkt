@@ -31,7 +31,7 @@
         (O [op Int])
         (Sym [sym Int])
         (Str [str Int])
-        (Clo [arity Int] [clo_id Int])
+        (Clo [clo_id Int])
         (And/C [conj_l V] [conj_r V])
         (Or/C [disj_l V] [disj_r V])
         (Not/C [neg V])
@@ -57,13 +57,12 @@
       (not (is_false x)))
     (define-fun is_proc ([x V]) Bool
       (or (is-O x) (is-Clo x)))
-    (define-fun has_arity ((x V) (n Int)) Bool
-      ;; TODO primitives too
-      (exists ((i Int)) (= x (Clo n i))))
     (define-fun is-R ([x V]) Bool
       (and (is-N x) (= 0 (imag x))))
     (define-fun is-Z ([x V]) Bool
       (and (is-R x) (is_int (real x))))
+    (declare-fun arity (V) Int)
+    (assert (forall ((v V)) (>= (arity v) 0)))
     ))
 
 (define hack-for-is_int : (Listof Sexp)
@@ -190,6 +189,7 @@
 (define (encode-e bound Γ e)
 
   (define-set free-vars : Symbol #:eq? #t)
+  (define-set props : Formula)
   (define asserts-eval : (Listof Formula) '())
   (define asserts-prop : (Listof Formula) '())
   (define-set refs : Defn-Entry)
@@ -207,17 +207,20 @@
     (set! asserts-eval (cons `(= ,t ,a) asserts-eval)))
 
   (define (assert-prop! [φ : Formula]) : Void
-    (set! asserts-prop (cons φ asserts-prop)))
+    (unless (props-has? φ)
+      (set! asserts-prop (cons φ asserts-prop))
+      (props-add! φ)))
 
   ;; Encode that `eₕ(eₓs)` has succcessfully returned
   (define/memo (⦃app⦄-ok! [τ : -τ] [eₕ : -e] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
-    (define tₕ (⦃e⦄! eₕ))
+    ;; There's no need to manually state anything about function term.
+    ;; Pathcondition must have had that.
+    (define _ (⦃e⦄! eₕ))
     (define tₓs (map ⦃e⦄! eₓs))
     (define fₕ (fun-name τ xs))
     (define xₐ (fresh-free!))
     (define arity (length xs))
     (refs-add! (App τ xs))
-    (assert-prop! `(exists ([i Int]) (= ,tₕ (Clo ,arity i))))
     (define tₐₚₚ (-tapp fₕ tₓs))
     (assert-eval! tₐₚₚ `(Val ,xₐ))
     xₐ)
@@ -277,18 +280,33 @@
        (foldr
         (λ ([tₗ : Term] [tᵣ : Term])
           (refs-add! -cons)
-          (define tₚ (fresh-free!))
-          (assert-eval! (-tapp (⦃o⦄ -cons) (list tₗ tᵣ)) `(Val ,tₚ))
-          tₚ)
+          `(St_2 ,(⦃struct-info⦄ -s-cons) ,tₗ ,tᵣ))
         'Null
         ts)]
+      [(-@ (and o (-st-mk s)) es _)
+       (refs-add! o)
+       (define ts (map ⦃e⦄! es))
+       (define St (format-symbol "St_~a" (-struct-info-arity s)))
+       `(,St ,(⦃struct-info⦄ s) ,@ts)]
+      [(-@ (and o (-st-p s)) (list e*) _)
+       (refs-add! o)
+       (define t (⦃e⦄! e*))
+       (define n (-struct-info-arity s))
+       (define is-St (format-symbol "is-St_~a" n))
+       (define tag (format-symbol "tag_~a" n))
+       `(B (and (,is-St ,t) (= (,tag ,t) ,(⦃struct-info⦄ s))))]
+      [(-@ (and o (-st-ac s i)) (list e*) _)
+       (refs-add! o)
+       (define t (⦃e⦄! e*))
+       (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
+       `(,field ,t)]
       ;; End of hacks for special applications
       
       [(-@ (? -o? o) es _)
        (define ts (map ⦃e⦄! es))
        (refs-add! o)
        (cond
-         [(o->pred o) => (λ ([f : ((Listof Term) → Term)]) (f ts))]
+         [(o->app o) => (λ ([f : ((Listof Term) → Term)]) (f ts))]
          [else
           (define xₐ (fresh-free!))
           (assert-eval! (-tapp (⦃o⦄ o) ts) `(Val ,xₐ))
@@ -477,12 +495,9 @@
 
 (: ⦃o⦄ : -o → Symbol)
 (define (⦃o⦄ o)
-  (match o
-    [(-st-p s) (st-p-name s)]
-    [(-st-mk s) (st-mk-name s)]
-    [(-st-ac s i) (st-ac-name s i)]
-    [(-st-mut s _) (error '⦃o⦄ "TODO: mutator for ~a" (st-name s))]
-    [(? symbol? o) (format-symbol "o.~a" o)]))
+  (cond
+    [(symbol? o) (format-symbol "o.~a" o)]
+    [else (error '⦃o⦄ "unsupported: ~a" (show-o o))]))
 
 (: ⦃o⦄ᵥ : -o → Integer)
 (define ⦃o⦄ᵥ
@@ -497,8 +512,8 @@
   (let ([m : (HashTable String Integer) (make-hash)])
     (λ (s) (hash-ref! m s (λ () (hash-count m))))))
 
-(: o->pred : -o → (Option ((Listof Term) → Term)))
-(define (o->pred o)
+(: o->app : -o → (Option ((Listof Term) → Term)))
+(define (o->app o)
   (case o
     [(defined?)
      (λ ([ts : (Listof Term)])
@@ -660,10 +675,10 @@
              (Val (B (= a i)))
              None))}]
     [(procedure-arity)
-     '{(define-fun o.procedure-arity ([x V]) A
-         (if (is_proc x)
-             (Val (N (arity x) 0))
-             None))}]
+     '{(declare-fun o.procedure-arity (V) A)
+       (assert (forall ([x V])
+                       (=> (is_proc x)
+                           (= (o.procedure-arity x) (Val (N (arity x) 0))))))}]
     [(string-length)
      '{(declare-fun o.string-length (V) A)
        (assert (forall ([x V])
@@ -704,35 +719,9 @@
                  (= (not (and (is-Vec v) (is-Z i))) ; TODO bound
                     (= (o.vector-ref v i) None))))}]
     [else
-     (match o
-       [(-st-p s)
-        (match-define (-struct-info _ n _) s)
-        (define is-St (format-symbol "is-St_~a" n))
-        (define tag (format-symbol "tag_~a" n))
-        `{(define-fun ,(st-p-name s) ((x V)) A
-            (Val (B (and (,is-St x) (= (,tag x) ,(⦃struct-info⦄ s))))))}]
-       [(-st-mk s)
-        (match-define (-struct-info _ n _) s)
-        (define-values (decs xs)
-          (for/lists ([decs : (Listof Sexp)] [xs : (Listof Symbol)])
-                     ([i n])
-            (define x (format-symbol "x~a" i))
-            (values `(,x V) x)))
-        (define St (format-symbol "St_~a" n))
-        `{(define-fun ,(st-mk-name s) ,decs A
-            (Val (,St ,(⦃struct-info⦄ s) ,@xs)))}]
-       [(-st-ac s i)
-        (match-define (-struct-info _ n _) s)
-        (define is-St (format-symbol "is-St_~a" n))
-        (define field (format-symbol "field_~a_~a" n i))
-        (define tag (format-symbol "tag_~a" n))
-        `{(define-fun ,(st-ac-name s i) ((x V)) A
-            (if (and (,is-St x) (= (,tag x) ,(⦃struct-info⦄ s)))
-                (Val (,field x))
-                None))}]
-       [(-st-mut s _)
-        (error 'def-o "mutator for ~a" (st-name s))]
-       [_
+     (cond
+       [(or (-st-mk? o) (-st-p? o) (-st-ac? o)) '()]
+       [else
         (raise (exn:scv:smt:unsupported (format "Unsupported: ~a" o) (current-continuation-marks)))])]))
 
 (: lift-ℝ²-𝔹 : Symbol → (Listof Sexp))
@@ -787,11 +776,6 @@
     [`(B (is_truish (B ,φ))) φ]
     [`(B ,φ) φ]
     [_ `(is_truish ,t)]))
-
-(define (st-name [s : -struct-info]) : Symbol (-𝒾-name (-struct-info-id s)))
-(define (st-p-name [s : -struct-info]) : Symbol (format-symbol "st.~a?" (st-name s)))
-(define (st-mk-name [s : -struct-info]) : Symbol (format-symbol "st.~a" (st-name s)))
-(define (st-ac-name [s : -struct-info] [i : Natural]) : Symbol (format-symbol "st.~a_~a" (st-name s) i))
 
 (module+ test
   (require typed/rackunit)
