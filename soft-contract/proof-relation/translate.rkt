@@ -315,12 +315,12 @@
           xₐ])]
       
       [(-@ eₕ eₓs _)
-       (define fvs (set->list/memo (fvₛ eₕ)))
        (or
         (for/or : (Option Term) ([γ γs])
           (match-define (-γ τ bnd blm) γ)
           (match-define (-binding φₕ xs x->φ) bnd)
           (cond [(equal? e (binding->s bnd))
+                 (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
                  (⦃app⦄-ok! τ eₕ fvs xs eₓs)]
                 [else #f]))
         (begin
@@ -351,7 +351,8 @@
     (when eₐₚₚ
       (match-define (-binding _ xs _) bnd)
       (match-define (-@ eₕ eₓs _) eₐₚₚ)
-      (define fvs (set->list/memo (fvₛ eₕ)))
+      (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
+      (for ([fv fvs] #:unless (∋ bound fv)) (free-vars-add! (⦃x⦄ fv)))
       (match blm
         [(cons l+ lo) (⦃app⦄-err! τ eₕ fvs xs eₓs l+ lo)]
         [_      (void (⦃app⦄-ok! τ eₕ fvs xs eₓs))])))
@@ -557,6 +558,9 @@
          [(list `(B (is_false ,t))) `(B (is_truish ,t))]
          [(list `(B (is_truish ,t))) `(B (is_false ,t))]
          [ts `(B (is_false ,@ts))]))]
+    [(null? empty?)
+     (λ ([ts : (Listof Term)])
+       `(B (is-Null ,@ts)))]
     [else
      (match o
        [(-st-p s)
@@ -574,7 +578,7 @@
     [(none/c) '{(define-fun o.none/c ([x V]) A (Val (B false)))}]
     [(defined?)
      '{(define-fun o.defined? ([x V]) A
-         (Val (B (not (= x Undefined)))))}]
+         (Val (B (not (is-Undefined x)))))}]
     [(not false?)
      '{(define-fun o.not ([x V]) A
          (Val (B (= x (B false)))))}]
@@ -648,7 +652,7 @@
      '{(define-fun o.string? ([x V]) A (Val (B (is-Str x))))}]
     [(null? empty?)
      '{(define-fun o.null? ([x V]) A
-         (Val (B (= x Null))))}]
+         (Val (B (is-Null x))))}]
     [(procedure?)
      '{(define-fun o.procedure? ([x V]) A
          (Val (B (is_proc x))))}]
