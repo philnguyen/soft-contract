@@ -50,11 +50,23 @@
 (: ext-plausible-pc? : -M -Γ → Boolean)
 (define (ext-plausible-pc? M Γ)
   (define-values (base _) (encode M Γ #|HACK|# -ff))
-  (case (call `(,@base
-                ";; Check if path-condition is plausible"
-                (check-sat)))
-    [(Unsat) #f]
-    [else #t]))
+  (with-debugging/off
+    ((ans)
+     (case (call `(,@base
+                   ";; Check if path-condition is plausible"
+                   (check-sat)))
+       [(Unsat) #f]
+       [else #t]))
+    (match-define (-Γ φs _ γs) Γ)
+    (printf "plausible?~n")
+    (begin ; print pc
+      (for ([φ φs]) (printf "~a~n" (show-φ φ)))
+      (for ([γ γs])
+        (match-define (-γ τ bnd blm?) γ)
+        (printf "~a --> ~a~n" (show-binding bnd) (if blm? 'blm 'val))))
+    (printf "-----------------------------------------~n")
+    (for ([stm base]) (printf "~a~n" stm))
+    (printf "plausible? ~a~n~n" ans)))
 
 (: check-sat : (Listof Sexp) Sexp → (Values Sat-Result Sat-Result))
 (define (check-sat asserts goal)
