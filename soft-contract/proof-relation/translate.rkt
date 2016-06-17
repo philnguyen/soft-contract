@@ -31,9 +31,9 @@
         (Proc [proc_id Int])
         (Sym [sym Int])
         (Str [str Int])
-        (And/C [conj_l V] [conj_r V])
-        (Or/C [disj_l V] [disj_r V])
-        (Not/C [neg V])
+        (And/C [and/c_id Int])
+        (Or/C [or/c_id Int])
+        (Not/C [not/c_id Int])
         (St/C [unbox_st/c Int])
         (Arr [unbox_Arr Int])
         (ArrD [unbox_ArrD Int])
@@ -146,7 +146,7 @@
   (define tₓs (map ⦃x⦄ xs))
   (define fₕ (fun-name τ fvs xs))
   (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
-  (define bound (∪ (list->set fvs) (list->set xs)))
+  (define bound (∪ (list->seteq fvs) (list->seteq xs)))
   
   ;; Accumulate pair of formulas describing conditions for succeeding and erroring
   (define-values (oks ers)
@@ -158,7 +158,9 @@
          (define eₒₖ
            (cond
              [sₐ
-              (define-values (refs+ entry) (encode-e bound Γ sₐ))
+              (define-values (refs+ entry)
+                (let ([Γ (Γ↓ Γ (∪ bound (fvₛ sₐ)))])
+                  (encode-e bound Γ sₐ)))
               (refs-union! refs+)
               (match-define (Entry free-vars facts tₐₙₛ) entry)
               (Entry free-vars
@@ -166,14 +168,18 @@
                            facts)
                      tₐₙₛ)]
              [else
-              (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
+              (define-values (refs+ entry)
+                (let ([Γ (Γ↓ Γ bound)])
+                  (encode-e bound Γ #|hack|# -ff)))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
               (Entry free-vars facts #|hack|# '(B false))]))
          (values (cons eₒₖ oks) ers)]
         [(-ΓE Γ (-blm l+ lo _ _))
          (define eₑᵣ
-           (let-values ([(refs+ entry) (encode-e bound Γ #|hack|# -ff)])
+           (let-values ([(refs+ entry)
+                         (let ([Γ (Γ↓ Γ bound)])
+                           (encode-e bound Γ #|hack|# -ff))])
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
@@ -552,6 +558,9 @@
     [(inexact?) `(B (inexact? ,@ts))]
     [(exact?) `(B (exact? ,@ts))]
     [(string-length) `(N (strlen ,@ts) 0)]
+    [(and/c) `(And/C ,(next-int!))]
+    [(or/c) `(Or/C ,(next-int!))]
+    [(not/c) `(Not/C ,(next-int!))]
     [else
      (match o
        [(-st-p s)
