@@ -117,13 +117,6 @@
       (-γ τ bnd* blm)))
   (-Γ φs* as* γs*))
 
-(: bnds->subst : -binding → (HashTable -φ -φ))
-;; Convert list of `param -> arg` to hashtable
-(define (bnds->subst bnd)
-  (match-define (-binding _ _ x->φ) bnd)
-  (for/hash : (HashTable -φ -φ) ([(x φ) x->φ])
-    (values (e->φ (-x x)) φ)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Pretty printing
