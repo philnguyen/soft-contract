@@ -60,6 +60,8 @@
       (and (is-R x) (is_int (real x))))
     (declare-fun exact? (V) Bool)
     (declare-fun inexact? (V) Bool)
+    (declare-fun strlen (V) Int)
+    (assert (forall ((v V)) (>= (strlen v) 0)))
     (declare-fun arity (V) Int)
     (assert (forall ((v V)) (>= (arity v) 0)))
     ))
@@ -549,6 +551,7 @@
          (/ (- (* ,b ,c) (* ,a ,d)) ,c²d²))]
     [(inexact?) `(B (inexact? ,@ts))]
     [(exact?) `(B (exact? ,@ts))]
+    [(string-length) `(N (strlen ,@ts) 0)]
     [else
      (match o
        [(-st-p s)
