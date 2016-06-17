@@ -58,6 +58,8 @@
       (and (is-N x) (= 0 (imag x))))
     (define-fun is-Z ([x V]) Bool
       (and (is-R x) (is_int (real x))))
+    (declare-fun exact? (V) Bool)
+    (declare-fun inexact? (V) Bool)
     (declare-fun arity (V) Int)
     (assert (forall ((v V)) (>= (arity v) 0)))
     ))
@@ -500,8 +502,6 @@
      `(B (is-B ,@ts))]
     [(vector?)
      `(B (is-Vec ,@ts))]
-    [(equal?)
-     `(B (= ,@ts))]
     [(not false?)
      (match ts
        [(list `(B (is_false ,t))) `(B (is_truish ,t))]
@@ -522,6 +522,33 @@
       ts)]
     [(any/c) '(B true)]
     [(none/c) '(B false)]
+    [(= equal?) `(B (= ,@ts))]
+    [(< > <= >=)
+     (match-define (list l r) ts)
+     `(B (,(assert o symbol?) ,(N-real l) ,(N-real r)))]
+    [(add1)
+     (match-define (list t) ts)
+     `(N (+ 1 ,(N-real t)) ,(N-imag t))]
+    [(sub1)
+     (match-define (list t) ts)
+     `(N (- ,(N-real t) 1) ,(N-imag t))]
+    [(+ -)
+     (match-define (list x y) ts)
+     `(N (,(assert o symbol?) ,(N-real x) ,(N-real y))
+         (,(assert o symbol?) ,(N-imag x) ,(N-imag y)))]
+    [(*)
+     (match-define (list x y) ts)
+     (define-values (a b c d) (values (N-real x) (N-imag x) (N-real y) (N-imag y)))
+     `(N (- (* ,a ,c) (* ,b ,d))
+         (+ (* ,a ,d) (* ,b ,c)))]
+    [(/)
+     (match-define (list x y) ts)
+     (define-values (a b c d) (values (N-real x) (N-imag x) (N-real y) (N-imag y)))
+     (define c²d² `(+ (* ,c ,c) (* ,d ,d)))
+     `(N (/ (+ (* ,a ,c) (* ,b ,d)) ,c²d²)
+         (/ (- (* ,b ,c) (* ,a ,d)) ,c²d²))]
+    [(inexact?) `(B (inexact? ,@ts))]
+    [(exact?) `(B (exact? ,@ts))]
     [else
      (match o
        [(-st-p s)
@@ -567,6 +594,15 @@
       [s (equal? s o)]))
 
   (ormap go φs))
+
+(define N-real : (Term → Term)
+  (match-lambda
+    [`(N ,x ,_) x]
+    [x `(real ,x)]))
+(define N-imag : (Term → Term)
+  (match-lambda
+    [`(N ,_ ,y) y]
+    [x `(imag ,x)]))
 
 (:* -tand -tor : (Listof Term) → Term)
 (define -tand
