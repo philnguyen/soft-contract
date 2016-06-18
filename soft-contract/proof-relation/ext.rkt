@@ -15,7 +15,7 @@
 
 ;; Max seconds per query
 ;; TODO: possible to have something deterministic instead?
-(define-parameter Timeout : Natural 1)
+(define-parameter Timeout : Natural 2)
 
 (Sat-Result . ::= . 'Unsat 'Sat 'Unknown 'Timeout)
 
@@ -111,7 +111,8 @@
            (system (format "z3 -T:~a -memory:2000 -smt2 ~a" (Timeout) QUERY-FILE)))))
       (match ans
           [(regexp #rx"^timeout")
-           (printf "query:~n~a~nget: ~a~n~n" (display-query) ans)]
+           (printf "query:~n~a~nget: ~a~n~n" (display-query) ans)
+           (error "timeout")]
           [_ (void)])
       #;(begin
         (define δt (- (current-milliseconds) t₀))

@@ -83,7 +83,7 @@
 ;; SMT target language
 (define-type Term Sexp)
 (define-type Formula Sexp) ; Term of type Bool in SMT
-(struct Entry ([free-vars : (℘ Symbol)] [facts : (Listof Formula)] [expr : Term]) #:transparent)
+(struct Entry ([free-vars : (℘ Symbol)] [facts : (℘ Formula)] [expr : Term]) #:transparent)
 (struct App ([ctx : -τ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
 (Defn-Entry . ::= . -o App)
@@ -164,8 +164,7 @@
               (refs-union! refs+)
               (match-define (Entry free-vars facts tₐₙₛ) entry)
               (Entry free-vars
-                     (cons `(= ,tₐₚₚ (Val ,tₐₙₛ))
-                           facts)
+                     (set-add facts `(= ,tₐₚₚ (Val ,tₐₙₛ)))
                      tₐₙₛ)]
              [else
               (define-values (refs+ entry)
@@ -183,8 +182,7 @@
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
-                    (cons `(= ,tₐₚₚ (Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo)))
-                          facts)
+                    (set-add facts `(= ,tₐₚₚ (Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))))
                     #|hack|# `(B false))))
          (values oks (cons eₑᵣ ers))])))
   
@@ -196,8 +194,11 @@
 
   (define-set free-vars : Symbol #:eq? #t)
   (define-set props : Formula)
-  (define asserts-eval : (Listof Formula) '())
-  (define asserts-prop : (Listof Formula) '())
+  (define asserts-app : (HashTable Term (U #t ; is-Val
+                                           Symbol ; is-Val + instantiate
+                                           (Pairof Integer Integer) ; blm
+                                           ))
+    (make-hash))
   (define-set refs : Defn-Entry)
   (match-define (-Γ φs _ γs) Γ)
 
@@ -209,38 +210,22 @@
         (free-vars-add! x)
         x)))
 
-  (define (assert-eval! [t : Term] [a : Term]) : Void
-    (set! asserts-eval (cons `(= ,t ,a) asserts-eval)))
-
-  (define (assert-prop! [φ : Formula]) : Void
-    (unless (props-has? φ)
-      (set! asserts-prop (cons φ asserts-prop))
-      (props-add! φ)))
+  (define app-term! : (Term → Symbol)
+    (let ([m : (HashTable Term Symbol) (make-hash)])
+      (λ (tₐₚₚ)
+        (hash-ref! m tₐₚₚ (λ ()
+                            (define tₐ (format-symbol "a.~a" (hash-count m)))
+                            (free-vars-add! tₐ)
+                            tₐ)))))
 
   ;; Encode that `eₕ(eₓs)` has succcessfully returned
-  (define/memo (⦃app⦄-ok! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
-    ;; There's no need to manually state anything about function term.
-    ;; Pathcondition must have had that.
+  (define/memo (⦃app⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
     (define _ (⦃e⦄! eₕ))
     (define ⦃fv⦄s (map ⦃x⦄ fvs))
     (define tₓs (map ⦃e⦄! eₓs))
     (define fₕ (fun-name τ fvs xs))
-    (define xₐ (fresh-free!))
-    (define arity (length xs))
     (refs-add! (App τ fvs xs))
-    (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
-    (assert-eval! tₐₚₚ `(Val ,xₐ))
-    xₐ)
-
-  ;; Encode that `eₕ(eₓs)` has succcessfully returned
-  (define/memo (⦃app⦄-err! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)] [l+ : Mon-Party] [lo : Mon-Party]) : Void
-    (define _ (⦃e⦄! eₕ))
-    (define ⦃fv⦄s (map ⦃x⦄ fvs))
-    (define tₓs (map ⦃e⦄! eₓs))
-    (define fₕ (fun-name τ fvs xs))
-    (define arity (length xs))
-    (refs-add! (App τ fvs xs))
-    (assert-eval! (-tapp fₕ ⦃fv⦄s tₓs) `(Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))))
+    (-tapp fₕ ⦃fv⦄s tₓs))
 
   ;; encode the fact that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : Term
@@ -258,10 +243,8 @@
              [else (free-vars-add! t) t])]
       [(-λ (? list? xs) e)
        (define t (fresh-free!))
-       ;(assert-prop! `(exists ([id Int]) (= ,t (Proc id))))
-       ;(assert-prop! `(= (arity ,t) ,(length xs)))
-       (assert-prop! `(is-Proc ,t))
-       (assert-prop! `(= (arity ,t) ,(length xs)))
+       (props-add! `(is-Proc ,t))
+       (props-add! `(= (arity ,t) ,(length xs)))
        t]
       
       ;; Hacks for special applications go here
@@ -286,10 +269,22 @@
       ;; End of hacks for special applications
       
       [(-@ (? -o? o) es _)
+       (define ts (map ⦃e⦄! es))
+       
        (case o ; HACK
          [(list) (refs-add! -cons)]
          [else (refs-add! o)])
-       (app-o o (map ⦃e⦄! es))]
+       
+       (match o ; HACK
+         [(-st-ac s _)
+          (define n (-struct-info-arity s))
+          (define is-St (format-symbol "is-St_~a" n))
+          (define tag (format-symbol "tag_~a" n))
+          (define stag (⦃struct-info⦄ s))
+          (props-add! `(and (,is-St ,@ts) (= (,tag ,@ts) ,stag)))]
+         [_ (void)])
+       
+       (app-o o ts)]
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option Term) ([γ γs])
@@ -297,26 +292,22 @@
           (match-define (-binding φₕ xs x->φ) bnd)
           (cond [(equal? e (binding->s bnd))
                  (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
-                 (⦃app⦄-ok! τ eₕ fvs xs eₓs)]
+                 (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
+                 (define tₐₙₛ (app-term! tₐₚₚ))
+                 tₐₙₛ]
                 [else #f]))
-        (begin
-          #;(printf "Can't find tail for ~a among ~a~n"
-                  (show-e e)
-                  (for/list : (Listof Sexp) ([γ γs])
-                    (match-define (-γ _ bnd _) γ)
-                    (show-s (binding->s bnd))))
-          (fresh-free!)))]
+        (fresh-free!))]
       [(? -->?)
        (define t (fresh-free!))
-       (assert-prop! `(is-Arr ,t))
+       (props-add! `(is-Arr ,t))
        t]
       [(? -->i?)
        (define t (fresh-free!))
-       (assert-prop! `(is-ArrD ,t))
+       (props-add! `(is-ArrD ,t))
        t]
       [(? -struct/c?)
        (define t (fresh-free!))
-       (assert-prop! `(is-St/C ,t))
+       (props-add! `(is-St/C ,t))
        t]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
 
@@ -329,16 +320,24 @@
       (match-define (-@ eₕ eₓs _) eₐₚₚ)
       (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
       (for ([fv fvs] #:unless (∋ bound fv)) (free-vars-add! (⦃x⦄ fv)))
+      (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
       (match blm
-        [(cons l+ lo) (⦃app⦄-err! τ eₕ fvs xs eₓs l+ lo)]
-        [_      (void (⦃app⦄-ok! τ eₕ fvs xs eₓs))])))
+        [(cons l+ lo) (hash-set! asserts-app tₐₚₚ (cons (⦃l⦄ l+) (⦃l⦄ lo)))]
+        [_            (hash-set! asserts-app tₐₚₚ #t)])))
 
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
   (for ([φ φs])
-    (assert-prop! (tsimp (⦃e⦄! (φ->e φ)))))
+    (props-add! (tsimp (⦃e⦄! (φ->e φ)))))
   (define tₜₒₚ (⦃e⦄! e))
+  (define all-props
+    (∪ (for/set: : (℘ Formula) ([(tₐₚₚ res) asserts-app])
+         (match res
+           [#t `(is-Val ,tₐₚₚ)]
+           [(? symbol? t) `(= ,tₐₚₚ (Val ,t))]
+           [(cons l+ lo) `(= ,tₐₚₚ (Blm ,l+ ,lo))]))
+       props))
 
-  (values refs (Entry free-vars `(,@(reverse asserts-eval) ,@(reverse asserts-prop)) tₜₒₚ)))
+  (values refs (Entry free-vars all-props tₜₒₚ)))
 
 (: emit : (℘ Natural) Memo-Table Entry → (Values (Listof Sexp) Sexp))
 ;; Emit base and target to prove/refute
@@ -361,19 +360,32 @@
       (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
       (match-define (Res oks ers) res)
 
-      (: mk-cond : (Listof Entry) → (Listof Sexp))
+      (: mk-cond : (Listof Entry) → Formula)
       (define (mk-cond entries)
-        (for/list ([entry entries])
-          (match-define (Entry xs facts _) entry)
-          (define conj (-tand facts))
-          (cond
-            [(set-empty? xs) conj]
-            [else
-             (define exists-xs : (Listof Sexp) (for/list ([x xs]) `(,x V)))
-             `(exists ,exists-xs ,conj)])))
+        (match entries
+          ['() 'false]
+          [(list ent)
+           (match-define (Entry xs facts _) ent)
+           (-texists xs (-tand (set->list facts)))]
+          [_
+           (define-values (shared-xs shared-cond)
+             (for/fold ([shared-xs : (℘ Symbol) (Entry-free-vars (first entries))]
+                        [shared-cond : (℘ Term) (Entry-facts (first entries))])
+                       ([ent (in-list (rest entries))])
+               (match-define (Entry xs φs _) ent)
+               (values (∩ shared-xs xs) (∩ shared-cond φs))))
 
-      (define ok-conds (mk-cond oks))
-      (define er-conds (mk-cond ers))
+           (define disjs
+             (for/list : (Listof Term) ([ent entries])
+               (match-define (Entry xs₀ φs₀ _) ent)
+               (define xs (set-subtract xs₀ shared-xs))
+               (define φs (set-subtract φs₀ shared-cond))
+               (-texists xs (-tand (set->list φs)))))
+
+           (-texists shared-xs (-tand `(,@(set->list shared-cond) ,(-tor disjs))))]))
+
+      (define ok-cond (mk-cond oks))
+      (define er-cond (mk-cond ers))
       (define params
         (append (for/list : (Listof Sexp) ([⦃fv⦄ ⦃fv⦄s]) `(,⦃fv⦄ V))
                 (for/list : (Listof Sexp) ([x tₓs]) `(,x V))))
@@ -389,8 +401,8 @@
        (cons `(declare-fun ,fₕ ,(make-list n 'V) A) decs)
        (list*
         ;; For each function, generate implications from returns and blames
-        (assrt params `(=> (is-Val ,tₐₚₚ) ,(-tor ok-conds)))
-        (assrt params `(=> (is-Blm ,tₐₚₚ) ,(-tor er-conds)))
+        (assrt params `(=> (is-Val ,tₐₚₚ) ,ok-cond))
+        (assrt params `(=> (is-Blm ,tₐₚₚ) ,er-cond))
         defs))))
 
   (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
@@ -493,7 +505,7 @@
 (define (app-o o ts)
   (case o
     [(defined?)
-     `(B (not (= Undefined ,@ts)))]
+     `(B (not (is-Undefined ,@ts)))]
     [(number?)
      `(B (is-N ,@ts))]
     [(real?)
@@ -591,21 +603,21 @@
     (λ ()
       (begin0 i (set! i (+ 1 i))))))
 
-(: should-include-hack-for-is_int? : (Listof Sexp) → Boolean)
+(: should-include-hack-for-is_int? : (℘ Term) → Boolean)
 (define (should-include-hack-for-is_int? φs)
   (and (has-op? φs 'o.integer?)
        (for/or : Boolean ([o (in-list '(o.+ o.- o.*))])
          (has-op? φs o))))
 
-(: has-op? : (Listof Sexp) Symbol → Boolean)
+(: has-op? : (℘ Term) Symbol → Boolean)
 (define (has-op? φs o)
 
-  (define go : (Sexp → Boolean)
+  (define go : (Term → Boolean)
     (match-lambda
       [(cons h t) (or (go h) (go t))]
       [s (equal? s o)]))
 
-  (ormap go φs))
+  (for/or : Boolean ([φ φs]) (go φ)))
 
 (define N-real : (Term → Term)
   (match-lambda
@@ -627,6 +639,12 @@
     ['() 'false]
     [(list x) x]
     [xs `(or ,@xs)]))
+
+(: -texists : (℘ Symbol) Term → Term)
+(define (-texists xs t)
+  (cond
+    [(set-empty? xs) t]
+    [else `(exists ,(for/list : (Listof Sexp) ([x xs]) `(,x V)) ,t)]))
 
 (: -tapp : Term (Listof Symbol) (Listof Term) → Term)
 (define (-tapp f fvs xs) (if (and (null? fvs) (null? xs)) f `(,f ,@fvs ,@xs)))
