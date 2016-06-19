@@ -12,69 +12,6 @@
 
 (struct exn:scv:smt:unsupported exn () #:transparent)
 
-(: base-datatypes : (℘ Natural) → (Listof Sexp))
-(define (base-datatypes arities)
-  (define st-defs : (Listof Sexp)
-    (for/list ([n arities])
-      (define St_k (format-symbol "St_~a" n))
-      (define tag_k (format-symbol "tag_~a" n))
-      (define fields : (Listof Sexp) (for/list ([i n]) `(,(format-symbol "field_~a_~a" n i) V)))
-      `(,St_k (,tag_k Int) ,@fields)))
-  
-  `(;; Unitype
-    (declare-datatypes ()
-      ((V ; TODO
-        Undefined
-        Null
-        (N [real Real] [imag Real])
-        (B [unbox_B Bool])
-        (Proc [proc_id Int])
-        (Sym [sym Int])
-        (Str [str Int])
-        (And/C [and/c_id Int])
-        (Or/C [or/c_id Int])
-        (Not/C [not/c_id Int])
-        (St/C [unbox_st/c Int])
-        (Arr [unbox_Arr Int])
-        (ArrD [unbox_ArrD Int])
-        (Vec [unbox_Vec Int])
-        ;; structs with hard-coded arities
-        ,@st-defs)))
-    ;; Result
-    (declare-datatypes ()
-     ((A
-       (Val (unbox_Val V))
-       (Blm (blm_pos Int) (blm_src Int))
-       None)))
-    ))
-
-(define base-predicates : (Listof Sexp)
-  '(;; Primitive predicates
-    (define-fun is_false ([x V]) Bool
-      (= x (B false)))
-    (define-fun is_truish ([x V]) Bool
-      (not (is_false x)))
-    (define-fun is-R ([x V]) Bool
-      (and (is-N x) (= 0 (imag x))))
-    (define-fun is-Z ([x V]) Bool
-      (and (is-R x) (is_int (real x))))
-    (declare-fun exact? (V) Bool)
-    (declare-fun inexact? (V) Bool)
-    (declare-fun strlen (V) Int)
-    (assert (forall ((v V)) (>= (strlen v) 0)))
-    (declare-fun arity (V) Int)
-    (assert (forall ((v V)) (>= (arity v) 0)))
-    ))
-
-(define hack-for-is_int : (Listof Sexp)
-  '{(assert (forall ([x Real] [y Real])
-              (=> (and (is_int x) (is_int y)) (is_int (+ x y)))))
-    (assert (forall ([x Real] [y Real])
-              (=> (and (is_int x) (is_int y)) (is_int (- x y)))))
-    (assert (forall ([x Real] [y Real])
-              (=> (and (is_int x) (is_int y)) (is_int (* x y)))))
-    })
-
 (: SMT-base : (℘ Natural) → (Listof Sexp))
 (define (SMT-base struct-arities)
   `(,@(base-datatypes struct-arities)
@@ -339,82 +276,7 @@
 
   (values refs (Entry free-vars all-props tₜₒₚ)))
 
-(: emit : (℘ Natural) Memo-Table Entry → (Values (Listof Sexp) Sexp))
-;; Emit base and target to prove/refute
-(define (emit struct-arities def-funs top)
-  (match-define (Entry consts facts goal) top)
 
-  (define emit-hack-for-is_int : (Listof Sexp)
-    (cond [(should-include-hack-for-is_int? facts) hack-for-is_int]
-          [else '()]))
-  
-  (define-values (emit-dec-funs emit-def-funs)
-    (for/fold ([decs : (Listof Sexp) '()]
-               [defs : (Listof Sexp) '()])
-              ([(f-xs res) def-funs])
-      (match-define (App τ fvs xs) f-xs)
-      (define n (+ (length fvs) (length xs)))
-      (define ⦃fv⦄s (map ⦃x⦄ fvs))
-      (define tₓs (map ⦃x⦄ xs))
-      (define fₕ (fun-name τ fvs xs))
-      (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
-      (match-define (Res oks ers) res)
-
-      (: mk-cond : (Listof Entry) → Formula)
-      (define (mk-cond entries)
-        (match entries
-          ['() 'false]
-          [(list ent)
-           (match-define (Entry xs facts _) ent)
-           (-texists xs (-tand (set->list facts)))]
-          [_
-           (define-values (shared-xs shared-cond)
-             (for/fold ([shared-xs : (℘ Symbol) (Entry-free-vars (first entries))]
-                        [shared-cond : (℘ Term) (Entry-facts (first entries))])
-                       ([ent (in-list (rest entries))])
-               (match-define (Entry xs φs _) ent)
-               (values (∩ shared-xs xs) (∩ shared-cond φs))))
-
-           (define disjs
-             (for/list : (Listof Term) ([ent entries])
-               (match-define (Entry xs₀ φs₀ _) ent)
-               (define xs (set-subtract xs₀ shared-xs))
-               (define φs (set-subtract φs₀ shared-cond))
-               (-texists xs (-tand (set->list φs)))))
-
-           (-texists shared-xs (-tand `(,@(set->list shared-cond) ,(-tor disjs))))]))
-
-      (define ok-cond (mk-cond oks))
-      (define er-cond (mk-cond ers))
-      (define params
-        (append (for/list : (Listof Sexp) ([⦃fv⦄ ⦃fv⦄s]) `(,⦃fv⦄ V))
-                (for/list : (Listof Sexp) ([x tₓs]) `(,x V))))
-
-      (: assrt : (Listof Sexp) Sexp → Sexp)
-      (define (assrt params cnd)
-        `(assert
-          ,(cond
-             [(null? params) cnd]
-             [else `(forall ,params (! ,cnd :pattern (,tₐₚₚ)))])))
-      
-      (values
-       (cons `(declare-fun ,fₕ ,(make-list n 'V) A) decs)
-       (list*
-        ;; For each function, generate implications from returns and blames
-        (assrt params `(=> (is-Val ,tₐₚₚ) ,ok-cond))
-        (assrt params `(=> (is-Blm ,tₐₚₚ) ,er-cond))
-        defs))))
-
-  (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
-  (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
-
-  (values `(,@(SMT-base struct-arities)
-            ,@emit-hack-for-is_int
-            ,@emit-dec-consts
-            ,@emit-dec-funs
-            ,@emit-def-funs
-            ,@emit-asserts)
-          goal))
 
 (: ⦃l⦄ : Mon-Party → Natural)
 (define ⦃l⦄
@@ -573,6 +435,11 @@
     [(and/c) `(And/C ,(next-int!))]
     [(or/c) `(Or/C ,(next-int!))]
     [(not/c) `(Not/C ,(next-int!))]
+    [(vector-ref) `(f.vecref ,@ts)]
+    [(vector-length) `(N (veclen ,@ts) 0)]
+    [(list?) `(B (list? ,@ts))]
+    [(map) `(f.map ,@ts)]
+    [(append) `(f.append ,@ts)]
     [else
      (match o
        [(-st-p s)
@@ -627,6 +494,165 @@
   (match-lambda
     [`(N ,_ ,y) y]
     [x `(imag ,x)]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Emitting SMT2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: emit : (℘ Natural) Memo-Table Entry → (Values (Listof Sexp) Sexp))
+;; Emit base and target to prove/refute
+(define (emit struct-arities def-funs top)
+  (match-define (Entry consts facts goal) top)
+
+  (define emit-hack-for-is_int : (Listof Sexp)
+    (cond [(should-include-hack-for-is_int? facts) hack-for-is_int]
+          [else '()]))
+  
+  (define-values (emit-dec-funs emit-def-funs)
+    (for/fold ([decs : (Listof Sexp) '()]
+               [defs : (Listof Sexp) '()])
+              ([(f-xs res) def-funs])
+      (match-define (App τ fvs xs) f-xs)
+      (define n (+ (length fvs) (length xs)))
+      (define ⦃fv⦄s (map ⦃x⦄ fvs))
+      (define tₓs (map ⦃x⦄ xs))
+      (define fₕ (fun-name τ fvs xs))
+      (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
+      (match-define (Res oks ers) res)
+
+      (: mk-cond : (Listof Entry) → Formula)
+      (define (mk-cond entries)
+        (match entries
+          ['() 'false]
+          [(list ent)
+           (match-define (Entry xs facts _) ent)
+           (-texists xs (-tand (set->list facts)))]
+          [_
+           (define-values (shared-xs shared-cond)
+             (for/fold ([shared-xs : (℘ Symbol) (Entry-free-vars (first entries))]
+                        [shared-cond : (℘ Term) (Entry-facts (first entries))])
+                       ([ent (in-list (rest entries))])
+               (match-define (Entry xs φs _) ent)
+               (values (∩ shared-xs xs) (∩ shared-cond φs))))
+
+           (define disjs
+             (for/list : (Listof Term) ([ent entries])
+               (match-define (Entry xs₀ φs₀ _) ent)
+               (define xs (set-subtract xs₀ shared-xs))
+               (define φs (set-subtract φs₀ shared-cond))
+               (-texists xs (-tand (set->list φs)))))
+
+           (-texists shared-xs (-tand `(,@(set->list shared-cond) ,(-tor disjs))))]))
+
+      (define ok-cond (mk-cond oks))
+      (define er-cond (mk-cond ers))
+      (define params
+        (append (for/list : (Listof Sexp) ([⦃fv⦄ ⦃fv⦄s]) `(,⦃fv⦄ V))
+                (for/list : (Listof Sexp) ([x tₓs]) `(,x V))))
+
+      (: assrt : (Listof Sexp) Sexp → Sexp)
+      (define (assrt params cnd)
+        `(assert
+          ,(cond
+             [(null? params) cnd]
+             [else `(forall ,params (! ,cnd :pattern (,tₐₚₚ)))])))
+      
+      (values
+       (cons `(declare-fun ,fₕ ,(make-list n 'V) A) decs)
+       (list*
+        ;; For each function, generate implications from returns and blames
+        (assrt params `(=> (is-Val ,tₐₚₚ) ,ok-cond))
+        (assrt params `(=> (is-Blm ,tₐₚₚ) ,er-cond))
+        defs))))
+
+  (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
+  (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
+
+  (values `(,@(SMT-base struct-arities)
+            ,@emit-hack-for-is_int
+            ,@emit-dec-consts
+            ,@emit-dec-funs
+            ,@emit-def-funs
+            ,@emit-asserts)
+          goal))
+
+(: base-datatypes : (℘ Natural) → (Listof Sexp))
+(define (base-datatypes arities)
+  (define st-defs : (Listof Sexp)
+    (for/list ([n (set-add arities #|hack|# 2)])
+      (define St_k (format-symbol "St_~a" n))
+      (define tag_k (format-symbol "tag_~a" n))
+      (define fields : (Listof Sexp) (for/list ([i n]) `(,(format-symbol "field_~a_~a" n i) V)))
+      `(,St_k (,tag_k Int) ,@fields)))
+  
+  `(;; Unitype
+    (declare-datatypes ()
+      ((V ; TODO
+        Undefined
+        Null
+        (N [real Real] [imag Real])
+        (B [unbox_B Bool])
+        (Proc [proc_id Int])
+        (Sym [sym Int])
+        (Str [str Int])
+        (And/C [and/c_id Int])
+        (Or/C [or/c_id Int])
+        (Not/C [not/c_id Int])
+        (St/C [unbox_st/c Int])
+        (Arr [unbox_Arr Int])
+        (ArrD [unbox_ArrD Int])
+        (Vec [unbox_Vec Int])
+        ;; structs with hard-coded arities
+        ,@st-defs)))
+    ;; Result
+    (declare-datatypes ()
+     ((A
+       (Val (unbox_Val V))
+       (Blm (blm_pos Int) (blm_src Int))
+       None)))
+    ))
+
+(define base-predicates : (Listof Sexp)
+  `(;; Primitive predicates
+    (define-fun is_false ([x V]) Bool
+      (= x (B false)))
+    (define-fun is_truish ([x V]) Bool
+      (not (is_false x)))
+    (define-fun is-R ([x V]) Bool
+      (and (is-N x) (= 0 (imag x))))
+    (define-fun is-Z ([x V]) Bool
+      (and (is-R x) (is_int (real x))))
+    (declare-fun exact? (V) Bool)
+    (declare-fun inexact? (V) Bool)
+    (declare-fun strlen (V) Int)
+    (declare-fun f.vecref (V V) V)
+    (declare-fun veclen (V) Int)
+    (assert (forall ((v V)) (>= (strlen v) 0)))
+    (assert (forall ((v V)) (>= (veclen v) 0)))
+    (declare-fun arity (V) Int)
+    (assert (forall ((v V)) (>= (arity v) 0)))
+    (declare-fun list? (V) Bool)
+    (assert (list? Null))
+    (assert (forall ([h V] [t V])
+                    (=> (list? t) (list? (St_2 ,(⦃struct-info⦄ -s-cons) h t)))))
+    (declare-fun f.map (V V) V)
+    (declare-fun f.append (V V) V)
+    ))
+
+(define hack-for-is_int : (Listof Sexp)
+  '{(assert (forall ([x Real] [y Real])
+              (=> (and (is_int x) (is_int y)) (is_int (+ x y)))))
+    (assert (forall ([x Real] [y Real])
+              (=> (and (is_int x) (is_int y)) (is_int (- x y)))))
+    (assert (forall ([x Real] [y Real])
+              (=> (and (is_int x) (is_int y)) (is_int (* x y)))))
+    })
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (:* -tand -tor : (Listof Term) → Term)
 (define -tand
