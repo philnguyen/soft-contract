@@ -13,9 +13,9 @@
          "result.rkt"
          "translate.rkt")
 
-;; Max seconds per query
+;; Max milli-seconds per query
 ;; TODO: possible to have something deterministic instead?
-(define-parameter Timeout : Natural 2)
+(define-parameter Timeout : Natural 200)
 
 (Sat-Result . ::= . 'Unsat 'Sat 'Unknown 'Timeout)
 
@@ -108,7 +108,7 @@
        (with-output-to-string
          (λ ()
            (display-lines-to-file stms QUERY-FILE #:exists 'replace)
-           (system (format "z3 -T:~a -memory:2000 -smt2 ~a" (Timeout) QUERY-FILE)))))
+           (system (format "z3 -t:~a -memory:2000 -smt2 ~a" (Timeout) QUERY-FILE)))))
       (match ans
           [(regexp #rx"^timeout")
            (printf "query:~n~a~nget: ~a~n~n" (display-query) ans)
