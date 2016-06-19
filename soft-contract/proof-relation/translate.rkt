@@ -95,27 +95,21 @@
          (define eₒₖ
            (cond
              [sₐ
-              (define-values (refs+ entry)
-                (let ([Γ (Γ↓ Γ (∪ bound (fvₛ sₐ)))])
-                  (encode-e bound Γ sₐ)))
+              (define-values (refs+ entry) (encode-e bound Γ sₐ))
               (refs-union! refs+)
               (match-define (Entry free-vars facts tₐₙₛ) entry)
               (Entry free-vars
                      (set-add facts `(= ,tₐₚₚ (Val ,tₐₙₛ)))
                      tₐₙₛ)]
              [else
-              (define-values (refs+ entry)
-                (let ([Γ (Γ↓ Γ bound)])
-                  (encode-e bound Γ #|hack|# -ff)))
+              (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
               (Entry free-vars facts #|hack|# '(B false))]))
          (values (cons eₒₖ oks) ers)]
         [(-ΓE Γ (-blm l+ lo _ _))
          (define eₑᵣ
-           (let-values ([(refs+ entry)
-                         (let ([Γ (Γ↓ Γ bound)])
-                           (encode-e bound Γ #|hack|# -ff))])
+           (let-values ([(refs+ entry) (encode-e bound Γ #|hack|# -ff)])
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
@@ -235,7 +229,11 @@
                  tₐₙₛ]
                 [else #f]))
         (begin
-          ;(printf "Warning: can't find application for ~a~n" (show-e e))
+          #;(printf "Warning: can't find ~a among ~a~n"
+                  (show-e e)
+                  (for/list : (Listof Sexp) ([γ γs])
+                    (match-define (-γ _ bnd _) γ)
+                    (show-binding bnd)))
           (fresh-free!)))]
       [(? -->?)
        (define t (fresh-free!))
