@@ -153,6 +153,7 @@
         (hash-ref! m tₐₚₚ (λ ()
                             (define tₐ (format-symbol "a.~a" (hash-count m)))
                             (free-vars-add! tₐ)
+                            (hash-set! asserts-app tₐₚₚ tₐ)
                             tₐ)))))
 
   ;; Encode that `eₕ(eₓs)` has succcessfully returned
@@ -233,7 +234,9 @@
                  (define tₐₙₛ (app-term! tₐₚₚ))
                  tₐₙₛ]
                 [else #f]))
-        (fresh-free!))]
+        (begin
+          ;(printf "Warning: can't find application for ~a~n" (show-e e))
+          (fresh-free!)))]
       [(? -->?)
        (define t (fresh-free!))
        (props-add! `(is-Arr ,t))

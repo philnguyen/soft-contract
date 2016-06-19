@@ -32,7 +32,7 @@
     #;(begin ; manual profiling
       (define δt (- (current-milliseconds) t₀))
       (accum-data! (list Γ e ans) δt))
-    #;(begin
+    (begin
       (match-define (-Γ φs _ γs) Γ)
       (define-values (base goal) (encode M Γ e))
       (for ([φ φs]) (printf "~a~n" (show-φ φ)))
