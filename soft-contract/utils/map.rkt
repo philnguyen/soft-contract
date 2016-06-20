@@ -92,6 +92,12 @@
   (go*! xs₀)
   touched)
 
+(: mk-interner (∀ (X) ([] [#:eq? Boolean] . ->* . (X → Natural))))
+;; Intern something as integers
+(define (mk-interner #:eq? [use-eq? #f])
+  (define m : (HashTable X Natural) ((if use-eq? make-hasheq make-hash)))
+  (λ (x) (hash-ref! m x (λ () (hash-count m)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; TMP hack for profiling

@@ -353,18 +353,9 @@
     [(symbol? o) (format-symbol "o.~a" o)]
     [else (error '⦃o⦄ "unsupported: ~a" (show-o o))]))
 
-(: o->id : -o → Integer)
-(define o->id
-  (let ([m : (HashTable -o Integer) (make-hash)])
-    (λ (o) (hash-ref! m o (λ () (hash-count m))))))
-
-(define ⦃sym⦄ : (Symbol → Integer)
-  (let ([m : (HashTable Symbol Integer) (make-hasheq)])
-    (λ (s) (hash-ref! m s (λ () (hash-count m))))))
-
-(define ⦃str⦄ : (String → Integer)
-  (let ([m : (HashTable String Integer) (make-hash)])
-    (λ (s) (hash-ref! m s (λ () (hash-count m))))))
+(define o->id ((inst mk-interner -o)))
+(define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
+(define ⦃str⦄ ((inst mk-interner String)))
 
 (: app-o : -o (Listof Term) → Term)
 (define (app-o o ts)
