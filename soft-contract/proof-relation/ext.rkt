@@ -15,7 +15,7 @@
 
 ;; Max milli-seconds per query
 ;; TODO: possible to have something deterministic instead?
-(define-parameter Timeout : Natural 200)
+(define-parameter Timeout : Natural 500)
 
 (Sat-Result . ::= . 'Unsat 'Sat 'Unknown 'Timeout)
 
