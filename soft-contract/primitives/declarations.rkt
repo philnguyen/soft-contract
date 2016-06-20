@@ -90,12 +90,12 @@
       (integer? . -> . integer?)
       (real? . -> . real?)]
      [abs
-      (integer? . -> . integer?)
-      (real? . -> . real?)]
+      (real? . -> . real?)
+      (integer? . -> . integer?)]
      [#:batch (max min) ; FIXME varargs
+      (real? real? . -> . real?)
       (exact-nonnegative-integer?  exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
-      (integer? integer? . -> . integer?)
-      (real? real? . -> . real?)]
+      (integer? integer? . -> . integer?)]
      [#:batch (gcd lcm) ; FIXME varargs
       (rational? rational? . -> . rational?)]
      [#:batch (round floor ceiling truncate)
