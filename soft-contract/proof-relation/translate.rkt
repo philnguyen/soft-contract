@@ -432,6 +432,9 @@
      (define c²d² `(+ (* ,c ,c) (* ,d ,d)))
      `(N (/ (+ (* ,a ,c) (* ,b ,d)) ,c²d²)
          (/ (- (* ,b ,c) (* ,a ,d)) ,c²d²))]
+    [(exact-nonnegative-integer?)
+     (match-define (list t) ts)
+     `(B (and (is-Z ,t) (exact? ,t) (>= ,(N-real t) 0)))]
     [(inexact?) `(B (inexact? ,@ts))]
     [(exact?) `(B (exact? ,@ts))]
     [(string-length) `(N (strlen ,@ts) 0)]
@@ -443,6 +446,12 @@
     [(list?) `(B (list? ,@ts))]
     [(map) `(f.map ,@ts)]
     [(append) `(f.append ,@ts)]
+    [(min)
+     (match-define (list t₁ t₂) ts)
+     `(N (f.min ,(N-real t₁) ,(N-real t₂)) 0)]
+    [(max)
+     (match-define (list t₁ t₂) ts)
+     `(N (f.max ,(N-real t₁) ,(N-real t₂)) 0)]
     [else
      (match o
        [(-st-p s)
@@ -641,6 +650,8 @@
                     (=> (list? t) (list? (St_2 ,(⦃struct-info⦄ -s-cons) h t)))))
     (declare-fun f.map (V V) V)
     (declare-fun f.append (V V) V)
+    (define-fun f.min ((x Real) (y Real)) Real (if (<= x y) x y))
+    (define-fun f.max ((x Real) (y Real)) Real (if (>= x y) x y))
     ))
 
 (define hack-for-is_int : (Listof Sexp)
