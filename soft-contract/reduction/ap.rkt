@@ -51,12 +51,11 @@
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
   (define sₐ
-    (let ([sₕ* (or sₕ
-                   (match Vₕ
-                     [(? -prim? o) o]
-                     [(-Ar _ (-α.def (-𝒾 o 'Λ)) _) o]
-                     [(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
-                     [_ #f]))])
+    (let ([sₕ* (match Vₕ
+                 [(? -o? o) o]
+                 [(-Ar _ (-α.def (-𝒾 o 'Λ)) _) o]
+                 [(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
+                 [_ sₕ])])
       (apply -?@ sₕ* sₓs)))
 
   (: blm-arity : Arity Natural → -blm)

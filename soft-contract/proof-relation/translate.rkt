@@ -150,14 +150,17 @@
                             (hash-set! asserts-app tₐₚₚ tₐ)
                             tₐ)))))
 
-  ;; Encode that `eₕ(eₓs)` has succcessfully returned
-  (define/memo (⦃app⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
+  ;; Add a reminder to encode memo table entries for `τ(xs)` as a 1st-order function
+  (define/memo (⦃fun⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)]) : Symbol
     (define _ (⦃e⦄! eₕ))
     (define ⦃fv⦄s (map ⦃x⦄ fvs))
-    (define tₓs (map ⦃e⦄! eₓs))
-    (define fₕ (fun-name τ fvs xs))
     (refs-add! (App τ fvs xs))
-    (-tapp fₕ ⦃fv⦄s tₓs))
+    (fun-name τ fvs xs))
+
+  ;; Encode application
+  (define/memo (⦃app⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
+    (define fₕ (⦃fun⦄! τ eₕ fvs xs))
+    (-tapp fₕ (map ⦃x⦄ fvs) (map ⦃e⦄! eₓs)))
 
   ;; encode the fact that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : Term
@@ -222,11 +225,10 @@
         (for/or : (Option Term) ([γ γs])
           (match-define (-γ τ bnd blm) γ)
           (match-define (-binding φₕ xs x->φ) bnd)
-          (cond [(equal? e (binding->s bnd))
+          (cond [(equal? eₕ (and φₕ (φ->e φₕ)))
                  (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
                  (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
-                 (define tₐₙₛ (app-term! tₐₚₚ))
-                 tₐₙₛ]
+                 (app-term! tₐₚₚ)]
                 [else #f]))
         (begin
           #;(printf "Warning: can't find ~a among ~a~n"
