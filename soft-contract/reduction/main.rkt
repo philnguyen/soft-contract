@@ -55,14 +55,14 @@
       (run (⇓ 'top e) σ₀)))
   (values As M Ξ))
 
-
-(define count : Natural 0)
 (: run : -⟦e⟧ -σ → (Values (℘ -A) #|for debugging|# -M -Ξ -σ))
 ;; Run compiled program on initial heap
 (define (run ⟦e⟧₀ σ₀)
   (define-type Seen-τ (HashTable -τ -σ))
   (define-type Seen-Co (HashTable (List -ℛ -τ -A) -M))
   ;(define-type Seen-Table (HashTable (U -τ (List -ℛ -τ -A)) (List -M #;-Ξ -σ)))
+
+  (define count : Natural 0)
   
   (: loop : Seen-τ Seen-Co (℘ -τ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
   (define (loop seen-τs seen-Cos τs Cos M Ξ σ)
@@ -72,7 +72,7 @@
        (values M Ξ σ)]
       [else
        
-       #;(begin ;; Pre-iter debuggings
+       (begin ;; Pre-iter debuggings
          (define last : Integer (current-seconds))
          (set! count (+ 1 count))
          (define num-τs (set-count τs))
@@ -146,7 +146,7 @@
            (values !Cos !seen-Cos)))
 
        ;; Post-iter Debugging
-       #;(parameterize ([verbose? #t])
+       (parameterize ([verbose? #t])
 
          (: show-m (∀ (X Y) ([Sexp (X → Sexp) (Y → Sexp) (MMap X Y)]
                              [#:filter (X → Boolean)]
