@@ -5,7 +5,7 @@
          racket/file
          racket/string
          typed/rackunit
-         "../utils/set.rkt"
+         "../utils/main.rkt"
          "../runtime/main.rkt"
          "../reduction/main.rkt")
 
@@ -34,7 +34,12 @@
          [file-path-str (in-value (path->string file))]
          #:when (regexp-match-exact? #rx".*rkt" file-path-str))
     (test-case file-path-str
-      (f file-path-str))))
+      (with-handlers ([exn?
+                       (λ ([e : exn])
+                         (fail (format "Exception: ~a~n" (exn-message e))))])
+        (define TIMEOUT 600)
+        (unless (within-time: Any TIMEOUT (f file-path-str))
+          (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
 
 (module+ test
   (with-dir "safe" check-verify-safe))
