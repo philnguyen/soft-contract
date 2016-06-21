@@ -98,8 +98,9 @@
     [((regexp #rx"^sat(.*)")) 'Sat]
     [((regexp #rx"^unknown")) 'Unknown]
     [((regexp #rx"^timeout")) 'Timeout]
-    [(str) (error 'check-sat "unexpected output from solver: ~a~nquery:~n~a~n"
-                  str (display-query))])
+    [(str)
+     (printf "check-sat: unexpected output from solver: ~a~nquery:~n~a~n" str (display-query))
+     'Unknown])
 
   ;(define t₀ (current-milliseconds))
   (define res
