@@ -176,21 +176,21 @@
        (define t (⦃x⦄ x))
        (cond [(∋ bound x) t]
              [else (free-vars-add! t) t])]
-      [(-λ (? list? xs) e)
+      [(-λ xs e)
        (define t (fresh-free!))
        (props-add! `(is-Proc ,t))
-       (props-add! `(= (arity ,t) ,(length xs)))
+       (cond
+         [(list? xs) (props-add! `(= (arity ,t) ,(length xs)))]
+         [else (printf "Warning: No precise translation for varargs~n")])
        t]
       
       ;; Hacks for special applications go here
       [(-@ (-@ 'and/c ps _) es _)
        (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
-       (define φ (-tand (for/list ([t ts]) `(is_truish ,t))))
-       `(B ,φ)]
+       `(B ,(-tand (for/list ([t ts]) `(is_truish ,t))))]
       [(-@ (-@ 'or/c ps _) es _)
        (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
-       (define φ (-tor (for/list ([t ts]) `(is_truish ,t))))
-       `(B ,φ)]
+       `(B ,(-tor (for/list ([t ts]) `(is_truish ,t))))]
       [(-@ (-@ 'not/c (list p) _) es _)
        `(B (is_false ,(⦃e⦄! (-@ p es 0))))]
       [(-@ (-struct/c s cs _) es _)
@@ -199,8 +199,7 @@
          (for/list ([(c i) (in-indexed cs)])
            (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es 0))
            (⦃e⦄! (-@ c (list eᵢ) 0))))
-       (define φ (-tand (for/list ([t (cons tₚ ts)]) `(is_truish ,t))))
-       `(B ,φ)]
+       `(B ,(-tand (for/list ([t (cons tₚ ts)]) `(is_truish ,t))))]
       ;; End of hacks for special applications
       
       [(-@ (? -o? o) es _)
