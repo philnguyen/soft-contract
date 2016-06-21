@@ -708,7 +708,8 @@
       (define bnd #|FIXME Hack|# (-binding -⦇values⦈ (list x) (if v (hasheq x (e->φ v)) (hasheq))))
       (define ℒ*
         (let ([Γ (-ℒ-cnd ℒ)])
-          (-ℒ-with-Γ ℒ (invalidate Γ x))))
+          (match-define (-Γ φs as γs) Γ) ; HACK: drop all tails for now
+          (-ℒ-with-Γ ℒ (invalidate (-Γ φs as '()) x))))
       (values ⊥σ ∅ ∅ {set (-ℐ (-ℋ ℒ bnd '□) (-ℳ l³ ℓ W-C* W-V* ℒ*))}))))
 
 (: mon-and/c : Mon-Info -ℓ -W¹ -W¹ → -⟦e⟧)
