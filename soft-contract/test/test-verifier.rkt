@@ -13,9 +13,10 @@
 (define (check-verify-safe p)
   (define-values (As _₁ _₂) (havoc-file p))
   (define-values (_ ΓEs) (set-partition -ΓW? As))
-  (printf "Verifing ~a: " p)
   (cond
     [(set-empty? ΓEs)
+     (printf " ✓~n")]
+    [else
      (define msg
        (let ([blm-msgs
               (for/list : (Listof String) ([ΓE ΓEs])
@@ -25,8 +26,7 @@
                       "\n"
                       #:before-first "✗"
                       #:after-last "\n")))
-     (fail msg)]
-    [else (printf " ✓~n")]))
+     (fail msg)]))
 
 (: with-dir : Path-String (Path-String → Any) → Any)
 (define (with-dir dir f)
