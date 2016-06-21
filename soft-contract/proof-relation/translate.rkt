@@ -180,7 +180,7 @@
        (props-add! `(is-Proc ,t))
        (cond
          [(list? xs) (props-add! `(= (arity ,t) ,(length xs)))]
-         [else (printf "Warning: No precise translation for varargs~n")])
+         [else (log-warning "No precise translation for varargs~n")])
        t]
       
       ;; Hacks for special applications go here
