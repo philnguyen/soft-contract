@@ -361,7 +361,7 @@
 (define (app-o o ts)
   (case o
     [(defined?)
-     `(B (not (is-Undefined ,@ts)))]
+     `(B (not (= Undefined ,@ts)))]
     [(number?)
      `(B (is-N ,@ts))]
     [(real?)
