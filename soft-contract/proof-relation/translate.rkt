@@ -447,22 +447,6 @@
     (λ ()
       (begin0 i (set! i (+ 1 i))))))
 
-(: should-include-hack-for-is_int? : (℘ Term) → Boolean)
-(define (should-include-hack-for-is_int? φs)
-  (and (has-op? φs 'o.integer?)
-       (for/or : Boolean ([o (in-list '(o.+ o.- o.*))])
-         (has-op? φs o))))
-
-(: has-op? : (℘ Term) Symbol → Boolean)
-(define (has-op? φs o)
-
-  (define go : (Term → Boolean)
-    (match-lambda
-      [(cons h t) (or (go h) (go t))]
-      [s (equal? s o)]))
-
-  (for/or : Boolean ([φ φs]) (go φ)))
-
 (define N-real : (Term → Term)
   (match-lambda
     [`(N ,x ,_) x]
@@ -482,10 +466,6 @@
 (define (emit struct-arities def-funs top)
   (match-define (Entry consts facts goal) top)
 
-  (define emit-hack-for-is_int : (Listof Sexp)
-    (cond [(should-include-hack-for-is_int? facts) hack-for-is_int]
-          [else '()]))
-  
   (define-values (emit-dec-funs emit-def-funs)
     (for/fold ([decs : (Listof Sexp) '()]
                [defs : (Listof Sexp) '()])
@@ -547,7 +527,6 @@
   (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
 
   (values `(,@(SMT-base struct-arities)
-            ,@emit-hack-for-is_int
             ,@emit-dec-consts
             ,@emit-dec-funs
             ,@emit-def-funs
@@ -618,15 +597,6 @@
     (define-fun f.min ((x Real) (y Real)) Real (if (<= x y) x y))
     (define-fun f.max ((x Real) (y Real)) Real (if (>= x y) x y))
     ))
-
-(define hack-for-is_int : (Listof Sexp)
-  '{(assert (forall ([x Real] [y Real])
-              (=> (and (is_int x) (is_int y)) (is_int (+ x y)))))
-    (assert (forall ([x Real] [y Real])
-              (=> (and (is_int x) (is_int y)) (is_int (- x y)))))
-    (assert (forall ([x Real] [y Real])
-              (=> (and (is_int x) (is_int y)) (is_int (* x y)))))
-    })
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
