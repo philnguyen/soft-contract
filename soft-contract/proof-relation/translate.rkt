@@ -159,8 +159,7 @@
 
   ;; Encode application
   (define/memo (⦃app⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
-    (define fₕ (⦃fun⦄! τ eₕ fvs xs))
-    (-tapp fₕ (map ⦃x⦄ fvs) (map ⦃e⦄! eₓs)))
+    (-tapp (⦃fun⦄! τ eₕ fvs xs) (map ⦃x⦄ fvs) (map ⦃e⦄! eₓs)))
 
   ;; encode the fact that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : Term
@@ -278,18 +277,6 @@
 
   (values refs (Entry free-vars all-props tₜₒₚ)))
 
-
-
-(: ⦃l⦄ : Mon-Party → Natural)
-(define ⦃l⦄
-  (let-values ([(l->nat _₁ _₂) ((inst unique-nat Mon-Party))])
-    l->nat))
-
-(: ⦃struct-info⦄ : -struct-info → Natural)
-(define ⦃struct-info⦄
-  (let-values ([(si->nat _₁ _₂) ((inst unique-nat -struct-info))])
-    si->nat))
-
 (: ⦃b⦄ : Base → Term)
 (define (⦃b⦄ b)
   (match b
@@ -346,15 +333,11 @@
     (λ (τ fvs xs)
       (hash-ref! m (list τ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
 
-(: ⦃o⦄ : -o → Symbol)
-(define (⦃o⦄ o)
-  (cond
-    [(symbol? o) (format-symbol "o.~a" o)]
-    [else (error '⦃o⦄ "unsupported: ~a" (show-o o))]))
-
 (define o->id ((inst mk-interner -o)))
 (define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
 (define ⦃str⦄ ((inst mk-interner String)))
+(define ⦃l⦄ ((inst mk-interner Mon-Party)))
+(define ⦃struct-info⦄ ((inst mk-interner -struct-info)))
 
 (: app-o : -o (Listof Term) → Term)
 (define (app-o o ts)
@@ -457,14 +440,6 @@
         (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
         `(,field ,@ts)]
        [_ (error 'app-o "unsupported: ~a" (show-o o))])]))
-
-(: lift-ℝ²-𝔹 : Symbol → (Listof Sexp))
-(define (lift-ℝ²-𝔹 o)
-  (define name (⦃o⦄ o))
-  `{(define-fun ,name ([x V] [y V]) A
-      (if (and (is-R x) (is-R y))
-          (Val (B (,o (real x) (real y))))
-          None))})
 
 (: next-int! : → Natural)
 (define next-int!
