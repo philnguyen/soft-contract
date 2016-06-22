@@ -428,8 +428,11 @@
      (define cs : (Listof -s)
        (for/list ([γ : -α γs])
          (and (-e? γ) γ)))
-     (define d : -s (and (-e? d) d))
-     `(,@(map show-s cs) . ->i . ,(show-s d))]
+     (define d : -s (and (-e? α) α))
+     `(->i ,@(map show-s cs)
+           ,(match d
+              [(-λ (? list? xs) e) `(res ,xs ,(show-e e))]
+              [_ (show-s d)]))]
     [(-Case-> cases _)
      `(case->
        ,@(for/list : (Listof Sexp) ([kase cases])

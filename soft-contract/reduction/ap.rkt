@@ -166,39 +166,66 @@
       (define cs : (Listof -s) (for/list ([α αs]) (and (-e? α) α)))
       (define mk-d (and (-λ? γ) γ))
 
-      (for*/ans ([Mk-D (σ@ σ γ)])
-        (match-define (-Clo xs _ _ _) Mk-D)
-        (define W-rng (-W¹ Mk-D mk-d))
-        (match xs
-          [(? list? xs)
+      ;; FIXME Tmp copy n paste. Remove duplicate code.
+      (match mk-d
+        ;; Inline contract range if possible
+        [(-λ (? list? xs) d)
+         (for*/ans ([Mk-D (σ@ σ γ)])
+           (match-define (-Clo _ ⟦d⟧ _ _) Mk-D)
            (define xs⇓ (map (curry ⇓ₓ lo) xs))
            (for*/ans ([Cs (σ@/list σ αs)])
-              ;; TODO: make sure it's ok to reuse variables `xs`
-                     
-              ;; Monitor arguments
-              (define ⟦mon-x⟧s : (Listof -⟦e⟧)
-                (for/list ([C Cs] [c cs] [Wₓ Wₓs])
-                  (mon l³* ℓ (-W¹ C c) Wₓ)))
-              
-              ;; TODO: make sure it's ok to not memoize these run-time generated computations
-              (define comp
-                (match* (xs xs⇓ ⟦mon-x⟧s)
-                  [('() '() '()) ; 0-arg
-                   (define ⟦mk-d⟧ : -⟦e⟧ (ap lo ℓ W-rng '()))
-                   (define ⟦ap⟧   : -⟦e⟧ (ap lo ℓ Wᵤ    '()))
-                   ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)]
-                  [((cons x xs*) (cons x⇓ xs⇓*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
-                   (define ⟦mon-y⟧ : -⟦e⟧
-                     (let ([⟦mk-d⟧ : -⟦e⟧ ((↝.@ lo ℓ (list W-rng) xs⇓*) x⇓)]
-                           [⟦ap⟧   : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ   ) xs⇓*) x⇓)])
-                       ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)))
-                   (define bnds : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
-                     (for/list ([xᵢ xs*] [⟦mon-xᵢ⟧ ⟦mon-x⟧s*])
-                       (cons (list xᵢ) ⟦mon-xᵢ⟧)))
-                   ((↝.let-values lo '() (list x) bnds ⟦mon-y⟧) ⟦mon-x⟧)]))
-              (comp M σ ℒ₀))]
-          [(-varargs zs z)
-           (error 'ap "Apply variable arity arrow")])))
+             ;; Monitor arguments
+             (define ⟦mon-x⟧s : (Listof -⟦e⟧)
+               (for/list ([C Cs] [c cs] [Wₓ Wₓs])
+                 (mon l³* ℓ (-W¹ C c) Wₓ)))
+                        
+             ;; TODO: make sure it's ok to not memoize these run-time generated computations
+             (define comp
+               (match* (xs xs⇓ ⟦mon-x⟧s)
+                 [('() '() '()) ; 0-arg
+                  (define ⟦ap⟧   : -⟦e⟧ (ap lo ℓ Wᵤ    '()))
+                  ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦d⟧)]
+                 [((cons x xs*) (cons x⇓ xs⇓*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
+                  (define ⟦mon-y⟧ : -⟦e⟧
+                    (let ([⟦ap⟧   : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ) xs⇓*) x⇓)])
+                      ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦d⟧)))
+                  (define bnds : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
+                    (for/list ([xᵢ xs*] [⟦mon-xᵢ⟧ ⟦mon-x⟧s*])
+                      (cons (list xᵢ) ⟦mon-xᵢ⟧)))
+                  ((↝.let-values lo '() (list x) bnds ⟦mon-y⟧) ⟦mon-x⟧)]))
+             (comp M σ ℒ₀)))]
+        [_
+         (for*/ans ([Mk-D (σ@ σ γ)])
+           (match-define (-Clo xs _ _ _) Mk-D)
+           (define W-rng (-W¹ Mk-D mk-d))
+           (match xs
+             [(? list? xs)
+              (define xs⇓ (map (curry ⇓ₓ lo) xs))
+              (for*/ans ([Cs (σ@/list σ αs)])
+                ;; Monitor arguments
+                (define ⟦mon-x⟧s : (Listof -⟦e⟧)
+                  (for/list ([C Cs] [c cs] [Wₓ Wₓs])
+                    (mon l³* ℓ (-W¹ C c) Wₓ)))
+                        
+                ;; TODO: make sure it's ok to not memoize these run-time generated computations
+                (define comp
+                  (match* (xs xs⇓ ⟦mon-x⟧s)
+                    [('() '() '()) ; 0-arg
+                     (define ⟦mk-d⟧ : -⟦e⟧ (ap lo ℓ W-rng '()))
+                     (define ⟦ap⟧   : -⟦e⟧ (ap lo ℓ Wᵤ    '()))
+                     ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)]
+                    [((cons x xs*) (cons x⇓ xs⇓*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
+                     (define ⟦mon-y⟧ : -⟦e⟧
+                       (let ([⟦mk-d⟧ : -⟦e⟧ ((↝.@ lo ℓ (list W-rng) xs⇓*) x⇓)]
+                             [⟦ap⟧   : -⟦e⟧ ((↝.@ lo ℓ (list Wᵤ   ) xs⇓*) x⇓)])
+                         ((↝.mon.v l³ ℓ ⟦ap⟧) ⟦mk-d⟧)))
+                     (define bnds : (Listof (Pairof (Listof Var-Name) -⟦e⟧))
+                       (for/list ([xᵢ xs*] [⟦mon-xᵢ⟧ ⟦mon-x⟧s*])
+                         (cons (list xᵢ) ⟦mon-xᵢ⟧)))
+                     ((↝.let-values lo '() (list x) bnds ⟦mon-y⟧) ⟦mon-x⟧)]))
+                (comp M σ ℒ₀))]
+             [(-varargs zs z)
+              (error 'ap "Apply variable arity arrow")]))]))
 
     (: ap/case : -Case-> -V Mon-Info → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
     ;; Apply function wrapped in `case->`
