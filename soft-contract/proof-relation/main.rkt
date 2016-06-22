@@ -23,7 +23,14 @@
     ((ans)
      (match-define (-W¹ V v) W_v)
      (match-define (-W¹ C c) W_c)
-     (first-R (p∋Vs C V) (MΓ⊢s M Γ (-?@ c v))))
+     (first-R (p∋Vs C V)
+              (match V
+                [(-● ps)
+                 (define Γ*
+                   (for/fold ([Γ : -Γ Γ]) ([p ps])
+                     (Γ+ Γ (-?@ p v))))
+                 (MΓ⊢s M Γ* (-?@ c v))]
+                [_ (MΓ⊢s M Γ (-?@ c v))])))
     (printf "~a ⊢ ~a ∈ ~a : ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans)))
 
 (: MΓ⊢oW : -M -Γ -o -W¹ * → -R)
@@ -33,7 +40,13 @@
   (with-debugging/off
     ((R)
      (first-R (apply p∋Vs p Vs)
-              (MΓ⊢s M Γ (apply -?@ p ss))))
+              (match* (Vs ss)
+                [((list (-● ps)) (list s))
+                 (define Γ*
+                   (for/fold ([Γ : -Γ Γ]) ([p ps])
+                     (Γ+ Γ (-?@ p s))))
+                 (MΓ⊢s M Γ* (-?@ p s))]
+                [(_ _) (MΓ⊢s M Γ (apply -?@ p ss))])))
     (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))
 
 (: MΓ⊢s : -M -Γ -s → -R)

@@ -405,6 +405,7 @@
      (define c²d² `(+ (* ,c ,c) (* ,d ,d)))
      `(N (/ (+ (* ,a ,c) (* ,b ,d)) ,c²d²)
          (/ (- (* ,b ,c) (* ,a ,d)) ,c²d²))]
+    [(zero?) `(B (= (N 0 0) ,@ts))]
     [(exact-nonnegative-integer?)
      (match-define (list t) ts)
      `(B (and (is-Z ,t) (exact? ,t) (>= ,(N-real t) 0)))]
