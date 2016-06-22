@@ -6,7 +6,7 @@
          (except-in racket/list remove-duplicates)
          racket/set
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt")
 
@@ -54,6 +54,7 @@
 (define/memo (⇓ₓ [l : Mon-Party] [x : Var-Name]) : -⟦e⟧
   (cond
     [((set!-able?) x)
+     ;; FIXME tmp code duplicate
      (λ (M σ ℒ)
        (match-define (-ℒ ρ Γ 𝒞) ℒ)
        (define φs (-Γ-facts Γ))
@@ -61,8 +62,8 @@
          (for*/fold ([ΓWs : (℘ -ΓW) ∅]
                      [ΓEs : (℘ -ΓE) ∅])
                     ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V #f))
-           (case V
-             [(undefined)
+           (match V
+             ['undefined
               (values
                ΓWs
                (set-add
@@ -79,13 +80,22 @@
          (for*/fold ([ΓWs : (℘ -ΓW) ∅]
                      [ΓEs : (℘ -ΓE) ∅])
                     ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V s))
-           (case V
-             [(undefined)
+           (match V
+             ['undefined
               (values
                ΓWs
                (set-add
                 ΓEs
                 (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
+             [(-● ps)
+              (define ps*
+                (for/fold ([ps : (℘ -o) ps]) ([φ φs])
+                  (match (φ->e φ)
+                    [(-@ (? -o? o) (list (== s)) _)
+                     (set-add ps o)]
+                    [_ ps])))
+              (define V* (if (equal? ps ps*) V (-● ps*)))
+              (values (set-add ΓWs (-ΓW Γ (-W (list V*) s))) ΓEs)]
              [else (values (set-add ΓWs (-ΓW Γ (-W (list V) s))) ΓEs)])))
        (values ⊥σ ΓWs ΓEs ∅))]))
 
