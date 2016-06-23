@@ -150,7 +150,7 @@
 
 ;; FIXME: some predicates about vectors and streams and such shouldn't be here...
 (define base-predicates
-  (for/fold ([acc : (℘ Symbol) ∅eq])
+  (for/fold ([acc : (℘ Symbol) {seteq #|HACK|# '<= '< '>= '> '=}])
             ([dec : Any (in-list prims:prims)])
     (match dec
       [`(#:pred ,(? symbol? s))

@@ -40,13 +40,17 @@
   (with-debugging/off
     ((R)
      (first-R (apply p∋Vs p Vs)
-              (match* (Vs ss)
-                [((list (-● ps)) (list s))
-                 (define Γ*
-                   (for/fold ([Γ : -Γ Γ]) ([p ps])
-                     (Γ+ Γ (-?@ p s))))
-                 (MΓ⊢s M Γ* (-?@ p s))]
-                [(_ _) (MΓ⊢s M Γ (apply -?@ p ss))])))
+              (let ()
+                (define Γ*
+                  (for/fold ([Γ : -Γ Γ]) ([V Vs] [s ss] #:when s)
+                    (match V
+                      [(-● ps)
+                       (for/fold ([Γ : -Γ Γ]) ([p ps])
+                         (Γ+ Γ (-?@ p s)))]
+                      [(? -b? b)
+                       (Γ+ Γ (-@ 'equal? (list s b) 0))]
+                      [_ Γ])))
+                (MΓ⊢s M Γ* (apply -?@ p ss)))))
     (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))
 
 (: MΓ⊢s : -M -Γ -s → -R)
