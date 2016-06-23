@@ -1684,6 +1684,31 @@
     [values ([] #:rest list? . ->* . any)])
   )
 
+(define prims.13
+  '(
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 13.1 Ports
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ;; 13.1.2 Managing Ports
+    [input-port? (any/c . -> . boolean?)]
+    [output-port? (any/c . -> . boolean?)]
+    [port? (any/c . -> . boolean?)]
+    
+    ;; 13.1.5 File Ports
+    [call-with-input-file (path-string? (input-port? . -> . any/c) . -> . any/c)] ; FIXME uses, any
+    [call-with-output-file (path-string? (output-port? . -> . any/c) . -> . any/c)])) ; FIXME uses, any
+
+(define prims.15
+  '(
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 15.1 Paths
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ;; 15.1.1 Manipulating Paths
+    [path-string? (any/c . -> . boolean?)]
+    ))
+
 (define prims.17
   '(
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1705,7 +1730,7 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     [#:pred float-complex?]))
 
-(define prims (append prims.04 prims.08 prims.10 prims.17 prims.math))
+(define prims (append prims.04 prims.08 prims.10 prims.13 prims.15 prims.17 prims.math))
 
 
 ;; Declare implications between predicates.
@@ -1761,11 +1786,14 @@
     ;; Contracts
     [flat-contract? ⇒ contract?]
 
+    [input-port? ⇒ port?]
+    [output-port? ⇒ port?]
+
     ; made up predicate to mark internally used mapping
     [δ-case? ⇒ procedure?]
 
     [#:exclusion
-     number? string? boolean? keyword? symbol? void? null? procedure? vector?]
+     number? string? boolean? keyword? symbol? void? null? procedure? vector? port?]
     ))
 
 ;; Operations that are associative

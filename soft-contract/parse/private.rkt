@@ -349,7 +349,7 @@
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
   (syntax-parse stx
-    [(~or e:number e:str e:boolean e:id e:keyword) (-b (syntax-e #'e))]
+    [(~or e:number e:str e:boolean e:id e:keyword e:char) (-b (syntax-e #'e))]
     [(l . r)
      (-@ -cons
          (list (parse-quote #'l) (parse-quote #'r))
