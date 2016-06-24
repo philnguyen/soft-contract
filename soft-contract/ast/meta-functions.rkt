@@ -415,7 +415,7 @@
        (define bod* (go! m* bod))
        (define bnds* (map (inst cons (Listof Var-Name) -e) (reverse xss*-rev) es*))
        (-letrec-values bnds* bod*)]
-      [(-set! (? symbol? x) e*) (-set! (hash-ref m x) (go! m e*))]
+      [(-set! (? symbol? x) e*) (-set! (hash-ref m x #|when `x` is top-level|# (λ () x)) (go! m e*))]
       [(-amb es) (-amb (map/set (curry go! m) es))]
       [(-μ/c x c) (-μ/c x (go! m c))]
       [(--> cs d ℓ) (--> (map (curry go! m) cs) (go! m d) ℓ)]

@@ -317,7 +317,13 @@
      (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
     [(#%variable-reference) (error 'parse-e "TODO: #%variable-reference")]
     [(#%variable-reference id)
-     (error 'parse-e "TODO: #%variable-reference ~a" (syntax->datum #'id))]
+     (match (symbol->string (syntax-e #'id)) ;; tmp HACK for slatex
+       [(regexp #rx"^call-with-output-file")
+        (-𝒾 'call-with-output-file 'Λ)]
+       [(regexp #rx"^call-with-input-file")
+        (-𝒾 'call-with-input-file 'Λ)]
+       [_
+        (error 'parse-e "TODO: #%variable-reference ~a, ~a" (syntax->datum #'id))])]
     
     ;; Hacks for now. TODO: need this anymore??
     ;[(~literal null) -null]
