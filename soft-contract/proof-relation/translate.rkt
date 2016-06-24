@@ -358,6 +358,8 @@
      `(B (is-Proc ,@ts) #;(exists ([id Int]) (= ,@ts (Proc id))))]
     [(boolean?)
      `(B (is-B ,@ts))]
+    [(vector)
+     `(Vec ,(next-int!))]
     [(vector?)
      `(B (is-Vec ,@ts))]
     [(not false?)
@@ -405,6 +407,9 @@
      (define c²d² `(+ (* ,c ,c) (* ,d ,d)))
      `(N (/ (+ (* ,a ,c) (* ,b ,d)) ,c²d²)
          (/ (- (* ,b ,c) (* ,a ,d)) ,c²d²))]
+    [(sqrt) ; just for real numbers for now
+     (match-define (list t) ts)
+     `(N (^ ,(N-real t) 0.5) 0)]
     [(zero?) `(B (= (N 0 0) ,@ts))]
     [(exact-nonnegative-integer?)
      (match-define (list t) ts)
