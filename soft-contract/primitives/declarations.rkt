@@ -967,7 +967,7 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      [#:pred vector?] ; FIXME alias for internal `vector?`
      [make-vector
-      (exact-nonnegative-integer? any/c . -> . vector?)]
+      (exact-nonnegative-integer? #;any/c . -> . vector?)]
      [vector
       (() #:rest list? . ->* . (and/c vector? (not/c immutable?)))]
      [vector-immutable
@@ -1707,6 +1707,13 @@
 
     ;; 15.1.1 Manipulating Paths
     [path-string? (any/c . -> . boolean?)]
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 15.7
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (getenv (string? . -> . (or/c string? not)))
+    (putenv (string? string? . -> . boolean?))
     ))
 
 (define prims.17

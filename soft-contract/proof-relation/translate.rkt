@@ -217,7 +217,12 @@
           (props-add! `(and (,is-St ,@ts) (= (,tag ,@ts) ,stag)))]
          [_ (void)])
        
-       (app-o o ts)]
+       (with-handlers ([exn:scv:smt:unsupported?
+                        (λ (_)
+                          ;; suppress for now
+                          (printf "Z3 translation: primitive `~a` unsupported~n" (show-o o))
+                          (fresh-free!))])
+         (app-o o ts))]
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option Term) ([γ γs])
@@ -445,7 +450,8 @@
        [(-st-ac s i)
         (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
         `(,field ,@ts)]
-       [_ (error 'app-o "unsupported: ~a" (show-o o))])]))
+       [_ (raise (exn:scv:smt:unsupported (format "unsupported: ~a" (show-o o))
+                                          (current-continuation-marks)))])]))
 
 (: next-int! : → Natural)
 (define next-int!
