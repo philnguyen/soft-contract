@@ -220,7 +220,7 @@
        (with-handlers ([exn:scv:smt:unsupported?
                         (λ (_)
                           ;; suppress for now
-                          (printf "Z3 translation: primitive `~a` unsupported~n" (show-o o))
+                          (printf "Z3 translation: unsupported primitive: `~a`~n" (show-o o))
                           (fresh-free!))])
          (app-o o ts))]
       [(-@ eₕ eₓs _)
@@ -294,43 +294,44 @@
     [_ (error '⦃e⦄! "base value: ~a" b)]))
 
 (: ⦃𝒾⦄ : -𝒾 → Symbol)
-(define (⦃𝒾⦄ 𝒾) (format-symbol "t.~a" (-𝒾-name 𝒾)))
+(define (⦃𝒾⦄ 𝒾)
+  (format-symbol "t.~a" (string->symbol (fix-name (symbol->string (-𝒾-name 𝒾))))))
 
 (: ⦃x⦄ : Var-Name → Symbol)
 (define (⦃x⦄ x)
-  
-  (: elim-sub/sup-scripts : String → String)
-  (define (elim-sub/sup-scripts s)
-
-    (: subst : Char → (Listof Char))
-    (define (subst c)
-      (case c
-        [(#\₀) '(#\_ #\_ #\0)]
-        [(#\₁) '(#\_ #\_ #\1)]
-        [(#\₂) '(#\_ #\_ #\2)]
-        [(#\₃) '(#\_ #\_ #\3)]
-        [(#\₄) '(#\_ #\_ #\4)]
-        [(#\₅) '(#\_ #\_ #\5)]
-        [(#\₆) '(#\_ #\_ #\6)]
-        [(#\₇) '(#\_ #\_ #\7)]
-        [(#\₈) '(#\_ #\_ #\8)]
-        [(#\₉) '(#\_ #\_ #\9)]
-        [(#\⁰) '(#\_ #\^ #\0)]
-        [(#\¹) '(#\_ #\^ #\1)]
-        [(#\²) '(#\_ #\^ #\2)]
-        [(#\³) '(#\_ #\^ #\3)]
-        [(#\⁴) '(#\_ #\^ #\4)]
-        [(#\⁵) '(#\_ #\^ #\5)]
-        [(#\⁶) '(#\_ #\^ #\6)]
-        [(#\⁷) '(#\_ #\^ #\7)]
-        [(#\⁸) '(#\_ #\^ #\8)]
-        [(#\⁹) '(#\_ #\^ #\9)]
-        [else (list c)]))
-
-    (list->string (append-map subst (string->list s))))
-
   (cond [(integer? x) (format-symbol "x.~a" x)]
-        [else (string->symbol (elim-sub/sup-scripts (symbol->string x)))]))
+        [else (string->symbol (fix-name (symbol->string x)))]))
+
+(: fix-name : String → String)
+(define (fix-name s)
+
+  (: subst : Char → (Listof Char))
+  (define (subst c)
+    (case c
+      [(#\₀) '(#\_ #\_ #\0)]
+      [(#\₁) '(#\_ #\_ #\1)]
+      [(#\₂) '(#\_ #\_ #\2)]
+      [(#\₃) '(#\_ #\_ #\3)]
+      [(#\₄) '(#\_ #\_ #\4)]
+      [(#\₅) '(#\_ #\_ #\5)]
+      [(#\₆) '(#\_ #\_ #\6)]
+      [(#\₇) '(#\_ #\_ #\7)]
+      [(#\₈) '(#\_ #\_ #\8)]
+      [(#\₉) '(#\_ #\_ #\9)]
+      [(#\⁰) '(#\_ #\^ #\0)]
+      [(#\¹) '(#\_ #\^ #\1)]
+      [(#\²) '(#\_ #\^ #\2)]
+      [(#\³) '(#\_ #\^ #\3)]
+      [(#\⁴) '(#\_ #\^ #\4)]
+      [(#\⁵) '(#\_ #\^ #\5)]
+      [(#\⁶) '(#\_ #\^ #\6)]
+      [(#\⁷) '(#\_ #\^ #\7)]
+      [(#\⁸) '(#\_ #\^ #\8)]
+      [(#\⁹) '(#\_ #\^ #\9)]
+      [(#\:) '(#\_)]
+      [else (list c)]))
+
+  (list->string (append-map subst (string->list s))))
 
 (: fun-name : -τ (Listof Var-Name) (Listof Var-Name) → Symbol)
 (define fun-name

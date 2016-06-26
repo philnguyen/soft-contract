@@ -402,11 +402,11 @@
       ((and/c string? (not/c immutable?)) exact-nonnegative-integer? string? . -> . void?)]
      [string-fill! ; FIXME uses
       ((and/c string? (not/c immutable?)) char? . -> . void?)]
-     #;[string-append ; FIXME listof
+     [string-append ; FIXME listof
       (() #:rest (listof string?) . ->* . string?)]
-     #;[string->list ; FIXME listof
+     [string->list ; FIXME listof
       (string? . -> . (listof char?))]
-     #;[list->string ; FIXME listof
+     [list->string ; FIXME listof
       ((listof char?) . -> . string?)]
      [build-string
       (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . char?) . -> . string?)]
