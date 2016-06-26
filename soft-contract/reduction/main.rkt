@@ -15,18 +15,14 @@
 (define (run-file p)
   (define m (file->module p))
   (define-values (σ₁ _) (𝑰 (list m)))
-  (define-values (As M Ξ σ)
-    (parameterize ([set!-able? (set->predicate (module-𝐴 m))])
-      (run (⇓ₘ m) σ₁)))
+  (define-values (As M Ξ σ) (run (⇓ₘ m) σ₁))
   (values As M Ξ))
 
 (: havoc-file : Path-String → (Values (℘ -A) #|debugging|# -M -Ξ))
 (define (havoc-file p)
   (define m (file->module p))
   (define-values (σ₁ e₁) (𝑰 (list m)))
-  (define-values (As M Ξ σ)
-    (parameterize ([set!-able? (set->predicate (module-𝐴 m))])
-      (run (⇓ₚ (list m) e₁) σ₁)))
+  (define-values (As M Ξ σ) (run (⇓ₚ (list m) e₁) σ₁))
   #;(begin ; output manual profiling
     (define best (extract-best))
     (printf "~a out of ~a, avg: ~a:~n"
@@ -50,9 +46,7 @@
 (: run-e : -e → (Values (℘ -A) #|for debugging|# -M -Ξ))
 (define (run-e e)
   (define-values (σ₀ _) (𝑰 '()))
-  (define-values (As M Ξ σ)
-    (parameterize ([set!-able? (set->predicate (𝐴 e))])
-      (run (⇓ 'top e) σ₀)))
+  (define-values (As M Ξ σ) (run (⇓ 'top e) σ₀))
   (values As M Ξ))
 
 (: run : -⟦e⟧ -σ → (Values (℘ -A) #|for debugging|# -M -Ξ -σ))
@@ -64,15 +58,15 @@
 
   (define count : Natural 0)
   
-  (: loop : Seen-τ Seen-Co (℘ -τ) (℘ -Co) -M -Ξ -σ → (Values -M -Ξ -σ))
-  (define (loop seen-τs seen-Cos τs Cos M Ξ σ)
+  (: loop : Seen-τ Seen-Co (℘ -τ) (℘ -Co) -M -Ξ -σ -X → (Values -M -Ξ -σ))
+  (define (loop seen-τs seen-Cos τs Cos M Ξ σ X)
     
     (cond
       [(and (set-empty? τs) (set-empty? Cos))
        (values M Ξ σ)]
       [else
        
-       (begin ;; Pre-iter debuggings
+       #;(begin ;; Pre-iter debuggings
          (define last : Integer (current-seconds))
          (set! count (+ 1 count))
          (define num-τs (set-count τs))
@@ -89,8 +83,8 @@
              (printf "  -~a ~a~n" (n-sub (+ i num-τs)) (show-Co Co)))))
 
        ;; Widen global tables
-       (define-values (δM δΞ δσ) (⊔³ (ev* M Ξ σ τs) (co* M Ξ σ Cos)))
-       (define-values (M* Ξ* σ*) (⊔³ (values M Ξ σ) (values δM δΞ δσ)))
+       (define-values (δM δΞ δσ δX) (⊔⁴ (ev* M Ξ σ X τs) (co* M Ξ σ X Cos)))
+       (define-values (M* Ξ* σ* X*) (⊔⁴ (values M Ξ σ X) (values δM δΞ δσ δX)))
 
        ;; Check for un-explored execution of function bodies (≃ ⟨e, ρ, σ⟩)
        (define-values (τs* seen-τs*)
@@ -162,7 +156,8 @@
          #;(begin ; print global table deltas
            ((inst show-m -α -V) 'δσ show-α show-V δσ #:filter (λ (α) (not (or (-α.def? α) (-α.wrp? α) (-e? α)))))
            ((inst show-m -τ -A) 'δM show-τ show-A δM)
-           ((inst show-m -τ -ℛ) 'δΞ show-τ show-ℛ δΞ))
+           ((inst show-m -τ -ℛ) 'δΞ show-τ show-ℛ δΞ)
+           (printf "modified: ~a~n" (set-map δX show-α)))
          
          (let* ([now (current-seconds)]
                 [δ (- now last)])
@@ -181,8 +176,8 @@
            [else (void)])
          (printf "~n"))
        
-       (loop seen-τs* seen-Cos* τs* Cos* M* Ξ* σ*)]))
+       (loop seen-τs* seen-Cos* τs* Cos* M* Ξ* σ* X*)]))
 
   (define τ₀ (-ℬ ⟦e⟧₀ ℒ∅))
-  (define-values (M Ξ σ) (loop (hash τ₀ σ₀) (hash) {set τ₀} ∅ ⊥M ⊥Ξ σ₀))
+  (define-values (M Ξ σ) (loop (hash τ₀ σ₀) (hash) {set τ₀} ∅ ⊥M ⊥Ξ σ₀ ∅X))
   (values (M@ M τ₀) M Ξ σ))

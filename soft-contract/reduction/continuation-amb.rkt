@@ -11,5 +11,5 @@
 
 (: ↝.amb : (Listof -⟦e⟧) → -⟦e⟧)
 (define (↝.amb ⟦e⟧s)
-  (λ (M σ ℒ)
-    (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ ℒ))))
+  (λ (M σ X ℒ)
+    (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ M σ X ℒ))))

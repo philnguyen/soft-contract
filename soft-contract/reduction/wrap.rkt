@@ -16,12 +16,13 @@
     (for/list ([(α i) (in-indexed αs)])
       (and (∋ muts i) α)))
   (define V* (-St* s αs* α l³))
-  (λ (M σ ℒ)
+  (λ (M σ X ℒ)
     (apply/values
      (acc
       σ
+      X
       (λ (ℰ) (-ℰ.wrap.st s αs α l³ ℰ))
-      (λ (σ* Γ* W)
+      (λ (σ* Γ* X* W)
         (match-define (-W (list V) v) W) ; only used internally, should be safe
-        (values (⊔ ⊥σ α V) {set (-ΓW Γ* (-W (list V*) v))} ∅ ∅)))
-     (⟦e⟧ M σ ℒ))))
+        (values (⊔ ⊥σ α V) {set (-ΓW Γ* (-W (list V*) v))} ∅ ∅ ∅)))
+     (⟦e⟧ M σ X ℒ))))

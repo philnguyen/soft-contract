@@ -18,8 +18,8 @@
 (define ⟦hv⟧ : -⟦e⟧ (⇓ havoc-path havoc-𝒾))
 
 (define (rt-● [k : Arity]) : -⟦e⟧
-  (λ (M σ ℒ)
-    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs (-x (+x/memo! 'hv-rt k))))} ∅ ∅)))
+  (λ (M σ X ℒ)
+    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs (-x (+x/memo! 'hv-rt k))))} ∅ ∅ ∅)))
 
 (: gen-havoc-Clo : (Listof -module) → -Clo)
 ;; Generate the unknown context
@@ -29,7 +29,7 @@
   (define acs (prog-accs ms))
 
   (define ⟦e⟧ : -⟦e⟧
-    (λ (M σ ℒ)
+    (λ (M σ X ℒ)
       (for*/ans ([V (σ@ σ (ρ@ (-ℒ-env ℒ) x))])
         #;(begin
           (match-define (-ℒ ρ Γ 𝒞) ℒ)
@@ -42,8 +42,8 @@
         
         (define W (-W¹ V 𝐱))
         (define ⟦V⟧ : -⟦e⟧
-          (λ (M σ ℒ)
-            (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) 𝐱))} ∅ ∅)))
+          (λ (M σ X ℒ)
+            (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) 𝐱))} ∅ ∅ ∅)))
         (define comp : -⟦e⟧
           (match V
             ;; Ignore first-order and opaque values
@@ -112,7 +112,7 @@
             [(? -C?)
              (log-warning "TODO: havoc contract combinators")
              ⊥⟦e⟧]))
-        (comp M σ ℒ))))
+        (comp M σ X ℒ))))
 
   (-Clo (list x) ⟦e⟧ ⊥ρ ⊤Γ))
 

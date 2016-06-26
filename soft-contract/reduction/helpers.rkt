@@ -10,12 +10,12 @@
          "../runtime/main.rkt"
          "../proof-relation/main.rkt")
 
-(: acc : -σ (-ℰ → -ℰ) (-σ -Γ -W → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
-        → -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)
-        → (Values -Δσ (℘ -ΓW) (℘ -ΓE) (℘ -ℐ)))
+(: acc : -σ -X (-ℰ → -ℰ) (-σ -Γ -X -W → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
+        → -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)
+        → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
 ;; Bind-ish. Takes care of store widening.
 ;; Caller takes care of stack accumulation and what to do with result.
-(define ((acc σ f comp) δσ ΓWs ΓEs ℐs)
+(define ((acc σ X f comp) δσ ΓWs ΓEs δX ℐs)
   (define ℐs*
     (map/set
      (match-lambda
@@ -23,11 +23,16 @@
         (-ℐ (-ℋ ℒ bnd (f ℰ)) τ)])
      ℐs))
   (define σ* (⊔/m σ δσ))
-  (for/fold ([δσ : -Δσ δσ] [ΓWs* : (℘ -ΓW) ∅] [ΓEs* : (℘ -ΓE) ΓEs] [ℐs* : (℘ -ℐ) ℐs*])
+  (define X* (∪ X δX))
+  (for/fold ([δσ : -Δσ δσ]
+             [ΓWs* : (℘ -ΓW) ∅]
+             [ΓEs* : (℘ -ΓE) ΓEs]
+             [δX : (℘ -α) δX]
+             [ℐs* : (℘ -ℐ) ℐs*])
             ([ΓW ΓWs])
     (match-define (-ΓW Γ* W) ΓW)
-    (define-values (δσ+ ΓWs+ ΓEs+ ℐs+) (comp σ* Γ* W))
-    (values (⊔/m δσ δσ+) (∪ ΓWs* ΓWs+) (∪ ΓEs* ΓEs+) (∪ ℐs* ℐs+))))
+    (define-values (δσ+ ΓWs+ ΓEs+ δX+ ℐs+) (comp σ* Γ* X* W))
+    (values (⊔/m δσ δσ+) (∪ ΓWs* ΓWs+) (∪ ΓEs* ΓEs+) (∪ δX δX+) (∪ ℐs* ℐs+))))
 
 (define-syntax-rule (with-guarded-arity n* (l Γ Vs) e ...)
   (let ([n n*]
@@ -36,7 +41,7 @@
       [(= n m) e ...]
       [else
        (define Cs (make-list n 'any/c))
-       (values ⊥σ ∅ {set (-ΓE Γ (-blm l 'Λ Cs Vs))} ∅)])))
+       (values ⊥σ ∅ {set (-ΓE Γ (-blm l 'Λ Cs Vs))} ∅ ∅)])))
 
 ;; Memoized compilation of primitives because `Λ` needs a ridiculous number of these
 (define ⇓ₚᵣₘ : (-prim → -⟦e⟧) 
@@ -52,57 +57,40 @@
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
 (define/memo (⇓ₓ [l : Mon-Party] [x : Var-Name]) : -⟦e⟧
-  (cond
-    [((set!-able?) x)
-     ;; FIXME tmp code duplicate
-     (λ (M σ ℒ)
-       (match-define (-ℒ ρ Γ 𝒞) ℒ)
-       (define φs (-Γ-facts Γ))
-       (define-values (ΓWs ΓEs)
-         (for*/fold ([ΓWs : (℘ -ΓW) ∅]
-                     [ΓEs : (℘ -ΓE) ∅])
-                    ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V #f))
-           (match V
-             ['undefined
-              (values
-               ΓWs
-               (set-add
-                ΓEs
-                (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
-             [else (values (set-add ΓWs (-ΓW Γ (-W (list V) #f))) ΓEs)])))
-       (values ⊥σ ΓWs ΓEs ∅))]
-    [else
-     (λ (M σ ℒ)
-       (match-define (-ℒ ρ Γ 𝒞) ℒ)
-       (define s (canonicalize Γ x))
-       (define φs (-Γ-facts Γ))
-       (define-values (ΓWs ΓEs)
-         (for*/fold ([ΓWs : (℘ -ΓW) ∅]
-                     [ΓEs : (℘ -ΓE) ∅])
-                    ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V s))
-           (match V
-             ['undefined
-              (values
-               ΓWs
-               (set-add
-                ΓEs
-                (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
-             [(-● ps)
-              (define ps*
-                (for/fold ([ps : (℘ -o) ps]) ([φ φs])
-                  (match (φ->e φ)
-                    [(-@ (? -o? o) (list (== s)) _)
-                     (set-add ps o)]
-                    [_ ps])))
-              (define V* (if (equal? ps ps*) V (-● ps*)))
-              (values (set-add ΓWs (-ΓW Γ (-W (list V*) s))) ΓEs)]
-             [else (values (set-add ΓWs (-ΓW Γ (-W (list V) s))) ΓEs)])))
-       (values ⊥σ ΓWs ΓEs ∅))]))
+  (λ (M σ X ℒ)
+    (match-define (-ℒ ρ Γ 𝒞) ℒ)
+    (define s : -s
+      (cond
+        [(∋ X (ρ@ ρ x)) #f]
+        [else (canonicalize Γ x)]))
+    (define φs (-Γ-facts Γ))
+    (define-values (ΓWs ΓEs)
+      (for*/fold ([ΓWs : (℘ -ΓW) ∅]
+                  [ΓEs : (℘ -ΓE) ∅])
+                 ([V (σ@ σ (ρ@ ρ x))] #:when (plausible-V-s? φs V s))
+        (match V
+          ['undefined
+           (values
+            ΓWs
+            (set-add
+             ΓEs
+             (-ΓE Γ (-blm l 'Λ (list 'defined?) (list 'undefined)))))]
+          [(-● ps)
+           (define ps*
+             (for/fold ([ps : (℘ -o) ps]) ([φ φs])
+               (match (φ->e φ)
+                 [(-@ (? -o? o) (list (== s)) _)
+                  (set-add ps o)]
+                 [_ ps])))
+           (define V* (if (equal? ps ps*) V (-● ps*)))
+           (values (set-add ΓWs (-ΓW Γ (-W (list V*) s))) ΓEs)]
+          [else (values (set-add ΓWs (-ΓW Γ (-W (list V) s))) ΓEs)])))
+    (values ⊥σ ΓWs ΓEs ∅ ∅)))
 
 (define/memo (ret-W¹ [W : -W¹]) : -⟦e⟧
   (match-define (-W¹ V v) W)
-  (λ (M σ ℒ)
-    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅)))
+  (λ (M σ X ℒ)
+    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) v))} ∅ ∅ ∅)))
 
 (define ⟦void⟧ (⇓ₚᵣₘ -void))
 (define ⟦tt⟧ (⇓ₚᵣₘ -tt))

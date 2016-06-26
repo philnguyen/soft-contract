@@ -11,19 +11,20 @@
          "helpers.rkt")
 
 (: ↝.if : Mon-Party -⟦e⟧ -⟦e⟧ → -⟦ℰ⟧)
-(define (((↝.if l ⟦e₁⟧ ⟦e₂⟧) ⟦e₀⟧) M σ ℒ)
+(define (((↝.if l ⟦e₁⟧ ⟦e₂⟧) ⟦e₀⟧) M σ X ℒ)
   (apply/values
    (acc
     σ
+    X
     (λ (ℰ) (-ℰ.if l ℰ ⟦e₁⟧ ⟦e₂⟧))
-    (λ (σ* Γ* W)
+    (λ (σ* Γ* X* W)
       (match-define (-W Vs s) W)
       (with-guarded-arity 1 (l Γ* Vs)
         (match-define (list V) Vs)
         (define-values (Γ₁ Γ₂) (Γ+/-V M Γ* V s))
 
-        (define-values (δσ₁ ΓWs₁ ΓEs₁ ℐs₁) (with-Γ Γ₁ (⟦e₁⟧ M σ* (-ℒ-with-Γ ℒ Γ₁))))
-        (define-values (δσ₂ ΓWs₂ ΓEs₂ ℐs₂) (with-Γ Γ₂ (⟦e₂⟧ M σ* (-ℒ-with-Γ ℒ Γ₂))))
+        (define-values (δσ₁ ΓWs₁ ΓEs₁ δX₁ ℐs₁) (with-Γ Γ₁ (⟦e₁⟧ M σ* X* (-ℒ-with-Γ ℒ Γ₁))))
+        (define-values (δσ₂ ΓWs₂ ΓEs₂ δX₂ ℐs₂) (with-Γ Γ₂ (⟦e₂⟧ M σ* X* (-ℒ-with-Γ ℒ Γ₂))))
         
         (define ΓWs₁* ; tmp hack
           (match s
@@ -37,7 +38,7 @@
         
         (with-debugging/off
           ((δσ ΓWs ΓEs ℐs)
-           (values (⊔/m δσ₁ δσ₂) (∪ ΓWs₁* ΓWs₂) (∪ ΓEs₁ ΓEs₂) (∪ ℐs₁ ℐs₂)))
+           (values (⊔/m δσ₁ δσ₂) (∪ ΓWs₁* ΓWs₂) (∪ ΓEs₁ ΓEs₂) (∪ δX₁ δX₂) (∪ ℐs₁ ℐs₂)))
           (begin
             (printf "branching on ~a @ ~a:~n" (show-W¹ (-W¹ V s)) (show-Γ Γ*))
             (cond
@@ -66,7 +67,7 @@
             (for ([ℐ ℐs])
               (printf "  - ~a~n" (show-ℐ ℐ)))
             (printf "~n"))))))
-    (⟦e₀⟧ M σ ℒ)))
+    (⟦e₀⟧ M σ X ℒ)))
 
 (: ↝.and : Mon-Party (Listof -⟦e⟧) → -⟦ℰ⟧)
 (define ((↝.and l ⟦e⟧s) ⟦e⟧)
