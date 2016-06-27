@@ -66,7 +66,7 @@
        (values M Ξ σ)]
       [else
        
-       #;(begin ;; Pre-iter debuggings
+       (begin ;; Pre-iter debuggings
          (define last : Integer (current-seconds))
          (set! count (+ 1 count))
          (define num-τs (set-count τs))
