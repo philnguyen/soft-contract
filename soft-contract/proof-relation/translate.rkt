@@ -21,7 +21,7 @@
 (define-type Term Sexp)
 (define-type Formula Sexp) ; Term of type Bool in SMT
 (struct Entry ([free-vars : (℘ Symbol)] [facts : (℘ Formula)] [expr : Term]) #:transparent)
-(struct App ([ctx : -τ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
+(struct App ([ctx : -αₖ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
 (Defn-Entry . ::= . -o App)
 (define-type Memo-Table
@@ -58,9 +58,9 @@
                    ([front fronts])
            (define-values (def-funs** refs+)
              (match front
-               [(App τ fvs xs)
-                (define As (hash-ref M τ))
-                (define-values (refs entries) (encode-τ τ fvs xs As))
+               [(App αₖ fvs xs)
+                (define As (hash-ref M αₖ))
+                (define-values (refs entries) (encode-αₖ αₖ fvs xs As))
                 (values (hash-set def-funs* front entries) refs)]
                [(? -o? o)
                 (values def-funs* ∅)]))
@@ -74,14 +74,14 @@
            (values fronts** seen** def-funs**)))
        (loop fronts* seen* def-funs*)])))
 
-(: encode-τ : -τ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
-;; Translate memo-table entry `τ(xs) → {A…}` to pair of formulas for when application
+(: encode-αₖ : -αₖ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
+;; Translate memo-table entry `αₖ(xs) → {A…}` to pair of formulas for when application
 ;; fails and passes
-(define (encode-τ τ fvs xs As)
+(define (encode-αₖ αₖ fvs xs As)
   (define-set refs : Defn-Entry)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
   (define tₓs (map ⦃x⦄ xs))
-  (define fₕ (fun-name τ fvs xs))
+  (define fₕ (fun-name αₖ fvs xs))
   (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
   (define bound (∪ (list->seteq fvs) (list->seteq xs)))
   
@@ -150,16 +150,16 @@
                             (hash-set! asserts-app tₐₚₚ tₐ)
                             tₐ)))))
 
-  ;; Add a reminder to encode memo table entries for `τ(xs)` as a 1st-order function
-  (define/memo (⦃fun⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)]) : Symbol
+  ;; Add a reminder to encode memo table entries for `αₖ(xs)` as a 1st-order function
+  (define/memo (⦃fun⦄! [αₖ : -αₖ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)]) : Symbol
     (define _ (⦃e⦄! eₕ))
     (define ⦃fv⦄s (map ⦃x⦄ fvs))
-    (refs-add! (App τ fvs xs))
-    (fun-name τ fvs xs))
+    (refs-add! (App αₖ fvs xs))
+    (fun-name αₖ fvs xs))
 
   ;; Encode application
-  (define/memo (⦃app⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
-    (-tapp (⦃fun⦄! τ eₕ fvs xs) (map ⦃x⦄ fvs) (map ⦃e⦄! eₓs)))
+  (define/memo (⦃app⦄! [αₖ : -αₖ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
+    (-tapp (⦃fun⦄! αₖ eₕ fvs xs) (map ⦃x⦄ fvs) (map ⦃e⦄! eₓs)))
 
   ;; encode the fact that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : Term
@@ -226,11 +226,11 @@
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option Term) ([γ γs])
-          (match-define (-γ τ bnd blm) γ)
+          (match-define (-γ αₖ bnd blm) γ)
           (match-define (-binding φₕ xs x->φ) bnd)
           (cond [(equal? eₕ (and φₕ (φ->e φₕ)))
                  (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
-                 (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
+                 (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
                  (app-term! tₐₚₚ)]
                 [else #f]))
         (begin
@@ -256,14 +256,14 @@
 
   (: ⦃γ⦄! : -γ → Void)
   (define (⦃γ⦄! γ)
-    (match-define (-γ τ bnd blm) γ)
+    (match-define (-γ αₖ bnd blm) γ)
     (define eₐₚₚ (binding->s bnd))
     (when eₐₚₚ
       (match-define (-binding _ xs _) bnd)
       (match-define (-@ eₕ eₓs _) eₐₚₚ)
       (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
       (for ([fv fvs] #:unless (∋ bound fv)) (free-vars-add! (⦃x⦄ fv)))
-      (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
+      (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
       (match blm
         [(cons l+ lo) (hash-set! asserts-app tₐₚₚ (cons (⦃l⦄ l+) (⦃l⦄ lo)))]
         [_            (hash-set! asserts-app tₐₚₚ #t)])))
@@ -334,11 +334,11 @@
 
   (list->string (append-map subst (string->list s))))
 
-(: fun-name : -τ (Listof Var-Name) (Listof Var-Name) → Symbol)
+(: fun-name : -αₖ (Listof Var-Name) (Listof Var-Name) → Symbol)
 (define fun-name
-  (let ([m : (HashTable (List -τ (Listof Var-Name) (Listof Var-Name)) Symbol) (make-hash)])
-    (λ (τ fvs xs)
-      (hash-ref! m (list τ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
+  (let ([m : (HashTable (List -αₖ (Listof Var-Name) (Listof Var-Name)) Symbol) (make-hash)])
+    (λ (αₖ fvs xs)
+      (hash-ref! m (list αₖ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
 
 (define o->id ((inst mk-interner -o)))
 (define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
@@ -486,11 +486,11 @@
     (for/fold ([decs : (Listof Sexp) '()]
                [defs : (Listof Sexp) '()])
               ([(f-xs res) def-funs])
-      (match-define (App τ fvs xs) f-xs)
+      (match-define (App αₖ fvs xs) f-xs)
       (define n (+ (length fvs) (length xs)))
       (define ⦃fv⦄s (map ⦃x⦄ fvs))
       (define tₓs (map ⦃x⦄ xs))
-      (define fₕ (fun-name τ fvs xs))
+      (define fₕ (fun-name αₖ fvs xs))
       (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
       (match-define (Res oks ers) res)
 

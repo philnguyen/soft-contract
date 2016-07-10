@@ -38,8 +38,8 @@
       (values x φ)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
-      (match-define (-γ τ bnd blm) γ)
-      (-γ τ (bnd↓ bnd xs) blm)))
+      (match-define (-γ αₖ bnd blm) γ)
+      (-γ αₖ (bnd↓ bnd xs) blm)))
   (-Γ φs* as* γs*))
 
 (: bnd↓ : -binding (℘ Var-Name) → -binding)
@@ -105,7 +105,7 @@
       (values z φ)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
-      (match-define (-γ τ bnd blm) γ)
+      (match-define (-γ αₖ bnd blm) γ)
       (match-define (-binding f xs x->φ) bnd)
       (define bnd*
         (let ([f* (if (∋ (fv-φ f) x) #f f)]
@@ -114,7 +114,7 @@
                                                      #:unless (∋ (fv-φ φ) x))
                  (values z φ))])
           (-binding f* xs x->φ*)))
-      (-γ τ bnd* blm)))
+      (-γ αₖ bnd* blm)))
   (-Γ φs* as* γs*))
 
 
@@ -128,10 +128,10 @@
           (map (curry show-M-γ M) γs)))
 
 (define (show-M-γ [M : -M] [γ : -γ]) : (Listof Sexp)
-  (match-define (-γ τ bnd blm) γ)
-  (define As (M@ M τ))
+  (match-define (-γ αₖ bnd blm) γ)
+  (define As (M@ M αₖ))
   (define ↦ (if blm '↦ₑ '↦ᵥ))
-  `(,(show-γ γ) ≡ (,(show-τ τ) @ ,(show-binding bnd)) ,↦ ,@(set-map As show-A)))
+  `(,(show-γ γ) ≡ (,(show-αₖ αₖ) @ ,(show-binding bnd)) ,↦ ,@(set-map As show-A)))
 
 (module+ test
   (require typed/rackunit)
