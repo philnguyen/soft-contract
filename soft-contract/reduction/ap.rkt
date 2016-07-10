@@ -64,7 +64,7 @@
     ;; HACK for error message, but probably no need to fix
     (define msg : Symbol
       (cond
-        [sₕ (format-symbol "~a requires ~a arguments" (show-e sₕ) required)]
+        [sₕ (format-symbol "~a requires ~a arguments" (format "~a" (show-e sₕ)) required)]
         [else (format-symbol "require ~a arguments" required)]))
     (-blm l 'Λ (list msg) Vₓs))
 

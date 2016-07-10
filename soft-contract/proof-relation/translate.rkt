@@ -290,6 +290,7 @@
     [(? number? x) `(N ,(real-part x) ,(imag-part x))]
     [(? symbol? s) `(Sym ,(⦃sym⦄ s))]
     [(? string? s) `(Str ,(⦃str⦄ s))]
+    [(? void?) 'Void]
     [(list) `Null]
     [_ (error '⦃e⦄! "base value: ~a" b)]))
 
@@ -364,6 +365,8 @@
      `(B (is-Proc ,@ts) #;(exists ([id Int]) (= ,@ts (Proc id))))]
     [(boolean?)
      `(B (is-B ,@ts))]
+    [(void?)
+     `(B (= Void ,@ts))]
     [(vector)
      `(Vec ,(next-int!))]
     [(vector?)
@@ -560,6 +563,7 @@
       ((V ; TODO
         Undefined
         Null
+        Void
         (N [real Real] [imag Real])
         (B [unbox_B Bool])
         (Proc [proc_id Int])
