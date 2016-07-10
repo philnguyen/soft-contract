@@ -126,8 +126,6 @@
            (-st-mut -struct-info Natural)
            (-st-mk -struct-info))
 
-(define-type -es (℘ -e))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Constants & 'Macros'
