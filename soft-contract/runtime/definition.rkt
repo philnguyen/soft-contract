@@ -251,6 +251,11 @@
 (define-type -⟦k⟧ (-A -Γ -𝒞 -σ -M      → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
+;; Base continuation that returns locally finished configuration
+(define/memo (rt [αₖ : -αₖ]) : -⟦k⟧
+  (λ (A Γ 𝒞 σ M)
+    (values {set (-ς↓ αₖ Γ A)} ⊥σ ⊥σₖ ⊥M)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; State
