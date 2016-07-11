@@ -25,31 +25,36 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Modified addresses
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-type -X (℘ -α))
-(define-type -ΔX -X)
-(define ∅X : -X ∅)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Store maps each address to value set and whether it may have been mutated
 
-(define-type -σ (HashTable -α (℘ -V)))
+(struct -σr ([vals : (℘ -V)] [old? : Boolean]) #:transparent)
+(define-type -σ (HashTable -α -σr))
 (define-type -Δσ -σ)
 (define ⊥σ : -σ (hash))
+(define ⊥σr (-σr ∅ #f))
 
-(: σ@ : -σ -α → (℘ -V))
+(: σ@ : -σ -α → (Values (℘ -V) Boolean))
 (define (σ@ σ α)
-  (hash-ref σ α (λ () (error 'σ@ "non-existent address ~a" α))))
+  (match-define (-σr Vs old?) (hash-ref σ α (λ () (error 'σ@ "no address ~a" α))))
+  (values Vs old?))
+
+(: ⊔σ : -σ -σ → -σ)
+(define (⊔σ σ₁ σ₂)
+  (for/fold ([σ : -σ σ₁]) ([(α σr) (in-hash σ₂)])
+    (hash-update σ α
+                 (λ ([σr₀ : -σr])
+                   (match-define (-σr Vs₀ old?₀) σr₀)
+                   (match-define (-σr Vs  old? ) σr )
+                   (-σr (∪ Vs₀ Vs) (and old?₀ old?)))
+                 (λ () ⊥σr))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stack Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -κ ([cont : -⟦k⟧] [Γ : -Γ] [bnd : -binding]) #:transparent)
+(struct -κ ([cont : -⟦k⟧] [Γ : -Γ] [𝒞 : -𝒞] [bnd : -binding]) #:transparent)
 
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
 (define-type -Δσₖ -σₖ)
@@ -61,10 +66,10 @@
 ;;;;; Memo Table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -M (HashTable -αₖ (℘ -A)))
+(define-type -M (HashTable -αₖ (℘ -ΓA)))
 (define-type -ΔM -M)
 (define ⊥M : -M (hash))
-(define M@ : (-M -αₖ → (℘ -A)) m@)
+(define M@ : (-M -αₖ → (℘ -ΓA)) m@)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -115,9 +120,10 @@
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
-(struct -ΓW ([cnd : -Γ] [W : -W]) #:transparent)
-(struct -ΓE ([cnd : -Γ] [blm : -blm]) #:transparent)
-(-A . ::= . -ΓW -ΓE)
+#;(struct -ΓW ([cnd : -Γ] [W : -W]) #:transparent)
+#;(struct -ΓE ([cnd : -Γ] [blm : -blm]) #:transparent)
+(-A . ::= . -W -blm)
+(struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
 (-A* . ::= . (Listof -V) -blm)
 
 
@@ -240,8 +246,9 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-ρ -Γ -𝒞 -X -σ -σₖ -M → (Values (℘ -ς) -ΔX -Δσ -Δσₖ -ΔM)))
-(define-type -⟦k⟧ (-A    -𝒞 -X -σ -σₖ -M → (Values (℘ -ς) -ΔX -Δσ -Δσₖ -ΔM)))
+;; Continuations are not first class. No `σₖ` in arguments for now
+(define-type -⟦e⟧ (-ρ -Γ -𝒞 -σ -M -⟦k⟧ → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
+(define-type -⟦k⟧ (-A -Γ -𝒞 -σ -M      → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
 
@@ -249,7 +256,9 @@
 ;;;;; State
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-ς . ::= . -αₖ (-r -A -αₖ))
+;; Configuration
+(-ς . ::= . #|block start |# (-ς↑ -αₖ -Γ -𝒞)
+            #|block return|# (-ς↓ -αₖ -Γ -A))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -270,29 +279,28 @@
 
 (define-syntax-rule (for*/ans (clause ...) e ...)
   (for*/fold ([ςs  : (℘ -ς) ∅]
-              [δX  : -ΔX  ⊥X]
               [δσ  : -Δσ  ⊥σ]
               [δσₖ : -Δσₖ ⊥σₖ]
               [δM  : -ΔM  ⊥M])
              (clause ...)
-    (define-values (ςs* δX* δσ* δσₖ* δM*) (let () e ...))
-    (values (∪ ςs ςs*) (∪ δX δX*) (⊔/m δσ δσ*) (⊔/m δσₖ δσₖ*) (⊔/m δM δM*))))
+    (define-values (ςs* δσ* δσₖ* δM*) (let () e ...))
+    (values (∪ ςs ςs*) (⊔σ δσ δσ*) (⊔/m δσₖ δσₖ*) (⊔/m δM δM*))))
 
 (define-syntax ⊕
   (syntax-rules ()
     [(_) (⊥ans)]
     [(_ ans) ans]
     [(_ ans₁ ans ...)
-     (let-values ([(ςs₁ δX₁ δσ₁ δσₖ₁ δM₁) ans₁]
-                  [(ςs₂ δX₂ δσ₂ δσₖ₂ δM₂) (⊔/ans ans ...)])
-       (values (∪ ςs₁ ςs₂) (∪ δX₁ δX₂) (⊔/m δσ₁ δσ₂) (⊔/m δσₖ₁ δσₖ₂) (⊔/m δM₁ δM₂)))]))
+     (let-values ([(ςs₁ δσ₁ δσₖ₁ δM₁) ans₁]
+                  [(ςs₂ δσ₂ δσₖ₂ δM₂) (⊔/ans ans ...)])
+       (values (∪ ςs₁ ςs₂) (⊔σ δσ₁ δσ₂) (⊔/m δσₖ₁ δσₖ₂) (⊔/m δM₁ δM₂)))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Shorhands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-syntax-rule (⊥ans) (values ∅ ∅ ⊥σ ⊥σₖ ⊥M))
+(define-syntax-rule (⊥ans) (values ∅ ⊥σ ⊥σₖ ⊥M))
 (define-syntax-rule (with-Γ Γ e) (if Γ e (⊥ans)))
 
 
@@ -301,8 +309,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (show-σ [σ : -σ]) : (Listof Sexp)
-  (for/list ([(α Vs) σ]
+  (for/list ([(α σr) σ]
              #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
+    (match-define (-σr Vs _) σr)
     `(,(show-α α) ↦ ,@(set-map Vs show-V))))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
@@ -317,7 +326,7 @@
 
 (define (show-M [M : -M]) : (Listof Sexp)
   (for/list ([(αₖ As) M])
-    `(,(show-αₖ αₖ) ↦ ,@(set-map As show-A))))
+    `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
 
 (define (show-V [V : -V]) : Sexp
   (match V
@@ -369,10 +378,13 @@
      `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α αs))]
     [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
 
+(define (show-ΓA [ΓA : -ΓA]) : Sexp
+  (match-define (-ΓA Γ A) ΓA)
+  `(,(show-A A) ‖ ,(show-Γ Γ)))
+
 (define (show-A [A : -A])
-  (match A
-    [(-ΓW Γ W) `(W: ,(show-W W) ,(show-Γ Γ))]
-    [(-ΓE Γ b) `(E: ,(show-blm b) ,(show-Γ Γ))]))
+  (cond [(-W? A) (show-W A)]
+        [else (show-blm A)]))
 
 (define (show-W [W : -W]) : Sexp
   (match-define (-W Vs s) W)
@@ -449,5 +461,5 @@
   `(,(show-?φ f) ,@bnds ‖ ,@fvs))
 
 (define (show-κ [κ : -κ]) : Sexp
-  (match-define (-κ ⟦k⟧ Γ bnd) κ)
+  (match-define (-κ ⟦k⟧ Γ 𝒞 bnd) κ)
   '⟦κ⟧)

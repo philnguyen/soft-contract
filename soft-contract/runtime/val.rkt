@@ -70,7 +70,7 @@
   (define (simplify [P : -V]) : -V
     (match P
       [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
-       (define Vs (hash-ref σ α))
+       (define-values (Vs _) (σ@ σ α))
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]
       [_ P]))

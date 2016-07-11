@@ -129,9 +129,9 @@
 
 (define (show-M-γ [M : -M] [γ : -γ]) : (Listof Sexp)
   (match-define (-γ αₖ bnd blm) γ)
-  (define As (M@ M αₖ))
+  (define ΓAs (M@ M αₖ))
   (define ↦ (if blm '↦ₑ '↦ᵥ))
-  `(,(show-γ γ) ≡ (,(show-αₖ αₖ) @ ,(show-binding bnd)) ,↦ ,@(set-map As show-A)))
+  `(,(show-γ γ) ≡ (,(show-αₖ αₖ) @ ,(show-binding bnd)) ,↦ ,@(set-map ΓAs show-ΓA)))
 
 (module+ test
   (require typed/rackunit)

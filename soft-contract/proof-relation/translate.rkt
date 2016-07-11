@@ -74,10 +74,10 @@
            (values fronts** seen** def-funs**)))
        (loop fronts* seen* def-funs*)])))
 
-(: encode-αₖ : -αₖ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
+(: encode-αₖ : -αₖ (Listof Var-Name) (Listof Var-Name) (℘ -ΓA) → (Values (℘ Defn-Entry) Res))
 ;; Translate memo-table entry `αₖ(xs) → {A…}` to pair of formulas for when application
 ;; fails and passes
-(define (encode-αₖ αₖ fvs xs As)
+(define (encode-αₖ αₖ fvs xs ΓAs)
   (define-set refs : Defn-Entry)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
   (define tₓs (map ⦃x⦄ xs))
@@ -89,9 +89,10 @@
   (define-values (oks ers)
     (for/fold ([oks : (Listof Entry) '()]
                [ers : (Listof Entry) '()])
-              ([A As])
+              ([ΓA ΓAs])
+      (match-define (-ΓA Γ A) ΓA)
       (match A
-        [(-ΓW Γ (-W _ sₐ))
+        [(-W _ sₐ)
          (define eₒₖ
            (cond
              [sₐ
@@ -107,7 +108,7 @@
               (match-define (Entry free-vars facts _) entry)
               (Entry free-vars facts #|hack|# '(B false))]))
          (values (cons eₒₖ oks) ers)]
-        [(-ΓE Γ (-blm l+ lo _ _))
+        [(-blm l+ lo _ _)
          (define eₑᵣ
            (let-values ([(refs+ entry) (encode-e bound Γ #|hack|# -ff)])
              (refs-union! refs+)

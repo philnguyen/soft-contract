@@ -6,13 +6,11 @@
                "env.rkt"
                "sto.rkt"
                "path-cond.rkt"
-               "val.rkt"
-               "local.rkt"))
+               "val.rkt"))
 (require "simp.rkt"
          "definition.rkt"
          "arity.rkt"
          "env.rkt"
          "sto.rkt"
          "path-cond.rkt"
-         "val.rkt"
-         "local.rkt")
+         "val.rkt")
