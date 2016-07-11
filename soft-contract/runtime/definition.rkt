@@ -40,6 +40,17 @@
   (match-define (-σr Vs old?) (hash-ref σ α (λ () (error 'σ@ "no address ~a" α))))
   (values Vs old?))
 
+(: σr⊔ : -σr -V Boolean → -σr)
+(define (σr⊔ σr V bind?)
+  (match-define (-σr Vs bind?₀) σr)
+  (-σr (set-add Vs V) (and bind?₀ bind?)))
+
+(: σ⊔ : -σ -α -V Boolean → -σ)
+(define (σ⊔ σ α V bind?)
+  (hash-update σ α
+               (λ ([σr₀ : -σr]) (σr⊔ σr₀ V bind?))
+               (λ () ⊥σr)))
+
 (: ⊔σ : -σ -σ → -σ)
 (define (⊔σ σ₁ σ₂)
   (for/fold ([σ : -σ σ₁]) ([(α σr) (in-hash σ₂)])
@@ -297,7 +308,7 @@
     [(_ ans) ans]
     [(_ ans₁ ans ...)
      (let-values ([(ςs₁ δσ₁ δσₖ₁ δM₁) ans₁]
-                  [(ςs₂ δσ₂ δσₖ₂ δM₂) (⊔/ans ans ...)])
+                  [(ςs₂ δσ₂ δσₖ₂ δM₂) (⊕ ans ...)])
        (values (∪ ςs₁ ςs₂) (⊔σ δσ₁ δσ₂) (⊔/m δσₖ₁ δσₖ₂) (⊔/m δM₁ δM₂)))]))
 
 

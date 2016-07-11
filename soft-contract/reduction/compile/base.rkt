@@ -34,14 +34,19 @@
         [m   : (HashTable Any -⟦e⟧) (make-hash  )])
     
     (: ret-p : -prim → -⟦e⟧)
-    (define (ret-p p) (ret-W¹ (-W¹ p p)))
+    (define (ret-p p) (ret-W¹ p p))
     
     (match-lambda
       [(? symbol? o)  (hash-ref! meq o (λ () (ret-p o)))]
       [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
-(define/memo (ret-W¹ [W : -W¹]) : -⟦e⟧
-  (match-define (-W¹ V v) W)
+(define/memo (ret-W¹ [V : -V] [v : -s]) : -⟦e⟧
   (λ (ρ Γ 𝒞 σ M ⟦k⟧)
     (⟦k⟧ (-W (list V) v) Γ 𝒞 σ M)))
+
+#|
+(define ⟦void⟧ (⇓ₚᵣₘ -void))
+(define ⟦tt⟧ (⇓ₚᵣₘ -tt))
+(define ⟦ff⟧ (⇓ₚᵣₘ -ff))
+|#

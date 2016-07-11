@@ -6,6 +6,7 @@
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt"
+         "ap.rkt"
          racket/set
          racket/match)
 
@@ -14,6 +15,7 @@
     (cond [(-blm? A) (⟦k⟧ A Γ 𝒞 σ M)] ; TODO faster if had `αₖ` here
           [else e ...])))
 
+;; Application
 (define/memo (ap∷ [Ws : (Listof -W¹)]
                   [⟦e⟧s : (Listof -⟦e⟧)]
                   [ρ : -ρ]
@@ -34,14 +36,18 @@
       [_
        (⟦k⟧ (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ M)])))
 
+;; Conditional
 (define/memo (if∷ [l : Mon-Party] [⟦e⟧₁ : -⟦e⟧] [⟦e⟧₂ : -⟦e⟧] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
-       (error "TODO")]
+       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V s))
+       (⊕ (with-Γ Γ₁ (⟦e⟧₁ ρ Γ₁ 𝒞 σ M ⟦k⟧))
+          (with-Γ Γ₂ (⟦e⟧₂ ρ Γ₂ 𝒞 σ M ⟦k⟧)))]
       [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ M)])))
 
+;; begin
 (define/memo (bgn∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (match ⟦e⟧s
     ['() ⟦k⟧]
@@ -49,7 +55,7 @@
      (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
        (⟦e⟧ ρ Γ 𝒞 σ M (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
 
-
+;; begin0, waiting on first value
 (define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (match ⟦e⟧s
     ['() ⟦k⟧]
@@ -57,6 +63,7 @@
      (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
        (⟦e⟧ ρ Γ 𝒞 σ M (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧)))]))
 
+;; begin0, already have first value
 (define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (match ⟦e⟧s
     ['() ⟦k⟧]
@@ -64,8 +71,13 @@
      (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
        (⟦e⟧ ρ Γ 𝒞 σ M (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
 
-#|
-(: ap : -Γ -𝒞 -σ -M Mon-Party -ℓ -W¹ (Listof -W¹) → (Values (℘ -ς) -Δσ -Δσₖ -ΔM))
-(define (ap Γ 𝒞 σ M l ℓ Wₕ Wₓs)
-  (error "TODO"))
-|#
+;; set!
+(define/memo (set!∷ [α : -α] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
+    (match-define (-W Vs s) A)
+    (match Vs
+      [(list V)
+       (define-values (ςs δσ δσₖ δM) (⟦k⟧ -Void/W Γ 𝒞 (σ⊔ σ α V #f) M))
+       (values ςs (σ⊔ δσ α V #f) δσₖ δM)]
+      [_
+       (⟦k⟧ (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ M)])))
