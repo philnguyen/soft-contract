@@ -10,7 +10,7 @@
          racket/set
          racket/match)
 
-(: ↓ₑ : Mon-Party -e → -⟦e⟧)
+(: ↓ₑ : -l -e → -⟦e⟧)
 ;; Compile expression to computation that returns next configurations and store deltas
 (define (↓ₑ l e)
 

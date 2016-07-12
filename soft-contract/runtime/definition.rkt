@@ -95,10 +95,10 @@
             -Fn
             
             ;; Proxied higher-order values
-            (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
-            (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : Mon-Info])
-            (-Vector/hetero [ctcs : (Listof -α)] [ctx : Mon-Info])
-            (-Vector/homo [ctc : -α] [ctx : Mon-Info])
+            (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : -l³])
+            (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : -l³])
+            (-Vector/hetero [ctcs : (Listof -α)] [ctx : -l³])
+            (-Vector/homo [ctc : -α] [ctx : -l³])
             
             -C)
 
@@ -127,7 +127,7 @@
               (-=>i [doms : (Listof (U -α.dom -α.cnst))] [mk-rng : -α] [pos : -ℓ])
               (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng)) [pos : -ℓ]))
 
-(struct -blm ([violator : Mon-Party] [origin : Mon-Party]
+(struct -blm ([violator : -l] [origin : -l]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
@@ -158,7 +158,7 @@
 ;; also indicating whether the call raised a blame or not
 (struct -γ ([callee : -αₖ] ; be careful with this. May build up infinitely
             [binding : -binding]
-            [blm : (Option (Pairof Mon-Party Mon-Party))]) #:transparent)
+            [blm : (Option (Pairof -l -l))]) #:transparent)
 (struct -binding ([fun : -?φ]
                   [params : (Listof Var-Name)]
                   [param->arg : (HashTable Var-Name -φ)])
@@ -278,9 +278,9 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [exp : -⟦e⟧] [env : -ρ])
              ;; Contract monitoring
-            #;(-ℳ [l³ : Mon-Info] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
+            #;(-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
             ;; Flat checking
-            #;(-ℱ [l : Mon-Party] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
+            #;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

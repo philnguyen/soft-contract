@@ -16,12 +16,12 @@
 
 ;; Temporary definition of module path
 (define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
-(define-type Mon-Party Adhoc-Module-Path)
-(struct Mon-Info ([pos : Mon-Party] [neg : Mon-Party] [src : Mon-Party]) #:transparent)
+(define-type -l Adhoc-Module-Path)
+(struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
 
 ;; Swap positive and negative blame parties
-(define swap-parties : (Mon-Info → Mon-Info)
-  (match-lambda [(Mon-Info l+ l- lo) (Mon-Info l- l+ lo)]))
+(define swap-parties : (-l³ → -l³)
+  (match-lambda [(-l³ l+ l- lo) (-l³ l- l+ lo)]))
 
 (define-type -ℓ Natural)
 

@@ -24,7 +24,7 @@
 (define/memo (ap∷ [Ws : (Listof -W¹)]
                   [⟦e⟧s : (Listof -⟦e⟧)]
                   [ρ : -ρ]
-                  [l : Mon-Party]
+                  [l : -l]
                   [ℓ : -ℓ]
                   [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
@@ -42,7 +42,7 @@
        (⟦k⟧ (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ M)])))
 
 ;; Conditional
-(define/memo (if∷ [l : Mon-Party] [⟦e⟧₁ : -⟦e⟧] [⟦e⟧₂ : -⟦e⟧] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+(define/memo (if∷ [l : -l] [⟦e⟧₁ : -⟦e⟧] [⟦e⟧₂ : -⟦e⟧] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
     (match-define (-W Vs s) A)
     (match Vs
@@ -88,7 +88,7 @@
        (⟦k⟧ (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ M)])))
 
 ;; let-values
-(define/memo (let∷ [l : Mon-Party]
+(define/memo (let∷ [l : -l]
                    [xs : (Listof Var-Name)]
                    [⟦bnd⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧))]
                    [bnd-Ws : (Listof (List Var-Name -V -s))]
@@ -127,7 +127,7 @@
        (⟦k⟧ blm Γ 𝒞 σ M)])))
 
 ;; letrec-values
-(define/memo (letrec∷ [l : Mon-Party]
+(define/memo (letrec∷ [l : -l]
                       [xs : (Listof Var-Name)]
                       [⟦bnd⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧))]
                       [⟦e⟧ : -⟦e⟧]
@@ -162,9 +162,7 @@
        (⟦k⟧ blm Γ 𝒞 σ M)])))
 
 ;; μ/c
-(define/memo (μ/c∷ [l : Mon-Party]
-                   [x : -ℓ]
-                   [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+(define/memo (μ/c∷ [l : -l] [x : -ℓ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
     (match-define (-W (list V) s) A)
     (define α (-α.x/c x))

@@ -344,7 +344,7 @@
 (define o->id ((inst mk-interner -o)))
 (define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
 (define ⦃str⦄ ((inst mk-interner String)))
-(define ⦃l⦄ ((inst mk-interner Mon-Party)))
+(define ⦃l⦄ ((inst mk-interner -l)))
 (define ⦃struct-info⦄ ((inst mk-interner -struct-info)))
 
 (: app-o : -o (Listof Term) → Term)
