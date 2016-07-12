@@ -1,11 +1,11 @@
 #lang typed/racket
 (require
  racket/flonum racket/extflonum math/base
- "utils/main.rkt"
- "primitives/utils.rkt"
- "ast/definition.rkt"
- "runtime/main.rkt"
- "proof-relation/main.rkt"
+ "../utils/main.rkt"
+ "../primitives/utils.rkt"
+ "../ast/definition.rkt"
+ "../runtime/main.rkt"
+ "../proof-relation/main.rkt"
  (for-syntax
   racket/base
   racket/match
@@ -16,8 +16,8 @@
   (except-in racket/list remove-duplicates)
   racket/function
   racket/contract
-  "utils/main.rkt"
-  (except-in "primitives/declarations.rkt" implications base?) "primitives/utils.rkt")
+  "../utils/main.rkt"
+  (except-in "../primitives/declarations.rkt" implications base?) "../primitives/utils.rkt")
  )
 (provide δ)
 

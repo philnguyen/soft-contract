@@ -29,8 +29,8 @@
           (match-define (cons xs e) clause)
           (cons xs (↓ e))))
       (λ (ρ Γ 𝒞 σ M ⟦k⟧)
-        ;; TODO: canonicalize `e` too, maybe?
-        (⟦k⟧ (-W (list (-Case-Clo ⟦clause⟧s ρ Γ)) e) Γ 𝒞 σ M))]
+        (define s (canonicalize-e Γ e))
+        (⟦k⟧ (-W (list (-Case-Clo ⟦clause⟧s ρ Γ)) s) Γ 𝒞 σ M))]
      [(? -prim? p) (↓ₚᵣₘ p)]
      [(-• i)
       (define W (-W -●/Vs e))
