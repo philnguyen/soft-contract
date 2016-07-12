@@ -135,7 +135,6 @@
 #;(struct -ΓE ([cnd : -Γ] [blm : -blm]) #:transparent)
 (-A . ::= . -W -blm)
 (struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
-(-A* . ::= . (Listof -V) -blm)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -261,11 +260,6 @@
 (define-type -⟦e⟧ (-ρ -Γ -𝒞 -σ -M -⟦k⟧ → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
 (define-type -⟦k⟧ (-A -Γ -𝒞 -σ -M      → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
-
-;; Base continuation that returns locally finished configuration
-(define/memo (rt [αₖ : -αₖ]) : -⟦k⟧
-  (λ (A Γ 𝒞 σ M)
-    (values {set (-ς↓ αₖ Γ A)} ⊥σ ⊥σₖ ⊥M)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

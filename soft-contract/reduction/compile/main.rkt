@@ -116,10 +116,41 @@
          (λ (ρ Γ 𝒞 σ M ⟦k⟧)
            (⟦k⟧ (-W (list b) b) Γ 𝒞 σ M))]
         [else (error '↓ₑ "TODO: (quote ~a)" q)])]
-     [(-let-values xs-es e)
-      (error '↓ₑ "TODO: let-values")]
-     [(-letrec-values xs-es e)
-      (error '↓ₑ "TODO: letrec-values")]
+     [(-let-values bnds e*)
+      (define ⟦bnd⟧s
+        (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧)) ([bnd bnds])
+          (match-define (cons xs eₓₛ) bnd)
+          (cons xs (↓ eₓₛ))))
+      (define ⟦e*⟧ (↓ e*))
+      (match ⟦bnd⟧s
+        ['() ⟦e*⟧]
+        [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (⟦e⟧ₓₛ ρ Γ 𝒞 σ M (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧)))])]
+     [(-letrec-values bnds e*)
+      (define ⟦bnd⟧s
+        (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧)) ([bnd bnds])
+          (match-define (cons xs eₓₛ) bnd)
+          (cons xs (↓ eₓₛ))))
+      (define ⟦e*⟧ (↓ e*))
+      (match ⟦bnd⟧s
+        ['() ⟦e*⟧]
+        [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (define-values (ρ* σ* δσ)
+             (for*/fold ([ρ  : -ρ  ρ]
+                         [σ  : -σ  σ]
+                         [δσ : -Δσ ⊥σ])
+                        ([⟦bnd⟧ ⟦bnd⟧s]
+                         [xs (in-value (car ⟦bnd⟧))]
+                         [x xs])
+               (define α (-α.x x 𝒞))
+               (values (ρ+ ρ x α)
+                       (σ⊔ σ  α 'undefined #t)
+                       (σ⊔ ⊥σ α 'undefined #t))))
+           (define-values (ςs δσ₀ δσₖ δM)
+             (⟦e⟧ₓₛ ρ* Γ 𝒞 σ* M (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))
+           (values ςs (⊔σ δσ₀ δσ) δσₖ δM))])]
      [(-set! x e*)
       (define ⟦e*⟧ (↓ e*))
       (λ (ρ Γ 𝒞 σ M ⟦k⟧)
@@ -131,7 +162,10 @@
       (define ⟦e⟧s (set-map es ↓))
       (λ (ρ Γ 𝒞 σ M ⟦k⟧)
         (for*/ans ([⟦e⟧ ⟦e⟧s]) (⟦e⟧ ρ Γ 𝒞 σ M ⟦k⟧)))]
-     [(-μ/c x c) (error '↓ₑ "TODO: μ/c")]
+     [(-μ/c x c)
+      (define ⟦c⟧ (↓ c))
+      (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+        (⟦c⟧ ρ Γ 𝒞 σ M (μ/c∷ l x ⟦k⟧)))]
      [(--> cs d ℓ) (error '↓ₑ "TODO: -->")]
      [(-->i cs (and mk-d (-λ xs d)) ℓ) (error '↓ₑ "TODO: -->i")]
      [(-case-> clauses ℓ)
