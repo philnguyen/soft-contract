@@ -300,3 +300,39 @@
        (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
       [(cons ⟦c⟧ ⟦c⟧s*)
        (⟦c⟧ ρ Γ 𝒞 σ M (struct/c∷ ℓ si Cs* ⟦c⟧s* ρ ⟦k⟧))])))
+
+;; define
+(define/memo (def∷ [l : -l]
+                   [αs : (Listof -α)]
+                   [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
+    (define n (length αs))
+    (match-define (-W Vs s) A)
+    (cond
+      [(= n (length Vs))
+       (define-values (σ* δσ)
+         (for/fold ([σ  : -σ  σ]
+                    [δσ : -Δσ ⊥σ])
+                   ([α αs] [V Vs])
+           (values (σ⊔  σ α V #t)
+                   (σ⊔ δσ α V #t))))
+       (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ -Void/W Γ 𝒞 σ* M))
+       (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
+      [else
+       (define blm (-blm l 'define-values
+                         (list (format-symbol "~a values" n))
+                         (list (format-symbol "~a values" (length Vs)))))
+       (⟦k⟧ blm Γ 𝒞 σ M)])))
+
+;; provide with contract
+(define/memo (dec∷ [ℓ : -ℓ]
+                   [𝒾 : -𝒾]
+                   [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (define l (-𝒾-ctx 𝒾))
+  (define l³ (-l³ l 'dummy l))
+  (with-error-handling (⟦k⟧ A Γ 𝒞 σ M)
+    (match-define (-W (list C) c) A)
+    (define W-C (-W¹ C c))
+    (define-values (Vs _) (σ@ σ (-α.def 𝒾)))
+    (for*/ans ([V Vs])
+      (mon l³ ℓ W-C (-W¹ V 𝒾) Γ 𝒞 σ M ⟦k⟧))))

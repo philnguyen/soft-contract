@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ↓ₑ)
+(provide ↓ₚ ↓ₑ)
 
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
@@ -9,6 +9,61 @@
          "kontinuation.rkt"
          racket/set
          racket/match)
+
+(: ↓ₚ : (Listof -module) -e → -⟦e⟧)
+(define (↓ₚ ms e)
+  (define ⟦e⟧ (↓ₑ '† e))
+  (match (map ↓ₘ ms)
+    ['() ⟦e⟧]
+    [(cons ⟦m⟧ ⟦m⟧s)
+     (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+       (⟦m⟧ ρ Γ 𝒞 σ M (bgn∷ `(,@⟦m⟧s ,⟦e⟧) ρ ⟦k⟧)))]))
+
+(: ↓ₘₛ : (Listof -module) → -⟦e⟧)
+(define (↓ₘₛ ms)
+  (match (map ↓ₘ ms)
+    ['() ⟦void⟧]
+    [(cons ⟦m⟧ ⟦m⟧s)
+     (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+       (⟦m⟧ ρ Γ 𝒞 σ M (bgn∷ ⟦m⟧s ρ ⟦k⟧)))]))
+
+(: ↓ₘ : -module → -⟦e⟧)
+(define (↓ₘ m)
+  (match-define (-module l ds) m)
+
+  (: ↓pc : -provide-spec → -⟦e⟧)
+  (define (↓pc spec)
+    (match-define (-p/c-item x c ℓ) spec)
+    (define ⟦c⟧ (↓ₑ l c))
+    (define 𝒾 (-𝒾 x l))
+    (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+      (⟦c⟧ ρ Γ 𝒞 σ M (dec∷ ℓ 𝒾 ⟦k⟧))))
+  
+  (: ↓d : -module-level-form → -⟦e⟧)
+  (define (↓d d)
+    (match d
+      [(-define-values xs e)
+       (define αs : (Listof -α.def)
+         (for/list ([x xs]) (-α.def (-𝒾 x l))))
+       (define ⟦e⟧ (↓ₑ l e))
+       (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+         (⟦e⟧ ρ Γ 𝒞 σ M (def∷ l αs ⟦k⟧)))]
+      [(-provide specs)
+       (match (map ↓pc specs)
+         ['() ⟦void⟧]
+         [(cons ⟦spec⟧ ⟦spec⟧s)
+          (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+            (⟦spec⟧ ρ Γ 𝒞 σ M (bgn∷ ⟦spec⟧s ρ ⟦k⟧)))])]
+      [(? -e? e) (↓ₑ l e)]
+      [_
+       (log-warning "↓d : ignore ~a~n" (show-module-level-form d))
+       ⟦void⟧]))
+
+  (match (map ↓d ds)
+    ['() ⟦void⟧]
+    [(cons ⟦d⟧ ⟦d⟧s)
+     (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+       (⟦d⟧ ρ Γ 𝒞 σ M (bgn∷ ⟦d⟧s ρ ⟦k⟧)))]))
 
 (: ↓ₑ : -l -e → -⟦e⟧)
 ;; Compile expression to computation that returns next configurations and store deltas

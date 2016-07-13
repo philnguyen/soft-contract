@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ↓ₓ ↓ₚᵣₘ ret-W¹)
+(provide (all-defined-out))
 
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
@@ -45,8 +45,6 @@
   (λ (ρ Γ 𝒞 σ M ⟦k⟧)
     (⟦k⟧ (-W (list V) v) Γ 𝒞 σ M)))
 
-#|
-(define ⟦void⟧ (⇓ₚᵣₘ -void))
-(define ⟦tt⟧ (⇓ₚᵣₘ -tt))
-(define ⟦ff⟧ (⇓ₚᵣₘ -ff))
-|#
+(define ⟦void⟧ (↓ₚᵣₘ -void))
+(define ⟦tt⟧ (↓ₚᵣₘ -tt))
+(define ⟦ff⟧ (↓ₚᵣₘ -ff))
