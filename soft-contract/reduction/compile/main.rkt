@@ -126,7 +126,7 @@
         ['() ⟦e*⟧]
         [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
          (λ (ρ Γ 𝒞 σ M ⟦k⟧)
-           (⟦e⟧ₓₛ ρ Γ 𝒞 σ M (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧)))])]
+           (⟦e⟧ₓₛ ρ Γ 𝒞 σ M (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ (rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
      [(-letrec-values bnds e*)
       (define ⟦bnd⟧s
         (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧)) ([bnd bnds])
@@ -149,7 +149,7 @@
                        (σ⊔ σ  α 'undefined #t)
                        (σ⊔ ⊥σ α 'undefined #t))))
            (define-values (ςs δσ₀ δσₖ δM)
-             (⟦e⟧ₓₛ ρ* Γ 𝒞 σ* M (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))
+             (⟦e⟧ₓₛ ρ* Γ 𝒞 σ* M (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ* (rst∷ (dom ρ #:eq? #t) ⟦k⟧))))
            (values ςs (⊔σ δσ₀ δσ) δσₖ δM))])]
      [(-set! x e*)
       (define ⟦e*⟧ (↓ e*))
@@ -166,16 +166,53 @@
       (define ⟦c⟧ (↓ c))
       (λ (ρ Γ 𝒞 σ M ⟦k⟧)
         (⟦c⟧ ρ Γ 𝒞 σ M (μ/c∷ l x ⟦k⟧)))]
-     [(--> cs d ℓ) (error '↓ₑ "TODO: -->")]
-     [(-->i cs (and mk-d (-λ xs d)) ℓ) (error '↓ₑ "TODO: -->i")]
+     [(--> cs d ℓ)
+      (define ⟦d⟧  (↓ d))
+      (match (map ↓ cs)
+        ['()
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (⟦d⟧ ρ Γ 𝒞 σ M (-->.rng∷ l '() ℓ ⟦k⟧)))]
+        [(cons ⟦c⟧ ⟦c⟧s)
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (⟦c⟧ ρ Γ 𝒞 σ M (-->.dom∷ l '() ⟦c⟧s ⟦d⟧ ρ ℓ ⟦k⟧)))])]
+     [(-->i cs (and mk-d (-λ xs d)) ℓ)
+      (define ⟦d⟧ (↓ d))
+      (match (map ↓ cs)
+        ['()
+         (define c (-?->i '() mk-d))
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
+           (define-values (G g δσ) (mk-=>i Γ 𝒞 '() Mk-D mk-d ℓ))
+           (define σ* (⊔σ σ δσ))
+           (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ (-W (list G) g) Γ 𝒞 σ* M))
+           (values ςs (⊔σ δσ₀ δσ) δσₖ δM))]
+        [(cons ⟦c⟧ ⟦c⟧s)
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
+           (⟦c⟧ ρ Γ 𝒞 σ M (-->i∷ '() ⟦c⟧s ρ Mk-D mk-d ℓ ⟦k⟧)))])]
      [(-case-> clauses ℓ)
-      (error '↓ₑ "TODO: case->")]
+      (define ⟦clause⟧s : (Listof (Listof -⟦e⟧))
+        (for/list ([clause clauses])
+          (match-define (cons cs d) clause)
+          `(,@(map ↓ cs) ,(↓ d))))
+      (match ⟦clause⟧s
+        ['()
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (⟦k⟧ (-W (list (-Case-> '() ℓ)) e) Γ 𝒞 σ M))]
+        [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (⟦c⟧ ρ Γ 𝒞 σ M (case->∷ l ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
      [(-x/c x)
-      (error '↓ₑ "TODO: x/c")]
-     [(-struct/c si cs l)
-      (error '↓ₑ "TODO: struct/c")]
-     [_
-      (error '↓ₑ "unhandled: ~a" (show-e e))]
-     )
+      (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+        (⟦k⟧ (-W (list (-x/C (-α.x/c x))) e) Γ 𝒞 σ M))]
+     [(-struct/c si cs ℓ)
+      (match (map ↓ cs)
+        ['()
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (⟦k⟧ (-W (list (-St/C #t si '())) e) Γ 𝒞 σ M))]
+        [(cons ⟦c⟧ ⟦c⟧s)
+         (λ (ρ Γ 𝒞 σ M ⟦k⟧)
+           (⟦c⟧ ρ Γ 𝒞 σ M (struct/c∷ ℓ si '() ⟦c⟧s ρ ⟦k⟧)))])]
+     [_ (error '↓ₑ "unhandled: ~a" (show-e e))])
    e))
 
