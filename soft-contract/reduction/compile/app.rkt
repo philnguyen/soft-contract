@@ -7,7 +7,7 @@
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt"
          "../delta.rkt"
-         "ap.rkt"
+         "base.rkt"
          racket/set
          racket/match)
 
@@ -42,8 +42,8 @@
         (values (σ⊔ σ  α Vₓ #t)
                 (σ⊔ δσ α Vₓ #t))))
     (define V (-St s αs))
-    (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 σ* M))
-    (values ςs (⊔σ δσ₀ δσ) δσₖ δM))
+    (with-δσ δσ
+      (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 σ* M)))
 
   ;; Apply accessor
   (define (app-st-ac [s : -struct-info] [i : Natural])
@@ -119,9 +119,8 @@
   (define (app-δ [o : Symbol])
     (define-values (?Vs δσ) (δ 𝒞 ℓ M σ Γ o Wₓs))
     (cond [?Vs
-           (define σ* (⊔σ σ δσ))
-           (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ (-W ?Vs sₐ) Γ 𝒞 σ* M))
-           (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
+           (with-δσ δσ
+             (⟦k⟧ (-W ?Vs sₐ) Γ 𝒞 (⊔σ σ δσ) M))]
           [else (⊥ans)]))
 
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧] [ρₕ : -ρ] [Γₕ : -Γ])

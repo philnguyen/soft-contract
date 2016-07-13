@@ -6,6 +6,7 @@
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt"
+         "base.rkt"
          "app.rkt"
          racket/set
          racket/match)
@@ -115,8 +116,8 @@
                       (σ⊔ σ  α Vₓ #t)
                       (σ⊔ δσ α Vₓ #t)
                       (-Γ-with-aliases Γ x sₓ))))
-          (define-values (ςs δσ₀ δσₖ δM) (⟦e⟧ ρ* Γ* 𝒞 σ* M ⟦k⟧))
-          (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
+          (with-δσ δσ
+            (⟦e⟧ ρ* Γ* 𝒞 σ* M ⟦k⟧))]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
           (⟦e⟧* ρ Γ 𝒞 σ M (let∷ l xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
       [else
@@ -147,13 +148,12 @@
            (values (σ⊔ σ  α Vₓ #t)
                    (σ⊔ δσ α Vₓ #t)
                    (Γ+ (-Γ-with-aliases Γ x sₓ) (-?@ 'defined? (-x x))))))
-       (define-values (ςs δσ₀ δσₖ δM)
+       (with-δσ δσ
          (match ⟦bnd⟧s
            ['()
             (⟦e⟧ ρ Γ* 𝒞 σ* M ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
-            (⟦e⟧* ρ Γ* 𝒞 σ* M (letrec∷ l xs* ⟦bnd⟧s* ⟦e⟧ ρ ⟦k⟧))]))
-       (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
+            (⟦e⟧* ρ Γ* 𝒞 σ* M (letrec∷ l xs* ⟦bnd⟧s* ⟦e⟧ ρ ⟦k⟧))]))]
       [else
        (define blm
          (-blm l 'letrec-values
@@ -205,8 +205,7 @@
                 (cons α αs)
                 (cons c cs))))
     (define G (-W (list (-=> αs β ℓ)) (-?-> cs d)))
-    (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ G Γ 𝒞 σ* M))
-    (values ςs (⊔σ δσ₀ δσ) δσₖ δM)))
+    (with-δσ δσ (⟦k⟧ G Γ 𝒞 σ* M))))
 
 (: mk-=>i : -Γ -𝒞 (Listof -W¹) -Clo (Option -λ) -ℓ → (Values -V -s -Δσ))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
@@ -238,9 +237,7 @@
     (match ⟦c⟧s
       ['()
        (define-values (G g δσ) (mk-=>i Γ 𝒞 Ws* Mk-D mk-d ℓ))
-       (define σ* (⊔σ σ δσ))
-       (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ (-W (list G) g) Γ 𝒞 σ* M))
-       (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
+       (with-δσ δσ (⟦k⟧ (-W (list G) g) Γ 𝒞 (⊔σ σ δσ) M))]
       [(cons ⟦c⟧ ⟦c⟧s*)
        (⟦c⟧ ρ Γ 𝒞 σ M (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
 
@@ -296,8 +293,7 @@
                    (cons c cs)
                    (and flat? (C-flat? C)))))
        (define W (-W (list (-St/C flat? si αs)) (-?struct/c si cs)))
-       (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ W Γ 𝒞 σ M))
-       (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
+       (with-δσ δσ (⟦k⟧ W Γ 𝒞 σ M))]
       [(cons ⟦c⟧ ⟦c⟧s*)
        (⟦c⟧ ρ Γ 𝒞 σ M (struct/c∷ ℓ si Cs* ⟦c⟧s* ρ ⟦k⟧))])))
 
@@ -316,8 +312,7 @@
                    ([α αs] [V Vs])
            (values (σ⊔  σ α V #t)
                    (σ⊔ δσ α V #t))))
-       (define-values (ςs δσ₀ δσₖ δM) (⟦k⟧ -Void/W Γ 𝒞 σ* M))
-       (values ςs (⊔σ δσ₀ δσ) δσₖ δM)]
+       (with-δσ δσ (⟦k⟧ -Void/W Γ 𝒞 σ* M))]
       [else
        (define blm (-blm l 'define-values
                          (list (format-symbol "~a values" n))
