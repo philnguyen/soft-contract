@@ -11,6 +11,7 @@
          racket/match)
 
 (: ↓ₚ : (Listof -module) -e → -⟦e⟧)
+;; Compile program
 (define (↓ₚ ms e)
   (define ⟦e⟧ (↓ₑ '† e))
   (match (map ↓ₘ ms)
@@ -19,15 +20,8 @@
      (λ (ρ Γ 𝒞 σ M ⟦k⟧)
        (⟦m⟧ ρ Γ 𝒞 σ M (bgn∷ `(,@⟦m⟧s ,⟦e⟧) ρ ⟦k⟧)))]))
 
-(: ↓ₘₛ : (Listof -module) → -⟦e⟧)
-(define (↓ₘₛ ms)
-  (match (map ↓ₘ ms)
-    ['() ⟦void⟧]
-    [(cons ⟦m⟧ ⟦m⟧s)
-     (λ (ρ Γ 𝒞 σ M ⟦k⟧)
-       (⟦m⟧ ρ Γ 𝒞 σ M (bgn∷ ⟦m⟧s ρ ⟦k⟧)))]))
-
 (: ↓ₘ : -module → -⟦e⟧)
+;; Compile module
 (define (↓ₘ m)
   (match-define (-module l ds) m)
 
