@@ -4,8 +4,25 @@
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
+         "compile/kontinuation.rkt"
          racket/set
          racket/match)
+
+(: ↝* : -ς -σ -σₖ -M → (Values (℘ -A) -σ -σₖ -M))
+(define (↝* ς₀ σ σₖ M)
+  
+  (define seen : (HashTable -ς (List -σ -σₖ -M)) (make-hash))
+  (define-set ans : -A)
+
+  (let loop! ([front : (℘ -ς) {set ς₀}]
+              [σ     : -σ  #|FIXME|# ⊥σ]
+              [σₖ    : -σₖ #|FIXME|# ⊥σₖ]
+              [M     : -M  ⊥M])
+    (cond
+      [(set-empty? front)
+       (values ans σ σₖ M)]
+      [else
+       (error "TODO")])))
 
 (: ↝ : -ς -σ -σₖ -M → (Values (℘ -ς) -Δσ -Δσₖ -ΔM))
 ;; Perform one "quick-step" on configuration,

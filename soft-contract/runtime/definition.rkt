@@ -131,8 +131,6 @@
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
-#;(struct -ΓW ([cnd : -Γ] [W : -W]) #:transparent)
-#;(struct -ΓE ([cnd : -Γ] [blm : -blm]) #:transparent)
 (-A . ::= . -W -blm)
 (struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
 
@@ -197,7 +195,7 @@
          (cond [(hash-ref x->φ x #f) => φ->e]
                [else #f])))
      (cond [(andmap (inst values -s) sₓs)
-            (-@ (φ->e φₕ) (cast sₓs (Listof -e)) 0)]
+            (-@ (φ->e φₕ) (cast sₓs (Listof -e)) +ℓ₀)]
            [else #f])]
     [else #f]))
 
@@ -206,9 +204,12 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -𝒞 Natural)
-(define-type Caller-Ctx Integer)
-(define-values (𝒞∅ 𝒞+ decode-𝒞) ((inst make-indexed-set (Pairof -⟦e⟧ Caller-Ctx))))
+(define-new-subtype -𝒞 (+𝒞 Natural))
+(define-values (𝒞∅ 𝒞+ decode-𝒞)
+  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧ -ℓ)))])
+    (values (+𝒞 s∅)
+            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧ -ℓ)]) (+𝒞 (s+ 𝒞 x)))
+            decode)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -435,7 +436,7 @@
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Sexp
   (cond [(verbose?)
-         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧ Caller-Ctx) (decode-𝒞 𝒞)])
+         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧ -ℓ) (decode-𝒞 𝒞)])
            (match-define (cons ⟦e⟧ ℓ) ctx)
            `(,(format-symbol "ℓ~a" (n-sub ℓ)) ↝ ,(show-⟦e⟧ ⟦e⟧)))]
         [else (format-symbol "𝒞~a" (n-sub 𝒞))]))

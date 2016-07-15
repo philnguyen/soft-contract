@@ -42,7 +42,7 @@
           
           (define/contract preconds (listof syntax?)
             (for/list ([dom o-doms] [arg args])
-              #`(eq? '✓ (#,⊢e (-@ '#,dom (list #,arg) 0)))))
+              #`(eq? '✓ (#,⊢e (-@ '#,dom (list #,arg) +ℓ₀)))))
           
           #`[(#,o-rng*)
              (match #,zs
@@ -136,11 +136,11 @@
              [(and
                (or
                 (and (-λ? f) (equal? f g))
-                (eq? '✓ (⊢e (-@ 'equal? (list f g) 0))))
+                (eq? '✓ (⊢e (-@ 'equal? (list f g) +ℓ₀))))
                (= (length xs) (length ys)))
               (define res
                 (for/seteq: : (℘ -R) ([x xs] [y ys])
-                  (⊢e (-@ 'equal? (list x y) 0))))
+                  (⊢e (-@ 'equal? (list x y) +ℓ₀))))
               (cond
                 [(or (set-empty? res) (equal? res {seteq '✓})) '✓]
                 [(and (-st-mk? f) (∋ res '✗)) '✗]
@@ -289,7 +289,7 @@
           (plausible-φs-s? φs (-?@ 'null? s))]
          [(-● ps)
           (not (for/or : Boolean ([p ps])
-                 (equal? '✗ (φs⊢e φs (-@ p (list s) 0)))))]
+                 (equal? '✗ (φs⊢e φs (-@ p (list s) +ℓ₀)))))]
          [_ #t])]
       [else #t]))
   

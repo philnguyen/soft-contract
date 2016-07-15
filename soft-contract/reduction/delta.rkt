@@ -332,7 +332,7 @@
   ;; Test δ's concrete fragment
   (define (check-δ/b o bs bₐ)
     (define Ws (for/list : (Listof -W¹) ([b bs]) (-W¹ (-b b) (-b b))))
-    (define-values (δσ Vs) (δ 0 0 ⊥M ⊥σ ⊤Γ o Ws))
+    (define-values (δσ Vs) (δ 𝒞∅ +ℓ₀ ⊥M ⊥σ ⊤Γ o Ws))
     (check-true (list? Vs))
     (check-equal? ((inst length -V) (cast Vs (Listof -V))) 1)
     (match-define (list V) Vs)

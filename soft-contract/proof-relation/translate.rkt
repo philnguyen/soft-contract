@@ -186,19 +186,19 @@
       
       ;; Hacks for special applications go here
       [(-@ (-@ 'and/c ps _) es _)
-       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        `(B ,(-tand (for/list ([t ts]) `(is_truish ,t))))]
       [(-@ (-@ 'or/c ps _) es _)
-       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        `(B ,(-tor (for/list ([t ts]) `(is_truish ,t))))]
       [(-@ (-@ 'not/c (list p) _) es _)
-       `(B (is_false ,(⦃e⦄! (-@ p es 0))))]
+       `(B (is_false ,(⦃e⦄! (-@ p es +ℓ₀))))]
       [(-@ (-struct/c s cs _) es _)
-       (define tₚ (⦃e⦄! (-@ (-st-p s) es 0)))
+       (define tₚ (⦃e⦄! (-@ (-st-p s) es +ℓ₀)))
        (define ts : (Listof Term)
          (for/list ([(c i) (in-indexed cs)])
-           (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es 0))
-           (⦃e⦄! (-@ c (list eᵢ) 0))))
+           (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es +ℓ₀))
+           (⦃e⦄! (-@ c (list eᵢ) +ℓ₀))))
        `(B ,(-tand (for/list ([t (cons tₚ ts)]) `(is_truish ,t))))]
       ;; End of hacks for special applications
       
@@ -661,7 +661,7 @@
   (define +z (-x 'z))
   (encode ⊥M
            (Γ+ ⊤Γ
-                (-@ 'integer? (list +x) 0)
-                (-@ 'integer? (list +y) 0)
-                (-@ '= (list +z (-@ '+ (list +x +y) 0)) 0))
-           (-@ 'integer? (list +z) 0)))
+                (-@ 'integer? (list +x) +ℓ₀)
+                (-@ 'integer? (list +y) +ℓ₀)
+                (-@ '= (list +z (-@ '+ (list +x +y) +ℓ₀)) +ℓ₀))
+           (-@ 'integer? (list +z) +ℓ₀)))

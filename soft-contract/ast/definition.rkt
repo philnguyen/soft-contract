@@ -15,25 +15,25 @@
 (define-type -begin/top (-begin -top-level-form))
 
 ;; Temporary definition of module path
-(define-type/pred Adhoc-Module-Path (U Symbol String) #|TODO|#)
-(define-type -l Adhoc-Module-Path)
+(define-type -l (U Symbol String))
 (struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
 
 ;; Swap positive and negative blame parties
 (define swap-parties : (-l³ → -l³)
   (match-lambda [(-l³ l+ l- lo) (-l³ l- l+ lo)]))
 
-(define-type -ℓ Natural)
+(define-new-subtype -ℓ (+ℓ Natural))
 
 ;; Source location generator. It's hacked to remember fixed location for havoc
 (: +ℓ! : → -ℓ)
 (: +ℓ/memo! : (U 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
 (define-values (+ℓ! +ℓ/memo!)
-  (let ([n : -ℓ 1]
+  (let ([n : Natural 1]
         [m : (HashTable (Listof Any) -ℓ) (make-hash)])
     (values
-     (λ () (begin0 n (set! n (+ 1 n))))
+     (λ () (begin0 (+ℓ n) (set! n (+ 1 n))))
      (λ (tag . xs) (hash-ref! m (cons tag xs) +ℓ!)))))
+(define +ℓ₀ (+ℓ 0))
 
 ;; Symbol names are used for source code. Integers are used for generated.
 ;; Keep this eq?-able
@@ -48,7 +48,7 @@
      (λ (tag . xs) (hash-ref! m (cons tag xs) +x!)))))
 
 ;; Identifier as a name and its source
-(struct -𝒾 ([name : Symbol] [ctx : Adhoc-Module-Path]) #:transparent)
+(struct -𝒾 ([name : Symbol] [ctx : -l]) #:transparent)
 
 ;; Struct meta data
 (struct -struct-info ([id : -𝒾] [arity : Natural] [mutables : (℘ Natural)]) #:transparent)
@@ -78,11 +78,11 @@
                                  (-define-values [ids : (Listof Symbol)] [e : -e])
                                  (-require (Listof -require-spec)))
 
-(-submodule-form . ::= . (-module [path : Adhoc-Module-Path] [body : (Listof -module-level-form)]))
+(-submodule-form . ::= . (-module [path : -l] [body : (Listof -module-level-form)]))
 
 (-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e] [loc : -ℓ]))
 
-(-require-spec . ::= . Adhoc-Module-Path #|TODO|#)
+(-require-spec . ::= . -l #|TODO|#)
 
 (-e . ::= . -v
             (-x Var-Name) ; lexical variables 
@@ -153,7 +153,7 @@
 (define -unbox (-st-ac -s-box 0))
 (define -box (-st-mk -s-box))
 (define -set-box! (-st-mut -s-box 0))
-(define -pred (--> (list 'any/c) 'boolean? 0))
+(define -pred (--> (list 'any/c) 'boolean? +ℓ₀))
 
 (define havoc-path 'havoc)
 (define havoc-𝒾 (-𝒾 'havoc-id havoc-path))

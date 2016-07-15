@@ -137,6 +137,6 @@
   (require typed/rackunit)
 
   (check-equal? (Γ+ ⊤Γ #f) ⊤Γ)
-  (check-equal? (canonicalize-e (hash 'x (e->φ (-@ '+ (list (-b 1) (-b 2)) 0)))
-                                (-@ '+ (list (-x 'x) (-x 'y)) 0))
-                (-@ '+ (list (-b 1) (-@ '+ (list (-b 2) (-x 'y)) 0)) 0)))
+  (check-equal? (canonicalize-e (hash 'x (e->φ (-@ '+ (list (-b 1) (-b 2)) +ℓ₀)))
+                                (-@ '+ (list (-x 'x) (-x 'y)) +ℓ₀))
+                (-@ '+ (list (-b 1) (-@ '+ (list (-b 2) (-x 'y)) +ℓ₀)) +ℓ₀)))
