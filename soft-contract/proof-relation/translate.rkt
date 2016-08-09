@@ -8,35 +8,37 @@
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt")
+         "../runtime/main.rkt"
+         "parameters.rkt"
+         "z3-rkt/z3-wrapper.rkt"
+         "z3-rkt/parser.rkt"
+         "z3-rkt/builtins.rkt"
+         "z3-rkt/main.rkt")
 
 (struct exn:scv:smt:unsupported exn () #:transparent)
+(define-type →Z3:Ast (→ Z3:Ast))
+(define-type →Void   (→ Void))
 
-(: SMT-base : (℘ Natural) → (Listof Sexp))
-(define (SMT-base struct-arities)
-  `(,@(base-datatypes struct-arities)
-    ,@base-predicates))
-
-;; SMT target language
-(define-type Term Sexp)
-(define-type Formula Sexp) ; Term of type Bool in SMT
-(struct Entry ([free-vars : (℘ Symbol)] [facts : (℘ Formula)] [expr : Term]) #:transparent)
+(struct Entry ([free-vars : (℘ Symbol)]
+               [facts     : (℘ →Z3:Ast)]
+               [expr      : →Z3:Ast])
+  #:transparent)
 (struct App ([ctx : -τ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
 (Defn-Entry . ::= . -o App)
 (define-type Memo-Table
   ;; Memo table maps each function application to a pair of formulas:
-  ;; - When the application succeeds
-  ;; - When the application goes wrong
+  ;; - When application succeeds
+  ;; - When application goes wrong
   (HashTable App Res))
 
-(: encode : -M -Γ -e → (Values (Listof Sexp) Sexp))
-;; Encode query `M Γ ⊢ e : (✓|✗|?)`,
-;; spanning from `Γ, e`, only translating neccessary entries in `M`
+(: encode : -M -Γ -e → (Values →Void →Z3:Ast))
+;; Encode `M Γ ⊢ e` into a pair of thunks that emit assertions and goal to check for
+;; satisfiability
 (define (encode M Γ e)
   (define-values (refs top-entry) (encode-e ∅eq Γ e))
-  (let loop ([fronts : (℘ Defn-Entry) refs]
-             [seen : (℘ Defn-Entry) refs]
+  (let loop ([fronts   : (℘ Defn-Entry) refs]
+             [seen     : (℘ Defn-Entry) refs]
              [def-funs : Memo-Table (hash)])
     (cond
       [(set-empty? fronts)
@@ -52,8 +54,8 @@
        (emit st-arities def-funs top-entry)]
       [else
        (define-values (fronts* seen* def-funs*)
-         (for/fold ([fronts* : (℘ Defn-Entry) ∅]
-                    [seen* : (℘ Defn-Entry) seen]
+         (for/fold ([fronts*   : (℘ Defn-Entry) ∅]
+                    [seen*     : (℘ Defn-Entry) seen]
                     [def-funs* : Memo-Table def-funs])
                    ([front fronts])
            (define-values (def-funs** refs+)
@@ -64,13 +66,12 @@
                 (values (hash-set def-funs* front entries) refs)]
                [(? -o? o)
                 (values def-funs* ∅)]))
-           
            (define-values (fronts** seen**)
              (for/fold ([fronts** : (℘ Defn-Entry) fronts*]
-                        [seen** : (℘ Defn-Entry) seen*])
+                        [seen**   : (℘ Defn-Entry) seen*])
                        ([ref refs+] #:unless (∋ seen** ref))
                (values (set-add fronts** ref)
-                       (set-add seen** ref))))
+                       (set-add seen**   ref))))
            (values fronts** seen** def-funs**)))
        (loop fronts* seen* def-funs*)])))
 
@@ -80,11 +81,14 @@
 (define (encode-τ τ fvs xs As)
   (define-set refs : Defn-Entry)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
-  (define tₓs (map ⦃x⦄ xs))
+  (define tₓs : (Listof →Z3:Ast)
+    (for/list ([x xs])
+      (define t (⦃x⦄ x))
+      (λ () (get-val t))))
   (define fₕ (fun-name τ fvs xs))
   (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
   (define bound (∪ (list->seteq fvs) (list->seteq xs)))
-  
+
   ;; Accumulate pair of formulas describing conditions for succeeding and erroring
   (define-values (oks ers)
     (for/fold ([oks : (Listof Entry) '()]
@@ -99,13 +103,13 @@
               (refs-union! refs+)
               (match-define (Entry free-vars facts tₐₙₛ) entry)
               (Entry free-vars
-                     (set-add facts `(= ,tₐₚₚ (Val ,tₐₙₛ)))
+                     (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Val (tₐₙₛ)))))
                      tₐₙₛ)]
              [else
-              (define-values (refs+ entry) (encode-e bound Γ #|hack|# -ff))
+              (define-values (refs+ entry) (encode-e bound Γ #|HACK|# -ff))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
-              (Entry free-vars facts #|hack|# '(B false))]))
+              (Entry free-vars facts #|hack|# (λ () (@/s 'B false/s)))]))
          (values (cons eₒₖ oks) ers)]
         [(-ΓE Γ (-blm l+ lo _ _))
          (define eₑᵣ
@@ -113,26 +117,27 @@
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
-                    (set-add facts `(= ,tₐₚₚ (Blm ,(⦃l⦄ l+) ,(⦃l⦄ lo))))
-                    #|hack|# `(B false))))
+                    (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Blm (⦃l⦄ l+) (⦃l⦄ lo)))))
+                    #|HACK|# (λ () (@/s 'B false/s)))))
          (values oks (cons eₑᵣ ers))])))
-  
   (values refs (Res oks ers)))
 
 (: encode-e : (℘ Var-Name) -Γ -e → (Values (℘ Defn-Entry) Entry))
-;; Encode pathcondition `Γ` and expression `e`,
+;; Encode path-condition `Γ` and expression `e` into a
+;; - a Z3:Ast-producing thunk, and
+;; - a set of function definitions to encode
 (define (encode-e bound Γ e)
-
-  (define-set free-vars : Symbol #:eq? #t)
-  (define-set props : Formula)
-  (define asserts-app : (HashTable Term (U #t ; is-Val
-                                           Symbol ; is-Val + instantiate
-                                           (Pairof Integer Integer) ; blm
-                                           ))
+  
+  (define-set free-vars : Symbol  #:eq? #t)
+  (define-set props     : →Z3:Ast #:eq? #t)
+  (define asserts-app : (HashTable →Z3:Ast (U #t ; is-Val
+                                              Symbol ; is-Val + instantiate
+                                              (Pairof Integer Integer) ; blm
+                                              ))
     (make-hash))
   (define-set refs : Defn-Entry)
   (match-define (-Γ φs _ γs) Γ)
-
+  
   (define fresh-free! : (→ Symbol)
     (let ([i : Natural 0])
       (λ ()
@@ -141,117 +146,139 @@
         (free-vars-add! x)
         x)))
 
-  (define app-term! : (Term → Symbol)
-    (let ([m : (HashTable Term Symbol) (make-hash)])
+  (define app-term! : (→Z3:Ast → →Z3:Ast)
+    (let ([m : (HashTable →Z3:Ast →Z3:Ast) (make-hasheq)])
       (λ (tₐₚₚ)
-        (hash-ref! m tₐₚₚ (λ ()
-                            (define tₐ (format-symbol "a.~a" (hash-count m)))
-                            (free-vars-add! tₐ)
-                            (hash-set! asserts-app tₐₚₚ tₐ)
-                            tₐ)))))
+        (hash-ref! m tₐₚₚ
+                   (λ ()
+                     (define tₐ (format-symbol "a.~a" (hash-count m)))
+                     (free-vars-add! tₐ)
+                     (hash-set! asserts-app tₐₚₚ tₐ)
+                     (λ () (get-val tₐ)))))))
 
   ;; Add a reminder to encode memo table entries for `τ(xs)` as a 1st-order function
-  (define/memo (⦃fun⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)]) : Symbol
-    (define _ (⦃e⦄! eₕ))
-    (define ⦃fv⦄s (map ⦃x⦄ fvs))
-    (refs-add! (App τ fvs xs))
-    (fun-name τ fvs xs))
+  (define/memo (⦃fun⦄!
+                [τ : -τ]
+                [eₕ : -e]
+                [fvs : (Listof Var-Name)]
+                [xs  : (Listof Var-Name)]) : Symbol
+     (define _ (⦃e⦄! eₕ))
+     (define ⦃fv⦄s (map ⦃x⦄ fvs))
+     (refs-add! (App τ fvs xs))
+     (fun-name τ fvs xs))
 
-  ;; Encode application
-  (define/memo (⦃app⦄! [τ : -τ] [eₕ : -e] [fvs : (Listof Var-Name)] [xs : (Listof Var-Name)] [eₓs : (Listof -e)]) : Term
-    (-tapp (⦃fun⦄! τ eₕ fvs xs) (map ⦃x⦄ fvs) (map ⦃e⦄! eₓs)))
-
-  ;; encode the fact that `e` has successfully evaluated
-  (define/memo (⦃e⦄! [e : -e]) : Term
-    ;(printf "⦃e⦄!: ~a~n" (show-e e))
+  ;; encode application
+  (define/memo (⦃app⦄!
+                [τ : -τ]
+                [eₕ : -e]
+                [fvs : (Listof Var-Name)]
+                [xs : (Listof Var-Name)]
+                [eₓs : (Listof -e)]) : →Z3:Ast
+    (define f (⦃fun⦄! τ eₕ fvs xs))
+    (define ⦃fvs⦄ (map ⦃x⦄ fvs))
+    (define ⦃eₓs⦄ (map ⦃e⦄! eₓs))
+    (-tapp f ⦃fvs⦄ ⦃eₓs⦄))
+  
+  ;; encode that `e` has successfully evaluated
+  (define/memo (⦃e⦄! [e : -e]) : →Z3:Ast
     (match e
-      [(-b b) (⦃b⦄ b)]
+      [(-b b) (λ () (⦃b⦄ b))]
       [(? -𝒾? 𝒾)
        (define t (⦃𝒾⦄ 𝒾))
        (free-vars-add! t)
-       t]
-      [(? -o? o) `(Proc ,(o->id o))]
+       (λ () (get-val t))]
+      [(? -o? o)
+       (define id (o->id o))
+       (λ () (@/s 'Proc id))]
       [(-x x)
        (define t (⦃x⦄ x))
-       (cond [(∋ bound x) t]
-             [else (free-vars-add! t) t])]
+       (unless (∋ bound x)
+         (free-vars-add! t))
+       (λ () (get-val t))]
       [(-λ xs e)
        (define t (fresh-free!))
-       (props-add! `(is-Proc ,t))
+       (props-add! (λ () (@/s 'is-Proc t)))
        (cond
-         [(list? xs) (props-add! `(= (arity ,t) ,(length xs)))]
-         [else (log-warning "No precise translation for varargs~n")])
-       t]
-      
+         [(list? xs) (props-add! (λ () (=/s (@/s 'arity t) (length xs))))]
+         [else (log-warning "No precise translation for varargs")])
+       (λ () (get-val t))]
+
       ;; Hacks for special applications go here
       [(-@ (-@ 'and/c ps _) es _)
-       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
-       `(B ,(-tand (for/list ([t ts]) `(is_truish ,t))))]
+       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (λ ()
+         (@/s 'B (apply and/s (for/list : (Listof Z3:Ast) ([t ts]) (@/s 'is_truish (t))))))]
       [(-@ (-@ 'or/c ps _) es _)
-       (define ts : (Listof Term) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
-       `(B ,(-tor (for/list ([t ts]) `(is_truish ,t))))]
+       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (λ ()
+         (@/s 'B (apply or/s (for/list : (Listof Z3:Ast) ([t ts]) (@/s 'is_truish (t))))))]
       [(-@ (-@ 'not/c (list p) _) es _)
-       `(B (is_false ,(⦃e⦄! (-@ p es 0))))]
+       (define t (⦃e⦄! (-@ p es 0)))
+       (λ ()
+         (@/s 'B (@/s 'is_false (t))))]
       [(-@ (-struct/c s cs _) es _)
        (define tₚ (⦃e⦄! (-@ (-st-p s) es 0)))
-       (define ts : (Listof Term)
+       (define ts : (Listof →Z3:Ast)
          (for/list ([(c i) (in-indexed cs)])
            (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es 0))
            (⦃e⦄! (-@ c (list eᵢ) 0))))
-       `(B ,(-tand (for/list ([t (cons tₚ ts)]) `(is_truish ,t))))]
+       (λ ()
+         (@/s 'B (apply and/s
+                        (for/list : (Listof Z3:Ast) ([t (cons tₚ ts)])
+                          (@/s 'is_truish (t))))))]
       ;; End of hacks for special applications
-      
+
       [(-@ (? -o? o) es _)
        (define ts (map ⦃e⦄! es))
        
        (case o ; HACK
          [(list) (refs-add! -cons)]
          [else (refs-add! o)])
-       
+
        (match o ; HACK
          [(-st-ac s _)
           (define n (-struct-info-arity s))
           (define is-St (format-symbol "is-St_~a" n))
           (define tag (format-symbol "tag_~a" n))
           (define stag (⦃struct-info⦄ s))
-          (props-add! `(and (,is-St ,@ts) (= (,tag ,@ts) ,stag)))]
+          (match-define (list t) ts)
+          (props-add! (λ ()
+                        (define tₐ (t))
+                        (and/s (@/s is-St tₐ) (=/s (@/s tag tₐ) stag))))]
          [_ (void)])
-       
+
        (with-handlers ([exn:scv:smt:unsupported?
                         (λ (_)
                           ;; suppress for now
                           (printf "Z3 translation: unsupported primitive: `~a`~n" (show-o o))
-                          (fresh-free!))])
+                          (define t (fresh-free!))
+                          (λ () (get-val t)))])
          (app-o o ts))]
       [(-@ eₕ eₓs _)
        (or
-        (for/or : (Option Term) ([γ γs])
+        (for/or : (Option →Z3:Ast) ([γ γs])
           (match-define (-γ τ bnd blm) γ)
           (match-define (-binding φₕ xs x->φ) bnd)
           (cond [(equal? eₕ (and φₕ (φ->e φₕ)))
-                 (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
+                 (define fvs (set->list/memo
+                              (set-subtract (-binding-dom bnd) (list->seteq xs))))
                  (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
                  (app-term! tₐₚₚ)]
                 [else #f]))
-        (begin
-          #;(printf "Warning: can't find ~a among ~a~n"
-                  (show-e e)
-                  (for/list : (Listof Sexp) ([γ γs])
-                    (match-define (-γ _ bnd _) γ)
-                    (show-binding bnd)))
-          (fresh-free!)))]
+        (let ([t (fresh-free!)])
+          (λ () (get-val t))))]
       [(? -->?)
        (define t (fresh-free!))
-       (props-add! `(is-Arr ,t))
-       t]
+       (props-add! (λ () (@/s 'is-Arr t)))
+       (λ () (get-val t))]
       [(? -->i?)
        (define t (fresh-free!))
-       (props-add! `(is-ArrD ,t))
-       t]
+       (props-add! (λ () (@/s 'is-ArrD t)))
+       (λ () (get-val t))]
       [(? -struct/c?)
        (define t (fresh-free!))
-       (props-add! `(is-St/C ,t))
-       t]
+       (props-add! (λ () (@/s 'is-St/C t)))
+       (λ () (get-val t))]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
 
   (: ⦃γ⦄! : -γ → Void)
@@ -262,37 +289,416 @@
       (match-define (-binding _ xs _) bnd)
       (match-define (-@ eₕ eₓs _) eₐₚₚ)
       (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
-      (for ([fv fvs] #:unless (∋ bound fv)) (free-vars-add! (⦃x⦄ fv)))
+      (for ([fv fvs] #:unless (∋ bound fv))
+        (free-vars-add! (⦃x⦄ fv)))
       (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
       (match blm
         [(cons l+ lo) (hash-set! asserts-app tₐₚₚ (cons (⦃l⦄ l+) (⦃l⦄ lo)))]
         [_            (hash-set! asserts-app tₐₚₚ #t)])))
-
+  
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
   (for ([φ φs])
-    (props-add! (tsimp (⦃e⦄! (φ->e φ)))))
+    (props-add! (⦃e⦄! (φ->e φ))))
   (define tₜₒₚ (⦃e⦄! e))
   (define all-props
-    (∪ (for/set: : (℘ Formula) ([(tₐₚₚ res) asserts-app])
+    (∪ (for/seteq: : (℘ →Z3:Ast) ([(tₐₚₚ res) asserts-app])
          (match res
-           [#t `(is-Val ,tₐₚₚ)]
-           [(? symbol? t) `(= ,tₐₚₚ (Val ,t))]
-           [(cons l+ lo) `(= ,tₐₚₚ (Blm ,l+ ,lo))]))
+           [#t
+            (λ () (@/s 'is-Val (tₐₚₚ)))]
+           [(? symbol? t)
+            (λ () (=/s (tₐₚₚ) (get-val t)))]
+           [(cons l+ lo)
+            (λ () (=/s (tₐₚₚ) (@/s 'Blm l+ lo)))]))
        props))
+  (values refs (Entry free-vars all-props tₜₒₚ))
+  )
 
-  (values refs (Entry free-vars all-props tₜₒₚ)))
+(: app-o : -o (Listof →Z3:Ast) → →Z3:Ast)
+(define (app-o o ts)
+  (case o
+    [(defined?)
+     (λ () (@/s 'B (not/s (=/s 'Undefined ((car ts))))))]
+    [(number?)
+     (λ () (@/s 'B (@/s 'is-N ((car ts)))))]
+    [(real?)
+     (λ () (@/s 'B (@/s 'is-R ((car ts)))))]
+    [(integer?)
+     (λ () (@/s 'B (@/s 'is-Z ((car ts)))))]
+    [(symbol?)
+     (λ () (@/s 'B (@/s 'is-Sym ((car ts)))))]
+    [(string?)
+     (λ () (@/s 'B (@/s 'is-Str ((car ts)))))]
+    [(procedure?)
+     (λ () (@/s 'B (@/s 'is-Proc ((car ts)))))]
+    [(boolean?)
+     (λ () (@/s 'B (@/s 'is-B ((car ts)))))]
+    [(void?)
+     (λ () (@/s 'B (=/s 'Void ((car ts)))))]
+    [(vector)
+     (define i (next-int!))
+     (λ () (@/s 'Vec i))]
+    [(vector?)
+     (λ () (@/s 'B (@/s 'is-Vec ((car ts)))))]
+    [(not false?)
+     (λ () (@/s 'B (@/s 'is_false ((car ts)))))]
+    [(null? empty?)
+     (λ () (@/s 'N (=/s 'Null ((car ts)))))]
+    [(procedure-arity)
+     (λ () (@/s 'N (@/s 'arity ((car ts))) 0))]
+    [(arity-includes?)
+     (match-define (list a i) ts)
+     (λ () (@/s 'B (=/s (a) (i))))]
+    [(list)
+     (λ ()
+       (foldr
+        (λ ([tₗ : Z3:Ast] [tᵣ : Z3:Ast])
+          (@/s 'St_2 (⦃struct-info⦄ -s-cons) tₗ tᵣ))
+        (get-val 'Null)
+        (for/list : (Listof Z3:Ast) ([t ts]) (t))))]
+    [(any/c) (λ () (@/s 'B true/s))]
+    [(none/c) (λ () (@/s 'B false/s))]
+    [(= equal?)
+     (match-define (list t₁ t₂) ts)
+     (λ () (=/s (t₁) (t₂)))]
+    [(< > <= >=)
+     (match-define (list l r) ts)
+     (define o/s : (Expr Expr → Z3:Ast)
+       (case o
+         [(<) </s]
+         [(<=) <=/s]
+         [(>) >/s]
+         [else >=/s]))
+     (λ ()
+       (@/s 'B (o/s (@/s 'real (l)) (@/s 'real (r)))))]
+    [(add1)
+     (match-define (list t) ts)
+     (λ ()
+       (@/s 'N (+/s 1 (@/s 'real (t))) (@/s 'imag (t))))]
+    [(sub1)
+     (match-define (list t) ts)
+     (λ ()
+       (@/s 'N (-/s (@/s 'real (t)) 1) (@/s 'imag (t))))]
+    [(+ -)
+     (match-define (list x y) ts)
+     (define o/s : (Expr Expr → Z3:Ast)
+       (case o
+         [(+) +/s]
+         [else -/s]))
+     (λ ()
+       (@/s 'N
+            (o/s (@/s 'real (x)) (@/s 'real (y)))
+            (o/s (@/s 'imag (x)) (@/s 'imag (y)))))]
+    [(*)
+     (match-define (list x y) ts)
+     (λ ()
+       (define xₐ (x))
+       (define yₐ (y))
+       (define a (@/s 'real xₐ))
+       (define b (@/s 'imag xₐ))
+       (define c (@/s 'real yₐ))
+       (define d (@/s 'imag yₐ))
+       (@/s 'N
+            (-/s (*/s a c) (*/s b d))
+            (+/s (*/s a d) (*/s b c))))]
+    [(/)
+     (match-define (list x y) ts)
+     (λ ()
+       (define xₐ (x))
+       (define yₐ (y))
+       (define a (@/s 'real xₐ))
+       (define b (@/s 'imag xₐ))
+       (define c (@/s 'real yₐ))
+       (define d (@/s 'imag yₐ))
+       (define c²d² (+/s (*/s c c) (*/s d d)))
+       (@/s 'N
+            (//s (+/s (*/s a c) (*/s b d)) c²d²)
+            (//s (-/s (*/s b c) (*/s a d)) c²d²)))]
+    [(sqrt) ; just for real numbers for now
+     (match-define (list t) ts)
+     (λ ()
+       (@/s 'N (^/s (@/s 'real (t)) 0.5) 0))]
+    [(zero?)
+     (match-define (list t) ts)
+     (λ ()
+       (@/s 'B (=/s (@/s 'N 0 0) (t))))]
+    [(exact-nonnegative-integer?)
+     (match-define (list t) ts)
+     (λ ()
+       (define tₐ (t))
+       (@/s 'B (and/s (@/s 'is-Z tₐ)
+                      (@/s 'exact? tₐ)
+                      (>=/s (@/s 'real tₐ) 0))))]
+    ;; HERE
+    [(inexact?)
+     (λ ()
+       (@/s 'B (@/s 'inexact? ((car ts)))))]
+    [(exact?)
+     (λ ()
+       (@/s 'B (@/s 'exact? ((car ts)))))]
+    [(string-length)
+     (λ ()
+       (@/s 'N (@/s 'strlen ((car ts))) 0))]
+    [(and/c)
+     (define i (next-int!))
+     (λ () (@/s 'And/C i))]
+    [(or/c)
+     (define i (next-int!))
+     (λ () (@/s 'Or/C i))]
+    [(not/c)
+     (define i (next-int!))
+     (λ () (@/s 'Not/C i))]
+    [(vector-ref)
+     (λ () (@/s 'f.vecref ((car ts))))]
+    [(vector-length)
+     (λ () (@/s 'N (@/s 'veclen ((car ts))) 0))]
+    [(list?)
+     (λ () (@/s 'B (@/s 'list? ((car ts)))))]
+    [(map)
+     (λ () (@/s 'f.map ((car ts))))]
+    [(append)
+     (λ () (@/s 'f.append ((car ts))))]
+    [(min)
+     (match-define (list t₁ t₂) ts)
+     (λ () (@/s 'N (@/s 'f.min (@/s 'real (t₁)) (@/s 'real (t₂))) 0))]
+    [(max)
+     (match-define (list t₁ t₂) ts)
+     (λ () (@/s 'N (@/s 'f.max (@/s 'real (t₁)) (@/s 'real (t₂))) 0))]
+    [else
+     (match o
+       [(-st-p s)
+        (define n (-struct-info-arity s))
+        (define is-St (format-symbol "is-St_~a" n))
+        (define st-tag (format-symbol "tag_~a" n))
+        (define tag (⦃struct-info⦄ s))
+        (match-define (list t) ts)
+        (λ ()
+          (define tₐ (t))
+          (@/s 'B (and/s (@/s is-St tₐ)
+                         (=/s (@/s st-tag tₐ) tag))))]
+       [(-st-mk s)
+        (define St (format-symbol "St_~a" (-struct-info-arity s)))
+        (λ ()
+          (@/s St (⦃struct-info⦄ s) ((car ts))))]
+       [(-st-ac s i)
+        (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
+        (λ () (@/s field ((car ts))))]
+       [_ (raise (exn:scv:smt:unsupported (format "unsupported: ~a" (show-o o))
+                                          (current-continuation-marks)))])]))
 
-(: ⦃b⦄ : Base → Term)
+(: ⦃b⦄ : Base → Z3:Ast)
 (define (⦃b⦄ b)
   (match b
-    [#f `(B false)]
-    [#t `(B true)]
-    [(? number? x) `(N ,(real-part x) ,(imag-part x))]
-    [(? symbol? s) `(Sym ,(⦃sym⦄ s))]
-    [(? string? s) `(Str ,(⦃str⦄ s))]
-    [(? void?) 'Void]
-    [(list) `Null]
-    [_ (error '⦃e⦄! "base value: ~a" b)]))
+    [#f (@/s 'B false/s)]
+    [#t (@/s 'B true/s)]
+    [(? number? x) (@/s 'N (real-part x) (imag-part x))]
+    [(? symbol? s) (@/s 'Sym (⦃sym⦄ s))]
+    [(? string? s) (@/s 'Str (⦃str⦄ s))]
+    [(? void?) (get-val 'Void)]
+    [(list) (get-val 'Null)]
+    [_ (error '⦃b⦄ "value: ~a" b)]))
+
+(: SMT-base : (℘ Natural) → Void)
+(define (SMT-base struct-arities)
+  (base-datatypes struct-arities)
+  (base-predicates))
+
+(: base-datatypes : (℘ Natural) → Void)
+(define (base-datatypes arities)
+  (define st-defs : (Listof (Pairof Symbol (Listof (List Symbol Symbol))))
+    (for/list ([n (set-add arities #|hack|# 2)])
+      (define St_k (format-symbol "St_~a" n))
+      (define tag_k (format-symbol "tag_~a" n))
+      (define fields
+        (for/list : (Listof (List Symbol Symbol)) ([i n])
+          `(,(format-symbol "field_~a_~a" n i) V)))
+      `(,St_k (,tag_k Int) ,@fields)))
+  (smt:dynamic-declare-datatype
+   'V
+   `(Undefined
+     Null
+     Void
+     (N [real Real] [imag Real])
+     (B [unbox_B Bool])
+     (Proc [proc_id Int])
+     (Sym [sym Int])
+     (Str [str Int])
+     (And/C [and/c_id Int])
+     (Or/C [or/c_id Int])
+     (Not/C [not/c_id Int])
+     (St/C [st/c_id Int])
+     (Arr [arr_id Int])
+     (ArrD [arrD_id Int])
+     (Vec [unbox_Vec Int])
+     ,@st-defs))
+  (smt:declare-datatype
+   A
+   (Val [unbox_Val V])
+   (Blm [blm_pos Int] [blm_src Int])
+   None)
+  (void))
+
+(: base-predicates : → Void)
+(define (base-predicates)
+  ;; Primitive predicates
+  (smt:define-fun is_false ([x V]) Bool
+    (=/s x (@/s 'B false/s)))
+  (smt:define-fun is_truish ([x V]) Bool
+    (not/s (@/s 'is_false x)))
+  (smt:define-fun is-R ([x V]) Bool
+    (and/s (@/s 'is-N x) (=/s 0 (@/s 'imag x))))
+  (smt:define-fun is-Z ([x V]) Bool
+    (and/s (@/s 'is-R x) (is-int/s (@/s 'real x))))
+  (smt:declare-fun exact? (V) Bool)
+  (smt:declare-fun inexact? (V) Bool)
+  (smt:declare-fun strlen (V) Int)
+  (smt:declare-fun f.vecref (V V) V)
+  (smt:declare-fun veclen (V) Int)
+  (smt:assert (∀/s ([v V]) (>=/s (strlen v) 0)))
+  (smt:assert (∀/s ([v V]) (>=/s (veclen v) 0)))
+  (smt:declare-fun arity (V) Int)
+  (smt:assert (∀/s ([v V]) (>=/s (arity v) 0)))
+  (smt:declare-fun list? (V) Bool)
+  (smt:assert (list? 'Null))
+  (smt:assert (∀/s ([h V] [t V])
+                   (=>/s (list? t) (list? (@/s 'St_2 (⦃struct-info⦄ -s-cons) h t)))))
+  (smt:declare-fun f.map (V V) V)
+  (smt:declare-fun f.append (V V) V)
+  (smt:define-fun f.min ([x Real] [y Real]) Real (ite/s (<=/s x y) x y))
+  (smt:define-fun f.max ([x Real] [y Real]) Real (ite/s (>=/s x y) x y))
+  (void))
+
+
+
+(define o->id ((inst mk-interner -o)))
+(define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
+(define ⦃str⦄ ((inst mk-interner String)))
+(define ⦃l⦄ ((inst mk-interner Mon-Party)))
+(define ⦃struct-info⦄ ((inst mk-interner -struct-info)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Emitting SMT 2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: emit : (℘ Natural) Memo-Table Entry → (Values →Void →Z3:Ast))
+(define (emit struct-arities def-funs top)
+  (match-define (Entry consts facts goal) top)
+  
+  (define-values (emit-dec-funs emit-def-funs)
+    (for/fold ([decs : (Listof →Void) '()]
+               [defs : (Listof →Void) '()])
+              ([(f-xs res) def-funs])
+      (match-define (App τ fvs xs) f-xs)
+      (define n (+ (length fvs) (length xs)))
+      (define ⦃fv⦄s (map ⦃x⦄ fvs))
+      (define tₓs : (Listof →Z3:Ast)
+        (for/list ([x xs])
+          (define t (⦃x⦄ x))
+          (λ () (get-val t))))
+      (define fₕ (fun-name τ fvs xs))
+      (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
+      (match-define (Res oks ers) res)
+
+      (: mk-cond : (Listof Entry) → →Z3:Ast)
+      (define (mk-cond entries)
+        (match entries
+          ['() (λ () (get-val false/s))]
+          [(list ent)
+           (match-define (Entry xs facts _) ent)
+           (λ ()
+             (∃/V xs (apply and/s (run-all (set->list facts)))))]
+          [_
+           (define-values (shared-xs shared-cond)
+             (for/fold ([shared-xs : (℘ Symbol) (Entry-free-vars (first entries))]
+                        [shared-cond : (℘ →Z3:Ast) (Entry-facts (first entries))])
+                       ([ent (in-list (rest entries))])
+               (match-define (Entry xs φs _) ent)
+               (values (∩ shared-xs xs) (∩ shared-cond φs))))
+           (define disjs
+             (for/list : (Listof →Z3:Ast) ([ent entries])
+               (match-define (Entry xs₀ φs₀ _) ent)
+               (define xs (set-subtract xs₀ shared-xs))
+               (define φs (set-subtract φs₀ shared-cond))
+               (λ () (∃/V xs (apply and/s (run-all (set->list φs)))))))
+           (λ ()
+             (∃/V shared-xs (apply and/s
+                                   (append (run-all (set->list shared-cond))
+                                           (list (apply or/s (run-all disjs)))))))]))
+
+      (define ok-cond (mk-cond oks))
+      (define er-cond (mk-cond ers))
+      (define params : (Listof Symbol) (append ⦃fv⦄s (map ⦃x⦄ xs)))
+      
+      (values
+       (cons
+        (λ ()
+          (void (smt:dynamic-declare-fun fₕ (make-list n 'V) 'A)))
+        decs)
+       (cons
+        (λ ()
+          (define a (tₐₚₚ))
+          (smt:assert (∀/V params (=>/s (@/s 'is-Val a) (ok-cond))))
+          (smt:assert (∀/V params (=>/s (@/s 'is-Blm a) (er-cond)))))
+        defs))))
+
+  (define (emit-dec-consts)
+    (for ([x consts])
+      (smt:dynamic-declare-const x 'V)))
+
+  (define (emit-asserts)
+    (for ([φ facts])
+      (smt:assert (φ))))
+
+  (values (λ ()
+            (SMT-base struct-arities)
+            (emit-dec-consts)
+            (run-all emit-dec-funs)
+            (run-all emit-def-funs)
+            (emit-asserts))
+          goal))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax-rule (∃/V xs* e)
+  (let ([xs xs*])
+    (define ts : (Listof Symbol) (for/list ([x xs]) 'V))
+    (dynamic-∃/s xs ts e)))
+
+(define-syntax-rule (∀/V xs* e)
+  (let ([xs xs*])
+    (define ts : (Listof Symbol) (for/list ([x xs]) 'V))
+    (dynamic-∀/s xs ts e)))
+
+(: run-all (∀ (X) (Listof (→ X)) → (Listof X)))
+(define (run-all fs) (for/list ([f fs]) (f)))
+
+(: assert-all : (Listof →Z3:Ast) → →Void)
+(define ((assert-all ts))
+  (for ([t ts]) (smt:assert (t))))
+
+(: -tapp : Symbol (Listof Symbol) (Listof →Z3:Ast) → →Z3:Ast)
+(define (-tapp f fvs args)
+  (cond
+    [(and (null? fvs) (null? args))
+     (λ () (get-val f))]
+    [else
+     (λ ()
+       (define all-args
+         (append
+          (for/list : (Listof Z3:Ast) ([fv fvs])
+            (get-val fv))
+          (for/list : (Listof Z3:Ast) ([arg args])
+            (arg))))
+       (apply @/s f all-args))]))
+
+(: fun-name : -τ (Listof Var-Name) (Listof Var-Name) → Symbol)
+(define fun-name
+  (let ([m : (HashTable (List -τ (Listof Var-Name) (Listof Var-Name)) Symbol) (make-hash)])
+    (λ (τ fvs xs)
+      (hash-ref! m (list τ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
 
 (: ⦃𝒾⦄ : -𝒾 → Symbol)
 (define (⦃𝒾⦄ 𝒾)
@@ -334,333 +740,11 @@
 
   (list->string (append-map subst (string->list s))))
 
-(: fun-name : -τ (Listof Var-Name) (Listof Var-Name) → Symbol)
-(define fun-name
-  (let ([m : (HashTable (List -τ (Listof Var-Name) (Listof Var-Name)) Symbol) (make-hash)])
-    (λ (τ fvs xs)
-      (hash-ref! m (list τ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
-
-(define o->id ((inst mk-interner -o)))
-(define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
-(define ⦃str⦄ ((inst mk-interner String)))
-(define ⦃l⦄ ((inst mk-interner Mon-Party)))
-(define ⦃struct-info⦄ ((inst mk-interner -struct-info)))
-
-(: app-o : -o (Listof Term) → Term)
-(define (app-o o ts)
-  (case o
-    [(defined?)
-     `(B (not (= Undefined ,@ts)))]
-    [(number?)
-     `(B (is-N ,@ts))]
-    [(real?)
-     `(B (is-R ,@ts))]
-    [(integer?)
-     `(B (is-Z ,@ts))]
-    [(symbol?)
-     `(B (is-Sym ,@ts))]
-    [(string?)
-     `(B (is-Str ,@ts))]
-    [(procedure?)
-     `(B (is-Proc ,@ts) #;(exists ([id Int]) (= ,@ts (Proc id))))]
-    [(boolean?)
-     `(B (is-B ,@ts))]
-    [(void?)
-     `(B (= Void ,@ts))]
-    [(vector)
-     `(Vec ,(next-int!))]
-    [(vector?)
-     `(B (is-Vec ,@ts))]
-    [(not false?)
-     (match ts
-       [(list `(B (is_false ,t))) `(B (is_truish ,t))]
-       [(list `(B (is_truish ,t))) `(B (is_false ,t))]
-       [ts `(B (is_false ,@ts))])]
-    [(null? empty?)
-     `(B (= Null ,@ts))]
-    [(procedure-arity)
-     `(N (arity ,@ts) 0)]
-    [(arity-includes?)
-     (match-define (list a i) ts)
-     `(B (= ,a ,i))]
-    [(list)
-     (foldr
-      (λ ([tₗ : Term] [tᵣ : Term])
-        `(St_2 ,(⦃struct-info⦄ -s-cons) ,tₗ ,tᵣ))
-      'Null
-      ts)]
-    [(any/c) '(B true)]
-    [(none/c) '(B false)]
-    [(= equal?) `(B (= ,@ts))]
-    [(< > <= >=)
-     (match-define (list l r) ts)
-     `(B (,(assert o symbol?) ,(N-real l) ,(N-real r)))]
-    [(add1)
-     (match-define (list t) ts)
-     `(N (+ 1 ,(N-real t)) ,(N-imag t))]
-    [(sub1)
-     (match-define (list t) ts)
-     `(N (- ,(N-real t) 1) ,(N-imag t))]
-    [(+ -)
-     (match-define (list x y) ts)
-     `(N (,(assert o symbol?) ,(N-real x) ,(N-real y))
-         (,(assert o symbol?) ,(N-imag x) ,(N-imag y)))]
-    [(*)
-     (match-define (list x y) ts)
-     (define-values (a b c d) (values (N-real x) (N-imag x) (N-real y) (N-imag y)))
-     `(N (- (* ,a ,c) (* ,b ,d))
-         (+ (* ,a ,d) (* ,b ,c)))]
-    [(/)
-     (match-define (list x y) ts)
-     (define-values (a b c d) (values (N-real x) (N-imag x) (N-real y) (N-imag y)))
-     (define c²d² `(+ (* ,c ,c) (* ,d ,d)))
-     `(N (/ (+ (* ,a ,c) (* ,b ,d)) ,c²d²)
-         (/ (- (* ,b ,c) (* ,a ,d)) ,c²d²))]
-    [(sqrt) ; just for real numbers for now
-     (match-define (list t) ts)
-     `(N (^ ,(N-real t) 0.5) 0)]
-    [(zero?) `(B (= (N 0 0) ,@ts))]
-    [(exact-nonnegative-integer?)
-     (match-define (list t) ts)
-     `(B (and (is-Z ,t) (exact? ,t) (>= ,(N-real t) 0)))]
-    [(inexact?) `(B (inexact? ,@ts))]
-    [(exact?) `(B (exact? ,@ts))]
-    [(string-length) `(N (strlen ,@ts) 0)]
-    [(and/c) `(And/C ,(next-int!))]
-    [(or/c) `(Or/C ,(next-int!))]
-    [(not/c) `(Not/C ,(next-int!))]
-    [(vector-ref) `(f.vecref ,@ts)]
-    [(vector-length) `(N (veclen ,@ts) 0)]
-    [(list?) `(B (list? ,@ts))]
-    [(map) `(f.map ,@ts)]
-    [(append) `(f.append ,@ts)]
-    [(min)
-     (match-define (list t₁ t₂) ts)
-     `(N (f.min ,(N-real t₁) ,(N-real t₂)) 0)]
-    [(max)
-     (match-define (list t₁ t₂) ts)
-     `(N (f.max ,(N-real t₁) ,(N-real t₂)) 0)]
-    [else
-     (match o
-       [(-st-p s)
-        (define n (-struct-info-arity s))
-        (define is-St (format-symbol "is-St_~a" n))
-        (define st-tag (format-symbol "tag_~a" n))
-        (define tag (⦃struct-info⦄ s))
-        `(B (and (,is-St ,@ts) (= (,st-tag ,@ts) ,tag)))]
-       [(-st-mk s)
-        (define St (format-symbol "St_~a" (-struct-info-arity s)))
-        `(,St ,(⦃struct-info⦄ s) ,@ts)]
-       [(-st-ac s i)
-        (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
-        `(,field ,@ts)]
-       [_ (raise (exn:scv:smt:unsupported (format "unsupported: ~a" (show-o o))
-                                          (current-continuation-marks)))])]))
-
 (: next-int! : → Natural)
 (define next-int!
   (let ([i : Natural 0])
     (λ ()
       (begin0 i (set! i (+ 1 i))))))
 
-(define N-real : (Term → Term)
-  (match-lambda
-    [`(N ,x ,_) x]
-    [x `(real ,x)]))
-(define N-imag : (Term → Term)
-  (match-lambda
-    [`(N ,_ ,y) y]
-    [x `(imag ,x)]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Emitting SMT2
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(: emit : (℘ Natural) Memo-Table Entry → (Values (Listof Sexp) Sexp))
-;; Emit base and target to prove/refute
-(define (emit struct-arities def-funs top)
-  (match-define (Entry consts facts goal) top)
-
-  (define-values (emit-dec-funs emit-def-funs)
-    (for/fold ([decs : (Listof Sexp) '()]
-               [defs : (Listof Sexp) '()])
-              ([(f-xs res) def-funs])
-      (match-define (App τ fvs xs) f-xs)
-      (define n (+ (length fvs) (length xs)))
-      (define ⦃fv⦄s (map ⦃x⦄ fvs))
-      (define tₓs (map ⦃x⦄ xs))
-      (define fₕ (fun-name τ fvs xs))
-      (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
-      (match-define (Res oks ers) res)
-
-      (: mk-cond : (Listof Entry) → Formula)
-      (define (mk-cond entries)
-        (match entries
-          ['() 'false]
-          [(list ent)
-           (match-define (Entry xs facts _) ent)
-           (-texists xs (-tand (set->list facts)))]
-          [_
-           (define-values (shared-xs shared-cond)
-             (for/fold ([shared-xs : (℘ Symbol) (Entry-free-vars (first entries))]
-                        [shared-cond : (℘ Term) (Entry-facts (first entries))])
-                       ([ent (in-list (rest entries))])
-               (match-define (Entry xs φs _) ent)
-               (values (∩ shared-xs xs) (∩ shared-cond φs))))
-
-           (define disjs
-             (for/list : (Listof Term) ([ent entries])
-               (match-define (Entry xs₀ φs₀ _) ent)
-               (define xs (set-subtract xs₀ shared-xs))
-               (define φs (set-subtract φs₀ shared-cond))
-               (-texists xs (-tand (set->list φs)))))
-
-           (-texists shared-xs (-tand `(,@(set->list shared-cond) ,(-tor disjs))))]))
-
-      (define ok-cond (mk-cond oks))
-      (define er-cond (mk-cond ers))
-      (define params
-        (append (for/list : (Listof Sexp) ([⦃fv⦄ ⦃fv⦄s]) `(,⦃fv⦄ V))
-                (for/list : (Listof Sexp) ([x tₓs]) `(,x V))))
-
-      (: assrt : (Listof Sexp) Sexp → Sexp)
-      (define (assrt params cnd)
-        `(assert
-          ,(cond
-             [(null? params) cnd]
-             [else `(forall ,params (! ,cnd :pattern (,tₐₚₚ)))])))
-      
-      (values
-       (cons `(declare-fun ,fₕ ,(make-list n 'V) A) decs)
-       (list*
-        ;; For each function, generate implications from returns and blames
-        (assrt params `(=> (is-Val ,tₐₚₚ) ,ok-cond))
-        (assrt params `(=> (is-Blm ,tₐₚₚ) ,er-cond))
-        defs))))
-
-  (define emit-dec-consts : (Listof Sexp) (for/list ([x consts]) `(declare-const ,x V)))
-  (define emit-asserts : (Listof Sexp) (for/list ([φ facts]) `(assert ,φ)))
-
-  (values `(,@(SMT-base struct-arities)
-            ,@emit-dec-consts
-            ,@emit-dec-funs
-            ,@emit-def-funs
-            ,@emit-asserts)
-          goal))
-
-(: base-datatypes : (℘ Natural) → (Listof Sexp))
-(define (base-datatypes arities)
-  (define st-defs : (Listof Sexp)
-    (for/list ([n (set-add arities #|hack|# 2)])
-      (define St_k (format-symbol "St_~a" n))
-      (define tag_k (format-symbol "tag_~a" n))
-      (define fields : (Listof Sexp) (for/list ([i n]) `(,(format-symbol "field_~a_~a" n i) V)))
-      `(,St_k (,tag_k Int) ,@fields)))
-  
-  `(;; Unitype
-    (declare-datatypes ()
-      ((V ; TODO
-        Undefined
-        Null
-        Void
-        (N [real Real] [imag Real])
-        (B [unbox_B Bool])
-        (Proc [proc_id Int])
-        (Sym [sym Int])
-        (Str [str Int])
-        (And/C [and/c_id Int])
-        (Or/C [or/c_id Int])
-        (Not/C [not/c_id Int])
-        (St/C [unbox_st/c Int])
-        (Arr [unbox_Arr Int])
-        (ArrD [unbox_ArrD Int])
-        (Vec [unbox_Vec Int])
-        ;; structs with hard-coded arities
-        ,@st-defs)))
-    ;; Result
-    (declare-datatypes ()
-     ((A
-       (Val (unbox_Val V))
-       (Blm (blm_pos Int) (blm_src Int))
-       None)))
-    ))
-
-(define base-predicates : (Listof Sexp)
-  `(;; Primitive predicates
-    (define-fun is_false ([x V]) Bool
-      (= x (B false)))
-    (define-fun is_truish ([x V]) Bool
-      (not (is_false x)))
-    (define-fun is-R ([x V]) Bool
-      (and (is-N x) (= 0 (imag x))))
-    (define-fun is-Z ([x V]) Bool
-      (and (is-R x) (is_int (real x))))
-    (declare-fun exact? (V) Bool)
-    (declare-fun inexact? (V) Bool)
-    (declare-fun strlen (V) Int)
-    (declare-fun f.vecref (V V) V)
-    (declare-fun veclen (V) Int)
-    (assert (forall ((v V)) (>= (strlen v) 0)))
-    (assert (forall ((v V)) (>= (veclen v) 0)))
-    (declare-fun arity (V) Int)
-    (assert (forall ((v V)) (>= (arity v) 0)))
-    (declare-fun list? (V) Bool)
-    (assert (list? Null))
-    (assert (forall ([h V] [t V])
-                    (=> (list? t) (list? (St_2 ,(⦃struct-info⦄ -s-cons) h t)))))
-    (declare-fun f.map (V V) V)
-    (declare-fun f.append (V V) V)
-    (define-fun f.min ((x Real) (y Real)) Real (if (<= x y) x y))
-    (define-fun f.max ((x Real) (y Real)) Real (if (>= x y) x y))
-    ))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; helpers
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(:* -tand -tor : (Listof Term) → Term)
-(define -tand
-  (match-lambda
-    ['() 'true]
-    [(list x) x]
-    [xs `(and ,@xs)]))
-(define -tor
-  (match-lambda
-    ['() 'false]
-    [(list x) x]
-    [xs `(or ,@xs)]))
-
-(: -texists : (℘ Symbol) Term → Term)
-(define (-texists xs t)
-  (cond
-    [(set-empty? xs) t]
-    [else `(exists ,(for/list : (Listof Sexp) ([x xs]) `(,x V)) ,t)]))
-
-(: -tapp : Term (Listof Symbol) (Listof Term) → Term)
-(define (-tapp f fvs xs) (if (and (null? fvs) (null? xs)) f `(,f ,@fvs ,@xs)))
-
-(: tsimp : Term → Sexp)
-(define (tsimp t)
-  (match t
-    [`(B (is_false (B ,φ))) `(not ,φ)]
-    [`(B (is_truish (B ,φ))) φ]
-    [`(B ,φ) φ]
-    [_ `(is_truish ,t)]))
-
 ;; memoize to ensure fixed order
 (define/memo (set->list/memo [xs : (Setof Var-Name)]) : (Listof Var-Name) (set->list xs))
-
-(module+ test
-  (require typed/rackunit)
-  
-  (define +x (-x 'x))
-  (define +y (-x 'y))
-  (define +z (-x 'z))
-  (encode ⊥M
-           (Γ+ ⊤Γ
-                (-@ 'integer? (list +x) 0)
-                (-@ 'integer? (list +y) 0)
-                (-@ '= (list +z (-@ '+ (list +x +y) 0)) 0))
-           (-@ 'integer? (list +z) 0)))
