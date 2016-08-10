@@ -36,18 +36,12 @@
 (define (check-sat asserts goal)
   (match (smt:with-context (smt:new-context)
            (asserts)
-           (match-let ([(z3ctx _ vals funs sorts mdl) (current-context-info)])
-             (printf "vals:~n")
-             (for ([(k v) vals])
-               (printf "  ~a ↦ ~a~n" k v))
-             (printf "funs:~n")
-             (for ([(k v) funs])
-               (printf "  ~a ↦ ~a~n" k v)))
            (smt:assert (@/s 'is_false (goal)))
            (smt:check-sat))
     ['unsat (values 'unsat 'unknown)]
     [r₁
      (values r₁
              (smt:with-context (smt:new-context)
+               (asserts)
                (smt:assert (@/s 'is_truish (goal)))
                (smt:check-sat)))]))
