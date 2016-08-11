@@ -298,7 +298,8 @@
   
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
   (for ([φ φs])
-    (props-add! (⦃e⦄! (φ->e φ))))
+    (define t (⦃e⦄! (φ->e φ)))
+    (props-add! (λ () (@/s 'is_truish (t)))))
   (define tₜₒₚ (⦃e⦄! e))
   (define all-props
     (∪ (for/seteq: : (℘ →Z3:Ast) ([(tₐₚₚ res) asserts-app])
@@ -359,10 +360,10 @@
     [(none/c) (λ () (@/s 'B false/s))]
     [(= equal?)
      (match-define (list t₁ t₂) ts)
-     (λ () (=/s (t₁) (t₂)))]
+     (λ () (@/s 'B (=/s (t₁) (t₂))))]
     [(< > <= >=)
      (match-define (list l r) ts)
-     (define o/s : (Expr Expr → Z3:Ast)
+     (define o/s : (Z3:Ast Z3:Ast → Z3:Ast)
        (case o
          [(<) </s]
          [(<=) <=/s]
@@ -674,10 +675,6 @@
 
 (: run-all (∀ (X) (Listof (→ X)) → (Listof X)))
 (define (run-all fs) (for/list ([f fs]) (f)))
-
-(: assert-all : (Listof →Z3:Ast) → →Void)
-(define ((assert-all ts))
-  (for ([t ts]) (smt:assert (t))))
 
 (: -tapp : Symbol (Listof Symbol) (Listof →Z3:Ast) → →Z3:Ast)
 (define (-tapp f fvs args)
