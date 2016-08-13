@@ -637,9 +637,8 @@
         decs)
        (cons
         (λ ()
-          (define a (tₐₚₚ))
-          (smt:assert (∀/V params (=>/s (@/s 'is-Val a) (ok-cond))))
-          (smt:assert (∀/V params (=>/s (@/s 'is-Blm a) (er-cond)))))
+          (smt:assert (∀/V params (=>/s (@/s 'is-Val (tₐₚₚ)) (ok-cond))))
+          (smt:assert (∀/V params (=>/s (@/s 'is-Blm (tₐₚₚ)) (er-cond)))))
         defs))))
 
   (define (emit-dec-consts)
