@@ -343,7 +343,7 @@
     [(not false?)
      (λ () (@/s 'B (@/s 'is_false ((car ts)))))]
     [(null? empty?)
-     (λ () (@/s 'N (=/s 'Null ((car ts)))))]
+     (λ () (@/s 'B (=/s 'Null ((car ts)))))]
     [(procedure-arity)
      (λ () (@/s 'N (@/s 'arity ((car ts))) 0))]
     [(arity-includes?)
@@ -479,7 +479,7 @@
        [(-st-mk s)
         (define St (format-symbol "St_~a" (-struct-info-arity s)))
         (λ ()
-          (@/s St (⦃struct-info⦄ s) ((car ts))))]
+          (apply @/s St (⦃struct-info⦄ s) (run-all ts)))]
        [(-st-ac s i)
         (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
         (λ () (@/s field ((car ts))))]
