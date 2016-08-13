@@ -307,7 +307,7 @@
            [#t
             (λ () (@/s 'is-Val (tₐₚₚ)))]
            [(? symbol? t)
-            (λ () (=/s (tₐₚₚ) (get-val t)))]
+            (λ () (=/s (tₐₚₚ) (@/s 'Val (get-val t))))]
            [(cons l+ lo)
             (λ () (=/s (tₐₚₚ) (@/s 'Blm l+ lo)))]))
        props))
