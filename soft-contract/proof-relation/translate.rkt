@@ -2,9 +2,11 @@
 
 (provide (all-defined-out))
 
-(require racket/match
+(require (for-syntax racket/base)
+         racket/match
          racket/set
          racket/string
+         syntax/parse/define
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt"
@@ -637,8 +639,10 @@
         decs)
        (cons
         (λ ()
-          (smt:assert (∀/V params (=>/s (@/s 'is-Val (tₐₚₚ)) (ok-cond))))
-          (smt:assert (∀/V params (=>/s (@/s 'is-Blm (tₐₚₚ)) (er-cond)))))
+          (smt:assert (∀/V params (=>/s (@/s 'is-Val (tₐₚₚ)) (ok-cond))
+                           #:patterns (list (mk-pattern (ctx) (tₐₚₚ)))))
+          (smt:assert (∀/V params (=>/s (@/s 'is-Blm (tₐₚₚ)) (er-cond))
+                           #:patterns (list (mk-pattern (ctx) (tₐₚₚ))))))
         defs))))
 
   (define (emit-dec-consts)
@@ -662,15 +666,14 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-syntax-rule (∃/V xs* e)
+(define-syntax-rule (quant/V quant xs* e #:patterns pats)
   (let ([xs xs*])
     (define ts : (Listof Symbol) (for/list ([x xs]) 'V))
-    (dynamic-∃/s xs ts e)))
-
-(define-syntax-rule (∀/V xs* e)
-  (let ([xs xs*])
-    (define ts : (Listof Symbol) (for/list ([x xs]) 'V))
-    (dynamic-∀/s xs ts e)))
+    (quant xs ts e #:patterns pats)))
+(define-simple-macro (∃/V xs e (~optional (~seq #:patterns pats) #:defaults ([(pats 0) #'null])))
+  (quant/V dynamic-∃/s xs e #:patterns pats))
+(define-simple-macro (∀/V xs e (~optional (~seq #:patterns pats) #:defaults ([(pats 0) #'null])))
+  (quant/V dynamic-∀/s xs e #:patterns pats))
 
 (: run-all (∀ (X) (Listof (→ X)) → (Listof X)))
 (define (run-all fs) (for/list ([f fs]) (f)))
