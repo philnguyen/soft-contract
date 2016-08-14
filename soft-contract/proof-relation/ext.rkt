@@ -14,16 +14,16 @@
          "z3-rkt/builtins.rkt"
          "z3-rkt/main.rkt")
 
-(: ext-prove : -M -Γ -e → -R)
-(define (ext-prove M Γ e)
+(define/memo (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
+  ;(printf "ext-prove:~nM:~n~a~n~a ⊢ ~a~n~n" (show-M M) (show-Γ Γ) (show-e e))
   (define-values (base goal) (encode M Γ e))
   (match/values (check-sat base goal)
     [('unsat _) '✓]
     [(_ 'unsat) '✗]
     [(_ _) '?]))
 
-(: ext-plausible-pc? : -M -Γ → Boolean)
-(define (ext-plausible-pc? M Γ)
+(define/memo (ext-plausible-pc? [M : -M] [Γ : -Γ]) : Boolean
+  ;(printf "ext-plausible-pc?~nM:~n~a~nΓ:~n~a~n~n" (show-M M) (show-Γ Γ))
   (define-values (base _) (encode M Γ #|HACK|# -ff))
 
   (case (smt:with-context (smt:new-context)
