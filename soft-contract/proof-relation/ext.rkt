@@ -28,7 +28,7 @@
   ;(printf "ext-plausible-pc?~nM:~n~a~nΓ:~n~a~n~n" (show-M M) (show-Γ Γ))
   (define-values (base _) (encode M Γ #|HACK|# -ff))
 
-  (case (smt:with-context (smt:new-context)
+  (case (with-fresh-managed-context ()
           (base)
           (smt:check-sat))
     [(unsat) #f]
@@ -36,7 +36,7 @@
 
 (: check-sat : (→ Void) (→ Z3:Ast) → (Values Sat-Result Sat-Result))
 (define (check-sat asserts goal)
-  (smt:with-context (smt:new-context #:timeout (Timeout))
+  (with-fresh-managed-context (#:timeout (Timeout))
     (asserts)
     (match (smt:with-local-push-pop
              (smt:assert! (@/s 'is_false (goal)))
