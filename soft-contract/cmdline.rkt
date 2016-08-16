@@ -14,7 +14,7 @@
 
 (Mode . ::= . 'light 'havoc 'expand)
 (define mode : Mode 'havoc)
-(define timeout : Natural (Timeout))
+(define timeout : Nonnegative-Fixnum (Timeout))
 
 (define fname
   (cast
