@@ -16,34 +16,36 @@
 
 (toggle-warning-messages! #f)
 
-(define/memo (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
+(define (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
   ;(printf "ext-prove:~nM:~n~a~n~a ⊢ ~a~n~n" (show-M M) (show-Γ Γ) (show-e e))
-  (define-values (base goal) (encode M Γ e))
-  (match/values (check-sat base goal)
-    [('unsat _) '✓]
-    [(_ 'unsat) '✗]
-    [(_ _) '?]))
+  (match-define (cons base goal) (encode M Γ e))
+  (match (check-sat base goal)
+    [(cons 'unsat _) '✓]
+    [(cons _ 'unsat) '✗]
+    [_ '?]))
 
-(define/memo (ext-plausible-pc? [M : -M] [Γ : -Γ]) : Boolean
+(define (ext-plausible-pc? [M : -M] [Γ : -Γ]) : Boolean
   ;(printf "ext-plausible-pc?~nM:~n~a~nΓ:~n~a~n~n" (show-M M) (show-Γ Γ))
-  (define-values (base _) (encode M Γ #|HACK|# -ff))
-
-  (case (with-fresh-managed-context ()
-          (base)
-          (smt:check-sat))
+  (match-define (cons base _) (encode M Γ #|HACK|# -ff))
+  (case (check-sat₀ base)
     [(unsat) #f]
     [else #t]))
 
-(: check-sat : (→ Void) (→ Z3:Ast) → (Values Sat-Result Sat-Result))
-(define (check-sat asserts goal)
+(define/memo (check-sat₀ [asserts : (→ Void)]) : Z3:LBool
+  (with-fresh-managed-context ()
+    (asserts)
+    (smt:check-sat)))
+
+;(: check-sat : (→ Void) (→ Z3:Ast) → (Values Sat-Result Sat-Result))
+(define/memo (check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
   (with-fresh-managed-context (#:timeout (Timeout))
     (asserts)
     (match (smt:with-local-push-pop
              (smt:assert! (@/s 'is_false (goal)))
              (smt:check-sat))
-      ['false (values 'unsat 'unknown)]
+      ['false (cons 'unsat 'unknown)]
       [a
-       (values (z3:lbool->sat-result a)
+       (cons (z3:lbool->sat-result a)
                (z3:lbool->sat-result
                 (smt:with-local-push-pop
                   (smt:assert! (@/s 'is_truish (goal)))

@@ -34,11 +34,13 @@
   ;; - When application goes wrong
   (HashTable App Res))
 
-(: encode : -M -Γ -e → (Values →Void →Z3:Ast))
+;(: encode : -M -Γ -e → (Values →Void →Z3:Ast))
 ;; Encode `M Γ ⊢ e` into a pair of thunks that emit assertions and goal to check for
 ;; satisfiability
-(define (encode M Γ e)
-  (define-values (refs top-entry) (encode-e ∅eq Γ e))
+(define/memo (encode [M : -M]
+                     [Γ : -Γ]
+                     [e : -e]) : (Pairof →Void →Z3:Ast)
+  (match-define (cons refs top-entry) (encode-e ∅eq Γ e))
   (let loop ([fronts   : (℘ Defn-Entry) refs]
              [seen     : (℘ Defn-Entry) refs]
              [def-funs : Memo-Table (hash)])
@@ -64,7 +66,7 @@
              (match front
                [(App τ fvs xs)
                 (define As (hash-ref M τ))
-                (define-values (refs entries) (encode-τ τ fvs xs As))
+                (match-define (cons refs entries) (encode-τ τ fvs xs As))
                 (values (hash-set def-funs* front entries) refs)]
                [(? -o? o)
                 (values def-funs* ∅)]))
@@ -77,10 +79,13 @@
            (values fronts** seen** def-funs**)))
        (loop fronts* seen* def-funs*)])))
 
-(: encode-τ : -τ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
+;(: encode-τ : -τ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
 ;; Translate memo-table entry `τ(xs) → {A…}` to pair of formulas for when application
 ;; fails and passes
-(define (encode-τ τ fvs xs As)
+(define/memo (encode-τ [τ : -τ]
+                  [fvs : (Listof Var-Name)]
+                  [xs : (Listof Var-Name)]
+                  [As : (℘ -A)]) : (Pairof (℘ Defn-Entry) Res)
   (define-set refs : Defn-Entry)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
   (define tₓs : (Listof →Z3:Ast)
@@ -101,34 +106,36 @@
          (define eₒₖ
            (cond
              [sₐ
-              (define-values (refs+ entry) (encode-e bound Γ sₐ))
+              (match-define (cons refs+ entry) (encode-e bound Γ sₐ))
               (refs-union! refs+)
               (match-define (Entry free-vars facts tₐₙₛ) entry)
               (Entry free-vars
                      (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Val (tₐₙₛ)))))
                      tₐₙₛ)]
              [else
-              (define-values (refs+ entry) (encode-e bound Γ #|HACK|# -ff))
+              (match-define (cons refs+ entry) (encode-e bound Γ #|HACK|# -ff))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
               (Entry free-vars facts #|hack|# (λ () (@/s 'B false/s)))]))
          (values (cons eₒₖ oks) ers)]
         [(-ΓE Γ (-blm l+ lo _ _))
          (define eₑᵣ
-           (let-values ([(refs+ entry) (encode-e bound Γ #|hack|# -ff)])
+           (match-let ([(cons refs+ entry) (encode-e bound Γ #|hack|# -ff)])
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
                     (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Blm (⦃l⦄ l+) (⦃l⦄ lo)))))
                     #|HACK|# (λ () (@/s 'B false/s)))))
          (values oks (cons eₑᵣ ers))])))
-  (values refs (Res oks ers)))
+  (cons refs (Res oks ers)))
 
-(: encode-e : (℘ Var-Name) -Γ -e → (Values (℘ Defn-Entry) Entry))
+;(: encode-e : (℘ Var-Name) -Γ -e → (Values (℘ Defn-Entry) Entry))
 ;; Encode path-condition `Γ` and expression `e` into a
 ;; - a Z3:Ast-producing thunk, and
 ;; - a set of function definitions to encode
-(define (encode-e bound Γ e)
+(define/memo (encode-e [bound : (℘ Var-Name)]
+                       [Γ : -Γ]
+                       [e : -e]) : (Pairof (℘ Defn-Entry) Entry)
   
   (define-set free-vars : Symbol  #:eq? #t)
   (define-set props     : →Z3:Ast #:eq? #t)
@@ -313,11 +320,11 @@
            [(cons l+ lo)
             (λ () (=/s (tₐₚₚ) (@/s 'Blm l+ lo)))]))
        props))
-  (values refs (Entry free-vars all-props tₜₒₚ))
+  (cons refs (Entry free-vars all-props tₜₒₚ))
   )
 
-(: app-o : -o (Listof →Z3:Ast) → →Z3:Ast)
-(define (app-o o ts)
+;(: app-o : -o (Listof →Z3:Ast) → →Z3:Ast)
+(define/memo (app-o [o : -o] [ts : (Listof →Z3:Ast)]) : →Z3:Ast
   (case o
     [(defined?)
      (λ () (@/s 'B (not/s (=/s 'Undefined ((car ts))))))]
@@ -540,7 +547,7 @@
    None)
   (void))
 
-(: base-predicates : → Void)
+(: base-predicates : →Void)
 (define (base-predicates)
   ;; Primitive predicates
   (smt:define-fun is_false ([x V]) Bool
@@ -570,8 +577,6 @@
   (smt:define-fun f.max ([x Real] [y Real]) Real (ite/s (>=/s x y) x y))
   (void))
 
-
-
 (define o->id ((inst mk-interner -o)))
 (define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
 (define ⦃str⦄ ((inst mk-interner String)))
@@ -583,8 +588,10 @@
 ;;;;; Emitting SMT 2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: emit : (℘ Natural) Memo-Table Entry → (Values →Void →Z3:Ast))
-(define (emit struct-arities def-funs top)
+;(: emit : (℘ Natural) Memo-Table Entry → (Values →Void →Z3:Ast))
+(define/memo (emit [struct-arities : (℘ Natural)]
+                   [def-funs : Memo-Table]
+                   [top : Entry]) : (Pairof →Void →Z3:Ast)
   (match-define (Entry consts facts goal) top)
   
   (define-values (emit-dec-funs emit-def-funs)
@@ -653,7 +660,7 @@
     (for ([φ facts])
       (smt:assert! (φ))))
 
-  (values (λ ()
+  (cons (λ ()
             (SMT-base struct-arities)
             (emit-dec-consts)
             (run-all emit-dec-funs)
@@ -678,8 +685,8 @@
 (: run-all (∀ (X) (Listof (→ X)) → (Listof X)))
 (define (run-all fs) (for/list ([f fs]) (f)))
 
-(: -tapp : Symbol (Listof Symbol) (Listof →Z3:Ast) → →Z3:Ast)
-(define (-tapp f fvs args)
+;(: -tapp : Symbol (Listof Symbol) (Listof →Z3:Ast) → →Z3:Ast)
+(define/memo (-tapp [f : Symbol] [fvs : (Listof Symbol)] [args : (Listof →Z3:Ast)]) : →Z3:Ast
   (cond
     [(and (null? fvs) (null? args))
      (λ () (get-val f))]
