@@ -10,7 +10,7 @@
          "parse/main.rkt"
          "runtime/definition.rkt"
          (only-in "reduction/main.rkt" run-file havoc-file)
-         "proof-relation/parameters.rkt")
+         (only-in "proof-relation/ext.rkt" Timeout))
 
 (Mode . ::= . 'light 'havoc 'expand)
 (define mode : Mode 'havoc)

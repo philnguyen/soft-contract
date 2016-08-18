@@ -11,7 +11,6 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "parameters.rkt"
          "z3-rkt/z3-wrapper.rkt"
          "z3-rkt/parser.rkt"
          "z3-rkt/builtins.rkt"

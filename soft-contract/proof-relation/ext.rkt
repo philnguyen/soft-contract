@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ext-prove ext-plausible-pc?)
+(provide ext-prove ext-plausible-pc? Timeout)
 
 (require racket/match
          "../utils/main.rkt"
@@ -8,12 +8,13 @@
          "../runtime/main.rkt"
          "result.rkt"
          "translate.rkt"
-         "parameters.rkt"
          "z3-rkt/z3-wrapper.rkt"
          "z3-rkt/parser.rkt"
          "z3-rkt/builtins.rkt"
          "z3-rkt/main.rkt")
 
+(define-parameter Timeout : Nonnegative-Fixnum 500)
+(Sat-Result . ::= . Z3:Sat-LBool 'timeout)
 (toggle-warning-messages! #f)
 
 (define (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
