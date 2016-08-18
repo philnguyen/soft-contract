@@ -19,7 +19,7 @@
 (define (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
   ;(printf "ext-prove:~nM:~n~a~n~a ⊢ ~a~n~n" (show-M M) (show-Γ Γ) (show-e e))
   (match-define (cons base goal) (encode M Γ e))
-  (match (check-sat base goal)
+  (match (exec-check-sat base goal)
     [(cons 'unsat _) '✓]
     [(cons _ 'unsat) '✗]
     [_ '?]))
@@ -27,29 +27,45 @@
 (define (ext-plausible-pc? [M : -M] [Γ : -Γ]) : Boolean
   ;(printf "ext-plausible-pc?~nM:~n~a~nΓ:~n~a~n~n" (show-M M) (show-Γ Γ))
   (match-define (cons base _) (encode M Γ #|HACK|# -ff))
-  (case (check-sat₀ base)
+  (case (exec-check-sat₀ base)
     [(unsat) #f]
     [else #t]))
 
-(define/memo (check-sat₀ [asserts : (→ Void)]) : Z3:LBool
-  (with-fresh-managed-context ()
+(define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:LBool
+  (with-fresh-context (#:timeout (Timeout))
     (asserts)
-    (smt:check-sat)))
+    (check-sat))
+  #;(with-fresh-solver
+    (with-fresh-environment
+      (asserts)
+      (check-sat))))
 
-;(: check-sat : (→ Void) (→ Z3:Ast) → (Values Sat-Result Sat-Result))
-(define/memo (check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
-  (with-fresh-managed-context (#:timeout (Timeout))
+(define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
+  (with-fresh-context (#:timeout (Timeout))
     (asserts)
-    (match (smt:with-local-push-pop
-             (smt:assert! (@/s 'is_false (goal)))
-             (smt:check-sat))
+    (match (with-local-push-pop
+             (assert! (@/s 'is_false (goal)))
+             (check-sat))
       ['false (cons 'unsat 'unknown)]
       [a
        (cons (z3:lbool->sat-result a)
+             (z3:lbool->sat-result
+              (with-local-push-pop
+                (assert! (@/s 'is_truish (goal)))
+                (check-sat))))]))
+  #;(with-fresh-solver
+    (with-fresh-environment
+      (asserts)
+      (match (with-local-push-pop
+              (assert! (@/s 'is_false (goal)))
+              (check-sat))
+        ['false (cons 'unsat 'unknown)]
+        [a
+         (cons (z3:lbool->sat-result a)
                (z3:lbool->sat-result
-                (smt:with-local-push-pop
-                  (smt:assert! (@/s 'is_truish (goal)))
-                  (smt:check-sat))))])))
+                (with-local-push-pop
+                 (assert! (@/s 'is_truish (goal)))
+                 (check-sat))))]))))
 
 (: z3:lbool->sat-result : Z3:LBool → Sat-Result)
 (define (z3:lbool->sat-result x)

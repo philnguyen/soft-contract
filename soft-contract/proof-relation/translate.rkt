@@ -17,7 +17,7 @@
          "z3-rkt/builtins.rkt"
          "z3-rkt/main.rkt")
 
-(struct exn:scv:smt:unsupported exn () #:transparent)
+(struct exn:scv:unsupported exn () #:transparent)
 (define-type →Z3:Ast (→ Z3:Ast))
 (define-type →Void   (→ Void))
 
@@ -116,7 +116,7 @@
               (match-define (cons refs+ entry) (encode-e bound Γ #|HACK|# -ff))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
-              (Entry free-vars facts #|hack|# (λ () (@/s 'B false/s)))]))
+              (Entry free-vars facts #|hack|# (λ () (@/s 'B (false/s))))]))
          (values (cons eₒₖ oks) ers)]
         [(-ΓE Γ (-blm l+ lo _ _))
          (define eₑᵣ
@@ -125,7 +125,7 @@
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
                     (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Blm (⦃l⦄ l+) (⦃l⦄ lo)))))
-                    #|HACK|# (λ () (@/s 'B false/s)))))
+                    #|HACK|# (λ () (@/s 'B (false/s))))))
          (values oks (cons eₑᵣ ers))])))
   (cons refs (Res oks ers)))
 
@@ -256,7 +256,7 @@
                         (and/s (@/s is-St tₐ) (=/s (@/s tag tₐ) stag))))]
          [_ (void)])
 
-       (with-handlers ([exn:scv:smt:unsupported?
+       (with-handlers ([exn:scv:unsupported?
                         (λ (_)
                           ;; suppress for now
                           (printf "Z3 translation: unsupported primitive: `~a`~n" (show-o o))
@@ -365,8 +365,8 @@
           (@/s 'St_2 (⦃struct-info⦄ -s-cons) tₗ tᵣ))
         (get-val 'Null)
         (for/list : (Listof Z3:Ast) ([t ts]) (t))))]
-    [(any/c) (λ () (@/s 'B true/s))]
-    [(none/c) (λ () (@/s 'B false/s))]
+    [(any/c) (λ () (@/s 'B (true/s)))]
+    [(none/c) (λ () (@/s 'B (false/s)))]
     [(= equal?)
      (match-define (list t₁ t₂) ts)
      (λ () (@/s 'B (=/s (t₁) (t₂))))]
@@ -492,14 +492,14 @@
        [(-st-ac s i)
         (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
         (λ () (@/s field ((car ts))))]
-       [_ (raise (exn:scv:smt:unsupported (format "unsupported: ~a" (show-o o))
+       [_ (raise (exn:scv:unsupported (format "unsupported: ~a" (show-o o))
                                           (current-continuation-marks)))])]))
 
 (: ⦃b⦄ : Base → Z3:Ast)
 (define (⦃b⦄ b)
   (match b
-    [#f (@/s 'B false/s)]
-    [#t (@/s 'B true/s)]
+    [#f (@/s 'B (false/s))]
+    [#t (@/s 'B (true/s))]
     [(? number? x) (@/s 'N (real-part x) (imag-part x))]
     [(? symbol? s) (@/s 'Sym (⦃sym⦄ s))]
     [(? string? s) (@/s 'Str (⦃str⦄ s))]
@@ -514,15 +514,15 @@
 
 (: base-datatypes : (℘ Natural) → Void)
 (define (base-datatypes arities)
-  (define st-defs : (Listof (Pairof Symbol (Listof (List Symbol Symbol))))
+  (define st-defs : (Listof (Pairof Symbol (Listof (List Symbol Sort-Expr))))
     (for/list ([n (set-add arities #|hack|# 2)])
       (define St_k (format-symbol "St_~a" n))
       (define tag_k (format-symbol "tag_~a" n))
       (define fields
-        (for/list : (Listof (List Symbol Symbol)) ([i n])
+        (for/list : (Listof (List Symbol Sort-Expr)) ([i n])
           `(,(format-symbol "field_~a_~a" n i) V)))
       `(,St_k (,tag_k Int) ,@fields)))
-  (smt:dynamic-declare-datatype
+  (dynamic-declare-datatype
    'V
    `(Undefined
      Null
@@ -540,7 +540,7 @@
      (ArrD [arrD_id Int])
      (Vec [unbox_Vec Int])
      ,@st-defs))
-  (smt:declare-datatype
+  (declare-datatype
    A
    (Val [unbox_Val V])
    (Blm [blm_pos Int] [blm_src Int])
@@ -550,31 +550,31 @@
 (: base-predicates : →Void)
 (define (base-predicates)
   ;; Primitive predicates
-  (smt:define-fun is_false ([x V]) Bool
-    (=/s x (@/s 'B false/s)))
-  (smt:define-fun is_truish ([x V]) Bool
+  (define-fun is_false ([x V]) Bool
+    (=/s x (@/s 'B (false/s))))
+  (define-fun is_truish ([x V]) Bool
     (not/s (@/s 'is_false x)))
-  (smt:define-fun is-R ([x V]) Bool
+  (define-fun is-R ([x V]) Bool
     (and/s (@/s 'is-N x) (=/s 0 (@/s 'imag x))))
-  (smt:define-fun is-Z ([x V]) Bool
+  (define-fun is-Z ([x V]) Bool
     (and/s (@/s 'is-R x) (is-int/s (@/s 'real x))))
-  (smt:declare-fun exact? (V) Bool)
-  (smt:declare-fun inexact? (V) Bool)
-  (smt:declare-fun strlen (V) Int)
-  (smt:declare-fun f.vecref (V V) V)
-  (smt:declare-fun veclen (V) Int)
-  (smt:assert! (∀/s ([v V]) (>=/s (strlen v) 0)))
-  (smt:assert! (∀/s ([v V]) (>=/s (veclen v) 0)))
-  (smt:declare-fun arity (V) Int)
-  (smt:assert! (∀/s ([v V]) (>=/s (arity v) 0)))
-  (smt:declare-fun list? (V) Bool)
-  (smt:assert! (list? 'Null))
-  (smt:assert! (∀/s ([h V] [t V])
+  (declare-fun exact? (V) Bool)
+  (declare-fun inexact? (V) Bool)
+  (declare-fun strlen (V) Int)
+  (declare-fun f.vecref (V V) V)
+  (declare-fun veclen (V) Int)
+  (assert! (∀/s ([v V]) (>=/s (strlen v) 0)))
+  (assert! (∀/s ([v V]) (>=/s (veclen v) 0)))
+  (declare-fun arity (V) Int)
+  (assert! (∀/s ([v V]) (>=/s (arity v) 0)))
+  (declare-fun list? (V) Bool)
+  (assert! (list? 'Null))
+  (assert! (∀/s ([h V] [t V])
                    (=>/s (list? t) (list? (@/s 'St_2 (⦃struct-info⦄ -s-cons) h t)))))
-  (smt:declare-fun f.map (V V) V)
-  (smt:declare-fun f.append (V V) V)
-  (smt:define-fun f.min ([x Real] [y Real]) Real (ite/s (<=/s x y) x y))
-  (smt:define-fun f.max ([x Real] [y Real]) Real (ite/s (>=/s x y) x y))
+  (declare-fun f.map (V V) V)
+  (declare-fun f.append (V V) V)
+  (define-fun f.min ([x Real] [y Real]) Real (ite/s (<=/s x y) x y))
+  (define-fun f.max ([x Real] [y Real]) Real (ite/s (>=/s x y) x y))
   (void))
 
 (define o->id ((inst mk-interner -o)))
@@ -612,7 +612,7 @@
       (: mk-cond : (Listof Entry) → →Z3:Ast)
       (define (mk-cond entries)
         (match entries
-          ['() (λ () (get-val false/s))]
+          ['() (λ () (false/s))]
           [(list ent)
            (match-define (Entry xs facts _) ent)
            (λ ()
@@ -642,23 +642,23 @@
       (values
        (cons
         (λ ()
-          (void (smt:dynamic-declare-fun fₕ (make-list n 'V) 'A)))
+          (void (dynamic-declare-fun fₕ (make-list n 'V) 'A)))
         decs)
        (cons
         (λ ()
-          (smt:assert! (∀/V params (=>/s (@/s 'is-Val (tₐₚₚ)) (ok-cond))
-                           #:patterns (list (mk-pattern (ctx) (tₐₚₚ)))))
-          (smt:assert! (∀/V params (=>/s (@/s 'is-Blm (tₐₚₚ)) (er-cond))
-                           #:patterns (list (mk-pattern (ctx) (tₐₚₚ))))))
+          (assert! (∀/V params (=>/s (@/s 'is-Val (tₐₚₚ)) (ok-cond))
+                           #:patterns (list (mk-pattern (get-context) (tₐₚₚ)))))
+          (assert! (∀/V params (=>/s (@/s 'is-Blm (tₐₚₚ)) (er-cond))
+                           #:patterns (list (mk-pattern (get-context) (tₐₚₚ))))))
         defs))))
 
   (define (emit-dec-consts)
     (for ([x consts])
-      (smt:dynamic-declare-const x 'V)))
+      (dynamic-declare-const x 'V)))
 
   (define (emit-asserts)
     (for ([φ facts])
-      (smt:assert! (φ))))
+      (assert! (φ))))
 
   (cons (λ ()
             (SMT-base struct-arities)
