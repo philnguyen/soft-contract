@@ -19,20 +19,23 @@
 (define (⊔ m x y)
   (hash-update m x (λ ([ys : (℘ Y)]) (set-add ys y)) →∅))
 
+(define-syntax ⊔*
+  (syntax-rules (↦)
+    [(_ m) m]
+    [(_ m [x ↦ y] p ...) (⊔* (⊔ m x y) p ...)]))
+
 (: ⊔! : (∀ (X Y) ((MMap X Y) X Y → Void)))
 ;; mutate `m` to `m ⊔ [x ↦ {y}]`
 (define (⊔! m x y)
   (hash-update! m x (λ ([s : (℘ Y)]) (set-add s y)) →∅))
 
-(define-syntax ⊔*
-  (syntax-rules ()
-    [(_ m) m]
-    [(_ m [x y] p ...) (⊔* (⊔ m x y) p ...)]))
-
-(: ⊔!* : (∀ (X Y) (MMap X Y) X (℘ Y) → Void))
-;; mutate `m` to `m ⊔ [x ↦ ys]`
-(define (⊔!* m x ys)
-  (hash-update! m x (λ ([s : (℘ Y)]) (∪ s ys)) →∅))
+(define-syntax ⊔*!
+  (syntax-rules (↦)
+    [(_ _) (void)]
+    [(_ m [x ↦ y] p ...)
+     (begin
+       (⊔!  m x y)
+       (⊔!* m p ...))]))
 
 (: ⊔/m : (∀ (X Y) (MMap X Y) (MMap X Y) → (MMap X Y)))
 (define (⊔/m m₁ m₂)

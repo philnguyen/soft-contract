@@ -31,8 +31,8 @@
 
 (struct -σr ([vals : (℘ -V)] [old? : Boolean]) #:transparent)
 (define-type -σ (HashTable -α -σr))
-(define-type -Δσ -σ)
-(define ⊥σ : -σ (hash))
+;(define-type -Δσ -σ)
+(define (⊥σ) : -σ (make-hash))
 (define ⊥σr (-σr ∅ #f))
 
 (: σ@ : -σ -α → (Values (℘ -V) Boolean))
@@ -45,14 +45,28 @@
   (match-define (-σr Vs bind?₀) σr)
   (-σr (set-add Vs V) (and bind?₀ bind?)))
 
-(: σ⊔ : -σ -α -V Boolean → -σ)
-(define (σ⊔ σ α V bind?)
+#;(: σ⊔ : -σ -α -V Boolean → -σ)
+#;(define (σ⊔ σ α V bind?)
   (hash-update σ α
                (λ ([σr₀ : -σr]) (σr⊔ σr₀ V bind?))
                (λ () ⊥σr)))
 
-(: ⊔σ : -σ -σ → -σ)
-(define (⊔σ σ₁ σ₂)
+(: σ⊔! : -σ -α -V Boolean → Void)
+(define (σ⊔! σ α V bind?)
+  (hash-update! σ α
+                (λ ([σr₀ : -σr]) (σr⊔ σr₀ V bind?))
+                (λ () ⊥σr)))
+
+(define-syntax σ⊔*!
+  (syntax-rules (↦)
+    [(_ _) (void)]
+    [(_ σ [α ↦ V b?] p ...)
+     (begin
+       (σ⊔!  σ α V b?)
+       (σ⊔*! σ p ...))]))
+
+#;(: ⊔σ : -σ -σ → -σ)
+#;(define (⊔σ σ₁ σ₂)
   (for/fold ([σ : -σ σ₁]) ([(α σr) (in-hash σ₂)])
     (hash-update σ α
                  (λ ([σr₀ : -σr])
@@ -65,7 +79,7 @@
 ;;;;; Stack Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -κ ([cont : -⟦k⟧]      ; rest of computation waiting on answer
+(struct -κ ([cont : -⟦k⟧!]      ; rest of computation waiting on answer
             [Γ : -Γ]          ; path-condition to use for rest of computation
             [𝒞 : -𝒞]         ; context of rest of computation
             [bnd : -binding]  ; mapping from caller's identifiers to callee's expressions
@@ -73,8 +87,8 @@
   #:transparent)
 
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
-(define-type -Δσₖ -σₖ)
-(define ⊥σₖ : -σₖ (hash))
+;(define-type -Δσₖ -σₖ)
+(define (⊥σₖ) : -σₖ (make-hash))
 (define σₖ@ : (-σₖ -αₖ → (℘ -κ)) m@)
 
 
@@ -83,8 +97,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type -M (HashTable -αₖ (℘ -ΓA)))
-(define-type -ΔM -M)
-(define ⊥M : -M (hash))
+;(define-type -ΔM -M)
+(define (⊥M) : -M (make-hash))
 (define M@ : (-M -αₖ → (℘ -ΓA)) m@)
 
 
@@ -107,8 +121,8 @@
             
             -C)
 
-(-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
-             (-Case-Clo (Listof (Pairof (Listof Var-Name) -⟦e⟧)) -ρ -Γ))
+(-Fn . ::= . (-Clo -formals -⟦e⟧! -ρ -Γ)
+             (-Case-Clo (Listof (Pairof (Listof Var-Name) -⟦e⟧!)) -ρ -Γ))
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
@@ -211,9 +225,9 @@
 
 (define-new-subtype -𝒞 (+𝒞 Natural))
 (define-values (𝒞∅ 𝒞+ decode-𝒞)
-  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧ -ℓ)))])
+  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧! -ℓ)))])
     (values (+𝒞 s∅)
-            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧ -ℓ)]) (+𝒞 (s+ 𝒞 x)))
+            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧! -ℓ)]) (+𝒞 (s+ 𝒞 x)))
             decode)))
 
 
@@ -263,9 +277,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Continuations are not first class. No `σₖ` in arguments for now
-(define-type -⟦e⟧ (-ρ -Γ -𝒞 -σ -M -⟦k⟧ → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
-(define-type -⟦k⟧ (-A -Γ -𝒞 -σ -M      → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
-(define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
+(define-type -⟦e⟧! (-ρ -Γ -𝒞 -σ -σₖ -M -⟦k⟧! → (℘ -ς)))
+(define-type -⟦k⟧! (-A -Γ -𝒞 -σ -σₖ -M       → (℘ -ς)))
+(define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧! -e)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -282,7 +296,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-αₖ . ::= . (-ℬ [exp : -⟦e⟧] [env : -ρ])
+(-αₖ . ::= . (-ℬ [exp : -⟦e⟧!] [env : -ρ])
              ;; Contract monitoring
             #;(-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
             ;; Flat checking
@@ -290,34 +304,10 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Collecting operations
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-syntax-rule (for*/ans (clause ...) e ...)
-  (for*/fold ([ςs  : (℘ -ς) ∅]
-              [δσ  : -Δσ  ⊥σ]
-              [δσₖ : -Δσₖ ⊥σₖ]
-              [δM  : -ΔM  ⊥M])
-             (clause ...)
-    (define-values (ςs* δσ* δσₖ* δM*) (let () e ...))
-    (values (∪ ςs ςs*) (⊔σ δσ δσ*) (⊔/m δσₖ δσₖ*) (⊔/m δM δM*))))
-
-(define-syntax ⊕
-  (syntax-rules ()
-    [(_) (⊥ans)]
-    [(_ ans) ans]
-    [(_ ans₁ ans ...)
-     (let-values ([(ςs₁ δσ₁ δσₖ₁ δM₁) ans₁]
-                  [(ςs₂ δσ₂ δσₖ₂ δM₂) (⊕ ans ...)])
-       (values (∪ ςs₁ ςs₂) (⊔σ δσ₁ δσ₂) (⊔/m δσₖ₁ δσₖ₂) (⊔/m δM₁ δM₂)))]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Shorhands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-syntax-rule (⊥ans) (values ∅ ⊥σ ⊥σₖ ⊥M))
-(define-syntax-rule (with-Γ Γ e) (if Γ e (⊥ans)))
+(define-syntax-rule (with-Γ Γ e) (if Γ e ∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -351,7 +341,7 @@
     [(-● ps)
      (string->symbol (string-join (map symbol->string (cons '● (set-map ps show-o))) "_"))]
     [(? -o? o) (show-o o)]
-    [(-Clo xs ⟦e⟧ ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧))]
+    [(-Clo xs ⟦e⟧! ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧! ⟦e⟧!))]
     [(-Case-Clo clauses ρ Γ)
      `(case-lambda
        ,@(for/list : (Listof Sexp) ([clause clauses])
@@ -423,8 +413,8 @@
   (match-define (cons x s) x-s)
   `(,x ↦ ,(show-s s)))
 
-(define show-⟦e⟧ : (-⟦e⟧ → Sexp)
-  (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
+(define show-⟦e⟧! : (-⟦e⟧! → Sexp)
+  (let-values ([(⟦e⟧->symbol symbol->⟦e⟧! _) ((inst unique-sym -⟦e⟧!) '⟦e⟧)])
     (λ (⟦e⟧)
       (cond [(recall-e ⟦e⟧) => show-e]
             [else (⟦e⟧->symbol ⟦e⟧)]))))
@@ -434,16 +424,16 @@
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ ⟦e⟧ ρ) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ)))
+  (match-define (-ℬ ⟦e⟧! ρ) ℬ)
+  `(ℬ ,(show-⟦e⟧! ⟦e⟧!) ,(show-ρ ρ)))
 
 (define-parameter verbose? : Boolean #f)
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Sexp
   (cond [(verbose?)
-         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧ -ℓ) (decode-𝒞 𝒞)])
-           (match-define (cons ⟦e⟧ ℓ) ctx)
-           `(,(format-symbol "ℓ~a" (n-sub ℓ)) ↝ ,(show-⟦e⟧ ⟦e⟧)))]
+         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧! -ℓ) (decode-𝒞 𝒞)])
+           (match-define (cons ⟦e⟧! ℓ) ctx)
+           `(,(format-symbol "ℓ~a" (n-sub ℓ)) ↝ ,(show-⟦e⟧! ⟦e⟧!)))]
         [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
 
 (define-values (show-α show-α⁻¹)
