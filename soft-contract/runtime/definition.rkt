@@ -25,44 +25,67 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Modified addresses
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-type -X (℘ -α))
-(define-type -ΔX (℘ -α))
-(define ∅X : -X ∅)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Store maps each address to value set and whether it may have been mutated
 
-(define-type -σ (HashTable -α (℘ -V)))
+(struct -σr ([vals : (℘ -V)] [old? : Boolean]) #:transparent)
+(define-type -σ (HashTable -α -σr))
 (define-type -Δσ -σ)
 (define ⊥σ : -σ (hash))
+(define ⊥σr (-σr ∅ #f))
 
-(: σ@ : -σ -α → (℘ -V))
+(: σ@ : -σ -α → (Values (℘ -V) Boolean))
 (define (σ@ σ α)
-  (hash-ref σ α (λ () (error 'σ@ "non-existent address ~a" α))))
+  (match-define (-σr Vs old?) (hash-ref σ α (λ () (error 'σ@ "no address ~a" α))))
+  (values Vs old?))
+
+(: σr⊔ : -σr -V Boolean → -σr)
+(define (σr⊔ σr V bind?)
+  (match-define (-σr Vs bind?₀) σr)
+  (-σr (set-add Vs V) (and bind?₀ bind?)))
+
+(: σ⊔ : -σ -α -V Boolean → -σ)
+(define (σ⊔ σ α V bind?)
+  (hash-update σ α
+               (λ ([σr₀ : -σr]) (σr⊔ σr₀ V bind?))
+               (λ () ⊥σr)))
+
+(: ⊔σ : -σ -σ → -σ)
+(define (⊔σ σ₁ σ₂)
+  (for/fold ([σ : -σ σ₁]) ([(α σr) (in-hash σ₂)])
+    (hash-update σ α
+                 (λ ([σr₀ : -σr])
+                   (match-define (-σr Vs₀ old?₀) σr₀)
+                   (match-define (-σr Vs  old? ) σr )
+                   (-σr (∪ Vs₀ Vs) (and old?₀ old?)))
+                 (λ () ⊥σr))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stack Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -Ξ (HashTable -τ (℘ -ℛ)))
-(define-type -ΔΞ -Ξ)
-(define ⊥Ξ : -Ξ (hash))
-(define Ξ@ : (-Ξ -τ → (℘ -ℛ)) m@)
+(struct -κ ([cont : -⟦k⟧]      ; rest of computation waiting on answer
+            [Γ : -Γ]          ; path-condition to use for rest of computation
+            [𝒞 : -𝒞]         ; context of rest of computation
+            [bnd : -binding]  ; mapping from caller's identifiers to callee's expressions
+            )
+  #:transparent)
+
+(define-type -σₖ (HashTable -αₖ (℘ -κ)))
+(define-type -Δσₖ -σₖ)
+(define ⊥σₖ : -σₖ (hash))
+(define σₖ@ : (-σₖ -αₖ → (℘ -κ)) m@)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Memo Table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -M (HashTable -τ (℘ -A)))
+(define-type -M (HashTable -αₖ (℘ -ΓA)))
 (define-type -ΔM -M)
 (define ⊥M : -M (hash))
-(define M@ : (-M -τ → (℘ -A)) m@)
+(define M@ : (-M -αₖ → (℘ -ΓA)) m@)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,10 +100,10 @@
             -Fn
             
             ;; Proxied higher-order values
-            (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : Mon-Info])
-            (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : Mon-Info])
-            (-Vector/hetero [ctcs : (Listof -α)] [ctx : Mon-Info])
-            (-Vector/homo [ctc : -α] [ctx : Mon-Info])
+            (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : -l³])
+            (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : -l³])
+            (-Vector/hetero [ctcs : (Listof -α)] [ctx : -l³])
+            (-Vector/homo [ctc : -α] [ctx : -l³])
             
             -C)
 
@@ -109,70 +132,12 @@
               (-=>i [doms : (Listof (U -α.dom -α.cnst))] [mk-rng : -α] [pos : -ℓ])
               (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng)) [pos : -ℓ]))
 
-(struct -blm ([violator : Mon-Party] [origin : Mon-Party]
+(struct -blm ([violator : -l] [origin : -l]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
-(struct -ΓW ([cnd : -Γ] [W : -W]) #:transparent)
-(struct -ΓE ([cnd : -Γ] [blm : -blm]) #:transparent)
-(-A . ::= . -ΓW -ΓE)
-(-A* . ::= . (Listof -V) -blm)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Evaluation context
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(-ℰ . ::= . ;; Different type of context. Hack for now. I may de-hack some day but not a big problem.
-            (-ℰ.def [l : Mon-Party] [addrs : (Listof (U -α.def -α.wrp))] [rhs : -ℰ])
-            (-ℰ.dec -𝒾 -ℰ -ℓ)
-            
-            ;; Regular context
-            '□
-            (-ℰ.if Mon-Party -ℰ -⟦e⟧ -⟦e⟧)
-            (-ℰ.@ Mon-Party -ℓ (Listof -W¹) -ℰ (Listof -⟦e⟧))
-            (-ℰ.begin -ℰ (Listof -⟦e⟧))
-            (-ℰ.begin0.v -ℰ (Listof -⟦e⟧))
-            (-ℰ.begin0.e -W -ℰ (Listof -⟦e⟧))
-            (-ℰ.let-values Mon-Party
-                           (Listof (Pairof Var-Name -W¹))
-                           (Pairof (Listof Var-Name) -ℰ)
-                           (Listof (Pairof (Listof Var-Name) -⟦e⟧))
-                           -⟦e⟧)
-            (-ℰ.letrec-values Mon-Party
-                              -Δρ
-                              (Pairof (Listof Var-Name) -ℰ)
-                              (Listof (Pairof (Listof Var-Name) -⟦e⟧))
-                              -⟦e⟧)
-            (-ℰ.set! Var-Name -ℰ)
-            (-ℰ.μ/c Mon-Party -ℓ -ℰ)
-            (-ℰ.-->.dom Mon-Party (Listof -W¹) -ℰ (Listof -⟦e⟧) -⟦e⟧ -ℓ)
-            (-ℰ.-->.rng Mon-Party (Listof -W¹) -ℰ -ℓ)
-            (-ℰ.-->i (Listof -W¹) -ℰ (Listof -⟦e⟧) -W¹ -ℓ)
-            (-ℰ.case-> Mon-Party
-                       -ℓ
-                       (Listof (Listof -W¹))
-                       (Listof -W¹) -ℰ (Listof -⟦e⟧)
-                       (Listof (Listof -⟦e⟧)))
-            (-ℰ.struct/c -struct-info (Listof -W¹) -ℰ (Listof -⟦e⟧) -ℓ)
-            (-ℰ.mon.v Mon-Info -ℓ -ℰ [val : (U -⟦e⟧ -W¹)])
-            (-ℰ.mon.c Mon-Info -ℓ [ctc : (U -⟦e⟧ -W¹)] -ℰ)
-
-            ;; Hopefully can eliminate these eventually
-            (-ℰ.wrap.st -struct-info (Listof -α) -α.st Mon-Info -ℰ)
-
-            ;; For flat-checks
-            (-ℰ.fc Mon-Party -ℓ -W¹ -ℰ)
-            (-ℰ.fc.and/c Mon-Party -ℓ -W¹ -W¹ -ℰ)
-            (-ℰ.fc.or/c Mon-Party -ℓ -W¹ -W¹ -W¹ -ℰ)
-            (-ℰ.fc.not/c Mon-Party -ℓ -W¹ -W¹ -ℰ)
-            (-ℰ.fc.struct/c Mon-Party -ℓ -struct-info (Listof -W¹) (Listof -⟦e⟧) -ℰ)
-            (-ℰ.or/c -ℓ -W¹ -⟦e⟧ -ℰ)
-            )
-
-;; A "hole" ℋ is an evaluation context augmented with
-;; caller's path condition and information for renaming callee's symbols
-(struct -ℋ ([ctx : -ℒ] [bnd : -binding] [hole : -ℰ]) #:transparent)
+(-A . ::= . -W -blm)
+(struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -187,16 +152,16 @@
 ;; Tails are addresses to other path-condition "chunks" from function calls,
 ;; each paired with appropriate renaming.
 ;; Tails are ordered from least to most recent application.
-;; Order is important for effective rewriting.
+;; Order is important for effective rewriting. TODO obsolete, no longer need to preserve order
 (struct -Γ ([facts : (℘ -φ)]
             [aliases : (HashTable Var-Name -φ)]
             [tails : (Listof -γ)]) #:transparent)
 
 ;; Path condition tail is callee block and renaming information,
 ;; also indicating whether the call raised a blame or not
-(struct -γ ([callee : -τ] ; be careful with this. May build up infinitely
+(struct -γ ([callee : -αₖ] ; be careful with this. May build up infinitely
             [binding : -binding]
-            [blm : (Option (Pairof Mon-Party Mon-Party))]) #:transparent)
+            [blm : (Option (Pairof -l -l))]) #:transparent)
 (struct -binding ([fun : -?φ]
                   [params : (Listof Var-Name)]
                   [param->arg : (HashTable Var-Name -φ)])
@@ -235,7 +200,7 @@
          (cond [(hash-ref x->φ x #f) => φ->e]
                [else #f])))
      (cond [(andmap (inst values -s) sₓs)
-            (-@ (φ->e φₕ) (cast sₓs (Listof -e)) 0)]
+            (-@ (φ->e φₕ) (cast sₓs (Listof -e)) +ℓ₀)]
            [else #f])]
     [else #f]))
 
@@ -244,9 +209,12 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -𝒞 Natural)
-(define-type Caller-Ctx Integer)
-(define-values (𝒞∅ 𝒞+ decode-𝒞) ((inst make-indexed-set (Pairof -⟦e⟧ Caller-Ctx))))
+(define-new-subtype -𝒞 (+𝒞 Natural))
+(define-values (𝒞∅ 𝒞+ decode-𝒞)
+  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧ -ℓ)))])
+    (values (+𝒞 s∅)
+            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧ -ℓ)]) (+𝒞 (s+ 𝒞 x)))
+            decode)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -294,10 +262,19 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⟦e⟧ (-M -σ -X -ℒ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ))))
-(define-type -⟦ℰ⟧ (-⟦e⟧ → -⟦e⟧))
-(define ⊥⟦e⟧ : -⟦e⟧ (λ (M σ X ℒ) (values ⊥σ ∅ ∅ ∅ ∅)))
+;; Continuations are not first class. No `σₖ` in arguments for now
+(define-type -⟦e⟧ (-ρ -Γ -𝒞 -σ -M -⟦k⟧ → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
+(define-type -⟦k⟧ (-A -Γ -𝒞 -σ -M      → (Values (℘ -ς) -Δσ -Δσₖ -ΔM)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; State
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Configuration
+(-ς . ::= . #|block start |# (-ς↑ -αₖ -Γ -𝒞)
+            #|block return|# (-ς↓ -αₖ -Γ -A))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -305,29 +282,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-τ . ::= . ;; Function body
-            (-ℬ [code : -⟦e⟧] [ctx : -ℒ])
-            ;; Contract monitoring
-            (-ℳ [l³ : Mon-Info] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
+(-αₖ . ::= . (-ℬ [exp : -⟦e⟧] [env : -ρ])
+             ;; Contract monitoring
+            #;(-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
             ;; Flat checking
-            (-ℱ [l : Mon-Party] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
-
-;; Local context
-(struct -ℒ ([env : -ρ] [cnd : -Γ] [hist : -𝒞]) #:transparent)
-(define ℒ∅ (-ℒ ⊥ρ ⊤Γ 𝒞∅))
-
-;; Continued evaluation
-(struct -Co ([cont : -ℛ] [callee : -τ] [ans : (℘ -A)]) #:transparent)
-
-;; Suspended, "intermediate" expression ℐ ≃ ℋ[ℬ]
-(struct -ℐ ([hole : -ℋ] ; caller's hole
-            [target : -τ] ; callee's context/address
-            ) #:transparent)
-
-;; Return point / continuation (deliberately distinct from `-ℋ`)
-(struct -ℛ ([ctx : -τ] ; caller's context/address
-            [hole : -ℋ] ; caller's continuation and path condition
-            ) #:transparent)
+            #;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -335,37 +294,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-syntax-rule (for*/ans (clause ...) e ...)
-  (for*/fold ([δσ : -Δσ ⊥σ] [ΓW : (℘ -ΓW) ∅] [ΓE : (℘ -ΓE) ∅] [δX : -ΔX ∅] [ℐs : (℘ -ℐ) ∅])
+  (for*/fold ([ςs  : (℘ -ς) ∅]
+              [δσ  : -Δσ  ⊥σ]
+              [δσₖ : -Δσₖ ⊥σₖ]
+              [δM  : -ΔM  ⊥M])
              (clause ...)
-    (define-values (δσ* ΓW* ΓE* δX* ℐs*) (let () e ...))
-    (values (⊔/m δσ δσ*) (∪ ΓW ΓW*) (∪ ΓE ΓE*) (∪ δX δX*) (∪ ℐs ℐs*))))
+    (define-values (ςs* δσ* δσₖ* δM*) (let () e ...))
+    (values (∪ ςs ςs*) (⊔σ δσ δσ*) (⊔/m δσₖ δσₖ*) (⊔/m δM δM*))))
 
-(define-syntax-rule (for*/Δm (clause ...) e ...)
-  (for*/fold ([δM : -ΔM ⊥M] [δΞ : -ΔΞ ⊥Ξ] [δσ : -Δσ ⊥σ] [δX : -ΔX ∅X])
-             (clause ...)
-    (define-values (δM* δΞ* δσ* δX*) (let () e ...))
-    (values (⊔/m δM δM*) (⊔/m δΞ δΞ*) (⊔/m δσ δσ*) (∪ δX δX*))))
-
-(define-syntax ⊔/ans
+(define-syntax ⊕
   (syntax-rules ()
     [(_) (⊥ans)]
     [(_ ans) ans]
     [(_ ans₁ ans ...)
-     (let-values ([(δσ₁ Ws₁ Es₁ δX₁ ℐs₁) ans₁]
-                  [(δσ₂ Ws₂ Es₂ δX₂ ℐs₂) (⊔/ans ans ...)])
-       (values (⊔/m δσ₁ δσ₂) (∪ Ws₁ Ws₂) (∪ Es₁ Es₂) (∪ δX₁ δX₂) (∪ ℐs₁ ℐs₂)))]))
-
-(: ⊔/⟦e⟧ : -⟦e⟧ -⟦e⟧ → -⟦e⟧)
-(define (⊔/⟦e⟧ ⟦e⟧₁ ⟦e⟧₂)
-  (λ (M σ X ℒ)
-    (⊔/ans (⟦e⟧₁ M σ X ℒ) (⟦e⟧₂ M σ X ℒ))))
+     (let-values ([(ςs₁ δσ₁ δσₖ₁ δM₁) ans₁]
+                  [(ςs₂ δσ₂ δσₖ₂ δM₂) (⊕ ans ...)])
+       (values (∪ ςs₁ ςs₂) (⊔σ δσ₁ δσ₂) (⊔/m δσₖ₁ δσₖ₂) (⊔/m δM₁ δM₂)))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Shorhands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-syntax-rule (⊥ans) (values ⊥σ ∅ ∅ ∅ ∅))
+(define-syntax-rule (⊥ans) (values ∅ ⊥σ ⊥σₖ ⊥M))
 (define-syntax-rule (with-Γ Γ e) (if Γ e (⊥ans)))
 
 
@@ -374,8 +325,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (show-σ [σ : -σ]) : (Listof Sexp)
-  (for/list ([(α Vs) σ]
+  (for/list ([(α σr) σ]
              #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
+    (match-define (-σr Vs _) σr)
     `(,(show-α α) ↦ ,@(set-map Vs show-V))))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
@@ -384,13 +336,13 @@
   (match-define (-Γ φs _ γs) Γ)
   `(,@(set-map φs show-φ) ,@(map show-γ γs)))
 
-(define (show-Ξ [Ξ : -Ξ]) : (Listof Sexp)
-  (for/list ([(τ ℛs) Ξ])
-    `(,(show-τ τ) ↦ ,@(set-map ℛs show-ℛ))))
+(define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
+  (for/list ([(αₖ κs) σₖ])
+    `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
 
 (define (show-M [M : -M]) : (Listof Sexp)
-  (for/list ([(τ As) M])
-    `(,(show-τ τ) ↦ ,@(set-map As show-A))))
+  (for/list ([(αₖ As) M])
+    `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
 
 (define (show-V [V : -V]) : Sexp
   (match V
@@ -442,10 +394,13 @@
      `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α αs))]
     [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
 
+(define (show-ΓA [ΓA : -ΓA]) : Sexp
+  (match-define (-ΓA Γ A) ΓA)
+  `(,(show-A A) ‖ ,(show-Γ Γ)))
+
 (define (show-A [A : -A])
-  (match A
-    [(-ΓW Γ W) `(W: ,(show-W W) ,(show-Γ Γ))]
-    [(-ΓE Γ b) `(E: ,(show-blm b) ,(show-Γ Γ))]))
+  (cond [(-W? A) (show-W A)]
+        [else (show-blm A)]))
 
 (define (show-W [W : -W]) : Sexp
   (match-define (-W Vs s) W)
@@ -461,74 +416,6 @@
     [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
     [(_ _) `(blame ,l+ ,lo ,(map show-V Cs) ,(map show-V Vs))]))
 
-(: show-ℰ ([-ℰ] [Sexp] . ->* . Sexp))
-(define (show-ℰ ℰ [in-hole '□])
-  (let loop ([ℰ : -ℰ ℰ])
-    (match ℰ
-      [(-ℰ.def _ αs ℰ*)
-       (define rhs (loop ℰ*))
-       (match αs
-         [(list α) `(define        ,(show-α α)      ,rhs)]
-         [_        `(define-values ,(map show-α αs) ,rhs)])]
-      [(-ℰ.dec 𝒾 ℰ* _)
-       `(provide/contract [,(-𝒾-name 𝒾) ,(loop ℰ*)])]
-      
-      ['□ in-hole]
-      [(-ℰ.if _ ℰ* _ _) `(if ,(loop ℰ*) … …)]
-      [(-ℰ.@ _ _ Ws ℰ* ⟦e⟧s) `(,@(map show-W¹ (reverse Ws)) ,(loop ℰ*) ,(map (λ _ '…) ⟦e⟧s))]
-      [(-ℰ.begin ℰ* ⟦e⟧s)
-       `(begin ,(loop ℰ*) ,(format "…(~a)…" (length ⟦e⟧s)))]
-      [(-ℰ.let-values _ xWs (cons xs ℰ*) xs-es e)
-       `(let (,@(for/list : (Listof Sexp) ([xW xWs])
-                  (match-define (cons x W) xW)
-                  `(,x ,(show-W¹ W)))
-              (,xs ,(loop ℰ*))
-              ,@(for/list : (Listof Sexp) ([xs-e xs-es])
-                  (match-define (cons x e) xs-e)
-                  `(,xs ,(show-⟦e⟧ e))))
-          ,(show-⟦e⟧ e))]
-      [(-ℰ.letrec-values _ _ (cons xs ℰ*) xs-es e)
-       `(letrec ((,xs ,(loop ℰ*))
-                 ,@(for/list : (Listof Sexp) ([xs-e xs-es])
-                     (match-define (cons xs e) xs-e)
-                     `(,xs (show-⟦e⟧ e))))
-          ,(show-⟦e⟧ e))]
-      [(-ℰ.set! x ℰ*) `(set! ,x ,(loop ℰ*))]
-      [(-ℰ.μ/c _ x ℰ*) `(μ/c ,x ,(loop ℰ*))]
-      [(-ℰ.-->.dom _ Ws ℰ* ⟦c⟧s ⟦d⟧ _)
-       `ℰ.-->.dom]
-      [(-ℰ.-->.rng _ Ws ℰ* _)
-       `ℰ.-->.rng]
-      [(-ℰ.-->i Cs ℰ* cs (-W¹ (-Clo xs _ _ _) d) _)
-       `(,@(map show-W¹ Cs) ,(loop ℰ*) ,@(map show-⟦e⟧ cs) ,(show-s d))]
-      [(-ℰ.case-> _ _ _ _ _ _ _)
-       `ℰ.case->]
-      [(-ℰ.struct/c s Cs ℰ* cs _)
-       `(,(format-symbol "~a/c" (-𝒾-name (-struct-info-id s)))
-         ,@(map show-W¹ Cs)
-         ,(loop ℰ*)
-         ,(map show-⟦e⟧ cs))]
-      [(-ℰ.mon.v _ _ ℰ* Val)
-       `(mon ,(loop ℰ*) ,(if (-W¹? Val) (show-W¹ Val) (show-⟦e⟧ Val)))]
-      [(-ℰ.mon.c _ _ Ctc ℰ*)
-       `(mon ,(if (-W¹? Ctc) (show-W¹ Ctc) (show-⟦e⟧ Ctc)) ,(loop ℰ*))]
-      [(-ℰ.fc l ℓ W ℰ*)
-       `(fc ,(show-W¹ W) ,(loop ℰ*))]
-      [(-ℰ.fc.and/c l ℓ W-C W-V ℰ*)
-       `(fc.and/c ,(show-W¹ W-C) ,(show-W¹ W-V) ,(loop ℰ*))]
-      [(-ℰ.fc.or/c l ℓ W-Cₗ W-Cᵣ W-V ℰ*)
-       `(fc.or/c ,(show-W¹ W-Cₗ) ,(show-W¹ W-Cᵣ) ,(show-W¹ W-V) ,(loop ℰ*))]
-      [(-ℰ.fc.not/c l ℓ W-C W-V ℰ*)
-       `(fc.not/c ,(show-W¹ W-C) ,(show-W¹ W-V) ,(loop ℰ*))]
-      [(-ℰ.fc.struct/c l ℓ s W-Cs ⟦e⟧s ℰ*)
-       `(fc.struct/c ,(show-struct-info s) ,@(reverse (map show-W¹ W-Cs)) ,(loop ℰ*) ,@(map show-⟦e⟧ ⟦e⟧s))]
-      [(-ℰ.or/c l W ⟦e⟧ ℰ*)
-       `(or/c ,(show-W¹ W) ,(show-⟦e⟧ ⟦e⟧) ,(loop ℰ*))])))
-
-(define (show-ℋ [ℋ : -ℋ])
-  (match-define (-ℋ ℒ bnd ℰ) ℋ)
-  `(ℋ ,(show-ℒ ℒ) ,(show-binding bnd) ,(show-ℰ ℰ)))
-
 (: show-bnds : (Listof (Pairof Var-Name -s)) → (Listof Sexp))
 (define (show-bnds bnds) (map show-bnd bnds))
 
@@ -542,45 +429,19 @@
       (cond [(recall-e ⟦e⟧) => show-e]
             [else (⟦e⟧->symbol ⟦e⟧)]))))
 
-(define (show-τ [τ : -τ]) : Sexp
-  (cond [(-ℬ? τ) (show-ℬ τ)]
-        [(-ℳ? τ) (show-ℳ τ)]
-        [else    (show-ℱ τ)]))
+(define (show-αₖ [αₖ : -αₖ]) : Sexp
+  (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
+        [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ ⟦e⟧ ℒ) ℬ)
-  `(ℬ ,(show-⟦e⟧ ⟦e⟧)
-      ,(if (verbose?) (show-ℒ ℒ) (hash-keys (-ℒ-env ℒ)))))
-
-(define (show-ℳ [ℳ : -ℳ]) : Sexp
-  (match-define (-ℳ l³ ℓ W-C W-V ℒ) ℳ)
-  `(ℳ ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
-
-(define (show-ℱ [ℱ : -ℱ]) : Sexp
-  (match-define (-ℱ l ℓ W-C W-V ℒ) ℱ)
-  `(ℱ ,(show-W¹ W-C) ,(show-W¹ W-V) ,(show-ℒ ℒ)))
-
-(define (show-ℒ [ℒ : -ℒ]) : Sexp
-  (match-define (-ℒ ρ Γ 𝒞) ℒ)
-  `(,@(show-ρ ρ) @ ,(show-Γ Γ) @ ,(show-𝒞 𝒞)))
-
-(define (show-Co [Co : -Co]) : Sexp
-  (match-define (-Co ℛ τ ans) Co)
-  `(Co ,(show-ℛ ℛ) ,(set-map ans show-A)))
-
-(define (show-ℐ [ℐ : -ℐ]) : Sexp
-  (match-define (-ℐ ℋ τ) ℐ)
-  `(ℐ ,(show-ℋ ℋ) ,(show-τ τ)))
-
-(define (show-ℛ [ℛ : -ℛ]) : Sexp
-  (match-define (-ℛ τ ℋ) ℛ)
-  `(ℛ ,(show-τ τ) ,(show-ℋ ℋ)))
+  (match-define (-ℬ ⟦e⟧ ρ) ℬ)
+  `(ℬ ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ)))
 
 (define-parameter verbose? : Boolean #f)
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Sexp
   (cond [(verbose?)
-         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧ Caller-Ctx) (decode-𝒞 𝒞)])
+         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧ -ℓ) (decode-𝒞 𝒞)])
            (match-define (cons ⟦e⟧ ℓ) ctx)
            `(,(format-symbol "ℓ~a" (n-sub ℓ)) ↝ ,(show-⟦e⟧ ⟦e⟧)))]
         [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
@@ -601,8 +462,8 @@
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
     (λ (γ)
       (cond [(verbose?)
-             (match-define (-γ τ bnd blm) γ)
-             `(,(show-τ τ) ‖ ,(show-binding bnd) ‖ ,blm)]
+             (match-define (-γ αₖ bnd blm) γ)
+             `(,(show-αₖ αₖ) ‖ ,(show-binding bnd) ‖ ,blm)]
             [else (show-γ γ)]))))
 
 (define (show-binding [bnd : -binding]) : (Listof Sexp)
@@ -614,3 +475,7 @@
     (for/list : (Listof Sexp) ([(x φ) x->φ] #:unless (member x xs))
       `(,(show-Var-Name x) ↦ ,(show-φ φ))))
   `(,(show-?φ f) ,@bnds ‖ ,@fvs))
+
+(define (show-κ [κ : -κ]) : Sexp
+  (match-define (-κ ⟦k⟧ Γ 𝒞 bnd) κ)
+  '⟦κ⟧)

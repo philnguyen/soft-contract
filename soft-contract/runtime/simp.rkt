@@ -23,7 +23,7 @@
 ;; convenient syntax for negation
 (define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
-  (syntax-rules () [(_ e) (and e (-@ 'not (list e) 0))]))
+  (syntax-rules () [(_ e) (and e (-@ 'not (list e) +ℓ₀))]))
 
 (: -struct/c-split : -s Integer → (Listof -s))
 (define (-struct/c-split c n)
@@ -63,17 +63,17 @@
 (: -?struct/c : -struct-info (Listof -s) → (Option -struct/c))
 (define (-?struct/c s fields)
   (and (andmap (inst values -s) fields)
-       (-struct/c s (cast fields (Listof -e)) 0)))
+       (-struct/c s (cast fields (Listof -e)) +ℓ₀)))
 
 (: -?-> : (Listof -s) -s -> (Option -->))
 (define (-?-> cs d)
   (define cs* (check-ss cs))
-  (and d cs* (--> cs* d 0)))
+  (and d cs* (--> cs* d +ℓ₀)))
 
 (: -?->i : (Listof -s) (Option -λ) -> (Option -->i))
 (define (-?->i cs mk-d)
   (define cs* (check-ss cs))
-  (and mk-d cs* (-->i cs* mk-d 0)))
+  (and mk-d cs* (-->i cs* mk-d +ℓ₀)))
 
 (: split-values : -s Natural → (Listof -s))
 ;; Split a pure expression `(values e ...)` into `(e ...)`
@@ -127,4 +127,4 @@
   (let ([e (assert (-?@ '+ (-x 'x) (-x 'y)))])
     (check-equal? (-?@ -cons (-?@ -car e) (-?@ -cdr e)) e)
     (check-equal? (-?@ -cons (-?@ -cdr e) (-?@ -car e))
-                  (-@ -cons (list (-@ -cdr (list e) 0) (-@ -car (list e) 0)) 0))))
+                  (-@ -cons (list (-@ -cdr (list e) +ℓ₀) (-@ -car (list e) +ℓ₀)) +ℓ₀))))

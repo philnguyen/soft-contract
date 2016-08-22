@@ -85,7 +85,7 @@
   (check-equal? (fv (-λ '(x) (-x 'x))) ∅)
   (check-equal? (fv (-x 'x)) {set 'x})
   (check-equal? (fv (-𝒾 'cons 'Λ)) ∅)
-  (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) 0)))) {set 'f}))
+  (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) +ℓ₀)))) {set 'f}))
 
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
@@ -450,7 +450,7 @@
       [_ #f]))
 
   (define (default-case) : -e
-    (-@ (assert f) (cast xs (Listof -e)) 0))
+    (-@ (assert f) (cast xs (Listof -e)) +ℓ₀))
 
   (define-syntax (general-primitive-case stx)
     #`(case f
@@ -514,10 +514,10 @@
      (match-define (list x) xs)
      (cond ; don't build up syntax when reading from mutable states
        [(∋ (-struct-info-mutables s) i) #f]
-       [else (-@ f (list (assert x)) 0)])]
+       [else (-@ f (list (assert x)) +ℓ₀)])]
 
     ; (cons (car e) (cdr e)) = e
-    [(-st-mk s) (or (access-same-value? s xs) (-@ f xs 0))]
+    [(-st-mk s) (or (access-same-value? s xs) (-@ f xs +ℓ₀))]
 
     ; General case
     [_ (general-primitive-case)]))

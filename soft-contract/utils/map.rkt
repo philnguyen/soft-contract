@@ -8,9 +8,11 @@
 (define-type (MMap X Y) (Map X (℘ Y)))
 
 ;; Return the domain of a finite function represented as a hashtable
-(: dom : (∀ (X Y) (Map X Y) → (℘ X)))
-(define (dom f)
-  (for/set: : (℘ X) ([x (in-hash-keys f)]) x))
+(: dom : (∀ (X Y) ([(Map X Y)] [#:eq? Boolean] . ->* . (℘ X))))
+(define (dom f #:eq? [use-eq? #f])
+  (if use-eq?
+      (for/seteq: : (℘ X) ([x (in-hash-keys f)]) x)
+      (for/set:   : (℘ X) ([x (in-hash-keys f)]) x)))
 
 (: ⊔ : (∀ (X Y) (MMap X Y) X Y → (MMap X Y)))
 ;; m ⊔ [x ↦ {y}]

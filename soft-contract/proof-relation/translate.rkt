@@ -24,7 +24,7 @@
                [facts     : (℘ →Z3:Ast)]
                [expr      : →Z3:Ast])
   #:transparent)
-(struct App ([ctx : -τ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
+(struct App ([ctx : -αₖ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
 (Defn-Entry . ::= . -o App)
 (define-type Memo-Table
@@ -63,9 +63,9 @@
                    ([front fronts])
            (define-values (def-funs** refs+)
              (match front
-               [(App τ fvs xs)
-                (define As (hash-ref M τ))
-                (match-define (cons refs entries) (encode-τ τ fvs xs As))
+               [(App αₖ fvs xs)
+                (define As (hash-ref M αₖ))
+                (match-define (cons refs entries) (encode-αₖ αₖ fvs xs As))
                 (values (hash-set def-funs* front entries) refs)]
                [(? -o? o)
                 (values def-funs* ∅)]))
@@ -78,20 +78,20 @@
            (values fronts** seen** def-funs**)))
        (loop fronts* seen* def-funs*)])))
 
-;(: encode-τ : -τ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
-;; Translate memo-table entry `τ(xs) → {A…}` to pair of formulas for when application
+;(: encode-αₖ : -αₖ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
+;; Translate memo-table entry `αₖ(xs) → {A…}` to pair of formulas for when application
 ;; fails and passes
-(define/memo (encode-τ [τ : -τ]
-                  [fvs : (Listof Var-Name)]
-                  [xs : (Listof Var-Name)]
-                  [As : (℘ -A)]) : (Pairof (℘ Defn-Entry) Res)
+(define/memo (encode-αₖ [αₖ : -αₖ]
+                        [fvs : (Listof Var-Name)]
+                        [xs : (Listof Var-Name)]
+                        [ΓAs : (℘ -ΓA)]) : (Pairof (℘ Defn-Entry) Res)
   (define-set refs : Defn-Entry)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
   (define tₓs : (Listof →Z3:Ast)
     (for/list ([x xs])
       (define t (⦃x⦄ x))
       (λ () (get-val t))))
-  (define fₕ (fun-name τ fvs xs))
+  (define fₕ (fun-name αₖ fvs xs))
   (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
   (define bound (∪ (list->seteq fvs) (list->seteq xs)))
 
@@ -99,9 +99,10 @@
   (define-values (oks ers)
     (for/fold ([oks : (Listof Entry) '()]
                [ers : (Listof Entry) '()])
-              ([A As])
+              ([ΓA ΓAs])
+      (match-define (-ΓA Γ A) ΓA)
       (match A
-        [(-ΓW Γ (-W _ sₐ))
+        [(-W _ sₐ)
          (define eₒₖ
            (cond
              [sₐ
@@ -117,7 +118,7 @@
               (match-define (Entry free-vars facts _) entry)
               (Entry free-vars facts #|hack|# (λ () (@/s 'B (false/s))))]))
          (values (cons eₒₖ oks) ers)]
-        [(-ΓE Γ (-blm l+ lo _ _))
+        [(-blm l+ lo _ _)
          (define eₑᵣ
            (match-let ([(cons refs+ entry) (encode-e bound Γ #|hack|# -ff)])
              (refs-union! refs+)
@@ -164,25 +165,25 @@
                      (hash-set! asserts-app tₐₚₚ tₐ)
                      (λ () (get-val tₐ)))))))
 
-  ;; Add a reminder to encode memo table entries for `τ(xs)` as a 1st-order function
+  ;; Add a reminder to encode memo table entries for `αₖ(xs)` as a 1st-order function
   (define/memo (⦃fun⦄!
-                [τ : -τ]
+                [αₖ : -αₖ]
                 [eₕ : -e]
                 [fvs : (Listof Var-Name)]
                 [xs  : (Listof Var-Name)]) : Symbol
      (define _ (⦃e⦄! eₕ))
      (define ⦃fv⦄s (map ⦃x⦄ fvs))
-     (refs-add! (App τ fvs xs))
-     (fun-name τ fvs xs))
+     (refs-add! (App αₖ fvs xs))
+     (fun-name αₖ fvs xs))
 
   ;; encode application
   (define/memo (⦃app⦄!
-                [τ : -τ]
+                [αₖ : -αₖ]
                 [eₕ : -e]
                 [fvs : (Listof Var-Name)]
                 [xs : (Listof Var-Name)]
                 [eₓs : (Listof -e)]) : →Z3:Ast
-    (define f (⦃fun⦄! τ eₕ fvs xs))
+    (define f (⦃fun⦄! αₖ eₕ fvs xs))
     (define ⦃fvs⦄ (map ⦃x⦄ fvs))
     (define ⦃eₓs⦄ (map ⦃e⦄! eₓs))
     (-tapp f ⦃fvs⦄ ⦃eₓs⦄))
@@ -213,23 +214,23 @@
 
       ;; Hacks for special applications go here
       [(-@ (-@ 'and/c ps _) es _)
-       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        (λ ()
          (@/s 'B (apply and/s (for/list : (Listof Z3:Ast) ([t ts]) (@/s 'is_truish (t))))))]
       [(-@ (-@ 'or/c ps _) es _)
-       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es 0))))
+       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        (λ ()
          (@/s 'B (apply or/s (for/list : (Listof Z3:Ast) ([t ts]) (@/s 'is_truish (t))))))]
       [(-@ (-@ 'not/c (list p) _) es _)
-       (define t (⦃e⦄! (-@ p es 0)))
+       (define t (⦃e⦄! (-@ p es +ℓ₀)))
        (λ ()
          (@/s 'B (@/s 'is_false (t))))]
       [(-@ (-struct/c s cs _) es _)
-       (define tₚ (⦃e⦄! (-@ (-st-p s) es 0)))
+       (define tₚ (⦃e⦄! (-@ (-st-p s) es +ℓ₀)))
        (define ts : (Listof →Z3:Ast)
          (for/list ([(c i) (in-indexed cs)])
-           (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es 0))
-           (⦃e⦄! (-@ c (list eᵢ) 0))))
+           (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es +ℓ₀))
+           (⦃e⦄! (-@ c (list eᵢ) +ℓ₀))))
        (λ ()
          (@/s 'B (apply and/s
                         (for/list : (Listof Z3:Ast) ([t (cons tₚ ts)])
@@ -265,12 +266,12 @@
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option →Z3:Ast) ([γ γs])
-          (match-define (-γ τ bnd blm) γ)
+          (match-define (-γ αₖ bnd blm) γ)
           (match-define (-binding φₕ xs x->φ) bnd)
           (cond [(equal? eₕ (and φₕ (φ->e φₕ)))
                  (define fvs (set->list/memo
                               (set-subtract (-binding-dom bnd) (list->seteq xs))))
-                 (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
+                 (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
                  (app-term! tₐₚₚ)]
                 [else #f]))
         (let ([t (fresh-free!)])
@@ -291,7 +292,7 @@
 
   (: ⦃γ⦄! : -γ → Void)
   (define (⦃γ⦄! γ)
-    (match-define (-γ τ bnd blm) γ)
+    (match-define (-γ αₖ bnd blm) γ)
     (define eₐₚₚ (binding->s bnd))
     (when eₐₚₚ
       (match-define (-binding _ xs _) bnd)
@@ -299,7 +300,7 @@
       (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
       (for ([fv fvs] #:unless (∋ bound fv))
         (free-vars-add! (⦃x⦄ fv)))
-      (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
+      (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
       (match blm
         [(cons l+ lo) (hash-set! asserts-app tₐₚₚ (cons (⦃l⦄ l+) (⦃l⦄ lo)))]
         [_            (hash-set! asserts-app tₐₚₚ #t)])))
@@ -579,7 +580,7 @@
 (define o->id ((inst mk-interner -o)))
 (define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
 (define ⦃str⦄ ((inst mk-interner String)))
-(define ⦃l⦄ ((inst mk-interner Mon-Party)))
+(define ⦃l⦄ ((inst mk-interner -l)))
 (define ⦃struct-info⦄ ((inst mk-interner -struct-info)))
 
 
@@ -597,14 +598,14 @@
     (for/fold ([decs : (Listof →Void) '()]
                [defs : (Listof →Void) '()])
               ([(f-xs res) def-funs])
-      (match-define (App τ fvs xs) f-xs)
+      (match-define (App αₖ fvs xs) f-xs)
       (define n (+ (length fvs) (length xs)))
       (define ⦃fv⦄s (map ⦃x⦄ fvs))
       (define tₓs : (Listof →Z3:Ast)
         (for/list ([x xs])
           (define t (⦃x⦄ x))
           (λ () (get-val t))))
-      (define fₕ (fun-name τ fvs xs))
+      (define fₕ (fun-name αₖ fvs xs))
       (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
       (match-define (Res oks ers) res)
 
@@ -699,11 +700,11 @@
             (arg))))
        (apply @/s f all-args))]))
 
-(: fun-name : -τ (Listof Var-Name) (Listof Var-Name) → Symbol)
+(: fun-name : -αₖ (Listof Var-Name) (Listof Var-Name) → Symbol)
 (define fun-name
-  (let ([m : (HashTable (List -τ (Listof Var-Name) (Listof Var-Name)) Symbol) (make-hash)])
-    (λ (τ fvs xs)
-      (hash-ref! m (list τ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
+  (let ([m : (HashTable (List -αₖ (Listof Var-Name) (Listof Var-Name)) Symbol) (make-hash)])
+    (λ (αₖ fvs xs)
+      (hash-ref! m (list αₖ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
 
 (: ⦃𝒾⦄ : -𝒾 → Symbol)
 (define (⦃𝒾⦄ 𝒾)

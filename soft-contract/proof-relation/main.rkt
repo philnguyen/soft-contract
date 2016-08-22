@@ -48,7 +48,7 @@
                        (for/fold ([Γ : -Γ Γ]) ([p ps])
                          (Γ+ Γ (-?@ p s)))]
                       [(? -b? b)
-                       (Γ+ Γ (-@ 'equal? (list s b) 0))]
+                       (Γ+ Γ (-@ 'equal? (list s b) +ℓ₀))]
                       [_ Γ])))
                 (MΓ⊢s M Γ* (apply -?@ p ss)))))
     (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))

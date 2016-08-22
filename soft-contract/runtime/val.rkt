@@ -49,18 +49,18 @@
     [(? -x/C?) #t]
     [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
-(: supply-negative-party : Mon-Party -V → -V)
+(: supply-negative-party : -l -V → -V)
 ;; Supply the negative party for blaming
 (define (supply-negative-party l V)
   (match V
-    [(-Ar C α (Mon-Info l+ 'dummy lo))
-     (-Ar C α (Mon-Info l+ l      lo))]
-    [(-St* s αs α (Mon-Info l+ 'dummy lo))
-     (-St* s αs α (Mon-Info l+ l      lo))]
-    [(-Vector/hetero αs (Mon-Info l+ 'dummy lo))
-     (-Vector/hetero αs (Mon-Info l+ l      lo))]
-    [(-Vector/homo α (Mon-Info l+ 'dummy lo))
-     (-Vector/homo α (Mon-Info l+ l      lo))]
+    [(-Ar C α (-l³ l+ 'dummy lo))
+     (-Ar C α (-l³ l+ l      lo))]
+    [(-St* s αs α (-l³ l+ 'dummy lo))
+     (-St* s αs α (-l³ l+ l      lo))]
+    [(-Vector/hetero αs (-l³ l+ 'dummy lo))
+     (-Vector/hetero αs (-l³ l+ l      lo))]
+    [(-Vector/homo α (-l³ l+ 'dummy lo))
+     (-Vector/homo α (-l³ l+ l      lo))]
     [_ V]))
 
 (: V+ : -σ -V -V → -V)
@@ -70,7 +70,7 @@
   (define (simplify [P : -V]) : -V
     (match P
       [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
-       (define Vs (hash-ref σ α))
+       (define-values (Vs _) (σ@ σ α))
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]
       [_ P]))
