@@ -5,13 +5,173 @@
 
 (provide (all-defined-out))
 
-(require racket/match
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse
+                     racket/contract
+                     racket/match
+                     (except-in racket/list remove-duplicates)
+                     racket/function
+                     (except-in "../utils/main.rkt" format-symbol)
+                     (prefix-in prims: "../primitives/declarations.rkt")
+                     "../primitives/utils.rkt")
+         racket/match
          racket/set
+         racket/function
+         racket/bool
+         racket/math
+         racket/flonum
+         racket/extflonum
+         racket/string
          (except-in racket/function arity-includes?)
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt"
          "definition.rkt")
+
+;; Helper syntax definition(s) for `-@/simp`
+(begin-for-syntax
+  (define/contract (general-primitive-clauses f xs)
+    (identifier? identifier? . -> . (listof syntax?))
+
+    (define default-case (datum->syntax f '(default-case)))
+
+    (define/contract (go dec)
+      (any/c . -> . (listof syntax?))
+      (match dec
+        [`(#:pred ,(? symbol? s))
+         (go `(,s (any/c . -> . boolean?) #:other-errors))]
+        [`(#:pred ,(? symbol? s) (,(? prims:ctc? cs) ...))
+         (go `(,s (,@cs . -> . boolean?) #:other-errors))]
+        [`(#:batch (,(? symbol? ss) ...) ,(? prims:arr? c) ,_ ...)
+         (append-map (λ (s) (go `(,s ,c #:other-errors))) ss)]
+        [`(,(and (? symbol?) (not (? ignore-for-now?)) o) (,cs ... . -> . ,d) ,_ ...)
+
+         (cond
+           [(or (base? o) (and (andmap base? cs) (base? d)))
+            
+            (define/contract b-syms (listof symbol?)
+              (build-list (length cs) (λ (i) (string->symbol (format "x~a" (n-sub i))))))
+            (define/contract b-𝒾s (listof identifier?) (map (curry datum->syntax f) b-syms))
+            (define b-pats (for/list ([b-𝒾 b-𝒾s]) #`(-b #,b-𝒾)))
+            (define b-conds (datum->syntax f (sexp-and (map mk-cond b-syms cs))))
+
+            (list
+             #`[(#,o)
+                (match #,xs
+                  [(list #,@b-pats) #:when #,b-conds (-b (#,o #,@b-𝒾s))]
+                  #,@(cond
+                       [(hash-ref prims:left-ids o #f) =>
+                        (λ (lid) (list #`[(list (-b #,lid) e) e]))]
+                       [else '()])
+                  #,@(cond
+                       [(hash-ref prims:right-ids o #f) =>
+                        (λ (rid) (list #`[(list e (-b #,rid)) e]))]
+                       [else '()])
+                  #,@(cond
+                       [(∋ prims:assocs o)
+                        (list #`[(list (-@ '#,o (list e₁ e₂) _) e₃)
+                                 (-@/simp '#,o e₁ (-@/simp '#,o e₂ e₃))])]
+                       [else '()])
+                  [_ #,default-case])])]
+           [else '()])]
+        [_ '()]))
+    
+    (define ans (append-map go prims:prims))
+    ;(printf "~a~n" (pretty (map syntax->datum ans)))
+    ans))
+(: -@/simp : -e -e * → -e)
+;; Smart constructor for application
+(define (-@/simp f . xs)
+
+  (: access-same-value? : -struct-info (Listof -e) → (Option -e))
+  ;; If given expression list of the form like `(car e); (cdr e)`, return `e`.
+  ;; Otherwise just `#f`
+  (define (access-same-value? info es)
+    (define n (-struct-info-arity info))
+    (match es
+      [(cons (-@ (-st-ac info₀ 0) (list e₀) _) es*)
+       (and (equal? info info₀)
+            (for/and : Boolean ([i (in-range 1 n)] [ei es*])
+              (match ei
+                [(-@ (-st-ac infoⱼ j) (list eⱼ) _)
+                 (and (equal? info infoⱼ) (= i j) (equal? e₀ eⱼ))]
+                [_ #f]))
+            e₀)]
+      [_ #f]))
+
+  (define (default-case) : -e
+    (-@ (assert f) (cast xs (Listof -e)) +ℓ₀))
+
+  (define-syntax (general-primitive-case stx)
+    #`(case f
+        #,@(general-primitive-clauses #'f #'xs)
+        [else (default-case)]))
+
+  (match f
+    ['any/c -tt]
+    ['none/c -ff]
+    ['void (-b (void))]
+    ['values
+     (match xs
+       [(list x) x]
+       [_ (default-case)])]
+
+    ; vector-length
+    ['vector-length
+     (match xs
+       [(list (-@ 'vector xs _)) (-b (length xs))]
+       [_ (default-case)])]
+
+    ; (not³ e) = (not e) 
+    ['not
+     (match xs
+       [(list (-@ 'not (and e* (-@ 'not _ _)) _)) e*]
+       [(list (-@ 'not (-b x) _)) (-b (not (not x)))]
+       [(list (-b x)) (-b (not x))]
+       [_ (default-case)])]
+    ['not/c
+     (match xs
+       [(list (-@ 'not/c (list (and e* (-@ 'not/c _ _))) _)) e*]
+       [_ (default-case)])]
+    [(-@ 'not/c (list f) _)
+     (match xs
+       [(list x) (-@/simp 'not (-@/simp f x))]
+       [_ (default-case)])]
+
+    ; TODO: handle `equal?` generally
+    ['equal?
+     (match xs
+       [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
+       [(list x x) -tt]
+       [_ (default-case)])]
+
+    ['defined?
+      (match xs
+        [(list (? -v?)) -tt]
+        [_ (default-case)])]
+
+    ['immutable?
+     (match xs
+       [(list (-@ 'vector _ _)) -ff]
+       [_ (default-case)])]
+
+    ; (car (cons e _)) = e
+    [(-st-ac s i)
+     (match xs
+       [(list (-@ (-st-mk s) es _)) (list-ref es i)]
+       [_ (default-case)])]
+    [(-st-ac s i)
+     (match-define (list x) xs)
+     (cond ; don't build up syntax when reading from mutable states
+       [(∋ (-struct-info-mutables s) i) #f]
+       [else (-@ f (list (assert x)) +ℓ₀)])]
+
+    ; (cons (car e) (cdr e)) = e
+    [(-st-mk s) (or (access-same-value? s xs) (-@ f xs +ℓ₀))]
+
+    ; General case
+    [_ (general-primitive-case)]))
 
 (: -?@ : -s -s * → -s)
 (define (-?@ f . xs)

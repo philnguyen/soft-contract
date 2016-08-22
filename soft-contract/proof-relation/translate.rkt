@@ -267,8 +267,8 @@
        (or
         (for/or : (Option →Z3:Ast) ([γ γs])
           (match-define (-γ αₖ bnd blm) γ)
-          (match-define (-binding φₕ xs x->φ) bnd)
-          (cond [(equal? eₕ (and φₕ (φ->e φₕ)))
+          (match-define (-binding f xs x->e) bnd)
+          (cond [(equal? eₕ f)
                  (define fvs (set->list/memo
                               (set-subtract (-binding-dom bnd) (list->seteq xs))))
                  (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
@@ -307,7 +307,7 @@
   
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
   (for ([φ φs])
-    (define t (⦃e⦄! (φ->e φ)))
+    (define t (⦃e⦄! φ))
     (props-add! (λ () (@/s 'is_truish (t)))))
   (define tₜₒₚ (⦃e⦄! e))
   (define all-props

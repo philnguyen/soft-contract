@@ -160,15 +160,14 @@
 
 ;; Symbolic value is either pure, refinable expression, or the conservative unrefinable `#f`
 (-s . ::= . -e #f)
-(define (s->φ [s : -s]) (and s (e->φ s)))
 
 ;; Path condition is set of (pure) expression known to have evaluated to non-#f
 ;; Tails are addresses to other path-condition "chunks" from function calls,
 ;; each paired with appropriate renaming.
 ;; Tails are ordered from least to most recent application.
 ;; Order is important for effective rewriting. TODO obsolete, no longer need to preserve order
-(struct -Γ ([facts : (℘ -φ)]
-            [aliases : (HashTable Var-Name -φ)]
+(struct -Γ ([facts : (℘ -e)]
+            [aliases : (HashTable Var-Name -e)]
             [tails : (Listof -γ)]) #:transparent)
 
 ;; Path condition tail is callee block and renaming information,
@@ -176,45 +175,44 @@
 (struct -γ ([callee : -αₖ] ; be careful with this. May build up infinitely
             [binding : -binding]
             [blm : (Option (Pairof -l -l))]) #:transparent)
-(struct -binding ([fun : -?φ]
+(struct -binding ([fun : -s]
                   [params : (Listof Var-Name)]
-                  [param->arg : (HashTable Var-Name -φ)])
+                  [param->arg : (HashTable Var-Name -s)])
   #:transparent)
 
-(define ⊤Γ (-Γ ∅eq (hasheq) '()))
+(define ⊤Γ (-Γ ∅ (hasheq) '()))
 
 (: Γ+ : -Γ -s * → -Γ)
 ;; Strengthen path condition `Γ` with `s`
 (define (Γ+ Γ . ss)
   (match-define (-Γ φs as ts) Γ)
   (define φs*
-    (for/fold ([φs : (℘ -φ) φs]) ([s ss] #:when s)
-      (set-add φs (e->φ s))))
+    (for/fold ([φs : (℘ -e) φs]) ([s ss] #:when s)
+      (set-add φs s)))
   (-Γ φs* as ts))
 
 (: -Γ-with-aliases : -Γ Var-Name -s → -Γ)
 (define (-Γ-with-aliases Γ x s)
   (cond [s (match-define (-Γ φs as ts) Γ)
-           (-Γ φs (hash-set as x (e->φ s)) ts)]
+           (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
 
 (: -binding-dom : -binding → (℘ Var-Name))
 (define (-binding-dom bnd)
-  (match-define (-binding _ _ x->φ) bnd)
-  (for/unioneq : (℘ Var-Name) ([(x φ) x->φ])
-     (set-add (fv (φ->e φ)) x)))
+  (match-define (-binding _ _ x->e) bnd)
+  (for/unioneq : (℘ Var-Name) ([(x e) x->e])
+     (set-add (if e (fv e) ∅eq) x)))
 
 (: binding->s : -binding → -s)
 (define (binding->s bnd)
-  (match-define (-binding φₕ xs x->φ) bnd)
+  (match-define (-binding sₕ xs x->e) bnd)
   (cond
-    [φₕ
+    [sₕ
      (define sₓs : (Listof -s)
        (for/list ([x xs])
-         (cond [(hash-ref x->φ x #f) => φ->e]
-               [else #f])))
+         (hash-ref x->e x #f)))
      (cond [(andmap (inst values -s) sₓs)
-            (-@ (φ->e φₕ) (cast sₓs (Listof -e)) +ℓ₀)]
+            (-@ sₕ (cast sₓs (Listof -e)) +ℓ₀)]
            [else #f])]
     [else #f]))
 
@@ -324,7 +322,7 @@
 
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
   (match-define (-Γ φs _ γs) Γ)
-  `(,@(set-map φs show-φ) ,@(map show-γ γs)))
+  `(,@(set-map φs show-e) ,@(map show-γ γs)))
 
 (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
   (for/list ([(αₖ κs) σₖ])
@@ -457,14 +455,14 @@
             [else (show-γ γ)]))))
 
 (define (show-binding [bnd : -binding]) : (Listof Sexp)
-  (match-define (-binding f xs x->φ) bnd)
+  (match-define (-binding f xs x->e) bnd)
   (define bnds
     (for/list : (Listof Sexp) ([x xs])
-      `(,(show-Var-Name x) ↦ ,(show-?φ (hash-ref x->φ x #f)))))
+      `(,(show-Var-Name x) ↦ ,(show-s (hash-ref x->e x #f)))))
   (define fvs
-    (for/list : (Listof Sexp) ([(x φ) x->φ] #:unless (member x xs))
-      `(,(show-Var-Name x) ↦ ,(show-φ φ))))
-  `(,(show-?φ f) ,@bnds ‖ ,@fvs))
+    (for/list : (Listof Sexp) ([(x e) x->e] #:unless (member x xs))
+      `(,(show-Var-Name x) ↦ ,(show-s e))))
+  `(,(show-s f) ,@bnds ‖ ,@fvs))
 
 (define (show-κ [κ : -κ]) : Sexp
   (match-define (-κ ⟦k⟧ Γ 𝒞 bnd) κ)

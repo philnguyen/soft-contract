@@ -22,7 +22,7 @@
         [(-● ps) ; precision hack
          (define ps*
            (for/fold ([ps : (℘ -o) ps]) ([φ φs])
-             (match (φ->e φ)
+             (match φ
                [(-@ (? -o? o) (list (== s)) _) (set-add ps o)]
                [_ ps])))
          (define V* (if (eq? ps ps*) V (-● ps*))) ; keep old instance

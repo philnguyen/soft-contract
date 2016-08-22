@@ -126,10 +126,10 @@
            (define α (-α.x x 𝒞*))
            (values (σ⊔! σ α Vₓ #t) (ρ+ ρ x α))))
        (define bnd
-         (-binding (and sₕ (e->φ sₕ))
+         (-binding sₕ
                    xs
-                   (for/hash : (HashTable Var-Name -φ) ([x xs] [sₓ sₓs] #:when sₓ)
-                     (values x (e->φ sₓ)))))
+                   (for/hasheq : (HashTable Var-Name -s) ([x xs] [sₓ sₓs] #:when sₓ)
+                     (values x sₓ))))
        (define αₖ (-ℬ ⟦e⟧ ρ*))
        (define κ (-κ ⟦k⟧ Γ 𝒞 bnd))
        (⊔! σₖ αₖ κ)

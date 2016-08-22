@@ -164,10 +164,10 @@
 (: Γ⊢e : -Γ -s → -R)
 (define (Γ⊢e Γ s) (φs⊢e (-Γ-facts Γ) s))
 
-(: φs⊢e : (℘ -φ) -s → -R)
+(: φs⊢e : (℘ -e) -s → -R)
 (define (φs⊢e φs e)
 
-  (when (∋ φs -⦇ff⦈)
+  (when (∋ φs -ff)
     ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
     ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
     ;; This is a problem with precision rather than soundness, but I want
@@ -225,25 +225,21 @@
         (first-R
          (⊢e e)
          (match e
-           [_ #:when (∋ φs (e->φ       e )) '✓]
-           [_ #:when (∋ φs (e->φ (-not e))) '✗]
-           [(-not e*) #:when (∋ φs (e->φ e*)) '✗]
+           [_ #:when (∋ φs       e ) '✓]
+           [_ #:when (∋ φs (-not e)) '✗]
+           [(-not e*) #:when (∋ φs e*) '✗]
            [else '?])
          (for*/fold ([R : -R '?])
                     ([φ φs] #:when (eq? '? R)
-                     [R* (in-value (e⊢e (φ->e φ) e))])
+                     [R* (in-value (e⊢e φ e))])
            R*)
          '?)]
        [else '?]))
     (printf "~a ⊢ ~a : ~a~n" (set-map φs show-e) (show-s e) ans)))
 
-(define (φs⊢φ [φs : (℘ -φ)] [φ : -φ])
-  (cond [(∋ φs φ) '✓] ; fast case
-        [else (φs⊢e φs (φ->e φ))]))
+(define (plausible-φs-s? [φs : (℘ -e)] [s : -s]) (not (eq? '✗ (φs⊢e φs s))))
 
-(define (plausible-φs-s? [φs : (℘ -φ)] [s : -s]) (not (eq? '✗ (φs⊢e φs s))))
-
-(: plausible-W? : (℘ -φ) (Listof -V) -s → Boolean)
+(: plausible-W? : (℘ -e) (Listof -V) -s → Boolean)
 ;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `φs`
 ;; - #f indicates a definitely bogus case
 ;; - #t indicates (conservative) plausibility
@@ -258,7 +254,7 @@
     [(_ (or (? -v?) (-@ (? -prim?) _ _))) #f] ; length(Vs) ≠ 1, length(s) = 1
     [(_ _) #t]))
 
-(: plausible-V-s? : (℘ -φ) -V -s → Boolean)
+(: plausible-V-s? : (℘ -e) -V -s → Boolean)
 (define (plausible-V-s? φs V s)
   (define-syntax-rule (with-prim-checks p? ...)
     (cond
@@ -467,11 +463,11 @@
   (check-✗ (φs⊢e ∅ (-?@ 'null? (-?@ -cons (-b 0) (-b 1)))))|#
   
   ;; Γ ⊢ e
-  (check-✓ (φs⊢e {set (e->φ (assert (-?@ -cons? (-x 'x))))} (-x 'x)))
-  (check-✓ (φs⊢e {set (e->φ (assert (-?@ 'integer? (-x 'x))))} (-?@ 'real? (-x 'x))))
-  (check-✓ (φs⊢e {set (e->φ (assert (-?@ 'not (-?@ 'number? (-x 'x)))))} (-?@ 'not (-?@ 'integer? (-x 'x)))))
-  (check-✗ (φs⊢e {set (e->φ (assert (-?@ 'not (-x 'x))))} (-x 'x)))
-  (check-? (φs⊢e {set (e->φ (assert (-?@ 'number? (-x 'x))))} (-?@ 'integer? (-x 'x))))
+  (check-✓ (φs⊢e {set (assert (-?@ -cons? (-x 'x)))} (-x 'x)))
+  (check-✓ (φs⊢e {set (assert (-?@ 'integer? (-x 'x)))} (-?@ 'real? (-x 'x))))
+  (check-✓ (φs⊢e {set (assert (-?@ 'not (-?@ 'number? (-x 'x))))} (-?@ 'not (-?@ 'integer? (-x 'x)))))
+  (check-✗ (φs⊢e {set (assert (-?@ 'not (-x 'x)))} (-x 'x)))
+  (check-? (φs⊢e {set (assert (-?@ 'number? (-x 'x)))} (-?@ 'integer? (-x 'x))))
 
   ;; plausibility
   (check-false (plausible-W? ∅ (list (-b 1)) (-b 2)))
@@ -479,5 +475,5 @@
   (check-false (plausible-W? ∅ (list (-b 1) (-b 2)) (-?@ 'values (-b 1) (-b 3))))
   (check-false (plausible-W? ∅ (list -tt) -ff))
   (check-true  (plausible-W? ∅ (list -tt) -tt))
-  (check-false (plausible-W? {set (e->φ (assert (-not (-x 'x))))} (list (-b 0)) (-x 'x)))
+  (check-false (plausible-W? {set (assert (-not (-x 'x)))} (list (-b 0)) (-x 'x)))
   )
