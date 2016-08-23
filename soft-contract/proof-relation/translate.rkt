@@ -457,15 +457,18 @@
      (define i (next-int!))
      (λ () (@/s 'Not/C i))]
     [(vector-ref)
-     (λ () (@/s 'f.vecref ((car ts))))]
+     (match-define (list t₁ t₂) ts)
+     (λ () (@/s 'f.vecref (t₁) (t₂)))]
     [(vector-length)
      (λ () (@/s 'N (@/s 'veclen ((car ts))) 0))]
     [(list?)
      (λ () (@/s 'B (@/s 'list? ((car ts)))))]
     [(map)
-     (λ () (@/s 'f.map ((car ts))))]
+     (match-define (list t₁ t₂) ts)
+     (λ () (@/s 'f.map (t₁) (t₂)))]
     [(append)
-     (λ () (@/s 'f.append ((car ts))))]
+     (match-define (list t₁ t₂) ts)
+     (λ () (@/s 'f.append (t₁) (t₂)))]
     [(min)
      (match-define (list t₁ t₂) ts)
      (λ () (@/s 'N (@/s 'f.min (@/s 'real (t₁)) (@/s 'real (t₂))) 0))]
