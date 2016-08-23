@@ -120,11 +120,11 @@
     (define 𝒞* (𝒞+ 𝒞 (cons ⟦e⟧ ℓ)))
     (cond
       [(pair? xs)
-       (define-values (_ ρ*)
-         (for/fold ([_ : Void (void)] [ρ : -ρ ρₕ])
-                   ([x xs] [Vₓ Vₓs])
+       (define ρ* ; with side effects widening store
+         (for/fold ([ρ : -ρ ρₕ]) ([x xs] [Vₓ Vₓs])
            (define α (-α.x x 𝒞*))
-           (values (σ⊔! σ α Vₓ #t) (ρ+ ρ x α))))
+           (σ⊔! σ α Vₓ #t)
+           (ρ+ ρ x α)))
        (define bnd
          (-binding sₕ
                    xs

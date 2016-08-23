@@ -186,15 +186,14 @@
         ['() ⟦e*⟧]
         [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
          (λ (ρ Γ 𝒞 σ σₖ M ⟦k⟧)
-           (define-values (ρ* _)
-             (for*/fold ([ρ  : -ρ  ρ]
-                         [_ : Void (void)])
+           (define ρ* ; with side effect widening store
+             (for*/fold ([ρ  : -ρ  ρ])
                         ([⟦bnd⟧ ⟦bnd⟧s]
                          [xs (in-value (car ⟦bnd⟧))]
                          [x xs])
                (define α (-α.x x 𝒞))
-               (values (ρ+ ρ x α)
-                       (σ⊔! σ α 'undefined #t))))
+               (σ⊔! σ α 'undefined #t)
+               (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* Γ 𝒞 σ σₖ M
             (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ* (rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
      [(-set! x e*)

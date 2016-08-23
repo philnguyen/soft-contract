@@ -108,14 +108,14 @@
            (cons (list x V sₓ) acc)))
        (match ⟦bnd⟧s
          ['()
-          (define-values (ρ* Γ* _)
-            (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ] [_ : Void (void)])
+          (define-values (ρ* Γ*) ; with side effect widening store
+            (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                       ([bnd-W bnd-Ws])
               (match-define (list (? Var-Name? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
               (define α (-α.x x 𝒞))
+              (σ⊔! σ α Vₓ #t)
               (values (ρ+ ρ x α)
-                      (-Γ-with-aliases Γ x sₓ)
-                      (σ⊔! σ α Vₓ #t))))
+                      (-Γ-with-aliases Γ x sₓ))))
           (⟦e⟧ ρ* Γ* 𝒞 σ σₖ M ⟦k⟧)]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
           (⟦e⟧* ρ Γ 𝒞 σ σₖ M (let∷ l xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
@@ -138,12 +138,12 @@
     (define n (length xs))
     (cond
       [(= n (length Vs))
-       (define-values (_ Γ*)
-         (for/fold ([_ : Void (void)] [Γ  : -Γ  Γ])
+       (define Γ* ; with side effect widening store
+         (for/fold ([Γ : -Γ Γ])
                    ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
            (define α (-α.x x 𝒞))
-           (values (σ⊔! σ α Vₓ #t)
-                   (Γ+ (-Γ-with-aliases Γ x sₓ) (-?@ 'defined? (-x x))))))
+           (σ⊔! σ α Vₓ #t)
+           (Γ+ (-Γ-with-aliases Γ x sₓ) (-?@ 'defined? (-x x)))))
        (match ⟦bnd⟧s
          ['()
           (⟦e⟧ ρ Γ* 𝒞 σ σₖ M ⟦k⟧)]
@@ -188,30 +188,28 @@
     (match-define (-W (list D) d) A)
     (define β (-α.rng ℓ 𝒞))
     (σ⊔! σ β D #t)
-    (define-values (_ αs cs)
-      (for/fold ([_ : Void (void)]
-                 [αs : (Listof -α.dom) '()]
+    (define-values (αs cs) ; with side effect widening store
+      (for/fold ([αs : (Listof -α.dom) '()]
                  [cs : (Listof -s) '()])
                 ([(W i) (in-indexed Ws)])
         (match-define (-W C c) W)
         (define α (-α.dom ℓ 𝒞 i))
-        (values (σ⊔! σ α C #t)
-                (cons α αs)
-                (cons c cs))))
+        (σ⊔! σ α C #t)
+        (values (cons α αs) (cons c cs))))
     (define G (-W (list (-=> αs β ℓ)) (-?-> cs d)))
     (⟦k⟧ G Γ 𝒞 σ σₖ M)))
 
 (: mk-=>i! : -σ -Γ -𝒞 (Listof -W¹) -Clo (Option -λ) -ℓ → (Values -V -s))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
 (define (mk-=>i! σ Γ 𝒞 Ws Mk-D mk-d ℓ)
-  (define-values (_ αs cs)
-    (for/fold ([_  : Void (void)]
-               [αs : (Listof -α.dom) '()]
+  (define-values (αs cs) ; with side effect widening store
+    (for/fold ([αs : (Listof -α.dom) '()]
                [cs : (Listof -s) '()])
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
       (define α (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?))) ; why TR randomly can't prove `i`???
-      (values (σ⊔! σ α C #t) (cons α αs) (cons c cs))))
+      (σ⊔! σ α C #t)
+      (values (cons α αs) (cons c cs))))
   (define β (-α.rng ℓ 𝒞))
   (define G (-=>i αs β ℓ))
   (define g (-?->i cs mk-d))
@@ -273,16 +271,15 @@
     (define Cs* (cons (-W¹ C c) Cs))
     (match ⟦c⟧s
       ['()
-       (define-values (_ αs cs flat?)
-         (for/fold ([_ : Void (void)]
-                    [αs : (Listof -α.struct/c) '()]
+       (define-values (αs cs flat?) ; with side effect widening store
+         (for/fold ([αs : (Listof -α.struct/c) '()]
                     [cs : (Listof -s) '()]
                     [flat? : Boolean #t])
                    ([(W i) (in-indexed Cs*)])
            (match-define (-W¹ C c) W)
            (define α (-α.struct/c ℓ 𝒞 (assert i exact-nonnegative-integer?)))
-           (values (σ⊔! σ α C #t)
-                   (cons α αs)
+           (σ⊔! σ α C #t)
+           (values (cons α αs)
                    (cons c cs)
                    (and flat? (C-flat? C)))))
        (define W (-W (list (-St/C flat? si αs)) (-?struct/c si cs)))
