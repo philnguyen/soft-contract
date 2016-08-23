@@ -4,7 +4,7 @@
 (provide
  ℘ ∅ ∅eq ∪ ∩ →∅ →∅eq ∋ ∈ ⊆ --
  set-add-list define-set define-set set-partition collect merge set->predicate map/set
- for/union for/unioneq for/seteq: for*/seteq:)
+ for/union for/unioneq for*/union for*/unioneq for/seteq: for*/seteq:)
 
 (require
  racket/match racket/set
@@ -68,10 +68,22 @@
      (for/fold ([acc : τ ∅]) (for-clauses ...)
        (set-union acc (let () body ...)))]))
 
+(define-syntax for*/union
+  (syntax-rules (:)
+    [(_ : τ (for-clauses ...) body ...)
+     (for*/fold ([acc : τ ∅]) (for-clauses ...)
+       (set-union acc (let () body ...)))]))
+
 (define-syntax for/unioneq
   (syntax-rules (:)
     [(_ : τ (for-clauses ...) body ...)
      (for/fold ([acc : τ ∅eq]) (for-clauses ...)
+       (set-union acc (let () body ...)))]))
+
+(define-syntax for*/unioneq
+  (syntax-rules (:)
+    [(_ : τ (for-clauses ...) body ...)
+     (for*/fold ([acc : τ ∅eq]) (for-clauses ...)
        (set-union acc (let () body ...)))]))
 
 (define-syntax for/seteq:

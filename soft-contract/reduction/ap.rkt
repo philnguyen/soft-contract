@@ -49,47 +49,12 @@
 
 ;; Apply value `Wₕ` to arguments `Wₓ`s, returning store widening, answers, and suspended computation
 (define/memo (ap [l : Mon-Party] [ℓ : -ℓ] [Wₕ : -W¹] [Wₓs : (Listof -W¹)]) : -⟦e⟧
-  (match-define (-W¹ Vₕ sₕ) Wₕ)
-  (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
-  (define sₐ
-    (let ([sₕ* (match Vₕ
-                 [(? -o? o) o]
-                 [(-Ar _ (-α.def (-𝒾 o 'Λ)) _) o]
-                 [(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
-                 [_ sₕ])])
-      (apply -?@ sₕ* sₓs)))
-
-  (: blm-arity : Arity Natural → -blm)
-  (define (blm-arity required provided)
-    ;; HACK for error message, but probably no need to fix
-    (define msg : Symbol
-      (cond
-        [sₕ (format-symbol "~a requires ~a arguments" (format "~a" (show-e sₕ)) required)]
-        [else (format-symbol "require ~a arguments" required)]))
-    (-blm l 'Λ (list msg) Vₓs))
 
   (λ (M σ X ℒ₀)
     (match-define (-ℒ ρ₀ Γ₀ 𝒞₀) ℒ₀)
 
-    ;; Make sure `Wₕ` handles the number of arguments passed
-    (define-syntax-rule (with-guarded-arity a* e ...)
-      (let ([n (length Wₓs)]
-            [a a*])
-        (cond
-          [(arity-includes? a n) e ...]
-          [else (values ⊥σ ∅ {set (-ΓE Γ₀ (blm-arity a n))} ∅ ∅)])))
-
     ;; Different handlers depending on the type of `Wₕ`.
     ;; Lots of free variables from above.
-
-    (: ap/δ : Symbol → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
-    ;; Apply primitive
-    (define (ap/δ o)
-      (define-values (δσ A*) (δ 𝒞₀ ℓ M σ Γ₀ o Wₓs))
-      (cond [(list? A*)
-             (values δσ {set (-ΓW Γ₀ (-W A* sₐ))} ∅ ∅ ∅)]
-            ;; Rely on `δ` giving no error
-            [else (⊥ans)]))
 
     (: ap/β : -formals -⟦e⟧ -ρ -Γ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
     ;; Apply λ abstraction
@@ -232,24 +197,6 @@
     ;; Apply function wrapped in `case->`
     (define (ap/case C Vᵤ l³)
       (error 'ap/case "TODO"))
-
-    (: ap/And/C : -W¹ -W¹ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
-    (define (ap/And/C WC₁ WC₂)
-      (define ⟦e⟧₁ (ap l ℓ WC₁ Wₓs))
-      (define ⟦e⟧₂ (ap l ℓ WC₂ Wₓs))
-      (((↝.if l ⟦e⟧₂ ⟦ff⟧) ⟦e⟧₁) M σ X ℒ₀))
-
-    (: ap/Or/C : -W¹ -W¹ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
-    (define (ap/Or/C WC₁ WC₂)
-      (define ⟦e⟧₁ (ap l ℓ WC₁ Wₓs))
-      (define ⟦e⟧₂ (ap l ℓ WC₂ Wₓs))
-      ;; FIXME not quite
-      (((↝.if l ⟦tt⟧ ⟦e⟧₂) ⟦e⟧₁) M σ X ℒ₀))
-
-    (: ap/Not/C : -W¹ → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
-    (define (ap/Not/C WC*)
-      (define ⟦e⟧* (ap l ℓ WC* Wₓs))
-      (((↝.@ l ℓ (list -not/W) '()) ⟦e⟧*) M σ X ℒ₀))
 
     (: ap/St/C : -struct-info (Listof -W¹) → (Values -Δσ (℘ -ΓW) (℘ -ΓE) -ΔX (℘ -ℐ)))
     (define (ap/St/C s W-Cs)

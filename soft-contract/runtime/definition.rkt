@@ -40,16 +40,15 @@
   (match-define (-σr Vs old?) (hash-ref σ α (λ () (error 'σ@ "no address ~a" α))))
   (values Vs old?))
 
+(: σ@ᵥ : -σ -α → (℘ -V))
+(define (σ@ᵥ σ α)
+  (define-values (Vs _) (σ@ σ α))
+  Vs)
+
 (: σr⊔ : -σr -V Boolean → -σr)
 (define (σr⊔ σr V bind?)
   (match-define (-σr Vs bind?₀) σr)
   (-σr (set-add Vs V) (and bind?₀ bind?)))
-
-#;(: σ⊔ : -σ -α -V Boolean → -σ)
-#;(define (σ⊔ σ α V bind?)
-  (hash-update σ α
-               (λ ([σr₀ : -σr]) (σr⊔ σr₀ V bind?))
-               (λ () ⊥σr)))
 
 (: σ⊔! : -σ -α -V Boolean → Void)
 (define (σ⊔! σ α V bind?)
@@ -65,15 +64,6 @@
        (σ⊔!  σ α V b?)
        (σ⊔*! σ p ...))]))
 
-#;(: ⊔σ : -σ -σ → -σ)
-#;(define (⊔σ σ₁ σ₂)
-  (for/fold ([σ : -σ σ₁]) ([(α σr) (in-hash σ₂)])
-    (hash-update σ α
-                 (λ ([σr₀ : -σr])
-                   (match-define (-σr Vs₀ old?₀) σr₀)
-                   (match-define (-σr Vs  old? ) σr )
-                   (-σr (∪ Vs₀ Vs) (and old?₀ old?)))
-                 (λ () ⊥σr))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stack Store

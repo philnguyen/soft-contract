@@ -6,15 +6,11 @@
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt"
+         "utils.rkt"
          "base.rkt"
          "app.rkt"
          racket/set
          racket/match)
-
-(define-syntax-rule (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M) e ...)
-  (λ (A Γ 𝒞 σ σₖ M)
-    (cond [(-blm? A) (⟦k⟧ A Γ 𝒞 σ σₖ M)] ; TODO faster if had `αₖ` here
-          [else e ...])))
 
 ;; Base continuation that returns locally finished configuration
 (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧!

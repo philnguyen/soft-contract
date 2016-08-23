@@ -12,6 +12,8 @@
 (define -Null -null)
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
+(define -True/W  (-W -True/Vs  -tt))
+(define -False/W (-W -False/Vs -ff))
 (define -●/V (-● ∅))
 (define -●/Vs (list -●/V))
 (define -Bool/Vs (list (-● {set 'boolean?})))

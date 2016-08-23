@@ -7,6 +7,7 @@
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt"
          "../delta.rkt"
+         "utils.rkt"
          "base.rkt"
          racket/set
          racket/match)
@@ -151,6 +152,33 @@
        (⊔! σₖ αₖ κ)
        {set (-ς↑ αₖ Γₕ 𝒞*)}]
       [else (error 'app-clo "TODO: varargs")]))
+
+  (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
+    (app l ℓ W₁ Wₓs Γ 𝒞 σ σₖ M (and/c∷ l ℓ W₂ (car Wₓs) ⟦k⟧)))
+
+  (define (app-Or/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
+    (app l ℓ W₁ Wₓs Γ 𝒞 σ σₖ M (or/c∷ l ℓ W₂ (car Wₓs) ⟦k⟧)))
+  
+  (define (app-Not/C [Wᵤ : -W¹]) : (℘ -ς)
+    (app l ℓ Wᵤ Wₓs Γ 𝒞 σ σₖ M (not/c∷ l ⟦k⟧)))
+
+  (define (app-St/C [s : -struct-info] [Ws : (Listof -W¹)]) : (℘ -ς)
+    (match-define (list Wₓ) Wₓs)
+    (match-define (-W¹ Vₓ _) Wₓ)
+    (match Vₓ
+      [(or (-St (== s) _) (-St* (== s) _ _ _))
+       (error 'app-St/C "TODO")]
+      [_
+       (⟦k⟧ -False/W Γ 𝒞 σ σₖ M)]))
+
+  (define (app-Ar [C : -V] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
+    (error 'app-Ar "TODO"))
+
+  (define (app-Indy [C : -V] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
+    (error 'app-Indy "TODO"))
+
+  (define (app-Case [C : -V] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
+    (error 'app-Case "TODO"))
   
   (match Vₕ
     ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped
@@ -176,19 +204,41 @@
      (error 'app "TODO: case-lambda")]
     [(-Ar C α l³)
      (with-guarded-arity (guard-arity C)
-       (error 'app "TODO: guarded function"))]
+       (cond
+         [(-=>? C)  (for/union : (℘ -ς) ([Vᵤ (σ@ᵥ σ α)]) (app-Ar   C Vᵤ l³))]
+         [(-=>i? C) (for/union : (℘ -ς) ([Vᵤ (σ@ᵥ σ α)]) (app-Indy C Vᵤ l³))]
+         [else      (for/union : (℘ -ς) ([Vᵤ (σ@ᵥ σ α)]) (app-Case C Vᵤ l³))]))]
     [(-And/C #t α₁ α₂)
      (with-guarded-arity 1
-       (error 'app "TODO: and/c"))]
+       (define-values (c₁ c₂)
+         (match-let ([(list s₁ s₂) (-app-split sₕ 'and/c 2)])
+           (values (or s₁ (and (-e? α₁) α₁))
+                   (or s₂ (and (-e? α₂) α₂)))))
+       (for*/union : (℘ -ς) ([C₁ (σ@ᵥ σ α₁)] [C₂ (σ@ᵥ σ α₂)])
+         (app-And/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
     [(-Or/C #t α₁ α₂)
      (with-guarded-arity 1
-       (error 'app "TODO: or/c"))]
+       (define-values (c₁ c₂)
+         (match-let ([(list s₁ s₂) (-app-split sₕ 'or/c 2)])
+           (values (or s₁ (and (-e? α₁) α₁))
+                   (or s₂ (and (-e? α₂) α₂)))))
+       (for*/union : (℘ -ς) ([C₁ (σ@ᵥ σ α₁)] [C₂ (σ@ᵥ σ α₂)])
+         (app-Or/C (-W¹ C₁ c₁) (-W¹ C₂ c₂))))]
     [(-Not/C α)
      (with-guarded-arity 1
-       (error 'app "TODO: not/c"))]
+       (define c*
+         (match-let ([(list s) (-app-split sₕ 'not/c 1)])
+           (or s (and (-e? α) α))))
+       (for/union : (℘ -ς) ([C* (σ@ᵥ σ α)])
+         (app-Not/C (-W¹ C* c*))))]
     [(-St/C #t s αs)
      (with-guarded-arity 1
-       (error 'app "TODO: struct/c"))]
+       (define cs : (Listof -s)
+         (for/list ([s (-struct/c-split sₕ (-struct-info-arity s))]
+                    [α αs])
+           (or s (and (-e? α) α))))
+       (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
+         (app-St/C s (map -W¹ Cs cs))))]
     [(-● _)
      (error 'app "TODO: ●")]
     [_ (error 'app "TODO: ~a" (show-V Vₕ))]))
@@ -196,3 +246,62 @@
 (: mon : -l³ -ℓ -W¹ -W¹ -Γ -𝒞 -σ -σₖ -M -⟦k⟧! → (℘ -ς))
 (define (mon l³ ℓ W-C W-V Γ 𝒞 σ σₖ M ⟦k⟧)
   (error 'mon "TODO"))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define/memo (not/c∷ [l : -l] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+    (match-define (-W Vs v) A)
+    (match Vs
+      [(list V)
+       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
+       (∪ (with-Γ Γ₁ (⟦k⟧! -False/W Γ₁ 𝒞 σ σₖ M))
+          (with-Γ Γ₂ (⟦k⟧! -True/W  Γ₂ 𝒞 σ σₖ M)))]
+      [_
+       (define blm (-blm l 'Λ '(|1 value|) Vs))
+       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
+
+(define/memo (and/c∷ [l : -l] [ℓ : -ℓ] [Wᵣ : -W¹] [Wₓ : -W¹] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+    (match-define (-W Vs v) A)
+    (match Vs
+      [(list V)
+       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
+       (∪ (with-Γ Γ₁ (app l ℓ Wᵣ (list Wₓ) Γ 𝒞 σ σₖ M ⟦k⟧!))
+          (with-Γ Γ₂ (⟦k⟧! -False/W Γ₂ 𝒞 σ σₖ M)))]
+      [_
+       (define blm (-blm l 'Λ '(|1 value|) Vs))
+       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
+
+(define/memo (or/c∷ [l : -l] [ℓ : -ℓ] [Wᵣ : -W¹] [Wₓ : -W¹] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+    (match-define (-W Vs v) A)
+    (match Vs
+      [(list V)
+       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
+       (∪ (with-Γ Γ₁ (⟦k⟧! A Γ₁ 𝒞 σ σₖ M))
+          (with-Γ Γ₂ (app l ℓ Wᵣ (list Wₓ) Γ₂ 𝒞 σ σₖ M ⟦k⟧!)))]
+      [_
+       (define blm (-blm l 'Λ '(|1 value|) Vs))
+       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
+
+(define/memo (st/c∷ [l : -l]
+                    [ℓ : -ℓ]
+                    [Wᵢs : (Listof -W¹)]
+                    [Wᵥs : (Listof -W¹)]
+                    [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+    (match-define (-W Vs v) A)
+    (match Vs
+      [(list V)
+       (match* (Wᵢs Wᵥs)
+         [('() '())
+          (error 'st/c "TODO")]
+         [((cons Wᵢ Wᵢs) (cons Wᵥ Wᵥs))
+          (error 'st/c "TODO")])]
+      [_
+       (define blm (-blm l 'Λ '(|1 value|) Vs))
+       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
