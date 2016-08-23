@@ -23,6 +23,22 @@
                  [_ sₕ])])
       (apply -?@ sₕ* sₓs)))
 
+  (: blm-arity : Arity Natural → -blm)
+  (define (blm-arity required provided)
+    ;; HACK for error message. Probably no need to fix
+    (define msg : Symbol
+      (cond
+        [sₕ (format-symbol "~a requires ~a arguments" (format "~a" (show-e sₕ)) required)]
+        [else (format-symbol "require ~a arguments" required)]))
+    (-blm l 'Λ (list msg) Vₓs))
+
+  (define-syntax-rule (with-guarded-arity a* e ...)
+    (let ([n (length Wₓs)]
+          [a a*])
+      (cond
+        [(arity-includes? a n) e ...]
+        [else (⟦k⟧ (blm-arity a n) Γ 𝒞 σ σₖ M)])))
+
   (define (app-st-p [s : -struct-info])
     (define A
       (case (MΓ⊢oW M Γ (-st-p s) (car Wₓs))
@@ -143,8 +159,8 @@
     ;; by wrapping contracts
     [(-st-p  s) (app-st-p  s)]
     [(-st-mk s) (app-st-mk s)]
-    [(-st-ac  s i) (app-st-ac  s i)]
-    [(-st-mut s i) (app-st-mut s i)]
+    [(-st-ac  s i) (with-guarded-arity 1 (app-st-ac  s i))]
+    [(-st-mut s i) (with-guarded-arity 2 (app-st-mut s i))]
     ['contract-first-order-passes? (app-contract-first-order-passes?)]
     ['vector-ref (app-vector-ref)]
     ['vector-set! (app-vector-set!)]
@@ -154,7 +170,27 @@
     ;; Regular stuff
     [(? symbol? o) (app-δ o)]
     [(-Clo xs ⟦e⟧ ρₕ Γₕ)
-     (app-clo xs ⟦e⟧ ρₕ Γₕ)]
+     (with-guarded-arity (formals-arity xs)
+       (app-clo xs ⟦e⟧ ρₕ Γₕ))]
+    [(-Case-Clo clauses ρ Γ)
+     (error 'app "TODO: case-lambda")]
+    [(-Ar C α l³)
+     (with-guarded-arity (guard-arity C)
+       (error 'app "TODO: guarded function"))]
+    [(-And/C #t α₁ α₂)
+     (with-guarded-arity 1
+       (error 'app "TODO: and/c"))]
+    [(-Or/C #t α₁ α₂)
+     (with-guarded-arity 1
+       (error 'app "TODO: or/c"))]
+    [(-Not/C α)
+     (with-guarded-arity 1
+       (error 'app "TODO: not/c"))]
+    [(-St/C #t s αs)
+     (with-guarded-arity 1
+       (error 'app "TODO: struct/c"))]
+    [(-● _)
+     (error 'app "TODO: ●")]
     [_ (error 'app "TODO: ~a" (show-V Vₕ))]))
 
 (: mon : -l³ -ℓ -W¹ -W¹ -Γ -𝒞 -σ -σₖ -M -⟦k⟧! → (℘ -ς))
