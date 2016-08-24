@@ -29,17 +29,13 @@
   ;(printf "ext-plausible-pc?~nM:~n~a~nΓ:~n~a~n~n" (show-M M) (show-Γ Γ))
   (match-define (cons base _) (encode M Γ #|HACK|# -ff))
   (case (exec-check-sat₀ base)
-    [(unsat) #f]
-    [else #t]))
+    [(false) #f]
+    [(undef true) #t]))
 
 (define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:LBool
   (with-fresh-context (#:timeout (Timeout))
     (asserts)
-    (check-sat))
-  #;(with-fresh-solver
-    (with-fresh-environment
-      (asserts)
-      (check-sat))))
+    (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
   (with-fresh-context (#:timeout (Timeout))
@@ -53,24 +49,11 @@
              (z3:lbool->sat-result
               (with-local-push-pop
                 (assert! (@/s 'is_truish (goal)))
-                (check-sat))))]))
-  #;(with-fresh-solver
-    (with-fresh-environment
-      (asserts)
-      (match (with-local-push-pop
-              (assert! (@/s 'is_false (goal)))
-              (check-sat))
-        ['false (cons 'unsat 'unknown)]
-        [a
-         (cons (z3:lbool->sat-result a)
-               (z3:lbool->sat-result
-                (with-local-push-pop
-                 (assert! (@/s 'is_truish (goal)))
-                 (check-sat))))]))))
+                (check-sat))))])))
 
 (: z3:lbool->sat-result : Z3:LBool → Sat-Result)
 (define (z3:lbool->sat-result x)
   (case x
     [(false) 'unsat]
     [(true) 'sat]
-    [else 'unknown]))
+    [(undef) 'unknown]))
