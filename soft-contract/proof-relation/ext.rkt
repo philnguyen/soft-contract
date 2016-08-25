@@ -35,21 +35,24 @@
 (define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:LBool
   (with-fresh-context (#:timeout (Timeout))
     (asserts)
-    (check-sat-and-log! 'exec-check-sat₀)))
+    #;(check-sat-and-log! 'exec-check-sat₀)
+    (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
   (with-fresh-context (#:timeout (Timeout))
     (asserts)
     (match (with-local-push-pop
              (assert! (@/s 'is_false (goal)))
-             (check-sat-and-log! 'exec-check-sat-neg))
+             #;(check-sat-and-log! 'exec-check-sat-neg)
+             (check-sat))
       ['false (cons 'unsat 'unknown)]
       [a
        (cons (z3:lbool->sat-result a)
              (z3:lbool->sat-result
               (with-local-push-pop
                 (assert! (@/s 'is_truish (goal)))
-                (check-sat-and-log! 'exec-check-sat))))])))
+                #;(check-sat-and-log! 'exec-check-sat)
+                (check-sat))))])))
 
 (: z3:lbool->sat-result : Z3:LBool → Sat-Result)
 (define (z3:lbool->sat-result x)

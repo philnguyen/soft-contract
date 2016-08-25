@@ -26,7 +26,11 @@
   #:transparent)
 (struct App ([ctx : -τ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
-(Defn-Entry . ::= . -o App)
+(define-type App-Trace (℘ App))
+;; Translation context for application includes the application and history of calls
+;; that result in it
+(struct App-Ctx ([app : App] [ctx : App-Trace]) #:transparent)
+(Defn-Entry . ::= . -o App-Ctx)
 (define-type Memo-Table
   ;; Memo table maps each function application to a pair of formulas:
   ;; - When application succeeds
@@ -36,10 +40,8 @@
 ;(: encode : -M -Γ -e → (Values →Void →Z3:Ast))
 ;; Encode `M Γ ⊢ e` into a pair of thunks that emit assertions and goal to check for
 ;; satisfiability
-(define/memo (encode [M : -M]
-                     [Γ : -Γ]
-                     [e : -e]) : (Pairof →Void →Z3:Ast)
-  (match-define (cons refs top-entry) (encode-e ∅eq Γ e))
+(define/memo (encode [M : -M] [Γ : -Γ] [e : -e]) : (Pairof →Void →Z3:Ast)
+  (match-define (cons refs top-entry) (encode-e ∅ ∅eq Γ e))
   (let loop ([fronts   : (℘ Defn-Entry) refs]
              [seen     : (℘ Defn-Entry) refs]
              [def-funs : Memo-Table (hash)])
@@ -63,10 +65,10 @@
                    ([front fronts])
            (define-values (def-funs** refs+)
              (match front
-               [(App τ fvs xs)
+               [(and app-ctx (App-Ctx (and app (App τ _ _)) _))
                 (define As (hash-ref M τ))
-                (match-define (cons refs entries) (encode-τ τ fvs xs As))
-                (values (hash-set def-funs* front entries) refs)]
+                (match-define (cons refs entries) (encode-App-Ctx app-ctx As))
+                (values (hash-set def-funs* app entries) refs)]
                [(? -o? o)
                 (values def-funs* ∅)]))
            (define-values (fronts** seen**)
@@ -78,20 +80,18 @@
            (values fronts** seen** def-funs**)))
        (loop fronts* seen* def-funs*)])))
 
-;(: encode-τ : -τ (Listof Var-Name) (Listof Var-Name) (℘ -A) → (Values (℘ Defn-Entry) Res))
 ;; Translate memo-table entry `τ(xs) → {A…}` to pair of formulas for when application
 ;; fails and passes
-(define/memo (encode-τ [τ : -τ]
-                  [fvs : (Listof Var-Name)]
-                  [xs : (Listof Var-Name)]
-                  [As : (℘ -A)]) : (Pairof (℘ Defn-Entry) Res)
+(define/memo (encode-App-Ctx [app-ctx : App-Ctx] [As : (℘ -A)]) : (Pairof (℘ Defn-Entry) Res)
   (define-set refs : Defn-Entry)
+  (match-define (App-Ctx app ctx) app-ctx)
+  (match-define (App τ fvs xs) app)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
   (define tₓs : (Listof →Z3:Ast)
     (for/list ([x xs])
       (define t (⦃x⦄ x))
       (λ () (get-val t))))
-  (define fₕ (fun-name τ fvs xs))
+  (define fₕ (fun-name app))
   (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
   (define bound (∪ (list->seteq fvs) (list->seteq xs)))
 
@@ -105,21 +105,21 @@
          (define eₒₖ
            (cond
              [sₐ
-              (match-define (cons refs+ entry) (encode-e bound Γ sₐ))
+              (match-define (cons refs+ entry) (encode-e ctx bound Γ sₐ))
               (refs-union! refs+)
               (match-define (Entry free-vars facts tₐₙₛ) entry)
               (Entry free-vars
                      (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Val (tₐₙₛ)))))
                      tₐₙₛ)]
              [else
-              (match-define (cons refs+ entry) (encode-e bound Γ #|HACK|# -ff))
+              (match-define (cons refs+ entry) (encode-e ctx bound Γ #|HACK|# -ff))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
               (Entry free-vars facts #|hack|# (λ () (@/s 'B (false/s))))]))
          (values (cons eₒₖ oks) ers)]
         [(-ΓE Γ (-blm l+ lo _ _))
          (define eₑᵣ
-           (match-let ([(cons refs+ entry) (encode-e bound Γ #|hack|# -ff)])
+           (match-let ([(cons refs+ entry) (encode-e ctx bound Γ #|hack|# -ff)])
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
@@ -132,7 +132,8 @@
 ;; Encode path-condition `Γ` and expression `e` into a
 ;; - a Z3:Ast-producing thunk, and
 ;; - a set of function definitions to encode
-(define/memo (encode-e [bound : (℘ Var-Name)]
+(define/memo (encode-e [trace : App-Trace]
+                       [bound : (℘ Var-Name)]
                        [Γ : -Γ]
                        [e : -e]) : (Pairof (℘ Defn-Entry) Entry)
   
@@ -145,12 +146,13 @@
     (make-hash))
   (define-set refs : Defn-Entry)
   (match-define (-Γ φs _ γs) Γ)
-  
-  (define fresh-free! : (→ Symbol)
-    (let ([i : Natural 0])
-      (λ ()
-        (define x (format-symbol "i.~a" i))
-        (set! i (+ 1 i))
+
+  (define fresh-free! : (Symbol → Symbol)
+    (let ([m : (HashTable Symbol Natural) (make-hasheq)])
+      (λ (s)
+        (hash-update! m s add1 (λ () 0))
+        (define i (hash-ref m s))
+        (define x (format-symbol "~a.~a" s i))
         (free-vars-add! x)
         x)))
 
@@ -165,15 +167,10 @@
                      (λ () (get-val tₐ)))))))
 
   ;; Add a reminder to encode memo table entries for `τ(xs)` as a 1st-order function
-  (define/memo (⦃fun⦄!
-                [τ : -τ]
-                [eₕ : -e]
-                [fvs : (Listof Var-Name)]
-                [xs  : (Listof Var-Name)]) : Symbol
-     (define _ (⦃e⦄! eₕ))
-     (define ⦃fv⦄s (map ⦃x⦄ fvs))
-     (refs-add! (App τ fvs xs))
-     (fun-name τ fvs xs))
+  (define/memo (⦃fun⦄! [eₕ : -e] [app : App]) : Symbol
+     (⦃e⦄! eₕ) ; for "side-effect" of `eₕ` having evaluated
+     (refs-add! (App-Ctx app (set-add trace app)))
+     (fun-name app))
 
   ;; encode application
   (define/memo (⦃app⦄!
@@ -182,10 +179,19 @@
                 [fvs : (Listof Var-Name)]
                 [xs : (Listof Var-Name)]
                 [eₓs : (Listof -e)]) : →Z3:Ast
-    (define f (⦃fun⦄! τ eₕ fvs xs))
-    (define ⦃fvs⦄ (map ⦃x⦄ fvs))
-    (define ⦃eₓs⦄ (map ⦃e⦄! eₓs))
-    (-tapp f ⦃fvs⦄ ⦃eₓs⦄))
+    (define app (App τ fvs xs))
+    (cond
+      ;; If this is a recursive application, just existentialize the result for now,
+      ;; because encoding of recursive functions slows down Z3 for sat/unknown queries
+      [(∋ trace app)
+       (define t (fresh-free! 'rec-app))
+       ;(printf "Existentializing recursive app~n")
+       (λ () (@/s 'Val (get-val t)))]
+      [else
+       (define f (⦃fun⦄! eₕ app))
+       (define ⦃fvs⦄ (map ⦃x⦄ fvs))
+       (define ⦃eₓs⦄ (map ⦃e⦄! eₓs))
+       (-tapp f ⦃fvs⦄ ⦃eₓs⦄)]))
   
   ;; encode that `e` has successfully evaluated
   (define/memo (⦃e⦄! [e : -e]) : →Z3:Ast
@@ -204,7 +210,7 @@
          (free-vars-add! t))
        (λ () (get-val t))]
       [(-λ xs e)
-       (define t (fresh-free!))
+       (define t (fresh-free! 'l))
        (props-add! (λ () (@/s 'is-Proc t)))
        (cond
          [(list? xs) (props-add! (λ () (=/s (@/s 'arity t) (length xs))))]
@@ -259,7 +265,7 @@
                         (λ (_)
                           ;; suppress for now
                           (printf "Z3 translation: unsupported primitive: `~a`~n" (show-o o))
-                          (define t (fresh-free!))
+                          (define t (fresh-free! 'o))
                           (λ () (get-val t)))])
          (app-o o ts))]
       [(-@ eₕ eₓs _)
@@ -273,18 +279,18 @@
                  (define tₐₚₚ (⦃app⦄! τ eₕ fvs xs eₓs))
                  (app-term! tₐₚₚ)]
                 [else #f]))
-        (let ([t (fresh-free!)])
+        (let ([t (fresh-free! 'app)])
           (λ () (get-val t))))]
       [(? -->?)
-       (define t (fresh-free!))
+       (define t (fresh-free! 'arr))
        (props-add! (λ () (@/s 'is-Arr t)))
        (λ () (get-val t))]
       [(? -->i?)
-       (define t (fresh-free!))
+       (define t (fresh-free! 'dep))
        (props-add! (λ () (@/s 'is-ArrD t)))
        (λ () (get-val t))]
       [(? -struct/c?)
-       (define t (fresh-free!))
+       (define t (fresh-free! 'stc))
        (props-add! (λ () (@/s 'is-St/C t)))
        (λ () (get-val t))]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
@@ -607,7 +613,7 @@
         (for/list ([x xs])
           (define t (⦃x⦄ x))
           (λ () (get-val t))))
-      (define fₕ (fun-name τ fvs xs))
+      (define fₕ (fun-name f-xs))
       (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
       (match-define (Res oks ers) res)
 
@@ -702,11 +708,11 @@
             (arg))))
        (apply @/s f all-args))]))
 
-(: fun-name : -τ (Listof Var-Name) (Listof Var-Name) → Symbol)
+(: fun-name : App → Symbol)
 (define fun-name
-  (let ([m : (HashTable (List -τ (Listof Var-Name) (Listof Var-Name)) Symbol) (make-hash)])
-    (λ (τ fvs xs)
-      (hash-ref! m (list τ fvs xs) (λ () (format-symbol "f.~a" (hash-count m)))))))
+  (let ([m : (HashTable App Symbol) (make-hash)])
+    (λ (app)
+      (hash-ref! m app (λ () (format-symbol "f.~a" (hash-count m)))))))
 
 (: ⦃𝒾⦄ : -𝒾 → Symbol)
 (define (⦃𝒾⦄ 𝒾)
