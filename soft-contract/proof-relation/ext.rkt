@@ -34,7 +34,6 @@
 (define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:Sat-LBool
   (with-new-context (#:timeout (Timeout))
     (asserts)
-    #;(check-sat-and-log! 'exec-check-sat₀)
     (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
@@ -42,23 +41,10 @@
     (asserts)
     (match (with-local-stack
              (assert! (@/s 'is_false (goal)))
-             #;(check-sat-and-log! 'exec-check-sat-neg)
              (check-sat))
       ['false (cons 'unsat 'unknown)]
       [a
        (cons a
              (with-local-stack
                (assert! (@/s 'is_truish (goal)))
-               #;(check-sat-and-log! 'exec-check-sat)
                (check-sat)))])))
-
-(: check-sat-and-log! ([Symbol] [#:minimum-time Natural] . ->* . Z3:Sat-LBool))
-(define (check-sat-and-log! tag #:minimum-time [minimum-time (* 2 (quotient (Timeout) 3))])
-  (define-values (reses t₁ t₂ t₃) (time-apply check-sat '()))
-  (define log (get-log))
-  (define res (car reses))
-  (when (>= t₁ minimum-time)
-    (printf "~a : ~a, ~a~n" tag res t₁)
-    (for ([l log]) (printf "~a~n" l))
-    (printf "~n"))
-  res)
