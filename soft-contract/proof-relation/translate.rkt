@@ -11,10 +11,7 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "z3-rkt/z3-wrapper.rkt"
-         "z3-rkt/parser.rkt"
-         "z3-rkt/builtins.rkt"
-         "z3-rkt/main.rkt")
+         "z3-rkt/smt/main.rkt")
 
 (struct exn:scv:unsupported exn () #:transparent)
 (define-type →Z3:Ast (→ Z3:Ast))
@@ -210,7 +207,7 @@
          (free-vars-add! t))
        (λ () (get-val t))]
       [(-λ xs e)
-       (define t (fresh-free! 'l))
+       (define t (fresh-free! 'lam))
        (props-add! (λ () (@/s 'is-Proc t)))
        (cond
          [(list? xs) (props-add! (λ () (=/s (@/s 'arity t) (length xs))))]
@@ -655,9 +652,9 @@
        (cons
         (λ ()
           (assert! (∀/V params (=>/s (@/s 'is-Val (tₐₚₚ)) (ok-cond))
-                           #:patterns (list (mk-pattern (get-context) (tₐₚₚ)))))
+                           #:patterns (list (pattern-of (tₐₚₚ)))))
           (assert! (∀/V params (=>/s (@/s 'is-Blm (tₐₚₚ)) (er-cond))
-                           #:patterns (list (mk-pattern (get-context) (tₐₚₚ))))))
+                           #:patterns (list (pattern-of (tₐₚₚ))))))
         defs))))
 
   (define (emit-dec-consts)

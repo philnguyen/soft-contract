@@ -8,10 +8,9 @@
          "../runtime/main.rkt"
          "result.rkt"
          "translate.rkt"
-         "z3-rkt/z3-wrapper.rkt"
-         "z3-rkt/parser.rkt"
-         "z3-rkt/builtins.rkt"
-         "z3-rkt/main.rkt")
+         (only-in "z3-rkt/ffi/main.rkt" toggle-warning-messages!)
+         "z3-rkt/smt/main.rkt"
+         )
 
 (define-parameter Timeout : Nonnegative-Fixnum 500)
 (Sat-Result . ::= . Z3:Sat-LBool 'timeout)
@@ -29,39 +28,31 @@
   ;(printf "ext-plausible-pc?~nM:~n~a~nΓ:~n~a~n~n" (show-M M) (show-Γ Γ))
   (match-define (cons base _) (encode M Γ #|HACK|# -ff))
   (case (exec-check-sat₀ base)
-    [(false) #f]
-    [(undef true) #t]))
+    [(unsat) #f]
+    [(sat unknown) #t]))
 
-(define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:LBool
-  (with-fresh-context (#:timeout (Timeout))
+(define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:Sat-LBool
+  (with-new-context (#:timeout (Timeout))
     (asserts)
     #;(check-sat-and-log! 'exec-check-sat₀)
     (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
-  (with-fresh-context (#:timeout (Timeout))
+  (with-new-context (#:timeout (Timeout))
     (asserts)
-    (match (with-local-push-pop
+    (match (with-local-stack
              (assert! (@/s 'is_false (goal)))
              #;(check-sat-and-log! 'exec-check-sat-neg)
              (check-sat))
       ['false (cons 'unsat 'unknown)]
       [a
-       (cons (z3:lbool->sat-result a)
-             (z3:lbool->sat-result
-              (with-local-push-pop
-                (assert! (@/s 'is_truish (goal)))
-                #;(check-sat-and-log! 'exec-check-sat)
-                (check-sat))))])))
+       (cons a
+             (with-local-stack
+               (assert! (@/s 'is_truish (goal)))
+               #;(check-sat-and-log! 'exec-check-sat)
+               (check-sat)))])))
 
-(: z3:lbool->sat-result : Z3:LBool → Sat-Result)
-(define (z3:lbool->sat-result x)
-  (case x
-    [(false) 'unsat]
-    [(true) 'sat]
-    [(undef) 'unknown]))
-
-(: check-sat-and-log! ([Symbol] [#:minimum-time Natural] . ->* . Z3:LBool))
+(: check-sat-and-log! ([Symbol] [#:minimum-time Natural] . ->* . Z3:Sat-LBool))
 (define (check-sat-and-log! tag #:minimum-time [minimum-time (* 2 (quotient (Timeout) 3))])
   (define-values (reses t₁ t₂ t₃) (time-apply check-sat '()))
   (define log (get-log))
