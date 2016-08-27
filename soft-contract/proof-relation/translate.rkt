@@ -112,7 +112,7 @@
               (match-define (cons refs+ entry) (encode-e ctx bound Γ #|HACK|# -ff))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
-              (Entry free-vars facts #|hack|# (λ () (@/s 'B (false/s))))]))
+              (Entry free-vars facts #|hack|# (λ () (@/s 'B false/s)))]))
          (values (cons eₒₖ oks) ers)]
         [(-ΓE Γ (-blm l+ lo _ _))
          (define eₑᵣ
@@ -121,7 +121,7 @@
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
                     (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Blm (⦃l⦄ l+) (⦃l⦄ lo)))))
-                    #|HACK|# (λ () (@/s 'B (false/s))))))
+                    #|HACK|# (λ () (@/s 'B false/s)))))
          (values oks (cons eₑᵣ ers))])))
   (cons refs (Res oks ers)))
 
@@ -367,8 +367,8 @@
           (@/s 'St_2 (⦃struct-info⦄ -s-cons) tₗ tᵣ))
         (get-val 'Null)
         (for/list : (Listof Z3:Ast) ([t ts]) (t))))]
-    [(any/c) (λ () (@/s 'B (true/s)))]
-    [(none/c) (λ () (@/s 'B (false/s)))]
+    [(any/c) (λ () (@/s 'B true/s))]
+    [(none/c) (λ () (@/s 'B false/s))]
     [(= equal?)
      (match-define (list t₁ t₂) ts)
      (λ () (@/s 'B (=/s (t₁) (t₂))))]
@@ -503,8 +503,8 @@
 (: ⦃b⦄ : Base → Z3:Ast)
 (define (⦃b⦄ b)
   (match b
-    [#f (@/s 'B (false/s))]
-    [#t (@/s 'B (true/s))]
+    [#f (@/s 'B false/s)]
+    [#t (@/s 'B true/s)]
     [(? number? x) (@/s 'N (real-part x) (imag-part x))]
     [(? symbol? s) (@/s 'Sym (⦃sym⦄ s))]
     [(? string? s) (@/s 'Str (⦃str⦄ s))]
@@ -526,60 +526,60 @@
       (define fields
         (for/list : (Listof (List Symbol Sort-Expr)) ([i n])
           `(,(format-symbol "field_~a_~a" n i) V)))
-      `(,St_k (,tag_k Int) ,@fields)))
+      `(,St_k (,tag_k ,Int/s) ,@fields)))
   (dynamic-declare-datatype
    'V
    `(Undefined
      Null
      Void
-     (N [real Real] [imag Real])
-     (B [unbox_B Bool])
-     (Proc [proc_id Int])
-     (Sym [sym Int])
-     (Str [str Int])
-     (And/C [and/c_id Int])
-     (Or/C [or/c_id Int])
-     (Not/C [not/c_id Int])
-     (St/C [st/c_id Int])
-     (Arr [arr_id Int])
-     (ArrD [arrD_id Int])
-     (Vec [unbox_Vec Int])
+     (N [real ,Real/s] [imag ,Real/s])
+     (B [unbox_B ,Bool/s])
+     (Proc [proc_id ,Int/s])
+     (Sym [sym ,Int/s])
+     (Str [str ,Int/s])
+     (And/C [and/c_id ,Int/s])
+     (Or/C [or/c_id ,Int/s])
+     (Not/C [not/c_id ,Int/s])
+     (St/C [st/c_id ,Int/s])
+     (Arr [arr_id ,Int/s])
+     (ArrD [arrD_id ,Int/s])
+     (Vec [unbox_Vec ,Int/s])
      ,@st-defs))
   (declare-datatype
    A
-   (Val [unbox_Val V])
-   (Blm [blm_pos Int] [blm_src Int])
+   (Val [unbox_Val 'V])
+   (Blm [blm_pos Int/s] [blm_src Int/s])
    None)
   (void))
 
 (: base-predicates : →Void)
 (define (base-predicates)
   ;; Primitive predicates
-  (define-fun is_false ([x V]) Bool
-    (=/s x (@/s 'B (false/s))))
-  (define-fun is_truish ([x V]) Bool
+  (define-fun is_false ([x V]) Bool/s
+    (=/s x (@/s 'B false/s)))
+  (define-fun is_truish ([x V]) Bool/s
     (not/s (@/s 'is_false x)))
-  (define-fun is-R ([x V]) Bool
+  (define-fun is-R ([x V]) Bool/s
     (and/s (@/s 'is-N x) (=/s 0 (@/s 'imag x))))
-  (define-fun is-Z ([x V]) Bool
+  (define-fun is-Z ([x V]) Bool/s
     (and/s (@/s 'is-R x) (is-int/s (@/s 'real x))))
-  (declare-fun exact? (V) Bool)
-  (declare-fun inexact? (V) Bool)
-  (declare-fun strlen (V) Int)
-  (declare-fun f.vecref (V V) V)
-  (declare-fun veclen (V) Int)
-  (assert! (∀/s ([v V]) (>=/s (strlen v) 0)))
-  (assert! (∀/s ([v V]) (>=/s (veclen v) 0)))
-  (declare-fun arity (V) Int)
-  (assert! (∀/s ([v V]) (>=/s (arity v) 0)))
-  (declare-fun list? (V) Bool)
+  (declare-fun exact? ('V) Bool/s)
+  (declare-fun inexact? ('V) Bool/s)
+  (declare-fun strlen ('V) Int/s)
+  (declare-fun f.vecref ('V 'V) 'V)
+  (declare-fun veclen ('V) Int/s)
+  (assert! (∀/s ([v 'V]) (>=/s (strlen v) 0)))
+  (assert! (∀/s ([v 'V]) (>=/s (veclen v) 0)))
+  (declare-fun arity ('V) Int/s)
+  (assert! (∀/s ([v 'V]) (>=/s (arity v) 0)))
+  (declare-fun list? ('V) Bool/s)
   (assert! (list? 'Null))
-  (assert! (∀/s ([h V] [t V])
-                   (=>/s (list? t) (list? (@/s 'St_2 (⦃struct-info⦄ -s-cons) h t)))))
-  (declare-fun f.map (V V) V)
-  (declare-fun f.append (V V) V)
-  (define-fun f.min ([x Real] [y Real]) Real (ite/s (<=/s x y) x y))
-  (define-fun f.max ([x Real] [y Real]) Real (ite/s (>=/s x y) x y))
+  (assert! (∀/s ([h 'V] [t 'V])
+                (=>/s (list? t) (list? (@/s 'St_2 (⦃struct-info⦄ -s-cons) h t)))))
+  (declare-fun f.map ('V 'V) 'V)
+  (declare-fun f.append ('V 'V) 'V)
+  (define-fun f.min ([x Real/s] [y Real/s]) Real/s (ite/s (<=/s x y) x y))
+  (define-fun f.max ([x Real/s] [y Real/s]) Real/s (ite/s (>=/s x y) x y))
   (void))
 
 (define o->id ((inst mk-interner -o)))
@@ -617,7 +617,7 @@
       (: mk-cond : (Listof Entry) → →Z3:Ast)
       (define (mk-cond entries)
         (match entries
-          ['() (λ () (false/s))]
+          ['() (λ () false/s)]
           [(list ent)
            (match-define (Entry xs facts _) ent)
            (λ ()
