@@ -32,19 +32,35 @@
     [(sat unknown) #t]))
 
 (define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:Sat-LBool
-  (with-new-context (#:timeout (Timeout))
+  (with-new-context
+    (set-options! #:timeout (Timeout))
     (asserts)
+    #;(check-sat/log 't0)
     (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
-  (with-new-context (#:timeout (Timeout))
+  (with-new-context
+    (set-options! #:timeout (Timeout))
     (asserts)
     (match (with-local-stack
              (assert! (@/s 'is_false (goal)))
+             #;(check-sat/log 't1)
              (check-sat))
       ['false (cons 'unsat 'unknown)]
       [a
        (cons a
              (with-local-stack
                (assert! (@/s 'is_truish (goal)))
+               #;(check-sat/log 't2)
                (check-sat)))])))
+
+(: check-sat/log : Symbol → Z3:Sat-LBool)
+;; Log all queries that take 2/3 Timeout or more
+(define (check-sat/log tag)
+  (define-values (reses t₁ t₂ t₃) (time-apply check-sat '()))
+  (define res (car reses))
+  (when (> t₁ (* (quotient (Timeout) 3) 2))
+    (printf "check-sat: ~a ~a ~a~n" tag res t₁)
+    (print-current-assertions)
+    (printf "~n"))
+  res)
