@@ -87,7 +87,7 @@
   (define tₓs : (Listof →Z3:Ast)
     (for/list ([x xs])
       (define t (⦃x⦄ x))
-      (λ () (get-val t))))
+      (λ () (val-of t))))
   (define fₕ (fun-name app))
   (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
   (define bound (∪ (list->seteq fvs) (list->seteq xs)))
@@ -161,7 +161,7 @@
                      (define tₐ (format-symbol "a.~a" (hash-count m)))
                      (free-vars-add! tₐ)
                      (hash-set! asserts-app tₐₚₚ tₐ)
-                     (λ () (get-val tₐ)))))))
+                     (λ () (val-of tₐ)))))))
 
   ;; Add a reminder to encode memo table entries for `τ(xs)` as a 1st-order function
   (define/memo (⦃fun⦄! [eₕ : -e] [app : App]) : Symbol
@@ -183,7 +183,7 @@
       [(∋ trace app)
        (define t (fresh-free! 'rec-app))
        ;(printf "Existentializing recursive app~n")
-       (λ () (@/s 'Val (get-val t)))]
+       (λ () (@/s 'Val (val-of t)))]
       [else
        (define f (⦃fun⦄! eₕ app))
        (define ⦃fvs⦄ (map ⦃x⦄ fvs))
@@ -197,7 +197,7 @@
       [(? -𝒾? 𝒾)
        (define t (⦃𝒾⦄ 𝒾))
        (free-vars-add! t)
-       (λ () (get-val t))]
+       (λ () (val-of t))]
       [(? -o? o)
        (define id (o->id o))
        (λ () (@/s 'Proc id))]
@@ -205,14 +205,14 @@
        (define t (⦃x⦄ x))
        (unless (∋ bound x)
          (free-vars-add! t))
-       (λ () (get-val t))]
+       (λ () (val-of t))]
       [(-λ xs e)
        (define t (fresh-free! 'lam))
        (props-add! (λ () (@/s 'is-Proc t)))
        (cond
          [(list? xs) (props-add! (λ () (=/s (@/s 'arity t) (length xs))))]
          [else (log-warning "No precise translation for varargs")])
-       (λ () (get-val t))]
+       (λ () (val-of t))]
 
       ;; Hacks for special applications go here
       [(-@ (-@ 'and/c ps _) es _)
@@ -263,7 +263,7 @@
                           ;; suppress for now
                           (printf "Z3 translation: unsupported primitive: `~a`~n" (show-o o))
                           (define t (fresh-free! 'o))
-                          (λ () (get-val t)))])
+                          (λ () (val-of t)))])
          (app-o o ts))]
       [(-@ eₕ eₓs _)
        (or
@@ -277,19 +277,19 @@
                  (app-term! tₐₚₚ)]
                 [else #f]))
         (let ([t (fresh-free! 'app)])
-          (λ () (get-val t))))]
+          (λ () (val-of t))))]
       [(? -->?)
        (define t (fresh-free! 'arr))
        (props-add! (λ () (@/s 'is-Arr t)))
-       (λ () (get-val t))]
+       (λ () (val-of t))]
       [(? -->i?)
        (define t (fresh-free! 'dep))
        (props-add! (λ () (@/s 'is-ArrD t)))
-       (λ () (get-val t))]
+       (λ () (val-of t))]
       [(? -struct/c?)
        (define t (fresh-free! 'stc))
        (props-add! (λ () (@/s 'is-St/C t)))
-       (λ () (get-val t))]
+       (λ () (val-of t))]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
 
   (: ⦃γ⦄! : -γ → Void)
@@ -318,7 +318,7 @@
            [#t
             (λ () (@/s 'is-Val (tₐₚₚ)))]
            [(? symbol? t)
-            (λ () (=/s (tₐₚₚ) (@/s 'Val (get-val t))))]
+            (λ () (=/s (tₐₚₚ) (@/s 'Val (val-of t))))]
            [(cons l+ lo)
             (λ () (=/s (tₐₚₚ) (@/s 'Blm l+ lo)))]))
        props))
@@ -365,7 +365,7 @@
        (foldr
         (λ ([tₗ : Z3:Ast] [tᵣ : Z3:Ast])
           (@/s 'St_2 (⦃struct-info⦄ -s-cons) tₗ tᵣ))
-        (get-val 'Null)
+        (val-of 'Null)
         (for/list : (Listof Z3:Ast) ([t ts]) (t))))]
     [(any/c) (λ () (@/s 'B true/s))]
     [(none/c) (λ () (@/s 'B false/s))]
@@ -508,8 +508,8 @@
     [(? number? x) (@/s 'N (real-part x) (imag-part x))]
     [(? symbol? s) (@/s 'Sym (⦃sym⦄ s))]
     [(? string? s) (@/s 'Str (⦃str⦄ s))]
-    [(? void?) (get-val 'Void)]
-    [(list) (get-val 'Null)]
+    [(? void?) (val-of 'Void)]
+    [(list) (val-of 'Null)]
     [_ (error '⦃b⦄ "value: ~a" b)]))
 
 (: SMT-base : (℘ Natural) → Void)
@@ -609,7 +609,7 @@
       (define tₓs : (Listof →Z3:Ast)
         (for/list ([x xs])
           (define t (⦃x⦄ x))
-          (λ () (get-val t))))
+          (λ () (val-of t))))
       (define fₕ (fun-name f-xs))
       (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
       (match-define (Res oks ers) res)
@@ -652,9 +652,9 @@
        (cons
         (λ ()
           (assert! (∀/V params (=>/s (@/s 'is-Val (tₐₚₚ)) (ok-cond))
-                           #:patterns (list (pattern-of (tₐₚₚ)))))
+                           #:pattern (list (pattern-of (tₐₚₚ)))))
           (assert! (∀/V params (=>/s (@/s 'is-Blm (tₐₚₚ)) (er-cond))
-                           #:patterns (list (pattern-of (tₐₚₚ))))))
+                           #:pattern (list (pattern-of (tₐₚₚ))))))
         defs))))
 
   (define (emit-dec-consts)
@@ -678,14 +678,14 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-syntax-rule (quant/V quant xs* e #:patterns pats)
+(define-syntax-rule (quant/V quant xs* e #:pattern pats)
   (let ([xs xs*])
     (define ts : (Listof Symbol) (for/list ([x xs]) 'V))
-    (quant xs ts e #:patterns pats)))
-(define-simple-macro (∃/V xs e (~optional (~seq #:patterns pats) #:defaults ([(pats 0) #'null])))
-  (quant/V dynamic-∃/s xs e #:patterns pats))
-(define-simple-macro (∀/V xs e (~optional (~seq #:patterns pats) #:defaults ([(pats 0) #'null])))
-  (quant/V dynamic-∀/s xs e #:patterns pats))
+    (quant xs ts e #:pattern pats)))
+(define-simple-macro (∃/V xs e (~optional (~seq #:pattern pats) #:defaults ([(pats 0) #'null])))
+  (quant/V dynamic-∃/s xs e #:pattern pats))
+(define-simple-macro (∀/V xs e (~optional (~seq #:pattern pats) #:defaults ([(pats 0) #'null])))
+  (quant/V dynamic-∀/s xs e #:pattern pats))
 
 (: run-all (∀ (X) (Listof (→ X)) → (Listof X)))
 (define (run-all fs) (for/list ([f fs]) (f)))
@@ -694,13 +694,13 @@
 (define/memo (-tapp [f : Symbol] [fvs : (Listof Symbol)] [args : (Listof →Z3:Ast)]) : →Z3:Ast
   (cond
     [(and (null? fvs) (null? args))
-     (λ () (get-val f))]
+     (λ () (val-of f))]
     [else
      (λ ()
        (define all-args
          (append
           (for/list : (Listof Z3:Ast) ([fv fvs])
-            (get-val fv))
+            (val-of fv))
           (for/list : (Listof Z3:Ast) ([arg args])
             (arg))))
        (apply @/s f all-args))]))
