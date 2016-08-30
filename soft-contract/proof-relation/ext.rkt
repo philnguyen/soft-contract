@@ -8,10 +8,9 @@
          "../runtime/main.rkt"
          "result.rkt"
          "translate.rkt"
-         "z3-rkt/z3-wrapper.rkt"
-         "z3-rkt/parser.rkt"
-         "z3-rkt/builtins.rkt"
-         "z3-rkt/main.rkt")
+         (only-in "z3-rkt/ffi/main.rkt" toggle-warning-messages!)
+         "z3-rkt/smt/main.rkt"
+         )
 
 (define-parameter Timeout : Nonnegative-Fixnum 500)
 (Sat-Result . ::= . Z3:Sat-LBool 'timeout)
@@ -30,47 +29,38 @@
   (match-define (cons base _) (encode M Γ #|HACK|# -ff))
   (case (exec-check-sat₀ base)
     [(unsat) #f]
-    [else #t]))
+    [(sat unknown) #t]))
 
-(define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:LBool
-  (with-fresh-context (#:timeout (Timeout))
+(define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:Sat-LBool
+  (with-new-context
+    (set-options! #:timeout (Timeout))
     (asserts)
-    (check-sat))
-  #;(with-fresh-solver
-    (with-fresh-environment
-      (asserts)
-      (check-sat))))
+    #;(check-sat/log 't0)
+    (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
-  (with-fresh-context (#:timeout (Timeout))
+  (with-new-context
+    (set-options! #:timeout (Timeout))
     (asserts)
-    (match (with-local-push-pop
+    (match (with-local-stack
              (assert! (@/s 'is_false (goal)))
+             #;(check-sat/log 't1)
              (check-sat))
       ['false (cons 'unsat 'unknown)]
       [a
-       (cons (z3:lbool->sat-result a)
-             (z3:lbool->sat-result
-              (with-local-push-pop
-                (assert! (@/s 'is_truish (goal)))
-                (check-sat))))]))
-  #;(with-fresh-solver
-    (with-fresh-environment
-      (asserts)
-      (match (with-local-push-pop
-              (assert! (@/s 'is_false (goal)))
-              (check-sat))
-        ['false (cons 'unsat 'unknown)]
-        [a
-         (cons (z3:lbool->sat-result a)
-               (z3:lbool->sat-result
-                (with-local-push-pop
-                 (assert! (@/s 'is_truish (goal)))
-                 (check-sat))))]))))
+       (cons a
+             (with-local-stack
+               (assert! (@/s 'is_truish (goal)))
+               #;(check-sat/log 't2)
+               (check-sat)))])))
 
-(: z3:lbool->sat-result : Z3:LBool → Sat-Result)
-(define (z3:lbool->sat-result x)
-  (case x
-    [(false) 'unsat]
-    [(true) 'sat]
-    [else 'unknown]))
+(: check-sat/log : Symbol → Z3:Sat-LBool)
+;; Log all queries that take 2/3 Timeout or more
+(define (check-sat/log tag)
+  (define-values (reses t₁ t₂ t₃) (time-apply check-sat '()))
+  (define res (car reses))
+  (when (> t₁ (* (quotient (Timeout) 3) 2))
+    (printf "check-sat: ~a ~a ~a~n" tag res t₁)
+    (print-current-assertions)
+    (printf "~n"))
+  res)
