@@ -14,7 +14,8 @@
 
 ;; Base continuation that returns locally finished configuration
 (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧!
-  (λ (A Γ 𝒞 σ σₖ M)
+  (λ (A Γ 𝒞 Σ)
+    (match-define (-Σ _ _ M) Σ)
     (⊔! M αₖ (-ΓA Γ A))
     {set (-ς↓ αₖ Γ A)}))
 
@@ -25,7 +26,7 @@
                   [l : -l]
                   [ℓ : -ℓ]
                   [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
@@ -33,57 +34,59 @@
        (match ⟦e⟧s
          ['()
           (match-define (cons Wₕ Wₓs) (reverse Ws*))
-          (app l ℓ Wₕ Wₓs Γ 𝒞 σ σₖ M ⟦k⟧)]
+          (app l ℓ Wₕ Wₓs Γ 𝒞 Σ ⟦k⟧)]
          [(cons ⟦e⟧ ⟦e⟧s*)
-          (⟦e⟧ ρ Γ 𝒞 σ σₖ M (ap∷ Ws* ⟦e⟧s* ρ l ℓ ⟦k⟧))])]
+          (⟦e⟧ ρ Γ 𝒞 Σ (ap∷ Ws* ⟦e⟧s* ρ l ℓ ⟦k⟧))])]
       [_
-       (⟦k⟧ (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧ (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
 
 ;; Conditional
 (define/memo (if∷ [l : -l] [⟦e⟧₁ : -⟦e⟧!] [⟦e⟧₂ : -⟦e⟧!] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
+       (match-define (-Σ _ _ M) Σ)
        (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V s))
-       (∪ (with-Γ Γ₁ (⟦e⟧₁ ρ Γ₁ 𝒞 σ σₖ M ⟦k⟧))
-          (with-Γ Γ₂ (⟦e⟧₂ ρ Γ₂ 𝒞 σ σₖ M ⟦k⟧)))]
-      [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ σₖ M)])))
+       (∪ (with-Γ Γ₁ (⟦e⟧₁ ρ Γ₁ 𝒞 Σ ⟦k⟧))
+          (with-Γ Γ₂ (⟦e⟧₂ ρ Γ₂ 𝒞 Σ ⟦k⟧)))]
+      [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
 
 ;; begin
 (define/memo (bgn∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
-       (⟦e⟧ ρ Γ 𝒞 σ σₖ M (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
+     (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
+       (⟦e⟧ ρ Γ 𝒞 Σ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; begin0, waiting on first value
 (define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
-       (⟦e⟧ ρ Γ 𝒞 σ σₖ M (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧)))]))
+     (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
+       (⟦e⟧ ρ Γ 𝒞 Σ (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; begin0, already have first value
 (define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
-       (⟦e⟧ ρ Γ 𝒞 σ σₖ M (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
+     (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
+       (⟦e⟧ ρ Γ 𝒞 Σ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; set!
 (define/memo (set!∷ [α : -α] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
+       (match-define (-Σ σ _ _) Σ)
        (σ⊔! σ α V #f)
-       (⟦k⟧ -Void/W Γ 𝒞 σ σₖ M)]
+       (⟦k⟧ -Void/W Γ 𝒞 Σ)]
       [_
-       (⟦k⟧ (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧ (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
 
 ;; let-values
 (define/memo (let∷ [l : -l]
@@ -93,7 +96,7 @@
                    [⟦e⟧ : -⟦e⟧!]
                    [ρ : -ρ]
                    [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W Vs s) A)
     (define n (length xs))
     (cond
@@ -104,6 +107,7 @@
            (cons (list x V sₓ) acc)))
        (match ⟦bnd⟧s
          ['()
+          (match-define (-Σ σ _ _) Σ)
           (define-values (ρ* Γ*) ; with side effect widening store
             (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                       ([bnd-W bnd-Ws])
@@ -112,15 +116,15 @@
               (σ⊔! σ α Vₓ #t)
               (values (ρ+ ρ x α)
                       (-Γ-with-aliases Γ x sₓ))))
-          (⟦e⟧ ρ* Γ* 𝒞 σ σₖ M ⟦k⟧)]
+          (⟦e⟧ ρ* Γ* 𝒞 Σ ⟦k⟧)]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
-          (⟦e⟧* ρ Γ 𝒞 σ σₖ M (let∷ l xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
+          (⟦e⟧* ρ Γ 𝒞 Σ (let∷ l xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
       [else
        (define blm
          (-blm l 'let-values
                (list (format-symbol "~a values" (length xs)))
                (list (format-symbol "~a values" (length Vs)))))
-       (⟦k⟧ blm Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧ blm Γ 𝒞 Σ)])))
 
 ;; letrec-values
 (define/memo (letrec∷ [l : -l]
@@ -129,11 +133,12 @@
                       [⟦e⟧ : -⟦e⟧!]
                       [ρ : -ρ]
                       [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W Vs s) A)
     (define n (length xs))
     (cond
       [(= n (length Vs))
+       (match-define (-Σ σ _ _) Σ)
        (define Γ* ; with side effect widening store
          (for/fold ([Γ : -Γ Γ])
                    ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
@@ -142,23 +147,24 @@
            (Γ+ (-Γ-with-aliases Γ x sₓ) (-?@ 'defined? (-x x)))))
        (match ⟦bnd⟧s
          ['()
-          (⟦e⟧ ρ Γ* 𝒞 σ σₖ M ⟦k⟧)]
+          (⟦e⟧ ρ Γ* 𝒞 Σ ⟦k⟧)]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
-          (⟦e⟧* ρ Γ* 𝒞 σ σₖ M (letrec∷ l xs* ⟦bnd⟧s* ⟦e⟧ ρ ⟦k⟧))])]
+          (⟦e⟧* ρ Γ* 𝒞 Σ (letrec∷ l xs* ⟦bnd⟧s* ⟦e⟧ ρ ⟦k⟧))])]
       [else
        (define blm
          (-blm l 'letrec-values
                (list (format-symbol "~a values" (length xs)))
                (list (format-symbol "~a values" (length Vs)))))
-       (⟦k⟧ blm Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧ blm Γ 𝒞 Σ)])))
 
 ;; μ/c
 (define/memo (μ/c∷ [l : -l] [x : -ℓ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W (list V) s) A)
+    (match-define (-Σ σ _ _) Σ)
     (define α (-α.x/c x))
     (σ⊔! σ α V #t)
-    (⟦k⟧ A Γ 𝒞 σ σₖ M)))
+    (⟦k⟧ A Γ 𝒞 Σ)))
 
 ;; Non-dependent contract domain
 (define/memo (-->.dom∷ [l   : -l]
@@ -168,19 +174,20 @@
                        [ρ   : -ρ]
                        [ℓ   : -ℓ]
                        [⟦k⟧  : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W (list V) s) A)
     (define Ws* (cons (-W¹ V s) Ws))
     (match ⟦c⟧s
-      ['()            (⟦d⟧ ρ Γ 𝒞 σ σₖ M (-->.rng∷ l Ws* ℓ ⟦k⟧))]
-      [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ ρ Γ 𝒞 σ σₖ M (-->.dom∷ l Ws* ⟦c⟧s* ⟦d⟧ ρ ℓ ⟦k⟧))])))
+      ['()            (⟦d⟧ ρ Γ 𝒞 Σ (-->.rng∷ l Ws* ℓ ⟦k⟧))]
+      [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ ρ Γ 𝒞 Σ (-->.dom∷ l Ws* ⟦c⟧s* ⟦d⟧ ρ ℓ ⟦k⟧))])))
 
 ;; Non-dependent contract range
 (define/memo (-->.rng∷ [l   : -l]
                        [Ws  : (Listof -W¹)]
                        [ℓ   : -ℓ]
                        [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
+    (match-define (-Σ σ _ _) Σ)
     (match-define (-W (list D) d) A)
     (define β (-α.rng ℓ 𝒞))
     (σ⊔! σ β D #t)
@@ -193,7 +200,7 @@
         (σ⊔! σ α C #t)
         (values (cons α αs) (cons c cs))))
     (define G (-W (list (-=> αs β ℓ)) (-?-> cs d)))
-    (⟦k⟧ G Γ 𝒞 σ σₖ M)))
+    (⟦k⟧ G Γ 𝒞 Σ)))
 
 (: mk-=>i! : -σ -Γ -𝒞 (Listof -W¹) -Clo (Option -λ) -ℓ → (Values -V -s))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
@@ -220,19 +227,20 @@
                     [mk-d : (Option -λ)]
                     [ℓ    : -ℓ]
                     [⟦k⟧  : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W (list C) c) A)
     (define Ws* (cons (-W¹ C c) Ws))
     (match ⟦c⟧s
       ['()
+       (match-define (-Σ σ _ _) Σ)
        (define-values (G g) (mk-=>i! σ Γ 𝒞 Ws* Mk-D mk-d ℓ))
-       (⟦k⟧ (-W (list G) g) Γ 𝒞 σ σₖ M)]
+       (⟦k⟧ (-W (list G) g) Γ 𝒞 Σ)]
       [(cons ⟦c⟧ ⟦c⟧s*)
-       (⟦c⟧ ρ Γ 𝒞 σ σₖ M (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
+       (⟦c⟧ ρ Γ 𝒞 Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
 
 ;; Clean up path-condition
 (define/memo (rst∷ [xs : (℘ Var-Name)] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (λ (A Γ 𝒞 σ σₖ M) (⟦k⟧ A (Γ↓ Γ xs) 𝒞 σ σₖ M)))
+  (λ (A Γ 𝒞 Σ) (⟦k⟧ A (Γ↓ Γ xs) 𝒞 Σ)))
 
 ;; case-> contract
 (define/memo (case->∷ [l : -l]
@@ -243,7 +251,7 @@
                       [⟦clause⟧s : (Listof (Listof -⟦e⟧!))]
                       [ρ : -ρ]
                       [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W (list C) c) A)
     (define Cs* (cons (-W¹ C c) Cs))
     (match ⟦c⟧s
@@ -253,7 +261,7 @@
          ['()                      (error 'case->∷ "TODO")]
          [(cons ⟦clause⟧ ⟦clause⟧s*) (error 'case->∷ "TODO")])]
       [(cons ⟦c⟧* ⟦c⟧s*)
-       (⟦c⟧* ρ Γ 𝒞 σ σₖ M (case->∷ l ℓ Clauses Cs* ⟦c⟧s* ⟦clause⟧s ρ ⟦k⟧))])))
+       (⟦c⟧* ρ Γ 𝒞 Σ (case->∷ l ℓ Clauses Cs* ⟦c⟧s* ⟦clause⟧s ρ ⟦k⟧))])))
 
 ;; struct/c contract
 (define/memo (struct/c∷ [ℓ : -ℓ]
@@ -262,11 +270,12 @@
                         [⟦c⟧s : (Listof -⟦e⟧!)]
                         [ρ : -ρ]
                         [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W (list C) c) A)
     (define Cs* (cons (-W¹ C c) Cs))
     (match ⟦c⟧s
       ['()
+       (match-define (-Σ σ _ _) Σ)
        (define-values (αs cs flat?) ; with side effect widening store
          (for/fold ([αs : (Listof -α.struct/c) '()]
                     [cs : (Listof -s) '()]
@@ -279,27 +288,28 @@
                    (cons c cs)
                    (and flat? (C-flat? C)))))
        (define W (-W (list (-St/C flat? si αs)) (-?struct/c si cs)))
-       (⟦k⟧ W Γ 𝒞 σ σₖ M)]
+       (⟦k⟧ W Γ 𝒞 Σ)]
       [(cons ⟦c⟧ ⟦c⟧s*)
-       (⟦c⟧ ρ Γ 𝒞 σ σₖ M (struct/c∷ ℓ si Cs* ⟦c⟧s* ρ ⟦k⟧))])))
+       (⟦c⟧ ρ Γ 𝒞 Σ (struct/c∷ ℓ si Cs* ⟦c⟧s* ρ ⟦k⟧))])))
 
 ;; define
 (define/memo (def∷ [l : -l]
                    [αs : (Listof -α)]
                    [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (define n (length αs))
     (match-define (-W Vs s) A)
     (cond
       [(= n (length Vs))
+       (match-define (-Σ σ _ _) Σ)
        (for ([α αs] [V Vs])
          (σ⊔! σ α V #t))
-       (⟦k⟧ -Void/W Γ 𝒞 σ σₖ M)]
+       (⟦k⟧ -Void/W Γ 𝒞 Σ)]
       [else
        (define blm (-blm l 'define-values
                          (list (format-symbol "~a values" n))
                          (list (format-symbol "~a values" (length Vs)))))
-       (⟦k⟧ blm Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧ blm Γ 𝒞 Σ)])))
 
 ;; provide with contract
 (define/memo (dec∷ [ℓ : -ℓ]
@@ -307,9 +317,10 @@
                    [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (define l (-𝒾-ctx 𝒾))
   (define l³ (-l³ l 'dummy l))
-  (with-error-handling (⟦k⟧ A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-W (list C) c) A)
+    (match-define (-Σ σ _ _) Σ)
     (define W-C (-W¹ C c))
     (define-values (Vs _) (σ@ σ (-α.def 𝒾)))
     (for/union : (℘ -ς) ([V Vs])
-      (mon l³ ℓ W-C (-W¹ V 𝒾) Γ 𝒞 σ σₖ M ⟦k⟧))))
+      (mon l³ ℓ W-C (-W¹ V 𝒾) Γ 𝒞 Σ ⟦k⟧))))

@@ -12,8 +12,9 @@
          racket/set
          racket/match)
 
-(: app : -l -ℓ -W¹ (Listof -W¹) -Γ -𝒞 -σ -σₖ -M -⟦k⟧! → (℘ -ς))
-(define (app l ℓ Wₕ Wₓs Γ 𝒞 σ σₖ M ⟦k⟧)
+(: app : -l -ℓ -W¹ (Listof -W¹) -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
+(define (app l ℓ Wₕ Wₓs Γ 𝒞 Σ ⟦k⟧)
+  (match-define (-Σ σ σₖ M) Σ)
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
   (define sₐ
@@ -38,7 +39,7 @@
           [a a*])
       (cond
         [(arity-includes? a n) e ...]
-        [else (⟦k⟧ (blm-arity a n) Γ 𝒞 σ σₖ M)])))
+        [else (⟦k⟧ (blm-arity a n) Γ 𝒞 Σ)])))
 
   (define (app-st-p [s : -struct-info])
     (define A
@@ -46,7 +47,7 @@
         [(✓) -True/Vs]
         [(✗) -False/Vs]
         [(?) -Bool/Vs]))
-    (⟦k⟧ (-W A sₐ) Γ 𝒞 σ σₖ M))
+    (⟦k⟧ (-W A sₐ) Γ 𝒞 Σ))
 
   (define (app-st-mk [s : -struct-info])
     (define 𝒾 (-struct-info-id s))
@@ -56,7 +57,7 @@
     (for ([α αs] [Vₓ Vₓs])
       (σ⊔! σ α Vₓ #t))
     (define V (-St s αs))
-    (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 σ σₖ M))
+    (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 Σ))
 
   ;; Apply accessor
   (define (app-st-ac [s : -struct-info] [i : Natural])
@@ -72,7 +73,7 @@
        (define α (list-ref αs i))
        (define-values (Vs _) (σ@ σ α))
        (for/union : (℘ -ς) ([V Vs])
-         (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 σ σₖ M))]
+         (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 Σ))]
       [(-St* (== s) αs α l³)
        (match-define (-l³ _ _ lₒ) l³)
        (define Ac (-W¹ ac ac))
@@ -86,12 +87,12 @@
          [else
           (define-values (Vₓ*s _) (σ@ σ α))
           (for/union : (℘ -ς) ([Vₓ* Vₓ*s]) ;; TODO: could this loop forever due to cycle?
-            (app lₒ ℓ Ac (list (-W¹ Vₓ* sₓ)) Γ 𝒞 σ σₖ M ⟦k⟧))])]
+            (app lₒ ℓ Ac (list (-W¹ Vₓ* sₓ)) Γ 𝒞 Σ ⟦k⟧))])]
       [(-● _)
        (define-values (Γₒₖ Γₑᵣ) (Γ+/-W∋Ws M Γ (-W¹ p p) Wₓ))
-       (∪ (with-Γ Γₒₖ (⟦k⟧ (-W -●/Vs sₐ) Γₒₖ 𝒞 σ σₖ M))
-          (with-Γ Γₑᵣ (⟦k⟧ (blm) Γₑᵣ 𝒞 σ σₖ M)))]
-      [_ (⟦k⟧ (blm) Γ 𝒞 σ σₖ M)]))
+       (∪ (with-Γ Γₒₖ (⟦k⟧ (-W -●/Vs sₐ) Γₒₖ 𝒞 Σ))
+          (with-Γ Γₑᵣ (⟦k⟧ (blm) Γₑᵣ 𝒞 Σ)))]
+      [_ (⟦k⟧ (blm) Γ 𝒞 Σ)]))
 
   (define (app-st-mut [s : -struct-info] [i : Natural])
     (match-define (list Wₛ Wᵤ) Wₓs)
@@ -106,12 +107,12 @@
       [(-St (== s) αs)
        (define α (list-ref αs i))
        (σ⊔! σ α Vᵤ #f)
-       (⟦k⟧ -Void/W Γ 𝒞 σ σₖ M)]
+       (⟦k⟧ -Void/W Γ 𝒞 Σ)]
       [(-St* (== s) αs α l³)
        (error 'app-st-mut "TODO")]
       [(-● _)
        (error 'app-st-mut "TODO")]
-      [_ (⟦k⟧ (blm) Γ 𝒞 σ σₖ M)]))
+      [_ (⟦k⟧ (blm) Γ 𝒞 Σ)]))
 
   (define (app-unsafe-struct-ref)
     (error 'app-unsafe-struct-ref "TODO"))
@@ -130,7 +131,7 @@
 
   (define (app-δ [o : Symbol])
     (define ?Vs (δ! 𝒞 ℓ M σ Γ o Wₓs))
-    (cond [?Vs (⟦k⟧ (-W ?Vs sₐ) Γ 𝒞 σ σₖ M)]
+    (cond [?Vs (⟦k⟧ (-W ?Vs sₐ) Γ 𝒞 Σ)]
           [else ∅]))
 
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧!] [ρₕ : -ρ] [Γₕ : -Γ])
@@ -154,13 +155,13 @@
       [else (error 'app-clo "TODO: varargs")]))
 
   (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
-    (app l ℓ W₁ Wₓs Γ 𝒞 σ σₖ M (and/c∷ l ℓ W₂ (car Wₓs) ⟦k⟧)))
+    (app l ℓ W₁ Wₓs Γ 𝒞 Σ (and/c∷ l ℓ W₂ (car Wₓs) ⟦k⟧)))
 
   (define (app-Or/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
-    (app l ℓ W₁ Wₓs Γ 𝒞 σ σₖ M (or/c∷ l ℓ W₂ (car Wₓs) ⟦k⟧)))
+    (app l ℓ W₁ Wₓs Γ 𝒞 Σ (or/c∷ l ℓ W₂ (car Wₓs) ⟦k⟧)))
   
   (define (app-Not/C [Wᵤ : -W¹]) : (℘ -ς)
-    (app l ℓ Wᵤ Wₓs Γ 𝒞 σ σₖ M (not/c∷ l ⟦k⟧)))
+    (app l ℓ Wᵤ Wₓs Γ 𝒞 Σ (not/c∷ l ⟦k⟧)))
 
   (define (app-St/C [s : -struct-info] [Ws : (Listof -W¹)]) : (℘ -ς)
     (match-define (list Wₓ) Wₓs)
@@ -169,7 +170,7 @@
       [(or (-St (== s) _) (-St* (== s) _ _ _))
        (error 'app-St/C "TODO")]
       [_
-       (⟦k⟧ -False/W Γ 𝒞 σ σₖ M)]))
+       (⟦k⟧ -False/W Γ 𝒞 Σ)]))
 
   (define (app-Ar [C : -V] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
     (error 'app-Ar "TODO"))
@@ -243,8 +244,8 @@
      (error 'app "TODO: ●")]
     [_ (error 'app "TODO: ~a" (show-V Vₕ))]))
 
-(: mon : -l³ -ℓ -W¹ -W¹ -Γ -𝒞 -σ -σₖ -M -⟦k⟧! → (℘ -ς))
-(define (mon l³ ℓ W-C W-V Γ 𝒞 σ σₖ M ⟦k⟧)
+(: mon : -l³ -ℓ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
+(define (mon l³ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)
   (error 'mon "TODO"))
 
 
@@ -253,47 +254,50 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define/memo (not/c∷ [l : -l] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧! A Γ 𝒞 Σ)
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
+       (match-define (-Σ _ _ M) Σ)
        (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
-       (∪ (with-Γ Γ₁ (⟦k⟧! -False/W Γ₁ 𝒞 σ σₖ M))
-          (with-Γ Γ₂ (⟦k⟧! -True/W  Γ₂ 𝒞 σ σₖ M)))]
+       (∪ (with-Γ Γ₁ (⟦k⟧! -False/W Γ₁ 𝒞 Σ))
+          (with-Γ Γ₂ (⟦k⟧! -True/W  Γ₂ 𝒞 Σ)))]
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
-       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧! blm Γ 𝒞 Σ)])))
 
 (define/memo (and/c∷ [l : -l] [ℓ : -ℓ] [Wᵣ : -W¹] [Wₓ : -W¹] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧! A Γ 𝒞 Σ)
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
+       (match-define (-Σ _ _ M) Σ)
        (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
-       (∪ (with-Γ Γ₁ (app l ℓ Wᵣ (list Wₓ) Γ 𝒞 σ σₖ M ⟦k⟧!))
-          (with-Γ Γ₂ (⟦k⟧! -False/W Γ₂ 𝒞 σ σₖ M)))]
+       (∪ (with-Γ Γ₁ (app l ℓ Wᵣ (list Wₓ) Γ 𝒞 Σ ⟦k⟧!))
+          (with-Γ Γ₂ (⟦k⟧! -False/W Γ₂ 𝒞 Σ)))]
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
-       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧! blm Γ 𝒞 Σ)])))
 
 (define/memo (or/c∷ [l : -l] [ℓ : -ℓ] [Wᵣ : -W¹] [Wₓ : -W¹] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧! A Γ 𝒞 Σ)
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
+       (match-define (-Σ _ _ M) Σ)
        (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
-       (∪ (with-Γ Γ₁ (⟦k⟧! A Γ₁ 𝒞 σ σₖ M))
-          (with-Γ Γ₂ (app l ℓ Wᵣ (list Wₓ) Γ₂ 𝒞 σ σₖ M ⟦k⟧!)))]
+       (∪ (with-Γ Γ₁ (⟦k⟧! A Γ₁ 𝒞 Σ))
+          (with-Γ Γ₂ (app l ℓ Wᵣ (list Wₓ) Γ₂ 𝒞 Σ ⟦k⟧!)))]
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
-       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧! blm Γ 𝒞 Σ)])))
 
 (define/memo (st/c∷ [l : -l]
                     [ℓ : -ℓ]
                     [Wᵢs : (Listof -W¹)]
                     [Wᵥs : (Listof -W¹)]
                     [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A Γ 𝒞 σ σₖ M)
+  (with-error-handling (⟦k⟧! A Γ 𝒞 Σ)
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
@@ -304,4 +308,4 @@
           (error 'st/c "TODO")])]
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
-       (⟦k⟧! blm Γ 𝒞 σ σₖ M)])))
+       (⟦k⟧! blm Γ 𝒞 Σ)])))
