@@ -7,19 +7,19 @@
          racket/set
          racket/string
          syntax/parse/define
+         z3/smt
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
-         "z3-rkt/smt/main.rkt")
+         "../runtime/main.rkt")
 
 (struct exn:scv:unsupported exn () #:transparent)
-(define-type →Z3:Ast (→ Z3:Ast))
+(define-type →Z3-Ast (→ Z3-Ast))
 (define-type →Void   (→ Void))
 
 (struct Entry ([free-vars : (℘ Symbol)]
-               [facts     : (℘ →Z3:Ast)]
-               [expr      : →Z3:Ast])
+               [facts     : (℘ →Z3-Ast)]
+               [expr      : →Z3-Ast])
   #:transparent)
 (struct App ([ctx : -αₖ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
@@ -34,10 +34,10 @@
   ;; - When application goes wrong
   (HashTable App Res))
 
-;(: encode : -M -Γ -e → (Values →Void →Z3:Ast))
+;(: encode : -M -Γ -e → (Values →Void →Z3-Ast))
 ;; Encode `M Γ ⊢ e` into a pair of thunks that emit assertions and goal to check for
 ;; satisfiability
-(define/memo (encode [M : -M] [Γ : -Γ] [e : -e]) : (Pairof →Void →Z3:Ast)
+(define/memo (encode [M : -M] [Γ : -Γ] [e : -e]) : (Pairof →Void →Z3-Ast)
   (match-define (cons refs top-entry) (encode-e ∅ ∅eq Γ e))
   (let loop ([fronts   : (℘ Defn-Entry) refs]
              [seen     : (℘ Defn-Entry) refs]
@@ -62,8 +62,8 @@
                    ([front fronts])
            (define-values (def-funs** refs+)
              (match front
-               [(and app-ctx (App-Ctx (and app (App τ _ _)) _))
-                (define As (hash-ref M τ))
+               [(and app-ctx (App-Ctx (and app (App αₖ _ _)) _))
+                (define As (hash-ref M αₖ))
                 (match-define (cons refs entries) (encode-App-Ctx app-ctx As))
                 (values (hash-set def-funs* app entries) refs)]
                [(? -o? o)
@@ -77,14 +77,14 @@
            (values fronts** seen** def-funs**)))
        (loop fronts* seen* def-funs*)])))
 
-;; Translate memo-table entry `τ(xs) → {A…}` to pair of formulas for when application
+;; Translate memo-table entry `αₖ(xs) → {A…}` to pair of formulas for when application
 ;; fails and passes
-(define/memo (encode-App-Ctx [app-ctx : App-Ctx] [As : (℘ -A)]) : (Pairof (℘ Defn-Entry) Res)
+(define/memo (encode-App-Ctx [app-ctx : App-Ctx] [ΓAs : (℘ -ΓA)]) : (Pairof (℘ Defn-Entry) Res)
   (define-set refs : Defn-Entry)
   (match-define (App-Ctx app ctx) app-ctx)
-  (match-define (App τ fvs xs) app)
+  (match-define (App αₖ fvs xs) app)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
-  (define tₓs : (Listof →Z3:Ast)
+  (define tₓs : (Listof →Z3-Ast)
     (for/list ([x xs])
       (define t (⦃x⦄ x))
       (λ () (val-of t))))
@@ -128,7 +128,7 @@
 
 ;(: encode-e : (℘ Var-Name) -Γ -e → (Values (℘ Defn-Entry) Entry))
 ;; Encode path-condition `Γ` and expression `e` into a
-;; - a Z3:Ast-producing thunk, and
+;; - a Z3-Ast-producing thunk, and
 ;; - a set of function definitions to encode
 (define/memo (encode-e [trace : App-Trace]
                        [bound : (℘ Var-Name)]
@@ -136,8 +136,8 @@
                        [e : -e]) : (Pairof (℘ Defn-Entry) Entry)
   
   (define-set free-vars : Symbol  #:eq? #t)
-  (define-set props     : →Z3:Ast #:eq? #t)
-  (define asserts-app : (HashTable →Z3:Ast (U #t ; is-Val
+  (define-set props     : →Z3-Ast #:eq? #t)
+  (define asserts-app : (HashTable →Z3-Ast (U #t ; is-Val
                                               Symbol ; is-Val + instantiate
                                               (Pairof Integer Integer) ; blm
                                               ))
@@ -154,8 +154,8 @@
         (free-vars-add! x)
         x)))
 
-  (define app-term! : (→Z3:Ast → →Z3:Ast)
-    (let ([m : (HashTable →Z3:Ast →Z3:Ast) (make-hasheq)])
+  (define app-term! : (→Z3-Ast → →Z3-Ast)
+    (let ([m : (HashTable →Z3-Ast →Z3-Ast) (make-hasheq)])
       (λ (tₐₚₚ)
         (hash-ref! m tₐₚₚ
                    (λ ()
@@ -164,7 +164,7 @@
                      (hash-set! asserts-app tₐₚₚ tₐ)
                      (λ () (val-of tₐ)))))))
 
-  ;; Add a reminder to encode memo table entries for `τ(xs)` as a 1st-order function
+  ;; Add a reminder to encode memo table entries for `αₖ(xs)` as a 1st-order function
   (define/memo (⦃fun⦄! [eₕ : -e] [app : App]) : Symbol
      (⦃e⦄! eₕ) ; for "side-effect" of `eₕ` having evaluated
      (refs-add! (App-Ctx app (set-add trace app)))
@@ -176,8 +176,8 @@
                 [eₕ : -e]
                 [fvs : (Listof Var-Name)]
                 [xs : (Listof Var-Name)]
-                [eₓs : (Listof -e)]) : →Z3:Ast
-    (define app (App τ fvs xs))
+                [eₓs : (Listof -e)]) : →Z3-Ast
+    (define app (App αₖ fvs xs))
     (cond
       ;; If this is a recursive application, just existentialize the result for now,
       ;; because encoding of recursive functions slows down Z3 for sat/unknown queries
@@ -192,7 +192,7 @@
        (-tapp f ⦃fvs⦄ ⦃eₓs⦄)]))
   
   ;; encode that `e` has successfully evaluated
-  (define/memo (⦃e⦄! [e : -e]) : →Z3:Ast
+  (define/memo (⦃e⦄! [e : -e]) : →Z3-Ast
     (match e
       [(-b b) (λ () (⦃b⦄ b))]
       [(? -𝒾? 𝒾)
@@ -217,26 +217,26 @@
 
       ;; Hacks for special applications go here
       [(-@ (-@ 'and/c ps _) es _)
-       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
+       (define ts : (Listof →Z3-Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        (λ ()
-         (@/s 'B (apply and/s (for/list : (Listof Z3:Ast) ([t ts]) (@/s 'is_truish (t))))))]
+         (@/s 'B (apply and/s (for/list : (Listof Z3-Ast) ([t ts]) (@/s 'is_truish (t))))))]
       [(-@ (-@ 'or/c ps _) es _)
-       (define ts : (Listof →Z3:Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
+       (define ts : (Listof →Z3-Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        (λ ()
-         (@/s 'B (apply or/s (for/list : (Listof Z3:Ast) ([t ts]) (@/s 'is_truish (t))))))]
+         (@/s 'B (apply or/s (for/list : (Listof Z3-Ast) ([t ts]) (@/s 'is_truish (t))))))]
       [(-@ (-@ 'not/c (list p) _) es _)
        (define t (⦃e⦄! (-@ p es +ℓ₀)))
        (λ ()
          (@/s 'B (@/s 'is_false (t))))]
       [(-@ (-struct/c s cs _) es _)
        (define tₚ (⦃e⦄! (-@ (-st-p s) es +ℓ₀)))
-       (define ts : (Listof →Z3:Ast)
+       (define ts : (Listof →Z3-Ast)
          (for/list ([(c i) (in-indexed cs)])
            (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es +ℓ₀))
            (⦃e⦄! (-@ c (list eᵢ) +ℓ₀))))
        (λ ()
          (@/s 'B (apply and/s
-                        (for/list : (Listof Z3:Ast) ([t (cons tₚ ts)])
+                        (for/list : (Listof Z3-Ast) ([t (cons tₚ ts)])
                           (@/s 'is_truish (t))))))]
       ;; End of hacks for special applications
 
@@ -268,10 +268,10 @@
          (app-o o ts))]
       [(-@ eₕ eₓs _)
        (or
-        (for/or : (Option →Z3:Ast) ([γ γs])
+        (for/or : (Option →Z3-Ast) ([γ γs])
           (match-define (-γ αₖ bnd blm) γ)
-          (match-define (-binding f xs x->e) bnd)
-          (cond [(equal? eₕ f)
+          (match-define (-binding φₕ xs x->φ) bnd)
+          (cond [(equal? eₕ φₕ)
                  (define fvs (set->list/memo
                               (set-subtract (-binding-dom bnd) (list->seteq xs))))
                  (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
@@ -314,7 +314,7 @@
     (props-add! (λ () (@/s 'is_truish (t)))))
   (define tₜₒₚ (⦃e⦄! e))
   (define all-props
-    (∪ (for/seteq: : (℘ →Z3:Ast) ([(tₐₚₚ res) asserts-app])
+    (∪ (for/seteq: : (℘ →Z3-Ast) ([(tₐₚₚ res) asserts-app])
          (match res
            [#t
             (λ () (@/s 'is-Val (tₐₚₚ)))]
@@ -326,8 +326,8 @@
   (cons refs (Entry free-vars all-props tₜₒₚ))
   )
 
-;(: app-o : -o (Listof →Z3:Ast) → →Z3:Ast)
-(define/memo (app-o [o : -o] [ts : (Listof →Z3:Ast)]) : →Z3:Ast
+;(: app-o : -o (Listof →Z3-Ast) → →Z3-Ast)
+(define/memo (app-o [o : -o] [ts : (Listof →Z3-Ast)]) : →Z3-Ast
   (case o
     [(defined?)
      (λ () (@/s 'B (not/s (=/s 'Undefined ((car ts))))))]
@@ -364,10 +364,10 @@
     [(list)
      (λ ()
        (foldr
-        (λ ([tₗ : Z3:Ast] [tᵣ : Z3:Ast])
+        (λ ([tₗ : Z3-Ast] [tᵣ : Z3-Ast])
           (@/s 'St_2 (⦃struct-info⦄ -s-cons) tₗ tᵣ))
         (val-of 'Null)
-        (for/list : (Listof Z3:Ast) ([t ts]) (t))))]
+        (for/list : (Listof Z3-Ast) ([t ts]) (t))))]
     [(any/c) (λ () (@/s 'B true/s))]
     [(none/c) (λ () (@/s 'B false/s))]
     [(= equal?)
@@ -375,7 +375,7 @@
      (λ () (@/s 'B (=/s (t₁) (t₂))))]
     [(< > <= >=)
      (match-define (list l r) ts)
-     (define o/s : (Z3:Ast Z3:Ast → Z3:Ast)
+     (define o/s : (Z3-Ast Z3-Ast → Z3-Ast)
        (case o
          [(<) </s]
          [(<=) <=/s]
@@ -393,7 +393,7 @@
        (@/s 'N (-/s (@/s 'real (t)) 1) (@/s 'imag (t))))]
     [(+ -)
      (match-define (list x y) ts)
-     (define o/s : (Expr Expr → Z3:Ast)
+     (define o/s : (Smt-Expr Smt-Expr → Z3-Ast)
        (case o
          [(+) +/s]
          [else -/s]))
@@ -501,7 +501,7 @@
        [_ (raise (exn:scv:unsupported (format "unsupported: ~a" (show-o o))
                                           (current-continuation-marks)))])]))
 
-(: ⦃b⦄ : Base → Z3:Ast)
+(: ⦃b⦄ : Base → Z3-Ast)
 (define (⦃b⦄ b)
   (match b
     [#f (@/s 'B false/s)]
@@ -520,12 +520,12 @@
 
 (: base-datatypes : (℘ Natural) → Void)
 (define (base-datatypes arities)
-  (define st-defs : (Listof (Pairof Symbol (Listof (List Symbol Sort-Expr))))
+  (define st-defs : (Listof (Pairof Symbol (Listof (List Symbol Smt-Sort-Expr))))
     (for/list ([n (set-add arities #|hack|# 2)])
       (define St_k (format-symbol "St_~a" n))
       (define tag_k (format-symbol "tag_~a" n))
       (define fields
-        (for/list : (Listof (List Symbol Sort-Expr)) ([i n])
+        (for/list : (Listof (List Symbol Smt-Sort-Expr)) ([i n])
           `(,(format-symbol "field_~a_~a" n i) V)))
       `(,St_k (,tag_k ,Int/s) ,@fields)))
   (dynamic-declare-datatype
@@ -594,10 +594,10 @@
 ;;;;; Emitting SMT 2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;(: emit : (℘ Natural) Memo-Table Entry → (Values →Void →Z3:Ast))
+;(: emit : (℘ Natural) Memo-Table Entry → (Values →Void →Z3-Ast))
 (define/memo (emit [struct-arities : (℘ Natural)]
                    [def-funs : Memo-Table]
-                   [top : Entry]) : (Pairof →Void →Z3:Ast)
+                   [top : Entry]) : (Pairof →Void →Z3-Ast)
   (match-define (Entry consts facts goal) top)
   
   (define-values (emit-dec-funs emit-def-funs)
@@ -607,7 +607,7 @@
       (match-define (App αₖ fvs xs) f-xs)
       (define n (+ (length fvs) (length xs)))
       (define ⦃fv⦄s (map ⦃x⦄ fvs))
-      (define tₓs : (Listof →Z3:Ast)
+      (define tₓs : (Listof →Z3-Ast)
         (for/list ([x xs])
           (define t (⦃x⦄ x))
           (λ () (val-of t))))
@@ -615,7 +615,7 @@
       (define tₐₚₚ (-tapp fₕ ⦃fv⦄s tₓs))
       (match-define (Res oks ers) res)
 
-      (: mk-cond : (Listof Entry) → →Z3:Ast)
+      (: mk-cond : (Listof Entry) → →Z3-Ast)
       (define (mk-cond entries)
         (match entries
           ['() (λ () false/s)]
@@ -626,12 +626,12 @@
           [_
            (define-values (shared-xs shared-cond)
              (for/fold ([shared-xs : (℘ Symbol) (Entry-free-vars (first entries))]
-                        [shared-cond : (℘ →Z3:Ast) (Entry-facts (first entries))])
+                        [shared-cond : (℘ →Z3-Ast) (Entry-facts (first entries))])
                        ([ent (in-list (rest entries))])
                (match-define (Entry xs φs _) ent)
                (values (∩ shared-xs xs) (∩ shared-cond φs))))
            (define disjs
-             (for/list : (Listof →Z3:Ast) ([ent entries])
+             (for/list : (Listof →Z3-Ast) ([ent entries])
                (match-define (Entry xs₀ φs₀ _) ent)
                (define xs (set-subtract xs₀ shared-xs))
                (define φs (set-subtract φs₀ shared-cond))
@@ -691,8 +691,8 @@
 (: run-all (∀ (X) (Listof (→ X)) → (Listof X)))
 (define (run-all fs) (for/list ([f fs]) (f)))
 
-;(: -tapp : Symbol (Listof Symbol) (Listof →Z3:Ast) → →Z3:Ast)
-(define/memo (-tapp [f : Symbol] [fvs : (Listof Symbol)] [args : (Listof →Z3:Ast)]) : →Z3:Ast
+;(: -tapp : Symbol (Listof Symbol) (Listof →Z3-Ast) → →Z3-Ast)
+(define/memo (-tapp [f : Symbol] [fvs : (Listof Symbol)] [args : (Listof →Z3-Ast)]) : →Z3-Ast
   (cond
     [(and (null? fvs) (null? args))
      (λ () (val-of f))]
@@ -700,9 +700,9 @@
      (λ ()
        (define all-args
          (append
-          (for/list : (Listof Z3:Ast) ([fv fvs])
+          (for/list : (Listof Z3-Ast) ([fv fvs])
             (val-of fv))
-          (for/list : (Listof Z3:Ast) ([arg args])
+          (for/list : (Listof Z3-Ast) ([arg args])
             (arg))))
        (apply @/s f all-args))]))
 

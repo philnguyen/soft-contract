@@ -3,17 +3,16 @@
 (provide ext-prove ext-plausible-pc? Timeout)
 
 (require racket/match
+         (only-in z3/ffi toggle-warning-messages!)
+         z3/smt
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "result.rkt"
-         "translate.rkt"
-         (only-in "z3-rkt/ffi/main.rkt" toggle-warning-messages!)
-         "z3-rkt/smt/main.rkt"
-         )
+         "translate.rkt")
 
 (define-parameter Timeout : Nonnegative-Fixnum 500)
-(Sat-Result . ::= . Z3:Sat-LBool 'timeout)
+(Sat-Result . ::= . Smt-Sat 'timeout)
 (toggle-warning-messages! #f)
 
 (define (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
@@ -31,14 +30,14 @@
     [(unsat) #f]
     [(sat unknown) #t]))
 
-(define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Z3:Sat-LBool
+(define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Smt-Sat
   (with-new-context
     (set-options! #:timeout (Timeout))
     (asserts)
     #;(check-sat/log 't0)
     (check-sat)))
 
-(define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3:Ast)]) : (Pairof Sat-Result Sat-Result)
+(define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3-Ast)]) : (Pairof Sat-Result Sat-Result)
   (with-new-context
     (set-options! #:timeout (Timeout))
     (asserts)
@@ -54,7 +53,7 @@
                #;(check-sat/log 't2)
                (check-sat)))])))
 
-(: check-sat/log : Symbol → Z3:Sat-LBool)
+(: check-sat/log : Symbol → Smt-Sat)
 ;; Log all queries that take 2/3 Timeout or more
 (define (check-sat/log tag)
   (define-values (reses t₁ t₂ t₃) (time-apply check-sat '()))
