@@ -89,9 +89,9 @@
           (for/union : (℘ -ς) ([Vₓ* Vₓ*s]) ;; TODO: could this loop forever due to cycle?
             (app lₒ ℓ Ac (list (-W¹ Vₓ* sₓ)) Γ 𝒞 Σ ⟦k⟧))])]
       [(-● _)
-       (define-values (Γₒₖ Γₑᵣ) (Γ+/-W∋Ws M Γ (-W¹ p p) Wₓ))
-       (∪ (with-Γ Γₒₖ (⟦k⟧ (-W -●/Vs sₐ) Γₒₖ 𝒞 Σ))
-          (with-Γ Γₑᵣ (⟦k⟧ (blm) Γₑᵣ 𝒞 Σ)))]
+       (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-W∋Ws M Γ (-W¹ p p) Wₓ)])
+         #:true  (⟦k⟧ (-W -●/Vs sₐ) Γₒₖ 𝒞 Σ)
+         #:false (⟦k⟧ (blm) Γₑᵣ 𝒞 Σ))]
       [_ (⟦k⟧ (blm) Γ 𝒞 Σ)]))
 
   (define (app-st-mut [s : -struct-info] [i : Natural])
@@ -258,10 +258,9 @@
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
-       (match-define (-Σ _ _ M) Σ)
-       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
-       (∪ (with-Γ Γ₁ (⟦k⟧! -False/W Γ₁ 𝒞 Σ))
-          (with-Γ Γ₂ (⟦k⟧! -True/W  Γ₂ 𝒞 Σ)))]
+       (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V v)])
+         #:true  (⟦k⟧! -False/W Γ₁ 𝒞 Σ)
+         #:false (⟦k⟧! -True/W  Γ₂ 𝒞 Σ))]
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
        (⟦k⟧! blm Γ 𝒞 Σ)])))
@@ -271,10 +270,9 @@
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
-       (match-define (-Σ _ _ M) Σ)
-       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
-       (∪ (with-Γ Γ₁ (app l ℓ Wᵣ (list Wₓ) Γ 𝒞 Σ ⟦k⟧!))
-          (with-Γ Γ₂ (⟦k⟧! -False/W Γ₂ 𝒞 Σ)))]
+       (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V v)])
+         #:true  (app l ℓ Wᵣ (list Wₓ) Γ 𝒞 Σ ⟦k⟧!)
+         #:false (⟦k⟧! -False/W Γ₂ 𝒞 Σ))]
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
        (⟦k⟧! blm Γ 𝒞 Σ)])))
@@ -284,10 +282,9 @@
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
-       (match-define (-Σ _ _ M) Σ)
-       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V v))
-       (∪ (with-Γ Γ₁ (⟦k⟧! A Γ₁ 𝒞 Σ))
-          (with-Γ Γ₂ (app l ℓ Wᵣ (list Wₓ) Γ₂ 𝒞 Σ ⟦k⟧!)))]
+       (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V v)])
+         #:true  (⟦k⟧! A Γ₁ 𝒞 Σ)
+         #:false (app l ℓ Wᵣ (list Wₓ) Γ₂ 𝒞 Σ ⟦k⟧!))]
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
        (⟦k⟧! blm Γ 𝒞 Σ)])))
@@ -309,3 +306,5 @@
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
        (⟦k⟧! blm Γ 𝒞 Σ)])))
+
+

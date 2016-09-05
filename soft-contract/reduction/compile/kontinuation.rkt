@@ -46,10 +46,9 @@
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
-       (match-define (-Σ _ _ M) Σ)
-       (define-values (Γ₁ Γ₂) (Γ+/-V M Γ V s))
-       (∪ (with-Γ Γ₁ (⟦e⟧₁ ρ Γ₁ 𝒞 Σ ⟦k⟧))
-          (with-Γ Γ₂ (⟦e⟧₂ ρ Γ₂ 𝒞 Σ ⟦k⟧)))]
+       (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V s)])
+         #:true  (⟦e⟧₁ ρ Γ₁ 𝒞 Σ ⟦k⟧)
+         #:false (⟦e⟧₂ ρ Γ₂ 𝒞 Σ ⟦k⟧))]
       [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
 
 ;; begin
