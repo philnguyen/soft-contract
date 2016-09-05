@@ -93,6 +93,14 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Grouped reference to mutable stores
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:transparent)
+(define (⊥Σ) (-Σ (⊥σ) (⊥σₖ) (⊥M)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -264,9 +272,10 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Continuations are not first class. No `σₖ` in arguments for now
-(define-type -⟦e⟧! (-ρ -Γ -𝒞 -σ -σₖ -M -⟦k⟧! → (℘ -ς)))
-(define-type -⟦k⟧! (-A -Γ -𝒞 -σ -σₖ -M       → (℘ -ς)))
+;; A computation returns set of next states
+;; and may perform side effects widening mutable store(s)
+(define-type -⟦e⟧! (-ρ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς)))
+(define-type -⟦k⟧! (-A -Γ -𝒞 -Σ       → (℘ -ς)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧! -e)))
 
 
@@ -286,9 +295,10 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [exp : -⟦e⟧!] [env : -ρ])
              ;; Contract monitoring
-            #;(-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
+             ;(-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
             ;; Flat checking
-            #;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ]))
+             ;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
+     )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -301,6 +311,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Pretty printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (show-Σ [Σ : -Σ]) : (Values (Listof Sexp) (Listof Sexp) (Listof Sexp))
+  (match-define (-Σ σ σₖ M) Σ)
+  (values (show-σ σ) (show-σₖ σₖ) (show-M M)))
 
 (define (show-σ [σ : -σ]) : (Listof Sexp)
   (for/list ([(α σr) σ]
