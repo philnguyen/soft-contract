@@ -63,7 +63,7 @@
            (define-values (def-funs** refs+)
              (match front
                [(and app-ctx (App-Ctx (and app (App αₖ _ _)) _))
-                (define As (hash-ref M αₖ))
+                (define As (M@ M αₖ))
                 (match-define (cons refs entries) (encode-App-Ctx app-ctx As))
                 (values (hash-set def-funs* app entries) refs)]
                [(? -o? o)

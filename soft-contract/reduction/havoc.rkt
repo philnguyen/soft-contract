@@ -24,8 +24,8 @@
   (define ⟦e⟧ : -⟦e⟧!
     (λ (ρ Γ 𝒞 Σ ⟦k⟧)
       (match-define (-Σ σ _ _) Σ)
-      (for*/union : (℘ -ς) ([σr (in-value (hash-ref σ (ρ@ ρ 𝒙)))]
-                           [V (in-set (-σr-vals σr))])
+      (define-values (Vs _) (σ@ σ (ρ@ ρ 𝒙)))
+      (for*/union : (℘ -ς) ([V (in-set Vs)])
         (define W (-W¹ V 𝐱))
         (match V
           ;; Ignore first-order and opaque value

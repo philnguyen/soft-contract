@@ -31,28 +31,43 @@
 (: run : -⟦e⟧! -σ → (Values (℘ -A) -Σ))
 (define (run ⟦e⟧! σ)
   (define Σ (-Σ σ (⊥σₖ) (⊥M)))
-  
-  (error 'run "TODO"))
+  (define seen : (HashTable -ς (List Fixnum Fixnum Fixnum)) (make-hash))
+  (define αₖ₀ : -αₖ (-ℬ ⟦e⟧! ⊥ρ))
 
-(: ↝ : -ς -Σ → (℘ -ς))
+  (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
+    (unless (set-empty? front)
+      (define v-Σ
+        (let-values ([(v-σ v-σₖ v-M) (-Σ-version Σ)])
+          (list v-σ v-σₖ v-M)))
+      (define next
+        (for/union : (℘ -ς) ([ς front] #:unless (equal? v-Σ (hash-ref seen ς (λ () #f))))
+          (hash-set! seen ς v-Σ)
+          (↝! ς Σ)))
+      (loop! next)))
+
+  (match-let ([(-Σ σ σₖ M) Σ])
+    (values (map/set -ΓA-ans (M@ M αₖ₀))
+            Σ)))
+
+(: ↝! : -ς -Σ → (℘ -ς))
 ;; Perform one "quick-step" on configuration,
 ;; Producing set of next configurations and store-deltas
-(define (↝ ς Σ)
+(define (↝! ς Σ)
   (match ς
-    [(-ς↑ αₖ Γ 𝒞) (↝↑ αₖ Γ 𝒞 Σ)]
-    [(-ς↓ αₖ Γ A) (↝↓ αₖ Γ A Σ)]))
+    [(-ς↑ αₖ Γ 𝒞) (↝↑! αₖ Γ 𝒞 Σ)]
+    [(-ς↓ αₖ Γ A) (↝↓! αₖ Γ A Σ)]))
 
-(: ↝↑ : -αₖ -Γ -𝒞 -Σ → (℘ -ς))
+(: ↝↑! : -αₖ -Γ -𝒞 -Σ → (℘ -ς))
 ;; Quick-step on "push" state
-(define (↝↑ αₖ Γ 𝒞 Σ)
+(define (↝↑! αₖ Γ 𝒞 Σ)
   (match αₖ
     [(-ℬ ⟦e⟧! ρ)
      (⟦e⟧! ρ Γ 𝒞 Σ (rt αₖ))]
     [_ (error '↝↑ "~a" αₖ)]))
 
-(: ↝↓ : -αₖ -Γ -A -Σ → (℘ -ς))
+(: ↝↓! : -αₖ -Γ -A -Σ → (℘ -ς))
 ;; Quick-step on "pop" state
-(define (↝↓ αₖ Γₑₑ A Σ)
+(define (↝↓! αₖ Γₑₑ A Σ)
   (match-define (-Σ _ σₖ _) Σ)
   (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
     (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ bnd) κ)

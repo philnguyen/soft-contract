@@ -30,14 +30,14 @@
 ;; Store maps each address to value set and whether it may have been mutated
 
 (struct -σr ([vals : (℘ -V)] [old? : Boolean]) #:transparent)
-(define-type -σ (HashTable -α -σr))
+(struct -σ ([m : (HashTable -α -σr)] [version : Fixnum]) #:transparent #:mutable)
 ;(define-type -Δσ -σ)
-(define (⊥σ) : -σ (make-hash))
+(define (⊥σ) (-σ (make-hash) 0))
 (define ⊥σr (-σr ∅ #f))
 
 (: σ@ : -σ -α → (Values (℘ -V) Boolean))
 (define (σ@ σ α)
-  (match-define (-σr Vs old?) (hash-ref σ α (λ () (error 'σ@ "no address ~a" α))))
+  (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
   (values Vs old?))
 
 (: σ@ᵥ : -σ -α → (℘ -V))
@@ -52,13 +52,15 @@
 
 (: σ⊔! : -σ -α -V Boolean → Void)
 (define (σ⊔! σ α V bind?)
-  (hash-update! σ α
-                (λ ([σr₀ : -σr]) (σr⊔ σr₀ V bind?))
-                (λ () ⊥σr)))
+  (match-define (-σ m i) σ)
+  (match-define (and σr (-σr Vs b?)) (hash-ref m α (λ () ⊥σr)))
+  (unless (and (∋ Vs V) (equal? b? bind?))
+    (hash-update! m α (λ ([σr : -σr]) (σr⊔ σr V bind?)) (λ () ⊥σr))
+    (set--σ-version! σ (assert (+ 1 i) fixnum?))))
 
 (define-syntax σ⊔*!
   (syntax-rules (↦)
-    [(_ _) (void)]
+    [(_ σ [α ↦ V b?]) (σ⊔! σ α V b?)]
     [(_ σ [α ↦ V b?] p ...)
      (begin
        (σ⊔!  σ α V b?)
@@ -76,20 +78,18 @@
             )
   #:transparent)
 
-(define-type -σₖ (HashTable -αₖ (℘ -κ)))
-;(define-type -Δσₖ -σₖ)
-(define (⊥σₖ) : -σₖ (make-hash))
-(define σₖ@ : (-σₖ -αₖ → (℘ -κ)) m@)
+(define-type -σₖ (VMap -αₖ -κ))
+(define ⊥σₖ (inst ⊥vm -αₖ -κ))
+(define σₖ@ : (-σₖ -αₖ → (℘ -κ)) vm@)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Memo Table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -M (HashTable -αₖ (℘ -ΓA)))
-;(define-type -ΔM -M)
-(define (⊥M) : -M (make-hash))
-(define M@ : (-M -αₖ → (℘ -ΓA)) m@)
+(define-type -M (VMap -αₖ -ΓA))
+(define ⊥M (inst ⊥vm -αₖ -ΓA))
+(define M@ : (-M -αₖ → (℘ -ΓA)) vm@)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -98,6 +98,11 @@
 
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:transparent)
 (define (⊥Σ) (-Σ (⊥σ) (⊥σₖ) (⊥M)))
+
+(: -Σ-version : -Σ → (Values Fixnum Fixnum Fixnum))
+(define -Σ-version
+  (match-lambda
+    [(-Σ σ σₖ M) (values (-σ-version σ) (VMap-version σₖ) (VMap-version M))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -310,7 +315,7 @@
   (values (show-σ σ) (show-σₖ σₖ) (show-M M)))
 
 (define (show-σ [σ : -σ]) : (Listof Sexp)
-  (for/list ([(α σr) σ]
+  (for/list ([(α σr) (-σ-m σ)]
              #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
     (match-define (-σr Vs _) σr)
     `(,(show-α α) ↦ ,@(set-map Vs show-V))))
@@ -322,11 +327,11 @@
   `(,@(set-map φs show-e) ,@(map show-γ γs)))
 
 (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
-  (for/list ([(αₖ κs) σₖ])
+  (for/list ([(αₖ κs) (VMap-m σₖ)])
     `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
 
 (define (show-M [M : -M]) : (Listof Sexp)
-  (for/list ([(αₖ As) M])
+  (for/list ([(αₖ As) (VMap-m M)])
     `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
 
 (define (show-V [V : -V]) : Sexp

@@ -96,9 +96,9 @@
              [(? -o? o) o]
              [(-Ar _ (? -o? o) _) o]
              [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
-              (match (hash-ref σ α)
-                [(? set? s) #:when (= 1 (set-count s)) (V->s σ (set-first s))]
-                [_ #f])]
+              (match/values (σ@ σ α)
+                [((? set? s) _) #:when (= 1 (set-count s)) (V->s σ (set-first s))]
+                [(_ _) #f])]
              [(-Clo xs ⟦e⟧ ρ _) #:when (ρ-empty? ρ)
               (cond [(recall-e ⟦e⟧) => (λ ([e : -e]) (-λ xs e))] ; hack
                     [else #f])]
