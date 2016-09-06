@@ -1,123 +1,77 @@
 #lang typed/racket/base
 
-(provide gen-havoc-Clo gen-havoc-exp havoc-𝒾)
+(provide gen-havoc-exp gen-havoc-clo)
 
-(require racket/match
-         racket/set
-         (except-in racket/function arity-includes?)
-         (except-in racket/list remove-duplicates)
-         "../utils/set.rkt"
-         "../ast/definition.rkt"
+(require "../utils/main.rkt"
+         "../ast/main.rkt"
          "../runtime/main.rkt"
-         "step.rkt"
-         "continuation.rkt")
+         racket/set
+         racket/match)
 
-(define x (+x!))
-(define 𝐱 (-x x))
+(define 𝒙 (+x!))
+(define 𝐱 (-x 𝒙))
 (define 𝐱s (list 𝐱))
-(define ⟦hv⟧ : -⟦e⟧ (⇓ havoc-path havoc-𝒾))
+(define ⟦rev-hv⟧ : -⟦e⟧!
+  (λ (ρ Γ 𝒞 Σ ⟦k⟧)
+    (let-values ([(Vs _) (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
+      (assert (= 1 (set-count Vs)))
+      (⟦k⟧ (-W (list (set-first Vs)) havoc-𝒾) Γ 𝒞 Σ))))
 
-(define (rt-● [k : Arity]) : -⟦e⟧
-  (λ (M σ X ℒ)
-    (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W -●/Vs (-x (+x/memo! 'hv-rt k))))} ∅ ∅ ∅)))
+(: gen-havoc-clo : (Listof -module) → -Clo)
+(define (gen-havoc-clo ms)
+  (define accs (prog-accs ms))
 
-(: gen-havoc-Clo : (Listof -module) → -Clo)
-;; Generate the unknown context
-;; Only used by `verify` module, not `ce`
-(define (gen-havoc-Clo ms)
-
-  (define acs (prog-accs ms))
-
-  (define ⟦e⟧ : -⟦e⟧
-    (λ (M σ X ℒ)
-      (for*/ans ([V (σ@ σ (ρ@ (-ℒ-env ℒ) x))])
-        #;(begin
-          (match-define (-ℒ ρ Γ 𝒞) ℒ)
-          (printf "havoc: ~a~n" (show-V V))
-          (printf "  - ρ: ~a~n" (show-ρ ρ))
-          (printf "  - Γ: ~a~n" (show-Γ Γ))
-          (printf "  - 𝒞: ~a~n" (parameterize ([verbose? #t]) (show-𝒞 𝒞)))
-          (printf "  - σ: ~a~n" (show-σ σ))
-          (printf "~n"))
-        
+  (define ⟦e⟧ : -⟦e⟧!
+    (λ (ρ Γ 𝒞 Σ ⟦k⟧)
+      (match-define (-Σ σ _ _) Σ)
+      (for*/union : (℘ -ς) ([σr (in-value (hash-ref σ (ρ@ ρ 𝒙)))]
+                           [V (in-set (-σr-vals σr))])
         (define W (-W¹ V 𝐱))
-        (define ⟦V⟧ : -⟦e⟧
-          (λ (M σ X ℒ)
-            (values ⊥σ {set (-ΓW (-ℒ-cnd ℒ) (-W (list V) 𝐱))} ∅ ∅ ∅)))
-        (define comp : -⟦e⟧
-          (match V
-            ;; Ignore first-order and opaque values
-            [(or (-● _) (? -prim?)) ⊥⟦e⟧]
-            
-            ;; Give an appropriate number of arguments to function
-            [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
-             (define a (V-arity V))
+        (match V
+          ;; Ignore first-order and opaque value
+          [(or (-● _) (? -prim?)) ∅]
 
-             (define (hv/arity [k : Natural]) : -⟦e⟧
-               (define ⟦V-●⟧
-                 (let ([args : (Listof -W¹)
-                        (for/list ([i k]) (-W¹ -●/V (-x (+x/memo! 'hv k i))))])
-                   (ap havoc-path (+ℓ/memo! 'opq-ap k) W args)))
-               (define ⟦hv-⟮V-●⟯⟧
-                 ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 0) '() (list ⟦V-●⟧)) ⟦hv⟧))
-               (define ⟦hv-V⟧
-                 ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 1) '() (list ⟦V⟧)) ⟦hv⟧))
-               ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⟮V-●⟯⟧))
-             
-             (match a
-               [(arity-at-least k)
-                (↝.amb (list (rt-● a) (hv/arity (+ 1 k))))] ; TODO
-               [(? integer? k)
-                (↝.amb (list (rt-● a) (hv/arity k)))]
-               [(? list? ks)
-                (define cases : (Listof -⟦e⟧)
-                  (for/list ([k ks])
-                    (cond [(integer? k) (hv/arity k)]
-                          [else (error 'havoc "TODO: ~a" k)])))
-                (↝.amb (cons (rt-● a) cases))]
-               [_ ⊥⟦e⟧])]
+          ;; Apply function with appropriate number of arguments
+          [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
 
-            ;; If it's a struct, havoc all publically accessible fields
-            [(or (-St s _) (-St* s _ _ _)) #:when s
-             (define ⟦hv-field⟧s : (Listof -⟦e⟧)
-               (for/list ([ac (hash-ref acs s →∅)])
-                 (define Ac (-W¹ ac ac))
-                 (define ⟦ac-V⟧
-                   ((↝.@ havoc-path (+ℓ/memo! 'ac-ap ac) (list Ac) '()) ⟦V⟧))
-                 (define ⟦hv-⟮ac-V⟯⟧
-                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap ac 0) '() (list ⟦ac-V⟧)) ⟦hv⟧))
-                 (define ⟦hv-V⟧
-                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap ac 1) '() (list ⟦V⟧)) ⟦hv⟧))
-                 ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⟮ac-V⟯⟧)))
-             (↝.amb ⟦hv-field⟧s)]
-            
-            ;; Havoc vector's content before erasing the vector with unknowns
-            ;; Approximate vectors are already erased
-            [(-Vector/hetero _ _) ⊥⟦e⟧]
-            [(-Vector/homo _ _) ⊥⟦e⟧]
-            [(-Vector αs)
-             (define ⟦hv-field⟧s : (Listof -⟦e⟧)
-               (for/list ([(α i) (in-indexed αs)])
-                 (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-                 (define ⟦ac-i⟧
-                   ((↝.@ havoc-path (+ℓ/memo! 'vref i) (list Wᵢ -vector-ref/W) '()) ⟦V⟧))
-                 (define ⟦hv-⟮ac-i⟯⟧
-                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 'ref i 0) '() (list ⟦ac-i⟧)) ⟦hv⟧))
-                 (define ⟦hv-V⟧
-                   ((↝.@ havoc-path (+ℓ/memo! 'hv-ap 'ref i 1) '() (list ⟦V⟧)) ⟦hv⟧))
-                 ((↝.begin (list ⟦hv-V⟧)) ⟦hv-⟮ac-i⟯⟧)))
-             (↝.amb ⟦hv-field⟧s)]
+           (define (hv/arity [k : Natural]) : (℘ -ς)
+             (error 'hv/arity "TODO"))
+           
+           (define a (V-arity V))
+           (match a
+             [(arity-at-least k)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt a))) Γ 𝒞 Σ)
+                 (hv/arity (+ 1 k)))]
+             [(? integer? k)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt a))) Γ 𝒞 Σ)
+                 (hv/arity k))]
+             [(? list? ks)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt a))) Γ 𝒞 Σ)
+                 (for/union : (℘ -ς) ([k ks])
+                   (cond [(integer? k) (hv/arity k)]
+                         [else (error 'havoc "TODO: ~a" k)])))]
+             [_ ∅])]
 
-            ;; Apply contract to unknown values
-            [(? -C?)
-             (log-warning "TODO: havoc contract combinators")
-             ⊥⟦e⟧]))
-        (comp M σ X ℒ))))
+          ;; If it's a struct, havoc all publically accessible fields
+          [(or (-St s _) (-St* s _ _ _)) #:when s
+           (error 'havoc "TODO: struct")]
 
-  (-Clo (list x) ⟦e⟧ ⊥ρ ⊤Γ))
+          ;; Havoc vector's content before erasing the vector with unknowns
+          ;; Approximate vectors are already erased
+          [(-Vector/hetero _ _) ∅]
+          [(-Vector/homo   _ _) ∅]
+          [(-Vector αs)
+           (error 'havoc "TODO: vector")]
+
+          ;; Apply contract to unknown values
+          [(? -C?)
+           (log-warning "TODO: havoc contract combinators")
+           ∅]))))
+  
+  (-Clo (list 𝒙) ⟦e⟧ ⊥ρ ⊤Γ))
 
 (: gen-havoc-exp : (Listof -module) → -e)
-;; Generate havoc top-level expression havoc-king modules' exports
+;; Generate top-level expression havoc-ing modules' exports
 (define (gen-havoc-exp ms)
   (define-set refs : -𝒾)
   

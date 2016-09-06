@@ -180,6 +180,15 @@
 
   (define (app-Case [C : -V] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
     (error 'app-Case "TODO"))
+
+  (define (app-opq) : (℘ -ς)
+    (define Wₕᵥ
+      (let-values ([(Vs _) (σ@ σ (-α.def havoc-𝒾))])
+        (assert (= 1 (set-count Vs)))
+        (-W¹ (set-first Vs) havoc-𝒾)))
+    (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W -●/Vs sₐ) Γ 𝒞 Σ)])
+              ([Wₓ Wₓs])
+      (app 'Λ ℓ Wₕᵥ (list Wₓ) Γ 𝒞 Σ ⟦k⟧)))
   
   (match Vₕ
     ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped
@@ -241,7 +250,9 @@
        (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
          (app-St/C s (map -W¹ Cs cs))))]
     [(-● _)
-     (error 'app "TODO: ●")]
+     (case (MΓ⊢oW M Γ 'procedure? Wₕ)
+       [(✓ ?) (app-opq)]
+       [(✗) (⟦k⟧ (-blm l 'Λ (list 'procedure?) (list Vₕ)) Γ 𝒞 Σ)])]
     [_ (error 'app "TODO: ~a" (show-V Vₕ))]))
 
 (: mon : -l³ -ℓ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
@@ -306,5 +317,3 @@
       [_
        (define blm (-blm l 'Λ '(|1 value|) Vs))
        (⟦k⟧! blm Γ 𝒞 Σ)])))
-
-

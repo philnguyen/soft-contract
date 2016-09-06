@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ↓ₚ ↓ₑ)
+(provide ↓ₚ ↓ₘ ↓ₑ)
 
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
