@@ -5,6 +5,9 @@
 (require "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
+         "compile/utils.rkt"
+         "compile/kontinuation.rkt"
+         "compile/app.rkt"
          racket/set
          racket/match)
 
@@ -21,10 +24,11 @@
 (define (gen-havoc-clo ms)
   (define accs (prog-accs ms))
 
-  (define ⟦e⟧ : -⟦e⟧!
+  (define ⟦e⟧ₕᵥ : -⟦e⟧!
     (λ (ρ Γ 𝒞 Σ ⟦k⟧)
       (match-define (-Σ σ _ _) Σ)
       (define-values (Vs _) (σ@ σ (ρ@ ρ 𝒙)))
+      (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
       (for*/union : (℘ -ς) ([V (in-set Vs)])
         (define W (-W¹ V 𝐱))
         (match V
@@ -35,7 +39,12 @@
           [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
 
            (define (hv/arity [k : Natural]) : (℘ -ς)
-             (error 'hv/arity "TODO"))
+             (define args : (Listof -W¹)
+               (for/list ([i k])
+                 (-W¹ -●/V (-x (+x/memo! 'hv k i)))))
+             (app havoc-path (+ℓ/memo! 'opq-ap k) W args Γ 𝒞 Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap 0)
+                       (hv∷ W (+ℓ/memo! 'hv-ap 'fun) ⟦k⟧))))
            
            (define a (V-arity V))
            (match a
@@ -54,21 +63,30 @@
 
           ;; If it's a struct, havoc all publically accessible fields
           [(or (-St s _) (-St* s _ _ _)) #:when s
-           (error 'havoc "TODO: struct")]
+           (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
+             (define Acc (-W¹ acc acc))
+             (app havoc-path (+ℓ/memo! 'ac-ap acc) Acc (list W) Γ 𝒞 Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap 0)
+                       (hv∷ W (+ℓ/memo! 'hv-ap 'st) ⟦k⟧))))]
 
           ;; Havoc vector's content before erasing the vector with unknowns
           ;; Approximate vectors are already erased
           [(-Vector/hetero _ _) ∅]
           [(-Vector/homo   _ _) ∅]
           [(-Vector αs)
-           (error 'havoc "TODO: vector")]
+           (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
+             (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
+             (app havoc-path (+ℓ/memo! 'vref i) -vector-ref/W (list W Wᵢ) Γ 𝒞 Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap 'ref i 0)
+                       (hv∷ W (+ℓ/memo! 'hv-ap 'vect) ⟦k⟧))))]
 
           ;; Apply contract to unknown values
           [(? -C?)
            (log-warning "TODO: havoc contract combinators")
            ∅]))))
   
-  (-Clo (list 𝒙) ⟦e⟧ ⊥ρ ⊤Γ))
+  (define cloₕᵥ : -Clo (-Clo (list 𝒙) ⟦e⟧ₕᵥ ⊥ρ ⊤Γ))
+  cloₕᵥ)
 
 (: gen-havoc-exp : (Listof -module) → -e)
 ;; Generate top-level expression havoc-ing modules' exports
@@ -108,3 +126,16 @@
             ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
     (match-define (-st-ac s _) ac)
     (hash-update m s (λ ([acs : (℘ -st-ac)]) (set-add acs ac)) →∅)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Hacky frames
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define/memo (hv∷ [W : -W¹] [ℓ : -ℓ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! _ Γ 𝒞 Σ)
+    (define Wₕᵥ
+      (let-values ([(Vs _) (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
+        (assert (= 1 (set-count Vs)))
+        (-W¹ (set-first Vs) havoc-𝒾)))
+    (app havoc-path ℓ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))
