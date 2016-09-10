@@ -60,10 +60,16 @@
 (: ↝↑! : -αₖ -Γ -𝒞 -Σ → (℘ -ς))
 ;; Quick-step on "push" state
 (define (↝↑! αₖ Γ 𝒞 Σ)
+  (define ⟦k⟧ (rt αₖ))
   (match αₖ
     [(-ℬ ⟦e⟧! ρ)
-     (⟦e⟧! ρ Γ 𝒞 Σ (rt αₖ))]
-    [_ (error '↝↑ "~a" αₖ)]))
+     (⟦e⟧! ρ Γ 𝒞 Σ ⟦k⟧)]
+    [(-ℳ l³ ℓ W-C W-V)
+     (mon l³ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)]
+    [(-ℱ l ℓ W-C W-V)
+     (flat-chk l ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)]
+    [_
+     (error '↝↑ "~a" αₖ)]))
 
 (: ↝↓! : -αₖ -Γ -A -Σ → (℘ -ς))
 ;; Quick-step on "pop" state
@@ -73,7 +79,7 @@
     (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ bnd) κ)
     ;; TODO:
     ;; - eliminate conflicting path-conditions
-    ;; - strengthen Γₑᵣ with path-condition address if it's plausible
+    ;; - strengthen Γₑᵣ with path-condition address if it's plausiblemain.r
     (define Γₑᵣ* Γₑᵣ)
     (match A
       [(-W Vs s)

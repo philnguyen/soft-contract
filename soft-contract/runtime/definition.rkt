@@ -300,10 +300,9 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [exp : -⟦e⟧!] [env : -ρ])
              ;; Contract monitoring
-             ;(-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
+             (-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹])
             ;; Flat checking
-             ;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹] [ctx : -ℒ])
-     )
+             (-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -421,11 +420,22 @@
 
 (define (show-αₖ [αₖ : -αₖ]) : Sexp
   (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
+        [(-ℳ? αₖ) (show-ℳ αₖ)]
+        [(-ℱ? αₖ) (show-ℱ αₖ)]
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ ⟦e⟧! ρ) ℬ)
   `(ℬ ,(show-⟦e⟧! ⟦e⟧!) ,(show-ρ ρ)))
+
+(define (show-ℳ [ℳ : -ℳ]) : Sexp
+  (match-define (-ℳ l³ ℓ W-C W-V) ℳ)
+  `(ℳ ,(show-W¹ W-C) ,(show-W¹ W-V)))
+
+(define (show-ℱ [ℱ : -ℱ]) : Sexp
+  ;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹])
+  (match-define (-ℱ l ℓ W-C W-V) ℱ)
+  `(ℱ ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
 (define-parameter verbose? : Boolean #f)
 

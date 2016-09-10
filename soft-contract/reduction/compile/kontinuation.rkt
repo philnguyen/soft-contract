@@ -1,7 +1,5 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
-
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
@@ -12,52 +10,15 @@
          racket/set
          racket/match)
 
+(provide (all-defined-out)
+         (all-from-out "app.rkt"))
+
 ;; Base continuation that returns locally finished configuration
 (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧!
   (λ (A Γ 𝒞 Σ)
     (match-define (-Σ _ _ M) Σ)
     (vm⊔! M αₖ (-ΓA Γ A))
     {set (-ς↓ αₖ Γ A)}))
-
-;; Application
-(define/memo (ap∷ [Ws : (Listof -W¹)]
-                  [⟦e⟧s : (Listof -⟦e⟧!)]
-                  [ρ : -ρ]
-                  [l : -l]
-                  [ℓ : -ℓ]
-                  [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
-    (match-define (-W Vs s) A)
-    (match Vs
-      [(list V)
-       (define Ws* (cons (-W¹ V s) Ws))
-       (match ⟦e⟧s
-         ['()
-          (match-define (cons Wₕ Wₓs) (reverse Ws*))
-          (app l ℓ Wₕ Wₓs Γ 𝒞 Σ ⟦k⟧)]
-         [(cons ⟦e⟧ ⟦e⟧s*)
-          (⟦e⟧ ρ Γ 𝒞 Σ (ap∷ Ws* ⟦e⟧s* ρ l ℓ ⟦k⟧))])]
-      [_
-       (⟦k⟧ (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
-
-;; Conditional
-(define/memo (if∷ [l : -l] [⟦e⟧₁ : -⟦e⟧!] [⟦e⟧₂ : -⟦e⟧!] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
-    (match-define (-W Vs s) A)
-    (match Vs
-      [(list V)
-       (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V s)])
-         #:true  (⟦e⟧₁ ρ Γ₁ 𝒞 Σ ⟦k⟧)
-         #:false (⟦e⟧₂ ρ Γ₂ 𝒞 Σ ⟦k⟧))]
-      [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
-
-;; begin
-(define/memo (bgn∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (match ⟦e⟧s
-    ['() ⟦k⟧]
-    [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
-       (⟦e⟧ ρ Γ 𝒞 Σ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; begin0, waiting on first value
 (define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
@@ -86,44 +47,6 @@
        (⟦k⟧ -Void/W Γ 𝒞 Σ)]
       [_
        (⟦k⟧ (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
-
-;; let-values
-(define/memo (let∷ [l : -l]
-                   [xs : (Listof Var-Name)]
-                   [⟦bnd⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧!))]
-                   [bnd-Ws : (Listof (List Var-Name -V -s))]
-                   [⟦e⟧ : -⟦e⟧!]
-                   [ρ : -ρ]
-                   [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
-    (match-define (-W Vs s) A)
-    (define n (length xs))
-    (cond
-      [(= n (length Vs))
-       (define bnd-Ws*
-         (for/fold ([acc : (Listof (List Var-Name -V -s)) bnd-Ws])
-                   ([x xs] [V Vs] [sₓ (split-values s n)])
-           (cons (list x V sₓ) acc)))
-       (match ⟦bnd⟧s
-         ['()
-          (match-define (-Σ σ _ _) Σ)
-          (define-values (ρ* Γ*) ; with side effect widening store
-            (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
-                      ([bnd-W bnd-Ws])
-              (match-define (list (? Var-Name? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
-              (define α (-α.x x 𝒞))
-              (σ⊔! σ α Vₓ #t)
-              (values (ρ+ ρ x α)
-                      (-Γ-with-aliases Γ x sₓ))))
-          (⟦e⟧ ρ* Γ* 𝒞 Σ ⟦k⟧)]
-         [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
-          (⟦e⟧* ρ Γ 𝒞 Σ (let∷ l xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
-      [else
-       (define blm
-         (-blm l 'let-values
-               (list (format-symbol "~a values" (length xs)))
-               (list (format-symbol "~a values" (length Vs)))))
-       (⟦k⟧ blm Γ 𝒞 Σ)])))
 
 ;; letrec-values
 (define/memo (letrec∷ [l : -l]
