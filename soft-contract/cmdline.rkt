@@ -9,7 +9,7 @@
          "ast/definition.rkt"
          "parse/main.rkt"
          "runtime/definition.rkt"
-         (only-in "reduction/main.rkt" run-file havoc-file)
+         (only-in "reduction/quick-step.rkt" run-file havoc-file)
          (only-in "proof-relation/ext.rkt" Timeout))
 
 (Mode . ::= . 'light 'havoc 'expand)
@@ -39,11 +39,11 @@
     [(list V) (show-V V)]
     [_ `(values ,@(map show-V Vs))]))
 
-(: show-a : -A → Sexp)
+(: show-a : -ΓA → Sexp)
 (define (show-a a)
   (match a
-    [(-ΓW _ (-W Vs _)) (show-Vs Vs)]
-    [(-ΓE _ (-blm l+ lo Cs Vs))
+    [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
+    [(-ΓA _ (-blm l+ lo Cs Vs))
      `(blame ,l+ ,lo (contract: ,(show-Vs Cs)) (value: ,(show-Vs Vs)))]))
 
 (parameterize ([Timeout timeout])
@@ -52,7 +52,7 @@
      (define m (file->module fname))
      (pretty-write (show-module m))]
     [(light)
-     (define-values (ans M Ξ) (run-file fname))
+     (define-values (ans Σ) (run-file fname))
      (cond
        [(set-empty? ans)
         (printf "Safe~n")]
@@ -60,9 +60,9 @@
         (for ([A ans])
           (pretty-write (show-a A)))])]
     [(havoc)
-     (define-values (ans M Ξ) (havoc-file fname))
+     (define-values (ans Σ) (havoc-file fname))
      (define safe? : Boolean #t)
-     (for ([A ans] #:when (-ΓE? A))
+     (for ([A ans] #:when (-blm? (-ΓA-ans A)))
        (set! safe? #f)
        (pretty-write (show-a A)))
      (when safe?

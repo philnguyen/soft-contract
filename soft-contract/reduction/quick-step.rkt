@@ -1,5 +1,7 @@
 #lang typed/racket/base
 
+(provide run-file havoc-file run-e)
+
 (require "../utils/main.rkt"
          "../ast/main.rkt"
          "../parse/main.rkt"
@@ -11,24 +13,24 @@
          racket/set
          racket/match)
 
-(: run-file : Path-String → (Values (℘ -A) -Σ))
+(: run-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (run-file p)
   (define m (file->module p))
   (define-values (σ₁ _) (𝑰 (list m)))
   (run (↓ₘ m) σ₁))
 
-(: havoc-file : Path-String → (Values (℘ -A) -Σ))
+(: havoc-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (havoc-file p)
   (define m (file->module p))
   (define-values (σ₁ e₁) (𝑰 (list m)))
   (run (↓ₚ (list m) e₁) σ₁))
 
-(: run-e : -e → (Values (℘ -A) -Σ))
+(: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)
   (define-values (σ₀ _) (𝑰 '()))
   (run (↓ₑ 'top e) σ₀))
 
-(: run : -⟦e⟧! -σ → (Values (℘ -A) -Σ))
+(: run : -⟦e⟧! -σ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧! σ)
   (define Σ (-Σ σ (⊥σₖ) (⊥M)))
   (define seen : (HashTable -ς (List Fixnum Fixnum Fixnum)) (make-hash))
@@ -46,8 +48,7 @@
       (loop! next)))
 
   (match-let ([(-Σ σ σₖ M) Σ])
-    (values (map/set -ΓA-ans (M@ M αₖ₀))
-            Σ)))
+    (values (M@ M αₖ₀) Σ)))
 
 (: ↝! : -ς -Σ → (℘ -ς))
 ;; Perform one "quick-step" on configuration,
