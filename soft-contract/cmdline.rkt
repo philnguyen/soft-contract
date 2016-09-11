@@ -44,7 +44,7 @@
   (match a
     [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
     [(-ΓA _ (-blm l+ lo Cs Vs))
-     `(blame ,l+ ,lo (contract: ,(show-Vs Cs)) (value: ,(show-Vs Vs)))]))
+     `(blame ,l+ ,lo ,(show-Vs Cs) ,(show-Vs Vs))]))
 
 (parameterize ([Timeout timeout])
   (case mode

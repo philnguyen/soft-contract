@@ -116,8 +116,8 @@
     (define-values (αs cs) ; with side effect widening store
       (for/fold ([αs : (Listof -α.dom) '()]
                  [cs : (Listof -s) '()])
-                ([(W i) (in-indexed Ws)])
-        (match-define (-W C c) W)
+                ([(W i) (in-indexed Ws)] #:when (exact-nonnegative-integer? i))
+        (match-define (-W¹ C c) W)
         (define α (-α.dom ℓ 𝒞 i))
         (σ⊔! σ α C #t)
         (values (cons α αs) (cons c cs))))
@@ -245,4 +245,5 @@
     (define W-C (-W¹ C c))
     (define-values (Vs _) (σ@ σ (-α.def 𝒾)))
     (for/union : (℘ -ς) ([V Vs])
-      (mon l³ ℓ W-C (-W¹ V 𝒾) Γ 𝒞 Σ ⟦k⟧))))
+      (mon l³ ℓ W-C (-W¹ V 𝒾) Γ 𝒞 Σ
+           (def∷ l (list (-α.wrp 𝒾)) ⟦k⟧)))))
