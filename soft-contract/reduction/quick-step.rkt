@@ -36,8 +36,28 @@
   (define seen : (HashTable -ς (List Fixnum Fixnum Fixnum)) (make-hash))
   (define αₖ₀ : -αₖ (-ℬ ⟦e⟧! ⊥ρ))
 
+  (define iter : Natural 0)
+
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
     (unless (set-empty? front)
+
+      #;(begin
+        (define-values (ς↑s ς↓s) (set-partition -ς↑? front))
+        (define num-ς↑s (set-count ς↑s))
+        (define num-ς↓s (set-count ς↓s))
+        (define num-front (set-count front))
+
+        (printf "iter ~a: ~a (~a + ~a) ~n" iter num-front num-ς↑s num-ς↓s)
+        (printf " *~n")
+        (for ([ς ς↑s])
+          (printf "  - ~a~n" (show-ς ς)))
+        (printf " *~n")
+        (for ([ς ς↓s])
+          (printf "  - ~a~n" (show-ς ς)))
+        
+        (printf "~n")
+        (set! iter (+ 1 iter)))
+
       (define v-Σ
         (let-values ([(v-σ v-σₖ v-M) (-Σ-version Σ)])
           (list v-σ v-σₖ v-M)))
