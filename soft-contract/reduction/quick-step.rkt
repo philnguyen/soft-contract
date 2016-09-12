@@ -28,7 +28,7 @@
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)
   (define-values (σ₀ _) (𝑰 '()))
-  (run (↓ₑ '† e) σ₀))
+  (run (↓ₑ 'top e) σ₀))
 
 (: run : -⟦e⟧! -σ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧! σ)

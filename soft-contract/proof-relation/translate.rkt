@@ -216,15 +216,15 @@
        (λ () (val-of t))]
 
       ;; Hacks for special applications go here
-      [(-@ (-@ 'and/c ps _) es _)
+      [(-@ (-@ (or 'and/c (-𝒾 'and/c 'Λ)) ps _) es _)
        (define ts : (Listof →Z3-Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        (λ ()
          (@/s 'B (apply and/s (for/list : (Listof Z3-Ast) ([t ts]) (@/s 'is_truish (t))))))]
-      [(-@ (-@ 'or/c ps _) es _)
+      [(-@ (-@ (or 'or/c (-𝒾 'or/c 'Λ)) ps _) es _)
        (define ts : (Listof →Z3-Ast) (for/list ([p ps]) (⦃e⦄! (-@ p es +ℓ₀))))
        (λ ()
          (@/s 'B (apply or/s (for/list : (Listof Z3-Ast) ([t ts]) (@/s 'is_truish (t))))))]
-      [(-@ (-@ 'not/c (list p) _) es _)
+      [(-@ (-@ (or 'not/c (-𝒾 'not/c 'Λ)) (list p) _) es _)
        (define t (⦃e⦄! (-@ p es +ℓ₀)))
        (λ ()
          (@/s 'B (@/s 'is_false (t))))]
@@ -290,6 +290,9 @@
       [(? -struct/c?)
        (define t (fresh-free! 'stc))
        (props-add! (λ () (@/s 'is-St/C t)))
+       (λ () (val-of t))]
+      [(? -•?)
+       (define t (fresh-free! 'opq))
        (λ () (val-of t))]
       [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
 

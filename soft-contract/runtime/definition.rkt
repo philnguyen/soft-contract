@@ -33,7 +33,7 @@
 (struct -σ ([m : (HashTable -α -σr)] [version : Fixnum]) #:transparent #:mutable)
 ;(define-type -Δσ -σ)
 (define (⊥σ) (-σ (make-hash) 0))
-(define ⊥σr (-σr ∅ #f))
+(define ⊥σr (-σr ∅ #t))
 
 (: σ@ : -σ -α → (Values (℘ -V) Boolean))
 (define (σ@ σ α)
