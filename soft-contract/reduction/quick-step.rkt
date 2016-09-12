@@ -95,21 +95,35 @@
 (: ↝↓! : -αₖ -Γ -A -Σ → (℘ -ς))
 ;; Quick-step on "pop" state
 (define (↝↓! αₖ Γₑₑ A Σ)
-  (match-define (-Σ _ σₖ _) Σ)
+  (match-define (-Σ _ σₖ M) Σ)
   (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
     (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ bnd) κ)
-    ;; TODO:
-    ;; - eliminate conflicting path-conditions
-    ;; - strengthen Γₑᵣ with path-condition address if it's plausiblemain.r
-    (define Γₑᵣ* Γₑᵣ)
+    (match-define (-binding f xs x->e) bnd)
+    (define fargs (binding->fargs bnd))
     (match A
-      [(-W Vs s)
-       (define sₐ (and s (binding->s bnd)))
-       (⟦k⟧ (-W Vs sₐ) Γₑᵣ* 𝒞ₑᵣ Σ)]
+      [(-W Vs sₐ)
+       (define γ (-γ αₖ bnd #f))
+       (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
+       (cond
+         [(plausible-pc? M Γₑᵣ*)
+          (define sₐ*
+            (and sₐ
+                 (match fargs ; HACK
+                   [(-@ 'fc (list x) _)
+                    (match Vs
+                      [(list (-b #f)) -ff]
+                      [(list (-b #t) _) (-?@ 'values -tt x)])]
+                   [_ fargs])))
+          (⟦k⟧ (-W Vs sₐ*) Γₑᵣ* 𝒞ₑᵣ Σ)]
+         [else ∅])]
       [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
-       (match-define (-blm l+ _ _ _) blm)
+       (match-define (-blm l+ lo _ _) blm)
        (case l+
-         [(havoc † Λ)
-          ∅]
+         [(havoc † Λ) ∅]
          [else
-          (⟦k⟧ blm Γₑᵣ* 𝒞ₑᵣ Σ)])])))
+          (define γ (-γ αₖ bnd (cons l+ lo)))
+          (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
+          (cond
+            [(plausible-pc? M Γₑᵣ*)
+             (⟦k⟧ blm Γₑᵣ* 𝒞ₑᵣ Σ)]
+            [else ∅])])])))
