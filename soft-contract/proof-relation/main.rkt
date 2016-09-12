@@ -66,7 +66,7 @@
        [else '?]))
     (when s
       (match-define (-Γ φs _ γs) Γ)
-      (for ([φ φs]) (printf "~a~n" (show-φ φ)))
+      (for ([φ φs]) (printf "~a~n" (show-e φ)))
       (for ([γ γs])
         (match-define (-γ _ bnd blm?) γ)
         (printf "~a ; blm?~a~n" (show-binding bnd) (and blm? #t))
