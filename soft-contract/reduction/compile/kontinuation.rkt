@@ -135,7 +135,7 @@
       (define α (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?)))
       (σ⊔! σ α C #t)
       (values (cons α αs) (cons c cs))))
-  (define β (-α.rng ℓ 𝒞))
+  (define β (or (keep-if-const mk-d) (-α.rng ℓ 𝒞)))
   (define G (-=>i αs β ℓ))
   (define g (-?->i cs mk-d))
   (σ⊔! σ β Mk-D #t)
