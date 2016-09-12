@@ -571,12 +571,11 @@
           (match-define (-Σ σ _ _) Σ)
           (define-values (ρ* Γ*) ; with side effect widening store
             (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
-                      ([bnd-W bnd-Ws])
+                      ([bnd-W bnd-Ws*])
               (match-define (list (? Var-Name? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
               (define α (-α.x x 𝒞))
               (σ⊔! σ α Vₓ #t)
-              (values (ρ+ ρ x α)
-                      (-Γ-with-aliases Γ x sₓ))))
+              (values (ρ+ ρ x α) (-Γ-with-aliases Γ x sₓ))))
           (⟦e⟧ ρ* Γ* 𝒞 Σ ⟦k⟧)]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
           (⟦e⟧* ρ Γ 𝒞 Σ (let∷ l xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]

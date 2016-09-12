@@ -20,7 +20,8 @@
 (define-type -ρ (HashTable Var-Name -α))
 (define-type -Δρ -ρ)
 (define ⊥ρ : -ρ (hasheq))
-(define ρ@ : (-ρ Var-Name → -α) hash-ref)
+(define (ρ@ [ρ : -ρ] [x : Var-Name]) : -α
+  (hash-ref ρ x (λ () (error 'ρ@ "~a not in environment ~a" x (hash-keys ρ)))))
 (define ρ+ : (-ρ Var-Name -α → -ρ) hash-set)
 
 
