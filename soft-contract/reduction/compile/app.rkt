@@ -241,7 +241,7 @@
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧!] [ρₕ : -ρ] [Γₕ : -Γ])
     (define 𝒞* (𝒞+ 𝒞 (cons ⟦e⟧ ℓ)))
     (cond
-      [(pair? xs)
+      [(list? xs)
        (define ρ* ; with side effects widening store
          (for/fold ([ρ : -ρ ρₕ]) ([x xs] [Vₓ Vₓs])
            (define α (-α.x x 𝒞*))
@@ -256,7 +256,7 @@
        (define κ (-κ ⟦k⟧ Γ 𝒞 bnd))
        (vm⊔! σₖ αₖ κ)
        {set (-ς↑ αₖ Γₕ 𝒞*)}]
-      [else (error 'app-clo "TODO: varargs")]))
+      [else (error 'app-clo "TODO: varargs: ~a" (show-V Vₕ))]))
 
   (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
     (define ⟦rhs⟧ (mk-app-⟦e⟧ l ℓ (mk-rt-⟦e⟧ W₂) (list (mk-rt-⟦e⟧ (car Wₓs)))))
@@ -976,20 +976,19 @@
          #:false (⟦e⟧₂ ρ Γ₂ 𝒞 Σ ⟦k⟧))]
       [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs)))) Γ 𝒞 Σ)])))
 
-(:* and∷ or∷ : -l (Listof -⟦e⟧!) -ρ -⟦k⟧! → -⟦k⟧!)
-(define (and∷ l ⟦e⟧s ρ ⟦k⟧!)
+(define/memo (and∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (match ⟦e⟧s
     ['() ⟦k⟧!]
     [(cons ⟦e⟧ ⟦e⟧s*)
      (if∷ l ⟦e⟧ ⟦ff⟧ ρ (and∷ l ⟦e⟧s* ρ ⟦k⟧!))]))
-(define (or∷ l ⟦e⟧s ρ ⟦k⟧!)
+
+(define/memo (or∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (match ⟦e⟧s
     ['() ⟦k⟧!]
     [(cons ⟦e⟧ ⟦e⟧s*) ; TODO propagate value instead
      (if∷ l ⟦tt⟧ ⟦e⟧ ρ (or∷ l ⟦e⟧s* ρ ⟦k⟧!))]))
 
-(: neg∷ : -l -⟦k⟧! → -⟦k⟧!)
-(define (neg∷ l ⟦k⟧!) (if∷ l ⟦ff⟧ ⟦tt⟧ ⊥ρ ⟦k⟧!))
+(define/memo (neg∷ [l : -l] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧! (if∷ l ⟦ff⟧ ⟦tt⟧ ⊥ρ ⟦k⟧!))
 
 (define/memo (wrap-st∷ [s : -struct-info]
                        [αs : (Listof -α)]
