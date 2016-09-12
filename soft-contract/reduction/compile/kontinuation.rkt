@@ -132,13 +132,13 @@
                [cs : (Listof -s) '()])
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
-      (define α (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?))) ; why TR randomly can't prove `i`???
+      (define α (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?)))
       (σ⊔! σ α C #t)
       (values (cons α αs) (cons c cs))))
   (define β (-α.rng ℓ 𝒞))
   (define G (-=>i αs β ℓ))
   (define g (-?->i cs mk-d))
-  (σ⊔! σ β G #t)
+  (σ⊔! σ β Mk-D #t)
   (values G g))
 
 ;; Dependent contract
