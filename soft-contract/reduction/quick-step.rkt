@@ -48,12 +48,14 @@
         (define num-front (set-count front))
 
         (printf "iter ~a: ~a (~a + ~a) ~n" iter num-front num-ς↑s num-ς↓s)
-        (printf " *~n")
-        (for ([ς ς↑s])
-          (printf "  - ~a~n" (show-ς ς)))
-        (printf " *~n")
-        (for ([ς ς↓s])
-          (printf "  - ~a~n" (show-ς ς)))
+
+        #;(begin ; verbose
+          (printf " *~n")
+          (for ([ς ς↑s])
+            (printf "  - ~a~n" (show-ς ς)))
+          (printf " *~n")
+          (for ([ς ς↓s])
+            (printf "  - ~a~n" (show-ς ς))))
         
         (printf "~n")
         (set! iter (+ 1 iter)))
