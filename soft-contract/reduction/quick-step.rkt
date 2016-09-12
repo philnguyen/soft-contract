@@ -28,7 +28,7 @@
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)
   (define-values (σ₀ _) (𝑰 '()))
-  (run (↓ₑ 'top e) σ₀))
+  (run (↓ₑ '† e) σ₀))
 
 (: run : -⟦e⟧! -σ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧! σ)
@@ -41,7 +41,7 @@
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
     (unless (set-empty? front)
 
-      #;(begin
+      (begin
         (define-values (ς↑s ς↓s) (set-partition -ς↑? front))
         (define num-ς↑s (set-count ς↑s))
         (define num-ς↓s (set-count ς↓s))
@@ -107,4 +107,9 @@
        (define sₐ (and s (binding->s bnd)))
        (⟦k⟧ (-W Vs sₐ) Γₑᵣ* 𝒞ₑᵣ Σ)]
       [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
-       (⟦k⟧ blm Γₑᵣ* 𝒞ₑᵣ Σ)])))
+       (match-define (-blm l+ _ _ _) blm)
+       (case l+
+         [(havoc † Λ)
+          ∅]
+         [else
+          (⟦k⟧ blm Γₑᵣ* 𝒞ₑᵣ Σ)])])))

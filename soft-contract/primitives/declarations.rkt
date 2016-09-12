@@ -1592,7 +1592,7 @@
 
     [flat-named-contract ; FIXME uses
      (any/c flat-contract? . -> . flat-contract?)]
-    [any/c (any/c . -> . (not/c not))]
+    [any/c (any/c . -> . any/c)]
     [none/c (any/c . -> . not)]
     [ or/c (contract? contract? . -> . contract?)] ; FIXME uses
     [and/c (contract? contract? . -> . contract?)] ; FIXME uses
