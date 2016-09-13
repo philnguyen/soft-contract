@@ -312,8 +312,8 @@
 
 (define (show-ς [ς : -ς]) : Sexp
   (match ς
-    [(-ς↑ αₖ Γ 𝒞) `(ev: ,(show-αₖ αₖ) @ ,@(show-Γ Γ))]
-    [(-ς↓ αₖ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) @ ,@(show-Γ Γ))]))
+    [(-ς↑ αₖ Γ 𝒞) `(ev: ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
+    [(-ς↓ αₖ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
 (define (show-Σ [Σ : -Σ]) : (Values (Listof Sexp) (Listof Sexp) (Listof Sexp))
   (match-define (-Σ σ σₖ M) Σ)
