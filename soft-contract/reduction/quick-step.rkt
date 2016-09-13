@@ -41,7 +41,7 @@
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
     (unless (set-empty? front)
 
-      (begin
+      #;(begin
         (define-values (ς↑s ς↓s) (set-partition -ς↑? front))
         (define num-ς↑s (set-count ς↑s))
         (define num-ς↓s (set-count ς↓s))
