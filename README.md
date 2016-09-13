@@ -1,42 +1,37 @@
-soft-contract
-=============
-
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=stxobj)](https://travis-ci.org/philnguyen/soft-contract)
+This is the scaled up version of SCV,
+intended to be (eventually) usable for real Racket programs.
 
 Installation
-------------------------
+=========================================
 
-To install, clone the `racket` branch of this repository, then:
+### Install Z3 and Racket Z3 Library
 
-	cd path/to/soft-contract
-    raco pkg install
+This project depends on Z3 and Racket Z3 library. Installation instructions can be [are here](https://github.com/philnguyen/z3-rkt).
 
+### Install the Verifier
 
-Examples and Usage
-------------------------
+Clone the repository:
 
-This collection implements a small functional language with contract verification
-and counterexample generation.
-Examples are under [examples/](https://github.com/philnguyen/soft-contract/tree/release/examples)
+> git clone git@github.com:philnguyen/soft-contract.git
 
-You need to have [Z3](http://z3.codeplex.com/releases) available in your path.
-This program has been tested to work with Z3 `4.3.2`.
+> git checkout opt
 
-The demo currently supports the following subset of Racket:
+Link:
 
-    program          ::= sub-module-form … | sub-module-form … (require id …) expr
-	sub-module-form  ::= (module module-id racket
-	                       (provide provide-spec …)
-                           (require require-spec …)
-						   (struct id (id …)) …
-                           (define id value) …)
-    provide-spec     ::= id | (contract-out p/c-item …)
-    p/c-item         ::= (id contract) | (struct id ([id contract] …))
-	require-spec     ::= (submod ".." module-id)
-	value            ::= (lambda (id …) expr) | number | boolean | string | symbol | op
-	expr             ::= id | (if expr expr expr) | (expr expr …)
-	contract         ::= expr | any/c | (or/c contract …) | (and/c contract …)
-	                   | (list/c contract) | (listof contract)
-	                   | (->i ([id contract] …₁) (res (id …₁) contract))
-    op               ::= + | - | * | / | string-length
-	                   | number? | real? | integer? | boolean? | false? | cons? | empty?
+> cd soft-contract/soft-contract
+
+> raco link .
+
+`cmdline.rkt` is the main file that runs the analysis.
+Because type checking takes a while, you want to build it once first:
+
+> raco make cmdline.rkt
+
+To run the analysis on a file `example.rkt`, run:
+
+> racket cmdline.rkt example.rkt
+
+By default, the tool "havocs" all exported values from the module.
+To just run the module from top to bottom without havoc-ing, use `-r`:
+
+> racket cmdline.rkt -r test/programs/safe/sat.rkt
