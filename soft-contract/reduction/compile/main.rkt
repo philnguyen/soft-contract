@@ -177,7 +177,9 @@
         ['() ⟦e*⟧]
         [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
          (λ (ρ Γ 𝒞 Σ ⟦k⟧)
-           (⟦e⟧ₓₛ ρ Γ 𝒞 Σ (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ (rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
+           (⟦e⟧ₓₛ ρ Γ 𝒞 Σ (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ
+                                ⟦k⟧
+                                #;(rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
      [(-letrec-values bnds e*)
       (define ⟦bnd⟧s
         (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧!)) ([bnd bnds])
@@ -198,7 +200,9 @@
                (σ⊔! σ α 'undefined #t)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* Γ 𝒞 Σ
-            (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ* (rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
+            (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ*
+                     ⟦k⟧
+                     #;(rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
      [(-set! x e*)
       (define ⟦e*⟧ (↓ e*))
       (λ (ρ Γ 𝒞 Σ ⟦k⟧)
