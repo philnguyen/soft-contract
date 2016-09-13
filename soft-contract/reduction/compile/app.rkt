@@ -761,7 +761,7 @@
   (define ⟦k⟧*
     (let ([⟦ok⟧ (mk-rt-⟦e⟧ W-V)]
           [⟦er⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list C) (list V)))])
-      (if∷ lo ⟦ok⟧ ⟦er⟧ ⊥ρ ⟦k⟧)))
+      (if∷ lo ⟦er⟧ ⟦ok⟧ ⊥ρ ⟦k⟧)))
   (for/union : (℘ -ς) ([C* (σ@ᵥ (-Σ-σ Σ) α)])
     (assert C* C-flat?)
     (define W-C* (-W¹ C* c*))
