@@ -30,16 +30,22 @@
     [(unsat) #f]
     [(sat unknown) #t]))
 
+(define (set-default-options!)
+  (set-options! #:timeout (Timeout)
+                #:mbqi? #t
+                #:macro-finder? #t
+                #:rlimit 4000000))
+
 (define/memo (exec-check-sat₀ [asserts : (→ Void)]) : Smt-Sat
   (with-new-context
-    (set-options! #:timeout (Timeout))
+    (set-default-options!)
     (asserts)
     #;(check-sat/log 't0)
     (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3-Ast)]) : (Pairof Sat-Result Sat-Result)
   (with-new-context
-    (set-options! #:timeout (Timeout))
+    (set-default-options!)
     (asserts)
     (match (with-local-stack
              (assert! (@/s 'is_false (goal)))
