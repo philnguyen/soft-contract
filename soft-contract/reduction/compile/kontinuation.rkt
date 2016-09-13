@@ -111,14 +111,14 @@
   (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)
     (match-define (-Σ σ _ _) Σ)
     (match-define (-W (list D) d) A)
-    (define β (-α.rng ℓ 𝒞))
+    (define β (or (keep-if-const d) (-α.rng ℓ 𝒞)))
     (σ⊔! σ β D #t)
     (define-values (αs cs) ; with side effect widening store
-      (for/fold ([αs : (Listof -α.dom) '()]
+      (for/fold ([αs : (Listof (U -α.cnst -α.dom)) '()]
                  [cs : (Listof -s) '()])
                 ([(W i) (in-indexed Ws)] #:when (exact-nonnegative-integer? i))
         (match-define (-W¹ C c) W)
-        (define α (-α.dom ℓ 𝒞 i))
+        (define α (or (keep-if-const c) (-α.dom ℓ 𝒞 i)))
         (σ⊔! σ α C #t)
         (values (cons α αs) (cons c cs))))
     (define G (-W (list (-=> αs β ℓ)) (-?-> cs d)))
@@ -128,11 +128,12 @@
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
 (define (mk-=>i! σ Γ 𝒞 Ws Mk-D mk-d ℓ)
   (define-values (αs cs) ; with side effect widening store
-    (for/fold ([αs : (Listof -α.dom) '()]
+    (for/fold ([αs : (Listof (U -α.cnst -α.dom)) '()]
                [cs : (Listof -s) '()])
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
-      (define α (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?)))
+      (define α (or (keep-if-const c)
+                    (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?))))
       (σ⊔! σ α C #t)
       (values (cons α αs) (cons c cs))))
   (define β (or (keep-if-const mk-d) (-α.rng ℓ 𝒞)))
@@ -199,12 +200,13 @@
       ['()
        (match-define (-Σ σ _ _) Σ)
        (define-values (αs cs flat?) ; with side effect widening store
-         (for/fold ([αs : (Listof -α.struct/c) '()]
+         (for/fold ([αs : (Listof (U -α.cnst -α.struct/c)) '()]
                     [cs : (Listof -s) '()]
                     [flat? : Boolean #t])
                    ([(W i) (in-indexed Cs*)])
            (match-define (-W¹ C c) W)
-           (define α (-α.struct/c ℓ 𝒞 (assert i exact-nonnegative-integer?)))
+           (define α (or (keep-if-const c)
+                         (-α.struct/c ℓ 𝒞 (assert i exact-nonnegative-integer?))))
            (σ⊔! σ α C #t)
            (values (cons α αs)
                    (cons c cs)
