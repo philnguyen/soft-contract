@@ -11,7 +11,11 @@
 
 (: check-verify-safe : Path-String → Any)
 (define (check-verify-safe p)
+  ;; Can't use time-apply
+  (define t₀ (current-milliseconds))
+  (printf "~a~n" p)
   (define-values (As Σ) (havoc-file p))
+  (printf "  ~a~n" (- (current-milliseconds) t₀))
   (define-values (_ ΓEs) (set-partition (λ ([ΓA : -ΓA]) (-W? (-ΓA-ans ΓA))) As))
   (cond
     [(set-empty? ΓEs)
@@ -37,7 +41,7 @@
       (with-handlers ([exn?
                        (λ ([e : exn])
                          (fail (format "Exception: ~a~n" (exn-message e))))])
-        (define TIMEOUT 600)
+        (define TIMEOUT 10)
         (unless (within-time: Any TIMEOUT (f file-path-str))
           (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
 
