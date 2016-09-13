@@ -859,9 +859,9 @@
 (define (mon-flat/c l³ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-W¹ C _) W-C)
-  (match-define (-W¹ V _) W-V)
+  (match-define (-W¹ V v) W-V)
   (app lo +ℓ₀ W-C (list W-V) Γ 𝒞 Σ
-       (if.flat/c∷ W-V l+ lo C V ⟦k⟧)))
+       (if.flat/c∷ (-W (list V) v) (-blm l+ lo (list C) (list V)) ⟦k⟧)))
 
 (: flat-chk : -l -ℓ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
 (define (flat-chk l ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)
@@ -950,20 +950,17 @@
        (match-define (-@ 'values (list _ v) _) s)
        (⟦k⟧! (-W (list (V+ (-Σ-σ Σ) V Cₗ)) v) Γ 𝒞 Σ)])))
 
-(define/memo (if.flat/c∷ [W-V : -W¹] [l+ : -l] [lo : -l] [C : -V] [V : -V] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (if.flat/c∷ [W-V : -W] [blm : -blm] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧! A Γ 𝒞 Σ)
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
        (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V v)])
-         #:true
-         (match-let ([(-W¹ V v) W-V])
-           (⟦k⟧! (-W (list V) v) Γ₁ 𝒞 Σ))
-         #:false
-         (⟦k⟧! (-blm l+ lo (list C) (list V)) Γ₂ 𝒞 Σ))]
+         #:true  (⟦k⟧! W-V Γ₁ 𝒞 Σ)
+         #:false (⟦k⟧! blm Γ₂ 𝒞 Σ))]
       [_
-       (define blm (-blm lo 'Λ '(|1 value|) Vs))
-       (⟦k⟧! blm Γ 𝒞 Σ)])))
+       (match-define (-blm _ lo _ _) blm)
+       (⟦k⟧! (-blm lo 'Λ '(|1 value|) Vs) Γ 𝒞 Σ)])))
 
 ;; Conditional
 (define/memo (if∷ [l : -l] [⟦e⟧₁ : -⟦e⟧!] [⟦e⟧₂ : -⟦e⟧!] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
