@@ -7,12 +7,12 @@
          typed/rackunit
          "../utils/main.rkt"
          "../runtime/main.rkt"
-         "../reduction/main.rkt")
+         "../reduction/quick-step.rkt")
 
 (: check-verify-safe : Path-String → Any)
 (define (check-verify-safe p)
-  (define-values (As _₁ _₂) (havoc-file p))
-  (define-values (_ ΓEs) (set-partition -ΓW? As))
+  (define-values (As Σ) (havoc-file p))
+  (define-values (_ ΓEs) (set-partition (λ ([ΓA : -ΓA]) (-W? (-ΓA-ans ΓA))) As))
   (cond
     [(set-empty? ΓEs)
      (printf " ✓~n")]
@@ -20,7 +20,7 @@
      (define msg
        (let ([blm-msgs
               (for/list : (Listof String) ([ΓE ΓEs])
-                (match-define (-ΓE _ blm) ΓE)
+                (match-define (-ΓA _ (? -blm? blm)) ΓE)
                 (format "  - ~a" (show-blm blm)))])
          (string-join blm-msgs
                       "\n"
