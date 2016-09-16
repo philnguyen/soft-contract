@@ -16,9 +16,14 @@
 ;; Base continuation that returns locally finished configuration
 (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧!
   (λ (A Γ 𝒞 Σ)
-    (match-define (-Σ _ _ M) Σ)
-    (vm⊔! M αₖ (-ΓA Γ A))
-    {set (-ς↓ αₖ Γ A)}))
+    (match A
+      [(-blm l+ _ _ _)
+       #:when (∋ {seteq 'havoc '† 'Λ} l+)
+       ∅]
+      [_
+       (match-define (-Σ _ _ M) Σ)
+       (vm⊔! M αₖ (-ΓA Γ A))
+       {set (-ς↓ αₖ Γ A)}])))
 
 ;; begin0, waiting on first value
 (define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
