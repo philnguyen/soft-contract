@@ -33,7 +33,7 @@
 (struct -σr ([vals : (℘ -V)] [old? : Boolean]) #:transparent)
 (struct -σ ([m : (HashTable -α -σr)] [version : Fixnum]) #:transparent #:mutable)
 ;(define-type -Δσ -σ)
-(define (⊥σ) (-σ (make-hash) 0))
+(define (⊥σ) (-σ (hash) 0))
 (define ⊥σr (-σr ∅ #t))
 
 (: σ@ : -σ -α → (Values (℘ -V) Boolean))
@@ -56,7 +56,7 @@
   (match-define (-σ m i) σ)
   (match-define (and σr (-σr Vs b?)) (hash-ref m α (λ () ⊥σr)))
   (unless (and (∋ Vs V) (equal? b? bind?))
-    (hash-update! m α (λ ([σr : -σr]) (σr⊔ σr V bind?)) (λ () ⊥σr))
+    (set--σ-m! σ (hash-update m α (λ ([σr : -σr]) (σr⊔ σr V bind?)) (λ () ⊥σr)))
     (set--σ-version! σ (assert (+ 1 i) fixnum?))))
 
 (define-syntax σ⊔*!
