@@ -142,7 +142,7 @@
      (define si (-struct-info (-𝒾 ctor (cur-mod)) n ∅eq))
      (-define-values
       (list* ctor (syntax-e #'pred) (map syntax-e accs))
-      (-@ (-𝒾 'values 'Λ)
+      (-@ 'values
           (list* (-st-mk si)
                  (-st-p si)
                  (for/list ([(accᵢ i) (in-indexed accs)])
