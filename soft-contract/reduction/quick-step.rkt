@@ -61,36 +61,36 @@
         (printf "~n")
         (set! iter (+ 1 iter)))
 
-      (define next₁
-        (for/union : (℘ -ς) ([ς ς↑s] #|TR hack|# #:when (-ς↑? ς))
-          (define vs↑ : (List (HashTable -α -σr) (HashTable -αₖ (℘ -ΓA)))
-            (list (span-σ (-σ-m (-Σ-σ Σ)) (ς->αs ς))
-                  (span-M (VMap-m (-Σ-M Σ)) (ς->αₖs ς))))
+      (define next
+        (for/union : (℘ -ς) ([ς front])
           (cond
-            [(equal? vs↑ (hash-ref seen↑ ς #f)) ∅]
+            [(-ς↑? ς)
+             (define vs↑ : (List (HashTable -α -σr) (HashTable -αₖ (℘ -ΓA)))
+               (list (span-σ (-σ-m (-Σ-σ Σ)) (ς->αs ς))
+                     (span-M (VMap-m (-Σ-M Σ)) (ς->αₖs ς))))
+             (cond
+               [(equal? vs↑ (hash-ref seen↑ ς #f)) ∅]
+               [else
+                #;(printf "~a~n  Last seen: ~a~n  Now: ~a~n~n"
+                          (show-ς ς)
+                          (hash-ref seen↑ ς #f)
+                          vs↑)
+                (hash-set! seen↑ ς vs↑)
+                (↝! ς Σ)])]
             [else
-             #;(printf "~a~n  Last seen: ~a~n  Now: ~a~n~n"
-                       (show-ς ς)
-                       (hash-ref seen↑ ς #f)
-                       vs↑)
-             (hash-set! seen↑ ς vs↑)
-             (↝! ς Σ)])))
-
-      (define next₂
-        (for/union : (℘ -ς) ([ς ς↓s] #|TR hack|# #:when (-ς↓? ς))
-          (define vs↓
-            (match-let ([(-ς↓ αₖ _ _) ς])
-              (σₖ@ (-Σ-σₖ Σ) αₖ)))
-          (cond
-            [(equal? vs↓ (hash-ref seen↓ ς #f)) ∅]
-            [else
-             #;(printf "~a~n  Last seen: ~a~n  Now: ~a~n~n"
-                     (show-ς ς)
-                     (hash-ref seen↓ ς #f)
-                     vs↓)
-             (hash-set! seen↓ ς vs↓)
-             (↝! ς Σ)])))
-      (loop! (∪ next₁ next₂))))
+             (define vs↓
+               (match-let ([(-ς↓ αₖ _ _) ς])
+                 (σₖ@ (-Σ-σₖ Σ) αₖ)))
+             (cond
+               [(equal? vs↓ (hash-ref seen↓ ς #f)) ∅]
+               [else
+                #;(printf "~a~n  Last seen: ~a~n  Now: ~a~n~n"
+                          (show-ς ς)
+                          (hash-ref seen↓ ς #f)
+                          vs↓)
+                (hash-set! seen↓ ς vs↓)
+                (↝! ς Σ)])])))
+      (loop! next)))
 
   (match-let ([(-Σ σ σₖ M) Σ])
     (values (M@ M αₖ₀) Σ)))
