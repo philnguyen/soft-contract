@@ -33,7 +33,8 @@
 (: run : -⟦e⟧! -σ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧! σ)
   (define Σ (-Σ σ (⊥σₖ) (⊥M)))
-  (define seen : (HashTable -ς (List Fixnum Fixnum Fixnum)) (make-hash))
+  (define seen↑ : (HashTable -ς↑ (List (HashTable -α -σr) (HashTable -αₖ (℘ -ΓA)))) (make-hash))
+  (define seen↓ : (HashTable -ς↓ (℘ -κ)) (make-hash))
   (define αₖ₀ : -αₖ (-ℬ ⟦e⟧! ⊥ρ))
 
   (define iter : Natural 0)
@@ -41,7 +42,7 @@
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
     (unless (set-empty? front)
 
-      #;(begin
+      (begin
         (define-values (ς↑s ς↓s) (set-partition -ς↑? front))
         (define num-ς↑s (set-count ς↑s))
         (define num-ς↓s (set-count ς↓s))
@@ -60,17 +61,56 @@
         (printf "~n")
         (set! iter (+ 1 iter)))
 
-      (define v-Σ
-        (let-values ([(v-σ v-σₖ v-M) (-Σ-version Σ)])
-          (list v-σ v-σₖ v-M)))
-      (define next
-        (for/union : (℘ -ς) ([ς front] #:unless (equal? v-Σ (hash-ref seen ς (λ () #f))))
-          (hash-set! seen ς v-Σ)
-          (↝! ς Σ)))
-      (loop! next)))
+      (define next₁
+        (for/union : (℘ -ς) ([ς ς↑s] #|TR hack|# #:when (-ς↑? ς))
+          (define vs↑ : (List (HashTable -α -σr) (HashTable -αₖ (℘ -ΓA)))
+            (list (span-σ (-σ-m (-Σ-σ Σ)) (ς->αs ς))
+                  (span-M (VMap-m (-Σ-M Σ)) (ς->αₖs ς))))
+          (cond
+            [(equal? vs↑ (hash-ref seen↑ ς #f)) ∅]
+            [else
+             #;(printf "~a~n  Last seen: ~a~n  Now: ~a~n~n"
+                       (show-ς ς)
+                       (hash-ref seen↑ ς #f)
+                       vs↑)
+             (hash-set! seen↑ ς vs↑)
+             (↝! ς Σ)])))
+
+      (define next₂
+        (for/union : (℘ -ς) ([ς ς↓s] #|TR hack|# #:when (-ς↓? ς))
+          (define vs↓
+            (match-let ([(-ς↓ αₖ _ _) ς])
+              (σₖ@ (-Σ-σₖ Σ) αₖ)))
+          (cond
+            [(equal? vs↓ (hash-ref seen↓ ς #f)) ∅]
+            [else
+             #;(printf "~a~n  Last seen: ~a~n  Now: ~a~n~n"
+                     (show-ς ς)
+                     (hash-ref seen↓ ς #f)
+                     vs↓)
+             (hash-set! seen↓ ς vs↓)
+             (↝! ς Σ)])))
+      (loop! (∪ next₁ next₂))))
 
   (match-let ([(-Σ σ σₖ M) Σ])
     (values (M@ M αₖ₀) Σ)))
+
+(: ς->αs : -ς↑ → (℘ -α))
+(define ς->αs
+  (match-lambda
+    [(-ς↑ αₖ _ _) (αₖ->αs αₖ)]))
+
+(: αₖ->αs : -αₖ → (℘ -α))
+(define αₖ->αs
+  (match-lambda
+    [(-ℬ _ ρ) (ρ->αs ρ)]
+    [(-ℳ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]
+    [(-ℱ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]))
+
+(: ς->αₖs : -ς↑ → (℘ -αₖ))
+(define ς->αₖs
+  (match-lambda
+    [(-ς↑ _ Γ _) (Γ->αs Γ)]))
 
 (: ↝! : -ς -Σ → (℘ -ς))
 ;; Perform one "quick-step" on configuration,

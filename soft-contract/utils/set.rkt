@@ -1,10 +1,7 @@
 #lang typed/racket/base
 
 ;; This module provides abbreviations and extra tools for dealing with sets
-(provide
- ℘ ∅ ∅eq ∪ ∩ →∅ →∅eq ∋ ∈ ⊆ --
- set-add-list define-set define-set set-partition collect merge set->predicate map/set
- for/union for/unioneq for*/union for*/unioneq for/seteq: for*/seteq:)
+(provide (all-defined-out))
 
 (require
  racket/match racket/set

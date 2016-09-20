@@ -81,21 +81,21 @@
      (for/hash : (HashTable X Z) ([(x y) m])
        (values x (f y)))]))
 
-(: span (∀ (X Y) (MMap X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
-(define (span m xs₀ f)
+(: span (∀ (X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
+(define (span m root f)
   (define-set touched : X)
-  (define (go! [x : X]) : Void
-    (cond
-      [(∋ touched x) (void)]
-      [else
-       (touched-add! x)
-       (for ([y (in-set (hash-ref m x))])
-         (go*! (f y)))]))
-  (define (go*! [xs : (℘ X)]) : Void
-    (for ([x (in-set xs)])
-      (go! x)))
-  (go*! xs₀)
+  (define (touch! [x : X]) : Void
+    (unless (touched-has? x)
+      (touched-add! x)
+      (set-for-each (f (hash-ref m x)) touch!)))
+  (set-for-each root touch!)
   touched)
+
+(: span* (∀ (X Y) (MMap X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
+(define (span* m root f)
+  (span m root
+        (λ ([ys : (℘ Y)])
+          (for/union : (℘ X) ([y ys]) (f y)))))
 
 (: mk-interner (∀ (X) ([] [#:eq? Boolean] . ->* . (X → Natural))))
 ;; Intern something as integers
