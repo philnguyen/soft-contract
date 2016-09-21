@@ -4,10 +4,7 @@
  base? arr? arr*? ctc? dec? impl?
  (contract-out
   [prims (listof dec?)]
-  [implications (listof impl?)]
-  [assocs (set/c symbol?)]
-  [left-ids (hash/c symbol? (not/c not))]
-  [right-ids (hash/c symbol? (not/c not))]))
+  [implications (listof impl?)]))
 
 ;; FIXME annotation for side effects
 
@@ -1802,20 +1799,6 @@
     [#:exclusion
      number? string? boolean? keyword? symbol? void? null? procedure? vector? port?]
     ))
-
-;; Operations that are associative
-(define assocs
-  (seteq '+ '*)) ; FIXME: not true for floats...
-
-;; Identities for operations
-(define left-ids
-  (hasheq '+ 0
-          '* 1))
-(define right-ids
-  (hasheq '+ 0
-          '* 1
-          '- 0
-          '/ 1))
 
 ;; Check if `s` is a contract specifying a base value 
 (define (base? s)

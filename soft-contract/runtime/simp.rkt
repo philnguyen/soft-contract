@@ -60,19 +60,6 @@
              #`[(#,o)
                 (match #,xs
                   [(list #,@b-pats) #:when #,b-conds (-b (#,o #,@b-𝒾s))]
-                  #,@(cond
-                       [(hash-ref prims:left-ids o #f) =>
-                        (λ (lid) (list #`[(list (-b #,lid) e) e]))]
-                       [else '()])
-                  #,@(cond
-                       [(hash-ref prims:right-ids o #f) =>
-                        (λ (rid) (list #`[(list e (-b #,rid)) e]))]
-                       [else '()])
-                  #,@(cond
-                       [(∋ prims:assocs o)
-                        (list #`[(list (-@ '#,o (list e₁ e₂) _) e₃)
-                                 (-@/simp '#,o e₁ (-@/simp '#,o e₂ e₃))])]
-                       [else '()])
                   [_ #,default-case])])]
            [else '()])]
         [_ '()]))

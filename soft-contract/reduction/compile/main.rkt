@@ -87,53 +87,23 @@
         (⟦k⟧ W Γ 𝒞 Σ))]
      [(-x x) (↓ₓ l x)]
      [(and 𝒾 (-𝒾 x l₀))
-
-      (: V->s : -σ -V → -s)
-      (define (V->s σ V) 
-        (with-debugging/off
-          ((ans)
-           (match V
-             [(? -o? o) o]
-             [(-Ar _ (? -o? o) _) o]
-             [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
-              (match/values (σ@ σ α)
-                [((? set? s) _) #:when (= 1 (set-count s)) (V->s σ (set-first s))]
-                [(_ _) #f])]
-             [(-Clo xs ⟦e⟧ ρ _) #:when (ρ-empty? ρ)
-              (cond [(recall-e ⟦e⟧) => (λ ([e : -e]) (-λ xs e))] ; hack
-                    [else #f])]
-             [(-St s αs) (apply -?@ (-st-mk s) (αs->ss αs))]
-             [(-St/C _ s αs) (-?struct/c s (αs->ss αs))]
-             [(-And/C _ αₗ αᵣ) (-?@ 'and/c (α->s αₗ) (α->s αᵣ))]
-             [(-Or/C  _ αₗ αᵣ) (-?@ 'or/c  (α->s αₗ) (α->s αᵣ))]
-             [(-Not/C α) (-?@ 'not/c (α->s α))]
-             [(-Vector/C αs) (apply -?@ 'vector/c (αs->ss αs))]
-             [(-Vectorof α) (-?@ 'vectorof (α->s α))]
-             [(-x/C (-α.x/c ℓ)) (-x/c ℓ)]
-             [_ #f]))
-          (printf "V->s: ~a ↦ ~a~n" V ans)))
-
       (cond
         ;; same-module referencing returns unwrapped version
         [(equal? l₀ l)
          (define α (-α.def 𝒾))
          (λ (ρ Γ 𝒞 Σ ⟦k⟧)
-           (match-define (-Σ σ _ _) Σ)
-           (define-values (Vs old?) (σ@ σ α))
-           (define ?𝒾 (and old? 𝒾))
+           (define-values (Vs old?) (σ@ (-Σ-σ Σ) α))
+           (define s (and old? 𝒾))
            (for/union : (℘ -ς) ([V Vs])
-             (define s (or (V->s σ V) ?𝒾))
              (⟦k⟧ (-W (list V) s) Γ 𝒞 Σ)))]
         ;; cross-module referencing returns wrapped version
         ;; and (HACK) supplies the negative monitoring context
         [else
          (define α (-α.wrp 𝒾))
          (λ (ρ Γ 𝒞 Σ ⟦k⟧)
-           (match-define (-Σ σ _ _) Σ)
-           (define-values (Vs old?) (σ@ σ α))
-           (define ?𝒾 (and old? 𝒾))
+           (define-values (Vs old?) (σ@ (-Σ-σ Σ) α))
+           (define s (and old? 𝒾))
            (for/union : (℘ -ς) ([V Vs])
-             (define s (or (V->s σ V) ?𝒾))
              (⟦k⟧ (-W (list (supply-negative-party l V)) s) Γ 𝒞 Σ)))])]
      [(-@ f xs ℓ)
       (define ⟦f⟧  (↓ f))
