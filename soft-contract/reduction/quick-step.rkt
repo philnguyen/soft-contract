@@ -71,10 +71,25 @@
              (cond
                [(equal? vs↑ (hash-ref seen↑ ς #f)) ∅]
                [else
-                #;(printf "~a~n  Last seen: ~a~n  Now: ~a~n~n"
+                #;(match-let ([(list σ* M*) vs↑])
+
+                  (: δσ : (HashTable -α -σr) (HashTable -α -σr) → (HashTable -α (℘ -V)))
+                  (define (δσ σ₁ σ₀)
+                    (define m₁ (map/hash -σr-vals σ₁))
+                    (define m₀ (map/hash -σr-vals σ₀))
+                    (mmap-subtract m₁ m₀))
+
+                  (match-define (list σ₀ M₀)
+                    (hash-ref seen↑ ς
+                              (λ ()
+                                (ann (list ((inst hash -α -σr))
+                                           ((inst hash -αₖ (℘ -ΓA))))
+                                     (List (HashTable -α -σr)
+                                           (HashTable -αₖ (℘ -ΓA)))))))
+                  (printf "~a~n  New σ:~a~n  New M: ~a~n~n"
                           (show-ς ς)
-                          (hash-ref seen↑ ς #f)
-                          vs↑)
+                          (show-σ (δσ σ* σ₀))
+                          (show-M (mmap-subtract M* M₀))))
                 (hash-set! seen↑ ς vs↑)
                 (↝! ς Σ)])]
             [else

@@ -319,11 +319,13 @@
   (match-define (-Σ σ σₖ M) Σ)
   (values (show-σ σ) (show-σₖ σₖ) (show-M M)))
 
-(define (show-σ [σ : -σ]) : (Listof Sexp)
-  (for/list ([(α σr) (-σ-m σ)]
-             #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
-    (match-define (-σr Vs _) σr)
-    `(,(show-α α) ↦ ,@(set-map Vs show-V))))
+(define (show-σ [σ : (U -σ (HashTable -α -σr) (HashTable -α (℘ -V)))]) : (Listof Sexp)
+  (cond [(-σ? σ) (show-σ (-σ-m σ))]
+        [else
+         (for/list ([(α r) σ] #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
+           (match r
+             [(-σr Vs _) `(,(show-α α) ↦ ,@(set-map Vs show-V))]
+             [(? set? Vs) `(,(show-α α) ↦ ,@(set-map Vs show-V))]))]))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
 
@@ -331,13 +333,17 @@
   (match-define (-Γ φs _ γs) Γ)
   `(,@(set-map φs show-e) ,@(map show-γ γs)))
 
-(define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
-  (for/list ([(αₖ κs) (VMap-m σₖ)])
-    `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
+(define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
+  (cond [(VMap? σₖ) (show-σₖ (VMap-m σₖ))]
+        [else
+         (for/list ([(αₖ κs) σₖ])
+           `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ)))]))
 
-(define (show-M [M : -M]) : (Listof Sexp)
-  (for/list ([(αₖ As) (VMap-m M)])
-    `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
+(define (show-M [M : (U -M (HashTable -αₖ (℘ -ΓA)))]) : (Listof Sexp)
+  (cond [(VMap? M) (show-M (VMap-m M))]
+        [else
+         (for/list ([(αₖ As) M])
+           `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA)))]))
 
 (define (show-V [V : -V]) : Sexp
   (match V

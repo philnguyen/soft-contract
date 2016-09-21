@@ -123,12 +123,10 @@
        [else -●/Vs])]
 
     [equal?
-     (define Vs
-       (case (apply MΓ⊢oW M Γ 'equal? Ws)
-         [(✓) (list -tt)]
-         [(✗) (list -ff)]
-         [(?) -Bool/Vs]))
-     Vs]
+     (case (apply MΓ⊢oW M Γ 'equal? Ws)
+       [(✓) (list -tt)]
+       [(✗) (list -ff)]
+       [(?) -Bool/Vs])]
 
     [= ; duplicate of `equal?` (args already guarded by contracts)
      (case (apply MΓ⊢oW M Γ 'equal? Ws)
