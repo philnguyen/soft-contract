@@ -129,9 +129,8 @@
      (define αs (alloc-consts! σ Cs cs))
      (define-values (D d) (alloc-C! σ rng))
      (define β (alloc-const! σ D d))
-     (define C (-=> αs β (+ℓ!)))
-     (define c (--> cs d +ℓ₀))
-     (values C c)]
+     (define ℓ (+ℓ!))
+     (values (-=> αs β ℓ) (--> cs d ℓ))]
     [`((,doms ...) #:rest ,rst . ->* . d)
      (log-warning "TODO: alloc ->*~n")
      (values 'any/c 'any/c)]
@@ -213,6 +212,7 @@
   ;; Weird. Just keep this for now
   es)
 
+#|
 (: simple-parse : Any → -e)
 ;; Parse + compile restricted form of contracts given in Sexp
 (define simple-parse
@@ -233,6 +233,7 @@
      (-@ 'values (map simple-parse ss) +ℓ₀)]
     [s 
      (error 'simple-parse "unexpected: ~a" s)]))
+|#
 
 (: mk-struct-info : Any → -struct-info)
 (define (mk-struct-info s)

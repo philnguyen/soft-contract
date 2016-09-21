@@ -201,7 +201,7 @@
       (define ⟦d⟧ (↓ d))
       (match (map ↓ cs)
         ['()
-         (define c (-?->i '() mk-d))
+         (define c (-?->i '() mk-d ℓ))
          (λ (ρ Γ 𝒞 Σ ⟦k⟧)
            (match-define (-Σ σ _ _) Σ)
            (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))

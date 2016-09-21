@@ -212,15 +212,15 @@
   (and (andmap (inst values -s) fields)
        (-struct/c s (cast fields (Listof -e)) +ℓ₀)))
 
-(: -?-> : (Listof -s) -s -> (Option -->))
-(define (-?-> cs d)
+(: -?-> : (Listof -s) -s -ℓ -> (Option -->))
+(define (-?-> cs d ℓ)
   (define cs* (check-ss cs))
-  (and d cs* (--> cs* d +ℓ₀)))
+  (and d cs* (--> cs* d ℓ)))
 
-(: -?->i : (Listof -s) (Option -λ) -> (Option -->i))
-(define (-?->i cs mk-d)
+(: -?->i : (Listof -s) (Option -λ) -ℓ -> (Option -->i))
+(define (-?->i cs mk-d ℓ)
   (define cs* (check-ss cs))
-  (and mk-d cs* (-->i cs* mk-d +ℓ₀)))
+  (and mk-d cs* (-->i cs* mk-d ℓ)))
 
 (: split-values : -s Natural → (Listof -s))
 ;; Split a pure expression `(values e ...)` into `(e ...)`

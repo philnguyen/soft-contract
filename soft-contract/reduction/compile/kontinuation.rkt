@@ -126,7 +126,7 @@
         (define α (or (keep-if-const c) (-α.dom ℓ 𝒞 i)))
         (σ⊔! σ α C #t)
         (values (cons α αs) (cons c cs))))
-    (define G (-W (list (-=> αs β ℓ)) (-?-> cs d)))
+    (define G (-W (list (-=> αs β ℓ)) (-?-> cs d ℓ)))
     (⟦k⟧ G Γ 𝒞 Σ)))
 
 (: mk-=>i! : -σ -Γ -𝒞 (Listof -W¹) -Clo (Option -λ) -ℓ → (Values -V -s))
@@ -143,7 +143,7 @@
       (values (cons α αs) (cons c cs))))
   (define β (or (keep-if-const mk-d) (-α.rng ℓ 𝒞)))
   (define G (-=>i αs β ℓ))
-  (define g (-?->i cs mk-d))
+  (define g (-?->i cs mk-d ℓ))
   (σ⊔! σ β Mk-D #t)
   (values G g))
 
