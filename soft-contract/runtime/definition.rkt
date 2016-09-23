@@ -227,9 +227,9 @@
 
 (define-new-subtype -𝒞 (+𝒞 Natural))
 (define-values (𝒞∅ 𝒞+ decode-𝒞)
-  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof (U -⟦e⟧! Integer) -ℓ)))])
+  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧! -ℓ)))])
     (values (+𝒞 s∅)
-            (λ ([𝒞 : -𝒞] [x : (Pairof (U -⟦e⟧! Integer) -ℓ)]) (+𝒞 (s+ 𝒞 x)))
+            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧! -ℓ)]) (+𝒞 (s+ 𝒞 x)))
             decode)))
 
 
@@ -453,10 +453,9 @@
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Sexp
   (cond [(verbose?)
-         (for/list : (Listof Sexp) ([ctx : (Pairof (U -⟦e⟧! Integer) -ℓ) (decode-𝒞 𝒞)])
+         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧! -ℓ) (decode-𝒞 𝒞)])
            (match-define (cons from to) ctx)
-           `(,(format-symbol "ℓ~a" (n-sub to)) ↝
-             ,(if (procedure? from) (show-⟦e⟧! from) from)))]
+           `(,(format-symbol "ℓ~a" (n-sub to)) ↝ ,(show-⟦e⟧! from)))]
         [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
 
 (define-values (show-α show-α⁻¹)
