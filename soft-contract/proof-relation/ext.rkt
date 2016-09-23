@@ -16,19 +16,29 @@
 (toggle-warning-messages! #f)
 
 (define (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
-  ;(printf "ext-prove:~nM:~n~a~n~a ⊢ ~a~n~n" (show-M M) (show-Γ Γ) (show-e e))
-  (match-define (cons base goal) (encode M Γ e))
-  (match (exec-check-sat base goal)
-    [(cons 'unsat _) '✓]
-    [(cons _ 'unsat) '✗]
-    [_ '?]))
+  ;(define t₀ (current-milliseconds))
+  (with-debugging/off
+    ((R)
+     (match-define (cons base goal) (encode M Γ e))
+     (match (exec-check-sat base goal)
+       [(cons 'unsat _) '✓]
+       [(cons _ 'unsat) '✗]
+       [_ '?]))
+    (define δt (- (current-milliseconds) t₀))
+    (unless (< δt 300)
+      (printf "ext-prove: ~a ⊢ ~a : ~a ~ams~n~n" (show-Γ Γ) (show-e e) R δt))))
 
 (define (ext-plausible-pc? [M : -M] [Γ : -Γ]) : Boolean
-  ;(printf "ext-plausible-pc?~nM:~n~a~nΓ:~n~a~n~n" (show-M M) (show-Γ Γ))
-  (match-define (cons base _) (encode M Γ #|HACK|# -ff))
-  (case (exec-check-sat₀ base)
-    [(unsat) #f]
-    [(sat unknown) #t]))
+  ;(define t₀ (current-milliseconds))
+  (with-debugging/off
+    ((plaus?)
+     (match-define (cons base _) (encode M Γ #|HACK|# -ff))
+     (case (exec-check-sat₀ base)
+       [(unsat) #f]
+       [(sat unknown) #t]))
+    (define δt (- (current-milliseconds) t₀))
+    (unless (< δt 300)
+      (printf "ext-plausible? ~a : ~a ~ams~n~n" (show-Γ Γ) plaus? δt))))
 
 (define (set-default-options!)
   (set-options! #:timeout (Timeout)
@@ -64,7 +74,7 @@
 (define (check-sat/log tag)
   (define-values (reses t₁ t₂ t₃) (time-apply check-sat '()))
   (define res (car reses))
-  (when (> t₁ (* (quotient (Timeout) 3) 2))
+  (when (> t₁ (* (quotient (Timeout) 5) 4))
     (printf "check-sat: ~a ~a ~a~n" tag res t₁)
     (print-current-assertions)
     (printf "~n"))
