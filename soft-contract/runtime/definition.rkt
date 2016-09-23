@@ -227,9 +227,9 @@
 
 (define-new-subtype -𝒞 (+𝒞 Natural))
 (define-values (𝒞∅ 𝒞+ decode-𝒞)
-  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧! -ℓ)))])
+  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof (U -⟦e⟧! Integer) -ℓ)))])
     (values (+𝒞 s∅)
-            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧! -ℓ)]) (+𝒞 (s+ 𝒞 x)))
+            (λ ([𝒞 : -𝒞] [x : (Pairof (U -⟦e⟧! Integer) -ℓ)]) (+𝒞 (s+ 𝒞 x)))
             decode)))
 
 
@@ -312,7 +312,7 @@
 
 (define (show-ς [ς : -ς]) : Sexp
   (match ς
-    [(-ς↑ αₖ Γ 𝒞) `(ev: ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
+    [(-ς↑ αₖ Γ 𝒞) `(ev: ,𝒞 ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
     [(-ς↓ αₖ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
 (define (show-Σ [Σ : -Σ]) : (Values (Listof Sexp) (Listof Sexp) (Listof Sexp))
@@ -453,9 +453,10 @@
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Sexp
   (cond [(verbose?)
-         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧! -ℓ) (decode-𝒞 𝒞)])
-           (match-define (cons ⟦e⟧! ℓ) ctx)
-           `(,(format-symbol "ℓ~a" (n-sub ℓ)) ↝ ,(show-⟦e⟧! ⟦e⟧!)))]
+         (for/list : (Listof Sexp) ([ctx : (Pairof (U -⟦e⟧! Integer) -ℓ) (decode-𝒞 𝒞)])
+           (match-define (cons from to) ctx)
+           `(,(format-symbol "ℓ~a" (n-sub to)) ↝
+             ,(if (procedure? from) (show-⟦e⟧! from) from)))]
         [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
 
 (define-values (show-α show-α⁻¹)

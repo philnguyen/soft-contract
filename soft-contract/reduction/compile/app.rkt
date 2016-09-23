@@ -706,10 +706,11 @@
 (define (mon-x/c l³ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)
   (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
-  (match-define (-x/C (and α (-α.x/c ℓ))) C)
-  (define x (- ℓ)) ; FIXME hack
+  (match-define (-x/C (and α (-α.x/c ℓₓ))) C)
+  (define x (- ℓₓ)) ; FIXME hack
   (define 𝐱 (-x x))
   (match-define (-Σ σ σₖ _) Σ)
+  (define 𝒞* (𝒞+ 𝒞 ((inst cons -ℓ -ℓ) ℓₓ ℓ)))
   (for/set: : (℘ -ς) ([C* (σ@ᵥ σ α)])
     (define αₖ
       (let ([W-C* (-W¹ C* c)]
@@ -722,7 +723,7 @@
     (define Γ* ; HACK: drop all tails for now
       (match-let ([(-Γ φs as γs) Γ])
         (invalidate (-Γ φs as '()) x)))
-    (-ς↑ αₖ Γ* 𝒞)))
+    (-ς↑ αₖ Γ* 𝒞* #;𝒞)))
 
 (define (mon-and/c l³ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)
   (match-define (-Σ σ _ _) Σ)
@@ -913,9 +914,10 @@
     [(-x/C α)
      (match-define (-W¹ C c) W-C)
      (match-define (-W¹ V v) W-V)
-     (match-define (-x/C (and α (-α.x/c ℓ))) C)
-     (define x (- ℓ)) ; FIXME hack
+     (match-define (-x/C (and α (-α.x/c ℓₓ))) C)
+     (define x (- ℓₓ)) ; FIXME hack
      (define 𝐱 (-x x))
+     (define 𝒞* (𝒞+ 𝒞 (cons ℓₓ ℓ)))
      (for/set: : (℘ -ς) ([C* (σ@ᵥ σ α)])
        (define W-C* (-W¹ C* c))
        (define W-V* (-W¹ V 𝐱))
@@ -923,7 +925,7 @@
        (define κ (-κ ⟦k⟧ Γ 𝒞 bnd))
        (define αₖ (-ℱ l ℓ W-C* W-V*))
        (vm⊔! σₖ αₖ κ)
-       (-ς↑ αₖ Γ 𝒞))]
+       (-ς↑ αₖ Γ 𝒞* #;𝒞))]
     [_
      (define ⟦ap⟧ (mk-app-⟦e⟧ l ℓ (mk-rt-⟦e⟧ W-C) (list (mk-rt-⟦e⟧ W-V))))
      (define ⟦rt⟧ (mk-rt-⟦e⟧ (-W (list -tt (V+ σ V C)) (-?@ 'values -tt v))))
