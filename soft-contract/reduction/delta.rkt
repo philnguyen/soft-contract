@@ -47,7 +47,9 @@
         (define α₁ (or (keep-if-const s₁) (-α.and/c-l ℓ 𝒞)))
         (define α₂ (or (keep-if-const s₂) (-α.and/c-r ℓ 𝒞)))
         (σ⊔*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
-        (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂))]
+        (define ℓ₁ (+ℓ/ctc ℓ 0))
+        (define ℓ₂ (+ℓ/ctc ℓ 1))
+        (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))]
        [Ws (error-arity 'and/c 2 (length Ws))])]
     [or/c
      (match Ws
@@ -55,14 +57,17 @@
         (define α₁ (or (keep-if-const s₁) (-α.or/c-l ℓ 𝒞)))
         (define α₂ (or (keep-if-const s₂) (-α.or/c-r ℓ 𝒞)))
         (σ⊔*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
-        (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) α₁ α₂))]
+        (define ℓ₁ (+ℓ/ctc ℓ 0))
+        (define ℓ₂ (+ℓ/ctc ℓ 1))
+        (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))]
        [Ws (error-arity 'or/c 2 (length Ws))])]
     [not/c
      (match Ws
        [(list (-W¹ V s))
         (define α (or (keep-if-const s) (-α.not/c ℓ 𝒞)))
         (σ⊔! σ α V #t)
-        (list (-Not/C α))]
+        (define ℓ* (+ℓ/ctc ℓ 0))
+        (list (-Not/C (cons α ℓ*)))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
 
     [vector
@@ -90,17 +95,20 @@
        [(list (-W¹ V s))
         (define α (or (keep-if-const s) (-α.vectorof ℓ 𝒞)))
         (σ⊔! σ α V #t)
-        (list (-Vectorof α))]
+        (define ℓ* (+ℓ/ctc ℓ 0))
+        (list (-Vectorof (cons α ℓ*)))]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
     [vector/c
-     (define αs
-       (for/list : (Listof (U -α.cnst -α.vector/c)) ([(W i) (in-indexed Ws)])
+     (define-values (αs ℓs)
+       (for/lists ([αs : (Listof (U -α.cnst -α.vector/c))] [ℓs : (Listof -ℓ)])
+                  ([(W i) (in-indexed Ws)] #|TR hack|# #:when (exact-nonnegative-integer? i))
          (match-define (-W¹ _ s) W)
-         (or (keep-if-const s) (-α.vector/c ℓ 𝒞 (assert i exact-nonnegative-integer?)))))
+         (values (or (keep-if-const s) (-α.vector/c ℓ 𝒞 (assert i exact-nonnegative-integer?)))
+                 (+ℓ/ctc ℓ i))))
      (for ([α αs] [W Ws])
        (match-define (-W¹ V _) W)
        (σ⊔! σ α V #t))
-     (list (-Vector/C αs))]
+     (list (-Vector/C (map (inst cons (U -α.cnst -α.vector/c) -ℓ) αs ℓs)))]
     
     [values (map -W¹-V Ws)]
     

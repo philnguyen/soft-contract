@@ -130,24 +130,24 @@
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
-                    [l : (U -α.and/c-l -α.cnst)]
-                    [r : (U -α.and/c-r -α.cnst)])
+                    [l : (Pairof (U -α.and/c-l -α.cnst) -ℓ)]
+                    [r : (Pairof (U -α.and/c-r -α.cnst) -ℓ)])
             (-Or/C [flat? : Boolean]
-                   [l : (U -α.or/c-l -α.cnst)]
-                   [r : (U -α.or/c-r -α.cnst)])
-            (-Not/C (U -α.not/c -α.cnst))
+                   [l : (Pairof (U -α.or/c-l -α.cnst) -ℓ)]
+                   [r : (Pairof (U -α.or/c-r -α.cnst) -ℓ)])
+            (-Not/C (Pairof (U -α.not/c -α.cnst) -ℓ))
             (-x/C [c : (U -α.x/c)])
             ;; Guards for higher-order values
             -=>_
             (-St/C [flat? : Boolean]
                    [info : -struct-info]
-                   [fields : (Listof (U -α.struct/c -α.cnst))])
-            (-Vectorof (U -α.vectorof -α.cnst))
-            (-Vector/C (Listof (U -α.vector/c -α.cnst))))
+                   [fields : (Listof (Pairof (U -α.struct/c -α.cnst) -ℓ))])
+            (-Vectorof (Pairof (U -α.vectorof -α.cnst) -ℓ))
+            (-Vector/C (Listof (Pairof (U -α.vector/c -α.cnst) -ℓ))))
 
 ;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (Listof (U -α.dom -α.cnst))] [rng : -α] [pos : -ℓ])
-              (-=>i [doms : (Listof (U -α.dom -α.cnst))] [mk-rng : -α] [pos : -ℓ])
+(-=>_ . ::= . (-=>  [doms : (Listof (Pairof (U -α.dom -α.cnst) -ℓ))] [rng : (Pairof -α -ℓ)] [pos : -ℓ])
+              (-=>i [doms : (Listof (Pairof (U -α.dom -α.cnst) -ℓ))] [mk-rng : (Pairof -α -ℓ)] [pos : -ℓ])
               (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng)) [pos : -ℓ]))
 
 (struct -blm ([violator : -l] [origin : -l]
@@ -156,6 +156,8 @@
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
 (-A . ::= . -W -blm)
 (struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
+
+(define αℓ->α (inst car -α -ℓ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -301,9 +303,9 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [exp : -⟦e⟧!] [env : -ρ])
              ;; Contract monitoring
-             (-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹])
+             (-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℓ
             ;; Flat checking
-             (-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹]))
+             (-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℓ
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -371,17 +373,17 @@
     [(-Vector αs) `(vector ,@(map show-α αs))]
     [(-Vector/hetero γs _) `(vector/hetero ,@(map show-α γs))]
     [(-Vector/homo γ _) `(vector/homo ,(show-α γ))]
-    [(-And/C _ l r) `(and/c ,(show-α l) ,(show-α r))]
-    [(-Or/C _ l r) `(or/c ,(show-α l) ,(show-α r))]
-    [(-Not/C γ) `(not/c ,(show-α γ))]
-    [(-Vectorof γ) `(vectorof ,(show-α γ))]
-    [(-Vector/C γs) `(vector/c ,@(map show-α γs))]
-    [(-=> αs β _) `(,@(map show-α αs) . -> . ,(show-α β))]
+    [(-And/C _ l r) `(and/c ,(show-α (car l)) ,(show-α (car r)))]
+    [(-Or/C _ l r) `(or/c ,(show-α (car l)) ,(show-α (car r)))]
+    [(-Not/C γ) `(not/c ,(show-α (car γ)))]
+    [(-Vectorof γ) `(vectorof ,(show-α (car γ)))]
+    [(-Vector/C γs) `(vector/c ,@(map show-α (map αℓ->α γs)))]
+    [(-=> αs β _) `(,@(map show-α (map αℓ->α αs)) . -> . ,(show-α (car β)))]
     [(-=>i γs α _)
      (define cs : (Listof -s)
-       (for/list ([γ : -α γs])
-         (and (-e? γ) γ)))
-     (define d : -s (and (-e? α) α))
+       (for/list ([γ : (Pairof -α -ℓ) γs])
+         (and (-e? (car γ)) (car γ))))
+     (define d : -s (and (-e? (car α)) (car α)))
      `(->i ,@(map show-s cs)
            ,(match d
               [(-λ (? list? xs) e) `(res ,xs ,(show-e e))]
@@ -392,7 +394,7 @@
            (match-define (cons αs β) kase)
            `(,@(map show-α αs) . -> . ,(show-α β))))]
     [(-St/C _ s αs)
-     `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α αs))]
+     `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α (map αℓ->α αs)))]
     [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
 
 (define (show-ΓA [ΓA : -ΓA]) : Sexp
@@ -461,10 +463,12 @@
 (define-values (show-α show-α⁻¹)
   (let-values ([(α->symbol symbol->α _) ((inst unique-sym -α) 'α)])
     (values
-     (match-lambda
-       [(? -e? α) (show-e α)]
-       [(-α.x x 𝒞) (format-symbol "~a_~a" (show-Var-Name x) (n-sub 𝒞))]
-       [(? -α? α) (α->symbol α)])
+     (ann
+      (match-lambda
+        ;[(? -e? α) (show-e α)]
+        [(-α.x x 𝒞) (format-symbol "~a_~a" (show-Var-Name x) (n-sub 𝒞))]
+        [(? -α? α) (α->symbol α)])
+      (-α → Symbol))
      symbol->α)))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)

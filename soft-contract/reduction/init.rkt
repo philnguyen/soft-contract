@@ -89,7 +89,11 @@
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
   (define αs (alloc-prims! σ cs))
   (define β  (alloc-prim!  σ d))
-  (define C (-=> αs β (+ℓ!)))
+  (define αℓs : (Listof (Pairof (U -α.cnst -α.dom) -ℓ))
+    (for/list ([α αs])
+      (cons α (+ℓ!))))
+  (define βℓ (cons β (+ℓ!)))
+  (define C (-=> αℓs βℓ (+ℓ!)))
   (define O (-Ar C α₀ (-l³ (show-o o) 'dummy (show-o o))))
   (σ⊔*! σ [α₀ ↦ o #t] [α₁ ↦ O #t]))
 
@@ -100,8 +104,8 @@
     [(? symbol? s) (values s s)]
     [`(not/c ,s*)
      (define-values (C* c*) (alloc-C! σ s*))
-      (σ⊔! σ c* C* #t)
-     (values (-Not/C c*) (-not/c c*))]
+     (σ⊔! σ c* C* #t)
+     (values (-Not/C (cons c* (+ℓ!))) (-not/c c*))]
     [`(one-of/c ,ss ...)
      (log-warning "TODO: one-of/c~n")
      (values 'any/c 'any/c)]
@@ -116,7 +120,7 @@
      (define-values (D d) (alloc-C! σ s₂))
      (define flat? (and (C-flat? C) (C-flat? D)))
      (σ⊔*! σ [c ↦ C #t] [d ↦ D #t])
-     (values (-St/C flat? -s-cons (list c d))
+     (values (-St/C flat? -s-cons (list (cons c (+ℓ!)) (cons d (+ℓ!))))
              (assert (-?struct/c -s-cons (list c d))))]
     [`(listof ,s*)
      (log-warning "TODO: alloc 'listof~n")
@@ -130,7 +134,10 @@
      (define-values (D d) (alloc-C! σ rng))
      (define β (alloc-const! σ D d))
      (define ℓ (+ℓ!))
-     (values (-=> αs β ℓ) (--> cs d ℓ))]
+     (define αℓs : (Listof (Pairof (U -α.cnst -α.dom) -ℓ))
+       (for/list ([α αs]) (cons α (+ℓ!))))
+     (define βℓ (cons β (+ℓ!)))
+     (values (-=> αℓs βℓ ℓ) (--> cs d ℓ))]
     [`((,doms ...) #:rest ,rst . ->* . d)
      (log-warning "TODO: alloc ->*~n")
      (values 'any/c 'any/c)]
@@ -159,7 +166,7 @@
      (define-values (Cᵣ cᵣ) (alloc-And/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
      (σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
-     (values (-And/C flat? cₗ cᵣ)
+     (values (-And/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
              (assert (-?@ 'and/c cₗ cᵣ)))]))
 
 (: alloc-Or/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
@@ -173,7 +180,7 @@
      (define-values (Cᵣ cᵣ) (alloc-Or/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
      (σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
-     (values (-Or/C flat? cₗ cᵣ)
+     (values (-Or/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
              (assert (-?@ 'or/c cₗ cᵣ)))]))
 
 (: alloc-List/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
@@ -185,7 +192,7 @@
      (define-values (Cᵣ cᵣ) (alloc-List/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
      (σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
-     (values (-St/C flat? -s-cons (list cₗ cᵣ))
+     (values (-St/C flat? -s-cons (list (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!))))
              (assert (-?struct/c -s-cons (list cₗ cᵣ))))]))
 
 (: alloc-prim! : -σ -prim → -α.cnst)
@@ -211,29 +218,6 @@
     (σ⊔! σ e V #t))
   ;; Weird. Just keep this for now
   es)
-
-#|
-(: simple-parse : Any → -e)
-;; Parse + compile restricted form of contracts given in Sexp
-(define simple-parse
-  (match-lambda
-    [(? symbol? o) o]
-    [`(quote ,(? Base? s)) (-b s)]
-    [(and x (or (? number?) (? boolean?))) (-b x)]
-    [`(not/c ,s) (-not/c (simple-parse s))]
-    [`(one-of/c ,ss ...) (-one-of/c (map simple-parse ss))]
-    [`(and/c ,ss ...) (-and/c (map simple-parse ss))]
-    [`(or/c ,ss ...) (-and/c (map simple-parse ss))]
-    [`(listof ,s) (-listof (simple-parse s))]
-    [`(list/c ,ss ...) (-list/c (map simple-parse ss))]
-    [`(cons/c ,l ,r) (-cons/c (simple-parse l) (simple-parse r))]
-    [`(,cs ... . -> . ,d)
-     (--> (map simple-parse cs) (simple-parse d) +ℓ₀)]
-    [`(values ,ss ...)
-     (-@ 'values (map simple-parse ss) +ℓ₀)]
-    [s 
-     (error 'simple-parse "unexpected: ~a" s)]))
-|#
 
 (: mk-struct-info : Any → -struct-info)
 (define (mk-struct-info s)

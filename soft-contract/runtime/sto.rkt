@@ -43,15 +43,15 @@
     [(-Vector/homo α _) {set α}]
     [(-Clo _ _ ρ _) (ρ->αs ρ)]
     [(-Case-Clo _ ρ _) (ρ->αs ρ)]
-    [(-And/C _ α β) {set α β}]
-    [(-Or/C  _ α β) {set α β}]
-    [(-Not/C α) {set α}]
+    [(-And/C _ α β) {set (αℓ->α α) (αℓ->α β)}]
+    [(-Or/C  _ α β) {set (αℓ->α α) (αℓ->α β)}]
+    [(-Not/C α) {set (αℓ->α α)}]
     [(-x/C α) {set α}]
-    [(-St/C _ _ αs) {list->set αs}]
-    [(-Vectorof α) {set α}]
-    [(-Vector/C αs) (list->set αs)]
-    [(-=> αs α _) (set-add (list->set αs) α)]
-    [(-=>i αs _ _) (list->set αs)]
+    [(-St/C _ _ αs) {list->set (map αℓ->α αs)}]
+    [(-Vectorof α) {set (αℓ->α α)}]
+    [(-Vector/C αs) (list->set (map αℓ->α αs))]
+    [(-=> αs α _) (set-add (list->set (map αℓ->α αs)) (αℓ->α α))]
+    [(-=>i αs _ _) (list->set (map αℓ->α αs))]
     [(-Case-> clauses _)
      (for/union : (℘ -α) ([clause clauses])
                 (match-define (cons αs α) clause)
