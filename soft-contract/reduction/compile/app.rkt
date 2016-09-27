@@ -589,8 +589,8 @@
       [else
        (define blm
          (-blm l 'let-values
-               (list (format-symbol "~a values" (length xs)))
-               (list (format-symbol "~a values" (length Vs)))))
+               (list (format-symbol "requires ~a values" (length xs)))
+               (list (format-symbol "provided ~a values" (length Vs)))))
        (⟦k⟧ blm Γ 𝒞 Σ)])))
 
 ;; begin

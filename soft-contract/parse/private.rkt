@@ -200,6 +200,10 @@
     [(let-values ([_ (#%plain-app (~literal time-apply) (#%plain-lambda () e) (~literal null))]) _ ...)
      (parse-e #'e)]
 
+    ;; HACK for `raise`-ing exception
+    [(#%plain-app (~literal raise) _ ...)
+     (-error "exception")]
+
     ;;; Contracts
     ;; Non-dependent function contract
     [(let-values ([(_) (~literal fake:dynamic->*)]
@@ -333,6 +337,9 @@
     [(~literal fake:not/c) (-𝒾 'not/c 'Λ)]
     [(~literal fake:and/c) (-𝒾 'and/c 'Λ)]
     [(~literal fake:or/c ) (-𝒾 'or/c  'Λ)]
+
+    ;; Hack for private identifiers
+    [x:id #:when (equal? 'make-sequence (syntax-e #'x)) (-𝒾 'make-sequence 'Λ)]
     
     [i:identifier
      (or

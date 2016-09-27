@@ -1734,7 +1734,17 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     [#:pred float-complex?]))
 
-(define prims (append prims.04 prims.08 prims.10 prims.13 prims.15 prims.17 prims.math))
+(define prims.private
+  ; TODO dependent contract for different cases
+  '([make-sequence (any/c any/c . -> . (values (any/c . -> . any/c)
+                                               (any/c . -> . list?)
+                                               list?
+                                               (any/c . -> . boolean?)
+                                               not
+                                               not))]))
+
+(define prims (append prims.04 prims.08 prims.10 prims.13 prims.15 prims.17 prims.math
+                      prims.private))
 
 
 ;; Declare implications between predicates.
