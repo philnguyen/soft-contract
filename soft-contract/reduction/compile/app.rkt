@@ -860,7 +860,7 @@
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-W¹ C _) W-C)
   (match-define (-W¹ V v) W-V)
-  (app lo +ℓ₀ W-C (list W-V) Γ 𝒞 Σ
+  (app lo ℓ W-C (list W-V) Γ 𝒞 Σ
        (if.flat/c∷ (-W (list V) v) (-blm l+ lo (list C) (list V)) ⟦k⟧)))
 
 (: flat-chk : -l -ℓ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
