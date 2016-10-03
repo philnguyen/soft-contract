@@ -66,8 +66,8 @@
            (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
              (define Acc (-W¹ acc acc))
              (app havoc-path (+ℓ/memo! 'ac-ap acc) Acc (list W) Γ 𝒞 Σ
-                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap 0)
-                       (hv∷ W (+ℓ/memo! 'hv-ap 'st) ⟦k⟧))))]
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap acc 'ac)
+                       (hv∷ W (+ℓ/memo! 'hv-ap acc 'st) ⟦k⟧))))]
 
           ;; Havoc vector's content before erasing the vector with unknowns
           ;; Approximate vectors are already erased
