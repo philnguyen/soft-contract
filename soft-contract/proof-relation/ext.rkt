@@ -11,12 +11,12 @@
          "result.rkt"
          "translate.rkt")
 
-(define-parameter Timeout : Nonnegative-Fixnum 500)
+(define-parameter Timeout : Nonnegative-Fixnum 200)
 (Sat-Result . ::= . Smt-Sat 'timeout)
 (toggle-warning-messages! #f)
 
 (define (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
-  ;(define t₀ (current-milliseconds))
+  (define t₀ (current-milliseconds))
   (with-debugging/off
     ((R)
      (match-define (cons base goal) (encode M Γ e))
@@ -25,11 +25,11 @@
        [(cons _ 'unsat) '✗]
        [_ '?]))
     (define δt (- (current-milliseconds) t₀))
-    (unless (< δt 300)
+    (unless #f #;(< δt 300)
       (printf "ext-prove: ~a ⊢ ~a : ~a ~ams~n~n" (show-Γ Γ) (show-e e) R δt))))
 
 (define (ext-plausible-pc? [M : -M] [Γ : -Γ]) : Boolean
-  ;(define t₀ (current-milliseconds))
+  (define t₀ (current-milliseconds))
   (with-debugging/off
     ((plaus?)
      (match-define (cons base _) (encode M Γ #|HACK|# -ff))
@@ -37,7 +37,7 @@
        [(unsat) #f]
        [(sat unknown) #t]))
     (define δt (- (current-milliseconds) t₀))
-    (unless (< δt 300)
+    (unless #f #;(< δt 300)
       (printf "ext-plausible? ~a : ~a ~ams~n~n" (show-Γ Γ) plaus? δt))))
 
 (define (set-default-options!)
@@ -72,9 +72,13 @@
 (: check-sat/log : Symbol → Smt-Sat)
 ;; Log all queries that take 2/3 Timeout or more
 (define (check-sat/log tag)
+  #;(begin
+    (printf "check-sat:~n")
+    (print-current-assertions)
+    (printf "~n"))
   (define-values (reses t₁ t₂ t₃) (time-apply check-sat '()))
   (define res (car reses))
-  (when (> t₁ (* (quotient (Timeout) 5) 4))
+  #;(when (> t₁ (* (quotient (Timeout) 5) 4))
     (printf "check-sat: ~a ~a ~a~n" tag res t₁)
     (print-current-assertions)
     (printf "~n"))
