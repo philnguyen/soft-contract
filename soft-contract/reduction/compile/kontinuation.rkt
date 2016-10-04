@@ -263,5 +263,5 @@
     (define W-C (-W¹ C c))
     (define-values (Vs _) (σ@ σ (-α.def 𝒾)))
     (for/union : (℘ -ς) ([V Vs])
-      (mon l³ ℓ W-C (-W¹ V 𝒾) Γ 𝒞 Σ
+      (mon l³ (-ℒ (set ℓ) ℓ) W-C (-W¹ V 𝒾) Γ 𝒞 Σ
            (def∷ l (list (-α.wrp 𝒾)) ⟦k⟧)))))

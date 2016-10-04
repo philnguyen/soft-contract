@@ -42,9 +42,9 @@
              (define args : (Listof -W¹)
                (for/list ([i k])
                  (-W¹ -●/V (-x (+x/memo! 'hv k i)))))
-             (app havoc-path (+ℓ/memo! 'opq-ap k) W args Γ 𝒞 Σ
-                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap 0)
-                       (hv∷ W (+ℓ/memo! 'hv-ap 'fun) ⟦k⟧))))
+             (app havoc-path (-ℒ ∅ (+ℓ/memo! 'opq-ap k)) W args Γ 𝒞 Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 0))
+                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun)) ⟦k⟧))))
            
            (define a (V-arity V))
            (match a
@@ -65,9 +65,9 @@
           [(or (-St s _) (-St* s _ _ _)) #:when s
            (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
              (define Acc (-W¹ acc acc))
-             (app havoc-path (+ℓ/memo! 'ac-ap acc) Acc (list W) Γ 𝒞 Σ
-                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap acc 'ac)
-                       (hv∷ W (+ℓ/memo! 'hv-ap acc 'st) ⟦k⟧))))]
+             (app havoc-path (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ 𝒞 Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'ac))
+                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'st)) ⟦k⟧))))]
 
           ;; Havoc vector's content before erasing the vector with unknowns
           ;; Approximate vectors are already erased
@@ -76,9 +76,9 @@
           [(-Vector αs)
            (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
              (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-             (app havoc-path (+ℓ/memo! 'vref i) -vector-ref/W (list W Wᵢ) Γ 𝒞 Σ
-                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (+ℓ/memo! 'hv-ap 'ref i 0)
-                       (hv∷ W (+ℓ/memo! 'hv-ap 'vect) ⟦k⟧))))]
+             (app havoc-path (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ 𝒞 Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0))
+                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧))))]
 
           ;; Apply contract to unknown values
           [(? -C?)
@@ -132,10 +132,10 @@
 ;;;;; Hacky frames
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define/memo (hv∷ [W : -W¹] [ℓ : -ℓ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧! _ Γ 𝒞 Σ)
     (define Wₕᵥ
       (let-values ([(Vs _) (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
         (assert (= 1 (set-count Vs)))
         (-W¹ (set-first Vs) havoc-𝒾)))
-    (app havoc-path ℓ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))
+    (app havoc-path ℒ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))

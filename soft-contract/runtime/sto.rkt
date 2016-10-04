@@ -7,13 +7,18 @@
 (: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
 ;; Look up store at addresses. Return all possible combinations
 (define (σ@/list σ αs)
-  (match αs
-    [(cons α αs*)
-     (define-values (Vs _) (σ@ σ α))
-     (define Vss (σ@/list σ αs*))
-     (for*/set: : (℘ (Listof -V)) ([V Vs] [Vs Vss])
-       (cons V Vs))]
-    ['() {set '()}]))
+  (with-debugging/off
+    ((ans)
+     (let loop : (℘ (Listof -V)) ([αs : (Listof -α) αs])
+          (match αs
+            [(cons α αs*)
+             (define-values (Vs _) (σ@ σ α))
+             (define Vss (loop αs*))
+             (for*/set: : (℘ (Listof -V)) ([V Vs] [Vs Vss])
+               (cons V Vs))]
+            ['() {set '()}])))
+    (when (> (set-count ans) 1)
+      (printf "σ@/list: ~a -> ~a~n" (map show-α αs) (set-count ans)))))
 
 (: σ@¹ : -σ -α → -V)
 ;; Look up store, asserting that exactly 1 value resides there

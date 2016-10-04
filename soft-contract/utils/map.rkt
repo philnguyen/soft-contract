@@ -103,6 +103,18 @@
   (define m : (HashTable X Natural) ((if use-eq? make-hasheq make-hash)))
   (λ (x) (hash-ref! m x (λ () (hash-count m)))))
 
+;; For inspecting shared addresses
+(: mmap-keep-min
+   (∀ (X Y) ([(MMap X Y)] [Natural] . ->* . (Values (MMap X Y) (HashTable X Natural)))))
+(define (mmap-keep-min m [n 2])
+  (define m↓
+    (for/hash : (MMap X Y) ([(x ys) m] #:when (>= (set-count ys) n))
+      (values x ys)))
+  (define counts
+    (for/hash : (HashTable X Natural) ([(x ys) m↓])
+      (values x (set-count ys))))
+  (values m↓ counts))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; TMP hack for profiling

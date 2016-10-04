@@ -38,8 +38,12 @@
 
 (: σ@ : -σ -α → (Values (℘ -V) Boolean))
 (define (σ@ σ α)
-  (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
-  (values Vs old?))
+  (with-debugging/off
+    ((Vs old?)
+     (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
+     (values Vs old?))
+    (when (>= (set-count Vs) 9)
+      (printf "σ@: ~a -> ~a~n" (show-α α) (set-count Vs)))))
 
 (: σ@ᵥ : -σ -α → (℘ -V))
 (define (σ@ᵥ σ α)
@@ -227,11 +231,18 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Encodes monitor + call site
+(struct -ℒ ([mons : (℘ -ℓ)] [app : -ℓ]) #:transparent)
+
+(define (ℒ-with-mon [ℒ : -ℒ] [ℓ : -ℓ])
+  (match-define (-ℒ ℓs ℓₐ) ℒ)
+  (-ℒ (set-add ℓs ℓ) ℓₐ))
+
 (define-new-subtype -𝒞 (+𝒞 Natural))
 (define-values (𝒞∅ 𝒞+ decode-𝒞)
-  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧! -ℓ)))])
+  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧! -ℒ)))])
     (values (+𝒞 s∅)
-            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧! -ℓ)]) (+𝒞 (s+ 𝒞 x)))
+            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧! -ℒ)]) (+𝒞 (s+ 𝒞 x)))
             decode)))
 
 
@@ -303,9 +314,9 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [exp : -⟦e⟧!] [env : -ρ])
              ;; Contract monitoring
-             (-ℳ [l³ : -l³] [loc : -ℓ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℓ
+             (-ℳ [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
             ;; Flat checking
-             (-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℓ
+             (-ℱ [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℒ
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -455,10 +466,18 @@
 
 (define (show-𝒞 [𝒞 : -𝒞]) : Sexp
   (cond [(verbose?)
-         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧! -ℓ) (decode-𝒞 𝒞)])
-           (match-define (cons from to) ctx)
-           `(,(format-symbol "ℓ~a" (n-sub to)) ↝ ,(show-⟦e⟧! from)))]
+         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧! -ℒ) (decode-𝒞 𝒞)])
+           (match-define (cons to from) ctx)
+           `(,(show-⟦e⟧! to) ↝ ,(show-ℒ from)))]
         [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
+
+(define show-ℒ : (-ℒ → Sexp)
+  (let-values ([(ℒ->symbol symbol->ℒ _) ((inst unique-sym -ℒ) 'ℒ)])
+    (λ (ℒ)
+      (cond [(verbose?)
+             (match-define (-ℒ ℓs ℓ) ℒ)
+             `(ℒ ,(set->list ℓs) ,ℓ)]
+            [else (ℒ->symbol ℒ)]))))
 
 (define-values (show-α show-α⁻¹)
   (let-values ([(α->symbol symbol->α _) ((inst unique-sym -α) 'α)])
