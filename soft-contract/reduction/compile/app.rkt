@@ -245,9 +245,17 @@
     (cond
       [(list? xs)
        (define ρ* ; with side effects widening store
-         (for/fold ([ρ : -ρ ρₕ]) ([x xs] [Vₓ Vₓs])
+         (for/fold ([ρ : -ρ ρₕ]) ([x xs] [Vₓ Vₓs] [sₓ sₓs])
            (define α (-α.x x 𝒞*))
-           (σ⊔! σ α Vₓ #t)
+           (define Vₓ*
+             ;; Refine arguments by type-like contracts before proceeding
+             ;; This could save lots of spurious errors to eliminate later
+             (for/fold ([Vₓ* : -V Vₓ]) ([φ (in-set (-Γ-facts Γ))])
+               (match φ
+                 [(-@ (and o (or (? -o?) (? -st-p?))) (list (== sₓ)) _)
+                  (V+ σ Vₓ* o)]
+                 [_ Vₓ*])))
+           (σ⊔! σ α Vₓ* #t)
            (ρ+ ρ x α)))
        (define bnd
          (-binding sₕ
