@@ -148,7 +148,7 @@
        [(✗) (list -ff)]
        [(?) -Bool/Vs])]
     [make-sequence
-     (list 'car 'cdr (-● ∅) 'pair? -ff -ff)]
+     (list -car -cdr (-● ∅) -cons? -ff -ff)]
     ))
 
 (define-syntax (with-args stx)

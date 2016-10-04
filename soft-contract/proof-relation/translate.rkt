@@ -17,6 +17,8 @@
 (define-type →Z3-Ast (→ Z3-Ast))
 (define-type →Void   (→ Void))
 
+(define unsupported : (HashTable -o Void) (make-hash))
+
 (struct Entry ([free-vars : (℘ Symbol)]
                [facts     : (℘ →Z3-Ast)]
                [expr      : →Z3-Ast])
@@ -262,7 +264,12 @@
        (with-handlers ([exn:scv:unsupported?
                         (λ (_)
                           ;; suppress for now
-                          (printf "Z3 translation: unsupported primitive: `~a`~n" (show-o o))
+                          (hash-ref!
+                           unsupported
+                           o
+                           (λ ()
+                             (printf "Z3 translation: unsupported primitive: `~a`~n"
+                                     (show-o o))))
                           (define t (fresh-free! 'o))
                           (λ () (val-of t)))])
          (app-o o ts))]

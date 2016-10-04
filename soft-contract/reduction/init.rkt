@@ -78,8 +78,12 @@
   (define-values (α₀ α₁)
     (let ([𝒾 (-𝒾 o 'Λ)])
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
-  (define O (-Ar C α₀ (-l³ o 'dummy o)))
-  (σ⊔*! σ [α₀ ↦ o #t] [α₁ ↦ O #t]))
+  (case o
+    [(make-sequence) ; FIXME tmp hack
+     (σ⊔*! σ [α₀ ↦ o #t] [α₁ ↦ o #t])]
+    [else
+     (define O (-Ar C α₀ (-l³ o 'dummy o)))
+     (σ⊔*! σ [α₀ ↦ o #t] [α₁ ↦ O #t])]))
 
 (: alloc-Ar! : -σ Symbol -o (Listof -prim) -prim → Void)
 ;; Allocate unsafe and (non-dependently) contracted versions of operator `o` at name `s`
