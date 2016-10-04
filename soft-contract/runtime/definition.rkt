@@ -71,6 +71,16 @@
        (σ⊔!  σ α V b?)
        (σ⊔*! σ p ...))]))
 
+(: σ-remove! : -σ -α -V → Void)
+(define (σ-remove! σ α V)
+  (define m*
+    (hash-update (-σ-m σ)
+                 α
+                 (λ ([σr : -σr])
+                   (match-define (-σr Vs b?) σr)
+                   (-σr (set-remove Vs V) b?))))
+  (set--σ-m! σ m*))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stack Store

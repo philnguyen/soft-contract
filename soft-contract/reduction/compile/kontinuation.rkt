@@ -71,6 +71,8 @@
                    ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
            (define α (-α.x x 𝒞))
            (σ⊔! σ α Vₓ #t)
+           (σ-remove! σ α 'undefined)
+           ;; TODO may not need below anymore
            (Γ+ (-Γ-with-aliases Γ x sₓ) (-?@ 'defined? (-x x)))))
        (match ⟦bnd⟧s
          ['()
