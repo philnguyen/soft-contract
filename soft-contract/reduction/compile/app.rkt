@@ -621,7 +621,7 @@
     (let ([a
            (match grd
              [(-=> αs _ _) (length αs)]
-             [(-=>i _  β _)
+             [(-=>i _  (cons β _) _)
               (match β
                 [(-λ xs _) (formals-arity xs)]
                 [_ #f])])])
