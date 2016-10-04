@@ -172,13 +172,17 @@
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
   (syntax-rules () [(_ e) (and e (-@ 'not (list e) +ℓ₀))]))
 
-(: -struct/c-split : -s Integer → (Listof -s))
-(define (-struct/c-split c n)
+(: -struct/c-split : -s -struct-info → (Listof -s))
+(define (-struct/c-split c s)
   (with-debugging/off
     ((ans)
+     (define n (-struct-info-arity s))
      (match c
        [(-struct/c _ cs _) cs]
-       [_ (make-list n #f)]))
+       [_
+        (for/list : (Listof -s) ([i : Natural n])
+          (-?@ (-st/c-ac s i) c))
+        #;(make-list n #f)]))
     (printf "struct/c-split: ~a -> ~a~n" (show-s c) (map show-s ans))))
 
 (: -struct-split : -s -struct-info → (Listof -s))

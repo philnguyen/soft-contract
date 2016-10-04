@@ -471,7 +471,7 @@
      (with-guarded-arity 1
        (define-values (αs ℓs) ((inst unzip -α -ℓ) αℓs))
        (define cs : (Listof -s)
-         (for/list ([s (-struct/c-split sₕ (-struct-info-arity s))]
+         (for/list ([s (-struct/c-split sₕ s)]
                     [α αs])
            (or s (and (-e? α) α))))
        (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
@@ -667,7 +667,7 @@
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-St/C flat? s αℓs) C)
   (define-values (αs ℓs) ((inst unzip -α -ℓ) αℓs))
-  (define cs (-struct/c-split c (-struct-info-arity s)))
+  (define cs (-struct/c-split c s))
   (define p (-st-p s))
   (define K (let ([k (-st-mk s)]) (-W¹ k k)))
   (define muts (-struct-info-mutables s))
@@ -915,7 +915,7 @@
     [(-St/C _ s αℓs)
      (define-values (αs ℓs) ((inst unzip -α -ℓ) αℓs))
      (define cs
-       (let ([ss (-struct/c-split c (-struct-info-arity s))])
+       (let ([ss (-struct/c-split c s)])
          (for/list : (Listof -s) ([s ss] [α αs])
            (or s (α->s α)))))
      (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])

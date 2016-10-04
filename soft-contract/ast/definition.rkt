@@ -126,7 +126,9 @@
            (-st-p -struct-info)
            (-st-ac -struct-info Natural)
            (-st-mut -struct-info Natural)
-           (-st-mk -struct-info))
+           (-st-mk -struct-info)
+           ;; internal use only
+           (-st/c-ac -struct-info Natural))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -310,7 +312,8 @@
    [(-st-ac s i) (format-symbol "~a@~a" (show-struct-info s) i)]
    [(-st-p s) (format-symbol "~a?" (show-struct-info s))]
    [(-st-mut (== -s-box) 0) 'set-box!]
-   [(-st-mut s i) (format-symbol "set-~a-~a!" (show-struct-info s) i)]))
+   [(-st-mut s i) (format-symbol "set-~a-~a!" (show-struct-info s) i)]
+   [(-st/c-ac s i) (format-symbol "~a/c@~a" (show-struct-info s) i)]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
