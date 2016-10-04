@@ -612,20 +612,14 @@
     -l³ -ℒ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
 
 (define (mon-=>_ l³ ℒ W-C W-V Γ 𝒞 Σ ⟦k⟧)
-  (match-define (-W¹ grd c) W-C)
+  (match-define (-W¹ (? -=>_? grd) c) W-C)
   (match-define (-W¹ V v) W-V)
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-Σ σ _ M) Σ)
   
   (define arity
-    (let ([a
-           (match grd
-             [(-=> αs _ _) (length αs)]
-             [(-=>i _  (cons β _) _)
-              (match β
-                [(-λ xs _) (formals-arity xs)]
-                [_ #f])])])
-      (define b (-b a))
+    (let* ([a (guard-arity grd)]
+           [b (-b a)])
       (-W¹ b b)))
   
   (define-values (Γ₁ Γ₂) (Γ+/-W∋Ws M Γ -procedure?/W W-V))
@@ -640,7 +634,8 @@
   (∪ (cond [Γ₁₁
             (define grd-ℓ
               (cond [(-=>? grd) (-=>-pos grd)]
-                    [else (-=>i-pos grd)]))
+                    [(-=>i? grd) (-=>i-pos grd)]
+                    [else (error 'mon-=>_ "unexpected")]))
             (define α (or (keep-if-const v) (-α.fn ℓ grd-ℓ 𝒞)))
             (define Ar (-Ar grd α l³))
             (σ⊔! σ α V #t)
