@@ -266,7 +266,7 @@
             ; for binding
             (-α.x Var-Name -𝒞)
             ; for struct field
-            (-α.fld [id : -𝒾] [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
+            (-α.fld [id : -𝒾] [pos : -ℒ] [ctx : -𝒞] [idx : Natural])
             ; for Cons/varargs
             (-α.var-car [pos : -ℓ] [ctx : -𝒞] [idx : Natural]) ; idx prevents infinite list 
             (-α.var-cdr [pos : -ℓ] [ctx : -𝒞] [idx : Natural])

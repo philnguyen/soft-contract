@@ -52,10 +52,10 @@
 
   (define (app-st-mk [s : -struct-info])
     (define 𝒾 (-struct-info-id s))
-    (match-define (-ℒ _ ℓ) ℒ)
+    #;(match-define (-ℒ _ ℓ) ℒ)
     (define αs : (Listof -α.fld)
       (for/list ([i : Natural (-struct-info-arity s)])
-        (-α.fld 𝒾 ℓ 𝒞 i)))
+        (-α.fld 𝒾 ℒ #;ℓ 𝒞 i)))
     (for ([α αs] [Vₓ Vₓs])
       (σ⊔! σ α Vₓ #t))
     (define V (-St s αs))
