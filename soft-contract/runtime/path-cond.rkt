@@ -106,6 +106,19 @@
       (-γ αₖ bnd* blm)))
   (-Γ φs* as* γs*))
 
+(: predicates-of : (U -Γ (℘ -e)) -s → (℘ (U -o -st-p)))
+;; Extract type-like contracts on given symbol
+(define (predicates-of Γ s)
+  (cond
+    [(-Γ? Γ) (predicates-of (-Γ-facts Γ) s)]
+    [else
+     (for/fold ([os : (℘ (U -o -st-p)) ∅])
+               ([φ Γ])
+       (match φ
+         [(-@ (and o (or (? -o?) (? -st-p?))) (list (== s)) _)
+          (set-add os o)]
+         [_ os]))]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Pretty printing

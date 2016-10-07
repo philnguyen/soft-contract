@@ -65,7 +65,7 @@
      (-Vector/homo α (-l³ l+ l      lo))]
     [_ V]))
 
-(: V+ : -σ -V -V → -V)
+(: V+ : -σ -V (U -V (℘ -V)) → -V)
 ;; refine opaque value with predicate
 (define (V+ σ V P)
   
@@ -77,9 +77,14 @@
              [else P])]
       [_ P]))
 
-  (match V
-    [(-● ps)
-     (match (simplify P)
-       [(? -o? o) (-● (set-add ps o))]
-       [_ V])]
-    [_ V]))
+  (cond
+    [(set? P)
+     (for/fold ([V : -V V]) ([Pᵢ (in-set P)])
+       (V+ σ V Pᵢ))]
+    [else
+     (match V
+       [(-● ps)
+        (match (simplify P)
+          [(and o (or (? -o?) (? -st-p?))) (-● (set-add ps o))]
+          [_ V])]
+       [_ V])]))

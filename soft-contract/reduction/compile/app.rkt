@@ -56,8 +56,9 @@
     (define αs : (Listof -α.fld)
       (for/list ([i : Natural (-struct-info-arity s)])
         (-α.fld 𝒾 ℒ #;ℓ 𝒞 i)))
-    (for ([α αs] [Vₓ Vₓs])
-      (σ⊔! σ α Vₓ #t))
+    (for ([α αs] [Vₓ Vₓs] [sₓ sₓs])
+      (define Vₓ* (V+ σ Vₓ (predicates-of Γ sₓ)))
+      (σ⊔! σ α Vₓ* #t))
     (define V (-St s αs))
     (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 Σ))
 
@@ -247,14 +248,9 @@
        (define ρ* ; with side effects widening store
          (for/fold ([ρ : -ρ ρₕ]) ([x xs] [Vₓ Vₓs] [sₓ sₓs])
            (define α (-α.x x 𝒞*))
-           (define Vₓ*
-             ;; Refine arguments by type-like contracts before proceeding
-             ;; This could save lots of spurious errors to eliminate later
-             (for/fold ([Vₓ* : -V Vₓ]) ([φ (in-set (-Γ-facts Γ))])
-               (match φ
-                 [(-@ (and o (or (? -o?) (? -st-p?))) (list (== sₓ)) _)
-                  (V+ σ Vₓ* o)]
-                 [_ Vₓ*])))
+           ;; Refine arguments by type-like contracts before proceeding
+           ;; This could save lots of spurious errors to eliminate later
+           (define Vₓ* (V+ σ Vₓ (predicates-of Γ sₓ)))
            (σ⊔! σ α Vₓ* #t)
            (ρ+ ρ x α)))
        (define bnd
