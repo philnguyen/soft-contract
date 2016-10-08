@@ -75,7 +75,9 @@
        (define α (list-ref αs i))
        (define-values (Vs _) (σ@ σ α))
        (for/union : (℘ -ς) ([V Vs])
-         (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 Σ))]
+         (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
+                (⟦k⟧ (-W (list V) sₐ) Γ 𝒞 Σ)]
+               [else ∅]))]
       [(-St* (== s) αs α l³)
        (match-define (-l³ _ _ lₒ) l³)
        (define Ac (-W¹ ac ac))
