@@ -108,7 +108,10 @@
             (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] -ℓ)
             (-x/c.tmp Symbol) ; hack
             (-x/c -ℓ)
-            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : -ℓ]))
+            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : -ℓ])
+
+            ;; internal use only
+            (-ar -e -e))
 
 (-v . ::= . -prim
             (-λ -formals -e)
@@ -128,7 +131,13 @@
            (-st-mut -struct-info Natural)
            (-st-mk -struct-info)
            ;; internal use only
-           (-st/c-ac -struct-info Natural))
+           (-st/c-ac -struct-info Natural)
+           (-->i-ac-dom Natural)
+           (-->i-ac-rng)
+           (-->-ac-dom Natural)
+           (-->-ac-rng)
+           (-ar-ctc)
+           (-ar-fun))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -313,7 +322,14 @@
    [(-st-p s) (format-symbol "~a?" (show-struct-info s))]
    [(-st-mut (== -s-box) 0) 'set-box!]
    [(-st-mut s i) (format-symbol "set-~a-~a!" (show-struct-info s) i)]
-   [(-st/c-ac s i) (format-symbol "~a/c@~a" (show-struct-info s) i)]))
+   ;; internals
+   [(-st/c-ac s i) (format-symbol "~a/c@~a" (show-struct-info s) i)]
+   [(-->i-ac-dom i) (format-symbol "->i~a" (n-sub i))]
+   [(-->i-ac-rng) '->iᵣ]
+   [(-->-ac-dom i) (format-symbol "->~a" (n-sub i))]
+   [(-->-ac-rng) '->ᵣ]
+   [(-ar-ctc) 'ar-ctc]
+   [(-ar-fun) 'ar-fun]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
@@ -390,7 +406,9 @@
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
     [(-struct/c info cs _)
-     `(,(format-symbol "~a/c" (show-struct-info info)) ,@(show-es cs))]))
+     `(,(format-symbol "~a/c" (show-struct-info info)) ,@(show-es cs))]
+    ;; internals
+    [(-ar c e) `(ar ,(show-e c) ,(show-e e))]))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
