@@ -37,14 +37,24 @@
 
           ;; Apply function with appropriate number of arguments
           [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
+           
+           (define tag : Any
+             (match V
+               [(-Clo xs ⟦e⟧ _ _) (cons xs ⟦e⟧)]
+               [(-Case-Clo clauses _ _) clauses]
+               [(-Ar grd _ _)
+                (match grd
+                  [(-=> _ _ ℓ) ℓ]
+                  [(-=>i _ _ ℓ) ℓ]
+                  [(-Case-> _ ℓ) ℓ])]))
 
            (define (hv/arity [k : Natural]) : (℘ -ς)
-             (define args : (Listof -W¹)
+             (define ●s : (Listof -W¹)
                (for/list ([i k])
                  (-W¹ -●/V (-x (+x/memo! 'hv k i)))))
-             (app havoc-path (-ℒ ∅ (+ℓ/memo! 'opq-ap k)) W args Γ 𝒞 Σ
-                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 0))
-                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun)) ⟦k⟧))))
+             (app havoc-path (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ 𝒞 Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 0 tag))
+                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun #|tag|#)) ⟦k⟧))))
            
            (define a (V-arity V))
            (match a
