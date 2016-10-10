@@ -17,7 +17,7 @@
 (define-type →Z3-Ast (→ Z3-Ast))
 (define-type →Void   (→ Void))
 
-(define unsupported : (HashTable -o Void) (make-hash))
+(define unsupported : (HashTable -e Void) (make-hash))
 
 (struct Entry ([free-vars : (℘ Symbol)]
                [facts     : (℘ →Z3-Ast)]
@@ -301,7 +301,14 @@
       [(? -•?)
        (define t (fresh-free! 'opq))
        (λ () (val-of t))]
-      [_ (error '⦃e⦄! "unhandled: ~a" (show-e e))]))
+      [_
+       (hash-ref!
+        unsupported
+        e
+        (λ ()
+          (printf "translation: unhandled: ~a" (show-e e))))
+       (define t (fresh-free! 'unhandled))
+       (λ () (val-of t))]))
 
   (: ⦃γ⦄! : -γ → Void)
   (define (⦃γ⦄! γ)
