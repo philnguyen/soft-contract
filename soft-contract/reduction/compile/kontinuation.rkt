@@ -135,7 +135,7 @@
     (define G (-W (list (-=> αℓs βℓ ℓ)) (-?-> cs d ℓ)))
     (⟦k⟧ G Γ 𝒞 Σ)))
 
-(: mk-=>i! : -σ -Γ -𝒞 (Listof -W¹) -Clo (Option -λ) -ℓ → (Values -V -s))
+(: mk-=>i! : -σ -Γ -𝒞 (Listof -W¹) -Clo -λ -ℓ → (Values -V -s))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
 (define (mk-=>i! σ Γ 𝒞 Ws Mk-D mk-d ℓ)
   (define-values (αs cs) ; with side effect widening store
@@ -151,8 +151,7 @@
   (define αℓs : (Listof (Pairof (U -α.cnst -α.dom) -ℓ))
     (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
       (cons α (+ℓ/ctc ℓ i))))
-  (define βℓ (cons β (+ℓ/ctc ℓ (length αs))))
-  (define G (-=>i αℓs βℓ ℓ))
+  (define G (-=>i αℓs (list Mk-D mk-d (+ℓ/ctc ℓ (length αs))) ℓ))
   (define g (-?->i cs mk-d ℓ))
   (σ⊔! σ β Mk-D #t)
   (values G g))
@@ -162,7 +161,7 @@
                     [⟦c⟧s : (Listof -⟦e⟧!)]
                     [ρ   : -ρ]
                     [Mk-D : -Clo]
-                    [mk-d : (Option -λ)]
+                    [mk-d : -λ]
                     [ℓ    : -ℓ]
                     [⟦k⟧  : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧ A Γ 𝒞 Σ)

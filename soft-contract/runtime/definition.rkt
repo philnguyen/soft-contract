@@ -161,7 +161,9 @@
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (Listof (Pairof (U -α.dom -α.cnst) -ℓ))] [rng : (Pairof -α -ℓ)] [pos : -ℓ])
-              (-=>i [doms : (Listof (Pairof (U -α.dom -α.cnst) -ℓ))] [mk-rng : (Pairof -α -ℓ)] [pos : -ℓ])
+              (-=>i [doms : (Listof (Pairof (U -α.dom -α.cnst) -ℓ))]
+                    [mk-rng : (List -Clo -λ -ℓ)]
+                    [pos : -ℓ])
               (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng)) [pos : -ℓ]))
 
 (struct -blm ([violator : -l] [origin : -l]
@@ -400,15 +402,15 @@
     [(-Vectorof γ) `(vectorof ,(show-α (car γ)))]
     [(-Vector/C γs) `(vector/c ,@(map show-α (map αℓ->α γs)))]
     [(-=> αs β _) `(,@(map show-α (map αℓ->α αs)) . -> . ,(show-α (car β)))]
-    [(-=>i γs α _)
+    [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
      (define cs : (Listof -s)
        (for/list ([γ : (Pairof -α -ℓ) γs])
          (and (-e? (car γ)) (car γ))))
-     (define d : -s (and (-e? (car α)) (car α)))
+     #;(define d : -s (and (-e? (car α)) (car α)))
      `(->i ,@(map show-s cs)
-           ,(match d
-              [(-λ (? list? xs) e) `(res ,xs ,(show-e e))]
-              [_ (show-s d)]))]
+           ,(match xs
+              [(? list? xs) `(res ,xs ,(show-e d))]
+              [_ (show-e d)]))]
     [(-Case-> cases _)
      `(case->
        ,@(for/list : (Listof Sexp) ([kase cases])
