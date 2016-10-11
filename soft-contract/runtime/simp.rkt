@@ -195,6 +195,35 @@
     [_ (for/list : (Listof -s) ([i : Natural (-struct-info-arity s)])
          (-?@ (-st-ac s i) e))]))
 
+(: -ar-split : -s → (Values -s -s))
+(define (-ar-split s)
+  (match s
+    [(-ar c e) (values c e)]
+    [(? values e) (values (-@ (-ar-ctc) (list e) +ℓ₀) (-@ (-ar-fun) (list e) +ℓ₀))]
+    [#f (values #f #f)]))
+
+(: -->-split : -s Natural → (Values (Listof -s) -s))
+(define (-->-split s n)
+  (match s
+    [(--> cs d _) (values cs d)]
+    [(? values e) (values (for/list : (Listof -s) ([i n])
+                            (-@ (-->-ac-dom i) (list e) +ℓ₀))
+                          (-@ (-->-ac-rng) (list e) +ℓ₀))]
+    [#f (values (make-list n #f) #f)]))
+
+(: -->i-split : -s Natural → (Values (Listof -s) -s))
+(define (-->i-split s n)
+  (match s
+    [(-->i cs mk-d _) (values cs mk-d)]
+    [(? values e)
+     (values (for/list : (Listof -s) ([i n])
+               (-@ (-->i-ac-dom i) (list e) +ℓ₀))
+             (-@ (-->i-ac-rng) (list e) +ℓ₀))]
+    [#f (values (make-list n #f) #f)])) 
+
+(define (-?ar [c : -s] [v : -s]) : -s
+  (and c v (-ar c v)))
+
 (define (-?list [es : (Listof -s)]) : -s
   (foldr (curry -?@ -cons) -null es))
 
