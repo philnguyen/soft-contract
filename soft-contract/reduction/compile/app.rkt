@@ -256,7 +256,7 @@
            (σ⊔! σ α Vₓ* #t)
            (ρ+ ρ x α)))
        (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-       (define κ (-κ ⟦k⟧ Γ 𝒞 (cons sₕ sₓs)))
+       (define κ (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs))
        (vm⊔! σₖ αₖ κ)
        {set (-ς↑ αₖ Γₕ 𝒞*)}]
       [else (error 'app-clo "TODO: varargs: ~a" (show-V Vₕ))]))
@@ -726,7 +726,7 @@
       (let ([W-C* (-W¹ C* c)]
             [W-V* (-W¹ V 𝐱)])
         (-ℳ x l³ ℒ W-C* W-V*)))
-    (define κ (-κ ⟦k⟧ Γ 𝒞 #|FIXME hack|# (cons 'values (list v))))
+    (define κ (-κ ⟦k⟧ Γ 𝒞 #|FIXME hack|# 'values (list v)))
     (vm⊔! σₖ αₖ κ)
     (define Γ* ; HACK: drop all tails for now
       (match-let ([(-Γ φs as γs) Γ])
@@ -933,7 +933,7 @@
      (for/set: : (℘ -ς) ([C* (σ@ᵥ σ α)])
        (define W-C* (-W¹ C* c))
        (define W-V* (-W¹ V 𝐱))
-       (define κ (-κ ⟦k⟧ Γ 𝒞 #|FIXME hack|# (cons 'fc (list v))))
+       (define κ (-κ ⟦k⟧ Γ 𝒞 #|FIXME hack|# 'fc (list v)))
        (define αₖ (-ℱ x l ℒ W-C* W-V*))
        (vm⊔! σₖ αₖ κ)
        (-ς↑ αₖ Γ 𝒞))]

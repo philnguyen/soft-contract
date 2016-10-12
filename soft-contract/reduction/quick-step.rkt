@@ -119,7 +119,7 @@
 (define αₖ->αs
   (match-lambda
     [(-ℬ _ _ ρ) (ρ->αs ρ)]
-    [(-ℳ _  _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]
+    [(-ℳ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]
     [(-ℱ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]))
 
 (: ς->αₖs : -ς↑ → (℘ -αₖ))
@@ -154,14 +154,21 @@
 (define (↝↓! αₖ Γₑₑ A Σ)
   (match-define (-Σ _ σₖ M) Σ)
   (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
-    (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ (and bnd (cons sₕ sₓs))) κ)
+    (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ sₕ sₓs) κ)
     (define fargs (apply -?@ sₕ sₓs))
     (match A
       [(-W Vs sₐ)
-       (define γ (-γ αₖ bnd #f))
+       (define γ (-γ αₖ #f sₕ sₓs))
        (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
        (cond
-         [(plausible-pc? M Γₑᵣ*)
+         [(with-debugging ((p?) (plausible-pc? M Γₑᵣ*))
+            (when (-ℳ? αₖ)
+              (define-values (sΓ sM) (show-M-Γ M Γₑᵣ*))
+              (printf "plausible? -> ~a~n" p?)
+              (printf " - Γ: ~a~n" sΓ)
+              (printf " - M:~n")
+              (for ([r (in-list sM)])
+                (printf "   + ~a~n" r))))
           (define sₐ*
             (and sₐ
                  (match fargs ; HACK
@@ -177,7 +184,7 @@
        (case l+
          [(havoc † Λ) ∅]
          [else
-          (define γ (-γ αₖ bnd (cons l+ lo)))
+          (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
           (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
           (cond
             [(plausible-pc? M Γₑᵣ*)

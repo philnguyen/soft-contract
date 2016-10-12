@@ -35,16 +35,9 @@
       (values x e)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
-      (match-define (-γ αₖ bnd blm) γ)
-      (-γ αₖ (bnd↓ bnd xs) blm)))
+      (match-define (-γ αₖ blm sₕ sₓs) γ)
+      (-γ αₖ blm (s↓ sₕ xs) (for/list : (Listof -s) ([sₓ sₓs]) (s↓ sₓ xs)))))
   (-Γ φs* as* γs*))
-
-(: bnd↓ : (Pairof -s (Listof -s)) (℘ Var-Name) → (Pairof -s (Listof -s)))
-(define (bnd↓ bnd fvs)
-  (match-define (cons sₕ sₓs) bnd)
-  (define sₕ* (s↓ sₕ fvs))
-  (define sₓs* : (Listof -s) (for/list ([sₓ sₓs]) (s↓ sₓ fvs)))
-  (cons sₕ* sₓs*))
 
 (: canonicalize : (U -Γ (HashTable Var-Name -e)) Var-Name → -e)
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
@@ -65,7 +58,7 @@
 
 (: γ->fargs : -γ → -s)
 (define (γ->fargs γ)
-  (match-define (-γ _ (cons sₕ sₓs) _) γ)
+  (match-define (-γ _ _ sₕ sₓs) γ)
   (apply -?@ sₕ sₓs))
 
 (: fvₛ : -s → (℘ Var-Name))
@@ -74,26 +67,28 @@
 (: invalidate : -Γ Var-Name → -Γ)
 ;; Throw away anything known about `x` in `Γ`
 (define (invalidate Γ x)
-  (match-define (-Γ φs as γs) Γ)
-  (define φs*
-    (for/set: : (℘ -e) ([φ φs] #:unless (∋ (fv φ) x))
-      φ))
-  (define as*
-    (for/hasheq : (HashTable Var-Name -e) ([(z φ) as]
-                                           #:unless (eq? z x)
-                                           #:unless (∋ (fv φ) x))
-      (values z φ)))
-  (define γs*
-    (for/list : (Listof -γ) ([γ γs])
-      (match-define (-γ αₖ bnd blm) γ)
-      (match-define (cons sₕ sₓs) bnd)
-      (define bnd* : (Pairof -s (Listof -s))
-        (let ([sₕ* (and (not (∋ (fvₛ sₕ) x)) sₕ)]
-              [sₓs* : (Listof -s) (for/list ([sₓ sₓs])
-                                    (and (not (∋ (fvₛ sₓ) x)) sₓ))])
-          (cons sₕ* sₓs*)))
-      (-γ αₖ bnd* blm)))
-  (-Γ φs* as* γs*))
+  (with-debugging/off
+    ((Γ*)
+     (match-define (-Γ φs as γs) Γ)
+     (define φs*
+       (for/set: : (℘ -e) ([φ φs] #:unless (∋ (fv φ) x))
+         φ))
+     (define as*
+       (for/hasheq : (HashTable Var-Name -e) ([(z φ) as]
+                                              #:unless (eq? z x)
+                                              #:unless (∋ (fv φ) x))
+         (values z φ)))
+     (define γs*
+       (for/list : (Listof -γ) ([γ γs])
+         (match-define (-γ αₖ blm sₕ sₓs) γ)
+         (define sₕ* (and (not (∋ (fvₛ sₕ) x)) sₕ))
+         (define sₓs* : (Listof -s)
+           (for/list ([sₓ sₓs])
+             (and (not (∋ (fvₛ sₓ) x)) sₓ)))
+         (-γ αₖ blm sₕ* sₓs*)))
+     (-Γ φs* as* γs*))
+    (printf "invalidate ~a:~n- before: ~a~n- after: ~a~n~n"
+            (show-Var-Name x) (show-Γ Γ) (show-Γ Γ*))))
 
 (: predicates-of : (U -Γ (℘ -e)) -s → (℘ (U -o -st-p)))
 ;; Extract type-like contracts on given symbol
@@ -119,7 +114,7 @@
           (map (curry show-M-γ M) γs)))
 
 (define (show-M-γ [M : -M] [γ : -γ]) : (Listof Sexp)
-  (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
+  (match-define (-γ αₖ blm sₕ sₓs) γ)
   (define ΓAs (M@ M αₖ))
   (define ↦ (if blm '↦ₑ '↦ᵥ))
   `(,(show-γ γ)

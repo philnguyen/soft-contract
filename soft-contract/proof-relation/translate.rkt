@@ -23,7 +23,7 @@
                [facts     : (℘ →Z3-Ast)]
                [expr      : →Z3-Ast])
   #:transparent)
-(struct App ([ctx : -αₖ] [fvs : (Listof Var-Name)] [params : (Listof Var-Name)]) #:transparent)
+(struct App ([ctx : -αₖ] [fvs : (Listof Var-Name)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
 (define-type App-Trace (℘ App))
 ;; Translation context for application includes the application and history of calls
@@ -64,7 +64,7 @@
                    ([front fronts])
            (define-values (def-funs** refs+)
              (match front
-               [(and app-ctx (App-Ctx (and app (App αₖ _ _)) _))
+               [(and app-ctx (App-Ctx (and app (App αₖ _)) _))
                 (define As (M@ M αₖ))
                 (match-define (cons refs entries) (encode-App-Ctx app-ctx As))
                 (values (hash-set def-funs* app entries) refs)]
@@ -84,8 +84,18 @@
 (define/memo (encode-App-Ctx [app-ctx : App-Ctx] [ΓAs : (℘ -ΓA)]) : (Pairof (℘ Defn-Entry) Res)
   (define-set refs : Defn-Entry)
   (match-define (App-Ctx app ctx) app-ctx)
-  (match-define (App αₖ fvs xs) app)
+  (match-define (App αₖ fvs) app)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
+  (define xs : (Listof Var-Name)
+    (match αₖ
+      [(-ℬ xs _ _) 
+       (cond
+         [(list? xs) xs]
+         [else
+          (hash-ref! unsupported αₖ (λ () (printf "unsupported: ~a~n" (show-αₖ αₖ))))
+          '()])]
+      [(-ℳ x _ _ _ _) (list x)]
+      [(-ℱ x _ _ _ _) (list x)]))
   (define tₓs : (Listof →Z3-Ast)
     (for/list ([x xs])
       (define t (⦃x⦄ x))
@@ -166,7 +176,7 @@
                      (hash-set! asserts-app tₐₚₚ tₐ)
                      (λ () (val-of tₐ)))))))
 
-  ;; Add a reminder to encode memo table entries for `αₖ(xs)` as a 1st-order function
+  ;; Add a reminder to encode memo table entries for `αₖ` as a 1st-order function
   (define/memo (⦃fun⦄! [eₕ : -e] [app : App]) : Symbol
      (⦃e⦄! eₕ) ; for "side-effect" of `eₕ` having evaluated
      (refs-add! (App-Ctx app (set-add trace app)))
@@ -177,9 +187,8 @@
                 [αₖ : -αₖ]
                 [eₕ : -e]
                 [fvs : (Listof Var-Name)]
-                [xs : (Listof Var-Name)]
                 [eₓs : (Listof -e)]) : →Z3-Ast
-    (define app (App αₖ fvs xs))
+    (define app (App αₖ fvs))
     (cond
       ;; If this is a recursive application, just existentialize the result for now,
       ;; because encoding of recursive functions slows down Z3 for sat/unknown queries
@@ -276,7 +285,7 @@
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option →Z3-Ast) ([γ γs])
-          (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
+          (match-define (-γ αₖ blm sₕ sₓs) γ)
           (define xs : (Option (Listof Var-Name))
             (match αₖ
               [(-ℬ xs _ _) (and (list? xs) xs)]
@@ -291,7 +300,7 @@
                    (set->list/memo
                     (set-subtract (apply ∪ (fvₛ sₕ) (map fvₛ sₓs))
                                   (list->seteq xs))))
-                 (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
+                 (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs eₓs))
                  (app-term! tₐₚₚ)]
                 [else #f]))
         (let ([t (fresh-free! 'app)])
@@ -322,7 +331,7 @@
 
   (: ⦃γ⦄! : -γ → Void)
   (define (⦃γ⦄! γ)
-    (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
+    (match-define (-γ αₖ blm sₕ sₓs) γ)
     (define xs : (Option (Listof Var-Name))
       (match αₖ
         [(-ℬ xs _ _) (and (list? xs) xs)]
@@ -339,7 +348,7 @@
                        (list->seteq xs))))
       (for ([fv fvs] #:unless (∋ bound fv))
         (free-vars-add! (⦃x⦄ fv)))
-      (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
+      (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs eₓs))
       (match blm
         [(cons l+ lo) (hash-set! asserts-app tₐₚₚ (cons (⦃l⦄ l+) (⦃l⦄ lo)))]
         [_            (hash-set! asserts-app tₐₚₚ #t)])))
@@ -640,7 +649,16 @@
     (for/fold ([decs : (Listof →Void) '()]
                [defs : (Listof →Void) '()])
               ([(f-xs res) def-funs])
-      (match-define (App αₖ fvs xs) f-xs)
+      (match-define (App αₖ fvs) f-xs)
+      (define xs : (Listof Var-Name)
+        (match αₖ
+          [(-ℬ xs _ _)
+           (cond [(list? xs) xs]
+                 [else
+                  (hash-ref! unsupported αₖ (λ () (printf "unsupported: ~a~n" (show-αₖ αₖ))))
+                  '()])]
+          [(-ℳ x _ _ _ _) (list x)]
+          [(-ℱ x _ _ _ _) (list x)]))
       (define n (+ (length fvs) (length xs)))
       (define ⦃fv⦄s (map ⦃x⦄ fvs))
       (define tₓs : (Listof →Z3-Ast)

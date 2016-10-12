@@ -86,10 +86,11 @@
 ;;;;; Stack Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -κ ([cont : -⟦k⟧!]      ; rest of computation waiting on answer
-            [Γ : -Γ]          ; path-condition to use for rest of computation
-            [𝒞 : -𝒞]         ; context of rest of computation
-            [bnd : (Pairof -s (Listof -s))] ; symbol for result
+(struct -κ ([cont : -⟦k⟧!]    ; rest of computation waiting on answer
+            [Γ : -Γ]         ; path-condition to use for rest of computation
+            [𝒞 : -𝒞]        ; context of rest of computation
+            [fun : -s]
+            [args : (Listof -s)]
             )
   #:transparent)
 
@@ -195,8 +196,9 @@
 ;; Path condition tail is callee block and renaming information,
 ;; also indicating whether the call raised a blame or not
 (struct -γ ([callee : -αₖ] ; be careful with this. May build up infinitely
-            [sym : (Pairof -s (Listof -s))]
-            [blm : (Option (Pairof -l -l))]) #:transparent)
+            [blm : (Option (Pairof -l -l))]
+            [fun : -s]
+            [args : (Listof -s)]) #:transparent)
 
 (define ⊤Γ (-Γ ∅ (hasheq) '()))
 
@@ -444,12 +446,11 @@
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ x l³ ℓ W-C W-V) ℳ)
-  `(ℳ ,(show-W¹ W-C) ,(show-W¹ W-V)))
+  `(ℳ ,(show-Var-Name x) ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
-  ;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹])
   (match-define (-ℱ x l ℓ W-C W-V) ℱ)
-  `(ℱ ,(show-W¹ W-C) ,(show-W¹ W-V)))
+  `(ℱ ,(show-Var-Name x) ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
 (define-parameter verbose? : Boolean #f)
 
@@ -486,10 +487,10 @@
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
     (λ (γ)
       (cond [(verbose?)
-             (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
+             (match-define (-γ αₖ blm sₕ sₓs) γ)
              `(,(show-αₖ αₖ) ‖ (,(show-s sₕ) ,@(map show-s sₓs)) ‖ ,blm)]
             [else (show-γ γ)]))))
 
 (define (show-κ [κ : -κ]) : Sexp
-  (match-define (-κ ⟦k⟧ Γ 𝒞 bnd) κ)
+  (match-define (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs) κ)
   '⟦κ⟧)

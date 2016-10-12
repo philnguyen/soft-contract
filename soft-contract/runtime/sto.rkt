@@ -86,7 +86,7 @@
 
 (: κ->αs : -κ -> (℘ -αₖ))
 (define (κ->αs κ)
-  (match-define (-κ _ _ _ _) κ)
+  (match-define (-κ _ _ _ _ _) κ)
   (error 'κ->αs "TODO"))
 
 (: span-σₖ : (HashTable -αₖ (℘ -κ)) (℘ -αₖ) → (HashTable -αₖ (℘ -κ)))
