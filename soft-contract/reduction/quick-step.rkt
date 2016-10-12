@@ -35,7 +35,7 @@
   (define Σ (-Σ σ (⊥σₖ) (⊥M)))
   (define seen↑ : (HashTable -ς↑ (List (HashTable -α -σr) (HashTable -αₖ (℘ -ΓA)))) (make-hash))
   (define seen↓ : (HashTable -ς↓ (℘ -κ)) (make-hash))
-  (define αₖ₀ : -αₖ (-ℬ ⟦e⟧! ⊥ρ))
+  (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧! ⊥ρ))
 
   (define iter : Natural 0)
 
@@ -118,9 +118,9 @@
 (: αₖ->αs : -αₖ → (℘ -α))
 (define αₖ->αs
   (match-lambda
-    [(-ℬ _ ρ) (ρ->αs ρ)]
-    [(-ℳ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]
-    [(-ℱ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]))
+    [(-ℬ _ _ ρ) (ρ->αs ρ)]
+    [(-ℳ _  _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]
+    [(-ℱ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]))
 
 (: ς->αₖs : -ς↑ → (℘ -αₖ))
 (define ς->αₖs
@@ -140,11 +140,11 @@
 (define (↝↑! αₖ Γ 𝒞 Σ)
   (define ⟦k⟧ (rt αₖ))
   (match αₖ
-    [(-ℬ ⟦e⟧! ρ)
+    [(-ℬ _ ⟦e⟧! ρ)
      (⟦e⟧! ρ Γ 𝒞 Σ ⟦k⟧)]
-    [(-ℳ l³ ℓ W-C W-V)
+    [(-ℳ _ l³ ℓ W-C W-V)
      (mon l³ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)]
-    [(-ℱ l ℓ W-C W-V)
+    [(-ℱ _ l ℓ W-C W-V)
      (flat-chk l ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)]
     [_
      (error '↝↑ "~a" αₖ)]))
@@ -154,9 +154,8 @@
 (define (↝↓! αₖ Γₑₑ A Σ)
   (match-define (-Σ _ σₖ M) Σ)
   (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
-    (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ bnd) κ)
-    (match-define (-binding f xs x->e) bnd)
-    (define fargs (binding->fargs bnd))
+    (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ (and bnd (cons sₕ sₓs))) κ)
+    (define fargs (apply -?@ sₕ sₓs))
     (match A
       [(-W Vs sₐ)
        (define γ (-γ αₖ bnd #f))

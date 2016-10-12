@@ -39,15 +39,12 @@
       (-γ αₖ (bnd↓ bnd xs) blm)))
   (-Γ φs* as* γs*))
 
-(: bnd↓ : -binding (℘ Var-Name) → -binding)
+(: bnd↓ : (Pairof -s (Listof -s)) (℘ Var-Name) → (Pairof -s (Listof -s)))
 (define (bnd↓ bnd fvs)
-  (match-define (-binding f xs x->e) bnd)
-  (define f* (s↓ f fvs))
-  (define x->e*
-    (for*/hasheq : (HashTable Var-Name -s) ([(x e) x->e]
-                                            [e* (in-value (s↓ e fvs))] #:when e*)
-      (values x e*)))
-  (-binding f* xs x->e*))
+  (match-define (cons sₕ sₓs) bnd)
+  (define sₕ* (s↓ sₕ fvs))
+  (define sₓs* : (Listof -s) (for/list ([sₓ sₓs]) (s↓ sₓ fvs)))
+  (cons sₕ* sₓs*))
 
 (: canonicalize : (U -Γ (HashTable Var-Name -e)) Var-Name → -e)
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
@@ -68,14 +65,8 @@
 
 (: γ->fargs : -γ → -s)
 (define (γ->fargs γ)
-  (match-define (-γ _ bnd _) γ)
-  (binding->fargs bnd))
-
-(: binding->fargs : -binding → -s)
-(define (binding->fargs bnd)
-  (match-define (-binding f xs x->e) bnd)
-  (define args : (Listof -s) (for/list ([x xs]) (hash-ref x->e x #f)))
-  (apply -?@ f args))
+  (match-define (-γ _ (cons sₕ sₓs) _) γ)
+  (apply -?@ sₕ sₓs))
 
 (: fvₛ : -s → (℘ Var-Name))
 (define (fvₛ s) (if s (fv s) ∅eq))
@@ -95,14 +86,12 @@
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
       (match-define (-γ αₖ bnd blm) γ)
-      (match-define (-binding f xs x->e) bnd)
-      (define bnd*
-        (let ([f* (if (∋ (fvₛ f) x) #f f)]
-              [x->e*
-               (for/hasheq : (HashTable Var-Name -s) ([(z φ) x->e]
-                                                      #:unless (∋ (fvₛ φ) x))
-                 (values z φ))])
-          (-binding f* xs x->e*)))
+      (match-define (cons sₕ sₓs) bnd)
+      (define bnd* : (Pairof -s (Listof -s))
+        (let ([sₕ* (and (not (∋ (fvₛ sₕ) x)) sₕ)]
+              [sₓs* : (Listof -s) (for/list ([sₓ sₓs])
+                                    (and (not (∋ (fvₛ sₓ) x)) sₓ))])
+          (cons sₕ* sₓs*)))
       (-γ αₖ bnd* blm)))
   (-Γ φs* as* γs*))
 
@@ -130,10 +119,13 @@
           (map (curry show-M-γ M) γs)))
 
 (define (show-M-γ [M : -M] [γ : -γ]) : (Listof Sexp)
-  (match-define (-γ αₖ bnd blm) γ)
+  (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
   (define ΓAs (M@ M αₖ))
   (define ↦ (if blm '↦ₑ '↦ᵥ))
-  `(,(show-γ γ) ≡ (,(show-αₖ αₖ) @ ,(show-binding bnd)) ,↦ ,@(set-map ΓAs show-ΓA)))
+  `(,(show-γ γ)
+    ≡
+    (,(show-αₖ αₖ) @ (,(show-s sₕ) ,@(map show-s sₓs)))
+    ,↦ ,@(set-map ΓAs show-ΓA)))
 
 (module+ test
   (require typed/rackunit)

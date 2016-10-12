@@ -89,7 +89,7 @@
 (struct -κ ([cont : -⟦k⟧!]      ; rest of computation waiting on answer
             [Γ : -Γ]          ; path-condition to use for rest of computation
             [𝒞 : -𝒞]         ; context of rest of computation
-            [bnd : -binding]  ; mapping from caller's identifiers to callee's expressions
+            [bnd : (Pairof -s (Listof -s))] ; symbol for result
             )
   #:transparent)
 
@@ -195,12 +195,8 @@
 ;; Path condition tail is callee block and renaming information,
 ;; also indicating whether the call raised a blame or not
 (struct -γ ([callee : -αₖ] ; be careful with this. May build up infinitely
-            [binding : -binding]
+            [sym : (Pairof -s (Listof -s))]
             [blm : (Option (Pairof -l -l))]) #:transparent)
-(struct -binding ([fun : -s]
-                  [params : (Listof Var-Name)]
-                  [param->arg : (HashTable Var-Name -s)])
-  #:transparent)
 
 (define ⊤Γ (-Γ ∅ (hasheq) '()))
 
@@ -218,25 +214,6 @@
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
-
-(: -binding-dom : -binding → (℘ Var-Name))
-(define (-binding-dom bnd)
-  (match-define (-binding _ _ x->e) bnd)
-  (for/unioneq : (℘ Var-Name) ([(x e) x->e])
-     (set-add (if e (fv e) ∅eq) x)))
-
-(: binding->s : -binding → -s)
-(define (binding->s bnd)
-  (match-define (-binding sₕ xs x->e) bnd)
-  (cond
-    [sₕ
-     (define sₓs : (Listof -s)
-       (for/list ([x xs])
-         (hash-ref x->e x #f)))
-     (cond [(andmap (inst values -s) sₓs)
-            (-@ sₕ (cast sₓs (Listof -e)) +ℓ₀)]
-           [else #f])]
-    [else #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -324,11 +301,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-αₖ . ::= . (-ℬ [exp : -⟦e⟧!] [env : -ρ])
+(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧!] [env : -ρ])
              ;; Contract monitoring
-             (-ℳ [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
+             (-ℳ [var : Var-Name] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
             ;; Flat checking
-             (-ℱ [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℒ
+             (-ℱ [var : Var-Name] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℒ
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -462,16 +439,16 @@
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ ⟦e⟧! ρ) ℬ)
-  `(ℬ ,(show-⟦e⟧! ⟦e⟧!) ,(show-ρ ρ)))
+  (match-define (-ℬ xs ⟦e⟧! ρ) ℬ)
+  `(ℬ ,(show-formals xs) ,(show-⟦e⟧! ⟦e⟧!) ,(show-ρ ρ)))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
-  (match-define (-ℳ l³ ℓ W-C W-V) ℳ)
+  (match-define (-ℳ x l³ ℓ W-C W-V) ℳ)
   `(ℳ ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
   ;(-ℱ [l : -l] [loc : -ℓ] [ctc : -W¹] [val : -W¹])
-  (match-define (-ℱ l ℓ W-C W-V) ℱ)
+  (match-define (-ℱ x l ℓ W-C W-V) ℱ)
   `(ℱ ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
 (define-parameter verbose? : Boolean #f)
@@ -509,19 +486,9 @@
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
     (λ (γ)
       (cond [(verbose?)
-             (match-define (-γ αₖ bnd blm) γ)
-             `(,(show-αₖ αₖ) ‖ ,(show-binding bnd) ‖ ,blm)]
+             (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
+             `(,(show-αₖ αₖ) ‖ (,(show-s sₕ) ,@(map show-s sₓs)) ‖ ,blm)]
             [else (show-γ γ)]))))
-
-(define (show-binding [bnd : -binding]) : (Listof Sexp)
-  (match-define (-binding f xs x->e) bnd)
-  (define bnds
-    (for/list : (Listof Sexp) ([x xs])
-      `(,(show-Var-Name x) ↦ ,(show-s (hash-ref x->e x #f)))))
-  (define fvs
-    (for/list : (Listof Sexp) ([(x e) x->e] #:unless (member x xs))
-      `(,(show-Var-Name x) ↦ ,(show-s e))))
-  `(,(show-s f) ,@bnds ‖ ,@fvs))
 
 (define (show-κ [κ : -κ]) : Sexp
   (match-define (-κ ⟦k⟧ Γ 𝒞 bnd) κ)

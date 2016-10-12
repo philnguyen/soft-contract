@@ -17,7 +17,7 @@
 (define-type →Z3-Ast (→ Z3-Ast))
 (define-type →Void   (→ Void))
 
-(define unsupported : (HashTable -e Void) (make-hash))
+(define unsupported : (HashTable Any Void) (make-hash))
 
 (struct Entry ([free-vars : (℘ Symbol)]
                [facts     : (℘ →Z3-Ast)]
@@ -276,11 +276,21 @@
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option →Z3-Ast) ([γ γs])
-          (match-define (-γ αₖ bnd blm) γ)
-          (match-define (-binding φₕ xs x->φ) bnd)
-          (cond [(equal? eₕ φₕ)
-                 (define fvs (set->list/memo
-                              (set-subtract (-binding-dom bnd) (list->seteq xs))))
+          (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
+          (define xs : (Option (Listof Var-Name))
+            (match αₖ
+              [(-ℬ xs _ _) (and (list? xs) xs)]
+              [(-ℳ x _ _ _ _) (list x)]
+              [(-ℱ x _ _ _ _) (list x)]))
+          (cond [(not xs)
+                 (hash-ref! unsupported αₖ
+                            (λ () (printf "⦃e⦄: ignore ~a for now~n" (show-αₖ αₖ))))
+                 #f]
+                [(equal? eₕ sₕ)
+                 (define fvs
+                   (set->list/memo
+                    (set-subtract (apply ∪ (fvₛ sₕ) (map fvₛ sₓs))
+                                  (list->seteq xs))))
                  (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))
                  (app-term! tₐₚₚ)]
                 [else #f]))
@@ -306,18 +316,27 @@
         unsupported
         e
         (λ ()
-          (printf "translation: unhandled: ~a" (show-e e))))
+          (printf "translation: unhandled: ~a~n" (show-e e))))
        (define t (fresh-free! 'unhandled))
        (λ () (val-of t))]))
 
   (: ⦃γ⦄! : -γ → Void)
   (define (⦃γ⦄! γ)
-    (match-define (-γ αₖ bnd blm) γ)
-    (define eₐₚₚ (binding->s bnd))
-    (when eₐₚₚ
-      (match-define (-binding _ xs _) bnd)
+    (match-define (-γ αₖ (cons sₕ sₓs) blm) γ)
+    (define xs : (Option (Listof Var-Name))
+      (match αₖ
+        [(-ℬ xs _ _) (and (list? xs) xs)]
+        [(-ℳ x _ _ _ _) (list x)]
+        [(-ℱ x _ _ _ _) (list x)]))
+    (define eₐₚₚ (apply -?@ sₕ sₓs))
+    (unless xs
+      (hash-ref! unsupported αₖ (λ () (printf "⦃γ⦄: ignore ~a for now~n" (show-αₖ αₖ)))))
+    (when (and eₐₚₚ #|TODO|# xs)
       (match-define (-@ eₕ eₓs _) eₐₚₚ)
-      (define fvs (set->list/memo (set-subtract (-binding-dom bnd) (list->seteq xs))))
+      (define fvs
+        (set->list/memo
+         (set-subtract (apply ∪ (fvₛ sₕ) (map fvₛ sₓs))
+                       (list->seteq xs))))
       (for ([fv fvs] #:unless (∋ bound fv))
         (free-vars-add! (⦃x⦄ fv)))
       (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs xs eₓs))

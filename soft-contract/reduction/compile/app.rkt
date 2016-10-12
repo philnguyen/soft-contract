@@ -255,13 +255,8 @@
            (define Vₓ* (V+ σ Vₓ (predicates-of Γ sₓ)))
            (σ⊔! σ α Vₓ* #t)
            (ρ+ ρ x α)))
-       (define bnd
-         (-binding sₕ
-                   xs
-                   (for/hasheq : (HashTable Var-Name -s) ([x xs] [sₓ sₓs] #:when sₓ)
-                     (values x sₓ))))
-       (define αₖ (-ℬ ⟦e⟧ ρ*))
-       (define κ (-κ ⟦k⟧ Γ 𝒞 bnd))
+       (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+       (define κ (-κ ⟦k⟧ Γ 𝒞 (cons sₕ sₓs)))
        (vm⊔! σₖ αₖ κ)
        {set (-ς↑ αₖ Γₕ 𝒞*)}]
       [else (error 'app-clo "TODO: varargs: ~a" (show-V Vₕ))]))
@@ -730,10 +725,8 @@
     (define αₖ
       (let ([W-C* (-W¹ C* c)]
             [W-V* (-W¹ V 𝐱)])
-        (-ℳ l³ ℒ W-C* W-V*)))
-    (define κ
-      (let ([bnd #|FIXME hack|# (-binding 'values (list x) (if v (hasheq x v) (hasheq)))])
-        (-κ ⟦k⟧ Γ 𝒞 bnd)))
+        (-ℳ x l³ ℒ W-C* W-V*)))
+    (define κ (-κ ⟦k⟧ Γ 𝒞 #|FIXME hack|# (cons 'values (list v))))
     (vm⊔! σₖ αₖ κ)
     (define Γ* ; HACK: drop all tails for now
       (match-let ([(-Γ φs as γs) Γ])
@@ -940,9 +933,8 @@
      (for/set: : (℘ -ς) ([C* (σ@ᵥ σ α)])
        (define W-C* (-W¹ C* c))
        (define W-V* (-W¹ V 𝐱))
-       (define bnd (-binding 'fc (list x) (if v (hasheq x v) (hasheq))))
-       (define κ (-κ ⟦k⟧ Γ 𝒞 bnd))
-       (define αₖ (-ℱ l ℒ W-C* W-V*))
+       (define κ (-κ ⟦k⟧ Γ 𝒞 #|FIXME hack|# (cons 'fc (list v))))
+       (define αₖ (-ℱ x l ℒ W-C* W-V*))
        (vm⊔! σₖ αₖ κ)
        (-ς↑ αₖ Γ 𝒞))]
     [_
