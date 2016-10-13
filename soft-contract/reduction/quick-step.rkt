@@ -161,14 +161,7 @@
        (define γ (-γ αₖ #f sₕ sₓs))
        (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
        (cond
-         [(with-debugging ((p?) (plausible-pc? M Γₑᵣ*))
-            (when (-ℳ? αₖ)
-              (define-values (sΓ sM) (show-M-Γ M Γₑᵣ*))
-              (printf "plausible? -> ~a~n" p?)
-              (printf " - Γ: ~a~n" sΓ)
-              (printf " - M:~n")
-              (for ([r (in-list sM)])
-                (printf "   + ~a~n" r))))
+         [(plausible-pc? M Γₑᵣ*)
           (define sₐ*
             (and sₐ
                  (match fargs ; HACK

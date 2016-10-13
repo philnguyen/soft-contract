@@ -17,6 +17,7 @@
 (define-type →Z3-Ast (→ Z3-Ast))
 (define-type →Void   (→ Void))
 
+;; This table is just for printing out each warning once
 (define unsupported : (HashTable Any Void) (make-hash))
 
 (struct Entry ([free-vars : (℘ Symbol)]
@@ -337,7 +338,8 @@
         [(-ℬ xs _ _) (and (list? xs) xs)]
         [(-ℳ x _ _ _ _) (list x)]
         [(-ℱ x _ _ _ _) (list x)]))
-    (define eₐₚₚ (apply -?@ sₕ sₓs))
+    ;; important not to use `-?@` for `eₐₚₚ` as it may simplify away `values` used in `ℳ`
+    (define eₐₚₚ (and sₕ (andmap -e? sₓs) (-@ sₕ sₓs +ℓ₀)))
     (unless xs
       (hash-ref! unsupported αₖ (λ () (printf "⦃γ⦄: ignore ~a for now~n" (show-αₖ αₖ)))))
     (when (and eₐₚₚ #|TODO|# xs)
