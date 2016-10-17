@@ -54,7 +54,21 @@
     (check-sat)))
 
 (define/memo (exec-check-sat [asserts : (→ Void)] [goal : (→ Z3-Ast)]) : (Pairof Sat-Result Sat-Result)
-  (with-new-context
+  (match (with-new-context
+           (set-default-options!)
+           (asserts)
+           (assert! (@/s 'is_false (goal)))
+           (check-sat))
+    ['false (cons 'unsat 'unknown)]
+    [a
+     (cons a
+           (with-new-context
+             (set-default-options!)
+             (asserts)
+             (assert! (@/s 'is_truish (goal)))
+             (check-sat)))])
+  ;; The incremental solver eats up memory and freezes my computer if query has `is_int`
+  #;(with-new-context
     (set-default-options!)
     (asserts)
     (match (with-local-stack
