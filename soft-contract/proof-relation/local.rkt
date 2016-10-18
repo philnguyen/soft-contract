@@ -7,6 +7,7 @@
 (require racket/match
          racket/set
          racket/bool
+         (only-in racket/list first second)
          (except-in racket/function arity-includes?)
          "../utils/main.rkt"
          "../primitives/utils.rkt"
@@ -148,6 +149,10 @@
              [else '?])]
           [(_ _) (if (equal? e₁ e₂) '✓ '?)])]
        [_ #|TODO|# '?])]
+    ['positive?
+     (⊢@ '> (list (car xs) (-b 0)))]
+    ['negative?
+     (⊢@ '< (list (car xs) (-b 0)))]
     [(? symbol?)
      (cond
        [(and (eq? p 'boolean?) (match? xs (list (-@ (? -st-p?) _ _)))) '✓]
@@ -196,7 +201,7 @@
                   [(✗ ?) '?])]
                [(e₁ (-not e₂*))
                 (not-R (e⊢e e₁ e₂*))]
-               [((-@ (? -o? p) (list e) _) (-@ (? -o? q) (list e) _))
+               [((-@ (? -v? p) (list e) _) (-@ (? -v? q) (list e) _))
                 (p⇒p p q)] ; FIXME
                [((-@ (? -o? p) (list e) _) e)
                 (cond
@@ -299,7 +304,7 @@
   (match-lambda
     [(-b #f) '✗]
     [(-● ps)
-     (or (for/or : (U #f '✓ '✗) ([p ps])
+     (or (for/or : (U #f '✓ '✗) ([p ps] #:when (-v? p))
            (case (p⇒p p 'not)
              [(✓) '✗]
              [(✗) '✓]
@@ -319,8 +324,8 @@
   (with-debugging/off
     ((ans)
      (match Vs
-       [(list (-● ps)) #:when (-o? p)
-        (or (for/or : (U #f '✓ '✗) ([q ps])
+       [(list (-● ps)) #:when (-v? p)
+        (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-v? q))
               (case (p⇒p q p)
                 [(✓) '✓]
                 [(✗) '✗]
@@ -380,6 +385,33 @@
               (match Vs
                 [(list (? -●?)) '?]
                 [_ '✗])]
+             [(< <=) ; FIXME i may get the boundaries wrong
+              (match Vs
+                [(list (-● ps) (-b (? real? b)))
+                 (match (set->list ps)
+                   [(list _ ...
+                          (-λ (list x) (-@ (or '< '<=) (list (-x x) (-b (? real? a))) _))
+                          _ ...)
+                    (if (<= a b) '✓ '?)]
+                   [(list _ ...
+                          (-λ (list x) (-@ (or '< '<=) (list (-b (? real? a)) (-x x)) _))
+                          _ ...)
+                    (if (> a b) '✗ '?)]
+                   [_ '?])]
+                [(list (-b (? real? b)) (-● ps))
+                 (match (set->list ps)
+                   [(list _ ...
+                          (-λ (list x) (-@ (or '< '<=) (list (-x x) (-b (? real? a))) _))
+                          _ ...)
+                    (if (< a b) '✗ '?)]
+                   [(list _ ...
+                          (-λ (list x) (-@ (or '< '<=) (list (-b (? real? a)) (-x x)) _))
+                          _ ...)
+                    (if (>= a b) '✓ '?)]
+                   [_ '?])]
+                [_ '?])]
+             [(>) (p∋Vs '< (second Vs) (first Vs))]
+             [(>=) (p∋Vs '<= (second Vs) (first Vs))]
              ;; Default rules for operations on base values rely on simplification from `-?@`
              [else
               (cond
@@ -406,7 +438,7 @@
    [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
    [(_ _) '?]))
 
-(: p⇒p : -o -o → -R)
+(: p⇒p : -v -v → -R)
 ;; Return whether predicate `p` definitely implies or excludes `q`.
 (define (p⇒p p q)
   (match* (p q)
@@ -425,6 +457,26 @@
     [((-st-p si) (-st-p sj))
      ;; TODO: no sub-struct for now. Probably changes later
      (decide-R (equal? si sj))]
+
+    ;; Special rules for reals
+    ; 
+    [(_ 'positive?)
+     (p⇒p p (-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀)))]
+    [(_ 'negative?)
+     (p⇒p p (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀)))]
+    [('positive? _)
+     (p⇒p (-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀)) q)]
+    [('negative? _)
+     (p⇒p (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀)) q)]
+    ;
+    [((-λ (list x) (-@ (and o (or '<= '<)) (list (-b (? real? a)) (-x x)) _))
+      (-λ (list y) (-@ o                   (list (-b (? real? b)) (-x y)) _)))
+     (if (>= a b) '✓ '?)]
+    [((-λ (list x) (-@ (and o (or '<= '<)) (list (-x x) (-b (? real? a))) _))
+      (-λ (list y) (-@ o                   (list (-x y) (-b (? real? b))) _)))
+     (if (<= a b) '✓ '?)]
+    
+    ;; default
     [(_ _)
      (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))
                 (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))

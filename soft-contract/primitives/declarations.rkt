@@ -70,14 +70,31 @@
      ;;;;; 4.2.2 Generic Numerics
      
      ;; 4.2.2.1 Arithmetic
-     [#:batch (+ - *) ; FIXME var-args
+     [+ ; FIXME varargs
+      (number? number? . -> . number?)
+      (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
+      (integer? integer? . -> . integer?)
+      (real? real? . -> . real?)
+      (positive? (not/c negative?) . -> . positive?)
+      ((not/c negative?) positive? . -> . positive?)
+      (negative? (not/c positive?) . -> . negative?)
+      ((not/c positive?) negative? . -> . negative?)
+      ((not/c negative?) (not/c negative?) . -> . (not/c negative?))
+      ((not/c positive?) (not/c positive?) . -> . (not/c positive?))]
+     [- ; FIXME varargs
+      (number? number? . -> . number?)
+      (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
+      (integer? integer? . -> . integer?)
+      (real? real? . -> . real?)]
+     [* ; FIXME varargs
       (number? number? . -> . number?)
       (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)]
      [/ ; FIXME varargs
       (number? (and/c number? (or/c inexact? (not/c zero?))) . -> . number?)
-      (real? real? . -> . real?)]
+      (real? real? . -> . real?)
+      ((not/c zero?) any/c . -> . (not/c zero?))]
      [#:batch (quotient remainder modulo) ; FIXME: only error on exact 0
       (integer? (and/c integer? (not/c zero?)) . -> . integer?)]
      [quotient/remainder

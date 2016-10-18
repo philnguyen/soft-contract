@@ -209,7 +209,7 @@
            `(#:alias ,_ ...))
        '()]
 
-      ;; Handle generate case
+      ;; Handle general case
       [`(,(and (? symbol?) (not (? ignore-for-now?)) op)
           (,doms ... . -> . ,rng) ,(? arr? refinements) ...
          #:other-errors (,guards ...) ...)
@@ -240,17 +240,29 @@
           
           (define refinement-clauses
             (for/list ([ref refinements])
-              (match-define `(,(? symbol? dom-chks) ... . -> . ,(? symbol? rng-chk)) ref)
+              (match-define `(,dom-chks ... . -> . ,rng-chk) ref)
               (define arg-checks
                 (for/list ([dom-chk dom-chks] [W-id W-ids] [e-id e-ids])
-                  #`(eq? '✓ (first-R (p∋Vs '#,dom-chk (-W¹-V #,W-id))
-                                     (Γ⊢e #,(Γ-id) (-?@ '#,dom-chk #,e-id))))))
+                  (match dom-chk
+                    [(? symbol? dom/c)
+                     #`(eq? '✓ (first-R (p∋Vs '#,dom/c (-W¹-V #,W-id))
+                                        (Γ⊢e #,(Γ-id) (-?@ '#,dom/c #,e-id))))]
+                    [(list 'not/c (? symbol? dom/c*))
+                     #`(eq? '✗ (first-R (p∋Vs '#,dom/c* (-W¹-V #,W-id))
+                                        (Γ⊢e #,(Γ-id) (-?@ '#,dom/c* #,e-id))))])))
               (define precond ; make it a little prettier
                 (match arg-checks
                   [(list e) e]
                   [_ #`(and #,@arg-checks)]))
-              #`[#,precond
-                 (list (-● {set '#,rng-chk}))]))
+              (define rng/c
+                (match rng-chk
+                  ['positive? #'(-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀))]
+                  ['negative? #'(-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀))]
+                  [(? symbol? rng/c) #`(quote #,rng/c)]
+                  [(list 'not/c (? symbol? rng/c*))
+                   #`(-@ 'not/c (list '#,rng/c*) +ℓ₀)]))
+              #`(when #,precond
+                  (set! refinements (set-add refinements #,rng/c)))))
 
           ;; Eager refinement is necessary for performance.
           ;; Otherwise even things like (fact _) returns `integer?` rather than `number?`
@@ -261,9 +273,9 @@
                #`[_ (list (-● {set '#,rng}))]]
               [else
                #`[(list #,@W-pats)
-                  (cond
-                    #,@refinement-clauses
-                    [else (list (-● {set '#,rng}))])]]))
+                  (define refinements : (℘ -e) ∅)
+                  #,@refinement-clauses
+                  (list (-● refinements))]]))
 
           (define case-lift
             #`(cond
@@ -325,7 +337,9 @@
 
 (: δ! : -𝒞 -ℓ -M -σ -Γ Symbol (Listof -W¹) → (Option (Listof -V)))
 (define (δ! 𝒞 ℓ M σ Γ o Ws)
-  (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
+  (with-debugging/off ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
+    (when (equal? o '>=)
+      (printf "δ ~a ~a -> ~a~n" (show-o o) (map show-W¹ Ws) (and ans (map show-V ans))))))
 
 
 (module+ test

@@ -116,6 +116,10 @@
        [(list (-@ 'not (and e* (-@ 'not _ _)) _)) e*]
        [(list (-@ 'not (-b x) _)) (-b (not (not x)))]
        [(list (-b x)) (-b (not x))]
+       [(list (-@ '<  (list x y) _)) (-@ '<= (list y x) +ℓ₀)]
+       [(list (-@ '<= (list x y) _)) (-@ '<  (list y x) +ℓ₀)]
+       [(list (-@ '>  (list x y) _)) (-@ '<= (list x y) +ℓ₀)]
+       [(list (-@ '>= (list x y) _)) (-@ '<  (list x y) +ℓ₀)]
        [_ (default-case)])]
     ['not/c
      (match xs
@@ -142,6 +146,15 @@
      (match xs
        [(list (-@ 'vector _ _)) -ff]
        [_ (default-case)])]
+
+    ['positive?
+     (-@/simp '< (-b 0) (car xs))]
+    ['negative?
+     (-@/simp '< (car xs) (-b 0))]
+    ['>
+     (-@/simp '< (second xs) (first xs))]
+    ['>=
+     (-@/simp '<= (second xs) (first xs))]
 
     ; (car (cons e _)) = e
     [(-st-ac s i)

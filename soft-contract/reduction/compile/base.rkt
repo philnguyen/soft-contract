@@ -17,16 +17,14 @@
     (define-values (Vs old?) (σ@ σ α))
     (define s (and old? (canonicalize Γ x)))
     (define φs (-Γ-facts Γ))
+    #;(when (∋ x {set 'n 'm 'x})
+      (printf "lookup: ~a -> ~a~n" (show-Var-Name x) (set-map Vs show-V)))
     (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
       (match V
         ['undefined (⟦k⟧ -blm.undefined Γ 𝒞 Σ)]
         [(-● ps) ; precision hack
-         (define ps*
-           (for/fold ([ps : (℘ -o) ps]) ([φ φs])
-             (match φ
-               [(-@ (? -o? o) (list (== s)) _) (set-add ps o)]
-               [_ ps])))
-         (define V* (if (eq? ps ps*) V (-● ps*))) ; keep old instance
+         (define ps* (∪ ps (predicates-of Γ s)))
+         (define V* (if (equal? ps ps*) V (-● ps*))) ; keep old instance
          (⟦k⟧ (-W (list V*) s) Γ 𝒞 Σ)]
         [_ (⟦k⟧ (-W (list V) s) Γ 𝒞 Σ)]))))
 

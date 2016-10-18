@@ -127,7 +127,7 @@
 
 (-V . ::= . 'undefined
             -prim
-            (-● (℘ -o))
+            (-● (℘ #|closed|# -e))
             (-St -struct-info (Listof (U -α.fld -α.var-car -α.var-cdr)))
             (-Vector (Listof -α.idx))
             -Fn
@@ -354,7 +354,12 @@
     ['undefined 'undefined]
     [(-b b) (show-b b)]
     [(-● ps)
-     (string->symbol (string-join (map symbol->string (cons '● (set-map ps show-o))) "_"))]
+     (string->symbol
+      (string-join
+       (for/list : (Listof String) ([p ps])
+         (format "_~a" (show-e p)))
+       ""
+       #:before-first "●"))]
     [(? -o? o) (show-o o)]
     [(-Clo xs ⟦e⟧! ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧! ⟦e⟧!))]
     [(-Case-Clo clauses ρ Γ)

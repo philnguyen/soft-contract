@@ -112,21 +112,38 @@
               ([ΓA ΓAs])
       (match-define (-ΓA Γ A) ΓA)
       (match A
-        [(-W _ sₐ)
+        [(-W Vₐs sₐ)
+         ;(printf "not translating ~a~n" (map show-V Vₐs))
          (define eₒₖ
            (cond
              [sₐ
               (match-define (cons refs+ entry) (encode-e ctx bound Γ sₐ))
               (refs-union! refs+)
               (match-define (Entry free-vars facts tₐₙₛ) entry)
+              (define facts*
+                (match Vₐs
+                  [(-b b) {seteq (λ () (=/s (tₐₙₛ) (⦃b⦄ b)))}]
+                  [(-● ps)
+                   (for/seteq: : (℘ →Z3:Ast) ([p ps])
+                     (λ () (⦃p⦄ p (tₐₙₛ))))]
+                  [_ ∅eq]))
               (Entry free-vars
-                     (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Val (tₐₙₛ)))))
+                     (set-add (∪ facts facts*) (λ () (=/s (tₐₚₚ) (@/s 'Val (tₐₙₛ)))))
                      tₐₙₛ)]
              [else
               (match-define (cons refs+ entry) (encode-e ctx bound Γ #|HACK|# -ff))
               (refs-union! refs+)
               (match-define (Entry free-vars facts _) entry)
-              (Entry free-vars facts #|hack|# (λ () (@/s 'B false/s)))]))
+              (define facts*
+                (match Vₐs
+                  [(-b b) {seteq (λ () (=/s (@/s 'unbox_Val (tₐₚₚ)) (⦃b⦄ b)))}]
+                  [(-● ps)
+                   (for/seteq: : (℘ →Z3:Ast) ([p ps])
+                     (λ () (⦃p⦄ p (@/s 'unbox_Val (tₐₚₚ)))))]
+                  [_ ∅eq]))
+              (Entry free-vars
+                     (∪ facts facts*)
+                     #|hack|# (λ () (@/s 'B false/s)))]))
          (values (cons eₒₖ oks) ers)]
         [(-blm l+ lo _ _)
          (define eₑᵣ
@@ -282,7 +299,7 @@
                                      (show-o o))))
                           (define t (fresh-free! 'o))
                           (λ () (val-of t)))])
-         (app-o o ts))]
+         (⦃o⦄ o ts))]
       [(-@ eₕ eₓs _)
        (or
         (for/or : (Option →Z3-Ast) ([γ γs])
@@ -373,8 +390,8 @@
   (cons refs (Entry free-vars all-props tₜₒₚ))
   )
 
-;(: app-o : -o (Listof →Z3-Ast) → →Z3-Ast)
-(define/memo (app-o [o : -o] [ts : (Listof →Z3-Ast)]) : →Z3-Ast
+;(: ⦃o⦄ : -o (Listof →Z3-Ast) → →Z3-Ast)
+(define/memo (⦃o⦄ [o : -o] [ts : (Listof →Z3-Ast)]) : →Z3-Ast
   (case o
     [(defined?)
      (λ () (@/s 'B (not/s (=/s 'Undefined ((car ts))))))]
@@ -481,6 +498,20 @@
      (match-define (list t) ts)
      (λ ()
        (@/s 'B (=/s (@/s 'N 0 0) (t))))]
+    [(positive?)
+     (match-define (list t) ts)
+     (λ ()
+       (define tₐ (t))
+       (@/s 'B
+            (and/s (@/s 'is-R tₐ)
+                   (>/s (@/s 'real tₐ) 0))))]
+    [(negative?)
+     (match-define (list t) ts)
+     (λ ()
+       (define tₐ (t))
+       (@/s 'B
+            (and/s (@/s 'is-R tₐ)
+                   (</s (@/s 'real tₐ) 0))))]
     [(exact-nonnegative-integer?)
      (match-define (list t) ts)
      (λ ()
@@ -547,6 +578,14 @@
         (λ () (@/s field ((car ts))))]
        [_ (raise (exn:scv:unsupported (format "unsupported: ~a" (show-o o))
                                           (current-continuation-marks)))])]))
+
+(define/memo (⦃p⦄ [p : (U -o -λ)] [t : →Z3-Ast]) : →Z3-Ast
+  (match p
+    [(? -o? o) (⦃o⦄ o (list t))]
+    [(-λ (list x) (-@ (? -o? o) (list (-x x) (-b b)) _))
+     (⦃o⦄ o (list t (λ () (⦃b⦄ b))))]
+    [(-λ (list x) (-@ (? -o? o) (list (-b b) (-x x)) _))
+     (⦃o⦄ o (list (λ () (⦃b⦄ b)) t))]))
 
 (: ⦃b⦄ : Base → Z3-Ast)
 (define (⦃b⦄ b)
