@@ -99,7 +99,13 @@
       (integer? (and/c integer? (not/c zero?)) . -> . integer?)]
      [quotient/remainder
       (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?))]
-     [#:batch (add1 sub1)
+     [add1
+      (number? . -> . number?)
+      (integer? . -> . integer?)
+      (real? . -> . real?)
+      (exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
+      ((not/c negative?) . -> . positive?)]
+     [sub1
       (number? . -> . number?)
       (integer? . -> . integer?)
       (real? . -> . real?)]
