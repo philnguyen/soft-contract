@@ -475,7 +475,9 @@
      (case (MΓ⊢oW M Γ 'procedure? Wₕ)
        [(✓ ?) (app-opq)]
        [(✗) (⟦k⟧ (-blm l 'Λ (list 'procedure?) (list Vₕ)) Γ 𝒞 Σ)])]
-    [_ (error 'app "TODO: ~a" (show-V Vₕ))]))
+    [_
+     (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ)))
+     (⟦k⟧ blm Γ 𝒞 Σ)]))
 
 (: mon : -l³ -ℒ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
 (define (mon l³ ℒ W-C W-V Γ 𝒞 Σ ⟦k⟧)
@@ -619,7 +621,7 @@
   (match-define (-W¹ V v) W-V)
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-Σ σ _ M) Σ)
-  
+
   (define arity
     (let* ([a (guard-arity grd)]
            [b (-b a)])
@@ -633,16 +635,20 @@
           (define W-a (-W¹ (if A (-b A) -●/V) a))
           (Γ+/-W∋Ws M Γ₁ -arity-includes?/W W-a arity))
         (values #f #f)))
-  (match-define (-ℒ _ ℓ) ℒ)
+  #;(match-define (-ℒ _ ℓ) ℒ)
   (∪ (cond [Γ₁₁
             (define grd-ℓ
               (cond [(-=>? grd) (-=>-pos grd)]
                     [(-=>i? grd) (-=>i-pos grd)]
                     [else (error 'mon-=>_ "unexpected")]))
-            (define α (or (keep-if-const v) (-α.fn ℓ grd-ℓ 𝒞)))
+            (define α (or (keep-if-const v) (-α.fn ℒ grd-ℓ 𝒞)))
             (define Ar (-Ar grd α l³))
             (σ⊔! σ α V #t)
-            (⟦k⟧ (-W (list Ar) (-?ar c v) #;v) Γ₁₁ 𝒞 Σ)]
+            (define v* ; hack
+              (match v
+                [(-ar (== c) _) v]
+                [_ (-?ar c v)]))
+            (⟦k⟧ (-W (list Ar) v*) Γ₁₁ 𝒞 Σ)]
            [else ∅])
      (cond [Γ₁₂
             (define C #|HACK|#

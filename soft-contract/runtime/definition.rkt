@@ -270,7 +270,7 @@
             (-α.x/c [pos : -ℓ])
             (-α.dom [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
             (-α.rng [pos : -ℓ] [ctx : -𝒞])
-            (-α.fn [mon-pos : -ℓ] [guard-pos : -ℓ] [ctx : -𝒞])
+            (-α.fn [mon-pos : -ℒ] [guard-pos : -ℓ] [ctx : -𝒞])
 
             -α.cnst)
 
