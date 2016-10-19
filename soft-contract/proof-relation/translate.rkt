@@ -113,7 +113,6 @@
       (match-define (-ΓA Γ A) ΓA)
       (match A
         [(-W Vₐs sₐ)
-         ;(printf "not translating ~a~n" (map show-V Vₐs))
          (define eₒₖ
            (cond
              [sₐ

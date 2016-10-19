@@ -330,7 +330,44 @@
                 [(✓) '✓]
                 [(✗) '✗]
                 [(?) #f]))
-            '?)]
+            (case p ; special hacky cases where `q` is implied by 2+ predicates
+              [(exact-nonnegative-integer?)
+               (cond
+                 [(and (∋ ps 'integer?)
+                       (for/or : Boolean ([p ps])
+                         (match?
+                          p
+                          (-λ (list x)
+                              (-@ (or '< '<=)
+                                  (list (-b (? (λ ([b : Base])
+                                                 (and (real? b) (<= b 0)))))
+                                        (-x x))
+                                  _)))))
+                  '✓]
+                 [(and (∋ ps 'integer?)
+                       (for/or : Boolean ([p ps])
+                         (match?
+                          p
+                          (-λ (list x)
+                              (-@ '<
+                                  (list (-x x)
+                                        (-b (? (λ ([b : Base])
+                                                 (and (real? b) (<= 0 b))))))
+                                  _)))))
+                  '✗]
+                 [(and (∋ ps 'integer?)
+                       (for/or : Boolean ([p ps])
+                         (match?
+                          p
+                          (-λ (list x)
+                              (-@ '<=
+                                  (list (-x x)
+                                        (-b (? (λ ([b : Base])
+                                                 (and (real? b) (< 0 b))))))
+                                  _)))))
+                  '✗]
+                 [else '?])]
+              [else '?]))]
        [_
         (match p
           [(? -st-mk?) '✓]
