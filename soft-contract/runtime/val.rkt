@@ -65,9 +65,11 @@
      (-Vector/homo α (-l³ l+ l      lo))]
     [_ V]))
 
+(define printing : (HashTable (List -V (U -e -V)) Void) (make-hash))
+
 (: V+ : -σ -V (U -e -V (℘ -e) (℘ -V)) → -V)
 ;; refine opaque value with predicate
-(define (V+ σ V P)
+(define (V+ σ V P) : -V
   
   (define (simplify [P : -V]) : -V
     (match P
@@ -76,18 +78,33 @@
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]
       [_ P]))
-
+  
   (cond
     [(set? P)
      (for/fold ([V : -V V]) ([Pᵢ (in-set P)])
        (V+ σ V Pᵢ))]
     [else
-     (match V
-       [(-● ps)
-        (cond
-          [(-e? P) (-● (set-add ps P))]
-          [(-V? P)
-           (match (simplify P)
-             [(? -o? o) (-● (set-add ps o))]
-             [_ V])])]
-       [_ V])]))
+     (with-debugging/off
+       ((V*)
+        (match V
+          [(-● ps)
+           (match P
+             [(-λ (list x) (-@ (or '= 'equal?)
+                               (or (list (-x x) (? -V? V*))
+                                   (list (? -V? V*) (-x x)))
+                               _))
+              #:when V*
+              V*]
+             [(? -e? e) (-● (set-add ps e))]
+             [(? -V? P)
+              (match (simplify P)
+                [(? -o? o) (-● (set-add ps o))]
+                [_ V])])]
+          [_ V]))
+       
+       (hash-ref! printing (list V P)
+                  (λ ()
+                    (printf "~a + ~a -> ~a~n"
+                            (show-V V)
+                            (if (-e? P) (show-e P) (show-V P))
+                            (show-V V*)))))]))

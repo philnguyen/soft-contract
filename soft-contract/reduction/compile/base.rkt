@@ -23,8 +23,7 @@
       (match V
         ['undefined (⟦k⟧ -blm.undefined Γ 𝒞 Σ)]
         [(-● ps) ; precision hack
-         (define ps* (∪ ps (predicates-of Γ s)))
-         (define V* (if (equal? ps ps*) V (-● ps*))) ; keep old instance
+         (define V* (V+ σ V (predicates-of Γ s)))
          (⟦k⟧ (-W (list V*) s) Γ 𝒞 Σ)]
         [_ (⟦k⟧ (-W (list V) s) Γ 𝒞 Σ)]))))
 
