@@ -51,12 +51,28 @@
         (printf "iter ~a: ~a (~a + ~a) ~n" iter num-front num-ς↑s num-ς↓s)
 
         #;(begin ; verbose
+
+          (begin ; interactive
+            (define ςs-list
+              (append (set->list ς↑s) (set->list ς↓s)))
+            (define ς->i
+              (for/hash : (HashTable -ς Integer) ([(ς i) (in-indexed ςs-list)])
+                (values ς i))))
+          
           (printf " *~n")
           (for ([ς ς↑s])
-            (printf "  - ~a~n" (show-ς ς)))
+            (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
           (printf " *~n")
           (for ([ς ς↓s])
-            (printf "  - ~a~n" (show-ς ς))))
+            (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
+
+          (begin ; interactive
+            (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
+            (match (read)
+              [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
+              ['done (error "DONE")]
+              [_ (void)]))
+          )
         
         (printf "~n")
         (set! iter (+ 1 iter)))
@@ -170,7 +186,19 @@
                       [(list (-b #f)) -ff]
                       [(list (-b #t) _) (-?@ 'values -tt x)])]
                    [_ fargs])))
-          (⟦k⟧ (-W Vs sₐ*) Γₑᵣ* 𝒞ₑᵣ Σ)]
+          (define t₀ (current-milliseconds))
+          (with-debugging/off
+            ((ans) (⟦k⟧ (-W Vs sₐ*) Γₑᵣ* 𝒞ₑᵣ Σ))
+            (define δt (- (current-milliseconds) t₀))
+            (printf "ς↓: ~a ~a -> ~a ~a: ~ams~n"
+                    (show-A A)
+                    (show-Γ Γₑₑ)
+                    (show-αₖ αₖ)
+                    (show-κ κ)
+                    δt)
+            (for ([ς ans])
+              (printf "  - ~a~n" (show-ς ς)))
+            (printf "~n"))]
          [else ∅])]
       [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
        (match-define (-blm l+ lo _ _) blm)

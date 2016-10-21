@@ -242,7 +242,13 @@
        [else '?]))
     (printf "~a ⊢ ~a : ~a~n" (set-map φs show-e) (show-s e) ans)))
 
-(define (plausible-φs-s? [φs : (℘ -e)] [s : -s]) (not (eq? '✗ (φs⊢e φs s))))
+(define (plausible-φs-s? [φs : (℘ -e)] [s : -s]) : Boolean
+  (with-debugging/off
+    ((a) (not (eq? '✗ (φs⊢e φs s))))
+    (printf "plausible-φs-s: ~a ⊢ ~a : ~a~n"
+            (set-map φs show-e)
+            (show-s s)
+            a)))
 
 (: plausible-W? : (℘ -e) (Listof -V) -s → Boolean)
 ;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `φs`
@@ -265,7 +271,7 @@
     (cond
       [s
        (match V
-         ['undefined ; (ugly) This needs to come before (? -o?)
+         ['undefined ; (ugly) This needs to come before (? -o?) ; TODO obsolete?
           (cond
             [(-v? s) #f]
             [else
@@ -279,7 +285,7 @@
          [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
           (plausible-φs-s? φs (-?@ 'procedure? s))]
          [(-b (? p?))
-          (and (plausible-φs-s? φs (-?@ 'p? s))
+          (and (plausible-φs-s? φs (-?@ 'equal? s V))
                (implies (-b? s) (equal? V s)))] ...
          [(or (? -=>_?) (? -St/C?) (? -x/C?))
           (for/and : Boolean ([p : -o '(procedure? p? ...)])
@@ -288,9 +294,14 @@
               [(✗ ?) #t]))]
          [(-b (list))
           (plausible-φs-s? φs (-?@ 'null? s))]
+         [(? -v? v)
+          (plausible-φs-s? φs (-?@ 'equal? s v))]
          [(-● ps)
           (not (for/or : Boolean ([p ps])
-                 (equal? '✗ (φs⊢e φs (-@ p (list s) +ℓ₀)))))]
+                 (match p
+                   [(? -o? o) (equal? '✗ (φs⊢e φs (-@ o (list s) +ℓ₀)))]
+                   [(-λ (list x) e) (equal? '✗ (φs⊢e φs (e/ (-x x) s e)))]
+                   [_ #f])))]
          [_ #t])]
       [else #t]))
   

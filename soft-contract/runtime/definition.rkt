@@ -498,4 +498,4 @@
 
 (define (show-κ [κ : -κ]) : Sexp
   (match-define (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs) κ)
-  '⟦κ⟧)
+  `(,(show-s sₕ) ,@(map show-s sₓs) @ ,(show-𝒞 𝒞)))
