@@ -273,7 +273,7 @@
                #`[_ (list (-● {set '#,rng}))]]
               [else
                #`[(list #,@W-pats)
-                  (define refinements : (℘ -e) ∅)
+                  (define refinements : (℘ -e) {set '#,rng})
                   #,@refinement-clauses
                   (list (-● refinements))]]))
 
