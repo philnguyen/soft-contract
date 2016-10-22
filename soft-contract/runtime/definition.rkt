@@ -207,7 +207,7 @@
 (define (Γ+ Γ . ss)
   (match-define (-Γ φs as ts) Γ)
   (define φs*
-    (for/fold ([φs : (℘ -e) φs]) ([s ss] #:when s)
+    (for/fold ([φs : (℘ -e) φs]) ([s ss] #:when s #:unless (equal? s -tt))
       (set-add φs s)))
   (-Γ φs* as ts))
 
@@ -385,13 +385,9 @@
     [(-Not/C γ) `(not/c ,(show-α (car γ)))]
     [(-Vectorof γ) `(vectorof ,(show-α (car γ)))]
     [(-Vector/C γs) `(vector/c ,@(map show-α (map αℓ->α γs)))]
-    [(-=> αs β _) `(,@(map show-α (map αℓ->α αs)) . -> . ,(show-α (car β)))]
+    [(-=> αs β _) `(,@(map show-αℓ αs) . -> . ,(show-α (car β)))]
     [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
-     (define cs : (Listof -s)
-       (for/list ([γ : (Pairof -α -ℓ) γs])
-         (and (-e? (car γ)) (car γ))))
-     #;(define d : -s (and (-e? (car α)) (car α)))
-     `(->i ,@(map show-s cs)
+     `(->i ,@(map show-αℓ γs)
            ,(match xs
               [(? list? xs) `(res ,xs ,(show-e d))]
               [_ (show-e d)]))]
@@ -403,6 +399,11 @@
     [(-St/C _ s αs)
      `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α (map αℓ->α αs)))]
     [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
+
+(define (show-αℓ [αℓ : (Pairof -α -ℓ)]) : Symbol
+  (match-define (cons α ℓ) αℓ)
+  (string->symbol
+   (format "~a~a" (if (-e? α) (show-e α) (show-α α)) (n-sup ℓ))))
 
 (define (show-ΓA [ΓA : -ΓA]) : Sexp
   (match-define (-ΓA Γ A) ΓA)
@@ -498,4 +499,4 @@
 
 (define (show-κ [κ : -κ]) : Sexp
   (match-define (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs) κ)
-  `(,(show-s sₕ) ,@(map show-s sₓs) @ ,(show-𝒞 𝒞)))
+  `(,(show-s sₕ) ,@(map show-s sₓs) ‖ ,(show-Γ Γ) @ ,(show-𝒞 𝒞)))
