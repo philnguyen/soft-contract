@@ -53,7 +53,12 @@
 (: σr⊔ : -σr -V Boolean → -σr)
 (define (σr⊔ σr V bind?)
   (match-define (-σr Vs bind?₀) σr)
-  (-σr (set-add Vs V) (and bind?₀ bind?)))
+  (define Vs* ; TODO tmp hack. Generalize later by removing vlaues subsumed by others
+    (let ([Vs** (set-add Vs V)])
+      (cond [(∋ Vs** (-● ∅))
+             (for/set: : (℘ -V) ([V Vs**] #:unless (-prim? V)) V)]
+            [else Vs**])))
+  (-σr Vs* (and bind?₀ bind?)))
 
 (: σ⊔! : -σ -α -V Boolean → Void)
 (define (σ⊔! σ α V bind?)

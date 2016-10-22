@@ -66,7 +66,7 @@
           (for ([ς ς↓s])
             (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
 
-          (begin ; interactive
+          #;(begin ; interactive
             (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
             (match (read)
               [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
@@ -186,19 +186,7 @@
                       [(list (-b #f)) -ff]
                       [(list (-b #t) _) (-?@ 'values -tt x)])]
                    [_ fargs])))
-          (define t₀ (current-milliseconds))
-          (with-debugging/off
-            ((ans) (⟦k⟧ (-W Vs sₐ*) Γₑᵣ* 𝒞ₑᵣ Σ))
-            (define δt (- (current-milliseconds) t₀))
-            (printf "ς↓: ~a ~a -> ~a ~a: ~ams~n"
-                    (show-A A)
-                    (show-Γ Γₑₑ)
-                    (show-αₖ αₖ)
-                    (show-κ κ)
-                    δt)
-            (for ([ς ans])
-              (printf "  - ~a~n" (show-ς ς)))
-            (printf "~n"))]
+          (⟦k⟧ (-W Vs sₐ*) Γₑᵣ* 𝒞ₑᵣ Σ)]
          [else ∅])]
       [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
        (match-define (-blm l+ lo _ _) blm)

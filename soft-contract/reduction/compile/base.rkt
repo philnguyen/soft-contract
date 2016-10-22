@@ -17,8 +17,6 @@
     (define-values (Vs old?) (σ@ σ α))
     (define s (and old? (canonicalize Γ x)))
     (define φs (-Γ-facts Γ))
-    #;(when (∋ x {set 'n 'm 'x})
-      (printf "lookup: ~a -> ~a~n" (show-Var-Name x) (set-map Vs show-V)))
     (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
       (match V
         ['undefined (⟦k⟧ -blm.undefined Γ 𝒞 Σ)]
