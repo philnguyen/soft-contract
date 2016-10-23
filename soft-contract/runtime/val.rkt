@@ -95,6 +95,7 @@
                                _))
               #:when V*
               V*]
+             ['not -ff]
              [(? -e? e) (-● (set-add ps e))]
              [(? -V? P)
               (match (simplify P)

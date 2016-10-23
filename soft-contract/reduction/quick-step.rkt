@@ -11,7 +11,8 @@
          "compile/main.rkt"
          "init.rkt"
          racket/set
-         racket/match)
+         racket/match
+         (only-in racket/list split-at))
 
 (: run-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (run-file p)
@@ -176,8 +177,52 @@
       [(-W Vs sₐ)
        (define γ (-γ αₖ #f sₕ sₓs))
        (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
+       (define Γₑᵣ**
+         ; It's useful to check for feasibility of a strong path-condition
+         ; before forgetting and keeping the path-condition address
+         ; as an approximation
+         ; TODO generalize
+         (let-values ([(xs m)
+                       (match αₖ
+                         [(-ℬ xs _ _)
+                          (define bounds (formals->names xs))
+                          (define m
+                            (match xs
+                              [(? list? xs)
+                               (for/hash : Subst ([x xs] [sₓ sₓs] #:when sₓ)
+                                 (values (-x x) sₓ))]
+                              [(-varargs xs x)
+                               (define-values (args-init args-rest) (split-at sₓs (length xs)))
+                               (define m-init
+                                 (for/hash : Subst ([x xs] [arg args-init] #:when arg)
+                                   (values (-x x) arg)))
+                               (define s-rst (-?list args-rest))
+                               (if s-rst (hash-set m-init (-x x) s-rst) m-init)]))
+                          (values bounds m)]
+                         [(-ℳ x _ _ _ _)
+                          (define sₓ (car sₓs))
+                          (values {set x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))]
+                         [(-ℱ x _ _ _ _)
+                          (define sₓ (car sₓs))
+                          (values {set x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))])])
+           (define φ-ans
+             (match Vs
+               [(list V)
+                (match V
+                  [(? -v? v)
+                   (-?@ 'equal? (apply -?@ sₕ sₓs) v)]
+                  [(or (? -Clo?) (? -Ar?) (? -o?))
+                   (-?@ 'procedure? (apply -?@ sₕ sₓs))]
+                  [_ #f])]
+               [_ #f]))
+           (define φs-path
+             (for/fold ([φs-path : (℘ -e) ∅]) ([φ (-Γ-facts Γₑₑ)])
+               (cond
+                 [(⊆ (fv φ) xs) (set-add φs-path (e/map m φ))]
+                 [else φs-path])))
+           (apply Γ+ Γₑᵣ* φ-ans (set->list φs-path))))
        (cond
-         [(plausible-pc? M Γₑᵣ*)
+         [(plausible-pc? M Γₑᵣ**)
           (define sₐ*
             (and sₐ
                  (match fargs ; HACK
