@@ -523,6 +523,15 @@
     [((-λ (list x) (-@ (and o (or '<= '<)) (list (-x x) (-b (? real? a))) _))
       (-λ (list y) (-@ o                   (list (-x y) (-b (? real? b))) _)))
      (if (<= a b) '✓ '?)]
+    ;
+    [((-λ (list x) (-@ '< (list (-x x) (-b (? real? b))) _)) 'zero?)
+     (if (<= b 0) '✗ '?)]
+    [((-λ (list x) (-@ '<= (list (-x x) (-b (? real? b))) _)) 'zero?)
+     (if (< b 0) '✗ '?)]
+    [((-λ (list x) (-@ '< (list (-b (? real? b)) (-x x)) _)) 'zero?)
+     (if (>= b 0) '✗ '?)]
+    [((-λ (list x) (-@ '<= (list (-b (? real? b)) (-x x)) _)) 'zero?)
+     (if (> b 0) '✗ '?)]
     
     ;; default
     [(_ _)
