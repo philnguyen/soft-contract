@@ -201,10 +201,10 @@
                           (values bounds m)]
                          [(-ℳ x _ _ _ _)
                           (define sₓ (car sₓs))
-                          (values {set x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))]
+                          (values {seteq x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))]
                          [(-ℱ x _ _ _ _)
                           (define sₓ (car sₓs))
-                          (values {set x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))])])
+                          (values {seteq x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))])])
            (define φ-ans
              (match Vs
                [(list V)
