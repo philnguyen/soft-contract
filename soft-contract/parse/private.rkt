@@ -204,6 +204,22 @@
     [(#%plain-app (~literal raise) _ ...)
      (-error "exception")]
 
+    ;; HACK for immediate uses of `list`
+    [(#%plain-app (~literal list) e ...)
+     (-list (parse-es #'(e ...)))]
+
+    ;; tmp HACK for varargs
+    [(#%plain-app o e ...)
+     #:when (syntax-parse #'o
+              [(~or (~literal +) (~literal -) (~literal *) (~literal /)) #t]
+              [_ #f])
+     (define o-name (syntax-e #'o))
+     (match (parse-es #'(e ...))
+       [(list e) e]
+       [(list e₁ e* ...)
+        (for/fold ([e e₁]) ([eᵢ e*])
+          (-@ (-𝒾 o-name 'Λ) (list e eᵢ) (+ℓ!)))])]
+
     ;;; Contracts
     ;; Non-dependent function contract
     [(let-values ([(_) (~literal fake:dynamic->*)]
