@@ -312,7 +312,7 @@
                  (hash-ref! unsupported αₖ
                             (λ () (printf "⦃e⦄: ignore ~a for now~n" (show-αₖ αₖ))))
                  #f]
-                [(equal? eₕ sₕ)
+                [(and (equal? eₕ sₕ) (equal? eₓs sₓs))
                  (define fvs
                    (set->list/memo
                     (set-subtract (apply ∪ (fvₛ sₕ) (map fvₛ sₓs))
