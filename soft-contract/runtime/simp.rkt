@@ -131,7 +131,7 @@
        [_ (default-case)])]
 
     ; TODO: handle `equal?` generally
-    ['equal?
+    [(or 'equal? 'eq? '=)
      (match xs
        [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
        [(list x x) -tt]

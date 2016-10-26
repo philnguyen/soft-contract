@@ -136,6 +136,12 @@
        [(✗) (list -ff)]
        [(?) -Bool/Vs])]
 
+    [eq? ; duplicate of `equal?`. TODO: why didn't I just `(or equal? eq? =)`??
+     (case (apply MΓ⊢oW M Γ 'equal? Ws)
+       [(✓) (list -tt)]
+       [(✗) (list -ff)]
+       [(?) -Bool/Vs])]
+
     [= ; duplicate of `equal?` (args already guarded by contracts)
      (case (apply MΓ⊢oW M Γ 'equal? Ws)
        [(✓) (list -tt)]

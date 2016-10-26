@@ -21,6 +21,7 @@
   (define hv (gen-havoc-clo ms))
   (define σ (σ₀))
   (σ⊔*! σ [(-α.def havoc-𝒾) ↦ hv #t] [(-α.wrp havoc-𝒾) ↦ hv #t])
+  ;(ensure-singletons σ) ; disable this in production
   (values σ e†))
 
 (define -⟦boolean?⟧ : -⟦e⟧!
@@ -79,7 +80,7 @@
     (let ([𝒾 (-𝒾 o 'Λ)])
       (values (-α.def 𝒾) (-α.wrp 𝒾))))
   (case o
-    [(make-sequence) ; FIXME tmp hack
+    #;[(make-sequence) ; FIXME tmp hack
      (σ⊔*! σ [α₀ ↦ o #t] [α₁ ↦ o #t])]
     [else
      (define O (-Ar C α₀ (-l³ o 'dummy o)))
@@ -105,10 +106,13 @@
 ;; "Evaluate" restricted contract forms
 (define (alloc-C! σ s)
   (match s
-    [(? symbol? s) (values s s)]
+    [(? symbol? s)
+     (case s ; tmp HACK
+       [(cons? pair?) (values -cons? s)]
+       [else (values s s)])]
     [`(not/c ,s*)
      (define-values (C* c*) (alloc-C! σ s*))
-     (σ⊔! σ c* C* #t)
+     (alloc-const! σ C* c*)
      (values (-Not/C (cons c* (+ℓ!))) (-not/c c*))]
     [`(one-of/c ,ss ...)
      (log-warning "TODO: one-of/c~n")
@@ -169,7 +173,9 @@
     [((cons Cₗ Cs*) (cons cₗ cs*))
      (define-values (Cᵣ cᵣ) (alloc-And/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
+     (alloc-const! σ Cₗ cₗ)
+     (alloc-const! σ Cᵣ cᵣ)
+     #;(σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
      (values (-And/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
              (assert (-?@ 'and/c cₗ cᵣ)))]))
 
@@ -183,7 +189,9 @@
     [((cons Cₗ Cs*) (cons cₗ cs*))
      (define-values (Cᵣ cᵣ) (alloc-Or/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
+     (alloc-const! σ Cₗ cₗ)
+     (alloc-const! σ Cᵣ cᵣ)
+     #;(σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
      (values (-Or/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
              (assert (-?@ 'or/c cₗ cᵣ)))]))
 
@@ -195,7 +203,9 @@
     [((cons Cₗ Cs*) (cons cₗ cs*))
      (define-values (Cᵣ cᵣ) (alloc-List/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
+     (alloc-const! σ Cₗ cₗ)
+     (alloc-const! σ Cᵣ cᵣ)
+     #;(σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
      (values (-St/C flat? -s-cons (list (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!))))
              (assert (-?struct/c -s-cons (list cₗ cᵣ))))]))
 
@@ -211,15 +221,20 @@
 ;; Allocate value `V` known to have been evaluted to by constant expression `e`
 ;; This is used internally for `Λ` module only to reduce ridiculous allocation
 (define (alloc-const! σ V v)
-  (σ⊔! σ v V #t)
-  v)
+  (case V ; tmp HACK
+    [(cons? pair?)
+     (σ⊔! σ V -cons? #t)
+     -cons?]
+    [else
+     (σ⊔! σ v V #t)
+     v]))
 
 (: alloc-consts! : -σ (Listof -V) (Listof -e) → (Listof -α.cnst))
 ;; Allocate values `Vs` known to have been evaluated by constant expressions `es`
 ;; This is used internally for `Λ` module only to reduce ridiculous allocation.
 (define (alloc-consts! σ Vs es)
   (for ([V Vs] [e es])
-    (σ⊔! σ e V #t))
+    (alloc-const! σ V e))
   ;; Weird. Just keep this for now
   es)
 
@@ -237,3 +252,17 @@
   (for ([dec prims])
     (alloc! σ dec))
   σ)
+
+(require racket/string)
+(define (ensure-singletons [σ : -σ]) : Void
+  (define m (-σ-m σ))
+  (for* ([(k r) m]
+         [vs (in-value (-σr-vals r))]
+         #:when (> (set-count vs) 1))
+    (define s
+      (string-join
+       (for/list : (Listof String) ([v vs])
+         (format " - ~a" (show-V v)))
+       "\n"
+       #:before-first (format "~a (~a):~n" k (set-count vs))))
+    (error s)))

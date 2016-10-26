@@ -120,7 +120,7 @@
     ['not (not-R (⊢e (car xs)))] ; assume right arity
     ['any/c '✓]
     ['none/c '✗]
-    [(or 'equal? '=)
+    [(or 'equal? 'eq? '=)
      (match xs
        [(list e₁ e₂)
         (match* (e₁ e₂)
@@ -209,15 +209,15 @@
                   [(and (symbol? p) (boolean-excludes? p)) '✓]
                   [(-st-p? p) '✓]
                   [else '?])]
-               [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
+               [((-@ (or '= 'equal? 'eq?) (list e₁ e₂) _) (-@ (? -o? p) (list e₁) _))
                 (⊢@ p (list e₂))]
-               [((-@ (or '= 'equal?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
+               [((-@ (or '= 'equal? 'eq?) (list e₁ e₂) _) (-@ (? -o? p) (list e₂) _))
                 (⊢@ p (list e₁))]
-               [((-@ (or '= 'equal?) (list e (-b b₁)) _)
-                 (-@ (or '= 'equal?) (list e (-b b₂)) _))
+               [((-@ (or '= 'equal? 'eq?) (list e (-b b₁)) _)
+                 (-@ (or '= 'equal? 'eq?) (list e (-b b₂)) _))
                 (decide-R (equal? b₁ b₂))]
-               [((-@ (or '= 'equal?) (list (-b b₁) e) _)
-                 (-@ (or '= 'equal?) (list (-b b₂) e) _))
+               [((-@ (or '= 'equal? 'eq?) (list (-b b₁) e) _)
+                 (-@ (or '= 'equal? 'eq?) (list (-b b₂) e) _))
                 (decide-R (equal? b₁ b₂))]
                [(_ _) '?])]
             [R R])]))

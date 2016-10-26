@@ -89,7 +89,7 @@
         (match V
           [(-● ps)
            (match P
-             [(-λ (list x) (-@ (or '= 'equal?)
+             [(-λ (list x) (-@ (or '= 'equal? 'eq?)
                                (or (list (-x x) (? -V? V*))
                                    (list (? -V? V*) (-x x)))
                                _))

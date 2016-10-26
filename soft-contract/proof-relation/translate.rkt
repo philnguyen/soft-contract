@@ -433,7 +433,7 @@
         (for/list : (Listof Z3-Ast) ([t ts]) (t))))]
     [(any/c) (λ () (@/s 'B true/s))]
     [(none/c) (λ () (@/s 'B false/s))]
-    [(= equal?)
+    [(= equal? eq?)
      (match-define (list t₁ t₂) ts)
      (λ () (@/s 'B (=/s (t₁) (t₂))))]
     [(< > <= >=)
