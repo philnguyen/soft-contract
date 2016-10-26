@@ -19,10 +19,10 @@
 (: MΓ⊢V∈C : -M -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
 (define (MΓ⊢V∈C M Γ W_v W_c)
+  (match-define (-W¹ V v) W_v)
+  (match-define (-W¹ C c) W_c)
   (with-debugging/off
     ((ans)
-     (match-define (-W¹ V v) W_v)
-     (match-define (-W¹ C c) W_c)
      (first-R (p∋Vs C V)
               (match V
                 [(-● ps)
