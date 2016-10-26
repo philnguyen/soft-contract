@@ -208,6 +208,17 @@
     [(#%plain-app (~literal list) e ...)
      (-list (parse-es #'(e ...)))]
 
+    ;; HACK for immediate uses of accessors
+    [(#%plain-app (~literal cadr) e)
+     (-@ (-𝒾 'car 'Λ)
+         (list (-@ (-𝒾 'cdr 'Λ)
+                   (list (parse-e #'e)) (+ℓ!))) (+ℓ!))]
+    [(#%plain-app (~literal caddr) e)
+     (-@ (-𝒾 'car 'Λ)
+         (list (-@ (-𝒾 'cdr 'Λ)
+                   (list (-@ (-𝒾 'cdr 'Λ)
+                             (list (parse-e #'e)) (+ℓ!))) (+ℓ!))) (+ℓ!))]
+
     ;; tmp HACK for varargs
     [(#%plain-app o e ...)
      #:when (syntax-parse #'o
