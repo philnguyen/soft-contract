@@ -287,10 +287,14 @@
 ;;;;; Compiled expression
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Cache for address lookup in local block
+(define-type -$ (HashTable -α -V))
+(define $∅ : -$ (hash))
+
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
-(define-type -⟦e⟧! (-ρ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς)))
-(define-type -⟦k⟧! (-A -Γ -𝒞 -Σ       → (℘ -ς)))
+(define-type -⟦e⟧! (-ρ -$ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς)))
+(define-type -⟦k⟧! (-A -$ -Γ -𝒞 -Σ       → (℘ -ς)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧! -e)))
 
 

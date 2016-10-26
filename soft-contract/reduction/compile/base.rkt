@@ -11,19 +11,25 @@
 
 (define/memo (↓ₓ [l : -l] [x : Var-Name]) : -⟦e⟧!
   (define -blm.undefined (-blm l 'Λ (list 'defined?) (list 'undefined)))
-  (λ (ρ Γ 𝒞 Σ ⟦k⟧)
-    (define α (ρ@ ρ x))
+  (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
     (match-define (-Σ σ _ _) Σ)
+    (define α (ρ@ ρ x))
     (define-values (Vs old?) (σ@ σ α))
     (define s (and old? (canonicalize Γ x)))
-    (define φs (-Γ-facts Γ))
-    (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
-      (match V
-        ['undefined (⟦k⟧ -blm.undefined Γ 𝒞 Σ)]
-        [(-● ps) ; precision hack
-         (define V* (V+ σ V (predicates-of Γ s)))
-         (⟦k⟧ (-W (list V*) s) Γ 𝒞 Σ)]
-        [_ (⟦k⟧ (-W (list V) s) Γ 𝒞 Σ)]))))
+    (cond
+      [(hash-ref $ α #f) =>
+       (λ ([V : -V])
+         (⟦k⟧ (-W (list V) s) $ Γ 𝒞 Σ))]
+      [else
+       (define φs (-Γ-facts Γ))
+       (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
+         (define $* (hash-set $ α V))
+         (match V
+           ['undefined (⟦k⟧ -blm.undefined $* Γ 𝒞 Σ)]
+           [(-● ps) ; precision hack
+            (define V* (V+ σ V (predicates-of Γ s)))
+            (⟦k⟧ (-W (list V*) s) $* Γ 𝒞 Σ)]
+           [_ (⟦k⟧ (-W (list V) s) $* Γ 𝒞 Σ)]))])))
 
 (define ↓ₚᵣₘ : (-prim → -⟦e⟧!)
   (let ([meq : (HashTable Any -⟦e⟧!) (make-hasheq)] ; `eq` doesn't work for String but ok
@@ -38,8 +44,8 @@
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
 (define/memo (ret-W¹ [V : -V] [v : -s]) : -⟦e⟧!
-  (λ (ρ Γ 𝒞 Σ ⟦k⟧)
-    (⟦k⟧ (-W (list V) v) Γ 𝒞 Σ)))
+  (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
+    (⟦k⟧ (-W (list V) v) $ Γ 𝒞 Σ)))
 
 (define ⟦void⟧ (↓ₚᵣₘ -void))
 (define ⟦tt⟧ (↓ₚᵣₘ -tt))
