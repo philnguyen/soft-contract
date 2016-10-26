@@ -73,11 +73,19 @@
     (match Vₓ
       [(-St (== s) αs)
        (define α (list-ref αs i))
-       (define-values (Vs _) (σ@ σ α))
-       (for/union : (℘ -ς) ([V Vs])
-         (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
-                (⟦k⟧ (-W (list V) sₐ) $ Γ 𝒞 Σ)]
-               [else ∅]))]
+       (cond
+         [(hash-ref $ α #f) =>
+          (λ ([V : -V])
+            (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
+                   (⟦k⟧ (-W (list V) sₐ) $ Γ 𝒞 Σ)]
+                  [else ∅]))]
+         [else
+          (define-values (Vs _) (σ@ σ α))
+          (for/union : (℘ -ς) ([V Vs])
+            (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
+                   (define $* (hash-set $ α V))
+                   (⟦k⟧ (-W (list V) sₐ) $* Γ 𝒞 Σ)]
+                  [else ∅]))])]
       [(-St* (== s) αs α l³)
        (match-define (-l³ _ _ lₒ) l³)
        (define Ac (-W¹ ac ac))
@@ -105,12 +113,13 @@
     (define mut (-st-mut s i))
     (define p (-st-p s))
     (define (blm) (-blm l (show-o mut) (list p) (list Vₛ)))
-    
+
     (match Vₛ
       [(-St (== s) αs)
        (define α (list-ref αs i))
        (σ⊔! σ α Vᵥ #f)
-       (⟦k⟧ -Void/W $ Γ 𝒞 Σ)]
+       (define $* (hash-set $ α Vᵥ))
+       (⟦k⟧ -Void/W $* Γ 𝒞 Σ)]
       [(-St* (== s) γs α l³)
        (match-define (-l³ l+ l- lo) l³)
        (define l³* (-l³ l- l+ lo))
@@ -120,7 +129,8 @@
        (for*/union : (℘ -ς) ([C (σ@ᵥ σ γ)] [Vₛ* (σ@ᵥ σ α)])
          (define W-c (-W¹ C c))
          (define Wₛ* (-W¹ Vₛ* sₛ))
-         (mon l³* $ ℒ W-c Wᵥ Γ 𝒞 Σ
+         (define $* (hash-set $ α Vₛ*))
+         (mon l³* $* ℒ W-c Wᵥ Γ 𝒞 Σ
               (ap∷ (list Wₛ Mut) '() ⊥ρ lo ℒ ⟦k⟧)))]
       [(-● _)
        (define ⟦ok⟧
