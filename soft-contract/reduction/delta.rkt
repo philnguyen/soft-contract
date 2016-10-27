@@ -268,7 +268,7 @@
                   [(list 'not/c (? symbol? rng/c*))
                    #`(-@ 'not/c (list '#,rng/c*) +ℓ₀)]))
               #`(when #,precond
-                  (set! refinements (set-add refinements #,rng/c)))))
+                  (set! Vₐ (V+ #,(σ-id) Vₐ #,rng/c)))))
 
           ;; Eager refinement is necessary for performance.
           ;; Otherwise even things like (fact _) returns `integer?` rather than `number?`
@@ -279,9 +279,9 @@
                #`[_ (list (-● {set '#,rng}))]]
               [else
                #`[(list #,@W-pats)
-                  (define refinements : (℘ -e) {set '#,rng})
+                  (define Vₐ : -V (-● {set '#,rng}))
                   #,@refinement-clauses
-                  (list (-● refinements))]]))
+                  (list Vₐ)]]))
 
           (define case-lift
             #`(cond

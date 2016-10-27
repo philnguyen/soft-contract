@@ -96,6 +96,21 @@
               #:when V*
               V*]
              ['not -ff]
+             ;; HACK special cases
+             ['exact-nonnegative-integer?
+              (-● (set-subtract (set-add ps 'exact-nonnegative-integer?)
+                                (set 'number? 'real? 'integer?)))]
+             ['integer?
+              (cond [(∋ ps 'exact-nonnegative-integer?) V]
+                    [else (-● (set-subtract (set-add ps 'integer?)
+                                            (set 'number? 'real?)))])]
+             ['real?
+              (cond [(or (∋ ps 'integer?) (∋ ps 'exact-nonnegative-integer?)) V]
+                    [else (-● (set-remove (set-add ps 'real?) 'number?))])]
+             ['number?
+              (cond [(or (∋ ps 'integer?) (∋ ps 'real?) (∋ ps 'exact-nonnegative-integer?)) V]
+                    [else (-● (set-add ps 'number?))])]
+             ;; end HACK special cases
              [(? -e? e) (-● (set-add ps e))]
              [(? -V? P)
               (match (simplify P)
