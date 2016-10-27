@@ -987,7 +987,7 @@
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
      [#:pred vector?] ; FIXME alias for internal `vector?`
      [make-vector
-      (exact-nonnegative-integer? #;any/c . -> . vector?)]
+      (exact-nonnegative-integer? any/c . -> . (and/c vector? (not/c immutable?)))]
      [vector
       (() #:rest list? . ->* . (and/c vector? (not/c immutable?)))]
      [vector-immutable
@@ -1701,8 +1701,13 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;;;;; 10.1 Multiple Values
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    [values ([] #:rest list? . ->* . any)])
-  )
+    [values ([] #:rest list? . ->* . any)]
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 10.4 Continuations
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [call-with-current-continuation ((any/c . -> . any/c) . -> . any/c)] ; FIXME
+    ))
 
 (define prims.13
   '(
