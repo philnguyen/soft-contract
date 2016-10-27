@@ -452,7 +452,7 @@
 
 (: e/ : (U -x -x/c.tmp) -e -e → -e)
 ;; Substitution, where `x` can be an (open) term rather than just a free variable.
-(define (e/ x eₓ e) (e/map (hash x eₓ) e))
+(define (e/ x eₓ e) (e/map ((inst hash -e -e) x eₓ) e))
 
 (: shrink : Subst (℘ Var-Name) → Subst)
 (define (shrink m xs)
