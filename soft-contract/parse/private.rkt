@@ -200,6 +200,13 @@
     [(let-values ([_ (#%plain-app (~literal time-apply) (#%plain-lambda () e) (~literal null))]) _ ...)
      (parse-e #'e)]
 
+    ;; HACK for weird codegen
+    [(let-values ([(v:id) (#%plain-lambda xs:id (#%plain-app _ u:id zs:id))])
+       w:id)
+     #:when (and (free-identifier=? #'v #'w)
+                 (free-identifier=? #'xs #'zs))
+     (parse-e #'u)]
+
     ;; HACK for `raise`-ing exception
     [(#%plain-app (~literal raise) _ ...)
      (-error "exception")]
