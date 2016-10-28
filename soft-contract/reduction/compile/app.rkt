@@ -11,7 +11,8 @@
          "utils.rkt"
          "base.rkt"
          racket/set
-         racket/match)
+         racket/match
+         (only-in racket/list split-at))
 
 (: app : -l -$ -ℒ -W¹ (Listof -W¹) -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
 (define (app l $ ℒ Wₕ Wₓs Γ 𝒞 Σ ⟦k⟧)
@@ -261,21 +262,28 @@
 
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧!] [ρₕ : -ρ] [Γₕ : -Γ])
     (define 𝒞* (𝒞+ 𝒞 (cons ⟦e⟧ ℒ)))
-    (cond
-      [(list? xs)
-       (define ρ* ; with side effects widening store
-         (for/fold ([ρ : -ρ ρₕ]) ([x xs] [Vₓ Vₓs] [sₓ sₓs])
-           (define α (-α.x x 𝒞*))
-           ;; Refine arguments by type-like contracts before proceeding
-           ;; This could save lots of spurious errors to eliminate later
-           (define Vₓ* (V+ σ Vₓ (predicates-of Γ sₓ)))
-           (σ⊔! σ α Vₓ* #t)
-           (ρ+ ρ x α)))
+    (match xs
+      [(? list? xs)
+       (define ρ* (alloc-init-args! σ Γ ρₕ 𝒞* xs Wₓs))
        (define αₖ (-ℬ xs ⟦e⟧ ρ*))
        (define κ (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs))
        (vm⊔! σₖ αₖ κ)
        {set (-ς↑ αₖ Γₕ 𝒞*)}]
-      [else (error 'app-clo "TODO: varargs: ~a" (show-V Vₕ))]))
+      [(-varargs zs z) ; FIXME code duplicate
+       (define n (length zs))
+       (define-values (Ws₀ Wsᵣ) (split-at Wₓs n))
+       ;; Allocate args, side effects widening store
+       (define ρ*
+         (let ([ρ₀ (alloc-init-args! σ Γ ρₕ 𝒞* zs Ws₀)])
+           (define Vᵣ (alloc-rest-args! σ 𝒞* ℒ Wsᵣ))
+           (define αᵣ (-α.x z 𝒞*))
+           (σ⊔! σ αᵣ Vᵣ #t)
+           (ρ+ ρ₀ z αᵣ)))
+       ;; Push stack and jump to new state
+       (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+       (define κ (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs))
+       (vm⊔! σₖ αₖ κ)
+       {set (-ς↑ αₖ Γₕ 𝒞*)}]))
 
   (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
     (define ⟦rhs⟧ (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W₂) (list (mk-rt-⟦e⟧ (car Wₓs)))))
@@ -494,6 +502,31 @@
     [_
      (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ)))
      (⟦k⟧ blm $ Γ 𝒞 Σ)]))
+
+(: alloc-init-args! : -σ -Γ -ρ -𝒞 (Listof Var-Name) (Listof -W¹) → -ρ)
+(define (alloc-init-args! σ Γ ρ 𝒞 xs Ws)
+  (for/fold ([ρ : -ρ ρ]) ([x xs] [Wₓ Ws])
+    (match-define (-W¹ Vₓ sₓ) Wₓ)
+    (define α (-α.x x 𝒞))
+    (define Vₓ*
+      ;; Refine arguments by type-like contracts before proceeding
+      ;; This could save lots of spurious errors to eliminate later
+      (V+ σ Vₓ (predicates-of Γ sₓ)))
+    (σ⊔! σ α Vₓ* #t)
+    (ρ+ ρ x α)))
+
+(: alloc-rest-args! : -σ -𝒞 -ℒ (Listof -W¹) → -V)
+(define (alloc-rest-args! σ 𝒞 ℒ Ws)
+  (let loop! : -V ([Ws : (Listof -W¹) Ws] [i : Natural 0])
+    (match Ws
+      ['() -null]
+      [(cons W Ws*)
+       (define α₁ (-α.var-car ℒ 𝒞 i))
+       (define α₂ (-α.var-cdr ℒ 𝒞 i))
+       (define Vᵣ (loop! Ws* (+ 1 i)))
+       (σ⊔! σ α₁ (-W¹-V W)  #t)
+       (σ⊔! σ α₂ Vᵣ         #t)
+       (-St -s-cons (list α₁ α₂))])))
 
 (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
 (define (mon l³ $ ℒ W-C W-V Γ 𝒞 Σ ⟦k⟧)
