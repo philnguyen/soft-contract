@@ -69,9 +69,11 @@
    (match e
      [(-λ xs e*)
       (define ⟦e*⟧ (↓ e*))
+      (define fvs (fv e*))
       (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
         (define s (canonicalize-e Γ e))
-        (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ Γ)) s) $ Γ 𝒞 Σ))]
+        (define ρ* (m↓ ρ fvs))
+        (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ)) s) $ Γ 𝒞 Σ))]
      [(-case-λ clauses)
       (define ⟦clause⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧!))
         (for/list ([clause clauses])
