@@ -222,65 +222,35 @@
 (define exists? (lambda (s p?) (tree-exists? (tree s) p?)))
 (define forall? (lambda (s p?) (tree-forall? (tree s) p?)))
 (define foreach (lambda (s f) (tree-foreach (tree s) f)))
-
 ;----------------------------------------
 ;                Tests
 ;----------------------------------------  
-(define odds (list-> (list 1 3 5 7 9)))
+(define odds (list-> (list 1 3 5 7 9))) 
 (define evens (list-> (list 2 4 6 8 10)))
 (define mix (list-> (list 1 2 4 7 8)))
 
-(define empty-empty? (empty? empty))
-(define not-empty-odds? (not (empty? odds)))
-(define empty-size-0? (= 0 (size empty)))
-(define odd-size-5? (= 5 (size odds)))
-(define odd-=-odd? (splay-equal? odds odds))
-(define odd-≠-even? (not (splay-equal? odds evens)))
-(define max-evens-10? (= 10 (max evens)))
-(define min-odds-1? (= 1 (min odds)))
-(define odds-contains-5? (contains? odds 5))
-(define odds-not-contains-6? (not (contains? odds 6)))
-(define odds-subset-odds? (subset? odds odds))
-(define mix-not-subset-odds? (not (subset? mix odds)))
-(define mix-subset-odds-evens? (subset? mix (union odds evens)))
-(define add-odds-superset? (superset? (add odds 11) odds))
-(define odds-superset? (superset? odds (difference mix evens)))
-(define difference-disjoint? (disjoint? (difference mix odds) odds))
-(define evens-not-disjoint? (not (disjoint? evens evens)))
-(define remove-supersets? (superset? odds (remove odds 1)))
-(define remove-same-equal? (splay-equal? odds (remove odds 2)))
-(define all-odds-odd? (forall? odds (lambda (n) (odd? n))))
-(define all-evens-even? (forall? evens (lambda (n) (even? n))))
-(define subset-mix-even? (subset? (subset mix (lambda (n) (even? n))) evens))
-(define sum-odds-25?
-  (let ([sum 0])
-    (foreach odds (lambda (x) (set! sum (+ sum x))))
-    (= sum 25)))
-(define intersect-subset? (subset? (intersection mix odds) odds))
+(define tree/c
+  (or/c null?
+        (vector/c real? (recursive-contract tree/c) (recursive-contract tree/c))))
 
-(provide ;; provide useless "proof terms"
+(define set/c (box/c tree/c))
+
+(provide
  (contract-out
-  [empty-empty? values]
-  [not-empty-odds? values]
-  [empty-size-0? values]
-  [odd-size-5? values]
-  [odd-=-odd? values]
-  [odd-≠-even? values]
-  [max-evens-10? values]
-  [min-odds-1? values]
-  [odds-contains-5? values]
-  [odds-not-contains-6? values]
-  [odds-subset-odds? values]
-  [mix-not-subset-odds? values]
-  [mix-subset-odds-evens? values]
-  [add-odds-superset? values]
-  [odds-superset? values]
-  [difference-disjoint? values]
-  [evens-not-disjoint? values]
-  [remove-supersets? values]
-  [remove-same-equal? values]
-  [all-odds-odd? values]
-  [all-evens-even? values]
-  [subset-mix-even? values]
-  [sum-odds-25? values]
-  [intersect-subset? values]))
+  [empty (-> empty?)]
+  [odds (not/c empty?)]
+  [size (set/c . -> . exact-nonnegative-integer?)]
+  [splay-equal? (#|FIXME|# none/c none/c . -> . boolean?)]
+  [min (#|FIXME|# none/c . -> . real?)]
+  [max (#|FIXME|# none/c . -> . real?)]
+  [contains? (#|FIXME|# none/c real? . -> . boolean?)]
+  [subset? (#|FIXME|# none/c none/c . -> . boolean?)]
+  [superset? (#|FIXME|# none/c none/c . -> . boolean?)]
+  [disjoint? (#|FIXME|# none/c none/c . -> . boolean?)]
+  [union (#|FIXME|# none/c none/c . -> . any/c)]
+  [intersection (#|FIXME|# none/c none/c . -> . any/c)]
+  [difference (#|FIXME|# none/c none/c . -> . any/c)]
+  [forall? (#|FIXME|# none/c (real? . -> . any/c) . -> . any/c)]
+  [subset (#|FIXME|# none/c (real? . -> . any/c) . -> . #|FIXME|# any/c)]
+  [foreach (#|FIXME|# none/c (real? . -> . any/c) . -> . any/c)]
+  ))
