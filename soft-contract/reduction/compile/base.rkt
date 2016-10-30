@@ -22,6 +22,19 @@
          (⟦k⟧ (-W (list V) s) $ Γ 𝒞 Σ))]
       [else
        (define φs (-Γ-facts Γ))
+       #;(begin
+         (define Vs* (for/set: : (℘ -V) ([V Vs] #:when (plausible-V-s? φs V s)) V))
+         (when (> (set-count Vs*) 1)
+           (printf "lookup: ~a (~a):~n" (show-α α) (set-count Vs))
+           (for ([V Vs*])
+             (match V
+               [(-Clo xs ⟦e⟧ ρ Γ)
+                (printf "  - λ~a. ~a~n" (show-formals xs) (show-⟦e⟧! ⟦e⟧))
+                (printf "     + ~a~n" (show-ρ ρ))
+                (printf "     + ~a~n" (show-Γ Γ))]
+               [_
+                (printf "  - ~a~n" (show-V V))]))
+           (printf "~n")))
        (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
          (define $* (hash-set $ α V))
          (match V
