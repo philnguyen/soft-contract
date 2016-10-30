@@ -5,7 +5,7 @@
 (require racket/match
          racket/set
          racket/function
-         (except-in racket/list remove-duplicates)
+         racket/list
          "../utils/main.rkt"
          "../utils/untyped-macros.rkt"
          "definition.rkt")
@@ -362,9 +362,6 @@
 
 (define-type Subst (HashTable -e -e))
 
-(require/typed racket/base
-  [(hash-empty? subst-empty?) (Subst → Boolean)])
-
 (define m∅ : Subst (hash))
 
 (define (e/map [m : Subst] [e : -e])
@@ -380,7 +377,7 @@
     (with-debugging/off
       ((ans)
        (cond
-         [(subst-empty? m) e]
+         [(hash-empty? m) e]
          [(hash-ref m e #f) => values]
          [else
           (match e

@@ -4,7 +4,7 @@
 
 (require racket/match
          racket/set
-         (except-in racket/list remove-duplicates)
+         racket/list
          racket/function
          racket/extflonum 
          "../utils/main.rkt")

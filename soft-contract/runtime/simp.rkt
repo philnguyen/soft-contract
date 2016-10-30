@@ -10,7 +10,7 @@
                      syntax/parse
                      racket/contract
                      racket/match
-                     (except-in racket/list remove-duplicates)
+                     racket/list
                      racket/function
                      (except-in "../utils/main.rkt" format-symbol)
                      (prefix-in prims: "../primitives/declarations.rkt")

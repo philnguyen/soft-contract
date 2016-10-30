@@ -3,7 +3,7 @@
 (require racket/match
          racket/set
          racket/cmdline
-         (except-in racket/list remove-duplicates)
+         racket/list
          racket/pretty
          "utils/main.rkt"
          "ast/definition.rkt"

@@ -4,7 +4,7 @@
 
 (require racket/match
          racket/set
-         (except-in racket/list remove-duplicates)
+         racket/list
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"

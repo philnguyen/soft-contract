@@ -8,10 +8,6 @@
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt")
-(require/typed racket/base
-  [(hash-empty? ρ-empty?) (-ρ → Boolean)])
-(provide ρ-empty?)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Environment

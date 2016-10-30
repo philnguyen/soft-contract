@@ -3,6 +3,7 @@
 (provide V-arity formals-arity guard-arity simple-arity?)
 
 (require racket/match
+         racket/list
          "../utils/list.rkt"
          "../ast/definition.rkt"
          "definition.rkt")

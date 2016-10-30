@@ -8,7 +8,7 @@
          racket/string
          syntax/parse/define
          z3/smt
-         (except-in racket/list remove-duplicates)
+         racket/list
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt")
