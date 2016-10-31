@@ -15,15 +15,19 @@
 
 ;; Base continuation that returns locally finished configuration
 (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧!
-  (λ (A $ Γ 𝒞 Σ)
-    (match A
-      [(-blm l+ _ _ _)
-       #:when (∋ {seteq 'havoc '† 'Λ} l+)
-       ∅]
-      [_
-       (match-define (-Σ _ _ M) Σ)
-       (vm⊔! M αₖ (-ΓA Γ A))
-       {set (-ς↓ αₖ Γ A)}])))
+  (let ()
+    (define ⟦k⟧ : -⟦k⟧!
+      (λ (A $ Γ 𝒞 Σ)
+        (match A
+          [(-blm l+ _ _ _)
+           #:when (∋ {seteq 'havoc '† 'Λ} l+)
+           ∅]
+          [_
+           (match-define (-Σ _ _ M) Σ)
+           (vm⊔! M αₖ (-ΓA Γ A))
+           {set (-ς↓ αₖ Γ A)}])))
+    (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
+    ⟦k⟧))
 
 ;; begin0, waiting on first value
 (define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
@@ -176,10 +180,6 @@
        (⟦k⟧ (-W (list G) g) $ Γ 𝒞 Σ)]
       [(cons ⟦c⟧ ⟦c⟧s*)
        (⟦c⟧ ρ $ Γ 𝒞 Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
-
-;; Clean up path-condition
-(define/memo (rst∷ [xs : (℘ Var-Name)] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (λ (A $ Γ 𝒞 Σ) (⟦k⟧ A $ (Γ↓ Γ xs) 𝒞 Σ)))
 
 ;; case-> contract
 (define/memo (case->∷ [l : -l]
