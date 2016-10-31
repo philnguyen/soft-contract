@@ -29,11 +29,18 @@
       (match-define (-Σ σ _ _) Σ)
       (define-values (Vs _) (σ@ σ (ρ@ ρ 𝒙)))
       (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
+      ;(printf "About to havoc ~a values~n" (set-count Vs))
+
+      (define (done-with-●)
+        (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt 'done))) $ Γ 𝒞 Σ))
+
       (for*/union : (℘ -ς) ([V (in-set Vs)])
+        ;(printf "havoc-ing ~a~n" (show-V V))
         (define W (-W¹ V 𝐱))
         (match V
           ;; Ignore first-order and opaque value
-          [(or (-● _) (? -prim?)) ∅]
+          [(or (-● _) (? -prim?))
+           (done-with-●)]
 
           ;; Apply function with appropriate number of arguments
           [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
@@ -69,20 +76,22 @@
                  (for/union : (℘ -ς) ([k ks])
                    (cond [(integer? k) (hv/arity k)]
                          [else (error 'havoc "TODO: ~a" k)])))]
-             [_ ∅])]
+             [_
+              (done-with-●)])]
 
           ;; If it's a struct, havoc all publically accessible fields
           [(or (-St s _) (-St* s _ _ _)) #:when s
-           (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
-             (define Acc (-W¹ acc acc))
-             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ 𝒞 Σ
-                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'ac))
-                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'st)) ⟦k⟧))))]
+           (∪ (done-with-●)
+              (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
+               (define Acc (-W¹ acc acc))
+               (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ 𝒞 Σ
+                    (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'ac))
+                         (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'st)) ⟦k⟧)))))]
 
           ;; Havoc vector's content before erasing the vector with unknowns
           ;; Approximate vectors are already erased
-          [(-Vector/hetero _ _) ∅]
-          [(-Vector/homo   _ _) ∅]
+          [(-Vector/hetero _ _) (done-with-●)]
+          [(-Vector/homo   _ _) (done-with-●)]
           [(-Vector αs)
            (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
              (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
@@ -93,7 +102,7 @@
           ;; Apply contract to unknown values
           [(? -C?)
            (log-warning "TODO: havoc contract combinators")
-           ∅]))))
+           (done-with-●)]))))
   
   (define cloₕᵥ : -Clo (-Clo (list 𝒙) ⟦e⟧ₕᵥ ⊥ρ ⊤Γ))
   cloₕᵥ)
@@ -109,9 +118,12 @@
            [spec (-provide-specs form)])
       (match-define (-p/c-item x _ _) spec)
       (refs-add! (-𝒾 x path))))
-  
-  (-amb/simp (for/list ([ref (in-set refs)])
-               (-@ havoc-𝒾 (list ref) (+ℓ!)))))
+
+  (with-debugging/off
+    ((ans) ((inst -begin/simp -e)
+            (for/list ([ref (in-set refs)])
+              (-@ havoc-𝒾 (list ref) (+ℓ!)))))
+    (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
 (: prog-accs : (Listof -module) → (HashTable -struct-info (℘ -st-ac)))
 ;; Retrieve set of all public accessors from program, grouped by struct
