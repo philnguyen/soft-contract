@@ -1846,7 +1846,10 @@
        [(integer? rational? real? number? zero?
          inexact? inexact-real? exact-integer? exact-nonnegative-integer? flonum? single-flonum?
          extflonum?
-         boolean? string? symbol? keyword? char? null? void? #|TODO|#)
+         boolean? string? symbol? keyword? char? null? void?
+         vector? immutable?
+         positive? negative? zero?
+         #|TODO why did I duplicate this in addition to `base-predicates`?|#)
         #t]
        [else #f])]
     [`(,(or 'and/c 'or/c 'not/c) ,cs ...)

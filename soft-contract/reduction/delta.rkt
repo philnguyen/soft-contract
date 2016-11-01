@@ -155,6 +155,9 @@
        [(?) -Bool/Vs])]
     [make-sequence
      (list -car -cdr (-● ∅) -cons? -ff -ff)]
+
+    [make-vector
+     (list (-● {set 'vector? (-@ 'not/c (list 'immutable?) +ℓ₀)}))]
     ))
 
 (define-syntax (with-args stx)
@@ -192,7 +195,6 @@
 
   (define/contract (generate-general-clauses dec)
     (dec? . -> . (or/c (listof syntax?) (listof symbol?)))
-
     (match dec
 
       ;; Expand shorthand cases
@@ -219,7 +221,7 @@
       [`(,(and (? symbol?) (not (? ignore-for-now?)) op)
           (,doms ... . -> . ,rng) ,(? arr? refinements) ...
          #:other-errors (,guards ...) ...)
-
+       
        (cond
          ; Return case clause for straightforward lifting of predicates
          [(∋ base-predicates op)
@@ -243,6 +245,18 @@
               (define W-id (datum->syntax (M-id) (format-symbol "W~a" (n-sub i))))
               (define e-id (datum->syntax (M-id) (format-symbol "e~a" (n-sub i))))
               (values #`(and #,W-id (-W¹ _ #,e-id)) W-id e-id)))
+
+          (define/contract (rng->stx rng)
+            (base? . -> . syntax?)
+            (match rng
+              ['positive? #'{set (-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀))}]
+              ['negative? #'{set (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀))}]
+              [(? symbol? r) #`{set (quote #,r)}]
+              [(list 'not/c (? symbol? rng*))
+               #`{set (-@ 'not/c (list '#,rng*) +ℓ₀)}]
+              [(list 'and/c rng* ...)
+               (define rs (map rng->stx rng*))
+               #`{∪ #,@rs}]))
           
           (define refinement-clauses
             (for/list ([ref refinements])
@@ -260,26 +274,21 @@
                 (match arg-checks
                   [(list e) e]
                   [_ #`(and #,@arg-checks)]))
-              (define rng/c
-                (match rng-chk
-                  ['positive? #'(-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀))]
-                  ['negative? #'(-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀))]
-                  [(? symbol? rng/c) #`(quote #,rng/c)]
-                  [(list 'not/c (? symbol? rng/c*))
-                   #`(-@ 'not/c (list '#,rng/c*) +ℓ₀)]))
+              (define rng/c (rng->stx rng-chk))
               #`(when #,precond
                   (set! Vₐ (V+ #,(σ-id) Vₐ #,rng/c)))))
 
           ;; Eager refinement is necessary for performance.
           ;; Otherwise even things like (fact _) returns `integer?` rather than `number?`
           ;; need induction from outside
+          (define r (rng->stx rng))
           (define maybe-refine
             (cond
               [(null? refinement-clauses)
-               #`[_ (list (-● {set '#,rng}))]]
+               #`[_ (list (-● #,r))]]
               [else
                #`[(list #,@W-pats)
-                  (define Vₐ : -V (-● {set '#,rng}))
+                  (define Vₐ : -V (-● #,r))
                   #,@refinement-clauses
                   (list Vₐ)]]))
 
@@ -301,7 +310,9 @@
                 )])]
          
          ; Just return operator name for complicated cases
-         [else (list op)])]
+         [else
+          ;(printf "generate-general-clauses: ~a~n" dec)
+          (list op)])]
 
       [dec
        ;(printf "δ: ignore ~a~n" dec)

@@ -164,7 +164,7 @@
 ;; Ignore predicates without TR bindings
 (define ignore-for-now?
   (set->predicate
-   (list->set
+   (list->seteq
     '(procedure? vector?
       pseudo-random-generator-vector? non-empty-string? string-contains?
       string-prefix? string-suffix? placeholder? hash-placeholder?
