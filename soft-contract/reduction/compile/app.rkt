@@ -186,7 +186,7 @@
                              #:when (plausible-index? M Γ Wᵢ i)
                              [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                              [V (σ@ᵥ σ α)]
-                             [_ (in-value
+                             #;[_ (in-value
                                  (when (> (set-count (σ@ᵥ σ α)) 1)
                                    (printf "look up ~a ~a -> ~a values~n"
                                            (show-s sᵥ)
