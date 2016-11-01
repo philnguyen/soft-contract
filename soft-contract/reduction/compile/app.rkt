@@ -94,8 +94,12 @@
          ;; field is wrapped
          [(list-ref αs i) =>
           (λ ([αᵢ : -α])
-            (define (Cᵢs _) (σ@ σ αᵢ))
-            (error 'app-st-ac "TODO: wrapped mutable field"))]
+            (define Cᵢs (σ@ᵥ σ αᵢ))
+            (define Vs  (σ@ᵥ σ α))
+            (define cᵢ (and (-e? αᵢ) αᵢ))
+            (for*/union : (℘ -ς) ([Cᵢ Cᵢs] [Vₓ* Vs])
+              (app lₒ $ ℒ Ac (list (-W¹ Vₓ* sₓ)) Γ 𝒞 Σ
+                (mon.c∷ l³ ℒ (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
          ;; field is unwrapped because it's immutable
          [else
           (define-values (Vₓ*s _) (σ@ σ α))

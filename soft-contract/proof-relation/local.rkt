@@ -334,7 +334,7 @@
 
   (with-debugging/off
     ((ans)
-     (match Vs
+     (ann(match Vs
        [(list (-● ps)) #:when (-v? p)
         (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-v? q))
               (case (p⇒p q p)
@@ -476,8 +476,9 @@
                              [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) '✗]
                                       [else '?])])]))]
                 [else '?])])]
-          [_ '?])]))
-    (printf "~a ∋ ~a: ~a~n" (show-V p) (map show-V Vs) ans)))
+          [_ '?])]) -R))
+    (when (equal? ans '✗)
+      (printf "~a ∋ ~a: ~a~n" #;(show-V p) Vs #;(map show-V Vs) ans))))
 
 (: V≡ : -V -V → -R)
 ;; Check if 2 values are `equal?`
