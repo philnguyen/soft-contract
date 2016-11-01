@@ -9,10 +9,14 @@
 (struct (X Y) VMap ([m : (HashTable X (Setof Y))] [version : Fixnum])
   #:transparent #:mutable)
 
-(: ⊥vm (∀ (X Y) ([] [#:eq? Boolean] . ->* . (VMap X Y))))
-(define (⊥vm #:eq? [use-eq? #f])
+(: ⊥vm (∀ (X Y) ([] [#:eq? Boolean #:init (Option (List X))] . ->* . (VMap X Y))))
+(define (⊥vm #:eq? [use-eq? #f] #:init [x #f])
   (define mk (if use-eq? (inst hasheq X (℘ Y)) (inst hash X (℘ Y))))
-  (VMap (mk) 0))
+  (define m
+    (match x
+      [(list k) (mk k ∅)]
+      [_ (mk)]))
+  (VMap m 0))
 
 (: vm⊔! (∀ (X Y) (VMap X Y) X Y → Void))
 (define (vm⊔! vm x y)

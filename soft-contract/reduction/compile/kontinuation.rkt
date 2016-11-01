@@ -27,6 +27,7 @@
            (vm⊔! M αₖ (-ΓA Γ A))
            {set (-ς↓ αₖ Γ A)}])))
     (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
+    (add-⟦k⟧-roots ⟦k⟧ ∅)
     ⟦k⟧))
 
 ;; begin0, waiting on first value
@@ -34,7 +35,7 @@
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+     (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (ρ)
        (⟦e⟧ ρ $ Γ 𝒞 Σ (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; begin0, already have first value
@@ -42,12 +43,12 @@
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+     (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (ρ)
        (⟦e⟧ ρ $ Γ 𝒞 Σ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; set!
 (define/memo (set!∷ [α : -α] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
@@ -66,7 +67,7 @@
                       [⟦e⟧ : -⟦e⟧!]
                       [ρ : -ρ]
                       [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (ρ)
     (match-define (-W Vs s) A)
     (define n (length xs))
     (cond
@@ -94,7 +95,7 @@
 
 ;; μ/c
 (define/memo (μ/c∷ [l : -l] [x : -ℓ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
     (match-define (-W (list V) s) A)
     (match-define (-Σ σ _ _) Σ)
     (define α (-α.x/c x))
@@ -109,7 +110,7 @@
                        [ρ   : -ρ]
                        [ℓ   : -ℓ]
                        [⟦k⟧  : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (Ws ρ)
     (match-define (-W (list V) s) A)
     (define Ws* (cons (-W¹ V s) Ws))
     (match ⟦c⟧s
@@ -121,7 +122,7 @@
                        [Ws  : (Listof -W¹)]
                        [ℓ   : -ℓ]
                        [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (Ws)
     (match-define (-Σ σ _ _) Σ)
     (match-define (-W (list D) d) A)
     (define β (or (keep-if-const d) (-α.rng ℓ 𝒞)))
@@ -170,7 +171,7 @@
                     [mk-d : -λ]
                     [ℓ    : -ℓ]
                     [⟦k⟧  : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (Ws ρ Mk-D)
     (match-define (-W (list C) c) A)
     (define Ws* (cons (-W¹ C c) Ws))
     (match ⟦c⟧s
@@ -190,7 +191,7 @@
                       [⟦clause⟧s : (Listof (Listof -⟦e⟧!))]
                       [ρ : -ρ]
                       [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (ρ)
     (match-define (-W (list C) c) A)
     (define Cs* (cons (-W¹ C c) Cs))
     (match ⟦c⟧s
@@ -209,7 +210,7 @@
                         [⟦c⟧s : (Listof -⟦e⟧!)]
                         [ρ : -ρ]
                         [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (#;Cs ρ)
     (match-define (-W (list C) c) A)
     (define Cs* (cons (-W¹ C c) Cs))
     (match ⟦c⟧s
@@ -239,7 +240,7 @@
 (define/memo (def∷ [l : -l]
                    [αs : (Listof -α)]
                    [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
     (define n (length αs))
     (match-define (-W Vs s) A)
     (cond
@@ -261,7 +262,7 @@
                    [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (define l (-𝒾-ctx 𝒾))
   (define l³ (-l³ l 'dummy l))
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
     (match-define (-W (list C) c) A)
     (match-define (-Σ σ _ _) Σ)
     (define W-C (-W¹ C c))

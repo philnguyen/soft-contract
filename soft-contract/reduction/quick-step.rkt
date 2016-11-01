@@ -7,6 +7,7 @@
          "../parse/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
+         "compile/utils.rkt"
          "compile/kontinuation.rkt"
          "compile/main.rkt"
          "init.rkt"
@@ -31,11 +32,13 @@
   (define-values (σ₀ _) (𝑰 '()))
   (run (↓ₑ 'top e) σ₀))
 
+(define-type Ctx (List (HashTable -α -σr) (HashTable -αₖ (℘ -κ))))
+
 (: run : -⟦e⟧! -σ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧! σ)
-  (define Σ (-Σ σ (⊥σₖ) (⊥M)))
-  (define seen : (HashTable -ς (List Integer Integer Integer)) (make-hash))
+  (define seen : (HashTable -ς Ctx) (make-hash))
   (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧! ⊥ρ))
+  (define Σ (-Σ σ (⊥σₖ αₖ₀) (⊥M)))
 
   (define iter : Natural 0)
 
@@ -78,9 +81,12 @@
 
       (define next
         (for/union : (℘ -ς) ([ς front])
-          (match-define (-Σ σ σₖ M) Σ)
-          (define vsn : (List Integer Integer Integer)
-            (list (-σ-version σ) (VMap-version σₖ) (VMap-version M)))
+          (match-define (-Σ (-σ σ _) (VMap σₖ _) _) Σ)
+          (define vsn : Ctx
+            (let ([αₖs (ς->αₖs ς σₖ)]
+                  [αs  (ς->αs  ς σₖ)])
+              (list (m↓ σ (span σ αs σr->αs))
+                    (m↓ σₖ αₖs))))
           (cond
             [(equal? vsn (hash-ref seen ς #f))
              ;(printf "Seen ~a before~n~n" (show-ς ς))
@@ -94,22 +100,29 @@
   (match-let ([(-Σ σ σₖ M) Σ])
     (values (M@ M αₖ₀) Σ)))
 
-(: ς->αs : -ς↑ → (℘ -α))
-(define ς->αs
-  (match-lambda
-    [(-ς↑ αₖ _ _) (αₖ->αs αₖ)]))
+(: ς->αs : -ς (HashTable -αₖ (℘ -κ)) → (℘ -α))
+;; Compute the root set for value addresses of this state
+(define (ς->αs ς σₖ)
+  (match ς
+    [(-ς↑ αₖ _ _)
+     (define αs₀
+       (match αₖ
+         [(-ℬ _ _ ρ) (->αs ρ)]
+         [(-ℳ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (->αs C) (->αs V))]
+         [(-ℱ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (->αs C) (->αs V))]))
+     (∪ αs₀ (αₖ->αs αₖ σₖ))]
+    [(-ς↓ αₖ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
+     (define αs₀ (if (-W? A) (->αs A) ∅))
+     (∪ αs₀ (αₖ->αs αₖ σₖ))]))
 
-(: αₖ->αs : -αₖ → (℘ -α))
-(define αₖ->αs
-  (match-lambda
-    [(-ℬ _ _ ρ) (ρ->αs ρ)]
-    [(-ℳ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]
-    [(-ℱ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (V->αs C) (V->αs V))]))
-
-(: ς->αₖs : -ς↑ → (℘ -αₖ))
-(define ς->αₖs
-  (match-lambda
-    [(-ς↑ _ Γ _) (Γ->αs Γ)]))
+(: ς->αₖs : -ς (HashTable -αₖ (℘ -κ)) → (℘ -αₖ))
+;; Compute all relevant stack addresses
+(define (ς->αₖs ς σₖ)
+  (define αₖ
+    (match ς
+      [(-ς↑ αₖ _ _) αₖ]
+      [(-ς↓ αₖ _ _) αₖ]))
+  (span-σₖ σₖ αₖ))
 
 (: ↝! : -ς -Σ → (℘ -ς))
 ;; Perform one "quick-step" on configuration,

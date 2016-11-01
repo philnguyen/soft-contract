@@ -155,7 +155,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! _ $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! _ $ Γ 𝒞 Σ) #:roots (W)
     (define Wₕᵥ
       (let-values ([(Vs _) (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
         (assert (= 1 (set-count Vs)))

@@ -562,7 +562,7 @@
                   [l : -l]
                   [ℒ : -ℒ]
                   [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (Ws ρ)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
@@ -583,7 +583,8 @@
                      [C : (U (Pairof -⟦e⟧! -ρ) -W¹)]
                      [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (match-define (-l³ _ _ lo) l³)
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (define root (if (pair? C) (cdr C) C))
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (root)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
@@ -601,7 +602,8 @@
                      [V : (U (Pairof -⟦e⟧! -ρ) -W¹)]
                      [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (match-define (-l³ _ _ lo) l³)
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (define root (if (pair? V) (cdr V) V))
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (root)
     (match-define (-W Vs s) A)
     (match Vs
       [(list C)
@@ -622,7 +624,7 @@
                    [⟦e⟧ : -⟦e⟧!]
                    [ρ : -ρ]
                    [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (ρ)
     (match-define (-W Vs s) A)
     (define n (length xs))
     (cond
@@ -656,7 +658,7 @@
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+     (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (ρ)
        (⟦e⟧ ρ $ Γ 𝒞 Σ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
 
 
@@ -1010,7 +1012,7 @@
                         [Wᵣ : -W¹]
                         [W-V : -W¹]
                         [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (Wₗ Wᵣ W-V)
     (match-define (-W Vs s) A)
     (match Vs
       [(list (-b #f))
@@ -1021,7 +1023,7 @@
        (⟦k⟧! (-W (list (V+ (-Σ-σ Σ) V Cₗ)) v) $ Γ 𝒞 Σ)])))
 
 (define/memo (if.flat/c∷ [W-V : -W] [blm : -blm] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (W-V)
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
@@ -1034,7 +1036,7 @@
 
 ;; Conditional
 (define/memo (if∷ [l : -l] [⟦e⟧₁ : -⟦e⟧!] [⟦e⟧₂ : -⟦e⟧!] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots (ρ)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
@@ -1067,7 +1069,7 @@
     (for/list ([(α i) (in-indexed αs)])
       (and (∋ muts i) α)))
   (define V* (-St* s αs* α l³))
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (αs α)
     (match-define (-W Vs s) A)
     (match-define (list V) Vs) ; only used internally, should be safe
     (σ⊔! (-Σ-σ Σ) α V #t)
@@ -1078,7 +1080,7 @@
                         [W-C₁ : -W¹]
                         [W-C₂ : -W¹]
                         [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (W-C₁ W-C₂)
     (match-define (-W Vs s) A)
     (match Vs
       [(list (-b #f)) (⟦k⟧! -False/W $ Γ 𝒞 Σ)]
@@ -1093,7 +1095,7 @@
                        [W-C₂ : -W¹]
                        [W-V : -W¹]
                        [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (W-C₁ W-C₂)
     (match-define (-W Vs s) A)
     (match Vs
       [(list (-b #f))
@@ -1106,7 +1108,7 @@
                         [W-C* : -W¹]
                         [W-V : -W¹]
                         [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (W-C* W-V)
     (match-define (-W Vs s) A)
     (match Vs
       [(list (-b #f))
@@ -1122,7 +1124,7 @@
                            [⟦e⟧s : (Listof -⟦e⟧!)]
                            [ρ : -ρ]
                            [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (W-Vs-rev ρ)
     (match-define (-W¹ Vs s) A)
     (match Vs
       [(list (-b #f))
@@ -1145,7 +1147,7 @@
                     [⟦v⟧! : -⟦e⟧!]
                     [ρ : -ρ]
                     [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (ρ)
     (match-define (-W Vs s) A)
     (match Vs
       [(list C)
@@ -1158,7 +1160,7 @@
                     [ℒ : -ℒ]
                     [W-C : -W¹]
                     [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ)
+  (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (W-C)
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)

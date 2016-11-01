@@ -5,6 +5,7 @@
 (require racket/match
          racket/set
          racket/string
+         racket/splicing
          (except-in racket/list remove-duplicates)
          "../utils/main.rkt"
          "../ast/main.rkt")
@@ -96,7 +97,11 @@
   #:transparent)
 
 (define-type -σₖ (VMap -αₖ -κ))
-(define ⊥σₖ (inst ⊥vm -αₖ -κ))
+(: ⊥σₖ ([] [(Option -αₖ)] . ->* . -σₖ))
+(define (⊥σₖ [αₖ #f])
+  (cond
+    [αₖ ((inst ⊥vm -αₖ -κ) #:init (list αₖ))]
+    [else ((inst ⊥vm -αₖ -κ))]))
 (define σₖ@ : (-σₖ -αₖ → (℘ -κ)) vm@)
 
 
@@ -505,3 +510,31 @@
 (define (show-κ [κ : -κ]) : Sexp
   (match-define (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs) κ)
   `(,(show-s sₕ) ,@(map show-s sₓs) ‖ ,(show-Γ Γ) @ ,(show-𝒞 𝒞)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; TMP HACKS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; TMP hack for part of root set from stack frames
+(splicing-let ([m ((inst make-hasheq -⟦k⟧! (℘ -α)))])
+  
+  (define (add-⟦k⟧-roots [⟦k⟧ : -⟦k⟧!] [αs : (℘ -α)]) : Void
+    (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ -α)]) (∪ αs₀ αs)) →∅))
+  
+  ;; Return the root set spanned by the stack chunk for current block
+  (define (⟦k⟧->roots [⟦k⟧ : -⟦k⟧!])
+    (hash-ref m ⟦k⟧ (λ () (error '⟦k⟧->αs "nothing for ~a" ⟦k⟧)))))
+
+;; TMP hack for mapping stack to stack address to return to
+(splicing-let ([m ((inst make-hasheq -⟦k⟧! -αₖ))])
+
+  (define (set-⟦k⟧->αₖ! [⟦k⟧ : -⟦k⟧!] [αₖ : -αₖ]) : Void
+    (hash-update! m ⟦k⟧
+                  (λ ([αₖ₀ : -αₖ]) ; just for debugging
+                    (assert (equal? αₖ₀ αₖ))
+                    αₖ₀)
+                  (λ () αₖ)))
+  
+  (define (⟦k⟧->αₖ [⟦k⟧ : -⟦k⟧!]) : -αₖ
+    (hash-ref m ⟦k⟧ (λ () (error '⟦k⟧->αₖ "nothing for ~a" ⟦k⟧)))))
