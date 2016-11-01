@@ -45,7 +45,7 @@
 
   (define (app-st-p [s : -struct-info])
     (define A
-      (case (MΓ⊢oW M Γ (-st-p s) (car Wₓs))
+      (case (MΓ⊢oW M σ Γ (-st-p s) (car Wₓs))
         [(✓) -True/Vs]
         [(✗) -False/Vs]
         [(?) -Bool/Vs]))
@@ -106,7 +106,7 @@
           (for/union : (℘ -ς) ([Vₓ* Vₓ*s]) ;; TODO: could this loop forever due to cycle?
             (app lₒ $ ℒ Ac (list (-W¹ Vₓ* sₓ)) Γ 𝒞 Σ ⟦k⟧))])]
       [(-● _)
-       (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-W∋Ws M Γ (-W¹ p p) Wₓ)])
+       (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-W∋Ws M σ Γ (-W¹ p p) Wₓ)])
          #:true  (⟦k⟧ (-W -●/Vs sₐ) $ Γₒₖ 𝒞 Σ)
          #:false (⟦k⟧ (blm) $ Γₑᵣ 𝒞 Σ))]
       [_ (⟦k⟧ (blm) $ Γ 𝒞 Σ)]))
@@ -154,7 +154,7 @@
       [(-St (-struct-info _ n _) αs)
        (for*/union : (℘ -ς) ([(α i) (in-indexed αs)]
                              #:when (exact-nonnegative-integer? i) ; hack for TR
-                             #:when (plausible-index? M Γ Wᵢ i)
+                             #:when (plausible-index? M σ Γ Wᵢ i)
                              [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                              [V (σ@ᵥ σ α)])
          (⟦k⟧ (-W (list V) sₐ) $ Γ* 𝒞 Σ))]
@@ -162,7 +162,7 @@
        (match-define (-l³ l+ l- lo) l³)
        (for*/union : (℘ -ς) ([(γ i) (in-indexed γs)]
                             #:when (exact-nonnegative-integer? i)
-                            #:when (plausible-index? M Γ Wᵢ i)
+                            #:when (plausible-index? M σ Γ Wᵢ i)
                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                             [c (in-value (and (-e? γ) γ))]
                             [V (σ@ᵥ σ α)]
@@ -187,7 +187,7 @@
       [(-Vector αs)
        (for*/union : (℘ -ς) ([(α i) (in-indexed αs)]
                              #:when (exact-nonnegative-integer? i) ; hack for TR
-                             #:when (plausible-index? M Γ Wᵢ i)
+                             #:when (plausible-index? M σ Γ Wᵢ i)
                              [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                              [V (σ@ᵥ σ α)]
                              #;[_ (in-value
@@ -201,7 +201,7 @@
        (match-define (-l³ _ _ lo) l³)
        (for*/union : (℘ -ς) ([(α i) (in-indexed αs)]
                             #:when (exact-nonnegative-integer? i) ; hack for TR
-                            #:when (plausible-index? M Γ Wᵢ i)
+                            #:when (plausible-index? M σ Γ Wᵢ i)
                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                             [c (in-value (and (-e? α) α))]
                             [C (σ@ᵥ σ α)])
@@ -224,7 +224,7 @@
       [(-Vector αs)
        (for*/union : (℘ -ς) ([(α i) (in-indexed αs)]
                             #:when (exact-nonnegative-integer? i) ; hack for TR
-                            #:when (plausible-index? M Γ Wᵢ i))
+                            #:when (plausible-index? M σ Γ Wᵢ i))
          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
          (σ⊔! σ α Vᵤ #f)
          (⟦k⟧ -Void/W $ Γ* 𝒞 Σ))]
@@ -233,7 +233,7 @@
        (define l³* (-l³ l- l+ lo))
        (for*/union : (℘ -ς) ([(α i) (in-indexed αs)]
                             #:when (exact-nonnegative-integer? i) ; hack for TR
-                            #:when (plausible-index? M Γ Wᵢ i)
+                            #:when (plausible-index? M σ Γ Wᵢ i)
                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                             [c (in-value (and (-e? α) α))]
                             [C (σ@ᵥ σ α)])
@@ -500,7 +500,7 @@
        (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
          (app-St/C s (map -W¹ Cs cs))))]
     [(-● _)
-     (case (MΓ⊢oW M Γ 'procedure? Wₕ)
+     (case (MΓ⊢oW M σ Γ 'procedure? Wₕ)
        [(✓ ?) (app-opq)]
        [(✗) (⟦k⟧ (-blm l 'Λ (list 'procedure?) (list Vₕ)) $ Γ 𝒞 Σ)])]
     [_
@@ -537,7 +537,7 @@
   (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
   (match-define (-l³ l+ _ lo) l³)
-  (case (MΓ⊢V∈C (-Σ-M Σ) Γ W-V W-C)
+  (case (MΓ⊢V∈C (-Σ-M Σ) (-Σ-σ Σ) Γ W-V W-C)
     [(✓) (⟦k⟧ (-W (list V) v) $ Γ 𝒞 Σ)]
     [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ 𝒞 Σ)]
     [(?)
@@ -684,13 +684,13 @@
            [b (-b a)])
       (-W¹ b b)))
   
-  (define-values (Γ₁ Γ₂) (Γ+/-W∋Ws M Γ -procedure?/W W-V))
+  (define-values (Γ₁ Γ₂) (Γ+/-W∋Ws M σ Γ -procedure?/W W-V))
   (define-values (Γ₁₁ Γ₁₂)
     (if Γ₁
         (let ([A (V-arity V)]
               [a (-?@ 'procedure-arity v)])
           (define W-a (-W¹ (if A (-b A) -●/V) a))
-          (Γ+/-W∋Ws M Γ₁ -arity-includes?/W W-a arity))
+          (Γ+/-W∋Ws M σ Γ₁ -arity-includes?/W W-a arity))
         (values #f #f)))
   #;(match-define (-ℒ _ ℓ) ℒ)
   (∪ (cond [Γ₁₁

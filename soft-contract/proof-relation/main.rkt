@@ -16,14 +16,14 @@
          "local.rkt"
          "ext.rkt")
 
-(: MΓ⊢V∈C : -M -Γ -W¹ -W¹ → -R)
+(: MΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
-(define (MΓ⊢V∈C M Γ W_v W_c)
+(define (MΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W¹ V v) W_v)
   (match-define (-W¹ C c) W_c)
   (with-debugging/off
     ((ans)
-     (first-R (p∋Vs C V)
+     (first-R (p∋Vs σ C V)
               (match V
                 [(-● ps)
                  (define Γ*
@@ -33,13 +33,13 @@
                 [_ (MΓ⊢s M Γ (-?@ c v))])))
     (printf "~a ⊢ ~a ∈ ~a : ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans)))
 
-(: MΓ⊢oW : -M -Γ -o -W¹ * → -R)
+(: MΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`
-(define (MΓ⊢oW M Γ p . Ws)
+(define (MΓ⊢oW M σ Γ p . Ws)
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
   (with-debugging/off
     ((R)
-     (first-R (apply p∋Vs p Vs)
+     (first-R (apply p∋Vs σ p Vs)
               (let ()
                 (define Γ*
                   (for/fold ([Γ : -Γ Γ]) ([V Vs] [s ss] #:when s)
@@ -79,13 +79,13 @@
 (define (Γ+/-V M Γ V s)
   (Γ+/-R (first-R (⊢V V) (MΓ⊢s M Γ s)) Γ s))
 
-(: Γ+/-W∋Ws : -M -Γ -W¹ -W¹ * → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-W∋Ws : -M -σ -Γ -W¹ -W¹ * → (Values (Option -Γ) (Option -Γ)))
 ;; Join the environment with `P(V…)` and `¬P(V…)`
-(define (Γ+/-W∋Ws M Γ Wₚ . Wᵥₛ)
+(define (Γ+/-W∋Ws M σ Γ Wₚ . Wᵥₛ)
   (match-define (-W¹ P p) Wₚ)
   (define-values (Vs vs) (unzip-by -W¹-V -W¹-s Wᵥₛ))
   (define ψ (apply -?@ p vs))
-  (define R (first-R (apply p∋Vs P Vs) (MΓ⊢s M Γ ψ)))
+  (define R (first-R (apply p∋Vs σ P Vs) (MΓ⊢s M Γ ψ)))
   (Γ+/-R R Γ ψ))
 
 
@@ -96,21 +96,21 @@
 (: plausible-pc? : -M -Γ → Boolean)
 (define plausible-pc? ext-plausible-pc?)
 
-(: plausible-index? : -M -Γ -W¹ Natural → Boolean)
-(define (plausible-index? M Γ W i)
-  (case (MΓ⊢oW M Γ 'integer? W)
+(: plausible-index? : -M -σ -Γ -W¹ Natural → Boolean)
+(define (plausible-index? M σ Γ W i)
+  (case (MΓ⊢oW M σ Γ 'integer? W)
     [(✓ ?)
      (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-     (case (MΓ⊢oW M Γ '= W Wᵢ)
+     (case (MΓ⊢oW M σ Γ '= W Wᵢ)
        [(✗) #f]
        [else #t])]
     [else #f]))
 
-(: plausible-indices : -M -Γ -W¹ Natural Natural → (Listof Natural))
-(define (plausible-indices M Γ W lo hi)
+(: plausible-indices : -M -σ -Γ -W¹ Natural Natural → (Listof Natural))
+(define (plausible-indices M σ Γ W lo hi)
   (for*/list : (Listof Natural) ([i (in-range lo hi)]
                                  #:when (exact-nonnegative-integer? i) ; hack for TR
-                                 #:when (plausible-index? M Γ W i))
+                                 #:when (plausible-index? M σ Γ W i))
     i))
 
 

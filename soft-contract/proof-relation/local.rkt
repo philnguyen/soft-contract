@@ -323,12 +323,12 @@
          '?)]
     [_ '✓]))
 
-(: p∋Vs : -V -V * → -R)
+(: p∋Vs : -σ -V -V * → -R)
 ;; Check if value satisfies predicate
-(define (p∋Vs p . Vs)
+(define (p∋Vs σ p . Vs)
   
   (define (check-proc-arity-1 [V : -V]) : -R
-    (match (p∋Vs 'procedure? V)
+    (match (p∋Vs σ 'procedure? V)
       ['✓ (decide-R (arity-includes? (assert (V-arity V)) 1))]
       [ans ans]))
 
@@ -397,7 +397,7 @@
              [_ '✗])]
           [(-Ar _ (or (? -o? o) (-α.def (-𝒾 (? -o? o) 'Λ)) (-α.wrp (-𝒾 (? -o? o) 'Λ))) _)
            #:when o
-           (apply p∋Vs o Vs)]
+           (apply p∋Vs σ o Vs)]
           [(? symbol?)
            (case p
              ;; Insert manual rules here
@@ -458,8 +458,43 @@
                     (if (>= a b) '✓ '?)]
                    [_ '?])]
                 [_ '?])]
-             [(>) (p∋Vs '< (second Vs) (first Vs))]
-             [(>=) (p∋Vs '<= (second Vs) (first Vs))]
+             [(>) (p∋Vs σ '< (second Vs) (first Vs))]
+             [(>=) (p∋Vs σ '<= (second Vs) (first Vs))]
+             [(list?)
+              (match Vs
+                [(list V)
+                 (define-set seen : -V)
+                 (define (combine [Rs : (℘ -R)]) : -R
+                   (cond
+                     [(∋ Rs '?) '?]
+                     [(and (∋ Rs '✓) (∋ Rs '✗)) '?]
+                     [(∋ Rs '✗) '✗]
+                     [else '✓]))
+                 (define (check [V : -V]) : -R
+                   (cond
+                     [(∋ seen V) '✓]
+                     [else
+                      (seen-add! V)
+                      (match V
+                        [(-St (== -s-cons) (list _ α))
+                         (combine
+                          (for/seteq: : (℘ -R) ([Vᵣ (σ@ᵥ σ α)])
+                            (check Vᵣ)))]
+                        [(-St* (== -s-cons) _ α _)
+                         (combine
+                          (for/seteq: : (℘ -R) ([V* (σ@ᵥ σ α)])
+                            (check V*)))]
+                        [(-b b) (decide-R (null? b))]
+                        [(-● ps)
+                         (cond
+                           [(set-empty?
+                             (∩ ps {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
+                                        'string? 'symbol?}))
+                            '?]
+                           [else '✗])]
+                        [_ '✗])]))
+                 (check V)]
+                [_ '✗])]
              ;; Default rules for operations on base values rely on simplification from `-?@`
              [else
               (cond
@@ -477,8 +512,8 @@
                                       [else '?])])]))]
                 [else '?])])]
           [_ '?])]) -R))
-    (when (equal? ans '✗)
-      (printf "~a ∋ ~a: ~a~n" #;(show-V p) Vs #;(map show-V Vs) ans))))
+    (when (equal? p 'list?)
+      (printf "~a ∋ ~a: ~a~n" (show-V p) (map show-V Vs) ans))))
 
 (: V≡ : -V -V → -R)
 ;; Check if 2 values are `equal?`

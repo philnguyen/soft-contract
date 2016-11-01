@@ -80,7 +80,7 @@
     [vector?
      (match Ws
        [(list W)
-        (case (MΓ⊢oW M Γ 'vector? W)
+        (case (MΓ⊢oW M σ Γ 'vector? W)
           [(✓) -True/Vs]
           [(✗) -False/Vs]
           [(?) -Bool/Vs])]
@@ -131,25 +131,25 @@
        [else -●/Vs])]
 
     [equal?
-     (case (apply MΓ⊢oW M Γ 'equal? Ws)
+     (case (apply MΓ⊢oW M σ Γ 'equal? Ws)
        [(✓) (list -tt)]
        [(✗) (list -ff)]
        [(?) -Bool/Vs])]
 
     [eq? ; duplicate of `equal?`. TODO: why didn't I just `(or equal? eq? =)`??
-     (case (apply MΓ⊢oW M Γ 'equal? Ws)
+     (case (apply MΓ⊢oW M σ Γ 'equal? Ws)
        [(✓) (list -tt)]
        [(✗) (list -ff)]
        [(?) -Bool/Vs])]
 
     [= ; duplicate of `equal?` (args already guarded by contracts)
-     (case (apply MΓ⊢oW M Γ 'equal? Ws)
+     (case (apply MΓ⊢oW M σ Γ 'equal? Ws)
        [(✓) (list -tt)]
        [(✗) (list -ff)]
        [(?) -Bool/Vs])]
     
     [procedure?
-     (case (apply MΓ⊢oW M Γ 'procedure? Ws)
+     (case (apply MΓ⊢oW M σ Γ 'procedure? Ws)
        [(✓) (list -tt)]
        [(✗) (list -ff)]
        [(?) -Bool/Vs])]
@@ -225,7 +225,7 @@
          [(∋ base-predicates op)
           (list
            #`[(#,op)
-              (case (apply MΓ⊢oW #,(M-id) #,(Γ-id) '#,op #,(Ws-id))
+              (case (apply MΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,op #,(Ws-id))
                 [(✓) (list -tt)]
                 [(✗) (list -ff)]
                 [else -Bool/Vs])])]
@@ -251,10 +251,10 @@
                 (for/list ([dom-chk dom-chks] [W-id W-ids] [e-id e-ids])
                   (match dom-chk
                     [(? symbol? dom/c)
-                     #`(eq? '✓ (first-R (p∋Vs '#,dom/c (-W¹-V #,W-id))
+                     #`(eq? '✓ (first-R (p∋Vs #,(σ-id) '#,dom/c (-W¹-V #,W-id))
                                         (Γ⊢e #,(Γ-id) (-?@ '#,dom/c #,e-id))))]
                     [(list 'not/c (? symbol? dom/c*))
-                     #`(eq? '✗ (first-R (p∋Vs '#,dom/c* (-W¹-V #,W-id))
+                     #`(eq? '✗ (first-R (p∋Vs #,(σ-id) '#,dom/c* (-W¹-V #,W-id))
                                         (Γ⊢e #,(Γ-id) (-?@ '#,dom/c* #,e-id))))])))
               (define precond ; make it a little prettier
                 (match arg-checks
