@@ -595,6 +595,7 @@
     [(? symbol? s) (@/s 'Sym (⦃sym⦄ s))]
     [(? string? s) (@/s 'Str (⦃str⦄ s))]
     [(? void?) (val-of 'Void)]
+    [(? char? c) (@/s 'Chr (⦃chr⦄ c))]
     [(list) (val-of 'Null)]
     [_ (error '⦃b⦄ "value: ~a" b)]))
 
@@ -623,6 +624,7 @@
      (Proc [proc_id ,Int/s])
      (Sym [sym ,Int/s])
      (Str [str ,Int/s])
+     (Chr [chr ,Int/s])
      (And/C [and/c_id ,Int/s])
      (Or/C [or/c_id ,Int/s])
      (Not/C [not/c_id ,Int/s])
@@ -671,6 +673,7 @@
 (define o->id ((inst mk-interner -o)))
 (define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
 (define ⦃str⦄ ((inst mk-interner String)))
+(define ⦃chr⦄ ((inst mk-interner Char) #:eq? #t))
 (define ⦃l⦄ ((inst mk-interner -l)))
 (define ⦃struct-info⦄ ((inst mk-interner -struct-info)))
 

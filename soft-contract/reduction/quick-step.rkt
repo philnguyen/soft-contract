@@ -50,7 +50,7 @@
         (define-values (ς↑s ς↓s) (set-partition -ς↑? front))
         (define num-ς↑s (set-count ς↑s))
         (define num-ς↓s (set-count ς↓s))
-        (printf "iter ~a: ~a (~a + ~a) ~n" iter num-front num-ς↑s num-ς↓s)
+        (printf "* ~a: ~a (~a + ~a) ~n" iter num-front num-ς↑s num-ς↓s)
 
         #;(begin ; verbose
 

@@ -1720,6 +1720,9 @@
     [output-port? (any/c . -> . boolean?)]
     [port? (any/c . -> . boolean?)]
     [eof-object? (any/c . -> . boolean?)]
+
+    ;; 13.1.3 Port Buffers and Positions
+    [flush-output (-> void?)] ; FIXME uses
     
     ;; 13.1.5 File Ports
     [call-with-input-file (path-string? (input-port? . -> . any/c) . -> . any/c)] ; FIXME uses, any
