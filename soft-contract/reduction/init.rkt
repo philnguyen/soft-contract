@@ -109,6 +109,7 @@
     [(? symbol? s)
      (case s ; tmp HACK
        [(cons? pair?) (values -cons? s)]
+       [(box?) (values -box? s)]
        [else (values s s)])]
     [`(not/c ,s*)
      (define-values (C* c*) (alloc-C! σ s*))
@@ -225,6 +226,9 @@
     [(cons? pair?)
      (σ⊔! σ V -cons? #t)
      -cons?]
+    [(box?)
+     (σ⊔! σ V -box? #t)
+     -box?]
     [else
      (σ⊔! σ v V #t)
      v]))
@@ -244,7 +248,7 @@
     (-struct-info
      (-𝒾 t 'Λ)
      (length mut?s)
-     (for/set: : (℘ Natural) ([mut? mut?s] [i : Natural (in-naturals)] #:when mut?)
+     (for/seteq: : (℘ Natural) ([mut? mut?s] [i : Natural (in-naturals)] #:when mut?)
        i))))
 
 (define (σ₀)

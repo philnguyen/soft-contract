@@ -151,7 +151,7 @@
 
 (define -𝒾-values (-𝒾 'values 'Λ))
 (define -𝒾-cons (-𝒾 'cons 'Λ))
-(define -s-cons (-struct-info -𝒾-cons 2 ∅))
+(define -s-cons (-struct-info -𝒾-cons 2 ∅eq))
 (define -cons (-st-mk -s-cons))
 (define -car (-st-ac -s-cons 0))
 (define -cdr (-st-ac -s-cons 1))
