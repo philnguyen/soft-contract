@@ -31,7 +31,7 @@
       (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
       ;(printf "About to havoc ~a values~n" (set-count Vs))
 
-      (define (done-with-●)
+      #;(define (done-with-●)
         (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt 'done))) $ Γ 𝒞 Σ))
 
       (for*/union : (℘ -ς) ([V (in-set Vs)])
@@ -40,7 +40,7 @@
         (match V
           ;; Ignore first-order and opaque value
           [(or (-● _) (? -prim?))
-           (done-with-●)]
+           ∅ #;(done-with-●)]
 
           ;; Apply function with appropriate number of arguments
           [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
@@ -77,11 +77,11 @@
                    (cond [(integer? k) (hv/arity k)]
                          [else (error 'havoc "TODO: ~a" k)])))]
              [_
-              (done-with-●)])]
+              ∅ #;(done-with-●)])]
 
           ;; If it's a struct, havoc all publically accessible fields
           [(or (-St s _) (-St* s _ _ _)) #:when s
-           (∪ (done-with-●)
+           (∪ #;(done-with-●)
               (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
                (define Acc (-W¹ acc acc))
                (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ 𝒞 Σ
@@ -90,8 +90,8 @@
 
           ;; Havoc vector's content before erasing the vector with unknowns
           ;; Approximate vectors are already erased
-          [(-Vector/hetero _ _) (done-with-●)]
-          [(-Vector/homo   _ _) (done-with-●)]
+          [(-Vector/hetero _ _) ∅ #;(done-with-●)]
+          [(-Vector/homo   _ _) ∅ #;(done-with-●)]
           [(-Vector αs)
            (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
              (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
@@ -102,7 +102,7 @@
           ;; Apply contract to unknown values
           [(? -C?)
            (log-warning "TODO: havoc contract combinators")
-           (done-with-●)]))))
+           ∅ #;(done-with-●)]))))
   
   (define cloₕᵥ : -Clo (-Clo (list 𝒙) ⟦e⟧ₕᵥ ⊥ρ ⊤Γ))
   cloₕᵥ)
@@ -120,7 +120,7 @@
       (refs-add! (-𝒾 x path))))
 
   (with-debugging/off
-    ((ans) ((inst -begin/simp -e)
+    ((ans) (-amb/simp #;(inst -begin/simp -e)
             (for/list ([ref (in-set refs)])
               (-@ havoc-𝒾 (list ref) (+ℓ!)))))
     (printf "gen-havoc-expr: ~a~n" (show-e ans))))
