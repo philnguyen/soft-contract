@@ -238,6 +238,22 @@
         (for/fold ([e e₁]) ([eᵢ e*])
           (-@ (-𝒾 o-name 'Λ) (list e eᵢ) (+ℓ!)))])]
 
+    ;; HACKs for `variable-refererence-constant?`
+    [(if (#%plain-app (~literal variable-reference-constant?)
+                      (#%variable-reference f:id))
+         _
+         (#%plain-app g:id x ...))
+     #:when (and (free-identifier=? #'f #'g)
+                 (string-prefix? (symbol->string (syntax-e #'f)) "call-with-output-file"))
+     (-@ (-𝒾 'call-with-output-file 'Λ) (parse-es #'(x ...)) (+ℓ!))]
+    [(if (#%plain-app (~literal variable-reference-constant?)
+                      (#%variable-reference f:id))
+         _
+         (#%plain-app g:id x ...))
+     #:when (and (free-identifier=? #'f #'g)
+                 (string-prefix? (symbol->string (syntax-e #'f)) "call-with-input-file"))
+     (-@ (-𝒾 'call-with-input-file 'Λ) (parse-es #'(x ...)) (+ℓ!))]
+
     ;;; Contracts
     ;; Non-dependent function contract
     [(let-values ([(_) (~literal fake:dynamic->*)]

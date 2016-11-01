@@ -178,7 +178,7 @@
      (alloc-const! σ Cᵣ cᵣ)
      #;(σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
      (values (-And/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
-             (assert (-?@ 'and/c cₗ cᵣ)))]))
+             (-@ 'and/c (list cₗ cᵣ) (+ℓ!)))]))
 
 (: alloc-Or/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
 (define (alloc-Or/C! σ Cs cs)
@@ -194,7 +194,7 @@
      (alloc-const! σ Cᵣ cᵣ)
      #;(σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
      (values (-Or/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
-             (assert (-?@ 'or/c cₗ cᵣ)))]))
+             (-@ 'or/c (list cₗ cᵣ) (+ℓ!)))]))
 
 (: alloc-List/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
 (define (alloc-List/C! σ Cs cs)
@@ -208,7 +208,7 @@
      (alloc-const! σ Cᵣ cᵣ)
      #;(σ⊔*! σ [cₗ ↦ Cₗ #t] [cᵣ ↦ Cᵣ #t])
      (values (-St/C flat? -s-cons (list (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!))))
-             (assert (-?struct/c -s-cons (list cₗ cᵣ))))]))
+             (-struct/c -s-cons (list cₗ cᵣ) (+ℓ!)))]))
 
 (: alloc-prim! : -σ -prim → -α.cnst)
 (define (alloc-prim! σ p)

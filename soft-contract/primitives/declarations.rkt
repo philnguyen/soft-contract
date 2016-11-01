@@ -1719,10 +1719,32 @@
     [input-port? (any/c . -> . boolean?)]
     [output-port? (any/c . -> . boolean?)]
     [port? (any/c . -> . boolean?)]
+    [eof-object? (any/c . -> . boolean?)]
     
     ;; 13.1.5 File Ports
     [call-with-input-file (path-string? (input-port? . -> . any/c) . -> . any/c)] ; FIXME uses, any
-    [call-with-output-file (path-string? (output-port? . -> . any/c) . -> . any/c)])) ; FIXME uses, any
+    [call-with-output-file (path-string? (output-port? . -> . any/c) . -> . any/c)] ; FIXME uses, any
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 13.2 Byte and String Input
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [read-char (input-port? . -> . (or/c char? eof-object?))] ; FIXME uses
+    [peek-char (input-port? . -> . (or/c char? eof-object?))] ; FIXME uses
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 13.3 Byte and String Output
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [write-char (char? #|FIXME|# any/c . -> . void?)] ; FIXME uses
+    [newline (any/c . -> . void?)] ; FIXME uses
+
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 13.5 Writing
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    [write (any/c . -> . void?)] ; FIXME uses
+    [display (any/c any/c . -> . void?)] ; FIXME uses
+
+    )) 
 
 (define prims.15
   '(
@@ -1732,6 +1754,15 @@
 
     ;; 15.1.1 Manipulating Paths
     [path-string? (any/c . -> . boolean?)]
+
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;; 15.2 Filesystem
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ;; 15.2.2 Files
+    [file-exists? (path-string? . -> . boolean?)]
+    [delete-file (path-string? . -> . void?)]
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;;;;; 15.7
@@ -1804,6 +1835,8 @@
     [flonum? ⇒ inexact-real?]
     [single-flonum? ⇒ flonum?]
     [double-flonum? ⇒ flonum?]
+    ; strings
+    [path-string? ⇒ string?]
     ; sequence
     [exact-nonnegative-integer? ⇒ sequence?]
     [string? ⇒ sequence?]
@@ -1835,7 +1868,7 @@
     [δ-case? ⇒ procedure?]
 
     [#:exclusion
-     number? string? boolean? keyword? symbol? void? null? procedure? vector? port?]
+     number? string? boolean? keyword? symbol? void? char? eof-object? null? procedure? vector? port?]
     ))
 
 ;; Check if `s` is a contract specifying a base value 
@@ -1846,7 +1879,7 @@
        [(integer? rational? real? number? zero?
          inexact? inexact-real? exact-integer? exact-nonnegative-integer? flonum? single-flonum?
          extflonum?
-         boolean? string? symbol? keyword? char? null? void?
+         boolean? string? symbol? keyword? char? null? void? eof-object?
          vector? immutable?
          positive? negative? zero?
          #|TODO why did I duplicate this in addition to `base-predicates`?|#)

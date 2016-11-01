@@ -96,6 +96,8 @@
               #:when V*
               V*]
              ['not -ff]
+             ['null? -null]
+             ['void? -void]
              ;; HACK special cases
              ['exact-nonnegative-integer?
               (-● (set-subtract (set-add ps 'exact-nonnegative-integer?)
