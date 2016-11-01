@@ -25,30 +25,34 @@
        (assert δt exact-nonnegative-integer?)
        (count-poses As)))
 
-(: run-dir : Path → (Values (Listof Res) Res))
+(: run-dir : (U Path Path-String) → (Values (Listof Res) Res))
 (define (run-dir dir)
-  (define reses : (Listof Res)
-    (for/list ([fn (in-directory dir)])
-      (run-file fn)))
-  (define res
-    (let-values ([(Σ-lines Σ-checks Σ-time Σ-poses)
-                  (for/fold ([Σ-lines : Natural 0]
-                             [Σ-checks : Natural 0]
-                             [Σ-time : Natural 0]
-                             [Σ-poses : Natural 0])
-                            ([res reses])
-                    (match-define (Res _ lines checks time poses) res)
-                    (values (+ Σ-lines lines)
-                            (+ Σ-checks checks)
-                            (+ Σ-time time)
-                            (+ Σ-poses poses)))])
-      (define-values (_init dir-name _) (split-path dir))
-      (Res "TOTAL" #;(format "~a" dir-name)
-           Σ-lines
-           Σ-checks
-           Σ-time
-           Σ-poses)))
-  (values reses res))
+  (cond
+    [(string? dir)
+     (run-dir (string->path dir))]
+    [else
+     (define reses : (Listof Res)
+       (for/list ([fn (in-directory dir)])
+         (run-file fn)))
+     (define res
+       (let-values ([(Σ-lines Σ-checks Σ-time Σ-poses)
+                     (for/fold ([Σ-lines : Natural 0]
+                                [Σ-checks : Natural 0]
+                                [Σ-time : Natural 0]
+                                [Σ-poses : Natural 0])
+                               ([res reses])
+                       (match-define (Res _ lines checks time poses) res)
+                       (values (+ Σ-lines lines)
+                               (+ Σ-checks checks)
+                               (+ Σ-time time)
+                               (+ Σ-poses poses)))])
+         (define-values (_init dir-name _) (split-path dir))
+         (Res "TOTAL" #;(format "~a" dir-name)
+              Σ-lines
+              Σ-checks
+              Σ-time
+              Σ-poses)))
+     (values reses res)]))
 
 (: Res->latex-row : Res → String)
 (define (Res->latex-row res)
