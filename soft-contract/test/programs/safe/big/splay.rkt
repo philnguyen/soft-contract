@@ -231,6 +231,7 @@
 
 (provide
  (contract-out
+  [set/c contract?]
   [empty (-> empty?)]
   [size (set/c . -> . exact-nonnegative-integer?)]
   [splay-equal? (set/c set/c . -> . boolean?)]
