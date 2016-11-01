@@ -93,7 +93,7 @@
        (cond
          [(list? xs) xs]
          [else
-          (hash-ref! unsupported αₖ (λ () (printf "unsupported: ~a~n" (show-αₖ αₖ))))
+          (hash-ref! unsupported αₖ (λ () (log-warning "unsupported: ~a~n" (show-αₖ αₖ))))
           '()])]
       [(-ℳ x _ _ _ _) (list x)]
       [(-ℱ x _ _ _ _) (list x)]))
@@ -294,8 +294,8 @@
                            unsupported
                            o
                            (λ ()
-                             (printf "Z3 translation: unsupported primitive: `~a`~n"
-                                     (show-o o))))
+                             (log-warning "Z3 translation: unsupported primitive: `~a`~n"
+                                          (show-o o))))
                           (define t (fresh-free! 'o))
                           (λ () (val-of t)))])
          (⦃o⦄ o ts))]
@@ -310,7 +310,7 @@
               [(-ℱ x _ _ _ _) (list x)]))
           (cond [(not xs)
                  (hash-ref! unsupported αₖ
-                            (λ () (printf "⦃e⦄: ignore ~a for now~n" (show-αₖ αₖ))))
+                            (λ () (log-warning "⦃e⦄: ignore ~a for now~n" (show-αₖ αₖ))))
                  #f]
                 [(and (equal? eₕ sₕ) (equal? eₓs sₓs))
                  (define fvs
@@ -342,7 +342,7 @@
         unsupported
         e
         (λ ()
-          (printf "translation: unhandled: ~a~n" (show-e e))))
+          (log-warning "translation: unhandled: ~a~n" (show-e e))))
        (define t (fresh-free! 'unhandled))
        (λ () (val-of t))]))
 
@@ -357,7 +357,7 @@
     ;; important not to use `-?@` for `eₐₚₚ` as it may simplify away `values` used in `ℳ`
     (define eₐₚₚ (and sₕ (andmap -e? sₓs) (-@ sₕ sₓs +ℓ₀)))
     (unless xs
-      (hash-ref! unsupported αₖ (λ () (printf "⦃γ⦄: ignore ~a for now~n" (show-αₖ αₖ)))))
+      (hash-ref! unsupported αₖ (λ () (log-warning "⦃γ⦄: ignore ~a for now~n" (show-αₖ αₖ)))))
     (when (and eₐₚₚ #|TODO|# xs)
       (match-define (-@ eₕ eₓs _) eₐₚₚ)
       (define fvs
@@ -695,7 +695,7 @@
           [(-ℬ xs _ _)
            (cond [(list? xs) xs]
                  [else
-                  (hash-ref! unsupported αₖ (λ () (printf "unsupported: ~a~n" (show-αₖ αₖ))))
+                  (hash-ref! unsupported αₖ (λ () (log-warning "unsupported: ~a~n" (show-αₖ αₖ))))
                   '()])]
           [(-ℳ x _ _ _ _) (list x)]
           [(-ℱ x _ _ _ _) (list x)]))
