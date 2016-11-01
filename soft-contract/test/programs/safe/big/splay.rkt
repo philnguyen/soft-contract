@@ -150,7 +150,7 @@
     (lambda (s)
       (let ([t (tree s)])
         (if (null? t)
-            (error 'ordset-extremum "empty set")  
+            (add1 "error: ordset-extrenum: empty set") #;(error 'ordset-extremum "empty set")  
             (match-let ([(vector x lr) (splay-to t)])
               (set-tree! s (node x lr))
               x))))))
@@ -222,12 +222,6 @@
 (define exists? (lambda (s p?) (tree-exists? (tree s) p?)))
 (define forall? (lambda (s p?) (tree-forall? (tree s) p?)))
 (define foreach (lambda (s f) (tree-foreach (tree s) f)))
-;----------------------------------------
-;                Tests
-;----------------------------------------  
-(define odds (list-> (list 1 3 5 7 9))) 
-(define evens (list-> (list 2 4 6 8 10)))
-(define mix (list-> (list 1 2 4 7 8)))
 
 (define tree/c
   (or/c null?
@@ -238,19 +232,18 @@
 (provide
  (contract-out
   [empty (-> empty?)]
-  [odds (not/c empty?)]
   [size (set/c . -> . exact-nonnegative-integer?)]
-  [splay-equal? (#|FIXME|# none/c none/c . -> . boolean?)]
-  [min (#|FIXME|# none/c . -> . real?)]
-  [max (#|FIXME|# none/c . -> . real?)]
-  [contains? (#|FIXME|# none/c real? . -> . boolean?)]
-  [subset? (#|FIXME|# none/c none/c . -> . boolean?)]
-  [superset? (#|FIXME|# none/c none/c . -> . boolean?)]
-  [disjoint? (#|FIXME|# none/c none/c . -> . boolean?)]
-  [union (#|FIXME|# none/c none/c . -> . any/c)]
-  [intersection (#|FIXME|# none/c none/c . -> . any/c)]
-  [difference (#|FIXME|# none/c none/c . -> . any/c)]
-  [forall? (#|FIXME|# none/c (real? . -> . any/c) . -> . any/c)]
-  [subset (#|FIXME|# none/c (real? . -> . any/c) . -> . #|FIXME|# any/c)]
-  [foreach (#|FIXME|# none/c (real? . -> . any/c) . -> . any/c)]
+  [splay-equal? (set/c set/c . -> . boolean?)]
+  [min ((and/c set/c (not/c empty?)) . -> . real?)]
+  [max ((and/c set/c (not/c empty?)) . -> . real?)]
+  [contains? (set/c real? . -> . boolean?)]
+  [subset? (set/c set/c . -> . boolean?)]
+  [superset? (set/c set/c . -> . boolean?)]
+  [disjoint? (set/c set/c . -> . boolean?)]
+  [union (set/c set/c . -> . any/c)]
+  [intersection (set/c set/c . -> . any/c)]
+  [difference (set/c set/c . -> . any/c)]
+  [forall? (set/c (real? . -> . any/c) . -> . any/c)]
+  [subset (set/c (real? . -> . any/c) . -> . set/c)]
+  [foreach (set/c (real? . -> . any/c) . -> . null?)]
   ))
