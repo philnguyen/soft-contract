@@ -67,66 +67,6 @@
 
 (define printing : (HashTable (List -V (U -e -V)) Void) (make-hash))
 
-(: V+ : -σ -V (U -v -V (℘ -v) (℘ -V)) → -V)
-;; refine opaque value with predicate
-(define (V+ σ V P) : -V
-  
-  (define (simplify [P : -V]) : -V
-    (match P
-      [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
-       (define-values (Vs _) (σ@ σ α))
-       (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
-             [else P])]
-      [_ P]))
-  
-  (cond
-    [(set? P)
-     (for/fold ([V : -V V]) ([Pᵢ (in-set P)])
-       (V+ σ V Pᵢ))]
-    [else
-     (with-debugging/off
-       ((V*)
-        (match V
-          [(-● ps)
-           (match P
-             [(-λ (list x) (-@ (or '= 'equal? 'eq?)
-                               (or (list (-x x) (? -V? V*))
-                                   (list (? -V? V*) (-x x)))
-                               _))
-              #:when V*
-              V*]
-             ['not -ff]
-             ['null? -null]
-             ['void? -void]
-             ;; HACK special cases
-             ['exact-nonnegative-integer?
-              (-● (set-subtract (set-add ps 'exact-nonnegative-integer?)
-                                (set 'number? 'real? 'integer?)))]
-             ['integer?
-              (cond [(∋ ps 'exact-nonnegative-integer?) V]
-                    [else (-● (set-subtract (set-add ps 'integer?)
-                                            (set 'number? 'real?)))])]
-             ['real?
-              (cond [(or (∋ ps 'integer?) (∋ ps 'exact-nonnegative-integer?)) V]
-                    [else (-● (set-remove (set-add ps 'real?) 'number?))])]
-             ['number?
-              (cond [(or (∋ ps 'integer?) (∋ ps 'real?) (∋ ps 'exact-nonnegative-integer?)) V]
-                    [else (-● (set-add ps 'number?))])]
-             ;; end HACK special cases
-             [(? -v? v) (-● (set-add ps v))]
-             [(? -V? P)
-              (match (simplify P)
-                [(? -o? o) (-● (set-add ps o))]
-                [_ V])])]
-          [_ V]))
-       
-       (hash-ref! printing (list V P)
-                  (λ ()
-                    (printf "~a + ~a -> ~a~n"
-                            (show-V V)
-                            (if (-v? P) (show-e P) (show-V P))
-                            (show-V V*)))))]))
-
 (: behavioral? : -σ -V → Boolean)
 ;; Check if value maybe behavioral.
 ;; `#t` is a conservative answer "maybe yes"

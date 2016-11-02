@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢e φs⊢e ⊢V p∋Vs
+(provide Γ⊢e φs⊢e ⊢V p∋Vs p⇒p
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 
@@ -576,11 +576,12 @@
      (decide-R (equal? si sj))]
 
     ;; Negate
-    [((-λ (list x) (-@ 'not (list e₁) _))
-      (-λ (list y) (-@ 'not (list e₂) _)))
-     (case (p⇒p (-λ (list y) e₂) (-λ (list x) e₁))
+    [((-not/c (? -v? p)) (-not/c (? -v? q)))
+     (case (p⇒p q p)
        [(✓) '✓]
        [else '?])]
+    [(p (-not/c (? -v? q)))
+     (not-R (p⇒p p q))]
 
     ;; Special rules for reals
     ; 
