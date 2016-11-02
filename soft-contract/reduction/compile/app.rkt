@@ -260,9 +260,9 @@
 
   (define (app-δ [o : Symbol])
     (match-define (-ℒ _ ℓ) ℒ)
-    (define ?Vs (δ! 𝒞 ℓ M σ Γ o Wₓs))
-    (cond [?Vs (⟦k⟧ (-W ?Vs sₐ) $ Γ 𝒞 Σ)]
-          [else ∅]))
+    (define V-lists (δ! 𝒞 ℓ M σ Γ o Wₓs))
+    (for/union : (℘ -ς) ([Vs V-lists])
+      (⟦k⟧ (-W Vs sₐ) $ Γ 𝒞 Σ)))
 
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧!] [ρₕ : -ρ] [Γₕ : -Γ])
     (define 𝒞* (𝒞+ 𝒞 (cons ⟦e⟧ ℒ)))
