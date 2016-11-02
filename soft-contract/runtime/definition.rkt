@@ -39,7 +39,7 @@
     ((Vs old?)
      (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
      (values Vs old?))
-    (when (and (-α.x? α) (>= (set-count Vs) 2))
+    (when (>= (set-count Vs) 5)
       (printf "σ@: ~a -> ~a~n" α (set-count Vs))
       (for ([V Vs])
         (printf "  - ~a~n" (show-V V)))
