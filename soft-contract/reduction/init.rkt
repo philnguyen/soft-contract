@@ -114,7 +114,7 @@
     [`(not/c ,s*)
      (define-values (C* c*) (alloc-C! σ s*))
      (alloc-const! σ C* c*)
-     (values (-Not/C (cons c* (+ℓ!))) (-not/c c*))]
+     (values (-Not/C (cons c* (+ℓ!))) (-@ 'not/c (list c*) +ℓ₀))]
     [`(one-of/c ,ss ...)
      (log-warning "TODO: one-of/c~n")
      (values 'any/c 'any/c)]

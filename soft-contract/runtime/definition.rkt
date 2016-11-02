@@ -39,8 +39,12 @@
     ((Vs old?)
      (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
      (values Vs old?))
-    (when (>= (set-count Vs) 9)
-      (printf "σ@: ~a -> ~a~n" (show-α α) (set-count Vs)))))
+    (when (>= (set-count Vs) 3)
+      (printf "σ@: ~a -> ~a~n" α (set-count Vs))
+      (for ([V Vs])
+        (printf "  - ~a~n" (show-V V)))
+      (printf "~n")
+      #;(error "done"))))
 
 (: σ@ᵥ : -σ -α → (℘ -V))
 (define (σ@ᵥ σ α)
@@ -54,6 +58,11 @@
     (let ([Vs** (set-add Vs V)])
       (cond [(∋ Vs** (-● ∅))
              (for/set: : (℘ -V) ([V Vs**] #:unless (-prim? V)) V)]
+            [(and (∋ Vs** (-● {set 'list?}))
+                  (∋ Vs** -null))
+             (set-remove Vs** -null)]
+            [(∋ Vs** (-● {set 'real?}))
+             (for/set: : (℘ -V) ([V Vs**] #:unless (match? V (-b (? real?)))) V)]
             [else Vs**])))
   (-σr Vs* (and bind?₀ bind?)))
 
@@ -133,7 +142,7 @@
 
 (-V . ::= . 'undefined
             -prim
-            (-● (℘ #|closed|# -e))
+            (-● (℘ #|closed|# -v))
             (-St -struct-info (Listof (U -α.fld -α.var-car -α.var-cdr)))
             (-Vector (Listof -α.idx))
             -Fn

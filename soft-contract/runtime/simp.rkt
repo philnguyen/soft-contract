@@ -185,6 +185,9 @@
 (define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
   (syntax-rules () [(_ e) (and e (-@ 'not (list e) +ℓ₀))]))
+(define-match-expander -not/c
+  (syntax-rules () [(_ p) (-λ (list x) (-@ 'not (list (-@ p (list (-x x)) _)) _))])
+  (syntax-rules () [(_ p) (-λ '(𝒙) (-@ 'not (list (-@ p (list (-x '𝒙)) +ℓ₀)) +ℓ₀))]))
 
 (: -struct/c-split : -s -struct-info → (Listof -s))
 (define (-struct/c-split c s)

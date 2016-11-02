@@ -67,7 +67,7 @@
 
 (define printing : (HashTable (List -V (U -e -V)) Void) (make-hash))
 
-(: V+ : -σ -V (U -e -V (℘ -e) (℘ -V)) → -V)
+(: V+ : -σ -V (U -v -V (℘ -v) (℘ -V)) → -V)
 ;; refine opaque value with predicate
 (define (V+ σ V P) : -V
   
@@ -113,7 +113,7 @@
               (cond [(or (∋ ps 'integer?) (∋ ps 'real?) (∋ ps 'exact-nonnegative-integer?)) V]
                     [else (-● (set-add ps 'number?))])]
              ;; end HACK special cases
-             [(? -e? e) (-● (set-add ps e))]
+             [(? -v? v) (-● (set-add ps v))]
              [(? -V? P)
               (match (simplify P)
                 [(? -o? o) (-● (set-add ps o))]
@@ -124,5 +124,7 @@
                   (λ ()
                     (printf "~a + ~a -> ~a~n"
                             (show-V V)
-                            (if (-e? P) (show-e P) (show-V P))
+                            (if (-v? P) (show-e P) (show-V P))
                             (show-V V*)))))]))
+
+

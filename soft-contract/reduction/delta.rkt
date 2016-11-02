@@ -157,7 +157,7 @@
      (list -car -cdr (-● ∅) -cons? -ff -ff)]
 
     [make-vector
-     (list (-● {set 'vector? (-@ 'not/c (list 'immutable?) +ℓ₀)}))]
+     (list (-● {set 'vector? (-not/c 'immutable?)}))]
     ))
 
 (define-syntax (with-args stx)
@@ -253,7 +253,7 @@
               ['negative? #'{set (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀))}]
               [(? symbol? r) #`{set (quote #,r)}]
               [(list 'not/c (? symbol? rng*))
-               #`{set (-@ 'not/c (list '#,rng*) +ℓ₀)}]
+               #`{set (-not/c '#,rng*)}]
               [(list 'and/c rng* ...)
                (define rs (map rng->stx rng*))
                #`{∪ #,@rs}]))

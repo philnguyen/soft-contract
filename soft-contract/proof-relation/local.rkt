@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢e φs⊢e ⊢V p∋Vs
+(provide Γ⊢e φs⊢e ⊢V p∋Vs V⊑
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 
@@ -323,7 +323,7 @@
          '?)]
     [_ '✓]))
 
-(: p∋Vs : -σ -V -V * → -R)
+(: p∋Vs : -σ (U -v -V) -V * → -R)
 ;; Check if value satisfies predicate
 (define (p∋Vs σ p . Vs)
   
@@ -334,7 +334,8 @@
 
   (with-debugging/off
     ((ans)
-     (ann(match Vs
+     (ann
+      (match Vs
        [(list (-● ps)) #:when (-v? p)
         (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-v? q))
               (case (p⇒p q p)
@@ -511,6 +512,38 @@
                              [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) '✗]
                                       [else '?])])]))]
                 [else '?])])]
+          [(-not/c (? -v? p))
+           (not-R (apply p∋Vs σ p Vs))]
+          [(-λ (list x) (-@ 'not (list e) _))
+           (not-R (apply p∋Vs σ (-λ (list x) e) Vs))] ; more general than the `not/c` case
+          [(-λ (list x) (-@ (? -o? o) (list (-b (? real? a)) (-x x)) _))
+           (match Vs
+             [(list (-b b))
+              (define op : (Real Real → Boolean)
+                (case o
+                  [(<) <]
+                  [(<=) <=]
+                  [(>) >]
+                  [(>=) >=]
+                  [(=) =]
+                  [else (error 'p∋Vs "unhandled: ~a" o)]))
+              (decide-R (and (real? b) (op a b)))]
+             [(list (-● ps)) #|TODO|# '?]
+             [_ '✗])]
+          [(-λ (list x) (-@ (? -o? o) (list (-x x) (-b (? real? a))) _))
+           (match Vs
+             [(list (-b b))
+              (define op : (Real Real → Boolean)
+                (case o
+                  [(<) <]
+                  [(<=) <=]
+                  [(>) >]
+                  [(>=) >=]
+                  [(=) =]
+                  [else (error 'p∋Vs "unhandled: ~a" o)]))
+              (decide-R (and (real? b) (op b a)))]
+             [(list (-● ps)) #|TODO|# '?]
+             [_ '✗])]
           [_ '?])]) -R))
     (when (equal? p 'list?)
       (printf "~a ∋ ~a: ~a~n" (show-V p) (map show-V Vs) ans))))
@@ -541,6 +574,13 @@
     [((-st-p si) (-st-p sj))
      ;; TODO: no sub-struct for now. Probably changes later
      (decide-R (equal? si sj))]
+
+    ;; Negate
+    [((-λ (list x) (-@ 'not (list e₁) _))
+      (-λ (list y) (-@ 'not (list e₂) _)))
+     (case (p⇒p (-λ (list y) e₂) (-λ (list x) e₁))
+       [(✓) '✓]
+       [else '?])]
 
     ;; Special rules for reals
     ; 
@@ -575,6 +615,18 @@
                 (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
             '✗]
            [else '?])]))
+
+(: V⊑ : -σ -V -V → Boolean)
+;; Check if `V₂` definitely subsumes `V₁`
+;; `#f` is a conservative "don't know" answer
+(define (V⊑ σ V₁ V₂)
+  (let loop ([V₁ : -V V₁] [V₂ : -V V₂])
+    (match* (V₁ V₂)
+      [(V V) #t]
+      [(_ (-● ps))
+       (for/and : Boolean ([p ps])
+         (equal? '✓ (p∋Vs σ p V₁)))]
+      [(_ _) #f])))
 
 (module+ test
   (require typed/rackunit

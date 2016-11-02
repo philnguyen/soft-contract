@@ -199,10 +199,6 @@
          (-@ (-𝒾 o 'Λ) (list e (-app/c o es*)) (+ℓ!))]))
     (values (curry -app/c 'and/c) (curry -app/c 'or/c))))
 
-(: -not/c : -e → -e)
-(define (-not/c e)
-  (-@ (-𝒾 'not/c 'Λ) (list e) (+ℓ!)))
-
 (: -one-of/c : (Listof -e) → -e)
 (define (-one-of/c es)
   (cond
