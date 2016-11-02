@@ -21,6 +21,8 @@
  )
 (provide δ!)
 
+(define cache : (HashTable Any Void) (make-hash))
+
 ;; Different kinds of primitives:
 ;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
 ;; - Other primitives:
@@ -242,8 +244,8 @@
           (define/contract (rng->stx rng)
             (base? . -> . syntax?)
             (match rng
-              ['positive? #'{set (-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀))}]
-              ['negative? #'{set (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀))}]
+              ['positive? #'{set (->/c 0)}]
+              ['negative? #'{set (-</c 0)}]
               [(? symbol? r) #`{set (quote #,r)}]
               [(list 'not/c (? symbol? rng*))
                #`{set (-not/c '#,rng*)}]
