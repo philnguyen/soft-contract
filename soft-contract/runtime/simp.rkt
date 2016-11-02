@@ -25,7 +25,7 @@
          racket/string
          racket/vector
          (except-in racket/function arity-includes?)
-         (except-in racket/list remove-duplicates)
+         racket/list
          "../utils/main.rkt"
          "../ast/main.rkt"
          "definition.rkt")

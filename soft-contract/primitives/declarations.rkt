@@ -83,7 +83,6 @@
       ((not/c positive?) (not/c positive?) . -> . (not/c positive?))]
      [- ; FIXME varargs
       (number? number? . -> . number?)
-      (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)]
      [* ; FIXME varargs
@@ -780,15 +779,16 @@
 
      ;; 4.9.2 List Operations
      [length
-      ((listof any/c) . -> . exact-nonnegative-integer?)]
+      (list? . -> . exact-nonnegative-integer?)]
      [list-ref
       (pair? exact-nonnegative-integer? . -> . any/c)]
      [list-tail
-      (any/c exact-nonnegative-integer? . -> . any/c)]
+      (any/c exact-nonnegative-integer? . -> . any/c)
+      (list? exact-nonnegative-integer? . -> . list?)]
      [append ; FIXME uses
-      ((listof any/c) (listof any/c) . -> . (listof any/c))]
+      (list? list? . -> . list?)]
      [reverse
-      ((listof any/c) . -> . (listof any/c))]
+      (list? . -> . list?)]
 
      ;; 4.9.3 List Iteration
      [map ; FIXME uses
@@ -1737,15 +1737,15 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;;;;; 13.3 Byte and String Output
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    [write-char (char? #|FIXME|# any/c . -> . void?)] ; FIXME uses
-    [newline (any/c . -> . void?)] ; FIXME uses
+    [write-char (char? output-port? . -> . void?)] ; FIXME uses
+    [newline (output-port? . -> . void?)] ; FIXME uses
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;;;;; 13.5 Writing
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     [write (any/c . -> . void?)] ; FIXME uses
-    [display (any/c any/c . -> . void?)] ; FIXME uses
+    [display (any/c output-port? . -> . void?)] ; FIXME uses
 
     )) 
 

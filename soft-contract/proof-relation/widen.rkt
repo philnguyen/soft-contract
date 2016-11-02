@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
-(provide σ⊕! σ⊕*! V+)
+(provide σ⊕! σ⊕*! V+
+         extract-list-content)
 
 (require racket/match
          racket/set
@@ -147,3 +148,22 @@
     (match (f xs x)
       [(cons xs* x*) (loop xs* x*)]
       [(? set? s) s])))
+
+(: extract-list-content : -σ -St → (℘ -V))
+;; Return an abstract value approximating all list element in `V`
+(define (extract-list-content σ V)
+  (define-set seen : -α #:eq? #t)
+  (match-define (-St (== -s-cons) (list αₕ αₜ)) V)
+  (define Vs (σ@ᵥ σ αₕ))
+  (let loop! ([αₜ : -α αₜ])
+    (unless (seen-has? αₜ)
+      (seen-add! αₜ)
+      (for ([Vₜ (σ@ᵥ σ αₜ)])
+        (match Vₜ
+          [(-St (== -s-cons) (list αₕ* αₜ*))
+           (for ([Vₕ (σ@ᵥ σ αₕ*)])
+             (set! Vs (Vs⊕ σ Vs Vₕ)))
+           (loop! αₜ*)]
+          [(-b (list)) (void)]
+          [_ (set! Vs (Vs⊕ σ Vs (-● ∅)))]))))
+  Vs)

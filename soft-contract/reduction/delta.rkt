@@ -151,8 +151,98 @@
      {set (list (-● {set 'vector? (-not/c 'immutable?)}))}]
 
     [memq
-     {set (list (-● {set 'list?}))
+     (match Ws
+       [(list _ (-W¹ Vₗ _))
+        (match Vₗ
+          [(-St (== -s-cons) _)
+           (define Vₜs (all-tails σ Vₗ))
+           (for/fold ([ans : (℘ (Listof -V)) {set (list -ff)}])
+                     ([Vₜ Vₜs] #:unless (equal? Vₜ -null))
+             (set-add ans (list Vₜ)))]
+          [_ {set (list (-● {set 'list? -cons?}))
+                  (list -ff)}])]
+       [_ ∅])]
+
+    [getenv
+     {set (list (-● {set 'string?}))
           (list -ff)}]
+
+    [reverse
+     (match Ws
+       [(list (-W¹ Vₗ _))
+        (match Vₗ
+          [(-b (list)) {set (list -null)}]
+          [(-St (== -s-cons) _)
+           (define 𝒾 (-struct-info-id -s-cons))
+           (define ℒ (-ℒ ∅ ℓ))
+           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
+           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
+           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (define Vₕs (extract-list-content σ Vₗ))
+           (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ #t))
+           (σ⊕! σ αₜ Vₜ #t)
+           {set (list Vₜ)}]
+          [(-● ps)
+           (cond [(∋ ps -cons?) {set (list (-● {set -cons?}))}]
+                 [else          {set (list (-● {set 'list?}))}])]
+          [_ {set (list (-● {set 'list?}))}])]
+       [_ ∅])
+     {set (list (-● {set 'list?}))}]
+
+    [string->list
+     (match Ws
+       [(list (-W¹ Vₛ _))
+        (match Vₛ
+          [(-b "") {set (list -null)}]
+          [_
+           (define 𝒾 (-struct-info-id -s-cons))
+           (define ℒ (-ℒ ∅ ℓ))
+           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
+           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
+           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (σ⊕! σ αₕ (-● {set 'char?}) #t)
+           (σ⊕! σ αₜ Vₜ #t)
+           (σ⊕! σ αₜ -null #t)
+           (match Vₛ
+             [(-b (? string? s)) #:when (> (string-length s) 0)
+              {set (list Vₜ)}]
+             [_
+              {set (list Vₜ)
+                (list -null)}])])]
+       [_ ∅])]
+    
+    [list->string
+     (match Ws
+       [(list (-W¹ Vₗ _))
+        (match Vₗ
+          [(-b (list)) {set (list (-b ""))}]
+          [_           {set (list (-● {set 'string?}))}])]
+       [_ ∅])]
+
+    [list-tail
+     (match Ws
+       [(list (-W¹ Vₗ _) _)
+        (match Vₗ
+          [(? -St? Vₗ)
+           (define Vₕs (extract-list-content σ Vₗ))
+           (define 𝒾 (-struct-info-id -s-cons))
+           (define ℒ (-ℒ ∅ ℓ))
+           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
+           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
+           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ #t))
+           (σ⊕! σ αₜ Vₜ #t)
+           (σ⊕! σ αₜ -null #t)
+           {set (list Vₜ)
+                (list -null)}]
+          [(-b (list))
+           {set (list -null)}]
+          [_
+           {set (list (-● (set 'list?)))}])]
+       [_ ∅])]
+
+    [string-append
+     {set (list (-● {set 'string?}))}]
     ))
 
 (define-syntax (with-args stx)
@@ -350,9 +440,23 @@
 (: δ! : -𝒞 -ℓ -M -σ -Γ Symbol (Listof -W¹) → (℘ (Listof -V)))
 ;; Return possible answers for primitives
 (define (δ! 𝒞 ℓ M σ Γ o Ws)
-  (with-debugging/off ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
-    (when (equal? o '>=)
-      (printf "δ ~a ~a -> ~a~n" (show-o o) (map show-W¹ Ws) (and ans (map show-V ans))))))
+  (with-debugging ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
+    (hash-ref! cache o
+               (λ ()
+                 (printf "δ: ~a _ ... -> ~a~n" o (for/list : (Listof Any) ([V-list ans])
+                                                   (map show-V V-list)))))))
+
+(: all-tails : -σ -St → (℘ -V))
+(define (all-tails σ V)
+  (define-set seen : -V #:eq? #t)
+  (let loop! : Void ([V : -V V])
+    (unless (seen-has? V)
+      (seen-add! V)
+      (match V
+        [(-St (== -s-cons) (list _ αₜ))
+         (set-for-each (σ@ᵥ σ αₜ) loop!)]
+        [else (void)])))
+  seen)
 
 
 (module+ test
