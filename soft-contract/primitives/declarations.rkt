@@ -1882,7 +1882,7 @@
        [(integer? rational? real? number? zero?
          inexact? inexact-real? exact-integer? exact-nonnegative-integer? flonum? single-flonum?
          extflonum?
-         boolean? string? symbol? keyword? char? null? void? eof-object?
+         boolean? path-string? string? symbol? keyword? char? null? void? eof-object?
          vector? immutable?
          positive? negative? zero?
          #|TODO why did I duplicate this in addition to `base-predicates`?|#)
