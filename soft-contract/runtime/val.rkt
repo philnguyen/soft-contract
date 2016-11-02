@@ -127,4 +127,40 @@
                             (if (-v? P) (show-e P) (show-V P))
                             (show-V V*)))))]))
 
+(: behavioral? : -σ -V → Boolean)
+;; Check if value maybe behavioral.
+;; `#t` is a conservative answer "maybe yes"
+;; `#f` is a strong answer "definitely no"
+(define (behavioral? σ V)
+  (define-set seen : -V #:eq? #t)
 
+  (: check-α! : -α → Boolean)
+  (define (check-α! α)
+    (for/or ([V (σ@ᵥ σ α)])
+      (check! V)))
+
+  (: check! : -V → Boolean)
+  (define (check! V)
+    (cond
+      [(seen-has? V) #f]
+      [else
+       (seen-add! V)
+       (match V
+         [(-St _ αs) (ormap check-α! αs)]
+         [(-St* _ _ α _) (check-α! α)]
+         [(-Vector αs) (ormap check-α! αs)]
+         [(-Ar grd α _) (or (check-α! α) (check! grd))]
+         [(-=> doms rng _)
+          (or (check-α! (car rng))
+              (for/or : Boolean ([dom doms])
+                (check-α! (car dom))))]
+         [(? -=>i?) #t]
+         [(-Case-> cases _)
+          (for*/or : Boolean ([kase : (Pairof (Listof -α) -α) cases])
+            (match-define (cons doms rng) kase)
+            (or (check-α! rng)
+                (ormap check-α! doms)))]
+         [(or (? -Clo?) (? -Case-Clo?)) #t]
+         [_ #f])]))
+
+  (check! V))

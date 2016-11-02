@@ -39,7 +39,7 @@
     ((Vs old?)
      (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
      (values Vs old?))
-    (when (>= (set-count Vs) 3)
+    (when (and (-α.x? α) (>= (set-count Vs) 2))
       (printf "σ@: ~a -> ~a~n" α (set-count Vs))
       (for ([V Vs])
         (printf "  - ~a~n" (show-V V)))
@@ -50,37 +50,6 @@
 (define (σ@ᵥ σ α)
   (define-values (Vs _) (σ@ σ α))
   Vs)
-
-(: σr⊔ : -σr -V Boolean → -σr)
-(define (σr⊔ σr V bind?)
-  (match-define (-σr Vs bind?₀) σr)
-  (define Vs* ; TODO tmp hack. Generalize later by removing vlaues subsumed by others
-    (let ([Vs** (set-add Vs V)])
-      (cond [(∋ Vs** (-● ∅))
-             (for/set: : (℘ -V) ([V Vs**] #:unless (-prim? V)) V)]
-            [(and (∋ Vs** (-● {set 'list?}))
-                  (∋ Vs** -null))
-             (set-remove Vs** -null)]
-            [(∋ Vs** (-● {set 'real?}))
-             (for/set: : (℘ -V) ([V Vs**] #:unless (match? V (-b (? real?)))) V)]
-            [else Vs**])))
-  (-σr Vs* (and bind?₀ bind?)))
-
-(: σ⊔! : -σ -α -V Boolean → Void)
-(define (σ⊔! σ α V bind?)
-  (match-define (-σ m i) σ)
-  (match-define (and σr (-σr Vs b?)) (hash-ref m α (λ () ⊥σr)))
-  (unless (and (∋ Vs V) (equal? b? bind?))
-    (set--σ-m! σ (hash-update m α (λ ([σr : -σr]) (σr⊔ σr V bind?)) (λ () ⊥σr)))
-    (set--σ-version! σ (assert (+ 1 i) fixnum?))))
-
-(define-syntax σ⊔*!
-  (syntax-rules (↦)
-    [(_ σ [α ↦ V b?]) (σ⊔! σ α V b?)]
-    [(_ σ [α ↦ V b?] p ...)
-     (begin
-       (σ⊔!  σ α V b?)
-       (σ⊔*! σ p ...))]))
 
 (: σ-remove! : -σ -α -V → Void)
 (define (σ-remove! σ α V)

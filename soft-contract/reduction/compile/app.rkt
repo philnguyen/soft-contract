@@ -59,7 +59,7 @@
         (-α.fld 𝒾 ℒ #;ℓ 𝒞 i)))
     (for ([α αs] [Vₓ Vₓs] [sₓ sₓs])
       (define Vₓ* (V+ σ Vₓ (predicates-of Γ sₓ)))
-      (σ⊔! σ α Vₓ* #t))
+      (σ⊕! σ α Vₓ* #t))
     (define V (-St s αs))
     (⟦k⟧ (-W (list V) sₐ) $ Γ 𝒞 Σ))
 
@@ -122,7 +122,7 @@
     (match Vₛ
       [(-St (== s) αs)
        (define α (list-ref αs i))
-       (σ⊔! σ α Vᵥ #f)
+       (σ⊕! σ α Vᵥ #f)
        (define $* (hash-set $ α Vᵥ))
        (⟦k⟧ -Void/W $* Γ 𝒞 Σ)]
       [(-St* (== s) γs α l³)
@@ -226,7 +226,7 @@
                             #:when (exact-nonnegative-integer? i) ; hack for TR
                             #:when (plausible-index? M σ Γ Wᵢ i))
          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-         (σ⊔! σ α Vᵤ #f)
+         (σ⊕! σ α Vᵤ #f)
          (⟦k⟧ -Void/W $ Γ* 𝒞 Σ))]
       [(-Vector/hetero αs l³)
        (match-define (-l³ l+ l- lo) l³)
@@ -281,7 +281,7 @@
          (let ([ρ₀ (alloc-init-args! σ Γ ρₕ 𝒞* zs Ws₀)])
            (define Vᵣ (alloc-rest-args! σ 𝒞* ℒ Wsᵣ))
            (define αᵣ (-α.x z 𝒞*))
-           (σ⊔! σ αᵣ Vᵣ #t)
+           (σ⊕! σ αᵣ Vᵣ #t)
            (ρ+ ρ₀ z αᵣ)))
        ;; Push stack and jump to new state
        (define αₖ (-ℬ xs ⟦e⟧ ρ*))
@@ -516,7 +516,7 @@
       ;; Refine arguments by type-like contracts before proceeding
       ;; This could save lots of spurious errors to eliminate later
       (V+ σ Vₓ (predicates-of Γ sₓ)))
-    (σ⊔! σ α Vₓ* #t)
+    (σ⊕! σ α Vₓ* #t)
     (ρ+ ρ x α)))
 
 (: alloc-rest-args! : -σ -𝒞 -ℒ (Listof -W¹) → -V)
@@ -528,8 +528,8 @@
        (define α₁ (-α.var-car ℒ 𝒞 i))
        (define α₂ (-α.var-cdr ℒ 𝒞 i))
        (define Vᵣ (loop! Ws* (+ 1 i)))
-       (σ⊔! σ α₁ (-W¹-V W)  #t)
-       (σ⊔! σ α₂ Vᵣ         #t)
+       (σ⊕! σ α₁ (-W¹-V W)  #t)
+       (σ⊕! σ α₂ Vᵣ         #t)
        (-St -s-cons (list α₁ α₂))])))
 
 (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
@@ -645,7 +645,7 @@
                       ([bnd-W bnd-Ws*])
               (match-define (list (? Var-Name? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
               (define α (-α.x x 𝒞))
-              (σ⊔! σ α Vₓ #t)
+              (σ⊕! σ α Vₓ #t)
               (values (ρ+ ρ x α) (-Γ-with-aliases Γ x sₓ))))
           (⟦e⟧ ρ* $ Γ* 𝒞 Σ ⟦k⟧)]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
@@ -700,7 +700,7 @@
                     [else (error 'mon-=>_ "unexpected")]))
             (define α (or (keep-if-const v) (-α.fn ℒ grd-ℓ 𝒞)))
             (define Ar (-Ar grd α l³))
-            (σ⊔! σ α V #t)
+            (σ⊕! σ α V #t)
             (define v* ; hack
               (match v
                 [(-ar (== c) _) v]
@@ -1076,7 +1076,7 @@
   (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (αs α)
     (match-define (-W Vs s) A)
     (match-define (list V) Vs) ; only used internally, should be safe
-    (σ⊔! (-Σ-σ Σ) α V #t)
+    (σ⊕! (-Σ-σ Σ) α V #t)
     (⟦k⟧! (-W (list V*) s) $ Γ 𝒞 Σ)))
 
 (define/memo (fc-and/c∷ [l : -l]
@@ -1194,7 +1194,7 @@
   (λ (ρ $ Γ 𝒞 Σ ⟦k⟧!)
     (match-define (-Σ σ _ _) Σ)
     (for ([α αs]) ; TODO: remove other concrete values?
-      (σ⊔! σ α -●/V #f))
+      (σ⊕! σ α -●/V #f))
     (⟦k⟧! -Void/W $ Γ 𝒞 Σ)))
 
 (define/memo (mk-begin-⟦e⟧ [⟦e⟧s : (Listof -⟦e⟧!)]) : -⟦e⟧!

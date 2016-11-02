@@ -187,7 +187,24 @@
   (syntax-rules () [(_ e) (and e (-@ 'not (list e) +ℓ₀))]))
 (define-match-expander -not/c
   (syntax-rules () [(_ p) (-λ (list x) (-@ 'not (list (-@ p (list (-x x)) _)) _))])
-  (syntax-rules () [(_ p) (-λ '(𝒙) (-@ 'not (list (-@ p (list (-x '𝒙)) +ℓ₀)) +ℓ₀))]))
+  (syntax-rules () [(_ p)
+                    (case p
+                      [(negative?) (-≥/c 0)]
+                      [(positive?) (-≤/c 0)]
+                      [else
+                       (-λ '(𝒙) (-@ 'not (list (-@ p (list (-x '𝒙)) +ℓ₀)) +ℓ₀))])]))
+(define-match-expander -</c
+  (syntax-rules () [(_ c) (-λ (list x) (-@ '< (list (-x x) (-b c)) _))])
+  (syntax-rules () [(_ c) (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b c)) +ℓ₀))]))
+(define-match-expander -≤/c
+  (syntax-rules () [(_ c) (-λ (list x) (-@ '<= (list (-x x) (-b c)) _))])
+  (syntax-rules () [(_ c) (-λ '(𝒙) (-@ '<= (list (-x '𝒙) (-b c)) +ℓ₀))]))
+(define-match-expander ->/c
+  (syntax-rules () [(_ c) (-λ (list x) (-@ '< (list (-b c) (-x x)) _))])
+  (syntax-rules () [(_ c) (-λ '(𝒙) (-@ '< (list (-b c) (-x '𝒙)) +ℓ₀))]))
+(define-match-expander -≥/c
+  (syntax-rules () [(_ c) (-λ (list x) (-@ '<= (list (-b c) (-x x)) _))])
+  (syntax-rules () [(_ c) (-λ '(𝒙) (-@ '<= (list (-b c) (-x '𝒙)) +ℓ₀))]))
 
 (: -struct/c-split : -s -struct-info → (Listof -s))
 (define (-struct/c-split c s)

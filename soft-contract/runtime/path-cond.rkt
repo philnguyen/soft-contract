@@ -90,17 +90,18 @@
     (printf "invalidate ~a:~n- before: ~a~n- after: ~a~n~n"
             (show-Var-Name x) (show-Γ Γ) (show-Γ Γ*))))
 
-(: predicates-of : (U -Γ (℘ -e)) -s → (℘ -e))
+(: predicates-of : (U -Γ (℘ -e)) -s → (℘ -v))
 ;; Extract type-like contracts on given symbol
 (define (predicates-of Γ s)
   (cond
     [(-Γ? Γ) (predicates-of (-Γ-facts Γ) s)]
     [else
-     (for/fold ([ps : (℘ -e) ∅]) ([φ Γ])
+     (for/fold ([ps : (℘ -v) ∅]) ([φ Γ])
        (match φ
          ;; unary
-         [(-@ (? -o? o) (list (== s)) _)
-          (set-add ps o)]
+         [(-@ 'negative? (list (== s)) _) (set-add ps (-</c 0))]
+         [(-@ 'positive? (list (== s)) _) (set-add ps (->/c 0))]
+         [(-@ (? -o? o)  (list (== s)) _) (set-add ps o)]
          ;; binary
          [(-@ (? -o? o) (list (== s) (and v (? -v?) (? closed?))) _)
           (set-add ps (-λ '(𝒙) (-@ o (list (-x '𝒙) v) +ℓ₀)))]
@@ -108,7 +109,7 @@
           (set-add ps (-λ '(𝒙) (-@ o (list v (-x '𝒙)) +ℓ₀)))]
          ;; negate unary
          [(-@ 'not (list (-@ (? -o? o) (list (== s)) _)) _)
-          (set-add ps (-@ 'not/c (list o) +ℓ₀))]
+          (set-add ps (-not/c o))]
          ;; negate binary
          [(-@ 'not (list (-@ (? -o? o) (list (== s) (and v (? -v?) (? closed?))) _)) _)
           (set-add ps (-λ '(𝒙) (-@/simp 'not (-@/simp o (-x '𝒙) v))))]

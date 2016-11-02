@@ -46,7 +46,7 @@
        [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
         (define α₁ (or (keep-if-const s₁) (-α.and/c-l ℓ 𝒞)))
         (define α₂ (or (keep-if-const s₂) (-α.and/c-r ℓ 𝒞)))
-        (σ⊔*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
+        (σ⊕*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
         (define ℓ₁ (+ℓ/ctc ℓ 0))
         (define ℓ₂ (+ℓ/ctc ℓ 1))
         (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))]
@@ -56,7 +56,7 @@
        [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
         (define α₁ (or (keep-if-const s₁) (-α.or/c-l ℓ 𝒞)))
         (define α₂ (or (keep-if-const s₂) (-α.or/c-r ℓ 𝒞)))
-        (σ⊔*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
+        (σ⊕*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
         (define ℓ₁ (+ℓ/ctc ℓ 0))
         (define ℓ₂ (+ℓ/ctc ℓ 1))
         (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))]
@@ -65,7 +65,7 @@
      (match Ws
        [(list (-W¹ V s))
         (define α (or (keep-if-const s) (-α.not/c ℓ 𝒞)))
-        (σ⊔! σ α V #t)
+        (σ⊕! σ α V #t)
         (define ℓ* (+ℓ/ctc ℓ 0))
         (list (-Not/C (cons α ℓ*)))]
        [Ws (error-arity 'not/c 1 (length Ws))])]
@@ -75,7 +75,7 @@
        (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
          (-α.idx ℓ 𝒞 (assert i exact-nonnegative-integer?))))
      (for ([α αs] [W Ws])
-       (σ⊔! σ α (-W¹-V W) #t))
+       (σ⊕! σ α (-W¹-V W) #t))
      (list (-Vector αs))]
     [vector?
      (match Ws
@@ -94,7 +94,7 @@
      (match Ws
        [(list (-W¹ V s))
         (define α (or (keep-if-const s) (-α.vectorof ℓ 𝒞)))
-        (σ⊔! σ α V #t)
+        (σ⊕! σ α V #t)
         (define ℓ* (+ℓ/ctc ℓ 0))
         (list (-Vectorof (cons α ℓ*)))]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
@@ -107,7 +107,7 @@
                  (+ℓ/ctc ℓ i))))
      (for ([α αs] [W Ws])
        (match-define (-W¹ V _) W)
-       (σ⊔! σ α V #t))
+       (σ⊕! σ α V #t))
      (list (-Vector/C (map (inst cons (U -α.cnst -α.vector/c) -ℓ) αs ℓs)))]
     
     [values (map -W¹-V Ws)]

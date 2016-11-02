@@ -19,9 +19,13 @@
     (cond
       [(hash-ref $ α #f) =>
        (λ ([V : -V])
+         (when (equal? x 'id)
+           (printf "hit id~n"))
          (⟦k⟧ (-W (list V) s) $ Γ 𝒞 Σ))]
       [else
        (define φs (-Γ-facts Γ))
+       (when (equal? x 'id)
+         (printf "miss id~n"))
        #;(begin
          (define Vs* (for/set: : (℘ -V) ([V Vs] #:when (plausible-V-s? φs V s)) V))
          (when (> (set-count Vs*) 1)

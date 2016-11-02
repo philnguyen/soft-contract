@@ -5,6 +5,7 @@
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
+         "../../proof-relation/widen.rkt"
          "base.rkt"
          "kontinuation.rkt"
          racket/set
@@ -73,7 +74,18 @@
       (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
         (define s (canonicalize-e Γ e))
         (define ρ* (m↓ ρ fvs))
-        (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ)) s) $ Γ 𝒞 Σ))]
+        (define Γ*
+          (match-let ([(-Γ φs as γs) Γ])
+            (define φs*
+              (for*/set: : (℘ -e) ([e φs]
+                                   [fv⟦e⟧ (in-value (fv e))]
+                                   #:unless (set-empty? fv⟦e⟧)
+                                   #:when (⊆ fv⟦e⟧ fvs))
+                e))
+            (define as* #|TODO|# as)
+            (define γs* #|TODO|# γs)
+            (-Γ φs* as* γs*)))
+        (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) s) $ Γ 𝒞 Σ))]
      [(-case-λ clauses)
       (define ⟦clause⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧!))
         (for/list ([clause clauses])
@@ -169,7 +181,7 @@
                          [xs (in-value (car ⟦bnd⟧))]
                          [x xs])
                (define α (-α.x x 𝒞))
-               (σ⊔! σ α 'undefined #t)
+               (σ⊕! σ α 'undefined #t)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* $ Γ 𝒞 Σ
             (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ*

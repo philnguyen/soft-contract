@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢e φs⊢e ⊢V p∋Vs V⊑
+(provide Γ⊢e φs⊢e ⊢V p∋Vs
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 
@@ -584,49 +584,48 @@
 
     ;; Special rules for reals
     ; 
-    [(_ 'positive?)
-     (p⇒p p (-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀)))]
-    [(_ 'negative?)
-     (p⇒p p (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀)))]
-    [('positive? _)
-     (p⇒p (-λ '(𝒙) (-@ '< (list (-b 0) (-x '𝒙)) +ℓ₀)) q)]
-    [('negative? _)
-     (p⇒p (-λ '(𝒙) (-@ '< (list (-x '𝒙) (-b 0)) +ℓ₀)) q)]
-    ;
-    [((-λ (list x) (-@ (and o (or '<= '<)) (list (-b (? real? a)) (-x x)) _))
-      (-λ (list y) (-@ o                   (list (-b (? real? b)) (-x y)) _)))
-     (if (>= a b) '✓ '?)]
-    [((-λ (list x) (-@ (and o (or '<= '<)) (list (-x x) (-b (? real? a))) _))
-      (-λ (list y) (-@ o                   (list (-x y) (-b (? real? b))) _)))
-     (if (<= a b) '✓ '?)]
-    ;
-    [((-λ (list x) (-@ '< (list (-x x) (-b (? real? b))) _)) 'zero?)
-     (if (<= b 0) '✗ '?)]
-    [((-λ (list x) (-@ '<= (list (-x x) (-b (? real? b))) _)) 'zero?)
-     (if (< b 0) '✗ '?)]
-    [((-λ (list x) (-@ '< (list (-b (? real? b)) (-x x)) _)) 'zero?)
-     (if (>= b 0) '✗ '?)]
-    [((-λ (list x) (-@ '<= (list (-b (? real? b)) (-x x)) _)) 'zero?)
-     (if (> b 0) '✗ '?)]
-    
+    [(_ 'positive?) (p⇒p p (->/c 0))]
+    [(_ 'negative?) (p⇒p p (-</c 0))]
+    [('positive? _) (p⇒p (->/c 0) q)]
+    [('negative? _) (p⇒p (-</c 0) q)]
+    ; < and <
+    [((-</c (? real? a)) (-</c (? real? b))) (if (<= a b) '✓ '?)]
+    [((-≤/c (? real? a)) (-≤/c (? real? b))) (if (<= a b) '✓ '?)]
+    [((-</c (? real? a)) (-≤/c (? real? b))) (if (<= a b) '✓ '?)]
+    [((-≤/c (? real? a)) (-</c (? real? b))) (if (<= a b) '✓ '?)]
+    ; > and >
+    [((->/c (? real? a)) (->/c (? real? b))) (if (>= a b) '✓ '?)]
+    [((-≥/c (? real? a)) (-≥/c (? real? b))) (if (>= a b) '✓ '?)]
+    [((->/c (? real? a)) (-≥/c (? real? b))) (if (>= a b) '✓ '?)]
+    [((-≥/c (? real? a)) (->/c (? real? b))) (if (>= a b) '✓ '?)]
+    ; < and >
+    [((-</c (? real? a)) (->/c (? real? b))) (if (<= a b) '✗ '?)]
+    [((-≤/c (? real? a)) (-≥/c (? real? b))) (if (<  a b) '✗ '?)]
+    [((-</c (? real? a)) (-≥/c (? real? b))) (if (<= a b) '✗ '?)]
+    [((-≤/c (? real? a)) (->/c (? real? b))) (if (<= a b) '✗ '?)]
+    ; > and <
+    [((->/c (? real? a)) (-</c (? real? b))) (if (>= a b) '✗ '?)]
+    [((-≥/c (? real? a)) (-≤/c (? real? b))) (if (>  a b) '✗ '?)]
+    [((->/c (? real? a)) (-≤/c (? real? b))) (if (>= a b) '✗ '?)]
+    [((-≥/c (? real? a)) (-</c (? real? b))) (if (>= a b) '✗ '?)]
+    ; <> and 0?
+    [((-</c (? real? b)) 'zero?) (if (<= b 0) '✗ '?)]
+    [((-≤/c (? real? b)) 'zero?) (if (<  b 0) '✗ '?)]
+    [((->/c (? real? b)) 'zero?) (if (>= b 0) '✗ '?)]
+    [((-≥/c (? real? b)) 'zero?) (if (>  b 0) '✗ '?)]
+    ; exact-nonnegative-integer?
+    [('exact-nonnegative-integer? (-</c (? real? r))) (if (<= r 0) '✗ '?)]
+    [('exact-nonnegative-integer? (-≤/c (? real? r))) (if (<  r 0) '✗ '?)]
+    [('exact-nonnegative-integer? (->/c (? real? r))) (if (<  r 0) '✓ '?)]
+    [('exact-nonnegative-integer? (-≥/c (? real? r))) (if (<= r 0) '✓ '?)]
+    [((-</c (? real? r)) 'exact-nonnegative-integer?) (if (<= r 0) '✗ '?)]
+    [((-≤/c (? real? r)) 'exact-nonnegative-integer?) (if (<  r 0) '✗ '?)]
     ;; default
     [(_ _)
      (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))
                 (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
             '✗]
            [else '?])]))
-
-(: V⊑ : -σ -V -V → Boolean)
-;; Check if `V₂` definitely subsumes `V₁`
-;; `#f` is a conservative "don't know" answer
-(define (V⊑ σ V₁ V₂)
-  (let loop ([V₁ : -V V₁] [V₂ : -V V₂])
-    (match* (V₁ V₂)
-      [(V V) #t]
-      [(_ (-● ps))
-       (for/and : Boolean ([p ps])
-         (equal? '✓ (p∋Vs σ p V₁)))]
-      [(_ _) #f])))
 
 (module+ test
   (require typed/rackunit

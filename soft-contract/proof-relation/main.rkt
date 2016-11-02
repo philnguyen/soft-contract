@@ -3,7 +3,7 @@
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
          #;plausible-return? #;plausible-blame?
          plausible-pc? plausible-index? plausible-indices
-         (all-from-out "local.rkt"))
+         (all-from-out "local.rkt" "widen.rkt"))
 
 (require racket/match
          racket/set
@@ -14,7 +14,8 @@
          "../runtime/main.rkt"
          "result.rkt"
          "local.rkt"
-         "ext.rkt")
+         "ext.rkt"
+         "widen.rkt")
 
 (: MΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract

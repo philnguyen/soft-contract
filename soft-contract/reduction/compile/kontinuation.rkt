@@ -53,7 +53,7 @@
     (match Vs
       [(list V)
        (match-define (-Σ σ _ _) Σ)
-       (σ⊔! σ α V #f)
+       (σ⊕! σ α V #f)
        (⟦k⟧ -Void/W (hash-set $ α V) Γ 𝒞 Σ)]
       [_
        (define blm
@@ -77,7 +77,7 @@
          (for/fold ([Γ : -Γ Γ])
                    ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
            (define α (-α.x x 𝒞))
-           (σ⊔! σ α Vₓ #t)
+           (σ⊕! σ α Vₓ #t)
            (σ-remove! σ α 'undefined)
            (-Γ-with-aliases Γ x sₓ)))
        (match ⟦bnd⟧s
@@ -98,7 +98,7 @@
     (match-define (-W (list V) s) A)
     (match-define (-Σ σ _ _) Σ)
     (define α (-α.x/c x))
-    (σ⊔! σ α V #t)
+    (σ⊕! σ α V #t)
     (⟦k⟧ A $ Γ 𝒞 Σ)))
 
 ;; Non-dependent contract domain
@@ -125,14 +125,14 @@
     (match-define (-Σ σ _ _) Σ)
     (match-define (-W (list D) d) A)
     (define β (or (keep-if-const d) (-α.rng ℓ 𝒞)))
-    (σ⊔! σ β D #t)
+    (σ⊕! σ β D #t)
     (define-values (αs cs) ; with side effect widening store
       (for/fold ([αs : (Listof (U -α.cnst -α.dom)) '()]
                  [cs : (Listof -s) '()])
                 ([(W i) (in-indexed Ws)] #:when (exact-nonnegative-integer? i))
         (match-define (-W¹ C c) W)
         (define α (or (keep-if-const c) (-α.dom ℓ 𝒞 i)))
-        (σ⊔! σ α C #t)
+        (σ⊕! σ α C #t)
         (values (cons α αs) (cons c cs))))
     (define αℓs : (Listof (Pairof (U -α.cnst -α.dom) -ℓ))
       (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
@@ -151,7 +151,7 @@
       (match-define (-W¹ C c) W)
       (define α (or (keep-if-const c)
                     (-α.dom ℓ 𝒞 (assert i exact-nonnegative-integer?))))
-      (σ⊔! σ α C #t)
+      (σ⊕! σ α C #t)
       (values (cons α αs) (cons c cs))))
   (define β (or (keep-if-const mk-d) (-α.rng ℓ 𝒞)))
   (define αℓs : (Listof (Pairof (U -α.cnst -α.dom) -ℓ))
@@ -159,7 +159,7 @@
       (cons α (+ℓ/ctc ℓ i))))
   (define G (-=>i αℓs (list Mk-D mk-d (+ℓ/ctc ℓ (length αs))) ℓ))
   (define g (-?->i cs mk-d ℓ))
-  (σ⊔! σ β Mk-D #t)
+  (σ⊕! σ β Mk-D #t)
   (values G g))
 
 ;; Dependent contract
@@ -223,7 +223,7 @@
            (match-define (-W¹ C c) W)
            (define α (or (keep-if-const c)
                          (-α.struct/c ℓ 𝒞 (assert i exact-nonnegative-integer?))))
-           (σ⊔! σ α C #t)
+           (σ⊕! σ α C #t)
            (values (cons α αs)
                    (cons c cs)
                    (and flat? (C-flat? C)))))
@@ -246,7 +246,7 @@
       [(= n (length Vs))
        (match-define (-Σ σ _ _) Σ)
        (for ([α αs] [V Vs])
-         (σ⊔! σ α V #t))
+         (σ⊕! σ α V #t))
        (⟦k⟧ -Void/W $ Γ 𝒞 Σ)]
       [else
        (define blm
