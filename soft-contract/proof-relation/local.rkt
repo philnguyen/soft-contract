@@ -563,7 +563,8 @@
     [('none/c _) '✓]
     [(_ 'none/c) '✗]
     [((? symbol? p) (? symbol? q))
-     (cond [(∋ (hash-ref implications p →∅eq) q) '✓]
+     (cond [(equal? p q) '✓]
+           [(∋ (hash-ref implications p →∅eq) q) '✓]
            [(∋ (hash-ref exclusions p →∅eq) q) '✗]
            [else '?])]
     [(p 'values)
@@ -582,6 +583,10 @@
        [else '?])]
     [(p (-not/c (? -v? q)))
      (not-R (p⇒p p q))]
+    [((-not/c (? -v? p)) q)
+     (case (p⇒p q p)
+       [(✓) '✗]
+       [else '?])]
 
     ;; Special rules for reals
     ; 
