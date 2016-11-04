@@ -65,26 +65,28 @@
 
   ;; Apply accessor
   (define (app-st-ac [s : -struct-info] [i : Natural])
-    (define n (-struct-info-arity s))
+    (match-define (-struct-info _ n muts) s)
     (match-define (list (and Wₓ (-W¹ Vₓ sₓ))) Wₓs)
     (define ac (-st-ac s i))
     (define p  (-st-p s))
     (define (blm) (-blm l (show-o ac) (list p) (list Vₓ)))
+    (define mutable-field? (∋ muts i))
 
     (match Vₓ
       [(-St (== s) αs)
        (define α (list-ref αs i))
        (cond
-         [(hash-ref $ α #f) =>
+         [(and (not mutable-field?) ($@ $ sₐ)) =>
           (λ ([V : -V])
             (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
-                   (⟦k⟧ (-W (list V) sₐ) $ Γ 𝒞 Σ)]
+                   (define $* ($+ $ sₐ V))
+                   (⟦k⟧ (-W (list V) sₐ) $* Γ 𝒞 Σ)]
                   [else ∅]))]
          [else
           (define-values (Vs _) (σ@ σ α))
           (for/union : (℘ -ς) ([V Vs])
             (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
-                   (define $* (hash-set $ α V))
+                   (define $* (if mutable-field? $ ($+ $ sₐ V)))
                    (⟦k⟧ (-W (list V) sₐ) $* Γ 𝒞 Σ)]
                   [else ∅]))])]
       [(-St* (== s) αs α l³)
@@ -123,8 +125,7 @@
       [(-St (== s) αs)
        (define α (list-ref αs i))
        (σ⊕! σ α Vᵥ #f)
-       (define $* (hash-set $ α Vᵥ))
-       (⟦k⟧ -Void/W $* Γ 𝒞 Σ)]
+       (⟦k⟧ -Void/W $ Γ 𝒞 Σ)]
       [(-St* (== s) γs α l³)
        (match-define (-l³ l+ l- lo) l³)
        (define l³* (-l³ l- l+ lo))
@@ -134,8 +135,7 @@
        (for*/union : (℘ -ς) ([C (σ@ᵥ σ γ)] [Vₛ* (σ@ᵥ σ α)])
          (define W-c (-W¹ C c))
          (define Wₛ* (-W¹ Vₛ* sₛ))
-         (define $* (hash-set $ α Vₛ*))
-         (mon l³* $* ℒ W-c Wᵥ Γ 𝒞 Σ
+         (mon l³* $ ℒ W-c Wᵥ Γ 𝒞 Σ
               (ap∷ (list Wₛ Mut) '() ⊥ρ lo ℒ ⟦k⟧)))]
       [(-● _)
        (define ⟦ok⟧
@@ -536,8 +536,8 @@
   (cond ; keep empty var-args special case and approximate 1+ args
     [(null? Ws) -null]
     [(pair? Ws)
-     (define αₕ (-α.var-car ℒ 𝒞 0))
-     (define αₜ (-α.var-cdr ℒ 𝒞 0))
+     (define αₕ (-α.var-car ℒ 𝒞))
+     (define αₜ (-α.var-cdr ℒ 𝒞))
      (define Vₜ (-St -s-cons (list αₕ αₜ)))
      ;; Allocate spine for var-arg lists
      (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])

@@ -14,12 +14,12 @@
 ;;;;; Environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -ρ (HashTable Var-Name -α))
+(define-type -ρ (HashTable Var-Name -α.x))
 (define-type -Δρ -ρ)
 (define ⊥ρ : -ρ (hasheq))
-(define (ρ@ [ρ : -ρ] [x : Var-Name]) : -α
+(define (ρ@ [ρ : -ρ] [x : Var-Name]) : -α.x
   (hash-ref ρ x (λ () (error 'ρ@ "~a not in environment ~a" x (hash-keys ρ)))))
-(define ρ+ : (-ρ Var-Name -α → -ρ) hash-set)
+(define ρ+ : (-ρ Var-Name -α.x → -ρ) hash-set)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -205,8 +205,8 @@
             ; for struct field
             (-α.fld [id : -𝒾] [pos : -ℒ] [ctx : -𝒞] [idx : Natural])
             ; for Cons/varargs
-            (-α.var-car [pos : -ℒ] [ctx : -𝒞] [idx : Natural]) ; idx prevents infinite list 
-            (-α.var-cdr [pos : -ℒ] [ctx : -𝒞] [idx : Natural])
+            (-α.var-car [pos : -ℒ] [ctx : -𝒞]) ; idx prevents infinite list 
+            (-α.var-cdr [pos : -ℒ] [ctx : -𝒞])
 
             ;; for wrapped mutable struct
             (-α.st [id : -𝒾] [pos : -ℓ] [ctx : -𝒞])
@@ -239,8 +239,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Cache for address lookup in local block
-(define-type -$ (HashTable -α -V))
+(define-type -$ (HashTable -e -V))
 (define $∅ : -$ (hash))
+(define ($@ [$ : -$] [s : -s]) : (Option -V)
+  (and s (hash-ref $ s #f)))
+
+(define ($+ [$ : -$] [s : -s] [V : -V]) : -$
+  (if s (hash-set $ s V) $))
 
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)

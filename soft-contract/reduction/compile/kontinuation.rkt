@@ -47,14 +47,17 @@
        (⟦e⟧ ρ $ Γ 𝒞 Σ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; set!
-(define/memo (set!∷ [α : -α] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (set!∷ [α : -α.x] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
        (match-define (-Σ σ _ _) Σ)
        (σ⊕! σ α V #f)
-       (⟦k⟧ -Void/W (hash-set $ α V) Γ 𝒞 Σ)]
+       (define s
+         (match-let ([(-α.x x _) α])
+           (canonicalize Γ x)))
+       (⟦k⟧ -Void/W ($+ $ s V) Γ 𝒞 Σ)]
       [_
        (define blm
          (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))))

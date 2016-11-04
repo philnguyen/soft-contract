@@ -17,10 +17,10 @@
     (define-values (Vs old?) (σ@ σ α))
     (define s (and old? (canonicalize Γ x)))
     (cond
-      [(hash-ref $ α #f) =>
+      [($@ $ s) =>
        (λ ([V : -V])
          (define V* (V+ σ V (predicates-of Γ s)))
-         (⟦k⟧ (-W (list V*) s) (hash-set $ α V*) Γ 𝒞 Σ))]
+         (⟦k⟧ (-W (list V*) s) ($+ $ s V*) Γ 𝒞 Σ))]
       [else
        (define φs (-Γ-facts Γ))
        #;(begin
@@ -37,7 +37,7 @@
                 (printf "  - ~a~n" (show-V V))]))
            (printf "~n")))
        (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
-         (define $* (hash-set $ α V))
+         (define $* ($+ $ s V))
          (match V
            ['undefined (⟦k⟧ -blm.undefined $* Γ 𝒞 Σ)]
            [(-● ps) ; precision hack
