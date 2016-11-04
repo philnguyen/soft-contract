@@ -5,6 +5,7 @@
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
+         "../../runtime/instrument.rkt"
          "../../proof-relation/widen.rkt"
          "base.rkt"
          "kontinuation.rkt"
@@ -69,7 +70,7 @@
   (remember-e!
    (match e
      [(-λ xs e*)
-      (define ⟦e*⟧ (↓ e*))
+      (define ⟦e*⟧ (↓ e*) #;(instrument (↓ e*)))
       (define fvs (fv e*))
       (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
         (define s (canonicalize-e Γ e))

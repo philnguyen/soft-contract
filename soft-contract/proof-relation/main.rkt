@@ -24,7 +24,7 @@
   (match-define (-W¹ C c) W_c)
   (with-debugging/off
     ((ans)
-     (first-R (p∋Vs σ C V)
+     (first-R (p∋Vs σ C (V+ σ V (predicates-of Γ v)))
               (match V
                 [(-● ps)
                  (define Γ*
@@ -32,7 +32,10 @@
                      (Γ+ Γ (-?@ p v))))
                  (MΓ⊢s M Γ* (-?@ c v))]
                 [_ (MΓ⊢s M Γ (-?@ c v))])))
-    (printf "~a ⊢ ~a ∈ ~a : ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans)))
+    (when (and (equal? V (-● {set 'integer?}))
+               (equal? C 'exact-nonnegative-integer?)
+               (not (equal? ans '✓)))
+      (printf "~a ⊢ ~a ∈ ~a : ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans))))
 
 (: MΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`

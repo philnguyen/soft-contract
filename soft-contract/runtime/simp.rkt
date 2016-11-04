@@ -12,7 +12,7 @@
                      racket/match
                      racket/list
                      racket/function
-                     (except-in "../utils/main.rkt" format-symbol)
+                     (only-in "../utils/main.rkt" n-sub mk-cond sexp-and)
                      (prefix-in prims: "../primitives/declarations.rkt")
                      "../primitives/utils.rkt")
          racket/match
@@ -205,6 +205,12 @@
 (define-match-expander -≥/c
   (syntax-rules () [(_ c) (-λ (list x) (-@ '<= (list (-b c) (-x x)) _))])
   (syntax-rules () [(_ c) (-λ '(𝒙) (-@ '<= (list (-b c) (-x '𝒙)) +ℓ₀))]))
+(define-match-expander -≡/c
+  (syntax-rules () [(_ v) (-λ (list x) (-@ (or '= 'equal? '=) (list (-x x) v) _))])
+  (syntax-rules () [(_ v) (-λ (list x) (-@ 'equal?            (list (-x x) v) _))]))
+(define-match-expander -=/c
+  (syntax-rules () [(_ c) (-≡/c (-b c))])
+  (syntax-rules () [(_ c) (-≡/c (-b c))]))
 
 (: -struct/c-split : -s -struct-info → (Listof -s))
 (define (-struct/c-split c s)

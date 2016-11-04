@@ -518,6 +518,13 @@
        (@/s 'B (and/s (@/s 'is-Z tₐ)
                       (@/s 'exact? tₐ)
                       (>=/s (@/s 'real tₐ) 0))))]
+    [(exact-positive-integer?)
+     (match-define (list t) ts)
+     (λ ()
+       (define tₐ (t))
+       (@/s 'B (and/s (@/s 'is-Z tₐ)
+                      (@/s 'exact? tₐ)
+                      (>/s (@/s 'real tₐ) 0))))]
     ;; HERE
     [(inexact?)
      (λ ()

@@ -35,13 +35,41 @@
 ;; Check if `V₂` definitely subsumes `V₁`
 ;; `#f` is a conservative "don't know" answer
 (define (V⊑ σ V₁ V₂)
-  (let loop ([V₁ : -V V₁] [V₂ : -V V₂])
+
+  (define-set seen : (Pairof -α -α))
+
+  (: go/α : -α -α → Boolean)
+  (define (go/α α₁ α₂)
+    (define α₁α₂ (cons α₁ α₂))
+    (cond
+      [(seen-has? α₁α₂) #t]
+      [else
+       (seen-add! α₁α₂)
+       (define Vs₁ (σ@ᵥ σ α₁))
+       (define Vs₂ (σ@ᵥ σ α₂))
+       (for/and : Boolean ([V₁ Vs₁])
+         (for/or : Boolean ([V₂ Vs₂])
+           (go V₁ V₂)))]))
+
+  (: go : -V -V → Boolean)
+  (define (go V₁ V₂)
     (match* (V₁ V₂)
       [(V V) #t]
       [(_ (-● ps)) #:when (not (behavioral? σ V₁))
        (for/and : Boolean ([p ps])
          (equal? '✓ (p∋Vs σ p V₁)))]
-      [(_ _) #f])))
+      [((-St (-struct-info 𝒾₁ _ muts) αs₁)
+        (-St (-struct-info 𝒾₂ _ _   ) αs₂))
+       #:when (and (set-empty? muts) (equal? 𝒾₁ 𝒾₂)) ; can't ignore mutable addresses
+       (for/and : Boolean ([α₁ αs₁] [α₂ αs₂])
+         (go/α α₁ α₂))]
+      [((-Clo _ ⟦e⟧ ρ₁ _)
+        (-Clo _ ⟦e⟧ ρ₂ _)) ; TODO : ignore `Γ` ok?
+       (for/and : Boolean ([(x α₁) (in-hash ρ₁)])
+         (go/α α₁ (ρ@ ρ₂ x)))]
+      [(_ _) #f]))
+
+  (go V₁ V₂))
 
 (: Vs⊕ : -σ (℘ -V) -V → (℘ -V))
 ;; Widen value set with new value
@@ -103,44 +131,81 @@
                             (if (-v? P) (show-e P) (show-V P))
                             (show-V V*)))))]))
 
+(: p+ : -v -v → (Option -v))
+;; Combine 2 predicates for a more precise one.
+;; Return `#f` if there's no single predicate that refines both
+(define p+
+  (match-lambda**
+   [(p q) #:when (equal? '✓ (p⇒p p q)) p]
+   [(p q) #:when (equal? '✓ (p⇒p q p)) q]
+   [((or 'exact-integer? 'exact-nonnegative-integer?)
+     (-≥/c (and (? (between/c 0 1)) (not 0))))
+    'exact-positive-integer?]
+   [((or 'exact-integer? 'exact-nonnegative-integer?)
+     (->/c (and (? (between/c 0 1)) (not 1))))
+    'exact-positive-integer?]
+   [('exact-integer? (-≥/c (and (? (between/c -1 0)) (not -1))))
+    'exact-nonnegative-integer?]
+   [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
+    'exact-nonnegative-integer?]
+   ; TR doesn't work well with `match-lambda*` and `list-no-order`
+   [((-≥/c (and (? (between/c 0 1)) (not 0)))
+     (or 'exact-integer? 'exact-nonnegative-integer?))
+    'exact-positive-integer?]
+   [((->/c (and (? (between/c 0 1)) (not 1)))
+     (or 'exact-integer? 'exact-nonnegative-integer?))
+    'exact-positive-integer?]
+   [((-≥/c (and (? (between/c -1 0)) (not -1))) 'exact-integer?)
+    'exact-nonnegative-integer?]
+   [((->/c (and (? (between/c -1 0)) (not  0))) 'exact-integer?)
+    'exact-nonnegative-integer?]
+   [(_ _) #f]))
+
 (: ps+ : (℘ -v) -v → (℘ -v))
 ;; Strengthen refinement set with new predicate
 (define (ps+ ps p)
-  (define-values (obsoletes p-useless?)
-    (for/fold ([obsoletes : (℘ -v) ∅] [p-useless? : Boolean #f])
-              ([pᵢ ps])
-      (case (p⇒p pᵢ p)
-        [(✓) (values obsoletes #t)]
-        [(✗) (error "spurious refinement: ~a conflicts with ~a" pᵢ p)]
-        [(?)
-         (case (p⇒p p pᵢ)
-           [(✓) (values (set-add obsoletes pᵢ) p-useless?)]
-           [(✗) (error "spurious refinement: ~a conflicts with ~a" pᵢ p)]
-           [(?) (values obsoletes p-useless?)])])))
-  (cond
-    [p-useless? ps]
-    [else (set-add (set-subtract ps obsoletes) p)]))
+
+  (: iter : (℘ -v) -v → (U (℘ -v) (Pairof (℘ -v) -v)))
+  (define (iter ps p)
+    (match (for/or : (Option (List -v -v -v)) ([pᵢ ps])
+             (cond [(p+ pᵢ p) => (λ ([p* : -v]) (list p* pᵢ p))]
+                   [else #f]))
+      [(list p* pᵢ p)
+       (cons (set-remove (set-remove ps pᵢ) p)
+             p*)]
+      [#f (set-add ps p)]))
+
+  (repeat-compact ps p iter))
 
 (: V⊕ : -σ -V -V → (Option -V))
 ;; Widen 2 values to one approximating both.
 ;; Return `#f` if no approximation preferred
 (define (V⊕ σ V₁ V₂)
-  (cond
-    [(V⊑ σ V₁ V₂) V₂]
-    [(V⊑ σ V₂ V₁) V₁]
-    [else ;; TODO more heuristics
-     (match* (V₁ V₂)
-       [((-b 0) (-● ps))
-        (define p
-          (for/or : (Option -v) ([p ps])
-            (match p
-              [(-λ (list x) (-@ '< (list (-b 0) (-x x)) _))
-               p]
-              [(-λ (list x) (-@ '< (list (-x x) (-b 0)) _))
-               p]
-              [_ #f])))
-        (and p (-● (set-remove ps p)))]
-       [(_ _) #f])]))
+  (match* (V₁ V₂)
+    [(_ _) #:when (V⊑ σ V₁ V₂) V₂]
+    [(_ _) #:when (V⊑ σ V₂ V₁) V₁]
+    ; TODO more heuristics
+    [((-b b₁) (-b b₂)) #:when (not (equal? b₁ b₂))
+
+     (define-syntax-rule (check-for-base-types p? ...)
+       (cond
+         [(and (p? b₁) (p? b₂)) (-● {set 'p?})] ...
+         [else #f]))
+
+     (check-for-base-types
+      exact-positive-integer? exact-nonnegative-integer? exact-integer?
+      integer? real? number?
+      path-string? string?
+      char?)]
+    [((-b 0) (-● ps))
+     (define p
+       (for/or : (Option -v) ([p ps])
+         (match p
+           [(->/c 0) p]
+           [(-</c 0) p]
+           [_ #f])))
+     (and p (-● (set-remove ps p)))]
+    [(_ _) #f]))
 
 (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) X))) → (℘ X)))
 (define (repeat-compact xs x f)

@@ -33,34 +33,6 @@
 (define (⊥σ) (-σ (hash) 0))
 (define ⊥σr (-σr ∅ #t))
 
-(: σ@ : -σ -α → (Values (℘ -V) Boolean))
-(define (σ@ σ α)
-  (with-debugging/off
-    ((Vs old?)
-     (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
-     (values Vs old?))
-    (when (>= (set-count Vs) 5)
-      (printf "σ@: ~a -> ~a~n" α (set-count Vs))
-      (for ([V Vs])
-        (printf "  - ~a~n" (show-V V)))
-      (printf "~n")
-      #;(error "done"))))
-
-(: σ@ᵥ : -σ -α → (℘ -V))
-(define (σ@ᵥ σ α)
-  (define-values (Vs _) (σ@ σ α))
-  Vs)
-
-(: σ-remove! : -σ -α -V → Void)
-(define (σ-remove! σ α V)
-  (define m*
-    (hash-update (-σ-m σ)
-                 α
-                 (λ ([σr : -σr])
-                   (match-define (-σr Vs b?) σr)
-                   (-σr (set-remove Vs V) b?))))
-  (set--σ-m! σ m*))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stack Store

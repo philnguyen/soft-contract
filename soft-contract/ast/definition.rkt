@@ -41,7 +41,7 @@
 ;; Keep this eq?-able
 (Var-Name . ::= . Symbol Integer)
 (: +x! : → Integer)
-(: +x/memo! : (U 'hv 'hv-rt) Any * → Integer)
+(: +x/memo! : (U 'hv 'hv-rt 'app) Any * → Integer)
 (define-values (+x! +x/memo!)
   (let ([n : Integer 0]
         [m : (HashTable (Listof Any) Integer) (make-hash)])
@@ -65,7 +65,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (Arity . ::= . Natural arity-at-least (Listof (U Natural arity-at-least)))
-(Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void Arity)
+(Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void Arity EOF)
 
 (-top-level-form . ::= . -general-top-level-form
                          -e
@@ -304,6 +304,7 @@
     [(void? x) 'void]
     [(arity-at-least? x) `(arity-at-least ,(arity-at-least-value x))]
     [(list? x) `(list ,@(map show-b x))]
+    [(eof-object? x) '⟪eof⟫]
     [else x]))
 
 ;; Return operator's simple show-o for pretty-printing

@@ -306,7 +306,18 @@
       [else #t]))
   
   ;; order matters for precision, in the presence of subtypes
-  (with-debugging/off ((ans) (with-prim-checks integer? real? number? string? symbol? keyword? not boolean?))
+  (with-debugging/off ((ans) (with-prim-checks
+                               exact-positive-integer?
+                               exact-nonnegative-integer?
+                               exact-integer?
+                               integer?
+                               real?
+                               number?
+                               string?
+                               symbol?
+                               keyword?
+                               not
+                               boolean?))
     (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-φ) (show-V V) (show-s s) ans)))
 
 (: ⊢V : -V → -R)
@@ -349,34 +360,17 @@
                        (for/or : Boolean ([p ps])
                          (match?
                           p
-                          (-λ (list x)
-                              (-@ (or '< '<=)
-                                  (list (-b (? (λ ([b : Base])
-                                                 (and (real? b) (<= b 0)))))
-                                        (-x x))
-                                  _)))))
+                          (->/c (? (>/c -1)))
+                          (-≥/c (? (>=/c 0)))
+                          (-=/c (? (>=/c 0))))))
                   '✓]
                  [(and (∋ ps 'integer?)
                        (for/or : Boolean ([p ps])
                          (match?
                           p
-                          (-λ (list x)
-                              (-@ '<
-                                  (list (-x x)
-                                        (-b (? (λ ([b : Base])
-                                                 (and (real? b) (<= 0 b))))))
-                                  _)))))
-                  '✗]
-                 [(and (∋ ps 'integer?)
-                       (for/or : Boolean ([p ps])
-                         (match?
-                          p
-                          (-λ (list x)
-                              (-@ '<=
-                                  (list (-x x)
-                                        (-b (? (λ ([b : Base])
-                                                 (and (real? b) (< 0 b))))))
-                                  _)))))
+                          (-</c (? (<=/c 0)))
+                          (-≤/c (? (</c  0)))
+                          (-=/c (? (</c  0))))))
                   '✗]
                  [else '?])]
               [else '?]))]
@@ -626,6 +620,13 @@
     [('exact-nonnegative-integer? (-≥/c (? real? r))) (if (<= r 0) '✓ '?)]
     [((-</c (? real? r)) 'exact-nonnegative-integer?) (if (<= r 0) '✗ '?)]
     [((-≤/c (? real? r)) 'exact-nonnegative-integer?) (if (<  r 0) '✗ '?)]
+    ; exact-positive-integer?
+    [('exact-positive-integer? (-</c (? real? r))) (if (<  r 1) '✗ '?)]
+    [('exact-positive-integer? (-≤/c (? real? r))) (if (<  r 1) '✗ '?)]
+    [('exact-positive-integer? (->/c (? real? r))) (if (<  r 1) '✓ '?)]
+    [('exact-positive-integer? (-≥/c (? real? r))) (if (<= r 1) '✓ '?)]
+    [((-</c (? real? r)) 'exact-positive-integer?) (if (<= r 1) '✗ '?)]
+    [((-≤/c (? real? r)) 'exact-positive-integer?) (if (<  r 1) '✗ '?)]
     ;; default
     [(_ _)
      (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))

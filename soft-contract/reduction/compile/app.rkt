@@ -258,6 +258,16 @@
   (define (app-contract-first-order-passes?)
     (error 'app-contract-first-order-passes? "TODO"))
 
+  (define (app-call-with-input-file)
+    (match-define (list _ W-cb) Wₓs)
+    (define arg (-W¹ (-● {set 'input-port?}) (-x (+x/memo! 'app 'call-with-input-file))))
+    (app l $ ℒ W-cb (list arg) Γ 𝒞 Σ ⟦k⟧))
+
+  (define (app-call-with-output-file)
+    (match-define (list _ W-cb) Wₓs)
+    (define arg (-W¹ (-● {set 'output-port?}) (-x (+x/memo! 'app 'call-with-output-file))))
+    (app l $ ℒ W-cb (list arg) Γ 𝒞 Σ ⟦k⟧))
+
   (define (app-δ [o : Symbol])
     (match-define (-ℒ _ ℓ) ℒ)
     (define V-lists (δ! 𝒞 ℓ M σ Γ o Wₓs))
@@ -441,6 +451,8 @@
     ['vector-set! (app-vector-set!)]
     ['unsafe-struct-ref  (app-unsafe-struct-ref)]
     ['unsafe-struct-set! (app-unsafe-struct-set!)]
+    ['call-with-input-file (app-call-with-input-file)]
+    ['call-with-output-file (app-call-with-output-file)]
 
     ;; Regular stuff
     [(? symbol? o) (app-δ o)]
@@ -521,16 +533,19 @@
 
 (: alloc-rest-args! : -σ -𝒞 -ℒ (Listof -W¹) → -V)
 (define (alloc-rest-args! σ 𝒞 ℒ Ws)
-  (let loop! : -V ([Ws : (Listof -W¹) Ws] [i : Natural 0])
-    (match Ws
-      ['() -null]
-      [(cons W Ws*)
-       (define α₁ (-α.var-car ℒ 𝒞 i))
-       (define α₂ (-α.var-cdr ℒ 𝒞 i))
-       (define Vᵣ (loop! Ws* (+ 1 i)))
-       (σ⊕! σ α₁ (-W¹-V W)  #t)
-       (σ⊕! σ α₂ Vᵣ         #t)
-       (-St -s-cons (list α₁ α₂))])))
+  (cond ; keep empty var-args special case and approximate 1+ args
+    [(null? Ws) -null]
+    [(pair? Ws)
+     (define αₕ (-α.var-car ℒ 𝒞 0))
+     (define αₜ (-α.var-cdr ℒ 𝒞 0))
+     (define Vₜ (-St -s-cons (list αₕ αₜ)))
+     ;; Allocate spine for var-arg lists
+     (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])
+     ;; Allocate elements in var-arg lists
+     (for ([W Ws])
+       (match-define (-W¹ Vₕ _) W)
+       (σ⊕! σ αₕ Vₕ #t))
+     Vₜ]))
 
 (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
 (define (mon l³ $ ℒ W-C W-V Γ 𝒞 Σ ⟦k⟧)

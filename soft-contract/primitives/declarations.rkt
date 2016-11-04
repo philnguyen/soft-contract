@@ -72,7 +72,9 @@
      ;; 4.2.2.1 Arithmetic
      [+ ; FIXME varargs
       (number? number? . -> . number?)
+      (exact-positive-integer? exact-positive-integer? . -> . exact-positive-integer?)
       (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
+      (exact-integer? exact-integer? . -> . exact-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)
       (positive? (not/c negative?) . -> . positive?)
@@ -83,11 +85,13 @@
       ((not/c positive?) (not/c positive?) . -> . (not/c positive?))]
      [- ; FIXME varargs
       (number? number? . -> . number?)
+      (exact-integer? exact-integer? . -> . exact-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)]
      [* ; FIXME varargs
       (number? number? . -> . number?)
       (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
+      (exact-integer? exact-integer? . -> . exact-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)]
      [/ ; FIXME varargs
@@ -403,7 +407,7 @@
      [#:pred string?]
      [make-string ; FIXME all uses
       (exact-nonnegative-integer? char? . -> . string?)]
-     #;[string ; FIXME listof
+     [string
       (() #:rest (listof char?) . ->* . string?)]
      [string->immutable-string
       (string? . -> . (and/c string? immutable?))]
@@ -1720,6 +1724,9 @@
     [output-port? (any/c . -> . boolean?)]
     [port? (any/c . -> . boolean?)]
     [eof-object? (any/c . -> . boolean?)]
+    [current-input-port  (-> input-port?)]
+    [current-output-port (-> output-port?)]
+    [current-error-port (-> output-port?)]
 
     ;; 13.1.3 Port Buffers and Positions
     [flush-output (-> void?)] ; FIXME uses
@@ -1826,12 +1833,10 @@
     [not ⇒ boolean?]
     [exact-integer? ⇒ integer?]
     [exact-integer? ⇒ exact?]
-    [exact-nonnegative-integer? ⇒ exact?]
+    [exact-nonnegative-integer? ⇒ exact-integer?]
     [#:exclusion exact-nonnegative-integer? negative?]
-    [exact-nonnegative-integer? ⇒ integer?]
-    [exact-positive-integer? ⇒ exact?]
     [exact-positive-integer? ⇒ positive?]
-    [exact-positive-integer? ⇒ integer?]
+    [exact-positive-integer? ⇒ exact-nonnegative-integer?]
     [inexact-real? ⇒ real?]
     [rational? ⇒ real?]
     [#:partition number? {exact? inexact?}]
@@ -1880,10 +1885,11 @@
     [(? symbol? s)
      (case s
        [(integer? rational? real? number? zero?
-         inexact? inexact-real? exact-integer? exact-nonnegative-integer? flonum? single-flonum?
-         extflonum?
+         inexact? inexact-real? exact-integer?
+         exact-positive-integer? exact-nonnegative-integer? exact-integer?
+         flonum? single-flonum? extflonum?
          boolean? path-string? string? symbol? keyword? char? null? void? eof-object?
-         vector? immutable?
+         #;vector? immutable?
          positive? negative? zero?
          #|TODO why did I duplicate this in addition to `base-predicates`?|#)
         #t]

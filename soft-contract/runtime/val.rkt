@@ -6,7 +6,8 @@
          racket/set
          "../utils/main.rkt"
          "../ast/definition.rkt"
-         "definition.rkt")
+         "definition.rkt"
+         "sto.rkt")
 
 ;; Constants & 'Macros'
 (define -Null -null)

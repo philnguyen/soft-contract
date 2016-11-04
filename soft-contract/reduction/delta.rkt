@@ -1,4 +1,7 @@
 #lang typed/racket
+
+(provide δ!)
+
 (require
  racket/flonum racket/extflonum math/base
  "../utils/main.rkt"
@@ -9,19 +12,16 @@
  (for-syntax
   racket/base
   racket/match
-  (except-in racket/syntax format-symbol)
+  racket/syntax
   syntax/parse
   racket/contract
   racket/pretty
   racket/list
   racket/function
   racket/contract
-  "../utils/main.rkt"
+  (only-in "../utils/main.rkt" ∋ n-sub mk-cond sexp-and)
   (except-in "../primitives/declarations.rkt" implications base?) "../primitives/utils.rkt")
  )
-(provide δ!)
-
-(define cache : (HashTable Any Void) (make-hash))
 
 ;; Different kinds of primitives:
 ;; - Primitives whose domains and ranges are base values (e.g. ariths) : systematically lifted
@@ -155,10 +155,16 @@
        [(list _ (-W¹ Vₗ _))
         (match Vₗ
           [(-St (== -s-cons) _)
-           (define Vₜs (all-tails σ Vₗ))
-           (for/fold ([ans : (℘ (Listof -V)) {set (list -ff)}])
-                     ([Vₜ Vₜs] #:unless (equal? Vₜ -null))
-             (set-add ans (list Vₜ)))]
+           (define 𝒾 (-struct-info-id -s-cons))
+           (define ℒ (-ℒ ∅ ℓ))
+           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
+           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
+           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (for ([Vₕ (extract-list-content σ Vₗ)])
+             (σ⊕! σ αₕ Vₕ #t))
+           (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])
+           {set (list Vₜ) (list -ff)}]
+          [(-b '()) {set (list -ff)}]
           [_ {set (list (-● {set 'list? -cons?}))
                   (list -ff)}])]
        [_ ∅])]
@@ -178,16 +184,14 @@
            (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
            (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
            (define Vₜ (-St -s-cons (list αₕ αₜ)))
-           (define Vₕs (extract-list-content σ Vₗ))
-           (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ #t))
-           (σ⊕! σ αₜ Vₜ #t)
+           (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! σ αₕ Vₕ #t))
+           (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])
            {set (list Vₜ)}]
           [(-● ps)
            (cond [(∋ ps -cons?) {set (list (-● {set -cons?}))}]
                  [else          {set (list (-● {set 'list?}))}])]
           [_ {set (list (-● {set 'list?}))}])]
-       [_ ∅])
-     {set (list (-● {set 'list?}))}]
+       [_ ∅])]
 
     [string->list
      (match Ws
@@ -200,9 +204,9 @@
            (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
            (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
            (define Vₜ (-St -s-cons (list αₕ αₜ)))
-           (σ⊕! σ αₕ (-● {set 'char?}) #t)
-           (σ⊕! σ αₜ Vₜ #t)
-           (σ⊕! σ αₜ -null #t)
+           (σ⊕*! σ [αₕ ↦ (-● {set 'char?}) #t]
+                   [αₜ ↦ Vₜ #t]
+                   [αₜ ↦ -null #t])
            (match Vₛ
              [(-b (? string? s)) #:when (> (string-length s) 0)
               {set (list Vₜ)}]
@@ -231,8 +235,7 @@
            (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
            (define Vₜ (-St -s-cons (list αₕ αₜ)))
            (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ #t))
-           (σ⊕! σ αₜ Vₜ #t)
-           (σ⊕! σ αₜ -null #t)
+           (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])
            {set (list Vₜ)
                 (list -null)}]
           [(-b (list))
@@ -243,6 +246,13 @@
 
     [string-append
      {set (list (-● {set 'string?}))}]
+
+    [current-input-port  {set (list (-● {set 'input-port?}))}]
+    [current-output-port {set (list (-● {set 'output-port?}))}]
+    [current-error-port  {set (list (-● {set 'output-port?}))}]
+    [string (set (list (-● {set 'string?})))]
+    [read-char {set (list (-● {set 'char?}))}]
+    [peek-char {set (list (-● {set 'char?}))}]
     ))
 
 (define-syntax (with-args stx)
@@ -440,24 +450,24 @@
 (: δ! : -𝒞 -ℓ -M -σ -Γ Symbol (Listof -W¹) → (℘ (Listof -V)))
 ;; Return possible answers for primitives
 (define (δ! 𝒞 ℓ M σ Γ o Ws)
-  (with-debugging ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
-    (hash-ref! cache o
-               (λ ()
-                 (printf "δ: ~a _ ... -> ~a~n" o (for/list : (Listof Any) ([V-list ans])
-                                                   (map show-V V-list)))))))
-
-(: all-tails : -σ -St → (℘ -V))
-(define (all-tails σ V)
-  (define-set seen : -V #:eq? #t)
-  (let loop! : Void ([V : -V V])
-    (unless (seen-has? V)
-      (seen-add! V)
-      (match V
-        [(-St (== -s-cons) (list _ αₜ))
-         (set-for-each (σ@ᵥ σ αₜ) loop!)]
-        [else (void)])))
-  seen)
-
+  (with-debugging/off ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
+    (case o
+      [else ;(reverse memq)
+       (when (> (set-count ans) 1)
+         (printf "δ: ~a~n" o)
+         (define-set αs : -α)
+         (for ([W Ws]) (printf " - ~a~n" (show-W¹ W)))
+         (printf "ans:~n")
+         (for ([a ans])
+           (printf " -")
+           (for ([V a])
+             (αs-union! (V->αs V))
+             (printf " ~a" (show-V V)))
+           (printf "~n"))
+         (printf "store:~n")
+         (for ([r (show-σ (span-σ (-σ-m σ) αs))])
+           (printf " - ~a~n" r))
+         (printf "~n"))])))
 
 (module+ test
   (require typed/rackunit)

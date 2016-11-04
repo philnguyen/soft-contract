@@ -8,6 +8,39 @@
          "../ast/definition.rkt"
          "definition.rkt")
 
+(: σ@ : -σ -α → (Values (℘ -V) Boolean))
+(define (σ@ σ α)
+  (with-debugging/off
+    ((Vs old?)
+     (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
+     (values Vs old?))
+    (when (>= (set-count Vs) 2)
+      (printf "σ@: ~a -> ~a~n" α (set-count Vs))
+      (define-set roots : -α)
+      (for ([V Vs])
+        (roots-union! (V->αs V))
+        (printf "  - ~a~n" (show-V V)))
+      (printf "addresses:~n")
+      (for ([row (show-σ (span-σ (-σ-m σ) roots))])
+        (printf "  - ~a~n" row))
+      (printf "~n")
+      #;(error "done"))))
+
+(: σ@ᵥ : -σ -α → (℘ -V))
+(define (σ@ᵥ σ α)
+  (define-values (Vs _) (σ@ σ α))
+  Vs)
+
+(: σ-remove! : -σ -α -V → Void)
+(define (σ-remove! σ α V)
+  (define m*
+    (hash-update (-σ-m σ)
+                 α
+                 (λ ([σr : -σr])
+                   (match-define (-σr Vs b?) σr)
+                   (-σr (set-remove Vs V) b?))))
+  (set--σ-m! σ m*))
+
 (: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
 ;; Look up store at addresses. Return all possible combinations
 (define (σ@/list σ αs)
