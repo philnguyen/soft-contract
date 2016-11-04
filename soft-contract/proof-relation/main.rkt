@@ -43,7 +43,10 @@
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
   (with-debugging/off
     ((R)
-     (first-R (apply p∋Vs σ p Vs)
+     (first-R (let ([Vs*
+                     (for/list : (Listof -V) ([V Vs] [s ss])
+                       (V+ σ V (predicates-of Γ s)))])
+                (apply p∋Vs σ p Vs*))
               (let ()
                 (define Γ*
                   (for/fold ([Γ : -Γ Γ]) ([V Vs] [s ss] #:when s)
@@ -127,5 +130,5 @@
 (define (Γ+/-R R Γ s)
   (case R
     [(✓) (values (Γ+ Γ s) #f)]
-    [(✗) (values #f       (Γ+ Γ (-not s)))]
-    [(?) (values (Γ+ Γ s) (Γ+ Γ (-not s)))]))
+    [(✗) (values #f       (Γ+ Γ (-?@ 'not s)))]
+    [(?) (values (Γ+ Γ s) (Γ+ Γ (-?@ 'not s)))]))
