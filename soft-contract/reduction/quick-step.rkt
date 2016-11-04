@@ -32,7 +32,7 @@
   (define-values (σ₀ _) (𝑰 '()))
   (run (↓ₑ 'top e) σ₀))
 
-(define-type Ctx (List (HashTable -α -σr) (HashTable -αₖ (℘ -κ))))
+(define-type Ctx (List (HashTable -α (℘ -V)) (HashTable -αₖ (℘ -κ))))
 
 (: run : -⟦e⟧! -σ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧! σ)
@@ -43,7 +43,7 @@
   (define iter : Natural 0)
 
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
-    (unless (set-empty? front)
+    (unless (or (set-empty? front) #|TODO|# #;(> iter 57))
 
       (begin
         (define num-front (set-count front))
@@ -81,11 +81,11 @@
 
       (define next
         (for/union : (℘ -ς) ([ς front])
-          (match-define (-Σ (-σ σ _) (VMap σₖ _) _) Σ)
+          (match-define (-Σ (-σ σ _ _) (VMap σₖ _) _) Σ)
           (define vsn : Ctx
             (let ([αₖs (ς->αₖs ς σₖ)]
                   [αs  (ς->αs  ς σₖ)])
-              (list (m↓ σ (span σ αs σr->αs))
+              (list (m↓ σ (span* σ αs V->αs))
                     (m↓ σₖ αₖs))))
           (cond
             [(equal? vsn (hash-ref seen ς #f))
@@ -217,6 +217,10 @@
                       [(list (-b #f)) -ff]
                       [(list (-b #t) _) (-?@ 'values -tt x)])]
                    [_ fargs])))
+          #;(define σ (-Σ-σ Σ))
+          #;(define Vs* : (Listof -V)
+            (for/list ([V Vs] [s (split-values sₐ* (length Vs))])
+              (V+ σ V (predicates-of Γₑₑ s))))
           (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* 𝒞ₑᵣ Σ)]
          [else ∅])]
       [(? -blm? blm) ; TODO: faster if had next `αₖ` here 

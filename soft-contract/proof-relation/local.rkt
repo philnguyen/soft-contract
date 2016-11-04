@@ -473,11 +473,11 @@
                       (match V
                         [(-St (== -s-cons) (list _ α))
                          (combine
-                          (for/seteq: : (℘ -R) ([Vᵣ (σ@ᵥ σ α)])
+                          (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ α)])
                             (check Vᵣ)))]
                         [(-St* (== -s-cons) _ α _)
                          (combine
-                          (for/seteq: : (℘ -R) ([V* (σ@ᵥ σ α)])
+                          (for/seteq: : (℘ -R) ([V* (σ@ σ α)])
                             (check V*)))]
                         [(-b b) (decide-R (null? b))]
                         [(-● ps)

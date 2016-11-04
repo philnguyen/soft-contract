@@ -77,7 +77,7 @@
 
   (: check-α! : -α → Boolean)
   (define (check-α! α)
-    (for/or ([V (σ@ᵥ σ α)])
+    (for/or ([V (σ@ σ α)])
       (check! V)))
 
   (: check! : -V → Boolean)

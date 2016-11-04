@@ -27,11 +27,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Store maps each address to value set and whether it may have been mutated
 
-(struct -σr ([vals : (℘ -V)] [old? : Boolean]) #:transparent)
-(struct -σ ([m : (HashTable -α -σr)] [version : Fixnum]) #:transparent #:mutable)
-;(define-type -Δσ -σ)
-(define (⊥σ) (-σ (hash) 0))
-(define ⊥σr (-σr ∅ #t))
+(struct -σ ([m : (HashTable -α (℘ -V))] [modified : (℘ -α)] [version : Fixnum])
+  #:transparent #:mutable)
+(define (⊥σ) (-σ (hash) ∅ 0))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -288,13 +286,11 @@
   (match-define (-Σ σ σₖ M) Σ)
   (values (show-σ σ) (show-σₖ σₖ) (show-M M)))
 
-(define (show-σ [σ : (U -σ (HashTable -α -σr) (HashTable -α (℘ -V)))]) : (Listof Sexp)
+(define (show-σ [σ : (U -σ (HashTable -α (℘ -V)))]) : (Listof Sexp)
   (cond [(-σ? σ) (show-σ (-σ-m σ))]
         [else
-         (for/list ([(α r) σ] #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
-           (match r
-             [(-σr Vs _) `(,(show-α α) ↦ ,@(set-map Vs show-V))]
-             [(? set? Vs) `(,(show-α α) ↦ ,@(set-map Vs show-V))]))]))
+         (for/list ([(α Vs) σ] #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
+           `(,(show-α α) ↦ ,@(set-map Vs show-V)))]))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
 

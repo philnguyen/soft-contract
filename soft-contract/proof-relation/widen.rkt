@@ -10,23 +10,25 @@
          "../runtime/main.rkt"
          "local.rkt")
 
-(: σr⊔ : -σ -σr -V Boolean → -σr)
-(define (σr⊔ σ σr V bind?)
-  (match-define (-σr Vs bind?₀) σr)
-  (-σr (Vs⊕ σ Vs V) (and bind?₀ bind?)))
-
-(: σ⊕! : -σ -α -V Boolean → Void)
-(define (σ⊕! σ α V bind?)
-  (match-define (-σ m i) σ)
-  (match-define (and σr (-σr Vs b?)) (hash-ref m α (λ () ⊥σr)))
-  (unless (and (∋ Vs V) (equal? b? bind?))
-    (set--σ-m! σ (hash-update m α (λ ([σr : -σr]) (σr⊔ σ σr V bind?)) (λ () ⊥σr)))
+(: σ⊕! ([-σ -α -V] [#:mutating? Boolean] . ->* . Void))
+(define (σ⊕! σ α V #:mutating? [mutating? #f])
+  (match-define (-σ m mods i) σ)
+  (define Vs (hash-ref m α →∅))
+  (define Vs* (set-add Vs V))
+  (define mods* (if mutating? (set-add mods α) mods))
+  (unless (and (equal? Vs Vs*) (equal? mods mods*))
+    (set--σ-m! σ (hash-set m α Vs*))
+    (set--σ-modified! σ mods*)
     (set--σ-version! σ (assert (+ 1 i) fixnum?))))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)
-    [(_ σ [α ↦ V b?]) (σ⊕! σ α V b?)]
-    [(_ σ [α ↦ V b?] p ...)
+    [(_ σ) (void)]
+    [(_ σ [α ↦ V] p ...)
+     (begin
+       (σ⊕!  σ α V #:mutating? #f)
+       (σ⊕*! σ p ...))]
+    [(_ σ [α ↦ V #:mutating? b?] p ...)
      (begin
        (σ⊕!  σ α V b?)
        (σ⊕*! σ p ...))]))
@@ -45,8 +47,8 @@
       [(seen-has? α₁α₂) #t]
       [else
        (seen-add! α₁α₂)
-       (define Vs₁ (σ@ᵥ σ α₁))
-       (define Vs₂ (σ@ᵥ σ α₂))
+       (define Vs₁ (σ@ σ α₁))
+       (define Vs₂ (σ@ σ α₂))
        (for/and : Boolean ([V₁ Vs₁])
          (for/or : Boolean ([V₂ Vs₂])
            (go V₁ V₂)))]))
@@ -93,7 +95,7 @@
   (define (simplify [P : -V]) : -V
     (match P
       [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
-       (define-values (Vs _) (σ@ σ α))
+       (define Vs (σ@ σ α))
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]
       [_ P]))
@@ -219,14 +221,14 @@
 (define (extract-list-content σ V)
   (define-set seen : -α #:eq? #t)
   (match-define (-St (== -s-cons) (list αₕ αₜ)) V)
-  (define Vs (σ@ᵥ σ αₕ))
+  (define Vs (σ@ σ αₕ))
   (let loop! ([αₜ : -α αₜ])
     (unless (seen-has? αₜ)
       (seen-add! αₜ)
-      (for ([Vₜ (σ@ᵥ σ αₜ)])
+      (for ([Vₜ (σ@ σ αₜ)])
         (match Vₜ
           [(-St (== -s-cons) (list αₕ* αₜ*))
-           (for ([Vₕ (σ@ᵥ σ αₕ*)])
+           (for ([Vₕ (σ@ σ αₕ*)])
              (set! Vs (Vs⊕ σ Vs Vₕ)))
            (loop! αₜ*)]
           [(-b (list)) (void)]

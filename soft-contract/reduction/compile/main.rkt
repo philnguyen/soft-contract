@@ -107,7 +107,9 @@
         [(equal? l₀ l)
          (define α (-α.def 𝒾))
          (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
-           (define-values (Vs old?) (σ@ (-Σ-σ Σ) α))
+           (define σ (-Σ-σ Σ))
+           (define Vs (σ@ σ α))
+           (define old? (σ-old? σ α))
            (define s (and old? 𝒾))
            (for/union : (℘ -ς) ([V Vs])
              (⟦k⟧ (-W (list V) s) $ Γ 𝒞 Σ)))]
@@ -116,7 +118,9 @@
         [else
          (define α (-α.wrp 𝒾))
          (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
-           (define-values (Vs old?) (σ@ (-Σ-σ Σ) α))
+           (define σ (-Σ-σ Σ))
+           (define Vs (σ@ σ α))
+           (define old? (σ-old? σ α))
            (define s (and old? 𝒾))
            (for/union : (℘ -ς) ([V Vs])
              (⟦k⟧ (-W (list (supply-negative-party l V)) s) $ Γ 𝒞 Σ)))])]
@@ -182,7 +186,7 @@
                          [xs (in-value (car ⟦bnd⟧))]
                          [x xs])
                (define α (-α.x x 𝒞))
-               (σ⊕! σ α 'undefined #t)
+               (σ⊕! σ α 'undefined)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* $ Γ 𝒞 Σ
             (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ*

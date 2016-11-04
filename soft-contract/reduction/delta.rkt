@@ -43,7 +43,7 @@
        [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
         (define α₁ (or (keep-if-const s₁) (-α.and/c-l ℓ 𝒞)))
         (define α₂ (or (keep-if-const s₂) (-α.and/c-r ℓ 𝒞)))
-        (σ⊕*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
+        (σ⊕*! σ [α₁ ↦ V₁] [α₂ ↦ V₂])
         (define ℓ₁ (+ℓ/ctc ℓ 0))
         (define ℓ₂ (+ℓ/ctc ℓ 1))
         {set (list (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))}]
@@ -53,7 +53,7 @@
        [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
         (define α₁ (or (keep-if-const s₁) (-α.or/c-l ℓ 𝒞)))
         (define α₂ (or (keep-if-const s₂) (-α.or/c-r ℓ 𝒞)))
-        (σ⊕*! σ [α₁ ↦ V₁ #t] [α₂ ↦ V₂ #t])
+        (σ⊕*! σ [α₁ ↦ V₁] [α₂ ↦ V₂])
         (define ℓ₁ (+ℓ/ctc ℓ 0))
         (define ℓ₂ (+ℓ/ctc ℓ 1))
         {set (list (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))}]
@@ -62,7 +62,7 @@
      (match Ws
        [(list (-W¹ V s))
         (define α (or (keep-if-const s) (-α.not/c ℓ 𝒞)))
-        (σ⊕! σ α V #t)
+        (σ⊕! σ α V)
         (define ℓ* (+ℓ/ctc ℓ 0))
         {set (list (-Not/C (cons α ℓ*)))}]
        [Ws (error-arity 'not/c 1 (length Ws))])]
@@ -72,7 +72,7 @@
        (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
          (-α.idx ℓ 𝒞 (assert i exact-nonnegative-integer?))))
      (for ([α αs] [W Ws])
-       (σ⊕! σ α (-W¹-V W) #t))
+       (σ⊕! σ α (-W¹-V W)))
      {set (list (-Vector αs))}]
     [vector?
      (match Ws
@@ -91,7 +91,7 @@
      (match Ws
        [(list (-W¹ V s))
         (define α (or (keep-if-const s) (-α.vectorof ℓ 𝒞)))
-        (σ⊕! σ α V #t)
+        (σ⊕! σ α V)
         (define ℓ* (+ℓ/ctc ℓ 0))
         {set (list (-Vectorof (cons α ℓ*)))}]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
@@ -104,7 +104,7 @@
                  (+ℓ/ctc ℓ i))))
      (for ([α αs] [W Ws])
        (match-define (-W¹ V _) W)
-       (σ⊕! σ α V #t))
+       (σ⊕! σ α V))
      {set (list (-Vector/C (map (inst cons (U -α.cnst -α.vector/c) -ℓ) αs ℓs)))}]
     
     [values {set (map -W¹-V Ws)}]
@@ -161,8 +161,8 @@
            (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
            (define Vₜ (-St -s-cons (list αₕ αₜ)))
            (for ([Vₕ (extract-list-content σ Vₗ)])
-             (σ⊕! σ αₕ Vₕ #t))
-           (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])
+             (σ⊕! σ αₕ Vₕ))
+           (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
            {set (list Vₜ) (list -ff)}]
           [(-b '()) {set (list -ff)}]
           [_ {set (list (-● {set 'list? -cons?}))
@@ -184,8 +184,8 @@
            (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
            (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
            (define Vₜ (-St -s-cons (list αₕ αₜ)))
-           (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! σ αₕ Vₕ #t))
-           (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])
+           (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! σ αₕ Vₕ))
+           (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
            {set (list Vₜ)}]
           [(-● ps)
            (cond [(∋ ps -cons?) {set (list (-● {set -cons?}))}]
@@ -204,9 +204,9 @@
            (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
            (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
            (define Vₜ (-St -s-cons (list αₕ αₜ)))
-           (σ⊕*! σ [αₕ ↦ (-● {set 'char?}) #t]
-                   [αₜ ↦ Vₜ #t]
-                   [αₜ ↦ -null #t])
+           (σ⊕*! σ [αₕ ↦ (-● {set 'char?})]
+                   [αₜ ↦ Vₜ]
+                   [αₜ ↦ -null])
            (match Vₛ
              [(-b (? string? s)) #:when (> (string-length s) 0)
               {set (list Vₜ)}]
@@ -234,8 +234,8 @@
            (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
            (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
            (define Vₜ (-St -s-cons (list αₕ αₜ)))
-           (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ #t))
-           (σ⊕*! σ [αₜ ↦ Vₜ #t] [αₜ ↦ -null #t])
+           (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ))
+           (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
            {set (list Vₜ)
                 (list -null)}]
           [(-b (list))
@@ -452,8 +452,8 @@
 (define (δ! 𝒞 ℓ M σ Γ o Ws)
   (with-debugging/off ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
     (case o
-      [else ;(reverse memq)
-       (when (> (set-count ans) 1)
+      [(+ -) ;(reverse memq)
+       (when (equal? ans (set (-● {set 'exact-integer?})))
          (printf "δ: ~a~n" o)
          (define-set αs : -α)
          (for ([W Ws]) (printf " - ~a~n" (show-W¹ W)))

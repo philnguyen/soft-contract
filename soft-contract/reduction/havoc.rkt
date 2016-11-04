@@ -16,7 +16,7 @@
 (define 𝐱s (list 𝐱))
 (define ⟦rev-hv⟧ : -⟦e⟧!
   (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
-    (let-values ([(Vs _) (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
+    (let ([Vs (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
       (assert (= 1 (set-count Vs)))
       (⟦k⟧ (-W (list (set-first Vs)) havoc-𝒾) $ Γ 𝒞 Σ))))
 
@@ -27,7 +27,7 @@
   (define ⟦e⟧ₕᵥ : -⟦e⟧!
     (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
       (match-define (-Σ σ _ _) Σ)
-      (define-values (Vs _) (σ@ σ (ρ@ ρ 𝒙)))
+      (define Vs (σ@ σ (ρ@ ρ 𝒙)))
       (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
       ;(printf "About to havoc ~a values~n" (set-count Vs))
 
@@ -157,7 +157,7 @@
 (define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧! _ $ Γ 𝒞 Σ) #:roots (W)
     (define Wₕᵥ
-      (let-values ([(Vs _) (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
+      (let ([Vs (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
         (assert (= 1 (set-count Vs)))
         (-W¹ (set-first Vs) havoc-𝒾)))
     (app havoc-path $ ℒ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))

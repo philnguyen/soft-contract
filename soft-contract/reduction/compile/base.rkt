@@ -14,7 +14,7 @@
   (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
     (match-define (-Σ σ _ _) Σ)
     (define α (ρ@ ρ x))
-    (define-values (Vs old?) (σ@ σ α))
+    (define old? (σ-old? σ α))
     (define s (and old? (canonicalize Γ x)))
     (cond
       [($@ $ s) =>
@@ -22,6 +22,7 @@
          (define V* (V+ σ V (predicates-of Γ s)))
          (⟦k⟧ (-W (list V*) s) ($+ $ s V*) Γ 𝒞 Σ))]
       [else
+       (define Vs (σ@ σ α))
        (define φs (-Γ-facts Γ))
        #;(begin
          (define Vs* (for/set: : (℘ -V) ([V Vs] #:when (plausible-V-s? φs V s)) V))

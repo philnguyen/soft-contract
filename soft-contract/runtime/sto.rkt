@@ -8,12 +8,11 @@
          "../ast/definition.rkt"
          "definition.rkt")
 
-(: σ@ : -σ -α → (Values (℘ -V) Boolean))
+(: σ@ : -σ -α → (℘ -V))
 (define (σ@ σ α)
   (with-debugging/off
     ((Vs old?)
-     (match-define (-σr Vs old?) (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
-     (values Vs old?))
+     (hash-ref (-σ-m σ) α (λ () (error 'σ@ "no address ~a" α))))
     (when (>= (set-count Vs) 2)
       (printf "σ@: ~a -> ~a~n" α (set-count Vs))
       (define-set roots : -α)
@@ -26,19 +25,13 @@
       (printf "~n")
       #;(error "done"))))
 
-(: σ@ᵥ : -σ -α → (℘ -V))
-(define (σ@ᵥ σ α)
-  (define-values (Vs _) (σ@ σ α))
-  Vs)
+(: σ-old? : -σ -α → Boolean)
+(define (σ-old? σ α)
+  (not (∋ (-σ-modified σ) α)))
 
 (: σ-remove! : -σ -α -V → Void)
 (define (σ-remove! σ α V)
-  (define m*
-    (hash-update (-σ-m σ)
-                 α
-                 (λ ([σr : -σr])
-                   (match-define (-σr Vs b?) σr)
-                   (-σr (set-remove Vs V) b?))))
+  (define m* (hash-update (-σ-m σ) α (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
   (set--σ-m! σ m*))
 
 (: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
@@ -49,7 +42,7 @@
      (let loop : (℘ (Listof -V)) ([αs : (Listof -α) αs])
           (match αs
             [(cons α αs*)
-             (define-values (Vs _) (σ@ σ α))
+             (define Vs (σ@ σ α))
              (define Vss (loop αs*))
              (for*/set: : (℘ (Listof -V)) ([V Vs] [Vs Vss])
                (cons V Vs))]
@@ -60,7 +53,7 @@
 (: σ@¹ : -σ -α → -V)
 ;; Look up store, asserting that exactly 1 value resides there
 (define (σ@¹ σ α)
-  (define-values (Vs _) (σ@ σ α))
+  (define Vs (σ@ σ α))
   (assert (= 1 (set-count Vs)))
   (set-first Vs))
 
@@ -68,11 +61,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Restrict stores
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(: σr->αs : -σr → (℘ -α))
-(define (σr->αs σr)
-  (match-define (-σr Vs _) σr)
-  (for/union : (℘ -α) ([V Vs]) (V->αs V)))
 
 (: V->αs : -V → (℘ -α))
 (define (V->αs V)
@@ -110,8 +98,8 @@
 (define (ρ->αs ρ)
   (for/set: : (℘ -α) ([α (in-hash-values ρ)]) α))
 
-(: span-σ : (HashTable -α -σr) (℘ -α) → (HashTable -α -σr))
-(define (span-σ σ αs) (m↓ σ (span σ αs σr->αs)))
+(: span-σ : (HashTable -α (℘ -V)) (℘ -α) → (HashTable -α (℘ -V)))
+(define (span-σ σ αs) (m↓ σ (span* σ αs V->αs)))
 
 (: Γ->αₖs : -Γ → (℘ -αₖ))
 (define (Γ->αₖs Γ)
