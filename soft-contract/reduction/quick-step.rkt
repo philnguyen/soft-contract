@@ -43,7 +43,7 @@
   (define iter : Natural 0)
 
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
-    (unless (or (set-empty? front) #|TODO|# #;(> iter 57))
+    (unless (or (set-empty? front) #|TODO|# (> iter 57))
 
       (begin
         (define num-front (set-count front))
@@ -80,7 +80,30 @@
         (set! iter (+ 1 iter)))
 
       (define next
-        (for/union : (℘ -ς) ([ς front])
+        (let ([ς↦αs : (HashTable -ς (℘ -α)) (make-hash)]
+              [ς↦αₖs : (HashTable -ς (℘ -αₖ)) (make-hash)]
+              [ς↦vsn : (HashTable -ς Ctx) (make-hash)]
+              [αs-all : (℘ -α) ∅])
+          ;; Compute each state's needed addresses
+          (match-define (-Σ (and σ (-σ mσ _ _)) (VMap mσₖ _) _) Σ)
+          (for ([ς front])
+            (define αₖs (ς->αₖs ς mσₖ))
+            (define αs (span* mσ (ς->αs ς mσₖ) V->αs))
+            (define vsn (list (m↓ mσ αs) (m↓ mσₖ αₖs)))
+            (set! αs-all (∪ αs-all αs))
+            (hash-set! ς↦αₖs ς αₖs)
+            (hash-set! ς↦αs ς αs)
+            (hash-set! ς↦vsn ς vsn))
+          (soft-gc! σ (span* mσ αs-all V->αs))
+          (for/union : (℘ -ς) ([ς front])
+            (define vsn (hash-ref ς↦vsn ς))
+            (cond
+              [(equal? vsn (hash-ref seen ς #f))
+               ∅]
+              [else
+               (hash-set! seen ς vsn)
+               (↝! ς Σ)])))
+        #;(for/union : (℘ -ς) ([ς front])
           (match-define (-Σ (-σ σ _ _) (VMap σₖ _) _) Σ)
           (define vsn : Ctx
             (let ([αₖs (ς->αₖs ς σₖ)]

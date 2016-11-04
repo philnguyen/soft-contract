@@ -149,6 +149,13 @@
       (printf "   + ~a~n" (show-αₖ αₖ)))
     (printf "~n")))
 
+(: soft-gc! : -σ (℘ -α) → Void)
+;; "garbage collect" mutated-ness cardinality information 
+(define (soft-gc! σ αs)
+  (match-define (-σ _ mods crds) σ)
+  (set--σ-modified! σ (∩ mods αs))
+  (set--σ-cardinality! σ (m↓ crds αs)))
+
 (define/memoeq (->αs [x : (Rec X (U -α -V -W¹ -W -ρ (Listof X)))]) : (℘ -α)
   (cond
     [(list? x)

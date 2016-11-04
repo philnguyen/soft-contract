@@ -27,9 +27,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Store maps each address to value set and whether it may have been mutated
 
-(struct -σ ([m : (HashTable -α (℘ -V))] [modified : (℘ -α)] [version : Fixnum])
+(define-type -cardinality (U 0 1 'N))
+(struct -σ ([m : (HashTable -α (℘ -V))]
+            [modified : (℘ -α)] ; set of addresses potentially have been mutated
+            [cardinality : (HashTable -α -cardinality)]
+            )
   #:transparent #:mutable)
-(define (⊥σ) (-σ (hash) ∅ 0))
+(define (⊥σ) (-σ (hash) ∅ (hash)))
+
+(: cardinality+ : -cardinality → -cardinality)
+(define (cardinality+ c)
+  (case c
+    [(0) 1]
+    [(1) 'N]
+    [else 'N]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -68,11 +79,6 @@
 
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:transparent)
 (define (⊥Σ) (-Σ (⊥σ) (⊥σₖ) (⊥M)))
-
-(: -Σ-version : -Σ → (Values Fixnum Fixnum Fixnum))
-(define -Σ-version
-  (match-lambda
-    [(-Σ σ σₖ M) (values (-σ-version σ) (VMap-version σₖ) (VMap-version M))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
