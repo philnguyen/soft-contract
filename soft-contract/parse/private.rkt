@@ -89,9 +89,9 @@
      (define cs (syntax->list #'(c ...)))
      (define n (length cs))
      (define s-name (syntax-e #'s))
-     (define si (-struct-info (-𝒾 s-name (cur-mod)) n ∅eq))
+     (define 𝒾 (-𝒾 s-name (cur-mod)))
      (define st-doms (map parse-e cs))
-     (define st-p (-struct/c si st-doms (+ℓ!)))
+     (define st-p (-struct/c 𝒾 st-doms (+ℓ!)))
      (define dec-constr (-p/c-item (syntax-e #'s) (--> st-doms st-p (+ℓ!)) (+ℓ!)))
      (define dec-pred (-p/c-item (format-symbol "~a?" s-name) -pred (+ℓ!)))
      (define dec-acs
@@ -139,14 +139,15 @@
      (define ctor (syntax-e #'ctor-name))
      (define/contract accs (listof identifier?) (syntax->list #'(acc ...)))
      (define n (length accs))
-     (define si (-struct-info (-𝒾 ctor (cur-mod)) n ∅eq))
+     (define 𝒾 (-𝒾 ctor (cur-mod)))
+     (add-struct-info! 𝒾 n ∅eq)
      (-define-values
       (list* ctor (syntax-e #'pred) (map syntax-e accs))
       (-@ 'values
-          (list* (-st-mk si)
-                 (-st-p si)
+          (list* (-st-mk 𝒾)
+                 (-st-p 𝒾)
                  (for/list ([(accᵢ i) (in-indexed accs)])
-                   (-st-ac si i)))
+                   (-st-ac 𝒾 i)))
           0))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
@@ -303,10 +304,8 @@
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
             (#%plain-app _ _ _ _ (quote k) _ ...)
             _ ...)
-     (define si (-struct-info (-𝒾 (syntax-e #'k) (cur-mod))
-                              (length (syntax->list #'(c ...)))
-                              ∅eq))
-     (-struct/c si (parse-es #'(c ...)) (+ℓ!))]
+     (define 𝒾 (-𝒾 (syntax-e #'k) (cur-mod)))
+     (-struct/c 𝒾 (parse-es #'(c ...)) (+ℓ!))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
     [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
     [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
@@ -348,7 +347,10 @@
         (syntax-parse binding
           [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
       (-begin/simp (parse-es #'(b ...))))]
-    [(set! x e) (-set! (syntax-e #'x) (parse-e #'e))]
+    [(set! x e)
+     (define x-name (syntax-e #'x))
+     (add-assignable! x-name)
+     (-set! x-name (parse-e #'e))]
     [(#%plain-lambda fmls b ...+)
      (-λ (parse-formals #'fmls) (-begin/simp (parse-es #'(b ...))))]
     

@@ -17,20 +17,23 @@
 
 (: run-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (run-file p)
-  (define m (file->module p))
-  (define-values (σ₁ _) (𝑰 (list m)))
-  (run (↓ₘ m) σ₁))
+  (with-initialized-static-info
+    (define m (file->module p))
+    (define-values (σ₁ _) (𝑰 (list m)))
+    (run (↓ₘ m) σ₁)))
 
 (: havoc-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (havoc-file p)
-  (define m (file->module p))
-  (define-values (σ₁ e₁) (𝑰 (list m)))
-  (run (↓ₚ (list m) e₁) σ₁))
+  (with-initialized-static-info
+    (define m (file->module p))
+    (define-values (σ₁ e₁) (𝑰 (list m)))
+    (run (↓ₚ (list m) e₁) σ₁)))
 
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)
-  (define-values (σ₀ _) (𝑰 '()))
-  (run (↓ₑ 'top e) σ₀))
+  (with-initialized-static-info
+    (define-values (σ₀ _) (𝑰 '()))
+    (run (↓ₑ 'top e) σ₀)))
 
 (define-type Ctx (List (HashTable -α (℘ -V)) (HashTable -αₖ (℘ -κ))))
 

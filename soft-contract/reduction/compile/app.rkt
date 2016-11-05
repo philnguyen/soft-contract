@@ -43,37 +43,36 @@
         [(arity-includes? a n) e ...]
         [else (⟦k⟧ (blm-arity a n) $ Γ 𝒞 Σ)])))
 
-  (define (app-st-p [s : -struct-info])
+  (define (app-st-p [𝒾 : -𝒾])
     (define A
-      (case (MΓ⊢oW M σ Γ (-st-p s) (car Wₓs))
+      (case (MΓ⊢oW M σ Γ (-st-p 𝒾) (car Wₓs))
         [(✓) -True/Vs]
         [(✗) -False/Vs]
         [(?) -Bool/Vs]))
     (⟦k⟧ (-W A sₐ) $ Γ 𝒞 Σ))
 
-  (define (app-st-mk [s : -struct-info])
-    (define 𝒾 (-struct-info-id s))
+  (define (app-st-mk [𝒾 : -𝒾])
     #;(match-define (-ℒ _ ℓ) ℒ)
     (define αs : (Listof -α.fld)
-      (for/list ([i : Natural (-struct-info-arity s)])
+      (for/list ([i : Index (get-struct-arity 𝒾)])
         (-α.fld 𝒾 ℒ #;ℓ 𝒞 i)))
     (for ([α αs] [Vₓ Vₓs] [sₓ sₓs])
       (define Vₓ* (V+ σ Vₓ (predicates-of Γ sₓ)))
       (σ⊕! σ α Vₓ*))
-    (define V (-St s αs))
+    (define V (-St 𝒾 αs))
     (⟦k⟧ (-W (list V) sₐ) $ Γ 𝒞 Σ))
 
   ;; Apply accessor
-  (define (app-st-ac [s : -struct-info] [i : Natural])
-    (match-define (-struct-info _ n muts) s)
+  (define (app-st-ac [𝒾 : -𝒾] [i : Index])
+    (define n (get-struct-arity 𝒾))
+    (define mutable-field? (struct-mutable? 𝒾 i))
     (match-define (list (and Wₓ (-W¹ Vₓ sₓ))) Wₓs)
-    (define ac (-st-ac s i))
-    (define p  (-st-p s))
+    (define ac (-st-ac 𝒾 i))
+    (define p  (-st-p 𝒾))
     (define (blm) (-blm l (show-o ac) (list p) (list Vₓ)))
-    (define mutable-field? (∋ muts i))
 
     (match Vₓ
-      [(-St (== s) αs)
+      [(-St (== 𝒾) αs)
        (define α (list-ref αs i))
        (cond
          [(and (not mutable-field?) ($@ $ sₐ)) =>
@@ -89,7 +88,7 @@
                    (define $* (if mutable-field? $ ($+ $ sₐ V)))
                    (⟦k⟧ (-W (list V) sₐ) $* Γ 𝒞 Σ)]
                   [else ∅]))])]
-      [(-St* (== s) αs α l³)
+      [(-St* (== 𝒾) αs α l³)
        (match-define (-l³ _ _ lₒ) l³)
        (define Ac (-W¹ ac ac))
        (cond
@@ -113,20 +112,20 @@
          #:false (⟦k⟧ (blm) $ Γₑᵣ 𝒞 Σ))]
       [_ (⟦k⟧ (blm) $ Γ 𝒞 Σ)]))
 
-  (define (app-st-mut [s : -struct-info] [i : Natural])
+  (define (app-st-mut [𝒾 : -𝒾] [i : Index])
     (match-define (list Wₛ Wᵥ) Wₓs)
     (match-define (-W¹ Vₛ sₛ) Wₛ)
     (match-define (-W¹ Vᵥ _ ) Wᵥ)
-    (define mut (-st-mut s i))
-    (define p (-st-p s))
+    (define mut (-st-mut 𝒾 i))
+    (define p (-st-p 𝒾))
     (define (blm) (-blm l (show-o mut) (list p) (list Vₛ)))
 
     (match Vₛ
-      [(-St (== s) αs)
+      [(-St (== 𝒾) αs)
        (define α (list-ref αs i))
        (σ⊕! σ α Vᵥ #:mutating? #t)
        (⟦k⟧ -Void/W $ Γ 𝒞 Σ)]
-      [(-St* (== s) γs α l³)
+      [(-St* (== 𝒾) γs α l³)
        (match-define (-l³ l+ l- lo) l³)
        (define l³* (-l³ l- l+ lo))
        (match-define (? -α? γ) (list-ref γs i))
@@ -151,14 +150,16 @@
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (match Vᵥ
-      [(-St (-struct-info _ n _) αs)
+      [(-St 𝒾 αs)
+       (define n (get-struct-arity 𝒾))
        (for*/union : (℘ -ς) ([(α i) (in-indexed αs)]
                              #:when (exact-nonnegative-integer? i) ; hack for TR
                              #:when (plausible-index? M σ Γ Wᵢ i)
                              [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                              [V (σ@ σ α)])
          (⟦k⟧ (-W (list V) sₐ) $ Γ* 𝒞 Σ))]
-      [(-St* (-struct-info _ n _) γs α l³)
+      [(-St* 𝒾 γs α l³)
+       (define n (get-struct-arity 𝒾))
        (match-define (-l³ l+ l- lo) l³)
        (for*/union : (℘ -ς) ([(γ i) (in-indexed γs)]
                             #:when (exact-nonnegative-integer? i)
@@ -310,19 +311,18 @@
   (define (app-Not/C [Wᵤ : -W¹]) : (℘ -ς)
     (app l $ ℒ Wᵤ Wₓs Γ 𝒞 Σ (neg∷ l ⟦k⟧)))
 
-  (define (app-St/C [s : -struct-info] [W-Cs : (Listof -W¹)]) : (℘ -ς)
+  (define (app-St/C [𝒾 : -𝒾] [W-Cs : (Listof -W¹)]) : (℘ -ς)
     ;; TODO fix ℓ
     (match-define (list Wₓ) Wₓs)
     (match-define (-W¹ Vₓ _) Wₓ)
     (match Vₓ
-      [(or (-St (== s) _) (-St* (== s) _ _ _))
+      [(or (-St (== 𝒾) _) (-St* (== 𝒾) _ _ _))
        (define ⟦chk-field⟧s : (Listof -⟦e⟧!)
-         (for/list ([(W-C i) (in-indexed W-Cs)]
-                    #:when (exact-nonnegative-integer? i))
-           (define Ac (let ([ac (-st-ac s i)]) (-W¹ ac ac)))
+         (for/list ([(W-C i) (in-indexed W-Cs)] #:when (index? i))
+           (define Ac (let ([ac (-st-ac 𝒾 i)]) (-W¹ ac ac)))
            (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W-C)
                        (list (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ Ac) (list (mk-rt-⟦e⟧ Wₓ)))))))
-       (define P (let ([p (-st-p s)]) (-W¹ p p)))
+       (define P (let ([p (-st-p 𝒾)]) (-W¹ p p)))
        (app l $ ℒ P (list Wₓ) Γ 𝒞 Σ (and∷ l ⟦chk-field⟧s ⊥ρ ⟦k⟧))]
       [_
        (⟦k⟧ -False/W $ Γ 𝒞 Σ)]))
@@ -538,7 +538,7 @@
     [(pair? Ws)
      (define αₕ (-α.var-car ℒ 𝒞))
      (define αₜ (-α.var-cdr ℒ 𝒞))
-     (define Vₜ (-St -s-cons (list αₕ αₜ)))
+     (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
      ;; Allocate spine for var-arg lists
      (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
      ;; Allocate elements in var-arg lists
@@ -738,20 +738,20 @@
   (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
   (match-define (-l³ l+ _ lo) l³)
-  (match-define (-St/C flat? s αℓs) C)
+  (match-define (-St/C flat? 𝒾 αℓs) C)
   (define-values (αs ℓs) ((inst unzip -α -ℓ) αℓs))
-  (define cs (-struct/c-split c s))
-  (define p (-st-p s))
-  (define K (let ([k (-st-mk s)]) (-W¹ k k)))
-  (define muts (-struct-info-mutables s))
+  (define cs (-struct/c-split c 𝒾))
+  (define p (-st-p 𝒾))
+  (define K (let ([k (-st-mk 𝒾)]) (-W¹ k k)))
+  (define all-immutable? (struct-all-immutable? 𝒾))
 
   (define ⟦field⟧s : (Listof -⟦e⟧!)
     (for/list ([(α i) (in-indexed αs)])
-      (define ac (-st-ac s (assert i exact-nonnegative-integer?)))
+      (define ac (-st-ac 𝒾 (assert i index?)))
       (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ (-W¹ V v))))))
 
   (match V ; FIXME code dup
-    [(or (-St (== s) _) (-St* (== s) _ _ _))
+    [(or (-St (== 𝒾) _) (-St* (== 𝒾) _ _ _))
      (cond
        [(null? ⟦field⟧s)
         (⟦k⟧ (-W (list V) v) $ Γ 𝒞 Σ)]
@@ -763,10 +763,10 @@
                        (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
                    (define ⟦reconstr⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ K) ⟦mon⟧s))
                    (define ⟦k⟧*
-                     (cond [(set-empty? muts) ⟦k⟧]
+                     (cond [all-immutable? ⟦k⟧]
                            [else
-                            (define α (-α.st (-struct-info-id s) ℓ 𝒞))
-                            (wrap-st∷ s αs α l³ ⟦k⟧)]))
+                            (define α (-α.st 𝒾 ℓ 𝒞))
+                            (wrap-st∷ 𝒾 αs α l³ ⟦k⟧)]))
                    (⟦reconstr⟧ ⊥ρ $ Γ 𝒞 Σ ⟦k⟧*))])]
     [(-● _)
      (match-define (-ℒ _ ℓ) ℒ)
@@ -784,10 +784,10 @@
           (define ⟦reconstr⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ K) ⟦mon⟧s))
           (define ⟦k⟧*
             (cond
-              [(set-empty? muts) ⟦k⟧]
+              [all-immutable? ⟦k⟧]
               [else
-               (define α (-α.st (-struct-info-id s) ℓ 𝒞))
-               (wrap-st∷ s αs α l³ ⟦k⟧)]))
+               (define α (-α.st 𝒾 ℓ 𝒞))
+               (wrap-st∷ 𝒾 αs α l³ ⟦k⟧)]))
           (⟦chk⟧ ⊥ρ $ Γ 𝒞 Σ
            (if∷ lo ⟦reconstr⟧ ⟦blm⟧ ⊥ρ ⟦k⟧*)))])]
     [_ (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ 𝒞 Σ)]))
@@ -992,7 +992,7 @@
      (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
        (define ⟦chk-field⟧s : (Listof -⟦e⟧!)
          (for/list ([Cᵢ Cs] [(cᵢ i) (in-indexed cs)] [ℓᵢ : -ℓ ℓs])
-           (define ac (-st-ac s (assert i exact-nonnegative-integer?)))
+           (define ac (-st-ac s (assert i index?)))
            (define ⟦ref⟧ᵢ (mk-app-⟦e⟧ 'Λ ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ W-V))))
            (mk-fc-⟦e⟧ l (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ (-W¹ Cᵢ cᵢ)) ⟦ref⟧ᵢ)))
        (match ⟦chk-field⟧s
@@ -1078,16 +1078,15 @@
 
 (define/memo (neg∷ [l : -l] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧! (if∷ l ⟦ff⟧ ⟦tt⟧ ⊥ρ ⟦k⟧!))
 
-(define/memo (wrap-st∷ [s : -struct-info]
+(define/memo (wrap-st∷ [𝒾 : -𝒾]
                        [αs : (Listof -α)]
                        [α : -α.st]
                        [l³ : -l³]
                        [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (define muts (-struct-info-mutables s))
   (define αs* : (Listof (Option -α))
     (for/list ([(α i) (in-indexed αs)])
-      (and (∋ muts i) α)))
-  (define V* (-St* s αs* α l³))
+      (and (struct-mutable? 𝒾 (assert i index?)) α)))
+  (define V* (-St* 𝒾 αs* α l³))
   (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (αs α)
     (match-define (-W Vs s) A)
     (match-define (list V) Vs) ; only used internally, should be safe
@@ -1138,7 +1137,7 @@
 
 (define/memo (fc-struct/c∷ [l : -l]
                            [ℒ : -ℒ]
-                           [s : -struct-info]
+                           [𝒾 : -𝒾]
                            [W-Vs-rev : (Listof -W¹)]
                            [⟦e⟧s : (Listof -⟦e⟧!)]
                            [ρ : -ρ]

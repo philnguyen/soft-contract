@@ -125,7 +125,7 @@
               (-@ havoc-𝒾 (list ref) (+ℓ!)))))
     (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
-(: prog-accs : (Listof -module) → (HashTable -struct-info (℘ -st-ac)))
+(: prog-accs : (Listof -module) → (HashTable -𝒾 (℘ -st-ac)))
 ;; Retrieve set of all public accessors from program, grouped by struct
 (define (prog-accs ms)
   
@@ -144,7 +144,7 @@
       [_ (void)]))
   
   ;; Return exported accessors
-  (for/fold ([m : (HashTable -struct-info (℘ -st-ac)) (hash -s-cons {set -car -cdr})])
+  (for/fold ([m : (HashTable -𝒾 (℘ -st-ac)) (hash -𝒾-cons {set -car -cdr})])
             ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
     (match-define (-st-ac s _) ac)
     (hash-update m s (λ ([acs : (℘ -st-ac)]) (set-add acs ac)) →∅)))

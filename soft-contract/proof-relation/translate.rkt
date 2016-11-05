@@ -51,8 +51,8 @@
          (for/fold ([acc : (℘ Natural) ∅eq])
                    ([entry seen])
            (match entry
-             [(or (-st-mk s) (-st-p s) (-st-ac s _) (-st-mut s _)) #:when s
-              (set-add acc (-struct-info-arity s))]
+             [(or (-st-mk 𝒾) (-st-p 𝒾) (-st-ac 𝒾 _) (-st-mut 𝒾 _)) #:when 𝒾
+              (set-add acc (get-struct-arity 𝒾))]
              [(or 'list? 'list-ref 'map)
               (set-add acc 2)]
              [_ acc])))
@@ -260,7 +260,7 @@
        (define tₚ (⦃e⦄! (-@ (-st-p s) es +ℓ₀)))
        (define ts : (Listof →Z3-Ast)
          (for/list ([(c i) (in-indexed cs)])
-           (define eᵢ (-@ (-st-ac s (assert i exact-nonnegative-integer?)) es +ℓ₀))
+           (define eᵢ (-@ (-st-ac s (assert i index?)) es +ℓ₀))
            (⦃e⦄! (-@ c (list eᵢ) +ℓ₀))))
        (λ ()
          (@/s 'B (apply and/s
@@ -276,11 +276,11 @@
          [else (refs-add! o)])
 
        (match o ; HACK
-         [(-st-ac s _)
-          (define n (-struct-info-arity s))
+         [(-st-ac 𝒾 _)
+          (define n (get-struct-arity 𝒾))
           (define is-St (format-symbol "is-St_~a" n))
           (define tag (format-symbol "tag_~a" n))
-          (define stag (⦃struct-info⦄ s))
+          (define stag (⦃struct-id⦄ 𝒾))
           (match-define (list t) ts)
           (props-add! (λ ()
                         (define tₐ (t))
@@ -428,7 +428,7 @@
      (λ ()
        (foldr
         (λ ([tₗ : Z3-Ast] [tᵣ : Z3-Ast])
-          (@/s 'St_2 (⦃struct-info⦄ -s-cons) tₗ tᵣ))
+          (@/s 'St_2 (⦃struct-id⦄ -𝒾-cons) tₗ tᵣ))
         (val-of 'Null)
         (for/list : (Listof Z3-Ast) ([t ts]) (t))))]
     [(any/c) (λ () (@/s 'B true/s))]
@@ -565,22 +565,22 @@
      (λ () (@/s 'N (@/s 'f.max (@/s 'real (t₁)) (@/s 'real (t₂))) 0))]
     [else
      (match o
-       [(-st-p s)
-        (define n (-struct-info-arity s))
+       [(-st-p 𝒾)
+        (define n (get-struct-arity 𝒾))
         (define is-St (format-symbol "is-St_~a" n))
         (define st-tag (format-symbol "tag_~a" n))
-        (define tag (⦃struct-info⦄ s))
+        (define tag (⦃struct-id⦄ 𝒾))
         (match-define (list t) ts)
         (λ ()
           (define tₐ (t))
           (@/s 'B (and/s (@/s is-St tₐ)
                          (=/s (@/s st-tag tₐ) tag))))]
-       [(-st-mk s)
-        (define St (format-symbol "St_~a" (-struct-info-arity s)))
+       [(-st-mk 𝒾)
+        (define St (format-symbol "St_~a" (get-struct-arity 𝒾)))
         (λ ()
-          (apply @/s St (⦃struct-info⦄ s) (run-all ts)))]
-       [(-st-ac s i)
-        (define field (format-symbol "field_~a_~a" (-struct-info-arity s) i))
+          (apply @/s St (⦃struct-id⦄ 𝒾) (run-all ts)))]
+       [(-st-ac 𝒾 i)
+        (define field (format-symbol "field_~a_~a" (get-struct-arity 𝒾) i))
         (λ () (@/s field ((car ts))))]
        [_ (raise (exn:scv:unsupported (format "unsupported: ~a" (show-o o))
                                           (current-continuation-marks)))])]))
@@ -670,7 +670,7 @@
   (declare-fun list? ('V) Bool/s)
   (assert! (list? 'Null))
   (assert! (∀/s ([h 'V] [t 'V])
-                (=>/s (list? t) (list? (@/s 'St_2 (⦃struct-info⦄ -s-cons) h t)))))
+                (=>/s (list? t) (list? (@/s 'St_2 (⦃struct-id⦄ -𝒾-cons) h t)))))
   (declare-fun f.map ('V 'V) 'V)
   (declare-fun f.append ('V 'V) 'V)
   (define-fun f.min ([x Real/s] [y Real/s]) Real/s (ite/s (<=/s x y) x y))
@@ -682,7 +682,7 @@
 (define ⦃str⦄ ((inst mk-interner String)))
 (define ⦃chr⦄ ((inst mk-interner Char) #:eq? #t))
 (define ⦃l⦄ ((inst mk-interner -l)))
-(define ⦃struct-info⦄ ((inst mk-interner -struct-info)))
+(define ⦃struct-id⦄ ((inst mk-interner -𝒾)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

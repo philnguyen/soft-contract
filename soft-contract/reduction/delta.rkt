@@ -154,12 +154,11 @@
      (match Ws
        [(list _ (-W¹ Vₗ _))
         (match Vₗ
-          [(-St (== -s-cons) _)
-           (define 𝒾 (-struct-info-id -s-cons))
+          [(-St (== -𝒾-cons) _)
            (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
-           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
-           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
+           (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
+           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
            (for ([Vₕ (extract-list-content σ Vₗ)])
              (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
@@ -178,12 +177,11 @@
        [(list (-W¹ Vₗ _))
         (match Vₗ
           [(-b (list)) {set (list -null)}]
-          [(-St (== -s-cons) _)
-           (define 𝒾 (-struct-info-id -s-cons))
+          [(-St (== -𝒾-cons) _)
            (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
-           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
-           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
+           (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
+           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
            (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
            {set (list Vₜ)}]
@@ -199,11 +197,10 @@
         (match Vₛ
           [(-b "") {set (list -null)}]
           [_
-           (define 𝒾 (-struct-info-id -s-cons))
            (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
-           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
-           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
+           (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
+           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
            (σ⊕*! σ [αₕ ↦ (-● {set 'char?})]
                    [αₜ ↦ Vₜ]
                    [αₜ ↦ -null])
@@ -229,11 +226,10 @@
         (match Vₗ
           [(? -St? Vₗ)
            (define Vₕs (extract-list-content σ Vₗ))
-           (define 𝒾 (-struct-info-id -s-cons))
            (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld 𝒾 ℒ 𝒞 0))
-           (define αₜ (-α.fld 𝒾 ℒ 𝒞 1))
-           (define Vₜ (-St -s-cons (list αₕ αₜ)))
+           (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
+           (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
+           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
            (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
            {set (list Vₜ)

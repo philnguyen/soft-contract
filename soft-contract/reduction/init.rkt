@@ -61,18 +61,18 @@
      (log-warning "TODO: ->* for ~a~n" o)
      (σ⊕*! σ [(-α.def (-𝒾 o 'Λ)) ↦ o] [(-α.wrp (-𝒾 o 'Λ)) ↦ o])]
     [`(,(? symbol? o) ,_ ...) (void)]
-    [`(#:struct-cons ,(? symbol? o) ,si)
-     (define s (mk-struct-info si))
-     (alloc-Ar! σ o (-st-mk s) (make-list (-struct-info-arity s) 'any/c) (-st-p s))]
-    [`(#:struct-pred ,(? symbol? o) ,si)
-     (define s (mk-struct-info si))
-     (alloc-Ar! σ o (-st-p s) (list 'any/c) 'boolean?)]
-    [`(#:struct-acc ,(? symbol? o) ,si ,(? exact-nonnegative-integer? i))
-     (define s (mk-struct-info si))
-     (alloc-Ar! σ o (-st-ac s i) (list (-st-p s)) 'any/c)]
-    [`(#:struct-mut ,(? symbol? o) ,si ,(? exact-nonnegative-integer? i))
-     (define s (mk-struct-info si))
-     (alloc-Ar! σ o (-st-mut s i) (list (-st-p s) 'any/c) 'void?)]))
+    [`(#:struct-cons ,(? symbol? o) (,(? symbol? t) ,mut?s ...))
+     (define 𝒾 (-𝒾 t 'Λ))
+     (alloc-Ar! σ o (-st-mk 𝒾) (make-list (length mut?s) 'any/c) (-st-p 𝒾))]
+    [`(#:struct-pred ,(? symbol? o) (,(? symbol? t) ,_ ...))
+     (define 𝒾 (-𝒾 t 'Λ))
+     (alloc-Ar! σ o (-st-p 𝒾) (list 'any/c) 'boolean?)]
+    [`(#:struct-acc ,(? symbol? o) (,(? symbol? t) ,_ ...) ,(? index? i))
+     (define 𝒾 (-𝒾 t 'Λ))
+     (alloc-Ar! σ o (-st-ac 𝒾 i) (list (-st-p 𝒾)) 'any/c)]
+    [`(#:struct-mut ,(? symbol? o) (,(? symbol? t) ,_ ...) ,(? index? i))
+     (define 𝒾 (-𝒾 t 'Λ))
+     (alloc-Ar! σ o (-st-mut 𝒾 i) (list (-st-p 𝒾) 'any/c) 'void?)]))
 
 (: alloc-Ar-o! : -σ Symbol -=> -e → Void)
 ;; Allocate wrapped and unwrapped version of primitive `o` in store `σ`
@@ -131,8 +131,8 @@
      (define-values (D d) (alloc-C! σ s₂))
      (define flat? (and (C-flat? C) (C-flat? D)))
      (σ⊕*! σ [c ↦ C] [d ↦ D])
-     (values (-St/C flat? -s-cons (list (cons c (+ℓ!)) (cons d (+ℓ!))))
-             (assert (-?struct/c -s-cons (list c d))))]
+     (values (-St/C flat? -𝒾-cons (list (cons c (+ℓ!)) (cons d (+ℓ!))))
+             (assert (-?struct/c -𝒾-cons (list c d))))]
     [`(listof ,s*)
      (log-warning "TODO: alloc 'listof~n")
      (values 'any/c 'any/c)]
@@ -209,8 +209,8 @@
      (alloc-const! σ Cₗ cₗ)
      (alloc-const! σ Cᵣ cᵣ)
      #;(σ⊕*! σ [cₗ ↦ Cₗ] [cᵣ ↦ Cᵣ])
-     (values (-St/C flat? -s-cons (list (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!))))
-             (-struct/c -s-cons (list cₗ cᵣ) (+ℓ!)))]))
+     (values (-St/C flat? -𝒾-cons (list (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!))))
+             (-struct/c -𝒾-cons (list cₗ cᵣ) (+ℓ!)))]))
 
 (: alloc-prim! : -σ -prim → -α.cnst)
 (define (alloc-prim! σ p)
@@ -243,15 +243,6 @@
     (alloc-const! σ V e))
   ;; Weird. Just keep this for now
   es)
-
-(: mk-struct-info : Any → -struct-info)
-(define (mk-struct-info s)
-  (match-let ([`(,(? symbol? t) ,mut?s ...) s])
-    (-struct-info
-     (-𝒾 t 'Λ)
-     (length mut?s)
-     (for/seteq: : (℘ Natural) ([mut? mut?s] [i : Natural (in-naturals)] #:when mut?)
-       i))))
 
 (define (σ₀)
   (define σ (⊥σ))

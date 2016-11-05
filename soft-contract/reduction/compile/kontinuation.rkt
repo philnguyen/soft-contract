@@ -207,7 +207,7 @@
 
 ;; struct/c contract
 (define/memo (struct/c∷ [ℓ : -ℓ]
-                        [si : -struct-info]
+                        [𝒾 : -𝒾]
                         [Cs : (Listof -W¹)]
                         [⟦c⟧s : (Listof -⟦e⟧!)]
                         [ρ : -ρ]
@@ -233,10 +233,10 @@
        (define αℓs : (Listof (Pairof (U -α.cnst -α.struct/c) -ℓ))
          (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
            (cons α (+ℓ/ctc ℓ i))))
-       (define W (-W (list (-St/C flat? si αℓs)) (-?struct/c si cs)))
+       (define W (-W (list (-St/C flat? 𝒾 αℓs)) (-?struct/c 𝒾 cs)))
        (⟦k⟧ W $ Γ 𝒞 Σ)]
       [(cons ⟦c⟧ ⟦c⟧s*)
-       (⟦c⟧ ρ $ Γ 𝒞 Σ (struct/c∷ ℓ si Cs* ⟦c⟧s* ρ ⟦k⟧))])))
+       (⟦c⟧ ρ $ Γ 𝒞 Σ (struct/c∷ ℓ 𝒾 Cs* ⟦c⟧s* ρ ⟦k⟧))])))
 
 ;; define
 (define/memo (def∷ [l : -l]

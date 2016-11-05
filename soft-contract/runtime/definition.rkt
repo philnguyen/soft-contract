@@ -88,13 +88,13 @@
 (-V . ::= . 'undefined
             -prim
             (-● (℘ #|closed|# -v))
-            (-St -struct-info (Listof (U -α.fld -α.var-car -α.var-cdr)))
+            (-St -𝒾 (Listof (U -α.fld -α.var-car -α.var-cdr)))
             (-Vector (Listof -α.idx))
             -Fn
             
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : -l³])
-            (-St* [info : -struct-info] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : -l³])
+            (-St* [id : -𝒾] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : -l³])
             (-Vector/hetero [ctcs : (Listof -α)] [ctx : -l³])
             (-Vector/homo [ctc : -α] [ctx : -l³])
             
@@ -115,7 +115,7 @@
             ;; Guards for higher-order values
             -=>_
             (-St/C [flat? : Boolean]
-                   [info : -struct-info]
+                   [id : -𝒾]
                    [fields : (Listof (Pairof (U -α.struct/c -α.cnst) -ℓ))])
             (-Vectorof (Pairof (U -α.vectorof -α.cnst) -ℓ))
             (-Vector/C (Listof (Pairof (U -α.vector/c -α.cnst) -ℓ))))
@@ -339,9 +339,9 @@
        [(-α.def 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
        [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
        [_ `(,(show-V guard) ◃ ,(show-α α))])]
-    [(-St s αs) `(,(show-struct-info s) ,@(map show-α αs))]
-    [(-St* s γs α _)
-     `(,(format-symbol "~a/wrapped" (show-struct-info s))
+    [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-α αs))]
+    [(-St* 𝒾 γs α _)
+     `(,(format-symbol "~a/wrapped" (-𝒾-name 𝒾))
        ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-α γ) '✓))
        ▹ ,(show-α α))]
     [(-Vector αs) `(vector ,@(map show-α αs))]
@@ -363,8 +363,8 @@
        ,@(for/list : (Listof Sexp) ([kase cases])
            (match-define (cons αs β) kase)
            `(,@(map show-α αs) . -> . ,(show-α β))))]
-    [(-St/C _ s αs)
-     `(,(format-symbol "~a/c" (show-struct-info s)) ,@(map show-α (map αℓ->α αs)))]
+    [(-St/C _ 𝒾 αs)
+     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α (map αℓ->α αs)))]
     [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
 
 (define (show-αℓ [αℓ : (Pairof -α -ℓ)]) : Symbol

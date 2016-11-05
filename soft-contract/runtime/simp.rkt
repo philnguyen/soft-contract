@@ -72,18 +72,18 @@
 ;; Smart constructor for application
 (define (-@/simp f . xs)
 
-  (: access-same-value? : -struct-info (Listof -e) → (Option -e))
+  (: access-same-value? : -𝒾 (Listof -e) → (Option -e))
   ;; If given expression list of the form like `(car e); (cdr e)`, return `e`.
   ;; Otherwise just `#f`
-  (define (access-same-value? info es)
-    (define n (-struct-info-arity info))
+  (define (access-same-value? 𝒾 es)
+    (define n (get-struct-arity 𝒾))
     (match es
-      [(cons (-@ (-st-ac info₀ 0) (list e₀) _) es*)
-       (and (equal? info info₀)
+      [(cons (-@ (-st-ac 𝒾₀ 0) (list e₀) _) es*)
+       (and (equal? 𝒾 𝒾₀)
             (for/and : Boolean ([i (in-range 1 n)] [ei es*])
               (match ei
-                [(-@ (-st-ac infoⱼ j) (list eⱼ) _)
-                 (and (equal? info infoⱼ) (= i j) (equal? e₀ eⱼ))]
+                [(-@ (-st-ac 𝒾ⱼ j) (list eⱼ) _)
+                 (and (equal? 𝒾 𝒾ⱼ) (= i j) (equal? e₀ eⱼ))]
                 [_ #f]))
             e₀)]
       [_ #f]))
@@ -162,10 +162,10 @@
      (match xs
        [(list (-@ (-st-mk s) es _)) (list-ref es i)]
        [_ (default-case)])]
-    [(-st-ac s i)
+    [(-st-ac 𝒾 i)
      (match-define (list x) xs)
      (cond ; don't build up syntax when reading from mutable states
-       [(∋ (-struct-info-mutables s) i) #f]
+       [(struct-mutable? 𝒾 i) #f]
        [else (-@ f (list (assert x)) +ℓ₀)])]
 
     ; (cons (car e) (cdr e)) = e
@@ -212,28 +212,27 @@
   (syntax-rules () [(_ c) (-≡/c (-b c))])
   (syntax-rules () [(_ c) (-≡/c (-b c))]))
 
-(: -struct/c-split : -s -struct-info → (Listof -s))
-(define (-struct/c-split c s)
+(: -struct/c-split : -s -𝒾 → (Listof -s))
+(define (-struct/c-split c 𝒾)
   (with-debugging/off
     ((ans)
-     (define n (-struct-info-arity s))
+     (define n (get-struct-arity 𝒾))
      (match c
        [(-struct/c _ cs _) cs]
        [_
-        (for/list : (Listof -s) ([i : Natural n])
-          (-?@ (-st/c-ac s i) c))
+        (for/list : (Listof -s) ([i n])
+          (-?@ (-st/c-ac 𝒾 i) c))
         #;(make-list n #f)]))
     (printf "struct/c-split: ~a -> ~a~n" (show-s c) (map show-s ans))))
 
-(: -struct-split : -s -struct-info → (Listof -s))
-(define (-struct-split e s)
+(: -struct-split : -s -𝒾 → (Listof -s))
+(define (-struct-split e 𝒾)
   (match e
-    [(-@ (-st-mk (== s)) es _)
-     (define mutables (-struct-info-mutables s))
+    [(-@ (-st-mk (== 𝒾)) es _)
      (for/list ([(e i) (in-indexed es)])
-       (if (∋ mutables i) #f e))]
-    [_ (for/list : (Listof -s) ([i : Natural (-struct-info-arity s)])
-         (-?@ (-st-ac s i) e))]))
+       (if (struct-mutable? 𝒾 (assert i index?)) #f e))]
+    [_ (for/list : (Listof -s) ([i (get-struct-arity 𝒾)])
+         (-?@ (-st-ac 𝒾 i) e))]))
 
 (: -ar-split : -s → (Values -s -s))
 (define (-ar-split s)
@@ -242,7 +241,7 @@
     [(? values e) (values (-@ (-ar-ctc) (list e) +ℓ₀) (-@ (-ar-fun) (list e) +ℓ₀))]
     [#f (values #f #f)]))
 
-(: -->-split : -s Natural → (Values (Listof -s) -s))
+(: -->-split : -s Index → (Values (Listof -s) -s))
 (define (-->-split s n)
   (match s
     [(--> cs d _) (values cs d)]
@@ -251,7 +250,7 @@
                           (-@ (-->-ac-rng) (list e) +ℓ₀))]
     [#f (values (make-list n #f) #f)]))
 
-(: -->i-split : -s Natural → (Values (Listof -s) -s))
+(: -->i-split : -s Index → (Values (Listof -s) -s))
 (define (-->i-split s n)
   (match s
     [(-->i cs mk-d _) (values cs mk-d)]
@@ -280,10 +279,10 @@
 
 (define (-?μ/c [x : -ℓ] [e : -s]) (and e (-μ/c x e)))
 
-(: -?struct/c : -struct-info (Listof -s) → (Option -struct/c))
-(define (-?struct/c s fields)
+(: -?struct/c : -𝒾 (Listof -s) → (Option -struct/c))
+(define (-?struct/c 𝒾 fields)
   (and (andmap (inst values -s) fields)
-       (-struct/c s (cast fields (Listof -e)) +ℓ₀)))
+       (-struct/c 𝒾 (cast fields (Listof -e)) +ℓ₀)))
 
 (: -?-> : (Listof -s) -s -ℓ -> (Option -->))
 (define (-?-> cs d ℓ)
@@ -305,9 +304,8 @@
     [(? -e?)
      (cond [(= 1 n) (list e)]
            [else #|hack|#
-            (define s (-struct-info -𝒾-values n ∅eq))
             (for/list ([i : Natural n])
-              (-?@ (-st-ac s i) e))])]
+              (-?@ (format-symbol "values@~a" i) e))])]
     [_ (make-list n #f)]))
 
 (: bind-args : -formals (Listof -s) → (Values (Listof Var-Name) (Listof -s)))

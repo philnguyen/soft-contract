@@ -5,7 +5,7 @@
 (require racket/match
          racket/list
          "../utils/list.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "definition.rkt")
 
 (require/typed/provide racket/function
@@ -63,7 +63,7 @@
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _)) 1]
       [(-Ar guard _ _) (guard-arity guard)]
       [(? -st-p?) 1]
-      [(-st-mk (-struct-info _ n _)) n]
+      [(-st-mk 𝒾) (get-struct-arity 𝒾)]
       [(? -st-ac?) 1]
       [(? -st-mut?) 2]
       [(? symbol? o) (hash-ref arity-table o)]

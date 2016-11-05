@@ -52,9 +52,6 @@
 ;; Identifier as a name and its source
 (struct -𝒾 ([name : Symbol] [ctx : -l]) #:transparent)
 
-;; Struct meta data
-(struct -struct-info ([id : -𝒾] [arity : Natural] [mutables : (℘ Natural)]) #:transparent)
-
 ;; Formal parameters
 (-formals . ::= . (Listof Var-Name)
                   (-varargs [init : (Listof Var-Name)] [rest : Var-Name]))
@@ -108,7 +105,7 @@
             (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] -ℓ)
             (-x/c.tmp Symbol) ; hack
             (-x/c -ℓ)
-            (-struct/c [info : -struct-info] [fields : (Listof -e)] [pos : -ℓ])
+            (-struct/c [name : -𝒾] [fields : (Listof -e)] [pos : -ℓ])
 
             ;; internal use only
             (-ar -e -e))
@@ -126,15 +123,15 @@
                (-b [unboxed : Base]))
 
 (-o . ::= . Symbol
-           (-st-p -struct-info)
-           (-st-ac -struct-info Natural)
-           (-st-mut -struct-info Natural)
-           (-st-mk -struct-info)
+           (-st-p -𝒾)
+           (-st-ac -𝒾 Index)
+           (-st-mut -𝒾 Index)
+           (-st-mk -𝒾)
            ;; internal use only
-           (-st/c-ac -struct-info Natural)
-           (-->i-ac-dom Natural)
+           (-st/c-ac -𝒾 Index)
+           (-->i-ac-dom Index)
            (-->i-ac-rng)
-           (-->-ac-dom Natural)
+           (-->-ac-dom Index)
            (-->-ac-rng)
            (-ar-ctc)
            (-ar-fun))
@@ -151,21 +148,19 @@
 
 (define -𝒾-values (-𝒾 'values 'Λ))
 (define -𝒾-cons (-𝒾 'cons 'Λ))
-(define -s-cons (-struct-info -𝒾-cons 2 ∅eq))
-(define -cons (-st-mk -s-cons))
-(define -car (-st-ac -s-cons 0))
-(define -cdr (-st-ac -s-cons 1))
-(define -cons? (-st-p -s-cons))
+(define -cons (-st-mk -𝒾-cons))
+(define -car (-st-ac -𝒾-cons 0))
+(define -cdr (-st-ac -𝒾-cons 1))
+(define -cons? (-st-p -𝒾-cons))
 
 (define -zero (-b 0))
 (define -one (-b 1))
 
 (define -𝒾-box (-𝒾 'box 'Λ))
-(define -s-box  (-struct-info -𝒾-box 1 {seteq 0}))
-(define -box? (-st-p -s-box))
-(define -unbox (-st-ac -s-box 0))
-(define -box (-st-mk -s-box))
-(define -set-box! (-st-mut -s-box 0))
+(define -box? (-st-p -𝒾-box))
+(define -unbox (-st-ac -𝒾-box 0))
+(define -box (-st-mk -𝒾-box))
+(define -set-box! (-st-mut -𝒾-box 0))
 (define -pred (--> (list 'any/c) 'boolean? +ℓ₀))
 
 (define havoc-path 'havoc)
@@ -218,7 +213,7 @@
 
 (: -cons/c : -e -e → -e)
 (define (-cons/c c d)
-  (-struct/c -s-cons (list c d) (+ℓ!)))
+  (-struct/c -𝒾-cons (list c d) (+ℓ!)))
 
 (: -listof : -e → -e)
 (define (-listof c)
@@ -227,7 +222,7 @@
 
 (: -box/c : -e → -e)
 (define (-box/c c)
-  (-struct/c -s-box (list c) (+ℓ!)))
+  (-struct/c -𝒾-box (list c) (+ℓ!)))
 
 (: -list/c : (Listof -e) → -e)
 (define (-list/c cs)
@@ -311,16 +306,16 @@
 (define show-o : (-o → Symbol)
   (match-lambda
    [(? symbol? s) s]
-   [(-st-mk s) (show-struct-info s)]
-   [(-st-ac (== -s-cons) 0) 'car]
-   [(-st-ac (== -s-cons) 1) 'cdr]
-   [(-st-ac (== -s-box) 0) 'unbox]
-   [(-st-ac s i) (format-symbol "~a@~a" (show-struct-info s) i)]
-   [(-st-p s) (format-symbol "~a?" (show-struct-info s))]
-   [(-st-mut (== -s-box) 0) 'set-box!]
-   [(-st-mut s i) (format-symbol "set-~a-~a!" (show-struct-info s) i)]
+   [(-st-mk 𝒾) (-𝒾-name 𝒾)]
+   [(== -car) 'car]
+   [(== -cdr) 'cdr]
+   [(== -unbox) 'unbox]
+   [(-st-ac 𝒾 i) (format-symbol "~a@~a" (-𝒾-name 𝒾) i)]
+   [(-st-p 𝒾) (format-symbol "~a?" (-𝒾-name 𝒾))]
+   [(== -set-box!) 'set-box!]
+   [(-st-mut 𝒾 i) (format-symbol "set-~a-~a!" (-𝒾-name 𝒾) i)]
    ;; internals
-   [(-st/c-ac s i) (format-symbol "~a/c@~a" (show-struct-info s) i)]
+   [(-st/c-ac 𝒾 i) (format-symbol "~a/c@~a" (-𝒾-name 𝒾) i)]
    [(-->i-ac-dom i) (format-symbol "->i~a" (n-sub i))]
    [(-->i-ac-rng) '->iᵣ]
    [(-->-ac-dom i) (format-symbol "->~a" (n-sub i))]
@@ -402,8 +397,8 @@
        `(,@(map show-e cs) . -> . ,(show-e d)))]
     [(-x/c.tmp x) x]
     [(-x/c x) (show-x/c x)]
-    [(-struct/c info cs _)
-     `(,(format-symbol "~a/c" (show-struct-info info)) ,@(show-es cs))]
+    [(-struct/c 𝒾 cs _)
+     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]
     ;; internals
     [(-ar c e) `(ar ,(show-e c) ,(show-e e))]))
 
@@ -414,9 +409,6 @@
   (match-define (-module path forms) m)
   `(module ,path
     ,@(map show-module-level-form forms)))
-
-(define (show-struct-info [info : -struct-info]) : Symbol
-  (-𝒾-name (-struct-info-id info)))
 
 (define show-module-level-form : (-module-level-form → Sexp)
   (match-lambda

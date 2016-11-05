@@ -471,11 +471,11 @@
                      [else
                       (seen-add! V)
                       (match V
-                        [(-St (== -s-cons) (list _ α))
+                        [(-St (== -𝒾-cons) (list _ α))
                          (combine
                           (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ α)])
                             (check Vᵣ)))]
-                        [(-St* (== -s-cons) _ α _)
+                        [(-St* (== -𝒾-cons) _ α _)
                          (combine
                           (for/seteq: : (℘ -R) ([V* (σ@ σ α)])
                             (check V*)))]
@@ -648,8 +648,8 @@
   (check-✓ (p∋Vs 'number? (-b 1)))
   (check-✓ (p∋Vs 'procedure? (-Clo '(x) (λ _ (⊥ans)) ⊥ρ ⊤Γ)))
   (check-✓ (p∋Vs 'procedure? 'procedure?))
-  (check-✓ (p∋Vs -cons? (-St -s-cons (list (-α.fld -𝒾-cons 0 0 0) (-α.fld -𝒾-cons 0 0 1)))))
-  (check-✗ (p∋Vs 'number? (-St -s-cons (list (-α.fld -𝒾-cons 0 0 0) (-α.fld -𝒾-cons 0 0 1)))))
+  (check-✓ (p∋Vs -cons? (-St -𝒾-cons (list (-α.fld -𝒾-cons 0 0 0) (-α.fld -𝒾-cons 0 0 1)))))
+  (check-✗ (p∋Vs 'number? (-St -𝒾-cons (list (-α.fld -𝒾-cons 0 0 0) (-α.fld -𝒾-cons 0 0 1)))))
   (check-✗ (p∋Vs 'integer? (-b 1.5)))
   (check-✗ (p∋Vs 'real? (-b 1+1i)))
   (check-? (p∋Vs 'integer? -●/V))|#

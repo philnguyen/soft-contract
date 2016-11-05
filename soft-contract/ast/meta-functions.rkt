@@ -205,38 +205,6 @@
       [_ (void)]))
   calls)
 
-(: prim-name->unsafe-prim : Symbol → -o)
-;; Convert primitive name to (unsafe) primitive
-(define prim-name->unsafe-prim
-  (let ([specials : (HashTable Symbol -o) (make-hasheq)]
-        [aliases : (HashTable Symbol Symbol) (make-hasheq)]
-        [mk-struct-info : (Any → -struct-info)
-         (match-lambda
-           [`(,(? symbol? t) ,(? boolean? bs) ...)
-            (-struct-info
-             (-𝒾 t 'Λ)
-             (length bs)
-             (for/set: : (℘ Natural) ([b bs] [i : Natural (in-naturals)] #:when b)
-               i))])])
-    (for ([dec prims])
-      (match dec
-        [`(#:alias ,(? symbol? x) ,(? symbol? y))
-         (hash-set! aliases x y)]
-        [`(#:struct-cons ,(? symbol? x) ,si)
-         (hash-set! specials x (-st-mk (mk-struct-info si)))]
-        [`(#:struct-pred ,(? symbol? x) ,si)
-         (hash-set! specials x (-st-p (mk-struct-info si)))]
-        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-nonnegative-integer? i))
-         (hash-set! specials x (-st-ac (mk-struct-info si) i))]
-        [`(#:struct-acc ,(? symbol? x) ,si ,(? exact-nonnegative-integer? i))
-         (hash-set! specials x (-st-mut (mk-struct-info si) i))]
-        [_ (void)]))
-    (λ (x)
-      (cond
-        [(hash-ref specials x #f)]
-        [(hash-ref aliases x #f) => prim-name->unsafe-prim]
-        [else x]))))
-
 (: α-rename : (case->
                [-e → -e]
                [-module → -module]))

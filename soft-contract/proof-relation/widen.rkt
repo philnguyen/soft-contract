@@ -6,7 +6,7 @@
 (require racket/match
          racket/set
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "../runtime/main.rkt"
          "local.rkt")
 
@@ -72,9 +72,7 @@
       [(_ (-● ps)) #:when (not (behavioral? σ V₁))
        (for/and : Boolean ([p ps])
          (equal? '✓ (p∋Vs σ p V₁)))]
-      [((-St (-struct-info 𝒾₁ _ muts) αs₁)
-        (-St (-struct-info 𝒾₂ _ _   ) αs₂))
-       #:when (and (set-empty? muts) (equal? 𝒾₁ 𝒾₂)) ; can't ignore mutable addresses
+      [((-St 𝒾 αs₁) (-St 𝒾 αs₂)) #:when (struct-all-immutable? 𝒾)
        (for/and : Boolean ([α₁ αs₁] [α₂ αs₂])
          (go/α α₁ α₂))]
       [((-Clo _ ⟦e⟧ ρ₁ _)
@@ -232,14 +230,14 @@
 ;; Return an abstract value approximating all list element in `V`
 (define (extract-list-content σ V)
   (define-set seen : -α #:eq? #t)
-  (match-define (-St (== -s-cons) (list αₕ αₜ)) V)
+  (match-define (-St (== -𝒾-cons) (list αₕ αₜ)) V)
   (define Vs (σ@ σ αₕ))
   (let loop! ([αₜ : -α αₜ])
     (unless (seen-has? αₜ)
       (seen-add! αₜ)
       (for ([Vₜ (σ@ σ αₜ)])
         (match Vₜ
-          [(-St (== -s-cons) (list αₕ* αₜ*))
+          [(-St (== -𝒾-cons) (list αₕ* αₜ*))
            (for ([Vₕ (σ@ σ αₕ*)])
              (set! Vs (Vs⊕ σ Vs Vₕ)))
            (loop! αₜ*)]
