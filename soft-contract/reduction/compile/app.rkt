@@ -533,25 +533,25 @@
 
 (: alloc-rest-args! : -σ -𝒞 -ℒ (Listof -W¹) → -V)
 (define (alloc-rest-args! σ 𝒞 ℒ Ws)
-  ;; Treat length up to 2 specially for `splay` to go through
+
+  (: precise-alloc! ([(Listof -W¹)] [Natural] . ->* . -V))
+  ;; Allocate vararg list precisely, preserving length
+  (define (precise-alloc! Ws [i 0])
+    (match Ws
+      [(list) -null]
+      [(cons (-W¹ Vₕ _) Ws*)
+       (define αₕ (-α.var-car ℒ 𝒞 i))
+       (define αₜ (-α.var-cdr ℒ 𝒞 i))
+       (σ⊕*! σ [αₕ ↦ Vₕ]
+               [αₜ ↦ (precise-alloc! Ws* (+ 1 i))])
+       (-Cons αₕ αₜ)]))
+  
+  ;; Allocate length up to 2 precisely to let `splay` to go through
+  ;; This is because `match-lambda*` expands to varargs with specific
+  ;; expectation of arities
   (match Ws
-    [(list)
-     -null]
-    [(list (-W Vₕ _))
-     (define αₕ (-α.var-car ℒ 𝒞 0))
-     (define αₜ (-α.var-cdr ℒ 𝒞 0))
-     (σ⊕*! σ [αₕ ↦ Vₕ] [αₜ ↦ -null])
-     (-Cons αₕ αₜ)]
-    [(list (-W¹ V₀ _) (-W¹ V₁ _))
-     (define αₕ₀ (-α.var-car ℒ 𝒞 0))
-     (define αₜ₀ (-α.var-cdr ℒ 𝒞 0))
-     (define αₕ₁ (-α.var-car ℒ 𝒞 1))
-     (define αₜ₁ (-α.var-cdr ℒ 𝒞 1))
-     (define Vₚ₀ (-Cons αₕ₀ αₜ₀))
-     (define Vₚ₁ (-Cons αₕ₁ αₜ₁))
-     (σ⊕*! σ [αₕ₀ ↦ V₀] [αₜ₀ ↦ Vₚ₁]
-             [αₕ₁ ↦ V₁] [αₜ₁ ↦ -null])
-     Vₚ₀]
+    [(or (list) (list _) (list _ _))
+     (precise-alloc! Ws)]
     [(? pair?)
      (define αₕ (-α.var-car ℒ 𝒞 #f))
      (define αₜ (-α.var-cdr ℒ 𝒞 #f))
