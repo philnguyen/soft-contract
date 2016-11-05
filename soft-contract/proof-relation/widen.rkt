@@ -13,37 +13,25 @@
 (: σ⊕! ([-σ -α -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
   (match-define (-σ m mods crds) σ)
-  (with-debugging/off
-    ((ans)
-     (cond
-       ;; If address only stands for 1 value and this is the first update, do strong update.
-       ;; This gives some precision for programs that initialize `(box #f)`
-       ;; then update it with fairly type-consistent values afterwards
-       [(and mutating?
-             (not (∋ mods α))
-             (equal? 0 (hash-ref crds α (λ () 0))))
-        (set--σ-m! σ (hash-set m α {set V}))
-        (set--σ-modified! σ (set-add mods α))
-        (set--σ-cardinality! σ (hash-set crds α 1))]
-       [else
-        (define Vs (hash-ref m α →∅))
-        (define mods* (if mutating? (set-add mods α) mods))
-        (define crds* (hash-update crds α cardinality+ (λ () 0)))
-        (define Vs* (Vs⊕ σ Vs V))
-        (set--σ-m! σ (hash-set m α Vs*))
-        (set--σ-modified! σ mods*)
-        (set--σ-cardinality! σ crds*)]))
-    (define Vs  (hash-ref m α →∅))
-    (define Vs* (hash-ref (-σ-m σ) α →∅))
-    (when (and (match? α (-α.fld (-𝒾 'box 'Λ) _ _ _))
-               (∋ Vs (-b #f))
-               (or (equal? V -null)
-                   (match? V (-St (== -s-cons) _))))
-      (printf "set-box! to ~a~n" (show-V V))
-      (printf " - already modified: ~a~n" (∋ mods α))
-      (printf " - cardinality: ~a~n" (hash-ref crds α (λ () 0)))
-      (printf " - old: ~a~n" (set-map Vs  show-V))
-      (printf " - new: ~a~n" (set-map Vs* show-V)))))
+  (define mods* (if mutating? (set-add mods α) mods))
+  (define-values (Vs* crds*)
+    (cond
+      ;; If address only stands for 1 value and this is the first update, do strong update.
+      ;; This gives some precision for programs that initialize `(box #f)`
+      ;; then update it with fairly type-consistent values afterwards
+      [(and mutating?
+            (not (∋ mods α))
+            (not (equal? 'N (hash-ref crds α (λ () 0)))))
+       (values {set V}
+               (hash-set crds α 1))]
+      [else
+       (define Vs (hash-ref m α →∅))
+       (values (Vs⊕ σ Vs V)
+               (hash-update crds α cardinality+ (λ () 0)))]))
+  
+  (set--σ-m! σ (hash-set m α Vs*))
+  (set--σ-cardinality! σ crds*)
+  (set--σ-modified! σ mods*))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)
@@ -208,8 +196,8 @@
 ;; Return `#f` if no approximation preferred
 (define (V⊕ σ V₁ V₂)
   (match* (V₁ V₂)
-    [(_ _) #:when (V⊑ σ V₁ V₂) V₂]
     [(_ _) #:when (V⊑ σ V₂ V₁) V₁]
+    [(_ _) #:when (V⊑ σ V₁ V₂) V₂]
     ; TODO more heuristics
     [((-b b₁) (-b b₂)) #:when (not (equal? b₁ b₂))
 

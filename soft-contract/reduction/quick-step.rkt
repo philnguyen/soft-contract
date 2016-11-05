@@ -43,7 +43,7 @@
   (define iter : Natural 0)
 
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
-    (unless (or (set-empty? front) #|TODO|# (> iter 57))
+    (unless (or (set-empty? front) #|TODO|# #;(> iter 57))
 
       (begin
         (define num-front (set-count front))
@@ -257,3 +257,4 @@
             [(plausible-pc? M Γₑᵣ*)
              (⟦k⟧ blm $∅ Γₑᵣ* 𝒞ₑᵣ Σ)]
             [else ∅])])])))
+
