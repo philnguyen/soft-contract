@@ -230,14 +230,14 @@
 ;; Return an abstract value approximating all list element in `V`
 (define (extract-list-content σ V)
   (define-set seen : -α #:eq? #t)
-  (match-define (-St (== -𝒾-cons) (list αₕ αₜ)) V)
+  (match-define (-Cons αₕ αₜ) V)
   (define Vs (σ@ σ αₕ))
   (let loop! ([αₜ : -α αₜ])
     (unless (seen-has? αₜ)
       (seen-add! αₜ)
       (for ([Vₜ (σ@ σ αₜ)])
         (match Vₜ
-          [(-St (== -𝒾-cons) (list αₕ* αₜ*))
+          [(-Cons αₕ* αₜ*)
            (for ([Vₕ (σ@ σ αₕ*)])
              (set! Vs (Vs⊕ σ Vs Vₕ)))
            (loop! αₜ*)]

@@ -471,11 +471,11 @@
                      [else
                       (seen-add! V)
                       (match V
-                        [(-St (== -𝒾-cons) (list _ α))
+                        [(-Cons _ α)
                          (combine
                           (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ α)])
                             (check Vᵣ)))]
-                        [(-St* (== -𝒾-cons) _ α _)
+                        [(-Cons* α)
                          (combine
                           (for/seteq: : (℘ -R) ([V* (σ@ σ α)])
                             (check V*)))]

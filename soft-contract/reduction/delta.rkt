@@ -154,11 +154,11 @@
      (match Ws
        [(list _ (-W¹ Vₗ _))
         (match Vₗ
-          [(-St (== -𝒾-cons) _)
+          [(-Cons _ _)
            (define ℒ (-ℒ ∅ ℓ))
            (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
            (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
-           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
+           (define Vₜ (-Cons αₕ αₜ))
            (for ([Vₕ (extract-list-content σ Vₗ)])
              (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
@@ -177,11 +177,11 @@
        [(list (-W¹ Vₗ _))
         (match Vₗ
           [(-b (list)) {set (list -null)}]
-          [(-St (== -𝒾-cons) _)
+          [(-Cons _ _)
            (define ℒ (-ℒ ∅ ℓ))
            (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
            (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
-           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
+           (define Vₜ (-Cons αₕ αₜ))
            (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
            {set (list Vₜ)}]
@@ -200,7 +200,7 @@
            (define ℒ (-ℒ ∅ ℓ))
            (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
            (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
-           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
+           (define Vₜ (-Cons αₕ αₜ))
            (σ⊕*! σ [αₕ ↦ (-● {set 'char?})]
                    [αₜ ↦ Vₜ]
                    [αₜ ↦ -null])
@@ -229,7 +229,7 @@
            (define ℒ (-ℒ ∅ ℓ))
            (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
            (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
-           (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
+           (define Vₜ (-Cons αₕ αₜ))
            (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
            {set (list Vₜ)

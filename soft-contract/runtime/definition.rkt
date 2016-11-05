@@ -209,8 +209,9 @@
             ; for struct field
             (-α.fld [id : -𝒾] [pos : -ℒ] [ctx : -𝒞] [idx : Natural])
             ; for Cons/varargs
-            (-α.var-car [pos : -ℒ] [ctx : -𝒞]) ; idx prevents infinite list 
-            (-α.var-cdr [pos : -ℒ] [ctx : -𝒞])
+            ; idx prevents infinite list
+            (-α.var-car [pos : -ℒ] [ctx : -𝒞] [idx : (Option Natural)])
+            (-α.var-cdr [pos : -ℒ] [ctx : -𝒞] [idx : (Option Natural)])
 
             ;; for wrapped mutable struct
             (-α.st [id : -𝒾] [pos : -ℓ] [ctx : -𝒞])
@@ -277,6 +278,22 @@
              (-ℳ [var : Var-Name] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
             ;; Flat checking
              (-ℱ [var : Var-Name] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℒ
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Convenient paterns
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-match-expander -Cons
+  (syntax-rules () [(_ αₕ αₜ) (-St (== -𝒾-cons) (list αₕ αₜ))])
+  (syntax-rules () [(_ αₕ αₜ) (-St -𝒾-cons      (list αₕ αₜ))]))
+(define-match-expander -Cons*
+  (syntax-rules () [(_ α) (-St* (== -𝒾-cons) _ α _)]))
+(define-match-expander -Box
+  (syntax-rules () [(_ α) (-St (== -𝒾-box) (list α))])
+  (syntax-rules () [(_ α) (-St -𝒾-box      (list α))]))
+(define-match-expander -Box*
+  (syntax-rules () [(_ α) (-St* (== -𝒾-box) _ α _)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

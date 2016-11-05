@@ -533,12 +533,29 @@
 
 (: alloc-rest-args! : -σ -𝒞 -ℒ (Listof -W¹) → -V)
 (define (alloc-rest-args! σ 𝒞 ℒ Ws)
-  (cond ; keep empty var-args special case and approximate 1+ args
-    [(null? Ws) -null]
-    [(pair? Ws)
-     (define αₕ (-α.var-car ℒ 𝒞))
-     (define αₜ (-α.var-cdr ℒ 𝒞))
-     (define Vₜ (-St -𝒾-cons (list αₕ αₜ)))
+  ;; Treat length up to 2 specially for `splay` to go through
+  (match Ws
+    [(list)
+     -null]
+    [(list (-W Vₕ _))
+     (define αₕ (-α.var-car ℒ 𝒞 0))
+     (define αₜ (-α.var-cdr ℒ 𝒞 0))
+     (σ⊕*! σ [αₕ ↦ Vₕ] [αₜ ↦ -null])
+     (-Cons αₕ αₜ)]
+    [(list (-W¹ V₀ _) (-W¹ V₁ _))
+     (define αₕ₀ (-α.var-car ℒ 𝒞 0))
+     (define αₜ₀ (-α.var-cdr ℒ 𝒞 0))
+     (define αₕ₁ (-α.var-car ℒ 𝒞 1))
+     (define αₜ₁ (-α.var-cdr ℒ 𝒞 1))
+     (define Vₚ₀ (-Cons αₕ₀ αₜ₀))
+     (define Vₚ₁ (-Cons αₕ₁ αₜ₁))
+     (σ⊕*! σ [αₕ₀ ↦ V₀] [αₜ₀ ↦ Vₚ₁]
+             [αₕ₁ ↦ V₁] [αₜ₁ ↦ -null])
+     Vₚ₀]
+    [(? pair?)
+     (define αₕ (-α.var-car ℒ 𝒞 #f))
+     (define αₜ (-α.var-cdr ℒ 𝒞 #f))
+     (define Vₜ (-Cons αₕ αₜ))
      ;; Allocate spine for var-arg lists
      (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
      ;; Allocate elements in var-arg lists
