@@ -97,10 +97,10 @@
         (λ ([ys : (℘ Y)])
           (for/union : (℘ X) ([y ys]) (f y)))))
 
-(: mk-interner (∀ (X) ([] [#:eq? Boolean] . ->* . (X → Natural))))
+(: mk-interner (∀ (X) ([] [#:eq? Boolean] . ->* . (X → Index))))
 ;; Intern something as integers
 (define (mk-interner #:eq? [use-eq? #f])
-  (define m : (HashTable X Natural) ((if use-eq? make-hasheq make-hash)))
+  (define m : (HashTable X Index) ((if use-eq? make-hasheq make-hash)))
   (λ (x) (hash-ref! m x (λ () (hash-count m)))))
 
 ;; For inspecting shared addresses

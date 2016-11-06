@@ -4,28 +4,14 @@
 
 (require "pretty.rkt")
 
-;; Create generator for next pos/natural/negative
-(define (make-neg-src)
-  (let ([n : Negative-Integer -1])
-    (λ () : Negative-Integer
-       (begin0 n (set! n (- n 1))))))
-(define (make-nat-src)
-  (let ([n : Natural 0])
-    (λ () : Natural
-       (begin0 n (set! n (+ n 1))))))
-(define (make-pos-src)
-  (let ([n : Positive-Integer 1])
-    (λ () : Positive-Integer
-       (begin0 n (set! n (+ n 1))))))
-
-(: unique-nat (∀ (X) ([] [#:hacked-warning (Option Natural)]
+(: unique-nat (∀ (X) ([] [#:hacked-warning (Option Index)]
                       . ->* .
-                      (Values (X → Natural) (Natural → X) (→ Natural)))))
+                      (Values (X → Index) (Index → X) (→ Index)))))
 ;; Return a bijection between `X` and ℤ.
 ;; No guarantee of consistency across multiple program runs.
 (define (unique-nat #:hacked-warning [N #f])
-  (define m   : (HashTable X Natural) (make-hash))
-  (define m⁻¹ : (HashTable Natural X) (make-hasheq))
+  (define m   : (HashTable X Index) (make-hash))
+  (define m⁻¹ : (HashTable Index X) (make-hasheq))
 
   (values
    (λ (x)
@@ -39,9 +25,9 @@
      (hash-ref m⁻¹ i (λ () (error 'unique-nat "No element for index `~a`" i))))
    (λ () (hash-count m))))
 
-(: unique-sym (∀ (X) ([Symbol] [#:transform-index (Natural → Any)]
+(: unique-sym (∀ (X) ([Symbol] [#:transform-index (Index → Any)]
                       . ->* .
-                      (Values (X → Symbol) (Symbol → X) (→ Natural)))))
+                      (Values (X → Symbol) (Symbol → X) (→ Index)))))
 ;; Return a bijection between `X` and Symbol.
 ;; No guarantee of consistency across multiple program runs.
 (define (unique-sym prefix #:transform-index [f n-sub])
@@ -80,7 +66,7 @@
   (let*-values ([(f f⁻¹ c) ((inst unique-nat Symbol))]
                 [(xs) '(foo bar qux)]
                 [(is) (map f xs)])
-    (for ([i : Natural is] [x xs])
+    (for ([i : Index is] [x xs])
       (check-equal? (f   x) i)
       (check-equal? (f⁻¹ i) x))
     (check-equal? (c) (length xs))

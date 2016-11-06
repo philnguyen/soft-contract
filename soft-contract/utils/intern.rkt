@@ -16,7 +16,7 @@
                    [count-interned-T (format-id #'T "count-interned-~a" T-name)]
                    [Interned-T (format-id #'T "Interned-~a" T-name)])
        #'(begin
-           (define-new-subtype Interned-T (->interned-T Nonnegative-Fixnum))
+           (define-new-subtype Interned-T (->interned-T Index))
            (define-values (intern-T unintern-T count-interned-T)
              (let ([m   : (HashTable T Interned-T) (make-hash)]
                    [m⁻¹ : (HashTable Interned-T T) (make-hasheq)])
@@ -30,6 +30,6 @@
                           i]))
                 (λ ([i : Interned-T]) : T
                   (hash-ref m⁻¹ i))
-                (λ () : Nonnegative-Fixnum (hash-count m⁻¹)))))))]))
+                (λ () : Index (hash-count m⁻¹)))))))]))
 
 (define-interner String)

@@ -189,7 +189,7 @@
   (match-define (-ℒ ℓs ℓₐ) ℒ)
   (-ℒ (set-add ℓs ℓ) ℓₐ))
 
-(define-new-subtype -𝒞 (+𝒞 Natural))
+(define-new-subtype -𝒞 (+𝒞 Index))
 (define-values (𝒞∅ 𝒞+ decode-𝒞)
   (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧! -ℒ)))])
     (values (+𝒞 s∅)
