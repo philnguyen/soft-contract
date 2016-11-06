@@ -28,7 +28,6 @@
        (define Vs (hash-ref m α →∅))
        (values (Vs⊕ σ Vs V)
                (hash-update crds α cardinality+ (λ () 0)))]))
-  
   (set--σ-m! σ (hash-set m α Vs*))
   (set--σ-cardinality! σ crds*)
   (set--σ-modified! σ mods*))
@@ -120,12 +119,7 @@
         (match V
           [(-● ps)
            (match P
-             [(-λ (list x) (-@ (or '= 'equal? 'eq?)
-                               (or (list (-x x) (? -V? V*))
-                                   (list (? -V? V*) (-x x)))
-                               _))
-              #:when V*
-              V*]
+             [(-≡/c (? -V? V*)) #:when V* V*]
              ['not -ff]
              ['null? -null]
              ['void? -void]
@@ -217,6 +211,7 @@
            [(-</c 0) p]
            [_ #f])))
      (and p (-● (set-remove ps p)))]
+    [((-● ps) (-● qs)) (-● (∩ ps qs))]
     [(_ _) #f]))
 
 (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) X))) → (℘ X)))

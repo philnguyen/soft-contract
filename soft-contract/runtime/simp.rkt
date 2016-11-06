@@ -132,7 +132,7 @@
        [_ (default-case)])]
 
     ; TODO: handle `equal?` generally
-    [(or 'equal? 'eq? '=)
+    [(? op-≡?)
      (match xs
        [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
        [(list x x) -tt]
@@ -181,7 +181,7 @@
      (apply -@/simp f (cast xs (Listof -e)))]
     [else #f]))
 
-;; convenient syntax for negation
+;; convenient syntax
 (define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
   (syntax-rules () [(_ e) (and e (-@ 'not (list e) +ℓ₀))]))
@@ -206,11 +206,14 @@
   (syntax-rules () [(_ c) (-λ (list x) (-@ '<= (list (-b c) (-x x)) _))])
   (syntax-rules () [(_ c) (-λ '(𝒙) (-@ '<= (list (-b c) (-x '𝒙)) +ℓ₀))]))
 (define-match-expander -≡/c
-  (syntax-rules () [(_ v) (-λ (list x) (-@ (or '= 'equal? '=) (list (-x x) v) _))])
-  (syntax-rules () [(_ v) (-λ (list x) (-@ 'equal?            (list (-x x) v) _))]))
+  (syntax-rules () [(_ v) (-λ (list x) (-@ (? op-≡?) (or (list (-x x) v)
+                                                         (list v (-x x))) _))])
+  (syntax-rules () [(_ v) (-λ (list x) (-@ 'equal?       (list (-x x) v) _))]))
 (define-match-expander -=/c
   (syntax-rules () [(_ c) (-≡/c (-b c))])
   (syntax-rules () [(_ c) (-≡/c (-b c))]))
+
+(define op-≡? (match-λ? '= 'equal? 'eq? 'char=? 'string=?))
 
 (: -struct/c-split : -s -𝒾 → (Listof -s))
 (define (-struct/c-split c 𝒾)

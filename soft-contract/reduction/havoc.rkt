@@ -29,7 +29,12 @@
       (match-define (-Σ σ _ _) Σ)
       (define Vs (σ@ σ (ρ@ ρ 𝒙)))
       (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
-      ;(printf "About to havoc ~a values~n" (set-count Vs))
+      #;(begin
+        (printf "About to havoc ~a values at ~a:~n" (set-count Vs) (ρ@ ρ 𝒙))
+        (for ([V Vs])
+          (printf " - ~a~n" (show-V V)))
+        (printf "~n"))
+      
 
       #;(define (done-with-●)
         (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt 'done))) $ Γ 𝒞 Σ))
