@@ -22,7 +22,7 @@
 (define (MΓ⊢V∈C M σ Γ W_v W_c)
   (match-define (-W¹ V v) W_v)
   (match-define (-W¹ C c) W_c)
-  (with-debugging
+  (with-debugging/off
     ((ans)
      (first-R (p∋Vs σ C (V+ σ V (predicates-of Γ v)))
               (match V
@@ -32,10 +32,8 @@
                      (Γ+ Γ (-?@ p v))))
                  (MΓ⊢s M Γ* (-?@ c v))]
                 [_ (MΓ⊢s M Γ (-?@ c v))])))
-    (when (and (equal? V (-● ∅))
-               (equal? C 'string?)
-               (not (equal? ans '✓)))
-      (printf "~a ⊢ ~a ∈ ~a : ~a~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans))))
+    (when (and (-Clo? V))
+      (printf "~a ⊢ ~a ∈ ~a : ~a~n~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans))))
 
 (: MΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`

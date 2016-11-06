@@ -167,7 +167,9 @@
 (define (Γ+ Γ . ss)
   (match-define (-Γ φs as ts) Γ)
   (define φs*
-    (for/fold ([φs : (℘ -e) φs]) ([s ss] #:when s #:unless (equal? s -tt))
+    (for/fold ([φs : (℘ -e) φs]) ([s ss]
+                                  #:when s
+                                  #:unless (set-empty? (fv s)))
       (set-add φs s)))
   (-Γ φs* as ts))
 

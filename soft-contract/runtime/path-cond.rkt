@@ -16,7 +16,7 @@
   (and s (e↓ s xs)))
 (: e↓ : -e (℘ Var-Name) → -s)
 (define (e↓ e xs)
-  (and (⊆ (fv e) xs) e))
+  (and (not (set-empty? (∩ (fv e) xs))) #;(⊆ (fv e) xs) e))
 
 (: es↓ : (℘ -e) (℘ Var-Name) → (℘ -e))
 (define (es↓ es xs)

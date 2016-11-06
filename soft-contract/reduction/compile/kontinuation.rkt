@@ -184,6 +184,11 @@
       [(cons ⟦c⟧ ⟦c⟧s*)
        (⟦c⟧ ρ $ Γ 𝒞 Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
 
+;; Clean up path-condition
+(define/memo (rst∷ [xs : (℘ Var-Name)] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
+    (⟦k⟧ A $ (Γ↓ Γ xs) 𝒞 Σ)))
+
 ;; case-> contract
 (define/memo (case->∷ [l : -l]
                       [ℓ : -ℓ]
