@@ -28,13 +28,24 @@
 (: +ℓ! : → -ℓ)
 (: +ℓ/memo! : (U 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
 (: +ℓ/ctc : -ℓ Natural → -ℓ)
-(define-values (+ℓ! +ℓ/memo! +ℓ/ctc)
+(: ℓ⁻¹ : -ℓ → Any)
+(define-values (+ℓ! +ℓ/memo! +ℓ/ctc ℓ⁻¹)
   (let ([n : Natural 1]
-        [m : (HashTable (Listof Any) -ℓ) (make-hash)])
+        [m : (HashTable (Listof Any) -ℓ) (make-hash)]
+        ; just for debugging
+        [m⁻¹ : (HashTable -ℓ (Listof Any)) (make-hash)])
     (values
      (λ () (begin0 (+ℓ n) (set! n (+ 1 n))))
-     (λ (tag . xs) (hash-ref! m (cons tag xs) +ℓ!))
-     (λ (ℓ i) (hash-ref! m (list ℓ i) +ℓ!)))))
+     (λ (tag . xs)
+       (define ℓ (hash-ref! m (cons tag xs) +ℓ!))
+       (hash-set! m⁻¹ ℓ (cons tag xs))
+       ℓ)
+     (λ (ℓ i)
+       (define ℓₐ (hash-ref! m (list ℓ i) +ℓ!))
+       (hash-set! m⁻¹ ℓₐ (list ℓ i))
+       ℓₐ)
+     (λ (ℓ)
+       (hash-ref m⁻¹ ℓ (λ () (error 'ℓ⁻¹ "nothing for ~a" ℓ)))))))
 (define +ℓ₀ (+ℓ 0))
 
 ;; Symbol names are used for source code. Integers are used for generated.

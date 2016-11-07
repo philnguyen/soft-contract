@@ -132,11 +132,7 @@
        [(✓) {set (list -tt)}]
        [(✗) {set (list -ff)}]
        [(?) {set -Bool/Vs}])]
-
-    ; duplicate of `equal?`. TODO: why didn't I just `(or equal? eq? =)`??
     [eq? ((assert (concrete-impl 'equal?)) 𝒞 ℓ M σ Γ Ws)]
-
-    ; duplicate of `equal?` (args already guarded by contracts)
     [= ((assert (concrete-impl 'equal?)) 𝒞 ℓ M σ Γ Ws)]
     
     [procedure?
@@ -167,6 +163,8 @@
           [_ {set (list (-● {set 'list? -cons?}))
                   (list -ff)}])]
        [_ ∅])]
+    [member ((assert (concrete-impl 'memq)) 𝒞 ℓ M σ Γ Ws)]
+    [memv ((assert (concrete-impl 'memq)) 𝒞 ℓ M σ Γ Ws)]
 
     [getenv
      {set (list (-● {set 'string?}))

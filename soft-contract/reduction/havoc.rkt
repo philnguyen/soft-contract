@@ -29,11 +29,20 @@
       (match-define (-Σ σ _ _) Σ)
       (define Vs (σ@ σ (ρ@ ρ 𝒙)))
       (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
-      #;(begin
+
+      (when (and (>= (set-count Vs) 4)
+                 (for/or : Boolean ([V Vs]) (-Ar? V)))
         (printf "About to havoc ~a values at ~a:~n" (set-count Vs) (ρ@ ρ 𝒙))
         (for ([V Vs])
           (printf " - ~a~n" (show-V V)))
-        (printf "~n"))
+        #;(define κs (σₖ@ (-Σ-σₖ Σ) (⟦k⟧->αₖ ⟦k⟧)))
+        #;(printf "before returning to: (~a) ~n" (set-count κs))
+        #;(for ([κ κs])
+          (printf " - ~a @ ~a~n"
+                  (show-αₖ (⟦k⟧->αₖ (-κ-cont κ)))
+                  (show-κ κ)))
+        (printf "~n")
+        #;(error "DONE"))
       
 
       #;(define (done-with-●)
@@ -50,23 +59,15 @@
           ;; Apply function with appropriate number of arguments
           [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
            
-           (define tag : Any
-             (match V
-               [(-Clo xs ⟦e⟧ _ _) (cons xs ⟦e⟧)]
-               [(-Case-Clo clauses _ _) clauses]
-               [(-Ar grd _ _)
-                (match grd
-                  [(-=> _ _ ℓ) ℓ]
-                  [(-=>i _ _ ℓ) ℓ]
-                  [(-Case-> _ ℓ) ℓ])]))
+           (define tag (fun->tag V))
 
            (define (hv/arity [k : Natural]) : (℘ -ς)
              (define ●s : (Listof -W¹)
                (for/list ([i k])
                  (-W¹ -●/V (-x (+x/memo! 'hv k i)))))
              (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ 𝒞 Σ
-                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 0 tag))
-                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun #|tag|#)) ⟦k⟧))))
+                  (hv-res∷ (-ℒ ∅ (+ℓ/memo! 'hv-ap 0 tag))
+                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun tag)) ⟦k⟧))))
            
            (define a (V-arity V))
            (match a
@@ -156,13 +157,42 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Unimportant helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: fun->tag : -V → #|essentially Any, just do document "optional"|# (Option Any))
+;; Return tag distinguishing function objects
+(define fun->tag
+  (match-lambda
+    [(-Clo xs ⟦e⟧ _ _) (cons xs ⟦e⟧)]
+    [(-Case-Clo clauses _ _) clauses]
+    [(-Ar grd _ _)
+     (match grd
+       [(-=> doms _ _) (length doms)]
+       [(-=>i _ (list (-Clo xs ⟦d⟧ _ _) _ _) _) (cons xs ⟦d⟧)]
+       [(-Case-> sigs _)
+        (for/list : (Listof Natural) ([sig sigs])
+          (length (car sig)))])]
+    [_ #f]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Hacky frames
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧! _ $ Γ 𝒞 Σ) #:roots (W)
-    (define Wₕᵥ
-      (let ([Vs (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
-        (assert (= 1 (set-count Vs)))
-        (-W¹ (set-first Vs) havoc-𝒾)))
+    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α.def havoc-𝒾)) havoc-𝒾))
     (app havoc-path $ ℒ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))
+
+(define/memo (hv-res∷ [default-ℒ : -ℒ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
+    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α.def havoc-𝒾)) havoc-𝒾))
+    (match-define (-W Vs s) A)
+    (for/union : (℘ -ς) ([V Vs] [sᵥ (split-values s (length Vs))])
+      (define ℒ
+        (cond
+          [(fun->tag V) =>
+           (λ ([tag : Any]) (-ℒ ∅ (+ℓ/memo! 'hv-ap 'hv-res tag)))]
+          [else default-ℒ]))
+      (app havoc-path $ ℒ Wₕᵥ (list (-W¹ V sᵥ)) Γ 𝒞 Σ ⟦k⟧))))

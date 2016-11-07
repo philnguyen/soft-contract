@@ -14,8 +14,15 @@
          racket/match
          (only-in racket/list split-at))
 
+(define cache : (HashTable -ℒ Void) (make-hash))
+
 (: app : -l -$ -ℒ -W¹ (Listof -W¹) -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς))
 (define (app l $ ℒ Wₕ Wₓs Γ 𝒞 Σ ⟦k⟧)
+  #;(when (equal? Wₕ (-W¹ (σ@¹ (-Σ-σ Σ) (-α.def havoc-𝒾)) havoc-𝒾))
+    (hash-ref! cache ℒ (λ () (printf "~a~n" ℒ)))
+    (when (> (hash-count cache) 200)
+      (error "DONE")))
+  
   (match-define (-Σ σ σₖ M) Σ)
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-s Wₓs))
@@ -26,6 +33,14 @@
                  [(-Ar _ (-α.wrp (-𝒾 o 'Λ)) _) o]
                  [_ sₕ])])
       (apply -?@ sₕ* sₓs)))
+
+  ;; Debugging
+  #;(let ([Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)])
+    (when (and (equal? Wₕ Wₕᵥ)
+               (match? Wₓs (list (-W¹ (? -Ar?) _))))
+      (printf "havoc: ~a~n" (show-W¹ (car Wₓs)))
+      (printf "  with label ~a~n" ℒ)
+      (printf "  from: ~a~n~n" (show-αₖ (⟦k⟧->αₖ ⟦k⟧)))))
 
   (: blm-arity : Arity Natural → -blm)
   (define (blm-arity required provided)
@@ -279,11 +294,17 @@
     (define 𝒞* (𝒞+ 𝒞 (cons ⟦e⟧ ℒ)))
     (match xs
       [(? list? xs)
-       (define ρ* (alloc-init-args! σ Γ ρₕ 𝒞* xs Wₓs))
-       (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-       (define κ (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs))
-       (vm⊔! σₖ αₖ κ)
-       {set (-ς↑ αₖ Γₕ 𝒞*)}]
+       (cond ;; guard against unneccessary lengthy loop by havoc
+         [(and (equal? 𝒞* 𝒞)
+               (let ([Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)])
+                 (equal? Wₕᵥ Wₕ)))
+          ∅]
+         [else
+          (define ρ* (alloc-init-args! σ Γ ρₕ 𝒞* xs Wₓs))
+          (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+          (define κ (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs))
+          (vm⊔! σₖ αₖ κ)
+          {set (-ς↑ αₖ Γₕ 𝒞*)}])]
       [(-varargs zs z) ; FIXME code duplicate
        (define n (length zs))
        (define-values (Ws₀ Wsᵣ) (split-at Wₓs n))
@@ -429,10 +450,7 @@
     (error 'app-Case "TODO"))
 
   (define (app-opq) : (℘ -ς)
-    (define Wₕᵥ
-      (let ([Vs (σ@ σ (-α.def havoc-𝒾))])
-        (assert (= 1 (set-count Vs)))
-        (-W¹ (set-first Vs) havoc-𝒾)))
+    (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾))
     (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W -●/Vs sₐ) $ Γ 𝒞 Σ)])
               ([Wₓ Wₓs])
       (app 'Λ $ ℒ Wₕᵥ (list Wₓ) Γ 𝒞 Σ ⟦k⟧)))
@@ -1061,8 +1079,11 @@
        (mon l³ $ ℒ Wᵣ W-V Γ 𝒞 Σ ⟦k⟧!)]
       [(list (-b #t) V)
        (match-define (-W¹ Cₗ _) Wₗ)
-       (match-define (-@ 'values (list _ v) _) s)
-       (⟦k⟧! (-W (list (V+ (-Σ-σ Σ) V Cₗ)) v) $ Γ 𝒞 Σ)])))
+       (define v*
+         (match s
+           [(-@ 'values (list _ v) _) v]
+           [#f #f]))
+       (⟦k⟧! (-W (list (V+ (-Σ-σ Σ) V Cₗ)) v*) $ Γ 𝒞 Σ)])))
 
 (define/memo (if.flat/c∷ [W-V : -W] [blm : -blm] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧! A $ Γ 𝒞 Σ) #:roots (W-V)
@@ -1171,16 +1192,19 @@
       [(list (-b #f))
        (⟦k⟧! -False/W Γ 𝒞 Σ)]
       [(list (-b #t) V*)
-       (match-define (-@ 'values (list _ v) _) s)
+       (define v*
+         (match s
+           [(-@ 'values (list _ v) _) v]
+           [#f #f]))
        (match ⟦e⟧s
          ['()
           (define ⟦k⟧*
             (let ([k (-st-mk s)])
               (ap∷ l ℒ (append W-Vs-rev (list (-W¹ k k))) '() ⊥ρ
                    (ap∷ l ℒ (list (-W¹ -tt -tt) (-W¹ 'values 'values)) '() ⊥ρ ⟦k⟧!))))
-          (⟦k⟧* (-W (list V*) v) Γ 𝒞 Σ)]
+          (⟦k⟧* (-W (list V*) v*) Γ 𝒞 Σ)]
          [(cons ⟦e⟧ ⟦e⟧s*)
-          (define W* (-W¹ V* v))
+          (define W* (-W¹ V* v*))
           (⟦e⟧ ρ $ Γ 𝒞 Σ (fc-struct/c∷ l ℒ s (cons W* W-Vs-rev) ⟦e⟧s* ρ ⟦k⟧!))])])))
 
 (define/memo (fc.v∷ [l : -l]
