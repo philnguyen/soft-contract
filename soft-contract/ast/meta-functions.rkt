@@ -41,7 +41,10 @@
      
      (for/fold ([xs : (℘ Var-Name) (-- (fv e) bound)]) ([bnd bnds])
        (-- (fv (cdr bnd)) bound))]
-    [(-set! x e) (set-add (fv e) x)]
+    [(-set! x e)
+     (match x
+       [(-x x) (set-add (fv e) x)]
+       [_ (fv e)])]
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
     [(-amb es)
@@ -302,7 +305,10 @@
        (define bod* (go! m* bod))
        (define bnds* (map (inst cons (Listof Var-Name) -e) (reverse xss*-rev) es*))
        (-letrec-values bnds* bod*)]
-      [(-set! (? symbol? x) e*) (-set! (hash-ref m x #|when `x` is top-level|# (λ () x)) (go! m e*))]
+      [(-set! i e*)
+       (match i
+         [(-x (? symbol? x)) (-set! (-x (hash-ref m x)) (go! m e*))]
+         [_ (-set! i (go! m e*))])]
       [(-amb es) (-amb (map/set (curry go! m) es))]
       [(-μ/c x c) (-μ/c x (go! m c))]
       [(--> cs d ℓ) (--> (map (curry go! m) cs) (go! m d) ℓ)]

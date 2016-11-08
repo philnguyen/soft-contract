@@ -47,7 +47,7 @@
        (⟦e⟧ ρ $ Γ 𝒞 Σ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; set!
-(define/memo (set!∷ [α : -α.x] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (set!∷ [α : (U -α.def -α.x)] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
     (match-define (-W Vs s) A)
     (match Vs
@@ -55,8 +55,9 @@
        (match-define (-Σ σ _ _) Σ)
        (σ⊕! σ α V #:mutating? #t)
        (define s
-         (match-let ([(-α.x x _) α])
-           (canonicalize Γ x)))
+         (match α
+           [(-α.x x _) (canonicalize Γ x)]
+           [(-α.def 𝒾) 𝒾]))
        (⟦k⟧ -Void/W ($+ $ s V) Γ 𝒞 Σ)]
       [_
        (define blm

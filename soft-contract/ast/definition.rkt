@@ -105,7 +105,7 @@
             (-quote Any)
             (-let-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
             (-letrec-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
-            (-set! Var-Name -e)
+            (-set! (U -𝒾 -x) -e)
             (-error String)
             (-amb (℘ -e))
             
@@ -384,7 +384,7 @@
              (match-define (cons xs ex) bnd)
              `(,xs ,(show-e ex)))
         ,(show-e body))]
-    [(-set! x e) `(set! ,x ,(show-e e))]
+    [(-set! x e) `(set! ,(show-e x) ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
     [(-begin es) `(begin ,@(show-es es))]
     [(-begin0 e es) `(begin ,(show-e e) ,@(show-es es))]

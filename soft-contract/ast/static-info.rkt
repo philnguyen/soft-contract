@@ -18,7 +18,7 @@
 
 (define-new-subtype -struct-info (Vector->struct-info (Vectorof Boolean)))
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
-                      [assignables : (HashTable Var-Name #t)])
+                      [assignables : (HashTable (U -x -𝒾) #t)])
   #:transparent)
 
 (define (new-static-info)
@@ -26,7 +26,7 @@
   (define box-info (Vector->struct-info (vector-immutable #t)))
   (-static-info (make-hash (list (cons -𝒾-cons cons-info)
                                  (cons -𝒾-box  box-info)))
-                (make-hasheq)))
+                (make-hash)))
 
 (define current-static-info : (Parameterof -static-info)
   (make-parameter (new-static-info)))
@@ -62,7 +62,10 @@
     [else
      (hash-set! m 𝒾 (Vector->struct-info v))]))
 
-(define (add-assignable! [x : Var-Name])
+(define (add-assignable! [x : (U -x -𝒾)])
   (hash-set! (-static-info-assignables (current-static-info)) x #t))
-(define (assignable? [x : Var-Name])
-  (hash-has-key? (-static-info-assignables (current-static-info)) x))
+(define (assignable? [x : (U Var-Name -x -𝒾)]) : Boolean
+  (cond
+    [(or (-x? x) (-𝒾? x))
+     (hash-has-key? (-static-info-assignables (current-static-info)) x)]
+    [else (assignable? (-x x))]))

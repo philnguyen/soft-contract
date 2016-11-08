@@ -347,10 +347,22 @@
         (syntax-parse binding
           [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
       (-begin/simp (parse-es #'(b ...))))]
-    [(set! x e)
-     (define x-name (syntax-e #'x))
-     (add-assignable! x-name)
-     (-set! x-name (parse-e #'e))]
+    [(set! i:identifier e)
+     (define x
+       (match (identifier-binding #'i)
+         ['lexical (-x (syntax-e #'i))]
+         [#f (-x (syntax-e #'i))]
+         [(list (app (λ (x)
+                       (parameterize ([current-directory (directory-part (cur-mod))])
+                         ;(printf "part: ~a~n" (directory-part (cur-mod)))
+                         ;(printf "id: ~a~n" #'i)
+                         (mod-path->mod-name
+                          (resolved-module-path-name (module-path-index-resolve x)))))
+                     src)
+                _ _ _ _ _ _)
+          (-𝒾 (syntax-e #'i) src)]))
+     (add-assignable! x)
+     (-set! x (parse-e #'e))]
     [(#%plain-lambda fmls b ...+)
      (-λ (parse-formals #'fmls) (-begin/simp (parse-es #'(b ...))))]
     
