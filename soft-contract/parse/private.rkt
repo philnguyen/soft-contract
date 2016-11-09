@@ -227,6 +227,12 @@
                    (list (-@ (-𝒾 'cdr 'Λ)
                              (list (parse-e #'e)) (+ℓ!))) (+ℓ!))) (+ℓ!))]
 
+    ;; HACK for treating `apply` specially for precision.
+    ;; This simply bypasses reading `apply` as wrapped reference to primitive
+    [(#%plain-app f:id x ...)
+     #:when #|HACK can't use ~literal for some reason|# (equal? 'apply (syntax-e #'f))
+     (-@ 'apply (parse-es #'(x ...)) (+ℓ!))]
+
     ;; tmp HACK for varargs
     [(#%plain-app o e ...)
      #:when (syntax-parse #'o

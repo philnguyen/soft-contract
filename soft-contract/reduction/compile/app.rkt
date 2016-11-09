@@ -42,12 +42,12 @@
       (printf "  with label ~a~n" ℒ)
       (printf "  from: ~a~n~n" (show-αₖ (⟦k⟧->αₖ ⟦k⟧)))))
 
-  (: blm-arity : Arity Natural → -blm)
-  (define (blm-arity required provided)
+  (: blm-arity ([Arity Natural] [#:name -s] . ->* . -blm))
+  (define (blm-arity required provided #:name [f sₕ])
     ;; HACK for error message. Probably no need to fix
     (define msg : Symbol
       (cond
-        [sₕ (format-symbol "~a requires ~a arguments" (format "~a" (show-e sₕ)) required)]
+        [f (format-symbol "~a requires ~a arguments" (format "~a" (show-e f)) required)]
         [else (format-symbol "require ~a arguments" required)]))
     (-blm l 'Λ (list msg) Vₓs))
 
@@ -57,6 +57,16 @@
       (cond
         [(arity-includes? a n) e ...]
         [else (⟦k⟧ (blm-arity a n) $ Γ 𝒞 Σ)])))
+
+  (: make-arg-list! : Arity (Listof -W¹) → (℘ (U (Listof -W¹) -blm)))
+  (define (make-arg-list! a Ws)
+    (match a
+      [(? exact-nonnegative-integer? n)
+       (error 'make-arg-list! "TODO: exact arity ~a" n)]
+      [(arity-at-least n)
+       (error 'make-arg-list! "TODO: arity-at-least ~a" n)]
+      [(? list?)
+       (error 'make-arg-list! "TODO: case-lambda")]))
 
   (define (app-st-p [𝒾 : -𝒾])
     (define A
@@ -271,6 +281,12 @@
        (∪ (app havoc-path $ ℒ Wₕᵥ (list Wᵤ) Γ 𝒞 Σ ⟦k⟧)
           (⟦k⟧ -Void/W $ Γ 𝒞 Σ))]))
 
+  (define (app-apply)
+    (match-define (cons W₀ Wᵢs) Wₓs)
+    (error 'app-apply "TODO: ~a ~a" (show-W¹ W₀) (map show-W¹ Wᵢs))
+    (for/union : (℘ -ς) ([arg-list (make-arg-list! σ (assert (V-arity (-W¹-V W₀))) Wᵢs)])
+      (app l $ ℒ W₀ arg-list Γ 𝒞 Σ ⟦k⟧)))
+
   (define (app-contract-first-order-passes?)
     (error 'app-contract-first-order-passes? "TODO"))
 
@@ -471,6 +487,7 @@
     ['unsafe-struct-set! (app-unsafe-struct-set!)]
     ['call-with-input-file (app-call-with-input-file)]
     ['call-with-output-file (app-call-with-output-file)]
+    ['apply (app-apply)]
 
     ;; Regular stuff
     [(? symbol? o) (app-δ o)]
