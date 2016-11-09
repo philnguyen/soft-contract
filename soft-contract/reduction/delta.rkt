@@ -166,6 +166,26 @@
     [member ((assert (concrete-impl 'memq)) 𝒞 ℓ M σ Γ Ws)]
     [memv ((assert (concrete-impl 'memq)) 𝒞 ℓ M σ Γ Ws)]
 
+    [append
+     (match Ws
+       [(list (-W¹ V₁ _) (-W¹ V₂ _))
+        (define Vₐ
+          (match* (V₁ V₂)
+            [((-b null) V₂) V₂]
+            [((-Cons αₕ αₜ) V₂)
+             (define ℒ (-ℒ ∅ ℓ))
+             (define αₕ* (-α.fld -𝒾-cons ℒ 𝒞 0))
+             (define αₜ* (-α.fld -𝒾-cons ℒ 𝒞 1))
+             (for ([Vₕ (σ@ σ αₕ)])
+               (σ⊕! σ αₕ* Vₕ))
+             (define Vₜs (set-add (σ@ σ αₜ) V₂))
+             (for ([Vₜ* Vₜs])
+               (σ⊕! σ αₜ* Vₜ*))
+             (-Cons αₕ* αₜ*)]
+            [(_ _) (-● {set 'list?})]))
+        {set (list Vₐ)}]
+       [_ ∅])]
+
     [getenv
      {set (list (-● {set 'string?}))
           (list -ff)}]
