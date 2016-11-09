@@ -650,13 +650,13 @@
 (: base-predicates : →Void)
 (define (base-predicates)
   ;; Primitive predicates
-  (define-fun is_false ([x V]) Bool/s
+  (define-fun is_false ([x 'V]) Bool/s
     (=/s x (@/s 'B false/s)))
-  (define-fun is_truish ([x V]) Bool/s
+  (define-fun is_truish ([x 'V]) Bool/s
     (not/s (@/s 'is_false x)))
-  (define-fun is-R ([x V]) Bool/s
+  (define-fun is-R ([x 'V]) Bool/s
     (and/s (@/s 'is-N x) (=/s 0 (@/s 'imag x))))
-  (define-fun is-Z ([x V]) Bool/s
+  (define-fun is-Z ([x 'V]) Bool/s
     (and/s (@/s 'is-R x) (is-int/s (@/s 'real x))))
   (declare-fun exact? ('V) Bool/s)
   (declare-fun inexact? ('V) Bool/s)
