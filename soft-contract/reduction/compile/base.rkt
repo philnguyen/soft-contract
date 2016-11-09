@@ -10,7 +10,8 @@
          racket/match)
 
 (define/memo (↓ₓ [l : -l] [x : Var-Name]) : -⟦e⟧!
-  (define -blm.undefined (-blm l 'Λ (list 'defined?) (list 'undefined)))
+  (define -blm.undefined
+    (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x))))
   (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
     (match-define (-Σ σ _ _) Σ)
     (define α (ρ@ ρ x))
