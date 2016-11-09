@@ -74,7 +74,14 @@
       (define fvs (fv e*))
       (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
         (define s (canonicalize-e Γ e))
-        (define ρ* (m↓ ρ fvs))
+        (define ρ*
+          (m↓ ρ fvs)
+          #;(let ([ρ↓ (m↓ ρ fvs)])
+            (if (flattened? ρ↓)
+                ρ↓
+                (flatten! (-Σ-σ Σ)
+                          (𝒞+ 𝒞 (cons ⟦e*⟧ (-ℒ ∅ +ℓ₀)))
+                          ρ↓))))
         (define Γ*
           (match-let ([(-Γ φs as γs) Γ])
             (define φs*
@@ -262,3 +269,27 @@
            (⟦c⟧ ρ $ Γ 𝒞 Σ (struct/c∷ ℓ si '() ⟦c⟧s ρ ⟦k⟧)))])]
      [_ (error '↓ₑ "unhandled: ~a" (show-e e))])
    e))
+
+(define (flattened? [ρ : -ρ])
+  (define immutable-vars
+    (for/seteq: : (℘ Var-Name) ([(x α) ρ] #:unless (assignable? x))
+      x))
+  (or (<= (set-count immutable-vars) 1)
+      (match-let ([(cons 𝒞₀ 𝒞s)
+                   (for/list : (Listof -𝒞) ([x (in-set immutable-vars)])
+                     (match-define (-α.x _ 𝒞ₓ) (ρ@ ρ x))
+                     𝒞ₓ)])
+        (for/and : Boolean ([𝒞ᵢ 𝒞s]) (equal? 𝒞₀ 𝒞ᵢ)))))
+
+(: flatten! : -σ -𝒞 -ρ → -ρ)
+(define (flatten! σ 𝒞 ρ)
+  ;; with side effect widening store
+  (for/hash : -ρ ([(x α) ρ])
+    (define α*
+      (cond [(assignable? x) α]
+            [else ; with side effect widening store
+             (define α* (-α.x x 𝒞))
+             (for ([V (σ@ σ α)])
+               (σ⊕! σ α* V))
+             α*]))
+    (values x α*)))
