@@ -151,16 +151,19 @@
        [(list (-W¹ Vₓ _) (-W¹ Vₗ _))
         (match Vₗ
           [(-Cons _ _)
-           (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
-           (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
-           (define Vₜ (-Cons αₕ αₜ))
-           (for ([Vₕ (extract-list-content σ Vₗ)])
-             (σ⊕! σ αₕ Vₕ))
-           (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
-           (if (definitely-member? σ Vₓ Vₗ)
-               {set (list Vₜ)}
-               {set (list Vₜ) (list -ff)})]
+           (cond
+             [(definitely-not-member? σ Vₓ Vₗ)
+              {set (list -ff)}]
+             [else
+              (define ℒ (-ℒ ∅ ℓ))
+              (define αₕ (-α.fld -𝒾-cons ℒ 𝒞 0))
+              (define αₜ (-α.fld -𝒾-cons ℒ 𝒞 1))
+              (define Vₜ (-Cons αₕ αₜ))
+              (for ([Vₕ (extract-list-content σ Vₗ)])
+                (σ⊕! σ αₕ Vₕ))
+              (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
+              (cond [(definitely-member? σ Vₓ Vₗ) {set (list Vₜ)}]
+                    [else                         {set (list Vₜ) (list -ff)}])])]
           [(-b '()) {set (list -ff)}]
           [_ {set (list (-● {set 'list? -cons?}))
                   (list -ff)}])]
@@ -466,7 +469,7 @@
 (: δ! : -𝒞 -ℓ -M -σ -Γ Symbol (Listof -W¹) → (℘ (Listof -V)))
 ;; Return possible answers for primitives
 (define (δ! 𝒞 ℓ M σ Γ o Ws)
-  (with-debugging ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
+  (with-debugging/off ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
     (case o
       [(eq?) ;(reverse memq)
        (when #t #;(equal? ans (set (-● {set 'exact-integer?})))
@@ -499,6 +502,20 @@
               (for/and : Boolean ([Vₜ (σ@ σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
          [_ #f])])))
 
+(: definitely-not-member? : -σ -V -St → Boolean)
+(define (definitely-not-member? σ V Vₗ)
+  (let loop ([Vₗ : -V Vₗ] [seen : (℘ -V) ∅])
+    (cond
+      [(∋ seen Vₗ) #t]
+      [else
+       (match Vₗ
+         [(-Cons αₕ αₜ)
+          (and (for/and : Boolean ([Vₕ (σ@ σ αₕ)]) (definitely-not-equal? σ V Vₕ))
+               (for/and : Boolean ([Vₜ (σ@ σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
+         [(-b (list)) #t]
+         [_ #f])])))
+
+
 (: definitely-equal? : -σ -V -V → Boolean)
 (define (definitely-equal? σ V₁ V₂)
   (let loop ([V₁ : -V V₁] [V₂ : -V V₂] [seen : (℘ (Pairof -V -V)) ∅])
@@ -514,6 +531,24 @@
             (for/and : Boolean ([V₁* Vs₁]) ; can't use for*/and :(
               (for/and : Boolean ([V₂* Vs₂])
                 (loop V₁* V₂* (set-add seen (cons V₁ V₂))))))]
+         [(_ _) #f])])))
+
+(: definitely-not-equal? : -σ -V -V → Boolean)
+(define (definitely-not-equal? σ V₁ V₂)
+  (let loop ([V₁ : -V V₁] [V₂ : -V V₂] [seen : (℘ (Pairof -V -V)) ∅])
+    (cond
+      [(∋ seen (cons V₁ V₂)) #t]
+      [else
+       (match* (V₁ V₂)
+         [((-b b₁) (-b b₂)) (not (equal? b₁ b₂))]
+         [((-St 𝒾₁ αs₁) (-St 𝒾₂ αs₂))
+          (or (not (equal? 𝒾₁ 𝒾₂))
+              (for/or : Boolean ([α₁ αs₁] [α₂ αs₂])
+                (define Vs₁ (σ@ σ α₁))
+                (define Vs₂ (σ@ σ α₂))
+                (for/and : Boolean ([V₁ Vs₁])
+                  (for/and : Boolean ([V₂ Vs₂])
+                    (loop V₁ V₂ (set-add seen (cons V₁ V₂)))))))]
          [(_ _) #f])])))
 
 (module+ test
