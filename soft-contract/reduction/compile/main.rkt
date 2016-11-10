@@ -118,8 +118,14 @@
            (define Vs (σ@ σ α))
            (define old? (σ-old? σ α))
            (define s (and old? 𝒾))
-           (for/union : (℘ -ς) ([V Vs])
-             (⟦k⟧ (-W (list V) s) $ Γ 𝒞 Σ)))]
+           (cond
+             [($@ $ s) =>
+              (λ ([V : -V])
+                (⟦k⟧ (-W (list V) s) $ Γ 𝒞 Σ))]
+             [else
+              (for/union : (℘ -ς) ([V Vs])
+                (define $* ($+ $ s V))
+                (⟦k⟧ (-W (list V) s) $* Γ 𝒞 Σ))]))]
         ;; cross-module referencing returns wrapped version
         ;; and (HACK) supplies the negative monitoring context
         [else
