@@ -278,7 +278,9 @@
              (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦chk⟧))))
          ((mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧)) ⊥ρ $ Γ 𝒞 Σ ⟦k⟧))]
       [_
-       (∪ (app havoc-path $ ℒ Wₕᵥ (list Wᵤ) Γ 𝒞 Σ ⟦k⟧)
+       (∪ (if (behavioral? σ (-W¹-V Wᵤ))
+              (app havoc-path $ ℒ Wₕᵥ (list Wᵤ) Γ 𝒞 Σ ⟦k⟧)
+              ∅)
           (⟦k⟧ -Void/W $ Γ 𝒞 Σ))]))
 
   (define (app-apply)
@@ -468,8 +470,8 @@
   (define (app-opq) : (℘ -ς)
     (define Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾))
     (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W -●/Vs sₐ) $ Γ 𝒞 Σ)])
-              ([Wₓ Wₓs])
-      (app 'Λ $ ℒ Wₕᵥ (list Wₓ) Γ 𝒞 Σ ⟦k⟧)))
+              ([Wₓ Wₓs] #:when (behavioral? σ (-W¹-V Wₓ)))
+      (∪ ac (app 'Λ $ ℒ Wₕᵥ (list Wₓ) Γ 𝒞 Σ ⟦k⟧))))
   
   (match Vₕ
     ;; Struct operators cannot be handled by `δ`, because structs can be arbitrarily wrapped
