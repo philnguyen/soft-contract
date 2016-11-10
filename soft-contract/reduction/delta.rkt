@@ -146,9 +146,9 @@
     [make-vector
      {set (list (-● {set 'vector? (-not/c 'immutable?)}))}]
 
-    [memq
+    [member
      (match Ws
-       [(list _ (-W¹ Vₗ _))
+       [(list (-W¹ Vₓ _) (-W¹ Vₗ _))
         (match Vₗ
           [(-Cons _ _)
            (define ℒ (-ℒ ∅ ℓ))
@@ -158,13 +158,15 @@
            (for ([Vₕ (extract-list-content σ Vₗ)])
              (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
-           {set (list Vₜ) (list -ff)}]
+           (if (definitely-member? σ Vₓ Vₗ)
+               {set (list Vₜ)}
+               {set (list Vₜ) (list -ff)})]
           [(-b '()) {set (list -ff)}]
           [_ {set (list (-● {set 'list? -cons?}))
                   (list -ff)}])]
        [_ ∅])]
-    [member ((assert (concrete-impl 'memq)) 𝒞 ℓ M σ Γ Ws)]
-    [memv ((assert (concrete-impl 'memq)) 𝒞 ℓ M σ Γ Ws)]
+    [memq ((assert (concrete-impl 'member)) 𝒞 ℓ M σ Γ Ws)]
+    [memv ((assert (concrete-impl 'member)) 𝒞 ℓ M σ Γ Ws)]
 
     [append
      (match Ws
@@ -464,13 +466,15 @@
 (: δ! : -𝒞 -ℓ -M -σ -Γ Symbol (Listof -W¹) → (℘ (Listof -V)))
 ;; Return possible answers for primitives
 (define (δ! 𝒞 ℓ M σ Γ o Ws)
-  (with-debugging/off ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
+  (with-debugging ((ans) (gen-δ-body 𝒞 ℓ M σ Γ o Ws))
     (case o
-      [(+ -) ;(reverse memq)
-       (when (equal? ans (set (-● {set 'exact-integer?})))
+      [(eq?) ;(reverse memq)
+       (when #t #;(equal? ans (set (-● {set 'exact-integer?})))
          (printf "δ: ~a~n" o)
          (define-set αs : -α)
-         (for ([W Ws]) (printf " - ~a~n" (show-W¹ W)))
+         (for ([W Ws])
+           (αs-union! (V->αs (-W¹-V W)))
+           (printf " - ~a~n" (show-W¹ W)))
          (printf "ans:~n")
          (for ([a ans])
            (printf " -")
@@ -482,6 +486,35 @@
          (for ([r (show-σ (span-σ (-σ-m σ) αs))])
            (printf " - ~a~n" r))
          (printf "~n"))])))
+
+(: definitely-member? : -σ -V -St → Boolean)
+(define (definitely-member? σ V Vₗ)
+  (let loop ([Vₗ : -V Vₗ] [seen : (℘ -V) ∅])
+    (cond
+      [(∋ seen Vₗ) #f]
+      [else
+       (match Vₗ
+         [(-Cons αₕ αₜ)
+          (or (for/and : Boolean ([Vₕ (σ@ σ αₕ)]) (definitely-equal? σ V Vₕ))
+              (for/and : Boolean ([Vₜ (σ@ σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
+         [_ #f])])))
+
+(: definitely-equal? : -σ -V -V → Boolean)
+(define (definitely-equal? σ V₁ V₂)
+  (let loop ([V₁ : -V V₁] [V₂ : -V V₂] [seen : (℘ (Pairof -V -V)) ∅])
+    (cond
+      [(∋ seen (cons V₁ V₂)) #t]
+      [else
+       (match* (V₁ V₂)
+         [((-b b₁) (-b b₂)) (equal? b₁ b₂)]
+         [((-St 𝒾 αs₁) (-St 𝒾 αs₂))
+          (for/and : Boolean ([α₁ αs₁] [α₂ αs₂])
+            (define Vs₁ (σ@ σ α₁))
+            (define Vs₂ (σ@ σ α₂))
+            (for/and : Boolean ([V₁* Vs₁]) ; can't use for*/and :(
+              (for/and : Boolean ([V₂* Vs₂])
+                (loop V₁* V₂* (set-add seen (cons V₁ V₂))))))]
+         [(_ _) #f])])))
 
 (module+ test
   (require typed/rackunit)
