@@ -434,7 +434,9 @@
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
   (match-define (-ℬ xs ⟦e⟧! ρ) ℬ)
-  `(ℬ ,(show-formals xs) ,(show-⟦e⟧! ⟦e⟧!) ,(show-ρ ρ)))
+  (match xs
+    ['() `(ℬ ()                 ,(show-⟦e⟧! ⟦e⟧!) ,(show-ρ ρ))]
+    [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ x l³ ℓ W-C W-V) ℳ)
