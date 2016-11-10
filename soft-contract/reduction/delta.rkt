@@ -238,9 +238,7 @@
     [list->string
      (match Ws
        [(list (-W¹ Vₗ _))
-        (match Vₗ
-          [(-b (list)) {set (list (-b ""))}]
-          [_           {set (list (-● {set 'string?}))}])]
+        {set (list (-● {set 'string?}))}]
        [_ ∅])]
 
     [list-tail
