@@ -10,26 +10,29 @@
 (define-syntax define-interner
   (syntax-parser
     [(_ T:id)
+     (with-syntax ([⟪T⟫ (format-id #'T "⟪~a⟫" (syntax-e #'T))])
+       #'(define-interner T #:interned-type-name ⟪T⟫))]
+    [(_ T:id #:interned-type-name ⟪T⟫:id)
      (define T-name (syntax-e #'T))
-     (with-syntax ([intern-T   (format-id #'T "intern-~a"   T-name)]
-                   [unintern-T (format-id #'T "unintern-~a" T-name)]
-                   [count-interned-T (format-id #'T "count-interned-~a" T-name)]
-                   [Interned-T (format-id #'T "Interned-~a" T-name)])
+     (define ⟪T⟫-name (syntax-e #'⟪T⟫))
+     (with-syntax ([T->⟪T⟫ (format-id #'T "~a->~a" T-name ⟪T⟫-name)]
+                   [⟪T⟫->T (format-id #'T "~a->~a" ⟪T⟫-name T-name)]
+                   [count-⟪T⟫ (format-id #'T "count-~a" ⟪T⟫-name)])
        #'(begin
-           (define-new-subtype Interned-T (->interned-T Index))
-           (define-values (intern-T unintern-T count-interned-T)
-             (let ([m   : (HashTable T Interned-T) (make-hash)]
-                   [m⁻¹ : (HashTable Interned-T T) (make-hasheq)])
+           (define-new-subtype ⟪T⟫ (->⟪T⟫ Index))
+           (define-values (T->⟪T⟫ ⟪T⟫->T count-⟪T⟫)
+             (let ([m   : (HashTable T ⟪T⟫) (make-hash)]
+                   [m⁻¹ : (HashTable ⟪T⟫ T) (make-hasheq)])
                (values
-                (λ ([t : T]) : Interned-T
+                (λ ([t : T]) : ⟪T⟫
                    (cond [(hash-ref m t #f) => values]
                          [else
-                          (define i (->interned-T (hash-count m)))
-                          (hash-set! m   t i)
-                          (hash-set! m⁻¹ i t)
-                          i]))
-                (λ ([i : Interned-T]) : T
-                  (hash-ref m⁻¹ i))
+                          (define ⟪t⟫ (->⟪T⟫ (hash-count m)))
+                          (hash-set! m   t ⟪t⟫)
+                          (hash-set! m⁻¹ ⟪t⟫ t)
+                          ⟪t⟫]))
+                (λ ([⟪t⟫ : ⟪T⟫]) : T
+                  (hash-ref m⁻¹ ⟪t⟫ (error '⟪T⟫->T "nothing at ~a" ⟪t⟫)))
                 (λ () : Index (hash-count m⁻¹)))))))]))
 
 (define-interner String)
