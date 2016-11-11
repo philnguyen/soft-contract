@@ -32,7 +32,7 @@
                           (hash-set! m⁻¹ ⟪t⟫ t)
                           ⟪t⟫]))
                 (λ ([⟪t⟫ : ⟪T⟫]) : T
-                  (hash-ref m⁻¹ ⟪t⟫ (error '⟪T⟫->T "nothing at ~a" ⟪t⟫)))
+                  (hash-ref m⁻¹ ⟪t⟫ (λ () (error '⟪T⟫->T "nothing at ~a" ⟪t⟫))))
                 (λ () : Index (hash-count m⁻¹)))))))]))
 
 (define-interner String)
