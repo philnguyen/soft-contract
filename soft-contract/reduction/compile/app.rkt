@@ -285,9 +285,21 @@
 
   (define (app-apply)
     (match-define (cons W₀ Wᵢs) Wₓs)
-    (error 'app-apply "TODO: ~a ~a" (show-W¹ W₀) (map show-W¹ Wᵢs))
-    (for/union : (℘ -ς) ([arg-list (make-arg-list! σ (assert (V-arity (-W¹-V W₀))) Wᵢs)])
-      (app l $ ℒ W₀ arg-list Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+    ;; special case for `slatex`
+    (match* (W₀ Wᵢs)
+      [((-W¹ (-Clo (-varargs (list x) xᵣ) ⟦e⟧ ρ Γ) sₕ) (list W₁ W₂ Wᵣ))
+       (match-define (-W¹ V₂ s₂) W₂)
+       (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
+       (define Wₗ
+         (let ([sₗ (-?@ -cons s₂ sᵣ)]
+               [αₕ (-α.var-car ℒ ⟪ℋ⟫ 0)]
+               [αₜ (-α.var-cdr ℒ ⟪ℋ⟫ 1)])
+           (define Vₗ (-Cons αₕ αₜ))
+           (σ⊕*! σ [αₕ ↦ V₂] [αₜ ↦ Vᵣ])
+           (-W¹ Vₗ sₗ)))
+       (app l $ ℒ (-W¹ (-Clo (list x xᵣ) ⟦e⟧ ρ Γ) sₕ) (list W₁ Wₗ) Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(_ _)
+       (error 'app-apply "TODO: ~a ~a" (show-W¹ W₀) (map show-W¹ Wᵢs))]))
 
   (define (app-contract-first-order-passes?)
     (error 'app-contract-first-order-passes? "TODO"))
