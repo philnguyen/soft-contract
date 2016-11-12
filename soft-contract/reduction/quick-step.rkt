@@ -45,8 +45,8 @@
 
   (define iter : Natural 0)
 
-  (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ 𝒞∅)}])
-    (unless (or (set-empty? front) #|TODO|# #;(> iter 57))
+  (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
+    (unless (or (set-empty? front) #|TODO|# #;(> iter 9))
 
       (begin
         (define num-front (set-count front))
@@ -71,7 +71,7 @@
           (for ([ς ς↓s])
             (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
 
-          #;(begin ; interactive
+          (begin ; interactive
               (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
               (match (read)
                 [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
@@ -157,24 +157,24 @@
   (with-debugging/off
     ((ςs)
      (match ς
-       [(-ς↑ αₖ Γ 𝒞) (↝↑! αₖ Γ 𝒞 Σ)]
+       [(-ς↑ αₖ Γ ⟪ℋ⟫) (↝↑! αₖ Γ ⟪ℋ⟫ Σ)]
        [(-ς↓ αₖ Γ A) (↝↓! αₖ Γ A Σ)]))
     (printf "Stepping ~a: (~a) ~n" (show-ς ς) (set-count ςs))
     (for ([ς ςs])
       (printf "  - ~a~n" (show-ς ς)))
     (printf "~n")))
 
-(: ↝↑! : -αₖ -Γ -𝒞 -Σ → (℘ -ς))
+(: ↝↑! : -αₖ -Γ -⟪ℋ⟫ -Σ → (℘ -ς))
 ;; Quick-step on "push" state
-(define (↝↑! αₖ Γ 𝒞 Σ)
+(define (↝↑! αₖ Γ ⟪ℋ⟫ Σ)
   (define ⟦k⟧ (rt αₖ))
   (match αₖ
     [(-ℬ _ ⟦e⟧! ρ)
-     (⟦e⟧! ρ $∅ Γ 𝒞 Σ ⟦k⟧)]
+     (⟦e⟧! ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     [(-ℳ _ l³ ℓ W-C W-V)
-     (mon l³ $∅ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)]
+     (mon l³ $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     [(-ℱ _ l ℓ W-C W-V)
-     (flat-chk l $∅ ℓ W-C W-V Γ 𝒞 Σ ⟦k⟧)]
+     (flat-chk l $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     [_
      (error '↝↑ "~a" αₖ)]))
 
@@ -183,7 +183,7 @@
 (define (↝↓! αₖ Γₑₑ A Σ)
   (match-define (-Σ _ σₖ M) Σ)
   (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
-    (match-define (-κ ⟦k⟧ Γₑᵣ 𝒞ₑᵣ sₕ sₓs) κ)
+    (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₕ sₓs) κ)
     (define fargs (apply -?@ sₕ sₓs))
     (match A
       [(-W Vs sₐ)
@@ -247,7 +247,7 @@
           #;(define Vs* : (Listof -V)
             (for/list ([V Vs] [s (split-values sₐ* (length Vs))])
               (V+ σ V (predicates-of Γₑₑ s))))
-          (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* 𝒞ₑᵣ Σ)]
+          (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
          [else ∅])]
       [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
        (match-define (-blm l+ lo _ _) blm)
@@ -258,6 +258,6 @@
           (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
           (cond
             [(plausible-pc? M Γₑᵣ*)
-             (⟦k⟧ blm $∅ Γₑᵣ* 𝒞ₑᵣ Σ)]
+             (⟦k⟧ blm $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
             [else ∅])])])))
 

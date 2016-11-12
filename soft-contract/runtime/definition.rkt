@@ -49,7 +49,7 @@
 
 (struct -κ ([cont : -⟦k⟧!]    ; rest of computation waiting on answer
             [Γ : -Γ]         ; path-condition to use for rest of computation
-            [𝒞 : -𝒞]        ; context of rest of computation
+            [⟪ℋ⟫ : -⟪ℋ⟫]        ; abstraction of call history
             [fun : -s]
             [args : (Listof -s)]
             )
@@ -191,12 +191,40 @@
   (match-define (-ℒ ℓs ℓₐ) ℒ)
   (-ℒ (set-add ℓs ℓ) ℓₐ))
 
-(define-new-subtype -𝒞 (+𝒞 Index))
-(define-values (𝒞∅ 𝒞+ decode-𝒞)
-  (let-values ([(s∅ s+ decode) ((inst make-indexed-set (Pairof -⟦e⟧! -ℒ)))])
-    (values (+𝒞 s∅)
-            (λ ([𝒞 : -𝒞] [x : (Pairof -⟦e⟧! -ℒ)]) (+𝒞 (s+ 𝒞 x)))
-            decode)))
+(struct -edge ([tgt : -⟦e⟧!] [src : -ℒ]) #:transparent)
+(define-type -ℋ (Listof -edge))
+(define ℋ∅ : -ℋ '())
+
+(: ℋ+ : -ℋ -edge  → -ℋ)
+;; Add edge on top of call history, except when it's already there
+(define (ℋ+ ℋ e)
+  (match-define (-edge ⟦e⟧ _) e)
+  (define already-in?
+    (for/or : Boolean ([eᵢ ℋ])
+      (match-define (-edge ⟦e⟧ᵢ _) eᵢ)
+      (eq? (ann ⟦e⟧ᵢ -⟦e⟧!) ⟦e⟧)))
+  (if already-in? ℋ (cons e ℋ)))
+
+(: ℋ@ : -ℋ -⟦e⟧! → -ℋ)
+;; Return segment of call history that first results in this edge
+(define (ℋ@ ℋ ⟦e⟧)
+  (let loop ([ℋ : -ℋ ℋ])
+    (match ℋ
+      ['() (error 'ℋ@ "not found ~a" (show-⟦e⟧! ⟦e⟧))]
+      [(cons (-edge ⟦e⟧ᵢ _) ℋ*)
+       (if (eq? (ann ⟦e⟧ᵢ -⟦e⟧!) ⟦e⟧) ℋ (loop ℋ*))])))
+
+
+;; The call history is passed around a lot and is part of address allocation
+;; So it may be useful to intern for cheaper comparison
+(define-interner -ℋ #:interned-type-name -⟪ℋ⟫)
+(define ⟪ℋ⟫∅ (-ℋ->-⟪ℋ⟫ ℋ∅))
+
+(: ⟪ℋ⟫+ : -⟪ℋ⟫ -edge → -⟪ℋ⟫)
+(define (⟪ℋ⟫+ ⟪ℋ⟫ e) (-ℋ->-⟪ℋ⟫ (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e)))
+
+(: ⟪ℋ⟫@ : -⟪ℋ⟫ -⟦e⟧! → -⟪ℋ⟫)
+(define (⟪ℋ⟫@ ⟪ℋ⟫ ⟦e⟧) (-ℋ->-⟪ℋ⟫ (ℋ@ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) ⟦e⟧)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -207,33 +235,33 @@
             (-α.def -𝒾)
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Var-Name -𝒞)
+            (-α.x Var-Name -⟪ℋ⟫)
             ; for struct field
-            (-α.fld [id : -𝒾] [pos : -ℒ] [ctx : -𝒞] [idx : Natural])
+            (-α.fld [id : -𝒾] [pos : -ℒ] [ctx : -⟪ℋ⟫] [idx : Natural])
             ; for Cons/varargs
             ; idx prevents infinite list
-            (-α.var-car [pos : -ℒ] [ctx : -𝒞] [idx : (Option Natural)])
-            (-α.var-cdr [pos : -ℒ] [ctx : -𝒞] [idx : (Option Natural)])
+            (-α.var-car [pos : -ℒ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
+            (-α.var-cdr [pos : -ℒ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
 
             ;; for wrapped mutable struct
-            (-α.st [id : -𝒾] [pos : -ℓ] [ctx : -𝒞])
+            (-α.st [id : -𝒾] [pos : -ℓ] [ctx : -⟪ℋ⟫])
 
             ;; for vector indices
-            (-α.idx [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
+            (-α.idx [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
 
             ;; for contract components
-            (-α.and/c-l [pos : -ℓ] [ctx : -𝒞])
-            (-α.and/c-r [pos : -ℓ] [ctx : -𝒞])
-            (-α.or/c-l [pos : -ℓ] [ctx : -𝒞])
-            (-α.or/c-r [pos : -ℓ] [ctx : -𝒞])
-            (-α.not/c [pos : -ℓ] [ctx : -𝒞])
-            (-α.vector/c [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
-            (-α.vectorof [pos : -ℓ] [ctx : -𝒞])
-            (-α.struct/c [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
+            (-α.and/c-l [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.and/c-r [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.or/c-l [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.or/c-r [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.not/c [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.vector/c [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.vectorof [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.struct/c [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.x/c [pos : -ℓ])
-            (-α.dom [pos : -ℓ] [ctx : -𝒞] [idx : Natural])
-            (-α.rng [pos : -ℓ] [ctx : -𝒞])
-            (-α.fn [mon-pos : -ℒ] [guard-pos : -ℓ] [ctx : -𝒞])
+            (-α.dom [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.rng [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.fn [mon-pos : -ℒ] [guard-pos : -ℓ] [ctx : -⟪ℋ⟫])
 
             -α.cnst)
 
@@ -256,8 +284,8 @@
 
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
-(define-type -⟦e⟧! (-ρ -$ -Γ -𝒞 -Σ -⟦k⟧! → (℘ -ς)))
-(define-type -⟦k⟧! (-A -$ -Γ -𝒞 -Σ       → (℘ -ς)))
+(define-type -⟦e⟧! (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧! → (℘ -ς)))
+(define-type -⟦k⟧! (-A -$ -Γ -⟪ℋ⟫ -Σ       → (℘ -ς)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧! -e)))
 
 
@@ -266,7 +294,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Configuration
-(-ς . ::= . #|block start |# (-ς↑ -αₖ -Γ -𝒞)
+(-ς . ::= . #|block start |# (-ς↑ -αₖ -Γ -⟪ℋ⟫)
             #|block return|# (-ς↓ -αₖ -Γ -A))
 
 
@@ -304,8 +332,8 @@
 
 (define (show-ς [ς : -ς]) : Sexp
   (match ς
-    [(-ς↑ αₖ Γ 𝒞) `(ev: ,𝒞 ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
-    [(-ς↓ αₖ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
+    [(-ς↑ αₖ Γ ⟪ℋ⟫) `(ev: ,⟪ℋ⟫ ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
+    [(-ς↓ αₖ Γ A)  `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
 (define (show-Σ [Σ : -Σ]) : (Values (Listof Sexp) (Listof Sexp) (Listof Sexp))
   (match-define (-Σ σ σₖ M) Σ)
@@ -448,12 +476,14 @@
 
 (define-parameter verbose? : Boolean #f)
 
-(define (show-𝒞 [𝒞 : -𝒞]) : Sexp
-  (cond [(verbose?)
-         (for/list : (Listof Sexp) ([ctx : (Pairof -⟦e⟧! -ℒ) (decode-𝒞 𝒞)])
-           (match-define (cons to from) ctx)
-           `(,(show-⟦e⟧! to) ↝ ,(show-ℒ from)))]
-        [else (format-symbol "𝒞~a" (n-sub 𝒞))]))
+(define (show-⟪ℋ⟫ [⟪ℋ⟫ : -⟪ℋ⟫]) : Sexp
+  (if (verbose?)
+      (show-ℋ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫))
+      ⟪ℋ⟫))
+(define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp)
+  (for/list ([e ℋ])
+    (match-define (-edge ⟦e⟧ ℒ) e)
+    `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧! ⟦e⟧))))
 
 (define show-ℒ : (-ℒ → Sexp)
   (let-values ([(ℒ->symbol symbol->ℒ _) ((inst unique-sym -ℒ) 'ℒ)])
@@ -469,7 +499,7 @@
      (ann
       (match-lambda
         ;[(? -e? α) (show-e α)]
-        [(-α.x x 𝒞) (format-symbol "~a_~a" (show-Var-Name x) (n-sub 𝒞))]
+        [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" (show-Var-Name x) (n-sub ⟪ℋ⟫))]
         [(? -α? α) (α->symbol α)])
       (-α → Symbol))
      symbol->α)))
@@ -486,8 +516,8 @@
             [else (show-γ γ)]))))
 
 (define (show-κ [κ : -κ]) : Sexp
-  (match-define (-κ ⟦k⟧ Γ 𝒞 sₕ sₓs) κ)
-  `(,(show-s sₕ) ,@(map show-s sₓs) ‖ ,(show-Γ Γ) @ ,(show-𝒞 𝒞)))
+  (match-define (-κ ⟦k⟧ Γ ⟪ℋ⟫ sₕ sₓs) κ)
+  `(,(show-s sₕ) ,@(map show-s sₓs) ‖ ,(show-Γ Γ) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

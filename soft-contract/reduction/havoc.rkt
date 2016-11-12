@@ -30,7 +30,7 @@
       (define Vs (σ@ σ (ρ@ ρ 𝒙)))
       (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
 
-      (when (and (>= (set-count Vs) 4)
+      #;(when (and (>= (set-count Vs) 4)
                  (for/or : Boolean ([V Vs]) (-Ar? V)))
         (printf "About to havoc ~a values at ~a:~n" (set-count Vs) (ρ@ ρ 𝒙))
         (for ([V Vs])
