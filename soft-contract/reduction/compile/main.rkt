@@ -156,7 +156,7 @@
            (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ))]
         [(cons ⟦e⟧ ⟦e⟧s)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s ρ ⟦k⟧)))])]
+           (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ (-Γ-facts Γ) (bgn∷ ⟦e⟧s ρ ⟦k⟧))))])]
      [(-begin0 e₀ es)
       (define ⟦e₀⟧ (↓ e₀))
       (define ⟦e⟧s (map ↓ es))

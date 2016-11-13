@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide app mon flat-chk
-         ap∷ let∷ if∷ and∷ or∷ bgn∷)
+         ap∷ let∷ if∷ and∷ or∷ bgn∷ rst-Γ∷)
 
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
@@ -756,7 +756,14 @@
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
      (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ (-Γ-facts Γ) (bgn∷ ⟦e⟧s* ρ ⟦k⟧))))]))
+
+;; clean-up path-condition
+(define/memo (rst-Γ∷ [es : (℘ -e)] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+    (define Γ* (match-let ([(-Γ _ as γs) Γ])
+                 (-Γ es as γs)))
+    (⟦k⟧! A $ Γ* ⟪ℋ⟫ Σ)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
