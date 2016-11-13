@@ -132,7 +132,7 @@
      (define flat? (and (C-flat? C) (C-flat? D)))
      (σ⊕*! σ [c ↦ C] [d ↦ D])
      (values (-St/C flat? -𝒾-cons (list (cons c (+ℓ!)) (cons d (+ℓ!))))
-             (assert (-?struct/c -𝒾-cons (list c d))))]
+             (-struct/c -𝒾-cons (list c d) (+ℓ!)))]
     [`(listof ,s*)
      (log-warning "TODO: alloc 'listof~n")
      (values 'any/c 'any/c)]
