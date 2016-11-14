@@ -1,6 +1,6 @@
 #lang typed/racket/base
 (require/typed/provide profile
-  [profile-thunk (∀ (X) ([(→ X)] [#:delay Nonnegative-Real #:repeat Natural] . ->* . X))])
+  [profile-thunk (∀ (X) ([(→ X)] [#:delay Nonnegative-Real #:repeat Natural #:use-errortrace? Any] . ->* . X))])
 (provide profile)
 
 (define-syntax-rule (profile e args ...)
