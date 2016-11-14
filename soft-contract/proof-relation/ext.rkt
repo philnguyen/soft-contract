@@ -16,7 +16,7 @@
 (toggle-warning-messages! #f)
 
 (define (ext-prove [M : -M] [Γ : -Γ] [e : -e]) : -R
-  (define t₀ (current-milliseconds))
+  #;(define t₀ (current-milliseconds))
   (with-debugging/off
     ((R)
      (match-define (cons base goal) (encode M Γ e))
@@ -29,7 +29,7 @@
       (printf "ext-prove: ~a ⊢ ~a : ~a ~ams~n~n" (show-Γ Γ) (show-e e) R δt))))
 
 (define (ext-plausible-pc? [M : -M] [Γ : -Γ]) : Boolean
-  (define t₀ (current-milliseconds))
+  #;(define t₀ (current-milliseconds))
   (with-debugging/off
     ((plaus?)
      (match-define (cons base _) (encode M Γ #|HACK|# -ff))
