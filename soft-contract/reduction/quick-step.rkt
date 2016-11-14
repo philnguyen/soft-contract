@@ -46,14 +46,19 @@
   (define iter : Natural 0)
 
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
-    (unless (or (set-empty? front) #|TODO|# #;(> iter 9))
+    (unless (or (set-empty? front) #|FIXME|# #;(> iter 80))
 
       (begin
         (define num-front (set-count front))
         (define-values (ς↑s ς↓s) (set-partition -ς↑? front))
         (define num-ς↑s (set-count ς↑s))
         (define num-ς↓s (set-count ς↓s))
-        (printf "* ~a: ~a (~a + ~a) ~n" iter num-front num-ς↑s num-ς↓s)
+        (printf "* ~a: ~a (~a + ~a)" iter num-front num-ς↑s num-ς↓s)
+        (printf "; cfgs: ~a, max(σₖ): ~a, max(M): ~a"
+                (hash-count seen)
+                (apply max 0 ((inst map Natural (℘ -κ)) set-count (hash-values (VMap-m (-Σ-σₖ Σ)))))
+                (apply max 0 ((inst map Natural (℘ -ΓA)) set-count (hash-values (VMap-m (-Σ-M Σ))))))
+        (printf "~n")
 
         #;(begin ; verbose
 
@@ -87,7 +92,7 @@
               [ς↦αₖs : (HashTable -ς (℘ -αₖ)) (make-hash)]
               [ς↦vsn : (HashTable -ς Ctx) (make-hash)]
               [αs-all : (℘ -α) ∅])
-          ;; Compute each state's needed addresses
+          ;; Compute each state's active addresses in the frontier
           (match-define (-Σ (and σ (-σ mσ _ _)) (VMap mσₖ _) _) Σ)
           (for ([ς front])
             (define αₖs (ς->αₖs ς mσₖ))
@@ -98,7 +103,25 @@
             (hash-set! ς↦αs ς αs)
             (hash-set! ς↦vsn ς vsn))
           (soft-gc! σ (span* mσ αs-all V->αs))
-          (for/union : (℘ -ς) ([ς front])
+          (define next-from-ς↑s
+            (let ([ς↑s* ; filter out seen states
+                   (for*/set: : (℘ -ς↑) ([ς ς↑s]
+                                         [vsn (in-value (hash-ref ς↦vsn ς))]
+                                         #:unless (equal? vsn (hash-ref seen ς #f)))
+                     (hash-set! seen ς vsn)
+                     (assert ς -ς↑?))])
+              (↝↑! ς↑s* Σ)))
+          (define next-from-ς↓s
+            (let ([ς↓s* ; filter out seen states
+                   (for*/set: : (℘ -ς↓) ([ς ς↓s]
+                                         [vsn (in-value (hash-ref ς↦vsn ς))]
+                                         #:unless (equal? vsn (hash-ref seen ς #f)))
+                     (hash-set! seen ς vsn)
+                     (assert ς -ς↓?))])
+              (↝↓! ς↓s* Σ)))
+          (∪ next-from-ς↑s next-from-ς↓s)
+
+          #;(for/union : (℘ -ς) ([ς front])
             (define vsn (hash-ref ς↦vsn ς))
             (cond
               [(equal? vsn (hash-ref seen ς #f))
@@ -150,114 +173,121 @@
       [(-ς↓ αₖ _ _) αₖ]))
   (span-σₖ σₖ αₖ))
 
-(: ↝! : -ς -Σ → (℘ -ς))
-;; Perform one "quick-step" on configuration,
-;; Producing set of next configurations and store-deltas
-(define (↝! ς Σ)
-  (with-debugging/off
-    ((ςs)
-     (match ς
-       [(-ς↑ αₖ Γ ⟪ℋ⟫) (↝↑! αₖ Γ ⟪ℋ⟫ Σ)]
-       [(-ς↓ αₖ Γ A) (↝↓! αₖ Γ A Σ)]))
-    (printf "Stepping ~a: (~a) ~n" (show-ς ς) (set-count ςs))
-    (for ([ς ςs])
-      (printf "  - ~a~n" (show-ς ς)))
-    (printf "~n")))
-
-(: ↝↑! : -αₖ -Γ -⟪ℋ⟫ -Σ → (℘ -ς))
+(: ↝↑! : (℘ -ς↑) -Σ → (℘ -ς))
 ;; Quick-step on "push" state
-(define (↝↑! αₖ Γ ⟪ℋ⟫ Σ)
-  (define ⟦k⟧ (rt αₖ))
-  (match αₖ
-    [(-ℬ _ ⟦e⟧! ρ)
-     (⟦e⟧! ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-    [(-ℳ _ l³ ℓ W-C W-V)
-     (mon l³ $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-    [(-ℱ _ l ℓ W-C W-V)
-     (flat-chk l $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-    [_
-     (error '↝↑ "~a" αₖ)]))
+(define (↝↑! ςs Σ)
+  (for/union : (℘ -ς) ([ς ςs])
+    (match-define (-ς↑ αₖ Γ ⟪ℋ⟫) ς)
+    (define ⟦k⟧ (rt αₖ))
+    (match αₖ
+      [(-ℬ _ ⟦e⟧! ρ)
+       (⟦e⟧! ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(-ℳ _ l³ ℓ W-C W-V)
+       (mon l³ $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(-ℱ _ l ℓ W-C W-V)
+       (flat-chk l $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [_
+       (error '↝↑ "~a" αₖ)])))
 
-(: ↝↓! : -αₖ -Γ -A -Σ → (℘ -ς))
+(: ↝↓! : (℘ -ς↓) -Σ → (℘ -ς))
 ;; Quick-step on "pop" state
-(define (↝↓! αₖ Γₑₑ A Σ)
+(define (↝↓! ςs Σ)
+  
+  ;; To mitigate duplicate returns
+  (define-type Key (List -κ (U -blm (Pairof (Listof -V) Boolean))))
+  (define returned : (HashTable Key #t) (make-hash))
   (match-define (-Σ _ σₖ M) Σ)
-  (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
-    (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₕ sₓs) κ)
-    (define fargs (apply -?@ sₕ sₓs))
-    (match A
-      [(-W Vs sₐ)
-       (define γ (-γ αₖ #f sₕ sₓs))
-       (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
-       (define Γₑᵣ**
-         ; It's useful to check for feasibility of a strong path-condition
-         ; before forgetting and keeping the path-condition address
-         ; as an approximation
-         ; TODO generalize
-         (let-values ([(xs m)
-                       (match αₖ
-                         [(-ℬ xs _ _)
-                          (define bounds (formals->names xs))
-                          (define m
-                            (match xs
-                              [(? list? xs)
-                               (for/hash : Subst ([x xs] [sₓ sₓs] #:when sₓ)
-                                 (values (-x x) sₓ))]
-                              [(-varargs xs x)
-                               (define-values (args-init args-rest) (split-at sₓs (length xs)))
-                               (define m-init
-                                 (for/hash : Subst ([x xs] [arg args-init] #:when arg)
-                                   (values (-x x) arg)))
-                               (define s-rst (-?list args-rest))
-                               (if s-rst (hash-set m-init (-x x) s-rst) m-init)]))
-                          (values bounds m)]
-                         [(-ℳ x _ _ _ _)
-                          (define sₓ (car sₓs))
-                          (values {seteq x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))]
-                         [(-ℱ x _ _ _ _)
-                          (define sₓ (car sₓs))
-                          (values {seteq x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))])])
-           (define φ-ans
-             (match Vs
-               [(list V)
-                (match V
-                  [(? -v? v)
-                   (-?@ 'equal? (apply -?@ sₕ sₓs) v)]
-                  [(or (? -Clo?) (? -Ar?) (? -o?))
-                   (-?@ 'procedure? (apply -?@ sₕ sₓs))]
-                  [_ #f])]
-               [_ #f]))
-           (define φs-path
-             (for/fold ([φs-path : (℘ -e) ∅]) ([φ (-Γ-facts Γₑₑ)])
+  
+  (for/union : (℘ -ς) ([ς ςs])
+    (match-define (-ς↓ αₖ Γₑₑ A) ς)
+    (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
+      (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₕ sₓs) κ)
+      (define fargs (apply -?@ sₕ sₓs))
+      (match A
+        [(-W Vs sₐ)
+         (define key : Key (list κ (cons Vs (and sₐ #t))))
+         (cond
+           [(hash-has-key? returned key) ∅]
+           [else
+            (define γ (-γ αₖ #f sₕ sₓs))
+            (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
+            (define Γₑᵣ**
+              ; It's useful to check for feasibility of a strong path-condition
+              ; before forgetting and keeping the path-condition address
+              ; as an approximation
+              ; TODO generalize
+              (let-values ([(xs m)
+                            (match αₖ
+                              [(-ℬ xs _ _)
+                               (define bounds (formals->names xs))
+                               (define m
+                                 (match xs
+                                   [(? list? xs)
+                                    (for/hash : Subst ([x xs] [sₓ sₓs] #:when sₓ)
+                                      (values (-x x) sₓ))]
+                                   [(-varargs xs x)
+                                    (define-values (args-init args-rest) (split-at sₓs (length xs)))
+                                    (define m-init
+                                      (for/hash : Subst ([x xs] [arg args-init] #:when arg)
+                                        (values (-x x) arg)))
+                                    (define s-rst (-?list args-rest))
+                                    (if s-rst (hash-set m-init (-x x) s-rst) m-init)]))
+                               (values bounds m)]
+                              [(-ℳ x _ _ _ _)
+                               (define sₓ (car sₓs))
+                               (values {seteq x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))]
+                              [(-ℱ x _ _ _ _)
+                               (define sₓ (car sₓs))
+                               (values {seteq x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))])])
+                (define φ-ans
+                  (match Vs
+                    [(list V)
+                     (match V
+                       [(? -v? v)
+                        (-?@ 'equal? (apply -?@ sₕ sₓs) v)]
+                       [(or (? -Clo?) (? -Ar?) (? -o?))
+                        (-?@ 'procedure? (apply -?@ sₕ sₓs))]
+                       [_ #f])]
+                    [_ #f]))
+                (define φs-path
+                  (for/fold ([φs-path : (℘ -e) ∅]) ([φ (-Γ-facts Γₑₑ)])
+                    (cond
+                      [(⊆ (fv φ) xs) (set-add φs-path (e/map m φ))]
+                      [else φs-path])))
+                (apply Γ+ Γₑᵣ* φ-ans (set->list φs-path))))
+            (cond
+              [(plausible-pc? M Γₑᵣ**)
+               (hash-set! returned key #t)
+               (define sₐ*
+                 (and sₐ
+                      (match fargs ; HACK
+                        [(-@ 'fc (list x) _)
+                         (match Vs
+                           [(list (-b #f)) -ff]
+                           [(list (-b #t) _) (-?@ 'values -tt x)])]
+                        [_ fargs])))
+               #;(define σ (-Σ-σ Σ))
+               #;(define Vs* : (Listof -V)
+                   (for/list ([V Vs] [s (split-values sₐ* (length Vs))])
+                     (V+ σ V (predicates-of Γₑₑ s))))
+               (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
+              [else ∅])])]
+        [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
+         (match-define (-blm l+ lo _ _) blm)
+         (define key (list κ blm))
+         (cond
+           [(hash-has-key? returned key) ∅]
+           [else
+            (case l+
+              [(havoc † Λ) ∅]
+              [else
+               (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
+               (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
                (cond
-                 [(⊆ (fv φ) xs) (set-add φs-path (e/map m φ))]
-                 [else φs-path])))
-           (apply Γ+ Γₑᵣ* φ-ans (set->list φs-path))))
-       (cond
-         [(plausible-pc? M Γₑᵣ**)
-          (define sₐ*
-            (and sₐ
-                 (match fargs ; HACK
-                   [(-@ 'fc (list x) _)
-                    (match Vs
-                      [(list (-b #f)) -ff]
-                      [(list (-b #t) _) (-?@ 'values -tt x)])]
-                   [_ fargs])))
-          #;(define σ (-Σ-σ Σ))
-          #;(define Vs* : (Listof -V)
-            (for/list ([V Vs] [s (split-values sₐ* (length Vs))])
-              (V+ σ V (predicates-of Γₑₑ s))))
-          (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
-         [else ∅])]
-      [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
-       (match-define (-blm l+ lo _ _) blm)
-       (case l+
-         [(havoc † Λ) ∅]
-         [else
-          (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
-          (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
-          (cond
-            [(plausible-pc? M Γₑᵣ*)
-             (⟦k⟧ blm $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
-            [else ∅])])])))
+                 [(plausible-pc? M Γₑᵣ*)
+                  (hash-set! returned key #t)
+                  (⟦k⟧ blm $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
+                 [else ∅])])])]))))
 
+#;(profile-thunk (λ () (havoc-file "../test/programs/safe/big/slatex.rkt") (void))
+               #:use-errortrace? #t)

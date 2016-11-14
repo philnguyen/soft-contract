@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide σ⊕! σ⊕*! V+
+(provide σ⊕! σ⊕*! V+ Vs⊕
          extract-list-content)
 
 (require racket/match
