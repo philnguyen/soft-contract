@@ -12,12 +12,12 @@
   [struct snake ([dir DIR/C] [segs (and/c cons? (listof POSN/C))])]
   [struct world ([snake SNAKE/C] [food POSN/C])]
   ;; const
-  [WORLD (-> WORLD/C)]
-  [BACKGROUND (-> image/c)]
-  [FOOD-IMAGE (-> image/c)]
-  [SEGMENT-IMAGE (-> image/c)]
+  [WORLD WORLD/C]
+  [BACKGROUND image/c]
+  [FOOD-IMAGE image/c]
+  [SEGMENT-IMAGE image/c]
   [GRID-SIZE real?]
-  [BOARD-HEIGHT-PIXELS (-> real?)]
+  [BOARD-HEIGHT-PIXELS real?]
   [BOARD-WIDTH real?]
   [BOARD-HEIGHT real?]
   ;; collide
@@ -76,14 +76,14 @@
 (define GRID-SIZE 30)
 (define BOARD-HEIGHT 20)
 (define BOARD-WIDTH 30)
-(define (BOARD-HEIGHT-PIXELS) (* GRID-SIZE BOARD-HEIGHT))
-(define (BOARD-WIDTH-PIXELS) (* GRID-SIZE BOARD-WIDTH))
-(define (BACKGROUND) (empty-scene (BOARD-WIDTH-PIXELS) (BOARD-HEIGHT-PIXELS)))
-(define (SEGMENT-RADIUS) (/ GRID-SIZE 2))
-(define (SEGMENT-IMAGE)  (circle (SEGMENT-RADIUS) "solid" "red"))
-(define (FOOD-RADIUS) (SEGMENT-RADIUS))
-(define (FOOD-IMAGE)  (circle (FOOD-RADIUS) "solid" "green"))
-(define (WORLD) (world (snake 'right (cons (posn 5 3) empty))
+(define BOARD-HEIGHT-PIXELS (* GRID-SIZE BOARD-HEIGHT))
+(define BOARD-WIDTH-PIXELS (* GRID-SIZE BOARD-WIDTH))
+(define BACKGROUND (empty-scene BOARD-WIDTH-PIXELS BOARD-HEIGHT-PIXELS))
+(define SEGMENT-RADIUS (/ GRID-SIZE 2))
+(define SEGMENT-IMAGE  (circle SEGMENT-RADIUS "solid" "red"))
+(define FOOD-RADIUS SEGMENT-RADIUS)
+(define FOOD-IMAGE  (circle FOOD-RADIUS "solid" "green"))
+(define WORLD (world (snake 'right (cons (posn 5 3) empty))
                        (posn 8 12)))
 
 
@@ -221,19 +221,19 @@
 ;; Build an image of the given world.
 (define (world->scene w)
   (snake+scene (world-snake w)
-               (food+scene (world-food w) (BACKGROUND))))
+               (food+scene (world-food w) BACKGROUND)))
 
 ;; food+scene : Food Image -> Image
 ;; Add image of food to the given scene.
 (define (food+scene f scn)
-  (place-image-on-grid (FOOD-IMAGE) (posn-x f) (posn-y f) scn))
+  (place-image-on-grid FOOD-IMAGE (posn-x f) (posn-y f) scn))
 
 ;; place-image-on-grid : Image Number Number Image -> Image
 ;; Just like PLACE-IMAGE, but use grid coordinates.
 (define (place-image-on-grid img x y scn)
   (place-image img
                (* GRID-SIZE x)
-               (- (BOARD-HEIGHT-PIXELS) (* GRID-SIZE y))
+               (- BOARD-HEIGHT-PIXELS (* GRID-SIZE y))
                scn))
 
 ;; snake+scene : Snake Image -> Image
@@ -251,4 +251,4 @@
 ;; segment+scene : Posn Image -> Image
 ;; Add one snake segment to a scene.
 (define (segment+scene seg scn)
-  (place-image-on-grid (SEGMENT-IMAGE) (posn-x seg) (posn-y seg) scn))
+  (place-image-on-grid SEGMENT-IMAGE (posn-x seg) (posn-y seg) scn))
