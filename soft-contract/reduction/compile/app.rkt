@@ -756,14 +756,12 @@
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
      (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ (-Γ-facts Γ) (bgn∷ ⟦e⟧s* ρ ⟦k⟧))))]))
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (bgn∷ ⟦e⟧s* ρ ⟦k⟧))))]))
 
 ;; clean-up path-condition
-(define/memo (rst-Γ∷ [es : (℘ -e)] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! A $ Γ ⟪ℋ⟫ Σ) #:roots ()
-    (define Γ* (match-let ([(-Γ _ as γs) Γ])
-                 (-Γ es as γs)))
-    (⟦k⟧! A $ Γ* ⟪ℋ⟫ Σ)))
+(define/memo (rst-Γ∷ [Γ : -Γ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! A $ _ ⟪ℋ⟫ Σ) #:roots ()
+    (⟦k⟧! A $ Γ ⟪ℋ⟫ Σ)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
