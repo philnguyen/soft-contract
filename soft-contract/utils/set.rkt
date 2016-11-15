@@ -59,6 +59,14 @@
         (values (set-add pass x) fail)
         (values pass (set-add fail x)))))
 
+(: set-partition-to-lists (∀ (X) ((X → Boolean) (℘ X) → (Values (Listof X) (Listof X)))))
+;; Partition set members into those that satisfy the predicate and the rest
+(define (set-partition-to-lists p xs)
+  (for/fold ([pass : (Listof X) '()] [fail : (Listof X) '()]) ([x xs])
+    (if (p x)
+        (values (cons x pass) fail)
+        (values pass (cons x fail)))))
+
 (define-syntax for/union
   (syntax-rules (:)
     [(_ : τ (for-clauses ...) body ...)

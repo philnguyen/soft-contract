@@ -50,11 +50,10 @@
 
       (begin
         (define num-front (set-count front))
-        (define-values (ς↑s ς↓s) (set-partition -ς↑? front))
-        (define num-ς↑s (set-count ς↑s))
-        (define num-ς↓s (set-count ς↓s))
-        (printf "* ~a: ~a (~a + ~a)" iter num-front num-ς↑s num-ς↓s)
-        (printf "; cfgs: ~a, max(σₖ): ~a, max(M): ~a"
+        (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
+        (printf "* ~a: ~a" iter num-front )
+        ;(printf " (~a + ~a)" (length ς↑s) (length ς↓s))
+        #;(printf "; cfgs: ~a, max(σₖ): ~a, max(M): ~a"
                 (hash-count seen)
                 (apply max 0 ((inst map Natural (℘ -κ)) set-count (hash-values (VMap-m (-Σ-σₖ Σ)))))
                 (apply max 0 ((inst map Natural (℘ -ΓA)) set-count (hash-values (VMap-m (-Σ-M Σ))))))
@@ -86,7 +85,7 @@
         
         (printf "~n")
         (set! iter (+ 1 iter)))
-
+      
       (define next
         (let ([ς↦αs : (HashTable -ς (℘ -α)) (make-hash)]
               [ς↦αₖs : (HashTable -ς (℘ -αₖ)) (make-hash)]
@@ -105,19 +104,19 @@
           (soft-gc! σ (span* mσ αs-all V->αs))
           (define next-from-ς↑s
             (let ([ς↑s* ; filter out seen states
-                   (for*/set: : (℘ -ς↑) ([ς ς↑s]
-                                         [vsn (in-value (hash-ref ς↦vsn ς))]
-                                         #:unless (equal? vsn (hash-ref seen ς #f)))
+                     (for*/list : (Listof -ς↑) ([ς ς↑s]
+                                           [vsn (in-value (hash-ref ς↦vsn ς))]
+                                           #:unless (equal? vsn (hash-ref seen ς #f)))
                      (hash-set! seen ς vsn)
                      (assert ς -ς↑?))])
               (↝↑! ς↑s* Σ)))
           (define next-from-ς↓s
             (let ([ς↓s* ; filter out seen states
-                   (for*/set: : (℘ -ς↓) ([ς ς↓s]
-                                         [vsn (in-value (hash-ref ς↦vsn ς))]
-                                         #:unless (equal? vsn (hash-ref seen ς #f)))
-                     (hash-set! seen ς vsn)
-                     (assert ς -ς↓?))])
+                     (for*/list : (Listof -ς↓) ([ς ς↓s]
+                                           [vsn (in-value (hash-ref ς↦vsn ς))]
+                                           #:unless (equal? vsn (hash-ref seen ς #f)))
+                       (hash-set! seen ς vsn)
+                       (assert ς -ς↓?))])
               (↝↓! ς↓s* Σ)))
           (∪ next-from-ς↑s next-from-ς↓s)
 
@@ -144,6 +143,7 @@
              ;(printf "Haven't seen ~a before~n~n" (show-ς ς))
              (hash-set! seen ς vsn)
              (↝! ς Σ)])))
+      (collect-garbage)
       (loop! next)))
 
   (match-let ([(-Σ σ σₖ M) Σ])
@@ -173,7 +173,7 @@
       [(-ς↓ αₖ _ _) αₖ]))
   (span-σₖ σₖ αₖ))
 
-(: ↝↑! : (℘ -ς↑) -Σ → (℘ -ς))
+(: ↝↑! : (Listof -ς↑) -Σ → (℘ -ς))
 ;; Quick-step on "push" state
 (define (↝↑! ςs Σ)
   (for/union : (℘ -ς) ([ς ςs])
@@ -189,25 +189,31 @@
       [_
        (error '↝↑ "~a" αₖ)])))
 
-(: ↝↓! : (℘ -ς↓) -Σ → (℘ -ς))
+(: ↝↓! : (Listof -ς↓) -Σ → (℘ -ς))
 ;; Quick-step on "pop" state
 (define (↝↓! ςs Σ)
   
   ;; To mitigate duplicate returns
   (define-type Key (List -κ (U -blm (Pairof (Listof -V) Boolean))))
   (define returned : (HashTable Key #t) (make-hash))
-  (match-define (-Σ _ σₖ M) Σ)
+  (match-define (-Σ σ σₖ M) Σ)
+
+  ;(define hits : Natural 0)
+  ;(define total : Natural 0)
   
-  (for/union : (℘ -ς) ([ς ςs])
+  (define ans (for/union : (℘ -ς) ([ς ςs])
     (match-define (-ς↓ αₖ Γₑₑ A) ς)
     (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
       (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₕ sₓs) κ)
       (define fargs (apply -?@ sₕ sₓs))
+      ;(set! total (+ 1 total))
       (match A
         [(-W Vs sₐ)
          (define key : Key (list κ (cons Vs (and sₐ #t))))
          (cond
-           [(hash-has-key? returned key) ∅]
+           [(hash-has-key? returned key)
+            ;(set! hits (+ 1 hits))
+            ∅]
            [else
             (define γ (-γ αₖ #f sₕ sₓs))
             (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
@@ -276,7 +282,9 @@
          (match-define (-blm l+ lo _ _) blm)
          (define key (list κ blm))
          (cond
-           [(hash-has-key? returned key) ∅]
+           [(hash-has-key? returned key)
+            ;(set! hits (+ 1 hits))
+            ∅]
            [else
             (case l+
               [(havoc † Λ) ∅]
@@ -288,6 +296,8 @@
                   (hash-set! returned key #t)
                   (⟦k⟧ blm $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
                  [else ∅])])])]))))
+  ;(printf "  -- hits: ~a/~a~n" hits total)
+  ans)
 
 #;(profile-thunk (λ () (havoc-file "../test/programs/safe/big/slatex.rkt") (void))
                #:use-errortrace? #t)
