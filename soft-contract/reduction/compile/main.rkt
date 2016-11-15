@@ -70,7 +70,7 @@
   (remember-e!
    (match e
      [(-λ xs e*)
-      (define ⟦e*⟧ (↓ e*) #;(instrument (↓ e*)))
+      (define ⟦e*⟧ (make-memoized-⟦e⟧ (↓ e*)))
       (define fvs (fv e*))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (define s (canonicalize-e Γ e))
@@ -299,3 +299,15 @@
                (σ⊕! σ α* V))
              α*]))
     (values x α*)))
+
+(: make-memoized-⟦e⟧ : -⟦e⟧! → -⟦e⟧!)
+(define (make-memoized-⟦e⟧ ⟦e⟧)
+  (define-type Key (List -⟪ℋ⟫ -⟦k⟧! -Γ (HashTable -α (℘ -V))))
+  (let ([m : (HashTable Key (℘ -ς)) (make-hash)])
+    (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      (match-define (-Σ (-σ mσ _ _) _ _) Σ)
+      (define αs (span* mσ (ρ->αs ρ) V->αs))
+      (define k : Key (list ⟪ℋ⟫ ⟦k⟧ Γ (m↓ mσ αs)))
+      #;(when (hash-has-key? m k)
+        (printf "hit-e~n"))
+      (hash-ref! m k (λ () (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))))))

@@ -338,7 +338,7 @@
          [else
           (define ρ* (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs))
           (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-          (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ sₕ sₓs))
+          (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
           (vm⊔! σₖ αₖ κ)
           {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}])]
       [(-varargs zs z) ; FIXME code duplicate
@@ -353,7 +353,7 @@
            (ρ+ ρ₀ z αᵣ)))
        ;; Push stack and jump to new state
        (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ sₕ sₓs))
+       (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
        (vm⊔! σₖ αₖ κ)
        {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]))
 
@@ -1320,3 +1320,23 @@
                        [⟦v⟧! : -⟦e⟧!]) : -⟦e⟧!
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧!)
     (⟦c⟧! ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℒ ⟦v⟧! ρ ⟦k⟧!))))
+
+(define/memo (make-memoized-⟦k⟧ [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+  (define-type Key (List -A -Γ -⟪ℋ⟫ (HashTable -α (℘ -V))))
+  (let ([m : (HashTable Key (℘ -ς)) (make-hash)])
+    (define ⟦k⟧* : -⟦k⟧!
+      (λ (A $ Γ ⟪ℋ⟫ Σ)
+        (match-define (-Σ (-σ mσ _ _) _ _) Σ)
+        (define αs (span* mσ
+                          (∪ (⟦k⟧->roots ⟦k⟧)
+                             (match A
+                               [(-W Vs _) (->αs Vs)]
+                               [_ ∅]))
+                          V->αs))
+        (define k : Key (list A Γ ⟪ℋ⟫ (m↓ mσ αs)))
+        #;(when (hash-has-key? m k)
+          (printf "hit-k~n"))
+        (hash-ref! m k (λ () (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))))
+    (add-⟦k⟧-roots! ⟦k⟧* (⟦k⟧->roots ⟦k⟧))
+    (set-⟦k⟧->αₖ! ⟦k⟧* (⟦k⟧->αₖ ⟦k⟧))
+    ⟦k⟧*))

@@ -37,7 +37,7 @@
                           (printf "~a~n" (show-blm A)))))
            {set (-ς↓ αₖ Γ A)}])))
     (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
-    (add-⟦k⟧-roots ⟦k⟧ ∅)
+    (add-⟦k⟧-roots! ⟦k⟧ ∅)
     ⟦k⟧))
 
 ;; begin0, waiting on first value

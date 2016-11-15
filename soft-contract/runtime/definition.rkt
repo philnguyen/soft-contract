@@ -527,7 +527,7 @@
 ;; TMP hack for part of root set from stack frames
 (splicing-let ([m ((inst make-hasheq -⟦k⟧! (℘ -α)))])
   
-  (define (add-⟦k⟧-roots [⟦k⟧ : -⟦k⟧!] [αs : (℘ -α)]) : Void
+  (define (add-⟦k⟧-roots! [⟦k⟧ : -⟦k⟧!] [αs : (℘ -α)]) : Void
     (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ -α)]) (∪ αs₀ αs)) →∅))
   
   ;; Return the root set spanned by the stack chunk for current block

@@ -34,7 +34,7 @@
                   {set (-ς↓ αₖ Γ A)}])]
               [else e ...])))
     (set-⟦k⟧->αₖ! ⟦k⟧* αₖ)
-    (add-⟦k⟧-roots ⟦k⟧* (∪ frame-roots tail-roots))
+    (add-⟦k⟧-roots! ⟦k⟧* (∪ frame-roots tail-roots))
     ⟦k⟧*))
 
 (define-simple-macro (with-Γ+/- ([(Γ₁:id Γ₂:id) e])
