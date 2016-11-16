@@ -40,7 +40,7 @@
 ;(: encode : -M -Γ -e → (Values →Void →Z3-Ast))
 ;; Encode `M Γ ⊢ e` into a pair of thunks that emit assertions and goal to check for
 ;; satisfiability
-(define/memo (encode [M : -M] [Γ : -Γ] [e : -e]) : (Pairof →Void →Z3-Ast)
+(define/memo (encode [M : (HashTable -αₖ (℘ -ΓA))] [Γ : -Γ] [e : -e]) : (Pairof →Void →Z3-Ast)
   (match-define (cons refs top-entry) (encode-e ∅ ∅eq Γ e))
   (let loop ([fronts   : (℘ Defn-Entry) refs]
              [seen     : (℘ Defn-Entry) refs]
@@ -66,7 +66,7 @@
            (define-values (def-funs** refs+)
              (match front
                [(and app-ctx (App-Ctx (and app (App αₖ _)) _))
-                (define As (M@ M αₖ))
+                (define As (hash-ref M αₖ →∅))
                 (match-define (cons refs entries) (encode-App-Ctx app-ctx As))
                 (values (hash-set def-funs* app entries) refs)]
                [(? -o? o)
