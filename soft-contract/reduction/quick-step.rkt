@@ -261,7 +261,7 @@
                       [else φs-path])))
                 (apply Γ+ Γₑᵣ* φ-ans (set->list φs-path))))
             (cond
-              [(or (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
+              [(or #;(no-obvious-conflict? Γₑᵣ γ Γₑₑ)
                    (plausible-pc? M Γₑᵣ**))
                (hash-set! returned key #t)
                (define sₐ*
@@ -324,12 +324,15 @@
             [(-@ eₕ es _) (or (loop eₕ) (ormap loop es))]
             [_ #f]))))
 
-  (match-define (-γ αₖ _ _ sₓs) γ)
-  
+  (match-define (-γ αₖ _ sₕ sₓs) γ)
+
   (match αₖ
     [(-ℬ (? list? xs) _ _)
-     (for/and : Boolean ([x xs] [sₓ sₓs])
-       (not (and sₓ
-                 (Γₑᵣ . talks-about? . sₓ)
-                 (Γₑₑ . talks-about? . (-x x)))))]
+     (not (or (for/or : Boolean ([x xs] [sₓ sₓs])
+                (and sₓ
+                     (Γₑᵣ . talks-about? . sₓ)
+                     (Γₑₑ . talks-about? . (-x x))))
+              (for/or : Boolean ([x (if sₕ (fv sₕ) ∅eq)])
+                (and (Γₑᵣ . talks-about? . (-x x))
+                     (Γₑₑ . talks-about? . (-x x))))))]
     [_ #f]))
