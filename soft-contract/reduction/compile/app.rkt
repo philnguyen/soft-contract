@@ -737,7 +737,7 @@
             (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                       ([bnd-W bnd-Ws*])
               (match-define (list (? Var-Name? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
-              (define α (-α.x x #|TODO is this right?|# ⟪ℋ⟫))
+              (define α (-α.x x ⟪ℋ⟫))
               (σ⊕! σ α Vₓ)
               (values (ρ+ ρ x α) (-Γ-with-aliases Γ x sₓ))))
           (⟦e⟧ ρ* $ Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
@@ -796,7 +796,7 @@
               (cond [(-=>? grd) (-=>-pos grd)]
                     [(-=>i? grd) (-=>i-pos grd)]
                     [else (error 'mon-=>_ "unexpected")]))
-            (define α (or (keep-if-const v) (-α.fn ℒ grd-ℓ #|TODO right?|# ⟪ℋ⟫)))
+            (define α (or (keep-if-const v) (-α.fn ℒ grd-ℓ ⟪ℋ⟫)))
             (define Ar (-Ar grd α l³))
             (σ⊕! σ α V)
             (define v* ; hack
@@ -848,7 +848,7 @@
                    (define ⟦k⟧*
                      (cond [all-immutable? ⟦k⟧]
                            [else
-                            (define α (-α.st 𝒾 ℓ #|TODO right?|# ⟪ℋ⟫))
+                            (define α (-α.st 𝒾 ℓ ⟪ℋ⟫))
                             (wrap-st∷ 𝒾 αs α l³ ⟦k⟧)]))
                    (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))])]
     [(-● _)
@@ -869,7 +869,7 @@
             (cond
               [all-immutable? ⟦k⟧]
               [else
-               (define α (-α.st 𝒾 ℓ #|TODO right?|# ⟪ℋ⟫))
+               (define α (-α.st 𝒾 ℓ ⟪ℋ⟫))
                (wrap-st∷ 𝒾 αs α l³ ⟦k⟧)]))
           (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
            (if∷ lo ⟦reconstr⟧ ⟦blm⟧ ⊥ρ ⟦k⟧*)))])]
@@ -892,7 +892,7 @@
     (define Γ* ; HACK: drop all tails for now
       (match-let ([(-Γ φs as γs) Γ])
         (invalidate (-Γ φs as '()) x)))
-    (-ς↑ αₖ Γ* #|TODO right?|# ⟪ℋ⟫)))
+    (-ς↑ αₖ Γ* ⟪ℋ⟫)))
 
 (define (mon-and/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ _) Σ)
@@ -1097,7 +1097,7 @@
        (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'fc (list v)))
        (define αₖ (-ℱ x l ℒ W-C* W-V*))
        (vm⊔! σₖ αₖ κ)
-       (-ς↑ αₖ Γ #|TODO right?|# ⟪ℋ⟫))]
+       (-ς↑ αₖ Γ ⟪ℋ⟫))]
     [_
      (define ⟦ap⟧ (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W-C) (list (mk-rt-⟦e⟧ W-V))))
      (define ⟦rt⟧ (mk-rt-⟦e⟧ (-W (list -tt (V+ σ V C)) (-?@ 'values -tt v))))
