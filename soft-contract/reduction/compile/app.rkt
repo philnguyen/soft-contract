@@ -347,7 +347,7 @@
        ;; Allocate args, side effects widening store
        (define ρ*
          (let ([ρ₀ (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ zs Ws₀)])
-           (define Vᵣ (alloc-rest-args! σ ⟪ℋ⟫₀ ℒ Wsᵣ))
+           (define Vᵣ (alloc-rest-args! σ Γ ⟪ℋ⟫₀ ℒ Wsᵣ))
            (define αᵣ (-α.x z ⟪ℋ⟫₀))
            (σ⊕! σ αᵣ Vᵣ)
            (ρ+ ρ₀ z αᵣ)))
@@ -586,8 +586,8 @@
     (σ⊕! σ α Vₓ*)
     (ρ+ ρ x α)))
 
-(: alloc-rest-args! : -σ -⟪ℋ⟫ -ℒ (Listof -W¹) → -V)
-(define (alloc-rest-args! σ ⟪ℋ⟫ ℒ Ws)
+(: alloc-rest-args! : -σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹) → -V)
+(define (alloc-rest-args! σ Γ ⟪ℋ⟫ ℒ Ws)
 
   (: precise-alloc! ([(Listof -W¹)] [Natural] . ->* . -V))
   ;; Allocate vararg list precisely, preserving length
@@ -615,8 +615,8 @@
      (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
      ;; Allocate elements in var-arg lists
      (for ([W Ws])
-       (match-define (-W¹ Vₕ _) W)
-       (σ⊕! σ αₕ Vₕ))
+       (match-define (-W¹ Vₕ sₕ) W)
+       (σ⊕! σ αₕ (V+ σ Vₕ (predicates-of Γ sₕ))))
      Vₜ]))
 
 (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧! → (℘ -ς))
@@ -738,7 +738,7 @@
                       ([bnd-W bnd-Ws*])
               (match-define (list (? Var-Name? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
               (define α (-α.x x ⟪ℋ⟫))
-              (σ⊕! σ α Vₓ)
+              (σ⊕! σ α (V+ σ Vₓ (predicates-of Γ sₓ)))
               (values (ρ+ ρ x α) (-Γ-with-aliases Γ x sₓ))))
           (⟦e⟧ ρ* $ Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
