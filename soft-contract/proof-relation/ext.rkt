@@ -19,7 +19,7 @@
   #;(define t₀ (current-milliseconds))
   (with-debugging/off
     ((R)
-     (match-define (cons base goal) (encode M Γ e))
+     (match-define (cons base goal) (encode (VMap-m M) Γ e))
      (match (exec-check-sat base goal)
        [(cons 'unsat _) '✓]
        [(cons _ 'unsat) '✗]
@@ -32,7 +32,7 @@
   #;(define t₀ (current-milliseconds))
   (with-debugging/off
     ((plaus?)
-     (match-define (cons base _) (encode M Γ #|HACK|# -ff))
+     (match-define (cons base _) (encode (VMap-m M) Γ #|HACK|# -ff))
      (case (exec-check-sat₀ base)
        [(unsat) #f]
        [(sat unknown) #t]))

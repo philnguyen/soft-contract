@@ -143,7 +143,6 @@
              ;(printf "Haven't seen ~a before~n~n" (show-ς ς))
              (hash-set! seen ς vsn)
              (↝! ς Σ)])))
-      (collect-garbage)
       (loop! next)))
 
   (match-let ([(-Σ σ σₖ M) Σ])
@@ -262,7 +261,8 @@
                       [else φs-path])))
                 (apply Γ+ Γₑᵣ* φ-ans (set->list φs-path))))
             (cond
-              [(plausible-pc? M Γₑᵣ**)
+              [(or (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
+                   (plausible-pc? M Γₑᵣ**))
                (hash-set! returned key #t)
                (define sₐ*
                  (and sₐ
@@ -292,12 +292,44 @@
                (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
                (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
                (cond
-                 [(plausible-pc? M Γₑᵣ*)
+                 [(or (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
+                      (plausible-pc? M Γₑᵣ*))
                   (hash-set! returned key #t)
                   (⟦k⟧ blm $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
                  [else ∅])])])]))))
   ;(printf "  -- hits: ~a/~a~n" hits total)
   ans)
 
-#;(profile-thunk (λ () (havoc-file "../test/programs/safe/big/slatex.rkt") (void))
-               #:use-errortrace? #t)
+(: no-obvious-conflict? : -Γ -γ -Γ → Boolean)
+;; Heuristic check that there's no need for heavyweight SMT call
+;; to filter out spurious return/blame
+(define (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
+
+  (: talks-about? : -Γ -e → Boolean)
+  (define (talks-about? Γ e)
+    (match-define (-Γ φs _ γs) Γ)
+    (or (for/or : Boolean ([φ φs])
+          (e-talks-about? φ e))
+        (for/or : Boolean ([γ γs])
+          (match-define (-γ _ _ sₕ sₓs) γ)
+          (or (and sₕ (e-talks-about? sₕ e))
+              (for/or : Boolean ([sₓ sₓs] #:when sₓ)
+                (e-talks-about? sₓ e))))))
+
+  (: e-talks-about? : -e -e → Boolean)
+  (define (e-talks-about? e₁ e₂)
+    (let loop ([e : -e e₁])
+      (or (equal? e e₂)
+          (match e
+            [(-@ eₕ es _) (or (loop eₕ) (ormap loop es))]
+            [_ #f]))))
+
+  (match-define (-γ αₖ _ _ sₓs) γ)
+  
+  (match αₖ
+    [(-ℬ (? list? xs) _ _)
+     (for/and : Boolean ([x xs] [sₓ sₓs])
+       (not (and sₓ
+                 (Γₑᵣ . talks-about? . sₓ)
+                 (Γₑₑ . talks-about? . (-x x)))))]
+    [_ #f]))
