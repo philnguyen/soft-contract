@@ -55,16 +55,21 @@
 (: m@ (∀ (X Y) (MMap X Y) X → (℘ Y)))
 (define (m@ m x) (hash-ref m x →∅))
 
-(: m↓ : (∀ (X Y) (Map X Y) (℘ X) → (Map X Y)))
+(: m↓ : (∀ (X Y) (HashTable X Y) (℘ X) → (HashTable X Y)))
 ;; Restrict map to given domain
 (define (m↓ m xs)
   (cond
-    [(hash-eq? m)
+    [(and (immutable? m) (hash-eq? m))
      (for/hasheq : (Map X Y) ([(k v) m] #:when (∋ xs k))
        (values k v))]
-    [else
+    [(immutable? m)
      (for/hash : (Map X Y) ([(k v) m] #:when (∋ xs k))
-       (values k v))]))
+       (values k v))]
+    [else ; mutable
+     (define m* : (HashTable X Y) (if (hash-eq? m) (make-hasheq) (make-hash)))
+     (for ([(k v) m] #:when (∋ xs k))
+       (hash-set! m* k v))
+     m*]))
 
 (: hash-merge (∀ (X Y) (HashTable X Y) (HashTable X Y) → (HashTable X Y)))
 (define (hash-merge m₁ m₂)
