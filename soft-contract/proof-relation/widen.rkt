@@ -13,24 +13,23 @@
 (: σ⊕! ([-σ -α -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
   (match-define (-σ m mods crds) σ)
-  (define mods* (if mutating? (set-add mods α) mods))
-  (define-values (Vs* crds*)
+  (define Vs*
     (cond
       ;; If address only stands for 1 value and this is the first update, do strong update.
       ;; This gives some precision for programs that initialize `(box #f)`
       ;; then update it with fairly type-consistent values afterwards
       [(and mutating?
-            (not (∋ mods α))
+            (not (hash-has-key? mods α))
             (not (equal? 'N (hash-ref crds α (λ () 0)))))
-       (values {set V}
-               (hash-set crds α 1))]
+       (hash-set! crds α 1)
+       {set V}]
       [else
        (define Vs (hash-ref m α →∅))
-       (values (Vs⊕ σ Vs V)
-               (hash-update crds α cardinality+ (λ () 0)))]))
-  (set--σ-m! σ (hash-set m α Vs*))
-  (set--σ-cardinality! σ crds*)
-  (set--σ-modified! σ mods*))
+       (hash-update! crds α cardinality+ (λ () 0))
+       (Vs⊕ σ Vs V)]))
+  (hash-set! m α Vs*)
+  (when mutating?
+    (hash-set! mods α #t)))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)

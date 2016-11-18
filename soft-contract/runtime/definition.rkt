@@ -29,11 +29,11 @@
 
 (define-type -cardinality (U 0 1 'N))
 (struct -σ ([m : (HashTable -α (℘ -V))]
-            [modified : (℘ -α)] ; set of addresses potentially have been mutated
+            [modified : (HashTable -α True)] ; addresses that may have been mutated
             [cardinality : (HashTable -α -cardinality)]
             )
-  #:transparent #:mutable)
-(define (⊥σ) (-σ (hash) ∅ (hash)))
+  #:transparent)
+(define (⊥σ) (-σ (make-hash) (make-hash) (make-hash)))
 
 (: cardinality+ : -cardinality → -cardinality)
 (define (cardinality+ c)

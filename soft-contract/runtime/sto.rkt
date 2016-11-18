@@ -27,12 +27,11 @@
 
 (: σ-old? : -σ -α → Boolean)
 (define (σ-old? σ α)
-  (not (∋ (-σ-modified σ) α)))
+  (not (hash-has-key? (-σ-modified σ) α)))
 
 (: σ-remove! : -σ -α -V → Void)
 (define (σ-remove! σ α V)
-  (define m* (hash-update (-σ-m σ) α (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
-  (set--σ-m! σ m*))
+  (hash-update! (-σ-m σ) α (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
 
 (: σ@/list : -σ (Listof -α) → (℘ (Listof -V)))
 ;; Look up store at addresses. Return all possible combinations
@@ -99,7 +98,7 @@
 
 (: span-σ : (HashTable -α (℘ -V)) (℘ -α) → (HashTable -α (℘ -V)))
 (define (span-σ σ αs)
-  (m↓ σ (span* σ αs V->αs)))
+  (hash-copy/spanning* σ αs V->αs))
 
 (: Γ->αₖs : -Γ → (℘ -αₖ))
 (define (Γ->αₖs Γ)
@@ -154,8 +153,10 @@
 ;; "garbage collect" mutated-ness cardinality information 
 (define (soft-gc! σ αs)
   (match-define (-σ _ mods crds) σ)
-  (set--σ-modified! σ (∩ mods αs))
-  (set--σ-cardinality! σ (m↓ crds αs)))
+  (for ([α (in-list (hash-keys mods))] #:unless (∋ αs α))
+    (hash-remove! mods α))
+  (for ([α (in-list (hash-keys crds))] #:unless (∋ αs α))
+    (hash-remove! crds α)))
 
 (define (->αs [x : (Rec X (U -α -V -W¹ -W -ρ (Listof X)))]) : (℘ -α)
   (cond
