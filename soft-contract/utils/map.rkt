@@ -140,7 +140,11 @@
 (: hash-copy/spanning*
    (∀ (X Y) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → (HashTable X (℘ Y))))
 (define (hash-copy/spanning* m xs y->xs)
-  (hash-copy/spanning m xs (λ ([ys : (℘ Y)]) (for/union : (℘ X) ([y ys]) (y->xs y)))))
+  (define f : ((℘ Y) → (℘ X))
+    (if (hash-eq? m)
+        (λ (ys) (for/unioneq : (℘ X) ([y ys]) (y->xs y)))
+        (λ (ys) (for/union : (℘ X) ([y ys]) (y->xs y)))))
+  (hash-copy/spanning m xs f))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

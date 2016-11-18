@@ -868,11 +868,12 @@
 (define (mon-x/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
-  (match-define (-x/C (and α (-α.x/c ℓₓ))) C)
+  (match-define (-x/C ⟪α⟫) C)
+  (match-define (-α.x/c ℓₓ) (-⟪α⟫->-α ⟪α⟫))
   (define x (- ℓₓ)) ; FIXME hack
   (define 𝐱 (-x x))
   (match-define (-Σ σ σₖ _) Σ)
-  (for/set: : (℘ -ς) ([C* (σ@ σ α)])
+  (for/set: : (℘ -ς) ([C* (σ@ σ ⟪α⟫)])
     (define αₖ
       (let ([W-C* (-W¹ C* c)]
             [W-V* (-W¹ V 𝐱)])
@@ -1078,10 +1079,11 @@
     [(-x/C α)
      (match-define (-W¹ C c) W-C)
      (match-define (-W¹ V v) W-V)
-     (match-define (-x/C (and α (-α.x/c ℓₓ))) C)
+     (match-define (-x/C ⟪α⟫) C)
+     (match-define (-α.x/c ℓₓ) (-⟪α⟫->-α ⟪α⟫))
      (define x (- ℓₓ)) ; FIXME hack
      (define 𝐱 (-x x))
-     (for/set: : (℘ -ς) ([C* (σ@ σ α)])
+     (for/set: : (℘ -ς) ([C* (σ@ σ ⟪α⟫)])
        (define W-C* (-W¹ C* c))
        (define W-V* (-W¹ V 𝐱))
        (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'fc (list v)))
@@ -1319,13 +1321,13 @@
     (define ⟦k⟧* : -⟦k⟧!
       (λ (A $ Γ ⟪ℋ⟫ Σ)
         (match-define (-Σ (-σ mσ _ _) _ _) Σ)
-        (define αs (span* mσ
-                          (∪ (⟦k⟧->roots ⟦k⟧)
-                             (match A
-                               [(-W Vs _) (->⟪α⟫s Vs)]
-                               [_ ∅]))
-                          V->⟪α⟫s))
-        (define k : Key (list A Γ ⟪ℋ⟫ (m↓ mσ αs)))
+        (define mσ* (hash-copy/spanning* mσ
+                                         (∪ (⟦k⟧->roots ⟦k⟧)
+                                            (match A
+                                              [(-W Vs _) (->⟪α⟫s Vs)]
+                                              [_ ∅eq]))
+                                         V->⟪α⟫s))
+        (define k : Key (list A Γ ⟪ℋ⟫ mσ*))
         #;(when (hash-has-key? m k)
           (printf "hit-k~n"))
         (hash-ref! m k (λ () (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))))

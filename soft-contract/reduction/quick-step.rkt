@@ -63,7 +63,7 @@
 
           (begin ; interactive
             (define ςs-list
-              (append (set->list ς↑s) (set->list ς↓s)))
+              (append ς↑s ς↓s))
             (define ς->i
               (for/hash : (HashTable -ς Integer) ([(ς i) (in-indexed ςs-list)])
                 (values ς i))))

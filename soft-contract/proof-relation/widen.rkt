@@ -102,7 +102,7 @@
   
   (define (simplify [P : -V]) : -V
     (match P
-      [(-Ar _ (and α (or (? -α.def?) (? -α.wrp?) (? -e?))) _)
+      [(-Ar _ (and α (app -⟪α⟫->-α (or (? -α.def?) (? -α.wrp?) (? -e?)))) _)
        (define Vs (σ@ σ α))
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]

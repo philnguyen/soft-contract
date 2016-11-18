@@ -13,7 +13,7 @@
 
 (define-syntax compute-frame-roots
   (syntax-parser
-    [(_) #'∅]
+    [(_) #'∅eq]
     [(_ root:id) #'(->⟪α⟫s root)]
     [(_ root:id ...) #'(∪ (->⟪α⟫s root) ...)]))
 
