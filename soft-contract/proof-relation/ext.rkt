@@ -39,11 +39,11 @@
      (hash-ref! memo-ext-prove
                 (->ext-prove-key M Γ e)
                 (λ ()
-                  (match-define (cons base goal) (encode (VMap-m M) Γ e))
-                  (match (exec-check-sat base goal)
-                    [(cons 'unsat _) '✓]
-                    [(cons _ 'unsat) '✗]
-                    [_ '?]))))
+                  (define-values (base goal) (encode (VMap-m M) Γ e))
+                  (match/values (exec-check-sat base goal)
+                    [('unsat _) '✓]
+                    [(_ 'unsat) '✗]
+                    [(_ _) '?]))))
     (define δt (- (current-milliseconds) t₀))
     (unless #f #;(< δt 300)
       (printf "ext-prove: ~a ⊢ ~a : ~a ~ams~n~n" (show-Γ Γ) (show-e e) R δt))))
@@ -69,7 +69,7 @@
      (hash-ref! memo-ext-plausible
                 (->ext-plausible-key M Γ)
                 (λ ()
-                  (match-define (cons base _) (encode (VMap-m M) Γ #|HACK|# -ff))
+                  (define-values (base _) (encode (VMap-m M) Γ #|HACK|# -ff))
                   (case (exec-check-sat₀ base)
                     [(unsat) #f]
                     [(sat unknown) #t]))))
