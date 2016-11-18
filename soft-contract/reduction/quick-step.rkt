@@ -335,4 +335,12 @@
               (for/or : Boolean ([x (if sₕ (fv sₕ) ∅eq)])
                 (and (Γₑᵣ . talks-about? . (-x x))
                      (Γₑₑ . talks-about? . (-x x))))))]
+    [(-ℳ x _ _ _ (-W¹ _ sₓ))
+     (not (and sₓ
+               (Γₑᵣ . talks-about? . sₓ)
+               (Γₑₑ . talks-about? . (-x x))))]
+    [(-ℱ x _ _ _ (-W¹ _ sₓ))
+     (not (and sₓ
+               (Γₑᵣ . talks-about? . sₓ)
+               (Γₑₑ . talks-about? . (-x x))))]
     [_ #f]))
