@@ -39,8 +39,8 @@
   (define (↓d d)
     (match d
       [(-define-values xs e)
-       (define αs : (Listof -α.def)
-         (for/list ([x xs]) (-α.def (-𝒾 x l))))
+       (define αs : (Listof -⟪α⟫)
+         (for/list ([x xs]) (-α->-⟪α⟫ (-α.def (-𝒾 x l)))))
        (define ⟦e⟧ (↓ₑ l e))
        (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
          (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (def∷ l αs ⟦k⟧)))]
@@ -74,14 +74,7 @@
       (define fvs (fv e*))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (define s (canonicalize-e Γ e))
-        (define ρ*
-          (m↓ ρ fvs)
-          #;(let ([ρ↓ (m↓ ρ fvs)])
-            (if (flattened? ρ↓)
-                ρ↓
-                (flatten! (-Σ-σ Σ)
-                          (𝒞+ ⟪ℋ⟫ (cons ⟦e*⟧ (-ℒ ∅ +ℓ₀)))
-                          ρ↓))))
+        (define ρ* (m↓ ρ fvs))
         (define Γ*
           (match-let ([(-Γ φs as γs) Γ])
             (define φs*
@@ -112,7 +105,7 @@
       (cond
         ;; same-module referencing returns unwrapped version
         [(equal? l₀ l)
-         (define α (-α.def 𝒾))
+         (define α (-α->-⟪α⟫ (-α.def 𝒾)))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (define σ (-Σ-σ Σ))
            (define Vs (σ@ σ α))
@@ -129,7 +122,7 @@
         ;; cross-module referencing returns wrapped version
         ;; and (HACK) supplies the negative monitoring context
         [else
-         (define α (-α.wrp 𝒾))
+         (define α (-α->-⟪α⟫ (-α.wrp 𝒾)))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (define σ (-Σ-σ Σ))
            (define Vs (σ@ σ α))
@@ -198,7 +191,7 @@
                         ([⟦bnd⟧ ⟦bnd⟧s]
                          [xs (in-value (car ⟦bnd⟧))]
                          [x xs])
-               (define α (-α.x x #|TODO right?|# ⟪ℋ⟫))
+               (define α (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫)))
                (σ⊕! σ α 'undefined)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
@@ -212,7 +205,7 @@
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ (ρ@ ρ x) ⟦k⟧)))]
         [(? -𝒾? 𝒾)
-         (define α (-α.def 𝒾))
+         (define α (-α->-⟪α⟫ (-α.def 𝒾)))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ α ⟦k⟧)))])]
      [(-error msg)
@@ -264,7 +257,7 @@
            (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (case->∷ l ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
      [(-x/c x)
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (⟦k⟧ (-W (list (-x/C (-α.x/c x))) e) $ Γ ⟪ℋ⟫ Σ))]
+        (⟦k⟧ (-W (list (-x/C (-α->-⟪α⟫ (-α.x/c x)))) e) $ Γ ⟪ℋ⟫ Σ))]
      [(-struct/c si cs ℓ)
       (match (map ↓ cs)
         ['()
@@ -292,21 +285,21 @@
   ;; with side effect widening store
   (for/hash : -ρ ([(x α) ρ])
     (define α*
-      (cond [(assignable? x) α]
+      (cond [(assignable? x) (cast α -⟪α⟫)]
             [else ; with side effect widening store
-             (define α* (-α.x x ⟪ℋ⟫))
-             (for ([V (σ@ σ α)])
+             (define α* (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫)))
+             (for ([V (σ@ σ (cast α -⟪α⟫))])
                (σ⊕! σ α* V))
              α*]))
     (values x α*)))
 
 (: make-memoized-⟦e⟧ : -⟦e⟧! → -⟦e⟧!)
 (define (make-memoized-⟦e⟧ ⟦e⟧)
-  (define-type Key (List -⟪ℋ⟫ -⟦k⟧! -Γ (HashTable -α (℘ -V))))
+  (define-type Key (List -⟪ℋ⟫ -⟦k⟧! -Γ (HashTable -⟪α⟫ (℘ -V))))
   (let ([m : (HashTable Key (℘ -ς)) (make-hash)])
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-Σ (-σ mσ _ _) _ _) Σ)
-      (define αs (span* mσ (ρ->αs ρ) V->αs))
+      (define αs (span* mσ (ρ->⟪α⟫s ρ) V->⟪α⟫s))
       (define k : Key (list ⟪ℋ⟫ ⟦k⟧ Γ (m↓ mσ αs)))
       #;(when (hash-has-key? m k)
         (printf "hit-e~n"))

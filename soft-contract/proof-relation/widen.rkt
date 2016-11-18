@@ -10,7 +10,7 @@
          "../runtime/main.rkt"
          "local.rkt")
 
-(: σ⊕! ([-σ -α -V] [#:mutating? Boolean] . ->* . Void))
+(: σ⊕! ([-σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
   (match-define (-σ m mods crds) σ)
   (define Vs*
@@ -35,12 +35,12 @@
   (syntax-rules (↦)
     [(_ σ) (void)]
     [(_ σ [α ↦ V] p ...)
-     (begin
-       (σ⊕!  σ α V #:mutating? #f)
+     (begin ; FIXME the annotation is to work around TR bug
+       (σ⊕!  σ (ann α -⟪α⟫) V #:mutating? #f)
        (σ⊕*! σ p ...))]
     [(_ σ [α ↦ V #:mutating? b?] p ...)
-     (begin
-       (σ⊕!  σ α V b?)
+     (begin ; FIXME the annotation is to work around TR bug
+       (σ⊕!  σ (ann α -⟪α⟫) V b?)
        (σ⊕*! σ p ...))]))
 
 (: V⊑ : -σ -V -V → Boolean)
@@ -48,10 +48,10 @@
 ;; `#f` is a conservative "don't know" answer
 (define (V⊑ σ V₁ V₂)
 
-  (define-set seen : (Pairof -α -α))
+  (define-set seen : (Pairof -⟪α⟫ -⟪α⟫))
 
-  (: go/α : -α -α → Boolean)
-  (define (go/α α₁ α₂)
+  (: go/⟪α⟫ : -⟪α⟫ -⟪α⟫ → Boolean)
+  (define (go/⟪α⟫ α₁ α₂)
     (define α₁α₂ (cons α₁ α₂))
     (cond
       [(seen-has? α₁α₂) #t]
@@ -71,12 +71,12 @@
        (for/and : Boolean ([p ps])
          (equal? '✓ (p∋Vs σ p V₁)))]
       [((-St 𝒾 αs₁) (-St 𝒾 αs₂)) #:when (struct-all-immutable? 𝒾)
-       (for/and : Boolean ([α₁ αs₁] [α₂ αs₂])
-         (go/α α₁ α₂))]
+       (for/and : Boolean ([α₁ : -⟪α⟫ αs₁] [α₂ : -⟪α⟫ αs₂])
+         (go/⟪α⟫ α₁ α₂))]
       [((-Clo _ ⟦e⟧ ρ₁ _)
         (-Clo _ ⟦e⟧ ρ₂ _)) ; TODO : ignore `Γ` ok?
        (for/and : Boolean ([(x α₁) (in-hash ρ₁)])
-         (go/α α₁ (ρ@ ρ₂ x)))]
+         (go/⟪α⟫ α₁ (ρ@ ρ₂ x)))]
       [(_ _) #f]))
 
   (go V₁ V₂))
@@ -223,10 +223,10 @@
 (: extract-list-content : -σ -St → (℘ -V))
 ;; Return an abstract value approximating all list element in `V`
 (define (extract-list-content σ V)
-  (define-set seen : -α #:eq? #t)
+  (define-set seen : -⟪α⟫ #:eq? #t)
   (match-define (-Cons αₕ αₜ) V)
   (define Vs (σ@ σ αₕ))
-  (let loop! ([αₜ : -α αₜ])
+  (let loop! ([αₜ : -⟪α⟫ αₜ])
     (unless (seen-has? αₜ)
       (seen-add! αₜ)
       (for ([Vₜ (σ@ σ αₜ)])

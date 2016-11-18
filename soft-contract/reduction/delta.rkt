@@ -41,8 +41,8 @@
     [and/c
      (match Ws
        [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
-        (define α₁ (or (keep-if-const s₁) (-α.and/c-l ℓ ⟪ℋ⟫)))
-        (define α₂ (or (keep-if-const s₂) (-α.and/c-r ℓ ⟪ℋ⟫)))
+        (define α₁ (-α->-⟪α⟫ (or (keep-if-const s₁) (-α.and/c-l ℓ ⟪ℋ⟫))))
+        (define α₂ (-α->-⟪α⟫ (or (keep-if-const s₂) (-α.and/c-r ℓ ⟪ℋ⟫))))
         (σ⊕*! σ [α₁ ↦ V₁] [α₂ ↦ V₂])
         (define ℓ₁ (+ℓ/ctc ℓ 0))
         (define ℓ₂ (+ℓ/ctc ℓ 1))
@@ -51,8 +51,8 @@
     [or/c
      (match Ws
        [(list (-W¹ V₁ s₁) (-W¹ V₂ s₂))
-        (define α₁ (or (keep-if-const s₁) (-α.or/c-l ℓ ⟪ℋ⟫)))
-        (define α₂ (or (keep-if-const s₂) (-α.or/c-r ℓ ⟪ℋ⟫)))
+        (define α₁ (-α->-⟪α⟫ (or (keep-if-const s₁) (-α.or/c-l ℓ ⟪ℋ⟫))))
+        (define α₂ (-α->-⟪α⟫ (or (keep-if-const s₂) (-α.or/c-r ℓ ⟪ℋ⟫))))
         (σ⊕*! σ [α₁ ↦ V₁] [α₂ ↦ V₂])
         (define ℓ₁ (+ℓ/ctc ℓ 0))
         (define ℓ₂ (+ℓ/ctc ℓ 1))
@@ -61,7 +61,7 @@
     [not/c
      (match Ws
        [(list (-W¹ V s))
-        (define α (or (keep-if-const s) (-α.not/c ℓ ⟪ℋ⟫)))
+        (define α (-α->-⟪α⟫ (or (keep-if-const s) (-α.not/c ℓ ⟪ℋ⟫))))
         (σ⊕! σ α V)
         (define ℓ* (+ℓ/ctc ℓ 0))
         {set (list (-Not/C (cons α ℓ*)))}]
@@ -69,9 +69,9 @@
 
     [vector
      (define αs
-       (for/list : (Listof -α.idx) ([(W i) (in-indexed Ws)])
-         (-α.idx ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
-     (for ([α αs] [W Ws])
+       (for/list : (Listof -⟪α⟫) ([(W i) (in-indexed Ws)])
+         (-α->-⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
+     (for ([α : -⟪α⟫ αs] [W Ws])
        (σ⊕! σ α (-W¹-V W)))
      {set (list (-Vector αs))}]
     [vector?
@@ -90,22 +90,23 @@
     [vectorof
      (match Ws
        [(list (-W¹ V s))
-        (define α (or (keep-if-const s) (-α.vectorof ℓ ⟪ℋ⟫)))
+        (define α (-α->-⟪α⟫ (or (keep-if-const s) (-α.vectorof ℓ ⟪ℋ⟫))))
         (σ⊕! σ α V)
         (define ℓ* (+ℓ/ctc ℓ 0))
         {set (list (-Vectorof (cons α ℓ*)))}]
        [Ws (error-arity 'vectorof 1 (length Ws))])]
     [vector/c
      (define-values (αs ℓs)
-       (for/lists ([αs : (Listof (U -α.cnst -α.vector/c))] [ℓs : (Listof -ℓ)])
+       (for/lists ([αs : (Listof -⟪α⟫)] [ℓs : (Listof -ℓ)])
                   ([(W i) (in-indexed Ws)] #|TR hack|# #:when (exact-nonnegative-integer? i))
          (match-define (-W¹ _ s) W)
-         (values (or (keep-if-const s) (-α.vector/c ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))
+         (values (-α->-⟪α⟫ (or (keep-if-const s)
+                               (-α.vector/c ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
                  (+ℓ/ctc ℓ i))))
-     (for ([α αs] [W Ws])
+     (for ([α : -⟪α⟫ αs] [W Ws])
        (match-define (-W¹ V _) W)
        (σ⊕! σ α V))
-     {set (list (-Vector/C (map (inst cons (U -α.cnst -α.vector/c) -ℓ) αs ℓs)))}]
+     {set (list (-Vector/C (map (inst cons -⟪α⟫ -ℓ) αs ℓs)))}]
     
     [values {set (map -W¹-V Ws)}]
     
@@ -156,8 +157,8 @@
               {set (list -ff)}]
              [else
               (define ℒ (-ℒ ∅ ℓ))
-              (define αₕ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0))
-              (define αₜ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1))
+              (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+              (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
               (define Vₜ (-Cons αₕ αₜ))
               (for ([Vₕ (extract-list-content σ Vₗ)])
                 (σ⊕! σ αₕ Vₕ))
@@ -179,8 +180,8 @@
             [((-b null) V₂) V₂]
             [((-Cons αₕ αₜ) V₂)
              (define ℒ (-ℒ ∅ ℓ))
-             (define αₕ* (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0))
-             (define αₜ* (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1))
+             (define αₕ* (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+             (define αₜ* (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
              (for ([Vₕ (σ@ σ αₕ)])
                (σ⊕! σ αₕ* Vₕ))
              (define Vₜs (set-add (σ@ σ αₜ) V₂))
@@ -202,8 +203,8 @@
           [(-b (list)) {set (list -null)}]
           [(-Cons _ _)
            (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0))
-           (define αₜ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1))
+           (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+           (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
            (define Vₜ (-Cons αₕ αₜ))
            (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
@@ -221,8 +222,8 @@
           [(-b "") {set (list -null)}]
           [_
            (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0))
-           (define αₜ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1))
+           (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+           (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
            (define Vₜ (-Cons αₕ αₜ))
            (σ⊕*! σ [αₕ ↦ (-● {set 'char?})]
                    [αₜ ↦ Vₜ]
@@ -248,8 +249,8 @@
           [(? -St? Vₗ)
            (define Vₕs (extract-list-content σ Vₗ))
            (define ℒ (-ℒ ∅ ℓ))
-           (define αₕ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0))
-           (define αₜ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1))
+           (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+           (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
            (define Vₜ (-Cons αₕ αₜ))
            (for ([Vₕ Vₕs]) (σ⊕! σ αₕ Vₕ))
            (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
@@ -523,7 +524,7 @@
        (match* (V₁ V₂)
          [((-b b₁) (-b b₂)) (equal? b₁ b₂)]
          [((-St 𝒾 αs₁) (-St 𝒾 αs₂))
-          (for/and : Boolean ([α₁ αs₁] [α₂ αs₂])
+          (for/and : Boolean ([α₁ : -⟪α⟫ αs₁] [α₂ : -⟪α⟫ αs₂])
             (define Vs₁ (σ@ σ α₁))
             (define Vs₂ (σ@ σ α₂))
             (for/and : Boolean ([V₁* Vs₁]) ; can't use for*/and :(
@@ -541,7 +542,7 @@
          [((-b b₁) (-b b₂)) (not (equal? b₁ b₂))]
          [((-St 𝒾₁ αs₁) (-St 𝒾₂ αs₂))
           (or (not (equal? 𝒾₁ 𝒾₂))
-              (for/or : Boolean ([α₁ αs₁] [α₂ αs₂])
+              (for/or : Boolean ([α₁ : -⟪α⟫ αs₁] [α₂ : -⟪α⟫ αs₂])
                 (define Vs₁ (σ@ σ α₁))
                 (define Vs₂ (σ@ σ α₂))
                 (for/and : Boolean ([V₁ Vs₁])

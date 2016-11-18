@@ -14,8 +14,8 @@
 (define-syntax compute-frame-roots
   (syntax-parser
     [(_) #'∅]
-    [(_ root:id) #'(->αs root)]
-    [(_ root:id ...) #'(∪ (->αs root) ...)]))
+    [(_ root:id) #'(->⟪α⟫s root)]
+    [(_ root:id ...) #'(∪ (->⟪α⟫s root) ...)]))
 
 (define-simple-macro (with-error-handling (⟦k⟧:id A:id $:id Γ:id 𝒞:id Σ:id)
                        #:roots (root:id ...)

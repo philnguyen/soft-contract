@@ -14,12 +14,12 @@
 ;;;;; Environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -ρ (HashTable Var-Name -α.x))
+(define-type -ρ (HashTable Var-Name -⟪α⟫))
 (define-type -Δρ -ρ)
 (define ⊥ρ : -ρ (hasheq))
-(define (ρ@ [ρ : -ρ] [x : Var-Name]) : -α.x
+(define (ρ@ [ρ : -ρ] [x : Var-Name]) : -⟪α⟫
   (hash-ref ρ x (λ () (error 'ρ@ "~a not in environment ~a" x (hash-keys ρ)))))
-(define ρ+ : (-ρ Var-Name -α.x → -ρ) hash-set)
+(define ρ+ : (-ρ Var-Name -⟪α⟫ → -ρ) hash-set)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,12 +28,12 @@
 ;; Store maps each address to value set and whether it may have been mutated
 
 (define-type -cardinality (U 0 1 'N))
-(struct -σ ([m : (HashTable -α (℘ -V))]
-            [modified : (HashTable -α True)] ; addresses that may have been mutated
-            [cardinality : (HashTable -α -cardinality)]
+(struct -σ ([m : (HashTable -⟪α⟫ (℘ -V))]
+            [modified : (HashTable -⟪α⟫ True)] ; addresses that may have been mutated
+            [cardinality : (HashTable -⟪α⟫ -cardinality)]
             )
   #:transparent)
-(define (⊥σ) (-σ (make-hash) (make-hash) (make-hash)))
+(define (⊥σ) (-σ (make-hasheq) (make-hasheq) (make-hasheq)))
 
 (: cardinality+ : -cardinality → -cardinality)
 (define (cardinality+ c)
@@ -100,15 +100,15 @@
 (-V . ::= . 'undefined
             -prim
             (-● (℘ #|closed|# -v))
-            (-St -𝒾 (Listof (U -α.fld -α.var-car -α.var-cdr)))
-            (-Vector (Listof -α.idx))
+            (-St -𝒾 (Listof -⟪α⟫))
+            (-Vector (Listof -⟪α⟫))
             -Fn
             
             ;; Proxied higher-order values
-            (-Ar [guard : #|ok, no rec|# -=>_] [v : -α] [ctx : -l³])
-            (-St* [id : -𝒾] [ctcs : (Listof (Option -α))] [val : -α.st] [ctx : -l³])
-            (-Vector/hetero [ctcs : (Listof -α)] [ctx : -l³])
-            (-Vector/homo [ctc : -α] [ctx : -l³])
+            (-Ar [guard : #|ok, no rec|# -=>_] [v : -⟪α⟫] [ctx : -l³])
+            (-St* [id : -𝒾] [ctcs : (Listof (Option -⟪α⟫))] [val : -⟪α⟫] [ctx : -l³])
+            (-Vector/hetero [ctcs : (Listof -⟪α⟫)] [ctx : -l³])
+            (-Vector/homo [ctc : -⟪α⟫] [ctx : -l³])
             
             -C)
 
@@ -117,27 +117,27 @@
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
-                    [l : (Pairof (U -α.and/c-l -α.cnst) -ℓ)]
-                    [r : (Pairof (U -α.and/c-r -α.cnst) -ℓ)])
+                    [l : (Pairof -⟪α⟫ -ℓ)]
+                    [r : (Pairof -⟪α⟫ -ℓ)])
             (-Or/C [flat? : Boolean]
-                   [l : (Pairof (U -α.or/c-l -α.cnst) -ℓ)]
-                   [r : (Pairof (U -α.or/c-r -α.cnst) -ℓ)])
-            (-Not/C (Pairof (U -α.not/c -α.cnst) -ℓ))
-            (-x/C [c : (U -α.x/c)])
+                   [l : (Pairof -⟪α⟫ -ℓ)]
+                   [r : (Pairof -⟪α⟫ -ℓ)])
+            (-Not/C (Pairof -⟪α⟫ -ℓ))
+            (-x/C [c : -⟪α⟫])
             ;; Guards for higher-order values
             -=>_
             (-St/C [flat? : Boolean]
                    [id : -𝒾]
-                   [fields : (Listof (Pairof (U -α.struct/c -α.cnst) -ℓ))])
-            (-Vectorof (Pairof (U -α.vectorof -α.cnst) -ℓ))
-            (-Vector/C (Listof (Pairof (U -α.vector/c -α.cnst) -ℓ))))
+                   [fields : (Listof (Pairof -⟪α⟫ -ℓ))])
+            (-Vectorof (Pairof -⟪α⟫ -ℓ))
+            (-Vector/C (Listof (Pairof -⟪α⟫ -ℓ))))
 
 ;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (Listof (Pairof (U -α.dom -α.cnst) -ℓ))] [rng : (Pairof -α -ℓ)] [pos : -ℓ])
-              (-=>i [doms : (Listof (Pairof (U -α.dom -α.cnst) -ℓ))]
+(-=>_ . ::= . (-=>  [doms : (Listof (Pairof -⟪α⟫ -ℓ))] [rng : (Pairof -⟪α⟫ -ℓ)] [pos : -ℓ])
+              (-=>i [doms : (Listof (Pairof -⟪α⟫ -ℓ))]
                     [mk-rng : (List -Clo -λ -ℓ)]
                     [pos : -ℓ])
-              (-Case-> (Listof (Pairof (Listof -α.dom) -α.rng)) [pos : -ℓ]))
+              (-Case-> (Listof (Pairof (Listof -⟪α⟫) -⟪α⟫)) [pos : -ℓ]))
 
 (struct -blm ([violator : -l] [origin : -l]
               [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
@@ -146,7 +146,7 @@
 (-A . ::= . -W -blm)
 (struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
 
-(define αℓ->α (inst car -α -ℓ))
+(define ⟪α⟫ℓ->⟪α⟫ (inst car -⟪α⟫ -ℓ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -277,8 +277,12 @@
 
             -α.cnst)
 
-(define (α->s [α : -α]) : -s (and (-e? α) α))
-(define (αs->ss [αs : (Listof -α)]) : (Listof -s) (map α->s αs))
+(define (α->s [α : -α]) (and (-e? α) α))
+(define (αs->ss [αs : (Listof -α)]) (map α->s αs))
+
+(define-interner -α #:interned-type-name -⟪α⟫)
+(define (⟪α⟫->s [⟪α⟫ : -⟪α⟫]) (α->s (-⟪α⟫->-α ⟪α⟫)))
+(define (⟪α⟫s->ss [⟪α⟫s : (Listof -⟪α⟫)]) (map ⟪α⟫->s ⟪α⟫s))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -351,11 +355,13 @@
   (match-define (-Σ σ σₖ M) Σ)
   (values (show-σ σ) (show-σₖ σₖ) (show-M M)))
 
-(define (show-σ [σ : (U -σ (HashTable -α (℘ -V)))]) : (Listof Sexp)
+(define (show-σ [σ : (U -σ (HashTable -⟪α⟫ (℘ -V)))]) : (Listof Sexp)
   (cond [(-σ? σ) (show-σ (-σ-m σ))]
         [else
-         (for/list ([(α Vs) σ] #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
-           `(,(show-α α) ↦ ,@(set-map Vs show-V)))]))
+         (for*/list : (Listof Sexp) ([(⟪α⟫ Vs) σ]
+                                     [α (in-value (-⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))]
+                                     #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
+           `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)) ↦ ,@(set-map Vs show-V)))]))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
 
@@ -393,23 +399,23 @@
      (match α
        [(-α.def 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
        [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
-       [_ `(,(show-V guard) ◃ ,(show-α α))])]
-    [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-α αs))]
+       [_ `(,(show-V guard) ◃ ,(show-⟪α⟫ α))])]
+    [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-⟪α⟫ αs))]
     [(-St* 𝒾 γs α _)
      `(,(format-symbol "~a/wrapped" (-𝒾-name 𝒾))
-       ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-α γ) '✓))
-       ▹ ,(show-α α))]
-    [(-Vector αs) `(vector ,@(map show-α αs))]
-    [(-Vector/hetero γs _) `(vector/hetero ,@(map show-α γs))]
-    [(-Vector/homo γ _) `(vector/homo ,(show-α γ))]
-    [(-And/C _ l r) `(and/c ,(show-α (car l)) ,(show-α (car r)))]
-    [(-Or/C _ l r) `(or/c ,(show-α (car l)) ,(show-α (car r)))]
-    [(-Not/C γ) `(not/c ,(show-α (car γ)))]
-    [(-Vectorof γ) `(vectorof ,(show-α (car γ)))]
-    [(-Vector/C γs) `(vector/c ,@(map show-α (map αℓ->α γs)))]
-    [(-=> αs β _) `(,@(map show-αℓ αs) . -> . ,(show-α (car β)))]
+       ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-⟪α⟫ γ) '✓))
+       ▹ ,(show-⟪α⟫ α))]
+    [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
+    [(-Vector/hetero γs _) `(vector/hetero ,@(map show-⟪α⟫ γs))]
+    [(-Vector/homo γ _) `(vector/homo ,(show-⟪α⟫ γ))]
+    [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
+    [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
+    [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]
+    [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (car γ)))]
+    [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ γs)))]
+    [(-=> αs β _) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ (car β)))]
     [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
-     `(->i ,@(map show-αℓ γs)
+     `(->i ,@(map show-⟪α⟫ℓ γs)
            ,(match xs
               [(? list? xs) `(res ,xs ,(show-e d))]
               [_ (show-e d)]))]
@@ -417,15 +423,16 @@
      `(case->
        ,@(for/list : (Listof Sexp) ([kase cases])
            (match-define (cons αs β) kase)
-           `(,@(map show-α αs) . -> . ,(show-α β))))]
+           `(,@(map show-⟪α⟫ αs) . -> . ,(show-⟪α⟫ β))))]
     [(-St/C _ 𝒾 αs)
-     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α (map αℓ->α αs)))]
-    [(-x/C (-α.x/c ℓ)) `(recursive-contract ,(show-x/c ℓ))]))
+     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ αs)))]
+    [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]))
 
-(define (show-αℓ [αℓ : (Pairof -α -ℓ)]) : Symbol
-  (match-define (cons α ℓ) αℓ)
+(define (show-⟪α⟫ℓ [⟪α⟫ℓ : (Pairof -⟪α⟫ -ℓ)]) : Symbol
+  (match-define (cons ⟪α⟫ ℓ) ⟪α⟫ℓ)
+  (define α (-⟪α⟫->-α ⟪α⟫))
   (string->symbol
-   (format "~a~a" (if (-e? α) (show-e α) (show-α α)) (n-sup ℓ))))
+   (format "~a~a" (if (-e? α) (show-e α) (show-⟪α⟫ ⟪α⟫)) (n-sup ℓ))))
 
 (define (show-ΓA [ΓA : -ΓA]) : Sexp
   (match-define (-ΓA Γ A) ΓA)
@@ -501,19 +508,13 @@
              `(ℒ ,(set->list ℓs) ,ℓ)]
             [else (ℒ->symbol ℒ)]))))
 
-(define-values (show-α show-α⁻¹)
-  (let-values ([(α->symbol symbol->α _) ((inst unique-sym -α) 'α)])
-    (values
-     (ann
-      (match-lambda
-        ;[(? -e? α) (show-e α)]
-        [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" (show-Var-Name x) (n-sub ⟪ℋ⟫))]
-        [(? -α? α) (α->symbol α)])
-      (-α → Symbol))
-     symbol->α)))
+(define (show-⟪α⟫ [⟪α⟫ : -⟪α⟫]) : Symbol
+  (match (-⟪α⟫->-α ⟪α⟫)
+    [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" (show-Var-Name x) (n-sub ⟪ℋ⟫))]
+    [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
-  (for/list ([(x α) ρ]) `(,(show-Var-Name x) ↦ ,(show-α α))))
+  (for/list ([(x ⟪α⟫) ρ]) `(,(show-Var-Name x) ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))))
 
 (define show-γ : (-γ → Sexp)
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
@@ -533,10 +534,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TMP hack for part of root set from stack frames
-(splicing-let ([m ((inst make-hasheq -⟦k⟧! (℘ -α)))])
+(splicing-let ([m ((inst make-hasheq -⟦k⟧! (℘ -⟪α⟫)))])
   
-  (define (add-⟦k⟧-roots! [⟦k⟧ : -⟦k⟧!] [αs : (℘ -α)]) : Void
-    (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ -α)]) (∪ αs₀ αs)) →∅))
+  (define (add-⟦k⟧-roots! [⟦k⟧ : -⟦k⟧!] [αs : (℘ -⟪α⟫)]) : Void
+    (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ -⟪α⟫)]) (∪ αs₀ αs)) →∅eq))
   
   ;; Return the root set spanned by the stack chunk for current block
   (define (⟦k⟧->roots [⟦k⟧ : -⟦k⟧!])

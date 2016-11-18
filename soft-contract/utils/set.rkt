@@ -29,24 +29,17 @@
 (define-syntax (define-set stx)
   (syntax-case stx (:)
     [(_ s : τ)
+     #'(define-set s : τ #:eq? #f)]
+    [(_ s : τ #:eq? use-eq?)
      (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
                    [s-add! (format-id #'s "~a-add!" #'s)]
                    [s-add*! (format-id #'s "~a-add*!" #'s)]
                    [s-union! (format-id #'s "~a-union!" #'s)])
-       #'(begin (define s : (℘ τ) ∅)
+       #'(begin (define s : (℘ τ) (if use-eq? ∅eq ∅))
                 (define (s-has? [x : τ]) : Boolean (∋ s x))
                 (define (s-add! [x : τ]) (set! s (set-add s x)))
-                (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
-                (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs)))))]
-    [(_ s : τ #:eq? #t)
-     (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
-                   [s-add! (format-id #'s "~a-add!" #'s)]
-                   [s-add*! (format-id #'s "~a-add*!" #'s)]
-                   [s-union! (format-id #'s "~a-union!" #'s)])
-       #'(begin (define s : (℘ τ) ∅eq)
-                (define (s-has? [x : τ]) : Boolean (∋ s x))
-                (define (s-add! [x : τ]) (set! s (set-add s x)))
-                (define (s-add*! [xs : (Listof τ)]) (set! s (∪ s (list->set xs))))
+                (define (s-add*! [xs : (Listof τ)])
+                  (set! s (∪ s (if use-eq? (list->seteq xs) (list->set xs)))))
                 (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs)))))]))
 
 (: set-partition (∀ (X) ([(X → Boolean) (℘ X)] [#:eq? Boolean]

@@ -16,7 +16,7 @@
 (define 𝐱s (list 𝐱))
 (define ⟦rev-hv⟧ : -⟦e⟧!
   (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
-    (let ([Vs (σ@ (-Σ-σ Σ) (-α.def havoc-𝒾))])
+    (let ([Vs (σ@ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾)))])
       (assert (= 1 (set-count Vs)))
       (⟦k⟧ (-W (list (set-first Vs)) havoc-𝒾) $ Γ 𝒞 Σ))))
 
@@ -182,12 +182,12 @@
 
 (define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧! _ $ Γ 𝒞 Σ) #:roots (W)
-    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α.def havoc-𝒾)) havoc-𝒾))
+    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
     (app havoc-path $ ℒ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))
 
 (define/memo (hv-res∷ [default-ℒ : -ℒ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
-    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α.def havoc-𝒾)) havoc-𝒾))
+    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
     (match-define (-W Vs s) A)
     (for/union : (℘ -ς) ([V Vs] [sᵥ (split-values s (length Vs))])
       (define ℒ

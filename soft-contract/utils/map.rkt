@@ -86,9 +86,9 @@
      (for/hash : (HashTable X Z) ([(x y) m])
        (values x (f y)))]))
 
-(: span (∀ (X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
-(define (span m root f)
-  (define-set touched : X)
+(: span (∀ (X Y) ([(HashTable X Y) (℘ X) (Y → (℘ X))] [#:eq? Boolean] . ->* . (℘ X))))
+(define (span m root f #:eq? [use-eq? #f])
+  (define-set touched : X #:eq? use-eq?)
   (define (touch! [x : X]) : Void
     (unless (touched-has? x)
       (touched-add! x)
@@ -96,11 +96,15 @@
   (set-for-each root touch!)
   touched)
 
-(: span* (∀ (X Y) (MMap X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
-(define (span* m root f)
+(: span* (∀ (X Y) ([(MMap X Y) (℘ X) (Y → (℘ X))] [#:eq? Boolean] . ->* . (℘ X))))
+(define (span* m root f #:eq? [use-eq? #f])
   (span m root
-        (λ ([ys : (℘ Y)])
-          (for/union : (℘ X) ([y ys]) (f y)))))
+        (if use-eq?
+            (λ ([ys : (℘ Y)])
+              (for/unioneq : (℘ X) ([y ys]) (f y)))
+            (λ ([ys : (℘ Y)])
+              (for/union : (℘ X) ([y ys]) (f y))))
+        #:eq? use-eq?))
 
 (: mk-interner (∀ (X) ([] [#:eq? Boolean] . ->* . (X → Index))))
 ;; Intern something as integers

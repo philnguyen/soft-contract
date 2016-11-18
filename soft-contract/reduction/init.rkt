@@ -21,7 +21,8 @@
   (define e† (gen-havoc-exp ms))
   (define hv (gen-havoc-clo ms))
   (define σ (σ₀))
-  (σ⊕*! σ [(-α.def havoc-𝒾) ↦ hv] [(-α.wrp havoc-𝒾) ↦ hv])
+  (σ⊕*! σ [(-α->-⟪α⟫ (-α.def havoc-𝒾)) ↦ hv]
+          [(-α->-⟪α⟫ (-α.wrp havoc-𝒾)) ↦ hv])
   ;(ensure-singletons σ) ; disable this in production
   (values σ e†))
 
@@ -59,7 +60,8 @@
      (alloc-Ar-o! σ o (assert C -=>?) (assert c -->?))]
     [`(,(? symbol? o) ,(? arr*? sig) ...)
      (log-warning "TODO: ->* for ~a~n" o)
-     (σ⊕*! σ [(-α.def (-𝒾 o 'Λ)) ↦ o] [(-α.wrp (-𝒾 o 'Λ)) ↦ o])]
+     (σ⊕*! σ [(-α->-⟪α⟫ (-α.def (-𝒾 o 'Λ))) ↦ o]
+             [(-α->-⟪α⟫ (-α.wrp (-𝒾 o 'Λ))) ↦ o])]
     [`(,(? symbol? o) ,_ ...) (void)]
     [`(#:struct-cons ,(? symbol? o) (,(? symbol? t) ,mut?s ...))
      (define 𝒾 (-𝒾 t 'Λ))
@@ -79,7 +81,7 @@
 (define (alloc-Ar-o! σ o C c)
   (define-values (α₀ α₁)
     (let ([𝒾 (-𝒾 o 'Λ)])
-      (values (-α.def 𝒾) (-α.wrp 𝒾))))
+      (values (-α->-⟪α⟫ (-α.def 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
   (case o
     #;[(make-sequence) ; FIXME tmp hack
      (σ⊕*! σ [α₀ ↦ o] [α₁ ↦ o])]
@@ -92,11 +94,11 @@
 (define (alloc-Ar! σ s o cs d)
   (define-values (α₀ α₁)
     (let ([𝒾 (-𝒾 s 'Λ)])
-      (values (-α.def 𝒾) (-α.wrp 𝒾))))
+      (values (-α->-⟪α⟫ (-α.def 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
   (define αs (alloc-prims! σ cs))
   (define β  (alloc-prim!  σ d))
-  (define αℓs : (Listof (Pairof (U -α.cnst -α.dom) -ℓ))
-    (for/list ([α αs])
+  (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
+    (for/list ([α : -⟪α⟫ αs])
       (cons α (+ℓ!))))
   (define βℓ (cons β (+ℓ!)))
   (define C (-=> αℓs βℓ (+ℓ!)))
@@ -114,9 +116,9 @@
        [else (values s s)])]
     [`(not/c ,s*)
      (define-values (C* c*) (alloc-C! σ s*))
-     (alloc-const! σ C* c*)
+     (define α* (alloc-const! σ C* c*))
      (define ℓ (+ℓ!))
-     (values (-Not/C (cons c* ℓ)) (-@ 'not/c (list c*) ℓ))]
+     (values (-Not/C (cons α* ℓ)) (-@ 'not/c (list c*) ℓ))]
     [`(one-of/c ,ss ...)
      (log-warning "TODO: one-of/c~n")
      (values 'any/c 'any/c)]
@@ -130,8 +132,10 @@
      (define-values (C c) (alloc-C! σ s₁))
      (define-values (D d) (alloc-C! σ s₂))
      (define flat? (and (C-flat? C) (C-flat? D)))
-     (σ⊕*! σ [c ↦ C] [d ↦ D])
-     (values (-St/C flat? -𝒾-cons (list (cons c (+ℓ!)) (cons d (+ℓ!))))
+     (define α₁ (-α->-⟪α⟫ c))
+     (define α₂ (-α->-⟪α⟫ d))
+     (σ⊕*! σ [α₁ ↦ C] [α₂ ↦ D])
+     (values (-St/C flat? -𝒾-cons (list (cons α₁ (+ℓ!)) (cons α₂ (+ℓ!))))
              (-struct/c -𝒾-cons (list c d) (+ℓ!)))]
     [`(listof ,s*)
      (log-warning "TODO: alloc 'listof~n")
@@ -145,8 +149,8 @@
      (define-values (D d) (alloc-C! σ rng))
      (define β (alloc-const! σ D d))
      (define ℓ (+ℓ!))
-     (define αℓs : (Listof (Pairof (U -α.cnst -α.dom) -ℓ))
-       (for/list ([α αs]) (cons α (+ℓ!))))
+     (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
+       (for/list ([α : -⟪α⟫ αs]) (cons α (+ℓ!))))
      (define βℓ (cons β (+ℓ!)))
      (values (-=> αℓs βℓ ℓ) (--> cs d ℓ))]
     [`((,doms ...) #:rest ,rst . ->* . d)
@@ -176,10 +180,10 @@
     [((cons Cₗ Cs*) (cons cₗ cs*))
      (define-values (Cᵣ cᵣ) (alloc-And/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (alloc-const! σ Cₗ cₗ)
-     (alloc-const! σ Cᵣ cᵣ)
+     (define αₗ (alloc-const! σ Cₗ cₗ))
+     (define αᵣ (alloc-const! σ Cᵣ cᵣ))
      #;(σ⊕*! σ [cₗ ↦ Cₗ] [cᵣ ↦ Cᵣ])
-     (values (-And/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
+     (values (-And/C flat? (cons αₗ (+ℓ!)) (cons αᵣ (+ℓ!)))
              (-@ 'and/c (list cₗ cᵣ) (+ℓ!)))]))
 
 (: alloc-Or/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
@@ -192,10 +196,9 @@
     [((cons Cₗ Cs*) (cons cₗ cs*))
      (define-values (Cᵣ cᵣ) (alloc-Or/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (alloc-const! σ Cₗ cₗ)
-     (alloc-const! σ Cᵣ cᵣ)
-     #;(σ⊕*! σ [cₗ ↦ Cₗ] [cᵣ ↦ Cᵣ])
-     (values (-Or/C flat? (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!)))
+     (define αₗ (alloc-const! σ Cₗ cₗ))
+     (define αᵣ (alloc-const! σ Cᵣ cᵣ))
+     (values (-Or/C flat? (cons αₗ (+ℓ!)) (cons αᵣ (+ℓ!)))
              (-@ 'or/c (list cₗ cᵣ) (+ℓ!)))]))
 
 (: alloc-List/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
@@ -206,43 +209,43 @@
     [((cons Cₗ Cs*) (cons cₗ cs*))
      (define-values (Cᵣ cᵣ) (alloc-List/C! σ Cs* cs*))
      (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (alloc-const! σ Cₗ cₗ)
-     (alloc-const! σ Cᵣ cᵣ)
-     #;(σ⊕*! σ [cₗ ↦ Cₗ] [cᵣ ↦ Cᵣ])
-     (values (-St/C flat? -𝒾-cons (list (cons cₗ (+ℓ!)) (cons cᵣ (+ℓ!))))
+     (define αₗ (alloc-const! σ Cₗ cₗ))
+     (define αᵣ (alloc-const! σ Cᵣ cᵣ))
+     (values (-St/C flat? -𝒾-cons (list (cons αₗ (+ℓ!)) (cons αᵣ (+ℓ!))))
              (-struct/c -𝒾-cons (list cₗ cᵣ) (+ℓ!)))]))
 
-(: alloc-prim! : -σ -prim → -α.cnst)
+(: alloc-prim! : -σ -prim → -⟪α⟫)
 (define (alloc-prim! σ p)
   (alloc-const! σ p p))
 
-(: alloc-prims! : -σ (Listof -prim) → (Listof -α.cnst))
+(: alloc-prims! : -σ (Listof -prim) → (Listof -⟪α⟫))
 (define (alloc-prims! σ ps)
   (alloc-consts! σ ps ps))
 
-(: alloc-const! : -σ -V -e → -α.cnst)
+(: alloc-const! : -σ -V -e → -⟪α⟫)
 ;; Allocate value `V` known to have been evaluted to by constant expression `e`
 ;; This is used internally for `Λ` module only to reduce ridiculous allocation
 (define (alloc-const! σ V v)
   (case V ; tmp HACK
     [(cons? pair?)
-     (σ⊕! σ V -cons?)
-     -cons?]
+     (define ⟪α⟫ (-α->-⟪α⟫ -cons?))
+     (σ⊕! σ ⟪α⟫ -cons?)
+     ⟪α⟫]
     [(box?)
-     (σ⊕! σ V -box?)
-     -box?]
+     (define ⟪α⟫ (-α->-⟪α⟫ -box?))
+     (σ⊕! σ ⟪α⟫ -box?)
+     ⟪α⟫]
     [else
-     (σ⊕! σ v V)
-     v]))
+     (define ⟪α⟫ (-α->-⟪α⟫ v))
+     (σ⊕! σ ⟪α⟫ V)
+     ⟪α⟫]))
 
-(: alloc-consts! : -σ (Listof -V) (Listof -e) → (Listof -α.cnst))
+(: alloc-consts! : -σ (Listof -V) (Listof -e) → (Listof -⟪α⟫))
 ;; Allocate values `Vs` known to have been evaluated by constant expressions `es`
 ;; This is used internally for `Λ` module only to reduce ridiculous allocation.
 (define (alloc-consts! σ Vs es)
-  (for ([V Vs] [e es])
-    (alloc-const! σ V e))
-  ;; Weird. Just keep this for now
-  es)
+  (for/list ([V Vs] [e es])
+    (alloc-const! σ V e)))
 
 (define (σ₀)
   (define σ (⊥σ))

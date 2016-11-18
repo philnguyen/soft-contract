@@ -75,8 +75,8 @@
 (define (behavioral? σ V)
   (define-set seen : -V #:eq? #t)
 
-  (: check-α! : -α → Boolean)
-  (define (check-α! α)
+  (: check-⟪α⟫! : -⟪α⟫ → Boolean)
+  (define (check-⟪α⟫! α)
     (for/or ([V (σ@ σ α)])
       (check! V)))
 
@@ -87,20 +87,20 @@
       [else
        (seen-add! V)
        (match V
-         [(-St _ αs) (ormap check-α! αs)]
-         [(-St* _ _ α _) (check-α! α)]
-         [(-Vector αs) (ormap check-α! αs)]
-         [(-Ar grd α _) (or (check-α! α) (check! grd))]
+         [(-St _ αs) (ormap check-⟪α⟫! αs)]
+         [(-St* _ _ α _) (check-⟪α⟫! α)]
+         [(-Vector αs) (ormap check-⟪α⟫! αs)]
+         [(-Ar grd α _) (or (check-⟪α⟫! α) (check! grd))]
          [(-=> doms rng _)
-          (or (check-α! (car rng))
+          (or (check-⟪α⟫! (car rng))
               (for/or : Boolean ([dom doms])
-                (check-α! (car dom))))]
+                (check-⟪α⟫! (car dom))))]
          [(? -=>i?) #t]
          [(-Case-> cases _)
-          (for*/or : Boolean ([kase : (Pairof (Listof -α) -α) cases])
+          (for*/or : Boolean ([kase : (Pairof (Listof -⟪α⟫) -⟪α⟫) cases])
             (match-define (cons doms rng) kase)
-            (or (check-α! rng)
-                (ormap check-α! doms)))]
+            (or (check-⟪α⟫! rng)
+                (ormap check-⟪α⟫! doms)))]
          [(or (? -Clo?) (? -Case-Clo?)) #t]
          [_ #f])]))
 
