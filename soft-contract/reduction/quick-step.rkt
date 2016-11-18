@@ -237,7 +237,7 @@
                       [else φs-path])))
                 (apply Γ+ Γₑᵣ* φ-ans (set->list φs-path))))
             (cond
-              [(or #;(no-obvious-conflict? Γₑᵣ γ Γₑₑ)
+              [(or (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
                    (plausible-pc? M Γₑᵣ**))
                (hash-set! returned key #t)
                (define sₐ*
