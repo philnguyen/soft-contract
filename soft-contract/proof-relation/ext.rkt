@@ -26,10 +26,7 @@
   (define fvs (fv e))
   (match-define (-Γ φs _ γs) (Γ↓ Γ fvs))
   (define αₖs (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)))
-  (list e
-        φs
-        γs
-        (span-M M αₖs)))
+  (list e φs γs (span-M M αₖs)))
 
 (: ext-prove : -M -Γ -e → -R)
 (define (ext-prove M Γ e)
@@ -57,9 +54,7 @@
 (define (->ext-plausible-key M Γ)
   (match-define (-Γ φs _ γs) Γ)
   (define αₖs (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)))
-  (list φs
-        γs
-        (span-M M αₖs)))
+  (list φs γs (span-M M αₖs)))
 
 (: ext-plausible-pc? : -M -Γ → Boolean)
 (define (ext-plausible-pc? M Γ)

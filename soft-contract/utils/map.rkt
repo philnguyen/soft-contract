@@ -115,6 +115,24 @@
       (values x (set-count ys))))
   (values m↓ counts))
 
+(: hash-copy/spanning (∀ (X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → (HashTable X Y)))
+(define (hash-copy/spanning m xs y->xs)
+  (define-set touched : X)
+  (define m* : (HashTable X Y) (if (hash-eq? m) (make-hasheq) (make-hash)))
+  (define (touch! [x : X]) : Void
+    (unless (touched-has? x)
+      (touched-add! x)
+      (define y (hash-ref m x))
+      (hash-set! m* x y)
+      (set-for-each (y->xs y) touch!)))
+  (set-for-each xs touch!)
+  m*)
+
+(: hash-copy/spanning*
+   (∀ (X Y) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → (HashTable X (℘ Y))))
+(define (hash-copy/spanning* m xs y->xs)
+  (hash-copy/spanning m xs (λ ([ys : (℘ Y)]) (for/union : (℘ X) ([y ys]) (y->xs y)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; TMP hack for profiling

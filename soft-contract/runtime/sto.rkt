@@ -98,7 +98,8 @@
   (for/set: : (℘ -α) ([α (in-hash-values ρ)]) α))
 
 (: span-σ : (HashTable -α (℘ -V)) (℘ -α) → (HashTable -α (℘ -V)))
-(define (span-σ σ αs) (m↓ σ (span* σ αs V->αs)))
+(define (span-σ σ αs)
+  (m↓ σ (span* σ αs V->αs)))
 
 (: Γ->αₖs : -Γ → (℘ -αₖ))
 (define (Γ->αₖs Γ)
@@ -125,7 +126,8 @@
   αs)
 
 (: span-M : (HashTable -αₖ (℘ -ΓA)) (℘ -αₖ) → (HashTable -αₖ (℘ -ΓA)))
-(define (span-M M αs) (m↓ M (span* M αs ΓA->αₖs)))
+(define (span-M M αs)
+  (hash-copy/spanning* M αs ΓA->αₖs))
 
 (: span-σₖ : (HashTable -αₖ (℘ -κ)) -αₖ → (℘ -αₖ))
 ;; Compute stack addresses in `σₖ` reachable from `αₖ`
