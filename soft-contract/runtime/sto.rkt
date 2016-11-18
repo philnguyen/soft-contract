@@ -62,8 +62,7 @@
 ;;;;; Restrict stores
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: V->αs : -V → (℘ -α))
-(define (V->αs V)
+(define/memoeq (V->αs [V : -V]) : (℘ -α)
   (with-debugging/off
     ((αs)
      (match V
@@ -156,7 +155,7 @@
   (set--σ-modified! σ (∩ mods αs))
   (set--σ-cardinality! σ (m↓ crds αs)))
 
-(define/memoeq (->αs [x : (Rec X (U -α -V -W¹ -W -ρ (Listof X)))]) : (℘ -α)
+(define (->αs [x : (Rec X (U -α -V -W¹ -W -ρ (Listof X)))]) : (℘ -α)
   (cond
     [(list? x)
      (for/union : (℘ -α) ([xᵢ x]) (->αs xᵢ))]

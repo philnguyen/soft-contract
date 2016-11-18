@@ -40,7 +40,7 @@
 ;(: encode : -M -Γ -e → (Values →Void →Z3-Ast))
 ;; Encode `M Γ ⊢ e` into a pair of thunks that emit assertions and goal to check for
 ;; satisfiability
-(define/memo (encode [M : (HashTable -αₖ (℘ -ΓA))] [Γ : -Γ] [e : -e]) : (Pairof →Void →Z3-Ast)
+(define (encode [M : (HashTable -αₖ (℘ -ΓA))] [Γ : -Γ] [e : -e]) : (Pairof →Void →Z3-Ast)
   (match-define (cons refs top-entry) (encode-e ∅ ∅eq Γ e))
   (let loop ([fronts   : (℘ Defn-Entry) refs]
              [seen     : (℘ Defn-Entry) refs]
@@ -82,7 +82,7 @@
 
 ;; Translate memo-table entry `αₖ(xs) → {A…}` to pair of formulas for when application
 ;; fails and passes
-(define/memo (encode-App-Ctx [app-ctx : App-Ctx] [ΓAs : (℘ -ΓA)]) : (Pairof (℘ Defn-Entry) Res)
+(define (encode-App-Ctx [app-ctx : App-Ctx] [ΓAs : (℘ -ΓA)]) : (Pairof (℘ Defn-Entry) Res)
   (define-set refs : Defn-Entry)
   (match-define (App-Ctx app ctx) app-ctx)
   (match-define (App αₖ fvs) app)
@@ -159,7 +159,7 @@
 ;; Encode path-condition `Γ` and expression `e` into a
 ;; - a Z3-Ast-producing thunk, and
 ;; - a set of function definitions to encode
-(define/memo (encode-e [trace : App-Trace]
+(define (encode-e [trace : App-Trace]
                        [bound : (℘ Var-Name)]
                        [Γ : -Γ]
                        [e : -e]) : (Pairof (℘ Defn-Entry) Entry)
@@ -390,7 +390,7 @@
   )
 
 ;(: ⦃o⦄ : -o (Listof →Z3-Ast) → →Z3-Ast)
-(define/memo (⦃o⦄ [o : -o] [ts : (Listof →Z3-Ast)]) : →Z3-Ast
+(define (⦃o⦄ [o : -o] [ts : (Listof →Z3-Ast)]) : →Z3-Ast
   (case o
     [(defined?)
      (λ () (@/s 'B (not/s (=/s 'Undefined ((car ts))))))]
@@ -585,7 +585,7 @@
        [_ (raise (exn:scv:unsupported (format "unsupported: ~a" (show-o o))
                                           (current-continuation-marks)))])]))
 
-(define/memo (⦃p⦄ [p : (U -o -λ)] [t : →Z3-Ast]) : →Z3-Ast
+(define (⦃p⦄ [p : (U -o -λ)] [t : →Z3-Ast]) : →Z3-Ast
   (match p
     [(? -o? o) (⦃o⦄ o (list t))]
     [(-λ (list x) (-@ (? -o? o) (list (-x x) (-b b)) _))
@@ -690,7 +690,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;(: emit : (℘ Natural) Memo-Table Entry → (Values →Void →Z3-Ast))
-(define/memo (emit [struct-arities : (℘ Natural)]
+(define (emit [struct-arities : (℘ Natural)]
                    [def-funs : Memo-Table]
                    [top : Entry]) : (Pairof →Void →Z3-Ast)
   (match-define (Entry consts facts goal) top)
@@ -796,7 +796,7 @@
 (define (run-all fs) (for/list ([f fs]) (f)))
 
 ;(: -tapp : Symbol (Listof Symbol) (Listof →Z3-Ast) → →Z3-Ast)
-(define/memo (-tapp [f : Symbol] [fvs : (Listof Symbol)] [args : (Listof →Z3-Ast)]) : →Z3-Ast
+(define (-tapp [f : Symbol] [fvs : (Listof Symbol)] [args : (Listof →Z3-Ast)]) : →Z3-Ast
   (cond
     [(and (null? fvs) (null? args))
      (λ () (val-of f))]
