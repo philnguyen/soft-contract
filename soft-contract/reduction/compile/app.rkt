@@ -339,7 +339,7 @@
           (define ρ* (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs))
           (define αₖ (-ℬ xs ⟦e⟧ ρ*))
           (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
-          (vm⊔! σₖ αₖ κ)
+          (σₖ⊔! σₖ αₖ κ)
           {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}])]
       [(-varargs zs z) ; FIXME code duplicate
        (define n (length zs))
@@ -354,7 +354,7 @@
        ;; Push stack and jump to new state
        (define αₖ (-ℬ xs ⟦e⟧ ρ*))
        (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
-       (vm⊔! σₖ αₖ κ)
+       (σₖ⊔! σₖ αₖ κ)
        {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]))
 
   (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
@@ -888,7 +888,7 @@
             [W-V* (-W¹ V 𝐱)])
         (-ℳ x l³ ℒ W-C* W-V*)))
     (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'values (list v)))
-    (vm⊔! σₖ αₖ κ)
+    (σₖ⊔! σₖ αₖ κ)
     (define Γ* ; HACK: drop all tails for now
       (match-let ([(-Γ φs as γs) Γ])
         (invalidate (-Γ φs as '()) x)))
@@ -1096,7 +1096,7 @@
        (define W-V* (-W¹ V 𝐱))
        (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'fc (list v)))
        (define αₖ (-ℱ x l ℒ W-C* W-V*))
-       (vm⊔! σₖ αₖ κ)
+       (σₖ⊔! σₖ αₖ κ)
        (-ς↑ αₖ Γ ⟪ℋ⟫))]
     [_
      (define ⟦ap⟧ (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W-C) (list (mk-rt-⟦e⟧ W-V))))

@@ -55,8 +55,8 @@
         ;(printf " (~a + ~a)" (length ς↑s) (length ς↓s))
         #;(printf "; cfgs: ~a, max(σₖ): ~a, max(M): ~a"
                 (hash-count seen)
-                (apply max 0 ((inst map Natural (℘ -κ)) set-count (hash-values (VMap-m (-Σ-σₖ Σ)))))
-                (apply max 0 ((inst map Natural (℘ -ΓA)) set-count (hash-values (VMap-m (-Σ-M Σ))))))
+                (apply max 0 ((inst map Natural (℘ -κ)) set-count (hash-values (-Σ-σₖ Σ))))
+                (apply max 0 ((inst map Natural (℘ -ΓA)) set-count (hash-values (-Σ-M Σ)))))
         (printf "~n")
 
         #;(begin ; verbose
@@ -92,7 +92,7 @@
               [ς↦vsn : (HashTable -ς Ctx) (make-hash)]
               [αs-all : (℘ -α) ∅])
           ;; Compute each state's active addresses in the frontier
-          (match-define (-Σ (and σ (-σ mσ _ _)) (VMap mσₖ _) _) Σ)
+          (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ _) Σ)
           (for ([ς front])
             (define αₖs (ς->αₖs ς mσₖ))
             (define αs (span* mσ (ς->αs ς mσₖ) V->αs))
@@ -129,7 +129,7 @@
                (hash-set! seen ς vsn)
                (↝! ς Σ)])))
         #;(for/union : (℘ -ς) ([ς front])
-          (match-define (-Σ (-σ σ _ _) (VMap σₖ _) _) Σ)
+          (match-define (-Σ (-σ σ _ _) σₖ _) Σ)
           (define vsn : Ctx
             (let ([αₖs (ς->αₖs ς σₖ)]
                   [αs  (ς->αs  ς σₖ)])

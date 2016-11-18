@@ -29,7 +29,7 @@
   (list e
         φs
         γs
-        (span-M (VMap-m M) αₖs)))
+        (span-M M αₖs)))
 
 (: ext-prove : -M -Γ -e → -R)
 (define (ext-prove M Γ e)
@@ -39,7 +39,7 @@
      (hash-ref! memo-ext-prove
                 (->ext-prove-key M Γ e)
                 (λ ()
-                  (define-values (base goal) (encode (VMap-m M) Γ e))
+                  (define-values (base goal) (encode M Γ e))
                   (match/values (exec-check-sat base goal)
                     [('unsat _) '✓]
                     [(_ 'unsat) '✗]
@@ -59,7 +59,7 @@
   (define αₖs (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)))
   (list φs
         γs
-        (span-M (VMap-m M) αₖs)))
+        (span-M M αₖs)))
 
 (: ext-plausible-pc? : -M -Γ → Boolean)
 (define (ext-plausible-pc? M Γ)
@@ -69,7 +69,7 @@
      (hash-ref! memo-ext-plausible
                 (->ext-plausible-key M Γ)
                 (λ ()
-                  (define-values (base _) (encode (VMap-m M) Γ #|HACK|# -ff))
+                  (define-values (base _) (encode M Γ #|HACK|# -ff))
                   (case (exec-check-sat₀ base)
                     [(unsat) #f]
                     [(sat unknown) #t]))))

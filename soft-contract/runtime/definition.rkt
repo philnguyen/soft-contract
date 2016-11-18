@@ -55,22 +55,34 @@
             )
   #:transparent)
 
-(define-type -σₖ (VMap -αₖ -κ))
+(define-type -σₖ (HashTable -αₖ (℘ -κ)))
+
 (: ⊥σₖ ([] [(Option -αₖ)] . ->* . -σₖ))
 (define (⊥σₖ [αₖ #f])
-  (cond
-    [αₖ ((inst ⊥vm -αₖ -κ) #:init (list αₖ))]
-    [else ((inst ⊥vm -αₖ -κ))]))
-(define σₖ@ : (-σₖ -αₖ → (℘ -κ)) vm@)
+  (cond [αₖ (make-hash (list (cons αₖ ∅)))]
+        [else (make-hash)]))
+
+(: σₖ@ : -σₖ -αₖ → (℘ -κ))
+(define (σₖ@ σₖ αₖ) (hash-ref σₖ αₖ →∅))
+
+(: σₖ⊔! : -σₖ -αₖ -κ → Void)
+(define (σₖ⊔! σₖ αₖ κ)
+  (hash-update! σₖ αₖ (λ ([κs : (℘ -κ)]) (set-add κs κ)) →∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Memo Table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -M (VMap -αₖ -ΓA))
-(define ⊥M (inst ⊥vm -αₖ -ΓA))
-(define M@ : (-M -αₖ → (℘ -ΓA)) vm@)
+(define-type -M (HashTable -αₖ (℘ -ΓA)))
+(define ⊥M (inst make-hash -αₖ (℘ -ΓA)))
+
+(: M@ : -M -αₖ → (℘ -ΓA))
+(define (M@ M αₖ) (hash-ref M αₖ →∅))
+
+(: M⊔! : -M -αₖ -Γ -A → Void)
+(define (M⊔! M αₖ Γ A)
+  (hash-update! M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -352,16 +364,12 @@
   `(,@(set-map φs show-e) ,@(map show-γ γs)))
 
 (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
-  (cond [(VMap? σₖ) (show-σₖ (VMap-m σₖ))]
-        [else
-         (for/list ([(αₖ κs) σₖ])
-           `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ)))]))
+  (for/list ([(αₖ κs) σₖ])
+    `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
 
 (define (show-M [M : (U -M (HashTable -αₖ (℘ -ΓA)))]) : (Listof Sexp)
-  (cond [(VMap? M) (show-M (VMap-m M))]
-        [else
-         (for/list ([(αₖ As) M])
-           `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA)))]))
+  (for/list ([(αₖ As) M])
+    `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
 
 (define (show-V [V : -V]) : Sexp
   (match V

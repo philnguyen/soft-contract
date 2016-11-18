@@ -27,7 +27,7 @@
            ∅]
           [_
            (match-define (-Σ _ _ M) Σ)
-           (vm⊔! M αₖ (-ΓA Γ A))
+           (M⊔! M αₖ Γ A)
            (when (and print-blames-on-the-fly?
                       (-blm? A)
                       (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))

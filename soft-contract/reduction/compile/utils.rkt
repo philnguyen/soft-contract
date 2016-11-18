@@ -30,7 +30,7 @@
                  [(havoc Λ †) ∅]
                  [else ; FIXME duplicate code from `rt`
                   (define M (-Σ-M Σ))
-                  (vm⊔! M αₖ (-ΓA Γ A))
+                  (M⊔! M αₖ Γ A)
                   {set (-ς↓ αₖ Γ A)}])]
               [else e ...])))
     (set-⟦k⟧->αₖ! ⟦k⟧* αₖ)
