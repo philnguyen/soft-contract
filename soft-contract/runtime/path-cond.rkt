@@ -36,7 +36,12 @@
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
       (match-define (-γ αₖ blm sₕ sₓs) γ)
-      (-γ αₖ blm (s↓ sₕ xs) (for/list : (Listof -s) ([sₓ sₓs]) (s↓ sₓ xs)))))
+      (define-values (sₕ* sₓs*) ; if keep one, keep all of them
+        (let ([sₕ** (s↓ sₕ xs)]
+              [sₓs** (for/list : (Listof -s) ([sₓ sₓs]) (s↓ sₓ xs))])
+          (cond [(or sₕ** (ormap (inst values Any) sₓs**)) (values sₕ sₓs)]
+                [else (values sₕ** sₓs**)])))
+      (-γ αₖ blm sₕ* sₓs*)))
   (-Γ φs* as* γs*))
 
 (: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
