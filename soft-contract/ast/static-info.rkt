@@ -64,7 +64,7 @@
 
 (define (add-assignable! [x : (U -x -𝒾)])
   (hash-set! (-static-info-assignables (current-static-info)) x #t))
-(define (assignable? [x : (U Var-Name -x -𝒾)]) : Boolean
+(define (assignable? [x : (U Symbol -x -𝒾)]) : Boolean
   (cond
     [(or (-x? x) (-𝒾? x))
      (hash-has-key? (-static-info-assignables (current-static-info)) x)]

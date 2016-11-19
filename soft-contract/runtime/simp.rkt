@@ -280,7 +280,7 @@
     [(-@ (== o) es _) es]
     [_ (make-list n #f)]))
 
-(define (-?μ/c [x : -ℓ] [e : -s]) (and e (-μ/c x e)))
+(define (-?μ/c [x : Symbol] [e : -s]) (and e (-μ/c x e)))
 
 (: -?struct/c : -𝒾 (Listof -s) → (Option -struct/c))
 (define (-?struct/c 𝒾 fields)
@@ -311,7 +311,7 @@
               (-?@ (format-symbol "values@~a" i) e))])]
     [_ (make-list n #f)]))
 
-(: bind-args : -formals (Listof -s) → (Values (Listof Var-Name) (Listof -s)))
+(: bind-args : -formals (Listof -s) → (Values (Listof Symbol) (Listof -s)))
 ;; Bind arguments to formals at `?e` level.
 ;; Return 2 lists for parameters and arguments of equal lengths.
 (define (bind-args xs es)

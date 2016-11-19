@@ -6,6 +6,7 @@
          racket/set
          racket/function
          racket/list
+         racket/bool
          "../utils/main.rkt"
          "../utils/untyped-macros.rkt"
          "definition.rkt")
@@ -13,7 +14,7 @@
 (require/typed "../primitives/declarations.rkt"
   [prims (Listof Any)])
 
-(: fv : (U -e (Listof -e)) → (℘ Var-Name))
+(: fv : (U -e (Listof -e)) → (℘ Symbol))
 ;; Compute free variables for expression. Return set of variable names.
 (define (fv e)
   (match e
@@ -30,16 +31,16 @@
     [(-begin0 e₀ es) (∪ (fv e₀) (fv es))]
     [(-let-values bnds e)
      (define-values (bound FV_rhs)
-       (for/fold ([bound : (℘ Var-Name) ∅eq] [FV_rhs : (℘ Var-Name) ∅eq]) ([bnd bnds])
+       (for/fold ([bound : (℘ Symbol) ∅eq] [FV_rhs : (℘ Symbol) ∅eq]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ FV_rhs (fv rhs)))))
      (∪ FV_rhs (-- (fv e) bound))]
     [(-letrec-values bnds e)
      (define bound
-       (for/fold ([bound : (℘ Var-Name) ∅eq]) ([bnd bnds])
+       (for/fold ([bound : (℘ Symbol) ∅eq]) ([bnd bnds])
          (set-add-list bound (car bnd))))
      
-     (for/fold ([xs : (℘ Var-Name) (-- (fv e) bound)]) ([bnd bnds])
+     (for/fold ([xs : (℘ Symbol) (-- (fv e) bound)]) ([bnd bnds])
        (-- (fv (cdr bnd)) bound))]
     [(-set! x e)
      (match x
@@ -48,20 +49,20 @@
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
     [(-amb es)
-     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([e es])
+     (for/fold ([xs : (℘ Symbol) ∅eq]) ([e es])
        (∪ xs (fv e)))]
     [(-μ/c _ e) (fv e)]
     [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
     [(-case-> clauses _)
-     (for/unioneq : (℘ Var-Name) ([clause clauses])
+     (for/unioneq : (℘ Symbol) ([clause clauses])
        (match-define (cons cs d) clause)
        (apply ∪ (fv d) (map fv cs)))]
     [(-struct/c _ cs _)
-     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([c cs])
+     (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
        (∪ xs (fv c)))]
     [(? list? l)
-     (for/fold ([xs : (℘ Var-Name) ∅eq]) ([e l])
+     (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
        (∪ xs (fv e)))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
 
@@ -155,7 +156,7 @@
   
   (go e))
 
-(: unroll : Integer -e -e → -e)
+(: unroll : Symbol -e -e → -e)
 ;; Unroll reference to recursive contract
 (define (unroll x c e)
   (let go ([e : -e e])
@@ -167,18 +168,18 @@
 
     (match e
       [(-λ xs e*) (-λ xs (go e*))]
-      [(-case-λ clauses) (-case-λ (map (inst go-bnd (Listof Var-Name)) clauses))]
+      [(-case-λ clauses) (-case-λ (map (inst go-bnd (Listof Symbol)) clauses))]
       [(-@ f xs l) (-@ (go f) (map go xs) l)]
       [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
       [(-wcm k v b) (-wcm (go k) (go v) (go b))]
       [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
       [(-let-values bnds e*)
-       (-let-values (map (inst go-bnd (Listof Var-Name)) bnds) (go e*))]
+       (-let-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*))]
       [(-letrec-values bnds e*)
-       (-letrec-values (map (inst go-bnd (Listof Var-Name)) bnds) (go e*))]
+       (-letrec-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*))]
       [(-set! z e*) (-set! z (go e*))]
       [(-amb es) (-amb (map/set go es))]
-      [(-μ/c z e*) (if (= z x) e (-μ/c z (go e*)))]
+      [(-μ/c z e*) (if (symbol=? z x) e (-μ/c z (go e*)))]
       [(--> cs d ℓ) (--> (map go cs) (go d) ℓ)]
       [(-->i cs mk-d ℓ)
        (-->i (map go cs) (assert (go mk-d) -λ?) ℓ)]
@@ -189,7 +190,7 @@
            (cons (map go cs) (go d))))
        (-case-> clauses* ℓ)]
       [(-struct/c si cs ℓ) (-struct/c si (map go cs) ℓ)]
-      [(-x/c z) (if (= z x) c e)]
+      [(-x/c z) (if (symbol=? z x) c e)]
       [_
        (log-debug "unroll: ignore ~a" (show-e e))
        e])))
@@ -217,7 +218,7 @@
   ;; Map each bound name to its ith appearance. `0` means first, no need to rename
   (define ith : (HashTable Symbol Natural) (make-hasheq))
 
-  (: new-binder! : S->S Var-Name → (Values S->S Var-Name))
+  (: new-binder! : S->S Symbol → (Values S->S Symbol))
   ;; Updates the global table to remember how many times `x` has been seen,
   ;; and updates the local environment that renames free occurences of `x`
   (define (new-binder! names x)
@@ -234,10 +235,10 @@
            [i (format-symbol "~a~a" x (n-sub i))]))
        (values (hash-set names x x*) x*)]))
 
-  (: new-binders! : S->S (Listof Var-Name) → (Values S->S (Listof Var-Name)))
+  (: new-binders! : S->S (Listof Symbol) → (Values S->S (Listof Symbol)))
   (define (new-binders! m xs)
     (define-values (m* xs*-rev)
-      (for/fold ([m : S->S m] [xs-rev : (Listof Var-Name) '()])
+      (for/fold ([m : S->S m] [xs-rev : (Listof Symbol) '()])
                 ([x xs])
         (define-values (m* x*) (new-binder! m x))
         (values m* (cons x* xs-rev))))
@@ -274,7 +275,7 @@
        (-λ xs* (go! m* e*))]
       [(-case-λ clauses)
        (-case-λ
-        (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
+        (for/list : (Listof (Pairof (Listof Symbol) -e)) ([clause clauses])
           (match-define (cons xs e*) clause)
           (define-values (m* xs*) (new-binders! m xs))
           (cons xs* (go! m* e*))))]
@@ -286,7 +287,7 @@
       [(-begin0 e₀ es) (-begin0 (go! m e₀) (map (curry go! m) es))]
       [(-let-values bnds bod)
        (define-values (m* bnds*-rev)
-         (for/fold ([m* : S->S m] [bnds*-rev : (Listof (Pairof (Listof Var-Name) -e)) '()])
+         (for/fold ([m* : S->S m] [bnds*-rev : (Listof (Pairof (Listof Symbol) -e)) '()])
                    ([bnd bnds])
            (match-define (cons xs eₓ) bnd)
            (define-values (m** xs*) (new-binders! m* xs))
@@ -297,13 +298,13 @@
       [(-letrec-values bnds bod)
        (define-values (xss es) (unzip bnds))
        (define-values (m* xss*-rev)
-         (for/fold ([m* : S->S m] [xss*-rev : (Listof (Listof Var-Name)) '()])
+         (for/fold ([m* : S->S m] [xss*-rev : (Listof (Listof Symbol)) '()])
                    ([xs xss])
            (define-values (m** xs*) (new-binders! m* xs))
            (values m** (cons xs* xss*-rev))))
        (define es* (map (curry go! m*) es))
        (define bod* (go! m* bod))
-       (define bnds* (map (inst cons (Listof Var-Name) -e) (reverse xss*-rev) es*))
+       (define bnds* (map (inst cons (Listof Symbol) -e) (reverse xss*-rev) es*))
        (-letrec-values bnds* bod*)]
       [(-set! i e*)
        (match i
@@ -359,7 +360,7 @@
              (-λ xs (go (shrink m (formals->names xs)) e*))]
             [(-case-λ clauses)
              (define clauses*
-               (for/list : (Listof (Pairof (Listof Var-Name) -e)) ([clause clauses])
+               (for/list : (Listof (Pairof (Listof Symbol) -e)) ([clause clauses])
                  (match-define (cons xs eₓ) clause)
                  (cons xs (go (shrink m (formals->names xs)) eₓ))))
              (-case-λ clauses*)]
@@ -375,8 +376,8 @@
              (-begin0 (go m e₀) (go-list m es))]
             [(-let-values bnds body)
              (define-values (bnds*-rev locals)
-               (for/fold ([bnds*-rev : (Listof (Pairof (Listof Var-Name) -e)) '()]
-                          [locals : (℘ Var-Name) ∅eq])
+               (for/fold ([bnds*-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+                          [locals : (℘ Symbol) ∅eq])
                          ([bnd bnds])
                  (match-define (cons xs eₓ) bnd)
                  (values (cons (cons xs (go m eₓ)) bnds*-rev)
@@ -385,12 +386,12 @@
              (-let-values (reverse bnds*-rev) body*)]
             [(-letrec-values bnds body)
              (define locals
-               (for/fold ([locals : (℘ Var-Name) ∅eq])
+               (for/fold ([locals : (℘ Symbol) ∅eq])
                          ([bnd bnds])
                  (match-define (cons xs _) bnd)
                  (set-add-list locals xs)))
              (define m* (shrink m locals))
-             (define bnds* : (Listof (Pairof (Listof Var-Name) -e))
+             (define bnds* : (Listof (Pairof (Listof Symbol) -e))
                (for/list ([bnd bnds])
                  (match-define (cons xs eₓ) bnd)
                  (cons xs (go m* eₓ))))
@@ -425,14 +426,14 @@
 ;; Substitution, where `x` can be an (open) term rather than just a free variable.
 (define (e/ x eₓ e) (e/map ((inst hash -e -e) x eₓ) e))
 
-(: shrink : Subst (℘ Var-Name) → Subst)
+(: shrink : Subst (℘ Symbol) → Subst)
 (define (shrink m xs)
   (for/fold ([m* : Subst m])
             ([eₓ (in-hash-keys m)]
              #:unless (set-empty? (∩ xs (fv eₓ))))
     (hash-remove m* eₓ)))
 
-(: formals->names : -formals → (℘ Var-Name))
+(: formals->names : -formals → (℘ Symbol))
 (define (formals->names xs)
   (cond
     [(-varargs? xs) (set-add (list->seteq (-varargs-init xs)) (-varargs-rest xs))]

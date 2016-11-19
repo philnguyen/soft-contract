@@ -6,7 +6,7 @@
          "../ast/main.rkt"
          "../parse/main.rkt"
          "../runtime/main.rkt"
-         "../proof-relation/main.rkt"
+         "../proof-relation/main.rkt" #;(only-in "../proof-relation/ext.rkt" miss/total)
          "compile/utils.rkt"
          "compile/kontinuation.rkt"
          "compile/main.rkt"
@@ -47,10 +47,10 @@
 
   (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
     (unless (or (set-empty? front) #|FIXME|# #;(> iter 80))
+      (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
-      (begin
+      #;(begin
         (define num-front (set-count front))
-        (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
         (printf "* ~a: ~a" iter num-front )
         ;(printf " (~a + ~a)" (length ς↑s) (length ς↓s))
         #;(printf "; cfgs: ~a, max(σₖ): ~a, max(M): ~a"
@@ -122,7 +122,9 @@
       (loop! next)))
 
   (match-let ([(-Σ σ σₖ M) Σ])
-    (values (M@ M αₖ₀) Σ)))
+    (begin0 (values (M@ M αₖ₀) Σ)
+      #;(let-values ([(miss total) (miss/total)])
+        (printf "miss/total: ~a/~a~n" miss total)))))
 
 (: ς->⟪α⟫s : -ς (HashTable -αₖ (℘ -κ)) → (℘ -⟪α⟫))
 ;; Compute the root set for value addresses of this state

@@ -11,7 +11,7 @@
          racket/set
          racket/match)
 
-(define 𝒙 (+x!))
+(define 𝒙 (+x!/memo 'hv))
 (define 𝐱 (-x 𝒙))
 (define 𝐱s (list 𝐱))
 (define ⟦rev-hv⟧ : -⟦e⟧!
@@ -46,7 +46,7 @@
       
 
       #;(define (done-with-●)
-        (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt 'done))) $ Γ 𝒞 Σ))
+        (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt 'done))) $ Γ 𝒞 Σ))
 
       (for*/union : (℘ -ς) ([V (in-set Vs)])
         ;(printf "havoc-ing ~a~n" (show-V V))
@@ -64,21 +64,21 @@
            (define (hv/arity [k : Natural]) : (℘ -ς)
              (define ●s : (Listof -W¹)
                (for/list ([i k])
-                 (-W¹ -●/V (-x (+x/memo! 'hv k i)))))
+                 (-W¹ -●/V (-x (+x!/memo 'hv #;k i)))))
              (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ 𝒞 Σ
-                  (hv-res∷ (-ℒ ∅ (+ℓ/memo! 'hv-ap 0 tag))
+                  (ap∷ (list Wₕᵥ) '() ⊥ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-res tag))
                        (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun tag)) ⟦k⟧))))
            
            (define a (V-arity V))
            (match a
              [(arity-at-least k)
-              (∪ (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt a))) $ Γ 𝒞 Σ)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ 𝒞 Σ)
                  (hv/arity (+ 1 k)))]
              [(? integer? k)
-              (∪ (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt a))) $ Γ 𝒞 Σ)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ 𝒞 Σ)
                  (hv/arity k))]
              [(? list? ks)
-              (∪ (⟦k⟧ (-W -●/Vs (-x (+x/memo! 'hv-rt a))) $ Γ 𝒞 Σ)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ 𝒞 Σ)
                  (for/union : (℘ -ς) ([k ks])
                    (cond [(integer? k) (hv/arity k)]
                          [else (error 'havoc "TODO: ~a" k)])))]
@@ -184,15 +184,3 @@
   (with-error-handling (⟦k⟧! _ $ Γ 𝒞 Σ) #:roots (W)
     (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
     (app havoc-path $ ℒ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))
-
-(define/memo (hv-res∷ [default-ℒ : -ℒ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧ A $ Γ 𝒞 Σ) #:roots ()
-    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
-    (match-define (-W Vs s) A)
-    (for/union : (℘ -ς) ([V Vs] [sᵥ (split-values s (length Vs))])
-      (define ℒ
-        (cond
-          [(fun->tag V) =>
-           (λ ([tag : Any]) (-ℒ ∅ (+ℓ/memo! 'hv-ap 'hv-res tag)))]
-          [else default-ℒ]))
-      (app havoc-path $ ℒ Wₕᵥ (list (-W¹ V sᵥ)) Γ 𝒞 Σ ⟦k⟧))))

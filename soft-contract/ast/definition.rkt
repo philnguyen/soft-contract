@@ -6,6 +6,7 @@
          racket/set
          racket/list
          racket/function
+         racket/string
          racket/extflonum 
          "../utils/main.rkt")
 
@@ -26,7 +27,7 @@
 
 ;; Source location generator. It's hacked to remember fixed location for havoc
 (: +ℓ! : → -ℓ)
-(: +ℓ/memo! : (U 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
+(: +ℓ/memo! : (U 'hv-res 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
 (: +ℓ/ctc : -ℓ Natural → -ℓ)
 (: ℓ⁻¹ : -ℓ → Any)
 (define-values (+ℓ! +ℓ/memo! +ℓ/ctc ℓ⁻¹)
@@ -48,24 +49,24 @@
        (hash-ref m⁻¹ ℓ (λ () (error 'ℓ⁻¹ "nothing for ~a" ℓ)))))))
 (define +ℓ₀ (+ℓ 0))
 
-;; Symbol names are used for source code. Integers are used for generated.
-;; Keep this eq?-able
-(Var-Name . ::= . Symbol Integer)
-(: +x! : → Integer)
-(: +x/memo! : (U 'hv 'hv-rt 'app) Any * → Integer)
-(define-values (+x! +x/memo!)
-  (let ([n : Integer 0]
-        [m : (HashTable (Listof Any) Integer) (make-hash)])
-    (values
-     (λ () (begin0 n (set! n (+ 1 n))))
-     (λ (tag . xs) (hash-ref! m (cons tag xs) +x!)))))
+(: +x! : (U Symbol Integer) * → Symbol)
+(define (+x! . prefixes)
+  (define (stuff->string x) (format "~a" x))
+  (define prefix (string-join (map stuff->string prefixes) "_" #:after-last "_"))
+  (gensym prefix))
+
+(: +x!/memo : (U Symbol Integer) * → Symbol)
+(define +x!/memo
+  (let ([m : (HashTable (Listof (U Symbol Integer)) Symbol) (make-hash)])
+    (λ [xs : (U Symbol Integer) *]
+      (hash-ref! m xs (λ () (apply +x! xs))))))
 
 ;; Identifier as a name and its source
 (struct -𝒾 ([name : Symbol] [ctx : -l]) #:transparent)
 
 ;; Formal parameters
-(-formals . ::= . (Listof Var-Name)
-                  (-varargs [init : (Listof Var-Name)] [rest : Var-Name]))
+(-formals . ::= . (Listof Symbol)
+                  (-varargs [init : (Listof Symbol)] [rest : Symbol]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,7 +96,7 @@
 (-require-spec . ::= . -l #|TODO|#)
 
 (-e . ::= . -v
-            (-x Var-Name) ; lexical variables 
+            (-x Symbol) ; lexical variables 
             -𝒾 ; module references
             (-@ -e (Listof -e) -ℓ)
             (-if -e -e -e)
@@ -103,19 +104,19 @@
             -begin/e
             (-begin0 -e (Listof -e))
             (-quote Any)
-            (-let-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
-            (-letrec-values [bnds : (Listof (Pairof (Listof Var-Name) -e))] [body : -e])
+            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
+            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
             (-set! (U -𝒾 -x) -e)
             (-error String)
             (-amb (℘ -e))
             
             ;; contract stuff
-            (-μ/c -ℓ -e)
+            (-μ/c Symbol -e)
             (--> [doms : (Listof -e)] [rng : -e] [pos : -ℓ])
             (-->i [doms : (Listof -e)] [rng : -λ] [pos : -ℓ])
             (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] -ℓ)
             (-x/c.tmp Symbol) ; hack
-            (-x/c -ℓ)
+            (-x/c Symbol)
             (-struct/c [name : -𝒾] [fields : (Listof -e)] [pos : -ℓ])
 
             ;; internal use only
@@ -123,7 +124,7 @@
 
 (-v . ::= . -prim
             (-λ -formals -e)
-            (-case-λ (Listof (Pairof (Listof Var-Name) -e)))
+            (-case-λ (Listof (Pairof (Listof Symbol) -e)))
             (-• Natural))
 
 (-prim . ::= . ;; Represent *unsafe* operations without contract checks. 
@@ -228,8 +229,8 @@
 
 (: -listof : -e → -e)
 (define (-listof c)
-  (define ℓ (+ℓ!))
-  (-μ/c ℓ (-or/c (list 'null? (-cons/c c (-x/c ℓ))))))
+  (define x (+x! 'rec))
+  (-μ/c x (-or/c (list 'null? (-cons/c c (-x/c x))))))
 
 (: -box/c : -e → -e)
 (define (-box/c c)
@@ -292,8 +293,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Pretty Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-values (show-x/c show-x/c⁻¹ count-x/c) ((inst unique-sym -ℓ) 'x))
 
 (define (show-ℓ [ℓ : -ℓ]) : Symbol
   (format-symbol "ℓ~a" (n-sub ℓ)))
@@ -367,7 +366,7 @@
     [(-• i) (format-symbol "•~a" (n-sub i))]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
-    [(-x x) (show-Var-Name x)]
+    [(-x x) x]
     [(-𝒾 x p)
      (case p ;; hack
        [(Λ) (format-symbol "_~a" x)]
@@ -392,7 +391,7 @@
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
-    [(-μ/c x c) `(μ/c (,(show-x/c x)) ,(show-e c))]
+    [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
     [(--> cs d _)
      `(,@(map show-e cs) . -> . ,(show-e d))]
     [(-->i cs (and d (-λ xs _)) _)
@@ -407,7 +406,7 @@
        (match-define (cons cs d) clause)
        `(,@(map show-e cs) . -> . ,(show-e d)))]
     [(-x/c.tmp x) x]
-    [(-x/c x) (show-x/c x)]
+    [(-x/c x) x]
     [(-struct/c 𝒾 cs _)
      `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]
     ;; internals
@@ -445,12 +444,8 @@
 
 (define show-formals : (-formals → Sexp)
   (match-lambda
-    [(-varargs xs rst) (cons (map show-Var-Name xs) (show-Var-Name rst))]
-    [(? list? l) (map show-Var-Name l)]))
-
-(define (show-Var-Name [x : Var-Name]) : Symbol
-  (cond [(integer? x) (format-symbol "𝐱~a" (n-sub x))]
-        [else x]))
+    [(-varargs xs rst) (cons xs rst)]
+    [(? list? l) l]))
 
 (define (show-e-map [m : (HashTable -e -e)]) : (Listof Sexp)
   (for/list ([(x y) m]) `(,(show-e x) ↦ ,(show-e y))))

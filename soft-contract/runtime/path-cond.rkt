@@ -10,28 +10,28 @@
          "definition.rkt"
          "simp.rkt")
 
-(: s↓ : -s (℘ Var-Name) → -s)
+(: s↓ : -s (℘ Symbol) → -s)
 ;; Restrict symbol to given set of free variables
 (define (s↓ s xs)
   (and s (e↓ s xs)))
-(: e↓ : -e (℘ Var-Name) → -s)
+(: e↓ : -e (℘ Symbol) → -s)
 (define (e↓ e xs)
   (and (not (set-empty? (∩ (fv e) xs))) #;(⊆ (fv e) xs) e))
 
-(: es↓ : (℘ -e) (℘ Var-Name) → (℘ -e))
+(: es↓ : (℘ -e) (℘ Symbol) → (℘ -e))
 (define (es↓ es xs)
   (for*/set: : (℘ -e) ([e es]
                        [e* (in-value (e↓ e xs))] #:when e*)
      e*))
 
-(: Γ↓ : -Γ (℘ Var-Name) → -Γ)
+(: Γ↓ : -Γ (℘ Symbol) → -Γ)
 ;; Restrict path-condition to given free variables
 (define (Γ↓ Γ xs)
 
   (match-define (-Γ φs as γs) Γ)
   (define φs* (es↓ φs xs))
   (define as*
-    (for/hasheq : (HashTable Var-Name -e) ([(x e) as] #:when (∋ xs x))
+    (for/hasheq : (HashTable Symbol -e) ([(x e) as] #:when (∋ xs x))
       (values x e)))
   (define γs*
     (for/list : (Listof -γ) ([γ γs])
@@ -39,14 +39,14 @@
       (-γ αₖ blm (s↓ sₕ xs) (for/list : (Listof -s) ([sₓ sₓs]) (s↓ sₓ xs)))))
   (-Γ φs* as* γs*))
 
-(: canonicalize : (U -Γ (HashTable Var-Name -e)) Var-Name → -e)
+(: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
 ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
 (define (canonicalize X x)
   (cond [(-Γ? X) (canonicalize (-Γ-aliases X) x)]
         [else (hash-ref X x (λ () (-x x)))]))
 
 ;; Return an expression canonicalizing given expression in terms of lexically farthest possible variable(s)
-(: canonicalize-e : (U -Γ (HashTable Var-Name -e)) -e → -e)
+(: canonicalize-e : (U -Γ (HashTable Symbol -e)) -e → -e)
 (define (canonicalize-e X e)
   (cond [(-Γ? X) (canonicalize-e (-Γ-aliases X) e)]
         [else (e/map (for/hash : Subst ([(x eₓ) X]) (values (-x x) eₓ)) e)]))
@@ -61,10 +61,10 @@
   (match-define (-γ _ _ sₕ sₓs) γ)
   (apply -?@ sₕ sₓs))
 
-(: fvₛ : -s → (℘ Var-Name))
+(: fvₛ : -s → (℘ Symbol))
 (define (fvₛ s) (if s (fv s) ∅eq))
 
-(: invalidate : -Γ Var-Name → -Γ)
+(: invalidate : -Γ Symbol → -Γ)
 ;; Throw away anything known about `x` in `Γ`
 (define (invalidate Γ x)
   (with-debugging/off
@@ -74,7 +74,7 @@
        (for/set: : (℘ -e) ([φ φs] #:unless (∋ (fv φ) x))
          φ))
      (define as*
-       (for/hasheq : (HashTable Var-Name -e) ([(z φ) as]
+       (for/hasheq : (HashTable Symbol -e) ([(z φ) as]
                                               #:unless (eq? z x)
                                               #:unless (∋ (fv φ) x))
          (values z φ)))
@@ -87,8 +87,7 @@
              (and (not (∋ (fvₛ sₓ) x)) sₓ)))
          (-γ αₖ blm sₕ* sₓs*)))
      (-Γ φs* as* γs*))
-    (printf "invalidate ~a:~n- before: ~a~n- after: ~a~n~n"
-            (show-Var-Name x) (show-Γ Γ) (show-Γ Γ*))))
+    (printf "invalidate ~a:~n- before: ~a~n- after: ~a~n~n" x (show-Γ Γ) (show-Γ Γ*))))
 
 (: predicates-of : (U -Γ (℘ -e)) -s → (℘ -v))
 ;; Extract type-like contracts on given symbol

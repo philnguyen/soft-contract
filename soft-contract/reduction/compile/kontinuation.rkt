@@ -76,8 +76,8 @@
 
 ;; letrec-values
 (define/memo (letrec∷ [l : -l]
-                      [xs : (Listof Var-Name)]
-                      [⟦bnd⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧!))]
+                      [xs : (Listof Symbol)]
+                      [⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧!))]
                       [⟦e⟧ : -⟦e⟧!]
                       [ρ : -ρ]
                       [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
@@ -107,7 +107,7 @@
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; μ/c
-(define/memo (μ/c∷ [l : -l] [x : -ℓ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (μ/c∷ [l : -l] [x : Symbol] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W (list V) s) A)
     (match-define (-Σ σ _ _) Σ)
@@ -197,7 +197,7 @@
        (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
 
 ;; Clean up path-condition
-(define/memo (rst∷ [xs : (℘ Var-Name)] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (rst∷ [xs : (℘ Symbol)] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (⟦k⟧ A $ (Γ↓ Γ xs) ⟪ℋ⟫ Σ)))
 

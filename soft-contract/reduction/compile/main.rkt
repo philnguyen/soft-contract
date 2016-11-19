@@ -88,7 +88,7 @@
             (-Γ φs* as* γs*)))
         (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) s) $ Γ ⟪ℋ⟫ Σ))]
      [(-case-λ clauses)
-      (define ⟦clause⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧!))
+      (define ⟦clause⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧!))
         (for/list ([clause clauses])
           (match-define (cons xs e) clause)
           (cons xs (↓ e))))
@@ -164,7 +164,7 @@
         [else (error '↓ₑ "TODO: (quote ~a)" q)])]
      [(-let-values bnds e*)
       (define ⟦bnd⟧s
-        (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧!)) ([bnd bnds])
+        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧!)) ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
           (cons xs (↓ eₓₛ))))
       (define ⟦e*⟧ (↓ e*))
@@ -177,7 +177,7 @@
                                   #;(rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
      [(-letrec-values bnds e*)
       (define ⟦bnd⟧s
-        (for/list : (Listof (Pairof (Listof Var-Name) -⟦e⟧!)) ([bnd bnds])
+        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧!)) ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
           (cons xs (↓ eₓₛ))))
       (define ⟦e*⟧ (↓ e*))
@@ -271,7 +271,7 @@
 
 (define (flattened? [ρ : -ρ])
   (define immutable-vars
-    (for/seteq: : (℘ Var-Name) ([(x α) ρ] #:unless (assignable? x))
+    (for/seteq: : (℘ Symbol) ([(x α) ρ] #:unless (assignable? x))
       x))
   (or (<= (set-count immutable-vars) 1)
       (match-let ([(cons ⟪ℋ⟫₀ ⟪ℋ⟫s)

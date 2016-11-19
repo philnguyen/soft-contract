@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide ext-prove ext-plausible-pc? Timeout
-         memo-ext-prove memo-ext-plausible ; debugging
+         memo-ext-prove memo-ext-plausible #;miss/total ; debugging
          )
 
 (require racket/match
@@ -56,20 +56,29 @@
   (define αₖs (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)))
   (list φs γs (span-M M αₖs)))
 
+#|
+(define total : Natural 0)
+(define miss  : Natural 0)
+(define (miss/total)
+  (values miss total))
+|#
+
 (: ext-plausible-pc? : -M -Γ → Boolean)
 (define (ext-plausible-pc? M Γ)
-  #;(define t₀ (current-milliseconds))
+  ;(define t₀ (current-milliseconds))
+  ;(set! total (+ 1 total))
   (with-debugging/off
     ((plaus?)
      (hash-ref! memo-ext-plausible
                 (->ext-plausible-key M Γ)
                 (λ ()
+                  ;(set! miss (+ 1 miss))
                   (define-values (base _) (encode M Γ #|HACK|# -ff))
                   (case (exec-check-sat₀ base)
                     [(unsat) #f]
                     [(sat unknown) #t]))))
     (define δt (- (current-milliseconds) t₀))
-    (unless #f #;(< δt 300)
+    (unless (< δt (quotient (* (Timeout) 4) 5))
       (printf "ext-plausible? ~a : ~a ~ams~n~n" (show-Γ Γ) plaus? δt))))
 
 

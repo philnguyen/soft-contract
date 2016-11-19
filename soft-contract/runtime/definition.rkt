@@ -14,12 +14,12 @@
 ;;;;; Environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -ρ (HashTable Var-Name -⟪α⟫))
+(define-type -ρ (HashTable Symbol -⟪α⟫))
 (define-type -Δρ -ρ)
 (define ⊥ρ : -ρ (hasheq))
-(define (ρ@ [ρ : -ρ] [x : Var-Name]) : -⟪α⟫
+(define (ρ@ [ρ : -ρ] [x : Symbol]) : -⟪α⟫
   (hash-ref ρ x (λ () (error 'ρ@ "~a not in environment ~a" x (hash-keys ρ)))))
-(define ρ+ : (-ρ Var-Name -⟪α⟫ → -ρ) hash-set)
+(define ρ+ : (-ρ Symbol -⟪α⟫ → -ρ) hash-set)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -113,7 +113,7 @@
             -C)
 
 (-Fn . ::= . (-Clo -formals -⟦e⟧! -ρ -Γ)
-             (-Case-Clo (Listof (Pairof (Listof Var-Name) -⟦e⟧!)) -ρ -Γ))
+             (-Case-Clo (Listof (Pairof (Listof Symbol) -⟦e⟧!)) -ρ -Γ))
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
@@ -162,7 +162,7 @@
 ;; Tails are ordered from least to most recent application.
 ;; Order is important for effective rewriting. TODO obsolete, no longer need to preserve order
 (struct -Γ ([facts : (℘ -e)]
-            [aliases : (HashTable Var-Name -e)]
+            [aliases : (HashTable Symbol -e)]
             [tails : (Listof -γ)]) #:transparent)
 
 ;; Path condition tail is callee block and renaming information,
@@ -185,7 +185,7 @@
       (set-add φs s)))
   (-Γ φs* as ts))
 
-(: -Γ-with-aliases : -Γ Var-Name -s → -Γ)
+(: -Γ-with-aliases : -Γ Symbol -s → -Γ)
 (define (-Γ-with-aliases Γ x s)
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ φs (hash-set as x s) ts)]
@@ -247,7 +247,7 @@
             (-α.def -𝒾)
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Var-Name -⟪ℋ⟫)
+            (-α.x Symbol -⟪ℋ⟫)
             ; for struct field
             (-α.fld [id : -𝒾] [pos : -ℒ] [ctx : -⟪ℋ⟫] [idx : Natural])
             ; for Cons/varargs
@@ -270,7 +270,7 @@
             (-α.vector/c [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.vectorof [pos : -ℓ] [ctx : -⟪ℋ⟫])
             (-α.struct/c [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.x/c [pos : -ℓ])
+            (-α.x/c Symbol)
             (-α.dom [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rng [pos : -ℓ] [ctx : -⟪ℋ⟫])
             (-α.fn [mon-pos : -ℒ] [guard-pos : -ℓ] [ctx : -⟪ℋ⟫])
@@ -321,9 +321,9 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧!] [env : -ρ])
              ;; Contract monitoring
-             (-ℳ [var : Var-Name] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
+             (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
             ;; Flat checking
-             (-ℱ [var : Var-Name] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℒ
+             (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℒ
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -456,10 +456,10 @@
     [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
     [(_ _) `(blame ,l+ ,lo ,(map show-V Cs) ,(map show-V Vs))]))
 
-(: show-bnds : (Listof (Pairof Var-Name -s)) → (Listof Sexp))
+(: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
 (define (show-bnds bnds) (map show-bnd bnds))
 
-(define (show-bnd [x-s : (Pairof Var-Name -s)])
+(define (show-bnd [x-s : (Pairof Symbol -s)])
   (match-define (cons x s) x-s)
   `(,x ↦ ,(show-s s)))
 
@@ -483,11 +483,11 @@
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ x l³ ℓ W-C W-V) ℳ)
-  `(ℳ ,(show-Var-Name x) ,(show-W¹ W-C) ,(show-W¹ W-V)))
+  `(ℳ ,x ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
   (match-define (-ℱ x l ℓ W-C W-V) ℱ)
-  `(ℱ ,(show-Var-Name x) ,(show-W¹ W-C) ,(show-W¹ W-V)))
+  `(ℱ ,x ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
 (define-parameter verbose? : Boolean #f)
 
@@ -510,11 +510,11 @@
 
 (define (show-⟪α⟫ [⟪α⟫ : -⟪α⟫]) : Symbol
   (match (-⟪α⟫->-α ⟪α⟫)
-    [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" (show-Var-Name x) (n-sub ⟪ℋ⟫))]
+    [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
     [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
-  (for/list ([(x ⟪α⟫) ρ]) `(,(show-Var-Name x) ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))))
+  (for/list ([(x ⟪α⟫) ρ]) `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))))
 
 (define show-γ : (-γ → Sexp)
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])

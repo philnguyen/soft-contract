@@ -24,7 +24,7 @@
                [facts     : (℘ →Z3-Ast)]
                [expr      : →Z3-Ast])
   #:transparent)
-(struct App ([ctx : -αₖ] [fvs : (Listof Var-Name)]) #:transparent)
+(struct App ([ctx : -αₖ] [fvs : (Listof Symbol)]) #:transparent)
 (struct Res ([ok : (Listof Entry)] [er : (Listof Entry)]) #:transparent)
 (define-type App-Trace (℘ App))
 ;; Translation context for application includes the application and history of calls
@@ -88,7 +88,7 @@
   (match-define (App-Ctx app ctx) app-ctx)
   (match-define (App αₖ fvs) app)
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
-  (define xs : (Listof Var-Name)
+  (define xs : (Listof Symbol)
     (match αₖ
       [(-ℬ xs _ _) 
        (cond
@@ -156,7 +156,7 @@
          (values oks (cons eₑᵣ ers))])))
   (values refs (Res oks ers)))
 
-(: encode-e : App-Trace (℘ Var-Name) -Γ -e → (Values (℘ Defn-Entry) Entry))
+(: encode-e : App-Trace (℘ Symbol) -Γ -e → (Values (℘ Defn-Entry) Entry))
 ;; Encode path-condition `Γ` and expression `e` into a
 ;; - a Z3-Ast-producing thunk, and
 ;; - a set of function definitions to encode
@@ -201,7 +201,7 @@
   (define/memo (⦃app⦄!
                 [αₖ : -αₖ]
                 [eₕ : -e]
-                [fvs : (Listof Var-Name)]
+                [fvs : (Listof Symbol)]
                 [eₓs : (Listof -e)]) : →Z3-Ast
     (define app (App αₖ fvs))
     (cond
@@ -301,7 +301,7 @@
        (or
         (for/or : (Option →Z3-Ast) ([γ γs])
           (match-define (-γ αₖ blm sₕ sₓs) γ)
-          (define xs : (Option (Listof Var-Name))
+          (define xs : (Option (Listof Symbol))
             (match αₖ
               [(-ℬ xs _ _) (and (list? xs) xs)]
               [(-ℳ x _ _ _ _) (list x)]
@@ -347,7 +347,7 @@
   (: ⦃γ⦄! : -γ → Void)
   (define (⦃γ⦄! γ)
     (match-define (-γ αₖ blm sₕ sₓs) γ)
-    (define xs : (Option (Listof Var-Name))
+    (define xs : (Option (Listof Symbol))
       (match αₖ
         [(-ℬ xs _ _) (and (list? xs) xs)]
         [(-ℳ x _ _ _ _) (list x)]
@@ -696,7 +696,7 @@
                [defs : (Listof →Void) '()])
               ([(f-xs res) def-funs])
       (match-define (App αₖ fvs) f-xs)
-      (define xs : (Listof Var-Name)
+      (define xs : (Listof Symbol)
         (match αₖ
           [(-ℬ xs _ _)
            (cond [(list? xs) xs]
@@ -816,7 +816,7 @@
 (define (⦃𝒾⦄ 𝒾)
   (format-symbol "t.~a" (string->symbol (fix-name (symbol->string (-𝒾-name 𝒾))))))
 
-(: ⦃x⦄ : Var-Name → Symbol)
+(: ⦃x⦄ : Symbol → Symbol)
 (define (⦃x⦄ x)
   (cond [(integer? x) (format-symbol "x.~a" x)]
         [else (string->symbol (fix-name (symbol->string x)))]))
@@ -859,4 +859,4 @@
       (begin0 i (set! i (+ 1 i))))))
 
 ;; memoize to ensure fixed order
-(define/memo (set->list/memo [xs : (Setof Var-Name)]) : (Listof Var-Name) (set->list xs))
+(define/memo (set->list/memo [xs : (Setof Symbol)]) : (Listof Symbol) (set->list xs))

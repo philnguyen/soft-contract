@@ -300,12 +300,12 @@
 
   (define (app-call-with-input-file)
     (match-define (list _ W-cb) Wₓs)
-    (define arg (-W¹ (-● {set 'input-port?}) (-x (+x/memo! 'app 'call-with-input-file))))
+    (define arg (-W¹ (-● {set 'input-port?}) (-x (+x!/memo 'cwif))))
     (app l $ ℒ W-cb (list arg) Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (define (app-call-with-output-file)
     (match-define (list _ W-cb) Wₓs)
-    (define arg (-W¹ (-● {set 'output-port?}) (-x (+x/memo! 'app 'call-with-output-file))))
+    (define arg (-W¹ (-● {set 'output-port?}) (-x (+x!/memo 'cwof))))
     (app l $ ℒ W-cb (list arg) Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (define (app-δ [o : Symbol])
@@ -507,7 +507,7 @@
     [(-Case-Clo clauses ρ Γ)
      (define n (length Wₓs))
      (define clause
-       (for/or : (Option (Pairof (Listof Var-Name) -⟦e⟧!)) ([clause clauses])
+       (for/or : (Option (Pairof (Listof Symbol) -⟦e⟧!)) ([clause clauses])
          (match-define (cons xs _) clause)
          (and (equal? n (length xs)) clause)))
      (cond
@@ -564,7 +564,7 @@
      (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ)))
      (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
-(: alloc-init-args! : -σ -Γ -ρ -⟪ℋ⟫ (Listof Var-Name) (Listof -W¹) → -ρ)
+(: alloc-init-args! : -σ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) → -ρ)
 (define (alloc-init-args! σ Γ ρ ⟪ℋ⟫ xs Ws)
   (for/fold ([ρ : -ρ ρ]) ([x xs] [Wₓ Ws])
     (match-define (-W¹ Vₓ sₓ) Wₓ)
@@ -705,9 +705,9 @@
 
 ;; let-values
 (define/memo (let∷ [l : -l]
-                   [xs : (Listof Var-Name)]
-                   [⟦bnd⟧s : (Listof (Pairof (Listof Var-Name) -⟦e⟧!))]
-                   [bnd-Ws : (Listof (List Var-Name -V -s))]
+                   [xs : (Listof Symbol)]
+                   [⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧!))]
+                   [bnd-Ws : (Listof (List Symbol -V -s))]
                    [⟦e⟧ : -⟦e⟧!]
                    [ρ : -ρ]
                    [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
@@ -717,7 +717,7 @@
     (cond
       [(= n (length Vs))
        (define bnd-Ws*
-         (for/fold ([acc : (Listof (List Var-Name -V -s)) bnd-Ws])
+         (for/fold ([acc : (Listof (List Symbol -V -s)) bnd-Ws])
                    ([x xs] [V Vs] [sₓ (split-values s n)])
            (cons (list x V sₓ) acc)))
        (match ⟦bnd⟧s
@@ -726,7 +726,7 @@
           (define-values (ρ* Γ*) ; with side effect widening store
             (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                       ([bnd-W bnd-Ws*])
-              (match-define (list (? Var-Name? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
+              (match-define (list (? symbol? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
               (define α (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫)))
               (σ⊕! σ α (V+ σ Vₓ (predicates-of Γ sₓ)))
               (values (ρ+ ρ x α) (-Γ-with-aliases Γ x sₓ))))
@@ -869,8 +869,8 @@
   (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
   (match-define (-x/C ⟪α⟫) C)
-  (match-define (-α.x/c ℓₓ) (-⟪α⟫->-α ⟪α⟫))
-  (define x (- ℓₓ)) ; FIXME hack
+  (define x (match-let ([(-α.x/c x*) (-⟪α⟫->-α ⟪α⟫)])
+              (+x!/memo 'mon x*)))
   (define 𝐱 (-x x))
   (match-define (-Σ σ σₖ _) Σ)
   (for/set: : (℘ -ς) ([C* (σ@ σ ⟪α⟫)])
@@ -966,7 +966,8 @@
      (for*/union : (℘ -ς) ([C* (σ@ σ α*)] [C (σ@ σ α)])
        (define ⟦chk⟧
          (let ([⟦inner⟧
-                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C* c*)) (mk-rt-⟦e⟧ (-W¹ -●/V (-x #|FIXME|# -1))))])
+                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C* c*))
+                            (mk-rt-⟦e⟧ (-W¹ -●/V (-x (+x!/memo 'inner)))))])
            (mk-mon-⟦e⟧ l³ ℒ (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
        (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ (list ⟦rt⟧) ⊥ρ ⟦k⟧)))]
     [(-● _)
@@ -1080,8 +1081,8 @@
      (match-define (-W¹ C c) W-C)
      (match-define (-W¹ V v) W-V)
      (match-define (-x/C ⟪α⟫) C)
-     (match-define (-α.x/c ℓₓ) (-⟪α⟫->-α ⟪α⟫))
-     (define x (- ℓₓ)) ; FIXME hack
+     (define x (match-let ([(-α.x/c x*) (-⟪α⟫->-α ⟪α⟫)])
+                 (+x!/memo 'fc x*)))
      (define 𝐱 (-x x))
      (for/set: : (℘ -ς) ([C* (σ@ σ ⟪α⟫)])
        (define W-C* (-W¹ C* c))
