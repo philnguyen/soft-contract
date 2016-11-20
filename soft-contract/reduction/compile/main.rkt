@@ -174,7 +174,7 @@
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ
                                   ⟦k⟧
-                                  #;(rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
+                                  #;(rst∷ (dom ρ) ⟦k⟧))))])]
      [(-letrec-values bnds e*)
       (define ⟦bnd⟧s
         (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧!)) ([bnd bnds])
@@ -197,7 +197,7 @@
            (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
             (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ*
                      ⟦k⟧
-                     #;(rst∷ (dom ρ #:eq? #t) ⟦k⟧))))])]
+                     #;(rst∷ (dom ρ) ⟦k⟧))))])]
      [(-set! x e*)
       (define ⟦e*⟧ (↓ e*))
       (match x
