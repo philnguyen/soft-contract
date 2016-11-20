@@ -1228,10 +1228,10 @@
                            [ρ : -ρ]
                            [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (with-error-handling (⟦k⟧! A $ Γ ⟪ℋ⟫ Σ) #:roots (W-Vs-rev ρ)
-    (match-define (-W¹ Vs s) A)
+    (match-define (-W Vs s) A)
     (match Vs
       [(list (-b #f))
-       (⟦k⟧! -False/W Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧! -False/W $ Γ ⟪ℋ⟫ Σ)]
       [(list (-b #t) V*)
        (define v*
          (match s
@@ -1240,13 +1240,13 @@
        (match ⟦e⟧s
          ['()
           (define ⟦k⟧*
-            (let ([k (-st-mk s)])
-              (ap∷ l ℒ (append W-Vs-rev (list (-W¹ k k))) '() ⊥ρ
-                   (ap∷ l ℒ (list (-W¹ -tt -tt) (-W¹ 'values 'values)) '() ⊥ρ ⟦k⟧!))))
-          (⟦k⟧* (-W (list V*) v*) Γ ⟪ℋ⟫ Σ)]
+            (let ([k (-st-mk 𝒾)])
+              (ap∷ (append W-Vs-rev (list (-W¹ k k))) '() ⊥ρ l ℒ
+                   (ap∷ (list (-W¹ -tt -tt) (-W¹ 'values 'values)) '() ⊥ρ l ℒ ⟦k⟧!))))
+          (⟦k⟧* (-W (list V*) v*) $ Γ ⟪ℋ⟫ Σ)]
          [(cons ⟦e⟧ ⟦e⟧s*)
           (define W* (-W¹ V* v*))
-          (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc-struct/c∷ l ℒ s (cons W* W-Vs-rev) ⟦e⟧s* ρ ⟦k⟧!))])])))
+          (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc-struct/c∷ l ℒ 𝒾 (cons W* W-Vs-rev) ⟦e⟧s* ρ ⟦k⟧!))])])))
 
 (define/memo (fc.v∷ [l : -l]
                     [ℒ : -ℒ]

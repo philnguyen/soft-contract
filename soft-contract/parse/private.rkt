@@ -157,9 +157,9 @@
        [(set-empty? frees)
         (-define-values (list lhs) rhs)]
        [(set-empty? (set-remove frees lhs))
-        (define pos (+ℓ!))
+        (define x (+x! 'rec))
         (-define-values (list lhs)
-           (-μ/c pos (e/ (-x/c.tmp lhs) (-x/c pos) rhs)))]
+           (-μ/c x (e/ (-x/c.tmp lhs) (-x/c x) rhs)))]
        [else
         (error 'TODO
                "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
