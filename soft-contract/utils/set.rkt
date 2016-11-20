@@ -33,14 +33,14 @@
         (~optional (~seq #:as-mutable-hash? mut?:boolean) #:defaults ([(mut? 0) #'#f])))
      (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
                    [s-add! (format-id #'s "~a-add!" #'s)]
-                   [s-add*! (format-id #'s "~a-add*!" #'s)]
+                   [s-add-list! (format-id #'s "~a-add-list!" #'s)]
                    [s-union! (format-id #'s "~a-union!" #'s)])
        (cond
          [(syntax-e #'mut?)
           #'(begin (define s : (HashTable τ True) (if use-eq? (make-hasheq) (make-hash)))
                    (define (s-has? [x : τ]) (hash-has-key? s x))
                    (define (s-add! [x : τ]) (hash-set! s x #t))
-                   (define (s-add*! [xs : (Listof τ)])
+                   (define (s-add-list! [xs : (Listof τ)])
                      (for-each s-add! xs))
                    (define (s-union! [xs : (℘ τ)])
                      (set-for-each xs s-add!)))]
@@ -48,8 +48,8 @@
           #'(begin (define s : (℘ τ) (if use-eq? ∅eq ∅))
                    (define (s-has? [x : τ]) (∋ s x))
                    (define (s-add! [x : τ]) (set! s (set-add s x)))
-                   (define (s-add*! [xs : (Listof τ)])
-                     (set! s (∪ s (if use-eq? (list->seteq xs) (list->set xs)))))
+                   (define (s-add-list! [xs : (Listof τ)])
+                     (set! s (set-add-list s xs)))
                    (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs))))]))]))
 
 (: set-partition (∀ (X) ([(X → Boolean) (℘ X)] [#:eq? Boolean]
@@ -105,34 +105,6 @@
     [(_ : τ (for-clauses ...) body ...)
      (for*/fold ([acc : τ ∅eq]) (for-clauses ...)
        (set-add acc (let () body ...)))]))
-
-;(: collect (∀ (X) (Option X) * → (U X (℘ X))))
-;; Collect all non-#f value into set,
-;; optionally unpack set of size 1
-(define-syntax collect
-  (syntax-rules ()
-    [(_) ∅]
-    [(_ x z ...)
-     (let ([x* x]
-           [z* (collect z ...)])
-       (cond [(set? x*)
-              (cond [(set? z*) (∪ x* z*)]
-                    [else (set-add x* z*)])]
-             [x*
-              (cond [(set? z*) (if (set-empty? z*) x* (set-add z* x*))]
-                    [else {set z* x*}])]
-             [else z*]))]))
-
-;(: merge (∀ (X) (U X (℘ X)) * → (U X (℘ X))))
-(define-syntax merge
-  (syntax-rules ()
-    [(_) ∅]
-    [(_ x) x]
-    [(_ x xs ...)
-     (let ([xs↓ (merge xs ...)]
-           [x↓ x])
-       (cond [(set? xs↓) (if (set? x↓) (∪ x↓ xs↓) (set-add xs↓ x↓))]
-             [else (if (set? x↓) (set-add x↓ xs↓) {set x↓ xs↓})]))]))
 
 (: set->predicate (∀ (X) (℘ X) → (X → Boolean)))
 ;; Convert set to predicate
