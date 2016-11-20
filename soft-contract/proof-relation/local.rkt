@@ -426,29 +426,26 @@
            (match Vs
              [(list (? -●?)) '?]
              [_ '✗])]
-          [(< <=) ; FIXME i may get the boundaries wrong
+          [(<)
            (match Vs
              [(list (-● ps) (-b (? real? b)))
               (match (set->list ps)
-                [(list _ ...
-                       (-λ (list x) (-@ (or '< '<=) (list (-x x) (-b (? real? a))) _))
-                       _ ...)
-                 (if (<= a b) '✓ '?)]
-                [(list _ ...
-                       (-λ (list x) (-@ (or '< '<=) (list (-b (? real? a)) (-x x)) _))
-                       _ ...)
-                 (if (> a b) '✗ '?)]
+                [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
+                [(list _ ... (-≤/c (? real? a)) _ ...) (if (<  a b) '✓ '?)]
+                [(list _ ... (->/c (? real? a)) _ ...) (if (>= a b) '✗ '?)]
+                [(list _ ... (-≥/c (? real? a)) _ ...) (if (>  a b) '✗ '?)]
+                [(list _ ... (-=/c (? real? a)) _ ...) #:when a (if (<  a b) '✓ '✗)]
                 [_ '?])]
-             [(list (-b (? real? b)) (-● ps))
+             [_ '?])]
+          [(<=)
+           (match Vs
+             [(list (-● ps) (-b (? real? b)))
               (match (set->list ps)
-                [(list _ ...
-                       (-λ (list x) (-@ (or '< '<=) (list (-x x) (-b (? real? a))) _))
-                       _ ...)
-                 (if (< a b) '✗ '?)]
-                [(list _ ...
-                       (-λ (list x) (-@ (or '< '<=) (list (-b (? real? a)) (-x x)) _))
-                       _ ...)
-                 (if (>= a b) '✓ '?)]
+                [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
+                [(list _ ... (-≤/c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
+                [(list _ ... (->/c (? real? a)) _ ...) (if (>  a b) '✗ '?)]
+                [(list _ ... (-≥/c (? real? a)) _ ...) (if (>  a b) '✗ '?)]
+                [(list _ ... (-=/c (? real? a)) _ ...) #:when a (if (<= a b) '✓ '✗)]
                 [_ '?])]
              [_ '?])]
           [(>) (p∋Vs σ '< (second Vs) (first Vs))]
