@@ -130,16 +130,16 @@
 
     [equal?
      (case (apply MΓ⊢oW M σ Γ 'equal? Ws)
-       [(✓) {set (list -tt)}]
-       [(✗) {set (list -ff)}]
+       [(✓) {set -True/Vs}]
+       [(✗) {set -False/Vs}]
        [(?) {set -Bool/Vs}])]
     [eq? ((assert (concrete-impl 'equal?)) ⟪ℋ⟫ ℓ M σ Γ Ws)]
     [= ((assert (concrete-impl 'equal?)) ⟪ℋ⟫ ℓ M σ Γ Ws)]
     
     [procedure?
      (case (apply MΓ⊢oW M σ Γ 'procedure? Ws)
-       [(✓) {set (list -tt)}]
-       [(✗) {set (list -ff)}]
+       [(✓) {set -True/Vs}]
+       [(✗) {set -False/Vs}]
        [(?) {set -Bool/Vs}])]
     [make-sequence
      {set (list -car -cdr (-● ∅) -cons? -ff -ff)}]
@@ -341,8 +341,8 @@
           (list
            #`[(#,op)
               (case (apply MΓ⊢oW #,(M-id) #,(σ-id) #,(Γ-id) '#,op #,(Ws-id))
-                [(✓) {set (list -tt)}]
-                [(✗) {set (list -ff)}]
+                [(✓) {set -True/Vs}]
+                [(✗) {set -False/Vs}]
                 [else {set -Bool/Vs}])])]
          ; Return case clause for straightforward lifting of other 1st order operators
          [(and (andmap base? doms) (base? rng))

@@ -28,8 +28,7 @@
                                  (cons -𝒾-box  box-info)))
                 (make-hash)))
 
-(define current-static-info : (Parameterof -static-info)
-  (make-parameter (new-static-info)))
+(define current-static-info : (Parameterof -static-info) (make-parameter (new-static-info)))
 
 (define-syntax-rule (with-initialized-static-info e ...)
   (parameterize ([current-static-info (new-static-info)])
