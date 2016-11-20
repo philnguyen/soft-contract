@@ -49,7 +49,7 @@
     (unless (or (set-empty? front) #|FIXME|# #;(> iter 80))
       (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
-      #;(begin
+      (begin
         (define num-front (set-count front))
         (printf "* ~a: ~a" iter num-front )
         ;(printf " (~a + ~a)" (length ς↑s) (length ς↓s))
@@ -75,7 +75,7 @@
           (for ([ς ς↓s])
             (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
 
-          (begin ; interactive
+          #;(begin ; interactive
               (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
               (match (read)
                 [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
@@ -193,7 +193,6 @@
             ∅]
            [else
             (define γ (-γ αₖ #f sₕ sₓs))
-            (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
             (define Γₑᵣ**
               ; It's useful to check for feasibility of a strong path-condition
               ; before forgetting and keeping the path-condition address
@@ -237,10 +236,9 @@
                     (cond
                       [(⊆ (fv φ) xs) (set-add φs-path (e/map m φ))]
                       [else φs-path])))
-                (apply Γ+ Γₑᵣ* φ-ans (set->list φs-path))))
+                (apply Γ+ Γₑᵣ φ-ans (set->list φs-path))))
             (cond
-              [(or (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
-                   (plausible-pc? M Γₑᵣ**))
+              [(plausible-return? M Γₑᵣ** γ Γₑₑ)
                (hash-set! returned key #t)
                (define sₐ*
                  (and sₐ
@@ -250,11 +248,7 @@
                            [(list (-b #f)) -ff]
                            [(list (-b #t) _) (-?@ 'values -tt x)])]
                         [_ fargs])))
-               #;(define σ (-Σ-σ Σ))
-               #;(define Vs* : (Listof -V)
-                   (for/list ([V Vs] [s (split-values sₐ* (length Vs))])
-                     (V+ σ V (predicates-of Γₑₑ s))))
-               (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
+               (⟦k⟧ (-W Vs sₐ*) $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
               [else ∅])])]
         [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
          (match-define (-blm l+ lo _ _) blm)
@@ -268,57 +262,10 @@
               [(havoc † Λ) ∅]
               [else
                (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
-               (define Γₑᵣ* (-Γ-plus-γ Γₑᵣ γ))
                (cond
-                 [(or (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
-                      (plausible-pc? M Γₑᵣ*))
+                 [(plausible-return? M Γₑᵣ γ Γₑₑ)
                   (hash-set! returned key #t)
-                  (⟦k⟧ blm $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
+                  (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
                  [else ∅])])])]))))
   ;(printf "  -- hits: ~a/~a~n" hits total)
   ans)
-
-(: no-obvious-conflict? : -Γ -γ -Γ → Boolean)
-;; Heuristic check that there's no need for heavyweight SMT call
-;; to filter out spurious return/blame
-(define (no-obvious-conflict? Γₑᵣ γ Γₑₑ)
-
-  (: talks-about? : -Γ -e → Boolean)
-  (define (talks-about? Γ e)
-    (match-define (-Γ φs _ γs) Γ)
-    (or (for/or : Boolean ([φ φs])
-          (e-talks-about? φ e))
-        (for/or : Boolean ([γ γs])
-          (match-define (-γ _ _ sₕ sₓs) γ)
-          (or (and sₕ (e-talks-about? sₕ e))
-              (for/or : Boolean ([sₓ sₓs] #:when sₓ)
-                (e-talks-about? sₓ e))))))
-
-  (: e-talks-about? : -e -e → Boolean)
-  (define (e-talks-about? e₁ e₂)
-    (let loop ([e : -e e₁])
-      (or (equal? e e₂)
-          (match e
-            [(-@ eₕ es _) (or (loop eₕ) (ormap loop es))]
-            [_ #f]))))
-
-  (match-define (-γ αₖ _ sₕ sₓs) γ)
-
-  (match αₖ
-    [(-ℬ (? list? xs) _ _)
-     (not (or (for/or : Boolean ([x xs] [sₓ sₓs])
-                (and sₓ
-                     (Γₑᵣ . talks-about? . sₓ)
-                     (Γₑₑ . talks-about? . (-x x))))
-              (for/or : Boolean ([x (if sₕ (fv sₕ) ∅eq)])
-                (and (Γₑᵣ . talks-about? . (-x x))
-                     (Γₑₑ . talks-about? . (-x x))))))]
-    [(-ℳ x _ _ _ (-W¹ _ sₓ))
-     (not (and sₓ
-               (Γₑᵣ . talks-about? . sₓ)
-               (Γₑₑ . talks-about? . (-x x))))]
-    [(-ℱ x _ _ _ (-W¹ _ sₓ))
-     (not (and sₓ
-               (Γₑᵣ . talks-about? . sₓ)
-               (Γₑₑ . talks-about? . (-x x))))]
-    [_ #f]))

@@ -1,10 +1,11 @@
 #lang typed/racket/base
 
-(provide ext-prove ext-plausible-pc? Timeout
+(provide ext-prove ext-plausible-return? Timeout
          memo-ext-prove memo-ext-plausible #;miss/total ; debugging
          )
 
 (require racket/match
+         racket/set
          (only-in z3/ffi toggle-warning-messages!)
          z3/smt
          "../utils/main.rkt"
@@ -21,22 +22,18 @@
 (define-type Ext-Prove-Key (List -e (℘ -e) (Listof -γ) (HashTable -αₖ (℘ -ΓA))))
 (define memo-ext-prove : (HashTable Ext-Prove-Key -R) (make-hash))
 
-(: ->ext-prove-key : -M -Γ -e → Ext-Prove-Key)
-(define (->ext-prove-key M Γ e)
-  (define fvs (fv e))
-  (match-define (-Γ φs _ γs) (Γ↓ Γ fvs))
-  (define αₖs (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)))
-  (list e φs γs (span-M M αₖs)))
-
 (: ext-prove : -M -Γ -e → -R)
 (define (ext-prove M Γ e)
   #;(define t₀ (current-milliseconds))
   (with-debugging/off
     ((R)
+     (define fvs (fv e))
+     (match-define (and Γ* (-Γ φs _ γs)) (Γ↓ Γ fvs))
+     (define M* (span-M M (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ))))
      (hash-ref! memo-ext-prove
-                (->ext-prove-key M Γ e)
+                (list e φs γs M*)
                 (λ ()
-                  (define-values (base goal) (encode M Γ e))
+                  (define-values (base goal) (encode M* Γ* e))
                   (match/values (exec-check-sat base goal)
                     [('unsat _) '✓]
                     [(_ 'unsat) '✗]
@@ -47,14 +44,8 @@
 
 
 ;; Stuff for memoizing `ext-plausible-pc?`
-(define-type Ext-Plausible-Key (List (℘ -e) (Listof -γ) (HashTable -αₖ (℘ -ΓA))))
+(define-type Ext-Plausible-Key (List -γ (℘ -e) (Listof -γ) (HashTable -αₖ (℘ -ΓA))))
 (define memo-ext-plausible : (HashTable Ext-Plausible-Key Boolean) (make-hash))
-
-(: ->ext-plausible-key : -M -Γ → Ext-Plausible-Key)
-(define (->ext-plausible-key M Γ)
-  (match-define (-Γ φs _ γs) Γ)
-  (define αₖs (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)))
-  (list φs γs (span-M M αₖs)))
 
 #|
 (define total : Natural 0)
@@ -63,23 +54,71 @@
   (values miss total))
 |#
 
+(: ext-plausible-return? : -M -Γ -γ -Γ → Boolean)
+(define (ext-plausible-return? M Γₑᵣ γ Γₑₑ)
+  (match-define (-γ αₖ _ sₕ sₓs) γ)
+  (define fvsₑᵣ (apply ∪ (if (or (-λ? sₕ) (-case-λ? sₕ)) (fv sₕ) ∅eq)
+                         (map fvₛ sₓs)))
+  (match-define (and Γₑᵣ* (-Γ φs _ γs)) (Γ↓ Γₑᵣ fvsₑᵣ))
+  (define M* (span-M M (set-add (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)) αₖ)))
+  (hash-ref! memo-ext-plausible
+             (list γ φs γs M*)
+             (λ ()
+               (cond [(no-possible-conflict? Γₑᵣ γ Γₑₑ) #t]
+                     [else (ext-plausible-pc? M* (-Γ-plus-γ Γₑᵣ* γ))]))))
+
 (: ext-plausible-pc? : -M -Γ → Boolean)
 (define (ext-plausible-pc? M Γ)
-  ;(define t₀ (current-milliseconds))
-  ;(set! total (+ 1 total))
-  (with-debugging/off
-    ((plaus?)
-     (hash-ref! memo-ext-plausible
-                (->ext-plausible-key M Γ)
-                (λ ()
-                  ;(set! miss (+ 1 miss))
-                  (define-values (base _) (encode M Γ #|HACK|# -ff))
-                  (case (exec-check-sat₀ base)
-                    [(unsat) #f]
-                    [(sat unknown) #t]))))
-    (define δt (- (current-milliseconds) t₀))
-    (unless (< δt (quotient (* (Timeout) 4) 5))
-      (printf "ext-plausible? ~a : ~a ~ams~n~n" (show-Γ Γ) plaus? δt))))
+  (define-values (base _) (encode M Γ #|HACK|# -ff))
+  (case (exec-check-sat₀ base)
+    [(unsat) #f]
+    [(sat unknown) #t]))
+
+(: no-possible-conflict? : -Γ -γ -Γ → Boolean)
+;; Heuristic check that there's no need for heavyweight SMT call
+;; to filter out spurious return/blame
+(define (no-possible-conflict? Γₑᵣ γ Γₑₑ)
+
+  (: talks-about? : -Γ -e → Boolean)
+  (define (talks-about? Γ e)
+    (match-define (-Γ φs _ γs) Γ)
+    (or (for/or : Boolean ([φ φs])
+          (e-talks-about? φ e))
+        (for/or : Boolean ([γ γs])
+          (match-define (-γ _ _ sₕ sₓs) γ)
+          (or (and sₕ (e-talks-about? sₕ e))
+              (for/or : Boolean ([sₓ sₓs] #:when sₓ)
+                (e-talks-about? sₓ e))))))
+
+  (: e-talks-about? : -e -e → Boolean)
+  (define (e-talks-about? e₁ e₂)
+    (let loop ([e : -e e₁])
+      (or (equal? e e₂)
+          (match e
+            [(-@ eₕ es _) (or (loop eₕ) (ormap loop es))]
+            [_ #f]))))
+
+  (match-define (-γ αₖ _ sₕ sₓs) γ)
+
+  (match αₖ
+    [(-ℬ (? list? xs) _ _)
+     (not (or (for/or : Boolean ([x xs] [sₓ sₓs])
+                (and sₓ
+                     (Γₑᵣ . talks-about? . sₓ)
+                     (Γₑₑ . talks-about? . (-x x))))
+              (for/or : Boolean ([x (if sₕ (fv sₕ) ∅eq)])
+                (and (Γₑᵣ . talks-about? . (-x x))
+                     (Γₑₑ . talks-about? . (-x x))))))]
+    ;; disable for monitoring blocks for now because can't know their shared free variables
+    #;[(-ℳ x _ _ _ (-W¹ _ sₓ))
+     (not (and sₓ
+               (Γₑᵣ . talks-about? . sₓ)
+               (Γₑₑ . talks-about? . (-x x))))]
+    #;[(-ℱ x _ _ _ (-W¹ _ sₓ))
+     (not (and sₓ
+               (Γₑᵣ . talks-about? . sₓ)
+               (Γₑₑ . talks-about? . (-x x))))]
+    [_ #f]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,8 +1,7 @@
 #lang typed/racket/base
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
-         #;plausible-return? #;plausible-blame?
-         plausible-pc? plausible-index? plausible-indices
+         plausible-return? plausible-index? plausible-indices
          (all-from-out "local.rkt" "widen.rkt"))
 
 (require racket/match
@@ -98,8 +97,8 @@
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: plausible-pc? : -M -Γ → Boolean)
-(define plausible-pc? ext-plausible-pc?)
+(: plausible-return? : -M -Γ -γ -Γ → Boolean)
+(define plausible-return? ext-plausible-return?)
 
 (: plausible-index? : -M -σ -Γ -W¹ Natural → Boolean)
 (define (plausible-index? M σ Γ W i)
