@@ -5,7 +5,7 @@
 
 (require
  racket/match racket/set
- (for-syntax racket/base racket/syntax))
+ (for-syntax racket/base racket/syntax syntax/parse))
 
 (define-type ℘ Setof)
 (define ∅ : (℘ Nothing) (set))
@@ -26,21 +26,31 @@
     (set-add xs* x)))
 
 ;; Define set with shortened syntax for (imperative) adding and membership testing
-(define-syntax (define-set stx)
-  (syntax-case stx (:)
-    [(_ s : τ)
-     #'(define-set s : τ #:eq? #f)]
-    [(_ s : τ #:eq? use-eq?)
+(define-syntax define-set
+  (syntax-parser
+    [(_ s (~literal :) τ
+        (~optional (~seq #:eq? use-eq?) #:defaults ([(use-eq? 0) #'#f]))
+        (~optional (~seq #:as-mutable-hash? mut?:boolean) #:defaults ([(mut? 0) #'#f])))
      (with-syntax ([s-has? (format-id #'s "~a-has?" #'s)]
                    [s-add! (format-id #'s "~a-add!" #'s)]
                    [s-add*! (format-id #'s "~a-add*!" #'s)]
                    [s-union! (format-id #'s "~a-union!" #'s)])
-       #'(begin (define s : (℘ τ) (if use-eq? ∅eq ∅))
-                (define (s-has? [x : τ]) : Boolean (∋ s x))
-                (define (s-add! [x : τ]) (set! s (set-add s x)))
-                (define (s-add*! [xs : (Listof τ)])
-                  (set! s (∪ s (if use-eq? (list->seteq xs) (list->set xs)))))
-                (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs)))))]))
+       (cond
+         [(syntax-e #'mut?)
+          #'(begin (define s : (HashTable τ True) (if use-eq? (make-hasheq) (make-hash)))
+                   (define (s-has? [x : τ]) (hash-has-key? s x))
+                   (define (s-add! [x : τ]) (hash-set! s x #t))
+                   (define (s-add*! [xs : (Listof τ)])
+                     (for-each s-add! xs))
+                   (define (s-union! [xs : (℘ τ)])
+                     (set-for-each xs s-add!)))]
+         [else
+          #'(begin (define s : (℘ τ) (if use-eq? ∅eq ∅))
+                   (define (s-has? [x : τ]) (∋ s x))
+                   (define (s-add! [x : τ]) (set! s (set-add s x)))
+                   (define (s-add*! [xs : (Listof τ)])
+                     (set! s (∪ s (if use-eq? (list->seteq xs) (list->set xs)))))
+                   (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs))))]))]))
 
 (: set-partition (∀ (X) ([(X → Boolean) (℘ X)] [#:eq? Boolean]
                          . ->* . (Values (℘ X) (℘ X)))))

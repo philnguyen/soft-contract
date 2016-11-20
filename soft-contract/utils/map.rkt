@@ -126,8 +126,9 @@
 
 (: hash-copy/spanning (∀ (X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → (HashTable X Y)))
 (define (hash-copy/spanning m xs y->xs)
-  (define-set touched : X)
-  (define m* : (HashTable X Y) (if (hash-eq? m) (make-hasheq) (make-hash)))
+  (define X-eq? (hash-eq? m))
+  (define-set touched : X #:eq? X-eq? #:as-mutable-hash? #t)
+  (define m* : (HashTable X Y) (if X-eq? (make-hasheq) (make-hash)))
   (define (touch! [x : X]) : Void
     (unless (touched-has? x)
       (touched-add! x)

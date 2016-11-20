@@ -116,7 +116,7 @@
 (: gen-havoc-exp : (Listof -module) → -e)
 ;; Generate top-level expression havoc-ing modules' exports
 (define (gen-havoc-exp ms)
-  (define-set refs : -𝒾)
+  (define-set refs : -𝒾 #:as-mutable-hash? #t)
   
   (for ([m (in-list ms)])
     (match-define (-module path forms) m)
@@ -127,7 +127,7 @@
 
   (with-debugging/off
     ((ans) (-amb/simp #;(inst -begin/simp -e)
-            (for/list ([ref (in-set refs)])
+            (for/list ([ref (in-hash-keys refs)])
               (-@ havoc-𝒾 (list ref) (+ℓ!)))))
     (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 

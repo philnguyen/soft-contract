@@ -48,7 +48,7 @@
 ;; `#f` is a conservative "don't know" answer
 (define (V⊑ σ V₁ V₂)
 
-  (define-set seen : (Pairof -⟪α⟫ -⟪α⟫))
+  (define-set seen : (Pairof -⟪α⟫ -⟪α⟫) #:as-mutable-hash? #t)
 
   (: go/⟪α⟫ : -⟪α⟫ -⟪α⟫ → Boolean)
   (define (go/⟪α⟫ α₁ α₂)
@@ -223,7 +223,7 @@
 (: extract-list-content : -σ -St → (℘ -V))
 ;; Return an abstract value approximating all list element in `V`
 (define (extract-list-content σ V)
-  (define-set seen : -⟪α⟫ #:eq? #t)
+  (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
   (match-define (-Cons αₕ αₜ) V)
   (define Vs (σ@ σ αₕ))
   (let loop! ([αₜ : -⟪α⟫ αₜ])

@@ -113,7 +113,7 @@
 
 (: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ -⟪α⟫))
 (define (αₖ->⟪α⟫s αₖ σₖ)
-  (define-set seen : -αₖ)
+  (define-set seen : -αₖ #:as-mutable-hash? #t)
   (define-set αs   : -⟪α⟫ #:eq? #t)
   (let touch! ([αₖ : -αₖ αₖ])
     (unless (seen-has? αₖ)

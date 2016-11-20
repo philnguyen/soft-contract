@@ -456,7 +456,7 @@
           [(list?)
            (match Vs
              [(list V)
-              (define-set seen : -V)
+              (define-set seen : -V #:as-mutable-hash? #t)
               (define (combine [Rs : (℘ -R)]) : -R
                 (cond
                   [(∋ Rs '?) '?]
@@ -465,7 +465,7 @@
                   [else '✓]))
               (define (check [V : -V]) : -R
                 (cond
-                  [(∋ seen V) '✓]
+                  [(seen-has? V) '✓]
                   [else
                    (seen-add! V)
                    (match V

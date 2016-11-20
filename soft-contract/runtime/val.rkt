@@ -73,7 +73,7 @@
 ;; `#t` is a conservative answer "maybe yes"
 ;; `#f` is a strong answer "definitely no"
 (define (behavioral? σ V)
-  (define-set seen : -V #:eq? #t)
+  (define-set seen : -V #:eq? #t #:as-mutable-hash? #t) ; `eq?` may cause some misses but ok
 
   (: check-⟪α⟫! : -⟪α⟫ → Boolean)
   (define (check-⟪α⟫! α)
