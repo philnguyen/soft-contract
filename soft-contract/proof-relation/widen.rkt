@@ -8,7 +8,8 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "local.rkt")
+         "local.rkt"
+         (for-syntax racket/base racket/list racket/syntax syntax/parse))
 
 (: σ⊕! ([-σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
@@ -94,6 +95,13 @@
              V*)]
       [#f (set-add Vs V)]))
 
+  (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) X))) → (℘ X)))
+  (define (repeat-compact xs x f)
+    (let loop ([xs : (℘ X) xs] [x : X x])
+      (match (f xs x)
+        [(cons xs* x*) (loop xs* x*)]
+        [(? set? s) s])))
+
   (repeat-compact Vs V iter))
 
 (: V+ : -σ -V (U -v -V (℘ -v) (℘ -V)) → -V)
@@ -136,49 +144,59 @@
                             (if (-v? P) (show-e P) (show-V P))
                             (show-V V*)))))]))
 
-(: p+ : -v -v → (Option -v))
+(: p+ : -v -v → (Option (℘ -v)))
 ;; Combine 2 predicates for a more precise one.
 ;; Return `#f` if there's no single predicate that refines both
 (define p+
-  (match-lambda**
-   [(p q) #:when (equal? '✓ (p⇒p p q)) p]
-   [(p q) #:when (equal? '✓ (p⇒p q p)) q]
-   [((or 'exact-integer? 'exact-nonnegative-integer?)
-     (-≥/c (and (? (between/c 0 1)) (not 0))))
-    'exact-positive-integer?]
-   [((or 'exact-integer? 'exact-nonnegative-integer?)
-     (->/c (and (? (between/c 0 1)) (not 1))))
-    'exact-positive-integer?]
-   [('exact-integer? (-≥/c (and (? (between/c -1 0)) (not -1))))
-    'exact-nonnegative-integer?]
-   [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
-    'exact-nonnegative-integer?]
-   ; TR doesn't work well with `match-lambda*` and `list-no-order`
-   [((-≥/c (and (? (between/c 0 1)) (not 0)))
-     (or 'exact-integer? 'exact-nonnegative-integer?))
-    'exact-positive-integer?]
-   [((->/c (and (? (between/c 0 1)) (not 1)))
-     (or 'exact-integer? 'exact-nonnegative-integer?))
-    'exact-positive-integer?]
-   [((-≥/c (and (? (between/c -1 0)) (not -1))) 'exact-integer?)
-    'exact-nonnegative-integer?]
-   [((->/c (and (? (between/c -1 0)) (not  0))) 'exact-integer?)
-    'exact-nonnegative-integer?]
-   [(_ _) #f]))
+  (let-syntax ([match-lambda**/symmetry
+                ;; b/c TR doesn't work well with `match-lambda*` and `list-no-order`
+                (syntax-parser
+                  [(_ clauses ...)
+                   (define doubled-clauses
+                     (append-map
+                      (λ (clause)
+                        (with-syntax ([[(x y) e ...] clause])
+                          (list #'[(x y) e ...] #'[(y x) e ...])))
+                      (syntax->list #'(clauses ...))))
+                   #`(match-lambda** #,@doubled-clauses [(_ _) #f])])])
+    
+    (match-lambda**/symmetry
+     [(p q) #:when (equal? '✓ (p⇒p p q)) {set p}]
+     [((or 'exact-integer? 'exact-nonnegative-integer?)
+       (-≥/c (and (? (between/c 0 1)) (not 0))))
+      {set 'exact-positive-integer?}]
+     [((or 'exact-integer? 'exact-nonnegative-integer?)
+       (->/c (and (? (between/c 0 1)) (not 1))))
+      {set 'exact-positive-integer?}]
+     [('exact-integer? (-≥/c (and (? (between/c -1 0)) (not -1))))
+      {set 'exact-nonnegative-integer?}]
+     [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
+      {set 'exact-nonnegative-integer?}]
+     [('list? (-not/c 'null?)) {set 'list? -cons?}]
+     [('list? (-not/c -cons?)) {set 'null?}])))
 
 (: ps+ : (℘ -v) -v → (℘ -v))
 ;; Strengthen refinement set with new predicate
 (define (ps+ ps p)
 
-  (: iter : (℘ -v) -v → (U (℘ -v) (Pairof (℘ -v) -v)))
+  (: iter : (℘ -v) -v → (U (℘ -v) (Pairof (℘ -v) (℘ -v))))
   (define (iter ps p)
-    (match (for/or : (Option (List -v -v -v)) ([pᵢ ps])
-             (cond [(p+ pᵢ p) => (λ ([p* : -v]) (list p* pᵢ p))]
+    (match (for/or : (Option (List (℘ -v) -v -v)) ([pᵢ ps])
+             (cond [(p+ pᵢ p) => (λ ([ps : (℘ -v)]) (list ps pᵢ p))]
                    [else #f]))
-      [(list p* pᵢ p)
+      [(list ps pᵢ p)
        (cons (set-remove (set-remove ps pᵢ) p)
-             p*)]
+             ps)]
       [#f (set-add ps p)]))
+
+  (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) (℘ X)))) → (℘ X)))
+  (define (repeat-compact xs x f)
+    (let loop ([xs : (℘ X) xs] [x : X x])
+      (match (f xs x)
+        [(cons xs₁ xs₂)
+         (for/fold ([acc : (℘ X) xs₁]) ([x xs₂])
+           (loop acc x))]
+        [(? set? s) s])))
 
   (repeat-compact ps p iter))
 
@@ -213,12 +231,7 @@
     [((-● ps) (-● qs)) (-● (∩ ps qs))]
     [(_ _) #f]))
 
-(: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) X))) → (℘ X)))
-(define (repeat-compact xs x f)
-  (let loop ([xs : (℘ X) xs] [x : X x])
-    (match (f xs x)
-      [(cons xs* x*) (loop xs* x*)]
-      [(? set? s) s])))
+
 
 (: extract-list-content : -σ -St → (℘ -V))
 ;; Return an abstract value approximating all list element in `V`
