@@ -6,6 +6,7 @@
 
 (require racket/match
          racket/set
+         racket/list
          (only-in z3/ffi toggle-warning-messages!)
          z3/smt
          "../utils/main.rkt"
@@ -64,8 +65,13 @@
   (hash-ref! memo-ext-plausible
              (list γ φs γs M*)
              (λ ()
-               (cond [(no-possible-conflict? Γₑᵣ γ Γₑₑ) #t]
-                     [else (ext-plausible-pc? M* (-Γ-plus-γ Γₑᵣ* γ))]))))
+               (with-debugging/off
+                 ((ans₁)
+                  (cond [(maybe-no-conflict? Γₑᵣ γ Γₑₑ) #t]
+                        [else (ext-plausible-pc? M* (-Γ-plus-γ Γₑᵣ* γ))]))
+                 (define ans₂ (ext-plausible-pc? M (-Γ-plus-γ Γₑᵣ γ)))
+                 (unless (equal? ans₁ ans₂)
+                   (error "inconsistent"))))))
 
 (: ext-plausible-pc? : -M -Γ → Boolean)
 (define (ext-plausible-pc? M Γ)
@@ -74,10 +80,10 @@
     [(unsat) #f]
     [(sat unknown) #t]))
 
-(: no-possible-conflict? : -Γ -γ -Γ → Boolean)
+(: maybe-no-conflict? : -Γ -γ -Γ → Boolean)
 ;; Heuristic check that there's no need for heavyweight SMT call
 ;; to filter out spurious return/blame
-(define (no-possible-conflict? Γₑᵣ γ Γₑₑ)
+(define (maybe-no-conflict? Γₑᵣ γ Γₑₑ)
 
   (: talks-about? : -Γ -e → Boolean)
   (define (talks-about? Γ e)
@@ -109,12 +115,13 @@
               (for/or : Boolean ([x (if sₕ (fv sₕ) ∅eq)])
                 (and (Γₑᵣ . talks-about? . (-x x))
                      (Γₑₑ . talks-about? . (-x x))))))]
-    ;; disable for monitoring blocks for now because can't know their shared free variables
-    #;[(-ℳ x _ _ _ (-W¹ _ sₓ))
+    [(-ℳ x _ _ _ _)
+     (match-define (list sₓ) sₓs)
      (not (and sₓ
                (Γₑᵣ . talks-about? . sₓ)
                (Γₑₑ . talks-about? . (-x x))))]
-    #;[(-ℱ x _ _ _ (-W¹ _ sₓ))
+    [(-ℱ x _ _ _ _)
+     (match-define (list sₓ) sₓs)
      (not (and sₓ
                (Γₑᵣ . talks-about? . sₓ)
                (Γₑₑ . talks-about? . (-x x))))]
