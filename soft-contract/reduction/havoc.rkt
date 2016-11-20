@@ -15,17 +15,17 @@
 (define 𝐱 (-x 𝒙))
 (define 𝐱s (list 𝐱))
 (define ⟦rev-hv⟧ : -⟦e⟧!
-  (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
+  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (let ([Vs (σ@ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾)))])
       (assert (= 1 (set-count Vs)))
-      (⟦k⟧ (-W (list (set-first Vs)) havoc-𝒾) $ Γ 𝒞 Σ))))
+      (⟦k⟧ (-W (list (set-first Vs)) havoc-𝒾) $ Γ ⟪ℋ⟫ Σ))))
 
 (: gen-havoc-clo : (Listof -module) → -Clo)
 (define (gen-havoc-clo ms)
   (define accs (prog-accs ms))
 
   (define ⟦e⟧ₕᵥ : -⟦e⟧!
-    (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
+    (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-Σ σ _ _) Σ)
       (define Vs (σ@ σ (ρ@ ρ 𝒙)))
       (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
@@ -46,7 +46,7 @@
       
 
       #;(define (done-with-●)
-        (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt 'done))) $ Γ 𝒞 Σ))
+        (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt 'done))) $ Γ ⟪ℋ⟫ Σ))
 
       (for*/union : (℘ -ς) ([V (in-set Vs)])
         ;(printf "havoc-ing ~a~n" (show-V V))
@@ -65,20 +65,20 @@
              (define ●s : (Listof -W¹)
                (for/list ([i k])
                  (-W¹ -●/V (-x (+x!/memo 'hv #;k i)))))
-             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ 𝒞 Σ
+             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ ⟪ℋ⟫ Σ
                   (ap∷ (list Wₕᵥ) '() ⊥ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-res tag))
                        (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun tag)) ⟦k⟧))))
            
            (define a (V-arity V))
            (match a
              [(arity-at-least k)
-              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ 𝒞 Σ)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ ⟪ℋ⟫ Σ)
                  (hv/arity (+ 1 k)))]
              [(? integer? k)
-              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ 𝒞 Σ)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ ⟪ℋ⟫ Σ)
                  (hv/arity k))]
              [(? list? ks)
-              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ 𝒞 Σ)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ ⟪ℋ⟫ Σ)
                  (for/union : (℘ -ς) ([k ks])
                    (cond [(integer? k) (hv/arity k)]
                          [else (error 'havoc "TODO: ~a" k)])))]
@@ -90,7 +90,7 @@
            (∪ #;(done-with-●)
               (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
                (define Acc (-W¹ acc acc))
-               (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ 𝒞 Σ
+               (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ ⟪ℋ⟫ Σ
                     (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'ac))
                          (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'st)) ⟦k⟧)))))]
 
@@ -101,7 +101,7 @@
           [(-Vector αs)
            (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
              (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ 𝒞 Σ
+             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
                   (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0))
                        (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧))))]
 
@@ -181,6 +181,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! _ $ Γ 𝒞 Σ) #:roots (W)
+  (with-error-handling (⟦k⟧! _ $ Γ ⟪ℋ⟫ Σ) #:roots (W)
     (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
-    (app havoc-path $ ℒ Wₕᵥ (list W) Γ 𝒞 Σ ⟦k⟧!)))
+    (app havoc-path $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧!)))

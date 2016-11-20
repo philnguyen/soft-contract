@@ -14,9 +14,9 @@
   (instrument (λ (x ...) e ...)))
 
 (define/memoeq (instrument [⟦e⟧ : -⟦e⟧!]) : -⟦e⟧!
-  (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
+  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (define t₀ (current-milliseconds))
-    (define ans (⟦e⟧ ρ $ Γ 𝒞 Σ ⟦k⟧))
+    (define ans (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
     (define δt (- (current-milliseconds) t₀))
     (hash-update! call-count ⟦e⟧ add1 (λ () 0))
     (hash-update! total-time ⟦e⟧ (λ ([t : Integer]) (+ t δt)) (λ () 0))

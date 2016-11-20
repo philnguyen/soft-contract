@@ -329,10 +329,6 @@
     (match xs
       [(? list? xs)
        (cond ;; guard against unneccessary lengthy loop by havoc
-         #;[(and (equal? 𝒞* 𝒞)
-               (let ([Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)])
-                 (equal? Wₕᵥ Wₕ)))
-          ∅]
          [else
           (define ρ* (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs))
           (define αₖ (-ℬ xs ⟦e⟧ ρ*))

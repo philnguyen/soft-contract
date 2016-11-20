@@ -27,14 +27,14 @@
   (values σ e†))
 
 (define -⟦boolean?⟧ : -⟦e⟧!
-  (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
-    (⟦k⟧ (-W (list 'boolean?) 'boolean?) $ Γ 𝒞 Σ)))
+  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (⟦k⟧ (-W (list 'boolean?) 'boolean?) $ Γ ⟪ℋ⟫ Σ)))
 (define -⟦any/c⟧ : -⟦e⟧!
-  (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
-    (⟦k⟧ (-W (list 'any/c) 'any/c) $ Γ 𝒞 Σ)))
+  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (⟦k⟧ (-W (list 'any/c) 'any/c) $ Γ ⟪ℋ⟫ Σ)))
 (define -⟦void?⟧ : -⟦e⟧!
-  (λ (ρ $ Γ 𝒞 Σ ⟦k⟧)
-    (⟦k⟧ (-W (list 'void?) 'void?) $ Γ 𝒞 Σ)))
+  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (⟦k⟧ (-W (list 'void?) 'void?) $ Γ ⟪ℋ⟫ Σ)))
 
 (: alloc! : -σ Any → Void)
 ;; Allocate primitives wrapped with contracts.

@@ -17,14 +17,14 @@
     [(_ root:id) #'(->⟪α⟫s root)]
     [(_ root:id ...) #'(∪ (->⟪α⟫s root) ...)]))
 
-(define-simple-macro (with-error-handling (⟦k⟧:id A:id $:id Γ:id 𝒞:id Σ:id)
+(define-simple-macro (with-error-handling (⟦k⟧:id A:id $:id Γ:id ⟪ℋ⟫:id Σ:id)
                        #:roots (root:id ...)
                        e ...)
   (let ([αₖ (⟦k⟧->αₖ ⟦k⟧)]
         [frame-roots (compute-frame-roots root ...)]
         [tail-roots (⟦k⟧->roots ⟦k⟧)])
     (define ⟦k⟧* : -⟦k⟧!
-      (λ (A $ Γ 𝒞 Σ)
+      (λ (A $ Γ ⟪ℋ⟫ Σ)
         (cond [(-blm? A)
                (case (-blm-violator A)
                  [(havoc Λ †) ∅]
