@@ -13,33 +13,6 @@
 (provide (all-defined-out)
          (all-from-out "app.rkt"))
 
-(define print-cache : (HashTable -blm Void) (make-hash))
-(define print-blames-on-the-fly? #t)
-
-;; Base continuation that returns locally finished configuration
-(define/memo (rt [αₖ : -αₖ]) : -⟦k⟧!
-  (let ()
-    (define ⟦k⟧ : -⟦k⟧!
-      (λ (A $ Γ ⟪ℋ⟫ Σ)
-        (match A
-          [(-blm l+ _ _ _)
-           #:when (∋ {seteq 'havoc '† 'Λ} l+)
-           ∅]
-          [_
-           (match-define (-Σ _ _ M) Σ)
-           (M⊔! M αₖ Γ A)
-           (when (and print-blames-on-the-fly?
-                      (-blm? A)
-                      (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))
-             (hash-ref! print-cache
-                        A
-                        (λ ()
-                          (printf "~a~n" (show-blm A)))))
-           {set (-ς↓ αₖ Γ A)}])))
-    (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
-    (add-⟦k⟧-roots! ⟦k⟧ ∅eq)
-    ⟦k⟧))
-
 ;; begin0, waiting on first value
 (define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
   (match ⟦e⟧s
