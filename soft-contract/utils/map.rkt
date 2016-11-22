@@ -78,12 +78,6 @@
         (λ (ys) (for/union : (℘ X) ([y ys]) (y->xs y)))))
   (hash-copy/spanning m xs f))
 
-(: mk-interner (∀ (X) ([] [#:eq? Boolean] . ->* . (X → Index))))
-;; Intern something as integers
-(define (mk-interner #:eq? [use-eq? #f])
-  (define m : (HashTable X Index) ((if use-eq? make-hasheq make-hash)))
-  (λ (x) (hash-ref! m x (λ () (hash-count m)))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; TMP hack for profiling

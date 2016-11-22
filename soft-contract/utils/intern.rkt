@@ -15,13 +15,19 @@
     [(_ T:id #:interned-type-name ⟪T⟫:id)
      (define T-name (syntax-e #'T))
      (define ⟪T⟫-name (syntax-e #'⟪T⟫))
+     (define eq-type?
+       (syntax-parse #'T
+         [(~or (~literal Index) (~literal Fixnum) (~literal Symbol) (~literal Char))
+          #t]
+         [_ #f]))
      (with-syntax ([T->⟪T⟫ (format-id #'T "~a->~a" T-name ⟪T⟫-name)]
                    [⟪T⟫->T (format-id #'T "~a->~a" ⟪T⟫-name T-name)]
-                   [count-⟪T⟫ (format-id #'T "count-~a" ⟪T⟫-name)])
+                   [count-⟪T⟫ (format-id #'T "count-~a" ⟪T⟫-name)]
+                   [mk-m (if eq-type? #'make-hasheq #'make-hash)])
        #'(begin
            (define-new-subtype ⟪T⟫ (->⟪T⟫ Index))
            (define-values (T->⟪T⟫ ⟪T⟫->T count-⟪T⟫)
-             (let ([m   : (HashTable T ⟪T⟫) (make-hash)]
+             (let ([m   : (HashTable T ⟪T⟫) (mk-m)]
                    [m⁻¹ : (HashTable ⟪T⟫ T) (make-hasheq)])
                (values
                 (λ ([t : T]) : ⟪T⟫
@@ -34,5 +40,3 @@
                 (λ ([⟪t⟫ : ⟪T⟫]) : T
                   (hash-ref m⁻¹ ⟪t⟫ (λ () (error '⟪T⟫->T "nothing at ~a" ⟪t⟫))))
                 (λ () : Index (hash-count m⁻¹)))))))]))
-
-(define-interner String)

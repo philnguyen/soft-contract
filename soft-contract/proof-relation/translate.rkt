@@ -151,7 +151,7 @@
              (refs-union! refs+)
              (match-define (Entry free-vars facts _) entry)
              (Entry free-vars
-                    (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Blm (⦃l⦄ l+) (⦃l⦄ lo)))))
+                    (set-add facts (λ () (=/s (tₐₚₚ) (@/s 'Blm (-l->-⦃l⦄ l+) (-l->-⦃l⦄ lo)))))
                     #|HACK|# (λ () (@/s 'B false/s)))))
          (values oks (cons eₑᵣ ers))])))
   (values refs (Res oks ers)))
@@ -226,7 +226,7 @@
        (free-vars-add! t)
        (λ () (val-of t))]
       [(? -o? o)
-       (define id (o->id o))
+       (define id (-o->-⦃o⦄ o))
        (λ () (@/s 'Proc id))]
       [(-x x)
        (define t (⦃x⦄ x))
@@ -278,7 +278,7 @@
           (define n (get-struct-arity 𝒾))
           (define is-St (format-symbol "is-St_~a" n))
           (define tag (format-symbol "tag_~a" n))
-          (define stag (⦃struct-id⦄ 𝒾))
+          (define stag (-𝒾->-⦃𝒾⦄ 𝒾))
           (match-define (list t) ts)
           (props-add! (λ ()
                         (define tₐ (t))
@@ -366,7 +366,7 @@
         (free-vars-add! (⦃x⦄ fv)))
       (define tₐₚₚ (⦃app⦄! αₖ eₕ fvs eₓs))
       (match blm
-        [(cons l+ lo) (hash-set! asserts-app tₐₚₚ (cons (⦃l⦄ l+) (⦃l⦄ lo)))]
+        [(cons l+ lo) (hash-set! asserts-app tₐₚₚ (cons (-l->-⦃l⦄ l+) (-l->-⦃l⦄ lo)))]
         [_            (hash-set! asserts-app tₐₚₚ #t)])))
   
   (for ([γ (reverse γs)]) (⦃γ⦄! γ))
@@ -425,7 +425,7 @@
      (λ ()
        (foldr
         (λ ([tₗ : Z3-Ast] [tᵣ : Z3-Ast])
-          (@/s 'St_2 (⦃struct-id⦄ -𝒾-cons) tₗ tᵣ))
+          (@/s 'St_2 (-𝒾->-⦃𝒾⦄ -𝒾-cons) tₗ tᵣ))
         (val-of 'Null)
         (for/list : (Listof Z3-Ast) ([t ts]) (t))))]
     [(any/c) (λ () (@/s 'B true/s))]
@@ -566,7 +566,7 @@
         (define n (get-struct-arity 𝒾))
         (define is-St (format-symbol "is-St_~a" n))
         (define st-tag (format-symbol "tag_~a" n))
-        (define tag (⦃struct-id⦄ 𝒾))
+        (define tag (-𝒾->-⦃𝒾⦄ 𝒾))
         (match-define (list t) ts)
         (λ ()
           (define tₐ (t))
@@ -575,7 +575,7 @@
        [(-st-mk 𝒾)
         (define St (format-symbol "St_~a" (get-struct-arity 𝒾)))
         (λ ()
-          (apply @/s St (⦃struct-id⦄ 𝒾) (run-all ts)))]
+          (apply @/s St (-𝒾->-⦃𝒾⦄ 𝒾) (run-all ts)))]
        [(-st-ac 𝒾 i)
         (define field (format-symbol "field_~a_~a" (get-struct-arity 𝒾) i))
         (λ () (@/s field ((car ts))))]
@@ -597,10 +597,10 @@
     [#f (@/s 'B false/s)]
     [#t (@/s 'B true/s)]
     [(? number? x) (@/s 'N (real-part x) (imag-part x))]
-    [(? symbol? s) (@/s 'Sym (⦃sym⦄ s))]
-    [(? string? s) (@/s 'Str (⦃str⦄ s))]
+    [(? symbol? s) (@/s 'Sym (Symbol->⦃Symbol⦄ s))]
+    [(? string? s) (@/s 'Str (String->⦃String⦄ s))]
     [(? void?) (val-of 'Void)]
-    [(? char? c) (@/s 'Chr (⦃chr⦄ c))]
+    [(? char? c) (@/s 'Chr (Char->⦃Char⦄ c))]
     [(list) (val-of 'Null)]
     [_ (error '⦃b⦄ "value: ~a" b)]))
 
@@ -668,19 +668,19 @@
   (declare-fun list? ('V) Bool/s)
   (assert! (list? 'Null))
   (assert! (∀/s ([h 'V] [t 'V])
-                (=>/s (list? t) (list? (@/s 'St_2 (⦃struct-id⦄ -𝒾-cons) h t)))))
+                (=>/s (list? t) (list? (@/s 'St_2 (-𝒾->-⦃𝒾⦄ -𝒾-cons) h t)))))
   (declare-fun f.map ('V 'V) 'V)
   (declare-fun f.append ('V 'V) 'V)
   (define-fun f.min ([x Real/s] [y Real/s]) Real/s (ite/s (<=/s x y) x y))
   (define-fun f.max ([x Real/s] [y Real/s]) Real/s (ite/s (>=/s x y) x y))
   (void))
 
-(define o->id ((inst mk-interner -o)))
-(define ⦃sym⦄ ((inst mk-interner Symbol) #:eq? #t))
-(define ⦃str⦄ ((inst mk-interner String)))
-(define ⦃chr⦄ ((inst mk-interner Char) #:eq? #t))
-(define ⦃l⦄ ((inst mk-interner -l)))
-(define ⦃struct-id⦄ ((inst mk-interner -𝒾)))
+(define-interner -o #:interned-type-name -⦃o⦄)
+(define-interner Symbol #:interned-type-name ⦃Symbol⦄)
+(define-interner String #:interned-type-name ⦃String⦄)
+(define-interner Char #:interned-type-name ⦃Char⦄)
+(define-interner -l #:interned-type-name -⦃l⦄)
+(define-interner -𝒾 #:interned-type-name -⦃𝒾⦄)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
