@@ -221,6 +221,9 @@
                              [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
                              [V (σ@ σ (cast ⟪α⟫ -⟪α⟫))])
           (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ))]
+      [(-Vector^ α n)
+       (for*/union : (℘ -ς) ([V (σ@ σ α)])
+          (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
       [(-Vector/hetero ⟪α⟫s l³)
        (match-define (-l³ _ _ lo) l³)
        (for*/union : (℘ -ς) ([(⟪α⟫ i) (in-indexed ⟪α⟫s)]
@@ -252,6 +255,9 @@
          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
          (σ⊕! σ ⟪α⟫ Vᵤ #:mutating? #t)
          (⟦k⟧ -Void/W $ Γ* ⟪ℋ⟫ Σ))]
+      [(-Vector^ α n)
+       (σ⊕! σ α Vᵤ #:mutating? #t)
+       (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
       [(-Vector/hetero ⟪α⟫s l³)
        (match-define (-l³ l+ l- lo) l³)
        (define l³* (-l³ l- l+ lo))
@@ -349,6 +355,13 @@
        (define αₖ (-ℬ xs ⟦e⟧ ρ*))
        (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
        (σₖ⊔! σₖ αₖ κ)
+       
+       ;; Just debuggings for `slatex`
+       #;(when (and (match? zs '(where)) (eq? z 'what))
+         (printf "error parameters:~n - where: ~a~n - what: ~a~n~n"
+                 (set-map (σ@ σ (ρ@ ρ* 'where)) show-V)
+                 (set-map (σ@ σ (ρ@ ρ* 'what)) show-V)))
+       
        {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]))
 
   (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
@@ -935,10 +948,13 @@
   (match-define (-W¹ (-Vectorof (cons α ℓ*)) _) W-C)
   (define c (⟪α⟫->s α))
   (define ⟦rt⟧ (mk-rt-⟦e⟧ W-V))
+
+  (printf "mon-vectorof ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
   
   (match Vᵥ
     [(-Vector αs)
      (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
+     (define ⟦erase⟧ (mk-erase-⟦e⟧ αs))
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [Vs (σ@/list σ αs)])
        (define ⟦hv⟧s : (Listof -⟦e⟧!)
          (for/list ([(V* i) (in-indexed Vs)])
@@ -947,8 +963,14 @@
                          (mk-rt-⟦e⟧ (-W¹ C c))
                          (mk-rt-⟦e⟧ (-W¹ V* (-?@ 'vector-ref sᵥ (-b i))))))
            (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦chk⟧))))
-       (match-define (cons ⟦e⟧ ⟦e⟧s) (append ⟦hv⟧s (list (mk-erase-⟦e⟧ αs) ⟦rt⟧)))
+       (match-define (cons ⟦e⟧ ⟦e⟧s) (append ⟦hv⟧s (list ⟦erase⟧ ⟦rt⟧)))
        (⟦e⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s ⊥ρ ⟦k⟧)))]
+    [(-Vector^ αᵥ n)
+     (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
+     (define ⟦erase⟧ (mk-erase-⟦e⟧ (list αᵥ)))
+     (for*/union : (℘ -ς) ([C (σ@ σ α)] [V* (σ@ σ αᵥ)])
+        (mon l³ $ ℒ (-W¹ C c) (-W¹ V* #|TODO|# #f) Γ ⟪ℋ⟫ Σ
+             (bgn∷ (list ⟦erase⟧) ⊥ρ ⟦k⟧)))]
     [(-Vector/hetero αs l³*)
      (define cs : (Listof -s) (for/list ([α : -⟪α⟫ αs]) (⟪α⟫->s α)))
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [Cs (σ@/list σ αs)])
@@ -982,6 +1004,7 @@
   (match-define (-W¹ Vᵥ vᵥ) W-V)
   (match-define (-W¹ C  c ) W-C)
   (match-define (-Vector/C αℓs) C)
+  (printf "mon-vector/c ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
   (define-values (αs ℓs) ((inst unzip -⟪α⟫ -ℓ) αℓs))
   (define n (length αs))
   (define N (let ([b (-b n)]) (-W¹ b b)))
@@ -1014,6 +1037,7 @@
      (define ⟦erase⟧
        (match Vᵥ
          [(-Vector αs) (mk-erase-⟦e⟧ αs)]
+         [(-Vector^ α n) (mk-erase-⟦e⟧ (list α))]
          [_ ⟦void⟧]))
      (define ⟦wrp⟧ (mk-begin-⟦e⟧ (append ⟦hv-fld⟧s (list ⟦erase⟧ ⟦mk⟧))))
      (⟦chk-vct⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
@@ -1291,7 +1315,7 @@
 (define/memo (mk-erase-⟦e⟧ [⟪α⟫s : (Listof -⟪α⟫)]) : -⟦e⟧!
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧!)
     (match-define (-Σ σ _ _) Σ)
-    (for ([⟪α⟫ : -⟪α⟫ ⟪α⟫s]) ; TODO: remove other concrete values?
+    (for ([⟪α⟫ : -⟪α⟫ ⟪α⟫s])
       (σ⊕! σ ⟪α⟫ -●/V #:mutating? #t))
     (⟦k⟧! -Void/W $ Γ ⟪ℋ⟫ Σ)))
 

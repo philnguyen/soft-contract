@@ -86,6 +86,8 @@
      (match Ws
        [(list (-W¹ (-Vector αs) _))
         {set (list (-b (length αs)))}]
+       [(list (-W¹ (-Vector^ _ n) _))
+        {set (list n)}]
        [_ {set -Nat/Vs}])]
     [vectorof
      (match Ws
@@ -145,7 +147,16 @@
      {set (list -car -cdr (-● ∅) -cons? -ff -ff)}]
 
     [make-vector
-     {set (list (-● {set 'vector? (-not/c 'immutable?)}))}]
+     {set (list (-● {set 'vector? (-not/c 'immutable?)}))}
+     #;(match Ws
+       [(list (-W¹ n _) (-W¹ V _))
+        (define ⟪α⟫ (-α->-⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
+        (σ⊕! σ ⟪α⟫ V) ; initilizing, not mutating
+        (printf "make-vector initialized with ~a~n" (show-V V))
+        {set (list (-Vector^ ⟪α⟫ n))}]
+       [_
+        (printf "make-vector: skipped~n")
+        ∅])]
 
     [member
      (match Ws

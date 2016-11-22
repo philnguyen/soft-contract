@@ -67,6 +67,7 @@
      (match V
        [(-St _ αs) (list->seteq αs)]
        [(-Vector αs) (list->seteq αs)]
+       [(-Vector^ α _) {seteq α}]
        [(-Ar V α _) (set-add (V->⟪α⟫s V) α)]
        [(-St* _ γs α _) (set-add (for/seteq: : (℘ -⟪α⟫) ([γ γs] #:when γ) γ) α)]
        [(-Vector/hetero γs _) (list->seteq γs)]

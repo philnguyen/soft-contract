@@ -30,7 +30,12 @@
        (Vs⊕ σ Vs V)]))
   (hash-set! m α Vs*)
   (when mutating?
-    (hash-set! mods α #t)))
+    (hash-set! mods α #t))
+  (when (-α.vct? α)
+    (printf "widening vector content at ~a with ~a to ~a~n"
+            (show-⟪α⟫ α)
+            (show-V V)
+            (set-map Vs* show-V))))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)

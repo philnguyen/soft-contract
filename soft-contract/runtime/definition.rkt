@@ -102,6 +102,7 @@
             (-● (℘ #|closed|# -v))
             (-St -𝒾 (Listof -⟪α⟫))
             (-Vector (Listof -⟪α⟫))
+            (-Vector^ [content : -⟪α⟫] [length : #|restricted|# -V])
             -Fn
             
             ;; Proxied higher-order values
@@ -260,6 +261,9 @@
 
             ;; for vector indices
             (-α.idx [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            
+            ;; for vector^ content
+            (-α.vct [pos : -ℓ] [ctx : -⟪ℋ⟫])
 
             ;; for contract components
             (-α.and/c-l [pos : -ℓ] [ctx : -⟪ℋ⟫])
@@ -406,6 +410,7 @@
        ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-⟪α⟫ γ) '✓))
        ▹ ,(show-⟪α⟫ α))]
     [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
+    [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]
     [(-Vector/hetero γs _) `(vector/hetero ,@(map show-⟪α⟫ γs))]
     [(-Vector/homo γ _) `(vector/homo ,(show-⟪α⟫ γ))]
     [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]

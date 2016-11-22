@@ -280,7 +280,7 @@
                [(✓)   #f])])]
          [(or (-St si _) (-St* si _ _ _)) #:when si
           (plausible-φs-s? φs (-?@ (-st-p si) s))]
-         [(or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))
+         [(or (? -Vector?) (? -Vector^?) (? -Vector/hetero?) (? -Vector/homo?))
           (plausible-φs-s? φs (-?@ 'vector? s))]
          [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
           (plausible-φs-s? φs (-?@ 'procedure? s))]
@@ -403,7 +403,7 @@
           [(vector?)
            (match Vs
              [(list (-● _)) '?]
-             [(list (or (? -Vector?) (? -Vector/hetero?) (? -Vector/homo?))) '✓]
+             [(list (or (? -Vector?) (? -Vector^?) (? -Vector/hetero?) (? -Vector/homo?))) '✓]
              [_ '✗])]
           [(contract?)
            (match Vs

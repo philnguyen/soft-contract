@@ -104,6 +104,11 @@
              (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
                   (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0))
                        (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧))))]
+          [(-Vector^ α _)
+           (for/union : (℘ -ς) ([V (σ@ σ α)])
+             (define Wᵥ (-W¹ V #|TODO|# #f))
+             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref #f)) Wₕᵥ (list Wᵥ) Γ ⟪ℋ⟫ Σ
+                  (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧)))]
 
           ;; Apply contract to unknown values
           [(? -C?)
