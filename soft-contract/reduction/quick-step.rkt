@@ -2,7 +2,10 @@
 
 (provide run-file havoc-file run-e)
 
-(require "../utils/main.rkt"
+(require racket/set
+         racket/match
+         racket/list
+         "../utils/main.rkt"
          "../ast/main.rkt"
          "../parse/main.rkt"
          "../runtime/main.rkt"
@@ -11,9 +14,7 @@
          "compile/kontinuation.rkt"
          "compile/main.rkt"
          "init.rkt"
-         racket/set
-         racket/match
-         (only-in racket/list split-at))
+         )
 
 (: run-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (run-file p)
@@ -91,17 +92,17 @@
               [ς↦αₖs : (HashTable -ς (℘ -αₖ)) (make-hash)]
               [ς↦vsn : (HashTable -ς Ctx) (make-hash)]
               [αs-all : (℘ -⟪α⟫) ∅eq])
-          ;; Compute each state's active addresses in the frontier
+          ;; Compute active addresses for each state in the frontier
           (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ _) Σ)
           (for ([ς front])
             (define αₖs (ς->αₖs ς mσₖ))
-            (define αs (span* mσ (ς->⟪α⟫s ς mσₖ) V->⟪α⟫s #:eq? #t))
+            (define αs (span* mσ (ς->⟪α⟫s ς mσₖ) V->⟪α⟫s))
             (define vsn (list (m↓ mσ αs) (m↓ mσₖ αₖs)))
             (set! αs-all (∪ αs-all αs))
             (hash-set! ς↦αₖs ς αₖs)
             (hash-set! ς↦αs ς αs)
             (hash-set! ς↦vsn ς vsn))
-          (soft-gc! σ (span* mσ αs-all V->⟪α⟫s #:eq? #t))
+          (soft-gc! σ (span* mσ αs-all V->⟪α⟫s))
           (define next-from-ς↑s
             (let ([ς↑s* ; filter out seen states
                      (for*/list : (Listof -ς↑) ([ς ς↑s]
