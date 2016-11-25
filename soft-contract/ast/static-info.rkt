@@ -9,6 +9,8 @@
          assignable?
          add-assignable!
          add-struct-info!
+         add-top-level!
+         top-levels
          current-static-info ; just for debugging
          )
 
@@ -18,7 +20,8 @@
 
 (define-new-subtype -struct-info (Vector->struct-info (Vectorof Boolean)))
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
-                      [assignables : (HashTable (U -x -𝒾) #t)])
+                      [assignables : (HashTable (U -x -𝒾) #t)]
+                      [top-level-defs : (HashTable -𝒾 #t)])
   #:transparent)
 
 (define (new-static-info)
@@ -26,6 +29,7 @@
   (define box-info (Vector->struct-info (vector-immutable #t)))
   (-static-info (make-hash (list (cons -𝒾-cons cons-info)
                                  (cons -𝒾-box  box-info)))
+                (make-hash)
                 (make-hash)))
 
 (define current-static-info : (Parameterof -static-info) (make-parameter (new-static-info)))
@@ -36,7 +40,7 @@
 
 (: get-struct-info : -𝒾 → -struct-info)
 (define (get-struct-info 𝒾)
-  (match-define (-static-info structs _) (current-static-info))
+  (match-define (-static-info structs _ _) (current-static-info))
   (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
 
 (define (get-struct-arity [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
@@ -68,3 +72,8 @@
     [(or (-x? x) (-𝒾? x))
      (hash-has-key? (-static-info-assignables (current-static-info)) x)]
     [else (assignable? (-x x))]))
+
+(define (add-top-level! [𝒾 : -𝒾])
+  (hash-set! (-static-info-top-level-defs (current-static-info)) 𝒾 #t))
+(define (top-levels) : (Listof -𝒾)
+  (hash-keys (-static-info-top-level-defs (current-static-info))))

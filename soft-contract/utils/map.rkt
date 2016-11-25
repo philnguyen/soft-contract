@@ -43,7 +43,10 @@
   (define (touch! [x : X]) : Void
     (unless (touched-has? x)
       (touched-add! x)
-      (set-for-each (f (hash-ref m x)) touch!)))
+      (cond [(hash-has-key? m x)
+             (set-for-each (f (hash-ref m x)) touch!)]
+            [else
+             (log-warning "span: warning: nothing for ~a~n" x)])))
   (set-for-each root touch!)
   touched)
 
@@ -63,9 +66,12 @@
   (define (touch! [x : X]) : Void
     (unless (touched-has? x)
       (touched-add! x)
-      (define y (hash-ref m x))
-      (hash-set! m* x y)
-      (set-for-each (y->xs y) touch!)))
+      (cond [(hash-has-key? m x)
+             (define y (hash-ref m x))
+             (hash-set! m* x y)
+             (set-for-each (y->xs y) touch!)]
+            [else
+             (log-warning "hash-copy/spanning: warning: nothing for ~a~n" x)])))
   (set-for-each xs touch!)
   m*)
 

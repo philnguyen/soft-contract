@@ -141,8 +141,11 @@
      (define n (length accs))
      (define 𝒾 (-𝒾 ctor (cur-mod)))
      (add-struct-info! 𝒾 n ∅eq)
+     (define lhs (list* ctor (syntax-e #'pred) (map syntax-e accs)))
+     (for ([name lhs])
+       (add-top-level! (-𝒾 name (cur-mod))))
      (-define-values
-      (list* ctor (syntax-e #'pred) (map syntax-e accs))
+      lhs
       (-@ 'values
           (list* (-st-mk 𝒾)
                  (-st-p 𝒾)
@@ -155,9 +158,11 @@
      (define frees (free-x/c rhs))
      (cond
        [(set-empty? frees)
+        (add-top-level! (-𝒾 lhs (cur-mod)))
         (-define-values (list lhs) rhs)]
        [(set-empty? (set-remove frees lhs))
         (define x (+x! 'rec))
+        (add-top-level! (-𝒾 lhs (cur-mod)))
         (-define-values (list lhs)
            (-μ/c x (e/ (-x/c.tmp lhs) (-x/c x) rhs)))]
        [else
@@ -165,7 +170,10 @@
                "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
                lhs (set-first (set-remove frees lhs)))])]
     [(define-values (x:identifier ...) e)
-     (-define-values (syntax->datum #'(x ...)) (parse-e #'e))]
+     (define lhs (syntax->datum #'(x ...)))
+     (for ([i lhs])
+       (add-top-level! (-𝒾 i (cur-mod))))
+     (-define-values lhs (parse-e #'e))]
     [(#%require spec ...)
      (-require (map parse-require-spec (syntax->list #'(spec ...))))]
     [(define-syntaxes (k:id) ; constructor alias
@@ -173,7 +181,9 @@
         (~literal make-self-ctor-checked-struct-info)
         _ _
         (#%plain-lambda () (quote-syntax k1:id))))
-     (-define-values (list (syntax-e #'k1)) (-𝒾 (syntax-e #'k) (cur-mod)))]
+     (define lhs (syntax-e #'k1))
+     (add-top-level! (-𝒾 lhs (cur-mod)))
+     (-define-values (list lhs) (-𝒾 (syntax-e #'k) (cur-mod)))]
     [(define-syntaxes _ ...) #f]
     [_ (parse-e form)]))
 
