@@ -21,28 +21,37 @@
       [($@ $ s) =>
        (λ ([V : -V])
          (define V* (V+ σ V (predicates-of Γ s)))
+         
+         ;; Debugging
+         #;(when (member x '(f₉ raw-filename))
+           (printf "lookup: ~a: ~a~n - Γ: ~a~n~n"
+                   (show-⟪α⟫ α) (show-V V*) (show-Γ Γ)))
+         
          (⟦k⟧ (-W (list V*) s) ($+ $ s V*) Γ ⟪ℋ⟫ Σ))]
       [else
        (define Vs (σ@ σ α))
        (define φs (-Γ-facts Γ))
-       #;(begin
+       
+       ;; Debugging
+       #;(when (member x '(f₉ raw-filename))
          (define Vs* (for/set: : (℘ -V) ([V Vs] #:when (plausible-V-s? φs V s)) V))
-         (when (> (set-count Vs*) 4)
-           (define-set root : -α)
-           (printf "lookup: ~a (~a):~n" (show-α α) (set-count Vs))
-           (for ([V Vs*])
-             (root-union! (V->αs V))
-             (match V
-               [(-Clo xs ⟦e⟧ ρ Γ)
-                (printf "  - λ~a. ~a~n" (show-formals xs) (show-⟦e⟧! ⟦e⟧))
-                (printf "     + ~a~n" (show-ρ ρ))
-                (printf "     + ~a~n" (show-Γ Γ))]
-               [_
-                (printf "  - ~a~n" (show-V V))]))
-           (printf "Others:~n")
-           (for ([r (show-σ (m↓ (-σ-m σ) root))])
-             (printf "  - ~a~n" r))
-           (printf "~n")))
+         (define-set root : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+         (printf "lookup: ~a (~a):~n" (show-⟪α⟫ α) (set-count Vs))
+         (for ([V Vs*])
+           (root-union! (V->⟪α⟫s V))
+           (match V
+             [(-Clo xs ⟦e⟧ ρ Γ)
+              (printf "  - λ~a. ~a~n" (show-formals xs) (show-⟦e⟧! ⟦e⟧))
+              (printf "     + ~a~n" (show-ρ ρ))
+              (printf "     + ~a~n" (show-Γ Γ))]
+             [_
+              (printf "  - ~a~n" (show-V V))]))
+         (printf "Γ: ~a~n" (show-Γ Γ))
+         (printf "Others:~n")
+         (for ([α (in-hash-keys root)])
+           (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map (σ@ σ α) show-V)))
+         (printf "~n"))
+       
        (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
          (define $* ($+ $ s V))
          (match V

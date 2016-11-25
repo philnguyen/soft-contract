@@ -222,6 +222,9 @@
                              [V (σ@ σ (cast ⟪α⟫ -⟪α⟫))])
           (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ))]
       [(-Vector^ α n)
+       #;(begin
+         (printf "vector-ref: ~a ~a~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ))
+         (printf "  - result: ~a~n" (set-map (σ@ σ α) show-V)))
        (for*/union : (℘ -ς) ([V (σ@ σ α)])
           (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
       [(-Vector/hetero ⟪α⟫s l³)
@@ -247,6 +250,7 @@
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
     (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
+
     (match Vᵥ
       [(-Vector ⟪α⟫s)
        (for*/union : (℘ -ς) ([(⟪α⟫ i) (in-indexed ⟪α⟫s)]
@@ -257,6 +261,9 @@
          (⟦k⟧ -Void/W $ Γ* ⟪ℋ⟫ Σ))]
       [(-Vector^ α n)
        (σ⊕! σ α Vᵤ #:mutating? #t)
+       #;(begin
+         (printf "vector-set!: ~a ~a ~a~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ) (show-W¹ Wᵤ))
+         (printf "  - after: ~a~n" (set-map (σ@ σ α) show-V)))
        (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
       [(-Vector/hetero ⟪α⟫s l³)
        (match-define (-l³ l+ l- lo) l³)
@@ -587,6 +594,12 @@
       ;; This could save lots of spurious errors to eliminate later
       (V+ σ Vₓ (predicates-of Γ sₓ)))
     (σ⊕! σ α Vₓ*)
+    
+    ;; Debug for `slatex`
+    #;(when (and (member x '(raw-filename s₃ filename filename₁))
+               (match? Wₓ (-W¹ (? -●?) _)))
+      (printf "binding ~a as ~a~n~n" x (show-W¹ Wₓ)))
+
     (ρ+ ρ x α)))
 
 (: alloc-rest-args! : -σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹) → -V)
@@ -949,7 +962,7 @@
   (define c (⟪α⟫->s α))
   (define ⟦rt⟧ (mk-rt-⟦e⟧ W-V))
 
-  (printf "mon-vectorof ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
+  ;(printf "mon-vectorof ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
   
   (match Vᵥ
     [(-Vector αs)
@@ -1004,7 +1017,7 @@
   (match-define (-W¹ Vᵥ vᵥ) W-V)
   (match-define (-W¹ C  c ) W-C)
   (match-define (-Vector/C αℓs) C)
-  (printf "mon-vector/c ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
+  ;(printf "mon-vector/c ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
   (define-values (αs ℓs) ((inst unzip -⟪α⟫ -ℓ) αℓs))
   (define n (length αs))
   (define N (let ([b (-b n)]) (-W¹ b b)))

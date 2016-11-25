@@ -43,6 +43,9 @@
   (define seen : (HashTable -ς Ctx) (make-hash))
   (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧! ⊥ρ))
   (define Σ (-Σ σ (⊥σₖ αₖ₀) (⊥M)))
+  (define root₀ ; all addresses to top-level definitions are conservatively active
+    (for/fold ([root₀ : (℘ -⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
+      (set-add (set-add root₀ (-α->-⟪α⟫ (-α.def 𝒾))) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
 
   (define iter : Natural 0)
 
@@ -91,12 +94,12 @@
         (let ([ς↦αs : (HashTable -ς (℘ -⟪α⟫)) (make-hash)]
               [ς↦αₖs : (HashTable -ς (℘ -αₖ)) (make-hash)]
               [ς↦vsn : (HashTable -ς Ctx) (make-hash)]
-              [αs-all : (℘ -⟪α⟫) ∅eq])
+              [αs-all : (℘ -⟪α⟫) root₀])
           ;; Compute active addresses for each state in the frontier
           (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ _) Σ)
           (for ([ς front])
             (define αₖs (ς->αₖs ς mσₖ))
-            (define αs (span* mσ (ς->⟪α⟫s ς mσₖ) V->⟪α⟫s))
+            (define αs (span* mσ (∪ (ς->⟪α⟫s ς mσₖ) root₀) V->⟪α⟫s))
             (define vsn (list (m↓ mσ αs) (m↓ mσₖ αₖs)))
             (set! αs-all (∪ αs-all αs))
             (hash-set! ς↦αₖs ς αₖs)
@@ -249,6 +252,16 @@
                            [(list (-b #f)) -ff]
                            [(list (-b #t) _) (-?@ 'values -tt x)])]
                         [_ fargs])))
+               
+               ;; Debugging
+               #;(when (match? αₖ (-ℬ '(in₆) _ _))
+                 (printf "~a~n - returns to ~a~n - value: ~a~n"
+                         (show-αₖ αₖ) (show-κ κ) (show-A A))
+                 (printf "results has:~n")
+                 (for ([ΓA (M@ M αₖ)])
+                   (printf "  - ~a~n" (show-ΓA ΓA)))
+                 (printf "~n"))
+               
                (⟦k⟧ (-W Vs sₐ*) $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
               [else ∅])])]
         [(? -blm? blm) ; TODO: faster if had next `αₖ` here 

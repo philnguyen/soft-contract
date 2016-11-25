@@ -147,15 +147,15 @@
      {set (list -car -cdr (-● ∅) -cons? -ff -ff)}]
 
     [make-vector
-     {set (list (-● {set 'vector? (-not/c 'immutable?)}))}
-     #;(match Ws
+     #;{set (list (-● {set 'vector? (-not/c 'immutable?)}))}
+     (match Ws
        [(list (-W¹ n _) (-W¹ V _))
         (define ⟪α⟫ (-α->-⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
         (σ⊕! σ ⟪α⟫ V) ; initilizing, not mutating
-        (printf "make-vector initialized with ~a~n" (show-V V))
+        ;(printf "make-vector initialized with ~a~n" (show-V V))
         {set (list (-Vector^ ⟪α⟫ n))}]
        [_
-        (printf "make-vector: skipped~n")
+        ;(printf "make-vector: skipped~n")
         ∅])]
 
     [member
@@ -481,24 +481,25 @@
 (define (δ! ⟪ℋ⟫ ℓ M σ Γ o Ws)
   (with-debugging/off ((ans) (gen-δ-body ⟪ℋ⟫ ℓ M σ Γ o Ws))
     (case o
-      [(eq?) ;(reverse memq)
-       (when #t #;(equal? ans (set (-● {set 'exact-integer?})))
+      [(string-length string-ref) ;(reverse memq)
+       (when (equal? (-W¹-V (car Ws)) (-● ∅))
          (printf "δ: ~a~n" o)
-         (define-set αs : -α)
+         (define-set αs : -⟪α⟫ #:eq? #t)
          (for ([W Ws])
-           (αs-union! (V->αs (-W¹-V W)))
+           (αs-union! (V->⟪α⟫s (-W¹-V W)))
            (printf " - ~a~n" (show-W¹ W)))
          (printf "ans:~n")
          (for ([a ans])
            (printf " -")
            (for ([V a])
-             (αs-union! (V->αs V))
+             (αs-union! (V->⟪α⟫s V))
              (printf " ~a" (show-V V)))
            (printf "~n"))
          (printf "store:~n")
          (for ([r (show-σ (span-σ (-σ-m σ) αs))])
            (printf " - ~a~n" r))
-         (printf "~n"))])))
+         (printf "~n")
+         (error "DONE"))])))
 
 (: definitely-member? : -σ -V -St → Boolean)
 (define (definitely-member? σ V Vₗ)
