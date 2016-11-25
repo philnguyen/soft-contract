@@ -208,7 +208,7 @@
 (define-match-expander -≡/c
   (syntax-rules () [(_ v) (-λ (list x) (-@ (? op-≡?) (or (list (-x x) v)
                                                          (list v (-x x))) _))])
-  (syntax-rules () [(_ v) (-λ (list x) (-@ 'equal?       (list (-x x) v) _))]))
+  (syntax-rules () [(_ v) (-λ '(𝒙) (-@ 'equal? (list (-x '𝒙) v) +ℓ₀))]))
 (define-match-expander -=/c
   (syntax-rules () [(_ c) (-≡/c (-b c))])
   (syntax-rules () [(_ c) (-≡/c (-b c))]))
