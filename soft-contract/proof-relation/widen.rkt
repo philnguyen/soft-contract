@@ -30,12 +30,7 @@
        (Vs⊕ σ Vs V)]))
   (hash-set! m α Vs*)
   (when mutating?
-    (hash-set! mods α #t))
-  (when (-α.vct? α)
-    (printf "widening vector content at ~a with ~a to ~a~n"
-            (show-⟪α⟫ α)
-            (show-V V)
-            (set-map Vs* show-V))))
+    (hash-set! mods α #t)))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)
@@ -121,7 +116,7 @@
              [else P])]
       [_ P]))
   
-  (cond
+  (with-debugging/off ((V*) (cond
     [(set? P)
      (for/fold ([V : -V V]) ([Pᵢ (in-set P)])
        (V+ σ V Pᵢ))]
@@ -149,36 +144,34 @@
                             (if (-v? P) (show-e P) (show-V P))
                             (show-V V*)))))]))
 
+    (when (equal? V* (-● ∅))
+      (: show-P : (U -v -V (℘ -v) (℘ -V)) → Sexp)
+      (define (show-P P)
+        (cond [(set? P) (set-map P show-P)]
+              [(-V? P) (show-V P)]
+              [else (show-e P)]))
+      
+      (printf "V+ ~a ~a -> ~a~n~n" (show-V V) (show-P P) (show-V V*)))))
+
 (: p+ : -v -v → (Option (℘ -v)))
 ;; Combine 2 predicates for a more precise one.
 ;; Return `#f` if there's no single predicate that refines both
 (define p+
-  (let-syntax ([match-lambda**/symmetry
-                ;; b/c TR doesn't work well with `match-lambda*` and `list-no-order`
-                (syntax-parser
-                  [(_ clauses ...)
-                   (define doubled-clauses
-                     (append-map
-                      (λ (clause)
-                        (with-syntax ([[(x y) e ...] clause])
-                          (list #'[(x y) e ...] #'[(y x) e ...])))
-                      (syntax->list #'(clauses ...))))
-                   #`(match-lambda** #,@doubled-clauses [(_ _) #f])])])
-    
-    (match-lambda**/symmetry
-     [(p q) #:when (equal? '✓ (p⇒p p q)) {set p}]
-     [((or 'exact-integer? 'exact-nonnegative-integer?)
-       (-≥/c (and (? (between/c 0 1)) (not 0))))
-      {set 'exact-positive-integer?}]
-     [((or 'exact-integer? 'exact-nonnegative-integer?)
-       (->/c (and (? (between/c 0 1)) (not 1))))
-      {set 'exact-positive-integer?}]
-     [('exact-integer? (-≥/c (and (? (between/c -1 0)) (not -1))))
-      {set 'exact-nonnegative-integer?}]
-     [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
-      {set 'exact-nonnegative-integer?}]
-     [('list? (-not/c 'null?)) {set 'list? -cons?}]
-     [('list? (-not/c -cons?)) {set 'null?}])))
+  (match-lambda**/symmetry
+   [(p q) #:when (equal? '✓ (p⇒p p q)) {set p}]
+   [((or 'exact-integer? 'exact-nonnegative-integer?)
+     (-≥/c (and (? (between/c 0 1)) (not 0))))
+    {set 'exact-positive-integer?}]
+   [((or 'exact-integer? 'exact-nonnegative-integer?)
+     (->/c (and (? (between/c 0 1)) (not 1))))
+    {set 'exact-positive-integer?}]
+   [('exact-integer? (-≥/c (and (? (between/c -1 0)) (not -1))))
+    {set 'exact-nonnegative-integer?}]
+   [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
+    {set 'exact-nonnegative-integer?}]
+   [('list? (-not/c 'null?)) {set 'list? -cons?}]
+   [('list? (-not/c -cons?)) {set 'null?}]
+   [(_ _) #f]))
 
 (: ps+ : (℘ -v) -v → (℘ -v))
 ;; Strengthen refinement set with new predicate
@@ -209,7 +202,7 @@
 ;; Widen 2 values to one approximating both.
 ;; Return `#f` if no approximation preferred
 (define (V⊕ σ V₁ V₂)
-  (match* (V₁ V₂)
+  (with-debugging ((V*) (match* (V₁ V₂)
     [(_ _) #:when (V⊑ σ V₂ V₁) V₁]
     [(_ _) #:when (V⊑ σ V₁ V₂) V₂]
     ; TODO more heuristics
@@ -233,9 +226,23 @@
            [(-</c 0) p]
            [_ #f])))
      (and p (-● (set-remove ps p)))]
-    [((-● ps) (-● qs)) (-● (∩ ps qs))]
+    [((-● ps) (-● qs)) (-● (ps⊕ ps qs))]
     [(_ _) #f]))
+    (when (let ([●? (λ (V) (and (-V? V) (equal? V (-● ∅))))])
+            (and (●? V*) (not (●? V₁)) (not (●? V₂))))
+      (printf "Warning: ~a ⊕ ~a = ~a~n~n" (show-V V₁) (show-V V₂) (show-V V*)))))
 
+(: ps⊕ : (℘ -v) (℘ -v) → (℘ -v))
+;; Return refinement set that's an over-approximation of both sets
+(define (ps⊕ ps₁ ps₂)
+  (for*/union : (℘ -v) ([p₁ ps₁] [p₂ ps₂]) (p⊕ p₁ p₂)))
+
+(: p⊕ : -v -v → (℘ -v))
+;; Return predicate that's weaker than both
+(define p⊕
+  (match-lambda**/symmetry
+   [(p q) #:when (equal? '✓ (p⇒p q p)) {set p}]
+   [(_ _) ∅]))
 
 
 (: extract-list-content : -σ -St → (℘ -V))
@@ -256,3 +263,20 @@
           [(-b (list)) (void)]
           [_ (set! Vs (Vs⊕ σ Vs (-● ∅)))]))))
   Vs)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; HELPERS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax match-lambda**/symmetry
+  ;; b/c TR doesn't work well with `match-lambda*` and `list-no-order`
+  (syntax-parser
+    [(_ clauses ... [((~literal _) (~literal _)) dflt ...])
+     (define doubled-clauses
+       (append-map
+        (λ (clause)
+          (with-syntax ([[(x y) e ...] clause])
+            (list #'[(x y) e ...] #'[(y x) e ...])))
+        (syntax->list #'(clauses ...))))
+     #`(match-lambda** #,@doubled-clauses [(_ _) dflt ...])]))
