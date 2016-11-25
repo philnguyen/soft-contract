@@ -226,7 +226,9 @@
            [(-</c 0) p]
            [_ #f])))
      (and p (-● (set-remove ps p)))]
-    [((-● ps) (-● qs)) (-● (ps⊕ ps qs))]
+    [((-● ps) (-● qs))
+     (define ps* (ps⊕ ps qs))
+     (if (set-empty? ps*) #|just a heuristic|# #f (-● ps*))]
     [(_ _) #f]))
     (when (let ([●? (λ (V) (and (-V? V) (equal? V (-● ∅))))])
             (and (●? V*) (not (●? V₁)) (not (●? V₂))))
