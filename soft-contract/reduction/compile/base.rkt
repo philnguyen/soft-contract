@@ -48,7 +48,7 @@
               (printf "  - ~a~n" (show-V V))]))
          (printf "Γ: ~a~n" (show-Γ Γ))
          (printf "Others:~n")
-         (for ([α (in-hash-keys root)])
+         (for ([α (in-root)])
            (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map (σ@ σ α) show-V)))
          (printf "~n"))
        
