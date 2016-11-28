@@ -8,6 +8,7 @@
          racket/function
          racket/string
          racket/extflonum 
+         racket/splicing
          "../utils/main.rkt")
 
 ;; Parameterized begin
@@ -25,28 +26,36 @@
 
 (define-new-subtype -ℓ (+ℓ Natural))
 
-;; Source location generator. It's hacked to remember fixed location for havoc
-(: +ℓ! : → -ℓ)
-(: +ℓ/memo! : (U 'hv-res 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
-(: +ℓ/ctc : -ℓ Natural → -ℓ)
-(: ℓ⁻¹ : -ℓ → Any)
-(define-values (+ℓ! +ℓ/memo! +ℓ/ctc ℓ⁻¹)
-  (let ([n : Natural 1]
-        [m : (HashTable (Listof Any) -ℓ) (make-hash)]
-        ; just for debugging
-        [m⁻¹ : (HashTable -ℓ (Listof Any)) (make-hash)])
-    (values
-     (λ () (begin0 (+ℓ n) (set! n (+ 1 n))))
-     (λ (tag . xs)
-       (define ℓ (hash-ref! m (cons tag xs) +ℓ!))
-       (hash-set! m⁻¹ ℓ (cons tag xs))
-       ℓ)
-     (λ (ℓ i)
-       (define ℓₐ (hash-ref! m (list ℓ i) +ℓ!))
-       (hash-set! m⁻¹ ℓₐ (list ℓ i))
-       ℓₐ)
-     (λ (ℓ)
-       (hash-ref m⁻¹ ℓ (λ () (error 'ℓ⁻¹ "nothing for ~a" ℓ)))))))
+(splicing-local
+    ((define n : Natural 1)
+     (define m : (HashTable (Listof Any) -ℓ) (make-hash))
+     ;; Just for debugging
+     (define m⁻¹ : (HashTable -ℓ (Listof Any)) (make-hasheq)))
+
+  (: +ℓ! : → -ℓ)
+  (define (+ℓ!)
+    (begin0 (+ℓ n)
+      (set! n (+ 1 n))))
+
+  ;; Hack to remember fixed location for havoc
+  (: +ℓ/memo! : (U 'hv-res 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
+  (define (+ℓ/memo! tag . xs)
+    (define ℓ (hash-ref! m (cons tag xs) +ℓ!))
+    (hash-set! m⁻¹ ℓ (cons tag xs))
+    ℓ)
+
+  (: +ℓ/ctc : -ℓ Natural → -ℓ)
+  (define (+ℓ/ctc ℓ i)
+    (define ℓₐ (hash-ref! m (list ℓ i) +ℓ!))
+    (hash-set! m⁻¹ ℓₐ (list ℓ i))
+    ℓₐ)
+
+  (: ℓ⁻¹ : -ℓ → Any)
+  ;; Just for debugging
+  (define (ℓ⁻¹ ℓ)
+    (hash-ref m⁻¹ ℓ (λ () (error 'ℓ⁻¹ "nothing for ~a" ℓ))))
+)
+
 (define +ℓ₀ (+ℓ 0))
 
 (: +x! : (U Symbol Integer) * → Symbol)
@@ -195,16 +204,17 @@
   (-->i (append cs (list rst)) (-λ xs d) (+ℓ!)))
 
 ;; Make conjunctive and disjunctive contracts
-(define-values (-and/c -or/c)
-  (let () 
-    (: -app/c : Symbol (Listof -e) → -e)
-    (define (-app/c o es) : -e
-      (match es
-        ['() 'any/c]
-        [(list e) e]
-        [(cons e es*)
-         (-@ (-𝒾 o 'Λ) (list e (-app/c o es*)) (+ℓ!))]))
-    (values (curry -app/c 'and/c) (curry -app/c 'or/c))))
+(splicing-local
+    ((: -app/c : Symbol (Listof -e) → -e)
+     (define (-app/c o es) : -e
+       (match es
+         ['() 'any/c]
+         [(list e) e]
+         [(cons e es*)
+          (-@ (-𝒾 o 'Λ) (list e (-app/c o es*)) (+ℓ!))])))
+  
+  (define -and/c (curry -app/c 'and/c))
+  (define -or/c (curry -app/c 'or/c)))
 
 (: -one-of/c : (Listof -e) → -e)
 (define (-one-of/c es)

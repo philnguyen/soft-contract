@@ -262,5 +262,5 @@
        (for/list : (Listof String) ([v vs])
          (format " - ~a" (show-V v)))
        "\n"
-       #:before-first (format "~a (~a):~n" k (set-count vs))))
+       #:before-first (format "~a (~a):~n" (show-⟪α⟫ (cast k -⟪α⟫)) (set-count vs))))
     (error s)))

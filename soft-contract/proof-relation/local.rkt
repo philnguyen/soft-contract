@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Γ⊢e φs⊢e ⊢V p∋Vs p⇒p
+(provide Γ⊢e φs⊢e ⊢V p∋Vs p⇒p ps⇒p
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R)
 
@@ -345,32 +345,7 @@
 
   (match Vs
     [(list (-● ps)) #:when (-v? p)
-     (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-v? q))
-           (case (p⇒p q p)
-             [(✓) '✓]
-             [(✗) '✗]
-             [(?) #f]))
-         (case p ; special hacky cases where `q` is implied by 2+ predicates
-           [(exact-nonnegative-integer?)
-            (cond
-              [(and (∋ ps 'integer?)
-                    (for/or : Boolean ([p ps])
-                      (match?
-                       p
-                       (->/c (? (>/c -1)))
-                       (-≥/c (? (>=/c 0)))
-                       (-=/c (? (>=/c 0))))))
-               '✓]
-              [(and (∋ ps 'integer?)
-                    (for/or : Boolean ([p ps])
-                      (match?
-                       p
-                       (-</c (? (<=/c 0)))
-                       (-≤/c (? (</c  0)))
-                       (-=/c (? (</c  0))))))
-               '✗]
-              [else '?])]
-           [else '?]))]
+     (ps⇒p ps p)]
     [_
      (match p
        [(? -st-mk?) '✓]
@@ -541,6 +516,35 @@
   (match-lambda**
    [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
    [(_ _) '?]))
+
+(: ps⇒p : (℘ -v) -v → -R)
+(define (ps⇒p ps p)
+  (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-v? q))
+        (case (p⇒p q p)
+          [(✓) '✓]
+          [(✗) '✗]
+          [(?) #f]))
+      (case p ; special hacky cases where `q` is implied by 2+ predicates
+        [(exact-nonnegative-integer?)
+         (cond
+           [(and (∋ ps 'integer?)
+                 (for/or : Boolean ([p ps])
+                   (match?
+                    p
+                    (->/c (? (>/c -1)))
+                    (-≥/c (? (>=/c 0)))
+                    (-=/c (? (>=/c 0))))))
+            '✓]
+           [(and (∋ ps 'integer?)
+                 (for/or : Boolean ([p ps])
+                   (match?
+                    p
+                    (-</c (? (<=/c 0)))
+                    (-≤/c (? (</c  0)))
+                    (-=/c (? (</c  0))))))
+            '✗]
+           [else '?])]
+        [else '?])))
 
 (: p⇒p : -v -v → -R)
 ;; Return whether predicate `p` definitely implies or excludes `q`.

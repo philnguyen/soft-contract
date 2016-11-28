@@ -182,7 +182,7 @@
   ;(define hits : Natural 0)
   ;(define total : Natural 0)
   
-  (define ans (for/union : (℘ -ς) ([ς ςs])
+  (with-debugging/off ((ans) (for/union : (℘ -ς) ([ς ςs])
     (match-define (-ς↓ αₖ Γₑₑ A) ς)
     (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
       (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₕ sₓs) κ)
@@ -281,5 +281,4 @@
                   (hash-set! returned key #t)
                   (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
                  [else ∅])])])]))))
-  ;(printf "  -- hits: ~a/~a~n" hits total)
-  ans)
+    (printf "  -- hits: ~a/~a~n" hits total)))
