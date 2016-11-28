@@ -19,7 +19,7 @@
   racket/list
   racket/function
   racket/contract
-  (only-in "../utils/main.rkt" ∋ n-sub mk-cond sexp-and)
+  (only-in "../utils/main.rkt" ∋ n-sub mk-cond sexp-and pretty)
   (except-in "../primitives/declarations.rkt" implications base?) "../primitives/utils.rkt")
  )
 
@@ -149,11 +149,21 @@
     [make-vector
      #;{set (list (-● {set 'vector? (-not/c 'immutable?)}))}
      (match Ws
-       [(list (-W¹ n _) (-W¹ V _))
-        (define ⟪α⟫ (-α->-⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
-        (σ⊕! σ ⟪α⟫ V) ; initilizing, not mutating
-        ;(printf "make-vector initialized with ~a~n" (show-V V))
-        {set (list (-Vector^ ⟪α⟫ n))}]
+       [(list (-W¹ n sₙ) (-W¹ V sᵥ))
+        (match sₙ
+          [(-b (? exact-nonnegative-integer? n))
+           (define ⟪α⟫s
+             (for/list : (Listof -⟪α⟫) ([i n])
+               (define ⟪α⟫ (-α->-⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ i)))
+               (σ⊕! σ ⟪α⟫ V)
+               ⟪α⟫))
+           (printf "make-vector: length ~a initialized with ~a~n" n (show-V V))
+           {set (list (-Vector ⟪α⟫s))}]
+          [_
+           (define ⟪α⟫ (-α->-⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
+           (σ⊕! σ ⟪α⟫ V) ; initilizing, not mutating
+           (printf "make-vector: initialized homogeneous vector with ~a~n" (show-V V))
+           {set (list (-Vector^ ⟪α⟫ n))}])]
        [_
         ;(printf "make-vector: skipped~n")
         ∅])]
@@ -250,7 +260,7 @@
     [list->string
      (match Ws
        [(list (-W¹ Vₗ _))
-        {set (list (-● {set 'string?}))}]
+        {set (list (-● {set 'string? (-not/c 'immutable?)}))}]
        [_ ∅])]
 
     [list-tail
@@ -274,7 +284,14 @@
        [_ ∅])]
 
     [string-append
-     {set (list (-● {set 'string?}))}]
+     (cond
+       [(for/and : Boolean ([W Ws])
+          (match-define (-W¹ V s) W)
+          (equal? '✓ (first-R (p∋Vs σ 'path-string? V)
+                              (Γ⊢e Γ (-?@ 'path-string? s)))))
+        {set (list (-● {set 'path-string?}))}]
+       [else
+        {set (list (-● {set 'string?}))}])]
 
     [current-input-port  {set (list (-● {set 'input-port?}))}]
     [current-output-port {set (list (-● {set 'output-port?}))}]

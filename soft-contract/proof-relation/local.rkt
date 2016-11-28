@@ -392,17 +392,16 @@
         #:when o
         (apply p∋Vs σ o Vs)]
        [(? symbol?)
+        (assert (not (match? Vs (list (? -●?))))) ; just for debugging
         (case p
           ;; Insert manual rules here
           [(procedure?)
            (match Vs
-             [(list (-● _)) '?]
              [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?))) '✓]
              [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
              [_ '✗])]
           [(vector?)
            (match Vs
-             [(list (-● _)) '?]
              [(list (or (? -Vector?) (? -Vector^?) (? -Vector/hetero?) (? -Vector/homo?))) '✓]
              [_ '✗])]
           [(contract?)
@@ -422,9 +421,10 @@
              [(list (-b (? Arity? a)) (-b (? Arity? b)))
               (decide-R (arity-includes? a b))]
              [_ '?])]
-          [(immutable?) ;; always true for now because no support for immutable vectors
+          [(immutable?)
            (match Vs
-             [(list (? -●?)) '?]
+             [(list (-b b)) (decide-R (immutable? b))]
+             ;; always false for now because no support for immutable vectors
              [_ '✗])]
           [(<)
            (match Vs
