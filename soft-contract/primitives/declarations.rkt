@@ -85,6 +85,7 @@
       ((not/c positive?) (not/c positive?) . -> . (not/c positive?))]
      [- ; FIXME varargs
       (number? number? . -> . number?)
+      (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
       (exact-integer? exact-integer? . -> . exact-integer?)
       (integer? integer? . -> . integer?)
       (real? real? . -> . real?)]

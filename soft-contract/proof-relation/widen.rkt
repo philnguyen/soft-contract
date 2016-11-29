@@ -190,6 +190,8 @@
     {set 'exact-nonnegative-integer?}]
    [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
     {set 'exact-nonnegative-integer?}]
+   [('exact-nonnegative-integer? (-not/c (-≡/c (-b 0))))
+    {set 'exact-positive-integer?}]
    [('list? (-not/c 'null?)) {set 'list? -cons?}]
    [('list? (-not/c -cons?)) {set 'null?}]
    [(_ _) #f]))

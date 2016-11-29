@@ -553,6 +553,26 @@
                     (-=/c (? (</c  0))))))
             '✗]
            [else '?])]
+        [(exact-positive-integer?)
+         (cond
+           [(and (∋ ps 'exact-nonnegative-integer?)
+                 (for/or : Boolean ([p ps])
+                   (match?
+                    p
+                    (->/c (? (>=/c 0)))
+                    (-≥/c (? (>/c 0)))
+                    (-≡/c (-b (? (>/c 0))))
+                    (-not/c (-≡/c (-b 0))))))
+            '✓]
+           [(and (∋ ps 'integer?)
+                 (for/or : Boolean ([p ps])
+                   (match?
+                    p
+                    (->/c (? (>=/c 0)))
+                    (-≥/c (? (>/c 0)))
+                    (-≡/c (-b (? (>/c 0)))))))
+            '✓]
+           [else '?])]
         [else '?])))
 
 (: p⇒p : -v -v → -R)

@@ -421,6 +421,9 @@
                     [(? symbol? dom/c)
                      #`(eq? '✓ (first-R (p∋Vs #,(σ-id) '#,dom/c (-W¹-V #,W-id))
                                         (Γ⊢e #,(Γ-id) (-?@ '#,dom/c #,e-id))))]
+                    [`(=/c ,(? number? x))
+                     #`(eq? '✓ (first-R (p∋Vs #,(σ-id) 'equal? (-b #,x) (-W¹-V #,W-id))
+                                        (Γ⊢e #,(Γ-id) (-?@ 'equal? (-b #,x) #,e-id))))]
                     [(list 'not/c (? symbol? dom/c*))
                      #`(eq? '✗ (first-R (p∋Vs #,(σ-id) '#,dom/c* (-W¹-V #,W-id))
                                         (Γ⊢e #,(Γ-id) (-?@ '#,dom/c* #,e-id))))])))
