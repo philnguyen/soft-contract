@@ -406,7 +406,7 @@
      ;; 4.3.1 Constructors, Selectors, Mutators
      [#:pred string?]
      [make-string ; FIXME all uses
-      (exact-nonnegative-integer? char? . -> . string?)]
+      (exact-nonnegative-integer? char? . -> . (and/c string? (not/c immutable?)))]
      [string
       (() #:rest (listof char?) . ->* . string?)]
      [string->immutable-string
