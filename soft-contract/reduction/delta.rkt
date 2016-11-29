@@ -308,6 +308,10 @@
             (set (list (-● {set 'string? (-not/c 'immutable?)})))])]
     [read-char {set (list (-● {set 'char? (-not/c (-≡/c (-b #\null)))}))}]
     [peek-char {set (list (-● {set 'char? (-not/c (-≡/c (-b #\null)))}))}]
+    
+    [write-char {set (list -void)}]
+    [newline {set (list -void)}]
+    [display {set (list -void)}]
     ))
 
 (define-syntax (with-args stx)
