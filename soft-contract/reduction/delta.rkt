@@ -157,12 +157,10 @@
                (define ⟪α⟫ (-α->-⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ i)))
                (σ⊕! σ ⟪α⟫ V)
                ⟪α⟫))
-           (printf "make-vector: length ~a initialized with ~a~n" n (show-V V))
            {set (list (-Vector ⟪α⟫s))}]
           [_
            (define ⟪α⟫ (-α->-⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
            (σ⊕! σ ⟪α⟫ V) ; initilizing, not mutating
-           (printf "make-vector: initialized homogeneous vector with ~a~n" (show-V V))
            {set (list (-Vector^ ⟪α⟫ n))}])]
        [_
         ;(printf "make-vector: skipped~n")

@@ -14,6 +14,7 @@
 (: σ⊕! ([-σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
   (match-define (-σ m mods crds) σ)
+  ;(define Vs₀ (hash-ref m α →∅)) ; just for debugging
   (define Vs*
     (cond
       ;; If address only stands for 1 value and this is the first update, do strong update.
@@ -55,6 +56,7 @@
   (define (go/⟪α⟫ α₁ α₂)
     (define α₁α₂ (cons α₁ α₂))
     (cond
+      [(equal? α₁ α₂) #t]
       [(seen-has? α₁α₂) #t]
       [else
        (seen-add! α₁α₂)
