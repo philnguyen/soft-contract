@@ -30,11 +30,27 @@
        {set V}]
       [else
        (define Vs (hash-ref m α →∅))
-       (hash-update! crds α cardinality+ (λ () 0))
+       (match (-⟪α⟫->-α α)
+         [(? -α.def?) ; can't bind top-level from 2 places
+          (hash-set! crds α
+                     (case crd₀
+                       [(0) 1]
+                       [(1) 1]
+                       [(N) 'N]))]
+         [_
+          (hash-update! crds α cardinality+ (λ () 0))])
        (Vs⊕ σ Vs V)]))
   (hash-set! m α Vs*)
   (when mutating?
-    (hash-set! mods α #t)))
+    (hash-set! mods α #t))
+  #;(when (match? (-⟪α⟫->-α α) (-α.def (-𝒾 'slatex::*include-onlys* _)))
+    (printf "~a : ~a ⊕ ~a -> ~a~n"
+            (show-⟪α⟫ α)
+            (set-map Vs₀ show-V)
+            (show-V V)
+            (set-map Vs* show-V))
+    (printf "  - modified?: ~a -> ~a~n" modified?₀ (hash-has-key? mods α))
+    (printf "  - cardinality: ~a -> ~a~n" crd₀ (hash-ref crds α (λ () 0)))))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)
