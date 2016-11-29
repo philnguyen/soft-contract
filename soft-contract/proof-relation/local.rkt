@@ -425,6 +425,12 @@
              [_ '?])]
           [(>) (p∋Vs σ '< (second Vs) (first Vs))]
           [(>=) (p∋Vs σ '<= (second Vs) (first Vs))]
+          [(= equal? eq? char=? string=?)
+           (match Vs
+             [(list (-b b₁) (-b b₂))   (decide-R (equal? b₁ b₂))]
+             [(list (-● ps) (? -b? b)) (ps⇒p ps (-≡/c b))]
+             [(list (? -b? b) (-● ps)) (ps⇒p ps (-≡/c b))]
+             [_ '?])]
           [(list?)
            (match Vs
              [(list V)
@@ -508,6 +514,9 @@
            (decide-R (and (real? b) (op b a)))]
           [(list (-● ps)) #|TODO|# '?]
           [_ '✗])]
+       [(-≡/c (-b b₁))
+        (match-define (list V) Vs)
+        (p∋Vs σ 'equal? (-b b₁) V)]
        [_ '?])]))
 
 (: V≡ : -V -V → -R)
@@ -624,11 +633,16 @@
     [('exact-positive-integer? (-≥/c (? real? r))) (if (<= r 1) '✓ '?)]
     [((-</c (? real? r)) 'exact-positive-integer?) (if (<= r 1) '✗ '?)]
     [((-≤/c (? real? r)) 'exact-positive-integer?) (if (<  r 1) '✗ '?)]
+    
+    ; equal?
+    [((-≡/c (-b b₁)) (-≡/c (-b b₂))) (decide-R (equal? b₁ b₂))]
+
     ;; default
     [(_ _)
      (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))
                 (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
             '✗]
+           [(equal? p q) '✓]
            [else '?])]))
 
 (module+ test

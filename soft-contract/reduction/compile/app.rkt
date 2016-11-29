@@ -741,6 +741,7 @@
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
     (match-define (-W Vs s) A)
     (define n (length xs))
+    
     (cond
       [(= n (length Vs))
        (define bnd-Ws*

@@ -258,7 +258,11 @@
     [list->string
      (match Ws
        [(list (-W¹ Vₗ _))
-        {set (list (-● {set 'string? (-not/c 'immutable?)}))}]
+        (cond
+          [(list-of-non-null-chars? σ Vₗ) ; FIXME needs to check for non-empty-ness too
+           {set (list (-● {set 'path-string? (-not/c 'immutable?)}))}]
+          [else
+           {set (list (-● {set 'string? (-not/c 'immutable?)}))}])]
        [_ ∅])]
 
     [list-tail
@@ -282,8 +286,8 @@
        [_ ∅])]
 
     [string-append
-     (cond
-       [(for/and : Boolean ([W Ws])
+     (cond ; FIXME not accurate
+       [(for/or : Boolean ([W Ws])
           (match-define (-W¹ V s) W)
           (equal? '✓ (first-R (p∋Vs σ 'path-string? V)
                               (Γ⊢e Γ (-?@ 'path-string? s)))))
@@ -294,9 +298,16 @@
     [current-input-port  {set (list (-● {set 'input-port?}))}]
     [current-output-port {set (list (-● {set 'output-port?}))}]
     [current-error-port  {set (list (-● {set 'output-port?}))}]
-    [string (set (list (-● {set 'string?})))]
-    [read-char {set (list (-● {set 'char?}))}]
-    [peek-char {set (list (-● {set 'char?}))}]
+    [string
+     (cond [(for/and : Boolean ([W Ws])
+              (match-define (-W¹ V s) W)
+              (equal? '✗ (first-R (p∋Vs σ 'equal? (-b #\null) V)
+                                  (Γ⊢e Γ (-?@ 'equal? (-b #\null) s)))))
+            {set (list (-● {set 'path-string? (-not/c 'immutable?)}))}]
+           [else
+            (set (list (-● {set 'string? (-not/c 'immutable?)})))])]
+    [read-char {set (list (-● {set 'char? (-not/c (-≡/c (-b #\null)))}))}]
+    [peek-char {set (list (-● {set 'char? (-not/c (-≡/c (-b #\null)))}))}]
     ))
 
 (define-syntax (with-args stx)
@@ -496,8 +507,8 @@
 (define (δ! ⟪ℋ⟫ ℓ M σ Γ o Ws)
   (with-debugging/off ((ans) (gen-δ-body ⟪ℋ⟫ ℓ M σ Γ o Ws))
     (case o
-      [(string-length string-ref) ;(reverse memq)
-       (when (equal? (-W¹-V (car Ws)) (-● ∅))
+      [(string-append)
+       (when #t #;(equal? (-W¹-V (car Ws)) (-● ∅))
          (printf "δ: ~a~n" o)
          (define-set αs : -⟪α⟫ #:eq? #t)
          (for ([W Ws])
@@ -511,10 +522,9 @@
              (printf " ~a" (show-V V)))
            (printf "~n"))
          (printf "store:~n")
-         (for ([r (show-σ (span-σ (-σ-m σ) αs))])
-           (printf " - ~a~n" r))
-         (printf "~n")
-         (error "DONE"))])))
+         (for ([(α Vs) (hash-copy/spanning* (-σ-m σ) αs V->⟪α⟫s)])
+           (printf " - ~a ↦ ~a~n" (show-⟪α⟫ (cast α -⟪α⟫)) (set-map Vs show-V)))
+         (printf "~n"))])))
 
 (: definitely-member? : -σ -V -St → Boolean)
 (define (definitely-member? σ V Vₗ)
@@ -576,6 +586,29 @@
                   (for/and : Boolean ([V₂ Vs₂])
                     (loop V₁ V₂ (set-add seen (cons V₁ V₂)))))))]
          [(_ _) #f])])))
+
+(: list-of-non-null-chars? : -σ -V → Boolean)
+;; Check if a value is definitely a list of non-null characters
+(define (list-of-non-null-chars? σ V)
+  (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+  (with-debugging/off ((ans) (let go : Boolean ([V : -V V])
+    (match V
+      [(-b (list)) #t]
+      [(-Cons αₕ αₜ)
+       (and (for/and : Boolean ([Vₕ (σ@ σ αₕ)])
+              (equal? '✗ (p∋Vs σ 'equal? (-b #\null) Vₕ)))
+            (or
+             (seen-has? αₜ)
+             (begin
+               (seen-add! αₜ)
+               (for/and : Boolean ([Vₜ (σ@ σ αₜ)])
+                 (go Vₜ)))))]
+      [_ #f])))
+    (printf "list-of-non-null-char? ~a -> ~a~n"
+            (show-V V) ans)
+    (for ([(α Vs) (hash-copy/spanning* (-σ-m σ) (V->⟪α⟫s V) V->⟪α⟫s)])
+      (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α -⟪α⟫)) (set-map Vs show-V)))
+    (printf "~n")))
 
 (module+ test
   (require typed/rackunit)

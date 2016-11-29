@@ -14,7 +14,7 @@
 (: σ⊕! ([-σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
   (match-define (-σ m mods crds) σ)
-  #;(begin ; just for debugging
+  (begin ; just for debugging
     (define Vs₀ (hash-ref m α →∅))
     (define modified?₀ (hash-has-key? mods α))
     (define crd₀ (hash-ref crds α (λ () 0))))
@@ -34,15 +34,7 @@
        (Vs⊕ σ Vs V)]))
   (hash-set! m α Vs*)
   (when mutating?
-    (hash-set! mods α #t))
-  #;(when (match? (-⟪α⟫->-α α) (-α.def (-𝒾 'slatex::*texinputs-list* _)))
-    (printf "~a: ~a with ~a -> ~a~n"
-            (show-⟪α⟫ α)
-            (set-map Vs₀ show-V)
-            (show-V V)
-            (set-map Vs* show-V))
-    (printf "  - mods? ~a -> ~a~n" modified?₀ (hash-has-key? mods α))
-    (printf "  - cardinality: ~a -> ~a~n~n" crd₀ (hash-ref crds α (λ () 0)))))
+    (hash-set! mods α #t)))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)
@@ -193,11 +185,11 @@
   (: iter : (℘ -v) -v → (U (℘ -v) (Pairof (℘ -v) (℘ -v))))
   (define (iter ps p)
     (match (for/or : (Option (List (℘ -v) -v -v)) ([pᵢ ps])
-             (cond [(p+ pᵢ p) => (λ ([ps : (℘ -v)]) (list ps pᵢ p))]
+             (cond [(p+ pᵢ p) => (λ ([ps* : (℘ -v)]) (list ps* pᵢ p))]
                    [else #f]))
-      [(list ps pᵢ p)
+      [(list ps* pᵢ p)
        (cons (set-remove (set-remove ps pᵢ) p)
-             ps)]
+             ps*)]
       [#f (set-add ps p)]))
 
   (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) (℘ X)))) → (℘ X)))
@@ -221,16 +213,21 @@
     ; TODO more heuristics
     [((-b b₁) (-b b₂)) #:when (not (equal? b₁ b₂))
 
-     (define-syntax-rule (check-for-base-types p? ...)
-       (cond
-         [(and (p? b₁) (p? b₂)) (-● {set 'p?})] ...
-         [else #f]))
+     (cond
+       ;; Handle non-null `char?` specially to retain `path-string?`-ness elsewhere
+       [(and (char? b₁) (char? b₂) (not (equal? #\null b₁)) (not (equal? #\null b₂)))
+        (-● {set 'char? (-not/c (-≡/c (-b #\null)))})]
+       [else
+        (define-syntax-rule (check-for-base-types p? ...)
+          (cond
+            [(and (p? b₁) (p? b₂)) (-● {set 'p?})] ...
+            [else #f]))
 
-     (check-for-base-types
-      exact-positive-integer? exact-nonnegative-integer? exact-integer?
-      integer? real? number?
-      path-string? string?
-      char? boolean?)]
+        (check-for-base-types
+         exact-positive-integer? exact-nonnegative-integer? exact-integer?
+         integer? real? number?
+         path-string? string?
+         char? boolean?)])]
     [((-b 0) (-● ps))
      (define p
        (for/or : (Option -v) ([p ps])
@@ -243,8 +240,8 @@
      (define ps* (ps⊕ ps qs))
      (if (set-empty? ps*) #|just a heuristic|# #f (-● ps*))]
     [(_ _) #f]))
-    (when (let ([●? (λ (V) (and (-V? V) (equal? V (-● ∅))))])
-            (and (●? V*) (not (●? V₁)) (not (●? V₂))))
+    (when (or (let ([●? (λ (V) (and (-V? V) (equal? V (-● ∅))))])
+                (and (●? V*) (not (●? V₁)) (not (●? V₂)))))
       (printf "Warning: ~a ⊕ ~a = ~a~n~n" (show-V V₁) (show-V V₂) (show-V V*)))))
 
 (: ps⊕ : (℘ -v) (℘ -v) → (℘ -v))
