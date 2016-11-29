@@ -33,7 +33,7 @@
        (define φs (-Γ-facts Γ))
        
        ;; Debugging
-       #;(when (member x '(f₉ raw-filename))
+       #;(when (member x '(path path₁))
          (define Vs* (for/set: : (℘ -V) ([V Vs] #:when (plausible-V-s? φs V s)) V))
          (define-set root : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
          (printf "lookup: ~a (~a):~n" (show-⟪α⟫ α) (set-count Vs))
@@ -48,7 +48,7 @@
               (printf "  - ~a~n" (show-V V))]))
          (printf "Γ: ~a~n" (show-Γ Γ))
          (printf "Others:~n")
-         (for ([α (in-root)])
+         (for ([α : -⟪α⟫ (in-root)])
            (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map (σ@ σ α) show-V)))
          (printf "~n"))
        

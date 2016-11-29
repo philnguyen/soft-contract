@@ -14,7 +14,10 @@
 (: σ⊕! ([-σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
   (match-define (-σ m mods crds) σ)
-  ;(define Vs₀ (hash-ref m α →∅)) ; just for debugging
+  #;(begin ; just for debugging
+    (define Vs₀ (hash-ref m α →∅))
+    (define modified?₀ (hash-has-key? mods α))
+    (define crd₀ (hash-ref crds α (λ () 0))))
   (define Vs*
     (cond
       ;; If address only stands for 1 value and this is the first update, do strong update.
@@ -31,7 +34,15 @@
        (Vs⊕ σ Vs V)]))
   (hash-set! m α Vs*)
   (when mutating?
-    (hash-set! mods α #t)))
+    (hash-set! mods α #t))
+  #;(when (match? (-⟪α⟫->-α α) (-α.def (-𝒾 'slatex::*texinputs-list* _)))
+    (printf "~a: ~a with ~a -> ~a~n"
+            (show-⟪α⟫ α)
+            (set-map Vs₀ show-V)
+            (show-V V)
+            (set-map Vs* show-V))
+    (printf "  - mods? ~a -> ~a~n" modified?₀ (hash-has-key? mods α))
+    (printf "  - cardinality: ~a -> ~a~n~n" crd₀ (hash-ref crds α (λ () 0)))))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)

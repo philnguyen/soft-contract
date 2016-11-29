@@ -21,6 +21,11 @@
   (hash-ref ρ x (λ () (error 'ρ@ "~a not in environment ~a" x (hash-keys ρ)))))
 (define ρ+ : (-ρ Symbol -⟪α⟫ → -ρ) hash-set)
 
+;; HACK for distinguishing allocation contexts between 0-arg thunks,
+;; which is important if the thunk returns different values (e.g. vector)
+;; for different contexts
+(define -x-dummy (+x! 'dummy))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value Store
@@ -519,7 +524,8 @@
     [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
-  (for/list ([(x ⟪α⟫) ρ]) `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))))
+  (for/list ([(x ⟪α⟫) ρ] #:unless (equal? x -x-dummy))
+    `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))))
 
 (define show-γ : (-γ → Sexp)
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
