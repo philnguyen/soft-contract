@@ -55,11 +55,10 @@
                    (define (s-union! [xs : (℘ τ)]) (set! s (∪ s xs)))
                    (define-syntax-rule (in-s) (in-set s)))]))]))
 
-(: set-partition (∀ (X) ([(X → Boolean) (℘ X)] [#:eq? Boolean]
-                         . ->* . (Values (℘ X) (℘ X)))))
+(: set-partition (∀ (X) (X → Boolean) (℘ X) → (Values (℘ X) (℘ X))))
 ;; Partition set members into those that satisfy the predicate and the rest
-(define (set-partition p xs #:eq? [use-eq? #f])
-  (define s∅ (if use-eq? ∅eq ∅))
+(define (set-partition p xs)
+  (define s∅ (if (set-eq? xs) ∅eq ∅))
   (for/fold ([pass : (℘ X) s∅] [fail : (℘ X) s∅]) ([x xs])
     (if (p x)
         (values (set-add pass x) fail)

@@ -434,36 +434,35 @@
           [(list?)
            (match Vs
              [(list V)
-              (define-set seen : -V #:as-mutable-hash? #t)
+              (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+              
               (define (combine [Rs : (℘ -R)]) : -R
-                (cond
-                  [(∋ Rs '?) '?]
-                  [(and (∋ Rs '✓) (∋ Rs '✗)) '?]
-                  [(∋ Rs '✗) '✗]
-                  [else '✓]))
+                (cond [(∋ Rs '?) '?]
+                      [(and (∋ Rs '✓) (∋ Rs '✗)) '?]
+                      [(∋ Rs '✗) '✗]
+                      [else '✓]))
+
+              (define (check-⟪α⟫ [⟪α⟫ : -⟪α⟫]) : -R
+                (cond [(seen-has? ⟪α⟫) '✓]
+                      [else
+                       (seen-add! ⟪α⟫)
+                       (combine
+                        (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ ⟪α⟫)])
+                          (check Vᵣ)))]))
+              
               (define (check [V : -V]) : -R
-                (cond
-                  [(seen-has? V) '✓]
-                  [else
-                   (seen-add! V)
-                   (match V
-                     [(-Cons _ α)
-                      (combine
-                       (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ α)])
-                         (check Vᵣ)))]
-                     [(-Cons* α)
-                      (combine
-                       (for/seteq: : (℘ -R) ([V* (σ@ σ α)])
-                         (check V*)))]
-                     [(-b b) (decide-R (null? b))]
-                     [(-● ps)
-                      (cond
-                        [(set-empty?
-                          (∩ ps {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
-                                     'string? 'symbol?}))
-                         '?]
-                        [else '✗])]
-                     [_ '✗])]))
+                (match V
+                  [(-Cons _ α) (check-⟪α⟫ α)]
+                  [(-Cons* α) (check-⟪α⟫ α)]
+                  [(-b b) (decide-R (null? b))]
+                  [(-● ps)
+                   (cond
+                     [(set-empty?
+                       (∩ ps {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
+                                  'string? 'symbol?}))
+                      '?]
+                     [else '✗])]
+                  [_ '✗]))
               (check V)]
              [_ '✗])]
           ;; Default rules for operations on base values rely on simplification from `-?@`
