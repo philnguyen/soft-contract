@@ -75,7 +75,7 @@
 
   (: check-⟪α⟫! : -⟪α⟫ → Boolean)
   (define (check-⟪α⟫! ⟪α⟫)
-    (cond [(seen-has? ⟪α⟫) #t]
+    (cond [(seen-has? ⟪α⟫) #f]
           [else
            (seen-add! ⟪α⟫)
            (for/or ([V (σ@ σ ⟪α⟫)])
