@@ -91,19 +91,14 @@
         (set! iter (+ 1 iter)))
       
       (define next
-        (let ([ς↦αs : (HashTable -ς (℘ -⟪α⟫)) (make-hash)]
-              [ς↦αₖs : (HashTable -ς (℘ -αₖ)) (make-hash)]
-              [ς↦vsn : (HashTable -ς Ctx) (make-hash)]
+        (let ([ς↦vsn : (HashTable -ς Ctx) (make-hash)]
               [αs-all : (℘ -⟪α⟫) root₀])
           ;; Compute active addresses for each state in the frontier
           (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ _) Σ)
           (for ([ς front])
-            (define αₖs (ς->αₖs ς mσₖ))
             (define αs (span* mσ (∪ (ς->⟪α⟫s ς mσₖ) root₀) V->⟪α⟫s))
-            (define vsn (list (m↓ mσ αs) (m↓ mσₖ αₖs)))
+            (define vsn (list (m↓ mσ αs) (m↓ mσₖ (ς->αₖs ς mσₖ))))
             (set! αs-all (∪ αs-all αs))
-            (hash-set! ς↦αₖs ς αₖs)
-            (hash-set! ς↦αs ς αs)
             (hash-set! ς↦vsn ς vsn))
           (soft-gc! σ (span* mσ αs-all V->⟪α⟫s))
           (define next-from-ς↑s
@@ -282,3 +277,10 @@
                   (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
                  [else ∅])])])]))))
     (printf "  -- hits: ~a/~a~n" hits total)))
+
+(module+ test
+  ((inst profile-thunk Void)
+   (λ ()
+     (printf "profiling execution of `slatex`~n")
+     (havoc-file "../test/programs/safe/big/slatex.rkt")
+     (void))))
