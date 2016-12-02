@@ -530,10 +530,11 @@
 (define show-γ : (-γ → Sexp)
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
     (λ (γ)
+      (match-define (-γ αₖ blm? sₕ sₓs) γ)
       (cond [(verbose?)
-             (match-define (-γ αₖ blm sₕ sₓs) γ)
-             `(,(show-αₖ αₖ) ‖ (,(show-s sₕ) ,@(map show-s sₓs)) ‖ ,blm)]
-            [else (show-γ γ)]))))
+             `(,(show-αₖ αₖ) ‖ (,(show-s sₕ) ,@(map show-s sₓs)) ‖ ,blm?)]
+            [else
+             `(,(if blm? '⇓ '@) ,(show-s sₕ) ,@(map show-s sₓs))]))))
 
 (define (show-κ [κ : -κ]) : Sexp
   (match-define (-κ ⟦k⟧ Γ ⟪ℋ⟫ sₕ sₓs) κ)
