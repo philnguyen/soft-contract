@@ -35,10 +35,7 @@
       (define ⟦k⟧₀ (rt αₖ))
       (define ⟦k⟧* : -⟦k⟧!
         (λ (A $ Γ ⟪ℋ⟫ Σ)
-          (cond [(-blm? A)
-                 (case (-blm-violator A)
-                   [(havoc Λ †) ∅]
-                   [else (⟦k⟧₀ A $ Γ ⟪ℋ⟫ Σ)])]
+          (cond [(-blm? A) (⟦k⟧₀ A $ Γ ⟪ℋ⟫ Σ)]
                 [else e ...])))
       (set-⟦k⟧->αₖ! ⟦k⟧* αₖ)
       (add-⟦k⟧-roots! ⟦k⟧* (∪ frame-roots tail-roots))
@@ -56,8 +53,7 @@
       (define ⟦k⟧ : -⟦k⟧!
         (λ (A $ Γ ⟪ℋ⟫ Σ)
           (match A
-            [(-blm l+ _ _ _)
-             #:when (∋ {seteq 'havoc '† 'Λ} l+)
+            [(-blm l+ _ _ _) #:when (memq l+ '(havoc † Λ))
              ∅]
             [_
              (match-define (-Σ _ _ M) Σ)
