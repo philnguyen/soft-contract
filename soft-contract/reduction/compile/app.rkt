@@ -625,31 +625,19 @@
 
 (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧! → (℘ -ς))
 (define (mon l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (match-define (-W¹ C c) W-C)
-  (match-define (-W¹ V v) W-V)
-  (match-define (-l³ l+ _ lo) l³)
-
-  (define (default-case)
-    (define mon*
-      (cond
-        [(-=>_? C) mon-=>_]
-        [(-St/C? C) mon-struct/c]
-        [(-x/C? C) mon-x/c]
-        [(-And/C? C) mon-and/c]
-        [(-Or/C? C) mon-or/c]
-        [(-Not/C? C) mon-not/c]
-        [(-Vectorof? C) mon-vectorof]
-        [(-Vector/C? C) mon-vector/c]
-        [else mon-flat/c]))
-    (mon* l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧))
-
-  (cond
-    [(C-flat? C)
-     (case (MΓ⊢V∈C (-Σ-M Σ) (-Σ-σ Σ) Γ W-V W-C)
-       [(✓) (⟦k⟧ (-W (list V) v) $ Γ ⟪ℋ⟫ Σ)]
-       [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ ⟪ℋ⟫ Σ)]
-       [(?) (default-case)])]
-    [else (default-case)]))
+  (match-define (-W¹ C _) W-C)
+  (define mon*
+    (cond
+      [(-=>_? C) mon-=>_]
+      [(-St/C? C) mon-struct/c]
+      [(-x/C? C) mon-x/c]
+      [(-And/C? C) mon-and/c]
+      [(-Or/C? C) mon-or/c]
+      [(-Not/C? C) mon-not/c]
+      [(-Vectorof? C) mon-vectorof]
+      [(-Vector/C? C) mon-vector/c]
+      [else mon-flat/c]))
+  (mon* l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1057,8 +1045,12 @@
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-W¹ C _) W-C)
   (match-define (-W¹ V v) W-V)
-  (app lo $ ℒ W-C (list W-V) Γ ⟪ℋ⟫ Σ
-       (if.flat/c∷ (-W (list V) v) (-blm l+ lo (list C) (list V)) ⟦k⟧)))
+  (case (MΓ⊢V∈C (-Σ-M Σ) (-Σ-σ Σ) Γ W-V W-C)
+    [(✓) (⟦k⟧ (-W (list V) v) $ Γ ⟪ℋ⟫ Σ)]
+    [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ ⟪ℋ⟫ Σ)]
+    [(?)
+     (app lo $ ℒ W-C (list W-V) Γ ⟪ℋ⟫ Σ
+          (if.flat/c∷ (-W (list V) v) (-blm l+ lo (list C) (list V)) ⟦k⟧))]))
 
 (: flat-chk : -l -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧! → (℘ -ς))
 (define (flat-chk l $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
