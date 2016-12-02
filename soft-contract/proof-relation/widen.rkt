@@ -73,17 +73,19 @@
 
   (: go/⟪α⟫ : -⟪α⟫ -⟪α⟫ → Boolean)
   (define (go/⟪α⟫ α₁ α₂)
-    (define α₁α₂ (cons α₁ α₂))
     (cond
       [(equal? α₁ α₂) #t]
-      [(seen-has? α₁α₂) #t]
       [else
-       (seen-add! α₁α₂)
-       (define Vs₁ (σ@ σ α₁))
-       (define Vs₂ (σ@ σ α₂))
-       (for/and : Boolean ([V₁ Vs₁])
-         (for/or : Boolean ([V₂ Vs₂])
-           (go V₁ V₂)))]))
+       (define α₁α₂ (cons α₁ α₂))
+       (cond
+         [(seen-has? α₁α₂) #t]
+         [else
+          (seen-add! α₁α₂)
+          (define Vs₁ (σ@ σ α₁))
+          (define Vs₂ (σ@ σ α₂))
+          (for/and : Boolean ([V₁ (in-set Vs₁)])
+            (for/or : Boolean ([V₂ (in-set Vs₂)])
+              (go V₁ V₂)))])]))
 
   (: go : -V -V → Boolean)
   (define (go V₁ V₂)

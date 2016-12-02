@@ -181,28 +181,28 @@
     (match Vᵥ
       [(-St 𝒾 ⟪α⟫s)
        (define n (get-struct-arity 𝒾))
-       (for*/union : (℘ -ς) ([(⟪α⟫ i) (in-indexed ⟪α⟫s)]
-                             #:when (exact-nonnegative-integer? i) ; hack for TR
-                             #:when (plausible-index? M σ Γ Wᵢ i)
-                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
-                             [V (σ@ σ (cast ⟪α⟫ -⟪α⟫))])
-         (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ))]
+       (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+                            [i : Natural (in-naturals)]
+                            #:when (plausible-index? M σ Γ Wᵢ i))
+         (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+         (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
+           (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
       [(-St* 𝒾 ⟪γ⟫s ⟪α⟫ l³)
        (define n (get-struct-arity 𝒾))
        (match-define (-l³ l+ l- lo) l³)
-       (for*/union : (℘ -ς) ([(⟪γ⟫ i) (in-indexed ⟪γ⟫s)]
-                            #:when (exact-nonnegative-integer? i)
-                            #:when (plausible-index? M σ Γ Wᵢ i)
-                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
-                             [c (in-value (and ⟪γ⟫ (⟪α⟫->s ⟪γ⟫)))]
-                             [V (σ@ σ (cast ⟪α⟫ -⟪α⟫))]
-                             [C (if ⟪γ⟫ (σ@ σ (cast ⟪γ⟫ -⟪α⟫)) {set #f})])
-          (cond
-            [C
-             (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ
-                  (mon.c∷ l³ ℒ (-W¹ C c) ⟦k⟧))]
-            [else
-             (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ ⟦k⟧)]))]
+       (for/union : (℘ -ς) ([⟪γ⟫ (in-list ⟪γ⟫s)]
+                            [i : Natural (in-naturals)]
+                            #:when (plausible-index? M σ Γ Wᵢ i))
+          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+          (define c (and ⟪γ⟫ (⟪α⟫->s ⟪γ⟫)))
+          (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))]
+                                [C (in-set (if ⟪γ⟫ (σ@ σ (cast ⟪γ⟫ -⟪α⟫)) {set #f}))])
+            (cond
+              [C
+               (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ
+                    (mon.c∷ l³ ℒ (-W¹ C c) ⟦k⟧))]
+              [else
+               (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ ⟦k⟧)])))]
       [_
        (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
@@ -215,12 +215,12 @@
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (match Vᵥ
       [(-Vector ⟪α⟫s)
-       (for*/union : (℘ -ς) ([(⟪α⟫ i) (in-indexed ⟪α⟫s)]
-                             #:when (exact-nonnegative-integer? i) ; hack for TR
-                             #:when (plausible-index? M σ Γ Wᵢ i)
-                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
-                             [V (σ@ σ (cast ⟪α⟫ -⟪α⟫))])
-          (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ))]
+       (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+                            [i : Natural (in-naturals)]
+                            #:when (plausible-index? M σ Γ Wᵢ i))
+          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+          (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
+            (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
       [(-Vector^ α n)
        #;(begin
          (printf "vector-ref: ~a ~a~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ))
@@ -229,13 +229,13 @@
           (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
       [(-Vector/hetero ⟪α⟫s l³)
        (match-define (-l³ _ _ lo) l³)
-       (for*/union : (℘ -ς) ([(⟪α⟫ i) (in-indexed ⟪α⟫s)]
-                             #:when (exact-nonnegative-integer? i) ; hack for TR
-                             #:when (plausible-index? M σ Γ Wᵢ i)
-                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
-                             [c (in-value (⟪α⟫->s (cast ⟪α⟫ -⟪α⟫)))]
-                             [C (σ@ σ (cast ⟪α⟫ -⟪α⟫))])
-          (mon l³ $ ℒ (-W¹ C c) (-W¹ -●/V sₐ) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]
+       (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+                             [i : Natural (in-naturals)]
+                             #:when (plausible-index? M σ Γ Wᵢ i))
+          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+          (define c (⟪α⟫->s (cast ⟪α⟫ -⟪α⟫)))
+          (for/union : (℘ -ς) ([C (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
+            (mon l³ $ ℒ (-W¹ C c) (-W¹ -●/V sₐ) Γ* ⟪ℋ⟫ Σ ⟦k⟧)))]
       [(-Vector/homo ⟪α⟫ l³)
        (match-define (-l³ _ _ lo) l³)
        (define c (⟪α⟫->s ⟪α⟫))
@@ -253,8 +253,8 @@
 
     (match Vᵥ
       [(-Vector ⟪α⟫s)
-       (for*/union : (℘ -ς) ([(⟪α⟫ i) (in-indexed ⟪α⟫s)]
-                            #:when (exact-nonnegative-integer? i) ; hack for TR
+       (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+                            [i : Natural (in-naturals)]
                             #:when (plausible-index? M σ Γ Wᵢ i))
          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
          (σ⊕! σ ⟪α⟫ Vᵤ #:mutating? #t)
@@ -268,17 +268,17 @@
       [(-Vector/hetero ⟪α⟫s l³)
        (match-define (-l³ l+ l- lo) l³)
        (define l³* (-l³ l- l+ lo))
-       (for*/union : (℘ -ς) ([(⟪α⟫ i) (in-indexed ⟪α⟫s)]
-                             #:when (exact-nonnegative-integer? i) ; hack for TR
-                             #:when (plausible-index? M σ Γ Wᵢ i)
-                             [Γ* (in-value (Γ+ Γ (-?@ '= sᵢ (-b i))))]
-                             [c (in-value (⟪α⟫->s (cast ⟪α⟫ -⟪α⟫)))]
-                             [C (σ@ σ (cast ⟪α⟫ -⟪α⟫))])
-         (define W-c (-W¹ C c))
-         (define ⟦hv⟧
-           (let ([⟦chk⟧ (mk-mon-⟦e⟧ l³* ℒ (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ))])
-             (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦chk⟧))))
-         ((mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧)) ⊥ρ $ Γ* ⟪ℋ⟫ Σ ⟦k⟧))]
+       (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+                            [i : Natural (in-naturals)]
+                            #:when (plausible-index? M σ Γ Wᵢ i))
+         (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+         (define c (⟪α⟫->s (cast ⟪α⟫ -⟪α⟫)))
+         (for/union : (℘ -ς) ([C (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
+           (define W-c (-W¹ C c))
+           (define ⟦hv⟧
+             (let ([⟦chk⟧ (mk-mon-⟦e⟧ l³* ℒ (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ))])
+               (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦chk⟧))))
+           ((mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧)) ⊥ρ $ Γ* ⟪ℋ⟫ Σ ⟦k⟧)))]
       [(-Vector/homo ⟪α⟫ l³)
        (define c (⟪α⟫->s ⟪α⟫))
        (define l³* (swap-parties l³))
@@ -375,7 +375,8 @@
     (match Vₓ
       [(or (-St (== 𝒾) _) (-St* (== 𝒾) _ _ _))
        (define ⟦chk-field⟧s : (Listof -⟦e⟧!)
-         (for/list ([(W-C i) (in-indexed W-Cs)] #:when (index? i))
+         (for/list ([W-C (in-list W-Cs)]
+                    [i (in-naturals)] #:when (index? i))
            (define Ac (let ([ac (-st-ac 𝒾 i)]) (-W¹ ac ac)))
            (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W-C)
                        (list (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ Ac) (list (mk-rt-⟦e⟧ Wₓ)))))))
@@ -399,12 +400,12 @@
       [(? pair?)
        (define-values (αs ℓs) ((inst unzip -⟪α⟫ -ℓ) αℓs))
        (define l³* (-l³ l- l+ lo))
-       (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
+       (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
           (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
             (for/list : (Listof -⟦e⟧!) ([C Cs] [c cs] [Wₓ Wₓs] [ℓₐ : -ℓ ℓs])
               ;(printf "mon-arg: ~a ~a ~a~n" (+ℓ/ℓ² ℓ ℓₐ) (show-W¹ (-W¹ C c)) (show-W¹ Wₓ))
               (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
-          (for/union : (℘ -ς) ([D (σ@ σ β)])
+          (for/union : (℘ -ς) ([D (in-set (σ@ σ β))])
              (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
               (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ lo ℒ
                    (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))))]))
@@ -833,8 +834,9 @@
   (define all-immutable? (struct-all-immutable? 𝒾))
 
   (define ⟦field⟧s : (Listof -⟦e⟧!)
-    (for/list ([(α i) (in-indexed αs)])
-      (define ac (-st-ac 𝒾 (assert i index?)))
+    (for/list ([α (in-list αs)]
+               [i (in-naturals)] #:when (index? i))
+      (define ac (-st-ac 𝒾 i))
       (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ (-W¹ V v))))))
 
   (match V ; FIXME code dup
@@ -958,7 +960,8 @@
      (define ⟦erase⟧ (mk-erase-⟦e⟧ αs))
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [Vs (σ@/list σ αs)])
        (define ⟦hv⟧s : (Listof -⟦e⟧!)
-         (for/list ([(V* i) (in-indexed Vs)])
+         (for/list ([V* (in-list Vs)]
+                    [i (in-naturals)] #:when (index? i))
            (define ⟦chk⟧
              (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*)
                          (mk-rt-⟦e⟧ (-W¹ C c))
@@ -976,7 +979,9 @@
      (define cs : (Listof -s) (for/list ([α : -⟪α⟫ αs]) (⟪α⟫->s α)))
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [Cs (σ@/list σ αs)])
        (define ⟦chk⟧s : (Listof -⟦e⟧!)
-         (for/list ([C* Cs] [(c* i) (in-indexed cs)])
+         (for/list ([C* (in-list Cs)]
+                    [c* (in-list cs)]
+                    [i (in-naturals)] #:when (index? i))
            (define ⟦inner⟧
              (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*)
                          (mk-rt-⟦e⟧ (-W¹ C* c*))
@@ -1023,9 +1028,12 @@
     (let ([V* (-Vector/hetero αs l³)])
       (mk-rt-⟦e⟧ (-W (list V*) vᵥ))))
   (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
-  (for*/union : (℘ -ς) ([Cs (σ@/list σ αs)])
+  (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
      (define ⟦hv-fld⟧s : (Listof -⟦e⟧!)
-       (for/list ([C* Cs] [(c* i) (in-indexed cs)] [ℓᵢ : -ℓ ℓs])
+       (for/list ([C* (in-list Cs)]
+                  [c* (in-list cs)]
+                  [ℓᵢ : -ℓ (in-list ℓs)]
+                  [i (in-naturals)] #:when (index? i))
          (define W-C* (-W¹ C* c*))
          (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
          (define ⟦ref⟧
@@ -1091,8 +1099,11 @@
            (or s (⟪α⟫->s α)))))
      (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
        (define ⟦chk-field⟧s : (Listof -⟦e⟧!)
-         (for/list ([Cᵢ Cs] [(cᵢ i) (in-indexed cs)] [ℓᵢ : -ℓ ℓs])
-           (define ac (-st-ac s (assert i index?)))
+         (for/list ([Cᵢ (in-list Cs)]
+                    [cᵢ (in-list cs)]
+                    [ℓᵢ : -ℓ (in-list ℓs)]
+                    [i (in-naturals)] #:when (index? i))
+           (define ac (-st-ac s i))
            (define ⟦ref⟧ᵢ (mk-app-⟦e⟧ 'Λ ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ W-V))))
            (mk-fc-⟦e⟧ l (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ (-W¹ Cᵢ cᵢ)) ⟦ref⟧ᵢ)))
        (match ⟦chk-field⟧s
@@ -1188,8 +1199,9 @@
                        [l³ : -l³]
                        [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
   (define αs* : (Listof (Option -⟪α⟫))
-    (for/list ([(⟪α⟫ i) (in-indexed ⟪α⟫s)])
-      (and (struct-mutable? 𝒾 (assert i index?)) (cast ⟪α⟫ -⟪α⟫))))
+    (for/list ([⟪α⟫ (in-list ⟪α⟫s)]
+               [i (in-naturals)] #:when (index? i))
+      (and (struct-mutable? 𝒾 i) (cast ⟪α⟫ -⟪α⟫))))
   (define V* (-St* 𝒾 αs* ⟪α⟫ l³))
   (define ⟪α⟫s-casted #|FIXME TR|# (cast ⟪α⟫s (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X)))))
   (define ⟪α⟫-casted #|FIXME TR|# (cast ⟪α⟫ (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X)))))
