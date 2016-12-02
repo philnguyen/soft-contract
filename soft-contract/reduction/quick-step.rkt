@@ -96,11 +96,14 @@
           ;; Compute active addresses for each state in the frontier
           (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ _) Σ)
           (for ([ς front])
-            (define αs (span* mσ (∪ (ς->⟪α⟫s ς mσₖ) root₀) V->⟪α⟫s))
-            (define vsn (list (m↓ mσ αs) (m↓ mσₖ (ς->αₖs ς mσₖ))))
-            (set! αs-all (∪ αs-all αs))
-            (hash-set! ς↦vsn ς vsn))
-          (soft-gc! σ (span* mσ αs-all V->⟪α⟫s))
+            (define vsn-σₖ (m↓ mσₖ (ς->αₖs ς mσₖ)))
+            (define vsn-σ  (hash-copy/spanning* mσ (∪ (ς->⟪α⟫s ς mσₖ) root₀) V->⟪α⟫s))
+            (hash-set! ς↦vsn ς (list vsn-σ vsn-σₖ))
+            (set! αs-all
+                  (for/fold ([acc : (℘ -⟪α⟫) αs-all])
+                            ([α : -⟪α⟫ (in-hash-keys vsn-σ)] #:unless (∋ root₀ α))
+                    (set-add acc α))))
+          (soft-gc! σ αs-all)
           (define next-from-ς↑s
             (let ([ς↑s* ; filter out seen states
                      (for*/list : (Listof -ς↑) ([ς ς↑s]
