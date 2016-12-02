@@ -66,8 +66,6 @@
      (-Vector/homo α (-l³ l+ l      lo))]
     [_ V]))
 
-(define printing : (HashTable (List -V (U -e -V)) Void) (make-hash))
-
 (: behavioral? : -σ -V → Boolean)
 ;; Check if value maybe behavioral.
 ;; `#t` is a conservative answer "maybe yes"

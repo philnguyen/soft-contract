@@ -339,37 +339,23 @@
     (define ⟪ℋ⟫₀ (if (eq? ⟪ℋ⟫ ⟪ℋ⟫*) (⟪ℋ⟫@ ⟪ℋ⟫* ⟦e⟧) ⟪ℋ⟫*))
     ;; Call history for context jumped to
     (define ⟪ℋ⟫ₑₑ ⟪ℋ⟫₀ #;(if (eq? ⟪ℋ⟫* ⟪ℋ⟫) ⟪ℋ⟫₀ ⟪ℋ⟫*))
-    (match xs
-      [(? list? xs)
-       (cond ;; guard against unneccessary lengthy loop by havoc
-         [else
-          (define ρ* (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs))
-          (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-          (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
-          (σₖ⊔! σₖ αₖ κ)
-          {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}])]
-      [(-varargs zs z) ; FIXME code duplicate
-       (define n (length zs))
-       (define-values (Ws₀ Wsᵣ) (split-at Wₓs n))
-       ;; Allocate args, side effects widening store
-       (define ρ*
-         (let ([ρ₀ (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ zs Ws₀)])
-           (define Vᵣ (alloc-rest-args! σ Γ ⟪ℋ⟫₀ ℒ Wsᵣ))
-           (define αᵣ (-α->-⟪α⟫ (-α.x z ⟪ℋ⟫₀)))
-           (σ⊕! σ αᵣ Vᵣ)
-           (ρ+ ρ₀ z αᵣ)))
-       ;; Push stack and jump to new state
-       (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-       (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
-       (σₖ⊔! σₖ αₖ κ)
-       
-       ;; Just debuggings for `slatex`
-       #;(when (and (match? zs '(where)) (eq? z 'what))
-         (printf "error parameters:~n - where: ~a~n - what: ~a~n~n"
-                 (set-map (σ@ σ (ρ@ ρ* 'where)) show-V)
-                 (set-map (σ@ σ (ρ@ ρ* 'what)) show-V)))
-       
-       {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]))
+    ;; Target's environment
+    (define ρ* : -ρ
+      (match xs
+        [(? list? xs)
+         (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs)]
+        [(-varargs zs z)
+         (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
+         (define ρ₀ (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ zs Ws₀))
+         (define Vᵣ (alloc-rest-args! σ Γ ⟪ℋ⟫₀ ℒ Wsᵣ))
+         (define αᵣ (-α->-⟪α⟫ (-α.x z ⟪ℋ⟫₀)))
+         (σ⊕! σ αᵣ Vᵣ)
+         (ρ+ ρ₀ z αᵣ)]))
+
+    (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+    (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
+    (σₖ⊔! σₖ αₖ κ)
+    {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)})
 
   (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
     (define ⟦rhs⟧ (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W₂) (list (mk-rt-⟦e⟧ (car Wₓs)))))

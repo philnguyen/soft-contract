@@ -102,34 +102,31 @@
         (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
      [(-x x) (↓ₓ l x)]
      [(and 𝒾 (-𝒾 x l₀))
-      (cond
-        ;; same-module referencing returns unwrapped version
-        [(equal? l₀ l)
-         (define α (-α->-⟪α⟫ (-α.def 𝒾)))
-         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (define σ (-Σ-σ Σ))
-           (define Vs (σ@ σ α))
-           (define old? (σ-old? σ α))
-           (define s (and old? 𝒾))
-           (cond
-             [($@ $ s) =>
-              (λ ([V : -V])
-                (⟦k⟧ (-W (list V) s) $ Γ ⟪ℋ⟫ Σ))]
-             [else
-              (for/union : (℘ -ς) ([V Vs])
-                (define $* ($+ $ s V))
-                (⟦k⟧ (-W (list V) s) $* Γ ⟪ℋ⟫ Σ))]))]
-        ;; cross-module referencing returns wrapped version
-        ;; and (HACK) supplies the negative monitoring context
-        [else
-         (define α (-α->-⟪α⟫ (-α.wrp 𝒾)))
-         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (define σ (-Σ-σ Σ))
-           (define Vs (σ@ σ α))
-           (define old? (σ-old? σ α))
-           (define s (and old? 𝒾))
-           (for/union : (℘ -ς) ([V Vs])
-             (⟦k⟧ (-W (list (supply-negative-party l V)) s) $ Γ ⟪ℋ⟫ Σ)))])]
+
+      (define-values (α modify-V)
+        (cond
+          ;; same-module referencing returns unwrapped version
+          [(equal? l₀ l) (values (-α.def 𝒾) (inst values -V))]
+          ;; cross-module referencing returns wrapped version
+          ;; and (HACK) supplies the negative monitoring context
+          [else (values (-α.wrp 𝒾) (λ ([V : -V]) (supply-negative-party l V)))]))
+      
+      (define ⟪α⟫ (-α->-⟪α⟫ α))
+      
+      (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+        (define σ (-Σ-σ Σ))
+        (define old? (σ-old? σ ⟪α⟫))
+        (define s (and old? 𝒾))
+        (cond
+          [($@ $ s) =>
+           (λ ([V : -V])
+             (⟦k⟧ (-W (list V) s) $ Γ ⟪ℋ⟫ Σ))]
+          [else
+           (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
+                      (define V* (modify-V V))
+                      (define $* ($+ $ s V*))
+                      (⟦k⟧ (-W (list V*) s) $* Γ ⟪ℋ⟫ Σ))]))]
+     
      [(-@ f xs ℓ)
       (define ⟦f⟧  (↓ f))
       (define ⟦x⟧s (map ↓ xs))
