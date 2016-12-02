@@ -23,7 +23,7 @@
        (values k v))]
     [else ; mutable
      (define m* : (HashTable X Y) (if (hash-eq? m) (make-hasheq) (make-hash)))
-     (for ([(k v) m] #:when (∋ xs k))
+     (for ([(k v) (in-hash m)] #:when (∋ xs k))
        (hash-set! m* k v))
      m*]))
 
