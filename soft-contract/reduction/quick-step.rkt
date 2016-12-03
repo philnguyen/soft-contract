@@ -55,53 +55,23 @@
         (define vsn-σₖ (m↓ mσₖ (ς->αₖs ς mσₖ)))
         (list vsn-σ vsn-σₖ))))
 
-  (let touch! ([ς : -ς (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)])
-    (for* ([ς* (in-set (↝₁! ς Σ))]
-           [vsn (in-value (ς-vsn ς*))] #:unless (equal? (hash-ref seen ς* #f) vsn))
-      (hash-set! seen ς* vsn)
-      (touch! ς*)))
-
-  #;(let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
-    (unless (or (set-empty? front) #|FIXME|# #;(> iter 80))
-      (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
-
-      (define next
-        (let ([ς↦vsn : (HashTable -ς Ctx) (make-hash)]
-              [αs-all : (℘ -⟪α⟫) root₀])
-          ;; Compute active addresses for each state in the frontier
-          (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ _) Σ)
-          (for ([ς front])
-            (define vsn-σₖ (m↓ mσₖ (ς->αₖs ς mσₖ)))
-            (define vsn-σ  (hash-copy/spanning* mσ (∪ (ς->⟪α⟫s ς mσₖ) root₀) V->⟪α⟫s))
-            (hash-set! ς↦vsn ς (list vsn-σ vsn-σₖ))
-            (set! αs-all
-                  (for/fold ([acc : (℘ -⟪α⟫) αs-all])
-                            ([α : -⟪α⟫ (in-hash-keys vsn-σ)] #:unless (∋ root₀ α))
-                    (set-add acc α))))
-          (soft-gc! σ αs-all)
-          (define next-from-ς↑s
-            (let ([ς↑s* ; filter out seen states
-                     (for*/list : (Listof -ς↑) ([ς ς↑s]
-                                                [vsn (in-value (hash-ref ς↦vsn ς))]
-                                                #:unless (equal? vsn (hash-ref seen ς #f)))
-                     (hash-set! seen ς vsn)
-                     (assert ς -ς↑?))])
-              (↝↑! ς↑s* Σ)))
-          (define next-from-ς↓s
-            (let ([ς↓s* ; filter out seen states
-                     (for*/list : (Listof -ς↓) ([ς ς↓s]
-                                                [vsn (in-value (hash-ref ς↦vsn ς))]
-                                                #:unless (equal? vsn (hash-ref seen ς #f)))
-                       (hash-set! seen ς vsn)
-                       (assert ς -ς↓?))])
-              (↝↓! ς↓s* Σ)))
-          (∪ next-from-ς↑s next-from-ς↓s)))
-      (loop! next)))
+  (let touch! ([ς : -ς (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)] [d : Natural 0])
+    (define d* (+ 1 d))
+    (write-char #\o)
+    (define i : Natural 0)
+    (for ([ς* (in-set (↝! ς Σ))])
+      (define vsn (ς-vsn ς*))
+      (unless (equal? (hash-ref seen ς* #f) vsn)
+        (hash-set! seen ς* vsn)
+        (when (> i 0)
+          (write-char #\newline)
+          (for ([_ (in-range d*)]) (write-char #\space)))
+        (set! i (+ 1 i))
+        (touch! ς* d*))))
+  (printf "~n")
 
   (match-let ([(-Σ σ σₖ M) Σ])
-    (begin0 (values (M@ M αₖ₀) Σ)
-      #;(let-values ([(miss total) (miss/total)])
-        (printf "miss/total: ~a/~a~n" miss total)))))
+    (values (M@ M αₖ₀) Σ)))
 
 (: ς->⟪α⟫s : -ς (HashTable -αₖ (℘ -κ)) → (℘ -⟪α⟫))
 ;; Compute the root set for value addresses of this state
@@ -127,12 +97,12 @@
       [(-ς↓ αₖ _ _) αₖ]))
   (span-σₖ σₖ αₖ))
 
-(: ↝₁! : -ς -Σ → (℘ -ς))
-(define (↝₁! ς Σ)
-  (if (-ς↑? ς) (↝↑₁! ς Σ) (↝↓₁! ς Σ)))
+(: ↝! : -ς -Σ → (℘ -ς))
+(define (↝! ς Σ)
+  (if (-ς↑? ς) (↝↑! ς Σ) (↝↓! ς Σ)))
 
-(: ↝↑₁! : -ς↑ -Σ → (℘ -ς))
-(define (↝↑₁! ς Σ)
+(: ↝↑! : -ς↑ -Σ → (℘ -ς))
+(define (↝↑! ς Σ)
   (match-define (-ς↑ αₖ Γ ⟪ℋ⟫) ς)
   (define ⟦k⟧ (rt αₖ))
   (match αₖ
@@ -141,8 +111,8 @@
     [(-ℱ _ l  ℓ W-C W-V) (flat-chk l $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     [_ (error '↝↑ "~a" αₖ)]))
 
-(: ↝↓₁! : -ς↓ -Σ → (℘ -ς))
-(define (↝↓₁! ς Σ)
+(: ↝↓! : -ς↓ -Σ → (℘ -ς))
+(define (↝↓! ς Σ)
   (match-define (-Σ _ σₖ M) Σ)
   (match-define (-ς↓ αₖ Γₑₑ A) ς)
   (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
