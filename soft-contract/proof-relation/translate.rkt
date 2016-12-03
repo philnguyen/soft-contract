@@ -42,43 +42,26 @@
 ;; satisfiability
 (define (encode M Γ e)
   (define-values (refs top-entry) (encode-e ∅ ∅eq Γ e))
-  (let loop ([fronts   : (℘ Defn-Entry) refs]
-             [seen     : (℘ Defn-Entry) refs]
-             [def-funs : Memo-Table (hash)])
-    (cond
-      [(set-empty? fronts)
-       (define st-arities
-         (for/fold ([acc : (℘ Natural) ∅eq])
-                   ([entry seen])
-           (match entry
-             [(or (-st-mk 𝒾) (-st-p 𝒾) (-st-ac 𝒾 _) (-st-mut 𝒾 _)) #:when 𝒾
-              (set-add acc (get-struct-arity 𝒾))]
-             [(or 'list? 'list-ref 'map)
-              (set-add acc 2)]
-             [_ acc])))
-       (emit st-arities def-funs top-entry)]
-      [else
-       (define-values (fronts* seen* def-funs*)
-         (for/fold ([fronts*   : (℘ Defn-Entry) ∅]
-                    [seen*     : (℘ Defn-Entry) seen]
-                    [def-funs* : Memo-Table def-funs])
-                   ([front fronts])
-           (define-values (def-funs** refs+)
-             (match front
-               [(and app-ctx (App-Ctx (and app (App αₖ _)) _))
-                (define As (hash-ref M αₖ))
-                (define-values (refs entries) (encode-App-Ctx app-ctx As))
-                (values (hash-set def-funs* app entries) refs)]
-               [(? -o? o)
-                (values def-funs* ∅)]))
-           (define-values (fronts** seen**)
-             (for/fold ([fronts** : (℘ Defn-Entry) fronts*]
-                        [seen**   : (℘ Defn-Entry) seen*])
-                       ([ref refs+] #:unless (∋ seen** ref))
-               (values (set-add fronts** ref)
-                       (set-add seen**   ref))))
-           (values fronts** seen** def-funs**)))
-       (loop fronts* seen* def-funs*)])))
+  
+  (define-set seen-defns : App-Ctx #:as-mutable-hash? #t)
+  (define-set seen-prims : -o)
+  (define def-funs : Memo-Table (make-hash))
+
+  (: touch! : Defn-Entry → Void)
+  (define (touch! defn-entry)
+    (match defn-entry
+      [(and app-ctx (App-Ctx (and app (App αₖ _)) _))
+       (unless (seen-defns-has? app-ctx)
+         (seen-defns-add! app-ctx)
+         (define As (hash-ref M αₖ))
+         (define-values (refs entries) (encode-App-Ctx app-ctx As))
+         (hash-set! def-funs app entries)
+         (set-for-each refs touch!))]
+      [(? -o? o)
+       (seen-prims-add! o)]))
+
+  (set-for-each refs touch!)
+  (emit seen-prims def-funs top-entry))
 
 (: encode-App-Ctx : App-Ctx (℘ -ΓA) → (Values (℘ Defn-Entry) Res))
 ;; Translate memo-table entry `αₖ(xs) → {A…}` to pair of formulas for when application
@@ -640,8 +623,8 @@
    None)
   (void))
 
-(: base-predicates : →Void)
-(define (base-predicates)
+(: base-predicates : (℘ -o) → Void)
+(define (base-predicates prims)
   ;; Primitive predicates
   (define-fun is_false ([x 'V]) Bool/s
     (=/s x (@/s 'B false/s)))
@@ -651,23 +634,46 @@
     (and/s (@/s 'is-N x) (=/s 0 (@/s 'imag x))))
   (define-fun is-Z ([x 'V]) Bool/s
     (and/s (@/s 'is-R x) (is-int/s (@/s 'real x))))
-  (declare-fun exact? ('V) Bool/s)
-  (declare-fun inexact? ('V) Bool/s)
-  (declare-fun strlen ('V) Int/s)
-  (declare-fun f.vecref ('V 'V) 'V)
-  (declare-fun veclen ('V) Int/s)
-  (assert! (∀/s ([v 'V]) (>=/s (strlen v) 0)))
-  (assert! (∀/s ([v 'V]) (>=/s (veclen v) 0)))
-  (declare-fun arity ('V) Int/s)
-  (assert! (∀/s ([v 'V]) (>=/s (arity v) 0)))
-  (declare-fun list? ('V) Bool/s)
-  (assert! (list? 'Null))
-  (assert! (∀/s ([h 'V] [t 'V])
-                (=>/s (list? t) (list? (@/s 'St_2 (-𝒾->-⦃𝒾⦄ -𝒾-cons) h t)))))
-  (declare-fun f.map ('V 'V) 'V)
-  (declare-fun f.append ('V 'V) 'V)
-  (define-fun f.min ([x Real/s] [y Real/s]) Real/s (ite/s (<=/s x y) x y))
-  (define-fun f.max ([x Real/s] [y Real/s]) Real/s (ite/s (>=/s x y) x y))
+
+  (when (∋ prims 'exact?)
+    (dynamic-declare-fun 'exact? '(V) Bool/s))
+  
+  (when (∋ prims 'inexact?)
+    (dynamic-declare-fun 'inexact? '(V) Bool/s))
+  
+  (when (∋ prims 'string-length)
+    (dynamic-declare-fun 'strlen '(V) Int/s)
+    (assert! (∀/s ([v 'V]) (>=/s (@/s 'strlen v) 0))))
+
+  (when (∋ prims 'vector-ref)
+    (dynamic-declare-fun 'f.vecref '(V V) 'V))
+  
+  (when (∋ prims 'vector-length)
+    (dynamic-declare-fun 'veclen '(V) Int/s)
+    (assert! (∀/s ([v 'V]) (>=/s (@/s 'veclen v) 0))))
+
+  (when #t #;(∋ prims 'procedure-arity)
+    (dynamic-declare-fun 'arity '(V) Int/s)
+    (assert! (∀/s ([v 'V]) (>=/s (@/s 'arity v) 0))))
+  
+  (when (∋ prims 'list?)
+    (dynamic-declare-fun 'list? '(V) Bool/s)
+    (assert! (@/s 'list? 'Null))
+    (assert! (∀/s ([h 'V] [t 'V])
+                  (=>/s (@/s 'list? t) (@/s 'list? (@/s 'St_2 (-𝒾->-⦃𝒾⦄ -𝒾-cons) h t))))))
+
+  (when (∋ prims 'map)
+    (dynamic-declare-fun 'f.map '(V V) 'V))
+  
+  (when (∋ prims 'append)
+    (dynamic-declare-fun 'f.append '(V V) 'V))
+
+  (when (∋ prims 'min)
+    (dynamic-define-fun 'f.min ([x Real/s] [y Real/s]) Real/s (ite/s (<=/s x y) x y)))
+  
+  (when (∋ prims 'max)
+    (dynamic-define-fun 'f.max ([x Real/s] [y Real/s]) Real/s (ite/s (>=/s x y) x y)))
+  
   (void))
 
 (define-interner -o #:interned-type-name -⦃o⦄)
@@ -682,9 +688,19 @@
 ;;;;; Emitting SMT 2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: emit : (℘ Natural) Memo-Table Entry → (Values →Void →Z3-Ast))
-(define (emit struct-arities def-funs top)
+(: emit : (℘ -o) Memo-Table Entry → (Values →Void →Z3-Ast))
+(define (emit prims def-funs top)
   (match-define (Entry consts facts goal) top)
+
+  (define st-arities
+    (for/fold ([acc : (℘ Index) ∅eq])
+              ([o (in-set prims)])
+      (match o
+        [(or (-st-mk 𝒾) (-st-p 𝒾) (-st-ac 𝒾 _) (-st-mut 𝒾 _)) #:when 𝒾
+         (set-add acc (get-struct-arity 𝒾))]
+        [(or 'list? 'list-ref 'map)
+         (set-add acc 2)]
+        [_ acc])))
   
   (define-values (emit-dec-funs emit-def-funs)
     (for/fold ([decs : (Listof →Void) '()]
@@ -762,8 +778,8 @@
       (assert! (φ))))
 
   (values (λ ()
-            (base-datatypes struct-arities)
-            (base-predicates)
+            (base-datatypes st-arities)
+            (base-predicates prims)
             (emit-dec-consts)
             (run-all emit-dec-funs)
             (run-all emit-def-funs)
