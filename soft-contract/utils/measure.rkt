@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide with-measuring highest-calls highest-time)
+(provide with-measuring with-measuring/off highest-calls highest-time)
 
 (require (for-syntax racket/base
                      racket/syntax
@@ -9,6 +9,7 @@
 
 (define total-time  : (HashTable Any Integer) (make-hash))
 (define total-calls : (HashTable Any Integer) (make-hash))
+
 (define mk-0 (λ () 0))
 
 (define-syntax with-measuring
@@ -21,6 +22,11 @@
            (let ([δt (- (current-milliseconds) t₀)])
              (hash-update! total-calls vt add1 mk-0)
              (hash-update! total-time  vt (λ ([T : Integer]) (+ T δt)) mk-0))))]))
+
+(define-syntax with-measuring/off
+  (syntax-parser
+    [(_ t e ...)
+     #'(let () e ...)]))
 
 (: highest-calls ([] [Natural] . ->* . (Listof (Pairof Any Integer))))
 (define (highest-calls [num 1]) (table-max total-calls num))
