@@ -604,11 +604,6 @@
     [(list) (val-of 'Null)]
     [_ (error '⦃b⦄ "value: ~a" b)]))
 
-(: SMT-base : (℘ Natural) → Void)
-(define (SMT-base struct-arities)
-  (base-datatypes struct-arities)
-  (base-predicates))
-
 (: base-datatypes : (℘ Natural) → Void)
 (define (base-datatypes arities)
   (define st-defs : (Listof (Pairof Symbol (Listof (List Symbol Smt-Sort-Expr))))
@@ -767,7 +762,8 @@
       (assert! (φ))))
 
   (values (λ ()
-            (SMT-base struct-arities)
+            (base-datatypes struct-arities)
+            (base-predicates)
             (emit-dec-consts)
             (run-all emit-dec-funs)
             (run-all emit-def-funs)
