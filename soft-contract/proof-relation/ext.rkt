@@ -35,10 +35,32 @@
                 (list e φs γs M*)
                 (λ ()
                   (define-values (base goal) (encode M* Γ* e))
-                  (match/values (exec-check-sat base goal)
-                    [('unsat _) '✓]
-                    [(_ 'unsat) '✗]
-                    [(_ _) '?]))))
+                  
+                  #;(define t₀ (current-milliseconds))
+                  (define ans : -R
+                    (match/values (exec-check-sat base goal)
+                      [('unsat _) '✓]
+                      [(_ 'unsat) '✗]
+                      [(_ _) '?]))
+                  #;(define δt (- (current-milliseconds) t₀))
+
+                  #;(when (> δt (quotient (* (Timeout) 2) 3)) ;; Debugging
+                    (printf "exec-check-sat:~n")
+                    (printf "M:~n")
+                    (for ([(αₖ ΓAs) (in-hash M*)])
+                      (printf "  - ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ΓAs))
+                      (for ([ΓA (in-set ΓAs)])
+                        (printf "    + ~a~n" (show-ΓA ΓA))))
+                    (printf "Γ:~n")
+                    (match-let ([(-Γ φs _ γs) Γ*])
+                      (for ([φ (in-set φs)])
+                        (printf "  - ~a~n" (show-e φ)))
+                      (for ([γ (in-list γs)])
+                        (printf "  - ~a~n" (show-γ γ))))
+                    (printf "-----------------------------------------~a, ~a~n" ans δt)
+                    (printf "~a~n~n" (show-e e)))
+
+                  ans)))
     (define δt (- (current-milliseconds) t₀))
     (unless #f #;(< δt 300)
       (printf "ext-prove: ~a ⊢ ~a : ~a ~ams~n~n" (show-Γ Γ) (show-e e) R δt))))
