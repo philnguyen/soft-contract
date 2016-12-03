@@ -34,13 +34,14 @@
     (for/hasheq : (HashTable Symbol -e) ([(x e) as] #:when (∋ xs x))
       (values x e)))
   (define γs*
-    (for/list : (Listof -γ) ([γ γs])
-      (match-define (-γ αₖ blm sₕ sₓs) γ)
-      (define-values (sₕ* sₓs*) ; if keep one, keep all of them
-        (let ([sₕ** (s↓ sₕ xs)]
-              [sₓs** (for/list : (Listof -s) ([sₓ sₓs]) (s↓ sₓ xs))])
-          (cond [(or sₕ** (ormap (inst values Any) sₓs**)) (values sₕ sₓs)]
-                [else (values sₕ** sₓs**)])))
+    (for*/list : (Listof -γ) ([γ (in-list γs)]
+                              [αₖ (in-value (-γ-callee γ))]
+                              [blm (in-value (-γ-blm γ))]
+                              [sₓs (in-value (-γ-args γ))]
+                              [sₕ (in-value (-γ-fun γ))]
+                              [sₓs* (in-value (for/list : (Listof -s) ([sₓ sₓs]) (s↓ sₓ xs)))]
+                              #:when (ormap (inst values -s) sₓs*)
+                              [sₕ* (in-value (s↓ sₕ xs))])
       (-γ αₖ blm sₕ* sₓs*)))
   (-Γ φs* as* γs*))
 
@@ -58,8 +59,11 @@
 
 (: -Γ-plus-γ : -Γ -γ → -Γ)
 (define (-Γ-plus-γ Γ γ)
-  (match-define (-Γ φs as γs) Γ)
-  (-Γ φs as (cons γ γs)))
+  (match-define (-γ _ _ _ sₓs) γ)
+  (cond [(ormap (inst values -s) sₓs)
+         (match-define (-Γ φs as γs) Γ)
+         (-Γ φs as (cons γ γs))]
+        [else Γ]))
 
 (: γ->fargs : -γ → -s)
 (define (γ->fargs γ)
@@ -84,12 +88,15 @@
                                               #:unless (∋ (fv φ) x))
          (values z φ)))
      (define γs*
-       (for/list : (Listof -γ) ([γ γs])
-         (match-define (-γ αₖ blm sₕ sₓs) γ)
-         (define sₕ* (and (not (∋ (fvₛ sₕ) x)) sₕ))
-         (define sₓs* : (Listof -s)
-           (for/list ([sₓ sₓs])
-             (and (not (∋ (fvₛ sₓ) x)) sₓ)))
+       (for*/list : (Listof -γ) ([γ (in-list γs)]
+                                 [αₖ (in-value (-γ-callee γ))]
+                                 [blm (in-value (-γ-blm γ))]
+                                 [sₓs (in-value (-γ-args γ))]
+                                 [sₕ (in-value (-γ-fun γ))]
+                                 [sₓs* (in-value (for/list : (Listof -s) ([sₓ sₓs])
+                                                   (and (not (∋ (fvₛ sₓ) x)) sₓ)))]
+                                 #:when (ormap (inst values -s) sₓs*)
+                                 [sₕ* (in-value (and (not (∋ (fvₛ sₕ) x)) sₕ))])
          (-γ αₖ blm sₕ* sₓs*)))
      (-Γ φs* as* γs*))
     (printf "invalidate ~a:~n- before: ~a~n- after: ~a~n~n" x (show-Γ Γ) (show-Γ Γ*))))
