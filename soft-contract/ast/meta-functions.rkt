@@ -64,6 +64,7 @@
     [(? list? l)
      (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
        (∪ xs (fv e)))]
+    [(-ar c v) (∪ (fv c) (fv v))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
 
 (module+ test
@@ -155,45 +156,6 @@
       [_ ∅eq]))
   
   (go e))
-
-(: unroll : Symbol -e -e → -e)
-;; Unroll reference to recursive contract
-(define (unroll x c e)
-  (let go ([e : -e e])
-
-    (: go-bnd (∀ (X) (Pairof X -e) → (Pairof X -e)))
-    (define (go-bnd bnd)
-      (match-define (cons xs e) bnd)
-      (cons xs (go e)))
-
-    (match e
-      [(-λ xs e*) (-λ xs (go e*))]
-      [(-case-λ clauses) (-case-λ (map (inst go-bnd (Listof Symbol)) clauses))]
-      [(-@ f xs l) (-@ (go f) (map go xs) l)]
-      [(-if e₀ e₁ e₂) (-if (go e₀) (go e₁) (go e₂))]
-      [(-wcm k v b) (-wcm (go k) (go v) (go b))]
-      [(-begin0 e₀ es) (-begin0 (go e₀) (map go es))]
-      [(-let-values bnds e*)
-       (-let-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*))]
-      [(-letrec-values bnds e*)
-       (-letrec-values (map (inst go-bnd (Listof Symbol)) bnds) (go e*))]
-      [(-set! z e*) (-set! z (go e*))]
-      [(-amb es) (-amb (map/set go es))]
-      [(-μ/c z e*) (if (symbol=? z x) e (-μ/c z (go e*)))]
-      [(--> cs d ℓ) (--> (map go cs) (go d) ℓ)]
-      [(-->i cs mk-d ℓ)
-       (-->i (map go cs) (assert (go mk-d) -λ?) ℓ)]
-      [(-case-> clauses ℓ)
-       (define clauses* : (Listof (Pairof (Listof -e) -e))
-         (for/list ([clause clauses])
-           (match-define (cons cs d) clause)
-           (cons (map go cs) (go d))))
-       (-case-> clauses* ℓ)]
-      [(-struct/c si cs ℓ) (-struct/c si (map go cs) ℓ)]
-      [(-x/c z) (if (symbol=? z x) c e)]
-      [_
-       (log-debug "unroll: ignore ~a" (show-e e))
-       e])))
 
 (: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`
@@ -325,6 +287,7 @@
        (-case-> clauses* ℓ)]
       [(-struct/c si cs ℓ)
        (-struct/c si (map (curry go! m) cs) ℓ)]
+      [(-ar c v) (-ar (go! m c) (go! m v))]
       [_ e]))
 
   (cond [(-e? e) (go! (hasheq) e)]
@@ -415,6 +378,7 @@
              (-case-> clauses* ℓ)]
             [(-struct/c t cs ℓ)
              (-struct/c t (go-list m cs) ℓ)]
+            [(-ar c v) (-ar (go m c) (go m v))]
             [_
              ;(printf "unchanged: ~a @ ~a~n" (show-e e) (show-subst m))
              e])]))
