@@ -3,6 +3,7 @@
          "map.rkt" "vmap.rkt" "pretty.rkt" "set.rkt" "sexp-stx.rkt" 
          "unique.rkt"
          "indexed-set.rkt" "profile.rkt" "intern.rkt"
+         "measure.rkt"
          "untyped-macros.rkt"
          "contracts.rkt")
 (provide
@@ -10,5 +11,6 @@
                "vmap.rkt" "map.rkt" "pretty.rkt" "set.rkt" "sexp-stx.rkt"
                "unique.rkt"
                "indexed-set.rkt" "profile.rkt" "intern.rkt"
+               "measure.rkt"
                "untyped-macros.rkt"
                "contracts.rkt"))
