@@ -55,19 +55,19 @@
         (define vsn-σₖ (m↓ mσₖ (ς->αₖs ς mσₖ)))
         (list vsn-σ vsn-σₖ))))
 
-  (let touch! ([ς : -ς (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)] [d : Natural 0])
-    (define d* (+ 1 d))
-    (write-char #\o)
-    (define i : Natural 0)
+  (let touch! ([ς : -ς (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)] #;[d : Natural 0])
+    #;(define d* (+ 1 d))
+    #;(write-char #\o)
+    #;(define first-iter? : Boolean #t)
     (for ([ς* (in-set (↝! ς Σ))])
       (define vsn (ς-vsn ς*))
       (unless (equal? (hash-ref seen ς* #f) vsn)
         (hash-set! seen ς* vsn)
-        (when (> i 0)
+        #;(unless first-iter?
           (write-char #\newline)
           (for ([_ (in-range d*)]) (write-char #\space)))
-        (set! i (+ 1 i))
-        (touch! ς* d*))))
+        #;(set! first-iter? #f)
+        (touch! ς* #;d*))))
   (printf "~n")
 
   (match-let ([(-Σ σ σₖ M) Σ])
@@ -106,9 +106,15 @@
   (match-define (-ς↑ αₖ Γ ⟪ℋ⟫) ς)
   (define ⟦k⟧ (rt αₖ))
   (match αₖ
-    [(-ℬ _ ⟦e⟧! ρ)        (⟦e⟧! ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-    [(-ℳ _ l³ ℓ W-C W-V) (mon l³ $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-    [(-ℱ _ l  ℓ W-C W-V) (flat-chk l $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+    [(-ℬ _ ⟦e⟧! ρ)
+     (with-measuring/off (show-⟦e⟧! ⟦e⟧!)
+       (⟦e⟧! ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+    [(-ℳ _ l³ ℓ W-C W-V)
+     (with-measuring/off `(mon ,(show-W¹ W-C) ,(show-W¹ W-V))
+       (mon l³ $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+    [(-ℱ _ l  ℓ W-C W-V)
+     (with-measuring/off `(fc ,(show-W¹ W-C) ,(show-W¹ W-V))
+       (flat-chk l $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧))]
     [_ (error '↝↑ "~a" αₖ)]))
 
 (: ↝↓! : -ς↓ -Σ → (℘ -ς))
@@ -167,7 +173,7 @@
                  [else φs-path])))
            (apply Γ+ Γₑᵣ φ-ans (set->list φs-path))))
        (cond
-         [(plausible-return? M Γₑᵣ** γ Γₑₑ)
+         [(with-measuring/off 'plausible-ans? (plausible-return? M Γₑᵣ** γ Γₑₑ))
           (define sₐ*
             (and sₐ
                  (match fargs ; HACK
@@ -176,7 +182,8 @@
                       [(list (-b #f)) -ff]
                       [(list (-b #t) _) (-?@ 'values -tt x)])]
                    [_ fargs])))
-          (⟦k⟧ (-W Vs sₐ*) $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
+          (with-measuring/off `(κᵥ ,(show-s sₕ) ,@(map show-s sₓs))
+            (⟦k⟧ (-W Vs sₐ*) $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ))]
          [else ∅])]
       [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
        (match-define (-blm l+ lo _ _) blm)
@@ -185,8 +192,9 @@
          [else
           (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
           (cond
-            [(plausible-return? M Γₑᵣ γ Γₑₑ)
-             (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
+            [(with-measuring/off 'plausible-blm? (plausible-return? M Γₑᵣ γ Γₑₑ))
+             (with-measuring/off `(κₑ ,(show-s sₕ) ,@(map show-s sₓs))
+               (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ))]
             [else ∅])])])))
 
 (module+ test

@@ -28,13 +28,13 @@
   #;(define t₀ (current-milliseconds))
   (with-debugging/off
     ((R)
-     (define fvs (fv e))
-     (match-define (and Γ* (-Γ φs _ γs)) (Γ↓ Γ fvs))
-     (define M* (span-M M (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ))))
+     (define fvs (with-measuring/off 'ext-prove:fv (fv e)))
+     (match-define (and Γ* (-Γ φs _ γs)) (with-measuring/off 'ext-prove:Γ↓ (Γ↓ Γ fvs)))
+     (define M* (with-measuring/off 'ext-prove:span-M (span-M M (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)))))
      (hash-ref! memo-ext-prove
                 (list e φs γs M*)
                 (λ ()
-                  (define-values (base goal) (encode M* Γ* e))
+                  (define-values (base goal) (with-measuring/off 'ext-prove:encode (encode M* Γ* e)))
                   
                   #;(define t₀ (current-milliseconds))
                   (define ans : -R
@@ -44,7 +44,7 @@
                       [(_ _) '?]))
                   #;(define δt (- (current-milliseconds) t₀))
 
-                  #;(when (> δt (quotient (* (Timeout) 2) 3)) ;; Debugging
+                  #;(when (> δt (quotient (* (Timeout) 2) 3))
                     (printf "exec-check-sat:~n")
                     (printf "M:~n")
                     (for ([(αₖ ΓAs) (in-hash M*)])
@@ -80,16 +80,16 @@
 (: ext-plausible-return? : -M -Γ -γ -Γ → Boolean)
 (define (ext-plausible-return? M Γₑᵣ γ Γₑₑ)
   (match-define (-γ αₖ _ sₕ sₓs) γ)
-  (define fvsₑᵣ (apply ∪ (if (or (-λ? sₕ) (-case-λ? sₕ)) (fv sₕ) ∅eq)
-                         (map fvₛ sₓs)))
-  (match-define (and Γₑᵣ* (-Γ φs _ γs)) (Γ↓ Γₑᵣ fvsₑᵣ))
-  (define M* (span-M M (set-add (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)) αₖ)))
+  (define fvsₑᵣ (with-measuring/off 'ext-plaus:fv (apply ∪ (if (or (-λ? sₕ) (-case-λ? sₕ)) (fv sₕ) ∅eq)
+                         (map fvₛ sₓs))))
+  (match-define (and Γₑᵣ* (-Γ φs _ γs)) (with-measuring/off 'ext-plaus:Γ↓ (Γ↓ Γₑᵣ fvsₑᵣ)))
+  (define M* (with-measuring/off 'ext-plaus:span-M (span-M M (set-add (for/set: : (℘ -αₖ) ([γ γs]) (-γ-callee γ)) αₖ))))
   (hash-ref! memo-ext-plausible
              (list γ φs γs M*)
              (λ ()
                (with-debugging/off
                  ((ans₁)
-                  (cond [(maybe-no-conflict? Γₑᵣ γ Γₑₑ) #t]
+                  (cond [(with-measuring/off 'ext-plaus:mb-no-cnflct? (maybe-no-conflict? Γₑᵣ γ Γₑₑ)) #t]
                         [else (ext-plausible-pc? M* (-Γ-plus-γ Γₑᵣ* γ))]))
                  (define ans₂ (ext-plausible-pc? M (-Γ-plus-γ Γₑᵣ γ)))
                  (unless (equal? ans₁ ans₂)
@@ -97,10 +97,30 @@
 
 (: ext-plausible-pc? : -M -Γ → Boolean)
 (define (ext-plausible-pc? M Γ)
-  (define-values (base _) (encode M Γ #|HACK|# -ff))
-  (case (exec-check-sat₀ base)
-    [(unsat) #f]
-    [(sat unknown) #t]))
+  (define-values (base _) (with-measuring/off 'ext-plaus:encode (encode M Γ #|HACK|# -ff)))
+  
+  #;(define t₀ (current-milliseconds))
+  (define ans : Boolean
+    (case (exec-check-sat₀ base)
+      [(unsat) #f]
+      [(sat unknown) #t]))
+  #;(define δt (- (current-milliseconds) t₀))
+  #;(when (> δt (quotient (* (Timeout) 2) 3))
+    (printf "exec-check-sat₀:~n")
+    (printf "M:~n")
+    (for ([(αₖ ΓAs) (in-hash M)])
+      (printf "  - ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ΓAs))
+      (for ([ΓA (in-set ΓAs)])
+        (printf "    + ~a~n" (show-ΓA ΓA))))
+    (printf "Γ:~n")
+    (match-let ([(-Γ φs _ γs) Γ])
+      (for ([φ (in-set φs)])
+        (printf "  - ~a~n" (show-e φ)))
+      (for ([γ (in-list γs)])
+        (printf "  - ~a~n" (show-γ γ))))
+    (printf "-----------------------------------------~a, ~a~n~n" ans δt))
+
+  ans)
 
 (: maybe-no-conflict? : -Γ -γ -Γ → Boolean)
 ;; Heuristic check that there's no need for heavyweight SMT call
@@ -163,26 +183,26 @@
 (: exec-check-sat₀ : (→ Void) → Smt-Sat)
 (define (exec-check-sat₀ asserts)
   (with-new-context
-    (set-default-options!)
-    (asserts)
+    (with-measuring/off 'exec-check-sat₀:set-options (set-default-options!))
+    (with-measuring/off 'exec-check-sat₀:asserts (asserts))
     #;(check-sat/log 't0)
-    (check-sat)))
+    (with-measuring/off 'exec-check-sat₀:check-sat (check-sat))))
 
 (: exec-check-sat : (→ Void) (→ Z3-Ast) → (Values Sat-Result Sat-Result))
 (define (exec-check-sat asserts goal)
   (match (with-new-context
-           (set-default-options!)
-           (asserts)
-           (assert! (@/s 'is_false (goal)))
-           (check-sat))
+           (with-measuring/off 'exec-check-sat:set-options (set-default-options!))
+           (with-measuring/off 'exec-check-sat:asserts (asserts))
+           (with-measuring/off 'exec-check-sat:assert₁ (assert! (@/s 'is_false (goal))))
+           (with-measuring/off 'exec-check-sat:check-sat (check-sat)))
     ['false (values 'unsat 'unknown)]
     [a
      (values a
              (with-new-context
-               (set-default-options!)
-               (asserts)
-               (assert! (@/s 'is_truish (goal)))
-               (check-sat)))])
+               (with-measuring/off 'exec-check-sat:set-options (set-default-options!))
+               (with-measuring/off 'exec-check-sat:asserts (asserts))
+               (with-measuring/off 'exec-check-sat:assert₁ (assert! (@/s 'is_truish (goal))))
+               (with-measuring/off 'exec-check-sat:check-sat (check-sat))))])
   ;; The incremental solver eats up memory and freezes my computer if query has `is_int`
   #;(with-new-context
     (set-default-options!)
