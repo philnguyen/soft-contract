@@ -635,7 +635,7 @@
   (define-fun is-Z ([x 'V]) Bool/s
     (and/s (@/s 'is-R x) (is-int/s (@/s 'real x))))
 
-  (when (∋ prims 'exact?)
+  (unless (set-empty? (∩ prims (set 'exact? 'exact-integer? 'exact-nonnegative-integer? 'exact-positive-integer?)))
     (dynamic-declare-fun 'exact? '(V) Bool/s))
   
   (when (∋ prims 'inexact?)
