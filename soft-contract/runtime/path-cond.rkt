@@ -60,8 +60,9 @@
 (: -Γ-plus-γ : -Γ -γ → -Γ)
 (define (-Γ-plus-γ Γ γ)
   (match-define (-γ _ _ _ sₓs) γ)
-  (cond [(ormap (inst values -s) sₓs)
-         (match-define (-Γ φs as γs) Γ)
+  (match-define (-Γ φs as γs) Γ)
+  (cond [(and (ormap (inst values -s) sₓs)
+              (not (member γ γs)))
          (-Γ φs as (cons γ γs))]
         [else Γ]))
 
