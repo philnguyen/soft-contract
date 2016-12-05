@@ -285,7 +285,8 @@
          [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
           (plausible-φs-s? φs (-?@ 'procedure? s))]
          [(-b (? p?))
-          (and (plausible-φs-s? φs (-?@ 'equal? s V))
+          (and (plausible-φs-s? φs (-?@ 'p? s))
+               (plausible-φs-s? φs (-?@ 'equal? s V))
                (implies (-b? s) (equal? V s)))] ...
          [(or (? -=>_?) (? -St/C?) (? -x/C?))
           (for/and : Boolean ([p : -o '(procedure? p? ...)])
@@ -318,7 +319,7 @@
                                keyword?
                                not
                                boolean?))
-    (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-φ) (show-V V) (show-s s) ans)))
+    (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-e) (show-V V) (show-s s) ans)))
 
 (: ⊢V : -V → -R)
 ;; Check if value represents truth
