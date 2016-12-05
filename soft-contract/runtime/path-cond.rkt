@@ -128,22 +128,3 @@
          [(-@ 'not (list (-@ (? -o? o) (list (and v (? -v?) (? closed?)) (== s)) _)) _)
           (set-add ps (-λ '(𝒙) (-@/simp 'not (-@/simp o v (-x '𝒙)))))]
          [_ ps]))]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Pretty printing
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (show-M-Γ [M : -M] [Γ : -Γ]) : (Values Sexp (Listof Sexp))
-  (match-define (-Γ _ _ γs) Γ)
-  (values (show-Γ Γ)
-          (map (curry show-M-γ M) γs)))
-
-(define (show-M-γ [M : -M] [γ : -γ]) : (Listof Sexp)
-  (match-define (-γ αₖ blm sₕ sₓs) γ)
-  (define ΓAs (M@ M αₖ))
-  (define ↦ (if blm '↦ₑ '↦ᵥ))
-  `(,(show-γ γ)
-    ≡
-    (,(show-αₖ αₖ) @ (,(show-s sₕ) ,@(map show-s sₓs)))
-    ,↦ ,@(set-map ΓAs show-ΓA)))
