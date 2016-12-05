@@ -884,10 +884,7 @@
         (-ℳ x l³ ℒ W-C* W-V*)))
     (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'values (list v)))
     (σₖ⊔! σₖ αₖ κ)
-    (define Γ* ; HACK: drop all tails for now
-      (match-let ([(-Γ φs as γs) Γ])
-        (invalidate (-Γ φs as '()) x)))
-    (-ς↑ αₖ Γ* ⟪ℋ⟫)))
+    (-ς↑ αₖ ⊤Γ #;Γ* ⟪ℋ⟫)))
 
 (define (mon-and/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ _) Σ)
@@ -1118,7 +1115,7 @@
        (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'fc (list v)))
        (define αₖ (-ℱ x l ℒ W-C* W-V*))
        (σₖ⊔! σₖ αₖ κ)
-       (-ς↑ αₖ Γ ⟪ℋ⟫))]
+       (-ς↑ αₖ ⊤Γ ⟪ℋ⟫))]
     [_
      (define ⟦ap⟧ (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W-C) (list (mk-rt-⟦e⟧ W-V))))
      (define ⟦rt⟧ (mk-rt-⟦e⟧ (-W (list -tt (V+ σ V C)) (-?@ 'values -tt v))))
