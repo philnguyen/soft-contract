@@ -180,17 +180,6 @@
 
 (define ⊤Γ (-Γ ∅ (hasheq) '()))
 
-(: Γ+ : -Γ -s * → -Γ)
-;; Strengthen path condition `Γ` with `s`
-(define (Γ+ Γ . ss)
-  (match-define (-Γ φs as ts) Γ)
-  (define φs*
-    (for/fold ([φs : (℘ -e) φs]) ([s ss]
-                                  #:when s
-                                  #:unless (set-empty? (fv s)))
-      (set-add φs s)))
-  (-Γ φs* as ts))
-
 (: -Γ-with-aliases : -Γ Symbol -s → -Γ)
 (define (-Γ-with-aliases Γ x s)
   (cond [s (match-define (-Γ φs as ts) Γ)

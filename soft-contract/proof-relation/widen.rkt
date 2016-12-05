@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
-(provide σ⊕! σ⊕*! V+ Vs⊕
+(provide σ⊕! σ⊕*! Vs⊕
+         Γ+ V+
          extract-list-content)
 
 (require racket/match
@@ -10,6 +11,17 @@
          "../runtime/main.rkt"
          "local.rkt"
          (for-syntax racket/base racket/list racket/syntax syntax/parse))
+
+(: Γ+ : -Γ -s * → -Γ)
+;; Strengthen path condition `Γ` with `s`
+(define (Γ+ Γ . ss)
+  (match-define (-Γ φs as ts) Γ)
+  (define φs*
+    (for/fold ([φs : (℘ -e) φs]) ([s ss]
+                                  #:when s
+                                  #:unless (set-empty? (fv s)))
+      (φs+ φs s)))
+  (-Γ φs* as ts))
 
 (: σ⊕! ([-σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! σ α V #:mutating? [mutating? #f])
@@ -222,6 +234,37 @@
         [(? set? s) s])))
 
   (repeat-compact ps p iter))
+
+(: φs+ : (℘ -e) -e → (℘ -e))
+(define (φs+ φs φ)
+  
+  (: iter : (℘ -e) -e → (U (℘ -e) (Pairof (℘ -e) (℘ -e))))
+  (define (iter φs φ)
+    (match (for/or : (Option (List (℘ -e) -e -e)) ([φᵢ φs])
+             (cond [(φ+ φᵢ φ) => (λ ([φs* : (℘ -e)]) (list φs* φᵢ φ))]
+                   [else #f]))
+      [(list φs* φᵢ φ)
+       (cons (set-remove (set-remove φs φᵢ) φ)
+             φs*)]
+      [#f (set-add φs φ)]))
+
+  (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) (℘ X)))) → (℘ X)))
+  ;; FIXME code duplicate
+  (define (repeat-compact xs x f)
+    (let loop ([xs : (℘ X) xs] [x : X x])
+      (match (f xs x)
+        [(cons xs₁ xs₂)
+         (for/fold ([acc : (℘ X) xs₁]) ([x xs₂])
+           (loop acc x))]
+        [(? set? s) s])))
+
+  (repeat-compact φs φ iter))
+
+(: φ+ : -e -e → (Option (℘ -e)))
+(define φ+
+  (match-lambda**/symmetry ; FIXME inefficiency, there's no e⊢e
+   [(φ ψ) #:when (equal? '✓ (φs⊢e {set φ} ψ)) {set φ}]
+   [(_ _) #f]))
 
 (: V⊕ : -σ -V -V → (Option -V))
 ;; Widen 2 values to one approximating both.

@@ -147,11 +147,3 @@
     ≡
     (,(show-αₖ αₖ) @ (,(show-s sₕ) ,@(map show-s sₓs)))
     ,↦ ,@(set-map ΓAs show-ΓA)))
-
-(module+ test
-  (require typed/rackunit)
-
-  (check-equal? (Γ+ ⊤Γ #f) ⊤Γ)
-  (check-equal? (canonicalize-e (hash 'x (-@ '+ (list (-b 1) (-b 2)) +ℓ₀))
-                                (-@ '+ (list (-x 'x) (-x 'y)) +ℓ₀))
-                (-@ '+ (list (-b 1) (-@ '+ (list (-b 2) (-x 'y)) +ℓ₀)) +ℓ₀)))
