@@ -146,7 +146,7 @@
               (-Case-> (Listof (Pairof (Listof -⟪α⟫) -⟪α⟫)) [pos : -ℓ]))
 
 (struct -blm ([violator : -l] [origin : -l]
-              [c : (Listof -V)] [v : (Listof -V)]) #:transparent)
+              [c : (Listof (U -V -v))] [v : (Listof -V)]) #:transparent)
 (struct -W¹ ([V : -V] [s : -s]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
 (-A . ::= . -W -blm)
@@ -375,6 +375,11 @@
   (for/list ([(αₖ As) M])
     `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
 
+(define show-V-or-v : ((U -V -v) → Sexp)
+  (match-lambda
+    [(? -V? V) (show-V V)]
+    [(? -v? v) (show-e v)]))
+
 (define (show-V [V : -V]) : Sexp
   (match V
     ['undefined 'undefined]
@@ -453,7 +458,7 @@
   (match-define (-blm l+ lo Cs Vs) blm)
   (match* (Cs Vs)
     [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
-    [(_ _) `(blame ,l+ ,lo ,(map show-V Cs) ,(map show-V Vs))]))
+    [(_ _) `(blame ,l+ ,lo ,(map show-V-or-v Cs) ,(map show-V Vs))]))
 
 (: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
 (define (show-bnds bnds) (map show-bnd bnds))
