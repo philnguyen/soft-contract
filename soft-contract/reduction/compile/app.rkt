@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide app mon flat-chk
-         ap∷ let∷ if∷ and∷ or∷ bgn∷ rst-Γ∷)
+         ap∷ let∷ if∷ and∷ or∷ bgn∷ rst-Γ∷
+         make-memoized-⟦k⟧)
 
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
@@ -749,7 +750,7 @@
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
      (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (bgn∷ ⟦e⟧s* ρ ⟦k⟧))))]))
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (make-memoized-⟦k⟧ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))))]))
 
 ;; clean-up path-condition
 (define/memo (rst-Γ∷ [Γ : -Γ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
