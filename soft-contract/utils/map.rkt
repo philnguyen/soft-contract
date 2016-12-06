@@ -84,6 +84,12 @@
         (λ (ys) (for/union : (℘ X) ([y ys]) (y->xs y)))))
   (hash-copy/spanning m xs f))
 
+(: hash-set-once! (∀ (X Y) (HashTable X Y) X Y → Void))
+(define (hash-set-once! m x v)
+  (cond [(hash-has-key? m x)
+         (error 'hash-set-once! "key already exists: ~a" x)]
+        [else (hash-set! m x v)]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; TMP hack for profiling
