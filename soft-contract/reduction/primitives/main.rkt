@@ -794,21 +794,21 @@
  ((cons/c pair? any/c) . -> . any/c))
 (def-prims (#:todo cadr cddr)
  ((cons/c any/c pair?) . -> . any/c))
-(def-prim/todo caaar
+(def-prim caaar
  ((cons/c (cons/c pair? any/c) any/c) . -> . any/c))
-(def-prim/todo caadr
+(def-prim caadr
  ((cons/c any/c (cons/c pair? any/c)) . -> . any/c))
-(def-prim/todo cadar
+(def-prim cadar
  ((cons/c (cons/c any/c pair?) any/c) . -> . any/c))
-(def-prim/todo caddr
+(def-prim caddr
  ((cons/c any/c (cons/c any/c pair?)) . -> . any/c))
-(def-prim/todo cdaar
+(def-prim cdaar
  ((cons/c (cons/c pair? any/c) any/c) . -> . any/c))
-(def-prim/todo cdadr
+(def-prim cdadr
  ((cons/c any/c (cons/c pair? any/c)) . -> . any/c))
-(def-prim/todo cddar
+(def-prim cddar
  ((cons/c (cons/c any/c pair?) any/c) . -> . any/c))
-(def-prim/todo cdddr
+(def-prim cdddr
  ((cons/c any/c (cons/c any/c pair?)) . -> . any/c))
 ; TODO rest of them
 

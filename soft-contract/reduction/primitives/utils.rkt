@@ -14,8 +14,9 @@
          def-const def-opq
          def-alias def-alias-internal
          -⟦o⟧!
+         get-prim
          ;; just for debugging
-         const-table prim-table alias-table opq-table get-prim
+         debug-table const-table prim-table alias-table opq-table 
          )
 
 (require (for-syntax racket/base
@@ -23,7 +24,6 @@
                      racket/match
                      racket/list
                      racket/contract
-                     racket/pretty
                      syntax/parse
                      (only-in "../../utils/pretty.rkt" n-sub))
          racket/match
@@ -215,6 +215,7 @@
                [else
                 (seen-add! α)
                 (for/union : (℘ -W¹) ([V (in-set (σ@ σ α))]) (go V))])]
+        [(? -●?) {set (-W¹ -●/V s*)}]
         [_ ∅])))
 
   (: ⊢/quick : -σ -Γ -o -W¹ * → -R)
@@ -233,6 +234,7 @@
 (define const-table : (HashTable Symbol -b) (make-hasheq))
 (define prim-table  : (HashTable Symbol -⟦o⟧!) (make-hasheq))
 (define opq-table   : (HashTable Symbol -●) (make-hasheq))
+(define debug-table : (HashTable Symbol Any) (make-hasheq))
 
 (: get-prim : Symbol → (Option (U -o -b -●)))
 (define (get-prim name)
@@ -496,21 +498,33 @@
 
              [((~literal cons/c) c₁ c₂)
               (gen-test
-               Γ-id W-id #'cons? #`'cons? pos?
+               Γ-id W-id #'cons? #`-cons? pos?
                (λ (Γ-id W-id c-blm pos*?)
                  (cond
                    [(equal? pos*? pos?)
-                    #`(let ([W₁s (unchecked-ac σ -car #,W-id)]
-                            [W₂s (unchecked-ac σ -cdr #,W-id)])
-                        (for/union : (℘ -ΓA) ([W₁ (in-set W₁s)])
-                        #,(gen-test
-                           Γ-id #'W₁ #'c₁ #`(quote c₁) pos?
-                           (λ (Γ-id W-id c-blm pos*?)
-                             (cond
-                               [(equal? pos*? pos?)
-                                #`(for/union : (℘ -ΓA) ([W₂ (in-set W₂s)])
-                                   #,(gen-test Γ-id #'W₂ #'c₂ #`(quote c₂) pos? gen))]
-                               [else (gen Γ-id W-id c-blm pos*?)])))))]
+                    ;; TODO generalize this optimization?
+                    ;; Probably uneccessary unless there's (and/c any/c any/c)
+                    (syntax-parse #'(c₁ c₂)
+                      [((~literal any/c) (~literal any/c))
+                       (gen Γ-id W-id c-blm pos?)]
+                      [((~literal any/c) _)
+                       #`(for/union : (℘ -ΓA) ([W₂ (in-set (unchecked-ac σ -cdr #,W-id))])
+                           #,(gen-test Γ-id #'W₂ #'c₂ #''c₂ pos? gen))]
+                      [(_ (~literal any/c))
+                       #`(for/union : (℘ -ΓA) ([W₁ (in-set (unchecked-ac σ -car #,W-id))])
+                           #,(gen-test Γ-id #'W₁ #'c₁ #''c₁ pos? gen))]
+                      [(_ _)
+                       #`(let ([W₁s (unchecked-ac σ -car #,W-id)]
+                               [W₂s (unchecked-ac σ -cdr #,W-id)])
+                           (for/union : (℘ -ΓA) ([W₁ (in-set W₁s)])
+                             #,(gen-test
+                                Γ-id #'W₁ #'c₁ #`(quote c₁) pos?
+                                (λ (Γ-id W-id c-blm pos*?)
+                                  (cond
+                                    [(equal? pos*? pos?)
+                                     #`(for/union : (℘ -ΓA) ([W₂ (in-set W₂s)])
+                                          #,(gen-test Γ-id #'W₂ #'c₂ #''c₂ pos? gen))]
+                                    [else (gen Γ-id W-id c-blm pos*?)])))))])]
                    [else (gen Γ-id W-id c-blm pos*?)])))]
              
              [((~literal =/c) x)
@@ -546,9 +560,13 @@
              [(~literal any/c ) (gen Γ-id W-id #''any/c  pos?)]
              [(~literal none/c) (gen Γ-id W-id #''none/c (not pos?))]
              [c:id
-              #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ #,Γ-id 'c #,W-id)])
-                  #:true  #,(gen #'Γ₁ W-id c-blm pos?)
-                  #:false #,(gen #'Γ₂ W-id c-blm (not pos?)))]))
+              (with-syntax ([p (syntax-parse #'c ;; TODO tmp hack
+                                 [(~or (~literal cons?) (~literal pair?)) #'-cons?]
+                                 [(~or (~literal box?)) #'-box?]
+                                 [p:id #''p])])
+                #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ #,Γ-id p #,W-id)])
+                    #:true  #,(gen #'Γ₁ W-id c-blm pos?)
+                    #:false #,(gen #'Γ₂ W-id c-blm (not pos?))))]))
 
          (λ (Γ-id)
            (define (gen-ans Γ-id W-id c ok?)
@@ -575,15 +593,13 @@
             body]
            [_ {set (-ΓA Γ (-blm l 'o '(arity-req) (map -W¹-V Ws)))}])))
 
-   (with-syntax ([.o (prefix-id #'o)])
-     (define o-defn
-       #`(begin
-           (: .o : -⟦o⟧!)
-           (define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
-             #,(gen-body #'Γ))
-           (hash-set! prim-table 'o .o)))
-     ;(pretty-print (syntax->datum o-defn))
-     o-defn)])
+   (with-syntax* ([.o (prefix-id #'o)]
+                  [defn #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) #,(gen-body #'Γ))])
+     #`(begin
+         (: .o : -⟦o⟧!)
+         defn
+         (hash-set! prim-table 'o .o)
+         (hash-set! debug-table 'o '#,(syntax->datum #'defn))))])
 
 (define-syntax-parser def-prim/custom
   [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e ...)
@@ -653,5 +669,5 @@
          (define x (-● (set r ...)))
          (hash-set-once! opq-table 'x x)))])
 
-(def-pred vector?)
-(def-prim vector-ref (vector? integer? . -> . integer?))
+(def-prim caadr
+ ((cons/c any/c (cons/c pair? any/c)) . -> . any/c))
