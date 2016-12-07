@@ -30,24 +30,17 @@
          "../../proof-relation/main.rkt")
 
 (begin-for-syntax
-
-  (define-syntax-class real
-    #:description "literal real number"
-    (pattern x #:when (real? (syntax-e #'x))))
-
-  (define-syntax-class lit
-    #:description "restricted literals"
-    (pattern x:number)
-    (pattern x:symbol))
-
-  (define-syntax-class symbol
-    #:description "literal symbol"
-    (pattern ((~literal quote) x) #:when (symbol? (syntax-e #'x))))
   
+  (define-syntax-class sig
+    #:description "restricted function signature"
+    (pattern ((~literal ->) _:fc ... ((~literal values) _:fc ...)))
+    (pattern ((~literal ->) _:fc ... _:fc)))
+
   (define-syntax-class fc
     #:description "restricted first-order contract"
     (pattern ((~or (~literal and/c) (~literal or/c)) _:fc _:fc _:fc ...))
     (pattern ((~literal not/c) _:fc))
+    (pattern ((~literal cons/c) _:fc _:fc))
     (pattern ((~or (~literal =/c)
                    (~literal >=/c) (~literal >/c)
                    (~literal <=/c) (~literal </c))
@@ -55,11 +48,19 @@
     (pattern _:lit)
     (pattern _:id))
 
-  (define-syntax-class sig
-    #:description "restricted function signature"
-    (pattern ((~literal ->) _:fc ... ((~literal values) _:fc ...)))
-    (pattern ((~literal ->) _:fc ... _:fc)))
+  (define-syntax-class lit
+    #:description "restricted literals"
+    (pattern x:number)
+    (pattern x:symbol))
 
+  (define-syntax-class real
+    #:description "literal real number"
+    (pattern x #:when (real? (syntax-e #'x))))
+
+  (define-syntax-class symbol
+    #:description "literal symbol"
+    (pattern ((~literal quote) x) #:when (symbol? (syntax-e #'x))))
+  
   (define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))
 
   (define tt? (syntax-parser [#t #t] [_ #f]))
@@ -110,6 +111,11 @@
        (cond [(identifier? #'d) (list #'(-not/c 'd))]
              [else
               (raise-syntax-error 'def-prim "only identifier can follow not/c in refinement clause" rng)])]
+      [((~literal cons/c) _ _)
+       (raise-syntax-error
+        'def-prim
+        (format "~a: cons/c in range not suported for now" (syntax-e #'o))
+        rng)]
       [((~literal =/c) x:number) (list #''real? #'(-=/c x))]
       [((~literal >/c) x:number) (list #''real? #'(->/c x))]
       [((~literal >=/c) x:number) (list #''real? #'(-≥/c x))]
@@ -154,14 +160,20 @@
        #t]
       [_ #f]))
 
+  ;; Check if value constrainted by contract definitly fits in the `Base` type in the implementation
   (define range-is-base?
     (syntax-parser
-      [((~or (~literal and/c) (~literal or/c) (~literal not/c)
-             (~literal =/c)
+      [((~literal and/c) c ...)
+       (ormap range-is-base? (syntax->list #'(c ...)))]
+      [((~literal or/c) c ...)
+       (andmap range-is-base? (syntax->list #'(c ...)))]
+      [((~literal not) _) #|conservative|# #f]
+      [((~literal cons/c) _ _) #f]
+      [((~or (~literal =/c)
              (~literal >/c) (~literal >=/c)
              (~literal </c) (~literal <=/c))
-        c ...)
-       (andmap range-is-base? (syntax->list #'(c ...)))]
+        _)
+       #t]
       [x:lit #t]
       [x:id (base-predicate? #'x)]))
   
@@ -264,27 +276,27 @@
      (define ((gen-check-definitely σ-id Γ-id) W c)
        (define (pos?->R pos?) (if pos? #''✓ #''✗))
        (let go ([c c] [pos? #t])
-         (syntax-parse c
-           [((~literal and/c) c* ...)
-            (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-           [((~literal or/c ) c* ...)
-            (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-           [((~literal not/c) d) (go #'d (not pos?))]
-           [((~literal =/c) x)
-            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id 'equal? #,W (-W¹ (-b x) (-b x)))]
-           [((~literal >/c) x)
-            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '> #,W (-W¹ (-b x) (-b x)))]
-           [((~literal >=/c) x)
-            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '>= #,W (-W¹ (-b x) (-b x)))]
-           [((~literal </c) x)
-            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '< #,W (-W¹ (-b x) (-b x)))]
-           [((~literal <=/c) x)
-            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '<= #,W (-W¹ (-b x) (-b x)))]
-           [(~literal any/c) #'#t]
-           [(~literal none/c) #'#f]
-           [x:lit
-            #'(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id 'equal? #,W (-W¹ (-b x) (-b x)))]
-           [c:id #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id 'c #,W)])))
+         
+         (with-syntax ([R (pos?->R pos?)])
+           (syntax-parse c
+             [((~literal and/c) c* ...)
+              (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+             [((~literal or/c ) c* ...)
+              (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+             [((~literal not/c) d) (go #'d (not pos?))]
+             [((~literal cons/c) c₁ c₂)
+              (and* (list #`(⊢?quick R #,σ-id #,Γ-id -cons? #,W)
+                          (go #'c₁ pos?)
+                          (go #'c₂ pos?)))]
+             [((~literal =/c ) x) #`(⊢?/quick R #,σ-id #,Γ-id '=  #,W (-W¹ (-b x) (-b x)))]
+             [((~literal >/c ) x) #`(⊢?/quick R #,σ-id #,Γ-id '>  #,W (-W¹ (-b x) (-b x)))]
+             [((~literal >=/c) x) #`(⊢?/quick R #,σ-id #,Γ-id '>= #,W (-W¹ (-b x) (-b x)))]
+             [((~literal </c ) x) #`(⊢?/quick R #,σ-id #,Γ-id '<  #,W (-W¹ (-b x) (-b x)))]
+             [((~literal <=/c) x) #`(⊢?/quick R #,σ-id #,Γ-id '<= #,W (-W¹ (-b x) (-b x)))]
+             [(~literal any/c) #'#t]
+             [(~literal none/c) #'#f]
+             [x:lit #'(⊢?/quick R #,σ-id #,Γ-id 'equal? #,W (-W¹ (-b x) (-b x)))]
+             [c:id #`(⊢?/quick R #,σ-id #,Γ-id 'c #,W)]))))
 
      #`(λ ([V : -V])
          (define σ (-Σ-σ Σ))
@@ -318,6 +330,11 @@
                          'def-prim
                          (format "~a: only identifier can follow not/c in range" #'o)
                          c)])]
+           [((~literal cons/c) _ _)
+            (raise-syntax-error
+             'def-prim
+             (format "~a: cons/c in range not supported for now" (syntax-e #'o))
+             c)]
            [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
            [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
            [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
@@ -345,7 +362,7 @@
    ;; Generate primitve body when all preconds have passed
    (define (gen-ok-case Γ-id)
      (define/contract (gen-base-guard c x)
-       (syntax? identifier? . -> . (or/c syntax? #f))
+       (syntax? syntax? . -> . (or/c syntax? #f))
        (let go ([c c])
          (syntax-parse c
            [((~literal and/c) cᵢ ...)
@@ -357,6 +374,11 @@
            [((~literal not/c) d)
             (define clause (go #'d))
             (and clause (not* clause))]
+           [((~literal cons/c) c₁ c₂)
+            (define e₀ (go #'pair? x))
+            (define e₁ (and e₀ (gen-base-guard #'c₁ #`(car #,x))))
+            (define e₂ (and e₁ (gen-base-guard #'c₂ #`(cdr #,x))))
+            (and e₂ (and* (list e₀ e₁ e₂)))]
            [((~or (~literal =/c)
                   (~literal >/c) (~literal >=/c)
                   (~literal </c) (~literal <=/c))
@@ -451,6 +473,15 @@
                     (λ (Γ-id c-blm pos*?)
                       (cond [(equal? pos*? pos?) (gen Γ-id c-blm pos*?)]
                             [else (go Γ-id cs* pos?)])))]))]
+             [((~literal not/c) d)
+              (gen-test Γ-id #'d #'(-not/c 'd) (not pos?) gen)]
+
+             ;; Checking of `cons/c` is slightly less precise
+             ;; because struct accessors are not atomic operations
+             ;; in the presence of struct contracts
+             [((~literal cons/c) c₁ c₂)
+              (error "TODO")]
+             
              [((~literal =/c) x)
               #`(match-results (.= ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
                                [Γ_t #,(gen #'Γ_t #'(-=/c x) pos?)]
@@ -475,8 +506,6 @@
               #`(match-results (.equal? ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
                                [Γ_t #,(gen #'Γ_t #'(-≡/c (-b x)) pos?)]
                                [Γ_f #,(gen #'Γ_f #'(-≡/c (-b x)) (not pos?))])]
-             [((~literal not/c) d)
-              (gen-test Γ-id #'d #'(-not/c 'd) (not pos?) gen)]
              [(~literal any/c ) (gen Γ-id #''any/c  pos?)]
              [(~literal none/c) (gen Γ-id #''none/c (not pos?))]
              [c:id
@@ -557,15 +586,20 @@
 (define-syntax-parser def-alias
   [(_ x:id y:id)
    (with-syntax ([.x (prefix-id #'x)])
-     #'(define .x : (U -● -⟦o⟧! -b -o)
-         (let ([err
-                (λ ()
-                  (error 'def-alias "~a not defined before ~a" 'y 'x))])
-           (cond [(get-prim 'y) =>
-                  (λ ([v : (U -o -b -●)])
-                    (cond [(symbol? v) (hash-ref prim-table v err)]
-                          [else v]))]
-                 [else (err)]))))])
+     #'(begin
+         (define .x : (U -● -⟦o⟧! -b -o)
+           (let ([err
+                  (λ ()
+                    (error 'def-alias "~a not defined before ~a" 'y 'x))])
+             (cond [(get-prim 'y) =>
+                    (λ ([v : (U -o -b -●)])
+                      (cond [(symbol? v) (hash-ref prim-table v err)]
+                            [else v]))]
+                   [else (err)])))
+         (cond [(-●? .x) (hash-set-once! opq-table 'x .x)]
+               [(-b? .x) (hash-set-once! const-table 'x .x)]
+               [(-o? .x) (hash-set-once! alias-table 'x .x)]
+               [else (hash-set-once! prim-table 'x .x)])))])
 
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
