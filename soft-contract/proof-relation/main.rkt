@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V Γ+/-W∋Ws
+(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V MΓ+/-oW
          plausible-return? plausible-index? plausible-indices
          (all-from-out "local.rkt" "widen.rkt"))
 
@@ -57,6 +57,11 @@
                 (MΓ⊢s M Γ* (apply -?@ p ss)))))
     (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))
 
+(: MΓ+/-oW : -M -σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))
+(define (MΓ+/-oW M σ Γ o . Ws)
+  (define ss (map -W¹-s Ws))
+  (Γ+/-R (apply MΓ⊢oW M σ Γ o Ws) Γ (apply -?@ o ss)))
+
 (: MΓ⊢s : -M -Γ -s → -R)
 ;; Check if `s` is provable in `Γ`
 (define (MΓ⊢s M Γ s)
@@ -82,15 +87,6 @@
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
 (define (Γ+/-V M Γ V s)
   (Γ+/-R (first-R (⊢V V) (MΓ⊢s M Γ s)) Γ s))
-
-(: Γ+/-W∋Ws : -M -σ -Γ -W¹ -W¹ * → (Values (Option -Γ) (Option -Γ)))
-;; Join the environment with `P(V…)` and `¬P(V…)`
-(define (Γ+/-W∋Ws M σ Γ Wₚ . Wᵥₛ)
-  (match-define (-W¹ P p) Wₚ)
-  (define-values (Vs vs) (unzip-by -W¹-V -W¹-s Wᵥₛ))
-  (define ψ (apply -?@ p vs))
-  (define R (first-R (apply p∋Vs σ P Vs) (MΓ⊢s M Γ ψ)))
-  (Γ+/-R R Γ ψ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

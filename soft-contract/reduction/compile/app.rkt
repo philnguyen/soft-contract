@@ -133,7 +133,7 @@
           (for/union : (℘ -ς) ([Vₓ* Vₓ*s]) ;; TODO: could this loop forever due to cycle?
             (app lₒ $ ℒ Ac (list (-W¹ Vₓ* sₓ)) Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
       [(-● ps)
-       (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-W∋Ws M σ Γ (-W¹ p p) Wₓ)])
+       (with-Γ+/- ([(Γₒₖ Γₑᵣ) (MΓ+/-oW M σ Γ p Wₓ)])
          #:true  (⟦k⟧ (-W (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
                               (list (-● {set 'list?}))
                               -●/Vs)
@@ -776,13 +776,13 @@
            [b (-b a)])
       (-W¹ b b)))
   
-  (define-values (Γ₁ Γ₂) (Γ+/-W∋Ws M σ Γ -procedure?/W W-V))
+  (define-values (Γ₁ Γ₂) (MΓ+/-oW M σ Γ 'procedure? W-V))
   (define-values (Γ₁₁ Γ₁₂)
     (if Γ₁
         (let ([A (V-arity V)]
               [a (-?@ 'procedure-arity v)])
           (define W-a (-W¹ (if A (-b A) -●/V) a))
-          (Γ+/-W∋Ws M σ Γ₁ -arity-includes?/W W-a arity))
+          (MΓ+/-oW M σ Γ₁ 'arity-includes? W-a arity))
         (values #f #f)))
   #;(match-define (-ℒ _ ℓ) ℒ)
   (∪ (cond [Γ₁₁
