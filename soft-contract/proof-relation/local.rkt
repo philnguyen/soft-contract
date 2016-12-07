@@ -2,7 +2,8 @@
 
 (provide Γ⊢e φs⊢e ⊢V p∋Vs p⇒p ps⇒p
          plausible-φs-s? plausible-W? plausible-V-s?
-         first-R)
+         first-R
+         (all-from-out "result.rkt"))
 
 (require racket/match
          racket/set
@@ -271,13 +272,6 @@
     (cond
       [s
        (match V
-         ['undefined ; (ugly) This needs to come before (? -o?) ; TODO obsolete?
-          (cond
-            [(-v? s) #f]
-            [else
-             (case (φs⊢e φs (-?@ 'defined? s))
-               [(✗ ?) #t]
-               [(✓)   #f])])]
          [(or (-St si _) (-St* si _ _ _)) #:when si
           (plausible-φs-s? φs (-?@ (-st-p si) s))]
          [(or (? -Vector?) (? -Vector^?) (? -Vector/hetero?) (? -Vector/homo?))

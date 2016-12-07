@@ -11,6 +11,9 @@
          racket/splicing
          "../utils/main.rkt")
 
+(require/typed/provide racket/undefined
+  [undefined Undefined])
+
 ;; Parameterized begin
 (struct (X) -begin ([body : (Listof X)]) #:transparent)
 (define-type -begin/e (-begin -e))
@@ -83,7 +86,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (Arity . ::= . Natural arity-at-least (Listof (U Natural arity-at-least)))
-(Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void Arity EOF)
+(Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void Arity EOF Undefined)
 
 (-top-level-form . ::= . -general-top-level-form
                          -e
@@ -166,6 +169,7 @@
 (define -ff (-b #f))
 (define -null (-b null))
 (define -void (-b (void)))
+(define -undefined (-b undefined))
 
 (define -𝒾-values (-𝒾 'values 'Λ))
 (define -𝒾-cons (-𝒾 'cons 'Λ))
@@ -320,7 +324,8 @@
     [(arity-at-least? x) `(arity-at-least ,(arity-at-least-value x))]
     [(list? x) `(list ,@(map show-b x))]
     [(eof-object? x) '⟪eof⟫]
-    [else x]))
+    [(defined? x) x]
+    [else 'undefined]))
 
 ;; Return operator's simple show-o for pretty-printing
 (define show-o : (-o → Symbol)

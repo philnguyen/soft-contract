@@ -189,7 +189,7 @@
                          [xs (in-value (car ⟦bnd⟧))]
                          [x xs])
                (define α (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫)))
-               (σ⊕! σ α 'undefined)
+               (σ⊕! σ α -undefined)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
             (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ*

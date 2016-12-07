@@ -65,7 +65,7 @@
                    ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
            (define α (ρ@ ρ x) #;(-α.x x #|TODO right?|# ⟪ℋ⟫))
            (σ⊕! σ α (V+ σ Vₓ (predicates-of Γ sₓ)))
-           (σ-remove! σ α 'undefined)
+           (σ-remove! σ α -undefined)
            (-Γ-with-aliases Γ x sₓ)))
        (match ⟦bnd⟧s
          ['()

@@ -55,7 +55,7 @@
        (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
          (define $* ($+ $ s V))
          (match V
-           ['undefined (⟦k⟧ -blm.undefined $* Γ ⟪ℋ⟫ Σ)]
+           [(-b (not (? defined?))) (⟦k⟧ -blm.undefined $* Γ ⟪ℋ⟫ Σ)]
            [(-● ps) ; precision hack
             (define V* (V+ σ V (predicates-of Γ s)))
             (⟦k⟧ (-W (list V*) s) $* Γ ⟪ℋ⟫ Σ)]

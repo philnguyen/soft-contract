@@ -102,8 +102,7 @@
 ;;;;; Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-V . ::= . 'undefined
-            -prim
+(-V . ::= . -prim
             (-● (℘ #|closed|# -v))
             (-St -𝒾 (Listof -⟪α⟫))
             (-Vector (Listof -⟪α⟫))
@@ -382,7 +381,6 @@
 
 (define (show-V [V : -V]) : Sexp
   (match V
-    ['undefined 'undefined]
     [(-b b) (show-b b)]
     [(-● ps)
      (string->symbol
