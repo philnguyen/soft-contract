@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V MΓ+/-oW
+(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V MΓ+/-oW with-Γ+/-
          plausible-return? plausible-index? plausible-indices
          (all-from-out "local.rkt" "widen.rkt"))
 
@@ -8,6 +8,7 @@
          racket/set
          racket/bool
          (except-in racket/function arity-includes?)
+         syntax/parse/define
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
@@ -87,6 +88,13 @@
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
 (define (Γ+/-V M Γ V s)
   (Γ+/-R (first-R (⊢V V) (MΓ⊢s M Γ s)) Γ s))
+
+(define-simple-macro (with-Γ+/- ([(Γ₁:id Γ₂:id) e])
+                       #:true  e₁
+                       #:false e₂)
+  (let-values ([(Γ₁ Γ₂) e])
+    (∪ (if Γ₁ e₁ ∅)
+       (if Γ₂ e₂ ∅))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

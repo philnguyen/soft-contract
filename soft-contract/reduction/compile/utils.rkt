@@ -14,13 +14,6 @@
          "../../proof-relation/main.rkt")
 
 
-(define-simple-macro (with-Γ+/- ([(Γ₁:id Γ₂:id) e])
-                       #:true  e₁
-                       #:false e₂)
-  (let-values ([(Γ₁ Γ₂) e])
-    (∪ (if Γ₁ e₁ ∅)
-       (if Γ₂ e₂ ∅))))
-
 (splicing-let-syntax ([compute-frame-roots
                        (syntax-parser
                          [(_) #'∅eq]
