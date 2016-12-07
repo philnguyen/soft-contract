@@ -129,8 +129,11 @@
  #:refinements
  (integer? . -> . integer?)
  (real? . -> . real?)
- (exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
- ((not/c negative?) . -> . positive?))
+ (exact? . -> . exact?)
+ (inexact? . -> . inexact?)
+ (exact-nonnegative-integer? . -> . exact-positive-integer?)
+ ((not/c negative?) . -> . positive?)
+ (positive? . -> . positive?))
 (def-prim sub1
  (number? . -> . number?)
  #:refinements
