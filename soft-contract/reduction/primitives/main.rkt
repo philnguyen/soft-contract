@@ -25,13 +25,13 @@
          racket/generator
          racket/random
          racket/format
+         racket/struct
          math/base
+         "../../utils/list.rkt"
          "../../ast/definition.rkt"
+         "../../runtime/definition.rkt"
+         "../../runtime/simp.rkt"
          "utils.rkt")
-
-;;;;;; TODO later
-(def-pred struct-type?)
-(def-pred float-complex?)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,10 +48,10 @@
 
 (def-const true)
 (def-const false)
-(def-prim/todo symbol=? (symbol? symbol? . -> . boolean?))
-(def-prim/todo boolean=? (boolean? boolean? . -> . boolean?))
+(def-prim symbol=? (symbol? symbol? . -> . boolean?))
+(def-prim boolean=? (boolean? boolean? . -> . boolean?))
 (def-alias false? not)
-(def-prim/todo xor (any/c any/c . -> . any/c))
+(def-prim xor (any/c any/c . -> . any/c))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -79,15 +79,15 @@
 (def-pred odd? (integer?))
 (def-pred exact? (number?))
 (def-pred inexact? (number?))
-(def-prim/todo inexact->exact (number? . -> . exact?))
-(def-prim/todo exact->inexact (number? . -> . inexact?))
-(def-prim/todo real->single-flonum (real? . -> . single-flonum?))
-(def-prim/todo real->double-flonum (real? . -> . flonum?))
+(def-prim inexact->exact (number? . -> . exact?))
+(def-prim exact->inexact (number? . -> . inexact?))
+(def-prim real->single-flonum (real? . -> . single-flonum?))
+(def-prim real->double-flonum (real? . -> . flonum?))
 
 ;;;;; 4.2.2 Generic Numerics
 
 ;; 4.2.2.1 Arithmetic
-(def-prim/todo + ; FIXME varargs
+(def-prim + ; FIXME varargs
   (number? number? . -> . number?)
   #:refinements
   (exact-positive-integer? exact-positive-integer? . -> . exact-positive-integer?)
@@ -101,21 +101,21 @@
   ((not/c positive?) negative? . -> . negative?)
   ((not/c negative?) (not/c negative?) . -> . (not/c negative?))
   ((not/c positive?) (not/c positive?) . -> . (not/c positive?)))
-(def-prim/todo - ; FIXME varargs
+(def-prim - ; FIXME varargs
  (number? number? . -> . number?)
  #:refinements
  (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
  (exact-integer? exact-integer? . -> . exact-integer?)
  (integer? integer? . -> . integer?)
  (real? real? . -> . real?))
-(def-prim/todo * ; FIXME varargs
+(def-prim * ; FIXME varargs
  (number? number? . -> . number?)
  #:refinements
  (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
  (exact-integer? exact-integer? . -> . exact-integer?)
  (integer? integer? . -> . integer?)
  (real? real? . -> . real?))
-(def-prim/todo / ; FIXME varargs
+(def-prim / ; FIXME varargs
  (number? (and/c number? (or/c inexact? (not/c zero?))) . -> . number?)
  #:refinements
  (real? real? . -> . real?)
@@ -124,19 +124,19 @@
  (integer? (and/c integer? (not/c zero?)) . -> . integer?))
 #;(def-prims quotient/remainder ; TODO
  (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?)))
-(def-prim/todo add1
+(def-prim add1
  (number? . -> . number?)
  #:refinements
  (integer? . -> . integer?)
  (real? . -> . real?)
  (exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
  ((not/c negative?) . -> . positive?))
-(def-prim/todo sub1
+(def-prim sub1
  (number? . -> . number?)
  #:refinements
  (integer? . -> . integer?)
  (real? . -> . real?))
-(def-prim/todo abs
+(def-prim abs
  (real? . -> . real?)
  #:refinements
  (integer? . -> . integer?))
@@ -151,7 +151,7 @@
  (real? . -> . (or/c integer? +inf.0 -inf.0 +nan.0)))
 (def-prims (numerator denominator)
  (rational? . -> . integer?))
-(def-prim/todo rationalize
+(def-prim rationalize
  (real? real? . -> . real?))
 
 ;; 4.2.2.2 Number Comparison
@@ -160,15 +160,15 @@
 (def-prims (< <= > >=) (real? real? . -> . boolean?))
 
 ;; 4.2.2.3 Powers and Roots
-(def-prim/todo sqrt (number? . -> . number?))
-(def-prim/todo integer-sqrt (integer? . -> . number?))
+(def-prim sqrt (number? . -> . number?))
+(def-prim integer-sqrt (integer? . -> . number?))
 #;(integer-sqrt/remainder ; FIXME
    (integer? . -> . number? integer?))
-(def-prim/todo expt (number? number? . -> . number?)
+(def-prim expt (number? number? . -> . number?)
   #:other-errors
   (zero? negative?))
-(def-prim/todo exp (number? . -> . number?))
-(def-prim/todo log (number? . -> . number?))
+(def-prim exp (number? . -> . number?))
+(def-prim log (number? . -> . number?))
 
 ;; 4.2.2.4 Trigonometric Functions
 (def-prims (sin cos tan asin acos atan) (number? . -> . number?)
@@ -178,23 +178,23 @@
 ;; 4.2.2.5 Complex Numbers
 (def-prims (make-rectangular make-polar) (real? real? . -> . number?))
 (def-prims (real-part imag-part) (number? . -> . real?))
-(def-prim/todo magnitude (number? . -> . (and/c real? (not/c negative?))))
-(def-prim/todo angle (number? . -> . real?))
+(def-prim magnitude (number? . -> . (and/c real? (not/c negative?))))
+(def-prim angle (number? . -> . real?))
 
 ;; 4.2.2.6 Bitwise Operations
 (def-prims (bitwise-ior bitwise-and bitwise-xor) ; FIXME varargs
  (exact-integer? exact-integer? . -> . exact-integer?))
-(def-prim/todo bitwise-not (exact-integer? . -> . exact-integer?))
-(def-prim/todo bitwise-bit-set? (exact-integer? exact-nonnegative-integer? . -> . boolean?))
-(def-prim/todo bitwise-bit-field ; FIXME `start ≤ end`
+(def-prim bitwise-not (exact-integer? . -> . exact-integer?))
+(def-prim bitwise-bit-set? (exact-integer? exact-nonnegative-integer? . -> . boolean?))
+(def-prim bitwise-bit-field ; FIXME `start ≤ end`
  (exact-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . integer?))
-(def-prim/todo arithmetic-shift
+(def-prim arithmetic-shift
  (exact-integer? exact-integer? . -> . exact-integer?))
-(def-prim/todo integer-length ; TODO post-con more precise than doc. Confirm.
+(def-prim integer-length ; TODO post-con more precise than doc. Confirm.
  (exact-integer? . -> . exact-nonnegative-integer?))
 
 ;; 4.2.2.7 Random Numbers
-(def-prim/todo random ; FIXME range, all uses
+(def-prim random ; FIXME range, all uses
  (integer? . -> . exact-nonnegative-integer?))
 (def-prim/todo random-seed
  ((and/c exact-integer? positive?) . -> . void?))
@@ -215,55 +215,55 @@
  (exact-positive-integer? . -> . bytes?))
 
 ;; 4.2.2.9 Number-String Conversions
-(def-prim/todo number->string ; FIXME uses
+(def-prim number->string ; FIXME uses
  (number? . -> . string?))
-(def-prim/todo string->number ; FIXME uses
+(def-prim string->number ; FIXME uses
  (string? . -> . (or/c number? not)))
-(def-prim/todo real->decimal-string ; FIXME uses
+(def-prim real->decimal-string ; FIXME uses
  (real? exact-nonnegative-integer? . -> . string?))
-(def-prim/todo integer-bytes->integer ; FIXME uses
+(def-prim integer-bytes->integer ; FIXME uses
  (bytes? any/c . -> . exact-integer?))
-(def-prim/todo integer->integer-bytes ; FIXME uses
+(def-prim integer->integer-bytes ; FIXME uses
  (exact-integer? (or/c 2 4 8) any/c . -> . bytes?))
-(def-prim/todo floating-point-bytes->real ; FIXME uses
- (bytes . -> . flonum?))
-(def-prim/todo real->floating-point-bytes ; FIXME uses
+(def-prim floating-point-bytes->real ; FIXME uses
+ (bytes? . -> . flonum?))
+(def-prim real->floating-point-bytes ; FIXME uses
  (real? (or/c 2 4 8) . -> . bytes?))
-(def-prim/todo system-big-endian? ; FIXME: opaque or machine dependent? (former probably)
+(def-prim system-big-endian? ; FIXME: opaque or machine dependent? (former probably)
  (-> boolean?))
 
 ;; 4.2.2.10 Extra Functions
 (def-const pi)
 (def-const pi.f)
 (def-prims (degrees->radians radians->degrees) (real? . -> . real?))
-(def-prim/todo sqr (number? . -> . number?)
+(def-prim sqr (number? . -> . number?)
   #:refinements
   (real? . -> . real?)
   (integer? . -> . integer?))
-(def-prim/todo sgn (real? . -> . (or/c -1 0 1 +nan.0 +nan.f)))
-(def-prim/todo conjugate (number? . -> . number?))
+(def-prim sgn (real? . -> . (or/c -1 0 1 +nan.0 +nan.f)))
+(def-prim conjugate (number? . -> . number?))
 (def-prims (sinh cosh tanh) (number? . -> . number?))
 (def-prims (exact-round exact-floor exact-ceiling exact-truncate) (rational? . -> . exact-integer?))
-(def-prim/todo order-of-magnitude ((and/c real? positive?) . -> . exact-integer?))
+(def-prim order-of-magnitude ((and/c real? positive?) . -> . exact-integer?))
 (def-prims (nan? infinite?) (real? . -> . boolean?))
 
 ;;;;; 4.2.3 Flonums
 (def-prims (fl+ fl- fl*) (flonum? flonum? . -> . flonum?))
-(def-prim/todo fl/ (flonum? (and/c flonum? (not/c zero?)) . -> . flonum?))
-(def-prim/todo flabs (flonum? . -> . (and/c flonum? (not/c negative?))))
+(def-prim fl/ (flonum? (and/c flonum? (not/c zero?)) . -> . flonum?))
+(def-prim flabs (flonum? . -> . (and/c flonum? (not/c negative?))))
 (def-prims (fl= fl< fl> fl<= fl>=) (flonum? flonum? . -> . boolean?))
 (def-prims (flmin flmax) (flonum? flonum? . -> . flonum?))
 (def-prims (flround flfloor flceiling fltruncate) (flonum? . -> . flonum?))
 (def-prims (flsin flcos fltan flasin flacos flatan fllog flexp flsqrt) (flonum? . -> . flonum?))
-(def-prim/todo flexpt ; FIXME accurate behavior for abstract +inf +nan shits
+(def-prim flexpt ; FIXME accurate behavior for abstract +inf +nan shits
  (flonum? flonum? . -> . flonum?))
-(def-prim/todo ->fl (exact-integer? . -> . flonum?))
-(def-prim/todo fl->exact-integer (flonum? . -> . exact-integer?))
-(def-prim/todo make-flrectangular ; FIXME precision
+(def-prim ->fl (exact-integer? . -> . flonum?))
+(def-prim fl->exact-integer (flonum? . -> . exact-integer?))
+(def-prim make-flrectangular ; FIXME precision
  (flonum? flonum? . -> . number?))
 (def-prims (flreal-part flimag-part) ; FIXME correct domain
  (float-complex? . -> . flonum?))
-(def-prim/todo flrandom ; FIXME range
+(def-prim flrandom ; FIXME range
  (pseudo-random-generator? . -> . flonum?))
 
 ;; 4.2.3.2 Flonum Vectors
@@ -289,14 +289,14 @@
 ;; 4.1.4.1 Fixnum Arithmetic
 (def-prims (fx+ fx- fx*) (fixnum? fixnum? . -> . fixnum?))
 (def-prims (fxquotient fxremainder fxmodulo) (fixnum? (and/c fixnum? (not/c zero?)) . -> . fixnum?))
-(def-prim/todo fxabs (fixnum? . -> . fixnum?))
+(def-prim fxabs (fixnum? . -> . fixnum?))
 (def-prims (fxand fxior fxxor) (fixnum? fixnum? . -> . fixnum?))
-(def-prim/todo fxnot (fixnum? . -> . fixnum?))
+(def-prim fxnot (fixnum? . -> . fixnum?))
 (def-prims (fxlshift fxrshift) (fixnum? fixnum? . -> . fixnum?))
 (def-prims (fx= fx< fx> fx<= fx>=) (fixnum? fixnum? . -> . boolean?))
 (def-prims (fxmin fxmax) (fixnum? fixnum? . -> . fixnum?))
-(def-prim/todo fx->fl (fixnum? . -> . flonum?))
-(def-prim/todo fl->fx (flonum? . -> . fixnum?))
+(def-prim fx->fl (fixnum? . -> . flonum?))
+(def-prim fl->fx (flonum? . -> . fixnum?))
 
 ;; 4.2.4.2 Fixnum Vectors
 (def-pred fxvector?)
@@ -318,23 +318,23 @@
 
 ;;;;; 4.2.5 Extflonums
 (def-pred extflonum?)
-(def-prim/todo extflonum-available? (-> boolean?))
+(def-prim extflonum-available? (-> boolean?))
 
 ;; Extflonum Arithmetic
 (def-prims (extfl+ extfl- extfl*) (extflonum? extflonum? . -> . extflonum?))
-(def-prim/todo extfl/ (extflonum? extflonum? . -> . extflonum?))
-(def-prim/todo extflabs (extflonum? . -> . extflonum?))
+(def-prim extfl/ (extflonum? extflonum? . -> . extflonum?))
+(def-prim extflabs (extflonum? . -> . extflonum?))
 (def-prims (extfl= extfl< extfl> extfl<= extfl>=) (extflonum? extflonum? . -> . boolean?))
 (def-prims (extflmin extflmax) (extflonum? extflonum? . -> . extflonum?))
 (def-prims (extflround extflfloor extflceiling extfltruncate) (extflonum? . -> . extflonum?))
 (def-prims (extflsin extflcos extfltan extflasin extflacos extflatan extfllog extflexp extflsqrt)
  (extflonum? . -> . extflonum?))
-(def-prim/todo extflexpt (extflonum? extflonum? . -> . extflonum?))
-(def-prim/todo ->extfl (exact-integer? . -> . extflonum?))
-(def-prim/todo extfl->exact-integer (extflonum? . -> . exact-integer?))
-(def-prim/todo real->extfl (real? . -> . extflonum?))
-(def-prim/todo extfl->exact (extflonum? . -> . (and/c real? exact?)))
-(def-prim/todo extfl->inexact (extflonum? . -> . flonum?))
+(def-prim extflexpt (extflonum? extflonum? . -> . extflonum?))
+(def-prim ->extfl (exact-integer? . -> . extflonum?))
+(def-prim extfl->exact-integer (extflonum? . -> . exact-integer?))
+(def-prim real->extfl (real? . -> . extflonum?))
+(def-prim extfl->exact (extflonum? . -> . (and/c real? exact?)))
+(def-prim extfl->inexact (extflonum? . -> . flonum?))
 
 ;; 4.2.5.2 Extflonum Constants
 (def-const pi.t)
@@ -365,21 +365,21 @@
 
 ;; 4.3.1 Constructors, Selectors, Mutators
 (def-pred string?)
-(def-prim/todo make-string ; FIXME all uses
+(def-prim make-string ; FIXME all uses
  (exact-nonnegative-integer? char? . -> . (and/c string? (not/c immutable?))))
 (def-prim/todo string
  (() #:rest (listof char?) . ->* . string?))
-(def-prim/todo string->immutable-string
+(def-prim string->immutable-string
  (string? . -> . (and/c string? immutable?)))
-(def-prim/todo string-length
+(def-prim string-length
  (string? . -> . exact-nonnegative-integer?))
-(def-prim/todo string-ref
+(def-prim string-ref
  (string? exact-nonnegative-integer? . -> . char?))
-(def-prim/todo string-set!
+(def-prim string-set!
  ((and/c string? (not/c immutable?)) exact-nonnegative-integer? char? . -> . void?))
-(def-prim/todo substring ; FIXME uses
+(def-prim substring ; FIXME uses
  (string? exact-nonnegative-integer? exact-nonnegative-integer? . -> . string?))
-(def-prim/todo string-copy
+(def-prim string-copy
  (string . -> . string?))
 (def-prim/todo string-copy! ; FIXME uses
  ((and/c string? (not/c immutable?)) exact-nonnegative-integer? string? . -> . void?))
@@ -417,13 +417,13 @@
 #;[string-append* #;FIXME]
 #;[string-join ; FIXME uses, listof
    ((listof string?) . -> . string?)]
-(def-prim/todo string-normalize-spaces ; FIXME uses
+(def-prim string-normalize-spaces ; FIXME uses
  (string? . -> . string?))
-(def-prim/todo string-replace ; FIXME uses
+(def-prim string-replace ; FIXME uses
  (string? (or/c string? regexp?) string? . -> . string?))
 #;[string-split ; FIXME uses, listof
    (string? . -> . (listof string?))]
-(def-prim/todo string-trim ; FIXME uses
+(def-prim string-trim ; FIXME uses
  (string? . -> . string?))
 (def-pred non-empty-string?)
 [def-prims (string-contains? string-prefix? string-suffix?)
@@ -514,11 +514,11 @@
 ;; 4.5.1 Characters and Scalar Values
 
 (def-pred char?)
-(def-prim/todo char->integer
+(def-prim char->integer
  (char? . -> . exact-integer?))
-(def-prim/todo integer->char ; FIXME range
+(def-prim integer->char ; FIXME range
  (exact-integer? . -> . char?))
-(def-prim/todo char-utf-8-length ; FIXME range
+(def-prim char-utf-8-length ; FIXME range
  (char? . -> . exact-integer?))
 
 ;; 4.5.2 Comparisons
@@ -548,7 +548,7 @@
 (def-pred symbol?)
 (def-pred symbol-interned? (symbol?))
 (def-pred symbol-unreadable? (symbol?))
-(def-prim/todo symbol->string
+(def-prim symbol->string
  (symbol? . -> . string?))
 (def-prims (string->symbol string->uninterned-symbol string->unreadable-symbol)
  (string? . -> . symbol?))
@@ -566,16 +566,13 @@
 (def-pred pregexp?)
 (def-pred byte-regexp?)
 (def-pred byte-pregexp?)
-(def-prim/todo regexp
- (string? . -> . regexp?))
-(def-prim/todo pregexp
- (string? . -> . pregexp?))
-(def-prim/todo byte-regexp
- (bytes? . -> . regexp?))
-(def-prim/todo byte-pregexp
- (bytes? . -> . pregexp?))
+(def-prim regexp (string? . -> . regexp?))
+(def-prim pregexp (string? . -> . pregexp?))
+(def-prim byte-regexp (bytes? . -> . regexp?))
+(def-prim byte-pregexp (bytes? . -> . pregexp?))
 (def-prim/todo regexp-quote ; FIXME uses
  ((or/c string? bytes?) . -> . (or/c string? bytes?))
+ #:refinements
  (string? . -> . string?)
  (bytes? . -> . bytes?))
 (def-prim/todo regexp-max-lookbehind
@@ -714,9 +711,9 @@
 ;;;;; 4.8 Keywords
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-pred keyword?)
-(def-prim/todo keyword->string
+(def-prim keyword->string
  (keyword? . -> . string?))
-(def-prim/todo string->keyword
+(def-prim string->keyword
  (string? . -> . keyword?))
 (def-pred keyword<? (keyword? keyword?)) ; FIXME varargs
 
@@ -736,12 +733,10 @@
 (def-prim/todo list (() #:rest list? . ->* . list?))
 (def-prim/todo list* ; FIXME
   (-> list?))
-(def-prim/todo build-list
- (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c) . -> . list?))
+; [HO] build-list
 
 ;; 4.9.2 List Operations
-(def-prim/todo length
- (list? . -> . exact-nonnegative-integer?))
+(def-prim length (list? . -> . exact-nonnegative-integer?))
 (def-prim/todo list-ref
  (pair? exact-nonnegative-integer? . -> . any/c))
 (def-prim/todo list-tail
@@ -877,7 +872,7 @@
  (any/c procedure? . -> . any/c))
 #;[splitf-at-right ; FIXME uses
    (any/c procedure? . -> . (values list? any/c))]
-(def-prim/todo list-prefix? ; FIXME uses
+(def-prim list-prefix? ; FIXME uses
  (list? list? . -> . boolean?))
 (def-prim/todo take-common-prefix ; FIXME uses
  (list? list? . -> . list?))
@@ -1401,7 +1396,7 @@
 (def-prim/todo list->weak-seteq
  (list? . -> . (and/c generic-set? set-eq? set-weak?)))
 
-     ;;;;; 4.16.2 Set Predicates and Contracts
+;;;;; 4.16.2 Set Predicates and Contracts
 (def-pred generic-set?)
 #;[set-implements ; FIXME listof
    ((generic-set?) #:rest (listof symbol?) . ->* . boolean?)]
@@ -1410,7 +1405,7 @@
 #;[set/c ; FIXME uses, contract?
    (chaperone-contract? . -> . contract?)]
 
-     ;;;;; 4.16.3 Generic Set Interface
+;;;;; 4.16.3 Generic Set Interface
 
 ;; 4.16.3.1 Set Methods
 [def-pred set-member? (generic-set? any/c)]
@@ -1552,3 +1547,199 @@
 ;;;;; 4.19 Undefined
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-const undefined)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 5.6 Structure Utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-pred struct-type?)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 8.1 Data-structure Contracts
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-prim/todo flat-named-contract ; FIXME uses
+ (any/c flat-contract? . -> . flat-contract?))
+(def-prim/todo any/c (any/c . -> . (not/c not)))
+(def-prim/todo none/c (any/c . -> . not))
+(def-prim/todo  or/c (contract? contract? . -> . contract?)) ; FIXME uses
+(def-prim/todo and/c (contract? contract? . -> . contract?)) ; FIXME uses
+(def-prim/todo not/c (flat-contract? . -> . flat-contract?))
+(def-prim/todo =/c  (real? . -> . flat-contract?))
+(def-prim/todo </c  (real? . -> . flat-contract?))
+(def-prim/todo >/c  (real? . -> . flat-contract?))
+(def-prim/todo <=/c (real? . -> . flat-contract?))
+(def-prim/todo >=/c (real? . -> . flat-contract?))
+(def-prim/todo between/c (real? real? . -> . flat-contract?))
+[def-alias real-in between/c]
+(def-prim/todo integer-in (exact-integer? exact-integer? . -> . flat-contract?))
+(def-prim/todo char-in (char? char? . -> . flat-contract?))
+(def-prim/todo def-alias natural-number/c exact-nonnegative-integer?)
+(def-prim/todo string-len/c (real? . -> . flat-contract?))
+(def-alias false/c not)
+(def-pred printable/c)
+#;[one-of/c
+   (() #:rest (listof flat-contract?) . ->* . contract?)]
+#;[symbols
+   (() #:rest (listof symbol?) . ->* . flat-contract?)]
+(def-prim/todo vectorof ; FIXME uses
+ (contract? . -> . contract?))
+(def-prim/todo vector-immutableof (contract? . -> . contract?))
+(def-prim/todo vector/c ; FIXME uses
+ (() #:rest (listof contract?) . ->* . contract?))
+#;[vector-immutable/c
+   (() #:rest (listof contract?) . ->* . contract?)]
+(def-prim/todo box/c ; FIXME uses
+ (contract? . -> . contract?))
+(def-prim/todo box-immutable/c (contract? . -> . contract?))
+(def-prim/todo listof (contract? . -> . list-contract?))
+(def-prim/todo non-empty-listof (contract? . -> . list-contract?))
+(def-prim/todo list*of (contract? . -> . contract?))
+(def-prim/todo cons/c (contract? contract? . -> . contract?))
+#;[list/c
+   (() #:rest (listof contract?) . ->* . list-contract?)]
+(def-prim/todo syntax/c (flat-contract? . -> . flat-contract?))
+(def-prim/todo parameter/c ; FIXME uses
+ (contract? . -> . contract?))
+(def-prim/todo procedure-arity-includes/c
+ (exact-nonnegative-integer? . -> . flat-contract?))
+(def-prim/todo hash/c ; FIXME uses
+ (chaperone-contract? contract? . -> . contract?))
+(def-prim/todo channel/c (contract? . -> . contract?))
+(def-prim/todo continuation-mark-key/c (contract? . -> . contract?))
+;;[evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]
+(def-prim/todo promise/c (contract? . -> . contract?))
+(def-prim/todo flat-contract ((any/c . -> . any/c) . -> . flat-contract?))
+(def-prim/todo flat-contract-predicate (flat-contract? . -> . (any/c . -> . any/c)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 8.2 Function Contracts
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-opq predicate/c contract?)
+(def-opq the-unsupplied-arg unsupplied-arg?)
+(def-pred unsupplied-arg?)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 8.8 Contract Utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; TODO
+(def-prim contract-first-order-passes?
+ (contract? any/c . -> . boolean?))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 8.8 Contract Utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-pred contract?)
+(def-pred chaperone-contract?)
+(def-pred impersonator-contract?)
+(def-pred flat-contract?)
+(def-pred list-contract?)
+(def-prim/todo contract-name (contract? . -> . any/c))
+(def-prim/todo value-contract (has-contract? . -> . (or/c contract? not)))
+[def-pred has-contract?]
+(def-prim/todo value-blame (has-blame? . -> . (or/c blame? not)))
+[def-pred has-blame?]
+(def-prim/todo contract-projection (contract? . -> . (blame? . -> . (any/c . -> . any/c))))
+(def-prim/todo make-none/c (any/c . -> . contract?))
+(def-opq contract-continuation-mark-key continuation-mark-key?)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.1 Multiple Values
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-prim/custom (values ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
+  {set (-ΓA Γ (-W Vs (apply -?@ 'values ss)))})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.4 Continuations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-prim/todo call-with-current-continuation ((any/c . -> . any/c) . -> . any/c)) ; FIXME
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 13.1 Ports
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 13.1.2 Managing Ports
+(def-prim input-port? (any/c . -> . boolean?))
+(def-prim output-port? (any/c . -> . boolean?))
+(def-prim port? (any/c . -> . boolean?))
+(def-prim eof-object? (any/c . -> . boolean?))
+(def-prim current-input-port  (-> input-port?))
+(def-prim current-output-port (-> output-port?))
+(def-prim current-error-port (-> output-port?))
+
+;; 13.1.3 Port Buffers and Positions
+(def-prim flush-output (-> void?)) ; FIXME uses
+
+;; 13.1.5 File Ports
+; [HO] call-with-input-file call-with-output-file
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 13.2 Byte and String Input
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-prim read-char (input-port? . -> . (or/c char? eof-object?))) ; FIXME uses
+(def-prim peek-char (input-port? . -> . (or/c char? eof-object?))) ; FIXME uses
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 13.3 Byte and String Output
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-prim write-char (char? output-port? . -> . void?)) ; FIXME uses
+(def-prim newline (output-port? . -> . void?)) ; FIXME uses
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 13.5 Writing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-prim write (any/c . -> . void?)) ; FIXME uses
+(def-prim display (any/c output-port? . -> . void?)) ; FIXME uses
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 15.1 Paths
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 15.1.1 Manipulating Paths
+(def-pred path-string?)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 15.2 Filesystem
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 15.2.2 Files
+(def-prim file-exists? (path-string? . -> . boolean?))
+(def-prim delete-file (path-string? . -> . void?))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 15.7
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+{def-prim getenv (string? . -> . (or/c string? not))}
+{def-prim putenv (string? string? . -> . boolean?)}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 17.2 Unsafe Data Extraction
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[def-alias unsafe-car car]
+[def-alias unsafe-cdr cdr]
+[def-alias unsafe-vector-length vector-length]
+[def-alias unsafe-vector-ref vector-ref]
+[def-alias unsafe-vector-set! vector-set!]
+(def-prim/todo unsafe-struct-ref (any/c exact-nonnegative-integer? . -> . any/c))
+(def-prim/todo unsafe-struct-set! (any/c exact-nonnegative-integer? any/c . -> . any/c))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; FROM THE MATH LIBRARY
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 1.2 Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[def-pred float-complex?]
+

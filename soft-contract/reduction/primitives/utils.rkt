@@ -5,7 +5,10 @@
          def-pred def-preds def-pred/todo
          def-const def-opq
          def-alias def-alias-internal
-         -⟦o⟧!)
+         -⟦o⟧!
+         ;; just for debugging
+         const-table prim-table alias-table opq-table get-prim
+         )
 
 (require (for-syntax racket/base
                      racket/syntax
@@ -57,7 +60,7 @@
     (pattern ((~literal ->) _:fc ... ((~literal values) _:fc ...)))
     (pattern ((~literal ->) _:fc ... _:fc)))
 
-  (define (prefix-id id) (format-id id ".~a" (syntax-e id)))
+  (define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))
 
   (define tt? (syntax-parser [#t #t] [_ #f]))
   (define ff? (syntax-parser [#f #t] [_ #f]))
@@ -107,11 +110,11 @@
        (cond [(identifier? #'d) (list #'(-not/c 'd))]
              [else
               (raise-syntax-error 'def-prim "only identifier can follow not/c in refinement clause" rng)])]
-      [((~literal =/c) x:number) (list #''real? #'(-≡/c (-b x)))]
-      [((~literal >/c) x:number) (list #''real? #'(->/c (-b x)))]
-      [((~literal >=/c) x:number) (list #''real? #'(-≥/c (-b x)))]
-      [((~literal </c) x:number) (list #''real? #'(-</c (-b x)))]
-      [((~literal <=/c) x:number) (list #''real? #'(-≤/c (-b x)))]
+      [((~literal =/c) x:number) (list #''real? #'(-=/c x))]
+      [((~literal >/c) x:number) (list #''real? #'(->/c x))]
+      [((~literal >=/c) x:number) (list #''real? #'(-≥/c x))]
+      [((~literal </c) x:number) (list #''real? #'(-</c x))]
+      [((~literal <=/c) x:number) (list #''real? #'(-≤/c x))]
       [x:lit (list #'(-≡/c (-b x)))]
       [(~literal any/c) '()]
       [(~literal none/c)
@@ -176,8 +179,8 @@
   (first-R (apply p∋Vs σ o Vs)
            (Γ⊢e Γ (apply -?@ o ss))))
 
-(: ⊢?/quick : -σ -Γ -o -W¹ -R → Boolean)
-(define (⊢?/quick σ Γ o W R) (eq? R (⊢/quick σ Γ o W)))
+(: ⊢?/quick : -R -σ -Γ -o -W¹ * → Boolean)
+(define (⊢?/quick R σ Γ o . Ws) (eq? R (apply ⊢/quick σ Γ o Ws)))
 
 (define-match-expander res-ff (syntax-rules () [(_) (-W (list (-b #f)) _)]))
 (define-match-expander res-uk (syntax-rules () [(_) (-W (list (? -●?)) _)]))
@@ -200,6 +203,14 @@
 (define const-table : (HashTable Symbol -b) (make-hasheq))
 (define prim-table  : (HashTable Symbol -⟦o⟧!) (make-hasheq))
 (define opq-table   : (HashTable Symbol -●) (make-hasheq))
+
+(: get-prim : Symbol → (Option (U -o -b -●)))
+(define (get-prim name)
+  (cond [(hash-has-key? prim-table name) name]
+        [(hash-ref const-table name #f) => values]
+        [(hash-ref alias-table name #f) => values]
+        [(hash-ref opq-table name #f) => values]
+        [else #f]))
 
 (define-syntax-parser def-const
   [(_ x:id)
@@ -260,20 +271,20 @@
             (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
            [((~literal not/c) d) (go #'d (not pos?))]
            [((~literal =/c) x)
-            #`(⊢?/quick #,σ-id #,Γ-id 'equal? #,W (-W¹ (-b x) (-b x)) #,(pos?->R pos?))]
+            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id 'equal? #,W (-W¹ (-b x) (-b x)))]
            [((~literal >/c) x)
-            #`(⊢?/quick #,σ-id #,Γ-id '> #,W (-W¹ (-b x) (-b x)) #,(pos?->R pos?))]
+            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '> #,W (-W¹ (-b x) (-b x)))]
            [((~literal >=/c) x)
-            #`(⊢?/quick #,σ-id #,Γ-id '>= #,W (-W¹ (-b x) (-b x)) #,(pos?->R pos?))]
+            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '>= #,W (-W¹ (-b x) (-b x)))]
            [((~literal </c) x)
-            #`(⊢?/quick #,σ-id #,Γ-id '< #,W (-W¹ (-b x) (-b x)) #,(pos?->R pos?))]
+            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '< #,W (-W¹ (-b x) (-b x)))]
            [((~literal <=/c) x)
-            #`(⊢?/quick #,σ-id #,Γ-id '<= #,W (-W¹ (-b x) (-b x)) #,(pos?->R pos?))]
+            #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id '<= #,W (-W¹ (-b x) (-b x)))]
            [(~literal any/c) #'#t]
            [(~literal none/c) #'#f]
            [x:lit
-            #'(⊢?/quick #,σ-id #,Γ-id 'equal? #,W (-W¹ (-b x) (-b x)) #,(pos?->R pos?))]
-           [c:id #`(⊢?/quick #,σ-id #,Γ-id 'c #,W #,(pos?->R pos?))])))
+            #'(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id 'equal? #,W (-W¹ (-b x) (-b x)))]
+           [c:id #`(⊢?/quick #,(pos?->R pos?) #,σ-id #,Γ-id 'c #,W)])))
 
      #`(λ ([V : -V])
          (define σ (-Σ-σ Σ))
@@ -307,11 +318,11 @@
                          'def-prim
                          (format "~a: only identifier can follow not/c in range" #'o)
                          c)])]
-           [((~literal =/c) x) (list (list #''real? #'(-≡/c (-b x))))]
-           [((~literal >/c) x) (list (list #''real? #'(->/c (-b x))))]
-           [((~literal >=/c) x) (list (list #''real? #'(-≥/c (-b x))))]
-           [((~literal </c) x) (list (list #''real? #'(-</c (-b x))))]
-           [((~literal <=/c) x) (list (list #''real? #'(-≤/c (-b x))))]
+           [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
+           [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
+           [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
+           [((~literal </c) x) (list (list #''real? #'(-</c x)))]
+           [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
            [x:lit (list (list #'(-≡/c (-b x))))]
            [(~literal any/c) (list (list))]
            [(~literal none/c) (list)]
@@ -337,7 +348,9 @@
        (syntax? identifier? . -> . (or/c syntax? #f))
        (let go ([c c])
          (syntax-parse c
-           [((~literal and/c) c₁ _ ...) (go #'c₁)]
+           [((~literal and/c) cᵢ ...)
+            (define clauses (map go (syntax->list #'(cᵢ ...))))
+            (and (andmap values clauses) (and* clauses))]
            [((~literal or/c) cᵢ ...)
             (define clauses (map go (syntax->list #'(cᵢ ...))))
             (and (andmap values clauses) (or* clauses))]
@@ -399,7 +412,13 @@
      (define/contract (gen-precond-check W V s c gen-body)
        (identifier? identifier? identifier? syntax? procedure? . -> . procedure?)
        (with-syntax ([W W]
-                     [s s])
+                     [s s]
+                     [.equal? (prefix-id #'equal? #'o)]
+                     [.= (prefix-id #'= #'o)]
+                     [.< (prefix-id #'< #'o)]
+                     [.<= (prefix-id #'<= #'o)]
+                     [.> (prefix-id #'> #'o)]
+                     [.>= (prefix-id #'>= #'o)])
 
          (define/contract (gen-test Γ-id c c-blm pos? gen)
            (identifier? syntax? syntax? boolean? procedure? . -> . syntax?)
@@ -434,34 +453,34 @@
                             [else (go Γ-id cs* pos?)])))]))]
              [((~literal =/c) x)
               #`(match-results (.= ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
-                               [Γ_t #,(gen #'Γ_t c-blm pos?)]
-                               [Γ_f #,(gen #'Γ_f c-blm (not pos?))])]
+                               [Γ_t #,(gen #'Γ_t #'(-=/c x) pos?)]
+                               [Γ_f #,(gen #'Γ_f #'(-=/c x) (not pos?))])]
              [((~literal >/c) x)
               #`(match-results (.> ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
-                               [Γ_t #,(gen #'Γ_t c-blm pos?)]
-                               [Γ_f #,(gen #'Γ_f c-blm (not pos?))])]
+                               [Γ_t #,(gen #'Γ_t #'(->/c x) pos?)]
+                               [Γ_f #,(gen #'Γ_f #'(->/c x) (not pos?))])]
              [((~literal >=/c) x)
               #`(match-results (.>= ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
-                               [Γ_t #,(gen #'Γ_t c-blm pos?)]
-                               [Γ_f #,(gen #'Γ_f c-blm (not pos?))])]
+                               [Γ_t #,(gen #'Γ_t #'(-≥/c x) pos?)]
+                               [Γ_f #,(gen #'Γ_f #'(-≥/c x) (not pos?))])]
              [((~literal </c) x)
               #`(match-results (.< ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
-                               [Γ_t #,(gen #'Γ_t c-blm pos?)]
-                               [Γ_f #,(gen #'Γ_f c-blm (not pos?))])]
+                               [Γ_t #,(gen #'Γ_t #'(-</c x) pos?)]
+                               [Γ_f #,(gen #'Γ_f #'(-</c x) (not pos?))])]
              [((~literal <=/c) x)
               #`(match-results (.<= ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
-                               [Γ_t #,(gen #'Γ_t c-blm pos?)]
-                               [Γ_f #,(gen #'Γ_f c-blm (not pos?))])]
+                               [Γ_t #,(gen #'Γ_t #'(-≤/c x) pos?)]
+                               [Γ_f #,(gen #'Γ_f #'(-≤/c x) (not pos?))])]
              [x:lit
               #`(match-results (.equal? ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W (-W¹ (-b x) (-b x))))
-                               [Γ_t #,(gen #'Γ_t c-blm pos?)]
-                               [Γ_f #,(gen #'Γ_f c-blm (not pos?))])]
+                               [Γ_t #,(gen #'Γ_t #'(-≡/c (-b x)) pos?)]
+                               [Γ_f #,(gen #'Γ_f #'(-≡/c (-b x)) (not pos?))])]
              [((~literal not/c) d)
               (gen-test Γ-id #'d #'(-not/c 'd) (not pos?) gen)]
              [(~literal any/c ) (gen Γ-id #''any/c  pos?)]
              [(~literal none/c) (gen Γ-id #''none/c (not pos?))]
              [c:id
-              (with-syntax ([.c (prefix-id #'c)])
+              (with-syntax ([.c (prefix-id #'c #'o)])
                 #`(match-results (.c ⟪ℋ⟫ ℓ l Σ #,Γ-id (list W))
                                  [Γ_t #,(gen #'Γ_t c-blm pos?)]
                                  [Γ_f #,(gen #'Γ_f c-blm (not pos?))]))]))
@@ -497,7 +516,7 @@
            (define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
              #,(gen-body #'Γ))
            (hash-set! prim-table 'o .o)))
-     (pretty-print (syntax->datum o-defn))
+     ;(pretty-print (syntax->datum o-defn))
      o-defn)])
 
 (define-syntax-parser def-prim/custom
@@ -539,24 +558,14 @@
   [(_ x:id y:id)
    (with-syntax ([.x (prefix-id #'x)])
      #'(define .x : (U -● -⟦o⟧! -b -o)
-         (cond [(hash-ref const-table 'y #f) =>
-                (λ ([v : -b])
-                  (hash-set-once! const-table 'x v)
-                  v)]
-               [(hash-ref prim-table 'y #f) =>
-                (λ ([v : -⟦o⟧!])
-                  (hash-set-once! prim-table 'x v)
-                  v)]
-               [(hash-ref opq-table 'y #f) =>
-                (λ ([v : -●])
-                  (hash-set-once! opq-table 'x v)
-                  v)]
-               [(hash-ref alias-table 'y #f) =>
-                (λ ([v : -o])
-                  (hash-set-once! alias-table 'x v)
-                  v)]
-               [else
-                (error 'def-alias "~a undefined before ~a" 'y 'x)])))])
+         (let ([err
+                (λ ()
+                  (error 'def-alias "~a not defined before ~a" 'y 'x))])
+           (cond [(get-prim 'y) =>
+                  (λ ([v : (U -o -b -●)])
+                    (cond [(symbol? v) (hash-ref prim-table v err)]
+                          [else v]))]
+                 [else (err)]))))])
 
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
