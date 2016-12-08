@@ -31,7 +31,7 @@
          "../../ast/definition.rkt"
          "../../runtime/definition.rkt"
          "../../runtime/simp.rkt"
-         "utils.rkt")
+         "def-prim.rkt")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
