@@ -41,15 +41,15 @@
 (def-pred boolean?)
 (def-pred not)
 
-(def-prims (equal? eqv? eq?) (any/c any/c . -> . any/c))
-; equal?/recur
+(def-preds (equal? eqv? eq?) (any/c any/c))
+; [HO] equal?/recur
 (def-pred immutable?)
 (def-opq prop:equal+hash any/c)
 
 (def-const true)
 (def-const false)
-(def-prim symbol=? (symbol? symbol? . -> . boolean?))
-(def-prim boolean=? (boolean? boolean? . -> . boolean?))
+(def-pred symbol=? (symbol? symbol?))
+(def-pred boolean=? (boolean? boolean?))
 (def-alias false? not)
 (def-prim xor (any/c any/c . -> . any/c))
 
@@ -160,7 +160,7 @@
 ;; 4.2.2.2 Number Comparison
 ; FIXME varargs
 (def-pred = (number? number?)) 
-(def-prims (< <= > >=) (real? real? . -> . boolean?))
+(def-preds (< <= > >=) (real? real?))
 
 ;; 4.2.2.3 Powers and Roots
 (def-prim sqrt (number? . -> . number?))
@@ -188,7 +188,7 @@
 (def-prims (bitwise-ior bitwise-and bitwise-xor) ; FIXME varargs
  (exact-integer? exact-integer? . -> . exact-integer?))
 (def-prim bitwise-not (exact-integer? . -> . exact-integer?))
-(def-prim bitwise-bit-set? (exact-integer? exact-nonnegative-integer? . -> . boolean?))
+(def-pred bitwise-bit-set? (exact-integer? exact-nonnegative-integer?))
 (def-prim bitwise-bit-field ; FIXME `start ≤ end`
  (exact-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . integer?))
 (def-prim arithmetic-shift
@@ -248,13 +248,13 @@
 (def-prims (sinh cosh tanh) (number? . -> . number?))
 (def-prims (exact-round exact-floor exact-ceiling exact-truncate) (rational? . -> . exact-integer?))
 (def-prim order-of-magnitude ((and/c real? positive?) . -> . exact-integer?))
-(def-prims (nan? infinite?) (real? . -> . boolean?))
+(def-preds (nan? infinite?) (real?))
 
 ;;;;; 4.2.3 Flonums
 (def-prims (fl+ fl- fl*) (flonum? flonum? . -> . flonum?))
 (def-prim fl/ (flonum? (and/c flonum? (not/c zero?)) . -> . flonum?))
 (def-prim flabs (flonum? . -> . (and/c flonum? (not/c negative?))))
-(def-prims (fl= fl< fl> fl<= fl>=) (flonum? flonum? . -> . boolean?))
+(def-preds (fl= fl< fl> fl<= fl>=) (flonum? flonum?))
 (def-prims (flmin flmax) (flonum? flonum? . -> . flonum?))
 (def-prims (flround flfloor flceiling fltruncate) (flonum? . -> . flonum?))
 (def-prims (flsin flcos fltan flasin flacos flatan fllog flexp flsqrt) (flonum? . -> . flonum?))
@@ -296,7 +296,7 @@
 (def-prims (fxand fxior fxxor) (fixnum? fixnum? . -> . fixnum?))
 (def-prim fxnot (fixnum? . -> . fixnum?))
 (def-prims (fxlshift fxrshift) (fixnum? fixnum? . -> . fixnum?))
-(def-prims (fx= fx< fx> fx<= fx>=) (fixnum? fixnum? . -> . boolean?))
+(def-preds (fx= fx< fx> fx<= fx>=) (fixnum? fixnum?))
 (def-prims (fxmin fxmax) (fixnum? fixnum? . -> . fixnum?))
 (def-prim fx->fl (fixnum? . -> . flonum?))
 (def-prim fl->fx (flonum? . -> . fixnum?))
@@ -327,7 +327,7 @@
 (def-prims (extfl+ extfl- extfl*) (extflonum? extflonum? . -> . extflonum?))
 (def-prim extfl/ (extflonum? extflonum? . -> . extflonum?))
 (def-prim extflabs (extflonum? . -> . extflonum?))
-(def-prims (extfl= extfl< extfl> extfl<= extfl>=) (extflonum? extflonum? . -> . boolean?))
+(def-preds (extfl= extfl< extfl> extfl<= extfl>=) (extflonum? extflonum?))
 (def-prims (extflmin extflmax) (extflonum? extflonum? . -> . extflonum?))
 (def-prims (extflround extflfloor extflceiling extfltruncate) (extflonum? . -> . extflonum?))
 (def-prims (extflsin extflcos extfltan extflasin extflacos extflatan extfllog extflexp extflsqrt)
@@ -398,9 +398,9 @@
  (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . char?) . -> . string?))
 
 ;; 4.3.2 String Comparisons. FIXME varargs
-(def-prims (string=? string<? string<=? string>? string>=?
+(def-preds (string=? string<? string<=? string>? string>=?
             string-ci=? string-ci<? string-ci<=? string-ci>? string-ci>=?)
- (string? string? . -> . boolean?))
+ (string? string?))
 
 ;; 4.3.3 String Conversions
 (def-prims (string-upcase string-downcase string-titlecase string-foldcase
@@ -429,8 +429,8 @@
 (def-prim string-trim ; FIXME uses
  (string? . -> . string?))
 (def-pred non-empty-string?)
-[def-prims (string-contains? string-prefix? string-suffix?)
- (string? string? . -> . boolean?)]
+[def-preds (string-contains? string-prefix? string-suffix?)
+ (string? string?)]
 
 ;; 4.3.6 Converting Values to Strings.
 (def-prims (~a ~v ~s ~e ~.a ~.v ~.s) (any/c . -> . string?)) ; FIXME uses
@@ -476,8 +476,7 @@
 
 ;; 4.4.2 Byte String Comparisons
 ; FIXME varargs
-(def-prims (bytes=? bytes<? bytes>?)
- (bytes? bytes? . -> . boolean?))
+(def-preds (bytes=? bytes<? bytes>?) (bytes? bytes?))
 
 ;; 4.4.3 Bytes to/from Characers, Decoding and Encoding
 ; FIXME uses
@@ -530,10 +529,10 @@
  (char? char? . -> . boolean?))
 
 ;; 4.5.3 Classifications
-(def-prims (char-alphabetic? char-lower-case? char-upper-case? char-title-case?
+(def-preds (char-alphabetic? char-lower-case? char-upper-case? char-title-case?
             char-numeric? char-symbolic? char-punctuation? char-graphic?
             char-whitespace? char-blank? char-iso-control? char-general-category)
- (char? . -> . boolean?))
+ (char?))
 #;[make-known-char-range-list ; FIXME listof
    (-> (listof (list/c exact-nonnegative-integer?
                        exact-nonnegative-integer?
