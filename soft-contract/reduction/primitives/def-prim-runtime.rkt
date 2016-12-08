@@ -41,3 +41,21 @@
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
   (eq? R (first-R (apply p∋Vs σ o Vs)
                   (Γ⊢e Γ (apply -?@ o ss)))))
+
+(: blm : -Γ -l -l (U -V -v) -W¹ → (℘ -ΓA))
+(define (blm Γ who whom why what)
+  {set (-ΓA Γ (-blm who whom (list why) (list (-W¹-V what))))})
+
+(define alias-table : (HashTable Symbol -o) (make-hasheq))
+(define const-table : (HashTable Symbol -b) (make-hasheq))
+(define prim-table  : (HashTable Symbol -⟦o⟧!) (make-hasheq))
+(define opq-table   : (HashTable Symbol -●) (make-hasheq))
+(define debug-table : (HashTable Symbol Any) (make-hasheq))
+
+(: get-prim : Symbol → (Option (U -o -b -●)))
+(define (get-prim name)
+  (cond [(hash-has-key? prim-table name) name]
+        [(hash-ref const-table name #f) => values]
+        [(hash-ref alias-table name #f) => values]
+        [(hash-ref opq-table name #f) => values]
+        [else #f]))

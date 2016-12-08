@@ -9,7 +9,11 @@
          racket/contract
          racket/splicing
          syntax/parse
-         (only-in "../../utils/pretty.rkt" n-sub))
+         (only-in "../../utils/pretty.rkt" n-sub)
+         (for-template racket/base
+                       racket/contract
+                       "../../ast/definition.rkt"
+                       "../../runtime/main.rkt"))
 
 (define-syntax-class sig
   #:description "restricted function signature"
@@ -171,3 +175,12 @@
       [(list e) e]
       [(list _ ... (? tt?) _ ...) #'#t]
       [else #`(or #,@cleaned-es)])))
+
+(define/contract (new-thunk-table)
+  (-> (values (hash/c symbol? (listof syntax?))
+              (symbol? (or/c syntax? (listof syntax?)) . -> . symbol?)))
+  (define m (make-hasheq))
+  (values m
+          (λ (f es)
+            (hash-set! m f (if (syntax? es) (list es) es))
+            f)))
