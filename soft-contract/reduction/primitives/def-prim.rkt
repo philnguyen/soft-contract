@@ -22,6 +22,7 @@
          racket/match
          racket/set
          syntax/parse/define
+         "../../utils/set.rkt"
          "../../utils/map.rkt"
          "../../ast/definition.rkt"
          "../../runtime/main.rkt"
@@ -50,6 +51,8 @@
    (define cₓ-list (syntax->list #'(cₓ ...)))
    (define cₑ-list (syntax->list #'((cₑ ...) ...)))
    (define n (length cₓ-list))
+
+   (define/contract thunks (hash/c symbol? syntax?) (make-hash))
 
    ;; Perform quick checks for arity consistency
    (let ()
@@ -119,7 +122,9 @@
          V))
 
    ;; Generate primitive body for the case where 1+ argument is symbolic
-   (define (gen-sym-case Γ-id)
+   (define/contract (gen-sym-case Γ-id)
+     (identifier? . -> . (listof syntax?))
+     
      (define/contract refinement-sets (listof (listof syntax?))
        (let go ([c #'cₐ])
          (syntax-parse c
@@ -159,18 +164,20 @@
      
      (cond
        [(null? extra-refinements)
-        #`(let ([sₐ (-?@ 'o #,@s-ids)])
-            (set #,@(for/list ([ref (in-list refinement-sets)])
+        (list #`(define sₐ (-?@ 'o #,@s-ids))
+              #`(set #,@(for/list ([ref (in-list refinement-sets)])
                       #`(-ΓA #,Γ-id (-W (list (-● (set #,@ref))) sₐ)))))]
        [else
         (with-syntax ([refine (format-id #f "refine-~a" (syntax-e #'o))])
-          #`(let ([sₐ (-?@ 'o #,@s-ids)]
-                  [refine #,(gen-refine-func Γ-id extra-refinements)])
-              (set #,@(for/list ([ref (in-list refinement-sets)])
+          (list #'(define sₐ (-?@ 'o #,@s-ids))
+                #`(define refine #,(gen-refine-func Γ-id extra-refinements))
+                #`(set #,@(for/list ([ref (in-list refinement-sets)])
                         #`(-ΓA #,Γ-id (-W (list (refine (-● (set #,@ref)))) sₐ))))))]))
 
    ;; Generate primitve body when all preconds have passed
-   (define (gen-ok-case Γ-id)
+   (define/contract (gen-ok-case Γ-id)
+     (identifier? . -> . (listof syntax?))
+
      (define/contract (gen-base-guard c x)
        (syntax? syntax? . -> . (or/c syntax? #f))
        (let go ([c c])
@@ -212,11 +219,11 @@
                    [(w ...) (datum->syntax #f wilds)])
        (syntax-parse #'cₐ ; generate predicates differently
          [(~literal boolean?)
-          #`(let ([A (case (MΓ⊢oW M σ #,Γ-id 'o W ...)
-                       [(✓) -True/Vs]
-                       [(✗) -False/Vs]
-                       [(?) -Bool/Vs])])
-              {set (-ΓA #,Γ-id (-W A (-?@ 'o s ...)))})]
+          (list #'(define A (case (MΓ⊢oW M σ #,Γ-id 'o W ...)
+                              [(✓) -True/Vs]
+                              [(✗) -False/Vs]
+                              [(?) -Bool/Vs]))
+                #`{set (-ΓA #,Γ-id (-W A (-?@ 'o s ...)))})]
          [_
           (define base-guards
             (and (not (skip-base-case-lifting? #'o))
@@ -230,16 +237,16 @@
                   (define bₐ #,(simp@ #'o b-ids))
                   {set (-ΓA #,Γ-id (-W (list bₐ) bₐ))}]
                  [(w ...)
-                  #,(gen-sym-case Γ-id)])]
+                  #,@(gen-sym-case Γ-id)])]
             [else (gen-sym-case Γ-id)])])))
 
    ;; Generate other error checks not expressed in main contract
-   (define (gen-other-error-checks Γ-id)
+   #;(define (gen-other-error-checks Γ-id)
      (log-error "~a: #:other-errors not implemented for now~n" (syntax-e #'o))
      (gen-ok-case Γ-id))
 
    ;; Guard primitive body with preconditions
-   (define (gen-precond-checks Ws Vs ss cs)
+   #;(define (gen-precond-checks Ws Vs ss cs)
 
      (define/contract (gen-precond-check W V s c gen-body)
        (identifier? identifier? identifier? syntax? procedure? . -> . procedure?)
@@ -370,21 +377,48 @@
        [((cons W Ws*) (cons V Vs*) (cons s ss*) (cons c cs*))
         (gen-precond-check W V s c (gen-precond-checks Ws* Vs* ss* cs*))]))
 
-   (define (gen-body Γ-id)
+   (define/contract (gen-ok-thunk!)
+     (-> symbol?)
+     (define name 'on-ok)
+     (cond [(hash-has-key? thunks name) name]
+           [else (hash-set! thunks name (gen-ok-case #'Γ))
+                 name]))
+
+   (define/contract (gen-precond-checks! Ws cₓ-list)
+     ((listof identifier?) (listof syntax?) . -> . (values symbol? syntax?))
+     (match* (Ws cₓ-list)
+       [('() '())
+        (define on-ok (gen-ok-thunk!))
+        #`(#,on-ok Γ)]
+       [((cons W Ws*) (cons c cs*))
+        ]))
+
+   (define/contract (gen-body!)
+     (-> syntax?)
+     (define-values (_ e) (gen-precond-checks! Ws cₓ-list))
+     e)
+
+   (define body-rest (gen-body!))
+   (define local-defns ; important to call *after* `(gen-body!)`
+     (for/list ([defn (in-list thunks)])
+       (match-define (cons f es) defn)
+       #`(define (#,f [Γ : -Γ]) #,@es)))
+
+   (define body
      (with-syntax ([arity-req (format-symbol "~a values" n)]
                    [(W ...) (datum->syntax #f W-ids)]
                    [(V ...) (datum->syntax #f V-ids)]
-                   [(s ...) (datum->syntax #f s-ids)]
-                   [body ((gen-precond-checks W-ids V-ids s-ids cₓ-list) Γ-id)])
+                   [(s ...) (datum->syntax #f s-ids)])
        #`(match Ws
            [(list W ...)
             (match-define (-Σ σ _ M) Σ)
             (match-define (-W¹ V s) W) ...
-            body]
+            #,@local-defns
+            #,body-rest]
            [_ {set (-ΓA Γ (-blm l 'o '(arity-req) (map -W¹-V Ws)))}])))
 
    (with-syntax* ([.o (prefix-id #'o)]
-                  [defn #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) #,(gen-body #'Γ))])
+                  [defn #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) #,body)])
      #`(begin
          (: .o : -⟦o⟧!)
          defn
@@ -470,3 +504,60 @@
         [(hash-ref alias-table name #f) => values]
         [(hash-ref opq-table name #f) => values]
         [else #f]))
+
+(def-prim add1 ((or/c exact-integer? inexact-real?) . -> . number?))
+
+#|
+(def-prim add1
+  ((or/c exact-integer? inexact-real?) . -> . number?))
+
+current:
+
+(define (.add1 ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  (match Ws
+    ((list W₀)
+     (match-define (-Σ σ _ M) Σ)
+     (match-define (-W¹ V₀ s₀) W₀)
+     (with-Γ+/-
+       (((Γ₁ Γ₂) (MΓ+/-oW M σ Γ 'exact-integer? W₀)))
+       #:true
+       (let ((sₐ (-?@ 'add1 s₀)))
+         (set (-ΓA Γ₁ (-W (list (-● (set 'number?))) sₐ))))
+       #:false
+       (with-Γ+/-
+         (((Γ₁ Γ₂) (MΓ+/-oW M σ Γ₂ 'inexact-real? W₀)))
+         #:true
+         (let ((sₐ (-?@ 'add1 s₀)))
+           (set (-ΓA Γ₁ (-W (list (-● (set 'number?))) sₐ))))
+         #:false
+         (set (-ΓA Γ₂ (-blm l 'add1 (list 'inexact-real?) (list (-W¹-V W₀))))))))
+    (_ (set (-ΓA Γ (-blm l 'add1 '(|1 values|) (map -W¹-V Ws)))))))
+
+desired:
+
+(define (.add1 ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  (match Ws
+    ((list W₀)
+     (match-define (-Σ σ _ M) Σ)
+     (match-define (-W¹ V₀ s₀) W₀)
+
+     (: on-0-not-inexact-real? : Prim-Thunk)
+     (define (on-0-not-inexact-real? Γ)
+       (set (-ΓA Γ (-blm l 'add1 (list 'inexact-real?) (list (-W¹-V W₀))))))
+
+     (: on-0-not-exact-integer? : Prim-Thunk)
+     (define (on-0-not-exact-integer? Γ)
+       (with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ 'inexact-real? W₀)])
+         #:true  (on-ok Γ₁)
+         #:false (on-0-not-inexact-real? Γ₂)))
+
+     (: on-ok : Prim-Thunk)
+     (define (on-ok Γ)
+       (define sₐ (-?@ 'add1 s₀))
+       (set (-ΓA Γ₁ (-W (list (-● (set 'number?))) sₐ))))
+
+     (with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ 'exact-integer? W₀)])
+       #:true  (on-ok Γ₁)
+       #:false (on-0-not-exact-integer? Γ₂)))
+    (_ (set (-ΓA Γ (-blm l 'add1 '(|1 values|) (map -W¹-V Ws)))))))
+|#
