@@ -106,12 +106,13 @@
              [x:lit #'(⊢?/quick R σ Γ 'equal? #,W (-W¹ (-b x) (-b x)))]
              [c:id #`(⊢?/quick R σ Γ 'c #,W)]))))
 
-     (for/list ([doms (in-list refine-dom-list)]
-                [rng  (in-list refine-rng-list)])
-       (define preconds (map gen-check-definitely W-ids doms))
-       #`(when #,(and* preconds)
-           #,@(for/list ([cᵣ (in-list (rng->refinement rng))])
-                #`(set! #,V (V+ σ #,V #,cᵣ))))))
+     `(,@(for/list ([doms (in-list refine-dom-list)]
+                    [rng  (in-list refine-rng-list)])
+           (define preconds (map gen-check-definitely W-ids doms))
+           #`(when #,(and* preconds)
+               #,@(for/list ([cᵣ (in-list (rng->refinement rng))])
+                    #`(set! #,V (V+ σ #,V #,cᵣ)))))
+       ,V))
 
    ;; Generate primitive body for the case where 1+ argument is symbolic
    ;; Free variable `Γ` available as "the" path condition
@@ -163,8 +164,7 @@
           (with-syntax ([refine (format-id #f "refine-~a" (syntax-e #'o))])
             (list #`(define sₐ (-?@ 'o #,@s-ids))
                   #`(define (refine [V : -V])
-                      #,@(gen-refine-body #'V extra-refinements)
-                      V)
+                      #,@(gen-refine-body #'V extra-refinements))
                   #`(set #,@(for/list ([ref (in-list refinement-sets)])
                               #`(-ΓA Γ (-W (list (refine (-● (set #,@ref)))) sₐ))))))])))
 
