@@ -7,6 +7,8 @@
          racket/set
          "../../utils/set.rkt"
          "../../utils/map.rkt"
+         "../../utils/function.rkt"
+         "../../utils/pretty.rkt"
          "../../utils/def.rkt"
          "../../utils/list.rkt"
          "../../ast/definition.rkt"
@@ -57,6 +59,16 @@
       [(✗) -False/Vs]
       [(?) -Bool/Vs]))
   {set (-ΓA Γ (-W A (apply -?@ o ss)))})
+
+(define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧!)
+  (define cs (list (format-symbol "~a values" n)))
+  (λ (o)
+    (λ (⟪ℋ⟫ ℓ l Σ Γ Ws)
+      (cond [(equal? n (length Ws))
+             (match-define (-Σ σ _ M) Σ)
+             (implement-predicate M σ Γ o Ws)]
+            [else
+             {set (-ΓA Γ (-blm l o cs (map -W¹-V Ws)))}]))))
 
 (define alias-table : (HashTable Symbol -o) (make-hasheq))
 (define const-table : (HashTable Symbol -b) (make-hasheq))

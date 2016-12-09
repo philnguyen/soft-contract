@@ -40,6 +40,13 @@
          (hash-set-once! const-table 'x .x)))])
 
 (define-syntax-parser def-prim
+  ;; Generate total predicates specially to reduce code duplicate
+  [(_ o:id ((~literal ->) c ... (~literal boolean?)))
+   #:when (for/and ([c (in-list (syntax->list #'(c ...)))])
+            (free-identifier=? c #'any/c))
+   (define n (length (syntax->list #'(c ...))))
+   (with-syntax ([.o (prefix-id #'o)])
+     #`(define .o ((total-pred #,n) 'o)))]
   [(_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
       (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                  #:defaults ([(cₑ 2) null]))
