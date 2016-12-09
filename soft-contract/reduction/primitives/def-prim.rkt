@@ -46,7 +46,9 @@
             (free-identifier=? c #'any/c))
    (define n (length (syntax->list #'(c ...))))
    (with-syntax ([.o (prefix-id #'o)])
-     #`(define .o ((total-pred #,n) 'o)))]
+     #`(begin
+         (define .o ((total-pred #,n) 'o))
+         (hash-set! prim-table 'o .o)))]
   [(_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
       (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                  #:defaults ([(cₑ 2) null]))
