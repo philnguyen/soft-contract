@@ -326,7 +326,7 @@
           (cond [pos? κ]
                 [else (push-local-thunk! (gen-name! 'blm) #`(blm Γ l 'o 'none/c #,W))])]
          [(~literal none/c)
-          (cond [pos? (push-local-thunk! (gen-name! 'blm) #`(bllm Γ l 'o 'none/c #,W))]
+          (cond [pos? (push-local-thunk! (gen-name! 'blm) #`(blm Γ l 'o 'none/c #,W))]
                 [else κ])]
          [c:id
           (with-syntax ([p (syntax-parse #'c ;; TODO tmp hack
