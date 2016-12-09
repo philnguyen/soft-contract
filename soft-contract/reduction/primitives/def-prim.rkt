@@ -213,11 +213,7 @@
                      [(w ...) (datum->syntax #f wilds)])
          (syntax-parse #'cₐ ; generate predicates differently
            [(~literal boolean?)
-            (list #'(define A (case (MΓ⊢oW M σ Γ 'o W ...)
-                                [(✓) -True/Vs]
-                                [(✗) -False/Vs]
-                                [(?) -Bool/Vs]))
-                  #`{set (-ΓA Γ (-W A (-?@ 'o s ...)))})]
+            (list #'(implement-predicate M σ Γ 'o Ws))]
            [_
             (define base-guards
               (and (not (skip-base-case-lifting? #'o))
@@ -448,7 +444,7 @@
          (define .x : (U -● -⟦o⟧! -b -o)
            (let ([err
                   (λ ()
-                    (error 'def-alias "~a not defined before ~a" 'y 'x))])
+                    (error 'def-alias "`~a` not defined before `~a`" 'y 'x))])
              (cond [(get-prim 'y) =>
                     (λ ([v : (U -o -b -●)])
                       (cond [(symbol? v) (hash-ref prim-table v err)]
@@ -473,3 +469,42 @@
      #'(begin
          (define x (-● (set r ...)))
          (hash-set-once! opq-table 'x x)))])
+
+(define-syntax-parser dec-implications
+  [(_ [p:id (~literal ⇒) q:id ...] ...)
+   (define clauses
+     (append-map
+      (λ (clause)
+        (with-syntax ([(p ⇒ q ...) clause])
+          (for/list ([q (in-list (syntax->list #'(q ...)))])
+            #`(add-implication! 'p '#,q))))
+      (syntax->list #'([p ⇒ q ...] ...))))
+   #`(begin #,@clauses)])
+
+(define-syntax-parser dec-exclusions
+  [(_ [p:id ...] ...)
+   (define clauses
+     (append-map
+      (λ (clause)
+        (define ps (syntax->list clause))
+        (let go ([ps ps] [acc '()])
+          (match ps
+            [(list) acc]
+            [(cons p ps*)
+             (go ps*
+                 (foldr (λ (p* acc) (cons #`(add-exclusion! '#,p '#,p*) acc)) acc ps*))])))
+      (syntax->list #'([p ...] ...))))
+   #`(begin #,@clauses)])
+
+(define-syntax-parser dec-partitions
+  [(_ [p:id (q:id ...)] ...)
+   (define impl-clauses
+     (append-map
+      (λ (clause)
+        (with-syntax ([(p (q ...)) clause])
+          (for/list ([q (in-list (syntax->list #'(q ...)))])
+            #`(dec-implications [#,q ⇒ p]))))
+      (syntax->list #'([p (q ...)] ...))))
+   #`(begin
+       (dec-exclusions (q ...) ...)
+       #,@impl-clauses)])

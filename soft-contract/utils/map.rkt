@@ -90,6 +90,16 @@
          (error 'hash-set-once! "key already exists: ~a" x)]
         [else (hash-set! m x v)]))
 
+(: map-has? (∀ (X Y) ([(HashTable X (℘ Y)) X Y] [#:eq? Boolean] . ->* . Boolean)))
+(define (map-has? m x y #:eq? [use-eq? #f])
+  (define mk-∅ (if use-eq? →∅eq →∅))
+  (∋ (hash-ref m x mk-∅) y))
+
+(: map-add! (∀ (X Y) ([(HashTable X (℘ Y)) X Y] [#:eq? Boolean] . ->* . Void)))
+(define (map-add! m x y #:eq? [use-eq? #f])
+  (define mk-∅ (if use-eq? →∅eq →∅))
+  (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk-∅))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; TMP hack for profiling
