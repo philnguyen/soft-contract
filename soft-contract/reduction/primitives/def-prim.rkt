@@ -62,14 +62,13 @@
      (for-each check-domain-arity (syntax->list #'((rₓ ...) ...))))
 
    ;; Generate identifiers for each argument
-   (define-values (W-ids V-ids s-ids b-ids wilds)
-     (for/lists (W-ids V-ids s-ids b-ids _s) ([i (in-range n)])
+   (define-values (W-ids V-ids s-ids b-ids)
+     (for/lists (W-ids V-ids s-ids b-ids) ([i (in-range n)])
        (define ᵢ (n-sub i))
        (values (format-id #f "W~a" ᵢ)
                (format-id #f "V~a" ᵢ)
                (format-id #f "s~a" ᵢ)
-               (format-id #f "b~a" ᵢ)
-               #'_)))
+               (format-id #f "b~a" ᵢ))))
 
    ;; Generate function that refines results when more is known about arguments
    (define/contract (gen-refine-body V refinements)
@@ -161,7 +160,7 @@
                 #`(set #,@(for/list ([ref (in-list refinement-sets)])
                             #`(-ΓA Γ (-W (list (-● (set #,@ref))) sₐ)))))]
          [else
-          (with-syntax ([refine (format-id #f "refine-~a" (syntax-e #'o))])
+          (with-syntax ([refine (format-id #f "~a.refine" (syntax-e #'o))])
             (list #`(define sₐ (-?@ 'o #,@s-ids))
                   #`(define (refine [V : -V])
                       #,@(gen-refine-body #'V extra-refinements))
@@ -209,8 +208,7 @@
 
        (with-syntax ([(W ...) (datum->syntax #f W-ids)]
                      [(s ...) (datum->syntax #f s-ids)]
-                     [(b ...) (datum->syntax #f b-ids)]
-                     [(w ...) (datum->syntax #f wilds)])
+                     [(b ...) (datum->syntax #f b-ids)])
          (syntax-parse #'cₐ ; generate predicates differently
            [(~literal boolean?)
             (list #'(implement-predicate M σ Γ 'o Ws))]
@@ -220,16 +218,15 @@
                    (let ([clauses (map gen-base-guard (syntax->list #'(cₓ ...)) b-ids)])
                      (and (andmap values clauses) (and* clauses)))))
             (define lift-concrete-case? (and base-guards (range-is-base? #'cₐ)))
-            (cond
-              [lift-concrete-case?
-               (list
-                #`(match* (s ...)
-                    [((-b b) ...) #:when #,base-guards
-                     (define bₐ #,(simp@ #'o b-ids))
-                     {set (-ΓA Γ (-W (list bₐ) bₐ))}]
-                    [(w ...)
-                     #,@sym-case-body]))]
-              [else sym-case-body])]))))
+            (list
+             #`(match* ((-W¹-s W) ...)
+                 #,@(cond
+                      [lift-concrete-case?
+                       (list #`[((-b b) ...) #:when #,base-guards
+                                (define bₐ #,(simp@ #'o b-ids))
+                                {set (-ΓA Γ (-W (list bₐ) bₐ))}])]
+                      [else '()])
+                 [(s ...) #,@sym-case-body]))]))))
 
    ;; Generate precondition check before executing `kont`
    (define/contract (gen-precond-check! W c κ push-thunk!)
@@ -379,14 +376,11 @@
    (with-syntax* ([.o (prefix-id #'o)]
                   [arity-req (format-symbol "~a values" n)]
                   [(W ...) (datum->syntax #f W-ids)]
-                  [(V ...) (datum->syntax #f V-ids)]
-                  [(s ...) (datum->syntax #f s-ids)]
                   [defn-o
                     #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
                         (match Ws
                           [(list W ...)
                            (match-define (-Σ σ _ M) Σ)
-                           (match-define (-W¹ V s) W) ...
                            #,@thunk-defns
                            #,@entry]
                           [_ {set (-ΓA Γ (-blm l 'o '(arity-req) (map -W¹-V Ws)))}]))])
