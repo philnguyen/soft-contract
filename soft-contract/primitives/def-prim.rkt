@@ -48,7 +48,8 @@
    (with-syntax ([.o (prefix-id #'o)])
      #`(begin
          (define .o ((total-pred #,n) 'o))
-         (hash-set! prim-table 'o .o)))]
+         (hash-set! prim-table 'o .o)
+         (hash-set! range-table 'o 'boolean?)))]
   [(_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
       (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                  #:defaults ([(cₑ 2) null]))
@@ -398,7 +399,11 @@
          (: .o : -⟦o⟧!)
          defn-o
          (hash-set! prim-table 'o .o)
-         (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))))])
+         (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))
+         #,@(syntax-parse #'cₐ
+              [(~or ((~literal and/c) d:id _ ...) d:id)
+               (list #'(hash-set! range-table 'o 'd))]
+              [_ '()])))])
 
 (define-syntax-parser def-prim/custom
   [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e ...)

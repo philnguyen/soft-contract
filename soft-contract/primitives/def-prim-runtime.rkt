@@ -78,6 +78,7 @@
 (define implication-table : (HashTable Symbol (℘ Symbol)) (make-hasheq))
 (define exclusion-table : (HashTable Symbol (℘ Symbol)) (make-hasheq))
 (define implication-table⁻¹ : (HashTable Symbol (℘ Symbol)) (make-hasheq))
+(define range-table : (HashTable Symbol -o) (make-hasheq))
 
 (: get-prim : Symbol → (Option (U -o -b -●)))
 (define (get-prim name)
@@ -86,6 +87,9 @@
         [(hash-ref alias-table name #f) => values]
         [(hash-ref opq-table name #f) => values]
         [else #f]))
+
+(: get-range : Symbol → (Option Symbol))
+(define (get-range o) (hash-ref range-table o #f))
 
 (: add-implication! : Symbol Symbol → Void)
 ;; Extend implication table and take care of transitivity

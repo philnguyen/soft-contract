@@ -9,5 +9,6 @@
 ;; and must be approximated by `havoc`, thus is not an "atomic" operation
 ;; definable in this module.
 
-(require "def-prim-runtime.rkt" "prims.rkt" "relations.rkt")
-(provide (all-from-out "def-prim-runtime.rkt" "prims.rkt" "relations.rkt"))
+(require "def-prim-runtime.rkt" "prims.rkt" "relations.rkt" "def-prim-runtime.rkt")
+(provide
+ (all-from-out "def-prim-runtime.rkt" "prims.rkt" "relations.rkt" "def-prim-runtime.rkt"))
