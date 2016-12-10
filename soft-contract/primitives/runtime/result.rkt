@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require racket/match "../utils/def.rkt")
+(require "../../utils/def.rkt")
 
 (-R . ::= . '✓ '✗ '?)
 
@@ -17,7 +17,10 @@
     [(_) '?]
     [(_ R) R]
     [(_ R₁ R ...)
-     (match R₁ ['? (first-R R ...)] [ans ans])]))
+     (let ([ans R₁])
+       (case ans
+         ['? (first-R R ...)]
+         [else ans]))]))
 
-(: decide-R : Boolean → (U '✓ '✗))
-(define (decide-R x) (if x '✓ '✗))
+(: boolean->R : Boolean → (U '✓ '✗))
+(define (boolean->R x) (if x '✓ '✗))
