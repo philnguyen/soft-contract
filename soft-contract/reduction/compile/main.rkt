@@ -5,7 +5,6 @@
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
-         "../../runtime/instrument.rkt"
          "../../proof-relation/widen.rkt"
          "base.rkt"
          "kontinuation.rkt"

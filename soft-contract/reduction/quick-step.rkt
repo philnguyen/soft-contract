@@ -1,13 +1,12 @@
 #lang typed/racket/base
 
-(provide run-file havoc-file run-e)
+(provide run-e run)
 
 (require racket/set
          racket/match
          racket/list
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../parse/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt" #;(only-in "../proof-relation/ext.rkt" miss/total)
          "compile/utils.rkt"
@@ -15,20 +14,6 @@
          "compile/main.rkt"
          "init.rkt"
          )
-
-(: run-file : Path-String → (Values (℘ -ΓA) -Σ))
-(define (run-file p)
-  (with-initialized-static-info
-    (define m (file->module p))
-    (define-values (σ₁ _) (𝑰 (list m)))
-    (run (↓ₘ m) σ₁)))
-
-(: havoc-file : Path-String → (Values (℘ -ΓA) -Σ))
-(define (havoc-file p)
-  (with-initialized-static-info
-    (define m (file->module p))
-    (define-values (σ₁ e₁) (𝑰 (list m)))
-    (run (↓ₚ (list m) e₁) σ₁)))
 
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)
@@ -280,9 +265,3 @@
                  [else ∅])])])]))))
     (printf "  -- hits: ~a/~a~n" hits total)))
 
-(module+ test
-  ((inst profile-thunk Void)
-   (λ ()
-     (printf "profiling execution of `slatex`~n")
-     (havoc-file "../test/programs/safe/big/slatex.rkt")
-     (void))))

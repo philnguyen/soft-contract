@@ -4,263 +4,207 @@
 
 (require racket/match
          racket/set
-         racket/list
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
          "../proof-relation/widen.rkt"
+         (only-in "../proof-relation/base-assumptions.rkt" V-arity)
+         "compile/utils.rkt"
+         "compile/app.rkt"
          "havoc.rkt")
-(require/typed "../primitives/declarations.rkt"
-  [prims (Listof Any)]
-  [arr? (Any → Boolean)]
-  [arr*? (Any → Boolean)])
 
 (: 𝑰 : (Listof -module) → (Values -σ -e))
 ;; Load the initial store and havoc-ing expression for given module list
 (define (𝑰 ms)
   (define e† (gen-havoc-exp ms))
   (define hv (gen-havoc-clo ms))
-  (define σ (σ₀))
+  (define σ (⊥σ))
   (σ⊕*! σ [(-α->-⟪α⟫ (-α.def havoc-𝒾)) ↦ hv]
           [(-α->-⟪α⟫ (-α.wrp havoc-𝒾)) ↦ hv])
   ;(ensure-singletons σ) ; disable this in production
   (values σ e†))
 
-(define -⟦boolean?⟧ : -⟦e⟧!
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Havoc
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define 𝒙 (+x!/memo 'hv))
+(define 𝐱 (-x 𝒙))
+(define 𝐱s (list 𝐱))
+(define ⟦rev-hv⟧ : -⟦e⟧!
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-W (list 'boolean?) 'boolean?) $ Γ ⟪ℋ⟫ Σ)))
-(define -⟦any/c⟧ : -⟦e⟧!
-  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-W (list 'any/c) 'any/c) $ Γ ⟪ℋ⟫ Σ)))
-(define -⟦void?⟧ : -⟦e⟧!
-  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-W (list 'void?) 'void?) $ Γ ⟪ℋ⟫ Σ)))
+    (let ([Vs (σ@ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾)))])
+      (assert (= 1 (set-count Vs)))
+      (⟦k⟧ (-W (list (set-first Vs)) havoc-𝒾) $ Γ ⟪ℋ⟫ Σ))))
 
-(: alloc! : -σ Any → Void)
-;; Allocate primitives wrapped with contracts.
-;; Positive components can be optimized away because we assume primitives are correct.
-(define (alloc! σ s)
-  (match s
-    [`(#:pred ,(? symbol? o))
-     (define-values (C c) (alloc-C! σ '(any/c . -> . boolean?)))
-     (alloc-Ar-o! σ o (assert C -=>?) (assert c -->?))]
-    [`(#:pred ,(? symbol? o) (,cs ...))
-     (define-values (C c) (alloc-C! σ `(,@cs . -> . boolean?)))
-     (alloc-Ar-o! σ o (assert C -=>?) (assert c -->?))]
-    [`(#:alias ,_  ,_) ; should have been taken care of by parser
-     (void)]
-    [`(#:batch (,os ...) ,(? arr? sig) ,_ ...)
-     (define-values (C c) (alloc-C! σ sig))
-     (assert C -=>?)
-     (assert c -->?)
-     (for ([o os])
-       (alloc-Ar-o! σ (assert o symbol?) C c))]
-    [`(,(? symbol? o) ,(? arr? sig) ,_ ...)
-     (define-values (C c) (alloc-C! σ sig))
-     (alloc-Ar-o! σ o (assert C -=>?) (assert c -->?))]
-    [`(,(? symbol? o) ,(? arr*? sig) ...)
-     (log-warning "TODO: ->* for ~a~n" o)
-     (σ⊕*! σ [(-α->-⟪α⟫ (-α.def (-𝒾 o 'Λ))) ↦ o]
-             [(-α->-⟪α⟫ (-α.wrp (-𝒾 o 'Λ))) ↦ o])]
-    [`(,(? symbol? o) ,_ ...) (void)]
-    [`(#:struct-cons ,(? symbol? o) (,(? symbol? t) ,mut?s ...))
-     (define 𝒾 (-𝒾 t 'Λ))
-     (alloc-Ar! σ o (-st-mk 𝒾) (make-list (length mut?s) 'any/c) (-st-p 𝒾))]
-    [`(#:struct-pred ,(? symbol? o) (,(? symbol? t) ,_ ...))
-     (define 𝒾 (-𝒾 t 'Λ))
-     (alloc-Ar! σ o (-st-p 𝒾) (list 'any/c) 'boolean?)]
-    [`(#:struct-acc ,(? symbol? o) (,(? symbol? t) ,_ ...) ,(? index? i))
-     (define 𝒾 (-𝒾 t 'Λ))
-     (alloc-Ar! σ o (-st-ac 𝒾 i) (list (-st-p 𝒾)) 'any/c)]
-    [`(#:struct-mut ,(? symbol? o) (,(? symbol? t) ,_ ...) ,(? index? i))
-     (define 𝒾 (-𝒾 t 'Λ))
-     (alloc-Ar! σ o (-st-mut 𝒾 i) (list (-st-p 𝒾) 'any/c) 'void?)]))
+(: gen-havoc-clo : (Listof -module) → -Clo)
+(define (gen-havoc-clo ms)
+  (define accs (prog-accs ms))
 
-(: alloc-Ar-o! : -σ Symbol -=> -e → Void)
-;; Allocate wrapped and unwrapped version of primitive `o` in store `σ`
-(define (alloc-Ar-o! σ o C c)
-  (define-values (α₀ α₁)
-    (let ([𝒾 (-𝒾 o 'Λ)])
-      (values (-α->-⟪α⟫ (-α.def 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
-  (case o
-    #;[(make-sequence) ; FIXME tmp hack
-     (σ⊕*! σ [α₀ ↦ o] [α₁ ↦ o])]
-    [else
-     (define O (-Ar C α₀ (-l³ o 'dummy o)))
-     (σ⊕*! σ [α₀ ↦ o] [α₁ ↦ O])]))
+  (define ⟦e⟧ₕᵥ : -⟦e⟧!
+    (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      (match-define (-Σ σ _ _) Σ)
+      (define Vs (σ@ σ (ρ@ ρ 𝒙)))
+      (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
 
-(: alloc-Ar! : -σ Symbol -o (Listof -prim) -prim → Void)
-;; Allocate unsafe and (non-dependently) contracted versions of operator `o` at name `s`
-(define (alloc-Ar! σ s o cs d)
-  (define-values (α₀ α₁)
-    (let ([𝒾 (-𝒾 s 'Λ)])
-      (values (-α->-⟪α⟫ (-α.def 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
-  (define αs (alloc-prims! σ cs))
-  (define β  (alloc-prim!  σ d))
-  (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
-    (for/list ([α : -⟪α⟫ αs])
-      (cons α (+ℓ!))))
-  (define βℓ (cons β (+ℓ!)))
-  (define C (-=> αℓs βℓ (+ℓ!)))
-  (define O (-Ar C α₀ (-l³ (show-o o) 'dummy (show-o o))))
-  (σ⊕*! σ [α₀ ↦ o] [α₁ ↦ O]))
+      #;(when (and (>= (set-count Vs) 4)
+                 (for/or : Boolean ([V Vs]) (-Ar? V)))
+        (printf "About to havoc ~a values at ~a:~n" (set-count Vs) (ρ@ ρ 𝒙))
+        (for ([V Vs])
+          (printf " - ~a~n" (show-V V)))
+        #;(define κs (σₖ@ (-Σ-σₖ Σ) (⟦k⟧->αₖ ⟦k⟧)))
+        #;(printf "before returning to: (~a) ~n" (set-count κs))
+        #;(for ([κ κs])
+          (printf " - ~a @ ~a~n"
+                  (show-αₖ (⟦k⟧->αₖ (-κ-cont κ)))
+                  (show-κ κ)))
+        (printf "~n")
+        #;(error "DONE"))
+      
 
-(: alloc-C! : -σ Any → (Values -V -e))
-;; "Evaluate" restricted contract forms
-(define (alloc-C! σ s)
-  (match s
-    [(? symbol? s)
-     (case s ; tmp HACK
-       [(cons? pair?) (values -cons? s)]
-       [(box?) (values -box? s)]
-       [else (values s s)])]
-    [`(not/c ,s*)
-     (define-values (C* c*) (alloc-C! σ s*))
-     (define α* (alloc-const! σ C* c*))
-     (define ℓ (+ℓ!))
-     (values (-Not/C (cons α* ℓ)) (-@ 'not/c (list c*) ℓ))]
-    [`(one-of/c ,ss ...)
-     (log-warning "TODO: one-of/c~n")
-     (values 'any/c 'any/c)]
-    [`(and/c ,ss ...)
-     (define-values (Cs cs) (alloc-Cs! σ ss))
-     (alloc-And/C! σ Cs cs)]
-    [`(or/c ,ss ...)
-     (define-values (Cs cs) (alloc-Cs! σ ss))
-     (alloc-Or/C! σ Cs cs)]
-    [`(cons/c ,s₁ ,s₂)
-     (define-values (C c) (alloc-C! σ s₁))
-     (define-values (D d) (alloc-C! σ s₂))
-     (define flat? (and (C-flat? C) (C-flat? D)))
-     (define α₁ (-α->-⟪α⟫ c))
-     (define α₂ (-α->-⟪α⟫ d))
-     (σ⊕*! σ [α₁ ↦ C] [α₂ ↦ D])
-     (values (-St/C flat? -𝒾-cons (list (cons α₁ (+ℓ!)) (cons α₂ (+ℓ!))))
-             (-struct/c -𝒾-cons (list c d) (+ℓ!)))]
-    [`(listof ,s*)
-     (log-warning "TODO: alloc 'listof~n")
-     (values 'any/c 'any/c)]
-    [`(list/c ,ss ...)
-     (define-values (Cs cs) (alloc-Cs! σ ss))
-     (alloc-List/C! σ Cs cs)]
-    [`(,doms ... . -> . ,rng)
-     (define-values (Cs cs) (alloc-Cs! σ doms))
-     (define αs (alloc-consts! σ Cs cs))
-     (define-values (D d) (alloc-C! σ rng))
-     (define β (alloc-const! σ D d))
-     (define ℓ (+ℓ!))
-     (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
-       (for/list ([α : -⟪α⟫ αs]) (cons α (+ℓ!))))
-     (define βℓ (cons β (+ℓ!)))
-     (values (-=> αℓs βℓ ℓ) (--> cs d ℓ))]
-    [`((,doms ...) #:rest ,rst . ->* . d)
-     (log-warning "TODO: alloc ->*~n")
-     (values 'any/c 'any/c)]
-    [s
-     (log-warning "alloc: ignoring ~a~n" s)
-     (values 'any/c 'any/c)]))
+      #;(define (done-with-●)
+        (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt 'done))) $ Γ ⟪ℋ⟫ Σ))
 
-(: alloc-Cs! : -σ (Listof Any) → (Values (Listof -V) (Listof -e)))
-(define (alloc-Cs! σ ss)
-  (let go! ([ss : (Listof Any) ss])
-    (match ss
-      ['() (values '() '())]
-      [(cons s ss*)
-       (define-values (C₁ c₁) (alloc-C!  σ s  ))
-       (define-values (Cs cs) (alloc-Cs! σ ss*))
-       (values (cons C₁ Cs) (cons c₁ cs))])))
+      (for*/union : (℘ -ς) ([V (in-set Vs)])
+        ;(printf "havoc-ing ~a~n" (show-V V))
+        (define W (-W¹ V 𝐱))
+        (match V
+          ;; Ignore first-order and opaque value
+          [(or (-● _) (? -prim?))
+           ∅ #;(done-with-●)]
 
-(: alloc-And/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
-(define (alloc-And/C! σ Cs cs)
-  (match* (Cs cs)
-    [('() '())
-     (values 'any/c 'any/c)]
-    [((list C) (list c))
-     (values C c)]
-    [((cons Cₗ Cs*) (cons cₗ cs*))
-     (define-values (Cᵣ cᵣ) (alloc-And/C! σ Cs* cs*))
-     (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (define αₗ (alloc-const! σ Cₗ cₗ))
-     (define αᵣ (alloc-const! σ Cᵣ cᵣ))
-     #;(σ⊕*! σ [cₗ ↦ Cₗ] [cᵣ ↦ Cᵣ])
-     (values (-And/C flat? (cons αₗ (+ℓ!)) (cons αᵣ (+ℓ!)))
-             (-@ 'and/c (list cₗ cᵣ) (+ℓ!)))]))
+          ;; Apply function with appropriate number of arguments
+          [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
+           
+           (define tag (fun->tag V))
 
-(: alloc-Or/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
-(define (alloc-Or/C! σ Cs cs)
-  (match* (Cs cs)
-    [('() '())
-     (values 'none/c 'none/c)]
-    [((list C) (list c))
-     (values C c)]
-    [((cons Cₗ Cs*) (cons cₗ cs*))
-     (define-values (Cᵣ cᵣ) (alloc-Or/C! σ Cs* cs*))
-     (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (define αₗ (alloc-const! σ Cₗ cₗ))
-     (define αᵣ (alloc-const! σ Cᵣ cᵣ))
-     (values (-Or/C flat? (cons αₗ (+ℓ!)) (cons αᵣ (+ℓ!)))
-             (-@ 'or/c (list cₗ cᵣ) (+ℓ!)))]))
+           (define (hv/arity [k : Natural]) : (℘ -ς)
+             (define ●s : (Listof -W¹)
+               (for/list ([i k])
+                 (-W¹ -●/V (-x (+x!/memo 'hv #;k i)))))
+             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ ⟪ℋ⟫ Σ
+                  (ap∷ (list Wₕᵥ) '() ⊥ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-res tag))
+                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun tag)) ⟦k⟧))))
+           
+           (define a (V-arity V))
+           (match a
+             [(arity-at-least k)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ ⟪ℋ⟫ Σ)
+                 (hv/arity (+ 1 k)))]
+             [(? integer? k)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ ⟪ℋ⟫ Σ)
+                 (hv/arity k))]
+             [(? list? ks)
+              (∪ (⟦k⟧ (-W -●/Vs (-x (+x!/memo 'hv-rt #;a))) $ Γ ⟪ℋ⟫ Σ)
+                 (for/union : (℘ -ς) ([k ks])
+                   (cond [(integer? k) (hv/arity k)]
+                         [else (error 'havoc "TODO: ~a" k)])))]
+             [_
+              ∅ #;(done-with-●)])]
 
-(: alloc-List/C! : -σ (Listof -V) (Listof -e) → (Values -V -e))
-(define (alloc-List/C! σ Cs cs)
-  (match* (Cs cs)
-    [('() '())
-     (values 'null? 'null?)]
-    [((cons Cₗ Cs*) (cons cₗ cs*))
-     (define-values (Cᵣ cᵣ) (alloc-List/C! σ Cs* cs*))
-     (define flat? (and (C-flat? Cₗ) (C-flat? Cᵣ)))
-     (define αₗ (alloc-const! σ Cₗ cₗ))
-     (define αᵣ (alloc-const! σ Cᵣ cᵣ))
-     (values (-St/C flat? -𝒾-cons (list (cons αₗ (+ℓ!)) (cons αᵣ (+ℓ!))))
-             (-struct/c -𝒾-cons (list cₗ cᵣ) (+ℓ!)))]))
+          ;; If it's a struct, havoc all publically accessible fields
+          [(or (-St s _) (-St* s _ _ _)) #:when s
+           (∪ #;(done-with-●)
+              (for/union : (℘ -ς) ([acc (hash-ref accs s →∅)])
+               (define Acc (-W¹ acc acc))
+               (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ ⟪ℋ⟫ Σ
+                    (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'ac))
+                         (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'st)) ⟦k⟧)))))]
 
-(: alloc-prim! : -σ -prim → -⟪α⟫)
-(define (alloc-prim! σ p)
-  (alloc-const! σ p p))
+          ;; Havoc vector's content before erasing the vector with unknowns
+          ;; Approximate vectors are already erased
+          [(-Vector/hetero _ _) ∅ #;(done-with-●)]
+          [(-Vector/homo   _ _) ∅ #;(done-with-●)]
+          [(-Vector αs)
+           (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
+             (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
+             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
+                  (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0))
+                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧))))]
+          [(-Vector^ α _)
+           (for/union : (℘ -ς) ([V (σ@ σ α)])
+             (define Wᵥ (-W¹ V #|TODO|# #f))
+             (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref #f)) Wₕᵥ (list Wᵥ) Γ ⟪ℋ⟫ Σ
+                  (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧)))]
 
-(: alloc-prims! : -σ (Listof -prim) → (Listof -⟪α⟫))
-(define (alloc-prims! σ ps)
-  (alloc-consts! σ ps ps))
+          ;; Apply contract to unknown values
+          [(? -C?)
+           (log-warning "TODO: havoc contract combinators")
+           ∅ #;(done-with-●)]))))
+  
+  (define cloₕᵥ : -Clo (-Clo (list 𝒙) ⟦e⟧ₕᵥ ⊥ρ ⊤Γ))
+  cloₕᵥ)
 
-(: alloc-const! : -σ -V -e → -⟪α⟫)
-;; Allocate value `V` known to have been evaluted to by constant expression `e`
-;; This is used internally for `Λ` module only to reduce ridiculous allocation
-(define (alloc-const! σ V v)
-  (case V ; tmp HACK
-    [(cons? pair?)
-     (define ⟪α⟫ (-α->-⟪α⟫ -cons?))
-     (σ⊕! σ ⟪α⟫ -cons?)
-     ⟪α⟫]
-    [(box?)
-     (define ⟪α⟫ (-α->-⟪α⟫ -box?))
-     (σ⊕! σ ⟪α⟫ -box?)
-     ⟪α⟫]
-    [else
-     (define ⟪α⟫ (-α->-⟪α⟫ v))
-     (σ⊕! σ ⟪α⟫ V)
-     ⟪α⟫]))
+(: gen-havoc-exp : (Listof -module) → -e)
+;; Generate top-level expression havoc-ing modules' exports
+(define (gen-havoc-exp ms)
+  (define-set refs : -𝒾 #:as-mutable-hash? #t)
+  
+  (for ([m (in-list ms)])
+    (match-define (-module path forms) m)
+    (for* ([form forms] #:when (-provide? form)
+           [spec (-provide-specs form)])
+      (match-define (-p/c-item x _ _) spec)
+      (refs-add! (-𝒾 x path))))
 
-(: alloc-consts! : -σ (Listof -V) (Listof -e) → (Listof -⟪α⟫))
-;; Allocate values `Vs` known to have been evaluated by constant expressions `es`
-;; This is used internally for `Λ` module only to reduce ridiculous allocation.
-(define (alloc-consts! σ Vs es)
-  (for/list ([V Vs] [e es])
-    (alloc-const! σ V e)))
+  (with-debugging/off
+    ((ans) (-amb/simp #;(inst -begin/simp -e)
+            (for/list ([ref (in-hash-keys refs)])
+              (-@ havoc-𝒾 (list ref) (+ℓ!)))))
+    (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
-(define (σ₀)
-  (define σ (⊥σ))
-  (for ([dec prims])
-    (alloc! σ dec))
-  σ)
+(: prog-accs : (Listof -module) → (HashTable -𝒾 (℘ -st-ac)))
+;; Retrieve set of all public accessors from program, grouped by struct
+(define (prog-accs ms)
+  
+  ;; Collect all defined accessors (`defs`) and exported identifiers (`decs`)
+  (define defs : (HashTable Symbol -st-ac) (make-hasheq))
+  (define decs : (HashTable Symbol #t    ) (make-hasheq))
+  (for* ([m ms]
+         [form (-module-body m)])
+    (match form
+      [(-provide specs)
+       (for-each
+        (match-lambda [(-p/c-item x _ _) (hash-set! decs x #t)])
+        specs)]
+      [(-define-values (list x) (? -st-ac? e))
+       (hash-set! defs x e)]
+      [_ (void)]))
+  
+  ;; Return exported accessors
+  (for/fold ([m : (HashTable -𝒾 (℘ -st-ac)) (hash -𝒾-cons {set -car -cdr})])
+            ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
+    (match-define (-st-ac s _) ac)
+    (hash-update m s (λ ([acs : (℘ -st-ac)]) (set-add acs ac)) →∅)))
 
-(require racket/string)
-(define (ensure-singletons [σ : -σ]) : Void
-  (define m (-σ-m σ))
-  (for* ([(k vs) m] #:when (> (set-count vs) 1))
-    (define s
-      (string-join
-       (for/list : (Listof String) ([v vs])
-         (format " - ~a" (show-V v)))
-       "\n"
-       #:before-first (format "~a (~a):~n" (show-⟪α⟫ (cast k -⟪α⟫)) (set-count vs))))
-    (error s)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Unimportant helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: fun->tag : -V → #|essentially Any, just do document "optional"|# (Option Any))
+;; Return tag distinguishing function objects
+(define fun->tag
+  (match-lambda
+    [(-Clo xs ⟦e⟧ _ _) (cons xs ⟦e⟧)]
+    [(-Case-Clo clauses _ _) clauses]
+    [(-Ar grd _ _)
+     (match grd
+       [(-=> doms _ _) (length doms)]
+       [(-=>i _ (list (-Clo xs ⟦d⟧ _ _) _ _) _) (cons xs ⟦d⟧)]
+       [(-Case-> sigs _)
+        (for/list : (Listof Natural) ([sig sigs])
+          (length (car sig)))])]
+    [_ #f]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Hacky frames
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
+  (with-error-handling (⟦k⟧! _ $ Γ ⟪ℋ⟫ Σ) #:roots (W)
+    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
+    (app havoc-path $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧!)))
+

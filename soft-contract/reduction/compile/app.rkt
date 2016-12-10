@@ -30,8 +30,6 @@
   (define sₐ
     (let ([sₕ* (match Vₕ
                  [(? -o? o) o]
-                 [(-Ar _ (app -⟪α⟫->-α (-α.def (-𝒾 o 'Λ))) _) o]
-                 [(-Ar _ (app -⟪α⟫->-α (-α.wrp (-𝒾 o 'Λ))) _) o]
                  [_ sₕ])])
       (apply -?@ sₕ* sₓs)))
 
@@ -328,9 +326,9 @@
 
   (define (app-δ [o : Symbol])
     (match-define (-ℒ _ ℓ) ℒ)
-    (define V-lists (δ! ⟪ℋ⟫ ℓ M σ Γ o Wₓs))
-    (for/union : (℘ -ς) ([Vs V-lists])
-      (⟦k⟧ (-W Vs sₐ) $ Γ ⟪ℋ⟫ Σ)))
+    (for/union : (℘ -ς) ([ΓA (in-set (δ! ⟪ℋ⟫ ℓ l Σ Γ o Wₓs))])
+      (match-define (-ΓA Γ A) ΓA)
+      (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
 
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧!] [ρₕ : -ρ] [Γₕ : -Γ])
     (define ℯ (-edge ⟦e⟧ ℒ))
