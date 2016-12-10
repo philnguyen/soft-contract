@@ -93,7 +93,7 @@
 (: map-has? (∀ (X Y) (HashTable X (℘ Y)) X Y → Boolean))
 (define (map-has? m x y)
   (cond [(hash-ref m x #f) =>
-         (λ ([ys : (℘ Y)]) (∋ ys x))]
+         (λ ([ys : (℘ Y)]) (∋ ys y))]
         [else #f]))
 
 (: map-add! (∀ (X Y) (HashTable X (℘ Y)) X Y #:eq? Boolean → Void))
