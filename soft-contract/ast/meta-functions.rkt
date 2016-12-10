@@ -11,9 +11,6 @@
          "../utils/untyped-macros.rkt"
          "definition.rkt")
 
-(require/typed "../primitives/declarations.rkt"
-  [prims (Listof Any)])
-
 (: fv : (U -e (Listof -e)) → (℘ Symbol))
 ;; Compute free variables for expression. Return set of variable names.
 (define (fv e)

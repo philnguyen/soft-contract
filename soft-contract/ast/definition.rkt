@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out)
+         (all-from-out "arity.rkt"))
 
 (require racket/match
          racket/set
@@ -9,7 +10,8 @@
          racket/string
          racket/extflonum 
          racket/splicing
-         "../utils/main.rkt")
+         "../utils/main.rkt"
+         "arity.rkt")
 
 (require/typed/provide racket/undefined
   [undefined Undefined])
@@ -85,7 +87,6 @@
 ;;;;; AST subset definition as in Racket reference 1.2.3.1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(Arity . ::= . Natural arity-at-least (Listof (U Natural arity-at-least)))
 (Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void Arity EOF Undefined)
 
 (-top-level-form . ::= . -general-top-level-form
