@@ -53,7 +53,7 @@
   (syntax-rules (:)
     [(_ x : τ v) (define x : (Parameterof τ) (make-parameter v))]))
 
-;; define the same type for multiple identifiers
+;; declare the same type for multiple identifiers
 (define-syntax (:* stx)
   (syntax-parse stx
     #:literals (:)

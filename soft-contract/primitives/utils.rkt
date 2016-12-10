@@ -9,11 +9,11 @@
          racket/contract
          racket/splicing
          syntax/parse
-         (only-in "../../utils/pretty.rkt" n-sub)
+         (only-in "../utils/pretty.rkt" n-sub)
          (for-template racket/base
                        racket/contract
-                       "../../ast/definition.rkt"
-                       "../../runtime/main.rkt"))
+                       "../ast/definition.rkt"
+                       "../runtime/main.rkt"))
 
 (define-syntax-class sig
   #:description "restricted function signature"

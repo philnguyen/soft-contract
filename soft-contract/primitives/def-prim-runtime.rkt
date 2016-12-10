@@ -5,15 +5,15 @@
 (provide (all-defined-out))
 (require racket/match
          racket/set
-         "../../utils/set.rkt"
-         "../../utils/map.rkt"
-         "../../utils/function.rkt"
-         "../../utils/pretty.rkt"
-         "../../utils/def.rkt"
-         "../../utils/list.rkt"
-         "../../ast/definition.rkt"
-         "../../runtime/main.rkt"
-         "../../proof-relation/main.rkt")
+         "../utils/set.rkt"
+         "../utils/map.rkt"
+         "../utils/function.rkt"
+         "../utils/pretty.rkt"
+         "../utils/def.rkt"
+         "../utils/list.rkt"
+         "../ast/definition.rkt"
+         "../runtime/main.rkt"
+         "../proof-relation/main.rkt")
 
 (define-type -⟦o⟧! (-⟪ℋ⟫ -ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
 (define-type Prim-Thunk (-Γ → (℘ -ΓA)))
@@ -75,7 +75,6 @@
 (define prim-table  : (HashTable Symbol -⟦o⟧!) (make-hasheq))
 (define opq-table   : (HashTable Symbol -●) (make-hasheq))
 (define debug-table : (HashTable Symbol Any) (make-hasheq))
-(define range-table : (HashTable Symbol -o) (make-hasheq))
 
 (: get-prim : Symbol → (Option (U -o -b -●)))
 (define (get-prim name)
@@ -84,6 +83,3 @@
         [(hash-ref alias-table name #f) => values]
         [(hash-ref opq-table name #f) => values]
         [else #f]))
-
-(: get-range : Symbol → (Option Symbol))
-(define (get-range o) (hash-ref range-table o #f))

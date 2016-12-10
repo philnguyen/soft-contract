@@ -17,7 +17,10 @@
          racket/generator
          racket/random
          racket/format
-         "../../ast/definition.rkt"
+         (only-in "../ast/definition.rkt"
+                  -cons -cons? -car -cdr
+                  -box -box? -unbox -set-box!
+                  undefined)
          "def-prim.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

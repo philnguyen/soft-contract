@@ -1,5 +1,7 @@
 #lang typed/racket/base
 
+;; TODO: not that nice. This module needs to be required for the side effects
+
 (require "def-prim.rkt")
 
 (dec-implications

@@ -19,17 +19,17 @@
                      racket/pretty
                      syntax/parse
                      "utils.rkt"
-                     (only-in "../../utils/pretty.rkt" n-sub))
+                     (only-in "../utils/pretty.rkt" n-sub))
          racket/contract
          racket/match
          racket/set
          racket/splicing
          syntax/parse/define
-         "../../utils/set.rkt"
-         "../../utils/map.rkt"
-         "../../ast/definition.rkt"
-         "../../runtime/main.rkt"
-         "../../proof-relation/main.rkt"
+         "../utils/set.rkt"
+         "../utils/map.rkt"
+         "../ast/definition.rkt"
+         "../runtime/main.rkt"
+         "../proof-relation/main.rkt"
          "def-prim-runtime.rkt")
 
 (define-syntax-parser def-const
@@ -49,7 +49,7 @@
      #`(begin
          (define .o ((total-pred #,n) 'o))
          (hash-set! prim-table 'o .o)
-         (hash-set! range-table 'o 'boolean?)))]
+         (set-range! 'o 'boolean?)))]
   [(_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
       (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                  #:defaults ([(cₑ 2) null]))
@@ -402,7 +402,7 @@
          (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))
          #,@(syntax-parse #'cₐ
               [(~or ((~literal and/c) d:id _ ...) d:id)
-               (list #'(hash-set! range-table 'o 'd))]
+               (list #'(set-range! 'o 'd))]
               [_ '()])))])
 
 (define-syntax-parser def-prim/custom

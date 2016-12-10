@@ -3,7 +3,7 @@
 (provide Γ⊢e φs⊢e ⊢V p∋Vs p⇒p ps⇒p
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R
-         (all-from-out "result.rkt"))
+         (all-from-out "result.rkt" "base-assumptions.rkt"))
 
 (require (for-syntax racket/base
                      racket/contract

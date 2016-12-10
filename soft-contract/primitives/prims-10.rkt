@@ -4,9 +4,9 @@
 
 (require racket/contract
          racket/set
-         "../../utils/list.rkt"
-         "../../runtime/definition.rkt"
-         "../../runtime/simp.rkt"
+         "../utils/list.rkt"
+         "../runtime/definition.rkt"
+         "../runtime/simp.rkt"
          "def-prim.rkt")
 
 
