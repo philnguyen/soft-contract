@@ -12,62 +12,21 @@
                      racket/match
                      racket/list
                      racket/function
-                     (only-in "../utils/main.rkt" n-sub mk-cond sexp-and)
-                     (prefix-in prims: "../primitives/declarations.rkt")
-                     "../primitives/utils.rkt")
+                     (only-in "../utils/main.rkt" n-sub mk-cond sexp-and))
          racket/match
+         (only-in racket/function curry)
          racket/set
-         racket/function
          racket/bool
          racket/math
          racket/flonum
          racket/extflonum
          racket/string
          racket/vector
-         (except-in racket/function arity-includes?)
          racket/list
          "../utils/main.rkt"
          "../ast/main.rkt"
          "definition.rkt")
 
-;; Helper syntax definition(s) for `-@/simp`
-(begin-for-syntax
-  (define/contract (general-primitive-clauses f xs)
-    (identifier? identifier? . -> . (listof syntax?))
-
-    (define default-case (datum->syntax f '(default-case)))
-
-    (define/contract (go dec)
-      (any/c . -> . (listof syntax?))
-      (match dec
-        [`(#:pred ,(? symbol? s))
-         (go `(,s (any/c . -> . boolean?) #:other-errors))]
-        [`(#:pred ,(? symbol? s) (,(? prims:ctc? cs) ...))
-         (go `(,s (,@cs . -> . boolean?) #:other-errors))]
-        [`(#:batch (,(? symbol? ss) ...) ,(? prims:arr? c) ,_ ...)
-         (append-map (λ (s) (go `(,s ,c #:other-errors))) ss)]
-        [`(,(and (? symbol?) (not (? ignore-for-now?)) o) (,cs ... . -> . ,d) ,_ ...)
-
-         (cond
-           [(or (base? o) (and (andmap base? cs) (base? d)))
-            
-            (define/contract b-syms (listof symbol?)
-              (build-list (length cs) (λ (i) (string->symbol (format "x~a" (n-sub i))))))
-            (define/contract b-𝒾s (listof identifier?) (map (curry datum->syntax f) b-syms))
-            (define b-pats (for/list ([b-𝒾 b-𝒾s]) #`(-b #,b-𝒾)))
-            (define b-conds (datum->syntax f (sexp-and (map mk-cond b-syms cs))))
-
-            (list
-             #`[(#,o)
-                (match #,xs
-                  [(list #,@b-pats) #:when #,b-conds (-b (#,o #,@b-𝒾s))]
-                  [_ #,default-case])])]
-           [else '()])]
-        [_ '()]))
-    
-    (define ans (append-map go prims:prims))
-    ;(printf "~a~n" (pretty (map syntax->datum ans)))
-    ans))
 (: -@/simp : -e -e * → -e)
 ;; Smart constructor for application
 (define (-@/simp f . xs)
@@ -88,13 +47,8 @@
             e₀)]
       [_ #f]))
 
-  (define (default-case) : -e
+  (define (default-case)
     (-@ (assert f) (cast xs (Listof -e)) +ℓ₀))
-
-  (define-syntax (general-primitive-case stx)
-    #`(case f
-        #,@(general-primitive-clauses #'f #'xs)
-        [else (default-case)]))
 
   (match f
     ['any/c -tt]
@@ -172,7 +126,7 @@
     [(-st-mk s) (or (access-same-value? s xs) (-@ f xs +ℓ₀))]
 
     ; General case
-    [_ (general-primitive-case)]))
+    [_ (default-case)]))
 
 (: -?@ : -s -s * → -s)
 (define (-?@ f . xs)

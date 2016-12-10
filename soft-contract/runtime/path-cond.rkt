@@ -4,7 +4,6 @@
 
 (require racket/match
          racket/set
-         (except-in racket/function arity-includes?)
          "../utils/main.rkt"
          "../ast/main.rkt"
          "definition.rkt"
