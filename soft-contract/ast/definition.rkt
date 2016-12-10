@@ -6,7 +6,6 @@
 (require racket/match
          racket/set
          racket/list
-         racket/function
          racket/string
          racket/extflonum 
          racket/splicing
@@ -210,16 +209,15 @@
 
 ;; Make conjunctive and disjunctive contracts
 (splicing-local
-    ((: -app/c : Symbol (Listof -e) → -e)
-     (define (-app/c o es) : -e
-       (match es
-         ['() 'any/c]
-         [(list e) e]
-         [(cons e es*)
-          (-@ (-𝒾 o 'Λ) (list e (-app/c o es*)) (+ℓ!))])))
-  
-  (define -and/c (curry -app/c 'and/c))
-  (define -or/c (curry -app/c 'or/c)))
+    ((: -app/c : Symbol → (Listof -e) → -e)
+     (define ((-app/c o) es)
+       (let go ([es : (Listof -e) es])
+         (match es
+           ['() 'any/c]
+           [(list e) e]
+           [(cons e es*) (-@ o (list e (go es*)) (+ℓ!))]))))
+  (define -and/c (-app/c 'and/c))
+  (define -or/c (-app/c 'or/c)))
 
 (: -one-of/c : (Listof -e) → -e)
 (define (-one-of/c es)

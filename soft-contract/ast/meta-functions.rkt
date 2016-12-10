@@ -4,7 +4,7 @@
 
 (require racket/match
          racket/set
-         racket/function
+         (only-in racket/function curry)
          racket/list
          racket/bool
          "../utils/main.rkt"
