@@ -90,13 +90,14 @@
          (error 'hash-set-once! "key already exists: ~a" x)]
         [else (hash-set! m x v)]))
 
-(: map-has? (∀ (X Y) ([(HashTable X (℘ Y)) X Y] [#:eq? Boolean] . ->* . Boolean)))
-(define (map-has? m x y #:eq? [use-eq? #f])
-  (define mk-∅ (if use-eq? →∅eq →∅))
-  (∋ (hash-ref m x mk-∅) y))
+(: map-has? (∀ (X Y) (HashTable X (℘ Y)) X Y → Boolean))
+(define (map-has? m x y)
+  (cond [(hash-ref m x #f) =>
+         (λ ([ys : (℘ Y)]) (∋ ys x))]
+        [else #f]))
 
-(: map-add! (∀ (X Y) ([(HashTable X (℘ Y)) X Y] [#:eq? Boolean] . ->* . Void)))
-(define (map-add! m x y #:eq? [use-eq? #f])
+(: map-add! (∀ (X Y) (HashTable X (℘ Y)) X Y #:eq? Boolean → Void))
+(define (map-add! m x y #:eq? use-eq?)
   (define mk-∅ (if use-eq? →∅eq →∅))
   (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk-∅))
 

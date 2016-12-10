@@ -7,7 +7,6 @@
 (require racket/match
          racket/set
          racket/bool
-         (except-in racket/function arity-includes?)
          syntax/parse/define
          "../utils/main.rkt"
          "../ast/main.rkt"

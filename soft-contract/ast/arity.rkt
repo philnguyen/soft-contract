@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Arity arity-includes? normalize-arity)
+(provide Arity Arity? arity-includes? normalize-arity)
 
 (require "../utils/def.rkt")
 (require/typed racket/function

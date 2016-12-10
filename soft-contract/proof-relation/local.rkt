@@ -5,68 +5,22 @@
          first-R
          (all-from-out "result.rkt"))
 
-(require racket/match
+(require (for-syntax racket/base
+                     racket/contract
+                     "../utils/pretty.rkt")
+         racket/match
          racket/set
          racket/bool
          (only-in racket/list first second)
-         (except-in racket/function arity-includes?)
          "../utils/main.rkt"
-         "../primitives/utils.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
+         "base-assumptions.rkt"
          "result.rkt"
-         (for-syntax
-          racket/base racket/contract
-          "../utils/pretty.rkt" 
-          "../primitives/utils.rkt"))
-
-;; Syntax generation for checking whether argument satisfies predicate
-(begin-for-syntax
-
-  ;; Inspect inner application to see if it satisfies predicate
-  (define/contract (generate-app-clauses p zs)
-    (identifier? identifier? . -> . (listof syntax?))
-    (define ⊢e (datum->syntax zs '⊢e))
-    (define p⇒p (datum->syntax zs 'p⇒p))
-
-    (for/list ([(o o-rng) prim-ranges])
-
-      ;; Default case: application's range matches predicate exactly
-      (define main-clause #`[(#,o-rng) '✓])
-      
-      ;; Refined cases: predicate is more refined than application's coarsest range
-      (define/contract refined-clauses (listof syntax?)
-        (for/list ([(o-rng* o-doms) (hash-ref prim-refinements-for-ranges o (hasheq))])
-          
-          (define/contract args (listof identifier?)
-            (for/list ([(_ i) (in-indexed o-doms)])
-              (datum->syntax #f (format-symbol "x~a" (n-sub i)))))
-          
-          (define/contract preconds (listof syntax?)
-            (for/list ([dom o-doms] [arg args])
-              #`(eq? '✓ (#,⊢e (-@ '#,dom (list #,arg) +ℓ₀)))))
-          
-          #`[(#,o-rng*)
-             (match #,zs
-               [(list #,@args) (if (and #,@preconds) '✓ '?)]
-               [_ '?])]))
-
-      (define rhs
-        (cond
-          [(null? refined-clauses)
-           #`(#,p⇒p '#,o-rng #,p)]
-          [else
-           #`(match (#,p⇒p '#,o-rng #,p)
-               ['?
-                (case #,p
-                  #,@refined-clauses
-                  [else '?])]
-               [ans ans])]))
-      #`[(#,o) #,rhs])))
+         )
 
 ;; Check whether predicate excludes boolean
-(define boolean-excludes? : (Symbol → Boolean)
-  (set->predicate (hash-ref exclusions 'boolean?)))
+(define boolean-excludes? (set->predicate (get-exclusions 'boolean?)))
 
 (: ⊢e : -e → -R)
 ;; Check if expression returns truth
@@ -82,40 +36,18 @@
   ;; Check if application returns truth
 (define (⊢@ p xs)
 
-  ;; generate clauses checking if `(p xs)` returns truth
-  (define-syntax (generate-predicate-clauses stx)
-    (define ans
-      #`(match xs
-          [(list (? -b? b))
-           (match (-?@ p b)
-             [(-b x) (decide-R (and x #|force boolean|# #t))]
-             [_ '?])]
-          [(list (-@ o zs _))
-           (case o
-             #,@(generate-app-clauses #'p #'zs)
-             [else
-              (cond
-                [(and (-st-mk? o) (base? p)) '✗]
-                [else '?])])]
-          [_ '?]))
-    ;(printf "generated:~n~a~n" (pretty (syntax->datum ans)))
-    ans)
-
   (match p
     [(? -st-mk?) '✓]
     [(-st-p si)
      (match xs
        [(list (-@ (-st-mk sj) _ _)) ; TODO: No sub-struct for now.
-        (decide-R (equal? si sj))]
+        (boolean->R (equal? si sj))]
        [(list (-b _)) '✗]
        [(list (-@ (? symbol? f) _ _))
         (cond ;; HACK for now
-          [(hash-ref prim-ranges f #f)
-           =>
-           (λ ([f-rng : Symbol])
-             (cond
-               [(∋ (seteq 'integer? 'real? 'number? 'vector? 'boolean? 'not 'null?) f-rng) '✗]
-               [else '?]))]
+          [(∋ (seteq 'integer? 'real? 'number? 'vector? 'boolean? 'not 'null?)
+              (get-conservative-range f))
+           '✗]
           [else '?])]
        [_ '?])]
     ['not (not-R (⊢e (car xs)))] ; assume right arity
@@ -129,7 +61,7 @@
            (if (equal? v₁ v₂) '? '✗)]
           [((? -•?) _) '?]
           [(_ (? -•?)) '?]
-          [((? -v? v₁) (? -v? v₂)) (decide-R (equal? v₁ v₂))]
+          [((? -v? v₁) (? -v? v₂)) (boolean->R (equal? v₁ v₂))]
           [((-x x) (-x y))
            (if (equal? x y) '✓ '?)]
           [((-@ f xs _) (-@ g ys _))
@@ -158,13 +90,8 @@
      (cond
        [(and (eq? p 'boolean?) (match? xs (list (-@ (? -st-p?) _ _)))) '✓]
        [(and (eq? p 'procedure?) (match? xs (list (or (? -λ?) (? -case-λ?))))) '✓]
-       [(hash-ref prim-ranges p #f) =>
-        (λ ([p-rng : Symbol])
-          (cond
-            [(boolean-excludes? p-rng) '✓]
-            [else (generate-predicate-clauses)]))]
+       [(boolean-excludes? (get-conservative-range p)) '✓]
        [else '?])]
-    
     [_ '?]))
 
 (: Γ⊢e : -Γ -s → -R)
@@ -216,10 +143,10 @@
                 (⊢@ p (list e₁))]
                [((-@ (or '= 'equal? 'eq?) (list e (-b b₁)) _)
                  (-@ (or '= 'equal? 'eq?) (list e (-b b₂)) _))
-                (decide-R (equal? b₁ b₂))]
+                (boolean->R (equal? b₁ b₂))]
                [((-@ (or '= 'equal? 'eq?) (list (-b b₁) e) _)
                  (-@ (or '= 'equal? 'eq?) (list (-b b₂) e) _))
-                (decide-R (equal? b₁ b₂))]
+                (boolean->R (equal? b₁ b₂))]
                [(_ _) '?])]
             [R R])]))
       (printf "~a ⊢ ~a : ~a~n" (show-e e₁) (show-e e₂) ans)))
@@ -335,7 +262,7 @@
   
   (define (check-proc-arity-1 [V : -V]) : -R
     (match (p∋Vs σ 'procedure? V)
-      ['✓ (decide-R (arity-includes? (assert (V-arity V)) 1))]
+      ['✓ (boolean->R (arity-includes? (assert (V-arity V)) 1))]
       [ans ans]))
 
   (match Vs
@@ -350,11 +277,11 @@
         (match Vs
           [(list (or (-St sj _) (-St* sj _ _ _)))
            ;; TODO: no sub-struct for now. May change later.
-           (decide-R (equal? si (assert sj)))]
+           (boolean->R (equal? si (assert sj)))]
           [(list (-● ps))
            (or (for/or : (U '✓ '✗ #f) ([p ps] #:when (-st-p? p))
                  (match-define (-st-p s) p)
-                 (decide-R (equal? s si)))
+                 (boolean->R (equal? s si)))
                '?)]
           [_ '✗])]
        [(-Ar _ (app -⟪α⟫->-α
@@ -368,7 +295,7 @@
           [(procedure?)
            (match Vs
              [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?))) '✓]
-             [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (decide-R flat?)]
+             [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (boolean->R flat?)]
              [_ '✗])]
           [(vector?)
            (match Vs
@@ -389,11 +316,11 @@
           [(arity-includes?)
            (match Vs
              [(list (-b (? Arity? a)) (-b (? Arity? b)))
-              (decide-R (arity-includes? a b))]
+              (boolean->R (arity-includes? a b))]
              [_ '?])]
           [(immutable?)
            (match Vs
-             [(list (-b b)) (decide-R (immutable? b))]
+             [(list (-b b)) (boolean->R (immutable? b))]
              ;; always false for now because no support for immutable vectors
              [_ '✗])]
           [(<)
@@ -422,7 +349,7 @@
           [(>=) (p∋Vs σ '<= (second Vs) (first Vs))]
           [(= equal? eq? char=? string=?)
            (match Vs
-             [(list (-b b₁) (-b b₂))   (decide-R (equal? b₁ b₂))]
+             [(list (-b b₁) (-b b₂))   (boolean->R (equal? b₁ b₂))]
              [(list (-● ps) (? -b? b)) (ps⇒p ps (-≡/c b))]
              [(list (? -b? b) (-● ps)) (ps⇒p ps (-≡/c b))]
              [_ '?])]
@@ -449,7 +376,7 @@
                 (match V
                   [(-Cons _ α) (check-⟪α⟫ α)]
                   [(-Cons* α) (check-⟪α⟫ α)]
-                  [(-b b) (decide-R (null? b))]
+                  [(-b b) (boolean->R (null? b))]
                   [(-● ps)
                    (cond
                      [(set-empty?
@@ -461,21 +388,15 @@
               (check V)]
              [_ '✗])]
           ;; Default rules for operations on base values rely on simplification from `-?@`
+          [(boolean-excludes? (get-conservative-range p)) '✓]
           [else
-           (cond
-             [(hash-ref prim-ranges p #f) =>
-              (λ ([p-rng : Symbol]) : -R
-                 (cond [(boolean-excludes? p-rng) '✓]
-                       [else
-                        (match Vs
-                          [(list (? -b? bs) ...)
-                           (match (apply -?@ p (cast bs (Listof -b)))
-                             [(-b b) (decide-R (and b #|force boolean|# #t))]
-                             [_ '?])]
-                          [(list (? -●?) ...) '?]
-                          [_ (cond [(and (base? p) (and (match? Vs (list (not (? -b?)))))) '✗]
-                                   [else '?])])]))]
-             [else '?])])]
+           (match Vs
+             [(list (? -b? bs) ...)
+              (match (apply -?@ p (cast bs (Listof -b)))
+                [(-b b) (boolean->R (and b #|force boolean|# #t))]
+                [_ '?])]
+             [(list (? -●?) ...) '?]
+             [_ '?])])]
        [(-not/c (? -v? p))
         (not-R (apply p∋Vs σ p Vs))]
        [(-λ (list x) (-@ 'not (list e) _))
@@ -491,7 +412,7 @@
                [(>=) >=]
                [(=) =]
                [else (error 'p∋Vs "unhandled: ~a" o)]))
-           (decide-R (and (real? b) (op a b)))]
+           (boolean->R (and (real? b) (op a b)))]
           [(list (-● ps)) #|TODO|# '?]
           [_ '✗])]
        [(-λ (list x) (-@ (? -o? o) (list (-x x) (-b (? real? a))) _))
@@ -505,7 +426,7 @@
                [(>=) >=]
                [(=) =]
                [else (error 'p∋Vs "unhandled: ~a" o)]))
-           (decide-R (and (real? b) (op b a)))]
+           (boolean->R (and (real? b) (op b a)))]
           [(list (-● ps)) #|TODO|# '?]
           [_ '✗])]
        [(-≡/c (-b b₁))
@@ -517,7 +438,7 @@
 ;; Check if 2 values are `equal?`
 (define V≡
   (match-lambda**
-   [((-b x₁) (-b x₂)) (decide-R (equal? x₁ x₂))]
+   [((-b x₁) (-b x₂)) (boolean->R (equal? x₁ x₂))]
    [(_ _) '?]))
 
 (: ps⇒p : (℘ -v) -v → -R)
@@ -576,11 +497,7 @@
     [(_ 'any/c) '✓]
     [('none/c _) '✓]
     [(_ 'none/c) '✗]
-    [((? symbol? p) (? symbol? q))
-     (cond [(equal? p q) '✓]
-           [(∋ (hash-ref implications p →∅eq) q) '✓]
-           [(∋ (hash-ref exclusions p →∅eq) q) '✗]
-           [else '?])]
+    [((? symbol? p) (? symbol? q)) (o⇒o p q)]
     [(p 'values)
      (case p
        [(not) '✗]
@@ -588,7 +505,7 @@
        [else '✓])]
     [((-st-p si) (-st-p sj))
      ;; TODO: no sub-struct for now. Probably changes later
-     (decide-R (equal? si sj))]
+     (boolean->R (equal? si sj))]
 
     ;; Negate
     [((-not/c (? -v? p)) (-not/c (? -v? q)))
@@ -649,14 +566,14 @@
     [((-≤/c (? real? r)) 'exact-positive-integer?) (if (<  r 1) '✗ '?)]
     
     ; equal?
-    [((-≡/c (-b b₁)) (-≡/c (-b b₂))) (decide-R (equal? b₁ b₂))]
+    [((-≡/c (-b b₁)) (-≡/c (-b b₂))) (boolean->R (equal? b₁ b₂))]
 
     ;; default
     [(_ _)
-     (cond [(or (and (symbol? p) (hash-has-key? implications p) (-st-p? q))
-                (and (symbol? q) (hash-has-key? implications q) (-st-p? p)))
+     (cond [(equal? p q) '✓]
+           [(or (and (symbol? p) (-st-p? q))
+                (and (symbol? q) (-st-p? p)))
             '✗]
-           [(equal? p q) '✓]
            [else '?])]))
 
 (module+ test

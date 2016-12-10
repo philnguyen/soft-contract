@@ -2,13 +2,11 @@
 (provide
  (all-from-out "simp.rkt"
                "definition.rkt"
-               "arity.rkt"
                "sto.rkt"
                "path-cond.rkt"
                "val.rkt"))
 (require "simp.rkt"
          "definition.rkt"
-         "arity.rkt"
          "sto.rkt"
          "path-cond.rkt"
          "val.rkt")
