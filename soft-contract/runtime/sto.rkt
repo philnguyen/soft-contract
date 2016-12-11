@@ -12,7 +12,7 @@
 (define (σ@ σ ⟪α⟫)
   (with-debugging/off
     ((Vs)
-     (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" ⟪α⟫))))
+     (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" (-⟪α⟫->-α ⟪α⟫)))))
     (when (>= (set-count Vs) 5)
       (printf "σ@: ~a -> ~a~n" (show-⟪α⟫ ⟪α⟫) (set-count Vs))
       (define-set roots : -⟪α⟫ #:eq? #t)
