@@ -7,7 +7,7 @@
          typed/rackunit
          "../utils/main.rkt"
          "../runtime/main.rkt"
-         "../reduction/quick-step.rkt")
+         "../run.rkt")
 
 (: check-verify-safe : Path-String → Any)
 (define (check-verify-safe p)
