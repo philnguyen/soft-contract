@@ -240,14 +240,9 @@
 
     ;; HACK for immediate uses of accessors
     [(#%plain-app (~literal cadr) e)
-     (-@ (-𝒾 'car 'Λ)
-         (list (-@ (-𝒾 'cdr 'Λ)
-                   (list (parse-e #'e)) (+ℓ!))) (+ℓ!))]
+     (-@ -car (list (-@ -cdr (list (parse-e #'e)) (+ℓ!))) (+ℓ!))]
     [(#%plain-app (~literal caddr) e)
-     (-@ (-𝒾 'car 'Λ)
-         (list (-@ (-𝒾 'cdr 'Λ)
-                   (list (-@ (-𝒾 'cdr 'Λ)
-                             (list (parse-e #'e)) (+ℓ!))) (+ℓ!))) (+ℓ!))]
+     (-@ -car (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) (+ℓ!))) (+ℓ!))) (+ℓ!))]
 
     ;; HACK for treating `apply` specially for precision.
     ;; This simply bypasses reading `apply` as wrapped reference to primitive
@@ -265,7 +260,7 @@
        [(list e) e]
        [(list e₁ e* ...)
         (for/fold ([e e₁]) ([eᵢ e*])
-          (-@ (-𝒾 o-name 'Λ) (list e eᵢ) (+ℓ!)))])]
+          (-@ o-name (list e eᵢ) (+ℓ!)))])]
 
     ;; HACKs for `variable-refererence-constant?`
     [(if (#%plain-app (~literal variable-reference-constant?)
@@ -274,14 +269,14 @@
          (#%plain-app g:id x ...))
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "call-with-output-file"))
-     (-@ (-𝒾 'call-with-output-file 'Λ) (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'call-with-output-file  (parse-es #'(x ...)) (+ℓ!))]
     [(if (#%plain-app (~literal variable-reference-constant?)
                       (#%variable-reference f:id))
          _
          (#%plain-app g:id x ...))
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "call-with-input-file"))
-     (-@ (-𝒾 'call-with-input-file 'Λ) (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'call-with-input-file (parse-es #'(x ...)) (+ℓ!))]
 
     ;;; Contracts
     ;; Non-dependent function contract
@@ -326,9 +321,9 @@
     [(#%plain-app (~literal fake:box/c) c)
      (-box/c (parse-e #'c))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (-@ (-𝒾 'vector/c 'Λ) (parse-es #'(c ...)) (+ℓ!))]
+     (-@ 'vector/c (parse-es #'(c ...)) (+ℓ!))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-@ (-𝒾 'vectorof 'Λ) (list (parse-e #'c)) (+ℓ!))]
+     (-@ 'vectorof (list (parse-e #'c)) (+ℓ!))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
             (#%plain-app _ _ _ _ (quote k) _ ...)
             _ ...)
@@ -415,23 +410,23 @@
     [(#%variable-reference id)
      (match (symbol->string (syntax-e #'id)) ;; tmp HACK for slatex
        [(regexp #rx"^call-with-output-file")
-        (-𝒾 'call-with-output-file 'Λ)]
+        'call-with-output-file]
        [(regexp #rx"^call-with-input-file")
-        (-𝒾 'call-with-input-file 'Λ)]
+        'call-with-input-file]
        [_
         (error 'parse-e "TODO: #%variable-reference ~a, ~a" (syntax->datum #'id))])]
-    
-    ;; Hacks for now. TODO: need this anymore??
+
+    ;; Hacks for now. Still need this because fake:any/c ≠ any/c
     ;[(~literal null) -null]
     ;[(~literal empty) -null]
-    [(~literal fake:any/c) (-𝒾 'any/c 'Λ)]
-    [(~literal fake:none/c) (-𝒾 'none/c 'Λ)]
-    [(~literal fake:not/c) (-𝒾 'not/c 'Λ)]
-    [(~literal fake:and/c) (-𝒾 'and/c 'Λ)]
-    [(~literal fake:or/c ) (-𝒾 'or/c  'Λ)]
-
+    [(~literal fake:any/c) 'any/c]
+    [(~literal fake:none/c) 'none/c]
+    [(~literal fake:not/c) 'not/c]
+    [(~literal fake:and/c) 'and/c]
+    [(~literal fake:or/c ) 'pr/c]
+    
     ;; Hack for private identifiers
-    [x:id #:when (equal? 'make-sequence (syntax-e #'x)) (-𝒾 'make-sequence 'Λ)]
+    [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]
     
     [i:identifier
      (or

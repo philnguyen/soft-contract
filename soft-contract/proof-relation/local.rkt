@@ -284,10 +284,7 @@
                  (boolean->R (equal? s si)))
                '?)]
           [_ '✗])]
-       [(-Ar _ (app -⟪α⟫->-α
-                    (or (? -o? o) (-α.def (-𝒾 (? -o? o) 'Λ)) (-α.wrp (-𝒾 (? -o? o) 'Λ)))) _)
-        #:when o
-        (apply p∋Vs σ o Vs)]
+       [(-Ar _ (app -⟪α⟫->-α (? -o? o)) _) (apply p∋Vs σ o Vs)]
        [(? symbol?)
         (assert (not (match? Vs (list (? -●?))))) ; just for debugging
         (case p
