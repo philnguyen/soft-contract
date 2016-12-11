@@ -2,7 +2,12 @@
 
 (provide (all-defined-out))
 
-(require racket/contract
+(require racket/match
+         racket/set
+         racket/contract
+         "../ast/main.rkt"
+         "../runtime/main.rkt"
+         "../proof-relation/widen.rkt"
          "def-prim.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -11,11 +16,45 @@
 
 (def-prim/todo flat-named-contract ; FIXME uses
  (any/c flat-contract? . -> . flat-contract?))
-(def-prim/todo any/c (any/c . -> . (not/c not)))
-(def-prim/todo none/c (any/c . -> . not))
-(def-prim/todo  or/c (contract? contract? . -> . contract?)) ; FIXME uses
-(def-prim/todo and/c (contract? contract? . -> . contract?)) ; FIXME uses
-(def-prim/todo not/c (flat-contract? . -> . flat-contract?))
+(def-prim/custom (any/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  #:domain ([W any/c])
+  {set (-ΓA Γ (-W -True/Vs -tt))})
+(def-prim/custom (none/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  #:domain ([W any/c])
+  {set (-ΓA Γ (-W -False/Vs -ff))})
+(def-prim/custom (or/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
+  (match-define (-Σ σ _ _) Σ)
+  (match-define (-W¹ V₁ s₁) W₁)
+  (match-define (-W¹ V₂ s₂) W₂)
+  (define α₁ (-α->-⟪α⟫ (or (keep-if-const s₁) (-α.or/c-l ℓ ⟪ℋ⟫))))
+  (define α₂ (-α->-⟪α⟫ (or (keep-if-const s₂) (-α.or/c-r ℓ ⟪ℋ⟫))))
+  (σ⊕*! σ [α₁ ↦ V₁] [α₂ ↦ V₂])
+  (define ℓ₁ (+ℓ/ctc ℓ 0))
+  (define ℓ₂ (+ℓ/ctc ℓ 1))
+  (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
+  {set (-ΓA Γ (-W (list C) (-?@ 'or/c s₁ s₂)))})
+(def-prim/custom (and/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
+  (match-define (-Σ σ _ _) Σ)
+  (match-define (-W¹ V₁ s₁) W₁)
+  (match-define (-W¹ V₂ s₂) W₂)
+  (define α₁ (-α->-⟪α⟫ (or (keep-if-const s₁) (-α.and/c-l ℓ ⟪ℋ⟫))))
+  (define α₂ (-α->-⟪α⟫ (or (keep-if-const s₂) (-α.and/c-r ℓ ⟪ℋ⟫))))
+  (σ⊕*! σ [α₁ ↦ V₁] [α₂ ↦ V₂])
+  (define ℓ₁ (+ℓ/ctc ℓ 0))
+  (define ℓ₂ (+ℓ/ctc ℓ 1))
+  (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
+  {set (-ΓA Γ (-W (list C) (-?@ 'and/c s₁ s₂)))})
+(def-prim/custom (not/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  #:domain ([W flat-contract?])
+  (match-define (-Σ σ _ _) Σ)
+  (match-define (-W¹ V s) W)
+  (define α (-α->-⟪α⟫ (or (keep-if-const s) (-α.not/c ℓ ⟪ℋ⟫))))
+  (σ⊕! σ α V)
+  (define ℓ* (+ℓ/ctc ℓ 0))
+  (define C (-Not/C (cons α ℓ*)))
+  {set (-ΓA Γ (-W (list C) (-?@ 'not/c s)))})
 (def-prim/todo =/c  (real? . -> . flat-contract?))
 (def-prim/todo </c  (real? . -> . flat-contract?))
 (def-prim/todo >/c  (real? . -> . flat-contract?))
