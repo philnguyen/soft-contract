@@ -10,7 +10,9 @@
          "sto.rkt")
 
 ;; Constants & 'Macros'
-(define -Null -null)
+(define -null/Vs (list -null))
+(define -null/W (-W -null/Vs -null))
+(define -null-char/W (-W¹ -null-char -null-char))
 (define -True/Vs  (list -tt))
 (define -False/Vs (list -ff))
 (define -True/W  (-W -True/Vs  -tt))
@@ -19,8 +21,8 @@
 (define -●/Vs (list -●/V))
 (define -Bool/Vs (list (-● {set 'boolean?})))
 (define -Nat/Vs (list (-● {set 'exact-nonnegative-integer?})))
-(define -Void/Vs (list (-b (void))))
-(define -Void/W (-W -Void/Vs (-b (void))))
+(define -Void/Vs (list -void))
+(define -Void/W (-W -Void/Vs -void))
 (define -not/W (-W¹ 'not 'not))
 (define -integer?/W (-W¹ 'integer? 'integer?))
 (define -number?/W (-W¹ 'number? 'number?))

@@ -427,7 +427,7 @@
 (define-syntax-parser def-prim/custom
   [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id)
       #:domain ([W:id c:fc] ...)
-      e ...)
+      e:expr ...)
    (define/contract (ok-case M σ)
      (identifier? identifier? . -> . (listof syntax?))
      (syntax->list #'(e ...)))
@@ -443,7 +443,7 @@
          #,defn
          (hash-set! prim-table 'o .o)
          (hash-set! debug-table 'o '#,(syntax->datum defn))))]
-  [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e ...)
+  [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e:expr ...)
    (with-syntax ([.o (prefix-id #'o)])
      (define defn #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
      #`(begin

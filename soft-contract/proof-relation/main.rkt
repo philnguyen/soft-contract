@@ -41,15 +41,15 @@
   (with-debugging/off
     ((R)
      (first-R (let ([Vs*
-                     (for/list : (Listof -V) ([V Vs] [s ss])
+                     (for/list : (Listof -V) ([V (in-list Vs)] [s (in-list ss)])
                        (V+ σ V (predicates-of Γ s)))])
                 (apply p∋Vs σ p Vs*))
               (let ()
                 (define Γ*
-                  (for/fold ([Γ : -Γ Γ]) ([V Vs] [s ss] #:when s)
+                  (for/fold ([Γ : -Γ Γ]) ([V (in-list Vs)] [s (in-list ss)] #:when s)
                     (match V
                       [(-● ps)
-                       (for/fold ([Γ : -Γ Γ]) ([p ps])
+                       (for/fold ([Γ : -Γ Γ]) ([p (in-set ps)])
                          (Γ+ Γ (-?@ p s)))]
                       [(? -b? b)
                        (Γ+ Γ (-@ 'equal? (list s b) +ℓ₀))]

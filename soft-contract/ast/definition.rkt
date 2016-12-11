@@ -169,6 +169,7 @@
 (define -ff (-b #f))
 (define -null (-b null))
 (define -void (-b (void)))
+(define -null-char (-b #\null))
 (define -undefined (-b undefined))
 
 (define -𝒾-values (-𝒾 'values 'Λ))

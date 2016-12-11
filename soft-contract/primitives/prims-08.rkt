@@ -72,11 +72,29 @@
    (() #:rest (listof flat-contract?) . ->* . contract?)]
 #;[symbols
    (() #:rest (listof symbol?) . ->* . flat-contract?)]
-(def-prim/todo vectorof ; FIXME uses
- (contract? . -> . contract?))
+(def-prim/custom (vectorof ⟪ℋ⟫ ℓ l Σ Γ Ws) ; FIXME uses
+  #:domain ([W contract?])
+  (define σ (-Σ-σ Σ))
+  (match-define (-W¹ V s) W)
+  (define ⟪α⟫ (-α->-⟪α⟫ (or (keep-if-const s) (-α.vectorof ℓ ⟪ℋ⟫))))
+  (σ⊕! σ ⟪α⟫ V)
+  (define ℓ* (+ℓ/ctc ℓ 0))
+  (define C (-Vectorof (cons ⟪α⟫ ℓ*)))
+  {set (-ΓA Γ (-W (list C) (-?@ 'vectorof s)))})
 (def-prim/todo vector-immutableof (contract? . -> . contract?))
-(def-prim/todo vector/c ; FIXME uses
- (() #:rest (listof contract?) . ->* . contract?))
+(def-prim/custom (vector/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  ; FIXME uses ; FIXME check for domains to be listof contract
+  (define σ (-Σ-σ Σ))
+  (define-values (αs ℓs ss) ; with side effect widening store
+    (for/lists ([αs : (Listof -⟪α⟫)] [ℓs : (Listof -ℓ)] [ss : (Listof -s)])
+               ([W (in-list Ws)] [i (in-naturals)] #:when (index? i))
+      (match-define (-W¹ V s) W)
+      (define ⟪α⟫ (-α->-⟪α⟫ (or (keep-if-const s) (-α.vector/c ℓ ⟪ℋ⟫ i))))
+      (define ℓ : -ℓ (+ℓ/ctc ℓ i))
+      (σ⊕! σ ⟪α⟫ V)
+      (values ⟪α⟫ ℓ s)))
+  (define C (-Vector/C (map (inst cons -⟪α⟫ -ℓ) αs ℓs)))
+  {set (-ΓA Γ (-W (list C) (apply -?@ 'vector/c ss)))})
 #;[vector-immutable/c
    (() #:rest (listof contract?) . ->* . contract?)]
 (def-prim/todo box/c ; FIXME uses
