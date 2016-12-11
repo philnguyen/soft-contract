@@ -2,11 +2,15 @@
 
 (provide run-file havoc-file run-e)
 
-(require "runtime/definition.rkt"
+(require "utils/main.rkt"
+         "ast/main.rkt"
+         "runtime/definition.rkt"
          "parse/main.rkt"
-         "reduction/quick-step.run")
+         "reduction/compile/main.rkt"
+         "reduction/init.rkt"
+         "reduction/quick-step.rkt")
 
-(: rut-file : Path-String → (Values (℘ -ΓA) -Σ))
+(: run-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (run-file p)
   (with-initialized-static-info
     (define m (file->module p))

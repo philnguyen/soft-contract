@@ -9,7 +9,7 @@
          "ast/definition.rkt"
          "parse/main.rkt"
          "runtime/definition.rkt"
-         (only-in "reduction/quick-step.rkt" run-file havoc-file)
+         (only-in "run.rkt" run-file havoc-file)
          (only-in "proof-relation/ext.rkt" Timeout))
 
 (Mode . ::= . 'light 'havoc 'expand)
@@ -33,11 +33,11 @@
     fname)
    Path-String))
 
-(: show-Vs : (Listof -V) → Sexp)
+(: show-Vs : (Listof (U -V -v)) → Sexp)
 (define (show-Vs Vs)
   (match Vs
-    [(list V) (show-V V)]
-    [_ `(values ,@(map show-V Vs))]))
+    [(list V) (show-V-or-v V)]
+    [_ `(values ,@(map show-V-or-v Vs))]))
 
 (: show-a : -ΓA → Sexp)
 (define (show-a a)
