@@ -54,7 +54,7 @@
 (define (implement-predicate M σ Γ o Ws)
   (define ss (map -W¹-s Ws))
   (define A
-    (case (apply MΓ⊢oW M σ Γ 'o Ws)
+    (case (apply MΓ⊢oW M σ Γ o Ws)
       [(✓) -True/Vs]
       [(✗) -False/Vs]
       [(?) -Bool/Vs]))
