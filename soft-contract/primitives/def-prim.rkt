@@ -137,9 +137,9 @@
                         #:false #,(on-done #'Γ₂ W #'why (not pos?))))))]
           [(~literal any/c )
            (cond [pos? κ]
-                 [else (push-local-thunk! (gen-name! 'blm) #`(blm Γ l 'o 'none/c #,W))])]
+                 [else (push-local-thunk! (gen-name! 'blm) #`(blm Γ l '#,o 'none/c #,W))])]
           [(~literal none/c)
-           (cond [pos? (push-local-thunk! (gen-name! 'blm) #`(blm Γ l 'o 'none/c #,W))]
+           (cond [pos? (push-local-thunk! (gen-name! 'blm) #`(blm Γ l '#,o 'none/c #,W))]
                  [else κ])]
           [c:id
            (with-syntax ([p (syntax-parse #'c ;; TODO tmp hack
@@ -156,7 +156,7 @@
       (define entry-name
         (go! W c #t
              (λ (Γ W c pos?)
-               (if pos? #`(#,κ #,Γ) #`(blm #,Γ #,l 'o #,c #,W)))))
+               (if pos? #`(#,κ #,Γ) #`(blm #,Γ #,l '#,o #,c #,W)))))
       
       (cond [(hash-ref local-thunks entry-name #f) =>
              (λ (entry)
