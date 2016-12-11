@@ -11,6 +11,7 @@
          racket/match
          racket/set
          racket/bool
+         syntax/parse/define
          (only-in racket/list first second)
          "../utils/main.rkt"
          "../ast/main.rkt"
@@ -287,7 +288,25 @@
        [(-Ar _ (app -⟪α⟫->-α (? -o? o)) _) (apply p∋Vs σ o Vs)]
        [(? symbol?)
         (assert (not (match? Vs (list (? -●?))))) ; just for debugging
-        (case p
+
+        (define-simple-macro (with-base-predicates (o?:id ...) clauses ...)
+          (case p
+            [(o?)
+             (match Vs
+               [(list (-b b)) (boolean->R (o? b))]
+               [_ '✗])] ...
+            clauses ...))
+        
+        (with-base-predicates (exact-positive-integer?
+                               exact-nonnegative-integer?
+                               exact-integer?
+                               integer?
+                               inexact-real?
+                               real?
+                               number?
+                               string?
+                               char?
+                               symbol?)
           ;; Insert manual rules here
           [(procedure?)
            (match Vs
