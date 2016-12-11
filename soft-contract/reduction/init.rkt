@@ -10,8 +10,7 @@
          "../proof-relation/widen.rkt"
          (only-in "../proof-relation/base-assumptions.rkt" V-arity)
          "compile/utils.rkt"
-         "compile/app.rkt"
-         "havoc.rkt")
+         "compile/app.rkt")
 
 (: 𝑰 : (Listof -module) → (Values -σ -e))
 ;; Load the initial store and havoc-ing expression for given module list
