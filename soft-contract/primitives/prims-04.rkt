@@ -720,6 +720,7 @@
 (def-alias-internal cons -cons)
 (def-alias-internal car -car)
 (def-alias-internal cdr -cdr)
+(def-const null)
 (def-prim/todo list? (any/c . -> . boolean?))
 (def-prim/todo list (() #:rest list? . ->* . list?))
 (def-prim/todo list* ; FIXME
@@ -804,7 +805,7 @@
 ; TODO rest of them
 
 ;; 4.9.7 Additional List Functions and Synonyms
-(def-const empty)
+(def-alias empty null)
 (def-alias pair? cons?)
 (def-alias empty? null?)
 (def-prim/todo first
