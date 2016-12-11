@@ -63,7 +63,8 @@
 
 (: o⇒o : Symbol Symbol → -R)
 (define (o⇒o p q)
-  (cond [(∋ (get-weakers p) q) '✓]
+  (cond [(eq? p q) '✓]
+        [(∋ (get-weakers p) q) '✓]
         [(∋ (get-exclusions p) q) '✗]
         [else '?]))
 
