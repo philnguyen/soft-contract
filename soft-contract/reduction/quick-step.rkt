@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide run-e run)
+(provide run)
 
 (require racket/set
          racket/match
@@ -14,12 +14,6 @@
          "compile/main.rkt"
          "init.rkt"
          )
-
-(: run-e : -e → (Values (℘ -ΓA) -Σ))
-(define (run-e e)
-  (with-initialized-static-info
-    (define-values (σ₀ _) (𝑰 '()))
-    (run (↓ₑ 'top e) σ₀)))
 
 (define-type Ctx (List (HashTable -⟪α⟫ (℘ -V)) (HashTable -αₖ (℘ -κ))))
 

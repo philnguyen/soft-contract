@@ -447,28 +447,14 @@
 
 (define-syntax-parser def-alias
   [(_ x:id y:id)
-   (with-syntax ([.x (prefix-id #'x)])
-     #'(begin
-         (define .x : (U -● -⟦o⟧! -b -o)
-           (let ([err
-                  (λ ()
-                    (error 'def-alias "`~a` not defined before `~a`" 'y 'x))])
-             (cond [(get-prim 'y) =>
-                    (λ ([v : (U -o -b -●)])
-                      (cond [(symbol? v) (hash-ref prim-table v err)]
-                            [else v]))]
-                   [else (err)])))
-         (cond [(-●? .x) (hash-set-once! opq-table 'x .x)]
-               [(-b? .x) (hash-set-once! const-table 'x .x)]
-               [(-o? .x) (hash-set-once! alias-table 'x .x)]
-               [else (hash-set-once! prim-table 'x .x)])))])
+   #'(hash-set-once! alias-table 'x 'y)])
 
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
    (with-syntax ([.x (prefix-id #'x)])
      #'(begin
          (define .x v)
-         (hash-set-once! alias-table 'x .x)))])
+         (hash-set-once! alias-internal-table 'x v)))])
 
 (define-syntax-parser def-opq
   [(_ x:id c:fc)

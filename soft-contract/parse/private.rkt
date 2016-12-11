@@ -1,17 +1,29 @@
 #lang racket
-(require
- racket/unsafe/ops
- web-server/private/util
- "../utils/main.rkt" "../primitives/declarations.rkt" "../ast/main.rkt"
- ;; For extra constants
- racket/undefined racket/extflonum
- (only-in redex/reduction-semantics variable-not-in)
- syntax/parse syntax/modresolve
- "expand.rkt"
- (prefix-in fake: "../fake-contract.rkt")
- (for-syntax racket/base racket/match racket/list racket/set syntax/parse racket/contract
-             "../primitives/declarations.rkt"))
+
 (provide (all-defined-out))
+(require racket/unsafe/ops
+         web-server/private/util
+         "../utils/main.rkt"
+         "../ast/main.rkt"
+         ;; For extra constants
+         syntax/parse
+         syntax/parse/define
+         syntax/modresolve
+         "expand.rkt"
+         (prefix-in fake: "../fake-contract.rkt")
+         "../primitives/main.rkt"
+         (for-syntax racket/base
+                     racket/match
+                     racket/list
+                     racket/set
+                     racket/syntax
+                     syntax/parse
+                     racket/contract
+                     (only-in "../primitives/main.rkt"
+                              get-prim-parse-result
+                              get-defined-prim-names)
+                     ))
+
 
 (define/contract (file->module p)
   (path-string? . -> . -module?)
@@ -435,8 +447,6 @@
                          (resolved-module-path-name (module-path-index-resolve x)))))
                     src)
                _ _ _ _ _ _)
-         (when (equal? 'not/c (syntax-e #'i))
-           (error "done"))
          (-𝒾 (syntax-e #'i) src)]))]))
 
 (define/contract (parse-quote stx)
@@ -459,58 +469,30 @@
     [rest:id (-varargs '() (syntax-e #'rest))]
     [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
+
+(define-for-syntax prim-names (get-defined-prim-names))
+(define-for-syntax prim-name->stx get-prim-parse-result)
+
 ;; Return primitive with given `id`
 (define/contract (parse-primitive id)
-  (identifier?  . -> . (or/c #f -𝒾? -b?))
+  (identifier?  . -> . (or/c #f -b? -o?))
   (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
 
-  (define-syntax (make-parse-clauses stx)
+  (define-syntax-parser make-parse-clauses
+    [(_ id:id)
 
-    (syntax-parse stx
-      [(_ id:id)
-       ;; The reason we generate (syntax-parse) cases instead of set lookup
-       ;; is to ensure that the source refers to the right reference
-
-       (define/contract cache (hash/c symbol? any/c) (make-hasheq))
-
-       (define/contract (make-clause dec)
-         (any/c . -> . (listof syntax?))
-
-         (define (make-ref s)
-           (symbol? . -> . syntax?)
-           #`(-𝒾 '#,s 'Λ))
-         
-         (match dec
-           [`(#:pred ,s ,_ ...)
-            (list #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
-           [`(#:alias ,s ,t)
-            (list #`[(~literal #,s)
-                     #,(hash-ref! cache t (λ () (error 'make-ref "~a aliases undeclared ~a" s t)))])]
-           [`(#:batch (,ss ...) ,(? arr?) ,_ ...)
-            (for/list ([s ss])
-              #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
-           [`(,(? symbol? s) ,(? base? c))
-            (list #`[(~literal #,s) #,(hash-ref! cache s #`(-b #,s))])]
-           [(or `(,(? symbol? s) ,_ ...)
-                `(#:struct-cons ,s ,_)
-                `(#:struct-pred ,s ,_)
-                `(#:struct-acc  ,s ,_ ,_)
-                `(#:struct-mut  ,s ,_ ,_))
-            (list #`[(~literal #,s) #,(hash-ref! cache s (make-ref s))])]
-           [r
-            (log-warning "unhandled in `make-parse-clauses` ~a~n" r)
-            '()]))
-       (define ans 
-         #`(syntax-parse id
-             #,@(append-map make-clause prims)
-             [_ #f]))
-       
-       ;(printf "parse-primitive:~n~a~n" (syntax->datum ans))
-       
-       ans]))
+     #`(syntax-parse id
+         #,@(for/list ([o (in-set prim-names)])
+              #`[(~literal #,o) 
+                 #,(match/values (prim-name->stx o)
+                     [('quote name) #`(quote #,name)]
+                     [('const name) (format-id #'id ".~a" name)]
+                     [(_ _) (error 'make-parse-clause "~a" o)])])
+         [_ #f])])
 
   ;; Read off from primitive table
   (make-parse-clauses id))
+
 
 (define/contract (parse-require-spec spec)
   (scv-syntax? . -> . -require-spec?)
