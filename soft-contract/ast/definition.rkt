@@ -350,19 +350,14 @@
 (define (show-e [e : -e]) : Sexp
   (match e
     ; syntactic sugar
-    #|[(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]
-    [(-λ (list x) (-@ 'equal? (list (-x x) e*) _)) `(≡/c ,(show-e e*))]
+    [(-λ (list x) (-@ 'not (list (-@ f (list (-x x)) _)) _)) `(not/c ,(show-e f))]
+    [(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]
+    [(-λ (list x) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x) e*) _)) `(≡/c ,(show-e e*))]
     [(-λ (list x) (-@ '> (list (-x x) e*) _)) `(>/c ,(show-e e*))]
     [(-λ (list x) (-@ '< (list (-x x) e*) _)) `(</c ,(show-e e*))]
     [(-λ (list x) (-@ '>= (list (-x x) e*) _)) `(≥/c ,(show-e e*))]
     [(-λ (list x) (-@ '<= (list (-x x) e*) _)) `(≤/c ,(show-e e*))]
-    [(-@ (-λ (list x) (-x x)) (list e) _) (show-e e)]
-    [(-@ (-λ (list x) (-if (-x x) (-x x) b)) (list a) _)
-     (match* ((show-e a) (show-e b))
-       [(`(or ,l ...) `(or ,r ...)) `(or ,@(cast l Sexps) ,@(cast r Sexps))]
-       [(`(or ,l ...) r) `(or ,@(cast l Sexps) ,r)]
-       [(l `(or ,r ...)) `(or ,l ,@(cast r Sexps))]
-       [(l r) `(or ,l ,r)])]|#
+       
     [(-if a b (-b #f))
      (match* ((show-e a) (show-e b))
        [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l Sexps) ,@(cast r Sexps))]
