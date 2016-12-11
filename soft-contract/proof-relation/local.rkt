@@ -304,6 +304,7 @@
                                inexact-real?
                                real?
                                number?
+                               path-string?
                                string?
                                char?
                                symbol?)
