@@ -219,7 +219,9 @@
       (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                  #:defaults ([(cₑ 2) null]))
       (~optional (~seq #:refinements [(~literal ->) rₓ:fc ... rₐ:fc] ...)
-                 #:defaults ([(rₓ 2) null] [(rₐ 1) null])))
+                 #:defaults ([(rₓ 2) null] [(rₐ 1) null]))
+      (~optional (~seq #:lift-concrete? lift?:boolean)
+                 #:defaults ([lift? #'#t])))
    (define cₓ-list (syntax->list #'(cₓ ...)))
    (define cₑ-list (syntax->list #'((cₑ ...) ...)))
    (define n (length cₓ-list))
@@ -391,7 +393,8 @@
             (list #`(implement-predicate #,M #,σ Γ 'o Ws))]
            [_
             (define base-guards
-              (and (not (skip-base-case-lifting? #'o))
+              (and (syntax-e #'lift?)
+                   (not (skip-base-case-lifting? #'o))
                    (let ([clauses (map gen-base-guard (syntax->list #'(cₓ ...)) b-ids)])
                      (and (andmap values clauses) (and* clauses)))))
             (define lift-concrete-case? (and base-guards (range-is-base? #'cₐ)))

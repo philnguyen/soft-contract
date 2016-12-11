@@ -19,13 +19,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; 15.2.2 Files
-(def-prim file-exists? (path-string? . -> . boolean?))
-(def-prim delete-file (path-string? . -> . void?))
+(def-prim file-exists? (path-string? . -> . boolean?) #:lift-concrete? #f)
+(def-prim delete-file (path-string? . -> . void?) #:lift-concrete? #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 15.7
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-{def-prim getenv (string? . -> . (or/c string? not))}
-{def-prim putenv (string? string? . -> . boolean?)}
+{def-prim getenv (string? . -> . (or/c string? not)) #:lift-concrete? #f}
+{def-prim putenv (string? string? . -> . boolean?) #:lift-concrete? #f}
 
