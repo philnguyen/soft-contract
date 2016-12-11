@@ -833,7 +833,7 @@
  (procedure? list? . -> . list?))
 (def-prims (andmap ormap) ; FIXME uses
  (procedure? list . -> . any/c))
-(def-prim/todo for-each ; FIXME uses
+(def-prim for-each ; FIXME uses ; FIXME cannot be defined here
  (procedure? list? . -> . void?))
 (def-prims (foldl foldr) ; FIXME uses
  (procedure? any/c list? . -> . any/c))
