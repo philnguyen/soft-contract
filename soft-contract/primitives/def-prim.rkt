@@ -66,8 +66,8 @@
           (with-syntax ([why (if pos? #`(#,★/c #,x) #`(-not/c (#,★/c #,x)))])
             (push-local-thunk!
              (gen-name!)
-             (list #'(define bₓ (-b #,x))
-                   #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ #,★ #,W (-W¹ bₓ bₓ))])
+             (list #`(define bₓ (-b #,x))
+                   #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ '#,★ #,W (-W¹ bₓ bₓ))])
                        #:true  #,(on-done #'Γ₁ W #'why pos?)
                        #:false #,(on-done #'Γ₂ W #'why (not pos?)))))))
 
@@ -122,11 +122,11 @@
                                                                     #,(go! #'W₂ #'c₂ pos? on-done))]
                                                       [else (on-done Γ W c pos*?)])))))]))]
                       [else (on-done Γ W c pos*?)])))]
-          [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'=/c)]
-          [((~literal </c ) x) (gen-comp/c-case #'x #'<  #'</c)]
-          [((~literal <=/c) x) (gen-comp/c-case #'x #'<= #'≤/c)]
-          [((~literal >/c ) x) (gen-comp/c-case #'x #'>  #'>/c)]
-          [((~literal >=/c) x) (gen-comp/c-case #'x #'>= #'≥/c)]
+          [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'-=/c)]
+          [((~literal </c ) x) (gen-comp/c-case #'x #'<  #'-</c)]
+          [((~literal <=/c) x) (gen-comp/c-case #'x #'<= #'-≤/c)]
+          [((~literal >/c ) x) (gen-comp/c-case #'x #'>  #'->/c)]
+          [((~literal >=/c) x) (gen-comp/c-case #'x #'>= #'-≥/c)]
           [x:lit
            (with-syntax ([why (if pos? #'(-≡/c bₓ) #'(-not/c (-≡/c bₓ)))])
              (push-local-thunk!
