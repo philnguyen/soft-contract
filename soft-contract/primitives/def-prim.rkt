@@ -34,7 +34,13 @@
 
 (begin-for-syntax
 
-  (define on-done/c (identifier? identifier? syntax? boolean? . -> . syntax?))
+  (define (->id κ) (format-id #f "~a" κ))
+
+  (define/contract (gen-program entry table)
+    (symbol? (hash/c symbol? (listof syntax?)) . -> . (listof syntax?))
+    (for/fold ([acc (hash-ref table entry)])
+              ([(f es) (in-hash table)] #:unless (equal? f entry))
+      (cons #`(define (#,(->id f) [Γ : -Γ]) #,@es) acc)))
 
   ;; Generate full precondition check
   (define/contract (gen-arg-list-check Σ Γ l o Ws-id W-ids cs gen-ok-case)
@@ -47,6 +53,8 @@
     (define/contract (gen-precond-check! W c κ push-thunk!)
       (identifier? syntax? symbol? (symbol? (listof syntax?) . -> . symbol?) . -> . symbol?)
 
+      (define on-done/c (identifier? syntax? boolean? . -> . syntax?))
+
       (define gen-name!
         (let ([i 0]
               [infix (syntax-e W)])
@@ -56,8 +64,8 @@
 
       (define-values (local-thunks push-local-thunk!) (new-thunk-table))
 
-      (define/contract (go! W c pos? on-done)
-        (identifier? syntax? boolean? on-done/c . -> . symbol?)
+      (define/contract (go! c pos? on-done)
+        (syntax? boolean? on-done/c . -> . symbol?)
 
         (define/contract (gen-comp/c-case x ★ ★/c)
           (syntax? identifier? identifier? . -> . symbol?)
@@ -66,32 +74,46 @@
              (gen-name!)
              (list #`(define bₓ (-b #,x))
                    #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ '#,★ #,W (-W¹ bₓ bₓ))])
-                       #:true  #,(on-done #'Γ₁ W #'why pos?)
-                       #:false #,(on-done #'Γ₂ W #'why (not pos?)))))))
+                       #:true  #,(on-done #'Γ₁ #'why pos?)
+                       #:false #,(on-done #'Γ₂ #'why (not pos?)))))))
 
         (syntax-parse c
           [((~literal and/c) c* ... cₙ)
            (foldr
             (λ (c κ)
-              (go! W c pos?
-                   (λ (Γ W c pos*?)
-                     (cond [(equal? pos*? pos?) #`(#,κ #,Γ)]
-                           [else (on-done Γ W c pos*?)]))))
-            (go! W #'cₙ pos? on-done)
+              (go! c pos?
+                   (λ (Γ c pos*?)
+                     (cond [(equal? pos*? pos?) #`(#,(->id κ) #,Γ)]
+                           [else (on-done Γ c pos*?)]))))
+            (go! #'cₙ pos? on-done)
             (syntax->list #'(c* ...)))]
           [((~literal or/c) c* ... cₙ)
            (foldr
             (λ (c κ)
-              (go! W c pos?
-                   (λ (Γ W c pos*?)
-                     (cond [(equal? pos*? pos?) (on-done Γ W c pos?)]
-                           [else #`(#,κ #,Γ)]))))
-            (go! W #'cₙ pos? on-done)
+              (go! c pos?
+                   (λ (Γ c pos*?)
+                     (cond [(equal? pos*? pos?) (on-done Γ c pos?)]
+                           [else #`(#,(->id κ) #,Γ)]))))
+            (go! #'cₙ pos? on-done)
             (syntax->list #'(c* ...)))]
           [((~literal not/c) c*)
-           (go! W #'c* (not pos?) on-done)]
+           (go! #'c* (not pos?) on-done)]
           [((~literal cons/c) c₁ c₂)
-           (go! W #'cons? pos? #|FIXME|# on-done)]
+           (go! #'cons? pos?
+                (λ (Γ c pos*?)
+                  (cond
+                    [(equal? pos*? pos?)
+                     (with-syntax ([W₁ (format-id W "~a.car" (syntax-e W))]
+                                   [W₂ (format-id W "~a.cdr" (syntax-e W))])
+                       (define-values (thunks* push*!) (new-thunk-table))
+                       (define κₙ (push*! (format-symbol "on-cons/c-~a-done" (syntax-e W))
+                                          (on-done Γ c pos?)))
+                       (define κ₂ (gen-precond-check! #'W₂ #'c₂ κₙ push*!))
+                       (define κ₁ (gen-precond-check! #'W₁ #'c₁ κ₂ push*!))
+                       #`(for/union : (℘ -ΓA) ([W₁ (in-set (unchecked-ac σ -car #,W))]
+                                               [W₂ (in-set (unchecked-ac σ -cdr #,W))])
+                                    #,@(gen-program κ₁ thunks*)))]
+                    [else (on-done Γ c pos*?)])))]
           [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'-=/c)]
           [((~literal </c ) x) (gen-comp/c-case #'x #'<  #'-</c)]
           [((~literal <=/c) x) (gen-comp/c-case #'x #'<= #'-≤/c)]
@@ -103,8 +125,8 @@
               (gen-name!)
               (list #'(define bₓ (-b x))
                     #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ 'equal? #,W (-W¹ bₓ bₓ))])
-                        #:true  #,(on-done #'Γ₁ W #'why pos?)
-                        #:false #,(on-done #'Γ₂ W #'why (not pos?))))))]
+                        #:true  #,(on-done #'Γ₁ #'why pos?)
+                        #:false #,(on-done #'Γ₂ #'why (not pos?))))))]
           [(~literal any/c)
            (cond [pos? κ]
                  [else (push-local-thunk! (gen-name! 'blm) #`(blm Γ l '#,o 'none/c #,W))])]
@@ -120,13 +142,13 @@
              (push-local-thunk!
               (gen-name!)
               #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ #,Γ p #,W)])
-                  #:true  #,(on-done #'Γ₁ W #'why pos?)
-                  #:false #,(on-done #'Γ₂ W #'why (not pos?)))))]))
+                  #:true  #,(on-done #'Γ₁ #'why pos?)
+                  #:false #,(on-done #'Γ₂ #'why (not pos?)))))]))
 
       (define entry-name
-        (go! W c #t
-             (λ (Γ W c pos?)
-               (if pos? #`(#,κ #,Γ) #`(blm #,Γ #,l '#,o #,c #,W)))))
+        (go! c #t
+             (λ (Γ c pos?)
+               (if pos? #`(#,(->id κ) #,Γ) #`(blm #,Γ #,l '#,o #,c #,W)))))
       
       (cond [(hash-ref local-thunks entry-name #f) =>
              (λ (entry)
@@ -134,24 +156,20 @@
                (define body
                  `(,@(for/list ([(f es) (in-hash local-thunks)]
                                 #:unless (equal? f entry-name))
-                       #`(define (#,f [Γ : -Γ]) #,@es))
+                       #`(define (#,(->id f) [Γ : -Γ]) #,@es))
                    ,@entry))
                (push-thunk! name body))]
             [else κ]))
 
     (define main-body
       (let-values ([(thunks push-thunk!) (new-thunk-table)])
-
+        (push-thunk! 'on-args-checked (gen-ok-case #'M #'σ))
+        
         (define/contract (step! W c on-done)
           (identifier? syntax? symbol? . -> . symbol?)
           (gen-precond-check! W c on-done push-thunk!))
         
-        (push-thunk! 'on-args-checked (gen-ok-case #'M #'σ))
-        (define entry-name (foldr step! 'on-args-checked W-ids cs))
-        (define entry-body (hash-ref thunks entry-name))
-        (for/fold ([acc entry-body])
-                  ([(f es) (in-hash thunks)] #:unless (equal? f entry-name))
-          (cons #`(define (#,f [Γ : -Γ]) #,@es) acc))))
+        (gen-program (foldr step! 'on-args-checked W-ids cs) thunks)))
     
     (with-syntax ([arity-req (format-symbol "~a values" (length W-ids))])
       #`(match #,Ws-id
@@ -385,6 +403,7 @@
                     #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
                         #,(gen-arg-list-check #'Σ #'Γ #'l #'o #'Ws W-ids cₓ-list
                                               gen-ok-case))])
+     (pretty-write (syntax->datum #'defn-o))
      #`(begin
          (: .o : -⟦o⟧!)
          defn-o
