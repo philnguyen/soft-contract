@@ -17,20 +17,32 @@
 
 (define-syntax-class sig
   #:description "restricted function signature"
-  (pattern ((~literal ->) _:fc ... ((~literal values) _:fc ...)))
-  (pattern ((~literal ->) _:fc ... _:fc)))
+  (pattern ((~literal ->) _:fc ... _:rngc))
+  (pattern ((~literal ->*) (_:fc ...) #:rest _:rstc _:rngc)))
 
 (define-syntax-class fc
   #:description "restricted first-order contract"
   (pattern ((~or (~literal and/c) (~literal or/c)) _:fc _:fc _:fc ...))
   (pattern ((~literal not/c) _:fc))
   (pattern ((~literal cons/c) _:fc _:fc))
+  (pattern ((~literal listof) _:fc))
   (pattern ((~or (~literal =/c)
                  (~literal >=/c) (~literal >/c)
                  (~literal <=/c) (~literal </c))
             _:real))
   (pattern _:lit)
   (pattern _:id))
+
+(define-syntax-class rngc
+  #:description "restricted function range"
+  (pattern _:fc)
+  (pattern ((~literal values) _:fc _:fc _:fc ...)))
+
+(define-syntax-class rstc
+  #:description "restricted rest args contract"
+  (pattern (~literal list?))
+  (pattern ((~literal listof) _:fc))
+  (pattern ((~literal cons/c) _:fc _:rstc)))
 
 (define-syntax-class lit
   #:description "restricted literals"
