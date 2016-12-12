@@ -218,7 +218,7 @@
                       [else φs-path])))
                 (apply Γ+ Γₑᵣ φ-ans (set->list φs-path))))
             (cond
-              [(plausible-return? M Γₑᵣ** γ Γₑₑ)
+              [#t #;(plausible-return? M Γₑᵣ** γ Γₑₑ)
                (hash-set! returned key #t)
                (define sₐ*
                  (and sₐ
@@ -253,7 +253,7 @@
               [else
                (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
                (cond
-                 [(plausible-return? M Γₑᵣ γ Γₑₑ)
+                 [#t #;(plausible-return? M Γₑᵣ γ Γₑₑ)
                   (hash-set! returned key #t)
                   (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
                  [else ∅])])])]))))
