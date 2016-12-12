@@ -13,24 +13,28 @@
 (define-type -⟦o⟧! (-⟪ℋ⟫ -ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
 (define-type Prim-Thunk (-Γ → (℘ -ΓA)))
 
-(: unchecked-ac : -σ -st-ac -W¹ → (℘ -W¹))
+(: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
 ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
 ;; This is only for use internally, so it's safe (though imprecise) to ignore field wraps
-(define (unchecked-ac σ ac W)
+(define (unchecked-ac σ Γ ac W)
   (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
   (match-define (-W¹ (list V) s) W)
   (match-define (-st-ac 𝒾 i) ac)
+  (define φs (-Γ-facts Γ))
   (define s* (-?@ ac s))
   (let go ([V : -V V])
     (match V
       [(-St (== 𝒾) αs)
-       (for/set: : (℘ -W¹) ([V* (in-set (σ@ σ (list-ref αs i)))])
+       (for/set: : (℘ -W¹) ([V* (in-set (σ@ σ (list-ref αs i)))]
+                            #:when (plausible-V-s? φs V* s*))
          (-W¹ V* s*))]
       [(-St* (== 𝒾) _ α _)
        (cond [(seen-has? α) ∅]
              [else
               (seen-add! α)
-              (for/union : (℘ -W¹) ([V (in-set (σ@ σ α))]) (go V))])]
+              (for/union : (℘ -W¹) ([V (in-set (σ@ σ α))]
+                                    #:when (plausible-V-s? φs V s))
+                (go V))])]
       [(? -●?) {set (-W¹ -●/V s*)}]
       [_ ∅])))
 
