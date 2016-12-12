@@ -37,7 +37,7 @@
   (define on-done/c (identifier? identifier? syntax? boolean? . -> . syntax?))
 
   ;; Generate full precondition check
-  (define/contract (gen-arg-list-check Σ Γ l o Ws-id W-ids cs ok-case-body)
+  (define/contract (gen-arg-list-check Σ Γ l o Ws-id W-ids cs gen-ok-case)
     (identifier? identifier? identifier? identifier? identifier? (listof identifier?)
                  (listof syntax?)
                  (identifier? identifier? . -> . (listof syntax?))
@@ -146,7 +146,7 @@
           (identifier? syntax? symbol? . -> . symbol?)
           (gen-precond-check! W c on-done push-thunk!))
         
-        (push-thunk! 'on-args-checked (ok-case-body #'M #'σ))
+        (push-thunk! 'on-args-checked (gen-ok-case #'M #'σ))
         (define entry-name (foldr step! 'on-args-checked W-ids cs))
         (define entry-body (hash-ref thunks entry-name))
         (for/fold ([acc entry-body])
@@ -264,7 +264,7 @@
 
    ;; Generate primitive body for the case where 1+ argument is symbolic
    ;; Free variable `Γ` available as "the" path condition
-   (define/contract (sym-case-body M σ) (identifier? identifier? . -> . (listof syntax?))
+   (define/contract (gen-sym-case M σ) (identifier? identifier? . -> . (listof syntax?))
      (let ()
        (define/contract refinement-sets (listof (listof syntax?))
          (let go ([c #'cₐ])
@@ -318,7 +318,7 @@
 
    ;; Generate primitve body when all preconds have passed
    ;; Free variable `Γ` available as "the" path condition
-   (define/contract (ok-case-body M σ) (identifier? identifier? . -> . (listof syntax?))
+   (define/contract (gen-ok-case M σ) (identifier? identifier? . -> . (listof syntax?))
      (let ()
        (define/contract (gen-base-guard c x)
          (syntax? syntax? . -> . (or/c syntax? #f))
@@ -376,7 +376,7 @@
                                 (define bₐ #,(simp@ #'o b-ids))
                                 {set (-ΓA Γ (-W (list bₐ) bₐ))}])]
                       [else '()])
-                 [(s ...) #,@(sym-case-body M σ)]))]))))
+                 [(s ...) #,@(gen-sym-case M σ)]))]))))
 
    (with-syntax* ([.o (prefix-id #'o)]
                   [arity-req (format-symbol "~a values" n)]
@@ -384,7 +384,7 @@
                   [defn-o
                     #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
                         #,(gen-arg-list-check #'Σ #'Γ #'l #'o #'Ws W-ids cₓ-list
-                                              ok-case-body))])
+                                              gen-ok-case))])
      #`(begin
          (: .o : -⟦o⟧!)
          defn-o
