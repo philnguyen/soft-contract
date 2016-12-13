@@ -73,9 +73,9 @@
             (push-local-thunk!
              (gen-name!)
              (list #`(define bₓ (-b #,x))
-                   #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ '#,★ #,W (-W¹ bₓ bₓ))])
-                       #:true  (#,(->id (on-done #'why pos?)) Γ₁)
-                       #:false (#,(->id (on-done #'why (not pos?))) Γ₂))))))
+                   #`(with-MΓ⊢oW (M σ Γ '#,★ #,W (-W¹ bₓ bₓ))
+                       #:on-t #,(->id (on-done #'why pos?))
+                       #:on-f #,(->id (on-done #'why (not pos?))))))))
 
         (syntax-parse c
           [((~literal and/c) c* ... cₙ)
@@ -114,6 +114,8 @@
                                                 [W₂ (in-set (unchecked-ac σ Γ -cdr #,W))])
                                      #,@(gen-program κ₁ thunks*))))]
                     [else (on-done c pos*?)])))]
+          [((~literal listof) c*)
+           #'(error "TODO")]
           [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'-=/c)]
           [((~literal </c ) x) (gen-comp/c-case #'x #'<  #'-</c)]
           [((~literal <=/c) x) (gen-comp/c-case #'x #'<= #'-≤/c)]
@@ -124,9 +126,9 @@
              (push-local-thunk!
               (gen-name!)
               (list #'(define bₓ (-b x))
-                    #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ Γ 'equal? #,W (-W¹ bₓ bₓ))])
-                        #:true  (#,(->id (on-done #'why pos?)) Γ₁)
-                        #:false (#,(->id (on-done #'why (not pos?))) Γ₂)))))]
+                    #`(with-MΓ⊢oW (M σ Γ 'equal? #,W (-W¹ bₓ bₓ))
+                        #:on-t #,(->id (on-done #'why pos?))
+                        #:on-f #,(->id (on-done #'why (not pos?)))))))]
           [(~literal any/c) (on-done #''any/c pos?)]
           [(~literal none/c) (on-done #'not/c (not pos?))]
           [c:id
@@ -137,9 +139,9 @@
                          [why (if pos? #''c #'(-not/c 'c))])
              (push-local-thunk!
               (gen-name!)
-              #`(with-Γ+/- ([(Γ₁ Γ₂) (MΓ+/-oW M σ #,Γ p #,W)])
-                  #:true  (#,(->id (on-done #'why pos?)) Γ₁)
-                  #:false (#,(->id (on-done #'why (not pos?))) Γ₂))))]))
+              #`(with-MΓ⊢oW (M σ #,Γ p #,W)
+                  #:on-t #,(->id (on-done #'why pos?))
+                  #:on-f #,(->id (on-done #'why (not pos?))))))]))
 
       (define entry-name
         (go! c #t
@@ -260,6 +262,11 @@
                 (and* (list #`(⊢?/quick R σ Γ -cons? #,W)
                             (go #'c₁ pos?)
                             (go #'c₂ pos?)))]
+               [((~literal listof) _)
+                (raise-syntax-error
+                 'def-prim
+                 (format "~a: `listof` in refinement not supported for now" #''o)
+                 c)]
                [((~literal =/c ) x) #`(⊢?/quick R σ Γ '=  #,W (-W¹ (-b x) (-b x)))]
                [((~literal >/c ) x) #`(⊢?/quick R σ Γ '>  #,W (-W¹ (-b x) (-b x)))]
                [((~literal >=/c) x) #`(⊢?/quick R σ Γ '>= #,W (-W¹ (-b x) (-b x)))]
@@ -305,7 +312,12 @@
              [((~literal cons/c) _ _)
               (raise-syntax-error
                'def-prim
-               (format "~a: cons/c in range not supported for now" (syntax-e #'o))
+               (format "~a: `cons/c` in range not supported for now" (syntax-e #'o))
+               c)]
+             [((~literal listof/c) _)
+              (raise-syntax-error
+               'def-prim
+               (format "~a: `listof` in range not supported for now" (syntax-e #'o))
                c)]
              [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
              [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
@@ -354,6 +366,7 @@
               (define e₁ (and e₀ (gen-base-guard #'c₁ #`(car #,x))))
               (define e₂ (and e₁ (gen-base-guard #'c₂ #`(cdr #,x))))
               (and e₂ (and* (list e₀ e₁ e₂)))]
+             [((~literal listof) _) #f]
              [((~or (~literal =/c)
                     (~literal >/c) (~literal >=/c)
                     (~literal </c) (~literal <=/c))

@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 (require racket/match
          racket/set
+         syntax/parse/define
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
@@ -211,3 +212,16 @@
     (for ([(α Vs) (hash-copy/spanning* (-σ-m σ) (V->⟪α⟫s V) V->⟪α⟫s)])
       (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α -⟪α⟫)) (set-map Vs show-V)))
     (printf "~n")))
+
+(: with-MΓ⊢oW-handler : (-Γ → (℘ -ΓA)) (-Γ → (℘ -ΓA)) -M -σ -Γ -o -W¹ * → (℘ -ΓA))
+(define (with-MΓ⊢oW-handler f₁ f₂ M σ Γ o . Ws)
+  (define ss (map -W¹-s Ws))
+  (define (on-t) (f₁ (Γ+ Γ (apply -?@ o ss))))
+  (define (on-f) (f₂ (Γ+ Γ (-?@ 'not (apply -?@ o ss)))))
+  (case (apply MΓ⊢oW M σ Γ o Ws)
+    [(✓) (on-t)]
+    [(✗) (on-f)]
+    [else (∪ (on-t) (on-f))]))
+
+(define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
+  (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))
