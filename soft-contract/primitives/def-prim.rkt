@@ -18,6 +18,7 @@
                      racket/contract
                      racket/pretty
                      syntax/parse
+                     syntax/parse/define
                      "utils.rkt"
                      (only-in "../utils/pretty.rkt" n-sub))
          racket/contract
@@ -33,6 +34,14 @@
          "def-prim-runtime.rkt")
 
 (begin-for-syntax
+  (define/contract -Σ (parameter/c identifier?) (make-parameter (format-id #f "Σ")))
+  (define/contract -Γ (parameter/c identifier?) (make-parameter (format-id #f "Γ")))
+  (define/contract -σ (parameter/c identifier?) (make-parameter (format-id #f "σ")))
+  (define/contract -M (parameter/c identifier?) (make-parameter (format-id #f "M")))
+  (define/contract -ℓ (parameter/c identifier?) (make-parameter (format-id #f "ℓ")))
+  (define/contract -l (parameter/c identifier?) (make-parameter (format-id #f "l")))
+  (define/contract -⟪ℋ⟫ (parameter/c identifier?) (make-parameter (format-id #f "⟪ℋ⟫")))
+  (define/contract -Ws (parameter/c identifier?) (make-parameter (format-id #f "Ws")))
 
   (define (->id κ) (format-id #f "~a" κ))
 
@@ -40,14 +49,198 @@
     (symbol? (hash/c symbol? (listof syntax?)) . -> . (listof syntax?))
     (for/fold ([acc (hash-ref table entry)])
               ([(f es) (in-hash table)] #:unless (equal? f entry))
-      (cons #`(define (#,(->id f) [Γ : -Γ]) #,@es) acc)))
+      (cons #`(define (#,(->id f) [#,(-Γ) : -Γ]) #,@es) acc)))
+
+  ;; Generate primitve body when all preconds have passed
+  ;; Free variable `Γ` available as "the" path condition
+  (define/contract (gen-ok-case doms rng refinement-clauses)
+    ((listof syntax?) syntax? (listof syntax?) . -> . (listof syntax?))
+    (define n (length doms))
+    (define b-ids (gen-ids #f 'b n))
+    (define W-ids (gen-ids #f 'W n))
+    (define s-ids (gen-ids #f 's n))
+
+    (with-syntax ([(cₓ ...) doms])
+      (define/contract (gen-base-guard c x)
+        (syntax? syntax? . -> . (or/c syntax? #f))
+        (let go ([c c])
+          (syntax-parse c
+            [((~literal and/c) cᵢ ...)
+             (define clauses (map go (syntax->list #'(cᵢ ...))))
+             (and (andmap values clauses) (and* clauses))]
+            [((~literal or/c) cᵢ ...)
+             (define clauses (map go (syntax->list #'(cᵢ ...))))
+             (and (andmap values clauses) (or* clauses))]
+            [((~literal not/c) d)
+             (define clause (go #'d))
+             (and clause (not* clause))]
+            [((~literal cons/c) c₁ c₂)
+             (define e₀ (go #'pair?))
+             (define e₁ (and e₀ (gen-base-guard #'c₁ #`(car #,x))))
+             (define e₂ (and e₁ (gen-base-guard #'c₂ #`(cdr #,x))))
+             (and e₂ (and* (list e₀ e₁ e₂)))]
+            [((~literal listof) _) #f]
+            [((~or (~literal =/c)
+                   (~literal >/c) (~literal >=/c)
+                   (~literal </c) (~literal <=/c))
+              _)
+             #`(real? #,x)]
+            [_:number #`(number? #,x)]
+            [_:symbol #`(symbol? #,x)]
+            [(~literal any/c) #'#t]
+            [(~literal none/c) #'#f]
+            [(~literal integer?) #`(exact-integer? #,x)]
+            [c:id (and (base-predicate? #'c) #`(c #,x))])))
+      
+      (define (simp@ f xs)
+        (syntax-parse f
+          [(~literal any/c) #'-tt]
+          [(~literal none/c) #'-ff]
+          [_ #`(-b (#,f #,@xs))]))
+
+      (with-syntax ([(W ...) (datum->syntax #f W-ids)]
+                    [(s ...) (datum->syntax #f s-ids)]
+                    [(b ...) (datum->syntax #f b-ids)])
+        (syntax-parse #'cₐ ; generate predicates differently
+          [(~literal boolean?)
+           (list #`(implement-predicate #,(-M) #,(-σ) #,(-Γ) 'o #,(-Ws)))]
+          [_
+           (define base-guards
+             (and (syntax-e #'lift?)
+                  (not (skip-base-case-lifting? #'o))
+                  (let ([clauses (map gen-base-guard doms b-ids)])
+                    (and (andmap values clauses) (and* clauses)))))
+           (define lift-concrete-case? (and base-guards (range-is-base? #'cₐ)))
+           (list
+            #`(match* ((-W¹-s W) ...)
+                #,@(cond
+                     [lift-concrete-case?
+                      (list #`[((-b b) ...) #:when #,base-guards
+                               (define bₐ #,(simp@ #'o b-ids))
+                               {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
+                     [else '()])
+                [(s ...) #,@(gen-sym-case n rng refinement-clauses)]))]))))
+
+  ;; Generate function that refines results when more is known about arguments
+  (define/contract (gen-refine-body V refinements)
+    (identifier? (listof syntax?) . -> . (listof syntax?))
+
+    (define-values (refine-dom-list refine-rng-list)
+      (for/lists (refine-dom-list refine-rng-list)
+                 ([refinement (in-list refinements)])
+        (syntax-parse refinement
+          [((rₓ ...) rₐ) (values (syntax->list #'(rₓ ...)) #'rₐ)])))
+    
+    (define n (length (car refine-dom-list)))
+    (define W-ids (gen-ids #f 'W n))
+
+    (define (gen-check-definitely W c)
+      (define (pos?->R pos?) (if pos? #''✓ #''✗))
+      (let go ([c c] [pos? #t])
+        
+        (with-syntax ([R (pos?->R pos?)])
+          (syntax-parse c
+            [((~literal and/c) c* ...)
+             (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+            [((~literal or/c ) c* ...)
+             (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+            [((~literal not/c) d) (go #'d (not pos?))]
+            [((~literal cons/c) c₁ c₂)
+             (and* (list #`(⊢?/quick R #,(-σ) #,(-Γ) -cons? #,W)
+                         (go #'c₁ pos?)
+                         (go #'c₂ pos?)))]
+            [((~literal listof) _)
+             (raise-syntax-error
+              'def-prim
+              (format "~a: `listof` in refinement not supported for now" #''o)
+              c)]
+            [((~literal =/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '=  #,W (-W¹ (-b x) (-b x)))]
+            [((~literal >/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>  #,W (-W¹ (-b x) (-b x)))]
+            [((~literal >=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>= #,W (-W¹ (-b x) (-b x)))]
+            [((~literal </c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<  #,W (-W¹ (-b x) (-b x)))]
+            [((~literal <=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<= #,W (-W¹ (-b x) (-b x)))]
+            [(~literal any/c) #'#t]
+            [(~literal none/c) #'#f]
+            [x:lit #'(⊢?/quick R #,(-σ) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
+            [c:id #`(⊢?/quick R #,(-σ) #,(-Γ) 'c #,W)]))))
+
+    `(,@(for/list ([doms (in-list refine-dom-list)]
+                   [rng  (in-list refine-rng-list)])
+          (define preconds (map gen-check-definitely W-ids doms))
+          #`(when #,(and* preconds)
+              #,@(for/list ([cᵣ (in-list (rng->refinement rng))])
+                   #`(set! #,V (V+ σ #,V #,cᵣ)))))
+      ,V))
+
+  ;; Generate primitive body for the case where 1+ argument is symbolic
+  ;; Free variable `Γ` available as "the" path condition
+  (define/contract (gen-sym-case n rng refinement-clauses)
+    (integer? syntax? (listof syntax?) . -> . (listof syntax?))
+    (define/contract refinement-sets (listof (listof syntax?))
+      (let go ([c rng])
+        (syntax-parse c
+          [((~literal and/c) c* ...)
+           (let go/and/c ([cs (syntax->list #'(c* ...))])
+             (match cs
+               ['() (list (list))]
+               [(cons c cs*)
+                (remove-duplicates
+                 (for/list ([ref-set₁ (in-list (go c))]
+                            [ref-set₂ (in-list (go/and/c cs*))])
+                   (remove-duplicates (append ref-set₁ ref-set₂))))]))]
+          [((~literal or/c) cᵢ ...)
+           (append-map go (syntax->list #'(cᵢ ...)))]
+          [((~literal not/c) d)
+           (cond [(identifier? #'d) (list (list #'(-not/c 'd)))]
+                 [else (raise-syntax-error
+                        'def-prim
+                        (format "~a: only identifier can follow not/c in range" #'o)
+                        c)])]
+          [((~literal cons/c) _ _)
+           (raise-syntax-error
+            'def-prim
+            (format "~a: `cons/c` in range not supported for now" (syntax-e #'o))
+            c)]
+          [((~literal listof/c) _)
+           (raise-syntax-error
+            'def-prim
+            (format "~a: `listof` in range not supported for now" (syntax-e #'o))
+            c)]
+          [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
+          [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
+          [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
+          [((~literal </c) x) (list (list #''real? #'(-</c x)))]
+          [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
+          [x:lit (list (list #'(-≡/c (-b x))))]
+          [(~literal any/c) (list (list))]
+          [(~literal none/c) (list)]
+          [c:id {list (list #''c)}])))
+
+    (define (refs->V refs)
+      (cond [(null? refs) #'-●/V]
+            [else #`(-● {set #,@refs})]))
+    (define (refs->Vs refs)
+      (cond [(null? refs) #'-●/Vs]
+            [else #`(list (-● {set #,@refs}))]))
+
+    (define s-ids (gen-ids #f 's n))
+    
+    (cond
+      [(null? refinement-clauses)
+       (list #`(define sₐ (-?@ 'o #,@s-ids))
+             #`(set #,@(for/list ([refs (in-list refinement-sets)])
+                         #`(-ΓA #,(-Γ) (-W #,(refs->Vs refs) sₐ)))))]
+      [else
+       (with-syntax ([o.refine (format-id #f "~a.refine" (syntax-e #'o))])
+         (list #`(define sₐ (-?@ 'o #,@s-ids))
+               #`(define (o.refine [V : -V])
+                   #,@(gen-refine-body #'V refinement-clauses))
+               #`(set #,@(for/list ([refs (in-list refinement-sets)])
+                           #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ))))))]))
 
   ;; Generate full precondition check
-  (define/contract (gen-arg-list-check Σ Γ l o Ws-id W-ids cs gen-ok-case)
-    (identifier? identifier? identifier? identifier? identifier? (listof identifier?)
-                 (listof syntax?)
-                 (identifier? identifier? . -> . (listof syntax?))
-                 . -> . syntax?)
+  (define/contract (gen-arg-list-check o W-ids cs ok-body)
+    (identifier? (listof identifier?) (listof syntax?) (listof syntax?) . -> . syntax?)
 
     (define on-done/c (syntax? boolean? . -> . symbol?))
     (define push/c (symbol? (or/c syntax? (listof syntax?)) . -> . symbol?))
@@ -122,7 +315,7 @@
                             (cond [pos? 'chk-tail]
                                   [else (listof.push!
                                          (gen-name! 'fail)
-                                         #`{set (-ΓA Γ (-blm #,l '#,o (list '#,c) (list Vₕ)))})]))))
+                                         #`{set (-ΓA #,(-Γ) (-blm #,(-l) '#,o (list '#,c) (list Vₕ)))})]))))
           (for/fold ([acc (hash-ref listof.thunks κ₀)])
                     ([(f es) (in-hash listof.thunks)] #:unless (equal? f κ₀))
             (cons #`(define (#,(->id f)) #,@es) acc)))
@@ -141,9 +334,9 @@
                          (for/union : (℘ -ΓA) ([Vₕ (in-set (σ@ σ αₕ))])
                            #,@(gen-loop-body! c pos?)))
                        (chk-elem)]
-                      [(-b (list)) (#,κ Γ)]
-                      [(-● ps) #|TODO|# (blm Γ #,l '#,o 'list? V)]
-                      [_ (blm Γ #,l '#,o 'list? V)]))))
+                      [(-b (list)) (#,κ #,(-Γ))]
+                      [(-● ps) #|TODO|# (blm #,(-Γ) #,(-l) '#,o 'list? V)]
+                      [_ (blm #,(-Γ) #,(-l) '#,o 'list? V)]))))
         (push-thunk! (gen-name! 'chk-listof) body))
 
 
@@ -156,7 +349,7 @@
             (push-local-thunk!
              (gen-name!)
              (list #`(define bₓ (-b #,x))
-                   #`(with-MΓ⊢oW (M σ Γ '#,★ #,W (-W¹ bₓ bₓ))
+                   #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) '#,★ #,W (-W¹ bₓ bₓ))
                        #:on-t #,(->id (on-done #'why pos?))
                        #:on-f #,(->id (on-done #'why (not pos?))))))))
 
@@ -193,8 +386,8 @@
                        (define κ₁ (gen-precond-check! #'W₁ #'c₁ κ₂ push*!))
                        (push-local-thunk!
                         (gen-name! 'chk-cons/c)
-                        #`(for/union : (℘ -ΓA) ([W₁ (in-set (unchecked-ac σ Γ -car #,W))]
-                                                [W₂ (in-set (unchecked-ac σ Γ -cdr #,W))])
+                        #`(for/union : (℘ -ΓA) ([W₁ (in-set (unchecked-ac #,(-σ) #,(-Γ) -car #,W))]
+                                                [W₂ (in-set (unchecked-ac #,(-σ) #,(-Γ) -cdr #,W))])
                                      #,@(gen-program κ₁ thunks*))))]
                     [else (on-done c pos*?)])))]
           [((~literal listof) c*)
@@ -219,7 +412,7 @@
              (push-local-thunk!
               (gen-name!)
               (list #'(define bₓ (-b x))
-                    #`(with-MΓ⊢oW (M σ Γ 'equal? #,W (-W¹ bₓ bₓ))
+                    #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) 'equal? #,W (-W¹ bₓ bₓ))
                         #:on-t #,(->id (on-done #'why pos?))
                         #:on-f #,(->id (on-done #'why (not pos?)))))))]
           [(~literal any/c) (on-done #''any/c pos?)]
@@ -232,7 +425,7 @@
                          [why (if pos? #''c #'(-not/c 'c))])
              (push-local-thunk!
               (gen-name!)
-              #`(with-MΓ⊢oW (M σ #,Γ p #,W)
+              #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) p #,W)
                   #:on-t #,(->id (on-done #'why pos?))
                   #:on-f #,(->id (on-done #'why (not pos?))))))]))
 
@@ -241,7 +434,7 @@
              (λ (c pos?)
                (if pos?
                    κ
-                   (push-local-thunk! (gen-name! 'blm) #`(blm Γ #,l '#,o #,c #,W))))))
+                   (push-local-thunk! (gen-name! 'blm) #`(blm #,(-Γ) #,(-l) '#,o #,c #,W))))))
       
       (cond [(hash-ref local-thunks entry-name #f) =>
              (λ (entry)
@@ -249,14 +442,14 @@
                (define body
                  `(,@(for/list ([(f es) (in-hash local-thunks)]
                                 #:unless (equal? f entry-name))
-                       #`(define (#,(->id f) [Γ : -Γ]) #,@es))
+                       #`(define (#,(->id f) [#,(-Γ) : -Γ]) #,@es))
                    ,@entry))
                (push-thunk! name body))]
             [else κ]))
 
     (define main-body
       (let-values ([(thunks push-thunk!) (new-thunk-table)])
-        (push-thunk! 'on-args-checked (gen-ok-case #'M #'σ))
+        (push-thunk! 'on-args-checked ok-body)
         
         (define/contract (step! W c on-done)
           (identifier? syntax? symbol? . -> . symbol?)
@@ -265,12 +458,12 @@
         (gen-program (foldr step! 'on-args-checked W-ids cs) thunks)))
     
     (with-syntax ([arity-req (format-symbol "~a values" (length W-ids))])
-      #`(match #,Ws-id
+      #`(match #,(-Ws)
           [(list #,@W-ids)
-           (match-define (-Σ σ _ M) #,Σ)
+           (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
            #,@main-body]
           [_
-           {set (-ΓA #,Γ (-blm #,l '#,o '(arity-req) (map -W¹-V #,Ws-id)))}]))))
+           {set (-ΓA #,(-Γ) (-blm #,(-l) '#,o '(arity-req) (map -W¹-V #,(-Ws))))}]))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -296,223 +489,28 @@
          (hash-set! prim-table 'o .o)
          (set-range! 'o 'boolean?)
          (update-arity! 'o #,n)))]
-  [(_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
-      (~optional (~seq #:other-errors [cₑ:fc ...] ...)
-                 #:defaults ([(cₑ 2) null]))
-      (~optional (~seq #:refinements [(~literal ->) rₓ:fc ... rₐ:fc] ...)
-                 #:defaults ([(rₓ 2) null] [(rₐ 1) null]))
-      (~optional (~seq #:lift-concrete? lift?:boolean)
-                 #:defaults ([lift? #'#t])))
-   (define cₓ-list (syntax->list #'(cₓ ...)))
-   (define cₑ-list (syntax->list #'((cₑ ...) ...)))
-   (define n (length cₓ-list))
+  [(~and def
+         (_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
+            (~optional (~seq #:other-errors [cₑ:fc ...] ...)
+                       #:defaults ([(cₑ 2) null]))
+            (~optional (~seq #:refinements [(~literal ->) rₓ:fc ... rₐ:fc] ...)
+                       #:defaults ([(rₓ 2) null] [(rₐ 1) null]))
+            (~optional (~seq #:lift-concrete? lift?:boolean)
+                       #:defaults ([lift? #'#t]))))
+   ;; Perform quick check for arity consistency
+   (check-arity! #'def)
 
-   ;; Perform quick checks for arity consistency
-   (let ()
-     (define (check-domain-arity doms)
-       (define m (length (syntax->list doms)))
-       (unless (equal? n m)
-         (raise-syntax-error
-          'def-prim
-          (format "~a has arity ~a, but get ~a" (syntax-e #'o) n m)
-          doms)))
-     (for-each check-domain-arity (syntax->list #'((cₑ ...) ...)))
-     (for-each check-domain-arity (syntax->list #'((rₓ ...) ...))))
-
-   ;; Generate identifiers for each argument
-   (define-values (W-ids V-ids s-ids b-ids)
-     (for/lists (W-ids V-ids s-ids b-ids) ([i (in-range n)])
-       (define ᵢ (n-sub i))
-       (values (format-id #f "W~a" ᵢ)
-               (format-id #f "V~a" ᵢ)
-               (format-id #f "s~a" ᵢ)
-               (format-id #f "b~a" ᵢ))))
-
-   ;; Generate function that refines results when more is known about arguments
-   (define/contract (gen-refine-body M σ V refinements)
-     (identifier? identifier? identifier? (listof syntax?) . -> . (listof syntax?))
-
-     (define-values (refine-dom-list refine-rng-list)
-       (for/lists (refine-dom-list refine-rng-list)
-                  ([refinement (in-list refinements)])
-         (syntax-parse refinement
-           [((rₓ ...) rₐ) (values (syntax->list #'(rₓ ...)) #'rₐ)])))
-
-     (with-syntax ([M M]
-                   [σ σ])
-       (define (gen-check-definitely W c)
-         (define (pos?->R pos?) (if pos? #''✓ #''✗))
-         (let go ([c c] [pos? #t])
-           
-           (with-syntax ([R (pos?->R pos?)])
-             (syntax-parse c
-               [((~literal and/c) c* ...)
-                (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-               [((~literal or/c ) c* ...)
-                (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-               [((~literal not/c) d) (go #'d (not pos?))]
-               [((~literal cons/c) c₁ c₂)
-                (and* (list #`(⊢?/quick R σ Γ -cons? #,W)
-                            (go #'c₁ pos?)
-                            (go #'c₂ pos?)))]
-               [((~literal listof) _)
-                (raise-syntax-error
-                 'def-prim
-                 (format "~a: `listof` in refinement not supported for now" #''o)
-                 c)]
-               [((~literal =/c ) x) #`(⊢?/quick R σ Γ '=  #,W (-W¹ (-b x) (-b x)))]
-               [((~literal >/c ) x) #`(⊢?/quick R σ Γ '>  #,W (-W¹ (-b x) (-b x)))]
-               [((~literal >=/c) x) #`(⊢?/quick R σ Γ '>= #,W (-W¹ (-b x) (-b x)))]
-               [((~literal </c ) x) #`(⊢?/quick R σ Γ '<  #,W (-W¹ (-b x) (-b x)))]
-               [((~literal <=/c) x) #`(⊢?/quick R σ Γ '<= #,W (-W¹ (-b x) (-b x)))]
-               [(~literal any/c) #'#t]
-               [(~literal none/c) #'#f]
-               [x:lit #'(⊢?/quick R σ Γ 'equal? #,W (-W¹ (-b x) (-b x)))]
-               [c:id #`(⊢?/quick R σ Γ 'c #,W)]))))
-
-       `(,@(for/list ([doms (in-list refine-dom-list)]
-                      [rng  (in-list refine-rng-list)])
-             (define preconds (map gen-check-definitely W-ids doms))
-             #`(when #,(and* preconds)
-                 #,@(for/list ([cᵣ (in-list (rng->refinement rng))])
-                      #`(set! #,V (V+ σ #,V #,cᵣ)))))
-         ,V)))
-
-   ;; Generate primitive body for the case where 1+ argument is symbolic
-   ;; Free variable `Γ` available as "the" path condition
-   (define/contract (gen-sym-case M σ) (identifier? identifier? . -> . (listof syntax?))
-     (let ()
-       (define/contract refinement-sets (listof (listof syntax?))
-         (let go ([c #'cₐ])
-           (syntax-parse c
-             [((~literal and/c) c* ...)
-              (let go/and/c ([cs (syntax->list #'(c* ...))])
-                (match cs
-                  ['() (list (list))]
-                  [(cons c cs*)
-                   (remove-duplicates
-                    (for/list ([ref-set₁ (in-list (go c))]
-                               [ref-set₂ (in-list (go/and/c cs*))])
-                      (remove-duplicates (append ref-set₁ ref-set₂))))]))]
-             [((~literal or/c) cᵢ ...)
-              (append-map go (syntax->list #'(cᵢ ...)))]
-             [((~literal not/c) d)
-              (cond [(identifier? #'d) (list (list #'(-not/c 'd)))]
-                    [else (raise-syntax-error
-                           'def-prim
-                           (format "~a: only identifier can follow not/c in range" #'o)
-                           c)])]
-             [((~literal cons/c) _ _)
-              (raise-syntax-error
-               'def-prim
-               (format "~a: `cons/c` in range not supported for now" (syntax-e #'o))
-               c)]
-             [((~literal listof/c) _)
-              (raise-syntax-error
-               'def-prim
-               (format "~a: `listof` in range not supported for now" (syntax-e #'o))
-               c)]
-             [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
-             [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
-             [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
-             [((~literal </c) x) (list (list #''real? #'(-</c x)))]
-             [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
-             [x:lit (list (list #'(-≡/c (-b x))))]
-             [(~literal any/c) (list (list))]
-             [(~literal none/c) (list)]
-             [c:id {list (list #''c)}])))
-
-       (define extra-refinements (syntax->list #'(((rₓ ...) rₐ) ...)))
-       (define (refs->V refs)
-         (cond [(null? refs) #'-●/V]
-               [else #`(-● {set #,@refs})]))
-       (define (refs->Vs refs)
-         (cond [(null? refs) #'-●/Vs]
-               [else #`(list (-● {set #,@refs}))]))
-       
-       (cond
-         [(null? extra-refinements)
-          (list #`(define sₐ (-?@ 'o #,@s-ids))
-                #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                            #`(-ΓA Γ (-W #,(refs->Vs refs) sₐ)))))]
-         [else
-          (with-syntax ([o.refine (format-id #f "~a.refine" (syntax-e #'o))])
-            (list #`(define sₐ (-?@ 'o #,@s-ids))
-                  #`(define (o.refine [V : -V])
-                      #,@(gen-refine-body M σ #'V extra-refinements))
-                  #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                              #`(-ΓA Γ (-W (list (o.refine #,(refs->V refs))) sₐ))))))])))
-
-   ;; Generate primitve body when all preconds have passed
-   ;; Free variable `Γ` available as "the" path condition
-   (define/contract (gen-ok-case M σ) (identifier? identifier? . -> . (listof syntax?))
-     (let ()
-       (define/contract (gen-base-guard c x)
-         (syntax? syntax? . -> . (or/c syntax? #f))
-         (let go ([c c])
-           (syntax-parse c
-             [((~literal and/c) cᵢ ...)
-              (define clauses (map go (syntax->list #'(cᵢ ...))))
-              (and (andmap values clauses) (and* clauses))]
-             [((~literal or/c) cᵢ ...)
-              (define clauses (map go (syntax->list #'(cᵢ ...))))
-              (and (andmap values clauses) (or* clauses))]
-             [((~literal not/c) d)
-              (define clause (go #'d))
-              (and clause (not* clause))]
-             [((~literal cons/c) c₁ c₂)
-              (define e₀ (go #'pair?))
-              (define e₁ (and e₀ (gen-base-guard #'c₁ #`(car #,x))))
-              (define e₂ (and e₁ (gen-base-guard #'c₂ #`(cdr #,x))))
-              (and e₂ (and* (list e₀ e₁ e₂)))]
-             [((~literal listof) _) #f]
-             [((~or (~literal =/c)
-                    (~literal >/c) (~literal >=/c)
-                    (~literal </c) (~literal <=/c))
-               _)
-              #`(real? #,x)]
-             [_:number #`(number? #,x)]
-             [_:symbol #`(symbol? #,x)]
-             [(~literal any/c) #'#t]
-             [(~literal none/c) #'#f]
-             [(~literal integer?) #`(exact-integer? #,x)]
-             [c:id (and (base-predicate? #'c) #`(c #,x))])))
-       (define (simp@ f xs)
-         (syntax-parse f
-           [(~literal any/c) #'-tt]
-           [(~literal none/c) #'-ff]
-           [_ #`(-b (#,f #,@xs))]))
-
-       (with-syntax ([(W ...) (datum->syntax #f W-ids)]
-                     [(s ...) (datum->syntax #f s-ids)]
-                     [(b ...) (datum->syntax #f b-ids)])
-         (syntax-parse #'cₐ ; generate predicates differently
-           [(~literal boolean?)
-            (list #`(implement-predicate #,M #,σ Γ 'o Ws))]
-           [_
-            (define base-guards
-              (and (syntax-e #'lift?)
-                   (not (skip-base-case-lifting? #'o))
-                   (let ([clauses (map gen-base-guard (syntax->list #'(cₓ ...)) b-ids)])
-                     (and (andmap values clauses) (and* clauses)))))
-            (define lift-concrete-case? (and base-guards (range-is-base? #'cₐ)))
-            (list
-             #`(match* ((-W¹-s W) ...)
-                 #,@(cond
-                      [lift-concrete-case?
-                       (list #`[((-b b) ...) #:when #,base-guards
-                                (define bₐ #,(simp@ #'o b-ids))
-                                {set (-ΓA Γ (-W (list bₐ) bₐ))}])]
-                      [else '()])
-                 [(s ...) #,@(gen-sym-case M σ)]))]))))
-
+   (define n (length (syntax->list #'(cₓ ...))))
+   (define W-ids (gen-ids #f 'W n))
+   
    (with-syntax* ([.o (prefix-id #'o)]
                   [arity-req (format-symbol "~a values" n)]
-                  [(W ...) (datum->syntax #f W-ids)]
                   [defn-o
-                    #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
-                        #,(gen-arg-list-check #'Σ #'Γ #'l #'o #'Ws W-ids cₓ-list
-                                              gen-ok-case))])
+                    #`(define (.o #,(-⟪ℋ⟫) #,(-ℓ) #,(-l) #,(-Σ) #,(-Γ) #,(-Ws))
+                        #,(gen-arg-list-check #'o W-ids (syntax->list #'(cₓ ...))
+                           (gen-ok-case (syntax->list #'(cₓ ...))
+                                        #'cₐ
+                                        (syntax->list #'(((rₓ ...) rₐ) ...)))))])
      ;(pretty-write (syntax->datum #'defn-o))
      #`(begin
          (: .o : -⟦o⟧!)
@@ -530,16 +528,19 @@
   [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id)
       #:domain ([W:id c:fc] ...)
       e:expr ...)
-   (define/contract (ok-case M σ)
-     (identifier? identifier? . -> . (listof syntax?))
-     (syntax->list #'(e ...)))
    (with-syntax ([.o (prefix-id #'o)])
      (define defn
        #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
-           #,(gen-arg-list-check #'Σ #'Γ #'l #'o #'Ws
-                                 (syntax->list #'(W ...))
-                                 (syntax->list #'(c ...))
-                                 ok-case)))
+           #,(parameterize ([-⟪ℋ⟫ #'⟪ℋ⟫]
+                            [-ℓ #'ℓ]
+                            [-l #'l]
+                            [-Σ #'Σ]
+                            [-Γ #'Γ]
+                            [-Ws #'Ws])
+               (gen-arg-list-check #'o
+                                   (syntax->list #'(W ...))
+                                   (syntax->list #'(c ...))
+                                   (syntax->list #'(e ...))))))
      #`(begin
          (: .o : -⟦o⟧!)
          #,defn

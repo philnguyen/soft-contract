@@ -9,9 +9,15 @@
          racket/contract
          racket/splicing
          syntax/parse
+         syntax/parse/define
          (only-in "../utils/pretty.rkt" n-sub)
+         (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse)
          (for-template racket/base
                        racket/contract
+                       racket/syntax
+                       syntax/parse
                        "../ast/definition.rkt"
                        "../runtime/main.rkt"))
 
@@ -56,6 +62,24 @@
 (define-syntax-class symbol
   #:description "literal symbol"
   (pattern ((~literal quote) x) #:when (symbol? (syntax-e #'x))))
+
+(define check-arity!
+  (syntax-parser
+    [(_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
+        #:other-errors [cₑ:fc ...] ...
+        #:refinements [(~literal ->) rₓ:fc ... rₐ:fc] ...
+        #:lift-concrete? _)
+     (define n (length (syntax->list #'(cₓ ...))))
+     (define (check-domain-arity! doms)
+       (define m (length (syntax->list doms)))
+       (unless (equal? n m)
+         (raise-syntax-error
+          'def-prim
+          (format "~a has arity ~a, but get ~a" (syntax-e #'o) n m)
+          doms)))
+     (for-each check-domain-arity! (syntax->list #'((cₑ ...) ...)))
+     (for-each check-domain-arity! (syntax->list #'((rₓ ...) ...)))]
+    [_ (void)]))
 
 (define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))
 
@@ -196,3 +220,8 @@
           (λ (f es)
             (hash-set! m f (if (syntax? es) (list es) es))
             f)))
+
+(define/contract (gen-ids src prefix n)
+  ((or/c #f syntax?) (or/c symbol? string?) integer? . -> . (listof identifier?))
+  (for/list ([i (in-range n)])
+    (format-id src "~a~a" prefix (n-sub i))))

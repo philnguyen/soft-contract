@@ -1,12 +1,12 @@
 #lang typed/racket/base
 
-(provide ::= define-type/pred define-parameter :*)
+(provide ::= define-type/pred define-parameter :* define-syntax-id)
 
-(require
- (for-syntax racket/base
-             (except-in racket/syntax format-symbol)
-             syntax/parse
-             "pretty.rkt"))
+(require syntax/parse/define
+         (for-syntax racket/base
+                     (except-in racket/syntax format-symbol)
+                     syntax/parse
+                     "pretty.rkt"))
 
 ;; Define type `t` along with predicate `t?`
 (define-syntax (define-type/pred stx)
@@ -59,3 +59,9 @@
     #:literals (:)
     [(_ x:id ... : τ ...)
      #'(begin (: x : τ ...) ...)]))
+
+(define-simple-macro (define-syntax-id id:id e)
+  (define-syntax (id stx)
+    (cond [(identifier? stx) #'e]
+          [else
+           (raise-syntax-error 'id "identifier macro expects no argument" stx)])))
