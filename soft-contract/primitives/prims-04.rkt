@@ -875,9 +875,9 @@
 
 ;; 4.9.6 Pair Acesssor Shorthands
 ; FIXME these are *opaque* for now. Make them composition of accessors
-(def-prims (#:todo caar cdar)
+(def-prims (caar cdar)
  ((cons/c pair? any/c) . -> . any/c))
-(def-prims (#:todo cadr cddr)
+(def-prims (cadr cddr)
  ((cons/c any/c pair?) . -> . any/c))
 (def-prim caaar
  ((cons/c (cons/c pair? any/c) any/c) . -> . any/c))
@@ -901,27 +901,27 @@
 (def-alias empty null)
 (def-alias pair? cons?)
 (def-alias empty? null?)
-(def-prim/todo first
+(def-prim first
  ((cons/c any/c list?) . -> . any/c))
-(def-prim/todo rest
+(def-prim rest
  ((cons/c any/c list?) . -> . any/c))
-(def-prim/todo second
+(def-prim second
  ((cons/c any/c (cons/c any/c list?)) . -> . any/c))
-(def-prim/todo third
+(def-prim third
  ((cons/c any/c (cons/c any/c (cons/c any/c list?))) . -> . any/c))
-(def-prim/todo fourth
+(def-prim fourth
  ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))) . -> . any/c))
-(def-prim/todo fifth
+(def-prim fifth
  ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))) . -> . any/c))
-(def-prim/todo sixth
+(def-prim sixth
  ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))) . -> . any/c))
-(def-prim/todo seventh
+(def-prim seventh
  ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))) . -> . any/c))
-(def-prim/todo eighth
+(def-prim eighth
  ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))) . -> . any/c))
-(def-prim/todo ninth
+(def-prim ninth
  ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))))) . -> . any/c))
-(def-prim/todo tenth
+(def-prim tenth
  ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))))) . -> . any/c))
 (def-prim/todo last
  ((and/c list? (not/c empty?)) . -> . any/c))
