@@ -410,7 +410,7 @@
        [(-b (? string? s)) #:when (> (string-length s) 0) Ans]
        [_ (set-add Ans (-ΓA Γ (-W -null/Vs sₐ)))])]))
 (def-prim/custom (list->string ⟪ℋ⟫ ℓ l Σ Γ Ws)
-  #:domain ([W #|FIXME listof|# list?])
+  #:domain ([W (listof char?)])
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ V s) W)
   (define sₐ (-?@ 'list->string s))

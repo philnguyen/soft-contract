@@ -46,9 +46,10 @@
   (eq? R (first-R (apply p∋Vs σ o Vs)
                   (Γ⊢e Γ (apply -?@ o ss)))))
 
-(: blm : -Γ -l -l (U -V -v) -W¹ → (℘ -ΓA))
+(: blm : -Γ -l -l (U -V -v) (U -W¹ -V) → (℘ -ΓA))
 (define (blm Γ who whom why what)
-  {set (-ΓA Γ (-blm who whom (list why) (list (-W¹-V what))))})
+  (define what* (if (-W¹? what) (-W¹-V what) what))
+  {set (-ΓA Γ (-blm who whom (list why) (list what*)))})
 
 (: implement-predicate : -M -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
 (define (implement-predicate M σ Γ o Ws)
@@ -221,7 +222,17 @@
   (case (apply MΓ⊢oW M σ Γ o Ws)
     [(✓) (on-t)]
     [(✗) (on-f)]
-    [else (∪ (on-t) (on-f))]))
+    [(?) (∪ (on-t) (on-f))]))
+
+(: with-p∋Vs-handler : (→ (℘ -ΓA)) (→ (℘ -ΓA)) -σ -o -V * → (℘ -ΓA))
+(define (with-p∋Vs-handler t f σ o . Vs)
+  (case (apply p∋Vs σ o Vs)
+    [(✓) (t)]
+    [(✗) (f)]
+    [(?) (∪ (t) (f))]))
 
 (define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
   (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))
+
+(define-simple-macro (with-p∋Vs (σ:expr o:expr V:expr ...) #:on-t t:expr #:on-f f:expr)
+  (with-p∋Vs-handler t f σ o V ...))

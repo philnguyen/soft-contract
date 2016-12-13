@@ -49,11 +49,12 @@
                  (identifier? identifier? . -> . (listof syntax?))
                  . -> . syntax?)
 
+    (define on-done/c (syntax? boolean? . -> . symbol?))
+    (define push/c (symbol? (or/c syntax? (listof syntax?)) . -> . symbol?))
+
     ;; Generate precondition check before executing `κ`
     (define/contract (gen-precond-check! W c κ push-thunk!)
-      (identifier? syntax? symbol? (symbol? (listof syntax?) . -> . symbol?) . -> . symbol?)
-
-      (define on-done/c (syntax? boolean? . -> . symbol?))
+      (identifier? syntax? symbol? push/c . -> . symbol?)
 
       (define gen-name!
         (let ([i 0]
@@ -63,6 +64,88 @@
               (set! i (add1 i))))))
 
       (define-values (local-thunks push-local-thunk!) (new-thunk-table))
+
+      (define/contract (gen-listof-check! c pos? on-done push-thunk!)
+        (syntax? boolean? on-done/c push/c . -> . symbol?)
+        
+        (define/contract (gen-loop-body! c pos?)
+          (syntax? boolean? . -> . (listof syntax?))
+          ;; These are real "thunks" with no parameter
+          (define-values (listof.thunks listof.push!) (new-thunk-table))
+
+          (define/contract (go! c pos? on-done)
+            (syntax? boolean? (syntax? boolean? . -> . symbol?) . -> . symbol?)
+            (syntax-parse c
+              [((~literal and/c) c* ... cₙ)
+               (foldr
+                (λ (cᵢ κ)
+                  (go! cᵢ pos?
+                       (λ (c pos*?)
+                         (if (equal? pos*? pos?) κ (on-done c pos*?)))))
+                (go! #'cₙ pos? on-done)
+                (syntax->list #'(c* ...)))]
+              [((~literal or/c) c* ... cₙ)
+               (foldr
+                (λ (cᵢ κ)
+                  (go! cᵢ pos?
+                       (λ (c pos*?)
+                         (if (equal? pos*? pos?) (on-done c pos?) κ))))
+                (go! #'cₙ pos? on-done)
+                (syntax->list #'(c* ...)))]
+              [((~literal not/c) c*)
+               (go! #'c* (not pos?) on-done)]
+              [((~literal cons/c) c₁ c₂)
+               (error "TODO")]
+              [((~literal listof) c*)
+               (error "TODO")]
+              [((~literal =/c) x:real)
+               (error "TODO")]
+              [((~literal </c) x:real)
+               (error "TODO")]
+              [((~literal <=/c) x:real)
+               (error "TODO")]
+              [((~literal >/c) x:real)
+               (error "TODO")]
+              [((~literal >=/c) x:real)
+               (error "TODO")]
+              [x:lit
+               (error "TODO")]
+              [c:id
+               (listof.push!
+                (gen-name! 'chk-V-elem)
+                #`(with-p∋Vs (σ 'c Vₕ)
+                    #:on-t #,(on-done #'c pos?)
+                    #:on-f #,(on-done #'c (not pos?))))]))
+
+          (define κ₀ (go! c pos?
+                          (λ (c pos?)
+                            (cond [pos? 'chk-tail]
+                                  [else (listof.push!
+                                         (gen-name! 'fail)
+                                         #`{set (-ΓA Γ (-blm #,l '#,o (list '#,c) (list Vₕ)))})]))))
+          (for/fold ([acc (hash-ref listof.thunks κ₀)])
+                    ([(f es) (in-hash listof.thunks)] #:unless (equal? f κ₀))
+            (cons #`(define (#,(->id f)) #,@es) acc)))
+        
+        (define body
+          (list #`(define cache : (HashTable -⟪α⟫ (℘ -ΓA)) (make-hasheq))
+                #`(let go : (℘ -ΓA) ([V : -V (-W¹-V #,W)])
+                    (match V
+                      [(-Cons αₕ αₜ)
+                       (define (chk-tail)
+                         (hash-ref! cache αₜ
+                                    (λ ()
+                                      (for/union : (℘ -ΓA) ([Vₜ (in-set (σ@ σ αₜ))])
+                                         (go Vₜ)))))
+                       (define (chk-elem)
+                         (for/union : (℘ -ΓA) ([Vₕ (in-set (σ@ σ αₕ))])
+                           #,@(gen-loop-body! c pos?)))
+                       (chk-elem)]
+                      [(-b (list)) (#,κ Γ)]
+                      [(-● ps) #|TODO|# (blm Γ #,l '#,o 'list? V)]
+                      [_ (blm Γ #,l '#,o 'list? V)]))))
+        (push-thunk! (gen-name! 'chk-listof) body))
+
 
       (define/contract (go! c pos? on-done)
         (syntax? boolean? on-done/c . -> . symbol?)
@@ -115,7 +198,17 @@
                                      #,@(gen-program κ₁ thunks*))))]
                     [else (on-done c pos*?)])))]
           [((~literal listof) c*)
-           #'(error "TODO")]
+           (go! #'null? pos?
+                (λ (c pos*?)
+                  (cond
+                    [(equal? pos*? pos?)
+                      (on-done c pos?)]
+                    [else
+                     (go! #'cons? pos?
+                          (λ (c pos*?)
+                            (cond [(equal? pos*? pos?)
+                                   (gen-listof-check! #'c* pos? on-done push-local-thunk!)]
+                                  [else (on-done c pos*?)])))])))]
           [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'-=/c)]
           [((~literal </c ) x) (gen-comp/c-case #'x #'<  #'-</c)]
           [((~literal <=/c) x) (gen-comp/c-case #'x #'<= #'-≤/c)]
