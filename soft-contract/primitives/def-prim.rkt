@@ -330,19 +330,25 @@
              [c:id {list (list #''c)}])))
 
        (define extra-refinements (syntax->list #'(((rₓ ...) rₐ) ...)))
+       (define (refs->V refs)
+         (cond [(null? refs) #'-●/V]
+               [else #`(-● {set #,@refs})]))
+       (define (refs->Vs refs)
+         (cond [(null? refs) #'-●/Vs]
+               [else #`(list (-● {set #,@refs}))]))
        
        (cond
          [(null? extra-refinements)
           (list #`(define sₐ (-?@ 'o #,@s-ids))
-                #`(set #,@(for/list ([ref (in-list refinement-sets)])
-                            #`(-ΓA Γ (-W (list (-● (set #,@ref))) sₐ)))))]
+                #`(set #,@(for/list ([refs (in-list refinement-sets)])
+                            #`(-ΓA Γ (-W #,(refs->Vs refs) sₐ)))))]
          [else
-          (with-syntax ([refine (format-id #f "~a.refine" (syntax-e #'o))])
+          (with-syntax ([o.refine (format-id #f "~a.refine" (syntax-e #'o))])
             (list #`(define sₐ (-?@ 'o #,@s-ids))
-                  #`(define (refine [V : -V])
+                  #`(define (o.refine [V : -V])
                       #,@(gen-refine-body M σ #'V extra-refinements))
-                  #`(set #,@(for/list ([ref (in-list refinement-sets)])
-                              #`(-ΓA Γ (-W (list (refine (-● (set #,@ref)))) sₐ))))))])))
+                  #`(set #,@(for/list ([refs (in-list refinement-sets)])
+                              #`(-ΓA Γ (-W (list (o.refine #,(refs->V refs))) sₐ))))))])))
 
    ;; Generate primitve body when all preconds have passed
    ;; Free variable `Γ` available as "the" path condition
