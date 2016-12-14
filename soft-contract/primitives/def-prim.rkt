@@ -65,12 +65,6 @@
     [-errs (listof (listof #|dom|# syntax?)) #f]
     [-lift? boolean? #f])
 
-  #;(define/contract (gen-program entry table)
-    (symbol? (hash/c symbol? (listof syntax?)) . -> . (listof syntax?))
-    (for/fold ([acc (hash-ref table entry)])
-              ([(f es) (in-hash table)] #:unless (equal? f entry))
-      (cons #`(define (#,(->id f) [#,(-Γ) : -Γ]) #,@es) acc)))
-
   ;; Generate guards for identifier `x` based on given contract `c`
   (define/contract (gen-base-guard c x)
     (syntax? identifier? . -> . (or/c syntax? #f))
@@ -161,32 +155,31 @@
        (define (gen-check-definitely W c)
          (define (pos?->R pos?) (if pos? #''✓ #''✗))
          (let go ([c c] [pos? #t])
-           
-           (with-syntax ([R (pos?->R pos?)])
-             (syntax-parse c
-               [((~literal and/c) c* ...)
-                (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-               [((~literal or/c ) c* ...)
-                (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-               [((~literal not/c) d) (go #'d (not pos?))]
-               [((~literal cons/c) c₁ c₂)
-                (and* (list #`(⊢?/quick R #,(-σ) #,(-Γ) -cons? #,W)
-                            (go #'c₁ pos?)
-                            (go #'c₂ pos?)))]
-               [((~literal listof) _)
-                (raise-syntax-error
-                 'def-prim
-                 (format "~a: `listof` in refinement not supported for now" #''o)
-                 c)]
-               [((~literal =/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '=  #,W (-W¹ (-b x) (-b x)))]
-               [((~literal >/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>  #,W (-W¹ (-b x) (-b x)))]
-               [((~literal >=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>= #,W (-W¹ (-b x) (-b x)))]
-               [((~literal </c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<  #,W (-W¹ (-b x) (-b x)))]
-               [((~literal <=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<= #,W (-W¹ (-b x) (-b x)))]
-               [(~literal any/c) #'#t]
-               [(~literal none/c) #'#f]
-               [x:lit #'(⊢?/quick R #,(-σ) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
-               [c:id #`(⊢?/quick R #,(-σ) #,(-Γ) 'c #,W)]))))
+           (define/with-syntax R (pos?->R pos?))
+           (syntax-parse c
+             [((~literal and/c) c* ...)
+              (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+             [((~literal or/c ) c* ...)
+              (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+             [((~literal not/c) d) (go #'d (not pos?))]
+             [((~literal cons/c) c₁ c₂)
+              (and* (list #`(⊢?/quick R #,(-σ) #,(-Γ) -cons? #,W)
+                          (go #'c₁ pos?)
+                          (go #'c₂ pos?)))]
+             [((~literal listof) _)
+              (raise-syntax-error
+               'def-prim
+               (format "~a: `listof` in refinement not supported for now" #''o)
+               c)]
+             [((~literal =/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '=  #,W (-W¹ (-b x) (-b x)))]
+             [((~literal >/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>  #,W (-W¹ (-b x) (-b x)))]
+             [((~literal >=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>= #,W (-W¹ (-b x) (-b x)))]
+             [((~literal </c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<  #,W (-W¹ (-b x) (-b x)))]
+             [((~literal <=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<= #,W (-W¹ (-b x) (-b x)))]
+             [(~literal any/c) #'#t]
+             [(~literal none/c) #'#f]
+             [x:lit #'(⊢?/quick R #,(-σ) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
+             [c:id #`(⊢?/quick R #,(-σ) #,(-Γ) 'c #,W)])))
 
        `(,@(for/list ([doms (in-list refine-dom-list)]
                       [rng  (in-list refine-rng-list)])
@@ -260,7 +253,7 @@
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
                          #`(-ΓA #,(-Γ) (-W #,(refs->Vs refs) sₐ)))))]
       [else
-       (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e #'o)))
+       (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e (-o))))
        (list #`(define sₐ (-?@ 'o #,@(-sₙ)))
              #`(define (o.refine [V : -V]) #,@(gen-refine-body #'V))
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
@@ -373,13 +366,13 @@
 
         (define/contract (gen-comp/c-case x ★ ★/c)
           (syntax? identifier? identifier? . -> . symbol?)
-          (with-syntax ([why (if pos? #`(#,★/c #,x) #`(-not/c (#,★/c #,x)))])
-            (push-local-thunk!
-             (gen-name!)
-             (list #`(define bₓ (-b #,x))
-                   #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) '#,★ #,W (-W¹ bₓ bₓ))
-                       #:on-t #,(->id (on-done #'why pos?))
-                       #:on-f #,(->id (on-done #'why (not pos?))))))))
+          (define why (if pos? #`(#,★/c #,x) #`(-not/c (#,★/c #,x))))
+          (push-local-thunk!
+           (gen-name!)
+           (list #`(define bₓ (-b #,x))
+                 #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) '#,★ #,W (-W¹ bₓ bₓ))
+                     #:on-t #,(->id (on-done why pos?))
+                     #:on-f #,(->id (on-done why (not pos?)))))))
 
         (syntax-parse c
           [((~literal and/c) c* ... cₙ)
@@ -406,17 +399,17 @@
                   (cond
                     [(equal? pos*? pos?)
                      ;; TODO inefficient
-                     (with-syntax ([W₁ (format-id W "~a.car" (syntax-e W))]
-                                   [W₂ (format-id W "~a.cdr" (syntax-e W))])
-                       (define-values (thunks* push*!) (new-thunk-table))
-                       (define κₙ (on-done c pos?))
-                       (define κ₂ (gen-precond-check! #'W₂ #'c₂ κₙ push*!))
-                       (define κ₁ (gen-precond-check! #'W₁ #'c₁ κ₂ push*!))
-                       (push-local-thunk!
-                        (gen-name! 'chk-cons/c)
-                        #`(for/union : (℘ -ΓA) ([W₁ (in-set (unchecked-ac #,(-σ) #,(-Γ) -car #,W))]
-                                                [W₂ (in-set (unchecked-ac #,(-σ) #,(-Γ) -cdr #,W))])
-                                     #,@(gen-program κ₁ thunks*))))]
+                     (define/with-syntax W₁ (format-id W "~a.car" (syntax-e W)))
+                     (define/with-syntax W₂ (format-id W "~a.cdr" (syntax-e W)))
+                     (define-values (thunks* push*!) (new-thunk-table))
+                     (define κₙ (on-done c pos?))
+                     (define κ₂ (gen-precond-check! #'W₂ #'c₂ κₙ push*!))
+                     (define κ₁ (gen-precond-check! #'W₁ #'c₁ κ₂ push*!))
+                     (push-local-thunk!
+                      (gen-name! 'chk-cons/c)
+                      #`(for/union : (℘ -ΓA) ([W₁ (in-set (unchecked-ac #,(-σ) #,(-Γ) -car #,W))]
+                                              [W₂ (in-set (unchecked-ac #,(-σ) #,(-Γ) -cdr #,W))])
+                                   #,@(gen-program κ₁ thunks*)))]
                     [else (on-done c pos*?)])))]
           [((~literal listof) c*)
            (go! #'null? pos?
@@ -436,26 +429,27 @@
           [((~literal >/c ) x) (gen-comp/c-case #'x #'>  #'->/c)]
           [((~literal >=/c) x) (gen-comp/c-case #'x #'>= #'-≥/c)]
           [x:lit
-           (with-syntax ([why (if pos? #'(-≡/c bₓ) #'(-not/c (-≡/c bₓ)))])
-             (push-local-thunk!
-              (gen-name!)
-              (list #'(define bₓ (-b x))
-                    #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) 'equal? #,W (-W¹ bₓ bₓ))
-                        #:on-t #,(->id (on-done #'why pos?))
-                        #:on-f #,(->id (on-done #'why (not pos?)))))))]
+           (define why (if pos? #'(-≡/c bₓ) #'(-not/c (-≡/c bₓ))))
+           (push-local-thunk!
+            (gen-name!)
+            (list #'(define bₓ (-b x))
+                  #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) 'equal? #,W (-W¹ bₓ bₓ))
+                      #:on-t #,(->id (on-done why pos?))
+                      #:on-f #,(->id (on-done why (not pos?))))))]
           [(~literal any/c) (on-done #''any/c pos?)]
           [(~literal none/c) (on-done #'not/c (not pos?))]
           [c:id
-           (with-syntax ([p (syntax-parse #'c ;; TODO tmp hack
-                              [(~or (~literal cons?) (~literal pair?)) #'-cons?]
-                              [(~or (~literal box?)) #'-box?]
-                              [p:id #''p])]
-                         [why (if pos? #''c #'(-not/c 'c))])
-             (push-local-thunk!
-              (gen-name!)
-              #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) p #,W)
-                  #:on-t #,(->id (on-done #'why pos?))
-                  #:on-f #,(->id (on-done #'why (not pos?))))))]))
+           (define/with-syntax p ;; TODO tmp hack
+             (syntax-parse #'c
+               [(~or (~literal cons?) (~literal pair?)) #'-cons?]
+               [(~or (~literal box?)) #'-box?]
+               [p:id #''p]))
+           (define why (if pos? #''c #'(-not/c 'c)))
+           (push-local-thunk!
+            (gen-name!)
+            #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) p #,W)
+                #:on-t #,(->id (on-done why pos?))
+                #:on-f #,(->id (on-done why (not pos?)))))]))
 
       (define entry-name
         (go! c #t
@@ -504,11 +498,9 @@
             [(list #,@(-Wₙ))
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
-            [_ {set (-ΓA #,(-Γ)
-                         (-blm #,(-l) '#,(-o) '(c) (map -W¹-V #,(-Ws))))}]))]
+            [_ {set (-ΓA #,(-Γ) (-blm #,(-l) '#,(-o) '(c) (map -W¹-V #,(-Ws))))}]))]
       [(arity-at-least 0)
-       (cons #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
-             body)]
+       (cons #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ)) body)]
       [(arity-at-least n)
        (define/with-syntax c (format-symbol "≥~a values" n))
        (list
@@ -516,31 +508,7 @@
             [(list* #,@(-Wₙ) #,(-W*))
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
-            [_ {set (-ΓA #,(-Γ)
-                         (-blm #,(-l) '#,(-o) '(c) (map -W¹-V #,(-Ws))))}]))])
-    #;(match* ( (-W*))
-      [('() (? identifier? W*))
-       (list* #`(define #,W* #,(-Ws))
-              #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
-              body)]
-      [(Wᵢs (? identifier? W*))
-       (define n (length Wᵢs))
-       (define/with-syntax c-arity (format-symbol "arity-at-least ~a" n))
-       (list #`(match #,(-Ws)
-                 [(list* #,@Wᵢs #,W*)
-                  (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
-                  #,@body]
-                 [_ {set (-ΓA #,(-Γ)
-                              (-blm #,(-l) '#,(-o) (list c-arity) (map -W¹-V #,(-Ws))))}]))]
-      [(Wᵢs #f)
-       (define n (length Wᵢs))
-       (define/with-syntax c-arity (format-symbol "~a values" n))
-       (list #`(match #,(-Ws)
-                 [(list #,@Wᵢs)
-                  (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
-                  #,@body]
-                 [_ {set (-ΓA #,(-Γ)
-                              (-blm #,(-l) '#,(-o) (list c-arity) (map -W¹-V #,(-Ws))))}]))])))
+            [_ {set (-ΓA #,(-Γ) (-blm #,(-l) '#,(-o) '(c) (map -W¹-V #,(-Ws))))}]))])))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -549,10 +517,10 @@
 
 (define-syntax-parser def-const
   [(_ x:id)
-   (with-syntax ([.x (prefix-id #'x)])
-     #'(begin
-         (define .x (-b x))
-         (hash-set-once! const-table 'x .x)))])
+   (define/with-syntax .x (prefix-id #'x))
+   #'(begin
+       (define .x (-b x))
+       (hash-set-once! const-table 'x .x))])
 
 (define-syntax (def-prim stx)
   (check-arity! stx)
@@ -694,27 +662,27 @@
 
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
-   (with-syntax ([.x (prefix-id #'x)])
-     #'(begin
-         (define .x v)
-         (hash-set-once! alias-internal-table 'x v)))])
+   (define/with-syntax .x (prefix-id #'x))
+   #'(begin
+       (define .x v)
+       (hash-set-once! alias-internal-table 'x v))])
 
 (define-syntax-parser def-opq
   [(_ x:id c:fc)
-   (with-syntax ([(r ...) (datum->syntax #f (rng->refinement #'c))]
-                 [.x (prefix-id #'x)])
-     #'(begin
-         (define x (-● (set r ...)))
-         (hash-set-once! opq-table 'x x)))])
+   (define/with-syntax (r ...) (datum->syntax #f (rng->refinement #'c)))
+   (define/with-syntax .x (prefix-id #'x))
+   #'(begin
+       (define x (-● (set r ...)))
+       (hash-set-once! opq-table 'x x))])
 
 (define-syntax-parser dec-implications
   [(_ [p:id (~literal ⇒) q:id ...] ...)
    (define clauses
      (append-map
       (λ (clause)
-        (with-syntax ([(p ⇒ q ...) clause])
-          (for/list ([q (in-list (syntax->list #'(q ...)))])
-            #`(add-implication! 'p '#,q))))
+        (define/with-syntax (p ⇒ q ...) clause)
+        (for/list ([q (in-list (syntax->list #'(q ...)))])
+          #`(add-implication! 'p '#,q)))
       (syntax->list #'([p ⇒ q ...] ...))))
    #`(begin #,@clauses)])
 
@@ -738,9 +706,9 @@
    (define impl-clauses
      (append-map
       (λ (clause)
-        (with-syntax ([(p (q ...)) clause])
-          (for/list ([q (in-list (syntax->list #'(q ...)))])
-            #`(dec-implications [#,q ⇒ p]))))
+        (define/with-syntax (p (q ...)) clause)
+        (for/list ([q (in-list (syntax->list #'(q ...)))])
+          #`(dec-implications [#,q ⇒ p])))
       (syntax->list #'([p (q ...)] ...))))
    #`(begin
        (dec-exclusions (q ...) ...)
