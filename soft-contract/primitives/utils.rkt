@@ -23,8 +23,16 @@
 
 (define-syntax-class sig
   #:description "restricted function signature"
-  (pattern ((~literal ->) _:fc ... _:rngc))
-  (pattern ((~literal ->*) (_:fc ...) #:rest _:rstc _:rngc)))
+  (pattern ((~literal ->) c:fc ... d:rngc)
+           #:attr init (syntax->list #'(c ...))
+           #:attr rest #f
+           #:attr rngs (list #'d)
+           #:attr arity (length (syntax->list #'(c ...))))
+  (pattern ((~literal ->*) (c:fc ...) #:rest cᵣ:rstc d:rngc)
+           #:attr init (syntax->list #'(c ...))
+           #:attr rest #'cᵣ
+           #:attr rngs (list #'d)
+           #:attr arity (arity-at-least (length (syntax->list #'(c ...))))))
 
 (define-syntax-class fc
   #:description "restricted first-order contract"
@@ -79,6 +87,15 @@
           doms)))
      (for-each check-domain-arity! (syntax->list #'((cₑ ...) ...)))
      (for-each check-domain-arity! (syntax->list #'((rₓ ...) ...)))]
+    [(_ o:id ((~literal ->*) (cₓ:fc ...) #:rest cᵣ:rstc cₐ:fc)
+        (~optional (~seq #:other-errors [cₑ:fc ...] ...)
+                   #:defaults ([(cₑ 2) null]))
+        (~optional (~seq #:refinements [(~literal ->) rₓ:fc ... rₐ:fc] ...)
+                   #:defaults ([(rₓ 2) null] [(rₐ 1) null]))
+        (~optional (~seq #:lift-concrete? lift?:boolean)
+                   #:defaults ([lift? #'#t])))
+     ;; TODO
+     (void)]
     [_ (void)]))
 
 (define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))
@@ -212,6 +229,11 @@
       [(list _ ... (? tt?) _ ...) #'#t]
       [else #`(or #,@cleaned-es)])))
 
+(define/contract (gen-ids src prefix n)
+  ((or/c #f syntax?) (or/c symbol? string?) integer? . -> . (listof identifier?))
+  (for/list ([i (in-range n)])
+    (format-id src "~a~a" prefix (n-sub i))))
+
 (define/contract (new-thunk-table)
   (-> (values (hash/c symbol? (listof syntax?))
               (symbol? (or/c syntax? (listof syntax?)) . -> . symbol?)))
@@ -221,7 +243,5 @@
             (hash-set! m f (if (syntax? es) (list es) es))
             f)))
 
-(define/contract (gen-ids src prefix n)
-  ((or/c #f syntax?) (or/c symbol? string?) integer? . -> . (listof identifier?))
-  (for/list ([i (in-range n)])
-    (format-id src "~a~a" prefix (n-sub i))))
+(define-simple-macro (define-parameter/contract [x:id c v] ...)
+  (begin (define/contract x (parameter/c c) (make-parameter v)) ...))
