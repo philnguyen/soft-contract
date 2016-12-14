@@ -57,7 +57,7 @@
   #:description "restricted rest args contract"
   (pattern (~literal list?))
   (pattern ((~literal listof) _:fc))
-  (pattern ((~literal cons/c) _:fc _:rstc)))
+  #;(pattern ((~literal cons/c) _:fc _:rstc)))
 
 (define-syntax-class lit
   #:description "restricted literals"

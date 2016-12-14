@@ -138,7 +138,7 @@
                concrete-case ...
                [(s ...) #,@(gen-sym-case)]))])]
       [((~literal ->*) (cₓ ...) #:rest cᵣ cₐ)
-       (raise-syntax-error 'def-prim "TODO: ->*")]))
+       (list #'(error "TODO: ->*"))]))
 
   ;; Generate function that refines results when more is known about arguments
   (define/contract (gen-refine-body V)
@@ -477,18 +477,37 @@
                (push-thunk! name body))]
             [else κ]))
 
+    (define/contract (gen-chk-rest! κ push-thunk!)
+      (symbol? (symbol? (or/c syntax? (listof syntax?)) . -> . symbol?) . -> . symbol?)
+      (define/syntax-parse sig:sig (-sig))
+      (syntax-parse (attribute sig.rest)
+        [(~or (~literal list?) ((~literal listof) (~literal any/c))) κ]
+        [((~literal listof) c)
+         (define-values (local-thunks push-local-thunk!) (new-thunk-table))
+         (push-local-thunk! 'chk-rst #`(loop #,(-W*) #,(-Γ)))
+         (define κ* (gen-precond-check! #'Wₕ #'c 'chk-rst push-local-thunk!))
+         (define/with-syntax (body ...) (gen-program κ* local-thunks))
+         (push-thunk!
+          (format-symbol "chk-~a" (syntax-e (-W*)))
+          #`(let loop : (℘ -ΓA) ([#,(-W*) : (Listof -W¹) #,(-W*)] [#,(-Γ) : -Γ #,(-Γ)])
+                 (match W*
+                   ['() (#,κ #,(-Γ))]
+                   [(cons Wₕ #,(-W*)) body ...])))]))
+
+    (define-values (thunks push-thunk!) (new-thunk-table))
+    (push-thunk! 'run-body body)
     (syntax-parse (-sig)
       [((~literal ->) cₓ ... cₐ)
-       (define-values (thunks push-thunk!) (new-thunk-table))
-       (push-thunk! 'run-body body)
-       
        (define/contract (step! W c κ)
          (identifier? syntax? symbol? . -> . symbol?)
          (gen-precond-check! W c κ push-thunk!))
-
        (gen-program (foldr step! 'run-body (-Wₙ) (syntax->list #'(cₓ ...))) thunks)]
       [((~literal ->*) (cₓ ...) #:rest cᵣ cₐ)
-       (raise-syntax-error 'def-prim "TODO: ->*")]))
+       (define κ* (gen-chk-rest! 'run-body push-thunk!))
+       (define/contract (step! W c κ)
+         (identifier? syntax? symbol? . -> . symbol?)
+         (gen-precond-check! W c κ push-thunk!))
+       (gen-program (foldr step! κ* (-Wₙ) (syntax->list #'(cₓ ...))) thunks)]))
 
   (define/contract (gen-arity-check body)
     ((listof syntax?) . -> . (listof syntax?))
@@ -508,7 +527,9 @@
              #,@body]
             [_ {set (-ΓA #,(-Γ) (-blm #,(-l) '#,(-o) '(c) (map -W¹-V #,(-Ws))))}]))]
       [(arity-at-least 0)
-       (cons #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ)) body)]
+       (list* #`(define #,(-W*) #,(-Ws))
+              #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
+              body)]
       [(arity-at-least n)
        (define/with-syntax c (format-symbol "≥~a values" n))
        (list
