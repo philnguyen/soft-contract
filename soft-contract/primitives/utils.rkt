@@ -180,7 +180,7 @@
     [x:id (base-predicate? #'x)]))
 
 ;; Specify primitives that shouldn't be lifted
-(define skip-base-case-lifting?
+(define base-case-lifting-blacklist?
   (syntax-parser
     ;; These won't type check.
     ;; The untyped version takes `any/c`, but the typed ones take `Set`
