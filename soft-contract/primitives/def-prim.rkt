@@ -142,7 +142,7 @@
           (list
            #`(match* ((-W¹-s W) ...)
                concrete-case ...
-               [(s ...) (error "TODO: symbolic") #;#,@(gen-sym-case)]))])]
+               [(s ...) #,@(gen-sym-case)]))])]
       [((~literal ->*) (cₓ ...) #:rest cᵣ cₐ)
        (raise-syntax-error 'def-prim "TODO: ->*")]))
 
@@ -198,67 +198,72 @@
 
   ;; Generate primitive body for the case where 1+ argument is symbolic
   ;; Free variable `Γ` available as "the" path condition
-  #;(define/contract (gen-sym-case)
-    (-> (listof syntax?))
-    (define/contract refinement-sets (listof (listof syntax?))
-      (let go ([c rng])
-        (syntax-parse c
-          [((~literal and/c) c* ...)
-           (let go/and/c ([cs (syntax->list #'(c* ...))])
-             (match cs
-               ['() (list (list))]
-               [(cons c cs*)
-                (remove-duplicates
-                 (for/list ([ref-set₁ (in-list (go c))]
-                            [ref-set₂ (in-list (go/and/c cs*))])
-                   (remove-duplicates (append ref-set₁ ref-set₂))))]))]
-          [((~literal or/c) cᵢ ...)
-           (append-map go (syntax->list #'(cᵢ ...)))]
-          [((~literal not/c) d)
-           (cond [(identifier? #'d) (list (list #'(-not/c 'd)))]
-                 [else (raise-syntax-error
-                        'def-prim
-                        (format "~a: only identifier can follow not/c in range" #'o)
-                        c)])]
-          [((~literal cons/c) _ _)
-           (raise-syntax-error
-            'def-prim
-            (format "~a: `cons/c` in range not supported for now" (syntax-e #'o))
-            c)]
-          [((~literal listof/c) _)
-           (raise-syntax-error
-            'def-prim
-            (format "~a: `listof` in range not supported for now" (syntax-e #'o))
-            c)]
-          [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
-          [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
-          [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
-          [((~literal </c) x) (list (list #''real? #'(-</c x)))]
-          [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
-          [x:lit (list (list #'(-≡/c (-b x))))]
-          [(~literal any/c) (list (list))]
-          [(~literal none/c) (list)]
-          [c:id {list (list #''c)}])))
+  (define/contract (gen-sym-case) (-> (listof syntax?))
 
-    (define (refs->V refs)
-      (cond [(null? refs) #'-●/V]
-            [else #`(-● {set #,@refs})]))
-    (define (refs->Vs refs)
-      (cond [(null? refs) #'-●/Vs]
-            [else #`(list (-● {set #,@refs}))]))
+    (define/syntax-parse sig:sig (-sig))
+
+    ;; List of possible refinement sets to result according to contract range
+    (define/contract refinement-sets (listof (listof syntax?))
+      (match (attribute sig.rngs)
+        [(list rng)
+         (let go ([c rng])
+           (syntax-parse c
+             [((~literal and/c) c* ...)
+              (let go/and/c ([cs (syntax->list #'(c* ...))])
+                (match cs
+                  ['() (list (list))]
+                  [(cons c cs*)
+                   (remove-duplicates
+                    (for/list ([ref-set₁ (in-list (go c))]
+                               [ref-set₂ (in-list (go/and/c cs*))])
+                      (remove-duplicates (append ref-set₁ ref-set₂))))]))]
+             [((~literal or/c) cᵢ ...)
+              (append-map go (syntax->list #'(cᵢ ...)))]
+             [((~literal not/c) d)
+              (cond [(identifier? #'d) (list (list #'(-not/c 'd)))]
+                    [else (raise-syntax-error
+                           'def-prim
+                           (format "~a: only identifier can follow not/c in range" #'o)
+                           c)])]
+             [((~literal cons/c) _ _)
+              (raise-syntax-error
+               'def-prim
+               (format "~a: `cons/c` in range not supported for now" (syntax-e #'o))
+               c)]
+             [((~literal listof/c) _)
+              (raise-syntax-error
+               'def-prim
+               (format "~a: `listof` in range not supported for now" (syntax-e #'o))
+               c)]
+             [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
+             [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
+             [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
+             [((~literal </c) x) (list (list #''real? #'(-</c x)))]
+             [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
+             [x:lit (list (list #'(-≡/c (-b x))))]
+             [(~literal any/c) (list (list))]
+             [(~literal none/c) (list)]
+             [c:id {list (list #''c)}]))]
+        [_
+         (raise-syntax-error
+          'def-prim
+          "TODO: multiple returns")]))
+
+    (define (refs->V  refs) (if (null? refs) #'-●/V        #`(-● {set #,@refs})))
+    (define (refs->Vs refs) (if (null? refs) #'-●/Vs #`(list (-● {set #,@refs}))))
 
     (cond
-      [(null? refinement-clauses)
-       (list #`(define sₐ (-?@ 'o #,@(-sₙ n)))
+      [(null? (-refs))
+       (list #`(define sₐ (-?@ 'o #,@(-sₙ)))
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
                          #`(-ΓA #,(-Γ) (-W #,(refs->Vs refs) sₐ)))))]
       [else
-       (with-syntax ([o.refine (format-id #f "~a.refine" (syntax-e #'o))])
-         (list #`(define sₐ (-?@ 'o #,@(-sₙ n)))
-               #`(define (o.refine [V : -V])
-                   #,@(gen-refine-body #'V))
-               #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                           #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ))))))]))
+       (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e #'o)))
+       (list #`(define sₐ (-?@ 'o #,@(-sₙ)))
+             #`(define (o.refine [V : -V])
+                 (error "TODO refine") #;#,@(gen-refine-body #'V))
+             #`(set #,@(for/list ([refs (in-list refinement-sets)])
+                         #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ)))))]))
 
   ;; Generate full precondition check
   (define/contract (gen-precond-checks body)
