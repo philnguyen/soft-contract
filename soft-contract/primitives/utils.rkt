@@ -40,6 +40,7 @@
   (pattern ((~literal not/c) _:fc))
   (pattern ((~literal cons/c) _:fc _:fc))
   (pattern ((~literal listof) _:fc))
+  (pattern ((~literal list/c) _:fc ...))
   (pattern ((~or (~literal =/c)
                  (~literal >=/c) (~literal >/c)
                  (~literal <=/c) (~literal </c))
@@ -70,6 +71,10 @@
 (define-syntax-class symbol
   #:description "literal symbol"
   (pattern ((~literal quote) x) #:when (symbol? (syntax-e #'x))))
+
+(define/contract (desugar-list/c cs)
+  ((listof syntax?) . -> . syntax?)
+  (foldr (λ (c acc) #`(cons/c #,c #,acc)) #'null? cs)) 
 
 (define check-arity!
   (syntax-parser

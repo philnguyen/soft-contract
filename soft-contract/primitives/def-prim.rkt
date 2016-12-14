@@ -2,7 +2,6 @@
 
 ;; This module implements facitilies for defining primitive constants and 1st-order functions
 ;; TODO:
-;; - [ ] list/c
 ;; - [ ] listof
 ;; - [ ] multiple valued return
 ;; - [ ] #:other-errors
@@ -85,6 +84,7 @@
          (define e₂ (and e₁ (gen-base-guard #'c₂ #`(cdr #,x))))
          (and e₂ (and* (list e₀ e₁ e₂)))]
         [((~literal listof) _) #f]
+        [((~literal list/c) _ ...) #f]
         [((~or (~literal =/c)
                (~literal >/c) (~literal >=/c)
                (~literal </c) (~literal <=/c))
@@ -171,6 +171,8 @@
                'def-prim
                (format "~a: `listof` in refinement not supported for now" #''o)
                c)]
+             [((~literal list/c) c* ...)
+              (go (desugar-list/c (syntax->list #'(c* ...))))]
              [((~literal =/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '=  #,W (-W¹ (-b x) (-b x)))]
              [((~literal >/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>  #,W (-W¹ (-b x) (-b x)))]
              [((~literal >=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>= #,W (-W¹ (-b x) (-b x)))]
@@ -225,11 +227,13 @@
                'def-prim
                (format "~a: `cons/c` in range not supported for now" (syntax-e #'o))
                c)]
-             [((~literal listof/c) _)
+             [((~literal listof) _)
               (raise-syntax-error
                'def-prim
                (format "~a: `listof` in range not supported for now" (syntax-e #'o))
                c)]
+             [((~literal list/c) c* ...)
+              (go (desugar-list/c (syntax->list #'(c* ...))))]
              [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
              [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
              [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
@@ -312,6 +316,8 @@
                (error "TODO")]
               [((~literal listof) c*)
                (error "TODO")]
+              [((~literal list/c) c* ...)
+               (go! (desugar-list/c (syntax->list #'(c* ...))) pos? on-done)]
               [((~literal =/c) x:real)
                (error "TODO")]
               [((~literal </c) x:real)
@@ -423,6 +429,8 @@
                             (cond [(equal? pos*? pos?)
                                    (gen-listof-check! #'c* pos? on-done push-local-thunk!)]
                                   [else (on-done c pos*?)])))])))]
+          [((~literal list/c) c* ...)
+           (go! (desugar-list/c (syntax->list #'(c* ...))) pos? on-done)]
           [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'-=/c)]
           [((~literal </c ) x) (gen-comp/c-case #'x #'<  #'-</c)]
           [((~literal <=/c) x) (gen-comp/c-case #'x #'<= #'-≤/c)]
