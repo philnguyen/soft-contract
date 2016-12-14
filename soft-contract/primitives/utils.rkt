@@ -243,5 +243,7 @@
             (hash-set! m f (if (syntax? es) (list es) es))
             f)))
 
+(define (->id κ) (format-id #f "~a" κ))
+
 (define-simple-macro (define-parameter/contract [x:id c v] ...)
   (begin (define/contract x (parameter/c c) (make-parameter v)) ...))

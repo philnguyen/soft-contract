@@ -34,7 +34,12 @@
          "def-prim-runtime.rkt")
 
 (begin-for-syntax
-  (define (->id κ) (format-id #f "~a" κ))
+
+  (define/contract (gen-program entry table)
+    (symbol? (hash/c symbol? (listof syntax?)) . -> . (listof syntax?))
+    (for/fold ([acc (hash-ref table entry)])
+              ([(f es) (in-hash table)] #:unless (equal? f entry))
+      (cons #`(define (#,(->id f) [#,(-Γ) : -Γ]) #,@es) acc)))
 
   ;; Global parameters that need to be set up for each `def-prim`
   (define-parameter/contract
@@ -248,8 +253,8 @@
                            #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ))))))]))
 
   ;; Generate full precondition check
-  #;(define/contract (gen-arg-list-check W-ids cs ok-body)
-    ((listof identifier?) (listof syntax?) (listof syntax?) . -> . (listof syntax?))
+  (define/contract (gen-precond-checks body)
+    ((listof syntax?) . -> . (listof syntax?))
 
     (define on-done/c (syntax? boolean? . -> . symbol?))
     (define push/c (symbol? (or/c syntax? (listof syntax?)) . -> . symbol?))
@@ -456,14 +461,20 @@
                (push-thunk! name body))]
             [else κ]))
 
-    (let-values ([(thunks push-thunk!) (new-thunk-table)])
-        (push-thunk! 'run-body ok-body)
-        
-        (define/contract (step! W c on-done)
-          (identifier? syntax? symbol? . -> . symbol?)
-          (gen-precond-check! W c on-done push-thunk!))
-        
-        (gen-program (foldr step! 'run-body W-ids cs) thunks)))
+    (syntax-parse (-sig)
+      [((~literal ->) cₓ ... cₐ)
+       (define-values (thunks push-thunk!) (new-thunk-table))
+       (push-thunk! 'run-body body)
+       
+       (define/contract (step! W c κ)
+         (identifier? syntax? symbol? . -> . symbol?)
+         (gen-precond-check! W c κ push-thunk!))
+
+       (gen-program (foldr step! 'run-body (-Wₙ) (syntax->list #'(cₓ ...))) thunks)]
+      [((~literal ->*) (cₓ ...) #:rest cᵣ cₐ)
+       (raise-syntax-error
+        'def-prim
+        "TODO: ->*")]))
 
   (define/contract (gen-arity-check body)
     ((listof syntax?) . -> . (listof syntax?))
@@ -578,10 +589,9 @@
                       #;[-errs (syntax->list #'((cₑ ...) ...))])
          #`(define (.o #,(-⟪ℋ⟫) #,(-ℓ) #,(-l) #,(-Σ) #,(-Γ) #,(-Ws))
              #,@(gen-arity-check
-                 (list #'(error "TODO"))
-                 #;(gen-arg-list-check
-                    (-Wₙ n) doms
-                    (gen-ok-case doms
+                 (gen-precond-checks
+                  (list #'(error "TODO"))
+                  #;(gen-ok-case doms
                                  #'cₐ
                                  (syntax->list #'(((rₓ ...) rₐ) ...))))))))
      #`(begin
@@ -594,7 +604,7 @@
           #,(match arity
               [(arity-at-least n) #`(arity-at-least #,n)]
               [(? integer? n) n]))
-         #,@(syntax-parse #'cₐ
+         #,@(syntax-parse #|FIXME|# #'cₐ
               [(~or ((~literal and/c) d:id _ ...) d:id)
                (list #'(set-range! 'o 'd))]
               [_ '()]))]))
@@ -626,10 +636,8 @@
                            [-sig #'(-> c ... any/c)]
                            #;[-errs (syntax->list #'((cₑ ...) ...))])
               (gen-arity-check
-               (list #'(error "TODO"))
-               #;(gen-arg-list-check (syntax->list #'(W ...))
-                                     (syntax->list #'(c ...))
-                                     (syntax->list #'(e ...)))))))
+               (gen-precond-checks
+                (syntax->list #'(e ...)))))))
    #`(begin
        (: .o : -⟦o⟧!)
        defn-o
