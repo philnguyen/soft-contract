@@ -637,7 +637,7 @@
        (hash-set! debug-table 'o '#,(syntax->datum #'defn-o)))]
   [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e:expr ...)
    (define/with-syntax .o (prefix-id #'o))
-   (define/with-syntax defn #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
+   (define/with-syntax defn-o #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
    #`(begin
        (: .o : -⟦o⟧!)
        defn-o
@@ -645,9 +645,8 @@
        (hash-set! debug-table 'o '#,(syntax->datum #'defn)))])
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
-  (splicing-local ((define already-print? : Boolean #f))
-    (def-prim/custom (x ⟪ℋ⟫ ℓ l Σ Γ Ws)
-      (error 'x "TODO"))))
+  (def-prim/custom (x ⟪ℋ⟫ ℓ l Σ Γ Ws)
+    (error 'x "TODO")))
 
 (define-simple-macro (def-prims (o:id ... (~optional (~seq #:todo o*:id ...)
                                                      #:defaults ([(o* 1) '()])))
