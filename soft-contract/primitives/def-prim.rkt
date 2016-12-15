@@ -94,11 +94,7 @@
         [_:symbol #`(symbol? #,x)]
         [(~literal any/c) #'#t]
         [(~literal none/c) #'#f]
-        ;; hack for slight mismatch b/c implementation is in TR.
-        ;; (Integer means exact-integer?)
-        ;; This is not wrong. It only limits cases where we can execute concretely.
-        [(~literal integer?) #`(exact-integer? #,x)]
-        [c:id (and (base-predicate? #'c) #`(c #,x))])))
+        [c:id (and (base-predicate? #'c) #`(#,(pred-for-TR #'c) #,x))])))
 
   ;; Generate primitve body when all preconds have passed
   (define/contract (gen-ok-case) (-> (listof syntax?))
@@ -118,9 +114,35 @@
     (cond
       ;; Generate predicates differently
       [(and (identifier? rng) (free-identifier=? #'boolean? rng))
-       (list #`(implement-predicate #,(-M) #,(-σ) #,(-Γ) 'o #,(-Ws)))]
+       (list #`(implement-predicate #,(-M) #,(-σ) #,(-Γ) '#,(-o) #,(-Ws)))]
       [dom-rest
-       (error 'gen-ok-case "TODO: ->*")]
+       (define/with-syntax (concrete-case-clauses ...)
+         (cond
+           [(and base-guard-init (range-is-base? rng))
+            (define/with-syntax mk-bₐ #`(-b (apply #,(-o) #,@(-bₙ) #,(-b*))))
+            (define base-guard
+              (syntax-parse dom-rest
+                [(~or (~literal list?) ((~literal listof) (~literal any/c)))
+                 base-guard-init]
+                [((~literal listof) c*)
+                 (define base-guard-rest
+                   (syntax-parse #'c*
+                     [(~or p:id #|hack b/c of TR|# ((~literal and/c) p:id _ ...))
+                      #`(andmap #,(pred-for-TR #'p) #,(-b*))]
+                     [_
+                      (define body (gen-base-guard #'c* #'x))
+                      (and body
+                           #`(andmap (λ ([x : Base]) #,body) #,(-b*)))]))
+                 (and base-guard-rest (and* (list base-guard-init base-guard-rest)))]))
+            (list #`[((-b b) ... (app ss->bs #,(-b*))) #:when (and #,(-b*) #,base-guard)
+                     (define bₐ mk-bₐ)
+                     {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
+           [else '()]))
+       (define/with-syntax (symbolic-case-clauses ...)
+         (list #`[(s ... #,(-s*)) #,@(gen-sym-case)]))
+       (list #`(match* ((-W¹-s W) ... (map -W¹-s #,(-W*)))
+                 concrete-case-clauses ...
+                 symbolic-case-clauses ...))]
       [else
        (define/with-syntax (concrete-case-clauses ...)
          (cond
@@ -192,7 +214,7 @@
                       #`(set! #,V (V+ σ #,V #,cᵣ)))))
          ,V)]
       [_
-       (raise-syntax-error 'def-prim "TODO: ->*")]))
+       (list #'(error 'refine "TODO: ->*"))]))
 
   ;; Generate primitive body for the case where 1+ argument is symbolic
   ;; Free variable `Γ` available as "the" path condition
@@ -200,6 +222,7 @@
 
     (define/syntax-parse sig:sig (-sig))
     (define/syntax-parse rng:rngc (attribute sig.rng))
+    (define dom-rest (attribute sig.rest))
 
     ;; List of possible refinement sets to result according to contract range
     (define/contract refinement-sets (listof (listof syntax?))
@@ -222,17 +245,17 @@
               (cond [(identifier? #'d) (list (list #'(-not/c 'd)))]
                     [else (raise-syntax-error
                            'def-prim
-                           (format "~a: only identifier can follow not/c in range" #'o)
+                           (format "~a: only identifier can follow not/c in range" (-o))
                            c)])]
              [((~literal cons/c) _ _)
               (raise-syntax-error
                'def-prim
-               (format "~a: `cons/c` in range not supported for now" (syntax-e #'o))
+               (format "~a: `cons/c` in range not supported for now" (syntax-e (-o)))
                c)]
              [((~literal listof) _)
               (raise-syntax-error
                'def-prim
-               (format "~a: `listof` in range not supported for now" (syntax-e #'o))
+               (format "~a: `listof` in range not supported for now" (syntax-e (-o)))
                c)]
              [((~literal list/c) c* ...)
               (go (desugar-list/c (syntax->list #'(c* ...))))]
@@ -254,14 +277,18 @@
     (define (refs->V  refs) (if (null? refs) #'-●/V        #`(-● {set #,@refs})))
     (define (refs->Vs refs) (if (null? refs) #'-●/Vs #`(list (-● {set #,@refs}))))
 
+    (define/with-syntax mk-sₐ
+      (cond [dom-rest #`(apply -?@ '#,(-o) #,@(-sₙ) #,(-s*))]
+            [else #`(-?@ '#,(-o) #,@(-sₙ))]))
+
     (cond
       [(null? (-refs))
-       (list #`(define sₐ (-?@ 'o #,@(-sₙ)))
+       (list #`(define sₐ mk-sₐ)
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
                          #`(-ΓA #,(-Γ) (-W #,(refs->Vs refs) sₐ)))))]
       [else
        (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e (-o))))
-       (list #`(define sₐ (-?@ 'o #,@(-sₙ)))
+       (list #`(define sₐ mk-sₐ)
              #`(define (o.refine [V : -V]) #,@(gen-refine-body #'V))
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
                          #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ)))))]))
@@ -604,6 +631,7 @@
              #,@(gen-arity-check
                  (gen-precond-checks
                   (gen-ok-case))))))
+     ;(pretty-write (syntax->datum #'defn-o))
      #`(begin
          (: .o : -⟦o⟧!)
          defn-o

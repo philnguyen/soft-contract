@@ -236,3 +236,10 @@
 
 (define-simple-macro (with-p∋Vs (σ:expr o:expr V:expr ...) #:on-t t:expr #:on-f f:expr)
   (with-p∋Vs-handler t f σ o V ...))
+
+(: ss->bs : (Listof -s) → (Option (Listof Base)))
+(define (ss->bs ss)
+  (foldr (λ ([s : -s] [?bs : (Option (Listof Base))])
+           (and ?bs (-b? s) (cons (-b-unboxed s) ?bs)))
+         '()
+         ss))

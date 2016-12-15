@@ -79,26 +79,23 @@
 
 ;; 4.2.2.1 Arithmetic
 (def-prim + ; FIXME varargs
-  (number? number? . -> . number?)
+  (() #:rest (listof number?)  . ->* . number?)
   #:refinements
-  (exact-positive-integer? exact-positive-integer? . -> . exact-positive-integer?)
-  (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
-  (exact-integer? exact-integer? . -> . exact-integer?)
-  (integer? integer? . -> . integer?)
-  (real? real? . -> . real?)
-  (positive? (not/c negative?) . -> . positive?)
-  ((not/c negative?) positive? . -> . positive?)
-  (negative? (not/c positive?) . -> . negative?)
-  ((not/c positive?) negative? . -> . negative?)
-  ((not/c negative?) (not/c negative?) . -> . (not/c negative?))
-  ((not/c positive?) (not/c positive?) . -> . (not/c positive?)))
+  (() #:rest (listof exact-positive-integer?) . ->* . exact-positive-integer?)
+  (() #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
+  (() #:rest (listof exact-integer?) . ->* . exact-integer?)
+  (() #:rest (listof integer?) . ->* . integer?)
+  (() #:rest (listof real?) . ->* . real?)
+  ((positive?) #:rest (listof positive?) . ->* . positive?)
+  (() #:rest (listof (not/c negative?)) . ->* . (not/c negative?))
+  ((negative?) #:rest (listof (not/c positive?)) . ->* . negative?)
+  (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
 (def-prim - ; FIXME varargs
- (number? number? . -> . number?)
+ ((number?) #:rest (listof number?) . ->* . number?)
  #:refinements
- (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
- (exact-integer? exact-integer? . -> . exact-integer?)
- (integer? integer? . -> . integer?)
- (real? real? . -> . real?))
+ ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
+ ((integer?) #:rest (listof integer?) . ->* . integer?)
+ ((real?) #:rest (listof real?) . ->* . real?))
 (def-prim * ; FIXME varargs
  (number? number? . -> . number?)
  #:refinements

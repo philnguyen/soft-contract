@@ -186,6 +186,13 @@
     [x:lit #t]
     [x:id (base-predicate? #'x)]))
 
+;; Fix slight mismatch with TR predicates
+;; The mismatch doesn't make it wrong. It only limits cases where we can execute concretely
+(define pred-for-TR
+  (syntax-parser
+    [(~literal integer?) #'exact-integer?]
+    [p:id #'p]))
+
 ;; CLean up conditional clauses to make generated code a little more readable
 (splicing-let ([tt? (syntax-parser [#t #t] [_ #f])]
                [ff? (syntax-parser [#f #t] [_ #f])])
