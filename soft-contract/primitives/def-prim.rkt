@@ -102,43 +102,44 @@
 
   ;; Generate primitve body when all preconds have passed
   (define/contract (gen-ok-case) (-> (listof syntax?))
-    (syntax-parse (-sig)
-      [((~literal ->) cₓ ... cₐ)
-       (define doms (syntax->list #'(cₓ ...)))
-       (define n (length doms))
-       (define/with-syntax (W ...) (-Wₙ))
-       (define/with-syntax (s ...) (-sₙ))
-       (define/with-syntax (b ...) (-bₙ))
+    (define/syntax-parse sig:sig (-sig))
+    (define dom-init (attribute sig.init))
+    (define dom-rest (attribute sig.rest))
+    (define rng (attribute sig.rng))
+    (define/with-syntax (W ...) (-Wₙ))
+    (define/with-syntax (s ...) (-sₙ))
+    (define/with-syntax (b ...) (-bₙ))
+    (define n (length dom-init))
+    (define base-guard-init
+      (and (-lift?)
+           (let ([clauses (map gen-base-guard dom-init (-bₙ))])
+             (and (andmap values clauses) (and* clauses)))))
 
-       (syntax-parse #'cₐ
-         ;; Generate predicates differently
-         [(~literal boolean?)
-          (list #`(implement-predicate #,(-M) #,(-σ) #,(-Γ) 'o #,(-Ws)))]
-         [_
-          (define base-guards
-            (and (-lift?)
-                 (not (base-case-lifting-blacklist? #'o))
-                 (let ([clauses (map gen-base-guard doms (-bₙ))])
-                   (and (andmap values clauses) (and* clauses)))))
-          (define lift-concrete-case? (and base-guards (range-is-base? #'cₐ)))
-          (define/with-syntax (concrete-case ...)
-            (cond
-              [lift-concrete-case?
-               (define/with-syntax mk-bₐ
-                 (syntax-parse (-o)
-                   [(~literal any/c) #'-tt]
-                   [(~literal none/c) #'-ff]
-                   [o #`(-b (o #,@(-bₙ)))]))
-               (list #`[((-b b) ...) #:when #,base-guards
-                        (define bₐ mk-bₐ)
-                        {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
-              [else '()]))
-          (list
-           #`(match* ((-W¹-s W) ...)
-               concrete-case ...
-               [(s ...) #,@(gen-sym-case)]))])]
-      [((~literal ->*) (cₓ ...) #:rest cᵣ cₐ)
-       (list #'(error "TODO: ->*"))]))
+    (cond
+      ;; Generate predicates differently
+      [(and (identifier? rng) (free-identifier=? #'boolean? rng))
+       (list #`(implement-predicate #,(-M) #,(-σ) #,(-Γ) 'o #,(-Ws)))]
+      [dom-rest
+       (error 'gen-ok-case "TODO: ->*")]
+      [else
+       (define/with-syntax (concrete-case-clauses ...)
+         (cond
+           [(and base-guard-init (range-is-base? rng))
+            (define/with-syntax mk-bₐ
+              (syntax-parse (-o)
+                [(~literal any/c) #'-tt]
+                [(~literal none/c) #'-ff]
+                [o #`(-b (o #,@(-bₙ)))]))
+            (list #`[((-b b) ...) #:when #,base-guard-init
+                     (define bₐ mk-bₐ)
+                     {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
+           [else '()]))
+       (define/with-syntax (symbolic-case-clauses ...)
+         (list #`[(s ...) #,@(gen-sym-case)]))
+       (list
+        #`(match* ((-W¹-s W) ...)
+            concrete-case-clauses ...
+            symbolic-case-clauses ...))]))
 
   ;; Generate function that refines results when more is known about arguments
   (define/contract (gen-refine-body V)
@@ -191,19 +192,20 @@
                       #`(set! #,V (V+ σ #,V #,cᵣ)))))
          ,V)]
       [_
-       (raise-syntax-error 'def-prim "TODO ->*")]))
+       (raise-syntax-error 'def-prim "TODO: ->*")]))
 
   ;; Generate primitive body for the case where 1+ argument is symbolic
   ;; Free variable `Γ` available as "the" path condition
   (define/contract (gen-sym-case) (-> (listof syntax?))
 
     (define/syntax-parse sig:sig (-sig))
+    (define/syntax-parse rng:rngc (attribute sig.rng))
 
     ;; List of possible refinement sets to result according to contract range
     (define/contract refinement-sets (listof (listof syntax?))
-      (match (attribute sig.rngs)
-        [(list rng)
-         (let go ([c rng])
+      (match (attribute rng.values)
+        [(list d)
+         (let go ([c d])
            (syntax-parse c
              [((~literal and/c) c* ...)
               (let go/and/c ([cs (syntax->list #'(c* ...))])
@@ -243,10 +245,11 @@
              [(~literal any/c) (list (list))]
              [(~literal none/c) (list)]
              [c:id {list (list #''c)}]))]
-        [_
+        [rngs
          (raise-syntax-error
           'def-prim
-          "TODO: multiple returns")]))
+          "TODO: multiple returns"
+          rngs)]))
 
     (define (refs->V  refs) (if (null? refs) #'-●/V        #`(-● {set #,@refs})))
     (define (refs->Vs refs) (if (null? refs) #'-●/Vs #`(list (-● {set #,@refs}))))

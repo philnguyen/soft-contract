@@ -1475,7 +1475,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;; Hash Sets
-(def-preds (set-equal? set-eqv? set-eq? set? #:todo set-mutable? set-weak?))
+(def-preds (set-equal? set-eqv? set-eq? #:todo set-mutable? set-weak?))
 (def-prim/todo set
  (() #:rest list? . ->* . (and/c generic-set? set-equal? set?)))
 (def-prim/todo seteqv

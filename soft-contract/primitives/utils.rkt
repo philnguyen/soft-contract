@@ -26,12 +26,12 @@
   (pattern ((~literal ->) c:fc ... d:rngc)
            #:attr init (syntax->list #'(c ...))
            #:attr rest #f
-           #:attr rngs (list #'d)
+           #:attr rng #'d
            #:attr arity (length (syntax->list #'(c ...))))
   (pattern ((~literal ->*) (c:fc ...) #:rest cᵣ:rstc d:rngc)
            #:attr init (syntax->list #'(c ...))
            #:attr rest #'cᵣ
-           #:attr rngs (list #'d)
+           #:attr rng #'d
            #:attr arity (arity-at-least (length (syntax->list #'(c ...))))))
 
 (define-syntax-class fc
@@ -50,8 +50,10 @@
 
 (define-syntax-class rngc
   #:description "restricted function range"
-  (pattern _:fc)
-  (pattern ((~literal values) _:fc _:fc _:fc ...)))
+  (pattern c:fc
+           #:attr values (list #'c))
+  (pattern ((~literal values) c₁:fc c₂:fc cᵣ:fc ...)
+           #:attr values (syntax->list #'(c₁ c₂ cᵣ ...))))
 
 (define-syntax-class rstc
   #:description "restricted rest args contract"
@@ -183,17 +185,6 @@
      #t]
     [x:lit #t]
     [x:id (base-predicate? #'x)]))
-
-;; Specify primitives that shouldn't be lifted
-(define base-case-lifting-blacklist?
-  (syntax-parser
-    ;; These won't type check.
-    ;; The untyped version takes `any/c`, but the typed ones take `Set`
-    [(~or (~literal set-equal?)
-          (~literal set-eq?)
-          (~literal set-eqv?))
-     #t]
-    [_ #f]))
 
 ;; CLean up conditional clauses to make generated code a little more readable
 (splicing-let ([tt? (syntax-parser [#t #t] [_ #f])]
