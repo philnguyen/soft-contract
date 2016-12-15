@@ -80,30 +80,23 @@
 
 (define check-arity!
   (syntax-parser
-    [(_ o:id ((~literal ->) cₓ:fc ... cₐ:fc)
-        #:other-errors [cₑ:fc ...] ...
-        #:refinements [(~literal ->) rₓ:fc ... rₐ:fc] ...
-        #:lift-concrete? _)
-     (define n (length (syntax->list #'(cₓ ...))))
-     (define (check-domain-arity! doms)
-       (define m (length (syntax->list doms)))
-       (unless (equal? n m)
-         (raise-syntax-error
-          'def-prim
-          (format "~a has arity ~a, but get ~a" (syntax-e #'o) n m)
-          doms)))
-     (for-each check-domain-arity! (syntax->list #'((cₑ ...) ...)))
-     (for-each check-domain-arity! (syntax->list #'((rₓ ...) ...)))]
-    [(_ o:id ((~literal ->*) (cₓ:fc ...) #:rest cᵣ:rstc cₐ:fc)
+    [(_ o:id ctc:sig
         (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                    #:defaults ([(cₑ 2) null]))
-        (~optional (~seq #:refinements [(~literal ->) rₓ:fc ... rₐ:fc] ...)
-                   #:defaults ([(rₓ 2) null] [(rₐ 1) null]))
+        (~optional (~seq #:refinements ref:sig ...)
+                   #:defaults ([(ref 1) null]))
         (~optional (~seq #:lift-concrete? lift?:boolean)
                    #:defaults ([lift? #'#t])))
-     ;; TODO
-     (void)]
-    [_ (void)]))
+     (define arity (attribute ctc.arity))
+     (for ([refᵢ (in-list (syntax->list #'(ref ...)))])
+       (define/syntax-parse ref:sig refᵢ)
+       (unless (equal? arity (attribute ref.arity))
+         (raise-syntax-error
+          'def-prim
+          (format "~a: all refinement clauses must have the same shape as the main contract for now" (syntax-e #'o))
+          #'ref)))
+     ;; TODO check arity in #:other-error clauses
+     ]))
 
 (define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))
 

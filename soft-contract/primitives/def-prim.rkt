@@ -166,55 +166,59 @@
   ;; Generate function that refines results when more is known about arguments
   (define/contract (gen-refine-body V)
     (identifier? . -> . (listof syntax?))
-    (define/syntax-parse sig:sig (-sig))
-    (match (attribute sig.arity)
-      [(? integer? n)
-       (define-values (refine-dom-list refine-rng-list)
-         (for/lists (refine-dom-list refine-rng-list)
-                    ([refinement (in-list (-refs))])
-           (syntax-parse refinement
-             [((~literal ->) rₓ ... rₐ) (values (syntax->list #'(rₓ ...)) #'rₐ)])))
-       
-       (define (gen-check-definitely W c)
-         (define (pos?->R pos?) (if pos? #''✓ #''✗))
-         (let go ([c c] [pos? #t])
-           (define/with-syntax R (pos?->R pos?))
-           (syntax-parse c
-             [((~literal and/c) c* ...)
-              (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-             [((~literal or/c ) c* ...)
-              (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
-             [((~literal not/c) d) (go #'d (not pos?))]
-             [((~literal cons/c) c₁ c₂)
-              (and* (list #`(⊢?/quick R #,(-σ) #,(-Γ) -cons? #,W)
-                          (go #'c₁ pos?)
-                          (go #'c₂ pos?)))]
-             [((~literal listof) _)
-              (raise-syntax-error
-               'def-prim
-               (format "~a: `listof` in refinement not supported for now" #''o)
-               c)]
-             [((~literal list/c) c* ...)
-              (go (desugar-list/c (syntax->list #'(c* ...))))]
-             [((~literal =/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '=  #,W (-W¹ (-b x) (-b x)))]
-             [((~literal >/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>  #,W (-W¹ (-b x) (-b x)))]
-             [((~literal >=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>= #,W (-W¹ (-b x) (-b x)))]
-             [((~literal </c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<  #,W (-W¹ (-b x) (-b x)))]
-             [((~literal <=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<= #,W (-W¹ (-b x) (-b x)))]
-             [(~literal any/c) #'#t]
-             [(~literal none/c) #'#f]
-             [x:lit #'(⊢?/quick R #,(-σ) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
-             [c:id #`(⊢?/quick R #,(-σ) #,(-Γ) 'c #,W)])))
 
-       `(,@(for/list ([doms (in-list refine-dom-list)]
-                      [rng  (in-list refine-rng-list)])
-             (define preconds (map gen-check-definitely (-Wₙ) doms))
-             #`(when #,(and* preconds)
-                 #,@(for/list ([cᵣ (in-list (rng->refinement rng))])
-                      #`(set! #,V (V+ σ #,V #,cᵣ)))))
-         ,V)]
-      [_
-       (list #'(error 'refine "TODO: ->*"))]))
+    (define/contract (gen-check-definitely W c)
+      (identifier? syntax? . -> . syntax?)
+      (define (pos?->R pos?) (if pos? #''✓ #''✗))
+      (let go ([c c] [pos? #t])
+        (define/with-syntax R (pos?->R pos?))
+        (syntax-parse c
+          [((~literal and/c) c* ...)
+           (and* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+          [((~literal or/c ) c* ...)
+           (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
+          [((~literal not/c) d) (go #'d (not pos?))]
+          [((~literal cons/c) c₁ c₂)
+           (and* (list #`(⊢?/quick R #,(-σ) #,(-Γ) -cons? #,W)
+                       (go #'c₁ pos?)
+                       (go #'c₂ pos?)))]
+          [((~literal listof) _)
+           (raise-syntax-error
+            'def-prim
+            (format "~a: `listof` in refinement not supported for now" #''o)
+            c)]
+          [((~literal list/c) c* ...)
+           (go (desugar-list/c (syntax->list #'(c* ...))))]
+          [((~literal =/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '=  #,W (-W¹ (-b x) (-b x)))]
+          [((~literal >/c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>  #,W (-W¹ (-b x) (-b x)))]
+          [((~literal >=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '>= #,W (-W¹ (-b x) (-b x)))]
+          [((~literal </c ) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<  #,W (-W¹ (-b x) (-b x)))]
+          [((~literal <=/c) x) #`(⊢?/quick R #,(-σ) #,(-Γ) '<= #,W (-W¹ (-b x) (-b x)))]
+          [(~literal any/c) #'#t]
+          [(~literal none/c) #'#f]
+          [x:lit #'(⊢?/quick R #,(-σ) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
+          [c:id #`(⊢?/quick R #,(-σ) #,(-Γ) 'c #,W)])))
+
+    (define/syntax-parse ctc:sig (-sig))
+
+    `(,@(for/list ([refinement (in-list (-refs))])
+          (define/syntax-parse ref:sig refinement)
+          (define ref-init (attribute ref.init))
+          (define ref-rest (attribute ref.rest))
+          (define ref-rng  (attribute ref.rng))
+          (define precond-init (map gen-check-definitely (-Wₙ) ref-init))
+          (define precond-rest
+            (syntax-parse ref-rest
+              [(~or (~literal list?) ((~literal listof) (~literal any/c)) #f)
+               (list #'#t)]
+              [((~literal listof) c*)
+               (list #`(for/and : Boolean ([Wᵢ (in-list #,(-W*))])
+                         #,(gen-check-definitely #'Wᵢ #'c*)))]))
+          (define precond (and* (append precond-init precond-rest)))
+          #`(when #,precond
+              #,@(for/list ([cᵣ (in-list (rng->refinement ref-rng))])
+                   #`(set! #,V (V+ σ #,V #,cᵣ)))))
+      ,V))
 
   ;; Generate primitive body for the case where 1+ argument is symbolic
   ;; Free variable `Γ` available as "the" path condition
@@ -582,7 +586,6 @@
        (hash-set-once! const-table 'x .x))])
 
 (define-syntax (def-prim stx)
-  (check-arity! stx)
   (syntax-parse stx
     ;; Generate total predicates specially to reduce code duplicate
     [(_ o:id ((~literal ->) c ... (~literal boolean?)))
@@ -603,6 +606,8 @@
                    #:defaults ([(ref 1) null]))
         (~optional (~seq #:lift-concrete? lift?:boolean)
                    #:defaults ([lift? #'#t])))
+     
+     (check-arity! stx)
 
      (define n (length (attribute sig.init)))
      (define arity (attribute sig.arity))

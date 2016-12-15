@@ -86,9 +86,7 @@
   (() #:rest (listof exact-integer?) . ->* . exact-integer?)
   (() #:rest (listof integer?) . ->* . integer?)
   (() #:rest (listof real?) . ->* . real?)
-  ((positive?) #:rest (listof positive?) . ->* . positive?)
   (() #:rest (listof (not/c negative?)) . ->* . (not/c negative?))
-  ((negative?) #:rest (listof (not/c positive?)) . ->* . negative?)
   (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
 (def-prim - ; FIXME varargs
  ((number?) #:rest (listof number?) . ->* . number?)
