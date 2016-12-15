@@ -78,7 +78,7 @@
 ;;;;; 4.2.2 Generic Numerics
 
 ;; 4.2.2.1 Arithmetic
-(def-prim + ; FIXME varargs
+(def-prim +
   (() #:rest (listof number?)  . ->* . number?)
   #:refinements
   (() #:rest (listof exact-positive-integer?) . ->* . exact-positive-integer?)
@@ -88,24 +88,24 @@
   (() #:rest (listof real?) . ->* . real?)
   (() #:rest (listof (not/c negative?)) . ->* . (not/c negative?))
   (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
-(def-prim - ; FIXME varargs
+(def-prim -
  ((number?) #:rest (listof number?) . ->* . number?)
  #:refinements
  ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
  ((integer?) #:rest (listof integer?) . ->* . integer?)
  ((real?) #:rest (listof real?) . ->* . real?))
-(def-prim * ; FIXME varargs
- (number? number? . -> . number?)
+(def-prim *
+ (() #:rest (listof number?) . ->* . number?)
  #:refinements
- (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
- (exact-integer? exact-integer? . -> . exact-integer?)
- (integer? integer? . -> . integer?)
- (real? real? . -> . real?))
-(def-prim / ; FIXME varargs
- (number? (and/c number? (or/c inexact? (not/c zero?))) . -> . number?)
+ (() #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
+ (() #:rest (listof exact-integer?) . ->* . exact-integer?)
+ (() #:rest (listof integer?) . ->* . integer?)
+ (() #:rest (listof real?) . ->* . real?))
+(def-prim /
+ ((number?) #:rest (listof (and/c number? (or/c inexact? (not/c zero?)))) . ->* . number?)
  #:refinements
- (real? real? . -> . real?)
- ((not/c zero?) any/c . -> . (not/c zero?)))
+ ((real?) #:rest (listof real?) . ->* . real?)
+ (((not/c zero?)) #:rest list? . ->* . (not/c zero?)))
 (def-prims (quotient remainder modulo) ; FIXME: only error on exact 0
  (integer? (and/c integer? (not/c zero?)) . -> . integer?))
 #;(def-prims quotient/remainder ; TODO
@@ -129,19 +129,15 @@
  (real? . -> . real?)
  #:refinements
  (integer? . -> . integer?))
-(def-prims (max min) ; FIXME varargs
- (real? real? . -> . real?)
+(def-prims (max min) ((real?) #:rest (listof real?) . ->* . real?)
  #:refinements
- (exact-nonnegative-integer?  exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
- (integer? integer? . -> . integer?))
-(def-prims (gcd lcm) ; FIXME varargs
- (rational? rational? . -> . rational?))
+ ((exact-nonnegative-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
+ ((integer?) #:rest (listof integer?) . ->* . integer?))
+(def-prims (gcd lcm) ((real?) #:rest (listof real?) . ->* . real?))
 (def-prims (round floor ceiling truncate)
  (real? . -> . (or/c integer? +inf.0 -inf.0 +nan.0)))
-(def-prims (numerator denominator)
- (rational? . -> . integer?))
-(def-prim rationalize
- (real? real? . -> . real?))
+(def-prims (numerator denominator) (rational? . -> . integer?))
+(def-prim rationalize (real? real? . -> . real?))
 
 ;; 4.2.2.2 Number Comparison
 ; FIXME varargs
@@ -171,8 +167,8 @@
 (def-prim angle (number? . -> . real?))
 
 ;; 4.2.2.6 Bitwise Operations
-(def-prims (bitwise-ior bitwise-and bitwise-xor) ; FIXME varargs
- (exact-integer? exact-integer? . -> . exact-integer?))
+(def-prims (bitwise-ior bitwise-and bitwise-xor)
+ ((exact-integer? exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?))
 (def-prim bitwise-not (exact-integer? . -> . exact-integer?))
 (def-pred bitwise-bit-set? (exact-integer? exact-nonnegative-integer?))
 (def-prim bitwise-bit-field ; FIXME `start ≤ end`
