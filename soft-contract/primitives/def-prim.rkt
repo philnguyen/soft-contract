@@ -595,7 +595,7 @@
 (define-syntax (def-prim stx)
   (syntax-parse stx
     ;; Generate total predicates specially to reduce code duplicate
-    [(_ o:id ((~literal ->) c ... (~literal boolean?)))
+    [(_ o:id ((~literal ->) c:id ... (~literal boolean?)))
      #:when (for/and ([c (in-list (syntax->list #'(c ...)))])
               (free-identifier=? c #'any/c))
      (define n (length (syntax->list #'(c ...))))
