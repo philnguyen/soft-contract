@@ -24,6 +24,7 @@
          racket/match
          racket/set
          racket/splicing
+         racket/promise
          syntax/parse/define
          "../utils/set.rkt"
          "../utils/map.rkt"
@@ -382,20 +383,26 @@
             (cons #`(define (#,(->id f)) #,@es) acc)))
         
         (define body
-          (list #`(define cache : (HashTable -⟪α⟫ (℘ -ΓA)) (make-hasheq))
+          (list #`(define-set seen-tails : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+                #`(define cache : (HashTable -⟪α⟫ (℘ -ΓA)) (make-hasheq))
+                #`(define result : (Promise (℘ -ΓA)) (delay (#,κ #,(-Γ))))
                 #`(let go : (℘ -ΓA) ([V : -V (-W¹-V #,W)])
                     (match V
                       [(-Cons αₕ αₜ)
                        (define (chk-tail)
-                         (hash-ref! cache αₜ
-                                    (λ ()
-                                      (for/union : (℘ -ΓA) ([Vₜ (in-set (σ@ σ αₜ))])
-                                         (go Vₜ)))))
+                         (cond [(seen-tails-has? αₜ) (force result)]
+                               [else
+                                (seen-tails-add! αₜ)
+                                (hash-ref!
+                                 cache αₜ
+                                 (λ ()
+                                   (for/union : (℘ -ΓA) ([Vₜ (in-set (σ@ σ αₜ))])
+                                              (go Vₜ))))]))
                        (define (chk-elem)
                          (for/union : (℘ -ΓA) ([Vₕ (in-set (σ@ σ αₕ))])
                            #,@(gen-loop-body! c pos?)))
                        (chk-elem)]
-                      [(-b (list)) (#,κ #,(-Γ))]
+                      [(-b (list)) (force result)]
                       [(-● ps) #|TODO|# (blm #,(-Γ) #,(-l) '#,(-o) 'list? V)]
                       [_ (blm #,(-Γ) #,(-l) '#,(-o) 'list? V)]))))
         (push-thunk! (gen-name! 'chk-listof) body))

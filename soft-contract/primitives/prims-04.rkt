@@ -378,9 +378,9 @@
  ((and/c string? (not/c immutable?)) exact-nonnegative-integer? string? . -> . void?))
 (def-prim/todo string-fill! ; FIXME uses
  ((and/c string? (not/c immutable?)) char? . -> . void?))
-(def-prim string-append (string? string? . -> . string?) ; FIXME uses
-  #:refinements ; TODO not accurate
-  (path-string? path-string? . -> . path-string?))
+(def-prim string-append (() #:rest (listof string?) . ->* . string?)
+  #:refinements
+  (() #:rest (listof path-string?) . ->* . path-string?))
 (def-prim/custom (string->list ⟪ℋ⟫ ℓ l Σ Γ Ws)
   #:domain ([W string?])
   (define σ (-Σ-σ Σ))
