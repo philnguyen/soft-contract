@@ -556,29 +556,26 @@
     
     (match (attribute sig.arity)
       [(? integer? n)
-       (define/with-syntax c
-         (format-symbol (case n
-                          [(0 1) "~a value"]
-                          [else "~a values"])
-                        n))
        (list
         #`(match #,(-Ws)
             [(list #,@(-Wₙ))
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
-            [_ {set (-ΓA #,(-Γ) (-blm #,(-l) '#,(-o) '(c) (map -W¹-V #,(-Ws))))}]))]
+            [_ {set (-ΓA #,(-Γ) (blm-arity #,(-l) '#,(-o) #,n (map -W¹-V #,(-Ws))))}]))]
       [(arity-at-least 0)
        (list* #`(define #,(-W*) #,(-Ws))
               #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
               body)]
       [(arity-at-least n)
-       (define/with-syntax c (format-symbol "≥~a values" n))
        (list
         #`(match #,(-Ws)
             [(list* #,@(-Wₙ) #,(-W*))
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
-            [_ {set (-ΓA #,(-Γ) (-blm #,(-l) '#,(-o) '(c) (map -W¹-V #,(-Ws))))}]))])))
+            [_ {set (-ΓA #,(-Γ) (blm-arity #,(-l)
+                                           '#,(-o)
+                                           (arity-at-least #,n)
+                                           (map -W¹-V #,(-Ws))))}]))])))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

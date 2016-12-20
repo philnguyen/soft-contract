@@ -4,9 +4,11 @@
                "definition.rkt"
                "sto.rkt"
                "path-cond.rkt"
-               "val.rkt"))
+               "val.rkt"
+               "blm.rkt"))
 (require "simp.rkt"
          "definition.rkt"
          "sto.rkt"
          "path-cond.rkt"
-         "val.rkt")
+         "val.rkt"
+         "blm.rkt")

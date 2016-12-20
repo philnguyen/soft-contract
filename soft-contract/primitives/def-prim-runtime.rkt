@@ -62,14 +62,13 @@
   {set (-ΓA Γ (-W A (apply -?@ o ss)))})
 
 (define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧!)
-  (define cs (list (format-symbol "~a values" n)))
   (λ (o)
     (λ (⟪ℋ⟫ ℓ l Σ Γ Ws)
       (cond [(equal? n (length Ws))
              (match-define (-Σ σ _ M) Σ)
              (implement-predicate M σ Γ o Ws)]
             [else
-             {set (-ΓA Γ (-blm l o cs (map -W¹-V Ws)))}]))))
+             {set (-ΓA Γ (blm-arity l o n (map -W¹-V Ws)))}]))))
 
 (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
 (define alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut)) (make-hasheq))
