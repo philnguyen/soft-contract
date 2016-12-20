@@ -52,7 +52,7 @@
 ;;;;; Stack Store
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -κ ([cont : -⟦k⟧!]    ; rest of computation waiting on answer
+(struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
             [Γ : -Γ]         ; path-condition to use for rest of computation
             [⟪ℋ⟫ : -⟪ℋ⟫]        ; abstraction of call history
             [fun : -s]
@@ -117,8 +117,8 @@
             
             -C)
 
-(-Fn . ::= . (-Clo -formals -⟦e⟧! -ρ -Γ)
-             (-Case-Clo (Listof (Pairof (Listof Symbol) -⟦e⟧!)) -ρ -Γ))
+(-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
+             (-Case-Clo (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ))
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
@@ -197,7 +197,7 @@
   (match-define (-ℒ ℓs ℓₐ) ℒ)
   (-ℒ (set-add ℓs ℓ) ℓₐ))
 
-(struct -edge ([tgt : -⟦e⟧!] [src : -ℒ]) #:transparent)
+(struct -edge ([tgt : -⟦e⟧] [src : -ℒ]) #:transparent)
 (define-type -ℋ (Listof -edge))
 (define ℋ∅ : -ℋ '())
 
@@ -208,17 +208,17 @@
   (define already-in?
     (for/or : Boolean ([eᵢ ℋ])
       (match-define (-edge ⟦e⟧ᵢ _) eᵢ)
-      (eq? (ann ⟦e⟧ᵢ -⟦e⟧!) ⟦e⟧)))
+      (eq? (ann ⟦e⟧ᵢ -⟦e⟧) ⟦e⟧)))
   (if already-in? ℋ (cons e ℋ)))
 
-(: ℋ@ : -ℋ -⟦e⟧! → -ℋ)
+(: ℋ@ : -ℋ -⟦e⟧ → -ℋ)
 ;; Return segment of call history that first results in this edge
 (define (ℋ@ ℋ ⟦e⟧)
   (let loop ([ℋ : -ℋ ℋ])
     (match ℋ
-      ['() (error 'ℋ@ "not found ~a" (show-⟦e⟧! ⟦e⟧))]
+      ['() (error 'ℋ@ "not found ~a" (show-⟦e⟧ ⟦e⟧))]
       [(cons (-edge ⟦e⟧ᵢ _) ℋ*)
-       (if (eq? (ann ⟦e⟧ᵢ -⟦e⟧!) ⟦e⟧) ℋ (loop ℋ*))])))
+       (if (eq? (ann ⟦e⟧ᵢ -⟦e⟧) ⟦e⟧) ℋ (loop ℋ*))])))
 
 
 ;; The call history is passed around a lot and is part of address allocation
@@ -229,7 +229,7 @@
 (: ⟪ℋ⟫+ : -⟪ℋ⟫ -edge → -⟪ℋ⟫)
 (define (⟪ℋ⟫+ ⟪ℋ⟫ e) (-ℋ->-⟪ℋ⟫ (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e)))
 
-(: ⟪ℋ⟫@ : -⟪ℋ⟫ -⟦e⟧! → -⟪ℋ⟫)
+(: ⟪ℋ⟫@ : -⟪ℋ⟫ -⟦e⟧ → -⟪ℋ⟫)
 (define (⟪ℋ⟫@ ⟪ℋ⟫ ⟦e⟧) (-ℋ->-⟪ℋ⟫ (ℋ@ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) ⟦e⟧)))
 
 
@@ -296,9 +296,9 @@
 
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
-(define-type -⟦e⟧! (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧! → (℘ -ς)))
-(define-type -⟦k⟧! (-A -$ -Γ -⟪ℋ⟫ -Σ       → (℘ -ς)))
-(define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧! -e)))
+(define-type -⟦e⟧ (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ       → (℘ -ς)))
+(define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -315,7 +315,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧!] [env : -ρ])
+(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ])
              ;; Contract monitoring
              (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
             ;; Flat checking
@@ -389,7 +389,7 @@
        ""
        #:before-first "●"))]
     [(? -o? o) (show-o o)]
-    [(-Clo xs ⟦e⟧! ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧! ⟦e⟧!))]
+    [(-Clo xs ⟦e⟧ ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧))]
     [(-Case-Clo clauses ρ Γ)
      `(case-lambda
        ,@(for/list : (Listof Sexp) ([clause clauses])
@@ -464,8 +464,8 @@
   (match-define (cons x s) x-s)
   `(,x ↦ ,(show-s s)))
 
-(define show-⟦e⟧! : (-⟦e⟧! → Sexp)
-  (let-values ([(⟦e⟧->symbol symbol->⟦e⟧! _) ((inst unique-sym -⟦e⟧!) '⟦e⟧)])
+(define show-⟦e⟧ : (-⟦e⟧ → Sexp)
+  (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
     (λ (⟦e⟧)
       (cond [(recall-e ⟦e⟧) => show-e]
             [else (⟦e⟧->symbol ⟦e⟧)]))))
@@ -477,9 +477,9 @@
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ xs ⟦e⟧! ρ) ℬ)
+  (match-define (-ℬ xs ⟦e⟧ ρ) ℬ)
   (match xs
-    ['() `(ℬ ()                 ,(show-⟦e⟧! ⟦e⟧!) ,(show-ρ ρ))]
+    ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
     [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
@@ -499,7 +499,7 @@
 (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp)
   (for/list ([e ℋ])
     (match-define (-edge ⟦e⟧ ℒ) e)
-    `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧! ⟦e⟧))))
+    `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧))))
 
 (define show-ℒ : (-ℒ → Sexp)
   (let-values ([(ℒ->symbol symbol->ℒ _) ((inst unique-sym -ℒ) 'ℒ)])
@@ -537,24 +537,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TMP hack for part of root set from stack frames
-(splicing-let ([m ((inst make-hasheq -⟦k⟧! (℘ -⟪α⟫)))])
+(splicing-let ([m ((inst make-hasheq -⟦k⟧ (℘ -⟪α⟫)))])
   
-  (define (add-⟦k⟧-roots! [⟦k⟧ : -⟦k⟧!] [αs : (℘ -⟪α⟫)]) : Void
+  (define (add-⟦k⟧-roots! [⟦k⟧ : -⟦k⟧] [αs : (℘ -⟪α⟫)]) : Void
     (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ -⟪α⟫)]) (∪ αs₀ αs)) →∅eq))
   
   ;; Return the root set spanned by the stack chunk for current block
-  (define (⟦k⟧->roots [⟦k⟧ : -⟦k⟧!])
+  (define (⟦k⟧->roots [⟦k⟧ : -⟦k⟧])
     (hash-ref m ⟦k⟧ (λ () (error '⟦k⟧->αs "nothing for ~a" ⟦k⟧)))))
 
 ;; TMP hack for mapping stack to stack address to return to
-(splicing-let ([m ((inst make-hasheq -⟦k⟧! -αₖ))])
+(splicing-let ([m ((inst make-hasheq -⟦k⟧ -αₖ))])
 
-  (define (set-⟦k⟧->αₖ! [⟦k⟧ : -⟦k⟧!] [αₖ : -αₖ]) : Void
+  (define (set-⟦k⟧->αₖ! [⟦k⟧ : -⟦k⟧] [αₖ : -αₖ]) : Void
     (hash-update! m ⟦k⟧
                   (λ ([αₖ₀ : -αₖ]) ; just for debugging
                     (assert (equal? αₖ₀ αₖ))
                     αₖ₀)
                   (λ () αₖ)))
   
-  (define (⟦k⟧->αₖ [⟦k⟧ : -⟦k⟧!]) : -αₖ
+  (define (⟦k⟧->αₖ [⟦k⟧ : -⟦k⟧]) : -αₖ
     (hash-ref m ⟦k⟧ (λ () (error '⟦k⟧->αₖ "nothing for ~a" ⟦k⟧)))))

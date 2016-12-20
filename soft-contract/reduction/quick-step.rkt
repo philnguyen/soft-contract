@@ -17,10 +17,10 @@
 
 (define-type Ctx (List (HashTable -⟪α⟫ (℘ -V)) (HashTable -αₖ (℘ -κ))))
 
-(: run : -⟦e⟧! -σ → (Values (℘ -ΓA) -Σ))
-(define (run ⟦e⟧! σ)
+(: run : -⟦e⟧ -σ → (Values (℘ -ΓA) -Σ))
+(define (run ⟦e⟧ σ)
   (define seen : (HashTable -ς Ctx) (make-hash))
-  (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧! ⊥ρ))
+  (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ))
   (define Σ (-Σ σ (⊥σₖ αₖ₀) (⊥M)))
   (define root₀ ; all addresses to top-level definitions are conservatively active
     (for/fold ([root₀ : (℘ -⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
@@ -137,8 +137,8 @@
     (match-define (-ς↑ αₖ Γ ⟪ℋ⟫) ς)
     (define ⟦k⟧ (rt αₖ))
     (match αₖ
-      [(-ℬ _ ⟦e⟧! ρ)
-       (⟦e⟧! ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(-ℬ _ ⟦e⟧ ρ)
+       (⟦e⟧ ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-ℳ _ l³ ℓ W-C W-V)
        (mon l³ $∅ ℓ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-ℱ _ l ℓ W-C W-V)

@@ -9,7 +9,7 @@
          racket/set
          racket/match)
 
-(define/memo (↓ₓ [l : -l] [x : Symbol]) : -⟦e⟧!
+(define/memo (↓ₓ [l : -l] [x : Symbol]) : -⟦e⟧
   (define -blm.undefined
     (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x))))
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -41,7 +41,7 @@
            (root-union! (V->⟪α⟫s V))
            (match V
              [(-Clo xs ⟦e⟧ ρ Γ)
-              (printf "  - λ~a. ~a~n" (show-formals xs) (show-⟦e⟧! ⟦e⟧))
+              (printf "  - λ~a. ~a~n" (show-formals xs) (show-⟦e⟧ ⟦e⟧))
               (printf "     + ~a~n" (show-ρ ρ))
               (printf "     + ~a~n" (show-Γ Γ))]
              [_
@@ -61,11 +61,11 @@
             (⟦k⟧ (-W (list V*) s) $* Γ ⟪ℋ⟫ Σ)]
            [_ (⟦k⟧ (-W (list V) s) $* Γ ⟪ℋ⟫ Σ)]))])))
 
-(define ↓ₚᵣₘ : (-prim → -⟦e⟧!)
-  (let ([meq : (HashTable Any -⟦e⟧!) (make-hasheq)] ; `eq` doesn't work for String but ok
-        [m   : (HashTable Any -⟦e⟧!) (make-hash  )])
+(define ↓ₚᵣₘ : (-prim → -⟦e⟧)
+  (let ([meq : (HashTable Any -⟦e⟧) (make-hasheq)] ; `eq` doesn't work for String but ok
+        [m   : (HashTable Any -⟦e⟧) (make-hash  )])
     
-    (: ret-p : -prim → -⟦e⟧!)
+    (: ret-p : -prim → -⟦e⟧)
     (define (ret-p p) (ret-W¹ p p))
     
     (match-lambda
@@ -73,7 +73,7 @@
       [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
-(define/memo (ret-W¹ [V : -V] [v : -s]) : -⟦e⟧!
+(define/memo (ret-W¹ [V : -V] [v : -s]) : -⟦e⟧
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (⟦k⟧ (-W (list V) v) $ Γ ⟪ℋ⟫ Σ)))
 

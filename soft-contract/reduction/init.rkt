@@ -31,7 +31,7 @@
 (define 𝒙 (+x!/memo 'hv))
 (define 𝐱 (-x 𝒙))
 (define 𝐱s (list 𝐱))
-(define ⟦rev-hv⟧ : -⟦e⟧!
+(define ⟦rev-hv⟧ : -⟦e⟧
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (let ([Vs (σ@ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾)))])
       (assert (= 1 (set-count Vs)))
@@ -41,7 +41,7 @@
 (define (gen-havoc-clo ms)
   (define accs (prog-accs ms))
 
-  (define ⟦e⟧ₕᵥ : -⟦e⟧!
+  (define ⟦e⟧ₕᵥ : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-Σ σ _ _) Σ)
       (define Vs (σ@ σ (ρ@ ρ 𝒙)))
@@ -202,8 +202,8 @@
 ;;;;; Hacky frames
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧! : -⟦k⟧!]) : -⟦k⟧!
-  (with-error-handling (⟦k⟧! _ $ Γ ⟪ℋ⟫ Σ) #:roots (W)
+(define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (with-error-handling (⟦k⟧ _ $ Γ ⟪ℋ⟫ Σ) #:roots (W)
     (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
-    (app havoc-path $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧!)))
+    (app havoc-path $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧)))
 

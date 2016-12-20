@@ -11,7 +11,7 @@
          "../runtime/main.rkt"
          "../proof-relation/main.rkt")
 
-(define-type -⟦o⟧! (-⟪ℋ⟫ -ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
+(define-type -⟦o⟧ (-⟪ℋ⟫ -ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
 (define-type Prim-Thunk (-Γ → (℘ -ΓA)))
 
 (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
@@ -61,7 +61,7 @@
       [(?) -Bool/Vs]))
   {set (-ΓA Γ (-W A (apply -?@ o ss)))})
 
-(define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧!)
+(define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧)
   (λ (o)
     (λ (⟪ℋ⟫ ℓ l Σ Γ Ws)
       (cond [(equal? n (length Ws))
@@ -73,7 +73,7 @@
 (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
 (define alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut)) (make-hasheq))
 (define const-table : (HashTable Symbol -b) (make-hasheq))
-(define prim-table  : (HashTable Symbol -⟦o⟧!) (make-hasheq))
+(define prim-table  : (HashTable Symbol -⟦o⟧) (make-hasheq))
 (define opq-table   : (HashTable Symbol -●) (make-hasheq))
 (define debug-table : (HashTable Symbol Any) (make-hasheq))
 

@@ -14,7 +14,7 @@
          (all-from-out "app.rkt"))
 
 ;; begin0, waiting on first value
-(define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
@@ -22,7 +22,7 @@
        (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; begin0, already have first value
-(define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧!)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (match ⟦e⟧s
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
@@ -30,7 +30,7 @@
        (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; set!
-(define/memo (set!∷ [α : -⟪α⟫] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (set!∷ [α : -⟪α⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W Vs s) A)
     (match Vs
@@ -50,10 +50,10 @@
 ;; letrec-values
 (define/memo (letrec∷ [l : -l]
                       [xs : (Listof Symbol)]
-                      [⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧!))]
-                      [⟦e⟧ : -⟦e⟧!]
+                      [⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))]
+                      [⟦e⟧ : -⟦e⟧]
                       [ρ : -ρ]
-                      [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+                      [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
     (match-define (-W Vs s) A)
     (define n (length xs))
@@ -80,7 +80,7 @@
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; μ/c
-(define/memo (μ/c∷ [l : -l] [x : Symbol] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (μ/c∷ [l : -l] [x : Symbol] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W (list V) s) A)
     (match-define (-Σ σ _ _) Σ)
@@ -91,11 +91,11 @@
 ;; Non-dependent contract domain
 (define/memo (-->.dom∷ [l   : -l]
                        [Ws  : (Listof -W¹)]
-                       [⟦c⟧s : (Listof -⟦e⟧!)]
-                       [⟦d⟧  : -⟦e⟧!]
+                       [⟦c⟧s : (Listof -⟦e⟧)]
+                       [⟦d⟧  : -⟦e⟧]
                        [ρ   : -ρ]
                        [ℓ   : -ℓ]
-                       [⟦k⟧  : -⟦k⟧!]) : -⟦k⟧!
+                       [⟦k⟧  : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws ρ)
     (match-define (-W (list V) s) A)
     (define Ws* (cons (-W¹ V s) Ws))
@@ -107,7 +107,7 @@
 (define/memo (-->.rng∷ [l   : -l]
                        [Ws  : (Listof -W¹)]
                        [ℓ   : -ℓ]
-                       [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+                       [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws)
     (match-define (-Σ σ _ _) Σ)
     (match-define (-W (list D) d) A)
@@ -152,12 +152,12 @@
 
 ;; Dependent contract
 (define/memo (-->i∷ [Ws  : (Listof -W¹)]
-                    [⟦c⟧s : (Listof -⟦e⟧!)]
+                    [⟦c⟧s : (Listof -⟦e⟧)]
                     [ρ   : -ρ]
                     [Mk-D : -Clo]
                     [mk-d : -λ]
                     [ℓ    : -ℓ]
-                    [⟦k⟧  : -⟦k⟧!]) : -⟦k⟧!
+                    [⟦k⟧  : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws ρ Mk-D)
     (match-define (-W (list C) c) A)
     (define Ws* (cons (-W¹ C c) Ws))
@@ -170,7 +170,7 @@
        (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
 
 ;; Clean up path-condition
-(define/memo (rst∷ [xs : (℘ Symbol)] [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+(define/memo (rst∷ [xs : (℘ Symbol)] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (⟦k⟧ A $ (Γ↓ Γ xs) ⟪ℋ⟫ Σ)))
 
@@ -179,10 +179,10 @@
                       [ℓ : -ℓ]
                       [Clauses : (Listof (Listof -W¹))]
                       [Cs : (Listof -W¹)]
-                      [⟦c⟧s : (Listof -⟦e⟧!)]
-                      [⟦clause⟧s : (Listof (Listof -⟦e⟧!))]
+                      [⟦c⟧s : (Listof -⟦e⟧)]
+                      [⟦clause⟧s : (Listof (Listof -⟦e⟧))]
                       [ρ : -ρ]
-                      [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+                      [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
     (match-define (-W (list C) c) A)
     (define Cs* (cons (-W¹ C c) Cs))
@@ -199,9 +199,9 @@
 (define/memo (struct/c∷ [ℓ : -ℓ]
                         [𝒾 : -𝒾]
                         [Cs : (Listof -W¹)]
-                        [⟦c⟧s : (Listof -⟦e⟧!)]
+                        [⟦c⟧s : (Listof -⟦e⟧)]
                         [ρ : -ρ]
-                        [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (#;Cs ρ)
     (match-define (-W (list C) c) A)
     (define Cs* (cons (-W¹ C c) Cs))
@@ -232,7 +232,7 @@
 ;; define
 (define/memo (def∷ [l : -l]
                    [αs : (Listof -⟪α⟫)]
-                   [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+                   [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (define n (length αs))
     (match-define (-W Vs s) A)
@@ -252,7 +252,7 @@
 ;; provide with contract
 (define/memo (dec∷ [ℓ : -ℓ]
                    [𝒾 : -𝒾]
-                   [⟦k⟧ : -⟦k⟧!]) : -⟦k⟧!
+                   [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (define l (-𝒾-ctx 𝒾))
   (define l³ (-l³ l 'dummy l))
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()

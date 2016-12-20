@@ -11,7 +11,7 @@
          racket/set
          racket/match)
 
-(: ↓ₚ : (Listof -module) -e → -⟦e⟧!)
+(: ↓ₚ : (Listof -module) -e → -⟦e⟧)
 ;; Compile program
 (define (↓ₚ ms e)
   (define ⟦e⟧ (↓ₑ '† e))
@@ -21,12 +21,12 @@
      (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
        (⟦m⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ `(,@⟦m⟧s ,⟦e⟧) ρ ⟦k⟧)))]))
 
-(: ↓ₘ : -module → -⟦e⟧!)
+(: ↓ₘ : -module → -⟦e⟧)
 ;; Compile module
 (define (↓ₘ m)
   (match-define (-module l ds) m)
 
-  (: ↓pc : -provide-spec → -⟦e⟧!)
+  (: ↓pc : -provide-spec → -⟦e⟧)
   (define (↓pc spec)
     (match-define (-p/c-item x c ℓ) spec)
     (define ⟦c⟧ (↓ₑ l c))
@@ -34,7 +34,7 @@
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (dec∷ ℓ 𝒾 ⟦k⟧))))
   
-  (: ↓d : -module-level-form → -⟦e⟧!)
+  (: ↓d : -module-level-form → -⟦e⟧)
   (define (↓d d)
     (match d
       [(-define-values xs e)
@@ -60,7 +60,7 @@
      (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
        (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦d⟧s ρ ⟦k⟧)))]))
 
-(: ↓ₑ : -l -e → -⟦e⟧!)
+(: ↓ₑ : -l -e → -⟦e⟧)
 ;; Compile expression to computation
 (define (↓ₑ l e)
 
@@ -87,7 +87,7 @@
             (-Γ φs* as* γs*)))
         (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) s) $ Γ ⟪ℋ⟫ Σ))]
      [(-case-λ clauses)
-      (define ⟦clause⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧!))
+      (define ⟦clause⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
         (for/list ([clause clauses])
           (match-define (cons xs e) clause)
           (cons xs (↓ e))))
@@ -160,7 +160,7 @@
         [else (error '↓ₑ "TODO: (quote ~a)" q)])]
      [(-let-values bnds e*)
       (define ⟦bnd⟧s
-        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧!)) ([bnd bnds])
+        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
           (cons xs (↓ eₓₛ))))
       (define ⟦e*⟧ (↓ e*))
@@ -173,7 +173,7 @@
                                   #;(rst∷ (dom ρ) ⟦k⟧))))])]
      [(-letrec-values bnds e*)
       (define ⟦bnd⟧s
-        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧!)) ([bnd bnds])
+        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
           (cons xs (↓ eₓₛ))))
       (define ⟦e*⟧ (↓ e*))
@@ -240,7 +240,7 @@
            (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
            (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ '() ⟦c⟧s ρ Mk-D mk-d ℓ ⟦k⟧)))])]
      [(-case-> clauses ℓ)
-      (define ⟦clause⟧s : (Listof (Listof -⟦e⟧!))
+      (define ⟦clause⟧s : (Listof (Listof -⟦e⟧))
         (for/list ([clause clauses])
           (match-define (cons cs d) clause)
           `(,@(map ↓ cs) ,(↓ d))))
@@ -289,9 +289,9 @@
              α*]))
     (values x α*)))
 
-(: make-memoized-⟦e⟧ : -⟦e⟧! → -⟦e⟧!)
+(: make-memoized-⟦e⟧ : -⟦e⟧ → -⟦e⟧)
 (define (make-memoized-⟦e⟧ ⟦e⟧)
-  (define-type Key (List -⟪ℋ⟫ -⟦k⟧! -Γ (HashTable -⟪α⟫ (℘ -V))))
+  (define-type Key (List -⟪ℋ⟫ -⟦k⟧ -Γ (HashTable -⟪α⟫ (℘ -V))))
   (let ([m : (HashTable Key (℘ -ς)) (make-hash)])
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-Σ (-σ mσ _ _) _ _) Σ)

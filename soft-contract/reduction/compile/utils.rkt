@@ -26,7 +26,7 @@
           [frame-roots (compute-frame-roots root ...)]
           [tail-roots (⟦k⟧->roots ⟦k⟧)])
       (define ⟦k⟧₀ (rt αₖ))
-      (define ⟦k⟧* : -⟦k⟧!
+      (define ⟦k⟧* : -⟦k⟧
         (λ (A $ Γ ⟪ℋ⟫ Σ)
           (cond [(-blm? A) (⟦k⟧₀ A $ Γ ⟪ℋ⟫ Σ)]
                 [else e ...])))
@@ -41,9 +41,9 @@
      )
 
   ;; Base continuation that returns locally finished configuration
-  (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧!
+  (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧
     (let ()
-      (define ⟦k⟧ : -⟦k⟧!
+      (define ⟦k⟧ : -⟦k⟧
         (λ (A $ Γ ⟪ℋ⟫ Σ)
           (match A
             [(-blm l+ _ _ _) #:when (memq l+ '(havoc † Λ))

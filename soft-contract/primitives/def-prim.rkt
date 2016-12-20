@@ -642,7 +642,7 @@
                   (gen-ok-case))))))
      ;(pretty-write (syntax->datum #'defn-o))
      #`(begin
-         (: .o : -⟦o⟧!)
+         (: .o : -⟦o⟧)
          defn-o
          (hash-set! prim-table 'o .o)
          (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))
@@ -686,7 +686,7 @@
                (gen-precond-checks
                 (syntax->list #'(e ...)))))))
    #`(begin
-       (: .o : -⟦o⟧!)
+       (: .o : -⟦o⟧)
        defn-o
        (hash-set! prim-table 'o .o)
        (hash-set! debug-table 'o '#,(syntax->datum #'defn-o)))]
@@ -694,7 +694,7 @@
    (define/with-syntax .o (prefix-id #'o))
    (define/with-syntax defn-o #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
    #`(begin
-       (: .o : -⟦o⟧!)
+       (: .o : -⟦o⟧)
        defn-o
        (hash-set! prim-table 'o .o)
        (hash-set! debug-table 'o '#,(syntax->datum #'defn)))])
