@@ -19,10 +19,7 @@
                      racket/syntax
                      syntax/parse
                      racket/contract
-                     (only-in "../primitives/main.rkt"
-                              get-prim-parse-result
-                              get-defined-prim-names)
-                     ))
+                     "../primitives/for-parser.rkt"))
 
 
 (define/contract (file->module p)
@@ -465,9 +462,6 @@
     [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
 
-(define-for-syntax prim-names (get-defined-prim-names))
-(define-for-syntax prim-name->stx get-prim-parse-result)
-
 ;; Return primitive with given `id`
 (define/contract (parse-primitive id)
   (identifier?  . -> . (or/c #f -b? -o?))
@@ -477,12 +471,12 @@
     [(_ id:id)
 
      #`(syntax-parse id
-         #,@(for/list ([o (in-set prim-names)])
+         #,@(for/list ([(o v) (in-hash prim-parse-result)])
               #`[(~literal #,o) 
-                 #,(match/values (prim-name->stx o)
-                     [('quote name) #`(quote #,name)]
-                     [('const name) (format-id #'id ".~a" name)]
-                     [(_ _) (error 'make-parse-clause "~a" o)])])
+                 #,(match v
+                     [(cons 'quote name) #`(quote #,name)]
+                     [(cons 'const name) (format-id #'id ".~a" name)]
+                     [_ (error 'make-parse-clause "~a" o)])])
          [_ #f])])
 
   ;; Read off from primitive table
