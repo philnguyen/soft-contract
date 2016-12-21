@@ -657,47 +657,49 @@
               [_ '()]))]))
 
 ;; TODO remove code duplicate
-(define-syntax-parser def-prim/custom
-  [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id)
-      #:domain ([W:id c:fc] ...)
-      e:expr ...)
-   (define n (length (syntax->list #'(c ...))))
-   (define/with-syntax .o (prefix-id #'o))
-   (define/with-syntax defn-o
-     #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
-         #,@(parameterize ([-o #'o]
-                           [-⟪ℋ⟫ #'⟪ℋ⟫]
-                           [-ℓ #'ℓ]
-                           [-l #'l]
-                           [-Σ #'Σ]
-                           [-σ #'σ]
-                           [-M #'M]
-                           [-Γ #'Γ]
-                           [-Ws #'Ws]
-                           [-Wₙ (syntax->list #'(W ...))]
-                           [-sₙ (gen-ids #'s 's n)]
-                           [-bₙ (gen-ids #'b 'b n)]
-                           [-W* (format-id #'W* "W*")]
-                           [-b* (format-id #'b* "b*")]
-                           [-s* (format-id #'s* "s*")]
-                           [-sig #'(-> c ... any/c)]
-                           #;[-errs (syntax->list #'((cₑ ...) ...))])
-              (gen-arity-check
-               (gen-precond-checks
-                (syntax->list #'(e ...)))))))
-   #`(begin
-       (: .o : -⟦o⟧)
-       defn-o
-       (hash-set! prim-table 'o .o)
-       (hash-set! debug-table 'o '#,(syntax->datum #'defn-o)))]
-  [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e:expr ...)
-   (define/with-syntax .o (prefix-id #'o))
-   (define/with-syntax defn-o #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
-   #`(begin
-       (: .o : -⟦o⟧)
-       defn-o
-       (hash-set! prim-table 'o .o)
-       (hash-set! debug-table 'o '#,(syntax->datum #'defn)))])
+(define-syntax (def-prim/custom stx)
+  
+  (define/contract (gen-defn .o defn-o)
+    (identifier? syntax?  . -> . syntax?)
+    #`(begin
+        (: #,.o : -⟦o⟧)
+        #,defn-o
+        (hash-set! prim-table 'o #,.o)
+        (hash-set! debug-table 'o '#,(syntax->datum defn-o))))
+  
+  (syntax-parse stx
+    [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id)
+        #:domain ([W:id c:fc] ...)
+        e:expr ...)
+     (define n (length (syntax->list #'(c ...))))
+     (define/with-syntax .o (prefix-id #'o))
+     (define defn-o
+       #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
+           #,@(parameterize ([-o #'o]
+                             [-⟪ℋ⟫ #'⟪ℋ⟫]
+                             [-ℓ #'ℓ]
+                             [-l #'l]
+                             [-Σ #'Σ]
+                             [-σ #'σ]
+                             [-M #'M]
+                             [-Γ #'Γ]
+                             [-Ws #'Ws]
+                             [-Wₙ (syntax->list #'(W ...))]
+                             [-sₙ (gen-ids #'s 's n)]
+                             [-bₙ (gen-ids #'b 'b n)]
+                             [-W* (format-id #'W* "W*")]
+                             [-b* (format-id #'b* "b*")]
+                             [-s* (format-id #'s* "s*")]
+                             [-sig #'(-> c ... any/c)]
+                             #;[-errs (syntax->list #'((cₑ ...) ...))])
+                (gen-arity-check
+                 (gen-precond-checks
+                  (syntax->list #'(e ...)))))))
+     (gen-defn #'.o defn-o)]
+    [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e:expr ...)
+     (define/with-syntax .o (prefix-id #'o))
+     (define defn-o #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
+     (gen-defn #'.o defn-o)]))
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
   (def-prim/custom (x ⟪ℋ⟫ ℓ l Σ Γ Ws)
