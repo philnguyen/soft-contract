@@ -218,12 +218,6 @@
   (define (app-Case [C : -V] [c : -s] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
     (error 'app-Case "TODO"))
 
-  (define (app-opq) : (℘ -ς)
-    (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
-    (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)])
-              ([Wₓ Wₓs] #:when (behavioral? σ (-W¹-V Wₓ)))
-      (∪ ac (app 'Λ $ ℒ Wₕᵥ (list Wₓ) Γ ⟪ℋ⟫ Σ ⟦k⟧))))
-  
   (match Vₕ
     ;; In the presence of struct contracts, field accessing is not an atomic operation
     ;; because structs can be contract-wrapped arbitrarily deeply,
@@ -302,7 +296,7 @@
          (app-St/C s (map -W¹ Cs cs))))]
     [(-● _)
      (case (MΓ⊢oW M σ Γ 'procedure? Wₕ)
-       [(✓ ?) (app-opq)]
+       [(✓ ?) ((app-opq sₕ) l $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
        [(✗) (⟦k⟧ (-blm l 'Λ (list 'procedure?) (list Vₕ)) $ Γ ⟪ℋ⟫ Σ)])]
     [_
      (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ)))
@@ -641,6 +635,15 @@
      (app l $ ℒ (-W¹ (-Clo (list x xᵣ) ⟦e⟧ ρ Γ) sₕ) (list W₁ Wₗ) Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     [(_ _)
      (error 'app-apply "TODO: ~a ~a" (show-W¹ W₀) (map show-W¹ Wᵢs))]))
+
+(: app-opq : -s → -⟦f⟧)
+(define ((app-opq sₕ) l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (match-define (-Σ σ _ _) Σ)
+  (define sₐ (apply -?@ sₕ (map -W¹-s Ws)))
+  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
+  (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)])
+            ([W (in-list Ws)] #:when (behavioral? σ (-W¹-V W)))
+    (∪ ac (app 'Λ $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧))))
 
 (: alloc-init-args! : -σ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) → -ρ)
 (define (alloc-init-args! σ Γ ρ ⟪ℋ⟫ xs Ws)
