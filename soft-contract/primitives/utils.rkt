@@ -23,7 +23,12 @@
 
 (define-syntax-class hf
   #:description "restricted higher-order function contract"
-  (pattern ((~literal ->) c:hc ... d:hc)))
+  #:attributes (init rest rng arity)
+  (pattern ((~literal ->) c:hc ... d:hc)
+           #:attr init (syntax->list #'(c ...))
+           #:attr rest '()
+           #:attr rng #'d
+           #:attr arity (length (syntax->list #'(c ...)))))
 
 (define-syntax-class hc
   #:description "restricted higher-order contract"
@@ -32,6 +37,7 @@
 
 (define-syntax-class ff
   #:description "restricted first-order function contract"
+  #:attributes (init rest rng arity)
   (pattern ((~literal ->) c:fc ... d:rngc)
            #:attr init (syntax->list #'(c ...))
            #:attr rest #f

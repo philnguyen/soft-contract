@@ -12,7 +12,6 @@
          "../proof-relation/main.rkt")
 
 (define-type -⟦o⟧ (-⟪ℋ⟫ -ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
-(define-type Prim-Thunk (-Γ → (℘ -ΓA)))
 
 (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
 ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
@@ -45,11 +44,6 @@
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
   (eq? R (first-R (apply p∋Vs σ o Vs)
                   (Γ⊢e Γ (apply -?@ o ss)))))
-
-(: blm : -Γ -l -l (U -V -v) (U -W¹ -V) → (℘ -ΓA))
-(define (blm Γ who whom why what)
-  (define what* (if (-W¹? what) (-W¹-V what) what))
-  {set (-ΓA Γ (-blm who whom (list why) (list what*)))})
 
 (: implement-predicate : -M -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
 (define (implement-predicate M σ Γ o Ws)
@@ -191,7 +185,7 @@
       (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α -⟪α⟫)) (set-map Vs show-V)))
     (printf "~n")))
 
-(: with-MΓ⊢oW-handler : (-Γ → (℘ -ΓA)) (-Γ → (℘ -ΓA)) -M -σ -Γ -o -W¹ * → (℘ -ΓA))
+(: with-MΓ⊢oW-handler (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X)))
 (define (with-MΓ⊢oW-handler f₁ f₂ M σ Γ o . Ws)
   (define ss (map -W¹-s Ws))
   (define (on-t) (f₁ (Γ+ Γ (apply -?@ o ss))))
@@ -201,7 +195,7 @@
     [(✗) (on-f)]
     [(?) (∪ (on-t) (on-f))]))
 
-(: with-p∋Vs-handler : (→ (℘ -ΓA)) (→ (℘ -ΓA)) -σ -o -V * → (℘ -ΓA))
+(: with-p∋Vs-handler (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X)))
 (define (with-p∋Vs-handler t f σ o . Vs)
   (case (apply p∋Vs σ o Vs)
     [(✓) (t)]
