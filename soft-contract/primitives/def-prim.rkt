@@ -60,10 +60,10 @@
          (set-range! 'o 'boolean?)
          (update-arity! 'o #,n))]
 
-    [(_ o:id sig:sig
+    [(_ o:id sig:ff
         (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                    #:defaults ([(cₑ 2) null]))
-        (~optional (~seq #:refinements ref:sig ...)
+        (~optional (~seq #:refinements ref:ff ...)
                    #:defaults ([(ref 1) null]))
         (~optional (~seq #:lift-concrete? lift?:boolean)
                    #:defaults ([lift? #'#t])))

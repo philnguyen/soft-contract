@@ -21,8 +21,17 @@
                        "../ast/definition.rkt"
                        "../runtime/main.rkt"))
 
-(define-syntax-class sig
-  #:description "restricted function signature"
+(define-syntax-class hf
+  #:description "restricted higher-order function contract"
+  (pattern ((~literal ->) c:hc ... d:hc)))
+
+(define-syntax-class hc
+  #:description "restricted higher-order contract"
+  (pattern _:hf)
+  (pattern _:fc))
+
+(define-syntax-class ff
+  #:description "restricted first-order function contract"
   (pattern ((~literal ->) c:fc ... d:rngc)
            #:attr init (syntax->list #'(c ...))
            #:attr rest #f
@@ -35,7 +44,7 @@
            #:attr arity (arity-at-least (length (syntax->list #'(c ...))))))
 
 (define-syntax-class fc
-  #:description "restricted first-order contract"
+  #:description "restricted flat contract"
   (pattern ((~or (~literal and/c) (~literal or/c)) _:fc _:fc _:fc ...))
   (pattern ((~literal not/c) _:fc))
   (pattern ((~literal cons/c) _:fc _:fc))
@@ -80,16 +89,16 @@
 
 (define check-arity!
   (syntax-parser
-    [(_ o:id ctc:sig
+    [(_ o:id ctc:ff
         (~optional (~seq #:other-errors [cₑ:fc ...] ...)
                    #:defaults ([(cₑ 2) null]))
-        (~optional (~seq #:refinements ref:sig ...)
+        (~optional (~seq #:refinements ref:ff ...)
                    #:defaults ([(ref 1) null]))
         (~optional (~seq #:lift-concrete? lift?:boolean)
                    #:defaults ([lift? #'#t])))
      (define arity (attribute ctc.arity))
      (for ([refᵢ (in-list (syntax->list #'(ref ...)))])
-       (define/syntax-parse ref:sig refᵢ)
+       (define/syntax-parse ref:ff refᵢ)
        (unless (equal? arity (attribute ref.arity))
          (raise-syntax-error
           'def-prim

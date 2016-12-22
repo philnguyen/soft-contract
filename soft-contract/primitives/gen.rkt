@@ -94,7 +94,7 @@
 
   ;; Generate primitve body when all preconds have passed
   (define/contract (gen-ok-case) (-> (listof syntax?))
-    (define/syntax-parse sig:sig (-sig))
+    (define/syntax-parse sig:ff (-sig))
     (define dom-init (attribute sig.init))
     (define dom-rest (attribute sig.rest))
     (define rng (attribute sig.rng))
@@ -195,10 +195,10 @@
           [x:lit #'(⊢?/quick R #,(-σ) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
           [c:id #`(⊢?/quick R #,(-σ) #,(-Γ) 'c #,W)])))
 
-    (define/syntax-parse ctc:sig (-sig))
+    (define/syntax-parse ctc:ff (-sig))
 
     `(,@(for/list ([refinement (in-list (-refs))])
-          (define/syntax-parse ref:sig refinement)
+          (define/syntax-parse ref:ff refinement)
           (define ref-init (attribute ref.init))
           (define ref-rest (attribute ref.rest))
           (define ref-rng  (attribute ref.rng))
@@ -220,7 +220,7 @@
   ;; Free variable `Γ` available as "the" path condition
   (define/contract (gen-sym-case) (-> (listof syntax?))
 
-    (define/syntax-parse sig:sig (-sig))
+    (define/syntax-parse sig:ff (-sig))
     (define/syntax-parse rng:rngc (attribute sig.rng))
     (define dom-rest (attribute sig.rest))
 
@@ -402,7 +402,6 @@
                       [_ #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V)))]))))
         (push-thunk! (gen-name! 'chk-listof) body))
 
-
       (define/contract (go! c pos? on-done)
         (syntax? boolean? on-done/c . -> . symbol?)
 
@@ -517,7 +516,7 @@
 
     (define/contract (gen-chk-rest! κ push-thunk!)
       (symbol? (symbol? (or/c syntax? (listof syntax?)) . -> . symbol?) . -> . symbol?)
-      (define/syntax-parse sig:sig (-sig))
+      (define/syntax-parse sig:ff (-sig))
       (syntax-parse (attribute sig.rest)
         [(~or (~literal list?) ((~literal listof) (~literal any/c))) κ]
         [((~literal listof) c)
