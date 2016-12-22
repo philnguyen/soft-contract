@@ -559,11 +559,10 @@
          (gen-precond-check! W c κ push-thunk!))
        (gen-program (foldr step! κ* (-Wₙ) (syntax->list #'(cₓ ...))) thunks)]))
 
-  (define/contract (gen-arity-check body)
-    ((listof syntax?) . -> . (listof syntax?))
-    (define/syntax-parse sig:sig (-sig))
+  (define/contract (gen-arity-check n body)
+    (procedure-arity? (listof syntax?) . -> . (listof syntax?))
     
-    (match (attribute sig.arity)
+    (match n
       [(? integer? n)
        (list
         #`(match #,(-Ws)
@@ -646,7 +645,7 @@
                       [-gen-blm gen-blm]
                       #;[-errs (syntax->list #'((cₑ ...) ...))])
          #`(define (.o #,(-⟪ℋ⟫) #,(-ℓ) #,(-l) #,(-Σ) #,(-Γ) #,(-Ws))
-             #,@(gen-arity-check
+             #,@(gen-arity-check arity
                  (gen-precond-checks
                   (gen-ok-case))))))
      ;(pretty-write (syntax->datum #'defn-o))
@@ -702,7 +701,7 @@
                              [-sig #'(-> c ... any/c)]
                              [-gen-blm gen-blm]
                              #;[-errs (syntax->list #'((cₑ ...) ...))])
-                (gen-arity-check
+                (gen-arity-check n
                  (gen-precond-checks
                   (syntax->list #'(e ...)))))))
      (gen-defn #'o #'.o defn-o)]
