@@ -64,7 +64,13 @@
     [-sig syntax? #f]
     [-refs (listof #|sig|# syntax?) #f]
     [-errs (listof (listof #|dom|# syntax?)) #f]
-    [-lift? boolean? #f])
+    [-lift? boolean? #f]
+    ; given blame-producing expression, generate failure expression
+    [-gen-blm (syntax? . -> . syntax?) #f])
+
+  (define/contract (gen-blm blm)
+    (syntax? . -> . syntax?)
+    #`(set (-ΓA #,(-Γ) #,blm)))
 
   ;; Generate guards for identifier `x` based on given contract `c`
   (define/contract (gen-base-guard c x)
@@ -378,7 +384,7 @@
                             (cond [pos? 'chk-tail]
                                   [else (listof.push!
                                          (gen-name! 'fail)
-                                         #`(blm #,(-Γ) #,(-l) '#,(-o) '#,c Vₕ))]))))
+                                         ((-gen-blm) #`(-blm #,(-l) '#,(-o) (list '#,c) (list Vₕ))))]))))
           (for/fold ([acc (hash-ref listof.thunks κ₀)])
                     ([(f es) (in-hash listof.thunks)] #:unless (equal? f κ₀))
             (cons #`(define (#,(->id f)) #,@es) acc)))
@@ -404,8 +410,8 @@
                            #,@(gen-loop-body! c pos?)))
                        (chk-elem)]
                       [(-b (list)) (force result)]
-                      [(-● ps) #|TODO|# (blm #,(-Γ) #,(-l) '#,(-o) 'list? V)]
-                      [_ (blm #,(-Γ) #,(-l) '#,(-o) 'list? V)]))))
+                      [(-● ps) #|TODO|# #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V)))]
+                      [_ #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V)))]))))
         (push-thunk! (gen-name! 'chk-listof) body))
 
 
@@ -506,7 +512,9 @@
              (λ (c pos?)
                (if pos?
                    κ
-                   (push-local-thunk! (gen-name! 'blm) #`(blm #,(-Γ) #,(-l) '#,(-o) #,c #,W))))))
+                   (push-local-thunk!
+                    (gen-name! 'blm)
+                    ((-gen-blm) #`(-blm #,(-l) '#,(-o) (list #,c) (list (-W¹-V #,W)))))))))
       
       (cond [(hash-ref local-thunks entry-name #f) =>
              (λ (entry)
@@ -562,7 +570,8 @@
             [(list #,@(-Wₙ))
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
-            [_ {set (-ΓA #,(-Γ) (blm-arity #,(-l) '#,(-o) #,n (map -W¹-V #,(-Ws))))}]))]
+            [_ 
+             #,((-gen-blm) #`(blm-arity #,(-l) '#,(-o) #,n (map -W¹-V #,(-Ws))))]))]
       [(arity-at-least 0)
        (list* #`(define #,(-W*) #,(-Ws))
               #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
@@ -573,10 +582,8 @@
             [(list* #,@(-Wₙ) #,(-W*))
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
-            [_ {set (-ΓA #,(-Γ) (blm-arity #,(-l)
-                                           '#,(-o)
-                                           (arity-at-least #,n)
-                                           (map -W¹-V #,(-Ws))))}]))])))
+            [_
+             #,((-gen-blm) #`(blm-arity #,(-l) '#,(-o) (arity-at-least #,n) (map -W¹-V #,(-Ws))))]))])))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -636,6 +643,7 @@
                       [-sig #'sig]
                       [-lift? (syntax-e #'lift?)]
                       [-refs (syntax->list #'(ref ...))]
+                      [-gen-blm gen-blm]
                       #;[-errs (syntax->list #'((cₑ ...) ...))])
          #`(define (.o #,(-⟪ℋ⟫) #,(-ℓ) #,(-l) #,(-Σ) #,(-Γ) #,(-Ws))
              #,@(gen-arity-check
@@ -692,6 +700,7 @@
                              [-b* (format-id #'b* "b*")]
                              [-s* (format-id #'s* "s*")]
                              [-sig #'(-> c ... any/c)]
+                             [-gen-blm gen-blm]
                              #;[-errs (syntax->list #'((cₑ ...) ...))])
                 (gen-arity-check
                  (gen-precond-checks
