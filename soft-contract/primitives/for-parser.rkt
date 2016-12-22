@@ -1,23 +1,31 @@
 #lang typed/racket/base
 
-(provide prim-parse-result)
+(provide (all-defined-out))
 
-(require "def-prim-runtime.rkt"
+(require racket/set
+         "../utils/set.rkt"
+         "../runtime/definition.rkt"
+         "def-prim-runtime.rkt"
          "prims.rkt" ; for side-effect
          )
 
-(define prim-parse-result : (HashTable Symbol (Pairof (U 'quote 'const) Symbol)) (make-hasheq))
+(define (get-defined-prim-names)
+  ;; TODO def-opq table
+  (∪ (list->seteq (hash-keys const-table))
+     (list->seteq (hash-keys prim-table))
+     (list->seteq (hash-keys alias-table))
+     (list->seteq (hash-keys alias-internal-table))))
 
-(for ([c (in-hash-keys const-table)])
-  (hash-set! prim-parse-result c (cons 'const c)))
-
-(for ([o (in-hash-keys prim-table)])
-  (hash-set! prim-parse-result o (cons 'quote o)))
-
-(for ([(x c) (in-hash alias-table)])
-  (hash-set! prim-parse-result x
-    (hash-ref prim-parse-result c
-      (λ () (error 'alias-table "~a -> ~a but there's nothing" x c)))))
-
-(for ([x (in-hash-keys alias-internal-table)])
-  (hash-set! prim-parse-result x (cons 'const x)))
+;; range can't be:
+;;  - `Syntaxof Any`, b/c can't convert to contract
+;;  - `Any`, because TR doens't know how to wrap it
+(: get-prim-parse-result : Symbol → (Values (U 'quote 'const) Symbol))
+(define (get-prim-parse-result name)
+  (cond [(hash-has-key? prim-table name) (values 'quote name)]
+        [(hash-has-key? const-table name) (values 'const name)]
+        [(hash-ref alias-table name #f) => get-prim-parse-result]
+        [(hash-has-key? alias-internal-table name) (values 'const name)]
+        [(hash-ref opq-table name #f) =>
+         (λ ([V : -V])
+           (error 'get-prim "TODO: opq-table"))]
+        [else (error 'get-prim-parse-result "~a" name)]))

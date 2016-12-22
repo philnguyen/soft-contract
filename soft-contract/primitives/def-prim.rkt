@@ -659,13 +659,13 @@
 ;; TODO remove code duplicate
 (define-syntax (def-prim/custom stx)
   
-  (define/contract (gen-defn .o defn-o)
-    (identifier? syntax?  . -> . syntax?)
+  (define/contract (gen-defn o .o defn-o)
+    (identifier? identifier? syntax?  . -> . syntax?)
     #`(begin
         (: #,.o : -⟦o⟧)
         #,defn-o
-        (hash-set! prim-table 'o #,.o)
-        (hash-set! debug-table 'o '#,(syntax->datum defn-o))))
+        (hash-set! prim-table '#,o #,.o)
+        (hash-set! debug-table '#,o '#,(syntax->datum defn-o))))
   
   (syntax-parse stx
     [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id)
@@ -695,11 +695,11 @@
                 (gen-arity-check
                  (gen-precond-checks
                   (syntax->list #'(e ...)))))))
-     (gen-defn #'.o defn-o)]
+     (gen-defn #'o #'.o defn-o)]
     [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
-     (gen-defn #'.o defn-o)]))
+     (gen-defn #'o #'.o defn-o)]))
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
   (def-prim/custom (x ⟪ℋ⟫ ℓ l Σ Γ Ws)

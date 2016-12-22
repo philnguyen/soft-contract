@@ -461,6 +461,8 @@
     [rest:id (-varargs '() (syntax-e #'rest))]
     [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
+(define-for-syntax prim-names (get-defined-prim-names))
+(define-for-syntax prim-name->stx get-prim-parse-result)
 
 ;; Return primitive with given `id`
 (define/contract (parse-primitive id)
@@ -471,12 +473,12 @@
     [(_ id:id)
 
      #`(syntax-parse id
-         #,@(for/list ([(o v) (in-hash prim-parse-result)])
+         #,@(for/list ([o (in-set prim-names)])
               #`[(~literal #,o) 
-                 #,(match v
-                     [(cons 'quote name) #`(quote #,name)]
-                     [(cons 'const name) (format-id #'id ".~a" name)]
-                     [_ (error 'make-parse-clause "~a" o)])])
+                 #,(match/values (prim-name->stx o)
+                     [('quote name) #`(quote #,name)]
+                     [('const name) (format-id #'id ".~a" name)]
+                     [(_ _) (error 'make-parse-clause "~a" o)])])
          [_ #f])])
 
   ;; Read off from primitive table
