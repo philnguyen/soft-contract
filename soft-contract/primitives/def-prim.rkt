@@ -7,7 +7,8 @@
 ;; - [ ] #:other-errors
 ;; - [ ] limited dependent contract to specify `vector-ref`
 ;;      , or actually just def/custom it if there are only few cases
-(provide (all-defined-out))
+(provide (all-defined-out)
+         (for-syntax (all-defined-out)))
 
 (require (for-syntax racket/base
                      (only-in typed/racket/base index?)
@@ -377,7 +378,7 @@
                             (cond [pos? 'chk-tail]
                                   [else (listof.push!
                                          (gen-name! 'fail)
-                                         #`{set (-ΓA #,(-Γ) (-blm #,(-l) '#,(-o) (list '#,c) (list Vₕ)))})]))))
+                                         #`(blm #,(-Γ) #,(-l) '#,(-o) '#,c Vₕ))]))))
           (for/fold ([acc (hash-ref listof.thunks κ₀)])
                     ([(f es) (in-hash listof.thunks)] #:unless (equal? f κ₀))
             (cons #`(define (#,(->id f)) #,@es) acc)))
@@ -385,7 +386,7 @@
         (define body
           (list #`(define-set seen-tails : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
                 #`(define cache : (HashTable -⟪α⟫ (℘ -ΓA)) (make-hasheq))
-                #`(define result : (Promise (℘ -ΓA)) (delay (#,κ #,(-Γ))))
+                #`(define result (delay (#,κ #,(-Γ))))
                 #`(let go : (℘ -ΓA) ([V : -V (-W¹-V #,W)])
                     (match V
                       [(-Cons αₕ αₜ)
