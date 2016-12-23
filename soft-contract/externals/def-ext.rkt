@@ -21,14 +21,10 @@
          "../utils/set.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
-         "../primitives/gen.rkt"
+         "gen.rkt"
          "def-ext-runtime.rkt")
 
 (begin-for-syntax
-  (define-parameter/contract
-    [-$ identifier? #f]
-    [-ℒ identifier? #f]
-    [-⟦k⟧ identifier? #f])
 
   (define/contract (gen-blm blm)
     (syntax? . -> . syntax?)
@@ -100,7 +96,7 @@
      (define defn-o #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))
 
-#;(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([W₁ (any/c . -> . any/c)]
             [W₂ list?])
   #:result -Void/Vs)
