@@ -416,6 +416,26 @@
                      #:on-f #,(->id (on-done why (not pos?)))))))
 
         (syntax-parse c
+          ;; For function contracts, generate first-order checks only
+          [c:hf
+           (define/with-syntax arity
+             (match (attribute c.arity)
+               [(? integer? n) n]
+               [(arity-at-least n) #`(arity-at-least #,n)]))
+           (define/with-syntax c-msg
+             (format-symbol "arity-includes/c ~a" (syntax-e #'arity)))
+           (define κ₁
+             (push-local-thunk!
+              (gen-name!)
+              #`(with-arity-check (#,(-Γ) #,W arity)
+                  #:on-t #,(->id (on-done #''c-msg pos?))
+                  #:on-f #,(->id (on-done #''c-msg (not pos?))))))
+           (push-local-thunk!
+            (gen-name!)
+            #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) 'procedure? #,W)
+                #:on-t #,(->id κ₁)
+                #:on-f #,(->id (on-done #''procedure? (not pos?)))))]
+
           [((~literal and/c) c* ... cₙ)
            (foldr
             (λ (c κ)

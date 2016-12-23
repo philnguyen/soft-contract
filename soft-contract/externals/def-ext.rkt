@@ -1,5 +1,12 @@
 #lang typed/racket/base
 
+;; This module provides facility for defining external library functions
+;; Defining an external function through `def-ext` is different from treating it
+;; as an opaque value wrapped in contract in several ways:
+;; - There's support for cheating with custom definition for more precisions
+;;   (e.g. `reverse` returns a list of the same dynamically determined "type"
+;;   as its arguments)
+
 (provide (all-defined-out))
 
 (require (for-syntax racket/base
@@ -7,8 +14,7 @@
                      racket/contract
                      racket/syntax
                      syntax/parse
-                     "../primitives/utils.rkt"
-                     "utils.rkt")
+                     "../primitives/utils.rkt")
          racket/match
          racket/contract
          "../utils/map.rkt"
@@ -47,8 +53,16 @@
   (syntax-parse stx
     
     ;; Declarative modes, providing default crudest approximation
-    [(_ o:id c:fun)
+    [(_ o:id c:hf)
      (error "TODO")]
+
+    [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+        #:domain ([W:id c:hc] ...)
+        #:result e)
+     #'(def-ext (o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+         #:domain ([W c] ...)
+         (define sₐ (apply -?@ 'o (map -W¹-s Ws)))
+         (⟦k⟧ (-W e sₐ) $ Γ ⟪ℋ⟫ Σ))]
 
     ;; Custom modes for hacking
     [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
@@ -78,14 +92,15 @@
                              [-sig #'(-> c ... any/c)]
                              [-gen-blm gen-blm])
                 (gen-arity-check n
-                 (gen-precond-checks (list #'(error "TODO")))))))
+                 (gen-precond-checks
+                  (syntax->list #'(e ...)))))))
      (gen-defn #'o #'.o defn-o)]
     [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))
 
-(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+#;(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([W₁ (any/c . -> . any/c)]
             [W₂ list?])
-  ∅)
+  #:result -Void/Vs)

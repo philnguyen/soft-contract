@@ -195,6 +195,9 @@
     [(✗) (on-f)]
     [(?) (∪ (on-t) (on-f))]))
 
+(define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
+  (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))
+
 (: with-p∋Vs-handler (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X)))
 (define (with-p∋Vs-handler t f σ o . Vs)
   (case (apply p∋Vs σ o Vs)
@@ -202,11 +205,21 @@
     [(✗) (f)]
     [(?) (∪ (t) (f))]))
 
-(define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
-  (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))
-
 (define-simple-macro (with-p∋Vs (σ:expr o:expr V:expr ...) #:on-t t:expr #:on-f f:expr)
   (with-p∋Vs-handler t f σ o V ...))
+
+(: with-arity-check-handler (∀ (X) -Γ -W¹ Arity (-Γ → (℘ X)) (-Γ → (℘ X)) → (℘ X)))
+(define (with-arity-check-handler Γ W arity t f)
+  (match-define (-W¹ V s) W) ; ignore `Γ` and `s` for now
+  (define (on-t) (t Γ)) ; TODO
+  (define (on-f) (f Γ)) ; TODO
+  (cond [(V-arity V) =>
+         (λ ([a : Arity])
+           ((if (arity-includes? a arity) t f) Γ))]
+        [else (∪ (t Γ) (f Γ))]))
+
+(define-simple-macro (with-arity-check (Γ:expr W:expr a:expr) #:on-t t:expr #:on-f f:expr)
+  (with-arity-check-handler Γ W a t f))
 
 (: ss->bs : (Listof -s) → (Option (Listof Base)))
 (define (ss->bs ss)
