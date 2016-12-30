@@ -42,7 +42,7 @@
       (set! n (+ 1 n))))
 
   ;; Hack to remember fixed location for havoc
-  (: +ℓ/memo! : (U 'hv-res 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref) Any * → -ℓ)
+  (: +ℓ/memo! : (U 'hv-res 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref 'prim) Any * → -ℓ)
   (define (+ℓ/memo! tag . xs)
     (define ℓ (hash-ref! m (cons tag xs) +ℓ!))
     (hash-set! m⁻¹ ℓ (cons tag xs))

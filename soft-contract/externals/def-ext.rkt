@@ -13,6 +13,7 @@
                      racket/match
                      racket/contract
                      racket/syntax
+                     racket/pretty
                      syntax/parse
                      "../primitives/utils.rkt")
          racket/match
@@ -70,7 +71,7 @@
        #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
            #,@(parameterize ([-o #'o]
                              [-⟪ℋ⟫ #'⟪ℋ⟫]
-                             [-ℓ #'ℓ]
+                             [-ℒ #'ℒ]
                              [-l #'l]
                              [-Σ #'Σ]
                              [-σ #'σ]
@@ -89,13 +90,16 @@
                              [-gen-blm gen-blm])
                 (gen-arity-check n
                  (gen-precond-checks
-                  (syntax->list #'(e ...)))))))
+                  (gen-wraps
+                   (syntax->list #'(e ...))))))))
+     ;(pretty-write (syntax->datum defn-o))
      (gen-defn #'o #'.o defn-o)]
     [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))
 
+;; Examples. Delete after done.
 (def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([W₁ (any/c . -> . any/c)]
             [W₂ list?])
