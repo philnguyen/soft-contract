@@ -22,6 +22,7 @@
          "../utils/set.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
+         "../reduction/compile/app.rkt"
          "gen.rkt"
          "def-ext-runtime.rkt")
 
@@ -49,10 +50,22 @@
   
   (syntax-parse stx
     
-    ;; Declarative modes, providing default crudest approximation
+    ;; Only declare contract, providing crudest approximation
     [(_ o:id c:hf)
-     (error "TODO")]
+     (define/syntax-parse (cₓ ...) (attribute c.init))
+     (define/syntax-parse d (attribute c.rng))
+     (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
+     #`(def-ext (o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+         #:domain ([W cₓ] ...)
+         (define σ (-Σ-σ Σ))
+         (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
+         (define sₐ (-?@ 'o (-W¹-s W) ...))
+         (define Vsₐ #,(gen-ans #'d))
+         (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W Vsₐ sₐ) $ Γ ⟪ℋ⟫ Σ)])
+                   ([Wᵢ (in-list Ws)] #:when (behavioral? σ (-W¹-V Wᵢ)))
+           (∪ ac (app 'Λ $ ℒ Wₕᵥ (list Wᵢ) Γ ⟪ℋ⟫ Σ ⟦k⟧))))]
 
+    ;; Declaring simple result, skipping havoc-ing of arguments
     [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         #:result e)
@@ -90,17 +103,20 @@
                              [-gen-blm gen-blm])
                 (gen-arity-check n
                  (gen-precond-checks
-                  (gen-wraps
+                  (gen-arg-wraps
                    (syntax->list #'(e ...))))))))
      ;(pretty-write (syntax->datum defn-o))
      (gen-defn #'o #'.o defn-o)]
+    
+    ;; Skipping precondition checks
     [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))
 
 ;; Examples. Delete after done.
-(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(def-ext for-each ((any/c . -> . any/c) list? . -> . void?))
+#;(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([W₁ (any/c . -> . any/c)]
             [W₂ list?])
   #:result -Void/Vs)

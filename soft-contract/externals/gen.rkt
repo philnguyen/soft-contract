@@ -26,6 +26,10 @@
     [-ℒ identifier? #f]
     [-⟦k⟧ identifier? #f])
 
+  (define/contract (gen-ans d)
+    (syntax? . -> . syntax?)
+    #`(error 'gen-ans "TODO: ~a" '#,(syntax->datum d)))
+
   ;; Generate the expression producing contract `c`
   ;; along with expressions performing neccessary allocations
   (define/contract (gen-alloc ℓ c)
@@ -48,7 +52,8 @@
       [c:id #'(quote c)]
       [_ (error 'gen-alloc "unhandled: ~a" (syntax->datum c))]))
 
-  (define/contract (gen-func-wrap-clause c W)
+  ;; Generate expression wrapping function contract `c` around identifier `W`
+  (define/contract (gen-func-wrap c W)
     (syntax? identifier? . -> . syntax?)
     #`(let* ([ℓ (+ℓ/memo! 'prim '#,(-o))]
              [l³ (-l³ #,(-l) '#,(-o) '#,(-o))]
@@ -58,22 +63,23 @@
         (σ⊕! #,(-σ) ⟪α⟫ (-W¹-V #,W))
         (-W¹ (-Ar grd ⟪α⟫ l³) s)))
 
-  (define/contract (gen-wrap-clause c W)
+  ;; Generate expression wrapping contract `c` around identifier `W`
+  (define/contract (?gen-wrap c W)
     (syntax? identifier? . -> . (or/c #f syntax?))
     (syntax-parse c
-      [((~literal ->) _ ...) (gen-func-wrap-clause c W)]
+      [((~literal ->) _ ...) (gen-func-wrap c W)]
       [_:fc #f]
       [_ (error 'gen-wrap-clause "unhandled: ~a" (syntax->datum #'c))]))
 
-  ;; Generate re-bindings of variables that should be wrapped in higher-order contracts
-  (define/contract (gen-wraps body)
+  ;; Generate re-definitions of variables that should be wrapped in higher-order contracts
+  (define/contract (gen-arg-wraps body)
     ((listof syntax?) . -> . (listof syntax?))
     (define/syntax-parse sig:hf (-sig))
     (define/with-syntax ([Wᵢ eᵢ] ...)
       (filter values
               (for/list ([W (in-list (-Wₙ))]
                          [c (in-list (attribute sig.init))])
-                (define ?rhs (gen-wrap-clause c W))
+                (define ?rhs (?gen-wrap c W))
                 (and ?rhs #`(#,W #,?rhs)))))
     (define/with-syntax (clauses-rest ...) #|TODO|# '())
     `(,@(for/list ([Wᵢ (in-list (syntax->list #'(Wᵢ ...)))]
