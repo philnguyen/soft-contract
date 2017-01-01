@@ -60,8 +60,10 @@
          (define σ (-Σ-σ Σ))
          (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
          (define sₐ (-?@ 'o (-W¹-s W) ...))
-         (define Vsₐ #,(gen-ans #'d))
-         (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W Vsₐ sₐ) $ Γ ⟪ℋ⟫ Σ)])
+         (define Wₐ (-W (list #,(parameterize ([-σ #'σ])
+                                  (gen-wrap #'d #'-●/V #'sₐ)))
+                        sₐ))
+         (for/fold ([ac : (℘ -ς) (⟦k⟧ Wₐ $ Γ ⟪ℋ⟫ Σ)])
                    ([Wᵢ (in-list Ws)] #:when (behavioral? σ (-W¹-V Wᵢ)))
            (∪ ac (app 'Λ $ ℒ Wₕᵥ (list Wᵢ) Γ ⟪ℋ⟫ Σ ⟦k⟧))))]
 
@@ -113,10 +115,3 @@
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))
-
-;; Examples. Delete after done.
-(def-ext for-each ((any/c . -> . any/c) list? . -> . void?))
-#;(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  #:domain ([W₁ (any/c . -> . any/c)]
-            [W₂ list?])
-  #:result -Void/Vs)

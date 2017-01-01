@@ -9,6 +9,7 @@
                      racket/syntax
                      syntax/parse
                      "../primitives/utils.rkt")
+         racket/set
          racket/match
          racket/contract
          "../utils/map.rkt"
@@ -52,37 +53,40 @@
       [c:id #'(quote c)]
       [_ (error 'gen-alloc "unhandled: ~a" (syntax->datum c))]))
 
-  ;; Generate expression wrapping function contract `c` around identifier `W`
-  (define/contract (gen-func-wrap c W)
-    (syntax? identifier? . -> . syntax?)
+  ;; Generate expression wrapping function contract `c` around `V`
+  (define/contract (gen-func-wrap c V s)
+    (syntax? syntax? syntax? . -> . syntax?)
+    ;; be careful not to use `V` twice
     #`(let* ([ℓ (+ℓ/memo! 'prim '#,(-o))]
              [l³ (-l³ #,(-l) '#,(-o) '#,(-o))]
              [grd #,(gen-alloc #'ℓ c)]
-             [s (-W¹-s #,W)]
-             [⟪α⟫ (-α->-⟪α⟫ (or (keep-if-const s) (-α.fn #,(-ℒ) ℓ #,(-⟪ℋ⟫))))])
-        (σ⊕! #,(-σ) ⟪α⟫ (-W¹-V #,W))
-        (-W¹ (-Ar grd ⟪α⟫ l³) s)))
+             [⟪α⟫ (-α->-⟪α⟫ (or (keep-if-const #,s) (-α.fn #,(-ℒ) ℓ #,(-⟪ℋ⟫))))])
+        (σ⊕! #,(-σ) ⟪α⟫ #,V)
+        (-Ar grd ⟪α⟫ l³)))
 
-  ;; Generate expression wrapping contract `c` around identifier `W`
-  (define/contract (?gen-wrap c W)
-    (syntax? identifier? . -> . (or/c #f syntax?))
+  ;; Generate expression wrapping contract `c` around `V`
+  (define/contract (gen-wrap c V s)
+    (syntax? syntax? syntax? . -> . syntax?)
+    ;; be careful not to use `V` twice
     (syntax-parse c
-      [((~literal ->) _ ...) (gen-func-wrap c W)]
-      [_:fc #f]
+      [((~literal ->) _ ...) (gen-func-wrap c V s)]
+      [((~literal and/c) c*:id ...) #`(V+ #,(-σ) #,V (seteq 'c* ...))]
+      ;[((~literal and/c) c*    ...) (foldr gen-wrap V (syntax->list #'(c* ...)))]
+      [c:id #`(V+ #,(-σ) #,V 'c)]
       [_ (error 'gen-wrap-clause "unhandled: ~a" (syntax->datum #'c))]))
 
   ;; Generate re-definitions of variables that should be wrapped in higher-order contracts
   (define/contract (gen-arg-wraps body)
     ((listof syntax?) . -> . (listof syntax?))
     (define/syntax-parse sig:hf (-sig))
-    (define/with-syntax ([Wᵢ eᵢ] ...)
-      (filter values
-              (for/list ([W (in-list (-Wₙ))]
-                         [c (in-list (attribute sig.init))])
-                (define ?rhs (?gen-wrap c W))
-                (and ?rhs #`(#,W #,?rhs)))))
+    (define eᵢs
+      (for/list ([W (in-list (-Wₙ))]
+                 [c (in-list (attribute sig.init))])
+        (gen-wrap c #`(-W¹-V #,W) #`(-W¹-s #,W))))
     (define/with-syntax (clauses-rest ...) #|TODO|# '())
-    `(,@(for/list ([Wᵢ (in-list (syntax->list #'(Wᵢ ...)))]
-                   [eᵢ (in-list (syntax->list #'(eᵢ ...)))])
-          #`(define #,Wᵢ : -W¹ #,eᵢ))
-      ,@body)))
+    (list
+     #`(let (#,@(for/list ([Wᵢ (in-list (-Wₙ))]
+                           [eᵢ (in-list eᵢs)])
+                  #`[#,Wᵢ (-W¹ #,eᵢ (-W¹-s #,Wᵢ))])
+             clauses-rest ...)
+         #,@body))))
