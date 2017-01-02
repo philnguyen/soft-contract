@@ -162,7 +162,7 @@
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
   (def-prim/custom (x ⟪ℋ⟫ ℓ l Σ Γ Ws)
-    (error 'x "TODO")))
+    (error 'def-prim "TODO: ~a" 'x)))
 
 (define-simple-macro (def-prims (o:id ... (~optional (~seq #:todo o*:id ...)
                                                      #:defaults ([(o* 1) '()])))

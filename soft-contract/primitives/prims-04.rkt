@@ -820,13 +820,13 @@
     [_ {set (-ΓA Γ (-W (list (-● {set 'list?})) sₐ))}]))
 
 ;; 4.9.3 List Iteration
-(def-prim/todo map ; FIXME uses
+#;(def-prim/todo map ; FIXME uses
  (procedure? list? . -> . list?))
-(def-prims (andmap ormap) ; FIXME uses
+#;(def-prims (andmap ormap) ; FIXME uses
  (procedure? list . -> . any/c))
-(def-prim for-each ; FIXME uses ; FIXME cannot be defined here
+#;(def-prim for-each ; FIXME uses ; FIXME cannot be defined here
  (procedure? list? . -> . void?))
-(def-prims (foldl foldr) ; FIXME uses
+#;(def-prims (foldl foldr) ; FIXME uses
  (procedure? any/c list? . -> . any/c))
 
 ;; 4.9.4 List Filtering
