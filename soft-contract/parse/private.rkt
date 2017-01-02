@@ -11,7 +11,7 @@
          syntax/modresolve
          "expand.rkt"
          (prefix-in fake: "../fake-contract.rkt")
-         "../primitives/main.rkt"
+         "../primitives/main.rkt" ; for references to constants (e.g. `.null`)
          (for-syntax racket/base
                      racket/match
                      racket/list
@@ -19,8 +19,7 @@
                      racket/syntax
                      syntax/parse
                      racket/contract
-                     "../primitives/for-parser.rkt"))
-
+                     "../externals/for-parser.rkt"))
 
 (define/contract (file->module p)
   (path-string? . -> . -module?)
@@ -461,8 +460,8 @@
     [rest:id (-varargs '() (syntax-e #'rest))]
     [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
-(define-for-syntax prim-names (get-defined-prim-names))
-(define-for-syntax prim-name->stx get-prim-parse-result)
+(define-for-syntax ext-names (get-defined-ext-names))
+(define-for-syntax ext-name->stx get-ext-parse-result)
 
 ;; Return primitive with given `id`
 (define/contract (parse-primitive id)
@@ -471,11 +470,10 @@
 
   (define-syntax-parser make-parse-clauses
     [(_ id:id)
-
      #`(syntax-parse id
-         #,@(for/list ([o (in-set prim-names)])
+         #,@(for/list ([o (in-set ext-names)])
               #`[(~literal #,o) 
-                 #,(match/values (prim-name->stx o)
+                 #,(match/values (ext-name->stx o)
                      [('quote name) #`(quote #,name)]
                      [('const name) (format-id #'id ".~a" name)]
                      [(_ _) (error 'make-parse-clause "~a" o)])])

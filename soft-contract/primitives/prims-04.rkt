@@ -1059,9 +1059,9 @@
       [(-Vector^ _ n) (list n)]
       [_ -Nat/Vs]))
   {set (-ΓA Γ (-W A sₐ))})
-(def-prim/todo vector-ref
+#;(def-prim/todo vector-ref
  (vector? exact-nonnegative-integer? . -> . any/c))
-(def-prim/todo vector-set!
+#;(def-prim/todo vector-set!
  ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?))
 (def-prim/todo vector->list
  (vector? . -> . list?))

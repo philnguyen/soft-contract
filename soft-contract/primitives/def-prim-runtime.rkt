@@ -71,6 +71,9 @@
 (define opq-table   : (HashTable Symbol -●) (make-hasheq))
 (define debug-table : (HashTable Symbol Any) (make-hasheq))
 
+(: get-prim : Symbol → (Option -⟦o⟧))
+(define (get-prim o) (hash-ref prim-table o #f))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers for some of the primitives
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
