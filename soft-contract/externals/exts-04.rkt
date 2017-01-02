@@ -15,6 +15,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def-ext map ((any/c . -> . any/c) list? . -> . list?)) ; FIXME uses 
+(def-ext for-each ((any/c . -> . any/c) list? . -> . void?)) ; FIXME uses
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
