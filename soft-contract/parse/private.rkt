@@ -438,7 +438,9 @@
                          (resolved-module-path-name (module-path-index-resolve x)))))
                     src)
                _ _ _ _ _ _)
-         (-𝒾 (syntax-e #'i) src)]))]))
+         #:when (not (equal? src 'Λ))
+         (-𝒾 (syntax-e #'i) src)]
+        [_ (error 'parser "don't know what `~a` is" (syntax-e #'i))]))]))
 
 (define/contract (parse-quote stx)
   (scv-syntax? . -> . -e?)
