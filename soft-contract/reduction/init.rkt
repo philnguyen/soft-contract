@@ -9,6 +9,7 @@
          "../runtime/main.rkt"
          "../proof-relation/widen.rkt"
          (only-in "../proof-relation/base-assumptions.rkt" V-arity)
+         "../externals/main.rkt" ; for side-effects
          "compile/utils.rkt"
          "compile/app.rkt")
 
