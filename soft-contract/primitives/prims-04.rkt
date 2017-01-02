@@ -749,7 +749,7 @@
 (def-alias-internal car -car)
 (def-alias-internal cdr -cdr)
 (def-const null)
-(def-prim/todo list? (any/c . -> . boolean?))
+(def-prim list? (any/c . -> . boolean?))
 (def-prim/todo list (() #:rest list? . ->* . list?))
 (def-prim/todo list* ; FIXME
   (-> list?))
