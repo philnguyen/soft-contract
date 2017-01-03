@@ -1063,8 +1063,7 @@
  (vector? exact-nonnegative-integer? . -> . any/c))
 #;(def-prim/todo vector-set!
  ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?))
-(def-prim/todo vector->list
- (vector? . -> . list?))
+(def-prim vector->list (vector? . -> . list?)) ; FIXME retain content
 (def-prim/todo list->vector
  (list? . -> . vector?))
 (def-prim/todo vector->immutable-vector
