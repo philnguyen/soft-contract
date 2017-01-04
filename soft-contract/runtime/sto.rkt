@@ -160,10 +160,12 @@
   (for ([α (in-list (hash-keys crds))] #:unless (∋ αs α))
     (hash-remove! crds α)))
 
-(define (->⟪α⟫s [x : (Rec X (U -⟪α⟫ -V -W¹ -W -ρ (Listof X)))]) : (℘ -⟪α⟫)
+(define (->⟪α⟫s [x : (Rec X (U -⟪α⟫ -V -W¹ -W -ρ (Listof X) (℘ X)))]) : (℘ -⟪α⟫)
   (cond
     [(list? x)
-     (for/unioneq : (℘ -⟪α⟫) ([xᵢ x]) (->⟪α⟫s xᵢ))]
+     (for/unioneq : (℘ -⟪α⟫) ([xᵢ (in-list x)]) (->⟪α⟫s xᵢ))]
+    [(set? x)
+     (for/unioneq : (℘ -⟪α⟫) ([xᵢ (in-set x)]) (->⟪α⟫s xᵢ))]
     [(-V? x) (V->⟪α⟫s x)]
     [(-W¹? x) (V->⟪α⟫s (-W¹-V x))]
     [(-W? x) (->⟪α⟫s (-W-Vs x))]

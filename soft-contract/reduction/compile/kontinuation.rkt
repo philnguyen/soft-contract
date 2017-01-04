@@ -13,22 +13,6 @@
 (provide (all-defined-out)
          (all-from-out "app.rkt"))
 
-;; begin0, waiting on first value
-(define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (match ⟦e⟧s
-    ['() ⟦k⟧]
-    [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧)))]))
-
-;; begin0, already have first value
-(define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (match ⟦e⟧s
-    ['() ⟦k⟧]
-    [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
-
 ;; set!
 (define/memo (set!∷ [α : -⟪α⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()

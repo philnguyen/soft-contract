@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide app mon flat-chk
-         ap∷ let∷ if∷ and∷ or∷ bgn∷ rst-Γ∷
+         ap∷ let∷ if∷ and∷ or∷ bgn∷ bgn0.v∷ bgn0.e∷ rst-Γ∷
          mon.c∷ mon.v∷
          make-memoized-⟦k⟧
          mk-mon-⟦e⟧ mk-rt-⟦e⟧ mk-app-⟦e⟧)
@@ -480,12 +480,13 @@
 
 (: app-opq : -s → -⟦f⟧)
 (define ((app-opq sₕ) l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (match-define (-Σ σ _ _) Σ)
+  (match-define (-Σ σ σₖ _) Σ)
   (define sₐ (apply -?@ sₕ (map -W¹-s Ws)))
   (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
-  (for/fold ([ac : (℘ -ς) (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)])
-            ([W (in-list Ws)] #:when (behavioral? σ (-W¹-V W)))
-    (∪ ac (app 'Λ $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧))))
+  (define αₖ (-ℋ𝒱 ℒ (for/set: : (℘ -V) ([W (in-list Ws)]) (-W¹-V W))))
+  (define κ (-κ (bgn0.e∷ (-W -●/Vs sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
+  (σₖ⊔! σₖ αₖ κ)
+  {set (-ς↑ αₖ Γ ⟪ℋ⟫)})
 
 (: alloc-init-args! : -σ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) → -ρ)
 (define (alloc-init-args! σ Γ ρ ⟪ℋ⟫ xs Ws)
@@ -666,6 +667,22 @@
     [(cons ⟦e⟧ ⟦e⟧s*)
      (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
        (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (make-memoized-⟦k⟧ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))))]))
+
+;; begin0, waiting on first value
+(define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (match ⟦e⟧s
+    ['() ⟦k⟧]
+    [(cons ⟦e⟧ ⟦e⟧s*)
+     (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧))))]))
+
+;; begin0, already have first value
+(define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (match ⟦e⟧s
+    ['() ⟦k⟧]
+    [(cons ⟦e⟧ ⟦e⟧s*)
+     (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧))))]))
 
 ;; clean-up path-condition
 (define/memo (rst-Γ∷ [Γ : -Γ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
@@ -1108,8 +1125,8 @@
                [i (in-naturals)] #:when (index? i))
       (and (struct-mutable? 𝒾 i) (cast ⟪α⟫ -⟪α⟫))))
   (define V* (-St* 𝒾 αs* ⟪α⟫ l³))
-  (define ⟪α⟫s-casted #|FIXME TR|# (cast ⟪α⟫s (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X)))))
-  (define ⟪α⟫-casted #|FIXME TR|# (cast ⟪α⟫ (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X)))))
+  (define ⟪α⟫s-casted #|FIXME TR|# (cast ⟪α⟫s (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X) (℘ X)))))
+  (define ⟪α⟫-casted #|FIXME TR|# (cast ⟪α⟫ (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X) (℘ X)))))
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (⟪α⟫s-casted ⟪α⟫-casted)
     (match-define (-W Vs s) A)
     (match-define (list V) Vs) ; only used internally, should be safe

@@ -317,9 +317,12 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ])
              ;; Contract monitoring
-             (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹]) ; TODO don't need ℒ
-            ;; Flat checking
-             (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])) ; TODO don't need ℒ
+             (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹])
+             ;; Flat checking
+             (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])
+             ;; Havoc value set
+             (-ℋ𝒱 [loc : -ℒ] [vals : (℘ -V)])
+             )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -474,6 +477,7 @@
   (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
         [(-ℳ? αₖ) (show-ℳ αₖ)]
         [(-ℱ? αₖ) (show-ℱ αₖ)]
+        [(-ℋ𝒱? αₖ) (show-ℋ𝒱 αₖ)]
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
@@ -489,6 +493,10 @@
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
   (match-define (-ℱ x l ℓ W-C W-V) ℱ)
   `(ℱ ,x ,(show-W¹ W-C) ,(show-W¹ W-V)))
+
+(define (show-ℋ𝒱 [ℋ𝒱 : -ℋ𝒱]) : Sexp
+  (match-define (-ℋ𝒱 _ Vs) ℋ𝒱)
+  `(ℋ𝒱 ,@(set-map Vs show-V)))
 
 (define-parameter verbose? : Boolean #f)
 

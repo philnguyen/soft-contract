@@ -17,6 +17,7 @@
                      syntax/parse
                      "../primitives/utils.rkt")
          racket/match
+         racket/set
          racket/contract
          "../utils/map.rkt"
          "../utils/set.rkt"
@@ -57,15 +58,16 @@
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
      #`(def-ext (o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
-         (define σ (-Σ-σ Σ))
+         (match-define (-Σ σ σₖ _) Σ)
          (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
          (define sₐ (-?@ 'o (-W¹-s W) ...))
          (define Wₐ (-W (list #,(parameterize ([-σ #'σ])
                                   (gen-wrap #'d #'-●/V #'sₐ)))
                         sₐ))
-         (for/fold ([ac : (℘ -ς) (⟦k⟧ Wₐ $ Γ ⟪ℋ⟫ Σ)])
-                   ([Wᵢ (in-list Ws)] #:when (behavioral? σ (-W¹-V Wᵢ)))
-           (∪ ac (app 'Λ $ ℒ Wₕᵥ (list Wᵢ) Γ ⟪ℋ⟫ Σ ⟦k⟧))))]
+         (define αₖ (-ℋ𝒱 ℒ (set (-W¹-V W) ...)))
+         (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
+         (σₖ⊔! σₖ αₖ κ)
+         {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments
     [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
