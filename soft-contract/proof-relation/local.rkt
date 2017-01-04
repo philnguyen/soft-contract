@@ -307,7 +307,8 @@
                                path-string?
                                string?
                                char?
-                               symbol?)
+                               symbol?
+                               void?)
           ;; Insert manual rules here
           [(procedure?)
            (match Vs
