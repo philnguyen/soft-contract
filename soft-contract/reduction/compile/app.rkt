@@ -30,14 +30,6 @@
                  [_ sₕ])])
       (apply -?@ sₕ* sₓs)))
 
-  ;; Debugging
-  #;(let ([Wₕᵥ (-W¹ (σ@¹ σ (-α.def havoc-𝒾)) havoc-𝒾)])
-    (when (and (equal? Wₕ Wₕᵥ)
-               (match? Wₓs (list (-W¹ (? -Ar?) _))))
-      (printf "havoc: ~a~n" (show-W¹ (car Wₓs)))
-      (printf "  with label ~a~n" ℒ)
-      (printf "  from: ~a~n~n" (show-αₖ (⟦k⟧->αₖ ⟦k⟧)))))
-
   (: blm-arity ([Arity Natural] [#:name -s] . ->* . -blm))
   (define (blm-arity required provided #:name [f sₕ])
     ;; HACK for error message. Probably no need to fix
@@ -447,8 +439,9 @@
                            (ap∷ (list Wₛ Mut) '() ⊥ρ lo ℒ ⟦k⟧)))]
          [(-● _)
           (define ⟦ok⟧
-            (let ([Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾)])
-              (define ⟦hv⟧ (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list (mk-rt-⟦e⟧ Wᵥ))))
+            (let ([⟦hv⟧ (mk-app-⟦e⟧ havoc-path ℒ
+                                    (mk-rt-⟦e⟧ (-W¹ -●/V #f))
+                                    (list (mk-rt-⟦e⟧ Wᵥ)))])
               (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧))))
           (define ⟦er⟧ (mk-rt-⟦e⟧ (blm)))
           (app 'Λ $ ℒ (-W¹ p p) (list Wₛ) Γ ⟪ℋ⟫ Σ (if∷ l ⟦ok⟧ ⟦er⟧ ⊥ρ ⟦k⟧))]
@@ -482,7 +475,6 @@
 (define ((app-opq sₕ) l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ σₖ _) Σ)
   (define sₐ (apply -?@ sₕ (map -W¹-s Ws)))
-  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
   (define αₖ (-ℋ𝒱 ℒ (for/set: : (℘ -V) ([W (in-list Ws)]) (-W¹-V W))))
   (define κ (-κ (bgn0.e∷ (-W -●/Vs sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
   (σₖ⊔! σₖ αₖ κ)
@@ -874,8 +866,8 @@
   
   (match Vᵥ
     [(-Vector αs)
-     (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
      (define ⟦erase⟧ (mk-erase-⟦e⟧ αs))
+     (define ⟦rt-●⟧ (mk-rt-⟦e⟧ (-W¹ -●/V #f)))
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [Vs (σ@/list σ αs)])
        (define ⟦hv⟧s : (Listof -⟦e⟧)
          (for/list ([V* (in-list Vs)]
@@ -884,11 +876,10 @@
              (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*)
                          (mk-rt-⟦e⟧ (-W¹ C c))
                          (mk-rt-⟦e⟧ (-W¹ V* (-?@ 'vector-ref sᵥ (-b i))))))
-           (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦chk⟧))))
+           (mk-app-⟦e⟧ lo ℒ ⟦rt-●⟧ (list ⟦chk⟧))))
        (match-define (cons ⟦e⟧ ⟦e⟧s) (append ⟦hv⟧s (list ⟦erase⟧ ⟦rt⟧)))
        (⟦e⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s ⊥ρ ⟦k⟧)))]
     [(-Vector^ αᵥ n)
-     (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
      (define ⟦erase⟧ (mk-erase-⟦e⟧ (list αᵥ)))
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [V* (σ@ σ αᵥ)])
         (mon l³ $ ℒ (-W¹ C c) (-W¹ V* #|TODO|# #f) Γ ⟪ℋ⟫ Σ
@@ -945,7 +936,7 @@
   (define ⟦mk⟧
     (let ([V* (-Vector/hetero αs l³)])
       (mk-rt-⟦e⟧ (-W (list V*) vᵥ))))
-  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
+  (define ⟦rt-●⟧ (mk-rt-⟦e⟧ (-W¹ -●/V #f)))
   (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
      (define ⟦hv-fld⟧s : (Listof -⟦e⟧)
        (for/list ([C* (in-list Cs)]
@@ -960,7 +951,7 @@
                        (list (mk-rt-⟦e⟧ W-V)
                              (mk-rt-⟦e⟧ Wᵢ))))
          (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ ℒ (mk-rt-⟦e⟧ W-C*) ⟦ref⟧))
-         (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦mon⟧))))
+         (mk-app-⟦e⟧ havoc-path ℒ ⟦rt-●⟧ (list ⟦mon⟧))))
      (define ⟦erase⟧
        (match Vᵥ
          [(-Vector αs) (mk-erase-⟦e⟧ αs)]

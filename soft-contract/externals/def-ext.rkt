@@ -59,7 +59,6 @@
      #`(def-ext (o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (match-define (-Σ σ σₖ _) Σ)
-         (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ (-α.def havoc-𝒾))) havoc-𝒾))
          (define sₐ (-?@ 'o (-W¹-s W) ...))
          (define Wₐ (-W (list #,(parameterize ([-σ #'σ])
                                   (gen-wrap #'d #'-●/V #'sₐ)))
