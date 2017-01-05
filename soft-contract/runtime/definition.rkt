@@ -358,8 +358,7 @@
   (cond [(-σ? σ) (show-σ (-σ-m σ))]
         [else
          (for*/list : (Listof Sexp) ([(⟪α⟫ Vs) σ]
-                                     [α (in-value (-⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))]
-                                     #:unless (or (-α.def? α) (-α.wrp? α) (-e? α)))
+                                     [α (in-value (-⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)))])
            `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ -⟪α⟫)) ↦ ,@(set-map Vs show-V)))]))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
