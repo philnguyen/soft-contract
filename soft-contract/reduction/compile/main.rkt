@@ -39,7 +39,7 @@
     (match d
       [(-define-values xs e)
        (define αs : (Listof -⟪α⟫)
-         (for/list ([x xs]) (-α->-⟪α⟫ (-α.def (-𝒾 x l)))))
+         (for/list ([x xs]) (-α->-⟪α⟫ (-𝒾 x l))))
        (define ⟦e⟧ (↓ₑ l e))
        (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
          (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (def∷ l αs ⟦k⟧)))]
@@ -105,7 +105,7 @@
       (define-values (α modify-V)
         (cond
           ;; same-module referencing returns unwrapped version
-          [(equal? l₀ l) (values (-α.def 𝒾) (inst values -V))]
+          [(equal? l₀ l) (values 𝒾 (inst values -V))]
           ;; cross-module referencing returns wrapped version
           ;; and (HACK) supplies the negative monitoring context
           [else (values (-α.wrp 𝒾) (λ ([V : -V]) (supply-negative-party l V)))]))
@@ -201,7 +201,7 @@
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ (ρ@ ρ x) ⟦k⟧)))]
         [(? -𝒾? 𝒾)
-         (define α (-α->-⟪α⟫ (-α.def 𝒾)))
+         (define α (-α->-⟪α⟫ 𝒾))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ α ⟦k⟧)))])]
      [(-error msg)

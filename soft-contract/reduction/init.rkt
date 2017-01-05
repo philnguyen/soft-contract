@@ -20,7 +20,7 @@
   (define e† (gen-havoc-exp ms))
   (define hv (gen-havoc-clo ms))
   (define σ (⊥σ))
-  (σ⊕*! σ [(-α->-⟪α⟫ (-α.def havoc-𝒾)) ↦ hv]
+  (σ⊕*! σ [(-α->-⟪α⟫ havoc-𝒾) ↦ hv]
           [(-α->-⟪α⟫ (-α.wrp havoc-𝒾)) ↦ hv])
   ;(ensure-singletons σ) ; disable this in production
   (values σ e†))

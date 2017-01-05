@@ -24,7 +24,7 @@
   (define Σ (-Σ σ (⊥σₖ αₖ₀) (⊥M)))
   (define root₀ ; all addresses to top-level definitions are conservatively active
     (for/fold ([root₀ : (℘ -⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
-      (set-add (set-add root₀ (-α->-⟪α⟫ (-α.def 𝒾))) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
+      (set-add (set-add root₀ (-α->-⟪α⟫ 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
 
   (define iter : Natural 0)
 
@@ -44,27 +44,27 @@
 
         #;(begin ; verbose
 
-            (begin ; interactive
-              (define ςs-list
-                (append ς↑s ς↓s))
-              (define ς->i
-                (for/hash : (HashTable -ς Integer) ([(ς i) (in-indexed ςs-list)])
-                  (values ς i))))
-            
-            (printf " *~n")
-            (for ([ς ς↑s])
-              (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
-            (printf " *~n")
-            (for ([ς ς↓s])
-              (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
+          (begin ; interactive
+            (define ςs-list
+              (append ς↑s ς↓s))
+            (define ς->i
+              (for/hash : (HashTable -ς Integer) ([(ς i) (in-indexed ςs-list)])
+                (values ς i))))
+          
+          (printf " * evs:~n")
+          (for ([ς ς↑s])
+            (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
+          (printf " * rts:~n")
+          (for ([ς ς↓s])
+            (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
 
-            #;(begin ; interactive
-                (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
-                (match (read)
-                  [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
-                  ['done (error "DONE")]
-                  [_ (void)]))
-            )
+          #;(begin ; interactive
+              (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
+              (match (read)
+                [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
+                ['done (error "DONE")]
+                [_ (void)]))
+          )
         
         (printf "~n")
         (set! iter (+ 1 iter)))

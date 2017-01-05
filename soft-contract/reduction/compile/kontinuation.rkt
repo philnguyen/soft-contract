@@ -24,7 +24,7 @@
        (define s
          (match (-⟪α⟫->-α α)
            [(-α.x x _) (canonicalize Γ x)]
-           [(-α.def 𝒾) 𝒾]))
+           [(? -𝒾? 𝒾) 𝒾]))
        (⟦k⟧ -Void/W ($+ $ s V) Γ ⟪ℋ⟫ Σ)]
       [_
        (define blm
@@ -243,7 +243,7 @@
     (match-define (-W (list C) c) A)
     (match-define (-Σ σ _ _) Σ)
     (define W-C (-W¹ C c))
-    (define Vs (σ@ σ (-α->-⟪α⟫ (-α.def 𝒾))))
+    (define Vs (σ@ σ (-α->-⟪α⟫ 𝒾)))
     (for/union : (℘ -ς) ([V Vs])
       (mon l³ $ (-ℒ (set ℓ) ℓ) W-C (-W¹ V 𝒾) Γ ⟪ℋ⟫ Σ
            (def∷ l (list (-α->-⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧)))))

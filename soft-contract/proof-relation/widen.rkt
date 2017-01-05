@@ -43,7 +43,7 @@
       [else
        (define Vs (hash-ref m α →∅))
        (match (-⟪α⟫->-α α)
-         [(? -α.def?) ; can't bind top-level from 2 places
+         [(? -𝒾?) ; can't bind top-level from 2 places
           (hash-set! crds α
                      (case crd₀
                        [(0) 1]
@@ -55,7 +55,7 @@
   (hash-set! m α Vs*)
   (when mutating?
     (hash-set! mods α #t))
-  #;(when (match? (-⟪α⟫->-α α) (-α.def (-𝒾 'slatex::*include-onlys* _)))
+  #;(when (match? (-⟪α⟫->-α α) (-𝒾 'slatex::*include-onlys* _))
     (printf "~a : ~a ⊕ ~a -> ~a~n"
             (show-⟪α⟫ α)
             (set-map Vs₀ show-V)
@@ -145,7 +145,7 @@
   
   (define (simplify [P : -V]) : -V
     (match P
-      [(-Ar _ (and α (app -⟪α⟫->-α (or (? -α.def?) (? -α.wrp?) (? -e?)))) _)
+      [(-Ar _ (and α (app -⟪α⟫->-α (or (? -α.wrp?) (? -e?)))) _)
        (define Vs (σ@ σ α))
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]

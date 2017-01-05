@@ -236,8 +236,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value address
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(-α . ::= . ; For top-level definition and contract
-            (-α.def -𝒾)
+(-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
             (-α.x Symbol -⟪ℋ⟫)
@@ -399,7 +398,7 @@
            `(,xs …)))]
     [(-Ar guard α _)
      (match α
-       [(-α.def 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
+       [(? -𝒾? 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
        [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
        [_ `(,(show-V guard) ◃ ,(show-⟪α⟫ α))])]
     [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-⟪α⟫ αs))]
