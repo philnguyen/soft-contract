@@ -87,7 +87,21 @@
 
 (: M⊔! : -M -αₖ -Γ -A → Void)
 (define (M⊔! M αₖ Γ A)
-  (hash-update! M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅))
+  (hash-update! M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅)
+  #;(hash-update! M αₖ
+                (λ ([ΓAs : (℘ -ΓA)])
+                  (define check
+                    (for/or : (U #f 'use-old -ΓA) ([ΓA₀ (in-set ΓAs)])
+                      (match-define (-ΓA Γ₀ A₀) ΓA₀)
+                      (and (equal? A₀ A)
+                           (cond [(Γ⊆ Γ₀ Γ) 'use-old]
+                                 [(Γ⊆ Γ Γ₀) ΓA₀]
+                                 [else #f]))))
+                  (case check
+                    [(use-old) ΓAs]
+                    [(#f) (set-add ΓAs (-ΓA Γ A))]
+                    [else (set-add (set-remove ΓAs check) (-ΓA Γ A))]))
+                →∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -185,6 +199,12 @@
            (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
 
+(: Γ⊆ : -Γ -Γ → Boolean)
+(define (Γ⊆ Γ₀ Γ₁)
+  (match-define (-Γ φs₀ _ γs₀) Γ₀)
+  (match-define (-Γ φs₁ _ γs₁) Γ₁)
+  (and (⊆ φs₀ φs₁) (⊆ (list->set γs₀) (list->set γs₁))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Call history
@@ -207,18 +227,17 @@
   (match-define (-edge ⟦e⟧ _) e)
   (define already-in?
     (for/or : Boolean ([eᵢ ℋ])
-      (match-define (-edge ⟦e⟧ᵢ _) eᵢ)
-      (eq? (ann ⟦e⟧ᵢ -⟦e⟧) ⟦e⟧)))
+      (eq? (ann (-edge-tgt eᵢ) -⟦e⟧) ⟦e⟧)))
   (if already-in? ℋ (cons e ℋ)))
 
 (: ℋ@ : -ℋ -⟦e⟧ → -ℋ)
-;; Return segment of call history that first results in this edge
+;; Return segment of call history that first jumps to this function body
 (define (ℋ@ ℋ ⟦e⟧)
   (let loop ([ℋ : -ℋ ℋ])
     (match ℋ
       ['() (error 'ℋ@ "not found ~a" (show-⟦e⟧ ⟦e⟧))]
-      [(cons (-edge ⟦e⟧ᵢ _) ℋ*)
-       (if (eq? (ann ⟦e⟧ᵢ -⟦e⟧) ⟦e⟧) ℋ (loop ℋ*))])))
+      [(cons eᵢ ℋ*)
+       (if (eq? (ann (-edge-tgt eᵢ) -⟦e⟧) ⟦e⟧) ℋ (loop ℋ*))])))
 
 
 ;; The call history is passed around a lot and is part of address allocation
