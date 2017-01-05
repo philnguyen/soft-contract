@@ -417,7 +417,7 @@
     [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]
     [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (car γ)))]
     [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ γs)))]
-    [(-=> αs β _) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ (car β)))]
+    [(-=> αs β _) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ℓ β))]
     [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
      `(->i ,@(map show-⟪α⟫ℓ γs)
            ,(match xs
@@ -517,9 +517,11 @@
              `(ℒ ,(set->list ℓs) ,ℓ)]
             [else (ℒ->symbol ℒ)]))))
 
-(define (show-⟪α⟫ [⟪α⟫ : -⟪α⟫]) : Symbol
+(define (show-⟪α⟫ [⟪α⟫ : -⟪α⟫]) : Sexp
+  (define α (-⟪α⟫->-α ⟪α⟫))
   (match (-⟪α⟫->-α ⟪α⟫)
     [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
+    [(? -e? e) (show-e e)]
     [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
