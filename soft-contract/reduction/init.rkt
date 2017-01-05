@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide 𝑰 havoc)
+(provide 𝑰 havoc*)
 
 (require racket/match
          racket/set

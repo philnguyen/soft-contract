@@ -339,7 +339,9 @@
              ;; Flat checking
              (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])
              ;; Havoc value set
-             (-ℋ𝒱 [loc : -ℒ] [vals : (℘ -V)])
+             (-ℋ𝒱* [loc : -ℒ] [vals : (℘ -V)])
+             ;; Havoc single value
+             (-ℋ𝒱 [loc : -ℒ] [val : -V])
              )
 
 
@@ -494,6 +496,7 @@
   (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
         [(-ℳ? αₖ) (show-ℳ αₖ)]
         [(-ℱ? αₖ) (show-ℱ αₖ)]
+        [(-ℋ𝒱*? αₖ) (show-ℋ𝒱* αₖ)]
         [(-ℋ𝒱? αₖ) (show-ℋ𝒱 αₖ)]
         [else     (error 'show-αₖ "~a" αₖ)]))
 
@@ -511,9 +514,13 @@
   (match-define (-ℱ x l ℓ W-C W-V) ℱ)
   `(ℱ ,x ,(show-W¹ W-C) ,(show-W¹ W-V)))
 
+(define (show-ℋ𝒱* [ℋ𝒱* : -ℋ𝒱*]) : Sexp
+  (match-define (-ℋ𝒱* _ Vs) ℋ𝒱*)
+  `(ℋ𝒱* ,@(set-map Vs show-V)))
+
 (define (show-ℋ𝒱 [ℋ𝒱 : -ℋ𝒱]) : Sexp
-  (match-define (-ℋ𝒱 _ Vs) ℋ𝒱)
-  `(ℋ𝒱 ,@(set-map Vs show-V)))
+  (match-define (-ℋ𝒱 _ V) ℋ𝒱)
+  `(ℋ𝒱 ,(show-V V)))
 
 (define-parameter verbose? : Boolean #f)
 

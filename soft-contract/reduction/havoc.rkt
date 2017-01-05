@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide havoc gen-havoc-clo gen-havoc-exp)
+(provide havoc* gen-havoc-clo gen-havoc-exp)
 
 (require racket/match
          racket/set
@@ -13,19 +13,19 @@
          "compile/utils.rkt"
          "compile/app.rkt")
 
-(: havoc : -ℒ (℘ -V) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
-(define (havoc ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(: havoc* : -ℒ (℘ -V) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+(define (havoc* ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ _) Σ)
-  (define ⟦k⟧* #|FIXME|# (havoc∷ ℒ Vs ⟦k⟧))
+  (define ⟦k⟧* #|FIXME|# (havoc*∷ ℒ Vs ⟦k⟧))
   (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ havoc-𝒾)) #f))
   (for/fold ([ac : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ Γ ⟪ℋ⟫ Σ)])
             ([V (in-set Vs)])
     (∪ ac
        (app 'Λ $∅ ℒ Wₕᵥ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
 
-(define/memo (havoc∷ [ℒ : -ℒ] [Vs : (℘ -V)] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+(define/memo (havoc*∷ [ℒ : -ℒ] [Vs : (℘ -V)] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Vs)
-    (havoc ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+    (havoc* ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

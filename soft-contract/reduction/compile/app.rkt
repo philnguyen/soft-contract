@@ -475,7 +475,7 @@
 (define ((app-opq sₕ) l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ σₖ _) Σ)
   (define sₐ (apply -?@ sₕ (map -W¹-s Ws)))
-  (define αₖ (-ℋ𝒱 ℒ (for/set: : (℘ -V) ([W (in-list Ws)]) (-W¹-V W))))
+  (define αₖ (-ℋ𝒱* ℒ (for/set: : (℘ -V) ([W (in-list Ws)]) (-W¹-V W))))
   (define κ (-κ (bgn0.e∷ (-W -●/Vs sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
   (σₖ⊔! σₖ αₖ κ)
   {set (-ς↑ αₖ Γ ⟪ℋ⟫)})
