@@ -671,9 +671,11 @@
 ;; begin0, already have first value
 (define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (match ⟦e⟧s
-    ['() ⟦k⟧]
+    ['()
+     (with-error-handling (⟦k⟧ _ $ Γ ⟪ℋ⟫ Σ) #:roots (W)
+       (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
     [(cons ⟦e⟧ ⟦e⟧s*)
-     (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
+     (with-error-handling (⟦k⟧ _ $ Γ ⟪ℋ⟫ Σ) #:roots (W ρ)
        (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧))))]))
 
 ;; clean-up path-condition
