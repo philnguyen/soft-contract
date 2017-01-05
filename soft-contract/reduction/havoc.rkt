@@ -65,7 +65,7 @@
                  (-W¹ -●/V (-x (+x!/memo 'hv #;k i)))))
              (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ ⟪ℋ⟫ Σ
                   (ap∷ (list Wₕᵥ) '() ⊥ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-res tag))
-                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'fun tag)) ⟦k⟧))))
+                       ⟦k⟧)))
            
            (define a (V-arity V))
            (match a
@@ -85,7 +85,7 @@
                (define Acc (-W¹ acc acc))
                (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ ⟪ℋ⟫ Σ
                     (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'ac))
-                         (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'st)) ⟦k⟧)))))]
+                         ⟦k⟧))))]
 
           ;; Havoc vector's content before erasing the vector with unknowns
           ;; Approximate vectors are already erased
@@ -96,12 +96,12 @@
              (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
              (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
                   (ap∷ (list Wₕᵥ) '() ρ havoc-path (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0))
-                       (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧))))]
+                       ⟦k⟧)))]
           [(-Vector^ α _)
            (for/union : (℘ -ς) ([V (σ@ σ α)])
              (define Wᵥ (-W¹ V #|TODO|# #f))
              (app havoc-path $ (-ℒ ∅ (+ℓ/memo! 'vref #f)) Wₕᵥ (list Wᵥ) Γ ⟪ℋ⟫ Σ
-                  (hv∷ W (-ℒ ∅ (+ℓ/memo! 'hv-ap 'vect)) ⟦k⟧)))]
+                  ⟦k⟧))]
 
           ;; Apply contract to unknown values
           [(? -C?)
@@ -174,13 +174,3 @@
     [_ #f]))
 
 (define -Void/W∅ (-W -Void/Vs #f))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Hacky frames
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (with-error-handling (⟦k⟧ _ $ Γ ⟪ℋ⟫ Σ) #:roots (W)
-    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ havoc-𝒾)) #f))
-    (app havoc-path $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧)))
