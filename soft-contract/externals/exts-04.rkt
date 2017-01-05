@@ -65,7 +65,7 @@
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
   (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
   (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
-  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ havoc-𝒾)) havoc-𝒾))
+  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ havoc-𝒾)) #f))
 
   (match Vᵥ
     [(-Vector ⟪α⟫s)

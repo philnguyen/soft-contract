@@ -16,12 +16,12 @@
 (: havoc : -ℒ (℘ -V) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (havoc ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ _) Σ)
-  (define ⟦k⟧* #|FIXME|# ⟦k⟧)
-  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ havoc-𝒾)) havoc-𝒾))
-  (for/fold ([ac : (℘ -ς) (⟦k⟧ -Void/W $∅ Γ ⟪ℋ⟫ Σ)])
+  (define ⟦k⟧* #|FIXME|# (havoc∷ ℒ Vs ⟦k⟧))
+  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ havoc-𝒾)) #f))
+  (for/fold ([ac : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ Γ ⟪ℋ⟫ Σ)])
             ([V (in-set Vs)])
     (∪ ac
-       (app 'Λ $∅ ℒ Wₕᵥ (list (-W¹ V 𝐱*)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
+       (app 'Λ $∅ ℒ Wₕᵥ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
 
 (define/memo (havoc∷ [ℒ : -ℒ] [Vs : (℘ -V)] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Vs)
@@ -32,15 +32,8 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define 𝐱* (-x (+x!/memo 'hv*)))
 (define 𝒙 (+x!/memo 'hv))
 (define 𝐱 (-x 𝒙))
-(define 𝐱s (list 𝐱))
-(define ⟦rev-hv⟧ : -⟦e⟧
-  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (let ([Vs (σ@ (-Σ-σ Σ) (-α->-⟪α⟫ havoc-𝒾))])
-      (assert (= 1 (set-count Vs)))
-      (⟦k⟧ (-W (list (set-first Vs)) havoc-𝒾) $ Γ ⟪ℋ⟫ Σ))))
 
 (: gen-havoc-clo : (Listof -module) → -Clo)
 (define (gen-havoc-clo ms)
@@ -50,9 +43,9 @@
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-Σ σ _ _) Σ)
       (define Vs (σ@ σ (ρ@ ρ 𝒙)))
-      (define Wₕᵥ (-W¹ cloₕᵥ havoc-𝒾))
+      (define Wₕᵥ (-W¹ cloₕᵥ #f))
       
-      (define (done) (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ))
+      (define (done) (⟦k⟧ -Void/W∅ $ Γ ⟪ℋ⟫ Σ))
 
       (for*/union : (℘ -ς) ([V (in-set Vs)])
         ;(printf "havoc-ing ~a~n" (show-V V))
@@ -180,6 +173,8 @@
           (length (car sig)))])]
     [_ #f]))
 
+(define -Void/W∅ (-W -Void/Vs #f))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Hacky frames
@@ -187,5 +182,5 @@
 
 (define/memo (hv∷ [W : -W¹] [ℒ : -ℒ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ _ $ Γ ⟪ℋ⟫ Σ) #:roots (W)
-    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ havoc-𝒾)) havoc-𝒾))
+    (define Wₕᵥ (-W¹ (σ@¹ (-Σ-σ Σ) (-α->-⟪α⟫ havoc-𝒾)) #f))
     (app havoc-path $ ℒ Wₕᵥ (list W) Γ ⟪ℋ⟫ Σ ⟦k⟧)))
