@@ -57,12 +57,12 @@
             `(set! ,l ,r)
             (let ((a (car l)))
               (if (eq? a 'list-ref)
-                  (add1 "no") ; `(set-car! (list-tail ,@(cdr l)) ,r)
+                  (error "no") ; `(set-car! (list-tail ,@(cdr l)) ,r)
                 `(,(cond
                     ((eq? a 'string-ref) 'string-set!)
                     ((eq? a 'vector-ref) 'vector-set!)
                     ((eq? a 'slatex::of) 'slatex::the-setter-for-of)
-                    (else (add1 "setf ~s ~s is ill-formed\n" l r)))
+                    (else (error "setf ~s ~s is ill-formed\n" l r)))
                   ,@(cdr l)
                   ,r)))))))))
 
@@ -230,7 +230,7 @@
                 (write v (current-output-port))
                 (newline (current-output-port)))
               what)
-    (add1 "slatex-error")))
+    (error "slatex-error")))
 
 (define slatex::exit-slatex (lambda () (exit)))
 
