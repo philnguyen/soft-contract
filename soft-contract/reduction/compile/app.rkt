@@ -131,23 +131,30 @@
     (match-define (cons β ℓᵣ) βℓ)
     (define-values (cs d) (-->-split c (length αℓs)))
     (match-define (-Σ σ _ _) Σ)
-    (match cs
-      ['() ; no arg
-       (for/union : (℘ -ς) ([D (σ@ σ β)])
-         (app lo $ ℒ Wᵤ '() Γ ⟪ℋ⟫ Σ
-              (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))]
-      [(? pair?)
-       (define-values (αs ℓs) ((inst unzip -⟪α⟫ -ℓ) αℓs))
-       (define l³* (-l³ l- l+ lo))
-       (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
-          (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
-            (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs] [ℓₐ : -ℓ ℓs])
-              ;(printf "mon-arg: ~a ~a ~a~n" (+ℓ/ℓ² ℓ ℓₐ) (show-W¹ (-W¹ C c)) (show-W¹ Wₓ))
-              (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
-          (for/union : (℘ -ς) ([D (in-set (σ@ σ β))])
-             (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-              (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ lo ℒ
-                   (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))))]))
+    (cond
+      ;; FIXME: prevent this
+      [(equal? Vᵤ Vₕ)
+       (printf "cycle: ~a~n" (show-V Vᵤ))
+       (log-warning "TODO: generalize to handle cycle properly")
+       ∅]
+      [else
+       (match cs
+         ['() ; no arg
+          (for/union : (℘ -ς) ([D (σ@ σ β)])
+            (app lo $ ℒ Wᵤ '() Γ ⟪ℋ⟫ Σ
+                 (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))]
+         [(? pair?)
+          (define-values (αs ℓs) ((inst unzip -⟪α⟫ -ℓ) αℓs))
+          (define l³* (-l³ l- l+ lo))
+          (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
+            (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
+              (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs] [ℓₐ : -ℓ ℓs])
+                ;(printf "mon-arg: ~a ~a ~a~n" (+ℓ/ℓ² ℓ ℓₐ) (show-W¹ (-W¹ C c)) (show-W¹ Wₓ))
+                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
+            (for/union : (℘ -ς) ([D (in-set (σ@ σ β))])
+              (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+               (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ lo ℒ
+                    (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))))])]))
 
   (define (app-Indy [C : -V] [c : -s] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
     (match-define (-l³ l+ l- lo) l³)
