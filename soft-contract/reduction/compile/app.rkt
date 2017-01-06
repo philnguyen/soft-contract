@@ -439,10 +439,10 @@
                            (ap∷ (list Wₛ Mut) '() ⊥ρ lo ℒ ⟦k⟧)))]
          [(-● _)
           (define ⟦ok⟧
-            (let ([⟦hv⟧ (mk-app-⟦e⟧ havoc-path ℒ
+            (let ([⟦hv⟧ (mk-app-⟦e⟧ 'havoc ℒ
                                     (mk-rt-⟦e⟧ (-W¹ -●/V #f))
                                     (list (mk-rt-⟦e⟧ Wᵥ)))])
-              (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧))))
+              (mk-app-⟦e⟧ 'havoc ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧))))
           (define ⟦er⟧ (mk-rt-⟦e⟧ (blm)))
           (app 'Λ $ ℒ (-W¹ p p) (list Wₛ) Γ ⟪ℋ⟫ Σ (if∷ l ⟦ok⟧ ⟦er⟧ ⊥ρ ⟦k⟧))]
          [_ (⟦k⟧ (blm) $ Γ ⟪ℋ⟫ Σ)])]
@@ -953,7 +953,7 @@
                        (list (mk-rt-⟦e⟧ W-V)
                              (mk-rt-⟦e⟧ Wᵢ))))
          (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ ℒ (mk-rt-⟦e⟧ W-C*) ⟦ref⟧))
-         (mk-app-⟦e⟧ havoc-path ℒ ⟦rt-●⟧ (list ⟦mon⟧))))
+         (mk-app-⟦e⟧ 'havoc ℒ ⟦rt-●⟧ (list ⟦mon⟧))))
      (define ⟦erase⟧
        (match Vᵥ
          [(-Vector αs) (mk-erase-⟦e⟧ αs)]

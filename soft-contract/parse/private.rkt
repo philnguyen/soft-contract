@@ -525,4 +525,3 @@
   (for/list ([stxᵢ (syntax->list (do-expand-file path))]
              #:unless (scv-ignore? stxᵢ))
     (syntax->datum stxᵢ)))
-

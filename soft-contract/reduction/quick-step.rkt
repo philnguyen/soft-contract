@@ -12,16 +12,17 @@
          "compile/utils.rkt"
          "compile/kontinuation.rkt"
          "compile/main.rkt"
-         "init.rkt"
+         "../externals/main.rkt" ; for side effects
+         "havoc.rkt"
          )
 
 (define-type Ctx (List (HashTable -⟪α⟫ (℘ -V)) (HashTable -αₖ (℘ -κ))))
 
-(: run : -⟦e⟧ -σ → (Values (℘ -ΓA) -Σ))
-(define (run ⟦e⟧ σ)
+(: run : -⟦e⟧ → (Values (℘ -ΓA) -Σ))
+(define (run ⟦e⟧)
   (define seen : (HashTable -ς Ctx) (make-hash))
   (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ))
-  (define Σ (-Σ σ (⊥σₖ αₖ₀) (⊥M)))
+  (define Σ (-Σ (⊥σ) (⊥σₖ αₖ₀) (⊥M)))
   (define root₀ ; all addresses to top-level definitions are conservatively active
     (for/fold ([root₀ : (℘ -⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
       (set-add (set-add root₀ (-α->-⟪α⟫ 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
@@ -116,7 +117,8 @@
          [(-ℬ _ _ ρ) (->⟪α⟫s ρ)]
          [(-ℳ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
          [(-ℱ _ _ _ (-W¹ C _) (-W¹ V _)) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
-         [(-ℋ𝒱* _ Vs) (->⟪α⟫s Vs)]))
+         [(-ℋ𝒱* _ Vs) (->⟪α⟫s Vs)]
+         [(-ℋ𝒱  _ V ) (->⟪α⟫s V )]))
      (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]
     [(-ς↓ αₖ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
      (define αs₀ (if (-W? A) (->⟪α⟫s A) ∅eq))
@@ -142,6 +144,7 @@
       [(-ℳ _ l³ ℒ W-C W-V) (mon l³ $∅ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-ℱ _ l  ℒ W-C W-V) (flat-chk l $∅ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-ℋ𝒱* ℒ Vs) (havoc* ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(-ℋ𝒱  ℒ V ) (havoc  ℒ V  Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [_ (error '↝↑ "~a" αₖ)])))
 
 (: ↝↓! : (Listof -ς↓) -Σ → (℘ -ς))
@@ -199,8 +202,8 @@
                               [(-ℱ x _ _ _ _)
                                (define sₓ (car sₓs))
                                (values {seteq x} (if sₓ (hash-set m∅ (-x x) sₓ) m∅))]
-                              [(-ℋ𝒱* _ _)
-                               (values ∅eq m∅)])])
+                              [(-ℋ𝒱* _ _) (values ∅eq m∅)]
+                              [(-ℋ𝒱  _ _) (values ∅eq m∅)])])
                 (define φ-ans
                   (match Vs
                     [(list V)
@@ -258,4 +261,5 @@
                   (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
                  [else ∅])])])]))))
     (printf "  -- hits: ~a/~a~n" hits total)))
+
 

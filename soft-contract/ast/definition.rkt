@@ -189,9 +189,6 @@
 (define -set-box! (-st-mut -𝒾-box 0))
 (define -pred (--> (list 'any/c) 'boolean? +ℓ₀))
 
-(define havoc-path 'havoc)
-(define havoc-𝒾 (-𝒾 'havoc-id havoc-path))
-
 (: -cond : (Listof (Pairof -e -e)) -e → -e)
 ;; Make `cond` at object language level, expanding to `if`
 (define (-cond cases default)

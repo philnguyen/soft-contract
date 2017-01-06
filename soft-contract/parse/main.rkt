@@ -8,4 +8,34 @@
 
 (: file->module : Path-String → -module)
 ;; Alpha renaming on top of the old parser (hack)
-(define (file->module p) (α-rename (file->module* p)))
+(define (file->module p)
+  (define m (α-rename (file->module* p)))
+  (collect-public-accs! m)
+  m)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Collect other information
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: collect-public-accs! : -module → Void)
+;; Retrieve set of all public accessors from program, grouped by struct
+(define (collect-public-accs! m)
+  
+  ;; Collect all defined accessors (`defs`) and exported identifiers (`decs`)
+  (define defs : (HashTable Symbol -st-ac) (make-hasheq))
+  (define decs : (HashTable Symbol #t    ) (make-hasheq))
+  (for ([form (in-list (-module-body m))])
+    (match form
+      [(-provide specs)
+       (for ([spec (in-list specs)])
+         (match-define (-p/c-item x _ _) spec)
+         (hash-set! decs x #t))]
+      [(-define-values (list x) (? -st-ac? e))
+       (hash-set! defs x e)]
+      [_ (void)]))
+  
+  ;; Return exported accessors
+  (for ([(x ac) (in-hash defs)] #:when (hash-has-key? decs x))
+    (match-define (-st-ac 𝒾 _) ac)
+    (add-public-acc! 𝒾 ac)))

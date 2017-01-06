@@ -7,28 +7,25 @@
          "runtime/definition.rkt"
          "parse/main.rkt"
          "reduction/compile/main.rkt"
-         "reduction/init.rkt"
-         "reduction/quick-step.rkt")
+         "reduction/quick-step.rkt"
+         "reduction/havoc.rkt")
 
 (: run-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (run-file p)
   (with-initialized-static-info
-    (define m (file->module p))
-    (define-values (σ₁ _) (𝑰 (list m)))
-    (run (↓ₘ m) σ₁)))
+    (run (↓ₘ (file->module p)))))
 
 (: havoc-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (havoc-file p)
   (with-initialized-static-info
     (define m (file->module p))
-    (define-values (σ₁ e₁) (𝑰 (list m)))
-    (run (↓ₚ (list m) e₁) σ₁)))
+    (define e (gen-havoc-expr (list m)))
+    (run (↓ₚ (list m) e))))
 
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)
   (with-initialized-static-info
-    (define-values (σ₀ _) (𝑰 '()))
-    (run (↓ₑ 'top e) σ₀)))
+    (run (↓ₑ 'top e))))
 
 (module+ test
   (require "utils/main.rkt")

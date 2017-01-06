@@ -8,6 +8,7 @@
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "../reduction/compile/app.rkt"
+         "../reduction/havoc.rkt"
          "def-ext.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -65,7 +66,6 @@
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
   (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
   (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
-  (define Wₕᵥ (-W¹ (σ@¹ σ (-α->-⟪α⟫ havoc-𝒾)) #f))
 
   (match Vᵥ
     [(-Vector ⟪α⟫s)
@@ -87,25 +87,20 @@
      (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
-                (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-                (define c (⟪α⟫->s (cast ⟪α⟫ -⟪α⟫)))
-                (for/union : (℘ -ς) ([C (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
-                           (define W-c (-W¹ C c))
-                           (define ⟦hv⟧
-                             (let ([⟦chk⟧ (mk-mon-⟦e⟧ l³* ℒ (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ))])
-                               (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦chk⟧))))
-                           ((mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧)) ⊥ρ $ Γ* ⟪ℋ⟫ Σ ⟦k⟧)))]
+       (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+       (define c (⟪α⟫->s (cast ⟪α⟫ -⟪α⟫)))
+       (for/union : (℘ -ς) ([C (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
+         (define W-c (-W¹ C c))
+         (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* ℒ (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
+         (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (hv∷ ℒ ⟦k⟧))))]
     [(-Vector/homo ⟪α⟫ l³)
      (define c (⟪α⟫->s ⟪α⟫))
      (define l³* (swap-parties l³))
      (for/union : (℘ -ς) ([C (σ@ σ ⟪α⟫)])
-                (define W-c (-W¹ C c))
-                (define ⟦hv⟧
-                  (let ([⟦chk⟧ (mk-mon-⟦e⟧ l³* ℒ (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ))])
-                    (mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ Wₕᵥ) (list ⟦chk⟧))))
-                ((mk-app-⟦e⟧ havoc-path ℒ (mk-rt-⟦e⟧ (-W¹ 'void 'void)) (list ⟦hv⟧)) ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+       (define W-c (-W¹ C c))
+       (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* ℒ (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
+       (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (hv∷ ℒ ⟦k⟧)))]
     [_
-     (∪ (if (behavioral? σ (-W¹-V Wᵤ))
-            (app havoc-path $ ℒ Wₕᵥ (list Wᵤ) Γ ⟪ℋ⟫ Σ ⟦k⟧)
-            ∅)
-        (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ))]))
+     (if (behavioral? σ (-W¹-V Wᵤ))
+         (havoc ℒ Vᵤ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+         (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ))]))
