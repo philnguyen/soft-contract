@@ -71,30 +71,43 @@
       [else (error 'app "don't know how to apply `~a`" o)]))
 
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧] [ρₕ : -ρ] [Γₕ : -Γ])
-    (define ℯ (-edge ⟦e⟧ ℒ))
-    ;; Extended call history
-    (define ⟪ℋ⟫* (⟪ℋ⟫+ ⟪ℋ⟫ ℯ))
-    ;; Context for allocating the value address
-    (define ⟪ℋ⟫₀ (if (eq? ⟪ℋ⟫ ⟪ℋ⟫*) (⟪ℋ⟫@ ⟪ℋ⟫* ⟦e⟧) ⟪ℋ⟫*))
-    ;; Call history for context jumped to
-    (define ⟪ℋ⟫ₑₑ ⟪ℋ⟫₀ #;(if (eq? ⟪ℋ⟫* ⟪ℋ⟫) ⟪ℋ⟫₀ ⟪ℋ⟫*))
-    ;; Target's environment
-    (define ρ* : -ρ
-      (match xs
-        [(? list? xs)
-         (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs)]
-        [(-varargs zs z)
-         (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-         (define ρ₀ (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ zs Ws₀))
-         (define Vᵣ (alloc-rest-args! σ Γ ⟪ℋ⟫₀ ℒ Wsᵣ))
-         (define αᵣ (-α->-⟪α⟫ (-α.x z ⟪ℋ⟫₀)))
-         (σ⊕! σ αᵣ Vᵣ)
-         (ρ+ ρ₀ z αᵣ)]))
 
-    (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-    (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
-    (σₖ⊔! σₖ αₖ κ)
-    {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)})
+    (define plausible? ; conserivative `plausible?` to filter out some
+      (cond [sₕ
+             (for/and : Boolean ([γ (in-list (-Γ-tails Γ))])
+               (match-define (-γ αₖ _ sₕ* _) γ)
+               (cond [(equal? sₕ sₕ*)
+                      (and (-ℬ? αₖ) (equal? (-ℬ-exp αₖ) ⟦e⟧))]
+                     [else #t]))]
+            [else #t]))
+
+    (cond
+      [plausible?
+       (define ℯ (-edge ⟦e⟧ ℒ))
+       ;; Extended call history
+       (define ⟪ℋ⟫* (⟪ℋ⟫+ ⟪ℋ⟫ ℯ))
+       ;; Context for allocating the value address
+       (define ⟪ℋ⟫₀ (if (eq? ⟪ℋ⟫ ⟪ℋ⟫*) (⟪ℋ⟫@ ⟪ℋ⟫* ⟦e⟧) ⟪ℋ⟫*))
+       ;; Call history for context jumped to
+       (define ⟪ℋ⟫ₑₑ ⟪ℋ⟫₀ #;(if (eq? ⟪ℋ⟫* ⟪ℋ⟫) ⟪ℋ⟫₀ ⟪ℋ⟫*))
+       ;; Target's environment
+       (define ρ* : -ρ
+         (match xs
+           [(? list? xs)
+            (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs)]
+           [(-varargs zs z)
+            (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
+            (define ρ₀ (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ zs Ws₀))
+            (define Vᵣ (alloc-rest-args! σ Γ ⟪ℋ⟫₀ ℒ Wsᵣ))
+            (define αᵣ (-α->-⟪α⟫ (-α.x z ⟪ℋ⟫₀)))
+            (σ⊕! σ αᵣ Vᵣ)
+            (ρ+ ρ₀ z αᵣ)]))
+
+       (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+       (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
+       (σₖ⊔! σₖ αₖ κ)
+       {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]
+      [else ∅]))
 
   (define (app-And/C [W₁ : -W¹] [W₂ : -W¹]) : (℘ -ς)
     (define ⟦rhs⟧ (mk-app-⟦e⟧ l ℒ (mk-rt-⟦e⟧ W₂) (list (mk-rt-⟦e⟧ (car Wₓs)))))
@@ -134,7 +147,6 @@
     (cond
       ;; FIXME: prevent this
       [(equal? Vᵤ Vₕ)
-       (printf "cycle: ~a~n" (show-V Vᵤ))
        (log-warning "TODO: generalize to handle cycle properly")
        ∅]
       [else
