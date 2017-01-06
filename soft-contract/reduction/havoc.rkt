@@ -19,7 +19,7 @@
 (: havoc* : -ℒ (℘ -V) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (havoc* ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ σₖ _) Σ)
-  (define ⟦k⟧* #|FIXME|# (havoc*∷ ℒ Vs ⟦k⟧))
+  (define ⟦k⟧* (havoc*∷ ℒ Vs ⟦k⟧))
   (for/fold ([ac : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ Γ ⟪ℋ⟫ Σ)])
             ([V (in-set Vs)])
     (define αₖ (-ℋ𝒱 ℒ V))
@@ -78,8 +78,8 @@
           (hv/arity k)]
          [(? list? ks)
           (for/union : (℘ -ς) ([k ks])
-                     (cond [(integer? k) (hv/arity k)]
-                           [else (error 'havoc "TODO: ~a" k)]))]
+            (cond [(integer? k) (hv/arity k)]
+                  [else (error 'havoc "TODO: ~a" k)]))]
          [_ (done)])]
 
       ;; If it's a struct, havoc all publically accessible fields
@@ -95,9 +95,9 @@
       [(-Vector/homo   _ _) (done)]
       [(-Vector αs)
        (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
-                  (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-                  (app 'havoc $∅ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
-                       (hv∷ (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0)) ⟦k⟧)))]
+         (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
+         (app 'havoc $∅ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
+              (hv∷ (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0)) ⟦k⟧)))]
       [(-Vector^ α _)
        (for/set: : (℘ -ς) ([V (σ@ σ α)])
          (define αₖ (-ℋ𝒱 (-ℒ ∅ (+ℓ/memo! 'vref #f)) V))
