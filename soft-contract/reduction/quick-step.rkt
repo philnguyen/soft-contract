@@ -250,16 +250,15 @@
            [(hash-has-key? returned key)
             ;(set! hits (+ 1 hits))
             ∅]
+           [(symbol? l+) ; ignore blames on system
+            ∅]
            [else
-            (case l+
-              [(havoc † Λ) ∅]
-              [else
-               (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
-               (cond
-                 [#t #;(plausible-return?/cheap M Γₑᵣ γ Γₑₑ)
+            (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
+            (cond
+              [#t #;(plausible-return?/cheap M Γₑᵣ γ Γₑₑ)
                   (hash-set! returned key #t)
                   (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
-                 [else ∅])])])]))))
+              [else ∅])])]))))
     (printf "  -- hits: ~a/~a~n" hits total)))
 
 

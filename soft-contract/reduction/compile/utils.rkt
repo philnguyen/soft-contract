@@ -46,7 +46,7 @@
       (define ⟦k⟧ : -⟦k⟧
         (λ (A $ Γ ⟪ℋ⟫ Σ)
           (match A
-            [(-blm l+ _ _ _) #:when (memq l+ '(havoc † Λ))
+            [(-blm l+ _ _ _) #:when (symbol? l+) ; ignore blames on system
              ∅]
             [_
              (match-define (-Σ _ _ M) Σ)
