@@ -55,7 +55,8 @@
                        (Γ+ Γ (-@ 'equal? (list s b) +ℓ₀))]
                       [_ Γ])))
                 (MΓ⊢s M Γ* (apply -?@ p ss)))))
-    (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))
+    (when (equal? p 'equal?)
+      (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R))))
 
 (: MΓ+/-oW : -M -σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))
 (define (MΓ+/-oW M σ Γ o . Ws)
@@ -73,14 +74,14 @@
           ['? (ext-prove M Γ s)]
           [R R])]
        [else '?]))
-    (when s
+    (when s #;(match? s (-@ 'equal? _ _))
       (match-define (-Γ φs _ γs) Γ)
       (for ([φ φs]) (printf "~a~n" (show-e φ)))
       (for ([γ γs])
-        (match-define (-γ _ bnd blm?) γ)
-        (printf "~a ; blm?~a~n" (show-binding bnd) (and blm? #t))
-        (printf "-----------------------------------------~a~n" R)
-        (printf "~a~n~n" (show-e s))))
+        (match-define (-γ _ blm? sₕ sₓs) γ)
+        (printf "~a ; blm?~a~n" (show-s (apply -?@ sₕ sₓs)) (and blm? #t)))
+      (printf "-----------------------------------------~a~n" R)
+      (printf "~a~n~n" (show-e s)))
     ))
 
 (: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))

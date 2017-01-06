@@ -266,7 +266,8 @@
       ['✓ (boolean->R (arity-includes? (assert (V-arity V)) 1))]
       [ans ans]))
 
-  (match Vs
+  (with-debugging/off
+    ((R) (ann (match Vs
     [(list (-● ps)) #:when (-v? p)
      (ps⇒p ps p)]
     [_
@@ -450,7 +451,9 @@
        [(-≡/c (-b b₁))
         (match-define (list V) Vs)
         (p∋Vs σ 'equal? (-b b₁) V)]
-       [_ '?])]))
+       [_ '?])]) -R))
+    (when (equal? p 'equal?)
+      (printf "~a ∋ ~a ? : ~a~n" p (map show-V-or-v Vs) R))))
 
 (: V≡ : -V -V → -R)
 ;; Check if 2 values are `equal?`
