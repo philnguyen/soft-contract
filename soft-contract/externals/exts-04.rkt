@@ -16,7 +16,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def-ext map ((any/c . -> . any/c) list? . -> . list?)) ; FIXME uses 
-(def-ext for-each ((any/c . -> . any/c) list? . -> . void?)) ; FIXME uses
+(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  #:domain ([Wₚ (any/c . -> . any/c)]
+            [Wₗ list?])
+  #:result -Void/Vs)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
