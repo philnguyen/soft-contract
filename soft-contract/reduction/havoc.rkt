@@ -64,10 +64,15 @@
        (define tag (fun->tag V))
 
        (define (hv/arity [k : Natural]) : (℘ -ς)
-         (define ●s : (Listof -W¹)
-           (for/list ([i k])
-             (-W¹ -●/V (-x (+x!/memo 'hv #;k i)))))
-         (app 'havoc $∅ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ ⟪ℋ⟫ Σ
+         (define-values (xs ●s)
+           (for/lists ([xs : (Listof Symbol)] [●s : (Listof -W¹)])
+                      ([i k])
+             (define x (+x!/memo 'hv #;k i))
+             (values x (-W¹ -●/V (-x x)))))
+         (define Γ*
+           (for/fold ([Γ : -Γ Γ]) ([x (in-list xs)])
+             (invalidate Γ x)))
+         (app 'havoc $∅ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ* ⟪ℋ⟫ Σ
               (hv∷ (-ℒ ∅ (+ℓ/memo! 'hv-res tag)) ⟦k⟧)))
        
        (define a (V-arity V))
