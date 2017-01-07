@@ -55,7 +55,8 @@
                        (Γ+ Γ (-@ 'equal? (list s b) +ℓ₀))]
                       [_ Γ])))
                 (MΓ⊢s M Γ* (apply -?@ p ss)))))
-    (when (equal? p 'equal?)
+    (when (and (equal? p 'char?)
+               (equal? Vs (list (-● (set 'eof-object? (-not/c 'eof-object?))))))
       (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R))))
 
 (: MΓ+/-oW : -M -σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))
@@ -87,7 +88,13 @@
 (: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
 (define (Γ+/-V M Γ V s)
-  (Γ+/-R (first-R (⊢V V) (MΓ⊢s M Γ s)) Γ s))
+  (with-debugging/off ((Γ₁ Γ₂) (Γ+/-R (first-R (⊢V V) (MΓ⊢s M Γ s)) Γ s))
+    (printf "Γ+/-V: ~a +/- ~a @ ~a~n - ~a~n - ~a~n~n"
+            (show-Γ Γ)
+            (show-V V)
+            (show-s s)
+            (and Γ₁ (show-Γ Γ₁))
+            (and Γ₂ (show-Γ Γ₂)))))
 
 (define-simple-macro (with-Γ+/- ([(Γ₁:id Γ₂:id) e])
                        #:true  e₁

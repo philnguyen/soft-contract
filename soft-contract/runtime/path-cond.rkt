@@ -26,7 +26,6 @@
 (: Γ↓ : -Γ (℘ Symbol) → -Γ)
 ;; Restrict path-condition to given free variables
 (define (Γ↓ Γ xs)
-
   (match-define (-Γ φs as γs) Γ)
   (define φs* (es↓ φs xs))
   (define as*
@@ -107,7 +106,7 @@
   (cond
     [(-Γ? Γ) (predicates-of (-Γ-facts Γ) s)]
     [else
-     (for/fold ([ps : (℘ -v) ∅]) ([φ Γ])
+     (for/fold ([ps : (℘ -v) ∅]) ([φ (in-set Γ)])
        (match φ
          ;; unary
          [(-@ 'negative? (list (== s)) _) (set-add ps (-</c 0))]

@@ -240,7 +240,9 @@
                                symbol?
                                keyword?
                                not
-                               boolean?))
+                               boolean?
+                               char?
+                               eof-object?))
     (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-e) (show-V V) (show-s s) ans)))
 
 (: ⊢V : -V → -R)
@@ -309,7 +311,8 @@
                                string?
                                char?
                                symbol?
-                               void?)
+                               void?
+                               eof-object?)
           ;; Insert manual rules here
           [(procedure?)
            (match Vs
