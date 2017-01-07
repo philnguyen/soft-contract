@@ -22,11 +22,6 @@
        (λ ([V : -V])
          (cond [(plausible-V-s? (-Γ-facts Γ) V s)
                 (define V* (V+ σ V (predicates-of Γ s)))
-                
-                ;; Debugging
-                (printf "hit: ~a ⊢ ~a : ~a -> ~a~n~n"
-                        (show-Γ Γ) (show-s s) (show-V V) (show-V V*))
-                
                 (⟦k⟧ (-W (list V*) s) ($+ $ s V*) Γ ⟪ℋ⟫ Σ)]
                [else ∅]))]
       [else
