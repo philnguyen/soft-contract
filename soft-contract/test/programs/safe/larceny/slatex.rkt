@@ -295,13 +295,11 @@
 (define slatex::data-tokens '())
 
 (define slatex::special-symbols
-  (reverse
-    (reverse
-      '(("." . ".")
-        ("..." . "{\\dots}")
-        ("-" . "$-$")
-        ("1-" . "\\va{1$-$}")
-        ("-1+" . "\\va{$-$1$+$}")))))
+  '(("." . ".")
+    ("..." . "{\\dots}")
+    ("-" . "$-$")
+    ("1-" . "\\va{1$-$}")
+    ("-1+" . "\\va{$-$1$+$}")))
 
 (define slatex::macro-definers
   '("define-syntax" "syntax-rules" "defmacro" "extend-syntax" "define-macro!"))
