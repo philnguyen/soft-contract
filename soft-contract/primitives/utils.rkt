@@ -100,6 +100,9 @@
                    #:defaults ([(cₑ 2) null]))
         (~optional (~seq #:refinements ref:ff ...)
                    #:defaults ([(ref 1) null]))
+        (~optional (~seq #:volatile? volatile?:boolean)
+                   #:defaults ([volatile? #'#f]))
+        ;; TODO: how to default `lift?` to `(not (volatile?))`
         (~optional (~seq #:lift-concrete? lift?:boolean)
                    #:defaults ([lift? #'#t])))
      (define arity (attribute ctc.arity))

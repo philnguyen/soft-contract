@@ -58,7 +58,8 @@
     [-errs (listof (listof #|dom|# syntax?)) #f]
     [-lift? boolean? #f]
     ; given blame-producing expression, generate failure expression
-    [-gen-blm (syntax? . -> . syntax?) #f])
+    [-gen-blm (syntax? . -> . syntax?) #f]
+    [-volatile? boolean? #f])
 
   ;; Generate guards for identifier `x` based on given contract `c`
   (define/contract (gen-base-guard c x)
@@ -278,7 +279,8 @@
     (define (refs->Vs refs) (if (null? refs) #'-●/Vs #`(list (-● {set #,@refs}))))
 
     (define/with-syntax mk-sₐ
-      (cond [dom-rest #`(apply -?@ '#,(-o) #,@(-sₙ) #,(-s*))]
+      (cond [(-volatile?) #'#f]
+            [dom-rest #`(apply -?@ '#,(-o) #,@(-sₙ) #,(-s*))]
             [else #`(-?@ '#,(-o) #,@(-sₙ))]))
 
     (cond

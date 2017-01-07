@@ -14,9 +14,9 @@
 (def-prim output-port? (any/c . -> . boolean?))
 (def-prim port? (any/c . -> . boolean?))
 (def-prim eof-object? (any/c . -> . boolean?))
-(def-prim current-input-port  (-> input-port?) #:lift-concrete? #f)
-(def-prim current-output-port (-> output-port?) #:lift-concrete? #f)
-(def-prim current-error-port (-> output-port?) #:lift-concrete? #f)
+(def-prim current-input-port  (-> input-port?) #:volatile? #t #:lift-concrete? #f)
+(def-prim current-output-port (-> output-port?) #:volatile? #t #:lift-concrete? #f)
+(def-prim current-error-port (-> output-port?) #:volatile? #t #:lift-concrete? #f)
 
 ;; 13.1.3 Port Buffers and Positions
 (def-prim flush-output (-> void?) #:lift-concrete? #f) ; FIXME uses
@@ -28,8 +28,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 13.2 Byte and String Input
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def-prim read-char (input-port? . -> . (or/c char? eof-object?)) #:lift-concrete? #f) ; FIXME uses
-(def-prim peek-char (input-port? . -> . (or/c char? eof-object?)) #:lift-concrete? #f) ; FIXME uses
+(def-prim read-char (input-port? . -> . (or/c char? eof-object?)) #:volatile? #t #:lift-concrete? #f) ; FIXME uses
+(def-prim peek-char (input-port? . -> . (or/c char? eof-object?)) #:volatile? #t #:lift-concrete? #f) ; FIXME uses
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 13.3 Byte and String Output

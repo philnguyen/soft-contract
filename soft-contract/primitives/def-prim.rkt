@@ -65,6 +65,9 @@
                    #:defaults ([(cₑ 2) null]))
         (~optional (~seq #:refinements ref:ff ...)
                    #:defaults ([(ref 1) null]))
+        (~optional (~seq #:volatile? volatile?:boolean)
+                   #:defaults ([volatile? #'#f]))
+        ;; TODO: how to default `lift?` to `(not (volatile?))`
         (~optional (~seq #:lift-concrete? lift?:boolean)
                    #:defaults ([lift? #'#t])))
      
@@ -91,6 +94,7 @@
                       [-s* (format-id #'s* "s*")]
                       [-sig #'sig]
                       [-lift? (syntax-e #'lift?)]
+                      [-volatile? (syntax-e #'volatile?)]
                       [-refs (syntax->list #'(ref ...))]
                       [-gen-blm gen-blm]
                       #;[-errs (syntax->list #'((cₑ ...) ...))])
