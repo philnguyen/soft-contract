@@ -166,6 +166,16 @@
 (define-match-expander -=/c
   (syntax-rules () [(_ c) (-≡/c (-b c))])
   (syntax-rules () [(_ c) (-≡/c (-b c))]))
+(define-match-expander -≢/c
+  (syntax-rules () [(_ v) (-λ (list x) (-@ 'not (list (-@ (? op-≡?)
+                                                          (or (list (-x x) v)
+                                                              (list v (-x x)))
+                                                          _))
+                                           _))])
+  (syntax-rules () [(_ v) (-λ '(𝒙) (-@ 'not (list (-@ 'equal? (list (-x '𝒙) v) +ℓ₀)) +ℓ₀))]))
+(define-match-expander -≠/c
+  (syntax-rules () [(_ c) (-≢/c (-b c))])
+  (syntax-rules () [(_ c) (-≢/c (-b c))]))
 
 (define op-≡? (match-λ? '= 'equal? 'eq? 'char=? 'string=?))
 

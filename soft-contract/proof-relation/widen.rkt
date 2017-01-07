@@ -179,7 +179,7 @@
                             (if (-v? P) (show-e P) (show-V P))
                             (show-V V*)))))]))
 
-    (when (equal? V* (-● ∅))
+    (when (-●? V)
       (: show-P : (U -v -V (℘ -v) (℘ -V)) → Sexp)
       (define (show-P P)
         (cond [(set? P) (set-map P show-P)]
@@ -204,7 +204,9 @@
     {set 'exact-nonnegative-integer?}]
    [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
     {set 'exact-nonnegative-integer?}]
-   [('exact-nonnegative-integer? (-not/c (-≡/c (-b 0))))
+   [('exact-nonnegative-integer? (-not/c (-=/c 0)))
+    {set 'exact-positive-integer?}]
+   [('exact-nonnegative-integer? (-≠/c 0))
     {set 'exact-positive-integer?}]
    [('list? (-not/c 'null?)) {set 'list? -cons?}]
    [('list? (-not/c -cons?)) {set 'null?}]
