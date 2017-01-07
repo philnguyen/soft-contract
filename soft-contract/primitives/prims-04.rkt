@@ -88,7 +88,14 @@
   (() #:rest (listof real?) . ->* . real?)
   (() #:rest (listof (not/c negative?)) . ->* . (not/c negative?))
   (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
-(def-prim -
+(def-prim - (number? number? . -> . number?)
+  ; FIXME var-args and precise refinement for first case
+  #:refinements
+  (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
+  (exact-integer? exact-integer? . -> . exact-integer?)
+  (integer? integer? . -> . integer?)
+  (real? real? . -> . real?))
+#;(def-prim -
  ((number?) #:rest (listof number?) . ->* . number?)
  #:refinements
  ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
@@ -366,8 +373,7 @@
  (string? . -> . (and/c string? immutable?)))
 (def-prim string-length
  (string? . -> . exact-nonnegative-integer?))
-(def-prim string-ref
- (string? exact-nonnegative-integer? . -> . char?))
+(def-prim string-ref (string? exact-nonnegative-integer? . -> . char?))
 (def-prim string-set!
  ((and/c string? (not/c immutable?)) exact-nonnegative-integer? char? . -> . void?))
 (def-prim substring ; FIXME uses
