@@ -14,8 +14,3 @@
   ;; HACK
   (define blm (-blm 'Λ 'exit '() '()))
   (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
-
-(def-ext (error l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  ;; HACK
-  (define blm (-blm l 'error '(error) (map -W¹-V Ws)))
-  (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))

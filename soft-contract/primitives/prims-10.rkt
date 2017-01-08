@@ -17,6 +17,15 @@
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
   {set (-ΓA Γ (-W Vs (apply -?@ 'values ss)))})
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.2 Exceptions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-prim/custom (error ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  ;; Consider a user-written error to be a blame on some party other than the module itself
+  {set (-ΓA Γ (-blm 'exception 'error '(error) (map -W¹-V Ws)))})
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.4 Continuations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
