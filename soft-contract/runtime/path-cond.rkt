@@ -57,9 +57,11 @@
 
 (: -Γ-plus-γ : -Γ -γ → -Γ)
 (define (-Γ-plus-γ Γ γ)
-  (match-define (-γ _ _ _ sₓs) γ)
+  (match-define (-γ αₖ ?blm sₕ sₓs) γ)
   (match-define (-Γ φs as γs) Γ)
-  (cond [(and (ormap (inst values -s) sₓs)
+  (cond [(and (not (-ℋ𝒱? αₖ))
+              (not (-ℋ𝒱*? αₖ))
+              (or sₕ (ormap (inst values -s) sₓs))
               (not (member γ γs)))
          (-Γ φs as (cons γ γs))]
         [else Γ]))

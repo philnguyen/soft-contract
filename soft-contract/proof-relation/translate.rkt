@@ -334,7 +334,8 @@
       (match αₖ
         [(-ℬ xs _ _) (and (list? xs) xs)]
         [(-ℳ x _ _ _ _) (list x)]
-        [(-ℱ x _ _ _ _) (list x)]))
+        [(-ℱ x _ _ _ _) (list x)]
+        [(or (? -ℋ𝒱?) (? -ℋ𝒱*?)) #f]))
     ;; important not to use `-?@` for `eₐₚₚ` as it may simplify away `values` used in `ℳ`
     (define eₐₚₚ (and sₕ (andmap -e? sₓs) (-@ sₕ sₓs +ℓ₀)))
     (unless xs
