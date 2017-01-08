@@ -448,7 +448,7 @@
          [(-St* (== 𝒾) γs α l³)
           (match-define (-l³ l+ l- lo) l³)
           (define l³* (-l³ l- l+ lo))
-          (match-define (? -α? γ) (list-ref γs i))
+          (match-define (? values γ) (list-ref γs i))
           (define c (⟪α⟫->s γ))
           (define Mut (-W¹ mut mut))
           (for*/union : (℘ -ς) ([C (σ@ σ γ)] [Vₛ* (σ@ σ α)])
