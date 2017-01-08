@@ -33,14 +33,11 @@
       (values x e)))
   (define γs*
     (for*/list : (Listof -γ) ([γ (in-list γs)]
-                              [αₖ (in-value (-γ-callee γ))]
-                              [blm (in-value (-γ-blm γ))]
                               [sₓs (in-value (-γ-args γ))]
                               [sₕ (in-value (-γ-fun γ))]
-                              [sₓs* (in-value (for/list : (Listof -s) ([sₓ sₓs]) (s↓ sₓ xs)))]
-                              #:when (ormap (inst values -s) sₓs*)
-                              [sₕ* (in-value (s↓ sₕ xs))])
-      (-γ αₖ blm sₕ* sₓs*)))
+                              [s (in-value (and sₕ (andmap -e? sₓs) (-@ sₕ sₓs +ℓ₀)))]
+                              [s* (in-value (s↓ s xs))] #:when s*)
+      γ))
   (-Γ φs* as* γs*))
 
 (: canonicalize : (U -Γ (HashTable Symbol -e)) Symbol → -e)
