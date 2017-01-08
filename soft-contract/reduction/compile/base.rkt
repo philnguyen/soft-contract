@@ -17,8 +17,9 @@
     (define α (ρ@ ρ x))
     (define old? (σ-old? σ α))
     (define s (and old? (canonicalize Γ x)))
+    (define s/x (or s (-x x)))
     (cond
-      [($@ $ s) =>
+      [($@ $ s/x) =>
        (λ ([V : -V])
          (cond [(plausible-V-s? (-Γ-facts Γ) V s)
                 (define V* (V+ σ V (predicates-of Γ s)))
@@ -29,7 +30,7 @@
        (define φs (-Γ-facts Γ))
        
        (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
-         (define $* ($+ $ s V))
+         (define $* ($+ $ s/x V))
          (match V
            [(-b (not (? defined?))) (⟦k⟧ -blm.undefined $* Γ ⟪ℋ⟫ Σ)]
            [(-● ps) ; precision hack
