@@ -126,8 +126,8 @@
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -⟪α⟫] [ctx : -l³])
             (-St* [id : -𝒾] [ctcs : (Listof (Option (Pairof -⟪α⟫ -ℓ)))] [val : -⟪α⟫] [ctx : -l³])
-            (-Vector/hetero [ctcs : (Listof -⟪α⟫)] [ctx : -l³])
-            (-Vector/homo [ctc : -⟪α⟫] [ctx : -l³])
+            (-Vector/hetero [guard : -Vector/C] [ctx : -l³])
+            (-Vector/homo [guard : -Vectorof] [ctx : -l³])
             
             -C)
 
@@ -429,8 +429,8 @@
        ▹ ,(show-⟪α⟫ α))]
     [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
     [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]
-    [(-Vector/hetero γs _) `(vector/hetero ,@(map show-⟪α⟫ γs))]
-    [(-Vector/homo γ _) `(vector/homo ,(show-⟪α⟫ γ))]
+    [(-Vector/hetero (-Vector/C γs) _) `(vector/hetero ,@(map show-⟪α⟫ℓ γs))]
+    [(-Vector/homo (-Vectorof γ) _) `(vector/homo ,(show-⟪α⟫ℓ γ))]
     [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
     [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
     [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]

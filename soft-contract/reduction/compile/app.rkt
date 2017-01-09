@@ -903,28 +903,31 @@
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [V* (σ@ σ αᵥ)])
         (mon l³ $ ℒ (-W¹ C c) (-W¹ V* #|TODO|# #f) Γ ⟪ℋ⟫ Σ
              (bgn∷ (list ⟦erase⟧) ⊥ρ ⟦k⟧)))]
-    [(-Vector/hetero αs l³*)
-     (define cs : (Listof -s) (for/list ([α : -⟪α⟫ αs]) (⟪α⟫->s α)))
-     (for*/union : (℘ -ς) ([C (σ@ σ α)] [Cs (σ@/list σ αs)])
+    [(-Vector/hetero (-Vector/C ⟪α⟫ℓs) l³*)
+     (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓs))
+     (define cs : (Listof -s) (for/list ([⟪α⟫ : -⟪α⟫ ⟪α⟫s]) (⟪α⟫->s ⟪α⟫)))
+     (for*/union : (℘ -ς) ([C (σ@ σ α)] [Cs (σ@/list σ ⟪α⟫s)])
        (define ⟦chk⟧s : (Listof -⟦e⟧)
          (for/list ([C* (in-list Cs)]
                     [c* (in-list cs)]
+                    [ℓᵢ (in-list ℓs)]
                     [i (in-naturals)] #:when (index? i))
            (define ⟦inner⟧
-             (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*)
+             (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓᵢ)
                          (mk-rt-⟦e⟧ (-W¹ C* c*))
                          (mk-rt-⟦e⟧ (-W¹ -●/V (-?@ 'vector-ref sᵥ (-b i))))))
-           (mk-mon-⟦e⟧ l³ ℒ (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
+           (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
        (match-define (cons ⟦e⟧ ⟦e⟧s) (append ⟦chk⟧s (list ⟦rt⟧)))
        (⟦e⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s ⊥ρ ⟦k⟧)))]
-    [(-Vector/homo α* l³*)
+    [(-Vector/homo (-Vectorof αℓ*) l³*)
+     (match-define (cons α* ℓ**) αℓ*)
      (define c* (⟪α⟫->s α*))
      (for*/union : (℘ -ς) ([C* (σ@ σ α*)] [C (σ@ σ α)])
        (define ⟦chk⟧
          (let ([⟦inner⟧
-                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C* c*))
+                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ**) (mk-rt-⟦e⟧ (-W¹ C* c*))
                             (mk-rt-⟦e⟧ (-W¹ -●/V (-x (+x!/memo 'inner)))))])
-           (mk-mon-⟦e⟧ l³ ℒ (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
+           (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
        (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ (list ⟦rt⟧) ⊥ρ ⟦k⟧)))]
     [(-● _)
      (define ⟦er⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ))))
@@ -953,7 +956,7 @@
   (define ⟦blm-vct⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ))))
   (define ⟦blm-len⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list (format-symbol "vector-length ~a" n)) (list Vᵥ))))
   (define ⟦mk⟧
-    (let ([V* (-Vector/hetero αs l³)])
+    (let ([V* (-Vector/hetero (-Vector/C αℓs) l³)])
       (mk-rt-⟦e⟧ (-W (list V*) vᵥ))))
   (define ⟦rt-●⟧ (mk-rt-⟦e⟧ (-W¹ -●/V #f)))
   (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
@@ -969,7 +972,7 @@
                        (mk-rt-⟦e⟧ -vector-ref/W)
                        (list (mk-rt-⟦e⟧ W-V)
                              (mk-rt-⟦e⟧ Wᵢ))))
-         (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ ℒ (mk-rt-⟦e⟧ W-C*) ⟦ref⟧))
+         (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ W-C*) ⟦ref⟧))
          (mk-app-⟦e⟧ 'havoc ℒ ⟦rt-●⟧ (list ⟦mon⟧))))
      (define ⟦erase⟧
        (match Vᵥ
