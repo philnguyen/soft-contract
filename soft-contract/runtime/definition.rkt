@@ -125,7 +125,7 @@
             
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -⟪α⟫] [ctx : -l³])
-            (-St* [id : -𝒾] [ctcs : (Listof (Option -⟪α⟫))] [val : -⟪α⟫] [ctx : -l³])
+            (-St* [id : -𝒾] [ctcs : (Listof (Option (Pairof -⟪α⟫ -ℓ)))] [val : -⟪α⟫] [ctx : -l³])
             (-Vector/hetero [ctcs : (Listof -⟪α⟫)] [ctx : -l³])
             (-Vector/homo [ctc : -⟪α⟫] [ctx : -l³])
             
@@ -267,7 +267,7 @@
             (-α.var-cdr [pos : -ℒ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
 
             ;; for wrapped mutable struct
-            (-α.st [id : -𝒾] [pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.st [id : -𝒾] [pos : -ℒ] [ctx : -⟪ℋ⟫])
 
             ;; for vector indices
             (-α.idx [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
@@ -423,9 +423,9 @@
        [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
        [_ `(,(show-V guard) ◃ ,(show-⟪α⟫ α))])]
     [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-⟪α⟫ αs))]
-    [(-St* 𝒾 γs α _)
+    [(-St* 𝒾 γℓs α _)
      `(,(format-symbol "~a/wrapped" (-𝒾-name 𝒾))
-       ,@(for/list : (Listof Sexp) ([γ γs]) (if γ (show-⟪α⟫ γ) '✓))
+       ,@(for/list : (Listof Sexp) ([γℓ γℓs]) (if γℓ (show-⟪α⟫ℓ γℓ) '✓))
        ▹ ,(show-⟪α⟫ α))]
     [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
     [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]

@@ -72,8 +72,8 @@
          (define Γ*
            (for/fold ([Γ : -Γ Γ]) ([x (in-list xs)])
              (invalidate Γ x)))
-         (app 'havoc $∅ (-ℒ ∅ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ* ⟪ℋ⟫ Σ
-              (hv∷ (-ℒ ∅ (+ℓ/memo! 'hv-res tag)) ⟦k⟧)))
+         (app 'havoc $∅ (ℒ-with-mon ℒ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ* ⟪ℋ⟫ Σ
+              (hv∷ (ℒ-with-mon ℒ (+ℓ/memo! 'hv-res tag)) ⟦k⟧)))
        
        (define a (V-arity V))
        (match a
@@ -91,8 +91,8 @@
       [(or (-St 𝒾 _) (-St* 𝒾 _ _ _)) #:when 𝒾
        (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
          (define Acc (-W¹ acc acc))
-         (app 'havoc $∅ (-ℒ ∅ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ ⟪ℋ⟫ Σ
-           (hv∷ (-ℒ ∅ (+ℓ/memo! 'hv-ap acc 'ac)) ⟦k⟧)))]
+         (app 'havoc $∅ (ℒ-with-mon ℒ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ ⟪ℋ⟫ Σ
+              (hv∷ (ℒ-with-mon ℒ (+ℓ/memo! 'hv-ap acc 'ac)) ⟦k⟧)))]
 
       ;; Havoc vector's content before erasing the vector with unknowns
       ;; Approximate vectors are already erased
@@ -101,11 +101,11 @@
       [(-Vector αs)
        (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
          (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-         (app 'havoc $∅ (-ℒ ∅ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
-              (hv∷ (-ℒ ∅ (+ℓ/memo! 'hv-ap 'ref i 0)) ⟦k⟧)))]
+         (app 'havoc $∅ (ℒ-with-mon ℒ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
+              (hv∷ (ℒ-with-mon ℒ (+ℓ/memo! 'hv-ap 'ref i 0)) ⟦k⟧)))]
       [(-Vector^ α _)
        (for/set: : (℘ -ς) ([V (σ@ σ α)])
-         (define αₖ (-ℋ𝒱 (-ℒ ∅ (+ℓ/memo! 'vref #f)) V))
+         (define αₖ (-ℋ𝒱 (ℒ-with-mon ℒ (+ℓ/memo! 'vref #f)) V))
          (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ 'void '()))
          (σₖ⊔! (-Σ-σₖ Σ) αₖ κ)
          (-ς↑ αₖ Γ ⟪ℋ⟫))]
