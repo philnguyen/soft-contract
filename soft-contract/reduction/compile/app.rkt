@@ -455,7 +455,7 @@
                       (define W-c (-W¹ C c))
                       (define Wₛ* (-W¹ Vₛ* sₛ))
                       (mon l³* $ (ℒ-with-mon ℒ ℓᵢ) W-c Wᵥ Γ ⟪ℋ⟫ Σ
-                           (ap∷ (list Wₛ Mut) '() ⊥ρ lo ℒ ⟦k⟧)))]
+                           (ap∷ (list Wₛ* Mut) '() ⊥ρ lo ℒ ⟦k⟧)))]
          [(-● _)
           (define ⟦ok⟧
             (let ([⟦hv⟧ (mk-app-⟦e⟧ 'havoc ℒ
@@ -976,12 +976,12 @@
                              (mk-rt-⟦e⟧ Wᵢ))))
          (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ W-C*) ⟦ref⟧))
          (mk-app-⟦e⟧ 'havoc ℒ ⟦rt-●⟧ (list ⟦mon⟧))))
-     (define ⟦erase⟧
+     #;(define ⟦erase⟧
        (match Vᵥ
          [(-Vector αs) (mk-erase-⟦e⟧ αs)]
          [(-Vector^ α n) (mk-erase-⟦e⟧ (list α))]
          [_ ⟦void⟧]))
-     (define ⟦wrp⟧ (mk-begin-⟦e⟧ (append ⟦hv-fld⟧s (list ⟦erase⟧ ⟦mk⟧))))
+     (define ⟦wrp⟧ (mk-begin-⟦e⟧ (append ⟦hv-fld⟧s (list #;⟦erase⟧ ⟦mk⟧))))
      (⟦chk-vct⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
       (if∷ lo (mk-if-⟦e⟧ lo ⟦chk-len⟧ ⟦wrp⟧ ⟦blm-len⟧) ⟦blm-vct⟧ ⊥ρ ⟦k⟧))))
 
