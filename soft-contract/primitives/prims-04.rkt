@@ -1063,6 +1063,7 @@
     (match V
       [(-Vector ⟪α⟫s) (list (-b (length ⟪α⟫s)))]
       [(-Vector^ _ n) (list n)]
+      [(-Vector/hetero ⟪α⟫s _) (list (-b (length ⟪α⟫s)))]
       [_ -Nat/Vs]))
   {set (-ΓA Γ (-W A sₐ))})
 #;(def-prim/todo vector-ref
