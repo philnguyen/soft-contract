@@ -956,7 +956,9 @@
   (define ⟦blm-vct⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ))))
   (define ⟦blm-len⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list (format-symbol "vector-length ~a" n)) (list Vᵥ))))
   (define ⟦mk⟧
-    (let ([V* (-Vector/hetero (-Vector/C αℓs) l³)])
+    (match-let ([(-l³ l+ l- lo) l³])
+      (define l³* (-l³ 'checked l- lo))
+      (define V* (-Vector/hetero (-Vector/C αℓs) l³*))
       (mk-rt-⟦e⟧ (-W (list V*) vᵥ))))
   (define ⟦rt-●⟧ (mk-rt-⟦e⟧ (-W¹ -●/V #f)))
   (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
