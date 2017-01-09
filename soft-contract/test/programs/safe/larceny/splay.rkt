@@ -150,7 +150,7 @@
     (lambda (s)
       (let ([t (tree s)])
         (if (null? t)
-            (add1 "error: ordset-extrenum: empty set") #;(error 'ordset-extremum "empty set")  
+            (error "error: ordset-extrenum: empty set") #;(error 'ordset-extremum "empty set")  
             (match-let ([(vector x lr) (splay-to t)])
               (set-tree! s (node x lr))
               x))))))
