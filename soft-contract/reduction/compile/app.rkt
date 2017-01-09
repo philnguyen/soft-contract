@@ -988,11 +988,12 @@
 (define (mon-flat/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   ;(printf "mon-flat/c: ~a ~a ~a~n" ℓ (show-W¹ W-C) (show-W¹ W-V))
   (match-define (-l³ l+ _ lo) l³)
-  (match-define (-W¹ C _) W-C)
+  (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
+  (define cv (-?@ c v))
   (case (MΓ⊢V∈C (-Σ-M Σ) (-Σ-σ Σ) Γ W-V W-C)
-    [(✓) (⟦k⟧ (-W (list V) v) $ Γ ⟪ℋ⟫ Σ)]
-    [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ ⟪ℋ⟫ Σ)]
+    [(✓) (⟦k⟧ (-W (list V) v) $ (Γ+ Γ cv) ⟪ℋ⟫ Σ)]
+    [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V)) $ (Γ+ Γ (-not cv)) ⟪ℋ⟫ Σ)]
     [(?)
      (app lo $ ℒ W-C (list W-V) Γ ⟪ℋ⟫ Σ
           (if.flat/c∷ (-W (list V) v) (-blm l+ lo (list C) (list V)) ⟦k⟧))]))
