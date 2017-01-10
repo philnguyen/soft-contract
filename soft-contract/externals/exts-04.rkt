@@ -4,9 +4,11 @@
          racket/set
          racket/contract
          "../utils/set.rkt"
+         "../utils/function.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
+         "../reduction/compile/utils.rkt"
          "../reduction/compile/app.rkt"
          "../reduction/havoc.rkt"
          "def-ext.rkt")
@@ -15,11 +17,40 @@
 ;;;;; 4.9 Pairs and Lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-ext map ((any/c . -> . any/c) list? . -> . list?)) ; FIXME uses 
+(def-ext (map l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  ; FIXME uses 
+  #:domain ([Wₚ (any/c . -> . any/c)]
+            [Wₗ list?])
+  (match-define (-Σ σ _ M) Σ)
+  (match-define (-W¹ Vₚ sₚ) Wₚ)
+  (match-define (-W¹ Vₗ sₗ) Wₗ)
+  (define sₐ (-?@ 'map sₚ sₗ))
+  (match Vₗ
+    [(-b '()) (⟦k⟧ (-W (list -null) sₐ) $ Γ ⟪ℋ⟫ Σ)]
+    [(-Cons _ _)
+     (define ⟦k⟧* (mk-listof∷ l sₐ ℒ ⟪ℋ⟫ ⟦k⟧))
+     (for/union : (℘ -ς) ([V (extract-list-content σ Vₗ)])
+       (app l $ ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+    [_ (⟦k⟧ (-W (list (-● (set 'list?))) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+
 (def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wₚ (any/c . -> . any/c)]
             [Wₗ list?])
   #:result -Void/Vs)
+
+(define/memo (mk-listof∷ [l : -l] [sₐ : -s] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+    (match-define (-W Vs s) A)
+    (match Vs
+      [(list V)
+       (define ⟪α⟫ₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 0)))
+       (define ⟪α⟫ₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 1)))
+       (define Vₚ (-Cons ⟪α⟫ₕ ⟪α⟫ₜ))
+       (σ⊕*! (-Σ-σ Σ) [⟪α⟫ₕ ↦ V] [⟪α⟫ₜ ↦ -null] [⟪α⟫ₜ ↦ Vₚ])
+       (⟦k⟧ (-W (list Vₚ) sₐ) $ Γ ⟪ℋ⟫ Σ)]
+      [_
+       (define blm (blm-arity l 'mk-listof 1 Vs))
+       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -34,12 +65,12 @@
   (define sₐ (-?@ 'vector-ref sᵥ sᵢ))
   (match Vᵥ
     [(-Vector ⟪α⟫s)
-     (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+     (for/union : (℘ -ς) ([⟪α⟫ : -⟪α⟫ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
-                (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-                (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
-                           (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
+       (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+       (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
+         (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
     [(-Vector^ α n)
      #;(begin
          (printf "vector-ref: ~a ~a~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ))
