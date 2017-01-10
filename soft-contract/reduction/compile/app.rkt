@@ -526,10 +526,14 @@
   (define (precise-alloc! Ws [i 0])
     (match Ws
       [(list) -null]
-      [(cons (-W¹ Vₕ _) Ws*)
+      [(cons (-W¹ Vₕ sₕ) Ws*)
        (define αₕ (-α->-⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ i)))
        (define αₜ (-α->-⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ i)))
-       (σ⊕*! σ [αₕ ↦ Vₕ]
+       (define Vₕ*
+         ;; Refine arguments by type-like contracts before proceeding
+         ;; This could save lots of spurious errors to eliminate later
+         (V+ σ Vₕ (predicates-of Γ sₕ)))
+       (σ⊕*! σ [αₕ ↦ Vₕ*]
                [αₜ ↦ (precise-alloc! Ws* (+ 1 i))])
        (-Cons αₕ αₜ)]))
   
