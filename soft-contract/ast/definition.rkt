@@ -160,6 +160,9 @@
            (-ar-ctc)
            (-ar-fun))
 
+(: -define : Symbol -e → -define-values)
+(define (-define x e) (-define-values (list x) e))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Constants & 'Macros'

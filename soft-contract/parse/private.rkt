@@ -137,29 +137,49 @@
      #:when (equal? 'print-values (syntax->datum #'print-values))
      (parse-e #'e)]
 
-    [(define-values (_ _ pred acc ...)
+    [(define-values (_ _ pred acc+muts ...)
        (let-values ([(_ ...)
                      (let-values ()
                        (let-values ()
-                         (#%plain-app _ (quote ctor-name) _ ...)))])
-         (#%plain-app values _ _ _ (#%plain-app _ _ _ _) ...)))
-     (log-debug "struct clause:~n~a~n" (pretty (syntax->datum form)))
+                         (#%plain-app _ #;(~literal make-struct-type)
+                                      (quote ctor-name)
+                                      _
+                                      (quote n:exact-integer)
+                                      _ ...)))])
+         (#%plain-app values _ _ _ mk-acc+muts ...)))
      (define ctor (syntax-e #'ctor-name))
-     (define/contract accs (listof identifier?) (syntax->list #'(acc ...)))
-     (define n (length accs))
+
      (define 𝒾 (-𝒾 ctor (cur-mod)))
-     (add-struct-info! 𝒾 n ∅eq)
-     (define lhs (list* ctor (syntax-e #'pred) (map syntax-e accs)))
-     (for ([name lhs])
+     (define-values (accs muts)
+       (let ([accs (make-hasheq)]
+             [muts (make-hasheq)])
+         (for ([name   (in-list (syntax->list #'(acc+muts ...)))]
+               [clause (in-list (syntax->list #'(mk-acc+muts ...)))])
+           (define/syntax-parse (#%plain-app mk _ (quote i:exact-integer) _) clause)
+           (define m
+             (syntax-parse #'mk
+               [(~literal make-struct-field-accessor) accs]
+               [(~literal make-struct-field-mutator ) muts]))
+           (hash-set! m (syntax-e #'i) (syntax-e name)))
+         (values accs muts)))
+     
+     (add-struct-info! 𝒾 (syntax-e #'n) (list->seteq (hash-keys muts)))
+     (for ([name (in-sequences (list ctor (syntax-e #'pred))
+                               (hash-values accs)
+                               (hash-values muts))])
        (add-top-level! (-𝒾 name (cur-mod))))
-     (-define-values
-      lhs
-      (-@ 'values
-          (list* (-st-mk 𝒾)
-                 (-st-p 𝒾)
-                 (for/list ([(accᵢ i) (in-indexed accs)])
-                   (-st-ac 𝒾 i)))
-          0))]
+     (let ([acc-list (hash->list accs)]
+           [mut-list (hash->list muts)])
+       (-define-values
+        `(,ctor ,(syntax-e #'pred) ,@(map cdr acc-list) ,@(map cdr mut-list))
+        (-@ 'values
+            `(,(-st-mk 𝒾)
+              ,(-st-p 𝒾)
+              ,@(for/list ([i (in-list (map car acc-list))])
+                  (-st-ac 𝒾 i))
+              ,@(for/list ([i (in-list (map car mut-list))])
+                  (-st-mut 𝒾 i)))
+            (+ℓ!))))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
      (define rhs (parse-e #'e))
@@ -273,6 +293,28 @@
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "call-with-input-file"))
      (-@ 'call-with-input-file (parse-es #'(x ...)) (+ℓ!))]
+    [(if (#%plain-app (~literal variable-reference-constant?)
+                      (#%variable-reference f:id))
+         _
+         (#%plain-app g:id x ...))
+     #:when (and (free-identifier=? #'f #'g)
+                 (string-prefix? (symbol->string (syntax-e #'f)) "open-input-file"))
+     (-@ 'open-input-file (parse-es #'(x ...)) (+ℓ!))]
+    [(if (#%plain-app (~literal variable-reference-constant?)
+                      (#%variable-reference f:id))
+         _
+         (#%plain-app g:id x ...))
+     #:when (and (free-identifier=? #'f #'g)
+                 (string-prefix? (symbol->string (syntax-e #'f)) "open-output-file"))
+     (-@ 'open-out-file (parse-es #'(x ...)) (+ℓ!))]
+    [(if (#%plain-app (~literal variable-reference-constant?)
+                      (#%variable-reference f:id))
+         _
+         (#%plain-app g:id x ...))
+     #:when (and (free-identifier=? #'f #'g)
+                 (string-prefix? (symbol->string (syntax-e #'f)) "file->list"))
+     (-@ 'file->list (parse-es #'(x ...)) (+ℓ!))]
+    
 
     ;;; Contracts
     ;; Non-dependent function contract
