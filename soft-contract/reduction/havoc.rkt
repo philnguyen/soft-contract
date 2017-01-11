@@ -11,6 +11,8 @@
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/widen.rkt"
+         "../externals/def-ext.rkt"
+         "../externals/def-ext-runtime.rkt"
          (only-in "../proof-relation/base-assumptions.rkt" V-arity)
          "compile/utils.rkt"
          "compile/app.rkt"
@@ -134,6 +136,10 @@
       (σₖ⊔! (-Σ-σₖ Σ) αₖ κ)
       (-ς↑ αₖ Γ ⟪ℋ⟫))))
 
+(def-ext (do-havoc l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (match-define (list (-W¹ V _)) Ws)
+  (havoc ℒ V Γ ⟪ℋ⟫ Σ ⟦k⟧))
+
 (: gen-havoc-expr : (Listof -module) → -e)
 (define (gen-havoc-expr ms)
   (define-set refs : -𝒾 #:as-mutable-hash? #t)
@@ -146,7 +152,6 @@
       (refs-add! (-𝒾 x path))))
 
   (with-debugging/off
-    ((ans) (-amb/simp #;(inst -begin/simp -e)
-                      (for/list ([ref (in-hash-keys refs)])
-                        (-@ (•!) (list ref) (+ℓ!)))))
+    ((ans) (-amb/simp (for/list ([ref (in-hash-keys refs)])
+                        (-@ 'do-havoc (list ref) (+ℓ!)))))
     (printf "gen-havoc-expr: ~a~n" (show-e ans))))
