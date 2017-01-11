@@ -18,7 +18,7 @@
 ;; This is only for use internally, so it's safe (though imprecise) to ignore field wraps
 (define (unchecked-ac σ Γ ac W)
   (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-  (match-define (-W¹ (list V) s) W)
+  (match-define (-W¹ V s) W)
   (match-define (-st-ac 𝒾 i) ac)
   (define φs (-Γ-facts Γ))
   (define s* (-?@ ac s))
