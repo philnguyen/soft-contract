@@ -377,9 +377,10 @@
               [x:lit
                (error "TODO")]
               [c:id
+               (define/with-syntax p (hack:resolve-alias #'c))
                (listof.push!
                 (gen-name! 'chk-V-elem)
-                #`(with-p∋Vs (#,(-σ) 'c Vₕ)
+                #`(with-p∋Vs (#,(-σ) p Vₕ)
                     #:on-t #,(on-done #'c pos?)
                     #:on-f #,(on-done #'c (not pos?))))]))
 
