@@ -89,7 +89,7 @@
           (define c (⟪α⟫->s ⟪α⟫))
           (for/union : (℘ -ς) ([C (in-set (σ@ σ ⟪α⟫))])
             (mon l³ $ (ℒ-with-mon ℒ ℓᵢ) (-W¹ C c) (-W¹ -●/V sₐ) Γ* ⟪ℋ⟫ Σ ⟦k⟧)))]
-       [(-Vector/homo (-Vectorof ⟪α⟫ℓ) l³)
+       [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫ ℓ*) ⟪α⟫ℓ)
         (define c (⟪α⟫->s ⟪α⟫))
         (for/union : (℘ -ς) ([C (σ@ σ ⟪α⟫)])
@@ -120,6 +120,7 @@
      (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
     [(-Vector/guard grd l³)
      (match-define (-l³ l+ l- lo) l³)
+     (define l³* (-l³ l- l+ lo))
      (match grd
        [(-Vector/C ⟪α⟫ℓs)
         (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
@@ -135,7 +136,6 @@
        [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫ ℓ*) ⟪α⟫ℓ)
         (define c (⟪α⟫->s ⟪α⟫))
-        (define l³* (-l³ l- l+ lo))
         (for/union : (℘ -ς) ([C (σ@ σ ⟪α⟫)])
           (define W-c (-W¹ C c))
           (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
