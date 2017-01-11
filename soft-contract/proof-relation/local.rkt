@@ -202,7 +202,7 @@
        (match V
          [(or (-St si _) (-St* si _ _ _)) #:when si
           (plausible-φs-s? φs (-?@ (-st-p si) s))]
-         [(or (? -Vector?) (? -Vector^?) (? -Vector/hetero?) (? -Vector/homo?))
+         [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?))
           (plausible-φs-s? φs (-?@ 'vector? s))]
          [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
           (plausible-φs-s? φs (-?@ 'procedure? s))]
@@ -321,7 +321,7 @@
              [_ '✗])]
           [(vector?)
            (match Vs
-             [(list (or (? -Vector?) (? -Vector^?) (? -Vector/hetero?) (? -Vector/homo?))) '✓]
+             [(list (or (? -Vector?) (? -Vector^?) (? -Vector/guard?))) '✓]
              [_ '✗])]
           [(contract?)
            (match Vs

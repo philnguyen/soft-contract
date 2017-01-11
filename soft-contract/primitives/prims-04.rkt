@@ -786,7 +786,8 @@
      {set (-ΓA Γ (-W -null/Vs sₐ))}]
     [_
      {set (-ΓA Γ (-W (list (-● (set 'list?))) sₐ))}]))
-(def-prim/custom (append ⟪ℋ⟫ ℓ l Σ Γ Ws) ; FIXME uses
+(def-prim append (() #:rest (listof list?) . ->* . list?))
+#;(def-prim/custom (append ⟪ℋ⟫ ℓ l Σ Γ Ws) ; FIXME uses
   #:domain ([W₁ list?] [W₂ list?])
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ V₁ s₁) W₁)
@@ -863,10 +864,9 @@
  (procedure? list? . -> . (or/c list? not)))
 (def-prim/todo findf
  (procedure? list? . -> . any/c))
-#;[assoc ; FIXME uses ; FIXME listof
-   (any/c (listof pair?) . -> . (or/c pair? not))]
-#;[def-prims (assv assq) ; FIXME listof
-   (any/c (listof pair?) . -> . (or/c pair? not))]
+(def-prim assoc (any/c (listof pair?) . -> . (or/c pair? not))) ; FIXME uses ; FIXME listof
+(def-prims (assv assq) ; FIXME listof
+  (any/c (listof pair?) . -> . (or/c pair? not)))
 (def-prim/todo assf ; TODO why doc only requires `procedure?`
  (procedure? list? . -> . (or/c pair? not)))
 
@@ -1063,7 +1063,7 @@
     (match V
       [(-Vector ⟪α⟫s) (list (-b (length ⟪α⟫s)))]
       [(-Vector^ _ n) (list n)]
-      [(-Vector/hetero (-Vector/C ⟪α⟫s) _) (list (-b (length ⟪α⟫s)))]
+      [(-Vector/guard (-Vector/C ⟪α⟫s) _) (list (-b (length ⟪α⟫s)))]
       [_ -Nat/Vs]))
   {set (-ΓA Γ (-W A sₐ))})
 #;(def-prim/todo vector-ref

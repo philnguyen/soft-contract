@@ -62,10 +62,8 @@
      (-Ar C α (-l³ l+ l      lo))]
     [(-St* s αs α (-l³ l+ 'dummy lo))
      (-St* s αs α (-l³ l+ l      lo))]
-    [(-Vector/hetero grd (-l³ l+ 'dummy lo))
-     (-Vector/hetero grd (-l³ l+ l      lo))]
-    [(-Vector/homo grd (-l³ l+ 'dummy lo))
-     (-Vector/homo grd (-l³ l+ l      lo))]
+    [(-Vector/guard grd (-l³ l+ 'dummy lo))
+     (-Vector/guard grd (-l³ l+ l      lo))]
     [_ V]))
 
 (: behavioral? : -σ -V → Boolean)

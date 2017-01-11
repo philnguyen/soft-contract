@@ -97,9 +97,8 @@
               (hv∷ (ℒ-with-mon ℒ (+ℓ/memo! 'hv-ap acc 'ac)) ⟦k⟧)))]
 
       ;; Havoc vector's content before erasing the vector with unknowns
-      ;; Approximate vectors are already erased
-      [(-Vector/hetero _ _) (done)]
-      [(-Vector/homo   _ _) (done)]
+      ;; Guarded vectors are already erased
+      [(? -Vector/guard?) (done)]
       [(-Vector αs)
        (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
          (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
