@@ -18,9 +18,14 @@
 ;;;;; 15.2 Filesystem
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 ;; 15.2.2 Files
 (def-prim file-exists? (path-string? . -> . boolean?) #:lift-concrete? #f)
 (def-prim delete-file (path-string? . -> . void?) #:lift-concrete? #f)
+
+;; 15.2.6 More File and Directory Utilities
+(def-prim file->list (path-string? . -> . list?) #:volatile? #t #:lift-concrete? #f)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 15.7
