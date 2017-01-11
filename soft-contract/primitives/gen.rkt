@@ -28,6 +28,13 @@
 
 (begin-for-syntax
 
+  (define/contract hack:resolve-alias
+    (identifier? . -> . syntax?)
+    (syntax-parser
+      [(~or (~literal cons?) (~literal pair?)) #'-cons?]
+      [(~or (~literal box?)) #'-box?]
+      [p:id #''p]))
+
   (define/contract (gen-program entry table)
     (symbol? (hash/c symbol? (listof syntax?)) . -> . (listof syntax?))
     (for/fold ([acc (hash-ref table entry)])
@@ -275,8 +282,15 @@
           "TODO: multiple returns"
           rngs)]))
 
-    (define (refs->V  refs) (if (null? refs) #'-●/V        #`(-● {set #,@refs})))
-    (define (refs->Vs refs) (if (null? refs) #'-●/Vs #`(list (-● {set #,@refs}))))
+    (define (refs->V refs)
+      (foldr (λ (ref V)
+               (define/with-syntax p
+                 (syntax-parse ref
+                   [((~literal quote) c:id) (hack:resolve-alias #'c)]
+                   [p #'p]))
+               #`(V+ #,(-σ) #,V p))
+             #'-●/V
+             refs))
 
     (define/with-syntax mk-sₐ
       (cond [(-volatile?) #'#f]
@@ -287,7 +301,7 @@
       [(null? (-refs))
        (list #`(define sₐ mk-sₐ)
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                         #`(-ΓA #,(-Γ) (-W #,(refs->Vs refs) sₐ)))))]
+                         #`(-ΓA #,(-Γ) (-W (list #,(refs->V refs)) sₐ)))))]
       [else
        (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e (-o))))
        (list #`(define sₐ mk-sₐ)
@@ -400,7 +414,10 @@
                            #,@(gen-loop-body! c pos?)))
                        (chk-elem)]
                       [(-b (list)) (force result)]
-                      [(-● ps) #|TODO|# #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V)))]
+                      [(-● ps)
+                       (cond
+                         [(∋ ps 'list?) (force result)]
+                         [else #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V)))])]
                       [_ #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V)))]))))
         (push-thunk! (gen-name! 'chk-listof) body))
 
@@ -504,11 +521,7 @@
           [(~literal any/c) (on-done #''any/c pos?)]
           [(~literal none/c) (on-done #'not/c (not pos?))]
           [c:id
-           (define/with-syntax p ;; TODO tmp hack
-             (syntax-parse #'c
-               [(~or (~literal cons?) (~literal pair?)) #'-cons?]
-               [(~or (~literal box?)) #'-box?]
-               [p:id #''p]))
+           (define/with-syntax p (hack:resolve-alias #'c))
            (define why (if pos? #''c #'(-not/c 'c)))
            (push-local-thunk!
             (gen-name!)
