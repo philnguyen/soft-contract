@@ -221,31 +221,17 @@
 (define ℋ∅ : -ℋ '())
 
 (: ℋ+ : -ℋ (U -edge -ℒ)  → -ℋ)
-;; Add edge on top of call history, except when it's already there
-(define (ℋ+ ℋ e)
-  (define already-in?
-    (match e
-      [(-edge ⟦e⟧ _)
-       (for/or : Boolean ([eᵢ (in-list ℋ)])
-         (and (-edge? eᵢ) (eq? (ann (-edge-tgt eᵢ) -⟦e⟧) ⟦e⟧)))]
-      [(? -ℒ? ℒ)
-       (member ℒ ℋ)]))
-  (if already-in? ℋ (cons e ℋ)))
-
-(: ℋ@ : -ℋ (U -⟦e⟧ -ℒ) → -ℋ)
-;; Return segment of call history that first jumps to this function body
-(define (ℋ@ ℋ x)
-  
-  (define seen? : ((U -edge -ℒ) → Boolean)
-    (cond [(procedure? x)
-           (λ (e) (and (-edge? e) (eq? x (-edge-tgt e))))]
-          [(-ℒ? x) (λ (e) (equal? e x))]))
-  
-  (let loop ([ℋ : -ℋ ℋ])
-    (match ℋ
-      ['() (error 'ℋ@ "not found ~a" (if (-ℒ? x) (show-ℒ x) (show-⟦e⟧ x)))]
-      [(cons eᵢ ℋ*)
-       (if (seen? eᵢ) ℋ (loop ℋ*))])))
+;; Add edge on top of call history.
+;; If the target is already there, return the history chunk up to first time the target
+;; is seen
+(define (ℋ+ ℋ x)
+  (define match? : ((U -edge -ℒ) → Boolean)
+    (cond [(-ℒ? x) (λ (e) (equal? e x))]
+          [(-edge? x)
+           (define x.tgt (-edge-tgt x))
+           (λ (e) (and (-edge? e) (eq? x.tgt (-edge-tgt e))))]))
+  (define ?ℋ (memf match? ℋ))
+  (if ?ℋ ?ℋ (cons x ℋ)))
 
 
 ;; The call history is passed around a lot and is part of address allocation
@@ -255,9 +241,6 @@
 
 (: ⟪ℋ⟫+ : -⟪ℋ⟫ (U -edge -ℒ) → -⟪ℋ⟫)
 (define (⟪ℋ⟫+ ⟪ℋ⟫ e) (-ℋ->-⟪ℋ⟫ (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e)))
-
-(: ⟪ℋ⟫@ : -⟪ℋ⟫ (U -⟦e⟧ -ℒ) → -⟪ℋ⟫)
-(define (⟪ℋ⟫@ ⟪ℋ⟫ ⟦e⟧) (-ℋ->-⟪ℋ⟫ (ℋ@ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) ⟦e⟧)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
