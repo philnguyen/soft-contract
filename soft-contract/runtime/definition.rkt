@@ -217,26 +217,35 @@
   (-ℒ (set-add ℓs ℓ) ℓₐ))
 
 (struct -edge ([tgt : -⟦e⟧] [src : -ℒ]) #:transparent)
-(define-type -ℋ (Listof -edge))
+(define-type -ℋ (Listof (U -edge -ℒ)))
 (define ℋ∅ : -ℋ '())
 
-(: ℋ+ : -ℋ -edge  → -ℋ)
+(: ℋ+ : -ℋ (U -edge -ℒ)  → -ℋ)
 ;; Add edge on top of call history, except when it's already there
 (define (ℋ+ ℋ e)
-  (match-define (-edge ⟦e⟧ _) e)
   (define already-in?
-    (for/or : Boolean ([eᵢ ℋ])
-      (eq? (ann (-edge-tgt eᵢ) -⟦e⟧) ⟦e⟧)))
+    (match e
+      [(-edge ⟦e⟧ _)
+       (for/or : Boolean ([eᵢ (in-list ℋ)])
+         (and (-edge? eᵢ) (eq? (ann (-edge-tgt eᵢ) -⟦e⟧) ⟦e⟧)))]
+      [(? -ℒ? ℒ)
+       (member ℒ ℋ)]))
   (if already-in? ℋ (cons e ℋ)))
 
-(: ℋ@ : -ℋ -⟦e⟧ → -ℋ)
+(: ℋ@ : -ℋ (U -⟦e⟧ -ℒ) → -ℋ)
 ;; Return segment of call history that first jumps to this function body
-(define (ℋ@ ℋ ⟦e⟧)
+(define (ℋ@ ℋ x)
+  
+  (define seen? : ((U -edge -ℒ) → Boolean)
+    (cond [(procedure? x)
+           (λ (e) (and (-edge? e) (eq? x (-edge-tgt e))))]
+          [(-ℒ? x) (λ (e) (equal? e x))]))
+  
   (let loop ([ℋ : -ℋ ℋ])
     (match ℋ
-      ['() (error 'ℋ@ "not found ~a" (show-⟦e⟧ ⟦e⟧))]
+      ['() (error 'ℋ@ "not found ~a" (if (-ℒ? x) (show-ℒ x) (show-⟦e⟧ x)))]
       [(cons eᵢ ℋ*)
-       (if (eq? (ann (-edge-tgt eᵢ) -⟦e⟧) ⟦e⟧) ℋ (loop ℋ*))])))
+       (if (seen? eᵢ) ℋ (loop ℋ*))])))
 
 
 ;; The call history is passed around a lot and is part of address allocation
@@ -244,10 +253,10 @@
 (define-interner -ℋ #:interned-type-name -⟪ℋ⟫)
 (define ⟪ℋ⟫∅ (-ℋ->-⟪ℋ⟫ ℋ∅))
 
-(: ⟪ℋ⟫+ : -⟪ℋ⟫ -edge → -⟪ℋ⟫)
+(: ⟪ℋ⟫+ : -⟪ℋ⟫ (U -edge -ℒ) → -⟪ℋ⟫)
 (define (⟪ℋ⟫+ ⟪ℋ⟫ e) (-ℋ->-⟪ℋ⟫ (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e)))
 
-(: ⟪ℋ⟫@ : -⟪ℋ⟫ -⟦e⟧ → -⟪ℋ⟫)
+(: ⟪ℋ⟫@ : -⟪ℋ⟫ (U -⟦e⟧ -ℒ) → -⟪ℋ⟫)
 (define (⟪ℋ⟫@ ⟪ℋ⟫ ⟦e⟧) (-ℋ->-⟪ℋ⟫ (ℋ@ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) ⟦e⟧)))
 
 
@@ -334,9 +343,9 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ])
              ;; Contract monitoring
-             (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -W¹] [val : -W¹])
+             (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : -⟪α⟫])
              ;; Flat checking
-             (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -W¹] [val : -W¹])
+             (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : -⟪α⟫])
              ;; Havoc value set
              (-ℋ𝒱* [loc : -ℒ] [vals : (℘ -V)])
              ;; Havoc single value
@@ -508,12 +517,12 @@
     [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
-  (match-define (-ℳ x l³ ℓ W-C W-V) ℳ)
-  `(ℳ ,x ,(show-W¹ W-C) ,(show-W¹ W-V)))
+  (match-define (-ℳ x l³ ℓ C V) ℳ)
+  `(ℳ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
-  (match-define (-ℱ x l ℓ W-C W-V) ℱ)
-  `(ℱ ,x ,(show-W¹ W-C) ,(show-W¹ W-V)))
+  (match-define (-ℱ x l ℓ C V) ℱ)
+  `(ℱ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
 (define (show-ℋ𝒱* [ℋ𝒱* : -ℋ𝒱*]) : Sexp
   (match-define (-ℋ𝒱* _ Vs) ℋ𝒱*)
@@ -531,8 +540,10 @@
       ⟪ℋ⟫))
 (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp)
   (for/list ([e ℋ])
-    (match-define (-edge ⟦e⟧ ℒ) e)
-    `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧))))
+    (match e
+      [(-edge ⟦e⟧ ℒ)
+       `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧))]
+      [(? -ℒ? ℒ) (show-ℒ ℒ)])))
 
 (define show-ℒ : (-ℒ → Sexp)
   (let-values ([(ℒ->symbol symbol->ℒ _) ((inst unique-sym -ℒ) 'ℒ)])

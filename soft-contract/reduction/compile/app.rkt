@@ -83,23 +83,21 @@
 
     (cond
       [plausible?
-       (define ℯ (-edge ⟦e⟧ ℒ))
-       ;; Extended call history
-       (define ⟪ℋ⟫* (⟪ℋ⟫+ ⟪ℋ⟫ ℯ))
-       ;; Context for allocating the value address
-       (define ⟪ℋ⟫₀ (if (eq? ⟪ℋ⟫ ⟪ℋ⟫*) (⟪ℋ⟫@ ⟪ℋ⟫* ⟦e⟧) ⟪ℋ⟫*))
-       ;; Call history for context jumped to
-       (define ⟪ℋ⟫ₑₑ ⟪ℋ⟫₀ #;(if (eq? ⟪ℋ⟫* ⟪ℋ⟫) ⟪ℋ⟫₀ ⟪ℋ⟫*))
+       ;; Context to jump to
+       (define ⟪ℋ⟫ₑₑ
+         (let* ([ℯ (-edge ⟦e⟧ ℒ)]
+                [⟪ℋ⟫* (⟪ℋ⟫+ ⟪ℋ⟫ ℯ)])
+           (if (eq? ⟪ℋ⟫ ⟪ℋ⟫*) (⟪ℋ⟫@ ⟪ℋ⟫* ⟦e⟧) ⟪ℋ⟫*)))
        ;; Target's environment
        (define ρ* : -ρ
          (match xs
            [(? list? xs)
-            (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ xs Wₓs)]
+            (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫ₑₑ xs Wₓs)]
            [(-varargs zs z)
             (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-            (define ρ₀ (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫₀ zs Ws₀))
-            (define Vᵣ (alloc-rest-args! σ Γ ⟪ℋ⟫₀ ℒ Wsᵣ))
-            (define αᵣ (-α->-⟪α⟫ (-α.x z ⟪ℋ⟫₀)))
+            (define ρ₀ (alloc-init-args! σ Γ ρₕ ⟪ℋ⟫ₑₑ zs Ws₀))
+            (define Vᵣ (alloc-rest-args! σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
+            (define αᵣ (-α->-⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
             (σ⊕! σ αᵣ Vᵣ)
             (ρ+ ρ₀ z αᵣ)]))
 
@@ -160,8 +158,8 @@
           (define l³* (-l³ l- l+ lo))
           (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
             (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
-              (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs] [ℓₐ : -ℓ ℓs])
-                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
+              (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs] [ℓₓ : -ℓ ℓs])
+                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₓ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
             (for/union : (℘ -ς) ([D (in-set (σ@ σ β))])
               (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
                (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ lo ℒ
@@ -825,14 +823,18 @@
               (+x!/memo 'mon x*)))
   (define 𝐱 (-x x))
   (match-define (-Σ σ σₖ _) Σ)
+
+  ;; Context to jump to
+  (define ⟪ℋ⟫ₑₑ
+    (let ([⟪ℋ⟫* (⟪ℋ⟫+ ⟪ℋ⟫ ℒ)])
+      (if (eq? ⟪ℋ⟫ ⟪ℋ⟫*) (⟪ℋ⟫@ ⟪ℋ⟫* ℒ) ⟪ℋ⟫*)))
   (for/set: : (℘ -ς) ([C* (σ@ σ ⟪α⟫)])
-    (define αₖ
-      (let ([W-C* (-W¹ C* c)]
-            [W-V* (-W¹ V 𝐱)])
-        (-ℳ x l³ ℒ W-C* W-V*)))
+    (define ⟪α⟫ᵥ (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫ₑₑ)))
+    (define αₖ (-ℳ x l³ ℒ C* ⟪α⟫ᵥ))
     (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'values (list v)))
+    (σ⊕! σ ⟪α⟫ᵥ V)
     (σₖ⊔! σₖ αₖ κ)
-    (-ς↑ αₖ ⊤Γ #;Γ* ⟪ℋ⟫)))
+    (-ς↑ αₖ ⊤Γ ⟪ℋ⟫)))
 
 (define (mon-and/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ _) Σ)
@@ -1057,18 +1059,15 @@
           (app l $ ℒ (-W¹ p p) (list W-V) Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ ⟦ff⟧ ⊥ρ ⟦k⟧))]
          [(cons ⟦chk-field⟧ ⟦chk-field⟧s*)
           (⟦chk-field⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (fc-struct/c∷ l ℒ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))]
-    [(-x/C α)
-     (match-define (-W¹ C c) W-C)
-     (match-define (-W¹ V v) W-V)
-     (match-define (-x/C ⟪α⟫) C)
+    [(-x/C ⟪α⟫)
      (define x (match-let ([(-α.x/c x*) (-⟪α⟫->-α ⟪α⟫)])
                  (+x!/memo 'fc x*)))
      (define 𝐱 (-x x))
      (for/set: : (℘ -ς) ([C* (σ@ σ ⟪α⟫)])
-       (define W-C* (-W¹ C* c))
-       (define W-V* (-W¹ V 𝐱))
-       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'fc (list v)))
-       (define αₖ (-ℱ x l ℒ W-C* W-V*))
+       (define ⟪α⟫ᵥ (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫)))
+       (define αₖ (-ℱ x l ℒ C* ⟪α⟫ᵥ))
+       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack #f? instead?|# 'fc (list v)))
+       (σ⊕! σ ⟪α⟫ᵥ V)
        (σₖ⊔! σₖ αₖ κ)
        (-ς↑ αₖ ⊤Γ ⟪ℋ⟫))]
     [_
