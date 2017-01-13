@@ -98,7 +98,9 @@
 
       ;; Havoc vector's content before erasing the vector with unknowns
       ;; Guarded vectors are already erased
-      [(? -Vector/guard?) (done)]
+      [(? -Vector/guard?)
+       (error 'havoc "TODO: guarded vector")
+       (done)]
       [(-Vector αs)
        (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
          (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))

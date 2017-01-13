@@ -71,7 +71,7 @@
        [(-Vector^ α _) {seteq α}]
        [(-Ar V α _) (set-add (V->⟪α⟫s V) α)]
        [(-St* grd α _) (V->⟪α⟫s grd)]
-       [(-Vector/guard grd _) (V->⟪α⟫s grd)]
+       [(-Vector/guard grd ⟪α⟫ _) (set-add (V->⟪α⟫s grd) ⟪α⟫)]
        [(-Clo _ _ ρ _) (ρ->⟪α⟫s ρ)]
        [(-Case-Clo _ ρ _) (ρ->⟪α⟫s ρ)]
        [(-And/C _ α β) {seteq (⟪α⟫ℓ->⟪α⟫ α) (⟪α⟫ℓ->⟪α⟫ β)}]

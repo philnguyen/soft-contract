@@ -124,9 +124,11 @@
             -Fn
             
             ;; Proxied higher-order values
-            (-Ar [guard : #|ok, no rec|# -=>_] [v : -⟪α⟫] [ctx : -l³])
+            ;; Inlining the contract in the data definition is ok
+            ;; because there's no recursion
+            (-Ar [guard : -=>_] [v : -⟪α⟫] [ctx : -l³])
             (-St* [guard : -St/C] [val : -⟪α⟫] [ctx : -l³])
-            (-Vector/guard [guard : (U -Vector/C -Vectorof)] [ctx : -l³])
+            (-Vector/guard [guard : (U -Vector/C -Vectorof)] [val : -⟪α⟫] [ctx : -l³])
             
             -C)
 
@@ -265,6 +267,9 @@
             
             ;; for vector^ content
             (-α.vct [pos : -ℓ] [ctx : -⟪ℋ⟫])
+
+            ;; for wrapped vector
+            (-α.unvct [pos : -ℒ] [ctx : -⟪ℋ⟫])
 
             ;; for contract components
             (-α.and/c-l [pos : -ℓ] [ctx : -⟪ℋ⟫])
@@ -420,7 +425,7 @@
        ▹ ,(show-⟪α⟫ α))]
     [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
     [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]
-    [(-Vector/guard grd _)
+    [(-Vector/guard grd _ _)
      (match grd
        [(-Vector/C γs) `(vector/hetero ,@(map show-⟪α⟫ℓ γs))]
        [(-Vectorof γ) `(vector/homo ,(show-⟪α⟫ℓ γ))])]

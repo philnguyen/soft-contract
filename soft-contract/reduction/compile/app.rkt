@@ -900,7 +900,7 @@
      (for*/union : (℘ -ς) ([C (σ@ σ α)] [V* (σ@ σ αᵥ)])
         (mon l³ $ ℒ (-W¹ C c) (-W¹ V* #|TODO|# #f) Γ ⟪ℋ⟫ Σ
              (bgn∷ (list ⟦erase⟧) ⊥ρ ⟦k⟧)))]
-    [(-Vector/guard grd l³*)
+    [(-Vector/guard grd ⟪α⟫ l³*)
      (match grd
        [(-Vector/C ⟪α⟫ℓs)
         (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓs))
@@ -955,9 +955,10 @@
   (define ⟦blm-vct⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ))))
   (define ⟦blm-len⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list (format-symbol "vector-length ~a" n)) (list Vᵥ))))
   (define ⟦mk⟧
-    (match-let ([(-l³ l+ l- lo) l³])
+    (match-let ([(-l³ l+ l- lo) l³]
+                [⟪α⟫ (-α->-⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫))])
       (define l³* (-l³ 'checked l- lo))
-      (define V* (-Vector/guard (-Vector/C αℓs) l³*))
+      (define V* (-Vector/guard (-Vector/C αℓs) ⟪α⟫ l³*))
       (mk-rt-⟦e⟧ (-W (list V*) vᵥ))))
   (define ⟦rt-●⟧ (mk-rt-⟦e⟧ (-W¹ -●/V #f)))
   (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
