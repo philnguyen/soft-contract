@@ -125,7 +125,7 @@
             
             ;; Proxied higher-order values
             (-Ar [guard : #|ok, no rec|# -=>_] [v : -⟪α⟫] [ctx : -l³])
-            (-St* [id : -𝒾] [ctcs : (Listof (Option (Pairof -⟪α⟫ -ℓ)))] [val : -⟪α⟫] [ctx : -l³])
+            (-St* [guard : -St/C] [val : -⟪α⟫] [ctx : -l³])
             (-Vector/guard [guard : (U -Vector/C -Vectorof)] [ctx : -l³])
             
             -C)
@@ -344,12 +344,12 @@
   (syntax-rules () [(_ αₕ αₜ) (-St (== -𝒾-cons) (list αₕ αₜ))])
   (syntax-rules () [(_ αₕ αₜ) (-St -𝒾-cons      (list αₕ αₜ))]))
 (define-match-expander -Cons*
-  (syntax-rules () [(_ α) (-St* (== -𝒾-cons) _ α _)]))
+  (syntax-rules () [(_ α) (-St* (-St/C _ (== -𝒾-cons) _) α _)]))
 (define-match-expander -Box
   (syntax-rules () [(_ α) (-St (== -𝒾-box) (list α))])
   (syntax-rules () [(_ α) (-St -𝒾-box      (list α))]))
 (define-match-expander -Box*
-  (syntax-rules () [(_ α) (-St* (== -𝒾-box) _ α _)]))
+  (syntax-rules () [(_ α) (-St* (-St/C _ (== -𝒾-box) _) α _)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -414,7 +414,7 @@
        [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
        [_ `(,(show-V guard) ◃ ,(show-⟪α⟫ α))])]
     [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-⟪α⟫ αs))]
-    [(-St* 𝒾 γℓs α _)
+    [(-St* (-St/C _ 𝒾 γℓs) α _)
      `(,(format-symbol "~a/wrapped" (-𝒾-name 𝒾))
        ,@(for/list : (Listof Sexp) ([γℓ γℓs]) (if γℓ (show-⟪α⟫ℓ γℓ) '✓))
        ▹ ,(show-⟪α⟫ α))]

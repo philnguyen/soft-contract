@@ -200,8 +200,8 @@
     (cond
       [s
        (match V
-         [(or (-St si _) (-St* si _ _ _)) #:when si
-          (plausible-φs-s? φs (-?@ (-st-p si) s))]
+         [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
+          (plausible-φs-s? φs (-?@ (-st-p 𝒾) s))]
          [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?))
           (plausible-φs-s? φs (-?@ 'vector? s))]
          [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
@@ -277,15 +277,15 @@
        [(? -st-mk?) '✓]
        [(? -st-mut?) '✓]
        [(? -st-ac?) '✓]
-       [(-st-p si)
+       [(-st-p 𝒾)
         (match Vs
-          [(list (or (-St sj _) (-St* sj _ _ _)))
+          [(list (or (-St 𝒿 _) (-St* (-St/C _ 𝒿 _) _ _)))
            ;; TODO: no sub-struct for now. May change later.
-           (boolean->R (equal? si (assert sj)))]
+           (boolean->R (equal? 𝒾 (assert 𝒿)))]
           [(list (-● ps))
            (or (for/or : (U '✓ '✗ #f) ([p ps] #:when (-st-p? p))
-                 (match-define (-st-p s) p)
-                 (boolean->R (equal? s si)))
+                 (match-define (-st-p 𝒾*) p)
+                 (boolean->R (equal? 𝒾* 𝒾)))
                '?)]
           [_ '✗])]
        [(-Ar _ (app -⟪α⟫->-α (? -o? o)) _) (apply p∋Vs σ o Vs)]

@@ -119,7 +119,7 @@
     (match-define (list Wₓ) Wₓs)
     (match-define (-W¹ Vₓ _) Wₓ)
     (match Vₓ
-      [(or (-St (== 𝒾) _) (-St* (== 𝒾) _ _ _))
+      [(or (-St (== 𝒾) _) (-St* (-St/C _ (== 𝒾) _) _ _))
        (define ⟦chk-field⟧s : (Listof -⟦e⟧)
          (for/list ([W-C (in-list W-Cs)]
                     [i (in-naturals)] #:when (index? i))
@@ -387,21 +387,20 @@
                        (define $* (if mutable-field? $ ($+ $ sₐ V)))
                        (⟦k⟧ (-W (list V) sₐ) $* Γ ⟪ℋ⟫ Σ)]
                       [else ∅]))])]
-         [(-St* (== 𝒾) αℓs α l³)
+         [(-St* (-St/C _ (== 𝒾) αℓs) α l³)
           (match-define (-l³ _ _ lₒ) l³)
           (define Ac (-W¹ ac ac))
           (cond
-            ;; field is wrapped
-            [(list-ref αℓs i) =>
-             (λ ([αℓᵢ : (Pairof -⟪α⟫ -ℓ)])
-               (match-define (cons αᵢ ℓᵢ) αℓᵢ)
-               (define Cᵢs (σ@ σ αᵢ))
-               (define Vs  (σ@ σ α))
-               (define cᵢ (⟪α⟫->s αᵢ))
-               (for*/union : (℘ -ς) ([Cᵢ (in-set Cᵢs)] [V* (in-set Vs)])
-                 (⟦ac⟧ lₒ $ ℒ (list (-W¹ V* s)) Γ ⟪ℋ⟫ Σ
-                   (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
-            ;; field is unwrapped because it's immutable
+            ;; mutable field should be wrapped
+            [(struct-mutable? 𝒾 i)
+             (match-define (cons αᵢ ℓᵢ) (list-ref αℓs i))
+             (define Cᵢs (σ@ σ αᵢ))
+             (define Vs  (σ@ σ α))
+             (define cᵢ (⟪α⟫->s αᵢ))
+             (for*/union : (℘ -ς) ([Cᵢ (in-set Cᵢs)] [V* (in-set Vs)])
+               (⟦ac⟧ lₒ $ ℒ (list (-W¹ V* s)) Γ ⟪ℋ⟫ Σ
+                (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧)))]
+            ;; no need to check immutable field
             [else
              ;; TODO: could this loop forever due to cycle?
              (for/union : (℘ -ς) ([V* (in-set (σ@ σ α))])
@@ -439,7 +438,7 @@
           (define α (list-ref αs i))
           (σ⊕! σ α Vᵥ #:mutating? #t)
           (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
-         [(-St* (== 𝒾) γℓs α l³)
+         [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
           (match-define (-l³ l+ l- lo) l³)
           (define l³* (-l³ l- l+ lo))
           (match-define (cons γ ℓᵢ) (list-ref γℓs i))
@@ -772,7 +771,7 @@
       (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ W-V)))))
 
   (match V ; FIXME code dup
-    [(or (-St (== 𝒾) _) (-St* (== 𝒾) _ _ _))
+    [(or (-St (== 𝒾) _) (-St* (-St/C _ (== 𝒾) _) _ _))
      (cond
        [(null? ⟦field⟧s)
         (⟦k⟧ (-W (list V) v) $ Γ ⟪ℋ⟫ Σ)]
@@ -786,7 +785,7 @@
                      (cond [all-immutable? ⟦k⟧]
                            [else
                             (define α (-α->-⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫)))
-                            (wrap-st∷ 𝒾 αℓs α l³ ⟦k⟧)]))
+                            (wrap-st∷ C α l³ ⟦k⟧)]))
                    (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))])]
     [(-● _)
      (define ⟦chk⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ p p)) (list (mk-rt-⟦e⟧ W-V))))
@@ -806,7 +805,7 @@
               [all-immutable? ⟦k⟧]
               [else
                (define α (-α->-⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫)))
-               (wrap-st∷ 𝒾 αℓs α l³ ⟦k⟧)]))
+               (wrap-st∷ C α l³ ⟦k⟧)]))
           (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
            (if∷ lo ⟦reconstr⟧ ⟦blm⟧ ⊥ρ ⟦k⟧*)))])]
     [_ (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ ⟪ℋ⟫ Σ)]))
@@ -1129,23 +1128,13 @@
 
 (define/memo (neg∷ [l : -l] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧ (if∷ l ⟦ff⟧ ⟦tt⟧ ⊥ρ ⟦k⟧))
 
-(define/memo (wrap-st∷ [𝒾 : -𝒾]
-                       [⟪α⟫ℓs : (Listof (Pairof -⟪α⟫ -ℓ))]
+(define/memo (wrap-st∷ [C : -St/C]
                        [⟪α⟫ : -⟪α⟫]
                        [l³ : -l³]
                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (define ⟪α⟫ℓs* : (Listof (Option (Pairof -⟪α⟫ -ℓ)))
-    (for/list ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
-               [i (in-naturals)] #:when (index? i))
-      (and (struct-mutable? 𝒾 i) ⟪α⟫ℓ)))
-  (define V* (-St* 𝒾 ⟪α⟫ℓs* ⟪α⟫ l³))
-  (define ⟪α⟫s-casted #|FIXME TR|#
-    (cast
-     (for/list : (Listof -⟪α⟫) ([⟪α⟫ℓ ⟪α⟫ℓs*] #:when ⟪α⟫ℓ)
-       (car ⟪α⟫ℓ))
-     (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X) (℘ X)))))
+  (define V* (-St* C ⟪α⟫ l³))
   (define ⟪α⟫-casted #|FIXME TR|# (cast ⟪α⟫ (Rec X (U -V -W -W¹ -ρ -⟪α⟫ (Listof X) (℘ X)))))
-  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (⟪α⟫s-casted ⟪α⟫-casted)
+  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C ⟪α⟫-casted)
     (match-define (-W Vs s) A)
     (match-define (list V) Vs) ; only used internally, should be safe
     (σ⊕! (-Σ-σ Σ) ⟪α⟫ V)

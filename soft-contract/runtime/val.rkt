@@ -60,8 +60,8 @@
   (match V
     [(-Ar C α (-l³ l+ 'dummy lo))
      (-Ar C α (-l³ l+ l      lo))]
-    [(-St* s αs α (-l³ l+ 'dummy lo))
-     (-St* s αs α (-l³ l+ l      lo))]
+    [(-St* grd α (-l³ l+ 'dummy lo))
+     (-St* grd α (-l³ l+ l      lo))]
     [(-Vector/guard grd (-l³ l+ 'dummy lo))
      (-Vector/guard grd (-l³ l+ l      lo))]
     [_ V]))
@@ -85,7 +85,7 @@
   (define (check! V)
     (match V
       [(-St _ αs) (ormap check-⟪α⟫! αs)]
-      [(-St* _ _ α _) (check-⟪α⟫! α)]
+      [(-St* _ α _) (check-⟪α⟫! α)]
       [(-Vector αs) (ormap check-⟪α⟫! αs)]
       [(-Vector^ α _) (check-⟪α⟫! α)]
       [(-Ar grd α _) (or (check-⟪α⟫! α) (check! grd))]

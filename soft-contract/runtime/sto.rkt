@@ -70,7 +70,7 @@
        [(-Vector αs) (list->seteq αs)]
        [(-Vector^ α _) {seteq α}]
        [(-Ar V α _) (set-add (V->⟪α⟫s V) α)]
-       [(-St* _ γℓs α _) (set-add (for/seteq: : (℘ -⟪α⟫) ([γℓ γℓs] #:when γℓ) (car γℓ)) α)]
+       [(-St* grd α _) (V->⟪α⟫s grd)]
        [(-Vector/guard grd _) (V->⟪α⟫s grd)]
        [(-Clo _ _ ρ _) (ρ->⟪α⟫s ρ)]
        [(-Case-Clo _ ρ _) (ρ->⟪α⟫s ρ)]

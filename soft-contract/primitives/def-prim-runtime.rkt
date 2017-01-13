@@ -28,7 +28,7 @@
        (for/set: : (℘ -W¹) ([V* (in-set (σ@ σ (list-ref αs i)))]
                             #:when (plausible-V-s? φs V* s*))
          (-W¹ V* s*))]
-      [(-St* (== 𝒾) _ α _)
+      [(-St* (-St/C _ (== 𝒾) _) α _)
        (cond [(seen-has? α) ∅]
              [else
               (seen-add! α)

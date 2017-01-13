@@ -90,7 +90,7 @@
          [_ (done)])]
 
       ;; If it's a struct, havoc all publically accessible fields
-      [(or (-St 𝒾 _) (-St* 𝒾 _ _ _)) #:when 𝒾
+      [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
        (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
          (define Acc (-W¹ acc acc))
          (app 'havoc $∅ (ℒ-with-mon ℒ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ ⟪ℋ⟫ Σ
