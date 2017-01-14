@@ -934,56 +934,53 @@
           (if∷ lo ⟦rt⟧ ⟦er⟧ ⊥ρ ⟦k⟧))]
     [_ (⟦k⟧ (-blm l+ lo (list 'vector?) (list Vᵥ)) $ Γ ⟪ℋ⟫ Σ)]))
 
-(define (mon-vector/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (match-define (-Σ σ _ _) Σ)
+(define (mon-vector/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (match-define (-Σ σ _ M) Σ)
   (match-define (-l³ l+ _ lo) l³)
-  (match-define (-W¹ Vᵥ vᵥ) W-V)
-  (match-define (-W¹ C  c ) W-C)
-  (match-define (-Vector/C αℓs) C)
-  ;(printf "mon-vector/c ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
-  (define-values (αs ℓs) ((inst unzip -⟪α⟫ -ℓ) αℓs))
-  (define n (length αs))
-  (define N (let ([b (-b n)]) (-W¹ b b)))
-  (define cs
-    (let ([ss (-app-split c 'vector/c n)])
-      (for/list : (Listof -s) ([s ss] [α : -⟪α⟫ αs])
-        (or s (⟪α⟫->s α)))))
-  (define ⟦chk-vct⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ -vector?/W) (list (mk-rt-⟦e⟧ W-V))))
-  (define ⟦chk-len⟧
-    (let ([⟦len⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ -vector-length/W) (list (mk-rt-⟦e⟧ W-V)))])
-      (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ -=/W) (list (mk-rt-⟦e⟧ N) ⟦len⟧))))
-  (define ⟦blm-vct⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ))))
-  (define ⟦blm-len⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list (format-symbol "vector-length ~a" n)) (list Vᵥ))))
-  (define ⟦mk⟧
-    (match-let ([(-l³ l+ l- lo) l³]
-                [⟪α⟫ (-α->-⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫))])
-      (define l³* (-l³ 'checked l- lo))
-      (define V* (-Vector/guard (-Vector/C αℓs) ⟪α⟫ l³*))
-      (mk-rt-⟦e⟧ (-W (list V*) vᵥ))))
-  (define ⟦rt-●⟧ (mk-rt-⟦e⟧ (-W¹ -●/V #f)))
-  (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
-     (define ⟦hv-fld⟧s : (Listof -⟦e⟧)
-       (for/list ([C* (in-list Cs)]
-                  [c* (in-list cs)]
-                  [ℓᵢ : -ℓ (in-list ℓs)]
-                  [i (in-naturals)] #:when (index? i))
-         (define W-C* (-W¹ C* c*))
-         (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-         (define ⟦ref⟧
-           (mk-app-⟦e⟧ lo (ℒ-with-mon ℒ ℓᵢ)
-                       (mk-rt-⟦e⟧ -vector-ref/W)
-                       (list (mk-rt-⟦e⟧ W-V)
-                             (mk-rt-⟦e⟧ Wᵢ))))
-         (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ W-C*) ⟦ref⟧))
-         (mk-app-⟦e⟧ 'havoc ℒ ⟦rt-●⟧ (list ⟦mon⟧))))
-     #;(define ⟦erase⟧
-       (match Vᵥ
-         [(-Vector αs) (mk-erase-⟦e⟧ αs)]
-         [(-Vector^ α n) (mk-erase-⟦e⟧ (list α))]
-         [_ ⟦void⟧]))
-     (define ⟦wrp⟧ (mk-begin-⟦e⟧ (append ⟦hv-fld⟧s (list #;⟦erase⟧ ⟦mk⟧))))
-     (⟦chk-vct⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-      (if∷ lo (mk-if-⟦e⟧ lo ⟦chk-len⟧ ⟦wrp⟧ ⟦blm-len⟧) ⟦blm-vct⟧ ⊥ρ ⟦k⟧))))
+  (match-define (-W¹ (and Vₚ (-Vector/C ⟪α⟫ℓ)) sₚ) Wₚ)
+  (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+  (define n (length ⟪α⟫ℓ))
+  
+  (: blm : -V -V → -Γ → (℘ -ς))
+  (define ((blm C V) Γ)
+    (define blm (-blm l+ lo (list Vₚ) (list Vᵥ)))
+    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+
+  (: chk-flds : -Γ → (℘ -ς))
+  (define (chk-flds Γ)
+    (define cs
+      (for/list : (Listof -s) ([s (in-list (-app-split sₚ 'vector/c n))]
+                               [⟪α⟫ : -⟪α⟫ (in-list ⟪α⟫s)])
+        (or s (⟪α⟫->s ⟪α⟫))))
+
+    (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓ))
+
+    (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ ⟪α⟫s))])
+       (define ⟦mon-fld⟧s
+         (for/list : (Listof -⟦e⟧) ([Cᵢ (in-list Cs)]
+                                    [cᵢ (in-list cs)]
+                                    [ℓᵢ (in-list ℓs)]
+                                    [i (in-naturals)] #:when (index? i))
+           (define Wᵢ (let ([bᵢ (-b i)]) (-W¹ bᵢ bᵢ)))
+           (define Wₚᵢ (-W¹ Cᵢ cᵢ))
+           (define ⟦ref⟧
+             (mk-app-⟦e⟧ lo ℒ
+                         (mk-rt-⟦e⟧ -vector-ref/W)
+                         (list (mk-rt-⟦e⟧ Wᵥ) (mk-rt-⟦e⟧ Wᵢ))))
+           (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ Wₚᵢ) ⟦ref⟧)))
+       (error "TODO")))
+
+  (: chk-len : -Γ → (℘ -ς))
+  (define (chk-len Γ)
+    (define Wₙ (vec-len σ Γ Wᵥ))
+    (define N (let ([bₙ (-b n)]) (-W¹ bₙ bₙ)))
+    (with-MΓ⊢oW (M σ Γ '= Wₙ N)
+      #:on-t chk-flds
+      #:on-f (blm (format-symbol "vector-length/c ~a" n) Vᵥ)))
+
+  (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
+    #:on-t chk-len
+    #:on-f (blm 'vector? Vᵥ)))
 
 (define (mon-flat/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   ;(printf "mon-flat/c: ~a ~a ~a~n" ℓ (show-W¹ W-C) (show-W¹ W-V))
