@@ -72,30 +72,29 @@
        (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
          (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
     [(-Vector^ α n)
-     #;(begin
-         (printf "vector-ref: ~a ~a~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ))
-         (printf "  - result: ~a~n" (set-map (σ@ σ α) show-V)))
-     (for*/union : (℘ -ς) ([V (σ@ σ α)])
-                 (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
-    [(-Vector/guard grd ⟪α⟫ l³)
+     (for/union : (℘ -ς) ([V (σ@ σ α)])
+        (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
+    [(-Vector/guard grd ⟪α⟫ᵥ l³)
      (match-define (-l³ _ _ lo) l³)
-     (error 'vector-ref "TODO")
      (match grd
        [(-Vector/C ⟪α⟫ℓs)
         (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                              [i : Natural (in-naturals)]
                              #:when (plausible-index? M σ Γ Wᵢ i))
-          (match-define (cons ⟪α⟫ ℓᵢ) ⟪α⟫ℓ)
+          (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
           (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-          (define c (⟪α⟫->s ⟪α⟫))
-          (for/union : (℘ -ς) ([C (in-set (σ@ σ ⟪α⟫))])
-                     (mon l³ $ (ℒ-with-mon ℒ ℓᵢ) (-W¹ C c) (-W¹ -●/V sₐ) Γ* ⟪ℋ⟫ Σ ⟦k⟧)))]
+          (define cᵢ (⟪α⟫->s ⟪α⟫ᵢ))
+          (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
+                                [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+            (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ)) Γ* ⟪ℋ⟫ Σ
+                         (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
-        (match-define (cons ⟪α⟫ ℓ*) ⟪α⟫ℓ)
-        (define c (⟪α⟫->s ⟪α⟫))
-        (for/union : (℘ -ς) ([C (σ@ σ ⟪α⟫)])
-                   (error 'vector-ref "TODO")
-                   (mon l³ $ (ℒ-with-mon ℒ ℓ*) (-W¹ C c) (-W¹ -●/V sₐ) Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+        (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
+        (define c* (⟪α⟫->s ⟪α⟫*))
+        (for/union : (℘ -ς) ([C* (in-set (σ@ σ ⟪α⟫*))]
+                             [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+          (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ)) Γ ⟪ℋ⟫ Σ
+                       (mon.c∷ l³ (ℒ-with-mon ℒ ℓ*) (-W¹ C* c*) ⟦k⟧)))])]
     [_
      (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
@@ -111,38 +110,38 @@
      (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
-                (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-                (σ⊕! σ ⟪α⟫ Vᵤ #:mutating? #t)
-                (⟦k⟧ -Void/W $ Γ* ⟪ℋ⟫ Σ))]
+       (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+       (σ⊕! σ ⟪α⟫ Vᵤ #:mutating? #t)
+       (⟦k⟧ -Void/W $ Γ* ⟪ℋ⟫ Σ))]
     [(-Vector^ α n)
      (σ⊕! σ α Vᵤ #:mutating? #t)
-     #;(begin
-         (printf "vector-set!: ~a ~a ~a~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ) (show-W¹ Wᵤ))
-         (printf "  - after: ~a~n" (set-map (σ@ σ α) show-V)))
      (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
-    [(-Vector/guard grd ⟪α⟫ l³)
+    [(-Vector/guard grd ⟪α⟫ᵥ l³)
      (match-define (-l³ l+ l- lo) l³)
      (define l³* (-l³ l- l+ lo))
-     (error 'vector-set! "TODO")
      (match grd
        [(-Vector/C ⟪α⟫ℓs)
         (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                              [i : Natural (in-naturals)]
                              #:when (plausible-index? M σ Γ Wᵢ i))
           (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-          (match-define (cons ⟪α⟫ ℓᵢ) ⟪α⟫ℓ)
-          (define c (⟪α⟫->s ⟪α⟫))
-          (for/union : (℘ -ς) ([C (in-set (σ@ σ ⟪α⟫))])
-            (define W-c (-W¹ C c))
+          (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
+          (define cᵢ (⟪α⟫->s ⟪α⟫ᵢ))
+          (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
+                                [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+            (define W-c (-W¹ Cᵢ cᵢ))
+            (define Wᵥ* (-W¹ Vᵥ* sᵥ))
             (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
-            (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (hv∷ (ℒ-with-mon ℒ ℓᵢ) ⟦k⟧))))]
+            (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ lo ℒ ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
-        (match-define (cons ⟪α⟫ ℓ*) ⟪α⟫ℓ)
-        (define c (⟪α⟫->s ⟪α⟫))
-        (for/union : (℘ -ς) ([C (σ@ σ ⟪α⟫)])
-          (define W-c (-W¹ C c))
+        (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
+        (define c* (⟪α⟫->s ⟪α⟫*))
+        (for*/union : (℘ -ς) ([C*  (in-set (σ@ σ ⟪α⟫*))]
+                              [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+          (define W-c (-W¹ C* c*))
+          (define Wᵥ* (-W¹ Vᵥ* sᵥ))
           (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
-          (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (hv∷ (ℒ-with-mon ℒ ℓ*) ⟦k⟧)))])]
+          (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ lo ℒ ⟦k⟧)))])]
     [_
      (if (behavioral? σ (-W¹-V Wᵤ))
          (havoc ℒ Vᵤ Γ ⟪ℋ⟫ Σ ⟦k⟧)

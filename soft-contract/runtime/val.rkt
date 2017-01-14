@@ -29,7 +29,7 @@
 (define -vector?/W (-W¹ 'vector? 'vector?))
 (define -procedure?/W (-W¹ 'procedure? 'procedure?))
 (define -vector-ref/W (-W¹ 'vector-ref 'vector-ref))
-(define -vector-set/W (-W¹ 'vector-set! 'vector-set!))
+(define -vector-set!/W (-W¹ 'vector-set! 'vector-set!))
 (define -arity-includes?/W (-W¹ 'arity-includes? 'arity-includes?))
 (define -=/W (-W¹ '= '=))
 (define -contract-first-order-passes?/W (-W¹ 'contract-first-order-passes? 'contract-first-order-passes?))

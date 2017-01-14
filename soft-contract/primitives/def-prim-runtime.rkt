@@ -230,3 +230,20 @@
            (and ?bs (-b? s) (cons (-b-unboxed s) ?bs)))
          '()
          ss))
+
+(: vec-len : -σ -Γ -W¹ → -W¹)
+(define (vec-len σ Γ W)
+  (match-define (-W¹ V s) W)
+  (define ?n : (Option Natural)
+    (match V
+      [(-Vector ⟪α⟫s) (length ⟪α⟫s)]
+      [(-Vector^ _ V)
+       (match V
+         [(-b (? exact-nonnegative-integer? n)) n]
+         [_ #f])]
+      [(-Vector/guard grd _ _)
+       (match grd
+         [(-Vector/C ⟪α⟫s) (length ⟪α⟫s)]
+         [_ #f])]))
+  (define Vₙ (if ?n (-b ?n) -●/V))
+  (-W¹ Vₙ (-?@ 'vector-length s)))
