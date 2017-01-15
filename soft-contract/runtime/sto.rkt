@@ -70,7 +70,7 @@
        [(-Vector αs) (list->seteq αs)]
        [(-Vector^ α _) {seteq α}]
        [(-Ar V α _) (set-add (V->⟪α⟫s V) α)]
-       [(-St* grd α _) (V->⟪α⟫s grd)]
+       [(-St* grd α _) (set-add (V->⟪α⟫s grd) α)]
        [(-Vector/guard grd ⟪α⟫ _) (set-add (V->⟪α⟫s grd) ⟪α⟫)]
        [(-Clo _ _ ρ _) (ρ->⟪α⟫s ρ)]
        [(-Case-Clo _ ρ _) (ρ->⟪α⟫s ρ)]
@@ -82,7 +82,7 @@
        [(-Vectorof α) {seteq (⟪α⟫ℓ->⟪α⟫ α)}]
        [(-Vector/C αs) (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs))]
        [(-=> αs α _) (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ α))]
-       [(-=>i αs _ _) (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs))]
+       [(-=>i αs (list D _ _) _) (∪ (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (V->⟪α⟫s D))]
        [(-Case-> clauses _)
         (for/unioneq : (℘ -⟪α⟫) ([clause clauses])
           (match-define (cons αs α) clause)
