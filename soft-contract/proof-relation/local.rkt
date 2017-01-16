@@ -307,6 +307,7 @@
                                inexact-real?
                                real?
                                number?
+                               boolean?
                                path-string?
                                string?
                                char?
