@@ -16,7 +16,9 @@
          "havoc.rkt"
          )
 
-(define-type Ctx (List (HashTable -⟪α⟫ (℘ -V)) (HashTable -αₖ (℘ -κ))))
+(define-type Ctx (List (HashTable -⟪α⟫ (℘ -V))
+                       (HashTable -αₖ (℘ -κ))
+                       (HashTable -αₖ (℘ -ΓA))))
 
 (: run : -⟦e⟧ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧)
@@ -74,11 +76,13 @@
         (let ([ς↦vsn : (HashTable -ς Ctx) (make-hash)]
               [αs-all : (℘ -⟪α⟫) root₀])
           ;; Compute active addresses for each state in the frontier
-          (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ _) Σ)
+          (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ mM) Σ)
           (for ([ς front])
-            (define vsn-σₖ (m↓ mσₖ (ς->αₖs ς mσₖ)))
+            (define αₖs (ς->αₖs ς mσₖ))
+            (define vsn-σₖ (m↓ mσₖ αₖs))
             (define vsn-σ  (hash-copy/spanning* mσ (∪ (ς->⟪α⟫s ς mσₖ) root₀) V->⟪α⟫s))
-            (hash-set! ς↦vsn ς (list vsn-σ vsn-σₖ))
+            (define vsn-M  (m↓ mM αₖs))
+            (hash-set! ς↦vsn ς (list vsn-σ vsn-σₖ vsn-M))
             (set! αs-all
                   (for/fold ([acc : (℘ -⟪α⟫) αs-all])
                             ([α : -⟪α⟫ (in-hash-keys vsn-σ)] #:unless (∋ root₀ α))
@@ -160,7 +164,7 @@
 (define (↝↓! ςs Σ)
   
   ;; To mitigate duplicate returns
-  (define-type Key (List -κ (U -blm (Pairof (Listof -V) Boolean))))
+  (define-type Key (List -κ -αₖ (U -blm (Pairof (Listof -V) Boolean))))
   (define returned : (HashTable Key #t) (make-hash))
   (match-define (-Σ σ σₖ M) Σ)
 
@@ -175,7 +179,7 @@
       ;(set! total (+ 1 total))
       (match A
         [(-W Vs sₐ)
-         (define key : Key (list κ (cons Vs (and sₐ #t))))
+         (define key : Key (list κ αₖ (cons Vs (and sₐ #t))))
          (cond
            [(hash-has-key? returned key)
             ;(set! hits (+ 1 hits))
@@ -253,7 +257,7 @@
               [else ∅])])]
         [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
          (match-define (-blm l+ lo _ _) blm)
-         (define key (list κ blm))
+         (define key (list κ αₖ blm))
          (cond
            [(hash-has-key? returned key)
             ;(set! hits (+ 1 hits))
