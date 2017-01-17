@@ -15,27 +15,21 @@
 ;; Restrict map to given domain
 (define (m↓ m xs)
   (cond
-    [(and (immutable? m) (hash-eq? m))
-     (for/hasheq : (HashTable X Y) ([(k v) m] #:when (∋ xs k))
-       (values k v))]
     [(immutable? m)
-     (for/hash : (HashTable X Y) ([(k v) m] #:when (∋ xs k))
-       (values k v))]
-    [else ; mutable
-     (define m* : (HashTable X Y) (if (hash-eq? m) (make-hasheq) (make-hash)))
+     (for/fold ([m* : (HashTable X Y) (hash-copy-clear m)])
+               ([(k v) (in-hash m)] #:when (∋ xs k))
+       (hash-set m* k v))]
+    [else
+     (define m* : (HashTable X Y) (hash-copy-clear m))
      (for ([(k v) (in-hash m)] #:when (∋ xs k))
        (hash-set! m* k v))
      m*]))
 
 (: map/hash (∀ (X Y Z) (Y → Z) (HashTable X Y) → (HashTable X Z)))
 (define (map/hash f m)
-  (cond
-    [(hash-eq? m)
-     (for/hasheq : (HashTable X Z) ([(x y) m])
-       (values x (f y)))]
-    [else
-     (for/hash : (HashTable X Z) ([(x y) m])
-       (values x (f y)))]))
+  (for/fold ([m* : (HashTable X Z) (if (hash-eq? m) (hasheq) (hash))])
+            ([(x y) (in-hash m)])
+    (hash-set m* x (f y))))
 
 (: span (∀ (X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → (℘ X)))
 (define (span m root f)
@@ -52,11 +46,7 @@
 
 (: span* (∀ (X Y) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → (℘ X)))
 (define (span* m root f)
-  (define f* : ((℘ Y) → (℘ X))
-    (if (hash-eq? m)
-        (λ (ys) (for/unioneq : (℘ X) ([y ys]) (f y)))
-        (λ (ys) (for/union   : (℘ X) ([y ys]) (f y)))))
-  (span m root f*))
+  (span m root (mk-set-spanner f #:eq? (hash-eq? m))))
 
 (: hash-copy/spanning (∀ (X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → (HashTable X Y)))
 (define (hash-copy/spanning m xs y->xs)
@@ -78,11 +68,7 @@
 (: hash-copy/spanning*
    (∀ (X Y) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → (HashTable X (℘ Y))))
 (define (hash-copy/spanning* m xs y->xs)
-  (define f : ((℘ Y) → (℘ X))
-    (if (hash-eq? m)
-        (λ (ys) (for/unioneq : (℘ X) ([y ys]) (y->xs y)))
-        (λ (ys) (for/union : (℘ X) ([y ys]) (y->xs y)))))
-  (hash-copy/spanning m xs f))
+  (hash-copy/spanning m xs (mk-set-spanner y->xs #:eq? (hash-eq? m))))
 
 (: hash-set-once! (∀ (X Y) (HashTable X Y) X Y → Void))
 (define (hash-set-once! m x v)
@@ -92,8 +78,7 @@
 
 (: map-has? (∀ (X Y) (HashTable X (℘ Y)) X Y → Boolean))
 (define (map-has? m x y)
-  (cond [(hash-ref m x #f) =>
-         (λ ([ys : (℘ Y)]) (∋ ys y))]
+  (cond [(hash-ref m x #f) => (λ ([ys : (℘ Y)]) (∋ ys y))]
         [else #f]))
 
 (: map-add! (∀ (X Y) (HashTable X (℘ Y)) X Y #:eq? Boolean → Void))
@@ -101,20 +86,27 @@
   (define mk-∅ (if use-eq? →∅eq →∅))
   (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk-∅))
 
+(: map-equal?/spanning-root
+   (∀ (X Y) (HashTable X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → Boolean))
+;; Check if 2 hash-tables are equal up to the domain spanned by given set
+(define (map-equal?/spanning-root m₁ m₂ xs span)
+  (define-set seen : X #:eq? (hash-eq? m₁) #:as-mutable-hash? #t)
+  (let loop : Boolean ([xs : (℘ X) xs])
+    (for/and : Boolean ([x (in-set xs)])
+      (cond [(seen-has? x) #t]
+            [else
+             (seen-add! x)
+             (define y₁ (hash-ref m₁ x))
+             (define y₂ (hash-ref m₂ x))
+             (and (equal? y₁ y₂) (loop (span y₁)))]))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; TMP hack for profiling
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(: map-equal?/spanning-root*
+   (∀ (X Y) (HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → Boolean))
+;; CHeck if 2 multimaps are equal up to the domain spanned by given set
+(define (map-equal?/spanning-root* m₁ m₂ xs span₁)
+  (map-equal?/spanning-root m₁ m₂ xs (mk-set-spanner span₁ #:eq? (hash-eq? m₁))))
 
-(define data : (Listof (Pairof Any Integer)) '())
-(define (accum-data! [d : Any] [n : Integer])
-  (set! data (cons (cons d n) data)))
-
-(require racket/list)
-(define (extract-best) : (Listof (Pairof Any Integer))
-  (define data* : (Listof (Pairof Any Integer))
-    (sort
-     data
-     (λ ([x₁ : (Pairof Any Integer)] [x₂ : (Pairof Any Integer)])
-       (> (cdr x₁) (cdr x₂)))))
-  (take data* (min (length data*) 20)))
+(: mk-set-spanner (∀ (X Y) ([(X → (℘ Y))] [#:eq? Boolean] . ->* . ((℘ X) → (℘ Y)))))
+(define (mk-set-spanner f #:eq? [use-eq? #f])
+  (cond [use-eq? (λ (xs) (for/unioneq : (℘ Y) ([x (in-set xs)]) (f x)))]
+        [else    (λ (xs) (for/union   : (℘ Y) ([x (in-set xs)]) (f x)))]))
