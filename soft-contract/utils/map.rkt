@@ -87,24 +87,20 @@
   (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk-∅))
 
 (: map-equal?/spanning-root
-   (∀ (X Y) (HashTable X Y) (HashTable X Y) (℘ X) (Y → (℘ X)) → Boolean))
-;; Check if 2 hash-tables are equal up to the domain spanned by given set
+   (∀ (X Y) (HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → Boolean))
+;; CHeck if 2 multimaps are equal up to the domain spanned by given set
 (define (map-equal?/spanning-root m₁ m₂ xs span)
   (define-set seen : X #:eq? (hash-eq? m₁) #:as-mutable-hash? #t)
   (let loop : Boolean ([xs : (℘ X) xs])
-    (for/and : Boolean ([x (in-set xs)])
-      (cond [(seen-has? x) #t]
-            [else
-             (seen-add! x)
-             (define y₁ (hash-ref m₁ x))
-             (define y₂ (hash-ref m₂ x))
-             (and (equal? y₁ y₂) (loop (span y₁)))]))))
-
-(: map-equal?/spanning-root*
-   (∀ (X Y) (HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → Boolean))
-;; CHeck if 2 multimaps are equal up to the domain spanned by given set
-(define (map-equal?/spanning-root* m₁ m₂ xs span₁)
-  (map-equal?/spanning-root m₁ m₂ xs (mk-set-spanner span₁ #:eq? (hash-eq? m₁))))
+       (for/and : Boolean ([x (in-set xs)])
+         (cond [(seen-has? x) #t]
+               [else
+                (seen-add! x)
+                (define ys₁ (hash-ref m₁ x →∅))
+                (define ys₂ (hash-ref m₂ x →∅))
+                (and (equal? ys₁ ys₂)
+                     (for/and : Boolean ([y (in-set ys₁)])
+                       (loop (span y))))]))))
 
 (: mk-set-spanner (∀ (X Y) ([(X → (℘ Y))] [#:eq? Boolean] . ->* . ((℘ X) → (℘ Y)))))
 (define (mk-set-spanner f #:eq? [use-eq? #f])

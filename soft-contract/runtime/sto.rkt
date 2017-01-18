@@ -8,8 +8,9 @@
          "../ast/definition.rkt"
          "definition.rkt")
 
-(: σ@ : -σ -⟪α⟫ → (℘ -V))
-(define (σ@ σ ⟪α⟫)
+(: σ@ : (U -Σ -σ) -⟪α⟫ → (℘ -V))
+(define (σ@ m ⟪α⟫)
+  (define σ (if (-Σ? m) (-Σ-σ m) m))
   (with-debugging/off
     ((Vs)
      (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" (-⟪α⟫->-α ⟪α⟫)))))
@@ -26,17 +27,25 @@
       (when (> ⟪α⟫ 3000)
         (error "DONE")))))
 
-(: σ-old? : -σ -⟪α⟫ → Boolean)
-(define (σ-old? σ ⟪α⟫)
-  (not (hash-has-key? (-σ-modified σ) ⟪α⟫)))
+(: σ-old? : (U -Σ -σ) -⟪α⟫ → Boolean)
+(define (σ-old? m ⟪α⟫)
+  (not (hash-has-key? (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫)))
 
-(: σ-remove! : -σ -⟪α⟫ -V → Void)
-(define (σ-remove! σ ⟪α⟫ V)
-  (hash-update! (-σ-m σ) ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
+(: σ-remove : -σ -⟪α⟫ -V → -σ)
+(define (σ-remove σ ⟪α⟫ V)
+  (match-define (-σ m crds mods) σ)
+  (define m* (hash-update m ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
+  (-σ m* crds mods))
 
-(: σ@/list : -σ (Listof -⟪α⟫) → (℘ (Listof -V)))
+(: σ-remove! : -Σ -⟪α⟫ -V → Void)
+(define (σ-remove! Σ ⟪α⟫ V)
+  (define σ (-Σ-σ Σ))
+  (set--Σ-σ! Σ (σ-remove σ ⟪α⟫ V)))
+
+(: σ@/list : (U -Σ -σ) (Listof -⟪α⟫) → (℘ (Listof -V)))
 ;; Look up store at addresses. Return all possible combinations
-(define (σ@/list σ ⟪α⟫s)
+(define (σ@/list m ⟪α⟫s)
+  (define σ (if (-Σ? m) (-Σ-σ m) m))
   (with-debugging/off
     ((ans)
      (let loop : (℘ (Listof -V)) ([⟪α⟫s : (Listof -⟪α⟫) ⟪α⟫s])
@@ -50,10 +59,10 @@
     (when (> (set-count ans) 1)
       (printf "σ@/list: ~a -> ~a~n" (map show-⟪α⟫ ⟪α⟫s) (set-count ans)))))
 
-(: σ@¹ : -σ -⟪α⟫ → -V)
+(: σ@¹ : (U -Σ -σ) -⟪α⟫ → -V)
 ;; Look up store, asserting that exactly 1 value resides there
-(define (σ@¹ σ ⟪α⟫)
-  (define Vs (σ@ σ ⟪α⟫))
+(define (σ@¹ m ⟪α⟫)
+  (define Vs (σ@ m ⟪α⟫))
   (assert (= 1 (set-count Vs)))
   (set-first Vs))
 

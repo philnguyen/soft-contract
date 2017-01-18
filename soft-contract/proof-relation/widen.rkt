@@ -23,14 +23,19 @@
       (φs+ φs s)))
   (-Γ φs* as ts))
 
-(: σ⊕! ([-σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
-(define (σ⊕! σ α V #:mutating? [mutating? #f])
+(: σ⊕! ([-Σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
+(define (σ⊕! Σ α V #:mutating? [mutating? #f])
+  (match-define (-Σ σ _ _) Σ)
+  (set--Σ-σ! Σ (σ⊕ σ α V mutating?)))
+
+(: σ⊕ : -σ -⟪α⟫ -V Boolean → -σ)
+(define (σ⊕ σ α V mutating?)
   (match-define (-σ m mods crds) σ)
   (begin ; just for debugging
     (define Vs₀ (hash-ref m α →∅))
     (define modified?₀ (hash-has-key? mods α))
     (define crd₀ (hash-ref crds α (λ () 0))))
-  (define Vs*
+  (define-values (Vs* crds*)
     (cond
       ;; If address only stands for 1 value and this is the first update, do strong update.
       ;; This gives some precision for programs that initialize `(box #f)`
@@ -38,23 +43,22 @@
       [(and mutating?
             (not (hash-has-key? mods α))
             (not (equal? 'N (hash-ref crds α (λ () 0)))))
-       (hash-set! crds α 1)
-       {set V}]
+       (values {set V} (hash-set crds α 1))]
       [else
        (define Vs (hash-ref m α →∅))
-       (match (-⟪α⟫->-α α)
-         [(? -𝒾?) ; can't bind top-level from 2 places
-          (hash-set! crds α
-                     (case crd₀
-                       [(0) 1]
-                       [(1) 1]
-                       [(N) 'N]))]
-         [_
-          (hash-update! crds α cardinality+ (λ () 0))])
-       (Vs⊕ σ Vs V)]))
-  (hash-set! m α Vs*)
-  (when mutating?
-    (hash-set! mods α #t))
+       (define crds*
+         (match (-⟪α⟫->-α α)
+           [(? -𝒾?) ; can't bind top-level from 2 places
+            (hash-set crds α
+                      (case crd₀
+                        [(0) 1]
+                        [(1) 1]
+                        [(N) 'N]))]
+           [_ (hash-update crds α cardinality+ (λ () 0))]))
+       (values (Vs⊕ σ Vs V) crds*)]))
+  (define m* (hash-set m α Vs*))
+  (define mods* (if mutating? (hash-set mods α #t) mods))
+  (-σ m* mods* crds*)
   #;(when (match? (-⟪α⟫->-α α) (-𝒾 'slatex::*include-onlys* _))
     (printf "~a : ~a ⊕ ~a -> ~a~n"
             (show-⟪α⟫ α)
@@ -66,15 +70,15 @@
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)
-    [(_ σ) (void)]
-    [(_ σ [α ↦ V] p ...)
+    [(_ Σ) (void)]
+    [(_ Σ [α ↦ V] p ...)
      (begin ; FIXME the annotation is to work around TR bug
-       (σ⊕!  σ (ann α -⟪α⟫) V #:mutating? #f)
-       (σ⊕*! σ p ...))]
-    [(_ σ [α ↦ V #:mutating? b?] p ...)
+       (σ⊕!  Σ (ann α -⟪α⟫) V #:mutating? #f)
+       (σ⊕*! Σ p ...))]
+    [(_ Σ [α ↦ V #:mutating? b?] p ...)
      (begin ; FIXME the annotation is to work around TR bug
-       (σ⊕!  σ (ann α -⟪α⟫) V b?)
-       (σ⊕*! σ p ...))]))
+       (σ⊕!  Σ (ann α -⟪α⟫) V b?)
+       (σ⊕*! Σ p ...))]))
 
 (: V⊑ : -σ -V -V → Boolean)
 ;; Check if `V₂` definitely subsumes `V₁`

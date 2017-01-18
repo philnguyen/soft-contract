@@ -24,7 +24,7 @@
 (define (run ⟦e⟧)
   (define seen : (HashTable -ς Ctx) (make-hash))
   (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ))
-  (define Σ (-Σ (⊥σ) (⊥σₖ αₖ₀) (⊥M)))
+  (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥M))
   (define root₀ ; all addresses to top-level definitions are conservatively active
     (for/fold ([root₀ : (℘ -⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
       (set-add (set-add root₀ (-α->-⟪α⟫ 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
@@ -71,36 +71,40 @@
         
         (printf "~n")
         (set! iter (+ 1 iter)))
-      
+
       (define next
-        (let ([ς↦vsn : (HashTable -ς Ctx) (make-hash)]
-              [αs-all : (℘ -⟪α⟫) root₀])
-          ;; Compute active addresses for each state in the frontier
-          (match-define (-Σ (and σ (-σ mσ _ _)) mσₖ mM) Σ)
-          (for ([ς front])
-            (define αₖs (ς->αₖs ς mσₖ))
-            (define vsn-σₖ (m↓ mσₖ αₖs))
-            (define vsn-σ  (hash-copy/spanning* mσ (∪ (ς->⟪α⟫s ς mσₖ) root₀) V->⟪α⟫s))
-            (define vsn-M  (m↓ mM αₖs))
-            (hash-set! ς↦vsn ς (list vsn-σ vsn-σₖ vsn-M))
-            (set! αs-all
-                  (for/fold ([acc : (℘ -⟪α⟫) αs-all])
-                            ([α : -⟪α⟫ (in-hash-keys vsn-σ)] #:unless (∋ root₀ α))
-                    (set-add acc α))))
-          (soft-gc! σ αs-all)
+        (match-let ([(-Σ (and σ (-σ mσ _ _)) mσₖ mM) Σ])
+
+          (define vsn : Ctx (list mσ mσₖ mM))
+
+          (: ς-seen? : -ς → Boolean)
+          (define (ς-seen? ς)
+            (cond
+              [(hash-ref seen ς #f) =>
+               (λ ([ctx₀ : Ctx])
+                 (match-define (list mσ₀ mσₖ₀ mM₀) ctx₀)
+                 (define αₖ
+                   (match ς
+                     [(-ς↑ αₖ _ _) αₖ]
+                     [(-ς↓ αₖ _ _) αₖ]))
+                 (define αₖs {set αₖ})
+                 (define (κ->αₖs [κ : -κ])
+                   {set (⟦k⟧->αₖ (-κ-cont κ))})
+                 (and (map-equal?/spanning-root mσₖ₀ mσₖ αₖs κ->αₖs)
+                      (map-equal?/spanning-root mM₀  mM  αₖs ΓA->αₖs)
+                      (let ([⟪α⟫s (ς->⟪α⟫s ς mσₖ₀)])
+                        (map-equal?/spanning-root mσ₀ mσ ⟪α⟫s V->⟪α⟫s))))]
+              [else #f]))
+
           (define next-from-ς↑s
             (let ([ς↑s* ; filter out seen states
-                     (for*/list : (Listof -ς↑) ([ς ς↑s]
-                                                [vsn (in-value (hash-ref ς↦vsn ς))]
-                                                #:unless (equal? vsn (hash-ref seen ς #f)))
+                     (for*/list : (Listof -ς↑) ([ς ς↑s] #:unless (ς-seen? ς))
                        (hash-set! seen ς vsn)
                        (assert ς -ς↑?))])
               (↝↑! ς↑s* Σ)))
           (define next-from-ς↓s
             (let ([ς↓s* ; filter out seen states
-                     (for*/list : (Listof -ς↓) ([ς ς↓s]
-                                                [vsn (in-value (hash-ref ς↦vsn ς))]
-                                                #:unless (equal? vsn (hash-ref seen ς #f)))
+                     (for*/list : (Listof -ς↓) ([ς ς↓s] #:unless (ς-seen? ς))
                        (hash-set! seen ς vsn)
                        (assert ς -ς↓?))])
               (↝↓! ς↓s* Σ)))
@@ -127,15 +131,6 @@
     [(-ς↓ αₖ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
      (define αs₀ (if (-W? A) (->⟪α⟫s A) ∅eq))
      (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]))
-
-(: ς->αₖs : -ς (HashTable -αₖ (℘ -κ)) → (℘ -αₖ))
-;; Compute all relevant stack addresses
-(define (ς->αₖs ς σₖ)
-  (define αₖ
-    (match ς
-      [(-ς↑ αₖ _ _) αₖ]
-      [(-ς↓ αₖ _ _) αₖ]))
-  (span-σₖ σₖ αₖ))
 
 (: ↝↑! : (Listof -ς↑) -Σ → (℘ -ς))
 ;; Quick-step on "push" state

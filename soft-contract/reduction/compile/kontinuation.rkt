@@ -19,8 +19,7 @@
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
-       (match-define (-Σ σ _ _) Σ)
-       (σ⊕! σ α V #:mutating? #t)
+       (σ⊕! Σ α V #:mutating? #t)
        (define s
          (match (-⟪α⟫->-α α)
            [(-α.x x _) (canonicalize Γ x)]
@@ -48,8 +47,8 @@
          (for/fold ([Γ : -Γ Γ])
                    ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
            (define α (ρ@ ρ x) #;(-α.x x #|TODO right?|# ⟪ℋ⟫))
-           (σ⊕! σ α (V+ σ Vₓ (predicates-of Γ sₓ)))
-           (σ-remove! σ α -undefined)
+           (σ⊕! Σ α (V+ σ Vₓ (predicates-of Γ sₓ)))
+           (σ-remove! Σ α -undefined)
            (-Γ-with-aliases Γ x sₓ)))
        (match ⟦bnd⟧s
          ['()
@@ -67,9 +66,8 @@
 (define/memo (μ/c∷ [l : -l] [x : Symbol] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W (list V) s) A)
-    (match-define (-Σ σ _ _) Σ)
     (define α (-α->-⟪α⟫ (-α.x/c x)))
-    (σ⊕! σ α V)
+    (σ⊕! Σ α V)
     (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
 
 ;; Non-dependent contract domain
@@ -93,17 +91,16 @@
                        [ℓ   : -ℓ]
                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws)
-    (match-define (-Σ σ _ _) Σ)
     (match-define (-W (list D) d) A)
     (define β (-α->-⟪α⟫ (or (keep-if-const d) (-α.rng ℓ #|TODO right?|# ⟪ℋ⟫))))
-    (σ⊕! σ β D)
+    (σ⊕! Σ β D)
     (define-values (αs cs) ; with side effect widening store
       (for/fold ([αs : (Listof -⟪α⟫) '()]
                  [cs : (Listof -s) '()])
                 ([(W i) (in-indexed Ws)] #:when (exact-nonnegative-integer? i))
         (match-define (-W¹ C c) W)
         (define α (-α->-⟪α⟫ (or (keep-if-const c) (-α.dom ℓ ⟪ℋ⟫ i))))
-        (σ⊕! σ α C)
+        (σ⊕! Σ α C)
         (values (cons α αs) (cons c cs))))
     (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
       (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
@@ -112,9 +109,9 @@
     (define G (-W (list (-=> αℓs βℓ ℓ)) (-?-> cs d ℓ)))
     (⟦k⟧ G $ Γ ⟪ℋ⟫ Σ)))
 
-(: mk-=>i! : -σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ -ℓ → (Values -V -s))
+(: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ -ℓ → (Values -V -s))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
-(define (mk-=>i! σ Γ ⟪ℋ⟫ Ws Mk-D mk-d ℓ)
+(define (mk-=>i! Σ Γ ⟪ℋ⟫ Ws Mk-D mk-d ℓ)
   (define-values (αs cs) ; with side effect widening store
     (for/fold ([αs : (Listof -⟪α⟫) '()]
                [cs : (Listof -s) '()])
@@ -123,7 +120,7 @@
       (define α
         (-α->-⟪α⟫ (or (keep-if-const c)
                       (-α.dom ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
-      (σ⊕! σ α C)
+      (σ⊕! Σ α C)
       (values (cons α αs) (cons c cs))))
   (define β (-α->-⟪α⟫ (or (keep-if-const mk-d) (-α.rng ℓ ⟪ℋ⟫))))
   (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
@@ -131,7 +128,7 @@
       (cons (cast α -⟪α⟫) (+ℓ/ctc ℓ i))))
   (define G (-=>i αℓs (list Mk-D mk-d (+ℓ/ctc ℓ (length αs))) ℓ))
   (define g (-?->i cs mk-d ℓ))
-  (σ⊕! σ β Mk-D)
+  (σ⊕! Σ β Mk-D)
   (values G g))
 
 ;; Dependent contract
@@ -147,8 +144,7 @@
     (define Ws* (cons (-W¹ C c) Ws))
     (match ⟦c⟧s
       ['()
-       (match-define (-Σ σ _ _) Σ)
-       (define-values (G g) (mk-=>i! σ Γ ⟪ℋ⟫ Ws* Mk-D mk-d ℓ))
+       (define-values (G g) (mk-=>i! Σ Γ ⟪ℋ⟫ Ws* Mk-D mk-d ℓ))
        (⟦k⟧ (-W (list G) g) $ Γ ⟪ℋ⟫ Σ)]
       [(cons ⟦c⟧ ⟦c⟧s*)
        (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
@@ -191,7 +187,6 @@
     (define Cs* (cons (-W¹ C c) Cs))
     (match ⟦c⟧s
       ['()
-       (match-define (-Σ σ _ _) Σ)
        (define-values (αs cs flat?) ; with side effect widening store
          (for/fold ([αs : (Listof -⟪α⟫) '()]
                     [cs : (Listof -s) '()]
@@ -201,7 +196,7 @@
            (define α
              (-α->-⟪α⟫ (or (keep-if-const c)
                            (-α.struct/c ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
-           (σ⊕! σ α C)
+           (σ⊕! Σ α C)
            (values (cons α αs)
                    (cons c cs)
                    (and flat? (C-flat? C)))))
@@ -222,9 +217,8 @@
     (match-define (-W Vs s) A)
     (cond
       [(= n (length Vs))
-       (match-define (-Σ σ _ _) Σ)
        (for ([α : -⟪α⟫ αs] [V Vs])
-         (σ⊕! σ α V))
+         (σ⊕! Σ α V))
        (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
       [else
        (define blm

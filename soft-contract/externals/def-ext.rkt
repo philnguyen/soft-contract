@@ -65,7 +65,7 @@
                         sₐ))
          (define αₖ (-ℋ𝒱* ℒ (set (-W¹-V W) ...)))
          (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
-         (σₖ⊔! σₖ αₖ κ)
+         (σₖ⊔! Σ αₖ κ)
          {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments

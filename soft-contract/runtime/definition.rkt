@@ -38,7 +38,7 @@
             [cardinality : (HashTable -⟪α⟫ -cardinality)]
             )
   #:transparent)
-(define (⊥σ) (-σ (make-hasheq) (make-hasheq) (make-hasheq)))
+(define ⊥σ (-σ (hasheq) (hasheq) (hasheq)))
 
 (: cardinality+ : -cardinality → -cardinality)
 (define (cardinality+ c)
@@ -62,17 +62,15 @@
 
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
 
-(: ⊥σₖ ([] [(Option -αₖ)] . ->* . -σₖ))
-(define (⊥σₖ [αₖ #f])
-  (cond [αₖ (make-hash (list (cons αₖ ∅)))]
-        [else (make-hash)]))
+(define ⊥σₖ : -σₖ (hash))
 
-(: σₖ@ : -σₖ -αₖ → (℘ -κ))
-(define (σₖ@ σₖ αₖ) (hash-ref σₖ αₖ →∅))
+(: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -κ))
+(define (σₖ@ m αₖ)
+  (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ →∅))
 
-(: σₖ⊔! : -σₖ -αₖ -κ → Void)
-(define (σₖ⊔! σₖ αₖ κ)
-  (hash-update! σₖ αₖ (λ ([κs : (℘ -κ)]) (set-add κs κ)) →∅))
+(: σₖ⊔ : -σₖ -αₖ -κ → -σₖ)
+(define (σₖ⊔ σₖ αₖ κ)
+  (hash-update σₖ αₖ (λ ([κs : (℘ -κ)]) (set-add κs κ)) →∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -80,14 +78,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type -M (HashTable -αₖ (℘ -ΓA)))
-(define ⊥M (inst make-hash -αₖ (℘ -ΓA)))
+(define ⊥M : -M (hash))
 
-(: M@ : -M -αₖ → (℘ -ΓA))
-(define (M@ M αₖ) (hash-ref M αₖ →∅))
+(: M@ : (U -Σ -M) -αₖ → (℘ -ΓA))
+(define (M@ m αₖ) (hash-ref (if (-Σ? m) (-Σ-M m) m) αₖ →∅))
 
-(: M⊔! : -M -αₖ -Γ -A → Void)
-(define (M⊔! M αₖ Γ A)
-  (hash-update! M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅)
+(: M⊔ : -M -αₖ -Γ -A → -M)
+(define (M⊔ M αₖ Γ A)
+  (hash-update M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅)
   #;(hash-update! M αₖ
                 (λ ([ΓAs : (℘ -ΓA)])
                   (define check
@@ -108,8 +106,18 @@
 ;;;;; Grouped reference to mutable stores
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:transparent)
-(define (⊥Σ) (-Σ (⊥σ) (⊥σₖ) (⊥M)))
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:mutable #:transparent)
+(define (⊥Σ) (-Σ ⊥σ ⊥σₖ ⊥M))
+
+(: σₖ⊔! : -Σ -αₖ -κ → Void)
+(define (σₖ⊔! Σ αₖ κ)
+  (match-define (-Σ _ σₖ _) Σ)
+  (set--Σ-σₖ! Σ (σₖ⊔ σₖ αₖ κ)))
+
+(: M⊔! : -Σ -αₖ -Γ -A → Void)
+(define (M⊔! Σ αₖ Γ A)
+  (match-define (-Σ _ _ M) Σ)
+  (set--Σ-M! Σ (M⊔ M αₖ Γ A)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

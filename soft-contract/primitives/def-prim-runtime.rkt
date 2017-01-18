@@ -80,10 +80,10 @@
 
 (: implement-mem : Symbol -⟪ℋ⟫ -ℓ -Σ -Γ -W¹ -W¹ → (℘ -ΓA))
 (define (implement-mem o ⟪ℋ⟫ ℓ Σ Γ Wₓ Wₗ)
-  (define σ (-Σ-σ Σ))
   (match-define (-W¹ Vₓ sₓ) Wₓ)
   (match-define (-W¹ Vₗ sₗ) Wₗ)
   (define sₐ (-?@ o sₓ sₗ))
+  (define σ (-Σ-σ Σ))
   (match Vₗ
     [(-Cons _ _)
      (cond
@@ -95,8 +95,8 @@
         (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
         (define Vₜ (-Cons αₕ αₜ))
         (for ([Vₕ (extract-list-content σ Vₗ)])
-          (σ⊕! σ αₕ Vₕ))
-        (σ⊕*! σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
+          (σ⊕! Σ αₕ Vₕ))
+        (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
         (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
         (cond [(definitely-member? σ Vₓ Vₗ) Ans]
               [else (set-add Ans (-ΓA Γ (-W -False/Vs sₐ)))])])]

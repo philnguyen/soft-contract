@@ -181,14 +181,13 @@
         ['() ⟦e*⟧]
         [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (match-define (-Σ σ _ _) Σ)
            (define ρ* ; with side effect widening store
              (for*/fold ([ρ  : -ρ  ρ])
                         ([⟦bnd⟧ ⟦bnd⟧s]
                          [xs (in-value (car ⟦bnd⟧))]
                          [x xs])
                (define α (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫)))
-               (σ⊕! σ α -undefined)
+               (σ⊕! Σ α -undefined)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
             (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ*
@@ -231,9 +230,8 @@
         ['()
          (define c (-?->i '() mk-d ℓ))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (match-define (-Σ σ _ _) Σ)
            (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
-           (define-values (G g) (mk-=>i! σ Γ ⟪ℋ⟫ '() Mk-D mk-d ℓ))
+           (define-values (G g) (mk-=>i! Σ Γ ⟪ℋ⟫ '() Mk-D mk-d ℓ))
            (⟦k⟧ (-W (list G) g) $ Γ ⟪ℋ⟫ Σ))]
         [(cons ⟦c⟧ ⟦c⟧s)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -276,16 +274,16 @@
                      ⟪ℋ⟫ₓ)])
         (for/and : Boolean ([⟪ℋ⟫ᵢ ⟪ℋ⟫s]) (equal? ⟪ℋ⟫₀ ⟪ℋ⟫ᵢ)))))
 
-(: flatten! : -σ -⟪ℋ⟫ -ρ → -ρ)
-(define (flatten! σ ⟪ℋ⟫ ρ)
+(: flatten! : -Σ -⟪ℋ⟫ -ρ → -ρ)
+(define (flatten! Σ ⟪ℋ⟫ ρ)
   ;; with side effect widening store
   (for/hash : -ρ ([(x α) ρ])
     (define α*
       (cond [(assignable? x) (cast α -⟪α⟫)]
             [else ; with side effect widening store
              (define α* (-α->-⟪α⟫ (-α.x x ⟪ℋ⟫)))
-             (for ([V (σ@ σ (cast α -⟪α⟫))])
-               (σ⊕! σ α* V))
+             (for ([V (σ@ Σ (cast α -⟪α⟫))])
+               (σ⊕! Σ α* V))
              α*]))
     (values x α*)))
 
