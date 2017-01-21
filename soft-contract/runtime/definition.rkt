@@ -291,7 +291,7 @@
             (-α.x/c Symbol)
             (-α.dom [pos : -ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rng [pos : -ℓ] [ctx : -⟪ℋ⟫])
-            (-α.fn [mon-pos : -ℒ] [guard-pos : -ℓ] [ctx : -⟪ℋ⟫])
+            (-α.fn [mon-pos : -ℒ] [ctx : -⟪ℋ⟫])
 
             -e)
 

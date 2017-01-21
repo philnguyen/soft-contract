@@ -727,11 +727,7 @@
         (values #f #f)))
   #;(match-define (-ℒ _ ℓ) ℒ)
   (∪ (cond [Γ₁₁
-            (define grd-ℓ
-              (cond [(-=>? grd) (-=>-pos grd)]
-                    [(-=>i? grd) (-=>i-pos grd)]
-                    [else (error 'mon-=>_ "unexpected")]))
-            (define α (-α->-⟪α⟫ (or (keep-if-const v) (-α.fn ℒ grd-ℓ ⟪ℋ⟫))))
+            (define α (-α->-⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫))))
             (define Ar (-Ar grd α l³))
             (σ⊕! Σ α V)
             (define v* ; hack
