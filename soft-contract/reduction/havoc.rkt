@@ -73,8 +73,10 @@
          (define Γ*
            (for/fold ([Γ : -Γ Γ]) ([x (in-list xs)])
              (invalidate Γ x)))
-         (app 'havoc $∅ (ℒ-with-mon ℒ (+ℓ/memo! 'opq-ap k tag)) W ●s Γ* ⟪ℋ⟫ Σ
-              (hv∷ (ℒ-with-mon ℒ (+ℓ/memo! 'hv-res tag)) ⟦k⟧)))
+         (define ℓ₁ (loc->ℓ (loc 'havoc 0 0 (list 'opq-ap k))))
+         (define ℓ₂ (loc->ℓ (loc 'havoc 0 0 (list 'hv-res))))
+         (app 'havoc $∅ (ℒ-with-mon ℒ ℓ₁) W ●s Γ* ⟪ℋ⟫ Σ
+              (hv∷ (ℒ-with-mon ℒ ℓ₂) ⟦k⟧)))
        
        (define a (V-arity V))
        (match a
@@ -92,8 +94,10 @@
       [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
        (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
          (define Acc (-W¹ acc acc))
-         (app 'havoc $∅ (ℒ-with-mon ℒ (+ℓ/memo! 'ac-ap acc)) Acc (list W) Γ ⟪ℋ⟫ Σ
-              (hv∷ (ℒ-with-mon ℒ (+ℓ/memo! 'hv-ap acc 'ac)) ⟦k⟧)))]
+         (define ℓ₁ (loc->ℓ (loc 'havoc 0 0 (list 'ac-ap (show-o acc)))))
+         (define ℓ₂ (loc->ℓ (loc 'havoc 0 0 (list 'hv-ap (show-o acc) 'ac))))
+         (app 'havoc $∅ (ℒ-with-mon ℒ ℓ₁) Acc (list W) Γ ⟪ℋ⟫ Σ
+              (hv∷ (ℒ-with-mon ℒ ℓ₂) ⟦k⟧)))]
 
       ;; Havoc vector's content before erasing the vector with unknowns
       ;; Guarded vectors are already erased
@@ -103,11 +107,14 @@
       [(-Vector αs)
        (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
          (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-         (app 'havoc $∅ (ℒ-with-mon ℒ (+ℓ/memo! 'vref i)) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
-              (hv∷ (ℒ-with-mon ℒ (+ℓ/memo! 'hv-ap 'ref i 0)) ⟦k⟧)))]
+         (define ℓ₁ (loc->ℓ (loc 'havoc 0 0 (list 'vref (assert i index?)))))
+         (define ℓ₂ (loc->ℓ (loc 'havoc 0 0 (list 'hv-ap 'ref (assert i index?) 0))))
+         (app 'havoc $∅ (ℒ-with-mon ℒ ℓ₁) -vector-ref/W (list W Wᵢ) Γ ⟪ℋ⟫ Σ
+              (hv∷ (ℒ-with-mon ℒ ℓ₂) ⟦k⟧)))]
       [(-Vector^ α _)
        (for/set: : (℘ -ς) ([V (σ@ σ α)])
-         (define αₖ (-ℋ𝒱 (ℒ-with-mon ℒ (+ℓ/memo! 'vref #f)) V))
+         (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'vref))))
+         (define αₖ (-ℋ𝒱 (ℒ-with-mon ℒ ℓ) V))
          (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ 'void '()))
          (σₖ⊔! Σ αₖ κ)
          (-ς↑ αₖ ⊤Γ ⟪ℋ⟫))]
@@ -152,6 +159,8 @@
       (refs-add! (-𝒾 x path))))
 
   (with-debugging/off
-    ((ans) (-amb/simp (for/list ([ref (in-hash-keys refs)])
-                        (-@ 'do-havoc (list ref) (+ℓ!)))))
+    ((ans) (-amb/simp (for/list ([ref (in-hash-keys refs)]
+                                 [i : Natural (in-naturals)])
+                        (define ℓᵢ (loc->ℓ (loc 'toplevel i 0 '())))
+                        (-@ 'do-havoc (list ref) ℓᵢ))))
     (printf "gen-havoc-expr: ~a~n" (show-e ans))))

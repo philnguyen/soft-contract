@@ -6,6 +6,7 @@
          racket/set
          "../utils/main.rkt"
          "../ast/definition.rkt"
+         "../ast/shorthands.rkt"
          "definition.rkt"
          "sto.rkt")
 
@@ -71,9 +72,9 @@
 ;; `#t` is a conservative answer "maybe yes"
 ;; `#f` is a strong answer "definitely no"
 (define (behavioral? σ V)
-  (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+  (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
 
-  (: check-⟪α⟫! : -⟪α⟫ → Boolean)
+  (: check-⟪α⟫! : ⟪α⟫ → Boolean)
   (define (check-⟪α⟫! ⟪α⟫)
     (cond [(seen-has? ⟪α⟫) #f]
           [else
@@ -95,7 +96,7 @@
              (check-⟪α⟫! (car dom))))]
       [(? -=>i?) #t]
       [(-Case-> cases _)
-       (for*/or : Boolean ([kase : (Pairof (Listof -⟪α⟫) -⟪α⟫) cases])
+       (for*/or : Boolean ([kase : (Pairof (Listof ⟪α⟫) ⟪α⟫) cases])
          (match-define (cons doms rng) kase)
          (or (check-⟪α⟫! rng)
              (ormap check-⟪α⟫! doms)))]

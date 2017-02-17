@@ -6,6 +6,7 @@
          "../utils/set.rkt"
          "../utils/function.rkt"
          "../ast/definition.rkt"
+         "../ast/shorthands.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "../reduction/compile/utils.rkt"
@@ -43,8 +44,8 @@
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
-       (define ⟪α⟫ₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 0)))
-       (define ⟪α⟫ₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 1)))
+       (define ⟪α⟫ₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 0)))
+       (define ⟪α⟫ₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 1)))
        (define Vₚ (-Cons ⟪α⟫ₕ ⟪α⟫ₜ))
        (σ⊕*! Σ [⟪α⟫ₕ ↦ V] [⟪α⟫ₜ ↦ -null] [⟪α⟫ₜ ↦ Vₚ])
        (⟦k⟧ (-W (list Vₚ) sₐ) $ Γ ⟪ℋ⟫ Σ)]
@@ -65,7 +66,7 @@
   (define sₐ (-?@ 'vector-ref sᵥ sᵢ))
   (match Vᵥ
     [(-Vector ⟪α⟫s)
-     (for/union : (℘ -ς) ([⟪α⟫ : -⟪α⟫ (in-list ⟪α⟫s)]
+     (for/union : (℘ -ς) ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
        (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))

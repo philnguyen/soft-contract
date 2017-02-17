@@ -7,17 +7,17 @@
          racket/set
          syntax/parse/define
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt")
 
-(define-type -⟦o⟧ (-⟪ℋ⟫ -ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
+(define-type -⟦o⟧ (-⟪ℋ⟫ ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
 
 (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
 ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
 ;; This is only for use internally, so it's safe (though imprecise) to ignore field wraps
 (define (unchecked-ac σ Γ ac W)
-  (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+  (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
   (match-define (-W¹ V s) W)
   (match-define (-st-ac 𝒾 i) ac)
   (define φs (-Γ-facts Γ))
@@ -78,7 +78,7 @@
 ;;;;; Helpers for some of the primitives
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: implement-mem : Symbol -⟪ℋ⟫ -ℓ -Σ -Γ -W¹ -W¹ → (℘ -ΓA))
+(: implement-mem : Symbol -⟪ℋ⟫ ℓ -Σ -Γ -W¹ -W¹ → (℘ -ΓA))
 (define (implement-mem o ⟪ℋ⟫ ℓ Σ Γ Wₓ Wₗ)
   (match-define (-W¹ Vₓ sₓ) Wₓ)
   (match-define (-W¹ Vₗ sₗ) Wₗ)
@@ -91,8 +91,8 @@
         {set (-ΓA Γ (-W -False/Vs sₐ))}]
        [else
         (define ℒ (-ℒ ∅ ℓ))
-        (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-        (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+        (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+        (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
         (define Vₜ (-Cons αₕ αₜ))
         (for ([Vₕ (extract-list-content σ Vₗ)])
           (σ⊕! Σ αₕ Vₕ))
@@ -139,7 +139,7 @@
        (match* (V₁ V₂)
          [((-b b₁) (-b b₂)) (equal? b₁ b₂)]
          [((-St 𝒾 αs₁) (-St 𝒾 αs₂))
-          (for/and : Boolean ([α₁ : -⟪α⟫ αs₁] [α₂ : -⟪α⟫ αs₂])
+          (for/and : Boolean ([α₁ : ⟪α⟫ αs₁] [α₂ : ⟪α⟫ αs₂])
             (define Vs₁ (σ@ σ α₁))
             (define Vs₂ (σ@ σ α₂))
             (for/and : Boolean ([V₁* Vs₁]) ; can't use for*/and :(
@@ -157,7 +157,7 @@
          [((-b b₁) (-b b₂)) (not (equal? b₁ b₂))]
          [((-St 𝒾₁ αs₁) (-St 𝒾₂ αs₂))
           (or (not (equal? 𝒾₁ 𝒾₂))
-              (for/or : Boolean ([α₁ : -⟪α⟫ αs₁] [α₂ : -⟪α⟫ αs₂])
+              (for/or : Boolean ([α₁ : ⟪α⟫ αs₁] [α₂ : ⟪α⟫ αs₂])
                 (define Vs₁ (σ@ σ α₁))
                 (define Vs₂ (σ@ σ α₂))
                 (for/and : Boolean ([V₁ Vs₁])
@@ -168,7 +168,7 @@
 (: list-of-non-null-chars? : -σ -V → Boolean)
 ;; Check if a value is definitely a list of non-null characters
 (define (list-of-non-null-chars? σ V)
-  (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+  (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
   (with-debugging/off ((ans) (let go : Boolean ([V : -V V])
                                   (match V
                                     [(-b (list)) #t]
@@ -185,7 +185,7 @@
     (printf "list-of-non-null-char? ~a -> ~a~n"
             (show-V V) ans)
     (for ([(α Vs) (hash-copy/spanning* (-σ-m σ) (V->⟪α⟫s V) V->⟪α⟫s)])
-      (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α -⟪α⟫)) (set-map Vs show-V)))
+      (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
     (printf "~n")))
 
 (: with-MΓ⊢oW-handler (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X)))

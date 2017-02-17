@@ -10,7 +10,8 @@
          racket/extflonum 
          racket/splicing
          "../utils/main.rkt"
-         "arity.rkt")
+         "arity.rkt"
+         "srcloc.rkt")
 
 (require/typed/provide racket/undefined
   [undefined Undefined])
@@ -23,44 +24,6 @@
 ;; Temporary definition of module path
 (define-type -l (U Symbol String))
 (struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
-
-;; Swap positive and negative blame parties
-(define swap-parties : (-l³ → -l³)
-  (match-lambda [(-l³ l+ l- lo) (-l³ l- l+ lo)]))
-
-(define-new-subtype -ℓ (+ℓ Natural))
-
-(splicing-local
-    ((define n : Natural 1)
-     (define m : (HashTable (Listof Any) -ℓ) (make-hash))
-     ;; Just for debugging
-     (define m⁻¹ : (HashTable -ℓ (Listof Any)) (make-hasheq)))
-
-  (: +ℓ! : → -ℓ)
-  (define (+ℓ!)
-    (begin0 (+ℓ n)
-      (set! n (+ 1 n))))
-
-  ;; Hack to remember fixed location for havoc
-  (: +ℓ/memo! : (U 'hv-res 'hv-ref 'hv-ap 'opq-ap 'ac-ap 'vref 'prim) Any * → -ℓ)
-  (define (+ℓ/memo! tag . xs)
-    (define ℓ (hash-ref! m (cons tag xs) +ℓ!))
-    (hash-set! m⁻¹ ℓ (cons tag xs))
-    ℓ)
-
-  (: +ℓ/ctc : -ℓ Natural → -ℓ)
-  (define (+ℓ/ctc ℓ i)
-    (define ℓₐ (hash-ref! m (list ℓ i) +ℓ!))
-    (hash-set! m⁻¹ ℓₐ (list ℓ i))
-    ℓₐ)
-
-  (: ℓ⁻¹ : -ℓ → Any)
-  ;; Just for debugging
-  (define (ℓ⁻¹ ℓ)
-    (hash-ref m⁻¹ ℓ (λ () (error 'ℓ⁻¹ "nothing for ~a" ℓ))))
-)
-
-(define +ℓ₀ (+ℓ 0))
 
 (: +x! : (U Symbol Integer) * → Symbol)
 (define (+x! . prefixes)
@@ -103,14 +66,14 @@
 
 (-submodule-form . ::= . (-module [path : -l] [body : (Listof -module-level-form)]))
 
-(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e] [loc : -ℓ]))
+(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e] [loc : ℓ]))
 
 (-require-spec . ::= . -l #|TODO|#)
 
 (-e . ::= . -v
             (-x Symbol) ; lexical variables 
             -𝒾 ; module references
-            (-@ -e (Listof -e) -ℓ)
+            (-@ -e (Listof -e) ℓ)
             (-if -e -e -e)
             (-wcm [key : -e] [val : -e] [body : -e])
             -begin/e
@@ -124,12 +87,12 @@
             
             ;; contract stuff
             (-μ/c Symbol -e)
-            (--> [doms : (Listof -e)] [rng : -e] [pos : -ℓ])
-            (-->i [doms : (Listof -e)] [rng : -λ] [pos : -ℓ])
-            (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] -ℓ)
+            (--> [doms : (Listof -e)] [rng : -e] [loc : ℓ])
+            (-->i [doms : (Listof -e)] [rng : -λ] [loc : ℓ])
+            (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] ℓ)
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
-            (-struct/c [name : -𝒾] [fields : (Listof -e)] [pos : -ℓ])
+            (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
 
             ;; internal use only
             (-ar -e -e))
@@ -137,7 +100,7 @@
 (-v . ::= . -prim
             (-λ -formals -e)
             (-case-λ (Listof (Pairof (Listof Symbol) -e)))
-            (-• Natural))
+            (-•))
 
 (-prim . ::= . ;; Represent *unsafe* operations without contract checks. 
                ;; User code shouldn't have direct access to these.
@@ -160,156 +123,14 @@
            (-ar-ctc)
            (-ar-fun))
 
-(: -define : Symbol -e → -define-values)
-(define (-define x e) (-define-values (list x) e))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Constants & 'Macros'
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define -tt (-b #t))
-(define -ff (-b #f))
-(define -null (-b null))
-(define -void (-b (void)))
-(define -null-char (-b #\null))
-(define -undefined (-b undefined))
-
 (define -𝒾-values (-𝒾 'values 'Λ))
 (define -𝒾-cons (-𝒾 'cons 'Λ))
-(define -cons (-st-mk -𝒾-cons))
-(define -car (-st-ac -𝒾-cons 0))
-(define -cdr (-st-ac -𝒾-cons 1))
-(define -cons? (-st-p -𝒾-cons))
-
-(define -zero (-b 0))
-(define -one (-b 1))
-
 (define -𝒾-box (-𝒾 'box 'Λ))
-(define -box? (-st-p -𝒾-box))
-(define -unbox (-st-ac -𝒾-box 0))
-(define -box (-st-mk -𝒾-box))
-(define -set-box! (-st-mut -𝒾-box 0))
-(define -pred (--> (list 'any/c) 'boolean? +ℓ₀))
-
-(: -cond : (Listof (Pairof -e -e)) -e → -e)
-;; Make `cond` at object language level, expanding to `if`
-(define (-cond cases default)
-  (foldr (λ ([alt : (Pairof -e -e)] [els : -e])
-           (match-define (cons cnd thn) alt)
-           (-if cnd thn els))
-         default
-         cases))
-
-(: -->* : (Listof -e) -e -e → -e)
-;; Make a non-dependent vararg contract
-;; TODO: separate case for non-dependent varargs
-(define (-->* cs rst d)
-  (define xs (-varargs (map (λ (_) (+x!)) cs) (+x!)))
-  (-->i (append cs (list rst)) (-λ xs d) (+ℓ!)))
-
-;; Make conjunctive and disjunctive contracts
-(splicing-local
-    ((: -app/c : Symbol → (Listof -e) → -e)
-     (define ((-app/c o) es)
-       (let go ([es : (Listof -e) es])
-         (match es
-           ['() 'any/c]
-           [(list e) e]
-           [(cons e es*) (-@ o (list e (go es*)) (+ℓ!))]))))
-  (define -and/c (-app/c 'and/c))
-  (define -or/c (-app/c 'or/c)))
-
-(: -one-of/c : (Listof -e) → -e)
-(define (-one-of/c es)
-  (cond
-    [(null? es) 'none/c]
-    [else
-     (define x (+x!))
-     (define 𝐱 (-x x))
-     (define body : -e
-       (let build-body ([es : (Listof -e) es])
-         (match es
-           [(list e) (-@ 'equal? (list 𝐱 e) (+ℓ!))]
-           [(cons e es*)
-            (-if (-@ 'equal? (list 𝐱 e) (+ℓ!))
-                 -tt
-                 (build-body es*))])))
-     (-λ (list x) body)]))
-
-(: -cons/c : -e -e → -e)
-(define (-cons/c c d)
-  (-struct/c -𝒾-cons (list c d) (+ℓ!)))
-
-(: -listof : -e → -e)
-(define (-listof c)
-  (define x (+x! 'rec))
-  (-μ/c x (-or/c (list 'null? (-cons/c c (-x/c x))))))
-
-(: -box/c : -e → -e)
-(define (-box/c c)
-  (-struct/c -𝒾-box (list c) (+ℓ!)))
-
-(: -list/c : (Listof -e) → -e)
-(define (-list/c cs)
-  (foldr -cons/c 'null? cs))
-
-(: -list : (Listof -e) → -e)
-(define (-list es)
-  (match es
-    ['() -null]
-    [(cons e es*)
-     (-@ -cons (list e (-list es*)) (+ℓ!))]))
-
-(:* -and : -e * → -e)
-;; Return ast representing conjuction of 2 expressions
-(define -and
-  (match-lambda*
-    [(list) -tt]
-    [(list e) e]
-    [(cons e es) (-if e (apply -and es) -ff)]))
-
-(: -comp/c : Symbol -e → -e)
-;; Return ast representing `(op _ e)`
-(define (-comp/c op e)
-  (define x (+x!))
-  (define 𝐱 (-x x))
-  (-λ (list x)
-      (-and (-@ 'real? (list 𝐱) (+ℓ!)) (-@ op (list 𝐱 e) (+ℓ!)))))
-
-(: -amb/simp : (Listof -e) → -e)
-;; Smart constructor for `amb` with simplification for 1-expression case
-(define -amb/simp
-  (match-lambda
-    [(list e) e]
-    [es (-amb (list->set es))]))
-
-(: -amb/remember : (Listof -e) → -e)
-;; Return ast representing "remembered" non-determinism
-(define/match (-amb/remember es)
-  [((list)) (-b 'end-of-amb)]
-  [((list e)) e]
-  [((cons e es)) (-if (•!) e (-amb/remember es))])
-
-(: -begin/simp : (∀ (X) (Listof X) → (U X (-begin X))))
-;; Smart constructor for begin, simplifying single-expression case
-(define/match (-begin/simp xs)
-  [((list e)) e]
-  [(es) (-begin es)])
-
-(: •! : → -•)
-;; Generate new labeled hole
-(define •!
-  (let ([n : Natural 0])
-    (λ () (begin0 (-• n) (set! n (+ 1 n))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Pretty Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (show-ℓ [ℓ : -ℓ]) : Symbol
-  (format-symbol "ℓ~a" (n-sub ℓ)))
 
 (define (show-b [x : Base]) : Sexp
   (cond
@@ -332,12 +153,12 @@
   (match-lambda
    [(? symbol? s) s]
    [(-st-mk 𝒾) (-𝒾-name 𝒾)]
-   [(== -car) 'car]
-   [(== -cdr) 'cdr]
-   [(== -unbox) 'unbox]
+   [(-st-ac (== -𝒾-cons) 0) 'car]
+   [(-st-ac (== -𝒾-cons) 1) 'cdr]
+   [(-st-ac (== -𝒾-box) _) 'unbox]
    [(-st-ac 𝒾 i) (format-symbol "~a@~a" (-𝒾-name 𝒾) i)]
    [(-st-p 𝒾) (format-symbol "~a?" (-𝒾-name 𝒾))]
-   [(== -set-box!) 'set-box!]
+   [(-st-mut (== -𝒾-box) _) 'set-box!]
    [(-st-mut 𝒾 i) (format-symbol "set-~a-~a!" (-𝒾-name 𝒾) i)]
    ;; internals
    [(-st/c-ac 𝒾 i) (format-symbol "~a/c@~a" (-𝒾-name 𝒾) i)]
@@ -373,7 +194,7 @@
         ,@(for/list : (Listof Sexp) ([clause clauses])
             (match-define (cons xs e) clause)
             `(,(show-formals xs) ,(show-e e))))]
-    [(-• i) (format-symbol "•~a" (n-sub i))]
+    [(-•) '•]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x) x]
@@ -456,6 +277,3 @@
   (match-lambda
     [(-varargs xs rst) (cons xs rst)]
     [(? list? l) l]))
-
-(define (show-e-map [m : (HashTable -e -e)]) : (Listof Sexp)
-  (for/list ([(x y) m]) `(,(show-e x) ↦ ,(show-e y))))

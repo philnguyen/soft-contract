@@ -9,7 +9,8 @@
          racket/bool
          "../utils/main.rkt"
          "../utils/untyped-macros.rkt"
-         "definition.rkt")
+         "definition.rkt"
+         "shorthands.rkt")
 
 (: fv : (U -e (Listof -e)) → (℘ Symbol))
 ;; Compute free variables for expression. Return set of variable names.
@@ -63,15 +64,6 @@
        (∪ xs (fv e)))]
     [(-ar c v) (∪ (fv c) (fv v))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
-
-(module+ test
-  (require typed/rackunit)
-  
-  (check-equal? (fv -tt) ∅)
-  (check-equal? (fv (-λ '(x) (-x 'x))) ∅)
-  (check-equal? (fv (-x 'x)) {set 'x})
-  (check-equal? (fv (-𝒾 'cons 'Λ)) ∅)
-  (check-equal? (fv (-λ '(x) (-λ '(y) (-@ (-x 'f) (list (-x 'y) (-x 'x)) +ℓ₀)))) {set 'f}))
 
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
@@ -154,9 +146,9 @@
   
   (go e))
 
-(: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
+#;(: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
 ;; Search for all invocations of `f-id` in `e`
-(define (find-calls e f-id)
+#;(define (find-calls e f-id)
   (define-set calls : (Listof -e))
   (let go! : Void ([e e])
     (match e

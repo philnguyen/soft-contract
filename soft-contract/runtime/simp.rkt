@@ -251,12 +251,12 @@
   (and (andmap (inst values -s) fields)
        (-struct/c 𝒾 (cast fields (Listof -e)) +ℓ₀)))
 
-(: -?-> : (Listof -s) -s -ℓ -> (Option -->))
+(: -?-> : (Listof -s) -s ℓ -> (Option -->))
 (define (-?-> cs d ℓ)
   (define cs* (check-ss cs))
   (and d cs* (--> cs* d ℓ)))
 
-(: -?->i : (Listof -s) (Option -λ) -ℓ -> (Option -->i))
+(: -?->i : (Listof -s) (Option -λ) ℓ -> (Option -->i))
 (define (-?->i cs mk-d ℓ)
   (define cs* (check-ss cs))
   (and mk-d cs* (-->i cs* mk-d ℓ)))

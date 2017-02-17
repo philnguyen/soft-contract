@@ -14,14 +14,14 @@
          (all-from-out "app.rkt"))
 
 ;; set!
-(define/memo (set!∷ [α : -⟪α⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+(define/memo (set!∷ [α : ⟪α⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
        (σ⊕! Σ α V #:mutating? #t)
        (define s
-         (match (-⟪α⟫->-α α)
+         (match (⟪α⟫->-α α)
            [(-α.x x _) (canonicalize Γ x)]
            [(? -𝒾? 𝒾) 𝒾]))
        (⟦k⟧ -Void/W ($+ $ s V) Γ ⟪ℋ⟫ Σ)]
@@ -66,7 +66,7 @@
 (define/memo (μ/c∷ [l : -l] [x : Symbol] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W (list V) s) A)
-    (define α (-α->-⟪α⟫ (-α.x/c x)))
+    (define α (-α->⟪α⟫ (-α.x/c x)))
     (σ⊕! Σ α V)
     (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
 
@@ -76,7 +76,7 @@
                        [⟦c⟧s : (Listof -⟦e⟧)]
                        [⟦d⟧  : -⟦e⟧]
                        [ρ   : -ρ]
-                       [ℓ   : -ℓ]
+                       [ℓ   : ℓ]
                        [⟦k⟧  : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws ρ)
     (match-define (-W (list V) s) A)
@@ -88,46 +88,46 @@
 ;; Non-dependent contract range
 (define/memo (-->.rng∷ [l   : -l]
                        [Ws  : (Listof -W¹)]
-                       [ℓ   : -ℓ]
+                       [ℓₐ  : ℓ]
                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws)
     (match-define (-W (list D) d) A)
-    (define β (-α->-⟪α⟫ (or (keep-if-const d) (-α.rng ℓ #|TODO right?|# ⟪ℋ⟫))))
+    (define β (-α->⟪α⟫ (or (keep-if-const d) (-α.rng ℓₐ #|TODO right?|# ⟪ℋ⟫))))
     (σ⊕! Σ β D)
     (define-values (αs cs) ; with side effect widening store
-      (for/fold ([αs : (Listof -⟪α⟫) '()]
+      (for/fold ([αs : (Listof ⟪α⟫) '()]
                  [cs : (Listof -s) '()])
                 ([(W i) (in-indexed Ws)] #:when (exact-nonnegative-integer? i))
         (match-define (-W¹ C c) W)
-        (define α (-α->-⟪α⟫ (or (keep-if-const c) (-α.dom ℓ ⟪ℋ⟫ i))))
+        (define α (-α->⟪α⟫ (or (keep-if-const c) (-α.dom ℓₐ ⟪ℋ⟫ i))))
         (σ⊕! Σ α C)
         (values (cons α αs) (cons c cs))))
-    (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
+    (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
       (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
-        (cons (cast α -⟪α⟫) (+ℓ/ctc ℓ i))))
-    (define βℓ (cons β (+ℓ/ctc ℓ (length αs))))
-    (define G (-W (list (-=> αℓs βℓ ℓ)) (-?-> cs d ℓ)))
+        (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
+    (define βℓ (cons β (ℓ-with-id ℓₐ (length αs))))
+    (define G (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d ℓₐ)))
     (⟦k⟧ G $ Γ ⟪ℋ⟫ Σ)))
 
-(: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ -ℓ → (Values -V -s))
+(: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -s))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
-(define (mk-=>i! Σ Γ ⟪ℋ⟫ Ws Mk-D mk-d ℓ)
+(define (mk-=>i! Σ Γ ⟪ℋ⟫ Ws Mk-D mk-d ℓₐ)
   (define-values (αs cs) ; with side effect widening store
-    (for/fold ([αs : (Listof -⟪α⟫) '()]
+    (for/fold ([αs : (Listof ⟪α⟫) '()]
                [cs : (Listof -s) '()])
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
       (define α
-        (-α->-⟪α⟫ (or (keep-if-const c)
-                      (-α.dom ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
+        (-α->⟪α⟫ (or (keep-if-const c)
+                      (-α.dom ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
       (σ⊕! Σ α C)
       (values (cons α αs) (cons c cs))))
-  (define β (-α->-⟪α⟫ (or (keep-if-const mk-d) (-α.rng ℓ ⟪ℋ⟫))))
-  (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
+  (define β (-α->⟪α⟫ (or (keep-if-const mk-d) (-α.rng ℓₐ ⟪ℋ⟫))))
+  (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
     (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
-      (cons (cast α -⟪α⟫) (+ℓ/ctc ℓ i))))
-  (define G (-=>i αℓs (list Mk-D mk-d (+ℓ/ctc ℓ (length αs))) ℓ))
-  (define g (-?->i cs mk-d ℓ))
+      (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
+  (define G (-=>i αℓs (list Mk-D mk-d (ℓ-with-id ℓₐ (length αs))) ℓₐ))
+  (define g (-?->i cs mk-d ℓₐ))
   (σ⊕! Σ β Mk-D)
   (values G g))
 
@@ -137,7 +137,7 @@
                     [ρ   : -ρ]
                     [Mk-D : -Clo]
                     [mk-d : -λ]
-                    [ℓ    : -ℓ]
+                    [ℓ    : ℓ]
                     [⟦k⟧  : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws ρ Mk-D)
     (match-define (-W (list C) c) A)
@@ -156,7 +156,7 @@
 
 ;; case-> contract
 (define/memo (case->∷ [l : -l]
-                      [ℓ : -ℓ]
+                      [ℓ : ℓ]
                       [Clauses : (Listof (Listof -W¹))]
                       [Cs : (Listof -W¹)]
                       [⟦c⟧s : (Listof -⟦e⟧)]
@@ -176,7 +176,7 @@
        (⟦c⟧* ρ $ Γ ⟪ℋ⟫ Σ (case->∷ l ℓ Clauses Cs* ⟦c⟧s* ⟦clause⟧s ρ ⟦k⟧))])))
 
 ;; struct/c contract
-(define/memo (struct/c∷ [ℓ : -ℓ]
+(define/memo (struct/c∷ [ℓ₁ : ℓ]
                         [𝒾 : -𝒾]
                         [Cs : (Listof -W¹)]
                         [⟦c⟧s : (Listof -⟦e⟧)]
@@ -188,36 +188,36 @@
     (match ⟦c⟧s
       ['()
        (define-values (αs cs flat?) ; with side effect widening store
-         (for/fold ([αs : (Listof -⟪α⟫) '()]
+         (for/fold ([αs : (Listof ⟪α⟫) '()]
                     [cs : (Listof -s) '()]
                     [flat? : Boolean #t])
                    ([(W i) (in-indexed Cs*)])
            (match-define (-W¹ C c) W)
            (define α
-             (-α->-⟪α⟫ (or (keep-if-const c)
-                           (-α.struct/c ℓ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
+             (-α->⟪α⟫ (or (keep-if-const c)
+                          (-α.struct/c ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
            (σ⊕! Σ α C)
            (values (cons α αs)
                    (cons c cs)
                    (and flat? (C-flat? C)))))
-       (define αℓs : (Listof (Pairof -⟪α⟫ -ℓ))
+       (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
          (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
-           (cons (cast α -⟪α⟫) (+ℓ/ctc ℓ i))))
+           (cons (cast α ⟪α⟫) (ℓ-with-id ℓ₁ i))))
        (define W (-W (list (-St/C flat? 𝒾 αℓs)) (-?struct/c 𝒾 cs)))
        (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ)]
       [(cons ⟦c⟧ ⟦c⟧s*)
-       (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (struct/c∷ ℓ 𝒾 Cs* ⟦c⟧s* ρ ⟦k⟧))])))
+       (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (struct/c∷ ℓ₁ 𝒾 Cs* ⟦c⟧s* ρ ⟦k⟧))])))
 
 ;; define
 (define/memo (def∷ [l : -l]
-                   [αs : (Listof -⟪α⟫)]
+                   [αs : (Listof ⟪α⟫)]
                    [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (define n (length αs))
     (match-define (-W Vs s) A)
     (cond
       [(= n (length Vs))
-       (for ([α : -⟪α⟫ αs] [V Vs])
+       (for ([α : ⟪α⟫ αs] [V Vs])
          (σ⊕! Σ α V))
        (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
       [else
@@ -228,7 +228,7 @@
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; provide with contract
-(define/memo (dec∷ [ℓ : -ℓ]
+(define/memo (dec∷ [ℓ : ℓ]
                    [𝒾 : -𝒾]
                    [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (define l (-𝒾-ctx 𝒾))
@@ -237,7 +237,7 @@
     (match-define (-W (list C) c) A)
     (match-define (-Σ σ _ _) Σ)
     (define W-C (-W¹ C c))
-    (define Vs (σ@ σ (-α->-⟪α⟫ 𝒾)))
+    (define Vs (σ@ σ (-α->⟪α⟫ 𝒾)))
     (for/union : (℘ -ς) ([V Vs])
-      (mon l³ $ (-ℒ (set ℓ) ℓ) W-C (-W¹ V 𝒾) Γ ⟪ℋ⟫ Σ
-           (def∷ l (list (-α->-⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧)))))
+      (mon l³ $ (-ℒ (seteq ℓ) ℓ) W-C (-W¹ V 𝒾) Γ ⟪ℋ⟫ Σ
+           (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧)))))

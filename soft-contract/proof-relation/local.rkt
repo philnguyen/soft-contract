@@ -288,7 +288,7 @@
                  (boolean->R (equal? 𝒾* 𝒾)))
                '?)]
           [_ '✗])]
-       [(-Ar _ (app -⟪α⟫->-α (? -o? o)) _) (apply p∋Vs σ o Vs)]
+       [(-Ar _ (app ⟪α⟫->-α (? -o? o)) _) (apply p∋Vs σ o Vs)]
        [(? symbol?)
         (assert (not (match? Vs (list (? -●?))))) ; just for debugging
 
@@ -379,7 +379,7 @@
           [(list?)
            (match Vs
              [(list V)
-              (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+              (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
               
               (define (combine [Rs : (℘ -R)]) : -R
                 (cond [(∋ Rs '?) '?]
@@ -387,7 +387,7 @@
                       [(∋ Rs '✗) '✗]
                       [else '✓]))
 
-              (define (check-⟪α⟫ [⟪α⟫ : -⟪α⟫]) : -R
+              (define (check-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : -R
                 (cond [(seen-has? ⟪α⟫) '✓]
                       [else
                        (seen-add! ⟪α⟫)

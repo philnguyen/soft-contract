@@ -22,6 +22,7 @@
          "../utils/set.rkt"
          "../utils/map.rkt"
          "../ast/definition.rkt"
+         "../ast/shorthands.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "def-prim-runtime.rkt")
@@ -395,8 +396,8 @@
             (cons #`(define (#,(->id f)) #,@es) acc)))
         
         (define body
-          (list #`(define-set seen-tails : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-                #`(define cache : (HashTable -⟪α⟫ (℘ -ΓA)) (make-hasheq))
+          (list #`(define-set seen-tails : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+                #`(define cache : (HashTable ⟪α⟫ (℘ -ΓA)) (make-hasheq))
                 #`(define result (delay (#,κ #,(-Γ))))
                 #`(let go : (℘ -ΓA) ([V : -V (-W¹-V #,W)])
                     (match V

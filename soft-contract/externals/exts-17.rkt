@@ -23,13 +23,13 @@
   (match Vᵥ
     [(-St 𝒾 ⟪α⟫s)
      (define n (get-struct-arity 𝒾))
-     (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+     (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
                 (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-                (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))])
+                (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
                            (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
-    [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ l³)
+    [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ l³)
      (define n (get-struct-arity 𝒾))
      (match-define (-l³ l+ l- lo) l³)
      (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
@@ -39,12 +39,12 @@
                 (cond
                   [(struct-mutable? 𝒾 (assert i index?))
                    (define c (⟪α⟫->s (car ⟪γ⟫ℓ)))
-                   (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))]
+                   (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                          [C (in-set (σ@ σ (car ⟪γ⟫ℓ)))])
                      (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ
                           (mon.c∷ l³ (ℒ-with-mon ℒ (cdr (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                   [else
-                   (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ -⟪α⟫)))]
+                   (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                          [C (in-set (σ@ σ (car ⟪γ⟫ℓ)))])
                      (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
     [_

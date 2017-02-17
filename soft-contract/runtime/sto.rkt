@@ -8,47 +8,47 @@
          "../ast/definition.rkt"
          "definition.rkt")
 
-(: σ@ : (U -Σ -σ) -⟪α⟫ → (℘ -V))
+(: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
 (define (σ@ m ⟪α⟫)
   (define σ (if (-Σ? m) (-Σ-σ m) m))
   (with-debugging/off
     ((Vs)
-     (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" (-⟪α⟫->-α ⟪α⟫)))))
+     (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
     (when (>= (set-count Vs) 5)
-      (printf "σ@: ~a -> ~a~n" (show-⟪α⟫ ⟪α⟫) (set-count Vs))
-      (define-set roots : -⟪α⟫ #:eq? #t)
+      (printf "σ@: ~a -> ~a~n" (show⟪α⟫ ⟪α⟫) (set-count Vs))
+      (define-set roots : ⟪α⟫ #:eq? #t)
       (for ([V Vs])
         (roots-union! (V->⟪α⟫s V))
         (printf "  - ~a~n" (show-V V)))
       (printf "addresses:~n")
       (for ([(α Vs) (hash-copy/spanning* (-σ-m σ) roots V->⟪α⟫s)])
-        (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α -⟪α⟫)) (set-map Vs show-V)))
+        (printf "  - ~a ↦ ~a~n" (show⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
       (printf "~n")
       (when (> ⟪α⟫ 3000)
         (error "DONE")))))
 
-(: σ-old? : (U -Σ -σ) -⟪α⟫ → Boolean)
+(: σ-old? : (U -Σ -σ) ⟪α⟫ → Boolean)
 (define (σ-old? m ⟪α⟫)
-  (not (hash-has-key? (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫)))
+  (not (∋ (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫)))
 
-(: σ-remove : -σ -⟪α⟫ -V → -σ)
+(: σ-remove : -σ ⟪α⟫ -V → -σ)
 (define (σ-remove σ ⟪α⟫ V)
   (match-define (-σ m crds mods) σ)
   (define m* (hash-update m ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
   (-σ m* crds mods))
 
-(: σ-remove! : -Σ -⟪α⟫ -V → Void)
+(: σ-remove! : -Σ ⟪α⟫ -V → Void)
 (define (σ-remove! Σ ⟪α⟫ V)
   (define σ (-Σ-σ Σ))
   (set--Σ-σ! Σ (σ-remove σ ⟪α⟫ V)))
 
-(: σ@/list : (U -Σ -σ) (Listof -⟪α⟫) → (℘ (Listof -V)))
+(: σ@/list : (U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))
 ;; Look up store at addresses. Return all possible combinations
 (define (σ@/list m ⟪α⟫s)
   (define σ (if (-Σ? m) (-Σ-σ m) m))
   (with-debugging/off
     ((ans)
-     (let loop : (℘ (Listof -V)) ([⟪α⟫s : (Listof -⟪α⟫) ⟪α⟫s])
+     (let loop : (℘ (Listof -V)) ([⟪α⟫s : (Listof ⟪α⟫) ⟪α⟫s])
           (match ⟪α⟫s
             [(cons ⟪α⟫ ⟪α⟫s*)
              (define Vs (σ@ σ ⟪α⟫))
@@ -57,9 +57,9 @@
                (cons V Vs))]
             ['() {set '()}])))
     (when (> (set-count ans) 1)
-      (printf "σ@/list: ~a -> ~a~n" (map show-⟪α⟫ ⟪α⟫s) (set-count ans)))))
+      (printf "σ@/list: ~a -> ~a~n" (map show⟪α⟫ ⟪α⟫s) (set-count ans)))))
 
-(: σ@¹ : (U -Σ -σ) -⟪α⟫ → -V)
+(: σ@¹ : (U -Σ -σ) ⟪α⟫ → -V)
 ;; Look up store, asserting that exactly 1 value resides there
 (define (σ@¹ m ⟪α⟫)
   (define Vs (σ@ m ⟪α⟫))
@@ -71,7 +71,7 @@
 ;;;;; Restrict stores
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define/memoeq (V->⟪α⟫s [V : -V]) : (℘ -⟪α⟫)
+(define/memoeq (V->⟪α⟫s [V : -V]) : (℘ ⟪α⟫)
   (with-debugging/off
     ((αs)
      (match V
@@ -93,7 +93,7 @@
        [(-=> αs α _) (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ α))]
        [(-=>i αs (list D _ _) _) (∪ (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (V->⟪α⟫s D))]
        [(-Case-> clauses _)
-        (for/unioneq : (℘ -⟪α⟫) ([clause clauses])
+        (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
           (match-define (cons αs α) clause)
           (set-add (list->seteq αs) α))]
        [_ ∅eq]))
@@ -102,11 +102,11 @@
       (printf " - ~a~n" α))
     (printf "~n")))
 
-(: ρ->⟪α⟫s : -ρ → (℘ -⟪α⟫))
+(: ρ->⟪α⟫s : -ρ → (℘ ⟪α⟫))
 (define (ρ->⟪α⟫s ρ)
-  (for/seteq: : (℘ -⟪α⟫) ([⟪α⟫ : -⟪α⟫ (in-hash-values ρ)]) ⟪α⟫))
+  (for/seteq: : (℘ ⟪α⟫) ([⟪α⟫ : ⟪α⟫ (in-hash-values ρ)]) ⟪α⟫))
 
-(: span-σ : (HashTable -⟪α⟫ (℘ -V)) (℘ -⟪α⟫) → (HashTable -⟪α⟫ (℘ -V)))
+(: span-σ : (HashTable ⟪α⟫ (℘ -V)) (℘ ⟪α⟫) → (HashTable ⟪α⟫ (℘ -V)))
 (define (span-σ σ αs)
   (hash-copy/spanning* σ αs V->⟪α⟫s))
 
@@ -121,10 +121,10 @@
   (match-define (-ΓA Γ _) ΓA)
   (Γ->αₖs Γ))
 
-(: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ -⟪α⟫))
+(: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
 (define (αₖ->⟪α⟫s αₖ σₖ)
   (define-set seen : -αₖ #:as-mutable-hash? #t)
-  (define-set αs   : -⟪α⟫ #:eq? #t)
+  (define-set αs   : ⟪α⟫ #:eq? #t)
   (let touch! ([αₖ : -αₖ αₖ])
     (unless (seen-has? αₖ)
       (seen-add! αₖ)
@@ -159,21 +159,21 @@
       (printf "   + ~a~n" (show-αₖ αₖ)))
     (printf "~n")))
 
-(: soft-gc! : -σ (℘ -⟪α⟫) → Void)
+#;(: soft-gc! : -σ (℘ ⟪α⟫) → Void)
 ;; "garbage collect" mutated-ness cardinality information 
-(define (soft-gc! σ αs)
+#;(define (soft-gc! σ αs)
   (match-define (-σ _ mods crds) σ)
-  (for ([α (in-list (hash-keys mods))] #:unless (∋ αs α))
+  (for ([α (in-set mods)] #:unless (∋ αs α))
     (hash-remove! mods α))
   (for ([α (in-list (hash-keys crds))] #:unless (∋ αs α))
     (hash-remove! crds α)))
 
-(define (->⟪α⟫s [x : (Rec X (U -⟪α⟫ -V -W¹ -W -ρ (Listof X) (℘ X)))]) : (℘ -⟪α⟫)
+(define (->⟪α⟫s [x : (Rec X (U ⟪α⟫ -V -W¹ -W -ρ (Listof X) (℘ X)))]) : (℘ ⟪α⟫)
   (cond
     [(list? x)
-     (for/unioneq : (℘ -⟪α⟫) ([xᵢ (in-list x)]) (->⟪α⟫s xᵢ))]
+     (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-list x)]) (->⟪α⟫s xᵢ))]
     [(set? x)
-     (for/unioneq : (℘ -⟪α⟫) ([xᵢ (in-set x)]) (->⟪α⟫s xᵢ))]
+     (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-set x)]) (->⟪α⟫s xᵢ))]
     [(-V? x) (V->⟪α⟫s x)]
     [(-W¹? x) (V->⟪α⟫s (-W¹-V x))]
     [(-W? x) (->⟪α⟫s (-W-Vs x))]

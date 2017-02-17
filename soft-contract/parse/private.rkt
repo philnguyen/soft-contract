@@ -23,6 +23,7 @@
 
 (define/contract (file->module p)
   (path-string? . -> . -module?)
+  (port-count-lines-enabled #t)
   (define p* (make-strawman p))
   (match-define (-module l body) (parse-top-level-form (do-expand-file p*)))
   (-module l (move-provides-to-end body)))
@@ -99,17 +100,29 @@
      (define s-name (syntax-e #'s))
      (define 𝒾 (-𝒾 s-name (cur-mod)))
      (define st-doms (map parse-e cs))
-     (define st-p (-struct/c 𝒾 st-doms (+ℓ!)))
-     (define dec-constr (-p/c-item (syntax-e #'s) (--> st-doms st-p (+ℓ!)) (+ℓ!)))
-     (define dec-pred (-p/c-item (format-symbol "~a?" s-name) -pred (+ℓ!)))
+     (define ℓ (syntax-ℓ prov))
+     (define st-p (-struct/c 𝒾 st-doms ℓ))
+     (define dec-constr
+       (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
+              [ℓₑ (ℓ-with-id ℓₖ 'provide)])
+         (-p/c-item (syntax-e #'s) (--> st-doms st-p ℓₖ) ℓₑ)))
+     (define dec-pred
+       (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
+              [ℓₑ (ℓ-with-id ℓₚ 'provide)])
+         (-p/c-item (format-symbol "~a?" s-name)
+                    (--> (list 'any/c) 'boolean? ℓₚ)
+                    ℓₑ)))
      (define dec-acs
        (for/list ([ac (syntax->list #'(ac ...))]
-                  [st-dom st-doms])
+                  [st-dom st-doms]
+                  [i (in-naturals)])
+         (define ℓᵢ (ℓ-with-id ℓ i))
+         (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
          (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
-         (-p/c-item ac-name (--> (list st-p) st-dom (+ℓ!)) (+ℓ!))))
+         (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ)))
      (list* dec-constr dec-pred dec-acs)]
     [(#%plain-app (~literal list) x:id c:expr)
-     (list (-p/c-item (syntax-e #'x) (parse-e #'c) (+ℓ!)))]))
+     (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ prov)))]))
 
 (define/contract (parse-submodule-form form)
   (scv-syntax? . -> . (or/c #f -submodule-form?))
@@ -179,7 +192,7 @@
                   (-st-ac 𝒾 i))
               ,@(for/list ([i (in-list (map car mut-list))])
                   (-st-mut 𝒾 i)))
-            (+ℓ!))))]
+            (syntax-ℓ form))))]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
      (define rhs (parse-e #'e))
@@ -256,15 +269,17 @@
 
     ;; HACK for immediate uses of accessors
     [(#%plain-app (~literal cadr) e)
-     (-@ -car (list (-@ -cdr (list (parse-e #'e)) (+ℓ!))) (+ℓ!))]
+     (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids (syntax-ℓ stx) 2))
+     (-@ -car (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)]
     [(#%plain-app (~literal caddr) e)
-     (-@ -car (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) (+ℓ!))) (+ℓ!))) (+ℓ!))]
+     (match-define (list ℓ₁ ℓ₂ ℓ₃) (ℓ-with-ids (syntax-ℓ stx) 3))
+     (-@ -car (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)) ℓ₃)]
 
     ;; HACK for treating `apply` specially for precision.
     ;; This simply bypasses reading `apply` as wrapped reference to primitive
     [(#%plain-app f:id x ...)
      #:when #|HACK can't use ~literal for some reason|# (equal? 'apply (syntax-e #'f))
-     (-@ 'apply (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'apply (parse-es #'(x ...)) (syntax-ℓ stx))]
 
     ;; tmp HACK for varargs
     [(#%plain-app o e ...)
@@ -272,11 +287,12 @@
               [(~or (~literal +) (~literal -) (~literal *) (~literal /)) #t]
               [_ #f])
      (define o-name (syntax-e #'o))
+     (define ℓ (syntax-ℓ stx))
      (match (parse-es #'(e ...))
        [(list e) e]
        [(list e₁ e* ...)
-        (for/fold ([e e₁]) ([eᵢ e*])
-          (-@ o-name (list e eᵢ) (+ℓ!)))])]
+        (for/fold ([e e₁]) ([eᵢ (in-list e*)] [i (in-naturals)])
+          (-@ o-name (list e eᵢ) (ℓ-with-id ℓ i)))])]
 
     ;; HACKs for `variable-refererence-constant?`
     [(if (#%plain-app (~literal variable-reference-constant?)
@@ -285,35 +301,35 @@
          (#%plain-app g:id x ...))
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "call-with-output-file"))
-     (-@ 'call-with-output-file  (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'call-with-output-file  (parse-es #'(x ...)) (syntax-ℓ stx))]
     [(if (#%plain-app (~literal variable-reference-constant?)
                       (#%variable-reference f:id))
          _
          (#%plain-app g:id x ...))
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "call-with-input-file"))
-     (-@ 'call-with-input-file (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'call-with-input-file (parse-es #'(x ...)) (syntax-ℓ stx))]
     [(if (#%plain-app (~literal variable-reference-constant?)
                       (#%variable-reference f:id))
          _
          (#%plain-app g:id x ...))
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "open-input-file"))
-     (-@ 'open-input-file (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'open-input-file (parse-es #'(x ...)) (syntax-ℓ stx))]
     [(if (#%plain-app (~literal variable-reference-constant?)
                       (#%variable-reference f:id))
          _
          (#%plain-app g:id x ...))
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "open-output-file"))
-     (-@ 'open-out-file (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'open-out-file (parse-es #'(x ...)) (syntax-ℓ stx))]
     [(if (#%plain-app (~literal variable-reference-constant?)
                       (#%variable-reference f:id))
          _
          (#%plain-app g:id x ...))
      #:when (and (free-identifier=? #'f #'g)
                  (string-prefix? (symbol->string (syntax-e #'f)) "file->list"))
-     (-@ 'file->list (parse-es #'(x ...)) (+ℓ!))]
+     (-@ 'file->list (parse-es #'(x ...)) (syntax-ℓ stx))]
     
 
     ;;; Contracts
@@ -322,7 +338,7 @@
                   [(_) (#%plain-app list c ...)]
                   [(_) (#%plain-app list d)])
        _ ...)
-     (--> (parse-es #'(c ...)) (parse-e #'d) (+ℓ!))]
+     (--> (parse-es #'(c ...)) (parse-e #'d) (syntax-ℓ stx))]
     ;; Dependent contract
     [(~or (begin
             (#%plain-app
@@ -342,7 +358,7 @@
            (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
      (define cs (parse-es #'(cₓ ...)))
      (define mk-d (-λ (syntax->datum #'(z ...)) (parse-e #'d)))
-     (-->i cs mk-d (+ℓ!))]
+     (-->i cs mk-d (syntax-ℓ stx))]
     ;; independent varargs
     [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list inits ...)]
@@ -353,29 +369,35 @@
            (parse-e #'rst)
            (parse-e #'rng))]
     [(#%plain-app (~literal fake:listof) c)
-     (-listof (parse-e #'c))]
+     (-listof (parse-e #'c) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:list/c) c ...)
-     (-list/c (parse-es #'(c ...)))]
+     (define args
+       (for/list ([cᵢ (in-list (syntax->list #'(c ...)))])
+         (cons (syntax-ℓ cᵢ) (parse-e cᵢ))))
+     (-list/c args)]
     [(#%plain-app (~literal fake:box/c) c)
-     (-box/c (parse-e #'c))]
+     (-box/c (parse-e #'c) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:vector/c) c ...)
-     (-@ 'vector/c (parse-es #'(c ...)) (+ℓ!))]
+     (-@ 'vector/c (parse-es #'(c ...)) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:vectorof) c)
-     (-@ 'vectorof (list (parse-e #'c)) (+ℓ!))]
+     (-@ 'vectorof (list (parse-e #'c)) (syntax-ℓ stx))]
     [(begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
             (#%plain-app _ _ _ _ (quote k) _ ...)
             _ ...)
      (define 𝒾 (-𝒾 (syntax-e #'k) (cur-mod)))
-     (-struct/c 𝒾 (parse-es #'(c ...)) (+ℓ!))]
+     (-struct/c 𝒾 (parse-es #'(c ...)) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
     [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
     [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
     [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c))]
     [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c))]
     [(#%plain-app (~literal fake:cons/c) c d)
-     (-cons/c (parse-e #'c) (parse-e #'d))]
+     (-cons/c (parse-e #'c) (parse-e #'d) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:one-of/c) c ...)
-     (-one-of/c (parse-es #'(c ...)))]
+     (define args
+       (for/list ([cᵢ (in-list (syntax->list #'(c ...)))])
+         (cons (syntax-ℓ cᵢ) (parse-e cᵢ))))
+     (-one-of/c args)]
     [(~or (let-values ()
             (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
           (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...))
@@ -395,7 +417,7 @@
     [(#%plain-app f x ...)
      (-@ (parse-e #'f)
          (parse-es #'(x ...))
-         (+ℓ!))]
+         (syntax-ℓ stx))]
     [((~literal with-continuation-mark) e₀ e₁ e₂)
      (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
     [(begin e ...) (-begin/simp (parse-es #'(e ...)))]
@@ -491,9 +513,9 @@
     [(l . r)
      (-@ -cons
          (list (parse-quote #'l) (parse-quote #'r))
-         (+ℓ!))]
+         (syntax-ℓ stx))]
     [() -null]
-    [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (+ℓ!))]
+    [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (syntax-ℓ stx))]
     [e (error 'parse-quote "unsupported quoted form: ~a" (syntax->datum #'e))]))
 
 ;; Parse given `formals` to extend environment

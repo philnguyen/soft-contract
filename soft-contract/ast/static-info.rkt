@@ -19,7 +19,8 @@
 (require racket/match
          racket/set
          "../utils/set.rkt"
-         "definition.rkt")
+         "definition.rkt"
+         "shorthands.rkt")
 
 (define-new-subtype -struct-info (Vector->struct-info (Vectorof Boolean)))
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]

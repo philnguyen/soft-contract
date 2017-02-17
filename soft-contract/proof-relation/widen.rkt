@@ -23,17 +23,17 @@
       (φs+ φs s)))
   (-Γ φs* as ts))
 
-(: σ⊕! ([-Σ -⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
+(: σ⊕! ([-Σ ⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! Σ α V #:mutating? [mutating? #f])
   (match-define (-Σ σ _ _) Σ)
   (set--Σ-σ! Σ (σ⊕ σ α V mutating?)))
 
-(: σ⊕ : -σ -⟪α⟫ -V Boolean → -σ)
+(: σ⊕ : -σ ⟪α⟫ -V Boolean → -σ)
 (define (σ⊕ σ α V mutating?)
   (match-define (-σ m mods crds) σ)
   (begin ; just for debugging
     (define Vs₀ (hash-ref m α →∅))
-    (define modified?₀ (hash-has-key? mods α))
+    (define modified?₀ (∋ mods α))
     (define crd₀ (hash-ref crds α (λ () 0))))
   (define-values (Vs* crds*)
     (cond
@@ -41,13 +41,13 @@
       ;; This gives some precision for programs that initialize `(box #f)`
       ;; then update it with fairly type-consistent values afterwards
       [(and mutating?
-            (not (hash-has-key? mods α))
+            (not (∋ mods α))
             (not (equal? 'N (hash-ref crds α (λ () 0)))))
        (values {set V} (hash-set crds α 1))]
       [else
        (define Vs (hash-ref m α →∅))
        (define crds*
-         (match (-⟪α⟫->-α α)
+         (match (⟪α⟫->-α α)
            [(? -𝒾?) ; can't bind top-level from 2 places
             (hash-set crds α
                       (case crd₀
@@ -57,9 +57,9 @@
            [_ (hash-update crds α cardinality+ (λ () 0))]))
        (values (Vs⊕ σ Vs V) crds*)]))
   (define m* (hash-set m α Vs*))
-  (define mods* (if mutating? (hash-set mods α #t) mods))
+  (define mods* (if mutating? (set-add mods α) mods))
   (-σ m* mods* crds*)
-  #;(when (match? (-⟪α⟫->-α α) (-𝒾 'slatex::*include-onlys* _))
+  #;(when (match? (⟪α⟫->-α α) (-𝒾 'slatex::*include-onlys* _))
     (printf "~a : ~a ⊕ ~a -> ~a~n"
             (show-⟪α⟫ α)
             (set-map Vs₀ show-V)
@@ -73,11 +73,11 @@
     [(_ Σ) (void)]
     [(_ Σ [α ↦ V] p ...)
      (begin ; FIXME the annotation is to work around TR bug
-       (σ⊕!  Σ (ann α -⟪α⟫) V #:mutating? #f)
+       (σ⊕!  Σ (ann α ⟪α⟫) V #:mutating? #f)
        (σ⊕*! Σ p ...))]
     [(_ Σ [α ↦ V #:mutating? b?] p ...)
      (begin ; FIXME the annotation is to work around TR bug
-       (σ⊕!  Σ (ann α -⟪α⟫) V b?)
+       (σ⊕!  Σ (ann α ⟪α⟫) V b?)
        (σ⊕*! Σ p ...))]))
 
 (: V⊑ : -σ -V -V → Boolean)
@@ -85,9 +85,9 @@
 ;; `#f` is a conservative "don't know" answer
 (define (V⊑ σ V₁ V₂)
 
-  (define-set seen : (Pairof -⟪α⟫ -⟪α⟫) #:as-mutable-hash? #t)
+  (define-set seen : (Pairof ⟪α⟫ ⟪α⟫) #:as-mutable-hash? #t)
 
-  (: go/⟪α⟫ : -⟪α⟫ -⟪α⟫ → Boolean)
+  (: go/⟪α⟫ : ⟪α⟫ ⟪α⟫ → Boolean)
   (define (go/⟪α⟫ α₁ α₂)
     (cond
       [(equal? α₁ α₂) #t]
@@ -111,7 +111,7 @@
        (for/and : Boolean ([p ps])
          (equal? '✓ (p∋Vs σ p V₁)))]
       [((-St 𝒾 αs₁) (-St 𝒾 αs₂)) #:when (struct-all-immutable? 𝒾)
-       (for/and : Boolean ([α₁ : -⟪α⟫ αs₁] [α₂ : -⟪α⟫ αs₂])
+       (for/and : Boolean ([α₁ : ⟪α⟫ αs₁] [α₂ : ⟪α⟫ αs₂])
          (go/⟪α⟫ α₁ α₂))]
       [((-Clo _ ⟦e⟧ ρ₁ _)
         (-Clo _ ⟦e⟧ ρ₂ _)) ; TODO : ignore `Γ` ok?
@@ -149,7 +149,7 @@
   
   (define (simplify [P : -V]) : -V
     (match P
-      [(-Ar _ (and α (app -⟪α⟫->-α (or (? -α.wrp?) (? -e?)))) _)
+      [(-Ar _ (and α (app ⟪α⟫->-α (or (? -α.wrp?) (? -e?)))) _)
        (define Vs (σ@ σ α))
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]
@@ -329,10 +329,10 @@
 (: extract-list-content : -σ -St → (℘ -V))
 ;; Return an abstract value approximating all list element in `V`
 (define (extract-list-content σ V)
-  (define-set seen : -⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+  (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
   (match-define (-Cons αₕ αₜ) V)
   (define Vs (σ@ σ αₕ))
-  (let loop! ([αₜ : -⟪α⟫ αₜ])
+  (let loop! ([αₜ : ⟪α⟫ αₜ])
     (unless (seen-has? αₜ)
       (seen-add! αₜ)
       (for ([Vₜ (σ@ σ αₜ)])

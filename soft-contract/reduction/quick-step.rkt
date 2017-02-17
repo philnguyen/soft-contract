@@ -16,7 +16,7 @@
          "havoc.rkt"
          )
 
-(define-type Ctx (List (HashTable -⟪α⟫ (℘ -V))
+(define-type Ctx (List (HashTable ⟪α⟫ (℘ -V))
                        (HashTable -αₖ (℘ -κ))
                        (HashTable -αₖ (℘ -ΓA))))
 
@@ -26,8 +26,8 @@
   (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ))
   (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥M))
   (define root₀ ; all addresses to top-level definitions are conservatively active
-    (for/fold ([root₀ : (℘ -⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
-      (set-add (set-add root₀ (-α->-⟪α⟫ 𝒾)) (-α->-⟪α⟫ (-α.wrp 𝒾)))))
+    (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
+      (set-add (set-add root₀ (-α->⟪α⟫ 𝒾)) (-α->⟪α⟫ (-α.wrp 𝒾)))))
 
   (define iter : Natural 0)
 
@@ -115,7 +115,7 @@
   (match-let ([(-Σ σ σₖ M) Σ])
     (values (M@ M αₖ₀) Σ)))
 
-(: ς->⟪α⟫s : -ς (HashTable -αₖ (℘ -κ)) → (℘ -⟪α⟫))
+(: ς->⟪α⟫s : -ς (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
 ;; Compute the root set for value addresses of this state
 (define (ς->⟪α⟫s ς σₖ)
   (match ς

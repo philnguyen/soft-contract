@@ -20,6 +20,7 @@
          racket/format
          "../utils/set.rkt"
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
+         "../ast/shorthands.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"
          "def-prim-runtime.rkt"
@@ -396,8 +397,8 @@
     [(-b "") {set (-ΓA Γ (-W -null/Vs sₐ))}]
     [_
      (define ℒ (-ℒ ∅ ℓ))
-     (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-     (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+     (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+     (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
      (define Vₜ (-Cons αₕ αₜ))
      (σ⊕*! Σ [αₕ ↦ (-● {set 'char?})]
              [αₜ ↦ Vₜ]
@@ -775,8 +776,8 @@
     [(? -St? Vₗ)
      (define Vₕs (extract-list-content σ Vₗ))
      (define ℒ (-ℒ ∅ ℓ))
-     (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-     (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+     (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+     (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
      (define Vₜ (-Cons αₕ αₜ))
      (for ([Vₕ Vₕs]) (σ⊕! Σ αₕ Vₕ))
      (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
@@ -798,8 +799,8 @@
       [((-b null) V₂) V₂]
       [((-Cons αₕ αₜ) V₂)
        (define ℒ (-ℒ ∅ ℓ))
-       (define αₕ* (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-       (define αₜ* (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+       (define αₕ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+       (define αₜ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
        (for ([Vₕ (σ@ σ αₕ)]) (σ⊕! Σ αₕ* Vₕ))
        (define Vₜs (set-add (σ@ σ αₜ) V₂))
        (for ([Vₜ* Vₜs]) (σ⊕! Σ αₜ* Vₜ*))
@@ -815,8 +816,8 @@
     [(-b (list)) {set (-ΓA Γ (-W -null/Vs sₐ))}]
     [(-Cons _ _)
      (define ℒ (-ℒ ∅ ℓ))
-     (define αₕ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-     (define αₜ (-α->-⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+     (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+     (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
      (define Vₜ (-Cons αₕ αₜ))
      (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! Σ αₕ Vₕ))
      (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
@@ -1035,21 +1036,21 @@
   (match sₙ
     [(-b (? exact-nonnegative-integer? n))
      (define ⟪α⟫s ; with side effect widening store
-       (for/list : (Listof -⟪α⟫) ([i (in-range n)])
-         (define ⟪α⟫ (-α->-⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
+       (for/list : (Listof ⟪α⟫) ([i (in-range n)])
+         (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
          (σ⊕! Σ ⟪α⟫ Vᵥ)
          ⟪α⟫))
      {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) sₐ))}]
     [_
-     (define ⟪α⟫ (-α->-⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
+     (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
      (σ⊕! Σ ⟪α⟫ Vᵥ) ; initializing, not mutating
      {set (-ΓA Γ (-W (list (-Vector^ ⟪α⟫ Vₙ)) sₐ))}]))
 (def-prim/custom (vector ⟪ℋ⟫ ℓ l Σ Γ Ws)
   (define σ (-Σ-σ Σ))
   (define sₐ (apply -?@ 'vector (map -W¹-s Ws)))
   (define ⟪α⟫s ; with side effect widening store
-    (for/list : (Listof -⟪α⟫) ([W (in-list Ws)] [i (in-naturals)])
-      (define ⟪α⟫ (-α->-⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
+    (for/list : (Listof ⟪α⟫) ([W (in-list Ws)] [i (in-naturals)])
+      (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
       (σ⊕! Σ ⟪α⟫ (-W¹-V W))
       ⟪α⟫))
   {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) sₐ))})
