@@ -128,7 +128,7 @@
                      (∪ facts facts*)
                      #|hack|# (λ () (@/s 'B false/s)))]))
          (values (cons eₒₖ oks) ers)]
-        [(-blm l+ lo _ _)
+        [(-blm l+ lo _ _ _)
          (define eₑᵣ
            (let-values ([(refs+ entry) (encode-e ctx bound Γ #|hack|# -ff)])
              (refs-union! refs+)

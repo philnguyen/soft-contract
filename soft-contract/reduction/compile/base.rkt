@@ -10,8 +10,8 @@
          racket/match)
 
 (define/memo (↓ₓ [l : -l] [x : Symbol]) : -⟦e⟧
-  (define -blm.undefined
-    (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x))))
+  (define -blm.undefined ; TODO should have had attached location to `x` too?
+    (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) +ℓ₀))
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-Σ σ _ _) Σ)
     (define α (ρ@ ρ x))

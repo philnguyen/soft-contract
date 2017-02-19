@@ -251,7 +251,7 @@
                (⟦k⟧ (-W Vs sₐ*) $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
               [else ∅])])]
         [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
-         (match-define (-blm l+ lo _ _) blm)
+         (match-define (-blm l+ lo _ _ _) blm)
          (define key (list κ αₖ blm))
          (cond
            [(hash-has-key? returned key)

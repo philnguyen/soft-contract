@@ -12,5 +12,5 @@
 
 (def-ext (exit l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   ;; HACK
-  (define blm (-blm 'Λ 'exit '() '()))
+  (define blm (-blm 'Λ 'exit '() '() (-ℒ-app ℒ)))
   (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))

@@ -23,7 +23,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-prim/custom (error ⟪ℋ⟫ ℓ l Σ Γ Ws)
   ;; Consider a user-written error to be a blame on some party other than the module itself
-  {set (-ΓA Γ (-blm 'exception 'error '(error) (map -W¹-V Ws)))})
+  {set (-ΓA Γ (-blm 'exception 'error '(error) (map -W¹-V Ws) ℓ))})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

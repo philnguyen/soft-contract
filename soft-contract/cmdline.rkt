@@ -6,7 +6,7 @@
          racket/list
          racket/pretty
          "utils/main.rkt"
-         "ast/definition.rkt"
+         "ast/main.rkt"
          "parse/main.rkt"
          "runtime/definition.rkt"
          (only-in "run.rkt" run-file havoc-file)
@@ -43,8 +43,8 @@
 (define (show-a a)
   (match a
     [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
-    [(-ΓA _ (-blm l+ lo Cs Vs))
-     `(blame ,l+ ,lo ,(show-Vs Cs) ,(show-Vs Vs))]))
+    [(-ΓA _ (-blm l+ lo Cs Vs ℓ))
+     `(blame ,l+ ,lo ,(show-Vs Cs) ,(show-Vs Vs) ,(show-ℓ ℓ))]))
 
 (parameterize ([Timeout timeout])
   (case mode

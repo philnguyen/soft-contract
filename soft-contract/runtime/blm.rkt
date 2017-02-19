@@ -5,9 +5,10 @@
 (require racket/match
          "../utils/pretty.rkt"
          "../ast/definition.rkt"
+         "../ast/srcloc.rkt"
          "definition.rkt")
 
-(: blm-arity : -l -l Arity (Listof -V) → -blm)
+(: blm-arity : -l -l Arity (Listof -V) ℓ → -blm)
 (define blm-arity
   (let ([arity->msg : (Arity → Symbol)
          (match-lambda
@@ -18,5 +19,5 @@
                            n)]
            [(arity-at-least n)
             (format-symbol "~a+ values" n)])])
-    (λ (l+ lo arity Vs)
-      (-blm l+ lo (list (arity->msg arity)) Vs))))
+    (λ (l+ lo arity Vs ℓ)
+      (-blm l+ lo (list (arity->msg arity)) Vs ℓ))))

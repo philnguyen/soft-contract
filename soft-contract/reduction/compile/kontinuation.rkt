@@ -27,7 +27,7 @@
        (⟦k⟧ -Void/W ($+ $ s V) Γ ⟪ℋ⟫ Σ)]
       [_
        (define blm
-         (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))))
+         (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; letrec-values
@@ -59,7 +59,8 @@
        (define blm
          (-blm l 'letrec-values
                (list (format-symbol "~a values" (length xs)))
-               (list (format-symbol "~a values" (length Vs)))))
+               (list (format-symbol "~a values" (length Vs)))
+               +ℓ₀))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; μ/c
@@ -224,7 +225,8 @@
        (define blm
          (-blm l 'define-values
                (list (format-symbol "~a values" n))
-               (list (format-symbol "~a values" (length Vs)))))
+               (list (format-symbol "~a values" (length Vs)))
+               +ℓ₀))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; provide with contract

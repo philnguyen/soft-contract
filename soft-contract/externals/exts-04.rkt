@@ -50,7 +50,7 @@
        (σ⊕*! Σ [⟪α⟫ₕ ↦ V] [⟪α⟫ₜ ↦ -null] [⟪α⟫ₜ ↦ Vₚ])
        (⟦k⟧ (-W (list Vₚ) sₐ) $ Γ ⟪ℋ⟫ Σ)]
       [_
-       (define blm (blm-arity l 'mk-listof 1 Vs))
+       (define blm (blm-arity l 'mk-listof 1 Vs (-ℒ-app ℒ₀)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 

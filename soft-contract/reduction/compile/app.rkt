@@ -37,7 +37,7 @@
       (cond
         [f (format-symbol "~a requires ~a arguments" (format "~a" (show-e f)) required)]
         [else (format-symbol "require ~a arguments" required)]))
-    (-blm l 'Λ (list msg) Vₓs))
+    (-blm l 'Λ (list msg) Vₓs (-ℒ-app ℒ)))
 
   (define-syntax-rule (with-guarded-arity a* e ...)
     (let ([n (length Wₓs)]
@@ -304,9 +304,9 @@
     [(-● _)
      (case (MΓ⊢oW M σ Γ 'procedure? Wₕ)
        [(✓ ?) ((app-opq sₕ) l $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-       [(✗) (⟦k⟧ (-blm l 'Λ (list 'procedure?) (list Vₕ)) $ Γ ⟪ℋ⟫ Σ)])]
+       [(✗) (⟦k⟧ (-blm l 'Λ (list 'procedure?) (list Vₕ) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ)])]
     [_
-     (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ)))
+     (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ) (-ℒ-app ℒ)))
      (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
 
@@ -331,7 +331,7 @@
            [(?) -Bool/Vs]))
        (⟦k⟧ (-W A sₐ) $ Γ ⟪ℋ⟫ Σ)]
       [_
-       (define blm (blm-arity l (show-o st-p) 1 (map -W¹-V Ws)))
+       (define blm (blm-arity l (show-o st-p) 1 (map -W¹-V Ws) (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 (: app-st-mk : -𝒾 → -⟦f⟧)
@@ -353,7 +353,7 @@
        (define V (-St 𝒾 αs))
        (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ)]
       [else
-       (define blm (blm-arity l (show-o st-mk) n (map -W¹-V Ws)))
+       (define blm (blm-arity l (show-o st-mk) n (map -W¹-V Ws) (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 (: app-st-ac : -𝒾 Index → -⟦f⟧)
@@ -367,7 +367,7 @@
   (define (⟦ac⟧ l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match Ws
       [(list (and W (-W¹ V s)))
-       (define (blm) (-blm l (show-o ac) (list p) (list V)))
+       (define (blm) (-blm l (show-o ac) (list p) (list V) (-ℒ-app ℒ)))
        (match-define (-Σ σ _ M) Σ)
        (define sₐ (-?@ ac s))
        (match V
@@ -415,7 +415,7 @@
             #:false (⟦k⟧ (blm) $ Γₑᵣ ⟪ℋ⟫ Σ))]
          [_ (⟦k⟧ (blm) $ Γ ⟪ℋ⟫ Σ)])]
       [_
-       (define blm (blm-arity l (show-o ac) 1 (map -W¹-V Ws)))
+       (define blm (blm-arity l (show-o ac) 1 (map -W¹-V Ws) (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
   ⟦ac⟧)
 
@@ -431,7 +431,7 @@
        (match-define (-Σ σ _ M) Σ)
        (match-define (-W¹ Vₛ sₛ) Wₛ)
        (match-define (-W¹ Vᵥ _ ) Wᵥ)
-       (define (blm) (-blm l (show-o mut) (list p) (list Vₛ)))
+       (define (blm) (-blm l (show-o mut) (list p) (list Vₛ) (-ℒ-app ℒ)))
        
        (match Vₛ
          [(-St (== 𝒾) αs)
@@ -459,7 +459,7 @@
           (app 'Λ $ ℒ (-W¹ p p) (list Wₛ) Γ ⟪ℋ⟫ Σ (if∷ l ⟦ok⟧ ⟦er⟧ ⊥ρ ⟦k⟧))]
          [_ (⟦k⟧ (blm) $ Γ ⟪ℋ⟫ Σ)])]
       [_
-       (define blm (blm-arity l (show-o mut) 2 (map -W¹-V Ws)))
+       (define blm (blm-arity l (show-o mut) 2 (map -W¹-V Ws) (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
   ⟦mut⟧)
 
@@ -588,7 +588,7 @@
           (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ Ws* ⟦e⟧s* ρ l ℒ ⟦k⟧))])]
       [_
        (define blm
-         (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs)))))
+         (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 (define/memo (mon.c∷ [l³ : -l³]
@@ -607,7 +607,7 @@
               (match-define (cons ⟦c⟧ ρ) C)
               (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℒ W-V ⟦k⟧))])]
       [else
-       (define blm (-blm lo 'Λ '(|1 value|) Vs))
+       (define blm (-blm lo 'Λ '(|1 value|) Vs (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 (define/memo (mon.v∷ [l³ : -l³]
@@ -626,7 +626,7 @@
               (match-define (cons ⟦v⟧ ρ) V)
               (⟦v⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.c∷ l³ ℒ W-C ⟦k⟧))])]
       [else
-       (define blm (-blm lo 'Λ '(|1 value|) Vs))
+       (define blm (-blm lo 'Λ '(|1 value|) Vs (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; let-values
@@ -664,7 +664,8 @@
        (define blm
          (-blm l 'let-values
                (list (format-symbol "requires ~a values" (length xs)))
-               (list (format-symbol "provided ~a values" (length Vs)))))
+               (list (format-symbol "provided ~a values" (length Vs)))
+               +ℓ₀))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; begin
@@ -743,9 +744,9 @@
                  (format-symbol "(arity-includes/c ~a)" n)]
                 [(-W¹ (-b (arity-at-least n)) _)
                  (format-symbol "(arity-at-least/c ~a)" n)]))
-            (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ₁₂ ⟪ℋ⟫ Σ)]
+            (⟦k⟧ (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)) $ Γ₁₂ ⟪ℋ⟫ Σ)]
            [else ∅])
-     (cond [Γ₂ (⟦k⟧ (-blm l+ lo (list 'procedure?) (list V)) $ Γ₂ ⟪ℋ⟫ Σ)]
+     (cond [Γ₂ (⟦k⟧ (-blm l+ lo (list 'procedure?) (list V) (-ℒ-app ℒ)) $ Γ₂ ⟪ℋ⟫ Σ)]
            [else ∅])))
 
 (define (mon-struct/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -784,7 +785,7 @@
                    (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))])]
     [(-● _)
      (define ⟦chk⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ p p)) (list (mk-rt-⟦e⟧ W-V))))
-     (define ⟦blm⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list p) (list V))))
+     (define ⟦blm⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list p) (list V) (-ℒ-app ℒ))))
      (cond
        [(null? ⟦field⟧s)
         (define ⟦rt⟧ (mk-rt-⟦e⟧ W-V))
@@ -803,7 +804,7 @@
                (wrap-st∷ C α l³ ⟦k⟧)]))
           (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
            (if∷ lo ⟦reconstr⟧ ⟦blm⟧ ⊥ρ ⟦k⟧*)))])]
-    [_ (⟦k⟧ (-blm l+ lo (list C) (list V)) $ Γ ⟪ℋ⟫ Σ)]))
+    [_ (⟦k⟧ (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ)]))
 
 (define (mon-x/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-W¹ C c) W-C)
@@ -857,7 +858,7 @@
   (match-define (list c*) (-app-split c 'not/c 1))
   (define ⟦k⟧*
     (let ([⟦ok⟧ (mk-rt-⟦e⟧ W-V)]
-          [⟦er⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list C) (list V)))])
+          [⟦er⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)))])
       (if∷ lo ⟦er⟧ ⟦ok⟧ ⊥ρ ⟦k⟧)))
   (for/union : (℘ -ς) ([C* (σ@ (-Σ-σ Σ) α)])
     (assert C* C-flat?)
@@ -923,10 +924,10 @@
                (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
            (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ (list ⟦rt⟧) ⊥ρ ⟦k⟧)))])]
     [(-● _)
-     (define ⟦er⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ))))
+     (define ⟦er⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ) (-ℒ-app ℒ))))
      (app lo $ ℒ -vector?/W (list W-V) Γ ⟪ℋ⟫ Σ
           (if∷ lo ⟦rt⟧ ⟦er⟧ ⊥ρ ⟦k⟧))]
-    [_ (⟦k⟧ (-blm l+ lo (list 'vector?) (list Vᵥ)) $ Γ ⟪ℋ⟫ Σ)]))
+    [_ (⟦k⟧ (-blm l+ lo (list 'vector?) (list Vᵥ) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ)]))
 
 (define (mon-vector/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ M) Σ)
@@ -937,7 +938,7 @@
   
   (: blm : -V -V → -Γ → (℘ -ς))
   (define ((blm C V) Γ)
-    (define blm (-blm l+ lo (list Vₚ) (list Vᵥ)))
+    (define blm (-blm l+ lo (list Vₚ) (list Vᵥ) (-ℒ-app ℒ)))
     (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
 
   (: chk-flds : -Γ → (℘ -ς))
@@ -984,10 +985,10 @@
   (define cv (-?@ c v))
   (case (MΓ⊢V∈C (-Σ-M Σ) (-Σ-σ Σ) Γ W-V W-C)
     [(✓) (⟦k⟧ (-W (list V) v) $ (Γ+ Γ cv) ⟪ℋ⟫ Σ)]
-    [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V)) $ (Γ+ Γ (-not cv)) ⟪ℋ⟫ Σ)]
+    [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)) $ (Γ+ Γ (-not cv)) ⟪ℋ⟫ Σ)]
     [(?)
      (app lo $ ℒ W-C (list W-V) Γ ⟪ℋ⟫ Σ
-          (if.flat/c∷ (-W (list V) v) (-blm l+ lo (list C) (list V)) ⟦k⟧))]))
+          (if.flat/c∷ (-W (list V) v) (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)) ⟦k⟧))]))
 
 (: flat-chk : -l -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (flat-chk l $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -1092,8 +1093,8 @@
          #:true  (⟦k⟧ W-V $ Γ₁ ⟪ℋ⟫ Σ)
          #:false (⟦k⟧ blm $ Γ₂ ⟪ℋ⟫ Σ))]
       [_
-       (match-define (-blm _ lo _ _) blm)
-       (⟦k⟧ (-blm lo 'Λ '(|1 value|) Vs) $ Γ ⟪ℋ⟫ Σ)])))
+       (match-define (-blm _ lo _ _ ℓ) blm)
+       (⟦k⟧ (-blm lo 'Λ '(|1 value|) Vs ℓ) $ Γ ⟪ℋ⟫ Σ)])))
 
 ;; Conditional
 (define/memo (if∷ [l : -l] [⟦e⟧₁ : -⟦e⟧] [⟦e⟧₂ : -⟦e⟧] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
@@ -1104,7 +1105,7 @@
        (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V s)])
          #:true  (⟦e⟧₁ ρ $ Γ₁ ⟪ℋ⟫ Σ ⟦k⟧)
          #:false (⟦e⟧₂ ρ $ Γ₂ ⟪ℋ⟫ Σ ⟦k⟧))]
-      [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs)))) $ Γ ⟪ℋ⟫ Σ)])))
+      [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀) $ Γ ⟪ℋ⟫ Σ)])))
 
 (define/memo (and∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (match ⟦e⟧s
@@ -1213,7 +1214,7 @@
       [(list C)
        (⟦v⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.c∷ l ℒ (-W¹ C s) ⟦k⟧))]
       [_
-       (define blm (-blm l 'Λ '(|1 value|) Vs))
+       (define blm (-blm l 'Λ '(|1 value|) Vs (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 (define/memo (fc.c∷ [l : -l]
@@ -1226,7 +1227,7 @@
       [(list V)
        (flat-chk l $ ℒ W-C (-W¹ V s) Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [_
-       (define blm (-blm l 'Λ '(|1 value|) Vs))
+       (define blm (-blm l 'Λ '(|1 value|) Vs (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -205,7 +205,7 @@
            (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ α ⟦k⟧)))])]
      [(-error msg)
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (⟦k⟧ (-blm l 'Λ '() (list (-b msg))) $ Γ ⟪ℋ⟫ Σ))]
+        (⟦k⟧ (-blm l 'Λ '() (list (-b msg)) +ℓ₀) $ Γ ⟪ℋ⟫ Σ))]
      [(-amb es)
       (define ⟦e⟧s (set-map es ↓))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)

@@ -62,7 +62,7 @@
              (match-define (-Σ σ _ M) Σ)
              (implement-predicate M σ Γ o Ws)]
             [else
-             {set (-ΓA Γ (blm-arity l o n (map -W¹-V Ws)))}]))))
+             {set (-ΓA Γ (blm-arity l o n (map -W¹-V Ws) ℓ))}]))))
 
 (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
 (define alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut)) (make-hasheq))

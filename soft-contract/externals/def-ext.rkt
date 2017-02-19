@@ -32,7 +32,6 @@
   (define/contract (gen-blm blm)
     (syntax? . -> . syntax?)
     #`(#,(-⟦k⟧) #,blm #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ)))
-
 )
 
 
@@ -85,9 +84,11 @@
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o
        #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+           (define ℓ (-ℒ-app ℒ))
            #,@(parameterize ([-o #'o]
                              [-⟪ℋ⟫ #'⟪ℋ⟫]
                              [-ℒ #'ℒ]
+                             [-ℓ #'ℓ]
                              [-l #'l]
                              [-Σ #'Σ]
                              [-σ #'σ]
