@@ -315,6 +315,11 @@
                                void?
                                eof-object?)
           ;; Insert manual rules here
+          [(zero?)
+           (match Vs
+             [(list (-b (? number? n))) (boolean->R (zero? n))]
+             [(list (-● _)) '?]
+             [_ '✗])]
           [(procedure?)
            (match Vs
              [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?))) '✓]

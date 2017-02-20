@@ -4,7 +4,8 @@
          ap∷ let∷ if∷ and∷ or∷ bgn∷ bgn0.v∷ bgn0.e∷ rst-Γ∷
          mon.c∷ mon.v∷
          make-memoized-⟦k⟧
-         mk-mon-⟦e⟧ mk-rt-⟦e⟧ mk-app-⟦e⟧)
+         mk-mon-⟦e⟧ mk-rt-⟦e⟧ mk-app-⟦e⟧
+         add-leak!)
 
 (require "../../utils/main.rkt"
          "../../ast/main.rkt"
@@ -309,6 +310,11 @@
      (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ) (-ℒ-app ℒ)))
      (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
+(: add-leak! : -Σ -V → Void)
+(define (add-leak! Σ V)
+  (when (behavioral? (-Σ-σ Σ) V)
+    (σ⊕! Σ ⟪α⟫ₕᵥ V)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Applications
@@ -487,7 +493,7 @@
 (define ((app-opq sₕ) l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (define sₐ (apply -?@ sₕ (map -W¹-s Ws)))
   (for ([W (in-list Ws)])
-    (σ⊕! Σ ⟪α⟫ₕᵥ (-W¹-V W)))
+    (add-leak! Σ (-W¹-V W)))
   (define αₖ (-ℋ𝒱))
   (define κ (-κ (bgn0.e∷ (-W -●/Vs sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
   (σₖ⊔! Σ αₖ κ)

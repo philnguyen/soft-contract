@@ -2,7 +2,8 @@
 
 (provide run-file havoc-file run-e)
 
-(require "utils/main.rkt"
+(require racket/match
+         "utils/main.rkt"
          "ast/main.rkt"
          "runtime/definition.rkt"
          "parse/main.rkt"
