@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
-(provide havoc* havoc
-         havoc*∷ havoc∷ hv∷
+(provide #|havoc* havoc
+         havoc*∷ havoc∷ hv∷|#
+         havoc
          gen-havoc-expr)
 
 (require racket/match
@@ -18,6 +19,25 @@
          "compile/app.rkt"
          )
 
+(: havoc : -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+(define (havoc Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  #;(define ⟦k⟧* (hv∷ ⟦k⟧))
+  #;(for/fold ([ac : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ Γ ⟪ℋ⟫ Σ)])
+            ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))])
+    (define κ (-κ ⟦k⟧* Γ ⟪ℋ⟫ 'void '()))
+    (set-add acc (havoc₁ V ⟪ℋ⟫ ⟦k⟧* Σ)))
+  (error 'havoc "TODO"))
+
+(define/memo (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+    (match-define (-W Vs _) A)
+    #;(for/set: : (℘ -ς) ([V (in-list Vs)])
+      (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ 'void '()))
+      (σₖ⊔! Σ αₖ κ)
+      (-ς↑ αₖ ⊤Γ ⟪ℋ⟫))
+    (error 'hv∷ "TODO")))
+
+#|
 (: havoc* : -ℒ (℘ -V) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (havoc* ℒ Vs Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (define ⟦k⟧* (havoc*∷ ℒ Vs ⟦k⟧))
@@ -142,14 +162,11 @@
       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ 'void '()))
       (σₖ⊔! Σ αₖ κ)
       (-ς↑ αₖ ⊤Γ ⟪ℋ⟫))))
-
-(def-ext (do-havoc l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (match-define (list (-W¹ V _)) Ws)
-  (havoc ℒ V Γ ⟪ℋ⟫ Σ ⟦k⟧))
+|#
 
 (: gen-havoc-expr : (Listof -module) → -e)
 (define (gen-havoc-expr ms)
-  (define-set refs : -𝒾 #:as-mutable-hash? #t)
+  (define-set refs : -𝒾)
   
   (for ([m (in-list ms)])
     (match-define (-module path forms) m)
@@ -159,8 +176,5 @@
       (refs-add! (-𝒾 x path))))
 
   (with-debugging/off
-    ((ans) (-amb/simp (for/list ([ref (in-hash-keys refs)]
-                                 [i : Natural (in-naturals)])
-                        (define ℓᵢ (loc->ℓ (loc 'toplevel i 0 '())))
-                        (-@ 'do-havoc (list ref) ℓᵢ))))
+    ((ans) (-@ (-•) (set->list refs) +ℓ₀))
     (printf "gen-havoc-expr: ~a~n" (show-e ans))))

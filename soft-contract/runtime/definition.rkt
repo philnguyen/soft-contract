@@ -296,6 +296,8 @@
             (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.fn [mon-loc : -ℒ] [ctx : -⟪ℋ⟫])
 
+            (-α.hv) ; hack
+
             -e)
 
 (define (α->s [α : -α]) (and (-e? α) α))
@@ -304,7 +306,7 @@
 (define-interner -α #:interned-type-name ⟪α⟫)
 (define (⟪α⟫->s [⟪α⟫ : ⟪α⟫]) (α->s (⟪α⟫->-α ⟪α⟫)))
 (define (⟪α⟫s->ss [⟪α⟫s : (Listof ⟪α⟫)]) (map ⟪α⟫->s ⟪α⟫s))
-
+(define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Compiled expression
@@ -322,7 +324,7 @@
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
 (define-type -⟦e⟧ (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-(define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ       → (℘ -ς)))
+(define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
 
@@ -341,15 +343,13 @@
 
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ])
-             ;; Contract monitoring
-             (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
-             ;; Flat checking
-             (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
-             ;; Havoc value set
-             (-ℋ𝒱* [loc : -ℒ] [vals : (℘ -V)])
-             ;; Havoc single value
-             (-ℋ𝒱 [loc : -ℒ] [val : -V])
-             )
+     ;; Contract monitoring
+     (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
+     ;; Flat checking
+     (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
+     ;; Havoc
+     (-ℋ𝒱)
+     )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -505,8 +505,7 @@
   (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
         [(-ℳ? αₖ) (show-ℳ αₖ)]
         [(-ℱ? αₖ) (show-ℱ αₖ)]
-        [(-ℋ𝒱*? αₖ) (show-ℋ𝒱* αₖ)]
-        [(-ℋ𝒱? αₖ) (show-ℋ𝒱 αₖ)]
+        [(-ℋ𝒱? αₖ) 'ℋ𝒱]
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
@@ -522,14 +521,6 @@
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
   (match-define (-ℱ x l ℓ C V) ℱ)
   `(ℱ ,x ,(show-V C) ,(show⟪α⟫ V)))
-
-(define (show-ℋ𝒱* [ℋ𝒱* : -ℋ𝒱*]) : Sexp
-  (match-define (-ℋ𝒱* _ Vs) ℋ𝒱*)
-  `(ℋ𝒱* ,@(set-map Vs show-V)))
-
-(define (show-ℋ𝒱 [ℋ𝒱 : -ℋ𝒱]) : Sexp
-  (match-define (-ℋ𝒱 _ V) ℋ𝒱)
-  `(ℋ𝒱 ,(show-V V)))
 
 (define-parameter verbose? : Boolean #f)
 

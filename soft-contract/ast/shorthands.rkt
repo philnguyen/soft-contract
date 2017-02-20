@@ -125,13 +125,6 @@
       (-and (-@ 'real? (list 𝐱) ℓ₀)
             (-@ op (list 𝐱 e) ℓ₁))))
 
-(: -amb/simp : (Listof -e) → -e)
-;; Smart constructor for `amb` with simplification for 1-expression case
-(define -amb/simp
-  (match-lambda
-    [(list e) e]
-    [es (-amb (list->set es))]))
-
 (: -begin/simp : (∀ (X) (Listof X) → (U X (-begin X))))
 ;; Smart constructor for begin, simplifying single-expression case
 (define/match (-begin/simp xs)

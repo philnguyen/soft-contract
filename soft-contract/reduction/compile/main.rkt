@@ -38,8 +38,7 @@
   (define (↓d d)
     (match d
       [(-define-values xs e)
-       (define αs : (Listof ⟪α⟫)
-         (for/list ([x xs]) (-α->⟪α⟫ (-𝒾 x l))))
+       (define αs : (Listof ⟪α⟫) (for/list ([x xs]) (-α->⟪α⟫ (-𝒾 x l))))
        (define ⟦e⟧ (↓ₑ l e))
        (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
          (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (def∷ l αs ⟦k⟧)))]
@@ -96,9 +95,8 @@
         (⟦k⟧ (-W (list (-Case-Clo ⟦clause⟧s ρ Γ)) s) $ Γ ⟪ℋ⟫ Σ))]
      [(? -prim? p) (↓ₚᵣₘ p)]
      [(-•)
-      (define W (-W -●/Vs #f))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
+        (⟦k⟧ -●/W∅ $ Γ ⟪ℋ⟫ Σ))]
      [(-x x) (↓ₓ l x)]
      [(and 𝒾 (-𝒾 x l₀))
 
@@ -113,18 +111,17 @@
       (define ⟪α⟫ (-α->⟪α⟫ α))
       
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (define σ (-Σ-σ Σ))
-        (define old? (σ-old? σ ⟪α⟫))
+        (define old? (σ-old? Σ ⟪α⟫))
         (define s (and old? 𝒾))
         (cond
           [($@ $ s) =>
            (λ ([V : -V])
              (⟦k⟧ (-W (list V) s) $ Γ ⟪ℋ⟫ Σ))]
           [else
-           (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
-                      (define V* (modify-V V))
-                      (define $* ($+ $ s V*))
-                      (⟦k⟧ (-W (list V*) s) $* Γ ⟪ℋ⟫ Σ))]))]
+           (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
+             (define V* (modify-V V))
+             (define $* ($+ $ s V*))
+             (⟦k⟧ (-W (list V*) s) $* Γ ⟪ℋ⟫ Σ))]))]
      
      [(-@ f xs ℓ)
       (define ⟦f⟧  (↓ f))
@@ -154,13 +151,13 @@
      [(-quote q)
       (cond
         [(Base? q)
-         (define b (-b q))
+         (define W (let ([b (-b q)]) (-W (list b) b)))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦k⟧ (-W (list b) b) $ Γ ⟪ℋ⟫ Σ))]
+           (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
         [else (error '↓ₑ "TODO: (quote ~a)" q)])]
      [(-let-values bnds e*)
-      (define ⟦bnd⟧s
-        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
+      (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
+        (for/list ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
           (cons xs (↓ eₓₛ))))
       (define ⟦e*⟧ (↓ e*))
@@ -168,12 +165,10 @@
         ['() ⟦e*⟧]
         [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ
-                                  ⟦k⟧
-                                  #;(rst∷ (dom ρ) ⟦k⟧))))])]
+           (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧)))])]
      [(-letrec-values bnds e*)
-      (define ⟦bnd⟧s
-        (for/list : (Listof (Pairof (Listof Symbol) -⟦e⟧)) ([bnd bnds])
+      (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
+        (for/list ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
           (cons xs (↓ eₓₛ))))
       (define ⟦e*⟧ (↓ e*))
@@ -190,9 +185,7 @@
                (σ⊕! Σ α -undefined)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
-            (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ*
-                     ⟦k⟧
-                     #;(rst∷ (dom ρ) ⟦k⟧))))])]
+            (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))])]
      [(-set! x e*)
       (define ⟦e*⟧ (↓ e*))
       (match x
@@ -206,11 +199,6 @@
      [(-error msg)
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (⟦k⟧ (-blm l 'Λ '() (list (-b msg)) +ℓ₀) $ Γ ⟪ℋ⟫ Σ))]
-     [(-amb es)
-      (define ⟦e⟧s (set-map es ↓))
-      (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (for/union : (℘ -ς) ([⟦e⟧ ⟦e⟧s])
-           (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
      [(-μ/c x c)
       (define ⟦c⟧ (↓ c))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -255,15 +243,16 @@
      [(-struct/c si cs ℓ)
       (match (map ↓ cs)
         ['()
+         (define W (-W (list (-St/C #t si '())) e))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦k⟧ (-W (list (-St/C #t si '())) e) $ Γ ⟪ℋ⟫ Σ))]
+           (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
         [(cons ⟦c⟧ ⟦c⟧s)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (struct/c∷ ℓ si '() ⟦c⟧s ρ ⟦k⟧)))])]
      [_ (error '↓ₑ "unhandled: ~a" (show-e e))])
    e))
 
-(define (flattened? [ρ : -ρ])
+#;(define (flattened? [ρ : -ρ])
   (define immutable-vars
     (for/seteq: : (℘ Symbol) ([(x α) ρ] #:unless (assignable? x))
       x))
@@ -274,8 +263,8 @@
                      ⟪ℋ⟫ₓ)])
         (for/and : Boolean ([⟪ℋ⟫ᵢ ⟪ℋ⟫s]) (equal? ⟪ℋ⟫₀ ⟪ℋ⟫ᵢ)))))
 
-(: flatten! : -Σ -⟪ℋ⟫ -ρ → -ρ)
-(define (flatten! Σ ⟪ℋ⟫ ρ)
+#;(: flatten! : -Σ -⟪ℋ⟫ -ρ → -ρ)
+#;(define (flatten! Σ ⟪ℋ⟫ ρ)
   ;; with side effect widening store
   (for/hash : -ρ ([(x α) ρ])
     (define α*

@@ -83,7 +83,6 @@
             (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
             (-set! (U -𝒾 -x) -e)
             (-error String)
-            (-amb (℘ -e))
             
             ;; contract stuff
             (-μ/c Symbol -e)
@@ -221,7 +220,6 @@
     [(-error msg) `(error ,msg)]
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
-    [(-amb e*) `(amb ,@(for/list : (Listof Sexp) ([e e*]) (show-e e)))]
     [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
     [(--> cs d _)
      `(,@(map show-e cs) . -> . ,(show-e d))]

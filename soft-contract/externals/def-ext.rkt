@@ -24,6 +24,7 @@
          "../ast/definition.rkt"
          "../runtime/main.rkt"
          "../reduction/compile/app.rkt"
+         "../proof-relation/main.rkt"
          "gen.rkt"
          "def-ext-runtime.rkt")
 
@@ -62,7 +63,8 @@
          (define Wₐ (-W (list #,(parameterize ([-σ #'σ])
                                   (gen-wrap #'d #'-●/V #'sₐ)))
                         sₐ))
-         (define αₖ (-ℋ𝒱* ℒ (set (-W¹-V W) ...)))
+         (begin (σ⊕! Σ ⟪α⟫ₕᵥ (-W¹-V W)) ...)
+         (define αₖ (-ℋ𝒱))
          (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
          (σₖ⊔! Σ αₖ κ)
          {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]

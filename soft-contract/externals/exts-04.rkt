@@ -144,6 +144,4 @@
           (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
           (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ lo ℒ ⟦k⟧)))])]
     [_
-     (if (behavioral? σ (-W¹-V Wᵤ))
-         (havoc ℒ Vᵤ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-         (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ))]))
+     (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]))

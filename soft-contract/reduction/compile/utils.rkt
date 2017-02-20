@@ -50,7 +50,7 @@
              ∅]
             [_
              (match-define (-Σ _ _ M) Σ)
-             (unless (or (-ℋ𝒱? αₖ) (-ℋ𝒱*? αₖ))
+             (unless (-ℋ𝒱? αₖ)
                (M⊔! Σ αₖ Γ A))
              (when (and print-blames-on-the-fly?
                         (-blm? A)

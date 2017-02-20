@@ -20,6 +20,7 @@
 (define -False/W (-W -False/Vs -ff))
 (define -●/V (-● ∅))
 (define -●/Vs (list -●/V))
+(define -●/W∅ (-W -●/Vs #f))
 (define -Bool/Vs (list (-● {set 'boolean?})))
 (define -Nat/Vs (list (-● {set 'exact-nonnegative-integer?})))
 (define -Void/Vs (list -void))

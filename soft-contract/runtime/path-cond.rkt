@@ -57,7 +57,6 @@
   (match-define (-γ αₖ ?blm sₕ sₓs) γ)
   (match-define (-Γ φs as γs) Γ)
   (cond [(and (not (-ℋ𝒱? αₖ))
-              (not (-ℋ𝒱*? αₖ))
               (or sₕ (ormap (inst values -s) sₓs))
               (not (member γ γs)))
          (-Γ φs as (cons γ γs))]

@@ -46,9 +46,6 @@
        [_ (fv e)])]
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
-    [(-amb es)
-     (for/fold ([xs : (℘ Symbol) ∅eq]) ([e es])
-       (∪ xs (fv e)))]
     [(-μ/c _ e) (fv e)]
     [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
@@ -97,7 +94,6 @@
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
        (checks# e))]
-   [(-amb es) (for/sum ([e (in-set es)]) (checks# e))]
    [(-μ/c _ c) (checks# c)]
    [(--> cs d _) (+ (checks# cs) (checks# d))]
    [(-->i cs mk-d _) (+ (checks# cs) (checks# mk-d))]
@@ -132,7 +128,6 @@
        (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-letrec-values bnds e)
        (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
-      [(-amb es) (for/unioneq : (℘ Symbol) ([e es]) (go e))]
       [(-μ/c _ c) (go c)]
       [(--> cs d _) (∪ (go* cs) (go d))]
       [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
@@ -261,7 +256,6 @@
        (match i
          [(-x (? symbol? x)) (-set! (-x (hash-ref m x)) (go! m e*))]
          [_ (-set! i (go! m e*))])]
-      [(-amb es) (-amb (map/set (curry go! m) es))]
       [(-μ/c x c) (-μ/c x (go! m c))]
       [(--> cs d ℓ) (--> (map (curry go! m) cs) (go! m d) ℓ)]
       [(-->i cs mk-d ℓ)
@@ -351,8 +345,6 @@
              (-letrec-values bnds* body*)]
             [(-set! x e*)
              (-set! x (go m e*))]
-            [(-amb es)
-             (-amb (for/set: : (℘ -e) ([e es]) (go m e)))]
             [(-μ/c z c)
              (-μ/c z (go (shrink m {seteq z}) c))]
             [(--> cs d ℓ)
