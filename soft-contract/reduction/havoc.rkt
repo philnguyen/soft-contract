@@ -86,27 +86,37 @@
                   [else (error 'havoc "TODO: ~a" k)]))]
          [_ (done)])]
 
-      ;; If it's a struct, havoc all publically accessible fields
+      ;; If it's a struct, havoc and widen each public field
       [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
        (∪
         (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
           (define Acc (-W¹ acc acc))
-          (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'ac-ap (show-o acc)))))
+          (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hv-ac (show-o acc)))))
           (app 'havoc $∅ (-ℒ ∅ ℓ) Acc (list W) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
-        ∅ ;; TODO: mut
-      )]
+        (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
+          (define Mut (-W¹ mut mut))
+          (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hv-mut (show-o mut)))))
+          (app 'havoc $∅ (-ℒ ∅ ℓ) Mut (list W -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
 
       ;; Havoc vector's content before erasing the vector with unknowns
       ;; Guarded vectors are already erased
       [(? -Vector/guard?)
-       (error 'havoc "TODO: guarded vector")
-       (done)]
+       (define ℓ (loc->ℓ (loc 'havoc 0 0 '(vector/guard))))
+       (define Wᵢ (-W¹ -Nat/V #f))
+       (∪
+        (app 'havoc $∅ (-ℒ ∅ (ℓ-with-id ℓ 'ref)) -vector-ref/W (list W Wᵢ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
+        (app 'havoc $∅ (-ℒ ∅ (ℓ-with-id ℓ 'mut)) -vector-set!/W (list W Wᵢ -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
       [(-Vector αs)
-       (for/union : (℘ -ς) ([(α i) (in-indexed αs)])
-         (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-         (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'vref (assert i index?)))))
-         (app 'havoc $∅ (-ℒ ∅ ℓ) -vector-ref/W (list W Wᵢ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+       ;; Widen each field first. No need to go through `vector-set!` b/c there's no
+       ;; contract protecting it
+       (for ([α (in-list αs)])
+         (σ⊕! Σ α -●/V))
+       ;; Access vector at opaque field
+       (for*/union : (℘ -ς) ([α : ⟪α⟫ αs] [V (in-set (σ@ Σ α))])
+          (⟦k⟧ (-W (list V) #f) $∅ ⊤Γ ⟪ℋ⟫ Σ))]
+      
       [(-Vector^ α _)
+       (σ⊕! Σ α -●/V)
        (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
          (⟦k⟧ (-W (list V) #f) $∅ ⊤Γ ⟪ℋ⟫ Σ))]
 

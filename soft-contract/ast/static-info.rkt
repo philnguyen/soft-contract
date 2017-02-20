@@ -12,7 +12,9 @@
          add-top-level!
          top-levels
          get-public-accs
+         get-public-muts
          add-public-acc!
+         add-public-mut!
          current-static-info ; just for debugging
          )
 
@@ -25,6 +27,7 @@
 (define-new-subtype -struct-info (Vector->struct-info (Vectorof Boolean)))
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
                       [public-accs : (HashTable -𝒾 (℘ -st-ac))]
+                      [public-muts : (HashTable -𝒾 (℘ -st-mut))]
                       [assignables : (HashTable (U -x -𝒾) #t)]
                       [top-level-defs : (HashTable -𝒾 #t)])
   #:transparent)
@@ -36,6 +39,7 @@
                                  (cons -𝒾-box  box-info)))
                 (make-hash (list (cons -𝒾-cons (set -car -cdr))
                                  (cons -𝒾-box (set -unbox))))
+                (make-hash (list (cons -𝒾-box (set -set-box!))))
                 (make-hash)
                 (make-hash)))
 
@@ -52,7 +56,7 @@
 
 (: get-struct-info : -𝒾 → -struct-info)
 (define (get-struct-info 𝒾)
-  (match-define (-static-info structs _ _ _) (current-static-info))
+  (match-define (-static-info structs _ _ _ _) (current-static-info))
   (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
 
 (define (get-struct-arity [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
@@ -89,6 +93,20 @@
                 𝒾
                 (λ ([acs : (℘ -st-ac)])
                   (set-add acs ac))
+                →∅))
+
+(: get-public-muts : -𝒾 → (℘ -st-mut))
+(define (get-public-muts 𝒾)
+  (hash-ref (-static-info-public-muts (current-static-info))
+            𝒾
+            →∅))
+
+(: add-public-mut! : -𝒾 -st-mut → Void)
+(define (add-public-mut! 𝒾 mut)
+  (hash-update! (-static-info-public-muts (current-static-info))
+                𝒾
+                (λ ([muts : (℘ -st-mut)])
+                  (set-add muts mut))
                 →∅))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
