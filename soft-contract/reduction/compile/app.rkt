@@ -47,16 +47,6 @@
         [(arity-includes? a n) e ...]
         [else (⟦k⟧ (blm-arity a n) $ Γ ⟪ℋ⟫ Σ)])))
 
-  (: make-arg-list! : Arity (Listof -W¹) → (℘ (U (Listof -W¹) -blm)))
-  (define (make-arg-list! a Ws)
-    (match a
-      [(? exact-nonnegative-integer? n)
-       (error 'make-arg-list! "TODO: exact arity ~a" n)]
-      [(arity-at-least n)
-       (error 'make-arg-list! "TODO: arity-at-least ~a" n)]
-      [(? list?)
-       (error 'make-arg-list! "TODO: case-lambda")]))
-
   (: app-prim-or-ext : Symbol → (℘ -ς))
   (define (app-prim-or-ext o)
     (cond
