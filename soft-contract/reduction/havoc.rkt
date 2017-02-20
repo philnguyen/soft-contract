@@ -1,9 +1,6 @@
 #lang typed/racket/base
 
-(provide #|havoc* havoc
-         havoc*∷ havoc∷ hv∷|#
-         havoc
-         gen-havoc-expr)
+(provide havoc gen-havoc-expr)
 
 (require racket/match
          racket/set
@@ -122,15 +119,15 @@
 
 (: gen-havoc-expr : (Listof -module) → -e)
 (define (gen-havoc-expr ms)
-  (define-set refs : -𝒾)
-  
-  (for ([m (in-list ms)])
-    (match-define (-module path forms) m)
-    (for* ([form (in-list forms)] #:when (-provide? form)
-           [spec (in-list (-provide-specs form))])
+  (define refs : (Listof -𝒾)
+    ;; collect as list to enforce some order to reduce confusion when debugging
+    (for*/list ([m (in-list ms)]
+                [path (in-value (-module-path m))]
+                [form (in-list (-module-body m))] #:when (-provide? form)
+                [spec (in-list (-provide-specs form))])
       (match-define (-p/c-item x _ _) spec)
-      (refs-add! (-𝒾 x path))))
+      (-𝒾 x path)))
 
   (with-debugging/off
-    ((ans) (-@ (-•) (set->list refs) +ℓ₀))
+    ((ans) (-@ (-•) refs +ℓ₀))
     (printf "gen-havoc-expr: ~a~n" (show-e ans))))

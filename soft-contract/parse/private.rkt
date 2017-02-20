@@ -265,7 +265,9 @@
 
     ;; HACK for immediate uses of `list`
     [(#%plain-app (~literal list) e ...)
-     (-list (parse-es #'(e ...)))]
+     (-list
+      (for/list ([e (syntax->list #'(e ...))])
+        (cons (syntax-ℓ e) (parse-e e))))]
 
     ;; HACK for immediate uses of accessors
     [(#%plain-app (~literal cadr) e)
