@@ -15,14 +15,14 @@
     ((Vs)
      (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
     (when (>= (set-count Vs) 5)
-      (printf "σ@: ~a -> ~a~n" (show⟪α⟫ ⟪α⟫) (set-count Vs))
+      (printf "σ@: ~a -> ~a~n" (show-⟪α⟫ ⟪α⟫) (set-count Vs))
       (define-set roots : ⟪α⟫ #:eq? #t)
       (for ([V Vs])
         (roots-union! (V->⟪α⟫s V))
         (printf "  - ~a~n" (show-V V)))
       (printf "addresses:~n")
       (for ([(α Vs) (hash-copy/spanning* (-σ-m σ) roots V->⟪α⟫s)])
-        (printf "  - ~a ↦ ~a~n" (show⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
+        (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
       (printf "~n")
       (when (> ⟪α⟫ 3000)
         (error "DONE")))))
@@ -57,7 +57,7 @@
                (cons V Vs))]
             ['() {set '()}])))
     (when (> (set-count ans) 1)
-      (printf "σ@/list: ~a -> ~a~n" (map show⟪α⟫ ⟪α⟫s) (set-count ans)))))
+      (printf "σ@/list: ~a -> ~a~n" (map show-⟪α⟫ ⟪α⟫s) (set-count ans)))))
 
 (: σ@¹ : (U -Σ -σ) ⟪α⟫ → -V)
 ;; Look up store, asserting that exactly 1 value resides there

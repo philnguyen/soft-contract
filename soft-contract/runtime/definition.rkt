@@ -386,7 +386,7 @@
         [else
          (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ Vs) σ]
                                      [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
-           `(,(show⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V)))]))
+           `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V)))]))
 
 (define (show-s [s : -s]) (if s (show-e s) '∅))
 
@@ -428,26 +428,26 @@
      (match α
        [(? -𝒾? 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
        [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
-       [_ `(,(show-V guard) ◃ ,(show⟪α⟫ α))])]
-    [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show⟪α⟫ αs))]
+       [_ `(,(show-V guard) ◃ ,(show-⟪α⟫ α))])]
+    [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-⟪α⟫ αs))]
     [(-St* (-St/C _ 𝒾 γℓs) α _)
      `(,(format-symbol "~a/wrapped" (-𝒾-name 𝒾))
-       ,@(for/list : (Listof Sexp) ([γℓ γℓs]) (if γℓ (show⟪α⟫ℓ γℓ) '✓))
-       ▹ ,(show⟪α⟫ α))]
-    [(-Vector αs) `(vector ,@(map show⟪α⟫ αs))]
-    [(-Vector^ α n) `(vector^ ,(show⟪α⟫ α) ,(show-V n))]
+       ,@(for/list : (Listof Sexp) ([γℓ γℓs]) (if γℓ (show-⟪α⟫ℓ γℓ) '✓))
+       ▹ ,(show-⟪α⟫ α))]
+    [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
+    [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]
     [(-Vector/guard grd _ _)
      (match grd
-       [(-Vector/C γs) `(vector/hetero ,@(map show⟪α⟫ℓ γs))]
-       [(-Vectorof γ) `(vector/homo ,(show⟪α⟫ℓ γ))])]
-    [(-And/C _ l r) `(and/c ,(show⟪α⟫ (car l)) ,(show⟪α⟫ (car r)))]
-    [(-Or/C _ l r) `(or/c ,(show⟪α⟫ (car l)) ,(show⟪α⟫ (car r)))]
-    [(-Not/C γ) `(not/c ,(show⟪α⟫ (car γ)))]
-    [(-Vectorof γ) `(vectorof ,(show⟪α⟫ (car γ)))]
-    [(-Vector/C γs) `(vector/c ,@(map show⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ γs)))]
-    [(-=> αs β _) `(,@(map show⟪α⟫ℓ αs) . -> . ,(show⟪α⟫ℓ β))]
+       [(-Vector/C γs) `(vector/hetero ,@(map show-⟪α⟫ℓ γs))]
+       [(-Vectorof γ) `(vector/homo ,(show-⟪α⟫ℓ γ))])]
+    [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
+    [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
+    [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]
+    [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (car γ)))]
+    [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ γs)))]
+    [(-=> αs β _) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ℓ β))]
     [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
-     `(->i ,@(map show⟪α⟫ℓ γs)
+     `(->i ,@(map show-⟪α⟫ℓ γs)
            ,(match xs
               [(? list? xs) `(res ,xs ,(show-e d))]
               [_ (show-e d)]))]
@@ -455,16 +455,16 @@
      `(case->
        ,@(for/list : (Listof Sexp) ([kase cases])
            (match-define (cons αs β) kase)
-           `(,@(map show⟪α⟫ αs) . -> . ,(show⟪α⟫ β))))]
+           `(,@(map show-⟪α⟫ αs) . -> . ,(show-⟪α⟫ β))))]
     [(-St/C _ 𝒾 αs)
-     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ αs)))]
-    [(-x/C ⟪α⟫) `(recursive-contract ,(show⟪α⟫ ⟪α⟫))]))
+     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ αs)))]
+    [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]))
 
-(define (show⟪α⟫ℓ [⟪α⟫ℓ : (Pairof ⟪α⟫ ℓ)]) : Symbol
+(define (show-⟪α⟫ℓ [⟪α⟫ℓ : (Pairof ⟪α⟫ ℓ)]) : Symbol
   (match-define (cons ⟪α⟫ ℓ) ⟪α⟫ℓ)
   (define α (⟪α⟫->-α ⟪α⟫))
   (string->symbol
-   (format "~a~a" (if (-e? α) (show-e α) (show⟪α⟫ ⟪α⟫)) (n-sup ℓ))))
+   (format "~a~a" (if (-e? α) (show-e α) (show-⟪α⟫ ⟪α⟫)) (n-sup ℓ))))
 
 (define (show-ΓA [ΓA : -ΓA]) : Sexp
   (match-define (-ΓA Γ A) ΓA)
@@ -516,11 +516,11 @@
 
 (define (show-ℳ [ℳ : -ℳ]) : Sexp
   (match-define (-ℳ x l³ ℓ C V) ℳ)
-  `(ℳ ,x ,(show-V C) ,(show⟪α⟫ V)))
+  `(ℳ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
 (define (show-ℱ [ℱ : -ℱ]) : Sexp
   (match-define (-ℱ x l ℓ C V) ℱ)
-  `(ℱ ,x ,(show-V C) ,(show⟪α⟫ V)))
+  `(ℱ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
 (define-parameter verbose? : Boolean #f)
 
@@ -543,7 +543,7 @@
              `(ℒ ,(set->list ℓs) ,ℓ)]
             [else (ℒ->symbol ℒ)]))))
 
-(define (show⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
+(define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
   (define α (⟪α⟫->-α ⟪α⟫))
   (match (⟪α⟫->-α ⟪α⟫)
     [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
@@ -552,7 +552,7 @@
 
 (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
   (for/list ([(x ⟪α⟫ₓ) ρ] #:unless (equal? x -x-dummy))
-    `(,x ↦ ,(show⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
+    `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
 
 (define show-γ : (-γ → Sexp)
   (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
