@@ -149,7 +149,7 @@
        (define 𝐱 (-x x))
        (for/union : (℘ -ς) ([V (in-set (σ@ (-Σ-σ Σ) ⟪α⟫))])
           (flat-chk l $∅ ℒ W-C (-W¹ V 𝐱) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-      [(-ℋ𝒱) (havoc Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(-ℋ𝒱) (havoc ⟪ℋ⟫ Σ ⟦k⟧)]
       [_ (error '↝↑ "~a" αₖ)])))
 
 (: ↝↓! : (Listof -ς↓) -Σ → (℘ -ς))
@@ -225,7 +225,7 @@
                       [else φs-path])))
                 (apply Γ+ Γₑᵣ φ-ans (set->list φs-path))))
             (cond
-              [#t #;(plausible-return? M Γₑᵣ** γ Γₑₑ)
+              [#;#t (plausible-return? M Γₑᵣ** γ Γₑₑ)
                (hash-set! returned key #t)
                (define sₐ*
                  (and sₐ

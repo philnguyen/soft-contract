@@ -16,8 +16,9 @@
          "compile/app.rkt"
          )
 
-(: havoc : -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
-(define (havoc Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(: havoc : -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+(define (havoc ⟪ℋ⟫ Σ ⟦k⟧)
+  #;(printf "havoc: ~a~n" (set-count (σ@ Σ ⟪α⟫ₕᵥ)))
   (for/fold ([res : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
             ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))])
     (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧)))))
@@ -71,7 +72,7 @@
          (define-values (xs ●s)
            (for/lists ([xs : (Listof Symbol)] [●s : (Listof -W¹)])
                       ([i k])
-             (define x (+x!/memo 'hv i))
+             (define x (+x!/memo 'arg i))
              (values x (-W¹ -●/V (-x x)))))
          (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-ap))))
          (app 'havoc $∅ (-ℒ ∅ ℓ) W ●s ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))

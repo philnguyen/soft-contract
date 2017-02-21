@@ -292,7 +292,7 @@
             (-α.x/c Symbol)
             (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.fn [mon-loc : -ℒ] [ctx : -⟪ℋ⟫])
+            (-α.fn [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [pc : (℘ -e)])
 
             (-α.hv) ; hack
 

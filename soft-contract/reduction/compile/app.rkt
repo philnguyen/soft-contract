@@ -726,7 +726,7 @@
         (values #f #f)))
   #;(match-define (-ℒ _ ℓ) ℒ)
   (∪ (cond [Γ₁₁
-            (define α (-α->⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫))))
+            (define α (-α->⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫ (-Γ-facts Γ)))))
             (define Ar (-Ar grd α l³))
             (σ⊕! Σ α V)
             (define v* ; hack
