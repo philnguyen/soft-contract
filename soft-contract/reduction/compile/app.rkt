@@ -930,30 +930,30 @@
 (define (mon-vector/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ M) Σ)
   (match-define (-l³ l+ _ lo) l³)
-  (match-define (-W¹ (and Vₚ (-Vector/C ⟪α⟫ℓ)) sₚ) Wₚ)
+  (match-define (-W¹ (and Vₚ (-Vector/C ⟪α⟫ℓs)) sₚ) Wₚ)
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-  (define n (length ⟪α⟫ℓ))
+  (define n (length ⟪α⟫ℓs))
   
-  (: blm : -V -V → -Γ → (℘ -ς))
-  (define ((blm C V) Γ)
-    (define blm (-blm l+ lo (list Vₚ) (list Vᵥ) (-ℒ-app ℒ)))
+  (: blm : -V → -Γ → (℘ -ς))
+  (define ((blm C) Γ)
+    (define blm (-blm l+ lo (list C) (list Vᵥ) (-ℒ-app ℒ)))
     (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
 
   (: chk-flds : -Γ → (℘ -ς))
   (define (chk-flds Γ)
+    (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓs))
+    
     (define cs
       (for/list : (Listof -s) ([s (in-list (-app-split sₚ 'vector/c n))]
                                [⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)])
         (or s (⟪α⟫->s ⟪α⟫))))
 
-    (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓ))
-
     (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ ⟪α⟫s))])
-       (define ⟦mon-fld⟧s
-         (for/list : (Listof -⟦e⟧) ([Cᵢ (in-list Cs)]
-                                    [cᵢ (in-list cs)]
-                                    [ℓᵢ (in-list ℓs)]
-                                    [i (in-naturals)] #:when (index? i))
+       (define ⟦mon-fld⟧s : (Listof -⟦e⟧)
+         (for/list ([Cᵢ (in-list Cs)]
+                    [cᵢ (in-list cs)]
+                    [ℓᵢ (in-list ℓs)]
+                    [i (in-naturals)] #:when (index? i))
            (define Wᵢ (let ([bᵢ (-b i)]) (-W¹ bᵢ bᵢ)))
            (define Wₚᵢ (-W¹ Cᵢ cᵢ))
            (define ⟦ref⟧
@@ -969,11 +969,11 @@
     (define N (let ([bₙ (-b n)]) (-W¹ bₙ bₙ)))
     (with-MΓ⊢oW (M σ Γ '= Wₙ N)
       #:on-t chk-flds
-      #:on-f (blm (format-symbol "vector-length/c ~a" n) Vᵥ)))
+      #:on-f (blm (format-symbol "vector-length/c ~a" n))))
 
   (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
     #:on-t chk-len
-    #:on-f (blm 'vector? Vᵥ)))
+    #:on-f (blm 'vector?)))
 
 (define (mon-flat/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   ;(printf "mon-flat/c: ~a ~a ~a~n" ℓ (show-W¹ W-C) (show-W¹ W-V))
