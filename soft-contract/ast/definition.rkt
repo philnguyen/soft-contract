@@ -101,13 +101,11 @@
             (-case-λ (Listof (Pairof (Listof Symbol) -e)))
             (-•))
 
-(-prim . ::= . ;; Represent *unsafe* operations without contract checks. 
-               ;; User code shouldn't have direct access to these.
-               ;; Generated `prim` module exports these operations wrapped in contract. -o (-b Base)
-               -o
+(-prim . ::= . -o
                ;; primitive values that can appear in syntax
                (-b [unboxed : Base]))
 
+;; Primitive operations
 (-o . ::= . Symbol
            (-st-p -𝒾)
            (-st-ac -𝒾 Index)
