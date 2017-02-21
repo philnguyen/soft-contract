@@ -38,7 +38,6 @@
             [cardinality : (HashTable ⟪α⟫ -cardinality)]
             )
   #:transparent)
-(define ⊥σ (-σ (hasheq) (seteq) (hasheq)))
 
 (: cardinality+ : -cardinality → -cardinality)
 (define (cardinality+ c)
@@ -107,7 +106,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:mutable #:transparent)
-(define (⊥Σ) (-Σ ⊥σ ⊥σₖ ⊥M))
 
 (: σₖ⊔! : -Σ -αₖ -κ → Void)
 (define (σₖ⊔! Σ αₖ κ)
@@ -307,6 +305,10 @@
 (define (⟪α⟫->s [⟪α⟫ : ⟪α⟫]) (α->s (⟪α⟫->-α ⟪α⟫)))
 (define (⟪α⟫s->ss [⟪α⟫s : (Listof ⟪α⟫)]) (map ⟪α⟫->s ⟪α⟫s))
 (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
+
+(define ⊥σ (-σ (hasheq ⟪α⟫ₕᵥ ∅) ∅eq (hasheq)))
+(define (⊥Σ) (-Σ ⊥σ ⊥σₖ ⊥M))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Compiled expression
