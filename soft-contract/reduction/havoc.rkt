@@ -18,7 +18,6 @@
 
 (: havoc : -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (havoc ⟪ℋ⟫ Σ ⟦k⟧)
-  #;(printf "havoc: ~a~n" (set-count (σ@ Σ ⟪α⟫ₕᵥ)))
   (for/fold ([res : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
             ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))])
     (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧)))))
