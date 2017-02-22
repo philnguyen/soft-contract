@@ -153,73 +153,76 @@
                     (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))))])]))
 
   (define (app-Indy [C : -V] [c : -s] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
-    (match-define (-l³ l+ l- lo) l³)
-    (define l³* (-l³ l- l+ lo))
-    (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
-    (match-define (-=>i αℓs (list Mk-D mk-d ℓᵣ) _) C)
-    (match-define (-Clo xs ⟦d⟧ ρᵣ _) Mk-D)
-    (define W-rng (-W¹ Mk-D mk-d))
-    ;(match-define (cons γ ℓᵣ) γℓ)
-    (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
-    (define cs
-      (let-values ([(cs _) (-->i-split c (length αℓs))])
-        cs))
-
-    ;; FIXME tmp. copy n paste. Remove duplication
-    (match mk-d
-      [(-λ (? list? xs) d)
-       (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
-         (define ⟦mon-x⟧s : (Listof -⟦e⟧)
-           (for/list ([C Cs] [c cs] [Wₓ Wₓs] [ℓₐ : ℓ ℓs])
-             (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
-         (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x xs]) (↓ₓ 'Λ x)))
-         (match* (xs ⟦x⟧s ⟦mon-x⟧s)
-           [('() '() '())
-            (define ⟦ap⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ) '()))
-            (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦d⟧ ⟦ap⟧))
-            (⟦mon⟧ ρᵣ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-           [((cons x xs*) (cons ⟦x⟧ ⟦x⟧s*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
-            (define ⟦app⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ) ⟦x⟧s))
-            (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦d⟧ ⟦app⟧))
-            (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-             (let∷ lo
-                   (list x)
-                   (for/list ([xᵢ xs*] [⟦mon⟧ᵢ ⟦mon-x⟧s*])
-                     (cons (list xᵢ) ⟦mon⟧ᵢ))
-                   '()
-                   ⟦mon⟧
-                   ρᵣ
-                    ⟦k⟧))]))]
-      [_
-       (match xs
-         [(? list? xs)
-          (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x xs]) (↓ₓ lo x)))
-          (for/union : (℘ -ς) ([Cs (σ@/list σ αs)] [ℓₐ : ℓ ℓs])
-            (define ⟦mon-x⟧s : (Listof -⟦e⟧)
-              (for/list ([C Cs] [c cs] [Wₓ Wₓs])
-                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
-            (match* (xs ⟦x⟧s ⟦mon-x⟧s)
-              [('() '() '())
-               (define ⟦app⟧  (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ   ) '()))
-               (define ⟦mk-d⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ W-rng) '()))
-               (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦mk-d⟧ ⟦app⟧))
-               (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-              [((cons x xs*) (cons ⟦x⟧ ⟦x⟧s*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
-               (define ⟦mon-y⟧
-                 (let ([⟦mk-d⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ W-rng) ⟦x⟧s)]
-                       [⟦app⟧  (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ   ) ⟦x⟧s)])
-                   (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦mk-d⟧ ⟦app⟧)))
-               (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-                (let∷ lo
-                      (list x)
-                      (for/list ([xᵢ xs*] [⟦mon⟧ᵢ ⟦mon-x⟧s*])
-                        (cons (list xᵢ) ⟦mon⟧ᵢ))
-                      '()
-                      ⟦mon-y⟧
-                      ⊥ρ
+    (cond
+      [(equal? Vₕ Vᵤ)
+       (log-warning "TODO: generalize to handle cycle properly")
+       ∅]
+      [else
+       (match-define (-l³ l+ l- lo) l³)
+       (define l³* (-l³ l- l+ lo))
+       (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
+       (match-define (-=>i αℓs (list Mk-D mk-d ℓᵣ) _) C)
+       (match-define (-Clo xs ⟦d⟧ ρᵣ _) Mk-D)
+       (define W-rng (-W¹ Mk-D mk-d))
+       (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
+       (define cs
+         (let-values ([(cs _) (-->i-split c (length αℓs))])
+           cs))
+       ;; FIXME tmp. copy n paste. Remove duplication
+       (match mk-d
+         [(-λ (? list? xs) d)
+          (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
+             (define ⟦mon-x⟧s : (Listof -⟦e⟧)
+               (for/list ([C Cs] [c cs] [Wₓ Wₓs] [ℓₐ : ℓ ℓs])
+                 (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
+             (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x xs]) (↓ₓ 'Λ x)))
+             (match* (xs ⟦x⟧s ⟦mon-x⟧s)
+               [('() '() '())
+                (define ⟦ap⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ) '()))
+                (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦d⟧ ⟦ap⟧))
+                (⟦mon⟧ ρᵣ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+               [((cons x xs*) (cons ⟦x⟧ ⟦x⟧s*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
+                (define ⟦app⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ) ⟦x⟧s))
+                (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦d⟧ ⟦app⟧))
+                (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+                 (let∷ lo
+                       (list x)
+                       (for/list ([xᵢ xs*] [⟦mon⟧ᵢ ⟦mon-x⟧s*])
+                         (cons (list xᵢ) ⟦mon⟧ᵢ))
+                       '()
+                       ⟦mon⟧
+                       ρᵣ
                        ⟦k⟧))]))]
-         [(-varargs zs z)
-          (error 'app-Indy "Apply variable arity arrow")])]))
+         [_
+          (match xs
+            [(? list? xs)
+             (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x xs]) (↓ₓ lo x)))
+             (for/union : (℘ -ς) ([Cs (σ@/list σ αs)] [ℓₐ : ℓ ℓs])
+               (define ⟦mon-x⟧s : (Listof -⟦e⟧)
+                 (for/list ([C Cs] [c cs] [Wₓ Wₓs])
+                   (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₐ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
+               (match* (xs ⟦x⟧s ⟦mon-x⟧s)
+                 [('() '() '())
+                  (define ⟦app⟧  (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ   ) '()))
+                  (define ⟦mk-d⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ W-rng) '()))
+                  (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦mk-d⟧ ⟦app⟧))
+                  (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+                 [((cons x xs*) (cons ⟦x⟧ ⟦x⟧s*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
+                  (define ⟦mon-y⟧
+                    (let ([⟦mk-d⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ W-rng) ⟦x⟧s)]
+                          [⟦app⟧  (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ Wᵤ   ) ⟦x⟧s)])
+                      (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵣ) ⟦mk-d⟧ ⟦app⟧)))
+                  (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+                   (let∷ lo
+                         (list x)
+                         (for/list ([xᵢ xs*] [⟦mon⟧ᵢ ⟦mon-x⟧s*])
+                           (cons (list xᵢ) ⟦mon⟧ᵢ))
+                         '()
+                         ⟦mon-y⟧
+                         ⊥ρ
+                          ⟦k⟧))]))]
+            [(-varargs zs z)
+             (error 'app-Indy "Apply variable arity arrow")])])]))
 
   (define (app-Case [C : -V] [c : -s] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
     (error 'app-Case "TODO"))
