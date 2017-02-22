@@ -278,12 +278,23 @@
 
 (: make-memoized-⟦e⟧ : -⟦e⟧ → -⟦e⟧)
 (define (make-memoized-⟦e⟧ ⟦e⟧)
-  (define-type Key (List -⟪ℋ⟫ -⟦k⟧ -Γ (HashTable ⟪α⟫ (℘ -V))))
-  (let ([m : (HashTable Key (℘ -ς)) (make-hash)])
+  (define-type Key (List -ρ -Γ))
+  (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
+  (let ([m : (HashTable Key Rec) (make-hash)])
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-Σ (-σ mσ _ _) _ _) Σ)
-      (define mσ* (hash-copy/spanning* mσ (ρ->⟪α⟫s ρ) V->⟪α⟫s))
-      (define k : Key (list ⟪ℋ⟫ ⟦k⟧ Γ mσ*))
-      #;(when (hash-has-key? m k)
-        (printf "hit-e~n"))
-      (hash-ref! m k (λ () (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))))))
+      (define key : Key (list ρ Γ))
+
+      (: recompute! : → (℘ -ς))
+      (define (recompute!)
+        (define ans (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
+        (hash-set! m key (list mσ ans))
+        ans)
+
+      ;; Cache result based on rest of components
+      (cond [(hash-ref m key #f) =>
+             (λ ([rec : Rec])
+               (match-define (list mσ₀ ςs₀) rec)
+               (cond [(map-equal?/spanning-root mσ₀ mσ (ρ->⟪α⟫s ρ) V->⟪α⟫s) ςs₀]
+                     [else (recompute!)]))]
+            [else (recompute!)]))))
