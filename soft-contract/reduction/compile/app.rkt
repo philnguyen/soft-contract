@@ -487,7 +487,7 @@
   (define αₖ (-ℋ𝒱))
   (define κ (-κ (bgn0.e∷ (-W -●/Vs sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
   (σₖ⊔! Σ αₖ κ)
-  {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫)})
+  {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫∅)})
 
 (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) → -ρ)
 (define (alloc-init-args! Σ Γ ρ ⟪ℋ⟫ xs Ws)
@@ -711,41 +711,44 @@
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-Σ σ _ M) Σ)
 
-  (define arity
-    (let* ([a (guard-arity grd)]
-           [b (-b a)])
-      (-W¹ b b)))
-  
-  (define-values (Γ₁ Γ₂) (MΓ+/-oW M σ Γ 'procedure? W-V))
-  (define-values (Γ₁₁ Γ₁₂)
-    (if Γ₁
-        (let ([A (V-arity V)]
-              [a (-?@ 'procedure-arity v)])
-          (define W-a (-W¹ (if A (-b A) -●/V) a))
-          (MΓ+/-oW M σ Γ₁ 'arity-includes? W-a arity))
-        (values #f #f)))
-  #;(match-define (-ℒ _ ℓ) ℒ)
-  (∪ (cond [Γ₁₁
-            (define α (-α->⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫ (-Γ-facts Γ)))))
-            (define Ar (-Ar grd α l³))
-            (σ⊕! Σ α V)
-            (define v* ; hack
-              (match v
-                [(-ar (== c) _) v]
-                [_ (-?ar c v)]))
-            (⟦k⟧ (-W (list Ar) v*) $ Γ₁₁ ⟪ℋ⟫ Σ)]
-           [else ∅])
-     (cond [Γ₁₂
-            (define C #|HACK|#
-              (match arity
-                [(-W¹ (-b (? integer? n)) _)
-                 (format-symbol "(arity-includes/c ~a)" n)]
-                [(-W¹ (-b (arity-at-least n)) _)
-                 (format-symbol "(arity-at-least/c ~a)" n)]))
-            (⟦k⟧ (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)) $ Γ₁₂ ⟪ℋ⟫ Σ)]
-           [else ∅])
-     (cond [Γ₂ (⟦k⟧ (-blm l+ lo (list 'procedure?) (list V) (-ℒ-app ℒ)) $ Γ₂ ⟪ℋ⟫ Σ)]
-           [else ∅])))
+  (: blm : -V → -Γ → (℘ -ς))
+  (define ((blm C) Γ)
+    (define blm (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)))
+    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+
+  (: chk-arity : -Γ → (℘ -ς))
+  (define (chk-arity Γ)
+    (define W-grd-arity
+      (let* ([a (guard-arity grd)]
+             [b (-b a)])
+        (-W¹ b b)))
+    (define W-arity
+      (let ([A (V-arity V)]
+            [a (-?@ 'procedure-arity v)])
+        (-W¹ (if A (-b A) -●/V) a)))
+    (with-MΓ⊢oW (M σ Γ 'arity-includes? W-grd-arity W-arity)
+      #:on-t wrap
+      #:on-f (let ([C (match W-grd-arity
+                        [(-W¹ (-b (? integer? n)) _)
+                         (format-symbol "(arity-includes/c ~a)" n)]
+                        [(-W¹ (-b (arity-at-least n)) _)
+                         (format-symbol "(arity-at-least/c ~a)" n)])])
+               (blm C))))
+
+  (: wrap : -Γ → (℘ -ς))
+  (define (wrap Γ)
+    (define ⟪α⟫ (-α->⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫ (-Γ-facts Γ)))))
+    (define Ar (-Ar grd ⟪α⟫ l³))
+    (σ⊕! Σ ⟪α⟫ V)
+    (define v* ; hack
+      (match v
+        [(-ar (== c) _) v]
+        [_ (-?ar c v)]))
+    (⟦k⟧ (-W (list Ar) v*) $ Γ ⟪ℋ⟫ Σ))
+
+  (with-MΓ⊢oW (M σ Γ 'procedure? W-V)
+    #:on-t chk-arity
+    #:on-f (blm 'procedure?)))
 
 (define (mon-struct/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-W¹ C c) W-C)
