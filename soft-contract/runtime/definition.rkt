@@ -549,6 +549,7 @@
   (define α (⟪α⟫->-α ⟪α⟫))
   (match (⟪α⟫->-α ⟪α⟫)
     [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
+    [(-α.hv) 'αₕᵥ]
     [(? -e? e) (show-e e)]
     [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
