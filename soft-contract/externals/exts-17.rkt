@@ -19,7 +19,13 @@
   (match-define (-Σ σ _ M) Σ)
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
   (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
-  (define sₐ (-?@ 'unsafe-struct-ref sᵥ sᵢ))
+  (define sₐ
+    (match* (Vᵥ Vᵢ)
+      [((or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _))
+        (-b (? index? i)))
+       #:when 𝒾
+       (-?@ (-st-ac 𝒾 i) sᵥ)]
+      [(_ _) (-?@ 'unsafe-struct-ref sᵥ sᵢ)]))
   (match Vᵥ
     [(-St 𝒾 ⟪α⟫s)
      (define n (get-struct-arity 𝒾))
