@@ -118,9 +118,7 @@
        [_ (default-case)])]
     [(-st-ac 𝒾 i)
      (match-define (list x) xs)
-     (cond ; don't build up syntax when reading from mutable states
-       [(struct-mutable? 𝒾 i) #f]
-       [else (-@ f (list (assert x)) +ℓ₀)])]
+     (-@ f (list (assert x)) +ℓ₀)]
 
     ; (cons (car e) (cdr e)) = e
     [(-st-mk s) (or (access-same-value? s xs) (-@ f xs +ℓ₀))]

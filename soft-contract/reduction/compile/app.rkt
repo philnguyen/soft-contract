@@ -375,7 +375,6 @@
   (define ac (-st-ac 𝒾 i))
   (define p  (-st-p 𝒾))
   (define n (get-struct-arity 𝒾))
-  (define mutable-field? (struct-mutable? 𝒾 i))
   
   (: ⟦ac⟧ : -⟦f⟧)
   (define (⟦ac⟧ l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -388,7 +387,7 @@
          [(-St (== 𝒾) αs)
           (define α (list-ref αs i))
           (cond
-            [(and (not mutable-field?) ($@ $ sₐ)) =>
+            [(and (σ-old? σ α) ($@ $ sₐ)) =>
              (λ ([V : -V])
                (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
                       (define $* ($+ $ sₐ V))
@@ -398,7 +397,7 @@
              (define Vs (σ@ σ α))
              (for/union : (℘ -ς) ([V Vs])
                 (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
-                       (define $* (if mutable-field? $ ($+ $ sₐ V)))
+                       (define $* ($+ $ sₐ V))
                        (⟦k⟧ (-W (list V) sₐ) $* Γ ⟪ℋ⟫ Σ)]
                       [else ∅]))])]
          [(-St* (-St/C _ (== 𝒾) αℓs) α l³)
