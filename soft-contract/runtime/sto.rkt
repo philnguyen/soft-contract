@@ -21,7 +21,7 @@
         (roots-union! (V->⟪α⟫s V))
         (printf "  - ~a~n" (show-V V)))
       (printf "addresses:~n")
-      (for ([(α Vs) (hash-copy/spanning* (-σ-m σ) roots V->⟪α⟫s)])
+      (for ([(α Vs) (span-σ (-σ-m σ) roots)])
         (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
       (printf "~n")
       (when (> ⟪α⟫ 3000)
@@ -137,27 +137,6 @@
 (: span-M : (HashTable -αₖ (℘ -ΓA)) (℘ -αₖ) → (HashTable -αₖ (℘ -ΓA)))
 (define (span-M M αs)
   (hash-copy/spanning* M αs ΓA->αₖs))
-
-(: span-σₖ : (HashTable -αₖ (℘ -κ)) -αₖ → (℘ -αₖ))
-;; Compute stack addresses in `σₖ` reachable from `αₖ`
-(define (span-σₖ σₖ αₖ)
-  (with-debugging/off
-    ((αₖs)
-     (span* σₖ
-            {set αₖ}
-            (λ ([κ : -κ])
-              {set (⟦k⟧->αₖ (-κ-cont κ))})))
-    (printf "span-σₖ:~n")
-    (printf " - σₖ: (~a) ~n" (hash-count σₖ))
-    (for ([(k v) (in-hash σₖ)])
-      (printf "   + ~a ↦ (~a)~n" (show-αₖ k) (set-count v))
-      (for ([vᵢ v])
-        (printf "     * ~a~n" (show-κ vᵢ))))
-    (printf " - αₖ: ~a~n" (show-αₖ αₖ))
-    (printf " - res: (~a) ~n" (set-count αₖs))
-    (for ([αₖ αₖs])
-      (printf "   + ~a~n" (show-αₖ αₖ)))
-    (printf "~n")))
 
 #;(: soft-gc! : -σ (℘ ⟪α⟫) → Void)
 ;; "garbage collect" mutated-ness cardinality information 
