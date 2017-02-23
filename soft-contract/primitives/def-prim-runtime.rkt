@@ -244,6 +244,7 @@
       [(-Vector/guard grd _ _)
        (match grd
          [(-Vector/C ⟪α⟫s) (length ⟪α⟫s)]
-         [_ #f])]))
+         [_ #f])]
+      [_ #f]))
   (define Vₙ (if ?n (-b ?n) -●/V))
   (-W¹ Vₙ (-?@ 'vector-length s)))

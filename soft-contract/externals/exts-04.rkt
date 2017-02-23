@@ -87,14 +87,14 @@
           (define cᵢ (⟪α⟫->s ⟪α⟫ᵢ))
           (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
                                 [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
-            (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ)) Γ* ⟪ℋ⟫ Σ
+            (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                          (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
         (define c* (⟪α⟫->s ⟪α⟫*))
         (for/union : (℘ -ς) ([C* (in-set (σ@ σ ⟪α⟫*))]
                              [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
-          (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ)) Γ ⟪ℋ⟫ Σ
+          (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
                        (mon.c∷ l³ (ℒ-with-mon ℒ ℓ*) (-W¹ C* c*) ⟦k⟧)))])]
     [_
      (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))

@@ -278,7 +278,7 @@
             (-α.vct [loc : ℓ] [ctx : -⟪ℋ⟫])
 
             ;; for wrapped vector
-            (-α.unvct [loc : -ℒ] [ctx : -⟪ℋ⟫])
+            (-α.unvct [loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
             ;; for contract components
             (-α.and/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])

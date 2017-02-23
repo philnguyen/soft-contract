@@ -967,13 +967,21 @@
     (define blm (-blm l+ lo (list C) (list Vᵥ) (-ℒ-app ℒ)))
     (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
 
+  (: chk-len : -Γ → (℘ -ς))
+  (define (chk-len Γ)
+    (define Wₙ (vec-len σ Γ Wᵥ))
+    (define N (let ([bₙ (-b n)]) (-W¹ bₙ bₙ)))
+    (with-MΓ⊢oW (M σ Γ '= Wₙ N)
+      #:on-t chk-flds
+      #:on-f (blm (format-symbol "vector-length/c ~a" n))))
+
   (: chk-flds : -Γ → (℘ -ς))
   (define (chk-flds Γ)
     (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓs))
     
-    (define cs
-      (for/list : (Listof -s) ([s (in-list (-app-split sₚ 'vector/c n))]
-                               [⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)])
+    (define cs : (Listof -s)
+      (for/list ([s (in-list (-app-split sₚ 'vector/c n))]
+                 [⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)])
         (or s (⟪α⟫->s ⟪α⟫))))
 
     (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ ⟪α⟫s))])
@@ -989,15 +997,14 @@
                          (mk-rt-⟦e⟧ -vector-ref/W)
                          (list (mk-rt-⟦e⟧ Wᵥ) (mk-rt-⟦e⟧ Wᵢ))))
            (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ Wₚᵢ) ⟦ref⟧)))
-       (error "TODO")))
-
-  (: chk-len : -Γ → (℘ -ς))
-  (define (chk-len Γ)
-    (define Wₙ (vec-len σ Γ Wᵥ))
-    (define N (let ([bₙ (-b n)]) (-W¹ bₙ bₙ)))
-    (with-MΓ⊢oW (M σ Γ '= Wₙ N)
-      #:on-t chk-flds
-      #:on-f (blm (format-symbol "vector-length/c ~a" n))))
+       (define Wᵥ*
+         (let ([⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ l+))])
+           (σ⊕! Σ ⟪α⟫ᵥ Vᵥ)
+           (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ)))
+       (match ⟦mon-fld⟧s
+         ['() (⟦k⟧ Wᵥ* $ Γ ⟪ℋ⟫ Σ)]
+         [(cons ⟦fld⟧₀ ⟦fld⟧s)
+          (⟦fld⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ Wᵥ* ⟦fld⟧s ⊥ρ ⟦k⟧))])))
 
   (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
     #:on-t chk-len
