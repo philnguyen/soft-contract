@@ -41,12 +41,12 @@
                    (define c (⟪α⟫->s (car ⟪γ⟫ℓ)))
                    (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                          [C (in-set (σ@ σ (car ⟪γ⟫ℓ)))])
-                     (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ
+                     (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                           (mon.c∷ l³ (ℒ-with-mon ℒ (cdr (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                   [else
                    (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                          [C (in-set (σ@ σ (car ⟪γ⟫ℓ)))])
-                     (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ)) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
+                     (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
     [_
      (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
