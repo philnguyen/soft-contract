@@ -382,12 +382,13 @@
       [(list (and W (-W¹ V s)))
        (define (blm) (-blm l (show-o ac) (list p) (list V) (-ℒ-app ℒ)))
        (match-define (-Σ σ _ M) Σ)
-       (define sₐ (-?@ ac s))
        (match V
          [(-St (== 𝒾) αs)
           (define α (list-ref αs i))
+          (define old? (σ-old? σ α))
+          (define sₐ (and old? (-?@ ac s)))
           (cond
-            [(and (σ-old? σ α) ($@ $ sₐ)) =>
+            [(and old? ($@ $ sₐ)) =>
              (λ ([V : -V])
                (cond [(plausible-V-s? (-Γ-facts Γ) V sₐ)
                       (define $* ($+ $ sₐ V))
@@ -423,7 +424,7 @@
             #:true  (⟦k⟧ (-W (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
                                  (list (-● {set 'list?}))
                                  -●/Vs)
-                             sₐ)
+                             (-?@ ac s))
                      $ Γₒₖ ⟪ℋ⟫ Σ)
             #:false (⟦k⟧ (blm) $ Γₑᵣ ⟪ℋ⟫ Σ))]
          [_ (⟦k⟧ (blm) $ Γ ⟪ℋ⟫ Σ)])]
