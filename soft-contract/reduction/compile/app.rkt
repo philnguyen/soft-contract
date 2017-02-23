@@ -168,6 +168,7 @@
        (define cs
          (let-values ([(cs _) (-->i-split c (length αℓs))])
            cs))
+
        ;; FIXME tmp. copy n paste. Remove duplication
        (match mk-d
          [(-λ (? list? xs) d)
@@ -261,7 +262,21 @@
        (define-values (c _) (-ar-split sₕ))
        (cond
          [(-=>? C)  (for/union : (℘ -ς) ([Vᵤ (σ@ σ α)]) (app-Ar   C c Vᵤ l³))]
-         [(-=>i? C) (for/union : (℘ -ς) ([Vᵤ (σ@ σ α)]) (app-Indy C c Vᵤ l³))]
+         [(-=>i? C)
+          #;(match-let ([(-l³ l+ l- lo) l³])
+            (unless (equal? l+ '†)
+              (printf "app-Indy: ~a~n" (show-W¹ Wₕ))
+              (printf "  - under:~n")
+              (for ([V (σ@ σ α)])
+                (printf "    + ~a~n" (show-V V)))
+              (printf "  - l+: ~a~n" l+)
+              (printf "  - l-: ~a~n" l-)
+              (printf "  - lo: ~a~n" lo)
+              (for ([W (in-list Wₓs)])
+                (printf "  - ~a~n" (show-W¹ W)))
+              (printf "~n")))
+          
+                    (for/union : (℘ -ς) ([Vᵤ (σ@ σ α)]) (app-Indy C c Vᵤ l³))]
          [else      (for/union : (℘ -ς) ([Vᵤ (σ@ σ α)]) (app-Case C c Vᵤ l³))]))]
     [(-And/C #t (cons α₁ ℓ₁) (cons α₂ ℓ₂))
      (with-guarded-arity 1
@@ -740,8 +755,15 @@
 
   (: wrap : -Γ → (℘ -ς))
   (define (wrap Γ)
-    (define ⟪α⟫ (-α->⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫ (-Γ-facts Γ)))))
+    (define ⟪α⟫ (-α->⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫ l+ (-Γ-facts Γ)))))
     (define Ar (-Ar grd ⟪α⟫ l³))
+
+    #;(begin
+      (printf "mon: ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
+      (printf "  - l+: ~a~n" l+)
+      (printf "  - lo: ~a~n" lo)
+      (printf "  - alloc: ~a ↦ ~a~n~n" (show-⟪α⟫ ⟪α⟫) (show-V V)))
+
     (σ⊕! Σ ⟪α⟫ V)
     (define v* ; hack
       (match v
@@ -1279,21 +1301,34 @@
     (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℒ ⟦v⟧ ρ ⟦k⟧))))
 
 (define/memo (make-memoized-⟦k⟧ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (define-type Key (List -A -Γ -⟪ℋ⟫ (HashTable ⟪α⟫ (℘ -V))))
-  (let ([m : (HashTable Key (℘ -ς)) (make-hash)])
+  (define-type Key (List -A -Γ -⟪ℋ⟫))
+  (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
+  (let ([m : (HashTable Key Rec) (make-hash)])
     (define ⟦k⟧* : -⟦k⟧
       (λ (A $ Γ ⟪ℋ⟫ Σ)
         (match-define (-Σ (-σ mσ _ _) _ _) Σ)
-        (define mσ* (hash-copy/spanning* mσ
-                                         (∪ (⟦k⟧->roots ⟦k⟧)
-                                            (match A
-                                              [(-W Vs _) (->⟪α⟫s Vs)]
-                                              [_ ∅eq]))
-                                         V->⟪α⟫s))
-        (define k : Key (list A Γ ⟪ℋ⟫ mσ*))
-        #;(when (hash-has-key? m k)
-          (printf "hit-k~n"))
-        (hash-ref! m k (λ () (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))))
+        (define key (list A Γ ⟪ℋ⟫))
+        
+        (: recompute! : → (℘ -ς))
+        (define (recompute!)
+          (define ans (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))
+          (hash-set! m key (list mσ ans))
+          ans)
+
+        ;; Cache result based on rest of components
+        (cond [(hash-ref m key #f) =>
+               (λ ([rec : Rec])
+                 (match-define (list mσ₀ ςs₀) rec)
+                 (define root : (℘ ⟪α⟫)
+                   (∪ (⟦k⟧->roots ⟦k⟧)
+                      (match A
+                        [(-W Vs _) (->⟪α⟫s Vs)]
+                        [_ ∅eq])))
+                 (cond [(map-equal?/spanning-root mσ₀ mσ root V->⟪α⟫s)
+                        #;(printf "hit-k~n")
+                        ςs₀]
+                       [else (recompute!)]))]
+              [else (recompute!)])))
     (add-⟦k⟧-roots! ⟦k⟧* (⟦k⟧->roots ⟦k⟧))
     (set-⟦k⟧->αₖ! ⟦k⟧* (⟦k⟧->αₖ ⟦k⟧))
     ⟦k⟧*))
