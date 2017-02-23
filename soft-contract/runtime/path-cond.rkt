@@ -104,7 +104,19 @@
   (cond
     [(-Γ? Γ) (predicates-of (-Γ-facts Γ) s)]
     [else
-     (for/fold ([ps : (℘ -v) ∅]) ([φ (in-set Γ)])
+     ;; tmp hack for integer precision
+     (define ps : (℘ -v)
+       (match s
+         [(-@ '- (list e₁ e₂) _)
+          (cond [(or (∋ Γ (-@ '<= (list e₂ e₁) +ℓ₀))
+                     (∋ Γ (-@ '>= (list e₁ e₂) +ℓ₀)))
+                 {set (-≥/c 0)}]
+                [(or (∋ Γ (-@ '< (list e₂ e₁) +ℓ₀))
+                     (∋ Γ (-@ '> (list e₁ e₂) +ℓ₀)))
+                 {set (->/c 0)}]
+                [else ∅])]
+         [_ ∅]))
+     (for/fold ([ps : (℘ -v) ps]) ([φ (in-set Γ)])
        (match φ
          ;; unary
          [(-@ 'negative? (list (== s)) _) (set-add ps (-</c 0))]
