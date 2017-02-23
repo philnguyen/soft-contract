@@ -58,15 +58,15 @@
        (values (Vs⊕ σ Vs V) crds*)]))
   (define m* (hash-set m α Vs*))
   (define mods* (if mutating? (set-add mods α) mods))
-  (-σ m* mods* crds*)
-  #;(when (match? (⟪α⟫->-α α) (-𝒾 'slatex::*include-onlys* _))
+
+  #;(when (∋ Vs* (-● ∅))
     (printf "~a : ~a ⊕ ~a -> ~a~n"
             (show-⟪α⟫ α)
             (set-map Vs₀ show-V)
             (show-V V)
-            (set-map Vs* show-V))
-    (printf "  - modified?: ~a -> ~a~n" modified?₀ (hash-has-key? mods α))
-    (printf "  - cardinality: ~a -> ~a~n" crd₀ (hash-ref crds α (λ () 0)))))
+            (set-map Vs* show-V)))
+  
+  (-σ m* mods* crds*))
 
 (define-syntax σ⊕*!
   (syntax-rules (↦)

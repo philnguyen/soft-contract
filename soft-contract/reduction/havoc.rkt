@@ -16,29 +16,31 @@
          "compile/app.rkt"
          )
 
-(: havoc : -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
-(define (havoc ⟪ℋ⟫ Σ ⟦k⟧)
-  (for/fold ([res : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
+(: havoc : -⟪ℋ⟫ -Σ → (℘ -ς))
+(define (havoc ⟪ℋ⟫ Σ)
+  #;(begin
+    (printf "havoc values:~n")
+    (for ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))])
+      (printf "  - ~a~n" (show-V V))))
+  (define ⟦k⟧₀ (rt (-ℋ𝒱)))
+  (for/fold ([res : (℘ -ς) (⟦k⟧₀ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
             ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))])
-    (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧)))))
+    (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧₀)))))
 
 (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W Vs _) A)
     (for ([V (in-list Vs)])
       (add-leak! Σ V))
-    (define αₖ (-ℋ𝒱))
-    (define κ (-κ ⟦k⟧ ⊤Γ ⟪ℋ⟫ 'void '()))
-    (σₖ⊔! Σ αₖ κ)
-    {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫)}))
+    {set (-ς↑ (-ℋ𝒱) ⊤Γ ⟪ℋ⟫)}))
 
 (splicing-local
     ((define 𝒙 (+x!/memo 'hv))
      (define 𝐱 (-x 𝒙))
      
-     (: fun->tag : -V → Any)
+     #;(: fun->tag : -V → Any)
      ;; Return tag distinguishing function objects
-     (define fun->tag
+     #;(define fun->tag
        (match-lambda
          [(-Clo xs ⟦e⟧ _ _) (cons xs ⟦e⟧)]
          [(-Case-Clo clauses _ _) clauses]
@@ -65,24 +67,24 @@
       ;; Apply function with appropriate number of arguments
       [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
        
-       (define tag (fun->tag V))
-
-       (define (hv/arity [k : Natural]) : (℘ -ς)
-         (define-values (xs ●s)
-           (for/lists ([xs : (Listof Symbol)] [●s : (Listof -W¹)])
-                      ([i k])
-             (define x (+x!/memo 'arg i))
-             (values x (-W¹ -●/V (-x x)))))
-         (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-ap))))
-         (app 'havoc $∅ (-ℒ ∅ ℓ) W ●s ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
+       (define (do-hv [k : Natural]) : (℘ -ς)
+         (define args : (Listof -W¹)
+           (for/list ([i k])
+             (-W¹ -●/V (-x (+x!/memo 'arg i)))))
+         (define ℓ (loc->ℓ (loc 'havoc 0 0 (list k 'opq-ap))))
+         #;(begin
+           (printf "app: ~a~n" (show-W¹ W))
+           (for ([W (in-list args)])
+             (printf "  - ~a~n" (show-W¹ W)))
+           (printf "~n"))
+         (app 'havoc $∅ (-ℒ ∅ ℓ) W args ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
        
-       (define a (V-arity V))
-       (match a
-         [(arity-at-least k) (hv/arity (+ 1 k))]
-         [(? integer? k) (hv/arity k)]
+       (match (V-arity V)
+         [(arity-at-least k) (do-hv (+ 1 k))]
+         [(? integer? k) (do-hv k)]
          [(? list? ks)
           (for/union : (℘ -ς) ([k ks])
-            (cond [(integer? k) (hv/arity k)]
+            (cond [(integer? k) (do-hv k)]
                   [else (error 'havoc "TODO: ~a" k)]))]
          [_ (done)])]
 

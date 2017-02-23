@@ -278,12 +278,12 @@
 
 (: make-memoized-⟦e⟧ : -⟦e⟧ → -⟦e⟧)
 (define (make-memoized-⟦e⟧ ⟦e⟧)
-  (define-type Key (List -ρ -Γ))
+  (define-type Key (List -⟪ℋ⟫ -ρ -Γ))
   (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
   (let ([m : (HashTable Key Rec) (make-hash)])
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-Σ (-σ mσ _ _) _ _) Σ)
-      (define key : Key (list ρ Γ))
+      (define key : Key (list ⟪ℋ⟫ ρ Γ))
 
       (: recompute! : → (℘ -ς))
       (define (recompute!)
@@ -295,6 +295,8 @@
       (cond [(hash-ref m key #f) =>
              (λ ([rec : Rec])
                (match-define (list mσ₀ ςs₀) rec)
-               (cond [(map-equal?/spanning-root mσ₀ mσ (ρ->⟪α⟫s ρ) V->⟪α⟫s) ςs₀]
+               (cond [(map-equal?/spanning-root mσ₀ mσ (ρ->⟪α⟫s ρ) V->⟪α⟫s)
+                      #;(printf "hit-e: ~a~n" (show-⟦e⟧ ⟦e⟧))
+                      ςs₀]
                      [else (recompute!)]))]
             [else (recompute!)]))))
