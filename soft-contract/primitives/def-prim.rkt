@@ -136,28 +136,30 @@
      (define n (length (syntax->list #'(c ...))))
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o
-       #`(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
-           #,@(parameterize ([-o #'o]
-                             [-⟪ℋ⟫ #'⟪ℋ⟫]
-                             [-ℓ #'ℓ]
-                             [-l #'l]
-                             [-Σ #'Σ]
-                             [-σ #'σ]
-                             [-M #'M]
-                             [-Γ #'Γ]
-                             [-Ws #'Ws]
-                             [-Wₙ (syntax->list #'(W ...))]
-                             [-sₙ (gen-ids #'s 's n)]
-                             [-bₙ (gen-ids #'b 'b n)]
-                             [-W* (format-id #'W* "W*")]
-                             [-b* (format-id #'b* "b*")]
-                             [-s* (format-id #'s* "s*")]
-                             [-sig #'(-> c ... any/c)]
-                             [-gen-blm gen-blm]
-                             #;[-errs (syntax->list #'((cₑ ...) ...))])
-                (gen-arity-check n
-                 (gen-precond-checks
-                  (syntax->list #'(e ...)))))))
+       #`(begin
+           (define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
+             #,@(parameterize ([-o #'o]
+                               [-⟪ℋ⟫ #'⟪ℋ⟫]
+                               [-ℓ #'ℓ]
+                               [-l #'l]
+                               [-Σ #'Σ]
+                               [-σ #'σ]
+                               [-M #'M]
+                               [-Γ #'Γ]
+                               [-Ws #'Ws]
+                               [-Wₙ (syntax->list #'(W ...))]
+                               [-sₙ (gen-ids #'s 's n)]
+                               [-bₙ (gen-ids #'b 'b n)]
+                               [-W* (format-id #'W* "W*")]
+                               [-b* (format-id #'b* "b*")]
+                               [-s* (format-id #'s* "s*")]
+                               [-sig #'(-> c ... any/c)]
+                               [-gen-blm gen-blm]
+                               #;[-errs (syntax->list #'((cₑ ...) ...))])
+                  (gen-arity-check n
+                                   (gen-precond-checks
+                                    (syntax->list #'(e ...))))))
+           (update-arity! 'o #,n)))
      (gen-defn #'o #'.o defn-o)]
     [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
