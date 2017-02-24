@@ -92,7 +92,7 @@
       [(-St* _ α _) (check-⟪α⟫! α)]
       [(-Vector αs) (ormap check-⟪α⟫! αs)]
       [(-Vector^ α _) (check-⟪α⟫! α)]
-      [(-Ar grd α _) (or (check-⟪α⟫! α) (check! grd))]
+      [(-Ar grd α _) #t]
       [(-=> doms rng _)
        (or (check-⟪α⟫! (car rng))
            (for/or : Boolean ([dom doms])

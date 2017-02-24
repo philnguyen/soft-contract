@@ -586,6 +586,7 @@
     [(? void?) (val-of 'Void)]
     [(? char? c) (@/s 'Chr (Char->⦃Char⦄ c))]
     [(list) (val-of 'Null)]
+    [(? eof-object? b) (val-of 'EOF)]
     [_ (error '⦃b⦄ "value: ~a" b)]))
 
 (: base-datatypes : (℘ Natural) → Void)
@@ -602,6 +603,7 @@
    'V
    `(Undefined
      Null
+     EOF
      Void
      (N [real ,Real/s] [imag ,Real/s])
      (B [unbox_B ,Bool/s])

@@ -11,6 +11,7 @@
          "../utils/def.rkt"
          "../utils/set.rkt"
          "../utils/map.rkt"
+         "../utils/debug.rkt"
          "../ast/arity.rkt"
          "result.rkt")
 
@@ -119,9 +120,9 @@
 (define guard-arity : (-=>_ → Arity)
   (match-lambda
     [(-=> αs _ _) (length αs)]
-    [(-=>i αs (cons β _) _)
-     (match β
-       [(-λ xs _) (formals-arity xs)]
+    [(and grd (-=>i αs (list mk-D mk-d _) _))
+     (match mk-D
+       [(-Clo xs _ _ _) (formals-arity xs)]
        [_
         ;; FIXME: may be wrong for var-args. Need to have saved more
         (length αs)])]))
