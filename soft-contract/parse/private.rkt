@@ -369,7 +369,8 @@
        _ ...)
      (-->* (map parse-e (syntax->list #'(inits ...)))
            (parse-e #'rst)
-           (parse-e #'rng))]
+           (parse-e #'rng)
+           (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:listof) c)
      (-listof (parse-e #'c) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:list/c) c ...)
