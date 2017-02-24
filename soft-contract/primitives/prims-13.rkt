@@ -18,6 +18,7 @@
 (def-prim current-input-port  (-> input-port?) #:volatile? #t #:lift-concrete? #f)
 (def-prim current-output-port (-> output-port?) #:volatile? #t #:lift-concrete? #f)
 (def-prim current-error-port (-> output-port?) #:volatile? #t #:lift-concrete? #f)
+(def-const eof)
 (def-prim eof-object? (any/c . -> . boolean?))
 
 ;; 13.1.3 Port Buffers and Positions
@@ -54,3 +55,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-prim write (any/c output-port? . -> . void?) #:lift-concrete? #f) ; FIXME uses
 (def-prim display (any/c output-port? . -> . void?) #:lift-concrete? #f) ; FIXME uses
+(def-prim format ((string?) #:rest list? . ->* . string?))
