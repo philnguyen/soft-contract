@@ -744,7 +744,7 @@
       (let ([A (V-arity V)]
             [a (-?@ 'procedure-arity v)])
         (-W¹ (if A (-b A) -●/V) a)))
-    (with-MΓ⊢oW (M σ Γ 'arity-includes? W-grd-arity W-arity)
+    (with-MΓ⊢oW (M σ Γ 'arity-includes? W-arity W-grd-arity)
       #:on-t wrap
       #:on-f (let ([C (match W-grd-arity
                         [(-W¹ (-b (? integer? n)) _)
