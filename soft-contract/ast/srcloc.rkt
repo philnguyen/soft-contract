@@ -5,7 +5,11 @@
          "../utils/pretty.rkt"
          "../utils/intern.rkt")
 
-(struct loc ([src : Any]
+;; Temporary definition of module path
+(define-type -l (U Symbol String))
+(define-predicate l? -l)
+
+(struct loc ([src : -l]
              [line : Natural]
              [col : Natural]
              [id : (Listof (U Symbol Natural))])
@@ -19,7 +23,11 @@
 (: syntax-ℓ : Any → ℓ) ; domain `Any` to get around contract generation complaint
 (define (syntax-ℓ stx)
   (cond [(syntax? stx)
-         (define src (syntax-source stx))
+         (define src
+           (match (syntax-source stx)
+             [(? path? p) (path->string p)]
+             [(? l? l) l]
+             [src (error 'syntax-ℓ "not valid path: ~a" src)]))
          (define line (assert (syntax-line stx)))
          (define col  (assert (syntax-column stx)))
          (loc->ℓ (loc src line col '()))]

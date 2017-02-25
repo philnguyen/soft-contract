@@ -5,8 +5,7 @@
 (require racket/match
          racket/splicing
          racket/set
-         "definition.rkt"
-         "srcloc.rkt")
+         "definition.rkt")
 
 (: -define : Symbol -e → -define-values)
 (define (-define x e) (-define-values (list x) e))

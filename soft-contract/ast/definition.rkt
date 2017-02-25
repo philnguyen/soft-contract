@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out)
-         (all-from-out "arity.rkt"))
+         (all-from-out "arity.rkt" "srcloc.rkt"))
 
 (require racket/match
          racket/set
@@ -21,8 +21,6 @@
 (define-type -begin/e (-begin -e))
 (define-type -begin/top (-begin -top-level-form))
 
-;; Temporary definition of module path
-(define-type -l (U Symbol String))
 (struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
 
 (: +x! : (U Symbol Integer) * → Symbol)
@@ -79,8 +77,12 @@
             -begin/e
             (-begin0 -e (Listof -e))
             (-quote Any)
-            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
-            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))] [body : -e])
+            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))]
+                         [body : -e]
+                         [loc : ℓ])
+            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))]
+                            [body : -e]
+                            [loc : ℓ])
             (-set! (U -𝒾 -x) -e)
             (-error String)
             
@@ -199,13 +201,13 @@
      (case p ;; hack
        [(Λ) (format-symbol "_~a" x)]
        [else x])]
-    [(-let-values bnds body)
+    [(-let-values bnds body _)
      `(let-values
           ,(for/list : (Listof Sexp) ([bnd bnds])
              (match-define (cons xs ex) bnd)
              `(,xs ,(show-e ex)))
         ,(show-e body))]
-    [(-letrec-values bnds body)
+    [(-letrec-values bnds body _)
      `(letrec-values
           ,(for/list : (Listof Sexp) ([bnd bnds])
              (match-define (cons xs ex) bnd)

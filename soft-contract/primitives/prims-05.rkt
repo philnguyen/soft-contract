@@ -12,7 +12,7 @@
 ;;;;; 5.3 Structure Type Properties
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-prim/custom (make-struct-type-property ⟪ℋ⟫ ℓ l Σ Γ Ws)
+(def-prim/custom (make-struct-type-property ⟪ℋ⟫ ℓ Σ Γ Ws)
   (define sₐ (apply -?@ 'make-struct-type-property (map -W¹-s Ws)))
   (define ans
     (-W (list (-● {set 'struct-type-property?})

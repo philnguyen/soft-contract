@@ -50,7 +50,6 @@
     [-σ identifier? #f]
     [-M identifier? #f]
     [-ℓ identifier? #f]
-    [-l identifier? #f]
     [-⟪ℋ⟫ identifier? #f]
     [-Ws identifier? #f]
     [-o identifier? #f]
@@ -390,7 +389,7 @@
                             (cond [pos? 'chk-tail]
                                   [else (listof.push!
                                          (gen-name! 'fail)
-                                         ((-gen-blm) #`(-blm #,(-l) '#,(-o) (list '#,c) (list Vₕ) #,(-ℓ))))]))))
+                                         ((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) (list '#,c) (list Vₕ) #,(-ℓ))))]))))
           (for/fold ([acc (hash-ref listof.thunks κ₀)])
                     ([(f es) (in-hash listof.thunks)] #:unless (equal? f κ₀))
             (cons #`(define (#,(->id f)) #,@es) acc)))
@@ -419,8 +418,8 @@
                       [(-● ps)
                        (cond
                          [(∋ ps 'list?) (force result)]
-                         [else #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V) #,(-ℓ)))])]
-                      [_ #,((-gen-blm) #`(-blm #,(-l) '#,(-o) '(list?) (list V) #,(-ℓ)))]))))
+                         [else #,((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) '(list?) (list V) #,(-ℓ)))])]
+                      [_ #,((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) '(list?) (list V) #,(-ℓ)))]))))
         (push-thunk! (gen-name! 'chk-listof) body))
 
       (define/contract (go! c pos? on-done)
@@ -538,7 +537,7 @@
                    κ
                    (push-local-thunk!
                     (gen-name! 'blm)
-                    ((-gen-blm) #`(-blm #,(-l) '#,(-o) (list #,c) (list (-W¹-V #,W)) #,(-ℓ))))))))
+                    ((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) (list #,c) (list (-W¹-V #,W)) #,(-ℓ))))))))
       
       (cond [(hash-ref local-thunks entry-name #f) =>
              (λ (entry)
@@ -594,7 +593,7 @@
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
             [_ 
-             #,((-gen-blm) #`(blm-arity #,(-l) '#,(-o) #,n (map -W¹-V #,(-Ws)) #,(-ℓ)))]))]
+             #,((-gen-blm) #`(blm-arity #,(-ℓ) '#,(-o) #,n (map -W¹-V #,(-Ws))))]))]
       [(arity-at-least 0)
        (list* #`(define #,(-W*) #,(-Ws))
               #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
@@ -606,4 +605,4 @@
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
             [_
-             #,((-gen-blm) #`(blm-arity #,(-l) '#,(-o) (arity-at-least #,n) (map -W¹-V #,(-Ws)) #,(-ℓ)))]))])))
+             #,((-gen-blm) #`(blm-arity #,(-ℓ) '#,(-o) (arity-at-least #,n) (map -W¹-V #,(-Ws))))]))])))

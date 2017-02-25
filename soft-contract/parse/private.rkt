@@ -432,7 +432,8 @@
       (for/list ([binding (syntax->list #'(bindings ...))])
         (syntax-parse binding
           [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
-      (-begin/simp (parse-es #'(b ...))))]
+      (-begin/simp (parse-es #'(b ...)))
+      (syntax-ℓ stx))]
     [(set! i:identifier e)
      (define x
        (match (identifier-binding #'i)
@@ -464,7 +465,8 @@
       (for/list ([bnd (syntax->list #'(bindings ...))])
         (syntax-parse bnd
           [((x ...) eₓ) (cons (syntax->datum #'(x ...)) (parse-e #'eₓ))]))
-      (-begin/simp (parse-es #'(b ...))))]
+      (-begin/simp (parse-es #'(b ...)))
+      (syntax-ℓ stx))]
     [(quote e) (parse-quote #'e)]
     [(quote-syntax e) (error 'parse-e "TODO: (quote-syntax ~a)" (syntax->datum #'e))]
     [((~literal #%top) . id)

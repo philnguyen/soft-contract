@@ -80,7 +80,6 @@
        (parameterize ([-o #'o]
                       [-⟪ℋ⟫ #'⟪ℋ⟫]
                       [-ℓ #'ℓ]
-                      [-l #'l]
                       [-Σ #'Σ]
                       [-σ #'σ]
                       [-M #'M]
@@ -98,7 +97,7 @@
                       [-refs (syntax->list #'(ref ...))]
                       [-gen-blm gen-blm]
                       #;[-errs (syntax->list #'((cₑ ...) ...))])
-         #`(define (.o #,(-⟪ℋ⟫) #,(-ℓ) #,(-l) #,(-Σ) #,(-Γ) #,(-Ws))
+         #`(define (.o #,(-⟪ℋ⟫) #,(-ℓ) #,(-Σ) #,(-Γ) #,(-Ws))
              #,@(gen-arity-check arity
                  (gen-precond-checks
                   (gen-ok-case))))))
@@ -130,18 +129,17 @@
         (hash-set! debug-table '#,o '#,(syntax->datum defn-o))))
   
   (syntax-parse stx
-    [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id)
+    [(_ (o:id ⟪ℋ⟫:id ℓ:id Σ:id Γ:id Ws:id)
         #:domain ([W:id c:fc] ...)
         e:expr ...)
      (define n (length (syntax->list #'(c ...))))
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o
        #`(begin
-           (define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws)
+           (define (.o ⟪ℋ⟫ ℓ Σ Γ Ws)
              #,@(parameterize ([-o #'o]
                                [-⟪ℋ⟫ #'⟪ℋ⟫]
                                [-ℓ #'ℓ]
-                               [-l #'l]
                                [-Σ #'Σ]
                                [-σ #'σ]
                                [-M #'M]
@@ -161,13 +159,13 @@
                                     (syntax->list #'(e ...))))))
            (update-arity! 'o #,n)))
      (gen-defn #'o #'.o defn-o)]
-    [(_ (o:id ⟪ℋ⟫:id ℓ:id l:id Σ:id Γ:id Ws:id) e:expr ...)
+    [(_ (o:id ⟪ℋ⟫:id ℓ:id Σ:id Γ:id Ws:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
-     (define defn-o #'(define (.o ⟪ℋ⟫ ℓ l Σ Γ Ws) e ...))
+     (define defn-o #'(define (.o ⟪ℋ⟫ ℓ Σ Γ Ws) e ...))
      (gen-defn #'o #'.o defn-o)]))
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
-  (def-prim/custom (x ⟪ℋ⟫ ℓ l Σ Γ Ws)
+  (def-prim/custom (x ⟪ℋ⟫ ℓ Σ Γ Ws)
     (error 'def-prim "TODO: ~a" 'x)))
 
 (define-simple-macro (def-prims (o:id ... (~optional (~seq #:todo o*:id ...)

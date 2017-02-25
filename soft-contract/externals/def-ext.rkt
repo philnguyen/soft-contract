@@ -56,7 +56,7 @@
      (define/syntax-parse (cₓ ...) (attribute c.init))
      (define/syntax-parse d (attribute c.rng))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
-     #`(def-ext (o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+     #`(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (match-define (-Σ σ σₖ _) Σ)
          (define sₐ (-?@ 'o (-W¹-s W) ...))
@@ -70,28 +70,27 @@
          {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments
-    [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+    [(_ (o:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         #:result e)
-     #'(def-ext (o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+     #'(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W c] ...)
          (define sₐ (apply -?@ 'o (map -W¹-s Ws)))
          (⟦k⟧ (-W e sₐ) $ Γ ⟪ℋ⟫ Σ))]
 
     ;; Custom modes for hacking
-    [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+    [(_ (o:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         e:expr ...)
      (define n (length (syntax->list #'(W ...))))
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o
-       #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       #`(define (.o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (define ℓ (-ℒ-app ℒ))
            #,@(parameterize ([-o #'o]
                              [-⟪ℋ⟫ #'⟪ℋ⟫]
                              [-ℒ #'ℒ]
                              [-ℓ #'ℓ]
-                             [-l #'l]
                              [-Σ #'Σ]
                              [-σ #'σ]
                              [-M #'M]
@@ -115,7 +114,7 @@
      (gen-defn #'o #'.o defn-o)]
     
     ;; Skipping precondition checks
-    [(_ (o:id l:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
+    [(_ (o:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
-     (define defn-o #`(define (.o l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
+     (define defn-o #`(define (.o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))

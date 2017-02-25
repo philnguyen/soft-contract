@@ -79,7 +79,7 @@
            (for ([W (in-list args)])
              (printf "  - ~a~n" (show-W¹ W)))
            (printf "~n"))
-         (app 'havoc $∅ (-ℒ ∅ ℓ) W args ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
+         (app $∅ (-ℒ ∅ ℓ) W args ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
        
        (match (V-arity V)
          [(arity-at-least k) (do-hv (+ 1 k))]
@@ -96,11 +96,11 @@
         (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
           (define Acc (-W¹ acc acc))
           (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hv-ac (show-o acc)))))
-          (app 'havoc $∅ (-ℒ ∅ ℓ) Acc (list W) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
+          (app $∅ (-ℒ ∅ ℓ) Acc (list W) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
         (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
           (define Mut (-W¹ mut mut))
           (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hv-mut (show-o mut)))))
-          (app 'havoc $∅ (-ℒ ∅ ℓ) Mut (list W -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
+          (app $∅ (-ℒ ∅ ℓ) Mut (list W -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
 
       ;; Havoc vector's content before erasing the vector with unknowns
       ;; Guarded vectors are already erased
@@ -108,8 +108,8 @@
        (define ℓ (loc->ℓ (loc 'havoc 0 0 '(vector/guard))))
        (define Wᵢ (-W¹ -Nat/V #f))
        (∪
-        (app 'havoc $∅ (-ℒ ∅ (ℓ-with-id ℓ 'ref)) -vector-ref/W (list W Wᵢ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (app 'havoc $∅ (-ℒ ∅ (ℓ-with-id ℓ 'mut)) -vector-set!/W (list W Wᵢ -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+        (app $∅ (-ℒ ∅ (ℓ-with-id ℓ 'ref)) -vector-ref/W (list W Wᵢ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
+        (app $∅ (-ℒ ∅ (ℓ-with-id ℓ 'mut)) -vector-set!/W (list W Wᵢ -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
       [(-Vector αs)
        ;; Widen each field first. No need to go through `vector-set!` b/c there's no
        ;; contract protecting it

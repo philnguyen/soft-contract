@@ -18,7 +18,7 @@
 ;;;;; 4.9 Pairs and Lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-ext (map l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(def-ext (map $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   ; FIXME uses 
   #:domain ([Wₚ (any/c . -> . any/c)]
             [Wₗ list?])
@@ -29,17 +29,17 @@
   (match Vₗ
     [(-b '()) (⟦k⟧ (-W (list -null) sₐ) $ Γ ⟪ℋ⟫ Σ)]
     [(-Cons _ _)
-     (define ⟦k⟧* (mk-listof∷ l sₐ ℒ ⟪ℋ⟫ ⟦k⟧))
+     (define ⟦k⟧* (mk-listof∷ sₐ ℒ ⟪ℋ⟫ ⟦k⟧))
      (for/union : (℘ -ς) ([V (extract-list-content σ Vₗ)])
-       (app l $ ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+       (app $ ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
     [_ (⟦k⟧ (-W (list (-● (set 'list?))) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
-(def-ext (for-each l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(def-ext (for-each $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wₚ (any/c . -> . any/c)]
             [Wₗ list?])
   #:result -Void/Vs)
 
-(define/memo (mk-listof∷ [l : -l] [sₐ : -s] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+(define/memo (mk-listof∷ [sₐ : -s] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W Vs s) A)
     (match Vs
@@ -50,7 +50,7 @@
        (σ⊕*! Σ [⟪α⟫ₕ ↦ V] [⟪α⟫ₜ ↦ -null] [⟪α⟫ₜ ↦ Vₚ])
        (⟦k⟧ (-W (list Vₚ) sₐ) $ Γ ⟪ℋ⟫ Σ)]
       [_
-       (define blm (blm-arity l 'mk-listof 1 Vs (-ℒ-app ℒ₀)))
+       (define blm (blm-arity (-ℒ-app ℒ₀) 'mk-listof 1 Vs))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
 
@@ -58,7 +58,7 @@
 ;;;;; 4.11 Vectors
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-ext (vector-ref l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(def-ext (vector-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wᵥ vector?] [Wᵢ integer?])
   (match-define (-Σ σ _ M) Σ)
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
@@ -87,19 +87,19 @@
           (define cᵢ (⟪α⟫->s ⟪α⟫ᵢ))
           (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
                                 [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
-            (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
+            (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                          (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
         (define c* (⟪α⟫->s ⟪α⟫*))
         (for/union : (℘ -ς) ([C* (in-set (σ@ σ ⟪α⟫*))]
                              [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
-          (.vector-ref lo $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
+          (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
                        (mon.c∷ l³ (ℒ-with-mon ℒ ℓ*) (-W¹ C* c*) ⟦k⟧)))])]
     [_
      (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
-(def-ext (vector-set! l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(def-ext (vector-set! $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
   (match-define (-Σ σ _ M) Σ)
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)

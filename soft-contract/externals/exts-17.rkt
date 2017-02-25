@@ -14,7 +14,7 @@
 ;;;;; 17.2 Unsafe Operations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-ext (unsafe-struct-ref l $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(def-ext (unsafe-struct-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wᵥ any/c] [Wᵢ integer?])
   (match-define (-Σ σ _ M) Σ)
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
@@ -47,12 +47,12 @@
                    (define c (⟪α⟫->s (car ⟪γ⟫ℓ)))
                    (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                          [C (in-set (σ@ σ (car ⟪γ⟫ℓ)))])
-                     (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
+                     (app $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                           (mon.c∷ l³ (ℒ-with-mon ℒ (cdr (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                   [else
                    (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                          [C (in-set (σ@ σ (car ⟪γ⟫ℓ)))])
-                     (app lo $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
+                     (app $ ℒ -unsafe-struct-ref/W (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
     [_
      (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 

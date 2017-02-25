@@ -11,7 +11,7 @@
          "../runtime/main.rkt"
          "../proof-relation/main.rkt")
 
-(define-type -⟦o⟧ (-⟪ℋ⟫ ℓ -l -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
+(define-type -⟦o⟧ (-⟪ℋ⟫ ℓ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
 
 (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
 ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
@@ -57,12 +57,12 @@
 
 (define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧)
   (λ (o)
-    (λ (⟪ℋ⟫ ℓ l Σ Γ Ws)
+    (λ (⟪ℋ⟫ ℓ Σ Γ Ws)
       (cond [(equal? n (length Ws))
              (match-define (-Σ σ _ M) Σ)
              (implement-predicate M σ Γ o Ws)]
             [else
-             {set (-ΓA Γ (blm-arity l o n (map -W¹-V Ws) ℓ))}]))))
+             {set (-ΓA Γ (blm-arity ℓ o n (map -W¹-V Ws)))}]))))
 
 (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
 (define alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut)) (make-hasheq))

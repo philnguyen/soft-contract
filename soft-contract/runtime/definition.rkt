@@ -223,6 +223,11 @@
 ;; Encodes monitor + call site
 (struct -ℒ ([mons : (℘ ℓ)] [app : ℓ]) #:transparent)
 
+(: unpack-ℒ : -ℒ → (Values ℓ -l))
+(define (unpack-ℒ ℒ)
+  (define ℓ (-ℒ-app ℒ))
+  (values ℓ (ℓ-src ℓ)))
+
 (define (ℒ-with-mon [ℒ : -ℒ] [ℓ : ℓ])
   (match-define (-ℒ ℓs ℓₐ) ℒ)
   (-ℒ (set-add ℓs ℓ) ℓₐ))

@@ -27,13 +27,13 @@
      (for/fold ([FVs (fv f)]) ([x xs]) (∪ FVs (fv x)))]
     [(-begin es) (fv es)]
     [(-begin0 e₀ es) (∪ (fv e₀) (fv es))]
-    [(-let-values bnds e)
+    [(-let-values bnds e _)
      (define-values (bound FV_rhs)
        (for/fold ([bound : (℘ Symbol) ∅eq] [FV_rhs : (℘ Symbol) ∅eq]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
          (values (set-add-list bound xs) (∪ FV_rhs (fv rhs)))))
      (∪ FV_rhs (-- (fv e) bound))]
-    [(-letrec-values bnds e)
+    [(-letrec-values bnds e _)
      (define bound
        (for/fold ([bound : (℘ Symbol) ∅eq]) ([bnd bnds])
          (set-add-list bound (car bnd))))
@@ -84,12 +84,12 @@
    [(-if i t e) (+ (checks# i) (checks# t) (checks# e))]
    [(-wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
    [(-begin0 e es) (+ (checks# e) (checks# es))]
-   [(-let-values bindings e)
+   [(-let-values bindings e _)
     (+ (for/sum : Integer ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
        (checks# e))]
-   [(-letrec-values bindings e)
+   [(-letrec-values bindings e _)
     (+ (for/sum : Integer ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
@@ -124,9 +124,9 @@
       [(-if i t e) (∪ (go i) (go t) (go e))]
       [(-wcm k v b) (∪ (go k) (go v) (go b))]
       [(-begin0 e es) (∪ (go e) (go* es))]
-      [(-let-values bnds e)
+      [(-let-values bnds e _)
        (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
-      [(-letrec-values bnds e)
+      [(-letrec-values bnds e _)
        (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-μ/c _ c) (go c)]
       [(--> cs d _) (∪ (go* cs) (go d))]
@@ -231,7 +231,7 @@
       [(-wcm k v b) (-wcm (go! m k) (go! m v) (go! m b))]
       [(-begin es) (-begin (map (curry go! m) es))]
       [(-begin0 e₀ es) (-begin0 (go! m e₀) (map (curry go! m) es))]
-      [(-let-values bnds bod)
+      [(-let-values bnds bod ℓ)
        (define-values (m* bnds*-rev)
          (for/fold ([m* : S->S m] [bnds*-rev : (Listof (Pairof (Listof Symbol) -e)) '()])
                    ([bnd bnds])
@@ -240,8 +240,8 @@
            (define eₓ* (go! m #|important|# eₓ))
            (values m** (cons (cons xs* eₓ*) bnds*-rev))))
        (define bod* (go! m* bod))
-       (-let-values (reverse bnds*-rev) bod*)]
-      [(-letrec-values bnds bod)
+       (-let-values (reverse bnds*-rev) bod* ℓ)]
+      [(-letrec-values bnds bod ℓ)
        (define-values (xss es) (unzip bnds))
        (define-values (m* xss*-rev)
          (for/fold ([m* : S->S m] [xss*-rev : (Listof (Listof Symbol)) '()])
@@ -251,7 +251,7 @@
        (define es* (map (curry go! m*) es))
        (define bod* (go! m* bod))
        (define bnds* (map (inst cons (Listof Symbol) -e) (reverse xss*-rev) es*))
-       (-letrec-values bnds* bod*)]
+       (-letrec-values bnds* bod* ℓ)]
       [(-set! i e*)
        (match i
          [(-x (? symbol? x)) (-set! (-x (hash-ref m x)) (go! m e*))]
@@ -320,7 +320,7 @@
              (-begin (go-list m es))]
             [(-begin0 e₀ es)
              (-begin0 (go m e₀) (go-list m es))]
-            [(-let-values bnds body)
+            [(-let-values bnds body ℓ)
              (define-values (bnds*-rev locals)
                (for/fold ([bnds*-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
                           [locals : (℘ Symbol) ∅eq])
@@ -329,8 +329,8 @@
                  (values (cons (cons xs (go m eₓ)) bnds*-rev)
                          (set-add-list locals xs))))
              (define body* (go (shrink m locals) body))
-             (-let-values (reverse bnds*-rev) body*)]
-            [(-letrec-values bnds body)
+             (-let-values (reverse bnds*-rev) body* ℓ)]
+            [(-letrec-values bnds body ℓ)
              (define locals
                (for/fold ([locals : (℘ Symbol) ∅eq])
                          ([bnd bnds])
@@ -342,7 +342,7 @@
                  (match-define (cons xs eₓ) bnd)
                  (cons xs (go m* eₓ))))
              (define body* (go m* body))
-             (-letrec-values bnds* body*)]
+             (-letrec-values bnds* body* ℓ)]
             [(-set! x e*)
              (-set! x (go m e*))]
             [(-μ/c z c)

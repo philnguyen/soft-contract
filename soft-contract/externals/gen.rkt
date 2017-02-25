@@ -16,7 +16,6 @@
          "../utils/set.rkt"
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"
-         "../ast/srcloc.rkt"
          "../runtime/main.rkt"
          "../primitives/gen.rkt"
          "../proof-relation/main.rkt"
@@ -59,11 +58,12 @@
   (define/contract (gen-func-wrap c V s)
     (syntax? syntax? syntax? . -> . syntax?)
     ;; be careful not to use `V` twice
+    ;; FIXME ℓ maybe wrong here
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
-             [l³ (-l³ #,(-l) '#,(-o) '#,(-o))]
+             [l³ (-l³ (ℓ-src ℓ) '#,(-o) '#,(-o))]
              [grd #,(gen-alloc #'ℓ c)]
              [⟪α⟫ (-α->⟪α⟫ (or (keep-if-const #,s)
-                               (-α.fn #,(-ℒ) #,(-⟪ℋ⟫) #,(-l) (-Γ-facts #,(-Γ)))))])
+                               (-α.fn #,(-ℒ) #,(-⟪ℋ⟫) (ℓ-src ℓ) (-Γ-facts #,(-Γ)))))])
         (σ⊕! #,(-Σ) ⟪α⟫ #,V)
         (-Ar grd ⟪α⟫ l³)))
 

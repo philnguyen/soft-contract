@@ -155,7 +155,7 @@
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
         [else (error '↓ₑ "TODO: (quote ~a)" q)])]
-     [(-let-values bnds e*)
+     [(-let-values bnds e* ℓ)
       (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
         (for/list ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
@@ -165,8 +165,8 @@
         ['() ⟦e*⟧]
         [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ l xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧)))])]
-     [(-letrec-values bnds e*)
+           (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧)))])]
+     [(-letrec-values bnds e* ℓ)
       (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
         (for/list ([bnd bnds])
           (match-define (cons xs eₓₛ) bnd)
@@ -185,7 +185,7 @@
                (σ⊕! Σ α -undefined)
                (ρ+ ρ x α)))
            (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
-            (letrec∷ l xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))])]
+            (letrec∷ ℓ xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))])]
      [(-set! x e*)
       (define ⟦e*⟧ (↓ e*))
       (match x
@@ -202,16 +202,16 @@
      [(-μ/c x c)
       (define ⟦c⟧ (↓ c))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (μ/c∷ l x ⟦k⟧)))]
+        (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (μ/c∷ x ⟦k⟧)))]
      [(--> cs d ℓ)
       (define ⟦d⟧  (↓ d))
       (match (map ↓ cs)
         ['()
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ l '() ℓ ⟦k⟧)))]
+           (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ '() ℓ ⟦k⟧)))]
         [(cons ⟦c⟧ ⟦c⟧s)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ l '() ⟦c⟧s ⟦d⟧ ρ ℓ ⟦k⟧)))])]
+           (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s ⟦d⟧ ρ ℓ ⟦k⟧)))])]
      [(-->i cs (and mk-d (-λ xs d)) ℓ)
       (define ⟦d⟧ (↓ d))
       (match (map ↓ cs)
@@ -236,7 +236,7 @@
            (⟦k⟧ (-W (list (-Case-> '() ℓ)) e) $ Γ ⟪ℋ⟫ Σ))]
         [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (case->∷ l ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
+           (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (case->∷ ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
      [(-x/c x)
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (⟦k⟧ (-W (list (-x/C (-α->⟪α⟫ (-α.x/c x)))) e) $ Γ ⟪ℋ⟫ Σ))]

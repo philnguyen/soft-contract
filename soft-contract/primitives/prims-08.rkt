@@ -16,13 +16,13 @@
 
 (def-prim/todo flat-named-contract ; FIXME uses
  (any/c flat-contract? . -> . flat-contract?))
-(def-prim/custom (any/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+(def-prim/custom (any/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W any/c])
   {set (-ΓA Γ (-W -True/Vs -tt))})
-(def-prim/custom (none/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+(def-prim/custom (none/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W any/c])
   {set (-ΓA Γ (-W -False/Vs -ff))})
-(def-prim/custom (or/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+(def-prim/custom (or/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
   (match-define (-W¹ V₁ s₁) W₁)
   (match-define (-W¹ V₂ s₂) W₂)
@@ -32,7 +32,7 @@
   (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids ℓ 2))
   (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
   {set (-ΓA Γ (-W (list C) (-?@ 'or/c s₁ s₂)))})
-(def-prim/custom (and/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+(def-prim/custom (and/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
   (match-define (-W¹ V₁ s₁) W₁)
   (match-define (-W¹ V₂ s₂) W₂)
@@ -42,7 +42,7 @@
   (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids ℓ 2))
   (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
   {set (-ΓA Γ (-W (list C) (-?@ 'and/c s₁ s₂)))})
-(def-prim/custom (not/c ⟪ℋ⟫ ℓ l Σ Γ Ws)
+(def-prim/custom (not/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W flat-contract?])
   (match-define (-W¹ V s) W)
   (define α (-α->⟪α⟫ (or (keep-if-const s) (-α.not/c ℓ ⟪ℋ⟫))))
@@ -67,7 +67,7 @@
    (() #:rest (listof flat-contract?) . ->* . contract?)]
 #;[symbols
    (() #:rest (listof symbol?) . ->* . flat-contract?)]
-(def-prim/custom (vectorof ⟪ℋ⟫ ℓ l Σ Γ Ws) ; FIXME uses
+(def-prim/custom (vectorof ⟪ℋ⟫ ℓ Σ Γ Ws) ; FIXME uses
   #:domain ([W contract?])
   (match-define (-W¹ V s) W)
   (define ⟪α⟫ (-α->⟪α⟫ (or (keep-if-const s) (-α.vectorof ℓ ⟪ℋ⟫))))
@@ -75,7 +75,7 @@
   (define C (-Vectorof (cons ⟪α⟫ (ℓ-with-id ℓ 'vectorof))))
   {set (-ΓA Γ (-W (list C) (-?@ 'vectorof s)))})
 (def-prim/todo vector-immutableof (contract? . -> . contract?))
-(def-prim/custom (vector/c ⟪ℋ⟫ ℓ₀ l Σ Γ Ws)
+(def-prim/custom (vector/c ⟪ℋ⟫ ℓ₀ Σ Γ Ws)
   ; FIXME uses ; FIXME check for domains to be listof contract
   (define-values (αs ℓs ss) ; with side effect widening store
     (for/lists ([αs : (Listof ⟪α⟫)] [ℓs : (Listof ℓ)] [ss : (Listof -s)])
