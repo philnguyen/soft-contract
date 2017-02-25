@@ -16,16 +16,35 @@
          "compile/app.rkt"
          )
 
-(: havoc : -⟪ℋ⟫ -Σ → (℘ -ς))
-(define (havoc ⟪ℋ⟫ Σ)
-  #;(begin
-    (printf "havoc values:~n")
-    (for ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))])
-      (printf "  - ~a~n" (show-V V))))
-  (define ⟦k⟧₀ (rt (-ℋ𝒱)))
-  (for/fold ([res : (℘ -ς) (⟦k⟧₀ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
-            ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))])
-    (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧₀)))))
+(splicing-local
+    ((define cache : (HashTable -V (HashTable ⟪α⟫ (℘ -V))) (make-hash))
+     
+     (: seen? : -V -Σ → Boolean)
+     (define (seen? V Σ)
+       (cond [(hash-ref cache V #f) =>
+              (λ ([mσ₀ : (HashTable ⟪α⟫ (℘ -V))])
+                (define mσ (-σ-m (-Σ-σ Σ)))
+                (map-equal?/spanning-root mσ₀ mσ (V->⟪α⟫s V) V->⟪α⟫s))]
+             [else #f]))
+
+     (: update-cache! : -V -Σ → Void)
+     (define (update-cache! V Σ)
+       (hash-set! cache V (-σ-m (-Σ-σ Σ))))
+     )
+
+  (: havoc : -⟪ℋ⟫ -Σ → (℘ -ς))
+  (define (havoc ⟪ℋ⟫ Σ)
+    #;(let ([Vs (σ@ Σ ⟪α⟫ₕᵥ)])
+      (printf "~a havoc values:~n" (set-count Vs))
+      (for ([V (in-set Vs)])
+        (printf "  - ~a~n" (show-V V))))
+    (define ⟦k⟧₀ (rt (-ℋ𝒱)))
+    (for/fold ([res : (℘ -ς) (⟦k⟧₀ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
+              ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))] #:unless (seen? V Σ))
+      (update-cache! V Σ)
+      (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧₀))))))
+
+
 
 (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
