@@ -44,8 +44,6 @@
       (update-cache! V Σ)
       (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧₀))))))
 
-
-
 (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W Vs _) A)
@@ -55,22 +53,7 @@
 
 (splicing-local
     ((define 𝒙 (+x!/memo 'hv))
-     (define 𝐱 (-x 𝒙))
-     
-     #;(: fun->tag : -V → Any)
-     ;; Return tag distinguishing function objects
-     #;(define fun->tag
-       (match-lambda
-         [(-Clo xs ⟦e⟧ _ _) (cons xs ⟦e⟧)]
-         [(-Case-Clo clauses _ _) clauses]
-         [(-Ar grd _ _)
-          (match grd
-            [(-=> doms _ _) (length doms)]
-            [(-=>i _ (list (-Clo xs ⟦d⟧ _ _) _ _) _) (cons xs ⟦d⟧)]
-            [(-Case-> sigs _)
-             (for/list : (Listof Natural) ([sig sigs])
-               (length (car sig)))])]
-         [_ #f])))
+     (define 𝐱 (-x 𝒙)))
   
   (: havoc-V : -V -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
   (define (havoc-V V ⟪ℋ⟫ Σ ⟦k⟧)
