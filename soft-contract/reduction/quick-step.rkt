@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide run)
+(provide run debug?)
 
 (require racket/set
          racket/match
@@ -15,6 +15,8 @@
          "../externals/main.rkt" ; for side effects
          "havoc.rkt"
          )
+
+(define-parameter debug? : Boolean #f)
 
 (define-type Ctx (List (HashTable ⟪α⟫ (℘ -V))
                        (HashTable -αₖ (℘ -κ))
@@ -45,7 +47,7 @@
                   (apply max 0 ((inst map Natural (℘ -ΓA)) set-count (hash-values (-Σ-M Σ)))))
         (printf "~n")
 
-        #;(begin ; verbose
+        (when (debug?)
 
           (begin ; interactive
             (define ςs-list
