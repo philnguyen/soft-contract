@@ -106,3 +106,10 @@
 (define (mk-set-spanner f #:eq? [use-eq? #f])
   (cond [use-eq? (λ (xs) (for/unioneq : (℘ Y) ([x (in-set xs)]) (f x)))]
         [else    (λ (xs) (for/union   : (℘ Y) ([x (in-set xs)]) (f x)))]))
+
+;; For debugging
+(: large-ones (∀ (X Y) (HashTable X (℘ Y)) Natural → (HashTable X (℘ Y))))
+(define (large-ones m n)
+  (for/fold ([m* : (HashTable X (℘ Y)) m])
+            ([(k vs) (in-hash m)] #:unless (>= (set-count vs) n))
+    (hash-remove m* k)))

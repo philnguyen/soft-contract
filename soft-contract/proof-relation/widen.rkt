@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide σ⊕! σ⊕*! Vs⊕
+         M⊕ M⊕!
          Γ+ V+
          extract-list-content)
 
@@ -344,6 +345,53 @@
           [(-b (list)) (void)]
           [_ (set! Vs (Vs⊕ σ Vs (-● ∅)))]))))
   Vs)
+
+(: A⊑ : -σ -A -A → Boolean)
+(define (A⊑ σ A₁ A₂)
+  (match* (A₁ A₂)
+    [((-W Vs₁ s₁) (-W Vs₂ s₂))
+     (and (equal? s₁ s₂)
+          (= (length Vs₁) (length Vs₂))
+          (for/and : Boolean ([V₁ Vs₁] [V₂ Vs₂])
+            (V⊑ σ V₁ V₂)))]
+    [((? -blm? blm₁) (? -blm? blm₂))
+     (equal? blm₁ blm₂)]
+    [(_ _) #f]))
+
+(: Γ⊑ : -Γ -Γ → Boolean)
+(define (Γ⊑ Γ₁ Γ₂)
+  (match-define (-Γ φs₁ _ γs₁) Γ₁)
+  (match-define (-Γ φs₂ _ γs₂) Γ₂)
+  (and (⊆ φs₂ φs₁) (⊆ (list->set γs₂) (list->set γs₁))))
+
+(: ΓA⊑ : -σ -ΓA -ΓA → Boolean)
+(define (ΓA⊑ σ ΓA₁ ΓA₂)
+  (match-define (-ΓA Γ₁ A₁) ΓA₁)
+  (match-define (-ΓA Γ₂ A₂) ΓA₂)
+  (and (Γ⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
+
+(: M⊕ : -M -σ -αₖ -Γ -A → -M)
+(define (M⊕ M σ αₖ Γ A)
+  #;(hash-update M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅)
+  (define ΓA (-ΓA Γ A))
+  (hash-update M αₖ
+               (λ ([ΓAs : (℘ -ΓA)])
+                 (define-set subsumed-olds : -ΓA)
+                 (define redundant? : Boolean #f)
+                 (for ([ΓAᵢ (in-set ΓAs)])
+                   (cond
+                     [(ΓA⊑ σ ΓAᵢ ΓA) (subsumed-olds-add! ΓAᵢ)]
+                     [(ΓA⊑ σ ΓA ΓAᵢ) (set! redundant? #t)]
+                     [else (void)]))
+                 (cond
+                   [redundant? ΓAs]
+                   [else (set-add (set-subtract ΓAs subsumed-olds) ΓA)]))
+                →∅))
+
+(: M⊕! : -Σ -αₖ -Γ -A → Void)
+(define (M⊕! Σ αₖ Γ A)
+  (match-define (-Σ σ _ M) Σ)
+  (set--Σ-M! Σ (M⊕ M σ αₖ Γ A)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

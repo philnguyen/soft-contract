@@ -82,24 +82,6 @@
 (: M@ : (U -Σ -M) -αₖ → (℘ -ΓA))
 (define (M@ m αₖ) (hash-ref (if (-Σ? m) (-Σ-M m) m) αₖ →∅))
 
-(: M⊔ : -M -αₖ -Γ -A → -M)
-(define (M⊔ M αₖ Γ A)
-  (hash-update M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅)
-  #;(hash-update! M αₖ
-                (λ ([ΓAs : (℘ -ΓA)])
-                  (define check
-                    (for/or : (U #f 'use-old -ΓA) ([ΓA₀ (in-set ΓAs)])
-                      (match-define (-ΓA Γ₀ A₀) ΓA₀)
-                      (and (equal? A₀ A)
-                           (cond [(Γ⊆ Γ₀ Γ) 'use-old]
-                                 [(Γ⊆ Γ Γ₀) ΓA₀]
-                                 [else #f]))))
-                  (case check
-                    [(use-old) ΓAs]
-                    [(#f) (set-add ΓAs (-ΓA Γ A))]
-                    [else (set-add (set-remove ΓAs check) (-ΓA Γ A))]))
-                →∅))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Grouped reference to mutable stores
@@ -111,11 +93,6 @@
 (define (σₖ⊔! Σ αₖ κ)
   (match-define (-Σ _ σₖ _) Σ)
   (set--Σ-σₖ! Σ (σₖ⊔ σₖ αₖ κ)))
-
-(: M⊔! : -Σ -αₖ -Γ -A → Void)
-(define (M⊔! Σ αₖ Γ A)
-  (match-define (-Σ _ _ M) Σ)
-  (set--Σ-M! Σ (M⊔ M αₖ Γ A)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -208,12 +185,6 @@
   (cond [s (match-define (-Γ φs as ts) Γ)
            (-Γ φs (hash-set as x s) ts)]
         [else Γ]))
-
-(: Γ⊆ : -Γ -Γ → Boolean)
-(define (Γ⊆ Γ₀ Γ₁)
-  (match-define (-Γ φs₀ _ γs₀) Γ₀)
-  (match-define (-Γ φs₁ _ γs₁) Γ₁)
-  (and (⊆ φs₀ φs₁) (⊆ (list->set γs₀) (list->set γs₁))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

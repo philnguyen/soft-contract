@@ -51,7 +51,7 @@
             [_
              (match-define (-Σ _ _ M) Σ)
              (unless (-ℋ𝒱? αₖ)
-               (M⊔! Σ αₖ Γ A))
+               (M⊕! Σ αₖ Γ A))
              (when (and print-blames-on-the-fly?
                         (-blm? A)
                         (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))

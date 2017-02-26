@@ -15,6 +15,16 @@
 
 (define memo-data : (HashTable Symbol HashTableTop) (make-hasheq))
 
+(: find-memo-key ([Any] [(Option Symbol)] . ->* . Any))
+(define (find-memo-key v [k #f])
+  
+  (: search : HashTableTop → Any)
+  (define (search m)
+    (for/or ([(k* v*) (in-hash m)] #:when (equal? k* k)) v*))
+
+  (cond [k (search (hash-ref memo-data k))]
+        [else (for/or ([(k* m*) (in-hash memo-data)]) (search m*))]))
+
 (define-syntax define/memo
   (syntax-rules (:)
     [(_ (f [x : X]) : Y e ...)
