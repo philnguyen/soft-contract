@@ -777,62 +777,47 @@
     #:on-t chk-arity
     #:on-f (blm 'procedure?)))
 
-(define (mon-struct/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (match-define (-W¹ C c) W-C)
-  (match-define (-W¹ V v) W-V)
+(define (mon-struct/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (match-define (-Σ σ _ M) Σ)
+  (match-define (-W¹ (and Vₚ (-St/C flat? 𝒾 αℓs)) sₚ) Wₚ)
+  (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
   (match-define (-l³ l+ _ lo) l³)
-  (match-define (-St/C flat? 𝒾 αℓs) C)
-  (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
-  (define cs (-struct/c-split c 𝒾))
   (define p (-st-p 𝒾))
-  (define K (let ([k (-st-mk 𝒾)]) (-W¹ k k)))
-  (define all-immutable? (struct-all-immutable? 𝒾))
 
-  (define ⟦field⟧s : (Listof -⟦e⟧)
-    (for/list ([α (in-list αs)]
-               [i (in-naturals)] #:when (index? i))
-      (define ac (-st-ac 𝒾 i))
-      (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ W-V)))))
+  (: chk-fields : -Γ → (℘ -ς))
+  (define (chk-fields Γ)
+    (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
+    (define all-immutable? (struct-all-immutable? 𝒾))
 
-  (match V ; FIXME code dup
-    [(or (-St (== 𝒾) _) (-St* (-St/C _ (== 𝒾) _) _ _))
-     (cond
-       [(null? ⟦field⟧s)
-        (⟦k⟧ (-W (list V) v) $ Γ ⟪ℋ⟫ Σ)]
-       [else
-        (for/union : (℘ -ς) ([Cs (σ@/list (-Σ-σ Σ) αs)])
-                   (define ⟦mon⟧s : (Listof -⟦e⟧)
-                     (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s] [ℓᵢ : ℓ ℓs])
-                       (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
-                   (define ⟦reconstr⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ K) ⟦mon⟧s))
-                   (define ⟦k⟧*
-                     (cond [all-immutable? ⟦k⟧]
-                           [else
-                            (define α (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫)))
-                            (wrap-st∷ C α l³ ⟦k⟧)]))
-                   (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))])]
-    [(-● _)
-     (define ⟦chk⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ p p)) (list (mk-rt-⟦e⟧ W-V))))
-     (define ⟦blm⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list p) (list V) (-ℒ-app ℒ))))
-     (cond
-       [(null? ⟦field⟧s)
-        (define ⟦rt⟧ (mk-rt-⟦e⟧ W-V))
-        (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (if∷ lo ⟦rt⟧ ⟦blm⟧ ⊥ρ ⟦k⟧))]
-       [else
-        (for/union : (℘ -ς) ([Cs (σ@/list (-Σ-σ Σ) αs)])
+    (define ⟦field⟧s : (Listof -⟦e⟧)
+      (for/list ([α (in-list αs)]
+                 [i (in-naturals)] #:when (index? i))
+        (define ac (-st-ac 𝒾 i))
+        (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ Wᵥ)))))
+
+    (cond
+      [(null? ⟦field⟧s)
+       (⟦k⟧ (-W (list (-St 𝒾 '())) sᵥ) $ Γ ⟪ℋ⟫ Σ)]
+      [else
+       (define cs (-struct/c-split sₚ 𝒾))
+       (define K (let ([k (-st-mk 𝒾)]) (-W¹ k k)))
+       (define ⟦k⟧* ; maybe wrap the monitored struct
+         (cond [all-immutable? ⟦k⟧]
+               [else
+                (define α (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫)))
+                (wrap-st∷ Vₚ α l³ ⟦k⟧)]))
+       (for/union : (℘ -ς) ([Cs (σ@/list Σ αs)])
           (define ⟦mon⟧s : (Listof -⟦e⟧)
             (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s] [ℓᵢ : ℓ ℓs])
               (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
           (define ⟦reconstr⟧ (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ K) ⟦mon⟧s))
-          (define ⟦k⟧*
-            (cond
-              [all-immutable? ⟦k⟧]
-              [else
-               (define α (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫)))
-               (wrap-st∷ C α l³ ⟦k⟧)]))
-          (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-           (if∷ lo ⟦reconstr⟧ ⟦blm⟧ ⊥ρ ⟦k⟧*)))])]
-    [_ (⟦k⟧ (-blm l+ lo (list C) (list V) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ)]))
+          (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]))
+
+  (with-MΓ⊢oW (M σ Γ p Wᵥ)
+    #:on-t chk-fields
+    #:on-f (λ ([Γ : -Γ])
+             (define blm (-blm l+ lo (list p) (list Vᵥ) (-ℒ-app ℒ)))
+             (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
 (define (mon-x/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-W¹ C c) W-C)
