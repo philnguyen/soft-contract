@@ -893,69 +893,37 @@
     (define W-C* (-W¹ C* c*))
     (app $ (ℒ-with-mon ℒ ℓ*) W-C* (list W-V) Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
 
-(define (mon-vectorof l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (match-define (-Σ σ _ _) Σ)
+(define (mon-vectorof l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (match-define (-Σ σ _ M) Σ)
   (match-define (-l³ l+ _ lo) l³)
-  (match-define (-W¹ Vᵥ sᵥ) W-V)
-  (match-define (-W¹ (-Vectorof (cons α ℓ*)) _) W-C)
-  (define c (⟪α⟫->s α))
-  (define ⟦rt⟧ (mk-rt-⟦e⟧ W-V))
+  (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+  (match-define (-W¹ (and Vₚ (-Vectorof (cons α* ℓ*))) _) Wₚ)
 
-  ;(printf "mon-vectorof ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
-  
-  (match Vᵥ
-    [(-Vector αs)
-     (define ⟦erase⟧ (mk-erase-⟦e⟧ αs))
-     (define ⟦rt-●⟧ (mk-rt-⟦e⟧ (-W¹ -●/V #f)))
-     (for*/union : (℘ -ς) ([C (σ@ σ α)] [Vs (σ@/list σ αs)])
-       (define ⟦hv⟧s : (Listof -⟦e⟧)
-         (for/list ([V* (in-list Vs)]
-                    [i (in-naturals)] #:when (index? i))
-           (define ⟦chk⟧
-             (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*)
-                         (mk-rt-⟦e⟧ (-W¹ C c))
-                         (mk-rt-⟦e⟧ (-W¹ V* (-?@ 'vector-ref sᵥ (-b i))))))
-           (mk-app-⟦e⟧ lo ℒ ⟦rt-●⟧ (list ⟦chk⟧))))
-       (match-define (cons ⟦e⟧ ⟦e⟧s) (append ⟦hv⟧s (list ⟦erase⟧ ⟦rt⟧)))
-       (⟦e⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s ⊥ρ ⟦k⟧)))]
-    [(-Vector^ αᵥ n)
-     (define ⟦erase⟧ (mk-erase-⟦e⟧ (list αᵥ)))
-     (for*/union : (℘ -ς) ([C (σ@ σ α)] [V* (σ@ σ αᵥ)])
-        (mon l³ $ ℒ (-W¹ C c) (-W¹ V* #|TODO|# #f) Γ ⟪ℋ⟫ Σ
-             (bgn∷ (list ⟦erase⟧) ⊥ρ ⟦k⟧)))]
-    [(-Vector/guard grd _ l³*)
-     (match grd
-       [(-Vector/C ⟪α⟫ℓs)
-        (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓs))
-        (define cs : (Listof -s) (for/list ([⟪α⟫ : ⟪α⟫ ⟪α⟫s]) (⟪α⟫->s ⟪α⟫)))
-        (for*/union : (℘ -ς) ([C (σ@ σ α)] [Cs (σ@/list σ ⟪α⟫s)])
-          (define ⟦chk⟧s : (Listof -⟦e⟧)
-            (for/list ([C* (in-list Cs)]
-                       [c* (in-list cs)]
-                       [ℓᵢ (in-list ℓs)]
-                       [i (in-naturals)] #:when (index? i))
-              (define ⟦inner⟧
-                (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓᵢ)
-                            (mk-rt-⟦e⟧ (-W¹ C* c*))
-                            (mk-rt-⟦e⟧ (-W¹ -●/V (-?@ 'vector-ref sᵥ (-b i))))))
-              (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
-          (match-define (cons ⟦e⟧ ⟦e⟧s) (append ⟦chk⟧s (list ⟦rt⟧)))
-          (⟦e⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s ⊥ρ ⟦k⟧)))]
-       [(-Vectorof αℓ*)
-        (match-define (cons α* ℓ**) αℓ*)
-        (define c* (⟪α⟫->s α*))
-        (for*/union : (℘ -ς) ([C* (σ@ σ α*)] [C (σ@ σ α)])
-           (define ⟦chk⟧
-             (let ([⟦inner⟧
-                    (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ**) (mk-rt-⟦e⟧ (-W¹ C* c*))
-                                (mk-rt-⟦e⟧ (-W¹ -●/V (-x (+x!/memo 'inner)))))])
-               (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C c)) ⟦inner⟧)))
-           (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ (list ⟦rt⟧) ⊥ρ ⟦k⟧)))])]
-    [(-● _)
-     (define ⟦er⟧ (mk-rt-⟦e⟧ (-blm l+ lo (list 'vector?) (list Vᵥ) (-ℒ-app ℒ))))
-     (app $ ℒ -vector?/W (list W-V) Γ ⟪ℋ⟫ Σ
-          (if∷ lo ⟦rt⟧ ⟦er⟧ ⊥ρ ⟦k⟧))]
-    [_ (⟦k⟧ (-blm l+ lo (list 'vector?) (list Vᵥ) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ)]))
+  (: blm : -V → -Γ → (℘ -ς))
+  (define ((blm C) Γ)
+    (define blm (-blm l+ lo (list C) (list Vᵥ) (-ℒ-app ℒ)))
+    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+
+  (: chk-elems : -Γ → (℘ -ς))
+  (define (chk-elems Γ)
+    (define Wᵥ* ; wrapped vector
+      (let ([⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ l+))])
+        (σ⊕! Σ ⟪α⟫ᵥ Vᵥ)
+        (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ)))
+    (define ⟦ref⟧
+      (mk-app-⟦e⟧ lo ℒ
+                  (mk-rt-⟦e⟧ -vector-ref/W)
+                  (list (mk-rt-⟦e⟧ Wᵥ)
+                        (mk-rt-⟦e⟧ (-W¹ -Nat/V (-x (+x!/memo 'vof-idx)))))))
+    (define ⟦k⟧* (bgn0.e∷ Wᵥ* '() ⊥ρ ⟦k⟧))
+    (define c* (⟪α⟫->s α*))
+    (for/union : (℘ -ς) ([C* (in-set (σ@ Σ α*))])
+      (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C* c*)) ⟦ref⟧))
+      (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
+
+  (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
+    #:on-t chk-elems
+    #:on-f (blm 'vector?)))
 
 (define (mon-vector/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ M) Σ)
