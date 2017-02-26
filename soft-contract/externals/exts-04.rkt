@@ -11,7 +11,6 @@
          "../proof-relation/main.rkt"
          "../reduction/compile/utils.rkt"
          "../reduction/compile/app.rkt"
-         "../reduction/havoc.rkt"
          "def-ext.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
