@@ -60,7 +60,7 @@
     
     (define (done) (⟦k⟧ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ))
 
-    (printf "havoc-ing ~a~n" (show-V V))
+    #;(printf "havoc-ing ~a~n" (show-V V))
     (define W (-W¹ V 𝐱))
     (match V
       ;; Ignore first-order and opaque value
