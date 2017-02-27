@@ -9,6 +9,8 @@
          "../runtime/main.rkt"
          "../run.rkt")
 
+(define TIMEOUT 300)
+
 (: check-verify-safe : Path-String → Any)
 (define (check-verify-safe p)
   ;; Can't use time-apply
@@ -41,7 +43,6 @@
       (with-handlers ([exn?
                        (λ ([e : exn])
                          (fail (format "Exception: ~a~n" (exn-message e))))])
-        (define TIMEOUT 10)
         (unless (within-time: Any TIMEOUT (f file-path-str))
           (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
 
