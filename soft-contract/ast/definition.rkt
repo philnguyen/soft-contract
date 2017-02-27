@@ -21,6 +21,24 @@
 (define-type -begin/e (-begin -e))
 (define-type -begin/top (-begin -top-level-form))
 
+(struct (X) -var ([init : (Listof X)] [rest : X]) #:transparent)
+(define-type (-maybe-var X) (U (Listof X) (-var X)))
+
+(: -var-map (∀ (X Y)
+               (case->
+                [(X → Y) (Listof X) → (Listof Y)]
+                [(X → Y) (-var X) → (-var Y)]
+                [(X → Y) (-maybe-var X) → (-maybe-var Y)])))
+(define (-var-map f xs)
+  (match xs
+    [(? list? xs) (map f xs)]
+    [(-var xs x) (-var (map f xs) (f x))]))
+
+(: shape (∀ (X) (-maybe-var X) → (U Index arity-at-least)))
+(define shape
+  (match-lambda [(? list? l) (length l)]
+                [(-var xs _) (arity-at-least (length xs))]))
+
 (struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
 
 (: +x! : (U Symbol Integer) * → Symbol)
@@ -39,8 +57,8 @@
 (struct -𝒾 ([name : Symbol] [ctx : -l]) #:transparent)
 
 ;; Formal parameters
-(-formals . ::= . (Listof Symbol)
-                  (-varargs [init : (Listof Symbol)] [rest : Symbol]))
+(define-type -formals (-maybe-var Symbol))
+(define-predicate -formals? -formals)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -88,7 +106,7 @@
             
             ;; contract stuff
             (-μ/c Symbol -e)
-            (--> [doms : (Listof -e)] [rng : -e] [loc : ℓ])
+            (--> [doms : (-maybe-var -e)] [rng : -e] [loc : ℓ])
             (-->i [doms : (Listof -e)] [rng : -λ] [loc : ℓ])
             (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] ℓ)
             (-x/c.tmp Symbol) ; hack
@@ -118,6 +136,7 @@
            (-->i-ac-dom Index)
            (-->i-ac-rng)
            (-->-ac-dom Index)
+           (-->-ac-rst)
            (-->-ac-rng)
            (-ar-ctc)
            (-ar-fun))
@@ -164,6 +183,7 @@
    [(-->i-ac-dom i) (format-symbol "->i~a" (n-sub i))]
    [(-->i-ac-rng) '->iᵣ]
    [(-->-ac-dom i) (format-symbol "->~a" (n-sub i))]
+   [(-->-ac-rst) '->ᵣₑₛₜ]
    [(-->-ac-rng) '->ᵣ]
    [(-ar-ctc) 'ar-ctc]
    [(-ar-fun) 'ar-fun]))
@@ -221,13 +241,17 @@
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
-    [(--> cs d _)
-     `(,@(map show-e cs) . -> . ,(show-e d))]
+    [(--> dom d _)
+     (match dom
+       [(-var es e)
+        `(,(map show-e es) #:rest ,(show-e e) . ->* . ,(show-e d))]
+       [(? list? es)
+        `(,@(map show-e es) . -> . ,(show-e d))])]
     [(-->i cs (and d (-λ xs _)) _)
      (match xs
        [(? list? xs)
         `(,@(map show-e cs) ↦ ,(show-e d))]
-       [(-varargs xs₀ x)
+       [(-var xs₀ x)
         (define-values (cs₀ c) (split-at cs (length xs₀)))
         `(,@(map show-e cs₀) #:rest ,@(map show-e c) ↦ ,(show-e d))])]
     [(-case-> clauses _)
@@ -273,5 +297,5 @@
 
 (define show-formals : (-formals → Sexp)
   (match-lambda
-    [(-varargs xs rst) (cons xs rst)]
+    [(-var xs rst) (cons xs rst)]
     [(? list? l) l]))

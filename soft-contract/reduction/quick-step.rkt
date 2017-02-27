@@ -195,7 +195,7 @@
                                    [(? list? xs)
                                     (for/hash : Subst ([x xs] [sₓ sₓs] #:when sₓ)
                                       (values (-x x) sₓ))]
-                                   [(-varargs xs x)
+                                   [(-var xs x)
                                     (define-values (args-init args-rest) (split-at sₓs (length xs)))
                                     (define m-init
                                       (for/hash : Subst ([x xs] [arg args-init] #:when arg)

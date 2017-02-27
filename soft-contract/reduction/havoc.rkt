@@ -60,7 +60,7 @@
     
     (define (done) (⟦k⟧ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ))
 
-    ;(printf "havoc-ing ~a~n" (show-V V))
+    (printf "havoc-ing ~a~n" (show-V V))
     (define W (-W¹ V 𝐱))
     (match V
       ;; Ignore first-order and opaque value
@@ -69,26 +69,28 @@
       ;; Apply function with appropriate number of arguments
       [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
        
-       (define (do-hv [k : Natural]) : (℘ -ς)
-         (define args : (Listof -W¹)
-           (for/list ([i k])
-             (-W¹ -●/V (-x (+x!/memo 'arg i)))))
-         (define ℓ (loc->ℓ (loc 'havoc 0 0 (list k 'opq-ap))))
-         #;(begin
-           (printf "app: ~a~n" (show-W¹ W))
-           (for ([W (in-list args)])
-             (printf "  - ~a~n" (show-W¹ W)))
-           (printf "~n"))
-         (app $∅ (-ℒ ∅ ℓ) W args ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
+       (define (do-hv [k : (U Natural arity-at-least)]) : (℘ -ς)
+         (match k
+           [(? exact-nonnegative-integer? k)
+            (define args : (Listof -W¹)
+              (for/list ([i k])
+                (-W¹ -●/V (-x (+x!/memo 'arg i)))))
+            (define ℓ (loc->ℓ (loc 'havoc 0 0 (list k 'opq-ap))))
+            (app $∅ (-ℒ ∅ ℓ) W args ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+           [(arity-at-least n)
+            (define args₀ : (Listof -W¹)
+              (for/list ([i n])
+                (-W¹ -●/V (-x (+x!/memo 'arg i)))))
+            (define argᵣ (-W¹ (-● {set 'list?}) (+x!/memo 'arg 'rest)))
+            (define ℓ (loc->ℓ (loc 'havoc 0 0 (list n 'vararg 'opq-app))))
+            (app $∅ (-ℒ ∅ ℓ) -apply/W `(,W ,@args₀ ,argᵣ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]))
        
        (match (V-arity V)
-         [(arity-at-least k) (do-hv (+ 1 k))]
-         [(? integer? k) (do-hv k)]
          [(? list? ks)
           (for/union : (℘ -ς) ([k ks])
             (cond [(integer? k) (do-hv k)]
                   [else (error 'havoc "TODO: ~a" k)]))]
-         [_ (done)])]
+         [(and k (or (? index?) (? arity-at-least?))) (do-hv k)])]
 
       ;; If it's a struct, havoc and widen each public field
       [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾

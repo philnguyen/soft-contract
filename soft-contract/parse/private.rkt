@@ -365,12 +365,12 @@
     [(let-values ([(_) (~literal fake:dynamic->*)]
                   [(_) (#%plain-app list inits ...)]
                   [(_) rst]
-                  [(_) rng])
+                  [(_) (#%plain-app list rng)])
        _ ...)
-     (-->* (map parse-e (syntax->list #'(inits ...)))
-           (parse-e #'rst)
-           (parse-e #'rng)
-           (syntax-ℓ stx))]
+     (--> (-var (map parse-e (syntax->list #'(inits ...)))
+                (parse-e #'rst))
+          (parse-e #'rng)
+          (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:listof) c)
      (-listof (parse-e #'c) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:list/c) c ...)
@@ -528,8 +528,8 @@
   (scv-syntax? . -> . -formals?)
   (syntax-parse formals
     [(x:id ...) (syntax->datum #'(x ...))]
-    [rest:id (-varargs '() (syntax-e #'rest))]
-    [(x:id ... . rest:id) (-varargs (syntax->datum #'(x ...)) (syntax-e #'rest))]))
+    [rest:id (-var '() (syntax-e #'rest))]
+    [(x:id ... . rest:id) (-var (syntax->datum #'(x ...)) (syntax-e #'rest))]))
 
 (define-for-syntax ext-names (get-defined-ext-names))
 (define-for-syntax ext-name->stx get-ext-parse-result)

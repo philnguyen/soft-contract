@@ -42,13 +42,6 @@
          default
          cases))
 
-(: -->* : (Listof -e) -e -e ℓ → -e)
-;; Make a non-dependent vararg contract
-;; TODO: separate case for non-dependent varargs
-(define (-->* cs rst d ℓ)
-  (define xs (-varargs (map (λ (_) (+x! 'vararg)) cs) (+x!)))
-  (-->i (append cs (list rst)) (-λ xs d) ℓ))
-
 ;; Make conjunctive and disjunctive contracts
 (splicing-local
     ((: -app/c : Symbol → (Listof (Pairof ℓ -e)) → -e)

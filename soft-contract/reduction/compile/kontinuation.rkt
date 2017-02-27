@@ -74,6 +74,7 @@
 ;; Non-dependent contract domain
 (define/memo (-->.dom∷ [Ws  : (Listof -W¹)]
                        [⟦c⟧s : (Listof -⟦e⟧)]
+                       [⟦c⟧ᵣ : (Option -⟦e⟧)]
                        [⟦d⟧  : -⟦e⟧]
                        [ρ   : -ρ]
                        [ℓ   : ℓ]
@@ -82,11 +83,25 @@
     (match-define (-W (list V) s) A)
     (define Ws* (cons (-W¹ V s) Ws))
     (match ⟦c⟧s
-      ['()            (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ Ws* ℓ ⟦k⟧))]
-      [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ Ws* ⟦c⟧s* ⟦d⟧ ρ ℓ ⟦k⟧))])))
+      ['()
+       (cond [⟦c⟧ᵣ (⟦c⟧ᵣ ρ $ Γ ⟪ℋ⟫ Σ (-->.rst∷ Ws* ⟦d⟧ ρ ℓ ⟦k⟧))]
+             [else (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ Ws* #f ℓ ⟦k⟧))])]
+      [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ Ws* ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧))])))
+
+;; Non-depenent contract rest
+(define/memo (-->.rst∷ [Ws : (Listof -W¹)]
+                       [⟦d⟧ : -⟦e⟧]
+                       [ρ : -ρ]
+                       [ℓ : ℓ]
+                       [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws ρ)
+    (match-define (-W (list V) s) A)
+    (define Wᵣ (-W¹ V s))
+    (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ Ws Wᵣ ℓ ⟦k⟧))))
 
 ;; Non-dependent contract range
 (define/memo (-->.rng∷ [Ws : (Listof -W¹)]
+                       [Wᵣ : (Option -W¹)]
                        [ℓₐ : ℓ]
                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws)
@@ -96,16 +111,24 @@
     (define-values (αs cs) ; with side effect widening store
       (for/fold ([αs : (Listof ⟪α⟫) '()]
                  [cs : (Listof -s) '()])
-                ([(W i) (in-indexed Ws)] #:when (exact-nonnegative-integer? i))
+                ([(W i) (in-indexed Ws)] #:when (index? i))
         (match-define (-W¹ C c) W)
         (define α (-α->⟪α⟫ (or (keep-if-const c) (-α.dom ℓₐ ⟪ℋ⟫ i))))
         (σ⊕! Σ α C)
         (values (cons α αs) (cons c cs))))
     (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
-      (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
+      (for/list ([(α i) (in-indexed αs)] #:when (index? i))
         (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
     (define βℓ (cons β (ℓ-with-id ℓₐ (length αs))))
-    (define G (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d ℓₐ)))
+    (define G
+      (match Wᵣ
+        [(-W¹ Vᵣ cᵣ)
+         (define αᵣ (-α->⟪α⟫ (or (keep-if-const cᵣ) (-α.rst ℓₐ ⟪ℋ⟫))))
+         (define ℓᵣ (ℓ-with-id ℓₐ 'rest))
+         (σ⊕! Σ αᵣ Vᵣ)
+         (-W (list (-=> (-var αℓs (cons αᵣ ℓᵣ)) βℓ ℓₐ)) (-?-> (-var cs cᵣ) d ℓₐ))]
+        [#f
+         (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d ℓₐ))]))
     (⟦k⟧ G $ Γ ⟪ℋ⟫ Σ)))
 
 (: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -s))

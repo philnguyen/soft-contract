@@ -90,7 +90,12 @@
        [(-St/C _ _ αs) {list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)}]
        [(-Vectorof α) {seteq (⟪α⟫ℓ->⟪α⟫ α)}]
        [(-Vector/C αs) (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs))]
-       [(-=> αs α _) (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ α))]
+       [(-=> αs α _)
+        (match αs
+          [(? list? αs) (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ α))]
+          [(-var αs αᵣ)
+           (set-add (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (seteq (⟪α⟫ℓ->⟪α⟫ αᵣ)))
+                    (seteq (⟪α⟫ℓ->⟪α⟫ α)))])]
        [(-=>i αs (list D _ _) _) (∪ (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (V->⟪α⟫s D))]
        [(-Case-> clauses _)
         (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
@@ -147,8 +152,11 @@
   (for ([α (in-list (hash-keys crds))] #:unless (∋ αs α))
     (hash-remove! crds α)))
 
-(define (->⟪α⟫s [x : (Rec X (U ⟪α⟫ -V -W¹ -W -ρ (Listof X) (℘ X)))]) : (℘ ⟪α⟫)
+(define (->⟪α⟫s [x : (Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X)))]) : (℘ ⟪α⟫)
   (cond
+    [(-var? x)
+     (∪ (->⟪α⟫s (-var-rest x))
+        (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-list (-var-init x))]) (->⟪α⟫s xᵢ)))]
     [(list? x)
      (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-list x)]) (->⟪α⟫s xᵢ))]
     [(set? x)

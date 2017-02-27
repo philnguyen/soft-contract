@@ -136,7 +136,7 @@
             (-Vector/C (Listof (Pairof ⟪α⟫ ℓ))))
 
 ;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (Listof (Pairof ⟪α⟫ ℓ))] [rng : (Pairof ⟪α⟫ ℓ)] [pos : ℓ])
+(-=>_ . ::= . (-=>  [doms : (-maybe-var (Pairof ⟪α⟫ ℓ))] [rng : (Pairof ⟪α⟫ ℓ)] [pos : ℓ])
               (-=>i [doms : (Listof (Pairof ⟪α⟫ ℓ))]
                     [mk-rng : (List -Clo -λ ℓ)]
                     [pos : ℓ])
@@ -267,6 +267,7 @@
             (-α.struct/c [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.x/c Symbol)
             (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
             (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.fn [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : (℘ -e)])
 
@@ -423,7 +424,10 @@
     [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]
     [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (car γ)))]
     [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ γs)))]
-    [(-=> αs β _) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ℓ β))]
+    [(-=> αs β _)
+     (match αs
+       [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,(show-⟪α⟫ℓ β))]
+       [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ℓ β))])]
     [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
      `(->i ,@(map show-⟪α⟫ℓ γs)
            ,(match xs

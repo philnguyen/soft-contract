@@ -81,7 +81,7 @@
          (match xs
            [(? list? xs)
             (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ xs Wₓs)]
-           [(-varargs zs z)
+           [(-var zs z)
             (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
             (define ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ zs Ws₀))
             (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
@@ -127,31 +127,57 @@
     (match-define (-l³ l+ l- lo) l³)
     (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
     (match-define (-=> αℓs βℓ _) C)
-    (match-define (cons β ℓᵣ) βℓ)
-    (define-values (cs d) (-->-split c (length αℓs)))
+    (match-define (cons β ℓₐ) βℓ)
+    (define-values (cs d) (-->-split c (shape αℓs)))
     (match-define (-Σ σ _ _) Σ)
+    (define l³* (-l³ l- l+ lo))
     (cond
       ;; FIXME: prevent this
       [(equal? Vᵤ Vₕ)
        (log-warning "TODO: generalize to handle cycle properly")
        ∅]
       [else
-       (match cs
-         ['() ; no arg
+       (match* (αℓs cs)
+         [('() '()) ; no arg
           (for/union : (℘ -ς) ([D (σ@ σ β)])
             (app $ ℒ Wᵤ '() Γ ⟪ℋ⟫ Σ
-                 (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))]
-         [(? pair?)
+                 (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))]
+         [((? pair?) (? pair?))
           (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
-          (define l³* (-l³ l- l+ lo))
-          (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
+          (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))]
+                                [D (in-set (σ@ σ β))])
             (match-define (cons ⟦mon-x⟧ ⟦mon-x⟧s)
-              (for/list : (Listof -⟦e⟧) ([C Cs] [c cs] [Wₓ Wₓs] [ℓₓ : ℓ ℓs])
+              (for/list : (Listof -⟦e⟧) ([C Cs]
+                                         [c cs]
+                                         [Wₓ Wₓs]
+                                         [ℓₓ : ℓ ℓs])
                 (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₓ) (mk-rt-⟦e⟧ (-W¹ C c)) (mk-rt-⟦e⟧ Wₓ))))
-            (for/union : (℘ -ς) ([D (in-set (σ@ σ β))])
-              (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-               (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ lo ℒ
-                    (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵣ) (-W¹ D d) ⟦k⟧)))))])]))
+            (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+             (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ lo ℒ
+                  (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧))))]
+         [((-var αℓs₀ αℓᵣ) (-var cs₀ cᵣ))
+          (define-values (αs₀ ℓs₀) ((inst unzip ⟪α⟫ ℓ) αℓs₀))
+          (match-define (cons αᵣ ℓᵣ) αℓᵣ)
+          (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length αs₀)))
+          (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ (ℒ-with-mon ℒ ℓᵣ) Wsᵣ))
+          (define Wᵣ (-W¹ Vᵣ (-?list (map -W¹-s Wsᵣ))))
+          (for*/union : (℘ -ς) ([Cs₀ (in-set (σ@/list σ αs₀))]
+                                [Cᵣ (in-set (σ@ σ αᵣ))]
+                                [D (in-set (σ@ σ β))])
+             (define ⟦mon-x⟧s : (Listof -⟦e⟧)
+               (for/list ([Cₓ Cs₀] [cₓ cs₀] [Wₓ Ws₀] [ℓₓ : ℓ ℓs₀])
+                 (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₓ) (mk-rt-⟦e⟧ (-W¹ Cₓ cₓ)) (mk-rt-⟦e⟧ Wₓ))))
+             (define ⟦mon-x⟧ᵣ : -⟦e⟧
+               (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓᵣ) (mk-rt-⟦e⟧ (-W¹ Cᵣ cᵣ)) (mk-rt-⟦e⟧ Wᵣ)))
+             (match ⟦mon-x⟧s
+               ['()
+                (⟦mon-x⟧ᵣ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+                 (ap∷ (list Wᵤ -apply/W) '() ⊥ρ lo ℒ
+                      (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))]
+               [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
+                (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+                 (ap∷ (list Wᵤ -apply/W) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ lo ℒ
+                      (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))]))])]))
 
   (define (app-Indy [C : -V] [c : -s] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
     (cond
@@ -223,7 +249,7 @@
                          ⟦mon-y⟧
                          ⊥ρ
                           ⟦k⟧))]))]
-            [(-varargs zs z)
+            [(-var zs z)
              (error 'app-Indy "Apply variable arity arrow")])])]))
 
   (define (app-Case [C : -V] [c : -s] [Vᵤ : -V] [l³ : -l³]) : (℘ -ς)
@@ -480,12 +506,22 @@
   ⟦mut⟧)
 
 (: app-apply : -⟦f⟧)
-(define (app-apply $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+(define (app-apply $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME
   (match-define (-Σ σ _ M) Σ)
-  (match-define (cons W₀ Wᵢs) Ws)
-  ;; special case for `slatex`
-  (match* (W₀ Wᵢs)
-    [((-W¹ (-Clo (-varargs (list x) xᵣ) ⟦e⟧ ρ Γ) sₕ) (list W₁ W₂ Wᵣ))
+  (match Ws
+    [(list Wₕ Ws₀ ... Wᵣ)
+     (error 'app-apply "TODO: ~a~n - inits: ~a~n -rest: ~a~n"
+            (show-W¹ Wₕ)
+            (map show-W¹ (cast Ws₀ (Listof -W¹)))
+            (show-W¹ Wᵣ))]
+    [_
+     (define-values (ℓ l) (unpack-ℒ ℒ))
+     (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
+     (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])
+  
+  
+  #;(match* (W₀ Wᵢs)
+    [((-W¹ (-Clo (-var (list x) xᵣ) ⟦e⟧ ρ Γ) sₕ) (list W₁ W₂ Wᵣ))
      (match-define (-W¹ V₂ s₂) W₂)
      (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
      (define Wₗ
@@ -759,12 +795,6 @@
   (define (wrap Γ)
     (define ⟪α⟫ (-α->⟪α⟫ (or (keep-if-const v) (-α.fn ℒ ⟪ℋ⟫ l+ (-Γ-facts Γ)))))
     (define Ar (-Ar grd ⟪α⟫ l³))
-
-    #;(begin
-      (printf "mon: ~a on ~a~n" (show-W¹ W-C) (show-W¹ W-V))
-      (printf "  - l+: ~a~n" l+)
-      (printf "  - lo: ~a~n" lo)
-      (printf "  - alloc: ~a ↦ ~a~n~n" (show-⟪α⟫ ⟪α⟫) (show-V V)))
 
     (σ⊕! Σ ⟪α⟫ V)
     (define v* ; hack

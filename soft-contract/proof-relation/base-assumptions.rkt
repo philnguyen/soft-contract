@@ -114,12 +114,12 @@
 
 (define formals-arity : (-formals → Arity)
   (match-lambda
-    [(-varargs init _) (arity-at-least (length init))]
+    [(-var init _) (arity-at-least (length init))]
     [(? list? xs) (length xs)]))
 
 (define guard-arity : (-=>_ → Arity)
   (match-lambda
-    [(-=> αs _ _) (length αs)]
+    [(-=> αs _ _) (shape αs)]
     [(and grd (-=>i αs (list mk-D mk-d _) _))
      (match mk-D
        [(-Clo xs _ _ _) (formals-arity xs)]

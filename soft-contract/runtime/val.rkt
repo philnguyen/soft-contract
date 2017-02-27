@@ -27,6 +27,7 @@
 (define -Nat/Vs (list -Nat/V))
 (define -Void/Vs (list -void))
 (define -Void/W (-W -Void/Vs -void))
+(define -apply/W (-W¹ 'apply 'apply))
 (define -not/W (-W¹ 'not 'not))
 (define -integer?/W (-W¹ 'integer? 'integer?))
 (define -number?/W (-W¹ 'number? 'number?))
@@ -94,9 +95,16 @@
       [(-Vector^ α _) (check-⟪α⟫! α)]
       [(-Ar grd α _) #t]
       [(-=> doms rng _)
-       (or (check-⟪α⟫! (car rng))
-           (for/or : Boolean ([dom doms])
-             (check-⟪α⟫! (car dom))))]
+       (match doms
+         [(? list? doms)
+          (or (check-⟪α⟫! (car rng))
+              (for/or : Boolean ([dom doms])
+                (check-⟪α⟫! (car dom))))]
+         [(-var doms dom)
+          (or (check-⟪α⟫! (car rng))
+              (check-⟪α⟫! (car dom))
+              (for/or : Boolean ([dom doms])
+                (check-⟪α⟫! (car dom))))])]
       [(? -=>i?) #t]
       [(-Case-> cases _)
        (for*/or : Boolean ([kase : (Pairof (Listof ⟪α⟫) ⟪α⟫) cases])

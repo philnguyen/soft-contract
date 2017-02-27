@@ -206,14 +206,25 @@
     [(? values e) (values (-@ (-ar-ctc) (list e) +ℓ₀) (-@ (-ar-fun) (list e) +ℓ₀))]
     [#f (values #f #f)]))
 
-(: -->-split : -s Index → (Values (Listof -s) -s))
-(define (-->-split s n)
+(: -->-split : -s (U Index arity-at-least) → (Values (-maybe-var -s) -s))
+(define (-->-split s shape)
+  (define n
+    (match shape
+      [(arity-at-least n) (assert n index?)]
+      [(? index? n) n]))
+  (define var? (arity-at-least? shape))
   (match s
     [(--> cs d _) (values cs d)]
-    [(? values e) (values (for/list : (Listof -s) ([i n])
-                            (-@ (-->-ac-dom i) (list e) +ℓ₀))
-                          (-@ (-->-ac-rng) (list e) +ℓ₀))]
-    [#f (values (make-list n #f) #f)]))
+    [(? values e)
+     (define inits : (Listof -e)
+       (for/list ([i : Index n])
+         (-@ (-->-ac-dom i) (list e) +ℓ₀)))
+     (values (cond [var? (-var inits (-@ (-->-ac-rst) (list e) +ℓ₀))]
+                   [else inits])
+             (-@ (-->-ac-rng) (list e) +ℓ₀))]
+    [#f
+     (values (if var? (-var (make-list n #f) #f) (make-list n #f))
+             #f)]))
 
 (: -->i-split : -s Index → (Values (Listof -s) -s))
 (define (-->i-split s n)
@@ -249,7 +260,7 @@
   (and (andmap (inst values -s) fields)
        (-struct/c 𝒾 (cast fields (Listof -e)) +ℓ₀)))
 
-(: -?-> : (Listof -s) -s ℓ -> (Option -->))
+(: -?-> : (-maybe-var -s) -s ℓ -> (Option -->))
 (define (-?-> cs d ℓ)
   (define cs* (check-ss cs))
   (and d cs* (--> cs* d ℓ)))
@@ -279,19 +290,30 @@
 (define (bind-args xs es)
   (match xs
     [(? list? xs) (values xs es)]
-    [(-varargs xs x)
+    [(-var xs x)
      (define-values (es-init es-rest) (split-at es (length xs)))
      (values `(,@xs ,x) `(,@es-init ,(-?list es-rest)))]))
 
-(: check-ss : (Listof -s) → (Option (Listof -e)))
+(: check-ss : (case->
+               [(Listof -s) → (Option (Listof -e))]
+               [(-var -s) → (Option (-var -e))]
+               [(-maybe-var -s) → (Option (-maybe-var -e))]))
 (define (check-ss ss)
-  (let go ([ss : (Listof -s) ss])
+
+  (: go : (Listof -s) → (Option (Listof -e)))
+  (define (go ss)
     (match ss
       ['() '()]
       [(cons s ss*)
        (and s
             (let ([es (go ss*)])
-              (and es (cons s es))))])))
+              (and es (cons s es))))]))
+
+  (match ss
+    [(? list? ss) (go ss)]
+    [(-var ss s)
+     (define ss* (go ss))
+     (and ss* s (-var ss* s))]))
 
 (: keep-if-const : -s → -s)
 ;; Keep expression if it evaluates to a fixed value

@@ -20,7 +20,7 @@
     [(-λ xs e)
      (define bound
        (match xs
-         [(-varargs zs z) (set-add (list->seteq zs) z)]
+         [(-var zs z) (set-add (list->seteq zs) z)]
          [(? list? xs) (list->seteq xs)]))
      (-- (fv e) bound)]
     [(-@ f xs _)
@@ -47,7 +47,10 @@
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
     [(-μ/c _ e) (fv e)]
-    [(--> cs d _) (apply ∪ (fv d) (map fv cs))]
+    [(--> cs d _)
+     (match cs
+       [(-var cs c) (apply ∪ (fv c) (fv d) (map fv cs))]
+       [(? list? cs) (apply ∪ (fv d) (map fv cs))])]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
     [(-case-> clauses _)
      (for/unioneq : (℘ Symbol) ([clause clauses])
@@ -95,7 +98,10 @@
          (checks# eₓ))
        (checks# e))]
    [(-μ/c _ c) (checks# c)]
-   [(--> cs d _) (+ (checks# cs) (checks# d))]
+   [(--> cs d _)
+    (match cs
+      [(-var cs c) (+ (checks# cs) (checks# c) (checks# d))]
+      [(? list? cs) (+ (checks# cs) (checks# d))])]
    [(-->i cs mk-d _) (+ (checks# cs) (checks# mk-d))]
    [(-case-> clauses _)
     (for/sum : Integer ([clause clauses])
@@ -129,7 +135,10 @@
       [(-letrec-values bnds e _)
        (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
       [(-μ/c _ c) (go c)]
-      [(--> cs d _) (∪ (go* cs) (go d))]
+      [(--> cs d _)
+       (match cs
+         [(-var cs c) (∪ (go* cs) (go c) (go d))]
+         [(? list? cs) (∪ (go* cs) (go d))])]
       [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
       [(-case-> clauses _)
        (for/unioneq : (℘ Symbol) ([clause clauses])
@@ -193,10 +202,10 @@
   (: new-formals! : S->S -formals → (values S->S -formals))
   (define (new-formals! m xs)
     (match xs
-      [(-varargs zs z)
+      [(-var zs z)
        (define-values (m₁ zs*) (new-binders! m zs))
        (define-values (m₂ z* ) (new-binder!  m₁ z))
-       (values m₂ (-varargs zs* z*))]
+       (values m₂ (-var zs* z*))]
       [(? list? xs) (new-binders! m xs)]))
 
   (define (go-m! [m : S->S] [modl : -module]) : -module
@@ -257,7 +266,10 @@
          [(-x (? symbol? x)) (-set! (-x (hash-ref m x)) (go! m e*))]
          [_ (-set! i (go! m e*))])]
       [(-μ/c x c) (-μ/c x (go! m c))]
-      [(--> cs d ℓ) (--> (map (curry go! m) cs) (go! m d) ℓ)]
+      [(--> cs d ℓ)
+       (match cs
+         [(-var cs c) (--> (-var (map (curry go! m) cs) (go! m c)) (go! m d) ℓ)]
+         [(? list? cs) (--> (map (curry go! m) cs) (go! m d) ℓ)])]
       [(-->i cs mk-d ℓ)
        (-->i (map (curry go! m) cs)
              (assert (go! m mk-d) -λ?)
@@ -348,7 +360,9 @@
             [(-μ/c z c)
              (-μ/c z (go (shrink m {seteq z}) c))]
             [(--> cs d ℓ)
-             (--> (go-list m cs) (go m d) ℓ)]
+             (match cs
+               [(-var cs c) (--> (-var (go-list m cs) (go m c)) (go m d) ℓ)]
+               [(? list? cs) (--> (go-list m cs) (go m d) ℓ)])]
             [(-->i cs mk-d ℓ)
              (-->i (go-list m cs) (assert (go m mk-d) -λ?) ℓ)]
             [(-case-> clauses ℓ)
@@ -381,7 +395,7 @@
 (: formals->names : -formals → (℘ Symbol))
 (define (formals->names xs)
   (cond
-    [(-varargs? xs) (set-add (list->seteq (-varargs-init xs)) (-varargs-rest xs))]
+    [(-var? xs) (set-add (list->seteq (-var-init xs)) (-var-rest xs))]
     [else (list->seteq xs)]))
 
 (define (show-subst [m : Subst]) : (Listof Sexp)
