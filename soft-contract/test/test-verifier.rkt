@@ -9,7 +9,7 @@
          "../runtime/main.rkt"
          "../run.rkt")
 
-(define TIMEOUT 300)
+(define TIMEOUT 600)
 
 (: check-verify-safe : Path-String → Any)
 (define (check-verify-safe p)
