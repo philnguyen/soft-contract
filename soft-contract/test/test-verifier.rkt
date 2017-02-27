@@ -45,5 +45,6 @@
         (unless (within-time: Any TIMEOUT (f file-path-str))
           (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
 
-(module+ test
-  (with-dir "safe" check-verify-safe))
+(module+ test ; quick sanity check
+  (with-dir "safe/octy" check-verify-safe)
+  (with-dir "safe/games" check-verify-safe))
