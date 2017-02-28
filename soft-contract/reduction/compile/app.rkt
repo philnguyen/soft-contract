@@ -21,7 +21,6 @@
 
 (: app : -$ -ℒ -W¹ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (app $ ℒ Wₕ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
-
   (match-define (-Σ σ σₖ M) Σ)
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define l (ℓ-src (-ℒ-app ℒ)))
@@ -80,6 +79,7 @@
     [(-st-ac  𝒾 i) ((app-st-ac  𝒾 i) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     [(-st-mut 𝒾 i) ((app-st-mut 𝒾 i) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     ['apply (app-apply $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+    ['make-sequence (app-make-sequence $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
 
     ;; Regular stuff
     [(? symbol? o) ((app-prim-or-ext o) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
@@ -158,8 +158,8 @@
      (λ ([⟦o⟧ : -⟦o⟧])
        (match-define (-ℒ _ ℓ) ℒ)
        (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
-                  (match-define (-ΓA Γ A) ΓA)
-                  (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))]
+          (match-define (-ΓA Γ A) ΓA)
+          (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))]
     [(get-ext o) =>
      (λ ([⟦f⟧ : -⟦f⟧])
        (⟦f⟧ $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))]
@@ -199,6 +199,25 @@
      (σₖ⊔! Σ αₖ κ)
      {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]
     [else ∅]))
+
+(: apply-app-clo : (-var Symbol) -⟦e⟧ -ρ -Γ -s
+   → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+(define ((apply-app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (match-define (-var xs₀ xᵣ) xs)
+  (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
+  (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
+  (define ρ*
+    (let ([ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ xs₀ Ws₀)])
+      (define αᵣ (-α->⟪α⟫ (-α.x xᵣ ⟪ℋ⟫ₑₑ)))
+      (σ⊕! Σ αᵣ Vᵣ)
+      (ρ+ ρ₀ xᵣ αᵣ)))
+  (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+  (define κ
+    (let ([ss₀ (map -W¹-s Ws₀)]
+          [sᵣ (-W¹-s Wᵣ)])
+      (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ 'apply `(,sₕ ,@ss₀ ,sᵣ))))
+  (σₖ⊔! Σ αₖ κ)
+  {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)})
 
 (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -s → -⟦f⟧)
 (define ((app-Case-Clo clauses ρₕ Γₕ sₕ) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -271,6 +290,35 @@
           (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
            (ap∷ (list Wᵤ -apply/W) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ lo ℒ
                 (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))]))]))
+
+(: apply-app-Ar : -=> -s -V -s -l³
+   → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+(define ((apply-app-Ar C c Vᵤ sₕ l³) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (match-define (-=> (-var αℓs₀ (cons αᵣ ℓᵣ)) (cons β ℓₐ) _) C)
+  (match-define-values ((-var cs₀ cᵣ) d) (-->-split c (arity-at-least (length αℓs₀))))
+  ;; FIXME copied n pasted from app-Ar
+  (define-values (αs₀ ℓs₀) ((inst unzip ⟪α⟫ ℓ) αℓs₀))
+  (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
+  (match-define (-l³ l+ l- lo) l³)
+  (define l³* (-l³ l- l+ lo))
+  (define Wᵤ (-W¹ Vᵤ sₕ))
+  (for*/union : (℘ -ς) ([Cs₀ (in-set (σ@/list Σ αs₀))]
+                        [Cᵣ (in-set (σ@ Σ αᵣ))]
+                        [D (in-set (σ@ Σ β))])
+    (define ⟦mon-x⟧s : (Listof -⟦e⟧)
+      (for/list ([Cₓ Cs₀] [cₓ cs₀] [Wₓ Ws₀] [ℓₓ : ℓ ℓs₀])
+        (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓₓ) (mk-rt-⟦e⟧ (-W¹ Cₓ cₓ)) (mk-rt-⟦e⟧ Wₓ))))
+    (define ⟦mon-x⟧ᵣ : -⟦e⟧
+      (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓᵣ) (mk-rt-⟦e⟧ (-W¹ Cᵣ cᵣ)) (mk-rt-⟦e⟧ Wᵣ)))
+    (match ⟦mon-x⟧s
+      ['()
+       (⟦mon-x⟧ᵣ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+        (ap∷ (list Wᵤ -apply/W) '() ⊥ρ lo ℒ
+             (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))]
+      [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
+       (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+        (ap∷ (list Wᵤ -apply/W) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ lo ℒ
+             (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))])))
 
 (: app-Indy : -=>i -s -V -s -l³ → -⟦f⟧)
 (define ((app-Indy C c Vᵤ sₕ l³) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -510,24 +558,25 @@
        (match-define-values (Ws₀ (list Wᵣ)) (split-at Wₓs num-init-args))
        
        (match Vₕ
-         [(-Clo xs _ _ _)
-          (error 'do-apply "TODO: lambda: ~a" (show-V Vₕ))]
+         [(-Clo xs ⟦e⟧ ρₕ Γₕ)
+          (match (formals-arity xs)
+            [(arity-at-least (== num-init-args))
+             ((apply-app-clo (assert xs -var?) ⟦e⟧ ρₕ Γₕ sₕ) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+            [_ (error 'do-apply "~a~n" (show-V Vₕ))])]
          [(-Case-Clo clauses _ _)
           (error 'do-apply "TODO: case->: ~a" (show-V Vₕ))]
-         [(-Ar grd ⟪α⟫ᵥ l³)
-          (match (guard-arity grd)
-            [(? index? n)
-             (error 'do-apply "TODO: guarded function ~a with arity ~a" (show-V Vₕ) n)]
-            [(arity-at-least n)
-             (cond
-               [(< n num-init-args)
-                (error 'do-apply "TODO: ~a" (show-V Vₕ))]
-               [(> n num-init-args)
-                (error 'do-apply "TODO: ~a" (show-V Vₕ))]
-               [else
-                (error 'do-apply "TODO: ~a" (show-V Vₕ))])]
-            [a
-             (error 'do-apply "TODO: guarded function ~a with arity ~a" (show-V Vₕ) a)])]
+         [(-Ar C ⟪α⟫ᵥ l³)
+          (cond
+            [(-=>? C)
+             (match (guard-arity C)
+               [(arity-at-least (== num-init-args))
+                (define-values (c _) (-ar-split sₕ))
+                (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ ⟪α⟫ᵥ))] #:unless (equal? Vᵤ Vₕ))
+                   ((apply-app-Ar C c Vᵤ sₕ l³) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+               [a
+                (error 'do-apply "TODO: guarded function ~a with arity ~a" (show-V Vₕ) a)])]
+            [else
+             (error 'do-apply "TODO: guarded function ~a" (show-V Vₕ))])]
          [(? -o? o)
           (error 'do-apply "TODO: primmitive: ~a" (show-V Vₕ))]
          [(-● _)
@@ -559,6 +608,14 @@
      (app $ ℒ (-W¹ (-Clo (list x xᵣ) ⟦e⟧ ρ Γ) sₕ) (list W₁ Wₗ) Γ ⟪ℋ⟫ Σ ⟦k⟧)]
     [(_ _)
      (error 'app-apply "TODO: ~a ~a" (show-W¹ W₀) (map show-W¹ Wᵢs))]))
+
+(: app-make-sequence : -⟦f⟧)
+;; FIXME tmp hack for `make-sequence` use internallyr
+(define (app-make-sequence $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define Vs (list -car -cdr 'values -one -cons? -ff -ff))
+  (define s (-@ 'values (list -car -cdr 'values -one -cons? -ff -ff) +ℓ₀))
+  (define A (-W Vs s))
+  (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))
 
 (: app-opq : -s → -⟦f⟧)
 (define ((app-opq sₕ) $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -1021,7 +1078,6 @@
     #:on-f (blm 'vector?)))
 
 (define (mon-flat/c l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  ;(printf "mon-flat/c: ~a ~a ~a~n" ℓ (show-W¹ W-C) (show-W¹ W-V))
   (match-define (-l³ l+ _ lo) l³)
   (match-define (-W¹ C c) W-C)
   (match-define (-W¹ V v) W-V)
