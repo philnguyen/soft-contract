@@ -520,6 +520,7 @@
          (list (parse-quote #'l) (parse-quote #'r))
          (syntax-ℓ stx))]
     [() -null]
+    [h #:when (hash? (syntax->datum stx)) (-•)] ; FIXME
     [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (syntax-ℓ stx))]
     [e (error 'parse-quote "unsupported quoted form: ~a" (syntax->datum #'e))]))
 
