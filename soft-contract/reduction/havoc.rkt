@@ -38,11 +38,11 @@
       (printf "~a havoc values:~n" (set-count Vs))
       (for ([V (in-set Vs)])
         (printf "  - ~a~n" (show-V V))))
-    (define ⟦k⟧ (hv∷ (rt (-ℋ𝒱))))
-    (for/fold ([res : (℘ -ς) (⟦k⟧ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
+    (define ⟦k⟧₀ (rt (-ℋ𝒱)))
+    (for/fold ([res : (℘ -ς) (⟦k⟧₀ -Void/W∅ $∅ ⊤Γ ⟪ℋ⟫ Σ)])
               ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))] #:unless (seen? V Σ))
       (update-cache! V Σ)
-      (∪ res (havoc-V V ⟪ℋ⟫ Σ ⟦k⟧)))))
+      (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧₀))))))
 
 (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
