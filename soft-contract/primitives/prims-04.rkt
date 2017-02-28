@@ -578,8 +578,7 @@
  (symbol? . -> . string?))
 (def-prims (string->symbol string->uninterned-symbol string->unreadable-symbol)
  (string? . -> . symbol?))
-(def-prim/todo gensym ; FIXME use
- (-> symbol?))
+(def-prim gensym (-> symbol?)) ; FIXME use
 (def-pred symbol<? (symbol? symbol?)) ; FIXME varargs
 
 
@@ -1133,23 +1132,23 @@
 (def-prims (hash-equal? hash-eqv? hash-eq? hash-weak?)
  (hash? . -> . boolean?))
 (def-prim/todo hash ; FIXME uses
- (any/c any/c . -> . (and/c hash? hash-equal? immutable?)))
+  (-> (and/c hash? hash-equal? immutable?)))
 (def-prim/todo hasheq ; FIXME uses
- (any/c any/c . -> . (and/c hash? hash-eq? immutable?)))
+  (-> (and/c hash? hash-eq? immutable?)))
 (def-prim/todo hasheqv
- (any/c any/c . -> . (and/c hash? hash-eqv? immutable?)))
-#;[make-hash ; FIXME uses ; FIXME listof
-   ((listof pair?) . -> . (and/c hash? hash-equal?))]
-#;[make-hasheqv ; FIXME uses ; FIXME listof
-   ((listof pair?) . -> . (and/c hash? hash-eqv?))]
-#;[make-hasheq ; FIXME uses ; FIXME listof
-   ((listof pair?) . -> . (and/c hash? hash-eq?))]
-#;[make-weak-hash ; FIXME uses ; FIXME listof
-   ((listof pair?) . -> . (and/c hash? hash-equal? hash-weak?))]
-#;[make-weak-hasheqv ; FIXME uses ; FIXME listof
-   ((listof pair?) . -> . (and/c hash? hash-eqv? hash-weak?))]
-#;[make-weak-hasheq ; FIXME uses ; FIXME listof
-   ((listof pair?) . -> . (and/c hash? hash-eq? hash-weak?))]
+  (-> (and/c hash? hash-eqv? immutable?)))
+(def-prim make-hash ; FIXME uses
+  (-> (and/c hash? hash-equal?)))
+(def-prim make-hasheqv ; FIXME uses
+  (-> (and/c hash? hash-eqv?)))
+(def-prim make-hasheq ; FIXME uses ; FIXME listof
+  (-> (and/c hash? hash-eq?)))
+(def-prim make-weak-hash ; FIXME uses ; FIXME listof
+  (-> (and/c hash? hash-equal? hash-weak?)))
+(def-prim make-weak-hasheqv ; FIXME uses ; FIXME listof
+  (-> (and/c hash? hash-eqv? hash-weak?)))
+(def-prim make-weak-hasheq ; FIXME uses ; FIXME listof
+  (-> (and/c hash? hash-eq? hash-weak?)))
 (def-prim/todo hash-set!
  ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?))
 (def-prim/todo hash-set*! ; FIXME uses
@@ -1268,15 +1267,8 @@
 (def-prim/todo in-values*-sequence
  (sequence? . -> . sequence?))
 ; [HO] stop-before stop-after
-(def-prim/todo make-do-sequence
- ((-> (values (any/c . -> . any/c)
-              (any/c . -> . any/c)
-              any/c
-              (or/c (any/c . -> . any/c) not)
-              ; FIXME optional arg
-              #;(or/c (() () #:rest list? . ->* . any/c) not)
-              #;(or/c ((any/c) () #:rest list? . ->* . any/c) not)))
-  . -> . sequence?))
+(def-prim make-do-sequence ; FIXME
+ (any/c . -> . sequence?))
 (def-opq prop:sequence struct-type-property?)
 
 ;; 4.14.1.2 Sequence Conversion

@@ -55,4 +55,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-prim write (any/c output-port? . -> . void?) #:lift-concrete? #f) ; FIXME uses
 (def-prim display (any/c output-port? . -> . void?) #:lift-concrete? #f) ; FIXME uses
+(def-prim fprintf (->* (output-port? string?) #:rest list? void?) #:lift-concrete? #f)
 (def-prim format ((string?) #:rest list? . ->* . string?))
