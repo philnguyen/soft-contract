@@ -236,6 +236,8 @@
                                integer?
                                real?
                                number?
+                               exact?
+                               inexact?
                                string?
                                symbol?
                                keyword?
@@ -307,6 +309,8 @@
                                inexact-real?
                                real?
                                number?
+                               exact?
+                               inexact?
                                boolean?
                                path-string?
                                string?
