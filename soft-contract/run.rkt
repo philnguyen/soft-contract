@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide run-file havoc-file run-e)
+(provide run-file run-files havoc-file havoc-files run-e)
 
 (require racket/match
          "utils/main.rkt"
@@ -12,16 +12,22 @@
          "reduction/havoc.rkt")
 
 (: run-file : Path-String → (Values (℘ -ΓA) -Σ))
-(define (run-file p)
+(define (run-file p) (run-files (list p)))
+
+(: run-files : (Listof Path-String) → (Values (℘ -ΓA) -Σ))
+(define (run-files ps)
   (with-initialized-static-info
-    (run (↓ₘ (file->module p)))))
+    (run (↓ₚ (map file->module ps) -void))))
 
 (: havoc-file : Path-String → (Values (℘ -ΓA) -Σ))
-(define (havoc-file p)
+(define (havoc-file p) (havoc-files (list p)))
+
+(: havoc-files : (Listof Path-String) → (Values (℘ -ΓA) -Σ))
+(define (havoc-files ps)
   (with-initialized-static-info
-    (define m (file->module p))
-    (define e (gen-havoc-expr (list m)))
-    (run (↓ₚ (list m) e))))
+    (define ms (map file->module ps))
+    (define e (gen-havoc-expr ms))
+    (run (↓ₚ ms e))))
 
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)

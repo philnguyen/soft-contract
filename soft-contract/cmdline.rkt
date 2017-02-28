@@ -9,7 +9,7 @@
          "ast/main.rkt"
          "parse/main.rkt"
          "runtime/definition.rkt"
-         (only-in "run.rkt" run-file havoc-file)
+         (only-in "run.rkt" run-file run-files havoc-file havoc-files)
          (only-in "reduction/quick-step.rkt" debug?)
          (only-in "proof-relation/ext.rkt" Timeout))
 
@@ -17,7 +17,7 @@
 (define mode : Mode 'havoc)
 (define timeout : Nonnegative-Fixnum (Timeout))
 
-(define fname
+(define fnames
   (cast
    (command-line
     #:program "raco soft-contract"
@@ -33,9 +33,9 @@
      "Print debugging information"
      (debug? #t)]
 
-    #:args (fname) ; TODO re-enable file list
-    fname)
-   Path-String))
+    #:args fnames ; TODO re-enable file list
+    fnames)
+   (Listof Path-String)))
 
 (: show-Vs : (Listof (U -V -v)) → Sexp)
 (define (show-Vs Vs)
@@ -53,10 +53,11 @@
 (parameterize ([Timeout timeout])
   (case mode
     [(expand)
-     (define m (file->module fname))
-     (pretty-write (show-module m))]
+     (for ([m (in-list (map file->module fnames))])
+       (pretty-write (show-module m))
+       (printf "~n"))]
     [(light)
-     (define-values (ans Σ) (run-file fname))
+     (define-values (ans Σ) (run-files fnames))
      (cond
        [(set-empty? ans)
         (printf "Safe~n")]
@@ -64,7 +65,7 @@
         (for ([A ans])
           (pretty-write (show-a A)))])]
     [(havoc)
-     (define-values (ans Σ) (havoc-file fname))
+     (define-values (ans Σ) (havoc-files fnames))
      (define safe? : Boolean #t)
      (for ([A ans] #:when (-blm? (-ΓA-ans A)))
        (set! safe? #f)
