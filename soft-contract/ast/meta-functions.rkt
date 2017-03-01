@@ -76,11 +76,11 @@
                        -module
                        -begin/top
                        -module-level-form
-                       (Listof X))) → Integer)
+                       (Listof X))) → Natural)
 ;; Statically count number of unsafe operations needing checks
 (define checks#
   (match-lambda
-   [(? list? es) (for/sum : Integer ([e (in-list es)]) (checks# e))]
+   [(? list? es) (for/sum : Natural ([e (in-list es)]) (checks# e))]
    [(-define-values _ e) (checks# e)]
    [(-λ _ e) (checks# e)]
    [(-@ f xs _) (+ 1 (checks# f) (checks# xs))]
@@ -88,12 +88,12 @@
    [(-wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
    [(-begin0 e es) (+ (checks# e) (checks# es))]
    [(-let-values bindings e _)
-    (+ (for/sum : Integer ([binding (in-list bindings)])
+    (+ (for/sum : Natural ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
        (checks# e))]
    [(-letrec-values bindings e _)
-    (+ (for/sum : Integer ([binding (in-list bindings)])
+    (+ (for/sum : Natural ([binding (in-list bindings)])
          (match-define (cons _ eₓ) binding)
          (checks# eₓ))
        (checks# e))]
@@ -104,7 +104,7 @@
       [(? list? cs) (+ (checks# cs) (checks# d))])]
    [(-->i cs mk-d _) (+ (checks# cs) (checks# mk-d))]
    [(-case-> clauses _)
-    (for/sum : Integer ([clause clauses])
+    (for/sum : Natural ([clause clauses])
       (match-define (cons cs d) clause)
       (+ (checks# cs) (checks# d)))]
    [(-struct/c _ cs _) (checks# cs)]
