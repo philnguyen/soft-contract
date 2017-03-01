@@ -1018,7 +1018,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 4.10 Mutable Pairs and Lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; TODO
+(def-alias-internal mpair? -mpair?)
+(def-alias-internal mcons -mcons)
+(def-alias-internal mcar -mcar)
+(def-alias-internal mcdr -mcdr)
+(def-alias-internal set-mcar! -set-mcar!)
+(def-alias-internal set-mcdr! -set-mcdr!)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

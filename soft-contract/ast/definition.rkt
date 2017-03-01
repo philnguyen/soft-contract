@@ -143,6 +143,7 @@
 
 (define -𝒾-values (-𝒾 'values 'Λ))
 (define -𝒾-cons (-𝒾 'cons 'Λ))
+(define -𝒾-mcons (-𝒾 'mcons 'Λ))
 (define -𝒾-box (-𝒾 'box 'Λ))
 
 

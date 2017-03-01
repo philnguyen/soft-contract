@@ -26,6 +26,13 @@
 (define -cdr (-st-ac -𝒾-cons 1))
 (define -cons? (-st-p -𝒾-cons))
 
+(define -mcons (-st-mk -𝒾-mcons))
+(define -mcar (-st-ac -𝒾-mcons 0))
+(define -mcdr (-st-ac -𝒾-mcons 1))
+(define -set-mcar! (-st-mut -𝒾-mcons 0))
+(define -set-mcdr! (-st-mut -𝒾-mcons 1))
+(define -mpair? (-st-p -𝒾-mcons))
+
 (define -zero (-b 0))
 (define -one (-b 1))
 

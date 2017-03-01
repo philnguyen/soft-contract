@@ -34,12 +34,16 @@
 
 (define (new-static-info)
   (define cons-info (Vector->struct-info (vector-immutable #f #f)))
+  (define mcons-info (Vector->struct-info (vector-immutable #t #t)))
   (define box-info (Vector->struct-info (vector-immutable #t)))
   (-static-info (make-hash (list (cons -𝒾-cons cons-info)
+                                 (cons -𝒾-mcons mcons-info)
                                  (cons -𝒾-box  box-info)))
-                (make-hash (list (cons -𝒾-cons (set -car -cdr))
+                (make-hash (list (cons -𝒾-cons {set -car -cdr})
+                                 (cons -𝒾-mcons {set -mcar -mcdr})
                                  (cons -𝒾-box (set -unbox))))
-                (make-hash (list (cons -𝒾-box (set -set-box!))))
+                (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
+                                 (cons -𝒾-box (set -set-box!))))
                 (make-hash)
                 (make-hash)))
 

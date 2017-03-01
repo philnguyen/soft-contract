@@ -144,3 +144,10 @@
           (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ lo ℒ ⟦k⟧)))])]
     [_
      (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Sequences and Streams
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-ext in-producer (procedure? . -> . sequence?))

@@ -7,7 +7,7 @@
          "../run.rkt")
 
 (define TIMEOUT (* 60 20))
-(define COLUMNS '(lines checks time poses))
+(define COLUMNS '(Lines Checks Time Positives))
 
 (define-type Nat/Rng (U Natural (List Natural)))
 (define-type Record (HashTable Symbol Nat/Rng))
@@ -47,44 +47,44 @@
 
 (: run-file : Path-String → Row)
 (define (run-file p)
-  (define m (file->module p))
-
   (define name
     (match-let ([(? path-for-some-system? p) (last (explode-path p))]) 
       (some-system-path->string (path-replace-extension p ""))))
   (define lines (count-lines p))
-  (define checks (checks# m))
+  (define checks (checks# (file->module p)))
 
   (: count-poses : → Nat/Rng)
   (define (count-poses)
     (match (with-time-limit : Natural TIMEOUT
-             (define-values (As _) (havoc-module m))
-             (for/sum : Natural ([ΓA (in-set As)])
-               (if (-blm? (-ΓA-ans ΓA)) 1 0)))
+             #;(define-values (As _) (havoc-file p))
+             #;(for/sum : Natural ([ΓA (in-set As)])
+               (if (-blm? (-ΓA-ans ΓA)) 1 0))
+             0)
       [(list n) n]
       [#f (list TIMEOUT)]))
 
+  (collect-garbage) (collect-garbage) (collect-garbage)
   (match-define-values ((list poses) t t-real t-gc) (time-apply count-poses '()))
   
   (Row name ((inst hasheq Symbol Nat/Rng)
-             'lines lines
-             'checks checks
-             'time t
-             'poses poses)))
+             'Lines lines
+             'Checks checks
+             'Time t
+             'Positives poses)))
 
 (define (print-then-return-row [row : Row]) : Row
   (match-define (Row name fields) row)
-  (printf "~a " name)
+  (printf "\\textrm{~a} " name)
   (for ([col (in-list COLUMNS)])
     (printf "& ~a " (show-Nat/Rng (hash-ref fields col))))
   (printf "\\\\~n")
   row)
 
 (define (print-header)
-  (printf "name ")
+  (printf "Program ")
   (for ([col (in-list COLUMNS)])
     (printf "& ~a " col))
-  (printf "\\\\~n"))
+  (printf "\\\\ \\hline~n"))
 
 (: run-dir : Path-String → (Values (Listof Row) Row))
 ;; Run each file and print along the way
