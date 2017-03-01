@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide run debug?)
+(provide run debug-trace? debug-iter?)
 
 (require racket/set
          racket/match
@@ -16,7 +16,8 @@
          "havoc.rkt"
          )
 
-(define-parameter debug? : Boolean #f)
+(define-parameter debug-trace? : Boolean #f)
+(define-parameter debug-iter? : Boolean #f)
 
 (define-type Ctx (List (HashTable ⟪α⟫ (℘ -V))
                        (HashTable -αₖ (℘ -κ))
@@ -38,16 +39,10 @@
       (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
       (begin
-        (define num-front (set-count front))
-        (printf "* ~a: ~a" iter num-front )
-        ;(printf " (~a + ~a)" (length ς↑s) (length ς↓s))
-        #;(printf "; cfgs: ~a, max(σₖ): ~a, max(M): ~a"
-                  (hash-count seen)
-                  (apply max 0 ((inst map Natural (℘ -κ)) set-count (hash-values (-Σ-σₖ Σ))))
-                  (apply max 0 ((inst map Natural (℘ -ΓA)) set-count (hash-values (-Σ-M Σ)))))
-        (printf "~n")
+        (when (debug-iter?)
+          (printf "* ~a: ~a~n" iter (set-count front)))
 
-        (when (debug?)
+        (when (debug-trace?)
 
           (begin ; interactive
             (define ςs-list
@@ -69,9 +64,8 @@
                 [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
                 ['done (error "DONE")]
                 [_ (void)]))
-          )
+          (printf "~n"))
         
-        (printf "~n")
         (set! iter (+ 1 iter)))
 
       (define next

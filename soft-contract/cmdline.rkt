@@ -10,7 +10,7 @@
          "parse/main.rkt"
          "runtime/definition.rkt"
          (only-in "run.rkt" run-file run-files havoc-file havoc-files)
-         (only-in "reduction/quick-step.rkt" debug?)
+         (only-in "reduction/quick-step.rkt" debug-trace? debug-iter?)
          (only-in "proof-relation/ext.rkt" Timeout))
 
 (Mode . ::= . 'light 'havoc 'expand)
@@ -29,9 +29,13 @@
     [("-e" "--expand")
      "Print expanded program (just for debugging, might look cryptic)"
      (set! mode 'expand)]
+    [("-p" "--progress")
+     "Print progress"
+     (debug-iter? #t)]
     [("-v" "--verbose")
      "Print debugging information"
-     (debug? #t)]
+     (debug-iter? #t)
+     (debug-trace? #t)]
 
     #:args fnames ; TODO re-enable file list
     fnames)
