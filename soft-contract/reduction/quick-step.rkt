@@ -109,6 +109,11 @@
   
 
   (match-let ([(-Σ σ σₖ M) Σ])
+    (when (debug-iter?)
+      (printf "|σ| = ~a, |σₖ| = ~a, |M| = ~a~n"
+              (hash-count (-σ-m σ))
+              (hash-count σₖ)
+              (hash-count M)))
     (values (M@ M αₖ₀) Σ)))
 
 (: ς->⟪α⟫s : -ς (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
