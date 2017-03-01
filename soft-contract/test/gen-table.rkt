@@ -56,10 +56,9 @@
   (: count-poses : → Nat/Rng)
   (define (count-poses)
     (match (with-time-limit : Natural TIMEOUT
-             #;(define-values (As _) (havoc-file p))
-             #;(for/sum : Natural ([ΓA (in-set As)])
-               (if (-blm? (-ΓA-ans ΓA)) 1 0))
-             0)
+             (define-values (As _) (havoc-file p))
+             (for/sum : Natural ([ΓA (in-set As)])
+               (if (-blm? (-ΓA-ans ΓA)) 1 0)))
       [(list n) n]
       [#f (list TIMEOUT)]))
 
