@@ -38,7 +38,8 @@
     ['#%kernel 'Λ]
     ['#%unsafe 'unsafe]
     [(and (? symbol?) (app symbol->string "expanded module")) (cur-mod)]
-    [_ (path->string (simplify-path p))]))
+    [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
+    [p #|TODO|# p]))
 
 ;; Convert syntax to `top-level-form`
 (define/contract (parse-top-level-form form)
@@ -276,6 +277,12 @@
     [(#%plain-app (~literal caddr) e)
      (match-define (list ℓ₁ ℓ₂ ℓ₃) (ℓ-with-ids (syntax-ℓ stx) 3))
      (-@ -car (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)) ℓ₃)]
+    [(#%plain-app (~literal cadddr) e)
+     (match-define (list ℓ₁ ℓ₂ ℓ₃ ℓ₄) (ℓ-with-ids (syntax-ℓ stx) 4))
+     (-@ -car (list (-@ -cdr (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)) ℓ₃)) ℓ₄)]
+    [(#%plain-app (~literal cddddr) e)
+     (match-define (list ℓ₁ ℓ₂ ℓ₃ ℓ₄) (ℓ-with-ids (syntax-ℓ stx) 4))
+     (-@ -cdr (list (-@ -cdr (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)) ℓ₃)) ℓ₄)]
 
     ;; HACK for treating `apply` specially for precision.
     ;; This simply bypasses reading `apply` as wrapped reference to primitive
@@ -389,11 +396,11 @@
             _ ...)
      (define 𝒾 (-𝒾 (syntax-e #'k) (cur-mod)))
      (-struct/c 𝒾 (parse-es #'(c ...)) (syntax-ℓ stx))]
-    [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c))]
-    [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c))]
-    [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c))]
-    [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c))]
-    [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c))]
+    [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (syntax-ℓ stx))]
+    [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (syntax-ℓ stx))]
+    [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (syntax-ℓ stx))]
+    [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c) (syntax-ℓ stx))]
+    [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:cons/c) c d)
      (-cons/c (parse-e #'c) (parse-e #'d) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:one-of/c) c ...)
