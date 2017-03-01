@@ -22,14 +22,16 @@
 
 (: syntax-ℓ : Any → ℓ) ; domain `Any` to get around contract generation complaint
 (define (syntax-ℓ stx)
+  
   (cond [(syntax? stx)
          (define src
            (match (syntax-source stx)
              [(? path? p) (path->string p)]
              [(? l? l) l]
-             [src (error 'syntax-ℓ "not valid path: ~a" src)]))
-         (define line (assert (syntax-line stx)))
-         (define col  (assert (syntax-column stx)))
+             [#f (log-debug "use default path 'Λ")
+                 'Λ]))
+         (define line (or (syntax-line stx) 0))
+         (define col  (or (syntax-column stx) 0))
          (loc->ℓ (loc src line col '()))]
         [else (error 'syntax-ℓ "expect syntax, given ~a" stx)]))
 

@@ -43,7 +43,7 @@
       (with-handlers ([exn?
                        (λ ([e : exn])
                          (fail (format "Exception: ~a~n" (exn-message e))))])
-        (unless (within-time: Any TIMEOUT (f file-path-str))
+        (unless (with-time-limit : Any TIMEOUT (f file-path-str))
           (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
 
 (module+ test ; quick sanity check

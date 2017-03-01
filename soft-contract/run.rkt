@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide run-file run-files havoc-file havoc-files run-e)
+(provide (all-defined-out))
 
 (require racket/match
          "utils/main.rkt"
@@ -26,8 +26,7 @@
 (define (havoc-files ps)
   (with-initialized-static-info
     (define ms (map file->module ps))
-    (define e (gen-havoc-expr ms))
-    (run (↓ₚ ms e))))
+    (run (↓ₚ ms (gen-havoc-expr ms)))))
 
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)
