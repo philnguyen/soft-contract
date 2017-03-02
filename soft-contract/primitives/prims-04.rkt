@@ -137,10 +137,17 @@
  (real? . -> . real?)
  #:refinements
  (integer? . -> . integer?))
-(def-prims (max min) ((real?) #:rest (listof real?) . ->* . real?)
- #:refinements
- ((exact-nonnegative-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
- ((integer?) #:rest (listof integer?) . ->* . integer?))
+(def-prim max ((real?) #:rest (listof real?) . ->* . real?)
+  #:refinements
+  ((exact-positive-integer?) #:rest (listof exact-integer?) . ->* . exact-positive-integer?)
+  ((exact-nonnegative-integer?) #:rest (listof exact-integer?) . ->* . exact-nonnegative-integer?)
+  ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
+  ((integer?) #:rest (listof integer?) . ->* . integer?))
+(def-prim min ((real?) #:rest (listof real?) . ->* . real?)
+  #:refinements
+  ((exact-nonnegative-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
+  ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
+  ((integer?) #:rest (listof integer?) . ->* . integer?))
 (def-prims (gcd lcm) ((real?) #:rest (listof real?) . ->* . real?))
 (def-prims (round floor ceiling truncate)
  (real? . -> . (or/c integer? +inf.0 -inf.0 +nan.0)))
@@ -754,6 +761,7 @@
 (def-alias-internal cons -cons)
 (def-alias-internal car -car)
 (def-alias-internal cdr -cdr)
+(def-alias-internal set-mcdr! -set-cdr!) ;; HACK for running some Scheme programs
 (def-const null)
 (def-prim list? (any/c . -> . boolean?))
 (def-prim/todo list (() #:rest list? . ->* . list?))
@@ -1018,12 +1026,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 4.10 Mutable Pairs and Lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def-alias-internal mpair? -mpair?)
+#|(def-alias-internal mpair? -mpair?)
 (def-alias-internal mcons -mcons)
 (def-alias-internal mcar -mcar)
 (def-alias-internal mcdr -mcdr)
 (def-alias-internal set-mcar! -set-mcar!)
-(def-alias-internal set-mcdr! -set-mcdr!)
+(def-alias-internal set-mcdr! -set-mcdr!)|#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
