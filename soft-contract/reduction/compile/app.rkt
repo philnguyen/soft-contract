@@ -472,9 +472,13 @@
              (define Cᵢs (σ@ σ αᵢ))
              (define Vs  (σ@ σ α))
              (define cᵢ (⟪α⟫->s αᵢ))
+             (define ℒ*
+               (match-let ([(-ℒ ℓs ℓ) ℒ])
+                 (-ℒ ℓs (match-let ([(loc src l c i) (ℓ->loc ℓ)])
+                          (loc->ℓ (loc 'Λ l c i))))))
              (for*/union : (℘ -ς) ([Cᵢ (in-set Cᵢs)] [V* (in-set Vs)])
                (⟦ac⟧ $ ℒ (list (-W¹ V* s)) Γ ⟪ℋ⟫ Σ
-                (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧)))]
+                (mon.c∷ l³ (ℒ-with-mon ℒ* ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧)))]
             ;; no need to check immutable field
             [else
              ;; TODO: could this loop forever due to cycle?
@@ -907,7 +911,7 @@
       (for/list ([α (in-list αs)]
                  [i (in-naturals)] #:when (index? i))
         (define ac (-st-ac 𝒾 i))
-        (mk-app-⟦e⟧ lo ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ Wᵥ)))))
+        (mk-app-⟦e⟧ 'Λ ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ Wᵥ)))))
 
     (cond
       [(null? ⟦field⟧s)
@@ -918,7 +922,7 @@
        (define ⟦k⟧* ; maybe wrap the monitored struct
          (cond [all-immutable? ⟦k⟧]
                [else
-                (define α (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫)))
+                (define α (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫ l+)))
                 (wrap-st∷ Vₚ α l³ ⟦k⟧)]))
        (for/union : (℘ -ς) ([Cs (σ@/list Σ αs)])
           (define ⟦mon⟧s : (Listof -⟦e⟧)
