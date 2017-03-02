@@ -35,7 +35,12 @@
     (cond ((integer? obj) (modulo obj bound))
 	  ((string? obj) (string-hash obj bound))
 	  ((symbol? obj) (symbol-hash obj bound))
-	  ((real? obj) (modulo (+ (numerator obj) (denominator obj)) bound))
+          ; Next line was originally `(real? obj)` in Scheme program,
+          ; but would cause an error in Racket,
+          ; because `(and/c (not/c integer?) real?)` does not imply `rational?`,
+          ; which `numerator` requires.
+          ; A counterexample is `(hash +inf.0)`.
+	  ((rational? obj) (modulo (+ (numerator obj) (denominator obj)) bound))
 	  ((number? obj)
 	   (modulo (+ (hash (real-part obj)) (* 3 (hash (imag-part obj))))
 		   bound))
