@@ -245,7 +245,7 @@
             (-α.var-cdr [loc : -ℒ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
 
             ;; for wrapped mutable struct
-            (-α.st [id : -𝒾] [loc : -ℒ] [ctx : -⟪ℋ⟫])
+            (-α.st [id : -𝒾] [loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
             ;; for vector indices
             (-α.idx [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
