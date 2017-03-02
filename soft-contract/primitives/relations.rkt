@@ -51,9 +51,6 @@
  ;; ports
  [input-port? ⇒ port?]
  [output-port? ⇒ port?]
-
- ;; made up predicate to mark internally used mapping
- [δ-case? ⇒ procedure?]
  )
 
 (dec-exclusions
