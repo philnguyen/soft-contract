@@ -247,6 +247,7 @@
                                integer?
                                real?
                                number?
+                               null?
                                string?
                                symbol?
                                keyword?
@@ -335,6 +336,7 @@
                                number?
                                #;[exact? #:guard number?]
                                #;[inexact? #:guard number?]
+                               null?
                                boolean?
                                path-string?
                                string?
