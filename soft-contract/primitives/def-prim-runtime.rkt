@@ -90,7 +90,7 @@
        [(definitely-not-member? σ Vₓ Vₗ)
         {set (-ΓA Γ (-W -False/Vs sₐ))}]
        [else
-        (define ℒ (-ℒ ∅ ℓ))
+        (define ℒ (-ℒ ∅eq ℓ))
         (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
         (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
         (define Vₜ (-Cons αₕ αₜ))

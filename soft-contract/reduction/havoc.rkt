@@ -74,14 +74,14 @@
               (for/list ([i k])
                 (-W¹ -●/V (-x (+x!/memo 'arg i)))))
             (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list k 'opq-ap))))
-            (app $∅ (-ℒ ∅ ℓ) W args ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+            (app $∅ (-ℒ ∅eq ℓ) W args ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
            [(arity-at-least n)
             (define args₀ : (Listof -W¹)
               (for/list ([i n])
                 (-W¹ -●/V (-x (+x!/memo 'arg i)))))
             (define argᵣ (-W¹ (-● {set 'list?}) (+x!/memo 'arg 'rest)))
             (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list n 'vararg 'opq-app))))
-            (app $∅ (-ℒ ∅ ℓ) -apply/W `(,W ,@args₀ ,argᵣ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]))
+            (app $∅ (-ℒ ∅eq ℓ) -apply/W `(,W ,@args₀ ,argᵣ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]))
        
        (match (V-arity V)
          [(? list? ks)
@@ -96,11 +96,11 @@
         (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
           (define Acc (-W¹ acc acc))
           (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list 'hv-ac (show-o acc)))))
-          (app $∅ (-ℒ ∅ ℓ) Acc (list W) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
+          (app $∅ (-ℒ ∅eq ℓ) Acc (list W) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
         (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
           (define Mut (-W¹ mut mut))
           (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list 'hv-mut (show-o mut)))))
-          (app $∅ (-ℒ ∅ ℓ) Mut (list W -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
+          (app $∅ (-ℒ ∅eq ℓ) Mut (list W -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
 
       ;; Havoc vector's content before erasing the vector with unknowns
       ;; Guarded vectors are already erased
@@ -108,8 +108,8 @@
        (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;'(vector/guard))))
        (define Wᵢ (-W¹ -Nat/V #f))
        (∪
-        (app $∅ (-ℒ ∅ (ℓ-with-id ℓ 'ref)) -vector-ref/W (list W Wᵢ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (app $∅ (-ℒ ∅ (ℓ-with-id ℓ 'mut)) -vector-set!/W (list W Wᵢ -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+        (app $∅ (-ℒ ∅eq (ℓ-with-id ℓ 'ref)) -vector-ref/W (list W Wᵢ) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
+        (app $∅ (-ℒ ∅eq (ℓ-with-id ℓ 'mut)) -vector-set!/W (list W Wᵢ -●/W¹∅) ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
       [(-Vector αs)
        ;; Widen each field first. No need to go through `vector-set!` b/c there's no
        ;; contract protecting it
