@@ -21,6 +21,7 @@
 
 (: app : -$ -ℒ -W¹ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (app $ ℒ Wₕ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  #;(printf "app: ~a to ~a~n" (show-W¹ Wₕ) (map show-W¹ Wₓs))
   (match-define (-Σ σ σₖ M) Σ)
   (match-define (-W¹ Vₕ sₕ) Wₕ)
   (define l (ℓ-src (-ℒ-app ℒ)))
@@ -685,6 +686,7 @@
 
 (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (mon l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  #;(printf "mon: ~a on ~a~n - l+: ~a~n" (show-W¹ W-C) (show-W¹ W-V) (-l³-pos l³))
   (match-define (-W¹ C _) W-C)
   (define mon*
     (cond
@@ -1003,16 +1005,12 @@
 
   (: chk-elems : -Γ → (℘ -ς))
   (define (chk-elems Γ)
-    (define Wᵥ* ; wrapped vector
-      (let ([⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ l+))])
-        (σ⊕! Σ ⟪α⟫ᵥ Vᵥ)
-        (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ)))
     (define ⟦ref⟧
       (mk-app-⟦e⟧ lo ℒ
                   (mk-rt-⟦e⟧ -vector-ref/W)
                   (list (mk-rt-⟦e⟧ Wᵥ)
                         (mk-rt-⟦e⟧ (-W¹ -Nat/V (-x (+x!/memo 'vof-idx)))))))
-    (define ⟦k⟧* (bgn0.e∷ Wᵥ* '() ⊥ρ ⟦k⟧))
+    (define ⟦k⟧* (mk-wrap-vect∷ (V+ (-Σ-σ Σ) Vᵥ 'vector?) sᵥ Vₚ ℒ l³ ⟦k⟧))
     (define c* (⟪α⟫->s α*))
     (for/union : (℘ -ς) ([C* (in-set (σ@ Σ α*))])
       (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C* c*)) ⟦ref⟧))
@@ -1021,6 +1019,19 @@
   (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
     #:on-t chk-elems
     #:on-f (blm 'vector?)))
+
+(define/memo (mk-wrap-vect∷ [Vᵥ : -V]
+                            [sᵥ : -s]
+                            [Vₚ : (U -Vector/C -Vectorof)]
+                            [ℒ : -ℒ]
+                            [l³ : -l³]
+                            [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Vᵥ Vₚ)
+    (match-define (-l³ l+ _ _) l³)
+    (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ l+)))
+    (σ⊕! Σ ⟪α⟫ᵥ Vᵥ)
+    (define A (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ))
+    (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
 
 (define (mon-vector/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ M) Σ)
