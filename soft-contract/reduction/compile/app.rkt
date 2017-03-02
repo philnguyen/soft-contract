@@ -669,7 +669,7 @@
   ;; This is because `match-lambda*` expands to varargs with specific
   ;; expectation of arities
   (match Ws
-    [(or (list) (list _) (list _ _))
+    [(or (list) (list _) (list _ _) (list _ _ _))
      (precise-alloc! Ws)]
     [(? pair?)
      (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ #f)))
