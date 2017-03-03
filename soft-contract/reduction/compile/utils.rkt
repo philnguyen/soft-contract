@@ -45,21 +45,27 @@
     (let ()
       (define ⟦k⟧ : -⟦k⟧
         (λ (A $ Γ ⟪ℋ⟫ Σ)
+          (define (maybe-print-blame)
+            (when (and print-blames-on-the-fly?
+                       (-blm? A)
+                       (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))
+              (hash-ref! print-cache
+                         A
+                         (λ ()
+                           (printf "~a~n" (show-blm A))))))
           (match A
             [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
              ∅]
             [_
              (match-define (-Σ _ _ M) Σ)
+             (define A*
+               (match A
+                 [(-W (list V) s) (-W (list (V+ (-Σ-σ Σ) V (predicates-of Γ s))) s)]
+                 [_ A]))
              (unless (-ℋ𝒱? αₖ)
-               (M⊕! Σ αₖ Γ A))
-             (when (and print-blames-on-the-fly?
-                        (-blm? A)
-                        (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))
-               (hash-ref! print-cache
-                          A
-                          (λ ()
-                            (printf "~a~n" (show-blm A)))))
-             {set (-ς↓ αₖ Γ A)}])))
+               (M⊕! Σ αₖ Γ A*))
+             (maybe-print-blame)
+             {set (-ς↓ αₖ Γ A*)}])))
       (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
       (add-⟦k⟧-roots! ⟦k⟧ ∅eq)
       ⟦k⟧)))
