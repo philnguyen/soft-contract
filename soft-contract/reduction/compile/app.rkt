@@ -906,12 +906,13 @@
   (define (chk-fields Γ)
     (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
     (define all-immutable? (struct-all-immutable? 𝒾))
-
+    
     (define ⟦field⟧s : (Listof -⟦e⟧)
-      (for/list ([α (in-list αs)]
-                 [i (in-naturals)] #:when (index? i))
-        (define ac (-st-ac 𝒾 i))
-        (mk-app-⟦e⟧ 'Λ ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ Wᵥ)))))
+      (let ([Wᵥ* (-W¹ (V+ σ Vᵥ Vₚ) sᵥ)])
+        (for/list ([α (in-list αs)]
+                   [i (in-naturals)] #:when (index? i))
+          (define ac (-st-ac 𝒾 i))
+          (mk-app-⟦e⟧ 'mon-struct/c ℒ (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ Wᵥ*))))))
 
     (cond
       [(null? ⟦field⟧s)
