@@ -69,50 +69,6 @@
 ;; Check whether expression is closed
 (define (closed? e) (set-empty? (fv e)))
 
-(: checks# : (Rec X (U -top-level-form
-                       -e
-                       -general-top-level-form
-                       -e
-                       -module
-                       -begin/top
-                       -module-level-form
-                       (Listof X))) → Natural)
-;; Statically count number of unsafe operations needing checks
-(define checks#
-  (match-lambda
-   [(? list? es) (for/sum : Natural ([e (in-list es)]) (checks# e))]
-   [(-define-values _ e) (checks# e)]
-   [(-λ _ e) (checks# e)]
-   [(-@ f xs _) (+ 1 (checks# f) (checks# xs))]
-   [(-if i t e) (+ (checks# i) (checks# t) (checks# e))]
-   [(-wcm k v e) (+ (checks# k) (checks# v) (checks# e))]
-   [(-begin0 e es) (+ (checks# e) (checks# es))]
-   [(-let-values bindings e _)
-    (+ (for/sum : Natural ([binding (in-list bindings)])
-         (match-define (cons _ eₓ) binding)
-         (checks# eₓ))
-       (checks# e))]
-   [(-letrec-values bindings e _)
-    (+ (for/sum : Natural ([binding (in-list bindings)])
-         (match-define (cons _ eₓ) binding)
-         (checks# eₓ))
-       (checks# e))]
-   [(-μ/c _ c) (checks# c)]
-   [(--> cs d _)
-    (match cs
-      [(-var cs c) (+ (checks# cs) (checks# c) (checks# d))]
-      [(? list? cs) (+ (checks# cs) (checks# d))])]
-   [(-->i cs mk-d _) (+ (checks# cs) (checks# mk-d))]
-   [(-case-> clauses _)
-    (for/sum : Natural ([clause clauses])
-      (match-define (cons cs d) clause)
-      (+ (checks# cs) (checks# d)))]
-   [(-struct/c _ cs _) (checks# cs)]
-
-   [(-module _ body) (checks# body)]
-   ;; FIXME count up for primitives
-   [_ 0]))
-
 (: free-x/c : -e → (℘ Symbol))
 ;; Return all free references to recursive contracts inside term
 (define (free-x/c e)

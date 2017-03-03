@@ -4,7 +4,8 @@
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "../parse/main.rkt"
-         "../run.rkt")
+         "../run.rkt"
+         "count-checks.rkt")
 
 (define TIMEOUT (* 60 20))
 (define COLUMNS '(Lines Checks Time Positives))
@@ -51,7 +52,10 @@
     (match-let ([(? path-for-some-system? p) (last (explode-path p))]) 
       (some-system-path->string (path-replace-extension p ""))))
   (define lines (count-lines p))
-  (define checks (checks# (file->module p)))
+  (define checks
+    (match-let ([stats (count-checks (file->module p))])
+      ;(printf "~a~n" stats)
+      (hash-ref stats 'total)))
 
   (: count-poses : → Nat/Rng)
   (define (count-poses)

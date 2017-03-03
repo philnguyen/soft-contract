@@ -102,6 +102,10 @@
                  (gen-precond-checks
                   (gen-ok-case))))))
      ;(pretty-write (syntax->datum #'defn-o))
+     (define/contract maybe-set-partial (listof syntax?)
+       (syntax-parse #'sig
+         [((~literal any/c) ... . -> . _) '()]
+         [_ (list #'(set-partial! 'o))]))
      #`(begin
          (: .o : -⟦o⟧)
          defn-o
@@ -112,6 +116,7 @@
           #,(match arity
               [(arity-at-least n) #`(arity-at-least #,n)]
               [(? integer? n) n]))
+         #,@maybe-set-partial
          #,@(syntax-parse #|FIXME|# #'cₐ
               [(~or ((~literal and/c) d:id _ ...) d:id)
                (list #'(set-range! 'o 'd))]
