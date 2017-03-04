@@ -1011,7 +1011,7 @@
   (: chk-elems : -Γ → (℘ -ς))
   (define (chk-elems Γ)
     (define ⟦ref⟧
-      (mk-app-⟦e⟧ lo ℒ
+      (mk-app-⟦e⟧ 'mon-vectorof ℒ
                   (mk-rt-⟦e⟧ -vector-ref/W)
                   (list (mk-rt-⟦e⟧ Wᵥ)
                         (mk-rt-⟦e⟧ (-W¹ -Nat/V (-x (+x!/memo 'vof-idx)))))))
@@ -1076,7 +1076,7 @@
            (define Wᵢ (let ([bᵢ (-b i)]) (-W¹ bᵢ bᵢ)))
            (define Wₚᵢ (-W¹ Cᵢ cᵢ))
            (define ⟦ref⟧
-             (mk-app-⟦e⟧ lo ℒ
+             (mk-app-⟦e⟧ 'mon-vector/c ℒ
                          (mk-rt-⟦e⟧ -vector-ref/W)
                          (list (mk-rt-⟦e⟧ Wᵥ) (mk-rt-⟦e⟧ Wᵢ))))
            (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ Wₚᵢ) ⟦ref⟧)))

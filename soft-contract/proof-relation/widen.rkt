@@ -154,6 +154,8 @@
        (define Vs (σ@ σ α))
        (cond [(= 1 (set-count Vs)) (simplify (set-first Vs))]
              [else P])]
+      [(-St/C _ 𝒾 _) (-st-p 𝒾)]
+      [(or (? -Vectorof?) (? -Vector/C?)) 'vector?]
       [_ P]))
   
   (with-debugging/off ((V*) (cond
