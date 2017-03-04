@@ -69,7 +69,7 @@
     (match-define (-W (list V) s) A)
     (define α (-α->⟪α⟫ (-α.x/c x)))
     (σ⊕! Σ α V)
-    (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
+    (⟦k⟧ (-W (list (-x/C α)) s) $ Γ ⟪ℋ⟫ Σ)))
 
 ;; Non-dependent contract domain
 (define/memo (-->.dom∷ [Ws  : (Listof -W¹)]
