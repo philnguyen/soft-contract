@@ -48,4 +48,5 @@
 
 (module+ test ; quick sanity check
   (with-dir "safe/octy" check-verify-safe)
+  (with-dir "safe/softy" check-verify-safe)
   (with-dir "safe/games" check-verify-safe))
