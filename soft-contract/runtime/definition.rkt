@@ -271,7 +271,10 @@
             (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.fn [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : (℘ -e)])
 
-            (-α.hv) ; hack
+            ;; HACK
+            (-α.hv)
+            (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
+            (-α.fc-x/c Symbol -⟪ℋ⟫)
 
             -e)
 
