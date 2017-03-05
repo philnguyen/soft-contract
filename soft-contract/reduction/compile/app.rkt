@@ -198,8 +198,32 @@
      (define αₖ (-ℬ xs ⟦e⟧ ρ*))
      (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
      (σₖ⊔! Σ αₖ κ)
-     {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]
+     (define Γₕ* (hack-equal-args Γₕ xs sₓs))
+     {set (-ς↑ αₖ Γₕ* ⟪ℋ⟫ₑₑ)}]
     [else ∅]))
+
+(: hack-equal-args : -Γ -formals (Listof -s) → -Γ)
+(define (hack-equal-args Γ xs args)
+
+  (: Γ-with-new-aliases : (Listof Symbol) → -Γ)
+  (define (Γ-with-new-aliases xs)
+    (match-define (-Γ φs as γs) Γ)
+    (define-values (as* _)
+      (for/fold ([as* : (HashTable Symbol -e) as]
+                 [seen : (HashTable -e Symbol) (hash)])
+                ([x xs] [arg args])
+        (cond
+          [(and arg (hash-ref seen arg #f)) =>
+           (λ ([x₀ : Symbol])
+             (values (hash-set as* x (-x x₀))
+                     (hash-set seen arg x₀)))]
+          [arg (values as (hash-set seen arg x))]
+          [else (values as seen)])))
+    (-Γ φs as* γs))
+
+  (match xs
+    [(? list? xs) (Γ-with-new-aliases xs)]
+    [(-var xs _ ) (Γ-with-new-aliases xs)]))
 
 (: apply-app-clo : (-var Symbol) -⟦e⟧ -ρ -Γ -s
    → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
