@@ -289,26 +289,26 @@
   [string-hash (string? (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
   [string-ci-hash (string? (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
   [symbol-hash (symbol? (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
-  [hash (any/c (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*; `rational?`
+  [hash (any/c (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
   [hash-by-identity (any/c (and/c integer? (not/c zero?)) . -> . integer?)]; TODO ->*
-  [vector-hash (vector? (and/c integer? (not/c zero?)) . -> . integer?)] ; `rational?`
+  [vector-hash (vector? (and/c integer? (not/c zero?)) . -> . integer?)]
   [make-hash-table
-       ((any/c any/c . -> . boolean?)
+   ((any/c any/c . -> . boolean?)
     (any/c . -> . integer?)
     exact-positive-integer?
     . -> . hash-table?)
    #;(case->
-    [-> hash-table?]
-    [(any/c any/c . -> . boolean?)
-     . -> . hash-table?]
-    [(any/c any/c . -> . boolean?)
-     (any/c . -> . integer?)
-     . -> . hash-table?]
-    [(any/c any/c . -> . boolean?)
-     (any/c . -> . integer?)
-     exact-positive-integer?
-     . -> . hash-table?])] ; TODO `case->`
-  [make-hash-table-maker ; TODO
+      [-> hash-table?]
+      [(any/c any/c . -> . boolean?)
+       . -> . hash-table?]
+      [(any/c any/c . -> . boolean?)
+       (any/c . -> . integer?)
+       . -> . hash-table?]
+      [(any/c any/c . -> . boolean?)
+       (any/c . -> . integer?)
+       exact-positive-integer?
+       . -> . hash-table?])] ; TODO `case->`
+  [make-hash-table-maker
    ((any/c any/c . -> . boolean?)
     (any/c . -> . integer?)
     . -> .
@@ -319,11 +319,11 @@
   [make-integer-hash-table (exact-positive-integer? . -> . hash-table?)]
   [hash-table-ref (hash-table/c any/c . -> . any/c)]
   [hash-table-ref/default (hash-table/c any/c any/c . -> . any/c)]
-  [hash-table-set! (hash-table/c any/c any/c . -> . void?)] ; TODO error at `hash-table-set-entries!`
+  [hash-table-set! (hash-table/c any/c any/c . -> . void?)]
   [hash-table-update! (hash-table/c any/c (any/c . -> . any/c) . -> . void?)]
   [hash-table-update!/default
-   (hash-table/c any/c (any/c . -> . any/c) any/c . -> . void?)] ; TODO error
-  [hash-table-delete! (hash-table/c any/c . -> . void?)] ; pos
+   (hash-table/c any/c (any/c . -> . any/c) any/c . -> . void?)]
+  [hash-table-delete! (hash-table/c any/c . -> . void?)]
   [hash-table-exists? (hash-table/c any/c . -> . boolean?)]
   [hash-table-walk (hash-table/c (any/c . -> . any/c) . -> . void?)]
   [hash-table-fold (hash-table/c (any/c any/c . -> . any/c) any/c . -> . any/c)]
@@ -333,6 +333,4 @@
   [hash-table-merge! (hash-table/c hash-table/c . -> . hash-table/c)]
   [hash-table-keys (hash-table/c . -> . list?)]
   [hash-table-values (hash-table/c . -> . list?)]
-
-  #;[%hash-table-maybe-resize! (hash-table/c . -> . void?)]
   ))
