@@ -31,14 +31,12 @@ before_script:
 
 script:
  - cd soft-contract
- - /usr/racket/bin/raco make check.rkt cmdline.rkt
+ # Build z3 package
+ - /usr/racket/bin/raco pkg install z3
+ # Compile and link package
+ - /usr/racket/bin/raco make cmdline.rkt
  - /usr/racket/bin/raco link .
- - cd test
- # test delta
- - /usr/racket/bin/raco test -x test-delta.rkt
- # test verifier
- - cd test-verifier
- - /usr/racket/bin/raco test -x test-verifier.rkt
- - cd ..
+ # Run test suite
+ - /usr/racket/bin/raco test test/sanity-test.rkt
 
 after_script:
