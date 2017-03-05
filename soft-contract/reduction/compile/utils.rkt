@@ -9,6 +9,7 @@
          racket/set
          racket/splicing
          syntax/parse/define
+         "../../settings.rkt"
          "../../utils/main.rkt"
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt")
@@ -36,9 +37,7 @@
 
 
 (splicing-local
-    ((define print-cache : (HashTable -blm Void) (make-hash))
-     (define print-blames-on-the-fly? #t)
-     )
+    ((define print-cache : (HashTable -blm Void) (make-hash)))
 
   ;; Base continuation that returns locally finished configuration
   (define/memo (rt [αₖ : -αₖ]) : -⟦k⟧
@@ -46,7 +45,7 @@
       (define ⟦k⟧ : -⟦k⟧
         (λ (A $ Γ ⟪ℋ⟫ Σ)
           (define (maybe-print-blame)
-            (when (and print-blames-on-the-fly?
+            (when (and (debug-iter?)
                        (-blm? A)
                        (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))
               (hash-ref! print-cache

@@ -10,7 +10,7 @@
          "parse/main.rkt"
          "runtime/definition.rkt"
          (only-in "run.rkt" run-file run-files havoc-file havoc-files)
-         (only-in "reduction/quick-step.rkt" debug-trace? debug-iter?)
+         "settings.rkt"
          (only-in "proof-relation/ext.rkt" Timeout))
 
 (Mode . ::= . 'light 'havoc 'expand)

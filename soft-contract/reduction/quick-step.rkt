@@ -5,6 +5,7 @@
 (require racket/set
          racket/match
          racket/list
+         "../settings.rkt"
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
@@ -15,9 +16,6 @@
          "../externals/main.rkt" ; for side effects
          "havoc.rkt"
          )
-
-(define-parameter debug-trace? : Boolean #f)
-(define-parameter debug-iter? : Boolean #f)
 
 (define-type Ctx (List (HashTable ⟪α⟫ (℘ -V))
                        (HashTable -αₖ (℘ -κ))
