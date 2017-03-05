@@ -134,10 +134,33 @@
            (or s (⟪α⟫->s α))))
        (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
          (app-St/C s (map -W¹ Cs cs))))]
-    [(-● _)
-     (case (MΓ⊢oW M σ Γ 'procedure? Wₕ)
-       [(✓ ?) ((app-opq sₕ) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-       [(✗) (⟦k⟧ (-blm l 'Λ (list 'procedure?) (list Vₕ) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ)])]
+    [(-● _) ;; TODO clean this mess up
+
+     (: blm : -V → -Γ → (℘ -ς))
+     (define ((blm C) Γ)
+       (define blm (-blm l 'Λ (list C) (list Vₕ) (-ℒ-app ℒ)))
+       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+
+     (: chk-arity : -Γ → (℘ -ς))
+     (define (chk-arity Γ)
+       (define required-arity
+         (let ([b (-b (length Wₓs))])
+           (-W¹ b b)))
+       (define Wₕ-arity
+         (let ([Vₐ (V-arity Vₕ)]
+               [sₐ (-?@ 'procedure-arity sₕ)])
+           (-W¹ (if Vₐ (-b Vₐ) -●/V) sₐ)))
+       (with-MΓ⊢oW (M σ Γ 'arity-includes? Wₕ-arity required-arity)
+         #:on-t do-app
+         #:on-f (blm (format-symbol "(arity-includes/c ~a)" (length Wₓs)))))
+
+     (: do-app : -Γ → (℘ -ς))
+     (define (do-app Γ)
+       ((app-opq sₕ) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))
+     
+     (with-MΓ⊢oW (M σ Γ 'procedure? Wₕ)
+       #:on-t chk-arity
+       #:on-f (blm 'procedure?))]
     [_
      (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ) (-ℒ-app ℒ)))
      (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
