@@ -17,7 +17,7 @@ before_install:
  - sudo make install
  - cd ..
  # Install Z3
- - git clone https://git01.codeplex.com/z3
+ - git clone https://github.com/Z3Prover/z3.git
  - cd z3
  - python scripts/mk_make.py
  - cd build
@@ -33,8 +33,9 @@ script:
  - cd soft-contract
  # Build z3 package and set up Z3 path
  - /usr/racket/bin/raco pkg install z3
- - echo `which z3`
- - export Z3_LIB="/usr/lib"
+ # See if it's here
+ - ls /opt/python/2.7.13/lib
+ - export Z3_LIB="/opt/python/2.7.13/lib"
  # Compile and link package
  - /usr/racket/bin/raco make cmdline.rkt
  - /usr/racket/bin/raco link .
