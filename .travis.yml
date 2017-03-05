@@ -31,8 +31,9 @@ before_script:
 
 script:
  - cd soft-contract
- # Build z3 package
+ # Build z3 package and set up Z3 path
  - /usr/racket/bin/raco pkg install z3
+ - export Z3_LIB="/usr/z3/lib"
  # Compile and link package
  - /usr/racket/bin/raco make cmdline.rkt
  - /usr/racket/bin/raco link .
