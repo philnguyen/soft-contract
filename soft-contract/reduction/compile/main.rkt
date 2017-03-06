@@ -127,7 +127,7 @@
       (define ⟦f⟧  (↓ f))
       (define ⟦x⟧s (map ↓ xs))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ l (-ℒ ∅eq ℓ) ⟦k⟧)))]
+        (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ (-ℒ ∅eq ℓ) ⟦k⟧)))]
      [(-if e₀ e₁ e₂)
       (define ⟦e₀⟧ (↓ e₀))
       (define ⟦e₁⟧ (↓ e₁))

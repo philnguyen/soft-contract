@@ -231,11 +231,15 @@
          [(? -v? v)
           (plausible-φs-s? φs (-?@ 'equal? s v))]
          [(-● ps)
-          (not (for/or : Boolean ([p ps])
-                 (match p
-                   [(? -o? o) (equal? '✗ (φs⊢e φs (-@ o (list s) +ℓ₀)))]
-                   [(-λ (list x) e) (equal? '✗ (φs⊢e φs (e/ (-x x) s e)))]
-                   [_ #f])))]
+          (cond
+            [(-ar? s) #f]
+            [else
+             (not (for/or : Boolean ([p ps])
+                    (match p
+                      [(? -o? o) (equal? '✗ (φs⊢e φs (-@ o (list s) +ℓ₀)))]
+                      [(-λ (list x) e) (equal? '✗ (φs⊢e φs (e/ (-x x) s e)))]
+                      [_ #f])))])
+          ]
          [_ #t])]
       [else #t]))
   

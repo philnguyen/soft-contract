@@ -132,7 +132,7 @@
             (define W-c (-W¹ Cᵢ cᵢ))
             (define Wᵥ* (-W¹ Vᵥ* sᵥ))
             (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
-            (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ lo ℒ ⟦k⟧))))]
+            (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ ℒ ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
         (define c* (⟪α⟫->s ⟪α⟫*))
@@ -141,7 +141,7 @@
           (define W-c (-W¹ C* c*))
           (define Wᵥ* (-W¹ Vᵥ* sᵥ))
           (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
-          (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ lo ℒ ⟦k⟧)))])]
+          (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ ℒ ⟦k⟧)))])]
     [_
      (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]))
 

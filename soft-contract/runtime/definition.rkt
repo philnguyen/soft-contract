@@ -203,6 +203,11 @@
   (match-define (-ℒ ℓs ℓₐ) ℒ)
   (-ℒ (set-add ℓs ℓ) ℓₐ))
 
+(define (ℒ-with-l [ℒ : -ℒ] [l : -l])
+  (match-define (-ℒ ℓs ℓₐ) ℒ)
+  (match-define (loc _ line col id) (ℓ->loc ℓₐ))
+  (-ℒ ℓs (loc->ℓ (loc l line col id))))
+
 (struct -edge ([tgt : -⟦e⟧] [src : -ℒ]) #:transparent)
 (define-type -ℋ (Listof (U -edge -ℒ)))
 (define ℋ∅ : -ℋ '())
