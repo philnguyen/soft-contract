@@ -4,6 +4,7 @@
          racket/set
          racket/file
          racket/string
+         racket/bool
          typed/rackunit
          "../utils/main.rkt"
          "../runtime/main.rkt"
@@ -11,42 +12,58 @@
 
 (define TIMEOUT 600)
 
-(: check-verify-safe : Path-String → Any)
-(define (check-verify-safe p)
+(: run-handler (∀ (α) ((℘ -ΓA) → α) Path-String → α))
+(define (run-handler f p)
   ;; Can't use time-apply
   (define t₀ (current-milliseconds))
   (printf "~a~n" p)
   (define-values (As Σ) (havoc-file p))
   (printf "  ~a~n" (- (current-milliseconds) t₀))
   (define-values (_ ΓEs) (set-partition (λ ([ΓA : -ΓA]) (-W? (-ΓA-ans ΓA))) As))
+  (f ΓEs))
+
+(: check : Any (Option Natural) (Option Natural) → (℘ -ΓA) → Any)
+(define ((check msg lo hi) ΓEs)
+  (define n (set-count ΓEs))
   (cond
-    [(set-empty? ΓEs)
-     (printf " ✓~n")]
+    [(and (implies lo (<= lo n)) (implies hi (<= n hi)))
+     (printf "  ✓ ~a~n" msg)]
     [else
-     (define msg
-       (let ([blm-msgs
-              (for/list : (Listof String) ([ΓE ΓEs])
-                (match-define (-ΓA _ (? -blm? blm)) ΓE)
-                (format "  - ~a" (show-blm blm)))])
-         (string-join blm-msgs
-                      "\n"
-                      #:before-first "✗"
-                      #:after-last "\n")))
-     (fail msg)]))
+     (fail
+     (format "Expect numberof blames in range ⟨~a,~a⟩, got ~a" (or lo '-∞) (or hi '+∞) n))]))
 
-(: with-dir : Path-String (Path-String → Any) → Any)
-(define (with-dir dir f)
-  (for* ([file (in-directory (format "programs/~a" dir))]
-         [file-path-str (in-value (path->string file))]
-         #:when (regexp-match-exact? #rx".*rkt" file-path-str))
-    (test-case file-path-str
-      (with-handlers ([exn?
-                       (λ ([e : exn])
-                         (fail (format "Exception: ~a~n" (exn-message e))))])
-        (unless (with-time-limit : Any TIMEOUT (f file-path-str))
-          (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
+(define check-safe (check 'Safe 0 0))
+(define check-fail (check 'Failed 1 #f))
 
-(module+ test ; quick sanity check
-  (with-dir "safe/octy" check-verify-safe)
-  (with-dir "safe/softy" check-verify-safe)
-  (with-dir "safe/games" check-verify-safe))
+(: test : Path-String ((℘ -ΓA) → Any) → Any)
+(define (test path f)
+
+  (define (run-on-file [fn : Path-String])
+    (when (regexp-match-exact? #rx".*rkt" fn)
+      (test-case fn
+        (with-handlers ([exn?
+                         (λ ([e : exn])
+                           (fail (format "Exception: ~a~n" (exn-message e))))])
+          (unless (with-time-limit : Any TIMEOUT (run-handler f fn))
+            (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
+
+  (define path* (format "programs/~a" path))
+  (cond
+    [(directory-exists? path*)
+     (for ([file-path (in-directory path*)])
+       (run-on-file (path->string file-path)))]
+    [else
+     (run-on-file path*)]))
+
+(module+ test
+  ;; Order doesn't matter. I just run shorter ones first
+  (test "safe/octy" check-safe)
+  (test "unsafe/octy" check-fail)
+  
+  (test "safe/softy" check-safe)
+  (test "unsafe/softy" check-fail)
+
+  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
+  
+  (test "safe/games" check-safe)
+  (test "unsafe/games" check-fail))
