@@ -1003,7 +1003,7 @@
          (cond [all-immutable? ⟦k⟧]
                [else
                 (define α (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫ l+)))
-                (wrap-st∷ Vₚ α l³ ⟦k⟧)]))
+                (wrap-st∷ 𝒾 Vₚ ℒ l³ ⟦k⟧)]))
        (for/union : (℘ -ς) ([Cs (σ@/list Σ αs)])
           (define ⟦mon⟧s : (Listof -⟦e⟧)
             (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s] [ℓᵢ : ℓ ℓs])
@@ -1094,28 +1094,27 @@
                   (mk-rt-⟦e⟧ -vector-ref/W)
                   (list (mk-rt-⟦e⟧ Wᵥ)
                         (mk-rt-⟦e⟧ (-W¹ -Nat/V (-x (+x!/memo 'vof-idx)))))))
-    (define ⟦k⟧* (mk-wrap-vect∷ (V+ (-Σ-σ Σ) Vᵥ 'vector?) sᵥ Vₚ ℒ l³ ⟦k⟧))
+    (define ⟦k⟧* (mk-wrap-vect∷ Vₚ ℒ l³ ⟦k⟧))
     (define c* (⟪α⟫->s α*))
+    (define Wₗ (vec-len σ Γ Wᵥ))
     (for/union : (℘ -ς) ([C* (in-set (σ@ Σ α*))])
       (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C* c*)) ⟦ref⟧))
-      (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
+      (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ -make-vector/W) '() ⊥ρ (ℒ-with-l ℒ 'mon-vectorof)
+                               ⟦k⟧*))))
 
   (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
     #:on-t chk-elems
     #:on-f (blm 'vector?)))
 
-(define/memo (mk-wrap-vect∷ [Vᵥ : -V]
-                            [sᵥ : -s]
-                            [Vₚ : (U -Vector/C -Vectorof)]
+(define/memo (mk-wrap-vect∷ [Vₚ : (U -Vector/C -Vectorof)]
                             [ℒ : -ℒ]
                             [l³ : -l³]
                             [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Vᵥ Vₚ)
-    (match-define (-l³ l+ _ _) l³)
-    (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ l+)))
+  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Vₚ)
+    (match-define (-W (list Vᵥ) sᵥ) A) ; only used internally, shoule be safe
+    (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ (-l³-pos l³))))
     (σ⊕! Σ ⟪α⟫ᵥ Vᵥ)
-    (define A (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ))
-    (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
+    (⟦k⟧ (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ) $ Γ ⟪ℋ⟫ Σ)))
 
 (define (mon-vector/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (-Σ σ _ M) Σ)
@@ -1159,14 +1158,13 @@
                          (mk-rt-⟦e⟧ -vector-ref/W)
                          (list (mk-rt-⟦e⟧ Wᵥ) (mk-rt-⟦e⟧ Wᵢ))))
            (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ Wₚᵢ) ⟦ref⟧)))
-       (define Wᵥ*
-         (let ([⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ l+))])
-           (σ⊕! Σ ⟪α⟫ᵥ Vᵥ)
-           (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ)))
+       
        (match ⟦mon-fld⟧s
-         ['() (⟦k⟧ Wᵥ* $ Γ ⟪ℋ⟫ Σ)]
+         ['() (⟦k⟧ (-W (list -Vector₀) sᵥ) $ Γ ⟪ℋ⟫ Σ)] ; no need to wrap
          [(cons ⟦fld⟧₀ ⟦fld⟧s)
-          (⟦fld⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ Wᵥ* ⟦fld⟧s ⊥ρ ⟦k⟧))])))
+          (define ⟦k⟧* (mk-wrap-vect∷ Vₚ ℒ l³ ⟦k⟧))
+          (⟦fld⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+           (ap∷ (list -vector/W) ⟦fld⟧s ⊥ρ (ℒ-with-l ℒ 'mon-vector/c) ⟦k⟧*))])))
 
   (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
     #:on-t chk-len
@@ -1315,17 +1313,16 @@
 
 (define/memo (neg∷ [l : -l] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧ (if∷ l ⟦ff⟧ ⟦tt⟧ ⊥ρ ⟦k⟧))
 
-(define/memo (wrap-st∷ [C : -St/C]
-                       [⟪α⟫ᵤ : ⟪α⟫]
+(define/memo (wrap-st∷ [𝒾 : -𝒾]
+                       [C : -St/C]
+                       [ℒ : -ℒ]
                        [l³ : -l³]
                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (define V* (-St* C ⟪α⟫ᵤ l³))
-  (define ⟪α⟫-casted #|FIXME TR|# (cast ⟪α⟫ᵤ (Rec X (U -V -W -W¹ -ρ ⟪α⟫ (Listof X) (℘ X)))))
-  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C ⟪α⟫-casted)
-    (match-define (-W Vs s) A)
-    (match-define (list V) Vs) ; only used internally, should be safe
+  (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C)
+    (match-define (-W (list V) s) A)  ; only used internally, should be safe
+    (define ⟪α⟫ᵤ (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫ (-l³-pos l³))))
     (σ⊕! Σ ⟪α⟫ᵤ V)
-    (⟦k⟧ (-W (list V*) s) $ Γ ⟪ℋ⟫ Σ)))
+    (⟦k⟧ (-W (list (-St* C ⟪α⟫ᵤ l³)) s) $ Γ ⟪ℋ⟫ Σ)))
 
 (define/memo (fc-and/c∷ [l : -l]
                         [ℒ : -ℒ]
