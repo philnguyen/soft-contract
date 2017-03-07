@@ -77,13 +77,13 @@
          set-partial! partial-prims)
 
 (define range-table : (HashTable Symbol Symbol) (make-hasheq))
-(define partial-prims : (HashTable Symbol #t) (make-hasheq))
+(define partial-prims : (HashTable Symbol Natural) (make-hasheq))
 
 (: set-range! : Symbol Symbol → Void)
 (define (set-range! o r) (hash-set-once! range-table o r))
 
-(: set-partial! : Symbol → Void)
-(define (set-partial! o) (hash-set! partial-prims o #t))
+(: set-partial! : Symbol Natural → Void)
+(define (set-partial! o n) (hash-set! partial-prims o n))
 
 (: get-conservative-range : Symbol → Symbol)
 (define (get-conservative-range o) (hash-ref range-table o (λ () 'any/c)))

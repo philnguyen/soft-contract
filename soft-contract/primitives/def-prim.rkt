@@ -103,9 +103,25 @@
                   (gen-ok-case))))))
      ;(pretty-write (syntax->datum #'defn-o))
      (define/contract maybe-set-partial (listof syntax?)
-       (syntax-parse #'sig
-         [((~literal any/c) ... . -> . _) '()]
-         [_ (list #'(set-partial! 'o))]))
+       (let ()
+         (define (count-leaves c)
+           (syntax-parse c
+             [(~literal any/c) 0]
+             [((~or (~literal and/c) (~literal or/c) (~literal not/c)) cᵢ ...)
+              (apply + 0 (map count-leaves (syntax->list #'(cᵢ ...))))]
+             [_ 1]))
+         
+         (syntax-parse #'sig
+           [(dom ... . (~literal ->) . _)
+            (define n (apply + 0 (map count-leaves (syntax->list #'(dom ...)))))
+            (list #`(set-partial! 'o #,n))]
+           [((inits ...) #:rest rest . (~literal ->*) . _)
+            (define n
+              (+ (apply + 0 (map count-leaves (syntax->list #'(inits ...))))
+                 (count-leaves #'rest)))
+            (list #`(set-partial! 'o #,n))]
+           [_ '()])))
+     
      #`(begin
          (: .o : -⟦o⟧)
          defn-o
