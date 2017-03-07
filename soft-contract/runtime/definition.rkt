@@ -431,8 +431,8 @@
     [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]
     [(-Vector/guard grd _ _)
      (match grd
-       [(-Vector/C γs) `(vector/hetero ,@(map show-⟪α⟫ℓ γs))]
-       [(-Vectorof γ) `(vector/homo ,(show-⟪α⟫ℓ γ))])]
+       [(-Vector/C γs) `(vector/diff ,@(map show-⟪α⟫ℓ γs))]
+       [(-Vectorof γ) `(vector/same ,(show-⟪α⟫ℓ γ))])]
     [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
     [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
     [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]
@@ -544,6 +544,7 @@
   (match (⟪α⟫->-α ⟪α⟫)
     [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
     [(-α.hv) 'αₕᵥ]
+    [(-α.e e ℓ ⟪ℋ⟫) (show-e e)]
     [(? -e? e) (show-e e)]
     [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
