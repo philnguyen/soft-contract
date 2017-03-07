@@ -281,9 +281,15 @@
             (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
             (-α.fc-x/c Symbol -⟪ℋ⟫)
 
-            -e)
+            -o
+            -𝒾
+            (-α.e -e ℓ -⟪ℋ⟫))
 
-(define (α->s [α : -α]) (and (-e? α) α))
+(define (α->s [α : -α])
+  (match α
+    [(? -e? e) e]
+    [(-α.e e _ _) e]
+    [_ #f]))
 (define (αs->ss [αs : (Listof -α)]) (map α->s αs))
 
 (define-interner -α #:interned-type-name ⟪α⟫)

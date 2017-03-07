@@ -106,14 +106,16 @@
                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws)
     (match-define (-W (list D) d) A)
-    (define β (-α->⟪α⟫ (or (keep-if-const d) (-α.rng ℓₐ #|TODO right?|# ⟪ℋ⟫))))
+    (define β (-α->⟪α⟫ (or (keep-if-const d (ℓ-with-id ℓₐ '-->.rng) ⟪ℋ⟫)
+                           (-α.rng ℓₐ #|TODO right?|# ⟪ℋ⟫))))
     (σ⊕! Σ β D)
     (define-values (αs cs) ; with side effect widening store
       (for/fold ([αs : (Listof ⟪α⟫) '()]
                  [cs : (Listof -s) '()])
                 ([(W i) (in-indexed Ws)] #:when (index? i))
         (match-define (-W¹ C c) W)
-        (define α (-α->⟪α⟫ (or (keep-if-const c) (-α.dom ℓₐ ⟪ℋ⟫ i))))
+        (define α (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ i) ⟪ℋ⟫)
+                               (-α.dom ℓₐ ⟪ℋ⟫ i))))
         (σ⊕! Σ α C)
         (values (cons α αs) (cons c cs))))
     (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
@@ -123,7 +125,8 @@
     (define G
       (match Wᵣ
         [(-W¹ Vᵣ cᵣ)
-         (define αᵣ (-α->⟪α⟫ (or (keep-if-const cᵣ) (-α.rst ℓₐ ⟪ℋ⟫))))
+         (define αᵣ (-α->⟪α⟫ (or (keep-if-const cᵣ (ℓ-with-id ℓₐ 'var) ⟪ℋ⟫)
+                                 (-α.rst ℓₐ ⟪ℋ⟫))))
          (define ℓᵣ (ℓ-with-id ℓₐ 'rest))
          (σ⊕! Σ αᵣ Vᵣ)
          (-W (list (-=> (-var αℓs (cons αᵣ ℓᵣ)) βℓ ℓₐ)) (-?-> (-var cs cᵣ) d ℓₐ))]
@@ -140,11 +143,12 @@
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
       (define α
-        (-α->⟪α⟫ (or (keep-if-const c)
-                      (-α.dom ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
+        (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ (assert i index?)) ⟪ℋ⟫)
+                     (-α.dom ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
       (σ⊕! Σ α C)
       (values (cons α αs) (cons c cs))))
-  (define β (-α->⟪α⟫ (or (keep-if-const mk-d) (-α.rng ℓₐ ⟪ℋ⟫))))
+  (define β (-α->⟪α⟫ (or (keep-if-const mk-d (ℓ-with-id ℓₐ 'rng) ⟪ℋ⟫)
+                         (-α.rng ℓₐ ⟪ℋ⟫))))
   (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
     (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
       (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
@@ -210,7 +214,7 @@
                    ([(W i) (in-indexed Cs*)])
            (match-define (-W¹ C c) W)
            (define α
-             (-α->⟪α⟫ (or (keep-if-const c)
+             (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓ₁ (assert i index?)) ⟪ℋ⟫)
                           (-α.struct/c ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
            (σ⊕! Σ α C)
            (values (cons α αs)

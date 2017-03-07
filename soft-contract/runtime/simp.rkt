@@ -315,11 +315,11 @@
      (define ss* (go ss))
      (and ss* s (-var ss* s))]))
 
-(: keep-if-const : -s → -s)
+(: keep-if-const : -s ℓ -⟪ℋ⟫ → (Option -α.e))
 ;; Keep expression if it evaluates to a fixed value
-(define (keep-if-const s)
+(define (keep-if-const s ℓ ⟪ℋ⟫)
   ;; TODO: update to work with mutable states
-  (and s (set-empty? (fv s)) s))
+  (and s (set-empty? (fv s)) (-α.e s ℓ ⟪ℋ⟫)))
 
 (module+ test
   (require typed/rackunit)
