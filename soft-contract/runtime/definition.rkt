@@ -329,7 +329,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ])
+(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ] [facts : (℘ -e)])
      ;; Contract monitoring
      (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
      ;; Flat checking
@@ -499,7 +499,7 @@
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ xs ⟦e⟧ ρ) ℬ)
+  (match-define (-ℬ xs ⟦e⟧ ρ _) ℬ)
   (match xs
     ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
     [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))

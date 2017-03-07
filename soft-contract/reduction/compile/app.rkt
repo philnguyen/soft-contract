@@ -221,12 +221,13 @@
           (σ⊕! Σ αᵣ Vᵣ)
           (ρ+ ρ₀ z αᵣ)]))
 
-     (define αₖ (-ℬ xs ⟦e⟧ ρ*))
-     (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
-     (σₖ⊔! Σ αₖ κ)
      (define Γₕ*
        (let ([Γₕ₁ (hack-equal-args Γₕ xs sₓs)])
          (propagate-invariants (if (-λ? sₕ) (fv sₕ) ∅eq) Γₕ₁ xs Γ sₓs)))
+
+     (define αₖ (-ℬ xs ⟦e⟧ ρ* (-Γ-facts Γₕ*)))
+     (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
+     (σₖ⊔! Σ αₖ κ)
      {set (-ς↑ αₖ Γₕ* ⟪ℋ⟫ₑₑ)}]
     [else ∅]))
 
@@ -289,7 +290,7 @@
       (define αᵣ (-α->⟪α⟫ (-α.x xᵣ ⟪ℋ⟫ₑₑ)))
       (σ⊕! Σ αᵣ Vᵣ)
       (ρ+ ρ₀ xᵣ αᵣ)))
-  (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+  (define αₖ (-ℬ xs ⟦e⟧ ρ* (-Γ-facts #|TODO|#Γₕ)))
   (define κ
     (let ([ss₀ (map -W¹-s Ws₀)]
           [sᵣ (-W¹-s Wᵣ)])

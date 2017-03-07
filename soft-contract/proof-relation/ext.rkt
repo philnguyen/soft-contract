@@ -158,7 +158,7 @@
   (match-define (-γ αₖ _ sₕ sₓs) γ)
 
   (match αₖ
-    [(-ℬ (? list? xs) _ _)
+    [(-ℬ (? list? xs) _ _ _)
      (not (or (for/or : Boolean ([x xs] [sₓ sₓs])
                 (and sₓ
                      (Γₑᵣ . talks-about? . sₓ)
