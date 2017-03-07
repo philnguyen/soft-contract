@@ -10,7 +10,7 @@
          "../runtime/main.rkt"
          "../run.rkt")
 
-(define TIMEOUT 600)
+(define TIMEOUT 1200)
 
 (: run-handler (∀ (α) ((℘ -ΓA) → α) Path-String → α))
 (define (run-handler f p)
