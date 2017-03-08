@@ -373,7 +373,7 @@
   (define p
     (cond [(for/and : Boolean ([W Ws])
              (match-define (-W¹ V s) W)
-             (⊢?/quick '✗ σ Γ 'equal? W -null-char/W))
+             (⊢?/quick '✗ σ Γ 'equal? W -null-char.W¹))
            'path-string?]
           [else 'string?]))
   {set (-ΓA Γ (-W (list (-● {set p (-not/c 'immutable?)})) sₐ))})
@@ -401,7 +401,7 @@
   (match-define (-W¹ V s) W)
   (define sₐ (-?@ 'string->list s))
   (match V
-    [(-b "") {set (-ΓA Γ (-W -null/Vs sₐ))}]
+    [(-b "") {set (-ΓA Γ (-W -null.Vs sₐ))}]
     [_
      (define ℒ (-ℒ ∅eq ℓ))
      (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
@@ -413,7 +413,7 @@
      (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
      (match V
        [(-b (? string? s)) #:when (> (string-length s) 0) Ans]
-       [_ (set-add Ans (-ΓA Γ (-W -null/Vs sₐ)))])]))
+       [_ (set-add Ans (-ΓA Γ (-W -null.Vs sₐ)))])]))
 (def-prim/custom (list->string ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W (listof char?)])
   (define σ (-Σ-σ Σ))
@@ -788,10 +788,10 @@
      (define Vₜ (-Cons αₕ αₜ))
      (for ([Vₕ Vₕs]) (σ⊕! Σ αₕ Vₕ))
      (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
-     {set (-ΓA Γ (-W -null/Vs sₐ))
+     {set (-ΓA Γ (-W -null.Vs sₐ))
           (-ΓA Γ (-W (list Vₜ) sₐ))}]
     [(-b (list))
-     {set (-ΓA Γ (-W -null/Vs sₐ))}]
+     {set (-ΓA Γ (-W -null.Vs sₐ))}]
     [_
      {set (-ΓA Γ (-W (list (-● (set 'list?))) sₐ))}]))
 (def-prim append (() #:rest (listof list?) . ->* . list?))
@@ -820,7 +820,7 @@
   (match-define (-W¹ Vₗ sₗ) Wₗ)
   (define sₐ (-?@ 'reverse sₗ))
   (match Vₗ
-    [(-b (list)) {set (-ΓA Γ (-W -null/Vs sₐ))}]
+    [(-b (list)) {set (-ΓA Γ (-W -null.Vs sₐ))}]
     [(-Cons _ _)
      (define ℒ (-ℒ ∅eq ℓ))
      (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
@@ -1077,7 +1077,7 @@
       [(-Vector ⟪α⟫s) (list (-b (length ⟪α⟫s)))]
       [(-Vector^ _ n) (list n)]
       [(-Vector/guard (-Vector/C ⟪α⟫s) _ _) (list (-b (length ⟪α⟫s)))]
-      [_ -Nat/Vs]))
+      [_ -Nat.Vs]))
   {set (-ΓA Γ (-W A sₐ))})
 #;(def-prim/todo vector-ref
  (vector? exact-nonnegative-integer? . -> . any/c))
@@ -1616,7 +1616,7 @@
   (match-define (-W¹ V s) W)
   (define sₐ (-?@ 'procedure-arity s))
   (cond [(V-arity V) => (λ ([a : Arity]) {set (-ΓA Γ (-W (list (-b a)) sₐ))})]
-        [else {set (-ΓA Γ (-W -●/Vs sₐ))}]))
+        [else {set (-ΓA Γ (-W -●.Vs sₐ))}]))
 (def-pred procedure-arity?)
 {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses
 (def-prim/todo procedure-reduce-arity
@@ -1665,7 +1665,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-pred void?)
 (def-prim/custom (void ⟪ℋ⟫ ℓ Σ Γ Ws)
-  {set (-ΓA Γ -Void/W)})
+  {set (-ΓA Γ -void.W)})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

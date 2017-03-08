@@ -289,7 +289,7 @@
                    [((~literal quote) c:id) (hack:resolve-alias #'c)]
                    [p #'p]))
                #`(V+ #,(-σ) #,V p))
-             #'-●/V
+             #'-●.V
              refs))
 
     (define/with-syntax mk-sₐ

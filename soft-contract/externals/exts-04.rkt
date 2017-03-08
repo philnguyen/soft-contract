@@ -36,7 +36,7 @@
 (def-ext (for-each $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wₚ (any/c . -> . any/c)]
             [Wₗ list?])
-  #:result -Void/Vs)
+  #:result -void.Vs)
 
 (define/memo (mk-listof∷ [sₐ : -s] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
@@ -96,7 +96,7 @@
           (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
                        (mon.c∷ l³ (ℒ-with-mon ℒ ℓ*) (-W¹ C* c*) ⟦k⟧)))])]
     [_
-     (⟦k⟧ (-W -●/Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+     (⟦k⟧ (-W -●.Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
 (def-ext (vector-set! $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
@@ -112,10 +112,10 @@
                           #:when (plausible-index? M σ Γ Wᵢ i))
        (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
        (σ⊕! Σ ⟪α⟫ Vᵤ #:mutating? #t)
-       (⟦k⟧ -Void/W $ Γ* ⟪ℋ⟫ Σ))]
+       (⟦k⟧ -void.W $ Γ* ⟪ℋ⟫ Σ))]
     [(-Vector^ α n)
      (σ⊕! Σ α Vᵤ #:mutating? #t)
-     (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]
+     (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
     [(-Vector/guard grd ⟪α⟫ᵥ l³)
      (match-define (-l³ l+ l- lo) l³)
      (define l³* (-l³ l- l+ lo))
@@ -132,7 +132,7 @@
             (define W-c (-W¹ Cᵢ cᵢ))
             (define Wᵥ* (-W¹ Vᵥ* sᵥ))
             (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
-            (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ ℒ ⟦k⟧))))]
+            (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
         (define c* (⟪α⟫->s ⟪α⟫*))
@@ -141,9 +141,9 @@
           (define W-c (-W¹ C* c*))
           (define Wᵥ* (-W¹ Vᵥ* sᵥ))
           (define ⟦chk⟧ (mk-mon-⟦e⟧ l³* (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ W-c) (mk-rt-⟦e⟧ Wᵤ)))
-          (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!/W) '() ⊥ρ ℒ ⟦k⟧)))])]
+          (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧)))])]
     [_
-     (⟦k⟧ -Void/W $ Γ ⟪ℋ⟫ Σ)]))
+     (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

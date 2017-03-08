@@ -61,7 +61,7 @@
          (match-define (-Σ σ σₖ _) Σ)
          (define sₐ (-?@ 'o (-W¹-s W) ...))
          (define Wₐ (-W (list #,(parameterize ([-σ #'σ])
-                                  (gen-wrap #'d #'-●/V #'sₐ)))
+                                  (gen-wrap #'d #'-●.V #'sₐ)))
                         sₐ))
          (begin (σ⊕! Σ ⟪α⟫ₕᵥ (-W¹-V W)) ...)
          (define αₖ (-ℋ𝒱))

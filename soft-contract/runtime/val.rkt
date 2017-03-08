@@ -2,8 +2,11 @@
 
 (provide (all-defined-out))
 
-(require racket/match
+(require (for-syntax racket/base racket/syntax syntax/parse)
+         racket/match
          racket/set
+         racket/splicing
+         syntax/parse/define
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"
@@ -11,37 +14,48 @@
          "sto.rkt")
 
 ;; Constants & 'Macros'
-(define -null/Vs (list -null))
-(define -null/W (-W -null/Vs -null))
-(define -null-char/W (-W¹ -null-char -null-char))
-(define -True/Vs  (list -tt))
-(define -False/Vs (list -ff))
-(define -True/W  (-W -True/Vs  -tt))
-(define -False/W (-W -False/Vs -ff))
-(define -●/V (-● ∅))
-(define -●/Vs (list -●/V))
-(define -●/W∅ (-W -●/Vs #f))
-(define -●/W¹∅ (-W¹ -●/V #f))
-(define -Bool/Vs (list (-● {set 'boolean?})))
-(define -Nat/V (-● {set 'exact-nonnegative-integer?}))
-(define -Nat/Vs (list -Nat/V))
-(define -Void/Vs (list -void))
-(define -Void/W (-W -Void/Vs -void))
-(define -apply/W (-W¹ 'apply 'apply))
-(define -not/W (-W¹ 'not 'not))
-(define -integer?/W (-W¹ 'integer? 'integer?))
-(define -number?/W (-W¹ 'number? 'number?))
-(define -vector?/W (-W¹ 'vector? 'vector?))
-(define -procedure?/W (-W¹ 'procedure? 'procedure?))
-(define -vector-ref/W (-W¹ 'vector-ref 'vector-ref))
-(define -vector-set!/W (-W¹ 'vector-set! 'vector-set!))
-(define -arity-includes?/W (-W¹ 'arity-includes? 'arity-includes?))
-(define -=/W (-W¹ '= '=))
-(define -contract-first-order-passes?/W (-W¹ 'contract-first-order-passes? 'contract-first-order-passes?))
-(define -vector-length/W (-W¹ 'vector-length 'vector-length))
+(define-syntax-parser def-val
+  [(_ id:id V:expr v:expr)
+   (define/with-syntax id.V  (format-id #'id "~a.V"  (syntax-e #'id)))
+   (define/with-syntax id.W¹ (format-id #'id "~a.W¹" (syntax-e #'id)))
+   (define/with-syntax id.Vs (format-id #'id "~a.Vs" (syntax-e #'id)))
+   (define/with-syntax id.W  (format-id #'id "~a.W"  (syntax-e #'id)))
+   #'(splicing-let ([sᵥ v])
+       (define id.V V)
+       (define id.W¹ (-W¹ id.V sᵥ))
+       (define id.Vs (list id.V))
+       (define id.W (-W id.Vs sᵥ)))]
+  [(_ id:id v)
+   #'(def-val id v v)]
+  [(_ id:id)
+   #'(def-val id id id)])
+
+(def-val -null)
+(def-val -null-char)
+(def-val -tt)
+(def-val -ff)
+(def-val -● (-● ∅) #f)
+(define -Bool.Vs (list (-● {set 'boolean?})))
+(define -Nat.V (-● {set 'exact-nonnegative-integer?}))
+(define -Nat.Vs (list -Nat.V))
+(def-val -void)
+(def-val -apply 'apply)
+(def-val -not 'not)
+(def-val -integer? 'integer?)
+(def-val -number? 'number?)
+(def-val -vector 'vector)
+(def-val -make-vector 'make-vector)
+(def-val -vector? 'vector?)
+(def-val -procedure? 'procedure?)
+(def-val -vector-ref 'vector-ref)
+(def-val -vector-set! 'vector-set!)
+(def-val -arity-includes? 'arity-includes?)
+(def-val -= '=)
+(def-val -contract-first-order-passes? 'contract-first-order-passes?)
+(def-val -vector-length 'vector-length)
 (define -Vector₀ (-Vector '()))
-(define -Zero/W (-W¹ -zero -zero))
-(define -unsafe-struct-ref/W (-W¹ 'unsafe-struct-ref 'unsafe-struct-ref))
+(def-val -zero)
+(def-val -unsafe-struct-ref 'unsafe-struct-ref)
 ;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
 ;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))
 

@@ -35,7 +35,7 @@
               (for/union : (℘ -W¹) ([V (in-set (σ@ σ α))]
                                     #:when (plausible-V-s? φs V s))
                 (go V))])]
-      [(? -●?) {set (-W¹ -●/V s*)}]
+      [(? -●?) {set (-W¹ -●.V s*)}]
       [_ ∅])))
 
 (: ⊢?/quick : -R -σ -Γ -o -W¹ * → Boolean)
@@ -50,9 +50,9 @@
   (define ss (map -W¹-s Ws))
   (define A
     (case (apply MΓ⊢oW M σ Γ o Ws)
-      [(✓) -True/Vs]
-      [(✗) -False/Vs]
-      [(?) -Bool/Vs]))
+      [(✓) -tt.Vs]
+      [(✗) -ff.Vs]
+      [(?) -Bool.Vs]))
   {set (-ΓA Γ (-W A (apply -?@ o ss)))})
 
 (define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧)
@@ -88,7 +88,7 @@
     [(-Cons _ _)
      (cond
        [(definitely-not-member? σ Vₓ Vₗ)
-        {set (-ΓA Γ (-W -False/Vs sₐ))}]
+        {set (-ΓA Γ (-W -ff.Vs sₐ))}]
        [else
         (define ℒ (-ℒ ∅eq ℓ))
         (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
@@ -99,10 +99,10 @@
         (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
         (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
         (cond [(definitely-member? σ Vₓ Vₗ) Ans]
-              [else (set-add Ans (-ΓA Γ (-W -False/Vs sₐ)))])])]
-    [(-b '()) {set (-ΓA Γ (-W -False/Vs sₐ))}]
+              [else (set-add Ans (-ΓA Γ (-W -ff.Vs sₐ)))])])]
+    [(-b '()) {set (-ΓA Γ (-W -ff.Vs sₐ))}]
     [_ {set (-ΓA Γ (-W (list (-● {set 'list? -cons?})) sₐ))
-            (-ΓA Γ (-W -False/Vs sₐ))}]))
+            (-ΓA Γ (-W -ff.Vs sₐ))}]))
 
 (: definitely-member? : -σ -V -St → Boolean)
 (define (definitely-member? σ V Vₗ)
@@ -246,5 +246,5 @@
          [(-Vector/C ⟪α⟫s) (length ⟪α⟫s)]
          [_ #f])]
       [_ #f]))
-  (define Vₙ (if ?n (-b ?n) -●/V))
+  (define Vₙ (if ?n (-b ?n) -●.V))
   (-W¹ Vₙ (-?@ 'vector-length s)))

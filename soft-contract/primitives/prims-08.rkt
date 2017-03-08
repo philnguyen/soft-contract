@@ -18,10 +18,10 @@
  (any/c flat-contract? . -> . flat-contract?))
 (def-prim/custom (any/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W any/c])
-  {set (-ΓA Γ (-W -True/Vs -tt))})
+  {set (-ΓA Γ (-W -tt.Vs -tt))})
 (def-prim/custom (none/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W any/c])
-  {set (-ΓA Γ (-W -False/Vs -ff))})
+  {set (-ΓA Γ (-W -ff.Vs -ff))})
 (def-prim/custom (or/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
   (match-define (-W¹ V₁ s₁) W₁)
