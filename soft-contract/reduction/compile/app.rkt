@@ -171,7 +171,7 @@
 (: add-leak! : -Σ -V → Void)
 (define (add-leak! Σ V)
   (when (behavioral? (-Σ-σ Σ) V)
-    (σ⊕! Σ ⟪α⟫ₕᵥ V)))
+    (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -218,7 +218,7 @@
           (define ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ zs Ws₀))
           (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
           (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
-          (σ⊕! Σ αᵣ Vᵣ)
+          (σ⊕V! Σ αᵣ Vᵣ)
           (ρ+ ρ₀ z αᵣ)]))
 
      (define Γₕ*
@@ -288,7 +288,7 @@
   (define ρ*
     (let ([ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ xs₀ Ws₀)])
       (define αᵣ (-α->⟪α⟫ (-α.x xᵣ ⟪ℋ⟫ₑₑ)))
-      (σ⊕! Σ αᵣ Vᵣ)
+      (σ⊕! Σ Γ αᵣ Wᵣ)
       (ρ+ ρ₀ xᵣ αᵣ)))
   (define αₖ (-ℬ xs ⟦e⟧ ρ* (-Γ-facts #|TODO|#Γₕ)))
   (define κ
@@ -499,9 +499,7 @@
          (for/list ([i : Index n])
            (-α->⟪α⟫ (-α.fld 𝒾 ℒ ⟪ℋ⟫ i))))
        (for ([α : ⟪α⟫ αs] [W (in-list Ws)])
-         (match-define (-W¹ V s) W)
-         (define V* (V+ σ V (predicates-of Γ s)))
-         (σ⊕! Σ α V*))
+         (σ⊕! Σ Γ α W))
        (define V (-St 𝒾 αs))
        (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ)]
       [else
@@ -595,7 +593,7 @@
        (match Vₛ
          [(-St (== 𝒾) αs)
           (define α (list-ref αs i))
-          (σ⊕! Σ α Vᵥ #:mutating? #t)
+          (σ⊕! Σ Γ α Wᵥ #:mutating? #t)
           (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
          [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
           (match-define (-l³ l+ l- lo) l³)
@@ -716,11 +714,7 @@
   (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
     (match-define (-W¹ Vₓ sₓ) Wₓ)
     (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
-    (define Vₓ*
-      ;; Refine arguments by type-like contracts before proceeding
-      ;; This could save lots of spurious errors to eliminate later
-      (V+ (-Σ-σ Σ) Vₓ (predicates-of Γ sₓ)))
-    (σ⊕! Σ α Vₓ*)
+    (σ⊕! Σ Γ α Wₓ)
     
     ;; Debug for `slatex`
     #;(when (and (member x '(raw-filename s₃ filename filename₁))
@@ -737,15 +731,11 @@
   (define (precise-alloc! Ws [i 0])
     (match Ws
       [(list) -null]
-      [(cons (-W¹ Vₕ sₕ) Ws*)
+      [(cons Wₕ Ws*)
        (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ i)))
        (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ i)))
-       (define Vₕ*
-         ;; Refine arguments by type-like contracts before proceeding
-         ;; This could save lots of spurious errors to eliminate later
-         (V+ (-Σ-σ Σ) Vₕ (predicates-of Γ sₕ)))
-       (σ⊕*! Σ [αₕ ↦ Vₕ*]
-               [αₜ ↦ (precise-alloc! Ws* (+ 1 i))])
+       (σ⊕! Σ Γ αₕ Wₕ)
+       (σ⊕V! Σ αₜ (precise-alloc! Ws* (+ 1 i)))
        (-Cons αₕ αₜ)]))
   
   ;; Allocate length up to 2 precisely to let `splay` to go through
@@ -759,11 +749,10 @@
      (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ #f)))
      (define Vₜ (-Cons αₕ αₜ))
      ;; Allocate spine for var-arg lists
-     (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
+     (σ⊕V*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
      ;; Allocate elements in var-arg lists
      (for ([W Ws])
-       (match-define (-W¹ Vₕ sₕ) W)
-       (σ⊕! Σ αₕ (V+ (-Σ-σ Σ) Vₕ (predicates-of Γ sₕ))))
+       (σ⊕! Σ Γ αₕ W))
      Vₜ]))
 
 (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -875,7 +864,7 @@
                       ([bnd-W bnd-Ws*])
               (match-define (list (? symbol? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
               (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
-              (σ⊕! Σ α (V+ σ Vₓ (predicates-of Γ sₓ)))
+              (σ⊕! Σ Γ α (-W¹ Vₓ sₓ))
               (values (ρ+ ρ x α) (-Γ-with-aliases Γ x sₓ))))
           (⟦e⟧ ρ* $ Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
          [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
@@ -963,7 +952,7 @@
                              (-α.fn ℒ ⟪ℋ⟫ l+ (-Γ-facts Γ)))))
     (define Ar (-Ar grd ⟪α⟫ l³))
 
-    (σ⊕! Σ ⟪α⟫ (V+ σ V (predicates-of Γ v)))
+    (σ⊕! Σ Γ ⟪α⟫ W-V)
     (define v* ; hack
       (match v
         [(-ar (== c) _) v]
@@ -1029,7 +1018,7 @@
     (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.mon-x/c x ⟪ℋ⟫ₑₑ (-l³-pos l³))))
     (define αₖ (-ℳ x l³ (-ℒ ∅eq (-ℒ-app ℒ)) #;ℒ C* ⟪α⟫ᵥ))
     (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack|# 'values (list v)))
-    (σ⊕! Σ ⟪α⟫ᵥ V)
+    (σ⊕! Σ Γ ⟪α⟫ᵥ W-V)
     (σₖ⊔! Σ αₖ κ)
     (-ς↑ αₖ ⊤Γ ⟪ℋ⟫ₑₑ)))
 
@@ -1113,7 +1102,7 @@
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Vₚ)
     (match-define (-W (list Vᵥ) sᵥ) A) ; only used internally, shoule be safe
     (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℒ ⟪ℋ⟫ (-l³-pos l³))))
-    (σ⊕! Σ ⟪α⟫ᵥ Vᵥ)
+    (σ⊕V! Σ ⟪α⟫ᵥ Vᵥ)
     (⟦k⟧ (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) sᵥ) $ Γ ⟪ℋ⟫ Σ)))
 
 (define (mon-vector/c l³ $ ℒ Wₚ Wᵥ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -1244,7 +1233,7 @@
        (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.fc-x/c x ⟪ℋ⟫)))
        (define αₖ (-ℱ x l (-ℒ ∅eq (-ℒ-app ℒ)) #;ℒ C* ⟪α⟫ᵥ))
        (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ #|FIXME hack #f? instead?|# 'fc (list v)))
-       (σ⊕! Σ ⟪α⟫ᵥ V)
+       (σ⊕! Σ Γ ⟪α⟫ᵥ W-V)
        (σₖ⊔! Σ αₖ κ)
        (-ς↑ αₖ ⊤Γ ⟪ℋ⟫ₑₑ))]
     [_
@@ -1321,7 +1310,7 @@
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C)
     (match-define (-W (list V) s) A)  ; only used internally, should be safe
     (define ⟪α⟫ᵤ (-α->⟪α⟫ (-α.st 𝒾 ℒ ⟪ℋ⟫ (-l³-pos l³))))
-    (σ⊕! Σ ⟪α⟫ᵤ V)
+    (σ⊕! Σ Γ ⟪α⟫ᵤ (-W¹ V s))
     (⟦k⟧ (-W (list (-St* C ⟪α⟫ᵤ l³)) s) $ Γ ⟪ℋ⟫ Σ)))
 
 (define/memo (fc-and/c∷ [l : -l]
@@ -1437,12 +1426,6 @@
   (match A
     [(-W¹ V v) (mk-rt-⟦e⟧ (-W (list V) v))]
     [(? -A?) (λ (_ $ Γ ⟪ℋ⟫ Σ ⟦k⟧) (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))]))
-
-(define/memo (mk-erase-⟦e⟧ [⟪α⟫s : (Listof ⟪α⟫)]) : -⟦e⟧
-  (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (for ([⟪α⟫ : ⟪α⟫ ⟪α⟫s])
-      (σ⊕! Σ ⟪α⟫ -●.V #:mutating? #t))
-    (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)))
 
 (define/memo (mk-begin-⟦e⟧ [⟦e⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
   (match ⟦e⟧s

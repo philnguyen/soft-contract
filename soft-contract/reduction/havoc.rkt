@@ -114,13 +114,13 @@
        ;; Widen each field first. No need to go through `vector-set!` b/c there's no
        ;; contract protecting it
        (for ([α (in-list αs)])
-         (σ⊕! Σ α -●.V))
+         (σ⊕V! Σ α -●.V))
        ;; Access vector at opaque field
        (for*/union : (℘ -ς) ([α : ⟪α⟫ αs] [V (in-set (σ@ Σ α))])
           (⟦k⟧ (-W (list V) #f) $∅ ⊤Γ ⟪ℋ⟫ Σ))]
       
       [(-Vector^ α _)
-       (σ⊕! Σ α -●.V)
+       (σ⊕V! Σ α -●.V)
        (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
          (⟦k⟧ (-W (list V) #f) $∅ ⊤Γ ⟪ℋ⟫ Σ))]
 

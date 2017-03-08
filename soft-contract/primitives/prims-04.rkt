@@ -407,9 +407,9 @@
      (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
      (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
      (define Vₜ (-Cons αₕ αₜ))
-     (σ⊕*! Σ [αₕ ↦ (-● {set 'char?})]
-             [αₜ ↦ Vₜ]
-             [αₜ ↦ -null])
+     (σ⊕V*! Σ [αₕ ↦ (-● {set 'char?})]
+            [αₜ ↦ Vₜ]
+            [αₜ ↦ -null])
      (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
      (match V
        [(-b (? string? s)) #:when (> (string-length s) 0) Ans]
@@ -786,8 +786,8 @@
      (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
      (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
      (define Vₜ (-Cons αₕ αₜ))
-     (for ([Vₕ Vₕs]) (σ⊕! Σ αₕ Vₕ))
-     (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
+     (for ([Vₕ Vₕs]) (σ⊕V! Σ αₕ Vₕ))
+     (σ⊕V*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
      {set (-ΓA Γ (-W -null.Vs sₐ))
           (-ΓA Γ (-W (list Vₜ) sₐ))}]
     [(-b (list))
@@ -826,8 +826,8 @@
      (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
      (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
      (define Vₜ (-Cons αₕ αₜ))
-     (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕! Σ αₕ Vₕ))
-     (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
+     (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕V! Σ αₕ Vₕ))
+     (σ⊕V*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
      {set (-ΓA Γ (-W (list Vₜ) sₐ))}]
     [(-● ps)
      (cond [(∋ ps -cons?) {set (-ΓA Γ (-W (list (-● {set -cons?})) sₐ))}]
@@ -1050,12 +1050,12 @@
      (define ⟪α⟫s ; with side effect widening store
        (for/list : (Listof ⟪α⟫) ([i (in-range n)])
          (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
-         (σ⊕! Σ ⟪α⟫ Vᵥ)
+         (σ⊕! Σ Γ ⟪α⟫ Wᵥ)
          ⟪α⟫))
      {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) sₐ))}]
     [_
      (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
-     (σ⊕! Σ ⟪α⟫ Vᵥ) ; initializing, not mutating
+     (σ⊕! Σ Γ ⟪α⟫ Wᵥ) ; initializing, not mutating
      {set (-ΓA Γ (-W (list (-Vector^ ⟪α⟫ Vₙ)) sₐ))}]))
 (def-prim/custom (vector ⟪ℋ⟫ ℓ Σ Γ Ws)
   (define σ (-Σ-σ Σ))
@@ -1063,7 +1063,7 @@
   (define ⟪α⟫s ; with side effect widening store
     (for/list : (Listof ⟪α⟫) ([W (in-list Ws)] [i (in-naturals)])
       (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
-      (σ⊕! Σ ⟪α⟫ (-W¹-V W))
+      (σ⊕! Σ Γ ⟪α⟫ W)
       ⟪α⟫))
   {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) sₐ))})
 (def-prim/todo vector-immutable

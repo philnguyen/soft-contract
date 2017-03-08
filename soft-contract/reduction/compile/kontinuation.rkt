@@ -19,7 +19,7 @@
     (match-define (-W Vs s) A)
     (match Vs
       [(list V)
-       (σ⊕! Σ α V #:mutating? #t)
+       (σ⊕! Σ Γ α (-W¹ V s) #:mutating? #t)
        (define s
          (match (⟪α⟫->-α α)
            [(-α.x x _) (canonicalize Γ x)]
@@ -47,7 +47,7 @@
          (for/fold ([Γ : -Γ Γ])
                    ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
            (define α (ρ@ ρ x) #;(-α.x x #|TODO right?|# ⟪ℋ⟫))
-           (σ⊕! Σ α (V+ σ Vₓ (predicates-of Γ sₓ)))
+           (σ⊕! Σ Γ α (-W¹ Vₓ sₓ))
            (σ-remove! Σ α -undefined)
            (-Γ-with-aliases Γ x sₓ)))
        (match ⟦bnd⟧s
@@ -68,7 +68,7 @@
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W (list V) s) A)
     (define α (-α->⟪α⟫ (-α.x/c x)))
-    (σ⊕! Σ α V)
+    (σ⊕V! Σ α V)
     (⟦k⟧ (-W (list (-x/C α)) s) $ Γ ⟪ℋ⟫ Σ)))
 
 ;; Non-dependent contract domain
@@ -108,7 +108,7 @@
     (match-define (-W (list D) d) A)
     (define β (-α->⟪α⟫ (or (keep-if-const d (ℓ-with-id ℓₐ '-->.rng) ⟪ℋ⟫)
                            (-α.rng ℓₐ #|TODO right?|# ⟪ℋ⟫))))
-    (σ⊕! Σ β D)
+    (σ⊕V! Σ β D)
     (define-values (αs cs) ; with side effect widening store
       (for/fold ([αs : (Listof ⟪α⟫) '()]
                  [cs : (Listof -s) '()])
@@ -116,7 +116,7 @@
         (match-define (-W¹ C c) W)
         (define α (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ i) ⟪ℋ⟫)
                                (-α.dom ℓₐ ⟪ℋ⟫ i))))
-        (σ⊕! Σ α C)
+        (σ⊕V! Σ α C)
         (values (cons α αs) (cons c cs))))
     (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
       (for/list ([(α i) (in-indexed αs)] #:when (index? i))
@@ -128,7 +128,7 @@
          (define αᵣ (-α->⟪α⟫ (or (keep-if-const cᵣ (ℓ-with-id ℓₐ 'var) ⟪ℋ⟫)
                                  (-α.rst ℓₐ ⟪ℋ⟫))))
          (define ℓᵣ (ℓ-with-id ℓₐ 'rest))
-         (σ⊕! Σ αᵣ Vᵣ)
+         (σ⊕V! Σ αᵣ Vᵣ)
          (-W (list (-=> (-var αℓs (cons αᵣ ℓᵣ)) βℓ ℓₐ)) (-?-> (-var cs cᵣ) d ℓₐ))]
         [#f
          (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d ℓₐ))]))
@@ -145,7 +145,7 @@
       (define α
         (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ (assert i index?)) ⟪ℋ⟫)
                      (-α.dom ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
-      (σ⊕! Σ α C)
+      (σ⊕V! Σ α C)
       (values (cons α αs) (cons c cs))))
   (define β (-α->⟪α⟫ (or (keep-if-const mk-d (ℓ-with-id ℓₐ 'rng) ⟪ℋ⟫)
                          (-α.rng ℓₐ ⟪ℋ⟫))))
@@ -154,7 +154,7 @@
       (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
   (define G (-=>i αℓs (list Mk-D mk-d (ℓ-with-id ℓₐ (length αs))) ℓₐ))
   (define g (-?->i cs mk-d ℓₐ))
-  (σ⊕! Σ β Mk-D)
+  (σ⊕V! Σ β Mk-D)
   (values G g))
 
 ;; Dependent contract
@@ -216,7 +216,7 @@
            (define α
              (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓ₁ (assert i index?)) ⟪ℋ⟫)
                           (-α.struct/c ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
-           (σ⊕! Σ α C)
+           (σ⊕V! Σ α C)
            (values (cons α αs)
                    (cons c cs)
                    (and flat? (C-flat? C)))))
@@ -238,7 +238,7 @@
     (cond
       [(= n (length Vs))
        (for ([α : ⟪α⟫ αs] [V Vs])
-         (σ⊕! Σ α V))
+         (σ⊕V! Σ α V))
        (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
       [else
        (define blm

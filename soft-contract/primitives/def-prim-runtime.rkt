@@ -95,8 +95,8 @@
         (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
         (define Vₜ (-Cons αₕ αₜ))
         (for ([Vₕ (extract-list-content σ Vₗ)])
-          (σ⊕! Σ αₕ Vₕ))
-        (σ⊕*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
+          (σ⊕V! Σ αₕ Vₕ))
+        (σ⊕V*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
         (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
         (cond [(definitely-member? σ Vₓ Vₗ) Ans]
               [else (set-add Ans (-ΓA Γ (-W -ff.Vs sₐ)))])])]

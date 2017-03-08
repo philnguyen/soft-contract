@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide σ⊕! σ⊕*! Vs⊕
+(provide σ⊕! σ⊕*! σ⊕V! σ⊕V*! Vs⊕
          M⊕ M⊕!
          Γ+ V+
          extract-list-content)
@@ -24,10 +24,39 @@
       (φs+ φs s)))
   (-Γ φs* as ts))
 
-(: σ⊕! ([-Σ ⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
-(define (σ⊕! Σ α V #:mutating? [mutating? #f])
+(: σ⊕! ([-Σ -Γ ⟪α⟫ -W¹] [#:mutating? Boolean] . ->* . Void))
+(define (σ⊕! Σ Γ ⟪α⟫ W #:mutating? [mutating? #f])
+  (match-define (-W¹ V s) W)
+  (σ⊕V! Σ ⟪α⟫ (V+ (-Σ-σ Σ) V (predicates-of Γ s)) #:mutating? mutating?))
+
+(define-syntax σ⊕*!
+  (syntax-rules (↦)
+    [(_ Σ Γ) (void)]
+    [(_ Σ Γ [α ↦ V] p ...)
+     (begin ; FIXME the annotation is to work around TR bug
+       (σ⊕!  Σ Γ (ann α ⟪α⟫) V #:mutating? #f)
+       (σ⊕*! Σ Γ p ...))]
+    [(_ Σ [α ↦ V #:mutating? b?] p ...)
+     (begin ; FIXME the annotation is to work around TR bug
+       (σ⊕!  Σ Γ (ann α ⟪α⟫) V b?)
+       (σ⊕*! Σ Γ p ...))]))
+
+(: σ⊕V! ([-Σ ⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void))
+(define (σ⊕V! Σ α V #:mutating? [mutating? #f])
   (match-define (-Σ σ _ _) Σ)
   (set--Σ-σ! Σ (σ⊕ σ α V mutating?)))
+
+(define-syntax σ⊕V*!
+  (syntax-rules (↦)
+    [(_ Σ) (void)]
+    [(_ Σ [α ↦ V] p ...)
+     (begin ; FIXME the annotation is to work around TR bug
+       (σ⊕V!  Σ (ann α ⟪α⟫) V #:mutating? #f)
+       (σ⊕V*! Σ p ...))]
+    [(_ Σ [α ↦ V #:mutating? b?] p ...)
+     (begin ; FIXME the annotation is to work around TR bug
+       (σ⊕V!  Σ (ann α ⟪α⟫) V b?)
+       (σ⊕V*! Σ p ...))]))
 
 (: σ⊕ : -σ ⟪α⟫ -V Boolean → -σ)
 (define (σ⊕ σ α V mutating?)
@@ -68,18 +97,6 @@
             (set-map Vs* show-V)))
   
   (-σ m* mods* crds*))
-
-(define-syntax σ⊕*!
-  (syntax-rules (↦)
-    [(_ Σ) (void)]
-    [(_ Σ [α ↦ V] p ...)
-     (begin ; FIXME the annotation is to work around TR bug
-       (σ⊕!  Σ (ann α ⟪α⟫) V #:mutating? #f)
-       (σ⊕*! Σ p ...))]
-    [(_ Σ [α ↦ V #:mutating? b?] p ...)
-     (begin ; FIXME the annotation is to work around TR bug
-       (σ⊕!  Σ (ann α ⟪α⟫) V b?)
-       (σ⊕*! Σ p ...))]))
 
 (: V⊑ : -σ -V -V → Boolean)
 ;; Check if `V₂` definitely subsumes `V₁`

@@ -43,12 +43,12 @@
                                    [i (in-naturals)])
                           #`(let ([⟪α⟫ (-α->⟪α⟫ '#,cₓ)]
                                   [ℓ (ℓ-with-id #,ℓ #,i)])
-                              (σ⊕! #,(-Σ) ⟪α⟫ #,(gen-alloc #'ℓ cₓ))
+                              (σ⊕V! #,(-Σ) ⟪α⟫ #,(gen-alloc #'ℓ cₓ))
                               (cons ⟪α⟫ ℓ))))]
                [βℓ
                 (let ([⟪β⟫ (-α->⟪α⟫ 'd)]
                       [ℓ (ℓ-with-id #,ℓ #,(length (syntax->list #'(cₓ ...))))])
-                  (σ⊕! #,(-Σ) ⟪β⟫ #,(gen-alloc #'ℓ #'d))
+                  (σ⊕V! #,(-Σ) ⟪β⟫ #,(gen-alloc #'ℓ #'d))
                   (cons ⟪β⟫ ℓ))])
            (-=> αℓs βℓ #,ℓ))]
       [c:id #'(quote c)]
@@ -64,7 +64,7 @@
              [grd #,(gen-alloc #'ℓ c)]
              [⟪α⟫ (-α->⟪α⟫ (or (keep-if-const #,s (ℓ-with-id #,(-ℓ) 'inner) #,(-⟪ℋ⟫))
                                (-α.fn #,(-ℒ) #,(-⟪ℋ⟫) (ℓ-src ℓ) (-Γ-facts #,(-Γ)))))])
-        (σ⊕! #,(-Σ) ⟪α⟫ #,V)
+        (σ⊕V! #,(-Σ) ⟪α⟫ #,V)
         (-Ar grd ⟪α⟫ l³)))
 
   ;; Generate expression wrapping contract `c` around `V`
