@@ -62,21 +62,6 @@
   (define -and/c (-app/c 'and/c))
   (define -or/c (-app/c 'or/c)))
 
-(: -one-of/c : (Listof (Pairof ℓ -e)) → -e)
-(define (-one-of/c args)
-  (cond
-    [(null? args) 'none/c]
-    [else
-     (define x (+x! 'oneof))
-     (define 𝐱 (-x x))
-     (define body : -e
-       (let go ([args : (Listof (Pairof ℓ -e)) args])
-         (match args
-           [(list (cons ℓ e)) (-@ 'equal? (list 𝐱 e) ℓ)]
-           [(cons (cons ℓ e) args*)
-            (-if (-@ 'equal? (list 𝐱 e) ℓ) -tt (go args*))])))
-     (-λ (list x) body)]))
-
 (: -cons/c : -e -e ℓ → -e)
 (define (-cons/c c d ℓ)
   (-struct/c -𝒾-cons (list c d) ℓ))

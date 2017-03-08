@@ -3,6 +3,7 @@
 (provide Γ⊢e φs⊢e ⊢V p∋Vs p⇒p ps⇒p
          plausible-φs-s? plausible-W? plausible-V-s?
          first-R
+         sat-one-of
          (all-from-out "result.rkt" "base-assumptions.rkt"))
 
 (require (for-syntax racket/base
@@ -164,9 +165,8 @@
            [(-not e*) #:when (∋ φs e*) '✗]
            [else '?])
          (for*/fold ([R : -R '?])
-                    ([φ φs] #:when (eq? '? R)
-                     [R* (in-value (e⊢e φ e))])
-           R*)
+                    ([φ (in-set φs)] #:when (eq? '? R))
+           (e⊢e φ e))
          '?)]
        [else '?]))
     (printf "~a ⊢ ~a : ~a~n" (set-map φs show-e) (show-s e) ans)))
@@ -305,6 +305,7 @@
                '?)]
           [_ '✗])]
        [(-Ar _ (app ⟪α⟫->-α (? -o? o)) _) (apply p∋Vs σ o Vs)]
+       [(-One-Of/C bs) (sat-one-of (car Vs) bs)]
        [(? symbol?)
         (assert (not (match? Vs (list (? -●?))))) ; just for debugging
 
@@ -356,7 +357,7 @@
              [_ '✗])]
           [(procedure?)
            (match Vs
-             [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?))) '✓]
+             [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?) (? -One-Of/C?))) '✓]
              [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (boolean->R flat?)]
              [_ '✗])]
           [(vector?)
@@ -365,7 +366,7 @@
              [_ '✗])]
           [(contract?)
            (match Vs
-             [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?)
+             [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?) (? -Not/C?)
                         (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?))) '✓]
              [(list V) (check-proc-arity-1 V)]
              [_ '?])]
@@ -639,6 +640,13 @@
                 (and (symbol? q) (-st-p? p)))
             '✗]
            [else '?])]))
+
+(: sat-one-of : -V (Listof Base) → -R)
+(define (sat-one-of V bs)
+  (match V
+    [(-b b) (if (member b bs) '✓ '✗)]
+    [(? -●?) '?]
+    [_ '✗]))
 
 (module+ test
   (require typed/rackunit

@@ -404,10 +404,7 @@
     [(#%plain-app (~literal fake:cons/c) c d)
      (-cons/c (parse-e #'c) (parse-e #'d) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:one-of/c) c ...)
-     (define args
-       (for/list ([cᵢ (in-list (syntax->list #'(c ...)))])
-         (cons (syntax-ℓ cᵢ) (parse-e cᵢ))))
-     (-one-of/c args)]
+     (-@ 'one-of/c (parse-es #'(c ...)) (syntax-ℓ stx))]
     [(~or (let-values ()
             (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
           (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...))

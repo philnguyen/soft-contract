@@ -126,6 +126,7 @@
                    [l : (Pairof ⟪α⟫ ℓ)]
                    [r : (Pairof ⟪α⟫ ℓ)])
             (-Not/C (Pairof ⟪α⟫ ℓ))
+            (-One-Of/C (Listof Base)) ; Special construct for performance reason
             (-x/C [c : ⟪α⟫])
             ;; Guards for higher-order values
             -=>_
@@ -436,6 +437,7 @@
     [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
     [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
     [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]
+    [(-One-Of/C vs) `(one-of/c ,@(map show-b vs))]
     [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (car γ)))]
     [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ γs)))]
     [(-=> αs β _)

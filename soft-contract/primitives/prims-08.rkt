@@ -68,8 +68,16 @@
 (def-prim/todo string-len/c (real? . -> . flat-contract?))
 (def-alias false/c not)
 (def-pred printable/c)
-#;[one-of/c
-   (() #:rest (listof flat-contract?) . ->* . contract?)]
+(def-prim/custom (one-of/c ⟪ℋ⟫ ℓ Σ Γ Ws)
+  (define-values (vals ss)
+    (for/lists ([vals : (Listof Base)] [ss : (Listof -s)])
+               ([W (in-list Ws)] [i (in-naturals)])
+      (match W
+        [(-W¹ (-b b) s) (values b s)]
+        [W (error 'one-of/c
+                  "only support simple values for now, got ~a at position ~a"
+                  (show-W¹ W) i)])))
+  {set (-ΓA Γ (-W (list (-One-Of/C vals)) (apply -?@ 'one-of/c ss)))})
 #;[symbols
    (() #:rest (listof symbol?) . ->* . flat-contract?)]
 (def-prim/custom (vectorof ⟪ℋ⟫ ℓ Σ Γ Ws) ; FIXME uses

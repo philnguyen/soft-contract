@@ -142,7 +142,7 @@
       (for/list : (Listof Natural) ([clause clauses])
         (match-define (cons xs _) clause)
         (length xs)))]
-    [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _)) 1]
+    [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _) (? -One-Of/C?)) 1]
     [(-Ar guard _ _) (guard-arity guard)]
     [(? -st-p?) 1]
     [(-st-mk 𝒾) (get-struct-arity 𝒾)]

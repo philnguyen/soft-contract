@@ -66,6 +66,7 @@
     [(-And/C flat? _ _) flat?]
     [(-Or/C flat? _ _) flat?]
     [(? -Not/C?) #t]
+    [(? -One-Of/C?) #t]
     [(-St/C flat? _ _) flat?]
     [(or (? -Vectorof?) (? -Vector/C?)) #f]
     [(? -=>_?) #f]
