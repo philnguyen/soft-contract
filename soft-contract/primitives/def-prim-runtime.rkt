@@ -201,6 +201,16 @@
 (define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
   (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))
 
+(: with-MΓ⊢oW-callback (∀ (X) (→ (℘ X)) (→ (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X)))
+(define (with-MΓ⊢oW-callback on-t on-f M σ Γ o . Ws)
+  (case (apply MΓ⊢oW M σ Γ o Ws)
+    [(✓) (on-t)]
+    [(✗) (on-f)]
+    [(?) (∪ (on-t) (on-f))]))
+
+(define-simple-macro (with-MΓ⊢oW/no-refine (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
+  (with-MΓ⊢oW-callback on-t on-f M σ Γ o W ...))
+
 (: with-p∋Vs-handler (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X)))
 (define (with-p∋Vs-handler t f σ o . Vs)
   (case (apply p∋Vs σ o Vs)

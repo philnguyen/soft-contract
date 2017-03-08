@@ -73,7 +73,7 @@
   (define ⦃fv⦄s (map ⦃x⦄ fvs))
   (define xs : (Listof Symbol)
     (match αₖ
-      [(-ℬ xs _ _ _) 
+      [(-ℬ xs _ _ #;_) 
        (cond
          [(list? xs) xs]
          [else
@@ -286,7 +286,7 @@
           (match-define (-γ αₖ blm sₕ sₓs) γ)
           (define xs : (Option (Listof Symbol))
             (match αₖ
-              [(-ℬ xs _ _ _) (and (list? xs) xs)]
+              [(-ℬ xs _ _ #;_) (and (list? xs) xs)]
               [(-ℳ x _ _ _ _) (list x)]
               [(-ℱ x _ _ _ _) (list x)]))
           (cond [(not xs)
@@ -332,7 +332,7 @@
     (match-define (-γ αₖ blm sₕ sₓs) γ)
     (define xs : (Option (Listof Symbol))
       (match αₖ
-        [(-ℬ xs _ _ _) (and (list? xs) xs)]
+        [(-ℬ xs _ _ #;_) (and (list? xs) xs)]
         [(-ℳ x _ _ _ _) (list x)]
         [(-ℱ x _ _ _ _) (list x)]
         [(or (? -ℋ𝒱?)) #f]))
@@ -712,7 +712,7 @@
       (match-define (App αₖ fvs) f-xs)
       (define xs : (Listof Symbol)
         (match αₖ
-          [(-ℬ xs _ _ _)
+          [(-ℬ xs _ _ #;_)
            (cond [(list? xs) xs]
                  [else
                   (hash-ref! unsupported αₖ (λ () (log-warning "unsupported: ~a~n" (show-αₖ αₖ))))

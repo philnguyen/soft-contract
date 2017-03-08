@@ -22,7 +22,7 @@
        (σ⊕! Σ Γ α (-W¹ V sᵥ) #:mutating? #t)
        (define s
          (match (⟪α⟫->-α α)
-           [(-α.x x _) (canonicalize Γ x)]
+           [(-α.x x _ _) (canonicalize Γ x)]
            [(? -𝒾? 𝒾) 𝒾]))
        (⟦k⟧ -void.W ($+ $ s V) Γ ⟪ℋ⟫ Σ)]
       [_

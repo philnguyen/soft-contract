@@ -24,7 +24,7 @@
 (: run : -⟦e⟧ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧)
   (define seen : (HashTable -ς Ctx) (make-hash))
-  (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ ∅))
+  (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ #;∅))
   (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥M))
   (define root₀ ; all addresses to top-level definitions are conservatively active
     (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
@@ -121,7 +121,7 @@
     [(-ς↑ αₖ _ _)
      (define αs₀
        (match αₖ
-         [(-ℬ _ _ ρ _) (->⟪α⟫s ρ)]
+         [(-ℬ _ _ ρ #;_) (->⟪α⟫s ρ)]
          [(-ℳ _ _ _ C ⟪α⟫) (set-add (->⟪α⟫s C) ⟪α⟫)]
          [(-ℱ _ _ _ C ⟪α⟫) (set-add (->⟪α⟫s C) ⟪α⟫)]
          [(-ℋ𝒱) {seteq ⟪α⟫ₕᵥ}]))
@@ -137,7 +137,7 @@
     (match-define (-ς↑ αₖ Γ ⟪ℋ⟫) ς)
     (define ⟦k⟧ (rt αₖ))
     (match αₖ
-      [(-ℬ _ ⟦e⟧ ρ _) (⟦e⟧ ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(-ℬ _ ⟦e⟧ ρ #;_) (⟦e⟧ ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-ℳ x l³ ℒ C ⟪α⟫)
        (define W-C (-W¹ C #f))
        (define 𝐱 (-x x))
@@ -185,7 +185,7 @@
               ; TODO generalize
               (let-values ([(xs m)
                             (match αₖ
-                              [(-ℬ xs _ _ _)
+                              [(-ℬ xs _ _ #;_)
                                (define bounds (formals->names xs))
                                (define m
                                  (match xs

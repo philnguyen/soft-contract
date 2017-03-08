@@ -242,7 +242,7 @@
 (-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Symbol -⟪ℋ⟫)
+            (-α.x Symbol -⟪ℋ⟫ (℘ -v))
             ; for struct field
             (-α.fld [id : -𝒾] [loc : -ℒ] [ctx : -⟪ℋ⟫] [idx : Natural])
             ; for Cons/varargs
@@ -336,7 +336,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ] [facts : (℘ -e)])
+(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ])
      ;; Contract monitoring
      (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
      ;; Flat checking
@@ -507,7 +507,7 @@
         [else     (error 'show-αₖ "~a" αₖ)]))
 
 (define (show-ℬ [ℬ : -ℬ]) : Sexp
-  (match-define (-ℬ xs ⟦e⟧ ρ _) ℬ)
+  (match-define (-ℬ xs ⟦e⟧ ρ #;_) ℬ)
   (match xs
     ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
     [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
@@ -544,7 +544,7 @@
 (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
   (define α (⟪α⟫->-α ⟪α⟫))
   (match (⟪α⟫->-α ⟪α⟫)
-    [(-α.x x ⟪ℋ⟫) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
+    [(-α.x x ⟪ℋ⟫ _) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
     [(-α.hv) 'αₕᵥ]
     [(-α.e e ℓ ⟪ℋ⟫) (show-e e)]
     [(? -e? e) (show-e e)]
