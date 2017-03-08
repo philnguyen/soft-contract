@@ -16,10 +16,10 @@
 ;; set!
 (define/memo (set!∷ [α : ⟪α⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
-    (match-define (-W Vs s) A)
+    (match-define (-W Vs sᵥ) A)
     (match Vs
       [(list V)
-       (σ⊕! Σ Γ α (-W¹ V s) #:mutating? #t)
+       (σ⊕! Σ Γ α (-W¹ V sᵥ) #:mutating? #t)
        (define s
          (match (⟪α⟫->-α α)
            [(-α.x x _) (canonicalize Γ x)]
