@@ -25,6 +25,21 @@
 
 (: ext-prove : -M -Γ -e → -R)
 (define (ext-prove M Γ e)
+  #;(begin
+    (printf "ext-prove~n")
+    (printf "M~n")
+    (for ([(a As) (in-hash M)])
+      (printf "  - ~a ↦ (~a)~n" (show-αₖ a) (set-count As))
+      (for ([A (in-set As)])
+        (printf "    * ~a~n" (show-ΓA A))))
+    (printf "Γ:~n")
+    (for ([e (-Γ-facts Γ)])
+      (printf "  - ~a~n" (show-e e)))
+    (for ([γ (-Γ-tails Γ)])
+      (printf "  - ~a~n" (show-γ γ)))
+    (printf "-----------------------------------------~n")
+    (printf "   ~a~n" (show-e e)))
+
   #;(define t₀ (current-milliseconds))
   (with-debugging/off
     ((R)
@@ -34,6 +49,17 @@
      (hash-ref! memo-ext-prove
                 (list e φs γs M*)
                 (λ ()
+                  #;(begin
+                    (printf "Simplified M~n")
+                    (for ([(a As) (in-hash M*)])
+                      (printf "  - ~a ↦ (~a)~n" (show-αₖ a) (set-count As))
+                      (for ([A (in-set As)])
+                        (printf "    * ~a~n" (show-ΓA A))))
+                    (printf "Simplified Γ:~n")
+                    (for ([e (-Γ-facts Γ*)])
+                      (printf "  - ~a~n" (show-e e)))
+                    (for ([γ (-Γ-tails Γ*)])
+                      (printf "  - ~a~n~n" (show-γ γ))))
                   (define-values (base goal) (with-measuring/off 'ext-prove:encode (encode M* Γ* e)))
                   
                   #;(define t₀ (current-milliseconds))
@@ -90,7 +116,22 @@
                (with-debugging/off
                  ((ans₁)
                   (cond [(with-measuring/off 'ext-plaus:mb-no-cnflct? (maybe-no-conflict? Γₑᵣ γ Γₑₑ)) #t]
-                        [else (ext-plausible-pc? M* (-Γ-plus-γ Γₑᵣ* γ))]))
+                        [else
+                         #;(begin
+                           (printf "ext-plausible?~n")
+                           (printf "M~n")
+                           (for ([(a As) (in-hash M*)])
+                             (printf "  - ~a ↦ (~a)~n" (show-αₖ a) (set-count As))
+                             (for ([A (in-set As)])
+                               (printf "    * ~a~n" (show-ΓA A))))
+                           (printf "Γ:~n")
+                           (for ([e (-Γ-facts Γₑᵣ*)])
+                             (printf "  - ~a~n" (show-e e)))
+                           (for ([γ (-Γ-tails Γₑᵣ*)])
+                             (printf "  - ~a~n" (show-γ γ)))
+                           (printf "-----------------------------------------~n")
+                           (printf "   ~a~n" (show-γ γ)))
+                         (ext-plausible-pc? M* (-Γ-plus-γ Γₑᵣ* γ))]))
                  (define ans₂ (ext-plausible-pc? M (-Γ-plus-γ Γₑᵣ γ)))
                  (unless (equal? ans₁ ans₂)
                    (printf "inconsistency in optimized `ext-plausible-return?`~n")
@@ -158,7 +199,7 @@
   (match-define (-γ αₖ _ sₕ sₓs) γ)
 
   (match αₖ
-    [(-ℬ (? list? xs) _ _ _)
+    [(-ℬ (? list? xs) _ _ #;_)
      (not (or (for/or : Boolean ([x xs] [sₓ sₓs])
                 (and sₓ
                      (Γₑᵣ . talks-about? . sₓ)
