@@ -198,7 +198,8 @@
    rA-N6-set! rA-N7-set! rA-N9-set! rA-C8-set!
    rA-H2-set! rA-H61-set! rA-H62-set! rA-H8-set!))
 (define rA/c
-  (vector/c tfo/c tfo/c tfo/c tfo/c
+  (vector/c (one-of/c 'rA)
+            tfo/c tfo/c tfo/c tfo/c
             pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c))
 
 (define-structure rC? rC
@@ -226,7 +227,8 @@
    rC-N1-set! rC-N3-set! rC-C2-set! rC-C4-set! rC-C5-set! rC-C6-set!
    rC-N4-set! rC-O2-set! rC-H41-set! rC-H42-set! rC-H5-set! rC-H6-set!))
 (define rC/c
-  (vector/c tfo/c tfo/c tfo/c tfo/c
+  (vector/c (one-of/c 'rC)
+            tfo/c tfo/c tfo/c tfo/c
             pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c))
 
 (define-structure rG? rG
@@ -256,7 +258,8 @@
    rG-N2-set! rG-N7-set! rG-N9-set! rG-C8-set! rG-O6-set!
    rG-H1-set! rG-H21-set! rG-H22-set! rG-H8-set!))
 (define rG/c
-  (vector/c tfo/c tfo/c tfo/c tfo/c
+  (vector/c (one-of/c 'rG)
+            tfo/c tfo/c tfo/c tfo/c
             pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c))
 
 (define-structure rU? rU
@@ -284,7 +287,8 @@
    rU-N1-set! rU-N3-set! rU-C2-set! rU-C4-set! rU-C5-set! rU-C6-set!
    rU-O2-set! rU-O4-set! rU-H3-set! rU-H5-set! rU-H6-set!))
 (define rU/c
-  (vector/c tfo/c tfo/c tfo/c tfo/c
+  (vector/c (one-of/c 'rU)
+            tfo/c tfo/c tfo/c tfo/c
             pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c))
 
 (define-structure #f var
@@ -3533,5 +3537,7 @@
   #;[tfo-combine (tfo/c tfo/c . -> . tfo/c)]
   #;[tfo-inv-ortho (tfo/c . -> . tfo/c)]
   #;[tfo-align (pt/c pt/c pt/c . -> . tfo/c)]
-  [get-var (integer? (listof var/c) . -> . var/c)]
+  #;[get-var (integer? (listof var/c) . -> . var/c)]
+  #;[make-relative-nuc (tfo/c (or/c rA/c (or/c rC/c (or/c rG/c rU/c)))
+                            . -> . (or/c rA/c (or/c rC/c (or/c rG/c rU/c))))]
   ))
