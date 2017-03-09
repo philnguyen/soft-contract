@@ -130,11 +130,15 @@
                 ((set v x) (vector-set! v i x))))
             (define-setters (set1 ...) (i1 ...))))))
 
+(define ? any/c)
+
+(define pt/c (vector/c real? real? real?))
 (define-structure #f pt
   make-pt make-constant-pt
   (pt-x pt-y pt-z)
   (pt-x-set! pt-y-set! pt-z-set!))
 
+(define tfo/c (vector/c real? real? real? real? real? real? real? real? real? real? real? real?))
 (define-structure #f tfo
   make-tfo make-constant-tfo
   (tfo-a tfo-b tfo-c tfo-d tfo-e tfo-f tfo-g tfo-h tfo-i tfo-tx tfo-ty tfo-tz)
@@ -163,6 +167,9 @@
    nuc-C2*-set! nuc-H2**-set!
    nuc-O2*-set! nuc-H2*-set! nuc-C3*-set! nuc-H3*-set! nuc-O3*-set!
    nuc-N1-set! nuc-N3-set! nuc-C2-set! nuc-C4-set! nuc-C5-set! nuc-C6-set!))
+(define nuc/c
+  (vector/c tfo/c tfo/c tfo/c tfo/c
+            pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c))
 
 (define-structure rA? rA
   make-rA make-constant-rA
@@ -190,6 +197,9 @@
    rA-N1-set! rA-N3-set! rA-C2-set! rA-C4-set! rA-C5-set! rA-C6-set!
    rA-N6-set! rA-N7-set! rA-N9-set! rA-C8-set!
    rA-H2-set! rA-H61-set! rA-H62-set! rA-H8-set!))
+(define rA/c
+  (vector/c tfo/c tfo/c tfo/c tfo/c
+            pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c  pt/c))
 
 (define-structure rC? rC
   make-rC make-constant-rC
@@ -215,6 +225,9 @@
    rC-O2*-set! rC-H2*-set! rC-C3*-set! rC-H3*-set! rC-O3*-set!
    rC-N1-set! rC-N3-set! rC-C2-set! rC-C4-set! rC-C5-set! rC-C6-set!
    rC-N4-set! rC-O2-set! rC-H41-set! rC-H42-set! rC-H5-set! rC-H6-set!))
+(define rC/c
+  (vector/c tfo/c tfo/c tfo/c tfo/c
+            pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c))
 
 (define-structure rG? rG
   make-rG make-constant-rG
@@ -242,6 +255,9 @@
    rG-N1-set! rG-N3-set! rG-C2-set! rG-C4-set! rG-C5-set! rG-C6-set!
    rG-N2-set! rG-N7-set! rG-N9-set! rG-C8-set! rG-O6-set!
    rG-H1-set! rG-H21-set! rG-H22-set! rG-H8-set!))
+(define rG/c
+  (vector/c tfo/c tfo/c tfo/c tfo/c
+            pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c))
 
 (define-structure rU? rU
   make-rU make-constant-rU
@@ -267,11 +283,15 @@
    rU-O2*-set! rU-H2*-set! rU-C3*-set! rU-H3*-set! rU-O3*-set!
    rU-N1-set! rU-N3-set! rU-C2-set! rU-C4-set! rU-C5-set! rU-C6-set!
    rU-O2-set! rU-O4-set! rU-H3-set! rU-H5-set! rU-H6-set!))
+(define rU/c
+  (vector/c tfo/c tfo/c tfo/c tfo/c
+            pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c pt/c))
 
 (define-structure #f var
   make-var make-constant-var
   (var-id var-tfo var-nuc)
   (var-id-set! var-tfo-set! var-nuc-set!))
+(define var/c (vector/c integer? tfo/c nuc/c))
 
 ; Comment out the next three syntax definitions if you want
 ; lazy computation.
@@ -3507,4 +3527,11 @@
 ; To run program, evaluate: (run)
 
 ;(time (let loop ((i 100)) (if (zero? i) 'done (begin (run) (loop (- i 1))))))
-(time (run))
+(provide
+ (contract-out
+  #;[tfo-apply (tfo/c pt/c . -> . pt/c)]
+  #;[tfo-combine (tfo/c tfo/c . -> . tfo/c)]
+  #;[tfo-inv-ortho (tfo/c . -> . tfo/c)]
+  #;[tfo-align (pt/c pt/c pt/c . -> . tfo/c)]
+  [get-var (integer? (listof var/c) . -> . var/c)]
+  ))
