@@ -969,7 +969,7 @@
         (for/list ([α (in-list αs)]
                    [i (in-naturals)] #:when (index? i))
           (define ac (-st-ac 𝒾 i))
-          (mk-app-⟦e⟧ (ℒ-with-l ℒ 'mon-struct/c) (mk-rt-⟦e⟧ (-W¹ ac ac)) (list (mk-rt-⟦e⟧ Wᵥ*))))))
+          (mk-app-⟦e⟧ (ℒ-with-l ℒ 'mon-struct/c) (mk-rt-⟦e⟧ (-W¹ ac #f)) (list (mk-rt-⟦e⟧ Wᵥ*))))))
 
     (cond
       [(null? ⟦field⟧s)
@@ -1082,7 +1082,7 @@
   (define (chk-elems)
     (define ⟦ref⟧
       (mk-app-⟦e⟧ (ℒ-with-l ℒ 'mon-vectorof)
-                  (mk-rt-⟦e⟧ -vector-ref.W¹)
+                  (mk-rt-⟦e⟧ (-W¹ 'vector-ref #f))
                   (list (mk-rt-⟦e⟧ Wᵥ)
                         (mk-rt-⟦e⟧ (-W¹ -Nat.V (-x (+x!/memo 'vof-idx)))))))
     (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℒ l³ ⟦k⟧))
@@ -1147,7 +1147,7 @@
            (define Wₚᵢ (-W¹ Cᵢ cᵢ))
            (define ⟦ref⟧
              (mk-app-⟦e⟧ (ℒ-with-l ℒ 'mon-vector/c)
-                         (mk-rt-⟦e⟧ -vector-ref.W¹)
+                         (mk-rt-⟦e⟧ (-W¹ 'vector-ref #f))
                          (list (mk-rt-⟦e⟧ Wᵥ) (mk-rt-⟦e⟧ Wᵢ))))
            (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ Wₚᵢ) ⟦ref⟧)))
        
@@ -1284,9 +1284,9 @@
     (match-define (-W Vs v) A)
     (match Vs
       [(list V)
-       (with-Γ+/- ([(_₁ _₂) (Γ+/-V (-Σ-M Σ) Γ V v)])
-         #:true  (⟦k⟧ W-V $ Γ #;Γ₁ ⟪ℋ⟫ Σ)
-         #:false (⟦k⟧ blm $ Γ #;Γ₂ ⟪ℋ⟫ Σ))]
+       (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V v)])
+         #:true  (⟦k⟧ W-V $ Γ₁ ⟪ℋ⟫ Σ)
+         #:false (⟦k⟧ blm $ Γ₂ ⟪ℋ⟫ Σ))]
       [_
        (match-define (-blm _ lo _ _ ℓ) blm)
        (⟦k⟧ (-blm lo 'Λ '(|1 value|) Vs ℓ) $ Γ ⟪ℋ⟫ Σ)])))
