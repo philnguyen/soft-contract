@@ -2,7 +2,7 @@
 
 (provide σ⊕! σ⊕*! σ⊕V! σ⊕V*! Vs⊕
          M⊕ M⊕!
-         Γ+ V+
+         Γ+ Γ++ V+
          extract-list-content)
 
 (require racket/match
@@ -23,6 +23,9 @@
                                   #:unless (set-empty? (fv s)))
       (φs+ φs s)))
   (-Γ φs* as ts))
+
+(: Γ++ : -Γ (℘ -e) → -Γ)
+(define (Γ++ Γ φs) (apply Γ+ Γ (set->list φs)))
 
 (: σ⊕! ([-Σ -Γ ⟪α⟫ -W¹] [#:mutating? Boolean] . ->* . Void))
 (define (σ⊕! Σ Γ ⟪α⟫ W #:mutating? [mutating? #f])

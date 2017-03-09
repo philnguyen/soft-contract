@@ -234,39 +234,15 @@
           (ρ+ ρ₀ z αᵣ)]))
 
      (define Γₕ*
-       (let ([Γₕ₁ (hack-equal-args Γₕ xs sₓs)])
-         (propagate-invariants (if (-λ? sₕ) (fv sₕ) ∅eq) Γₕ₁ xs Γ sₓs)))
+       (let ([Γₕ₁ (hack-equal-args Γₕ xs sₓs)]
+             [fvs (if (-λ? sₕ) (fv sₕ) ∅eq)])
+         (Γ++ Γₕ₁ (inv-caller->callee fvs xs sₓs Γ))))
 
      (define αₖ (-ℬ xs ⟦e⟧ ρ* #;(-Γ-facts Γₕ*)))
      (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
      (σₖ⊔! Σ αₖ κ)
      {set (-ς↑ αₖ Γₕ* ⟪ℋ⟫ₑₑ)}]
     [else ∅]))
-
-(: propagate-invariants : (℘ Symbol) -Γ -formals -Γ (Listof -s) → -Γ)
-(define (propagate-invariants fvs Γₑₑ xs Γₑᵣ args)
-  
-  (: go : (℘ Symbol) (Listof Symbol) → -Γ)
-  (define (go fvs xs)
-    (match-define (-Γ φsₑₑ asₑₑ γsₑₑ) Γₑₑ)
-    (match-define (-Γ φsₑᵣ _    _   ) Γₑᵣ)
-    
-    (define arg->x
-      (for/fold ([acc : (HashTable -e -e) (hash)])
-                ([x xs] [arg args] #:when arg)
-        (if (hash-has-key? acc arg) acc (hash-set acc arg (-x x)))))
-    
-    (define φsₑₑ*
-      (for/fold ([acc : (℘ -e) φsₑₑ])
-                ([e (in-set φsₑᵣ)])
-        (define e* (e/map arg->x e))
-        (if (⊆ (fv e*) fvs) (set-add acc e*) acc)))
-
-    (-Γ φsₑₑ* asₑₑ γsₑₑ))
-  
-  (match xs
-    [(? list? xs) (go (list->seteq xs) xs)]
-    [(-var xs xᵣ) (go (set-add (list->seteq xs) xᵣ) xs)]))
 
 (: hack-equal-args : -Γ -formals (Listof -s) → -Γ)
 (define (hack-equal-args Γ xs args)

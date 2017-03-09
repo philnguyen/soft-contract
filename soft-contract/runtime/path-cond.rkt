@@ -136,3 +136,64 @@
          [(-@ 'not (list (-@ (? -o? o) (list (and v (? -v?) (? closed?)) (== s)) _)) _)
           (set-add ps (-λ '(𝒙) (-@/simp 'not (-@/simp o v (-x '𝒙)))))]
          [_ ps]))]))
+
+(: inv-caller->callee : (℘ Symbol) -formals (Listof -s) -Γ → (℘ -e))
+;; Convert invariants about arguments in caller into those about parameters in callee
+(define (inv-caller->callee fvs fml args Γₑᵣ)
+
+  (define xs : (Listof Symbol)
+    (match fml
+      [(? list? xs) xs]
+      [(-var xs _ ) xs]))
+
+  (define arg->x
+    (for/fold ([acc : (HashTable -e Symbol) (hash)])
+              ([x xs] [arg args]
+               #:when arg
+               #:unless (hash-has-key? acc arg))
+      (hash-set acc arg x)))
+
+  (define er->ee : (-e → (Option -e))
+    (match-lambda
+      [arg #:when (hash-has-key? arg->x arg) (-x (hash-ref arg->x arg))]
+      [(-@ f xs ℓ)
+       (define f* (er->ee f))
+       (define xs* (map er->ee xs))
+       (and f* (andmap -e? xs*) (-@ f* xs* ℓ))]
+      [(? -prim? b) b]
+      [(? -𝒾? 𝒾) 𝒾]
+      [(and e (-x x)) #:when (∋ fvs x) e]
+      [_ #f]))
+
+  (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑᵣ))]
+                       [e* (in-value (er->ee e))] #:when e*)
+    e*))
+
+;; FIXME code dup
+(: inv-callee->caller : (℘ Symbol) -formals (Listof -s) -Γ → (℘ -e))
+;; Convert invariants about parameters in callee into ones about arguments in caller
+(define (inv-callee->caller fvs fml args Γₑₑ)
+  (define xs : (Listof Symbol)
+    (match fml
+      [(? list? xs) xs]
+      [(-var xs _) xs]))
+  
+  (define x->arg
+    (for/hasheq : (HashTable Symbol -e) ([x xs] [arg args] #:when arg)
+      (values x arg)))
+  
+  (define ee->er : (-e → (Option -e))
+    (match-lambda
+      [(-x x) #:when (hash-has-key? x->arg x) (hash-ref x->arg x)]
+      [(and e (-x x)) #:when (∋ fvs x) e]
+      [(-@ f xs ℓ)
+       (define f* (ee->er f))
+       (define xs* (map ee->er xs))
+       (and f* (andmap -e? xs*) (-@ f* xs* ℓ))]
+      [(? -prim? p) p]
+      [(? -𝒾? 𝒾) 𝒾]
+      [_ #f]))
+  
+  (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑₑ))]
+                       [e* (in-value (ee->er e))] #:when e*)
+    e*))
