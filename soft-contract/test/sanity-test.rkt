@@ -62,6 +62,9 @@
   
   (test "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
+  
+  (test "safe/match.rkt" check-safe)
+  (test "unsafe/match.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
   
