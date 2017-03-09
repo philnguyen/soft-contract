@@ -165,9 +165,14 @@
       [(and e (-x x)) #:when (∋ fvs x) e]
       [_ #f]))
 
-  (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑᵣ))]
-                       [e* (in-value (er->ee e))] #:when e*)
-    e*))
+  (with-debugging/off ((ans) (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑᵣ))]
+                                              [e* (in-value (er->ee e))] #:when e*)
+                           e*))
+    (printf "caller->callee~n")
+    (for ([x xs] [arg args])
+      (printf "  - ~a ↦ ~a~n" x (show-s arg)))
+    (printf "caller: ~a~n" (show-Γ Γₑᵣ))
+    (printf "callee: ~a~n~n" (set-map ans show-e))))
 
 ;; FIXME code dup
 (: inv-callee->caller : (℘ Symbol) -formals (Listof -s) -Γ → (℘ -e))
@@ -194,6 +199,11 @@
       [(? -𝒾? 𝒾) 𝒾]
       [_ #f]))
   
-  (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑₑ))]
-                       [e* (in-value (ee->er e))] #:when e*)
-    e*))
+  (with-debugging/off ((ans) (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑₑ))]
+                                              [e* (in-value (ee->er e))] #:when e*)
+                           e*))
+    (printf "callee->caller~n")
+    (for ([x xs] [arg args])
+      (printf "  - ~a ↦ ~a~n" x (show-s arg)))
+    (printf "callee: ~a~n" (show-Γ Γₑₑ))
+    (printf "caller: ~a~n~n" (set-map ans show-e))))
