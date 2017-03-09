@@ -105,34 +105,38 @@
                        [ℓₐ : ℓ]
                        [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws)
-    (match-define (-W (list D) d) A)
-    (define β (-α->⟪α⟫ (or (keep-if-const d (ℓ-with-id ℓₐ '-->.rng) ⟪ℋ⟫)
-                           (-α.rng ℓₐ #|TODO right?|# ⟪ℋ⟫))))
-    (σ⊕V! Σ β D)
-    (define-values (αs cs) ; with side effect widening store
-      (for/fold ([αs : (Listof ⟪α⟫) '()]
-                 [cs : (Listof -s) '()])
-                ([(W i) (in-indexed Ws)] #:when (index? i))
-        (match-define (-W¹ C c) W)
-        (define α (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ i) ⟪ℋ⟫)
-                               (-α.dom ℓₐ ⟪ℋ⟫ i))))
-        (σ⊕V! Σ α C)
-        (values (cons α αs) (cons c cs))))
-    (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
-      (for/list ([(α i) (in-indexed αs)] #:when (index? i))
-        (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
-    (define βℓ (cons β (ℓ-with-id ℓₐ (length αs))))
-    (define G
-      (match Wᵣ
-        [(-W¹ Vᵣ cᵣ)
-         (define αᵣ (-α->⟪α⟫ (or (keep-if-const cᵣ (ℓ-with-id ℓₐ 'var) ⟪ℋ⟫)
-                                 (-α.rst ℓₐ ⟪ℋ⟫))))
-         (define ℓᵣ (ℓ-with-id ℓₐ 'rest))
-         (σ⊕V! Σ αᵣ Vᵣ)
-         (-W (list (-=> (-var αℓs (cons αᵣ ℓᵣ)) βℓ ℓₐ)) (-?-> (-var cs cᵣ) d ℓₐ))]
-        [#f
-         (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d ℓₐ))]))
-    (⟦k⟧ G $ Γ ⟪ℋ⟫ Σ)))
+    (match-define (-W Ds d) A)
+    (match Ds
+      [(list D)
+       (define β (-α->⟪α⟫ (or (keep-if-const d (ℓ-with-id ℓₐ '-->.rng) ⟪ℋ⟫)
+                              (-α.rng ℓₐ #|TODO right?|# ⟪ℋ⟫))))
+       (σ⊕V! Σ β D)
+       (define-values (αs cs) ; with side effect widening store
+         (for/fold ([αs : (Listof ⟪α⟫) '()]
+                    [cs : (Listof -s) '()])
+                   ([(W i) (in-indexed Ws)] #:when (index? i))
+           (match-define (-W¹ C c) W)
+           (define α (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ i) ⟪ℋ⟫)
+                                  (-α.dom ℓₐ ⟪ℋ⟫ i))))
+           (σ⊕V! Σ α C)
+           (values (cons α αs) (cons c cs))))
+       (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
+         (for/list ([(α i) (in-indexed αs)] #:when (index? i))
+           (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
+       (define βℓ (cons β (ℓ-with-id ℓₐ (length αs))))
+       (define G
+         (match Wᵣ
+           [(-W¹ Vᵣ cᵣ)
+            (define αᵣ (-α->⟪α⟫ (or (keep-if-const cᵣ (ℓ-with-id ℓₐ 'var) ⟪ℋ⟫)
+                                    (-α.rst ℓₐ ⟪ℋ⟫))))
+            (define ℓᵣ (ℓ-with-id ℓₐ 'rest))
+            (σ⊕V! Σ αᵣ Vᵣ)
+            (-W (list (-=> (-var αℓs (cons αᵣ ℓᵣ)) βℓ ℓₐ)) (-?-> (-var cs cᵣ) d ℓₐ))]
+           [#f
+            (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d ℓₐ))]))
+       (⟦k⟧ G $ Γ ⟪ℋ⟫ Σ)]
+      [_
+       (error "TODO: `->`'s range for multiple values")])))
 
 (: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -s))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
