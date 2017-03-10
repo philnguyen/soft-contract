@@ -4,6 +4,7 @@
          M⊕ M⊕!
          Γ+ Γ++ V+
          predicates-of-W
+         inv-caller->callee
          extract-list-content)
 
 (require racket/match
@@ -416,16 +417,102 @@
   (match-define (-Σ σ _ M) Σ)
   (set--Σ-M! Σ (M⊕ M σ αₖ Γ A)))
 
-(: predicates-of-W : -Γ -W¹ → (℘ -v))
-(define (predicates-of-W Γ W)
+(: predicates-of-W : -σ -Γ -W¹ → (℘ -v))
+;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value
+(define (predicates-of-W σ Γ W)
   (match-define (-W¹ V s) W)
   (define φs
     (match V
       [(-● ps) ps]
       [_ ∅]))
-  (for/fold ([acc : (℘ -v) (predicates-of Γ s)])
-            ([φ (in-set φs)])
-    (ps+ acc φ)))
+  (with-debugging/off ((res) (for/set: : (℘ -v) ([φ (predicates-of Γ s)]
+                      #:unless (equal? '✓ (p∋Vs σ φ V)))
+    φ))
+    (printf "predicates-of ~a in ~a: ~a~n" (show-W¹ W) (show-Γ Γ) (set-map res show-e))))
+
+(: inv-caller->callee : -σ (℘ Symbol) -formals (Listof -W¹) -Γ → (℘ -e))
+;; Convert invariants about arguments in caller into those about parameters in callee
+(define (inv-caller->callee σ fvs fml Ws Γₑᵣ)
+
+  (define xs : (Listof Symbol)
+    (match fml
+      [(? list? xs) xs]
+      [(-var xs _ ) xs]))
+
+  (define-values (arg->x x->V)
+    (for/fold ([arg->x : (HashTable -e Symbol) (hash)]
+               [x->V : (HashTable Symbol -V) (hasheq)])
+              ([x xs] [W Ws]
+               #:when (-W¹-s W)
+               #:unless (hash-has-key? arg->x (-W¹-s W)))
+      (values (hash-set arg->x (-W¹-s W) x)
+              (hash-set x->V x (-W¹-V W)))))
+
+  (define er->ee : (-e → (Option -e))
+    (match-lambda
+      [arg #:when (hash-has-key? arg->x arg) (-x (hash-ref arg->x arg))]
+      [(-@ f xs ℓ)
+       (define f* (er->ee f))
+       (define xs* (map er->ee xs))
+       (and f* (andmap -e? xs*) (-@ f* xs* ℓ))]
+      [(? -prim? b) b]
+      [(? -𝒾? 𝒾) 𝒾]
+      [(and e (-x x)) #:when (∋ fvs x) e]
+      [_ #f]))
+
+  (define (redundant? [e : -e])
+    (match e
+      [(-@ (? -o? o) (list (-x x)) _)
+       (cond [(hash-ref x->V x #f) =>
+              (λ ([V : -V])
+                (equal? '✓ (p∋Vs σ o V)))]
+             [else #f])]
+      [_ #f]))
+
+  (with-debugging ((ans) (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑᵣ))]
+                                                  [e* (in-value (er->ee e))]
+                                                  #:when e*
+                                                  #:unless (redundant? e*))
+                               e*))
+    (printf "caller->callee~n")
+    (for ([x xs] [W Ws])
+      (printf "  - ~a ↦ ~a~n" x (show-W¹ W)))
+    (printf "caller: ~a~n" (show-Γ Γₑᵣ))
+    (printf "callee: ~a~n~n" (set-map ans show-e))))
+
+;; FIXME code dup
+(: inv-callee->caller : (℘ Symbol) -formals (Listof -s) -Γ → (℘ -e))
+;; Convert invariants about parameters in callee into ones about arguments in caller
+(define (inv-callee->caller fvs fml args Γₑₑ)
+  (define xs : (Listof Symbol)
+    (match fml
+      [(? list? xs) xs]
+      [(-var xs _) xs]))
+  
+  (define x->arg
+    (for/hasheq : (HashTable Symbol -e) ([x xs] [arg args] #:when arg)
+      (values x arg)))
+  
+  (define ee->er : (-e → (Option -e))
+    (match-lambda
+      [(-x x) #:when (hash-has-key? x->arg x) (hash-ref x->arg x)]
+      [(and e (-x x)) #:when (∋ fvs x) e]
+      [(-@ f xs ℓ)
+       (define f* (ee->er f))
+       (define xs* (map ee->er xs))
+       (and f* (andmap -e? xs*) (-@ f* xs* ℓ))]
+      [(? -prim? p) p]
+      [(? -𝒾? 𝒾) 𝒾]
+      [_ #f]))
+  
+  (with-debugging/off ((ans) (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑₑ))]
+                                              [e* (in-value (ee->er e))] #:when e*)
+                           e*))
+    (printf "callee->caller~n")
+    (for ([x xs] [arg args])
+      (printf "  - ~a ↦ ~a~n" x (show-s arg)))
+    (printf "callee: ~a~n" (show-Γ Γₑₑ))
+    (printf "caller: ~a~n~n" (set-map ans show-e))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
