@@ -2,6 +2,7 @@
 
 (provide σ⊕! σ⊕*! σ⊕V! σ⊕V*! Vs⊕
          M⊕ M⊕!
+         σₖ⊕!
          Γ+ Γ++ V+
          predicates-of-W
          inv-caller->callee
@@ -388,34 +389,38 @@
   (match-define (-Γ φs₂ _ γs₂) Γ₂)
   (and (⊆ φs₂ φs₁) (⊆ (list->set γs₂) (list->set γs₁))))
 
-(: ΓA⊑ : -σ -ΓA -ΓA → Boolean)
-(define (ΓA⊑ σ ΓA₁ ΓA₂)
+(: ΓA⊑ : -σ → -ΓA -ΓA → Boolean)
+(define ((ΓA⊑ σ) ΓA₁ ΓA₂)
   (match-define (-ΓA Γ₁ A₁) ΓA₁)
   (match-define (-ΓA Γ₂ A₂) ΓA₂)
   (and (Γ⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
 
 (: M⊕ : -M -σ -αₖ -Γ -A → -M)
 (define (M⊕ M σ αₖ Γ A)
-  #;(hash-update M αₖ (λ ([ΓAs : (℘ -ΓA)]) (set-add ΓAs (-ΓA Γ A))) →∅)
-  (define ΓA (-ΓA Γ A))
-  (hash-update M αₖ
-               (λ ([ΓAs : (℘ -ΓA)])
-                 (define-set subsumed-olds : -ΓA)
-                 (define redundant? : Boolean #f)
-                 (for ([ΓAᵢ (in-set ΓAs)])
-                   (cond
-                     [(ΓA⊑ σ ΓAᵢ ΓA) (subsumed-olds-add! ΓAᵢ)]
-                     [(ΓA⊑ σ ΓA ΓAᵢ) (set! redundant? #t)]
-                     [else (void)]))
-                 (cond
-                   [redundant? ΓAs]
-                   [else (set-add (set-subtract ΓAs subsumed-olds) ΓA)]))
-                →∅))
+  (hash-update M αₖ (set-add/remove-redundant (-ΓA Γ A) (ΓA⊑ σ)) →∅))
 
 (: M⊕! : -Σ -αₖ -Γ -A → Void)
 (define (M⊕! Σ αₖ Γ A)
   (match-define (-Σ σ _ M) Σ)
   (set--Σ-M! Σ (M⊕ M σ αₖ Γ A)))
+
+(: σₖ⊕! : -Σ -αₖ -κ → Void)
+(define (σₖ⊕! Σ αₖ κ)
+  (match-define (-Σ _ σₖ _) Σ)
+  (set--Σ-σₖ! Σ (σₖ⊕ σₖ αₖ κ)))
+
+(: σₖ⊕ : -σₖ -αₖ -κ → -σₖ)
+(define (σₖ⊕ σₖ αₖ κ)
+  (define (κ⊑ [κ₁ : -κ] [κ₂ : -κ])
+    (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ sₕ₁ sₓs₁) κ₁)
+    (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ sₕ₂ sₓs₂) κ₂)
+    (and (equal? ⟦k⟧₁ ⟦k⟧₂)
+         (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
+         (equal? sₕ₁ sₕ₂)
+         (equal? sₓs₁ sₓs₂)
+         (Γ⊑ Γ₁ Γ₂)))
+
+  (hash-update σₖ αₖ (set-add/remove-redundant κ κ⊑) →∅))
 
 (: predicates-of-W : -σ -Γ -W¹ → (℘ -v))
 ;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value
@@ -469,7 +474,7 @@
              [else #f])]
       [_ #f]))
 
-  (with-debugging ((ans) (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑᵣ))]
+  (with-debugging/off ((ans) (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑᵣ))]
                                                   [e* (in-value (er->ee e))]
                                                   #:when e*
                                                   #:unless (redundant? e*))

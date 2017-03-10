@@ -66,7 +66,7 @@
          (begin (add-leak! Σ (-W¹-V W)) ...)
          (define αₖ (-ℋ𝒱))
          (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
-         (σₖ⊔! Σ αₖ κ)
+         (σₖ⊕! Σ αₖ κ)
          {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments
