@@ -3,6 +3,7 @@
 (provide σ⊕! σ⊕*! σ⊕V! σ⊕V*! Vs⊕
          M⊕ M⊕!
          Γ+ Γ++ V+
+         predicates-of-W
          extract-list-content)
 
 (require racket/match
@@ -414,6 +415,17 @@
 (define (M⊕! Σ αₖ Γ A)
   (match-define (-Σ σ _ M) Σ)
   (set--Σ-M! Σ (M⊕ M σ αₖ Γ A)))
+
+(: predicates-of-W : -Γ -W¹ → (℘ -v))
+(define (predicates-of-W Γ W)
+  (match-define (-W¹ V s) W)
+  (define φs
+    (match V
+      [(-● ps) ps]
+      [_ ∅]))
+  (for/fold ([acc : (℘ -v) (predicates-of Γ s)])
+            ([φ (in-set φs)])
+    (ps+ acc φ)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

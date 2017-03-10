@@ -191,12 +191,11 @@
 (: with-MΓ⊢oW-handler (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X)))
 (define (with-MΓ⊢oW-handler f₁ f₂ M σ Γ o . Ws)
   (define ss (map -W¹-s Ws))
-  (define (on-t) (f₁ (Γ+ Γ (apply -?@ o ss))))
-  (define (on-f) (f₂ (Γ+ Γ (-?@ 'not (apply -?@ o ss)))))
   (case (apply MΓ⊢oW M σ Γ o Ws)
-    [(✓) (on-t)]
-    [(✗) (on-f)]
-    [(?) (∪ (on-t) (on-f))]))
+    [(✓) (f₁ Γ)]
+    [(✗) (f₂ Γ)]
+    [(?) (∪ (f₁ (Γ+ Γ (apply -?@ o ss)))
+            (f₂ (Γ+ Γ (-?@ 'not (apply -?@ o ss)))))]))
 
 (define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
   (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))

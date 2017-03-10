@@ -236,7 +236,7 @@
      (define Γₕ*
        (let ([Γₕ₁ (hack-equal-args Γₕ xs sₓs)]
              [fvs (if (-λ? sₕ) (fv sₕ) ∅eq)])
-         (Γ++ Γₕ₁ (inv-caller->callee fvs xs sₓs Γ))))
+         (Γ++ Γₕ₁ ∅ #;(inv-caller->callee fvs xs sₓs Γ))))
 
      (define αₖ (-ℬ xs ⟦e⟧ ρ* #;(-Γ-facts Γₕ*)))
      (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
@@ -275,7 +275,7 @@
   (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
   (define ρ*
     (let ([ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ xs₀ Ws₀)])
-      (define αᵣ (-α->⟪α⟫ (-α.x xᵣ ⟪ℋ⟫ₑₑ (predicates-of Γ sᵣ))))
+      (define αᵣ (-α->⟪α⟫ (-α.x xᵣ ⟪ℋ⟫ₑₑ (predicates-of-W Γ Wᵣ))))
       (σ⊕! Σ Γ αᵣ Wᵣ)
       (ρ+ ρ₀ xᵣ αᵣ)))
   (define αₖ (-ℬ xs ⟦e⟧ ρ* #;(-Γ-facts #|TODO|#Γₕ)))
@@ -701,7 +701,7 @@
   (define ρ₀ (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.x -x-dummy ⟪ℋ⟫ #|TODO|# ∅))))
   (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
     (match-define (-W¹ Vₓ sₓ) Wₓ)
-    (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ #;(-Γ-facts Γ) (predicates-of Γ sₓ))))
+    (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ #;(-Γ-facts Γ) (predicates-of-W Γ Wₓ))))
     (σ⊕! Σ Γ α Wₓ)
     
     ;; Debug for `slatex`
@@ -852,7 +852,7 @@
             (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                       ([bnd-W bnd-Ws*])
               (match-define (list (? symbol? x) (? -V? Vₓ) (? -s? sₓ)) bnd-W)
-              (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of Γ sₓ))))
+              (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W Γ (-W¹ Vₓ sₓ)))))
               (σ⊕! Σ Γ α (-W¹ Vₓ sₓ))
               (values (ρ+ ρ x α) (-Γ-with-aliases Γ x sₓ))))
           (⟦e⟧ ρ* $ Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
