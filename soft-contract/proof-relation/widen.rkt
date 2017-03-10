@@ -435,9 +435,11 @@
     φ))
     (printf "predicates-of ~a in ~a: ~a~n" (show-W¹ W) (show-Γ Γ) (set-map res show-e))))
 
-(: inv-caller->callee : -σ (℘ Symbol) -formals (Listof -W¹) -Γ → (℘ -e))
+(: inv-caller->callee : -σ (℘ Symbol) -formals (Listof -W¹) -Γ -Γ → -Γ)
 ;; Convert invariants about arguments in caller into those about parameters in callee
-(define (inv-caller->callee σ fvs fml Ws Γₑᵣ)
+(define (inv-caller->callee σ fvs fml Ws Γₑᵣ Γₑₑ)
+
+  (match-define (-Γ φsₑₑ asₑₑ γsₑₑ) Γₑₑ)
 
   (define xs : (Listof Symbol)
     (match fml
@@ -474,16 +476,40 @@
              [else #f])]
       [_ #f]))
 
-  (with-debugging/off ((ans) (for*/set: : (℘ -e) ([e (in-set (-Γ-facts Γₑᵣ))]
-                                                  [e* (in-value (er->ee e))]
-                                                  #:when e*
-                                                  #:unless (redundant? e*))
-                               e*))
-    (printf "caller->callee~n")
-    (for ([x xs] [W Ws])
-      (printf "  - ~a ↦ ~a~n" x (show-W¹ W)))
-    (printf "caller: ~a~n" (show-Γ Γₑᵣ))
-    (printf "callee: ~a~n~n" (set-map ans show-e))))
+  (define φsₑₑ*
+    (for*/fold ([φsₑₑ* : (℘ -e) φsₑₑ])
+               ([e (in-set (-Γ-facts Γₑᵣ))]
+                [e* (in-value (er->ee e))]
+                #:when e*
+                #:unless (redundant? e*))
+      (set-add φsₑₑ* e*)))
+
+  (define asₑₑ* (accum-aliases asₑₑ fml (map -W¹-s Ws)))
+  (define γsₑₑ* γsₑₑ)
+
+  (-Γ φsₑₑ* asₑₑ* γsₑₑ*))
+
+(: accum-aliases : (HashTable Symbol -e) -formals (Listof -s) → (HashTable Symbol -e))
+(define (accum-aliases as fml args)
+
+  (define xs : (Listof Symbol)
+    (match fml
+      [(? list? xs) xs]
+      [(-var xs _ ) xs]))
+
+  (define-values (as* _)
+    (for/fold ([as* : (HashTable Symbol -e) as]
+               [seen : (HashTable -e Symbol) (hash)])
+              ([x xs] [arg args])
+      (cond
+        [(and arg (hash-ref seen arg #f)) =>
+         (λ ([x₀ : Symbol])
+           (values (hash-set as* x (-x x₀))
+                   (hash-set seen arg x₀)))]
+        [arg (values as (hash-set seen arg x))]
+        [else (values as seen)])))
+
+  as*)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

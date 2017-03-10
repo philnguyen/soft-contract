@@ -234,38 +234,14 @@
           (ρ+ ρ₀ z αᵣ)]))
 
      (define Γₕ*
-       (let ([Γₕ₁ (hack-equal-args Γₕ xs sₓs)]
-             [fvs (if (-λ? sₕ) (fv sₕ) ∅eq)])
-         (Γ++ Γₕ₁ (inv-caller->callee (-Σ-σ Σ) fvs xs W\ₓs Γ))))
+       (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ)) (fv sₕ) ∅eq)])
+         (inv-caller->callee (-Σ-σ Σ) fvs xs Wₓs Γ Γₕ)))
 
      (define αₖ (-ℬ xs ⟦e⟧ ρ* #;(-Γ-facts Γₕ*)))
      (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₕ sₓs))
      (σₖ⊕! Σ αₖ κ)
      {set (-ς↑ αₖ Γₕ* ⟪ℋ⟫ₑₑ)}]
     [else ∅]))
-
-(: hack-equal-args : -Γ -formals (Listof -s) → -Γ)
-(define (hack-equal-args Γ xs args)
-
-  (: Γ-with-new-aliases : (Listof Symbol) → -Γ)
-  (define (Γ-with-new-aliases xs)
-    (match-define (-Γ φs as γs) Γ)
-    (define-values (as* _)
-      (for/fold ([as* : (HashTable Symbol -e) as]
-                 [seen : (HashTable -e Symbol) (hash)])
-                ([x xs] [arg args])
-        (cond
-          [(and arg (hash-ref seen arg #f)) =>
-           (λ ([x₀ : Symbol])
-             (values (hash-set as* x (-x x₀))
-                     (hash-set seen arg x₀)))]
-          [arg (values as (hash-set seen arg x))]
-          [else (values as seen)])))
-    (-Γ φs as* γs))
-
-  (match xs
-    [(? list? xs) (Γ-with-new-aliases xs)]
-    [(-var xs _ ) (Γ-with-new-aliases xs)]))
 
 (: apply-app-clo : (-var Symbol) -⟦e⟧ -ρ -Γ -s
    → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
