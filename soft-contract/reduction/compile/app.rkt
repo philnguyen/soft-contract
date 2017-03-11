@@ -917,7 +917,7 @@
   (: wrap : -Γ → (℘ -ς))
   (define (wrap Γ)
     (define ⟪α⟫ (-α->⟪α⟫ (or (keep-if-const v (ℓ-with-id (-ℒ-app ℒ) 'inner) ⟪ℋ⟫)
-                             (-α.fn ℒ ⟪ℋ⟫ l+ (-Γ-facts Γ)))))
+                             (-α.fn ℒ ⟪ℋ⟫ l+ (if c (set c) ∅) #;(-Γ-facts Γ)))))
     (define Ar (-Ar grd ⟪α⟫ l³))
 
     (σ⊕! Σ Γ ⟪α⟫ W-V)

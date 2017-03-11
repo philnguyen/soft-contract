@@ -431,7 +431,7 @@
       [(-● ps) ps]
       [_ ∅]))
   (with-debugging/off ((res) (for/set: : (℘ -v) ([φ (predicates-of Γ s)]
-                      #:unless (equal? '✓ (p∋Vs σ φ V)))
+                      #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ φ V))))
     φ))
     (printf "predicates-of ~a in ~a: ~a~n" (show-W¹ W) (show-Γ Γ) (set-map res show-e))))
 
