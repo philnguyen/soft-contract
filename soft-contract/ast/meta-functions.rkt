@@ -62,7 +62,6 @@
     [(? list? l)
      (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
        (∪ xs (fv e)))]
-    [(-ar c v) (∪ (fv c) (fv v))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
 
 (: closed? : -e → Boolean)
@@ -238,7 +237,6 @@
        (-case-> clauses* ℓ)]
       [(-struct/c si cs ℓ)
        (-struct/c si (map (curry go! m) cs) ℓ)]
-      [(-ar c v) (-ar (go! m c) (go! m v))]
       [_ e]))
 
   (cond [(-e? e) (go! (hasheq) e)]
@@ -329,7 +327,6 @@
              (-case-> clauses* ℓ)]
             [(-struct/c t cs ℓ)
              (-struct/c t (go-list m cs) ℓ)]
-            [(-ar c v) (-ar (go m c) (go m v))]
             [_
              ;(printf "unchanged: ~a @ ~a~n" (show-e e) (show-subst m))
              e])]))

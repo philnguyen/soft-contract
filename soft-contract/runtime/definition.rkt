@@ -54,9 +54,7 @@
 (struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
             [Γ : -Γ]        ; path-condition to use for rest of computation
             [⟪ℋ⟫ : -⟪ℋ⟫]    ; abstraction of call history
-            [fun : -s]
-            [args : (Listof -s)]
-            )
+            [args : (Listof -t)])
   #:transparent)
 
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
@@ -139,8 +137,8 @@
               [c : (Listof (U -V -v))]
               [v : (Listof -V)]
               [loc : ℓ]) #:transparent)
-(struct -W¹ ([V : -V] [s : -s]) #:transparent)
-(struct -W ([Vs : (Listof -V)] [s : -s]) #:transparent)
+(struct -W¹ ([V : -V] [t : -t]) #:transparent)
+(struct -W ([Vs : (Listof -V)] [t : -t]) #:transparent)
 (-A . ::= . -W -blm)
 (struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
 
@@ -151,32 +149,61 @@
 ;;;;; Path condition
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Symbolic value is either pure, refinable expression, or the conservative unrefinable `#f`
-(-s . ::= . -e #f)
+;; First order term for use in path-condition
+(-t . ::= . -x
+            -𝒾
+            -v
+            (-t.@ -h (Listof -t)))
+;; Formula "head" is either a primitive operation or a stack address
+(-h . ::= . -o
+            -αₖ
+            ;; Hacky stuff
+            (-st/c.mk -𝒾)
+            (-st/c.ac -𝒾 Index)
+            (-->i.mk)
+            (-->i.dom Index)
+            (-->i.rng)
+            (-->.mk)
+            (-->*.mk)
+            (-->.dom Index)
+            (-->.rst)
+            (-->.rng)
+            (-ar.mk)
+            (-ar.ctc)
+            (-ar.fun)
+            (-values.ac Index))
+(define-type -?t (Option -t))
 
-;; Path condition is set of (pure) expression known to have evaluated to non-#f
-;; Tails are addresses to other path-condition "chunks" from function calls,
-;; each paired with appropriate renaming.
-;; Tails are ordered from least to most recent application.
-;; Order is important for effective rewriting. TODO obsolete, no longer need to preserve order
-(struct -Γ ([facts : (℘ -e)]
-            [aliases : (HashTable Symbol -e)]
-            [tails : (Listof -γ)]) #:transparent)
+(: t-unique? : -t → Boolean)
+;; Check if term definiltey stands for a unique value.
+;; `#f` is a conservative result of "maybe no"
+(define (t-unique? t)
 
-;; Path condition tail is callee block and renaming information,
-;; also indicating whether the call raised a blame or not
-(struct -γ ([callee : -αₖ] ; be careful with this. May build up infinitely
-            [blm : (Option (Pairof -l -l))]
-            [fun : -s]
-            [args : (Listof -s)]) #:transparent)
+  (: h-unique? : -h → Boolean)
+  (define h-unique?
+    (match-lambda
+      [(-ℬ _ _ ρ) (hash-empty? ρ)]
+      [_ #|be careful when I have new stuff|# #t]))
 
-(define ⊤Γ (-Γ ∅ (hasheq) '()))
+  (match t
+    [(or (? -x?) (? -𝒾?) (? -v?)) #t]
+    [(-t.@ h ts)
+     (and (h-unique? h) (andmap t-unique? ts))]))
 
-(: -Γ-with-aliases : -Γ Symbol -s → -Γ)
-(define (-Γ-with-aliases Γ x s)
-  (cond [s (match-define (-Γ φs as ts) Γ)
-           (-Γ φs (hash-set as x s) ts)]
-        [else Γ]))
+;; Path condition is set of terms known to have evaluated to non-#f
+;; It also maintains a "canonicalized" symbolic name for each variable
+(struct -Γ ([facts : (℘ -t)]
+            [canonicalization : (HashTable Symbol -t)])
+  #:transparent)
+
+(define ⊤Γ (-Γ ∅ (hasheq)))
+
+(: -Γ-with-aliases : -Γ Symbol -?t → -Γ)
+(define (-Γ-with-aliases Γ x ?t)
+  (if ?t
+      (match-let ([(-Γ ts as) Γ])
+        (-Γ ts (hash-set as x ?t)))
+      Γ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -230,6 +257,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Value address
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Some address values have `e` embeded in them.
+;; This used to be a neccessary precision hack.
+;; Nowaways it's just a temporary fix for the inaccurate source location returned
+;; by `fake-contract`
 (-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
@@ -261,7 +292,7 @@
             (-α.not/c [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.vector/c [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.vectorof [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.struct/c [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.x/c Symbol)
             (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
@@ -277,16 +308,7 @@
             -𝒾
             (-α.e -e ℓ -⟪ℋ⟫))
 
-(define (α->s [α : -α])
-  (match α
-    [(? -e? e) e]
-    [(-α.e e _ _) e]
-    [_ #f]))
-(define (αs->ss [αs : (Listof -α)]) (map α->s αs))
-
 (define-interner -α #:interned-type-name ⟪α⟫)
-(define (⟪α⟫->s [⟪α⟫ : ⟪α⟫]) (α->s (⟪α⟫->-α ⟪α⟫)))
-(define (⟪α⟫s->ss [⟪α⟫s : (Listof ⟪α⟫)]) (map ⟪α⟫->s ⟪α⟫s))
 (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
 
 (define ⊥σ (-σ (hasheq ⟪α⟫ₕᵥ ∅) ∅eq (hasheq)))
@@ -298,13 +320,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Cache for address lookup in local block
-(define-type -$ (HashTable -e -V))
+;; TODO: merge this in as part of path-condition
+(define-type -$ (HashTable -t -V))
 (define $∅ : -$ (hash))
-(define ($@ [$ : -$] [s : -s]) : (Option -V)
-  (and s (hash-ref $ s #f)))
+(define ($@ [$ : -$] [t : -t]) : (Option -V)
+  (and t (hash-ref $ t #f)))
 
-(define ($+ [$ : -$] [s : -s] [V : -V]) : -$
-  (if s (hash-set $ s V) $))
+(define ($+ [$ : -$] [t : -t] [V : -V]) : -$
+  (if t (hash-set $ t V) $))
 
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
@@ -373,11 +396,37 @@
                                      [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
            `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V)))]))
 
-(define (show-s [s : -s]) (if s (show-e s) '∅))
+(define (show-t [?t : -?t]) : Sexp
+
+  (define (show-h [h : -h])
+    (match h
+      [(? -o?) (show-o h)]
+      [(? -αₖ?) (show-αₖ h)]
+      [(-st/c.mk 𝒾) (format-symbol "~a/c" (-𝒾-name 𝒾))]
+      [(-st/c.ac 𝒾 i) (format-symbol "~a/c._~a" (-𝒾-name 𝒾) (n-sub i))]
+      [(-->i.mk) '-->i]
+      [(-->i.dom i) (format-symbol "-->i._~a" (n-sub i))]
+      [(-->i.rng) '-->i.rng]
+      [(-->.mk) '-->]
+      [(-->*.mk) '-->*]
+      [(-->.dom i) (format-symbol "-->._~a" (n-sub i))]
+      [(-->.rst) '-->.rest]
+      [(-->.rng) '-->.rng]
+      [(-ar.mk) 'arr]
+      [(-ar.ctc) 'arr.ctc]
+      [(-ar.fun) 'arr.fun]
+      [(-values.ac i) (format-symbol "values._~a" (n-sub i))]))
+  
+  (match ?t
+    [#f '∅]
+    [(? -e? e) (show-e e)]
+    [(-t.@ h ts) `(,(show-h h) @ ,@(map show-t ts))]))
 
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
-  (match-define (-Γ φs _ γs) Γ)
-  `(,@(set-map φs show-e) ,@(map show-γ γs)))
+  (match-define (-Γ ts as) Γ)
+  `(,@(set-map ts show-t)
+    ,@(for/list : (Listof Sexp) ([(x t) (in-hash as)])
+        `(,x ↦ ,(show-t t)))))
 
 (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
   (for/list ([(αₖ κs) σₖ])
@@ -464,25 +513,18 @@
         [else (show-blm A)]))
 
 (define (show-W [W : -W]) : Sexp
-  (match-define (-W Vs s) W)
-  `(,@(map show-V Vs) @ ,(show-s s)))
+  (match-define (-W Vs t) W)
+  `(,@(map show-V Vs) @ ,(show-t t)))
 
 (define (show-W¹ [W : -W¹]) : Sexp
-  (match-define (-W¹ V s) W)
-  `(,(show-V V) @ ,(show-s s)))
+  (match-define (-W¹ V t) W)
+  `(,(show-V V) @ ,(show-t t)))
 
 (define (show-blm [blm : -blm]) : Sexp
   (match-define (-blm l+ lo Cs Vs ℓ) blm)
   (match* (Cs Vs)
     [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
     [(_ _) `(blame ,l+ ,lo ,(map show-V-or-v Cs) ,(map show-V Vs) ,(show-ℓ ℓ))]))
-
-(: show-bnds : (Listof (Pairof Symbol -s)) → (Listof Sexp))
-(define (show-bnds bnds) (map show-bnd bnds))
-
-(define (show-bnd [x-s : (Pairof Symbol -s)])
-  (match-define (cons x s) x-s)
-  `(,x ↦ ,(show-s s)))
 
 (define show-⟦e⟧ : (-⟦e⟧ → Sexp)
   (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
@@ -545,18 +587,9 @@
   (for/list ([(x ⟪α⟫ₓ) ρ] #:unless (equal? x -x-dummy))
     `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
 
-(define show-γ : (-γ → Sexp)
-  (let-values ([(show-γ show-γ⁻¹ count-γs) ((inst unique-sym -γ) 'γ)])
-    (λ (γ)
-      (match-define (-γ αₖ blm? sₕ sₓs) γ)
-      (cond [(verbose?)
-             `(,(show-αₖ αₖ) ‖ (,(show-s sₕ) ,@(map show-s sₓs)) ‖ ,blm?)]
-            [else
-             `(,(if blm? '⇓ '@) ,(show-s sₕ) ,@(map show-s sₓs))]))))
-
 (define (show-κ [κ : -κ]) : Sexp
-  (match-define (-κ ⟦k⟧ Γ ⟪ℋ⟫ sₕ sₓs) κ)
-  `(,(show-s sₕ) ,@(map show-s sₓs) ‖ ,(show-Γ Γ) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
+  (match-define (-κ ⟦k⟧ Γ ⟪ℋ⟫ ts) κ)
+  `(□ ,@(map show-t ts) ‖ ,(show-Γ Γ) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

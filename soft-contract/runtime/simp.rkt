@@ -27,113 +27,107 @@
          "../ast/main.rkt"
          "definition.rkt")
 
-(: -@/simp : -e -e * → -e)
-;; Smart constructor for application
-(define (-@/simp f . xs)
+(: ?t@ : -h -?t * → -?t)
+(define (?t@ f . xs)
 
-  (: access-same-value? : -𝒾 (Listof -e) → (Option -e))
-  ;; If given expression list of the form like `(car e); (cdr e)`, return `e`.
-  ;; Otherwise just `#f`
-  (define (access-same-value? 𝒾 es)
-    (define n (get-struct-arity 𝒾))
-    (match es
-      [(cons (-@ (-st-ac 𝒾₀ 0) (list e₀) _) es*)
-       (and (equal? 𝒾 𝒾₀)
-            (for/and : Boolean ([i (in-range 1 n)] [ei es*])
-              (match ei
-                [(-@ (-st-ac 𝒾ⱼ j) (list eⱼ) _)
-                 (and (equal? 𝒾 𝒾ⱼ) (= i j) (equal? e₀ eⱼ))]
-                [_ #f]))
-            e₀)]
-      [_ #f]))
+  (: t@ : -h -t * → -t)
+  ;; Smart constructor for term application
+  (define (t@ f . xs)
 
-  (define (default-case)
-    (-@ (assert f) (cast xs (Listof -e)) +ℓ₀))
+    (: access-same-value? : -𝒾 (Listof -t) → (Option -t))
+    ;; If given term list of the form `(car t); (cdr t)`, return `t`.
+    ;; Otherwise just `#f`
+    (define (access-same-value? 𝒾 ts)
+      (define n (get-struct-arity 𝒾))
+      (match ts
+        [(cons (-t.@ (-st-ac 𝒾₀ 0) (list t₀)) ts*)
+         (and (equal? 𝒾 𝒾₀)
+              (for/and : Boolean ([i (in-range 1 n)] [tᵢ ts*])
+                (match tᵢ
+                  [(-t.@ (-st-ac 𝒾ⱼ j) (list tⱼ))
+                   (and (equal? 𝒾 𝒾ⱼ) (= i j) (equal? t₀ tⱼ))]
+                  [_ #f]))
+              t₀)]
+        [_ #:when (equal? n 0) (-t.@ (-st-mk 𝒾) '())]
+        [_ #f]))
 
-  (match f
-    ['any/c -tt]
-    ['none/c -ff]
-    ['void (-b (void))]
-    ['values
-     (match xs
-       [(list x) x]
-       [_ (default-case)])]
+    (define (default-case) (-t.@ f xs))
 
-    ; vector-length
-    ['vector-length
-     (match xs
-       [(list (-@ 'vector xs _)) (-b (length xs))]
-       [_ (default-case)])]
+    (match f
+      ['any/c -tt]
+      ['none/c -ff]
+      ['void -void]
+      ['values
+       (match xs
+         [(list x) x]
+         [_ (default-case)])]
 
-    ; (not³ e) = (not e) 
-    ['not
-     (match xs
-       [(list (-@ 'not (and e* (-@ 'not _ _)) _)) e*]
-       [(list (-@ 'not (-b x) _)) (-b (not (not x)))]
-       [(list (-b x)) (-b (not x))]
-       [(list (-@ '<  (list x y) _)) (-@ '<= (list y x) +ℓ₀)]
-       [(list (-@ '<= (list x y) _)) (-@ '<  (list y x) +ℓ₀)]
-       [(list (-@ '>  (list x y) _)) (-@ '<= (list x y) +ℓ₀)]
-       [(list (-@ '>= (list x y) _)) (-@ '<  (list x y) +ℓ₀)]
-       [_ (default-case)])]
-    ['not/c
-     (match xs
-       [(list (-@ 'not/c (list (and e* (-@ 'not/c _ _))) _)) e*]
-       [_ (default-case)])]
-    [(-@ 'not/c (list f) _)
-     (match xs
-       [(list x) (-@/simp 'not (-@/simp f x))]
-       [_ (default-case)])]
+      ; vector-length
+      ['vector-length
+       (match xs
+         [(list (-t.@ 'vector xs)) (-b (length xs))]
+         [_ (default-case)])]
 
-    ; TODO: handle `equal?` generally
-    [(? op-≡?)
-     (match xs
-       [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
-       [(list x x) -tt]
-       [_ (default-case)])]
+      ; (not³ e) = (not e) 
+      ['not
+       (match xs
+         [(list (-t.@ 'not (list (and t* (-t.@ 'not _))))) t*]
+         [(list (-t.@ 'not (list (-b x)))) (-b (not (not x)))]
+         [(list (-b x)) (-b (not x))]
+         [(list (-t.@ '<  (list x y))) (-t.@ '<= (list y x))]
+         [(list (-t.@ '<= (list x y))) (-t.@ '<  (list y x))]
+         [(list (-t.@ '>  (list x y))) (-t.@ '<= (list x y))]
+         [(list (-t.@ '>= (list x y))) (-t.@ '<  (list x y))]
+         [_ (default-case)])]
+      ['not/c
+       (match xs
+         [(list (-t.@ 'not/c (list (and t* (-t.@ 'not/c _))))) t*]
+         [_ (default-case)])]
 
-    ['defined?
-      (match xs
-        [(list (? -v?)) -tt]
-        [_ (default-case)])]
+      ; TODO: handle `equal?` generally
+      [(? op-≡?)
+       (match xs
+         [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
+         [(list x x) #:when (t-unique? x) -tt]
+         [_ (default-case)])]
 
-    ['immutable?
-     (match xs
-       [(list (-@ 'vector _ _)) -ff]
-       [_ (default-case)])]
+      ['defined?
+        (match xs
+          [(list (? -v?)) -tt]
+          [_ (default-case)])]
 
-    ['positive?
-     (-@/simp '< (-b 0) (car xs))]
-    ['negative?
-     (-@/simp '< (car xs) (-b 0))]
-    ['>
-     (-@/simp '< (second xs) (first xs))]
-    ['>=
-     (-@/simp '<= (second xs) (first xs))]
+      ['immutable?
+       (match xs
+         [(list (-t.@ 'vector _)) -ff] ; for now
+         [_ (default-case)])]
 
-    ; (car (cons e _)) = e
-    [(-st-ac s i)
-     (match xs
-       [(list (-@ (-st-mk s) es _)) (list-ref es i)]
-       [_ (default-case)])]
-    [(-st-ac 𝒾 i)
-     (match-define (list x) xs)
-     (-@ f (list (assert x)) +ℓ₀)]
+      ['positive?
+       (t@ '< (-b 0) (car xs))]
+      ['negative?
+       (t@ '< (car xs) (-b 0))]
+      ['>
+       (t@ '< (second xs) (first xs))]
+      ['>=
+       (t@ '<= (second xs) (first xs))]
 
-    ; (cons (car e) (cdr e)) = e
-    [(-st-mk s) (or (access-same-value? s xs) (-@ f xs +ℓ₀))]
+      ; (car (cons e _)) = e
+      [(-st-ac 𝒾 i)
+       (match xs
+         [(list (-t.@ (-st-mk (== 𝒾)) ts)) (list-ref ts i)]
+         [_ (default-case)])]
 
-    ; General case
-    [_ (default-case)]))
+      ; (cons (car e) (cdr e)) = e
+      [(-st-mk s) (or (access-same-value? s xs) (default-case))]
 
-(: -?@ : -s -s * → -s)
-(define (-?@ f . xs)
-  (cond
-    [(and f (andmap (inst values -s) xs))
-     (apply -@/simp f (cast xs (Listof -e)))]
-    [else #f]))
+      ; General case
+      [_ (default-case)]))
+
+  (and (andmap -t? xs) (apply t@ f xs)))
 
 ;; convenient syntax
+(define-match-expander -t.not
+  (syntax-rules () [(_ t) (-t.@ 'not (list t))])
+  (syntax-rules () [(_ t) (and t (-t.@ 'not (list t)))]))
 (define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
   (syntax-rules () [(_ e) (and e (-@ 'not (list e) +ℓ₀))]))
@@ -177,159 +171,136 @@
 
 (define op-≡? (match-λ? '= 'equal? 'eq? 'char=? 'string=?))
 
-(: -struct/c-split : -s -𝒾 → (Listof -s))
-(define (-struct/c-split c 𝒾)
+(: -struct/c-split : -?t -𝒾 → (Listof -?t))
+(define (-struct/c-split t 𝒾)
   (with-debugging/off
     ((ans)
      (define n (get-struct-arity 𝒾))
-     (match c
-       [(-struct/c _ cs _) cs]
-       [_
-        (for/list : (Listof -s) ([i n])
-          (-?@ (-st/c-ac 𝒾 i) c))
-        #;(make-list n #f)]))
-    (printf "struct/c-split: ~a -> ~a~n" (show-s c) (map show-s ans))))
+     (match t
+       [(-t.@ (-st/c.mk (== 𝒾)) cs) cs]
+       [(? values t)
+        (for/list : (Listof -t) ([i n])
+          (-t.@ (-st/c.ac 𝒾 i) (list t)))]
+       [#f (make-list n #f)]))
+    (printf "struct/c-split: ~a -> ~a~n" (show-t c) (map show-t ans))))
 
-(: -struct-split : -s -𝒾 → (Listof -s))
-(define (-struct-split e 𝒾)
-  (match e
-    [(-@ (-st-mk (== 𝒾)) es _)
-     (for/list ([(e i) (in-indexed es)])
-       (if (struct-mutable? 𝒾 (assert i index?)) #f e))]
-    [_ (for/list : (Listof -s) ([i (get-struct-arity 𝒾)])
-         (-?@ (-st-ac 𝒾 i) e))]))
+(: -struct-split : -t -𝒾 → (Listof -?t))
+(define (-struct-split t 𝒾)
+  (match t
+    [(-t.@ (-st-mk (== 𝒾)) ts) ts]
+    [(? values t)
+     (for/list : (Listof -t) ([i (get-struct-arity 𝒾)])
+       (-t.@ (-st-ac 𝒾 i) (list t)))]
+    [#f (make-list (get-struct-arity 𝒾) #f)]))
 
-(: -ar-split : -s → (Values -s -s))
-(define (-ar-split s)
-  (match s
-    [(-ar c e) (values c e)]
-    [(? values e) (values (-@ (-ar-ctc) (list e) +ℓ₀) (-@ (-ar-fun) (list e) +ℓ₀))]
+(: -ar-split : -t → (Values -t -t))
+(define (-ar-split t)
+  (match t
+    [(-t.@ (-ar.mk) (list c e)) (values c e)]
+    [(? values t) (values (-t.@ (-ar.ctc) (list t))
+                          (-t.@ (-ar.fun) (list t)))]
     [#f (values #f #f)]))
 
-(: -->-split : -s (U Index arity-at-least) → (Values (-maybe-var -s) -s))
-(define (-->-split s shape)
+(: -->-split : -t (U Index arity-at-least) → (Values (-maybe-var -?t) -?t))
+(define (-->-split t shape)
   (define n
     (match shape
       [(arity-at-least n) (assert n index?)]
       [(? index? n) n]))
   (define var? (arity-at-least? shape))
-  (match s
-    [(--> cs d _) (values cs d)]
-    [(? values e)
-     (define inits : (Listof -e)
+  (match t
+    [(-t.@ (-->.mk) (list cs ... d)) (values (cast cs (Listof -t)) d)]
+    [(-t.@ (-->*.mk) (list cs ... cᵣ d)) (values (-var (cast cs (Listof -t)) cᵣ) d)]
+    [(? values t)
+     (define inits : (Listof -t)
        (for/list ([i : Index n])
-         (-@ (-->-ac-dom i) (list e) +ℓ₀)))
-     (values (cond [var? (-var inits (-@ (-->-ac-rst) (list e) +ℓ₀))]
-                   [else inits])
-             (-@ (-->-ac-rng) (list e) +ℓ₀))]
+         (-t.@ (-->.dom i) (list t))))
+     (values (if var? (-var inits (-t.@ (-->.rst) (list t))) inits)
+             (-t.@ (-->.rng) (list t)))]
     [#f
      (values (if var? (-var (make-list n #f) #f) (make-list n #f))
              #f)]))
 
-(: -->i-split : -s Index → (Values (Listof -s) -s))
-(define (-->i-split s n)
-  (match s
-    [(-->i cs mk-d _) (values cs mk-d)]
-    [(? values e)
-     (values (for/list : (Listof -s) ([i n])
-               (-@ (-->i-ac-dom i) (list e) +ℓ₀))
-             (-@ (-->i-ac-rng) (list e) +ℓ₀))]
+
+(: -->i-split : -t Index → (Values (Listof -t) -t))
+(define (-->i-split t n)
+  (match t
+    [(-t.@ (-->i.mk) (list cs ... mk-d)) (values (cast cs (Listof -t)) mk-d)]
+    [(? values t)
+     (values (for/list : (Listof -t) ([i n])
+               (-t.@ (-->i.dom i) (list t)))
+             (-t.@ (-->i.rng) (list t)))]
     [#f (values (make-list n #f) #f)])) 
 
-(define (-?ar [c : -s] [v : -s]) : -s
-  (and c v (-ar c v)))
+(define (-?list [ts : (Listof -?t)]) : -?t
+  (foldr (curry ?t@ -cons) -null ts))
 
-(define (-?list [es : (Listof -s)]) : -s
-  (foldr (curry -?@ -cons) -null es))
-
-(define (-?unlist [e : -s] [n : Natural]) : (Listof -s)
-  (let go ([e : -s e] [n : Integer n])
-    (cond [(> n 0) (cons (-?@ -car e) (go (-?@ -cdr e) (- n 1)))]
+(define (-?unlist [t : -?t] [n : Natural]) : (Listof -?t)
+  (let go ([t : -?t t] [n : Integer n])
+    (cond [(> n 0) (cons (?t@ -car t) (go (?t@ -cdr t) (- n 1)))]
           [else '()])))
 
-(: -app-split : -s -o Integer → (Listof -s))
-(define (-app-split e o n)
-  (match e
-    [(-@ (== o) es _) es]
+(: -app-split : -h -?t Integer → (Listof -?t))
+(define (-app-split h t n)
+  (match t
+    [(-t.@ (== h) ts) ts]
     [_ (make-list n #f)]))
 
-(define (-?μ/c [x : Symbol] [e : -s]) (and e (-μ/c x e)))
+(: -?-> : (-maybe-var -?t) -?t -> -?t)
+(define (-?-> cs d)
+  (define cs* (check-ts cs))
+  (and d cs* (-t.@ (-->.mk)
+                  (match cs*
+                    [(-var cs₀ cᵣ) `(,@cs₀ ,cᵣ ,d)]
+                    [(? list? cs*) `(,@cs*     ,d)]))))
 
-(: -?struct/c : -𝒾 (Listof -s) → (Option -struct/c))
-(define (-?struct/c 𝒾 fields)
-  (and (andmap (inst values -s) fields)
-       (-struct/c 𝒾 (cast fields (Listof -e)) +ℓ₀)))
 
-(: -?-> : (-maybe-var -s) -s ℓ -> (Option -->))
-(define (-?-> cs d ℓ)
-  (define cs* (check-ss cs))
-  (and d cs* (--> cs* d ℓ)))
 
-(: -?->i : (Listof -s) (Option -λ) ℓ -> (Option -->i))
-(define (-?->i cs mk-d ℓ)
-  (define cs* (check-ss cs))
-  (and mk-d cs* (-->i cs* mk-d ℓ)))
+(: -?->i : (Listof -?t) (Option -λ) → -?t)
+(define (-?->i cs mk-d)
+  (and mk-d
+       (let ([cs* (check-ts cs)])
+         (and cs* (-t.@ (-->i.mk) `(,@cs* ,mk-d))))))
 
-(: split-values : -s Natural → (Listof -s))
-;; Split a pure expression `(values e ...)` into `(e ...)`
-(define (split-values e n)
-  (match e
-    [(-@ 'values es _)
-     (cond [(= n (length es)) es]
-           [else (error 'split-values "cannot split ~a values into ~a" (length es) n)])]
-    [(? -e?)
-     (cond [(= 1 n) (list e)]
-           [else #|hack|#
-            (for/list ([i : Natural n])
-              (-?@ (format-symbol "values@~a" i) e))])]
+(: split-values : -?t Natural → (Listof -?t))
+;; Split a pure term `(values t ...)` into `(t ...)`
+(define (split-values t n)
+  (match t
+    [(-t.@ 'values ts)
+     (cond [(= n (length ts)) ts]
+           [else (error 'split-values "cannot split ~a values into ~a" (length ts) n)])]
+    [(? values)
+     (cond [(= 1 n) (list t)]
+           [else
+            (for/list ([i n])
+              (-t.@ (-values.ac (assert i index?)) (list t)))])]
     [_ (make-list n #f)]))
 
-(: bind-args : -formals (Listof -s) → (Values (Listof Symbol) (Listof -s)))
-;; Bind arguments to formals at `?e` level.
-;; Return 2 lists for parameters and arguments of equal lengths.
-(define (bind-args xs es)
-  (match xs
-    [(? list? xs) (values xs es)]
-    [(-var xs x)
-     (define-values (es-init es-rest) (split-at es (length xs)))
-     (values `(,@xs ,x) `(,@es-init ,(-?list es-rest)))]))
+(: check-ts (case->
+             [(Listof -?t) → (Option (Listof -t))]
+             [(-var -?t) → (Option (-var -t))]
+             [(-maybe-var -?t) → (Option (-maybe-var -t))]))
+(define (check-ts ts)
 
-(: check-ss : (case->
-               [(Listof -s) → (Option (Listof -e))]
-               [(-var -s) → (Option (-var -e))]
-               [(-maybe-var -s) → (Option (-maybe-var -e))]))
-(define (check-ss ss)
-
-  (: go : (Listof -s) → (Option (Listof -e)))
-  (define (go ss)
-    (match ss
+  (: go : (Listof -?t) → (Option (Listof -t)))
+  (define (go ts)
+    (match ts
       ['() '()]
-      [(cons s ss*)
-       (and s
-            (let ([es (go ss*)])
-              (and es (cons s es))))]))
+      [(cons t ts*)
+       (and t
+            (let ([ts** (go ts*)])
+              (and ts** (cons t ts**))))]))
 
-  (match ss
-    [(? list? ss) (go ss)]
-    [(-var ss s)
-     (define ss* (go ss))
-     (and ss* s (-var ss* s))]))
-
-(: keep-if-const : -s ℓ -⟪ℋ⟫ → (Option -α.e))
-;; Keep expression if it evaluates to a fixed value
-(define (keep-if-const s ℓ ⟪ℋ⟫)
-  ;; TODO: update to work with mutable states
-  (and s (set-empty? (fv s)) (-α.e s ℓ ⟪ℋ⟫)))
+  (match ts
+    [(? list? ts) (go ts)]
+    [(-var ts t)
+     (and t
+          (let ([ts* (go ts)])
+            (and ts* (-var ts* t))))]))
 
 (module+ test
   (require typed/rackunit)
-  (check-equal? (-?@ 'not (-?@ 'not (-?@ 'not (-x 'x)))) (-?@ 'not (-x 'x)))
-  (check-equal? (-?@ -car (-?@ -cons (-b 1) (-x 'x))) (-b 1))
-  (check-equal? (-?@ '+ (-x 'x) (-b 0)) (-x 'x))
-  (check-equal? (-?@ '+ (-b 0) (-x 'x)) (-x 'x))
-  (check-equal? (-?@ '* (-?@ '* (-x 'x) (-x 'y)) (-x 'z))
-                (-?@ '* (-x 'x) (-?@ '* (-x 'y) (-x 'z))))
-  (let ([e (assert (-?@ '+ (-x 'x) (-x 'y)))])
-    (check-equal? (-?@ -cons (-?@ -car e) (-?@ -cdr e)) e)
-    (check-equal? (-?@ -cons (-?@ -cdr e) (-?@ -car e))
-                  (-@ -cons (list (-@ -cdr (list e) +ℓ₀) (-@ -car (list e) +ℓ₀)) +ℓ₀))))
+  (check-equal? (?t@ 'not (?t@ 'not (?t@ 'not (-x 'x)))) (?t@ 'not (-x 'x)))
+  (check-equal? (?t@ -car (?t@ -cons (-b 1) (-x 'x))) (-b 1))
+  (let ([l (list -tt -ff (-x 'x) (-x 'y))])
+    (check-equal? (-?unlist (-?list l) (length l)) l)))

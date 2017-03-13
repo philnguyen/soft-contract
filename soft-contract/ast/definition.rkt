@@ -113,8 +113,7 @@
             (-x/c Symbol)
             (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
 
-            ;; internal use only
-            (-ar -e -e))
+            )
 
 (-v . ::= . -prim
             (-λ -formals -e)
@@ -130,16 +129,7 @@
            (-st-p -𝒾)
            (-st-ac -𝒾 Index)
            (-st-mut -𝒾 Index)
-           (-st-mk -𝒾)
-           ;; internal use only
-           (-st/c-ac -𝒾 Index)
-           (-->i-ac-dom Index)
-           (-->i-ac-rng)
-           (-->-ac-dom Index)
-           (-->-ac-rst)
-           (-->-ac-rng)
-           (-ar-ctc)
-           (-ar-fun))
+           (-st-mk -𝒾))
 
 (define -𝒾-values (-𝒾 'values 'Λ))
 (define -𝒾-cons (-𝒾 'cons 'Λ))
@@ -177,21 +167,12 @@
    [(-st-ac (== -𝒾-mcons) 0) 'mcar]
    [(-st-ac (== -𝒾-mcons) 1) 'mcdr]
    [(-st-ac (== -𝒾-box) _) 'unbox]
-   [(-st-ac 𝒾 i) (format-symbol "~a@~a" (-𝒾-name 𝒾) i)]
+   [(-st-ac 𝒾 i) (format-symbol "~a._~a" (-𝒾-name 𝒾) i)]
    [(-st-p 𝒾) (format-symbol "~a?" (-𝒾-name 𝒾))]
    [(-st-mut (== -𝒾-mcons) 0) 'set-mcar!]
    [(-st-mut (== -𝒾-mcons) 1) 'set-mcdr!]
    [(-st-mut (== -𝒾-box) _) 'set-box!]
-   [(-st-mut 𝒾 i) (format-symbol "set-~a-~a!" (-𝒾-name 𝒾) i)]
-   ;; internals
-   [(-st/c-ac 𝒾 i) (format-symbol "~a/c@~a" (-𝒾-name 𝒾) i)]
-   [(-->i-ac-dom i) (format-symbol "->i~a" (n-sub i))]
-   [(-->i-ac-rng) '->iᵣ]
-   [(-->-ac-dom i) (format-symbol "->~a" (n-sub i))]
-   [(-->-ac-rst) '->ᵣₑₛₜ]
-   [(-->-ac-rng) '->ᵣ]
-   [(-ar-ctc) 'ar-ctc]
-   [(-ar-fun) 'ar-fun]))
+   [(-st-mut 𝒾 i) (format-symbol "set-~a-~a!" (-𝒾-name 𝒾) i)]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
@@ -266,9 +247,7 @@
     [(-x/c.tmp x) x]
     [(-x/c x) x]
     [(-struct/c 𝒾 cs _)
-     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]
-    ;; internals
-    [(-ar c e) `(ar ,(show-e c) ,(show-e e))]))
+     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]))
 
 (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
   (for/list ([e es]) (show-e e)))
