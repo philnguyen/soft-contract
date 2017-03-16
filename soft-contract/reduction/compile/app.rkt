@@ -816,7 +816,7 @@
           (define-values (ρ* Γ*) ; with side effect widening store
             (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                       ([bnd-W bnd-Ws*])
-              (match-define (list (? symbol? x) (? -V? Vₓ) (? -t? tₓ)) bnd-W)
+              (match-define (list (? symbol? x) (? -V? Vₓ) (? -?t? tₓ)) bnd-W)
               (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W (-Σ-σ Σ) Γ (-W¹ Vₓ tₓ)))))
               (σ⊕! Σ Γ α (-W¹ Vₓ tₓ))
               (values (ρ+ ρ x α) (-Γ-with-aliases Γ x tₓ))))
@@ -1224,7 +1224,7 @@
        (match-define (-W¹ Cₗ _) Wₗ)
        (define v*
          (match s
-           [(-@ 'values (list _ v) _) v]
+           [(-t.@ 'values (list _ v)) v]
            [#f #f]))
        (⟦k⟧ (-W (list (V+ (-Σ-σ Σ) V Cₗ)) v*) $ Γ ⟪ℋ⟫ Σ)])))
 
@@ -1287,7 +1287,7 @@
     (match Vs
       [(list (-b #f)) (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ)]
       [(list (-b #t) V)
-       (match-define (-@ 'values (list _ sᵥ) _) s)
+       (match-define (-t.@ 'values (list _ sᵥ)) s)
        (match-define (-W¹ C₁ _) W-C₁)
        (flat-chk l $ ℒ W-C₂ (-W¹ (V+ (-Σ-σ Σ) V C₁) sᵥ) Γ ⟪ℋ⟫ Σ ⟦k⟧)])))
 
@@ -1334,7 +1334,7 @@
       [(list (-b #t) V*)
        (define v*
          (match s
-           [(-@ 'values (list _ v) _) v]
+           [(-t.@ 'values (list _ v)) v]
            [#f #f]))
        (match ⟦e⟧s
          ['()

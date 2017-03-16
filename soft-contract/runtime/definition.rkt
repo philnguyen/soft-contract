@@ -182,7 +182,7 @@
             (-≡/c Base)
             (-≢/c Base)
             (-not/c -o))
-(define-type -?t (Option -t))
+(-?t . ::= . -t #f)
 
 (: h-unique? : -h → Boolean)
 (define h-unique?
