@@ -199,6 +199,14 @@
     [(-t.@ h ts)
      (and (h-unique? h) (andmap t-unique? ts))]))
 
+(: t-contains-any? : -t (℘ -t) → Boolean)
+(define (t-contains-any? t ts)
+  (let go ([t : -t t])
+    (match t
+      [t #:when (∋ ts t) #t]
+      [(-t.@ _ ts) (ormap go ts)]
+      [_ #f])))
+
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable
 (struct -Γ ([facts : (℘ -t)]

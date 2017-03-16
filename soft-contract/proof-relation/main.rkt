@@ -73,7 +73,33 @@
      (cond
        [t
         (match (φs⊢t (-Γ-facts Γ) t)
-          ['? (printf "TODO: restore ext~n") '? #;(ext-prove M Γ t)]
+          ['?
+
+           (define (call-ext) : -R
+             #;(begin
+               (printf "TODO: restore ext~n")
+               (printf "M:~n")
+               (for ([(a As) M])
+                 (printf "  * ~a ↦ ~a~n" (show-αₖ a) (set-map As show-ΓA)))
+               (printf "Γ: ~a~n" (show-Γ Γ))
+               (printf "-----------------------------------------~n")
+               (printf "~a~n~n" (show-t t)))
+             '?
+             #;(ext-prove M Γ t))
+           
+           ;; Heuristic avoiding calling out to solvers
+           ;; However this heuristic is implemented should be safe in terms of soundness.
+           ;; Not calling out to solver when should only hurts precision.
+           ;; Calling out to solver when there's no need only hurts performance.
+           (match t
+             [(-t.@ _ ts)
+              (define ts* (for/set: : (℘ -t) ([t ts] #:unless (-b? t)) t))
+              (cond
+                [(for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
+                   (t-contains-any? φ ts*))
+                 (call-ext)]
+                [else #;(printf "heuristitcally skip ext solver~n") '?])]
+             [_ (call-ext)])]
           [R R])]
        [else '?]))
     (when s #;(match? s (-@ 'equal? _ _))
