@@ -21,7 +21,7 @@
     (cond
       [($@ $ s/x) =>
        (λ ([V : -V])
-         (cond [(plausible-V-s? (-Γ-facts Γ) V s)
+         (cond [(plausible-V-t? (-Γ-facts Γ) V s)
                 (define V* (V+ σ V (predicates-of Γ s)))
                 (⟦k⟧ (-W (list V*) s) ($+ $ s V*) Γ ⟪ℋ⟫ Σ)]
                [else ∅]))]
@@ -29,7 +29,7 @@
        (define Vs (σ@ σ α))
        (define φs (-Γ-facts Γ))
        
-       (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-s? φs V s))
+       (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-t? φs V s))
          (define $* ($+ $ s/x V))
          (match V
            [(-b (not (? defined?))) (⟦k⟧ -blm.undefined $* Γ ⟪ℋ⟫ Σ)]
@@ -50,9 +50,9 @@
       [(and B (-b b)) (hash-ref! meq b (λ () (ret-p B)))]
       [p              (hash-ref! m   p (λ () (ret-p p)))])))
 
-(define/memo (ret-W¹ [V : -V] [v : -s]) : -⟦e⟧
+(define/memo (ret-W¹ [V : -V] [t : -?t]) : -⟦e⟧
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-W (list V) v) $ Γ ⟪ℋ⟫ Σ)))
+    (⟦k⟧ (-W (list V) t) $ Γ ⟪ℋ⟫ Σ)))
 
 (define ⟦void⟧ (↓ₚᵣₘ -void))
 (define ⟦tt⟧ (↓ₚᵣₘ -tt))

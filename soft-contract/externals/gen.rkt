@@ -62,8 +62,7 @@
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
              [l³ (-l³ (ℓ-src ℓ) '#,(-o) '#,(-o))]
              [grd #,(gen-alloc #'ℓ c)]
-             [⟪α⟫ (-α->⟪α⟫ (or (keep-if-const #,s (ℓ-with-id #,(-ℓ) 'inner) #,(-⟪ℋ⟫))
-                               (-α.fn #,(-ℒ) #,(-⟪ℋ⟫) (ℓ-src ℓ) (-Γ-facts #,(-Γ)))))])
+             [⟪α⟫ (-α->⟪α⟫ (-α.fn #,s #,(-ℒ) #,(-⟪ℋ⟫) (ℓ-src ℓ) (-Γ-facts #,(-Γ))))])
         (σ⊕V! #,(-Σ) ⟪α⟫ #,V)
         (-Ar grd ⟪α⟫ l³)))
 
@@ -85,11 +84,11 @@
     (define eᵢs
       (for/list ([W (in-list (-Wₙ))]
                  [c (in-list (attribute sig.init))])
-        (gen-wrap c #`(-W¹-V #,W) #`(-W¹-s #,W))))
+        (gen-wrap c #`(-W¹-V #,W) #`(-W¹-t #,W))))
     (define/with-syntax (clauses-rest ...) #|TODO|# '())
     (list
      #`(let (#,@(for/list ([Wᵢ (in-list (-Wₙ))]
                            [eᵢ (in-list eᵢs)])
-                  #`[#,Wᵢ (-W¹ #,eᵢ (-W¹-s #,Wᵢ))])
+                  #`[#,Wᵢ (-W¹ #,eᵢ (-W¹-t #,Wᵢ))])
              clauses-rest ...)
          #,@body))))

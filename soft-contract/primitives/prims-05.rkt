@@ -13,12 +13,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def-prim/custom (make-struct-type-property ⟪ℋ⟫ ℓ Σ Γ Ws)
-  (define sₐ (apply -?@ 'make-struct-type-property (map -W¹-s Ws)))
+  (define tₐ (apply ?t@ 'make-struct-type-property (map -W¹-t Ws)))
   (define ans
     (-W (list (-● {set 'struct-type-property?})
               (-● {set 'procedure?})
               (-● {set 'procedure?}))
-        sₐ))
+        tₐ))
   {set (-ΓA Γ ans)})
 
 

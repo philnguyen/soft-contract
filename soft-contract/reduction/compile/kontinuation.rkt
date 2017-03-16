@@ -108,16 +108,14 @@
     (match-define (-W Ds d) A)
     (match Ds
       [(list D)
-       (define β (-α->⟪α⟫ (or (keep-if-const d (ℓ-with-id ℓₐ '-->.rng) ⟪ℋ⟫)
-                              (-α.rng ℓₐ #|TODO right?|# ⟪ℋ⟫))))
+       (define β (-α->⟪α⟫ (-α.rng d ℓₐ #|TODO right?|# ⟪ℋ⟫)))
        (σ⊕V! Σ β D)
        (define-values (αs cs) ; with side effect widening store
          (for/fold ([αs : (Listof ⟪α⟫) '()]
-                    [cs : (Listof -s) '()])
+                    [cs : (Listof -?t) '()])
                    ([(W i) (in-indexed Ws)] #:when (index? i))
            (match-define (-W¹ C c) W)
-           (define α (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ i) ⟪ℋ⟫)
-                                  (-α.dom ℓₐ ⟪ℋ⟫ i))))
+           (define α (-α->⟪α⟫ (-α.dom c ℓₐ ⟪ℋ⟫ i)))
            (σ⊕V! Σ α C)
            (values (cons α αs) (cons c cs))))
        (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
@@ -127,37 +125,34 @@
        (define G
          (match Wᵣ
            [(-W¹ Vᵣ cᵣ)
-            (define αᵣ (-α->⟪α⟫ (or (keep-if-const cᵣ (ℓ-with-id ℓₐ 'var) ⟪ℋ⟫)
-                                    (-α.rst ℓₐ ⟪ℋ⟫))))
+            (define αᵣ (-α->⟪α⟫ (-α.rst cᵣ ℓₐ ⟪ℋ⟫)))
             (define ℓᵣ (ℓ-with-id ℓₐ 'rest))
             (σ⊕V! Σ αᵣ Vᵣ)
-            (-W (list (-=> (-var αℓs (cons αᵣ ℓᵣ)) βℓ ℓₐ)) (-?-> (-var cs cᵣ) d ℓₐ))]
+            (-W (list (-=> (-var αℓs (cons αᵣ ℓᵣ)) βℓ ℓₐ)) (-?-> (-var cs cᵣ) d))]
            [#f
-            (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d ℓₐ))]))
+            (-W (list (-=> αℓs βℓ ℓₐ)) (-?-> cs d))]))
        (⟦k⟧ G $ Γ ⟪ℋ⟫ Σ)]
       [_
        (error "TODO: `->`'s range for multiple values")])))
 
-(: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -s))
+(: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))
 ;; Given *reversed* list of contract domains and range-maker, create dependent contract
 (define (mk-=>i! Σ Γ ⟪ℋ⟫ Ws Mk-D mk-d ℓₐ)
   (define-values (αs cs) ; with side effect widening store
     (for/fold ([αs : (Listof ⟪α⟫) '()]
-               [cs : (Listof -s) '()])
+               [cs : (Listof -?t) '()])
               ([(W i) (in-indexed Ws)])
       (match-define (-W¹ C c) W)
       (define α
-        (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓₐ (assert i index?)) ⟪ℋ⟫)
-                     (-α.dom ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
+        (-α->⟪α⟫ (-α.dom c ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
       (σ⊕V! Σ α C)
       (values (cons α αs) (cons c cs))))
-  (define β (-α->⟪α⟫ (or (keep-if-const mk-d (ℓ-with-id ℓₐ 'rng) ⟪ℋ⟫)
-                         (-α.rng ℓₐ ⟪ℋ⟫))))
+  (define β (-α->⟪α⟫ (-α.rng mk-d ℓₐ ⟪ℋ⟫)))
   (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
     (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
       (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
   (define G (-=>i αℓs (list Mk-D mk-d (ℓ-with-id ℓₐ (length αs))) ℓₐ))
-  (define g (-?->i cs mk-d ℓₐ))
+  (define g (-?->i cs mk-d))
   (σ⊕V! Σ β Mk-D)
   (values G g))
 
@@ -213,13 +208,12 @@
       ['()
        (define-values (αs cs flat?) ; with side effect widening store
          (for/fold ([αs : (Listof ⟪α⟫) '()]
-                    [cs : (Listof -s) '()]
+                    [cs : (Listof -?t) '()]
                     [flat? : Boolean #t])
                    ([(W i) (in-indexed Cs*)])
            (match-define (-W¹ C c) W)
            (define α
-             (-α->⟪α⟫ (or (keep-if-const c (ℓ-with-id ℓ₁ (assert i index?)) ⟪ℋ⟫)
-                          (-α.struct/c ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?)))))
+             (-α->⟪α⟫ (-α.struct/c c 𝒾 ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
            (σ⊕V! Σ α C)
            (values (cons α αs)
                    (cons c cs)
@@ -227,7 +221,7 @@
        (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
          (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
            (cons (cast α ⟪α⟫) (ℓ-with-id ℓ₁ i))))
-       (define W (-W (list (-St/C flat? 𝒾 αℓs)) (-?struct/c 𝒾 cs)))
+       (define W (-W (list (-St/C flat? 𝒾 αℓs)) (apply ?t@ (-st/c.mk 𝒾) cs)))
        (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ)]
       [(cons ⟦c⟧ ⟦c⟧s*)
        (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (struct/c∷ ℓ₁ 𝒾 Cs* ⟦c⟧s* ρ ⟦k⟧))])))

@@ -101,7 +101,7 @@
              #,@(gen-arity-check arity
                  (gen-precond-checks
                   (gen-ok-case))))))
-     ;(pretty-write (syntax->datum #'defn-o))
+     #;(pretty-write (syntax->datum #'defn-o))
      (define/contract maybe-set-partial (listof syntax?)
        (let ()
          (define (count-leaves c)

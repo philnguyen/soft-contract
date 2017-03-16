@@ -14,8 +14,8 @@
 ;;;;; 10.1 Multiple Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-prim/custom (values ⟪ℋ⟫ ℓ Σ Γ Ws)
-  (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
-  {set (-ΓA Γ (-W Vs (apply -?@ 'values ss)))})
+  (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
+  {set (-ΓA Γ (-W Vs (apply ?t@ 'values ss)))})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

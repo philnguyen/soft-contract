@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide NeListof unzip-by unzip)
+(require racket/match)
 
 (define-type (NeListof X) (Pairof X (Listof X)))
 
@@ -14,3 +15,12 @@
 ;; Unzip list of pairs into 2 lists
 (define (unzip l)
   (unzip-by (inst car X Y) (inst cdr X Y) l))
+
+(: maybe-map (∀ (X Y) (X → (Option Y)) (Listof X) → (Option (Listof Y))))
+(define (maybe-map f xs)
+  (match xs
+    ['() '()]
+    [(cons x xs*)
+     (define ?y (f x))
+     (and ?y (let ([?ys (maybe-map f xs*)])
+               (and ?ys (cons ?y ?ys))))]))

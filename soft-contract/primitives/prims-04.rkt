@@ -369,7 +369,7 @@
  (exact-nonnegative-integer? char? . -> . (and/c string? (not/c immutable?))))
 (def-prim/custom (string ⟪ℋ⟫ ℓ Σ Γ Ws) ; FIXME uses, domain check
   (define σ (-Σ-σ Σ))
-  (define sₐ (apply -?@ 'string (map -W¹-s Ws)))
+  (define sₐ (apply ?t@ 'string (map -W¹-t Ws)))
   (define p
     (cond [(for/and : Boolean ([W Ws])
              (match-define (-W¹ V s) W)
@@ -399,7 +399,7 @@
   #:domain ([W string?])
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ V s) W)
-  (define sₐ (-?@ 'string->list s))
+  (define sₐ (?t@ 'string->list s))
   (match V
     [(-b "") {set (-ΓA Γ (-W -null.Vs sₐ))}]
     [_
@@ -418,7 +418,7 @@
   #:domain ([W (listof char?)])
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ V s) W)
-  (define sₐ (-?@ 'list->string s))
+  (define sₐ (?t@ 'list->string s))
   (define ps
     (cond [(list-of-non-null-chars? σ V) ; FIXME needs to check for non-empty-ness too
            {set 'path-string? (-not/c 'immutable?)}]
@@ -778,7 +778,7 @@
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ Vₗ sₗ) Wₗ)
   (match-define (-W¹ _  sₙ) Wₙ)
-  (define sₐ (-?@ 'list-tail sₗ sₙ))
+  (define sₐ (?t@ 'list-tail sₗ sₙ))
   (match Vₗ
     [(? -St? Vₗ)
      (define Vₕs (extract-list-content σ Vₗ))
@@ -800,7 +800,7 @@
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ V₁ s₁) W₁)
   (match-define (-W¹ V₂ s₂) W₂)
-  (define sₐ (-?@ 'append s₁ s₂))
+  (define sₐ (?t@ 'append s₁ s₂))
   (define Vₐ
     (match* (V₁ V₂)
       [((-b null) V₂) V₂]
@@ -818,7 +818,7 @@
   #:domain ([Wₗ list?])
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ Vₗ sₗ) Wₗ)
-  (define sₐ (-?@ 'reverse sₗ))
+  (define sₐ (?t@ 'reverse sₗ))
   (match Vₗ
     [(-b (list)) {set (-ΓA Γ (-W -null.Vs sₐ))}]
     [(-Cons _ _)
@@ -1043,7 +1043,7 @@
   (define σ (-Σ-σ Σ))
   (match-define (-W¹ Vₙ sₙ) Wₙ)
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-  (define sₐ (-?@ 'make-vector sₙ sᵥ))
+  (define sₐ (?t@ 'make-vector sₙ sᵥ))
   ;; Heuristic: more concrete vector if length is available concretely
   (match sₙ
     [(-b (? exact-nonnegative-integer? n))
@@ -1059,7 +1059,7 @@
      {set (-ΓA Γ (-W (list (-Vector^ ⟪α⟫ Vₙ)) sₐ))}]))
 (def-prim/custom (vector ⟪ℋ⟫ ℓ Σ Γ Ws)
   (define σ (-Σ-σ Σ))
-  (define sₐ (apply -?@ 'vector (map -W¹-s Ws)))
+  (define sₐ (apply ?t@ 'vector (map -W¹-t Ws)))
   (define ⟪α⟫s ; with side effect widening store
     (for/list : (Listof ⟪α⟫) ([W (in-list Ws)] [i (in-naturals)])
       (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
@@ -1071,7 +1071,7 @@
 (def-prim/custom (vector-length ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W vector?])
   (match-define (-W¹ V s) W)
-  (define sₐ (-?@ 'vector-length s))
+  (define sₐ (?t@ 'vector-length s))
   (define A
     (match V
       [(-Vector ⟪α⟫s) (list (-b (length ⟪α⟫s)))]
@@ -1614,7 +1614,7 @@
 (def-prim/custom (procedure-arity ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W procedure?])
   (match-define (-W¹ V s) W)
-  (define sₐ (-?@ 'procedure-arity s))
+  (define sₐ (?t@ 'procedure-arity s))
   (cond [(V-arity V) => (λ ([a : Arity]) {set (-ΓA Γ (-W (list (-b a)) sₐ))})]
         [else {set (-ΓA Γ (-W -●.Vs sₐ))}]))
 (def-pred procedure-arity?)

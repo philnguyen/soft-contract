@@ -24,15 +24,15 @@
       [((or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _))
         (-b (? index? i)))
        #:when 𝒾
-       (-?@ (-st-ac 𝒾 i) sᵥ)]
-      [(_ _) (-?@ 'unsafe-struct-ref sᵥ sᵢ)]))
+       (?t@ (-st-ac 𝒾 i) sᵥ)]
+      [(_ _) (?t@ 'unsafe-struct-ref sᵥ sᵢ)]))
   (match Vᵥ
     [(-St 𝒾 ⟪α⟫s)
      (define n (get-struct-arity 𝒾))
      (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
-                (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+                (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                 (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
                            (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
     [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ l³)
@@ -41,10 +41,10 @@
      (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
-                (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+                (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                 (cond
                   [(struct-mutable? 𝒾 (assert i index?))
-                   (define c (⟪α⟫->s (car ⟪γ⟫ℓ)))
+                   (define c #f #;(⟪α⟫->s (car ⟪γ⟫ℓ)))
                    (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                          [C (in-set (σ@ σ (car ⟪γ⟫ℓ)))])
                      (app $ ℒ -unsafe-struct-ref.W¹ (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ

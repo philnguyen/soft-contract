@@ -21,19 +21,19 @@
   (match-define (-W¹ V s) W)
   (match-define (-st-ac 𝒾 i) ac)
   (define φs (-Γ-facts Γ))
-  (define s* (-?@ ac s))
+  (define s* (?t@ ac s))
   (let go ([V : -V V])
     (match V
       [(-St (== 𝒾) αs)
        (for/set: : (℘ -W¹) ([V* (in-set (σ@ σ (list-ref αs i)))]
-                            #:when (plausible-V-s? φs V* s*))
+                            #:when (plausible-V-t? φs V* s*))
          (-W¹ V* s*))]
       [(-St* (-St/C _ (== 𝒾) _) α _)
        (cond [(seen-has? α) ∅]
              [else
               (seen-add! α)
               (for/union : (℘ -W¹) ([V (in-set (σ@ σ α))]
-                                    #:when (plausible-V-s? φs V s))
+                                    #:when (plausible-V-t? φs V s))
                 (go V))])]
       [(? -●?) {set (-W¹ -●.V s*)}]
       [_ ∅])))
@@ -41,19 +41,19 @@
 (: ⊢?/quick : -R -σ -Γ -o -W¹ * → Boolean)
 ;; Perform a relatively cheap check (i.e. no SMT call) if `(o W ...)` returns `R`
 (define (⊢?/quick R σ Γ o . Ws)
-  (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
+  (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
   (eq? R (first-R (apply p∋Vs σ o Vs)
-                  (Γ⊢e Γ (apply -?@ o ss)))))
+                  (Γ⊢t Γ (apply ?t@ o ss)))))
 
 (: implement-predicate : -M -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
 (define (implement-predicate M σ Γ o Ws)
-  (define ss (map -W¹-s Ws))
+  (define ss (map -W¹-t Ws))
   (define A
     (case (apply MΓ⊢oW M σ Γ o Ws)
       [(✓) -tt.Vs]
       [(✗) -ff.Vs]
       [(?) -Bool.Vs]))
-  {set (-ΓA Γ (-W A (apply -?@ o ss)))})
+  {set (-ΓA Γ (-W A (apply ?t@ o ss)))})
 
 (define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧)
   (λ (o)
@@ -82,7 +82,7 @@
 (define (implement-mem o ⟪ℋ⟫ ℓ Σ Γ Wₓ Wₗ)
   (match-define (-W¹ Vₓ sₓ) Wₓ)
   (match-define (-W¹ Vₗ sₗ) Wₗ)
-  (define sₐ (-?@ o sₓ sₗ))
+  (define sₐ (?t@ o sₓ sₗ))
   (define σ (-Σ-σ Σ))
   (match Vₗ
     [(-Cons _ _)
@@ -190,12 +190,12 @@
 
 (: with-MΓ⊢oW-handler (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X)))
 (define (with-MΓ⊢oW-handler f₁ f₂ M σ Γ o . Ws)
-  (define ss (map -W¹-s Ws))
+  (define ss (map -W¹-t Ws))
   (case (apply MΓ⊢oW M σ Γ o Ws)
     [(✓) (f₁ Γ)]
     [(✗) (f₂ Γ)]
-    [(?) (∪ (f₁ (Γ+ Γ (apply -?@ o ss)))
-            (f₂ (Γ+ Γ (-?@ 'not (apply -?@ o ss)))))]))
+    [(?) (∪ (f₁ (Γ+ Γ (apply ?t@ o ss)))
+            (f₂ (Γ+ Γ (?t@ 'not (apply ?t@ o ss)))))]))
 
 (define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
   (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))
@@ -233,12 +233,12 @@
 (define-simple-macro (with-arity-check (Γ:expr W:expr a:expr) #:on-t t:expr #:on-f f:expr)
   (with-arity-check-handler Γ W a t f))
 
-(: ss->bs : (Listof -s) → (Option (Listof Base)))
-(define (ss->bs ss)
-  (foldr (λ ([s : -s] [?bs : (Option (Listof Base))])
-           (and ?bs (-b? s) (cons (-b-unboxed s) ?bs)))
+(: ts->bs : (Listof -?t) → (Option (Listof Base)))
+(define (ts->bs ts)
+  (foldr (λ ([t : -?t] [?bs : (Option (Listof Base))])
+           (and ?bs (-b? t) (cons (-b-unboxed t) ?bs)))
          '()
-         ss))
+         ts))
 
 (: vec-len : -σ -Γ -W¹ → -W¹)
 (define (vec-len σ Γ W)
@@ -256,4 +256,4 @@
          [_ #f])]
       [_ #f]))
   (define Vₙ (if ?n (-b ?n) -●.V))
-  (-W¹ Vₙ (-?@ 'vector-length s)))
+  (-W¹ Vₙ (?t@ 'vector-length s)))

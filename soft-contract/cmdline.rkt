@@ -44,15 +44,15 @@
 (: show-Vs : (Listof (U -V -v)) → Sexp)
 (define (show-Vs Vs)
   (match Vs
-    [(list V) (show-V-or-v V)]
-    [_ `(values ,@(map show-V-or-v Vs))]))
+    [(list V) (show-blm-reason V)]
+    [_ `(values ,@(map show-blm-reason Vs))]))
 
 (: show-a : -ΓA → Sexp)
 (define (show-a a)
   (match a
     [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
     [(-ΓA _ (-blm l+ lo Cs Vs ℓ))
-     `(blame ,l+ ,lo ,(show-Vs Cs) ,(show-Vs Vs) ,(show-ℓ ℓ))]))
+     `(blame ,l+ ,lo ,(map show-blm-reason Cs) ,(show-Vs Vs) ,(show-ℓ ℓ))]))
 
 (parameterize ([Timeout timeout])
   (case mode

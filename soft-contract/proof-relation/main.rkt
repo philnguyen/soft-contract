@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
-(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢s Γ+/-V MΓ+/-oW with-Γ+/-
-         plausible-return? plausible-return?/cheap plausible-index? plausible-indices
+(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢t Γ+/-V MΓ+/-oW with-Γ+/-
+         #;plausible-return? #;plausible-return?/cheap
+         plausible-index? plausible-indices
          (all-from-out "local.rkt" "widen.rkt"))
 
 (require racket/match
@@ -28,71 +29,71 @@
                 [(-● ps)
                  (define Γ*
                    (for/fold ([Γ : -Γ Γ]) ([p ps])
-                     (Γ+ Γ (-?@ p v))))
-                 (MΓ⊢s M Γ* (-?@ c v))]
-                [_ (MΓ⊢s M Γ (-?@ c v))])))
+                     (Γ+ Γ (?t@ p v))))
+                 (MΓ⊢t M Γ* (and (-h? c) (?t@ c v)))]
+                [_ (MΓ⊢t M Γ (and (-h? c) (?t@ c v)))])))
     (when (and (-Clo? V))
       (printf "~a ⊢ ~a ∈ ~a : ~a~n~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans))))
 
 (: MΓ⊢oW : -M -σ -Γ -o -W¹ * → -R)
 ;; Check if value `W` satisfies predicate `p`
 (define (MΓ⊢oW M σ Γ p . Ws)
-  (define-values (Vs ss) (unzip-by -W¹-V -W¹-s Ws))
+  (define-values (Vs ts) (unzip-by -W¹-V -W¹-t Ws))
   (with-debugging/off
     ((R)
      (first-R (let ([Vs*
-                     (for/list : (Listof -V) ([V (in-list Vs)] [s (in-list ss)])
-                       (V+ σ V (predicates-of Γ s)))])
+                     (for/list : (Listof -V) ([V (in-list Vs)] [t (in-list ts)])
+                       (V+ σ V (predicates-of Γ t)))])
                 (apply p∋Vs σ p Vs*))
               (let ()
                 (define Γ*
-                  (for/fold ([Γ : -Γ Γ]) ([V (in-list Vs)] [s (in-list ss)] #:when s)
+                  (for/fold ([Γ : -Γ Γ]) ([V (in-list Vs)] [t (in-list ts)] #:when t)
                     (match V
                       [(-● ps)
                        (for/fold ([Γ : -Γ Γ]) ([p (in-set ps)])
-                         (Γ+ Γ (-?@ p s)))]
+                         (Γ+ Γ (?t@ p t)))]
                       [(? -b? b)
-                       (Γ+ Γ (-@ 'equal? (list s b) +ℓ₀))]
+                       (Γ+ Γ (-t.@ 'equal? (list t b)))]
                       [_ Γ])))
-                (MΓ⊢s M Γ* (apply -?@ p ss)))))
+                (MΓ⊢t M Γ* (apply ?t@ p ts)))))
     (when (and (equal? p 'char?)
                (equal? Vs (list (-● (set 'eof-object? (-not/c 'eof-object?))))))
       (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R))))
 
 (: MΓ+/-oW : -M -σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))
 (define (MΓ+/-oW M σ Γ o . Ws)
-  (define ss (map -W¹-s Ws))
-  (Γ+/-R (apply MΓ⊢oW M σ Γ o Ws) Γ (apply -?@ o ss)))
+  (define ss (map -W¹-t Ws))
+  (Γ+/-R (apply MΓ⊢oW M σ Γ o Ws) Γ (apply ?t@ o ss)))
 
-(: MΓ⊢s : -M -Γ -s → -R)
+(: MΓ⊢t : -M -Γ -?t → -R)
 ;; Check if `s` is provable in `Γ`
-(define (MΓ⊢s M Γ s)
+(define (MΓ⊢t M Γ t)
   (with-debugging/off
     ((R)
      (cond
-       [s
-        (match (φs⊢e (-Γ-facts Γ) s)
-          ['? (ext-prove M Γ s)]
+       [t
+        (match (φs⊢t (-Γ-facts Γ) t)
+          ['? (printf "TODO: restore ext~n") '? #;(ext-prove M Γ t)]
           [R R])]
        [else '?]))
     (when s #;(match? s (-@ 'equal? _ _))
       (match-define (-Γ φs _ γs) Γ)
-      (for ([φ φs]) (printf "~a~n" (show-e φ)))
+      (for ([φ φs]) (printf "~a~n" (show-t φ)))
       (for ([γ γs])
         (match-define (-γ _ blm? sₕ sₓs) γ)
-        (printf "~a ; blm?~a~n" (show-s (apply -?@ sₕ sₓs)) (and blm? #t)))
+        (printf "~a ; blm?~a~n" (show-s (apply ?t@ sₕ sₓs)) (and blm? #t)))
       (printf "-----------------------------------------~a~n" R)
       (printf "~a~n~n" (show-e s)))
     ))
 
-(: Γ+/-V : -M -Γ -V -s → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-V : -M -Γ -V -?t → (Values (Option -Γ) (Option -Γ)))
 ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
-(define (Γ+/-V M Γ V s)
-  (with-debugging/off ((Γ₁ Γ₂) (Γ+/-R (first-R (⊢V V) (MΓ⊢s M Γ s)) Γ s))
+(define (Γ+/-V M Γ V t)
+  (with-debugging/off ((Γ₁ Γ₂) (Γ+/-R (first-R (⊢V V) (MΓ⊢t M Γ t)) Γ t))
     (printf "Γ+/-V: ~a +/- ~a @ ~a~n - ~a~n - ~a~n~n"
             (show-Γ Γ)
             (show-V V)
-            (show-s s)
+            (show-t t)
             (and Γ₁ (show-Γ Γ₁))
             (and Γ₂ (show-Γ Γ₂)))))
 
@@ -108,11 +109,11 @@
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: plausible-return? : -M -Γ -γ -Γ → Boolean)
-(define plausible-return? ext-plausible-return?)
+#;(: plausible-return? : -M -Γ -γ -Γ → Boolean)
+#;(define plausible-return? ext-plausible-return?)
 
-(: plausible-return?/cheap : -M -Γ -γ -Γ → Boolean)
-(define (plausible-return?/cheap M Γₑᵣ γ Γₑₑ)
+#;(: plausible-return?/cheap : -M -Γ -γ -Γ → Boolean)
+#;(define (plausible-return?/cheap M Γₑᵣ γ Γₑₑ)
   (match-define (-Γ φs _ _) Γₑᵣ)
   (ext-plausible-return? M (-Γ φs (hasheq) '()) γ Γₑₑ))
 
@@ -138,10 +139,10 @@
 ;;;;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: Γ+/-R : -R -Γ -s → (Values (Option -Γ) (Option -Γ)))
+(: Γ+/-R : -R -Γ -?t → (Values (Option -Γ) (Option -Γ)))
 ;; Given `s`'s satisfiability in `Γ`, strengthen `Γ` both ways. `#f` represents a bogus path condition.
-(define (Γ+/-R R Γ s)
+(define (Γ+/-R R Γ t)
   (case R
-    [(✓) (values (Γ+ Γ s) #f)]
-    [(✗) (values #f       (Γ+ Γ (-?@ 'not s)))]
-    [(?) (values (Γ+ Γ s) (Γ+ Γ (-?@ 'not s)))]))
+    [(✓) (values (Γ+ Γ t) #f)]
+    [(✗) (values #f       (Γ+ Γ (?t@ 'not t)))]
+    [(?) (values (Γ+ Γ t) (Γ+ Γ (?t@ 'not t)))]))

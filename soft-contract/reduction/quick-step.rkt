@@ -166,8 +166,8 @@
   (with-debugging/off ((ans) (for/union : (℘ -ς) ([ς ςs])
     (match-define (-ς↓ αₖ Γₑₑ A) ς)
     (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
-      (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₕ sₓs) κ)
-      (define fargs (apply -?@ sₕ sₓs))
+      (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₓs) κ)
+      (define fargs (apply ?t@ αₖ sₓs))
       ;(set! total (+ 1 total))
       (match A
         [(-W Vs sₐ)
@@ -177,8 +177,8 @@
             ;(set! hits (+ 1 hits))
             ∅]
            [else
-            (define γ (-γ αₖ #f sₕ sₓs))
-            (define Γₑᵣ**
+            #;(define γ (-γ αₖ #f sₕ sₓs))
+            #;(define Γₑᵣ**
               ; It's useful to check for feasibility of a strong path-condition
               ; before forgetting and keeping the path-condition address
               ; as an approximation
@@ -212,9 +212,9 @@
                     [(list V)
                      (match V
                        [(? -v? v)
-                        (-?@ 'equal? (apply -?@ sₕ sₓs) v)]
+                        (?t@ 'equal? (apply ?t@ sₕ sₓs) v)]
                        [(or (? -Clo?) (? -Ar?) (? -o?))
-                        (-?@ 'procedure? (apply -?@ sₕ sₓs))]
+                        (?t@ 'procedure? (apply ?t@ sₕ sₓs))]
                        [_ #f])]
                     [_ #f]))
                 (define φs-path
@@ -232,7 +232,7 @@
                         [(-@ 'fc (list x) _)
                          (match Vs
                            [(list (-b #f)) -ff]
-                           [(list (-b #t) _) (-?@ 'values -tt x)])]
+                           [(list (-b #t) _) (?t@ 'values -tt x)])]
                         [_ fargs])))
                
                ;; Debugging
@@ -244,7 +244,7 @@
                    (printf "  - ~a~n" (show-ΓA ΓA)))
                  (printf "~n"))
                
-               (⟦k⟧ (-W Vs sₐ*) $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
+               (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ #;(-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
               [else ∅])])]
         [(? -blm? blm) ; TODO: faster if had next `αₖ` here 
          (match-define (-blm l+ lo _ _ _) blm)
@@ -256,10 +256,10 @@
            [(symbol? l+) ; ignore blames on system
             ∅]
            [else
-            (define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
+            #;(define γ (-γ αₖ (cons l+ lo) sₕ sₓs))
             (cond
               [#t #;(plausible-return? M Γₑᵣ γ Γₑₑ)
                   (hash-set! returned key #t)
-                  (⟦k⟧ blm $∅ (-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
+                  (⟦k⟧ blm $∅ Γₑᵣ #;(-Γ-plus-γ Γₑᵣ γ) ⟪ℋ⟫ₑᵣ Σ)]
               [else ∅])])]))))
     (printf "  -- hits: ~a/~a~n" hits total)))

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide ext-prove ext-plausible-return? Timeout
-         memo-ext-prove memo-ext-plausible #;miss/total ; debugging
+(provide ext-prove #;ext-plausible-return? Timeout
+         ;memo-ext-prove memo-ext-plausible #;miss/total ; debugging
          )
 
 (require racket/match
@@ -20,8 +20,8 @@
 (toggle-warning-messages! #f)
 
 ;; Stuff for memoizing `ext-prove`
-(define-type Ext-Prove-Key (List -e (℘ -e) (Listof -γ) (HashTable -αₖ (℘ -ΓA))))
-(define memo-ext-prove : (HashTable Ext-Prove-Key -R) (make-hash))
+#;(define-type Ext-Prove-Key (List -e (℘ -e) (Listof -γ) (HashTable -αₖ (℘ -ΓA))))
+#;(define memo-ext-prove : (HashTable Ext-Prove-Key -R) (make-hash))
 
 (: ext-prove : -M -Γ -e → -R)
 (define (ext-prove M Γ e)
@@ -41,7 +41,8 @@
     (printf "   ~a~n" (show-e e)))
 
   #;(define t₀ (current-milliseconds))
-  (with-debugging/off
+  '?
+  #;(with-debugging/off
     ((R)
      (define fvs (with-measuring/off 'ext-prove:fv (fv e)))
      (match-define (and Γ* (-Γ φs _ γs)) (with-measuring/off 'ext-prove:Γ↓ (Γ↓ Γ fvs)))
@@ -93,8 +94,8 @@
 
 
 ;; Stuff for memoizing `ext-plausible-pc?`
-(define-type Ext-Plausible-Key (List -γ (℘ -e) (Listof -γ) (HashTable -αₖ (℘ -ΓA))))
-(define memo-ext-plausible : (HashTable Ext-Plausible-Key Boolean) (make-hash))
+#;(define-type Ext-Plausible-Key (List -γ (℘ -e) (Listof -γ) (HashTable -αₖ (℘ -ΓA))))
+#;(define memo-ext-plausible : (HashTable Ext-Plausible-Key Boolean) (make-hash))
 
 #|
 (define total : Natural 0)
@@ -103,8 +104,8 @@
   (values miss total))
 |#
 
-(: ext-plausible-return? : -M -Γ -γ -Γ → Boolean)
-(define (ext-plausible-return? M Γₑᵣ γ Γₑₑ)
+#;(: ext-plausible-return? : -M -Γ -γ -Γ → Boolean)
+#;(define (ext-plausible-return? M Γₑᵣ γ Γₑₑ)
   (match-define (-γ αₖ _ sₕ sₓs) γ)
   (define fvsₑᵣ (with-measuring/off 'ext-plaus:fv (apply ∪ (if (or (-λ? sₕ) (-case-λ? sₕ)) (fv sₕ) ∅eq)
                          (map fvₛ sₓs))))
@@ -145,8 +146,8 @@
                    (printf "- ans: ~a~n" ans₁)
                    (error 'inconsistency))))))
 
-(: ext-plausible-pc? : -M -Γ → Boolean)
-(define (ext-plausible-pc? M Γ)
+#;(: ext-plausible-pc? : -M -Γ → Boolean)
+#;(define (ext-plausible-pc? M Γ)
   (define-values (base _) (with-measuring/off 'ext-plaus:encode (encode M Γ #|HACK|# -ff)))
   
   #;(define t₀ (current-milliseconds))
@@ -172,10 +173,10 @@
 
   ans)
 
-(: maybe-no-conflict? : -Γ -γ -Γ → Boolean)
+#;(: maybe-no-conflict? : -Γ -γ -Γ → Boolean)
 ;; Heuristic check that there's no need for heavyweight SMT call
 ;; to filter out spurious return/blame
-(define (maybe-no-conflict? Γₑᵣ γ Γₑₑ)
+#;(define (maybe-no-conflict? Γₑᵣ γ Γₑₑ)
 
   (: talks-about? : -Γ -e → Boolean)
   (define (talks-about? Γ e)

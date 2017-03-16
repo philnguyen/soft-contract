@@ -24,21 +24,21 @@
   (match-define (-Σ σ _ M) Σ)
   (match-define (-W¹ Vₚ sₚ) Wₚ)
   (match-define (-W¹ Vₗ sₗ) Wₗ)
-  (define sₐ (-?@ 'map sₚ sₗ))
+  (define tₐ (?t@ 'map sₚ sₗ))
   (match Vₗ
-    [(-b '()) (⟦k⟧ (-W (list -null) sₐ) $ Γ ⟪ℋ⟫ Σ)]
+    [(-b '()) (⟦k⟧ (-W (list -null) tₐ) $ Γ ⟪ℋ⟫ Σ)]
     [(-Cons _ _)
-     (define ⟦k⟧* (mk-listof∷ sₐ ℒ ⟪ℋ⟫ ⟦k⟧))
+     (define ⟦k⟧* (mk-listof∷ tₐ ℒ ⟪ℋ⟫ ⟦k⟧))
      (for/union : (℘ -ς) ([V (extract-list-content σ Vₗ)])
        (app $ ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
-    [_ (⟦k⟧ (-W (list (-● (set 'list?))) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+    [_ (⟦k⟧ (-W (list (-● (set 'list?))) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
 (def-ext (for-each $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wₚ (any/c . -> . any/c)]
             [Wₗ list?])
   #:result -void.Vs)
 
-(define/memo (mk-listof∷ [sₐ : -s] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+(define/memo (mk-listof∷ [tₐ : -?t] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W Vs s) A)
     (match Vs
@@ -47,7 +47,7 @@
        (define ⟪α⟫ₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 1)))
        (define Vₚ (-Cons ⟪α⟫ₕ ⟪α⟫ₜ))
        (σ⊕V*! Σ [⟪α⟫ₕ ↦ V] [⟪α⟫ₜ ↦ -null] [⟪α⟫ₜ ↦ Vₚ])
-       (⟦k⟧ (-W (list Vₚ) sₐ) $ Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧ (-W (list Vₚ) tₐ) $ Γ ⟪ℋ⟫ Σ)]
       [_
        (define blm (blm-arity (-ℒ-app ℒ₀) 'mk-listof 1 Vs))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
@@ -62,13 +62,13 @@
   (match-define (-Σ σ _ M) Σ)
   (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
   (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
-  (define sₐ (-?@ 'vector-ref sᵥ sᵢ))
+  (define sₐ (?t@ 'vector-ref sᵥ sᵢ))
   (match Vᵥ
     [(-Vector ⟪α⟫s)
      (for/union : (℘ -ς) ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
-       (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+       (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
        (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
          (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
     [(-Vector^ α n)
@@ -82,15 +82,15 @@
                              [i : Natural (in-naturals)]
                              #:when (plausible-index? M σ Γ Wᵢ i))
           (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
-          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
-          (define cᵢ (⟪α⟫->s ⟪α⟫ᵢ))
+          (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
+          (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
           (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
                                 [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
             (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                          (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
-        (define c* (⟪α⟫->s ⟪α⟫*))
+        (define c* #f #;(⟪α⟫->s ⟪α⟫*))
         (for/union : (℘ -ς) ([C* (in-set (σ@ σ ⟪α⟫*))]
                              [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
           (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
@@ -110,7 +110,7 @@
      (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
-       (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+       (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
        (σ⊕! Σ Γ ⟪α⟫ Wᵤ #:mutating? #t)
        (⟦k⟧ -void.W $ Γ* ⟪ℋ⟫ Σ))]
     [(-Vector^ α n)
@@ -124,9 +124,9 @@
         (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                              [i : Natural (in-naturals)]
                              #:when (plausible-index? M σ Γ Wᵢ i))
-          (define Γ* (Γ+ Γ (-?@ '= sᵢ (-b i))))
+          (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
           (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
-          (define cᵢ (⟪α⟫->s ⟪α⟫ᵢ))
+          (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
           (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
                                 [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
             (define W-c (-W¹ Cᵢ cᵢ))
@@ -135,7 +135,7 @@
             (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧))))]
        [(-Vectorof ⟪α⟫ℓ)
         (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
-        (define c* (⟪α⟫->s ⟪α⟫*))
+        (define c* #f #;(⟪α⟫->s ⟪α⟫*))
         (for*/union : (℘ -ς) ([C*  (in-set (σ@ σ ⟪α⟫*))]
                               [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
           (define W-c (-W¹ C* c*))
@@ -150,5 +150,5 @@
 ;;;;; Sequences and Streams
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-ext in-producer (procedure? . -> . sequence?))
+#;(def-ext in-producer (procedure? . -> . sequence?))
 

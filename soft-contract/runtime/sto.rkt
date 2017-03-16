@@ -116,11 +116,18 @@
 (define (span-σ σ αs)
   (hash-copy/spanning* σ αs V->⟪α⟫s))
 
+(: t->αₖs : -t → (℘ -αₖ))
+(define (t->αₖs t)
+  (match t
+    [(-t.@ h ts)
+     (apply ∪ (if (-αₖ? h) {set h} ∅) (map t->αₖs ts))]
+    [_ ∅]))
+
 (: Γ->αₖs : -Γ → (℘ -αₖ))
 (define (Γ->αₖs Γ)
-  (match-define (-Γ _ _ γs) Γ)
-  (for/set: : (℘ -αₖ) ([γ γs])
-    (-γ-callee γ)))
+  (match-define (-Γ ts _) Γ)
+  (for/union : (℘ -αₖ) ([t ts])
+    (t->αₖs t)))
 
 (: ΓA->αₖs : -ΓA → (℘ -αₖ))
 (define (ΓA->αₖs ΓA)

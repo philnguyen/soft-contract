@@ -128,7 +128,7 @@
 (define-match-expander -t.not
   (syntax-rules () [(_ t) (-t.@ 'not (list t))])
   (syntax-rules () [(_ t) (and t (-t.@ 'not (list t)))]))
-(define-match-expander -not
+#|(define-match-expander -not
   (syntax-rules () [(_ e) (-@ 'not (list e) _)])
   (syntax-rules () [(_ e) (and e (-@ 'not (list e) +ℓ₀))]))
 (define-match-expander -not/c
@@ -168,6 +168,7 @@
 (define-match-expander -≠/c
   (syntax-rules () [(_ c) (-≢/c (-b c))])
   (syntax-rules () [(_ c) (-≢/c (-b c))]))
+|#
 
 (define op-≡? (match-λ? '= 'equal? 'eq? 'char=? 'string=?))
 
@@ -184,7 +185,7 @@
        [#f (make-list n #f)]))
     (printf "struct/c-split: ~a -> ~a~n" (show-t c) (map show-t ans))))
 
-(: -struct-split : -t -𝒾 → (Listof -?t))
+(: -struct-split : -?t -𝒾 → (Listof -?t))
 (define (-struct-split t 𝒾)
   (match t
     [(-t.@ (-st-mk (== 𝒾)) ts) ts]
@@ -193,7 +194,7 @@
        (-t.@ (-st-ac 𝒾 i) (list t)))]
     [#f (make-list (get-struct-arity 𝒾) #f)]))
 
-(: -ar-split : -t → (Values -t -t))
+(: -ar-split : -?t → (Values -?t -?t))
 (define (-ar-split t)
   (match t
     [(-t.@ (-ar.mk) (list c e)) (values c e)]
@@ -201,7 +202,7 @@
                           (-t.@ (-ar.fun) (list t)))]
     [#f (values #f #f)]))
 
-(: -->-split : -t (U Index arity-at-least) → (Values (-maybe-var -?t) -?t))
+(: -->-split : -?t (U Index arity-at-least) → (Values (-maybe-var -?t) -?t))
 (define (-->-split t shape)
   (define n
     (match shape
@@ -222,7 +223,7 @@
              #f)]))
 
 
-(: -->i-split : -t Index → (Values (Listof -t) -t))
+(: -->i-split : -?t Index → (Values (Listof -?t) -?t))
 (define (-->i-split t n)
   (match t
     [(-t.@ (-->i.mk) (list cs ... mk-d)) (values (cast cs (Listof -t)) mk-d)]
@@ -297,6 +298,41 @@
      (and t
           (let ([ts* (go ts)])
             (and ts* (-var ts* t))))]))
+
+#;(: e->t : -e -> -?t)
+#;(define e->t
+  (match-lambda
+    [(-@ (? -h? h) es _)
+     (define ?ts (maybe-map e->t es))
+     (and ?ts (-t.@ h ?ts))]
+    [(-struct/c 𝒾 cs _)
+     (define ?ts (maybe-map e->t cs))
+     (and ?ts (-t.@ (-st/c.mk 𝒾) ?ts))]
+    [(-->i cs mk-d _)
+     (define ?mk-d (e->t mk-d))
+     (and ?mk-d
+          (let ([?cs (maybe-map e->t cs)])
+            (and ?cs (-t.@ (-->i.mk) `(,@?cs ,?mk-d)))))]
+    [(--> cs d _)
+     (define ?d )
+     (cond
+       [(e->t d) =>
+        (λ ([?d : -t])
+          (match cs
+            [(-var cs₀ cᵣ)
+             (define ?cᵣ (e->t cᵣ))
+             (and ?cᵣ (let ([?cs₀ (maybe-map e->t cs₀)])
+                        (and ?cs₀ (-t.@ (-->*.mk) `(,@?cs₀ ,?cᵣ ,?d)))))]
+            [(? list? cs)
+             (define ?cs (maybe-map e->t cs))
+             (and ?cs (-t.@ (-->.mk) `(,@?cs ,?d)))]))]
+       [else #f])]
+    [(-λ (list x) (-if (-@ 'real? (list (-x x)) _)
+                       (-@ (? -special-bin-o? o) (list (-x x) (-b b)) _)
+                       (-b #f)))
+     ((bin-o->h o) b)]
+    [(? -t? t) t]
+    [_ #f]))
 
 (module+ test
   (require typed/rackunit)

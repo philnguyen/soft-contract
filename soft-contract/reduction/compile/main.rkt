@@ -70,29 +70,30 @@
      [(-λ xs e*)
       (define ⟦e*⟧ (make-memoized-⟦e⟧ (↓ e*)))
       (define fvs (fv e*))
+      #;(printf "Warning: no longer canonicalize λ-term~n")
+      (define t (-λ xs e*))
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (define s (canonicalize-e Γ e))
         (define ρ* (m↓ ρ fvs))
         (define Γ*
-          (match-let ([(-Γ φs as γs) Γ])
+          (match-let ([(-Γ φs as) Γ])
             (define φs*
-              (for*/set: : (℘ -e) ([e φs]
-                                   [fv⟦e⟧ (in-value (fv e))]
-                                   #:unless (set-empty? fv⟦e⟧)
-                                   #:when (⊆ fv⟦e⟧ fvs))
-                e))
+              (for*/set: : (℘ -t) ([φ φs]
+                                   [fv⟦φ⟧ (in-value (fvₜ φ))]
+                                   #:unless (set-empty? fv⟦φ⟧)
+                                   #:when (⊆ fv⟦φ⟧ fvs))
+                φ))
             (define as* #|TODO|# as)
-            (define γs* #|TODO|# γs)
-            (-Γ φs* as* γs*)))
-        (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) s) $ Γ ⟪ℋ⟫ Σ))]
+            (-Γ φs* as*)))
+        (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) t) $ Γ ⟪ℋ⟫ Σ))]
      [(-case-λ clauses)
       (define ⟦clause⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
         (for/list ([clause clauses])
           (match-define (cons xs e) clause)
           (cons xs (↓ e))))
+      (define t (-case-λ clauses))
+      #;(printf "Warning: no longer canonicalize λ-term~n")
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (define s (canonicalize-e Γ e))
-        (⟦k⟧ (-W (list (-Case-Clo ⟦clause⟧s ρ Γ)) s) $ Γ ⟪ℋ⟫ Σ))]
+        (⟦k⟧ (-W (list (-Case-Clo ⟦clause⟧s ρ Γ)) t) $ Γ ⟪ℋ⟫ Σ))]
      [(? -prim? p) (↓ₚᵣₘ p)]
      [(-•)
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -224,7 +225,7 @@
       (define ⟦d⟧ (↓ d))
       (match (map ↓ cs)
         ['()
-         (define c (-?->i '() mk-d ℓ))
+         (define c (-?->i '() mk-d))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
            (define-values (G g) (mk-=>i! Σ Γ ⟪ℋ⟫ '() Mk-D mk-d ℓ))
@@ -241,22 +242,22 @@
       (match ⟦clause⟧s
         ['()
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦k⟧ (-W (list (-Case-> '() ℓ)) e) $ Γ ⟪ℋ⟫ Σ))]
+           (⟦k⟧ (-W (list (-Case-> '() ℓ)) #f #;e) $ Γ ⟪ℋ⟫ Σ))]
         [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (case->∷ ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
      [(-x/c x)
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (⟦k⟧ (-W (list (-x/C (-α->⟪α⟫ (-α.x/c x)))) e) $ Γ ⟪ℋ⟫ Σ))]
-     [(-struct/c si cs ℓ)
+        (⟦k⟧ (-W (list (-x/C (-α->⟪α⟫ (-α.x/c x)))) #f #;e) $ Γ ⟪ℋ⟫ Σ))]
+     [(-struct/c 𝒾 cs ℓ)
       (match (map ↓ cs)
         ['()
-         (define W (-W (list (-St/C #t si '())) e))
+         (define W (-W (list (-St/C #t 𝒾 '())) (-t.@ (-st/c.mk 𝒾) '())))
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
         [(cons ⟦c⟧ ⟦c⟧s)
          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-           (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (struct/c∷ ℓ si '() ⟦c⟧s ρ ⟦k⟧)))])]
+           (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (struct/c∷ ℓ 𝒾 '() ⟦c⟧s ρ ⟦k⟧)))])]
      [_ (error '↓ₑ "unhandled: ~a" (show-e e))])
    e))
 

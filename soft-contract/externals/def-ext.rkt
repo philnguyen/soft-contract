@@ -59,13 +59,13 @@
      #`(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (match-define (-Σ σ σₖ _) Σ)
-         (define sₐ (-?@ 'o (-W¹-s W) ...))
+         (define sₐ (?t@ 'o (-W¹-t W) ...))
          (define Wₐ (-W (list #,(parameterize ([-σ #'σ])
                                   (gen-wrap #'d #'-●.V #'sₐ)))
                         sₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
          (define αₖ (-ℋ𝒱))
-         (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ 'void '()))
+         (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ '()))
          (σₖ⊕! Σ αₖ κ)
          {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]
 
@@ -75,7 +75,7 @@
         #:result e)
      #'(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W c] ...)
-         (define sₐ (apply -?@ 'o (map -W¹-s Ws)))
+         (define sₐ (apply ?t@ 'o (map -W¹-t Ws)))
          (⟦k⟧ (-W e sₐ) $ Γ ⟪ℋ⟫ Σ))]
 
     ;; Custom modes for hacking
@@ -110,7 +110,7 @@
                  (gen-precond-checks
                   (gen-arg-wraps
                    (syntax->list #'(e ...))))))))
-     ;(pretty-write (syntax->datum defn-o))
+     #;(pretty-write (syntax->datum defn-o))
      (gen-defn #'o #'.o defn-o)]
     
     ;; Skipping precondition checks

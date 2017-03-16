@@ -138,13 +138,13 @@
                       (and body
                            #`(andmap (λ ([x : Base]) #,body) #,(-b*)))]))
                  (and base-guard-rest (and* (list base-guard-init base-guard-rest)))]))
-            (list #`[((-b b) ... (app ss->bs #,(-b*))) #:when (and #,(-b*) #,base-guard)
+            (list #`[((-b b) ... (app ts->bs #,(-b*))) #:when (and #,(-b*) #,base-guard)
                      (define bₐ mk-bₐ)
                      {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
            [else '()]))
        (define/with-syntax (symbolic-case-clauses ...)
          (list #`[(s ... #,(-s*)) #,@(gen-sym-case)]))
-       (list #`(match* ((-W¹-s W) ... (map -W¹-s #,(-W*)))
+       (list #`(match* ((-W¹-t W) ... (map -W¹-t #,(-W*)))
                  concrete-case-clauses ...
                  symbolic-case-clauses ...))]
       [else
@@ -163,7 +163,7 @@
        (define/with-syntax (symbolic-case-clauses ...)
          (list #`[(s ...) #,@(gen-sym-case)]))
        (list
-        #`(match* ((-W¹-s W) ...)
+        #`(match* ((-W¹-t W) ...)
             concrete-case-clauses ...
             symbolic-case-clauses ...))]))
 
@@ -267,12 +267,12 @@
                c)]
              [((~literal list/c) c* ...)
               (go (desugar-list/c (syntax->list #'(c* ...))))]
-             [((~literal =/c) x) (list (list #''real? #'(-=/c x)))]
+             [((~literal =/c) x) (list (list #''real? #'(-≡/c x)))]
              [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
              [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
              [((~literal </c) x) (list (list #''real? #'(-</c x)))]
              [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
-             [x:lit (list (list #'(-≡/c (-b x))))]
+             [x:lit (list (list #'(-≡/c x)))]
              [(~literal any/c) (list (list))]
              [(~literal none/c) (list)]
              [c:id {list (list #''c)}]))]
@@ -294,8 +294,8 @@
 
     (define/with-syntax mk-sₐ
       (cond [(-volatile?) #'#f]
-            [dom-rest #`(apply -?@ '#,(-o) #,@(-sₙ) #,(-s*))]
-            [else #`(-?@ '#,(-o) #,@(-sₙ))]))
+            [dom-rest #`(apply ?t@ '#,(-o) #,@(-sₙ) #,(-s*))]
+            [else #`(?t@ '#,(-o) #,@(-sₙ))]))
 
     (cond
       [(null? (-refs))
@@ -506,13 +506,13 @@
                                   [else (on-done c pos*?)])))])))]
           [((~literal list/c) c* ...)
            (go! (desugar-list/c (syntax->list #'(c* ...))) pos? on-done)]
-          [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'-=/c)]
+          [((~literal =/c ) x) (gen-comp/c-case #'x #'=  #'-≡/c)]
           [((~literal </c ) x) (gen-comp/c-case #'x #'<  #'-</c)]
           [((~literal <=/c) x) (gen-comp/c-case #'x #'<= #'-≤/c)]
           [((~literal >/c ) x) (gen-comp/c-case #'x #'>  #'->/c)]
           [((~literal >=/c) x) (gen-comp/c-case #'x #'>= #'-≥/c)]
           [x:lit
-           (define why (if pos? #'(-≡/c bₓ) #'(-not/c (-≡/c bₓ))))
+           (define why (if pos? #'(-≡/c x) #'(-≢/c x)))
            (push-local-thunk!
             (gen-name!)
             (list #'(define bₓ (-b x))
