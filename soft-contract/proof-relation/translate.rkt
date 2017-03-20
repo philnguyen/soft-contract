@@ -85,7 +85,7 @@
   (define disjuncts : (Listof (M Z3-Ast))
     (for/list ([ΓA (in-set ΓAs)] #:when (-W? (-ΓA-ans ΓA)))
       (define-values (pc ?ans fvs) (⦃ΓA⦄ (Ctx (list->seteq xs) (make-hash)) ΓA))
-      (define cnd : (M Z3-Ast) (λ () (apply and/s ((list-M (set->list pc))))))
+      (define cnd : (M Z3-Ast) (λ () (and/s/simp ((list-M (set->list pc))))))
       (define ?eqn : (Option (M Z3-Ast))
         (and ?ans (λ () (=/s (apply @/s f params) (?ans)))))
       (define φ : (M Z3-Ast)
@@ -105,10 +105,7 @@
      (assert!
       (dynamic-∀/s params (param-sorts)
                    (=>/s (@/s 'is-Val (apply @/s f params))
-                         (apply or/s ((list-M disjuncts))))
-                   #;(or/s (@/s 'is-None (apply @/s f params))
-                         (and/s (@/s 'is-Val (apply @/s f params))
-                                (apply or/s ((list-M disjuncts)))))
+                         (or/s/simp ((list-M disjuncts))))
                    #:pattern (list (pattern-of (apply @/s f params))))))
    globals))
 
@@ -164,22 +161,22 @@
 ;; The reason the set of free variables is not part of the computation
 ;; is because they are meant to be either declared or abstracted over.
 (define (⦃t⦄ ctx t)
-  (cond
-    [(hash-ref (Ctx-cache ctx) t #f) =>
-     (λ ([res : (M Z3-Ast)]) (values res ∅eq ∅eq))]
-    [else
-     (define-set free-vars : Symbol #:eq? #t)
-     (define-set preconds : (M Z3-Ast) #:eq? #t)
+  (define-set free-vars : Symbol #:eq? #t)
+  (define-set preconds : (M Z3-Ast) #:eq? #t)
 
-     (: fresh-free! : Symbol → Symbol)
-     (define (fresh-free! prefix)
-       (hash-update! fresh-ids prefix add1 (λ () 0))
-       (define i (hash-ref fresh-ids prefix))
-       (define x (format-symbol "~a.~a" prefix i))
-       (free-vars-add! x)
-       x)
+  (: fresh-free! : Symbol → Symbol)
+  (define (fresh-free! prefix)
+    (hash-update! fresh-ids prefix add1 (λ () 0))
+    (define i (hash-ref fresh-ids prefix))
+    (define x (format-symbol "~a.~a" prefix i))
+    (free-vars-add! x)
+    x)
 
-     (define/memo (go! [t : -t]) : (M Z3-Ast)
+  (define (go! [t : -t]) : (M Z3-Ast)
+    (hash-ref!
+     (Ctx-cache ctx)
+     t
+     (λ ()
        (match t
          [(-x x)
           (define t (⦃x⦄ x))
@@ -198,40 +195,40 @@
           (define t (fresh-free! 'lam))
           (preconds-add! (λ () (@/s 'is-Proc t)))
           (λ () (val-of t))]
-         [(-t.@ h ts) (go-@! h (map go! ts))]))
+         [(-t.@ h ts) (go-@! h (map go! ts))]))))
 
-     (: go-@! : -h (Listof (M Z3-Ast)) → (M Z3-Ast))
-     (define (go-@! h ⦃t⦄s)
-       (match h
-         [(? -o? h)
-          (or (⦃prim⦄ h ⦃t⦄s)
-              (let ([t (fresh-free! 'prim-app)])
-                (λ () (val-of t))))]
-         [(? -αₖ? αₖ)
-          (cond
-            [(ignore? αₖ)
-             (define t (fresh-free! 'ignore-app))
-             (λ () (val-of t))]
-            [else
-             (define f (αₖ-name αₖ))
-             (define tₐ (fresh-free! 'app))
-             (preconds-add! (λ () (=/s (@/s 'Val (val-of tₐ)) (apply @/s f ((list-M ⦃t⦄s))))))
-             (λ () (val-of tₐ))])]
-         [(-One-Of/C bs)
-          (define ⦃b⦄s (map ⦃b⦄ bs))
-          (do
-              [bs : (Listof Z3-Ast) ← (list-M ⦃b⦄s)]
-              [(list t) ≔ (list-M ⦃t⦄s)]
-            (@/s 'B (apply or/s (for/list : (Listof Z3-Ast) ([bᵢ (in-list bs)])
-                                  (=/s t bᵢ)))))]
-         [_
-          (warn-unsupported h)
-          (define t (fresh-free! 'unhandled))
-          (λ () (val-of t))]))
+  (: go-@! : -h (Listof (M Z3-Ast)) → (M Z3-Ast))
+  (define (go-@! h ⦃t⦄s)
+    (match h
+      [(? -o? h)
+       (or (⦃prim⦄ h ⦃t⦄s)
+           (let ([t (fresh-free! 'prim-app)])
+             (λ () (val-of t))))]
+      [(? -αₖ? αₖ)
+       (cond
+         [(ignore? αₖ)
+          (define t (fresh-free! 'ignore-app))
+          (λ () (val-of t))]
+         [else
+          (define f (αₖ-name αₖ))
+          (define tₐ (fresh-free! 'app))
+          (preconds-add! (λ () (=/s (@/s 'Val (val-of tₐ)) (apply @/s f ((list-M ⦃t⦄s))))))
+          (λ () (val-of tₐ))])]
+      [(-One-Of/C bs)
+       (define ⦃b⦄s (map ⦃b⦄ bs))
+       (do
+           [bs : (Listof Z3-Ast) ← (list-M ⦃b⦄s)]
+           [(list t) ≔ (list-M ⦃t⦄s)]
+         (@/s 'B (or/s/simp (for/list : (Listof Z3-Ast) ([bᵢ (in-list bs)])
+                              (=/s t bᵢ)))))]
+      [_
+       (warn-unsupported h)
+       (define t (fresh-free! 'unhandled))
+       (λ () (val-of t))]))
 
-     (define res (go! t))
-     (hash-set! (Ctx-cache ctx) t res)
-     (values res preconds free-vars)]))
+  (define res (go! t))
+  (hash-set! (Ctx-cache ctx) t res)
+  (values res preconds free-vars))
 
 (: ⦃prim⦄ : -o (Listof (M Z3-Ast)) → (Option (M Z3-Ast)))
 ;; Return computation that returns Z3-Ast of sort `V`
@@ -685,3 +682,17 @@
       (hash-ref! m h
                  (λ ()
                    (printf "existentialize result for unsupported ~a~n" (show-h h)))))))
+
+(: and/s/simp : (Listof Z3-Ast) → Z3-Ast)
+(define (and/s/simp clauses)
+  (match clauses
+    ['() true/s]
+    [(list clause) clause]
+    [_ (apply and/s clauses)]))
+
+(: or/s/simp : (Listof Z3-Ast) → Z3-Ast)
+(define (or/s/simp clauses)
+  (match clauses
+    ['() false/s]
+    [(list clause) clause]
+    [_ (apply or/s clauses)]))
