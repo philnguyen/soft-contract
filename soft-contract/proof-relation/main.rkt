@@ -2,6 +2,7 @@
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢t Γ+/-V MΓ+/-oW with-Γ+/-
          plausible-index? plausible-indices
+         external-solver
          (all-from-out "local.rkt" "widen.rkt"))
 
 (require racket/match
@@ -13,8 +14,15 @@
          "../runtime/main.rkt"
          "result.rkt"
          "local.rkt"
-         "ext.rkt"
          "widen.rkt")
+
+(define-parameter external-solver : (-M -Γ -t → -R)
+  (let ([warned? : Boolean #f])
+    (λ (M Γ t)
+      (unless warned?
+        (set! warned? #t)
+        (printf "Warning: external solver not set~n"))
+      '?)))
 
 (: MΓ⊢V∈C : -M -σ -Γ -W¹ -W¹ → -R)
 ;; Check if value satisfies (flat) contract
@@ -100,7 +108,7 @@
              (printf "-----------------------------------------~n")
              (printf "~a~n~n" (show-t t)))
 
-           (if should-call-smt? (ext-prove M Γ t) '?)]
+           (if should-call-smt? ((external-solver) M Γ t) '?)]
           [R R])]
        [else '?]))
     (when s #;(match? s (-@ 'equal? _ _))

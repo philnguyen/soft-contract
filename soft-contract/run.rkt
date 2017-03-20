@@ -7,9 +7,13 @@
          "ast/main.rkt"
          "runtime/definition.rkt"
          "parse/main.rkt"
+         (only-in "proof-relation/ext.rkt" ext-prove)
+         (only-in "proof-relation/main.rkt" external-solver)
          "reduction/compile/main.rkt"
          "reduction/quick-step.rkt"
          "reduction/havoc.rkt")
+
+(external-solver ext-prove)
 
 (: run-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (run-file p) (run-files (list p)))
