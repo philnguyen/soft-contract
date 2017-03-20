@@ -173,8 +173,6 @@
             (-ar.ctc)
             (-ar.fun)
             (-values.ac Index)
-            (-ok)
-            (-er)
             (-≥/c Base)
             (-≤/c Base)
             (->/c Base)
@@ -206,6 +204,13 @@
       [t #:when (∋ ts t) #t]
       [(-t.@ _ ts) (ormap go ts)]
       [_ #f])))
+
+(: has-abstraction? : -t → Boolean)
+(define has-abstraction?
+  (match-lambda
+    [(-t.@ h ts)
+     (or (-αₖ? h) (ormap has-abstraction? ts))]
+    [_ #f]))
 
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable
@@ -465,8 +470,6 @@
     [(-ar.ctc) 'arr.ctc]
     [(-ar.fun) 'arr.fun]
     [(-values.ac i) (format-symbol "values._~a" (n-sub i))]
-    [(-ok) 'ok]
-    [(-er) 'er]
     [(-≥/c b) `(≥/c ,(show-b b))]
     [(-≤/c b) `(≤/c ,(show-b b))]
     [(->/c b) `(>/c ,(show-b b))]
@@ -479,7 +482,7 @@
   (match ?t
     [#f '∅]
     [(? -e? e) (show-e e)]
-    [(-t.@ h ts) `(,(show-h h) @ ,@(map show-t ts))]))
+    [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
 
 (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
   (match-define (-Γ ts as) Γ)

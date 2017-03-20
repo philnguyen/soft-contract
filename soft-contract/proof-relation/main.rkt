@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (provide MΓ⊢V∈C MΓ⊢oW MΓ⊢t Γ+/-V MΓ+/-oW with-Γ+/-
-         #;plausible-return? #;plausible-return?/cheap
          plausible-index? plausible-indices
          (all-from-out "local.rkt" "widen.rkt"))
 
@@ -75,31 +74,33 @@
         (match (φs⊢t (-Γ-facts Γ) t)
           ['?
 
-           (define (call-ext) : -R
-             #;(begin
-               (printf "TODO: restore ext~n")
-               (printf "M:~n")
-               (for ([(a As) M])
-                 (printf "  * ~a ↦ ~a~n" (show-αₖ a) (set-map As show-ΓA)))
-               (printf "Γ: ~a~n" (show-Γ Γ))
-               (printf "-----------------------------------------~n")
-               (printf "~a~n~n" (show-t t)))
-             '?
-             #;(ext-prove M Γ t))
-           
            ;; Heuristic avoiding calling out to solvers
            ;; However this heuristic is implemented should be safe in terms of soundness.
            ;; Not calling out to solver when should only hurts precision.
            ;; Calling out to solver when there's no need only hurts performance.
-           (match t
-             [(-t.@ _ ts)
-              (define ts* (for/set: : (℘ -t) ([t ts] #:unless (-b? t)) t))
-              (cond
-                [(for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
-                   (t-contains-any? φ ts*))
-                 (call-ext)]
-                [else #;(printf "heuristitcally skip ext solver~n") '?])]
-             [_ (call-ext)])]
+           (define should-call-smt?
+             (match t
+               [(-t.@ h ts)
+                (define ts* (for/set: : (℘ -t) ([t ts] #:unless (-b? t)) t))
+                (and
+                 (or (memq t '(< > <= >=))
+                     (has-abstraction? t)
+                     (for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
+                       (has-abstraction? φ)))
+                 (for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
+                   (t-contains-any? φ ts*)))]
+               [_ #t]))
+
+           #;(begin
+             (printf "should call? ~a~n" should-call-smt?)
+             (printf "M:~n")
+             (for ([(a As) M])
+               (printf "  * ~a ↦ ~a~n" (show-αₖ a) (set-map As show-ΓA)))
+             (printf "Γ: ~a~n" (show-Γ Γ))
+             (printf "-----------------------------------------~n")
+             (printf "~a~n~n" (show-t t)))
+
+           (if should-call-smt? (ext-prove M Γ t) '?)]
           [R R])]
        [else '?]))
     (when s #;(match? s (-@ 'equal? _ _))
@@ -134,14 +135,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Plausibility checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-#;(: plausible-return? : -M -Γ -γ -Γ → Boolean)
-#;(define plausible-return? ext-plausible-return?)
-
-#;(: plausible-return?/cheap : -M -Γ -γ -Γ → Boolean)
-#;(define (plausible-return?/cheap M Γₑᵣ γ Γₑₑ)
-  (match-define (-Γ φs _ _) Γₑᵣ)
-  (ext-plausible-return? M (-Γ φs (hasheq) '()) γ Γₑₑ))
 
 (: plausible-index? : -M -σ -Γ -W¹ Natural → Boolean)
 (define (plausible-index? M σ Γ W i)

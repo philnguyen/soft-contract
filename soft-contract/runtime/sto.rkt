@@ -125,14 +125,16 @@
 
 (: Γ->αₖs : -Γ → (℘ -αₖ))
 (define (Γ->αₖs Γ)
-  (match-define (-Γ ts _) Γ)
-  (for/union : (℘ -αₖ) ([t ts])
+  (for/union : (℘ -αₖ) ([t (-Γ-facts Γ)])
     (t->αₖs t)))
 
 (: ΓA->αₖs : -ΓA → (℘ -αₖ))
 (define (ΓA->αₖs ΓA)
-  (match-define (-ΓA Γ _) ΓA)
-  (Γ->αₖs Γ))
+  (match-define (-ΓA Γ A) ΓA)
+  (∪ (Γ->αₖs Γ)
+     (match A
+       [(-W _ t) #:when t (t->αₖs t)]
+       [_ ∅])))
 
 (: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
 (define (αₖ->⟪α⟫s αₖ σₖ)
