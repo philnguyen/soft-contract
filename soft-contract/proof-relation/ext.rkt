@@ -14,7 +14,7 @@
          "translate.rkt")
 
 
-(define-parameter Timeout : Nonnegative-Fixnum 5000)
+(define-parameter Timeout : Nonnegative-Fixnum 100)
 (Sat-Result . ::= . Smt-Sat 'timeout)
 (toggle-warning-messages! #f)
 
@@ -24,7 +24,7 @@
 
 (define/memo (raw-ext-prove [M : -M] [Γ : -Γ] [t : -t]) : -R
 
-  (begin
+  #;(begin
       (printf "M:~n")
       (for ([(a As) M])
         (printf "  * ~a ↦ ~a~n" (show-αₖ a) (set-map As show-ΓA)))
@@ -63,7 +63,7 @@
   (case (run (do
                 do-base
                 (assert-false! (do-t))
-                (λ ()
+               #;(λ ()
                   (print-current-assertions)
                   (printf "check false~n~n"))
                 check-sat))
