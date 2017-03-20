@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide ext-prove Timeout)
+(provide ext-prove)
 
 (require racket/match
          racket/set
@@ -14,7 +14,6 @@
          "translate.rkt")
 
 
-(define-parameter Timeout : Nonnegative-Fixnum 100)
 (Sat-Result . ::= . Smt-Sat 'timeout)
 (toggle-warning-messages! #f)
 
@@ -33,7 +32,7 @@
       (printf "~a~n~n" (show-t t)))
 
   (define (set-default-options!)
-    (set-options! #:timeout (Timeout)
+    (set-options! #:timeout (assert (estimate-time-limit M Γ t) fixnum?)
                   #:mbqi? #t
                   #:macro-finder? #t
                   #:rlimit 4000000))
@@ -78,3 +77,10 @@
                   check-sat))
        [(unsat) '✗]
        [(sat unknown) '?])]))
+
+(: estimate-time-limit : -M -Γ -t → Natural)
+(define (estimate-time-limit M Γ t)
+  (define Timeout-Factor 5)
+  (define count
+    (for/sum : Natural ([s (in-hash-values M)]) (set-count s)))
+  (* count Timeout-Factor))
