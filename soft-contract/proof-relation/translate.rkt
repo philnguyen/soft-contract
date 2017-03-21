@@ -216,11 +216,26 @@
           (λ () (val-of tₐ))])]
       [(-One-Of/C bs)
        (define ⦃b⦄s (map ⦃b⦄ bs))
-       (do
-           [bs : (Listof Z3-Ast) ← (list-M ⦃b⦄s)]
-           [(list t) ≔ (list-M ⦃t⦄s)]
-         (@/s 'B (or/s/simp (for/list : (Listof Z3-Ast) ([bᵢ (in-list bs)])
+       (λ ()
+         (match-define (list t) ((list-M ⦃t⦄s)))
+         (@/s 'B (or/s/simp (for/list : (Listof Z3-Ast) ([bᵢ (in-list ((list-M ⦃b⦄s)))])
                               (=/s t bᵢ)))))]
+      [(-≥/c (? real? b))
+       (λ ()
+         (match-define (list t) ((list-M ⦃t⦄s)))
+         (@/s 'B (>=/s b (@/s 'real t))))]
+      [(-≤/c (? real? b))
+       (λ ()
+         (match-define (list t) ((list-M ⦃t⦄s)))
+         (@/s 'B (<=/s b (@/s 'real t))))]
+      [(-</c (? real? b))
+       (λ ()
+         (match-define (list t) ((list-M ⦃t⦄s)))
+         (@/s 'B (</s  b (@/s 'real t))))]
+      [(->/c (? real? b))
+       (λ ()
+         (match-define (list t) ((list-M ⦃t⦄s)))
+         (@/s 'B (>/s  b (@/s 'real t))))]
       [_
        (warn-unsupported h)
        (define t (fresh-free! 'unhandled))
