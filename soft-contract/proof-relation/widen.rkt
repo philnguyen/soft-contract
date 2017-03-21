@@ -452,8 +452,18 @@
       (values (hash-set arg->x (-W¹-t W) x)
               (hash-set x->V x (-W¹-V W)))))
 
-  (define er->ee : (-t → -?t)
-    (match-lambda
+  (: er->ee : -t → -?t)
+  (define (er->ee t)
+
+    (: keep? : -t → Boolean)
+    (define keep?
+      (set->predicate
+       (for/union : (℘ -t) ([x fvs])
+          (cond [(hash-ref asₑₑ x #f) =>
+                 (λ ([t* : -t]) {set t t*})]
+                [else {set t}]))))
+
+    (match t
       [arg #:when (hash-has-key? arg->x arg) (-x (hash-ref arg->x arg))]
       [(-t.@ f xs)
        (and (h-unique? f)
@@ -461,8 +471,7 @@
               (and (andmap -t? xs*) (-t.@ f xs*))))]
       [(? -prim? b) b]
       [(? -𝒾? 𝒾) 𝒾]
-      [(and t (-x x)) #:when (∋ fvs x) t]
-      [_ #f]))
+      [t (and (keep? t) t)]))
 
   ;; Avoid redundant symbols that may blow up the state unnecessarily
   (define (redundant? [t : -t])
@@ -484,7 +493,12 @@
 
   (define asₑₑ* (accum-aliases asₑₑ fml (map -W¹-t Ws)))
 
-  (-Γ φsₑₑ* asₑₑ*))
+  (with-debugging/off ((Γₑₑ*) (-Γ φsₑₑ* asₑₑ*))
+    (printf "caller->callee: ~a -> ~a~n" (show-formals fml) (map show-W¹ Ws))
+    (printf "free: ~a~n" (set->list fvs))
+    (printf "  - Γₑᵣ : ~a~n"   (show-Γ Γₑᵣ))
+    (printf "  - Γₑₑ : ~a~n"   (show-Γ Γₑₑ))
+    (printf "  - Γₑₑ*: ~a~n~n" (show-Γ Γₑₑ*))))
 
 (: accum-aliases : (HashTable Symbol -t) -formals (Listof -?t) → (HashTable Symbol -t))
 (define (accum-aliases as fml args)

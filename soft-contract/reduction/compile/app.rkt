@@ -220,10 +220,12 @@
           (ρ+ ρ₀ z αᵣ)]))
 
      (define Γₕ*
-       (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ)) (fv sₕ) ∅eq)])
+       (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ))
+                      (∪ (fv sₕ) (list->seteq (hash-keys (-Γ-aliases Γₕ))))
+                      ∅eq)])
          (inv-caller->callee (-Σ-σ Σ) fvs xs Wₓs Γ Γₕ)))
 
-     (define αₖ (-ℬ xs ⟦e⟧ ρ* #;(-Γ-facts Γₕ*)))
+     (define αₖ (-ℬ xs ⟦e⟧ ρ*))
      (define κ (-κ (make-memoized-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₓs))
      (σₖ⊕! Σ αₖ κ)
      {set (-ς↑ αₖ Γₕ* ⟪ℋ⟫ₑₑ)}]

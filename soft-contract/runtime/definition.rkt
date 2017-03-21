@@ -183,10 +183,14 @@
 (-?t . ::= . -t #f)
 
 (: h-unique? : -h → Boolean)
-(define h-unique?
-  (match-lambda
-    [(-ℬ _ _ ρ) (hash-empty? ρ)]
+(define (h-unique? h)
+  (with-debugging/off ((u?) (match h
+    [(-ℬ xs _ ρ)
+     (set-empty? (set-remove (set-subtract (list->seteq (hash-keys ρ))
+                               (formals->names xs))
+                             -x-dummy))]
     [_ #|be careful when I have new stuff|# #t]))
+    (printf "h-unique? ~a : ~a~n" (show-h h) u?)))
 
 (: t-unique? : -t → Boolean)
 ;; Check if term definiltey stands for a unique value.

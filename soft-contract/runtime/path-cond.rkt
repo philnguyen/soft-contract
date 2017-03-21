@@ -66,7 +66,6 @@
          ;; unary
          [(-t.@ 'negative? (list (== t))) (set-add ps (-</c 0))]
          [(-t.@ 'positive? (list (== t))) (set-add ps (->/c 0))]
-         [(-t.@ (? -o? o)  (list (== t))) (set-add ps o)]
          ;; binary
          [(-t.@ (? -special-bin-o? o) (list (== t) (-b b)))
           (set-add ps ((bin-o->h o) b))]
@@ -80,6 +79,8 @@
           (set-add ps ((bin-o->h (neg-bin-o o)) b))]
          [(-t.@ 'not (list (-t.@ (? -special-bin-o? o) (list (-b b) (== t)))))
           (set-add ps ((bin-o->h (neg-bin-o (flip-bin-o o))) b))]
+         ;; Keep anything purely syntactic
+         [(-t.@ (? h-unique? h)  (list (== t))) (set-add ps h)]
          [_ ps]))]
     [else ∅]))
 
