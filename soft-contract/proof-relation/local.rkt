@@ -90,7 +90,7 @@
                   [(✗ ?) '?])]
                [(t₁ (-t.not t₂*))
                 (not-R (t⊢t t₁ t₂*))]
-               [((-t.@ (? -v? p) (list t)) (-t.@ (? -v? q) (list t)))
+               [((-t.@ (? -h? p) (list t)) (-t.@ (? -h? q) (list t)))
                 (p⇒p p q)] ; FIXME
                [((-t.@ (? -o? p) (list t)) t)
                 (cond
@@ -157,13 +157,13 @@
      (boolean->R (equal? si sj))]
 
     ;; Negate
-    [((-not/c (? -v? p)) (-not/c (? -v? q)))
+    [((-not/c (? -h? p)) (-not/c (? -h? q)))
      (case (p⇒p q p)
        [(✓) '✓]
        [else '?])]
-    [(p (-not/c (? -v? q)))
+    [(p (-not/c (? -h? q)))
      (not-R (p⇒p p q))]
-    [((-not/c (? -v? p)) q)
+    [((-not/c (? -h? p)) q)
      (case (p⇒p q p)
        [(✓) '✗]
        [else '?])]
@@ -518,7 +518,7 @@
           ;; Default rules for operations on base values rely on simplification from `-?@`
           [(boolean-excludes? (get-conservative-range p)) '✓]
           [else '?])]
-       [(-not/c (? -v? p))
+       [(-not/c (? -h? p))
         (not-R (apply p∋Vs σ p Vs))]
        [(-λ (list x) (-@ 'not (list e) _))
         (not-R (apply p∋Vs σ (-λ (list x) e) Vs))] ; more general than the `not/c` case
@@ -559,7 +559,7 @@
 
 (: ps⇒p : (℘ -h) -h → -R)
 (define (ps⇒p ps p)
-  (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-v? q))
+  (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-h? q))
         (case (p⇒p q p)
           [(✓) '✓]
           [(✗) '✗]
