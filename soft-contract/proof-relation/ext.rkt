@@ -59,10 +59,10 @@
   
   ;; TODO: Z3's incremental solver eats of memory and locks up my computer
   ;; if query has `is_int`, so I'm running 2 fresh queries worst case here.
-  (case (run (do
+  (with-debugging/off ((R) (case (run (do
                 do-base
                 (assert-false! (do-t))
-               #;(λ ()
+                #;(λ ()
                   (print-current-assertions)
                   (printf "check false~n~n"))
                 check-sat))
@@ -77,6 +77,7 @@
                   check-sat))
        [(unsat) '✗]
        [(sat unknown) '?])]))
+    (printf "  --> ~a~n~n" R)))
 
 (: estimate-time-limit : -M -Γ -t → Natural)
 (define (estimate-time-limit M Γ t)
