@@ -81,13 +81,18 @@
   (define params (map ⦃x⦄ xs))
   (define num-params (length params))
   (define-set globals : Symbol #:eq? #t)
+
+  (define app
+    (if (0-arg? αₖ)
+        (λ () (val-of f))
+        (λ () (apply @/s f params))))
   
   (define disjuncts : (Listof (M Z3-Ast))
     (for/list ([ΓA (in-set ΓAs)] #:when (-W? (-ΓA-ans ΓA)))
       (define-values (pc ?ans fvs) (⦃ΓA⦄ (Ctx (list->seteq xs) (make-hash)) ΓA))
       (define cnd : (M Z3-Ast) (λ () (and/s/simp ((list-M (set->list pc))))))
       (define ?eqn : (Option (M Z3-Ast))
-        (and ?ans (λ () (=/s (apply @/s f params) (?ans)))))
+        (and ?ans (λ () (=/s (app) (?ans)))))
       (define φ : (M Z3-Ast)
         (if ?eqn (λ () (and/s (cnd) (?eqn))) cnd))
       (define fvs* (set-subtract fvs refs))
@@ -104,9 +109,9 @@
    (λ ()
      (assert!
       (dynamic-∀/s params (param-sorts)
-                   (=>/s (@/s 'is-Val (apply @/s f params))
+                   (=>/s (@/s 'is-Val (app))
                          (or/s/simp ((list-M disjuncts))))
-                   #:pattern (list (pattern-of (apply @/s f params))))))
+                   #:pattern (list (pattern-of (app))))))
    globals))
 
 (: ⦃ΓA⦄ : Ctx -ΓA → (Values (℘ (M Z3-Ast)) (Option (M Z3-Ast)) (℘ Symbol)))
@@ -212,7 +217,12 @@
          [else
           (define f (αₖ-name αₖ))
           (define tₐ (fresh-free! 'app))
-          (preconds-add! (λ () (=/s (@/s 'Val (val-of tₐ)) (apply @/s f ((list-M ⦃t⦄s))))))
+          (preconds-add!
+           (let ([app
+                  (if (0-arg? αₖ)
+                      (λ () (val-of f))
+                      (λ () (apply @/s f ((list-M ⦃t⦄s)))))])
+             (λ () (=/s (@/s 'Val (val-of tₐ)) (app)))))
           (λ () (val-of tₐ))])]
       [(-One-Of/C bs)
        (define ⦃b⦄s (map ⦃b⦄ bs))
@@ -674,6 +684,12 @@
     [(-ℬ (? -var?) _ _) #t]
     [_ #f]))
 
+(: 0-arg? : -αₖ → Boolean)
+(define 0-arg?
+  (match-lambda
+    [(-ℬ '() _ _) #t]
+    [_ #f]))
+
 (: next-int! : → Natural)
 (define next-int!
   (let ([i : Natural 0])
@@ -686,7 +702,8 @@
   (define (αₖ-name [αₖ : -αₖ])
     (hash-ref! cache αₖ (λ ()
                           (assert (not (ignore? αₖ)))
-                          (format-symbol "f.~a" (hash-count cache))))))
+                          (define prefix (if (0-arg? αₖ) 'c 'f))
+                          (format-symbol "~a.~a" prefix (hash-count cache))))))
 
 (define fresh-ids : (HashTable Symbol Natural) (make-hasheq))
 
