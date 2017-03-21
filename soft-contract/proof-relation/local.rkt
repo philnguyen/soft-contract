@@ -453,6 +453,10 @@
                 [(list _ ... (-≥/c (? real? a)) _ ...) (if (>  a b) '✗ '?)]
                 [(list _ ... (-≡/c (? real? a)) _ ...) #:when a (if (<  a b) '✓ '✗)]
                 [_ '?])]
+             [(list (-b (? real? b)) (-● ps))
+              #:when (and (<= b 0)
+                          (∋ ps 'exact-positive-integer?))
+              '✓]
              [_ '?])]
           [(<=)
            (match Vs
@@ -464,6 +468,10 @@
                 [(list _ ... (-≥/c (? real? a)) _ ...) (if (>  a b) '✗ '?)]
                 [(list _ ... (-≡/c (? real? a)) _ ...) #:when a (if (<= a b) '✓ '✗)]
                 [_ '?])]
+             [(list (-b (? real? b)) (-● ps))
+              #:when (and (<= b 0)
+                          (∋ ps 'exact-nonnegative-integer?))
+              '✓]
              [_ '?])]
           [(>) (p∋Vs σ '< (second Vs) (first Vs))]
           [(>=) (p∋Vs σ '<= (second Vs) (first Vs))]
