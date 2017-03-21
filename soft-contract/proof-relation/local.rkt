@@ -108,6 +108,15 @@
                [((-t.@ (? op-≡?) (list (-b b₁) t))
                  (-t.@ (? op-≡?) (list (-b b₂) t)))
                 (boolean->R (equal? b₁ b₂))]
+               ;; Ariths
+               [((or (-t.@ (? op-≡?) (list t (-b b₁)))
+                     (-t.@ (? op-≡?) (list (-b b₁) t)))
+                 (-t.@ (? -special-bin-o? o) (list t (-b b₂))))
+                (p⇒p (-≡/c b₁) ((bin-o->h o) b₂))]
+               [((or (-t.@ (? op-≡?) (list t (-b b₁)))
+                     (-t.@ (? op-≡?) (list (-b b₁) t)))
+                 (-t.@ (? -special-bin-o? o) (list (-b b₂) t)))
+                (p⇒p (-≡/c b₁) ((bin-o->h (flip-bin-o o)) b₂))]
                [(_ _) '?])]
             [R R])]))
       (printf "~a ⊢ ~a : ~a~n" (show-t t₁) (show-t t₂) ans)))
@@ -207,6 +216,11 @@
     
     ; equal?
     [((-≡/c b₁) (-≡/c b₂)) (boolean->R (equal? b₁ b₂))]
+    [((-≡/c b₁) (-≢/c b₂)) (boolean->R (not (equal? b₁ b₂)))]
+    [((-≡/c (? real? b₁)) (-</c (? real? b₂))) (boolean->R (<  b₁ b₂))]
+    [((-≡/c (? real? b₁)) (-≤/c (? real? b₂))) (boolean->R (<= b₁ b₂))]
+    [((-≡/c (? real? b₁)) (->/c (? real? b₂))) (boolean->R (>  b₁ b₂))]
+    [((-≡/c (? real? b₁)) (-≥/c (? real? b₂))) (boolean->R (>= b₁ b₂))]
 
     ;; default
     [(_ _)
