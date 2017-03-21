@@ -508,18 +508,32 @@
       [(? list? xs) xs]
       [(-var xs _ ) xs]))
 
+  ;; specific hack just for octy/ex-{08,12}.rkt
+  (define (restrictedly-occured? [t : -t])
+    (for/or : Boolean ([(x₀ t₀) (in-hash as)])
+      (match? t (-t.@ (? h-unique?) (list (== t₀))))))
+
   (define-values (as* _)
     (for/fold ([as* : (HashTable Symbol -t) as]
-               [seen : (HashTable -t Symbol) (hash)])
+               [seen : (HashTable -t -t) (hash)])
               ([x xs] [arg args])
       (cond
-        [(and arg (hash-ref seen arg #f)) =>
-         (λ ([x₀ : Symbol])
-           (values (hash-set as* x (-x x₀))
-                   (hash-set seen arg x₀)))]
-        [arg (values as (hash-set seen arg x))]
+        [arg
+         (cond
+           [(hash-ref seen arg #f) =>
+            (λ ([t₀ : -t])
+              (values (hash-set as* x t₀) seen))]
+           [(restrictedly-occured? arg)
+            (values (hash-set as* x arg)
+                    (hash-set seen arg arg))]
+           [else (values as (hash-set seen arg (-x x)))])]
         [else (values as seen)])))
 
+  #;(begin
+    (printf "accum-aliases: ~a ↦ ~a~n" (show-formals fml) (map show-t args))
+    (printf "  - old: ~a~n" as)
+    (printf "  - new: ~a~n" as*)
+    (printf "~n"))
   as*)
 
 
