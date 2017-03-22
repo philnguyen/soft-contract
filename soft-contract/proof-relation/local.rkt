@@ -445,6 +445,8 @@
              [_ '✗])]
           [(<)
            (match Vs
+             [(list (-b (? real? b₁)) (-b (? real? b₂)))
+              (boolean->R (< b₁ b₂))]
              [(list (-● ps) (-b (? real? b)))
               (match (set->list ps)
                 [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
@@ -460,6 +462,8 @@
              [_ '?])]
           [(<=)
            (match Vs
+             [(list (-b (? real? b₁)) (-b (? real? b₂)))
+              (boolean->R (<= b₁ b₂))]
              [(list (-● ps) (-b (? real? b)))
               (match (set->list ps)
                 [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
