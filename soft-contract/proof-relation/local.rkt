@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide Γ⊢t φs⊢t ⊢V p∋Vs p⇒p ps⇒p
-         plausible-φs-t? plausible-W? plausible-V-t?
+         plausible-φs-t? plausible-V-t?
          first-R
          sat-one-of
          (all-from-out "result.rkt" "base-assumptions.rkt"))
@@ -237,23 +237,6 @@
             (set-map φs show-e)
             (show-s s)
             a)))
-
-(: plausible-W? : (℘ -t) (Listof -V) -?t → Boolean)
-;; Check if value(s) `Vs` can instantiate symbol `s` given path condition `φs`
-;; - #f indicates a definitely bogus case
-;; - #t indicates (conservative) plausibility
-(define (plausible-W? φs Vs t)
-  (match* (Vs t)
-    [(_ (-t.@ 'values ts))
-     (and (= (length Vs) (length ts))
-          (for/and : Boolean ([V Vs] [t ts])
-            (plausible-V-t? φs V t)))]
-    [((list V) _) #:when t
-     (plausible-V-t? φs V t)]
-    ; length(Vs) ≠ 1, length(s) = 1
-    ; TODO: below doesn't seem true anymore. Check
-    [(_ (or (? -v?) (-t.@ (? -prim?) _))) #f]
-    [(_ _) #t]))
 
 (: plausible-V-t? : (℘ -t) -V -?t → Boolean)
 (define (plausible-V-t? φs V t)
@@ -666,11 +649,9 @@
   (check-? (φs⊢t {set (assert (?t@ 'number? (-x 'x)))} (?t@ 'integer? (-x 'x))))
 
   ;; plausibility
-  (check-false (plausible-W? ∅ (list (-b 1)) (-b 2)))
-  (check-false (plausible-W? ∅ (list (-b 1) (-b 2)) (-b 3)))
-  (check-false (plausible-W? ∅ (list (-b 1) (-b 2)) (?t@ 'values (-b 1) (-b 3))))
-  (check-false (plausible-W? ∅ (list -tt) -ff))
-  (check-true  (plausible-W? ∅ (list -tt) -tt))
+  (check-false (plausible-V-t? ∅ (-b 1) (-b 2)))
+  (check-false (plausible-V-t? ∅ -tt -ff))
+  (check-true  (plausible-V-t? ∅ -tt -tt))
   ;; Next line doens't work because (number? ⇒ (not/c not)) not loaded at this stage
-  (check-false (plausible-W? {set (assert (-t.not (-x 'x)))} (list (-b 0)) (-x 'x)))
+  (check-false (plausible-V-t? {set (assert (-t.not (-x 'x)))} (-b 0) (-x 'x)))
   )
