@@ -426,11 +426,18 @@
   (define φs
     (match V
       [(-● ps) ps]
+      [(-St 𝒾 _) {set (-st-p 𝒾)}]
+      [(-St* (-St/C _ 𝒾 _) _ _) {set (-st-p 𝒾)}]
       [_ ∅]))
-  (with-debugging/off ((res) (for/set: : (℘ -h) ([φ (predicates-of Γ t)]
-                      #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ φ V))))
-    φ))
-    (printf "predicates-of ~a in ~a: ~a~n" (show-W¹ W) (show-Γ Γ) (set-map res show-e))))
+  (define ψs
+    (for/set: : (℘ -h) ([φ (predicates-of Γ t)]
+                        #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ φ V))))
+      φ))
+
+  #;(printf "predicates-of ~a in ~a: ~a ∪ ~a~n"
+          (show-W¹ W) (show-Γ Γ) (set-map φs show-t) (set-map ψs show-t))
+  
+  (∪ φs ψs))
 
 (: inv-caller->callee : -σ (℘ Symbol) -formals (Listof -W¹) -Γ -Γ → -Γ)
 ;; Convert invariants about arguments in caller into those about parameters in callee
