@@ -163,8 +163,7 @@
   (with-debugging/off ((ans) (for/union : (℘ -ς) ([ς ςs])
     (match-define (-ς↓ αₖ Γₑₑ A) ς)
     (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
-      (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ sₓs) κ)
-      (define fargs (apply ?t@ αₖ sₓs))
+      (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tₓs) κ)
       ;(set! total (+ 1 total))
       (match A
         [(-W Vs sₐ)
@@ -176,12 +175,9 @@
             (hash-set! returned key #t)
             (define sₐ*
               (and sₐ
-                   (match fargs ; HACK
-                     [(-@ 'fc (list x) _)
-                      (match Vs
-                        [(list (-b #f)) -ff]
-                        [(list (-b #t) _) (?t@ 'values -tt x)])]
-                     [_ fargs])))
+                   (match* (αₖ tₓs)
+                     [((? -ℳ?) (list t)) t]
+                     [(_ _) (apply ?t@ αₖ tₓs)])))
             (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]
         [(? -blm? blm)
          (match-define (-blm l+ lo _ _ _) blm)
