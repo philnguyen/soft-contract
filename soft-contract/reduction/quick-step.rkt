@@ -154,38 +154,21 @@
 (: ↝↓! : (Listof -ς↓) -Σ → (℘ -ς))
 ;; Quick-step on "pop" state
 (define (↝↓! ςs Σ)
-  
-  ;; To mitigate duplicate returns
-  (define-type Key (List -κ -αₖ (U -blm (Pairof (Listof -V) Boolean))))
-  (define returned : (HashTable Key #t) (make-hash))
   (match-define (-Σ σ σₖ M) Σ)
   
-  (with-debugging/off ((ans) (for/union : (℘ -ς) ([ς ςs])
+  (for/union : (℘ -ς) ([ς ςs])
     (match-define (-ς↓ αₖ Γₑₑ A) ς)
-    (for/union : (℘ -ς) ([κ (σₖ@ σₖ αₖ)])
+    (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖ))])
       (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tₓs) κ)
-      ;(set! total (+ 1 total))
       (match A
         [(-W Vs sₐ)
-         (define key : Key (list κ αₖ (cons Vs (and sₐ #t))))
-         (cond
-           [(hash-has-key? returned key)
-            ∅]
-           [else
-            (hash-set! returned key #t)
-            (define sₐ*
-              (and sₐ
-                   (match* (αₖ tₓs)
-                     [((? -ℳ?) (list t)) t]
-                     [(_ _) (apply ?t@ αₖ tₓs)])))
-            (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]
+         (define sₐ*
+           (and sₐ
+                (match* (αₖ tₓs)
+                  [((? -ℳ?) (list t)) t]
+                  [(_ _) (apply ?t@ αₖ tₓs)])))
+         (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)]
         [(? -blm? blm)
          (match-define (-blm l+ lo _ _ _) blm)
-         (define key (list κ αₖ blm))
-         (cond
-           [(hash-has-key? returned key) ∅]
-           [(symbol? l+) ∅]
-           [else
-            (hash-set! returned key #t)
-            (⟦k⟧ blm $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
-    (printf "  -- hits: ~a/~a~n" hits total)))
+         (cond [(symbol? l+) ∅]
+               [else (⟦k⟧ blm $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
