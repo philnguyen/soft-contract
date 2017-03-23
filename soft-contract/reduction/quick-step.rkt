@@ -158,6 +158,13 @@
   
   (for/union : (℘ -ς) ([ς ςs])
     (match-define (-ς↓ αₖ Γₑₑ A) ς)
+    (define fml : (Option -formals)
+      (match αₖ
+        [(-ℬ xs _ _) xs]
+        [(-ℳ x _ _ _ _) (list x)]
+        [(-ℱ x _ _ _ _) (list x)]
+        [(? -ℋ𝒱?) #f]))
+
     (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖ))])
       (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tₓs) κ)
       (match A
@@ -167,7 +174,11 @@
                 (match* (αₖ tₓs)
                   [((? -ℳ?) (list t)) t]
                   [(_ _) (apply ?t@ αₖ tₓs)])))
-         (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)]
+         (define Γₑᵣ*
+           (cond
+             [fml (inv-callee->caller σ ∅eq fml tₓs Γₑᵣ Γₑₑ)]
+             [else Γₑᵣ]))
+         (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
         [(? -blm? blm)
          (match-define (-blm l+ lo _ _ _) blm)
          (cond [(symbol? l+) ∅]

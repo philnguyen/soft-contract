@@ -5,7 +5,7 @@
          σₖ⊕!
          Γ+ Γ++ V+
          predicates-of-W
-         inv-caller->callee
+         inv-caller->callee inv-callee->caller
          extract-list-content)
 
 (require racket/match
@@ -542,6 +542,53 @@
     (printf "  - new: ~a~n" as*)
     (printf "~n"))
   as*)
+
+(: inv-callee->caller : -σ (℘ Symbol) -formals (Listof -?t) -Γ -Γ → -Γ)
+;; Propagate simple predicate back to caller
+(define (inv-callee->caller σ fvs fml ts Γₑᵣ Γₑₑ)
+  (match-define (-Γ φsₑₑ asₑₑ) Γₑₑ)
+  (match-define (-Γ φsₑᵣ asₑᵣ) Γₑᵣ)
+
+  (define param->arg
+    (let ([xs
+           (match fml
+             [(-var xs _) xs]
+             [(? list? xs) xs])])
+      (for/hash : (HashTable -t -t) ([x xs] [tₓ ts] #:when tₓ)
+        (values (hash-ref asₑₑ x (λ () (-x x))) tₓ))))
+
+  (: ee->er : -t → -?t)
+  (define (ee->er φ)
+    (match φ
+      [x #:when (hash-has-key? param->arg x) (hash-ref param->arg x)]
+      [(-t.@ p (list x))
+       #:when (and (h-unique? p) (hash-has-key? param->arg x))
+       (-t.@ p (list (hash-ref param->arg x)))]
+      [(-t.@ 'not (list ψ))
+       (define ψ* (ee->er ψ))
+       (and ψ* (-t.@ 'not (list ψ*)))]
+      [(-t.@ (? -special-bin-o? o) (list x (? -b? b)))
+       #:when (hash-has-key? param->arg x)
+       (-t.@ o (list (hash-ref param->arg x) b))]
+      [(-t.@ (? -special-bin-o? o) (list (? -b? b) x))
+       #:when (hash-has-key? param->arg x)
+       (-t.@ o (list b (hash-ref param->arg x)))]
+      [_ #f]))
+
+  (define φsₑᵣ*
+    (∪ φsₑᵣ
+       (for*/set: : (℘ -t) ([φ (in-set φsₑₑ)]
+                            [φ* (in-value (ee->er φ))] #:when φ*)
+         φ*)))
+
+  #;(begin
+    (printf "inv-callee->caller: ~a ↦ ~a~n" fml (map show-t ts))
+    (printf "  - ee : ~a~n" (set-map φsₑₑ  show-t))
+    (printf "  - er : ~a~n" (set-map φsₑᵣ  show-t))
+    (printf "  - er*: ~a~n" (set-map φsₑᵣ* show-t))
+    (printf "~n"))
+
+  (-Γ φsₑᵣ* asₑᵣ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -9,11 +9,12 @@
          "definition.rkt"
          "simp.rkt")
 
-(: fvₜ : -t → (℘ Symbol))
+(: fvₜ : -?t → (℘ Symbol))
 (define (fvₜ t)
   (match t
     [(-t.@ h ts) (apply set-union ∅eq (map fvₜ ts))]
-    [(? -e? e) (fv e)]))
+    [(? -e? e) (fv e)]
+    [#f ∅eq]))
 
 (define (?t↓ [?t : -?t] [xs : (℘ Symbol)]) (and ?t (t↓ ?t xs)))
 

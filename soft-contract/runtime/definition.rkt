@@ -324,6 +324,7 @@
             (-α.wrp -𝒾)
             ; for binding
             (-α.x Symbol -⟪ℋ⟫ (℘ -h))
+            (-α.fv -⟪ℋ⟫ (℘ -t))
             ; for struct field
             (-α.fld [id : -𝒾] [loc : -ℒ] [ctx : -⟪ℋ⟫] [idx : Natural])
             ; for Cons/varargs
@@ -360,8 +361,8 @@
 
             ;; HACK
             (-α.hv)
-            (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
-            (-α.fc-x/c Symbol -⟪ℋ⟫)
+            (-α.mon-x/c Symbol -⟪ℋ⟫ -l (℘ -h))
+            (-α.fc-x/c Symbol -⟪ℋ⟫ (℘ -h))
 
             -o
             -𝒾
@@ -644,7 +645,10 @@
 (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
   (define α (⟪α⟫->-α ⟪α⟫))
   (match (⟪α⟫->-α ⟪α⟫)
-    [(-α.x x ⟪ℋ⟫ _) (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))]
+    [(-α.x x ⟪ℋ⟫ ps)
+     (for/fold ([s : Symbol (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))])
+               ([p (in-set ps)])
+       (format-symbol "~a_~a" s p))]
     [(-α.hv) 'αₕᵥ]
     [(-α.e e ℓ ⟪ℋ⟫) (show-e e)]
     [(or (-α.and/c-l (? -t? t) _ _)
