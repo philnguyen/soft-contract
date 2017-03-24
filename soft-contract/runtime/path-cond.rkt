@@ -9,6 +9,11 @@
          "definition.rkt"
          "simp.rkt")
 
+(: fv-as : (HashTable Symbol -t) → (℘ Symbol))
+(define (fv-as as)
+  (for/unioneq : (℘ Symbol) ([(x t) (in-hash as)])
+     (set-add (fvₜ t) x)))
+
 (: fvₜ : -?t → (℘ Symbol))
 (define (fvₜ t)
   (match t

@@ -221,7 +221,7 @@
           (ρ+ ρ₀ z αᵣ)]))
 
      (define Γₕ*
-       (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq)])
+       (let ([fvs (if #t #|FIXME|# #;(or (-λ? sₕ) (-case-λ? sₕ)) (fv-as (-Γ-aliases Γₕ)) ∅eq)])
          (inv-caller->callee (-Σ-σ Σ) fvs xs Wₓs Γ Γₕ)))
 
      (define αₖ (-ℬ xs ⟦e⟧ ρ*))
@@ -664,7 +664,7 @@
 (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)
 (define (alloc-init-args! Σ Γ ρ ⟪ℋ⟫ sₕ xs Ws)
   (define φsₕ
-    (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ)) (fv sₕ) ∅eq)])
+    (let ([fvs (if #t #|FIXME|# #;(or (-λ? sₕ) (-case-λ? sₕ)) (fv-as (-Γ-aliases Γ)) ∅eq)])
       (for/set: : (℘ -t) ([φ (in-set (-Γ-facts Γ))] #:when (⊆ (fvₜ φ) fvs))
         φ)))
   (define ρ₀ (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
