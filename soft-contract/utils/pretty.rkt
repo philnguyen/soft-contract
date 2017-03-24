@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 (require racket/pretty racket/string racket/port)
 (require/typed/provide racket/syntax
-  [format-symbol (String Any * → Symbol)])
+  [format-symbol (String (U String Symbol Identifier Keyword Char Number) * → Symbol)])
 
 (: sym-sub : Symbol → Symbol)
 ;; Make all digits in symbol subscripts

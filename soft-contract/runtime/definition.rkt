@@ -643,14 +643,20 @@
             [else (ℒ->symbol ℒ)]))))
 
 (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
+
+  (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫] [ps : (℘ -h)])
+    (for/fold ([s : Symbol (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))])
+              ([p (in-set ps)])
+      (format-symbol "~a_~a" s #|HACK|# (string->symbol (format "~a" (show-h p))))))
+
   (define α (⟪α⟫->-α ⟪α⟫))
   (match (⟪α⟫->-α ⟪α⟫)
-    [(-α.x x ⟪ℋ⟫ ps)
-     (for/fold ([s : Symbol (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))])
-               ([p (in-set ps)])
-       (format-symbol "~a_~a" s p))]
+    [(-α.x x ⟪ℋ⟫ ps) (show-α.x x ⟪ℋ⟫ ps)]
     [(-α.hv) 'αₕᵥ]
     [(-α.e e ℓ ⟪ℋ⟫) (show-e e)]
+    [(-α.mon-x/c x ⟪ℋ⟫ _ ps) (show-α.x x ⟪ℋ⟫ ps)]
+    [(-α.fc-x/c x ⟪ℋ⟫ ps) (show-α.x x ⟪ℋ⟫ ps)]
+    [(-α.fv ⟪ℋ⟫ ts) (show-α.x 'dummy ⟪ℋ⟫ ∅)]
     [(or (-α.and/c-l (? -t? t) _ _)
          (-α.and/c-r (? -t? t) _ _)
          (-α.or/c-l (? -t? t) _ _)

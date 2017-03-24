@@ -30,7 +30,8 @@
   (: blm-arity : Arity Natural → -blm)
   (define (blm-arity required provided)
     ;; HACK for error message. Probably no need to fix
-    (define msg (format-symbol "require ~a arguments" required))
+    (define msg (format-symbol "require ~a arguments"
+                               (string->symbol (format "~a" required))))
     (-blm l 'Λ (list msg) (map -W¹-V Wₓs) (-ℒ-app ℒ)))
 
   (define-syntax-rule (with-guarded-arity a* e ...)
@@ -262,7 +263,9 @@
     [else
      (define a : (Listof Index) (for/list ([clause clauses]) (length (car clause))))
      (define-values (ℓ l) (unpack-ℒ ℒ))
-     (define blm (-blm l 'Λ (list (format-symbol "arity among ~a" a)) (map -W¹-V Wₓs) ℓ))
+     (define blm (-blm l 'Λ
+                       (list (format-symbol "arity in ~a" (string->symbol (format "~a" a))))
+                       (map -W¹-V Wₓs) ℓ))
      (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
 (: app-guarded-Case : -V -?t -V -?t -l³ → -⟦f⟧)

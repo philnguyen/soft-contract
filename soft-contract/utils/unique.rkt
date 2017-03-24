@@ -25,19 +25,17 @@
      (hash-ref m⁻¹ i (λ () (error 'unique-nat "No element for index `~a`" i))))
    (λ () (hash-count m))))
 
-(: unique-sym (∀ (X) ([Symbol] [#:transform-index (Index → Any)]
-                      . ->* .
-                      (Values (X → Symbol) (Symbol → X) (→ Index)))))
+(: unique-sym (∀ (X) Symbol → (Values (X → Symbol) (Symbol → X) (→ Index))))
 ;; Return a bijection between `X` and Symbol.
 ;; No guarantee of consistency across multiple program runs.
-(define (unique-sym prefix #:transform-index [f n-sub])
+(define (unique-sym prefix)
   (define m   : (HashTable X Symbol) (make-hash))
   (define m⁻¹ : (HashTable Symbol X) (make-hasheq))
   
   (values
    (λ (x)
      (hash-ref! m x (λ ()
-                      (define s (format-symbol "~a~a" prefix (f (hash-count m))))
+                      (define s (format-symbol "~a~a" prefix (n-sub (hash-count m))))
                       (hash-set! m⁻¹ s x)
                       s)))
    (λ (s)
