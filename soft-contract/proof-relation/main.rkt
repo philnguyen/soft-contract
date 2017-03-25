@@ -90,14 +90,17 @@
              (match t
                [(-t.@ h ts)
                 (define ts* (for/set: : (℘ -t) ([t ts] #:unless (-b? t)) t))
+                (define (difficult-h? [h : -h]) (memq h '(< > <= >= = equal? eq? eqv?)))
                 (and
-                 (or (memq t '(< > <= >=))
-                     (has-abstraction? t)
-                     (for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
-                       (has-abstraction? φ)))
+                 (or (difficult-h? h)
+                     #;(has-abstraction? t)
+                     #;(for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
+                         (has-abstraction? φ)))
                  (for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
-                   (t-contains-any? φ ts*)))]
-               [_ #t]))
+                   (and (t-contains-any? φ ts*)
+                        (or (has-abstraction? φ)
+                            (match? φ (-t.@ (? difficult-h?) _))))))]
+               [_ #f]))
 
            #;(begin
              (printf "should call? ~a~n" should-call-smt?)
