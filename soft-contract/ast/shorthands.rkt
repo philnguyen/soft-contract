@@ -103,7 +103,7 @@
 (: -comp/c : Symbol -e ℓ → -e)
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e ℓ)
-  (define x (+x!))
+  (define x (+x! 'cmp))
   (define 𝐱 (-x x))
   (match-define (list ℓ₀ ℓ₁) (ℓ-with-ids ℓ 2))
   (-λ (list x)
