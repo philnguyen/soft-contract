@@ -515,10 +515,12 @@
       [(? list? xs) xs]
       [(-var xs _ ) xs]))
 
-  ;; specific hack just for octy/ex-{08,12}.rkt
+  ;; specific hack just for `octy/ex-{08,12}.rkt`, `mochi/intro3.rkt`
   (define (restrictedly-occured? [t : -t])
-    (for/or : Boolean ([(x₀ t₀) (in-hash as)])
-      (match? t (-t.@ (? h-unique?) (list (== t₀))))))
+    (with-debugging/off ((res?) (for/or : Boolean ([(x₀ t₀) (in-hash as)])
+      (match? t (-t.@ (? h-unique?) (or (list (== t₀))
+                                        (list (== t₀) (? -b?)))))))
+      (printf "restrictedly-occured? ~a: ~a~n" (show-t t) res?)))
 
   (define-values (as* _)
     (for/fold ([as* : (HashTable Symbol -t) as]

@@ -357,38 +357,37 @@
             (//s (+/s (*/s a c) (*/s b d)) c²d²)
             (//s (-/s (*/s b c) (*/s a d)) c²d²)))]
     [(sqrt) ; just for real numbers for now
-     (match-define (list t) ⦃t⦄s)
      (λ ()
-       (@/s 'N (^/s (@/s 'real (t)) 0.5) 0))]
+       (@/s 'N (^/s (@/s 'real ((car ⦃t⦄s))) 0.5) 0))]
     [(zero?)
      (match-define (list t) ⦃t⦄s)
      (λ ()
        (@/s 'B (=/s (@/s 'N 0 0) (t))))]
     [(positive?)
-     (match-define (list t) ⦃t⦄s)
      (λ ()
-       (define tₐ (t))
+       (define tₐ ((car ⦃t⦄s)))
        (@/s 'B
             (and/s (@/s 'is-R tₐ)
                    (>/s (@/s 'real tₐ) 0))))]
     [(negative?)
-     (match-define (list t) ⦃t⦄s)
      (λ ()
-       (define tₐ (t))
+       (define tₐ ((car ⦃t⦄s)))
        (@/s 'B
             (and/s (@/s 'is-R tₐ)
                    (</s (@/s 'real tₐ) 0))))]
-    [(exact-nonnegative-integer?)
-     (match-define (list t) ⦃t⦄s)
+    [(exact-integer?)
      (λ ()
-       (define tₐ (t))
+       (define tₐ ((car ⦃t⦄s)))
+       (@/s 'B (and/s (@/s 'is-Z tₐ) (@/s 'exact? tₐ))))]
+    [(exact-nonnegative-integer?)
+     (λ ()
+       (define tₐ ((car ⦃t⦄s)))
        (@/s 'B (and/s (@/s 'is-Z tₐ)
                       (@/s 'exact? tₐ)
                       (>=/s (@/s 'real tₐ) 0))))]
     [(exact-positive-integer?)
-     (match-define (list t) ⦃t⦄s)
      (λ ()
-       (define tₐ (t))
+       (define tₐ ((car ⦃t⦄s)))
        (@/s 'B (and/s (@/s 'is-Z tₐ)
                       (@/s 'exact? tₐ)
                       (>/s (@/s 'real tₐ) 0))))]
