@@ -201,6 +201,14 @@
     [(-t.@ h ts)
      (and (h-unique? h) (andmap t-unique? ts))]))
 
+(: t-contains? : -t -t → Boolean)
+(define (t-contains? t t*)
+  (let go ([t : -t t])
+    (match t
+      [t #:when (equal? t t*) #t]
+      [(-t.@ _ ts) (ormap go ts)]
+      [_ #f])))
+
 (: t-contains-any? : -t (℘ -t) → Boolean)
 (define (t-contains-any? t ts)
   (let go ([t : -t t])
