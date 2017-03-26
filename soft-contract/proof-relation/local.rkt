@@ -174,6 +174,8 @@
     [(_ 'negative?) (p⇒p p (-</c 0))]
     [('positive? _) (p⇒p (->/c 0) q)]
     [('negative? _) (p⇒p (-</c 0) q)]
+    [(_ 'zero?) (p⇒p p (-≡/c 0))]
+    [('zero? _) (p⇒p (-≡/c 0) q)]
     ; < and <
     [((-</c (? real? a)) (-</c (? real? b))) (if (<= a b) '✓ '?)]
     [((-≤/c (? real? a)) (-≤/c (? real? b))) (if (<= a b) '✓ '?)]
@@ -194,11 +196,6 @@
     [((-≥/c (? real? a)) (-≤/c (? real? b))) (if (>  a b) '✗ '?)]
     [((->/c (? real? a)) (-≤/c (? real? b))) (if (>= a b) '✗ '?)]
     [((-≥/c (? real? a)) (-</c (? real? b))) (if (>= a b) '✗ '?)]
-    ; <> and 0?
-    [((-</c (? real? b)) 'zero?) (if (<= b 0) '✗ '?)]
-    [((-≤/c (? real? b)) 'zero?) (if (<  b 0) '✗ '?)]
-    [((->/c (? real? b)) 'zero?) (if (>= b 0) '✗ '?)]
-    [((-≥/c (? real? b)) 'zero?) (if (>  b 0) '✗ '?)]
     ; exact-nonnegative-integer?
     [('exact-nonnegative-integer? (-</c (? real? r))) (if (<= r 0) '✗ '?)]
     [('exact-nonnegative-integer? (-≤/c (? real? r))) (if (<  r 0) '✗ '?)]
@@ -216,7 +213,18 @@
     
     ; equal?
     [((-≡/c b₁) (-≡/c b₂)) (boolean->R (equal? b₁ b₂))]
+    [((-≢/c b₁) (-≡/c b₂)) (boolean->R (not (equal? b₁ b₂)))]
+    [((-</c (? real? b₁)) (-≡/c (? real? b₂))) #:when (<= b₁ b₂) '✗]
+    [((-≤/c (? real? b₁)) (-≡/c (? real? b₂))) #:when (<  b₁ b₂) '✗]
+    [((->/c (? real? b₁)) (-≡/c (? real? b₂))) #:when (>= b₁ b₂) '✗]
+    [((-≥/c (? real? b₁)) (-≡/c (? real? b₂))) #:when (>  b₁ b₂) '✗]
+    ; ≢/c
     [((-≡/c b₁) (-≢/c b₂)) (boolean->R (not (equal? b₁ b₂)))]
+    [((-</c (? real? b₁)) (-≢/c (? real? b₂))) #:when (<= b₁ b₂) '✓]
+    [((-≤/c (? real? b₁)) (-≢/c (? real? b₂))) #:when (<  b₁ b₂) '✓]
+    [((->/c (? real? b₁)) (-≢/c (? real? b₂))) #:when (>= b₁ b₂) '✓]
+    [((-≥/c (? real? b₁)) (-≢/c (? real? b₂))) #:when (>  b₁ b₂) '✓]
+    ; 
     [((-≡/c (? real? b₁)) (-</c (? real? b₂))) (boolean->R (<  b₁ b₂))]
     [((-≡/c (? real? b₁)) (-≤/c (? real? b₂))) (boolean->R (<= b₁ b₂))]
     [((-≡/c (? real? b₁)) (->/c (? real? b₂))) (boolean->R (>  b₁ b₂))]
@@ -392,7 +400,6 @@
           [(zero?)
            (match Vs
              [(list (-b (? number? n))) (boolean->R (zero? n))]
-             [(list (-● _)) '?]
              [_ '✗])]
           [(procedure?)
            (match Vs
@@ -476,7 +483,7 @@
           [(>=) (p∋Vs σ '<= (second Vs) (first Vs))]
           [(= equal? eq? char=? string=?)
            (match Vs
-             [(list (-b b₁) (-b b₂))   (boolean->R (equal? b₁ b₂))]
+             [(list (-b b₁) (-b b₂)) (boolean->R (equal? b₁ b₂))]
              [(list (-● ps) (-b b)) (ps⇒p ps (-≡/c b))]
              [(list (-b b) (-● ps)) (ps⇒p ps (-≡/c b))]
              [_ '?])]
@@ -552,9 +559,11 @@
        [(-≡/c b₁)
         (match-define (list V) Vs)
         (p∋Vs σ 'equal? (-b b₁) V)]
+       [(-≢/c b)
+        (not-R (p∋Vs σ 'equal? (-b b) (car Vs)))]
        [_ '?])]) -R))
-    (when (and (match? p '>= (-≥/c 0)) (equal? R '?))
-      (printf "~a ~a ? : ~a~n" p (map show-V Vs) R))))
+    (when (and (match? p 'zero? (-≡/c 0) (-≢/c 0)) (equal? R '?))
+      (printf "~a ~a : ~a~n" p (map show-V Vs) R))))
 
 (: ps⇒p : (℘ -h) -h → -R)
 (define (ps⇒p ps p)
