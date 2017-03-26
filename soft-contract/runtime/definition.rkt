@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (except-out (all-defined-out) -not/c -not/c/simp)
+         (rename-out [-not/c/simp -not/c]))
 
 (require racket/match
          racket/set
@@ -181,6 +182,16 @@
             (-≢/c Base)
             (-not/c -o))
 (-?t . ::= . -t #f)
+
+(define-match-expander -not/c/simp
+  (syntax-rules ()
+    [(_ p) (-not/c p)])
+  (syntax-rules ()
+    [(_ p) (case p
+             [(negative?) (-≥/c 0)]
+             [(    zero?) (-≢/c 0)]
+             [(positive?) (-≤/c 0)]
+             [else (-not/c p)])]))
 
 (: h-unique? : -h → Boolean)
 (define (h-unique? h)
