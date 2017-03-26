@@ -591,6 +591,8 @@
                     (-≡/c (? (>/c 0))))))
             '✓]
            [else '?])]
+        [(any/c) '✓]
+        [(none/c) '✗]
         [else '?])))
 
 (: sat-one-of : -V (Listof Base) → -R)

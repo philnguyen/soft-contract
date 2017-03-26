@@ -224,7 +224,9 @@
            (loop acc x))]
         [(? set? s) s])))
 
-  (repeat-compact ps p iter))
+  (case p
+    [(any/c) ps] ; TODO tmp hack. How did this happen?
+    [else (repeat-compact ps p iter)]))
 
 (: φs+ : (℘ -t) -t → (℘ -t))
 (define (φs+ φs φ)
@@ -423,21 +425,21 @@
 ;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value
 (define (predicates-of-W σ Γ W)
   (match-define (-W¹ V t) W)
-  (define φs
+  (define ps₁
     (match V
       [(-● ps) ps]
       [(-St 𝒾 _) {set (-st-p 𝒾)}]
       [(-St* (-St/C _ 𝒾 _) _ _) {set (-st-p 𝒾)}]
       [_ ∅]))
-  (define ψs
-    (for/set: : (℘ -h) ([φ (predicates-of Γ t)]
-                        #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ φ V))))
-      φ))
+  (define ps₂
+    (for/set: : (℘ -h) ([p (predicates-of Γ t)]
+                        #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ p V))))
+      p))
 
   #;(printf "predicates-of ~a in ~a: ~a ∪ ~a~n"
           (show-W¹ W) (show-Γ Γ) (set-map φs show-t) (set-map ψs show-t))
   
-  (∪ φs ψs))
+  (∪ ps₁ ps₂))
 
 (: inv-caller->callee : -σ (℘ Symbol) -formals (Listof -W¹) -Γ -Γ → -Γ)
 ;; Convert invariants about arguments in caller into those about parameters in callee

@@ -221,7 +221,7 @@
           (ρ+ ρ₀ z αᵣ)]))
 
      (define Γₕ*
-       (let ([fvs (if #t #|FIXME|# #;(or (-λ? sₕ) (-case-λ? sₕ)) (fv-as (-Γ-aliases Γₕ)) ∅eq)])
+       (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq)])
          (inv-caller->callee (-Σ-σ Σ) fvs xs Wₓs Γ Γₕ)))
 
      (define αₖ (-ℬ xs ⟦e⟧ ρ*))
@@ -662,22 +662,17 @@
   {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫∅)})
 
 (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)
-(define (alloc-init-args! Σ Γ ρ ⟪ℋ⟫ sₕ xs Ws)
+(define (alloc-init-args! Σ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
+  
   (define φsₕ
-    (let ([fvs (if #t #|FIXME|# #;(or (-λ? sₕ) (-case-λ? sₕ)) (fv-as (-Γ-aliases Γ)) ∅eq)])
-      (for/set: : (℘ -t) ([φ (in-set (-Γ-facts Γ))] #:when (⊆ (fvₜ φ) fvs))
+    (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq)])
+      (for*/set: : (℘ -t) ([φ (in-set (-Γ-facts Γₑᵣ))] #:when (⊆ (fvₜ φ) fvs))
         φ)))
-  (define ρ₀ (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
+  (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
   (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
     (match-define (-W¹ Vₓ sₓ) Wₓ)
-    (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W (-Σ-σ Σ) Γ Wₓ))))
-    (σ⊕! Σ Γ α Wₓ)
-    
-    ;; Debug for `slatex`
-    #;(when (and (member x '(raw-filename s₃ filename filename₁))
-               (match? Wₓ (-W¹ (? -●?) _)))
-      (printf "binding ~a as ~a~n~n" x (show-W¹ Wₓ)))
-
+    (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W (-Σ-σ Σ) Γₑᵣ Wₓ))))
+    (σ⊕! Σ Γₑᵣ α Wₓ)
     (ρ+ ρ x α)))
 
 (: alloc-rest-args! : -Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹) → -V)
