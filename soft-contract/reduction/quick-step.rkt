@@ -176,6 +176,7 @@
                   [(_ _) (apply ?t@ αₖ tₓs)])))
          (define Γₑᵣ*
            (cond
+             [(equal? αₖ (⟦k⟧->αₖ ⟦k⟧)) Γₑᵣ]
              [fml (inv-callee->caller σ ∅eq fml tₓs Γₑᵣ Γₑₑ)]
              [else Γₑᵣ]))
          (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
