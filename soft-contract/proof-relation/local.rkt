@@ -317,7 +317,6 @@
 (: p∋Vs : -σ (U -h -v -V) -V * → -R)
 ;; Check if value satisfies predicate
 (define (p∋Vs σ p . Vs)
-  
   (define (check-proc-arity-1 [V : -V]) : -R
     (match (p∋Vs σ 'procedure? V)
       ['✓ (boolean->R (arity-includes? (assert (V-arity V)) 1))]
@@ -430,6 +429,14 @@
            (match Vs
              [(list (-b (? real? b₁)) (-b (? real? b₂)))
               (boolean->R (< b₁ b₂))]
+             [(list (-b (? real? b₁))
+                    (-● (app set->list (list _ ... (-≥/c (? real? b₂)) _ ...))))
+              #:when (< b₁ b₂)
+              '✓]
+             [(list (-b (? real? b₁))
+                    (-● (app set->list (list _ ... (->/c (? real? b₂)) _ ...))))
+              #:when (<= b₁ b₂)
+              '✓]
              [(list (-● ps) (-b (? real? b)))
               (match (set->list ps)
                 [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
@@ -447,6 +454,11 @@
            (match Vs
              [(list (-b (? real? b₁)) (-b (? real? b₂)))
               (boolean->R (<= b₁ b₂))]
+             [(list (-b (? real? b₁))
+                    (-● (app set->list (list _ ... (or (-≥/c (? real? b₂))
+                                                       (->/c (? real? b₂))) _ ...))))
+              #:when (and b₂ (>= b₂ b₁))
+              '✓]
              [(list (-● ps) (-b (? real? b)))
               (match (set->list ps)
                 [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
@@ -541,8 +553,8 @@
         (match-define (list V) Vs)
         (p∋Vs σ 'equal? (-b b₁) V)]
        [_ '?])]) -R))
-    (when (equal? p 'equal?)
-      (printf "~a ∋ ~a ? : ~a~n" p (map show-V-or-v Vs) R))))
+    (when (and (match? p '>= (-≥/c 0)) (equal? R '?))
+      (printf "~a ~a ? : ~a~n" p (map show-V Vs) R))))
 
 (: ps⇒p : (℘ -h) -h → -R)
 (define (ps⇒p ps p)

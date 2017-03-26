@@ -66,6 +66,8 @@
                      (∋ Γ (-t.@ '> (list t₁ t₂))))
                  {set (->/c 0)}]
                 [else ∅])]
+         [(-t.@ '* (list t t))
+          {set (-≥/c 0)}]
          [_ ∅]))
      (for/fold ([ps : (℘ -h) ps]) ([φ (in-set Γ)])
        (match φ

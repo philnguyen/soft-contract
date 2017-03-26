@@ -160,7 +160,9 @@
 (def-preds (< <= > >=) (real? real?))
 
 ;; 4.2.2.3 Powers and Roots
-(def-prim sqrt (number? . -> . number?))
+(def-prim sqrt (number? . -> . number?)
+  #:refinements
+  ((>=/c 0) . -> . (>=/c 0)))
 (def-prim integer-sqrt (integer? . -> . number?))
 #;(integer-sqrt/remainder ; FIXME
    (integer? . -> . number? integer?))
@@ -238,7 +240,7 @@
 (def-prims (degrees->radians radians->degrees) (real? . -> . real?))
 (def-prim sqr (number? . -> . number?)
   #:refinements
-  (real? . -> . real?)
+  (real? . -> . (>=/c 0))
   (integer? . -> . integer?))
 (def-prim sgn (real? . -> . (or/c -1 0 1 +nan.0 +nan.f)))
 (def-prim conjugate (number? . -> . number?))
