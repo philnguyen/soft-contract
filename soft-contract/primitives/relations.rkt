@@ -25,6 +25,7 @@
  [double-flonum? ⇒ flonum?]
  ;; strings
  [path-string? ⇒ string?]
+ [string? ⇒ path-string?] ; TODO tmp. cheat
  ;; sequence
  [exact-nonnegative-integer? ⇒ sequence?]
  [string? ⇒ sequence?]
