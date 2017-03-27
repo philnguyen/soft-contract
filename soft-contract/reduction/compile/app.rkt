@@ -596,7 +596,22 @@
           (match (formals-arity xs)
             [(arity-at-least (== num-init-args))
              ((apply-app-clo (assert xs -var?) ⟦e⟧ ρₕ Γₕ sₕ) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-            [_ (error 'do-apply "~a~n" (show-V Vₕ))])]
+            [_
+             ;; tmp. specific hack for slatex
+             (match Ws
+               [(list (-W¹ (-Clo (-var (list x) xᵣ) ⟦e⟧ ρ Γ) sₕ) W₁ W₂ Wᵣ)
+                (match-define (-W¹ V₂ s₂) W₂)
+                (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
+                (define Wₗ
+                  (let ([sₗ (?t@ -cons s₂ sᵣ)]
+                        [αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ 0))]
+                        [αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ 1))])
+                    (define Vₗ (-Cons αₕ αₜ))
+                    (σ⊕*! Σ Γ [αₕ ↦ W₂] [αₜ ↦ Wᵣ])
+                    (-W¹ Vₗ sₗ)))
+                (app $ ℒ (-W¹ (-Clo (list x xᵣ) ⟦e⟧ ρ Γ) sₕ) (list W₁ Wₗ) Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+               [(list* W₀ Wᵢs)
+                (error 'do-apply "TODO: ~a ~a" (show-W¹ W₀) (map show-W¹ Wᵢs))])])]
          [(-Case-Clo clauses _ _)
           (error 'do-apply "TODO: case->: ~a" (show-V Vₕ))]
          [(-Ar C ⟪α⟫ᵥ l³)
@@ -612,7 +627,8 @@
             [else
              (error 'do-apply "TODO: guarded function ~a" (show-V Vₕ))])]
          [(? -o? o)
-          (error 'do-apply "TODO: primmitive: ~a" (show-V Vₕ))]
+          (app $ ℒ (-W¹ o o) Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
+          #;(error 'do-apply "TODO: primmitive: ~a" (show-V Vₕ))]
          [(-● _)
           ((app-opq sₕ) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
          [_
