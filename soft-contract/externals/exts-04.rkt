@@ -145,6 +145,9 @@
     [_
      (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]))
 
+(def-ext build-vector
+  (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c) . -> . vector?))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Sequences and Streams

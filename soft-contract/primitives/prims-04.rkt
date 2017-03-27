@@ -1096,9 +1096,6 @@
  ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? . -> . void?))
 #;[vector->values ; FIXME uses, var-values, `any` instead of `any/c`
    (vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . any)]
-(def-prim/todo build-vector
- (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c)
-                             . -> . (and/c vector? (not/c immutable?))))
 
 ;; 4.11.1 Additional Vector Functions
 (def-prim/todo vector-set*! ; FIXME uses
