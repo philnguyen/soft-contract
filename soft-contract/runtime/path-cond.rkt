@@ -88,7 +88,9 @@
          [(-t.@ 'not (list (-t.@ (? -special-bin-o? o) (list (-b b) (== t)))))
           (set-add ps ((bin-o->h (neg-bin-o (flip-bin-o o))) b))]
          ;; Keep anything purely syntactic
-         [(-t.@ (? h-unique? h)  (list (== t))) (set-add ps h)]
+         [(-t.@ (? h-syntactic? h) (list (== t))) (set-add ps h)]
          [_ ps]))]
     [else ∅]))
 
+(: h-syntactic? : -h → Boolean)
+(define (h-syntactic? h) (not (-αₖ? h)))
