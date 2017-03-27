@@ -95,8 +95,8 @@
         (match αs
           [(? list? αs) (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ α))]
           [(-var αs αᵣ)
-           (set-add (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (seteq (⟪α⟫ℓ->⟪α⟫ αᵣ)))
-                    (seteq (⟪α⟫ℓ->⟪α⟫ α)))])]
+           (set-add (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ αᵣ))
+                    (⟪α⟫ℓ->⟪α⟫ α))])]
        [(-=>i αs (list D _ _) _) (∪ (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (V->⟪α⟫s D))]
        [(-Case-> clauses _)
         (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
