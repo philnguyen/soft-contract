@@ -569,7 +569,7 @@
     (match φ
       [x #:when (hash-has-key? param->arg x) (hash-ref param->arg x)]
       [(-t.@ p (list x))
-       #:when (and (h-unique? p) (hash-has-key? param->arg x))
+       #:when (and (h-syntactic? p) (hash-has-key? param->arg x))
        (-t.@ p (list (hash-ref param->arg x)))]
       [(-t.@ 'not (list ψ))
        (define ψ* (ee->er ψ))
