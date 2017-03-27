@@ -172,7 +172,7 @@
    [(-st-mut (== -𝒾-mcons) 0) 'set-mcar!]
    [(-st-mut (== -𝒾-mcons) 1) 'set-mcdr!]
    [(-st-mut (== -𝒾-box) _) 'set-box!]
-   [(-st-mut 𝒾 i) (format-symbol "set-~a-~a!" (-𝒾-name 𝒾) i)]))
+   [(-st-mut 𝒾 i) (format-symbol "set-~a._~a!" (-𝒾-name 𝒾) i)]))
 
 (define (show-e [e : -e]) : Sexp
   (match e
