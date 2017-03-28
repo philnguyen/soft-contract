@@ -27,7 +27,7 @@
       (printf "M:~n")
       (for ([(a As) M])
         (printf "  * ~a ↦ ~a~n" (show-αₖ a) (set-map As show-ΓA)))
-      (printf "Γ: ~a~n" (show-Γ Γ))
+      (printf "Γ: ~a~n" (set-map Γ show-t))
       (printf "-----------------------------------------~n")
       (printf "~a~n~n" (show-t t)))
 
@@ -81,7 +81,7 @@
 
 (: estimate-time-limit : -M (℘ -t) -t → Natural)
 (define (estimate-time-limit M Γ t)
-  (define Timeout-Factor 5)
+  (define Timeout-Factor 2)
   (define count
     (for/sum : Natural ([s (in-hash-values M)]) (set-count s)))
   (* count Timeout-Factor))
