@@ -712,7 +712,7 @@
     (λ (h)
       (hash-ref! m h
                  (λ ()
-                   (printf "translation: existentialize result for unsupported `~a`~n" (show-h h)))))))
+                   (printf "warning: existentialize result for unmapped `~a`~n" (show-h h)))))))
 
 (: and/s/simp : (Listof Z3-Ast) → Z3-Ast)
 (define (and/s/simp clauses)
