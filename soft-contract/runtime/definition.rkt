@@ -53,7 +53,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
-            [pc : (℘ -t)]        ; path-condition to use for rest of computation
+            [pc : -Γ]       ; path-condition to use for rest of computation
             [⟪ℋ⟫ : -⟪ℋ⟫]    ; abstraction of call history
             [args : (Listof -?t)])
   #:transparent)
@@ -698,8 +698,8 @@
     `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
 
 (define (show-κ [κ : -κ]) : Sexp
-  (match-define (-κ ⟦k⟧ pc ⟪ℋ⟫ ts) κ)
-  `(□ ,@(map show-t ts) ‖ ,(set-map pc show-t) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
+  (match-define (-κ ⟦k⟧ Γ ⟪ℋ⟫ ts) κ)
+  `(□ ,@(map show-t ts) ‖ ,(show-Γ Γ) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

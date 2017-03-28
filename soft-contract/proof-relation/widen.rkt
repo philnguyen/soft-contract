@@ -415,12 +415,12 @@
 (: σₖ⊕ : -σₖ -αₖ -κ → -σₖ)
 (define (σₖ⊕ σₖ αₖ κ)
   (define (κ⊑ [κ₁ : -κ] [κ₂ : -κ])
-    (match-define (-κ ⟦k⟧₁ φs₁ ⟪ℋ⟫₁ sₓs₁) κ₁)
-    (match-define (-κ ⟦k⟧₂ φs₂ ⟪ℋ⟫₂ sₓs₂) κ₂)
+    (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ sₓs₁) κ₁)
+    (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ sₓs₂) κ₂)
     (and (equal? ⟦k⟧₁ ⟦k⟧₂)
          (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
          (equal? sₓs₁ sₓs₂)
-         (φs⊑ φs₁ φs₂)))
+         (Γ⊑ Γ₁ Γ₂)))
 
   (hash-update σₖ αₖ (set-add/remove-redundant κ κ⊑) →∅))
 
