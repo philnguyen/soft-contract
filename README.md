@@ -1,7 +1,7 @@
 This is the scaled up version of SCV,
 intended to be (eventually) usable for real Racket programs.
 
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=master)](https://travis-ci.org/philnguyen/soft-contract)
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=opt)](https://travis-ci.org/philnguyen/soft-contract)
 
 Installation
 =========================================
