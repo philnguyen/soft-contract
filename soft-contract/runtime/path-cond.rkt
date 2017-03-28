@@ -56,6 +56,7 @@
     [(-Γ? Γ) (predicates-of (-Γ-facts Γ) t)]
     [t
      ;; tmp hack for integer precision
+     ;; TODO: these hacks will be obsolete when the `def-prim` DSL is generalized
      (define ps : (℘ -h)
        (match t
          [(-t.@ '+ (or (list t* (-b (and (? real?) (? positive?))))
