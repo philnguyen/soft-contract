@@ -19,9 +19,9 @@
 
 (: ext-prove : -M -Γ -t → -R)
 (define (ext-prove M Γ t)
-  (raw-ext-prove (span-M M (∪ (t->αₖs t) (Γ->αₖs Γ))) Γ t))
+  (raw-ext-prove (span-M M (∪ (t->αₖs t) (Γ->αₖs Γ))) (-Γ-facts Γ) t))
 
-(define/memo (raw-ext-prove [M : -M] [Γ : -Γ] [t : -t]) : -R
+(define/memo (raw-ext-prove [M : -M] [Γ : (℘ -t)] [t : -t]) : -R
 
   #;(begin
       (printf "M:~n")
@@ -79,7 +79,7 @@
        [(sat unknown) '?])]))
     (printf "  --> ~a~n~n" R)))
 
-(: estimate-time-limit : -M -Γ -t → Natural)
+(: estimate-time-limit : -M (℘ -t) -t → Natural)
 (define (estimate-time-limit M Γ t)
   (define Timeout-Factor 5)
   (define count

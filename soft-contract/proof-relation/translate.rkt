@@ -131,17 +131,17 @@
       [(? -blm?) (values (λ () (val-of 'None)) ∅eq ∅eq)]))
 
   (match-define (-ΓA Γ A) ΓA)
-  (define-values (pc fvs₁) (⦃Γ⦄ ctx Γ))
+  (define-values (pc fvs₁) (⦃Γ⦄ ctx (-Γ-facts Γ)))
   (define-values (res cnds fvs₂) (⦃A⦄ A))
   (values (∪ pc cnds) res (∪ fvs₁ fvs₂)))
 
-(: ⦃Γ⦄ : Ctx -Γ → (Values (℘ (M Z3-Ast)) (℘ Symbol)))
+(: ⦃Γ⦄ : Ctx (℘ -t) → (Values (℘ (M Z3-Ast)) (℘ Symbol)))
 ;; Translate path condition into a set of Z3 computation each returning an AST of sort Bool
 ;; along with the set of generated free variables
 (define (⦃Γ⦄ ctx Γ)
   (define-set fvs : Symbol #:eq? #t)
   (define ⦃φ⦄s
-    (for/unioneq : (℘ (M Z3-Ast)) ([φ (in-set (-Γ-facts Γ))])
+    (for/unioneq : (℘ (M Z3-Ast)) ([φ (in-set Γ)])
       (define-values (props fvs*) (⦃φ⦄ ctx φ))
       (fvs-union! fvs*)
       props))
@@ -577,7 +577,7 @@
     (for ([cmd (in-other-cmds)])
       (cmd))))
 
-(: collect-usage : (U -M -Γ -t) * → (Values (℘ Natural) (℘ -o)))
+(: collect-usage : (U -M (℘ -t) -t) * → (Values (℘ Natural) (℘ -o)))
 (define (collect-usage . xs)
   (define-set arities : Natural #:eq? #t)
   (define-set prims   : -o)
@@ -586,7 +586,7 @@
   (define (go-M! M)
     (for* ([(a As) (in-hash M)] [ΓA (in-set As)])
       (match-define (-ΓA Γ A) ΓA)
-      (go-Γ! Γ)
+      (go-Γ! (-Γ-facts Γ))
       (go-A! A)))
 
   (: go-A! : -A → Void)
@@ -595,9 +595,8 @@
       [(-W _ t) #:when t (go-t! t)]
       [_ (void)]))
 
-  (: go-Γ! : -Γ → Void)
-  (define (go-Γ! Γ)
-    (set-for-each (-Γ-facts Γ) go-t!))
+  (: go-Γ! : (℘ -t) → Void)
+  (define (go-Γ! Γ) (set-for-each Γ go-t!))
 
   (: go-t! : -t → Void)
   (define go-t!
@@ -619,7 +618,7 @@
       [_ (void)]))
 
   (for ([x (in-list xs)])
-    (cond [(-Γ? x) (go-Γ! x)]
+    (cond [(set? x) (go-Γ! x)]
           [(hash? x) (go-M! x)]
           [else (go-t! x)]))
 
