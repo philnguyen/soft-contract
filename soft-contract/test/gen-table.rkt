@@ -10,19 +10,19 @@
 (define TIMEOUT (* 60 20))
 (define COLUMNS '(Lines Checks Time Positives))
 
-(define-type Nat/Rng (U Natural (List Natural)))
-(define-type Record (HashTable Symbol Nat/Rng))
+(define-type Real/Rng (U Real (List Real)))
+(define-type Record (HashTable Symbol Real/Rng))
 
-(: Nat/Rng+ : Nat/Rng Nat/Rng → Nat/Rng)
-(define Nat/Rng+
+(: Real/Rng+ : Real/Rng Real/Rng → Real/Rng)
+(define Real/Rng+
   (match-lambda**
-   [((? integer? n₁) (? integer? n₂)) (+ n₁ n₂)]
-   [((or (list n₁) (? integer? n₁)) (or (list n₂) (? integer? n₂))) #:when (and n₁ n₂)
+   [((? real? n₁) (? real? n₂)) (+ n₁ n₂)]
+   [((or (list n₁) (? real? n₁)) (or (list n₂) (? real? n₂))) #:when (and n₁ n₂)
     (list (+ n₁ n₂))]))
 
-(define show-Nat/Rng : (Nat/Rng → String)
+(define show-Real/Rng : (Real/Rng → String)
   (match-lambda
-    [(? integer? n) (number->string n)]
+    [(? real? n) (number->string n)]
     [(list n) (format "(~a, ∞)" n)]))
 
 (struct Row ([name : String] [attrs : Record]) #:transparent)
@@ -35,8 +35,8 @@
                 [fieldsᵢ (in-value (Row-attrs row))]
                 [key (in-list keys)])
       (hash-update fields key
-                   (λ ([x : Nat/Rng])
-                     (Nat/Rng+ x (hash-ref fieldsᵢ key))) (λ () 0))))
+                   (λ ([x : Real/Rng])
+                     (Real/Rng+ x (hash-ref fieldsᵢ key))) (λ () 0))))
   (Row name fields))
 
 (: count-lines : Path-String → Natural)
@@ -57,29 +57,29 @@
       ;(printf "~a~n" stats)
       (hash-ref stats 'total)))
 
-  (: count-poses : → Nat/Rng)
+  (: count-poses : → Real/Rng)
   (define (count-poses)
     (match (with-time-limit : Natural TIMEOUT
              (define-values (As _) (havoc-file p))
              (for/sum : Natural ([ΓA (in-set As)])
                (if (-blm? (-ΓA-ans ΓA)) 1 0)))
       [(list n) n]
-      [#f (list TIMEOUT)]))
+      [#f (list checks)]))
 
   (collect-garbage) (collect-garbage) (collect-garbage)
   (match-define-values ((list poses) t t-real t-gc) (time-apply count-poses '()))
   
-  (Row name ((inst hasheq Symbol Nat/Rng)
+  (Row name ((inst hasheq Symbol Real/Rng)
              'Lines lines
              'Checks checks
-             'Time t
+             'Time (exact->inexact (/ t 1000))
              'Positives poses)))
 
 (define (print-then-return-row [row : Row]) : Row
   (match-define (Row name fields) row)
   (printf "\\textrm{~a} " name)
   (for ([col (in-list COLUMNS)])
-    (printf "& ~a " (show-Nat/Rng (hash-ref fields col))))
+    (printf "& ~a " (show-Real/Rng (hash-ref fields col))))
   (printf "\\\\~n")
   row)
 
