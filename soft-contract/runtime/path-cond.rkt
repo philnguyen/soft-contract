@@ -58,6 +58,10 @@
      ;; tmp hack for integer precision
      (define ps : (℘ -h)
        (match t
+         [(-t.@ '+ (or (list t* (-b (and (? real?) (? positive?))))
+                       (list (-b (and (? real?) (? positive?))) t*)))
+          #:when (and t* (∋ Γ (-t.@ '<= (list -zero t*))))
+          {set (->/c 0)}]
          [(-t.@ '- (list t₁ t₂))
           (cond [(or (∋ Γ (-t.@ '<= (list t₂ t₁)))
                      (∋ Γ (-t.@ '>= (list t₁ t₂))))
