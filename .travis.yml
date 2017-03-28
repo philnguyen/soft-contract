@@ -37,6 +37,7 @@ script:
  - /usr/racket/bin/raco pkg install z3
  # Compile and link package
  - cd soft-contract
+ - /usr/racket/bin/raco link .
  - /usr/racket/bin/raco make cmdline.rkt
  # Run test suite
  - /usr/racket/bin/racket cmdline.rkt -p test/programs/safe/octy/ex-01.rkt
