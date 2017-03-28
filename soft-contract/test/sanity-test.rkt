@@ -57,16 +57,19 @@
 
 (module+ test
   ;; Order doesn't matter. I just run shorter ones first
-  (test "safe/octy" check-safe)
+  (test   "safe/octy" check-safe)
   (test "unsafe/octy" check-fail)
   
-  (test "safe/softy" check-safe)
+  (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
   
-  (test "safe/match.rkt" check-safe)
+  (test   "safe/match.rkt" check-safe)
   (test "unsafe/match.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
+
+  (test   "safe/real/protected-leftist-tree.rkt" check-safe)
+  (test "unsafe/real/protected-leftist-tree.rkt" check-safe)
   
-  (test "safe/games" check-safe)
+  (test   "safe/games" check-safe)
   (test "unsafe/games" check-fail))
