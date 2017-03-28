@@ -72,6 +72,7 @@
   (test "unsafe/real/protected-leftist-tree.rkt" check-safe)
 
   (test   "safe/real/protected-ring-buffer.rkt" check-safe)
+  (test "unsafe/real/protected-ring-buffer.rkt" check-fail)
   
   (test   "safe/games" check-safe)
   (test "unsafe/games" check-fail))
