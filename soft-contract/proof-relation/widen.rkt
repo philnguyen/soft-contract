@@ -449,6 +449,7 @@
 (define (inv-caller->callee σ fvs fml Ws Γₑᵣ Γₑₑ)
 
   (match-define (-Γ φsₑₑ asₑₑ) Γₑₑ)
+  (define asₑₑ* (accum-aliases asₑₑ fml (map -W¹-t Ws)))
 
   (define xs : (Listof Symbol)
     (match fml
@@ -476,7 +477,9 @@
                 [else {set t}]))))
 
     (match t
-      [arg #:when (hash-has-key? arg->x arg) (-x (hash-ref arg->x arg))]
+      [arg #:when (hash-has-key? arg->x arg)
+       (define xₜ (hash-ref arg->x arg))
+       (hash-ref asₑₑ* xₜ (λ () (-x xₜ)))]
       [(-t.@ f xs)
        (and (h-unique? f)
             (let ([xs* (map er->ee xs)])
@@ -502,8 +505,6 @@
                 #:when t*
                 #:unless (redundant? t*))
       (set-add φsₑₑ* t*)))
-
-  (define asₑₑ* (accum-aliases asₑₑ fml (map -W¹-t Ws)))
 
   (with-debugging/off ((Γₑₑ*) (-Γ φsₑₑ* asₑₑ*))
     (printf "caller->callee: ~a -> ~a~n" (show-formals fml) (map show-W¹ Ws))

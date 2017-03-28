@@ -174,6 +174,10 @@
            (and sₐ
                 (match* (αₖ tₓs)
                   [((? -ℳ?) (list t)) t]
+                  [((-ℬ (list x) _ _) (list t)) ; inline some
+                   #:when (match? sₐ (-t.@ (? -o? o) (list (-x (== x)))))
+                   (match-define (-t.@ o _) sₐ)
+                   (?t@ o t)]
                   [(_ _) (apply ?t@ αₖ tₓs)])))
          (define Γₑᵣ*
            (cond
