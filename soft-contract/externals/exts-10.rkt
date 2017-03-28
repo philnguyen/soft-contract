@@ -10,6 +10,16 @@
          "../reduction/compile/app.rkt"
          "def-ext.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.2 Exception
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-ext (raise $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (⟦k⟧ (-blm 'Λ 'raise '(raise) (map -W¹-V Ws) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ))
+
+(def-ext (error $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (⟦k⟧ (-blm 'Λ 'error '(error) (map -W¹-V Ws) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.5 Continuation Marks

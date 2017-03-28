@@ -102,7 +102,7 @@
                             [body : -e]
                             [loc : ℓ])
             (-set! (U -𝒾 -x) -e)
-            (-error String)
+            (-error String ℓ)
             
             ;; contract stuff
             (-μ/c Symbol -e)
@@ -223,7 +223,7 @@
     [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
     [(-begin es) `(begin ,@(show-es es))]
     [(-begin0 e es) `(begin ,(show-e e) ,@(show-es es))]
-    [(-error msg) `(error ,msg)]
+    [(-error msg _) `(error ,msg)]
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-μ/c x c) `(μ/c (,x) ,(show-e c))]

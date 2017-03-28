@@ -247,7 +247,7 @@
     ;; HACK for incomplete pattern matching error
     [(#%plain-app f _ ...)
      #:when (equal? 'match:error (syntax->datum #'f))
-     (-error "incomplete pattern matching")]
+     (-error "incomplete pattern matching" (syntax-ℓ stx))]
 
     ;; HACK for time-apply in nucleic2
     [(let-values ([_ (#%plain-app (~literal time-apply) (#%plain-lambda () e) (~literal null))]) _ ...)
@@ -262,7 +262,7 @@
 
     ;; HACK for `raise`-ing exception
     [(#%plain-app (~literal raise) _ ...)
-     (-error "exception")]
+     (-@ 'raise #|TODO|# '() (syntax-ℓ stx))]
 
     ;; HACK for immediate uses of `list`
     [(#%plain-app (~literal list) e ...)
