@@ -18,10 +18,10 @@
  (any/c flat-contract? . -> . flat-contract?))
 (def-prim/custom (any/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W any/c])
-  {set (-ΓA Γ (-W -tt.Vs -tt))})
+  {set (-ΓA (-Γ-facts Γ) (-W -tt.Vs -tt))})
 (def-prim/custom (none/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W any/c])
-  {set (-ΓA Γ (-W -ff.Vs -ff))})
+  {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs -ff))})
 (def-prim/custom (or/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
   (match-define (-W¹ V₁ t₁) W₁)
@@ -31,7 +31,7 @@
   (σ⊕V*! Σ [α₁ ↦ V₁] [α₂ ↦ V₂])
   (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids ℓ 2))
   (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
-  {set (-ΓA Γ (-W (list C) (?t@ 'or/c t₁ t₂)))})
+  {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'or/c t₁ t₂)))})
 (def-prim/custom (and/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
   (match-define (-W¹ V₁ t₁) W₁)
@@ -41,7 +41,7 @@
   (σ⊕V*! Σ [α₁ ↦ V₁] [α₂ ↦ V₂])
   (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids ℓ 2))
   (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
-  {set (-ΓA Γ (-W (list C) (?t@ 'and/c t₁ t₂)))})
+  {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'and/c t₁ t₂)))})
 (def-prim/custom (not/c ⟪ℋ⟫ ℓ Σ Γ Ws)
   #:domain ([W flat-contract?])
   (match-define (-W¹ V t) W)
@@ -49,7 +49,7 @@
   (σ⊕V! Σ α V)
   (define ℓ* (ℓ-with-id ℓ 'not/c))
   (define C (-Not/C (cons α ℓ*)))
-  {set (-ΓA Γ (-W (list C) (?t@ 'not/c t)))})
+  {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'not/c t)))})
 (def-prim/todo =/c  (real? . -> . flat-contract?))
 (def-prim/todo </c  (real? . -> . flat-contract?))
 (def-prim/todo >/c  (real? . -> . flat-contract?))
@@ -72,7 +72,7 @@
         [W (error 'one-of/c
                   "only support simple values for now, got ~a at position ~a"
                   (show-W¹ W) i)])))
-  {set (-ΓA Γ (-W (list (-One-Of/C vals)) (apply ?t@ 'one-of/c ss)))})
+  {set (-ΓA (-Γ-facts Γ) (-W (list (-One-Of/C vals)) (apply ?t@ 'one-of/c ss)))})
 #;[symbols
    (() #:rest (listof symbol?) . ->* . flat-contract?)]
 (def-prim/custom (vectorof ⟪ℋ⟫ ℓ Σ Γ Ws) ; FIXME uses
@@ -81,7 +81,7 @@
   (define ⟪α⟫ (-α->⟪α⟫ (-α.vectorof t ℓ ⟪ℋ⟫)))
   (σ⊕V! Σ ⟪α⟫ V)
   (define C (-Vectorof (cons ⟪α⟫ (ℓ-with-id ℓ 'vectorof))))
-  {set (-ΓA Γ (-W (list C) (?t@ 'vectorof t)))})
+  {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'vectorof t)))})
 (def-prim/todo vector-immutableof (contract? . -> . contract?))
 (def-prim/custom (vector/c ⟪ℋ⟫ ℓ₀ Σ Γ Ws)
   ; FIXME uses ; FIXME check for domains to be listof contract
@@ -93,7 +93,7 @@
       (σ⊕V! Σ ⟪α⟫ V)
       (values ⟪α⟫ (ℓ-with-id ℓ₀ i) t)))
   (define C (-Vector/C (map (inst cons ⟪α⟫ ℓ) αs ℓs)))
-  {set (-ΓA Γ (-W (list C) (apply ?t@ 'vector/c ss)))})
+  {set (-ΓA (-Γ-facts Γ) (-W (list C) (apply ?t@ 'vector/c ss)))})
 #;[vector-immutable/c
    (() #:rest (listof contract?) . ->* . contract?)]
 (def-prim/todo box/c ; FIXME uses

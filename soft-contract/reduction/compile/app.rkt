@@ -183,9 +183,10 @@
     [(get-prim o) =>
      (λ ([⟦o⟧ : -⟦o⟧])
        (match-define (-ℒ _ ℓ) ℒ)
+       (match-define (-Γ _ as₀) Γ)
        (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
-          (match-define (-ΓA Γ A) ΓA)
-          (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))]
+          (match-define (-ΓA φs A) ΓA)
+          (⟦k⟧ A $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
     [(get-ext o) =>
      (λ ([⟦f⟧ : -⟦f⟧])
        (⟦f⟧ $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))]

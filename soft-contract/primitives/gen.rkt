@@ -140,7 +140,7 @@
                  (and base-guard-rest (and* (list base-guard-init base-guard-rest)))]))
             (list #`[((-b b) ... (app ts->bs #,(-b*))) #:when (and #,(-b*) #,base-guard)
                      (define bₐ mk-bₐ)
-                     {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
+                     {set (-ΓA (-Γ-facts #,(-Γ)) (-W (list bₐ) bₐ))}])]
            [else '()]))
        (define/with-syntax (symbolic-case-clauses ...)
          (list #`[(s ... #,(-s*)) #,@(gen-sym-case)]))
@@ -158,7 +158,7 @@
                 [o #`(-b (o #,@(-bₙ)))]))
             (list #`[((-b b) ...) #:when #,base-guard-init
                      (define bₐ mk-bₐ)
-                     {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
+                     {set (-ΓA (-Γ-facts #,(-Γ)) (-W (list bₐ) bₐ))}])]
            [else '()]))
        (define/with-syntax (symbolic-case-clauses ...)
          (list #`[(s ...) #,@(gen-sym-case)]))
@@ -301,13 +301,13 @@
       [(null? (-refs))
        (list #`(define sₐ mk-sₐ)
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                         #`(-ΓA #,(-Γ) (-W (list #,(refs->V refs)) sₐ)))))]
+                         #`(-ΓA (-Γ-facts #,(-Γ)) (-W (list #,(refs->V refs)) sₐ)))))]
       [else
        (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e (-o))))
        (list #`(define sₐ mk-sₐ)
              #`(define (o.refine [V : -V]) #,@(gen-refine-body #'V))
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                         #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ)))))]))
+                         #`(-ΓA (-Γ-facts #,(-Γ)) (-W (list (o.refine #,(refs->V refs))) sₐ)))))]))
 
   ;; Generate full precondition check
   (define/contract (gen-precond-checks body)

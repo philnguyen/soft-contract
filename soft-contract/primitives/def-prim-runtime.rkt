@@ -53,7 +53,7 @@
       [(✓) -tt.Vs]
       [(✗) -ff.Vs]
       [(?) -Bool.Vs]))
-  {set (-ΓA Γ (-W A (apply ?t@ o ss)))})
+  {set (-ΓA (-Γ-facts Γ) (-W A (apply ?t@ o ss)))})
 
 (define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧)
   (λ (o)
@@ -62,7 +62,7 @@
              (match-define (-Σ σ _ M) Σ)
              (implement-predicate M σ Γ o Ws)]
             [else
-             {set (-ΓA Γ (blm-arity ℓ o n (map -W¹-V Ws)))}]))))
+             {set (-ΓA (-Γ-facts Γ) (blm-arity ℓ o n (map -W¹-V Ws)))}]))))
 
 (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
 (define alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut)) (make-hasheq))
@@ -88,7 +88,7 @@
     [(-Cons _ _)
      (cond
        [(definitely-not-member? σ Vₓ Vₗ)
-        {set (-ΓA Γ (-W -ff.Vs sₐ))}]
+        {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ))}]
        [else
         (define ℒ (-ℒ ∅eq ℓ))
         (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
@@ -97,12 +97,12 @@
         (for ([Vₕ (extract-list-content σ Vₗ)])
           (σ⊕V! Σ αₕ Vₕ))
         (σ⊕V*! Σ [αₜ ↦ Vₜ] [αₜ ↦ -null])
-        (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
+        (define Ans {set (-ΓA (-Γ-facts Γ) (-W (list Vₜ) sₐ))})
         (cond [(definitely-member? σ Vₓ Vₗ) Ans]
-              [else (set-add Ans (-ΓA Γ (-W -ff.Vs sₐ)))])])]
-    [(-b '()) {set (-ΓA Γ (-W -ff.Vs sₐ))}]
-    [_ {set (-ΓA Γ (-W (list (-● {set 'list? -cons?})) sₐ))
-            (-ΓA Γ (-W -ff.Vs sₐ))}]))
+              [else (set-add Ans (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ)))])])]
+    [(-b '()) {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ))}]
+    [_ {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'list? -cons?})) sₐ))
+            (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ))}]))
 
 (: definitely-member? : -σ -V -St → Boolean)
 (define (definitely-member? σ V Vₗ)

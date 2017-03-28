@@ -37,7 +37,7 @@
 (begin-for-syntax
   (define/contract (gen-blm blm)
     (syntax? . -> . syntax?)
-    #`(set (-ΓA #,(-Γ) #,blm))))
+    #`(set (-ΓA (-Γ-facts #,(-Γ)) #,blm))))
 
 (define-syntax-parser def-const
   [(_ x:id)

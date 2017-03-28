@@ -15,7 +15,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-prim/custom (values ⟪ℋ⟫ ℓ Σ Γ Ws)
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
-  {set (-ΓA Γ (-W Vs (apply ?t@ 'values ss)))})
+  {set (-ΓA (-Γ-facts Γ) (-W Vs (apply ?t@ 'values ss)))})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -23,7 +23,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-prim/custom (error ⟪ℋ⟫ ℓ Σ Γ Ws)
   ;; Consider a user-written error to be a blame on some party other than the module itself
-  {set (-ΓA Γ (-blm 'exception 'error '(error) (map -W¹-V Ws) ℓ))})
+  {set (-ΓA (-Γ-facts Γ) (-blm 'exception 'error '(error) (map -W¹-V Ws) ℓ))})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

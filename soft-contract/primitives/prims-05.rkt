@@ -19,7 +19,7 @@
               (-● {set 'procedure?})
               (-● {set 'procedure?}))
         tₐ))
-  {set (-ΓA Γ ans)})
+  {set (-ΓA (-Γ-facts Γ) ans)})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

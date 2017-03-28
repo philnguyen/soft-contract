@@ -396,13 +396,13 @@
 (define ((ΓA⊑ σ) ΓA₁ ΓA₂)
   (match-define (-ΓA Γ₁ A₁) ΓA₁)
   (match-define (-ΓA Γ₂ A₂) ΓA₂)
-  (and (Γ⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
+  (and (φs⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
 
-(: M⊕ : -M -σ -αₖ -Γ -A → -M)
+(: M⊕ : -M -σ -αₖ (℘ -t) -A → -M)
 (define (M⊕ M σ αₖ Γ A)
   (hash-update M αₖ (set-add/remove-redundant (-ΓA Γ A) (ΓA⊑ σ)) →∅))
 
-(: M⊕! : -Σ -αₖ -Γ -A → Void)
+(: M⊕! : -Σ -αₖ (℘ -t) -A → Void)
 (define (M⊕! Σ αₖ Γ A)
   (match-define (-Σ σ _ M) Σ)
   (set--Σ-M! Σ (M⊕ M σ αₖ Γ A)))

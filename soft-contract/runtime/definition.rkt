@@ -141,7 +141,7 @@
 (struct -W¹ ([V : -V] [t : -?t]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [t : -?t]) #:transparent)
 (-A . ::= . -W -blm)
-(struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
+(struct -ΓA ([cnd : (℘ -t)] [ans : -A]) #:transparent)
 
 (define ⟪α⟫ℓ->⟪α⟫ (inst car ⟪α⟫ ℓ))
 
@@ -593,7 +593,7 @@
 
 (define (show-ΓA [ΓA : -ΓA]) : Sexp
   (match-define (-ΓA Γ A) ΓA)
-  `(,(show-A A) ‖ ,(show-Γ Γ)))
+  `(,(show-A A) ‖ ,@(set-map Γ show-t)))
 
 (define (show-A [A : -A])
   (cond [(-W? A) (show-W A)]

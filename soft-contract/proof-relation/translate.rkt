@@ -131,7 +131,7 @@
       [(? -blm?) (values (λ () (val-of 'None)) ∅eq ∅eq)]))
 
   (match-define (-ΓA Γ A) ΓA)
-  (define-values (pc fvs₁) (⦃Γ⦄ ctx (-Γ-facts Γ)))
+  (define-values (pc fvs₁) (⦃Γ⦄ ctx Γ))
   (define-values (res cnds fvs₂) (⦃A⦄ A))
   (values (∪ pc cnds) res (∪ fvs₁ fvs₂)))
 
@@ -586,7 +586,7 @@
   (define (go-M! M)
     (for* ([(a As) (in-hash M)] [ΓA (in-set As)])
       (match-define (-ΓA Γ A) ΓA)
-      (go-Γ! (-Γ-facts Γ))
+      (go-Γ! Γ)
       (go-A! A)))
 
   (: go-A! : -A → Void)

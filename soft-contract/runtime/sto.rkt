@@ -131,10 +131,11 @@
 (: ΓA->αₖs : -ΓA → (℘ -αₖ))
 (define (ΓA->αₖs ΓA)
   (match-define (-ΓA Γ A) ΓA)
-  (∪ (Γ->αₖs Γ)
-     (match A
-       [(-W _ t) #:when t (t->αₖs t)]
-       [_ ∅])))
+  (apply ∪ 
+   (match A
+     [(-W _ t) #:when t (t->αₖs t)]
+     [_ ∅])
+   (set-map Γ t->αₖs)))
 
 (: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
 (define (αₖ->⟪α⟫s αₖ σₖ)
