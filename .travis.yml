@@ -39,6 +39,7 @@ script:
  - cd soft-contract
  - /usr/racket/bin/raco make cmdline.rkt
  # Run test suite
- - /usr/racket/bin/raco test test/sanity-test.rkt
+ - /usr/racket/bin/racket cmdline.rkt -p test/programs/safe/octy/ex-01.rkt
+ #- /usr/racket/bin/raco test test/sanity-test.rkt
 
 after_script:
