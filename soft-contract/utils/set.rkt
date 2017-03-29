@@ -117,17 +117,6 @@
 (define (map/set f xs)
   (for/set: : (℘ Y) ([x : X xs]) (f x)))
 
-(: set-add/remove-redundant (∀ (X) X (X X → Boolean) → (℘ X) → (℘ X)))
-;; Add `x` to `xs`, eliminating any subsumed element
-(define ((set-add/remove-redundant x subsumed-by?) xs)
-  (define-set subsumed-olds : X)
-  (define new-redundant? : Boolean #f)
-  (for ([xᵢ (in-set xs)] #:break new-redundant?)
-    (cond [(x  . subsumed-by? . xᵢ) (set! new-redundant? #t)]
-          [(xᵢ . subsumed-by? . x ) (subsumed-olds-add! xᵢ)]
-          [else (void)]))
-  (if new-redundant? xs (set-add (set-subtract xs subsumed-olds) x)))
-
 (: set-add/compact (∀ (X) X (X X → (Option X)) → (℘ X) → (℘ X)))
 (define ((set-add/compact x ?join) xs)
   (define-set subsumed-olds : X)
@@ -136,8 +125,8 @@
   (for ([xᵢ (in-set xs)] #:break do-nothing?)
     (define ?x* (?join x xᵢ))
     (when ?x*
-      (cond [(equal? ?x* xᵢ) (set! do-nothing? #t)]
-            [(equal? ?x* x ) (subsumed-olds-add! xᵢ)]
+      (cond [(eq? ?x* xᵢ) (set! do-nothing? #t)]
+            [(eq? ?x* x ) (subsumed-olds-add! xᵢ)]
             [else (subsumed-olds-add! xᵢ)
                   (set! x* ?x*)])))
   (cond [do-nothing? xs]

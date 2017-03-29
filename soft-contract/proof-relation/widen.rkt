@@ -439,17 +439,40 @@
   (match-define (-Σ _ σₖ _) Σ)
   (set--Σ-σₖ! Σ (σₖ⊕ σₖ αₖ κ)))
 
+(: t⊑ : -?t -?t → Boolean)
+(define t⊑
+  (match-lambda**
+   [(_ #f) #t]
+   [(t t ) #t]
+   [(_ _ ) #f]))
+
+(: κ⊑ : -κ -κ → Boolean)
+(define (κ⊑ κ₁ κ₂)
+  (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ args₁) κ₁)
+  (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ args₂) κ₂)
+  (and (equal? ⟦k⟧₁ ⟦k⟧₂)
+       (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
+       (andmap t⊑ args₁ args₂)
+       (Γ⊑ Γ₁ Γ₂)))
+
+(: ?κ⊔ : -κ -κ → (Option -κ))
+(define (?κ⊔ κ₁ κ₂)
+  (cond [(κ⊑ κ₁ κ₂) κ₂]
+        [(κ⊑ κ₂ κ₁) κ₁]
+        [else
+         (match-define (-κ ⟦k⟧₁ (-Γ φs₁ as₁) ⟪ℋ⟫₁ args₁) κ₁)
+         (match-define (-κ ⟦k⟧₂ (-Γ φs₂ as₂) ⟪ℋ⟫₂ args₂) κ₂)
+         (cond [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
+                    (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
+                    (andmap t⊑ args₁ args₂)
+                    (equal? as₁ as₂))
+                (define ?φs (?Γ⊔ φs₁ φs₂))
+                (and ?φs (-κ ⟦k⟧₂ (-Γ ?φs as₂) ⟪ℋ⟫₂ args₂))]
+               [else #f])]))
+
 (: σₖ⊕ : -σₖ -αₖ -κ → -σₖ)
 (define (σₖ⊕ σₖ αₖ κ)
-  (define (κ⊑ [κ₁ : -κ] [κ₂ : -κ])
-    (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ sₓs₁) κ₁)
-    (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ sₓs₂) κ₂)
-    (and (equal? ⟦k⟧₁ ⟦k⟧₂)
-         (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
-         (equal? sₓs₁ sₓs₂)
-         (Γ⊑ Γ₁ Γ₂)))
-
-  (hash-update σₖ αₖ (set-add/remove-redundant κ κ⊑) →∅))
+  (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) →∅))
 
 (: predicates-of-W : -σ -Γ -W¹ → (℘ -h))
 ;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value
