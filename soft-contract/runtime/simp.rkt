@@ -88,6 +88,8 @@
       [(? op-≡?)
        (match xs
          [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
+         [(or (list t (-b #f)) (list (-b #f) t)) #:when t
+          (-t.@ 'not (list t))]
          [(list x x) #:when (t-unique? x) -tt]
          [_ (default-case)])]
 

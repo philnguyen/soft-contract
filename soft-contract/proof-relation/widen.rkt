@@ -24,7 +24,11 @@
     (for/fold ([φs : (℘ -t) φs]) ([t ts]
                                   #:when t
                                   #:unless (set-empty? (fvₜ t)))
-      (φs+ φs t)))
+      (define t*
+        (match t
+          [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]
+          [_ t]))
+      (φs+ φs t*)))
   (-Γ φs* as))
 
 (: Γ++ : -Γ (℘ -t) → -Γ)
