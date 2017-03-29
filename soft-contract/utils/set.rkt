@@ -127,3 +127,23 @@
           [(xᵢ . subsumed-by? . x ) (subsumed-olds-add! xᵢ)]
           [else (void)]))
   (if new-redundant? xs (set-add (set-subtract xs subsumed-olds) x)))
+
+(: set-add/compact (∀ (X) X (X X → (Option X)) → (℘ X) → (℘ X)))
+(define ((set-add/compact x ?join) xs)
+  (define-set subsumed-olds : X)
+  (define x* : X x)
+  (define do-nothing? : Boolean #f)
+  (for ([xᵢ (in-set xs)] #:break do-nothing?)
+    (define ?x* (?join x xᵢ))
+    (when ?x*
+      (cond [(equal? ?x* xᵢ) (set! do-nothing? #t)]
+            [(equal? ?x* x ) (subsumed-olds-add! xᵢ)]
+            [else (subsumed-olds-add! xᵢ)
+                  (set! x* ?x*)])))
+  (cond [do-nothing? xs]
+        [else (set-add (set-subtract xs subsumed-olds) x*)]))
+
+(: set-intersect/differences (∀ (X) (℘ X) (℘ X) → (Values (℘ X) (℘ X) (℘ X))))
+(define (set-intersect/differences xs ys)
+  (define same (set-intersect xs ys))
+  (values same (set-subtract xs same) (set-subtract ys same)))

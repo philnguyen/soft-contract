@@ -99,3 +99,14 @@
 
 (: h-syntactic? : -h → Boolean)
 (define (h-syntactic? h) (not (-αₖ? h)))
+
+(: complement? : -t -t → Boolean)
+(define complement?
+  (match-lambda**
+   [(φ (-t.@ 'not (list φ))) #t]
+   [((-t.@ 'not (list φ)) φ) #t]
+   [((-t.@ '<  (list t₁ t₂))
+     (-t.@ '<= (list t₂ t₁))) #t]
+   [((-t.@ '<= (list t₂ t₁))
+     (-t.@ '<  (list t₁ t₂))) #t]
+   [(_ _) #f]))

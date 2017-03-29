@@ -402,9 +402,32 @@
   (match-define (-ΓA Γ₂ A₂) ΓA₂)
   (and (φs⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
 
+(: ?Γ⊔ : (℘ -t) (℘ -t) → (Option (℘ -t)))
+(define (?Γ⊔ Γ₁ Γ₂)
+  (define-values (Γ* δΓ₁ δΓ₂) (set-intersect/differences Γ₁ Γ₂))
+  (cond [(and (= 1 (set-count δΓ₁))
+              (= 1 (set-count δΓ₂)))
+         (define φ₁ (set-first δΓ₁))
+         (define φ₂ (set-first δΓ₂))
+         (cond [(complement? φ₁ φ₂) Γ*]
+               [(φs⊢t {set φ₁} φ₂) Γ₂]
+               [(φs⊢t {set φ₂} φ₁) Γ₁]
+               [else #f])]
+        [else #f]))
+
+(: ?ΓA⊔ : -σ → -ΓA -ΓA → (Option -ΓA))
+(define ((?ΓA⊔ σ) ΓA₁ ΓA₂)
+  (cond [((ΓA⊑ σ) ΓA₁ ΓA₂) ΓA₂]
+        [((ΓA⊑ σ) ΓA₂ ΓA₁) ΓA₁]
+        [else
+         (match-define (-ΓA Γ₁ A₁) ΓA₁)
+         (match-define (-ΓA Γ₂ A₂) ΓA₂)
+         (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
+         (and ?Γ (-ΓA ?Γ A₂))]))
+
 (: M⊕ : -M -σ -αₖ (℘ -t) -A → -M)
 (define (M⊕ M σ αₖ Γ A)
-  (hash-update M αₖ (set-add/remove-redundant (-ΓA Γ A) (ΓA⊑ σ)) →∅))
+  (hash-update M αₖ (set-add/compact (-ΓA Γ A) (?ΓA⊔ σ)) →∅))
 
 (: M⊕! : -Σ -αₖ (℘ -t) -A → Void)
 (define (M⊕! Σ αₖ Γ A)
