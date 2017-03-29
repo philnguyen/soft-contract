@@ -375,32 +375,14 @@
 
   (go V₁ V₂))
 
-(: A⊑ : -σ -A -A → Boolean)
-(define (A⊑ σ A₁ A₂)
-  (match* (A₁ A₂)
-    [((-W Vs₁ s₁) (-W Vs₂ s₂))
-     (and (equal? s₁ s₂)
-          (= (length Vs₁) (length Vs₂))
-          (for/and : Boolean ([V₁ Vs₁] [V₂ Vs₂])
-            (V⊑ σ V₁ V₂)))]
-    [((? -blm? blm₁) (? -blm? blm₂))
-     (equal? blm₁ blm₂)]
-    [(_ _) #f]))
-
 (: φs⊑ : (℘ -t) (℘ -t) → Boolean)
 (define (φs⊑ φs₁ φs₂) (⊆ φs₂ φs₁))
 
 (: Γ⊑ : -Γ -Γ → Boolean)
 (define (Γ⊑ Γ₁ Γ₂)
-  (match-define (-Γ φs₁ _) Γ₁)
-  (match-define (-Γ φs₂ _) Γ₂)
-  (⊆ φs₂ φs₁))
-
-(: ΓA⊑ : -σ → -ΓA -ΓA → Boolean)
-(define ((ΓA⊑ σ) ΓA₁ ΓA₂)
-  (match-define (-ΓA Γ₁ A₁) ΓA₁)
-  (match-define (-ΓA Γ₂ A₂) ΓA₂)
-  (and (φs⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
+  (match-define (-Γ φs₁ as₁) Γ₁)
+  (match-define (-Γ φs₂ as₂) Γ₂)
+  (and (equal? as₁ as₂) (⊆ φs₂ φs₁)))
 
 (: ?Γ⊔ : (℘ -t) (℘ -t) → (Option (℘ -t)))
 (define (?Γ⊔ Γ₁ Γ₂)
@@ -417,8 +399,27 @@
 
 (: ?ΓA⊔ : -σ → -ΓA -ΓA → (Option -ΓA))
 (define ((?ΓA⊔ σ) ΓA₁ ΓA₂)
-  (cond [((ΓA⊑ σ) ΓA₁ ΓA₂) ΓA₂]
-        [((ΓA⊑ σ) ΓA₂ ΓA₁) ΓA₁]
+
+  (: A⊑ : -σ -A -A → Boolean)
+  (define (A⊑ σ A₁ A₂)
+    (match* (A₁ A₂)
+      [((-W Vs₁ s₁) (-W Vs₂ s₂))
+       (and (equal? s₁ s₂)
+            (= (length Vs₁) (length Vs₂))
+            (for/and : Boolean ([V₁ Vs₁] [V₂ Vs₂])
+              (V⊑ σ V₁ V₂)))]
+      [((? -blm? blm₁) (? -blm? blm₂))
+       (equal? blm₁ blm₂)]
+      [(_ _) #f]))
+
+  (: ΓA⊑ : -ΓA -ΓA → Boolean)
+  (define (ΓA⊑ ΓA₁ ΓA₂)
+    (match-define (-ΓA Γ₁ A₁) ΓA₁)
+    (match-define (-ΓA Γ₂ A₂) ΓA₂)
+    (and (φs⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
+  
+  (cond [(ΓA⊑ ΓA₁ ΓA₂) ΓA₂]
+        [(ΓA⊑ ΓA₂ ΓA₁) ΓA₁]
         [else
          (match-define (-ΓA Γ₁ A₁) ΓA₁)
          (match-define (-ΓA Γ₂ A₂) ΓA₂)
@@ -439,24 +440,25 @@
   (match-define (-Σ _ σₖ _) Σ)
   (set--Σ-σₖ! Σ (σₖ⊕ σₖ αₖ κ)))
 
-(: t⊑ : -?t -?t → Boolean)
-(define t⊑
-  (match-lambda**
-   [(_ #f) #t]
-   [(t t ) #t]
-   [(_ _ ) #f]))
-
-(: κ⊑ : -κ -κ → Boolean)
-(define (κ⊑ κ₁ κ₂)
-  (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ args₁) κ₁)
-  (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ args₂) κ₂)
-  (and (equal? ⟦k⟧₁ ⟦k⟧₂)
-       (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
-       (andmap t⊑ args₁ args₂)
-       (Γ⊑ Γ₁ Γ₂)))
-
 (: ?κ⊔ : -κ -κ → (Option -κ))
 (define (?κ⊔ κ₁ κ₂)
+
+  (: t⊑ : -?t -?t → Boolean)
+  (define t⊑
+    (match-lambda**
+     [(_ #f) #t]
+     [(t t ) #t]
+     [(_ _ ) #f]))
+
+  (: κ⊑ : -κ -κ → Boolean)
+  (define (κ⊑ κ₁ κ₂)
+    (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ args₁) κ₁)
+    (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ args₂) κ₂)
+    (and (equal? ⟦k⟧₁ ⟦k⟧₂)
+         (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
+         (andmap t⊑ args₁ args₂)
+         (Γ⊑ Γ₁ Γ₂)))
+
   (cond [(κ⊑ κ₁ κ₂) κ₂]
         [(κ⊑ κ₂ κ₁) κ₁]
         [else
