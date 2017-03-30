@@ -102,8 +102,13 @@
   (values rows sum-row))
 
 (command-line
-   #:args dirs
-   (for ([dir (in-list dirs)])
-     (run-dir (assert dir path-string?))
+   #:args paths
+   (for ([path (in-list paths)])
+     (assert path path-string?)
+     (cond [(directory-exists?              path)
+            (run-dir path)]
+           [(regexp-match-exact? #rx".*rkt" path)
+            (print-then-return-row (run-file path))]
+           [else (printf "Don't know what path ~a means" path)])
      (printf "~n")))
 
