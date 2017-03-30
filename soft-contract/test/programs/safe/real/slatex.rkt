@@ -3,7 +3,8 @@
 ;; fluid-let definition translated from
 ;; https://ds26gte.github.io/tyscheme/index-Z-H-10.html#node_sec_8.3
 
-(require (for-syntax racket/syntax syntax/parse))
+(require (for-syntax racket/syntax syntax/parse)
+         (only-in racket/base [if if.old]))
 
 (define-syntax (fluid-let stx)
   (syntax-parse stx
@@ -37,12 +38,20 @@
 ;; Redefine if for 1-arm
 (define-syntax if
   (syntax-rules ()
-    [(_ e1 e2 e3) (cond [e1 e2] [else e3])]
-    [(_ e1 e2   ) (cond [e1 e2] [else #f])]))
+    [(_ test then else) (if.old test then else)]
+    [(_ test then     ) (if.old test then #f  )]))
 
 (define (map f xs)
   (cond [(null? xs) null]
         [else (cons (f (car xs)) (map f (cdr xs)))]))
+
+;; Guards against `eof` where `char` is expected
+(define (ensure-char c)
+  (if (eof-object? c) (error "exception: eof-object") c))
+
+;; Guard against `#f` where a non-#f value is expected
+(define (ensure-value x)
+  (if x x (error "exception: #f")))
 
 
 ;;;;; Original program starts here
@@ -680,7 +689,7 @@
                         slatex::*operating-system*
                         '(dos windows os2 os2fat))
                        (char=? c slatex::*return*))
-                (if (char=? (peek-char slatex::*in*) #\newline)
+                (if (char=? (ensure-char (peek-char slatex::*in*)) #\newline)
                   (read-char slatex::*in*)))
               (slatex::setf (slatex::of line slatex::=notab / i) &void-notab)
               (cond
@@ -724,7 +733,7 @@
               (slatex::setf (slatex::of line slatex::=space / i) &void-space)
               (slatex::setf (slatex::of line slatex::=tab / i) &void-tab)
               (slatex::setf (slatex::of line slatex::=notab / i) curr-notab)
-              (let ((i+1 (+ i 1)) (c+1 (read-char slatex::*in*)))
+              (let ((i+1 (+ i 1)) (c+1 (ensure-char (read-char slatex::*in*))))
                 (if (char=? c+1 slatex::*tab*) (set! c+1 #\space))
                 (slatex::setf (slatex::of line slatex::=char / i+1) c+1)
                 (slatex::setf
@@ -1614,7 +1623,7 @@
 (define slatex::read-grouped-latexexp
   (lambda (in)
     (slatex::eat-tex-whitespace in)
-    (let ((c (read-char in)))
+    (let ((c (ensure-char (read-char in))))
       (if (eof-object? c)
         (slatex::slatex-error
           "read-grouped-latexexp: ~\nExpected { but found eof."))
@@ -1625,13 +1634,14 @@
       (slatex::eat-tex-whitespace in)
       (list->string
         (reverse
+         (ensure-value
           (slatex::chop-off-whitespace
-            (let loop ((s '()) (nesting 0) (escape? #f))
-              (let ((c (read-char in)))
-                (if (eof-object? c)
-                  (slatex::slatex-error
+           (let loop ((s '()) (nesting 0) (escape? #f))
+             (let ((c (ensure-char (read-char in))))
+               (if (eof-object? c)
+                   (slatex::slatex-error
                     "read-groupted-latexexp: ~\nFound eof inside {...}."))
-                (cond
+               (cond
                  (escape? (loop (cons c s) nesting #f))
                  ((char=? c #\\) (loop (cons c s) nesting #t))
                  ((char=? c #\%)
@@ -1640,7 +1650,7 @@
                  ((char=? c #\{) (loop (cons c s) (+ nesting 1) #f))
                  ((char=? c #\})
                   (if (= nesting 0) s (loop (cons c s) (- nesting 1) #f)))
-                 (else (loop (cons c s) nesting #f)))))))))))
+                 (else (loop (cons c s) nesting #f))))))))))))
 
 (define slatex::read-filename
   (let ((filename-delims
@@ -1662,7 +1672,7 @@
            #\\)))
     (lambda (in)
       (slatex::eat-tex-whitespace in)
-      (let ((c (peek-char in)))
+      (let ((c (ensure-char (peek-char in))))
         (if (eof-object? c)
           (slatex::slatex-error
             "read-filename: ~\nExpected filename but found eof."))
@@ -1712,7 +1722,7 @@
 (define slatex::read-delimed-commaed-filenames
   (lambda (in lft-delim rt-delim)
     (slatex::eat-tex-whitespace in)
-    (let ((c (read-char in)))
+    (let ((c (ensure-char (read-char in))))
       (if (eof-object? c)
         (slatex::slatex-error
           "read-delimed-commaed-filenames: ~\nExpected filename(s) but found eof."))
@@ -1751,7 +1761,7 @@
 (define slatex::read-grouped-schemeids
   (lambda (in)
     (slatex::eat-tex-whitespace in)
-    (let ((c (read-char in)))
+    (let ((c (ensure-char (read-char in))))
       (if (eof-object? c)
         (slatex::slatex-error
           "read-grouped-schemeids: ~\nExpected Scheme identifiers but found eof."))
@@ -1900,7 +1910,7 @@
 (define slatex::process-documentstyle
   (lambda (in)
     (slatex::eat-tex-whitespace in)
-    (if (char=? (peek-char in) #\[)
+    (if (char=? (ensure-char (peek-char in)) #\[)
       (for-each
         (lambda (filename)
           (fluid-let
@@ -1954,7 +1964,7 @@
 (define slatex::dump-intext
   (lambda (in out)
     (let* ((write-char (if out write-char slatex::ignore2))
-           (delim-char (begin (slatex::eat-whitespace in) (read-char in)))
+           (delim-char (begin (slatex::eat-whitespace in) (ensure-char (read-char in))))
            (delim-char (cond ((char=? delim-char #\{) #\}) (else delim-char))))
       (if (eof-object? delim-char)
         (slatex::slatex-error
