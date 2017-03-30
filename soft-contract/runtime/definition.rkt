@@ -342,7 +342,7 @@
 (-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Symbol -⟪ℋ⟫ (℘ -h))
+            (-α.x Symbol -⟪ℋ⟫ (U (℘ -h) -⟦e⟧))
             (-α.fv -⟪ℋ⟫ (℘ -t))
             ; for struct field
             (-α.fld [id : -𝒾] [loc : -ℒ] [ctx : -⟪ℋ⟫] [idx : Natural])
@@ -380,8 +380,8 @@
 
             ;; HACK
             (-α.hv)
-            (-α.mon-x/c Symbol -⟪ℋ⟫ -l (℘ -h))
-            (-α.fc-x/c Symbol -⟪ℋ⟫ (℘ -h))
+            (-α.mon-x/c Symbol -⟪ℋ⟫ -l (U (℘ -h) -⟦e⟧))
+            (-α.fc-x/c Symbol -⟪ℋ⟫ (U (℘ -h) -⟦e⟧))
             (-α.fn.●)
             -o
             -𝒾
@@ -663,10 +663,14 @@
 
 (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 
-  (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫] [ps : (℘ -h)])
-    (for/fold ([s : Symbol (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫))])
-              ([p (in-set ps)])
-      (format-symbol "~a_~a" s #|HACK|# (string->symbol (format "~a" (show-h p))))))
+  (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫] [ps : (U (℘ -h) -⟦e⟧)])
+    (define s₀ (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫)))
+    (cond
+      [(set? ps)
+       (for/fold ([s : Symbol s₀])
+                 ([p (in-set ps)])
+         (format-symbol "~a_~a" s #|HACK|# (string->symbol (format "~a" (show-h p)))))]
+      [else (format-symbol "~a_~a" s₀ #|HACK|# (string->symbol (format "~a" (show-⟦e⟧ ps))))]))
 
   (define α (⟪α⟫->-α ⟪α⟫))
   (match (⟪α⟫->-α ⟪α⟫)

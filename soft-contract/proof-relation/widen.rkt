@@ -476,25 +476,26 @@
 (define (σₖ⊕ σₖ αₖ κ)
   (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) →∅))
 
-(: predicates-of-W : -σ -Γ -W¹ → (℘ -h))
+(: predicates-of-W : -σ -Γ -W¹ → (U (℘ -h) -⟦e⟧))
 ;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value
 (define (predicates-of-W σ Γ W)
   (match-define (-W¹ V t) W)
-  (define ps₁
+  (define ps₁ : (U (℘ -h) -⟦e⟧)
     (match V
       [(-● ps) ps]
       [(-St 𝒾 _) {set (-st-p 𝒾)}]
       [(-St* (-St/C _ 𝒾 _) _ _) {set (-st-p 𝒾)}]
+      [(-Clo _ ⟦e⟧ _ _) ⟦e⟧]
       [_ ∅]))
-  (define ps₂
-    (for/set: : (℘ -h) ([p (predicates-of Γ t)]
-                        #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ p V))))
-      p))
-
-  #;(printf "predicates-of ~a in ~a: ~a ∪ ~a~n"
-          (show-W¹ W) (show-Γ Γ) (set-map φs show-t) (set-map ψs show-t))
-  
-  (∪ ps₁ ps₂))
+  (cond
+    [(set? ps₁)
+     (define ps₂
+       (for/set: : (℘ -h) ([p (predicates-of Γ t)]
+                           #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ p V))))
+         p))
+     (∪ ps₁ ps₂)]
+    [else
+     ps₁]))
 
 (: inv-caller->callee : -σ (℘ Symbol) -formals (Listof -W¹) -Γ -Γ → -Γ)
 ;; Convert invariants about arguments in caller into those about parameters in callee
