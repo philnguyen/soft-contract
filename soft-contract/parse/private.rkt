@@ -21,6 +21,12 @@
                      racket/contract
                      "../externals/for-parser.rkt"))
 
+;; Enable in "production" mode
+(define-syntax define/contract
+  (syntax-parser
+    [(_ x:id c e) #'(define x e)]
+    [(_ lhs c rhs ...) #'(define lhs rhs ...)]))
+
 (define/contract (file->module p)
   (path-string? . -> . -module?)
   (port-count-lines-enabled #t)
@@ -53,7 +59,7 @@
       (parameterize ([cur-mod mod-name])
         (filter
          values
-         (for/list ([formᵢ (syntax->list #'(forms ...))]
+         (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
                     #:when
                     (syntax-parse formᵢ
                       [((~literal module) (~literal configure-runtime) _ ...) #f]
