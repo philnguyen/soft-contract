@@ -574,11 +574,13 @@
       [(? list? xs) xs]
       [(-var xs _ ) xs]))
 
-  ;; specific hack just for `octy/ex-{08,12}.rkt`, `mochi/intro3.rkt`
+  ;; specific inlining hack just for `octy/ex-{08,12}.rkt`, `mochi/intro3.rkt`
+  ;; To get rid of this hack and generalize for precision, need to make it aware of loops
   (define (restrictedly-occured? [t : -t])
     (with-debugging/off ((res?) (for/or : Boolean ([(x₀ t₀) (in-hash as)])
       (match? t (-t.@ (? h-unique?) (or (list (== t₀))
-                                        (list (== t₀) (? -b?)))))))
+                                        (list (== t₀) (? -b?))))
+              (== t₀))))
       (printf "restrictedly-occured? ~a: ~a~n" (show-t t) res?)))
 
   (define-values (as* _)

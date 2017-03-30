@@ -167,20 +167,28 @@
 
     (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖ))])
       (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tₓs) κ)
+      (define looped? (equal? αₖ (⟦k⟧->αₖ ⟦k⟧)))
       (match A
         [(-W Vs sₐ)
          (define sₐ*
            (and sₐ
-                (match* (αₖ tₓs)
-                  [((? -ℳ?) (list t)) t]
-                  [((-ℬ (list x) _ _) (list t)) ; inline some
-                   #:when (match? sₐ (-t.@ (? -o? o) (list (-x (== x)))))
-                   (match-define (-t.@ o _) sₐ)
-                   (?t@ o t)]
-                  [(_ _) (apply ?t@ αₖ tₓs)])))
+                (cond
+                  [looped? (apply ?t@ αₖ tₓs)]
+                  [else
+                   (match* (αₖ tₓs)
+                     [((? -ℳ?) (list t)) t]
+                     [((-ℬ (list x) _ _) (list t)) ; inline some
+                      #:when (match? sₐ (-t.@ (? -o? o) (list (-x (== x)))))
+                      (match-define (-t.@ o _) sₐ)
+                      (?t@ o t)]
+                     [((-ℬ (? list? xs) _ _) ts)
+                      #:when (and (-x? sₐ) (memq (-x-₀ sₐ) xs))
+                      (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-₀ sₐ)))
+                        t)]
+                     [(_ _) (apply ?t@ αₖ tₓs)])])))
          (define Γₑᵣ*
            (cond
-             [(equal? αₖ (⟦k⟧->αₖ ⟦k⟧)) Γₑᵣ]
+             [looped? Γₑᵣ]
              [fml (inv-callee->caller σ ∅eq fml tₓs Γₑᵣ Γₑₑ)]
              [else Γₑᵣ]))
          (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
