@@ -376,16 +376,16 @@
             (-α.dom [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rst [sym : -?t] [loc : ℓ] [ctd : -⟪ℋ⟫])
             (-α.rng [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.fn [sym : -?t] [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : (℘ -t)])
+            (-α.fn [sym : (U -?t -⟦e⟧)] [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : (℘ -t)])
 
             ;; HACK
             (-α.hv)
             (-α.mon-x/c Symbol -⟪ℋ⟫ -l (℘ -h))
             (-α.fc-x/c Symbol -⟪ℋ⟫ (℘ -h))
-
+            (-α.fn.●)
             -o
             -𝒾
-            (-α.e -e ℓ -⟪ℋ⟫))
+            )
 
 (define-interner -α #:interned-type-name ⟪α⟫)
 (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
@@ -672,7 +672,6 @@
   (match (⟪α⟫->-α ⟪α⟫)
     [(-α.x x ⟪ℋ⟫ ps) (show-α.x x ⟪ℋ⟫ ps)]
     [(-α.hv) 'αₕᵥ]
-    [(-α.e e ℓ ⟪ℋ⟫) (show-e e)]
     [(-α.mon-x/c x ⟪ℋ⟫ _ ps) (show-α.x x ⟪ℋ⟫ ps)]
     [(-α.fc-x/c x ⟪ℋ⟫ ps) (show-α.x x ⟪ℋ⟫ ps)]
     [(-α.fv ⟪ℋ⟫ ts) (show-α.x 'dummy ⟪ℋ⟫ ∅)]

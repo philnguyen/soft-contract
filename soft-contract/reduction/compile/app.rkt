@@ -922,11 +922,20 @@
 
   (: wrap : -Γ → (℘ -ς))
   (define (wrap Γ)
-    (define φs ; hack for functional OO programs...
-      (for/set: : (℘ -t) ([φ (in-set (-Γ-facts Γ))]
-                          #:when (match? φ (-t.@ (? op-≡?) (list (? -x?) (? -b?)))))
-        φ))
-    (define ⟪α⟫ (-α->⟪α⟫ (-α.fn v ℒ ⟪ℋ⟫ l+ φs)))
+    (define ⟪α⟫
+      (-α->⟪α⟫
+        (cond
+          [(-●? V) (-α.fn.●)] ; hack to reduce unneccessary splits
+          [else
+           (define φs ; hack for functional OO programs...
+             (for/set: : (℘ -t) ([φ (in-set (-Γ-facts Γ))]
+                                 #:when (match? φ (-t.@ (? op-≡?) (list (? -x?) (? -b?)))))
+               φ))
+           (define v*
+             (match V
+               [(-Clo fml ⟦e⟧ _ _) ⟦e⟧]
+               [_ v]))
+           (-α.fn v* ℒ ⟪ℋ⟫ l+ φs)])))
     (define Ar (-Ar grd ⟪α⟫ l³))
 
     (σ⊕! Σ Γ ⟪α⟫ W-V)
