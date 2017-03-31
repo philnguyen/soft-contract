@@ -272,29 +272,23 @@
                           [(_ _) #:when (V⊑ σ V₁ V₂) V₂]
                           ; TODO more heuristics
                           [((-b b₁) (-b b₂)) #:when (not (equal? b₁ b₂))
-                           (cond
-                             ;; Handle non-null `char?` specially to retain `path-string?`-ness elsewhere
-                             #;[(and (char? b₁) (char? b₂) (not (equal? #\null b₁)) (not (equal? #\null b₂)))
-                              (-● {set 'char? (-not/c (-≡/c #\null))})]
-                             [else
-                              (define-syntax-rule (check-for-base-types p? ...)
-                                (cond
-                                  [(and (p? b₁) (p? b₂)) (-● {set 'p?})] ...
-                                  [else #f]))
+                           (define-syntax-rule (check-for-base-types p? ...)
+                             (cond
+                               [(and (p? b₁) (p? b₂)) (-● {set 'p?})] ...
+                               [else #f]))
 
-                              (check-for-base-types
-                               exact-positive-integer? exact-nonnegative-integer? exact-integer?
-                               integer? real? number?
-                               path-string? string?
-                               char? boolean?)])]
-                          [((-b 0) (-● ps))
-                           (define p
-                             (for/or : (Option -h) ([p ps])
-                               (match p
-                                 [(->/c 0) p]
-                                 [(-</c 0) p]
-                                 [_ #f])))
-                           (and p (-● (set-remove ps p)))]
+                           (check-for-base-types
+                            exact-positive-integer? exact-nonnegative-integer? exact-integer?
+                            integer? real? number?
+                            path-string? string?
+                            char? boolean?)]
+                          [((? -b? b) (-● ps))
+                           (define ps*
+                             (for/set: : (℘ -h) ([p (in-set ps)]
+                                                 #:when (equal? '✓ (p∋Vs σ p b)))
+                               p))
+                           ;; guard non-empty set means heuristic, that they're "compatible"
+                           (and (not (set-empty? ps*)) (-● ps*))]
                           [((-● ps) (-● qs))
                            (define ps* (ps⊕ ps qs))
                            (if (set-empty? ps*) #|just a heuristic|# #f (-● ps*))]
