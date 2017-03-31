@@ -261,30 +261,6 @@
      [_ (error '↓ₑ "unhandled: ~a" (show-e e))])
    e))
 
-#;(define (flattened? [ρ : -ρ])
-  (define immutable-vars
-    (for/seteq: : (℘ Symbol) ([(x α) ρ] #:unless (assignable? x))
-      x))
-  (or (<= (set-count immutable-vars) 1)
-      (match-let ([(cons ⟪ℋ⟫₀ ⟪ℋ⟫s)
-                   (for/list : (Listof -⟪ℋ⟫) ([x (in-set immutable-vars)])
-                     (match-define (-α.x _ ⟪ℋ⟫ₓ) (ρ@ ρ x))
-                     ⟪ℋ⟫ₓ)])
-        (for/and : Boolean ([⟪ℋ⟫ᵢ ⟪ℋ⟫s]) (equal? ⟪ℋ⟫₀ ⟪ℋ⟫ᵢ)))))
-
-#;(: flatten! : -Σ -⟪ℋ⟫ -ρ → -ρ)
-#;(define (flatten! Σ ⟪ℋ⟫ ρ)
-  ;; with side effect widening store
-  (for/hash : -ρ ([(x α) ρ])
-    (define α*
-      (cond [(assignable? x) (cast α ⟪α⟫)]
-            [else ; with side effect widening store
-             (define α* (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
-             (for ([V (σ@ Σ (cast α ⟪α⟫))])
-               (σ⊕! Σ α* V))
-             α*]))
-    (values x α*)))
-
 (: make-memoized-⟦e⟧ : -⟦e⟧ → -⟦e⟧)
 (define (make-memoized-⟦e⟧ ⟦e⟧)
   (define-type Key (List -⟪ℋ⟫ -ρ -Γ))
