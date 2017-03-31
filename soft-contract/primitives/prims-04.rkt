@@ -105,6 +105,7 @@
 (def-prim *
  (() #:rest (listof number?) . ->* . number?)
  #:refinements
+ (() #:rest (listof exact-positive-integer?) . ->* . exact-positive-integer?)
  (() #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
  (() #:rest (listof exact-integer?) . ->* . exact-integer?)
  (() #:rest (listof integer?) . ->* . integer?)
