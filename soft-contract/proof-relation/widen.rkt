@@ -69,44 +69,37 @@
        (σ⊕V*! Σ p ...))]))
 
 (: σ⊕ : -σ ⟪α⟫ -V Boolean → -σ)
-(define (σ⊕ σ α V mutating?)
-  (match-define (-σ m mods crds) σ)
-  (begin ; just for debugging
-    (define Vs₀ (hash-ref m α →∅))
-    (define modified?₀ (∋ mods α))
-    (define crd₀ (hash-ref crds α (λ () 0))))
-  (define-values (Vs* crds*)
-    (cond
-      ;; If address only stands for 1 value and this is the first update, do strong update.
-      ;; This gives some precision for programs that initialize `(box #f)`
-      ;; then update it with fairly type-consistent values afterwards
-      [(and mutating?
-            (not (∋ mods α))
-            (not (equal? 'N (hash-ref crds α (λ () 0)))))
-       (values {set V} (hash-set crds α 1))]
-      [else
-       (define Vs (hash-ref m α →∅))
-       (define crds*
-         (match (⟪α⟫->-α α)
-           [(? -𝒾?) ; can't bind top-level from 2 places
-            (hash-set crds α
-                      (case crd₀
-                        [(0) 1]
-                        [(1) 1]
-                        [(N) 'N]))]
-           [_ (hash-update crds α cardinality+ (λ () 0))]))
-       (values (Vs⊕ σ Vs V) crds*)]))
-  (define m* (hash-set m α Vs*))
-  (define mods* (if mutating? (set-add mods α) mods))
-
-  #;(when (∋ Vs* (-● ∅))
-    (printf "~a : ~a ⊕ ~a -> ~a~n"
-            (show-⟪α⟫ α)
-            (set-map Vs₀ show-V)
-            (show-V V)
-            (set-map Vs* show-V)))
+(define (σ⊕ σ α V α.mutating?)
+  (match-define (-σ store mutated cardinalities) σ)
   
-  (-σ m* mods* crds*))
+  (define do-strong-update?
+    (let ([α.ambiguous? (equal? 'N (hash-ref cardinalities α (λ () 0)))]
+          [α.mutated? (∋ mutated α)])
+      (and α.mutating? (not α.mutated?) (not α.ambiguous?))))
+  
+  (define store*
+    (if do-strong-update?
+        (hash-set store α {set V})
+        (hash-update store α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) →∅)))
+  
+  (define mutated* (if α.mutating? (set-add mutated α) mutated))
+
+  (define cardinalities*
+    (cond
+      [do-strong-update? cardinalities]
+      [;; Cheat for top-level reference.
+       ;; A top-level binding may be (spuriously) bound twice due to
+       ;; prior path-condition splits
+       (-𝒾? (⟪α⟫->-α α))
+       (hash-update cardinalities α
+                    (match-lambda
+                      ['0 1]
+                      ['1 1]
+                      ['N 'N])
+                    (λ () 0))]
+      [else (hash-update cardinalities α cardinality+ (λ () 0))]))
+  
+  (-σ store* mutated* cardinalities*))
 
 (: Vs⊕ : -σ (℘ -V) -V → (℘ -V))
 ;; Widen value set with new value
