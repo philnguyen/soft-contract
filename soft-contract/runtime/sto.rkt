@@ -140,15 +140,15 @@
 (: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
 (define (αₖ->⟪α⟫s αₖ σₖ)
   (define-set seen : -αₖ #:as-mutable-hash? #t)
-  (define-set αs   : ⟪α⟫ #:eq? #t)
-  (let touch! ([αₖ : -αₖ αₖ])
-    (unless (seen-has? αₖ)
-      (seen-add! αₖ)
-      (for ([κ (in-set (hash-ref σₖ αₖ →∅))])
-        (define ⟦k⟧ (-κ-cont κ))
-        (αs-union! (⟦k⟧->roots ⟦k⟧))
-        (touch! (⟦k⟧->αₖ ⟦k⟧)))))
-  αs)
+  (let go ([acc : (℘ ⟪α⟫) ∅eq] [αₖ : -αₖ αₖ])
+    (cond
+      [(seen-has? αₖ) acc]
+      [else
+       (seen-add! αₖ)
+       (for/fold ([acc : (℘ ⟪α⟫) (if (-ℋ𝒱? αₖ) (set-add acc ⟪α⟫ₕᵥ) acc)])
+                 ([κ (in-set (hash-ref σₖ αₖ →∅))])
+         (define ⟦k⟧ (-κ-cont κ))
+         (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))
 
 (: span-M : (HashTable -αₖ (℘ -ΓA)) (℘ -αₖ) → (HashTable -αₖ (℘ -ΓA)))
 (define (span-M M αs)
