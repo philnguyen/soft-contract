@@ -24,7 +24,7 @@
          (match (⟪α⟫->-α α)
            [(-α.x x _ _) (canonicalize Γ x)]
            [(? -𝒾? 𝒾) 𝒾]))
-       (⟦k⟧ -void.W ($+ $ s V) Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
       [_
        (define blm
          (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))

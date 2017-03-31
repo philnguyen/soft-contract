@@ -16,27 +16,26 @@
     (match-define (-Σ σ _ _) Σ)
     (define α (ρ@ ρ x))
     (define old? (σ-old? σ α))
-    (define s (and old? (canonicalize Γ x)))
-    (define s/x (or s (-x x)))
+    (define tₓ (and old? (canonicalize Γ x)))
     (cond
-      [($@ $ s/x) =>
+      [($@ $ tₓ) =>
        (λ ([V : -V])
-         (cond [(plausible-V-t? (-Γ-facts Γ) V s)
-                (define V* (V+ σ V (predicates-of Γ s)))
-                (⟦k⟧ (-W (list V*) s) ($+ $ s V*) Γ ⟪ℋ⟫ Σ)]
+         (cond [(plausible-V-t? (-Γ-facts Γ) V tₓ)
+                (define V* (V+ σ V (predicates-of Γ tₓ)))
+                (⟦k⟧ (-W (list V*) tₓ) ($+ $ tₓ V*) Γ ⟪ℋ⟫ Σ)]
                [else ∅]))]
       [else
        (define Vs (σ@ σ α))
        (define φs (-Γ-facts Γ))
        
-       (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-t? φs V s))
-         (define $* ($+ $ s/x V))
+       (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-t? φs V tₓ))
+         (define $* ($+ $ tₓ V))
          (match V
            [(-b (not (? defined?))) (⟦k⟧ -blm.undefined $* Γ ⟪ℋ⟫ Σ)]
            [(-● ps) ; precision hack
-            (define V* (V+ σ V (predicates-of Γ s)))
-            (⟦k⟧ (-W (list V*) s) $* Γ ⟪ℋ⟫ Σ)]
-           [_ (⟦k⟧ (-W (list V) s) $* Γ ⟪ℋ⟫ Σ)]))])))
+            (define V* (V+ σ V (predicates-of Γ tₓ)))
+            (⟦k⟧ (-W (list V*) tₓ) $* Γ ⟪ℋ⟫ Σ)]
+           [_ (⟦k⟧ (-W (list V) tₓ) $* Γ ⟪ℋ⟫ Σ)]))])))
 
 (define ↓ₚᵣₘ : (-prim → -⟦e⟧)
   (let ([meq : (HashTable Any -⟦e⟧) (make-hasheq)] ; `eq` doesn't work for String but ok
