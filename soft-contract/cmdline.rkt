@@ -50,7 +50,7 @@
   (match a
     [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
     [(-ΓA _ (-blm l+ lo Cs Vs ℓ))
-     `(blame ,l+ ,lo ,(map show-blm-reason Cs) ,(show-Vs Vs) ,(show-ℓ ℓ))]))
+     `(blame ,l+ ,lo ,(map show-blm-reason Cs) ,(show-Vs Vs) (line ,(ℓ-line ℓ) col ,(ℓ-col ℓ)))]))
 
 (case mode
   [(expand)
