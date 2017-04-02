@@ -117,6 +117,31 @@
                      (-t.@ (? op-≡?) (list (-b b₁) t)))
                  (-t.@ (? -special-bin-o? o) (list (-b b₂) t)))
                 (p⇒p (-≡/c b₁) ((bin-o->h (flip-bin-o o)) b₂))]
+               ;; List
+               [((-t.@ (? op-≡?) (or (list (-t.@ 'length (list t)) (-b (? integer? n)))
+                                     (list (-b (? integer? n)) (-t.@ 'length (list t)))))
+                 (-t.@ (== -cons?) (list t)))
+                #:when n
+                (boolean->R (> n 0))]
+               [((-t.@ '<= (list (-b (? real? n)) (-t.@ 'length (list t))))
+                 (-t.@ (== -cons?) (list t)))
+                #:when (<= 1 n)
+                '✓]
+               [((-t.@ '< (list (-b (? real? n)) (-t.@ 'length (list t))))
+                 (-t.@ (== -cons?) (list t)))
+                #:when (<= 0 n)
+                '✓]
+               [((-t.@ (? op-≡?) (list (-t.@ 'length (list t)) (-b (? integer? n))))
+                 (-t.@ 'null? (list t)))
+                (boolean->R (= n 0))]
+               [((-t.@ '<= (list (-b (? real? n)) (-t.@ 'length (list t))))
+                 (-t.@ 'null? (list t)))
+                #:when (<= 1 n)
+                '✗]
+               [((-t.@ '< (list (-b (? real? n)) (-t.@ 'length (list t))))
+                 (-t.@ (== -cons?) (list t)))
+                #:when (<= 0 n)
+                '✗]
                [(_ _) '?])]
             [R R])]))
       (printf "~a ⊢ ~a : ~a~n" (show-t t₁) (show-t t₂) ans)))
