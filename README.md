@@ -25,7 +25,7 @@ Link:
 `cmdline.rkt` is the main file that runs the analysis.
 Because type checking takes a while, you want to build it once first:
 
-> raco make -j `nproc` cmdline.rkt
+> raco make -j $(nproc) cmdline.rkt
 
 
 Running
