@@ -36,10 +36,7 @@
 
       (begin
         (when (debug-iter?)
-          (cond [(∋ front {-ς↑ (-ℋ𝒱) ⊤Γ ⟪ℋ⟫∅})
-                 (printf "* ~a: ~a (ℋ𝒱)~n" iter (set-count front))]
-                [else
-                 (printf "* ~a: ~a~n" iter (set-count front))]))
+          (printf "* ~a: ~a~n" iter (set-count front)))
 
         (when (debug-trace?)
 
