@@ -63,8 +63,8 @@
   (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
   
-  (test   "safe/match.rkt" check-safe)
-  (test "unsafe/match.rkt" check-fail)
+  (test   "safe/misc" check-safe)
+  (test "unsafe/misc" check-fail)
 
   (test "paper/match.rkt" check-safe)
   (test "paper/match-no-check.rkt" check-safe)

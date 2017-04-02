@@ -262,17 +262,6 @@
           (and (plausible-φs-t? φs (?t@ 'p? t))
                (plausible-φs-t? φs (?t@ 'equal? t V))
                (implies (-b? t) (equal? V t)))] ...
-         #|;; FIXME tmp. hack
-         [(-b (and (? number?) (? exact?)))
-          (and (plausible-φs-t? φs (?t@ 'exact? s))
-               (plausible-φs-t? φs (?t@ 'equal? s V))
-               (implies (-b? s) (equal? V s)))]
-         [(-b (and (? number?) (? inexact?)))
-          (and (plausible-φs-t? φs (?t@ 'inexact? s))
-               (plausible-φs-t? φs (?t@ 'equal? s V))
-               (implies (-b? s) (equal? V s)))]
-         |#
-         ;; end tmp. hack
          [(or (? -=>_?) (? -St/C?) (? -x/C?))
           (for/and : Boolean ([p : -o '(procedure? p? ...)])
             (case (φs⊢t φs (?t@ p t))
@@ -363,21 +352,6 @@
                [_ '✗])] ...
             clauses ...))
 
-        #;(define-syntax-parser with-base-predicates
-          [(_ (o? ...) clauses ...)
-           (define special-cases
-             (for/list ([o (in-list (syntax->list #'(o? ...)))])
-               #`[(p?)
-                  (match Vs
-                    [(list (-b b)) (boolean->R #,(syntax-parse o
-                                                   [[p?:id #:guard g?:id]
-                                                    #`(and (g? b) (p? b))]
-                                                   [p?:id #`(p? b)]))]
-                    [_ '✗])]))
-           #`(case p
-               #,@special-cases
-               clauses ...)])
-        
         (with-base-predicates (not
                                exact-positive-integer?
                                exact-nonnegative-integer?
@@ -386,8 +360,6 @@
                                inexact-real?
                                real?
                                number?
-                               #;[exact? #:guard number?]
-                               #;[inexact? #:guard number?]
                                null?
                                boolean?
                                path-string?
@@ -400,6 +372,14 @@
           [(zero?)
            (match Vs
              [(list (-b (? number? n))) (boolean->R (zero? n))]
+             [_ '✗])]
+          [(exact?)
+           (match Vs
+             [(list (-b b)) (boolean->R (and (number? b) (exact? b)))]
+             [_ '✗])]
+          [(inexact?)
+           (match Vs
+             [(list (-b b)) (boolean->R (and (number? b) (inexact? b)))]
              [_ '✗])]
           [(procedure?)
            (match Vs
