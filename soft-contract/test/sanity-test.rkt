@@ -70,7 +70,7 @@
   (test "paper/match-no-check.rkt" check-safe)
   (test "paper/match-unsafe.rkt" check-fail)
   (test "paper/escape.rkt" check-safe)
-  ;(test "paper/escape-conservative.rkt" (check 'Failed 1 1))
+  (test "paper/escape-conservative.rkt" (check 'Failed 1 1))
   (test "paper/factorial.rkt" check-safe)
   (test "paper/havoc-1.rkt" check-fail)
   (test "paper/havoc-2.rkt" check-fail)

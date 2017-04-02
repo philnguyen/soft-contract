@@ -27,9 +27,9 @@
       (when (> ⟪α⟫ 3000)
         (error "DONE")))))
 
-(: σ-old? : (U -Σ -σ) ⟪α⟫ → Boolean)
-(define (σ-old? m ⟪α⟫)
-  (not (∋ (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫)))
+(: mutated? : (U -Σ -σ) ⟪α⟫ → Boolean)
+(define (mutated? m ⟪α⟫)
+  (∋ (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫))
 
 (: σ-remove : -σ ⟪α⟫ -V → -σ)
 (define (σ-remove σ ⟪α⟫ V)
@@ -177,3 +177,24 @@
     [(-W? x) (->⟪α⟫s (-W-Vs x))]
     [(hash? x) (ρ->⟪α⟫s x)]
     [else {seteq x}]))
+
+(: σ-equal?/spanning-root : -σ -σ (℘ ⟪α⟫) → Boolean)
+(define (σ-equal?/spanning-root σ₁ σ₂ root)
+  (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+  (match-define (-σ store₁ mutated₁ cardinalities₁) σ₁)
+  (match-define (-σ store₂ mutated₂ cardinalities₂) σ₂)
+  
+  (let go ([addrs : (℘ ⟪α⟫) root])
+    (for/and : Boolean ([α : ⟪α⟫ (in-set addrs)])
+      (cond
+        [(seen-has? α) #t]
+        [else
+         (seen-add! α)
+         (and (equal? (∋ mutated₁ α) (∋ mutated₂ α))
+              (equal? (hash-ref cardinalities₁ α (λ () 0))
+                      (hash-ref cardinalities₂ α (λ () 0)))
+              (let ([Vs₁ (hash-ref store₁ α →∅)]
+                    [Vs₂ (hash-ref store₂ α →∅)])
+                (and (equal? Vs₁ Vs₂)
+                     (for/and : Boolean ([V (in-set Vs₁)])
+                       (go (V->⟪α⟫s V))))))]))))

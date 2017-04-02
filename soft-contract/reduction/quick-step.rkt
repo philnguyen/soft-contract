@@ -17,9 +17,7 @@
          "havoc.rkt"
          )
 
-(define-type Ctx (List (HashTable ⟪α⟫ (℘ -V))
-                       (HashTable -αₖ (℘ -κ))
-                       (HashTable -αₖ (℘ -ΓA))))
+(define-type Ctx (List -σ -σₖ -M))
 
 (: run : -⟦e⟧ → (Values (℘ -ΓA) -Σ))
 (define (run ⟦e⟧)
@@ -38,7 +36,10 @@
 
       (begin
         (when (debug-iter?)
-          (printf "* ~a: ~a~n" iter (set-count front)))
+          (cond [(∋ front {-ς↑ (-ℋ𝒱) ⊤Γ ⟪ℋ⟫∅})
+                 (printf "* ~a: ~a (ℋ𝒱)~n" iter (set-count front))]
+                [else
+                 (printf "* ~a: ~a~n" iter (set-count front))]))
 
         (when (debug-trace?)
 
@@ -67,16 +68,16 @@
         (set! iter (+ 1 iter)))
 
       (define next
-        (match-let ([(-Σ (and σ (-σ mσ _ _)) mσₖ mM) Σ])
+        (match-let ([(-Σ σ mσₖ mM) Σ])
 
-          (define vsn : Ctx (list mσ mσₖ mM))
+          (define vsn : Ctx (list σ mσₖ mM))
 
           (: ς-seen? : -ς → Boolean)
           (define (ς-seen? ς)
             (cond
               [(hash-ref seen ς #f) =>
                (λ ([ctx₀ : Ctx])
-                 (match-define (list mσ₀ mσₖ₀ mM₀) ctx₀)
+                 (match-define (list σ₀ mσₖ₀ mM₀) ctx₀)
                  (define αₖ
                    (match ς
                      [(-ς↑ αₖ _ _) αₖ]
@@ -87,7 +88,7 @@
                  (and (map-equal?/spanning-root mσₖ₀ mσₖ αₖs κ->αₖs)
                       (map-equal?/spanning-root mM₀  mM  αₖs ΓA->αₖs)
                       (let ([⟪α⟫s (ς->⟪α⟫s ς mσₖ₀)])
-                        (map-equal?/spanning-root mσ₀ mσ ⟪α⟫s V->⟪α⟫s))))]
+                        (σ-equal?/spanning-root σ₀ σ ⟪α⟫s))))]
               [else #f]))
 
           (define next-from-ς↑s

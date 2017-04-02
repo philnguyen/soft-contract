@@ -184,6 +184,11 @@
      (λ ([⟦o⟧ : -⟦o⟧])
        (match-define (-ℒ _ ℓ) ℒ)
        (match-define (-Γ _ as₀) Γ)
+       #;(begin
+         (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
+         (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
+           (printf "  - ~a~n" (show-ΓA ans)))
+         (printf "~n"))
        (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
           (match-define (-ΓA φs A) ΓA)
           (⟦k⟧ A $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
@@ -476,10 +481,9 @@
        (match V
          [(-St (== 𝒾) αs)
           (define α (list-ref αs i))
-          (define old? (σ-old? σ α))
-          (define sₐ (and old? (?t@ ac s)))
+          (define sₐ (and (not (mutated? σ α)) (?t@ ac s)))
           (cond
-            [(and old? ($@ $ sₐ)) =>
+            [($@ $ sₐ) =>
              (λ ([V : -V])
                (cond [(plausible-V-t? (-Γ-facts Γ) V sₐ)
                       (define $* ($+ $ sₐ V))
@@ -1447,30 +1451,33 @@
 
 (define/memo (make-memoized-⟦k⟧ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (define-type Key (List -A -Γ -⟪ℋ⟫))
-  (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
+  (define-type Rec (List -σ (℘ -ς)))
   (let ([m : (HashTable Key Rec) (make-hash)])
     (define ⟦k⟧* : -⟦k⟧
       (λ (A $ Γ ⟪ℋ⟫ Σ)
-        (match-define (-Σ (-σ mσ _ _) _ _) Σ)
+        (match-define (-Σ σ _ _) Σ)
         (define key (list A Γ ⟪ℋ⟫))
         
         (: recompute! : → (℘ -ς))
         (define (recompute!)
           (define ans (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))
-          (hash-set! m key (list mσ ans))
+          (hash-set! m key (list σ ans))
           ans)
 
         ;; Cache result based on rest of components
         (cond [(hash-ref m key #f) =>
                (λ ([rec : Rec])
-                 (match-define (list mσ₀ ςs₀) rec)
+                 (match-define (list σ₀ ςs₀) rec)
                  (define root : (℘ ⟪α⟫)
                    (∪ (⟦k⟧->roots ⟦k⟧)
                       (match A
                         [(-W Vs _) (->⟪α⟫s Vs)]
                         [_ ∅eq])))
-                 (cond [(map-equal?/spanning-root mσ₀ mσ root V->⟪α⟫s)
-                        #;(printf "hit-k~n")
+                 (cond [(σ-equal?/spanning-root σ₀ σ root)
+                        #;(begin
+                          (printf "hit-k over ~a~n" (set-map root show-⟪α⟫))
+                          (printf "  - old: ~a~n" (show-σ σ₀))
+                          (printf "  - new: ~a~n" (show-σ σ )))
                         ςs₀]
                        [else (recompute!)]))]
               [else (recompute!)])))

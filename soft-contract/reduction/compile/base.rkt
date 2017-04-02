@@ -15,8 +15,7 @@
   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-Σ σ _ _) Σ)
     (define α (ρ@ ρ x))
-    (define old? (σ-old? σ α))
-    (define tₓ (and old? (canonicalize Γ x)))
+    (define tₓ (and (not (mutated? σ α)) (canonicalize Γ x)))
     (cond
       [($@ $ tₓ) =>
        (λ ([V : -V])
