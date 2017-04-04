@@ -61,8 +61,13 @@
   (define (count-poses)
     (match (with-time-limit : Natural TIMEOUT
              (define-values (As _) (havoc-file p))
-             (for/sum : Natural ([ΓA (in-set As)])
-               (if (-blm? (-ΓA-ans ΓA)) 1 0)))
+             (set-count
+              ;; Same location means same contract,
+              ;; But include contract due to inaccurate location from `fake-contract`
+              (for/set: : (℘ (Pairof (Listof Any) ℓ))
+                        ([ΓA (in-set As)] #:when (-blm? (-ΓA-ans ΓA)))
+                (match-define (-blm l+ lo Cs Vs ℓ) (-ΓA-ans ΓA))
+                (cons Cs ℓ))))
       [(list n) n]
       [#f (list checks)]))
 
