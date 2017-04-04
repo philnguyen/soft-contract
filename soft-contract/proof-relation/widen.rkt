@@ -593,7 +593,7 @@
     (printf "~n"))
   as*)
 
-(: inv-callee->caller : -σ (℘ Symbol) -formals (Listof -?t) -Γ -Γ → -Γ)
+(: inv-callee->caller : -σ (℘ Symbol) -formals (Listof -?t) -Γ -Γ → (Option -Γ))
 ;; Propagate simple predicate back to caller
 (define (inv-callee->caller σ fvs fml ts Γₑᵣ Γₑₑ)
   (match-define (-Γ φsₑₑ asₑₑ) Γₑₑ)
@@ -626,10 +626,10 @@
       [_ #f]))
 
   (define φsₑᵣ*
-    (∪ φsₑᵣ
-       (for*/set: : (℘ -t) ([φ (in-set φsₑₑ)]
-                            [φ* (in-value (ee->er φ))] #:when φ*)
-         φ*)))
+    (for*/fold ([acc : (Option (℘ -t)) φsₑᵣ])
+               ([φ (in-set φsₑₑ)] #:break (not acc)
+                [φ* (in-value (ee->er φ))] #:when φ*)
+      (and (not (equal? φ* -ff)) (set-add (assert acc) φ*))))
 
   #;(begin
     (printf "inv-callee->caller: ~a ↦ ~a~n" fml (map show-t ts))
@@ -638,7 +638,7 @@
     (printf "  - er*: ~a~n" (set-map φsₑᵣ* show-t))
     (printf "~n"))
 
-  (-Γ φsₑᵣ* asₑᵣ))
+  (and φsₑᵣ* (-Γ φsₑᵣ* asₑᵣ)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
