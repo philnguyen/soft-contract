@@ -1363,7 +1363,7 @@
           (set! slatex::*in-qtd-tkn* #f)
           (if slatex::*in-mac-tkn* (set! slatex::*in-mac-tkn* #f)))
         (display
-          (cdr (slatex::lassoc token slatex::special-symbols slatex::token=?))
+          (cdr (ensure-value (slatex::lassoc token slatex::special-symbols slatex::token=?)))
           slatex::*out*))
       (slatex::display-token
         token
