@@ -116,11 +116,13 @@
 (define (span-σ σ αs)
   (hash-copy/spanning* σ αs V->⟪α⟫s))
 
-(: t->αₖs : -t → (℘ -αₖ))
+(: t->αₖs : -?t → (℘ -αₖ))
 (define (t->αₖs t)
   (match t
     [(-t.@ h ts)
-     (apply ∪ (if (-αₖ? h) {set h} ∅) (map t->αₖs ts))]
+     (for/fold ([acc : (℘ -αₖ) (if (-αₖ? h) {set h} ∅)])
+               ([t (in-list ts)])
+       (∪ acc (t->αₖs t)))]
     [_ ∅]))
 
 (: Γ->αₖs : -Γ → (℘ -αₖ))
@@ -131,11 +133,12 @@
 (: ΓA->αₖs : -ΓA → (℘ -αₖ))
 (define (ΓA->αₖs ΓA)
   (match-define (-ΓA Γ A) ΓA)
-  (apply ∪ 
-   (match A
-     [(-W _ t) #:when t (t->αₖs t)]
-     [_ ∅])
-   (set-map Γ t->αₖs)))
+  (define s₀
+    (match A
+      [(-W _ t) (t->αₖs t)]
+      [_ ∅]))
+  (for/fold ([acc : (℘ -αₖ) s₀]) ([φ (in-set Γ)])
+    (∪ acc (t->αₖs φ))))
 
 (: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
 (define (αₖ->⟪α⟫s αₖ σₖ)
