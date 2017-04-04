@@ -191,7 +191,12 @@
          (printf "~n"))
        (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
           (match-define (-ΓA φs A) ΓA)
-          (⟦k⟧ A $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
+          (define A*
+            (match A
+              [(-W (list (-● ps)) (and t (-t.@ '* (list t₁ t₁))))
+               (-W (list (-● (set-add ps (-≥/c 0)))) t)]
+              [_ A]))
+          (⟦k⟧ A* $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
     [(get-ext o) =>
      (λ ([⟦f⟧ : -⟦f⟧])
        (⟦f⟧ $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))]
@@ -1133,7 +1138,7 @@
                     [cᵢ (in-list cs)]
                     [ℓᵢ (in-list ℓs)]
                     [i (in-naturals)] #:when (index? i))
-           (define Wᵢ (let ([bᵢ (-b i)]) (-W¹ bᵢ bᵢ)))
+           (define Wᵢ (let ([bᵢ (-b i)]) (-W¹ bᵢ #f)))
            (define Wₚᵢ (-W¹ Cᵢ cᵢ))
            (define ⟦ref⟧
              (mk-app-⟦e⟧ (ℒ-with-l ℒ 'mon-vector/c)

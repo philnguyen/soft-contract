@@ -87,8 +87,8 @@
   (() #:rest (listof exact-integer?) . ->* . exact-integer?)
   (() #:rest (listof integer?) . ->* . integer?)
   (() #:rest (listof real?) . ->* . real?)
-  (() #:rest (listof (not/c negative?)) . ->* . (not/c negative?))
-  (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
+  (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
+  #;(() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
 (def-prim - (number? number? . -> . number?)
   ; FIXME var-args and precise refinement for first case
   #:refinements
@@ -109,7 +109,8 @@
  (() #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
  (() #:rest (listof exact-integer?) . ->* . exact-integer?)
  (() #:rest (listof integer?) . ->* . integer?)
- (() #:rest (listof real?) . ->* . real?))
+ (() #:rest (listof real?) . ->* . real?)
+ (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0)))
 (def-prim /
  ((number?) #:rest (listof (and/c number? (or/c inexact? (not/c zero?)))) . ->* . number?)
  #:refinements
