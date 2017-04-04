@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide app mon flat-chk
-         ap∷ let∷ if∷ and∷ or∷ bgn∷ bgn0.v∷ bgn0.e∷ rst-Γ∷
+         ap∷ let∷ if∷ and∷ or∷ bgn∷ bgn0.v∷ bgn0.e∷
          mon.c∷ mon.v∷
          make-memoized-⟦k⟧
          mk-mon-⟦e⟧ mk-rt-⟦e⟧ mk-app-⟦e⟧
@@ -861,7 +861,7 @@
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
      (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (make-memoized-⟦k⟧ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))))]))
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (make-memoized-⟦k⟧ (bgn∷ ⟦e⟧s* ρ ⟦k⟧))))]))
 
 ;; begin0, waiting on first value
 (define/memo (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
@@ -869,7 +869,7 @@
     ['() ⟦k⟧]
     [(cons ⟦e⟧ ⟦e⟧s*)
      (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧))))]))
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ A ⟦e⟧s* ρ ⟦k⟧)))]))
 
 ;; begin0, already have first value
 (define/memo (bgn0.e∷ [W : -W] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
@@ -879,12 +879,7 @@
        (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
     [(cons ⟦e⟧ ⟦e⟧s*)
      (with-error-handling (⟦k⟧ _ $ Γ ⟪ℋ⟫ Σ) #:roots (W ρ)
-       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (rst-Γ∷ Γ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧))))]))
-
-;; clean-up path-condition
-(define/memo (rst-Γ∷ [Γ : -Γ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-  (with-error-handling (⟦k⟧ A $ _ ⟪ℋ⟫ Σ) #:roots ()
-    (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
+       (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn0.e∷ W ⟦e⟧s* ρ ⟦k⟧)))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
