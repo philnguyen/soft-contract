@@ -17,7 +17,7 @@
     (define α (ρ@ ρ x))
     (define tₓ (and (not (mutated? σ α)) (canonicalize Γ x)))
     (cond
-      [($@ $ tₓ) =>
+      [($@ $ (or tₓ (-x x))) =>
        (λ ([V : -V])
          (cond [(plausible-V-t? (-Γ-facts Γ) V tₓ)
                 (define V* (V+ σ V (predicates-of Γ tₓ)))
@@ -28,7 +28,7 @@
        (define φs (-Γ-facts Γ))
        
        (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-t? φs V tₓ))
-         (define $* ($+ $ tₓ V))
+         (define $* ($+ $ (or tₓ (-x x)) V))
          (match V
            [(-b (not (? defined?))) (⟦k⟧ -blm.undefined $* Γ ⟪ℋ⟫ Σ)]
            [(-● ps) ; precision hack

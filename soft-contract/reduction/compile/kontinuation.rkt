@@ -22,9 +22,9 @@
        (σ⊕! Σ Γ α (-W¹ V sᵥ) #:mutating? #t)
        (define s
          (match (⟪α⟫->-α α)
-           [(-α.x x _ _) (canonicalize Γ x)]
+           [(-α.x x _ _) (-x x)]
            [(? -𝒾? 𝒾) 𝒾]))
-       (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧ -void.W (hash-remove $ s) Γ ⟪ℋ⟫ Σ)]
       [_
        (define blm
          (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))
