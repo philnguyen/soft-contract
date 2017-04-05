@@ -4,7 +4,7 @@
                     -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
                     one-of/c =/c >/c >=/c </c <=/c not/c cons/c box/c vector/c vectorof
                     recursive-contract)
-         (for-syntax racket/base)
+         (for-syntax racket/base racket/string)
          racket/list)
 (require (prefix-in c: racket/contract/base)
          (prefix-in r: racket/base))
@@ -74,16 +74,31 @@
 (require (for-syntax syntax/parse))
 
 (define-syntax (provide stx)
-  (syntax-parse stx #:literals (contract-out struct)
-    [(_ (~or i:id (contract-out (~or [p/i:id ctc:expr]
-                                     [struct s:id ([ac:id dom:expr] ...)]) ...)) ...)
-     #'(begin (scv:ignore
-               (r:provide i ...
-                          (contract-out [p/i ctc] ...) ...))
-              (dynamic-provide/contract
-               (list i any/c) ...
-               (list p/i ctc) ... ...
-               (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
+  (syntax-parse stx #:literals (contract-out struct struct-out)
+    [(_ (~or i:id
+             (struct-out so:id)
+             (contract-out (~or [p/i:id ctc:expr]
+                                [struct s:id ([ac:id dom:expr] ...)]) ...))
+        ...)
+     (define (ids->str ids)
+       (string-join (map symbol->string (map syntax-e (syntax->list ids)))))
+     (unless (null? (syntax->list #'(i ...)))
+       (printf "Warning: verify the following against `any/c`: ~a~n" (ids->str #'(i ...))))
+     (unless (null? (syntax->list #'(so ...)))
+       (printf "Warning: ignore verifying `struct-out` form(s) for: ~a~n" (ids->str #'(so ...))))
+     #'(begin
+         ;; Real stuff to preserve the program's meaning when run
+         (scv:ignore
+          (r:provide i ...
+                     (struct-out so) ...
+                     (contract-out [p/i ctc] ...
+                                   [struct s ([ac dom] ...)] ...)
+                     ...))
+         ;; Things to give to SCV for verification
+         (dynamic-provide/contract
+          (list i any/c) ...
+          (list p/i ctc) ... ...
+          (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
 
 ;; Phil's clueless hack for `recursive-contract`
 (define-syntax-rule (recursive-contract x type ...)
