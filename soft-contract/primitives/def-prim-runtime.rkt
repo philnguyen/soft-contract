@@ -11,7 +11,7 @@
          "../runtime/main.rkt"
          "../proof-relation/main.rkt")
 
-(define-type -⟦o⟧ (-⟪ℋ⟫ ℓ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
+(define-type -⟦o⟧ (-⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
 
 (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
 ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
@@ -57,12 +57,12 @@
 
 (define/memoeq (total-pred [n : Index]) : (Symbol → -⟦o⟧)
   (λ (o)
-    (λ (⟪ℋ⟫ ℓ Σ Γ Ws)
+    (λ (⟪ℋ⟫ ℒ Σ Γ Ws)
       (cond [(equal? n (length Ws))
              (match-define (-Σ σ _ M) Σ)
              (implement-predicate M σ Γ o Ws)]
             [else
-             {set (-ΓA (-Γ-facts Γ) (blm-arity ℓ o n (map -W¹-V Ws)))}]))))
+             {set (-ΓA (-Γ-facts Γ) (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
 
 (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
 (define alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut)) (make-hasheq))
@@ -78,8 +78,8 @@
 ;;;;; Helpers for some of the primitives
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: implement-mem : Symbol -⟪ℋ⟫ ℓ -Σ -Γ -W¹ -W¹ → (℘ -ΓA))
-(define (implement-mem o ⟪ℋ⟫ ℓ Σ Γ Wₓ Wₗ)
+(: implement-mem : Symbol -⟪ℋ⟫ -ℒ -Σ -Γ -W¹ -W¹ → (℘ -ΓA))
+(define (implement-mem o ⟪ℋ⟫ ℒ Σ Γ Wₓ Wₗ)
   (match-define (-W¹ Vₓ sₓ) Wₓ)
   (match-define (-W¹ Vₗ sₗ) Wₗ)
   (define sₐ (?t@ o sₓ sₗ))
@@ -90,7 +90,6 @@
        [(definitely-not-member? σ Vₓ Vₗ)
         {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ))}]
        [else
-        (define ℒ (-ℒ ∅eq ℓ))
         (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
         (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
         (define Vₜ (-Cons αₕ αₜ))

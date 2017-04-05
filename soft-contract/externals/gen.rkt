@@ -25,7 +25,7 @@
 
   (define-parameter/contract
     [-$ identifier? #f]
-    [-ℒ identifier? #f]
+    [-ℓ identifier? #f]
     [-⟦k⟧ identifier? #f])
 
   (define/contract (gen-ans d)

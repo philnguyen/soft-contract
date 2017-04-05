@@ -355,10 +355,10 @@
             (-α.st [id : -𝒾] [loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
             ;; for vector indices
-            (-α.idx [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.idx [loc : -ℒ] [ctx : -⟪ℋ⟫] [idx : Natural])
             
             ;; for vector^ content
-            (-α.vct [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.vct [loc : -ℒ] [ctx : -⟪ℋ⟫])
 
             ;; for wrapped vector
             (-α.unvct [loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l])

@@ -182,14 +182,13 @@
   (cond
     [(get-prim o) =>
      (λ ([⟦o⟧ : -⟦o⟧])
-       (match-define (-ℒ _ ℓ) ℒ)
        (match-define (-Γ _ as₀) Γ)
        #;(begin
          (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
          (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
            (printf "  - ~a~n" (show-ΓA ans)))
          (printf "~n"))
-       (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
+       (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℒ Σ Γ Wₓs))])
           (match-define (-ΓA φs A) ΓA)
           (⟦k⟧ A $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
     [(get-ext o) =>
@@ -982,7 +981,7 @@
           (define ⟦mon⟧s : (Listof -⟦e⟧)
             (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s] [ℓᵢ : ℓ ℓs])
               (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt-⟦e⟧ (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
-          (define ⟦reconstr⟧ (mk-app-⟦e⟧ (ℒ-with-l ℒ 'mon-struct/c) (mk-rt-⟦e⟧ K) ⟦mon⟧s))
+          (define ⟦reconstr⟧ (mk-app-⟦e⟧ ℒ (mk-rt-⟦e⟧ K) ⟦mon⟧s))
           (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]))
 
   (with-MΓ⊢oW/no-refine (M σ Γ p Wᵥ)
@@ -1083,7 +1082,7 @@
     (define Wₗ (vec-len σ Γ Wᵥ))
     (for/union : (℘ -ς) ([C* (in-set (σ@ Σ α*))])
       (define ⟦mon⟧ (mk-mon-⟦e⟧ l³ (ℒ-with-mon ℒ ℓ*) (mk-rt-⟦e⟧ (-W¹ C* c*)) ⟦ref⟧))
-      (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ -make-vector.W¹) '() ⊥ρ (ℒ-with-l ℒ 'mon-vectorof)
+      (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ -make-vector.W¹) '() ⊥ρ ℒ
                                ⟦k⟧*))))
 
   (with-MΓ⊢oW/no-refine (M σ Γ 'vector? Wᵥ)
@@ -1146,7 +1145,7 @@
          [(cons ⟦fld⟧₀ ⟦fld⟧s)
           (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℒ l³ ⟦k⟧))
           (⟦fld⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-           (ap∷ (list -vector.W¹) ⟦fld⟧s ⊥ρ (ℒ-with-l ℒ 'mon-vector/c) ⟦k⟧*))])))
+           (ap∷ (list -vector.W¹) ⟦fld⟧s ⊥ρ ℒ ⟦k⟧*))])))
 
   (with-MΓ⊢oW/no-refine (M σ Γ 'vector? Wᵥ)
     #:on-t chk-len
