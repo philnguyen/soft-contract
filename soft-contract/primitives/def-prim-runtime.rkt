@@ -254,5 +254,5 @@
          [(-Vector/C ⟪α⟫s) (length ⟪α⟫s)]
          [_ #f])]
       [_ #f]))
-  (define Vₙ (if ?n (-b ?n) -●.V))
+  (define Vₙ (if ?n (-b ?n) -Nat.V))
   (-W¹ Vₙ (?t@ 'vector-length s)))
