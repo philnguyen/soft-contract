@@ -63,6 +63,8 @@
                        (list (-b (and (? real?) (? positive?))) t*)))
           #:when (and t* (∋ Γ (-t.@ '<= (list -zero t*))))
           {set (->/c 0)}]
+         [(-t.@ '* (list t t))
+          {set (-≥/c 0)}]
          [(-t.@ '- (list t₁ t₂))
           (cond [(or (∋ Γ (-t.@ '<= (list t₂ t₁)))
                      (∋ Γ (-t.@ '>= (list t₁ t₂))))

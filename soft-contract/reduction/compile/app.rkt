@@ -191,12 +191,7 @@
          (printf "~n"))
        (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
           (match-define (-ΓA φs A) ΓA)
-          (define A*
-            (match A
-              [(-W (list (-● ps)) (and t (-t.@ '* (list t₁ t₁))))
-               (-W (list (-● (set-add ps (-≥/c 0)))) t)]
-              [_ A]))
-          (⟦k⟧ A* $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
+          (⟦k⟧ A $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
     [(get-ext o) =>
      (λ ([⟦f⟧ : -⟦f⟧])
        (⟦f⟧ $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))]

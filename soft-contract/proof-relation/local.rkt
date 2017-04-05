@@ -37,10 +37,8 @@
 (: ⊢@ : -h (Listof -t) → -R)
   ;; Check if application returns truth
 (define (⊢@ p xs)
-
-  (match p
-    [(? -st-mk?) '✓]
-    [(or 'equal? 'eq? '=)
+  (case p
+    [(equal? eq? =)
      (match xs
        [(list t₁ t₂)
         (match* (t₁ t₂)
@@ -53,7 +51,17 @@
            (if (equal? x y) '✓ '?)]
           [(_ _) '?])]
        [_ #|TODO|# '?])]
-    [_ '?]))
+    [(<=)
+     (match xs
+       [(list (-b (? (<=/c 0))) (-t.@ '* (list t t))) '✓]
+       [_ '?])]
+    [(<)
+     (match xs
+       [(list (-t.@ '* (list t t)) (-b (? (>=/c 0)))) '✓]
+       [_ '?])]
+    [(>=) (⊢@ '<= (reverse xs))]
+    [(>)  (⊢@ '<  (reverse xs))]
+    [else '?]))
 
 (: Γ⊢t : -Γ -?t → -R)
 (define (Γ⊢t Γ t) (φs⊢t (-Γ-facts Γ) t))
