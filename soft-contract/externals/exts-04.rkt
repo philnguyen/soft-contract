@@ -57,6 +57,8 @@
 ;;;;; 4.11 Vectors
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#;(define cache : (HashTable Any Void) (make-hash))
+
 (def-ext (vector-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   #:domain ([Wᵥ vector?] [Wᵢ integer?])
   (match-define (-Σ σ _ M) Σ)
@@ -65,6 +67,14 @@
   (define sₐ (?t@ 'vector-ref sᵥ sᵢ))
   (match Vᵥ
     [(-Vector ⟪α⟫s)
+     #;(hash-ref cache (cons Wᵥ Wᵢ)
+               (λ ()
+                 (printf "ref ~a ~a:~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ))
+                 (for ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
+                       [i : Natural (in-naturals)]
+                       #:when (plausible-index? M σ Γ Wᵢ i))
+                   (printf "  - ~a ↦ ~a~n" i (set-count (σ@ σ ⟪α⟫))))
+                 (printf "~n")))
      (for/union : (℘ -ς) ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
                           [i : Natural (in-naturals)]
                           #:when (plausible-index? M σ Γ Wᵢ i))
