@@ -200,6 +200,10 @@
               ,@(for/list ([i (in-list (map car mut-list))])
                   (-st-mut 𝒾 i)))
             (syntax-ℓ form))))]
+    [;; Hack ignoring generated garbage by `struct`
+     (define-values (_:identifier) (#%plain-app f:id _:id))
+     #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
+     #f]
     [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
      (define lhs (syntax-e #'x))
      (define rhs (parse-e #'e))
