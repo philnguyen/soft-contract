@@ -75,6 +75,8 @@
   (test "paper/havoc-1.rkt" check-fail)
   (test "paper/havoc-2.rkt" check-fail)
   (test "paper/mutable-box-as-closure.rkt" check-safe)
+  (test "paper/succ.rkt" check-safe)
+  (test "paper/succ-incorrect.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
