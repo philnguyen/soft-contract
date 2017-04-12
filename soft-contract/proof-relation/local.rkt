@@ -532,6 +532,7 @@
                   [(-b b) (boolean->R (null? b))]
                   [(-● ps)
                    (cond
+                     [(∋ ps 'list?) '✓]
                      [(set-empty?
                        (∩ ps {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
                                   'string? 'symbol?}))
