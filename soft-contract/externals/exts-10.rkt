@@ -20,22 +20,12 @@
 (def-ext (error $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (⟦k⟧ (-blm 'Λ 'error '(error) (map -W¹-V Ws) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; 10.5 Continuation Marks
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def-ext (continuation-mark-set-first $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (⟦k⟧ (-W -●.Vs #f) $ Γ ⟪ℋ⟫ Σ))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; 10.7 Exiting
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def-ext (exit $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  ;; HACK
-  (define blm (-blm 'Λ 'exit '() '() (-ℒ-app ℒ)))
+(def-ext (raise-user-error $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define blm (-blm (ℓ-src (-ℒ-app ℒ))
+                    'raise-user-error
+                    '()
+                    (map -W¹-V Ws)
+                    (-ℒ-app ℒ)))
   (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
 
 (def-ext (raise-argument-error $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -67,4 +57,22 @@
                     (list (-W¹-V Wₙ) (-W¹-V Wₑ))
                     (list (-W¹-V Wᵥ))
                     (-ℒ-app ℒ)))
+  (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.5 Continuation Marks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-ext (continuation-mark-set-first $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (⟦k⟧ (-W -●.Vs #f) $ Γ ⟪ℋ⟫ Σ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.7 Exiting
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-ext (exit $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  ;; HACK
+  (define blm (-blm 'Λ 'exit '() '() (-ℒ-app ℒ)))
   (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
