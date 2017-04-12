@@ -128,11 +128,16 @@
  (exact? . -> . exact?)
  (inexact? . -> . inexact?)
  (exact-nonnegative-integer? . -> . exact-positive-integer?)
+ (exact-positive-integer? . -> . exact-positive-integer?)
+ (exact-integer? . -> . exact-integer?)
  ((not/c negative?) . -> . positive?)
  (positive? . -> . positive?))
 (def-prim sub1
  (number? . -> . number?)
  #:refinements
+ (exact-positive-integer? . -> . exact-nonnegative-integer?)
+ (exact-nonnegative-integer? . -> . exact-integer?)
+ (exact-integer? . -> . exact-integer?)
  (integer? . -> . integer?)
  (real? . -> . real?))
 (def-prim abs
@@ -1085,8 +1090,24 @@
 #;(def-prim/todo vector-set!
  ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?))
 (def-prim vector->list (vector? . -> . list?)) ; FIXME retain content
-(def-prim/todo list->vector
- (list? . -> . vector?))
+(def-prim/custom (list->vector ⟪ℋ⟫ ℒ Σ Γ Ws)
+  #:domain ([W list?])
+  (match-define (-Σ σ _ _) Σ)
+  (match-define (-W¹ Vₗ sₗ) W)
+  (define Vₐ
+    (match Vₗ
+      ;; Collect content of non-empty list
+      [(? -St? Vₗ)
+       (define α (-α->⟪α⟫ (-α.vct ℒ ⟪ℋ⟫)))
+       (for ([V (in-set (extract-list-content σ Vₗ))])
+         (σ⊕V! Σ α V))
+       (-Vector^ α -Nat.V)]
+      ;; Empty list -> Empty vector
+      [(-b (list))
+       -Vector₀]
+      ;; Default
+      [_ (-● {set 'vector?})]))
+  {set (-ΓA (-Γ-facts Γ) (-W (list Vₐ) (?t@ 'vector->list sₗ)))})
 (def-prim/todo vector->immutable-vector
  (vector? . -> . (and/c vector? immutable?)))
 (def-prim/todo vector-fill!

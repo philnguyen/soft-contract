@@ -78,6 +78,9 @@
   (test "paper/succ.rkt" check-safe)
   (test "paper/succ-incorrect.rkt" check-fail)
 
+  (test "safe/issues/list2vector.rkt" check-safe)
+  (test "unsafe/issues/list2vector.rkt" check-fail)
+
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
   (test   "safe/real/protected-leftist-tree.rkt" check-safe)
