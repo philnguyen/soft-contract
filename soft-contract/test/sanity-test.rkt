@@ -78,7 +78,7 @@
   (test "paper/succ.rkt" check-safe)
   (test "paper/succ-incorrect.rkt" check-fail)
 
-  (test "safe/issues/cons2list.rkt" check-safe)
+  (test "safe/issues/cons-of-list.rkt" check-safe)
   (test "safe/issues/list2vector.rkt" check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
 
