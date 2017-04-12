@@ -506,41 +506,7 @@
              [(list (-● ps) (-b b)) (ps⇒p ps (-≡/c b))]
              [(list (-b b) (-● ps)) (ps⇒p ps (-≡/c b))]
              [_ '?])]
-          [(list?)
-           (match Vs
-             [(list V)
-              (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-              
-              (define (combine [Rs : (℘ -R)]) : -R
-                (cond [(∋ Rs '?) '?]
-                      [(and (∋ Rs '✓) (∋ Rs '✗)) '?]
-                      [(∋ Rs '✗) '✗]
-                      [else '✓]))
-
-              (define (check-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : -R
-                (cond [(seen-has? ⟪α⟫) '✓]
-                      [else
-                       (seen-add! ⟪α⟫)
-                       (combine
-                        (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ ⟪α⟫)])
-                          (check Vᵣ)))]))
-              
-              (define (check [V : -V]) : -R
-                (match V
-                  [(-Cons _ α) (check-⟪α⟫ α)]
-                  [(-Cons* α) (check-⟪α⟫ α)]
-                  [(-b b) (boolean->R (null? b))]
-                  [(-● ps)
-                   (cond
-                     [(∋ ps 'list?) '✓]
-                     [(set-empty?
-                       (∩ ps {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
-                                  'string? 'symbol?}))
-                      '?]
-                     [else '✗])]
-                  [_ '✗]))
-              (check V)]
-             [_ '✗])]
+          [(list?) (check-proper-list σ (car Vs))]
           ;; Default rules for operations on base values rely on simplification from `-?@`
           [(boolean-excludes? (get-conservative-range p)) '✓]
           [else '?])]
@@ -635,6 +601,40 @@
         [(any/c) '✓]
         [(none/c) '✗]
         [else '?])))
+
+(: check-proper-list : -σ -V → -R)
+(define (check-proper-list σ V)
+  (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+  
+  (define (combine [Rs : (℘ -R)]) : -R
+    (cond [(∋ Rs '?) '?]
+          [(and (∋ Rs '✓) (∋ Rs '✗)) '?]
+          [(∋ Rs '✗) '✗]
+          [else '✓]))
+
+  (define (check-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : -R
+    (cond [(seen-has? ⟪α⟫) '✓]
+          [else
+           (seen-add! ⟪α⟫)
+           (combine
+            (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ ⟪α⟫)])
+              (check Vᵣ)))]))
+
+  (define (check [V : -V]) : -R
+    (match V
+      [(-Cons _ α) (check-⟪α⟫ α)]
+      [(-Cons* α) (check-⟪α⟫ α)]
+      [(-b b) (boolean->R (null? b))]
+      [(-● ps)
+       (cond
+         [(∋ ps 'list?) '✓]
+         [(set-empty?
+           (∩ ps {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
+                      'string? 'symbol?}))
+          '?]
+         [else '✗])]
+      [_ '✗]))
+  (check V))
 
 (: sat-one-of : -V (Listof Base) → -R)
 (define (sat-one-of V bs)
