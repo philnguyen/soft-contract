@@ -21,7 +21,7 @@
   (⟦k⟧ (-blm 'Λ 'error '(error) (map -W¹-V Ws) (-ℒ-app ℒ)) $ Γ ⟪ℋ⟫ Σ))
 
 (def-ext (raise-user-error $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  (define blm (-blm (ℓ-src (-ℒ-app ℒ))
+  (define blm (-blm 'raise-user-error #|TODO|#
                     'raise-user-error
                     '()
                     (map -W¹-V Ws)
@@ -32,7 +32,7 @@
   #:domain ([Wₙ symbol?]
             [Wₑ string?]
             [Wᵥ any/c])
-  (define blm (-blm (ℓ-src (-ℒ-app ℒ))
+  (define blm (-blm 'raise-argument-error #|TODO|#
                     'raise-argument-error
                     (list (-W¹-V Wₙ) (-W¹-V Wₑ))
                     (list (-W¹-V Wᵥ))
@@ -41,7 +41,7 @@
 
 (def-ext (raise-arguments-error $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
   (match-define (list* Wₙ Wₘ Wᵣ) Ws)
-  (define blm (-blm (ℓ-src (-ℒ-app ℒ))
+  (define blm (-blm 'raise-arguments-error #|TODO|#
                     'raise-arguments-error
                     (list (-W¹-V Wₙ) (-W¹-V Wₘ))
                     (map -W¹-V Wᵣ)
@@ -52,8 +52,8 @@
   #:domain ([Wₙ symbol?]
             [Wₑ string?]
             [Wᵥ any/c])
-  (define blm (-blm (ℓ-src (-ℒ-app ℒ))
-                    'raise-argument-error
+  (define blm (-blm 'raise-result-error #|TODO|#
+                    'raise-result-error
                     (list (-W¹-V Wₙ) (-W¹-V Wₑ))
                     (list (-W¹-V Wᵥ))
                     (-ℒ-app ℒ)))
