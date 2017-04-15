@@ -1667,7 +1667,10 @@
  (primitive? . -> . procedure-arity?))
 
 ;; 4.17.3 Additional Higher-Order Functions
-(def-prim/todo identity (any/c . -> . any/c))
+(def-prim/custom (identity ⟪ℋ⟫ ℒ Σ Γ Ws)
+  #:domain ([W any/c])
+  (match-define (-W¹ V s) W)
+  {set (-ΓA (-Γ-facts Γ) (-W (list V) s))})
 (def-prim/todo const (any . -> . procedure?))
 (def-prim/todo negate (procedure? . -> . procedure?))
 ;[curry ] FIXME

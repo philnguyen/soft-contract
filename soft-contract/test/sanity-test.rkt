@@ -82,6 +82,7 @@
   (test "safe/issues/list2vector.rkt" check-safe)
   (test "safe/issues/issue-62.rkt" check-safe)
   (test "safe/issues/issue-63.rkt" check-safe)
+  (test "safe/issues/issue-64.rkt" check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
