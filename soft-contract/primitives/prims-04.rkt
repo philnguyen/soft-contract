@@ -95,7 +95,9 @@
   (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
   (exact-integer? exact-integer? . -> . exact-integer?)
   (integer? integer? . -> . integer?)
-  (real? real? . -> . real?))
+  (real? real? . -> . real?)
+  ((<=/c 0) (>=/c 0) . -> . (<=/c 0))
+  ((>=/c 0) (<=/c 0) . -> . (>=/c 0)))
 #;(def-prim -
  ((number?) #:rest (listof number?) . ->* . number?)
  #:refinements
