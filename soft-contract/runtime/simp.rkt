@@ -120,6 +120,12 @@
 
       ; (cons (car e) (cdr e)) = e
       [(-st-mk s) (or (access-same-value? s xs) (default-case))]
+      
+      ; HACK
+      ['+
+       (match xs
+         [(list b (-t.@ '- (list t b))) t]
+         [_ (default-case)])]
 
       ; General case
       [_ (default-case)]))

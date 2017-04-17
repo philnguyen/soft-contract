@@ -170,20 +170,18 @@
         [(-W Vs sₐ)
          (define sₐ*
            (and sₐ
-                (cond
-                  [looped? (apply ?t@ αₖ tₓs)]
-                  [else
-                   (match* (αₖ tₓs)
-                     [((? -ℳ?) (list t)) t]
-                     [((-ℬ (list x) _ _) (list t)) ; inline some
-                      #:when (match? sₐ (-t.@ (? -o? o) (list (-x (== x)))))
-                      (match-define (-t.@ o _) sₐ)
-                      (?t@ o t)]
-                     [((-ℬ (? list? xs) _ _) ts)
-                      #:when (and (-x? sₐ) (memq (-x-₀ sₐ) xs))
-                      (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-₀ sₐ)))
-                        t)]
-                     [(_ _) (apply ?t@ αₖ tₓs)])])))
+                (match* (αₖ tₓs)
+                  [((? -ℳ?) (list t)) t]
+                  [((-ℬ (list x) _ _) (list t)) ; inline some
+                   #:when (and (not looped?)
+                               (match? sₐ (-t.@ (? -o? o) (list (-x (== x))))))
+                   (match-define (-t.@ o _) sₐ)
+                   (?t@ o t)]
+                  [((-ℬ (? list? xs) _ _) ts)
+                   #:when (and (-x? sₐ) (memq (-x-₀ sₐ) xs))
+                   (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-₀ sₐ)))
+                     t)]
+                  [(_ _) (apply ?t@ αₖ tₓs)])))
          (define Γₑᵣ*
            (cond
              [looped? Γₑᵣ]
