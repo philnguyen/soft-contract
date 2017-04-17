@@ -8,7 +8,7 @@
          "count-checks.rkt")
 
 (define TIMEOUT (* 60 20))
-(define COLUMNS '(Lines Checks Time Positives))
+(define COLUMNS '(Lines Checks Time Pos))
 
 (define-type Real/Rng (U Real (List Real)))
 (define-type Record (HashTable Symbol Real/Rng))
@@ -77,7 +77,7 @@
              'Lines lines
              'Checks checks
              'Time (exact->inexact (/ t 1000))
-             'Positives poses)))
+             'Pos poses)))
 
 (define (print-then-return-row [row : Row]) : Row
   (match-define (Row name fields) row)
