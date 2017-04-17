@@ -1131,13 +1131,6 @@
 ;(time (let loop ((i 100)) (if (zero? i) 'done (begin (run) (loop (- i 1))))))
 (provide
  (contract-out
-  #;[tfo-apply (tfo/c pt/c . -> . pt/c)]
-  #;[tfo-combine (tfo/c tfo/c . -> . tfo/c)]
-  #;[tfo-inv-ortho (tfo/c . -> . tfo/c)]
-  #;[tfo-align (pt/c pt/c pt/c . -> . tfo/c)]
-  #;[get-var (integer? (listof var/c) . -> . var/c)]
-  #;[make-relative-nuc (tfo/c (or/c rA/c (or/c rC/c (or/c rG/c rU/c)))
-                            . -> . (or/c rA/c (or/c rC/c (or/c rG/c rU/c))))]
   [run (-> rA/c (listof rA/c)
            rC/c (listof rC/c)
            rG/c (listof rG/c)
