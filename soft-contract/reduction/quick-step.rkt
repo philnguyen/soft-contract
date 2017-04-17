@@ -178,7 +178,9 @@
                    (match-define (-t.@ o _) sₐ)
                    (?t@ o t)]
                   [((-ℬ (? list? xs) _ _) ts)
-                   #:when (and (-x? sₐ) (memq (-x-₀ sₐ) xs))
+                   #:when (and (-x? sₐ)
+                               (memq (-x-₀ sₐ) xs)
+                               (not (and looped? (>= (length xs) 3))))
                    (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-₀ sₐ)))
                      t)]
                   [(_ _) (apply ?t@ αₖ tₓs)])))
