@@ -264,9 +264,14 @@
     [((-≡/c (? real? b₁)) (-≥/c (? real? b₂))) (boolean->R (>= b₁ b₂))]
 
     ;; default
-    [(_ _)
-     (cond [(equal? p q) '✓]
-           [else '?])]))
+    [(p p) '✓]
+    [((? base-only?) (? -st-p?)) '✗]
+    [((? -st-p?) (? base-only?)) '✗]
+    [(_ _) '?]))
+
+(: base-only? : -h → Boolean)
+(define (base-only? p)
+  (and (symbol? p) (not (memq p '(list? struct?)))))
 
 (define (plausible-φs-t? [φs : (℘ -t)] [t : -?t]) : Boolean
   (with-debugging/off
