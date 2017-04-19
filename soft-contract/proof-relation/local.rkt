@@ -266,9 +266,6 @@
     ;; default
     [(_ _)
      (cond [(equal? p q) '✓]
-           [(or (and (symbol? p) (-st-p? q))
-                (and (symbol? q) (-st-p? p)))
-            '✗]
            [else '?])]))
 
 (define (plausible-φs-t? [φs : (℘ -t)] [t : -?t]) : Boolean
