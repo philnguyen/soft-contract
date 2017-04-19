@@ -774,7 +774,18 @@
 (def-alias-internal set-mcdr! -set-cdr!) ;; HACK for running some Scheme programs
 (def-const null)
 (def-prim list? (any/c . -> . boolean?))
-(def-prim/todo list (() #:rest list? . ->* . list?))
+(def-prim/custom (list ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (match Ws
+    ['() {set (-ΓA (-Γ-facts Γ) -null.W)}]
+    [_
+     (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
+     (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+     (for ([Wᵢ (in-list Ws)])
+       (σ⊕! Σ Γ αₕ Wᵢ))
+     (define Vₚ (-Cons αₕ αₜ))
+     (σ⊕V*! Σ [αₜ ↦ -null.V] [αₜ ↦ Vₚ])
+     (define tₚ (foldr (λ ([Wₗ : -W¹] [tᵣ : -?t]) (?t@ -cons (-W¹-t Wₗ) tᵣ)) -null Ws))
+     {set (-ΓA (-Γ-facts Γ) (-W (list Vₚ) tₚ))}]))
 (def-prim/todo list* ; FIXME
   (-> list?))
 ; [HO] build-list
