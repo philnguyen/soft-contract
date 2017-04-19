@@ -1047,24 +1047,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def-pred vector?)
 (def-prim/custom (make-vector ⟪ℋ⟫ ℒ Σ Γ Ws)
-  #:domain ([Wₙ exact-nonnegative-integer?] [Wᵥ any/c])
-  (define σ (-Σ-σ Σ))
-  (match-define (-W¹ Vₙ sₙ) Wₙ)
-  (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-  (define sₐ (?t@ 'make-vector sₙ sᵥ))
-  ;; Heuristic: more concrete vector if length is available concretely
-  (match sₙ
-    [(-b (? exact-nonnegative-integer? n))
-     (define ⟪α⟫s ; with side effect widening store
-       (for/list : (Listof ⟪α⟫) ([i (in-range n)])
-         (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℒ ⟪ℋ⟫ (assert i index?))))
-         (σ⊕! Σ Γ ⟪α⟫ Wᵥ)
-         ⟪α⟫))
-     {set (-ΓA (-Γ-facts Γ) (-W (list (-Vector ⟪α⟫s)) sₐ))}]
-    [_
-     (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℒ ⟪ℋ⟫)))
-     (σ⊕! Σ Γ ⟪α⟫ Wᵥ) ; initializing, not mutating
-     {set (-ΓA (-Γ-facts Γ) (-W (list (-Vector^ ⟪α⟫ Vₙ)) sₐ))}]))
+
+  (def-prim/custom (internal-make-vector ⟪ℋ⟫ ℒ Σ Γ Ws)
+    #:domain ([Wₙ exact-nonnegative-integer?] [Wᵥ any/c])
+    (define σ (-Σ-σ Σ))
+    (match-define (-W¹ Vₙ sₙ) Wₙ)
+    (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+    (define sₐ (?t@ 'make-vector sₙ sᵥ))
+    ;; Heuristic: more concrete vector if length is available concretely
+    (match sₙ
+      [(-b (? exact-nonnegative-integer? n))
+       (define ⟪α⟫s ; with side effect widening store
+         (for/list : (Listof ⟪α⟫) ([i (in-range n)])
+           (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℒ ⟪ℋ⟫ (assert i index?))))
+           (σ⊕! Σ Γ ⟪α⟫ Wᵥ)
+           ⟪α⟫))
+       {set (-ΓA (-Γ-facts Γ) (-W (list (-Vector ⟪α⟫s)) sₐ))}]
+      [_
+       (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℒ ⟪ℋ⟫)))
+       (σ⊕! Σ Γ ⟪α⟫ Wᵥ) ; initializing, not mutating
+       {set (-ΓA (-Γ-facts Γ) (-W (list (-Vector^ ⟪α⟫ Vₙ)) sₐ))}]))
+
+  (define Ws*
+    (match Ws
+      [(list Wₙ) (list Wₙ -zero.W¹)]
+      [_ Ws]))
+  (.internal-make-vector ⟪ℋ⟫ ℒ Σ Γ Ws*))
 (def-prim/custom (vector ⟪ℋ⟫ ℒ Σ Γ Ws)
   (define σ (-Σ-σ Σ))
   (define sₐ (apply ?t@ 'vector (map -W¹-t Ws)))
