@@ -83,7 +83,7 @@
      (define (ids->str ids)
        (string-join (map symbol->string (map syntax-e (syntax->list ids)))))
      (unless (null? (syntax->list #'(i ...)))
-       (printf "Warning: verify the following against `any/c`: ~a~n" (ids->str #'(i ...))))
+       (printf "Warning: ignore verifying: ~a~n" (ids->str #'(i ...))))
      (unless (null? (syntax->list #'(so ...)))
        (printf "Warning: ignore verifying `struct-out` form(s) for: ~a~n" (ids->str #'(so ...))))
      #'(begin
@@ -94,9 +94,10 @@
                      (contract-out [p/i ctc] ...
                                    [struct s ([ac dom] ...)] ...)
                      ...))
-         ;; Things to give to SCV for verification
+         ;; Things to give to SCV for verification.
+         ;; Ignore all non-contracted identifiers because they might be macros even.
+         ;; Verifying against `any/c` doesn't mean much anyways
          (dynamic-provide/contract
-          (list i any/c) ...
           (list p/i ctc) ... ...
           (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
 
