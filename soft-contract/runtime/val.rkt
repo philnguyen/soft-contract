@@ -38,6 +38,8 @@
 (define -Bool.Vs (list (-● {set 'boolean?})))
 (define -Nat.V (-● {set 'exact-nonnegative-integer?}))
 (define -Nat.Vs (list -Nat.V))
+(define -PosNat.V (-● {set 'exact-positive-integer?}))
+(define -PosNat.Vs (list -PosNat.V))
 (def-val -void)
 (def-val -apply 'apply)
 (def-val -any/c 'any/c)

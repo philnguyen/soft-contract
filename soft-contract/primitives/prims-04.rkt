@@ -1111,7 +1111,7 @@
        (define α (-α->⟪α⟫ (-α.vct ℒ ⟪ℋ⟫)))
        (for ([V (in-set (extract-list-content σ Vₗ))])
          (σ⊕V! Σ α V))
-       (-Vector^ α -Nat.V)]
+       (-Vector^ α -PosNat.V)]
       ;; Empty list -> Empty vector
       [(-b (list))
        -Vector₀]
