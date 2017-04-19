@@ -40,6 +40,8 @@
 (define -Nat.Vs (list -Nat.V))
 (def-val -void)
 (def-val -apply 'apply)
+(def-val -any/c 'any/c)
+(def-val -none/c 'none/c)
 (def-val -not 'not)
 (def-val -integer? 'integer?)
 (def-val -number? 'number?)

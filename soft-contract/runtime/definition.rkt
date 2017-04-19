@@ -144,6 +144,9 @@
 (struct -ΓA ([cnd : (℘ -t)] [ans : -A]) #:transparent)
 
 (define ⟪α⟫ℓ->⟪α⟫ (inst car ⟪α⟫ ℓ))
+(define (W¹->W [W : -W¹])
+  (match-define (-W¹ V s) W)
+  (-W (list V) s))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

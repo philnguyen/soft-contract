@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide NeListof unzip-by unzip)
-(require racket/match)
+(require racket/match
+         racket/list)
 
 (define-type (NeListof X) (Pairof X (Listof X)))
 
@@ -24,3 +25,10 @@
      (define ?y (f x))
      (and ?y (let ([?ys (maybe-map f xs*)])
                (and ?ys (cons ?y ?ys))))]))
+
+(: init/last (∀ (X) (Listof X) → (Values (Listof X) X)))
+(define (init/last l)
+  (cond [(pair? l)
+         (match-define-values (xs (list x)) (split-at l (sub1 (length l))))
+         (values xs x)]
+        [else (error 'init/last "empty list")]))

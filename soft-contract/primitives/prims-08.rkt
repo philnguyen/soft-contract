@@ -5,9 +5,11 @@
 (require racket/match
          racket/set
          racket/contract
+         racket/splicing
+         "../utils/set.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "../proof-relation/widen.rkt"
+         "../proof-relation/main.rkt"
          "def-prim.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,28 +24,63 @@
 (def-prim/custom (none/c ⟪ℋ⟫ ℒ Σ Γ Ws)
   #:domain ([W any/c])
   {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs -ff))})
-(def-prim/custom (or/c ⟪ℋ⟫ ℒ Σ Γ Ws)
-  #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
-  (match-define (-W¹ V₁ t₁) W₁)
-  (match-define (-W¹ V₂ t₂) W₂)
-  (define ℓ (-ℒ-app ℒ))
-  (define α₁ (-α->⟪α⟫ (-α.or/c-l t₁ ℓ ⟪ℋ⟫)))
-  (define α₂ (-α->⟪α⟫ (-α.or/c-r t₂ ℓ ⟪ℋ⟫)))
-  (σ⊕V*! Σ [α₁ ↦ V₁] [α₂ ↦ V₂])
-  (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids ℓ 2))
-  (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
-  {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'or/c t₁ t₂)))})
-(def-prim/custom (and/c ⟪ℋ⟫ ℒ Σ Γ Ws)
-  #:domain ([W₁ contract?] [W₂ contract?]) ; FIXME uses
-  (match-define (-W¹ V₁ t₁) W₁)
-  (match-define (-W¹ V₂ t₂) W₂)
-  (define ℓ (-ℒ-app ℒ))
-  (define α₁ (-α->⟪α⟫ (-α.and/c-l t₁ ℓ ⟪ℋ⟫)))
-  (define α₂ (-α->⟪α⟫ (-α.and/c-r t₂ ℓ ⟪ℋ⟫)))
-  (σ⊕V*! Σ [α₁ ↦ V₁] [α₂ ↦ V₂])
-  (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids ℓ 2))
-  (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
-  {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'and/c t₁ t₂)))})
+
+(splicing-local
+    
+    ((: reduce-contracts : -l ℓ -Σ -Γ (Listof -W¹) (ℓ -W¹ -W¹ → (Values -V -?t)) -W → (℘ -ΓA))
+     (define (reduce-contracts lo ℓ Σ Γ Ws comb id)
+       (match Ws
+         ['() {set (-ΓA (-Γ-facts Γ) id)}]
+         [_
+          (match-define (-Σ σ _ M) Σ)
+          (define definite-error? : Boolean #f)
+          (define maybe-errors
+            (for/set: : (℘ -ΓA) ([W (in-list Ws)]
+                                 #:when (case (MΓ⊢oW M σ Γ 'contract? W)
+                                          [(✓)                       #f]
+                                          [(✗) (set! definite-error? #t)]
+                                          [(?)                        #t ]))
+              (-ΓA (-Γ-facts Γ) (-blm (ℓ-src ℓ) lo '(contract?) (list (-W¹-V W)) ℓ))))
+          (cond [definite-error? maybe-errors]
+                [else
+                 (define-values (V* t*)
+                   (let loop : (Values -V -?t) ([Ws : (Listof -W¹) Ws] [i : Natural 0])
+                     (match Ws
+                       [(list (-W¹ V t)) (values V t)]
+                       [(cons Wₗ Wsᵣ)
+                        (define-values (Vᵣ tᵣ) (loop Wsᵣ (+ 1 i)))
+                        (comb (ℓ-with-id ℓ i) Wₗ (-W¹ Vᵣ tᵣ))])))
+                 (set-add maybe-errors (-ΓA (-Γ-facts Γ) (-W (list V*) t*)))])])))
+  
+  (def-prim/custom (or/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+    (: or/c.2 : ℓ -W¹ -W¹ → (Values -V -?t))
+    (define (or/c.2 ℓ W₁ W₂)
+      (match-define (-W¹ V₁ t₁) W₁)
+      (match-define (-W¹ V₂ t₂) W₂)
+      (define ℓ (-ℒ-app ℒ))
+      (define α₁ (-α->⟪α⟫ (-α.or/c-l t₁ ℓ ⟪ℋ⟫)))
+      (define α₂ (-α->⟪α⟫ (-α.or/c-r t₂ ℓ ⟪ℋ⟫)))
+      (σ⊕V*! Σ [α₁ ↦ V₁] [α₂ ↦ V₂])
+      (define ℓ₁ (ℓ-with-id ℓ 'left-disj))
+      (define ℓ₂ (ℓ-with-id ℓ 'right-disj))
+      (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
+      (values C (?t@ 'or/c t₁ t₂)))
+    (reduce-contracts 'or/c (-ℒ-app ℒ) Σ Γ Ws or/c.2 -none/c.W))
+  
+  (def-prim/custom (and/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+    (: and/c.2 : ℓ -W¹ -W¹ → (Values -V -?t))
+    (define (and/c.2 ℓ W₁ W₂)
+      (match-define (-W¹ V₁ t₁) W₁)
+      (match-define (-W¹ V₂ t₂) W₂)
+      (define α₁ (-α->⟪α⟫ (-α.and/c-l t₁ ℓ ⟪ℋ⟫)))
+      (define α₂ (-α->⟪α⟫ (-α.and/c-r t₂ ℓ ⟪ℋ⟫)))
+      (σ⊕V*! Σ [α₁ ↦ V₁] [α₂ ↦ V₂])
+      (define ℓ₁ (ℓ-with-id ℓ 'left-conj))
+      (define ℓ₂ (ℓ-with-id ℓ 'right-conj))
+      (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
+      (values C (?t@ 'and/c t₁ t₂)))
+    (reduce-contracts 'and/c (-ℒ-app ℒ) Σ Γ Ws and/c.2 -any/c.W)))
+
 (def-prim/custom (not/c ⟪ℋ⟫ ℒ Σ Γ Ws)
   #:domain ([W flat-contract?])
   (match-define (-W¹ V t) W)

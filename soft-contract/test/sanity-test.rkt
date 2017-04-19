@@ -85,6 +85,7 @@
   (test "safe/issues/issue-64.rkt" check-safe)
   (test "safe/issues/issue-66.rkt" check-safe)
   (test "safe/issues/make-vector.rkt" check-safe)
+  (test "safe/issues/ctc-var.rkt" check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
 
