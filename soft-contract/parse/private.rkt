@@ -22,7 +22,7 @@
                      "../externals/for-parser.rkt"))
 
 ;; Enable in "production" mode
-(define-syntax define/contract
+#;(define-syntax define/contract
   (syntax-parser
     [(_ x:id c e) #'(define x e)]
     [(_ lhs c rhs ...) #'(define lhs rhs ...)]))
@@ -54,19 +54,18 @@
   (syntax-parse form
     [((~literal module) id path (#%plain-module-begin forms ...))
      (define mod-name (mod-path->mod-name (syntax-source #'id)))
+
+     (define care-about?
+       (syntax-parser
+         [((~literal module) (~literal configure-runtime) _ ...) #f]
+         [form (scv-syntax? form)]))
+     
      (-module
       mod-name
       (parameterize ([cur-mod mod-name])
-        (filter
-         values
-         (for/list ([formᵢ (in-list (syntax->list #'(forms ...)))]
-                    #:when
-                    (syntax-parse formᵢ
-                      [((~literal module) (~literal configure-runtime) _ ...) #f]
-                      [_ #t])
-                    #:when
-                    (scv-syntax? formᵢ))
-           (parse-module-level-form formᵢ)))))]
+        (for*/list ([formᵢ (in-syntax-list #'(forms ...))] #:when (care-about? formᵢ)
+                    [?res (in-value (parse-module-level-form formᵢ))] #:when ?res)
+          ?res)))]
     [((~literal begin) form ...)
      (-begin/simp (map parse-top-level-form (syntax->list #'(form ...))))]
     [((~literal #%expression) e) (parse-e #'e)]
@@ -173,8 +172,8 @@
      (define-values (accs muts)
        (let ([accs (make-hasheq)]
              [muts (make-hasheq)])
-         (for ([name   (in-list (syntax->list #'(acc+muts ...)))]
-               [clause (in-list (syntax->list #'(mk-acc+muts ...)))])
+         (for ([name   (in-syntax-list #'(acc+muts ...))]
+               [clause (in-syntax-list #'(mk-acc+muts ...))])
            (define/syntax-parse (#%plain-app mk _ (quote i:exact-integer) _) clause)
            (define m
              (syntax-parse #'mk
@@ -392,7 +391,7 @@
      (-listof (parse-e #'c) (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:list/c) c ...)
      (define args
-       (for/list ([cᵢ (in-list (syntax->list #'(c ...)))])
+       (for/list ([cᵢ (in-syntax-list #'(c ...))])
          (cons (syntax-ℓ cᵢ) (parse-e cᵢ))))
      (-list/c args)]
     [(#%plain-app (~literal fake:box/c) c)

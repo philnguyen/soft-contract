@@ -5,7 +5,8 @@
          "indexed-set.rkt" "profile.rkt" "intern.rkt"
          "measure.rkt"
          "untyped-macros.rkt"
-         "contracts.rkt")
+         "contracts.rkt"
+         "syntax.rkt")
 (provide
  (all-from-out "debug.rkt" "def.rkt" "eval.rkt" "function.rkt" "list.rkt"
                "vmap.rkt" "map.rkt" "pretty.rkt" "set.rkt" "sexp-stx.rkt"
@@ -13,4 +14,5 @@
                "indexed-set.rkt" "profile.rkt" "intern.rkt"
                "measure.rkt"
                "untyped-macros.rkt"
-               "contracts.rkt"))
+               "contracts.rkt"
+               "syntax.rkt"))
