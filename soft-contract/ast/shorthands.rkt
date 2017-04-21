@@ -115,3 +115,7 @@
 (define/match (-begin/simp xs)
   [((list e)) e]
   [(es) (-begin es)])
+
+(: -begin0/simp : -e (Listof -e) → -e)
+(define (-begin0/simp e es)
+  (if (null? es) e (-begin0 e es)))
