@@ -116,7 +116,7 @@
                     (--> (list 'any/c) 'boolean? ℓₚ)
                     ℓₑ)))
      (define dec-acs
-       (for/list ([ac (syntax->list #'(ac ...))]
+       (for/list ([ac (in-syntax-list #'(ac ...))]
                   [st-dom st-doms]
                   [i (in-naturals)])
          (define ℓᵢ (ℓ-with-id ℓ i))
@@ -271,7 +271,7 @@
     ;; HACK for immediate uses of `list`
     [(#%plain-app (~literal list) e ...)
      (-list
-      (for/list ([e (syntax->list #'(e ...))])
+      (for/list ([e (in-syntax-list #'(e ...))])
         (cons (syntax-ℓ e) (parse-e e))))]
 
     ;; HACK for immediate uses of accessors
@@ -378,8 +378,7 @@
                   [(_) rst]
                   [(_) (#%plain-app list rng)])
        _ ...)
-     (--> (-var (map parse-e (syntax->list #'(inits ...)))
-                (parse-e #'rst))
+     (--> (-var (parse-es #'(inits ...)) (parse-e #'rst))
           (parse-e #'rng)
           (syntax-ℓ stx))]
     [(#%plain-app (~literal fake:listof) c)
@@ -437,7 +436,7 @@
     [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
     [(let-values (bindings ...) b ...)
      (-let-values
-      (for/list ([binding (syntax->list #'(bindings ...))])
+      (for/list ([binding (in-syntax-list #'(bindings ...))])
         (syntax-parse binding
           [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
       (-begin/simp (parse-es #'(b ...)))
@@ -463,14 +462,14 @@
     
     [(case-lambda [fml bodies ...+] ...)
      (-case-λ
-      (for/list ([fmlᵢ (syntax->list #'(fml ...))]
-                 [bodiesᵢ (syntax->list #'((bodies ...) ...))])
+      (for/list ([fmlᵢ (in-syntax-list #'(fml ...))]
+                 [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
         ;; Compute case arity and extended context for RHS
         (cons (parse-formals fmlᵢ) (-begin/simp (parse-es bodiesᵢ)))))]
     [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
     [(letrec-values (bindings ...) b ...)
      (-letrec-values
-      (for/list ([bnd (syntax->list #'(bindings ...))])
+      (for/list ([bnd (in-syntax-list #'(bindings ...))])
         (syntax-parse bnd
           [((x ...) eₓ) (cons (syntax->datum #'(x ...)) (parse-e #'eₓ))]))
       (-begin/simp (parse-es #'(b ...)))
@@ -600,6 +599,6 @@
 ;; For debugging only. Return scv-relevant s-expressions
 (define/contract (scv-relevant path)
   (path-string? . -> . any)
-  (for/list ([stxᵢ (syntax->list (do-expand-file path))]
+  (for/list ([stxᵢ (in-syntax-list (do-expand-file path))]
              #:unless (scv-ignore? stxᵢ))
     (syntax->datum stxᵢ)))
