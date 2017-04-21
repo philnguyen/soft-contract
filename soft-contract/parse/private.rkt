@@ -130,12 +130,9 @@
 (define/contract parse-submodule-form
   (scv-syntax? . -> . (or/c #f -submodule-form?))
   (syntax-parser
-    [((~literal module) id path ((~literal #%plain-module-begin) d ...))
-     (-module
-      (path->string (simplify-path (syntax-source #'id)))
-      (map parse-module-level-form (syntax->list #'(d ...))))]
-    [((~literal module*) _ ...) (error 'parse-submodule-form "TODO: 'module*")]
-    [_ #f]))
+    [((~or (~literal module) (~literal module*)) id path _)
+     (printf "Warning: skip unsupported submodule `id`~n" (syntax-e #'id))
+     #f]))
 
 (define/contract parse-general-top-level-form
   (scv-syntax? . -> . (or/c #f -general-top-level-form?))
