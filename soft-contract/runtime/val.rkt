@@ -90,6 +90,17 @@
      (-Vector/guard grd ⟪α⟫ (-l³ l+ l      lo))]
     [_ V]))
 
+(: approximate-under-contract : -V → -V)
+(define (approximate-under-contract V)
+  (match V
+    [(-Ar C _ l³)
+     (-Ar C ⟪α⟫ₒₚ l³)]
+    [(-St* C _ l³)
+     (-St* C ⟪α⟫ₒₚ l³)]
+    [(-Vector/guard C _ l³)
+     (-Vector/guard C ⟪α⟫ₒₚ l³)]
+    [_ V]))
+
 (: behavioral? : -σ -V → Boolean)
 ;; Check if value maybe behavioral.
 ;; `#t` is a conservative answer "maybe yes"

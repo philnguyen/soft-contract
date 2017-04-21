@@ -392,6 +392,7 @@
 
 (define-interner -α #:interned-type-name ⟪α⟫)
 (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
+(define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
 
 (define ⊥σ (-σ (hasheq ⟪α⟫ₕᵥ ∅) ∅eq (hasheq)))
 (define (⊥Σ) (-Σ ⊥σ ⊥σₖ ⊥M))

@@ -104,13 +104,22 @@
       (define-values (α modify-V)
         (cond
           ;; same-module referencing returns unwrapped version
-          [(equal? l₀ l) (values 𝒾 (inst values -V))]
+          [(equal? l₀ l)
+           (values 𝒾 (inst values -V))]
           ;; cross-module referencing returns wrapped version
-          ;; and (HACK) supplies the negative monitoring context
-          [else (values (-α.wrp 𝒾) (λ ([V : -V]) (supply-negative-party l V)))]))
+          ;; when the caller is symbolic (HACK)
+          ;; and supplies the negative monitoring context (HACK)
+          [(symbol? l)
+           (values (-α.wrp 𝒾) (λ ([V : -V]) (supply-negative-party l V)))]
+          ;; cross-mldule referencing returns abstracted wrapped version
+          ;; when the caller is concrete (HACK)
+          ;; and supplies the negative monitoring context (HACK)
+          [else
+           (values (-α.wrp 𝒾) (λ ([V : -V])
+                                (supply-negative-party l (approximate-under-contract V))))]))
       
       (define ⟪α⟫ (-α->⟪α⟫ α))
-      
+
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (define s (and (not (mutated? Σ ⟪α⟫)) 𝒾))
         (cond
