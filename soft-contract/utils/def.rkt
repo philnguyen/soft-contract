@@ -28,7 +28,7 @@
   (τ . ::=/ac . (σ ...) ()))
 (define-syntax (::=/ac stx)
   (syntax-parse stx
-    #:literals (quote ∀)
+    #:literals (quote)
     [(_ τ () (σ))
      #'(define-type/pred τ σ)]
     [(_ τ () (σ ...))
