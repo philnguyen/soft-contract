@@ -9,11 +9,19 @@
          "ast/main.rkt"
          "parse/main.rkt"
          "runtime/definition.rkt"
-         (only-in "run.rkt" run-file run-files havoc-file havoc-files)
+         (only-in "run.rkt" run-files havoc-files havoc-last-file)
          "settings.rkt")
 
 (Mode . ::= . 'light 'havoc 'expand 'havoc-last)
 (define mode : Mode 'havoc)
+
+(define (print-result [ans : (℘ -ΓA)])
+  (define safe? : Boolean #t)
+  (for ([A ans] #:when (-blm? (-ΓA-ans A)))
+    (set! safe? #f)
+    (pretty-write (show-a A)))
+  (when safe?
+    (printf "Safe~n")))
 
 (define fnames
   (cast
@@ -77,13 +85,5 @@
    (define-values (ans _) (havoc-files fnames))
    (print-result ans)]
   [(havoc-last)
-   (define-values (ans _) (havoc-last fnames))
+   (define-values (ans _) (havoc-last-file fnames))
    (print-result ans)])
-
-(define (print-result [ans : (℘ -ΓA)])
-  (define safe? : Boolean #t)
-  (for ([A ans] #:when (-blm? (-ΓA-ans A)))
-    (set! safe? #f)
-    (pretty-write (show-a A)))
-  (when safe?
-    (printf "Safe~n")))
