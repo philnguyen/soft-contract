@@ -110,13 +110,15 @@
           ;; when the caller is symbolic (HACK)
           ;; and supplies the negative monitoring context (HACK)
           [(symbol? l)
-           (values (-α.wrp 𝒾) (λ ([V : -V]) (supply-negative-party l V)))]
+           (values (-α.wrp 𝒾) (λ ([V : -V]) (with-negative-party l V)))]
           ;; cross-mldule referencing returns abstracted wrapped version
           ;; when the caller is concrete (HACK)
           ;; and supplies the negative monitoring context (HACK)
           [else
            (values (-α.wrp 𝒾) (λ ([V : -V])
-                                (supply-negative-party l (approximate-under-contract V))))]))
+                                (with-positive-party 'dummy+
+                                  (with-negative-party l
+                                    (approximate-under-contract V)))))]))
       
       (define ⟪α⟫ (-α->⟪α⟫ α))
 
@@ -127,6 +129,8 @@
            (λ ([V : -V])
              (⟦k⟧ (-W (list V) s) $ Γ ⟪ℋ⟫ Σ))]
           [else
+           (unless (hash-has-key? (-σ-m (-Σ-σ Σ)) ⟪α⟫ₒₚ) ; HACK
+             (σ⊕V! Σ ⟪α⟫ₒₚ -●.V))
            (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
              (define V* (modify-V V))
              (define $* ($+ $ (or s 𝒾) V*))

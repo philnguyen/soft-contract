@@ -78,16 +78,27 @@
     [(? -x/C?) #t]
     [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
-(: supply-negative-party : -l -V → -V)
+(: with-negative-party : -l -V → -V)
 ;; Supply the negative party for blaming
-(define (supply-negative-party l V)
+(define (with-negative-party l V)
   (match V
-    [(-Ar C α (-l³ l+ 'dummy lo))
-     (-Ar C α (-l³ l+ l      lo))]
-    [(-St* grd α (-l³ l+ 'dummy lo))
-     (-St* grd α (-l³ l+ l      lo))]
-    [(-Vector/guard grd ⟪α⟫ (-l³ l+ 'dummy lo))
-     (-Vector/guard grd ⟪α⟫ (-l³ l+ l      lo))]
+    [(-Ar C α (-l³ l+ _ lo))
+     (-Ar C α (-l³ l+ l lo))]
+    [(-St* grd α (-l³ l+ _ lo))
+     (-St* grd α (-l³ l+ l lo))]
+    [(-Vector/guard grd ⟪α⟫ (-l³ l+ _ lo))
+     (-Vector/guard grd ⟪α⟫ (-l³ l+ l lo))]
+    [_ V]))
+
+(: with-positive-party : -l -V → -V)
+(define (with-positive-party l V)
+  (match V
+    [(-Ar C α (-l³ _ l- lo))
+     (-Ar C α (-l³ l l- lo))]
+    [(-St* grd α (-l³ _ l- lo))
+     (-St* grd α (-l³ l l- lo))]
+    [(-Vector/guard grd ⟪α⟫ (-l³ _ l- lo))
+     (-Vector/guard grd ⟪α⟫ (-l³ l l- lo))]
     [_ V]))
 
 (: approximate-under-contract : -V → -V)

@@ -251,7 +251,7 @@
                    [𝒾 : -𝒾]
                    [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
   (define l (-𝒾-ctx 𝒾))
-  (define l³ (-l³ l 'dummy l))
+  (define l³ (-l³ l 'dummy- l))
   (with-error-handling (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
     (match-define (-W (list C) c) A)
     (match-define (-Σ σ _ _) Σ)
