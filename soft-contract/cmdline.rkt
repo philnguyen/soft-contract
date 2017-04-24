@@ -51,8 +51,7 @@
     [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
     [(-ΓA _ (-blm l+ lo Cs Vs ℓ))
      `(blame
-       [line : ,(ℓ-line ℓ)]
-       [col : ,(ℓ-col ℓ)]
+       [line ,(ℓ-line ℓ) col ,(ℓ-col ℓ)]
        [violator : ,l+]
        [contract from : ,lo]
        [contracts : ,@(map show-blm-reason Cs)]
