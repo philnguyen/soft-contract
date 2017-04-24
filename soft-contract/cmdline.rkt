@@ -60,7 +60,7 @@
 
 (case mode
   [(expand)
-   (for ([m (in-list (map file->module fnames))])
+   (for ([m (in-list (parse-files fnames))])
      (pretty-write (show-module m))
      (printf "~n"))]
   [(light)

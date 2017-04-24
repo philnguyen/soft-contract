@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/match
+         racket/list
          "utils/main.rkt"
          "ast/main.rkt"
          "runtime/definition.rkt"
@@ -21,7 +22,7 @@
 (: run-files : (Listof Path-String) → (Values (℘ -ΓA) -Σ))
 (define (run-files ps)
   (with-initialized-static-info
-    (run (↓ₚ (map file->module ps) -void))))
+    (run (↓ₚ (parse-files ps) -void))))
 
 (: havoc-file : Path-String → (Values (℘ -ΓA) -Σ))
 (define (havoc-file p) (havoc-files (list p)))
@@ -29,8 +30,14 @@
 (: havoc-files : (Listof Path-String) → (Values (℘ -ΓA) -Σ))
 (define (havoc-files ps)
   (with-initialized-static-info
-    (define ms (map file->module ps))
+    (define ms (parse-files ps))
     (run (↓ₚ ms (gen-havoc-expr ms)))))
+
+(: havoc-last-file : (Listof Path-String) → (Values (℘ -ΓA) -Σ))
+(define (havoc-last-file ps)
+  (with-initialized-static-info
+    (define ms (parse-files ps))
+    (run (↓ₚ ms (gen-havoc-expr (list (last ms)))))))
 
 (: run-e : -e → (Values (℘ -ΓA) -Σ))
 (define (run-e e)

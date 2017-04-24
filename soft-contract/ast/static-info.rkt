@@ -14,6 +14,8 @@
          add-public-acc!
          add-public-mut!
          current-static-info ; just for debugging
+         get-export-alias
+         set-export-alias!
          )
 
 (require racket/match
@@ -26,7 +28,8 @@
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
                       [public-accs : (HashTable -𝒾 (℘ -st-ac))]
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
-                      [top-level-defs : (HashTable -𝒾 #t)])
+                      [top-level-defs : (HashTable -𝒾 #t)]
+                      [export-aliases : (HashTable -𝒾 -𝒾)])
   #:transparent)
 
 (define (new-static-info)
@@ -41,6 +44,7 @@
                                  (cons -𝒾-box (set -unbox))))
                 (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                  (cons -𝒾-box (set -set-box!))))
+                (make-hash)
                 (make-hash)))
 
 (define current-static-info : (Parameterof -static-info) (make-parameter (new-static-info)))
@@ -119,3 +123,21 @@
 (define (top-levels) : (Listof -𝒾)
   (hash-keys (-static-info-top-level-defs (current-static-info))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Export alias
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: set-export-alias! : -𝒾 -𝒾 → Void)
+(define (set-export-alias! 𝒾ᵢₙ 𝒾ₒᵤₜ)
+  (define export-aliases (-static-info-export-aliases (current-static-info)))
+  (cond [(hash-ref export-aliases 𝒾ᵢₙ #f) =>
+         (λ ([𝒾₀ : -𝒾])
+           (error 'set-export-aliases! "~a already maps to ~a, set to ~a"
+                  (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ)))]
+        [else
+         (hash-set! export-aliases 𝒾ᵢₙ 𝒾ₒᵤₜ)]))
+
+(: get-export-alias ([-𝒾] [(→ -𝒾)] . ->* . -𝒾))
+(define (get-export-alias 𝒾 [on-failure (λ () (error 'get-export-alias "nothing for ~a" (show-𝒾 𝒾)))])
+  (hash-ref (-static-info-export-aliases (current-static-info)) 𝒾 on-failure))

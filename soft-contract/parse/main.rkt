@@ -2,16 +2,17 @@
 
 (require racket/match "../ast/main.rkt")
 (require/typed "private.rkt"
-  [(file->module file->module*) (Path-String → -module)])
+  [(parse-files parse-files*) ((Listof Path-String) → (Listof -module))])
 
-(provide file->module)
+(provide parse-files)
 
-(: file->module : Path-String → -module)
+(: parse-files : (Listof Path-String) → (Listof -module))
 ;; Alpha renaming on top of the old parser (hack)
-(define (file->module p)
-  (define m (α-rename (file->module* p)))
-  (collect-public-accs! m)
-  m)
+(define (parse-files ps)
+  (define ms (map α-rename (parse-files* ps)))
+  (for ([m (in-list ms)])
+    (collect-public-accs! m))
+  ms)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

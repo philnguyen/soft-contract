@@ -283,3 +283,7 @@
   (match-lambda
     [(-var xs rst) (cons xs rst)]
     [(? list? l) l]))
+
+(define show-𝒾 : (-𝒾 → Symbol)
+  (match-lambda
+    [(-𝒾 name from) (format-symbol "~a@~a" name from)]))
