@@ -1,7 +1,8 @@
 #lang racket
 
 (provide (all-defined-out))
-(require racket/unsafe/ops
+(require (prefix-in c: racket/contract/base)
+         racket/unsafe/ops
          web-server/private/util
          "../utils/main.rkt"
          "../ast/main.rkt"
@@ -132,7 +133,8 @@
   (syntax-parser
     [((~or (~literal module) (~literal module*)) id path _)
      (printf "Warning: skip unsupported submodule `id`~n" (syntax-e #'id))
-     #f]))
+     #f]
+    [_ #f]))
 
 (define/contract parse-general-top-level-form
   (scv-syntax? . -> . (or/c #f -general-top-level-form?))
@@ -296,13 +298,13 @@
      #:when (syntax-parse #'o
               [(~or (~literal +) (~literal -) (~literal *) (~literal /)) #t]
               [_ #f])
-     (define o-name (syntax-e #'o))
+     (define o.name (syntax-e #'o))
      (define ℓ (syntax-ℓ stx))
      (match (parse-es #'(e ...))
        [(list e) e]
        [(list e₁ e* ...)
         (for/fold ([e e₁]) ([eᵢ (in-list e*)] [i (in-naturals)])
-          (-@ o-name (list e eᵢ) (ℓ-with-id ℓ i)))])]
+          (-@ o.name (list e eᵢ) (ℓ-with-id ℓ i)))])]
 
     ;; HACKs for `variable-refererence-constant?`
     [(if (#%plain-app (~literal variable-reference-constant?)
@@ -425,9 +427,25 @@
      (-@ (parse-e #'f)
          (parse-es #'(x ...))
          (syntax-ℓ stx))]
-    [((~literal with-continuation-mark) e₀ e₁ e₂)
+    [(with-continuation-mark e₀ e₁ e₂)
      (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
-    [(begin e ...) (-begin/simp (parse-es #'(e ...)))]
+    [(begin e ...)
+     (syntax-parse #'(e ...)
+       #:literals (with-continuation-mark #%plain-app #%variable-reference let-values)
+       [;; Hack for requiring wrapped stuff
+        ((with-continuation-mark
+           (~literal c:contract-continuation-mark-key)
+           _
+           (let-values ()
+             (#%plain-app id0:id
+                          (#%plain-app module-name-fixup
+                                       (#%plain-app variable-reference->module-source/submod
+                                                    (#%variable-reference))
+                                       (#%plain-app list))))))
+        (printf "TOOD: rename ~a~n  from ~a~n" (syntax-e #'id0) (identifier-binding #'id0))
+        -ff]
+       [_
+        (-begin/simp (parse-es #'(e ...)))])]
     [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
     [(if i t e) (-if (parse-e #'i) (parse-e #'t) (parse-e #'e))]
     [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
@@ -452,7 +470,6 @@
                      src)
                 _ _ _ _ _ _)
           (-𝒾 (syntax-e #'i) src)]))
-     (add-assignable! x)
      (-set! x (parse-e #'e))]
     [(#%plain-lambda fmls b ...+)
      (-λ (parse-formals #'fmls) (-begin/simp (parse-es #'(b ...))))]

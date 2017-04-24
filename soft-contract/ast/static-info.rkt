@@ -6,8 +6,6 @@
          get-struct-arity
          struct-all-immutable?
          struct-mutable?
-         assignable?
-         add-assignable!
          add-struct-info!
          add-top-level!
          top-levels
@@ -28,7 +26,6 @@
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
                       [public-accs : (HashTable -𝒾 (℘ -st-ac))]
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
-                      [assignables : (HashTable (U -x -𝒾) #t)]
                       [top-level-defs : (HashTable -𝒾 #t)])
   #:transparent)
 
@@ -44,7 +41,6 @@
                                  (cons -𝒾-box (set -unbox))))
                 (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                  (cons -𝒾-box (set -set-box!))))
-                (make-hash)
                 (make-hash)))
 
 (define current-static-info : (Parameterof -static-info) (make-parameter (new-static-info)))
@@ -60,7 +56,7 @@
 
 (: get-struct-info : -𝒾 → -struct-info)
 (define (get-struct-info 𝒾)
-  (match-define (-static-info structs _ _ _ _) (current-static-info))
+  (define structs (-static-info-structs (current-static-info)))
   (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
 
 (define (get-struct-arity [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
@@ -112,18 +108,6 @@
                 (λ ([muts : (℘ -st-mut)])
                   (set-add muts mut))
                 →∅))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Querying assignable variables
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (add-assignable! [x : (U -x -𝒾)])
-  (hash-set! (-static-info-assignables (current-static-info)) x #t))
-(define (assignable? [x : (U Symbol -x -𝒾)]) : Boolean
-  (cond
-    [(or (-x? x) (-𝒾? x))
-     (hash-has-key? (-static-info-assignables (current-static-info)) x)]
-    [else (assignable? (-x x))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
