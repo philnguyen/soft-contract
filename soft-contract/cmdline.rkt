@@ -12,7 +12,7 @@
          (only-in "run.rkt" run-file run-files havoc-file havoc-files)
          "settings.rkt")
 
-(Mode . ::= . 'light 'havoc 'expand)
+(Mode . ::= . 'light 'havoc 'expand 'havoc-last)
 (define mode : Mode 'havoc)
 
 (define fnames
@@ -21,6 +21,9 @@
     #:program "raco soft-contract"
     
     #:once-each
+    [("-l" "--last-only")
+     "Only havoc the last module in argument list"
+     (set! mode 'havoc-last)]
     [("-r" "--light")
      "Run program abstractly without havoc-ing each export"
      (set! mode 'light)]
@@ -71,10 +74,16 @@
       (for ([A ans])
         (pretty-write (show-a A)))])]
   [(havoc)
-   (define-values (ans Σ) (havoc-files fnames))
-   (define safe? : Boolean #t)
-   (for ([A ans] #:when (-blm? (-ΓA-ans A)))
-     (set! safe? #f)
-     (pretty-write (show-a A)))
-   (when safe?
-     (printf "Safe~n"))])
+   (define-values (ans _) (havoc-files fnames))
+   (print-result ans)]
+  [(havoc-last)
+   (define-values (ans _) (havoc-last fnames))
+   (print-result ans)])
+
+(define (print-result [ans : (℘ -ΓA)])
+  (define safe? : Boolean #t)
+  (for ([A ans] #:when (-blm? (-ΓA-ans A)))
+    (set! safe? #f)
+    (pretty-write (show-a A)))
+  (when safe?
+    (printf "Safe~n")))
