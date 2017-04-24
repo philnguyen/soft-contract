@@ -53,13 +53,17 @@
       [_
        (error "expect '~a' to be non-empty, with #lang declaration on 1 line" p)]))
 
-  (define (file->module p)
-    (define p* (make-strawman p))
-    (match-define (-module l body) (parse-top-level-form (do-expand-file p*)))
+  (define/contract (parse-module stx)
+    (syntax? . -> . -module?)
+    (match-define (-module l body) (parse-top-level-form stx))
     (-module l (move-provides-to-end body)))
-  
+
   (parameterize ([port-count-lines-enabled #t])
-    (map file->module fns)))
+    (define stxs
+      (for/list ([fn (in-list fns)])
+        (do-expand-file (make-strawman fn))))
+    (for-each figure-out-aliases! stxs)
+    (map parse-module stxs)))
 
 (define/contract cur-mod (parameter/c string? #|TODO|#)
   (make-parameter "top-level"))
@@ -74,18 +78,40 @@
     [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
     [p #|TODO|# p]))
 
+(define/contract (figure-out-aliases! stx)
+  (scv-syntax? . -> . void?)
+
+  (define on-module-level-form!
+    (syntax-parser
+      [(define-values (ex:id _) (#%plain-app do-partial-app _ in:id _ ...))
+       #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
+       (define m (cur-mod))
+       (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) m))
+       (define 𝒾ₑₓ (-𝒾 (syntax-e #'ex) m))
+       (set-export-alias! 𝒾ₑₓ 𝒾ᵢₙ)]
+      [_ (void)]))
+  
+  (syntax-parse stx
+    [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
+     (parameterize ([cur-mod (mod-path->mod-name (syntax-source #'id))])
+       (for ([form (in-syntax-list #'(forms ...))])
+         (on-module-level-form! form)))]
+    [((~literal begin) form ...)
+     (for-each figure-out-aliases! (syntax->list #'(form ...)))]
+    [_ (void)]))
+
 ;; Convert syntax to `top-level-form`
 (define/contract parse-top-level-form
   (scv-syntax? . -> . -top-level-form?)
   (syntax-parser
-    [((~literal module) id path (#%plain-module-begin forms ...))
+    [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
      (define mod-name (mod-path->mod-name (syntax-source #'id)))
 
      (define care-about?
        (syntax-parser
          [((~literal module) (~literal configure-runtime) _ ...) #f]
          [form (scv-syntax? #'form)]))
-     
+
      (-module
       mod-name
       (parameterize ([cur-mod mod-name])
@@ -167,14 +193,10 @@
   (syntax-parser
     #:literals (define-syntaxes define-values #%require let-values #%plain-app values
                 call-with-values #%plain-lambda quote)
-    [;; Rename for export
+    [;; Handled by 1st-pass
      (define-values (ex:id _) (#%plain-app do-partial-app _ in:id _ ...))
      #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
-     (define m (cur-mod))
-     (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) m))
-     (define 𝒾ₑₓ (-𝒾 (syntax-e #'ex) m))
-     (set-export-alias! 𝒾ₑₓ 𝒾ᵢₙ)
-     -void]
+     #f]
     [(#%plain-app call-with-values (#%plain-lambda () e) print-values:id)
      #:when (equal? 'print-values (syntax->datum #'print-values))
      (parse-e #'e)]
@@ -473,12 +495,7 @@
                                        (#%plain-app list))))))
         (define src (id-defining-module #'id0))
         (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
-        (get-export-alias
-         𝒾ₑₓ
-         (λ ()
-           (error 'parser
-                  "command-line args: please place `~a` before `~a`"
-                  src (cur-mod))))]
+        (get-export-alias 𝒾ₑₓ (λ () (error 'parser "please include `~a` in command-line args" src)))]
        [_
         (-begin/simp (parse-es #'(e ...)))])]
     [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
