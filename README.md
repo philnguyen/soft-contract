@@ -14,28 +14,52 @@ This project depends on Z3 and Racket Z3 library. Installation instructions [are
 
 Clone the repository:
 
-> git clone git@github.com:philnguyen/soft-contract.git
+```
+git clone git@github.com:philnguyen/soft-contract.git
+```
 
 Link:
 
-> cd soft-contract/soft-contract
-
-> raco link .
+```
+cd soft-contract/soft-contract
+raco link .
+```
 
 `cmdline.rkt` is the main file that runs the analysis.
 Because type checking takes a while, you want to build it once first:
 
-> raco make -j $(nproc) cmdline.rkt
+```
+raco make -j $(nproc) cmdline.rkt
+```
 
 
 Running
 =========================================
 
+First, insert the following line in each file:
+```
+(require soft-contract/fake-contract)
+```
+
 To run the analysis on one example at `test/programs/safe/octy/ex-14.rkt`, run:
 
-> racket cmdline.rkt test/programs/safe/octy/ex-14.rkt
+```
+racket cmdline.rkt test/programs/safe/octy/ex-14.rkt
+```
 
 If the program is big and you want to print out something that looks like progress,
 use `-p`:
 
-> racket cmdline.rkt -p test/programs/safe/games/snake.rkt
+```
+racket cmdline.rkt -p test/programs/safe/games/snake.rkt
+```
+
+To verify multiple files that depend on one another,
+pass them all as arguments.
+If you forget to include any file that's part of the dependency,
+it'll error out asking you to include the right one.
+
+```
+racket cmdline.rkt -p test/programs/safe/multiple/*.rkt
+```
+
