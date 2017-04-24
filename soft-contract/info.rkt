@@ -5,7 +5,10 @@
 (define deps '("base"
                "typed-racket-lib"
                "typed-racket-more"
-               "z3"))
+               "z3"
+               "bnf"
+               "intern"
+               "set-extras"))
 
 (define compile-omit-paths '("test"))
 
