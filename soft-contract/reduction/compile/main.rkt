@@ -100,7 +100,6 @@
         (⟦k⟧ -●.W $ Γ ⟪ℋ⟫ Σ))]
      [(-x x) (↓ₓ l x)]
      [(and 𝒾 (-𝒾 x l₀))
-
       (define-values (α modify-V)
         (cond
           ;; same-module referencing returns unwrapped version
@@ -125,7 +124,7 @@
       (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (define s (and (not (mutated? Σ ⟪α⟫)) 𝒾))
         (cond
-          [($@ $ (or s 𝒾)) =>
+          [(and (equal? l l₀) ($@ $ (or s 𝒾))) =>
            (λ ([V : -V])
              (⟦k⟧ (-W (list V) s) $ Γ ⟪ℋ⟫ Σ))]
           [else
