@@ -12,13 +12,17 @@
 
 (define TIMEOUT 1200)
 
-(: run-handler (∀ (α) ((℘ -ΓA) → α) Path-String → α))
-(define (run-handler f p)
+(: run-handler (∀ (α) ((℘ -ΓA) → α) (Listof Path-String) → α))
+(define (run-handler f ps)
   ;; Can't use time-apply
   (define t₀ (current-milliseconds))
-  (printf "~a~n" p)
-  (define-values (As Σ) (havoc-file p))
-  (printf "  ~a~n" (- (current-milliseconds) t₀))
+  (match (length ps)
+    [1 (printf "~a~n" (car ps))]
+    [n (printf "~a files:~n" n)
+       (for ([p (in-list ps)])
+         (printf "  - ~a~n" p))])
+  (define-values (As Σ) (havoc-files ps))
+  (printf "  ~ams~n" (- (current-milliseconds) t₀))
   (define-values (_ ΓEs) (set-partition (λ ([ΓA : -ΓA]) (-W? (-ΓA-ans ΓA))) As))
   (f ΓEs))
 
@@ -35,25 +39,32 @@
 (define check-safe (check 'Safe 0 0))
 (define check-fail (check 'Failed 1 #f))
 
-(: test : Path-String ((℘ -ΓA) → Any) → Any)
+(: test : (U Path-String (Listof Path-String)) ((℘ -ΓA) → Any) → Any)
 (define (test path f)
 
-  (define (run-on-file [fn : Path-String])
-    (when (regexp-match-exact? #rx".*rkt" fn)
-      (test-case fn
-        (with-handlers ([exn?
-                         (λ ([e : exn])
-                           (fail (format "Exception: ~a~n" (exn-message e))))])
-          (unless (with-time-limit : Any TIMEOUT (run-handler f fn))
-            (fail (format "Timeout after ~a seconds" TIMEOUT)))))))
+  (define (run-on-files [fns : (Listof Path-String)])
+    (test-case (if (= 1 (length fns))
+                   (car fns)
+                   (format "~a files:" (length fns)))
+      (with-handlers ([exn?
+                       (λ ([e : exn])
+                         (fail (format "Exception: ~a~n" (exn-message e))))])
+        (unless (with-time-limit : Any TIMEOUT (run-handler f fns))
+          (fail (format "Timeout after ~a seconds" TIMEOUT))))))
 
-  (define path* (format "programs/~a" path))
   (cond
-    [(directory-exists? path*)
-     (for ([file-path (in-directory path*)])
-       (run-on-file (path->string file-path)))]
-    [else
-     (run-on-file path*)]))
+    [(path-string? path)
+     (define path* (format "programs/~a" path))
+     (cond
+       [(directory-exists? path*)
+        (for* ([file-path (in-directory path*)]
+               [fn (in-value (path->string file-path))]
+               #:when (regexp-match-exact? #rx".*rkt" fn))
+          (run-on-files (list fn)))]
+       [else
+        (run-on-files (list path*))])]
+    [(list? path)
+     (run-on-files path)]))
 
 (module+ test
   ;; Order doesn't matter. I just run shorter ones first
@@ -88,6 +99,15 @@
   (test "safe/issues/ctc-var.rkt" check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
+
+  (test '("safe/multiple/main.rkt"
+          "safe/multiple/helper-1.rkt"
+          "safe/multiple/helper-2.rkt")
+        check-safe)
+  (test '("unsafe/multiple/main.rkt"
+          "unsafe/multiple/helper-1.rkt"
+          "unsafe/multiple/helper-2.rkt")
+        (check 'Failed 1 1))
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
