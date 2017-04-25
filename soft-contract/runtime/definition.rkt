@@ -8,6 +8,9 @@
          racket/string
          racket/splicing
          (except-in racket/list remove-duplicates)
+         bnf
+         intern
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt")
 
@@ -64,7 +67,7 @@
 
 (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -κ))
 (define (σₖ@ m αₖ)
-  (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ →∅))
+  (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -75,7 +78,7 @@
 (define ⊥M : -M (hash))
 
 (: M@ : (U -Σ -M) -αₖ → (℘ -ΓA))
-(define (M@ m αₖ) (hash-ref (if (-Σ? m) (-Σ-M m) m) αₖ →∅))
+(define (M@ m αₖ) (hash-ref (if (-Σ? m) (-Σ-M m) m) αₖ mk-∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -328,7 +331,9 @@
 
 ;; The call history is passed around a lot and is part of address allocation
 ;; So it may be useful to intern for cheaper comparison
-(define-interner -ℋ #:interned-type-name -⟪ℋ⟫)
+(define-interner -⟪ℋ⟫ -ℋ
+  #:intern-function-name -ℋ->-⟪ℋ⟫
+  #:unintern-function-name -⟪ℋ⟫->-ℋ)
 (define ⟪ℋ⟫∅ (-ℋ->-⟪ℋ⟫ ℋ∅))
 
 (: ⟪ℋ⟫+ : -⟪ℋ⟫ (U -edge -ℒ) → -⟪ℋ⟫)
@@ -390,7 +395,9 @@
             -𝒾
             )
 
-(define-interner -α #:interned-type-name ⟪α⟫)
+(define-interner ⟪α⟫ -α
+  #:intern-function-name -α->⟪α⟫
+  #:unintern-function-name ⟪α⟫->-α)
 (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
 (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
 
@@ -717,7 +724,7 @@
 (splicing-let ([m ((inst make-hasheq -⟦k⟧ (℘ ⟪α⟫)))])
   
   (define (add-⟦k⟧-roots! [⟦k⟧ : -⟦k⟧] [αs : (℘ ⟪α⟫)]) : Void
-    (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ ⟪α⟫)]) (∪ αs₀ αs)) →∅eq))
+    (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ ⟪α⟫)]) (∪ αs₀ αs)) mk-∅eq))
   
   ;; Return the root set spanned by the stack chunk for current block
   (define (⟦k⟧->roots [⟦k⟧ : -⟦k⟧])

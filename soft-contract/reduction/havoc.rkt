@@ -5,6 +5,7 @@
 (require racket/match
          racket/set
          racket/splicing
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"

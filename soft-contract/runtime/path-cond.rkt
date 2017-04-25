@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "definition.rkt"

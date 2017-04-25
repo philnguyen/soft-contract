@@ -9,6 +9,7 @@
          racket/set
          racket/bool
          syntax/parse/define
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"

@@ -5,6 +5,8 @@
          racket/cmdline
          racket/list
          racket/pretty
+         bnf
+         set-extras
          "utils/main.rkt"
          "ast/main.rkt"
          "parse/main.rkt"

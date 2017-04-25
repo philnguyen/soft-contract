@@ -9,7 +9,8 @@
          racket/string
          racket/extflonum 
          racket/splicing
-         "../utils/main.rkt"
+         bnf
+         "../utils/pretty.rkt"
          "arity.rkt"
          "srcloc.rkt")
 
@@ -187,9 +188,9 @@
        
     [(-if a b (-b #f))
      (match* ((show-e a) (show-e b))
-       [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l Sexps) ,@(cast r Sexps))]
-       [(`(and ,l ...) r) `(and ,@(cast l Sexps) ,r)]
-       [(l `(and ,r ...)) `(and ,l ,@(cast r Sexps))]
+       [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l (Listof Sexp)) ,@(cast r (Listof Sexp)))]
+       [(`(and ,l ...) r) `(and ,@(cast l (Listof Sexp)) ,r)]
+       [(l `(and ,r ...)) `(and ,l ,@(cast r (Listof Sexp)))]
        [(l r) `(and ,l ,r)])]
     [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
 

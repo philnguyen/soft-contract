@@ -5,6 +5,7 @@
 (require racket/set
          racket/match
          racket/list
+         set-extras
          "../settings.rkt"
          "../utils/main.rkt"
          "../ast/main.rkt"
@@ -179,9 +180,9 @@
                    (?t@ o t)]
                   [((-ℬ (? list? xs) _ _) ts)
                    #:when (and (-x? sₐ)
-                               (memq (-x-₀ sₐ) xs)
+                               (memq (-x-_0 sₐ) xs)
                                (not (and looped? (>= (length xs) 3))))
-                   (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-₀ sₐ)))
+                   (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-_0 sₐ)))
                      t)]
                   [(_ _) (apply ?t@ αₖ tₓs)])))
          (define Γₑᵣ*

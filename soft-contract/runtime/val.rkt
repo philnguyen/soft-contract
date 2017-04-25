@@ -7,6 +7,7 @@
          racket/set
          racket/splicing
          syntax/parse/define
+         set-extras
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"

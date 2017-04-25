@@ -7,17 +7,18 @@
          mk-mon-⟦e⟧ mk-rt-⟦e⟧ mk-app-⟦e⟧
          add-leak!)
 
-(require "../../utils/main.rkt"
+(require racket/set
+         racket/match
+         (only-in racket/list split-at)
+         set-extras
+         "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt"
          "../../primitives/main.rkt"
          "../../externals/def-ext-runtime.rkt"
          "utils.rkt"
-         "base.rkt"
-         racket/set
-         racket/match
-         (only-in racket/list split-at))
+         "base.rkt")
 
 (: app : -$ -ℒ -W¹ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 (define (app $ ℒ Wₕ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)

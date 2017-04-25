@@ -1,14 +1,16 @@
 #lang typed/racket/base
 
-(require "../../utils/main.rkt"
+(require racket/set
+         racket/match
+         set-extras
+         "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
          "../../proof-relation/main.rkt"
          "utils.rkt"
          "base.rkt"
          "app.rkt"
-         racket/set
-         racket/match)
+         )
 
 (provide (all-defined-out)
          (all-from-out "app.rkt"))

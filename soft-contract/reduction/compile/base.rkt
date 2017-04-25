@@ -2,12 +2,13 @@
 
 (provide (all-defined-out))
 
-(require "../../utils/main.rkt"
+(require racket/set
+         racket/match
+         set-extras
+         "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
-         "../../proof-relation/main.rkt"
-         racket/set
-         racket/match)
+         "../../proof-relation/main.rkt")
 
 (define/memo (↓ₓ [l : -l] [x : Symbol]) : -⟦e⟧
   (define -blm.undefined ; TODO should have had attached location to `x` too?

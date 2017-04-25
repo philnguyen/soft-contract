@@ -7,6 +7,8 @@
          racket/list
          (only-in z3/ffi toggle-warning-messages!)
          z3/smt
+         bnf
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"

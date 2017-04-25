@@ -14,6 +14,7 @@
          racket/bool
          syntax/parse/define
          (only-in racket/list first second)
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"

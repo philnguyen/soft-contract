@@ -6,6 +6,7 @@
 (require racket/match
          racket/set
          syntax/parse/define
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"

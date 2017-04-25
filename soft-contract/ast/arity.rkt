@@ -2,10 +2,12 @@
 
 (provide Arity Arity? arity-includes? normalize-arity)
 
-(require "../utils/def.rkt")
+(require bnf)
 (require/typed racket/function
   [arity-includes? (Arity Arity → Boolean)]
   [normalize-arity ((Listof Arity) → Arity)])
 
 ;; The kind of arities that we care about, for now
-(Arity . ::= . Natural arity-at-least (Listof (U Natural arity-at-least)))
+(Arity . ::= . Natural
+               arity-at-least
+               [#:old (Listof (U Natural arity-at-least))])

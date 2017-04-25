@@ -2,14 +2,16 @@
 
 (provide ↓ₚ ↓ₘ ↓ₑ)
 
-(require "../../utils/main.rkt"
+(require racket/set
+         racket/match
+         set-extras
+         "../../utils/main.rkt"
          "../../ast/main.rkt"
          "../../runtime/main.rkt"
          "../../proof-relation/widen.rkt"
          "base.rkt"
          "kontinuation.rkt"
-         racket/set
-         racket/match)
+         )
 
 (: ↓ₚ : (Listof -module) -e → -⟦e⟧)
 ;; Compile program

@@ -7,8 +7,8 @@
          (only-in racket/function curry)
          racket/list
          racket/bool
+         set-extras
          "../utils/main.rkt"
-         "../utils/untyped-macros.rkt"
          "definition.rkt"
          "shorthands.rkt")
 
@@ -22,7 +22,7 @@
        (match xs
          [(-var zs z) (set-add (list->seteq zs) z)]
          [(? list? xs) (list->seteq xs)]))
-     (-- (fv e) bound)]
+     (set-remove (fv e) bound)]
     [(-@ f xs _)
      (for/fold ([FVs (fv f)]) ([x xs]) (∪ FVs (fv x)))]
     [(-begin es) (fv es)]
@@ -31,15 +31,15 @@
      (define-values (bound FV_rhs)
        (for/fold ([bound : (℘ Symbol) ∅eq] [FV_rhs : (℘ Symbol) ∅eq]) ([bnd bnds])
          (match-define (cons xs rhs) bnd)
-         (values (set-add-list bound xs) (∪ FV_rhs (fv rhs)))))
-     (∪ FV_rhs (-- (fv e) bound))]
+         (values (set-add* bound xs) (∪ FV_rhs (fv rhs)))))
+     (∪ FV_rhs (set-remove (fv e) bound))]
     [(-letrec-values bnds e _)
      (define bound
        (for/fold ([bound : (℘ Symbol) ∅eq]) ([bnd bnds])
-         (set-add-list bound (car bnd))))
+         (set-add* bound (car bnd))))
      
-     (for/fold ([xs : (℘ Symbol) (-- (fv e) bound)]) ([bnd bnds])
-       (-- (fv (cdr bnd)) bound))]
+     (for/fold ([xs : (℘ Symbol) (set-remove (fv e) bound)]) ([bnd bnds])
+       (set-remove (fv (cdr bnd)) bound))]
     [(-set! x e)
      (match x
        [(-x x) (set-add (fv e) x)]
@@ -293,7 +293,7 @@
                          ([bnd bnds])
                  (match-define (cons xs eₓ) bnd)
                  (values (cons (cons xs (go m eₓ)) bnds*-rev)
-                         (set-add-list locals xs))))
+                         (set-add* locals xs))))
              (define body* (go (shrink m locals) body))
              (-let-values (reverse bnds*-rev) body* ℓ)]
             [(-letrec-values bnds body ℓ)
@@ -301,7 +301,7 @@
                (for/fold ([locals : (℘ Symbol) ∅eq])
                          ([bnd bnds])
                  (match-define (cons xs _) bnd)
-                 (set-add-list locals xs)))
+                 (set-add* locals xs)))
              (define m* (shrink m locals))
              (define bnds* : (Listof (Pairof (Listof Symbol) -e))
                (for/list ([bnd bnds])

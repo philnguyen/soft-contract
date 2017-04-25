@@ -10,6 +10,8 @@
          syntax/parse/define
          z3/smt
          racket/list
+         set-extras
+         intern
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
@@ -624,12 +626,12 @@
 
   (values (∪ #|HACK|# {seteq 1 2} arities) prims))
 
-(define-interner -o #:interned-type-name ⦃o⦄)
-(define-interner Symbol #:interned-type-name ⦃Symbol⦄)
-(define-interner String #:interned-type-name ⦃String⦄)
-(define-interner Char #:interned-type-name ⦃Char⦄)
-(define-interner -l #:interned-type-name ⦃l⦄)
-(define-interner -𝒾 #:interned-type-name ⦃𝒾⦄)
+(define-interner ⦃o⦄ -o #:intern-function-name -o->⦃o⦄)
+(define-interner ⦃Symbol⦄ Symbol #:intern-function-name Symbol->⦃Symbol⦄)
+(define-interner ⦃String⦄ String #:intern-function-name String->⦃String⦄)
+(define-interner ⦃Char⦄ Char #:intern-function-name Char->⦃Char⦄)
+(define-interner ⦃l⦄ -l #:intern-function-name -l->⟪l⟫)
+(define-interner ⦃𝒾⦄ -𝒾 #:intern-function-name -𝒾->⦃𝒾⦄)
 
 (: ⦃x⦄ : Symbol → Symbol)
 (define (⦃x⦄ x)

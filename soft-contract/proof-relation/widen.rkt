@@ -10,6 +10,7 @@
 
 (require racket/match
          racket/set
+         set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
@@ -80,7 +81,7 @@
   (define store*
     (if do-strong-update?
         (hash-set store α {set V})
-        (hash-update store α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) →∅)))
+        (hash-update store α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅)))
   
   (define mutated* (if α.mutating? (set-add mutated α) mutated))
 
@@ -415,7 +416,7 @@
 
 (: M⊕ : -M -σ -αₖ (℘ -t) -A → -M)
 (define (M⊕ M σ αₖ Γ A)
-  (hash-update M αₖ (set-add/compact (-ΓA Γ A) (?ΓA⊔ σ)) →∅))
+  (hash-update M αₖ (set-add/compact (-ΓA Γ A) (?ΓA⊔ σ)) mk-∅))
 
 (: M⊕! : -Σ -αₖ (℘ -t) -A → Void)
 (define (M⊕! Σ αₖ Γ A)
@@ -461,7 +462,7 @@
 
 (: σₖ⊕ : -σₖ -αₖ -κ → -σₖ)
 (define (σₖ⊕ σₖ αₖ κ)
-  (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) →∅))
+  (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
 
 (: predicates-of-W : -σ -Γ -W¹ → (U (℘ -h) -⟦e⟧))
 ;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value

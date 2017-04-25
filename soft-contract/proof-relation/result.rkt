@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../utils/def.rkt")
+(require bnf "../utils/def.rkt")
 
 (-R . ::= . '✓ '✗ '?)
 

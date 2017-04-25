@@ -9,6 +9,7 @@
          racket/set
          racket/splicing
          syntax/parse/define
+         set-extras
          "../../settings.rkt"
          "../../utils/main.rkt"
          "../../runtime/main.rkt"

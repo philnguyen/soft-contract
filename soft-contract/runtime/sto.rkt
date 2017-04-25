@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         set-extras
          "../utils/main.rkt"
          "../ast/definition.rkt"
          "definition.rkt")
@@ -149,7 +150,7 @@
       [else
        (seen-add! αₖ)
        (for/fold ([acc : (℘ ⟪α⟫) (if (-ℋ𝒱? αₖ) (set-add acc ⟪α⟫ₕᵥ) acc)])
-                 ([κ (in-set (hash-ref σₖ αₖ →∅))])
+                 ([κ (in-set (hash-ref σₖ αₖ mk-∅))])
          (define ⟦k⟧ (-κ-cont κ))
          (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))
 
@@ -196,8 +197,8 @@
          (and (equal? (∋ mutated₁ α) (∋ mutated₂ α))
               (equal? (hash-ref cardinalities₁ α (λ () 0))
                       (hash-ref cardinalities₂ α (λ () 0)))
-              (let ([Vs₁ (hash-ref store₁ α →∅)]
-                    [Vs₂ (hash-ref store₂ α →∅)])
+              (let ([Vs₁ (hash-ref store₁ α mk-∅)]
+                    [Vs₂ (hash-ref store₂ α mk-∅)])
                 (and (equal? Vs₁ Vs₂)
                      (for/and : Boolean ([V (in-set Vs₁)])
                        (go (V->⟪α⟫s V))))))]))))

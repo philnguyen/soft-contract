@@ -6,6 +6,7 @@
          racket/string
          racket/bool
          typed/rackunit
+         set-extras
          "../utils/main.rkt"
          "../runtime/main.rkt"
          "../run.rkt")
