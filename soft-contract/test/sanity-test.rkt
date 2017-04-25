@@ -98,17 +98,17 @@
   (test "safe/issues/issue-66.rkt" check-safe)
   (test "safe/issues/make-vector.rkt" check-safe)
   (test "safe/issues/ctc-var.rkt" check-safe)
-  (test '("safe/issues/issue-65/main.rkt"
+  #;(test '("safe/issues/issue-65/main.rkt"
           "safe/issues/issue-65/example.rkt")
         check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
 
-  (test '("safe/multiple/main.rkt"
+  #;(test '("safe/multiple/main.rkt"
           "safe/multiple/helper-1.rkt"
           "safe/multiple/helper-2.rkt")
         check-safe)
-  (test '("unsafe/multiple/main.rkt"
+  #;(test '("unsafe/multiple/main.rkt"
           "unsafe/multiple/helper-1.rkt"
           "unsafe/multiple/helper-2.rkt")
         (check 'Failed 1 1))
