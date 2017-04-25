@@ -591,7 +591,7 @@
     [(l . r)
      (-@ -cons
          (list (parse-quote #'l) (parse-quote #'r))
-         (syntax-ℓ #'(l . r)))]
+         (ℓ-with-id (syntax-ℓ #'(l . r)) (syntax-e #'r)))]
     [() -null]
     [h #:when (hash? (syntax->datum #'h)) (-•)] ; FIXME
     [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (syntax-ℓ #'(x ...)))]

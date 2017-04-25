@@ -13,7 +13,7 @@
 (struct loc ([src : -l]
              [line : Natural]
              [col : Natural]
-             [id : (Listof (U Symbol Natural))])
+             [id : (Listof Any)])
   #:transparent)
 
 (define-interner ℓ loc
@@ -38,7 +38,7 @@
          (loc->ℓ (loc src line col '()))]
         [else (error 'syntax-ℓ "expect syntax, given ~a" stx)]))
 
-(: ℓ-with-id : ℓ (U Symbol Natural) → ℓ)
+(: ℓ-with-id : ℓ Any → ℓ)
 (define (ℓ-with-id ℓ id)
   (match-define (loc src line col ids) (ℓ->loc ℓ))
   (loc->ℓ (loc src line col (cons id ids))))
