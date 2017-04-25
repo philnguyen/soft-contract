@@ -33,6 +33,8 @@ cd soft-contract/soft-contract
 raco pkg install
 ```
 
+I will register this package on Racket Packages eventually.
+
 Running
 =========================================
 

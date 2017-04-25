@@ -2,6 +2,8 @@
 
 (define collection "soft-contract")
 
+(define pkg-desc "Contract verifier")
+
 (define deps '("base"
                "typed-racket-lib"
                "typed-racket-more"
