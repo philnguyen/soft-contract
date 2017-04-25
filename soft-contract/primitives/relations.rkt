@@ -56,7 +56,8 @@
 
 (dec-exclusions
  [exact-nonnegative-integer? negative?]
- [number? string? boolean? keyword? symbol? void? char? eof-object? null? procedure? vector? port? regexp? pregexp? byte-regexp? byte-pregexp?])
+ [number? string? boolean? keyword? symbol? void? char? eof-object? null? procedure?
+  vector? port? regexp? pregexp? byte-regexp? byte-pregexp? set? hash?])
 
 (dec-partitions
  [number? {exact? inexact?}])
