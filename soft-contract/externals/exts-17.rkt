@@ -3,7 +3,7 @@
 (require racket/match
          racket/set
          racket/contract
-         "../utils/set.rkt"
+         set-extras
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"

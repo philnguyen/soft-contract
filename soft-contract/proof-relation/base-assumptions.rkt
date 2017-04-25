@@ -8,8 +8,8 @@
 
 (require racket/match
          racket/set
+         set-extras
          "../utils/def.rkt"
-         "../utils/set.rkt"
          "../utils/map.rkt"
          "../utils/debug.rkt"
          "../ast/arity.rkt"
@@ -58,9 +58,9 @@
     (add-exclusion! q p)))
 
 (:* get-weakers get-strongers get-exclusions : Symbol → (℘ Symbol))
-(define (get-weakers    p) (hash-ref implication-table   p →∅eq))
-(define (get-strongers  p) (hash-ref implication-table⁻¹ p →∅eq))
-(define (get-exclusions p) (hash-ref exclusion-table     p →∅eq))
+(define (get-weakers    p) (hash-ref implication-table   p mk-∅eq))
+(define (get-strongers  p) (hash-ref implication-table⁻¹ p mk-∅eq))
+(define (get-exclusions p) (hash-ref exclusion-table     p mk-∅eq))
 
 (: o⇒o : Symbol Symbol → -R)
 (define (o⇒o p q)

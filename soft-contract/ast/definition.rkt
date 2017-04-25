@@ -66,7 +66,7 @@
 ;;;;; AST subset definition as in Racket reference 1.2.3.1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Char Null Void Arity EOF Undefined)
+(Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Byte-Regexp Byte-PRegexp Char Null Void Arity EOF Undefined)
 
 (-top-level-form . ::= . -general-top-level-form
                          -e
@@ -149,7 +149,7 @@
     [(and (real? x) (inexact? x))
      (define s (number->string x))
      (substring s 0 (min (string-length s) 5))]
-    [(or (regexp? x) (pregexp? x) (bytes? x)) (format "~a" x)]
+    [(or (regexp? x) (pregexp? x) (byte-regexp? x) (byte-pregexp? x) (bytes? x)) (format "~a" x)]
     [(extflonum? x) (extfl->inexact x)]
     [(void? x) 'void]
     [(arity-at-least? x) `(arity-at-least ,(arity-at-least-value x))]

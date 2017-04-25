@@ -6,7 +6,7 @@
          racket/set
          racket/contract
          racket/splicing
-         "../utils/set.rkt"
+         set-extras
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "../proof-relation/main.rkt"

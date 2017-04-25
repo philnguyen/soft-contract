@@ -275,7 +275,8 @@
                             exact-positive-integer? exact-nonnegative-integer? exact-integer?
                             integer? real? number?
                             path-string? string?
-                            char? boolean?)]
+                            char? boolean?
+                            regexp? pregexp? byte-regexp? byte-pregexp?)]
                           [((? -b? b) (-● ps))
                            (define ps*
                              (for/set: : (℘ -h) ([p (in-set ps)]

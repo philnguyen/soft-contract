@@ -12,8 +12,8 @@
          racket/set
          racket/match
          racket/contract
+         set-extras
          "../utils/map.rkt"
-         "../utils/set.rkt"
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"
          "../runtime/main.rkt"

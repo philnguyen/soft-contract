@@ -2,7 +2,7 @@
 
 (provide make-indexed-set)
 
-(require racket/set "unique.rkt" "set.rkt")
+(require racket/set set-extras "unique.rkt")
 
 (: make-indexed-set (∀ (X) (→ (Values Index
                                       (Index X → Index)

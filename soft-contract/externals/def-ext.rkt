@@ -19,8 +19,8 @@
          racket/match
          racket/set
          racket/contract
+         set-extras
          "../utils/map.rkt"
-         "../utils/set.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
          "../reduction/compile/app.rkt"

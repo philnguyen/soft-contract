@@ -3,7 +3,7 @@
 (require racket/match
          racket/set
          racket/contract
-         "../utils/set.rkt"
+         set-extras
          "../utils/function.rkt"
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"

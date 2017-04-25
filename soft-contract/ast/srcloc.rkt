@@ -2,8 +2,9 @@
 (provide (all-defined-out))
 
 (require racket/match
-         "../utils/pretty.rkt"
-         "../utils/intern.rkt")
+         set-extras
+         intern
+         "../utils/pretty.rkt")
 
 ;; Temporary definition of module path
 (define-type -l (U Symbol String))
@@ -15,7 +16,9 @@
              [id : (Listof (U Symbol Natural))])
   #:transparent)
 
-(define-interner loc #:interned-type-name ℓ)
+(define-interner ℓ loc
+  #:intern-function-name loc->ℓ
+  #:unintern-function-name ℓ->loc)
 
 ;; Dummy
 (define +ℓ₀ (loc->ℓ (loc 'dummy 0 0 '())))

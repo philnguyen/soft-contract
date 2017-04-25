@@ -330,7 +330,11 @@
                                not
                                boolean?
                                char?
-                               eof-object?))
+                               eof-object?
+                               regexp?
+                               pregexp?
+                               byte-regexp?
+                               byte-pregexp?))
     (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-e) (show-V V) (show-s s) ans)))
 
 (: ⊢V : -V → -R)
@@ -403,7 +407,11 @@
                                char?
                                symbol?
                                void?
-                               eof-object?)
+                               eof-object?
+                               regexp?
+                               pregexp?
+                               byte-regexp?
+                               byte-pregexp?)
           ;; Insert manual rules here
           [(zero?)
            (match Vs

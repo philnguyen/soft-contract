@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/set
-         "../utils/set.rkt"
+         set-extras
          "../runtime/definition.rkt"
          "../primitives/def-prim-runtime.rkt"
          "../primitives/prims.rkt" ; for side-effect

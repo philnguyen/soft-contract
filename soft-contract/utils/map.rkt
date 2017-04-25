@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require racket/match racket/set "set.rkt")
+(require racket/match racket/set set-extras)
 
 ;; Return the domain of a finite function represented as a hashtable
 (: dom : (∀ (X Y) (HashTable X Y) → (℘ X)))
@@ -83,8 +83,8 @@
 
 (: map-add! (∀ (X Y) (HashTable X (℘ Y)) X Y #:eq? Boolean → Void))
 (define (map-add! m x y #:eq? use-eq?)
-  (define mk-∅ (if use-eq? →∅eq →∅))
-  (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk-∅))
+  (define mk (if use-eq? mk-∅eq mk-∅))
+  (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk))
 
 (: map-equal?/spanning-root
    (∀ (X Y) (HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → Boolean))
@@ -96,8 +96,8 @@
          (cond [(seen-has? x) #t]
                [else
                 (seen-add! x)
-                (define ys₁ (hash-ref m₁ x →∅))
-                (define ys₂ (hash-ref m₂ x →∅))
+                (define ys₁ (hash-ref m₁ x mk-∅))
+                (define ys₂ (hash-ref m₂ x mk-∅))
                 (and (equal? ys₁ ys₂)
                      (for/and : Boolean ([y (in-set ys₁)])
                        (loop (span y))))]))))

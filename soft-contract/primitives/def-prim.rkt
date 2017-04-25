@@ -26,7 +26,7 @@
          racket/splicing
          racket/promise
          syntax/parse/define
-         "../utils/set.rkt"
+         set-extras
          "../utils/map.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"

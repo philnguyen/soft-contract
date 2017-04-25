@@ -20,7 +20,7 @@
 
 (require racket/match
          racket/set
-         "../utils/set.rkt"
+         set-extras
          "definition.rkt"
          "shorthands.rkt")
 
@@ -89,7 +89,7 @@
 (define (get-public-accs 𝒾)
   (hash-ref (-static-info-public-accs (current-static-info))
             𝒾
-            →∅))
+            mk-∅))
 
 (: add-public-acc! : -𝒾 -st-ac → Void)
 (define (add-public-acc! 𝒾 ac)
@@ -97,13 +97,13 @@
                 𝒾
                 (λ ([acs : (℘ -st-ac)])
                   (set-add acs ac))
-                →∅))
+                mk-∅))
 
 (: get-public-muts : -𝒾 → (℘ -st-mut))
 (define (get-public-muts 𝒾)
   (hash-ref (-static-info-public-muts (current-static-info))
             𝒾
-            →∅))
+            mk-∅))
 
 (: add-public-mut! : -𝒾 -st-mut → Void)
 (define (add-public-mut! 𝒾 mut)
@@ -111,7 +111,7 @@
                 𝒾
                 (λ ([muts : (℘ -st-mut)])
                   (set-add muts mut))
-                →∅))
+                mk-∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

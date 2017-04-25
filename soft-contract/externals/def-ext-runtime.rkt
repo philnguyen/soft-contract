@@ -3,7 +3,7 @@
 (provide (all-defined-out)
          debug-table)
 
-(require "../utils/set.rkt"
+(require set-extras
          "../ast/definition.rkt"
          "../runtime/definition.rkt"
          (only-in "../primitives/def-prim-runtime.rkt"
