@@ -17,8 +17,9 @@ before_install:
  - sudo make install
  - cd ..
  # Install Z3
- - git clone https://git01.codeplex.com/z3
+ - git clone https://github.com/Z3Prover/z3.git
  - cd z3
+ - git checkout tags/z3-4.4.1  # until I figure out what's wrong...
  - python scripts/mk_make.py
  - cd build
  - make
@@ -30,9 +31,13 @@ install:
 before_script:
 
 script:
- - /usr/racket/bin/raco make main.rkt lang/reader.rkt
- - /usr/racket/bin/raco link .
- - cd test
- - /usr/racket/bin/raco test -x main.rkt
+ # Set up Z3 path
+ - ls /opt/python/2.7.13/lib
+ - export Z3_LIB="/opt/python/2.7.13/lib"
+ # Install soft-contract
+ - cd soft-contract
+ - /usr/racket/bin/raco pkg install --deps search-auto
+ # Run test suite
+ - /usr/racket/bin/raco test test/sanity-test.rkt
 
 after_script:

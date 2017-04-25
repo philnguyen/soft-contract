@@ -1,51 +1,63 @@
-soft-contract
-=============
+This is the scaled up version of SCV,
+intended to be (eventually) usable for real Racket programs.
 
 [![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=master)](https://travis-ci.org/philnguyen/soft-contract)
 
 Installation
-------------------------
+=========================================
 
-To install, clone the `racket` branch of this repository, then:
+### Install Z3 and set `$Z3_LIB`:
 
-	cd path/to/soft-contract
-    raco pkg install
+Install [Z3](https://github.com/Z3Prover/z3), then set `$Z3_LIB` to the **directory**
+containing:
+  - `libz3.dll` if you're on Windows
+  - `libz3.so` if you're on Linux
+  - `libz3.dylib` if you're on Mac
 
 
-Examples and Usage
-------------------------
+At this point, this only works with Z3 `4.4.1` and has been known not to work with later Z3 versions.
+This will be fixed eventually.
 
-This collection implements a small functional language with contract verification
-and counterexample generation.
-Examples are under [examples/](https://github.com/philnguyen/soft-contract/tree/release/examples)
+### Install `soft-contract`
 
-You need to have [Z3](http://z3.codeplex.com/releases) available in your path.
-This program has been tested to work with Z3 `4.3.2`.
+Clone the repository:
 
-Web REPL
--------------------------
+```
+git clone git@github.com:philnguyen/soft-contract.git
+```
 
-You can experiment with soft contract verification by using the web
-REPL available at http://scv.umiacs.umd.edu/.
+Install:
 
-Supported Language
--------------------------
+```
+cd soft-contract/soft-contract
+raco pkg install
+```
 
-The demo currently supports the following subset of Racket:
+I will register this package on Racket Packages eventually.
 
-    program          ::= sub-module-form … | sub-module-form … (require id …) expr
-	sub-module-form  ::= (module module-id racket
-	                       (provide provide-spec …)
-                           (require require-spec …)
-						   (struct id (id …)) …
-                           (define id value) …)
-    provide-spec     ::= id | (contract-out p/c-item …)
-    p/c-item         ::= (id contract) | (struct id ([id contract] …))
-	require-spec     ::= (submod ".." module-id)
-	value            ::= (lambda (id …) expr) | number | boolean | string | symbol | op
-	expr             ::= id | (if expr expr expr) | (expr expr …)
-	contract         ::= expr | any/c | (or/c contract …) | (and/c contract …)
-	                   | (list/c contract) | (listof contract)
-	                   | (->i ([id contract] …₁) (res (id …₁) contract))
-    op               ::= + | - | * | / | string-length
-	                   | number? | real? | integer? | boolean? | false? | cons? | empty?
+Running
+=========================================
+
+First, insert the following line in each file:
+```
+(require soft-contract/fake-contract)
+```
+
+Use `raco scv` to run the analysis on one example at `test/programs/safe/octy/ex-14.rkt`:
+```
+raco scv test/programs/safe/octy/ex-14.rkt
+```
+
+If the program is big and you want to print out something that looks like progress,
+use `-p`:
+```
+raco scv -p test/programs/safe/games/snake.rkt
+```
+
+To verify multiple files that depend on one another,
+pass them all as arguments.
+If you forget to include any file that's part of the dependency,
+it'll error out asking you to include the right one.
+```
+raco scv -p test/programs/safe/multiple/*.rkt
+```
