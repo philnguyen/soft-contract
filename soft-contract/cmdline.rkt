@@ -48,8 +48,8 @@
      (debug-iter? #t)
      (debug-trace? #t)]
 
-    #:args fnames ; TODO re-enable file list
-    fnames)
+    #:args (first-module . other-modules) ; TODO re-enable file list
+    (cons first-module other-modules))
    (Listof Path-String)))
 
 (: show-Vs : (Listof (U -V -v)) → Sexp)
