@@ -12,3 +12,5 @@
 
 (define compile-omit-paths '("test"))
 
+(define raco-commands
+  '(("scv" soft-contract/cmdline "verify contracts" #f)))
