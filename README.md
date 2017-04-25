@@ -38,7 +38,8 @@ I will register this package on Racket Packages eventually.
 Running
 =========================================
 
-First, insert the following line in each file:
+First, insert the following line in each file.
+(If you only verify 1 file, you may get away with not doing this)
 ```
 (require soft-contract/fake-contract)
 ```
