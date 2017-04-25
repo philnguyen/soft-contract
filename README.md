@@ -1,16 +1,24 @@
 This is the scaled up version of SCV,
 intended to be (eventually) usable for real Racket programs.
 
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=opt)](https://travis-ci.org/philnguyen/soft-contract)
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=package)](https://travis-ci.org/philnguyen/soft-contract)
 
 Installation
 =========================================
 
-### Install Z3 and Racket Z3 Library
+### Install Z3 and set `$Z3_LIB`:
 
-This project depends on Z3 and Racket Z3 library. Installation instructions [are here](https://github.com/philnguyen/z3-rkt).
+Install [Z3](https://github.com/Z3Prover/z3), then set `$Z3_LIB` to the **directory**
+containing:
+  - `libz3.dll` if you're on Windows
+  - `libz3.so` if you're on Linux
+  - `libz3.dylib` if you're on Mac
 
-### Install the Verifier
+
+At this point, this only works with Z3 `4.4.1` and has been known not to work with later Z3 versions.
+This will be fixed eventually.
+
+### Install `soft-contract`
 
 Clone the repository:
 
@@ -18,20 +26,12 @@ Clone the repository:
 git clone git@github.com:philnguyen/soft-contract.git
 ```
 
-Link:
+Install:
 
 ```
 cd soft-contract/soft-contract
-raco link .
+raco pkg install
 ```
-
-`cmdline.rkt` is the main file that runs the analysis.
-Because type checking takes a while, you want to build it once first:
-
-```
-raco make -j $(nproc) cmdline.rkt
-```
-
 
 Running
 =========================================
@@ -41,25 +41,21 @@ First, insert the following line in each file:
 (require soft-contract/fake-contract)
 ```
 
-To run the analysis on one example at `test/programs/safe/octy/ex-14.rkt`, run:
-
+Use `raco scv` to run the analysis on one example at `test/programs/safe/octy/ex-14.rkt`:
 ```
-racket cmdline.rkt test/programs/safe/octy/ex-14.rkt
+raco scv test/programs/safe/octy/ex-14.rkt
 ```
 
 If the program is big and you want to print out something that looks like progress,
 use `-p`:
-
 ```
-racket cmdline.rkt -p test/programs/safe/games/snake.rkt
+raco scv -p test/programs/safe/games/snake.rkt
 ```
 
 To verify multiple files that depend on one another,
 pass them all as arguments.
 If you forget to include any file that's part of the dependency,
 it'll error out asking you to include the right one.
-
 ```
-racket cmdline.rkt -p test/programs/safe/multiple/*.rkt
+raco scv -p test/programs/safe/multiple/*.rkt
 ```
-
