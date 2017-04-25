@@ -1,6 +1,6 @@
 #lang info
 
-(define collection "scv")
+(define collection "soft-contract")
 
 (define pkg-desc "Contract verifier")
 
