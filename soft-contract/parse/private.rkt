@@ -47,7 +47,7 @@
          (error 'parser "please require `soft-contract/fake/contract` in ~a" p))
        (define lines* `(,@ls₀ ,l "(require soft-contract/fake-contract)" ,@ls₁))
        (define p* (make-temporary-file "scv_strawman_~a.rkt"))
-       (printf "Copy `~a` over at `~a`~n" p p*)
+       (log-debug "Copy `~a` over at `~a`~n" p p*)
        (display-lines-to-file lines* p* #:exists 'replace)
        p*]
       [_
@@ -595,6 +595,13 @@
     [() -null]
     [h #:when (hash? (syntax->datum #'h)) (-•)] ; FIXME
     [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (syntax-ℓ #'(x ...)))]
+    [r
+     #:when (let ([re (syntax-e #'r)])
+              (or (regexp? re)
+                  (pregexp? re)
+                  (byte-regexp? re)
+                  (byte-pregexp? re)))
+     (-b (syntax-e #'r))]
     [e (error 'parse-quote "unsupported quoted form: ~a" (syntax->datum #'e))]))
 
 ;; Parse given `formals` to extend environment
