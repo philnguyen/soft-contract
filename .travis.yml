@@ -36,7 +36,7 @@ script:
  - export Z3_LIB="/opt/python/2.7.13/lib"
  # Install soft-contract
  - cd soft-contract
- - /usr/racket/bin/raco pkg install
+ - /usr/racket/bin/raco pkg install --deps search-auto
  # Run test suite
  - /usr/racket/bin/raco test test/sanity-test.rkt
 
