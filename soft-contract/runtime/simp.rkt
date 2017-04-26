@@ -12,7 +12,7 @@
                      racket/match
                      racket/list
                      racket/function
-                     (only-in "../utils/main.rkt" n-sub mk-cond sexp-and))
+                     (only-in "../utils/pretty.rkt" n-sub))
          racket/match
          (only-in racket/function curry)
          racket/set
