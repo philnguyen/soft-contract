@@ -80,7 +80,7 @@
     ((R)
      (cond
        [t
-        (match (φs⊢t (-Γ-facts Γ) t)
+        (match (Γ⊢t (-Γ-facts Γ) t)
           ['?
 
            ;; Heuristic avoiding calling out to solvers

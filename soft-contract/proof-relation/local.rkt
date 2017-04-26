@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide Γ⊢t φs⊢t ⊢V p∋Vs p⇒p ps⇒p
-         plausible-φs-t? plausible-V-t?
+(provide Γ⊢t ⊢V p∋Vs p⇒p ps⇒p
+         plausible-V-t?
          first-R
          sat-one-of
          (all-from-out "result.rkt" "base-assumptions.rkt"))
@@ -64,18 +64,15 @@
     [(>)  (⊢@ '<  (reverse xs))]
     [else '?]))
 
-(: Γ⊢t : -Γ -?t → -R)
-(define (Γ⊢t Γ t) (φs⊢t (-Γ-facts Γ) t))
-
-(: φs⊢t : (℘ -t) -?t → -R)
-(define (φs⊢t φs t)
+(: Γ⊢t : (℘ -t) -?t → -R)
+(define (Γ⊢t φs t)
 
   (when (∋ φs -ff)
     ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
     ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
     ;; This is a problem with precision rather than soundness, but I want
     ;; (obviously) inconsistent path-conditions to not exist in the first place.
-    (error 'φs⊢t "Attempt to prove/refute with inconsistent path-condition"))
+    (error 'Γ⊢t "Attempt to prove/refute with inconsistent path-condition"))
 
   (: t⊢t : -t -t → -R)
   ;; Check if `t₂` returns truth when `t₁` does
@@ -276,7 +273,7 @@
 
 (define (plausible-φs-t? [φs : (℘ -t)] [t : -?t]) : Boolean
   (with-debugging/off
-    ((a) (not (eq? '✗ (φs⊢t φs t))))
+    ((a) (not (eq? '✗ (Γ⊢t φs t))))
     (printf "plausible-φs-s: ~a ⊢ ~a : ~a~n"
             (set-map φs show-e)
             (show-s s)
@@ -300,7 +297,7 @@
                (implies (-b? t) (equal? V t)))] ...
          [(or (? -=>_?) (? -St/C?) (? -x/C?))
           (for/and : Boolean ([p : -o '(procedure? p? ...)])
-            (case (φs⊢t φs (?t@ p t))
+            (case (Γ⊢t φs (?t@ p t))
               [(✓)   #f]
               [(✗ ?) #t]))]
          [(-b (list))
@@ -310,7 +307,7 @@
          [(-● ps)
           (not (for/or : Boolean ([p ps])
                  (match p
-                   [(? -o? o) (equal? '✗ (φs⊢t φs (-t.@ o (list t))))]
+                   [(? -o? o) (equal? '✗ (Γ⊢t φs (-t.@ o (list t))))]
                    [_ #f])))]
          [_ #t])]
       [else #t]))
@@ -683,24 +680,24 @@
   (check-? (p∋Vs ⊥σ 'integer? -●.V))
 
   ;; ⊢ e
-  (check-✓ (φs⊢t ∅ 'not))
-  (check-✓ (φs⊢t ∅ (-b 0)))
-  (check-✗ (φs⊢t ∅ (-b #f)))
-  (check-? (φs⊢t ∅ (-x 'x)))
-  (check-✗ (φs⊢t ∅ (?t@ 'not (-b 0))))
-  (check-✓ (φs⊢t ∅ (?t@ 'equal? (-x 'x) (-x 'x))))
+  (check-✓ (Γ⊢t ∅ 'not))
+  (check-✓ (Γ⊢t ∅ (-b 0)))
+  (check-✗ (Γ⊢t ∅ (-b #f)))
+  (check-? (Γ⊢t ∅ (-x 'x)))
+  (check-✗ (Γ⊢t ∅ (?t@ 'not (-b 0))))
+  (check-✓ (Γ⊢t ∅ (?t@ 'equal? (-x 'x) (-x 'x))))
   ;; no longer need for aggressive simplification at symbol level
-  (check-✓ (φs⊢t ∅ (?t@ '+ (-x 'x) (-x 'y))))
-  (check-✗ (φs⊢t ∅ (?t@ -cons? -null)))
-  (check-✗ (φs⊢t ∅ (?t@ 'null? (?t@ -cons (-b 0) (-b 1)))))
+  (check-✓ (Γ⊢t ∅ (?t@ '+ (-x 'x) (-x 'y))))
+  (check-✗ (Γ⊢t ∅ (?t@ -cons? -null)))
+  (check-✗ (Γ⊢t ∅ (?t@ 'null? (?t@ -cons (-b 0) (-b 1)))))
   
   ;; Γ ⊢ e
-  (check-✓ (φs⊢t {set (assert (?t@ -cons? (-x 'x)))} (-x 'x)))
+  (check-✓ (Γ⊢t {set (assert (?t@ -cons? (-x 'x)))} (-x 'x)))
   ;; Next two won't work now due to base assumptions not loaded at this stage
-  (check-✓ (φs⊢t {set (assert (?t@ 'integer? (-x 'x)))} (?t@ 'real? (-x 'x))))
-  (check-✓ (φs⊢t {set (assert (?t@ 'not (?t@ 'number? (-x 'x))))} (?t@ 'not (?t@ 'integer? (-x 'x)))))
-  (check-✗ (φs⊢t {set (assert (?t@ 'not (-x 'x)))} (-x 'x)))
-  (check-? (φs⊢t {set (assert (?t@ 'number? (-x 'x)))} (?t@ 'integer? (-x 'x))))
+  (check-✓ (Γ⊢t {set (assert (?t@ 'integer? (-x 'x)))} (?t@ 'real? (-x 'x))))
+  (check-✓ (Γ⊢t {set (assert (?t@ 'not (?t@ 'number? (-x 'x))))} (?t@ 'not (?t@ 'integer? (-x 'x)))))
+  (check-✗ (Γ⊢t {set (assert (?t@ 'not (-x 'x)))} (-x 'x)))
+  (check-? (Γ⊢t {set (assert (?t@ 'number? (-x 'x)))} (?t@ 'integer? (-x 'x))))
 
   ;; plausibility
   (check-false (plausible-V-t? ∅ (-b 1) (-b 2)))

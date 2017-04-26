@@ -254,7 +254,7 @@
 (: φ+ : -t -t → (Option (℘ -t)))
 (define φ+
   (match-lambda**/symmetry ; FIXME inefficiency, there's no e⊢e
-   [(φ ψ) #:when (equal? '✓ (φs⊢t {set φ} ψ)) {set φ}]
+   [(φ ψ) #:when (equal? '✓ (Γ⊢t {set φ} ψ)) {set φ}]
    [(_ _) #f]))
 
 (: V⊕ : -σ -V -V → (Option -V))
@@ -381,8 +381,8 @@
          (define φ₁ (set-first δΓ₁))
          (define φ₂ (set-first δΓ₂))
          (cond [(complement? φ₁ φ₂) Γ*]
-               [(φs⊢t {set φ₁} φ₂) Γ₂]
-               [(φs⊢t {set φ₂} φ₁) Γ₁]
+               [(Γ⊢t {set φ₁} φ₂) Γ₂]
+               [(Γ⊢t {set φ₂} φ₁) Γ₁]
                [else #f])]
         [else #f]))
 

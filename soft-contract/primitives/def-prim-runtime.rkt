@@ -12,8 +12,6 @@
          "../runtime/main.rkt"
          "../proof-relation/main.rkt")
 
-(define-type -⟦o⟧ (-⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
-
 (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
 ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
 ;; This is only for use internally, so it's safe (though imprecise) to ignore field wraps
@@ -44,7 +42,7 @@
 (define (⊢?/quick R σ Γ o . Ws)
   (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
   (eq? R (first-R (apply p∋Vs σ o Vs)
-                  (Γ⊢t Γ (apply ?t@ o ss)))))
+                  (Γ⊢t (-Γ-facts Γ) (apply ?t@ o ss)))))
 
 (: implement-predicate : -M -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
 (define (implement-predicate M σ Γ o Ws)

@@ -423,6 +423,8 @@
 ;; and may perform side effects widening mutable store(s)
 (define-type -⟦e⟧ (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
 (define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
+(define-type -⟦o⟧ (-⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
+(define-type -⟦f⟧ (-$ -ℒ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
 

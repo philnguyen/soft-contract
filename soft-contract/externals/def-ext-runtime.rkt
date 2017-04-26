@@ -9,8 +9,6 @@
          (only-in "../primitives/def-prim-runtime.rkt"
                   debug-table))
 
-(define-type -⟦f⟧ (-$ -ℒ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-
 (define ext-table : (HashTable Symbol -⟦f⟧) (make-hasheq))
 
 (: get-ext : Symbol → (Option -⟦f⟧))
