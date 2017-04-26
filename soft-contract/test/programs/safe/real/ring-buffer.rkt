@@ -1,6 +1,6 @@
 #lang racket/base
 (require racket/match
-         #;racket/contract)
+         racket/contract)
 
 (define (wrap-at max i)
   (if (i . >= . max)
