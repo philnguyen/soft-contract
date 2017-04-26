@@ -83,7 +83,7 @@
 
 (: estimate-time-limit : -M (℘ -t) -t → Natural)
 (define (estimate-time-limit M Γ t)
-  (define Timeout-Factor 2)
+  (define Timeout-Factor 3)
   (define count
     (for/sum : Natural ([s (in-hash-values M)]) (set-count s)))
   (* count Timeout-Factor))
