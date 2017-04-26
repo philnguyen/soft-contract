@@ -99,6 +99,7 @@
   (test "safe/issues/issue-67.rkt" check-safe)
   (test "safe/issues/issue-72.rkt" check-safe)
   (test "safe/issues/issue-73.rkt" check-safe)
+  (test "safe/issues/issue-76.rkt" check-safe)
   (test "safe/issues/make-vector.rkt" check-safe)
   (test "safe/issues/ctc-var.rkt" check-safe)
   #;(test '("safe/issues/issue-65/main.rkt"

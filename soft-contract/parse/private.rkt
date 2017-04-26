@@ -36,6 +36,10 @@
   ;; Given path, insert fake-contract require and write to temp file
   (define/contract (make-strawman p)
     (path-string? . -> . path-string?)
+
+    (define (ditch-racket/contract l)
+      (string-replace l "racket/contract" ""))
+    
     (match (file->lines p)
       ;; If already required, leave alone (backward compatibility for existing tests)
       [(list _ ... l _ ...)
@@ -45,9 +49,11 @@
       [(list ls₀ ... (and l (regexp #rx"^#lang .+")) ls₁ ...)
        (when parsing-multiple-files?
          (error 'parser "please require `soft-contract/fake/contract` in ~a" p))
-       (define lines* `(,@ls₀ ,l "(require soft-contract/fake-contract)" ,@ls₁))
+       (define lines* `(,@(map ditch-racket/contract ls₀)
+                        ,(format "~a ~a" l "(require soft-contract/fake-contract)")
+                        ,@(map ditch-racket/contract ls₁)))
        (define p* (make-temporary-file "scv_strawman_~a.rkt"))
-       (log-debug "Copy `~a` over at `~a`~n" p p*)
+       (log-debug "`~a` copied over and modified at `~a`~n" p p*)
        (display-lines-to-file lines* p* #:exists 'replace)
        p*]
       [_
