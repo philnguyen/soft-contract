@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide MΓ⊢V∈C MΓ⊢oW MΓ⊢t Γ+/-V MΓ+/-oW with-Γ+/-
-         plausible-index? plausible-indices
+(provide MΓ⊢V∈C MΓ⊢oW Γ+/-V MΓ+/-oW with-Γ+/-
+         plausible-index?
          external-solver
          (all-from-out "local.rkt" "widen.rkt"))
 
@@ -157,13 +157,6 @@
        [(✗) #f]
        [else #t])]
     [else #f]))
-
-(: plausible-indices : -M -σ -Γ -W¹ Natural Natural → (Listof Natural))
-(define (plausible-indices M σ Γ W lo hi)
-  (for*/list : (Listof Natural) ([i (in-range lo hi)]
-                                 #:when (exact-nonnegative-integer? i) ; hack for TR
-                                 #:when (plausible-index? M σ Γ W i))
-    i))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
