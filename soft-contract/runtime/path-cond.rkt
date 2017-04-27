@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         syntax/parse/define
          set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
@@ -111,3 +112,11 @@
    [((-t.@ '<= (list t₂ t₁))
      (-t.@ '<  (list t₁ t₂))) #t]
    [(_ _) #f]))
+
+
+(define-simple-macro (with-Γ+/- ([(Γ₁:id Γ₂:id) e])
+                       #:true  e₁
+                       #:false e₂)
+  (let-values ([(Γ₁ Γ₂) e])
+    (∪ (if Γ₁ e₁ ∅)
+       (if Γ₂ e₂ ∅))))

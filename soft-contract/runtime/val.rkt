@@ -157,3 +157,20 @@
       [_ #f]))
 
   (check! V))
+
+;; TODO tmp. place
+
+(define formals-arity : (-formals → Arity)
+  (match-lambda
+    [(-var init _) (arity-at-least (length init))]
+    [(? list? xs) (length xs)]))
+
+(define guard-arity : (-=>_ → Arity)
+  (match-lambda
+    [(-=> αs _ _) (shape αs)]
+    [(and grd (-=>i αs (list mk-D mk-d _) _))
+     (match mk-D
+       [(-Clo xs _ _ _) (formals-arity xs)]
+       [_
+        ;; FIXME: may be wrong for var-args. Need to have saved more
+        (length αs)])]))  

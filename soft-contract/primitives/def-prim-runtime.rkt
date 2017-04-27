@@ -9,8 +9,7 @@
          set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
-         "../proof-relation/main.rkt")
+         "../runtime/main.rkt")
 
 (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
 ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
@@ -186,34 +185,11 @@
       (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
     (printf "~n")))
 
-(: with-MΓ⊢oW-handler (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X)))
-(define (with-MΓ⊢oW-handler f₁ f₂ M σ Γ o . Ws)
-  (define ss (map -W¹-t Ws))
-  (case (apply MΓ⊢oW M σ Γ o Ws)
-    [(✓) (f₁ Γ)]
-    [(✗) (f₂ Γ)]
-    [(?) (∪ (f₁ (Γ+ Γ (apply ?t@ o ss)))
-            (f₂ (Γ+ Γ (?t@ 'not (apply ?t@ o ss)))))]))
-
 (define-simple-macro (with-MΓ⊢oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
   (with-MΓ⊢oW-handler on-t on-f M σ Γ o W ...))
 
-(: with-MΓ⊢oW-callback (∀ (X) (→ (℘ X)) (→ (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X)))
-(define (with-MΓ⊢oW-callback on-t on-f M σ Γ o . Ws)
-  (case (apply MΓ⊢oW M σ Γ o Ws)
-    [(✓) (on-t)]
-    [(✗) (on-f)]
-    [(?) (∪ (on-t) (on-f))]))
-
 (define-simple-macro (with-MΓ⊢oW/no-refine (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
   (with-MΓ⊢oW-callback on-t on-f M σ Γ o W ...))
-
-(: with-p∋Vs-handler (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X)))
-(define (with-p∋Vs-handler t f σ o . Vs)
-  (case (apply p∋Vs σ o Vs)
-    [(✓) (t)]
-    [(✗) (f)]
-    [(?) (∪ (t) (f))]))
 
 (define-simple-macro (with-p∋Vs (σ:expr o:expr V:expr ...) #:on-t t:expr #:on-f f:expr)
   (with-p∋Vs-handler t f σ o V ...))
@@ -221,8 +197,6 @@
 (: with-arity-check-handler (∀ (X) -Γ -W¹ Arity (-Γ → (℘ X)) (-Γ → (℘ X)) → (℘ X)))
 (define (with-arity-check-handler Γ W arity t f)
   (match-define (-W¹ V s) W) ; ignore `Γ` and `s` for now
-  (define (on-t) (t Γ)) ; TODO
-  (define (on-f) (f Γ)) ; TODO
   (cond [(V-arity V) =>
          (λ ([a : Arity])
            ((if (arity-includes? a arity) t f) Γ))]
