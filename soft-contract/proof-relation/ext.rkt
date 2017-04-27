@@ -12,7 +12,6 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "result.rkt"
          "translate.rkt")
 
 

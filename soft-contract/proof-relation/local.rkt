@@ -4,7 +4,7 @@
          plausible-V-t?
          first-R
          sat-one-of
-         (all-from-out "result.rkt" "base-assumptions.rkt"))
+         (all-from-out "base-assumptions.rkt"))
 
 (require (for-syntax racket/base
                      racket/contract
@@ -19,7 +19,6 @@
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "base-assumptions.rkt"
-         "result.rkt"
          )
 
 ;; Check whether predicate excludes boolean

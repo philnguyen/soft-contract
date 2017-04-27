@@ -14,8 +14,7 @@
          intern
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
-         "result.rkt")
+         "../runtime/main.rkt")
 
 ;; TODO I should have used reader monad for z3/smt instead of this hack
 (define-type (M T) (→ T))

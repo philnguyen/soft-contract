@@ -13,7 +13,6 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "result.rkt"
          "local.rkt"
          "widen.rkt")
 

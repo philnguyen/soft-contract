@@ -13,7 +13,7 @@
          "../utils/map.rkt"
          "../utils/debug.rkt"
          "../ast/arity.rkt"
-         "result.rkt")
+         "../runtime/verification-result.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Implication and Exclusion
