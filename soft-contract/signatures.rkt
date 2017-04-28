@@ -21,6 +21,11 @@
 
 (define-signature prims^ ; TODO
   ([get-prim : (Symbol → (Option -⟦o⟧))]
+   [alias-table : (HashTable Symbol Symbol)]
+   [alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut))]
+   [const-table : (HashTable Symbol -b)]
+   [prim-table : (HashTable Symbol -⟦o⟧)]
+   [opq-table : (HashTable Symbol -●)]
    [vec-len : (-σ -Γ -W¹ → -W¹)]))
 
 (define-signature exts^ ; TODO
