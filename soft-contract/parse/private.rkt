@@ -33,41 +33,13 @@
 
   (define parsing-multiple-files? (> (length fns) 1))
 
-  ;; Given path, insert fake-contract require and write to temp file
-  (define/contract (make-strawman p)
-    (path-string? . -> . path-string?)
-
-    (define (ditch-racket/contract l)
-      (string-replace l "racket/contract" ""))
-    
-    (match (file->lines p)
-      ;; If already required, leave alone (backward compatibility for existing tests)
-      [(list _ ... l _ ...)
-       #:when (regexp-match? #rx"(require soft-contract/fake-contract)" l)
-       p]
-      ;; Otherwise, assume expected format, then insert at 2 line
-      [(list ls₀ ... (and l (regexp #rx"^#lang .+")) ls₁ ...)
-       (when parsing-multiple-files?
-         (error 'parser "please require `soft-contract/fake/contract` in ~a" p))
-       (define lines* `(,@(map ditch-racket/contract ls₀)
-                        ,(format "~a ~a" l "(require soft-contract/fake-contract)")
-                        ,@(map ditch-racket/contract ls₁)))
-       (define p* (make-temporary-file "scv_strawman_~a.rkt"))
-       (log-debug "`~a` copied over and modified at `~a`~n" p p*)
-       (display-lines-to-file lines* p* #:exists 'replace)
-       p*]
-      [_
-       (error "expect '~a' to be non-empty, with #lang declaration on 1 line" p)]))
-
   (define/contract (parse-module stx)
     (syntax? . -> . -module?)
     (match-define (-module l body) (parse-top-level-form stx))
     (-module l (move-provides-to-end body)))
 
   (parameterize ([port-count-lines-enabled #t])
-    (define stxs
-      (for/list ([fn (in-list fns)])
-        (do-expand-file (make-strawman fn))))
+    (define stxs (map do-expand-file fns))
     (for-each figure-out-aliases! stxs)
     (map parse-module stxs)))
 
@@ -110,6 +82,9 @@
 (define/contract parse-top-level-form
   (scv-syntax? . -> . -top-level-form?)
   (syntax-parser
+    #;[stx #:when (and (printf "top:~n~a~n" (pretty (syntax->datum #'stx)))
+                     #f)
+         (error "nah")]
     [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
      (define mod-name (mod-path->mod-name (syntax-source #'id)))
 
