@@ -1,5 +1,4 @@
 #lang racket
-(require soft-contract/fake-contract)
 
 (define (strnum? x)
   (or (string? x) (number? x)))

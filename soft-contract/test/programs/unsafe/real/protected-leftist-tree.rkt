@@ -116,7 +116,7 @@
 
 (define (get-min n)
   (match n
-    [#f *nothing*]
+    ;[#f *nothing*]
     [(node _ x _ _) x]))
 
 (define (remove-min n <=?)
