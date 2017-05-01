@@ -32,6 +32,7 @@
   (add! #'any/c #'f:any/c)
   (add! #'any #'f:any)
   (add! #'none/c #'f:none/c)
+  (add! #'false/c #'f:false/c)
   (add! #'and/c #'f:and/c)
   (add! #'or/c #'f:or/c)
   (add! #'not/c #'f:not/c)

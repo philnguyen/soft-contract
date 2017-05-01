@@ -543,6 +543,7 @@
     [(~literal fake:not/c) 'not/c]
     [(~literal fake:and/c) 'and/c]
     [(~literal fake:or/c ) 'or/c]
+    [(~literal fake:false/c) 'not]
     
     ;; Hack for private identifiers
     [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]
