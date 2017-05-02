@@ -7,7 +7,8 @@
          syntax/id-table
          syntax/parse
          racket/hash
-         racket/contract/private/provide)
+         racket/contract/private/provide
+         "expand-keep-contracts.rkt")
 
 (provide scv-ignore?)
 
@@ -23,7 +24,7 @@
          #t]
         [_ #f])))
 
-(provide do-expand do-expand-file do-expand-toplevel
+(provide do-expand do-expand-file
          ;; Helpers
          id->sym)
 
@@ -67,7 +68,7 @@
      (error 'do-expand "got something that isn't a module: ~a\n" (syntax->datum #'rest))])
   ;; work
   (parameterize ([current-namespace (make-base-namespace)])
-    (namespace-syntax-introduce (expand stx))))
+    (namespace-syntax-introduce (expand/high-level-contracts stx))))
 
 (define current-module (make-parameter #f))
 
@@ -124,27 +125,6 @@
                          (map syntax->datum (syntax->list #'(i ...)))
                          (map syntax->datum (syntax->list #'(c ...)))))
   [pattern _ #:attr contracts null])
-
-(define (find-contracts m)
-  (syntax-parse m
-    [(module m lang form:mod-form ...)
-     (apply hash-union (flatten (attribute form.contracts)))]))
-
-(provide do-expand-toplevel)
-;; given a string which should be a sequence of modules, fully-expand
-;; them all as if they were in a `racket/load` context
-(define (do-expand-toplevel str)
-  (define p (open-input-string str))
-  (define stxs (port->list (lambda (p) (read-syntax 'toplevel p)) p))
-  (parameterize ([current-namespace (make-base-namespace)])
-    (for/list ([m stxs])
-      (syntax-parse m
-        [((~datum module) . _) (void)]
-        [_ (error 'do-expand-toplevel "expected a module")])
-      (define cnts (find-contracts m))
-      (define m* (namespace-syntax-introduce (expand m)))
-      (eval-syntax m*)
-      (list m* #;(syntax->datum m*) cnts))))
 
 (provide do-expand-file)
 

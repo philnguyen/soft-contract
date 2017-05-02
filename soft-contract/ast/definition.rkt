@@ -223,7 +223,7 @@
     [(-set! x e) `(set! ,(show-e x) ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
     [(-begin es) `(begin ,@(show-es es))]
-    [(-begin0 e es) `(begin ,(show-e e) ,@(show-es es))]
+    [(-begin0 e es) `(begin0 ,(show-e e) ,@(show-es es))]
     [(-error msg _) `(error ,msg)]
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]

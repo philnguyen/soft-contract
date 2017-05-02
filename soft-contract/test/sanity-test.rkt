@@ -120,7 +120,7 @@
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
   (test   "safe/real/protected-leftist-tree.rkt" check-safe)
-  (test "unsafe/real/protected-leftist-tree.rkt" check-safe)
+  (test "unsafe/real/protected-leftist-tree.rkt" check-fail)
 
   (test   "safe/real/protected-ring-buffer.rkt" check-safe)
   (test "unsafe/real/protected-ring-buffer.rkt" check-fail)

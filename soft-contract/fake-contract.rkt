@@ -10,7 +10,7 @@
          (prefix-in r: racket/base))
 
 (provide (all-from-out racket/contract/base) provide
-         -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out
+         -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c
          recursive-contract
          dynamic-provide/contract
          dynamic->i dynamic->* 
@@ -42,6 +42,7 @@
 (define box/c c:box/c)
 (define vector/c c:vector/c)
 (define vectorof c:vectorof)
+(define false/c c:false/c)
 (define-syntax (struct/c stx) 
   (syntax-case stx ()
     [(_ name cs ...)

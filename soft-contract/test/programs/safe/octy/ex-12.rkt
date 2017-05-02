@@ -1,5 +1,4 @@
 #lang racket
-(require soft-contract/fake-contract)
 
 (define (carnum? p) (number? (car p)))
 
