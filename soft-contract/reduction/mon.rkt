@@ -374,6 +374,23 @@
        (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V C)) (?t@ 'values -tt v))))
        (⟦ap⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ ⟦ff⟧ ⊥ρ ⟦k⟧))]))
 
+  (define (vec-len [σ : -σ] [Γ : -Γ] [W : -W¹]) : -W¹
+    (match-define (-W¹ V s) W)
+    (define ?n : (Option Natural)
+      (match V
+        [(-Vector ⟪α⟫s) (length ⟪α⟫s)]
+        [(-Vector^ _ V)
+         (match V
+           [(-b (? exact-nonnegative-integer? n)) n]
+           [_ #f])]
+        [(-Vector/guard grd _ _)
+         (match grd
+           [(-Vector/C ⟪α⟫s) (length ⟪α⟫s)]
+           [_ #f])]
+        [_ #f]))
+    (define Vₙ (if ?n (-b ?n) -Nat.V))
+    (-W¹ Vₙ (?t@ 'vector-length s)))
+
   ;; FIXME Duplicate macros
   (define-simple-macro (with-MΓ+/-oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
     (MΓ+/-oW/handler on-t on-f M σ Γ o W ...))
