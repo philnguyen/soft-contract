@@ -9,17 +9,19 @@
          racket/match
          racket/set
          racket/bool
+         racket/list
          syntax/parse/define
          (only-in racket/list first second)
          set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
+         "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit local-prover@
-  (import local-prover-base^)
+  (import prims^)
   (export local-prover^)
 
   ;; Check whether predicate excludes boolean
@@ -644,4 +646,24 @@
   (define V≡ : (-V -V → -R)
     (match-lambda**
      [((-b x₁) (-b x₂)) (boolean->R (equal? x₁ x₂))]
-     [(_ _) '?])))
+     [(_ _) '?]))
+
+  (define V-arity : (-V → (Option Arity))
+    (match-lambda
+      [(-Clo xs _ _ _) (formals-arity xs)]
+      [(-Case-Clo clauses _ _)
+       (remove-duplicates
+        (for/list : (Listof Natural) ([clause clauses])
+          (match-define (cons xs _) clause)
+          (length xs)))]
+      [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _) (? -One-Of/C?)) 1]
+      [(-Ar guard _ _) (guard-arity guard)]
+      [(? -st-p?) 1]
+      [(-st-mk 𝒾) (get-struct-arity 𝒾)]
+      [(? -st-ac?) 1]
+      [(? -st-mut?) 2]
+      [(? symbol? o) (prim-arity o)]
+      [(-● _) #f]
+      [V
+       (printf "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
+       #f])))

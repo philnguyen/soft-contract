@@ -21,12 +21,10 @@
 
 (define-signature prims^ ; TODO
   ([get-prim : (Symbol → (Option -⟦o⟧))]
-   [alias-table : (HashTable Symbol Symbol)]
-   [alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut))]
-   [const-table : (HashTable Symbol -b)]
-   [prim-table : (HashTable Symbol -⟦o⟧)]
-   [opq-table : (HashTable Symbol -●)]
-   [vec-len : (-σ -Γ -W¹ → -W¹)]))
+   [o⇒o : (Symbol Symbol → -R)]
+   [get-conservative-range : (Symbol → Symbol)]
+   [get-exclusions : (Symbol → (℘ Symbol))]
+   [prim-arity : (Symbol → Arity)]))
 
 (define-signature exts^ ; TODO
   ([get-ext : (Symbol → (Option -⟦f⟧))]))
@@ -41,6 +39,7 @@
    [Γ⊢t : ((℘ -t) -?t → -R)]
    [plausible-V-t? : ((℘ -t) -V -?t → Boolean)]
    [sat-one-of : (-V (Listof Base) → -R)]
+   [p∋Vs : (-σ (U -h -v -V) -V * → -R)]
    [MΓ+/-oW/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
    [MΓ⊢oW/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
    [p∋Vs/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X))]))

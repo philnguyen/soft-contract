@@ -15,13 +15,14 @@
          "signatures.rkt")
 
 (define-unit proof-system@
-  (import (prefix loc: local-prover^) (prefix b: local-prover-base^) external-prover^ widening^)
+  (import (prefix loc: local-prover^) external-prover^ widening^)
   (export proof-system^)
   
   (define Γ⊢t loc:Γ⊢t)
   (define plausible-V-t? loc:plausible-V-t?)
   (define sat-one-of loc:sat-one-of)
-  (define V-arity b:V-arity)
+  (define p∋Vs loc:p∋Vs)
+  (define V-arity loc:V-arity)
 
   ;; Check if value satisfies (flat) contract
   (define (MΓ⊢V∈C [M : -M] [σ : -σ] [Γ : -Γ] [W_v : -W¹] [W_c : -W¹]) : -R
@@ -186,4 +187,3 @@
       [(✗) (values #f       (Γ+ Γ (?t@ 'not t)))]
       [(?) (values (Γ+ Γ t) (Γ+ Γ (?t@ 'not t)))]))
   )
-
