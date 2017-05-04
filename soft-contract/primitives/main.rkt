@@ -1,14 +1,64 @@
 #lang typed/racket/base
 
-;; This module defines primitive operations on first-order data,
-;; each of which is an atomic operation that can be perform in 1 "step",
-;; returning a set of possible answers paired with path-conditions.
-;; 
-;; First-order "library functions" and "primitives", as far as this tool is concerned, are the same.
-;; A higher-order function, however, can invoke behavioral values fed to it arbitrarily,
-;; and must be approximated by `havoc`, thus is not an "atomic" operation
-;; definable in this module.
+(provide prims@)
 
-(require "def-prim-runtime.rkt" "prims.rkt" "relations.rkt" "def-prim-runtime.rkt")
-(provide
- (all-from-out "def-prim-runtime.rkt" "prims.rkt" "relations.rkt" "def-prim-runtime.rkt"))
+(require typed/racket/unit
+         set-extras
+         "../ast/main.rkt"
+         "../runtime/main.rkt"
+         "../signatures.rkt"
+         "signatures.rkt"
+         "prim-runtime.rkt"
+         "relations.rkt"
+         "prims-04.rkt"
+         "prims-05.rkt"
+         "prims-08.rkt"
+         "prims-10.rkt"
+         "prims-13.rkt"
+         "prims-15.rkt"
+         "prims-16.rkt"
+         "prims-17.rkt"
+         "prims-math.rkt"
+         )
+
+(define-unit pre-prims@
+  (import (prefix rt: prim-runtime^))
+  (export prims^)
+
+  (: get-prim : Symbol → (Option -⟦o⟧))
+  (define (get-prim o) (hash-ref rt:prim-table o #f))
+
+  (: o⇒o : Symbol Symbol → -R)
+  (define (o⇒o p q)
+    (cond [(eq? p q) '✓]
+          [(∋ (rt:get-weakers p) q) '✓]
+          [(∋ (rt:get-exclusions p) q) '✗]
+          [else '?]))
+
+  (: get-conservative-range : Symbol → Symbol)
+  (define (get-conservative-range o) (hash-ref rt:range-table o (λ () 'any/c)))
+  
+  (define get-exclusions rt:get-exclusions)
+
+  (: prim-arity : Symbol → Arity)
+  (define (prim-arity o)
+    (hash-ref rt:arity-table o (λ () (error 'get-arity "nothing for ~a" o))))
+
+  (define extract-list-content rt:extract-list-content)
+  )
+
+(define-compound-unit/infer prims@
+  (import proof-system^ widening^)
+  (export prims^)
+  (link pre-prims@
+        prim-runtime@
+        relations@
+        prims-04@
+        prims-05@
+        prims-08@
+        prims-10@
+        prims-13@
+        prims-15@
+        prims-16@
+        prims-17@
+        prims-math@))

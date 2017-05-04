@@ -16,6 +16,10 @@
    [extract-list-content : (-σ -St → (℘ -V))]
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
 
+   [get-weakers : (Symbol → (℘ Symbol))]
+   [get-strongers : (Symbol → (℘ Symbol))]
+   [get-exclusions : (Symbol → (℘ Symbol))]
+
    [add-implication! : (Symbol Symbol → Void)]
    [add-exclusion! : (Symbol Symbol → Void)]
    [set-range! : (Symbol Symbol → Void)]
@@ -27,4 +31,6 @@
    [debug-table : (HashTable Symbol Any)]
    [alias-table : (HashTable Symbol Symbol)]
    [opq-table : (HashTable Symbol -●)]
+   [range-table : (HashTable Symbol Symbol)]
+   [arity-table : (HashTable Symbol Arity)]
    [alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut))]))

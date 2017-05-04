@@ -151,13 +151,6 @@
   (define (get-strongers  p) (hash-ref implication-table⁻¹ p mk-∅eq))
   (define (get-exclusions p) (hash-ref exclusion-table     p mk-∅eq))
 
-  (: o⇒o : Symbol Symbol → -R)
-  (define (o⇒o p q)
-    (cond [(eq? p q) '✓]
-          [(∋ (get-weakers p) q) '✓]
-          [(∋ (get-exclusions p) q) '✗]
-          [else '?]))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Range
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -171,10 +164,7 @@
   (: set-partial! : Symbol Natural → Void)
   (define (set-partial! o n) (hash-set! partial-prims o n))
 
-  (: get-conservative-range : Symbol → Symbol)
-  (define (get-conservative-range o) (hash-ref range-table o (λ () 'any/c)))
-
-
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Arity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -189,7 +179,5 @@
                (hash-set! arity-table o (normalize-arity (list a₀ a)))))]
           [else
            (hash-set! arity-table o a)]))
-
-  (: prim-arity : Symbol → Arity)
-  (define (prim-arity o) (hash-ref arity-table o (λ () (error 'get-arity "nothing for ~a" o))))
+  
   )
