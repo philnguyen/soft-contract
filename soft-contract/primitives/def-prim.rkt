@@ -41,6 +41,7 @@
 (define-syntax-parser def-const
   [(_ x:id)
    (define/with-syntax .x (prefix-id #'x))
+   (hack:make-available #'x const-table)
    #'(begin
        (define .x (-b x))
        (hash-set-once! const-table 'x .x))])
@@ -116,13 +117,13 @@
          (syntax-parse #'sig
            [(dom ... . (~literal ->) . _)
             (define n (apply + 0 (map count-leaves (syntax->list #'(dom ...)))))
-            (hack:make-available #'sig set-partial!)
+            (hack:make-available #'o set-partial!)
             (list #`(set-partial! 'o #,n))]
            [((inits ...) #:rest rest . (~literal ->*) . _)
             (define n
               (+ (apply + 0 (map count-leaves (syntax->list #'(inits ...))))
                  (count-leaves #'rest)))
-            (hack:make-available #'sig set-partial!)
+            (hack:make-available #'o set-partial!)
             (list #`(set-partial! 'o #,n))]
            [_ '()])))
 
@@ -227,6 +228,7 @@
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
    (define/with-syntax .x (prefix-id #'x))
+   (hack:make-available #'x alias-internal-table)
    #'(begin
        (define .x v)
        (hash-set-once! alias-internal-table 'x v))])
