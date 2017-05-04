@@ -8,4 +8,5 @@
          "../runtime/main.rkt")
 
 (define-signature prim-runtime^
-  ())
+  ([add-implication! : (Symbol Symbol → Void)]
+   [add-exclusion! : (Symbol Symbol → Void)]))

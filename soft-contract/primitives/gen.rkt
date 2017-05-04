@@ -24,8 +24,7 @@
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"
          "../runtime/main.rkt"
-         "../proof-relation/main.rkt"
-         "def-prim-runtime.rkt")
+         "../proof-relation/main.rkt")
 
 (begin-for-syntax
 
