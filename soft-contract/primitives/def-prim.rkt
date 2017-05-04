@@ -35,7 +35,10 @@
 (begin-for-syntax
   (define/contract (gen-blm blm)
     (syntax? . -> . syntax?)
-    #`(set (-ΓA (-Γ-facts #,(-Γ)) #,blm))))
+    #`(set (-ΓA (-Γ-facts #,(-Γ)) #,blm)))
+
+  (define-syntax-rule (hack:make-available src id ...)
+    (begin (define/with-syntax id (format-id src "~a" 'id)) ...)))
 
 (define-syntax-parser def-const
   [(_ x:id)
@@ -45,18 +48,29 @@
        (hash-set-once! const-table 'x .x))])
 
 (define-syntax (def-prim stx)
+  
   (syntax-parse stx
     ;; Generate total predicates specially to reduce code duplicate
     [(_ o:id ((~literal ->) c:id ... (~literal boolean?)))
      #:when (for/and ([c (in-list (syntax->list #'(c ...)))])
               (free-identifier=? c #'any/c))
-     (define n (length (syntax->list #'(c ...))))
+     (define/with-syntax n (length (syntax->list #'(c ...))))
      (define/with-syntax .o (prefix-id #'o))
-     #`(begin
-         (define .o ((total-pred #,n) 'o))
+     
+     ;; HACKS referring to names in prim-runtime^
+     (hack:make-available #'o make-total-pred prim-table set-range! update-arity!)
+     #|
+     (define/with-syntax make-total-pred (format-id #'o "make-total-pred"))
+     (define/with-syntax prim-table (format-id #'o "prim-table"))
+     (define/with-syntax set-range! (format-id #'o "set-range!"))
+     (define/with-syntax update-arity! (format-id #'o "update-arity!"))
+     |#
+     
+     #'(begin
+         (define .o ((make-total-pred n) 'o))
          (hash-set! prim-table 'o .o)
          (set-range! 'o 'boolean?)
-         (update-arity! 'o #,n))]
+         (update-arity! 'o n))]
 
     [(_ o:id sig:ff
         (~optional (~seq #:other-errors [cₑ:fc ...] ...)
@@ -119,7 +133,7 @@
                  (count-leaves #'rest)))
             (list #`(set-partial! 'o #,n))]
            [_ '()])))
-     
+
      #`(begin
          (: .o : -⟦o⟧)
          defn-o
@@ -138,6 +152,10 @@
 
 ;; TODO remove code duplicate
 (define-syntax (def-prim/custom stx)
+
+  ;; HACKS referring to names in prim-runtime^
+  (define/with-syntax prim-table (format-id stx "prim-table"))
+  (define/with-syntax debug-table (format-id stx "debug-table"))
   
   (define/contract (gen-defn o .o defn-o)
     (identifier? identifier? syntax?  . -> . syntax?)
