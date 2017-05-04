@@ -23,10 +23,14 @@
          "../utils/map.rkt"
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"
-         "../runtime/main.rkt"
-         "../proof-relation/main.rkt")
+         "../runtime/main.rkt")
+
+
 
 (begin-for-syntax
+
+  (define-syntax-rule (hack:make-available src id ...)
+    (begin (define/with-syntax id (format-id src "~a" 'id)) ...))
 
   (define/contract hack:resolve-alias
     (identifier? . -> . syntax?)
@@ -117,6 +121,7 @@
     (cond
       ;; Generate predicates differently
       [(and (identifier? rng) (free-identifier=? #'boolean? rng))
+       (hack:make-available rng implement-predicate)
        (list #`(implement-predicate #,(-M) #,(-σ) #,(-Γ) '#,(-o) #,(-Ws)))]
       [dom-rest
        (define/with-syntax (concrete-case-clauses ...)
@@ -427,12 +432,14 @@
         (define/contract (gen-comp/c-case x ★ ★/c)
           (syntax? identifier? identifier? . -> . symbol?)
           (define why (if pos? #`(#,★/c #,x) #`(-not/c (#,★/c #,x))))
+          (hack:make-available c MΓ+/-oW/handler)
           (push-local-thunk!
            (gen-name!)
            (list #`(define bₓ (-b #,x))
-                 #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) '#,★ #,W (-W¹ bₓ bₓ))
-                     #:on-t #,(->id (on-done why pos?))
-                     #:on-f #,(->id (on-done why (not pos?)))))))
+                 #`(MΓ+/-oW/handler
+                    #,(->id (on-done why pos?))
+                    #,(->id (on-done why (not pos?)))
+                    #,(-M) #,(-σ) #,(-Γ) '#,★ #,W (-W¹ bₓ bₓ)))))
 
         (syntax-parse c
           ;; For function contracts, generate first-order checks only
@@ -449,11 +456,13 @@
               #`(with-arity-check (#,(-Γ) #,W arity)
                   #:on-t #,(->id (on-done #''c-msg pos?))
                   #:on-f #,(->id (on-done #''c-msg (not pos?))))))
+           (hack:make-available #'c MΓ+/-oW/handler)
            (push-local-thunk!
             (gen-name!)
-            #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) 'procedure? #,W)
-                #:on-t #,(->id κ₁)
-                #:on-f #,(->id (on-done #''procedure? (not pos?)))))]
+            #`(MΓ+/-oW/handler
+               #,(->id κ₁)
+               #,(->id (on-done #''procedure? (not pos?)))
+               #,(-M) #,(-σ) #,(-Γ) 'procedure? #,W))]
 
           [((~literal and/c) c* ... cₙ)
            (foldr
@@ -512,22 +521,26 @@
           [((~literal >=/c) x) (gen-comp/c-case #'x #'>= #'-≥/c)]
           [x:lit
            (define why (if pos? #'(-≡/c x) #'(-≢/c x)))
+           (hack:make-available #'x MΓ+/-oW/handler)
            (push-local-thunk!
             (gen-name!)
             (list #'(define bₓ (-b x))
-                  #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) 'equal? #,W (-W¹ bₓ bₓ))
-                      #:on-t #,(->id (on-done why pos?))
-                      #:on-f #,(->id (on-done why (not pos?))))))]
+                  #`(MΓ+/-oW/handler
+                     #,(->id (on-done why pos?))
+                     #,(->id (on-done why (not pos?)))
+                     #,(-M) #,(-σ) #,(-Γ) 'equal? #,W (-W¹ bₓ bₓ))))]
           [(~literal any/c) (on-done #''any/c pos?)]
           [(~literal none/c) (on-done #'not/c (not pos?))]
           [c:id
            (define/with-syntax p (hack:resolve-alias #'c))
            (define why (if pos? #''c #'(-not/c 'c)))
+           (hack:make-available #'c MΓ+/-oW/handler)
            (push-local-thunk!
             (gen-name!)
-            #`(with-MΓ⊢oW (#,(-M) #,(-σ) #,(-Γ) p #,W)
-                #:on-t #,(->id (on-done why pos?))
-                #:on-f #,(->id (on-done why (not pos?)))))]))
+            #`(MΓ+/-oW/handler
+               #,(->id (on-done why pos?))
+               #,(->id (on-done why (not pos?)))
+               #,(-M) #,(-σ) #,(-Γ) p #,W))]))
 
       (define entry-name
         (go! c #t

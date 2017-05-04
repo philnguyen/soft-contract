@@ -36,9 +36,7 @@
   (define/contract (gen-blm blm)
     (syntax? . -> . syntax?)
     #`(set (-ΓA (-Γ-facts #,(-Γ)) #,blm)))
-
-  (define-syntax-rule (hack:make-available src id ...)
-    (begin (define/with-syntax id (format-id src "~a" 'id)) ...)))
+  )
 
 (define-syntax-parser def-const
   [(_ x:id)
@@ -56,15 +54,7 @@
               (free-identifier=? c #'any/c))
      (define/with-syntax n (length (syntax->list #'(c ...))))
      (define/with-syntax .o (prefix-id #'o))
-     
-     ;; HACKS referring to names in prim-runtime^
      (hack:make-available #'o make-total-pred prim-table set-range! update-arity!)
-     #|
-     (define/with-syntax make-total-pred (format-id #'o "make-total-pred"))
-     (define/with-syntax prim-table (format-id #'o "prim-table"))
-     (define/with-syntax set-range! (format-id #'o "set-range!"))
-     (define/with-syntax update-arity! (format-id #'o "update-arity!"))
-     |#
      
      #'(begin
          (define .o ((make-total-pred n) 'o))
@@ -126,13 +116,17 @@
          (syntax-parse #'sig
            [(dom ... . (~literal ->) . _)
             (define n (apply + 0 (map count-leaves (syntax->list #'(dom ...)))))
+            (hack:make-available #'sig set-partial!)
             (list #`(set-partial! 'o #,n))]
            [((inits ...) #:rest rest . (~literal ->*) . _)
             (define n
               (+ (apply + 0 (map count-leaves (syntax->list #'(inits ...))))
                  (count-leaves #'rest)))
+            (hack:make-available #'sig set-partial!)
             (list #`(set-partial! 'o #,n))]
            [_ '()])))
+
+     (hack:make-available #'o prim-table debug-table set-range! update-arity!)
 
      #`(begin
          (: .o : -⟦o⟧)
@@ -153,12 +147,9 @@
 ;; TODO remove code duplicate
 (define-syntax (def-prim/custom stx)
 
-  ;; HACKS referring to names in prim-runtime^
-  (define/with-syntax prim-table (format-id stx "prim-table"))
-  (define/with-syntax debug-table (format-id stx "debug-table"))
-  
   (define/contract (gen-defn o .o defn-o)
     (identifier? identifier? syntax?  . -> . syntax?)
+    (hack:make-available o prim-table debug-table)
     #`(begin
         (: #,.o : -⟦o⟧)
         #,defn-o
@@ -171,6 +162,7 @@
         e:expr ...)
      (define n (length (syntax->list #'(c ...))))
      (define/with-syntax .o (prefix-id #'o))
+     (hack:make-available #'o update-arity!)
      (define defn-o
        #`(begin
            (define (.o ⟪ℋ⟫ ℒ Σ Γ Ws)
@@ -229,6 +221,7 @@
 
 (define-syntax-parser def-alias
   [(_ x:id y:id)
+   (hack:make-available #'x alias-table)
    #'(hash-set-once! alias-table 'x 'y)])
 
 (define-syntax-parser def-alias-internal
@@ -242,6 +235,7 @@
   [(_ x:id c:fc)
    (define/with-syntax (r ...) (datum->syntax #f (rng->refinement #'c)))
    (define/with-syntax .x (prefix-id #'x))
+   (hack:make-available #'x opq-table)
    #'(begin
        (define x (-● (set r ...)))
        (hash-set-once! opq-table 'x x))])
