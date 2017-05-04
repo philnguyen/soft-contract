@@ -24,7 +24,8 @@
    [o⇒o : (Symbol Symbol → -R)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
-   [prim-arity : (Symbol → Arity)]))
+   [prim-arity : (Symbol → Arity)]
+   [extract-list-content : (-σ -St → (℘ -V))]))
 
 (define-signature exts^ ; TODO
   ([get-ext : (Symbol → (Option -⟦f⟧))]))
@@ -51,10 +52,10 @@
    [σ⊕V! : ([-Σ ⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void)]
    [M⊕! : (-Σ -αₖ (℘ -t) -A → Void)]
    [σₖ⊕! : (-Σ -αₖ -κ → Void)]
+   [Vs⊕ : (-σ (℘ -V) -V → (℘ -V))]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
    [predicates-of-W : (-σ -Γ -W¹ → (U (℘ -h) -⟦e⟧))]
    [inv-caller->callee : (-σ (℘ Symbol) -formals (Listof -W¹) -Γ -Γ → -Γ)]
    [inv-callee->caller : (-σ (℘ Symbol) -formals (Listof -?t) -Γ -Γ → (Option -Γ))]
-   [extract-list-content : (-σ -St → (℘ -V))]
    [add-leak! : (-Σ -V → Void)]))

@@ -269,24 +269,6 @@
      [(p q) #:when (equal? '✓ (p⇒p q p)) {set p}]
      [(_ _) ∅]))
 
-  ;; Return an abstract value approximating all list element in `V`
-  (define (extract-list-content [σ : -σ] [V : -St]) : (℘ -V)
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    (match-define (-Cons αₕ αₜ) V)
-    (define Vs (σ@ σ αₕ))
-    (let loop! ([αₜ : ⟪α⟫ αₜ])
-      (unless (seen-has? αₜ)
-        (seen-add! αₜ)
-        (for ([Vₜ (σ@ σ αₜ)])
-          (match Vₜ
-            [(-Cons αₕ* αₜ*)
-             (for ([Vₕ (σ@ σ αₕ*)])
-               (set! Vs (Vs⊕ σ Vs Vₕ)))
-             (loop! αₜ*)]
-            [(-b (list)) (void)]
-            [_ (set! Vs (Vs⊕ σ Vs (-● ∅)))]))))
-    Vs)
-
   ;; Check if `V₂` definitely subsumes `V₁`
   ;; `#f` is a conservative "don't know" answer
   (define (V⊑ [σ : -σ] [V₁ : -V] [V₂ : -V]) : Boolean
