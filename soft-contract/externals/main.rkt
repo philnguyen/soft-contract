@@ -20,11 +20,13 @@
   (export exts^)
   
   (: get-ext : Symbol → (Option -⟦f⟧))
-  (define (get-ext o) (hash-ref ext-table o #f)))
+  (define (get-ext o)
+    (printf "exts: ~a~n" (hash-keys ext-table))
+    (hash-ref ext-table o #f)))
 
 (define-compound-unit/infer exts@
   (import prim-runtime^ proof-system^ widening^ app^ mon^ kont^ compile^)
-  (export exts^)
+  (export exts^ ext-runtime^)
   (link ext-runtime@
         pre-exts@ ; TODO
         exts-04@

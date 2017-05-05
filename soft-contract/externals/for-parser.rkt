@@ -47,5 +47,5 @@
           [else (error 'get-ext-parse-result "`~a` not found" name)])))
 
 (define-values/invoke-unit/infer
-  (export ext-for-parser^)
-  (link prims@ ext-runtime@ exts@ proof-system@ reduction@ pre-ext-for-parser@))
+  (export ext-for-parser^ ext-runtime^ exts^)
+  (link prims@ exts@ proof-system@ reduction@ pre-ext-for-parser@))

@@ -40,11 +40,8 @@
 
 (define-syntax-parser def-const
   [(_ x:id)
-   (define/with-syntax .x (prefix-id #'x))
    (hack:make-available #'x const-table)
-   #'(begin
-       (define .x (-b x))
-       (hash-set-once! const-table 'x .x))])
+   #'(hash-set-once! const-table 'x (-b x))])
 
 (define-syntax (def-prim stx)
   

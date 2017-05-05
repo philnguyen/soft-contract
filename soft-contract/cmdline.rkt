@@ -9,9 +9,8 @@
          set-extras
          "utils/main.rkt"
          "ast/main.rkt"
-         "parse/main.rkt"
          "runtime/definition.rkt"
-         (only-in "run.rkt" run-files havoc-files havoc-last-file)
+         "main.rkt"
          "settings.rkt")
 
 (Mode . ::= . 'light 'havoc 'expand 'havoc-last)
