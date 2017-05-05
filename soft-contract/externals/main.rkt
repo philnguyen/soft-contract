@@ -25,7 +25,7 @@
     (hash-ref ext-table o #f)))
 
 (define-compound-unit/infer exts@
-  (import #;prim-runtime^ proof-system^ widening^ app^ mon^ kont^ compile^)
+  (import prim-runtime^ proof-system^ widening^ app^ mon^ kont^ compile^)
   (export exts^ ext-runtime^)
   (link ext-runtime@
         pre-exts@

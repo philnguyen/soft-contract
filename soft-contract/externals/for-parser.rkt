@@ -48,4 +48,4 @@
 
 (define-values/invoke-unit/infer
   (export ext-for-parser^ ext-runtime^ exts^)
-  (link exts@ proof-system@ reduction@ pre-ext-for-parser@))
+  (link prims@ exts@ proof-system@ reduction@ pre-ext-for-parser@))
