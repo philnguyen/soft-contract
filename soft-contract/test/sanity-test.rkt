@@ -9,7 +9,7 @@
          set-extras
          "../utils/main.rkt"
          "../runtime/main.rkt"
-         "../run.rkt")
+         "../main.rkt")
 
 (define TIMEOUT 1200)
 

@@ -619,7 +619,7 @@
                        [('quote name) #`(quote #,name)]
                        [('const name)
                         (define/with-syntax get-const (format-id #'id "get-const"))
-                        #`(hash-ref get-const '#,name)]
+                        #`(get-const '#,name)]
                        [(_ _) (error 'make-parse-clause "~a" o)])])
            [_ #f])])
 
