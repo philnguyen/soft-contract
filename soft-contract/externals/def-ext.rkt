@@ -23,10 +23,7 @@
          "../utils/map.rkt"
          "../ast/definition.rkt"
          "../runtime/main.rkt"
-         "../reduction/compile/app.rkt"
-         "../proof-relation/main.rkt"
-         "gen.rkt"
-         "def-ext-runtime.rkt")
+         "gen.rkt")
 
 (begin-for-syntax
 
@@ -43,6 +40,7 @@
 (define-syntax (def-ext stx)
   (define/contract (gen-defn o .o defn)
     (identifier? identifier? syntax? . -> . syntax?)
+    (hack:make-available o ext-table debug-table)
     #`(begin
         (: #,.o : -⟦f⟧)
         #,defn
@@ -56,11 +54,13 @@
      (define/syntax-parse (cₓ ...) (attribute c.init))
      (define/syntax-parse d (attribute c.rng))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
+     (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕!)
      #`(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (match-define (-Σ σ σₖ _) Σ)
          (define sₐ (?t@ 'o (-W¹-t W) ...))
-         (define Wₐ (-W (list #,(parameterize ([-σ #'σ])
+         (define Wₐ (-W (list #,(parameterize ([-o #'o]
+                                               [-σ #'σ])
                                   (gen-wrap #'d #'-●.V #'sₐ)))
                         sₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)

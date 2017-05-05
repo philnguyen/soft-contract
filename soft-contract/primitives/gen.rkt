@@ -456,12 +456,16 @@
                [(arity-at-least n) #`(arity-at-least #,n)]))
            (define/with-syntax c-msg
              (format-symbol "arity-includes/c ~a" (syntax-e #'arity)))
+           (hack:make-available (-o) arity-check/handler)
            (define κ₁
              (push-local-thunk!
               (gen-name!)
-              #`(with-arity-check (#,(-Γ) #,W arity)
-                  #:on-t #,(->id (on-done #''c-msg pos?))
-                  #:on-f #,(->id (on-done #''c-msg (not pos?))))))
+              #`(arity-check/handler
+                 #,(->id (on-done #''c-msg pos?))
+                 #,(->id (on-done #''c-msg (not pos?)))
+                 #,(-Γ)
+                 #,W
+                 arity)))
            (hack:make-available (-o) MΓ+/-oW/handler)
            (push-local-thunk!
             (gen-name!)

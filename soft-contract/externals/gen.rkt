@@ -18,8 +18,7 @@
          "../ast/shorthands.rkt"
          "../runtime/main.rkt"
          "../primitives/gen.rkt"
-         "../proof-relation/main.rkt"
-         "def-ext-runtime.rkt")
+         )
 
 (begin-for-syntax
 
@@ -38,6 +37,7 @@
     (identifier? syntax? . -> . syntax?)
     (syntax-parse c
       [((~literal ->) cₓ ... d)
+       (hack:make-available (-o) σ⊕V!)
        #`(let ([αℓs (list
                      #,@(for/list ([cₓ (in-list (syntax->list #'(cₓ ...)))]
                                    [i (in-naturals)])
@@ -57,6 +57,7 @@
   ;; Generate expression wrapping function contract `c` around `V`
   (define/contract (gen-func-wrap c V s)
     (syntax? syntax? syntax? . -> . syntax?)
+    (hack:make-available (-o) σ⊕V!)
     ;; be careful not to use `V` twice
     ;; FIXME ℓ maybe wrong here
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
@@ -69,6 +70,7 @@
   ;; Generate expression wrapping contract `c` around `V`
   (define/contract (gen-wrap c V s)
     (syntax? syntax? syntax? . -> . syntax?)
+    (hack:make-available (-o) V+)
     ;; be careful not to use `V` twice
     (syntax-parse c
       [((~literal ->) _ ...) (gen-func-wrap c V s)]

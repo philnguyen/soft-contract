@@ -15,6 +15,7 @@
    [ts->bs : ((Listof -?t) → (Option (Listof Base)))]
    [extract-list-content : (-σ -St → (℘ -V))]
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
+   [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]

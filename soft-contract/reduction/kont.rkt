@@ -22,7 +22,7 @@
 
 (define-unit kont@
   (import compile^ app^ mon^ proof-system^ widening^ memoize^)
-  (export)
+  (export kont^)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Macros
@@ -640,4 +640,20 @@
        (if∷ l ⟦tt⟧ ⟦e⟧ ρ (or∷ l ⟦e⟧s* ρ ⟦k⟧))]))
 
   (define-frame (neg∷ [l : -l] [⟦k⟧ : -⟦k⟧]) (if∷ l ⟦ff⟧ ⟦tt⟧ ⊥ρ ⟦k⟧))
+
+  (define-frame (mk-listof∷ [tₐ : -?t] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (match-define (-W Vs s) A)
+      (match Vs
+        [(list V)
+         (define ⟪α⟫ₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 0)))
+         (define ⟪α⟫ₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ₀ ⟪ℋ⟫₀ 1)))
+         (define Vₚ (-Cons ⟪α⟫ₕ ⟪α⟫ₜ))
+         (σ⊕V! Σ ⟪α⟫ₕ V)
+         (σ⊕V! Σ ⟪α⟫ₜ -null)
+         (σ⊕V! Σ ⟪α⟫ₜ Vₚ)
+         (⟦k⟧ (-W (list Vₚ) tₐ) $ Γ ⟪ℋ⟫ Σ)]
+        [_
+         (define blm (blm-arity (-ℒ-app ℒ₀) 'mk-listof 1 Vs))
+         (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
   )

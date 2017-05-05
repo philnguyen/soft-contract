@@ -69,6 +69,7 @@
    [and∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [or∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [neg∷ : (-l -⟦k⟧ → -⟦k⟧)]
+   [mk-listof∷ : (-?t -ℒ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
    ))

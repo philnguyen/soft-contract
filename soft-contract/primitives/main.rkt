@@ -24,6 +24,7 @@
 (define-unit pre-prims@
   (import (prefix rt: prim-runtime^))
   (export prims^)
+  (init-depend prim-runtime^)
 
   (: get-prim : Symbol → (Option -⟦o⟧))
   (define (get-prim o) (hash-ref rt:prim-table o #f))
@@ -49,9 +50,9 @@
 
 (define-compound-unit/infer prims@
   (import proof-system^ widening^)
-  (export prims^)
-  (link pre-prims@
-        prim-runtime@
+  (export prims^ prim-runtime^)
+  (link prim-runtime@
+        pre-prims@
         relations@
         prims-04@
         prims-05@

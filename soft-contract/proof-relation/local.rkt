@@ -23,6 +23,7 @@
 (define-unit local-prover@
   (import prims^)
   (export local-prover^)
+  (init-depend prims^)
 
   ;; Check whether predicate excludes boolean
   (define boolean-excludes? (set->predicate (get-exclusions 'boolean?)))

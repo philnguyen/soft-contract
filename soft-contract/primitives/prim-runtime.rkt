@@ -179,5 +179,15 @@
                (hash-set! arity-table o (normalize-arity (list a₀ a)))))]
           [else
            (hash-set! arity-table o a)]))
+
+  (: arity-check/handler (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X)))
+  (define (arity-check/handler t f Γ W arity)
+    (match-define (-W¹ V s) W) ; ignore `Γ` and `s` for now
+    (define (on-t) (t Γ)) ; TODO
+    (define (on-f) (f Γ)) ; TODO
+    (cond [(V-arity V) =>
+           (λ ([a : Arity])
+             ((if (arity-includes? a arity) t f) Γ))]
+          [else (∪ (t Γ) (f Γ))]))
   
   )

@@ -13,9 +13,16 @@
          "../runtime/main.rkt"
          "../signatures.rkt"
          "signatures.rkt"
+
+         "compile.rkt"
+         "app.rkt"
+         "mon.rkt"
+         "kont.rkt"
+         "havoc.rkt"
+         "memoize.rkt"
          )
 
-(define-unit reduction@
+(define-unit pre-reduction@
   (import kont^ havoc^ mon^ widening^)
   (export reduction^)
 
@@ -194,3 +201,7 @@
                                    [else (⟦k⟧ blm $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
   )
 
+(define-compound-unit/infer reduction@
+  (import prims^ exts^ proof-system^ widening^)
+  (export reduction^ app^ mon^ kont^ compile^ havoc^)
+  (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

@@ -4,9 +4,11 @@
 
 (require typed/racket/unit
          "../runtime/definition.rkt"
+         "signatures.rkt"
          )
 
 (define-unit ext-runtime@
   (import)
   (export ext-runtime^)
-  (define ext-table : (HashTable Symbol -⟦f⟧) (make-hasheq)))
+  (define ext-table : (HashTable Symbol -⟦f⟧) (make-hasheq))
+  )
