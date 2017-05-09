@@ -224,8 +224,8 @@
 
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
-   (hack:make-available #'x alias-internal-table)
-   #'(hash-set-once! alias-internal-table 'x v)])
+   (hack:make-available #'x const-table)
+   #'(hash-set-once! const-table 'x v)])
 
 (define-syntax-parser def-opq
   [(_ x:id c:fc)

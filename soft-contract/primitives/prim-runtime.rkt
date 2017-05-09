@@ -68,8 +68,7 @@
                {set (-ΓA (-Γ-facts Γ) (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
 
   (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
-  (define alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut)) (make-hasheq))
-  (define const-table : (HashTable Symbol -b) (make-hasheq))
+  (define const-table : (HashTable Symbol -prim) (make-hasheq))
   (define prim-table  : (HashTable Symbol -⟦o⟧) (make-hasheq))
   (define opq-table   : (HashTable Symbol -●) (make-hasheq))
   (define debug-table : (HashTable Symbol Any) (make-hasheq))

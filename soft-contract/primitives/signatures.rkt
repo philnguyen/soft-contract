@@ -28,10 +28,9 @@
    [set-partial! : (Symbol Natural → Void)]
 
    [prim-table : (HashTable Symbol -⟦o⟧)]
-   [const-table : (HashTable Symbol -b)]
+   [const-table : (HashTable Symbol -prim)]
    [debug-table : (HashTable Symbol Any)]
    [alias-table : (HashTable Symbol Symbol)]
    [opq-table : (HashTable Symbol -●)]
    [range-table : (HashTable Symbol Symbol)]
-   [arity-table : (HashTable Symbol Arity)]
-   [alias-internal-table : (HashTable Symbol (U -st-mk -st-p -st-ac -st-mut))]))
+   [arity-table : (HashTable Symbol Arity)]))

@@ -28,7 +28,6 @@
     (∪ (list->seteq (hash-keys const-table))
        (list->seteq (hash-keys prim-table))
        (list->seteq (hash-keys alias-table))
-       (list->seteq (hash-keys alias-internal-table))
        (list->seteq (hash-keys ext-table))))
 
   ;; range can't be:
@@ -39,7 +38,6 @@
     (cond [(hash-has-key? prim-table name) (values 'quote name)]
           [(hash-has-key? const-table name) (values 'const name)]
           [(hash-ref alias-table name #f) => get-ext-parse-result]
-          [(hash-has-key? alias-internal-table name) (values 'const name)]
           [(hash-has-key? ext-table name) (values 'quote name)]
           [(hash-ref opq-table name #f) =>
            (λ ([V : -V])

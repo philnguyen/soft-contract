@@ -31,9 +31,7 @@
 
   (: get-const : Symbol → -prim)
   (define (get-const c)
-    (or (hash-ref rt:const-table c #f)
-        (hash-ref rt:alias-internal-table c #f)
-        (error 'get-const "nothing for ~a" c)))
+    (hash-ref rt:const-table c (λ () (error 'get-const "nothing for ~a" c))))
 
   (: o⇒o : Symbol Symbol → -R)
   (define (o⇒o p q)
