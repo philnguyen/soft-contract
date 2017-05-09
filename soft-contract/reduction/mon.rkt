@@ -11,7 +11,6 @@
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "../signatures.rkt"
-         "../proof-relation/signatures.rkt"
          "signatures.rkt")
 
 (define-unit mon@

@@ -7,14 +7,11 @@
          typed/racket/unit
          set-extras
          "../runtime/main.rkt"
-         "../primitives/main.rkt"
          "main.rkt"
          "../reduction/signatures.rkt"
-         "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
 
-         "prim-runtime.rkt"
          "../proof-relation/main.rkt"
          "../reduction/main.rkt"
          )
