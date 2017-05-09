@@ -425,6 +425,7 @@
 (define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
 (define-type -⟦o⟧ (-⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
 (define-type -⟦f⟧ (-$ -ℒ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+(-Prim . ::= . (-⟦o⟧.boxed -⟦o⟧) (-⟦f⟧.boxed -⟦f⟧))
 (define-values (remember-e! recall-e) ((inst make-memoeq -⟦e⟧ -e)))
 
 

@@ -69,12 +69,10 @@
 
   (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
   (define const-table : (HashTable Symbol -prim) (make-hasheq))
-  (define prim-table  : (HashTable Symbol -⟦o⟧) (make-hasheq))
+  (define prim-table  : (HashTable Symbol -Prim) (make-hasheq))
   (define opq-table   : (HashTable Symbol -●) (make-hasheq))
   (define debug-table : (HashTable Symbol Any) (make-hasheq))
 
-  (: get-prim : Symbol → (Option -⟦o⟧))
-  (define (get-prim o) (hash-ref prim-table o #f))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Helpers for some of the primitives

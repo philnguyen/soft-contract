@@ -2,14 +2,19 @@
 
 (provide prims-13@)
 
-(require racket/contract
+(require racket/match
+         racket/set
+         racket/contract
          typed/racket/unit
+         "../ast/definition.rkt"
+         "../runtime/definition.rkt"
          "def-prim.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-13@
-  (import prim-runtime^ widening^ proof-system^)
+  (import prim-runtime^ widening^ proof-system^ app^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -35,6 +40,16 @@
   ; [HO] call-with-input-file call-with-output-file
   (def-prim open-input-file (path-string? . -> . input-port?) #:volatile? #t #:lift-concrete? #f)
   (def-prim open-output-file (path-string? . -> . output-port?) #:volatile? #t #:lift-concrete? #f)
+
+  (def-ext (call-with-input-file $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
+    #:domain ([W-p path-string?] [W-cb (input-port? . -> . any/c)])
+    (define arg (-W¹ (-● {set 'input-port?}) (-x (+x!/memo 'cwif))))
+    (app $ ℒ W-cb (list arg) Γ ⟪ℋ⟫ Σ ⟦k⟧))
+
+  (def-ext (call-with-output-file $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
+    #:domain ([W-p path-string?] [W-cb (output-port? . -> . any/c)])
+    (define arg (-W¹ (-● {set 'output-port?}) (-x (+x!/memo 'cwof))))
+    (app $ ℒ W-cb (list arg) Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide prim-runtime^)
+(provide prim-runtime^ prims-for-parser^)
 
 (require typed/racket/unit
          set-extras
@@ -27,10 +27,14 @@
    [update-arity! : (Symbol Arity → Void)]
    [set-partial! : (Symbol Natural → Void)]
 
-   [prim-table : (HashTable Symbol -⟦o⟧)]
+   [prim-table : (HashTable Symbol -Prim)]
    [const-table : (HashTable Symbol -prim)]
    [debug-table : (HashTable Symbol Any)]
    [alias-table : (HashTable Symbol Symbol)]
    [opq-table : (HashTable Symbol -●)]
    [range-table : (HashTable Symbol Symbol)]
    [arity-table : (HashTable Symbol Arity)]))
+
+(define-signature prims-for-parser^
+  ([get-defined-prim-names : (→ (℘ Symbol))]
+   [get-prim-parse-result : (Symbol → (Values (U 'quote 'const) Symbol))]))

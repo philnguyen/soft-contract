@@ -15,7 +15,7 @@
          "signatures.rkt")
 
 (define-unit app@
-  (import mon^ compile^ kont^ proof-system^ prims^ exts^ memoize^ widening^)
+  (import mon^ compile^ kont^ proof-system^ prims^ memoize^ widening^)
   (export app^)
 
   (define (app [$ : -$] [ℒ : -ℒ] [Wₕ : -W¹] [Wₓs : (Listof -W¹)] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
@@ -89,7 +89,7 @@
       ['make-sequence (app-make-sequence $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
 
       ;; Regular stuff
-      [(? symbol? o) ((app-prim-or-ext o) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(? symbol? o) ((app-prim o) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-Clo xs ⟦e⟧ ρₕ Γₕ)
        (with-guarded-arity (formals-arity xs)
          ((app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))]
@@ -165,24 +165,21 @@
        (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ) (-ℒ-app ℒ)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
-  (define (app-prim-or-ext [o : Symbol]) : -⟦f⟧
+  (define (app-prim [o : Symbol]) : -⟦f⟧
     (λ ($ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (cond
-        [(get-prim o) =>
-         (λ ([⟦o⟧ : -⟦o⟧])
-           (match-define (-Γ _ as₀) Γ)
-           #;(begin
-               (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
-               (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
-                 (printf "  - ~a~n" (show-ΓA ans)))
-               (printf "~n"))
-           (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℒ Σ Γ Wₓs))])
-                      (match-define (-ΓA φs A) ΓA)
-                      (⟦k⟧ A $ (-Γ φs as₀) ⟪ℋ⟫ Σ)))]
-        [(get-ext o) =>
-         (λ ([⟦f⟧ : -⟦f⟧])
-           (⟦f⟧ $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-        [else (error 'app "don't know how to apply `~a`" o)])))
+      (match (get-prim o)
+        [(-⟦o⟧.boxed ⟦o⟧)
+         (match-define (-Γ _ as₀) Γ)
+         #;(begin
+             (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
+             (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
+               (printf "  - ~a~n" (show-ΓA ans)))
+             (printf "~n"))
+         (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℒ Σ Γ Wₓs))])
+                    (match-define (-ΓA φs A) ΓA)
+                    (⟦k⟧ A $ (-Γ φs as₀) ⟪ℋ⟫ Σ))]
+        [(-⟦f⟧.boxed ⟦f⟧)
+         (⟦f⟧ $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)])))
 
   (define (app-clo [xs : -formals] [⟦e⟧ : -⟦e⟧] [ρₕ : -ρ] [Γₕ : -Γ] [sₕ : -?t]) : -⟦f⟧
     (λ ($ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)

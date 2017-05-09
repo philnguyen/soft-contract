@@ -22,12 +22,12 @@
                      racket/syntax
                      syntax/parse
                      racket/contract
-                     "../externals/for-parser.rkt" ;; SNEAKY!!
+                     "../primitives/for-parser.rkt" ;; SNEAKY!!
                      ))
 
 (begin-for-syntax
-  (define ext-names (get-defined-ext-names))
-  (define ext-name->stx get-ext-parse-result))
+  (define prim-names (get-defined-prim-names))
+  (define prim-name->stx get-prim-parse-result))
 
 (define-unit parser-helper@
   (import prims^)
@@ -613,9 +613,9 @@
     (define-syntax-parser make-parse-clauses
       [(_ id:id)
        #`(syntax-parse id
-           #,@(for/list ([o (in-set ext-names)])
+           #,@(for/list ([o (in-set prim-names)])
                 #`[(~literal #,o) 
-                   #,(match/values (ext-name->stx o)
+                   #,(match/values (prim-name->stx o)
                        [('quote name) #`(quote #,name)]
                        [('const name)
                         (define/with-syntax get-const (format-id #'id "get-const"))

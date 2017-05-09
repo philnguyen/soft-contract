@@ -24,6 +24,7 @@
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
          "../runtime/main.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt"
@@ -38,7 +39,7 @@
 (provide prims-04-11@)
 
 (define-unit prims-04-11@
-  (import prim-runtime^ proof-system^ widening^)
+  (import prim-runtime^ proof-system^ widening^ kont^ app^ compile^)
   (export)
 
   (def-pred vector?)
@@ -91,10 +92,103 @@
         [(-Vector/guard (-Vector/C ⟪α⟫s) _ _) (list (-b (length ⟪α⟫s)))]
         [_ -Nat.Vs]))
     {set (-ΓA (-Γ-facts Γ) (-W A sₐ))})
-  #;(def-prim/todo vector-ref
-      (vector? exact-nonnegative-integer? . -> . any/c))
-  #;(def-prim/todo vector-set!
-      ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?))
+
+  (def-ext (vector-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wᵥ vector?] [Wᵢ integer?])
+    (match-define (-Σ σ _ M) Σ)
+    (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+    (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
+    (define sₐ (?t@ 'vector-ref sᵥ sᵢ))
+    (match Vᵥ
+      [(-Vector ⟪α⟫s)
+       #;(hash-ref cache (cons Wᵥ Wᵢ)
+                   (λ ()
+                     (printf "ref ~a ~a:~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ))
+                     (for ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
+                           [i : Natural (in-naturals)]
+                           #:when (plausible-index? M σ Γ Wᵢ i))
+                       (printf "  - ~a ↦ ~a~n" i (set-count (σ@ σ ⟪α⟫))))
+                     (printf "~n")))
+       (for/union : (℘ -ς) ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
+                            [i : Natural (in-naturals)]
+                            #:when (plausible-index? M σ Γ Wᵢ i))
+                  (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
+                  (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
+                             (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
+      [(-Vector^ α n)
+       (for/union : (℘ -ς) ([V (σ@ σ α)])
+                  (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
+      [(-Vector/guard grd ⟪α⟫ᵥ l³)
+       (match-define (-l³ _ _ lo) l³)
+       (match grd
+         [(-Vector/C ⟪α⟫ℓs)
+          (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
+                               [i : Natural (in-naturals)]
+                               #:when (plausible-index? M σ Γ Wᵢ i))
+                     (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
+                     (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
+                     (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
+                     (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
+                                           [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+                                 (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
+                                              (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
+         [(-Vectorof ⟪α⟫ℓ)
+          (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
+          (define c* #f #;(⟪α⟫->s ⟪α⟫*))
+          (for/union : (℘ -ς) ([C* (in-set (σ@ σ ⟪α⟫*))]
+                               [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+                     (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
+                                  (mon.c∷ l³ (ℒ-with-mon ℒ ℓ*) (-W¹ C* c*) ⟦k⟧)))])]
+      [_
+       (⟦k⟧ (-W -●.Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+  
+  (def-ext (vector-set! $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
+    (match-define (-Σ σ _ M) Σ)
+    (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
+    (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
+    (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
+
+    (match Vᵥ
+      [(-Vector ⟪α⟫s)
+       (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
+                            [i : Natural (in-naturals)]
+                            #:when (plausible-index? M σ Γ Wᵢ i))
+                  (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
+                  (σ⊕! Σ Γ ⟪α⟫ Wᵤ #:mutating? #t)
+                  (⟦k⟧ -void.W $ Γ* ⟪ℋ⟫ Σ))]
+      [(-Vector^ α n)
+       (σ⊕! Σ Γ α Wᵤ #:mutating? #t)
+       (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
+      [(-Vector/guard grd ⟪α⟫ᵥ l³)
+       (match-define (-l³ l+ l- lo) l³)
+       (define l³* (-l³ l- l+ lo))
+       (match grd
+         [(-Vector/C ⟪α⟫ℓs)
+          (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
+                               [i : Natural (in-naturals)]
+                               #:when (plausible-index? M σ Γ Wᵢ i))
+                     (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
+                     (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
+                     (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
+                     (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
+                                           [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+                                 (define W-c (-W¹ Cᵢ cᵢ))
+                                 (define Wᵥ* (-W¹ Vᵥ* sᵥ))
+                                 (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓᵢ) (mk-rt W-c) (mk-rt Wᵤ)))
+                                 (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧))))]
+         [(-Vectorof ⟪α⟫ℓ)
+          (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
+          (define c* #f #;(⟪α⟫->s ⟪α⟫*))
+          (for*/union : (℘ -ς) ([C*  (in-set (σ@ σ ⟪α⟫*))]
+                                [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
+                      (define W-c (-W¹ C* c*))
+                      (define Wᵥ* (-W¹ Vᵥ* sᵥ))
+                      (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓ*) (mk-rt W-c) (mk-rt Wᵤ)))
+                      (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧)))])]
+      [_
+       (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]))
+  
   (def-prim vector->list (vector? . -> . list?)) ; FIXME retain content
   (def-prim/custom (list->vector ⟪ℋ⟫ ℒ Σ Γ Ws)
     #:domain ([W list?])
@@ -122,6 +216,9 @@
     ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? . -> . void?))
   #;[vector->values ; FIXME uses, var-values, `any` instead of `any/c`
      (vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . any)]
+
+  (def-ext build-vector
+    (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c) . -> . vector?))
 
   ;; 4.11.1 Additional Vector Functions
   (def-prim/todo vector-set*! ; FIXME uses

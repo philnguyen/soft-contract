@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide get-defined-ext-names
-         get-ext-parse-result)
+(provide get-defined-prim-names
+         get-prim-parse-result)
 
 (require racket/set
          typed/racket/unit
@@ -14,36 +14,34 @@
          "../signatures.rkt"
          "signatures.rkt"
 
-         "ext-runtime.rkt"
+         "prim-runtime.rkt"
          "../proof-relation/main.rkt"
          "../reduction/main.rkt"
          )
 
-(define-unit pre-ext-for-parser@
-  (import prim-runtime^ ext-runtime^)
-  (export ext-for-parser^)
+(define-unit pre-prims-for-parser@
+  (import prim-runtime^)
+  (export prims-for-parser^)
 
-  (define (get-defined-ext-names)
+  (define (get-defined-prim-names)
     ;; TODO def-opq table
     (∪ (list->seteq (hash-keys const-table))
        (list->seteq (hash-keys prim-table))
-       (list->seteq (hash-keys alias-table))
-       (list->seteq (hash-keys ext-table))))
+       (list->seteq (hash-keys alias-table))))
 
   ;; range can't be:
   ;;  - `Syntaxof Any`, b/c can't convert to contract
   ;;  - `Any`, because TR doens't know how to wrap it
-  (: get-ext-parse-result : Symbol → (Values (U 'quote 'const) Symbol))
-  (define (get-ext-parse-result name)
+  (: get-prim-parse-result : Symbol → (Values (U 'quote 'const) Symbol))
+  (define (get-prim-parse-result name)
     (cond [(hash-has-key? prim-table name) (values 'quote name)]
           [(hash-has-key? const-table name) (values 'const name)]
-          [(hash-ref alias-table name #f) => get-ext-parse-result]
-          [(hash-has-key? ext-table name) (values 'quote name)]
+          [(hash-ref alias-table name #f) => get-prim-parse-result]
           [(hash-ref opq-table name #f) =>
            (λ ([V : -V])
-             (error 'get-ext-parse-result "TODO: opq-table"))]
-          [else (error 'get-ext-parse-result "`~a` not found" name)])))
+             (error 'get-prim-parse-result "TODO: opq-table"))]
+          [else (error 'get-prim-parse-result "`~a` not found" name)])))
 
 (define-values/invoke-unit/infer
-  (export ext-for-parser^ ext-runtime^ exts^)
-  (link prims@ exts@ proof-system@ reduction@ pre-ext-for-parser@))
+  (export prims-for-parser^ prims^)
+  (link prims@ proof-system@ reduction@ pre-prims-for-parser@))

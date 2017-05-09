@@ -202,6 +202,6 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import prims^ exts^ proof-system^ widening^)
+  (import prims^ proof-system^ widening^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

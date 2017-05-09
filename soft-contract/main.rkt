@@ -7,11 +7,10 @@
          "proof-relation/main.rkt"
          "reduction/main.rkt"
          "primitives/main.rkt"
-         "externals/main.rkt"
          "parse/main.rkt"
          "signatures.rkt"
          )
 
 (define-values/invoke-unit/infer
   (export verifier^ parser^)
-  (link prims@ exts@ proof-system@ reduction@ verifier@ parser@))
+  (link prims@ proof-system@ reduction@ verifier@ parser@))

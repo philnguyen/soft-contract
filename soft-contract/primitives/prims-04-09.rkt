@@ -24,6 +24,7 @@
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
          "../runtime/main.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt"
@@ -38,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-09@
-  (import prim-runtime^ proof-system^ widening^)
+  (import prim-runtime^ proof-system^ widening^ kont^ app^)
   (export)
 
 
@@ -135,12 +136,27 @@
       [_ {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'list?})) sₐ))}]))
 
   ;; 4.9.3 List Iteration
-  #;(def-prim/todo map ; FIXME uses
-      (procedure? list? . -> . list?))
+  (def-ext (map $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    ; FIXME uses 
+    #:domain ([Wₚ (any/c . -> . any/c)]
+              [Wₗ list?])
+    (match-define (-Σ σ _ M) Σ)
+    (match-define (-W¹ Vₚ sₚ) Wₚ)
+    (match-define (-W¹ Vₗ sₗ) Wₗ)
+    (define tₐ (?t@ 'map sₚ sₗ))
+    (match Vₗ
+      [(-b '()) (⟦k⟧ (-W (list -null) tₐ) $ Γ ⟪ℋ⟫ Σ)]
+      [(-Cons _ _)
+       (define ⟦k⟧* (mk-listof∷ tₐ ℒ ⟪ℋ⟫ ⟦k⟧))
+       (for/union : (℘ -ς) ([V (extract-list-content σ Vₗ)])
+                  (app $ ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+      [_ (⟦k⟧ (-W (list (-● (set 'list?))) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   #;(def-prims (andmap ormap) ; FIXME uses
       (procedure? list . -> . any/c))
-  #;(def-prim for-each ; FIXME uses ; FIXME cannot be defined here
-      (procedure? list? . -> . void?))
+  (def-ext (for-each $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wₚ (any/c . -> . any/c)]
+              [Wₗ list?])
+    #:result -void.Vs)
   #;(def-prims (foldl foldr) ; FIXME uses
       (procedure? any/c list? . -> . any/c))
 

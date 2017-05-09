@@ -6,6 +6,7 @@
          set-extras
          "../ast/main.rkt"
          "../runtime/main.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "prim-runtime.rkt"
@@ -26,8 +27,9 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → (Option -⟦o⟧))
-  (define (get-prim o) (hash-ref rt:prim-table o #f))
+  (: get-prim : Symbol → -Prim)
+  (define (get-prim o)
+    (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
   (: get-const : Symbol → -prim)
   (define (get-const c)
@@ -53,7 +55,7 @@
   )
 
 (define-compound-unit/infer prims@
-  (import proof-system^ widening^)
+  (import proof-system^ widening^ app^ kont^ compile^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@

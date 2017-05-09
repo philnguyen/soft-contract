@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide verifier^ reduction^ parser^ prims^ exts^ proof-system^ widening^)
+(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^)
 
 (require typed/racket/unit
          set-extras
@@ -20,16 +20,13 @@
   ([parse-files : ((Listof Path-String) → (Listof -module))]))
 
 (define-signature prims^ ; TODO
-  ([get-prim : (Symbol → (Option -⟦o⟧))]
+  ([get-prim : (Symbol → (Option -Prim))]
    [get-const : (Symbol → -prim)]
    [o⇒o : (Symbol Symbol → -R)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
    [prim-arity : (Symbol → Arity)]
    [extract-list-content : (-σ -St → (℘ -V))]))
-
-(define-signature exts^ ; TODO
-  ([get-ext : (Symbol → (Option -⟦f⟧))]))
 
 (define-signature proof-system^
   ([MΓ⊢V∈C : (-M -σ -Γ -W¹ -W¹ → -R)]
