@@ -31,10 +31,6 @@
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
-  (: get-const : Symbol → -prim)
-  (define (get-const c)
-    (hash-ref rt:const-table c (λ () (error 'get-const "nothing for ~a" c))))
-
   (: o⇒o : Symbol Symbol → -R)
   (define (o⇒o p q)
     (cond [(eq? p q) '✓]
@@ -49,14 +45,20 @@
 
   (: prim-arity : Symbol → Arity)
   (define (prim-arity o)
-    (hash-ref rt:arity-table o (λ () (error 'get-arity "nothing for ~a" o))))
+    (hash-ref rt:arity-table o (λ () (error 'prim-arity "nothing for ~a~n" o))))
 
   (define extract-list-content rt:extract-list-content)
+
+  (: parse-prim : Identifier → (Option -prim))
+  (define (parse-prim id)
+    (cond [(parse-prim-table-ref rt:const-table id (λ () #f)) => values]
+          [(alias-table-ref rt:alias-table id (λ () #f)) => parse-prim]
+          [else #f]))
   )
 
 (define-compound-unit/infer prims@
   (import proof-system^ widening^ app^ kont^ compile^)
-  (export prims^ prim-runtime^)
+  (export prims^)
   (link prim-runtime@
         pre-prims@
         relations@

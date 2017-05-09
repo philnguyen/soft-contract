@@ -1,11 +1,41 @@
 #lang typed/racket/base
 
-(provide prim-runtime^ prims-for-parser^)
+(provide prim-runtime^)
 
 (require typed/racket/unit
+         typed/racket/unsafe
          set-extras
          "../ast/main.rkt"
          "../runtime/main.rkt")
+
+(unsafe-require/typed syntax/id-table
+  [#:opaque Parse-Prim-Table free-id-table?]
+  [(make-free-id-table make-parse-prim-table) (#:phase (U #f Integer) → Parse-Prim-Table)]
+  [(free-id-table-ref parse-prim-table-ref) (∀ (X) Parse-Prim-Table Identifier (→ X) → (U X -prim))]
+  [(free-id-table-set! parse-prim-table-set!) (Parse-Prim-Table Identifier -prim → Void)]
+  [(free-id-table-count parse-prim-table-count) (Parse-Prim-Table → Index)]
+  [(in-free-id-table in-parse-prim-table) (Parse-Prim-Table → (Sequenceof Identifier -prim))]
+
+  [#:opaque Alias-Table #|HACK|# mutable-free-id-table?]
+  [(make-free-id-table make-alias-table) (#:phase (U #f Integer) → Alias-Table)]
+  [(free-id-table-ref alias-table-ref) (∀ (X) Alias-Table Identifier (→ X) → (U X Identifier))]  
+  [(free-id-table-set! alias-table-set!) (Alias-Table Identifier Identifier → Void)]
+  [(free-id-table-count alias-table-count) (Alias-Table → Index)]
+  [(in-free-id-table in-alias-table) (Alias-Table → (Sequenceof Identifier Identifier))])
+
+(unsafe-provide Parse-Prim-Table
+                make-parse-prim-table
+                parse-prim-table-ref
+                parse-prim-table-set!
+                parse-prim-table-count
+                in-parse-prim-table
+
+                Alias-Table
+                make-alias-table
+                alias-table-ref
+                alias-table-set!
+                alias-table-count
+                in-alias-table)
 
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
@@ -28,13 +58,12 @@
    [set-partial! : (Symbol Natural → Void)]
 
    [prim-table : (HashTable Symbol -Prim)]
-   [const-table : (HashTable Symbol -prim)]
+   [const-table : Parse-Prim-Table]
+   [alias-table : Alias-Table]
    [debug-table : (HashTable Symbol Any)]
-   [alias-table : (HashTable Symbol Symbol)]
    [opq-table : (HashTable Symbol -●)]
    [range-table : (HashTable Symbol Symbol)]
-   [arity-table : (HashTable Symbol Arity)]))
+   [arity-table : (HashTable Symbol Arity)]
 
-(define-signature prims-for-parser^
-  ([get-defined-prim-names : (→ (℘ Symbol))]
-   [get-prim-parse-result : (Symbol → (Values (U 'quote 'const) Symbol))]))
+   [add-alias! : (Identifier Identifier → Void)]
+   [add-const! : (Identifier -prim → Void)]))

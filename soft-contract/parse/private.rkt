@@ -22,16 +22,12 @@
                      racket/syntax
                      syntax/parse
                      racket/contract
-                     "../primitives/for-parser.rkt" ;; SNEAKY!!
                      ))
-
-(begin-for-syntax
-  (define prim-names (get-defined-prim-names))
-  (define prim-name->stx get-prim-parse-result))
 
 (define-unit parser-helper@
   (import prims^)
   (export parser-helper^)
+  (init-depend prims^)
   
   ;; Enable in "production" mode
   #;(define-syntax define/contract
@@ -561,7 +557,7 @@
       
       [i:identifier
        (or
-        (parse-primitive #'i)
+        (parse-prim #'i)
         (match (identifier-binding #'i)
           ['lexical (-x (syntax-e #'i))]
           [#f (-x (syntax-e #'i))]
@@ -604,27 +600,6 @@
       [(x:id ...) (syntax->datum #'(x ...))]
       [rest:id (-var '() (syntax-e #'rest))]
       [(x:id ... . rest:id) (-var (syntax->datum #'(x ...)) (syntax-e #'rest))]))
-
-  ;; Return primitive with given `id`
-  (define/contract (parse-primitive id)
-    (identifier?  . -> . (or/c #f -b? -o?))
-    (log-debug "parse-primitive: ~a~n~n" (syntax->datum id))
-
-    (define-syntax-parser make-parse-clauses
-      [(_ id:id)
-       #`(syntax-parse id
-           #,@(for/list ([o (in-set prim-names)])
-                #`[(~literal #,o) 
-                   #,(match/values (prim-name->stx o)
-                       [('quote name) #`(quote #,name)]
-                       [('const name)
-                        (define/with-syntax get-const (format-id #'id "get-const"))
-                        #`(get-const '#,name)]
-                       [(_ _) (error 'make-parse-clause "~a" o)])])
-           [_ #f])])
-
-    ;; Read off from primitive table
-    (make-parse-clauses id))
 
   (define/contract parse-require-spec
     (scv-syntax? . -> . -require-spec?)

@@ -43,8 +43,8 @@
 
 (define-syntax-parser def-const
   [(_ x:id)
-   (hack:make-available #'x const-table)
-   #'(hash-set-once! const-table 'x (-b x))])
+   (hack:make-available #'x add-const!)
+   #'(add-const! #'x (-b x))])
 
 (define-syntax (def-prim stx)
   
@@ -55,13 +55,14 @@
               (free-identifier=? c #'any/c))
      (define/with-syntax n (length (syntax->list #'(c ...))))
      (define/with-syntax .o (prefix-id #'o))
-     (hack:make-available #'o make-total-pred prim-table set-range! update-arity!)
+     (hack:make-available #'o make-total-pred prim-table set-range! update-arity! add-const!)
      
      #'(begin
          (define .o ((make-total-pred n) 'o))
          (hash-set! prim-table 'o (-⟦o⟧.boxed .o))
          (set-range! 'o 'boolean?)
-         (update-arity! 'o n))]
+         (update-arity! 'o n)
+         (add-const! #'o 'o))]
 
     [(_ o:id sig:ff
         (~optional (~seq #:other-errors [cₑ:fc ...] ...)
@@ -127,11 +128,12 @@
             (list #`(set-partial! 'o #,n))]
            [_ '()])))
 
-     (hack:make-available #'o prim-table debug-table set-range! update-arity!)
+     (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const!)
 
      #`(begin
          (: .o : -⟦o⟧)
          defn-o
+         (add-const! #'o 'o)
          (hash-set! prim-table 'o (-⟦o⟧.boxed .o))
          (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))
          (update-arity!
@@ -150,12 +152,13 @@
 
   (define/contract (gen-defn o .o defn-o)
     (identifier? identifier? syntax?  . -> . syntax?)
-    (hack:make-available o prim-table debug-table)
+    (hack:make-available o prim-table debug-table add-const!)
     #`(begin
         (: #,.o : -⟦o⟧)
         #,defn-o
         (hash-set! prim-table '#,o (-⟦o⟧.boxed #,.o))
-        (hash-set! debug-table '#,o '#,(syntax->datum defn-o))))
+        (hash-set! debug-table '#,o '#,(syntax->datum defn-o))
+        (add-const! #'#,o '#,o)))
   
   (syntax-parse stx
     [(_ (o:id ⟪ℋ⟫:id ℒ:id Σ:id Γ:id Ws:id)
@@ -192,7 +195,11 @@
     [(_ (o:id ⟪ℋ⟫:id ℒ:id Σ:id Γ:id Ws:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o #'(define (.o ⟪ℋ⟫ ℒ Σ Γ Ws) e ...))
-     (gen-defn #'o #'.o defn-o)]))
+     (log-warning "Record arityt 0+ for `~a`~n" (syntax-e #'o))
+     (hack:make-available #'o update-arity!)
+     #`(begin
+         (update-arity! 'o arity-0+)
+         #,(gen-defn #'o #'.o defn-o))]))
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
   (def-prim/custom (x ⟪ℋ⟫ ℒ Σ Γ Ws)
@@ -222,13 +229,13 @@
 
 (define-syntax-parser def-alias
   [(_ x:id y:id)
-   (hack:make-available #'x alias-table)
-   #'(hash-set-once! alias-table 'x 'y)])
+   (hack:make-available #'x add-alias!)
+   #'(add-alias! #'x #'y)])
 
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
-   (hack:make-available #'x const-table)
-   #'(hash-set-once! const-table 'x v)])
+   (hack:make-available #'x add-const!)
+   #'(add-const! #'x v)])
 
 (define-syntax-parser def-opq
   [(_ x:id c:fc)
@@ -283,12 +290,13 @@
 (define-syntax (def-ext stx)
   (define/contract (gen-defn o .o defn)
     (identifier? identifier? syntax? . -> . syntax?)
-    (hack:make-available o prim-table debug-table)
+    (hack:make-available o prim-table debug-table add-const!)
     #`(begin
         (: #,.o : -⟦f⟧)
         #,defn
         (hash-set! prim-table '#,o (-⟦f⟧.boxed #,.o))
-        (hash-set! debug-table '#,o '#,(syntax->datum defn))))
+        (hash-set! debug-table '#,o '#,(syntax->datum defn))
+        (add-const! #'#,o '#,o)))
   
   (syntax-parse stx
     

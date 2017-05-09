@@ -21,12 +21,12 @@
 
 (define-signature prims^ ; TODO
   ([get-prim : (Symbol → (Option -Prim))]
-   [get-const : (Symbol → -prim)]
    [o⇒o : (Symbol Symbol → -R)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
    [prim-arity : (Symbol → Arity)]
-   [extract-list-content : (-σ -St → (℘ -V))]))
+   [extract-list-content : (-σ -St → (℘ -V))]
+   [parse-prim : (Identifier → (Option -prim))]))
 
 (define-signature proof-system^
   ([MΓ⊢V∈C : (-M -σ -Γ -W¹ -W¹ → -R)]

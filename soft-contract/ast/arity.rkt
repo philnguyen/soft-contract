@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide Arity Arity? arity-includes? normalize-arity)
+(provide Arity Arity? arity-includes? normalize-arity arity-0+)
 
 (require bnf)
 (require/typed racket/function
@@ -11,3 +11,5 @@
 (Arity . ::= . Natural
                arity-at-least
                [#:old (Listof (U Natural arity-at-least))])
+
+(define arity-0+ (arity-at-least 0))

@@ -6,6 +6,7 @@
          racket/set
          racket/contract
          typed/racket/unit
+         racket/unsafe/ops
          set-extras
          "../ast/main.rkt"
          "../runtime/main.rkt"

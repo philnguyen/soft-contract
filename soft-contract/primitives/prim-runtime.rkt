@@ -67,8 +67,8 @@
               [else
                {set (-ΓA (-Γ-facts Γ) (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
 
-  (define alias-table : (HashTable Symbol Symbol) (make-hasheq))
-  (define const-table : (HashTable Symbol -prim) (make-hasheq))
+  (define alias-table : Alias-Table (make-alias-table #:phase 0))
+  (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
   (define prim-table  : (HashTable Symbol -Prim) (make-hasheq))
   (define opq-table   : (HashTable Symbol -●) (make-hasheq))
   (define debug-table : (HashTable Symbol Any) (make-hasheq))
@@ -186,5 +186,20 @@
            (λ ([a : Arity])
              ((if (arity-includes? a arity) t f) Γ))]
           [else (∪ (t Γ) (f Γ))]))
-  
+
+  (: add-const! : Identifier -prim → Void)
+  (define (add-const! x v)
+    (cond [(parse-prim-table-ref const-table x (λ () #f)) =>
+           (λ ([v₀ : -prim])
+             (error 'add-const! "~a ↦ ~a, attempt to set to ~a"
+                    (syntax-e x) (show-e v₀) (show-e v)))]
+          [else (parse-prim-table-set! const-table x v)]))
+
+  (: add-alias! : Identifier Identifier → Void)
+  (define (add-alias! x y)
+    (cond [(alias-table-ref alias-table x (λ () #f)) =>
+           (λ ([y₀ : Identifier])
+             (error 'add-alias! "~a ↦ ~a, attempt to set to ~a"
+                    (syntax-e x) (syntax-e y₀) (syntax-e y)))]
+          [else (alias-table-set! alias-table x y)]))
   )
