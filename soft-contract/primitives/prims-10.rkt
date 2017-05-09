@@ -3,7 +3,9 @@
 (provide prims-10@)
 
 (require racket/match
+         racket/set
          typed/racket/unit
+         "../utils/list.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "../signatures.rkt"
@@ -13,6 +15,15 @@
 (define-unit prims-10@
   (import proof-system^ widening^ prim-runtime^)
   (export)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.1 Multiple Values
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (def-prim/custom (values ⟪ℋ⟫ ℒ Σ Γ Ws)
+    (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
+    {set (-ΓA (-Γ-facts Γ) (-W Vs (apply ?t@ 'values ss)))})
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.2 Exception
@@ -62,6 +73,13 @@
                       (list (-W¹-V Wᵥ))
                       (-ℒ-app ℒ)))
     (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; 10.4 Continuations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  (def-prim/todo call-with-current-continuation ((any/c . -> . any/c) . -> . any/c)) ; FIXME
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
