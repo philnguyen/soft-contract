@@ -21,7 +21,7 @@
 
 (define-signature prims^ ; TODO
   ([get-prim : (Symbol → (Option -⟦o⟧))]
-   [get-const : (Symbol → -b)]
+   [get-const : (Symbol → -prim)]
    [o⇒o : (Symbol Symbol → -R)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]

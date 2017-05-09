@@ -224,20 +224,14 @@
 
 (define-syntax-parser def-alias-internal
   [(_ x:id v:id)
-   (define/with-syntax .x (prefix-id #'x))
    (hack:make-available #'x alias-internal-table)
-   #'(begin
-       (define .x v)
-       (hash-set-once! alias-internal-table 'x v))])
+   #'(hash-set-once! alias-internal-table 'x v)])
 
 (define-syntax-parser def-opq
   [(_ x:id c:fc)
    (define/with-syntax (r ...) (datum->syntax #f (rng->refinement #'c)))
-   (define/with-syntax .x (prefix-id #'x))
    (hack:make-available #'x opq-table)
-   #'(begin
-       (define x (-● (set r ...)))
-       (hash-set-once! opq-table 'x x))])
+   #'(hash-set-once! opq-table 'x (-● (set r ...)))])
 
 (define-syntax-parser dec-implications
   [(_ [p:id (~literal ⇒) q:id ...] ...)
