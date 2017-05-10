@@ -266,15 +266,16 @@
        [(-struct/c 𝒾 cs ℓ)
         (define α (-α->⟪α⟫ 𝒾))
         (define blm (-blm l 'Λ '(struct-defined?) (list (-𝒾-name 𝒾)) ℓ))
+        (define builtin-struct-tag? (match? 𝒾 (== -𝒾-cons) (== -𝒾-box)))
         (match (map ↓ cs)
           ['()
            (define W (-W (list (-St/C #t 𝒾 '())) (-t.@ (-st/c.mk 𝒾) '())))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (define A (if (defined-at? Σ α) W blm))
+             (define A (if (or builtin-struct-tag? (defined-at? Σ α)) W blm))
              (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))]
           [(cons ⟦c⟧ ⟦c⟧s)
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (if (defined-at? Σ α)
+             (if (or builtin-struct-tag? (defined-at? Σ α))
                  (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (struct/c∷ ℓ 𝒾 '() ⟦c⟧s ρ ⟦k⟧))
                  (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)))])]
        [_ (error '↓ₑ "unhandled: ~a" (show-e e))])
