@@ -1,4 +1,6 @@
-#lang racket/base
+#lang racket
+
+(require soft-contract/fake-contract)
 
 ;; Copyright 2013 John Clements (clements@racket-lang.org)
 ;; Code licensed under the Mozilla Public License 2.0
@@ -9,7 +11,7 @@
 ;; Original file would make a SOUND from the sequence of dots and dashes.
 ;; We just make the . and -
 
-(provide string->morse)
+(provide (contract-out [string->morse (-> string? string?)]))
 
 (require "morse-code-table.rkt")
 

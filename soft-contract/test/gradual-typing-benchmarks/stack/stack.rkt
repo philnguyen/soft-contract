@@ -1,10 +1,10 @@
-#lang racket/base
+#lang racket
 
-(provide
- init
- push
-)
+(require soft-contract/fake-contract)
 
+(provide (contract-out
+          [init (-> list?)]
+          [push (-> list? any/c list?)]))
 
 (define (init)
   '())

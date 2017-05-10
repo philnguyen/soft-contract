@@ -327,18 +327,23 @@
 ;;;
 ;;; @end table
 
+;; TODO: add contracts to the rest of these exports.
 (provide
- levenshtein
- ;levenshtein/predicate
- list-levenshtein
- list-levenshtein/eq
- list-levenshtein/equal
- list-levenshtein/eqv
- list-levenshtein/predicate
- string-levenshtein
- vector-levenshtein
- vector-levenshtein/eq
- vector-levenshtein/equal
- vector-levenshtein/eqv
- vector-levenshtein/predicate
- vector-levenshtein/predicate/get-scratch)
+ (contract-out
+  ;; (levenshtein (or/c (-> string? string? integer?)
+  ;;                    (-> vector? vector? integer?)
+  ;;                    (-> list? list? integer?)))
+  ;levenshtein/predicate
+  ;; (list-levenshtein (-> list? list? integer?))
+  ;; (list-levenshtein/eq (-> list? list? integer?))
+  ;; (list-levenshtein/equal (-> list? list? integer?))
+  ;; (list-levenshtein/eqv (-> list? list? integer?))
+  [list-levenshtein/predicate (-> list? list? (-> any/c any/c boolean?) integer?)]
+  ;; string-levenshtein
+  ;; vector-levenshtein
+  ;; vector-levenshtein/eq
+  ;; vector-levenshtein/equal
+  ;; vector-levenshtein/eqv
+  ;; vector-levenshtein/predicate
+  ;; vector-levenshtein/predicate/get-scratch
+  ))

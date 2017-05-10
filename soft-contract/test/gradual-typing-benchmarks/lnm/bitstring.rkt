@@ -1,11 +1,13 @@
 #lang racket/base
 
+(require racket/contract)
+
 (provide
-  log2
-  natural->bitstring
-  bitstring->natural
-  in-reach
-)
+ (contract-out
+  [log2 (-> integer? integer?)]
+  [natural->bitstring (-> (and/c integer? (not/c negative?)) #:pad exact-positive-integer? string?)]
+  [bitstring->natural (-> string? (and/c integer? (not/c negative?)))]
+  [in-reach (-> string? (and/c integer? (not/c negative?)) string?)]))
 
 ;; -----------------------------------------------------------------------------
 

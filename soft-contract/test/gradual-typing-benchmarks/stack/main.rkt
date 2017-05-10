@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 (require "stack.rkt")
 
 (define (main N)

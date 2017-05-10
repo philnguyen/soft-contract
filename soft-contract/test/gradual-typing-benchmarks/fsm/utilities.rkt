@@ -4,9 +4,10 @@
 
 
 (provide
- sum
- relative-average
- choose-randomly)
+ (contract-out
+  [sum (-> (listof number?) number?)]
+  [relative-average (-> (listof number?) (not/c zero?) number?)]
+  [choose-randomly (-> (listof number?) (listof number?))]))
 
 ;; =============================================================================
 

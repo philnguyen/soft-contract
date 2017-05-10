@@ -1,8 +1,10 @@
-#lang racket/base
+#lang racket
+
+(require soft-contract/fake-contract)
 
 ;; Copyright 2014 John Clements, except the portion that comes from wikipedia!
 
-(provide char-table)
+(provide (contract-out [char-table hash?]))
 (require racket/match)
 
 (define wikipedia-text
