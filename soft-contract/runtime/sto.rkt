@@ -28,6 +28,12 @@
       (when (> ⟪α⟫ 3000)
         (error "DONE")))))
 
+(: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
+(define (defined-at? σ α)
+  (cond [(-Σ? σ) (defined-at? (-Σ-σ σ) α)]
+        [else (and (hash-has-key? (-σ-m σ) α)
+                   (not (∋ (hash-ref (-σ-m σ) α) 'undefined)))]))
+
 (: mutated? : (U -Σ -σ) ⟪α⟫ → Boolean)
 (define (mutated? m ⟪α⟫)
   (∋ (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫))

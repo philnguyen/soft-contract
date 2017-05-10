@@ -102,11 +102,13 @@
   (test "safe/issues/issue-76.rkt" check-safe)
   (test "safe/issues/make-vector.rkt" check-safe)
   (test "safe/issues/ctc-var.rkt" check-safe)
+  (test "safe/issues/issue-79.rkt" check-safe)
   #;(test '("safe/issues/issue-65/main.rkt"
           "safe/issues/issue-65/example.rkt")
         check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
+  (test "unsafe/issues/issue-79.rkt" check-fail)
 
   #;(test '("safe/multiple/main.rkt"
           "safe/multiple/helper-1.rkt"
