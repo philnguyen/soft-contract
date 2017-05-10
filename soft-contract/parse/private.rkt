@@ -135,38 +135,39 @@
 
   (define/contract parse-provide-spec
     (syntax? . -> . (listof -p/c-item?))
-    (syntax-parser #:literals (quote #%plain-app)
-                   [(#%plain-app (~literal fake:dynamic-struct-out)
-                                 (quote s:id)
-                                 (#%plain-app (~literal list) (quote ac:id) c) ...)
-                    (define cs (syntax->list #'(c ...)))
-                    (define n (length cs))
-                    (define s-name (syntax-e #'s))
-                    (define 𝒾 (-𝒾 s-name (cur-mod)))
-                    (define st-doms (map parse-e cs))
-                    (define ℓ (syntax-ℓ #'s))
-                    (define st-p (-struct/c 𝒾 st-doms ℓ))
-                    (define dec-constr
-                      (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
-                             [ℓₑ (ℓ-with-id ℓₖ 'provide)])
-                        (-p/c-item (syntax-e #'s) (--> st-doms st-p ℓₖ) ℓₑ)))
-                    (define dec-pred
-                      (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
-                             [ℓₑ (ℓ-with-id ℓₚ 'provide)])
-                        (-p/c-item (format-symbol "~a?" s-name)
-                                   (--> (list 'any/c) 'boolean? ℓₚ)
-                                   ℓₑ)))
-                    (define dec-acs
-                      (for/list ([ac (in-syntax-list #'(ac ...))]
-                                 [st-dom st-doms]
-                                 [i (in-naturals)])
-                        (define ℓᵢ (ℓ-with-id ℓ i))
-                        (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
-                        (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
-                        (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ)))
-                    (list* dec-constr dec-pred dec-acs)]
-                   [(#%plain-app (~literal list) x:id c:expr)
-                    (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ #'x)))]))
+    (syntax-parser
+      #:literals (quote #%plain-app)
+      [(#%plain-app (~literal fake:dynamic-struct-out)
+                    (quote s:id)
+                    (#%plain-app (~literal list) (quote ac:id) c) ...)
+       (define cs (syntax->list #'(c ...)))
+       (define n (length cs))
+       (define s-name (syntax-e #'s))
+       (define 𝒾 (-𝒾 s-name (cur-mod)))
+       (define st-doms (map parse-e cs))
+       (define ℓ (syntax-ℓ #'s))
+       (define st-p (-struct/c 𝒾 st-doms ℓ))
+       (define dec-constr
+         (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
+                [ℓₑ (ℓ-with-id ℓₖ 'provide)])
+           (-p/c-item (syntax-e #'s) (--> st-doms st-p ℓₖ) ℓₑ)))
+       (define dec-pred
+         (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
+                [ℓₑ (ℓ-with-id ℓₚ 'provide)])
+           (-p/c-item (format-symbol "~a?" s-name)
+                      (--> (list 'any/c) 'boolean? ℓₚ)
+                      ℓₑ)))
+       (define dec-acs
+         (for/list ([ac (in-syntax-list #'(ac ...))]
+                    [st-dom st-doms]
+                    [i (in-naturals)])
+           (define ℓᵢ (ℓ-with-id ℓ i))
+           (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
+           (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
+           (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ)))
+       (list* dec-constr dec-pred dec-acs)]
+      [(#%plain-app (~literal list) x:id c:expr)
+       (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ #'x)))]))
 
   (define/contract parse-submodule-form
     (scv-syntax? . -> . (or/c #f -submodule-form?))
