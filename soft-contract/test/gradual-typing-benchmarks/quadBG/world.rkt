@@ -1,0 +1,191 @@
+#lang racket/base
+
+(provide
+ (prefix-out world: logging-level)
+ (prefix-out world: quality-default)
+ (prefix-out world: draft-quality)
+ (prefix-out world: x-position-key)
+ (prefix-out world: y-position-key)
+ (prefix-out world: split-quad-key)
+ (prefix-out world: height-key)
+ (prefix-out world: width-key)
+ (prefix-out world: leading-key)
+ (prefix-out world: leading-key-default)
+ (prefix-out world: font-size-key)
+ (prefix-out world: font-size-default)
+ (prefix-out world: font-name-key)
+ (prefix-out world: font-name-default)
+ (prefix-out world: font-weight-key)
+ (prefix-out world: font-weight-default)
+ (prefix-out world: font-style-key)
+ (prefix-out world: font-style-default)
+ (prefix-out world: font-color-key)
+ (prefix-out world: font-color-default)
+ (prefix-out world: font-background-key)
+ (prefix-out world: font-background-default)
+ (prefix-out world: measure-key)
+ (prefix-out world: measure-default)
+ (prefix-out world: line-index-key)
+ (prefix-out world: total-lines-key)
+ (prefix-out world: horiz-alignment-last-line-key)
+ (prefix-out world: horiz-alignment-key)
+ (prefix-out world: horiz-alignment-default)
+ (prefix-out world: default-lines-per-column)
+ (prefix-out world: minimum-lines-per-column)
+ (prefix-out world: min-last-lines)
+ (prefix-out world: min-first-lines)
+ (prefix-out world: column-index-key)
+ (prefix-out world: column-count-key)
+ (prefix-out world: column-count-key-default)
+ (prefix-out world: column-gutter-key)
+ (prefix-out world: column-gutter-key-default)
+ (prefix-out world: paper-width-default)
+ (prefix-out world: quality-key)
+ (prefix-out world: quality-key-default)
+ (prefix-out world: max-quality)
+ (prefix-out world: minimum-last-line-chars)
+ (prefix-out world: unbreakable-key)
+ (prefix-out world: soft-hyphen)
+ (prefix-out world: hyphens-and-dashes)
+ (prefix-out world: empty-string)
+ (prefix-out world: spaces)
+ (prefix-out world: word-break-key)
+ (prefix-out world: no-break-key)
+ (prefix-out world: default-word-break-list)
+ (prefix-out world: before-break-key)
+ (prefix-out world: use-optical-kerns?)
+ (prefix-out world: hanging-chars)
+ (prefix-out world: optical-overhang)
+ (prefix-out world: mergeable-quad-types)
+ (prefix-out world: ascent-key)
+ (prefix-out world: line-looseness-key)
+ (prefix-out world: allowed-overfull-ratio)
+ (prefix-out world: hyphen-limit)
+ (prefix-out world: hyphen-penalty)
+ (prefix-out world: new-line-penalty)
+ (prefix-out world: last-line-can-be-short)
+ (prefix-out world: use-hyphenation?)
+ (prefix-out world: line-looseness-tolerance)
+ (prefix-out world: page-key)
+ (prefix-out world: paper-height-default)
+ (prefix-out world: allow-hyphenated-last-word-in-paragraph)
+)
+;; -----------------------------------------------------------------------------
+
+(require
+ (for-syntax
+  racket/base
+  racket/syntax))
+
+;; =============================================================================
+
+;; (define-parameter-typed logging-level 'debug Log-Level)  ;; usually 'debug for dev. change to 'info for less
+(define logging-level (make-parameter 'debug))
+
+(define quality-default (make-parameter 100))
+
+(define draft-quality 20)
+
+;; (define-key-and-parameter font-size 'size 13.0 Font-Size)
+(define font-size-key 'size)
+(define font-size-default (make-parameter 13.0))
+;; (define-key-and-parameter font-name 'font "Triplicate T4" Font-Name)
+(define font-name-key 'font)
+(define font-name-default (make-parameter "Triplicate T4"))
+;; (define-key-and-parameter font-weight 'weight 'normal Font-Weight)
+(define font-weight-key 'weight)
+(define font-weight-default (make-parameter 'normal))
+;; (define-key-and-parameter font-style 'style 'normal Font-Style)
+(define font-style-key 'style)
+(define font-style-default (make-parameter 'normal))
+;; (define-key-and-parameter font-color 'color "black" String)
+(define font-color-key 'color)
+(define font-color-default (make-parameter "black"))
+;; (define-key-and-parameter font-background 'background "none" String)
+(define font-background-key 'background)
+(define font-background-default (make-parameter "none"))
+
+;; (define-key-and-parameter leading 'leading (floor (* (font-size-default) 1.4)) Float)
+(define leading-key 'leading)
+(define leading-key-default (make-parameter (floor (* (font-size-default) 1.4))))
+
+;; (define-key-and-parameter measure 'measure 300.0 QuadAttrValue)
+(define measure-key 'measure)
+(define measure-default (make-parameter 300.0))
+
+;(define-key-and-parameter horiz-alignment 'x-align 'left QuadAttrKey)
+(define horiz-alignment-key 'x-align)
+(define horiz-alignment-default (make-parameter 'left))
+
+;(define-parameter-typed optical-overhang 0.8 Float)
+(define optical-overhang (make-parameter 0.8))
+
+;; (define-key-and-parameter column-count 'column-count 2 Index)
+(define column-count-key 'column-count)
+(define column-count-key-default (make-parameter 2))
+;; (define-key-and-parameter column-gutter 'column-gutter 30.0 Float)
+(define column-gutter-key 'column-gutter)
+(define column-gutter-key-default (make-parameter 30.0))
+
+(define max-quality 100)
+;; (define adaptive-quality 50)
+;(define-key-and-parameter quality 'quality max-quality Index)
+(define quality-key 'quality)
+(define quality-key-default (make-parameter max-quality))
+
+
+;(define-key-and-parameter paper-width 'paper-width (* 8.5 72) Float)
+(define paper-width-key 'paper-width)
+(define paper-width-default (make-parameter (* 8.5 72)))
+;; (define-key-and-parameter paper-height 'paper-height (* 11.0 72) Float)
+(define paper-height-default (make-parameter (* 11.0 72)))
+
+(define line-looseness-key 'looseness)
+(define width-key 'width)
+(define horiz-alignment-last-line-key 'x-align-last-line)
+(define word-break-key 'word-break)
+(define no-break-key 'nb)
+(define before-break-key 'bb)
+(define ascent-key 'ascent)
+(define height-key 'height)
+(define unbreakable-key 'no-break)
+
+(define split-quad-key 'word)
+
+(define line-index-key 'line-idx)
+(define total-lines-key 'lines)
+;; (define page-index-key 'page-idx)
+(define column-index-key 'column-idx)
+
+(define x-position-key 'x)
+(define y-position-key 'y)
+
+(define page-key 'page)
+
+(define soft-hyphen #\u00AD)
+(define hyphens-and-dashes (list "-" "–" "—" (format "~a" soft-hyphen)))
+(define spaces '(" "))
+(define empty-string '"")
+
+(define mergeable-quad-types '(char run word))
+
+(define default-word-break-list (make-parameter '(nb "" bb "-")))
+
+(define line-looseness-tolerance 0.05) ; 0.04 seems to be the magic point that avoids a lot of hyphenation
+(define hyphen-limit 1) ; does not work with first-fit wrapping
+(define minimum-last-line-chars 5)
+(define allow-hyphenated-last-word-in-paragraph #t)
+(define allowed-overfull-ratio 1.015)
+(define last-line-can-be-short #t)
+(define use-optical-kerns? #t)
+(define use-hyphenation? #t)
+
+(define new-line-penalty 5000)
+(define hyphen-penalty 5000)
+
+(define hanging-chars (regexp-match* #rx"." ".-,‘’“”'\"()[]{}:;"))
+
+(define minimum-lines-per-column 4)
+(define min-first-lines 2)
+(define min-last-lines 2)
+(define default-lines-per-column 36)
