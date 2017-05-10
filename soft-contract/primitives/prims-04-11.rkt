@@ -128,7 +128,7 @@
           (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                                [i : Natural (in-naturals)]
                                #:when (plausible-index? M σ Γ Wᵢ i))
-                     (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
+                     (match-define (-⟪α⟫ℓ ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
                      (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                      (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
                      (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
@@ -136,7 +136,7 @@
                                  (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                                               (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
          [(-Vectorof ⟪α⟫ℓ)
-          (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
+          (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
           (for/union : (℘ -ς) ([C* (in-set (σ@ σ ⟪α⟫*))]
                                [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
@@ -172,7 +172,7 @@
                                [i : Natural (in-naturals)]
                                #:when (plausible-index? M σ Γ Wᵢ i))
                      (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                     (match-define (cons ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
+                     (match-define (-⟪α⟫ℓ ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
                      (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
                      (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
                                            [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
@@ -181,7 +181,7 @@
                                  (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓᵢ) (mk-rt W-c) (mk-rt Wᵤ)))
                                  (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧))))]
          [(-Vectorof ⟪α⟫ℓ)
-          (match-define (cons ⟪α⟫* ℓ*) ⟪α⟫ℓ)
+          (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
           (for*/union : (℘ -ς) ([C*  (in-set (σ@ σ ⟪α⟫*))]
                                 [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])

@@ -90,21 +90,21 @@
        [(-Vector/guard grd ⟪α⟫ _) (set-add (V->⟪α⟫s grd) ⟪α⟫)]
        [(-Clo _ _ ρ _) (ρ->⟪α⟫s ρ)]
        [(-Case-Clo _ ρ _) (ρ->⟪α⟫s ρ)]
-       [(-And/C _ α β) {seteq (⟪α⟫ℓ->⟪α⟫ α) (⟪α⟫ℓ->⟪α⟫ β)}]
-       [(-Or/C  _ α β) {seteq (⟪α⟫ℓ->⟪α⟫ α) (⟪α⟫ℓ->⟪α⟫ β)}]
-       [(-Not/C α) {seteq (⟪α⟫ℓ->⟪α⟫ α)}]
+       [(-And/C _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
+       [(-Or/C  _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
+       [(-Not/C α) {seteq (-⟪α⟫ℓ-addr α)}]
        [(-One-Of/C _) ∅eq]
        [(-x/C α) {seteq α}]
-       [(-St/C _ _ αs) {list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)}]
-       [(-Vectorof α) {seteq (⟪α⟫ℓ->⟪α⟫ α)}]
-       [(-Vector/C αs) (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs))]
-       [(-=> αs α _)
+       [(-St/C _ _ αs) {list->seteq (map -⟪α⟫ℓ-addr αs)}]
+       [(-Vectorof α) {seteq (-⟪α⟫ℓ-addr α)}]
+       [(-Vector/C αs) (list->seteq (map -⟪α⟫ℓ-addr αs))]
+       [(-=> αs βs _)
         (match αs
-          [(? list? αs) (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ α))]
+          [(? list? αs) (set-add* (list->seteq (map -⟪α⟫ℓ-addr αs)) (map -⟪α⟫ℓ-addr βs))]
           [(-var αs αᵣ)
-           (set-add (set-add (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (⟪α⟫ℓ->⟪α⟫ αᵣ))
-                    (⟪α⟫ℓ->⟪α⟫ α))])]
-       [(-=>i αs (list D _ _) _) (∪ (list->seteq (map ⟪α⟫ℓ->⟪α⟫ αs)) (V->⟪α⟫s D))]
+           (set-add* (set-add (list->seteq (map -⟪α⟫ℓ-addr αs)) (-⟪α⟫ℓ-addr αᵣ))
+                     (map -⟪α⟫ℓ-addr βs))])]
+       [(-=>i αs (list D _ _) _) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
        [(-Case-> clauses _)
         (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
           (match-define (cons αs α) clause)

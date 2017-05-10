@@ -139,6 +139,60 @@
          (define blm (-blm lo 'Λ '(|1 value|) Vs (-ℒ-app ℒ)))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
+  (define-frame (mon*.c∷ [l³ : -l³]
+                         [ℒ : -ℒ]
+                         [rngs : (U (Listof -⟪α⟫ℓ) 'any)]
+                         [d : -?t]
+                         [⟦k⟧ : -⟦k⟧])
+    (case rngs
+      [(any) ⟦k⟧]
+      [else
+       (define-values (βs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc rngs))
+       (define n (length rngs))
+       (match-define (-l³ l+ _ lo) l³)
+       (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (βs)
+         (match-define (-W Vs v) A)
+         (cond
+           [(= n (length Vs))
+            (define vs (split-values v n))
+            (define ds (split-values d n))
+            (define Vals (map -W¹ Vs vs))
+            (for/union : (℘ -ς) ([Ds (in-set (σ@/list Σ βs))])
+              (define Ctcs (map -W¹ Ds ds))
+              (match* (Ctcs Vals ℓs)
+                [((cons Ctc₁ Ctcs*) (cons Val₁ Vals*) (cons ℓ₁ ℓs*))
+                 (mon l³ $ (ℒ-with-mon ℒ ℓ₁) Ctc₁ Val₁ Γ ⟪ℋ⟫ Σ
+                      (mon*∷ l³ ℒ Ctcs* Vals* ℓs* '() ⟦k⟧))]
+                [('() '() '())
+                 (⟦k⟧ -Empty-Values.W $ Γ ⟪ℋ⟫ Σ)]))]
+           [else
+            (define msg
+              (format-symbol (case n
+                               [(0 1) "~a value"]
+                               [else "~a values"])
+                             n))
+            (define blm (-blm l+ lo (list msg) Vs (-ℒ-app ℒ)))
+            (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))]))
+
+  (define-frame (mon*∷ [l³ : -l³]
+                       [ℒ : -ℒ]
+                       [W-Cs : (Listof -W¹)]
+                       [W-Vs : (Listof -W¹)]
+                       [ℓs : (Listof ℓ)]
+                       [res.rev : (Listof -W¹)]
+                       [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (W-Cs W-Vs)
+      (match-define (-W (list V) t) A)
+      (define res.rev* (cons (-W¹ V t) res.rev))
+      (match* (W-Cs W-Vs ℓs)
+        [((cons W-C₁ W-Cs*) (cons W-V₁ W-Vs*) (cons ℓ₁ ℓs*))
+         (mon l³ $ (ℒ-with-mon ℒ ℓ₁) W-C₁ W-V₁ Γ ⟪ℋ⟫ Σ
+              (mon*∷ l³ ℒ W-Cs* W-Vs* ℓs* res.rev* ⟦k⟧))]
+        [('() '() '())
+         (define-values (Vsₐ tsₐ) (unzip-by -W¹-V -W¹-t (reverse res.rev*)))
+         (define Wₐ (-W Vsₐ (apply ?t@ 'values tsₐ)))
+         (⟦k⟧ Wₐ $ Γ ⟪ℋ⟫ Σ)])))
+
   ;; let-values
   (define-frame (let∷ [ℓ : ℓ]
                       [xs : (Listof Symbol)]
@@ -286,7 +340,7 @@
       (define Ws* (cons (-W¹ V s) Ws))
       (match ⟦c⟧s
         ['()
-         (cond [⟦c⟧ᵣ (⟦c⟧ᵣ ρ $ Γ ⟪ℋ⟫ Σ (-->.rst∷ Ws* ⟦d⟧ ρ ℓ ⟦k⟧))]
+         (cond [⟦c⟧ᵣ  (⟦c⟧ᵣ ρ $ Γ ⟪ℋ⟫ Σ (-->.rst∷ Ws* ⟦d⟧ ρ ℓ ⟦k⟧))]
                [else (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ Ws* #f ℓ ⟦k⟧))])]
         [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ Ws* ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧))])))
 
@@ -304,26 +358,13 @@
   ;; Non-dependent contract range
   (define-frame (-->.rng∷ [Ws : (Listof -W¹)]
                           [Wᵣ : (Option -W¹)]
-                          [ℓₐ : ℓ]
+                          [ℓ : ℓ]
                           [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Ws)
-      (match-define (-W Ds d) A)
-      (match Ds
+      (define-values (G g) (mk-=>! Σ Γ ⟪ℋ⟫ Ws Wᵣ A ℓ))
+      (⟦k⟧ (-W (list G) g) $ Γ ⟪ℋ⟫ Σ)
+      #;(match Ds
         [(list D)
-         (define β (-α->⟪α⟫ (-α.rng d ℓₐ #|TODO right?|# ⟪ℋ⟫)))
-         (σ⊕V! Σ β D)
-         (define-values (αs cs) ; with side effect widening store
-           (for/fold ([αs : (Listof ⟪α⟫) '()]
-                      [cs : (Listof -?t) '()])
-                     ([(W i) (in-indexed Ws)] #:when (index? i))
-             (match-define (-W¹ C c) W)
-             (define α (-α->⟪α⟫ (-α.dom c ℓₐ ⟪ℋ⟫ i)))
-             (σ⊕V! Σ α C)
-             (values (cons α αs) (cons c cs))))
-         (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
-           (for/list ([(α i) (in-indexed αs)] #:when (index? i))
-             (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
-         (define βℓ (cons β (ℓ-with-id ℓₐ (length αs))))
          (define G
            (match Wᵣ
              [(-W¹ Vᵣ cᵣ)
@@ -337,9 +378,41 @@
         [_
          (error "TODO: `->`'s range for multiple values")])))
 
+  (: mk-=>! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) (Option -W¹) -W ℓ → (Values -V -?t))
+  (define (mk-=>! Σ Γ ⟪ℋ⟫ doms.rev rst rngs ℓ)
+    (match-define (-W Ds ds) rngs)
+    (define βℓs : (Listof -⟪α⟫ℓ) ; with side-effect allocating ranges
+      (for/list ([D (in-list Ds)]
+                 [d (in-list (split-values ds (length Ds)))]
+                 [i : Natural (in-naturals)])
+        (define β (-α->⟪α⟫ (-α.rng d ℓ ⟪ℋ⟫ i)))
+        (σ⊕V! Σ β D)
+        (-⟪α⟫ℓ β (ℓ-with-id ℓ (cons 'rng i)))))
+    (define-values (αs cs) ; with side-effect allocating domains
+      (for/fold ([αs : (Listof ⟪α⟫) '()]
+                 [cs : (Listof -?t) '()])
+                ([W (in-list doms.rev)]
+                 [i : Natural (in-naturals)])
+        (match-define (-W¹ C c) W)
+        (define α (-α->⟪α⟫ (-α.dom c ℓ ⟪ℋ⟫ i)))
+        (σ⊕V! Σ α C)
+        (values (cons α αs) (cons c cs))))
+    (define αℓs : (Listof -⟪α⟫ℓ)
+      (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
+        (-⟪α⟫ℓ α (ℓ-with-id ℓ (cons 'dom i)))))
+    (match rst
+      [(-W¹ Vᵣ cᵣ)
+       (define αᵣ (-α->⟪α⟫ (-α.rst cᵣ ℓ ⟪ℋ⟫)))
+       (define ℓᵣ (ℓ-with-id ℓ 'rest))
+       (σ⊕V! Σ αᵣ Vᵣ)
+       (values (-=> (-var αℓs (-⟪α⟫ℓ αᵣ ℓᵣ)) βℓs ℓ)
+               (-?-> (-var cs cᵣ) ds))]
+      [#f (values (-=> αℓs βℓs ℓ)
+                  (-?-> cs ds))]))
+
   ;; Given *reversed* list of contract domains and range-maker, create dependent contract
-  (define (mk-=>i! [Σ : -Σ] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫]
-                   [Ws : (Listof -W¹)] [Mk-D : -Clo] [mk-d : -λ] [ℓₐ : ℓ]) : (Values -V -?t)
+  (: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))
+  (define (mk-=>i! Σ Γ ⟪ℋ⟫ Ws Mk-D mk-d ℓₐ)
     (define-values (αs cs) ; with side effect widening store
       (for/fold ([αs : (Listof ⟪α⟫) '()]
                  [cs : (Listof -?t) '()])
@@ -349,10 +422,10 @@
           (-α->⟪α⟫ (-α.dom c ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
         (σ⊕V! Σ α C)
         (values (cons α αs) (cons c cs))))
-    (define β (-α->⟪α⟫ (-α.rng mk-d ℓₐ ⟪ℋ⟫)))
-    (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
-      (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
-        (cons (cast α ⟪α⟫) (ℓ-with-id ℓₐ i))))
+    (define β (-α->⟪α⟫ (-α.rng mk-d ℓₐ ⟪ℋ⟫ #|TODO|# 0)))
+    (define αℓs : (Listof -⟪α⟫ℓ)
+      (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
+        (-⟪α⟫ℓ α (ℓ-with-id ℓₐ i))))
     (define G (-=>i αℓs (list Mk-D mk-d (ℓ-with-id ℓₐ (length αs))) ℓₐ))
     (define g (-?->i cs mk-d))
     (σ⊕V! Σ β Mk-D)
@@ -420,9 +493,9 @@
              (values (cons α αs)
                      (cons c cs)
                      (and flat? (C-flat? C)))))
-         (define αℓs : (Listof (Pairof ⟪α⟫ ℓ))
-           (for/list ([(α i) (in-indexed αs)] #:when (exact-nonnegative-integer? i))
-             (cons (cast α ⟪α⟫) (ℓ-with-id ℓ₁ i))))
+         (define αℓs : (Listof -⟪α⟫ℓ)
+           (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
+             (-⟪α⟫ℓ α (ℓ-with-id ℓ₁ i))))
          (define W (-W (list (-St/C flat? 𝒾 αℓs)) (apply ?t@ (-st/c.mk 𝒾) cs)))
          (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ)]
         [(cons ⟦c⟧ ⟦c⟧s*)

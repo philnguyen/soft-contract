@@ -228,12 +228,12 @@
     #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
     [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
     [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
-    [(--> dom d _)
+    [(--> dom rng _)
      (match dom
        [(-var es e)
-        `(,(map show-e es) #:rest ,(show-e e) . ->* . ,(show-e d))]
+        `(,(map show-e es) #:rest ,(show-e e) . ->* . ,(show-e rng))]
        [(? list? es)
-        `(,@(map show-e es) . -> . ,(show-e d))])]
+        `(,@(map show-e es) . -> . ,(show-e rng))])]
     [(-->i cs (and d (-λ xs _)) _)
      (match xs
        [(? list? xs)
@@ -288,3 +288,11 @@
 (define show-𝒾 : (-𝒾 → Symbol)
   (match-lambda
     [(-𝒾 name from) (format-symbol "~a@~a" name from)]))
+
+(: show-values-lift (∀ (X) (X → Sexp) → (Listof X) → Sexp))
+(define (show-values-lift show-elem)
+  (match-lambda
+    [(list x) (show-elem x)]
+    [xs `(values ,@(map show-elem xs))]))
+
+(define show-values (show-values-lift show-e))

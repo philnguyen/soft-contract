@@ -71,7 +71,7 @@
         (σ⊕V! Σ α₂ V₂)
         (define ℓ₁ (ℓ-with-id ℓ 'left-disj))
         (define ℓ₂ (ℓ-with-id ℓ 'right-disj))
-        (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
+        (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)))
         (values C (?t@ 'or/c t₁ t₂)))
       (reduce-contracts 'or/c (-ℒ-app ℒ) Σ Γ Ws or/c.2 -none/c.W))
     
@@ -86,7 +86,7 @@
         (σ⊕V! Σ α₂ V₂)
         (define ℓ₁ (ℓ-with-id ℓ 'left-conj))
         (define ℓ₂ (ℓ-with-id ℓ 'right-conj))
-        (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (cons α₁ ℓ₁) (cons α₂ ℓ₂)))
+        (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)))
         (values C (?t@ 'and/c t₁ t₂)))
       (reduce-contracts 'and/c (-ℒ-app ℒ) Σ Γ Ws and/c.2 -any/c.W)))
 
@@ -97,7 +97,7 @@
     (define α (-α->⟪α⟫ (-α.not/c t ℓ ⟪ℋ⟫)))
     (σ⊕V! Σ α V)
     (define ℓ* (ℓ-with-id ℓ 'not/c))
-    (define C (-Not/C (cons α ℓ*)))
+    (define C (-Not/C (-⟪α⟫ℓ α ℓ*)))
     {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'not/c t)))})
   (def-prim/todo =/c  (real? . -> . flat-contract?))
   (def-prim/todo </c  (real? . -> . flat-contract?))
@@ -130,7 +130,7 @@
     (match-define (-W¹ V t) W)
     (define ⟪α⟫ (-α->⟪α⟫ (-α.vectorof t ℓ ⟪ℋ⟫)))
     (σ⊕V! Σ ⟪α⟫ V)
-    (define C (-Vectorof (cons ⟪α⟫ (ℓ-with-id ℓ 'vectorof))))
+    (define C (-Vectorof (-⟪α⟫ℓ ⟪α⟫ (ℓ-with-id ℓ 'vectorof))))
     {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'vectorof t)))})
   (def-prim/todo vector-immutableof (contract? . -> . contract?))
   (def-prim/custom (vector/c ⟪ℋ⟫ ℒ Σ Γ Ws)
@@ -143,7 +143,7 @@
         (define ⟪α⟫ (-α->⟪α⟫ (-α.vector/c t ℓ₀ ⟪ℋ⟫ i)))
         (σ⊕V! Σ ⟪α⟫ V)
         (values ⟪α⟫ (ℓ-with-id ℓ₀ i) t)))
-    (define C (-Vector/C (map (inst cons ⟪α⟫ ℓ) αs ℓs)))
+    (define C (-Vector/C (map -⟪α⟫ℓ αs ℓs)))
     {set (-ΓA (-Γ-facts Γ) (-W (list C) (apply ?t@ 'vector/c ss)))})
   #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]

@@ -651,7 +651,7 @@
 
   (define V-arity : (-V → (Option Arity))
     (match-lambda
-      [(-Clo xs _ _ _) (formals-arity xs)]
+      [(-Clo xs _ _ _) (shape xs)]
       [(-Case-Clo clauses _ _)
        (remove-duplicates
         (for/list : (Listof Natural) ([clause clauses])

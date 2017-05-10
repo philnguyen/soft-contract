@@ -17,11 +17,11 @@
   (import compile^ app^ kont^ proof-system^ widening^ prims^)
   (export mon^)
 
-  (define (mon [l³ : -l³] [$ : -$] [ℒ : -ℒ]
-               [W-C : -W¹] [W-V : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
+  (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+  (define (mon l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #;(printf "mon: ~a on ~a~n - l+: ~a~n" (show-W¹ W-C) (show-W¹ W-V) (-l³-pos l³))
     (match-define (-W¹ C _) W-C)
-    (define mon*
+    (define mon₁
       (cond
         [(-=>_? C) mon-=>_]
         [(-St/C? C) mon-struct/c]
@@ -33,7 +33,7 @@
         [(-Vectorof? C) mon-vectorof]
         [(-Vector/C? C) mon-vector/c]
         [else mon-flat/c]))
-    (mon* l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧))
+    (mon₁ l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (define (mon-=>_ [l³ : -l³] [$ : -$] [ℒ : -ℒ] [W-C : -W¹] [W-V : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
     (match-define (-W¹ (? -=>_? grd) c) W-C)
@@ -103,7 +103,7 @@
 
     (: chk-fields : → (℘ -ς))
     (define (chk-fields)
-      (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
+      (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
       (define all-immutable? (struct-all-immutable? 𝒾))
       
       (define ⟦field⟧s : (Listof -⟦e⟧)
@@ -156,7 +156,7 @@
 
   (define (mon-and/c [l³ : -l³] [$ : -$] [ℒ : -ℒ] [W-C : -W¹] [W-V : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
     (match-define (-Σ σ _ _) Σ)
-    (match-define (-W¹ (-And/C _ (cons α₁ ℓ₁) (cons α₂ ℓ₂)) c) W-C)
+    (match-define (-W¹ (-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'and/c c 2))
     (for/union : (℘ -ς) ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
                (mon l³ $ (ℒ-with-mon ℒ ℓ₁) (-W¹ C₁ c₁) W-V Γ ⟪ℋ⟫ Σ 
@@ -165,7 +165,7 @@
   (define (mon-or/c [l³ : -l³] [$ : -$] [ℒ : -ℒ] [W-C : -W¹] [W-V : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
     (match-define (-Σ σ _ _) Σ)
     (match-define (-l³ l+ _ lo) l³)
-    (match-define (-W¹ (-Or/C flat? (cons α₁ ℓ₁) (cons α₂ ℓ₂)) c) W-C)
+    (match-define (-W¹ (-Or/C flat? (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'or/c c 2))
     
     (: chk-or/c : -W¹ ℓ -W¹ ℓ → (℘ -ς))
@@ -182,7 +182,7 @@
 
   (define (mon-not/c [l³ : -l³] [$ : -$] [ℒ : -ℒ] [W-C : -W¹] [W-V : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
     (match-define (-l³ l+ _ lo) l³)
-    (match-define (-W¹ (and C (-Not/C (cons α ℓ*))) c) W-C)
+    (match-define (-W¹ (and C (-Not/C (-⟪α⟫ℓ α ℓ*))) c) W-C)
     (match-define (-W¹ V _) W-V)
     (match-define (list c*) (-app-split 'not/c c 1))
     (define ⟦k⟧*
@@ -211,7 +211,7 @@
     (match-define (-Σ σ _ M) Σ)
     (match-define (-l³ l+ _ lo) l³)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-    (match-define (-W¹ (and Vₚ (-Vectorof (cons α* ℓ*))) _) Wₚ)
+    (match-define (-W¹ (and Vₚ (-Vectorof (-⟪α⟫ℓ α* ℓ*))) _) Wₚ)
 
     (: blm : -V → → (℘ -ς))
     (define ((blm C))
@@ -259,7 +259,7 @@
 
     (: chk-flds : → (℘ -ς))
     (define (chk-flds)
-      (define-values (⟪α⟫s ℓs) (unzip ⟪α⟫ℓs))
+      (define-values (⟪α⟫s ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc ⟪α⟫ℓs))
       
       (define cs (-app-split 'vector/c sₚ n))
 
@@ -306,21 +306,21 @@
     (match-define (-W¹ C c) W-C)
     (match-define (-W¹ V v) W-V)
     (match C
-      [(-And/C _ (cons α₁ ℓ₁) (cons α₂ ℓ₂))
+      [(-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (match-define (list c₁ c₂) (-app-split 'and/c c 2))
        [for*/union : (℘ -ς) ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
                    (define W-C₁ (-W¹ C₁ c₁))
                    (define W-C₂ (-W¹ C₂ c₂))
                    (flat-chk l $ (ℒ-with-mon ℒ ℓ₁) W-C₁ W-V Γ ⟪ℋ⟫ Σ
                              (fc-and/c∷ l (ℒ-with-mon ℒ ℓ₂) W-C₁ W-C₂ ⟦k⟧))]]
-      [(-Or/C _ (cons α₁ ℓ₁) (cons α₂ ℓ₂))
+      [(-Or/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (match-define (list c₁ c₂) (-app-split 'or/c c 2))
        (for*/union : (℘ -ς) ([C₁ (σ@ σ α₁)] [C₂ (σ@ σ α₂)])
                    (define W-C₁ (-W¹ C₁ c₁))
                    (define W-C₂ (-W¹ C₂ c₁))
                    (flat-chk l $ (ℒ-with-mon ℒ ℓ₁) W-C₁ W-V Γ ⟪ℋ⟫ Σ
                              (fc-or/c∷ l (ℒ-with-mon ℒ ℓ₂) W-C₁ W-C₂ W-V ⟦k⟧)))]
-      [(-Not/C (cons α ℓ*))
+      [(-Not/C (-⟪α⟫ℓ α ℓ*))
        (match-define (list c*) (-app-split 'not/c c 1))
        (for/union : (℘ -ς) ([C* (σ@ σ α)])
                   (define W-C* (-W¹ C* c*))
@@ -337,7 +337,7 @@
                       (⟦k⟧ (-W (list -ff v) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ))
            (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ))])]
       [(-St/C _ s αℓs)
-       (define-values (αs ℓs) ((inst unzip ⟪α⟫ ℓ) αℓs))
+       (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
        (define cs (-struct/c-split c s))
        (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
                   (define ⟦chk-field⟧s : (Listof -⟦e⟧)

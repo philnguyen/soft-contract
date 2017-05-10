@@ -46,6 +46,8 @@
    [bgn0.e∷ : (-W (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [mon.c∷ : (-l³ -ℒ (U (Pairof -⟦e⟧ -ρ) -W¹) -⟦k⟧ → -⟦k⟧)]
    [mon.v∷ : (-l³ -ℒ (U (Pairof -⟦e⟧ -ρ) -W¹) -⟦k⟧ → -⟦k⟧)]
+   [mon*.c∷ : (-l³ -ℒ (U (Listof -⟪α⟫ℓ) 'any) -?t -⟦k⟧ → -⟦k⟧)]
+   [mon*∷ : (-l³ -ℒ (Listof -W¹) (Listof -W¹) (Listof ℓ) (Listof -W¹) -⟦k⟧ → -⟦k⟧)]
    [μ/c∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [-->.dom∷ : ((Listof -W¹) (Listof -⟦e⟧) (Option -⟦e⟧) -⟦e⟧ -ρ ℓ -⟦k⟧ → -⟦k⟧)]
    [-->.rst∷ : ((Listof -W¹) -⟦e⟧ -ρ ℓ -⟦k⟧ → -⟦k⟧)]

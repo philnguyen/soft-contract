@@ -61,6 +61,7 @@
 (define -Vector₀ (-Vector '()))
 (def-val -zero)
 (def-val -unsafe-struct-ref 'unsafe-struct-ref)
+(define -Empty-Values.W (-W '() (-t.@ 'values '())))
 ;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
 ;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))
 
@@ -136,17 +137,19 @@
       [(-Vector αs) (ormap check-⟪α⟫! αs)]
       [(-Vector^ α _) (check-⟪α⟫! α)]
       [(-Ar grd α _) #t]
-      [(-=> doms rng _)
+      [(-=> doms rngs _)
        (match doms
          [(? list? doms)
-          (or (check-⟪α⟫! (car rng))
-              (for/or : Boolean ([dom doms])
-                (check-⟪α⟫! (car dom))))]
+          (or (for/or : Boolean ([dom (in-list doms)])
+                (check-⟪α⟫! (-⟪α⟫ℓ-addr dom)))
+              (for/or : Boolean ([rng (in-list rngs)])
+                (check-⟪α⟫! (-⟪α⟫ℓ-addr rng))))]
          [(-var doms dom)
-          (or (check-⟪α⟫! (car rng))
-              (check-⟪α⟫! (car dom))
-              (for/or : Boolean ([dom doms])
-                (check-⟪α⟫! (car dom))))])]
+          (or (check-⟪α⟫! (-⟪α⟫ℓ-addr dom))
+              (for/or : Boolean ([dom (in-list doms)])
+                (check-⟪α⟫! (-⟪α⟫ℓ-addr dom)))
+              (for/or : Boolean ([rng (in-list rngs)])
+                (check-⟪α⟫! (-⟪α⟫ℓ-addr rng))))])]
       [(? -=>i?) #t]
       [(-Case-> cases _)
        (for*/or : Boolean ([kase : (Pairof (Listof ⟪α⟫) ⟪α⟫) cases])
@@ -158,19 +161,12 @@
 
   (check! V))
 
-;; TODO tmp. place
-
-(define formals-arity : (-formals → Arity)
-  (match-lambda
-    [(-var init _) (arity-at-least (length init))]
-    [(? list? xs) (length xs)]))
-
 (define guard-arity : (-=>_ → Arity)
   (match-lambda
     [(-=> αs _ _) (shape αs)]
     [(and grd (-=>i αs (list mk-D mk-d _) _))
      (match mk-D
-       [(-Clo xs _ _ _) (formals-arity xs)]
+       [(-Clo xs _ _ _) (shape xs)]
        [_
         ;; FIXME: may be wrong for var-args. Need to have saved more
         (length αs)])]))  

@@ -113,25 +113,25 @@
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
-                    [l : (Pairof ⟪α⟫ ℓ)]
-                    [r : (Pairof ⟪α⟫ ℓ)])
+                    [l : -⟪α⟫ℓ]
+                    [r : -⟪α⟫ℓ])
             (-Or/C [flat? : Boolean]
-                   [l : (Pairof ⟪α⟫ ℓ)]
-                   [r : (Pairof ⟪α⟫ ℓ)])
-            (-Not/C (Pairof ⟪α⟫ ℓ))
+                   [l : -⟪α⟫ℓ]
+                   [r : -⟪α⟫ℓ])
+            (-Not/C -⟪α⟫ℓ)
             (-One-Of/C (Listof Base)) ; Special construct for performance reason
             (-x/C [c : ⟪α⟫])
             ;; Guards for higher-order values
             -=>_
             (-St/C [flat? : Boolean]
                    [id : -𝒾]
-                   [fields : (Listof (Pairof ⟪α⟫ ℓ))])
-            (-Vectorof (Pairof ⟪α⟫ ℓ))
-            (-Vector/C (Listof (Pairof ⟪α⟫ ℓ))))
+                   [fields : (Listof -⟪α⟫ℓ)])
+            (-Vectorof -⟪α⟫ℓ)
+            (-Vector/C (Listof -⟪α⟫ℓ)))
 
 ;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (-maybe-var (Pairof ⟪α⟫ ℓ))] [rng : (Pairof ⟪α⟫ ℓ)] [pos : ℓ])
-              (-=>i [doms : (Listof (Pairof ⟪α⟫ ℓ))]
+(-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (Listof -⟪α⟫ℓ)] [pos : ℓ])
+              (-=>i [doms : (Listof -⟪α⟫ℓ)]
                     [mk-rng : (List -Clo -λ ℓ)]
                     [pos : ℓ])
               (-Case-> (Listof (Pairof (Listof ⟪α⟫) ⟪α⟫)) [pos : ℓ]))
@@ -146,7 +146,7 @@
 (-A . ::= . -W -blm)
 (struct -ΓA ([cnd : (℘ -t)] [ans : -A]) #:transparent)
 
-(define ⟪α⟫ℓ->⟪α⟫ (inst car ⟪α⟫ ℓ))
+(struct -⟪α⟫ℓ ([addr : ⟪α⟫] [loc : ℓ]) #:transparent)
 (define (W¹->W [W : -W¹])
   (match-define (-W¹ V s) W)
   (-W (list V) s))
@@ -383,7 +383,7 @@
             (-α.x/c Symbol)
             (-α.dom [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rst [sym : -?t] [loc : ℓ] [ctd : -⟪ℋ⟫])
-            (-α.rng [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.rng [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.fn [sym : (U -?t -⟦e⟧)] [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : (℘ -t)])
 
             ;; HACK
@@ -575,16 +575,16 @@
      (match grd
        [(-Vector/C γs) `(vector/diff ,@(map show-⟪α⟫ℓ γs))]
        [(-Vectorof γ) `(vector/same ,(show-⟪α⟫ℓ γ))])]
-    [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
-    [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (car l)) ,(show-⟪α⟫ (car r)))]
-    [(-Not/C γ) `(not/c ,(show-⟪α⟫ (car γ)))]
+    [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr l)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr r)))]
+    [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr l)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr r)))]
+    [(-Not/C γ) `(not/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
     [(-One-Of/C vs) `(one-of/c ,@(map show-b vs))]
-    [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (car γ)))]
-    [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ γs)))]
-    [(-=> αs β _)
+    [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
+    [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr γs)))]
+    [(-=> αs βs _)
      (match αs
-       [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,(show-⟪α⟫ℓ β))]
-       [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ℓ β))])]
+       [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,(show-⟪α⟫ℓs βs))]
+       [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ℓs βs))])]
     [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
      `(->i ,@(map show-⟪α⟫ℓ γs)
            ,(match xs
@@ -596,14 +596,16 @@
            (match-define (cons αs β) kase)
            `(,@(map show-⟪α⟫ αs) . -> . ,(show-⟪α⟫ β))))]
     [(-St/C _ 𝒾 αs)
-     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map ⟪α⟫ℓ->⟪α⟫ αs)))]
+     `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
     [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]))
 
-(define (show-⟪α⟫ℓ [⟪α⟫ℓ : (Pairof ⟪α⟫ ℓ)]) : Symbol
-  (match-define (cons ⟪α⟫ ℓ) ⟪α⟫ℓ)
+(define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
+  (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)
   (define α (⟪α⟫->-α ⟪α⟫))
   (string->symbol
    (format "~a~a" (if (-e? α) (show-e α) (show-⟪α⟫ ⟪α⟫)) (n-sup ℓ))))
+
+(define show-⟪α⟫ℓs (show-values-lift show-⟪α⟫ℓ))
 
 (define (show-ΓA [ΓA : -ΓA]) : Sexp
   (match-define (-ΓA Γ A) ΓA)
@@ -703,7 +705,7 @@
          (-α.struct/c (? -t? t) _ _ _ _)
          (-α.dom (? -t? t) _ _ _)
          (-α.rst (? -t? t) _ _)
-         (-α.rng (? -t? t) _ _)
+         (-α.rng (? -t? t) _ _ _)
          (-α.fn (? -t? t) _ _ _ _))
      #:when t
      (show-t t)]

@@ -93,13 +93,13 @@
                           #`(let ([⟪α⟫ (-α->⟪α⟫ '#,cₓ)]
                                   [ℓ (ℓ-with-id #,ℓ #,i)])
                               (σ⊕V! #,(-Σ) ⟪α⟫ #,(gen-alloc #'ℓ cₓ))
-                              (cons ⟪α⟫ ℓ))))]
-               [βℓ
-                (let ([⟪β⟫ (-α->⟪α⟫ 'd)]
-                      [ℓ (ℓ-with-id #,ℓ #,(length (syntax->list #'(cₓ ...))))])
-                  (σ⊕V! #,(-Σ) ⟪β⟫ #,(gen-alloc #'ℓ #'d))
-                  (cons ⟪β⟫ ℓ))])
-           (-=> αℓs βℓ #,ℓ))]
+                              (-⟪α⟫ℓ ⟪α⟫ ℓ))))]
+               [βℓs
+                (list (let ([⟪β⟫ (-α->⟪α⟫ 'd)]
+                            [ℓ (ℓ-with-id #,ℓ #,(length (syntax->list #'(cₓ ...))))])
+                        (σ⊕V! #,(-Σ) ⟪β⟫ #,(gen-alloc #'ℓ #'d))
+                        (-⟪α⟫ℓ ⟪β⟫ ℓ)))])
+           (-=> αℓs βℓs #,ℓ))]
       [c:id #'(quote c)]
       [_ (error 'gen-alloc "unhandled: ~a" (syntax->datum c))]))
 

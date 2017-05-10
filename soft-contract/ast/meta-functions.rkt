@@ -49,8 +49,8 @@
     [(-μ/c _ e) (fv e)]
     [(--> cs d _)
      (match cs
-       [(-var cs c) (apply ∪ (fv c) (fv d) (map fv cs))]
-       [(? list? cs) (apply ∪ (fv d) (map fv cs))])]
+       [(-var cs c) (∪ (fv c) (fv d) (fv cs))]
+       [(? list? cs) (∪ (fv d) (fv cs))])]
     [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
     [(-case-> clauses _)
      (for/unioneq : (℘ Symbol) ([clause clauses])
