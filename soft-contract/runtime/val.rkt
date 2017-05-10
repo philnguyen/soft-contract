@@ -142,14 +142,16 @@
          [(? list? doms)
           (or (for/or : Boolean ([dom (in-list doms)])
                 (check-⟪α⟫! (-⟪α⟫ℓ-addr dom)))
-              (for/or : Boolean ([rng (in-list rngs)])
-                (check-⟪α⟫! (-⟪α⟫ℓ-addr rng))))]
+              (and (pair? rngs)
+                   (for/or : Boolean ([rng (in-list rngs)])
+                     (check-⟪α⟫! (-⟪α⟫ℓ-addr rng)))))]
          [(-var doms dom)
           (or (check-⟪α⟫! (-⟪α⟫ℓ-addr dom))
               (for/or : Boolean ([dom (in-list doms)])
                 (check-⟪α⟫! (-⟪α⟫ℓ-addr dom)))
-              (for/or : Boolean ([rng (in-list rngs)])
-                (check-⟪α⟫! (-⟪α⟫ℓ-addr rng))))])]
+              (and (pair? rngs)
+                   (for/or : Boolean ([rng (in-list rngs)])
+                     (check-⟪α⟫! (-⟪α⟫ℓ-addr rng)))))])]
       [(? -=>i?) #t]
       [(-Case-> cases _)
        (for*/or : Boolean ([kase : (Pairof (Listof ⟪α⟫) ⟪α⟫) cases])

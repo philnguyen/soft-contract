@@ -267,12 +267,11 @@
     (λ ($ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-l³ l+ l- lo) l³)
       (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
-      (match-define (-=> αℓs βℓs _) C)
-      (define-values (βs ℓₐs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc βℓs))
+      (match-define (-=> αℓs Rng _) C)
       (define-values (cs d) (-->-split c (shape αℓs)))
       (match-define (-Σ σ _ _) Σ)
       (define l³* (-l³ l- l+ lo))
-      (define ⟦k⟧/mon-rng (mon*.c∷ l³ ℒ βℓs d ⟦k⟧))
+      (define ⟦k⟧/mon-rng (mon*.c∷ l³ ℒ Rng d ⟦k⟧))
       (match* (αℓs cs)
         [('() '()) ; no arg
          (app $ (ℒ-with-l ℒ 'app-Ar) Wᵤ '() Γ ⟪ℋ⟫ Σ ⟦k⟧/mon-rng)]

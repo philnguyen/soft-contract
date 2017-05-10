@@ -100,10 +100,11 @@
        [(-Vector/C αs) (list->seteq (map -⟪α⟫ℓ-addr αs))]
        [(-=> αs βs _)
         (match αs
-          [(? list? αs) (set-add* (list->seteq (map -⟪α⟫ℓ-addr αs)) (map -⟪α⟫ℓ-addr βs))]
+          [(? list? αs) (set-add* (list->seteq (map -⟪α⟫ℓ-addr αs))
+                                  (if (pair? βs) (map -⟪α⟫ℓ-addr βs) '()))]
           [(-var αs αᵣ)
            (set-add* (set-add (list->seteq (map -⟪α⟫ℓ-addr αs)) (-⟪α⟫ℓ-addr αᵣ))
-                     (map -⟪α⟫ℓ-addr βs))])]
+                     (if (pair? βs) (map -⟪α⟫ℓ-addr βs) '()))])]
        [(-=>i αs (list D _ _) _) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
        [(-Case-> clauses _)
         (for/unioneq : (℘ ⟪α⟫) ([clause clauses])

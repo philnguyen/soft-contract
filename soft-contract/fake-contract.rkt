@@ -59,12 +59,24 @@
 
 (define (dynamic-struct-out . _) (void))
 
-(define-syntax-rule (-> cs ... result-c) (dynamic->* #:mandatory-domain-contracts (list cs ...)
-                                                     #:range-contracts (list result-c)))
-(define-syntax-rule (->* (cs ...) #:rest rest-c result-c)
-  (dynamic->* #:mandatory-domain-contracts (list cs ...)
-              #:rest-contract rest-c
-              #:range-contracts (list result-c)))
+(define-syntax ->
+  (syntax-rules (c:any)
+    [(-> cs ... c:any)
+     (dynamic->* #:mandatory-domain-contracts (list cs ...)
+                 #:range-contracts #f)]
+    [(-> cs ... result-c)
+     (dynamic->* #:mandatory-domain-contracts (list cs ...)
+                 #:range-contracts (list result-c))]))
+(define-syntax ->*
+  (syntax-rules (c:any)
+    [(->* (cs ...) #:rest rest-c c:any)
+     (dynamic->* #:mandatory-domain-contracts (list cs ...)
+                 #:rest-contract rest-c
+                 #:range-contracts #f)]
+    [(->* (cs ...) #:rest rest-c result-c)
+     (dynamic->* #:mandatory-domain-contracts (list cs ...)
+                 #:rest-contract rest-c
+                 #:range-contracts (list result-c))]))
 
 (define (dynamic-provide/contract . _) (void))
 

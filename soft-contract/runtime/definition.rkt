@@ -130,7 +130,7 @@
             (-Vector/C (Listof -⟪α⟫ℓ)))
 
 ;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (Listof -⟪α⟫ℓ)] [pos : ℓ])
+(-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
               (-=>i [doms : (Listof -⟪α⟫ℓ)]
                     [mk-rng : (List -Clo -λ ℓ)]
                     [pos : ℓ])
@@ -582,9 +582,12 @@
     [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
     [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr γs)))]
     [(-=> αs βs _)
+     (define show-rng
+       (cond [(list? βs) (show-⟪α⟫ℓs βs)]
+             [else 'any]))
      (match αs
-       [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,(show-⟪α⟫ℓs βs))]
-       [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,(show-⟪α⟫ℓs βs))])]
+       [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,show-rng)]
+       [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,show-rng)])]
     [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
      `(->i ,@(map show-⟪α⟫ℓ γs)
            ,(match xs

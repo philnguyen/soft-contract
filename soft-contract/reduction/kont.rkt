@@ -381,13 +381,6 @@
   (: mk-=>! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) (Option -W¹) -W ℓ → (Values -V -?t))
   (define (mk-=>! Σ Γ ⟪ℋ⟫ doms.rev rst rngs ℓ)
     (match-define (-W Ds ds) rngs)
-    (define βℓs : (Listof -⟪α⟫ℓ) ; with side-effect allocating ranges
-      (for/list ([D (in-list Ds)]
-                 [d (in-list (split-values ds (length Ds)))]
-                 [i : Natural (in-naturals)])
-        (define β (-α->⟪α⟫ (-α.rng d ℓ ⟪ℋ⟫ i)))
-        (σ⊕V! Σ β D)
-        (-⟪α⟫ℓ β (ℓ-with-id ℓ (cons 'rng i)))))
     (define-values (αs cs) ; with side-effect allocating domains
       (for/fold ([αs : (Listof ⟪α⟫) '()]
                  [cs : (Listof -?t) '()])
@@ -400,15 +393,26 @@
     (define αℓs : (Listof -⟪α⟫ℓ)
       (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
         (-⟪α⟫ℓ α (ℓ-with-id ℓ (cons 'dom i)))))
-    (match rst
-      [(-W¹ Vᵣ cᵣ)
-       (define αᵣ (-α->⟪α⟫ (-α.rst cᵣ ℓ ⟪ℋ⟫)))
-       (define ℓᵣ (ℓ-with-id ℓ 'rest))
-       (σ⊕V! Σ αᵣ Vᵣ)
-       (values (-=> (-var αℓs (-⟪α⟫ℓ αᵣ ℓᵣ)) βℓs ℓ)
-               (-?-> (-var cs cᵣ) ds))]
-      [#f (values (-=> αℓs βℓs ℓ)
-                  (-?-> cs ds))]))
+    (define Rng
+      (match Ds
+        ['(any) 'any]
+        [_
+         ;; With side-effect allocation range(s)
+         (for/list : (Listof -⟪α⟫ℓ) ([D (in-list Ds)]
+                                     [d (in-list (split-values ds (length Ds)))]
+                                     [i : Natural (in-naturals)])
+           (define β (-α->⟪α⟫ (-α.rng d ℓ ⟪ℋ⟫ i)))
+           (σ⊕V! Σ β D)
+           (-⟪α⟫ℓ β (ℓ-with-id ℓ (cons 'rng i))))]))
+    (define-values (Dom t-dom)
+      (match rst
+        [(-W¹ Vᵣ cᵣ)
+         (define αᵣ (-α->⟪α⟫ (-α.rst cᵣ ℓ ⟪ℋ⟫)))
+         (define ℓᵣ (ℓ-with-id ℓ 'rest))
+         (σ⊕V! Σ αᵣ Vᵣ)
+         (values (-var αℓs (-⟪α⟫ℓ αᵣ ℓᵣ)) (-var cs cᵣ))]
+        [_ (values αℓs cs)]))
+    (values (-=> Dom Rng ℓ) (-?-> t-dom ds)))
 
   ;; Given *reversed* list of contract domains and range-maker, create dependent contract
   (: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))

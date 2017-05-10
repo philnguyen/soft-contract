@@ -388,9 +388,11 @@
       ;; Non-dependent function contract
       [(let-values ([(_) (~literal fake:dynamic->*)]
                     [(_) (#%plain-app list c ...)]
-                    [(_) (#%plain-app list d)])
+                    [(_) rng])
          _ ...)
-       (--> (parse-es #'(c ...)) (parse-e #'d) (syntax-ℓ stx))]
+       (syntax-parse #'rng
+         [(#%plain-app list d) (--> (parse-es #'(c ...)) (parse-e #'d) (syntax-ℓ stx))]
+         [_                    (--> (parse-es #'(c ...)) 'any (syntax-ℓ stx))])]
       ;; Dependent contract
       [(~or (begin
               (#%plain-app
@@ -415,11 +417,17 @@
       [(let-values ([(_) (~literal fake:dynamic->*)]
                     [(_) (#%plain-app list inits ...)]
                     [(_) rst]
-                    [(_) (#%plain-app list rng)])
+                    [(_) rng])
          _ ...)
-       (--> (-var (parse-es #'(inits ...)) (parse-e #'rst))
-            (parse-e #'rng)
-            (syntax-ℓ stx))]
+       (syntax-parse #'rng
+         [(#%plain-app list d)
+          (--> (-var (parse-es #'(inits ...)) (parse-e #'rst))
+               (parse-e #'d)
+               (syntax-ℓ stx))]
+         [_
+          (--> (-var (parse-es #'(inits ...)) (parse-e #'rst))
+               'any
+               (syntax-ℓ stx))])]
       [(#%plain-app (~literal fake:listof) c)
        (-listof (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:list/c) c ...)
