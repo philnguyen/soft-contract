@@ -195,11 +195,7 @@
     [(_ (o:id ⟪ℋ⟫:id ℒ:id Σ:id Γ:id Ws:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o #'(define (.o ⟪ℋ⟫ ℒ Σ Γ Ws) e ...))
-     (log-warning "Record arityt 0+ for `~a`~n" (syntax-e #'o))
-     (hack:make-available #'o update-arity!)
-     #`(begin
-         (update-arity! 'o arity-0+)
-         #,(gen-defn #'o #'.o defn-o))]))
+     (gen-defn #'o #'.o defn-o)]))
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
   (def-prim/custom (x ⟪ℋ⟫ ℒ Σ Γ Ws)

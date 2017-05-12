@@ -45,7 +45,7 @@
 
   (: prim-arity : Symbol → Arity)
   (define (prim-arity o)
-    (hash-ref rt:arity-table o (λ () (error 'prim-arity "nothing for ~a~n" o))))
+    (hash-ref rt:arity-table o (λ () (error 'prim-arity "don't know `~a`'s arity~n" o))))
 
   (define extract-list-content rt:extract-list-content)
 
