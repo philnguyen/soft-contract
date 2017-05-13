@@ -86,7 +86,6 @@
       [(-st-mk 𝒾) ((app-st-mk 𝒾) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-st-ac  𝒾 i) ((app-st-ac  𝒾 i) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-st-mut 𝒾 i) ((app-st-mut 𝒾 i) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-      ['apply (app-apply $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       ['make-sequence (app-make-sequence $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)]
 
       ;; Regular stuff
@@ -528,78 +527,6 @@
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
     ⟦mut⟧)
 
-  (: app-apply : -⟦f⟧)
-  (define (app-apply $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-Σ σ _ M) Σ)
-    (define-values (ℓ l) (unpack-ℒ ℒ))
-
-    (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
-    (define ((blm-for C Vs) Γ)
-      (define blm (-blm l 'apply (list C) Vs ℓ))
-      (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
-
-    (: do-apply : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
-    (define ((do-apply W-func W-inits W-rest) Γ)
-      (define num-inits (length W-inits))
-      (match-define (-W¹ V-func t-func) W-func)
-
-      (define (blm-arity [msg : -V]) : (℘ -ς)
-        (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
-        (define blm (-blm l 'apply (list msg) blm-args ℓ))
-        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
-      
-      (cond
-        [(-●? V-func)
-         ((app-opq t-func) $ ℒ (append W-inits (list W-rest)) Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-        [else
-         (define num-inits (length W-inits))
-         (match (V-arity V-func)
-           [(? index? fixed-arity)
-            (define num-remaining-args (- fixed-arity num-inits))
-            (cond
-              ;; Fewer init arguments than required. Check rest-arg list
-              [(>= num-remaining-args 0)
-               (define possible-args (unalloc (-Σ-σ Σ) W-rest num-remaining-args))
-               (for/union : (℘ -ς) ([?remaining-args (in-set possible-args)])
-                 (match ?remaining-args
-                   [(cons W-remainings (-W¹ (-b (list)) _))
-                    (app $ ℒ W-func (append W-inits W-remainings) Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                   [_
-                    (blm-arity (format-symbol "~a argument(s)" fixed-arity))]))]
-              ;; More init arguments than required
-              [else
-               (blm-arity (format-symbol "~a argument(s)" fixed-arity))])]
-           [(arity-at-least arity.min)
-            (define remaining-inits (- arity.min num-inits))
-            (cond
-              ;; arg-init maybe too short, then retrieve some more
-              [(>= remaining-inits 0)
-               (define possible-rests (unalloc (-Σ-σ Σ) W-rest remaining-inits))
-               (for/union : (℘ -ς) ([?remaining (in-set possible-rests)])
-                 (match ?remaining
-                   [(cons W-inits* W-rest*)
-                    (app/rest $ ℒ W-func (append W-inits W-inits*) W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                   [_
-                    (blm-arity (format-symbol "~a+ arguments(s)" arity.min))]))]
-              ;; arg-init long than min-arity, then allocate some
-              [else
-               (define num-allocs (- remaining-inits))
-               (define-values (W-inits* W-rest₁) (split-at W-inits arity.min))
-               (define V-rest (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ W-rest₁ #:end (-W¹-V W-rest)))
-               (app/rest $ ℒ W-func W-inits* (-W¹ V-rest #f) Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
-           [a
-            (error 'do-apply "handle arity ~a" a)])]))
-
-    (match Ws
-      [(list Wₕ W-inits ... W-rest)
-       (with-MΓ+/-oW (M σ Γ 'procdedure? Wₕ)
-         #:on-t (do-apply Wₕ (cast W-inits (Listof -W¹)) W-rest)
-         #:on-f (blm-for 'procedure? (list (-W¹-V Wₕ))))]
-      [_
-       (define-values (ℓ l) (unpack-ℒ ℒ))
-       (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
-       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
-
   ;; FIXME tmp hack for `make-sequence` use internallyr
   (: app-make-sequence : -⟦f⟧)
   (define (app-make-sequence $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -629,92 +556,16 @@
       [(-Ar C α l³)
        (error 'app/rest "TODO: guarded function")]
       [(? -o? o)
-       (for/union : (℘ -ς) ([V-list (in-set (unalloc-approximate-prefix (-Σ-σ Σ) (-W¹-V W-rest)))])
+       #;(for/union : (℘ -ς) ([V-list (in-set (unalloc (-Σ-σ Σ) (-W¹-V W-rest)))])
          (define W-inits* : (Listof -W¹)
            (for/list ([V (in-list V-list)])
              (-W¹ V #f)))
-         (app $ ℒ W-func (append W-inits W-inits*) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+         (app $ ℒ W-func (append W-inits W-inits*) Γ ⟪ℋ⟫ Σ ⟦k⟧))
+       (error 'app/rest "TODO: primitives")]
       [_
        (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
-
-  (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)
-  (define (alloc-init-args! Σ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
-    
-    (define φsₕ
-      (let* ([bnd (list->seteq xs)]
-             [fvs (set-subtract (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq) bnd)])
-        (for*/set: : (℘ -t) ([φ (in-set (-Γ-facts Γₑᵣ))]
-                             [fv⟦φ⟧ (in-value (fvₜ φ))]
-                             #:unless (set-empty? fv⟦φ⟧)
-                             #:when (⊆ fv⟦φ⟧ fvs))
-          φ)))
-    (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
-    (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
-      (match-define (-W¹ Vₓ sₓ) Wₓ)
-      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W (-Σ-σ Σ) Γₑᵣ Wₓ))))
-      (σ⊕! Σ Γₑᵣ α Wₓ)
-      (ρ+ ρ x α)))
-
-  (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V))
-  (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ Ws #:end [Vₙ -null])
-
-    (: precise-alloc! ([(Listof -W¹)] [Natural] . ->* . -V))
-    ;; Allocate vararg list precisely, preserving length
-    (define (precise-alloc! Ws [i 0])
-      (match Ws
-        [(list) Vₙ]
-        [(cons Wₕ Ws*)
-         (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ i)))
-         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ i)))
-         (σ⊕! Σ Γ αₕ Wₕ)
-         (σ⊕V! Σ αₜ (precise-alloc! Ws* (+ 1 i)))
-         (-Cons αₕ αₜ)]))
-    
-    ;; Allocate length up to 2 precisely to let `splay` to go through
-    ;; This is because `match-lambda*` expands to varargs with specific
-    ;; expectation of arities
-    (match Ws
-      [(or (list) (list _) (list _ _) (list _ _ _))
-       (precise-alloc! Ws)]
-      [(? pair?)
-       (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ #f)))
-       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ #f)))
-       (define Vₜ (-Cons αₕ αₜ))
-       ;; Allocate spine for var-arg lists
-       (σ⊕V! Σ αₜ Vₜ)
-       (σ⊕V! Σ αₜ Vₙ)
-       ;; Allocate elements in var-arg lists
-       (for ([W Ws])
-         (σ⊕! Σ Γ αₕ W))
-       Vₜ]))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-MΓ+/-oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
     (MΓ+/-oW/handler on-t on-f M σ Γ o W ...))
-
-  (: unalloc : -σ -W¹ Natural → (℘ (Option (Pairof (Listof -W¹) -W¹))))
-  ;; Convert a list in the object language into one in the meta language
-  ;; of given lengths
-  (define (unalloc σ W num-inits)
-    (match-define (-W¹ V _) W)
-    (let go ([V : -V V] [num-inits : Natural num-inits])
-      (error 'unalloc "TODO")))
-
-  (: unalloc-approximate-prefix : -σ -V → (℘ (Listof -V)))
-  (define (unalloc-approximate-prefix σ V)
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    (define Tail : (℘ (Listof -V)) {set '()})
-    (let go ([V : -V V])
-      (match V
-        [(-Cons αₕ αₜ)
-         (cond
-           [(seen-has? αₜ) Tail]
-           [else
-            (seen-add! αₜ)
-            (define Vₕs (σ@ σ αₕ))
-            (for/union : (℘ (Listof -V)) ([Vₜ (in-set (σ@ σ αₜ))] [Vₕ (in-set Vₕs)])
-              (define V-lists (go Vₜ))
-              (for/set: : (℘ (Listof -V)) ([V-list (in-set V-lists)])
-                (cons Vₕ V-list)))])]
-        [_ Tail])))
   )

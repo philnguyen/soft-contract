@@ -588,7 +588,114 @@
         (printf "  - er*: ~a~n" (set-map φsₑᵣ* show-t))
         (printf "~n"))
 
-    (and φsₑᵣ* (-Γ φsₑᵣ* asₑᵣ))))
+    (and φsₑᵣ* (-Γ φsₑᵣ* asₑᵣ)))
+
+  (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)
+  (define (alloc-init-args! Σ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
+    
+    (define φsₕ
+      (let* ([bnd (list->seteq xs)]
+             [fvs (set-subtract (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq) bnd)])
+        (for*/set: : (℘ -t) ([φ (in-set (-Γ-facts Γₑᵣ))]
+                             [fv⟦φ⟧ (in-value (fvₜ φ))]
+                             #:unless (set-empty? fv⟦φ⟧)
+                             #:when (⊆ fv⟦φ⟧ fvs))
+          φ)))
+    (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
+    (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
+      (match-define (-W¹ Vₓ sₓ) Wₓ)
+      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W (-Σ-σ Σ) Γₑᵣ Wₓ))))
+      (σ⊕! Σ Γₑᵣ α Wₓ)
+      (ρ+ ρ x α)))
+
+  (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V))
+  (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ Ws #:end [Vₙ -null])
+
+    (: precise-alloc! ([(Listof -W¹)] [Natural] . ->* . -V))
+    ;; Allocate vararg list precisely, preserving length
+    (define (precise-alloc! Ws [i 0])
+      (match Ws
+        [(list) Vₙ]
+        [(cons Wₕ Ws*)
+         (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ i)))
+         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ i)))
+         (σ⊕! Σ Γ αₕ Wₕ)
+         (σ⊕V! Σ αₜ (precise-alloc! Ws* (+ 1 i)))
+         (-Cons αₕ αₜ)]))
+    
+    ;; Allocate length up to 2 precisely to let `splay` to go through
+    ;; This is because `match-lambda*` expands to varargs with specific
+    ;; expectation of arities
+    (match Ws
+      [(or (list) (list _) (list _ _) (list _ _ _))
+       (precise-alloc! Ws)]
+      [(? pair?)
+       (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ #f)))
+       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ #f)))
+       (define Vₜ (-Cons αₕ αₜ))
+       ;; Allocate spine for var-arg lists
+       (σ⊕V! Σ αₜ Vₜ)
+       (σ⊕V! Σ αₜ Vₙ)
+       ;; Allocate elements in var-arg lists
+       (for ([W Ws])
+         (σ⊕! Σ Γ αₕ W))
+       Vₜ]))
+
+  (: estimate-list-lengths : -σ -V → (℘ (U #f Arity)))
+  ;; Estimate possible list lengths from the object language's abstract list
+  (define (estimate-list-lengths σ V)
+    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+    (define maybe-non-proper-list? : Boolean #f)
+
+    (: arity-inc : Arity → Arity)
+    (define arity-inc
+      (match-lambda
+        [(? exact-integer? n) (+ 1 n)]
+        [(arity-at-least n) (arity-at-least (+ 1 n))]))
+    
+    (: go! : -V → (℘ Arity))
+    (define go!
+      (match-lambda
+        [(-Cons _ αₜ)
+         (cond [(seen-has? αₜ) {set -arity-0+}]
+               [else (seen-add! αₜ)
+                     (for/union : (℘ Arity) ([Vₜ (in-set (σ@ σ αₜ))])
+                        (map/set arity-inc (go! Vₜ)))])]
+        [(-b '()) {set 0}]
+        [_ (set! maybe-non-proper-list? #t)
+           ∅]))
+    (define res
+      (match (normalize-arity (set->list (go! V)))
+        [(? list? l) (list->set l)]
+        [a {set a}]))
+    (if maybe-non-proper-list? (set-add res #f) res))
+
+  (: unalloc : -σ -V → (℘ (Option (Listof -V))))
+  ;; Convert a list in the object language into one in the meta language
+  ;; of given lengths
+  (define (unalloc σ V)
+    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+    (define maybe-non-proper-list? : Boolean #f)
+    (define Tail {set '()})
+    (: go! : -V → (℘ (Listof -V)))
+    (define go!
+      (match-lambda
+        [(-Cons αₕ αₜ)
+         (cond
+           [(seen-has? αₜ) Tail]
+           [else
+            (seen-add! αₜ)
+            (error "TODO")])]
+        [(-b (list))
+         Tail]
+        [_ (set! maybe-non-proper-list? #t)
+           ∅]))
+
+    ;; FIXME this list is complete and can result in unsound analysis
+    ;; Need to come up with a nice way to represent an infinite family of lists
+    (define prefixes (go! V))
+    (if maybe-non-proper-list? (set-add prefixes #f) prefixes))
+  )
 
 
 (define-syntax match-lambda**/symmetry
@@ -602,6 +709,3 @@
             (list #'[(x y) e ...] #'[(y x) e ...])))
         (syntax->list #'(clauses ...))))
      #`(match-lambda** #,@doubled-clauses [(_ _) dflt ...])]))
-
-
-

@@ -78,7 +78,7 @@
 
 (define-signature app^
   ([app : (-$ -ℒ -W¹ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [app-apply : -⟦f⟧]))
+   [app/rest : (-$ -ℒ -W¹ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]))
 
 (define-signature mon^
   ([mon : (-l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]

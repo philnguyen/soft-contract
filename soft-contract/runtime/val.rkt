@@ -64,6 +64,7 @@
 (define -Empty-Values.W (-W '() (-t.@ 'values '())))
 ;(define (-=/C [n : Integer]) (-Clo '(x) (-@ '= (list (-x 'x) (-b n)) 0) ⊥ρ))
 ;(define (-not/C [v : -v]) (-Clo '(x) (-@ 'not (list (-@ v (list (-x 'x)) 0)) 0) ⊥ρ))
+(define -arity-0+ (arity-at-least 0))
 
 (: C-flat? : -V → Boolean)
 ;; Check whether contract is flat, assuming it's already a contract
