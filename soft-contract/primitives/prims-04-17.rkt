@@ -98,7 +98,7 @@
            [else
             (app/rest $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
         [a
-         (error 'apply "TODO: handler arity ~a" a)]))
+         (error 'apply "TODO: handle arity ~a" a)]))
 
     (match Ws
       [(list W-func W-inits ... W-rest)
