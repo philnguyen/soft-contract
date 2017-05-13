@@ -56,11 +56,19 @@
     (: do-apply : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
     (define ((do-apply W-func W-inits W-rest) Γ)
       
-      (: blm-arity : -V → (℘ -ς))
-      (define (blm-arity msg)
+      (: blm-arity : Arity → (℘ -ς))
+      (define (blm-arity a)
         (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
+        (define msg (string->symbol (format "~a argument(s)" a)))
         (define blm (-blm l 'apply (list msg) blm-args ℓ))
         (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+
+      (define-simple-macro (with-num-rest-args-check pred #:on-t e₁ #:on-f e₂)
+        (let-values ([(ok? er?)
+                      (for/fold ([ok? : Boolean #f] [er? : Boolean #f])
+                                ([len (in-set (estimate-list-lengths σ (-W¹-V W-rest)))])
+                        (if (pred len) (values #t er?) (values ok? #t)))])
+          (∪ (if ok? e₁ ∅) (if er? e₂ ∅))))
       
       (define num-inits (length W-inits))
       (match-define (-W¹ V-func t-func) W-func)
@@ -71,22 +79,24 @@
          (cond
            ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
            [(<= 0 num-remaining-args)
-            (error "TODO")]
+            (with-num-rest-args-check (λ (len) (equal? len num-remaining-args))
+              #:on-t (app $ ℒ W-func W-inits Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-f (blm-arity fixed-arity))]
            ;; More init arguments than required
-           [else
-            (blm-arity (format-symbol "~a argument(s)" fixed-arity))])]
+           [else (blm-arity fixed-arity)])]
         [(arity-at-least arity.min)
          (define remaining-inits (- arity.min num-inits))
          (cond
            ;; init-args maybe too short, then retrieve some more from rest-arg
            [(<= 0 remaining-inits)
-            (error "TODO")]
-           ;; init args too long, allocate some
+            (with-num-rest-args-check (match-lambda
+                                        [(? index? len) (>= len remaining-inits)]
+                                        [(arity-at-least len) (>= len remaining-inits)])
+              #:on-t (app/rest $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-f (blm-arity arity.min))]
+           ;; init args more than enough
            [else
-            (define num-allocs (- remaining-inits))
-            (define-values (W-inits* W-rest₁) (split-at W-inits arity.min))
-            (define V-rest (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ W-rest₁ #:end (-W¹-V W-rest)))
-            (app/rest $ ℒ W-func W-inits* (-W¹ V-rest #f) Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
+            (app/rest $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
         [a
          (error 'apply "TODO: handler arity ~a" a)]))
 
