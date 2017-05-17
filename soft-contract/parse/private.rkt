@@ -193,7 +193,7 @@
          (let-values ([(_ ...)
                        (let-values ()
                          (let-values ()
-                           (#%plain-app _ #;(~literal make-struct-type)
+                           (#%plain-app (~literal make-struct-type)
                                         (quote ctor-name)
                                         _
                                         (quote n:exact-integer)
