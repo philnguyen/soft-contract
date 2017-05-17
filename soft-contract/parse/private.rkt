@@ -38,8 +38,6 @@
   (define (parse-files fns)
     ;((listof path-string?) . -> . (listof -module?))
 
-    (define parsing-multiple-files? (> (length fns) 1))
-
     (define/contract (parse-module stx)
       (syntax? . -> . -module?)
       (match-define (-module l body) (parse-top-level-form stx))
@@ -48,7 +46,8 @@
     (parameterize ([port-count-lines-enabled #t])
       (define stxs (map do-expand-file fns))
       (for-each figure-out-aliases! stxs)
-      (map parse-module stxs)))
+      (define ms (map parse-module stxs))
+      (sort ms module-before? #:key -module-path)))
 
   (define/contract cur-mod (parameter/c string? #|TODO|#)
     (make-parameter "top-level"))
@@ -492,6 +491,7 @@
                                          (#%plain-app list))))))
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
+          (set-module-before! src (cur-mod))
           (get-export-alias 𝒾ₑₓ (λ () (error 'parser "please include `~a` in command-line args" src)))]
          [_
           (-begin/simp (parse-es #'(e ...)))])]

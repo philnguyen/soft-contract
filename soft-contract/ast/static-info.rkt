@@ -16,6 +16,9 @@
          current-static-info ; just for debugging
          get-export-alias
          set-export-alias!
+         module-before?
+         set-module-before!
+         module-dependencies
          )
 
 (require racket/match
@@ -29,7 +32,8 @@
                       [public-accs : (HashTable -𝒾 (℘ -st-ac))]
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
                       [top-level-defs : (HashTable -𝒾 #t)]
-                      [export-aliases : (HashTable -𝒾 -𝒾)])
+                      [export-aliases : (HashTable -𝒾 -𝒾)]
+                      [module-befores : (HashTable (Pairof -l -l) #t)])
   #:transparent)
 
 (define (new-static-info)
@@ -44,6 +48,7 @@
                                  (cons -𝒾-box (set -unbox))))
                 (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                  (cons -𝒾-box (set -set-box!))))
+                (make-hash)
                 (make-hash)
                 (make-hash)))
 
@@ -141,3 +146,20 @@
 (: get-export-alias ([-𝒾] [(→ -𝒾)] . ->* . -𝒾))
 (define (get-export-alias 𝒾 [on-failure (λ () (error 'get-export-alias "nothing for ~a" (show-𝒾 𝒾)))])
   (hash-ref (-static-info-export-aliases (current-static-info)) 𝒾 on-failure))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Module initialization dependency
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: module-before? : -l -l → Boolean)
+(define (module-before? l1 l2)
+  (hash-has-key? (-static-info-module-befores (current-static-info)) (cons l1 l2)))
+
+(: set-module-before! : -l -l → Void)
+(define (set-module-before! l1 l2)
+  (hash-set! (-static-info-module-befores (current-static-info)) (cons l1 l2) #t))
+
+(: module-dependencies : → (Listof (Pairof -l -l)))
+(define (module-dependencies)
+  (hash-keys (-static-info-module-befores (current-static-info))))
