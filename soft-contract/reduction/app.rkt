@@ -546,8 +546,12 @@
       {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫∅)}))
 
   (: app/rest : -$ -ℒ -W¹ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+  ;; Apply function with (in general, part of) rest arguments already allocated,
+  ;; assuming that init/rest args are already checked to be compatible.
   (define (app/rest $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (define σ (-Σ-σ Σ))
     (match-define (-W¹ V-func t-func) W-func)
+    (match-define (-W¹ V-rest t-rest) W-rest)
     (match V-func
       [(-Clo xs ⟦e⟧ _ _)
        (error 'app/rest "TODO: lambda")]
@@ -556,12 +560,10 @@
       [(-Ar C α l³)
        (error 'app/rest "TODO: guarded function")]
       [(? -o? o)
-       #;(for/union : (℘ -ς) ([V-list (in-set (unalloc (-Σ-σ Σ) (-W¹-V W-rest)))])
-         (define W-inits* : (Listof -W¹)
-           (for/list ([V (in-list V-list)])
-             (-W¹ V #f)))
-         (app $ ℒ W-func (append W-inits W-inits*) Γ ⟪ℋ⟫ Σ ⟦k⟧))
-       (error 'app/rest "TODO: primitives")]
+       (for/union : (℘ -ς) ([Vs (in-set (unalloc σ V-rest))] #:when Vs)
+          (define W-rests : (Listof -W¹)
+            (for/list ([V (in-list Vs)]) (-W¹ V #f)))
+          (app $ ℒ W-func (append W-inits W-rests) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
       [_
        (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
 

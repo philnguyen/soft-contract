@@ -53,8 +53,9 @@
     (define ((blm-for C Vs) Γ)
       (⟦k⟧ (-blm l 'apply (list C) Vs ℓ) $ Γ ⟪ℋ⟫ Σ))
 
-    (: do-apply : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
-    (define ((do-apply W-func W-inits W-rest) Γ)
+    (: check-func-arity : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
+    ;; Make sure init arguments and rest args are compatible with the function's arity
+    (define ((check-func-arity W-func W-inits W-rest) Γ)
       
       (: blm-arity : Arity → (℘ -ς))
       (define (blm-arity a)
@@ -100,10 +101,11 @@
         [a
          (error 'apply "TODO: handle arity ~a" a)]))
 
+    ;; Make sure there is at least the function and rest args
     (match Ws
       [(list W-func W-inits ... W-rest)
        (MΓ+/-oW/handler
-        (do-apply W-func (cast W-inits (Listof -W¹)) W-rest)
+        (check-func-arity W-func (cast W-inits (Listof -W¹)) W-rest)
         (blm-for 'procedure? (list (-W¹-V W-func)))
         M σ Γ 'procedure? W-func)]
       [_

@@ -671,11 +671,9 @@
     (if maybe-non-proper-list? (set-add res #f) res))
 
   (: unalloc : -σ -V → (℘ (Option (Listof -V))))
-  ;; Convert a list in the object language into one in the meta language
-  ;; of given lengths
+  ;; Convert a list in the object language into list(s) in the meta language
   (define (unalloc σ V)
     (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    (define maybe-non-proper-list? : Boolean #f)
     (define Tail {set '()})
     (: go! : -V → (℘ (Listof -V)))
     (define go!
@@ -685,16 +683,18 @@
            [(seen-has? αₜ) Tail]
            [else
             (seen-add! αₜ)
-            (error "TODO")])]
-        [(-b (list))
-         Tail]
-        [_ (set! maybe-non-proper-list? #t)
-           ∅]))
+            (define tails
+              (for/union : (℘ (Listof -V)) ([Vₜ (in-set (σ@ σ αₜ))])
+                 (go! Vₜ)))
+            (define heads (σ@ σ αₕ))
+            (for*/set: : (℘ (Listof -V)) ([head (in-set heads)] [tail (in-set tails)])
+              (cons head tail))])]
+        [(-b (list)) Tail]
+        [_ ∅]))
 
     ;; FIXME this list is complete and can result in unsound analysis
     ;; Need to come up with a nice way to represent an infinite family of lists
-    (define prefixes (go! V))
-    (if maybe-non-proper-list? (set-add prefixes #f) prefixes))
+    (go! V))
   )
 
 
