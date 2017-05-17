@@ -60,4 +60,5 @@
    [alloc-init-args! : (-Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)]
    [alloc-rest-args! : ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V)]
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
-   [unalloc : (-σ -V → (℘ (Option (Listof -V))))]))
+   [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
+   [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]))

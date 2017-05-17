@@ -93,11 +93,11 @@
             (with-num-rest-args-check (match-lambda
                                         [(? index? len) (>= len remaining-inits)]
                                         [(arity-at-least len) (>= len remaining-inits)])
-              #:on-t (app/rest $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity arity.min))]
            ;; init args more than enough
            [else
-            (app/rest $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
+            (app/rest/unsafe $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
         [a
          (error 'apply "TODO: handle arity ~a" a)]))
 

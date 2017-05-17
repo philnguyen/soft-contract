@@ -695,6 +695,24 @@
     ;; FIXME this list is complete and can result in unsound analysis
     ;; Need to come up with a nice way to represent an infinite family of lists
     (go! V))
+
+  (: unalloc-prefix : -σ -V Natural → (℘ (Pairof (Listof -V) -V)))
+  (define (unalloc-prefix σ V n)
+    (let go ([V : -V V] [n : Natural n])
+      (cond
+        [(<= n 0) {set (cons '() V)}]
+        [else
+         (match V
+           [(-Cons αₕ αₜ)
+            (define Vₕs (σ@ σ αₕ))
+            (define pairs
+              (for/union : (℘ (Pairof (Listof -V) -V)) ([Vₜ (in-set (σ@ σ αₜ))])
+                         (go Vₜ (- n 1))))
+            (for*/set: : (℘ (Pairof (Listof -V) -V)) ([Vₕ (in-set Vₕs)]
+                                                      [pair (in-set pairs)])
+              (match-define (cons Vₜs Vᵣ) pair)
+              (cons (cons Vₕ Vₜs) Vᵣ))]
+           [_ ∅])])))
   )
 
 

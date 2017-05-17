@@ -309,8 +309,8 @@
              (ap∷ (list Wᵤ -apply.W¹) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ (ℒ-with-l ℒ 'app-Ar)
                   ⟦k⟧/mon-rng))]))]))
 
-  #;(: apply-app-Ar : (-=> -?t -V -?t -l³ → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-  #;(define ((apply-app-Ar C c Vᵤ sₕ l³) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (: apply-app-Ar : (-=> -?t -V -?t -l³ → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+  (define ((apply-app-Ar C c Vᵤ sₕ l³) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ) _) C)
     (match-define-values ((-var cs₀ cᵣ) d) (-->-split c (arity-at-least (length αℓs₀))))
     ;; FIXME copied n pasted from app-Ar
@@ -545,27 +545,95 @@
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫∅)}))
 
-  (: app/rest : -$ -ℒ -W¹ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+  (: app/rest/unsafe : -$ -ℒ -W¹ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
   ;; Apply function with (in general, part of) rest arguments already allocated,
   ;; assuming that init/rest args are already checked to be compatible.
-  (define (app/rest $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define (app/rest/unsafe $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ V-func t-func) W-func)
-    (match-define (-W¹ V-rest t-rest) W-rest)
+    (define num-inits (length W-inits))
+
+    ;; Attach trivial symbol to value
+    (define (V->W¹ [V : -V]) (-W¹ V #f))
+
+    (: app-prim/rest : -o → (℘ -ς))
+    (define (app-prim/rest o)
+      (for/union : (℘ -ς) ([V-rests (in-set (unalloc σ (-W¹-V W-rest)))] #:when V-rests)
+        (app $ ℒ W-func (append W-inits (map V->W¹ V-rests)) Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+
+    (: app-clo/rest : -formals -⟦e⟧ -ρ -Γ → (℘ -ς))
+    (define (app-clo/rest xs ⟦e⟧ ρₕ Γₕ)
+      (match xs
+        ;; TODO: if we assume clo as rest-arg, this path may never be reached...
+        [(? list? xs)
+         (define n (length xs))
+         (define num-remaining-inits (- n num-inits))
+         (for/union : (℘ -ς) ([V-rests (in-set (unalloc σ (-W¹-V W-rest)))]
+                              #:when V-rests
+                              #:when (= (length V-rests) num-remaining-inits))
+           ((app-clo xs ⟦e⟧ ρₕ Γₕ t-func)
+            $ ℒ (append W-inits (map V->W¹ V-rests)) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+        [(-var zs z)
+         (define n (length zs))
+         (define num-remaining-inits (- n num-inits))
+         (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
+
+         (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
+         (define (app/adjusted-args! W-inits W-rest)
+           (define ρₕ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits))
+           (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ #|TODO|# ∅)))
+           (σ⊕V! Σ αᵣ (-W¹-V W-rest))
+           (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
+           (define αₖ (-ℬ xs ⟦e⟧ ρₕ*))
+           (define κ (-κ (memoize-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ (append (map -W¹-t W-inits) '(#f))))
+           (σₖ⊕! Σ αₖ κ)
+           (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ))
+         
+         (cond
+           ;; Need to retrieve some more arguments from `W-rest` as part of inits
+           [(<= 0 num-remaining-inits)
+            (for/set: : (℘ -ς) ([V-unalloc (in-set (unalloc-prefix σ (-W¹-V W-rest) num-remaining-inits))])
+              (match-define (cons V-inits-more V-rest*) V-unalloc)
+              (define W-inits* (append W-inits (map V->W¹ V-inits-more)))
+              (app/adjusted-args! W-inits* (-W¹ V-rest* #f)))]
+           ;; Need to allocate some init arguments as part of rest-args
+           [else
+            (define-values (W-inits* W-inits.rest) (split-at W-inits n))
+            (define V-rest* (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ W-inits.rest #:end (-W¹-V W-rest)))
+            {set (app/adjusted-args! W-inits* (-W¹ V-rest* #f))}])]))
+
+    (: app-Ar/rest : -=>_ ⟪α⟫ -l³ → (℘ -ς))
+    (define (app-Ar/rest C α l³)
+      (match C
+        [(-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ) _)
+         (define n (length αℓs₀))
+         (define num-remaining-inits (- n num-inits))
+         (cond
+           ;; Need to retrieve some more arguments from `W-rest` as part of inits
+           [(<= 0 num-remaining-inits)
+            (for*/union : (℘ -ς) ([Vᵤ (in-set (σ@ σ α))]
+                                 [unalloced (in-set (unalloc-prefix σ (-W¹-V W-rest) num-remaining-inits))])
+              (match-define (cons V-inits-more V-rest*) unalloced)
+              (define W-inits* (append W-inits (map V->W¹ V-inits-more)))
+              (define W-rest* (-W¹ V-rest* #f))
+              ((apply-app-Ar C #f Vᵤ t-func l³) $ ℒ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+           ;; Need to allocate some init arguments as part of rest-args
+           [else
+            (define-values (W-inits* W-inits.rest) (split-at W-inits n))
+            (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge #|HACK|# (mk-rt (-W¹ C #f)) ℒ)))
+            (define V-rest* (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ W-inits.rest #:end (-W¹-V W-rest)))
+            (define W-rest* (-W¹ V-rest* #f))
+            (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ σ α))])
+                       ((apply-app-Ar C #f Vᵤ t-func l³) $ ℒ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+        [_
+         (error 'app-Ar/rest "TODO: `apply` for function wrapped in ~a" (show-V C))]))
+    
     (match V-func
-      [(-Clo xs ⟦e⟧ _ _)
-       (error 'app/rest "TODO: lambda")]
-      [(-Case-Clo clauses _ _)
-       (error 'app/rest "TODO: case-lambda")]
-      [(-Ar C α l³)
-       (error 'app/rest "TODO: guarded function")]
-      [(? -o? o)
-       (for/union : (℘ -ς) ([Vs (in-set (unalloc σ V-rest))] #:when Vs)
-          (define W-rests : (Listof -W¹)
-            (for/list ([V (in-list Vs)]) (-W¹ V #f)))
-          (app $ ℒ W-func (append W-inits W-rests) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-      [_
-       (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
+      [(-Clo xs ⟦e⟧ ρₕ Γₕ) (app-clo/rest xs ⟦e⟧ ρₕ Γₕ)]
+      [(-Case-Clo clauses _ _) (error 'app/rest "TODO: case-lambda")]
+      [(-Ar C α l³) (app-Ar/rest C α l³)]
+      [(? -o? o) (app-prim/rest o)]
+      [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-MΓ+/-oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
