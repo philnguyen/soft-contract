@@ -105,6 +105,7 @@
   (test "safe/issues/issue-79.rkt" check-safe)
   (test "safe/issues/issue-61.rkt" check-safe)
   (test "safe/issues/issue-74.rkt" check-safe)
+  (test "safe/issues/issue-81.rkt" check-safe)
   #;(test '("safe/issues/issue-65/main.rkt"
           "safe/issues/issue-65/example.rkt")
         check-safe)
