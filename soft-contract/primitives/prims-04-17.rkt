@@ -81,7 +81,7 @@
            ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
            [(<= 0 num-remaining-args)
             (with-num-rest-args-check (λ (len) (equal? len num-remaining-args))
-              #:on-t (app $ ℒ W-func W-inits Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity fixed-arity))]
            ;; More init arguments than required
            [else (blm-arity fixed-arity)])]
