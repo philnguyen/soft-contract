@@ -233,6 +233,8 @@
        #:when (and (eq? 'module-name-fixup (syntax-e #'module-name-fixup))
                    (eq? 'variable-reference->module-source/submod
                         (syntax-e #'variable-reference->module-source/submod)))
+       (printf "alternate-alias-id: ~a ↦ ~a~n" (cur-mod) (syntax-e #'lifted.0))
+       (set-alternate-alias-id! (cur-mod) (syntax-e #'lifted.0))
        #f]
       [(#%plain-app call-with-values (#%plain-lambda () e) print-values:id)
        #:when (equal? 'print-values (syntax->datum #'print-values))
@@ -433,12 +435,14 @@
 
       ;; HACK for figuring out exports from non-faked files
       [(#%plain-app f:id lifted.0 args ...)
-       #:when (and (module-level-id? #'f)
-                   (get-alternate-alias (-𝒾 (syntax-e #'f) (id-defining-module #'f))
-                                        (λ () #f)))
-       (-@ (get-alternate-alias (-𝒾 (syntax-e #'f) (id-defining-module #'f)))
-           (parse-es #'(args ...))
-           (syntax-ℓ stx))]
+       #:when (equal? (syntax-e #'lifted.0) (get-alternate-alias-id (cur-mod) (λ () #f)))
+       (define f.src (id-defining-module #'f))
+       (define f-resolved
+         (get-alternate-alias
+          (-𝒾 (syntax-e #'f) f.src)
+          (λ () (error 'parser "please include `~a` in command-line args" f.src))))
+       (set-module-before! f.src (cur-mod))
+       (-@ f-resolved (parse-es #'(args ...)) (syntax-ℓ stx))]
       
 
     ;;; Contracts

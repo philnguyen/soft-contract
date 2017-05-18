@@ -18,6 +18,8 @@
          set-export-alias!
          get-alternate-alias
          set-alternate-alias!
+         set-alternate-alias-id!
+         get-alternate-alias-id
          module-before?
          set-module-before!
          )
@@ -35,7 +37,8 @@
                       [top-level-defs : (HashTable -𝒾 #t)]
                       [export-aliases : (HashTable -𝒾 -𝒾)]
                       [module-befores : (HashTable (Pairof -l -l) #t)]
-                      [alternate-aliases : (HashTable -𝒾 -𝒾)])
+                      [alternate-aliases : (HashTable -𝒾 -𝒾)]
+                      [alternate-alias-ids : (HashTable -l Symbol)])
   #:transparent)
 
 (define (new-static-info)
@@ -50,6 +53,7 @@
                                  (cons -𝒾-box (set -unbox))))
                 (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                  (cons -𝒾-box (set -set-box!))))
+                (make-hash)
                 (make-hash)
                 (make-hash)
                 (make-hash)
@@ -182,3 +186,15 @@
 (define (get-alternate-alias 𝒾 [on-failure (λ () (error 'get-alternate-alias "nothing for ~a" (show-𝒾 𝒾)))])
   (hash-ref (-static-info-alternate-aliases (current-static-info)) 𝒾 on-failure))
   
+
+(: set-alternate-alias-id! : -l Symbol → Void)
+(define (set-alternate-alias-id! l id)
+  (define alternate-alias-ids (-static-info-alternate-alias-ids (current-static-info)))
+  (cond [(hash-ref alternate-alias-ids l #f) =>
+         (λ ([id₀ : Symbol])
+           (error 'set-alternate-alias-id! "~a already maps to ~a, set to ~a" l id₀ id))]
+        [else (hash-set! alternate-alias-ids l id)]))
+
+(: get-alternate-alias-id (∀ (X) ([-l] [(→ X)] . ->* . (U X Symbol))))
+(define (get-alternate-alias-id l [on-failure (λ () (error 'get-alternate-flag-id "nothing for ~a" l))])
+  (hash-ref (-static-info-alternate-alias-ids (current-static-info)) l on-failure))
