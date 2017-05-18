@@ -1,10 +1,10 @@
 #lang typed/racket
 
-(require "../utils/main.rkt"
+(require set-extras
+         "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "../parse/main.rkt"
-         "../run.rkt"
+         "../main.rkt"
          "count-checks.rkt")
 
 (define TIMEOUT (* 60 20))
@@ -53,14 +53,14 @@
       (some-system-path->string (path-replace-extension p ""))))
   (define lines (count-lines p))
   (define checks
-    (match-let ([stats (count-checks (file->module p))])
+    (match-let ([stats (count-checks (parse-files (list p)))])
       ;(printf "~a~n" stats)
       (hash-ref stats 'total)))
 
   (: count-poses : → Real/Rng)
   (define (count-poses)
     (match (with-time-limit : Natural TIMEOUT
-             (define-values (As _) (havoc-file p))
+             (define-values (As _) (havoc-files (list p)))
              (set-count
               ;; Same location means same contract,
               ;; But include contract due to inaccurate location from `fake-contract`

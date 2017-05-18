@@ -8,9 +8,10 @@
          "reduction/main.rkt"
          "primitives/main.rkt"
          "parse/main.rkt"
+         "primitives/signatures.rkt"
          "signatures.rkt"
          )
 
 (define-values/invoke-unit/infer
-  (export verifier^ parser^)
+  (export verifier^ parser^ prim-runtime^)
   (link prims@ proof-system@ reduction@ verifier@ parser@))

@@ -64,6 +64,7 @@
    [opq-table : (HashTable Symbol -●)]
    [range-table : (HashTable Symbol Symbol)]
    [arity-table : (HashTable Symbol Arity)]
+   [partial-prims : (HashTable Symbol Natural)]
 
    [add-alias! : (Identifier Identifier → Void)]
    [add-const! : (Identifier -prim → Void)]))

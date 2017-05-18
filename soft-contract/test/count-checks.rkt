@@ -4,9 +4,7 @@
 
 (require racket/match
          "../ast/definition.rkt"
-         "../primitives/main.rkt" ; for side effects of intitializing primitives...
-         "../proof-relation/base-assumptions.rkt"
-         )
+         "../main.rkt")
 
 (define-type Count (HashTable Symbol Natural))
 

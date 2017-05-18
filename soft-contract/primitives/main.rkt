@@ -58,7 +58,7 @@
 
 (define-compound-unit/infer prims@
   (import proof-system^ widening^ app^ kont^ compile^)
-  (export prims^)
+  (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@
         relations@
