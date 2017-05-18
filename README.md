@@ -38,12 +38,6 @@ I will register this package on Racket Packages eventually.
 Running
 =========================================
 
-First, insert the following line in each file.
-(If you only verify 1 file, you may get away with not doing this)
-```
-(require soft-contract/fake-contract)
-```
-
 Use `raco scv` to run the analysis on one example at `test/programs/safe/octy/ex-14.rkt`:
 ```
 raco scv test/programs/safe/octy/ex-14.rkt
