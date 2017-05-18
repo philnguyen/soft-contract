@@ -2,7 +2,7 @@
 
 (require racket/match
          racket/function
-         #;racket/contract/base)
+         racket/contract/base)
 
 ;; adapted from http://typeocaml.com/2015/03/12/heap-leftist-tree/
 
