@@ -16,9 +16,10 @@
          current-static-info ; just for debugging
          get-export-alias
          set-export-alias!
+         get-alternate-alias
+         set-alternate-alias!
          module-before?
          set-module-before!
-         module-dependencies
          )
 
 (require racket/match
@@ -33,7 +34,8 @@
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
                       [top-level-defs : (HashTable -𝒾 #t)]
                       [export-aliases : (HashTable -𝒾 -𝒾)]
-                      [module-befores : (HashTable (Pairof -l -l) #t)])
+                      [module-befores : (HashTable (Pairof -l -l) #t)]
+                      [alternate-aliases : (HashTable -𝒾 -𝒾)])
   #:transparent)
 
 (define (new-static-info)
@@ -48,6 +50,7 @@
                                  (cons -𝒾-box (set -unbox))))
                 (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                  (cons -𝒾-box (set -set-box!))))
+                (make-hash)
                 (make-hash)
                 (make-hash)
                 (make-hash)))
@@ -143,7 +146,7 @@
         [else
          (hash-set! export-aliases 𝒾ᵢₙ 𝒾ₒᵤₜ)]))
 
-(: get-export-alias ([-𝒾] [(→ -𝒾)] . ->* . -𝒾))
+(: get-export-alias (∀ (X) ([-𝒾] [(→ X)] . ->* . (U X -𝒾))))
 (define (get-export-alias 𝒾 [on-failure (λ () (error 'get-export-alias "nothing for ~a" (show-𝒾 𝒾)))])
   (hash-ref (-static-info-export-aliases (current-static-info)) 𝒾 on-failure))
 
@@ -160,6 +163,22 @@
 (define (set-module-before! l1 l2)
   (hash-set! (-static-info-module-befores (current-static-info)) (cons l1 l2) #t))
 
-(: module-dependencies : → (Listof (Pairof -l -l)))
-(define (module-dependencies)
-  (hash-keys (-static-info-module-befores (current-static-info))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Alternate aliases
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: set-alternate-alias! : -𝒾 -𝒾 → Void)
+(define (set-alternate-alias! 𝒾ᵢₙ 𝒾ₒᵤₜ)
+  (define alternate-aliases (-static-info-alternate-aliases (current-static-info)))
+  (cond [(hash-ref alternate-aliases 𝒾ᵢₙ #f) =>
+         (λ ([𝒾₀ : -𝒾])
+           (error 'set-alternate-alias! "~a already maps to ~a, set to ~a"
+                  (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ)))]
+        [else
+         (hash-set! alternate-aliases 𝒾ᵢₙ 𝒾ₒᵤₜ)]))
+
+(: get-alternate-alias (∀ (X) ([-𝒾] [(→ X)] . ->* . (U X -𝒾))))
+(define (get-alternate-alias 𝒾 [on-failure (λ () (error 'get-alternate-alias "nothing for ~a" (show-𝒾 𝒾)))])
+  (hash-ref (-static-info-alternate-aliases (current-static-info)) 𝒾 on-failure))
+  

@@ -46,7 +46,15 @@
     (parameterize ([port-count-lines-enabled #t])
       (define stxs (map do-expand-file fns))
       (for-each figure-out-aliases! stxs)
+
+      (for-each figure-out-alternate-aliases!
+                (parameterize ([expander expand])
+                  (map do-expand-file fns)))
+      
       (define ms (map parse-module stxs))
+
+      ;; Re-order the modules for an appropriate initilization order,
+      ;; learned from side-effects of `parse-module`
       (sort ms module-before? #:key -module-path)))
 
   (define/contract cur-mod (parameter/c string? #|TODO|#)
@@ -78,11 +86,43 @@
     (syntax-parse stx
       [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
        (parameterize ([cur-mod (mod-path->mod-name (syntax-source #'id))])
-         (for ([form (in-syntax-list #'(forms ...))])
-           (on-module-level-form! form)))]
+         (for-each on-module-level-form! (syntax->list #'(forms ...))))]
       [((~literal begin) form ...)
        (for-each figure-out-aliases! (syntax->list #'(form ...)))]
       [_ (void)]))
+
+  (define/contract (figure-out-alternate-aliases! stx)
+    (scv-syntax? . -> . void?)
+
+    (define extractor->wrapper (make-hash))
+    (define wrapper->name (make-hash))
+
+    (define on-module-level-form!
+      (syntax-parser
+        #:literals (define-values #%plain-app)
+        [(define-values (wrapper:id _:id)
+           (#%plain-app f _ name:id _ _ _))
+         #:when (eq? (syntax-e #'f) 'do-partial-app)
+         (define m (cur-mod))
+         (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) m) (-𝒾 (syntax-e #'name) m))]
+        [(define-values (extractor:id)
+           (#%plain-app f wrapper:id))
+         #:when (eq? (syntax-e #'f) 'wrapped-extra-arg-arrow-extra-neg-party-argument)
+         (define m (cur-mod))
+         (hash-set! extractor->wrapper (-𝒾 (syntax-e #'extractor) m) (-𝒾 (syntax-e #'wrapper) m))]
+        [_ (void)]))
+
+    (let go! ([stx stx])
+      (syntax-parse stx
+        [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
+         (parameterize ([cur-mod (mod-path->mod-name (syntax-source #'id))])
+           (for-each on-module-level-form! (syntax->list #'(forms ...))))]
+        [((~literal begin) form ...)
+         (for-each go! (syntax->list #'(form ...)))]
+        [_ (void)]))
+
+    (for ([(extractor wrapper) (in-hash extractor->wrapper)])
+      (set-alternate-alias! extractor (hash-ref wrapper->name wrapper))))
 
   ;; Convert syntax to `top-level-form`
   (define/contract parse-top-level-form
@@ -180,10 +220,19 @@
     (scv-syntax? . -> . (or/c #f -general-top-level-form?))
     (syntax-parser
       #:literals (define-syntaxes define-values #%require let-values #%plain-app values
-                   call-with-values #%plain-lambda quote)
-      [;; Handled by 1st-pass
+                   call-with-values #%plain-lambda quote list)
+      [;; Handled by pass that figured-out aliases
        (define-values (ex:id _) (#%plain-app do-partial-app _ in:id _ ...))
        #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
+       #f]
+      [;; Handled by pass that figured out alternate-aliases
+       (define-values (lifted.0)
+         (#%plain-app module-name-fixup
+                      (#%plain-app variable-reference->module-source/submod (#%variable-reference))
+                      (#%plain-app list)))
+       #:when (and (eq? 'module-name-fixup (syntax-e #'module-name-fixup))
+                   (eq? 'variable-reference->module-source/submod
+                        (syntax-e #'variable-reference->module-source/submod)))
        #f]
       [(#%plain-app call-with-values (#%plain-lambda () e) print-values:id)
        #:when (equal? 'print-values (syntax->datum #'print-values))
@@ -381,6 +430,15 @@
        #:when (and (free-identifier=? #'f #'g)
                    (string-prefix? (symbol->string (syntax-e #'f)) "file->list"))
        (-@ 'file->list (parse-es #'(x ...)) (syntax-ℓ stx))]
+
+      ;; HACK for figuring out exports from non-faked files
+      [(#%plain-app f:id lifted.0 args ...)
+       #:when (and (module-level-id? #'f)
+                   (get-alternate-alias (-𝒾 (syntax-e #'f) (id-defining-module #'f))
+                                        (λ () #f)))
+       (-@ (get-alternate-alias (-𝒾 (syntax-e #'f) (id-defining-module #'f)))
+           (parse-es #'(args ...))
+           (syntax-ℓ stx))]
       
 
     ;;; Contracts
@@ -541,7 +599,7 @@
       [(quote-syntax e) (error 'parse-e "TODO: (quote-syntax ~a)" (syntax->datum #'e))]
       [((~literal #%top) . id)
        (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
-      [(#%variable-reference) (error 'parse-e "TODO: #%variable-reference")]
+      [(#%variable-reference) (error 'parse-e "TODO: #%variable-reference in ~a" (cur-mod))]
       [(#%variable-reference id)
        (match (symbol->string (syntax-e #'id)) ;; tmp HACK for slatex
          [(regexp #rx"^call-with-output-file")
@@ -628,11 +686,17 @@
     (append (reverse others) (reverse provides)))
 
   ;; For debugging only. Return scv-relevant s-expressions
-  (define/contract (scv-relevant path)
+  #;(define/contract (scv-relevant path)
     (path-string? . -> . any)
     (for/list ([stxᵢ (in-syntax-list (do-expand-file path))]
                #:unless (scv-ignore? stxᵢ))
       (syntax->datum stxᵢ)))
+
+  (define/contract (module-level-id? id)
+    (identifier? . -> . any)
+    (match (identifier-binding id)
+      [(list _ _ _ _ _ _ _) #t]
+      [_ #f]))
 
   (define/contract (id-defining-module id)
     (identifier? . -> . any)

@@ -7,6 +7,7 @@
          syntax/id-table
          syntax/parse
          racket/hash
+         racket/contract
          racket/contract/private/provide
          "expand-keep-contracts.rkt")
 
@@ -25,8 +26,12 @@
         [_ #f])))
 
 (provide do-expand do-expand-file
+         expander
          ;; Helpers
          id->sym)
+
+(define/contract expander (parameter/c (syntax? . -> . syntax?))
+  (make-parameter expand/high-level-contracts))
 
 (define (identifier-binding* i)
   (if (dict-ref lexical-bindings i #f)
@@ -68,7 +73,7 @@
      (error 'do-expand "got something that isn't a module: ~a\n" (syntax->datum #'rest))])
   ;; work
   (parameterize ([current-namespace (make-base-namespace)])
-    (namespace-syntax-introduce (expand/high-level-contracts stx))))
+    (namespace-syntax-introduce ((expander) stx))))
 
 (define current-module (make-parameter #f))
 
