@@ -1,7 +1,5 @@
 #lang racket
 
-(require soft-contract/fake-contract)
-
 (define (number=>string x) (number->string x))
 
 (provide

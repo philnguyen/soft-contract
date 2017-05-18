@@ -1,7 +1,6 @@
 #lang racket
 
-(require soft-contract/fake-contract
-         "helper-1.rkt"
+(require "helper-1.rkt"
          "helper-2.rkt")
 
 (provide
