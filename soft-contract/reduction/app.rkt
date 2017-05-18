@@ -222,24 +222,6 @@
          {set (-ς↑ αₖ Γₕ* ⟪ℋ⟫ₑₑ)}]
         [else ∅])))
 
-  #;(: apply-app-clo : (-var Symbol) -⟦e⟧ -ρ -Γ -?t → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
-  #;(define ((apply-app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) $ ℒ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-var xs₀ xᵣ) xs)
-    (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
-    (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
-    (define ρ*
-      (let ([ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs₀ Ws₀)])
-        (define αᵣ (-α->⟪α⟫ (-α.x xᵣ ⟪ℋ⟫ₑₑ (predicates-of-W (-Σ-σ Σ) Γ Wᵣ))))
-        (σ⊕! Σ Γ αᵣ Wᵣ)
-        (ρ+ ρ₀ xᵣ αᵣ)))
-    (define αₖ (-ℬ xs ⟦e⟧ ρ* #;(-Γ-facts #|TODO|#Γₕ)))
-    (define κ
-      (let ([ss₀ (map -W¹-t Ws₀)]
-            [sᵣ (-W¹-t Wᵣ)])
-        (-κ (memoize-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ `(,sₕ ,@ss₀ ,sᵣ))))
-    (σₖ⊕! Σ αₖ κ)
-    {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)})
-
   (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)
   (define ((app-Case-Clo clauses ρₕ Γₕ sₕ) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (define n (length Wₓs))
