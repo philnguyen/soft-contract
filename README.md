@@ -14,10 +14,6 @@ containing:
   - `libz3.so` if you're on Linux
   - `libz3.dylib` if you're on Mac
 
-
-At this point, this only works with Z3 `4.4.1` and has been known not to work with later Z3 versions.
-This will be fixed eventually.
-
 ### Install `soft-contract`
 
 Clone the repository:
