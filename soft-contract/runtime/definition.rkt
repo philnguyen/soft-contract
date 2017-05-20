@@ -6,7 +6,6 @@
 (require racket/match
          racket/set
          racket/string
-         racket/splicing
          (except-in racket/list remove-duplicates)
          bnf
          intern
@@ -725,28 +724,26 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;; TMP HACKS
+;;;;; Verification Result
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TMP hack for part of root set from stack frames
-(splicing-let ([m ((inst make-hasheq -⟦k⟧ (℘ ⟪α⟫)))])
-  
-  (define (add-⟦k⟧-roots! [⟦k⟧ : -⟦k⟧] [αs : (℘ ⟪α⟫)]) : Void
-    (hash-update! m ⟦k⟧ (λ ([αs₀ : (℘ ⟪α⟫)]) (∪ αs₀ αs)) mk-∅eq))
-  
-  ;; Return the root set spanned by the stack chunk for current block
-  (define (⟦k⟧->roots [⟦k⟧ : -⟦k⟧])
-    (hash-ref m ⟦k⟧ (λ () (error '⟦k⟧->αs "nothing for ~a" ⟦k⟧)))))
+(-R . ::= . '✓ '✗ '?)
 
-;; TMP hack for mapping stack to stack address to return to
-(splicing-let ([m ((inst make-hasheq -⟦k⟧ -αₖ))])
+(: not-R : -R → -R)
+;; Negate provability result
+(define (not-R R)
+  (case R [(✓) '✗] [(✗) '✓] [else '?]))
 
-  (define (set-⟦k⟧->αₖ! [⟦k⟧ : -⟦k⟧] [αₖ : -αₖ]) : Void
-    (hash-update! m ⟦k⟧
-                  (λ ([αₖ₀ : -αₖ]) ; just for debugging
-                    (assert (equal? αₖ₀ αₖ))
-                    αₖ₀)
-                  (λ () αₖ)))
-  
-  (define (⟦k⟧->αₖ [⟦k⟧ : -⟦k⟧]) : -αₖ
-    (hash-ref m ⟦k⟧ (λ () (error '⟦k⟧->αₖ "nothing for ~a" ⟦k⟧)))))
+;; Take the first definite result
+(define-syntax first-R
+  (syntax-rules ()
+    [(_) '?]
+    [(_ R) R]
+    [(_ R₁ R ...)
+     (let ([ans R₁])
+       (case ans
+         ['? (first-R R ...)]
+         [else ans]))]))
+
+(: boolean->R : Boolean → (U '✓ '✗))
+(define (boolean->R x) (if x '✓ '✗))

@@ -8,10 +8,11 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/main.rkt"
-         "signatures.rkt")
+         "signatures.rkt"
+         "../signatures.rkt")
 
 (define-unit memoize@
-  (import)
+  (import for-gc^)
   (export memoize^)
 
   (define/memo (memoize-⟦k⟧ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧

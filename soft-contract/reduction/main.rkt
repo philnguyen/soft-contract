@@ -23,7 +23,7 @@
          )
 
 (define-unit pre-reduction@
-  (import kont^ havoc^ mon^ widening^)
+  (import kont^ havoc^ mon^ widening^ for-gc^)
   (export reduction^)
 
   (define-type Ctx (List -σ -σₖ -M))
@@ -202,6 +202,6 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import prims^ proof-system^ widening^)
+  (import prims^ proof-system^ widening^ for-gc^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

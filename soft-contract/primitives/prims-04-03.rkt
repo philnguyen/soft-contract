@@ -38,7 +38,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-03@
-  (import proof-system^ prim-runtime^ widening^)
+  (import proof-system^ prim-runtime^ widening^ for-gc^)
   (export)
 
   ;; 4.3.1 Constructors, Selectors, Mutators

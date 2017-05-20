@@ -1,11 +1,11 @@
 #lang typed/racket/base
 
-(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^)
+(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^ for-gc^)
 
 (require typed/racket/unit
          set-extras
          "ast/main.rkt"
-         "runtime/main.rkt")
+         "runtime/definition.rkt")
 
 (define-signature verifier^
   ([run-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
@@ -62,3 +62,19 @@
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]))
+
+(define-signature for-gc^
+  ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]
+   [⟦k⟧->roots : (-⟦k⟧ → (℘ ⟪α⟫))]
+   [set-⟦k⟧->αₖ! : (-⟦k⟧ -αₖ → Void)]
+   [⟦k⟧->αₖ : (-⟦k⟧ → -αₖ)]
+   [V->⟪α⟫s : (-V → (℘ ⟪α⟫))]
+   [ρ->⟪α⟫s : (-ρ → (℘ ⟪α⟫))]
+   [span-σ : ((HashTable ⟪α⟫ (℘ -V)) (℘ ⟪α⟫) → (HashTable ⟪α⟫ (℘ -V)))]
+   [t->αₖs : (-?t → (℘ -αₖ))]
+   [Γ->αₖs : (-Γ → (℘ -αₖ))]
+   [ΓA->αₖs : (-ΓA → (℘ -αₖ))]
+   [αₖ->⟪α⟫s : (-αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))]
+   [span-M : ((HashTable -αₖ (℘ -ΓA)) (℘ -αₖ) → (HashTable -αₖ (℘ -ΓA)))]
+   [->⟪α⟫s : ((Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))]
+   [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]))

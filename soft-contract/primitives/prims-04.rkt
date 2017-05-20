@@ -28,7 +28,7 @@
          )
 
 (define-compound-unit/infer prims-04@
-  (import prim-runtime^ proof-system^ widening^ kont^ app^ compile^)
+  (import prim-runtime^ proof-system^ widening^ kont^ app^ compile^ for-gc^)
   (export)
   (link prims-04-01@
         prims-04-02@

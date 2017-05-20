@@ -193,6 +193,6 @@
   )
 
 (define-compound-unit/infer proof-system@
-  (import prims^)
+  (import prims^ for-gc^)
   (export proof-system^ widening^)
   (link local-prover@ external-prover@ widening@ pre-proof-system@))

@@ -15,7 +15,7 @@
          )
 
 (define-unit havoc@
-  (import widening^ kont^ app^ proof-system^)
+  (import widening^ kont^ app^ proof-system^ for-gc^)
   (export havoc^)
 
   (splicing-local

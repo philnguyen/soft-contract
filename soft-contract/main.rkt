@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require typed/racket/unit
+         "runtime/main.rkt"
          "verifier.rkt"
          "proof-relation/main.rkt"
          "reduction/main.rkt"
@@ -14,4 +15,4 @@
 
 (define-values/invoke-unit/infer
   (export verifier^ parser^ prim-runtime^)
-  (link prims@ proof-system@ reduction@ verifier@ parser@))
+  (link prims@ proof-system@ reduction@ verifier@ parser@ for-gc@))

@@ -14,10 +14,11 @@
          "../ast/main.rkt"
          "../runtime/main.rkt"
          "translate.rkt"
-         "signatures.rkt")
+         "signatures.rkt"
+         "../signatures.rkt")
 
 (define-unit external-prover@
-  (import)
+  (import for-gc^)
   (export external-prover^)
 
   (toggle-warning-messages! #f)

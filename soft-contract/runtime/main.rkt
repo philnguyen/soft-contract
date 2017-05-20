@@ -6,11 +6,11 @@
                "path-cond.rkt"
                "val.rkt"
                "blm.rkt"
-               "verification-result.rkt"))
+               "for-gc.rkt"))
 (require "simp.rkt"
          "definition.rkt"
          "sto.rkt"
          "path-cond.rkt"
          "val.rkt"
          "blm.rkt"
-         "verification-result.rkt")
+         "for-gc.rkt")
