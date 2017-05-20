@@ -157,8 +157,12 @@
       #:literals (#%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                             call-with-values)
       [(#%provide spec ...)
-       (error 'parse-module-level-form "Shouldn't reach here if using `fake-contract`")]
-      [(#%declare _ ...) (error 'parse-module-level-form "TODO: '#%declare")]
+       (raise-syntax-error
+        'parse-module-level-form
+        "Shouldn't reach here if using `fake-contract`"
+        #'(#%provide spec ...))]
+      [(#%declare form ...)
+       (raise-syntax-error 'parse-module-level-form "TODO: '#%declare" #'(#%declare form ...))]
       [(begin-for-syntax _ ...) #f]
       
       ;; Hack for reading our fake-contracts:
@@ -301,9 +305,11 @@
           (-define-values (list lhs)
                           (-μ/c x (e/ (-x/c.tmp lhs) (-x/c x) rhs)))]
          [else
-          (error 'TODO
-                 "In ~a's definition: arbitrary reference (recursive-contract ~a) not supported for now."
-                 lhs (set-first (set-remove frees lhs)))])]
+          (raise-syntax-error
+           'recursive-contract
+           "arbitrary recursive contract reference not supported for now."
+           #'(define-values (x) e)
+           #'e)])]
       [(define-values (x:identifier ...) e)
        (define lhs (syntax->datum #'(x ...)))
        (for ([i lhs])
@@ -526,12 +532,12 @@
       ;; Literals
       [(~or v:str v:number v:boolean) (-b (syntax->datum #'v))]
       ;; Ignore sub-modules
-      [(module _ ...) (error 'parse-e "TODO: module")]
-      [(module* _ ...) (error 'parse-e "TODO: module*")]
-      [(#%declare _) (error 'parse-e "TODO: #%declare")]
-      [_
+      [(module _ ...) (raise-syntax-error 'parse-e "TODO: module" stx)]
+      [(module* _ ...) (raise-syntax-error 'parse-e "TODO: module*" stx)]
+      [(#%declare _) (raise-syntax-error 'parse-e "TODO: #%declare" stx)]
+      [stx
        #:when (prefab-struct-key (syntax-e #'v))
-       (error 'parse-e "TODO: non-top-level struct")]
+       (raise-syntax-error 'parse-e "TODO: non-top-level struct" #'stx)]
       [(#%plain-app f x ...)
        (-@ (parse-e #'f)
            (parse-es #'(x ...))
@@ -600,10 +606,12 @@
         (-begin/simp (parse-es #'(b ...)))
         (syntax-ℓ stx))]
       [(quote e) (parse-quote #'e)]
-      [(quote-syntax e) (error 'parse-e "TODO: (quote-syntax ~a)" (syntax->datum #'e))]
+      [(quote-syntax e)
+       (raise-syntax-error 'parse-e "TODO: ~a" stx)]
       [((~literal #%top) . id)
-       (error "Unknown identifier ~a in module ~a" (syntax->datum #'id) (cur-mod))]
-      [(#%variable-reference) (error 'parse-e "TODO: #%variable-reference in ~a" (cur-mod))]
+       (raise-syntax-error 'parse-e "Unknown identifier" stx #'id)]
+      [(#%variable-reference)
+       (raise-syntax-error 'parse-e "TODO:" stx)]
       [(#%variable-reference id)
        (match (symbol->string (syntax-e #'id)) ;; tmp HACK for slatex
          [(regexp #rx"^call-with-output-file")
@@ -611,7 +619,7 @@
          [(regexp #rx"^call-with-input-file")
           'call-with-input-file]
          [_
-          (error 'parse-e "TODO: #%variable-reference ~a, ~a" (syntax->datum #'id))])]
+          (raise-syntax-error 'parse-e "TODO" stx #'id)])]
 
       ;; Hacks for now. Still need this because fake:any/c ≠ any/c
       ;[(~literal null) -null]
@@ -642,7 +650,8 @@
                  _ _ _ _ _ _)
            #:when (not (equal? src 'Λ))
            (-𝒾 (syntax-e #'i) src)]
-          [_ (error 'parser "don't know what `~a` is" (syntax-e #'i))]))]))
+          [_
+           (raise-syntax-error 'parser "don't know how to parse identifier" #'i)]))]))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)
@@ -662,7 +671,7 @@
                     (byte-regexp? re)
                     (byte-pregexp? re)))
        (-b (syntax-e #'r))]
-      [e (error 'parse-quote "unsupported quoted form: ~a" (syntax->datum #'e))]))
+      [e (raise-syntax-error 'parse-quote "unsupported" #'e)]))
 
   ;; Parse given `formals` to extend environment
   (define/contract parse-formals
