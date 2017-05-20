@@ -707,15 +707,13 @@
     (match ⟦e⟧s
       ['() ⟦k⟧]
       [(cons ⟦e⟧ ⟦e⟧s*)
-       (if∷ l ⟦e⟧ ⟦ff⟧ ρ (and∷ l ⟦e⟧s* ρ ⟦k⟧))]))
+       (if∷ l ⟦e⟧ (↓ₚᵣₘ -ff) ρ (and∷ l ⟦e⟧s* ρ ⟦k⟧))]))
 
   (define-frame (or∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧])
     (match ⟦e⟧s
       ['() ⟦k⟧]
       [(cons ⟦e⟧ ⟦e⟧s*) ; TODO propagate value instead
-       (if∷ l ⟦tt⟧ ⟦e⟧ ρ (or∷ l ⟦e⟧s* ρ ⟦k⟧))]))
-
-  (define-frame (neg∷ [l : -l] [⟦k⟧ : -⟦k⟧]) (if∷ l ⟦ff⟧ ⟦tt⟧ ⊥ρ ⟦k⟧))
+       (if∷ l (↓ₚᵣₘ -tt) ⟦e⟧ ρ (or∷ l ⟦e⟧s* ρ ⟦k⟧))]))
 
   (define-frame (mk-listof∷ [tₐ : -?t] [ℒ₀ : -ℒ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()

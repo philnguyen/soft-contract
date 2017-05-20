@@ -48,17 +48,17 @@
            (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (def∷ l αs ⟦k⟧)))]
         [(-provide specs)
          (match (map ↓pc specs)
-           ['() ⟦void⟧]
+           ['() (↓ₚᵣₘ -void)]
            [(cons ⟦spec⟧ ⟦spec⟧s)
             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
               (⟦spec⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦spec⟧s ρ ⟦k⟧)))])]
         [(? -e? e) (↓ₑ l e)]
         [_
          (log-warning "↓d : ignore ~a~n" (show-module-level-form d))
-         ⟦void⟧]))
+         (↓ₚᵣₘ -void)]))
 
     (match (map ↓d ds)
-      ['() ⟦void⟧]
+      ['() (↓ₚᵣₘ -void)]
       [(cons ⟦d⟧ ⟦d⟧s)
        (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
          (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦d⟧s ρ ⟦k⟧)))]))
@@ -164,12 +164,8 @@
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
           (⟦e₀⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn0.v∷ ⟦e⟧s ρ ⟦k⟧)))]
        [(-quote q)
-        (cond
-          [(Base? q)
-           (define W (let ([b (-b q)]) (-W (list b) b)))
-           (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ))]
-          [else (error '↓ₑ "TODO: (quote ~a)" q)])]
+        (cond [(Base? q) (↓ₚᵣₘ (-b q))]
+              [else (error '↓ₑ "TODO: (quote ~a)" q)])]
        [(-let-values bnds e* ℓ)
         (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
           (for/list ([bnd bnds])
@@ -311,12 +307,9 @@
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))
 
   (define/memo (ret-W¹ [V : -V] [t : -?t]) : -⟦e⟧
+    (define W (-W (list V) t))
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦k⟧ (-W (list V) t) $ Γ ⟪ℋ⟫ Σ)))
-
-  (define ⟦void⟧ (↓ₚᵣₘ -void))
-  (define ⟦tt⟧ (↓ₚᵣₘ -tt))
-  (define ⟦ff⟧ (↓ₚᵣₘ -ff))
+      (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ)))
 
   (define/memo (mk-mon [l³ : -l³] [ℒ : -ℒ] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)

@@ -16,10 +16,7 @@
    [mk-app : (-ℒ -⟦e⟧ (Listof -⟦e⟧) → -⟦e⟧)]
    [mk-mon : (-l³ -ℒ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
    [mk-rt : ((U -A -W¹) → -⟦e⟧)]
-   [mk-fc : (-l -ℒ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
-   [⟦tt⟧ : -⟦e⟧]
-   [⟦ff⟧ : -⟦e⟧]
-   [⟦void⟧ : -⟦e⟧]))
+   [mk-fc : (-l -ℒ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]))
 
 (define-signature kont^
   ([rt : (-αₖ → -⟦k⟧)]
@@ -70,7 +67,6 @@
    [fc.v∷ : (-l -ℒ -⟦e⟧ -ρ -⟦k⟧ → -⟦k⟧)]
    [and∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [or∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
-   [neg∷ : (-l -⟦k⟧ → -⟦k⟧)]
    [mk-listof∷ : (-?t -ℒ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]

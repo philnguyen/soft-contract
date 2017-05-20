@@ -352,7 +352,7 @@
                     ['()
                      (define p (-st-p s))
                      (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V p)) (?t@ 'values -tt v))))
-                     (app $ ℒ (-W¹ p p) (list W-V) Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ ⟦ff⟧ ⊥ρ ⟦k⟧))]
+                     (app $ ℒ (-W¹ p p) (list W-V) Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ (↓ₚᵣₘ -ff) ⊥ρ ⟦k⟧))]
                     [(cons ⟦chk-field⟧ ⟦chk-field⟧s*)
                      (⟦chk-field⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
                       (fc-struct/c∷ l ℒ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))]
@@ -371,7 +371,7 @@
       [_
        (define ⟦ap⟧ (mk-app (ℒ-with-l ℒ 'fc) (mk-rt W-C) (list (mk-rt W-V))))
        (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V C)) (?t@ 'values -tt v))))
-       (⟦ap⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ ⟦ff⟧ ⊥ρ ⟦k⟧))]))
+       (⟦ap⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ (↓ₚᵣₘ -ff) ⊥ρ ⟦k⟧))]))
 
   (define (vec-len [σ : -σ] [Γ : -Γ] [W : -W¹]) : -W¹
     (match-define (-W¹ V s) W)

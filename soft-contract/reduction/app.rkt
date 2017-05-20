@@ -49,7 +49,7 @@
       (app $ ℒ W₁ Wₓs Γ ⟪ℋ⟫ Σ (or∷ l (list ⟦rhs⟧) ⊥ρ ⟦k⟧)))
     
     (define (app-Not/C [Wᵤ : -W¹]) : (℘ -ς)
-      (app $ ℒ Wᵤ Wₓs Γ ⟪ℋ⟫ Σ (neg∷ l ⟦k⟧)))
+      (app $ ℒ Wᵤ Wₓs Γ ⟪ℋ⟫ Σ (ap∷ (list -not.W¹) '() ⊥ρ ℒ ⟦k⟧)))
 
     (define (app-One-Of/C [bs : (Listof Base)]) : (℘ -ς)
       (match-define (list (-W¹ Vₓ sₓ)) Wₓs)
