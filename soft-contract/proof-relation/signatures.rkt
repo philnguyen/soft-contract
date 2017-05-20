@@ -14,7 +14,7 @@
    [p⇒p : (-h -h → -R)]
    [ps⇒p : ((℘ -h) -h → -R)]
    [plausible-V-t? : ((℘ -t) -V -?t → Boolean)]
-   [sat-one-of : (-V (Listof Base) → -R)]
+   [sat-one-of : (-V (℘ Base) → -R)]
    [V-arity : (-V → (Option Arity))]))
 
 (define-signature external-prover^

@@ -113,15 +113,16 @@
   (def-alias false/c not)
   (def-pred printable/c)
   (def-prim/custom (one-of/c ⟪ℋ⟫ ℒ Σ Γ Ws)
-    (define-values (vals ss)
-      (for/lists ([vals : (Listof Base)] [ts : (Listof -?t)])
-                 ([W (in-list Ws)] [i (in-naturals)])
+    (define-values (vals ts.rev)
+      (for/fold ([vals : (℘ Base) ∅] [ts : (Listof -?t) '()])
+                ([W (in-list Ws)] [i (in-naturals)])
         (match W
-          [(-W¹ (-b b) t) (values b t)]
+          [(-W¹ (-b b) t) (values (set-add vals b) (cons t ts))]
           [W (error 'one-of/c
-                    "only support simple values for now, got ~a at position ~a"
-                    (show-W¹ W) i)])))
-    {set (-ΓA (-Γ-facts Γ) (-W (list (-One-Of/C vals)) (apply ?t@ 'one-of/c ss)))})
+                    "only support simple values for now, got ~a at ~a~a position"
+                    (show-W¹ W) i (case i [(1) 'st] [(2) 'nd] [else 'th]))])))
+    (define Wₐ (-W (list (-One-Of/C vals)) (apply ?t@ 'one-of/c (reverse ts.rev))))
+    {set (-ΓA (-Γ-facts Γ) Wₐ)})
   #;[symbols
      (() #:rest (listof symbol?) . ->* . flat-contract?)]
   (def-prim/custom (vectorof ⟪ℋ⟫ ℒ Σ Γ Ws) ; FIXME uses

@@ -226,7 +226,7 @@
              (λ () (=/s (@/s 'Val (val-of tₐ)) (app)))))
           (λ () (val-of tₐ))])]
       [(-One-Of/C bs)
-       (define ⦃b⦄s (map ⦃b⦄ bs))
+       (define ⦃b⦄s (set-map bs ⦃b⦄))
        (λ ()
          (match-define (list t) ((list-M ⦃t⦄s)))
          (@/s 'B (or/s/simp (for/list : (Listof Z3-Ast) ([bᵢ (in-list ((list-M ⦃b⦄s)))])

@@ -637,9 +637,9 @@
         [_ '✗]))
     (check V))
 
-  (define (sat-one-of [V : -V] [bs : (Listof Base)]) : -R
+  (define (sat-one-of [V : -V] [bs : (℘ Base)]) : -R
     (match V
-      [(-b b) (if (member b bs) '✓ '✗)]
+      [(-b b) (if (∋ bs b) '✓ '✗)]
       [(? -●?) '?]
       [_ '✗]))
 

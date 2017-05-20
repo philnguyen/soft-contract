@@ -37,7 +37,7 @@
    [V-arity : (-V → (Option Arity))]
    [Γ⊢t : ((℘ -t) -?t → -R)]
    [plausible-V-t? : ((℘ -t) -V -?t → Boolean)]
-   [sat-one-of : (-V (Listof Base) → -R)]
+   [sat-one-of : (-V (℘ Base) → -R)]
    [p∋Vs : (-σ (U -h -v -V) -V * → -R)]
    [MΓ+/-oW/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
    [MΓ⊢oW/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]

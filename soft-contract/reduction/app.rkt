@@ -51,7 +51,7 @@
     (define (app-Not/C [Wᵤ : -W¹]) : (℘ -ς)
       (app $ ℒ Wᵤ Wₓs Γ ⟪ℋ⟫ Σ (ap∷ (list -not.W¹) '() ⊥ρ ℒ ⟦k⟧)))
 
-    (define (app-One-Of/C [bs : (Listof Base)]) : (℘ -ς)
+    (define (app-One-Of/C [bs : (℘ Base)]) : (℘ -ς)
       (match-define (list (-W¹ Vₓ sₓ)) Wₓs)
       (define Wₐ
         (case (sat-one-of Vₓ bs)

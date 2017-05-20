@@ -119,7 +119,7 @@
                    [l : -⟪α⟫ℓ]
                    [r : -⟪α⟫ℓ])
             (-Not/C -⟪α⟫ℓ)
-            (-One-Of/C (Listof Base)) ; Special construct for performance reason
+            (-One-Of/C (Setof Base))
             (-x/C [c : ⟪α⟫])
             ;; Guards for higher-order values
             -=>_
@@ -578,7 +578,7 @@
     [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr l)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr r)))]
     [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr l)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr r)))]
     [(-Not/C γ) `(not/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
-    [(-One-Of/C vs) `(one-of/c ,@(map show-b vs))]
+    [(-One-Of/C vs) `(one-of/c ,@(set-map vs show-b))]
     [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
     [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr γs)))]
     [(-=> αs βs _)
