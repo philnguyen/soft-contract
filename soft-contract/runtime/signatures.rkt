@@ -2,7 +2,14 @@
 
 (provide (all-defined-out))
 
-(require )
+(require racket/match
+         racket/set
+         typed/racket/unit
+         bnf
+         intern
+         set-extras
+         "../ast/definition.rkt"
+         )
 
 (define-type -ρ (HashTable Symbol ⟪α⟫))
 
@@ -273,3 +280,108 @@
      ;; Havoc
      (-ℋ𝒱)
      )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Verification Result
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(-R . ::= . '✓ '✗ '?)
+
+;; Take the first definite result
+(define-syntax first-R
+  (syntax-rules ()
+    [(_) '?]
+    [(_ R) R]
+    [(_ R₁ R ...)
+     (let ([ans R₁])
+       (case ans
+         ['? (first-R R ...)]
+         [else ans]))]))
+
+(: not-R : -R → -R)
+;; Negate provability result
+(define (not-R R)
+  (case R [(✓) '✗] [(✗) '✓] [else '?]))
+
+(: boolean->R : Boolean → (U '✓ '✗))
+(define (boolean->R x) (if x '✓ '✗))
+
+
+(define-signature env^
+  ([⊥ρ : -ρ]
+   [ρ@ : (-ρ Symbol → ⟪α⟫)]
+   [ρ+ : (-ρ Symbol ⟪α⟫ → -ρ)]
+   [-x-dummy : -x]))
+
+(define-signature sto^
+  ([⊥Σ : (→ -Σ)]
+   [⊥σ : -σ]
+   [⊥σₖ : -σₖ]
+   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
+   [⊥M : -M]
+   [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
+   [cardinality+ : (-cardinality → -cardinality)]
+   ))
+
+(define-signature val^
+  ([W¹->W : (-W¹ → -W)]
+   ))
+
+(define-signature pc^
+  ([⊤Γ : -Γ]
+   [-Γ-with-aliases : (-Γ Symbol -?t → -Γ)]
+   [h-unique? : (-h → Boolean)]
+   [t-unique? : (-t → Boolean)]
+   [t-contains? : (-t -t → Boolean)]
+   [t-contains-any? : (-t (℘ -t) → Boolean)]
+   [has-abstraction? : (-t → Boolean)]
+   [bin-o->h : (-special-bin-o → Base → -h)]
+   [flip-bin-o : (-special-bin-o → -special-bin-o)]
+   [neg-bin-o : (-special-bin-o → -special-bin-o)]
+   ;; Cache
+   [$∅ : -$]
+   [$@ : (-$ -?t → (Option -V))]
+   [$+ : (-$ -?t -V → -$)]
+   ))
+
+(define-signature instr^
+  ([⟪ℋ⟫∅ : -⟪ℋ⟫]
+   [⟪ℋ⟫+ : (-⟪ℋ⟫ (U -edge -ℒ) → -⟪ℋ⟫)]
+   [unpack-ℒ : (-ℒ → (Values ℓ -l))]
+   [ℒ-with-mon : (-ℒ ℓ → -ℒ)]
+   [ℒ-with-l : (-ℒ -l → -ℒ)]
+   
+   ))
+
+(define-signature addr^
+  ([⟪α⟫ₕᵥ : ⟪α⟫]
+   [⟪α⟫ₒₚ : ⟪α⟫]
+   ))
+
+(define-signature pretty-print^
+  (
+   #|[show-ς : (-ς → Sexp)]
+   [show-Σ : (-Σ → Sexp)]
+   [show-σ : (-σ → (Listof Sexp))]
+   [show-h : (-h → Sexp)]
+   [show-t : (-t → Sexp)]
+   [show-Γ : (-Γ → (Listof Sexp))]
+   [show-σₖ : (-σₖ → (Listof Sexp))]
+   [show-M : (-M → (Listof Sexp))]
+   [show-blm-reason : ((U -V -v -h) → Sexp)]
+   [show-V : (-V → Sexp)]
+   [show-⟪α⟫ℓ : (-⟪α⟫ℓ → Symbol)]
+   [show-⟪α⟫ℓs : ((Listof -⟪α⟫ℓ) → Sexp)]
+   [show-ΓA : (-ΓA → Sexp)]
+   [show-A : (-A → Sexp)]
+   [show-W¹ : (-W¹ → Sexp)]
+   [show-⟦e⟧ : (-⟦e⟧ → Sexp)]
+   [show-αₖ : (-αₖ → Sexp)]
+   [show-⟪ℋ⟫ : (-⟪ℋ⟫ → (Listof Sexp))]
+   [show-ℒ : (-ℒ → Sexp)]
+   [show-⟪α⟫ : (⟪α⟫ → Sexp)]
+   [show-ρ : (-ρ → (Listof Sexp))]
+   [show-κ : (-κ → Sexp)]
+   |#
+   ))
