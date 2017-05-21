@@ -312,16 +312,24 @@
   ([⊥ρ : -ρ]
    [ρ@ : (-ρ Symbol → ⟪α⟫)]
    [ρ+ : (-ρ Symbol ⟪α⟫ → -ρ)]
-   [-x-dummy : -x]))
+   [-x-dummy : Symbol]))
 
 (define-signature sto^
   ([⊥Σ : (→ -Σ)]
    [⊥σ : -σ]
+   [σ@ : ((U -Σ -σ) ⟪α⟫ → (℘ -V))]
+   [σ@¹ : ((U -Σ -σ) ⟪α⟫ → -V)]
+   [σ@/list : ((U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))]
+   [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
+   [mutated? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
+   [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
    [⊥M : -M]
    [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
    [cardinality+ : (-cardinality → -cardinality)]
+   [⟪α⟫ₕᵥ : ⟪α⟫]
+   [⟪α⟫ₒₚ : ⟪α⟫]
    ))
 
 (define-signature val^
@@ -351,18 +359,11 @@
    [unpack-ℒ : (-ℒ → (Values ℓ -l))]
    [ℒ-with-mon : (-ℒ ℓ → -ℒ)]
    [ℒ-with-l : (-ℒ -l → -ℒ)]
-   
-   ))
-
-(define-signature addr^
-  ([⟪α⟫ₕᵥ : ⟪α⟫]
-   [⟪α⟫ₒₚ : ⟪α⟫]
    ))
 
 (define-signature pretty-print^
-  (
-   #|[show-ς : (-ς → Sexp)]
-   [show-Σ : (-Σ → Sexp)]
+  ([show-ς : (-ς → Sexp)]
+   [show-Σ : (-Σ → (Values (Listof Sexp) (Listof Sexp) (Listof Sexp)))]
    [show-σ : (-σ → (Listof Sexp))]
    [show-h : (-h → Sexp)]
    [show-t : (-t → Sexp)]
@@ -378,10 +379,9 @@
    [show-W¹ : (-W¹ → Sexp)]
    [show-⟦e⟧ : (-⟦e⟧ → Sexp)]
    [show-αₖ : (-αₖ → Sexp)]
-   [show-⟪ℋ⟫ : (-⟪ℋ⟫ → (Listof Sexp))]
+   [show-⟪ℋ⟫ : (-⟪ℋ⟫ → Sexp)]
    [show-ℒ : (-ℒ → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
    [show-κ : (-κ → Sexp)]
-   |#
    ))
