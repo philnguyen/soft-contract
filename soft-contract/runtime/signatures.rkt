@@ -348,6 +348,7 @@
    [approximate-under-contract : (-V → -V)]
    [behavioral? : (-σ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
+   [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]
    ))
 
 (define-signature pc^

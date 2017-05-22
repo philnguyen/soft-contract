@@ -142,7 +142,22 @@
          [(-Clo xs _ _ _) (shape xs)]
          [_
           ;; FIXME: may be wrong for var-args. Need to have saved more
-          (length αs)])]))  
+          (length αs)])]))
+
+  (: blm-arity : ℓ -l Arity (Listof -V) → -blm)
+  (define blm-arity
+    (let ([arity->msg : (Arity → Symbol)
+                      (match-lambda
+                        [(? integer? n)
+                         (format-symbol (case n
+                                          [(0 1) "~a value"]
+                                          [else "~a values"])
+                                        n)]
+                        [(arity-at-least n)
+                         (format-symbol "~a+ values" n)])])
+      (λ (ℓ lo arity Vs)
+        (-blm (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
+
   )
 
 
