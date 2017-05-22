@@ -170,6 +170,11 @@
              [(positive?) (-≤/c 0)]
              [else (-not/c p)])]))
 
+;; convenient syntax
+(define-match-expander -t.not
+  (syntax-rules () [(_ t) (-t.@ 'not (list t))])
+  (syntax-rules () [(_ t) (and t (-t.@ 'not (list t)))]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Call history
@@ -333,7 +338,16 @@
    ))
 
 (define-signature val^
-  ([W¹->W : (-W¹ → -W)]
+  ([+● : (-h * → -●)]
+   [+W¹ : ([-b] [-?t] . ->* . -W¹)]
+   [+W : ([(Listof -b)] [-?t] . ->* . -W)]
+   [W¹->W : (-W¹ → -W)]
+   [C-flat? : (-V → Boolean)]
+   [with-negative-party : (-l -V → -V)]
+   [with-positive-party : (-l -V → -V)]
+   [approximate-under-contract : (-V → -V)]
+   [behavioral? : (-σ -V → Boolean)]
+   [guard-arity : (-=>_ → Arity)]
    ))
 
 (define-signature pc^
@@ -344,13 +358,35 @@
    [t-contains? : (-t -t → Boolean)]
    [t-contains-any? : (-t (℘ -t) → Boolean)]
    [has-abstraction? : (-t → Boolean)]
+   [h-syntactic? : (-h → Boolean)]
    [bin-o->h : (-special-bin-o → Base → -h)]
    [flip-bin-o : (-special-bin-o → -special-bin-o)]
    [neg-bin-o : (-special-bin-o → -special-bin-o)]
+   [complement? : (-t -t →  Boolean)]
    ;; Cache
    [$∅ : -$]
    [$@ : (-$ -?t → (Option -V))]
    [$+ : (-$ -?t -V → -$)]
+   ;; simp
+   [?t@ : (-h -?t * → -?t)]
+   [op-≡? : (Any → Boolean)]
+   ;; split
+   [-struct/c-split : (-?t -𝒾 → (Listof -?t))]
+   [-struct-split : (-?t -𝒾 → (Listof -?t))]
+   [-ar-split : (-?t → (Values -?t -?t))]
+   [-->-split : (-?t (U Index arity-at-least) → (Values (-maybe-var -?t) -?t))]
+   [-->i-split : (-?t Index → (Values (Listof -?t) -?t))]
+   [split-values : (-?t Natural → (Listof -?t))]
+   ;; constr
+   [-?list : ((Listof -?t) → -?t)]
+   [-?unlist : (-?t Natural → (Listof -?t))]
+   [-app-split : (-h -?t Natural → (Listof -?t))]
+   [-?-> : ((-maybe-var -?t) -?t → -?t)]
+   [-?->i : ((Listof -?t) (Option -λ) → -?t)]
+   ;; path-cond
+   [canonicalize : ((U -Γ (HashTable Symbol -t)) Symbol → -t)]
+   [predicates-of : ((U -Γ (℘ -t)) -?t → (℘ -h))]
+   
    ))
 
 (define-signature instr^
