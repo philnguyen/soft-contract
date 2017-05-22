@@ -12,7 +12,7 @@
          "signatures.rkt")
 
 (define-unit val@
-  (import pc^)
+  (import pc^ pretty-print^ sto^)
   (export val^)
 
   (define +● : (-h * → -●)
@@ -21,13 +21,13 @@
         (hash-ref! m hs (λ () (-● (list->set hs)))))))
 
   (define +W¹ : ([-b] [-?t] . ->* . -W¹)
-    (let ([m : (HashTable -W¹ -W¹)])
+    (let ([m : (HashTable -W¹ -W¹) (make-hash)])
       (λ ([b : -b] [t : -?t b])
         (define W (-W¹ b t))
         (hash-ref! m W (λ () W)))))
 
-  (define +W : ([bs : (Listof -b)] [-?t] . ->* . -W)
-    (let ([m : (HashTable -W -W)])
+  (define +W : ([(Listof -b)] [-?t] . ->* . -W)
+    (let ([m : (HashTable -W -W) (make-hash)])
       (λ ([bs : (Listof -b)] [t : -?t (apply ?t@ 'values bs)])
         (define W (-W bs t))
         (hash-ref! m W (λ () W)))))

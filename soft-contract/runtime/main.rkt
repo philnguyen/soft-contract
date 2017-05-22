@@ -1,16 +1,18 @@
 #lang typed/racket/base
 (provide
- (all-from-out "simp.rkt"
-               "definition.rkt"
+ (all-from-out "env.rkt"
                "sto.rkt"
-               "path-cond.rkt"
+               "pc.rkt"
                "val.rkt"
-               "blm.rkt"
-               "for-gc.rkt"))
-(require "simp.rkt"
-         "definition.rkt"
+               "instr.rkt"
+               "for-gc.rkt"
+               "pretty-print.rkt"
+               "signatures.rkt"))
+(require "env.rkt"
          "sto.rkt"
-         "path-cond.rkt"
+         "pc.rkt"
          "val.rkt"
-         "blm.rkt"
-         "for-gc.rkt")
+         "instr.rkt"
+         "for-gc.rkt"
+         "pretty-print.rkt"
+         "signatures.rkt")

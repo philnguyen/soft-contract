@@ -5,7 +5,7 @@
 (require typed/racket/unit
          set-extras
          "ast/main.rkt"
-         "runtime/definition.rkt")
+         "runtime/signatures.rkt")
 
 (define-signature verifier^
   ([run-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
