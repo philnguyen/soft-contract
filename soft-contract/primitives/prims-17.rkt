@@ -9,14 +9,14 @@
          racket/unsafe/ops
          set-extras
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "def-prim.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import prim-runtime^ proof-system^ widening^ app^ kont^)
+  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^)
   (export)
 
   
@@ -62,14 +62,14 @@
                      (define c #f #;(⟪α⟫->s (car ⟪γ⟫ℓ)))
                      (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                            [C (in-set (σ@ σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                                 (app $ ℒ -unsafe-struct-ref.W¹ (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
+                                 (app $ ℒ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                                       (mon.c∷ l³ (ℒ-with-mon ℒ (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                     [else
                      (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                            [C (in-set (σ@ σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                                 (app $ ℒ -unsafe-struct-ref.W¹ (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
+                                 (app $ ℒ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
       [_
-       (⟦k⟧ (-W -●.Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
   (def-ext unsafe-struct-set! (any/c integer? . -> . void?)))
 

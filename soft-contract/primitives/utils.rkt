@@ -19,7 +19,7 @@
                        racket/syntax
                        syntax/parse
                        "../ast/definition.rkt"
-                       "../runtime/main.rkt"))
+                       "../runtime/signatures.rkt"))
 
 (define-syntax-class hf
   #:description "restricted higher-order function contract"

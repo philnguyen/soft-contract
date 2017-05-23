@@ -7,14 +7,14 @@
          racket/contract
          typed/racket/unit
          "../ast/definition.rkt"
-         "../runtime/definition.rkt"
+         "../runtime/signatures.rkt"
          "def-prim.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-13@
-  (import prim-runtime^ widening^ proof-system^ app^)
+  (import prim-runtime^ widening^ proof-system^ app^ val^ pc^ sto^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

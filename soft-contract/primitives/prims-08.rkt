@@ -9,13 +9,13 @@
          typed/racket/unit
          set-extras
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "def-prim.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-08@
-  (import prim-runtime^ proof-system^ widening^)
+  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ pretty-print^)
   (export)
 
   
@@ -27,10 +27,10 @@
     (any/c flat-contract? . -> . flat-contract?))
   (def-prim/custom (any/c ⟪ℋ⟫ ℒ Σ Γ Ws)
     #:domain ([W any/c])
-    {set (-ΓA (-Γ-facts Γ) (-W -tt.Vs -tt))})
+    {set (-ΓA (-Γ-facts Γ) (-W (list -tt) -tt))})
   (def-prim/custom (none/c ⟪ℋ⟫ ℒ Σ Γ Ws)
     #:domain ([W any/c])
-    {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs -ff))})
+    {set (-ΓA (-Γ-facts Γ) (-W (list -ff) -ff))})
 
   (splicing-local
       
@@ -73,7 +73,7 @@
         (define ℓ₂ (ℓ-with-id ℓ 'right-disj))
         (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)))
         (values C (?t@ 'or/c t₁ t₂)))
-      (reduce-contracts 'or/c (-ℒ-app ℒ) Σ Γ Ws or/c.2 -none/c.W))
+      (reduce-contracts 'or/c (-ℒ-app ℒ) Σ Γ Ws or/c.2 (+W (list 'none/c))))
     
     (def-prim/custom (and/c ⟪ℋ⟫ ℒ Σ Γ Ws)
       (: and/c.2 : ℓ -W¹ -W¹ → (Values -V -?t))
@@ -88,7 +88,7 @@
         (define ℓ₂ (ℓ-with-id ℓ 'right-conj))
         (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)))
         (values C (?t@ 'and/c t₁ t₂)))
-      (reduce-contracts 'and/c (-ℒ-app ℒ) Σ Γ Ws and/c.2 -any/c.W)))
+      (reduce-contracts 'and/c (-ℒ-app ℒ) Σ Γ Ws and/c.2 (+W (list 'any/c)))))
 
   (def-prim/custom (not/c ⟪ℋ⟫ ℒ Σ Γ Ws)
     #:domain ([W flat-contract?])

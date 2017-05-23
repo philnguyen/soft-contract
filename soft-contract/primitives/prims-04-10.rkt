@@ -23,7 +23,7 @@
          "../utils/debug.rkt"
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt"
@@ -38,7 +38,7 @@
 (provide prims-04-10@)
 
 (define-unit prims-04-10@
-  (import prim-runtime^ proof-system^ widening^)
+  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
   (export)
 
   #|(def-alias-internal mpair? -mpair?)

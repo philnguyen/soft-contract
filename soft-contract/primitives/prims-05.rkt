@@ -5,12 +5,12 @@
 (require racket/contract
          racket/set
          typed/racket/unit
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "def-prim.rkt"
          "signatures.rkt")
 
 (define-unit prims-05@
-  (import prim-runtime^)
+  (import prim-runtime^ val^ pc^ sto^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

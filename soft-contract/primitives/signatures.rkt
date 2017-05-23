@@ -6,7 +6,7 @@
          typed/racket/unsafe
          set-extras
          "../ast/main.rkt"
-         "../runtime/main.rkt")
+         "../runtime/signatures.rkt")
 
 (unsafe-require/typed syntax/id-table
   [#:opaque Parse-Prim-Table free-id-table?]

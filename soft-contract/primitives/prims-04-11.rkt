@@ -23,7 +23,7 @@
          "../utils/debug.rkt"
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -39,7 +39,7 @@
 (provide prims-04-11@)
 
 (define-unit prims-04-11@
-  (import prim-runtime^ proof-system^ widening^ kont^ app^ compile^)
+  (import prim-runtime^ proof-system^ widening^ kont^ app^ compile^ val^ pc^ sto^ instr^ env^)
   (export)
 
   (def-pred vector?)
@@ -69,7 +69,7 @@
     (def-prim/custom (make-vector ⟪ℋ⟫ ℒ Σ Γ Ws)
       (define Ws*
         (match Ws
-          [(list Wₙ) (list Wₙ -zero.W¹)]
+          [(list Wₙ) (list Wₙ (+W¹ -zero))]
           [_ Ws]))
       (.internal-make-vector ⟪ℋ⟫ ℒ Σ Γ Ws*)))
   
@@ -93,7 +93,7 @@
         [(-Vector ⟪α⟫s) (list (-b (length ⟪α⟫s)))]
         [(-Vector^ _ n) (list n)]
         [(-Vector/guard (-Vector/C ⟪α⟫s) _ _) (list (-b (length ⟪α⟫s)))]
-        [_ -Nat.Vs]))
+        [_ (list (+● 'exact-nonnegative-integer?))]))
     {set (-ΓA (-Γ-facts Γ) (-W A sₐ))})
 
   (def-ext (vector-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -143,7 +143,7 @@
                      (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
                                   (mon.c∷ l³ (ℒ-with-mon ℒ ℓ*) (-W¹ C* c*) ⟦k⟧)))])]
       [_
-       (⟦k⟧ (-W -●.Vs sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
   
   (def-ext (vector-set! $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
@@ -159,10 +159,10 @@
                             #:when (plausible-index? M σ Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (σ⊕! Σ Γ ⟪α⟫ Wᵤ #:mutating? #t)
-                  (⟦k⟧ -void.W $ Γ* ⟪ℋ⟫ Σ))]
+                  (⟦k⟧ (+W (list -void)) $ Γ* ⟪ℋ⟫ Σ))]
       [(-Vector^ α n)
        (σ⊕! Σ Γ α Wᵤ #:mutating? #t)
-       (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
       [(-Vector/guard grd ⟪α⟫ᵥ l³)
        (match-define (-l³ l+ l- lo) l³)
        (define l³* (-l³ l- l+ lo))
@@ -179,7 +179,7 @@
                                  (define W-c (-W¹ Cᵢ cᵢ))
                                  (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                                  (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓᵢ) (mk-rt W-c) (mk-rt Wᵤ)))
-                                 (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧))))]
+                                 (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧))))]
          [(-Vectorof ⟪α⟫ℓ)
           (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
@@ -188,9 +188,9 @@
                       (define W-c (-W¹ C* c*))
                       (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                       (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓ*) (mk-rt W-c) (mk-rt Wᵤ)))
-                      (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* -vector-set!.W¹) '() ⊥ρ ℒ ⟦k⟧)))])]
+                      (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* #;(+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧)))])]
       [_
-       (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]))
   
   (def-prim vector->list (vector? . -> . list?)) ; FIXME retain content
   (def-prim/custom (list->vector ⟪ℋ⟫ ℒ Σ Γ Ws)
@@ -204,12 +204,12 @@
          (define α (-α->⟪α⟫ (-α.vct ℒ ⟪ℋ⟫)))
          (for ([V (in-set (extract-list-content σ Vₗ))])
            (σ⊕V! Σ α V))
-         (-Vector^ α -PosNat.V)]
+         (-Vector^ α (+● 'exact-positive-integer?))]
         ;; Empty list -> Empty vector
         [(-b (list))
-         -Vector₀]
+         (-Vector '())]
         ;; Default
-        [_ (-● {set 'vector?})]))
+        [_ (+● 'vector?)]))
     {set (-ΓA (-Γ-facts Γ) (-W (list Vₐ) (?t@ 'vector->list sₗ)))})
   (def-prim/todo vector->immutable-vector
     (vector? . -> . (and/c vector? immutable?)))

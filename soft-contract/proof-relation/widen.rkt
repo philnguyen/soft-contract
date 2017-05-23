@@ -17,7 +17,7 @@
          "signatures.rkt")
 
 (define-unit widening@
-  (import local-prover^)
+  (import local-prover^ pc^ sto^ pretty-print^ env^ val^)
   (export widening^)
 
   ;; Strengthen path condition `Γ` with `s`
@@ -657,7 +657,7 @@
     (define go!
       (match-lambda
         [(-Cons _ αₜ)
-         (cond [(seen-has? αₜ) {set -arity-0+}]
+         (cond [(seen-has? αₜ) {set (arity-at-least 0)}]
                [else (seen-add! αₜ)
                      (for/union : (℘ Arity) ([Vₜ (in-set (σ@ σ αₜ))])
                         (map/set arity-inc (go! Vₜ)))])]

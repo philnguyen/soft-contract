@@ -25,7 +25,7 @@
          "../utils/debug.rkt"
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt"
@@ -38,7 +38,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-03@
-  (import proof-system^ prim-runtime^ widening^ for-gc^)
+  (import proof-system^ prim-runtime^ widening^ for-gc^ val^ pc^ sto^)
   (export)
 
   ;; 4.3.1 Constructors, Selectors, Mutators
@@ -48,13 +48,7 @@
   (def-prim/custom (string ⟪ℋ⟫ ℒ Σ Γ Ws) ; FIXME uses, domain check
     (define σ (-Σ-σ Σ))
     (define sₐ (apply ?t@ 'string (map -W¹-t Ws)))
-    (define p
-      (cond [(for/and : Boolean ([W Ws])
-               (match-define (-W¹ V s) W)
-               (⊢?/quick '✗ σ (-Γ-facts Γ) 'equal? W -null-char.W¹))
-             'path-string?]
-            [else 'string?]))
-    {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set p (-not/c 'immutable?)})) sₐ))})
+    {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'string? (-not/c 'immutable?)})) sₐ))})
   (def-prim string->immutable-string
     (string? . -> . (and/c string? immutable?)))
   (def-prim string-length
@@ -79,7 +73,7 @@
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'string->list s))
     (match V
-      [(-b "") {set (-ΓA (-Γ-facts Γ) (-W -null.Vs sₐ))}]
+      [(-b "") {set (-ΓA (-Γ-facts Γ) (-W (list -null) sₐ))}]
       [_
        (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
        (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
@@ -90,7 +84,7 @@
        (define Ans {set (-ΓA (-Γ-facts Γ) (-W (list Vₜ) sₐ))})
        (match V
          [(-b (? string? s)) #:when (> (string-length s) 0) Ans]
-         [_ (set-add Ans (-ΓA (-Γ-facts Γ) (-W -null.Vs sₐ)))])]))
+         [_ (set-add Ans (-ΓA (-Γ-facts Γ) (-W (list -null) sₐ)))])]))
   (def-prim/custom (list->string ⟪ℋ⟫ ℒ Σ Γ Ws)
     #:domain ([W (listof char?)])
     (define σ (-Σ-σ Σ))

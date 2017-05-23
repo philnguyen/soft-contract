@@ -29,7 +29,7 @@
          set-extras
          "../utils/map.rkt"
          "../ast/definition.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "gen.rkt")
 
 (begin-for-syntax
@@ -301,14 +301,14 @@
      (define/syntax-parse (cₓ ...) (attribute c.init))
      (define/syntax-parse d (attribute c.rng))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
-     (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕!)
+     (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕! ?t@ +● ⊥ρ)
      #`(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (match-define (-Σ σ σₖ _) Σ)
          (define sₐ (?t@ 'o (-W¹-t W) ...))
          (define Wₐ (-W (list #,(parameterize ([-o #'o]
                                                [-σ #'σ])
-                                  (gen-wrap #'d #'-●.V #'sₐ)))
+                                  (gen-wrap #'d #'(+●) #'sₐ)))
                         sₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
          (define αₖ (-ℋ𝒱))
@@ -320,6 +320,7 @@
     [(_ (o:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         #:result e)
+     (hack:make-available #'o ?t@)
      #'(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W c] ...)
          (define sₐ (apply ?t@ 'o (map -W¹-t Ws)))

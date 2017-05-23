@@ -339,8 +339,8 @@
 
 (define-signature val^
   ([+● : (-h * → -●)]
-   [+W¹ : ([-b] [-?t] . ->* . -W¹)]
-   [+W : ([(Listof -b)] [-?t] . ->* . -W)]
+   [+W¹ : ([-prim] [-?t] . ->* . -W¹)]
+   [+W : ([(Listof -prim)] [-?t] . ->* . -W)]
    [W¹->W : (-W¹ → -W)]
    [C-flat? : (-V → Boolean)]
    [with-negative-party : (-l -V → -V)]
@@ -387,7 +387,7 @@
    ;; path-cond
    [canonicalize : ((U -Γ (HashTable Symbol -t)) Symbol → -t)]
    [predicates-of : ((U -Γ (℘ -t)) -?t → (℘ -h))]
-   
+   [fvₜ : (-?t → (℘ Symbol))]
    ))
 
 (define-signature instr^

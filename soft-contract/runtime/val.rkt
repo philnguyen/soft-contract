@@ -20,15 +20,15 @@
       (λ hs
         (hash-ref! m hs (λ () (-● (list->set hs)))))))
 
-  (define +W¹ : ([-b] [-?t] . ->* . -W¹)
+  (define +W¹ : ([-prim] [-?t] . ->* . -W¹)
     (let ([m : (HashTable -W¹ -W¹) (make-hash)])
-      (λ ([b : -b] [t : -?t b])
+      (λ ([b : -prim] [t : -?t b])
         (define W (-W¹ b t))
         (hash-ref! m W (λ () W)))))
 
-  (define +W : ([(Listof -b)] [-?t] . ->* . -W)
+  (define +W : ([(Listof -prim)] [-?t] . ->* . -W)
     (let ([m : (HashTable -W -W) (make-hash)])
-      (λ ([bs : (Listof -b)] [t : -?t (apply ?t@ 'values bs)])
+      (λ ([bs : (Listof -prim)] [t : -?t (apply ?t@ 'values bs)])
         (define W (-W bs t))
         (hash-ref! m W (λ () W)))))
 

@@ -23,11 +23,12 @@
          "../utils/map.rkt"
          "../ast/definition.rkt"
          "../ast/shorthands.rkt"
-         "../runtime/main.rkt")
-
-
+         "../runtime/signatures.rkt")
 
 (begin-for-syntax
+
+  (define-syntax-rule (with-hack:make-available (src id ...) e ...)
+    (with-syntax ([id (format-id src "~a" 'id)] ...) e ...))
 
   (define-syntax-rule (hack:make-available src id ...)
     (begin (define/with-syntax id (format-id src "~a" 'id)) ...))
@@ -370,13 +371,18 @@
                    [p #'p]))
                (hack:make-available (-o) V+)
                #`(V+ #,(-σ) #,V p))
-             #'-●.V
+             (with-hack:make-available ((-o) +●)
+               #'(+●))
              refs))
 
     (define/with-syntax mk-sₐ
       (cond [(-volatile?) #'#f]
-            [dom-rest #`(apply ?t@ '#,(-o) #,@(-sₙ) #,(-s*))]
-            [else #`(?t@ '#,(-o) #,@(-sₙ))]))
+            [dom-rest
+             (hack:make-available (-o) ?t@)
+             #`(apply ?t@ '#,(-o) #,@(-sₙ) #,(-s*))]
+            [else
+             (hack:make-available (-o) ?t@)
+             #`(?t@ '#,(-o) #,@(-sₙ))]))
 
     (cond
       [(null? (-refs))
@@ -476,7 +482,8 @@
           (for/fold ([acc (hash-ref listof.thunks κ₀)])
                     ([(f es) (in-hash listof.thunks)] #:unless (equal? f κ₀))
             (cons #`(define (#,(->id f)) #,@es) acc)))
-        
+
+        (hack:make-available (-o) σ@)
         (define body
           (list #`(define-set seen-tails : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
                 #`(define cache : (HashTable ⟪α⟫ (℘ -ΓA)) (make-hasheq))
@@ -688,8 +695,10 @@
             [(list #,@(-Wₙ))
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
-            [_ 
-             #,((-gen-blm) #`(blm-arity (-ℒ-app #,(-ℒ)) '#,(-o) #,n (map -W¹-V #,(-Ws))))]))]
+            [_
+             #,((-gen-blm)
+                (with-hack:make-available ((-o) blm-arity)
+                  #`(blm-arity (-ℒ-app #,(-ℒ)) '#,(-o) #,n (map -W¹-V #,(-Ws)))))]))]
       [(arity-at-least 0)
        (list* #`(define #,(-W*) #,(-Ws))
               #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
@@ -701,4 +710,6 @@
              (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
              #,@body]
             [_
-             #,((-gen-blm) #`(blm-arity (-ℒ-app #,(-ℒ)) '#,(-o) (arity-at-least #,n) (map -W¹-V #,(-Ws))))]))])))
+             #,((-gen-blm)
+                (with-hack:make-available ((-o) blm-arity)
+                  #`(blm-arity (-ℒ-app #,(-ℒ)) '#,(-o) (arity-at-least #,n) (map -W¹-V #,(-Ws)))))]))])))

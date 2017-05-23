@@ -21,7 +21,7 @@
          )
 
 (define-unit local-prover@
-  (import prims^)
+  (import prims^ pc^ sto^ val^ pretty-print^)
   (export local-prover^)
   (init-depend prims^)
 

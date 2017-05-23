@@ -5,7 +5,7 @@
 (require typed/racket/unit
          set-extras
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -57,7 +57,8 @@
   )
 
 (define-compound-unit/infer prims@
-  (import proof-system^ widening^ app^ kont^ compile^ for-gc^)
+  (import proof-system^ widening^ app^ kont^ compile^ for-gc^
+          val^ pc^ sto^ instr^ pretty-print^ env^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@

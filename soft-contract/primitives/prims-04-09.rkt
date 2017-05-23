@@ -23,7 +23,7 @@
          "../utils/debug.rkt"
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -39,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-09@
-  (import prim-runtime^ proof-system^ widening^ kont^ app^)
+  (import prim-runtime^ proof-system^ widening^ kont^ app^ val^ pc^ sto^)
   (export)
 
 
@@ -55,14 +55,14 @@
   (def-prim list? (any/c . -> . boolean?))
   (def-prim/custom (list ⟪ℋ⟫ ℒ Σ Γ Ws)
     (match Ws
-      ['() {set (-ΓA (-Γ-facts Γ) -null.W)}]
+      ['() {set (-ΓA (-Γ-facts Γ) (+W (list -null)))}]
       [_
        (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
        (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
        (for ([Wᵢ (in-list Ws)])
          (σ⊕! Σ Γ αₕ Wᵢ))
        (define Vₚ (-Cons αₕ αₜ))
-       (σ⊕V! Σ αₜ -null.V)
+       (σ⊕V! Σ αₜ -null)
        (σ⊕V! Σ αₜ Vₚ)
        (define tₚ (foldr (λ ([Wₗ : -W¹] [tᵣ : -?t]) (?t@ -cons (-W¹-t Wₗ) tᵣ)) -null Ws))
        {set (-ΓA (-Γ-facts Γ) (-W (list Vₚ) tₚ))}]))
@@ -89,12 +89,12 @@
        (for ([Vₕ Vₕs]) (σ⊕V! Σ αₕ Vₕ))
        (σ⊕V! Σ αₜ Vₜ)
        (σ⊕V! Σ αₜ -null)
-       {set (-ΓA (-Γ-facts Γ) (-W -null.Vs sₐ))
+       {set (-ΓA (-Γ-facts Γ) (-W (list -null) sₐ))
             (-ΓA (-Γ-facts Γ) (-W (list Vₜ) sₐ))}]
       [(-b (list))
-       {set (-ΓA (-Γ-facts Γ) (-W -null.Vs sₐ))}]
+       {set (-ΓA (-Γ-facts Γ) (-W (list -null) sₐ))}]
       [_
-       {set (-ΓA (-Γ-facts Γ) (-W (list (-● (set 'list?))) sₐ))}]))
+       {set (-ΓA (-Γ-facts Γ) (-W (list (+● 'list?)) sₐ))}]))
   (def-prim append (() #:rest (listof list?) . ->* . list?))
   #;(def-prim/custom (append ⟪ℋ⟫ ℓ Σ Γ Ws) ; FIXME uses
       #:domain ([W₁ list?] [W₂ list?])
@@ -121,7 +121,7 @@
     (match-define (-W¹ Vₗ sₗ) Wₗ)
     (define sₐ (?t@ 'reverse sₗ))
     (match Vₗ
-      [(-b (list)) {set (-ΓA (-Γ-facts Γ) (-W -null.Vs sₐ))}]
+      [(-b (list)) {set (-ΓA (-Γ-facts Γ) (-W (list -null) sₐ))}]
       [(-Cons _ _)
        (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
        (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
@@ -131,9 +131,9 @@
        (σ⊕V! Σ αₜ -null)
        {set (-ΓA (-Γ-facts Γ) (-W (list Vₜ) sₐ))}]
       [(-● ps)
-       (cond [(∋ ps -cons?) {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set -cons?})) sₐ))}]
-             [else          {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'list?})) sₐ))}])]
-      [_ {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'list?})) sₐ))}]))
+       (cond [(∋ ps -cons?) {set (-ΓA (-Γ-facts Γ) (-W (list (+● -cons?)) sₐ))}]
+             [else          {set (-ΓA (-Γ-facts Γ) (-W (list (+● 'list?)) sₐ))}])]
+      [_ {set (-ΓA (-Γ-facts Γ) (-W (list (+● 'list?)) sₐ))}]))
 
   ;; 4.9.3 List Iteration
   (def-ext (map $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -150,13 +150,13 @@
        (define ⟦k⟧* (mk-listof∷ tₐ ℒ ⟪ℋ⟫ ⟦k⟧))
        (for/union : (℘ -ς) ([V (extract-list-content σ Vₗ)])
                   (app $ ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
-      [_ (⟦k⟧ (-W (list (-● (set 'list?))) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
+      [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   #;(def-prims (andmap ormap) ; FIXME uses
       (procedure? list . -> . any/c))
   (def-ext (for-each $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₚ (any/c . -> . any/c)]
               [Wₗ list?])
-    #:result -void.Vs)
+    #:result (list -void))
   #;(def-prims (foldl foldr) ; FIXME uses
       (procedure? any/c list? . -> . any/c))
 
@@ -414,7 +414,7 @@
       [(-Cons _ _)
        (cond
          [(definitely-not-member? σ Vₓ Vₗ)
-          {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ))}]
+          {set (-ΓA (-Γ-facts Γ) (-W (list -ff) sₐ))}]
          [else
           (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
           (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
@@ -425,8 +425,8 @@
           (σ⊕V! Σ αₜ -null)
           (define Ans {set (-ΓA (-Γ-facts Γ) (-W (list Vₜ) sₐ))})
           (cond [(definitely-member? σ Vₓ Vₗ) Ans]
-                [else (set-add Ans (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ)))])])]
-      [(-b '()) {set (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ))}]
-      [_ {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'list? -cons?})) sₐ))
-              (-ΓA (-Γ-facts Γ) (-W -ff.Vs sₐ))}]))
+                [else (set-add Ans (-ΓA (-Γ-facts Γ) (-W (list -ff) sₐ)))])])]
+      [(-b '()) {set (-ΓA (-Γ-facts Γ) (-W (list -ff) sₐ))}]
+      [_ {set (-ΓA (-Γ-facts Γ) (-W (list (+● 'list? -cons?)) sₐ))
+              (-ΓA (-Γ-facts Γ) (-W (list -ff) sₐ))}]))
   )

@@ -24,7 +24,7 @@
          "../utils/pretty.rkt"
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -40,7 +40,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import prim-runtime^ proof-system^ widening^ app^)
+  (import prim-runtime^ proof-system^ widening^ app^ val^ pc^ sto^ instr^)
   (export)
 
   (def-pred procedure?)
@@ -129,7 +129,7 @@
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'procedure-arity s))
     (cond [(V-arity V) => (λ ([a : Arity]) {set (-ΓA (-Γ-facts Γ) (-W (list (-b a)) sₐ))})]
-          [else {set (-ΓA (-Γ-facts Γ) (-W -●.Vs sₐ))}]))
+          [else {set (-ΓA (-Γ-facts Γ) (-W (list (+●)) sₐ))}]))
   (def-pred procedure-arity?)
   {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses
   (def-prim/todo procedure-reduce-arity

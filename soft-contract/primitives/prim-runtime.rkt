@@ -8,12 +8,12 @@
          set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import proof-system^ widening^)
+  (import proof-system^ widening^ pc^ val^ sto^)
   (export prim-runtime^)
 
   (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
@@ -38,7 +38,7 @@
                 (for/union : (℘ -W¹) ([V (in-set (σ@ σ α))]
                                       #:when (plausible-V-t? φs V s))
                            (go V))])]
-        [(? -●?) {set (-W¹ -●.V s*)}]
+        [(? -●?) {set (-W¹ (+●) s*)}]
         [_ ∅])))
 
   (: ⊢?/quick : -R -σ (℘ -t) -o -W¹ * → Boolean)
@@ -52,10 +52,10 @@
   (define (implement-predicate M σ Γ o Ws)
     (define ss (map -W¹-t Ws))
     (define A
-      (case (apply MΓ⊢oW M σ Γ o Ws)
-        [(✓) -tt.Vs]
-        [(✗) -ff.Vs]
-        [(?) -Bool.Vs]))
+      (list (case (apply MΓ⊢oW M σ Γ o Ws)
+              [(✓) -tt]
+              [(✗) -ff]
+              [(?) (+● 'boolean?)])))
     {set (-ΓA (-Γ-facts Γ) (-W A (apply ?t@ o ss)))})
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦o⟧)

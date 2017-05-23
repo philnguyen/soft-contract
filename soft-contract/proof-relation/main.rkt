@@ -10,7 +10,7 @@
          set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
 
@@ -19,7 +19,7 @@
          "local.rkt")
 
 (define-unit pre-proof-system@
-  (import (prefix loc: local-prover^) external-prover^ widening^)
+  (import (prefix loc: local-prover^) external-prover^ widening^ pc^)
   (export proof-system^)
   
   (define Γ⊢t loc:Γ⊢t)
@@ -193,6 +193,6 @@
   )
 
 (define-compound-unit/infer proof-system@
-  (import prims^ for-gc^)
+  (import prims^ for-gc^ pc^ sto^ val^ pretty-print^ env^)
   (export proof-system^ widening^)
   (link local-prover@ external-prover@ widening@ pre-proof-system@))

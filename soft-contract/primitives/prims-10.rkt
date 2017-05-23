@@ -7,13 +7,13 @@
          typed/racket/unit
          "../utils/list.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt")
 
 (define-unit prims-10@
-  (import proof-system^ widening^ prim-runtime^)
+  (import proof-system^ widening^ prim-runtime^ val^ pc^ sto^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -87,7 +87,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (def-ext (continuation-mark-set-first $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-W -●.Vs #f) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧ (-W (list (+●)) #f) $ Γ ⟪ℋ⟫ Σ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -4,11 +4,12 @@
 (require racket/contract
          typed/racket/unit
          "def-prim.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-16@
-  (import prim-runtime^ proof-system^ widening^)
+  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
   (export)
   
   (def-prim make-weak-box (any/c . -> . weak-box?))

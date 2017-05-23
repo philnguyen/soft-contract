@@ -6,10 +6,11 @@
          typed/racket/unit
          "def-prim.rkt"
          "../signatures.rkt"
+         "../runtime/signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-15@
-  (import prim-runtime^ proof-system^ widening^)
+  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
   (export)
 
   
