@@ -5,7 +5,7 @@
 (require typed/racket/unit
          set-extras
          "../ast/main.rkt"
-         "../runtime/main.rkt")
+         "../runtime/signatures.rkt")
 
 (define-signature local-prover^
   ([Γ⊢t : ((℘ -t) -?t → -R)]

@@ -3,7 +3,7 @@
 (require set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../main.rkt"
          "count-checks.rkt")
 

@@ -188,7 +188,7 @@
                       (define W-c (-W¹ C* c*))
                       (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                       (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓ*) (mk-rt W-c) (mk-rt Wᵤ)))
-                      (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* #;(+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧)))])]
+                      (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧)))])]
       [_
        (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]))
   

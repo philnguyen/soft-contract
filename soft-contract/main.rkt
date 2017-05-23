@@ -14,5 +14,7 @@
          )
 
 (define-values/invoke-unit/infer
-  (export verifier^ parser^ prim-runtime^)
-  (link prims@ proof-system@ reduction@ verifier@ parser@ for-gc@))
+  (export verifier^ parser^ prim-runtime^
+          pretty-print^)
+  (link env@ sto@ val@ instr@ pc@ pretty-print@
+        prims@ proof-system@ reduction@ verifier@ parser@ for-gc@))

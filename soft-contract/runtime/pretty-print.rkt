@@ -10,6 +10,7 @@
          "signatures.rkt"
          )
 
+(provide pretty-print@)
 (define-unit pretty-print@
   (import env^)
   (export pretty-print^)

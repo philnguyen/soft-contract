@@ -8,7 +8,7 @@
          set-extras
          "utils/main.rkt"
          "ast/main.rkt"
-         "runtime/definition.rkt"
+         "runtime/signatures.rkt"
          "signatures.rkt"
          "reduction/signatures.rkt"
          )

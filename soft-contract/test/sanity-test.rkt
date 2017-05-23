@@ -8,7 +8,7 @@
          typed/rackunit
          set-extras
          "../utils/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../main.rkt")
 
 (define TIMEOUT 1200)
