@@ -20,7 +20,8 @@
 (provide kont@)
 
 (define-unit kont@
-  (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^)
+  (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^
+          val^ env^ sto^ pretty-print^ pc^ instr^)
   (export kont^)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -61,7 +62,7 @@
             (when (and (debug-iter?)
                        (-blm? A)
                        (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))
-              (hash-ref! print-cache A (λ () (printf "~a~n" (show-blm A))))))
+              (hash-ref! print-cache A (λ () (printf "~a~n" (show-A A))))))
           (match A
             [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
              ∅]
@@ -164,7 +165,7 @@
                  (mon l³ $ (ℒ-with-mon ℒ ℓ₁) Ctc₁ Val₁ Γ ⟪ℋ⟫ Σ
                       (mon*∷ l³ ℒ Ctcs* Vals* ℓs* '() ⟦k⟧))]
                 [('() '() '())
-                 (⟦k⟧ -Empty-Values.W $ Γ ⟪ℋ⟫ Σ)]))]
+                 (⟦k⟧ (+W '()) $ Γ ⟪ℋ⟫ Σ)]))]
            [else
             (define msg
               (format-symbol (case n
@@ -280,7 +281,7 @@
            (match (⟪α⟫->-α α)
              [(-α.x x _ _) (-x x)]
              [(? -𝒾? 𝒾) 𝒾]))
-         (⟦k⟧ -void.W (hash-remove $ s) Γ ⟪ℋ⟫ Σ)]
+         (⟦k⟧ (+W (list -void)) (hash-remove $ s) Γ ⟪ℋ⟫ Σ)]
         [_
          (define blm
            (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))
@@ -516,7 +517,7 @@
         [(= n (length Vs))
          (for ([α : ⟪α⟫ αs] [V Vs])
            (σ⊕V! Σ α V))
-         (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
+         (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
         [else
          (define blm
            (-blm l 'define-values
@@ -614,7 +615,7 @@
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (W-C₁ W-C₂)
       (match-define (-W Vs s) A)
       (match Vs
-        [(list (-b #f)) (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ)]
+        [(list (-b #f)) (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ)]
         [(list (-b #t) V)
          (match-define (-t.@ 'values (list _ sᵥ)) s)
          (match-define (-W¹ C₁ _) W-C₁)
@@ -646,7 +647,7 @@
          (match-define (-W¹ V v) W-V)
          (⟦k⟧ (-W (list -tt V) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ)]
         [(list (-b #t) V)
-         (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ)])))
+         (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ)])))
 
   (define-frame (fc-struct/c∷ [l : -l]
                               [ℒ : -ℒ]
@@ -659,7 +660,7 @@
       (match-define (-W Vs s) A)
       (match Vs
         [(list (-b #f))
-         (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ)]
+         (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ)]
         [(list (-b #t) V*)
          (define v*
            (match s

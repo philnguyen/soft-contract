@@ -14,7 +14,8 @@
          "signatures.rkt")
 
 (define-unit mon@
-  (import compile^ app^ kont^ proof-system^ widening^ prims^)
+  (import compile^ app^ kont^ proof-system^ widening^ prims^
+          env^ sto^ val^ instr^ pc^)
   (export mon^)
 
   (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -55,7 +56,7 @@
       (define W-arity
         (let ([A (V-arity V)]
               [a (?t@ 'procedure-arity v)])
-          (-W¹ (if A (-b A) -●.V) a)))
+          (-W¹ (if A (-b A) (+●)) a)))
       (with-MΓ+/-oW (M σ Γ 'arity-includes? W-arity W-grd-arity)
         #:on-t wrap
         #:on-f (let ([C (match W-grd-arity
@@ -224,13 +225,13 @@
         (mk-app (ℒ-with-l ℒ 'mon-vectorof)
                 (mk-rt (-W¹ 'vector-ref #f))
                 (list (mk-rt Wᵥ)
-                      (mk-rt (-W¹ -Nat.V (-x (+x!/memo 'vof-idx)))))))
+                      (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (-x (+x!/memo 'vof-idx)))))))
       (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℒ l³ ⟦k⟧))
       (define c* #f #;(⟪α⟫->s α*))
       (define Wₗ (vec-len σ Γ Wᵥ))
       (for/union : (℘ -ς) ([C* (in-set (σ@ Σ α*))])
                  (define ⟦mon⟧ (mk-mon l³ (ℒ-with-mon ℒ ℓ*) (mk-rt (-W¹ C* c*)) ⟦ref⟧))
-                 (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ -make-vector.W¹) '() ⊥ρ ℒ
+                 (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ (+W¹ 'make-vector)) '() ⊥ρ ℒ
                                           ⟦k⟧*))))
 
     (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
@@ -278,11 +279,11 @@
                      (mk-mon l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt Wₚᵢ) ⟦ref⟧)))
                  
                  (match ⟦mon-fld⟧s
-                   ['() (⟦k⟧ (-W (list -Vector₀) sᵥ) $ Γ ⟪ℋ⟫ Σ)] ; no need to wrap
+                   ['() (⟦k⟧ (-W (list (-Vector '())) sᵥ) $ Γ ⟪ℋ⟫ Σ)] ; no need to wrap
                    [(cons ⟦fld⟧₀ ⟦fld⟧s)
                     (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℒ l³ ⟦k⟧))
                     (⟦fld⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-                     (ap∷ (list -vector.W¹) ⟦fld⟧s ⊥ρ ℒ ⟦k⟧*))])))
+                     (ap∷ (list (+W¹ 'vector)) ⟦fld⟧s ⊥ρ ℒ ⟦k⟧*))])))
 
     (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
       #:on-t chk-len
@@ -329,13 +330,13 @@
       [(-One-Of/C bs)
        (case (sat-one-of V bs)
          [(✓) (⟦k⟧ (-W (list -tt V) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ)]
-         [(✗) (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ)]
+         [(✗) (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ)]
          [(?)
           (∪
            (for/union : (℘ -ς) ([b bs])
                       (define v (-b b))
                       (⟦k⟧ (-W (list -ff v) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ))
-           (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ))])]
+           (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ))])]
       [(-St/C _ s αℓs)
        (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
        (define cs (-struct/c-split c s))
@@ -387,7 +388,7 @@
            [(-Vector/C ⟪α⟫s) (length ⟪α⟫s)]
            [_ #f])]
         [_ #f]))
-    (define Vₙ (if ?n (-b ?n) -Nat.V))
+    (define Vₙ (if ?n (-b ?n) (+● 'exact-nonnegative-integer?)))
     (-W¹ Vₙ (?t@ 'vector-length s)))
 
   ;; FIXME Duplicate macros

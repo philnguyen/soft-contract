@@ -10,12 +10,13 @@
          set-extras
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit app@
-  (import mon^ compile^ kont^ proof-system^ prims^ memoize^ widening^)
+  (import mon^ compile^ kont^ proof-system^ prims^ memoize^ widening^
+          env^ val^ pc^ instr^ sto^ pretty-print^)
   (export app^)
 
   (: app : -$ -ℒ -W¹ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -49,15 +50,15 @@
       (app $ ℒ W₁ Wₓs Γ ⟪ℋ⟫ Σ (or∷ l (list ⟦rhs⟧) ⊥ρ ⟦k⟧)))
     
     (define (app-Not/C [Wᵤ : -W¹]) : (℘ -ς)
-      (app $ ℒ Wᵤ Wₓs Γ ⟪ℋ⟫ Σ (ap∷ (list -not.W¹) '() ⊥ρ ℒ ⟦k⟧)))
+      (app $ ℒ Wᵤ Wₓs Γ ⟪ℋ⟫ Σ (ap∷ (list (+W¹ 'not)) '() ⊥ρ ℒ ⟦k⟧)))
 
     (define (app-One-Of/C [bs : (℘ Base)]) : (℘ -ς)
       (match-define (list (-W¹ Vₓ sₓ)) Wₓs)
       (define Wₐ
         (case (sat-one-of Vₓ bs)
-          [(✓) -tt.W]
-          [(✗) -ff.W]
-          [(?) (-W -Bool.Vs (?t@ (-One-Of/C bs) sₓ))]))
+          [(✓) (+W (list -tt))]
+          [(✗) (+W (list -ff))]
+          [(?) (-W (list (+● 'boolean?)) (?t@ (-One-Of/C bs) sₓ))]))
       (⟦k⟧ Wₐ $ Γ ⟪ℋ⟫ Σ))
 
     (define (app-St/C [𝒾 : -𝒾] [W-Cs : (Listof -W¹)]) : (℘ -ς)
@@ -75,7 +76,7 @@
          (define P (let ([p (-st-p 𝒾)]) (-W¹ p p)))
          (app $ ℒ P (list Wₓ) Γ ⟪ℋ⟫ Σ (and∷ l ⟦chk-field⟧s ⊥ρ ⟦k⟧))]
         [_
-         (⟦k⟧ -ff.W $ Γ ⟪ℋ⟫ Σ)]))
+         (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ)]))
 
     (match Vₕ
       ;; In the presence of struct contracts, field accessing is not an atomic operation
@@ -149,7 +150,7 @@
          (define Wₕ-arity
            (let ([Vₐ (V-arity Vₕ)]
                  [sₐ (?t@ 'procedure-arity sₕ)])
-             (-W¹ (if Vₐ (-b Vₐ) -●.V) sₐ)))
+             (-W¹ (if Vₐ (-b Vₐ) (+●)) sₐ)))
          (with-MΓ+/-oW (M σ Γ 'arity-includes? Wₕ-arity required-arity)
            #:on-t do-app
            #:on-f (blm (format-symbol "(arity-includes/c ~a)" (length Wₓs)))))
@@ -285,10 +286,10 @@
          (match ⟦mon-x⟧s
            ['()
             (⟦mon-x⟧ᵣ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-             (ap∷ (list Wᵤ -apply.W¹) '() ⊥ρ (ℒ-with-l ℒ 'app-Ar) ⟦k⟧/mon-rng))]
+             (ap∷ (list Wᵤ (+W¹ 'apply)) '() ⊥ρ (ℒ-with-l ℒ 'app-Ar) ⟦k⟧/mon-rng))]
            [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
             (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-             (ap∷ (list Wᵤ -apply.W¹) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ (ℒ-with-l ℒ 'app-Ar)
+             (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ (ℒ-with-l ℒ 'app-Ar)
                   ⟦k⟧/mon-rng))]))]))
 
   (: apply-app-Ar : (-=> -?t -V -?t -l³ → -$ -ℒ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
@@ -312,11 +313,11 @@
       (match ⟦mon-x⟧s
         ['()
          (⟦mon-x⟧ᵣ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-          (ap∷ (list Wᵤ -apply.W¹) '() ⊥ρ ℒ
+          (ap∷ (list Wᵤ (+W¹ 'apply)) '() ⊥ρ ℒ
                (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))]
         [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
          (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-          (ap∷ (list Wᵤ -apply.W¹) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℒ
+          (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℒ
                (mon.c∷ l³ (ℒ-with-mon ℒ ℓₐ) (-W¹ D d) ⟦k⟧)))])))
 
   (: app-Indy : -=>i -?t -V -?t -l³ → -⟦f⟧)
@@ -371,10 +372,10 @@
          (define sₐ (?t@ st-p s))
          (define A
            (case (MΓ⊢oW M σ Γ st-p W)
-             [(✓) -tt.Vs]
-             [(✗) -ff.Vs]
-             [(?) -Bool.Vs]))
-         (⟦k⟧ (-W A sₐ) $ Γ ⟪ℋ⟫ Σ)]
+             [(✓) -tt]
+             [(✗) -ff]
+             [(?) (+● 'boolean?)]))
+         (⟦k⟧ (-W (list A) sₐ) $ Γ ⟪ℋ⟫ Σ)]
         [_
          (define blm (blm-arity (-ℒ-app ℒ) (show-o st-p) 1 (map -W¹-V Ws)))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
@@ -454,7 +455,7 @@
             (with-Γ+/- ([(Γₒₖ Γₑᵣ) (MΓ+/-oW M σ Γ p W)])
               #:true  (⟦k⟧ (-W (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
                                    (list (-● {set 'list?}))
-                                   -●.Vs)
+                                   (list (+●)))
                                (?t@ ac s))
                        $ Γₒₖ ⟪ℋ⟫ Σ)
               #:false (⟦k⟧ (blm) $ Γₑᵣ ⟪ℋ⟫ Σ))]
@@ -483,7 +484,7 @@
            [(-St (== 𝒾) αs)
             (define α (list-ref αs i))
             (σ⊕! Σ Γ α Wᵥ #:mutating? #t)
-            (⟦k⟧ -void.W $ Γ ⟪ℋ⟫ Σ)]
+            (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
            [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
             (match-define (-l³ l+ l- lo) l³)
             (define l³* (-l³ l- l+ lo))
@@ -498,7 +499,7 @@
            [(-● _)
             (define ⟦ok⟧
               (let ([⟦hv⟧ (mk-app (ℒ-with-l ℒ 'havoc)
-                                      (mk-rt (-W¹ -●.V #f))
+                                      (mk-rt (-W¹ (+●) #f))
                                       (list (mk-rt Wᵥ)))])
                 (mk-app (ℒ-with-l ℒ 'havoc) (mk-rt (-W¹ 'void 'void)) (list ⟦hv⟧))))
             (define ⟦er⟧ (mk-rt (blm)))
@@ -523,7 +524,7 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱))
-      (define κ (-κ (bgn0.e∷ (-W -●.Vs sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ '()))
+      (define κ (-κ (bgn0.e∷ (-W (list (+●)) sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ '()))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫∅)}))
 

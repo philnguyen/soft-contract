@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         syntax/parse/define
          typed/racket/unit
          bnf
          intern
@@ -174,6 +175,13 @@
 (define-match-expander -t.not
   (syntax-rules () [(_ t) (-t.@ 'not (list t))])
   (syntax-rules () [(_ t) (and t (-t.@ 'not (list t)))]))
+
+(define-simple-macro (with-Γ+/- ([(Γ₁:id Γ₂:id) e])
+                       #:true  e₁
+                       #:false e₂)
+  (let-values ([(Γ₁ Γ₂) e])
+    (∪ (if Γ₁ e₁ ∅)
+       (if Γ₂ e₂ ∅))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

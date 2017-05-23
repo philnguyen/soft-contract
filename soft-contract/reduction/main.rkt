@@ -10,7 +10,7 @@
          "../settings.rkt"
          "../utils/main.rkt"
          "../ast/main.rkt"
-         "../runtime/main.rkt"
+         "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
 
@@ -23,7 +23,7 @@
          )
 
 (define-unit pre-reduction@
-  (import kont^ havoc^ mon^ widening^ for-gc^)
+  (import kont^ havoc^ mon^ widening^ for-gc^ env^ sto^ pretty-print^ pc^ instr^)
   (export reduction^)
 
   (define-type Ctx (List -σ -σₖ -M))
@@ -202,6 +202,6 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import prims^ proof-system^ widening^ for-gc^)
+  (import prims^ proof-system^ widening^ for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))
