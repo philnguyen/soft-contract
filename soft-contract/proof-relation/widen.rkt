@@ -604,7 +604,7 @@
     (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
     (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
       (match-define (-W¹ Vₓ sₓ) Wₓ)
-      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W (-Σ-σ Σ) Γₑᵣ Wₓ))))
+      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ #;(predicates-of-W (-Σ-σ Σ) Γₑᵣ Wₓ))))
       (σ⊕! Σ Γₑᵣ α Wₓ)
       (ρ+ ρ x α)))
 

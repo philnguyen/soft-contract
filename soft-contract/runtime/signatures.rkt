@@ -208,7 +208,7 @@
 (-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Symbol -⟪ℋ⟫ (U (℘ -h) -⟦e⟧))
+            (-α.x Symbol -⟪ℋ⟫)
             (-α.fv -⟪ℋ⟫ (℘ -t))
             ; for struct field
             (-α.fld [id : -𝒾] [loc : -ℒ] [ctx : -⟪ℋ⟫] [idx : Natural])
@@ -246,8 +246,8 @@
 
             ;; HACK
             (-α.hv)
-            (-α.mon-x/c Symbol -⟪ℋ⟫ -l (U (℘ -h) -⟦e⟧))
-            (-α.fc-x/c Symbol -⟪ℋ⟫ (U (℘ -h) -⟦e⟧))
+            (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
+            (-α.fc-x/c Symbol -⟪ℋ⟫)
             (-α.fn.●)
             -o
             -𝒾
