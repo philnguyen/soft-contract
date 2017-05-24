@@ -211,7 +211,7 @@
   (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp)
     (for/list ([e ℋ])
       (match e
-        [(-edge ⟦e⟧ ℒ)
+        [(-edge ⟦e⟧ ℒ _)
          `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧))]
         [(? -ℒ? ℒ) (show-ℒ ℒ)])))
 
