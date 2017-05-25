@@ -11,7 +11,10 @@
   ([run-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
    [havoc-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
    [havoc-last-file : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
-   [run-e : (-e → (Values (℘ -ΓA) -Σ))]))
+   [run-e : (-e → (Values (℘ -ΓA) -Σ))]
+   [debug-iter? : (Parameterof Boolean)]
+   [debug-trace? : (Parameterof Boolean)]
+   [max-steps : (Parameterof Natural)]))
 
 (define-signature reduction^
   ([run : (-⟦e⟧ → (Values (℘ -ΓA) -Σ))]))
@@ -46,6 +49,7 @@
    [M⊕! : (-Σ -αₖ (℘ -t) -A → Void)]
    [σₖ⊕! : (-Σ -αₖ -κ → Void)]
    [Vs⊕ : (-σ (℘ -V) -V → (℘ -V))]
+   [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
    [predicates-of-W : (-σ -Γ -W¹ → (U (℘ -h) -⟦e⟧))]

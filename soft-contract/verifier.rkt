@@ -33,5 +33,9 @@
 
   (define (run-e [e : -e]) : (Values (℘ -ΓA) -Σ)
     (with-initialized-static-info
-      (run (↓ₑ 'top e)))))
+      (run (↓ₑ 'top e))))
+
+  (define-parameter debug-iter? : Boolean #f)
+  (define-parameter debug-trace? : Boolean #f)
+  (define-parameter max-steps : Natural (expt 2 31)))
 

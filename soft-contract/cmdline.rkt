@@ -10,8 +10,7 @@
          "utils/main.rkt"
          "ast/main.rkt"
          "runtime/signatures.rkt"
-         "main.rkt"
-         "settings.rkt")
+         "main.rkt")
 
 (Mode . ::= . 'light 'havoc 'expand 'havoc-last)
 (define mode : Mode 'havoc)
@@ -46,6 +45,9 @@
      "Print debugging information"
      (debug-iter? #t)
      (debug-trace? #t)]
+    [("-s" "--max-steps") n
+     "Set maximum steps to explore"
+     (max-steps (assert (string->number (assert n string?)) exact-nonnegative-integer?))]
 
     #:args (first-module . other-modules) ; TODO re-enable file list
     (cons first-module other-modules))

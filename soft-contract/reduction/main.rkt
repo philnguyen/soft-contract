@@ -24,7 +24,7 @@
          )
 
 (define-unit pre-reduction@
-  (import kont^ havoc^ mon^ local-prover^ widening^
+  (import kont^ havoc^ mon^ local-prover^ widening^ verifier^
           for-gc^ env^ sto^ pretty-print^ pc^ instr^)
   (export reduction^)
 
@@ -41,7 +41,7 @@
     (define iter : Natural 0)
 
     (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
-      (unless (or (set-empty? front) #|FIXME|# #;(> iter 37))
+      (unless (or (set-empty? front) (> iter (max-steps)))
         (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
         (begin
@@ -204,7 +204,7 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import prims^ proof-system^ local-prover^ widening^
+  (import prims^ proof-system^ local-prover^ widening^ verifier^
           for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

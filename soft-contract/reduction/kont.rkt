@@ -20,7 +20,7 @@
 (provide kont@)
 
 (define-unit kont@
-  (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^
+  (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^ verifier^
           val^ env^ sto^ pretty-print^ pc^ instr^)
   (export kont^)
 
