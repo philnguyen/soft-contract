@@ -7,13 +7,14 @@
          "../utils/debug.rkt"
          "../ast/definition.rkt"
          "../proof-relation/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt"
          )
 
 (provide instr@)
 
 (define-unit instr@
-  (import local-prover^ pretty-print^)
+  (import local-prover^ pretty-print^ widening^)
   (export instr^)
 
   (: unpack-ℒ : -ℒ → (Values ℓ -l))
@@ -37,26 +38,16 @@
   ;; If the target is already there, return the history chunk up to first time the target
   ;; is seen
   (define (ℋ+ ℋ x)
-    (define (show-arg [arg : (U (℘ -h) -⟦e⟧)]) : Sexp
-      (if (set? arg) (set-map arg show-h) (show-⟦e⟧ arg)))
-    
     (define match? : ((U -edge -ℒ) → Boolean)
       (match x
-        [(? -ℒ? ℒ) (λ (e) (equal? e ℒ))]
-        [(-edge target call-site abstract-args)
+        [(? -ℒ? ℒ) (λ (x*) (equal? ℒ x*))]
+        [(-edge tgt src abs-args)
          (match-lambda
-           [(-edge target* call-site* abstract-args*)
-            (and (equal? target target*)
-                 (for/and : Boolean ([arg (in-list abstract-args)]
-                                     [arg* (in-list  abstract-args*)])
-                   (with-debugging ((res) (match* (arg arg*)
-                                            [((? set? s₁) (? set? s₂))
-                                             (or (s⊑ s₁ s₂) (s⊑ s₂ s₁))]
-                                            [(_ _)
-                                             (equal? arg arg*)]))
-                     (unless res
-                       (printf "~a × ~a: ~a~n" (show-arg arg) (show-arg arg*) res)))))]
+           [(-edge tgt* _ abs-arg*)
+            (and (equal? tgt tgt*)
+                 )]
            [_ #f])]))
+    
     (define ?ℋ (memf match? ℋ))
     (if ?ℋ ?ℋ (cons x ℋ)))
   
