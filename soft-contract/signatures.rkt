@@ -14,7 +14,7 @@
    [run-e : (-e → (Values (℘ -ΓA) -Σ))]
    [debug-iter? : (Parameterof Boolean)]
    [debug-trace? : (Parameterof Boolean)]
-   [max-steps : (Parameterof Natural)]))
+   [max-steps : (Parameterof (Option Natural))]))
 
 (define-signature reduction^
   ([run : (-⟦e⟧ → (Values (℘ -ΓA) -Σ))]))

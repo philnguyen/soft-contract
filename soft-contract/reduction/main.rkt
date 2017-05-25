@@ -39,9 +39,12 @@
         (set-add (set-add root₀ (-α->⟪α⟫ 𝒾)) (-α->⟪α⟫ (-α.wrp 𝒾)))))
 
     (define iter : Natural 0)
+    (define ?max-steps (max-steps))
+    (define iter-maxed? : (Natural → Boolean)
+      (if ?max-steps (λ ([i : Natural]) (> i ?max-steps)) (λ _ #f)))
 
     (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
-      (unless (or (set-empty? front) (> iter (max-steps)))
+      (unless (or (set-empty? front) (iter-maxed? iter))
         (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
         (begin
@@ -112,7 +115,6 @@
                 (↝↓! ς↓s* Σ)))
             (∪ next-from-ς↑s next-from-ς↓s)))
         (loop! next)))
-    
 
     (match-let ([(-Σ σ σₖ M) Σ])
       (when (debug-iter?)
@@ -120,6 +122,8 @@
                 (hash-count (-σ-m σ))
                 (hash-count σₖ)
                 (hash-count M)))
+      (when (and ?max-steps (> iter ?max-steps))
+        (printf "Execution capped at ~a steps~n" ?max-steps))
       (values (M@ M αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
