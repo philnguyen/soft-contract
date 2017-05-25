@@ -272,10 +272,10 @@
   (define (plausible-φs-t? [φs : (℘ -t)] [t : -?t]) : Boolean
     (with-debugging/off
       ((a) (not (eq? '✗ (Γ⊢t φs t))))
-      (printf "plausible-φs-s: ~a ⊢ ~a : ~a~n"
-              (set-map φs show-e)
-              (show-s s)
-              a)))
+      (printf "~a ⊢ ~a : ~a~n"
+              (set-map φs show-t)
+              (show-t t)
+              (if a 'plausible 'implausible))))
 
   (define (plausible-V-t? [φs : (℘ -t)] [V : -V] [t : -?t]) : Boolean
     (define-syntax-rule (with-prim-checks p? ...)
@@ -329,7 +329,24 @@
                                  pregexp?
                                  byte-regexp?
                                  byte-pregexp?))
-      (printf "plausible-V-s: ~a ⊢ ~a : ~a -> ~a~n" (set-map φs show-e) (show-V V) (show-s s) ans)))
+      (printf "plausible-V-t: ~a ⊢ ~a @ ~a : ~a~n"
+              (set-map φs show-t) (show-V V) (show-t t) (if ans 'plausible 'implausible))))
+
+  
+  (: plausible-W? : (℘ -t) (Listof -V) -?t → Boolean)
+  ;; Check if value(s) `Vs` can instantiate symbol `t` given path condition `φs`
+  ;; - #f indicates a definitely bogus case
+  ;; - #t indicates (conservative) plausibility
+  (define (plausible-W? φs Vs t)
+    (match* (Vs t)
+      [(_ (-t.@ 'values ts))
+       (and (= (length Vs) (length ts))
+            (for/and : Boolean ([V (in-list Vs)] [t (in-list ts)])
+              (plausible-V-t? φs V t)))]
+      [((list V) _) #:when t
+       (plausible-V-t? φs V t)]
+      [(_ (or (? -v?) (-t.@ (? -prim?) _))) #f] ; reached here: length(Vs) ≠ 1, length(t) = 1
+      [(_ _) #t]))
 
   ;; Check if value represents truth
   (define ⊢V : (-V → -R)

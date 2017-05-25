@@ -410,6 +410,7 @@
         [(-St 𝒾 _) {set (-st-p 𝒾)}]
         [(-St* (-St/C _ 𝒾 _) _ _) {set (-st-p 𝒾)}]
         [(-Clo _ ⟦e⟧ _ _) ⟦e⟧]
+        [(-b (list)) {set 'null?}]
         [_ ∅]))
     (cond
       [(set? ps₁)
@@ -585,7 +586,7 @@
         (printf "inv-callee->caller: ~a ↦ ~a~n" fml (map show-t ts))
         (printf "  - ee : ~a~n" (set-map φsₑₑ  show-t))
         (printf "  - er : ~a~n" (set-map φsₑᵣ  show-t))
-        (printf "  - er*: ~a~n" (set-map φsₑᵣ* show-t))
+        (printf "  - er*: ~a~n" (and φsₑᵣ* (set-map φsₑᵣ* show-t)))
         (printf "~n"))
 
     (and φsₑᵣ* (-Γ φsₑᵣ* asₑᵣ)))

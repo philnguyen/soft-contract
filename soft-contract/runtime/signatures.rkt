@@ -411,7 +411,7 @@
    [show-Σ : (-Σ → (Values (Listof Sexp) (Listof Sexp) (Listof Sexp)))]
    [show-σ : ((U -σ (HashTable ⟪α⟫ (℘ -V))) → (Listof Sexp))]
    [show-h : (-h → Sexp)]
-   [show-t : (-t → Sexp)]
+   [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]
    [show-σₖ : (-σₖ → (Listof Sexp))]
    [show-M : (-M → (Listof Sexp))]

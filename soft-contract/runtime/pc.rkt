@@ -312,6 +312,17 @@
 
         ; (cons (car e) (cdr e)) = e
         [(-st-mk s) (or (access-same-value? s xs) (default-case))]
+
+        ; st-pred
+        [(-st-p 𝒾)
+         (match xs
+           [(list (? -b?)) -ff]
+           [_ (default-case)])]
+
+        [(or 'null? 'integer? 'real? 'number? 'string? 'symbol?) ; TODO fix
+         (match xs
+           [(list (-t.@ (-st-mk _) _)) -ff]
+           [_ (default-case)])]
         
         ; HACK
         ['+
