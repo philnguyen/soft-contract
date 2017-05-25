@@ -12,7 +12,7 @@
          "../signatures.rkt")
 
 (define-unit memoize@
-  (import for-gc^)
+  (import for-gc^ pretty-print^)
   (export memoize^)
 
   (define/memoeq (memoize-⟦k⟧ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
@@ -55,23 +55,24 @@
     (define-type Key (List -⟪ℋ⟫ -ρ -Γ))
     (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
-      (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (match-define (-Σ (-σ mσ _ _) _ _) Σ)
-        (define key : Key (list ⟪ℋ⟫ ρ Γ))
+      (remember-e! (assert (recall-e ⟦e⟧))
+                   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+                     (match-define (-Σ (-σ mσ _ _) _ _) Σ)
+                     (define key : Key (list ⟪ℋ⟫ ρ Γ))
 
-        (: recompute! : → (℘ -ς))
-        (define (recompute!)
-          (define ans (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
-          (hash-set! m key (list mσ ans))
-          ans)
+                     (: recompute! : → (℘ -ς))
+                     (define (recompute!)
+                       (define ans (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
+                       (hash-set! m key (list mσ ans))
+                       ans)
 
-        ;; Cache result based on rest of components
-        (cond [(hash-ref m key #f) =>
-               (λ ([rec : Rec])
-                 (match-define (list mσ₀ ςs₀) rec)
-                 (cond [(map-equal?/spanning-root mσ₀ mσ (ρ->⟪α⟫s ρ) V->⟪α⟫s)
-                        #;(printf "hit-e: ~a~n" (show-⟦e⟧ ⟦e⟧))
-                        ςs₀]
-                       [else (recompute!)]))]
-              [else (recompute!)]))))
+                     ;; Cache result based on rest of components
+                     (cond [(hash-ref m key #f) =>
+                            (λ ([rec : Rec])
+                              (match-define (list mσ₀ ςs₀) rec)
+                              (cond [(map-equal?/spanning-root mσ₀ mσ (ρ->⟪α⟫s ρ) V->⟪α⟫s)
+                                     #;(printf "hit-e: ~a~n" (show-⟦e⟧ ⟦e⟧))
+                                     ςs₀]
+                                    [else (recompute!)]))]
+                           [else (recompute!)])))))
   )

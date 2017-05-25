@@ -182,15 +182,19 @@
     
     (: remember-e! : -e -⟦e⟧ → -⟦e⟧)
     (define (remember-e! e ⟦e⟧)
-      (define ?e₀ (hash-ref ⟦e⟧->e ⟦e⟧ #f))
+      (define ?e₀ (recall-e ⟦e⟧))
       (when (and ?e₀ (not (equal? ?e₀ e)))
         (error 'remember-e! "already mapped to ~a, given ~a" (show-e ?e₀) (show-e e)))
+      (hash-set! ⟦e⟧->e ⟦e⟧ e)
       ⟦e⟧)
+
+    (: recall-e : -⟦e⟧ → (Option -e))
+    (define (recall-e ⟦e⟧) (hash-ref ⟦e⟧->e ⟦e⟧ #f))
     
     (define show-⟦e⟧ : (-⟦e⟧ → Sexp)
       (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
         (λ (⟦e⟧)
-          (cond [(hash-ref ⟦e⟧->e ⟦e⟧ #f) => show-e]
+          (cond [(recall-e ⟦e⟧) => show-e]
                 [else (⟦e⟧->symbol ⟦e⟧)])))))
 
   (define (show-αₖ [αₖ : -αₖ]) : Sexp

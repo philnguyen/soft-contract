@@ -73,7 +73,7 @@
      e
      (match e
        [(-λ xs e*)
-        (define ⟦e*⟧ (memoize-⟦e⟧ (↓ e*)))
+        (define ⟦e*⟧ (memoize-⟦e⟧ (↓ₑ l e*)))
         (define fvs (fv e*))
         #;(printf "Warning: no longer canonicalize λ-term~n")
         (define t (-λ xs e*))

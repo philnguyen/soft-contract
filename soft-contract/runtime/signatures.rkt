@@ -430,4 +430,6 @@
    [show-ρ : (-ρ → (Listof Sexp))]
    [show-κ : (-κ → Sexp)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
+   [recall-e : (-⟦e⟧ → (Option -e))]
+   [verbose? : (Parameterof Boolean)]
    ))

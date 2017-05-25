@@ -37,6 +37,9 @@
   ;; If the target is already there, return the history chunk up to first time the target
   ;; is seen
   (define (ℋ+ ℋ x)
+    (define (show-arg [arg : (U (℘ -h) -⟦e⟧)]) : Sexp
+      (if (set? arg) (set-map arg show-h) (show-⟦e⟧ arg)))
+    
     (define match? : ((U -edge -ℒ) → Boolean)
       (match x
         [(? -ℒ? ℒ) (λ (e) (equal? e ℒ))]
@@ -46,13 +49,13 @@
             (and (equal? target target*)
                  (for/and : Boolean ([arg (in-list abstract-args)]
                                      [arg* (in-list  abstract-args*)])
-                   (with-debugging/off ((res) (match* (arg arg*)
+                   (with-debugging ((res) (match* (arg arg*)
                                             [((? set? s₁) (? set? s₂))
                                              (or (s⊑ s₁ s₂) (s⊑ s₂ s₁))]
                                             [(_ _)
                                              (equal? arg arg*)]))
                      (unless res
-                       (printf "~a × ~a: ~a~n" arg arg* res)))))]
+                       (printf "~a × ~a: ~a~n" (show-arg arg) (show-arg arg*) res)))))]
            [_ #f])]))
     (define ?ℋ (memf match? ℋ))
     (if ?ℋ ?ℋ (cons x ℋ)))
