@@ -11,11 +11,12 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit app@
-  (import mon^ compile^ kont^ proof-system^ prims^ memoize^ widening^
+  (import mon^ compile^ kont^ proof-system^ local-prover^ prims^ memoize^ widening^
           env^ val^ pc^ instr^ sto^ pretty-print^)
   (export app^)
 

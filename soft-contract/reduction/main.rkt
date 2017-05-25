@@ -11,6 +11,7 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
 
@@ -23,7 +24,8 @@
          )
 
 (define-unit pre-reduction@
-  (import kont^ havoc^ mon^ widening^ for-gc^ env^ sto^ pretty-print^ pc^ instr^)
+  (import kont^ havoc^ mon^ local-prover^ widening^
+          for-gc^ env^ sto^ pretty-print^ pc^ instr^)
   (export reduction^)
 
   (define-type Ctx (List -σ -σₖ -M))
@@ -39,7 +41,7 @@
     (define iter : Natural 0)
 
     (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
-      (unless (or (set-empty? front) #|FIXME|# #;(> iter 80))
+      (unless (or (set-empty? front) #|FIXME|# (> iter 37))
         (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
         (begin
@@ -202,6 +204,7 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import prims^ proof-system^ widening^ for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^)
+  (import prims^ proof-system^ local-prover^ widening^
+          for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

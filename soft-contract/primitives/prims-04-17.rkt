@@ -26,6 +26,7 @@
          "../ast/shorthands.rkt"
          "../runtime/signatures.rkt"
          "../reduction/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt"
@@ -40,7 +41,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import prim-runtime^ proof-system^ widening^ app^ val^ pc^ sto^ instr^)
+  (import prim-runtime^ proof-system^ local-prover^ widening^ app^ val^ pc^ sto^ instr^)
   (export)
 
   (def-pred procedure?)

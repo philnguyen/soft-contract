@@ -19,22 +19,16 @@
          "local.rkt")
 
 (define-unit pre-proof-system@
-  (import (prefix loc: local-prover^) external-prover^ widening^ pc^)
+  (import local-prover^ external-prover^ widening^ pc^)
   (export proof-system^)
   
-  (define Γ⊢t loc:Γ⊢t)
-  (define plausible-V-t? loc:plausible-V-t?)
-  (define sat-one-of loc:sat-one-of)
-  (define p∋Vs loc:p∋Vs)
-  (define V-arity loc:V-arity)
-
   ;; Check if value satisfies (flat) contract
   (define (MΓ⊢V∈C [M : -M] [σ : -σ] [Γ : -Γ] [W_v : -W¹] [W_c : -W¹]) : -R
     (match-define (-W¹ V v) W_v)
     (match-define (-W¹ C c) W_c)
     (with-debugging/off
       ((ans)
-       (first-R (loc:p∋Vs σ C (V+ σ V (predicates-of Γ v)))
+       (first-R (p∋Vs σ C (V+ σ V (predicates-of Γ v)))
                 (match V
                   [(-● ps)
                    (define Γ*
@@ -53,7 +47,7 @@
        (first-R (let ([Vs*
                        (for/list : (Listof -V) ([V (in-list Vs)] [t (in-list ts)])
                          (V+ σ V (predicates-of Γ t)))])
-                  (apply loc:p∋Vs σ p Vs*))
+                  (apply p∋Vs σ p Vs*))
                 (let ()
                   (define Γ*
                     (for/fold ([Γ : -Γ Γ]) ([V (in-list Vs)] [t (in-list ts)] #:when t)
@@ -126,7 +120,7 @@
 
   ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
   (define (Γ+/-V [M : -M] [Γ : -Γ] [V : -V] [t : -?t]) : (Values (Option -Γ) (Option -Γ))
-    (with-debugging/off ((Γ₁ Γ₂) (Γ+/-R (first-R (loc:⊢V V) (MΓ⊢t M Γ t)) Γ t))
+    (with-debugging/off ((Γ₁ Γ₂) (Γ+/-R (first-R (⊢V V) (MΓ⊢t M Γ t)) Γ t))
       (printf "Γ+/-V: ~a +/- ~a @ ~a~n - ~a~n - ~a~n~n"
               (show-Γ Γ)
               (show-V V)
@@ -165,7 +159,7 @@
                                 [σ : -σ]
                                 [o : -o] .
                                 [Vs : -V *]) : (℘ X)
-    (case (apply loc:p∋Vs σ o Vs)
+    (case (apply p∋Vs σ o Vs)
       [(✓) (t)]
       [(✗) (f)]
       [(?) (∪ (t) (f))]))
@@ -194,5 +188,5 @@
 
 (define-compound-unit/infer proof-system@
   (import prims^ for-gc^ pc^ sto^ val^ pretty-print^ env^)
-  (export proof-system^ widening^)
+  (export proof-system^ widening^ local-prover^)
   (link local-prover@ external-prover@ widening@ pre-proof-system@))

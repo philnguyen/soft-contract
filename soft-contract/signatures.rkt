@@ -34,11 +34,6 @@
    [Γ+/-V : (-M -Γ -V -?t → (Values (Option -Γ) (Option -Γ)))]
    [MΓ+/-oW : (-M -σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))]
    [plausible-index? : (-M -σ -Γ -W¹ Natural → Boolean)]
-   [V-arity : (-V → (Option Arity))]
-   [Γ⊢t : ((℘ -t) -?t → -R)]
-   [plausible-V-t? : ((℘ -t) -V -?t → Boolean)]
-   [sat-one-of : (-V (℘ Base) → -R)]
-   [p∋Vs : (-σ (U -h -v -V) -V * → -R)]
    [MΓ+/-oW/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
    [MΓ⊢oW/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
    [p∋Vs/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X))]))

@@ -409,7 +409,7 @@
 (define-signature pretty-print^
   ([show-ς : (-ς → Sexp)]
    [show-Σ : (-Σ → (Values (Listof Sexp) (Listof Sexp) (Listof Sexp)))]
-   [show-σ : (-σ → (Listof Sexp))]
+   [show-σ : ((U -σ (HashTable ⟪α⟫ (℘ -V))) → (Listof Sexp))]
    [show-h : (-h → Sexp)]
    [show-t : (-t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]

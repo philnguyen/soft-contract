@@ -26,6 +26,7 @@
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt"
@@ -38,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-03@
-  (import proof-system^ prim-runtime^ widening^ for-gc^ val^ pc^ sto^)
+  (import proof-system^ prim-runtime^ local-prover^ widening^ for-gc^ val^ pc^ sto^)
   (export)
 
   ;; 4.3.1 Constructors, Selectors, Mutators

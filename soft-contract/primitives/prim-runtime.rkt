@@ -9,11 +9,12 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import proof-system^ widening^ pc^ val^ sto^)
+  (import proof-system^ local-prover^ widening^ pc^ val^ sto^)
   (export prim-runtime^)
 
   (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))

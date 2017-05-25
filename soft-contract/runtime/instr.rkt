@@ -3,14 +3,17 @@
 (require typed/racket/unit
          racket/match
          racket/set
+         set-extras
+         "../utils/debug.rkt"
          "../ast/definition.rkt"
+         "../proof-relation/signatures.rkt"
          "signatures.rkt"
          )
 
 (provide instr@)
 
 (define-unit instr@
-  (import)
+  (import local-prover^ pretty-print^)
   (export instr^)
 
   (: unpack-ℒ : -ℒ → (Values ℓ -l))
@@ -35,10 +38,22 @@
   ;; is seen
   (define (ℋ+ ℋ x)
     (define match? : ((U -edge -ℒ) → Boolean)
-      (cond [(-ℒ? x) (λ (e) (equal? e x))]
-            [(-edge? x)
-             (define x.tgt (-edge-tgt x))
-             (λ (e) (and (-edge? e) (eq? x.tgt (-edge-tgt e))))]))
+      (match x
+        [(? -ℒ? ℒ) (λ (e) (equal? e ℒ))]
+        [(-edge target call-site abstract-args)
+         (match-lambda
+           [(-edge target* call-site* abstract-args*)
+            (and (equal? target target*)
+                 (for/and : Boolean ([arg (in-list abstract-args)]
+                                     [arg* (in-list  abstract-args*)])
+                   (with-debugging/off ((res) (match* (arg arg*)
+                                            [((? set? s₁) (? set? s₂))
+                                             (or (s⊑ s₁ s₂) (s⊑ s₂ s₁))]
+                                            [(_ _)
+                                             (equal? arg arg*)]))
+                     (unless res
+                       (printf "~a × ~a: ~a~n" arg arg* res)))))]
+           [_ #f])]))
     (define ?ℋ (memf match? ℋ))
     (if ?ℋ ?ℋ (cons x ℋ)))
   
@@ -48,4 +63,9 @@
 
   (: ⟪ℋ⟫+ : -⟪ℋ⟫ (U -edge -ℒ) → -⟪ℋ⟫)
   (define (⟪ℋ⟫+ ⟪ℋ⟫ e)
-    (-ℋ->-⟪ℋ⟫ (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e))))
+    (-ℋ->-⟪ℋ⟫ (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e)))
+
+  (: s⊑ : (℘ -h) (℘ -h) → Boolean)
+  (define (s⊑ s₁ s₂)
+    (for/and : Boolean ([h₂ (in-set s₂)])
+      (equal? '✓ (ps⇒p s₁ h₂)))))

@@ -15,7 +15,7 @@
   (import for-gc^)
   (export memoize^)
 
-  (define/memo (memoize-⟦k⟧ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (define/memoeq (memoize-⟦k⟧ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (define-type Key (List -A -Γ -⟪ℋ⟫))
     (define-type Rec (List -σ (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
@@ -51,7 +51,7 @@
       (set-⟦k⟧->αₖ! ⟦k⟧* (⟦k⟧->αₖ ⟦k⟧))
       ⟦k⟧*))
 
-  (define (memoize-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
+  (define/memoeq (memoize-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
     (define-type Key (List -⟪ℋ⟫ -ρ -Γ))
     (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
@@ -75,5 +75,3 @@
                        [else (recompute!)]))]
               [else (recompute!)]))))
   )
-
-

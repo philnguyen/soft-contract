@@ -10,12 +10,13 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit havoc@
-  (import widening^ kont^ app^ proof-system^ for-gc^ sto^ pc^ val^)
+  (import widening^ kont^ app^ proof-system^ local-prover^ for-gc^ sto^ pc^ val^)
   (export havoc^)
 
   (splicing-local

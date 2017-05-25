@@ -9,12 +9,14 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit compile@
-  (import kont^ widening^ memoize^ proof-system^ env^ sto^ pc^ val^)
+  (import kont^ widening^ memoize^ proof-system^ local-prover^
+          env^ sto^ pc^ val^)
   (export compile^)
 
   ;; Compile program
