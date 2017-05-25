@@ -3,6 +3,7 @@
 (require racket/match
          racket/set
          racket/string
+         racket/splicing
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
@@ -175,11 +176,22 @@
       [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
       [(_ _) `(blame ,l+ ,lo ,(map show-blm-reason Cs) ,(map show-V Vs) ,(show-ℓ ℓ))]))
 
-  (define show-⟦e⟧ : (-⟦e⟧ → Sexp)
-    (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
-      (λ (⟦e⟧)
-        (cond #;[(recall-e ⟦e⟧) => show-e] ; TODO nicer way to map ⟦e⟧
-              [else (⟦e⟧->symbol ⟦e⟧)]))))
+
+  (splicing-local
+      ((define ⟦e⟧->e : (HashTable -⟦e⟧ -e) (make-hasheq)))
+    
+    (: remember-e! : -e -⟦e⟧ → -⟦e⟧)
+    (define (remember-e! e ⟦e⟧)
+      (define ?e₀ (hash-ref ⟦e⟧->e ⟦e⟧ #f))
+      (when (and ?e₀ (not (equal? ?e₀ e)))
+        (error 'remember-e! "already mapped to ~a, given ~a" (show-e ?e₀) (show-e e)))
+      ⟦e⟧)
+    
+    (define show-⟦e⟧ : (-⟦e⟧ → Sexp)
+      (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
+        (λ (⟦e⟧)
+          (cond [(hash-ref ⟦e⟧->e ⟦e⟧ #f) => show-e]
+                [else (⟦e⟧->symbol ⟦e⟧)])))))
 
   (define (show-αₖ [αₖ : -αₖ]) : Sexp
     (cond [(-ℬ? αₖ) (show-ℬ αₖ)]

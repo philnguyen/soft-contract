@@ -429,4 +429,5 @@
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
    [show-κ : (-κ → Sexp)]
+   [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    ))
