@@ -194,7 +194,7 @@
                           ([⟦bnd⟧ ⟦bnd⟧s]
                            [xs (in-value (car ⟦bnd⟧))]
                            [x xs])
-                 (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ #|TODO|#)))
+                 (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ ∅)))
                  (σ⊕V! Σ α -undefined)
                  (ρ+ ρ x α)))
              (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
