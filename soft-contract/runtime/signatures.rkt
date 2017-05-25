@@ -424,6 +424,7 @@
    [show-W¹ : (-W¹ → Sexp)]
    [show-⟦e⟧ : (-⟦e⟧ → Sexp)]
    [show-αₖ : (-αₖ → Sexp)]
+   [show-edge : ((U -edge -ℒ) → Sexp)]
    [show-⟪ℋ⟫ : (-⟪ℋ⟫ → Sexp)]
    [show-ℒ : (-ℒ → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]

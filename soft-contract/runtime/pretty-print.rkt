@@ -224,12 +224,15 @@
     (if (verbose?)
         (show-ℋ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫))
         ⟪ℋ⟫))
-  (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp)
-    (for/list ([e ℋ])
-      (match e
-        [(-edge ⟦e⟧ ℒ _)
-         `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧))]
-        [(? -ℒ? ℒ) (show-ℒ ℒ)])))
+  (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp) (map show-edge ℋ))
+
+  (: show-edge : (U -edge -ℒ) → Sexp)
+  (define (show-edge edge)
+    (define (show-arg [arg : (U (℘ -h) -⟦e⟧)]) : Sexp
+      (if (set? arg) (set-map arg show-h) (show-⟦e⟧ arg)))
+    (match edge
+      [(-edge ⟦e⟧ ℒ args) `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧) @ ,@(map show-arg args))]
+      [(? -ℒ? ℒ) (show-ℒ ℒ)]))
 
   (define show-ℒ : (-ℒ → Sexp)
     (let-values ([(ℒ->symbol symbol->ℒ _) ((inst unique-sym -ℒ) 'ℒ)])
