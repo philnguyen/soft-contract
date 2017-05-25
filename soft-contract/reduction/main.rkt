@@ -41,7 +41,7 @@
     (define iter : Natural 0)
 
     (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
-      (unless (or (set-empty? front) #|FIXME|# (> iter 37))
+      (unless (or (set-empty? front) #|FIXME|# #;(> iter 37))
         (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
         (begin
