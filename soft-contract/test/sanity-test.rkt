@@ -68,6 +68,7 @@
      (run-on-files path)]))
 
 (module+ test
+  
   ;; Order doesn't matter. I just run shorter ones first
   (test   "safe/octy" check-safe)
   (test "unsafe/octy" check-fail)
@@ -106,8 +107,8 @@
   (test "safe/issues/issue-61.rkt" check-safe)
   (test "safe/issues/issue-74.rkt" check-safe)
   (test "safe/issues/issue-81.rkt" check-safe)
-  #;(test '("safe/issues/issue-65/main.rkt"
-          "safe/issues/issue-65/example.rkt")
+  (test '("programs/safe/issues/issue-65/main.rkt"
+          "programs/safe/issues/issue-65/example.rkt")
         check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
@@ -116,15 +117,6 @@
   (test "unsafe/issues/issue-74a.rkt" check-fail)
   (test "unsafe/issues/issue-74b.rkt" check-fail)
   (test "unsafe/issues/issue-74c.rkt" check-fail)
-
-  #;(test '("safe/multiple/main.rkt"
-          "safe/multiple/helper-1.rkt"
-          "safe/multiple/helper-2.rkt")
-        check-safe)
-  #;(test '("unsafe/multiple/main.rkt"
-          "unsafe/multiple/helper-1.rkt"
-          "unsafe/multiple/helper-2.rkt")
-        (check 'Failed 1 1))
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
@@ -135,4 +127,21 @@
   (test "unsafe/real/protected-ring-buffer.rkt" check-fail)
   
   (test   "safe/games" check-safe)
-  (test "unsafe/games" check-fail))
+  (test "unsafe/games" check-fail)
+
+  ;; Multple files
+  (test '("programs/safe/multiple/main.rkt"
+          "programs/safe/multiple/helper-1.rkt"
+          "programs/safe/multiple/helper-2.rkt")
+        check-safe)
+  (test '("programs/unsafe/multiple/main.rkt"
+          "programs/unsafe/multiple/helper-1.rkt"
+          "programs/unsafe/multiple/helper-2.rkt")
+        (check 'Failed 1 1))
+
+  ;; From gradual benchmarks
+  (test '("gradual-typing-benchmarks/sieve/streams.rkt"
+          "gradual-typing-benchmarks/sieve/main.rkt")
+        check-safe)
+  
+  )
