@@ -52,7 +52,7 @@
       (match-lambda**
        [((? set? s₀) (? set? s))
         (ps⊕ s₀ s)]
-       [(a₀ a) a]))
+       [(a₀ a) a₀]))
     
     (define match? : ((U -edge -ℒ) → Boolean)
       (match x
