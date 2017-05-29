@@ -7,7 +7,6 @@
          racket/list
          typed/racket/unit
          set-extras
-         "../settings.rkt"
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"

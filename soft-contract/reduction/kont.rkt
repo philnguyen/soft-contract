@@ -9,7 +9,6 @@
          racket/splicing
          syntax/parse/define
          set-extras
-         "../settings.rkt"
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
