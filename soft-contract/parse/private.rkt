@@ -237,7 +237,6 @@
        #:when (and (eq? 'module-name-fixup (syntax-e #'module-name-fixup))
                    (eq? 'variable-reference->module-source/submod
                         (syntax-e #'variable-reference->module-source/submod)))
-       (printf "alternate-alias-id: ~a ↦ ~a~n" (cur-mod) (syntax-e #'lifted.0))
        (set-alternate-alias-id! (cur-mod) (syntax-e #'lifted.0))
        #f]
       [(#%plain-app call-with-values (#%plain-lambda () e) print-values:id)
