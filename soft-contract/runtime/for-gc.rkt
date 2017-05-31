@@ -88,12 +88,13 @@
 
   (: t->αₖs : -?t → (℘ -αₖ))
   (define (t->αₖs t)
-    (match t
-      [(-t.@ h ts)
-       (for/fold ([acc : (℘ -αₖ) (if (-αₖ? h) {set h} ∅)])
-                 ([t (in-list ts)])
-         (∪ acc (t->αₖs t)))]
-      [_ ∅]))
+    (let go ([t : -?t t] [acc : (℘ -αₖ) ∅])
+      (match t
+        [(-t.@ h ts)
+         (for/fold ([acc : (℘ -αₖ) (if (-αₖ? h) (set-add acc h) acc)])
+                   ([t (in-list ts)])
+           (go t acc))]
+        [_ acc])))
 
   (: Γ->αₖs : -Γ → (℘ -αₖ))
   (define (Γ->αₖs Γ)
