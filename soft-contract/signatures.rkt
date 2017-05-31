@@ -10,6 +10,7 @@
 (define-signature verifier^
   ([run-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
    [havoc-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
+   [havoc-files/profile : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -ΓA) -Σ))]
    [havoc-last-file : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
    [run-e : (-e → (Values (℘ -ΓA) -Σ))]
    [debug-iter? : (Parameterof Boolean)]

@@ -26,6 +26,17 @@
       (define ms (parse-files ps))
       (run (↓ₚ ms (gen-havoc-expr ms)))))
 
+  (: havoc-files/profile
+     ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -ΓA) -Σ)))
+  (define (havoc-files/profile ps #:delay [delay 0.05])
+    (define ans : (℘ -ΓA) ∅)
+    (define Σ : (Option -Σ) #f)
+    ((inst profile-thunk Void)
+     (λ ()
+       (set!-values (ans Σ) (havoc-files ps)))
+     #:delay delay)
+    (values ans (assert Σ)))
+
   (define (havoc-last-file [ps : (Listof Path-String)]) : (Values (℘ -ΓA) -Σ)
     (with-initialized-static-info
       (define ms (parse-files ps))
