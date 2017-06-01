@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^ for-gc^)
+(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^ for-gc^ lib^)
 
 (require typed/racket/unit
          set-extras
@@ -17,11 +17,16 @@
    [debug-trace? : (Parameterof Boolean)]
    [max-steps : (Parameterof (Option Natural))]))
 
+(define-signature lib^
+  ([verify : (Syntax (HashTable Symbol Syntax) → Any)]))
+
 (define-signature reduction^
   ([run : (-⟦e⟧ → (Values (℘ -ΓA) -Σ))]))
 
 (define-signature parser^ ; TODO
-  ([parse-files : ((Listof Path-String) → (Listof -module))]))
+  ([parse-files : ((Listof Path-String) → (Listof -module))]
+   [parse-module : (Syntax → -module)]
+   [parse-expr : (Syntax → -e)]))
 
 (define-signature prims^ ; TODO
   ([get-prim : (Symbol → (Option -Prim))]

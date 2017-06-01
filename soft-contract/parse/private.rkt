@@ -38,11 +38,6 @@
   (define (parse-files fns)
     ;((listof path-string?) . -> . (listof -module?))
 
-    (define/contract (parse-module stx)
-      (syntax? . -> . -module?)
-      (match-define (-module l body) (parse-top-level-form stx))
-      (-module l (move-provides-to-end body)))
-
     (parameterize ([port-count-lines-enabled #t])
       (define stxs (map do-expand-file fns))
       (for-each figure-out-aliases! stxs)
@@ -56,6 +51,10 @@
       ;; Re-order the modules for an appropriate initilization order,
       ;; learned from side-effects of `parse-module`
       (sort ms module-before? #:key -module-path)))
+
+  (define (parse-module stx)
+    (match-define (-module l body) (parse-top-level-form stx))
+    (-module l (move-provides-to-end body)))
 
   (define/contract cur-mod (parameter/c string? #|TODO|#)
     (make-parameter "top-level"))
@@ -331,8 +330,8 @@
     ((and/c scv-syntax? (not/c identifier?)) . -> . (listof -e?))
     (map parse-e (syntax->list es)))
 
-  (define/contract (parse-e stx)
-    (scv-syntax? . -> . -e?)
+  (define (parse-e stx)
+    ;(scv-syntax? . -> . -e?)
     (log-debug "parse-e: ~a~n~n" (pretty-format (syntax->datum stx)))
 
     (syntax-parse stx

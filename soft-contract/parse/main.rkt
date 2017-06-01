@@ -21,6 +21,15 @@
       (collect-public-accs! m))
     ms)
 
+  (: parse-module : Syntax → -module)
+  (define (parse-module stx)
+    (define m (α-rename (pre:parse-module stx)))
+    (collect-public-accs! m)
+    m)
+
+  (: parse-expr : Syntax → -e)
+  (define (parse-expr stx) (α-rename (pre:parse-e stx)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Collect other information
