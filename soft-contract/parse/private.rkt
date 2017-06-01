@@ -452,7 +452,7 @@
        (define f-resolved
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) f.src)
-          (λ () (error 'parser "please include `~a` in command-line args" f.src))))
+          (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src)))))
        (set-module-before! f.src (cur-mod))
        (-@ f-resolved (parse-es #'(args ...)) (syntax-ℓ stx))]
       
@@ -566,7 +566,7 @@
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
           (set-module-before! src (cur-mod))
-          (get-export-alias 𝒾ₑₓ (λ () (error 'parser "please include `~a` in command-line args" src)))]
+          (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src))))]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]

@@ -10,6 +10,7 @@
          "utils/main.rkt"
          "ast/main.rkt"
          "runtime/signatures.rkt"
+         "parse/signatures.rkt"
          "main.rkt")
 
 (Mode . ::= . 'light 'havoc 'expand 'havoc-last)
@@ -71,22 +72,32 @@
        [contracts : ,@(map show-blm-reason Cs)]
        [values : ,@(map show-V Vs)])]))
 
-(case mode
-  [(expand)
-   (for ([m (in-list (parse-files fnames))])
-     (pretty-write (show-module m))
-     (printf "~n"))]
-  [(light)
-   (define-values (ans Σ) (run-files fnames))
-   (cond
-     [(set-empty? ans)
-      (printf "Safe~n")]
-     [else
-      (for ([A ans])
-        (pretty-write (show-a A)))])]
-  [(havoc)
-   (define-values (ans _) (havoc-files fnames))
-   (print-result ans)]
-  [(havoc-last)
-   (define-values (ans _) (havoc-last-file fnames))
-   (print-result ans)])
+(: main : (Listof Path-String) → Void)
+(define (main fnames)
+  (with-handlers ([exn:missing?
+                   (match-lambda
+                     [(exn:missing _ _ src)
+                      (assert (not (member src fnames)))
+                      (printf " - dependency: ~a~n" src)
+                      (main (cons src fnames))])])
+    (case mode
+      [(expand)
+       (for ([m (in-list (parse-files fnames))])
+         (pretty-write (show-module m))
+         (printf "~n"))]
+      [(light)
+       (define-values (ans Σ) (run-files fnames))
+       (cond
+         [(set-empty? ans)
+          (printf "Safe~n")]
+         [else
+          (for ([A ans])
+            (pretty-write (show-a A)))])]
+      [(havoc)
+       (define-values (ans _) (havoc-files fnames))
+       (print-result ans)]
+      [(havoc-last)
+       (define-values (ans _) (havoc-last-file fnames))
+       (print-result ans)])))
+
+(main fnames)
