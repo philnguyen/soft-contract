@@ -20,6 +20,7 @@
 
   ;; 15.1.1 Manipulating Paths
   (def-pred path-string?)
+  (def-prim string->path (string? . -> . path?))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -33,6 +34,7 @@
 
   ;; 15.2.6 More File and Directory Utilities
   (def-prim file->list (path-string? . -> . list?) #:volatile? #t #:lift-concrete? #f)
+  (def-prim file->value (path-string? . -> . any/c) #:volatile? #t #:lift-concrete? #f)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -437,6 +437,13 @@
        #:when (and (free-identifier=? #'f #'g)
                    (string-prefix? (symbol->string (syntax-e #'f)) "file->list"))
        (-@ 'file->list (parse-es #'(x ...)) (syntax-ℓ stx))]
+      [(if (#%plain-app (~literal variable-reference-constant?)
+                        (#%variable-reference f:id))
+           _
+           (#%plain-app g:id x ...))
+       #:when (and (free-identifier=? #'f #'g)
+                   (string-prefix? (symbol->string (syntax-e #'f)) "file->value"))
+       (-@ 'file->value (parse-es #'(x ...)) (syntax-ℓ stx))]
 
       ;; HACK for figuring out exports from non-faked files
       [(#%plain-app f:id lifted.0 args ...)
