@@ -1,7 +1,5 @@
 #lang racket
 
-(require soft-contract/fake-contract)
-
 ;; Copyright 2014 John Clements, except the portion that comes from wikipedia!
 
 (provide (contract-out [char-table hash?]))

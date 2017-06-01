@@ -143,5 +143,10 @@
   (test '("gradual-typing-benchmarks/sieve/streams.rkt"
           "gradual-typing-benchmarks/sieve/main.rkt")
         check-safe)
+  (test '("gradual-typing-benchmarks/morsecode/morse-code-table.rkt"
+          "gradual-typing-benchmarks/morsecode/morse-code-strings.rkt"
+          "gradual-typing-benchmarks/morsecode/levenshtein.rkt"
+          "gradual-typing-benchmarks/morsecode/main.rkt")
+        check-safe)
   
   )

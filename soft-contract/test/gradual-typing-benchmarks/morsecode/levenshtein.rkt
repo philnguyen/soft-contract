@@ -21,6 +21,7 @@
 ;;; @end legal
 
 #lang racket/base
+(require racket/contract)
 
 ;;; @section Introduction
 ;;;
@@ -338,8 +339,8 @@
   ;; (list-levenshtein/eq (-> list? list? integer?))
   ;; (list-levenshtein/equal (-> list? list? integer?))
   ;; (list-levenshtein/eqv (-> list? list? integer?))
-  [list-levenshtein/predicate (-> list? list? (-> any/c any/c boolean?) integer?)]
-  ;; string-levenshtein
+  [list-levenshtein/predicate (-> list? list? (-> any/c any/c boolean?) exact-integer?)]
+  [string-levenshtein (string? string? . -> . exact-integer?)]
   ;; vector-levenshtein
   ;; vector-levenshtein/eq
   ;; vector-levenshtein/equal

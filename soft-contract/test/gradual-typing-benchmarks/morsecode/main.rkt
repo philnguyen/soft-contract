@@ -7,7 +7,7 @@
 ;; -----------------------------------------------------------------------------
 
 (require
-  require-typed-check
+  #;require-typed-check
   (only-in racket/file file->value))
 
 (require (only-in "morse-code-strings.rkt"
@@ -17,17 +17,17 @@
                string-levenshtein))
 
 ;(define-runtime-path common-words-list "./../base/Lemmatized-NGSL-ezi1.txt")
-(define word-frequency-list "./../base/frequency.rktd")
-(define word-frequency-list-small "./../base/frequency-small.rktd")
+;(define word-frequency-list "./../base/frequency.rktd")
+;(define word-frequency-list-small "./../base/frequency-small.rktd")
 
 (define (file->words filename)
   (define words+freqs (file->value (string->path filename)))
   (for/list ([word+freq  words+freqs])
     (car word+freq)))
 
-(define allwords (file->words word-frequency-list))
+;(define allwords (file->words word-frequency-list))
 
-(define words-small (file->words word-frequency-list-small))
+;(define words-small (file->words word-frequency-list-small))
 
 (define (main words)
   (for* ([w1 (in-list words)]
@@ -39,4 +39,4 @@
     (void)))
 
 ;(time (main allwords)) ;; 68,000ms
-(time (main words-small)) ;; 200ms
+;(time (main words-small)) ;; 200ms

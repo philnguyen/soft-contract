@@ -1,7 +1,5 @@
 #lang racket
 
-(require soft-contract/fake-contract)
-
 ;; Copyright 2013 John Clements (clements@racket-lang.org)
 ;; Code licensed under the Mozilla Public License 2.0
 
