@@ -116,6 +116,6 @@
 
 ;; Phil's clueless hack for `recursive-contract`
 (define-syntax-rule (recursive-contract x type ...)
-  (begin (dynamic-recursive-contract x)
+  (begin (dynamic-recursive-contract x '(type ...))
          (scv:ignore (c:recursive-contract x type ...))))
-(define (dynamic-recursive-contract x) (void))
+(define (dynamic-recursive-contract . _) (void))

@@ -106,6 +106,7 @@
   (test "safe/issues/issue-79.rkt" check-safe)
   (test "safe/issues/issue-61.rkt" check-safe)
   (test "safe/issues/issue-74.rkt" check-safe)
+  (test "safe/issues/issue-80.rkt" check-safe)
   (test "safe/issues/issue-81.rkt" check-safe)
   (test '("programs/safe/issues/issue-65/main.rkt"
           "programs/safe/issues/issue-65/example.rkt")
@@ -117,6 +118,7 @@
   (test "unsafe/issues/issue-74a.rkt" check-fail)
   (test "unsafe/issues/issue-74b.rkt" check-fail)
   (test "unsafe/issues/issue-74c.rkt" check-fail)
+  ;(test "unsafe/issues/issue-80.rkt" check-fail) TODO: check for exn
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 

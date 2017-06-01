@@ -26,8 +26,8 @@
         (struct/c node
                   exact-nonnegative-integer?
                   any/c
-                  (recursive-contract tree/c)
-                  (recursive-contract tree/c))))
+                  (recursive-contract tree/c #:chaperone)
+                  (recursive-contract tree/c #:chaperone))))
 (define leftist-tree/c (struct/c leftist (any/c any/c . -> . any/c) tree/c))
 
 (define (leftist-tree <=? xs)
@@ -135,4 +135,4 @@
  [leftist-tree-min (-> leftist-tree/c any/c)]
  [leftist-tree-remove-min (-> leftist-tree/c leftist-tree?)] ; poz
  [leftist-tree->list (-> leftist-tree/c (listof any/c))]
- [in-leftist-tree (-> leftist-tree sequence?)])
+ [in-leftist-tree (-> leftist-tree? sequence?)])

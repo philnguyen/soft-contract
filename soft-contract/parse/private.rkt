@@ -529,11 +529,14 @@
       [(#%plain-app (~literal fake:one-of/c) c ...)
        (-@ 'one-of/c (parse-es #'(c ...)) (syntax-ℓ stx))]
       [(~or (let-values ()
-              (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...)
-            (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...) _ ...))
-       (-x/c.tmp (syntax-e #'x))]
-      [(#%plain-app (~literal fake:dynamic-recursive-contract) x:id _ ...)
-       (-x/c.tmp (syntax-e #'x))]
+              (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)) _ ...)
+            (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)) _ ...)
+            (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)))
+       (syntax-parse #'t
+         [((~or #:chaperone #:flat))
+          (-x/c.tmp (syntax-e #'x))]
+         [_
+          (raise-syntax-error 'recursive-contract "must be #:chaperone or #:flat" #'t)])]
 
       ;; Literals
       [(~or v:str v:number v:boolean) (-b (syntax->datum #'v))]
