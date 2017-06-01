@@ -36,7 +36,7 @@
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
                       [top-level-defs : (HashTable -𝒾 #t)]
                       [export-aliases : (HashTable -𝒾 -𝒾)]
-                      [module-befores : (HashTable (Pairof -l -l) #t)]
+                      [dependencies : (HashTable -l (℘ -l))]
                       [alternate-aliases : (HashTable -𝒾 -𝒾)]
                       [alternate-alias-ids : (HashTable -l Symbol)])
   #:transparent)
@@ -161,11 +161,15 @@
 
 (: module-before? : -l -l → Boolean)
 (define (module-before? l1 l2)
-  (hash-has-key? (-static-info-module-befores (current-static-info)) (cons l1 l2)))
+  (∋ (hash-ref (-static-info-dependencies (current-static-info)) l2 mk-∅) l1))
 
 (: set-module-before! : -l -l → Void)
 (define (set-module-before! l1 l2)
-  (hash-set! (-static-info-module-befores (current-static-info)) (cons l1 l2) #t))
+  (define deps (-static-info-dependencies (current-static-info)))
+  (hash-update! deps l2
+                (λ ([ls : (℘ -l)])
+                  (∪ ls (set-add (hash-ref deps l1 mk-∅) l1)))
+                mk-∅))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
