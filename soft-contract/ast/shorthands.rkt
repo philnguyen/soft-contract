@@ -66,13 +66,6 @@
 (define (-cons/c c d ℓ)
   (-struct/c -𝒾-cons (list c d) ℓ))
 
-(: -listof : -e ℓ → -e)
-(define (-listof c ℓ)
-  (define x (+x! 'listof))
-  (match-define (list ℓ₀ ℓ₁) (ℓ-with-ids ℓ 2))
-  (-μ/c x (-or/c (list (cons ℓ₀ 'null?)
-                       (cons ℓ₁ (-cons/c c (-x/c x) ℓ₁))))))
-
 (: -box/c : -e ℓ → -e)
 (define (-box/c c ℓ)
   (-struct/c -𝒾-box (list c) ℓ))

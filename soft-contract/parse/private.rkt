@@ -500,8 +500,6 @@
           (--> (-var (parse-es #'(inits ...)) (parse-e #'rst))
                'any
                (syntax-ℓ stx))])]
-      [(#%plain-app (~literal fake:listof) c)
-       (-listof (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:list/c) c ...)
        (define args
          (for/list ([cᵢ (in-syntax-list #'(c ...))])
