@@ -638,6 +638,8 @@
       [(~literal fake:and/c) 'and/c]
       [(~literal fake:or/c ) 'or/c]
       [(~literal fake:false/c) 'not]
+      [(~literal fake:listof) 'listof]
+      [(~literal fake:list/c) 'list/c]
       
       ;; Hack for private identifiers
       [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]

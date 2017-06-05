@@ -111,6 +111,7 @@
   (test '("programs/safe/issues/issue-65/main.rkt"
           "programs/safe/issues/issue-65/example.rkt")
         check-safe)
+  (test "safe/issues/issue-82.rkt" check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
   (test "unsafe/issues/issue-79.rkt" check-fail)
@@ -119,6 +120,7 @@
   (test "unsafe/issues/issue-74b.rkt" check-fail)
   (test "unsafe/issues/issue-74c.rkt" check-fail)
   ;(test "unsafe/issues/issue-80.rkt" check-fail) TODO: check for exn
+  (test "unsafe/issues/issue-82.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
