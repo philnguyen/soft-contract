@@ -67,24 +67,30 @@
       (hash-helper ⟪ℋ⟫ ℒ Γ Ws 'hasheqv 'hash-eqv?)))
 
   (splicing-local
-      ((define refinements : (℘ -h) {set 'hash? (-not/c 'immutable?)})
-
-       (define-syntax-parser define-make-hash
-         [(_ make-hash:id eq:id)
+      ;; FIXME the only reason for this hack is because the DSL doesn't have case-> yet
+      ((define-syntax-parser define-make-hash
+         [(_ make-hash:id eq:id #:immutable? immut?:boolean)
           (define/with-syntax make-hash-1 (format-id #'make-hash "~a-1" (syntax-e #'make-hash)))
           (define/with-syntax .make-hash-1 (format-id #'make-hash ".~a-1" (syntax-e #'make-hash)))
+          (define/with-syntax ctc-immut?
+            (if (syntax-e #'immut?) #'immutable? #'(not/c immutable?)))
+          (define/with-syntax refine-immut?
+            (if (syntax-e #'immut?) #''immutable? #'(-not/c 'immutable?)))
           #'(begin
               (def-prim make-hash-1
-                ((listof pair?) . -> . (and/c hash? (not/c immutable?) eq)))
+                ((listof pair?) . -> . (and/c hash? ctc-immut? eq)))
               (def-prim/custom (make-hash ⟪ℋ⟫ ℒ Σ Γ Ws)
                 (match Ws
-                  ['() {set (-ΓA (-Γ-facts Γ) (-W (list (-● (set-add refinements 'eq)))
+                  ['() {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'hash? 'eq refine-immut?}))
                                                   (apply ?t@ 'make-hash (map -W¹-t Ws))))}]
                   [_ (.make-hash-1 ⟪ℋ⟫ ℒ Σ Γ Ws)])))])
        )
-    (define-make-hash make-hash equal?)
-    (define-make-hash make-hasheqv eqv?)
-    (define-make-hash make-hasheq eq?))
+    (define-make-hash make-hash hash-equal? #:immutable? #f)
+    (define-make-hash make-hasheqv hash-eqv? #:immutable? #f)
+    (define-make-hash make-hasheq hash-eq? #:immutable? #f)
+    (define-make-hash make-immutable-hash hash-equal? #:immutable? #t)
+    (define-make-hash make-immutable-hasheqv hash-eqv? #:immutable? #t)
+    (define-make-hash make-immutable-hasheq hash-eq? #:immutable? #t))
 
   (def-prim make-weak-hash ; FIXME uses ; FIXME listof
     (-> (and/c hash? hash-equal? hash-weak?)))

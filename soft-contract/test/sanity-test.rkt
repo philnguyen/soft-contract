@@ -115,6 +115,7 @@
   (test '("programs/safe/issues/issue-84/module1.rkt"
           "programs/safe/issues/issue-84/module2.rkt")
         check-safe)
+  (test "safe/issues/issue-85.rkt" check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
   (test "unsafe/issues/issue-79.rkt" check-fail)

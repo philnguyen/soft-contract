@@ -74,6 +74,9 @@
                       (-ℒ-app ℒ)))
     (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
 
+  (def-pred exn?)
+  (def-pred exn:fail?)
+
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.4 Continuations
