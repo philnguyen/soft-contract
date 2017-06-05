@@ -172,8 +172,9 @@
           [(-provide specs)
            (-provide
             (for/list ([spec specs])
-              (match-define (-p/c-item x c ℓ) spec)
-              (-p/c-item x (go! m c) ℓ)))]
+              (match spec
+                [(-p/c-item x c ℓ) (-p/c-item x (go! m c) ℓ)]
+                [(? symbol? x) x])))]
           [(? -require? d) d]
           [(? -e? e) (go! m e)])))
     (-module p forms*))

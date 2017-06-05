@@ -176,7 +176,7 @@
                 (parse-submodule-form #'form))]))
 
   (define/contract parse-provide-spec
-    (syntax? . -> . (listof -p/c-item?))
+    (syntax? . -> . (listof -provide-spec?))
     (syntax-parser
       #:literals (quote #%plain-app)
       [(#%plain-app (~literal fake:dynamic-struct-out)
@@ -209,7 +209,9 @@
            (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ)))
        (list* dec-constr dec-pred dec-acs)]
       [(#%plain-app (~literal list) x:id c:expr)
-       (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ #'x)))]))
+       (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ #'x)))]
+      [x:id
+       (list (syntax-e #'x))]))
 
   (define/contract parse-submodule-form
     (scv-syntax? . -> . (or/c #f -submodule-form?))

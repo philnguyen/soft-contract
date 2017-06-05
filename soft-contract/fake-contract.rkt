@@ -111,6 +111,7 @@
          ;; Ignore all non-contracted identifiers because they might be macros even.
          ;; Verifying against `any/c` doesn't mean much anyways
          (dynamic-provide/contract
+          i ...
           (list p/i ctc) ... ...
           (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
 

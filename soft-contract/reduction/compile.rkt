@@ -33,12 +33,23 @@
     (match-define (-module l ds) m)
 
     (: ↓pc : -provide-spec → -⟦e⟧)
-    (define (↓pc spec)
-      (match-define (-p/c-item x c ℓ) spec)
-      (define ⟦c⟧ (↓ₑ l c))
-      (define 𝒾 (-𝒾 x l))
-      (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-        (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (dec∷ ℓ 𝒾 ⟦k⟧))))
+    (define ↓pc
+      (match-lambda
+        ;; Wrap contract
+        [(-p/c-item x c ℓ)
+         (define ⟦c⟧ (↓ₑ l c))
+         (define 𝒾 (-𝒾 x l))
+         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+           (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (dec∷ ℓ 𝒾 ⟦k⟧)))]
+        ;; export same as internal
+        [(? symbol? x)
+         (define α (-α->⟪α⟫ (-𝒾 x l)))
+         (define α* (-α->⟪α⟫ (-α.wrp (-𝒾 x l))))
+         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+           (when (defined-at? Σ α)
+             (for ([V (in-set (σ@ Σ α))])
+               (σ⊕V! Σ α* V)))
+           (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ))]))
     
     (: ↓d : -module-level-form → -⟦e⟧)
     (define (↓d d)

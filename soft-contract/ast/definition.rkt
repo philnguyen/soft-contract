@@ -83,7 +83,8 @@
 
 (-submodule-form . ::= . (-module [path : -l] [body : (Listof -module-level-form)]))
 
-(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e] [loc : ℓ]))
+(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e] [loc : ℓ])
+                       Symbol)
 
 (-require-spec . ::= . -l #|TODO|#)
 
@@ -275,7 +276,8 @@
 
 (define show-provide-spec : (-provide-spec → Sexp)
   (match-lambda
-    [(-p/c-item x c _) `(,x ,(show-e c))]))
+    [(-p/c-item x c _) `(,x ,(show-e c))]
+    [(? symbol? x) x]))
 
 (define show-require-spec : (-require-spec → Sexp)
   values)

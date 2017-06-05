@@ -47,8 +47,10 @@
       (match form
         [(-provide specs)
          (for ([spec (in-list specs)])
-           (match-define (-p/c-item x _ _) spec)
-           (hash-set! decs x #t))]
+           (match spec
+             [(-p/c-item x _ _)
+              (hash-set! decs x #t)]
+             [(? symbol? x) (hash-set! decs x #t)]))]
         [(-define-values (list x) (? -st-ac? e))
          (hash-set! acc-defs x e)]
         [(-define-values (list x) (? -st-mut? e))

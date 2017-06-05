@@ -131,7 +131,7 @@
       (for*/list ([m (in-list ms)]
                   [path (in-value (-module-path m))]
                   [form (in-list (-module-body m))] #:when (-provide? form)
-                  [spec (in-list (-provide-specs form))])
+                  [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
         (match-define (-p/c-item x _ _) spec)
         (-𝒾 x path)))
 
