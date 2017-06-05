@@ -661,7 +661,7 @@
            #:when (not (equal? src 'Λ))
            (-𝒾 (syntax-e #'i) src)]
           [_
-           (raise-syntax-error 'parser "don't know how to parse identifier" #'i)]))]))
+           (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." #'i)]))]))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)
