@@ -14,7 +14,7 @@
          "signatures.rkt")
 
 (define-unit prims-13@
-  (import prim-runtime^ widening^ proof-system^ app^ val^ pc^ sto^)
+  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -51,6 +51,9 @@
     (define arg (-W¹ (-● {set 'output-port?}) (-x (+x!/memo 'cwof))))
     (app $ ℒ W-cb (list arg) Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
+  (def-ext with-input-from-file (path-string? (-> any/c) . -> . any/c))
+  (def-ext with-output-to-file (path-string? (-> any/c) . -> . any/c))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 13.2 Byte and String Input
@@ -77,6 +80,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (def-prim write (any/c output-port? . -> . void?) #:lift-concrete? #f) ; FIXME uses
   (def-prim display (any/c output-port? . -> . void?) #:lift-concrete? #f) ; FIXME uses
+  (def-prim displayln (any/c #;output-port? . -> . void?) #:lift-concrete? #f) ; FIXME uses
   (def-prim fprintf (->* (output-port? string?) #:rest list? void?) #:lift-concrete? #f)
   (def-prim printf (->* (string?) #:rest list? void?) #:lift-concrete? #f)
   (def-prim format ((string?) #:rest list? . ->* . string?))

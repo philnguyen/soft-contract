@@ -16,6 +16,7 @@
          "../signatures.rkt"
          "signatures.rkt"
          (for-syntax racket/base
+                     racket/string
                      racket/match
                      racket/list
                      racket/set
@@ -23,6 +24,32 @@
                      syntax/parse
                      racket/contract
                      ))
+
+(define ?recognized-name
+  (let ([names '(call-with-input-file
+                 call-with-output-file
+                 open-input-file
+                 open-output-file
+                 file->list
+                 file->value
+                 with-input-from-file
+                 with-output-to-file)])
+    (λ (name)
+      (define name-str (symbol->string name))
+      (for/first ([s (in-list names)]
+                  #:when (string-prefix? name-str (symbol->string s)))
+        s))))
+
+(define-syntax-class indirect-app
+  #:description "hack pattern for some `variable-reference-constant?` usages"
+  #:literals (if #%plain-app #%variable-reference)
+  (pattern (if (#%plain-app (~literal variable-reference-constant?)
+                            (#%variable-reference f:id))
+               (#%plain-app g*:id _ ...)
+               (#%plain-app g:id x ...))
+           #:attr fun-name (?recognized-name (syntax-e #'g))
+           #:when (attribute fun-name)
+           #:attr args #'(x ...)))
 
 (define-unit parser-helper@
   (import prims^)
@@ -403,48 +430,8 @@
             (-@ o.name (list e eᵢ) (ℓ-with-id ℓ i)))])]
 
       ;; HACKs for `variable-refererence-constant?`
-      [(if (#%plain-app (~literal variable-reference-constant?)
-                        (#%variable-reference f:id))
-           _
-           (#%plain-app g:id x ...))
-       #:when (and (free-identifier=? #'f #'g)
-                   (string-prefix? (symbol->string (syntax-e #'f)) "call-with-output-file"))
-       (-@ 'call-with-output-file  (parse-es #'(x ...)) (syntax-ℓ stx))]
-      [(if (#%plain-app (~literal variable-reference-constant?)
-                        (#%variable-reference f:id))
-           _
-           (#%plain-app g:id x ...))
-       #:when (and (free-identifier=? #'f #'g)
-                   (string-prefix? (symbol->string (syntax-e #'f)) "call-with-input-file"))
-       (-@ 'call-with-input-file (parse-es #'(x ...)) (syntax-ℓ stx))]
-      [(if (#%plain-app (~literal variable-reference-constant?)
-                        (#%variable-reference f:id))
-           _
-           (#%plain-app g:id x ...))
-       #:when (and (free-identifier=? #'f #'g)
-                   (string-prefix? (symbol->string (syntax-e #'f)) "open-input-file"))
-       (-@ 'open-input-file (parse-es #'(x ...)) (syntax-ℓ stx))]
-      [(if (#%plain-app (~literal variable-reference-constant?)
-                        (#%variable-reference f:id))
-           _
-           (#%plain-app g:id x ...))
-       #:when (and (free-identifier=? #'f #'g)
-                   (string-prefix? (symbol->string (syntax-e #'f)) "open-output-file"))
-       (-@ 'open-out-file (parse-es #'(x ...)) (syntax-ℓ stx))]
-      [(if (#%plain-app (~literal variable-reference-constant?)
-                        (#%variable-reference f:id))
-           _
-           (#%plain-app g:id x ...))
-       #:when (and (free-identifier=? #'f #'g)
-                   (string-prefix? (symbol->string (syntax-e #'f)) "file->list"))
-       (-@ 'file->list (parse-es #'(x ...)) (syntax-ℓ stx))]
-      [(if (#%plain-app (~literal variable-reference-constant?)
-                        (#%variable-reference f:id))
-           _
-           (#%plain-app g:id x ...))
-       #:when (and (free-identifier=? #'f #'g)
-                   (string-prefix? (symbol->string (syntax-e #'f)) "file->value"))
-       (-@ 'file->value (parse-es #'(x ...)) (syntax-ℓ stx))]
+      [app:indirect-app
+       (-@ (attribute app.fun-name) (parse-es #'app.args) (syntax-ℓ #'app))]
 
       ;; HACK for figuring out exports from non-faked files
       [(#%plain-app f:id lifted.0 args ...)

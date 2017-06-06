@@ -120,7 +120,8 @@
   ;; TODO enable once it's fixed
   #;(test '("safe/issues/issue-90/a.rkt"
           "safe/issues/issue-90/b.rkt")
-        check-safe)
+          check-safe)
+  (test "safe/issues/issue-91.rkt" check-safe)
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
   (test "unsafe/issues/issue-79.rkt" check-fail)
