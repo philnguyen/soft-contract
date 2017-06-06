@@ -48,6 +48,7 @@
                (#%plain-app g*:id _ ...)
                (#%plain-app g:id x ...))
            #:attr fun-name (?recognized-name (syntax-e #'g))
+           #:when (free-identifier=? #'f #'g)
            #:when (attribute fun-name)
            #:attr args #'(x ...)))
 
