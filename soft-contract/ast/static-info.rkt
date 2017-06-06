@@ -145,8 +145,9 @@
   (define export-aliases (-static-info-export-aliases (current-static-info)))
   (cond [(hash-ref export-aliases 𝒾ᵢₙ #f) =>
          (λ ([𝒾₀ : -𝒾])
-           (error 'set-export-aliases! "~a already maps to ~a, set to ~a"
-                  (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ)))]
+           (unless (equal? 𝒾₀ 𝒾ₒᵤₜ)
+             (error 'set-export-aliases! "~a already maps to ~a, set to ~a"
+                    (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ))))]
         [else
          (hash-set! export-aliases 𝒾ᵢₙ 𝒾ₒᵤₜ)]))
 
@@ -181,8 +182,9 @@
   (define alternate-aliases (-static-info-alternate-aliases (current-static-info)))
   (cond [(hash-ref alternate-aliases 𝒾ᵢₙ #f) =>
          (λ ([𝒾₀ : -𝒾])
-           (error 'set-alternate-alias! "~a already maps to ~a, set to ~a"
-                  (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ)))]
+           (unless (equal? 𝒾₀ 𝒾ₒᵤₜ)
+             (error 'set-alternate-alias! "~a already maps to ~a, set to ~a"
+                  (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ))))]
         [else
          (hash-set! alternate-aliases 𝒾ᵢₙ 𝒾ₒᵤₜ)]))
 
