@@ -307,7 +307,13 @@
          (match-define (-Σ σ σₖ _) Σ)
          (define sₐ (?t@ 'o (-W¹-t W) ...))
          (define Wₐ (-W (list #,(parameterize ([-o #'o]
-                                               [-σ #'σ])
+                                               [-σ #'σ]
+                                               [-Σ #'Σ]
+                                               [-ℒ #'ℒ]
+                                               [-Γ #'Γ]
+                                               [-$ #'$]
+                                               [-⟦k⟧ #'⟦k⟧]
+                                               [-⟪ℋ⟫ #'⟪ℋ⟫])
                                   (gen-wrap #'d #'(+●) #'sₐ)))
                         sₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
