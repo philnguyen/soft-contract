@@ -28,7 +28,7 @@
   (import prims^)
   (export parser-helper^)
   (init-depend prims^)
-  
+
   ;; Enable in "production" mode
   #;(define-syntax define/contract
       (syntax-parser
@@ -67,7 +67,7 @@
       ['#%unsafe 'unsafe]
       [(and (? symbol?) (app symbol->string "expanded module")) (cur-mod)]
       [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
-      [p #|TODO|# p]))
+      [(cons p _) (mod-path->mod-name p)]))
 
   (define/contract (figure-out-aliases! stx)
     (scv-syntax? . -> . void?)
