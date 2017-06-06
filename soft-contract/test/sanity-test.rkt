@@ -116,6 +116,7 @@
           "programs/safe/issues/issue-84/module2.rkt")
         check-safe)
   (test "safe/issues/issue-85.rkt" check-safe)
+  (test "safe/issues/issue-88.rkt" check-safe)
   ;; TODO enable once it's fixed
   #;(test '("safe/issues/issue-90/a.rkt"
           "safe/issues/issue-90/b.rkt")

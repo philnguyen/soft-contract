@@ -15,6 +15,7 @@
          "prims-04.rkt"
          "prims-05.rkt"
          "prims-08.rkt"
+         "prims-09.rkt"
          "prims-10.rkt"
          "prims-13.rkt"
          "prims-15.rkt"
@@ -67,6 +68,7 @@
         prims-04@
         prims-05@
         prims-08@
+        prims-09@
         prims-10@
         prims-13@
         prims-15@
