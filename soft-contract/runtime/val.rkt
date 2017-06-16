@@ -78,7 +78,14 @@
   (define (approximate-under-contract V)
     (match V
       [(-Ar C _ l³)
-       (-Ar C ⟪α⟫ₒₚ l³)]
+       (match C
+         [(-=> (list (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.dom 'any/c    _ _ _)) _))
+               (list (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.rng 'boolean? _ _ _)) _))
+               _)
+          ;; cheat
+          V]
+         [_
+          (-Ar C ⟪α⟫ₒₚ l³)])]
       [(-St* C _ l³)
        (-St* C ⟪α⟫ₒₚ l³)]
       [(-Vector/guard C _ l³)
