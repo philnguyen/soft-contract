@@ -150,8 +150,8 @@
 
     (for ([(extractor wrapper) (in-hash extractor->wrapper)])
       (define orig (hash-ref wrapper->name wrapper))
-      (set-alternate-alias! extractor orig)
-      (set-alternate-alias! wrapper orig)))
+      (set-alternate-alias! extractor orig #t)
+      (set-alternate-alias! wrapper orig #f)))
 
   ;; Convert syntax to `top-level-form`
   (define/contract parse-top-level-form
@@ -440,12 +440,15 @@
       [(#%plain-app f:id lifted.0 args ...)
        #:when (equal? (syntax-e #'lifted.0) (get-alternate-alias-id (cur-mod) (λ () #f)))
        (define f.src (id-defining-module #'f))
-       (define f-resolved
+       (match-define (cons f-resolved wrap?)
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) f.src)
           (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src)))))
        (set-module-before! f.src (cur-mod))
-       (-@ f-resolved (parse-es #'(args ...)) (syntax-ℓ stx))]
+       (cond
+         [wrap? (-@ f-resolved (parse-es #'(args ...)) (syntax-ℓ stx))]
+         [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-resolved]
+         [else (error 'parser "my understanding is wrong")])]
       
 
     ;;; Contracts

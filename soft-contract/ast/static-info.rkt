@@ -37,7 +37,7 @@
                       [top-level-defs : (HashTable -𝒾 #t)]
                       [export-aliases : (HashTable -𝒾 -𝒾)]
                       [dependencies : (HashTable -l (℘ -l))]
-                      [alternate-aliases : (HashTable -𝒾 -𝒾)]
+                      [alternate-aliases : (HashTable -𝒾 (Pairof -𝒾 Boolean))]
                       [alternate-alias-ids : (HashTable -l Symbol)])
   #:transparent)
 
@@ -177,21 +177,21 @@
 ;;;;; Alternate aliases
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: set-alternate-alias! : -𝒾 -𝒾 → Void)
-(define (set-alternate-alias! 𝒾ᵢₙ 𝒾ₒᵤₜ)
+(: set-alternate-alias! : -𝒾 -𝒾 Boolean → Void)
+(define (set-alternate-alias! 𝒾ᵢₙ 𝒾ₒᵤₜ wrap?)
   (define alternate-aliases (-static-info-alternate-aliases (current-static-info)))
   (cond [(hash-ref alternate-aliases 𝒾ᵢₙ #f) =>
-         (λ ([𝒾₀ : -𝒾])
-           (unless (equal? 𝒾₀ 𝒾ₒᵤₜ)
-             (error 'set-alternate-alias! "~a already maps to ~a, set to ~a"
-                  (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ))))]
+         (match-lambda
+           [(cons 𝒾₀ wrap?₀)
+            (unless (and (equal? 𝒾₀ 𝒾ₒᵤₜ) (equal? wrap? wrap?₀))
+              (error 'set-alternate-alias! "~a already maps to ~a, set to ~a"
+                     (show-𝒾 𝒾ᵢₙ) (show-𝒾 𝒾₀) (show-𝒾 𝒾ₒᵤₜ)))])]
         [else
-         (hash-set! alternate-aliases 𝒾ᵢₙ 𝒾ₒᵤₜ)]))
+         (hash-set! alternate-aliases 𝒾ᵢₙ (cons 𝒾ₒᵤₜ wrap?))]))
 
-(: get-alternate-alias (∀ (X) ([-𝒾] [(→ X)] . ->* . (U X -𝒾))))
+(: get-alternate-alias (∀ (X) ([-𝒾] [(→ X)] . ->* . (U X (Pairof -𝒾 Boolean)))))
 (define (get-alternate-alias 𝒾 [on-failure (λ () (error 'get-alternate-alias "nothing for ~a" (show-𝒾 𝒾)))])
   (hash-ref (-static-info-alternate-aliases (current-static-info)) 𝒾 on-failure))
-  
 
 (: set-alternate-alias-id! : -l Symbol → Void)
 (define (set-alternate-alias-id! l id)

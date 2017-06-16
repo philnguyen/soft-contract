@@ -15,7 +15,10 @@
 
   (: parse-files : (Listof Path-String) → (Listof -module))
   ;; Alpha renaming on top of the old parser (hack)
-  (define (parse-files ps)
+  (define (parse-files ps*)
+    (define ps : (Listof Path-String)
+      (for/list ([p (in-list ps*)])
+        (if (absolute-path? p) p (path->string (path->complete-path p)))))
     (define ms (map α-rename (pre:parse-files ps)))
     (for ([m (in-list ms)])
       (collect-public-accs! m))
