@@ -80,11 +80,6 @@
     (with-handlers ([exn:missing?
                      (match-lambda
                        [(exn:missing _ _ src)
-                        (begin
-                          (printf "missing: ~a~n" src)
-                          (printf "fnames:~n")
-                          (for ([fname (in-list fnames)])
-                            (printf "- ~a~n" fname)))
                         (assert (not (member src fnames)))
                         (printf " - dependency: ~a~n" src)
                         (go (cons src fnames))])])
