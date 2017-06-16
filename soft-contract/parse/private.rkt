@@ -149,7 +149,9 @@
         [_ (void)]))
 
     (for ([(extractor wrapper) (in-hash extractor->wrapper)])
-      (set-alternate-alias! extractor (hash-ref wrapper->name wrapper))))
+      (define orig (hash-ref wrapper->name wrapper))
+      (set-alternate-alias! extractor orig)
+      (set-alternate-alias! wrapper orig)))
 
   ;; Convert syntax to `top-level-form`
   (define/contract parse-top-level-form
