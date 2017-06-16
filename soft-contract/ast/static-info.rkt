@@ -198,7 +198,8 @@
   (define alternate-alias-ids (-static-info-alternate-alias-ids (current-static-info)))
   (cond [(hash-ref alternate-alias-ids l #f) =>
          (λ ([id₀ : Symbol])
-           (error 'set-alternate-alias-id! "~a already maps to ~a, set to ~a" l id₀ id))]
+           (unless (equal? id₀ id)
+             (error 'set-alternate-alias-id! "~a already maps to ~a, set to ~a" l id₀ id)))]
         [else (hash-set! alternate-alias-ids l id)]))
 
 (: get-alternate-alias-id (∀ (X) ([-l] [(→ X)] . ->* . (U X Symbol))))
