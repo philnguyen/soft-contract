@@ -114,6 +114,8 @@
          ▹ ,(show-⟪α⟫ α))]
       [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
       [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]
+      [(-Hash^ k v im?) `(,(if im? 'hash^ 'mutable-hash^) ,(show-⟪α⟫ k) ,(show-⟪α⟫ v))]
+      [(-Hash/guard C α _) `(hash/guard ,(show-V C) ,(show-⟪α⟫ α))]
       [(-Vector/guard grd _ _)
        (match grd
          [(-Vector/C γs) `(vector/diff ,@(map show-⟪α⟫ℓ γs))]
@@ -124,6 +126,7 @@
       [(-One-Of/C vs) `(one-of/c ,@(set-map vs show-b))]
       [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
       [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr γs)))]
+      [(-Hash/C k v) `(hash/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr k)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr v)))]
       [(-=> αs βs _)
        (define show-rng
          (cond [(list? βs) (show-⟪α⟫ℓs βs)]
@@ -266,6 +269,8 @@
       [(-α.not/c (? -t? t) _ _) (show-t t)]
       [(-α.vector/c (? -t? t) _ _ _) (show-t t)]
       [(-α.vectorof (? -t? t) _ _) (show-t t)]
+      [(-α.hash/c-key (? -t? t) _ _) (show-t t)]
+      [(-α.hash/c-val (? -t? t) _ _) (show-t t)]
       [(-α.struct/c (? -t? t) _ _ _ _) (show-t t)]
       [(-α.dom (? -t? t) _ _ _) (show-t t)]
       [(-α.rst (? -t? t) _ _) (show-t t)]

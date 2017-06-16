@@ -48,6 +48,7 @@
             (-St -𝒾 (Listof ⟪α⟫))
             (-Vector (Listof ⟪α⟫))
             (-Vector^ [content : ⟪α⟫] [length : #|restricted|# -V])
+            (-Hash^ [key : ⟪α⟫] [val : ⟪α⟫] [immutable? : Boolean])
             -Fn
             
             ;; Proxied higher-order values
@@ -56,6 +57,7 @@
             (-Ar [guard : -=>_] [v : ⟪α⟫] [ctx : -l³])
             (-St* [guard : -St/C] [val : ⟪α⟫] [ctx : -l³])
             (-Vector/guard [guard : (U -Vector/C -Vectorof)] [val : ⟪α⟫] [ctx : -l³])
+            (-Hash/guard [guard : -Hash/C] [val : ⟪α⟫] [ctx : -l³])
             
             -C)
 
@@ -78,7 +80,8 @@
                    [id : -𝒾]
                    [fields : (Listof -⟪α⟫ℓ)])
             (-Vectorof -⟪α⟫ℓ)
-            (-Vector/C (Listof -⟪α⟫ℓ)))
+            (-Vector/C (Listof -⟪α⟫ℓ))
+            (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ]))
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
@@ -226,6 +229,10 @@
             ;; for vector^ content
             (-α.vct [loc : -ℒ] [ctx : -⟪ℋ⟫])
 
+            ;; for hash^ content
+            (-α.hash.key [loc : -ℒ] [ctx : -⟪ℋ⟫])
+            (-α.hash.val [loc : -ℒ] [ctx : -⟪ℋ⟫])
+
             ;; for wrapped vector
             (-α.unvct [loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
@@ -237,6 +244,8 @@
             (-α.not/c [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.vector/c [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.vectorof [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.hash/c-key [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.hash/c-val [val : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.struct/c [sym : -?t] [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.x/c Symbol)
             (-α.dom [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])

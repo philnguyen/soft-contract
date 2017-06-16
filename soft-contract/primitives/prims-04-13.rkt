@@ -46,25 +46,31 @@
     (hash? . -> . boolean?))
 
   (splicing-local
-      ((define refinements : (℘ -h) {set 'hash? 'immutable?})
-       (: hash-helper : -⟪ℋ⟫ -ℒ -Γ (Listof -W¹) Symbol -h → (℘ -ΓA))
-       (define (hash-helper ⟪ℋ⟫ ℒ Γ Ws name eq)
+      ((: hash-helper : -⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) Symbol -h → (℘ -ΓA))
+       (define (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws name eq)
          (define A
            (cond
              [(even? (length Ws))
-              ;; FIXME: unsound until having real model for hashtable.
-              ;; Cannot just havoc and widen
-              (-W (list (-● (set-add refinements eq))) (apply ?t@ name (map -W¹-t Ws)))]
+              (define αₖ (-α->⟪α⟫ (-α.hash.key ℒ ⟪ℋ⟫)))
+              (define αᵥ (-α->⟪α⟫ (-α.hash.val ℒ ⟪ℋ⟫)))
+              (let go! ([Ws : (Listof -W¹) Ws])
+                (match Ws
+                  [(list* Wₖ Wᵥ Ws*)
+                   (σ⊕! Σ Γ αₖ Wₖ)
+                   (σ⊕! Σ Γ αᵥ Wᵥ)]
+                  ['() (void)]))
+              (define V (-Hash^ αₖ αᵥ #t))
+              (-W (list V) (apply ?t@ name (map -W¹-t Ws)))]
              [else
               (define-values (ℓ l) (unpack-ℒ ℒ))
               (-blm l name (list (string->symbol "even number of arg(s)")) (map -W¹-V Ws) ℓ)]))
          {set (-ΓA (-Γ-facts Γ) A)}))
     (def-prim/custom (hash ⟪ℋ⟫ ℒ Σ Γ Ws)
-      (hash-helper ⟪ℋ⟫ ℒ Γ Ws 'hash 'hash-equal?))
+      (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hash 'hash-equal?))
     (def-prim/custom (hasheq ⟪ℋ⟫ ℒ Σ Γ Ws)
-      (hash-helper ⟪ℋ⟫ ℒ Γ Ws 'hasheq 'hash-eq?))
+      (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hasheq 'hash-eq?))
     (def-prim/custom (hasheqv ⟪ℋ⟫ ℒ Σ Γ Ws)
-      (hash-helper ⟪ℋ⟫ ℒ Γ Ws 'hasheqv 'hash-eqv?)))
+      (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hasheqv 'hash-eqv?)))
 
   (splicing-local
       ;; FIXME the only reason for this hack is because the DSL doesn't have case-> yet

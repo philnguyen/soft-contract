@@ -286,6 +286,8 @@
             (plausible-φs-t? φs (?t@ (-st-p 𝒾) t))]
            [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?))
             (plausible-φs-t? φs (?t@ 'vector? t))]
+           [(or (? -Hash^?) (? -Hash/guard?))
+            (plausible-φs-t? φs (?t@ 'hash? t))]
            [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
             (plausible-φs-t? φs (?t@ 'procedure? t))]
            [(-b (? p?))
@@ -443,6 +445,10 @@
                          (match Vs
                            [(list (or (? -Vector?) (? -Vector^?) (? -Vector/guard?))) '✓]
                            [_ '✗])]
+                        [(hash?)
+                         (match Vs
+                           [(list (or (? -Hash^?) (? -Hash/guard?))) '✓]
+                           [_ '✗])]
                         [(contract?)
                          (match Vs
                            [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?) (? -Not/C?)
@@ -463,6 +469,14 @@
                         [(immutable?)
                          (match Vs
                            [(list (-b b)) (boolean->R (immutable? b))]
+                           [(list (-Hash^ _ _ im?)) (if im? '✓ '✗)]
+                           [(list (-Hash/guard _ α _))
+                            (define Rs
+                              (for/seteq: : (℘ -R) ([V (in-set (σ@ σ α))])
+                                (p∋Vs σ 'immutable? V)))
+                            (cond [(or (∋ Rs '?) (> (set-count Rs) 1)) '?]
+                                  [(∋ Rs '✗) '✗]
+                                  [else '✓])]
                            ;; always false for now because no support for immutable vectors
                            [_ '✗])]
                         [(<)
