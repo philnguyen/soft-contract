@@ -44,6 +44,26 @@
     (match-define (-Σ σ _ _) Σ)
     (set--Σ-σ! Σ (σ⊕ σ α V mutating?)))
 
+  (: σ⊕Vs! : -Σ ⟪α⟫ (℘ -V) → Void)
+  (define (σ⊕Vs! Σ α Vs)
+    (match-define (-Σ (and σ (-σ σm ms cs)) _ _) Σ)
+    (define σm*
+      (hash-update σm
+                   α
+                   (λ ([Vs₀ : (℘ -V)])
+                     (cond [(set-empty? Vs₀) Vs] ; fast special case
+                           [else
+                            (for/fold ([Vs* : (℘ -V) Vs₀])
+                                      ([V (in-set Vs)])
+                              (Vs⊕ σ Vs* V))]))
+                   mk-∅))
+    (set--Σ-σ! Σ (-σ σm* ms cs)))
+
+  (: σ-copy! : -Σ ⟪α⟫ ⟪α⟫ → Void)
+  (define (σ-copy! Σ α-src α-tgt)
+    (unless (equal? α-src α-tgt)
+      (σ⊕Vs! Σ α-tgt (σ@ Σ α-src))))
+
   (define (σ⊕ [σ : -σ] [α : ⟪α⟫] [V : -V] [α.mutating? : Boolean]) : -σ
     (match-define (-σ store mutated cardinalities) σ)
     
@@ -77,7 +97,7 @@
     (-σ store* mutated* cardinalities*))
 
   ;; Widen value set with new value
-  (define (Vs⊕ [σ : -σ] [Vs : (℘ -V)] [V : -V]) : (℘ -V)
+  (define (Vs⊕ [σ : -σ] [Vs : (℘ -V)] [V : (U -V (℘ -V))]) : (℘ -V)
     (: iter : (℘ -V) -V → (U (℘ -V) (Pairof (℘ -V) -V)))
     (define (iter Vs V)
       (match (for/or : (Option (List -V -V -V)) ([Vᵢ Vs])
@@ -95,7 +115,10 @@
           [(cons xs* x*) (loop xs* x*)]
           [(? set? s) s])))
 
-    (repeat-compact Vs V iter))
+    (cond [(-V? V) (repeat-compact Vs V iter)]
+          [else (for/fold ([Vs* : (℘ -V) Vs])
+                          ([Vᵢ (in-set V)])
+                  (repeat-compact Vs Vᵢ iter))]))
 
   ;; Refine opaque value with predicate
   (define (V+ [σ : -σ] [V : -V] [P : (U -V -h (℘ -h))]) : -V

@@ -183,8 +183,17 @@
     (contract? . -> . contract?))
   (def-prim/todo procedure-arity-includes/c
     (exact-nonnegative-integer? . -> . flat-contract?))
-  (def-prim/todo hash/c ; FIXME uses
-    (chaperone-contract? contract? . -> . contract?))
+  (def-prim/custom (hash/c ⟪ℋ⟫ ℒ Σ Γ Ws) ; FIXME uses
+    #:domain ([Wₖ chaperone-contract?] [Wᵥ contract?])
+    (match-define (-W¹ _ tₖ) Wₖ)
+    (match-define (-W¹ _ tᵥ) Wᵥ)
+    (define ℓ (-ℒ-app ℒ))
+    (define αₖ (-α->⟪α⟫ (-α.hash/c-key tₖ ℓ ⟪ℋ⟫)))
+    (define αᵥ (-α->⟪α⟫ (-α.hash/c-val tᵥ ℓ ⟪ℋ⟫)))
+    (σ⊕! Σ Γ αₖ Wₖ)
+    (σ⊕! Σ Γ αᵥ Wᵥ)
+    (define V (-Hash/C (-⟪α⟫ℓ αₖ (ℓ-with-id ℓ 'hash/c.key)) (-⟪α⟫ℓ αᵥ (ℓ-with-id ℓ 'hash/c.val))))
+    {set (-ΓA (-Γ-facts Γ) (-W (list V) (?t@ 'hash/c tₖ tᵥ)))})
   (def-prim/todo channel/c (contract? . -> . contract?))
   (def-prim/todo continuation-mark-key/c (contract? . -> . contract?))
   ;;[evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]

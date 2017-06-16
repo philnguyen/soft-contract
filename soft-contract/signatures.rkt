@@ -52,9 +52,11 @@
 (define-signature widening^
   ([σ⊕! : ([-Σ -Γ ⟪α⟫ -W¹] [#:mutating? Boolean] . ->* . Void)]
    [σ⊕V! : ([-Σ ⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void)]
+   [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
+   [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
    [M⊕! : (-Σ -αₖ (℘ -t) -A → Void)]
    [σₖ⊕! : (-Σ -αₖ -κ → Void)]
-   [Vs⊕ : (-σ (℘ -V) -V → (℘ -V))]
+   [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]

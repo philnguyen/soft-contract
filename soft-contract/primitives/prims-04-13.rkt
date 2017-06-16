@@ -24,6 +24,7 @@
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
          "../runtime/signatures.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def-prim.rkt"
@@ -38,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ instr^)
+  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ instr^ kont^)
   (export)
 
   (def-pred hash?)
@@ -108,12 +109,55 @@
     ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?))
   (def-prim/todo hash-set*! ; FIXME uses
     ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?))
-  (def-prim/todo hash-set ; FIXME refine with `eq?` and `eqv?`
-    ((and/c hash? immutable?) any/c any/c . -> . (and/c hash? immutable?)))
+  (def-ext (hash-set $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wₕ (and/c hash? immutable?)]
+              [Wₖ any/c]
+              [Wᵥ any/c])
+    (match-define (-W¹ Vₕ tₕ) Wₕ)
+    (match-define (-W¹ _  tₖ) Wₖ)
+    (match-define (-W¹ _  tᵥ) Wᵥ)
+    (define tₐ (?t@ 'hash-set tₕ tₖ tᵥ))
+    (define αₖ* (-α->⟪α⟫ (-α.hash.key ℒ ⟪ℋ⟫)))
+    (define αᵥ* (-α->⟪α⟫ (-α.hash.val ℒ ⟪ℋ⟫)))
+    (match Vₕ
+      [(-Hash^ αₖ αᵥ _)
+       (σ-copy! Σ αₖ αₖ*)
+       (σ-copy! Σ αᵥ αᵥ*)
+       (σ⊕! Σ Γ αₖ* Wₖ)
+       (σ⊕! Σ Γ αᵥ* Wᵥ)
+       (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
+       (define Wₕ* (-W (list Vₕ*) tₐ))
+       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
+      [(-Hash/guard C αₕ l³)
+       (define-values (Vsₖ Vsᵥ) (collect-hash-pairs (-Σ-σ Σ) αₕ))
+       (σ⊕Vs! Σ αₖ* Vsₖ)
+       (σ⊕Vs! Σ αᵥ* Vsᵥ)
+       (σ⊕! Σ Γ αₖ* Wₖ)
+       (σ⊕! Σ Γ αᵥ* Wᵥ)
+       (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
+       (define Wₕ* (-W (list Vₕ*) tₐ))
+       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
+      [_
+       (define Wₕ* (-W (list (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)) tₐ))
+       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim/todo hash-set* ; FIXME refine with `eq?` and `eqv?`
     ((and/c hash? immutable?) any/c any/c . -> . (and/c hash? immutable?)))
-  (def-prim hash-ref ; FIXME uses
-    (hash? any/c . -> . any/c))
+  (def-ext (hash-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wₕ hash?] [Wₖ any/c]) ; FIXME uses
+    (match-define (-W¹ Vₕ tₕ) Wₕ)
+    (match-define (-W¹ _  tₖ) Wₖ)
+    (define tₐ (?t@ 'hash-ref tₕ tₖ))
+    (match Vₕ
+      [(-Hash^ _ αᵥ _)
+       (for/union : (℘ -ς) ([V (in-set (σ@ Σ αᵥ))])
+                  (⟦k⟧ (-W (list V) tₐ) $ Γ ⟪ℋ⟫ Σ))]
+      [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) αₕ l³)
+       (for*/union : (℘ -ς) ([Cᵥ (in-set (σ@ Σ αᵥ))]
+                             [Vₕ* (in-set (σ@ Σ αₕ))])
+          (define ⟦k⟧* (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵥ) (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
+          (define Wₕ* (-W¹ Vₕ* tₕ))
+          (.hash-ref $ ℒ (list Wₕ* Wₖ) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+      [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim hash-ref! ; FIXME precision
     (hash? any/c any/c . -> . any/c))
   (def-prim hash-has-key?
@@ -161,5 +205,35 @@
   ; FIXME wtf is `hash-can-functional-set?`
   ;[hash-union ]
   ;[hash-union!]
-  
+
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; Helpers
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (: collect-hash-pairs : -σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))
+  ;; Collect conservative sets of keys and values of hash-table
+  (define (collect-hash-pairs σ αₕ)
+    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+    
+    (: go-V : -V (℘ -V) (℘ -V) → (Values (℘ -V) (℘ -V)))
+    (define (go-V Vₕ Vsₖ Vsᵥ)
+      (match Vₕ
+        [(-Hash^ αₖ αᵥ _)
+         (values (Vs⊕ σ Vsₖ (σ@ σ αₖ)) (Vs⊕ σ Vsᵥ (σ@ σ αᵥ)))]
+        [(-Hash/guard _ αₕ _)
+         (go-α αₕ Vsₖ Vsᵥ)]
+        [_ (values (Vs⊕ σ Vsₖ (+●)) (Vs⊕ σ Vsᵥ (+●)))]))
+    
+    (: go-α : ⟪α⟫ (℘ -V) (℘ -V) → (Values (℘ -V) (℘ -V)))
+    (define (go-α α Vsₖ Vsᵥ)
+      (cond [(seen-has? α) (values Vsₖ Vsᵥ)]
+            [else
+             (seen-add! α)
+             (for/fold ([Vsₖ : (℘ -V) Vsₖ] [Vsᵥ : (℘ -V) Vsᵥ])
+                       ([V (in-set (σ@ σ α))])
+               (go-V V Vsₖ Vsᵥ))]))
+
+    (go-α αₕ ∅ ∅))
   )
