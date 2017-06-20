@@ -184,7 +184,7 @@
   (def-prim/todo procedure-arity-includes/c
     (exact-nonnegative-integer? . -> . flat-contract?))
   (def-prim/custom (hash/c ⟪ℋ⟫ ℒ Σ Γ Ws) ; FIXME uses
-    #:domain ([Wₖ chaperone-contract?] [Wᵥ contract?])
+    #:domain ([Wₖ contract?] [Wᵥ contract?])
     (match-define (-W¹ _ tₖ) Wₖ)
     (match-define (-W¹ _ tᵥ) Wᵥ)
     (define ℓ (-ℒ-app ℒ))

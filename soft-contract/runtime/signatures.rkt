@@ -236,6 +236,9 @@
             ;; for wrapped vector
             (-α.unvct [loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
+            ;; for wrapped hash
+            (-α.unhsh [loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l])
+
             ;; for contract components
             (-α.and/c-l [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.and/c-r [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])

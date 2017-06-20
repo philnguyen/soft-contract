@@ -16,7 +16,7 @@
 
 (define-unit mon@
   (import compile^ app^ kont^ proof-system^ local-prover^ widening^ prims^
-          env^ sto^ val^ instr^ pc^)
+          env^ sto^ val^ instr^ pc^ pretty-print^)
   (export mon^)
 
   (: mon : -l³ -$ -ℒ -W¹ -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -34,6 +34,7 @@
         [(-One-Of/C? C) mon-one-of/c]
         [(-Vectorof? C) mon-vectorof]
         [(-Vector/C? C) mon-vector/c]
+        [(-Hash/C? C) mon-hash/c]
         [else mon-flat/c]))
     (mon₁ l³ $ ℒ W-C W-V Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
@@ -289,6 +290,52 @@
     (with-MΓ⊢oW (M σ Γ 'vector? Wᵥ)
       #:on-t chk-len
       #:on-f (blm 'vector?)))
+
+  (define (mon-hash/c [l³ : -l³] [$ : -$] [ℒ : -ℒ] [Wₚ : -W¹] [Wᵤ : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
+    (match-define (-Σ σ _ M) Σ)
+    (match-define (-l³ l+ _ lo) l³)
+    (match-define (-W¹ (and Vₚ (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ))) sₚ) Wₚ)
+    (match-define (-W¹ Vᵤ tᵤ) Wᵤ)
+    (define ℓ (-ℒ-app ℒ))
+
+    (: chk-content : → (℘ -ς))
+    (define (chk-content)
+      (define doms (σ@ σ αₖ))
+      (define rngs (σ@ σ αᵥ))
+
+      (: chk-key-vals : (℘ -V) (℘ -V) → (℘ -ς))
+      (define (chk-key-vals Vsₖ Vsᵥ)
+        (define ℒₖ (ℒ-with-mon ℒ ℓₖ))
+        (define ℒᵥ (ℒ-with-mon ℒ ℓᵥ))
+        (begin
+          (printf "mon-hash/c:~n")
+          (printf "- ~a |> ~a~n" (set-map doms show-V) (set-map Vsₖ show-V))
+          (printf "- ~a |> ~a~n" (set-map rngs show-V) (set-map Vsᵥ show-V)))
+        (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
+           (define mon-vals (mk-mon l³ ℒᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
+           (define wrap
+             (let ([αᵤ (-α->⟪α⟫ (-α.unhsh ℒ ⟪ℋ⟫ l+))])
+               (mk-rt (-W¹ (-Hash/guard Vₚ αᵤ l³) tᵤ))))
+           (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
+          (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
+            (mon l³ $ ℒₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
+      
+      (match Vᵤ
+        [(-Hash/guard _ αᵤ _)
+         (define-values (Vsₖ Vsᵥ) (collect-hash-pairs σ αᵤ))
+         (chk-key-vals Vsₖ Vsᵥ)]
+        [(-Hash^ α₁ α₂ _)
+         (chk-key-vals (σ@ σ α₁) (σ@ σ α₂))]
+        [_
+         (∪ (⟦k⟧ (W¹->W Wᵤ) $ Γ ⟪ℋ⟫ Σ)
+            (for/union : (℘ -ς) ([C (in-set (∪ doms rngs))])
+              (⟦k⟧ (-blm l+ lo (list C) (list (+●)) ℓ) $ Γ ⟪ℋ⟫ Σ)))]))
+
+    (with-MΓ⊢oW (M σ Γ 'hash? Wᵤ)
+      #:on-t chk-content
+      #:on-f (λ ()
+               (define blm (-blm l+ lo '(hash?) (list Vᵤ) ℓ))
+               (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
   (define (mon-flat/c [l³ : -l³] [$ : -$] [ℒ : -ℒ] [W-C : -W¹] [W-V : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
     (match-define (-l³ l+ _ lo) l³)

@@ -168,8 +168,9 @@
     ((and/c hash? immutable?) any/c #|FIXME ext|# procedure? . -> . (and/c hash? immutable?)))
   (def-prim hash-remove!
     ((and/c hash? (not/c immutable?)) any/c . -> . void?))
-  (def-prim hash-remove
-    ((and/c hash? immutable?) any/c . -> . (and/c hash? immutable?)))
+  (def-prim/custom (hash-remove ⟪ℋ⟫ ℒ Σ Γ Ws)
+    #:domain ([Wₕ hash?] [Wₖ any/c])
+    {set (-ΓA (-Γ-facts Γ) (W¹->W Wₕ))})
   (def-prim hash-clear!
     ((and/c hash? (not/c immutable?)) . -> . void?))
   (def-prim hash-clear
@@ -205,35 +206,4 @@
   ; FIXME wtf is `hash-can-functional-set?`
   ;[hash-union ]
   ;[hash-union!]
-
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;; Helpers
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (: collect-hash-pairs : -σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))
-  ;; Collect conservative sets of keys and values of hash-table
-  (define (collect-hash-pairs σ αₕ)
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    
-    (: go-V : -V (℘ -V) (℘ -V) → (Values (℘ -V) (℘ -V)))
-    (define (go-V Vₕ Vsₖ Vsᵥ)
-      (match Vₕ
-        [(-Hash^ αₖ αᵥ _)
-         (values (Vs⊕ σ Vsₖ (σ@ σ αₖ)) (Vs⊕ σ Vsᵥ (σ@ σ αᵥ)))]
-        [(-Hash/guard _ αₕ _)
-         (go-α αₕ Vsₖ Vsᵥ)]
-        [_ (values (Vs⊕ σ Vsₖ (+●)) (Vs⊕ σ Vsᵥ (+●)))]))
-    
-    (: go-α : ⟪α⟫ (℘ -V) (℘ -V) → (Values (℘ -V) (℘ -V)))
-    (define (go-α α Vsₖ Vsᵥ)
-      (cond [(seen-has? α) (values Vsₖ Vsᵥ)]
-            [else
-             (seen-add! α)
-             (for/fold ([Vsₖ : (℘ -V) Vsₖ] [Vsᵥ : (℘ -V) Vsᵥ])
-                       ([V (in-set (σ@ σ α))])
-               (go-V V Vsₖ Vsᵥ))]))
-
-    (go-α αₕ ∅ ∅))
   )
