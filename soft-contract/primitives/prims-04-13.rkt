@@ -58,7 +58,8 @@
                 (match Ws
                   [(list* Wₖ Wᵥ Ws*)
                    (σ⊕! Σ Γ αₖ Wₖ)
-                   (σ⊕! Σ Γ αᵥ Wᵥ)]
+                   (σ⊕! Σ Γ αᵥ Wᵥ)
+                   (go! Ws*)]
                   ['() (void)]))
               (define V (-Hash^ αₖ αᵥ #t))
               (-W (list V) (apply ?t@ name (map -W¹-t Ws)))]
