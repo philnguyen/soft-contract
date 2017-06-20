@@ -2,7 +2,7 @@
 
 (require (except-in racket/contract/base
                     -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
-                    one-of/c =/c >/c >=/c </c <=/c not/c cons/c box/c vector/c vectorof
+                    one-of/c =/c >/c >=/c </c <=/c not/c cons/c box/c vector/c vectorof hash/c
                     recursive-contract)
          (for-syntax racket/base racket/string)
          racket/list)
@@ -10,7 +10,7 @@
          (prefix-in r: racket/base))
 
 (provide (all-from-out racket/contract/base) provide
-         -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c
+         -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c hash/c
          recursive-contract
          dynamic-provide/contract
          dynamic->i dynamic->* 
@@ -43,6 +43,7 @@
 (define vector/c c:vector/c)
 (define vectorof c:vectorof)
 (define false/c c:false/c)
+(define hash/c c:hash/c)
 (define-syntax (struct/c stx) 
   (syntax-case stx ()
     [(_ name cs ...)
