@@ -307,10 +307,6 @@
       (define (chk-key-vals Vsₖ Vsᵥ)
         (define ℒₖ (ℒ-with-mon ℒ ℓₖ))
         (define ℒᵥ (ℒ-with-mon ℒ ℓᵥ))
-        (begin
-          (printf "mon-hash/c:~n")
-          (printf "- ~a |> ~a~n" (set-map doms show-V) (set-map Vsₖ show-V))
-          (printf "- ~a |> ~a~n" (set-map rngs show-V) (set-map Vsᵥ show-V)))
         (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
            (define mon-vals (mk-mon l³ ℒᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
            (define wrap
