@@ -151,11 +151,11 @@
     (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ ℒ))
     (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
       (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.mon-x/c x ⟪ℋ⟫ₑₑ (-l³-pos l³) #;(predicates-of-W (-Σ-σ Σ) Γ W-V))))
-      (define αₖ (-ℳ x l³ (-ℒ ∅eq (-ℒ-app ℒ)) #;ℒ C* ⟪α⟫ᵥ))
+      (define αₖ (-ℳ x l³ (-ℒ ∅eq (-ℒ-app ℒ)) #;ℒ C* ⟪α⟫ᵥ #|TODO|# ⊤Γ ⟪ℋ⟫ₑₑ))
       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ (list v)))
       (σ⊕! Σ Γ ⟪α⟫ᵥ W-V)
       (σₖ⊕! Σ αₖ κ)
-      (-ς↑ αₖ ⊤Γ ⟪ℋ⟫ₑₑ)))
+      (-ς↑ αₖ)))
 
   (define (mon-and/c [l³ : -l³] [ℒ : -ℒ] [W-C : -W¹] [W-V : -W¹] [Γ : -Γ] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
     (match-define (-Σ σ _) Σ)
@@ -408,11 +408,11 @@
        (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ ℒ))
        (for/set: : (℘ -ς) ([C* (σ@ σ ⟪α⟫)])
          (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.fc-x/c x ⟪ℋ⟫ #;(predicates-of-W (-Σ-σ Σ) Γ W-V))))
-         (define αₖ (-ℱ x l (-ℒ ∅eq (-ℒ-app ℒ)) #;ℒ C* ⟪α⟫ᵥ))
+         (define αₖ (-ℱ x l (-ℒ ∅eq (-ℒ-app ℒ)) #;ℒ C* ⟪α⟫ᵥ #|TODO|# ⊤Γ ⟪ℋ⟫ₑₑ))
          (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ (list v)))
          (σ⊕! Σ Γ ⟪α⟫ᵥ W-V)
          (σₖ⊕! Σ αₖ κ)
-         (-ς↑ αₖ ⊤Γ ⟪ℋ⟫ₑₑ))]
+         (-ς↑ αₖ))]
       [_
        (define ⟦ap⟧ (mk-app (ℒ-with-l ℒ 'fc) (mk-rt W-C) (list (mk-rt W-V))))
        (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V C)) (?t@ 'values -tt v))))

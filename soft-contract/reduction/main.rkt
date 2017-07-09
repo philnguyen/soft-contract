@@ -31,7 +31,7 @@
 
   (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -ΓA) -Σ)
     (define seen : (HashTable -ς Ctx) (make-hash))
-    (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ #;∅))
+    (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ ⊤Γ ⟪ℋ⟫∅))
     (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅)))
     (define root₀ ; all addresses to top-level definitions are conservatively active
       (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
@@ -42,7 +42,7 @@
     (define iter-maxed? : (Natural → Boolean)
       (if ?max-steps (λ ([i : Natural]) (> i ?max-steps)) (λ _ #f)))
 
-    (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀ ⊤Γ ⟪ℋ⟫∅)}])
+    (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀)}])
       (unless (or (set-empty? front) (iter-maxed? iter))
         (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
 
@@ -89,7 +89,7 @@
                    (match-define (list σ₀ mσₖ₀) ctx₀)
                    (define αₖ
                      (match ς
-                       [(-ς↑ αₖ _ _) αₖ]
+                       [(-ς↑ αₖ    ) αₖ]
                        [(-ς↓ αₖ _ _) αₖ]))
                    (define αₖs {set αₖ})
                    (define (κ->αₖs [κ : -κ])
@@ -124,13 +124,13 @@
   ;; Compute the root set for value addresses of this state
   (define (ς->⟪α⟫s [ς : -ς] [σₖ : -σₖ]) : (℘ ⟪α⟫)
     (match ς
-      [(-ς↑ αₖ _ _)
+      [(-ς↑ αₖ)
        (define αs₀
          (match αₖ
-           [(-ℬ _ _ ρ #;_) (->⟪α⟫s ρ)]
-           [(-ℳ _ _ _ C ⟪α⟫) (set-add (->⟪α⟫s C) ⟪α⟫)]
-           [(-ℱ _ _ _ C ⟪α⟫) (set-add (->⟪α⟫s C) ⟪α⟫)]
-           [(-ℋ𝒱) {seteq ⟪α⟫ₕᵥ}]))
+           [(-ℬ _ _ ρ _ _) (->⟪α⟫s ρ)]
+           [(-ℳ _ _ _ C ⟪α⟫ _ _) (set-add (->⟪α⟫s C) ⟪α⟫)]
+           [(-ℱ _ _ _ C ⟪α⟫ _ _) (set-add (->⟪α⟫s C) ⟪α⟫)]
+           [(-ℋ𝒱 _) {seteq ⟪α⟫ₕᵥ}]))
        (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]
       [(-ς↓ αₖ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
        (define αs₀ (if (-W? A) (->⟪α⟫s A) ∅eq))
@@ -139,21 +139,21 @@
   ;; Quick-step on "push" state
   (define (↝↑! [ςs : (Listof -ς↑)] [Σ : -Σ]) : (℘ -ς)
     (for/union : (℘ -ς) ([ς ςs])
-               (match-define (-ς↑ αₖ Γ ⟪ℋ⟫) ς)
+               (match-define (-ς↑ αₖ ) ς)
                (define ⟦k⟧ (rt αₖ))
                (match αₖ
-                 [(-ℬ _ ⟦e⟧ ρ #;_) (⟦e⟧ ρ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                 [(-ℳ x l³ ℒ C ⟪α⟫)
+                 [(-ℬ _ ⟦e⟧ ρ Γ ⟪ℋ⟫) (⟦e⟧ ρ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+                 [(-ℳ x l³ ℒ C ⟪α⟫ Γ ⟪ℋ⟫)
                   (define W-C (-W¹ C #f))
                   (define 𝐱 (-x x))
                   (for/union : (℘ -ς) ([V (in-set (σ@ (-Σ-σ Σ) ⟪α⟫))])
                              (mon l³ ℒ W-C (-W¹ V 𝐱) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-                 [(-ℱ x l  ℒ C ⟪α⟫)
+                 [(-ℱ x l  ℒ C ⟪α⟫ Γ ⟪ℋ⟫)
                   (define W-C (-W¹ C #f))
                   (define 𝐱 (-x x))
                   (for/union : (℘ -ς) ([V (in-set (σ@ (-Σ-σ Σ) ⟪α⟫))])
                      (flat-chk l ℒ W-C (-W¹ V 𝐱) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-                 [(-ℋ𝒱) (havoc ⟪ℋ⟫ Σ)]
+                 [(-ℋ𝒱 ⟪ℋ⟫) (havoc ⟪ℋ⟫ Σ)]
                  [_ (error '↝↑ "~a" αₖ)])))
 
   ;; Quick-step on "pop" state
@@ -164,9 +164,9 @@
                (match-define (-ς↓ αₖ Γₑₑ A) ς)
                (define fml : (Option -formals)
                  (match αₖ
-                   [(-ℬ xs _ _) xs]
-                   [(-ℳ x _ _ _ _) (list x)]
-                   [(-ℱ x _ _ _ _) (list x)]
+                   [(-ℬ xs _ _ _ _) xs]
+                   [(-ℳ x _ _ _ _ _ _) (list x)]
+                   [(-ℱ x _ _ _ _ _ _) (list x)]
                    [(? -ℋ𝒱?) #f]))
 
                (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖ))])
@@ -178,12 +178,12 @@
                                (and sₐ
                                     (match* (αₖ tₓs)
                                       [((? -ℳ?) (list t)) t]
-                                      [((-ℬ (list x) _ _) (list t)) ; inline some
+                                      [((-ℬ (list x) _ _ _ _) (list t)) ; inline some
                                        #:when (and (not looped?)
                                                    (match? sₐ (-t.@ (? -o? o) (list (-x (== x))))))
                                        (match-define (-t.@ o _) sₐ)
                                        (?t@ o t)]
-                                      [((-ℬ (? list? xs) _ _) ts)
+                                      [((-ℬ (? list? xs) _ _ _ _) ts)
                                        #:when (and (-x? sₐ)
                                                    (memq (-x-_0 sₐ) xs)
                                                    (not (and looped? (>= (length xs) 3))))

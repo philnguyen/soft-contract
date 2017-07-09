@@ -80,20 +80,17 @@
              ;; However this heuristic is implemented should be safe in terms of soundness.
              ;; Not calling out to solver when should only hurts precision.
              ;; Calling out to solver when there's no need only hurts performance.
+             ;; TODO: re-inspect this after recent rewrite
              (define should-call-smt?
                (match t
                  [(-t.@ h ts)
                   (define ts* (for/set: : (℘ -t) ([t ts] #:unless (-b? t)) t))
                   (define (difficult-h? [h : -h]) (memq h '(< > <= >= = equal? eq? eqv?)))
                   (and
-                   (or (difficult-h? h)
-                       #;(has-abstraction? t)
-                       #;(for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
-                           (has-abstraction? φ)))
+                   (difficult-h? h)
                    (for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
                      (and (t-contains-any? φ ts*)
-                          (or (has-abstraction? φ)
-                              (match? φ (-t.@ (? difficult-h?) _))))))]
+                          (match? φ (-t.@ (? difficult-h?) _)))))]
                  [_ #f]))
 
              (if should-call-smt? (ext-prove Γ t) '?)]

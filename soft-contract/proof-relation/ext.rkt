@@ -146,21 +146,6 @@
          (or (⦃prim⦄ h ⦃t⦄s)
              (let ([t (fresh-free! 'prim-app)])
                (λ () (val-of t))))]
-        [(? -αₖ? αₖ)
-         (cond
-           [(ignore? αₖ)
-            (define t (fresh-free! 'ignore-app))
-            (λ () (val-of t))]
-           [else
-            (define f (αₖ-name αₖ))
-            (define tₐ (fresh-free! 'app))
-            (preconds-add!
-             (let ([app
-                    (if (0-arg? αₖ)
-                        (λ () (val-of f))
-                        (λ () (apply @/s f ((list-M ⦃t⦄s)))))])
-               (λ () (=/s (@/s 'Val (val-of tₐ)) (app)))))
-            (λ () (val-of tₐ))])]
         [(-One-Of/C bs)
          (define ⦃b⦄s (set-map bs ⦃b⦄))
          (λ ()
@@ -598,32 +583,11 @@
 
     (list->string (append-map subst (string->list s))))
 
-  (: ignore? : -αₖ → Boolean)
-  (define (ignore? αₖ)
-    (match αₖ
-      [(-ℬ (? -var?) _ _) #t]
-      [_ #f]))
-
-  (: 0-arg? : -αₖ → Boolean)
-  (define 0-arg?
-    (match-lambda
-      [(-ℬ '() _ _) #t]
-      [_ #f]))
-
   (: next-int! : → Natural)
   (define next-int!
     (let ([i : Natural 0])
       (λ ()
         (begin0 i (set! i (+ 1 i))))))
-
-  ;; TODO: this can cause significant leak when verifying many programs
-  (splicing-local
-      ((define cache : (HashTable -αₖ Symbol) (make-hash)))
-    (define (αₖ-name [αₖ : -αₖ])
-      (hash-ref! cache αₖ (λ ()
-                            (assert (not (ignore? αₖ)))
-                            (define prefix (if (0-arg? αₖ) 'c 'f))
-                            (format-symbol "~a.~a" prefix (hash-count cache))))))
 
   (define fresh-ids : (HashTable Symbol Natural) (make-hasheq))
 

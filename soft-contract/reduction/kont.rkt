@@ -218,7 +218,7 @@
                 (match-define (list (? symbol? x) (? -V? Vₓ) (? -?t? tₓ)) bnd-W)
                 (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
                 (σ⊕! Σ Γ α (-W¹ Vₓ tₓ))
-                (values (ρ+ ρ x α) (-Γ-with-aliases Γ x tₓ))))
+                (values (ρ+ ρ x α) #|TODO update store cache|# Γ)))
             (⟦e⟧ ρ* Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
             (⟦e⟧* ρ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
@@ -303,7 +303,7 @@
              (define α (ρ@ ρ x))
              (σ⊕! Σ Γ α (-W¹ Vₓ sₓ))
              (σ-remove! Σ α -undefined)
-             (-Γ-with-aliases Γ x sₓ)))
+             #|TODO update store cache|# Γ))
          (match ⟦bnd⟧s
            ['()
             (⟦e⟧ ρ Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
@@ -543,7 +543,7 @@
       (match-define (-W Vs _) A)
       (for ([V (in-list Vs)])
         (add-leak! Σ V))
-      {set (-ς↑ (-ℋ𝒱) ⊤Γ ⟪ℋ⟫)}))
+      {set (-ς↑ (-ℋ𝒱 ⟪ℋ⟫))}))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

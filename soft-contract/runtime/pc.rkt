@@ -16,25 +16,6 @@
   (import env^)
   (export pc^)
 
-  (: h-unique? : -h → Boolean)
-  (define (h-unique? h)
-    (with-debugging/off ((u?) (match h
-                                [(-ℬ xs _ ρ)
-                                 (set-empty? (set-remove (set-subtract (list->seteq (hash-keys ρ))
-                                                                       (formals->names xs))
-                                                         -x-dummy))]
-                                [_ #|be careful when I have new stuff|# #t]))
-      (printf "h-unique? ~a : ~a~n" (show-h h) u?)))
-
-  (: t-unique? : -t → Boolean)
-  ;; Check if term definiltey stands for a unique value.
-  ;; `#f` is a conservative result of "maybe no"
-  (define (t-unique? t)
-    (match t
-      [(or (? -x?) (? -𝒾?) (? -v?)) #t]
-      [(-t.@ h ts)
-       (and (h-unique? h) (andmap t-unique? ts))]))
-
   (: t-contains? : -t -t → Boolean)
   (define (t-contains? t t*)
     (let go ([t : -t t])
@@ -51,21 +32,7 @@
         [(-t.@ _ ts) (ormap go ts)]
         [_ #f])))
 
-  (: has-abstraction? : -t → Boolean)
-  (define has-abstraction?
-    (match-lambda
-      [(-t.@ h ts)
-       (or (-αₖ? h) (ormap has-abstraction? ts))]
-      [_ #f]))
-
-  (define ⊤Γ (-Γ ∅ (hasheq)))
-
-  (: -Γ-with-aliases : -Γ Symbol -?t → -Γ)
-  (define (-Γ-with-aliases Γ x ?t)
-    (if ?t
-        (match-let ([(-Γ ts as) Γ])
-          (-Γ ts (hash-set as x ?t)))
-        Γ))
+  (define ⊤Γ (-Γ ∅ (hash)))
 
   (: bin-o->h : -special-bin-o → Base → -h)
   (define (bin-o->h o)
@@ -130,18 +97,12 @@
   (: Γ↓ : -Γ (℘ Symbol) → -Γ)
   ;; Restrict path-condition to given free variables
   (define (Γ↓ Γ xs)
-    (match-define (-Γ φs as) Γ)
+    (match-define (-Γ φs $) Γ)
     (define φs* (ts↓ φs xs))
-    (define as*
-      (for/hasheq : (HashTable Symbol -t) ([(x t) as] #:when (∋ xs x))
-        (values x t)))
-    (-Γ φs* as*))
-
-  (: canonicalize : (U -Γ (HashTable Symbol -t)) Symbol → -t)
-  ;; Return an expression canonicalizing given variable in terms of lexically farthest possible variable(s)
-  (define (canonicalize X x)
-    (cond [(-Γ? X) (canonicalize (-Γ-aliases X) x)]
-          [else (hash-ref X x (λ () (-x x)))]))
+    (define $*
+      (for/hash : (HashTable -loc (Option -W¹)) ([(x W) $] #:when (∋ xs x))
+        (values x W)))
+    (-Γ φs* $*))
 
   (: predicates-of : (U -Γ (℘ -t)) -?t → (℘ -h))
   ;; Extract predicates that hold on given symbol
@@ -186,13 +147,9 @@
             (set-add ps ((bin-o->h (neg-bin-o o)) b))]
            [(-t.@ 'not (list (-t.@ (? -special-bin-o? o) (list (-b b) (== t)))))
             (set-add ps ((bin-o->h (neg-bin-o (flip-bin-o o))) b))]
-           ;; Keep anything purely syntactic
-           [(-t.@ (? h-syntactic? h) (list (== t))) (set-add ps h)]
+           [(-t.@ h (list (== t))) (set-add ps h)]
            [_ ps]))]
       [else ∅]))
-
-  (: h-syntactic? : -h → Boolean)
-  (define (h-syntactic? h) (not (-αₖ? h)))
 
   (: complement? : -t -t → Boolean)
   (define complement?
@@ -273,7 +230,7 @@
            [(list (-b b₁) (-b b₂)) (if (equal? b₁ b₂) -tt -ff)]
            [(or (list t (-b #f)) (list (-b #f) t)) #:when t
             (-t.@ 'not (list t))]
-           [(list x x) #:when (t-unique? x) -tt]
+           [(list x x) -tt]
            [_ (default-case)])]
 
         ['defined?

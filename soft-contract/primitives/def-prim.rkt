@@ -314,10 +314,10 @@
                                   (gen-wrap #'d #'(+●) #'sₐ)))
                         sₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
-         (define αₖ (-ℋ𝒱))
+         (define αₖ (-ℋ𝒱 ⟪ℋ⟫))
          (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ '()))
          (σₖ⊕! Σ αₖ κ)
-         {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]
+         {set (-ς↑ αₖ)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments
     [(_ (o:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)

@@ -114,10 +114,13 @@
 ;;;;; Symbols and Path Conditions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(-loc . ::= . Symbol ; variable
+      )
+
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable
 (struct -Γ ([facts : (℘ -t)]
-            [aliases : (HashTable Symbol -t)])
+            [store-cache : (HashTable -loc (Option -W¹))])
   #:transparent)
 
 ;; First order term for use in path-condition
@@ -278,7 +281,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Configuration
-(-ς . ::= . #|block start |# (-ς↑ -αₖ -Γ -⟪ℋ⟫)
+(-ς . ::= . #|block start |# (-ς↑ -αₖ)
             #|block return|# (-ς↓ -αₖ -Γ -A))
 
 
@@ -287,13 +290,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-αₖ . ::= . (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ])
+(-αₖ . ::= .
+     (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ] [ctx : -⟪ℋ⟫])
      ;; Contract monitoring
-     (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
+     (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ] [ctx : -⟪ℋ⟫])
      ;; Flat checking
-     (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫])
+     (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ] [ctx : -⟪ℋ⟫])
      ;; Havoc
-     (-ℋ𝒱)
+     (-ℋ𝒱 [ctx : -⟪ℋ⟫])
      )
 
 
@@ -360,13 +364,8 @@
 
 (define-signature pc^
   ([⊤Γ : -Γ]
-   [-Γ-with-aliases : (-Γ Symbol -?t → -Γ)]
-   [h-unique? : (-h → Boolean)]
-   [t-unique? : (-t → Boolean)]
    [t-contains? : (-t -t → Boolean)]
    [t-contains-any? : (-t (℘ -t) → Boolean)]
-   [has-abstraction? : (-t → Boolean)]
-   [h-syntactic? : (-h → Boolean)]
    [bin-o->h : (-special-bin-o → Base → -h)]
    [flip-bin-o : (-special-bin-o → -special-bin-o)]
    [neg-bin-o : (-special-bin-o → -special-bin-o)]
@@ -388,7 +387,6 @@
    [-?-> : ((-maybe-var -?t) -?t → -?t)]
    [-?->i : ((Listof -?t) (Option -λ) → -?t)]
    ;; path-cond
-   [canonicalize : ((U -Γ (HashTable Symbol -t)) Symbol → -t)]
    [predicates-of : ((U -Γ (℘ -t)) -?t → (℘ -h))]
    [fvₜ : (-?t → (℘ Symbol))]
    ))

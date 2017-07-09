@@ -38,13 +38,11 @@
           (printf "~a havoc values:~n" (set-count Vs))
           (for ([V (in-set Vs)])
             (printf "  - ~a~n" (show-V V))))
-      (define ⟦k⟧₀ (rt (-ℋ𝒱)))
+      (define ⟦k⟧₀ (rt (-ℋ𝒱 ⟪ℋ⟫)))
       (for/fold ([res : (℘ -ς) (⟦k⟧₀ -Void.W∅ ⊤Γ ⟪ℋ⟫ Σ)])
                 ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))] #:unless (seen? V Σ))
         (update-cache! V Σ)
         (∪ res (havoc-V V ⟪ℋ⟫ Σ (hv∷ ⟦k⟧₀))))))
-
-  
 
   (splicing-local
       ((define 𝒙 (+x!/memo 'hv))

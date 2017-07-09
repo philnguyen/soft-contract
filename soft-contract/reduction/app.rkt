@@ -217,10 +217,10 @@
               (σ⊕V! Σ αᵣ Vᵣ)
               (ρ+ ρ₀ z αᵣ)]))
 
-         (define αₖ (-ℬ xs ⟦e⟧ ρ*))
+         (define αₖ (-ℬ xs ⟦e⟧ ρ* Γₕ ⟪ℋ⟫ₑₑ))
          (define κ (-κ (memoize-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₓs))
          (σₖ⊕! Σ αₖ κ)
-         {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]
+         {set (-ς↑ αₖ)}]
         [else ∅])))
 
   (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)
@@ -511,10 +511,10 @@
       (define sₐ #f #|TODO make sure ok|# #;(apply ?t@ sₕ (map -W¹-t Ws)))
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
-      (define αₖ (-ℋ𝒱))
+      (define αₖ (-ℋ𝒱 #|TODO distinguish more?|# ⟪ℋ⟫∅))
       (define κ (-κ (bgn0.e∷ (-W (list (+●)) sₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ '()))
       (σₖ⊕! Σ αₖ κ)
-      {set (-ς↑ αₖ ⊤Γ ⟪ℋ⟫∅)}))
+      {set (-ς↑ αₖ)}))
 
   (: app/rest/unsafe : -ℒ -W¹ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
   ;; Apply function with (in general, part of) rest arguments already allocated,
@@ -555,10 +555,10 @@
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
-           (define αₖ (-ℬ xs ⟦e⟧ ρₕ*))
+           (define αₖ (-ℬ xs ⟦e⟧ ρₕ* Γₕ ⟪ℋ⟫ₑₑ))
            (define κ (-κ (memoize-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ (append (map -W¹-t W-inits) '(#f))))
            (σₖ⊕! Σ αₖ κ)
-           (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ))
+           (-ς↑ αₖ))
          
          (cond
            ;; Need to retrieve some more arguments from `W-rest` as part of inits
