@@ -217,14 +217,10 @@
               (σ⊕V! Σ αᵣ Vᵣ)
               (ρ+ ρ₀ z αᵣ)]))
 
-         (define Γₕ*
-           (let ([fvs (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq)])
-             (inv-caller->callee (-Σ-σ Σ) fvs xs Wₓs Γ Γₕ)))
-
          (define αₖ (-ℬ xs ⟦e⟧ ρ*))
          (define κ (-κ (memoize-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₓs))
          (σₖ⊕! Σ αₖ κ)
-         {set (-ς↑ αₖ Γₕ* ⟪ℋ⟫ₑₑ)}]
+         {set (-ς↑ αₖ Γₕ ⟪ℋ⟫ₑₑ)}]
         [else ∅])))
 
   (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)

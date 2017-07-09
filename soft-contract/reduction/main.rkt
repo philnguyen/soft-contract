@@ -194,14 +194,7 @@
                                        (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-_0 sₐ)))
                                          t)]
                                       [(_ _) (apply ?t@ αₖ tₓs)])))
-                             (define Γₑᵣ*
-                               (cond
-                                 [looped? Γₑᵣ]
-                                 [fml (inv-callee->caller σ ∅eq fml tₓs Γₑᵣ Γₑₑ)]
-                                 [else Γₑᵣ]))
-                             (if (and Γₑᵣ* (plausible-W? (-Γ-facts Γₑᵣ*) Vs sₐ*))
-                                 (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)
-                                 ∅)]
+                             (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)]
                             [(? -blm? blm)
                              (match-define (-blm l+ lo _ _ _) blm)
                              (cond [(symbol? l+) ∅]
