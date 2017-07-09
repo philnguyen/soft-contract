@@ -213,7 +213,7 @@
               (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
               (define ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀))
               (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
-              (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ ∅)))
+              (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
               (σ⊕V! Σ αᵣ Vᵣ)
               (ρ+ ρ₀ z αᵣ)]))
 
@@ -564,7 +564,7 @@
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
            (define ρₕ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits))
-           (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ ∅)))
+           (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define αₖ (-ℬ xs ⟦e⟧ ρₕ*))

@@ -247,21 +247,16 @@
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 
-    (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫] [ps : (U (℘ -h) -⟦e⟧)])
-      (format-symbol "~a_~a_~a"
-                     x
-                     (n-sub ⟪ℋ⟫)
-                     (if (set? ps)
-                         (string->symbol (format "~a" (set-map ps show-h)))
-                         (string->symbol (format "≃~a" (show-⟦e⟧ ps))))))
+    (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫])
+      (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫)))
 
     (define α (⟪α⟫->-α ⟪α⟫))
     (match (⟪α⟫->-α ⟪α⟫)
-      [(-α.x x ⟪ℋ⟫ ps) (show-α.x x ⟪ℋ⟫ ps)]
+      [(-α.x x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
       [(-α.hv) 'αₕᵥ]
-      [(-α.mon-x/c x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫ ∅)]
-      [(-α.fc-x/c x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫ ∅)]
-      [(-α.fv ⟪ℋ⟫ ts) (show-α.x 'dummy ⟪ℋ⟫ ∅)]
+      [(-α.mon-x/c x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫)]
+      [(-α.fc-x/c x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
+      [(-α.fv ⟪ℋ⟫) (show-α.x 'dummy ⟪ℋ⟫)]
       [(-α.and/c-l (? -t? t) _ _) (show-t t)]
       [(-α.and/c-r (? -t? t) _ _) (show-t t)]
       [(-α.or/c-l (? -t? t) _ _) (show-t t)]

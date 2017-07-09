@@ -451,19 +451,10 @@
 
   (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)
   (define (alloc-init-args! Σ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
-    
-    (define φsₕ
-      (let* ([bnd (list->seteq xs)]
-             [fvs (set-subtract (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq) bnd)])
-        (for*/set: : (℘ -t) ([φ (in-set (-Γ-facts Γₑᵣ))]
-                             [fv⟦φ⟧ (in-value (fvₜ φ))]
-                             #:unless (set-empty? fv⟦φ⟧)
-                             #:when (⊆ fv⟦φ⟧ fvs))
-          φ)))
-    (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
+    (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
     (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
       (match-define (-W¹ Vₓ sₓ) Wₓ)
-      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ ∅ #;(predicates-of-W (-Σ-σ Σ) Γₑᵣ Wₓ))))
+      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕! Σ Γₑᵣ α Wₓ)
       (ρ+ ρ x α)))
 

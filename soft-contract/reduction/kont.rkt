@@ -218,7 +218,7 @@
               (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                         ([bnd-W bnd-Ws*])
                 (match-define (list (? symbol? x) (? -V? Vₓ) (? -?t? tₓ)) bnd-W)
-                (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-W σ Γ (-W¹ Vₓ tₓ)))))
+                (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
                 (σ⊕! Σ Γ α (-W¹ Vₓ tₓ))
                 (values (ρ+ ρ x α) (-Γ-with-aliases Γ x tₓ))))
             (⟦e⟧ ρ* $ Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
@@ -278,7 +278,7 @@
          (σ⊕! Σ Γ α (-W¹ V sᵥ) #:mutating? #t)
          (define s
            (match (⟪α⟫->-α α)
-             [(-α.x x _ _) (-x x)]
+             [(-α.x x _) (-x x)]
              [(? -𝒾? 𝒾) 𝒾]))
          (⟦k⟧ (+W (list -void)) (hash-remove $ s) Γ ⟪ℋ⟫ Σ)]
         [_
@@ -302,7 +302,7 @@
          (define Γ* ; with side effect widening store
            (for/fold ([Γ : -Γ Γ])
                      ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
-             (define α (ρ@ ρ x) #;(-α.x x #|TODO right?|# ⟪ℋ⟫))
+             (define α (ρ@ ρ x))
              (σ⊕! Σ Γ α (-W¹ Vₓ sₓ))
              (σ-remove! Σ α -undefined)
              (-Γ-with-aliases Γ x sₓ)))
