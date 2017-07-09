@@ -116,9 +116,7 @@
 
     (match-let ([(-Σ σ σₖ) Σ])
       (when (debug-iter?)
-        (printf "|σ| = ~a, |σₖ| = ~a~n"
-                (hash-count (-σ-m σ))
-                (hash-count σₖ)))
+        (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
       (values #|FIXME!!!|# ∅ Σ)))
@@ -144,17 +142,17 @@
                (match-define (-ς↑ αₖ Γ ⟪ℋ⟫) ς)
                (define ⟦k⟧ (rt αₖ))
                (match αₖ
-                 [(-ℬ _ ⟦e⟧ ρ #;_) (⟦e⟧ ρ $∅ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+                 [(-ℬ _ ⟦e⟧ ρ #;_) (⟦e⟧ ρ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℳ x l³ ℒ C ⟪α⟫)
                   (define W-C (-W¹ C #f))
                   (define 𝐱 (-x x))
                   (for/union : (℘ -ς) ([V (in-set (σ@ (-Σ-σ Σ) ⟪α⟫))])
-                             (mon l³ $∅ ℒ W-C (-W¹ V 𝐱) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+                             (mon l³ ℒ W-C (-W¹ V 𝐱) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
                  [(-ℱ x l  ℒ C ⟪α⟫)
                   (define W-C (-W¹ C #f))
                   (define 𝐱 (-x x))
                   (for/union : (℘ -ς) ([V (in-set (σ@ (-Σ-σ Σ) ⟪α⟫))])
-                     (flat-chk l $∅ ℒ W-C (-W¹ V 𝐱) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+                     (flat-chk l ℒ W-C (-W¹ V 𝐱) Γ ⟪ℋ⟫ Σ ⟦k⟧))]
                  [(-ℋ𝒱) (havoc ⟪ℋ⟫ Σ)]
                  [_ (error '↝↑ "~a" αₖ)])))
 
@@ -192,11 +190,11 @@
                                        (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-_0 sₐ)))
                                          t)]
                                       [(_ _) #|FIXME|# #f])))
-                             (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)]
+                             (⟦k⟧ (-W Vs sₐ*) Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)]
                             [(? -blm? blm)
                              (match-define (-blm l+ lo _ _ _) blm)
                              (cond [(symbol? l+) ∅]
-                                   [else (⟦k⟧ blm $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
+                                   [else (⟦k⟧ blm Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
   )
 
 (define-compound-unit/infer reduction@

@@ -19,7 +19,7 @@
     (define σ (if (-Σ? m) (-Σ-σ m) m))
     (with-debugging/off
       ((Vs)
-       (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
+       (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
       (when (>= (set-count Vs) 5)
         (printf "σ@: ~a -> ~a~n" (show-⟪α⟫ ⟪α⟫) (set-count Vs))
         (define-set roots : ⟪α⟫ #:eq? #t)
@@ -27,7 +27,7 @@
           (roots-union! (V->⟪α⟫s V))
           (printf "  - ~a~n" (show-V V)))
         (printf "addresses:~n")
-        (for ([(α Vs) (span-σ (-σ-m σ) roots)])
+        (for ([(α Vs) (span-σ σ roots)])
           (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
         (printf "~n")
         (when (> ⟪α⟫ 3000)
@@ -36,18 +36,12 @@
   (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
   (define (defined-at? σ α)
     (cond [(-Σ? σ) (defined-at? (-Σ-σ σ) α)]
-          [else (and (hash-has-key? (-σ-m σ) α)
-                     (not (∋ (hash-ref (-σ-m σ) α) 'undefined)))]))
-
-  (: mutated? : (U -Σ -σ) ⟪α⟫ → Boolean)
-  (define (mutated? m ⟪α⟫)
-    (∋ (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫))
+          [else (and (hash-has-key? σ α)
+                     (not (∋ (hash-ref σ α) 'undefined)))]))
 
   (: σ-remove : -σ ⟪α⟫ -V → -σ)
   (define (σ-remove σ ⟪α⟫ V)
-    (match-define (-σ m crds mods) σ)
-    (define m* (hash-update m ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
-    (-σ m* crds mods))
+    (hash-update σ ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
 
   (: σ-remove! : -Σ ⟪α⟫ -V → Void)
   (define (σ-remove! Σ ⟪α⟫ V)
@@ -80,7 +74,7 @@
 
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
-  (define ⊥σ (-σ (hasheq ⟪α⟫ₕᵥ ∅) ∅eq (hasheq)))
+  (define ⊥σ : -σ (hasheq))
 
   (: cardinality+ : -cardinality → -cardinality)
   (define (cardinality+ c)

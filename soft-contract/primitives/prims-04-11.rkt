@@ -96,7 +96,7 @@
         [_ (list (+● 'exact-nonnegative-integer?))]))
     {set (-ΓA (-Γ-facts Γ) (-W A sₐ))})
 
-  (def-ext (vector-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (vector-ref ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wᵥ vector?] [Wᵢ integer?])
     (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
@@ -117,10 +117,10 @@
                             #:when (plausible-index? σ Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
-                             (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
+                             (⟦k⟧ (-W (list V) sₐ) Γ* ⟪ℋ⟫ Σ)))]
       [(-Vector^ α n)
        (for/union : (℘ -ς) ([V (σ@ σ α)])
-                  (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
+                  (⟦k⟧ (-W (list V) sₐ) Γ ⟪ℋ⟫ Σ))]
       [(-Vector/guard grd ⟪α⟫ᵥ l³)
        (match-define (-l³ _ _ lo) l³)
        (match grd
@@ -133,19 +133,19 @@
                      (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
                      (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ σ ⟪α⟫ᵢ))]
                                            [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
-                                 (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
+                                 (.vector-ref ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                                               (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))))]
          [(-Vectorof ⟪α⟫ℓ)
           (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
           (for/union : (℘ -ς) ([C* (in-set (σ@ σ ⟪α⟫*))]
                                [Vᵥ* (in-set (σ@ σ ⟪α⟫ᵥ))])
-                     (.vector-ref $ ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
+                     (.vector-ref ℒ (list (-W¹ Vᵥ* sᵥ) Wᵢ) Γ ⟪ℋ⟫ Σ
                                   (mon.c∷ l³ (ℒ-with-mon ℒ ℓ*) (-W¹ C* c*) ⟦k⟧)))])]
       [_
-       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (-W (list (+●)) sₐ) Γ ⟪ℋ⟫ Σ)]))
   
-  (def-ext (vector-set! $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (vector-set! ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
     (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
@@ -158,11 +158,11 @@
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? σ Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (σ⊕! Σ Γ ⟪α⟫ Wᵤ #:mutating? #t)
-                  (⟦k⟧ (+W (list -void)) $ Γ* ⟪ℋ⟫ Σ))]
+                  (σ⊕! Σ Γ ⟪α⟫ Wᵤ)
+                  (⟦k⟧ (+W (list -void)) Γ* ⟪ℋ⟫ Σ))]
       [(-Vector^ α n)
-       (σ⊕! Σ Γ α Wᵤ #:mutating? #t)
-       (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
+       (σ⊕! Σ Γ α Wᵤ)
+       (⟦k⟧ (+W (list -void)) Γ ⟪ℋ⟫ Σ)]
       [(-Vector/guard grd ⟪α⟫ᵥ l³)
        (match-define (-l³ l+ l- lo) l³)
        (define l³* (-l³ l- l+ lo))
@@ -179,7 +179,7 @@
                                  (define W-c (-W¹ Cᵢ cᵢ))
                                  (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                                  (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓᵢ) (mk-rt W-c) (mk-rt Wᵤ)))
-                                 (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧))))]
+                                 (⟦chk⟧ ⊥ρ Γ* ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧))))]
          [(-Vectorof ⟪α⟫ℓ)
           (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
@@ -188,9 +188,9 @@
                       (define W-c (-W¹ C* c*))
                       (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                       (define ⟦chk⟧ (mk-mon l³* (ℒ-with-mon ℒ ℓ*) (mk-rt W-c) (mk-rt Wᵤ)))
-                      (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧)))])]
+                      (⟦chk⟧ ⊥ρ Γ ⟪ℋ⟫ Σ (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℒ ⟦k⟧)))])]
       [_
-       (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (+W (list -void)) Γ ⟪ℋ⟫ Σ)]))
   
   (def-prim vector->list (vector? . -> . list?)) ; FIXME retain content
   (def-prim/custom (list->vector ⟪ℋ⟫ ℒ Σ Γ Ws)

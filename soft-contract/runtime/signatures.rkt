@@ -18,11 +18,7 @@
 ;;;;; Stores
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -σ ([m : (HashTable ⟪α⟫ (℘ -V))]
-            [modified : (℘ ⟪α⟫)] ; addresses that may have been mutated
-            [cardinality : (HashTable ⟪α⟫ -cardinality)]
-            )
-  #:transparent)
+(define-type -σ (HashTable ⟪α⟫ (℘ -V)))
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
 
 ;; Grouped mutable references to stores
@@ -158,10 +154,6 @@
 
 (-special-bin-o . ::= . '> '< '>= '<= '= 'equal? 'eqv? 'eq? #|made up|# '≢)
 
-;; Cache for address lookup in local block
-;; TODO: merge this in as part of path-condition
-(define-type -$ (HashTable -t -V))
-
 (define-match-expander -not/c/simp
   (syntax-rules ()
     [(_ p) (-not/c p)])
@@ -274,10 +266,10 @@
 
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
-(define-type -⟦e⟧ (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-(define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
+(define-type -⟦e⟧ (-ρ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦k⟧ (-A -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
 (define-type -⟦o⟧ (-⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
-(define-type -⟦f⟧ (-$ -ℒ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦f⟧ (-ℒ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
 (-Prim . ::= . (-⟦o⟧.boxed -⟦o⟧) (-⟦f⟧.boxed -⟦f⟧))
 
 
@@ -344,7 +336,6 @@
    [σ@¹ : ((U -Σ -σ) ⟪α⟫ → -V)]
    [σ@/list : ((U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))]
    [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
-   [mutated? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
@@ -380,10 +371,6 @@
    [flip-bin-o : (-special-bin-o → -special-bin-o)]
    [neg-bin-o : (-special-bin-o → -special-bin-o)]
    [complement? : (-t -t →  Boolean)]
-   ;; Cache
-   [$∅ : -$]
-   [$@ : (-$ -?t → (Option -V))]
-   [$+ : (-$ -?t -V → -$)]
    ;; simp
    [?t@ : (-h -?t * → -?t)]
    [op-≡? : (Any → Boolean)]

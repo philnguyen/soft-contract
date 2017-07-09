@@ -46,13 +46,13 @@
 
   (def-pred procedure?)
 
-  (def-ext (apply $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (apply ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-Σ σ _) Σ)
     (define-values (ℓ l) (unpack-ℒ ℒ))
 
     (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
     (define ((blm-for C Vs) Γ)
-      (⟦k⟧ (-blm l 'apply (list C) Vs ℓ) $ Γ ⟪ℋ⟫ Σ))
+      (⟦k⟧ (-blm l 'apply (list C) Vs ℓ) Γ ⟪ℋ⟫ Σ))
 
     (: check-func-arity : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
     ;; Make sure init arguments and rest args are compatible with the function's arity
@@ -63,7 +63,7 @@
         (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
         (define msg (string->symbol (format "~a argument(s)" a)))
         (define blm (-blm l 'apply (list msg) blm-args ℓ))
-        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+        (⟦k⟧ blm Γ ⟪ℋ⟫ Σ))
 
       (define-simple-macro (with-num-rest-args-check pred #:on-t e₁ #:on-f e₂)
         (let-values ([(ok? er?)
@@ -82,7 +82,7 @@
            ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
            [(<= 0 num-remaining-args)
             (with-num-rest-args-check (λ (len) (equal? len num-remaining-args))
-              #:on-t (app/rest/unsafe $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity fixed-arity))]
            ;; More init arguments than required
            [else (blm-arity fixed-arity)])]
@@ -94,11 +94,11 @@
             (with-num-rest-args-check (match-lambda
                                         [(? index? len) (>= len remaining-inits)]
                                         [(arity-at-least len) (>= len remaining-inits)])
-              #:on-t (app/rest/unsafe $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity arity.min))]
            ;; init args more than enough
            [else
-            (app/rest/unsafe $ ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
+            (app/rest/unsafe ℒ W-func W-inits W-rest Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
         [a
          (error 'apply "TODO: handle arity ~a" a)]))
 
@@ -111,7 +111,7 @@
         σ Γ 'procedure? W-func)]
       [_
        (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
-       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ blm Γ ⟪ℋ⟫ Σ)]))
   
   (def-prim/todo compose ; FIXME uses
     ((any/c . -> . any) (any/c . -> . any/c) . -> . (any/c . -> . any)))

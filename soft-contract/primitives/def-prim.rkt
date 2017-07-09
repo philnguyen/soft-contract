@@ -38,7 +38,7 @@
     #`(set (-ΓA (-Γ-facts #,(-Γ)) #,blm)))
   (define/contract (gen-blm.ext blm)
     (syntax? . -> . syntax?)
-    #`(#,(-⟦k⟧) #,blm #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ)))
+    #`(#,(-⟦k⟧) #,blm #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ)))
   )
 
 (define-syntax-parser def-const
@@ -300,7 +300,7 @@
      (define/syntax-parse d (attribute c.rng))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
      (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕! ?t@ +● ⊥ρ)
-     #`(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+     #`(def-ext (o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (match-define (-Σ σ σₖ) Σ)
          (define sₐ (?t@ 'o (-W¹-t W) ...))
@@ -309,7 +309,6 @@
                                                [-Σ #'Σ]
                                                [-ℒ #'ℒ]
                                                [-Γ #'Γ]
-                                               [-$ #'$]
                                                [-⟦k⟧ #'⟦k⟧]
                                                [-⟪ℋ⟫ #'⟪ℋ⟫])
                                   (gen-wrap #'d #'(+●) #'sₐ)))
@@ -321,23 +320,23 @@
          {set (-ς↑ αₖ Γ ⟪ℋ⟫)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments
-    [(_ (o:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+    [(_ (o:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         #:result e)
      (hack:make-available #'o ?t@)
-     #'(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+     #'(def-ext (o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W c] ...)
          (define sₐ (apply ?t@ 'o (map -W¹-t Ws)))
-         (⟦k⟧ (-W e sₐ) $ Γ ⟪ℋ⟫ Σ))]
+         (⟦k⟧ (-W e sₐ) Γ ⟪ℋ⟫ Σ))]
 
     ;; Custom modes for hacking
-    [(_ (o:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+    [(_ (o:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         e:expr ...)
      (define n (length (syntax->list #'(W ...))))
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o
-       #`(define (.o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       #`(define (.o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (define ℓ (-ℒ-app ℒ))
            #,@(parameterize ([-o #'o]
                              [-⟪ℋ⟫ #'⟪ℋ⟫]
@@ -347,7 +346,6 @@
                              [-σ #'σ]
                              [-Γ #'Γ]
                              [-⟦k⟧ #'⟦k⟧]
-                             [-$ #'$]
                              [-Ws #'Ws]
                              [-Wₙ (syntax->list #'(W ...))]
                              [-sₙ (gen-ids #'s 's n)]
@@ -365,7 +363,7 @@
      (gen-defn #'o #'.o defn-o)]
     
     ;; Skipping precondition checks
-    [(_ (o:id $:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
+    [(_ (o:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
-     (define defn-o #`(define (.o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
+     (define defn-o #`(define (.o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))

@@ -36,19 +36,21 @@
 
   (define (Γ++ [Γ : -Γ] [φs : (℘ -t)]) : -Γ (apply Γ+ Γ (set->list φs)))
 
-  (define (σ⊕! [Σ : -Σ] [Γ : -Γ] [⟪α⟫ : ⟪α⟫] [W : -W¹] #:mutating? [mutating? : Boolean #f]) : Void
+  (: σ⊕! : -Σ -Γ ⟪α⟫ -W¹ → Void)
+  (define (σ⊕! Σ Γ ⟪α⟫ W)
     (match-define (-W¹ V s) W)
-    (σ⊕V! Σ ⟪α⟫ (V+ (-Σ-σ Σ) V (predicates-of Γ s)) #:mutating? mutating?))
+    (σ⊕V! Σ ⟪α⟫ (V+ (-Σ-σ Σ) V (predicates-of Γ s))))
 
-  (define (σ⊕V! [Σ : -Σ] [α : ⟪α⟫] [V : -V] #:mutating? [mutating? : Boolean #f]) : Void
+  (: σ⊕V! : -Σ ⟪α⟫ -V → Void)
+  (define (σ⊕V! Σ α V)
     (match-define (-Σ σ _) Σ)
-    (set--Σ-σ! Σ (σ⊕ σ α V mutating?)))
+    (set--Σ-σ! Σ (σ⊕ σ α V)))
 
   (: σ⊕Vs! : -Σ ⟪α⟫ (℘ -V) → Void)
   (define (σ⊕Vs! Σ α Vs)
-    (match-define (-Σ (and σ (-σ σm ms cs)) _) Σ)
-    (define σm*
-      (hash-update σm
+    (match-define (-Σ σ _) Σ)
+    (define σ*
+      (hash-update σ
                    α
                    (λ ([Vs₀ : (℘ -V)])
                      (cond [(set-empty? Vs₀) Vs] ; fast special case
@@ -57,44 +59,16 @@
                                       ([V (in-set Vs)])
                               (Vs⊕ σ Vs* V))]))
                    mk-∅))
-    (set--Σ-σ! Σ (-σ σm* ms cs)))
+    (set--Σ-σ! Σ σ*))
 
   (: σ-copy! : -Σ ⟪α⟫ ⟪α⟫ → Void)
   (define (σ-copy! Σ α-src α-tgt)
     (unless (equal? α-src α-tgt)
       (σ⊕Vs! Σ α-tgt (σ@ Σ α-src))))
 
-  (define (σ⊕ [σ : -σ] [α : ⟪α⟫] [V : -V] [α.mutating? : Boolean]) : -σ
-    (match-define (-σ store mutated cardinalities) σ)
-    
-    (define do-strong-update?
-      (let ([α.ambiguous? (equal? 'N (hash-ref cardinalities α (λ () 0)))]
-            [α.mutated? (∋ mutated α)])
-        (and α.mutating? (not α.mutated?) (not α.ambiguous?))))
-    
-    (define store*
-      (if do-strong-update?
-          (hash-set store α {set V})
-          (hash-update store α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅)))
-    
-    (define mutated* (if α.mutating? (set-add mutated α) mutated))
-
-    (define cardinalities*
-      (cond
-        [do-strong-update? cardinalities]
-        [;; Cheat for top-level reference.
-         ;; A top-level binding may be (spuriously) bound twice due to
-         ;; prior path-condition splits
-         (-𝒾? (⟪α⟫->-α α))
-         (hash-update cardinalities α
-                      (match-lambda
-                        ['0 1]
-                        ['1 1]
-                        ['N 'N])
-                      (λ () 0))]
-        [else (hash-update cardinalities α cardinality+ (λ () 0))]))
-    
-    (-σ store* mutated* cardinalities*))
+  (: σ⊕ : -σ ⟪α⟫ -V → -σ)
+  (define (σ⊕ σ α V)
+    (hash-update σ α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅))
 
   ;; Widen value set with new value
   (define (Vs⊕ [σ : -σ] [Vs : (℘ -V)] [V : (U -V (℘ -V))]) : (℘ -V)

@@ -98,15 +98,6 @@
       [(= equal? eqv? eq?) '≢]
       [(≢) 'equal?]))
 
-  ;; Cache for address lookup in local block
-  ;; TODO: merge this in as part of path-condition
-  (define $∅ : -$ (hash))
-  (define ($@ [$ : -$] [t : -?t]) : (Option -V)
-    (and t (hash-ref $ t #f)))
-
-  (define ($+ [$ : -$] [t : -?t] [V : -V]) : -$
-    (if t (hash-set $ t V) $))
-
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;

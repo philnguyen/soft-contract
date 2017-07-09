@@ -143,8 +143,6 @@
   (: σ-equal?/spanning-root : -σ -σ (℘ ⟪α⟫) → Boolean)
   (define (σ-equal?/spanning-root σ₁ σ₂ root)
     (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    (match-define (-σ store₁ mutated₁ cardinalities₁) σ₁)
-    (match-define (-σ store₂ mutated₂ cardinalities₂) σ₂)
     
     (let go ([addrs : (℘ ⟪α⟫) root])
       (for/and : Boolean ([α : ⟪α⟫ (in-set addrs)])
@@ -152,20 +150,9 @@
           [(seen-has? α) #t]
           [else
            (seen-add! α)
-           (and (equal? (∋ mutated₁ α) (∋ mutated₂ α))
-                (equal? (hash-ref cardinalities₁ α (λ () 0))
-                        (hash-ref cardinalities₂ α (λ () 0)))
-                (let ([Vs₁ (hash-ref store₁ α mk-∅)]
-                      [Vs₂ (hash-ref store₂ α mk-∅)])
-                  (and (equal? Vs₁ Vs₂)
-                       (for/and : Boolean ([V (in-set Vs₁)])
-                         (go (V->⟪α⟫s V))))))]))))
-
-  #;(: soft-gc! : -σ (℘ ⟪α⟫) → Void)
-  ;; "garbage collect" mutated-ness cardinality information 
-  #;(define (soft-gc! σ αs)
-      (match-define (-σ _ mods crds) σ)
-      (for ([α (in-set mods)] #:unless (∋ αs α))
-        (hash-remove! mods α))
-      (for ([α (in-list (hash-keys crds))] #:unless (∋ αs α))
-        (hash-remove! crds α))))
+           (define Vs₁ (hash-ref σ₁ α mk-∅))
+           (define Vs₂ (hash-ref σ₂ α mk-∅))
+           (and (equal? Vs₁ Vs₂)
+                (for/and : Boolean ([V (in-set Vs₁)])
+                  (go (V->⟪α⟫s V))))]))))
+  )

@@ -71,7 +71,6 @@
     [-gen-blm (syntax? . -> . syntax?) #f]
     [-volatile? boolean? #f]
     ;; exts
-    [-$ identifier? #f]
     [-ℓ identifier? #f]
     [-⟦k⟧ identifier? #f]
     )

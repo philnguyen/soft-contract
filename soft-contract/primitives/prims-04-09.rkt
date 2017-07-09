@@ -136,7 +136,7 @@
       [_ {set (-ΓA (-Γ-facts Γ) (-W (list (+● 'list?)) sₐ))}]))
 
   ;; 4.9.3 List Iteration
-  (def-ext (map $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (map ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     ; FIXME uses 
     #:domain ([Wₚ (any/c . -> . any/c)]
               [Wₗ list?])
@@ -145,15 +145,15 @@
     (match-define (-W¹ Vₗ sₗ) Wₗ)
     (define tₐ (?t@ 'map sₚ sₗ))
     (match Vₗ
-      [(-b '()) (⟦k⟧ (-W (list -null) tₐ) $ Γ ⟪ℋ⟫ Σ)]
+      [(-b '()) (⟦k⟧ (-W (list -null) tₐ) Γ ⟪ℋ⟫ Σ)]
       [(-Cons _ _)
        (define ⟦k⟧* (mk-listof∷ tₐ ℒ ⟪ℋ⟫ ⟦k⟧))
        (for/union : (℘ -ς) ([V (extract-list-content σ Vₗ)])
-                  (app $ ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
-      [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
+                  (app ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+      [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) Γ ⟪ℋ⟫ Σ)]))
   #;(def-prims (andmap ormap) ; FIXME uses
       (procedure? list . -> . any/c))
-  (def-ext (for-each $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (for-each ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₚ (any/c . -> . any/c)]
               [Wₗ list?])
     #:result (list -void))

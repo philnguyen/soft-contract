@@ -21,12 +21,10 @@
       [(-ς↑ αₖ Γ ⟪ℋ⟫) `(ev: ,⟪ℋ⟫ ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
       [(-ς↓ αₖ Γ A)  `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
-  (define (show-σ [σ : (U -σ (HashTable ⟪α⟫ (℘ -V)))]) : (Listof Sexp)
-    (cond [(-σ? σ) (show-σ (-σ-m σ))]
-          [else
-           (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ Vs) σ]
-                                       [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
-             `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V)))]))
+  (define (show-σ [σ : -σ]) : (Listof Sexp)
+    (for*/list ([(⟪α⟫ᵢ Vs) (in-hash σ)]
+                [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
+      `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V))))
 
   (define (show-h [h : -h]) : Sexp
     (match h
