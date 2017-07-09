@@ -24,7 +24,7 @@
   (define (app $ ℒ Wₕ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #;(when (match? Wₕ (-W¹ (-● (== (set 'procedure?))) _))
         (printf "app: ~a to ~a~n" (show-W¹ Wₕ) (map show-W¹ Wₓs)))
-    (match-define (-Σ σ σₖ M) Σ)
+    (match-define (-Σ σ σₖ) Σ)
     (match-define (-W¹ Vₕ sₕ) Wₕ)
     (define l (ℓ-src (-ℒ-app ℒ)))
 
@@ -152,7 +152,7 @@
            (let ([Vₐ (V-arity Vₕ)]
                  [sₐ (?t@ 'procedure-arity sₕ)])
              (-W¹ (if Vₐ (-b Vₐ) (+●)) sₐ)))
-         (with-MΓ+/-oW (M σ Γ 'arity-includes? Wₕ-arity required-arity)
+         (with-Γ+/-oW (σ Γ 'arity-includes? Wₕ-arity required-arity)
            #:on-t do-app
            #:on-f (blm (format-symbol "(arity-includes/c ~a)" (length Wₓs)))))
 
@@ -160,7 +160,7 @@
        (define (do-app Γ)
          ((app-opq sₕ) $ ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧))
        
-       (with-MΓ+/-oW (M σ Γ 'procedure? Wₕ)
+       (with-Γ+/-oW (σ Γ 'procedure? Wₕ)
          #:on-t chk-arity
          #:on-f (blm 'procedure?))]
       [_
@@ -252,7 +252,7 @@
     (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
     (match-define (-=> αℓs Rng _) C)
     (define-values (cs d) (-->-split c (shape αℓs)))
-    (match-define (-Σ σ _ _) Σ)
+    (match-define (-Σ σ _) Σ)
     (define l³* (-l³ l- l+ lo))
     (define ⟦k⟧/mon-rng (mon*.c∷ l³ ℒ Rng d ⟦k⟧))
     (match* (αℓs cs)
@@ -368,10 +368,10 @@
     (λ ($ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match Ws
         [(list (and W (-W¹ _ s)))
-         (match-define (-Σ σ _ M) Σ)
+         (match-define (-Σ σ _) Σ)
          (define sₐ (?t@ st-p s))
          (define A
-           (case (MΓ⊢oW M σ Γ st-p W)
+           (case (Γ⊢oW σ Γ st-p W)
              [(✓) -tt]
              [(✗) -ff]
              [(?) (+● 'boolean?)]))
@@ -386,7 +386,7 @@
     (λ ($ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (cond
         [(= n (length Ws))
-         (match-define (-Σ σ _ M) Σ)
+         (match-define (-Σ σ _) Σ)
          (define sₐ (apply ?t@ st-mk (map -W¹-t Ws)))
          (define αs : (Listof ⟪α⟫)
            (for/list ([i : Index n])
@@ -410,7 +410,7 @@
         [(list (and W (-W¹ V s)))
          (define-values (ℓ l) (unpack-ℒ ℒ))
          (define (blm) (-blm l (show-o ac) (list p) (list V) ℓ))
-         (match-define (-Σ σ _ M) Σ)
+         (match-define (-Σ σ _) Σ)
          (match V
            [(-St (== 𝒾) αs)
             (define α (list-ref αs i))
@@ -452,7 +452,7 @@
                (for/union : (℘ -ς) ([V* (in-set (σ@ σ α))])
                           (⟦ac⟧ $ ℒ (list (-W¹ V* s)) Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
            [(-● ps)
-            (with-Γ+/- ([(Γₒₖ Γₑᵣ) (MΓ+/-oW M σ Γ p W)])
+            (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-oW σ Γ p W)])
               #:true  (⟦k⟧ (-W (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
                                    (list (-● {set 'list?}))
                                    (list (+●)))
@@ -473,7 +473,7 @@
     (define (⟦mut⟧ $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match Ws
         [(list Wₛ Wᵥ)
-         (match-define (-Σ σ _ M) Σ)
+         (match-define (-Σ σ _) Σ)
          (match-define (-W¹ Vₛ sₛ) Wₛ)
          (match-define (-W¹ Vᵥ _ ) Wᵥ)
          (define-values (ℓ l) (unpack-ℒ ℒ))
@@ -619,6 +619,6 @@
       [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
 
   ;; FIXME Duplicate macros
-  (define-simple-macro (with-MΓ+/-oW (M:expr σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
-    (MΓ+/-oW/handler on-t on-f M σ Γ o W ...))
+  (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
+    (Γ+/-oW/handler on-t on-f σ Γ o W ...))
   )

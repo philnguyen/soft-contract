@@ -72,87 +72,6 @@
   ;;;;; Translation
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (: ⦃M⦄ : -M → (Values (Listof (M Void)) (℘ Symbol)))
-  ;; Translate memo table into a list of Z3 computations declaring functions
-  (define (⦃M⦄ memo)
-    (define-set globals : Symbol #:eq? #t)
-    (define-values (decs defs)
-      (for/lists ([decs : (Listof (M Void))] [defs : (Listof (M Void))])
-                 ([(a ans) (in-hash memo)] #:unless (ignore? a))
-        (define-values (dec def fvs) (⦃M-entry⦄ a ans))
-        (globals-union! fvs)
-        (values dec def)))
-    (values (append decs defs) globals))
-
-  (: ⦃M-entry⦄ : -αₖ (℘ -ΓA) → (Values (M Void) (M Void) (℘ Symbol)))
-  ;; Translate an entry in memotable into 2 computations:
-  ;; one declaring the function and the other asserting its properties.
-  ;; These are separate to allow declaring all functions first before asserting them
-  ;; in the presence of recusion
-  (define (⦃M-entry⦄ αₖ ΓAs)
-    (define f (αₖ-name αₖ))
-    (define xs
-      (match αₖ
-        [(-ℬ xs _ _) (assert xs list?)]
-        [(-ℳ x _ _ _ _) (list x)]
-        [(-ℱ x _ _ _ _) (list x)]))
-    (define params (map ⦃x⦄ xs))
-    (define num-params (length params))
-    (define-set globals : Symbol #:eq? #t)
-
-    (define app
-      (if (0-arg? αₖ)
-          (λ () (val-of f))
-          (λ () (apply @/s f params))))
-    
-    (define disjuncts : (Listof (M Z3-Ast))
-      (for/list ([ΓA (in-set ΓAs)] #:when (-W? (-ΓA-ans ΓA)))
-        (define-values (pc ?ans fvs) (⦃ΓA⦄ (Ctx (list->seteq xs) (make-hash)) ΓA))
-        (define cnd : (M Z3-Ast) (λ () (and/s/simp ((list-M (set->list pc))))))
-        (define ?eqn : (Option (M Z3-Ast))
-          (and ?ans (λ () (=/s (app) (?ans)))))
-        (define φ : (M Z3-Ast)
-          (if ?eqn (λ () (and/s (cnd) (?eqn))) cnd))
-        (define fvs* (set-subtract fvs refs))
-        (globals-union! (∩ fvs refs))
-        (λ ()
-          (dynamic-∃/s (set->list fvs*) (make-list (set-count fvs*) (sort-of 'V)) (φ)))))
-
-    (define (param-sorts) (make-list num-params (sort-of 'V)))
-
-    (values 
-     (λ ()
-       (dynamic-declare-fun f (param-sorts) (sort-of 'A))
-       (void))
-     (λ ()
-       (assert!
-        (dynamic-∀/s params (param-sorts)
-                     (=>/s (@/s 'is-Val (app))
-                           (or/s/simp ((list-M disjuncts))))
-                     #:pattern (list (pattern-of (app))))))
-     globals))
-
-  (: ⦃ΓA⦄ : Ctx -ΓA → (Values (℘ (M Z3-Ast)) (Option (M Z3-Ast)) (℘ Symbol)))
-  ;; Translate each local answer to:
-  ;; - Set of Z3 computations each returning an AST of sort Bool
-  ;; - Optionally a Z3 computation returning AST of sort A representing the answer value
-  ;; - The set of free variables generated
-  (define (⦃ΓA⦄ ctx ΓA)
-    (: ⦃A⦄ : -A → (Values (Option (M Z3-Ast)) (℘ (M Z3-Ast)) (℘ Symbol)))
-    (define ⦃A⦄
-      (match-lambda
-        [(-W _ t)
-         (cond
-           [t (define-values (res cnds fvs) (⦃t⦄ ctx t))
-              (values (λ () (@/s 'Val (res))) cnds fvs)]
-           [else (values #f ∅eq ∅eq)])]
-        [(? -blm?) (values (λ () (val-of 'None)) ∅eq ∅eq)]))
-
-    (match-define (-ΓA Γ A) ΓA)
-    (define-values (pc fvs₁) (⦃Γ⦄ ctx Γ))
-    (define-values (res cnds fvs₂) (⦃A⦄ A))
-    (values (∪ pc cnds) res (∪ fvs₁ fvs₂)))
-
   (: ⦃Γ⦄ : Ctx (℘ -t) → (Values (℘ (M Z3-Ast)) (℘ Symbol)))
   ;; Translate path condition into a set of Z3 computation each returning an AST of sort Bool
   ;; along with the set of generated free variables
@@ -595,17 +514,10 @@
       (for ([cmd (in-other-cmds)])
         (cmd))))
 
-  (: collect-usage : (U -M (℘ -t) -t) * → (Values (℘ Natural) (℘ -o)))
+  (: collect-usage : (U (℘ -t) -t) * → (Values (℘ Natural) (℘ -o)))
   (define (collect-usage . xs)
     (define-set arities : Natural #:eq? #t)
     (define-set prims   : -o)
-
-    (: go-M! : -M → Void)
-    (define (go-M! M)
-      (for* ([(a As) (in-hash M)] [ΓA (in-set As)])
-        (match-define (-ΓA Γ A) ΓA)
-        (go-Γ! Γ)
-        (go-A! A)))
 
     (: go-A! : -A → Void)
     (define go-A!
@@ -637,7 +549,6 @@
 
     (for ([x (in-list xs)])
       (cond [(set? x) (go-Γ! x)]
-            [(hash? x) (go-M! x)]
             [else (go-t! x)]))
 
     (values (∪ #|HACK|# {seteq 1 2} arities) prims))
@@ -745,41 +656,29 @@
 
   (toggle-warning-messages! #f)
 
-  (define (ext-prove [M : -M] [Γ : -Γ] [t : -t]) : -R
-    (raw-ext-prove (span-M M (∪ (t->αₖs t) (Γ->αₖs Γ))) (-Γ-facts Γ) t))
+  (define (ext-prove [Γ : -Γ] [t : -t]) : -R
+    (raw-ext-prove (-Γ-facts Γ) t))
 
   ;; TODO use `define/memo` once Typed Unit is fixed
-  (define/memo (raw-ext-prove [M : -M] [Γ : (℘ -t)] [t : -t]) : -R
-    #;(begin
-        (printf "M:~n")
-        (for ([(a As) M])
-          (printf "  * ~a ↦ ~a~n" (show-αₖ a) (set-map As show-ΓA)))
-        (printf "Γ: ~a~n" (set-map Γ show-t))
-        (printf "-----------------------------------------~n")
-        (printf "~a~n~n" (show-t t)))
-
+  (define/memo (raw-ext-prove [Γ : (℘ -t)] [t : -t]) : -R
     (define (set-default-options!)
-      (set-options! #:timeout (assert (estimate-time-limit M Γ t) fixnum?)
+      (set-options! #:timeout (assert (estimate-time-limit Γ t) fixnum?)
                     #:mbqi? #t
                     #:macro-finder? #t
                     #:rlimit 4000000))
 
-    (define-values (st-arities prims) (collect-usage M Γ t))
-    (define-values (do-M fvs₁) (⦃M⦄ M))
-    (define-values (do-Γ cnds do-t fvs₂)
+    (define-values (st-arities prims) (collect-usage Γ t))
+    (define-values (do-Γ cnds do-t fvs)
       (let ([ctx₀ (Ctx ∅eq (make-hash))])
-        (define-values (do-Γ      fvs₂) (⦃Γ⦄ ctx₀ Γ))
-        (define-values (do-t cnds fvs₃) (⦃t⦄ ctx₀ t))
-        (values do-Γ cnds do-t (∪ fvs₂ fvs₃))))
-    (define-values (globals locals)
-      (let ([fvs (∪ fvs₁ fvs₂)])
-        (values (∩ fvs refs) (set-subtract fvs refs))))
+        (define-values (do-Γ      fvs-Γ) (⦃Γ⦄ ctx₀ Γ))
+        (define-values (do-t cnds fvs-t) (⦃t⦄ ctx₀ t))
+        (values do-Γ cnds do-t (∪ fvs-Γ fvs-t))))
+    (define-values (globals locals) (values (∩ fvs refs) (set-subtract fvs refs)))
     (define do-base
       (do set-default-options!
           (define-base-datatypes st-arities)
         (define-base-predicates prims)
         (declare-consts globals 'V)
-        (iter-M do-M)
         (declare-consts locals 'V)
         (iter-M (set-map do-Γ assert-M))
         (iter-M (set-map cnds assert-M))))
@@ -806,9 +705,6 @@
                                   [(sat unknown) '?])]))
       (printf "  --> ~a~n~n" R)))
 
-  (define (estimate-time-limit [M : -M] [Γ : (℘ -t)] [t : -t]) : Natural
-    (define Timeout-Factor 3)
-    (define count
-      (for/sum : Natural ([s (in-hash-values M)]) (set-count s)))
-    (* count Timeout-Factor))
+  (define (estimate-time-limit [Γ : (℘ -t)] [t : -t]) : Natural
+    (* (set-count Γ) 3))
 )

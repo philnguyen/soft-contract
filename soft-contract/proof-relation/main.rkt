@@ -19,35 +19,35 @@
          "local.rkt")
 
 (define-unit pre-proof-system@
-  (import local-prover^ external-prover^ widening^ pc^)
+  (import (prefix local: local-prover^) external-prover^ widening^ pc^)
   (export proof-system^)
   
   ;; Check if value satisfies (flat) contract
-  (define (MΓ⊢V∈C [M : -M] [σ : -σ] [Γ : -Γ] [W_v : -W¹] [W_c : -W¹]) : -R
+  (define (Γ⊢V∈C [σ : -σ] [Γ : -Γ] [W_v : -W¹] [W_c : -W¹]) : -R
     (match-define (-W¹ V v) W_v)
     (match-define (-W¹ C c) W_c)
     (with-debugging/off
       ((ans)
-       (first-R (p∋Vs σ C (V+ σ V (predicates-of Γ v)))
+       (first-R (local:p∋Vs σ C (V+ σ V (predicates-of Γ v)))
                 (match V
                   [(-● ps)
                    (define Γ*
                      (for/fold ([Γ : -Γ Γ]) ([p ps])
                        (Γ+ Γ (?t@ p v))))
-                   (MΓ⊢t M Γ* (and (-h? c) (?t@ c v)))]
-                  [_ (MΓ⊢t M Γ (and (-h? c) (?t@ c v)))])))
+                   (Γ⊢t Γ* (and (-h? c) (?t@ c v)))]
+                  [_ (Γ⊢t Γ (and (-h? c) (?t@ c v)))])))
       (when (and (-Clo? V))
         (printf "~a ⊢ ~a ∈ ~a : ~a~n~n" (show-Γ Γ) (show-W¹ W_v) (show-W¹ W_c) ans))))
 
   ;; Check if value `W` satisfies predicate `p`
-  (define (MΓ⊢oW [M : -M] [σ : -σ] [Γ : -Γ] [p : -o] . [Ws : -W¹ *]) : -R
+  (define (Γ⊢oW [σ : -σ] [Γ : -Γ] [p : -o] . [Ws : -W¹ *]) : -R
     (define-values (Vs ts) (unzip-by -W¹-V -W¹-t Ws))
     (with-debugging/off
       ((R)
        (first-R (let ([Vs*
                        (for/list : (Listof -V) ([V (in-list Vs)] [t (in-list ts)])
                          (V+ σ V (predicates-of Γ t)))])
-                  (apply p∋Vs σ p Vs*))
+                  (apply local:p∋Vs σ p Vs*))
                 (let ()
                   (define Γ*
                     (for/fold ([Γ : -Γ Γ]) ([V (in-list Vs)] [t (in-list ts)] #:when t)
@@ -58,22 +58,22 @@
                         [(? -b? b)
                          (Γ+ Γ (-t.@ 'equal? (list t b)))]
                         [_ Γ])))
-                  (MΓ⊢t M Γ* (apply ?t@ p ts)))))
+                  (Γ⊢t Γ* (apply ?t@ p ts)))))
       (when (and (equal? p 'char?)
                  (equal? Vs (list (-● (set 'eof-object? (-not/c 'eof-object?))))))
         (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R))))
 
-  (define (MΓ+/-oW [M : -M] [σ : -σ] [Γ : -Γ] [o : -o] . [Ws : -W¹ *]) : (Values (Option -Γ) (Option -Γ))
+  (define (Γ+/-oW [σ : -σ] [Γ : -Γ] [o : -o] . [Ws : -W¹ *]) : (Values (Option -Γ) (Option -Γ))
     (define ss (map -W¹-t Ws))
-    (Γ+/-R (apply MΓ⊢oW M σ Γ o Ws) Γ (apply ?t@ o ss)))
+    (Γ+/-R (apply Γ⊢oW σ Γ o Ws) Γ (apply ?t@ o ss)))
 
   ;; Check if `s` is provable in `Γ`
-  (define (MΓ⊢t [M : -M] [Γ : -Γ] [t : -?t]) : -R
+  (define (Γ⊢t [Γ : -Γ] [t : -?t]) : -R
     (with-debugging/off
       ((R)
        (cond
          [t
-          (match (Γ⊢t (-Γ-facts Γ) t)
+          (match (local:Γ⊢t (-Γ-facts Γ) t)
             ['?
 
              ;; Heuristic avoiding calling out to solvers
@@ -96,16 +96,7 @@
                               (match? φ (-t.@ (? difficult-h?) _))))))]
                  [_ #f]))
 
-             #;(begin
-                 (printf "should call? ~a~n" should-call-smt?)
-                 (printf "M:~n")
-                 (for ([(a As) M])
-                   (printf "  * ~a ↦ ~a~n" (show-αₖ a) (set-map As show-ΓA)))
-                 (printf "Γ: ~a~n" (show-Γ Γ))
-                 (printf "-----------------------------------------~n")
-                 (printf "~a~n~n" (show-t t)))
-
-             (if should-call-smt? (ext-prove M Γ t) '?)]
+             (if should-call-smt? (ext-prove Γ t) '?)]
             [R R])]
          [else '?]))
       (when s #;(match? s (-@ 'equal? _ _))
@@ -119,8 +110,8 @@
       ))
 
   ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster
-  (define (Γ+/-V [M : -M] [Γ : -Γ] [V : -V] [t : -?t]) : (Values (Option -Γ) (Option -Γ))
-    (with-debugging/off ((Γ₁ Γ₂) (Γ+/-R (first-R (⊢V V) (MΓ⊢t M Γ t)) Γ t))
+  (define (Γ+/-V [Γ : -Γ] [V : -V] [t : -?t]) : (Values (Option -Γ) (Option -Γ))
+    (with-debugging/off ((Γ₁ Γ₂) (Γ+/-R (first-R (local:⊢V V) (Γ⊢t Γ t)) Γ t))
       (printf "Γ+/-V: ~a +/- ~a @ ~a~n - ~a~n - ~a~n~n"
               (show-Γ Γ)
               (show-V V)
@@ -128,38 +119,33 @@
               (and Γ₁ (show-Γ Γ₁))
               (and Γ₂ (show-Γ Γ₂)))))
 
-  (define #:∀ (X) (MΓ+/-oW/handler [f₁ : (-Γ → (℘ X))]
-                                   [f₂ : (-Γ → (℘ X))]
-                                   [M : -M]
-                                   [σ : -σ]
-                                   [Γ : -Γ]
-                                   [o : -o] .
-                                   [Ws : -W¹ *]) : (℘ X)
+  (define #:∀ (X) (Γ+/-oW/handler [f₁ : (-Γ → (℘ X))]
+                                  [f₂ : (-Γ → (℘ X))]
+                                  [σ : -σ]
+                                  [Γ : -Γ]
+                                  [o : -o] .
+                                  [Ws : -W¹ *]) : (℘ X)
     (define ss (map -W¹-t Ws))
-    (case (apply MΓ⊢oW M σ Γ o Ws)
+    (case (apply Γ⊢oW σ Γ o Ws)
       [(✓) (f₁ Γ)]
       [(✗) (f₂ Γ)]
       [(?) (∪ (f₁ (Γ+ Γ (apply ?t@ o ss)))
               (f₂ (Γ+ Γ (?t@ 'not (apply ?t@ o ss)))))]))
 
-  (define #:∀ (X) (MΓ⊢oW/handler [on-t : (→ (℘ X))]
-                                 [on-f : (→ (℘ X))]
-                                 [M : -M]
-                                 [σ : -σ]
-                                 [Γ : -Γ]
-                                 [o : -o] .
-                                 [Ws : -W¹ *]) : (℘ X)
-    (case (apply MΓ⊢oW M σ Γ o Ws)
+  (define #:∀ (X) (Γ⊢oW/handler [on-t : (→ (℘ X))]
+                                [on-f : (→ (℘ X))]
+                                [σ : -σ]
+                                [Γ : -Γ]
+                                [o : -o] .
+                                [Ws : -W¹ *]) : (℘ X)
+    (case (apply Γ⊢oW σ Γ o Ws)
       [(✓) (on-t)]
       [(✗) (on-f)]
       [(?) (∪ (on-t) (on-f))]))
 
-  (define #:∀ (X) (p∋Vs/handler [t : (→ (℘ X))]
-                                [f : (→ (℘ X))]
-                                [σ : -σ]
-                                [o : -o] .
-                                [Vs : -V *]) : (℘ X)
-    (case (apply p∋Vs σ o Vs)
+  (: p∋Vs/handler (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X)))
+  (define (p∋Vs/handler t f σ o . Vs)
+    (case (apply local:p∋Vs σ o Vs)
       [(✓) (t)]
       [(✗) (f)]
       [(?) (∪ (t) (f))]))
@@ -169,11 +155,11 @@
   ;;;;; Plausibility checking
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (define (plausible-index? [M : -M] [σ : -σ] [Γ : -Γ] [W : -W¹] [i : Natural]) : Boolean
-    (case (MΓ⊢oW M σ Γ 'integer? W)
+  (define (plausible-index? [σ : -σ] [Γ : -Γ] [W : -W¹] [i : Natural]) : Boolean
+    (case (Γ⊢oW σ Γ 'integer? W)
       [(✓ ?)
        (define Wᵢ (let ([b (-b i)]) (-W¹ b b)))
-       (case (MΓ⊢oW M σ Γ '= W Wᵢ)
+       (case (Γ⊢oW σ Γ '= W Wᵢ)
          [(✗) #f]
          [else #t])]
       [else #f]))

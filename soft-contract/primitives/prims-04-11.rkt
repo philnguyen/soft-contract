@@ -98,7 +98,7 @@
 
   (def-ext (vector-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wᵥ vector?] [Wᵢ integer?])
-    (match-define (-Σ σ _ M) Σ)
+    (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (define sₐ (?t@ 'vector-ref sᵥ sᵢ))
@@ -109,12 +109,12 @@
                      (printf "ref ~a ~a:~n" (show-W¹ Wᵥ) (show-W¹ Wᵢ))
                      (for ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
                            [i : Natural (in-naturals)]
-                           #:when (plausible-index? M σ Γ Wᵢ i))
+                           #:when (plausible-index? σ Γ Wᵢ i))
                        (printf "  - ~a ↦ ~a~n" i (set-count (σ@ σ ⟪α⟫))))
                      (printf "~n")))
        (for/union : (℘ -ς) ([⟪α⟫ : ⟪α⟫ (in-list ⟪α⟫s)]
                             [i : Natural (in-naturals)]
-                            #:when (plausible-index? M σ Γ Wᵢ i))
+                            #:when (plausible-index? σ Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (for/union : (℘ -ς) ([V (in-set (σ@ σ ⟪α⟫))])
                              (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
@@ -127,7 +127,7 @@
          [(-Vector/C ⟪α⟫ℓs)
           (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                                [i : Natural (in-naturals)]
-                               #:when (plausible-index? M σ Γ Wᵢ i))
+                               #:when (plausible-index? σ Γ Wᵢ i))
                      (match-define (-⟪α⟫ℓ ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
                      (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                      (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
@@ -147,7 +147,7 @@
   
   (def-ext (vector-set! $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
-    (match-define (-Σ σ _ M) Σ)
+    (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
@@ -156,7 +156,7 @@
       [(-Vector ⟪α⟫s)
        (for/union : (℘ -ς) ([⟪α⟫ (in-list ⟪α⟫s)]
                             [i : Natural (in-naturals)]
-                            #:when (plausible-index? M σ Γ Wᵢ i))
+                            #:when (plausible-index? σ Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (σ⊕! Σ Γ ⟪α⟫ Wᵤ #:mutating? #t)
                   (⟦k⟧ (+W (list -void)) $ Γ* ⟪ℋ⟫ Σ))]
@@ -170,7 +170,7 @@
          [(-Vector/C ⟪α⟫ℓs)
           (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                                [i : Natural (in-naturals)]
-                               #:when (plausible-index? M σ Γ Wᵢ i))
+                               #:when (plausible-index? σ Γ Wᵢ i))
                      (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                      (match-define (-⟪α⟫ℓ ⟪α⟫ᵢ ℓᵢ) ⟪α⟫ℓ)
                      (define cᵢ #f #;(⟪α⟫->s ⟪α⟫ᵢ))
@@ -195,7 +195,7 @@
   (def-prim vector->list (vector? . -> . list?)) ; FIXME retain content
   (def-prim/custom (list->vector ⟪ℋ⟫ ℒ Σ Γ Ws)
     #:domain ([W list?])
-    (match-define (-Σ σ _ _) Σ)
+    (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vₗ sₗ) W)
     (define Vₐ
       (match Vₗ

@@ -27,12 +27,12 @@
           for-gc^ env^ sto^ pretty-print^ pc^ instr^)
   (export reduction^)
 
-  (define-type Ctx (List -σ -σₖ -M))
+  (define-type Ctx (List -σ -σₖ))
 
   (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -ΓA) -Σ)
     (define seen : (HashTable -ς Ctx) (make-hash))
     (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ #;∅))
-    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥M))
+    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅)))
     (define root₀ ; all addresses to top-level definitions are conservatively active
       (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
         (set-add (set-add root₀ (-α->⟪α⟫ 𝒾)) (-α->⟪α⟫ (-α.wrp 𝒾)))))
@@ -77,16 +77,16 @@
           (set! iter (+ 1 iter)))
 
         (define next
-          (match-let ([(-Σ σ mσₖ mM) Σ])
+          (match-let ([(-Σ σ mσₖ) Σ])
 
-            (define vsn : Ctx (list σ mσₖ mM))
+            (define vsn : Ctx (list σ mσₖ))
 
             (: ς-seen? : -ς → Boolean)
             (define (ς-seen? ς)
               (cond
                 [(hash-ref seen ς #f) =>
                  (λ ([ctx₀ : Ctx])
-                   (match-define (list σ₀ mσₖ₀ mM₀) ctx₀)
+                   (match-define (list σ₀ mσₖ₀) ctx₀)
                    (define αₖ
                      (match ς
                        [(-ς↑ αₖ _ _) αₖ]
@@ -95,7 +95,6 @@
                    (define (κ->αₖs [κ : -κ])
                      {set (⟦k⟧->αₖ (-κ-cont κ))})
                    (and (map-equal?/spanning-root mσₖ₀ mσₖ αₖs κ->αₖs)
-                        (map-equal?/spanning-root mM₀  mM  αₖs ΓA->αₖs)
                         (let ([⟪α⟫s (ς->⟪α⟫s ς mσₖ₀)])
                           (σ-equal?/spanning-root σ₀ σ ⟪α⟫s))))]
                 [else #f]))
@@ -115,15 +114,14 @@
             (∪ next-from-ς↑s next-from-ς↓s)))
         (loop! next)))
 
-    (match-let ([(-Σ σ σₖ M) Σ])
+    (match-let ([(-Σ σ σₖ) Σ])
       (when (debug-iter?)
-        (printf "|σ| = ~a, |σₖ| = ~a, |M| = ~a~n"
+        (printf "|σ| = ~a, |σₖ| = ~a~n"
                 (hash-count (-σ-m σ))
-                (hash-count σₖ)
-                (hash-count M)))
+                (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
-      (values (M@ M αₖ₀) Σ)))
+      (values #|FIXME!!!|# ∅ Σ)))
 
   ;; Compute the root set for value addresses of this state
   (define (ς->⟪α⟫s [ς : -ς] [σₖ : -σₖ]) : (℘ ⟪α⟫)
@@ -162,7 +160,7 @@
 
   ;; Quick-step on "pop" state
   (define (↝↓! [ςs : (Listof -ς↓)] [Σ : -Σ]) : (℘ -ς)
-    (match-define (-Σ σ σₖ M) Σ)
+    (match-define (-Σ σ σₖ) Σ)
     
     (for/union : (℘ -ς) ([ς ςs])
                (match-define (-ς↓ αₖ Γₑₑ A) ς)
@@ -193,7 +191,7 @@
                                                    (not (and looped? (>= (length xs) 3))))
                                        (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-_0 sₐ)))
                                          t)]
-                                      [(_ _) (apply ?t@ αₖ tₓs)])))
+                                      [(_ _) #|FIXME|# #f])))
                              (⟦k⟧ (-W Vs sₐ*) $∅ Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)]
                             [(? -blm? blm)
                              (match-define (-blm l+ lo _ _ _) blm)

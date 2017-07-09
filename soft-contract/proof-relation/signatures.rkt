@@ -19,4 +19,4 @@
    [V-arity : (-V → (Option Arity))]))
 
 (define-signature external-prover^
-  ([ext-prove : (-M -Γ -t → -R)]))
+  ([ext-prove : (-Γ -t → -R)]))

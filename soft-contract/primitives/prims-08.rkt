@@ -39,11 +39,11 @@
          (match Ws
            ['() {set (-ΓA (-Γ-facts Γ) id)}]
            [_
-            (match-define (-Σ σ _ M) Σ)
+            (match-define (-Σ σ _) Σ)
             (define definite-error? : Boolean #f)
             (define maybe-errors
               (for/set: : (℘ -ΓA) ([W (in-list Ws)]
-                                   #:when (case (MΓ⊢oW M σ Γ 'contract? W)
+                                   #:when (case (Γ⊢oW σ Γ 'contract? W)
                                             [(✓)                       #f]
                                             [(✗) (set! definite-error? #t)]
                                             [(?)                        #t ]))

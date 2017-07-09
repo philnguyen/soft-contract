@@ -140,7 +140,7 @@
     ; FIXME uses 
     #:domain ([Wₚ (any/c . -> . any/c)]
               [Wₗ list?])
-    (match-define (-Σ σ _ M) Σ)
+    (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vₚ sₚ) Wₚ)
     (match-define (-W¹ Vₗ sₗ) Wₗ)
     (define tₐ (?t@ 'map sₚ sₗ))

@@ -41,7 +41,7 @@
 (define-signature prim-runtime^
   ([⊢?/quick : (-R -σ (℘ -t) -o -W¹ * → Boolean)]
    [make-total-pred : (Index → Symbol → -⟦o⟧)]
-   [implement-predicate : (-M -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))]
+   [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))]
    [ts->bs : ((Listof -?t) → (Option (Listof Base)))]
    [extract-list-content : (-σ -St → (℘ -V))]
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]

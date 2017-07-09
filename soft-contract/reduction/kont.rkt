@@ -66,13 +66,11 @@
             [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
              ∅]
             [_
-             (match-define (-Σ _ _ M) Σ)
+             (match-define (-Σ _ _) Σ)
              (define A*
                (match A
                  [(-W (list V) s) (-W (list (V+ (-Σ-σ Σ) V (predicates-of Γ s))) s)]
                  [_ A]))
-             (unless (-ℋ𝒱? αₖ)
-               (M⊕! Σ αₖ (-Γ-facts Γ) A*))
              (maybe-print-blame)
              {set (-ς↓ αₖ Γ A*)}])))
       (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
@@ -213,7 +211,7 @@
              (cons (list x V tₓ) acc)))
          (match ⟦bnd⟧s
            ['()
-            (match-define (-Σ σ _ _) Σ)
+            (match-define (-Σ σ _) Σ)
             (define-values (ρ* Γ*) ; with side effect widening store
               (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                         ([bnd-W bnd-Ws*])
@@ -264,7 +262,7 @@
       (match-define (-W Vs s) A)
       (match Vs
         [(list V)
-         (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V s)])
+         (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V Γ V s)])
            #:true  (⟦e⟧₁ ρ $ Γ₁ ⟪ℋ⟫ Σ ⟦k⟧)
            #:false (⟦e⟧₂ ρ $ Γ₂ ⟪ℋ⟫ Σ ⟦k⟧))]
         [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀) $ Γ ⟪ℋ⟫ Σ)])))
@@ -298,7 +296,7 @@
       (define n (length xs))
       (cond
         [(= n (length Vs))
-         (match-define (-Σ σ _ _) Σ)
+         (match-define (-Σ σ _) Σ)
          (define Γ* ; with side effect widening store
            (for/fold ([Γ : -Γ Γ])
                      ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
@@ -533,7 +531,7 @@
     (define l³ (-l³ l 'dummy- l))
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W (list C) c) A)
-      (match-define (-Σ σ _ _) Σ)
+      (match-define (-Σ σ _) Σ)
       (define W-C (-W¹ C c))
       (define Vs (σ@ σ (-α->⟪α⟫ 𝒾)))
       (for/union : (℘ -ς) ([V Vs])
@@ -587,7 +585,7 @@
       (match-define (-W Vs v) A)
       (match Vs
         [(list V)
-         (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V (-Σ-M Σ) Γ V v)])
+         (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V Γ V v)])
            #:true  (⟦k⟧ W-V $ Γ₁ ⟪ℋ⟫ Σ)
            #:false (⟦k⟧ blm $ Γ₂ ⟪ℋ⟫ Σ))]
         [_

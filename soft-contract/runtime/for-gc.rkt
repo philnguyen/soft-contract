@@ -124,10 +124,6 @@
            (define ⟦k⟧ (-κ-cont κ))
            (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))
 
-  (: span-M : (HashTable -αₖ (℘ -ΓA)) (℘ -αₖ) → (HashTable -αₖ (℘ -ΓA)))
-  (define (span-M M αs)
-    (hash-copy/spanning* M αs ΓA->αₖs))
-
   (: ->⟪α⟫s : (Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))
   (define (->⟪α⟫s x)
     (cond

@@ -21,7 +21,7 @@
     (let ([m : (HashTable Key Rec) (make-hash)])
       (define ⟦k⟧* : -⟦k⟧
         (λ (A $ Γ ⟪ℋ⟫ Σ)
-          (match-define (-Σ σ _ _) Σ)
+          (match-define (-Σ σ _) Σ)
           (define key (list A Γ ⟪ℋ⟫))
           
           (: recompute! : → (℘ -ς))
@@ -57,7 +57,7 @@
     (let ([m : (HashTable Key Rec) (make-hash)])
       (remember-e! (assert (recall-e ⟦e⟧))
                    (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-                     (match-define (-Σ (-σ mσ _ _) _ _) Σ)
+                     (match-define (-Σ (-σ mσ _ _) _) Σ)
                      (define key : Key (list ⟪ℋ⟫ ρ Γ))
 
                      (: recompute! : → (℘ -ς))

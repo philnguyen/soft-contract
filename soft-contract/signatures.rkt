@@ -38,13 +38,13 @@
    [parse-prim : (Identifier → (Option -prim))]))
 
 (define-signature proof-system^
-  ([MΓ⊢V∈C : (-M -σ -Γ -W¹ -W¹ → -R)]
-   [MΓ⊢oW : (-M -σ -Γ -o -W¹ * → -R)]
-   [Γ+/-V : (-M -Γ -V -?t → (Values (Option -Γ) (Option -Γ)))]
-   [MΓ+/-oW : (-M -σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))]
-   [plausible-index? : (-M -σ -Γ -W¹ Natural → Boolean)]
-   [MΓ+/-oW/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
-   [MΓ⊢oW/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
+  ([Γ⊢V∈C : (-σ -Γ -W¹ -W¹ → -R)]
+   [Γ⊢oW : (-σ -Γ -o -W¹ * → -R)]
+   [Γ+/-V : (-Γ -V -?t → (Values (Option -Γ) (Option -Γ)))]
+   [Γ+/-oW : (-σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))]
+   [plausible-index? : (-σ -Γ -W¹ Natural → Boolean)]
+   [Γ+/-oW/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -σ -Γ -o -W¹ * → (℘ X))]
+   [Γ⊢oW/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -Γ -o -W¹ * → (℘ X))]
    [p∋Vs/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X))]))
 
 ;; FIXME: least coherent signature ever.
@@ -54,7 +54,6 @@
    [σ⊕V! : ([-Σ ⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void)]
    [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
    [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
-   [M⊕! : (-Σ -αₖ (℘ -t) -A → Void)]
    [σₖ⊕! : (-Σ -αₖ -κ → Void)]
    [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
@@ -81,6 +80,5 @@
    [Γ->αₖs : (-Γ → (℘ -αₖ))]
    [ΓA->αₖs : (-ΓA → (℘ -αₖ))]
    [αₖ->⟪α⟫s : (-αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))]
-   [span-M : ((HashTable -αₖ (℘ -ΓA)) (℘ -αₖ) → (HashTable -αₖ (℘ -ΓA)))]
    [->⟪α⟫s : ((Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))]
    [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]))

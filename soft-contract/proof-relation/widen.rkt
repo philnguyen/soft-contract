@@ -41,12 +41,12 @@
     (σ⊕V! Σ ⟪α⟫ (V+ (-Σ-σ Σ) V (predicates-of Γ s)) #:mutating? mutating?))
 
   (define (σ⊕V! [Σ : -Σ] [α : ⟪α⟫] [V : -V] #:mutating? [mutating? : Boolean #f]) : Void
-    (match-define (-Σ σ _ _) Σ)
+    (match-define (-Σ σ _) Σ)
     (set--Σ-σ! Σ (σ⊕ σ α V mutating?)))
 
   (: σ⊕Vs! : -Σ ⟪α⟫ (℘ -V) → Void)
   (define (σ⊕Vs! Σ α Vs)
-    (match-define (-Σ (and σ (-σ σm ms cs)) _ _) Σ)
+    (match-define (-Σ (and σ (-σ σm ms cs)) _) Σ)
     (define σm*
       (hash-update σm
                    α
@@ -379,15 +379,8 @@
            (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
            (and ?Γ (-ΓA ?Γ A₂))]))
 
-  (define (M⊕ [M : -M] [σ : -σ] [αₖ : -αₖ] [Γ : (℘ -t)] [A : -A]) : -M
-    (hash-update M αₖ (set-add/compact (-ΓA Γ A) (?ΓA⊔ σ)) mk-∅))
-
-  (define (M⊕! [Σ : -Σ] [αₖ : -αₖ] [Γ : (℘ -t)] [A : -A]) : Void
-    (match-define (-Σ σ _ M) Σ)
-    (set--Σ-M! Σ (M⊕ M σ αₖ Γ A)))
-
   (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
-    (match-define (-Σ _ σₖ _) Σ)
+    (match-define (-Σ _ σₖ) Σ)
     (set--Σ-σₖ! Σ (σₖ⊕ σₖ αₖ κ)))
 
   (define (?κ⊔ [κ₁ : -κ] [κ₂ : -κ]) : (Option -κ)

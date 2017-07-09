@@ -52,7 +52,6 @@
     [-Σ identifier? #f]
     [-Γ identifier? #f]
     [-σ identifier? #f]
-    [-M identifier? #f]
     [-ℒ identifier? #f]
     [-⟪ℋ⟫ identifier? #f]
     [-Ws identifier? #f]
@@ -196,7 +195,7 @@
       ;; Generate predicates differently
       [(and (identifier? rng) (free-identifier=? #'boolean? rng))
        (hack:make-available (-o) implement-predicate)
-       (list #`(implement-predicate #,(-M) #,(-σ) #,(-Γ) '#,(-o) #,(-Ws)))]
+       (list #`(implement-predicate #,(-σ) #,(-Γ) '#,(-o) #,(-Ws)))]
       [dom-rest
        (define/with-syntax (concrete-case-clauses ...)
          (cond
@@ -518,14 +517,14 @@
         (define/contract (gen-comp/c-case x ★ ★/c)
           (syntax? identifier? identifier? . -> . symbol?)
           (define why (if pos? #`(#,★/c #,x) #`(-not/c (#,★/c #,x))))
-          (hack:make-available (-o) MΓ+/-oW/handler)
+          (hack:make-available (-o) Γ+/-oW/handler)
           (push-local-thunk!
            (gen-name!)
            (list #`(define bₓ (-b #,x))
-                 #`(MΓ+/-oW/handler
+                 #`(Γ+/-oW/handler
                     #,(->id (on-done why pos?))
                     #,(->id (on-done why (not pos?)))
-                    #,(-M) #,(-σ) #,(-Γ) '#,★ #,W (-W¹ bₓ bₓ)))))
+                    #,(-σ) #,(-Γ) '#,★ #,W (-W¹ bₓ bₓ)))))
 
         (syntax-parse c
           ;; For function contracts, generate first-order checks only
@@ -546,13 +545,13 @@
                  #,(-Γ)
                  #,W
                  arity)))
-           (hack:make-available (-o) MΓ+/-oW/handler)
+           (hack:make-available (-o) Γ+/-oW/handler)
            (push-local-thunk!
             (gen-name!)
-            #`(MΓ+/-oW/handler
+            #`(Γ+/-oW/handler
                #,(->id κ₁)
                #,(->id (on-done #''procedure? (not pos?)))
-               #,(-M) #,(-σ) #,(-Γ) 'procedure? #,W))]
+               #,(-σ) #,(-Γ) 'procedure? #,W))]
 
           [((~literal and/c) c* ... cₙ)
            (foldr
@@ -612,26 +611,26 @@
           [((~literal >=/c) x) (gen-comp/c-case #'x #'>= #'-≥/c)]
           [x:lit
            (define why (if pos? #'(-≡/c x) #'(-≢/c x)))
-           (hack:make-available (-o) MΓ+/-oW/handler)
+           (hack:make-available (-o) Γ+/-oW/handler)
            (push-local-thunk!
             (gen-name!)
             (list #'(define bₓ (-b x))
-                  #`(MΓ+/-oW/handler
+                  #`(Γ+/-oW/handler
                      #,(->id (on-done why pos?))
                      #,(->id (on-done why (not pos?)))
-                     #,(-M) #,(-σ) #,(-Γ) 'equal? #,W (-W¹ bₓ bₓ))))]
+                     #,(-σ) #,(-Γ) 'equal? #,W (-W¹ bₓ bₓ))))]
           [(~literal any/c) (on-done #''any/c pos?)]
           [(~literal none/c) (on-done #'not/c (not pos?))]
           [c:id
            (define/with-syntax p (hack:resolve-alias #'c))
            (define why (if pos? #''c #'(-not/c 'c)))
-           (hack:make-available (-o) MΓ+/-oW/handler)
+           (hack:make-available (-o) Γ+/-oW/handler)
            (push-local-thunk!
             (gen-name!)
-            #`(MΓ+/-oW/handler
+            #`(Γ+/-oW/handler
                #,(->id (on-done why pos?))
                #,(->id (on-done why (not pos?)))
-               #,(-M) #,(-σ) #,(-Γ) p #,W))]))
+               #,(-σ) #,(-Γ) p #,W))]))
 
       (define entry-name
         (go! c #t
@@ -693,7 +692,7 @@
        (list
         #`(match #,(-Ws)
             [(list #,@(-Wₙ))
-             (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
+             (match-define (-Σ #,(-σ) _) #,(-Σ))
              #,@body]
             [_
              #,((-gen-blm)
@@ -701,13 +700,13 @@
                   #`(blm-arity (-ℒ-app #,(-ℒ)) '#,(-o) #,n (map -W¹-V #,(-Ws)))))]))]
       [(arity-at-least 0)
        (list* #`(define #,(-W*) #,(-Ws))
-              #`(match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
+              #`(match-define (-Σ #,(-σ) _) #,(-Σ))
               body)]
       [(arity-at-least n)
        (list
         #`(match #,(-Ws)
             [(list* #,@(-Wₙ) #,(-W*))
-             (match-define (-Σ #,(-σ) _ #,(-M)) #,(-Σ))
+             (match-define (-Σ #,(-σ) _) #,(-Σ))
              #,@body]
             [_
              #,((-gen-blm)

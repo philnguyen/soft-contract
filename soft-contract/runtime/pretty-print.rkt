@@ -21,10 +21,6 @@
       [(-ς↑ αₖ Γ ⟪ℋ⟫) `(ev: ,⟪ℋ⟫ ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
       [(-ς↓ αₖ Γ A)  `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
-  (define (show-Σ [Σ : -Σ]) : (Values (Listof Sexp) (Listof Sexp) (Listof Sexp))
-    (match-define (-Σ σ σₖ M) Σ)
-    (values (show-σ σ) (show-σₖ σₖ) (show-M M)))
-
   (define (show-σ [σ : (U -σ (HashTable ⟪α⟫ (℘ -V)))]) : (Listof Sexp)
     (cond [(-σ? σ) (show-σ (-σ-m σ))]
           [else
@@ -74,10 +70,6 @@
   (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
     (for/list ([(αₖ κs) σₖ])
       `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
-
-  (define (show-M [M : (U -M (HashTable -αₖ (℘ -ΓA)))]) : (Listof Sexp)
-    (for/list ([(αₖ As) M])
-      `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
 
   (define show-blm-reason : ((U -V -v -h) → Sexp)
     (match-lambda

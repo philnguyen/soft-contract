@@ -86,7 +86,6 @@
                       [-ℒ #'ℒ]
                       [-Σ #'Σ]
                       [-σ #'σ]
-                      [-M #'M]
                       [-Γ #'Γ]
                       [-Ws #'Ws]
                       [-Wₙ (gen-ids #'W 'W n)]
@@ -175,7 +174,6 @@
                                [-ℒ #'ℒ]
                                [-Σ #'Σ]
                                [-σ #'σ]
-                               [-M #'M]
                                [-Γ #'Γ]
                                [-Ws #'Ws]
                                [-Wₙ (syntax->list #'(W ...))]
@@ -304,7 +302,7 @@
      (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕! ?t@ +● ⊥ρ)
      #`(def-ext (o $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
-         (match-define (-Σ σ σₖ _) Σ)
+         (match-define (-Σ σ σₖ) Σ)
          (define sₐ (?t@ 'o (-W¹-t W) ...))
          (define Wₐ (-W (list #,(parameterize ([-o #'o]
                                                [-σ #'σ]
@@ -347,7 +345,6 @@
                              [-ℓ #'ℓ]
                              [-Σ #'Σ]
                              [-σ #'σ]
-                             [-M #'M]
                              [-Γ #'Γ]
                              [-⟦k⟧ #'⟦k⟧]
                              [-$ #'$]

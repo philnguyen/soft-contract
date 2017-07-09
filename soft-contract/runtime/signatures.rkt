@@ -24,10 +24,9 @@
             )
   #:transparent)
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
-(define-type -M (HashTable -αₖ (℘ -ΓA)))
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:mutable #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ]) #:mutable #:transparent)
 
 (define-type -cardinality (U 0 1 'N))
 
@@ -132,7 +131,6 @@
             (-t.@ -h (Listof -t)))
 ;; Formula "head" is either a primitive operation or a stack address
 (-h . ::= . -o
-            -αₖ
             ;; Hacky stuff
             -One-Of/C
             (-st/c.mk -𝒾)
@@ -350,8 +348,6 @@
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
-   [⊥M : -M]
-   [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
    [cardinality+ : (-cardinality → -cardinality)]
    [⟪α⟫ₕᵥ : ⟪α⟫]
    [⟪α⟫ₒₚ : ⟪α⟫]
@@ -420,13 +416,11 @@
 
 (define-signature pretty-print^
   ([show-ς : (-ς → Sexp)]
-   [show-Σ : (-Σ → (Values (Listof Sexp) (Listof Sexp) (Listof Sexp)))]
    [show-σ : ((U -σ (HashTable ⟪α⟫ (℘ -V))) → (Listof Sexp))]
    [show-h : (-h → Sexp)]
    [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]
    [show-σₖ : (-σₖ → (Listof Sexp))]
-   [show-M : (-M → (Listof Sexp))]
    [show-blm-reason : ((U -V -v -h) → Sexp)]
    [show-V : (-V → Sexp)]
    [show-⟪α⟫ℓ : (-⟪α⟫ℓ → Symbol)]

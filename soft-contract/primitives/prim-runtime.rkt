@@ -49,11 +49,11 @@
     (eq? R (first-R (apply p∋Vs σ o Vs)
                     (Γ⊢t Γ (apply ?t@ o ss)))))
 
-  (: implement-predicate : -M -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
-  (define (implement-predicate M σ Γ o Ws)
+  (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
+  (define (implement-predicate σ Γ o Ws)
     (define ss (map -W¹-t Ws))
     (define A
-      (list (case (apply MΓ⊢oW M σ Γ o Ws)
+      (list (case (apply Γ⊢oW σ Γ o Ws)
               [(✓) -tt]
               [(✗) -ff]
               [(?) (+● 'boolean?)])))
@@ -63,8 +63,8 @@
     (λ (o)
       (λ (⟪ℋ⟫ ℒ Σ Γ Ws)
         (cond [(equal? n (length Ws))
-               (match-define (-Σ σ _ M) Σ)
-               (implement-predicate M σ Γ o Ws)]
+               (match-define (-Σ σ _) Σ)
+               (implement-predicate σ Γ o Ws)]
               [else
                {set (-ΓA (-Γ-facts Γ) (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
 

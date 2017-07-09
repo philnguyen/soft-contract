@@ -47,7 +47,7 @@
   (def-pred procedure?)
 
   (def-ext (apply $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-Σ σ _ M) Σ)
+    (match-define (-Σ σ _) Σ)
     (define-values (ℓ l) (unpack-ℒ ℒ))
 
     (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
@@ -105,10 +105,10 @@
     ;; Make sure there is at least the function and rest args
     (match Ws
       [(list W-func W-inits ... W-rest)
-       (MΓ+/-oW/handler
+       (Γ+/-oW/handler
         (check-func-arity W-func (cast W-inits (Listof -W¹)) W-rest)
         (blm-for 'procedure? (list (-W¹-V W-func)))
-        M σ Γ 'procedure? W-func)]
+        σ Γ 'procedure? W-func)]
       [_
        (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))

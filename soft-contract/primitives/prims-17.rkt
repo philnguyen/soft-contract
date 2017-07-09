@@ -31,7 +31,7 @@
 
   (def-ext (unsafe-struct-ref $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wᵥ any/c] [Wᵢ integer?])
-    (match-define (-Σ σ _ M) Σ)
+    (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (define sₐ
@@ -46,7 +46,7 @@
        (define n (get-struct-arity 𝒾))
        (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
                             [i : Natural (in-naturals)]
-                            #:when (plausible-index? M σ Γ Wᵢ i))
+                            #:when (plausible-index? σ Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
                              (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
@@ -55,7 +55,7 @@
        (match-define (-l³ l+ l- lo) l³)
        (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
                             [i : Natural (in-naturals)]
-                            #:when (plausible-index? M σ Γ Wᵢ i))
+                            #:when (plausible-index? σ Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (cond
                     [(struct-mutable? 𝒾 (assert i index?))
