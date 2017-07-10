@@ -32,7 +32,7 @@
   (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -ΓA) -Σ)
     (define seen : (HashTable -ς Ctx) (make-hash))
     (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ ⊤Γ ⟪ℋ⟫∅))
-    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅)))
+    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥M))
     (define root₀ ; all addresses to top-level definitions are conservatively active
       (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
         (set-add (set-add root₀ (-α->⟪α⟫ 𝒾)) (-α->⟪α⟫ (-α.wrp 𝒾)))))
@@ -77,7 +77,7 @@
           (set! iter (+ 1 iter)))
 
         (define next
-          (match-let ([(-Σ σ mσₖ) Σ])
+          (match-let ([(-Σ σ mσₖ _) Σ])
 
             (define vsn : Ctx (list σ mσₖ))
 
@@ -114,12 +114,12 @@
             (∪ next-from-ς↑s next-from-ς↓s)))
         (loop! next)))
 
-    (match-let ([(-Σ σ σₖ) Σ])
+    (match-let ([(-Σ σ σₖ _) Σ])
       (when (debug-iter?)
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
-      (values #|FIXME!!!|# ∅ Σ)))
+      (values (M@ Σ αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
   (define (ς->⟪α⟫s [ς : -ς] [σₖ : -σₖ]) : (℘ ⟪α⟫)

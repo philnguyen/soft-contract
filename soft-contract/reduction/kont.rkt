@@ -70,6 +70,8 @@
                (match A
                  [(-W (list V) s) (-W (list (V+ (-Σ-σ Σ) V (predicates-of Γ s))) s)]
                  [_ A]))
+             ;; TODO only need to save results for top-most block in "production" mode
+             (M⊕! Σ αₖ (-ΓA (-Γ-facts Γ) A*))
              (maybe-print-blame)
              {set (-ς↓ αₖ Γ A*)}])))
       (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)

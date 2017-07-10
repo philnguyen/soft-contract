@@ -275,4 +275,9 @@
   (: show-loc : -loc → Sexp)
   (define (show-loc [l : -loc])
     l)
+
+  (: show-M : -M → (Listof Sexp))
+  (define (show-M M)
+    (for/list ([(α As) (in-hash M)])
+      `(,(show-αₖ α) ↦ ,(set-map As show-ΓA))))
   )

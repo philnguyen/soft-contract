@@ -20,9 +20,10 @@
 
 (define-type -σ (HashTable ⟪α⟫ (℘ -V)))
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
+(define-type -M (HashTable -αₖ (℘ -ΓA)))
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ]) #:mutable #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:mutable #:transparent)
 
 (define-type -cardinality (U 0 1 'N))
 
@@ -343,6 +344,8 @@
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
+   [⊥M : -M]
+   [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
    [cardinality+ : (-cardinality → -cardinality)]
    [⟪α⟫ₕᵥ : ⟪α⟫]
    [⟪α⟫ₒₚ : ⟪α⟫]
@@ -401,7 +404,8 @@
 
 (define-signature pretty-print^
   ([show-ς : (-ς → Sexp)]
-   [show-σ : ((U -σ (HashTable ⟪α⟫ (℘ -V))) → (Listof Sexp))]
+   [show-σ : (-σ → (Listof Sexp))]
+   [show-M : (-M → (Listof Sexp))]
    [show-h : (-h → Sexp)]
    [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]

@@ -552,6 +552,10 @@
                (go-V V Vsₖ Vsᵥ))]))
 
     (go-α αₕ ∅ ∅))
+
+  (: M⊕! : -Σ -αₖ -ΓA → Void)
+  (define (M⊕! Σ αₖ ΓA)
+    (set--Σ-M! Σ (hash-update (-Σ-M Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
   )
 
 
