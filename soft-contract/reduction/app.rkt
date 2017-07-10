@@ -415,8 +415,8 @@
          (match V
            [(-St (== 𝒾) αs)
             (define α (list-ref αs i))
-            (define Vs (σ@ σ α))
-            (⟦k⟧ (-W (list V) sₐ) Γ ⟪ℋ⟫ Σ)]
+            (for/union : (℘ -ς) ([V (in-set (σ@ σ α))])
+              (⟦k⟧ (-W (list V) sₐ) Γ ⟪ℋ⟫ Σ))]
            [(-St* (-St/C _ (== 𝒾) αℓs) α l³)
             (match-define (-l³ _ _ lₒ) l³)
             (define Ac (-W¹ ac ac))
