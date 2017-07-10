@@ -217,8 +217,7 @@
                         ([bnd-W bnd-Ws*])
                 (match-define (list (? symbol? x) (? -V? Vₓ) (? -?t? tₓ)) bnd-W)
                 (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
-                (σ⊕! Σ Γ α (-W¹ Vₓ tₓ))
-                (values (ρ+ ρ x α) #|TODO update store cache|# Γ)))
+                (values (ρ+ ρ x α) (σ⊕/Γ! Σ Γ α x (-W¹ Vₓ tₓ)))))
             (⟦e⟧ ρ* Γ* ⟪ℋ⟫ Σ ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
             (⟦e⟧* ρ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
@@ -269,16 +268,16 @@
 
   ;; set!
   (define-frame (set!∷ [α : ⟪α⟫] [⟦k⟧ : -⟦k⟧])
+    (define loc : -loc ;; HACK
+      (match (⟪α⟫->-α α)
+        [(-α.x x _) x]
+        [(? -𝒾? 𝒾) 𝒾]))
     (make-frame (⟦k⟧ A Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W Vs sᵥ) A)
       (match Vs
         [(list V)
-         (σ⊕! Σ Γ α (-W¹ V sᵥ))
-         (define s
-           (match (⟪α⟫->-α α)
-             [(-α.x x _) (-x x)]
-             [(? -𝒾? 𝒾) 𝒾]))
-         (⟦k⟧ (+W (list -void)) Γ ⟪ℋ⟫ Σ)]
+         (define Γ* (σ⊕/Γ! Σ Γ α loc (-W¹ V sᵥ)))
+         (⟦k⟧ (+W (list -void)) Γ* ⟪ℋ⟫ Σ)]
         [_
          (define blm
            (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))
@@ -298,11 +297,10 @@
         [(= n (length Vs))
          (define Γ* ; with side effect widening store
            (for/fold ([Γ : -Γ Γ])
-                     ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
+                     ([x xs] [Vₓ Vs] [tₓ (split-values s n)])
              (define α (ρ@ ρ x))
-             (σ⊕! Σ Γ α (-W¹ Vₓ sₓ))
              (σ-remove! Σ α -undefined)
-             #|TODO update store cache|# Γ))
+             (σ⊕/Γ! Σ Γ α x (-W¹ Vₓ tₓ))))
          (match ⟦bnd⟧s
            ['()
             (⟦e⟧ ρ Γ* ⟪ℋ⟫ Σ ⟦k⟧)]

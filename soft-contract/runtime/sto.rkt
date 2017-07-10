@@ -72,6 +72,14 @@
     (assert (= 1 (set-count Vs)))
     (set-first Vs))
 
+  (: σ@/Γ : (U -Σ -σ) ⟪α⟫ -Γ -loc → (℘ -W¹))
+  (define (σ@/Γ sto α Γ loc)
+    (define σ (if (-Σ? sto) (-Σ-σ sto) sto))
+    (cond [(hash-ref (-Γ-store-cache Γ) loc) => set] ; TODO: use path-condition to filter?
+          [else
+           (for/set: : (℘ -W¹) ([V (in-set (σ@ σ α))])
+             (-W¹ V #f))]))
+
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
   (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))

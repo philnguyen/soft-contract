@@ -38,8 +38,16 @@
 
   (: σ⊕! : -Σ -Γ ⟪α⟫ -W¹ → Void)
   (define (σ⊕! Σ Γ ⟪α⟫ W)
-    (match-define (-W¹ V s) W)
-    (σ⊕V! Σ ⟪α⟫ (V+ (-Σ-σ Σ) V (predicates-of Γ s))))
+    (match-define (-W¹ V t) W)
+    (define V* (V+ (-Σ-σ Σ) V (predicates-of Γ t)))
+    (σ⊕V! Σ ⟪α⟫ V*))
+
+  (: σ⊕/Γ! : -Σ -Γ ⟪α⟫ -loc -W¹ → -Γ)
+  (define (σ⊕/Γ! Σ Γ ⟪α⟫ loc W)
+    (match-define (-W¹ V t) W)
+    (define V* (V+ (-Σ-σ Σ) V (predicates-of Γ t)))
+    (σ⊕V! Σ ⟪α⟫ V*)
+    (Γ-with-cache Γ loc (-W¹ V* t)))
 
   (: σ⊕V! : -Σ ⟪α⟫ -V → Void)
   (define (σ⊕V! Σ α V)
@@ -92,8 +100,9 @@
                           ([Vᵢ (in-set V)])
                   (repeat-compact Vs Vᵢ iter))]))
 
+  (: V+ : -σ -V (U -V -h (℘ -h)) → -V)
   ;; Refine opaque value with predicate
-  (define (V+ [σ : -σ] [V : -V] [P : (U -V -h (℘ -h))]) : -V
+  (define (V+ σ V P)
     
     (define (simplify [P : -V]) : -V
       (match P
@@ -141,6 +150,12 @@
                 [else (show-e P)]))
         
         (printf "V+ ~a ~a -> ~a~n~n" (show-V V) (show-P P) (show-V V*)))))
+
+  (: W¹+ : -σ -Γ -W¹ → -W¹)
+  (define (W¹+ σ Γ W)
+    (match-define (-W¹ V t) W)
+    (define V* (V+ σ V (predicates-of Γ t)))
+    (-W¹ V* t))
 
   ;; Combine 2 predicates for a more precise one.
   ;; Return `#f` if there's no single predicate that refines both

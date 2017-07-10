@@ -273,8 +273,10 @@
     `(□ ,@(map show-t ts) ‖ ,(show-Γ Γ) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
 
   (: show-loc : -loc → Sexp)
-  (define (show-loc [l : -loc])
-    l)
+  (define show-loc
+    (match-lambda
+      [(? symbol? s) s]
+      [(-𝒾 x _) x]))
 
   (: show-M : -M → (Listof Sexp))
   (define (show-M M)

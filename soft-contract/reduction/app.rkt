@@ -189,39 +189,36 @@
     (λ (ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
 
-      (define plausible? ; conservative `plausible?` to filter out some
-        #t #;(cond [sₕ
-                    (for/and : Boolean ([γ (in-list (-Γ-tails Γ))])
-                      (match-define (-γ αₖ _ sₕ* _) γ)
-                      (cond [(equal? sₕ sₕ*)
-                             (and (-ℬ? αₖ) (equal? (-ℬ-exp αₖ) ⟦e⟧))]
-                            [else #t]))]
-                   [else #t]))
+      (define abstract-args : (Listof (U (℘ -h) -⟦e⟧))
+        (for/list ([Wₓ (in-list Wₓs)])
+          (predicates-of-W (-Σ-σ Σ) Γ Wₓ)))
+      (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ abstract-args)))
+      (define looped? (equal? ⟪ℋ⟫ ⟪ℋ⟫ₑₑ))
+      ;; Target's environment
+      (define-values (ρ* Γₕ*)
+        (match xs
+          [(? list? xs)
+           ;; TODO: factor out? Always do this with alloc-init-args
+           (values (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs)
+                   (for/fold ([Γₕ : -Γ Γₕ])
+                             ([x (in-list xs)] [Wₓ (in-list Wₓs)])
+                     (Γ-with-cache Γₕ x (W¹+ (-Σ-σ Σ) Γ Wₓ))))]
+          [(-var zs z)
+           (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
+           (define ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀))
+           (define Γₕ*
+             (for/fold ([Γₕ : -Γ Γₕ])
+                       ([x (in-list zs)] [Wₓ (in-list Wₓs)])
+               (Γ-with-cache Γₕ x (W¹+ (-Σ-σ Σ) Γ Wₓ))))
+           (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
+           (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
+           (σ⊕V! Σ αᵣ Vᵣ)
+           (values (ρ+ ρ₀ z αᵣ) (Γ-with-cache Γₕ z (-W¹ Vᵣ z)))]))
 
-      (cond
-        [plausible?
-         (define abstract-args : (Listof (U (℘ -h) -⟦e⟧))
-           (for/list ([Wₓ (in-list Wₓs)])
-             (predicates-of-W (-Σ-σ Σ) Γ Wₓ)))
-         (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ abstract-args)))
-         ;; Target's environment
-         (define ρ* : -ρ
-           (match xs
-             [(? list? xs)
-              (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs)]
-             [(-var zs z)
-              (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-              (define ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀))
-              (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
-              (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
-              (σ⊕V! Σ αᵣ Vᵣ)
-              (ρ+ ρ₀ z αᵣ)]))
-
-         (define αₖ (-ℬ xs ⟦e⟧ ρ* Γₕ ⟪ℋ⟫ₑₑ))
-         (define κ (-κ (memoize-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₓs))
-         (σₖ⊕! Σ αₖ κ)
-         {set (-ς↑ αₖ)}]
-        [else ∅])))
+      (define αₖ (-ℬ xs ⟦e⟧ ρ* Γₕ* ⟪ℋ⟫ₑₑ))
+      (define κ (-κ (memoize-⟦k⟧ ⟦k⟧) Γ ⟪ℋ⟫ sₓs))
+      (σₖ⊕! Σ αₖ κ)
+      {set (-ς↑ αₖ)}))
 
   (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)
   (define ((app-Case-Clo clauses ρₕ Γₕ sₕ) ℒ Wₓs Γ ⟪ℋ⟫ Σ ⟦k⟧)

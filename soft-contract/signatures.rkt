@@ -51,6 +51,7 @@
 ;; Could have named it "misc"...
 (define-signature widening^
   ([σ⊕! : (-Σ -Γ ⟪α⟫ -W¹ → Void)]
+   [σ⊕/Γ! : (-Σ -Γ ⟪α⟫ -loc -W¹ → -Γ)]
    [σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
    [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
    [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
@@ -60,6 +61,7 @@
    [M⊕! : (-Σ -αₖ -ΓA → Void)]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
+   [W¹+ : (-σ -Γ -W¹ → -W¹)]
    [predicates-of-W : (-σ -Γ -W¹ → (U (℘ -h) -⟦e⟧))]
    [add-leak! : (-Σ -V → Void)]
    [alloc-init-args! : (-Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)]

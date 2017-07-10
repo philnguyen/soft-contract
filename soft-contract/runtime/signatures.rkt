@@ -115,7 +115,7 @@
 ;;;;; Symbols and Path Conditions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-loc . ::= . Symbol ; variable
+(-loc . ::= . Symbol -𝒾 ; references
       )
 
 ;; Path condition is set of terms known to have evaluated to non-#f
@@ -340,6 +340,7 @@
    [σ@ : ((U -Σ -σ) ⟪α⟫ → (℘ -V))]
    [σ@¹ : ((U -Σ -σ) ⟪α⟫ → -V)]
    [σ@/list : ((U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))]
+   [σ@/Γ : ((U -Σ -σ) ⟪α⟫ -Γ -loc → (℘ -W¹))]
    [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
@@ -367,6 +368,8 @@
 
 (define-signature pc^
   ([⊤Γ : -Γ]
+   [Γ-with-cache : (-Γ -loc -W¹ → -Γ)]
+   [Γ-without-cache : (-Γ -loc → -Γ)]
    [t-contains? : (-t -t → Boolean)]
    [t-contains-any? : (-t (℘ -t) → Boolean)]
    [bin-o->h : (-special-bin-o → Base → -h)]

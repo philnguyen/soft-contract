@@ -16,6 +16,18 @@
   (import env^)
   (export pc^)
 
+  (define ⊤Γ (-Γ ∅ (hash)))
+
+  (: Γ-with-cache : -Γ -loc -W¹ → -Γ)
+  (define (Γ-with-cache Γ loc W)
+    (match-define (-Γ φs $) Γ)
+    (-Γ φs (hash-set $ loc W)))
+
+  (: Γ-without-cache : -Γ -loc → -Γ)
+  (define (Γ-without-cache Γ loc)
+    (match-define (-Γ φs $) Γ)
+    (-Γ φs (hash-remove $ loc)))
+
   (: t-contains? : -t -t → Boolean)
   (define (t-contains? t t*)
     (let go ([t : -t t])
@@ -31,8 +43,6 @@
         [t #:when (∋ ts t) #t]
         [(-t.@ _ ts) (ormap go ts)]
         [_ #f])))
-
-  (define ⊤Γ (-Γ ∅ (hash)))
 
   (: bin-o->h : -special-bin-o → Base → -h)
   (define (bin-o->h o)
@@ -410,4 +420,5 @@
       [(-var ts t)
        (and t
             (let ([ts* (go ts)])
-              (and ts* (-var ts* t))))])))
+              (and ts* (-var ts* t))))]))
+  )
