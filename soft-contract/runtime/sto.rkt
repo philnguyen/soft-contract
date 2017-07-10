@@ -74,7 +74,7 @@
 
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
-  (define ⊥σ : -σ (hasheq))
+  (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
 
   (: cardinality+ : -cardinality → -cardinality)
   (define (cardinality+ c)
