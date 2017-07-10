@@ -177,7 +177,7 @@
   ;;;;; Simplification
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (: ?t@ : -h -?t * → -?t)
+  (: ?t@ : (Option -h) -?t * → -?t)
   (define (?t@ f . xs)
 
     (: t@ : -h -t * → -t)
@@ -291,7 +291,7 @@
         ; General case
         [_ (default-case)]))
 
-    (and (andmap -t? xs) (apply t@ f xs)))
+    (and f (andmap -t? xs) (apply t@ f xs)))
 
   (define op-≡? (match-λ? '= 'equal? 'eq? 'char=? 'string=?))
 

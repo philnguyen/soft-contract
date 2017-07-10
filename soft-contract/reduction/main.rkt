@@ -162,40 +162,20 @@
     (define σ (-Σ-σ Σ))
     
     (for/union : (℘ -ς) ([ς ςs])
-               (match-define (-ς↓ αₖ Γₑₑ A) ς)
-               (define fml : (Option -formals)
-                 (match αₖ
-                   [(-ℬ xs _ _ _ _) xs]
-                   [(-ℳ x _ _ _ _ _ _) (list x)]
-                   [(-ℱ x _ _ _ _ _ _) (list x)]
-                   [(? -ℋ𝒱?) #f]))
-
-               (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖ))])
-                          (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tₓs) κ)
-                          (define looped? (equal? αₖ (⟦k⟧->αₖ ⟦k⟧)))
-                          (match A
-                            [(-W Vs sₐ)
-                             (define sₐ*
-                               (and sₐ
-                                    (match* (αₖ tₓs)
-                                      [((? -ℳ?) (list t)) t]
-                                      [((-ℬ (list x) _ _ _ _) (list t)) ; inline some
-                                       #:when (and (not looped?)
-                                                   (match? sₐ (-t.@ (? -o? o) (list (-x (== x))))))
-                                       (match-define (-t.@ o _) sₐ)
-                                       (?t@ o t)]
-                                      [((-ℬ (? list? xs) _ _ _ _) ts)
-                                       #:when (and (-x? sₐ)
-                                                   (memq (-x-_0 sₐ) xs)
-                                                   (not (and looped? (>= (length xs) 3))))
-                                       (for/or : -?t ([z xs] [t ts] #:when (eq? z (-x-_0 sₐ)))
-                                         t)]
-                                      [(_ _) #|FIXME|# #f])))
-                             (⟦k⟧ (-W Vs sₐ*) Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)]
-                            [(? -blm? blm)
-                             (match-define (-blm l+ lo _ _ _) blm)
-                             (cond [(symbol? l+) ∅]
-                                   [else (⟦k⟧ blm Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
+      (match-define (-ς↓ αₖₑₑ Γₑₑ A) ς)
+      (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
+        (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tᵣₑₛ sames ambgs) κ)
+        (define αₖₑᵣ (⟦k⟧->αₖ ⟦k⟧))
+        (define looped? (equal? αₖₑₑ αₖₑᵣ))
+        (match A
+          [(-W Vs tₐ)
+           (define tₐ* (and tₐ tᵣₑₛ))
+           (define Γₑᵣ* #|TODO|# Γₑᵣ)
+           (⟦k⟧ (-W Vs tₐ*) Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
+          [(? -blm? blm)
+           (match-define (-blm l+ lo _ _ _) blm)
+           (cond [(symbol? l+) ∅]
+                 [else (⟦k⟧ blm Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
   )
 
 (define-compound-unit/infer reduction@

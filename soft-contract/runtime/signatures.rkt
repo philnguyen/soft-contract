@@ -31,7 +31,9 @@
 (struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
             [pc : -Γ]       ; path-condition to use for rest of computation
             [⟪ℋ⟫ : -⟪ℋ⟫]    ; abstraction of call history
-            [args : (Listof -?t)])
+            [res : -?t]
+            [same : (℘ -loc)]
+            [ambg : (℘ -loc)])
   #:transparent)
 
 
@@ -130,7 +132,7 @@
             -v
             (-t.@ -h (Listof -t)))
 ;; Formula "head" is either a primitive operation or a stack address
-(-h . ::= . -o
+(-h . ::= . -t ; TODO restrict
             ;; Hacky stuff
             -One-Of/C
             (-st/c.mk -𝒾)
@@ -377,7 +379,7 @@
    [neg-bin-o : (-special-bin-o → -special-bin-o)]
    [complement? : (-t -t →  Boolean)]
    ;; simp
-   [?t@ : (-h -?t * → -?t)]
+   [?t@ : ((Option -h) -?t * → -?t)]
    [op-≡? : (Any → Boolean)]
    ;; split
    [-struct/c-split : (-?t -𝒾 → (Listof -?t))]

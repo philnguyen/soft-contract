@@ -22,7 +22,7 @@
 
   ;; Strengthen path condition `Γ` with `s`
   (define (Γ+ [Γ : -Γ] . [ts : -?t *]) : -Γ
-    (match-define (-Γ φs as) Γ)
+    (match-define (-Γ φs $) Γ)
     (define φs*
       (for/fold ([φs : (℘ -t) φs]) ([t ts]
                                     #:when t
@@ -32,7 +32,7 @@
             [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]
             [_ t]))
         (φs+ φs t*)))
-    (-Γ φs* as))
+    (-Γ φs* $))
 
   (define (Γ++ [Γ : -Γ] [φs : (℘ -t)]) : -Γ (apply Γ+ Γ (set->list φs)))
 
@@ -322,9 +322,9 @@
   (define (φs⊑ [φs₁ : (℘ -t)] [φs₂ : (℘ -t)]) : Boolean (⊆ φs₂ φs₁))
 
   (define (Γ⊑ [Γ₁ : -Γ] [Γ₂ : -Γ]) : Boolean
-    (match-define (-Γ φs₁ as₁) Γ₁)
-    (match-define (-Γ φs₂ as₂) Γ₂)
-    (and (equal? as₁ as₂) (⊆ φs₂ φs₁)))
+    (match-define (-Γ φs₁ $₁) Γ₁)
+    (match-define (-Γ φs₂ $₂) Γ₂)
+    (and (equal? #|TODO|# $₁ $₂) (⊆ φs₂ φs₁)))
 
   (define (?Γ⊔ [Γ₁ : (℘ -t)] [Γ₂ : (℘ -t)]) : (Option (℘ -t))
     (define-values (Γ* δΓ₁ δΓ₂) (set-intersect/differences Γ₁ Γ₂))
@@ -380,24 +380,28 @@
 
     (: κ⊑ : -κ -κ → Boolean)
     (define (κ⊑ κ₁ κ₂)
-      (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ args₁) κ₁)
-      (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ args₂) κ₂)
+      (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ res₁ sames₁ ambgs₁) κ₁)
+      (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ res₂ sames₂ ambgs₂) κ₂)
       (and (equal? ⟦k⟧₁ ⟦k⟧₂)
            (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
-           (andmap t⊑ args₁ args₂)
+           (equal? sames₁ sames₂)
+           (equal? ambgs₁ ambgs₂)
+           (t⊑ res₁ res₂)
            (Γ⊑ Γ₁ Γ₂)))
 
     (cond [(κ⊑ κ₁ κ₂) κ₂]
           [(κ⊑ κ₂ κ₁) κ₁]
           [else
-           (match-define (-κ ⟦k⟧₁ (-Γ φs₁ as₁) ⟪ℋ⟫₁ args₁) κ₁)
-           (match-define (-κ ⟦k⟧₂ (-Γ φs₂ as₂) ⟪ℋ⟫₂ args₂) κ₂)
+           (match-define (-κ ⟦k⟧₁ (-Γ φs₁ $₁) ⟪ℋ⟫₁ res₁ sames₁ ambgs₁) κ₁)
+           (match-define (-κ ⟦k⟧₂ (-Γ φs₂ $₂) ⟪ℋ⟫₂ res₂ sames₂ ambgs₂) κ₂)
            (cond [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
                        (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
-                       (andmap t⊑ args₁ args₂)
-                       (equal? as₁ as₂))
+                       (equal? sames₁ sames₂)
+                       (equal? ambgs₁ ambgs₂)
+                       (t⊑ res₁ res₂)
+                       (equal? #|TODO|# $₁ $₂))
                   (define ?φs (?Γ⊔ φs₁ φs₂))
-                  (and ?φs (-κ ⟦k⟧₂ (-Γ ?φs as₂) ⟪ℋ⟫₂ args₂))]
+                  (and ?φs (-κ ⟦k⟧₂ (-Γ ?φs $₂) ⟪ℋ⟫₂ res₂ sames₂ ambgs₂))]
                  [else #f])]))
 
   (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
