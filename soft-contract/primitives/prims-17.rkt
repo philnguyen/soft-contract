@@ -31,7 +31,6 @@
 
   (def-ext (unsafe-struct-ref ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wᵥ any/c] [Wᵢ integer?])
-    (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (define sₐ
@@ -46,27 +45,27 @@
        (define n (get-struct-arity 𝒾))
        (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
                             [i : Natural (in-naturals)]
-                            #:when (plausible-index? σ Γ Wᵢ i))
+                            #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (for/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
+                  (for/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
                              (⟦k⟧ (-W (list V) sₐ) Γ* ⟪ℋ⟫ Σ)))]
       [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ l³)
        (define n (get-struct-arity 𝒾))
        (match-define (-l³ l+ l- lo) l³)
        (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
                             [i : Natural (in-naturals)]
-                            #:when (plausible-index? σ Γ Wᵢ i))
+                            #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (cond
                     [(struct-mutable? 𝒾 (assert i index?))
                      (define c #f #;(⟪α⟫->s (car ⟪γ⟫ℓ)))
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
-                                           [C (in-set (σ@ σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
+                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
+                                           [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
                                  (app ℒ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ
                                       (mon.c∷ l³ (ℒ-with-mon ℒ (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                     [else
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
-                                           [C (in-set (σ@ σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
+                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
+                                           [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
                                  (app ℒ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
       [_
        (⟦k⟧ (-W (list (+●)) sₐ) Γ ⟪ℋ⟫ Σ)]))

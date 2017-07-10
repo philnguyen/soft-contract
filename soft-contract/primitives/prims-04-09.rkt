@@ -109,8 +109,8 @@
            (define ℒ (-ℒ ∅eq ℓ))
            (define αₕ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
            (define αₜ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
-           (for ([Vₕ (σ@ σ αₕ)]) (σ⊕! Σ αₕ* Vₕ))
-           (define Vₜs (set-add (σ@ σ αₜ) V₂))
+           (for ([Vₕ (σ@ Σ αₕ)]) (σ⊕! Σ αₕ* Vₕ))
+           (define Vₜs (set-add (σ@ Σ αₜ) V₂))
            (for ([Vₜ* Vₜs]) (σ⊕! Σ αₜ* Vₜ*))
            (-Cons αₕ* αₜ*)]
           [(_ _) (-● {set 'list?})]))
@@ -140,7 +140,6 @@
     ; FIXME uses 
     #:domain ([Wₚ (any/c . -> . any/c)]
               [Wₗ list?])
-    (match-define (-Σ σ _) Σ)
     (match-define (-W¹ Vₚ sₚ) Wₚ)
     (match-define (-W¹ Vₗ sₗ) Wₗ)
     (define tₐ (?t@ 'map sₚ sₗ))
@@ -148,7 +147,7 @@
       [(-b '()) (⟦k⟧ (-W (list -null) tₐ) Γ ⟪ℋ⟫ Σ)]
       [(-Cons _ _)
        (define ⟦k⟧* (mk-listof∷ tₐ ℒ ⟪ℋ⟫ ⟦k⟧))
-       (for/union : (℘ -ς) ([V (extract-list-content σ Vₗ)])
+       (for/union : (℘ -ς) ([V (extract-list-content (-Σ-σ Σ) Vₗ)])
                   (app ℒ Wₚ (list (-W¹ V #f)) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) Γ ⟪ℋ⟫ Σ)]))
   #;(def-prims (andmap ormap) ; FIXME uses
@@ -356,8 +355,8 @@
              [((-b b₁) (-b b₂)) (equal? b₁ b₂)]
              [((-St 𝒾 αs₁) (-St 𝒾 αs₂))
               (for/and : Boolean ([α₁ : ⟪α⟫ αs₁] [α₂ : ⟪α⟫ αs₂])
-                (define Vs₁ (σ@ σ α₁))
-                (define Vs₂ (σ@ σ α₂))
+                (define Vs₁ (σ@ Σ α₁))
+                (define Vs₂ (σ@ Σ α₂))
                 (for/and : Boolean ([V₁* Vs₁]) ; can't use for*/and :(
                   (for/and : Boolean ([V₂* Vs₂])
                     (loop V₁* V₂* (set-add seen (cons V₁ V₂))))))]
@@ -374,8 +373,8 @@
              [((-St 𝒾₁ αs₁) (-St 𝒾₂ αs₂))
               (or (not (equal? 𝒾₁ 𝒾₂))
                   (for/or : Boolean ([α₁ : ⟪α⟫ αs₁] [α₂ : ⟪α⟫ αs₂])
-                    (define Vs₁ (σ@ σ α₁))
-                    (define Vs₂ (σ@ σ α₂))
+                    (define Vs₁ (σ@ Σ α₁))
+                    (define Vs₂ (σ@ Σ α₂))
                     (for/and : Boolean ([V₁ Vs₁])
                       (for/and : Boolean ([V₂ Vs₂])
                         (loop V₁ V₂ (set-add seen (cons V₁ V₂)))))))]
@@ -389,8 +388,8 @@
           [else
            (match Vₗ
              [(-Cons αₕ αₜ)
-              (or (for/and : Boolean ([Vₕ (σ@ σ αₕ)]) (definitely-equal? σ V Vₕ))
-                  (for/and : Boolean ([Vₜ (σ@ σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
+              (or (for/and : Boolean ([Vₕ (σ@ Σ αₕ)]) (definitely-equal? σ V Vₕ))
+                  (for/and : Boolean ([Vₜ (σ@ Σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
              [_ #f])])))
 
     (: definitely-not-member? : -σ -V -St → Boolean)
@@ -401,8 +400,8 @@
           [else
            (match Vₗ
              [(-Cons αₕ αₜ)
-              (and (for/and : Boolean ([Vₕ (σ@ σ αₕ)]) (definitely-not-equal? σ V Vₕ))
-                   (for/and : Boolean ([Vₜ (σ@ σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
+              (and (for/and : Boolean ([Vₕ (σ@ Σ αₕ)]) (definitely-not-equal? σ V Vₕ))
+                   (for/and : Boolean ([Vₜ (σ@ Σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
              [(-b (list)) #t]
              [_ #f])])))
     

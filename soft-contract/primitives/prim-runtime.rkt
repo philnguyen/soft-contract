@@ -63,8 +63,7 @@
     (λ (o)
       (λ (⟪ℋ⟫ ℒ Σ Γ Ws)
         (cond [(equal? n (length Ws))
-               (match-define (-Σ σ _) Σ)
-               (implement-predicate σ Γ o Ws)]
+               (implement-predicate (-Σ-σ Σ) Γ o Ws)]
               [else
                {set (-ΓA (-Γ-facts Γ) (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
 

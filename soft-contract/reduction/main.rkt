@@ -158,7 +158,8 @@
 
   ;; Quick-step on "pop" state
   (define (↝↓! [ςs : (Listof -ς↓)] [Σ : -Σ]) : (℘ -ς)
-    (match-define (-Σ σ σₖ) Σ)
+    (define σₖ (-Σ-σₖ Σ))
+    (define σ (-Σ-σ Σ))
     
     (for/union : (℘ -ς) ([ς ςs])
                (match-define (-ς↓ αₖ Γₑₑ A) ς)

@@ -43,21 +43,19 @@
 
   (: σ⊕V! : -Σ ⟪α⟫ -V → Void)
   (define (σ⊕V! Σ α V)
-    (match-define (-Σ σ _) Σ)
-    (set--Σ-σ! Σ (σ⊕ σ α V)))
+    (set--Σ-σ! Σ (σ⊕ (-Σ-σ Σ) α V)))
 
   (: σ⊕Vs! : -Σ ⟪α⟫ (℘ -V) → Void)
   (define (σ⊕Vs! Σ α Vs)
-    (match-define (-Σ σ _) Σ)
     (define σ*
-      (hash-update σ
+      (hash-update (-Σ-σ Σ)
                    α
                    (λ ([Vs₀ : (℘ -V)])
                      (cond [(set-empty? Vs₀) Vs] ; fast special case
                            [else
                             (for/fold ([Vs* : (℘ -V) Vs₀])
                                       ([V (in-set Vs)])
-                              (Vs⊕ σ Vs* V))]))
+                              (Vs⊕ (-Σ-σ Σ) Vs* V))]))
                    mk-∅))
     (set--Σ-σ! Σ σ*))
 
@@ -354,8 +352,7 @@
            (and ?Γ (-ΓA ?Γ A₂))]))
 
   (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
-    (match-define (-Σ _ σₖ) Σ)
-    (set--Σ-σₖ! Σ (σₖ⊕ σₖ αₖ κ)))
+    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
 
   (define (?κ⊔ [κ₁ : -κ] [κ₂ : -κ]) : (Option -κ)
 

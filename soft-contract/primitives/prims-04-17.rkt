@@ -47,7 +47,6 @@
   (def-pred procedure?)
 
   (def-ext (apply ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-Σ σ _) Σ)
     (define-values (ℓ l) (unpack-ℒ ℒ))
 
     (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
@@ -68,7 +67,7 @@
       (define-simple-macro (with-num-rest-args-check pred #:on-t e₁ #:on-f e₂)
         (let-values ([(ok? er?)
                       (for/fold ([ok? : Boolean #f] [er? : Boolean #f])
-                                ([len (in-set (estimate-list-lengths σ (-W¹-V W-rest)))])
+                                ([len (in-set (estimate-list-lengths (-Σ-σ Σ) (-W¹-V W-rest)))])
                         (if (pred len) (values #t er?) (values ok? #t)))])
           (∪ (if ok? e₁ ∅) (if er? e₂ ∅))))
       
@@ -108,7 +107,7 @@
        (Γ+/-oW/handler
         (check-func-arity W-func (cast W-inits (Listof -W¹)) W-rest)
         (blm-for 'procedure? (list (-W¹-V W-func)))
-        σ Γ 'procedure? W-func)]
+        (-Σ-σ Σ) Γ 'procedure? W-func)]
       [_
        (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
        (⟦k⟧ blm Γ ⟪ℋ⟫ Σ)]))

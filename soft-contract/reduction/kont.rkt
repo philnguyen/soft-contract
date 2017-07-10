@@ -66,7 +66,6 @@
             [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
              ∅]
             [_
-             (match-define (-Σ _ _) Σ)
              (define A*
                (match A
                  [(-W (list V) s) (-W (list (V+ (-Σ-σ Σ) V (predicates-of Γ s))) s)]
@@ -211,7 +210,6 @@
              (cons (list x V tₓ) acc)))
          (match ⟦bnd⟧s
            ['()
-            (match-define (-Σ σ _) Σ)
             (define-values (ρ* Γ*) ; with side effect widening store
               (for/fold ([ρ : -ρ ρ] [Γ : -Γ Γ])
                         ([bnd-W bnd-Ws*])
@@ -296,7 +294,6 @@
       (define n (length xs))
       (cond
         [(= n (length Vs))
-         (match-define (-Σ σ _) Σ)
          (define Γ* ; with side effect widening store
            (for/fold ([Γ : -Γ Γ])
                      ([x xs] [Vₓ Vs] [sₓ (split-values s n)])
@@ -531,9 +528,8 @@
     (define l³ (-l³ l 'dummy- l))
     (make-frame (⟦k⟧ A Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W (list C) c) A)
-      (match-define (-Σ σ _) Σ)
       (define W-C (-W¹ C c))
-      (define Vs (σ@ σ (-α->⟪α⟫ 𝒾)))
+      (define Vs (σ@ Σ (-α->⟪α⟫ 𝒾)))
       (for/union : (℘ -ς) ([V Vs])
                  (mon l³ (-ℒ (seteq ℓ) ℓ) W-C (-W¹ V 𝒾) Γ ⟪ℋ⟫ Σ
                       (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧)))))

@@ -286,9 +286,8 @@
     (define -blm.undefined ; TODO should have had attached location to `x` too?
       (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) +ℓ₀))
     (λ (ρ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (match-define (-Σ σ _) Σ)
       (define α (ρ@ ρ x))
-      (define Vs (σ@ σ α))
+      (define Vs (σ@ Σ α))
       (define φs (-Γ-facts Γ))
       
       (for/union : (℘ -ς) ([V Vs])
