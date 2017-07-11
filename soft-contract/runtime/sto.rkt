@@ -84,13 +84,6 @@
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
   (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
 
-  (: cardinality+ : -cardinality → -cardinality)
-  (define (cardinality+ c)
-    (case c
-      [(0) 1]
-      [(1) 'N]
-      [else 'N]))
-
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Kontinuation store

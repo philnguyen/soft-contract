@@ -25,9 +25,6 @@
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:mutable #:transparent)
 
-(define-type -cardinality (U 0 1 'N))
-
-
 (struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
             [pc : -Γ]       ; path-condition to use for rest of computation
             [⟪ℋ⟫ : -⟪ℋ⟫]    ; abstraction of call history
@@ -349,7 +346,6 @@
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
    [⊥M : -M]
    [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
-   [cardinality+ : (-cardinality → -cardinality)]
    [⟪α⟫ₕᵥ : ⟪α⟫]
    [⟪α⟫ₒₚ : ⟪α⟫]
    ))
