@@ -295,7 +295,7 @@
 (struct -ℬ -αₖ ([var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
 (struct -ℳ -αₖ ([var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ]) #:transparent) ; Contract monitoring
 (struct -ℱ -αₖ ([var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ]) #:transparent) ; Flat checking
-(struct -ℋ𝒱 -αₖ ()) ; Havoc
+(struct -ℋ𝒱 -αₖ () #:transparent) ; Havoc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
