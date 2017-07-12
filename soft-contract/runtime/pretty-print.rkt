@@ -223,10 +223,8 @@
 
   (: show-edge : (U -edge -ℒ) → Sexp)
   (define (show-edge edge)
-    (define (show-arg [arg : (U (℘ -h) -⟦e⟧)]) : Sexp
-      (if (set? arg) (set-map arg show-h) (show-⟦e⟧ arg)))
     (match edge
-      [(-edge ⟦e⟧ ℒ args) `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧) @ ,@(map show-arg args))]
+      [(-edge ⟦e⟧ ℒ) `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧))]
       [(? -ℒ? ℒ) (show-ℒ ℒ)]))
 
   (define show-ℒ : (-ℒ → Sexp)

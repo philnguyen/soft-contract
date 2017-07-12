@@ -398,27 +398,6 @@
   (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
     (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
 
-  ;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value
-  (define (predicates-of-W [σ : -σ] [Γ : -Γ] [W : -W¹]) : (U (℘ -h) -⟦e⟧)
-    (match-define (-W¹ V t) W)
-    (define ps₁ : (U (℘ -h) -⟦e⟧)
-      (match V
-        [(-● ps) ps]
-        [(-St 𝒾 _) {set (-st-p 𝒾)}]
-        [(-St* (-St/C _ 𝒾 _) _ _) {set (-st-p 𝒾)}]
-        [(-Clo _ ⟦e⟧ _ _) ⟦e⟧]
-        [(-b (list)) {set 'null?}]
-        [_ ∅]))
-    (cond
-      [(set? ps₁)
-       (define ps₂
-         (for/set: : (℘ -h) ([p (predicates-of Γ t)]
-                             #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ p V))))
-           p))
-       (∪ ps₁ ps₂)]
-      [else
-       ps₁]))
-
   (define (add-leak! [Σ : -Σ] [V : -V]) : Void
     (when (behavioral? (-Σ-σ Σ) V)
       (σ⊕V! Σ ⟪α⟫ₕᵥ V)))

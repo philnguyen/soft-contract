@@ -188,11 +188,7 @@
     (λ (ℒ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
 
-      (define abstract-args : (Listof (U (℘ -h) -⟦e⟧))
-        ;; FIXME obsolete hack. Get rid of this and `predicates-of-W`
-        (for/list ([Wₓ (in-list Wₓs)])
-          (predicates-of-W (-Σ-σ Σ) Γ Wₓ)))
-      (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ abstract-args)))
+      (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
       (define looped? (equal? ⟪ℋ⟫ ⟪ℋ⟫ₑₑ))
       ;; Target's environment
       (define-values (ρ* $*)
@@ -539,7 +535,7 @@
         [(-var zs z)
          (define n (length zs))
          (define num-remaining-inits (- n num-inits))
-         (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ #|FIXME|# '())))
+         (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
@@ -589,7 +585,7 @@
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (W-inits* W-inits.rest) (split-at W-inits n))
-            (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge #|HACK|# (mk-rt (-W¹ C #f)) ℒ #|FIXME|# '())))
+            (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge #|HACK|# (mk-rt (-W¹ C #f)) ℒ)))
             (define V-rest* (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ W-inits.rest #:end (-W¹-V W-rest)))
             (define W-rest* (-W¹ V-rest* #f))
             (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))])

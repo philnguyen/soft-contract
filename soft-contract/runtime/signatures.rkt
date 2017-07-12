@@ -185,7 +185,7 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -edge ([tgt : -⟦e⟧] [src : -ℒ] [abstract-args : (Listof (U (℘ -h) -⟦e⟧))]) #:transparent)
+(struct -edge ([tgt : -⟦e⟧] [src : -ℒ]) #:transparent)
 (define-type -ℋ (Listof (U -edge -ℒ)))
 (define-interner -⟪ℋ⟫ -ℋ
   #:intern-function-name -ℋ->-⟪ℋ⟫
