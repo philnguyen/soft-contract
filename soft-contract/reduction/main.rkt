@@ -142,7 +142,17 @@
                (match-define (-ς↑ αₖ ) ς)
                (define ⟦k⟧ (rt αₖ))
                (match αₖ
-                 [(-ℬ _ ⟦e⟧ ρ $ Γ ⟪ℋ⟫) (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+                 [(-ℬ _ ⟦e⟧ ρ $ Γ ⟪ℋ⟫)
+                  #;(begin
+                    (printf "executing ~a:~n" (show-⟦e⟧ ⟦e⟧))
+                    (printf "env:~n")
+                    (for ([(x α) (in-hash ρ)])
+                      (printf "  ~a ↦ ~a~n" x (show-⟪α⟫ α)))
+                    (printf "cache:~n")
+                    (for ([(l W) (in-hash $)])
+                      (printf "  ~a ↦ ~a~n" (show-loc l) (show-W¹ W)))
+                    (printf "~n"))
+                  (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℳ x l³ ℒ C ⟪α⟫ $ Γ ⟪ℋ⟫)
                   (define W-C (-W¹ C #f))
                   (define 𝐱 (-x x))
@@ -170,8 +180,8 @@
         (define $* ($-restore ($-del* $ₑₑ invalidates) restores))
         (match A
           [(-W Vs tₐ)
-           (define tₐ* (and tₐ tᵣₑₛ))
-           (define Γₑᵣ* #|TODO|# Γₑᵣ)
+           (define tₐ* (and tₐ #;tᵣₑₛ))
+           (define Γₑᵣ* (copy-Γ $* Γₑᵣ Γₑₑ))
            (⟦k⟧ (-W Vs tₐ*) $* Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
           [(? -blm? blm)
            (match-define (-blm l+ lo _ _ _) blm)

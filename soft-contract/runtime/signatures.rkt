@@ -375,6 +375,7 @@
 
 (define-signature pc^
   ([⊤Γ : -Γ]
+   [Γ↓ : (-Γ (℘ Symbol) → -Γ)]
    [t-contains? : (-t -t → Boolean)]
    [t-contains-any? : (-t (℘ -t) → Boolean)]
    [bin-o->h : (-special-bin-o → Base → -h)]

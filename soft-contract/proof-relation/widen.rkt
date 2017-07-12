@@ -423,14 +423,16 @@
     (when (behavioral? (-Σ-σ Σ) V)
       (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
 
-  (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)
-  (define (alloc-init-args! Σ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
+  (: alloc-init-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → (Values -ρ -$))
+  (define (alloc-init-args! Σ $ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
     (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
-    (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
-      (match-define (-W¹ Vₓ sₓ) Wₓ)
+    (define σ (-Σ-σ Σ))
+    (for/fold ([ρ : -ρ ρ₀] [$ : -$ $]) ([x xs] [Wₓ Ws])
+      (match-define (-W¹ Vₓ tₓ) Wₓ)
+      (define Vₓ* (V+ σ Vₓ (predicates-of Γₑᵣ tₓ)))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
-      (σ⊕! Σ Γₑᵣ α Wₓ)
-      (ρ+ ρ x α)))
+      (σ⊕V! Σ α Vₓ*)
+      (values (ρ+ ρ x α) ($-set $ x (-W¹ Vₓ* tₓ)))))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V))
   (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ Ws #:end [Vₙ -null])
@@ -566,6 +568,14 @@
   (: M⊕! : -Σ -αₖ -ΓA → Void)
   (define (M⊕! Σ αₖ ΓA)
     (set--Σ-M! Σ (hash-update (-Σ-M Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
+
+  (: copy-Γ : -$ -Γ -Γ → -Γ)
+  (define (copy-Γ $ₜ Γₜ Γₛ)
+    (define dom
+      (for/unioneq : (℘ Symbol) ([W (in-hash-values $ₜ)])
+        (fvₜ (-W¹-t W))))
+    (define Γₛ* (Γ↓ Γₛ dom))
+    (∪ Γₜ Γₛ*))
   )
 
 

@@ -172,11 +172,11 @@
     (λ (ℒ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match (get-prim o)
         [(-⟦o⟧.boxed ⟦o⟧)
-         #;(begin
-             (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
-             (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ Γ Wₓs))])
-               (printf "  - ~a~n" (show-ΓA ans)))
-             (printf "~n"))
+         (begin
+           (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
+           (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℒ Σ $ Γ Wₓs))])
+             (printf "  - ~a~n" (show-ΓA ans)))
+           (printf "~n"))
          (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℒ Σ $ Γ Wₓs))])
            (match-define (-ΓA Γₐ A) ΓA)
            (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ))]
@@ -189,6 +189,7 @@
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
 
       (define abstract-args : (Listof (U (℘ -h) -⟦e⟧))
+        ;; FIXME obsolete hack. Get rid of this and `predicates-of-W`
         (for/list ([Wₓ (in-list Wₓs)])
           (predicates-of-W (-Σ-σ Σ) Γ Wₓ)))
       (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ abstract-args)))
@@ -197,17 +198,18 @@
       (define-values (ρ* $*)
         (match xs
           [(? list? xs)
-           (values (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs)
-                   ($-set* $ xs Wₓs))]
+           (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs)]
           [(-var zs z)
            (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-           (define ρ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀))
+           (define-values (ρ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀))
            (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ Vᵣ)
-           (values (ρ+ ρ₀ z αᵣ) ($-set ($-set* $ zs Ws₀) z (-W¹ Vᵣ z)))]))
+           (values (ρ+ ρ₀ z αᵣ) ($-set $₀ z (-W¹ Vᵣ z)))]))
 
-      (define αₖ (-ℬ xs ⟦e⟧ ρ* $* Γₕ ⟪ℋ⟫ₑₑ))
+      (define Γₕ* (copy-Γ $* Γₕ Γ))
+
+      (define αₖ (-ℬ xs ⟦e⟧ ρ* $* Γₕ* ⟪ℋ⟫ₑₑ))
       (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                     Γ
                     ⟪ℋ⟫
@@ -541,11 +543,11 @@
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
-           (define ρₕ₀ (alloc-init-args! Σ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits))
+           (define-values (ρₕ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
-           (define $* ($-set* ($-set $ z W-rest) zs W-inits))
+           (define $* ($-set $₀ z W-rest))
            (define αₖ (-ℬ xs ⟦e⟧ ρₕ* $* Γₕ ⟪ℋ⟫ₑₑ))
            (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                          Γ

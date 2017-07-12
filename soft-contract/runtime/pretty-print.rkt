@@ -28,6 +28,7 @@
 
   (define (show-h [h : -h]) : Sexp
     (match h
+      [(? -t?) (show-t h)]
       [(? -o?) (show-o h)]
       [(? -αₖ?) (show-αₖ h)]
       [(? -V? V) (show-V V)]
