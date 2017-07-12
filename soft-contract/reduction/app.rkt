@@ -190,22 +190,27 @@
 
       (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
       (define looped? (equal? ⟪ℋ⟫ ⟪ℋ⟫ₑₑ))
+      #;(when looped?
+        (printf "jump looped:~n")
+        (for ([e (in-list (-⟪ℋ⟫->-ℋ ⟪ℋ⟫))])
+          (printf "  - ~a~n" (show-edge e)))
+        (printf "~n"))
       ;; Target's environment
       (define-values (ρ* $*)
         (match xs
           [(? list? xs)
-           (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs)]
+           (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs looped?)]
           [(-var zs z)
            (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-           (define-values (ρ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀))
+           (define-values (ρ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀ looped?))
            (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ Vᵣ)
            (values (ρ+ ρ₀ z αᵣ) ($-set $₀ z (-W¹ Vᵣ z)))]))
 
-      (define Γₕ* (copy-Γ $* Γₕ Γ))
+      (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
 
-      (define αₖ (-ℬ xs ⟦e⟧ ρ* $* Γₕ* ⟪ℋ⟫ₑₑ))
+      (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                     Γ
                     ⟪ℋ⟫
@@ -536,15 +541,17 @@
          (define n (length zs))
          (define num-remaining-inits (- n num-inits))
          (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
+         (define looped? (equal? ⟪ℋ⟫ₑₑ ⟪ℋ⟫))
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
-           (define-values (ρₕ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits))
+           (define-values (ρₕ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits looped?))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₀ z W-rest))
-           (define αₖ (-ℬ xs ⟦e⟧ ρₕ* $* Γₕ ⟪ℋ⟫ₑₑ))
+           (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
+           (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                          Γ
                          ⟪ℋ⟫

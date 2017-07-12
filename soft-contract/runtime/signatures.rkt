@@ -291,15 +291,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(-αₖ . ::= .
-     (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ] [cache : -$] [pc : -Γ] [ctx : -⟪ℋ⟫])
-     ;; Contract monitoring
-     (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [cache : -$] [pc : -Γ] [ctx : -⟪ℋ⟫])
-     ;; Flat checking
-     (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [cache : -$] [pc : -Γ] [ctx : -⟪ℋ⟫])
-     ;; Havoc
-     (-ℋ𝒱 [cache : -$] [ctx : -⟪ℋ⟫])
-     )
+(struct -αₖ ([cache : -$] [ctx : -⟪ℋ⟫]) #:transparent)
+(struct -ℬ -αₖ ([var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
+(struct -ℳ -αₖ ([var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ]) #:transparent) ; Contract monitoring
+(struct -ℱ -αₖ ([var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ]) #:transparent) ; Flat checking
+(struct -ℋ𝒱 -αₖ ()) ; Havoc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

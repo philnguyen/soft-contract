@@ -31,7 +31,7 @@
 
   (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -ΓA) -Σ)
     (define seen : (HashTable -ς Ctx) (make-hash))
-    (define αₖ₀ : -αₖ (-ℬ '() ⟦e⟧ ⊥ρ ⊤$ ⊤Γ ⟪ℋ⟫∅))
+    (define αₖ₀ : -αₖ (-ℬ ⊤$ ⟪ℋ⟫∅ '() ⟦e⟧ ⊥ρ ⊤Γ))
     (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥M))
     (define root₀ ; all addresses to top-level definitions are conservatively active
       (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
@@ -127,9 +127,9 @@
       [(-ς↑ αₖ)
        (define αs₀
          (match αₖ
-           [(-ℬ _ _ ρ _ _ _) (->⟪α⟫s ρ)]
-           [(-ℳ _ _ _ C ⟪α⟫ _ _ _) (set-add (->⟪α⟫s C) ⟪α⟫)]
-           [(-ℱ _ _ _ C ⟪α⟫ _ _ _) (set-add (->⟪α⟫s C) ⟪α⟫)]
+           [(-ℬ _ _ _ _ ρ _) (->⟪α⟫s ρ)]
+           [(-ℳ _ _ _ _ _ C ⟪α⟫ _) (set-add (->⟪α⟫s C) ⟪α⟫)]
+           [(-ℱ _ _ _ _ _ C ⟪α⟫ _) (set-add (->⟪α⟫s C) ⟪α⟫)]
            [(-ℋ𝒱 _ _) {seteq ⟪α⟫ₕᵥ}]))
        (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]
       [(-ς↓ αₖ _ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
@@ -142,7 +142,7 @@
                (match-define (-ς↑ αₖ ) ς)
                (define ⟦k⟧ (rt αₖ))
                (match αₖ
-                 [(-ℬ _ ⟦e⟧ ρ $ Γ ⟪ℋ⟫)
+                 [(-ℬ $ ⟪ℋ⟫ _ ⟦e⟧ ρ Γ)
                   #;(begin
                     (printf "executing ~a:~n" (show-⟦e⟧ ⟦e⟧))
                     (printf "env:~n")
@@ -153,12 +153,12 @@
                       (printf "  ~a ↦ ~a~n" (show-loc l) (show-W¹ W)))
                     (printf "~n"))
                   (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                 [(-ℳ x l³ ℒ C ⟪α⟫ $ Γ ⟪ℋ⟫)
+                 [(-ℳ $ ⟪ℋ⟫ x l³ ℒ C ⟪α⟫ Γ)
                   (define W-C (-W¹ C #f))
                   (define 𝐱 (-x x))
                   (for/union : (℘ -ς) ([V (in-set (σ@ (-Σ-σ Σ) ⟪α⟫))])
                     (mon l³ ℒ W-C (-W¹ V 𝐱) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-                 [(-ℱ x l ℒ C ⟪α⟫ $ Γ ⟪ℋ⟫)
+                 [(-ℱ $ ⟪ℋ⟫ x l ℒ C ⟪α⟫ Γ)
                   (define W-C (-W¹ C #f))
                   (define 𝐱 (-x x))
                   (for/union : (℘ -ς) ([V (in-set (σ@ (-Σ-σ Σ) ⟪α⟫))])
@@ -176,12 +176,11 @@
       (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
         (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tᵣₑₛ restores invalidates) κ)
         (define αₖₑᵣ (⟦k⟧->αₖ ⟦k⟧))
-        (define looped? (equal? αₖₑₑ αₖₑᵣ))
+        (define looped? (equal? (-αₖ-ctx αₖₑₑ) (-αₖ-ctx αₖₑᵣ)))
         (define $* ($-restore ($-del* $ₑₑ invalidates) restores))
         (match A
           [(-W Vs tₐ)
-           (define tₐ* (and tₐ #;tᵣₑₛ))
-           (define Γₑᵣ* (copy-Γ $* Γₑᵣ Γₑₑ))
+           (define-values (tₐ* Γₑᵣ*) (if looped? (values tᵣₑₛ Γₑᵣ) (values tₐ (copy-Γ $* Γₑᵣ Γₑₑ))))
            (⟦k⟧ (-W Vs tₐ*) $* Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
           [(? -blm? blm)
            (match-define (-blm l+ lo _ _ _) blm)

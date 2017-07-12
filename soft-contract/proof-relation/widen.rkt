@@ -396,16 +396,18 @@
     (when (behavioral? (-Σ-σ Σ) V)
       (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
 
-  (: alloc-init-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → (Values -ρ -$))
-  (define (alloc-init-args! Σ $ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
+  (: alloc-init-args! :
+     -Σ -$ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
+  (define (alloc-init-args! Σ $ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws looped?)
     (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
     (define σ (-Σ-σ Σ))
     (for/fold ([ρ : -ρ ρ₀] [$ : -$ $]) ([x xs] [Wₓ Ws])
       (match-define (-W¹ Vₓ tₓ) Wₓ)
       (define Vₓ* (V+ σ Vₓ (predicates-of Γₑᵣ tₓ)))
+      (define tₓ* (if looped? (-x x) tₓ))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕V! Σ α Vₓ*)
-      (values (ρ+ ρ x α) ($-set $ x (-W¹ Vₓ* tₓ)))))
+      (values (ρ+ ρ x α) ($-set $ x (-W¹ Vₓ* tₓ*)))))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V))
   (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ Ws #:end [Vₙ -null])

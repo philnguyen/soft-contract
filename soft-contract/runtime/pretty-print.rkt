@@ -200,17 +200,17 @@
           [else     (error 'show-αₖ "~a" αₖ)]))
 
   (define (show-ℬ [ℬ : -ℬ]) : Sexp
-    (match-define (-ℬ xs ⟦e⟧ ρ _ _ _) ℬ)
+    (match-define (-ℬ _ _ xs ⟦e⟧ ρ _) ℬ)
     (match xs
       ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
       [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
   (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ x l³ ℓ C V _ _ _) ℳ)
+    (match-define (-ℳ _ _ x l³ ℓ C V _) ℳ)
     `(ℳ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
   (define (show-ℱ [ℱ : -ℱ]) : Sexp
-    (match-define (-ℱ x l ℓ C V _ _ _) ℱ)
+    (match-define (-ℱ _ _ x l ℓ C V _) ℱ)
     `(ℱ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
   (define-parameter verbose? : Boolean #f)
