@@ -60,8 +60,6 @@
    [M⊕! : (-Σ -αₖ -ΓA → Void)]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
-   [W¹+ : (-σ -Γ -W¹ → -W¹)]
-   [predicates-of-W : (-σ -Γ -W¹ → (U (℘ -h) -⟦e⟧))]
    [add-leak! : (-Σ -V → Void)]
    [alloc-init-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → (Values -ρ -$))]
    [alloc-rest-args! : ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V)]

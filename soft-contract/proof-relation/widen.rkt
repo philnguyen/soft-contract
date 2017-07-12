@@ -169,12 +169,6 @@
         
         (printf "V+ ~a ~a -> ~a~n~n" (show-V V) (show-P P) (show-V V*)))))
 
-  (: W¹+ : -σ -Γ -W¹ → -W¹)
-  (define (W¹+ σ Γ W)
-    (match-define (-W¹ V t) W)
-    (define V* (V+ σ V (predicates-of Γ t)))
-    (-W¹ V* t))
-
   ;; Combine 2 predicates for a more precise one.
   ;; Return `#f` if there's no single predicate that refines both
   (define p+ : (-h -h → (Option (℘ -h)))
