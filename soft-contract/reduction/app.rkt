@@ -172,7 +172,7 @@
     (λ (ℒ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match (get-prim o)
         [(-⟦o⟧.boxed ⟦o⟧)
-         (begin
+         #;(begin
            (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
            (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℒ Σ $ Γ Wₓs))])
              (printf "  - ~a~n" (show-ΓA ans)))
