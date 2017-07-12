@@ -434,6 +434,7 @@
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
    [show-κ : (-κ → Sexp)]
+   [show-loc : (-loc → Sexp)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    [recall-e : (-⟦e⟧ → (Option -e))]
    [verbose? : (Parameterof Boolean)]
