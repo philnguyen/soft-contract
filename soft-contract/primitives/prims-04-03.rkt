@@ -46,10 +46,10 @@
   (def-pred string?)
   (def-prim make-string ; FIXME all uses
     (exact-nonnegative-integer? char? . -> . (and/c string? (not/c immutable?))))
-  (def-prim/custom (string ⟪ℋ⟫ ℒ Σ Γ Ws) ; FIXME uses, domain check
+  (def-prim/custom (string ⟪ℋ⟫ ℒ Σ $ Γ Ws) ; FIXME uses, domain check
     (define σ (-Σ-σ Σ))
     (define sₐ (apply ?t@ 'string (map -W¹-t Ws)))
-    {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'string? (-not/c 'immutable?)})) sₐ))})
+    {set (-ΓA Γ (-W (list (-● {set 'string? (-not/c 'immutable?)})) sₐ))})
   (def-prim string->immutable-string
     (string? . -> . (and/c string? immutable?)))
   (def-prim string-length
@@ -68,13 +68,13 @@
   (def-prim string-append (() #:rest (listof string?) . ->* . string?)
     #:refinements
     (() #:rest (listof path-string?) . ->* . path-string?))
-  (def-prim/custom (string->list ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (string->list ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     #:domain ([W string?])
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'string->list s))
     (match V
-      [(-b "") {set (-ΓA (-Γ-facts Γ) (-W (list -null) sₐ))}]
+      [(-b "") {set (-ΓA Γ (-W (list -null) sₐ))}]
       [_
        (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
        (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
@@ -82,11 +82,11 @@
        (σ⊕V! Σ αₕ (-● {set 'char?}))
        (σ⊕V! Σ αₜ Vₜ)
        (σ⊕V! Σ αₜ -null)
-       (define Ans {set (-ΓA (-Γ-facts Γ) (-W (list Vₜ) sₐ))})
+       (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
        (match V
          [(-b (? string? s)) #:when (> (string-length s) 0) Ans]
-         [_ (set-add Ans (-ΓA (-Γ-facts Γ) (-W (list -null) sₐ)))])]))
-  (def-prim/custom (list->string ⟪ℋ⟫ ℒ Σ Γ Ws)
+         [_ (set-add Ans (-ΓA Γ (-W (list -null) sₐ)))])]))
+  (def-prim/custom (list->string ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     #:domain ([W (listof char?)])
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ V s) W)
@@ -96,7 +96,7 @@
              {set 'path-string? (-not/c 'immutable?)}]
             [else
              {set 'string? (-not/c 'immutable?)}]))
-    {set (-ΓA (-Γ-facts Γ) (-W (list (-● ps)) sₐ))})
+    {set (-ΓA Γ (-W (list (-● ps)) sₐ))})
   (def-prim/todo build-string
     (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . char?) . -> . string?))
 

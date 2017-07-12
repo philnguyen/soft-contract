@@ -17,14 +17,14 @@
 ;;;;; 5.3 Structure Type Properties
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def-prim/custom (make-struct-type-property ⟪ℋ⟫ ℓ Σ Γ Ws)
+  (def-prim/custom (make-struct-type-property ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     (define tₐ (apply ?t@ 'make-struct-type-property (map -W¹-t Ws)))
     (define ans
       (-W (list (-● {set 'struct-type-property?})
                 (-● {set 'procedure?})
                 (-● {set 'procedure?}))
           tₐ))
-    {set (-ΓA (-Γ-facts Γ) ans)})
+    {set (-ΓA Γ ans)})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

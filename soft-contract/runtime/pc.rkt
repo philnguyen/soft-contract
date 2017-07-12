@@ -16,17 +16,7 @@
   (import env^)
   (export pc^)
 
-  (define ⊤Γ (-Γ ∅ (hash)))
-
-  (: Γ-with-cache : -Γ -loc -W¹ → -Γ)
-  (define (Γ-with-cache Γ loc W)
-    (match-define (-Γ φs $) Γ)
-    (-Γ φs (hash-set $ loc W)))
-
-  (: Γ-without-cache : -Γ -loc → -Γ)
-  (define (Γ-without-cache Γ loc)
-    (match-define (-Γ φs $) Γ)
-    (-Γ φs (hash-remove $ loc)))
+  (define ⊤Γ ∅)
 
   (: t-contains? : -t -t → Boolean)
   (define (t-contains? t t*)
@@ -98,27 +88,16 @@
   (define (t↓ t xs)
     (and (not (set-empty? (∩ (fvₜ t) xs))) #;(⊆ (fv e) xs) t))
 
-  (: ts↓ : (℘ -t) (℘ Symbol) → (℘ -t))
-  (define (ts↓ ts xs)
-    (for*/set: : (℘ -t) ([t ts]
-                         [t* (in-value (t↓ t xs))] #:when t*)
+  (: Γ↓ : -Γ (℘ Symbol) → -Γ)
+  (define (Γ↓ ts xs)
+    (for*/set: : -Γ ([t ts]
+                     [t* (in-value (t↓ t xs))] #:when t*)
       t*))
 
-  (: Γ↓ : -Γ (℘ Symbol) → -Γ)
-  ;; Restrict path-condition to given free variables
-  (define (Γ↓ Γ xs)
-    (match-define (-Γ φs $) Γ)
-    (define φs* (ts↓ φs xs))
-    (define $*
-      (for/hash : (HashTable -loc (Option -W¹)) ([(x W) $] #:when (∋ xs x))
-        (values x W)))
-    (-Γ φs* $*))
-
-  (: predicates-of : (U -Γ (℘ -t)) -?t → (℘ -h))
+  (: predicates-of : -Γ -?t → (℘ -h))
   ;; Extract predicates that hold on given symbol
   (define (predicates-of Γ t)
     (cond
-      [(-Γ? Γ) (predicates-of (-Γ-facts Γ) t)]
       [t
        ;; tmp hack for integer precision
        ;; TODO: these hacks will be obsolete when the `def-prim` DSL is generalized

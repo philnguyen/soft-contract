@@ -51,7 +51,6 @@
 ;; Could have named it "misc"...
 (define-signature widening^
   ([σ⊕! : (-Σ -Γ ⟪α⟫ -W¹ → Void)]
-   [σ⊕/Γ! : (-Σ -Γ ⟪α⟫ -loc -W¹ → -Γ)]
    [σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
    [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
    [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]

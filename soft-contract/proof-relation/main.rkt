@@ -73,7 +73,7 @@
       ((R)
        (cond
          [t
-          (match (local:Γ⊢t (-Γ-facts Γ) t)
+          (match (local:Γ⊢t Γ t)
             ['?
 
              ;; Heuristic avoiding calling out to solvers
@@ -84,11 +84,11 @@
              (define should-call-smt?
                (match t
                  [(-t.@ h ts)
-                  (define ts* (for/set: : (℘ -t) ([t ts] #:unless (-b? t)) t))
+                  (define ts* (for/set: : -Γ ([t ts] #:unless (-b? t)) t))
                   (define (difficult-h? [h : -h]) (memq h '(< > <= >= = equal? eq? eqv?)))
                   (and
                    (difficult-h? h)
-                   (for/or : Boolean ([φ (in-set (-Γ-facts Γ))])
+                   (for/or : Boolean ([φ (in-set Γ)])
                      (and (t-contains-any? φ ts*)
                           (match? φ (-t.@ (? difficult-h?) _)))))]
                  [_ #f]))
@@ -97,11 +97,7 @@
             [R R])]
          [else '?]))
       (when s #;(match? s (-@ 'equal? _ _))
-            (match-define (-Γ φs _ γs) Γ)
-            (for ([φ φs]) (printf "~a~n" (show-t φ)))
-            (for ([γ γs])
-              (match-define (-γ _ blm? sₕ sₓs) γ)
-              (printf "~a ; blm?~a~n" (show-s (apply ?t@ sₕ sₓs)) (and blm? #t)))
+            (for ([φ (in-set Γ)]) (printf "~a~n" (show-t φ)))
             (printf "-----------------------------------------~a~n" R)
             (printf "~a~n~n" (show-e s)))
       ))

@@ -24,7 +24,7 @@
     (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
     (match-define (-W¹ V s) W)
     (match-define (-st-ac 𝒾 i) ac)
-    (define φs (-Γ-facts Γ))
+    (define φs Γ)
     (define s* (?t@ ac s))
     (let go ([V : -V V])
       (match V
@@ -42,7 +42,7 @@
         [(? -●?) {set (-W¹ (+●) s*)}]
         [_ ∅])))
 
-  (: ⊢?/quick : -R -σ (℘ -t) -o -W¹ * → Boolean)
+  (: ⊢?/quick : -R -σ -Γ -o -W¹ * → Boolean)
   ;; Perform a relatively cheap check (i.e. no SMT call) if `(o W ...)` returns `R`
   (define (⊢?/quick R σ Γ o . Ws)
     (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
@@ -57,15 +57,15 @@
               [(✓) -tt]
               [(✗) -ff]
               [(?) (+● 'boolean?)])))
-    {set (-ΓA (-Γ-facts Γ) (-W A (apply ?t@ o ss)))})
+    {set (-ΓA Γ (-W A (apply ?t@ o ss)))})
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦o⟧)
     (λ (o)
-      (λ (⟪ℋ⟫ ℒ Σ Γ Ws)
+      (λ (⟪ℋ⟫ ℒ Σ $ Γ Ws)
         (cond [(equal? n (length Ws))
                (implement-predicate (-Σ-σ Σ) Γ o Ws)]
               [else
-               {set (-ΓA (-Γ-facts Γ) (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
+               {set (-ΓA Γ (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))

@@ -18,8 +18,8 @@
 
   (define (show-ς [ς : -ς]) : Sexp
     (match ς
-      [(-ς↑ αₖ) (show-αₖ αₖ)]
-      [(-ς↓ αₖ Γ A)  `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
+      [(-ς↑ αₖ      ) (show-αₖ αₖ)]
+      [(-ς↓ αₖ $ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
   (define (show-σ [σ : -σ]) : (Listof Sexp)
     (for*/list ([(⟪α⟫ᵢ Vs) (in-hash σ)]
@@ -60,10 +60,11 @@
       [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
 
   (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
-    (match-define (-Γ ts $) Γ)
-    `(,@(set-map ts show-t)
-      ,@(for/list : (Listof Sexp) ([(l W) (in-hash $)])
-          `(,(show-loc l) ↦ ,(if W (show-W¹ W) '⊘)))))
+    (set-map Γ show-t))
+
+  (define (show-$ [$ : -$]) : (Listof Sexp)
+    (for/list : (Listof Sexp) ([(l W) (in-hash $)] #:when W)
+      `(,(show-loc l) ↦ ,(show-W¹ W))))
 
   (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
     (for/list ([(αₖ κs) σₖ])
@@ -198,17 +199,17 @@
           [else     (error 'show-αₖ "~a" αₖ)]))
 
   (define (show-ℬ [ℬ : -ℬ]) : Sexp
-    (match-define (-ℬ xs ⟦e⟧ ρ _ _) ℬ)
+    (match-define (-ℬ xs ⟦e⟧ ρ _ _ _) ℬ)
     (match xs
       ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
       [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
   (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ x l³ ℓ C V _ _) ℳ)
+    (match-define (-ℳ x l³ ℓ C V _ _ _) ℳ)
     `(ℳ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
   (define (show-ℱ [ℱ : -ℱ]) : Sexp
-    (match-define (-ℱ x l ℓ C V _ _) ℱ)
+    (match-define (-ℱ x l ℓ C V _ _ _) ℱ)
     `(ℱ ,x ,(show-V C) ,(show-⟪α⟫ V)))
 
   (define-parameter verbose? : Boolean #f)

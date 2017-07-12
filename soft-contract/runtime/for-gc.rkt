@@ -98,8 +98,7 @@
 
   (: Γ->αₖs : -Γ → (℘ -αₖ))
   (define (Γ->αₖs Γ)
-    (for/union : (℘ -αₖ) ([t (-Γ-facts Γ)])
-               (t->αₖs t)))
+    (for/union : (℘ -αₖ) ([t (in-set Γ)]) (t->αₖs t)))
 
   (: ΓA->αₖs : -ΓA → (℘ -αₖ))
   (define (ΓA->αₖs ΓA)

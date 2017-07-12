@@ -25,19 +25,19 @@
 
   (def-prim/todo flat-named-contract ; FIXME uses
     (any/c flat-contract? . -> . flat-contract?))
-  (def-prim/custom (any/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (any/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     #:domain ([W any/c])
-    {set (-ΓA (-Γ-facts Γ) (-W (list -tt) -tt))})
-  (def-prim/custom (none/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+    {set (-ΓA Γ (-W (list -tt) -tt))})
+  (def-prim/custom (none/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     #:domain ([W any/c])
-    {set (-ΓA (-Γ-facts Γ) (-W (list -ff) -ff))})
+    {set (-ΓA Γ (-W (list -ff) -ff))})
 
   (splicing-local
       
       ((: reduce-contracts : -l ℓ -Σ -Γ (Listof -W¹) (ℓ -W¹ -W¹ → (Values -V -?t)) -W → (℘ -ΓA))
        (define (reduce-contracts lo ℓ Σ Γ Ws comb id)
          (match Ws
-           ['() {set (-ΓA (-Γ-facts Γ) id)}]
+           ['() {set (-ΓA Γ id)}]
            [_
             (define definite-error? : Boolean #f)
             (define maybe-errors
@@ -46,7 +46,7 @@
                                             [(✓)                       #f]
                                             [(✗) (set! definite-error? #t)]
                                             [(?)                        #t ]))
-                (-ΓA (-Γ-facts Γ) (-blm (ℓ-src ℓ) lo '(contract?) (list (-W¹-V W)) ℓ))))
+                (-ΓA Γ (-blm (ℓ-src ℓ) lo '(contract?) (list (-W¹-V W)) ℓ))))
             (cond [definite-error? maybe-errors]
                   [else
                    (define-values (V* t*)
@@ -56,9 +56,9 @@
                             [(cons Wₗ Wsᵣ)
                              (define-values (Vᵣ tᵣ) (loop Wsᵣ (+ 1 i)))
                              (comb (ℓ-with-id ℓ i) Wₗ (-W¹ Vᵣ tᵣ))])))
-                   (set-add maybe-errors (-ΓA (-Γ-facts Γ) (-W (list V*) t*)))])])))
+                   (set-add maybe-errors (-ΓA Γ (-W (list V*) t*)))])])))
     
-    (def-prim/custom (or/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+    (def-prim/custom (or/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
       (: or/c.2 : ℓ -W¹ -W¹ → (Values -V -?t))
       (define (or/c.2 ℓ W₁ W₂)
         (match-define (-W¹ V₁ t₁) W₁)
@@ -74,7 +74,7 @@
         (values C (?t@ 'or/c t₁ t₂)))
       (reduce-contracts 'or/c (-ℒ-app ℒ) Σ Γ Ws or/c.2 (+W (list 'none/c))))
     
-    (def-prim/custom (and/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+    (def-prim/custom (and/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
       (: and/c.2 : ℓ -W¹ -W¹ → (Values -V -?t))
       (define (and/c.2 ℓ W₁ W₂)
         (match-define (-W¹ V₁ t₁) W₁)
@@ -89,7 +89,7 @@
         (values C (?t@ 'and/c t₁ t₂)))
       (reduce-contracts 'and/c (-ℒ-app ℒ) Σ Γ Ws and/c.2 (+W (list 'any/c)))))
 
-  (def-prim/custom (not/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (not/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     #:domain ([W flat-contract?])
     (match-define (-W¹ V t) W)
     (define ℓ (-ℒ-app ℒ))
@@ -97,7 +97,7 @@
     (σ⊕V! Σ α V)
     (define ℓ* (ℓ-with-id ℓ 'not/c))
     (define C (-Not/C (-⟪α⟫ℓ α ℓ*)))
-    {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'not/c t)))})
+    {set (-ΓA Γ (-W (list C) (?t@ 'not/c t)))})
   (def-prim/todo =/c  (real? . -> . flat-contract?))
   (def-prim/todo </c  (real? . -> . flat-contract?))
   (def-prim/todo >/c  (real? . -> . flat-contract?))
@@ -111,7 +111,7 @@
   (def-prim/todo string-len/c (real? . -> . flat-contract?))
   (def-alias false/c not)
   (def-pred printable/c)
-  (def-prim/custom (one-of/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (one-of/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     (define-values (vals ts.rev)
       (for/fold ([vals : (℘ Base) ∅] [ts : (Listof -?t) '()])
                 ([W (in-list Ws)] [i (in-naturals)])
@@ -121,19 +121,19 @@
                     "only support simple values for now, got ~a at ~a~a position"
                     (show-W¹ W) i (case i [(1) 'st] [(2) 'nd] [else 'th]))])))
     (define Wₐ (-W (list (-One-Of/C vals)) (apply ?t@ 'one-of/c (reverse ts.rev))))
-    {set (-ΓA (-Γ-facts Γ) Wₐ)})
+    {set (-ΓA Γ Wₐ)})
   #;[symbols
      (() #:rest (listof symbol?) . ->* . flat-contract?)]
-  (def-prim/custom (vectorof ⟪ℋ⟫ ℒ Σ Γ Ws) ; FIXME uses
+  (def-prim/custom (vectorof ⟪ℋ⟫ ℒ Σ $ Γ Ws) ; FIXME uses
     #:domain ([W contract?])
     (define ℓ (-ℒ-app ℒ))
     (match-define (-W¹ V t) W)
     (define ⟪α⟫ (-α->⟪α⟫ (-α.vectorof t ℓ ⟪ℋ⟫)))
     (σ⊕V! Σ ⟪α⟫ V)
     (define C (-Vectorof (-⟪α⟫ℓ ⟪α⟫ (ℓ-with-id ℓ 'vectorof))))
-    {set (-ΓA (-Γ-facts Γ) (-W (list C) (?t@ 'vectorof t)))})
+    {set (-ΓA Γ (-W (list C) (?t@ 'vectorof t)))})
   (def-prim/todo vector-immutableof (contract? . -> . contract?))
-  (def-prim/custom (vector/c ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (vector/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     ; FIXME uses ; FIXME check for domains to be listof contract
     (define ℓ₀ (-ℒ-app ℒ))
     (define-values (αs ℓs ss) ; with side effect widening store
@@ -144,13 +144,13 @@
         (σ⊕V! Σ ⟪α⟫ V)
         (values ⟪α⟫ (ℓ-with-id ℓ₀ i) t)))
     (define C (-Vector/C (map -⟪α⟫ℓ αs ℓs)))
-    {set (-ΓA (-Γ-facts Γ) (-W (list C) (apply ?t@ 'vector/c ss)))})
+    {set (-ΓA Γ (-W (list C) (apply ?t@ 'vector/c ss)))})
   #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]
   (def-prim/todo box/c ; FIXME uses
     (contract? . -> . contract?))
   (def-prim/todo box-immutable/c (contract? . -> . contract?))
-  (def-prim/custom (listof ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (listof ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     #:domain ([W contract?])
     (match-define (-W¹ C c) W)
     (define ℓ (-ℒ-app ℒ))
@@ -172,7 +172,7 @@
     (σ⊕V! Σ α₁ Cons)
     (σ⊕V! Σ αₕ C)
     (σ⊕V! Σ αₜ Ref)
-    {set (-ΓA (-Γ-facts Γ) (-W (list Ref) (?t@ 'listof c)))})
+    {set (-ΓA Γ (-W (list Ref) (?t@ 'listof c)))})
   (def-prim/todo non-empty-listof (contract? . -> . list-contract?))
   (def-prim/todo list*of (contract? . -> . contract?))
   (def-prim/todo cons/c (contract? contract? . -> . contract?))
@@ -182,7 +182,7 @@
     (contract? . -> . contract?))
   (def-prim/todo procedure-arity-includes/c
     (exact-nonnegative-integer? . -> . flat-contract?))
-  (def-prim/custom (hash/c ⟪ℋ⟫ ℒ Σ Γ Ws) ; FIXME uses
+  (def-prim/custom (hash/c ⟪ℋ⟫ ℒ Σ $ Γ Ws) ; FIXME uses
     #:domain ([Wₖ contract?] [Wᵥ contract?])
     (match-define (-W¹ _ tₖ) Wₖ)
     (match-define (-W¹ _ tᵥ) Wᵥ)
@@ -192,7 +192,7 @@
     (σ⊕! Σ Γ αₖ Wₖ)
     (σ⊕! Σ Γ αᵥ Wᵥ)
     (define V (-Hash/C (-⟪α⟫ℓ αₖ (ℓ-with-id ℓ 'hash/c.key)) (-⟪α⟫ℓ αᵥ (ℓ-with-id ℓ 'hash/c.val))))
-    {set (-ΓA (-Γ-facts Γ) (-W (list V) (?t@ 'hash/c tₖ tᵥ)))})
+    {set (-ΓA Γ (-W (list V) (?t@ 'hash/c tₖ tᵥ)))})
   (def-prim/todo channel/c (contract? . -> . contract?))
   (def-prim/todo continuation-mark-key/c (contract? . -> . contract?))
   ;;[evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]

@@ -66,12 +66,12 @@
              [else
               (define-values (ℓ l) (unpack-ℒ ℒ))
               (-blm l name (list (string->symbol "even number of arg(s)")) (map -W¹-V Ws) ℓ)]))
-         {set (-ΓA (-Γ-facts Γ) A)}))
-    (def-prim/custom (hash ⟪ℋ⟫ ℒ Σ Γ Ws)
+         {set (-ΓA Γ A)}))
+    (def-prim/custom (hash ⟪ℋ⟫ ℒ Σ $ Γ Ws)
       (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hash 'hash-equal?))
-    (def-prim/custom (hasheq ⟪ℋ⟫ ℒ Σ Γ Ws)
+    (def-prim/custom (hasheq ⟪ℋ⟫ ℒ Σ $ Γ Ws)
       (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hasheq 'hash-eq?))
-    (def-prim/custom (hasheqv ⟪ℋ⟫ ℒ Σ Γ Ws)
+    (def-prim/custom (hasheqv ⟪ℋ⟫ ℒ Σ $ Γ Ws)
       (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hasheqv 'hash-eqv?)))
 
   (splicing-local
@@ -87,11 +87,11 @@
           #'(begin
               (def-prim make-hash-1
                 ((listof pair?) . -> . (and/c hash? ctc-immut? eq)))
-              (def-prim/custom (make-hash ⟪ℋ⟫ ℒ Σ Γ Ws)
+              (def-prim/custom (make-hash ⟪ℋ⟫ ℒ Σ $ Γ Ws)
                 (match Ws
-                  ['() {set (-ΓA (-Γ-facts Γ) (-W (list (-● {set 'hash? 'eq refine-immut?}))
+                  ['() {set (-ΓA Γ (-W (list (-● {set 'hash? 'eq refine-immut?}))
                                                   (apply ?t@ 'make-hash (map -W¹-t Ws))))}]
-                  [_ (.make-hash-1 ⟪ℋ⟫ ℒ Σ Γ Ws)])))])
+                  [_ (.make-hash-1 ⟪ℋ⟫ ℒ Σ $ Γ Ws)])))])
        )
     (define-make-hash make-hash hash-equal? #:immutable? #f)
     (define-make-hash make-hasheqv hash-eqv? #:immutable? #f)
@@ -110,7 +110,7 @@
     ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?))
   (def-prim/todo hash-set*! ; FIXME uses
     ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?))
-  (def-ext (hash-set ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (hash-set ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₕ (and/c hash? immutable?)]
               [Wₖ any/c]
               [Wᵥ any/c])
@@ -128,7 +128,7 @@
        (σ⊕! Σ Γ αᵥ* Wᵥ)
        (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
        (define Wₕ* (-W (list Vₕ*) tₐ))
-       (⟦k⟧ Wₕ* Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
       [(-Hash/guard C αₕ l³)
        (define-values (Vsₖ Vsᵥ) (collect-hash-pairs (-Σ-σ Σ) αₕ))
        (σ⊕Vs! Σ αₖ* Vsₖ)
@@ -137,13 +137,13 @@
        (σ⊕! Σ Γ αᵥ* Wᵥ)
        (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
        (define Wₕ* (-W (list Vₕ*) tₐ))
-       (⟦k⟧ Wₕ* Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
       [_
        (define Wₕ* (-W (list (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)) tₐ))
-       (⟦k⟧ Wₕ* Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim/todo hash-set* ; FIXME refine with `eq?` and `eqv?`
     ((and/c hash? immutable?) any/c any/c . -> . (and/c hash? immutable?)))
-  (def-ext (hash-ref ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (hash-ref ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₕ hash?] [Wₖ any/c]) ; FIXME uses
     (match-define (-W¹ Vₕ tₕ) Wₕ)
     (match-define (-W¹ _  tₖ) Wₖ)
@@ -151,14 +151,14 @@
     (match Vₕ
       [(-Hash^ _ αᵥ _)
        (for/union : (℘ -ς) ([V (in-set (σ@ Σ αᵥ))])
-                  (⟦k⟧ (-W (list V) tₐ) Γ ⟪ℋ⟫ Σ))]
+                  (⟦k⟧ (-W (list V) tₐ) $ Γ ⟪ℋ⟫ Σ))]
       [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) αₕ l³)
        (for*/union : (℘ -ς) ([Cᵥ (in-set (σ@ Σ αᵥ))]
                              [Vₕ* (in-set (σ@ Σ αₕ))])
           (define ⟦k⟧* (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵥ) (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
           (define Wₕ* (-W¹ Vₕ* tₕ))
-          (.hash-ref ℒ (list Wₕ* Wₖ) Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
-      [_ (⟦k⟧ (-W (list (+●)) tₐ) Γ ⟪ℋ⟫ Σ)]))
+          (.hash-ref ℒ (list Wₕ* Wₖ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+      [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim hash-ref! ; FIXME precision
     (hash? any/c any/c . -> . any/c))
   (def-prim hash-has-key?
@@ -169,9 +169,9 @@
     ((and/c hash? immutable?) any/c #|FIXME ext|# procedure? . -> . (and/c hash? immutable?)))
   (def-prim hash-remove!
     ((and/c hash? (not/c immutable?)) any/c . -> . void?))
-  (def-prim/custom (hash-remove ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (hash-remove ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     #:domain ([Wₕ hash?] [Wₖ any/c])
-    {set (-ΓA (-Γ-facts Γ) (W¹->W Wₕ))})
+    {set (-ΓA Γ (W¹->W Wₕ))})
   (def-prim hash-clear!
     ((and/c hash? (not/c immutable?)) . -> . void?))
   (def-prim hash-clear

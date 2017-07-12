@@ -8,13 +8,13 @@
          "../runtime/signatures.rkt")
 
 (define-signature local-prover^
-  ([Γ⊢t : ((℘ -t) -?t → -R)]
+  ([Γ⊢t : (-Γ -?t → -R)]
    [⊢V : (-V → -R)]
    [p∋Vs : (-σ (U -h -v -V) -V * → -R)]
    [p⇒p : (-h -h → -R)]
    [ps⇒p : ((℘ -h) -h → -R)]
-   [plausible-V-t? : ((℘ -t) -V -?t → Boolean)]
-   [plausible-W? : ((℘ -t) (Listof -V) -?t → Boolean)]
+   [plausible-V-t? : (-Γ -V -?t → Boolean)]
+   [plausible-W? : (-Γ (Listof -V) -?t → Boolean)]
    [sat-one-of : (-V (℘ Base) → -R)]
    [V-arity : (-V → (Option Arity))]))
 

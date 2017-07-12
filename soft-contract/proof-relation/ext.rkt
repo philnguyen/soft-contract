@@ -72,7 +72,7 @@
   ;;;;; Translation
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (: ⦃Γ⦄ : Ctx (℘ -t) → (Values (℘ (M Z3-Ast)) (℘ Symbol)))
+  (: ⦃Γ⦄ : Ctx -Γ → (Values (℘ (M Z3-Ast)) (℘ Symbol)))
   ;; Translate path condition into a set of Z3 computation each returning an AST of sort Bool
   ;; along with the set of generated free variables
   (define (⦃Γ⦄ ctx Γ)
@@ -499,7 +499,7 @@
       (for ([cmd (in-other-cmds)])
         (cmd))))
 
-  (: collect-usage : (U (℘ -t) -t) * → (Values (℘ Natural) (℘ -o)))
+  (: collect-usage : (U -Γ -t) * → (Values (℘ Natural) (℘ -o)))
   (define (collect-usage . xs)
     (define-set arities : Natural #:eq? #t)
     (define-set prims   : -o)
@@ -510,7 +510,7 @@
         [(-W _ t) #:when t (go-t! t)]
         [_ (void)]))
 
-    (: go-Γ! : (℘ -t) → Void)
+    (: go-Γ! : -Γ → Void)
     (define (go-Γ! Γ) (set-for-each Γ go-t!))
 
     (: go-t! : -t → Void)
@@ -621,10 +621,10 @@
   (toggle-warning-messages! #f)
 
   (define (ext-prove [Γ : -Γ] [t : -t]) : -R
-    (raw-ext-prove (-Γ-facts Γ) t))
+    (raw-ext-prove Γ t))
 
   ;; TODO use `define/memo` once Typed Unit is fixed
-  (define/memo (raw-ext-prove [Γ : (℘ -t)] [t : -t]) : -R
+  (define/memo (raw-ext-prove [Γ : -Γ] [t : -t]) : -R
     (define (set-default-options!)
       (set-options! #:timeout (assert (estimate-time-limit Γ t) fixnum?)
                     #:mbqi? #t
@@ -669,6 +669,6 @@
                                   [(sat unknown) '?])]))
       (printf "  --> ~a~n~n" R)))
 
-  (define (estimate-time-limit [Γ : (℘ -t)] [t : -t]) : Natural
+  (define (estimate-time-limit [Γ : -Γ] [t : -t]) : Natural
     (* (set-count Γ) 3))
 )

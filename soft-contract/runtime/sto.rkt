@@ -72,14 +72,6 @@
     (assert (= 1 (set-count Vs)))
     (set-first Vs))
 
-  (: σ@/Γ : (U -Σ -σ) ⟪α⟫ -Γ -loc → (℘ -W¹))
-  (define (σ@/Γ sto α Γ loc)
-    (define σ (if (-Σ? sto) (-Σ-σ sto) sto))
-    (cond [(hash-ref (-Γ-store-cache Γ) loc) => set] ; TODO: use path-condition to filter?
-          [else
-           (for/set: : (℘ -W¹) ([V (in-set (σ@ σ α))])
-             (-W¹ V #f))]))
-
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
   (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
@@ -107,4 +99,46 @@
     (hash-ref m α mk-∅))
 
   (define (⊥Σ) (-Σ ⊥σ ⊥σₖ ⊥M))
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; Cache
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define ⊤$ : -$ (hash))
+  (define ⊤$* : -$* (hash))
+  
+  (: $-set : -$ -loc -W¹ → -$)
+  (define ($-set $ l W) (hash-set $ l W))
+
+  (: $-set* : -$ (Listof -loc) (Listof -W¹) → -$)
+  (define ($-set* $ ls Ws)
+    (for/fold ([$ : -$ $])
+              ([l (in-list ls)]
+               [W (in-list Ws)])
+      ($-set $ l W)))
+
+  (: $-del : -$ -loc → -$)
+  (define ($-del $ l) (hash-remove $ l))
+
+  (: $@ : (U -Σ -σ) ⟪α⟫ -$ -loc → (℘ -W¹))
+  (define ($@ σ α $ l)
+    (cond [(hash-ref $ l #f) => set] ; TODO: plaus check?
+          [else (for/set: : (℘ -W¹) ([V (in-set (σ@ σ α))])
+                  (-W¹ V #f))]))
+
+  (: $-extract : -$ (Sequenceof -loc) → -$*)
+  (define ($-extract $ ls)
+    (for/hash : -$* ([l ls])
+      (values l (hash-ref $ l #f))))
+
+  (: $-restore : -$ -$* → -$)
+  (define ($-restore $ $*)
+    (for/fold ([$ : -$ $])
+              ([(l ?W) (in-hash $*)])
+      (if ?W ($-set $ l ?W) ($-del $ l))))
+
+  (: $-del* : -$ (Sequenceof -loc) → -$)
+  (define ($-del* $ ls)
+    (for/fold ([$ : -$ $]) ([l ls])
+      ($-del $ l)))
   )

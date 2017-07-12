@@ -49,6 +49,7 @@
   ;; Global parameters that need to be set up for each `def-prim`
   (define-parameter/contract
     ; identifiers available to function body
+    [-$ identifier? #f]
     [-Σ identifier? #f]
     [-Γ identifier? #f]
     [-ℒ identifier? #f]
@@ -110,7 +111,7 @@
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
              [l³ (-l³ (ℓ-src ℓ) '#,(-o) '#,(-o))]
              [grd #,(gen-alloc #'ℓ c)]
-             [⟪α⟫ (-α->⟪α⟫ (-α.fn #,s #,(-ℒ) #,(-⟪ℋ⟫) (ℓ-src ℓ) (-Γ-facts #,(-Γ))))])
+             [⟪α⟫ (-α->⟪α⟫ (-α.fn #,s #,(-ℒ) #,(-⟪ℋ⟫) (ℓ-src ℓ) #,(-Γ)))])
         (σ⊕V! #,(-Σ) ⟪α⟫ #,V)
         (-Ar grd ⟪α⟫ l³)))
 
@@ -216,7 +217,7 @@
             (hack:make-available (-o) ts->bs)
             (list #`[((-b b) ... (app ts->bs #,(-b*))) #:when (and #,(-b*) #,base-guard)
                      (define bₐ mk-bₐ)
-                     {set (-ΓA (-Γ-facts #,(-Γ)) (-W (list bₐ) bₐ))}])]
+                     {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
            [else '()]))
        (define/with-syntax (symbolic-case-clauses ...)
          (list #`[(s ... #,(-s*)) #,@(gen-sym-case)]))
@@ -234,7 +235,7 @@
                 [o #`(-b (o #,@(-bₙ)))]))
             (list #`[((-b b) ...) #:when #,base-guard-init
                      (define bₐ mk-bₐ)
-                     {set (-ΓA (-Γ-facts #,(-Γ)) (-W (list bₐ) bₐ))}])]
+                     {set (-ΓA #,(-Γ) (-W (list bₐ) bₐ))}])]
            [else '()]))
        (define/with-syntax (symbolic-case-clauses ...)
          (list #`[(s ...) #,@(gen-sym-case)]))
@@ -260,7 +261,7 @@
            (or* (for/list ([cᵢ (in-list #'(c* ...))]) (go cᵢ pos?)))]
           [((~literal not/c) d) (go #'d (not pos?))]
           [((~literal cons/c) c₁ c₂)
-           (and* (list #`(⊢?/quick R (-Σ-σ #,(-Σ)) (-Γ-facts #,(-Γ)) -cons? #,W)
+           (and* (list #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) -cons? #,W)
                        (go #'c₁ pos?)
                        (go #'c₂ pos?)))]
           [((~literal listof) _)
@@ -270,15 +271,15 @@
             c)]
           [((~literal list/c) c* ...)
            (go (desugar-list/c (syntax->list #'(c* ...))))]
-          [((~literal =/c ) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) (-Γ-facts #,(-Γ)) '=  #,W (-W¹ (-b x) (-b x)))]
-          [((~literal >/c ) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) (-Γ-facts #,(-Γ)) '>  #,W (-W¹ (-b x) (-b x)))]
-          [((~literal >=/c) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) (-Γ-facts #,(-Γ)) '>= #,W (-W¹ (-b x) (-b x)))]
-          [((~literal </c ) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) (-Γ-facts #,(-Γ)) '<  #,W (-W¹ (-b x) (-b x)))]
-          [((~literal <=/c) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) (-Γ-facts #,(-Γ)) '<= #,W (-W¹ (-b x) (-b x)))]
+          [((~literal =/c ) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) '=  #,W (-W¹ (-b x) (-b x)))]
+          [((~literal >/c ) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) '>  #,W (-W¹ (-b x) (-b x)))]
+          [((~literal >=/c) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) '>= #,W (-W¹ (-b x) (-b x)))]
+          [((~literal </c ) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) '<  #,W (-W¹ (-b x) (-b x)))]
+          [((~literal <=/c) x) #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) '<= #,W (-W¹ (-b x) (-b x)))]
           [(~literal any/c) #'#t]
           [(~literal none/c) #'#f]
           [x:lit #'(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
-          [c:id #`(⊢?/quick R (-Σ-σ #,(-Σ)) (-Γ-facts #,(-Γ)) 'c #,W)])))
+          [c:id #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) 'c #,W)])))
 
     (define/syntax-parse ctc:ff (-sig))
 
@@ -385,13 +386,13 @@
       [(null? (-refs))
        (list #`(define sₐ mk-sₐ)
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                         #`(-ΓA (-Γ-facts #,(-Γ)) (-W (list #,(refs->V refs)) sₐ)))))]
+                         #`(-ΓA #,(-Γ) (-W (list #,(refs->V refs)) sₐ)))))]
       [else
        (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e (-o))))
        (list #`(define sₐ mk-sₐ)
              #`(define (o.refine [V : -V]) #,@(gen-refine-body #'V))
              #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                         #`(-ΓA (-Γ-facts #,(-Γ)) (-W (list (o.refine #,(refs->V refs))) sₐ)))))]))
+                         #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ)))))]))
 
   ;; Generate full precondition check
   (define/contract (gen-precond-checks body)

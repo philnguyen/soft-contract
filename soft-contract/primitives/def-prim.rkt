@@ -35,10 +35,10 @@
 (begin-for-syntax
   (define/contract (gen-blm.prim blm)
     (syntax? . -> . syntax?)
-    #`(set (-ΓA (-Γ-facts #,(-Γ)) #,blm)))
+    #`(set (-ΓA #,(-Γ) #,blm)))
   (define/contract (gen-blm.ext blm)
     (syntax? . -> . syntax?)
-    #`(#,(-⟦k⟧) #,blm #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ)))
+    #`(#,(-⟦k⟧) #,blm #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ)))
   )
 
 (define-syntax-parser def-const
@@ -84,6 +84,7 @@
        (parameterize ([-o #'o]
                       [-⟪ℋ⟫ #'⟪ℋ⟫]
                       [-ℒ #'ℒ]
+                      [-$ #'$]
                       [-Σ #'Σ]
                       [-Γ #'Γ]
                       [-Ws #'Ws]
@@ -99,7 +100,7 @@
                       [-refs (syntax->list #'(ref ...))]
                       [-gen-blm gen-blm.prim]
                       #;[-errs (syntax->list #'((cₑ ...) ...))])
-         #`(define (.o #,(-⟪ℋ⟫) #,(-ℒ) #,(-Σ) #,(-Γ) #,(-Ws))
+         #`(define (.o #,(-⟪ℋ⟫) #,(-ℒ) #,(-Σ) #,(-$) #,(-Γ) #,(-Ws))
              #,@(gen-arity-check arity
                  (gen-precond-checks
                   (gen-ok-case))))))
@@ -159,7 +160,7 @@
         (add-const! #'#,o '#,o)))
   
   (syntax-parse stx
-    [(_ (o:id ⟪ℋ⟫:id ℒ:id Σ:id Γ:id Ws:id)
+    [(_ (o:id ⟪ℋ⟫:id ℒ:id Σ:id $:id Γ:id Ws:id)
         #:domain ([W:id c:fc] ...)
         e:expr ...)
      (define n (length (syntax->list #'(c ...))))
@@ -167,10 +168,11 @@
      (hack:make-available #'o update-arity!)
      (define defn-o
        #`(begin
-           (define (.o ⟪ℋ⟫ ℒ Σ Γ Ws)
+           (define (.o ⟪ℋ⟫ ℒ Σ $ Γ Ws)
              #,@(parameterize ([-o #'o]
                                [-⟪ℋ⟫ #'⟪ℋ⟫]
                                [-ℒ #'ℒ]
+                               [-$ #'Σ]
                                [-Σ #'Σ]
                                [-Γ #'Γ]
                                [-Ws #'Ws]
@@ -188,13 +190,13 @@
                                     (syntax->list #'(e ...))))))
            (update-arity! 'o #,n)))
      (gen-defn #'o #'.o defn-o)]
-    [(_ (o:id ⟪ℋ⟫:id ℒ:id Σ:id Γ:id Ws:id) e:expr ...)
+    [(_ (o:id ⟪ℋ⟫:id ℒ:id Σ:id $:id Γ:id Ws:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
-     (define defn-o #'(define (.o ⟪ℋ⟫ ℒ Σ Γ Ws) e ...))
+     (define defn-o #'(define (.o ⟪ℋ⟫ ℒ Σ $ Γ Ws) e ...))
      (gen-defn #'o #'.o defn-o)]))
 
 (define-simple-macro (def-prim/todo x:id clauses ...)
-  (def-prim/custom (x ⟪ℋ⟫ ℒ Σ Γ Ws)
+  (def-prim/custom (x ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     (error 'def-prim "TODO: ~a" 'x)))
 
 (define-simple-macro (def-prims (o:id ... (~optional (~seq #:todo o*:id ...)
@@ -297,11 +299,12 @@
      (define/syntax-parse (cₓ ...) (attribute c.init))
      (define/syntax-parse d (attribute c.rng))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
-     (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕! ?t@ +● ⊥ρ)
-     #`(def-ext (o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+     (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕! ?t@ +● ⊥ρ ⊤$*)
+     #`(def-ext (o ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (define tₐ (?t@ 'o (-W¹-t W) ...))
          (define Wₐ (-W (list #,(parameterize ([-o #'o]
+                                               [-$ #'$]
                                                [-Σ #'Σ]
                                                [-ℒ #'ℒ]
                                                [-Γ #'Γ]
@@ -310,35 +313,36 @@
                                   (gen-wrap #'d #'(+●) #'tₐ)))
                         tₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
-         (define αₖ (-ℋ𝒱 ⟪ℋ⟫))
-         (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ #f ∅ ∅))
+         (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
+         (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ #f ⊤$* ∅))
          (σₖ⊕! Σ αₖ κ)
          {set (-ς↑ αₖ)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments
-    [(_ (o:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+    [(_ (o:id ℒ:id Ws:id $:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         #:result e)
      (hack:make-available #'o ?t@)
-     #'(def-ext (o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+     #'(def-ext (o ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W c] ...)
          (define sₐ (apply ?t@ 'o (map -W¹-t Ws)))
-         (⟦k⟧ (-W e sₐ) Γ ⟪ℋ⟫ Σ))]
+         (⟦k⟧ (-W e sₐ) $ Γ ⟪ℋ⟫ Σ))]
 
     ;; Custom modes for hacking
-    [(_ (o:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+    [(_ (o:id ℒ:id Ws:id $:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
         #:domain ([W:id c:hc] ...)
         e:expr ...)
      (define n (length (syntax->list #'(W ...))))
      (define/with-syntax .o (prefix-id #'o))
      (define defn-o
-       #`(define (.o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       #`(define (.o ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            (define ℓ (-ℒ-app ℒ))
            #,@(parameterize ([-o #'o]
                              [-⟪ℋ⟫ #'⟪ℋ⟫]
                              [-ℒ #'ℒ]
                              [-ℓ #'ℓ]
                              [-Σ #'Σ]
+                             [-$ #'$]
                              [-Γ #'Γ]
                              [-⟦k⟧ #'⟦k⟧]
                              [-Ws #'Ws]
@@ -358,7 +362,7 @@
      (gen-defn #'o #'.o defn-o)]
     
     ;; Skipping precondition checks
-    [(_ (o:id ℒ:id Ws:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
+    [(_ (o:id ℒ:id Ws:id $:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id) e:expr ...)
      (define/with-syntax .o (prefix-id #'o))
-     (define defn-o #`(define (.o ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
+     (define defn-o #`(define (.o ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) e ...))
      (gen-defn #'o #'.o defn-o)]))

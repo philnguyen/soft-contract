@@ -20,34 +20,52 @@
   (import local-prover^ pc^ sto^ pretty-print^ env^ val^)
   (export widening^)
 
+  (: Γ+ : -Γ -?t * → -Γ)
   ;; Strengthen path condition `Γ` with `s`
-  (define (Γ+ [Γ : -Γ] . [ts : -?t *]) : -Γ
-    (match-define (-Γ φs $) Γ)
-    (define φs*
-      (for/fold ([φs : (℘ -t) φs]) ([t ts]
-                                    #:when t
-                                    #:unless (set-empty? (fvₜ t)))
-        (define t*
-          (match t
-            [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]
-            [_ t]))
-        (φs+ φs t*)))
-    (-Γ φs* $))
+  (define (Γ+ Γ . ts)
 
-  (define (Γ++ [Γ : -Γ] [φs : (℘ -t)]) : -Γ (apply Γ+ Γ (set->list φs)))
+    (: φs+ : -Γ -t → -Γ)
+    (define (φs+ φs φ)
+      
+      (: iter : -Γ -t → (U -Γ (Pairof -Γ -Γ)))
+      (define (iter φs φ)
+        (match (for/or : (Option (List -Γ -t -t)) ([φᵢ φs])
+                 (cond [(φ+ φᵢ φ) => (λ ([φs* : -Γ]) (list φs* φᵢ φ))]
+                       [else #f]))
+          [(list φs* φᵢ φ)
+           (cons (set-remove (set-remove φs φᵢ) φ)
+                 φs*)]
+          [#f (set-add φs φ)]))
+
+      (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) (℘ X)))) → (℘ X)))
+      ;; FIXME code duplicate
+      (define (repeat-compact xs x f)
+        (let loop ([xs : (℘ X) xs] [x : X x])
+          (match (f xs x)
+            [(cons xs₁ xs₂)
+             (for/fold ([acc : (℘ X) xs₁]) ([x xs₂])
+               (loop acc x))]
+            [(? set? s) s])))
+
+      (repeat-compact φs φ iter))
+    
+    (for/fold ([Γ : -Γ Γ])
+              ([t ts]
+               #:when t
+               #:unless (set-empty? (fvₜ t)))
+      (define t*
+        (match t
+          [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]
+          [_ t]))
+      (φs+ Γ t*)))
+
+  (define (Γ++ [Γ : -Γ] [φs : -Γ]) : -Γ (apply Γ+ Γ (set->list φs)))
 
   (: σ⊕! : -Σ -Γ ⟪α⟫ -W¹ → Void)
   (define (σ⊕! Σ Γ ⟪α⟫ W)
     (match-define (-W¹ V t) W)
     (define V* (V+ (-Σ-σ Σ) V (predicates-of Γ t)))
-    (σ⊕V! Σ ⟪α⟫ V*))
-
-  (: σ⊕/Γ! : -Σ -Γ ⟪α⟫ -loc -W¹ → -Γ)
-  (define (σ⊕/Γ! Σ Γ ⟪α⟫ loc W)
-    (match-define (-W¹ V t) W)
-    (define V* (V+ (-Σ-σ Σ) V (predicates-of Γ t)))
-    (σ⊕V! Σ ⟪α⟫ V*)
-    (Γ-with-cache Γ loc (-W¹ V* t)))
+    (σ⊕V! Σ ⟪α⟫ V*))  
 
   (: σ⊕V! : -Σ ⟪α⟫ -V → Void)
   (define (σ⊕V! Σ α V)
@@ -206,31 +224,7 @@
       [(any/c) ps] ; TODO tmp hack. How did this happen?
       [else (repeat-compact ps p iter)]))
 
-  (define (φs+ [φs : (℘ -t)] [φ : -t]) : (℘ -t)
-    
-    (: iter : (℘ -t) -t → (U (℘ -t) (Pairof (℘ -t) (℘ -t))))
-    (define (iter φs φ)
-      (match (for/or : (Option (List (℘ -t) -t -t)) ([φᵢ φs])
-               (cond [(φ+ φᵢ φ) => (λ ([φs* : (℘ -t)]) (list φs* φᵢ φ))]
-                     [else #f]))
-        [(list φs* φᵢ φ)
-         (cons (set-remove (set-remove φs φᵢ) φ)
-               φs*)]
-        [#f (set-add φs φ)]))
-
-    (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) (℘ X)))) → (℘ X)))
-    ;; FIXME code duplicate
-    (define (repeat-compact xs x f)
-      (let loop ([xs : (℘ X) xs] [x : X x])
-        (match (f xs x)
-          [(cons xs₁ xs₂)
-           (for/fold ([acc : (℘ X) xs₁]) ([x xs₂])
-             (loop acc x))]
-          [(? set? s) s])))
-
-    (repeat-compact φs φ iter))
-
-  (define φ+ : (-t -t → (Option (℘ -t)))
+  (define φ+ : (-t -t → (Option -Γ))
     (match-lambda**/symmetry ; FIXME inefficiency, there's no e⊢e
      [(φ ψ) #:when (equal? '✓ (Γ⊢t {set φ} ψ)) {set φ}]
      [(_ _) #f]))
@@ -319,14 +313,12 @@
 
     (go V₁ V₂))
 
-  (define (φs⊑ [φs₁ : (℘ -t)] [φs₂ : (℘ -t)]) : Boolean (⊆ φs₂ φs₁))
+  (define (φs⊑ [φs₁ : -Γ] [φs₂ : -Γ]) : Boolean (⊆ φs₂ φs₁))
 
-  (define (Γ⊑ [Γ₁ : -Γ] [Γ₂ : -Γ]) : Boolean
-    (match-define (-Γ φs₁ $₁) Γ₁)
-    (match-define (-Γ φs₂ $₂) Γ₂)
-    (and (equal? #|TODO|# $₁ $₂) (⊆ φs₂ φs₁)))
+  (: Γ⊑ : -Γ -Γ → Boolean)
+  (define (Γ⊑ Γ₁ Γ₂) (⊆ Γ₂ Γ₁))
 
-  (define (?Γ⊔ [Γ₁ : (℘ -t)] [Γ₂ : (℘ -t)]) : (Option (℘ -t))
+  (define (?Γ⊔ [Γ₁ : -Γ] [Γ₂ : -Γ]) : (Option -Γ)
     (define-values (Γ* δΓ₁ δΓ₂) (set-intersect/differences Γ₁ Γ₂))
     (cond [(and (= 1 (set-count δΓ₁))
                 (= 1 (set-count δΓ₂)))
@@ -392,16 +384,15 @@
     (cond [(κ⊑ κ₁ κ₂) κ₂]
           [(κ⊑ κ₂ κ₁) κ₁]
           [else
-           (match-define (-κ ⟦k⟧₁ (-Γ φs₁ $₁) ⟪ℋ⟫₁ res₁ sames₁ ambgs₁) κ₁)
-           (match-define (-κ ⟦k⟧₂ (-Γ φs₂ $₂) ⟪ℋ⟫₂ res₂ sames₂ ambgs₂) κ₂)
+           (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ res₁ diffs₁ ambgs₁) κ₁)
+           (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ res₂ diffs₂ ambgs₂) κ₂)
            (cond [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
                        (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
-                       (equal? sames₁ sames₂)
+                       (equal? diffs₁ diffs₂)
                        (equal? ambgs₁ ambgs₂)
-                       (t⊑ res₁ res₂)
-                       (equal? #|TODO|# $₁ $₂))
-                  (define ?φs (?Γ⊔ φs₁ φs₂))
-                  (and ?φs (-κ ⟦k⟧₂ (-Γ ?φs $₂) ⟪ℋ⟫₂ res₂ sames₂ ambgs₂))]
+                       (t⊑ res₁ res₂))
+                  (define ?Γ (?Γ⊔ Γ₁ Γ₂))
+                  (and ?Γ (-κ ⟦k⟧₂ ?Γ ⟪ℋ⟫₂ res₂ diffs₂ ambgs₂))]
                  [else #f])]))
 
   (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ

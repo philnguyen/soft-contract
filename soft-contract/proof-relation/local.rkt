@@ -65,7 +65,7 @@
       [(>)  (⊢@ '<  (reverse xs))]
       [else '?]))
 
-  (define (Γ⊢t [φs : (℘ -t)] [t : -?t]) : -R
+  (define (Γ⊢t [φs : -Γ] [t : -?t]) : -R
 
     (when (∋ φs -ff)
       ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
@@ -269,7 +269,7 @@
   (define (base-only? [p : -h]) : Boolean
     (and (symbol? p) (not (memq p '(list? struct?)))))
 
-  (define (plausible-φs-t? [φs : (℘ -t)] [t : -?t]) : Boolean
+  (define (plausible-φs-t? [φs : -Γ] [t : -?t]) : Boolean
     (with-debugging/off
       ((a) (not (eq? '✗ (Γ⊢t φs t))))
       (printf "~a ⊢ ~a : ~a~n"
@@ -277,7 +277,7 @@
               (show-t t)
               (if a 'plausible 'implausible))))
 
-  (define (plausible-V-t? [φs : (℘ -t)] [V : -V] [t : -?t]) : Boolean
+  (define (plausible-V-t? [φs : -Γ] [V : -V] [t : -?t]) : Boolean
     (define-syntax-rule (with-prim-checks p? ...)
       (cond
         [t
@@ -335,7 +335,7 @@
               (set-map φs show-t) (show-V V) (show-t t) (if ans 'plausible 'implausible))))
 
   
-  (: plausible-W? : (℘ -t) (Listof -V) -?t → Boolean)
+  (: plausible-W? : -Γ (Listof -V) -?t → Boolean)
   ;; Check if value(s) `Vs` can instantiate symbol `t` given path condition `φs`
   ;; - #f indicates a definitely bogus case
   ;; - #t indicates (conservative) plausibility

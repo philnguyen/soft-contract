@@ -29,8 +29,8 @@
             [pc : -Γ]       ; path-condition to use for rest of computation
             [⟪ℋ⟫ : -⟪ℋ⟫]    ; abstraction of call history
             [res : -?t]
-            [same : (℘ -loc)]
-            [ambg : (℘ -loc)])
+            [to-restore : -$*]
+            [to-invalid : (℘ -loc)])
   #:transparent)
 
 
@@ -93,7 +93,7 @@
 (struct -W¹ ([V : -V] [t : -?t]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [t : -?t]) #:transparent)
 (-A . ::= . -W -blm)
-(struct -ΓA ([cnd : (℘ -t)] [ans : -A]) #:transparent)
+(struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
 
 (struct -⟪α⟫ℓ ([addr : ⟪α⟫] [loc : ℓ]) #:transparent)
 
@@ -117,11 +117,12 @@
 (-loc . ::= . Symbol -𝒾 ; references
       )
 
+(define-type -$ (HashTable -loc -W¹))
+(define-type -$* (HashTable -loc (Option -W¹)))
+
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable
-(struct -Γ ([facts : (℘ -t)]
-            [store-cache : (HashTable -loc (Option -W¹))])
-  #:transparent)
+(define-type -Γ (℘ -t))
 
 ;; First order term for use in path-condition
 (-t . ::= . -x
@@ -247,7 +248,7 @@
             (-α.dom [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rst [sym : -?t] [loc : ℓ] [ctd : -⟪ℋ⟫])
             (-α.rng [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.fn [sym : (U -?t -⟦e⟧)] [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : (℘ -t)])
+            (-α.fn [sym : (U -?t -⟦e⟧)] [mon-loc : -ℒ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : -Γ])
 
             ;; HACK
             (-α.hv)
@@ -269,10 +270,10 @@
 
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
-(define-type -⟦e⟧ (-ρ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-(define-type -⟦k⟧ (-A -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
-(define-type -⟦o⟧ (-⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) → (℘ -ΓA)))
-(define-type -⟦f⟧ (-ℒ (Listof -W¹) -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦e⟧ (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
+(define-type -⟦o⟧ (-⟪ℋ⟫ -ℒ -Σ -$ -Γ (Listof -W¹) → (℘ -ΓA)))
+(define-type -⟦f⟧ (-ℒ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
 (-Prim . ::= . (-⟦o⟧.boxed -⟦o⟧) (-⟦f⟧.boxed -⟦f⟧))
 
 
@@ -282,7 +283,7 @@
 
 ;; Configuration
 (-ς . ::= . #|block start |# (-ς↑ -αₖ)
-            #|block return|# (-ς↓ -αₖ -Γ -A))
+            #|block return|# (-ς↓ -αₖ -$ -Γ -A))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -291,13 +292,13 @@
 
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= .
-     (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ] [ctx : -⟪ℋ⟫])
+     (-ℬ [var : -formals] [exp : -⟦e⟧] [env : -ρ] [cache : -$] [pc : -Γ] [ctx : -⟪ℋ⟫])
      ;; Contract monitoring
-     (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ] [ctx : -⟪ℋ⟫])
+     (-ℳ [var : Symbol] [l³ : -l³] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [cache : -$] [pc : -Γ] [ctx : -⟪ℋ⟫])
      ;; Flat checking
-     (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [pc : -Γ] [ctx : -⟪ℋ⟫])
+     (-ℱ [var : Symbol] [l : -l] [loc : -ℒ] [ctc : -V] [val : ⟪α⟫] [cache : -$] [pc : -Γ] [ctx : -⟪ℋ⟫])
      ;; Havoc
-     (-ℋ𝒱 [ctx : -⟪ℋ⟫])
+     (-ℋ𝒱 [cache : -$] [ctx : -⟪ℋ⟫])
      )
 
 
@@ -339,7 +340,6 @@
    [σ@ : ((U -Σ -σ) ⟪α⟫ → (℘ -V))]
    [σ@¹ : ((U -Σ -σ) ⟪α⟫ → -V)]
    [σ@/list : ((U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))]
-   [σ@/Γ : ((U -Σ -σ) ⟪α⟫ -Γ -loc → (℘ -W¹))]
    [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
@@ -348,6 +348,15 @@
    [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
    [⟪α⟫ₕᵥ : ⟪α⟫]
    [⟪α⟫ₒₚ : ⟪α⟫]
+   [⊤$ : -$]
+   [⊤$* : -$*]
+   [$-set : (-$ -loc -W¹ → -$)]
+   [$-set* : (-$ (Listof -loc) (Listof -W¹) → -$)]
+   [$-del : (-$ -loc → -$)]
+   [$-del* : (-$ (Sequenceof -loc) → -$)]
+   [$@ : ((U -Σ -σ) ⟪α⟫ -$ -loc → (℘ -W¹))]
+   [$-extract : (-$ (Sequenceof -loc) → -$*)]
+   [$-restore : (-$ -$* → -$)]
    ))
 
 (define-signature val^
@@ -366,8 +375,6 @@
 
 (define-signature pc^
   ([⊤Γ : -Γ]
-   [Γ-with-cache : (-Γ -loc -W¹ → -Γ)]
-   [Γ-without-cache : (-Γ -loc → -Γ)]
    [t-contains? : (-t -t → Boolean)]
    [t-contains-any? : (-t (℘ -t) → Boolean)]
    [bin-o->h : (-special-bin-o → Base → -h)]
@@ -391,7 +398,7 @@
    [-?-> : ((-maybe-var -?t) -?t → -?t)]
    [-?->i : ((Listof -?t) (Option -λ) → -?t)]
    ;; path-cond
-   [predicates-of : ((U -Γ (℘ -t)) -?t → (℘ -h))]
+   [predicates-of : (-Γ -?t → (℘ -h))]
    [fvₜ : (-?t → (℘ Symbol))]
    ))
 
@@ -410,6 +417,7 @@
    [show-h : (-h → Sexp)]
    [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]
+   [show-$ : (-$ → (Listof Sexp))]
    [show-σₖ : (-σₖ → (Listof Sexp))]
    [show-blm-reason : ((U -V -v -h) → Sexp)]
    [show-V : (-V → Sexp)]

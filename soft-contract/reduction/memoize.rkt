@@ -20,13 +20,13 @@
     (define-type Rec (List -σ (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
       (define ⟦k⟧* : -⟦k⟧
-        (λ (A Γ ⟪ℋ⟫ Σ)
+        (λ (A $ Γ ⟪ℋ⟫ Σ)
           (define key (list A Γ ⟪ℋ⟫))
           (define σ (-Σ-σ Σ))
           
           (: recompute! : → (℘ -ς))
           (define (recompute!)
-            (define ans (⟦k⟧ A Γ ⟪ℋ⟫ Σ))
+            (define ans (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))
             (hash-set! m key (list σ ans))
             ans)
 
@@ -56,13 +56,13 @@
     (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
       (remember-e! (assert (recall-e ⟦e⟧))
-                   (λ (ρ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+                   (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
                      (define key : Key (list ⟪ℋ⟫ ρ Γ))
                      (define σ (-Σ-σ Σ))
 
                      (: recompute! : → (℘ -ς))
                      (define (recompute!)
-                       (define ans (⟦e⟧ ρ Γ ⟪ℋ⟫ Σ ⟦k⟧))
+                       (define ans (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
                        (hash-set! m key (list σ ans))
                        ans)
 
