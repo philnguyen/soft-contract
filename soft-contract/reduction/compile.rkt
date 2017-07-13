@@ -283,12 +283,13 @@
       (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) +ℓ₀))
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define α (ρ@ ρ x))
-      (for/union : (℘ -ς) ([W (in-set ($@ Σ α $ x))])
+      (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ x))])
+        (match-define (cons W $*) W/$)
         (define A
           (match W
             [(-W¹ (-b (not (? defined?))) _) -blm.undefined]
             [(-W¹ V                       t) (-W (list V) t)]))
-        (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))))
+        (⟦k⟧ A $* Γ ⟪ℋ⟫ Σ))))
 
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))
 

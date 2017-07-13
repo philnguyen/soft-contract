@@ -132,6 +132,7 @@
 (-t . ::= . -x
             -𝒾
             -v
+            ℓ ; RHS
             (-t.@ -h (Listof -t)))
 ;; Formula "head" is either a primitive operation or a stack address
 (-h . ::= . -t ; TODO restrict
@@ -349,8 +350,9 @@
    [⟪α⟫ₒₚ : ⟪α⟫]
    [⊤$ : -$]
    [⊤$* : -$*]
+   [$-set : (-$ -loc -W¹ → -$)]
+   [$-set* : (-$ (Listof -loc) (Listof -W¹) → -$)]
    [$-set! : (-Σ -$ ⟪α⟫ -loc -W¹ → -$)]
-   [$-set*! : (-Σ -$ (Listof ⟪α⟫) (Listof -loc) (Listof -W¹) → -$)]
    [$-del : (-$ -loc → -$)]
    [$-del* : (-$ (Sequenceof -loc) → -$)]
    [$@! : (-Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))]

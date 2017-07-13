@@ -382,14 +382,14 @@
     (λ (ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (cond
         [(= n (length Ws))
-         (define sₐ (apply ?t@ st-mk (map -W¹-t Ws)))
+         (define tₐ (-ℒ-app ℒ))
          (define αs : (Listof ⟪α⟫)
            (for/list ([i : Index n])
              (-α->⟪α⟫ (-α.fld 𝒾 ℒ ⟪ℋ⟫ i))))
          (for ([α : ⟪α⟫ αs] [W (in-list Ws)])
            (σ⊕! Σ Γ α W))
          (define V (-St 𝒾 αs))
-         (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ)]
+         (⟦k⟧ (-W (list V) tₐ) $ Γ ⟪ℋ⟫ Σ)]
         [else
          (define blm (blm-arity (-ℒ-app ℒ) (show-o st-mk) n (map -W¹-V Ws)))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
@@ -405,12 +405,18 @@
         [(list (and W (-W¹ V s)))
          (define-values (ℓ l) (unpack-ℒ ℒ))
          (define (blm) (-blm l (show-o ac) (list p) (list V) ℓ))
-         (define sₐ #|FIXME|# #f)
          (match V
            [(-St (== 𝒾) αs)
             (define α (list-ref αs i))
-            (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
-              (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
+            (cond
+              [s
+               (define l (-loc.offset i s))
+               (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ l))])
+                 (match-define (cons W $*) W/$)
+                 (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
+              [else
+               (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
+                 (⟦k⟧ (-W (list V) #f) $ Γ ⟪ℋ⟫ Σ))])]
            [(-St* (-St/C _ (== 𝒾) αℓs) α l³)
             (match-define (-l³ _ _ lₒ) l³)
             (define Ac (-W¹ ac ac))

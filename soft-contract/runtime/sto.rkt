@@ -104,19 +104,21 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define ⊤$ : -$ (hash))
   (define ⊤$* : -$* (hash))
+
+  (: $-set : -$ -loc -W¹ → -$)
+  (define $-set hash-set)
   
   (: $-set! : -Σ -$ ⟪α⟫ -loc -W¹ → -$)
   (define ($-set! Σ $ α l W)
     (set-alias! Σ α l)
     (hash-set ($-del* $ (get-aliases Σ α)) l W))
 
-  (: $-set*! : -Σ -$ (Listof ⟪α⟫) (Listof -loc) (Listof -W¹) → -$)
-  (define ($-set*! Σ $ αs ls Ws)
+  (: $-set* : -$ (Listof -loc) (Listof -W¹) → -$)
+  (define ($-set* $ ls Ws)
     (for/fold ([$ : -$ $])
-              ([α (in-list αs)]
-               [l (in-list ls)]
+              ([l (in-list ls)]
                [W (in-list Ws)])
-      ($-set! Σ $ α l W)))
+      ($-set $ l W)))
 
   (: $-del : -$ -loc → -$)
   (define ($-del $ l) (hash-remove $ l))
@@ -125,9 +127,11 @@
   (define ($@! Σ α $ l)
     (cond [(hash-ref $ l #f) =>
            (λ ([W : -W¹]) {set (cons W $)})]
-          [else (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
-                  (define W (-W¹ V #f))
-                  (cons W ($-set! Σ $ α l W)))]))
+          [else
+           (set-alias! Σ α l)
+           (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
+             (define W (-W¹ V #f))
+             (cons W ($-set $ l W)))]))
 
   (: $-extract : -$ (Sequenceof -loc) → -$*)
   (define ($-extract $ ls)
@@ -138,7 +142,7 @@
   (define ($-restore $ $*)
     (for/fold ([$ : -$ $])
               ([(l ?W) (in-hash $*)])
-      (if ?W (hash-set #|instead of $-set|# $ l ?W) ($-del $ l))))
+      (if ?W ($-set $ l ?W) ($-del $ l))))
 
   (: $-del* : -$ (Sequenceof -loc) → -$)
   (define ($-del* $ ls)
