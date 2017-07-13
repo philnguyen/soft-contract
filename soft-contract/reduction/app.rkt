@@ -471,7 +471,10 @@
            [(-St (== 𝒾) αs)
             (define α (list-ref αs i))
             (σ⊕! Σ Γ α Wᵥ)
-            (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
+            (define $* (if sₛ
+                           ($-set! Σ $ α (-loc.offset i sₛ) Wᵥ)
+                           ($-del* $ (get-aliases Σ α))))
+            (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
            [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
             (match-define (-l³ l+ l- lo) l³)
             (define l³* (-l³ l- l+ lo))

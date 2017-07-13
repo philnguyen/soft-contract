@@ -359,6 +359,7 @@
    [$-extract : (-$ (Sequenceof -loc) → -$*)]
    [$-restore : (-$ -$* → -$)]
    [⊥𝒜 : -𝒜]
+   [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
    ))
 
 (define-signature val^

@@ -51,7 +51,7 @@
             (define σ (-Σ-σ Σ))
             (match-define (-W¹ Vₙ sₙ) Wₙ)
             (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-            (define sₐ (?t@ 'make-vector sₙ sᵥ))
+            (define tₐ (-ℒ-app ℒ))
             ;; Heuristic: more concrete vector if length is available concretely
             (match sₙ
               [(-b (? exact-nonnegative-integer? n))
@@ -60,11 +60,11 @@
                    (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℒ ⟪ℋ⟫ (assert i index?))))
                    (σ⊕! Σ Γ ⟪α⟫ Wᵥ)
                    ⟪α⟫))
-               {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) sₐ))}]
+               {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) tₐ))}]
               [_
                (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℒ ⟪ℋ⟫)))
                (σ⊕! Σ Γ ⟪α⟫ Wᵥ) ; initializing, not mutating
-               {set (-ΓA Γ (-W (list (-Vector^ ⟪α⟫ Vₙ)) sₐ))}]))
+               {set (-ΓA Γ (-W (list (-Vector^ ⟪α⟫ Vₙ)) tₐ))}]))
           .internal-make-vector)])
     (def-prim/custom (make-vector ⟪ℋ⟫ ℒ Σ $ Γ Ws)
       (define Ws*
@@ -115,8 +115,13 @@
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
-                             (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
+                  (cond [sᵥ (define l (-loc.offset (assert i index?) sᵥ))
+                            (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ ⟪α⟫ $ l))])
+                              (match-define (cons W $*) W/$)
+                              (⟦k⟧ (W¹->W W) $* Γ* ⟪ℋ⟫ Σ))]
+                        [else
+                         (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
+                           (⟦k⟧ (-W (list V) #f) $ Γ* ⟪ℋ⟫ Σ))]))]
       [(-Vector^ α n)
        (for/union : (℘ -ς) ([V (σ@ Σ α)])
                   (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
@@ -157,7 +162,11 @@
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (σ⊕! Σ Γ ⟪α⟫ Wᵤ)
-                  (⟦k⟧ (+W (list -void)) $ Γ* ⟪ℋ⟫ Σ))]
+                  (define $*
+                    (if sᵥ
+                        ($-set! Σ $ ⟪α⟫ (-loc.offset (assert i index?) sᵥ) Wᵤ)
+                        ($-del* $ (get-aliases Σ ⟪α⟫))))
+                  (⟦k⟧ (+W (list -void)) $* Γ* ⟪ℋ⟫ Σ))]
       [(-Vector^ α n)
        (σ⊕! Σ Γ α Wᵤ)
        (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
