@@ -105,24 +105,29 @@
   (define ⊤$ : -$ (hash))
   (define ⊤$* : -$* (hash))
   
-  (: $-set : -$ -loc -W¹ → -$)
-  (define ($-set $ l W) (hash-set $ l W))
+  (: $-set! : -Σ -$ ⟪α⟫ -loc -W¹ → -$)
+  (define ($-set! Σ $ α l W)
+    (set-alias! Σ α l)
+    (hash-set ($-del* $ (get-aliases Σ α)) l W))
 
-  (: $-set* : -$ (Listof -loc) (Listof -W¹) → -$)
-  (define ($-set* $ ls Ws)
+  (: $-set*! : -Σ -$ (Listof ⟪α⟫) (Listof -loc) (Listof -W¹) → -$)
+  (define ($-set*! Σ $ αs ls Ws)
     (for/fold ([$ : -$ $])
-              ([l (in-list ls)]
+              ([α (in-list αs)]
+               [l (in-list ls)]
                [W (in-list Ws)])
-      ($-set $ l W)))
+      ($-set! Σ $ α l W)))
 
   (: $-del : -$ -loc → -$)
   (define ($-del $ l) (hash-remove $ l))
 
-  (: $@ : (U -Σ -σ) ⟪α⟫ -$ -loc → (℘ -W¹))
-  (define ($@ σ α $ l)
-    (cond [(hash-ref $ l #f) => set] ; TODO: plaus check?
-          [else (for/set: : (℘ -W¹) ([V (in-set (σ@ σ α))])
-                  (-W¹ V #f))]))
+  (: $@! : -Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))
+  (define ($@! Σ α $ l)
+    (cond [(hash-ref $ l #f) =>
+           (λ ([W : -W¹]) {set (cons W $)})]
+          [else (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
+                  (define W (-W¹ V #f))
+                  (cons W ($-set! Σ $ α l W)))]))
 
   (: $-extract : -$ (Sequenceof -loc) → -$*)
   (define ($-extract $ ls)
@@ -133,7 +138,7 @@
   (define ($-restore $ $*)
     (for/fold ([$ : -$ $])
               ([(l ?W) (in-hash $*)])
-      (if ?W ($-set $ l ?W) ($-del $ l))))
+      (if ?W (hash-set #|instead of $-set|# $ l ?W) ($-del $ l))))
 
   (: $-del* : -$ (Sequenceof -loc) → -$)
   (define ($-del* $ ls)
@@ -145,5 +150,14 @@
   ;;;;; Aliases
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define ⊥𝒜 : -𝒜 (hasheq))
+
+  (: set-alias! : -Σ ⟪α⟫ -loc → Void)
+  (define (set-alias! Σ α l)
+    (set--Σ-𝒜! Σ (hash-update (-Σ-𝒜 Σ) α (λ ([ls : (℘ -loc)]) (set-add ls l)) mk-∅)))
+
+  (: get-aliases : (U -Σ -𝒜) ⟪α⟫ → (℘ -loc))
+  (define (get-aliases aliases α)
+    (define 𝒜 (if (-Σ? aliases) (-Σ-𝒜 aliases) aliases))
+    (hash-ref 𝒜 α mk-∅))
   
   )
