@@ -276,7 +276,8 @@
   (define show-loc
     (match-lambda
       [(? symbol? s) s]
-      [(-𝒾 x _) x]))
+      [(-𝒾 x _) x]
+      [(-loc.offset i t) `(,(show-t t) ↪ ,i)]))
 
   (: show-M : -M → (Listof Sexp))
   (define (show-M M)

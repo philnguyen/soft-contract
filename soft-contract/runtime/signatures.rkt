@@ -21,9 +21,10 @@
 (define-type -σ (HashTable ⟪α⟫ (℘ -V)))
 (define-type -σₖ (HashTable -αₖ (℘ -κ)))
 (define-type -M (HashTable -αₖ (℘ -ΓA)))
+(define-type -𝒜 (HashTable ⟪α⟫ (℘ -loc)))
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M]) #:mutable #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
 
 (struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
             [pc : -Γ]       ; path-condition to use for rest of computation
@@ -114,8 +115,11 @@
 ;;;;; Symbols and Path Conditions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(-loc . ::= . Symbol -𝒾 ; references
-      )
+(-loc . ::= . ;; references
+              Symbol -𝒾
+              ;; struct field or vector access with concrete offset
+              (-loc.offset Index -t)
+              )
 
 (define-type -$ (HashTable -loc -W¹))
 (define-type -$* (HashTable -loc (Option -W¹)))
@@ -331,8 +335,7 @@
    [-x-dummy : Symbol]))
 
 (define-signature sto^
-  ([⊥Σ : (→ -Σ)]
-   [⊥σ : -σ]
+  ([⊥σ : -σ]
    [σ@ : ((U -Σ -σ) ⟪α⟫ → (℘ -V))]
    [σ@¹ : ((U -Σ -σ) ⟪α⟫ → -V)]
    [σ@/list : ((U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))]
@@ -353,6 +356,7 @@
    [$@ : ((U -Σ -σ) ⟪α⟫ -$ -loc → (℘ -W¹))]
    [$-extract : (-$ (Sequenceof -loc) → -$*)]
    [$-restore : (-$ -$* → -$)]
+   [⊥𝒜 : -𝒜]
    ))
 
 (define-signature val^
