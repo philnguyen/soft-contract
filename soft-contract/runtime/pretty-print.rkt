@@ -57,6 +57,7 @@
   (define (show-t [?t : -?t]) : Sexp
     (match ?t
       [#f '∅]
+      [(? integer? i) (show-ℓ (cast i ℓ))]
       [(? -e? e) (show-e e)]
       [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
 

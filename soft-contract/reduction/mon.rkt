@@ -135,8 +135,7 @@
                     (define ⟦mon⟧s : (Listof -⟦e⟧)
                       (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s] [ℓᵢ : ℓ ℓs])
                         (mk-mon l³ (ℒ-with-mon ℒ ℓᵢ) (mk-rt (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
-                    (define ⟦reconstr⟧ (mk-app
-                                        ℒ (mk-rt K) ⟦mon⟧s))
+                    (define ⟦reconstr⟧ (mk-app ℒ (mk-rt K) ⟦mon⟧s))
                     (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]))
 
     (with-Γ⊢oW (σ Γ p Wᵥ)

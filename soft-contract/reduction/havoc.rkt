@@ -64,14 +64,14 @@
              [(? exact-nonnegative-integer? k)
               (define args : (Listof -W¹)
                 (for/list ([i k])
-                  (-W¹ (+●) (-x (+x!/memo 'arg i)))))
+                  (-W¹ (+●) (+ℓ/memo k i))))
               (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list k 'opq-ap))))
               (app (-ℒ ∅eq ℓ) W args $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
              [(arity-at-least n)
               (define args₀ : (Listof -W¹)
                 (for/list ([i n])
-                  (-W¹ (+●) (-x (+x!/memo 'arg i)))))
-              (define argᵣ (-W¹ (+● 'list?) (+x!/memo 'arg 'rest)))
+                  (-W¹ (+●) (+ℓ/memo n i))))
+              (define argᵣ (-W¹ (+● 'list?) (+ℓ/memo n n)))
               (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list n 'vararg 'opq-app))))
               (app (-ℒ ∅eq ℓ) (+W¹ 'apply) `(,W ,@args₀ ,argᵣ) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]))
          
@@ -135,6 +135,9 @@
 
     (with-debugging/off
       ((ans) (-@ (-•) refs +ℓ₀))
-      (printf "gen-havoc-expr: ~a~n" (show-e ans)))))
+      (printf "gen-havoc-expr: ~a~n" (show-e ans))))
+
+  (: +ℓ/memo : Natural Natural → ℓ)
+  (define (+ℓ/memo arity ith) (loc->ℓ (loc 'havoc-opq arity ith '()))))
 
 

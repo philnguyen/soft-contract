@@ -52,7 +52,8 @@
     (for/fold ([Γ : -Γ Γ])
               ([t ts]
                #:when t
-               #:unless (set-empty? (fvₜ t)))
+               ;#:unless (set-empty? (fvₜ t))
+               )
       (define t*
         (match t
           [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]

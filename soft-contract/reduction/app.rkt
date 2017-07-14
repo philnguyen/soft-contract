@@ -187,26 +187,24 @@
   (define (app-clo xs ⟦e⟧ ρₕ Γₕ sₕ)
     (λ (ℒ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
-
       (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
       (define looped? (equal? ⟪ℋ⟫ ⟪ℋ⟫ₑₑ))
-      #;(when looped?
-        (printf "jump looped:~n")
-        (for ([e (in-list (-⟪ℋ⟫->-ℋ ⟪ℋ⟫))])
-          (printf "  - ~a~n" (show-edge e)))
-        (printf "~n"))
+      (define shared-free-vars? (-λ? sₕ))
+      (define ρₕ.dom (dom ρₕ))
+      (define $₀ (if shared-free-vars? $ ($-del* $ ρₕ.dom)))
+      
       ;; Target's environment
       (define-values (ρ* $*)
         (match xs
           [(? list? xs)
-           (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs looped?)]
+           (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs looped?)]
           [(-var zs z)
            (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-           (define-values (ρ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀ looped?))
+           (define-values (ρ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀ looped?))
            (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℒ Wsᵣ))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ Vᵣ)
-           (values (ρ+ ρ₀ z αᵣ) ($-set $₀ z (-W¹ Vᵣ z)))]))
+           (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-W¹ Vᵣ z)))]))
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
 
@@ -216,7 +214,7 @@
                     ⟪ℋ⟫
                     (apply ?t@ sₕ sₓs)
                     ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))
-                    (dom ρₕ)))
+                    (if shared-free-vars? ∅ ρₕ.dom)))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -551,14 +549,17 @@
          (define num-remaining-inits (- n num-inits))
          (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℒ)))
          (define looped? (equal? ⟪ℋ⟫ₑₑ ⟪ℋ⟫))
+         (define shared-free-vars? (-λ? t-func))
+         (define ρₕ.dom (dom ρₕ))
+         (define $₀ (if shared-free-vars? $ ($-del* $ ρₕ.dom)))
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
-           (define-values (ρₕ₀ $₀) (alloc-init-args! Σ $ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits looped?))
+           (define-values (ρₕ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits looped?))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
-           (define $* ($-set $₀ z W-rest))
+           (define $* ($-set $₁ z W-rest))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
            (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
@@ -566,7 +567,7 @@
                          ⟪ℋ⟫
                          #f
                          ($-extract $ (cons z zs))
-                         (dom ρₕ)))
+                         (if shared-free-vars? ∅ ρₕ.dom)))
            (σₖ⊕! Σ αₖ κ)
            (-ς↑ αₖ))
          

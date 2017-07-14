@@ -86,7 +86,7 @@
 
   (: t↓ : -t (℘ Symbol) → -?t)
   (define (t↓ t xs)
-    (and (not (set-empty? (∩ (fvₜ t) xs))) #;(⊆ (fv e) xs) t))
+    (and #;(not (set-empty? (∩ (fvₜ t) xs))) (⊆ (fvₜ t) xs) t))
 
   (: Γ↓ : -Γ (℘ Symbol) → -Γ)
   (define (Γ↓ ts xs)
