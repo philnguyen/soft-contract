@@ -120,6 +120,10 @@
        t
        (λ ()
          (match t
+           [(? integer? ℓ₀)
+            (define t (⦃ℓ⦄ (cast ℓ₀ ℓ)))
+            (free-vars-add! t)
+            (λ () (val-of t))]
            [(-x x)
             (define t (⦃x⦄ x))
             (unless (∋ (Ctx-bound ctx) x)
@@ -537,6 +541,10 @@
             [else (go-t! x)]))
 
     (values (∪ #|HACK|# {seteq 1 2} arities) prims))
+
+  (: ⦃ℓ⦄ : ℓ → Symbol)
+  (define (⦃ℓ⦄ ℓ)
+    (format-symbol "loc.~a" ℓ))
 
   (: ⦃x⦄ : Symbol → Symbol)
   (define (⦃x⦄ x)

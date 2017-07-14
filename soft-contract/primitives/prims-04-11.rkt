@@ -75,13 +75,19 @@
   
   (def-prim/custom (vector ⟪ℋ⟫ ℒ Σ $ Γ Ws)
     (define σ (-Σ-σ Σ))
-    (define sₐ (apply ?t@ 'vector (map -W¹-t Ws)))
-    (define ⟪α⟫s ; with side effect widening store
-      (for/list : (Listof ⟪α⟫) ([W (in-list Ws)] [i (in-naturals)])
-        (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℒ ⟪ℋ⟫ (assert i index?))))
-        (σ⊕! Σ Γ ⟪α⟫ W)
-        ⟪α⟫))
-    {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) sₐ))})
+    (define tₐ (-ℒ-app ℒ))
+    (define-values ($* αs.rev) ; with side effect widening store
+      (for/fold ([$ : -$ $]
+                 [αs.rev : (Listof ⟪α⟫) '()])
+                ([W (in-list Ws)]
+                 [i (in-naturals)])
+        (match-define (-W¹ V t) W)
+        (define V* (V+ σ V (predicates-of Γ t)))
+        (define α (-α->⟪α⟫ (-α.idx ℒ ⟪ℋ⟫ (assert i index?))))
+        (σ⊕V! Σ α V*)
+        (define l (-loc.offset (assert i index?) tₐ))
+        (values ($-set! Σ $ α l (-W¹ V* t)) (cons α αs.rev))))
+    {set (-ΓA Γ (-W (list (-Vector (reverse αs.rev))) tₐ))})
   (def-prim/todo vector-immutable
     (() #:rest list? . ->* . (and/c vector? immutable?)))
   (def-prim/custom (vector-length ⟪ℋ⟫ ℒ Σ $ Γ Ws)

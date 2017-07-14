@@ -174,6 +174,7 @@
         [(-⟦o⟧.boxed ⟦o⟧)
          #;(begin
            (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
+           (printf "  - knowing: ~a~n" (show-Γ Γ))
            (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℒ Σ $ Γ Wₓs))])
              (printf "  - ~a~n" (show-ΓA ans)))
            (printf "~n"))
@@ -381,13 +382,20 @@
       (cond
         [(= n (length Ws))
          (define tₐ (-ℒ-app ℒ))
-         (define αs : (Listof ⟪α⟫)
-           (for/list ([i : Index n])
-             (-α->⟪α⟫ (-α.fld 𝒾 ℒ ⟪ℋ⟫ i))))
-         (for ([α : ⟪α⟫ αs] [W (in-list Ws)])
-           (σ⊕! Σ Γ α W))
-         (define V (-St 𝒾 αs))
-         (⟦k⟧ (-W (list V) tₐ) $ Γ ⟪ℋ⟫ Σ)]
+         (define σ (-Σ-σ Σ))
+         (define-values ($* αs.rev)
+           (for/fold ([$ : -$ $]
+                      [αs.rev : (Listof ⟪α⟫) '()])
+                     ([W (in-list Ws)]
+                      [i : Index n])
+             (match-define (-W¹ V t) W)
+             (define V* (V+ σ V (predicates-of Γ t)))
+             (define α (-α->⟪α⟫ (-α.fld 𝒾 ℒ ⟪ℋ⟫ i)))
+             (σ⊕V! Σ α V*)
+             (define l (-loc.offset i tₐ))
+             (values ($-set! Σ $ α l (-W¹ V* t)) (cons α αs.rev))))
+         (define V (-St 𝒾 (reverse αs.rev)))
+         (⟦k⟧ (-W (list V) tₐ) $* Γ ⟪ℋ⟫ Σ)]
         [else
          (define blm (blm-arity (-ℒ-app ℒ) (show-o st-mk) n (map -W¹-V Ws)))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
