@@ -163,5 +163,12 @@
   (define (get-aliases aliases α)
     (define 𝒜 (if (-Σ? aliases) (-Σ-𝒜 aliases) aliases))
     (hash-ref 𝒜 α mk-∅))
+
+  (: hack:α->loc : ⟪α⟫ → (Option -loc))
+  (define (hack:α->loc α)
+    (match (⟪α⟫->-α α)
+      [(-α.x x _) x]
+      [(? -𝒾? 𝒾) 𝒾]
+      [α₀ #f]))
   
   )

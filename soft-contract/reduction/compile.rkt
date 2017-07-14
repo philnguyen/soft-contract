@@ -132,13 +132,20 @@
                                       (approximate-under-contract V)))))]))
         
         (define ⟪α⟫ (-α->⟪α⟫ α))
+        (define ?loc (hack:α->loc ⟪α⟫))
 
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
           (unless (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ) ; HACK
             (σ⊕V! Σ ⟪α⟫ₒₚ (+●)))
-          (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
-            (define V* (modify-V V))
-            (⟦k⟧ (-W (list V*) #|FIXME|# #f) $ Γ ⟪ℋ⟫ Σ)))]
+          (cond
+            [?loc
+             (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ ⟪α⟫ $ ?loc))])
+               (match-define (cons W $*) W/$)
+               (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
+            [else
+             (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
+               (define V* (modify-V V))
+               (⟦k⟧ (-W (list V*) #|FIXME|# #f) $ Γ ⟪ℋ⟫ Σ))]))]
        
        [(-@ f xs ℓ)
         (define ⟦f⟧  (↓ f))

@@ -270,17 +270,14 @@
 
   ;; set!
   (define-frame (set!∷ [α : ⟪α⟫] [⟦k⟧ : -⟦k⟧])
-    (define loc : -loc ;; HACK
-      (match (⟪α⟫->-α α)
-        [(-α.x x _) x]
-        [(? -𝒾? 𝒾) 𝒾]))
+    (define ?loc (hack:α->loc α))
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W Vs sᵥ) A)
       (match Vs
         [(list V)
          (define Wᵥ (-W¹ V sᵥ))
          (σ⊕! Σ Γ α Wᵥ)
-         (define $* ($-set $ loc Wᵥ))
+         (define $* (if ?loc ($-set $ ?loc Wᵥ) $))
          (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
         [_
          (define blm
@@ -515,9 +512,15 @@
       (match-define (-W Vs s) A)
       (cond
         [(= n (length Vs))
-         (for ([α : ⟪α⟫ αs] [V Vs])
-           (σ⊕V! Σ α V))
-         (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
+         (define $*
+           (for/fold ([$ : -$ $])
+                     ([α : ⟪α⟫ (in-list αs)]
+                      [V (in-list Vs)]
+                      [t (in-list (split-values s n))])
+             (σ⊕V! Σ α V)
+             (define ?l (hack:α->loc α))
+             (if ?l ($-set $ ?l (-W¹ V t)) $)))
+         (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
         [else
          (define blm
            (-blm l 'define-values
@@ -537,8 +540,8 @@
       (define W-C (-W¹ C c))
       (define Vs (σ@ Σ (-α->⟪α⟫ 𝒾)))
       (for/union : (℘ -ς) ([V Vs])
-                 (mon l³ (-ℒ (seteq ℓ) ℓ) W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ
-                      (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧)))))
+        (mon l³ (-ℒ (seteq ℓ) ℓ) W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ
+             (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧)))))
 
   (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
