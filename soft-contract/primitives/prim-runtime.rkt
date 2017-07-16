@@ -61,11 +61,11 @@
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦o⟧)
     (λ (o)
-      (λ (⟪ℋ⟫ ℒ Σ $ Γ Ws)
+      (λ (⟪ℋ⟫ ℓ Σ $ Γ Ws)
         (cond [(equal? n (length Ws))
                (implement-predicate (-Σ-σ Σ) Γ o Ws)]
               [else
-               {set (-ΓA Γ (blm-arity (-ℒ-app ℒ) o n (map -W¹-V Ws)))}]))))
+               {set (-ΓA Γ (blm-arity ℓ o n (map -W¹-V Ws)))}]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))

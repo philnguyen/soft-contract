@@ -25,10 +25,10 @@
 
   (def-prim/todo flat-named-contract ; FIXME uses
     (any/c flat-contract? . -> . flat-contract?))
-  (def-prim/custom (any/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (any/c ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W any/c])
     {set (-ΓA Γ (-W (list -tt) -tt))})
-  (def-prim/custom (none/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (none/c ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W any/c])
     {set (-ΓA Γ (-W (list -ff) -ff))})
 
@@ -58,12 +58,11 @@
                              (comb (ℓ-with-id ℓ i) Wₗ (-W¹ Vᵣ tᵣ))])))
                    (set-add maybe-errors (-ΓA Γ (-W (list V*) t*)))])])))
     
-    (def-prim/custom (or/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+    (def-prim/custom (or/c ⟪ℋ⟫ ℓ₀ Σ $ Γ Ws)
       (: or/c.2 : ℓ -W¹ -W¹ → (Values -V -?t))
       (define (or/c.2 ℓ W₁ W₂)
         (match-define (-W¹ V₁ t₁) W₁)
         (match-define (-W¹ V₂ t₂) W₂)
-        (define ℓ (-ℒ-app ℒ))
         (define α₁ (-α->⟪α⟫ (-α.or/c-l t₁ ℓ ⟪ℋ⟫)))
         (define α₂ (-α->⟪α⟫ (-α.or/c-r t₂ ℓ ⟪ℋ⟫)))
         (σ⊕V! Σ α₁ V₁)
@@ -72,9 +71,9 @@
         (define ℓ₂ (ℓ-with-id ℓ 'right-disj))
         (define C (-Or/C (and (C-flat? V₁) (C-flat? V₂)) (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)))
         (values C (?t@ 'or/c t₁ t₂)))
-      (reduce-contracts 'or/c (-ℒ-app ℒ) Σ Γ Ws or/c.2 (+W (list 'none/c))))
+      (reduce-contracts 'or/c ℓ₀ Σ Γ Ws or/c.2 (+W (list 'none/c))))
     
-    (def-prim/custom (and/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+    (def-prim/custom (and/c ⟪ℋ⟫ ℓ₀ Σ $ Γ Ws)
       (: and/c.2 : ℓ -W¹ -W¹ → (Values -V -?t))
       (define (and/c.2 ℓ W₁ W₂)
         (match-define (-W¹ V₁ t₁) W₁)
@@ -87,12 +86,11 @@
         (define ℓ₂ (ℓ-with-id ℓ 'right-conj))
         (define C (-And/C (and (C-flat? V₁) (C-flat? V₂)) (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)))
         (values C (?t@ 'and/c t₁ t₂)))
-      (reduce-contracts 'and/c (-ℒ-app ℒ) Σ Γ Ws and/c.2 (+W (list 'any/c)))))
+      (reduce-contracts 'and/c ℓ₀ Σ Γ Ws and/c.2 (+W (list 'any/c)))))
 
-  (def-prim/custom (not/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (not/c ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W flat-contract?])
     (match-define (-W¹ V t) W)
-    (define ℓ (-ℒ-app ℒ))
     (define α (-α->⟪α⟫ (-α.not/c t ℓ ⟪ℋ⟫)))
     (σ⊕V! Σ α V)
     (define ℓ* (ℓ-with-id ℓ 'not/c))
@@ -111,7 +109,7 @@
   (def-prim/todo string-len/c (real? . -> . flat-contract?))
   (def-alias false/c not)
   (def-pred printable/c)
-  (def-prim/custom (one-of/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (one-of/c ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     (define-values (vals ts.rev)
       (for/fold ([vals : (℘ Base) ∅] [ts : (Listof -?t) '()])
                 ([W (in-list Ws)] [i (in-naturals)])
@@ -124,18 +122,16 @@
     {set (-ΓA Γ Wₐ)})
   #;[symbols
      (() #:rest (listof symbol?) . ->* . flat-contract?)]
-  (def-prim/custom (vectorof ⟪ℋ⟫ ℒ Σ $ Γ Ws) ; FIXME uses
+  (def-prim/custom (vectorof ⟪ℋ⟫ ℓ Σ $ Γ Ws) ; FIXME uses
     #:domain ([W contract?])
-    (define ℓ (-ℒ-app ℒ))
     (match-define (-W¹ V t) W)
     (define ⟪α⟫ (-α->⟪α⟫ (-α.vectorof t ℓ ⟪ℋ⟫)))
     (σ⊕V! Σ ⟪α⟫ V)
     (define C (-Vectorof (-⟪α⟫ℓ ⟪α⟫ (ℓ-with-id ℓ 'vectorof))))
     {set (-ΓA Γ (-W (list C) (?t@ 'vectorof t)))})
   (def-prim/todo vector-immutableof (contract? . -> . contract?))
-  (def-prim/custom (vector/c ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (vector/c ⟪ℋ⟫ ℓ₀ Σ $ Γ Ws)
     ; FIXME uses ; FIXME check for domains to be listof contract
-    (define ℓ₀ (-ℒ-app ℒ))
     (define-values (αs ℓs ss) ; with side effect widening store
       (for/lists ([αs : (Listof ⟪α⟫)] [ℓs : (Listof ℓ)] [ts : (Listof -?t)])
                  ([W (in-list Ws)] [i (in-naturals)] #:when (index? i))
@@ -150,10 +146,9 @@
   (def-prim/todo box/c ; FIXME uses
     (contract? . -> . contract?))
   (def-prim/todo box-immutable/c (contract? . -> . contract?))
-  (def-prim/custom (listof ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (listof ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W contract?])
     (match-define (-W¹ C c) W)
-    (define ℓ (-ℒ-app ℒ))
     (define flat? (C-flat? C))
     (define α₀ (-α->⟪α⟫ 'null?))
     (define α₁ (-α->⟪α⟫ (-α.or/c-r #f ℓ ⟪ℋ⟫)))
@@ -182,11 +177,10 @@
     (contract? . -> . contract?))
   (def-prim/todo procedure-arity-includes/c
     (exact-nonnegative-integer? . -> . flat-contract?))
-  (def-prim/custom (hash/c ⟪ℋ⟫ ℒ Σ $ Γ Ws) ; FIXME uses
+  (def-prim/custom (hash/c ⟪ℋ⟫ ℓ Σ $ Γ Ws) ; FIXME uses
     #:domain ([Wₖ contract?] [Wᵥ contract?])
     (match-define (-W¹ _ tₖ) Wₖ)
     (match-define (-W¹ _ tᵥ) Wᵥ)
-    (define ℓ (-ℒ-app ℒ))
     (define αₖ (-α->⟪α⟫ (-α.hash/c-key tₖ ℓ ⟪ℋ⟫)))
     (define αᵥ (-α->⟪α⟫ (-α.hash/c-val tᵥ ℓ ⟪ℋ⟫)))
     (σ⊕! Σ Γ αₖ Wₖ)

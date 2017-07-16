@@ -46,8 +46,8 @@
 
   (def-pred procedure?)
 
-  (def-ext (apply ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (define-values (ℓ l) (unpack-ℒ ℒ))
+  (def-ext (apply ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (define l (ℓ-src ℓ))
 
     (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
     (define ((blm-for C Vs) Γ)
@@ -81,7 +81,7 @@
            ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
            [(<= 0 num-remaining-args)
             (with-num-rest-args-check (λ (len) (equal? len num-remaining-args))
-              #:on-t (app/rest/unsafe ℒ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity fixed-arity))]
            ;; More init arguments than required
            [else (blm-arity fixed-arity)])]
@@ -93,11 +93,11 @@
             (with-num-rest-args-check (match-lambda
                                         [(? index? len) (>= len remaining-inits)]
                                         [(arity-at-least len) (>= len remaining-inits)])
-              #:on-t (app/rest/unsafe ℒ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity arity.min))]
            ;; init args more than enough
            [else
-            (app/rest/unsafe ℒ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
+            (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
         [a
          (error 'apply "TODO: handle arity ~a" a)]))
 
@@ -124,7 +124,7 @@
 
   ;; 4.17.1 Keywords and Arity
   ;[keyword-apply #|FIXME uses|#]
-  (def-prim/custom (procedure-arity ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (procedure-arity ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W procedure?])
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'procedure-arity s))
@@ -161,7 +161,7 @@
     (primitive? . -> . procedure-arity?))
 
   ;; 4.17.3 Additional Higher-Order Functions
-  (def-prim/custom (identity ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (identity ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W any/c])
     (match-define (-W¹ V s) W)
     {set (-ΓA Γ (-W (list V) s))})

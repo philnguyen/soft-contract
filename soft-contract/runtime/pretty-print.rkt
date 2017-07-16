@@ -222,19 +222,19 @@
         ⟪ℋ⟫))
   (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp) (map show-edge ℋ))
 
-  (: show-edge : (U -edge -ℒ) → Sexp)
+  (: show-edge : -edge → Sexp)
   (define (show-edge edge)
-    (match edge
-      [(-edge ⟦e⟧ ℒ) `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧))]
-      [(? -ℒ? ℒ) (show-ℒ ℒ)]))
+    (match-define (-edge tgt ℓ) edge)
+    `(,(show-ℓ ℓ) ↝ ,(show-tgt tgt)))
 
-  (define show-ℒ : (-ℒ → Sexp)
-    (let-values ([(ℒ->symbol symbol->ℒ _) ((inst unique-sym -ℒ) 'ℒ)])
-      (λ (ℒ)
-        (cond [(verbose?)
-               (match-define (-ℒ ℓs ℓ) ℒ)
-               `(ℒ ,(set->list ℓs) ,ℓ)]
-              [else (ℒ->symbol ℒ)]))))
+  (: show-tgt : -edge.tgt → Sexp)
+  (define show-tgt
+    (match-lambda
+      [(? -o? o) (show-o o)]
+      [(? set? bs) `(one-of/c ,@(set-map bs show-b))]
+      [(? list? l) (for/list : (Listof Sexp) ([x (in-list l)])
+                     (if (symbol? x) x (show-ℓ x)))]
+      [⟦e⟧ '…]))
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 

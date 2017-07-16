@@ -52,7 +52,7 @@
     [-$ identifier? #f]
     [-Σ identifier? #f]
     [-Γ identifier? #f]
-    [-ℒ identifier? #f]
+    [-ℓ identifier? #f]
     [-⟪ℋ⟫ identifier? #f]
     [-Ws identifier? #f]
     [-o identifier? #f]
@@ -71,7 +71,6 @@
     [-gen-blm (syntax? . -> . syntax?) #f]
     [-volatile? boolean? #f]
     ;; exts
-    [-ℓ identifier? #f]
     [-⟦k⟧ identifier? #f]
     )
 
@@ -111,7 +110,7 @@
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
              [l³ (-l³ (ℓ-src ℓ) '#,(-o) '#,(-o))]
              [grd #,(gen-alloc #'ℓ c)]
-             [⟪α⟫ (-α->⟪α⟫ (-α.fn #,s #,(-ℒ) #,(-⟪ℋ⟫) (ℓ-src ℓ) #,(-Γ)))])
+             [⟪α⟫ (-α->⟪α⟫ (-α.fn #,s #,(-ℓ) #,(-⟪ℋ⟫) (ℓ-src ℓ) #,(-Γ)))])
         (σ⊕V! #,(-Σ) ⟪α⟫ #,V)
         (-Ar grd ⟪α⟫ l³)))
 
@@ -476,7 +475,7 @@
                             (cond [pos? 'chk-tail]
                                   [else (listof.push!
                                          (gen-name! 'fail)
-                                         ((-gen-blm) #`(-blm (ℓ-src (-ℒ-app #,(-ℒ))) '#,(-o) (list '#,c) (list Vₕ) (-ℒ-app #,(-ℒ)))))]))))
+                                         ((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) (list '#,c) (list Vₕ) #,(-ℓ))))]))))
           (for/fold ([acc (hash-ref listof.thunks κ₀)])
                     ([(f es) (in-hash listof.thunks)] #:unless (equal? f κ₀))
             (cons #`(define (#,(->id f)) #,@es) acc)))
@@ -506,8 +505,8 @@
                       [(-● ps)
                        (cond
                          [(∋ ps 'list?) (force result)]
-                         [else #,((-gen-blm) #`(-blm (ℓ-src (-ℒ-app #,(-ℒ))) '#,(-o) '(list?) (list V) (-ℒ-app #,(-ℒ))))])]
-                      [_ #,((-gen-blm) #`(-blm (ℓ-src (-ℒ-app #,(-ℒ))) '#,(-o) '(list?) (list V) (-ℒ-app #,(-ℒ))))]))))
+                         [else #,((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) '(list?) (list V) #,(-ℓ)))])]
+                      [_ #,((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) '(list?) (list V) #,(-ℓ)))]))))
         (push-thunk! (gen-name! 'chk-listof) body))
 
       (define/contract (go! c pos? on-done)
@@ -638,7 +637,7 @@
                    κ
                    (push-local-thunk!
                     (gen-name! 'blm)
-                    ((-gen-blm) #`(-blm (ℓ-src (-ℒ-app #,(-ℒ))) '#,(-o) (list #,c) (list (-W¹-V #,W)) (-ℒ-app #,(-ℒ)))))))))
+                    ((-gen-blm) #`(-blm (ℓ-src #,(-ℓ)) '#,(-o) (list #,c) (list (-W¹-V #,W)) #,(-ℓ))))))))
       
       (cond [(hash-ref local-thunks entry-name #f) =>
              (λ (entry)
@@ -695,7 +694,7 @@
             [_
              #,((-gen-blm)
                 (with-hack:make-available ((-o) blm-arity)
-                  #`(blm-arity (-ℒ-app #,(-ℒ)) '#,(-o) #,n (map -W¹-V #,(-Ws)))))]))]
+                  #`(blm-arity #,(-ℓ) '#,(-o) #,n (map -W¹-V #,(-Ws)))))]))]
       [(arity-at-least 0)
        (list* #`(define #,(-W*) #,(-Ws))
               body)]
@@ -707,4 +706,4 @@
             [_
              #,((-gen-blm)
                 (with-hack:make-available ((-o) blm-arity)
-                  #`(blm-arity (-ℒ-app #,(-ℒ)) '#,(-o) (arity-at-least #,n) (map -W¹-V #,(-Ws)))))]))])))
+                  #`(blm-arity #,(-ℓ) '#,(-o) (arity-at-least #,n) (map -W¹-V #,(-Ws)))))]))])))

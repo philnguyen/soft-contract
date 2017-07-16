@@ -410,8 +410,8 @@
       (σ⊕V! Σ α Vₓ*)
       (values (ρ+ ρ x α) ($-set $ x (-W¹ Vₓ* tₓ*)))))
 
-  (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V))
-  (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ Ws #:end [Vₙ -null])
+  (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
+  (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℓ Ws #:end [Vₙ -null])
 
     (: precise-alloc! ([(Listof -W¹)] [Natural] . ->* . -V))
     ;; Allocate vararg list precisely, preserving length
@@ -419,8 +419,8 @@
       (match Ws
         [(list) Vₙ]
         [(cons Wₕ Ws*)
-         (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ i)))
-         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ i)))
+         (define αₕ (-α->⟪α⟫ (-α.var-car ℓ ⟪ℋ⟫ i)))
+         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ ⟪ℋ⟫ i)))
          (σ⊕! Σ Γ αₕ Wₕ)
          (σ⊕V! Σ αₜ (precise-alloc! Ws* (+ 1 i)))
          (-Cons αₕ αₜ)]))
@@ -432,8 +432,8 @@
       [(or (list) (list _) (list _ _) (list _ _ _))
        (precise-alloc! Ws)]
       [(? pair?)
-       (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ #f)))
-       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ #f)))
+       (define αₕ (-α->⟪α⟫ (-α.var-car ℓ ⟪ℋ⟫ #f)))
+       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ ⟪ℋ⟫ #f)))
        (define Vₜ (-Cons αₕ αₜ))
        ;; Allocate spine for var-arg lists
        (σ⊕V! Σ αₜ Vₜ)

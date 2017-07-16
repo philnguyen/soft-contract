@@ -62,7 +62,7 @@
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
    [add-leak! : (-Σ -V → Void)]
    [alloc-init-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))]
-   [alloc-rest-args! : ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V)]
+   [alloc-rest-args! : ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V)]
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]

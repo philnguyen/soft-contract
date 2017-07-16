@@ -151,7 +151,7 @@
         (define ⟦f⟧  (↓ f))
         (define ⟦x⟧s (map ↓ xs))
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-          (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ (-ℒ ∅eq ℓ) ⟦k⟧)))]
+          (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧)))]
        [(-if e₀ e₁ e₂)
         (define ⟦e₀⟧ (↓ e₀))
         (define ⟦e₁⟧ (↓ e₁))
@@ -305,21 +305,21 @@
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ)))
 
-  (define/memo (mk-mon [l³ : -l³] [ℒ : -ℒ] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
+  (define/memo (mk-mon [l³ : -l³] [ℓ : ℓ] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℒ (cons ⟦e⟧ ρ) ⟦k⟧))))
+      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℓ (cons ⟦e⟧ ρ) ⟦k⟧))))
 
-  (define/memo (mk-app [ℒ : -ℒ] [⟦f⟧ : -⟦e⟧] [⟦x⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
+  (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : -⟦e⟧] [⟦x⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ ℒ ⟦k⟧))))
+      (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧))))
 
   (define/memo (mk-rt [A : (U -A -W¹)]) : -⟦e⟧
     (match A
       [(-W¹ V v) (mk-rt (-W (list V) v))]
       [(? -A?) (λ (_ $ Γ ⟪ℋ⟫ Σ ⟦k⟧) (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))]))
 
-  (define/memo (mk-fc [l : -l] [ℒ : -ℒ] [⟦c⟧ : -⟦e⟧] [⟦v⟧ : -⟦e⟧]) : -⟦e⟧
+  (define/memo (mk-fc [l : -l] [ℓ : ℓ] [⟦c⟧ : -⟦e⟧] [⟦v⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℒ ⟦v⟧ ρ ⟦k⟧))))
+      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℓ ⟦v⟧ ρ ⟦k⟧))))
   )
 

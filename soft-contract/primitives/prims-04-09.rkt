@@ -53,12 +53,12 @@
   (def-alias-internal set-mcdr! -set-cdr!) ;; HACK for running some Scheme programs
   (def-const null)
   (def-prim list? (any/c . -> . boolean?))
-  (def-prim/custom (list ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (list ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     (match Ws
       ['() {set (-ΓA Γ (+W (list -null)))}]
       [_
-       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
+       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
        (for ([Wᵢ (in-list Ws)])
          (σ⊕! Σ Γ αₕ Wᵢ))
        (define Vₚ (-Cons αₕ αₜ))
@@ -74,7 +74,7 @@
   (def-prim length (list? . -> . exact-nonnegative-integer?))
   (def-prim/todo list-ref
     (pair? exact-nonnegative-integer? . -> . any/c))
-  (def-prim/custom (list-tail ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (list-tail ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([Wₗ any/c] [Wₙ exact-nonnegative-integer?])
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ Vₗ sₗ) Wₗ)
@@ -83,8 +83,8 @@
     (match Vₗ
       [(? -St? Vₗ)
        (define Vₕs (extract-list-content σ Vₗ))
-       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
+       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
        (define Vₜ (-Cons αₕ αₜ))
        (for ([Vₕ Vₕs]) (σ⊕V! Σ αₕ Vₕ))
        (σ⊕V! Σ αₜ Vₜ)
@@ -106,16 +106,16 @@
         (match* (V₁ V₂)
           [((-b null) V₂) V₂]
           [((-Cons αₕ αₜ) V₂)
-           (define ℒ (-ℒ ∅eq ℓ))
-           (define αₕ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-           (define αₜ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+           (define ℓ (-ℓ ∅eq ℓ))
+           (define αₕ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
+           (define αₜ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
            (for ([Vₕ (σ@ Σ αₕ)]) (σ⊕! Σ αₕ* Vₕ))
            (define Vₜs (set-add (σ@ Σ αₜ) V₂))
            (for ([Vₜ* Vₜs]) (σ⊕! Σ αₜ* Vₜ*))
            (-Cons αₕ* αₜ*)]
           [(_ _) (-● {set 'list?})]))
       {set (-ΓA Γ (-W (list Vₐ) sₐ))})
-  (def-prim/custom (reverse ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (reverse ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([Wₗ list?])
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ Vₗ sₗ) Wₗ)
@@ -123,8 +123,8 @@
     (match Vₗ
       [(-b (list)) {set (-ΓA Γ (-W (list -null) sₐ))}]
       [(-Cons _ _)
-       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
+       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
        (define Vₜ (-Cons αₕ αₜ))
        (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕V! Σ αₕ Vₕ))
        (σ⊕V! Σ αₜ Vₜ)
@@ -136,7 +136,7 @@
       [_ {set (-ΓA Γ (-W (list (+● 'list?)) sₐ))}]))
 
   ;; 4.9.3 List Iteration
-  (def-ext (map ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (map ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     ; FIXME uses 
     #:domain ([Wₚ (any/c . -> . any/c)]
               [Wₗ list?])
@@ -146,13 +146,13 @@
     (match Vₗ
       [(-b '()) (⟦k⟧ (-W (list -null) tₐ) $ Γ ⟪ℋ⟫ Σ)]
       [(-Cons _ _)
-       (define ⟦k⟧* (mk-listof∷ tₐ ℒ ⟪ℋ⟫ ⟦k⟧))
+       (define ⟦k⟧* (mk-listof∷ tₐ ℓ ⟪ℋ⟫ ⟦k⟧))
        (for/union : (℘ -ς) ([V (extract-list-content (-Σ-σ Σ) Vₗ)])
-                  (app ℒ Wₚ (list (-W¹ V #f)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+                  (app ℓ Wₚ (list (-W¹ V #f)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   #;(def-prims (andmap ormap) ; FIXME uses
       (procedure? list . -> . any/c))
-  (def-ext (for-each ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (for-each ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₚ (any/c . -> . any/c)]
               [Wₗ list?])
     #:result (list -void))
@@ -174,15 +174,15 @@
     (list? (any/c any/c . -> . any/c) . -> . list?))
 
   ;; 4.9.5 List Searching
-  (def-prim/custom (member ⟪ℋ⟫ ℒ Σ $ Γ Ws) ; FIXME uses
+  (def-prim/custom (member ⟪ℋ⟫ ℓ Σ $ Γ Ws) ; FIXME uses
     #:domain ([Wₓ any/c] [Wₗ list?])
-    (implement-mem 'member ⟪ℋ⟫ ℒ Σ $ Γ Wₓ Wₗ))
-  (def-prim/custom (memv ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+    (implement-mem 'member ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ))
+  (def-prim/custom (memv ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([Wₓ any/c] [Wₗ list?])
-    (implement-mem 'memv ⟪ℋ⟫ ℒ Σ $ Γ Wₓ Wₗ))
-  (def-prim/custom (memq ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+    (implement-mem 'memv ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ))
+  (def-prim/custom (memq ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([Wₓ any/c] [Wₗ list?])
-    (implement-mem 'memq ⟪ℋ⟫ ℒ Σ $ Γ Wₓ Wₗ))
+    (implement-mem 'memq ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ))
   (def-prim/todo memf ; TODO why doc only requires `procedure?` and not `arity-includes 1`
     (procedure? list? . -> . (or/c list? not)))
   (def-prim/todo findf
@@ -342,8 +342,8 @@
   ;;;;; HELPERS
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (: implement-mem : Symbol -⟪ℋ⟫ -ℒ -Σ -$ -Γ -W¹ -W¹ → (℘ -ΓA))
-  (define (implement-mem o ⟪ℋ⟫ ℒ Σ $ Γ Wₓ Wₗ)
+  (: implement-mem : Symbol -⟪ℋ⟫ ℓ -Σ -$ -Γ -W¹ -W¹ → (℘ -ΓA))
+  (define (implement-mem o ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ)
 
     (: definitely-equal? : -σ -V -V → Boolean)
     (define (definitely-equal? σ V₁ V₂)
@@ -415,8 +415,8 @@
          [(definitely-not-member? σ Vₓ Vₗ)
           {set (-ΓA Γ (-W (list -ff) sₐ))}]
          [else
-          (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-          (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+          (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
+          (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
           (define Vₜ (-Cons αₕ αₜ))
           (for ([Vₕ (extract-list-content σ Vₗ)])
             (σ⊕V! Σ αₕ Vₕ))

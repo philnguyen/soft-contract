@@ -46,7 +46,7 @@
   (def-pred string?)
   (def-prim make-string ; FIXME all uses
     (exact-nonnegative-integer? char? . -> . (and/c string? (not/c immutable?))))
-  (def-prim/custom (string ⟪ℋ⟫ ℒ Σ $ Γ Ws) ; FIXME uses, domain check
+  (def-prim/custom (string ⟪ℋ⟫ ℓ Σ $ Γ Ws) ; FIXME uses, domain check
     (define σ (-Σ-σ Σ))
     (define sₐ (apply ?t@ 'string (map -W¹-t Ws)))
     {set (-ΓA Γ (-W (list (-● {set 'string? (-not/c 'immutable?)})) sₐ))})
@@ -68,7 +68,7 @@
   (def-prim string-append (() #:rest (listof string?) . ->* . string?)
     #:refinements
     (() #:rest (listof path-string?) . ->* . path-string?))
-  (def-prim/custom (string->list ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (string->list ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W string?])
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ V s) W)
@@ -76,8 +76,8 @@
     (match V
       [(-b "") {set (-ΓA Γ (-W (list -null) sₐ))}]
       [_
-       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 0)))
-       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℒ ⟪ℋ⟫ 1)))
+       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
+       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
        (define Vₜ (-Cons αₕ αₜ))
        (σ⊕V! Σ αₕ (-● {set 'char?}))
        (σ⊕V! Σ αₜ Vₜ)
@@ -86,7 +86,7 @@
        (match V
          [(-b (? string? s)) #:when (> (string-length s) 0) Ans]
          [_ (set-add Ans (-ΓA Γ (-W (list -null) sₐ)))])]))
-  (def-prim/custom (list->string ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (list->string ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([W (listof char?)])
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ V s) W)

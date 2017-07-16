@@ -47,13 +47,13 @@
     (hash? . -> . boolean?))
 
   (splicing-local
-      ((: hash-helper : -⟪ℋ⟫ -ℒ -Σ -Γ (Listof -W¹) Symbol -h → (℘ -ΓA))
-       (define (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws name eq)
+      ((: hash-helper : -⟪ℋ⟫ ℓ -Σ -Γ (Listof -W¹) Symbol -h → (℘ -ΓA))
+       (define (hash-helper ⟪ℋ⟫ ℓ Σ Γ Ws name eq)
          (define A
            (cond
              [(even? (length Ws))
-              (define αₖ (-α->⟪α⟫ (-α.hash.key ℒ ⟪ℋ⟫)))
-              (define αᵥ (-α->⟪α⟫ (-α.hash.val ℒ ⟪ℋ⟫)))
+              (define αₖ (-α->⟪α⟫ (-α.hash.key ℓ ⟪ℋ⟫)))
+              (define αᵥ (-α->⟪α⟫ (-α.hash.val ℓ ⟪ℋ⟫)))
               (let go! ([Ws : (Listof -W¹) Ws])
                 (match Ws
                   [(list* Wₖ Wᵥ Ws*)
@@ -64,15 +64,16 @@
               (define V (-Hash^ αₖ αᵥ #t))
               (-W (list V) (apply ?t@ name (map -W¹-t Ws)))]
              [else
-              (define-values (ℓ l) (unpack-ℒ ℒ))
-              (-blm l name (list (string->symbol "even number of arg(s)")) (map -W¹-V Ws) ℓ)]))
+              (define Cs (list (string->symbol "even number of arg(s)")))
+              (define Vs (map -W¹-V Ws))
+              (-blm (ℓ-src ℓ) name Cs Vs ℓ)]))
          {set (-ΓA Γ A)}))
-    (def-prim/custom (hash ⟪ℋ⟫ ℒ Σ $ Γ Ws)
-      (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hash 'hash-equal?))
-    (def-prim/custom (hasheq ⟪ℋ⟫ ℒ Σ $ Γ Ws)
-      (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hasheq 'hash-eq?))
-    (def-prim/custom (hasheqv ⟪ℋ⟫ ℒ Σ $ Γ Ws)
-      (hash-helper ⟪ℋ⟫ ℒ Σ Γ Ws 'hasheqv 'hash-eqv?)))
+    (def-prim/custom (hash ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+      (hash-helper ⟪ℋ⟫ ℓ Σ Γ Ws 'hash 'hash-equal?))
+    (def-prim/custom (hasheq ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+      (hash-helper ⟪ℋ⟫ ℓ Σ Γ Ws 'hasheq 'hash-eq?))
+    (def-prim/custom (hasheqv ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+      (hash-helper ⟪ℋ⟫ ℓ Σ Γ Ws 'hasheqv 'hash-eqv?)))
 
   (splicing-local
       ;; FIXME the only reason for this hack is because the DSL doesn't have case-> yet
@@ -87,11 +88,11 @@
           #'(begin
               (def-prim make-hash-1
                 ((listof pair?) . -> . (and/c hash? ctc-immut? eq)))
-              (def-prim/custom (make-hash ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+              (def-prim/custom (make-hash ⟪ℋ⟫ ℓ Σ $ Γ Ws)
                 (match Ws
                   ['() {set (-ΓA Γ (-W (list (-● {set 'hash? 'eq refine-immut?}))
                                                   (apply ?t@ 'make-hash (map -W¹-t Ws))))}]
-                  [_ (.make-hash-1 ⟪ℋ⟫ ℒ Σ $ Γ Ws)])))])
+                  [_ (.make-hash-1 ⟪ℋ⟫ ℓ Σ $ Γ Ws)])))])
        )
     (define-make-hash make-hash hash-equal? #:immutable? #f)
     (define-make-hash make-hasheqv hash-eqv? #:immutable? #f)
@@ -110,7 +111,7 @@
     ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?))
   (def-prim/todo hash-set*! ; FIXME uses
     ((and/c hash? (not/c immutable?)) any/c any/c . -> . void?))
-  (def-ext (hash-set ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (hash-set ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₕ (and/c hash? immutable?)]
               [Wₖ any/c]
               [Wᵥ any/c])
@@ -118,8 +119,8 @@
     (match-define (-W¹ _  tₖ) Wₖ)
     (match-define (-W¹ _  tᵥ) Wᵥ)
     (define tₐ (?t@ 'hash-set tₕ tₖ tᵥ))
-    (define αₖ* (-α->⟪α⟫ (-α.hash.key ℒ ⟪ℋ⟫)))
-    (define αᵥ* (-α->⟪α⟫ (-α.hash.val ℒ ⟪ℋ⟫)))
+    (define αₖ* (-α->⟪α⟫ (-α.hash.key ℓ ⟪ℋ⟫)))
+    (define αᵥ* (-α->⟪α⟫ (-α.hash.val ℓ ⟪ℋ⟫)))
     (match Vₕ
       [(-Hash^ αₖ αᵥ _)
        (σ-copy! Σ αₖ αₖ*)
@@ -143,7 +144,7 @@
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim/todo hash-set* ; FIXME refine with `eq?` and `eqv?`
     ((and/c hash? immutable?) any/c any/c . -> . (and/c hash? immutable?)))
-  (def-ext (hash-ref ℒ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def-ext (hash-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₕ hash?] [Wₖ any/c]) ; FIXME uses
     (match-define (-W¹ Vₕ tₕ) Wₕ)
     (match-define (-W¹ _  tₖ) Wₖ)
@@ -155,9 +156,9 @@
       [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) αₕ l³)
        (for*/union : (℘ -ς) ([Cᵥ (in-set (σ@ Σ αᵥ))]
                              [Vₕ* (in-set (σ@ Σ αₕ))])
-          (define ⟦k⟧* (mon.c∷ l³ (ℒ-with-mon ℒ ℓᵥ) (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
+          (define ⟦k⟧* (mon.c∷ l³ ℓᵥ (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
           (define Wₕ* (-W¹ Vₕ* tₕ))
-          (.hash-ref ℒ (list Wₕ* Wₖ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+          (.hash-ref ℓ (list Wₕ* Wₖ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim hash-ref! ; FIXME precision
     (hash? any/c any/c . -> . any/c))
@@ -169,7 +170,7 @@
     ((and/c hash? immutable?) any/c #|FIXME ext|# procedure? . -> . (and/c hash? immutable?)))
   (def-prim hash-remove!
     ((and/c hash? (not/c immutable?)) any/c . -> . void?))
-  (def-prim/custom (hash-remove ⟪ℋ⟫ ℒ Σ $ Γ Ws)
+  (def-prim/custom (hash-remove ⟪ℋ⟫ ℓ Σ $ Γ Ws)
     #:domain ([Wₕ hash?] [Wₖ any/c])
     {set (-ΓA Γ (W¹->W Wₕ))})
   (def-prim hash-clear!
