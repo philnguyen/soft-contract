@@ -148,12 +148,10 @@
     (match-define (-W¹ C c) W-C)
     (match-define (-W¹ V v) W-V)
     (match-define (-x/C ⟪α⟫) C)
-    (define x (match-let ([(-α.x/c x*) (⟪α⟫->-α ⟪α⟫)])
-                (+x!/memo 'mon x*)))
     (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ v ⊤$* ∅))
       (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C*) ℓ)))
-      (define αₖ (-ℳ $ ⟪ℋ⟫ₑₑ x l³ ℓ C* V #|TODO|# ⊤Γ))
+      (define αₖ (-ℳ $ ⟪ℋ⟫ₑₑ l³ ℓ C* V #|TODO|# ⊤Γ))
       (σₖ⊕! Σ αₖ κ)
       (-ς↑ αₖ)))
 
@@ -398,10 +396,8 @@
                      (⟦chk-field⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
                       (fc-struct/c∷ l ℓₐ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))]
       [(-x/C ⟪α⟫)
-       (define x (match-let ([(-α.x/c x*) (⟪α⟫->-α ⟪α⟫)])
-                   (+x!/memo 'fc x*)))
        (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
-         (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ x l ℓₐ C* V #|TODO|# ⊤Γ))
+         (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓₐ C* V #|TODO|# ⊤Γ))
          (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C*) ℓₐ)))
          (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ v ⊤$* ∅))
          (σₖ⊕! Σ αₖ κ)

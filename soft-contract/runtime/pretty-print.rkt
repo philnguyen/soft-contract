@@ -207,12 +207,12 @@
       [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
   (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ _ _ x l³ ℓ C V _) ℳ)
-    `(ℳ ,x ,(show-V C) ,(show-V V)))
+    (match-define (-ℳ _ _ l³ ℓ C V _) ℳ)
+    `(ℳ ,(show-V C) ,(show-V V)))
 
   (define (show-ℱ [ℱ : -ℱ]) : Sexp
-    (match-define (-ℱ _ _ x l ℓ C V _) ℱ)
-    `(ℱ ,x ,(show-V C) ,(show-V V)))
+    (match-define (-ℱ _ _ l ℓ C V _) ℱ)
+    `(ℱ ,(show-V C) ,(show-V V)))
 
   (define-parameter verbose? : Boolean #f)
 
