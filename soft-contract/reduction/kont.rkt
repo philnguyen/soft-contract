@@ -196,7 +196,7 @@
   (define-frame (let∷ [ℓ : ℓ]
                       [xs : (Listof Symbol)]
                       [⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))]
-                      [bnd-Ws : (Listof (List Symbol -V -?t))]
+                      [bnd-Ws : (Listof (Pairof Symbol -W¹))]
                       [⟦e⟧ : -⟦e⟧]
                       [ρ : -ρ]
                       [⟦k⟧ : -⟦k⟧])
@@ -207,19 +207,14 @@
       (cond
         [(= n (length Vs))
          (define bnd-Ws*
-           (for/fold ([acc : (Listof (List Symbol -V -?t)) bnd-Ws])
+           (for/fold ([acc : (Listof (Pairof Symbol -W¹)) bnd-Ws])
                      ([x xs] [V Vs] [tₓ (split-values t n)])
-             (cons (list x V tₓ) acc)))
+             (cons (cons x (-W¹ V tₓ)) acc)))
          (match ⟦bnd⟧s
            ['()
-            (define-values (ρ* $*) ; with side effect widening store
-              (for/fold ([ρ : -ρ ρ] [$ : -$ $])
-                        ([bnd-W bnd-Ws*])
-                (match-define (list (? symbol? x) (? -V? Vₓ) (? -?t? tₓ)) bnd-W)
-                (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
-                (define Wₓ (-W¹ Vₓ tₓ))
-                (σ⊕! Σ Γ α Wₓ)
-                (values (ρ+ ρ x α) ($-set $ x Wₓ))))
+            (define-values (ρ* $*)
+              (let-values ([(xs Ws) (unzip bnd-Ws*)])
+                (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws #f)))
             (⟦e⟧ ρ* $* Γ ⟪ℋ⟫ Σ ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
             (⟦e⟧* ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
@@ -296,14 +291,10 @@
       (define n (length xs))
       (cond
         [(= n (length Vs))
-         (define $* ; with side effect widening store
-           (for/fold ([$ : -$ $])
-                     ([x xs] [Vₓ Vs] [tₓ (split-values s n)])
-             (define α (ρ@ ρ x))
-             (σ-remove! Σ α -undefined)
-             (define Wₓ (-W¹ Vₓ tₓ))
-             (σ⊕! Σ Γ α Wₓ)
-             ($-set $ x Wₓ)))
+         (define-values (ρ* $*)
+           (let ([Wₓs (map -W¹ Vs (split-values s n))])
+             (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Wₓs #f)))
+         (assert (equal? ρ ρ*)) ; FIXME disable in production
          (match ⟦bnd⟧s
            ['()
             (⟦e⟧ ρ $* Γ ⟪ℋ⟫ Σ ⟦k⟧)]

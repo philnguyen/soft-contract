@@ -398,13 +398,17 @@
       (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
 
   (: alloc-init-args! :
-     -Σ -$ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
-  (define (alloc-init-args! Σ $ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws looped?)
-    (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
+     -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
+  (define (alloc-init-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
+    (define ρ* (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
+    (bind-args! Σ $ Γ ρ* ⟪ℋ⟫ xs Ws looped?))
+
+  (: bind-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
+  (define (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
     (define σ (-Σ-σ Σ))
-    (for/fold ([ρ : -ρ ρ₀] [$ : -$ $]) ([x xs] [Wₓ Ws])
+    (for/fold ([ρ : -ρ ρ] [$ : -$ $]) ([x xs] [Wₓ Ws])
       (match-define (-W¹ Vₓ tₓ) Wₓ)
-      (define Vₓ* (V+ σ Vₓ (predicates-of Γₑᵣ tₓ)))
+      (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
       (define tₓ* (if looped? (-x x) (or tₓ (-x x))))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕V! Σ α Vₓ*)

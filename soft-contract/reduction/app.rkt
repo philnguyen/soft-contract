@@ -198,10 +198,10 @@
       (define-values (ρ* $*)
         (match xs
           [(? list? xs)
-           (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ xs Wₓs looped?)]
+           (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ xs Wₓs looped?)]
           [(-var zs z)
            (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-           (define-values (ρ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ sₕ zs Ws₀ looped?))
+           (define-values (ρ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ zs Ws₀ looped?))
            (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ Wsᵣ))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ Vᵣ)
@@ -555,7 +555,7 @@
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
-           (define-values (ρₕ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ t-func zs W-inits looped?))
+           (define-values (ρₕ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ zs W-inits looped?))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))

@@ -25,7 +25,7 @@
    [let∷ : (ℓ
             (Listof Symbol)
             (Listof (Pairof (Listof Symbol) -⟦e⟧))
-            (Listof (List Symbol -V -?t))
+            (Listof (Pairof Symbol -W¹))
             -⟦e⟧
             -ρ
             -⟦k⟧ →
