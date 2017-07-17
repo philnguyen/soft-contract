@@ -87,14 +87,9 @@
                 [(hash-ref seen ς #f) =>
                  (λ ([ctx₀ : Ctx])
                    (match-define (list σ₀ mσₖ₀) ctx₀)
-                   (define αₖ
-                     (match ς
-                       [(-ς↑ αₖ      ) αₖ]
-                       [(-ς↓ αₖ _ _ _) αₖ]))
-                   (define αₖs {set αₖ})
                    (define (κ->αₖs [κ : -κ])
                      {set (⟦k⟧->αₖ (-κ-cont κ))})
-                   (and (map-equal?/spanning-root mσₖ₀ mσₖ αₖs κ->αₖs)
+                   (and (map-equal?/spanning-root mσₖ₀ mσₖ {set (-ς-block ς)} κ->αₖs)
                         (let ([⟪α⟫s (ς->⟪α⟫s ς mσₖ₀)])
                           (σ-equal?/spanning-root σ₀ σ ⟪α⟫s))))]
                 [else #f]))

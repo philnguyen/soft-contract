@@ -285,8 +285,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Configuration
-(-ς . ::= . #|block start |# (-ς↑ -αₖ)
-            #|block return|# (-ς↓ -αₖ -$ -Γ -A))
+(struct -ς ([block : -αₖ]) #:transparent)
+#|block start |# (struct -ς↑ -ς () #:transparent)
+#|block return|# (struct -ς↓ -ς ([cache : -$] [pc : -Γ] [ans : -A]) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
