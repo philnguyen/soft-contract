@@ -78,7 +78,9 @@
 
 (define-signature mon^
   ([mon : (-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [flat-chk : (-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]))
+   [push-mon : (-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → -ς↑)]
+   [flat-chk : (-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
+   [push-fc : (-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → -ς↑)]))
 
 (define-signature memoize^
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]

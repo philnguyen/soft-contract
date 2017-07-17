@@ -145,39 +145,34 @@
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
   (define (mon-x/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-W¹ C c) W-C)
-    (match-define (-W¹ V v) W-V)
-    (match-define (-x/C ⟪α⟫) C)
+    (match-define (-W¹ (-x/C ⟪α⟫) _) W-C)
     (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
-      (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ v ⊤$* ∅))
-      (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C*) ℓ)))
-      (define αₖ (-ℳ $ ⟪ℋ⟫ₑₑ l³ ℓ C* V #|TODO|# ⊤Γ))
-      (σₖ⊕! Σ αₖ κ)
-      (-ς↑ αₖ)))
+      (push-mon l³ ℓ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
 
   (define (mon-and/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'and/c c 2))
-    (for/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
-               (mon l³ ℓ₁ (-W¹ C₁ c₁) W-V $ Γ ⟪ℋ⟫ Σ 
-                    (mon.c∷ l³ ℓ₂ (-W¹ C₂ c₂) ⟦k⟧))))
+    (for*/set: : (℘ -ς) ([C₂ (in-set (σ@ Σ α₂))]
+                         [⟦k⟧* (in-value (mon.c∷ l³ ℓ₂ (-W¹ C₂ c₂) ⟦k⟧))]
+                         [C₁ (in-set (σ@ Σ α₁))])
+      (push-mon l³ ℓ₁ (-W¹ C₁ c₁) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
 
   (define (mon-or/c l³ _ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-l³ l+ _ lo) l³)
     (match-define (-W¹ (-Or/C flat? (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'or/c c 2))
     
-    (: chk-or/c : -W¹ ℓ -W¹ ℓ → (℘ -ς))
+    (: chk-or/c : -W¹ ℓ -W¹ ℓ → -ς↑)
     (define (chk-or/c W-fl ℓ-fl W-ho ℓ-ho)
-      (flat-chk lo ℓ-fl W-fl W-V $ Γ ⟪ℋ⟫ Σ
-                (mon-or/c∷ l³ ℓ-ho W-fl W-ho W-V ⟦k⟧)))
+      (push-fc lo ℓ-fl W-fl W-V $ Γ ⟪ℋ⟫ Σ
+               (mon-or/c∷ l³ ℓ-ho W-fl W-ho W-V ⟦k⟧)))
 
-    (for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
-                (define W-C₁ (-W¹ C₁ c₁))
-                (define W-C₂ (-W¹ C₂ c₂))
-                (cond [(C-flat? C₁) (chk-or/c W-C₁ ℓ₁ W-C₂ ℓ₂)]
-                      [(C-flat? C₂) (chk-or/c W-C₂ ℓ₂ W-C₁ ℓ₁)]
-                      [else (error 'or/c "No more than 1 higher-order disjunct for now")])))
+    (for*/set: : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
+      (define W-C₁ (-W¹ C₁ c₁))
+      (define W-C₂ (-W¹ C₂ c₂))
+      (cond [(C-flat? C₁) (chk-or/c W-C₁ ℓ₁ W-C₂ ℓ₂)]
+            [(C-flat? C₂) (chk-or/c W-C₂ ℓ₂ W-C₁ ℓ₁)]
+            [else (error 'or/c "No more than 1 higher-order disjunct for now")])))
 
   (define (mon-not/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-l³ l+ _ lo) l³)
@@ -306,8 +301,8 @@
              (let ([αᵤ (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ l+))])
                (mk-rt (-W¹ (-Hash/guard Vₚ αᵤ l³) tᵤ))))
            (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
-          (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
-            (mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
+          (for*/set: : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
+            (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
       
       (match Vᵤ
         [(-Hash/guard _ αᵤ _)
@@ -347,24 +342,24 @@
     (match C
       [(-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (match-define (list c₁ c₂) (-app-split 'and/c c 2))
-       [for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
-                   (define W-C₁ (-W¹ C₁ c₁))
-                   (define W-C₂ (-W¹ C₂ c₂))
-                   (flat-chk l ℓ₁ W-C₁ W-V $ Γ ⟪ℋ⟫ Σ
-                     (fc-and/c∷ l ℓ₂ W-C₁ W-C₂ ⟦k⟧))]]
+       (for*/set: : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
+         (define W-C₁ (-W¹ C₁ c₁))
+         (define W-C₂ (-W¹ C₂ c₂))
+         (push-fc l ℓ₁ W-C₁ W-V $ Γ ⟪ℋ⟫ Σ
+                  (fc-and/c∷ l ℓ₂ W-C₁ W-C₂ ⟦k⟧)))]
       [(-Or/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (match-define (list c₁ c₂) (-app-split 'or/c c 2))
-       (for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
-                   (define W-C₁ (-W¹ C₁ c₁))
-                   (define W-C₂ (-W¹ C₂ c₁))
-                   (flat-chk l ℓ₁ W-C₁ W-V $ Γ ⟪ℋ⟫ Σ
-                             (fc-or/c∷ l ℓ₂ W-C₁ W-C₂ W-V ⟦k⟧)))]
+       (for*/set: : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
+         (define W-C₁ (-W¹ C₁ c₁))
+         (define W-C₂ (-W¹ C₂ c₁))
+         (push-fc l ℓ₁ W-C₁ W-V $ Γ ⟪ℋ⟫ Σ
+                  (fc-or/c∷ l ℓ₂ W-C₁ W-C₂ W-V ⟦k⟧)))]
       [(-Not/C (-⟪α⟫ℓ α ℓ*))
        (match-define (list c*) (-app-split 'not/c c 1))
-       (for/union : (℘ -ς) ([C* (σ@ Σ α)])
-                  (define W-C* (-W¹ C* c*))
-                  (flat-chk l ℓ* W-C* W-V $ Γ ⟪ℋ⟫ Σ
-                            (fc-not/c∷ l W-C* W-V ⟦k⟧)))]
+       (for/set: : (℘ -ς) ([C* (σ@ Σ α)])
+         (define W-C* (-W¹ C* c*))
+         (push-fc l ℓ* W-C* W-V $ Γ ⟪ℋ⟫ Σ
+                  (fc-not/c∷ l W-C* W-V ⟦k⟧)))]
       [(-One-Of/C bs)
        (case (sat-one-of V bs)
          [(✓) (⟦k⟧ (-W (list -tt V) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ)]
@@ -397,11 +392,7 @@
                       (fc-struct/c∷ l ℓₐ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))]
       [(-x/C ⟪α⟫)
        (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
-         (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓₐ C* V #|TODO|# ⊤Γ))
-         (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C*) ℓₐ)))
-         (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ v ⊤$* ∅))
-         (σₖ⊕! Σ αₖ κ)
-         (-ς↑ αₖ))]
+         (push-fc l ℓₐ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
       [_
        (define ⟦ap⟧ (mk-app ℓₐ (mk-rt W-C) (list (mk-rt W-V))))
        (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V C)) (?t@ 'values -tt v))))
@@ -423,6 +414,26 @@
         [_ #f]))
     (define Vₙ (if ?n (-b ?n) (+● 'exact-nonnegative-integer?)))
     (-W¹ Vₙ (?t@ 'vector-length s)))
+
+  (: push-mon : -l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → -ς↑)
+  (define (push-mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-W¹ C _ ) W-C)
+    (match-define (-W¹ V tᵥ) W-V)
+    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ ⊤$* ∅))
+    (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C) ℓ)))
+    (define αₖ (-ℳ $ ⟪ℋ⟫ₑₑ l³ ℓ C V #|TODO|# ⊤Γ))
+    (σₖ⊕! Σ αₖ κ)
+    (-ς↑ αₖ))
+
+  (: push-fc : -l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → -ς↑)
+  (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-W¹ C _ ) W-C)
+    (match-define (-W¹ V tᵥ) W-V)
+    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ ⊤$* ∅))
+    (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C) ℓ)))
+    (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓ C V #|TODO|# ⊤Γ))
+    (σₖ⊕! Σ αₖ κ)
+    (-ς↑ αₖ))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)

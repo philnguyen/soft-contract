@@ -111,7 +111,7 @@
       (match Vs
         [(list V)
          (define W-V (-W¹ V s))
-         (cond [(-W¹? C) (mon l³ ℓ C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+         (cond [(-W¹? C) {set (push-mon l³ ℓ C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)}]
                [else
                 (match-define (cons ⟦c⟧ ρ) C)
                 (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℓ W-V ⟦k⟧))])]
@@ -130,7 +130,7 @@
       (match Vs
         [(list C)
          (define W-C (-W¹ C s))
-         (cond [(-W¹? V) (mon l³ ℓ W-C V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+         (cond [(-W¹? V) {set (push-mon l³ ℓ W-C V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)}]
                [else
                 (match-define (cons ⟦v⟧ ρ) V)
                 (⟦v⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.c∷ l³ ℓ W-C ⟦k⟧))])]
@@ -160,8 +160,8 @@
               (define Ctcs (map -W¹ Ds ds))
               (match* (Ctcs Vals ℓs)
                 [((cons Ctc₁ Ctcs*) (cons Val₁ Vals*) (cons ℓ₁ ℓs*))
-                 (mon l³ ℓ₁ Ctc₁ Val₁ $ Γ ⟪ℋ⟫ Σ
-                      (mon*∷ l³ ℓ Ctcs* Vals* ℓs* '() ⟦k⟧))]
+                 {set (push-mon l³ ℓ₁ Ctc₁ Val₁ $ Γ ⟪ℋ⟫ Σ
+                                (mon*∷ l³ ℓ Ctcs* Vals* ℓs* '() ⟦k⟧))}]
                 [('() '() '())
                  (⟦k⟧ (+W '()) $ Γ ⟪ℋ⟫ Σ)]))]
            [else
@@ -185,8 +185,8 @@
       (define res.rev* (cons (-W¹ V t) res.rev))
       (match* (W-Cs W-Vs ℓs)
         [((cons W-C₁ W-Cs*) (cons W-V₁ W-Vs*) (cons ℓ₁ ℓs*))
-         (mon l³ ℓ₁ W-C₁ W-V₁ $ Γ ⟪ℋ⟫ Σ
-              (mon*∷ l³ ℓ W-Cs* W-Vs* ℓs* res.rev* ⟦k⟧))]
+         {set (push-mon l³ ℓ₁ W-C₁ W-V₁ $ Γ ⟪ℋ⟫ Σ
+                        (mon*∷ l³ ℓ W-Cs* W-Vs* ℓs* res.rev* ⟦k⟧))}]
         [('() '() '())
          (define-values (Vsₐ tsₐ) (unzip-by -W¹-V -W¹-t (reverse res.rev*)))
          (define Wₐ (-W Vsₐ (apply ?t@ 'values tsₐ)))
@@ -539,9 +539,9 @@
       (match-define (-W (list C) c) A)
       (define W-C (-W¹ C c))
       (define Vs (σ@ Σ (-α->⟪α⟫ 𝒾)))
-      (for/union : (℘ -ς) ([V Vs])
-        (mon l³ ℓ W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ
-             (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧)))))
+      (define ⟦k⟧* (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧))
+      (for/set: : (℘ -ς) ([V Vs])
+        (push-mon l³ ℓ W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
 
   (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
@@ -576,7 +576,7 @@
     (match-define (-W Vs s) A)
     (match Vs
       [(list (-b #f))
-       (mon l³ ℓ Wᵣ W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+       {set (push-mon l³ ℓ Wᵣ W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)}]
       [(list (-b #t) V)
        (match-define (-W¹ Cₗ _) Wₗ)
        (define v*
@@ -621,7 +621,7 @@
         [(list (-b #t) V)
          (match-define (-t.@ 'values (list _ sᵥ)) s)
          (match-define (-W¹ C₁ _) W-C₁)
-         (flat-chk l ℓ W-C₂ (-W¹ (V+ (-Σ-σ Σ) V C₁) sᵥ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])))
+         {set (push-fc l ℓ W-C₂ (-W¹ (V+ (-Σ-σ Σ) V C₁) sᵥ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)}])))
 
   (define-frame (fc-or/c∷ [l : -l]
                           [ℓ : ℓ]
@@ -633,7 +633,7 @@
       (match-define (-W Vs s) A)
       (match Vs
         [(list (-b #f))
-         (flat-chk l ℓ W-C₂ W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+         {set (push-fc l ℓ W-C₂ W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)}]
         [(list (-b #t) V)
          (match-define (-W¹ C₁ _) W-C₁)
          (⟦k⟧ (-W (list -tt (V+ (-Σ-σ Σ) V C₁)) s) $ Γ ⟪ℋ⟫ Σ)])))
@@ -701,7 +701,7 @@
       (match-define (-W Vs s) A)
       (match Vs
         [(list V)
-         (flat-chk l ℓ W-C (-W¹ V s) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+         {set (push-fc l ℓ W-C (-W¹ V s) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)}]
         [_
          (define blm (-blm l 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))

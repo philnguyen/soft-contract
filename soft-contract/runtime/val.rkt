@@ -174,6 +174,15 @@
       [(-Not/C (-⟪α⟫ℓ _ ℓ)) (list 'not/c ℓ)]
       [(-One-Of/C bs) bs]
       [(-St/C _ (-𝒾 𝒾 _) ⟪α⟫ℓs) (cons 𝒾 (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
+      [(-Vectorof (-⟪α⟫ℓ _ ℓ)) (list 'vectorof ℓ)]
+      [(-Vector/C ⟪α⟫ℓs) (cons 'vector/c (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
+      [(-Hash/C (-⟪α⟫ℓ _ ℓₖ) (-⟪α⟫ℓ _ ℓᵥ)) (list 'hash/c ℓₖ ℓᵥ)]
+      [(-=> _ _ ℓ) (list '-> ℓ)]
+      [(-=>i _ _ ℓ) (list '->i ℓ)]
+      [(-Case-> _ ℓ) (list 'case-> ℓ)]
+      [(-x/C α)
+       (match-define (-α.x/c x) (⟪α⟫->-α α))
+       (list 'recursive-contract/c x)]
       [(? -o? o) o]
       [V (error 'strip-V "~a not expected" (show-V V))]))
 
