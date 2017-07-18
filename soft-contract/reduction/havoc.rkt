@@ -65,14 +65,14 @@
               (define args : (Listof -W¹)
                 (for/list ([i k])
                   (-W¹ (+●) (+ℓ/memo k i))))
-              (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list k 'opq-ap))))
+              (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-ap k))))
               (app ℓ W args $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
              [(arity-at-least n)
               (define args₀ : (Listof -W¹)
                 (for/list ([i n])
                   (-W¹ (+●) (+ℓ/memo n i))))
               (define argᵣ (-W¹ (+● 'list?) (+ℓ/memo n n)))
-              (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list n 'vararg 'opq-app))))
+              (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-app n 'vararg))))
               (app ℓ (+W¹ 'apply) `(,W ,@args₀ ,argᵣ) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]))
          
          (match (V-arity V)
@@ -87,17 +87,17 @@
          (∪
           (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
                      (define Acc (-W¹ acc acc))
-                     (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list 'hv-ac (show-o acc)))))
+                     (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'ac (-𝒾-name 𝒾)))))
                      (app ℓ Acc (list W) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
           (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
                      (define Mut (-W¹ mut mut))
-                     (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;(list 'hv-mut (show-o mut)))))
+                     (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'mut (-𝒾-name 𝒾)))))
                      (app ℓ Mut (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
 
         ;; Havoc vector's content before erasing the vector with unknowns
         ;; Guarded vectors are already erased
         [(? -Vector/guard?)
-         (define ℓ (loc->ℓ (loc 'havoc 0 0 '() #;'(vector/guard))))
+         (define ℓ (loc->ℓ (loc 'havoc 0 0 '(vector/guard))))
          (define Wᵢ (-W¹ (+● 'exact-nonnegative-integer?) #f))
          (∪
           (app (ℓ-with-id ℓ 'ref) (+W¹ 'vector-ref) (list W Wᵢ) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
