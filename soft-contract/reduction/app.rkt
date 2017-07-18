@@ -251,9 +251,10 @@
     (define-values (cs d) (-->-split c (shape αℓs)))
     (define l³* (-l³ l- l+ lo))
     (define ⟦k⟧/mon-rng (mon*.c∷ l³ ℓₐ Rng d ⟦k⟧))
+    (define ℓₐ* (ℓ-with-src ℓₐ 'app-Ar))
     (match* (αℓs cs)
       [('() '()) ; no arg
-       (app ℓₐ Wᵤ '() $ Γ ⟪ℋ⟫ Σ ⟦k⟧/mon-rng)]
+       (app ℓₐ* Wᵤ '() $ Γ ⟪ℋ⟫ Σ ⟦k⟧/mon-rng)]
       [((? pair?) (? pair?))
        (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
        (for*/union : (℘ -ς) ([Cs (in-set (σ@/list σ αs))])
@@ -264,7 +265,7 @@
                                       [ℓₓ : ℓ ℓs])
              (mk-mon l³* ℓₓ (mk-rt (-W¹ C c)) (mk-rt Wₓ))))
          (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-          (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ ℓₐ ⟦k⟧/mon-rng)))]
+          (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ ℓₐ* ⟦k⟧/mon-rng)))]
       [((-var αℓs₀ αℓᵣ) (-var cs₀ cᵣ))
        (define-values (αs₀ ℓs₀) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs₀))
        (match-define (-⟪α⟫ℓ αᵣ ℓᵣ) αℓᵣ)
@@ -281,10 +282,10 @@
          (match ⟦mon-x⟧s
            ['()
             (⟦mon-x⟧ᵣ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-             (ap∷ (list Wᵤ (+W¹ 'apply)) '() ⊥ρ ℓₐ ⟦k⟧/mon-rng))]
+             (ap∷ (list Wᵤ (+W¹ 'apply)) '() ⊥ρ ℓₐ* ⟦k⟧/mon-rng))]
            [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
             (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-             (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓₐ ⟦k⟧/mon-rng))]))]))
+             (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓₐ* ⟦k⟧/mon-rng))]))]))
 
   (: apply-app-Ar : (-=> -?t -V -?t -l³ → ℓ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
   (define ((apply-app-Ar C c Vᵤ sₕ l³) ℓ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -422,6 +423,7 @@
                (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                  (⟦k⟧ (-W (list V) #f) $ Γ ⟪ℋ⟫ Σ))])]
            [(-St* (-St/C _ (== 𝒾) αℓs) α l³)
+            (define ℓ/ignore (ℓ-with-src ℓ 'st-ac))
             (match-define (-l³ _ _ lₒ) l³)
             (define Ac (-W¹ ac ac))
             (cond
@@ -432,13 +434,13 @@
                (define Vs  (σ@ Σ α))
                (define cᵢ #f #;(⟪α⟫->s αᵢ))
                (for*/union : (℘ -ς) ([Cᵢ (in-set Cᵢs)] [V* (in-set Vs)])
-                 (⟦ac⟧ ℓ (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ
+                 (⟦ac⟧ ℓ/ignore (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ
                   (mon.c∷ l³ ℓᵢ (-W¹ Cᵢ cᵢ) ⟦k⟧)))]
               ;; no need to check immutable field
               [else
                ;; TODO: could this loop forever due to cycle?
                (for/union : (℘ -ς) ([V* (in-set (σ@ Σ α))])
-                 (⟦ac⟧ ℓ (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+                 (⟦ac⟧ ℓ/ignore (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
            [(-● ps)
             (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-oW (-Σ-σ Σ) Γ p W)])
               #:true  (⟦k⟧ (-W (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
@@ -475,13 +477,14 @@
                            ($-del* $ (get-aliases Σ α))))
             (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
            [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
+            (define ℓ/ignore (ℓ-with-src ℓ 'st-mut))
             (match-define (-l³ l+ l- lo) l³)
             (define l³* (-l³ l- l+ lo))
             (match-define (-⟪α⟫ℓ γ ℓᵢ) (list-ref γℓs i))
             (define c #f #;(⟪α⟫->s γ))
             (define Mut (-W¹ mut mut))
             (for*/set: : (℘ -ς) ([Vₛ* (in-set (σ@ Σ α))]
-                                 [⟦k⟧* (in-value (ap∷ (list (-W¹ Vₛ* sₛ) Mut) '() ⊥ρ ℓ ⟦k⟧))]
+                                 [⟦k⟧* (in-value (ap∷ (list (-W¹ Vₛ* sₛ) Mut) '() ⊥ρ ℓ/ignore ⟦k⟧))]
                                  [C (in-set (σ@ Σ γ))])
               (push-mon l³* ℓᵢ (-W¹ C c) Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
            [(-● _)
