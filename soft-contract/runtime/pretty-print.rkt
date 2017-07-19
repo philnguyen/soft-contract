@@ -208,11 +208,11 @@
 
   (define (show-ℳ [ℳ : -ℳ]) : Sexp
     (match-define (-ℳ _ _ l³ ℓ C V _) ℳ)
-    `(ℳ ,(show-V C) ,(show-V V)))
+    `(ℳ ,(show-W¹ C) ,(show-W¹ V)))
 
   (define (show-ℱ [ℱ : -ℱ]) : Sexp
     (match-define (-ℱ _ _ l ℓ C V _) ℱ)
-    `(ℱ ,(show-V C) ,(show-V V)))
+    `(ℱ ,(show-W¹ C) ,(show-W¹ V)))
 
   (define-parameter verbose? : Boolean #f)
 
@@ -228,13 +228,13 @@
     `(,(show-ℓ ℓ) ↝ ,(show-tgt tgt)))
 
   (: show-tgt : -edge.tgt → Sexp)
-  (define show-tgt
-    (match-lambda
-      [(? -o? o) (show-o o)]
-      [(? set? bs) `(one-of/c ,@(set-map bs show-b))]
-      [(? list? l) (for/list : (Listof Sexp) ([x (in-list l)])
+  (define (show-tgt tgt)
+    (cond
+      [(-o? tgt) (show-o tgt)]
+      [(set? tgt) `(one-of/c ,@(set-map tgt show-b))]
+      [(list? tgt) (for/list : (Listof Sexp) ([x (in-list tgt)])
                      (if (symbol? x) x (show-ℓ x)))]
-      [⟦e⟧ '…]))
+      [else (show-⟦e⟧ tgt)]))
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 

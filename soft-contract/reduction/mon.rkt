@@ -421,7 +421,7 @@
     (match-define (-W¹ V tᵥ) W-V)
     (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ ⊤$* ∅))
     (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C) ℓ)))
-    (define αₖ (-ℳ $ ⟪ℋ⟫ₑₑ l³ ℓ C V #|TODO|# ⊤Γ))
+    (define αₖ (-ℳ $ ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V #|TODO|# ⊤Γ))
     (σₖ⊕! Σ αₖ κ)
     (-ς↑ αₖ))
 
@@ -431,7 +431,7 @@
     (match-define (-W¹ V tᵥ) W-V)
     (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ ⊤$* ∅))
     (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-V C) ℓ)))
-    (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓ C V #|TODO|# ⊤Γ))
+    (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓ W-C W-V #|TODO|# ⊤Γ))
     (σₖ⊕! Σ αₖ κ)
     (-ς↑ αₖ))
 

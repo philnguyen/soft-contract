@@ -297,8 +297,8 @@
 ;; Stack-address / Evaluation "check-point"
 (struct -αₖ ([cache : -$] [ctx : -⟪ℋ⟫]) #:transparent)
 (struct -ℬ -αₖ ([var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
-(struct -ℳ -αₖ ([l³ : -l³] [loc : ℓ] [ctc : -V] [val : -V] [pc : -Γ]) #:transparent) ; Contract monitoring
-(struct -ℱ -αₖ ([l : -l] [loc : ℓ] [ctc : -V] [val : -V] [pc : -Γ]) #:transparent) ; Flat checking
+(struct -ℳ -αₖ ([l³ : -l³] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
+(struct -ℱ -αₖ ([l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
 (struct -ℋ𝒱 -αₖ () #:transparent) ; Havoc
 
 
