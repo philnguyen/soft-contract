@@ -325,11 +325,12 @@
     (define W-rng (-W¹ Mk-D mk-d))
     (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
     (define-values (cs _) (-->i-split c (length αℓs)))
+    (define ℓₐ* (ℓ-with-src ℓₐ 'app-Indy))
 
     (match xs
       [(? list?)
        (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x (in-list xs)]) (↓ₓ lo x)))
-       (define ⟦app⟧ (mk-app ℓₐ (mk-rt Wᵤ) ⟦x⟧s))
+       (define ⟦app⟧ (mk-app ℓₐ* (mk-rt Wᵤ) ⟦x⟧s))
        (define ⟦rng⟧
          (cond [(-λ? mk-d) (assert (equal? xs (-λ-_0 mk-d))) ⟦d⟧]
                [else (mk-app ℓₐ (mk-rt W-rng) ⟦x⟧s)]))
