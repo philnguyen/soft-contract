@@ -103,6 +103,7 @@
     (() #:rest (listof exact-integer?) . ->* . exact-integer?)
     (() #:rest (listof integer?) . ->* . integer?)
     (() #:rest (listof real?) . ->* . real?)
+    (() #:rest (listof (>=/c 1)) . ->* . (>=/c 1))
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0)))
   (def-prim /
     ((number?) #:rest (listof (and/c number? (or/c inexact? (not/c zero?)))) . ->* . number?)
