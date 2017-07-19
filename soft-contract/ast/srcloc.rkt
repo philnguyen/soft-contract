@@ -19,6 +19,7 @@
 (define-interner ℓ loc
   #:intern-function-name loc->ℓ
   #:unintern-function-name ℓ->loc)
+(define-predicate ℓ? ℓ) ; HACK to get around type checking. Undo this when TR improves.
 
 ;; Dummy
 (define +ℓ₀ (loc->ℓ (loc 'dummy 0 0 '())))

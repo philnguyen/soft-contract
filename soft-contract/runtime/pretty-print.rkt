@@ -233,7 +233,9 @@
       [(-o? tgt) (show-o tgt)]
       [(set? tgt) `(one-of/c ,@(set-map tgt show-b))]
       [(list? tgt) (for/list : (Listof Sexp) ([x (in-list tgt)])
-                     (if (symbol? x) x (show-ℓ x)))]
+                     (cond [(symbol? x) x]
+                           [(ℓ? x) (show-ℓ x)]
+                           [else (show-⟦e⟧ x)]))]
       [else (show-⟦e⟧ tgt)]))
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp

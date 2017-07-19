@@ -165,10 +165,10 @@
       (λ (ℓ lo arity Vs)
         (-blm (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
 
-  (: strip-V : -V → -edge.tgt)
-  (define strip-V
+  (: strip-C : -V → -edge.tgt)
+  (define strip-C
     (match-lambda
-      [(-Clo xs ⟦e⟧ _ _) ⟦e⟧]
+      [(-Clo xs ⟦e⟧ _ _) (list 'flat ⟦e⟧)] ; distinct from just ⟦e⟧
       [(-And/C _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list 'and/c ℓ₁ ℓ₂)]
       [(-Or/C  _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list  'or/c ℓ₁ ℓ₂)]
       [(-Not/C (-⟪α⟫ℓ _ ℓ)) (list 'not/c ℓ)]
@@ -184,9 +184,6 @@
        (match-define (-α.x/c x) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
       [(? -o? o) o]
-      [V (error 'strip-V "~a not expected" (show-V V))]))
+      [V (error 'strip-C "~a not expected" (show-V V))]))
 
   )
-
-
-

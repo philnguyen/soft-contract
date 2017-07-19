@@ -190,7 +190,7 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -edge.tgt (U -⟦e⟧ -o (Listof (U Symbol ℓ)) (℘ Base)))
+(define-type -edge.tgt (U -⟦e⟧ -o (Listof (U Symbol ℓ -⟦e⟧)) (℘ Base)))
 (struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
 (define-type -ℋ (Listof -edge))
 (define-interner -⟪ℋ⟫ -ℋ
@@ -374,7 +374,7 @@
    [behavioral? : (-σ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
    [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]
-   [strip-V : (-V → -edge.tgt)]
+   [strip-C : (-V → -edge.tgt)]
    ))
 
 (define-signature pc^
