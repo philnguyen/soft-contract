@@ -215,14 +215,15 @@
 
     (: chk-elems : → (℘ -ς))
     (define (chk-elems)
+      (define Wᵥ* (-W¹ (V+ σ Vᵥ Vₚ) sᵥ))
       (define ⟦ref⟧
         (mk-app ℓ
                 (mk-rt (-W¹ 'vector-ref #f))
-                (list (mk-rt Wᵥ)
+                (list (mk-rt Wᵥ*)
                       (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (-x (+x!/memo 'vof-idx)))))))
       (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℓ l³ ⟦k⟧))
       (define c* #f #;(⟪α⟫->s α*))
-      (define Wₗ (vec-len σ Γ Wᵥ))
+      (define Wₗ (vec-len σ Γ Wᵥ*))
       (for/union : (℘ -ς) ([C* (in-set (σ@ Σ α*))])
                  (define ⟦mon⟧ (mk-mon l³ ℓ* (mk-rt (-W¹ C* c*)) ⟦ref⟧))
                  (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ (+W¹ 'make-vector)) '() ⊥ρ ℓ
@@ -255,8 +256,8 @@
     (: chk-flds : → (℘ -ς))
     (define (chk-flds)
       (define-values (⟪α⟫s ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc ⟪α⟫ℓs))
-      
       (define cs (-app-split 'vector/c sₚ n))
+      (define Wᵥ* (-W¹ (V+ σ Vᵥ Vₚ) sᵥ))
 
       (for/union : (℘ -ς) ([Cs (in-set (σ@/list σ ⟪α⟫s))])
                  (define ⟦mon-fld⟧s : (Listof -⟦e⟧)
@@ -269,7 +270,7 @@
                      (define ⟦ref⟧
                        (mk-app ℓ
                                (mk-rt (-W¹ 'vector-ref #f))
-                               (list (mk-rt Wᵥ) (mk-rt Wᵢ))))
+                               (list (mk-rt Wᵥ*) (mk-rt Wᵢ))))
                      (mk-mon l³ ℓᵢ (mk-rt Wₚᵢ) ⟦ref⟧)))
                  
                  (match ⟦mon-fld⟧s
@@ -372,25 +373,33 @@
                       (⟦k⟧ (-W (list -ff v) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ))
            (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ))])]
       [(-St/C _ s αℓs)
-       (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
-       (define cs (-struct/c-split c s))
-       (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
-                  (define ⟦chk-field⟧s : (Listof -⟦e⟧)
-                    (for/list ([Cᵢ (in-list Cs)]
-                               [cᵢ (in-list cs)]
-                               [ℓᵢ : ℓ (in-list ℓs)]
-                               [i (in-naturals)] #:when (index? i))
-                      (define ac (-st-ac s i))
-                      (define ⟦ref⟧ᵢ (mk-app ℓₐ (mk-rt (-W¹ ac ac)) (list (mk-rt W-V))))
-                      (mk-fc l ℓᵢ (mk-rt (-W¹ Cᵢ cᵢ)) ⟦ref⟧ᵢ)))
-                  (match ⟦chk-field⟧s
-                    ['()
-                     (define p (-st-p s))
-                     (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V p)) (?t@ 'values -tt v))))
-                     (app ℓₐ (-W¹ p p) (list W-V) $ Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ (↓ₚᵣₘ -ff) ⊥ρ ⟦k⟧))]
-                    [(cons ⟦chk-field⟧ ⟦chk-field⟧s*)
-                     (⟦chk-field⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-                      (fc-struct/c∷ l ℓₐ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))]
+
+       (: chk-fields : → (℘ -ς))
+       (define (chk-fields)
+         (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
+         (define cs (-struct/c-split c s))
+         (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
+           (define ⟦chk-field⟧s : (Listof -⟦e⟧)
+             (let ([W-V* (-W¹ (V+ σ V (-st-p s)) v)])
+               (for/list ([Cᵢ (in-list Cs)]
+                          [cᵢ (in-list cs)]
+                          [ℓᵢ : ℓ (in-list ℓs)]
+                          [i (in-naturals)] #:when (index? i))
+                 (define ac (-st-ac s i))
+                 (define ⟦ref⟧ᵢ (mk-app ℓₐ (mk-rt (-W¹ ac ac)) (list (mk-rt W-V*))))
+                 (mk-fc l ℓᵢ (mk-rt (-W¹ Cᵢ cᵢ)) ⟦ref⟧ᵢ))))
+           (match ⟦chk-field⟧s
+             ['()
+              (define p (-st-p s))
+              (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V p)) (?t@ 'values -tt v))))
+              (⟦rt⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+             [(cons ⟦chk-field⟧ ⟦chk-field⟧s*)
+              (⟦chk-field⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+               (fc-struct/c∷ l ℓₐ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))])))
+
+       (with-Γ⊢oW (σ Γ (-st-p s) W-V)
+         #:on-t chk-fields
+         #:on-f (λ () ((↓ₚᵣₘ -ff) ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
       [(-x/C ⟪α⟫)
        (match-define (-α.x/c x) (⟪α⟫->-α ⟪α⟫))
        (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
@@ -436,12 +445,20 @@
     (-ς↑ αₖ))
 
   (: push-fc ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . -ς↑))
-  (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [looped? #f])
+  (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
-    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ ⊤$* ∅))
+    (define-values (W-V* $* δ$ Γ*)
+      (if ?x
+          (let ([W-V* (-W¹ V ?x)])
+            (values W-V*
+                    ($-set $ ?x W-V*)
+                    (ann (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])) -$*)
+                    #|TODO|# ⊤Γ))
+          (values W-V $ ⊤$* Γ)))
+    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅))
     (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
-    (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓ W-C W-V Γ))
+    (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
     (σₖ⊕! Σ αₖ κ)
     (-ς↑ αₖ))
 
