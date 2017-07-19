@@ -146,8 +146,9 @@
 
   (define (mon-x/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (-x/C ⟪α⟫) _) W-C)
+    (match-define (-α.x/c x) (⟪α⟫->-α ⟪α⟫))
     (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
-      (push-mon l³ ℓ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+      (push-mon l³ ℓ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped x)))
 
   (define (mon-and/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
@@ -391,8 +392,9 @@
                      (⟦chk-field⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
                       (fc-struct/c∷ l ℓₐ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))]
       [(-x/C ⟪α⟫)
+       (match-define (-α.x/c x) (⟪α⟫->-α ⟪α⟫))
        (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
-         (push-fc l ℓₐ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+         (push-fc l ℓₐ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped x))]
       [_
        (define ⟦ap⟧ (mk-app ℓₐ (mk-rt W-C) (list (mk-rt W-V))))
        (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V C)) (?t@ 'values -tt v))))
@@ -415,23 +417,31 @@
     (define Vₙ (if ?n (-b ?n) (+● 'exact-nonnegative-integer?)))
     (-W¹ Vₙ (?t@ 'vector-length s)))
 
-  (: push-mon : -l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → -ς↑)
-  (define (push-mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (: push-mon ((-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . -ς↑))
+  (define (push-mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
-    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ ⊤$* ∅))
+    (define-values (W-V* $* δ$ Γ*)
+      (if ?x
+          (let ([W-V* (-W¹ V ?x)])
+            (values W-V*
+                    ($-set $ ?x W-V*)
+                    (ann (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])) -$*)
+                    #|TODO|# ⊤Γ))
+          (values W-V $ ⊤$* Γ)))
+    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅))
     (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
-    (define αₖ (-ℳ $ ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V #|TODO|# ⊤Γ))
+    (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
     (σₖ⊕! Σ αₖ κ)
     (-ς↑ αₖ))
 
-  (: push-fc : -l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → -ς↑)
-  (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (: push-fc ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . -ς↑))
+  (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [looped? #f])
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
     (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ ⊤$* ∅))
     (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
-    (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓ W-C W-V #|TODO|# ⊤Γ))
+    (define αₖ (-ℱ $ ⟪ℋ⟫ₑₑ l ℓ W-C W-V Γ))
     (σₖ⊕! Σ αₖ κ)
     (-ς↑ αₖ))
 
