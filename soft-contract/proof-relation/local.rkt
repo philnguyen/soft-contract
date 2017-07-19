@@ -123,6 +123,11 @@
                        (-t.@ (? op-≡?) (list (-b b₁) t)))
                    (-t.@ (? -special-bin-o? o) (list (-b b₂) t)))
                   (p⇒p (-≡/c b₁) ((bin-o->h (flip-bin-o o)) b₂))]
+                 ;; Ariths special cases (TODO generalize)
+                 [((-t.@ '<          (list (-b (? real? b₁)) t))
+                   (-t.@ (or '<= '<) (list (-b (? real? b₂)) t)))
+                  #:when (<= b₂ b₁)
+                  '✓]
                  ;; List
                  [((-t.@ (? op-≡?) (or (list (-t.@ 'length (list t)) (-b (? integer? n)))
                                        (list (-b (? integer? n)) (-t.@ 'length (list t)))))
