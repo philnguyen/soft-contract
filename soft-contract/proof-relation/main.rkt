@@ -19,7 +19,7 @@
          "local.rkt")
 
 (define-unit pre-proof-system@
-  (import (prefix local: local-prover^) external-prover^ widening^ pc^)
+  (import (prefix local: local-prover^) external-prover^ widening^ pc^ pretty-print^)
   (export proof-system^)
   
   ;; Check if value satisfies (flat) contract
@@ -59,9 +59,7 @@
                          (Γ+ Γ (-t.@ 'equal? (list t b)))]
                         [_ Γ])))
                   (Γ⊢t Γ* (apply ?t@ p ts)))))
-      (when (and (equal? p 'char?)
-                 (equal? Vs (list (-● (set 'eof-object? (-not/c 'eof-object?))))))
-        (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R))))
+      (printf "~a ⊢ ~a ~a : ~a~n" (show-Γ Γ) (show-o p) (map show-W¹ Ws) R)))
 
   (define (Γ+/-oW [σ : -σ] [Γ : -Γ] [o : -o] . [Ws : -W¹ *]) : (Values (Option -Γ) (Option -Γ))
     (define ss (map -W¹-t Ws))
@@ -96,10 +94,7 @@
              (if should-call-smt? (ext-prove Γ t) '?)]
             [R R])]
          [else '?]))
-      (when s #;(match? s (-@ 'equal? _ _))
-            (for ([φ (in-set Γ)]) (printf "~a~n" (show-t φ)))
-            (printf "-----------------------------------------~a~n" R)
-            (printf "~a~n~n" (show-e s)))
+      (printf "~a ⊢ ~a : ~a~n" (show-Γ Γ) (show-t t) R)
       ))
 
   ;; Like `(Γ ⊓ s), V true` and `(Γ ⊓ ¬s), V false`, probably faster

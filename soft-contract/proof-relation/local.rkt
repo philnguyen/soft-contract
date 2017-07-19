@@ -168,7 +168,7 @@
              (t⊢t φ t))
            '?)]
          [else '?]))
-      (printf "~a ⊢ ~a : ~a~n" (set-map φs show-t) (show-t t) ans)))
+      (printf "~a ⊢ˡ ~a : ~a~n" (show-Γ φs) (show-t t) ans)))
 
   ;; Return whether predicate `p` definitely implies or excludes `q`.
   (define (p⇒p [p : -h] [q : -h]) : -R
@@ -582,8 +582,7 @@
                      [(-≢/c b)
                       (not-R (p∋Vs σ 'equal? (-b b) (car Vs)))]
                      [_ '?])]) -R))
-      (when (and (match? p 'zero? (-≡/c 0) (-≢/c 0)) (equal? R '?))
-        (printf "~a ~a : ~a~n" p (map show-V Vs) R))))
+      (printf "~a ~a : ~a~n" p (map show-V Vs) R)))
 
   (define (ps⇒p [ps : (℘ -h)] [p : -h]) : -R
     (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-h? q))

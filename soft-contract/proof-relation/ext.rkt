@@ -159,19 +159,19 @@
         [(-≥/c (? real? b))
          (λ ()
            (match-define (list t) ((list-M ⦃t⦄s)))
-           (@/s 'B (>=/s b (@/s 'real t))))]
+           (@/s 'B (>=/s (@/s 'real t) b)))]
         [(-≤/c (? real? b))
          (λ ()
            (match-define (list t) ((list-M ⦃t⦄s)))
-           (@/s 'B (<=/s b (@/s 'real t))))]
+           (@/s 'B (<=/s (@/s 'real t) b)))]
         [(-</c (? real? b))
          (λ ()
            (match-define (list t) ((list-M ⦃t⦄s)))
-           (@/s 'B (</s  b (@/s 'real t))))]
+           (@/s 'B (</s (@/s 'real t) b)))]
         [(->/c (? real? b))
          (λ ()
            (match-define (list t) ((list-M ⦃t⦄s)))
-           (@/s 'B (>/s  b (@/s 'real t))))]
+           (@/s 'B (>/s (@/s 'real t) b)))]
         [_
          (warn-unsupported h)
          (define t (fresh-free! 'unhandled))
@@ -628,11 +628,8 @@
 
   (toggle-warning-messages! #f)
 
-  (define (ext-prove [Γ : -Γ] [t : -t]) : -R
-    (raw-ext-prove Γ t))
-
   ;; TODO use `define/memo` once Typed Unit is fixed
-  (define/memo (raw-ext-prove [Γ : -Γ] [t : -t]) : -R
+  (define/memo (ext-prove [Γ : -Γ] [t : -t]) : -R
     (define (set-default-options!)
       (set-options! #:timeout (assert (estimate-time-limit Γ t) fixnum?)
                     #:mbqi? #t
