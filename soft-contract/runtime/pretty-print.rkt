@@ -21,9 +21,9 @@
       [(-ς↑ αₖ      ) (show-αₖ αₖ)]
       [(-ς↓ αₖ $ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
-  (define (show-σ [σ : -σ]) : (Listof Sexp)
-    (for*/list ([(⟪α⟫ᵢ Vs) (in-hash σ)]
-                [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
+  (define (show-σ [σ : -σ])
+    (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ Vs) (in-hash σ)]
+                                [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
       `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V))))
 
   (define (show-h [h : -h]) : Sexp
