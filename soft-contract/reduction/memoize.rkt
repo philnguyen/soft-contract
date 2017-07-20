@@ -16,12 +16,12 @@
   (export memoize^)
 
   (define/memoeq (memoize-⟦k⟧ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-    (define-type Key (List -A -Γ -⟪ℋ⟫))
+    (define-type Key (List -A -$ -Γ -⟪ℋ⟫))
     (define-type Rec (List -σ (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
       (define ⟦k⟧* : -⟦k⟧
         (λ (A $ Γ ⟪ℋ⟫ Σ)
-          (define key (list A Γ ⟪ℋ⟫))
+          (define key (list A $ Γ ⟪ℋ⟫))
           (define σ (-Σ-σ Σ))
           
           (: recompute! : → (℘ -ς))
@@ -52,12 +52,12 @@
       ⟦k⟧*))
 
   (define/memoeq (memoize-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
-    (define-type Key (List -⟪ℋ⟫ -ρ -Γ))
+    (define-type Key (List -$ -⟪ℋ⟫ -ρ -Γ))
     (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
       (remember-e! (assert (recall-e ⟦e⟧))
                    (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-                     (define key : Key (list ⟪ℋ⟫ ρ Γ))
+                     (define key : Key (list $ ⟪ℋ⟫ ρ Γ))
                      (define σ (-Σ-σ Σ))
 
                      (: recompute! : → (℘ -ς))
