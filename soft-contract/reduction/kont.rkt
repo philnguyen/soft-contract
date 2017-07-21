@@ -295,6 +295,8 @@
            (let ([Wₓs (map -W¹ Vs (split-values s n))])
              (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Wₓs #f)))
          (assert (equal? ρ ρ*)) ; FIXME disable in production
+         (for ([x (in-list xs)])
+           (σ-remove! Σ (hash-ref ρ x) -undefined))
          (match ⟦bnd⟧s
            ['()
             (⟦e⟧ ρ $* Γ ⟪ℋ⟫ Σ ⟦k⟧)]
