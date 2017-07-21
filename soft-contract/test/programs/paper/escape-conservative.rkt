@@ -8,5 +8,5 @@
   (define inc! (λ () (set! n (+ 1 n))))
   (g inc!)
   (if (< n 2)
-      (begin (g (λ () (void))) n)
+      (begin (g void) n)
       2))
