@@ -191,8 +191,9 @@
       (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
       (define looped? (equal? ⟪ℋ⟫ ⟪ℋ⟫ₑₑ))
       (define shared-free-vars? (-λ? sₕ))
+      (define keep-shared-locs? (and shared-free-vars? (not looped?)))
       (define ρₕ.dom (dom ρₕ))
-      (define $₀ (if shared-free-vars? $ ($-del* $ ρₕ.dom)))
+      (define $₀ (if keep-shared-locs? $ ($-del* $ ρₕ.dom)))
       
       ;; Target's environment
       (define-values (ρ* $*)
@@ -215,7 +216,7 @@
                     ⟪ℋ⟫
                     (apply ?t@ sₕ sₓs)
                     ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))
-                    (if shared-free-vars? ∅ ρₕ.dom)))
+                    (if keep-shared-locs? ∅ ρₕ.dom)))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
