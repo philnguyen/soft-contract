@@ -184,6 +184,7 @@
        (match-define (-α.x/c x) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
       [(? -o? o) o]
+      [(-Ar _ (app ⟪α⟫->-α (-α.fn t _ _ _ _)) _) (list 'flat t)]
       [V (error 'strip-C "~a not expected" (show-V V))]))
 
   )

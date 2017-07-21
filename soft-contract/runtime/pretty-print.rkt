@@ -235,6 +235,8 @@
       [(list? tgt) (for/list : (Listof Sexp) ([x (in-list tgt)])
                      (cond [(symbol? x) x]
                            [(ℓ? x) (show-ℓ x)]
+                           [(-t? x) (show-t x)]
+                           [(not x) '⊘]
                            [else (show-⟦e⟧ x)]))]
       [else (show-⟦e⟧ tgt)]))
 
