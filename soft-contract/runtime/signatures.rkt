@@ -358,6 +358,7 @@
    [$@! : (-Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))]
    [$-extract : (-$ (Sequenceof -loc) → -$*)]
    [$-restore : (-$ -$* → -$)]
+   [$↓ : (-$ (℘ -loc) → -$)]
    [⊥𝒜 : -𝒜]
    [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
    [hack:α->loc : (⟪α⟫ → (Option -loc))]

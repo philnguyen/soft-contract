@@ -149,6 +149,12 @@
     (for/fold ([$ : -$ $]) ([l ls])
       ($-del $ l)))
 
+  (: $↓ : -$ (℘ -loc) → -$)
+  (define ($↓ $ ls)
+    (for/fold ([$ : -$ $])
+              ([(l W) (in-hash $)] #:unless (∋ ls l))
+      (hash-remove $ l)))
+
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Aliases

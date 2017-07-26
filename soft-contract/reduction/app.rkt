@@ -208,8 +208,8 @@
            (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-W¹ Vᵣ z)))]))
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-
-      (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
+      
+      (define αₖ (-ℬ ($↓ $* (dom ρ*)) ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                     Γ
                     ⟪ℋ⟫
@@ -565,7 +565,7 @@
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₁ z W-rest))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-           (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
+           (define αₖ (-ℬ ($↓ $* (dom ρₕ*)) ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                          Γ
                          ⟪ℋ⟫
