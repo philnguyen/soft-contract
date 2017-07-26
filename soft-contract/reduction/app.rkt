@@ -22,8 +22,7 @@
 
   (: app : ℓ -W¹ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
   (define (app ℓ Wₕ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #;(when (match? Wₕ (-W¹ (-● (== (set 'procedure?))) _))
-        (printf "app: ~a to ~a~n" (show-W¹ Wₕ) (map show-W¹ Wₓs)))
+    #;(printf "app ~a: ~a to ~a knowing ~a~n" (show-ℓ ℓ) (show-W¹ Wₕ) (map show-W¹ Wₓs) (show-Γ Γ))
     (match-define (-W¹ Vₕ sₕ) Wₕ)
     (define l (ℓ-src ℓ))
     (define σ (-Σ-σ Σ))
@@ -490,13 +489,12 @@
                                  [C (in-set (σ@ Σ γ))])
               (push-mon l³* ℓᵢ (-W¹ C c) Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
            [(-● _)
-            (define ⟦ok⟧
-              (let ([⟦hv⟧ (mk-app ℓ
-                                  (mk-rt (-W¹ (+●) #f))
-                                  (list (mk-rt Wᵥ)))])
-                (mk-app ℓ (mk-rt (-W¹ 'void 'void)) (list ⟦hv⟧))))
-            (define ⟦er⟧ (mk-rt (blm)))
-            (app ℓ (-W¹ p p) (list Wₛ) $ Γ ⟪ℋ⟫ Σ (if∷ l ⟦ok⟧ ⟦er⟧ ⊥ρ ⟦k⟧))]
+            (with-Γ+/-oW ((-Σ-σ Σ) Γ p Wₛ)
+              #:on-t (λ ([Γ : -Γ])
+                       (add-leak! Σ (-W¹-V Wᵥ))
+                       (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ))
+              #:on-f (λ ([Γ : -Γ])
+                       (⟦k⟧ (blm) $ Γ ⟪ℋ⟫ Σ)))]
            [_ (⟦k⟧ (blm) $ Γ ⟪ℋ⟫ Σ)])]
         [_
          (define blm (blm-arity ℓ (show-o mut) 2 (map -W¹-V Ws)))
