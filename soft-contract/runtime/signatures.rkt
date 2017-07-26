@@ -31,7 +31,8 @@
             [⟪ℋ⟫ : -⟪ℋ⟫]    ; abstraction of call history
             [res : -?t]
             [to-restore : -$*]
-            [to-invalid : (℘ -loc)])
+            [to-invalid : (℘ -loc)]
+            [looped? : Boolean])
   #:transparent)
 
 
@@ -409,7 +410,7 @@
 
 (define-signature instr^
   ([⟪ℋ⟫∅ : -⟪ℋ⟫]
-   [⟪ℋ⟫+ : (-⟪ℋ⟫ -edge → -⟪ℋ⟫)]
+   [⟪ℋ⟫+ : (-⟪ℋ⟫ -edge → (Values -⟪ℋ⟫ Boolean))]
    ))
 
 (define-signature pretty-print^

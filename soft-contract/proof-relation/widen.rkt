@@ -367,8 +367,8 @@
 
     (: κ⊑ : -κ -κ → Boolean)
     (define (κ⊑ κ₁ κ₂)
-      (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ res₁ sames₁ ambgs₁) κ₁)
-      (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ res₂ sames₂ ambgs₂) κ₂)
+      (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ res₁ sames₁ ambgs₁ _) κ₁)
+      (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ res₂ sames₂ ambgs₂ _) κ₂)
       (and (equal? ⟦k⟧₁ ⟦k⟧₂)
            (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
            (equal? sames₁ sames₂)
@@ -379,15 +379,16 @@
     (cond [(κ⊑ κ₁ κ₂) κ₂]
           [(κ⊑ κ₂ κ₁) κ₁]
           [else
-           (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ res₁ diffs₁ ambgs₁) κ₁)
-           (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ res₂ diffs₂ ambgs₂) κ₂)
+           (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ res₁ diffs₁ ambgs₁ l₁) κ₁)
+           (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ res₂ diffs₂ ambgs₂ l₂) κ₂)
            (cond [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
                        (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
                        (equal? diffs₁ diffs₂)
                        (equal? ambgs₁ ambgs₂)
+                       (equal? l₁ l₂)
                        (t⊑ res₁ res₂))
                   (define ?Γ (?Γ⊔ Γ₁ Γ₂))
-                  (and ?Γ (-κ ⟦k⟧₂ ?Γ ⟪ℋ⟫₂ res₂ diffs₂ ambgs₂))]
+                  (and ?Γ (-κ ⟦k⟧₂ ?Γ ⟪ℋ⟫₂ res₂ diffs₂ ambgs₂ l₂))]
                  [else #f])]))
 
   (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ

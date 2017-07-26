@@ -188,13 +188,12 @@
   (define (app-clo xs ⟦e⟧ ρₕ Γₕ sₕ)
     (λ (ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
-      (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
-      (define looped? (equal? ⟪ℋ⟫ ⟪ℋ⟫ₑₑ))
+      (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
       (define shared-free-vars? (-λ? sₕ))
       (define keep-shared-locs? (and shared-free-vars? (not looped?)))
       (define ρₕ.dom (dom ρₕ))
       (define $₀ (if keep-shared-locs? $ ($-del* $ ρₕ.dom)))
-      
+
       ;; Target's environment
       (define-values (ρ* $*)
         (match xs
@@ -216,7 +215,8 @@
                     ⟪ℋ⟫
                     (apply ?t@ sₕ sₓs)
                     ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))
-                    (if keep-shared-locs? ∅ ρₕ.dom)))
+                    (if keep-shared-locs? ∅ ρₕ.dom)
+                    looped?))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -517,7 +517,7 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ #f ⊤$* ∅))
+      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ #f ⊤$* ∅ #t))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -552,8 +552,7 @@
         [(-var zs z)
          (define n (length zs))
          (define num-remaining-inits (- n num-inits))
-         (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
-         (define looped? (equal? ⟪ℋ⟫ₑₑ ⟪ℋ⟫))
+         (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
          (define shared-free-vars? (-λ? t-func))
          (define ρₕ.dom (dom ρₕ))
          (define $₀ (if shared-free-vars? $ ($-del* $ ρₕ.dom)))
@@ -572,7 +571,8 @@
                          ⟪ℋ⟫
                          #f
                          ($-extract $ (cons z zs))
-                         (if shared-free-vars? ∅ ρₕ.dom)))
+                         (if shared-free-vars? ∅ ρₕ.dom)
+                         looped?))
            (σₖ⊕! Σ αₖ κ)
            (-ς↑ αₖ))
          

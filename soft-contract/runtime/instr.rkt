@@ -17,7 +17,7 @@
   (import local-prover^ pretty-print^ widening^)
   (export instr^)
 
-  (: ℋ+ : -ℋ -edge  → -ℋ)
+  (: ℋ+ : -ℋ -edge  → (Values -ℋ Boolean))
   ;; Add edge on top of call history.
   ;; If the target is already there, return the history chunk up to first time the target
   ;; is seen
@@ -30,13 +30,14 @@
           [(-edge tgt* _) (equal? tgt tgt*)])))
 
     (define ?ℋ (memf match? ℋ))
-    (if ?ℋ ?ℋ (cons x ℋ)))
+    (if ?ℋ (values ?ℋ #t) (values (cons x ℋ) #f)))
   
   (define ⟪ℋ⟫∅
     (let ([ℋ∅ : -ℋ '()])
       (-ℋ->-⟪ℋ⟫ ℋ∅)))
 
-  (: ⟪ℋ⟫+ : -⟪ℋ⟫ -edge → -⟪ℋ⟫)
+  (: ⟪ℋ⟫+ : -⟪ℋ⟫ -edge → (Values -⟪ℋ⟫ Boolean))
   (define (⟪ℋ⟫+ ⟪ℋ⟫ e)
-    (-ℋ->-⟪ℋ⟫ (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e)))
+    (define-values (ℋ* looped?) (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e))
+    (values (-ℋ->-⟪ℋ⟫ ℋ*) looped?))
   )

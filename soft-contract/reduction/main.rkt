@@ -163,9 +163,8 @@
     (for/union : (℘ -ς) ([ς ςs])
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
       (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tᵣₑₛ restores invalidates) κ)
+        (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tᵣₑₛ restores invalidates looped?) κ)
         (define αₖₑᵣ (⟦k⟧->αₖ ⟦k⟧))
-        (define looped? (equal? (-αₖ-ctx αₖₑₑ) (-αₖ-ctx αₖₑᵣ)))
         (define $* ($-restore ($-del* $ₑₑ invalidates) restores))
         (match A
           [(-W Vs tₐ)
