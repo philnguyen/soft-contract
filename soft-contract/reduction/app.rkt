@@ -208,9 +208,8 @@
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
 
       (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
-      (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
+      (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
                     Γ
-                    ⟪ℋ⟫
                     (apply ?t@ sₕ sₓs)
                     ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))
                     unsure-locs
@@ -514,7 +513,7 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ ⟪ℋ⟫ #f ⊤$* ∅ #t))
+      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ #f ⊤$* ∅ #t))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -563,9 +562,8 @@
            (define $* ($-set $₁ z W-rest))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
            (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
-           (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
+           (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
                          Γ
-                         ⟪ℋ⟫
                          #f
                          ($-extract $ (cons z zs))
                          unsure-locs

@@ -50,6 +50,27 @@
           (when (debug-iter?)
             (printf "* ~a: ~a~n" iter (set-count front)))
 
+          #;(when (> (hash-count (-Σ-σₖ Σ)) 200)
+            (define caches : (HashTable -⟦e⟧ (℘ -$)) (make-hash))
+            (for ([αₖ (in-hash-keys (-Σ-σₖ Σ))])
+              (when (-ℬ? αₖ)
+                (hash-update! caches (-ℬ-exp αₖ) (λ ([$s : (℘ -$)]) (set-add $s (-αₖ-cache αₖ))) mk-∅)))
+            (for ([(e $s) (in-hash caches)] #:when (> (set-count $s) 10))
+              (define bindings : (HashTable -loc (℘ (Option -W¹))) (make-hash))
+              (define locs (for/union : (℘ -loc) ([$ (in-set $s)]) (dom $)))
+              (for ([$ (in-set $s)])
+                (for ([l (in-set locs)] #:unless (hash-has-key? $ l))
+                  (hash-update! bindings l (λ ([Ws : (℘ (Option -W¹))]) (set-add Ws #f)) mk-∅))
+                (for ([(l W) (in-hash $)])
+                  (hash-update! bindings l (λ ([Ws : (℘ (Option -W¹))]) (set-add Ws W)) mk-∅)))
+              (printf "~a bindings, ~a caches for ~a: ~n" (set-count locs) (set-count $s) (show-⟦e⟧ e))
+              (for ([(l Ws) (in-hash bindings)] #:when (> (set-count Ws) 2))
+                (printf "* ~a ↦ (~a)~n" (show-loc l) (set-count Ws))
+                (for ([W (in-set Ws)])
+                  (printf "  + ~a~n" (if W (show-W¹ W) '⊘))))
+              (printf "~n"))
+            (error "STOP"))
+
           (when (debug-trace?)
 
             (begin ; interactive
@@ -137,7 +158,7 @@
                (match-define (-ς↑ αₖ ) ς)
                (define ⟦k⟧ (rt αₖ))
                (match αₖ
-                 [(-ℬ $ ⟪ℋ⟫ _ ⟦e⟧ ρ Γ)
+                 [(-ℬ $ ⟪ℋ⟫ fmls ⟦e⟧ ρ Γ)
                   #;(begin
                     (printf "executing ~a:~n" (show-⟦e⟧ ⟦e⟧))
                     (printf "env:~n")
@@ -163,17 +184,16 @@
     (for/union : (℘ -ς) ([ς ςs])
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
       (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (match-define (-κ ⟦k⟧ Γₑᵣ ⟪ℋ⟫ₑᵣ tᵣₑₛ restores invalidates looped?) κ)
-        (define αₖₑᵣ (⟦k⟧->αₖ ⟦k⟧))
+        (match-define (-κ ⟦k⟧ Γₑᵣ tᵣₑₛ restores invalidates looped?) κ)
         (define $* ($-restore ($-del* $ₑₑ invalidates) restores))
         (match A
           [(-W Vs tₐ)
            (define-values (tₐ* Γₑᵣ*) (if looped? (values tᵣₑₛ Γₑᵣ) (values tₐ (copy-Γ $* Γₑᵣ Γₑₑ))))
-           (⟦k⟧ (-W Vs tₐ*) $* Γₑᵣ* ⟪ℋ⟫ₑᵣ Σ)]
+           (⟦k⟧ (-W Vs tₐ*) $* Γₑᵣ* (-αₖ-ctx αₖₑₑ) Σ)]
           [(? -blm? blm)
            (match-define (-blm l+ lo _ _ _) blm)
            (cond [(symbol? l+) ∅]
-                 [else (⟦k⟧ blm $* Γₑᵣ ⟪ℋ⟫ₑᵣ Σ)])]))))
+                 [else (⟦k⟧ blm $* Γₑᵣ (-αₖ-ctx αₖₑₑ) Σ)])]))))
   )
 
 (define-compound-unit/infer reduction@

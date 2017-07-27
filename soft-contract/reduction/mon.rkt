@@ -431,36 +431,38 @@
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
+    (define ⟦k⟧* (restore∷ ⟪ℋ⟫ ⟦k⟧))
     (cond
       [?x
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x W-V*))
        (define δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])))
        (define Γ* #|TODO|# ⊤Γ)
-       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅ (and ?x #t)))
+       (define κ (-κ ⟦k⟧* Γ tᵥ δ$ ∅ (and ?x #t)))
        (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
        (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
       [else
-       (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ (restore∷ ⟪ℋ⟫ ⟦k⟧))]))
+       (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
 
   (: push-fc ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς)))
   (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
+    (define ⟦k⟧* (restore∷ ⟪ℋ⟫ ⟦k⟧))
     (cond
       [?x
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x W-V*))
        (define δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])))
        (define Γ* #|TODO|# ⊤Γ)
-       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅ (and ?x #t)))
+       (define κ (-κ ⟦k⟧* Γ tᵥ δ$ ∅ (and ?x #t)))
        (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
        (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
       [else
-       (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ (restore∷ ⟪ℋ⟫ ⟦k⟧))]))
+       (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)

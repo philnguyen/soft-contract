@@ -274,8 +274,8 @@
       `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
 
   (define (show-κ [κ : -κ]) : Sexp
-    (match-define (-κ ⟦k⟧ Γ ⟪ℋ⟫ t _ _ _) κ)
-    `(□ ,(show-t t) ‖ ,(show-Γ Γ) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
+    (match-define (-κ ⟦k⟧ Γ t _ _ _) κ)
+    `(□ ,(show-t t) ‖ ,(show-Γ Γ)))
 
   (: show-loc : -loc → Sexp)
   (define show-loc
