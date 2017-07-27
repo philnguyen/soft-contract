@@ -726,4 +726,8 @@
         [_
          (define blm (blm-arity ℓ₀ 'mk-listof 1 Vs))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
+
+  (define-frame (clr∷ [ls : (℘ -loc)] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (⟦k⟧ A ($-del* $ ls) Γ ⟪ℋ⟫ Σ)))
   )

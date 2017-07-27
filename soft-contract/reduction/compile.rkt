@@ -184,8 +184,12 @@
         (match ⟦bnd⟧s
           ['() ⟦e*⟧]
           [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
+           (define bounds
+             (for/unioneq : (℘ -loc) ([bnd (in-list bnds)])
+               (match-define (cons xs _) bnd)
+               (list->seteq xs)))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧)))])]
+             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ (clr∷ bounds ⟦k⟧))))])]
        [(-letrec-values bnds e* ℓ)
         (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
           (for/list ([bnd bnds])
