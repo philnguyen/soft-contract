@@ -137,6 +137,7 @@
   ;(test "unsafe/issues/issue-80.rkt" check-fail) TODO: check for exn
   (test "unsafe/issues/issue-82.rkt" check-fail)
   (test "unsafe/issues/issue-89.rkt" check-fail)
+  (test "unsafe/issues/utilities.rkt" (check 'Ok-pos 2 2))
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
