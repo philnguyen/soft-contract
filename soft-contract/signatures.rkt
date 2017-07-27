@@ -38,38 +38,37 @@
    [parse-prim : (Identifier → (Option -prim))]))
 
 (define-signature proof-system^
-  ([MΓ⊢V∈C : (-M -σ -Γ -W¹ -W¹ → -R)]
-   [MΓ⊢oW : (-M -σ -Γ -o -W¹ * → -R)]
-   [Γ+/-V : (-M -Γ -V -?t → (Values (Option -Γ) (Option -Γ)))]
-   [MΓ+/-oW : (-M -σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))]
-   [plausible-index? : (-M -σ -Γ -W¹ Natural → Boolean)]
-   [MΓ+/-oW/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
-   [MΓ⊢oW/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -M -σ -Γ -o -W¹ * → (℘ X))]
+  ([Γ⊢V∈C : (-σ -Γ -W¹ -W¹ → -R)]
+   [Γ⊢oW : (-σ -Γ -o -W¹ * → -R)]
+   [Γ+/-V : (-Γ -V -?t → (Values (Option -Γ) (Option -Γ)))]
+   [Γ+/-oW : (-σ -Γ -o -W¹ * → (Values (Option -Γ) (Option -Γ)))]
+   [plausible-index? : (-σ -Γ -W¹ Natural → Boolean)]
+   [Γ+/-oW/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -σ -Γ -o -W¹ * → (℘ X))]
+   [Γ⊢oW/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -Γ -o -W¹ * → (℘ X))]
    [p∋Vs/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X))]))
 
 ;; FIXME: least coherent signature ever.
 ;; Could have named it "misc"...
 (define-signature widening^
-  ([σ⊕! : ([-Σ -Γ ⟪α⟫ -W¹] [#:mutating? Boolean] . ->* . Void)]
-   [σ⊕V! : ([-Σ ⟪α⟫ -V] [#:mutating? Boolean] . ->* . Void)]
+  ([σ⊕! : (-Σ -Γ ⟪α⟫ -W¹ → Void)]
+   [σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
    [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
    [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
-   [M⊕! : (-Σ -αₖ (℘ -t) -A → Void)]
    [σₖ⊕! : (-Σ -αₖ -κ → Void)]
    [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
+   [M⊕! : (-Σ -αₖ -ΓA → Void)]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
-   [predicates-of-W : (-σ -Γ -W¹ → (U (℘ -h) -⟦e⟧))]
-   [inv-caller->callee : (-σ (℘ Symbol) -formals (Listof -W¹) -Γ -Γ → -Γ)]
-   [inv-callee->caller : (-σ (℘ Symbol) -formals (Listof -?t) -Γ -Γ → (Option -Γ))]
    [add-leak! : (-Σ -V → Void)]
-   [alloc-init-args! : (-Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)]
-   [alloc-rest-args! : ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V)]
+   [bind-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))]
+   [alloc-init-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))]
+   [alloc-rest-args! : ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V)]
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
-   [collect-hash-pairs : (-σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))]))
+   [collect-hash-pairs : (-σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))]
+   [copy-Γ : (-$ -Γ -Γ → -Γ)]))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]
@@ -83,6 +82,5 @@
    [Γ->αₖs : (-Γ → (℘ -αₖ))]
    [ΓA->αₖs : (-ΓA → (℘ -αₖ))]
    [αₖ->⟪α⟫s : (-αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))]
-   [span-M : ((HashTable -αₖ (℘ -ΓA)) (℘ -αₖ) → (HashTable -αₖ (℘ -ΓA)))]
    [->⟪α⟫s : ((Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))]
    [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]))

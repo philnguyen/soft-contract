@@ -19,6 +19,7 @@
 (define-interner ℓ loc
   #:intern-function-name loc->ℓ
   #:unintern-function-name ℓ->loc)
+(define-predicate ℓ? ℓ) ; HACK to get around type checking. Undo this when TR improves.
 
 ;; Dummy
 (define +ℓ₀ (loc->ℓ (loc 'dummy 0 0 '())))
@@ -49,6 +50,11 @@
 
 (: on-ℓ (∀ (X) (loc → X) → ℓ → X))
 (define ((on-ℓ f) ℓ) (f (ℓ->loc ℓ)))
+
+(: ℓ-with-src : ℓ -l → ℓ)
+(define (ℓ-with-src ℓ src)
+  (match-define (loc _ line col ids) (ℓ->loc ℓ))
+  (loc->ℓ (loc src line col ids)))
 
 (define ℓ-src (on-ℓ loc-src))
 (define ℓ-line (on-ℓ loc-line))

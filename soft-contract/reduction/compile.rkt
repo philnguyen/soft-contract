@@ -91,15 +91,11 @@
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
           (define ρ* (m↓ ρ fvs))
           (define Γ*
-            (match-let ([(-Γ φs as) Γ])
-              (define φs*
-                (for*/set: : (℘ -t) ([φ φs]
-                                     [fv⟦φ⟧ (in-value (fvₜ φ))]
-                                     #:unless (set-empty? fv⟦φ⟧)
-                                     #:when (⊆ fv⟦φ⟧ fvs))
-                  φ))
-              (define as* #|TODO|# as)
-              (-Γ φs* as*)))
+            (for*/set: : -Γ ([φ (in-set Γ)]
+                             [fv⟦φ⟧ (in-value (fvₜ φ))]
+                             #:unless (set-empty? fv⟦φ⟧)
+                             #:when (⊆ fv⟦φ⟧ fvs))
+              φ))
           (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) t) $ Γ ⟪ℋ⟫ Σ))]
        [(-case-λ clauses)
         (define ⟦clause⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
@@ -136,26 +132,26 @@
                                       (approximate-under-contract V)))))]))
         
         (define ⟪α⟫ (-α->⟪α⟫ α))
+        (define ?loc (hack:α->loc ⟪α⟫))
 
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-          (define s (and (not (mutated? Σ ⟪α⟫)) 𝒾))
+          (unless (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ) ; HACK
+            (σ⊕V! Σ ⟪α⟫ₒₚ (+●)))
           (cond
-            [(and (equal? l l₀) ($@ $ (or s 𝒾))) =>
-             (λ ([V : -V])
-               (⟦k⟧ (-W (list V) s) $ Γ ⟪ℋ⟫ Σ))]
+            [?loc
+             (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ ⟪α⟫ $ ?loc))])
+               (match-define (cons W $*) W/$)
+               (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
             [else
-             (unless (hash-has-key? (-σ-m (-Σ-σ Σ)) ⟪α⟫ₒₚ) ; HACK
-               (σ⊕V! Σ ⟪α⟫ₒₚ (+●)))
              (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
-                        (define V* (modify-V V))
-                        (define $* ($+ $ (or s 𝒾) V*))
-                        (⟦k⟧ (-W (list V*) s) $* Γ ⟪ℋ⟫ Σ))]))]
+               (define V* (modify-V V))
+               (⟦k⟧ (-W (list V*) #|FIXME|# #f) $ Γ ⟪ℋ⟫ Σ))]))]
        
        [(-@ f xs ℓ)
         (define ⟦f⟧  (↓ f))
         (define ⟦x⟧s (map ↓ xs))
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-          (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ (-ℒ ∅eq ℓ) ⟦k⟧)))]
+          (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧)))]
        [(-if e₀ e₁ e₂)
         (define ⟦e₀⟧ (↓ e₀))
         (define ⟦e₁⟧ (↓ e₁))
@@ -188,8 +184,12 @@
         (match ⟦bnd⟧s
           ['() ⟦e*⟧]
           [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
+           (define bounds
+             (for/unioneq : (℘ -loc) ([bnd (in-list bnds)])
+               (match-define (cons xs _) bnd)
+               (list->seteq xs)))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧)))])]
+             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ (clr∷ bounds ⟦k⟧))))])]
        [(-letrec-values bnds e* ℓ)
         (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
           (for/list ([bnd bnds])
@@ -205,7 +205,7 @@
                           ([⟦bnd⟧ ⟦bnd⟧s]
                            [xs (in-value (car ⟦bnd⟧))]
                            [x xs])
-                 (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ ∅)))
+                 (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
                  (σ⊕V! Σ α -undefined)
                  (ρ+ ρ x α)))
              (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
@@ -265,13 +265,13 @@
         (match ⟦clause⟧s
           ['()
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (⟦k⟧ (-W (list (-Case-> '() ℓ)) #f #;e) $ Γ ⟪ℋ⟫ Σ))]
+             (⟦k⟧ (-W (list (-Case-> '() ℓ)) #f) $ Γ ⟪ℋ⟫ Σ))]
           [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
              (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (case->∷ ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
        [(-x/c x)
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-          (⟦k⟧ (-W (list (-x/C (-α->⟪α⟫ (-α.x/c x)))) #f #;e) $ Γ ⟪ℋ⟫ Σ))]
+          (⟦k⟧ (-W (list (-x/C (-α->⟪α⟫ (-α.x/c x)))) #f) $ Γ ⟪ℋ⟫ Σ))]
        [(-struct/c 𝒾 cs ℓ)
         (define α (-α->⟪α⟫ 𝒾))
         (define blm (-blm l 'Λ '(struct-defined?) (list (-𝒾-name 𝒾)) ℓ))
@@ -293,28 +293,14 @@
     (define -blm.undefined ; TODO should have had attached location to `x` too?
       (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) +ℓ₀))
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (match-define (-Σ σ _ _) Σ)
       (define α (ρ@ ρ x))
-      (define tₓ (and (not (mutated? σ α)) (canonicalize Γ x)))
-      (cond
-        [($@ $ (or tₓ (-x x))) =>
-         (λ ([V : -V])
-           (cond [(plausible-V-t? (-Γ-facts Γ) V tₓ)
-                  (define V* (V+ σ V (predicates-of Γ tₓ)))
-                  (⟦k⟧ (-W (list V*) tₓ) ($+ $ tₓ V*) Γ ⟪ℋ⟫ Σ)]
-                 [else ∅]))]
-        [else
-         (define Vs (σ@ σ α))
-         (define φs (-Γ-facts Γ))
-         
-         (for/union : (℘ -ς) ([V Vs] #:when (plausible-V-t? φs V tₓ))
-                    (define $* ($+ $ (or tₓ (-x x)) V))
-                    (match V
-                      [(-b (not (? defined?))) (⟦k⟧ -blm.undefined $* Γ ⟪ℋ⟫ Σ)]
-                      [(-● ps) ; precision hack
-                       (define V* (V+ σ V (predicates-of Γ tₓ)))
-                       (⟦k⟧ (-W (list V*) tₓ) $* Γ ⟪ℋ⟫ Σ)]
-                      [_ (⟦k⟧ (-W (list V) tₓ) $* Γ ⟪ℋ⟫ Σ)]))])))
+      (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ x))])
+        (match-define (cons W $*) W/$)
+        (define A
+          (match W
+            [(-W¹ (-b (not (? defined?))) _) -blm.undefined]
+            [(-W¹ V                       t) (-W (list V) t)]))
+        (⟦k⟧ A $* Γ ⟪ℋ⟫ Σ))))
 
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))
 
@@ -323,21 +309,21 @@
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ)))
 
-  (define/memo (mk-mon [l³ : -l³] [ℒ : -ℒ] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
+  (define/memo (mk-mon [l³ : -l³] [ℓ : ℓ] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℒ (cons ⟦e⟧ ρ) ⟦k⟧))))
+      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℓ (cons ⟦e⟧ ρ) ⟦k⟧))))
 
-  (define/memo (mk-app [ℒ : -ℒ] [⟦f⟧ : -⟦e⟧] [⟦x⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
+  (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : -⟦e⟧] [⟦x⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ ℒ ⟦k⟧))))
+      (⟦f⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧))))
 
   (define/memo (mk-rt [A : (U -A -W¹)]) : -⟦e⟧
     (match A
       [(-W¹ V v) (mk-rt (-W (list V) v))]
       [(? -A?) (λ (_ $ Γ ⟪ℋ⟫ Σ ⟦k⟧) (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))]))
 
-  (define/memo (mk-fc [l : -l] [ℒ : -ℒ] [⟦c⟧ : -⟦e⟧] [⟦v⟧ : -⟦e⟧]) : -⟦e⟧
+  (define/memo (mk-fc [l : -l] [ℓ : ℓ] [⟦c⟧ : -⟦e⟧] [⟦v⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℒ ⟦v⟧ ρ ⟦k⟧))))
+      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℓ ⟦v⟧ ρ ⟦k⟧))))
   )
 

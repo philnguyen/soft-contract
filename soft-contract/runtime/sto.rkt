@@ -19,7 +19,7 @@
     (define σ (if (-Σ? m) (-Σ-σ m) m))
     (with-debugging/off
       ((Vs)
-       (hash-ref (-σ-m σ) ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
+       (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
       (when (>= (set-count Vs) 5)
         (printf "σ@: ~a -> ~a~n" (show-⟪α⟫ ⟪α⟫) (set-count Vs))
         (define-set roots : ⟪α⟫ #:eq? #t)
@@ -27,7 +27,7 @@
           (roots-union! (V->⟪α⟫s V))
           (printf "  - ~a~n" (show-V V)))
         (printf "addresses:~n")
-        (for ([(α Vs) (span-σ (-σ-m σ) roots)])
+        (for ([(α Vs) (span-σ σ roots)])
           (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
         (printf "~n")
         (when (> ⟪α⟫ 3000)
@@ -36,18 +36,12 @@
   (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
   (define (defined-at? σ α)
     (cond [(-Σ? σ) (defined-at? (-Σ-σ σ) α)]
-          [else (and (hash-has-key? (-σ-m σ) α)
-                     (not (∋ (hash-ref (-σ-m σ) α) 'undefined)))]))
-
-  (: mutated? : (U -Σ -σ) ⟪α⟫ → Boolean)
-  (define (mutated? m ⟪α⟫)
-    (∋ (-σ-modified (if (-Σ? m) (-Σ-σ m) m)) ⟪α⟫))
+          [else (and (hash-has-key? σ α)
+                     (not (∋ (hash-ref σ α) 'undefined)))]))
 
   (: σ-remove : -σ ⟪α⟫ -V → -σ)
   (define (σ-remove σ ⟪α⟫ V)
-    (match-define (-σ m crds mods) σ)
-    (define m* (hash-update m ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
-    (-σ m* crds mods))
+    (hash-update σ ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
 
   (: σ-remove! : -Σ ⟪α⟫ -V → Void)
   (define (σ-remove! Σ ⟪α⟫ V)
@@ -80,14 +74,7 @@
 
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
-  (define ⊥σ (-σ (hasheq ⟪α⟫ₕᵥ ∅) ∅eq (hasheq)))
-
-  (: cardinality+ : -cardinality → -cardinality)
-  (define (cardinality+ c)
-    (case c
-      [(0) 1]
-      [(1) 'N]
-      [else 'N]))
+  (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -104,11 +91,90 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Memo table
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
   (define ⊥M : -M (hash))
-
+  
   (: M@ : (U -Σ -M) -αₖ → (℘ -ΓA))
-  (define (M@ m αₖ) (hash-ref (if (-Σ? m) (-Σ-M m) m) αₖ mk-∅))
+  (define (M@ M α)
+    (define m (if (-Σ? M) (-Σ-M M) M))
+    (hash-ref m α mk-∅))
 
-  (define (⊥Σ) (-Σ ⊥σ ⊥σₖ ⊥M))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; Cache
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define ⊤$ : -$ (hash))
+  (define ⊤$* : -$* (hash))
+
+  (: $-set : -$ -loc -W¹ → -$)
+  (define $-set hash-set)
+  
+  (: $-set! : -Σ -$ ⟪α⟫ -loc -W¹ → -$)
+  (define ($-set! Σ $ α l W)
+    (set-alias! Σ α l)
+    (hash-set ($-del* $ (get-aliases Σ α)) l W))
+
+  (: $-set* : -$ (Listof -loc) (Listof -W¹) → -$)
+  (define ($-set* $ ls Ws)
+    (for/fold ([$ : -$ $])
+              ([l (in-list ls)]
+               [W (in-list Ws)])
+      ($-set $ l W)))
+
+  (: $-del : -$ -loc → -$)
+  (define ($-del $ l) (hash-remove $ l))
+
+  (: $@! : -Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))
+  (define ($@! Σ α $ l)
+    (cond [(hash-ref $ l #f) =>
+           (λ ([W : -W¹]) {set (cons W $)})]
+          [else
+           (set-alias! Σ α l)
+           (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
+             (define W (-W¹ V #f))
+             (cons W ($-set $ l W)))]))
+
+  (: $-extract : -$ (Sequenceof -loc) → -$*)
+  (define ($-extract $ ls)
+    (for/hash : -$* ([l ls])
+      (values l (hash-ref $ l #f))))
+
+  (: $-restore : -$ -$* → -$)
+  (define ($-restore $ $*)
+    (for/fold ([$ : -$ $])
+              ([(l ?W) (in-hash $*)])
+      (if ?W ($-set $ l ?W) ($-del $ l))))
+
+  (: $-del* : -$ (Sequenceof -loc) → -$)
+  (define ($-del* $ ls)
+    (for/fold ([$ : -$ $]) ([l ls])
+      ($-del $ l)))
+
+  (: $↓ : -$ (℘ -loc) → -$)
+  (define ($↓ $ ls)
+    (for/fold ([$ : -$ $])
+              ([(l W) (in-hash $)] #:unless (∋ ls l))
+      (hash-remove $ l)))
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; Aliases
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define ⊥𝒜 : -𝒜 (hasheq))
+
+  (: set-alias! : -Σ ⟪α⟫ -loc → Void)
+  (define (set-alias! Σ α l)
+    (set--Σ-𝒜! Σ (hash-update (-Σ-𝒜 Σ) α (λ ([ls : (℘ -loc)]) (set-add ls l)) mk-∅)))
+
+  (: get-aliases : (U -Σ -𝒜) ⟪α⟫ → (℘ -loc))
+  (define (get-aliases aliases α)
+    (define 𝒜 (if (-Σ? aliases) (-Σ-𝒜 aliases) aliases))
+    (hash-ref 𝒜 α mk-∅))
+
+  (: hack:α->loc : ⟪α⟫ → (Option -loc))
+  (define (hack:α->loc α)
+    (match (⟪α⟫->-α α)
+      [(-α.x x _) x]
+      [(? -𝒾? 𝒾) 𝒾]
+      [α₀ #f]))
+  
   )

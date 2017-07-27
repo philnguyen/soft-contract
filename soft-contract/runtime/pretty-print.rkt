@@ -18,22 +18,17 @@
 
   (define (show-ς [ς : -ς]) : Sexp
     (match ς
-      [(-ς↑ αₖ Γ ⟪ℋ⟫) `(ev: ,⟪ℋ⟫ ,(show-αₖ αₖ) ‖ ,@(show-Γ Γ))]
-      [(-ς↓ αₖ Γ A)  `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
+      [(-ς↑ αₖ      ) (show-αₖ αₖ)]
+      [(-ς↓ αₖ $ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
 
-  (define (show-Σ [Σ : -Σ]) : (Values (Listof Sexp) (Listof Sexp) (Listof Sexp))
-    (match-define (-Σ σ σₖ M) Σ)
-    (values (show-σ σ) (show-σₖ σₖ) (show-M M)))
-
-  (define (show-σ [σ : (U -σ (HashTable ⟪α⟫ (℘ -V)))]) : (Listof Sexp)
-    (cond [(-σ? σ) (show-σ (-σ-m σ))]
-          [else
-           (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ Vs) σ]
-                                       [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
-             `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V)))]))
+  (define (show-σ [σ : -σ])
+    (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ Vs) (in-hash σ)]
+                                [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
+      `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V))))
 
   (define (show-h [h : -h]) : Sexp
     (match h
+      [(? -t?) (show-t h)]
       [(? -o?) (show-o h)]
       [(? -αₖ?) (show-αₖ h)]
       [(? -V? V) (show-V V)]
@@ -62,22 +57,20 @@
   (define (show-t [?t : -?t]) : Sexp
     (match ?t
       [#f '∅]
+      [(? integer? i) (show-ℓ (cast i ℓ))]
       [(? -e? e) (show-e e)]
       [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
 
   (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
-    (match-define (-Γ ts as) Γ)
-    `(,@(set-map ts show-t)
-      ,@(for/list : (Listof Sexp) ([(x t) (in-hash as)])
-          `(,x ↦ ,(show-t t)))))
+    (set-map Γ show-t))
+
+  (define (show-$ [$ : -$]) : (Listof Sexp)
+    (for/list : (Listof Sexp) ([(l W) (in-hash $)] #:when W)
+      `(,(show-loc l) ↦ ,(show-W¹ W))))
 
   (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
     (for/list ([(αₖ κs) σₖ])
       `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
-
-  (define (show-M [M : (U -M (HashTable -αₖ (℘ -ΓA)))]) : (Listof Sexp)
-    (for/list ([(αₖ As) M])
-      `(,(show-αₖ αₖ) ↦ ,@(set-map As show-ΓA))))
 
   (define show-blm-reason : ((U -V -v -h) → Sexp)
     (match-lambda
@@ -204,22 +197,22 @@
     (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
           [(-ℳ? αₖ) (show-ℳ αₖ)]
           [(-ℱ? αₖ) (show-ℱ αₖ)]
-          [(-ℋ𝒱? αₖ) 'ℋ𝒱]
+          [(-ℋ𝒱? αₖ) (format-symbol "ℋ𝒱_~a" (n-sub (-αₖ-ctx αₖ)))]
           [else     (error 'show-αₖ "~a" αₖ)]))
 
   (define (show-ℬ [ℬ : -ℬ]) : Sexp
-    (match-define (-ℬ xs ⟦e⟧ ρ #;_) ℬ)
+    (match-define (-ℬ _ _ xs ⟦e⟧ ρ _) ℬ)
     (match xs
       ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
       [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
   (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ x l³ ℓ C V) ℳ)
-    `(ℳ ,x ,(show-V C) ,(show-⟪α⟫ V)))
+    (match-define (-ℳ _ _ l³ ℓ C V _) ℳ)
+    `(ℳ ,(show-W¹ C) ,(show-W¹ V)))
 
   (define (show-ℱ [ℱ : -ℱ]) : Sexp
-    (match-define (-ℱ x l ℓ C V) ℱ)
-    `(ℱ ,x ,(show-V C) ,(show-⟪α⟫ V)))
+    (match-define (-ℱ _ _ l ℓ C V _) ℱ)
+    `(ℱ ,(show-W¹ C) ,(show-W¹ V)))
 
   (define-parameter verbose? : Boolean #f)
 
@@ -229,39 +222,36 @@
         ⟪ℋ⟫))
   (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp) (map show-edge ℋ))
 
-  (: show-edge : (U -edge -ℒ) → Sexp)
+  (: show-edge : -edge → Sexp)
   (define (show-edge edge)
-    (define (show-arg [arg : (U (℘ -h) -⟦e⟧)]) : Sexp
-      (if (set? arg) (set-map arg show-h) (show-⟦e⟧ arg)))
-    (match edge
-      [(-edge ⟦e⟧ ℒ args) `(,(show-ℒ ℒ) ↝ ,(show-⟦e⟧ ⟦e⟧) @ ,@(map show-arg args))]
-      [(? -ℒ? ℒ) (show-ℒ ℒ)]))
+    (match-define (-edge tgt ℓ) edge)
+    `(,(show-ℓ ℓ) ↝ ,(show-tgt tgt)))
 
-  (define show-ℒ : (-ℒ → Sexp)
-    (let-values ([(ℒ->symbol symbol->ℒ _) ((inst unique-sym -ℒ) 'ℒ)])
-      (λ (ℒ)
-        (cond [(verbose?)
-               (match-define (-ℒ ℓs ℓ) ℒ)
-               `(ℒ ,(set->list ℓs) ,ℓ)]
-              [else (ℒ->symbol ℒ)]))))
+  (: show-tgt : -edge.tgt → Sexp)
+  (define (show-tgt tgt)
+    (cond
+      [(-o? tgt) (show-o tgt)]
+      [(set? tgt) `(one-of/c ,@(set-map tgt show-b))]
+      [(list? tgt) (for/list : (Listof Sexp) ([x (in-list tgt)])
+                     (cond [(symbol? x) x]
+                           [(ℓ? x) (show-ℓ x)]
+                           [(-t? x) (show-t x)]
+                           [(not x) '⊘]
+                           [else (show-⟦e⟧ x)]))]
+      [else (show-⟦e⟧ tgt)]))
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 
-    (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫] [ps : (U (℘ -h) -⟦e⟧)])
-      (format-symbol "~a_~a_~a"
-                     x
-                     (n-sub ⟪ℋ⟫)
-                     (if (set? ps)
-                         (string->symbol (format "~a" (set-map ps show-h)))
-                         (string->symbol (format "≃~a" (show-⟦e⟧ ps))))))
+    (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫])
+      (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫)))
 
     (define α (⟪α⟫->-α ⟪α⟫))
     (match (⟪α⟫->-α ⟪α⟫)
-      [(-α.x x ⟪ℋ⟫ ps) (show-α.x x ⟪ℋ⟫ ps)]
+      [(-α.x x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
       [(-α.hv) 'αₕᵥ]
-      [(-α.mon-x/c x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫ ∅)]
-      [(-α.fc-x/c x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫ ∅)]
-      [(-α.fv ⟪ℋ⟫ ts) (show-α.x 'dummy ⟪ℋ⟫ ∅)]
+      [(-α.mon-x/c x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫)]
+      [(-α.fc-x/c x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
+      [(-α.fv ⟪ℋ⟫) (show-α.x 'dummy ⟪ℋ⟫)]
       [(-α.and/c-l (? -t? t) _ _) (show-t t)]
       [(-α.and/c-r (? -t? t) _ _) (show-t t)]
       [(-α.or/c-l (? -t? t) _ _) (show-t t)]
@@ -284,6 +274,17 @@
       `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
 
   (define (show-κ [κ : -κ]) : Sexp
-    (match-define (-κ ⟦k⟧ Γ ⟪ℋ⟫ ts) κ)
-    `(□ ,@(map show-t ts) ‖ ,(show-Γ Γ) @ ,(show-⟪ℋ⟫ ⟪ℋ⟫)))
+    (match-define (-κ ⟦k⟧ Γ t _ _ _) κ)
+    `(□ ,(show-t t) ‖ ,(show-Γ Γ)))
+
+  (define show-loc : (-loc → Sexp)
+    (match-lambda
+      [(? symbol? s) s]
+      [(-𝒾 x _) x]
+      [(-loc.offset 𝒾 i t) `(,(show-t t) ↪ ,(show-ac 𝒾 i))]))
+
+  (: show-M : -M → (Listof Sexp))
+  (define (show-M M)
+    (for/list ([(α As) (in-hash M)])
+      `(,(show-αₖ α) ↦ ,(set-map As show-ΓA))))
   )

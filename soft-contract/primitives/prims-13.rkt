@@ -41,15 +41,15 @@
   (def-prim open-input-file (path-string? . -> . input-port?) #:volatile? #t #:lift-concrete? #f)
   (def-prim open-output-file (path-string? . -> . output-port?) #:volatile? #t #:lift-concrete? #f)
 
-  (def-ext (call-with-input-file $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
+  (def-ext (call-with-input-file ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
     #:domain ([W-p path-string?] [W-cb (input-port? . -> . any/c)])
     (define arg (-W¹ (-● {set 'input-port?}) (-x (+x!/memo 'cwif))))
-    (app $ ℒ W-cb (list arg) Γ ⟪ℋ⟫ Σ ⟦k⟧))
+    (app ℓ W-cb (list arg) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
-  (def-ext (call-with-output-file $ ℒ Ws Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
+  (def-ext (call-with-output-file ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
     #:domain ([W-p path-string?] [W-cb (output-port? . -> . any/c)])
     (define arg (-W¹ (-● {set 'output-port?}) (-x (+x!/memo 'cwof))))
-    (app $ ℒ W-cb (list arg) Γ ⟪ℋ⟫ Σ ⟦k⟧))
+    (app ℓ W-cb (list arg) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (def-ext with-input-from-file (path-string? (-> any/c) . -> . any/c))
   (def-ext with-output-to-file (path-string? (-> any/c) . -> . any/c))

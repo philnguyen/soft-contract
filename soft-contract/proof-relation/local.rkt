@@ -65,7 +65,7 @@
       [(>)  (⊢@ '<  (reverse xs))]
       [else '?]))
 
-  (define (Γ⊢t [φs : (℘ -t)] [t : -?t]) : -R
+  (define (Γ⊢t [φs : -Γ] [t : -?t]) : -R
 
     (when (∋ φs -ff)
       ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
@@ -123,6 +123,11 @@
                        (-t.@ (? op-≡?) (list (-b b₁) t)))
                    (-t.@ (? -special-bin-o? o) (list (-b b₂) t)))
                   (p⇒p (-≡/c b₁) ((bin-o->h (flip-bin-o o)) b₂))]
+                 ;; Ariths special cases (TODO generalize)
+                 [((-t.@ '<          (list (-b (? real? b₁)) t))
+                   (-t.@ (or '<= '<) (list (-b (? real? b₂)) t)))
+                  #:when (<= b₂ b₁)
+                  '✓]
                  ;; List
                  [((-t.@ (? op-≡?) (or (list (-t.@ 'length (list t)) (-b (? integer? n)))
                                        (list (-b (? integer? n)) (-t.@ 'length (list t)))))
@@ -168,7 +173,7 @@
              (t⊢t φ t))
            '?)]
          [else '?]))
-      (printf "~a ⊢ ~a : ~a~n" (set-map φs show-t) (show-t t) ans)))
+      (printf "~a ⊢ˡ ~a : ~a~n" (show-Γ φs) (show-t t) ans)))
 
   ;; Return whether predicate `p` definitely implies or excludes `q`.
   (define (p⇒p [p : -h] [q : -h]) : -R
@@ -269,7 +274,7 @@
   (define (base-only? [p : -h]) : Boolean
     (and (symbol? p) (not (memq p '(list? struct?)))))
 
-  (define (plausible-φs-t? [φs : (℘ -t)] [t : -?t]) : Boolean
+  (define (plausible-φs-t? [φs : -Γ] [t : -?t]) : Boolean
     (with-debugging/off
       ((a) (not (eq? '✗ (Γ⊢t φs t))))
       (printf "~a ⊢ ~a : ~a~n"
@@ -277,7 +282,7 @@
               (show-t t)
               (if a 'plausible 'implausible))))
 
-  (define (plausible-V-t? [φs : (℘ -t)] [V : -V] [t : -?t]) : Boolean
+  (define (plausible-V-t? [φs : -Γ] [V : -V] [t : -?t]) : Boolean
     (define-syntax-rule (with-prim-checks p? ...)
       (cond
         [t
@@ -335,7 +340,7 @@
               (set-map φs show-t) (show-V V) (show-t t) (if ans 'plausible 'implausible))))
 
   
-  (: plausible-W? : (℘ -t) (Listof -V) -?t → Boolean)
+  (: plausible-W? : -Γ (Listof -V) -?t → Boolean)
   ;; Check if value(s) `Vs` can instantiate symbol `t` given path condition `φs`
   ;; - #f indicates a definitely bogus case
   ;; - #t indicates (conservative) plausibility
@@ -582,8 +587,7 @@
                      [(-≢/c b)
                       (not-R (p∋Vs σ 'equal? (-b b) (car Vs)))]
                      [_ '?])]) -R))
-      (when (and (match? p 'zero? (-≡/c 0) (-≢/c 0)) (equal? R '?))
-        (printf "~a ~a : ~a~n" p (map show-V Vs) R))))
+      (printf "~a ~a : ~a~n" p (map show-V Vs) R)))
 
   (define (ps⇒p [ps : (℘ -h)] [p : -h]) : -R
     (or (for/or : (U #f '✓ '✗) ([q ps] #:when (-h? q))

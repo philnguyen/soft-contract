@@ -42,6 +42,6 @@
   (export)
 
   (def-pred void?)
-  (def-prim/custom (void ⟪ℋ⟫ ℒ Σ Γ Ws)
-    {set (-ΓA (-Γ-facts Γ) (+W (list -void)))})
+  (def-prim/custom (void ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+    {set (-ΓA Γ (+W (list -void)))})
   )

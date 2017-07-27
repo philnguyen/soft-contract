@@ -20,81 +20,80 @@
   (import local-prover^ pc^ sto^ pretty-print^ env^ val^)
   (export widening^)
 
+  (: Γ+ : -Γ -?t * → -Γ)
   ;; Strengthen path condition `Γ` with `s`
-  (define (Γ+ [Γ : -Γ] . [ts : -?t *]) : -Γ
-    (match-define (-Γ φs as) Γ)
-    (define φs*
-      (for/fold ([φs : (℘ -t) φs]) ([t ts]
-                                    #:when t
-                                    #:unless (set-empty? (fvₜ t)))
-        (define t*
-          (match t
-            [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]
-            [_ t]))
-        (φs+ φs t*)))
-    (-Γ φs* as))
+  (define (Γ+ Γ . ts)
 
-  (define (Γ++ [Γ : -Γ] [φs : (℘ -t)]) : -Γ (apply Γ+ Γ (set->list φs)))
+    (: φs+ : -Γ -t → -Γ)
+    (define (φs+ φs φ)
+      
+      (: iter : -Γ -t → (U -Γ (Pairof -Γ -Γ)))
+      (define (iter φs φ)
+        (match (for/or : (Option (List -Γ -t -t)) ([φᵢ φs])
+                 (cond [(φ+ φᵢ φ) => (λ ([φs* : -Γ]) (list φs* φᵢ φ))]
+                       [else #f]))
+          [(list φs* φᵢ φ)
+           (cons (set-remove (set-remove φs φᵢ) φ)
+                 φs*)]
+          [#f (set-add φs φ)]))
 
-  (define (σ⊕! [Σ : -Σ] [Γ : -Γ] [⟪α⟫ : ⟪α⟫] [W : -W¹] #:mutating? [mutating? : Boolean #f]) : Void
-    (match-define (-W¹ V s) W)
-    (σ⊕V! Σ ⟪α⟫ (V+ (-Σ-σ Σ) V (predicates-of Γ s)) #:mutating? mutating?))
+      (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) (℘ X)))) → (℘ X)))
+      ;; FIXME code duplicate
+      (define (repeat-compact xs x f)
+        (let loop ([xs : (℘ X) xs] [x : X x])
+          (match (f xs x)
+            [(cons xs₁ xs₂)
+             (for/fold ([acc : (℘ X) xs₁]) ([x xs₂])
+               (loop acc x))]
+            [(? set? s) s])))
 
-  (define (σ⊕V! [Σ : -Σ] [α : ⟪α⟫] [V : -V] #:mutating? [mutating? : Boolean #f]) : Void
-    (match-define (-Σ σ _ _) Σ)
-    (set--Σ-σ! Σ (σ⊕ σ α V mutating?)))
+      (repeat-compact φs φ iter))
+    
+    (for/fold ([Γ : -Γ Γ])
+              ([t ts]
+               #:when t
+               ;#:unless (set-empty? (fvₜ t))
+               )
+      (define t*
+        (match t
+          [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]
+          [_ t]))
+      (φs+ Γ t*)))
+
+  (define (Γ++ [Γ : -Γ] [φs : -Γ]) : -Γ (apply Γ+ Γ (set->list φs)))
+
+  (: σ⊕! : -Σ -Γ ⟪α⟫ -W¹ → Void)
+  (define (σ⊕! Σ Γ ⟪α⟫ W)
+    (match-define (-W¹ V t) W)
+    (define V* (V+ (-Σ-σ Σ) V (predicates-of Γ t)))
+    (σ⊕V! Σ ⟪α⟫ V*))  
+
+  (: σ⊕V! : -Σ ⟪α⟫ -V → Void)
+  (define (σ⊕V! Σ α V)
+    (set--Σ-σ! Σ (σ⊕ (-Σ-σ Σ) α V)))
 
   (: σ⊕Vs! : -Σ ⟪α⟫ (℘ -V) → Void)
   (define (σ⊕Vs! Σ α Vs)
-    (match-define (-Σ (and σ (-σ σm ms cs)) _ _) Σ)
-    (define σm*
-      (hash-update σm
+    (define σ*
+      (hash-update (-Σ-σ Σ)
                    α
                    (λ ([Vs₀ : (℘ -V)])
                      (cond [(set-empty? Vs₀) Vs] ; fast special case
                            [else
                             (for/fold ([Vs* : (℘ -V) Vs₀])
                                       ([V (in-set Vs)])
-                              (Vs⊕ σ Vs* V))]))
+                              (Vs⊕ (-Σ-σ Σ) Vs* V))]))
                    mk-∅))
-    (set--Σ-σ! Σ (-σ σm* ms cs)))
+    (set--Σ-σ! Σ σ*))
 
   (: σ-copy! : -Σ ⟪α⟫ ⟪α⟫ → Void)
   (define (σ-copy! Σ α-src α-tgt)
     (unless (equal? α-src α-tgt)
       (σ⊕Vs! Σ α-tgt (σ@ Σ α-src))))
 
-  (define (σ⊕ [σ : -σ] [α : ⟪α⟫] [V : -V] [α.mutating? : Boolean]) : -σ
-    (match-define (-σ store mutated cardinalities) σ)
-    
-    (define do-strong-update?
-      (let ([α.ambiguous? (equal? 'N (hash-ref cardinalities α (λ () 0)))]
-            [α.mutated? (∋ mutated α)])
-        (and α.mutating? (not α.mutated?) (not α.ambiguous?))))
-    
-    (define store*
-      (if do-strong-update?
-          (hash-set store α {set V})
-          (hash-update store α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅)))
-    
-    (define mutated* (if α.mutating? (set-add mutated α) mutated))
-
-    (define cardinalities*
-      (cond
-        [do-strong-update? cardinalities]
-        [;; Cheat for top-level reference.
-         ;; A top-level binding may be (spuriously) bound twice due to
-         ;; prior path-condition splits
-         (-𝒾? (⟪α⟫->-α α))
-         (hash-update cardinalities α
-                      (match-lambda
-                        ['0 1]
-                        ['1 1]
-                        ['N 'N])
-                      (λ () 0))]
-        [else (hash-update cardinalities α cardinality+ (λ () 0))]))
-    
-    (-σ store* mutated* cardinalities*))
+  (: σ⊕ : -σ ⟪α⟫ -V → -σ)
+  (define (σ⊕ σ α V)
+    (hash-update σ α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅))
 
   ;; Widen value set with new value
   (define (Vs⊕ [σ : -σ] [Vs : (℘ -V)] [V : (U -V (℘ -V))]) : (℘ -V)
@@ -120,8 +119,9 @@
                           ([Vᵢ (in-set V)])
                   (repeat-compact Vs Vᵢ iter))]))
 
+  (: V+ : -σ -V (U -V -h (℘ -h)) → -V)
   ;; Refine opaque value with predicate
-  (define (V+ [σ : -σ] [V : -V] [P : (U -V -h (℘ -h))]) : -V
+  (define (V+ σ V P)
     
     (define (simplify [P : -V]) : -V
       (match P
@@ -219,31 +219,7 @@
       [(any/c) ps] ; TODO tmp hack. How did this happen?
       [else (repeat-compact ps p iter)]))
 
-  (define (φs+ [φs : (℘ -t)] [φ : -t]) : (℘ -t)
-    
-    (: iter : (℘ -t) -t → (U (℘ -t) (Pairof (℘ -t) (℘ -t))))
-    (define (iter φs φ)
-      (match (for/or : (Option (List (℘ -t) -t -t)) ([φᵢ φs])
-               (cond [(φ+ φᵢ φ) => (λ ([φs* : (℘ -t)]) (list φs* φᵢ φ))]
-                     [else #f]))
-        [(list φs* φᵢ φ)
-         (cons (set-remove (set-remove φs φᵢ) φ)
-               φs*)]
-        [#f (set-add φs φ)]))
-
-    (: repeat-compact (∀ (X) (℘ X) X ((℘ X) X → (U (℘ X) (Pairof (℘ X) (℘ X)))) → (℘ X)))
-    ;; FIXME code duplicate
-    (define (repeat-compact xs x f)
-      (let loop ([xs : (℘ X) xs] [x : X x])
-        (match (f xs x)
-          [(cons xs₁ xs₂)
-           (for/fold ([acc : (℘ X) xs₁]) ([x xs₂])
-             (loop acc x))]
-          [(? set? s) s])))
-
-    (repeat-compact φs φ iter))
-
-  (define φ+ : (-t -t → (Option (℘ -t)))
+  (define φ+ : (-t -t → (Option -Γ))
     (match-lambda**/symmetry ; FIXME inefficiency, there's no e⊢e
      [(φ ψ) #:when (equal? '✓ (Γ⊢t {set φ} ψ)) {set φ}]
      [(_ _) #f]))
@@ -332,14 +308,12 @@
 
     (go V₁ V₂))
 
-  (define (φs⊑ [φs₁ : (℘ -t)] [φs₂ : (℘ -t)]) : Boolean (⊆ φs₂ φs₁))
+  (define (φs⊑ [φs₁ : -Γ] [φs₂ : -Γ]) : Boolean (⊆ φs₂ φs₁))
 
-  (define (Γ⊑ [Γ₁ : -Γ] [Γ₂ : -Γ]) : Boolean
-    (match-define (-Γ φs₁ as₁) Γ₁)
-    (match-define (-Γ φs₂ as₂) Γ₂)
-    (and (equal? as₁ as₂) (⊆ φs₂ φs₁)))
+  (: Γ⊑ : -Γ -Γ → Boolean)
+  (define (Γ⊑ Γ₁ Γ₂) (⊆ Γ₂ Γ₁))
 
-  (define (?Γ⊔ [Γ₁ : (℘ -t)] [Γ₂ : (℘ -t)]) : (Option (℘ -t))
+  (define (?Γ⊔ [Γ₁ : -Γ] [Γ₂ : -Γ]) : (Option -Γ)
     (define-values (Γ* δΓ₁ δΓ₂) (set-intersect/differences Γ₁ Γ₂))
     (cond [(and (= 1 (set-count δΓ₁))
                 (= 1 (set-count δΓ₂)))
@@ -379,16 +353,8 @@
            (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
            (and ?Γ (-ΓA ?Γ A₂))]))
 
-  (define (M⊕ [M : -M] [σ : -σ] [αₖ : -αₖ] [Γ : (℘ -t)] [A : -A]) : -M
-    (hash-update M αₖ (set-add/compact (-ΓA Γ A) (?ΓA⊔ σ)) mk-∅))
-
-  (define (M⊕! [Σ : -Σ] [αₖ : -αₖ] [Γ : (℘ -t)] [A : -A]) : Void
-    (match-define (-Σ σ _ M) Σ)
-    (set--Σ-M! Σ (M⊕ M σ αₖ Γ A)))
-
   (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
-    (match-define (-Σ _ σₖ _) Σ)
-    (set--Σ-σₖ! Σ (σₖ⊕ σₖ αₖ κ)))
+    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
 
   (define (?κ⊔ [κ₁ : -κ] [κ₂ : -κ]) : (Option -κ)
 
@@ -401,239 +367,54 @@
 
     (: κ⊑ : -κ -κ → Boolean)
     (define (κ⊑ κ₁ κ₂)
-      (match-define (-κ ⟦k⟧₁ Γ₁ ⟪ℋ⟫₁ args₁) κ₁)
-      (match-define (-κ ⟦k⟧₂ Γ₂ ⟪ℋ⟫₂ args₂) κ₂)
+      (match-define (-κ ⟦k⟧₁ Γ₁ res₁ sames₁ ambgs₁ _) κ₁)
+      (match-define (-κ ⟦k⟧₂ Γ₂ res₂ sames₂ ambgs₂ _) κ₂)
       (and (equal? ⟦k⟧₁ ⟦k⟧₂)
-           (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
-           (andmap t⊑ args₁ args₂)
+           (equal? sames₁ sames₂)
+           (equal? ambgs₁ ambgs₂)
+           (t⊑ res₁ res₂)
            (Γ⊑ Γ₁ Γ₂)))
 
     (cond [(κ⊑ κ₁ κ₂) κ₂]
           [(κ⊑ κ₂ κ₁) κ₁]
           [else
-           (match-define (-κ ⟦k⟧₁ (-Γ φs₁ as₁) ⟪ℋ⟫₁ args₁) κ₁)
-           (match-define (-κ ⟦k⟧₂ (-Γ φs₂ as₂) ⟪ℋ⟫₂ args₂) κ₂)
+           (match-define (-κ ⟦k⟧₁ Γ₁ res₁ diffs₁ ambgs₁ l₁) κ₁)
+           (match-define (-κ ⟦k⟧₂ Γ₂ res₂ diffs₂ ambgs₂ l₂) κ₂)
            (cond [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
-                       (equal? ⟪ℋ⟫₁ ⟪ℋ⟫₂)
-                       (andmap t⊑ args₁ args₂)
-                       (equal? as₁ as₂))
-                  (define ?φs (?Γ⊔ φs₁ φs₂))
-                  (and ?φs (-κ ⟦k⟧₂ (-Γ ?φs as₂) ⟪ℋ⟫₂ args₂))]
+                       (equal? diffs₁ diffs₂)
+                       (equal? ambgs₁ ambgs₂)
+                       (equal? l₁ l₂)
+                       (t⊑ res₁ res₂))
+                  (define ?Γ (?Γ⊔ Γ₁ Γ₂))
+                  (and ?Γ (-κ ⟦k⟧₂ ?Γ res₂ diffs₂ ambgs₂ l₂))]
                  [else #f])]))
 
   (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
     (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
 
-  ;; Extract predicates of `W`'s symbol that are not already implied by `W`'s value
-  (define (predicates-of-W [σ : -σ] [Γ : -Γ] [W : -W¹]) : (U (℘ -h) -⟦e⟧)
-    (match-define (-W¹ V t) W)
-    (define ps₁ : (U (℘ -h) -⟦e⟧)
-      (match V
-        [(-● ps) ps]
-        [(-St 𝒾 _) {set (-st-p 𝒾)}]
-        [(-St* (-St/C _ 𝒾 _) _ _) {set (-st-p 𝒾)}]
-        [(-Clo _ ⟦e⟧ _ _) ⟦e⟧]
-        [(-b (list)) {set 'null?}]
-        [_ ∅]))
-    (cond
-      [(set? ps₁)
-       (define ps₂
-         (for/set: : (℘ -h) ([p (predicates-of Γ t)]
-                             #:unless (and #|HACK|# (-●? V) (equal? '✓ (p∋Vs σ p V))))
-           p))
-       (∪ ps₁ ps₂)]
-      [else
-       ps₁]))
-
   (define (add-leak! [Σ : -Σ] [V : -V]) : Void
     (when (behavioral? (-Σ-σ Σ) V)
       (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
 
-  ;; Convert invariants about arguments in caller into those about parameters in callee
-  (define (inv-caller->callee [σ : -σ]
-                              [fvs : (℘ Symbol)]
-                              [fml : -formals]
-                              [Ws : (Listof -W¹)]
-                              [Γₑᵣ : -Γ]
-                              [Γₑₑ : -Γ]) : -Γ
+  (: alloc-init-args! :
+     -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
+  (define (alloc-init-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
+    (define ρ* (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
+    (bind-args! Σ $ Γ ρ* ⟪ℋ⟫ xs Ws looped?))
 
-    (match-define (-Γ φsₑₑ asₑₑ) Γₑₑ)
-    (define asₑₑ* (accum-aliases asₑₑ fml (map -W¹-t Ws)))
+  (: bind-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
+  (define (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
+    (define σ (-Σ-σ Σ))
+    (for/fold ([ρ : -ρ ρ] [$ : -$ $]) ([x xs] [Wₓ Ws])
+      (match-define (-W¹ Vₓ tₓ) Wₓ)
+      (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
+      (define tₓ* (if looped? (-x x) (or tₓ (-x x))))
+      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
+      (σ⊕V! Σ α Vₓ*)
+      (values (ρ+ ρ x α) ($-set $ x (-W¹ Vₓ* tₓ*)))))
 
-    (define xs : (Listof Symbol)
-      (match fml
-        [(? list? xs) xs]
-        [(-var xs _ ) xs]))
-
-    (define-values (arg->x x->V)
-      (for/fold ([arg->x : (HashTable -t Symbol) (hash)]
-                 [x->V : (HashTable Symbol -V) (hasheq)])
-                ([x xs] [W Ws]
-                 #:when (-W¹-t W)
-                 #:unless (hash-has-key? arg->x (-W¹-t W)))
-        (values (hash-set arg->x (-W¹-t W) x)
-                (hash-set x->V x (-W¹-V W)))))
-
-    (: er->ee : -t → -?t)
-    (define (er->ee t)
-
-      (: keep? : -t → Boolean)
-      (define keep?
-        (set->predicate
-         (for/union : (℘ -t) ([x fvs])
-                    (cond [(hash-ref asₑₑ x #f) =>
-                           (λ ([t* : -t]) {set t t*})]
-                          [else {set t}]))))
-
-      (match t
-        [arg #:when (hash-has-key? arg->x arg)
-             (define xₜ (hash-ref arg->x arg))
-             (hash-ref asₑₑ* xₜ (λ () (-x xₜ)))]
-        [(-t.@ f xs)
-         (and (h-unique? f)
-              (let ([xs* (map er->ee xs)])
-                (and (andmap -t? xs*) (-t.@ f xs*))))]
-        [(? -prim? b) b]
-        [(? -𝒾? 𝒾) 𝒾]
-        [t (and (keep? t) t)]))
-
-    ;; Avoid redundant symbols that may blow up the state unnecessarily
-    (define (redundant? [t : -t])
-      (match t
-        [(-t.@ (? -o? o) (list (-x x)))
-         (cond [(hash-ref x->V x #f) =>
-                (λ ([V : -V])
-                  (equal? '✓ (p∋Vs σ o V)))]
-               [else #f])]
-        [_ #f]))
-
-    (define φsₑₑ*
-      (for*/fold ([φsₑₑ* : (℘ -t) φsₑₑ])
-                 ([t (in-set (-Γ-facts Γₑᵣ))]
-                  [t* (in-value (er->ee t))]
-                  #:when t*
-                  #:unless (redundant? t*))
-        (set-add φsₑₑ* t*)))
-
-    (with-debugging/off ((Γₑₑ*) (-Γ φsₑₑ* asₑₑ*))
-      (printf "caller->callee: ~a -> ~a~n" (show-formals fml) (map show-W¹ Ws))
-      (printf "free: ~a~n" (set->list fvs))
-      (printf "  - Γₑᵣ : ~a~n"   (show-Γ Γₑᵣ))
-      (printf "  - Γₑₑ : ~a~n"   (show-Γ Γₑₑ))
-      (printf "  - Γₑₑ*: ~a~n~n" (show-Γ Γₑₑ*))))
-
-  (define (accum-aliases [as : (HashTable Symbol -t)]
-                         [fml : -formals]
-                         [args : (Listof -?t)]) : (HashTable Symbol -t)
-
-    (define xs : (Listof Symbol)
-      (match fml
-        [(? list? xs) xs]
-        [(-var xs _ ) xs]))
-
-    ;; specific inlining hack just for `octy/ex-{08,12}.rkt`, `mochi/intro3.rkt`
-    ;; To get rid of this hack and generalize for precision, need to make it aware of loops
-    (define (restrictedly-occured? [t : -t])
-      (with-debugging/off ((res?) (for/or : Boolean ([(x₀ t₀) (in-hash as)])
-                                    (match? t (-t.@ (? h-unique?) (or (list (== t₀))
-                                                                      (list (== t₀) (? -b?))))
-                                            (== t₀))))
-        (printf "restrictedly-occured? ~a: ~a~n" (show-t t) res?)))
-
-    (define-values (as* _)
-      (for/fold ([as* : (HashTable Symbol -t) as]
-                 [seen : (HashTable -t -t) (hash)])
-                ([x xs] [arg args])
-        (cond
-          [arg
-           (cond
-             [(hash-ref seen arg #f) =>
-              (λ ([t₀ : -t])
-                (values (hash-set as* x t₀) seen))]
-             [(restrictedly-occured? arg)
-              (values (hash-set as* x arg)
-                      (hash-set seen arg arg))]
-             [else (values as (hash-set seen arg (-x x)))])]
-          [else (values as seen)])))
-
-    #;(begin
-        (printf "accum-aliases: ~a ↦ ~a~n" (show-formals fml) (map show-t args))
-        (printf "  - old: ~a~n" as)
-        (printf "  - new: ~a~n" as*)
-        (printf "~n"))
-    as*)
-
-  ;; Propagate simple predicate back to caller
-  (define (inv-callee->caller [σ : -σ]
-                              [fvs : (℘ Symbol)]
-                              [fml : -formals]
-                              [ts : (Listof -?t)]
-                              [Γₑᵣ : -Γ]
-                              [Γₑₑ : -Γ]) : (Option -Γ)
-    (match-define (-Γ φsₑₑ asₑₑ) Γₑₑ)
-    (match-define (-Γ φsₑᵣ asₑᵣ) Γₑᵣ)
-
-    (define param->arg
-      (let ([xs
-             (match fml
-               [(-var xs _) xs]
-               [(? list? xs) xs])])
-        (for/hash : (HashTable -t -t) ([x xs] [tₓ ts] #:when tₓ)
-          (values (hash-ref asₑₑ x (λ () (-x x))) tₓ))))
-
-    (: ee->er : -t → -?t)
-    (define (ee->er φ)
-      (match φ
-        [x #:when (hash-has-key? param->arg x) (hash-ref param->arg x)]
-        [(-t.@ p (list x))
-         #:when (and (h-syntactic? p) (hash-has-key? param->arg x))
-         (-t.@ p (list (hash-ref param->arg x)))]
-        [(-t.@ 'not (list ψ))
-         (define ψ* (ee->er ψ))
-         (and ψ* (-t.@ 'not (list ψ*)))]
-        [(-t.@ (? -special-bin-o? o) (list x (? -b? b)))
-         #:when (hash-has-key? param->arg x)
-         (-t.@ o (list (hash-ref param->arg x) b))]
-        [(-t.@ (? -special-bin-o? o) (list (? -b? b) x))
-         #:when (hash-has-key? param->arg x)
-         (-t.@ o (list b (hash-ref param->arg x)))]
-        [_ #f]))
-
-    (define φsₑᵣ*
-      (for*/fold ([acc : (Option (℘ -t)) φsₑᵣ])
-                 ([φ (in-set φsₑₑ)] #:break (not acc)
-                  [φ* (in-value (ee->er φ))] #:when φ*)
-        (and (not (equal? φ* -ff)) (set-add (assert acc) φ*))))
-
-    #;(begin
-        (printf "inv-callee->caller: ~a ↦ ~a~n" fml (map show-t ts))
-        (printf "  - ee : ~a~n" (set-map φsₑₑ  show-t))
-        (printf "  - er : ~a~n" (set-map φsₑᵣ  show-t))
-        (printf "  - er*: ~a~n" (and φsₑᵣ* (set-map φsₑᵣ* show-t)))
-        (printf "~n"))
-
-    (and φsₑᵣ* (-Γ φsₑᵣ* asₑᵣ)))
-
-  (: alloc-init-args! : -Σ -Γ -ρ -⟪ℋ⟫ -?t (Listof Symbol) (Listof -W¹) → -ρ)
-  (define (alloc-init-args! Σ Γₑᵣ ρₑₑ ⟪ℋ⟫ sₕ xs Ws)
-    
-    (define φsₕ
-      (let* ([bnd (list->seteq xs)]
-             [fvs (set-subtract (if (or (-λ? sₕ) (-case-λ? sₕ)) (fvₜ sₕ) ∅eq) bnd)])
-        (for*/set: : (℘ -t) ([φ (in-set (-Γ-facts Γₑᵣ))]
-                             [fv⟦φ⟧ (in-value (fvₜ φ))]
-                             #:unless (set-empty? fv⟦φ⟧)
-                             #:when (⊆ fv⟦φ⟧ fvs))
-          φ)))
-    (define ρ₀ (ρ+ ρₑₑ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫ φsₕ))))
-    (for/fold ([ρ : -ρ ρ₀]) ([x xs] [Wₓ Ws])
-      (match-define (-W¹ Vₓ sₓ) Wₓ)
-      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ ∅ #;(predicates-of-W (-Σ-σ Σ) Γₑᵣ Wₓ))))
-      (σ⊕! Σ Γₑᵣ α Wₓ)
-      (ρ+ ρ x α)))
-
-  (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ -ℒ (Listof -W¹)] [#:end -V] . ->* . -V))
-  (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℒ Ws #:end [Vₙ -null])
+  (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
+  (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℓ Ws #:end [Vₙ -null])
 
     (: precise-alloc! ([(Listof -W¹)] [Natural] . ->* . -V))
     ;; Allocate vararg list precisely, preserving length
@@ -641,8 +422,8 @@
       (match Ws
         [(list) Vₙ]
         [(cons Wₕ Ws*)
-         (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ i)))
-         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ i)))
+         (define αₕ (-α->⟪α⟫ (-α.var-car ℓ ⟪ℋ⟫ i)))
+         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ ⟪ℋ⟫ i)))
          (σ⊕! Σ Γ αₕ Wₕ)
          (σ⊕V! Σ αₜ (precise-alloc! Ws* (+ 1 i)))
          (-Cons αₕ αₜ)]))
@@ -654,8 +435,8 @@
       [(or (list) (list _) (list _ _) (list _ _ _))
        (precise-alloc! Ws)]
       [(? pair?)
-       (define αₕ (-α->⟪α⟫ (-α.var-car ℒ ⟪ℋ⟫ #f)))
-       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℒ ⟪ℋ⟫ #f)))
+       (define αₕ (-α->⟪α⟫ (-α.var-car ℓ ⟪ℋ⟫ #f)))
+       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ ⟪ℋ⟫ #f)))
        (define Vₜ (-Cons αₕ αₜ))
        ;; Allocate spine for var-arg lists
        (σ⊕V! Σ αₜ Vₜ)
@@ -762,6 +543,18 @@
                (go-V V Vsₖ Vsᵥ))]))
 
     (go-α αₕ ∅ ∅))
+
+  (: M⊕! : -Σ -αₖ -ΓA → Void)
+  (define (M⊕! Σ αₖ ΓA)
+    (set--Σ-M! Σ (hash-update (-Σ-M Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
+
+  (: copy-Γ : -$ -Γ -Γ → -Γ)
+  (define (copy-Γ $ₜ Γₜ Γₛ)
+    (define dom
+      (for/unioneq : (℘ Symbol) ([W (in-hash-values $ₜ)])
+        (fvₜ (-W¹-t W))))
+    (define Γₛ* (Γ↓ Γₛ dom))
+    (∪ Γₜ Γₛ*))
   )
 
 

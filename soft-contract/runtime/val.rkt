@@ -165,7 +165,26 @@
       (λ (ℓ lo arity Vs)
         (-blm (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
 
+  (: strip-C : -V → -edge.tgt)
+  (define strip-C
+    (match-lambda
+      [(-Clo xs ⟦e⟧ _ _) (list 'flat ⟦e⟧)] ; distinct from just ⟦e⟧
+      [(-And/C _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list 'and/c ℓ₁ ℓ₂)]
+      [(-Or/C  _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list  'or/c ℓ₁ ℓ₂)]
+      [(-Not/C (-⟪α⟫ℓ _ ℓ)) (list 'not/c ℓ)]
+      [(-One-Of/C bs) bs]
+      [(-St/C _ (-𝒾 𝒾 _) ⟪α⟫ℓs) (cons 𝒾 (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
+      [(-Vectorof (-⟪α⟫ℓ _ ℓ)) (list 'vectorof ℓ)]
+      [(-Vector/C ⟪α⟫ℓs) (cons 'vector/c (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
+      [(-Hash/C (-⟪α⟫ℓ _ ℓₖ) (-⟪α⟫ℓ _ ℓᵥ)) (list 'hash/c ℓₖ ℓᵥ)]
+      [(-=> _ _ ℓ) (list '-> ℓ)]
+      [(-=>i _ _ ℓ) (list '->i ℓ)]
+      [(-Case-> _ ℓ) (list 'case-> ℓ)]
+      [(-x/C α)
+       (match-define (-α.x/c x) (⟪α⟫->-α α))
+       (list 'recursive-contract/c x)]
+      [(? -o? o) o]
+      [(-Ar _ (app ⟪α⟫->-α (-α.fn t _ _ _ _)) _) (list 'flat t)]
+      [V (error 'strip-C "~a not expected" (show-V V))]))
+
   )
-
-
-
