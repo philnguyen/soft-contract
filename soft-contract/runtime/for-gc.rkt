@@ -82,7 +82,7 @@
   (define (ρ->⟪α⟫s ρ)
     (for/seteq: : (℘ ⟪α⟫) ([⟪α⟫ : ⟪α⟫ (in-hash-values ρ)]) ⟪α⟫))
 
-  (: span-σ : (HashTable ⟪α⟫ (℘ -V)) (℘ ⟪α⟫) → (HashTable ⟪α⟫ (℘ -V)))
+  (: span-σ : -σ (℘ ⟪α⟫) → -σ)
   (define (span-σ σ αs)
     (hash-copy/spanning* σ αs V->⟪α⟫s))
 
@@ -122,6 +122,10 @@
                    ([κ (in-set (hash-ref σₖ αₖ mk-∅))])
            (define ⟦k⟧ (-κ-cont κ))
            (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))
+
+  (: ⟦k⟧->⟪α⟫s : -⟦k⟧ -σₖ → (℘ ⟪α⟫))
+  (define (⟦k⟧->⟪α⟫s ⟦k⟧ σₖ)
+    (∪ (⟦k⟧->roots ⟦k⟧) (αₖ->⟪α⟫s (⟦k⟧->αₖ ⟦k⟧) σₖ)))
 
   (: ->⟪α⟫s : (Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))
   (define (->⟪α⟫s x)

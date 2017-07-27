@@ -63,7 +63,10 @@
   (def-pred exact? (number?))
   (def-pred inexact? (number?))
   (def-prim inexact->exact (number? . -> . exact?))
-  (def-prim exact->inexact (number? . -> . inexact?))
+  (def-prim exact->inexact (number? . -> . inexact?)
+    #:refinements
+    (real? . -> . real?)
+    (integer? . -> . integer?))
   (def-prim real->single-flonum (real? . -> . single-flonum?))
   (def-prim real->double-flonum (real? . -> . flonum?))
 
@@ -198,7 +201,7 @@
 
   ;; 4.2.2.7 Random Numbers
   (def-prim random ; FIXME range, all uses
-    (integer? . -> . exact-nonnegative-integer?))
+    (-> (and/c real? inexact? (>/c 0) (</c 1))))
   (def-prim/todo random-seed
     ((and/c exact-integer? positive?) . -> . void?))
   (def-prim/todo make-pseudo-random-generator (-> pseudo-random-generator?))

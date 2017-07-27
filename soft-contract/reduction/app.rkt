@@ -17,7 +17,7 @@
 
 (define-unit app@
   (import mon^ compile^ kont^ proof-system^ local-prover^ prims^ memoize^ widening^
-          env^ val^ pc^ instr^ sto^ pretty-print^)
+          env^ val^ pc^ instr^ sto^ pretty-print^ for-gc^)
   (export app^)
 
   (: app : ℓ -W¹ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -207,7 +207,13 @@
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
 
-      (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
+      (define $** (gc-$ $* Σ ρ* ⟦k⟧))
+      #;(printf "jumping to ~a:~n  - before: ~a~n  - after : ~a~n~n"
+              (show-⟦e⟧ ⟦e⟧)
+              (map show-loc (hash-keys $* ))
+              (map show-loc (hash-keys $**)))
+      
+      (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
                     Γ
                     (apply ?t@ sₕ sₓs)
@@ -561,7 +567,8 @@
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₁ z W-rest))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-           (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
+           (define $** (gc-$ $* Σ ρₕ* ⟦k⟧))
+           (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
                          Γ
                          #f
@@ -627,6 +634,21 @@
          l)]
       [fv-same? ∅]
       [else ls]))
+
+  (: gc-$ : -$ -Σ -ρ -⟦k⟧ → -$)
+  (define (gc-$ $ Σ ρ ⟦k⟧)
+    (define σ (-Σ-σ Σ))
+    (define σₖ (-Σ-σₖ Σ))
+    (define αs (span* σ (∪ (ρ->⟪α⟫s ρ) (⟦k⟧->⟪α⟫s ⟦k⟧ σₖ)) V->⟪α⟫s))
+    (define locs
+      (for*/set: : (℘ -loc) ([α : ⟪α⟫ (in-set αs)]
+                             [?l (in-value (hack:α->loc α))]
+                             #:when ?l)
+        ?l))
+    (for/fold ([$ : -$ $])
+              ([l (in-hash-keys $)]
+               #:unless (or (-loc.offset? l) (∋ locs l)))
+      (hash-remove $ l)))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)

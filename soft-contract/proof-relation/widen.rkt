@@ -411,7 +411,10 @@
       (define tₓ* (if looped? (-x x) (or tₓ (-x x))))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕V! Σ α Vₓ*)
-      (values (ρ+ ρ x α) ($-set $ x (-W¹ Vₓ* tₓ*)))))
+      (define $*
+        (let ([Vs (σ@ Σ α)])
+          (if (> (set-count Vs) 1) $ ($-set $ x (-W¹ Vₓ* tₓ*)))))
+      (values (ρ+ ρ x α) $*)))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
   (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℓ Ws #:end [Vₙ -null])

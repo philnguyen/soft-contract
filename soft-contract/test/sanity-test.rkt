@@ -121,6 +121,7 @@
           "programs/safe/issues/issue-87/main.rkt")
         check-safe)
   (test "safe/issues/issue-88.rkt" check-safe)
+  (test "safe/issues/issue-89.rkt" check-safe)
   ;; TODO enable once it's fixed
   #;(test '("safe/issues/issue-90/a.rkt"
           "safe/issues/issue-90/b.rkt")
@@ -135,6 +136,8 @@
   (test "unsafe/issues/issue-74c.rkt" check-fail)
   ;(test "unsafe/issues/issue-80.rkt" check-fail) TODO: check for exn
   (test "unsafe/issues/issue-82.rkt" check-fail)
+  (test "unsafe/issues/issue-89.rkt" check-fail)
+  (test "unsafe/issues/utilities.rkt" (check 'Ok-pos 2 2))
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
