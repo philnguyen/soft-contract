@@ -188,10 +188,9 @@
     (λ (ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
       (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
-      (define shared-free-vars? (-λ? sₕ))
-      (define keep-shared-locs? (and shared-free-vars? (not looped?)))
       (define ρₕ.dom (dom ρₕ))
-      (define $₀ (if keep-shared-locs? $ ($-del* $ ρₕ.dom)))
+      (define unsure-locs (unsure-locations ρₕ.dom (-λ? sₕ) looped?))
+      (define $₀ ($-del* $ unsure-locs))
 
       ;; Target's environment
       (define-values (ρ* $*)
@@ -207,14 +206,14 @@
            (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-W¹ Vᵣ z)))]))
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-      
-      (define αₖ (-ℬ ($↓ $* (dom ρ*)) ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
+
+      (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                     Γ
                     ⟪ℋ⟫
                     (apply ?t@ sₕ sₓs)
                     ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))
-                    (if keep-shared-locs? ∅ ρₕ.dom)
+                    unsure-locs
                     looped?))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
@@ -551,9 +550,9 @@
          (define n (length zs))
          (define num-remaining-inits (- n num-inits))
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
-         (define shared-free-vars? (-λ? t-func))
          (define ρₕ.dom (dom ρₕ))
-         (define $₀ (if shared-free-vars? $ ($-del* $ ρₕ.dom)))
+         (define unsure-locs (unsure-locations ρₕ.dom (-λ? t-func) looped?))
+         (define $₀ ($-del* $ unsure-locs))
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
@@ -563,13 +562,13 @@
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₁ z W-rest))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-           (define αₖ (-ℬ ($↓ $* (dom ρₕ*)) ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
+           (define αₖ (-ℬ $* ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ (-κ (memoize-⟦k⟧ ⟦k⟧)
                          Γ
                          ⟪ℋ⟫
                          #f
                          ($-extract $ (cons z zs))
-                         (if shared-free-vars? ∅ ρₕ.dom)
+                         unsure-locs
                          looped?))
            (σₖ⊕! Σ αₖ κ)
            (-ς↑ αₖ))
@@ -619,6 +618,17 @@
       [(-Ar C α l³) (app-Ar/rest C α l³)]
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
+
+  (: unsure-locations : (℘ -loc) Boolean Boolean → (℘ -loc))
+  (define (unsure-locations ls fv-same? looped?)
+    (cond
+      [(and fv-same? looped?)
+       (for/set: : (℘ -loc) ([l (in-set ls)]
+                             #:when (or (symbol? l) (-𝒾? l))
+                             #:when (assignable? l))
+         l)]
+      [fv-same? ∅]
+      [else ls]))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)

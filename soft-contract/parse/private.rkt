@@ -588,6 +588,9 @@
                        src)
                   _ _ _ _ _ _)
             (-𝒾 (syntax-e #'i) src)]))
+       (match x
+         [(-x x) (set-assignable! x)]
+         [(? -𝒾? 𝒾) (set-assignable! 𝒾)])
        (-set! x (parse-e #'e))]
       [(#%plain-lambda fmls b ...+)
        (-λ (parse-formals #'fmls) (-begin/simp (parse-es #'(b ...))))]

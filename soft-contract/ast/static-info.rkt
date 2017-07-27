@@ -22,6 +22,8 @@
          get-alternate-alias-id
          module-before?
          set-module-before!
+         assignable?
+         set-assignable!
          )
 
 (require racket/match
@@ -38,7 +40,8 @@
                       [export-aliases : (HashTable -𝒾 -𝒾)]
                       [dependencies : (HashTable -l (℘ -l))]
                       [alternate-aliases : (HashTable -𝒾 (Pairof -𝒾 Boolean))]
-                      [alternate-alias-ids : (HashTable -l Symbol)])
+                      [alternate-alias-ids : (HashTable -l Symbol)]
+                      [assignables : (HashTable (U Symbol -𝒾) #t)])
   #:transparent)
 
 (define (new-static-info)
@@ -53,6 +56,7 @@
                                  (cons -𝒾-box (set -unbox))))
                 (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                  (cons -𝒾-box (set -set-box!))))
+                (make-hash)
                 (make-hash)
                 (make-hash)
                 (make-hash)
@@ -205,3 +209,16 @@
 (: get-alternate-alias-id (∀ (X) ([-l] [(→ X)] . ->* . (U X Symbol))))
 (define (get-alternate-alias-id l [on-failure (λ () (error 'get-alternate-flag-id "nothing for ~a" l))])
   (hash-ref (-static-info-alternate-alias-ids (current-static-info)) l on-failure))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Assignables
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: assignable? : (U Symbol -𝒾) → Boolean)
+(define (assignable? x)
+  (hash-has-key? (-static-info-assignables (current-static-info)) x))
+
+(: set-assignable! : (U Symbol -𝒾) → Void)
+(define (set-assignable! x)
+  (hash-set! (-static-info-assignables (current-static-info)) x #t))
