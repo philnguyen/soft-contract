@@ -277,12 +277,11 @@
     (match-define (-κ ⟦k⟧ Γ t _ _ _) κ)
     `(□ ,(show-t t) ‖ ,(show-Γ Γ)))
 
-  (: show-loc : -loc → Sexp)
-  (define show-loc
+  (define show-loc : (-loc → Sexp)
     (match-lambda
       [(? symbol? s) s]
       [(-𝒾 x _) x]
-      [(-loc.offset i t) `(,(show-t t) ↪ ,i)]))
+      [(-loc.offset 𝒾 i t) `(,(show-t t) ↪ ,(show-ac 𝒾 i))]))
 
   (: show-M : -M → (Listof Sexp))
   (define (show-M M)

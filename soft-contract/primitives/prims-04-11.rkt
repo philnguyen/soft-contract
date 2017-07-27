@@ -85,7 +85,7 @@
         (define V* (V+ σ V (predicates-of Γ t)))
         (define α (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
         (σ⊕V! Σ α V*)
-        (define l (-loc.offset (assert i index?) tₐ))
+        (define l (-loc.offset 'vector (assert i index?) tₐ))
         (values ($-set! Σ $ α l (-W¹ V* t)) (cons α αs.rev))))
     {set (-ΓA Γ (-W (list (-Vector (reverse αs.rev))) tₐ))})
   (def-prim/todo vector-immutable
@@ -121,7 +121,7 @@
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (cond [sᵥ (define l (-loc.offset (assert i index?) sᵥ))
+                  (cond [sᵥ (define l (-loc.offset 'vector (assert i index?) sᵥ))
                             (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ ⟪α⟫ $ l))])
                               (match-define (cons W $*) W/$)
                               (⟦k⟧ (W¹->W W) $* Γ* ⟪ℋ⟫ Σ))]
@@ -171,7 +171,7 @@
                   (σ⊕! Σ Γ ⟪α⟫ Wᵤ)
                   (define $*
                     (if sᵥ
-                        ($-set! Σ $ ⟪α⟫ (-loc.offset (assert i index?) sᵥ) Wᵤ)
+                        ($-set! Σ $ ⟪α⟫ (-loc.offset 'vector (assert i index?) sᵥ) Wᵤ)
                         ($-del* $ (get-aliases Σ ⟪α⟫))))
                   (⟦k⟧ (+W (list -void)) $* Γ* ⟪ℋ⟫ Σ))]
       [(-Vector^ α n)

@@ -118,7 +118,7 @@
 (-loc . ::= . ;; references
               Symbol -𝒾
               ;; struct field or vector access with concrete offset
-              (-loc.offset Index -t)
+              (-loc.offset (U -𝒾 Symbol) Index -t)
               )
 
 (define-type -$ (HashTable -loc -W¹))

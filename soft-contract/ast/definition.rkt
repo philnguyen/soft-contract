@@ -162,19 +162,23 @@
 ;; Return operator's simple show-o for pretty-printing
 (define show-o : (-o → Symbol)
   (match-lambda
-   [(? symbol? s) s]
-   [(-st-mk 𝒾) (-𝒾-name 𝒾)]
-   [(-st-ac (== -𝒾-cons) 0) 'car]
-   [(-st-ac (== -𝒾-cons) 1) 'cdr]
-   [(-st-ac (== -𝒾-mcons) 0) 'mcar]
-   [(-st-ac (== -𝒾-mcons) 1) 'mcdr]
-   [(-st-ac (== -𝒾-box) _) 'unbox]
-   [(-st-ac 𝒾 i) (format-symbol "~a._~a" (-𝒾-name 𝒾) i)]
-   [(-st-p 𝒾) (format-symbol "~a?" (-𝒾-name 𝒾))]
-   [(-st-mut (== -𝒾-mcons) 0) 'set-mcar!]
-   [(-st-mut (== -𝒾-mcons) 1) 'set-mcdr!]
-   [(-st-mut (== -𝒾-box) _) 'set-box!]
-   [(-st-mut 𝒾 i) (format-symbol "set-~a._~a!" (-𝒾-name 𝒾) i)]))
+    [(? symbol? s) s]
+    [(-st-mk 𝒾) (-𝒾-name 𝒾)]
+    [(-st-ac 𝒾 i) (show-ac 𝒾 i)]
+    [(-st-p 𝒾) (format-symbol "~a?" (-𝒾-name 𝒾))]
+    [(-st-mut (== -𝒾-mcons) 0) 'set-mcar!]
+    [(-st-mut (== -𝒾-mcons) 1) 'set-mcdr!]
+    [(-st-mut (== -𝒾-box) _) 'set-box!]
+    [(-st-mut 𝒾 i) (format-symbol "set-~a._~a!" (-𝒾-name 𝒾) i)]))
+
+(define (show-ac [𝒾 : (U -𝒾 Symbol)] [i : Index]) : Symbol
+  (match* (𝒾 i)
+    [((== -𝒾-cons) 0) 'car]
+    [((== -𝒾-cons) 1) 'cdr]
+    [((== -𝒾-mcons) 0) 'mcar]
+    [((== -𝒾-mcons) 1) 'mcdr]
+    [((== -𝒾-box) _) 'unbox]
+    [(𝒾 i) (format-symbol "~a._~a" (if (symbol? 𝒾) 𝒾 (-𝒾-name 𝒾)) i)]))
 
 (define (show-e [e : -e]) : Sexp
   (match e

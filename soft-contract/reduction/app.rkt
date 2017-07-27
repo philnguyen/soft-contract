@@ -390,7 +390,7 @@
              (define V* (V+ σ V (predicates-of Γ t)))
              (define α (-α->⟪α⟫ (-α.fld 𝒾 ℓ ⟪ℋ⟫ i)))
              (σ⊕V! Σ α V*)
-             (define l (-loc.offset i tₐ))
+             (define l (-loc.offset 𝒾 i tₐ))
              (values ($-set! Σ $ α l (-W¹ V* t)) (cons α αs.rev))))
          (define V (-St 𝒾 (reverse αs.rev)))
          (⟦k⟧ (-W (list V) tₐ) $* Γ ⟪ℋ⟫ Σ)]
@@ -414,7 +414,7 @@
             (define α (list-ref αs i))
             (cond
               [s
-               (define l (-loc.offset i s))
+               (define l (-loc.offset 𝒾 i s))
                (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ l))])
                  (match-define (cons W $*) W/$)
                  (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
@@ -472,7 +472,7 @@
             (define α (list-ref αs i))
             (σ⊕! Σ Γ α Wᵥ)
             (define $* (if sₛ
-                           ($-set! Σ $ α (-loc.offset i sₛ) Wᵥ)
+                           ($-set! Σ $ α (-loc.offset 𝒾 i sₛ) Wᵥ)
                            ($-del* $ (get-aliases Σ α))))
             (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
            [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
