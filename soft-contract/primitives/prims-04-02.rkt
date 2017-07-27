@@ -63,7 +63,10 @@
   (def-pred exact? (number?))
   (def-pred inexact? (number?))
   (def-prim inexact->exact (number? . -> . exact?))
-  (def-prim exact->inexact (number? . -> . inexact?))
+  (def-prim exact->inexact (number? . -> . inexact?)
+    #:refinements
+    (real? . -> . real?)
+    (integer? . -> . integer?))
   (def-prim real->single-flonum (real? . -> . single-flonum?))
   (def-prim real->double-flonum (real? . -> . flonum?))
 
