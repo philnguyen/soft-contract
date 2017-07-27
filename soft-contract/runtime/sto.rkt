@@ -127,11 +127,14 @@
   (define ($@! Σ α $ l)
     (cond [(hash-ref $ l #f) =>
            (λ ([W : -W¹]) {set (cons W $)})]
-          [else
+          [(> (set-count (σ@ Σ α)) 1)
            (set-alias! Σ α l)
            (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
              (define W (-W¹ V #f))
-             (cons W ($-set $ l W)))]))
+             (cons W ($-set $ l W)))]
+          [else
+           (define V (set-first (σ@ Σ α)))
+           {set (cons (-W¹ V #f) $)}]))
 
   (: $-extract : -$ (Sequenceof -loc) → -$*)
   (define ($-extract $ ls)
