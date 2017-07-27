@@ -208,7 +208,7 @@
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
 
       (define $** (gc-$ $* Σ ρ* ⟦k⟧))
-      (printf "jumping to ~a:~n  - before: ~a~n  - after : ~a~n~n"
+      #;(printf "jumping to ~a:~n  - before: ~a~n  - after : ~a~n~n"
               (show-⟦e⟧ ⟦e⟧)
               (map show-loc (hash-keys $* ))
               (map show-loc (hash-keys $**)))
