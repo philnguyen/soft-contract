@@ -69,6 +69,7 @@
    [or∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [mk-listof∷ : (-?t ℓ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    [clr∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
+   [restore∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
    ))
@@ -79,9 +80,9 @@
 
 (define-signature mon^
   ([mon : (-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [push-mon : ((-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . -ς↑)]
+   [push-mon : ((-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς))]
    [flat-chk : (-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [push-fc : ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . -ς↑)]))
+   [push-fc : ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς))]))
 
 (define-signature memoize^
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]

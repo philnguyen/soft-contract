@@ -483,9 +483,9 @@
             (match-define (-⟪α⟫ℓ γ ℓᵢ) (list-ref γℓs i))
             (define c #f #;(⟪α⟫->s γ))
             (define Mut (-W¹ mut mut))
-            (for*/set: : (℘ -ς) ([Vₛ* (in-set (σ@ Σ α))]
-                                 [⟦k⟧* (in-value (ap∷ (list (-W¹ Vₛ* sₛ) Mut) '() ⊥ρ ℓ/ignore ⟦k⟧))]
-                                 [C (in-set (σ@ Σ γ))])
+            (for*/union : (℘ -ς) ([Vₛ* (in-set (σ@ Σ α))]
+                                  [⟦k⟧* (in-value (ap∷ (list (-W¹ Vₛ* sₛ) Mut) '() ⊥ρ ℓ/ignore ⟦k⟧))]
+                                  [C (in-set (σ@ Σ γ))])
               (push-mon l³* ℓᵢ (-W¹ C c) Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
            [(-● _)
             (with-Γ+/-oW ((-Σ-σ Σ) Γ p Wₛ)

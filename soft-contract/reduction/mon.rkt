@@ -147,13 +147,13 @@
   (define (mon-x/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (-x/C ⟪α⟫) _) W-C)
     (match-define (-α.x/c x) (⟪α⟫->-α ⟪α⟫))
-    (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
+    (for/union : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
       (push-mon l³ ℓ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped x)))
 
   (define (mon-and/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'and/c c 2))
-    (for*/set: : (℘ -ς) ([C₂ (in-set (σ@ Σ α₂))]
+    (for*/union : (℘ -ς) ([C₂ (in-set (σ@ Σ α₂))]
                          [⟦k⟧* (in-value (mon.c∷ l³ ℓ₂ (-W¹ C₂ c₂) ⟦k⟧))]
                          [C₁ (in-set (σ@ Σ α₁))])
       (push-mon l³ ℓ₁ (-W¹ C₁ c₁) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
@@ -163,12 +163,12 @@
     (match-define (-W¹ (-Or/C flat? (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'or/c c 2))
     
-    (: chk-or/c : -W¹ ℓ -W¹ ℓ → -ς↑)
+    (: chk-or/c : -W¹ ℓ -W¹ ℓ → (℘ -ς))
     (define (chk-or/c W-fl ℓ-fl W-ho ℓ-ho)
       (push-fc lo ℓ-fl W-fl W-V $ Γ ⟪ℋ⟫ Σ
                (mon-or/c∷ l³ ℓ-ho W-fl W-ho W-V ⟦k⟧)))
 
-    (for*/set: : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
+    (for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
       (define W-C₁ (-W¹ C₁ c₁))
       (define W-C₂ (-W¹ C₂ c₂))
       (cond [(C-flat? C₁) (chk-or/c W-C₁ ℓ₁ W-C₂ ℓ₂)]
@@ -303,7 +303,7 @@
              (let ([αᵤ (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ l+))])
                (mk-rt (-W¹ (-Hash/guard Vₚ αᵤ l³) tᵤ))))
            (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
-          (for*/set: : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
+          (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
             (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
       
       (match Vᵤ
@@ -344,21 +344,21 @@
     (match C
       [(-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (match-define (list c₁ c₂) (-app-split 'and/c c 2))
-       (for*/set: : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
+       (for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
          (define W-C₁ (-W¹ C₁ c₁))
          (define W-C₂ (-W¹ C₂ c₂))
          (push-fc l ℓ₁ W-C₁ W-V $ Γ ⟪ℋ⟫ Σ
                   (fc-and/c∷ l ℓ₂ W-C₁ W-C₂ ⟦k⟧)))]
       [(-Or/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (match-define (list c₁ c₂) (-app-split 'or/c c 2))
-       (for*/set: : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
+       (for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
          (define W-C₁ (-W¹ C₁ c₁))
          (define W-C₂ (-W¹ C₂ c₁))
          (push-fc l ℓ₁ W-C₁ W-V $ Γ ⟪ℋ⟫ Σ
                   (fc-or/c∷ l ℓ₂ W-C₁ W-C₂ W-V ⟦k⟧)))]
       [(-Not/C (-⟪α⟫ℓ α ℓ*))
        (match-define (list c*) (-app-split 'not/c c 1))
-       (for/set: : (℘ -ς) ([C* (σ@ Σ α)])
+       (for/union : (℘ -ς) ([C* (σ@ Σ α)])
          (define W-C* (-W¹ C* c*))
          (push-fc l ℓ* W-C* W-V $ Γ ⟪ℋ⟫ Σ
                   (fc-not/c∷ l W-C* W-V ⟦k⟧)))]
@@ -402,7 +402,7 @@
          #:on-f (λ () ((↓ₚᵣₘ -ff) ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
       [(-x/C ⟪α⟫)
        (match-define (-α.x/c x) (⟪α⟫->-α ⟪α⟫))
-       (for/set: : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
+       (for/union : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
          (push-fc l ℓₐ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped x))]
       [_
        (define ⟦ap⟧ (mk-app ℓₐ (mk-rt W-C) (list (mk-rt W-V))))
@@ -426,41 +426,41 @@
     (define Vₙ (if ?n (-b ?n) (+● 'exact-nonnegative-integer?)))
     (-W¹ Vₙ (?t@ 'vector-length s)))
 
-  (: push-mon ((-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . -ς↑))
+  (: push-mon ((-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς)))
   (define (push-mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
-    (define-values (W-V* $* δ$ Γ*)
-      (if ?x
-          (let ([W-V* (-W¹ V ?x)])
-            (values W-V*
-                    ($-set $ ?x W-V*)
-                    (ann (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])) -$*)
-                    #|TODO|# ⊤Γ))
-          (values W-V $ ⊤$* Γ)))
-    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅ (and ?x #t)))
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
-    (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
-    (σₖ⊕! Σ αₖ κ)
-    (-ς↑ αₖ))
+    (cond
+      [?x
+       (define W-V* (-W¹ V ?x))
+       (define $* ($-set $ ?x W-V*))
+       (define δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])))
+       (define Γ* #|TODO|# ⊤Γ)
+       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅ (and ?x #t)))
+       (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
+       (σₖ⊕! Σ αₖ κ)
+       {set (-ς↑ αₖ)}]
+      [else
+       (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ (restore∷ ⟪ℋ⟫ ⟦k⟧))]))
 
-  (: push-fc ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . -ς↑))
+  (: push-fc ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς)))
   (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
-    (define-values (W-V* $* δ$ Γ*)
-      (if ?x
-          (let ([W-V* (-W¹ V ?x)])
-            (values W-V*
-                    ($-set $ ?x W-V*)
-                    (ann (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])) -$*)
-                    #|TODO|# ⊤Γ))
-          (values W-V $ ⊤$* Γ)))
-    (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅ (and ?x #t)))
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
-    (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
-    (σₖ⊕! Σ αₖ κ)
-    (-ς↑ αₖ))
+    (cond
+      [?x
+       (define W-V* (-W¹ V ?x))
+       (define $* ($-set $ ?x W-V*))
+       (define δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])))
+       (define Γ* #|TODO|# ⊤Γ)
+       (define κ (-κ ⟦k⟧ Γ ⟪ℋ⟫ tᵥ δ$ ∅ (and ?x #t)))
+       (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
+       (σₖ⊕! Σ αₖ κ)
+       {set (-ς↑ αₖ)}]
+      [else
+       (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ (restore∷ ⟪ℋ⟫ ⟦k⟧))]))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
