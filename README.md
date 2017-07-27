@@ -52,3 +52,16 @@ it'll error out asking you to include the right one.
 ```
 raco scv -p test/programs/safe/multiple/*.rkt
 ```
+
+
+Generating benchmark results
+=========================================
+
+To generate benchmark results for (sub-)test-suites, use `test/gen-table.rkt`.
+The outputs are in a form that can be conveniently copied to a latex document as a table.
+
+For example, to run the occurence benchmarks, execute:
+
+```
+racket test/gen-table.rkt test/programs/safe/octy
+```
