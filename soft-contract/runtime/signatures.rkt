@@ -12,16 +12,16 @@
          "../ast/definition.rkt"
          )
 
-(define-type -ρ (HashTable Symbol ⟪α⟫))
+(define-type -ρ (Immutable-HashTable Symbol ⟪α⟫))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stores
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -σ (HashTable ⟪α⟫ (℘ -V)))
-(define-type -σₖ (HashTable -αₖ (℘ -κ)))
-(define-type -M (HashTable -αₖ (℘ -ΓA)))
-(define-type -𝒜 (HashTable ⟪α⟫ (℘ -loc)))
+(define-type -σ (Immutable-HashTable ⟪α⟫ (℘ -V)))
+(define-type -σₖ (Immutable-HashTable -αₖ (℘ -κ)))
+(define-type -M (Immutable-HashTable -αₖ (℘ -ΓA)))
+(define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
 
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
@@ -121,8 +121,8 @@
               (-loc.offset (U -𝒾 Symbol) Index -t)
               )
 
-(define-type -$ (HashTable -loc -W¹))
-(define-type -$* (HashTable -loc (Option -W¹)))
+(define-type -$ (Immutable-HashTable -loc -W¹))
+(define-type -$* (Immutable-HashTable -loc (Option -W¹)))
 
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable

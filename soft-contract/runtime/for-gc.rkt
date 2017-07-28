@@ -82,10 +82,6 @@
   (define (ρ->⟪α⟫s ρ)
     (for/seteq: : (℘ ⟪α⟫) ([⟪α⟫ : ⟪α⟫ (in-hash-values ρ)]) ⟪α⟫))
 
-  (: span-σ : -σ (℘ ⟪α⟫) → -σ)
-  (define (span-σ σ αs)
-    (hash-copy/spanning* σ αs V->⟪α⟫s))
-
   (: t->αₖs : -?t → (℘ -αₖ))
   (define (t->αₖs t)
     (let go ([t : -?t t] [acc : (℘ -αₖ) ∅])
