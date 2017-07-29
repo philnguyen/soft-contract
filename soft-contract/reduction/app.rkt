@@ -207,7 +207,7 @@
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
 
-      (define $** (gc-$ $* Σ ρ* ⟦k⟧))
+      (define $** ($-cleanup (gc-$ $* Σ ρ* ⟦k⟧)))
       #;(printf "jumping to ~a:~n  - before: ~a~n  - after : ~a~n~n"
               (show-⟦e⟧ ⟦e⟧)
               (map show-loc (hash-keys $* ))
@@ -567,7 +567,7 @@
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₁ z W-rest))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-           (define $** (gc-$ $* Σ ρₕ* ⟦k⟧))
+           (define $** ($-cleanup (gc-$ $* Σ ρₕ* ⟦k⟧)))
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
                          Γ

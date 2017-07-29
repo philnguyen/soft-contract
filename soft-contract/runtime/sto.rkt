@@ -144,6 +144,13 @@
               ([(l W) (in-hash $)] #:unless (∋ ls l))
       (hash-remove $ l)))
 
+  (: $-cleanup : -$ → -$)
+  (define ($-cleanup $)
+    (for/fold ([$ : -$ $])
+              ([l (in-hash-keys $)]
+               #:when (-loc.offset? l))
+      (hash-remove $ l)))
+
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Aliases
