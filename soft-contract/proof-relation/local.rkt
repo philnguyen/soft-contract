@@ -40,7 +40,7 @@
   ;; Check if application returns truth
   (define (⊢@ [p : -h] [xs : (Listof -t)]) : -R
     (case p
-      [(equal? eq? =)
+      [(equal? eq? eqv? =)
        (match xs
          [(list t₁ t₂)
           (match* (t₁ t₂)
@@ -544,6 +544,7 @@
                            [(list (-b b₁) (-b b₂)) (boolean->R (equal? b₁ b₂))]
                            [(list (-● ps) (-b b)) (ps⇒p ps (-≡/c b))]
                            [(list (-b b) (-● ps)) (ps⇒p ps (-≡/c b))]
+                           [(list (? symbol? o₁) (? symbol? o₂)) (boolean->R (equal? o₁ o₂))]
                            [_ '?])]
                         [(list?) (check-proper-list σ (car Vs))]
                         ;; Default rules for operations on base values rely on simplification from `-?@`
