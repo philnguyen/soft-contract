@@ -82,30 +82,6 @@
   (define (ρ->⟪α⟫s ρ)
     (for/seteq: : (℘ ⟪α⟫) ([⟪α⟫ : ⟪α⟫ (in-hash-values ρ)]) ⟪α⟫))
 
-  (: t->αₖs : -?t → (℘ -αₖ))
-  (define (t->αₖs t)
-    (let go ([t : -?t t] [acc : (℘ -αₖ) ∅])
-      (match t
-        [(-t.@ h ts)
-         (for/fold ([acc : (℘ -αₖ) (if (-αₖ? h) (set-add acc h) acc)])
-                   ([t (in-list ts)])
-           (go t acc))]
-        [_ acc])))
-
-  (: Γ->αₖs : -Γ → (℘ -αₖ))
-  (define (Γ->αₖs Γ)
-    (for/union : (℘ -αₖ) ([t (in-set Γ)]) (t->αₖs t)))
-
-  (: ΓA->αₖs : -ΓA → (℘ -αₖ))
-  (define (ΓA->αₖs ΓA)
-    (match-define (-ΓA Γ A) ΓA)
-    (define s₀
-      (match A
-        [(-W _ t) (t->αₖs t)]
-        [_ ∅]))
-    (for/fold ([acc : (℘ -αₖ) s₀]) ([φ (in-set Γ)])
-      (∪ acc (t->αₖs φ))))
-
   (: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
   (define (αₖ->⟪α⟫s αₖ σₖ)
     (define-set seen : -αₖ #:as-mutable-hash? #t)
