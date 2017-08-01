@@ -298,8 +298,8 @@
         (match-define (cons W $*) W/$)
         (define A
           (match W
-            [(-W¹ (-b (not (? defined?))) _) -blm.undefined]
-            [(-W¹ V                       t) (-W (list V) t)]))
+            [(-W¹ (-b (== undefined)) _) -blm.undefined]
+            [(-W¹ V                   t) (-W (list V) t)]))
         (⟦k⟧ A $* Γ ⟪ℋ⟫ Σ))))
 
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))
