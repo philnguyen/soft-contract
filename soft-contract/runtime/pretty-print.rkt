@@ -58,6 +58,7 @@
     (match ?t
       [#f '∅]
       [(? integer? i) (show-ℓ (cast i ℓ))]
+      [(-t.x x) x]
       [(? -e? e) (show-e e)]
       [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
 
