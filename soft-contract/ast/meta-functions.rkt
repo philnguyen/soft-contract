@@ -16,7 +16,7 @@
 ;; Compute free variables for expression. Return set of variable names.
 (define (fv e)
   (match e
-    [(-x x) {seteq x}]
+    [(-x x _) {seteq x}]
     [(-λ xs e)
      (define bound
        (match xs
@@ -190,7 +190,7 @@
           (match-define (cons xs e*) clause)
           (define-values (m* xs*) (new-binders! m xs))
           (cons xs* (go! m* e*))))]
-      [(-x (? symbol? x)) (-x (hash-ref m x))]
+      [(-x x ℓ) (-x (hash-ref m x) ℓ)]
       [(-@ f xs loc) (-@ (go! m f) (map (curry go! m) xs) loc)]
       [(-if e₀ e₁ e₂) (-if (go! m e₀) (go! m e₁) (go! m e₂))]
       [(-wcm k v b) (-wcm (go! m k) (go! m v) (go! m b))]

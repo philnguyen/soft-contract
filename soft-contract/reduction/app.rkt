@@ -333,7 +333,7 @@
 
     (match xs
       [(? list?)
-       (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x (in-list xs)]) (↓ₓ lo x)))
+       (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x (in-list xs)]) (↓ₓ lo x (loc->ℓ (loc 'indy 0 0 (list x))))))
        (define ⟦app⟧ (mk-app ℓₐ* (mk-rt Wᵤ) ⟦x⟧s))
        (define ⟦rng⟧
          (cond [(-λ? mk-d) (assert (equal? xs (-λ-_0 mk-d))) ⟦d⟧]

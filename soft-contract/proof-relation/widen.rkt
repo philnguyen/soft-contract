@@ -408,7 +408,7 @@
     (for/fold ([ρ : -ρ ρ] [$ : -$ $]) ([x xs] [Wₓ Ws])
       (match-define (-W¹ Vₓ tₓ) Wₓ)
       (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
-      (define tₓ* (if looped? (-x x) (or tₓ (-x x))))
+      (define tₓ* (if looped? (-t.x x) (or tₓ (-t.x x))))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕V! Σ α Vₓ*)
       (define $* ($-set $ x (-W¹ Vₓ* tₓ*)))

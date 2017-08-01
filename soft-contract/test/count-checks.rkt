@@ -47,7 +47,7 @@
       [(-case-λ clauses)
        (for ([clause clauses]) (go! (cdr clause)))]
 
-      [(-x _) (up! #;'undefined)]
+      [(-x _ _) (up! #;'undefined)]
       [(-@ f xs _)
        (up! 'procedure? 'arity 'values) (go! f)
        (for ([x xs]) (up! 'values) (go! x))

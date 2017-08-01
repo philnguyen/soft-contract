@@ -44,82 +44,78 @@
         (update-cache! V Σ)
         (∪ res (havoc-V V $ ⟪ℋ⟫ Σ (hv∷ ⟦k⟧₀))))))
 
-  (splicing-local
-      ((define 𝒙 (+x!/memo 'hv))
-       (define 𝐱 (-x 𝒙)))
-    
-    (define (havoc-V [V : -V] [$ : -$] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
-      (define (done) ∅ #;(⟦k⟧ -Void/W∅ ⊤Γ ⟪ℋ⟫ Σ))
+  (define (havoc-V [V : -V] [$ : -$] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
+    (define (done) ∅ #;(⟦k⟧ -Void/W∅ ⊤Γ ⟪ℋ⟫ Σ))
 
-      (define W (-W¹ V 𝐱))
-      (match V
-        ;; Ignore first-order and opaque value
-        [(or (-● _) (? -prim?)) (done)]
+    (define W (-W¹ V (loc->ℓ (loc 'hv.var 0 0 '()))))
+    (match V
+      ;; Ignore first-order and opaque value
+      [(or (-● _) (? -prim?)) (done)]
 
-        ;; Apply function with appropriate number of arguments
-        [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
-         
-         (define (do-hv [k : (U Natural arity-at-least)]) : (℘ -ς)
-           (match k
-             [(? exact-nonnegative-integer? k)
-              (define args : (Listof -W¹)
-                (for/list ([i k])
-                  (-W¹ (+●) (+ℓ/memo k i))))
-              (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-ap k))))
-              (app ℓ W args $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-             [(arity-at-least n)
-              (define args₀ : (Listof -W¹)
-                (for/list ([i n])
-                  (-W¹ (+●) (+ℓ/memo n i))))
-              (define argᵣ (-W¹ (+● 'list?) (+ℓ/memo n n)))
-              (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-app n 'vararg))))
-              (app ℓ (+W¹ 'apply) `(,W ,@args₀ ,argᵣ) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]))
-         
-         (match (V-arity V)
-           [(? list? ks)
-            (for/union : (℘ -ς) ([k ks])
-                       (cond [(integer? k) (do-hv k)]
-                             [else (error 'havoc "TODO: ~a" k)]))]
-           [(and k (or (? index?) (? arity-at-least?))) (do-hv k)])]
+      ;; Apply function with appropriate number of arguments
+      [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
+       
+       (define (do-hv [k : (U Natural arity-at-least)]) : (℘ -ς)
+         (match k
+           [(? exact-nonnegative-integer? k)
+            (define args : (Listof -W¹)
+              (for/list ([i k])
+                (-W¹ (+●) (+ℓ/memo k i))))
+            (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-ap k))))
+            (app ℓ W args $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+           [(arity-at-least n)
+            (define args₀ : (Listof -W¹)
+              (for/list ([i n])
+                (-W¹ (+●) (+ℓ/memo n i))))
+            (define argᵣ (-W¹ (+● 'list?) (+ℓ/memo n n)))
+            (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-app n 'vararg))))
+            (app ℓ (+W¹ 'apply) `(,W ,@args₀ ,argᵣ) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]))
+       
+       (match (V-arity V)
+         [(? list? ks)
+          (for/union : (℘ -ς) ([k ks])
+                     (cond [(integer? k) (do-hv k)]
+                           [else (error 'havoc "TODO: ~a" k)]))]
+         [(and k (or (? index?) (? arity-at-least?))) (do-hv k)])]
 
-        ;; If it's a struct, havoc and widen each public field
-        [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
-         (∪
-          (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
-                     (define Acc (-W¹ acc acc))
-                     (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'ac (-𝒾-name 𝒾)))))
-                     (app ℓ Acc (list W) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
-          (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
-                     (define Mut (-W¹ mut mut))
-                     (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'mut (-𝒾-name 𝒾)))))
-                     (app ℓ Mut (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
+      ;; If it's a struct, havoc and widen each public field
+      [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
+                                               (∪
+                                                (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
+                                                           (define Acc (-W¹ acc acc))
+                                                           (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'ac (-𝒾-name 𝒾)))))
+                                                           (app ℓ Acc (list W) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
+                                                (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
+                                                           (define Mut (-W¹ mut mut))
+                                                           (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'mut (-𝒾-name 𝒾)))))
+                                                           (app ℓ Mut (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
 
-        ;; Havoc vector's content before erasing the vector with unknowns
-        ;; Guarded vectors are already erased
-        [(? -Vector/guard?)
-         (define ℓ (loc->ℓ (loc 'havoc 0 0 '(vector/guard))))
-         (define Wᵢ (-W¹ (+● 'exact-nonnegative-integer?) #f))
-         (∪
-          (app (ℓ-with-id ℓ 'ref) (+W¹ 'vector-ref) (list W Wᵢ) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
-          (app (ℓ-with-id ℓ 'mut) (+W¹ 'vector-set!) (list W Wᵢ (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-        [(-Vector αs)
-         ;; Widen each field first. No need to go through `vector-set!` b/c there's no
-         ;; contract protecting it
-         (for ([α (in-list αs)])
-           (σ⊕V! Σ α (+●)))
-         ;; Access vector at opaque field
-         (for*/union : (℘ -ς) ([α : ⟪α⟫ αs] [V (in-set (σ@ Σ α))])
-                     (⟦k⟧ (-W (list V) #f) $ ⊤Γ ⟪ℋ⟫ Σ))]
-        
-        [(-Vector^ α _)
-         (σ⊕V! Σ α (+●))
-         (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
-                    (⟦k⟧ (-W (list V) #f) $ ⊤Γ ⟪ℋ⟫ Σ))]
+      ;; Havoc vector's content before erasing the vector with unknowns
+      ;; Guarded vectors are already erased
+      [(? -Vector/guard?)
+       (define ℓ (loc->ℓ (loc 'havoc 0 0 '(vector/guard))))
+       (define Wᵢ (-W¹ (+● 'exact-nonnegative-integer?) #f))
+       (∪
+        (app (ℓ-with-id ℓ 'ref) (+W¹ 'vector-ref) (list W Wᵢ) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)
+        (app (ℓ-with-id ℓ 'mut) (+W¹ 'vector-set!) (list W Wᵢ (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+      [(-Vector αs)
+       ;; Widen each field first. No need to go through `vector-set!` b/c there's no
+       ;; contract protecting it
+       (for ([α (in-list αs)])
+         (σ⊕V! Σ α (+●)))
+       ;; Access vector at opaque field
+       (for*/union : (℘ -ς) ([α : ⟪α⟫ αs] [V (in-set (σ@ Σ α))])
+                   (⟦k⟧ (-W (list V) #f) $ ⊤Γ ⟪ℋ⟫ Σ))]
+      
+      [(-Vector^ α _)
+       (σ⊕V! Σ α (+●))
+       (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
+                  (⟦k⟧ (-W (list V) #f) $ ⊤Γ ⟪ℋ⟫ Σ))]
 
-        ;; Apply contract to unknown values
-        [(? -C?)
-         (log-warning "TODO: havoc contract combinators")
-         (done)])))
+      ;; Apply contract to unknown values
+      [(? -C?)
+       (log-warning "TODO: havoc contract combinators")
+       (done)]))
 
   (define -Void.W∅ (+W (list -void) #f))
 

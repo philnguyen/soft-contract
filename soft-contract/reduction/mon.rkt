@@ -220,7 +220,7 @@
         (mk-app ℓ
                 (mk-rt (-W¹ 'vector-ref #f))
                 (list (mk-rt Wᵥ*)
-                      (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (-x (+x!/memo 'vof-idx)))))))
+                      (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (loc->ℓ (loc 'vof-idx 0 0 '())))))))
       (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℓ l³ ⟦k⟧))
       (define c* #f #;(⟪α⟫->s α*))
       (define Wₗ (vec-len σ Γ Wᵥ*))

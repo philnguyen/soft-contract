@@ -648,8 +648,8 @@
        (or
         (parse-prim #'i)
         (match (identifier-binding #'i)
-          ['lexical (-x (syntax-e #'i))]
-          [#f (-x (syntax-e #'i))]
+          ['lexical (-x (syntax-e #'i) (syntax-ℓ #'i))]
+          [#f (-x (syntax-e #'i) (syntax-ℓ #'i))]
           [(list (app (λ (x)
                         (parameterize ([current-directory (directory-part (cur-mod))])
                           ;(printf "part: ~a~n" (directory-part (cur-mod)))

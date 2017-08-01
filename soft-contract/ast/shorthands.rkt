@@ -97,7 +97,7 @@
 ;; Return ast representing `(op _ e)`
 (define (-comp/c op e ℓ)
   (define x (+x! 'cmp))
-  (define 𝐱 (-x x))
+  (define 𝐱 (-x x (ℓ-with-id ℓ 'cmp)))
   (match-define (list ℓ₀ ℓ₁) (ℓ-with-ids ℓ 2))
   (-λ (list x)
       (-and (-@ 'real? (list 𝐱) ℓ₀)

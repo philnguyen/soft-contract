@@ -11,7 +11,7 @@
   ([↓ₚ : ((Listof -module) -e → -⟦e⟧)]
    [↓ₘ : (-module → -⟦e⟧)]
    [↓ₑ : (-l -e → -⟦e⟧)]
-   [↓ₓ : (-l Symbol → -⟦e⟧)]
+   [↓ₓ : (-l Symbol ℓ → -⟦e⟧)]
    [↓ₚᵣₘ : (-prim → -⟦e⟧)]
    [mk-app : (ℓ -⟦e⟧ (Listof -⟦e⟧) → -⟦e⟧)]
    [mk-mon : (-l³ ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]

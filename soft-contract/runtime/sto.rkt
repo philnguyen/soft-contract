@@ -11,7 +11,7 @@
          "signatures.rkt")
 
 (define-unit sto@
-  (import)
+  (import pretty-print^)
   (export sto^)
 
   (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))

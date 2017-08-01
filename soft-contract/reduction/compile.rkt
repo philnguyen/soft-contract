@@ -110,7 +110,7 @@
        [(-•)
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
           (⟦k⟧ (-W (list (+●)) #f) $ Γ ⟪ℋ⟫ Σ))]
-       [(-x x) (↓ₓ l x)]
+       [(-x x ℓₓ) (↓ₓ l x ℓₓ)]
        [(and 𝒾 (-𝒾 x l₀))
         (define-values (α modify-V)
           (cond
@@ -289,12 +289,12 @@
                  (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)))])]
        [_ (error '↓ₑ "unhandled: ~a" (show-e e))])))
 
-  (define/memo (↓ₓ [l : -l] [x : Symbol]) : -⟦e⟧
-    (define -blm.undefined ; TODO should have had attached location to `x` too?
-      (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) +ℓ₀))
+  (define/memo (↓ₓ [l : -l] [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
+    (define -blm.undefined
+      (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) ℓₓ))
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define α (ρ@ ρ x))
-      (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ x))])
+      (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ x #|TODO|#))])
         (match-define (cons W $*) W/$)
         (define A
           (match W

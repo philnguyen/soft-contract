@@ -124,7 +124,7 @@
             (define t (⦃ℓ⦄ (cast ℓ₀ ℓ)))
             (free-vars-add! t)
             (λ () (val-of t))]
-           [(-x x)
+           [(-t.x x)
             (define t (⦃x⦄ x))
             (unless (∋ (Ctx-bound ctx) x)
               (free-vars-add! t))

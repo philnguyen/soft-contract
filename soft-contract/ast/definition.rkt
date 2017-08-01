@@ -89,7 +89,7 @@
 (-require-spec . ::= . -l #|TODO|#)
 
 (-e . ::= . -v
-            (-x Symbol) ; lexical variables 
+            (-x Symbol ℓ) ; lexical variables 
             -𝒾 ; module references
             (-@ -e (Listof -e) ℓ)
             (-if -e -e -e)
@@ -183,13 +183,13 @@
 (define (show-e [e : -e]) : Sexp
   (match e
     ; syntactic sugar
-    [(-λ (list x) (-@ 'not (list (-@ f (list (-x x)) _)) _)) `(not/c ,(show-e f))]
-    [(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]
-    [(-λ (list x) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x) e*) _)) `(≡/c ,(show-e e*))]
-    [(-λ (list x) (-@ '> (list (-x x) e*) _)) `(>/c ,(show-e e*))]
-    [(-λ (list x) (-@ '< (list (-x x) e*) _)) `(</c ,(show-e e*))]
-    [(-λ (list x) (-@ '>= (list (-x x) e*) _)) `(≥/c ,(show-e e*))]
-    [(-λ (list x) (-@ '<= (list (-x x) e*) _)) `(≤/c ,(show-e e*))]
+    [(-λ (list x) (-@ 'not (list (-@ f (list (-x x _)) _)) _)) `(not/c ,(show-e f))]
+    [(-λ (list x) (-@ '= (list (-x x _) e*) _)) `(=/c ,(show-e e*))]
+    [(-λ (list x) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x _) e*) _)) `(≡/c ,(show-e e*))]
+    [(-λ (list x) (-@ '> (list (-x x _) e*) _)) `(>/c ,(show-e e*))]
+    [(-λ (list x) (-@ '< (list (-x x _) e*) _)) `(</c ,(show-e e*))]
+    [(-λ (list x) (-@ '>= (list (-x x _) e*) _)) `(≥/c ,(show-e e*))]
+    [(-λ (list x) (-@ '<= (list (-x x _) e*) _)) `(≤/c ,(show-e e*))]
        
     [(-if a b (-b #f))
      (match* ((show-e a) (show-e b))
@@ -208,7 +208,7 @@
     [(-•) '•]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
-    [(-x x) x]
+    [(-x x _) x]
     [(-𝒾 x p)
      (case p ;; hack
        [(Λ) (format-symbol "_~a" x)]

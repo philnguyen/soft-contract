@@ -129,7 +129,7 @@
 (define-type -Γ (℘ -t))
 
 ;; First order term for use in path-condition
-(-t . ::= . -x
+(-t . ::= . (-t.x Symbol)
             -𝒾
             -v
             ℓ ; RHS
