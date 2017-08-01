@@ -16,7 +16,7 @@
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^)
+  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
   (export)
 
   
@@ -40,6 +40,8 @@
          #:when 𝒾
          (?t@ (-st-ac 𝒾 i) sᵥ)]
         [(_ _) (?t@ 'unsafe-struct-ref sᵥ sᵢ)]))
+    (unless sₐ
+      (printf "unsafe-struct-ref: ~a ~a -> ⊘~n" (show-t sᵥ) (show-t sᵢ)))
     (match Vᵥ
       [(-St 𝒾 ⟪α⟫s)
        (define n (get-struct-arity 𝒾))

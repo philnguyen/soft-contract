@@ -3,6 +3,7 @@
 (provide compile@)
 
 (require racket/set
+         racket/list
          racket/match
          typed/racket/unit
          set-extras
@@ -184,12 +185,10 @@
         (match ⟦bnd⟧s
           ['() ⟦e*⟧]
           [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
-           (define bounds
-             (for/unioneq : (℘ -loc) ([bnd (in-list bnds)])
-               (match-define (cons xs _) bnd)
-               (list->seteq xs)))
+           (define bounds (append-map (inst car (Listof Symbol) -e) bnds))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ (clr∷ bounds ⟦k⟧))))])]
+             (define ⟦k⟧* (restore-$∷ ($-extract $ bounds) ⟦k⟧))
+             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧*)))])]
        [(-letrec-values bnds e* ℓ)
         (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
           (for/list ([bnd bnds])
@@ -199,6 +198,7 @@
         (match ⟦bnd⟧s
           ['() ⟦e*⟧]
           [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
+           (define bounds (append-map (inst car (Listof Symbol) -e) bnds))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
              (define ρ* ; with side effect widening store
                (for*/fold ([ρ  : -ρ  ρ])
@@ -208,8 +208,8 @@
                  (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
                  (σ⊕V! Σ α -undefined)
                  (ρ+ ρ x α)))
-             (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
-              (letrec∷ ℓ xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))])]
+             (define ⟦k⟧* (restore-$∷ ($-extract $ bounds) ⟦k⟧))
+             (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ (letrec∷ ℓ xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧*)))])]
        [(-set! x e*)
         (define ⟦e*⟧ (↓ e*))
         (cond

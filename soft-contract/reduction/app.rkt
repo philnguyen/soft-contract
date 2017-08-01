@@ -214,12 +214,10 @@
               (map show-loc (hash-keys $**)))
       
       (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
-      (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
-                    Γ
-                    (apply ?t@ sₕ sₓs)
-                    ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))
-                    unsure-locs
-                    looped?))
+      (define ⟦k⟧*
+        (let ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))])
+          (memoize-⟦k⟧ (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))))
+      (define κ (-κ ⟦k⟧* Γ (apply ?t@ sₕ sₓs) unsure-locs looped?))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -519,7 +517,7 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ #f ⊤$* ∅ #t))
+      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ #f ∅ #t))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -569,12 +567,10 @@
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
            (define $** ($-cleanup (gc-$ $* Σ ρₕ* ⟦k⟧)))
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
-           (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
-                         Γ
-                         #f
-                         ($-extract $ (cons z zs))
-                         unsure-locs
-                         looped?))
+           (define ⟦k⟧*
+             (let ([δ$ ($-extract $ (cons z zs))])
+               (memoize-⟦k⟧ (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))))
+           (define κ (-κ ⟦k⟧* Γ #f unsure-locs looped?))
            (σₖ⊕! Σ αₖ κ)
            (-ς↑ αₖ))
          

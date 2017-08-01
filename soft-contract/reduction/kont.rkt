@@ -215,6 +215,10 @@
             (define-values (ρ* $*)
               (let-values ([(xs Ws) (unzip bnd-Ws*)])
                 (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws #f)))
+            (when (and (hash-has-key? ρ* 'l) (not (hash-has-key? $* 'l)))
+              (printf "executing ~a, direct args ~a, with cache:~n" (show-⟦e⟧ ⟦e⟧) xs)
+              (for ([(l W) (in-hash $)])
+                (printf "- ~a ↦ ~a~n" (show-loc l) (show-W¹ W))))
             (⟦e⟧ ρ* $* Γ ⟪ℋ⟫ Σ ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
             (⟦e⟧* ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
@@ -727,11 +731,11 @@
          (define blm (blm-arity ℓ₀ 'mk-listof 1 Vs))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
-  (define-frame (clr∷ [ls : (℘ -loc)] [⟦k⟧ : -⟦k⟧])
+  (define-frame (restore-$∷ [δ$ : -$*] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
-      (⟦k⟧ A ($-del* $ ls) Γ ⟪ℋ⟫ Σ)))
+      (⟦k⟧ A ($-restore $ δ$) Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (restore∷ [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
+  (define-frame (restore-ctx∷ [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ _ Σ) #:roots ()
       (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
   )

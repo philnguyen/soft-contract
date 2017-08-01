@@ -29,7 +29,6 @@
 (struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
             [pc : -Γ]       ; path-condition to use for rest of computation
             [res : -?t]
-            [to-restore : -$*]
             [to-invalid : (℘ -loc)]
             [looped? : Boolean])
   #:transparent)

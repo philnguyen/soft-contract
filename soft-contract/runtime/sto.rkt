@@ -113,12 +113,22 @@
   (define ($@! Σ α $ l)
     (cond [(hash-ref $ l #f) =>
            (λ ([W : -W¹]) {set (cons W $)})]
-          [(> (set-count (σ@ Σ α)) 1)
+          [else #;(> (set-count (σ@ Σ α)) 1)
            (set-alias! Σ α l)
+           (when (equal? l 'l)
+             (let ([Vs (σ@ Σ α)])
+               (printf "find ~a bindings at l, cache each to ⊘:~n" (set-count Vs))
+               (for ([V (in-set Vs)])
+                 (printf "- ~a~n" (show-V V)))))
            (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
              (define W (-W¹ V #f))
              (cons W ($-set $ l W)))]
-          [else
+          #;[else
+           (when (equal? l 'l)
+             (let ([Vs (σ@ Σ α)])
+               (printf "find ~a bindings at l, cache each to ⊘:~n" (set-count Vs))
+               (for ([V (in-set Vs)])
+                 (printf "- ~a~n" (show-V V)))))
            (define V (set-first (σ@ Σ α)))
            {set (cons (-W¹ V #f) $)}]))
 
