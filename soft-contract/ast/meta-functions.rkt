@@ -42,7 +42,7 @@
        (set-remove (fv (cdr bnd)) bound))]
     [(-set! x e)
      (match x
-       [(-x x) (set-add (fv e) x)]
+       [(? symbol? x) (set-add (fv e) x)]
        [_ (fv e)])]
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
@@ -219,7 +219,7 @@
        (-letrec-values bnds* bod* ℓ)]
       [(-set! i e*)
        (match i
-         [(-x (? symbol? x)) (-set! (-x (hash-ref m x)) (go! m e*))]
+         [(? symbol? x) (-set! (hash-ref m x) (go! m e*))]
          [_ (-set! i (go! m e*))])]
       [(-μ/c x c) (-μ/c x (go! m c))]
       [(--> cs d ℓ)

@@ -103,7 +103,7 @@
             (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))]
                             [body : -e]
                             [loc : ℓ])
-            (-set! (U -𝒾 -x) -e)
+            (-set! (U Symbol -𝒾) -e)
             (-error String ℓ)
             
             ;; contract stuff
@@ -225,7 +225,7 @@
              (match-define (cons xs ex) bnd)
              `(,xs ,(show-e ex)))
         ,(show-e body))]
-    [(-set! x e) `(set! ,(show-e x) ,(show-e e))]
+    [(-set! x e) `(set! ,(if (symbol? x) x (-𝒾-name x)) ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
     [(-begin es) `(begin ,@(show-es es))]
     [(-begin0 e es) `(begin0 ,(show-e e) ,@(show-es es))]
