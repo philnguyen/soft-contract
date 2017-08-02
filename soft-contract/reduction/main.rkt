@@ -166,7 +166,7 @@
                (define ⟦k⟧ (rt αₖ))
                (match αₖ
                  [(-ℬ $ ⟪ℋ⟫ fmls ⟦e⟧ ρ Γ)
-                  (begin
+                  #;(begin
                     (printf "executing ~a:~n" (show-⟦e⟧ ⟦e⟧))
                     (printf "env:~n")
                     (for ([(x α) (in-hash ρ)])
