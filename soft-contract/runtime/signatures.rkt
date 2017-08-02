@@ -114,7 +114,7 @@
               )
 
 (define-type -$ (Immutable-HashTable -loc -W¹))
-(define-type -$* (Immutable-HashTable -loc (Option -W¹)))
+(define-type -δ$ (Immutable-HashTable -loc (Option -W¹)))
 
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable
@@ -340,15 +340,15 @@
    [⟪α⟫ₕᵥ : ⟪α⟫]
    [⟪α⟫ₒₚ : ⟪α⟫]
    [⊤$ : -$]
-   [⊤$* : -$*]
+   [⊤$* : -δ$]
    [$-set : (-$ -loc -W¹ → -$)]
    [$-set* : (-$ (Listof -loc) (Listof -W¹) → -$)]
    [$-set! : (-Σ -$ ⟪α⟫ -loc -W¹ → -$)]
    [$-del : (-$ -loc → -$)]
    [$-del* : (-$ (Sequenceof -loc) → -$)]
    [$@! : (-Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))]
-   [$-extract : (-$ (Sequenceof -loc) → -$*)]
-   [$-restore : (-$ -$* → -$)]
+   [$-extract : (-$ (Sequenceof -loc) → -δ$)]
+   [$-restore : (-$ -δ$ → -$)]
    [$↓ : (-$ (℘ -loc) → -$)]
    [$-cleanup : (-$ → -$)]
    [⊥𝒜 : -𝒜]
@@ -414,6 +414,7 @@
    [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]
    [show-$ : (-$ → (Listof Sexp))]
+   [show-δ$ : (-δ$ → (Listof Sexp))]
    [show-σₖ : (-σₖ → (Listof Sexp))]
    [show-blm-reason : ((U -V -v -h) → Sexp)]
    [show-V : (-V → Sexp)]

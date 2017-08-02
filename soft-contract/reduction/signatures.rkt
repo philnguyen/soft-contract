@@ -70,7 +70,7 @@
    [mk-listof∷ : (-?t ℓ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    [adjust-names∷ : (-Γ -?t Boolean -⟦k⟧ → -⟦k⟧)]
    [invalidate-$∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
-   [restore-$∷ : (-$* -⟦k⟧ → -⟦k⟧)]
+   [restore-$∷ : (-δ$ -⟦k⟧ → -⟦k⟧)]
    [restore-ctx∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]

@@ -742,7 +742,7 @@
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (⟦k⟧ A ($-del* $ ls) Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (restore-$∷ [δ$ : -$*] [⟦k⟧ : -⟦k⟧])
+  (define-frame (restore-$∷ [δ$ : -δ$] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (⟦k⟧ A ($-restore $ δ$) Γ ⟪ℋ⟫ Σ)))
 

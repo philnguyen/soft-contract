@@ -89,7 +89,7 @@
   ;;;;; Cache
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define ⊤$ : -$ (hash))
-  (define ⊤$* : -$* (hash))
+  (define ⊤$* : -δ$ (hash))
 
   (: $-set : -$ -loc -W¹ → -$)
   (define $-set hash-set)
@@ -132,12 +132,12 @@
            (define V (set-first (σ@ Σ α)))
            {set (cons (-W¹ V #f) $)}]))
 
-  (: $-extract : -$ (Sequenceof -loc) → -$*)
+  (: $-extract : -$ (Sequenceof -loc) → -δ$)
   (define ($-extract $ ls)
-    (for/hash : -$* ([l ls])
+    (for/hash : -δ$ ([l ls])
       (values l (hash-ref $ l #f))))
 
-  (: $-restore : -$ -$* → -$)
+  (: $-restore : -$ -δ$ → -$)
   (define ($-restore $ $*)
     (for/fold ([$ : -$ $])
               ([(l ?W) (in-hash $*)])
