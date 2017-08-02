@@ -17,7 +17,7 @@
 
 (define-unit compile@
   (import kont^ widening^ memoize^ proof-system^ local-prover^
-          env^ sto^ pc^ val^ pretty-print^)
+          env^ sto^ pc^ val^ pretty-print^ for-gc^)
   (export compile^)
 
   ;; Compile program
@@ -86,6 +86,7 @@
      (match e
        [(-λ xs e*)
         (define ⟦e*⟧ (memoize-⟦e⟧ (↓ₑ l e*)))
+        (set-bound-vars! ⟦e*⟧ (bv e*))
         (define fvs (fv e*))
         #;(printf "Warning: no longer canonicalize λ-term~n")
         (define t (-λ xs e*))

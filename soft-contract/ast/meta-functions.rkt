@@ -64,6 +64,50 @@
        (∪ xs (fv e)))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
 
+(: bv : (U -e (Listof -e)) → (℘ Symbol))
+(define (bv e)
+  (match e
+    [(-x x _) ∅eq]
+    [(-λ xs e)
+     (define bound
+       (match xs
+         [(-var zs z) (set-add (list->seteq zs) z)]
+         [(? list? xs) (list->seteq xs)]))
+     (∪ (bv e) bound)]
+    [(-@ f xs _) (∪ (bv f) (bv xs))]
+    [(-begin es) (bv es)]
+    [(-begin0 e₀ es) (∪ (bv e₀) (bv es))]
+    [(-let-values bnds e _)
+     (∪ (for/unioneq : (℘ Symbol) ([bnd (in-list bnds)])
+                     (match-define (cons xs rhs) bnd)
+                     (∪ (list->seteq xs) (bv rhs)))
+        (bv e))]
+    [(-letrec-values bnds e _)
+     (∪ (for/unioneq : (℘ Symbol) ([bnd (in-list bnds)])
+                     (match-define (cons xs rhs) bnd)
+                     (∪ (list->seteq xs) (bv rhs)))
+        (bv e))]
+    [(-set! x e) (bv e)]
+    #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
+    [(-if e e₁ e₂) (∪ (bv e) (bv e₁) (bv e₂))]
+    [(-μ/c _ e) (bv e)]
+    [(--> cs d _)
+     (match cs
+       [(-var cs c) (∪ (bv c) (bv d) (bv cs))]
+       [(? list? cs) (∪ (bv d) (bv cs))])]
+    [(-->i cs mk-d _) (apply ∪ (bv mk-d) (map bv cs))]
+    [(-case-> clauses _)
+     (for/unioneq : (℘ Symbol) ([clause clauses])
+       (match-define (cons cs d) clause)
+       (apply ∪ (bv d) (map bv cs)))]
+    [(-struct/c _ cs _)
+     (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
+       (∪ xs (bv c)))]
+    [(? list? l)
+     (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
+       (∪ xs (bv e)))]
+    [_ (log-debug "BV⟦~a⟧ = ∅~n" e) ∅eq]))
+
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
 (define (closed? e) (set-empty? (fv e)))

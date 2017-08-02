@@ -190,7 +190,7 @@
       (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
       (define ρₕ.dom (dom ρₕ))
       (define unsure-locs (unsure-locations ρₕ.dom (-λ? sₕ) looped?))
-      (define $₀ (if looped? ⊤$ ($-del* $ unsure-locs))) ; FIXME do it properly
+      (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
 
       ;; Target's environment
       (define-values (ρ* $*)
@@ -206,13 +206,7 @@
            (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-W¹ Vᵣ z)))]))
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-
       (define $** ($-cleanup (gc-$ $* Σ ρ* ⟦k⟧)))
-      #;(printf "jumping to ~a:~n  - before: ~a~n  - after : ~a~n~n"
-              (show-⟦e⟧ ⟦e⟧)
-              (map show-loc (hash-keys $* ))
-              (map show-loc (hash-keys $**)))
-      
       (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define ⟦k⟧*
         (let ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))])
@@ -554,7 +548,7 @@
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
          (define ρₕ.dom (dom ρₕ))
          (define unsure-locs (unsure-locations ρₕ.dom (-λ? t-func) looped?))
-         (define $₀ (if looped? ⊤$ ($-del* $ unsure-locs))) ; FIXME do it properly
+         (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)

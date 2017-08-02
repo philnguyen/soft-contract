@@ -14,7 +14,7 @@
          )
 
 (define-unit for-gc@
-  (import sto^)
+  (import sto^ pretty-print^)
   (export for-gc^)
 
   ;; TMP hack for part of root set from stack frames
@@ -129,4 +129,23 @@
            (and (equal? Vs₁ Vs₂)
                 (for/and : Boolean ([V (in-set Vs₁)])
                   (go (V->⟪α⟫s V))))]))))
+
+  (splicing-local
+      ((define bvs : (HashTable -⟦e⟧ (℘ Symbol)) (make-hasheq)))
+    
+    (: bound-vars : -⟦e⟧ → (℘ Symbol))
+    (define (bound-vars ⟦e⟧)
+      (hash-ref bvs ⟦e⟧ (λ () (error 'bound-vars "nothing for ~a~n" (show-⟦e⟧ ⟦e⟧)))))
+
+    (: set-bound-vars! : -⟦e⟧ (℘ Symbol) → Void)
+    (define (set-bound-vars! ⟦e⟧ xs)
+      (cond [(hash-ref bvs ⟦e⟧ #f)
+             =>
+             (λ ([xs₀ : (℘ Symbol)])
+               (unless (equal? xs₀ xs)
+                 (error 'set-bound-vars! "inconsistent for ~a: ~a and ~a"
+                        (show-⟦e⟧ ⟦e⟧) (set->list xs₀) (set->list xs))))]
+            [else
+             (hash-set! bvs ⟦e⟧ xs)])))
+  
   )
