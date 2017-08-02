@@ -356,39 +356,8 @@
   (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
     (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
 
-  (define (?κ⊔ [κ₁ : -κ] [κ₂ : -κ]) : (Option -κ)
-
-    (: t⊑ : -?t -?t → Boolean)
-    (define t⊑
-      (match-lambda**
-       [(_ #f) #t]
-       [(t t ) #t]
-       [(_ _ ) #f]))
-
-    (: κ⊑ : -κ -κ → Boolean)
-    (define (κ⊑ κ₁ κ₂)
-      (match-define (-κ ⟦k⟧₁ Γ₁ res₁ ambgs₁ _) κ₁)
-      (match-define (-κ ⟦k⟧₂ Γ₂ res₂ ambgs₂ _) κ₂)
-      (and (equal? ⟦k⟧₁ ⟦k⟧₂)
-           (equal? ambgs₁ ambgs₂)
-           (t⊑ res₁ res₂)
-           (Γ⊑ Γ₁ Γ₂)))
-
-    (cond [(κ⊑ κ₁ κ₂) κ₂]
-          [(κ⊑ κ₂ κ₁) κ₁]
-          [else
-           (match-define (-κ ⟦k⟧₁ Γ₁ res₁ ambgs₁ l₁) κ₁)
-           (match-define (-κ ⟦k⟧₂ Γ₂ res₂ ambgs₂ l₂) κ₂)
-           (cond [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
-                       (equal? ambgs₁ ambgs₂)
-                       (equal? l₁ l₂)
-                       (t⊑ res₁ res₂))
-                  (define ?Γ (?Γ⊔ Γ₁ Γ₂))
-                  (and ?Γ (-κ ⟦k⟧₂ ?Γ res₂ ambgs₂ l₂))]
-                 [else #f])]))
-
   (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
-    (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
+    (hash-update σₖ αₖ (λ ([κs : (℘ -κ)]) (set-add κs κ)) mk-∅))
 
   (define (add-leak! [Σ : -Σ] [V : -V]) : Void
     (when (behavioral? (-Σ-σ Σ) V)

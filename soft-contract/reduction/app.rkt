@@ -216,8 +216,8 @@
       (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define ⟦k⟧*
         (let ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))])
-          (memoize-⟦k⟧ (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))))
-      (define κ (-κ ⟦k⟧* Γ (apply ?t@ sₕ sₓs) unsure-locs looped?))
+          (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ (apply ?t@ sₕ sₓs) looped? ⟦k⟧)))))))
+      (define κ (-κ ⟦k⟧*))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -517,7 +517,7 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ #f ∅ #t))
+      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ (adjust-names∷ Γ #f #t ⟦k⟧))))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
@@ -569,8 +569,8 @@
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define ⟦k⟧*
              (let ([δ$ ($-extract $ (cons z zs))])
-               (memoize-⟦k⟧ (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))))
-           (define κ (-κ ⟦k⟧* Γ #f unsure-locs looped?))
+               (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ #f looped? ⟦k⟧)))))))
+           (define κ (-κ ⟦k⟧*))
            (σₖ⊕! Σ αₖ κ)
            (-ς↑ αₖ))
          

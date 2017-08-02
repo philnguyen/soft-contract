@@ -184,16 +184,8 @@
     (for/union : (℘ -ς) ([ς ςs])
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
       (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (match-define (-κ ⟦k⟧ Γₑᵣ tᵣₑₛ invalidates looped?) κ)
-        (define $* ($-del* $ₑₑ invalidates))
-        (match A
-          [(-W Vs tₐ)
-           (define-values (tₐ* Γₑᵣ*) (if looped? (values tᵣₑₛ Γₑᵣ) (values tₐ (copy-Γ $* Γₑᵣ Γₑₑ))))
-           (⟦k⟧ (-W Vs tₐ*) $* Γₑᵣ* (-αₖ-ctx αₖₑₑ) Σ)]
-          [(? -blm? blm)
-           (match-define (-blm l+ lo _ _ _) blm)
-           (cond [(symbol? l+) ∅]
-                 [else (⟦k⟧ blm $* Γₑᵣ (-αₖ-ctx αₖₑₑ) Σ)])]))))
+        (match-define (-κ ⟦k⟧) κ)
+        (⟦k⟧ A $ₑₑ Γₑₑ (-αₖ-ctx αₖₑₑ) Σ))))
   )
 
 (define-compound-unit/infer reduction@

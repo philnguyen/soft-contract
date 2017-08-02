@@ -68,6 +68,8 @@
    [and∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [or∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [mk-listof∷ : (-?t ℓ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
+   [adjust-names∷ : (-Γ -?t Boolean -⟦k⟧ → -⟦k⟧)]
+   [invalidate-$∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
    [restore-$∷ : (-$* -⟦k⟧ → -⟦k⟧)]
    [restore-ctx∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers

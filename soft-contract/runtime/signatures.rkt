@@ -26,12 +26,7 @@
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
 
-(struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
-            [pc : -Γ]       ; path-condition to use for rest of computation
-            [res : -?t]
-            [to-invalid : (℘ -loc)]
-            [looped? : Boolean])
-  #:transparent)
+(struct -κ ([cont : -⟦k⟧]) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -435,7 +430,6 @@
    [show-⟪ℋ⟫ : (-⟪ℋ⟫ → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
-   [show-κ : (-κ → Sexp)]
    [show-loc : (-loc → Sexp)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    [recall-e : (-⟦e⟧ → (Option -e))]

@@ -439,8 +439,8 @@
        (define Γ* #|TODO|# ⊤Γ)
        (define ⟦k⟧**
          (let ([δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
-           (restore-$∷ δ$ ⟦k⟧*)))
-       (define κ (-κ ⟦k⟧** Γ tᵥ ∅ (and ?x #t)))
+           (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
+       (define κ (-κ ⟦k⟧**))
        (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
        (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
@@ -460,8 +460,8 @@
        (define Γ* #|TODO|# ⊤Γ)
        (define ⟦k⟧**
          (let ([δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
-           (restore-$∷ δ$ ⟦k⟧*)))
-       (define κ (-κ ⟦k⟧** Γ tᵥ ∅ (and ?x #t)))
+           (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
+       (define κ (-κ ⟦k⟧**))
        (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
        (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]

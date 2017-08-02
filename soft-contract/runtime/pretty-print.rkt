@@ -71,7 +71,7 @@
 
   (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
     (for/list ([(αₖ κs) σₖ])
-      `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
+      `(,(show-αₖ αₖ) ↦ ,(set-count κs))))
 
   (define show-blm-reason : ((U -V -v -h) → Sexp)
     (match-lambda
@@ -273,10 +273,6 @@
   (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
     (for/list ([(x ⟪α⟫ₓ) ρ] #:unless (equal? x -x-dummy))
       `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
-
-  (define (show-κ [κ : -κ]) : Sexp
-    (match-define (-κ ⟦k⟧ Γ t _ _) κ)
-    `(□ ,(show-t t) ‖ ,(show-Γ Γ)))
 
   (define show-loc : (-loc → Sexp)
     (match-lambda

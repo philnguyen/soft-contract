@@ -731,6 +731,17 @@
          (define blm (blm-arity ℓ₀ 'mk-listof 1 Vs))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
+  (define-frame (adjust-names∷ [Γ : -Γ] [t : -?t] [looped? : Boolean] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ) #:roots ()
+      (match-define (-W Vs tₐ) A)
+      (define-values (tₐ* Γ*)
+        (if looped? (values t Γ) (values tₐ (copy-Γ $ Γ Γₐ))))
+      (⟦k⟧ (-W Vs tₐ*) $ Γ* ⟪ℋ⟫ Σ)))
+
+  (define-frame (invalidate-$∷ [ls : (℘ -loc)] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (⟦k⟧ A ($-del* $ ls) Γ ⟪ℋ⟫ Σ)))
+
   (define-frame (restore-$∷ [δ$ : -$*] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (⟦k⟧ A ($-restore $ δ$) Γ ⟪ℋ⟫ Σ)))
