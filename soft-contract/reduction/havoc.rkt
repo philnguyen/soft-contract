@@ -16,7 +16,7 @@
          )
 
 (define-unit havoc@
-  (import widening^ kont^ app^ proof-system^ local-prover^ for-gc^ sto^ pc^ val^)
+  (import widening^ kont^ app^ proof-system^ local-prover^ for-gc^ sto^ pc^ val^ pretty-print^)
   (export havoc^)
 
   (splicing-local
@@ -33,12 +33,11 @@
          (hash-set! cache V (-Σ-σ Σ)))
        )
 
-    (define (havoc [$ : -$] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ]) : (℘ -ς)
+    (define (havoc [$ : -$] [⟪ℋ⟫ : -⟪ℋ⟫] [Σ : -Σ] [⟦k⟧₀ : -⟦k⟧]) : (℘ -ς)
       #;(let ([Vs (σ@ Σ ⟪α⟫ₕᵥ)])
-          (printf "~a havoc values:~n" (set-count Vs))
-          (for ([V (in-set Vs)])
-            (printf "  - ~a~n" (show-V V))))
-      (define ⟦k⟧₀ (rt (-ℋ𝒱 $ ⟪ℋ⟫)))
+        (printf "~a havoc values:~n" (set-count Vs))
+        (for ([V (in-set Vs)])
+          (printf "  - ~a~n" (show-V V))))
       (for/fold ([res : (℘ -ς) (⟦k⟧₀ -Void.W∅ $ ⊤Γ ⟪ℋ⟫ Σ)])
                 ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))] #:unless (seen? V Σ))
         (update-cache! V Σ)
@@ -79,16 +78,17 @@
          [(and k (or (? index?) (? arity-at-least?))) (do-hv k)])]
 
       ;; If it's a struct, havoc and widen each public field
-      [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
-                                               (∪
-                                                (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
-                                                           (define Acc (-W¹ acc acc))
-                                                           (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'ac (-𝒾-name 𝒾)))))
-                                                           (app ℓ Acc (list W) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
-                                                (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
-                                                           (define Mut (-W¹ mut mut))
-                                                           (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'mut (-𝒾-name 𝒾)))))
-                                                           (app ℓ Mut (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
+      [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _))
+       #:when 𝒾
+       (∪
+        (for/union : (℘ -ς) ([acc (get-public-accs 𝒾)])
+                   (define Acc (-W¹ acc acc))
+                   (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'ac (-𝒾-name 𝒾)))))
+                   (app ℓ Acc (list W) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧))
+        (for/union : (℘ -ς) ([mut (get-public-muts 𝒾)])
+                   (define Mut (-W¹ mut mut))
+                   (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'mut (-𝒾-name 𝒾)))))
+                   (app ℓ Mut (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)))]
 
       ;; Havoc vector's content before erasing the vector with unknowns
       ;; Guarded vectors are already erased
