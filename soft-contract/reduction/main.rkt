@@ -135,6 +135,13 @@
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
+      #;(begin
+        (printf "Value store:~n")
+        (for ([(α Vs) (in-hash σ)])
+          (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
+        (printf "Stack store:~n")
+        (for ([(αₖ ks) (in-hash σₖ)])
+          (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))))
       (values (M@ Σ αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
@@ -159,7 +166,7 @@
                (define ⟦k⟧ (rt αₖ))
                (match αₖ
                  [(-ℬ $ ⟪ℋ⟫ fmls ⟦e⟧ ρ Γ)
-                  #;(begin
+                  (begin
                     (printf "executing ~a:~n" (show-⟦e⟧ ⟦e⟧))
                     (printf "env:~n")
                     (for ([(x α) (in-hash ρ)])
