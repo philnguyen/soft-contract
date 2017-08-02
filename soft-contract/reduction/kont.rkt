@@ -215,7 +215,7 @@
             (define-values (ρ* $*)
               (let-values ([(xs Ws) (unzip bnd-Ws*)])
                 (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws #f)))
-            (when (and (hash-has-key? ρ* 'l) (not (hash-has-key? $* 'l)))
+            #;(when (and (hash-has-key? ρ* 'l) (not (hash-has-key? $* 'l)))
               (printf "executing ~a, direct args ~a, with cache:~n" (show-⟦e⟧ ⟦e⟧) xs)
               (for ([(l W) (in-hash $)])
                 (printf "- ~a ↦ ~a~n" (show-loc l) (show-W¹ W))))

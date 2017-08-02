@@ -115,7 +115,7 @@
            (λ ([W : -W¹]) {set (cons W $)})]
           [else #;(> (set-count (σ@ Σ α)) 1)
            (set-alias! Σ α l)
-           (when (equal? l 'l)
+           #;(when (equal? l 'l)
              (let ([Vs (σ@ Σ α)])
                (printf "find ~a bindings at l, cache each to ⊘:~n" (set-count Vs))
                (for ([V (in-set Vs)])
