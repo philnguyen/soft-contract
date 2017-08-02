@@ -214,17 +214,31 @@
        [(Λ) (format-symbol "_~a" x)]
        [else x])]
     [(-let-values bnds body _)
-     `(let-values
-          ,(for/list : (Listof Sexp) ([bnd bnds])
-             (match-define (cons xs ex) bnd)
-             `(,xs ,(show-e ex)))
-        ,(show-e body))]
+     (match bnds
+       [(list (cons (list lhs) rhs) ...)
+        `(let ,(for/list : (Listof Sexp) ([x (in-list lhs)]
+                                          [e (in-list rhs)])
+                 `(,(assert x symbol?) ,(show-e (assert e -e?))))
+           ,(show-e body))]
+       [_
+        `(let-values
+             ,(for/list : (Listof Sexp) ([bnd bnds])
+                (match-define (cons xs ex) bnd)
+                `(,xs ,(show-e ex)))
+           ,(show-e body))])]
     [(-letrec-values bnds body _)
-     `(letrec-values
-          ,(for/list : (Listof Sexp) ([bnd bnds])
-             (match-define (cons xs ex) bnd)
-             `(,xs ,(show-e ex)))
-        ,(show-e body))]
+     (match bnds
+       [(list (cons (list lhs) rhs) ...)
+        `(letrec ,(for/list : (Listof Sexp) ([x (in-list lhs)]
+                                             [e (in-list rhs)])
+                    `(,(assert x symbol?) ,(show-e (assert e -e?))))
+           ,(show-e body))]
+       [_
+        `(letrec-values
+             ,(for/list : (Listof Sexp) ([bnd bnds])
+                (match-define (cons xs ex) bnd)
+                `(,xs ,(show-e ex)))
+           ,(show-e body))])]
     [(-set! x e) `(set! ,(if (symbol? x) x (-𝒾-name x)) ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
     [(-begin es) `(begin ,@(show-es es))]
