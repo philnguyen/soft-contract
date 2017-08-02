@@ -190,7 +190,7 @@
       (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
       (define ρₕ.dom (dom ρₕ))
       (define unsure-locs (unsure-locations ρₕ.dom (-λ? sₕ) looped?))
-      (define $₀ ($-del* $ unsure-locs))
+      (define $₀ (if looped? ⊤$ ($-del* $ unsure-locs))) ; FIXME do it properly
 
       ;; Target's environment
       (define-values (ρ* $*)
@@ -554,7 +554,7 @@
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
          (define ρₕ.dom (dom ρₕ))
          (define unsure-locs (unsure-locations ρₕ.dom (-λ? t-func) looped?))
-         (define $₀ ($-del* $ unsure-locs))
+         (define $₀ (if looped? ⊤$ ($-del* $ unsure-locs))) ; FIXME do it properly
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
