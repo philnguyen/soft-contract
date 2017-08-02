@@ -82,7 +82,7 @@
   (define (ρ->⟪α⟫s ρ)
     (for/seteq: : (℘ ⟪α⟫) ([⟪α⟫ : ⟪α⟫ (in-hash-values ρ)]) ⟪α⟫))
 
-  (: αₖ->⟪α⟫s : -αₖ (HashTable -αₖ (℘ -κ)) → (℘ ⟪α⟫))
+  (: αₖ->⟪α⟫s : -αₖ -σₖ → (℘ ⟪α⟫))
   (define (αₖ->⟪α⟫s αₖ σₖ)
     (define-set seen : -αₖ #:as-mutable-hash? #t)
     (let go ([acc : (℘ ⟪α⟫) ∅eq] [αₖ : -αₖ αₖ])
@@ -91,8 +91,7 @@
         [else
          (seen-add! αₖ)
          (for/fold ([acc : (℘ ⟪α⟫) (if (-ℋ𝒱? αₖ) (set-add acc ⟪α⟫ₕᵥ) acc)])
-                   ([κ (in-set (hash-ref σₖ αₖ mk-∅))])
-           (define ⟦k⟧ (-κ-cont κ))
+                   ([⟦k⟧ (in-set (hash-ref σₖ αₖ mk-∅))])
            (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))
 
   (: ⟦k⟧->⟪α⟫s : -⟦k⟧ -σₖ → (℘ ⟪α⟫))

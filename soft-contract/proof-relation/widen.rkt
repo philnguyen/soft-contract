@@ -353,11 +353,11 @@
            (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
            (and ?Γ (-ΓA ?Γ A₂))]))
 
-  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
-    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
+  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : Void
+    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ ⟦k⟧)))
 
-  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
-    (hash-update σₖ αₖ (λ ([κs : (℘ -κ)]) (set-add κs κ)) mk-∅))
+  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : -σₖ
+    (hash-update σₖ αₖ (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧)) mk-∅eq))
 
   (define (add-leak! [Σ : -Σ] [V : -V]) : Void
     (when (behavioral? (-Σ-σ Σ) V)

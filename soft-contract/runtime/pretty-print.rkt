@@ -69,9 +69,9 @@
     (for/list : (Listof Sexp) ([(l W) (in-hash $)] #:when W)
       `(,(show-loc l) ↦ ,(show-W¹ W))))
 
-  (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
-    (for/list ([(αₖ κs) σₖ])
-      `(,(show-αₖ αₖ) ↦ ,(set-count κs))))
+  (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
+    (for/list ([(αₖ ⟦k⟧s) σₖ])
+      `(,(show-αₖ αₖ) ↦ ,(set-count ⟦k⟧s))))
 
   (define show-blm-reason : ((U -V -v -h) → Sexp)
     (match-lambda

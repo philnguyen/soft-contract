@@ -440,9 +440,8 @@
        (define ⟦k⟧**
          (let ([δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
            (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
-       (define κ (-κ ⟦k⟧**))
        (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
-       (σₖ⊕! Σ αₖ κ)
+       (σₖ⊕! Σ αₖ ⟦k⟧**)
        {set (-ς↑ αₖ)}]
       [else
        (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
@@ -461,9 +460,8 @@
        (define ⟦k⟧**
          (let ([δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
            (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
-       (define κ (-κ ⟦k⟧**))
        (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
-       (σₖ⊕! Σ αₖ κ)
+       (σₖ⊕! Σ αₖ ⟦k⟧**)
        {set (-ς↑ αₖ)}]
       [else
        (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))

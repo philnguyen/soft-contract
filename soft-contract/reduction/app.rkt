@@ -217,8 +217,7 @@
       (define ⟦k⟧*
         (let ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))])
           (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ (apply ?t@ sₕ sₓs) looped? ⟦k⟧)))))))
-      (define κ (-κ ⟦k⟧*))
-      (σₖ⊕! Σ αₖ κ)
+      (σₖ⊕! Σ αₖ ⟦k⟧*)
       {set (-ς↑ αₖ)}))
 
   (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)
@@ -517,8 +516,8 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ (adjust-names∷ Γ #f #t ⟦k⟧))))
-      (σₖ⊕! Σ αₖ κ)
+      (define ⟦k⟧* (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ (adjust-names∷ Γ #f #t ⟦k⟧)))
+      (σₖ⊕! Σ αₖ ⟦k⟧*)
       {set (-ς↑ αₖ)}))
 
   (: app/rest/unsafe : ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -570,8 +569,7 @@
            (define ⟦k⟧*
              (let ([δ$ ($-extract $ (cons z zs))])
                (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ #f looped? ⟦k⟧)))))))
-           (define κ (-κ ⟦k⟧*))
-           (σₖ⊕! Σ αₖ κ)
+           (σₖ⊕! Σ αₖ ⟦k⟧*)
            (-ς↑ αₖ))
          
          (cond

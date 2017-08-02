@@ -19,14 +19,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type -σ (Immutable-HashTable ⟪α⟫ (℘ -V)))
-(define-type -σₖ (Immutable-HashTable -αₖ (℘ -κ)))
+(define-type -σₖ (Immutable-HashTable -αₖ (℘ -⟦k⟧)))
 (define-type -M (Immutable-HashTable -αₖ (℘ -ΓA)))
 (define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
 
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
-
-(struct -κ ([cont : -⟦k⟧]) #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -336,7 +334,7 @@
    [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
-   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
+   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
    [⊥M : -M]
    [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
    [⟪α⟫ₕᵥ : ⟪α⟫]

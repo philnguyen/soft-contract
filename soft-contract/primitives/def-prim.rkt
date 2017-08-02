@@ -314,8 +314,7 @@
                         tₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
          (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-         (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ (adjust-names∷ Γ #f #t ⟦k⟧))))
-         (σₖ⊕! Σ αₖ κ)
+         (σₖ⊕! Σ αₖ (bgn0.e∷ Wₐ '() ⊥ρ (adjust-names∷ Γ #f #t ⟦k⟧)))
          {set (-ς↑ αₖ)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments
