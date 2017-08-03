@@ -12,27 +12,19 @@
          "../ast/definition.rkt"
          )
 
-(define-type -ρ (HashTable Symbol ⟪α⟫))
+(define-type -ρ (Immutable-HashTable Symbol ⟪α⟫))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stores
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -σ (HashTable ⟪α⟫ (℘ -V)))
-(define-type -σₖ (HashTable -αₖ (℘ -κ)))
-(define-type -M (HashTable -αₖ (℘ -ΓA)))
-(define-type -𝒜 (HashTable ⟪α⟫ (℘ -loc)))
+(define-type -σ (Immutable-HashTable ⟪α⟫ (℘ -V)))
+(define-type -σₖ (Immutable-HashTable -αₖ (℘ -⟦k⟧)))
+(define-type -M (Immutable-HashTable -αₖ (℘ -ΓA)))
+(define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
 
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
-
-(struct -κ ([cont : -⟦k⟧]    ; rest of computation waiting on answer
-            [pc : -Γ]       ; path-condition to use for rest of computation
-            [res : -?t]
-            [to-restore : -$*]
-            [to-invalid : (℘ -loc)]
-            [looped? : Boolean])
-  #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,15 +113,15 @@
               (-loc.offset (U -𝒾 Symbol) Index -t)
               )
 
-(define-type -$ (HashTable -loc -W¹))
-(define-type -$* (HashTable -loc (Option -W¹)))
+(define-type -$ (Immutable-HashTable -loc -W¹))
+(define-type -δ$ (Immutable-HashTable -loc (Option -W¹)))
 
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable
 (define-type -Γ (℘ -t))
 
 ;; First order term for use in path-condition
-(-t . ::= . -x
+(-t . ::= . (-t.x Symbol)
             -𝒾
             -v
             ℓ ; RHS
@@ -342,22 +334,23 @@
    [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
-   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
+   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
    [⊥M : -M]
    [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
    [⟪α⟫ₕᵥ : ⟪α⟫]
    [⟪α⟫ₒₚ : ⟪α⟫]
    [⊤$ : -$]
-   [⊤$* : -$*]
+   [⊤$* : -δ$]
    [$-set : (-$ -loc -W¹ → -$)]
    [$-set* : (-$ (Listof -loc) (Listof -W¹) → -$)]
    [$-set! : (-Σ -$ ⟪α⟫ -loc -W¹ → -$)]
    [$-del : (-$ -loc → -$)]
    [$-del* : (-$ (Sequenceof -loc) → -$)]
    [$@! : (-Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))]
-   [$-extract : (-$ (Sequenceof -loc) → -$*)]
-   [$-restore : (-$ -$* → -$)]
+   [$-extract : (-$ (Sequenceof -loc) → -δ$)]
+   [$-restore : (-$ -δ$ → -$)]
    [$↓ : (-$ (℘ -loc) → -$)]
+   [$-cleanup : (-$ → -$)]
    [⊥𝒜 : -𝒜]
    [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
    [hack:α->loc : (⟪α⟫ → (Option -loc))]
@@ -421,6 +414,7 @@
    [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]
    [show-$ : (-$ → (Listof Sexp))]
+   [show-δ$ : (-δ$ → (Listof Sexp))]
    [show-σₖ : (-σₖ → (Listof Sexp))]
    [show-blm-reason : ((U -V -v -h) → Sexp)]
    [show-V : (-V → Sexp)]
@@ -435,7 +429,6 @@
    [show-⟪ℋ⟫ : (-⟪ℋ⟫ → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
-   [show-κ : (-κ → Sexp)]
    [show-loc : (-loc → Sexp)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    [recall-e : (-⟦e⟧ → (Option -e))]

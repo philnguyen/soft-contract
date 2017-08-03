@@ -29,7 +29,11 @@
 
 (: check : Any (Option Natural) (Option Natural) → (℘ -ΓA) → Any)
 (define ((check msg lo hi) ΓEs)
-  (define n (set-count ΓEs))
+  (define errors
+    (for/set: : (℘ -blm) ([ΓA (in-set ΓEs)])
+      (match-define (-ΓA _ (? -blm? blm)) ΓA)
+      blm))
+  (define n (set-count errors))
   (cond
     [(and (implies lo (<= lo n)) (implies hi (<= n hi)))
      (printf "  ✓ ~a~n" msg)]
@@ -127,6 +131,8 @@
           "safe/issues/issue-90/b.rkt")
           check-safe)
   (test "safe/issues/issue-91.rkt" check-safe)
+  (test "safe/issues/build-vector.rkt" check-safe)
+  
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
   (test "unsafe/issues/issue-79.rkt" check-fail)
@@ -137,7 +143,9 @@
   ;(test "unsafe/issues/issue-80.rkt" check-fail) TODO: check for exn
   (test "unsafe/issues/issue-82.rkt" check-fail)
   (test "unsafe/issues/issue-89.rkt" check-fail)
-  (test "unsafe/issues/utilities.rkt" (check 'Ok-pos 2 2))
+  (test "unsafe/issues/utilities.rkt" check-fail)
+  (test "unsafe/issues/undefined.rkt" check-fail)
+  (test "unsafe/issues/build-vector.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
@@ -147,9 +155,6 @@
   (test   "safe/real/protected-ring-buffer.rkt" check-safe)
   (test "unsafe/real/protected-ring-buffer.rkt" check-fail)
   
-  (test   "safe/games" check-safe)
-  (test "unsafe/games" check-fail)
-
   ;; Multple files
   (test '("programs/safe/multiple/main.rkt"
           "programs/safe/multiple/helper-1.rkt"
@@ -169,5 +174,12 @@
           "gradual-typing-benchmarks/morsecode/levenshtein.rkt"
           "gradual-typing-benchmarks/morsecode/main.rkt")
         check-safe)
+  (test '("gradual-typing-benchmarks/fsm/utilities.rkt"
+          "gradual-typing-benchmarks/fsm/automata.rkt"
+          "gradual-typing-benchmarks/fsm/population.rkt")
+        (check 'Ok-pos 2 3))
+
+  (test   "safe/games" check-safe)
+  (test "unsafe/games" check-fail)
   
   )

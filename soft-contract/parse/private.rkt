@@ -577,8 +577,8 @@
       [(set! i:identifier e)
        (define x
          (match (identifier-binding #'i)
-           ['lexical (-x (syntax-e #'i))]
-           [#f (-x (syntax-e #'i))]
+           ['lexical (syntax-e #'i)]
+           [#f (syntax-e #'i)]
            [(list (app (λ (x)
                          (parameterize ([current-directory (directory-part (cur-mod))])
                            ;(printf "part: ~a~n" (directory-part (cur-mod)))
@@ -589,7 +589,7 @@
                   _ _ _ _ _ _)
             (-𝒾 (syntax-e #'i) src)]))
        (match x
-         [(-x x) (set-assignable! x)]
+         [(? symbol? x) (set-assignable! x)]
          [(? -𝒾? 𝒾) (set-assignable! 𝒾)])
        (-set! x (parse-e #'e))]
       [(#%plain-lambda fmls b ...+)
@@ -648,8 +648,8 @@
        (or
         (parse-prim #'i)
         (match (identifier-binding #'i)
-          ['lexical (-x (syntax-e #'i))]
-          [#f (-x (syntax-e #'i))]
+          ['lexical (-x (syntax-e #'i) (syntax-ℓ #'i))]
+          [#f (-x (syntax-e #'i) (syntax-ℓ #'i))]
           [(list (app (λ (x)
                         (parameterize ([current-directory (directory-part (cur-mod))])
                           ;(printf "part: ~a~n" (directory-part (cur-mod)))

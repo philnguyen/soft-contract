@@ -190,7 +190,7 @@
       (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
       (define ρₕ.dom (dom ρₕ))
       (define unsure-locs (unsure-locations ρₕ.dom (-λ? sₕ) looped?))
-      (define $₀ ($-del* $ unsure-locs))
+      (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
 
       ;; Target's environment
       (define-values (ρ* $*)
@@ -206,21 +206,12 @@
            (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-W¹ Vᵣ z)))]))
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-
-      (define $** (gc-$ $* Σ ρ* ⟦k⟧))
-      #;(printf "jumping to ~a:~n  - before: ~a~n  - after : ~a~n~n"
-              (show-⟦e⟧ ⟦e⟧)
-              (map show-loc (hash-keys $* ))
-              (map show-loc (hash-keys $**)))
-      
+      (define $** ($-cleanup (gc-$ $* Σ ρ* ⟦k⟧)))
       (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
-      (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
-                    Γ
-                    (apply ?t@ sₕ sₓs)
-                    ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))
-                    unsure-locs
-                    looped?))
-      (σₖ⊕! Σ αₖ κ)
+      (define ⟦k⟧*
+        (let ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))])
+          (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ (apply ?t@ sₕ sₓs) looped? ⟦k⟧)))))))
+      (σₖ⊕! Σ αₖ ⟦k⟧*)
       {set (-ς↑ αₖ)}))
 
   (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)
@@ -333,7 +324,7 @@
 
     (match xs
       [(? list?)
-       (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x (in-list xs)]) (↓ₓ lo x)))
+       (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x (in-list xs)]) (↓ₓ lo x (loc->ℓ (loc 'indy 0 0 (list x))))))
        (define ⟦app⟧ (mk-app ℓₐ* (mk-rt Wᵤ) ⟦x⟧s))
        (define ⟦rng⟧
          (cond [(-λ? mk-d) (assert (equal? xs (-λ-_0 mk-d))) ⟦d⟧]
@@ -515,12 +506,12 @@
 
   (define (app-opq [sₕ : -?t]) : -⟦f⟧
     (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (define tₐ #f #|TODO make sure ok|#)
+      (define tₐ ℓ #|TODO make sure ok|#)
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define κ (-κ (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) Γ #f ⊤$* ∅ #t))
-      (σₖ⊕! Σ αₖ κ)
+      (define ⟦k⟧* (adjust-names∷ Γ #f #t (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧)))
+      (σₖ⊕! Σ αₖ ⟦k⟧*)
       {set (-ς↑ αₖ)}))
 
   (: app/rest/unsafe : ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -557,7 +548,7 @@
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
          (define ρₕ.dom (dom ρₕ))
          (define unsure-locs (unsure-locations ρₕ.dom (-λ? t-func) looped?))
-         (define $₀ ($-del* $ unsure-locs))
+         (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
@@ -567,15 +558,12 @@
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₁ z W-rest))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
-           (define $** (gc-$ $* Σ ρₕ* ⟦k⟧))
+           (define $** ($-cleanup (gc-$ $* Σ ρₕ* ⟦k⟧)))
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
-           (define κ (-κ (memoize-⟦k⟧ (restore∷ ⟪ℋ⟫ ⟦k⟧))
-                         Γ
-                         #f
-                         ($-extract $ (cons z zs))
-                         unsure-locs
-                         looped?))
-           (σₖ⊕! Σ αₖ κ)
+           (define ⟦k⟧*
+             (let ([δ$ ($-extract $ (cons z zs))])
+               (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ #f looped? ⟦k⟧)))))))
+           (σₖ⊕! Σ αₖ ⟦k⟧*)
            (-ς↑ αₖ))
          
          (cond

@@ -79,6 +79,7 @@
   (define (fvₜ t)
     (match t
       [(-t.@ h ts) (apply set-union ∅eq (map fvₜ ts))]
+      [(-t.x x) {seteq x}]
       [(? -e? e) (fv e)]
       [(or (? integer?) #f) ∅eq]))
 

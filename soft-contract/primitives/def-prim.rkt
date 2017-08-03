@@ -299,7 +299,7 @@
      (define/syntax-parse (cₓ ...) (attribute c.init))
      (define/syntax-parse d (attribute c.rng))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
-     (hack:make-available #'o add-leak! bgn0.e∷ σₖ⊕! ?t@ +● ⊥ρ ⊤$*)
+     (hack:make-available #'o add-leak! bgn0.e∷ adjust-names∷ σₖ⊕! ?t@ +● ⊥ρ ⊤$*)
      #`(def-ext (o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
          #:domain ([W cₓ] ...)
          (define tₐ (?t@ 'o (-W¹-t W) ...))
@@ -314,8 +314,7 @@
                         tₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
          (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-         (define κ (-κ (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) Γ #f ⊤$* ∅ #t))
-         (σₖ⊕! Σ αₖ κ)
+         (σₖ⊕! Σ αₖ (bgn0.e∷ Wₐ '() ⊥ρ (adjust-names∷ Γ #f #t ⟦k⟧)))
          {set (-ς↑ αₖ)})]
 
     ;; Declaring simple result, skipping havoc-ing of arguments

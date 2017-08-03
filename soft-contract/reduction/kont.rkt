@@ -73,7 +73,7 @@
              ;; TODO only need to save results for top-most block in "production" mode
              (M⊕! Σ αₖ (-ΓA Γ A*))
              (maybe-print-blame)
-             {set (-ς↓ αₖ $ Γ A*)}])))
+             {set (-ς↓ αₖ ($-cleanup $) Γ A*)}])))
       (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
       (add-⟦k⟧-roots! ⟦k⟧ ∅eq)
       ⟦k⟧))
@@ -215,6 +215,10 @@
             (define-values (ρ* $*)
               (let-values ([(xs Ws) (unzip bnd-Ws*)])
                 (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws #f)))
+            #;(when (and (hash-has-key? ρ* 'l) (not (hash-has-key? $* 'l)))
+              (printf "executing ~a, direct args ~a, with cache:~n" (show-⟦e⟧ ⟦e⟧) xs)
+              (for ([(l W) (in-hash $)])
+                (printf "- ~a ↦ ~a~n" (show-loc l) (show-W¹ W))))
             (⟦e⟧ ρ* $* Γ ⟪ℋ⟫ Σ ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
             (⟦e⟧* ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
@@ -541,7 +545,9 @@
       (match-define (-W Vs _) A)
       (for ([V (in-list Vs)])
         (add-leak! Σ V))
-      (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)))
+      (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
+      (σₖ⊕! Σ αₖ ⟦k⟧)
+      {set (-ς↑ αₖ)}))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -727,11 +733,29 @@
          (define blm (blm-arity ℓ₀ 'mk-listof 1 Vs))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
-  (define-frame (clr∷ [ls : (℘ -loc)] [⟦k⟧ : -⟦k⟧])
+  (define-frame (mk-vector^∷ [Vₙ : -V] [tₐ : -?t] [ℓ : ℓ] [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (match-define (-W (list Vₑ) tₑ) A)
+      (define α (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
+      (σ⊕! Σ Γ α (-W¹ Vₑ tₑ))
+      (⟦k⟧ (-W (list (-Vector^ α Vₙ)) tₐ) $ Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (adjust-names∷ [Γ : -Γ] [t : -?t] [looped? : Boolean] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ) #:roots ()
+      (match-define (-W Vs tₐ) A)
+      (define-values (tₐ* Γ*)
+        (if looped? (values t Γ) (values tₐ (copy-Γ $ Γ Γₐ))))
+      (⟦k⟧ (-W Vs tₐ*) $ Γ* ⟪ℋ⟫ Σ)))
+
+  (define-frame (invalidate-$∷ [ls : (℘ -loc)] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (⟦k⟧ A ($-del* $ ls) Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (restore∷ [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
+  (define-frame (restore-$∷ [δ$ : -δ$] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (⟦k⟧ A ($-restore $ δ$) Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (restore-ctx∷ [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ _ Σ) #:roots ()
       (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
   )

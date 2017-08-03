@@ -16,8 +16,27 @@
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^)
+  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
   (export)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; 17.1 Unsafe Numeric Operations
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (def-alias unsafe-fx+ +)
+  (def-alias unsafe-fx- -)
+  (def-alias unsafe-fx* *)
+  (def-alias unsafe-fxquotient quotient)
+  (def-alias unsafe-fxremainder remainder)
+  (def-alias unsafe-modulo modulo)
+  (def-alias unsafe-abs abs)
+  (def-alias unsafe-fx= =)
+  (def-alias unsafe-fx< <)
+  (def-alias unsafe-fx> >)
+  (def-alias unsafe-fx<= <=)
+  (def-alias unsafe-fx>= >=)
+  (def-alias unsafe-fxmin min)
+  (def-alias unsafe-fxmax max)
 
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -40,6 +59,8 @@
          #:when 𝒾
          (?t@ (-st-ac 𝒾 i) sᵥ)]
         [(_ _) (?t@ 'unsafe-struct-ref sᵥ sᵢ)]))
+    (unless sₐ
+      (printf "unsafe-struct-ref: ~a ~a -> ⊘~n" (show-t sᵥ) (show-t sᵢ)))
     (match Vᵥ
       [(-St 𝒾 ⟪α⟫s)
        (define n (get-struct-arity 𝒾))

@@ -40,7 +40,7 @@
   ;; Check if application returns truth
   (define (⊢@ [p : -h] [xs : (Listof -t)]) : -R
     (case p
-      [(equal? eq? =)
+      [(equal? eq? eqv? =)
        (match xs
          [(list t₁ t₂)
           (match* (t₁ t₂)
@@ -49,7 +49,7 @@
             [((? -•?) _) '?]
             [(_ (? -•?)) '?]
             [((? -v? v₁) (? -v? v₂)) (boolean->R (equal? v₁ v₂))]
-            [((-x x) (-x y))
+            [((-t.x x) (-t.x y))
              (if (equal? x y) '✓ '?)]
             [(_ _) '?])]
          [_ #|TODO|# '?])]
@@ -544,6 +544,7 @@
                            [(list (-b b₁) (-b b₂)) (boolean->R (equal? b₁ b₂))]
                            [(list (-● ps) (-b b)) (ps⇒p ps (-≡/c b))]
                            [(list (-b b) (-● ps)) (ps⇒p ps (-≡/c b))]
+                           [(list (? symbol? o₁) (? symbol? o₂)) (boolean->R (equal? o₁ o₂))]
                            [_ '?])]
                         [(list?) (check-proper-list σ (car Vs))]
                         ;; Default rules for operations on base values rely on simplification from `-?@`
@@ -553,7 +554,7 @@
                       (not-R (apply p∋Vs σ p Vs))]
                      [(-λ (list x) (-@ 'not (list e) _))
                       (not-R (apply p∋Vs σ (-λ (list x) e) Vs))] ; more general than the `not/c` case
-                     [(-λ (list x) (-@ (? -o? o) (list (-b (? real? a)) (-x x)) _))
+                     [(-λ (list x) (-@ (? -o? o) (list (-b (? real? a)) (-x x _)) _))
                       (match Vs
                         [(list (-b b))
                          (define op : (Real Real → Boolean)
@@ -567,7 +568,7 @@
                          (boolean->R (and (real? b) (op a b)))]
                         [(list (-● ps)) #|TODO|# '?]
                         [_ '✗])]
-                     [(-λ (list x) (-@ (? -o? o) (list (-x x) (-b (? real? a))) _))
+                     [(-λ (list x) (-@ (? -o? o) (list (-x x _) (-b (? real? a))) _))
                       (match Vs
                         [(list (-b b))
                          (define op : (Real Real → Boolean)

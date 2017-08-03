@@ -237,8 +237,18 @@
   #;[vector->values ; FIXME uses, var-values, `any` instead of `any/c`
      (vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . any)]
 
-  (def-ext build-vector
-    (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c) . -> . vector?))
+  (def-ext (build-vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wₙ exact-nonnegative-integer?]
+              [Wₕ (exact-nonnegative-integer? . -> . any/c)])
+    (match-define (-W¹ Vₙ tₙ) Wₙ)
+    (match-define (-W¹ Vₕ tₕ) Wₕ)
+    (define tₐ (?t@ 'build-vector tₙ tₕ))
+    (match Vₙ
+      [(-b 0)
+       (⟦k⟧ (-W (list (-Vector '())) tₐ) $ Γ ⟪ℋ⟫ Σ)]
+      [_
+       (define ⟦k⟧* (mk-vector^∷ Vₙ tₐ ℓ ⟪ℋ⟫ ⟦k⟧))
+       (app ℓ Wₕ (list (-W¹ (+● 'exact-nonnegative-integer?) #f)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)]))
 
   ;; 4.11.1 Additional Vector Functions
   (def-prim/todo vector-set*! ; FIXME uses

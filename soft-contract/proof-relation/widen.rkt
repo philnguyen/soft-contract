@@ -353,44 +353,11 @@
            (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
            (and ?Γ (-ΓA ?Γ A₂))]))
 
-  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
-    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
+  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : Void
+    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ ⟦k⟧)))
 
-  (define (?κ⊔ [κ₁ : -κ] [κ₂ : -κ]) : (Option -κ)
-
-    (: t⊑ : -?t -?t → Boolean)
-    (define t⊑
-      (match-lambda**
-       [(_ #f) #t]
-       [(t t ) #t]
-       [(_ _ ) #f]))
-
-    (: κ⊑ : -κ -κ → Boolean)
-    (define (κ⊑ κ₁ κ₂)
-      (match-define (-κ ⟦k⟧₁ Γ₁ res₁ sames₁ ambgs₁ _) κ₁)
-      (match-define (-κ ⟦k⟧₂ Γ₂ res₂ sames₂ ambgs₂ _) κ₂)
-      (and (equal? ⟦k⟧₁ ⟦k⟧₂)
-           (equal? sames₁ sames₂)
-           (equal? ambgs₁ ambgs₂)
-           (t⊑ res₁ res₂)
-           (Γ⊑ Γ₁ Γ₂)))
-
-    (cond [(κ⊑ κ₁ κ₂) κ₂]
-          [(κ⊑ κ₂ κ₁) κ₁]
-          [else
-           (match-define (-κ ⟦k⟧₁ Γ₁ res₁ diffs₁ ambgs₁ l₁) κ₁)
-           (match-define (-κ ⟦k⟧₂ Γ₂ res₂ diffs₂ ambgs₂ l₂) κ₂)
-           (cond [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
-                       (equal? diffs₁ diffs₂)
-                       (equal? ambgs₁ ambgs₂)
-                       (equal? l₁ l₂)
-                       (t⊑ res₁ res₂))
-                  (define ?Γ (?Γ⊔ Γ₁ Γ₂))
-                  (and ?Γ (-κ ⟦k⟧₂ ?Γ res₂ diffs₂ ambgs₂ l₂))]
-                 [else #f])]))
-
-  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
-    (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
+  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : -σₖ
+    (hash-update σₖ αₖ (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧)) mk-∅eq))
 
   (define (add-leak! [Σ : -Σ] [V : -V]) : Void
     (when (behavioral? (-Σ-σ Σ) V)
@@ -408,12 +375,10 @@
     (for/fold ([ρ : -ρ ρ] [$ : -$ $]) ([x xs] [Wₓ Ws])
       (match-define (-W¹ Vₓ tₓ) Wₓ)
       (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
-      (define tₓ* (if looped? (-x x) (or tₓ (-x x))))
+      (define tₓ* (if looped? (-t.x x) (or tₓ (-t.x x))))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕V! Σ α Vₓ*)
-      (define $*
-        (let ([Vs (σ@ Σ α)])
-          (if (> (set-count Vs) 1) $ ($-set $ x (-W¹ Vₓ* tₓ*)))))
+      (define $* ($-set $ x (-W¹ Vₓ* tₓ*)))
       (values (ρ+ ρ x α) $*)))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))

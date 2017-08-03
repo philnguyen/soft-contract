@@ -58,19 +58,22 @@
     (match ?t
       [#f '∅]
       [(? integer? i) (show-ℓ (cast i ℓ))]
+      [(-t.x x) x]
       [(? -e? e) (show-e e)]
       [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
 
   (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
     (set-map Γ show-t))
 
-  (define (show-$ [$ : -$]) : (Listof Sexp)
-    (for/list : (Listof Sexp) ([(l W) (in-hash $)] #:when W)
-      `(,(show-loc l) ↦ ,(show-W¹ W))))
+  (define (show-δ$ [δ$ : -δ$]) : (Listof Sexp)
+    (for/list : (Listof Sexp) ([(l W) (in-hash δ$)])
+      `(,(show-loc l) ↦ ,(if W (show-W¹ W) '⊘))))
 
-  (define (show-σₖ [σₖ : (U -σₖ (HashTable -αₖ (℘ -κ)))]) : (Listof Sexp)
-    (for/list ([(αₖ κs) σₖ])
-      `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
+  (define show-$ : (-$ → (Listof Sexp)) show-δ$)
+
+  (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
+    (for/list ([(αₖ ⟦k⟧s) σₖ])
+      `(,(show-αₖ αₖ) ↦ ,(set-count ⟦k⟧s))))
 
   (define show-blm-reason : ((U -V -v -h) → Sexp)
     (match-lambda
@@ -272,10 +275,6 @@
   (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
     (for/list ([(x ⟪α⟫ₓ) ρ] #:unless (equal? x -x-dummy))
       `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
-
-  (define (show-κ [κ : -κ]) : Sexp
-    (match-define (-κ ⟦k⟧ Γ t _ _ _) κ)
-    `(□ ,(show-t t) ‖ ,(show-Γ Γ)))
 
   (define show-loc : (-loc → Sexp)
     (match-lambda

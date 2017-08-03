@@ -3,6 +3,7 @@
 (provide compile@)
 
 (require racket/set
+         racket/list
          racket/match
          typed/racket/unit
          set-extras
@@ -16,7 +17,7 @@
 
 (define-unit compile@
   (import kont^ widening^ memoize^ proof-system^ local-prover^
-          env^ sto^ pc^ val^ pretty-print^)
+          env^ sto^ pc^ val^ pretty-print^ for-gc^)
   (export compile^)
 
   ;; Compile program
@@ -85,6 +86,7 @@
      (match e
        [(-λ xs e*)
         (define ⟦e*⟧ (memoize-⟦e⟧ (↓ₑ l e*)))
+        (set-bound-vars! ⟦e*⟧ (bv e*))
         (define fvs (fv e*))
         #;(printf "Warning: no longer canonicalize λ-term~n")
         (define t (-λ xs e*))
@@ -110,7 +112,7 @@
        [(-•)
         (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
           (⟦k⟧ (-W (list (+●)) #f) $ Γ ⟪ℋ⟫ Σ))]
-       [(-x x) (↓ₓ l x)]
+       [(-x x ℓₓ) (↓ₓ l x ℓₓ)]
        [(and 𝒾 (-𝒾 x l₀))
         (define-values (α modify-V)
           (cond
@@ -184,12 +186,10 @@
         (match ⟦bnd⟧s
           ['() ⟦e*⟧]
           [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
-           (define bounds
-             (for/unioneq : (℘ -loc) ([bnd (in-list bnds)])
-               (match-define (cons xs _) bnd)
-               (list->seteq xs)))
+           (define bounds (append-map (inst car (Listof Symbol) -e) bnds))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ (clr∷ bounds ⟦k⟧))))])]
+             (define ⟦k⟧* (restore-$∷ ($-extract $ bounds) ⟦k⟧))
+             (⟦e⟧ₓₛ ρ $ Γ ⟪ℋ⟫ Σ (let∷ ℓ xs ⟦bnd⟧s* '() ⟦e*⟧ ρ ⟦k⟧*)))])]
        [(-letrec-values bnds e* ℓ)
         (define ⟦bnd⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
           (for/list ([bnd bnds])
@@ -199,6 +199,7 @@
         (match ⟦bnd⟧s
           ['() ⟦e*⟧]
           [(cons (cons xs ⟦e⟧ₓₛ) ⟦bnd⟧s*)
+           (define bounds (append-map (inst car (Listof Symbol) -e) bnds))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
              (define ρ* ; with side effect widening store
                (for*/fold ([ρ  : -ρ  ρ])
@@ -208,16 +209,16 @@
                  (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
                  (σ⊕V! Σ α -undefined)
                  (ρ+ ρ x α)))
-             (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ
-              (letrec∷ ℓ xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))])]
+             (define ⟦k⟧* (restore-$∷ ($-extract $ bounds) ⟦k⟧))
+             (⟦e⟧ₓₛ ρ* $ Γ ⟪ℋ⟫ Σ (letrec∷ ℓ xs ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧*)))])]
        [(-set! x e*)
         (define ⟦e*⟧ (↓ e*))
-        (match x
-          [(-x x)
+        (cond
+          [(symbol? x)
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
              (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ (ρ@ ρ x) ⟦k⟧)))]
-          [(? -𝒾? 𝒾)
-           (define α (-α->⟪α⟫ 𝒾))
+          [else
+           (define α (-α->⟪α⟫ x))
            (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
              (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ α ⟦k⟧)))])]
        [(-error msg ℓ)
@@ -289,17 +290,17 @@
                  (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)))])]
        [_ (error '↓ₑ "unhandled: ~a" (show-e e))])))
 
-  (define/memo (↓ₓ [l : -l] [x : Symbol]) : -⟦e⟧
-    (define -blm.undefined ; TODO should have had attached location to `x` too?
-      (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) +ℓ₀))
+  (define/memo (↓ₓ [l : -l] [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
+    (define -blm.undefined
+      (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) ℓₓ))
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define α (ρ@ ρ x))
-      (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ x))])
+      (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ x #|TODO|#))])
         (match-define (cons W $*) W/$)
         (define A
           (match W
-            [(-W¹ (-b (not (? defined?))) _) -blm.undefined]
-            [(-W¹ V                       t) (-W (list V) t)]))
+            [(-W¹ (-b (== undefined)) _) -blm.undefined]
+            [(-W¹ V                   t) (-W (list V) t)]))
         (⟦k⟧ A $* Γ ⟪ℋ⟫ Σ))))
 
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))

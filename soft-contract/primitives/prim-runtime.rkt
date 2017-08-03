@@ -167,7 +167,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (define arity-table : (HashTable Symbol Arity)
-    (make-hasheq (list (cons 'void (arity-at-least 0)))))
+    (make-hasheq (list (cons 'void (arity-at-least 0))
+                       (cons 'values (arity-at-least 0)))))
 
   (: update-arity! : Symbol Arity → Void)
   (define (update-arity! o a)

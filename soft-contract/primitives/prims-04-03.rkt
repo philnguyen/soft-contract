@@ -163,7 +163,8 @@
                                       [_ #f])))
       (printf "list-of-non-null-char? ~a -> ~a~n"
               (show-V V) ans)
-      (for ([(α Vs) (span-σ σ (V->⟪α⟫s V))])
+      (define αs (V->⟪α⟫s V))
+      (for ([(α Vs) (in-hash σ)] #:when (∋ αs α))
         (printf "  - ~a ↦ ~a~n" (show-⟪α⟫ (cast α ⟪α⟫)) (set-map Vs show-V)))
       (printf "~n")))
   )

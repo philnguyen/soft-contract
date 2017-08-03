@@ -71,7 +71,10 @@
   ; [HO] build-list
 
   ;; 4.9.2 List Operations
-  (def-prim length (list? . -> . exact-nonnegative-integer?))
+  (def-prim length (list? . -> . exact-nonnegative-integer?)
+    #:refinements
+    (pair? . -> . exact-positive-integer?)
+    (null? . -> . zero?))
   (def-prim/todo list-ref
     (pair? exact-nonnegative-integer? . -> . any/c))
   (def-prim/custom (list-tail ⟪ℋ⟫ ℓ Σ $ Γ Ws)
@@ -221,10 +224,8 @@
   (def-alias empty null)
   (def-alias pair? cons?)
   (def-alias empty? null?)
-  (def-prim first
-    ((cons/c any/c list?) . -> . any/c))
-  (def-prim rest
-    ((cons/c any/c list?) . -> . any/c))
+  (def-alias-internal first -car) ; FIXME precond
+  (def-alias-internal rest -cdr) ; FIXME precond
   (def-prim second
     ((cons/c any/c (cons/c any/c list?)) . -> . any/c))
   (def-prim third

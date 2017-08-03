@@ -118,7 +118,7 @@
           (for/list ([α (in-list αs)]
                      [i (in-naturals)] #:when (index? i))
             (define ac (-st-ac 𝒾 i))
-            (mk-app ℓₘ (mk-rt (-W¹ ac #f)) (list (mk-rt Wᵥ*))))))
+            (mk-app ℓₘ (mk-rt (-W¹ ac #|TODO make sure doesn't explode|# ac)) (list (mk-rt Wᵥ*))))))
 
       (cond
         [(null? ⟦field⟧s)
@@ -220,7 +220,7 @@
         (mk-app ℓ
                 (mk-rt (-W¹ 'vector-ref #f))
                 (list (mk-rt Wᵥ*)
-                      (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (-x (+x!/memo 'vof-idx)))))))
+                      (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (loc->ℓ (loc 'vof-idx 0 0 '())))))))
       (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℓ l³ ⟦k⟧))
       (define c* #f #;(⟪α⟫->s α*))
       (define Wₗ (vec-len σ Γ Wᵥ*))
@@ -431,16 +431,17 @@
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
-    (define ⟦k⟧* (restore∷ ⟪ℋ⟫ ⟦k⟧))
+    (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
     (cond
       [?x
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x W-V*))
-       (define δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])))
        (define Γ* #|TODO|# ⊤Γ)
-       (define κ (-κ ⟦k⟧* Γ tᵥ δ$ ∅ (and ?x #t)))
+       (define ⟦k⟧**
+         (let ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
+           (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
        (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
-       (σₖ⊕! Σ αₖ κ)
+       (σₖ⊕! Σ αₖ ⟦k⟧**)
        {set (-ς↑ αₖ)}]
       [else
        (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
@@ -450,16 +451,17 @@
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
-    (define ⟦k⟧* (restore∷ ⟪ℋ⟫ ⟦k⟧))
+    (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
     (cond
       [?x
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x W-V*))
-       (define δ$ : -$* (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f])))
        (define Γ* #|TODO|# ⊤Γ)
-       (define κ (-κ ⟦k⟧* Γ tᵥ δ$ ∅ (and ?x #t)))
+       (define ⟦k⟧**
+         (let ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
+           (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
        (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
-       (σₖ⊕! Σ αₖ κ)
+       (σₖ⊕! Σ αₖ ⟦k⟧**)
        {set (-ς↑ αₖ)}]
       [else
        (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))

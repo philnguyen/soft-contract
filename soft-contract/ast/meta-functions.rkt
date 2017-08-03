@@ -16,7 +16,7 @@
 ;; Compute free variables for expression. Return set of variable names.
 (define (fv e)
   (match e
-    [(-x x) {seteq x}]
+    [(-x x _) {seteq x}]
     [(-λ xs e)
      (define bound
        (match xs
@@ -42,7 +42,7 @@
        (set-remove (fv (cdr bnd)) bound))]
     [(-set! x e)
      (match x
-       [(-x x) (set-add (fv e) x)]
+       [(? symbol? x) (set-add (fv e) x)]
        [_ (fv e)])]
     #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
     [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
@@ -63,6 +63,50 @@
      (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
        (∪ xs (fv e)))]
     [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
+
+(: bv : (U -e (Listof -e)) → (℘ Symbol))
+(define (bv e)
+  (match e
+    [(-x x _) ∅eq]
+    [(-λ xs e)
+     (define bound
+       (match xs
+         [(-var zs z) (set-add (list->seteq zs) z)]
+         [(? list? xs) (list->seteq xs)]))
+     (∪ (bv e) bound)]
+    [(-@ f xs _) (∪ (bv f) (bv xs))]
+    [(-begin es) (bv es)]
+    [(-begin0 e₀ es) (∪ (bv e₀) (bv es))]
+    [(-let-values bnds e _)
+     (∪ (for/unioneq : (℘ Symbol) ([bnd (in-list bnds)])
+                     (match-define (cons xs rhs) bnd)
+                     (∪ (list->seteq xs) (bv rhs)))
+        (bv e))]
+    [(-letrec-values bnds e _)
+     (∪ (for/unioneq : (℘ Symbol) ([bnd (in-list bnds)])
+                     (match-define (cons xs rhs) bnd)
+                     (∪ (list->seteq xs) (bv rhs)))
+        (bv e))]
+    [(-set! x e) (bv e)]
+    #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
+    [(-if e e₁ e₂) (∪ (bv e) (bv e₁) (bv e₂))]
+    [(-μ/c _ e) (bv e)]
+    [(--> cs d _)
+     (match cs
+       [(-var cs c) (∪ (bv c) (bv d) (bv cs))]
+       [(? list? cs) (∪ (bv d) (bv cs))])]
+    [(-->i cs mk-d _) (apply ∪ (bv mk-d) (map bv cs))]
+    [(-case-> clauses _)
+     (for/unioneq : (℘ Symbol) ([clause clauses])
+       (match-define (cons cs d) clause)
+       (apply ∪ (bv d) (map bv cs)))]
+    [(-struct/c _ cs _)
+     (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
+       (∪ xs (bv c)))]
+    [(? list? l)
+     (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
+       (∪ xs (bv e)))]
+    [_ (log-debug "BV⟦~a⟧ = ∅~n" e) ∅eq]))
 
 (: closed? : -e → Boolean)
 ;; Check whether expression is closed
@@ -190,7 +234,7 @@
           (match-define (cons xs e*) clause)
           (define-values (m* xs*) (new-binders! m xs))
           (cons xs* (go! m* e*))))]
-      [(-x (? symbol? x)) (-x (hash-ref m x))]
+      [(-x x ℓ) (-x (hash-ref m x) ℓ)]
       [(-@ f xs loc) (-@ (go! m f) (map (curry go! m) xs) loc)]
       [(-if e₀ e₁ e₂) (-if (go! m e₀) (go! m e₁) (go! m e₂))]
       [(-wcm k v b) (-wcm (go! m k) (go! m v) (go! m b))]
@@ -219,7 +263,7 @@
        (-letrec-values bnds* bod* ℓ)]
       [(-set! i e*)
        (match i
-         [(-x (? symbol? x)) (-set! (-x (hash-ref m x)) (go! m e*))]
+         [(? symbol? x) (-set! (hash-ref m x) (go! m e*))]
          [_ (-set! i (go! m e*))])]
       [(-μ/c x c) (-μ/c x (go! m c))]
       [(--> cs d ℓ)

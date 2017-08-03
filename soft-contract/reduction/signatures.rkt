@@ -11,7 +11,7 @@
   ([↓ₚ : ((Listof -module) -e → -⟦e⟧)]
    [↓ₘ : (-module → -⟦e⟧)]
    [↓ₑ : (-l -e → -⟦e⟧)]
-   [↓ₓ : (-l Symbol → -⟦e⟧)]
+   [↓ₓ : (-l Symbol ℓ → -⟦e⟧)]
    [↓ₚᵣₘ : (-prim → -⟦e⟧)]
    [mk-app : (ℓ -⟦e⟧ (Listof -⟦e⟧) → -⟦e⟧)]
    [mk-mon : (-l³ ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
@@ -68,8 +68,11 @@
    [and∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [or∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [mk-listof∷ : (-?t ℓ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
-   [clr∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
-   [restore∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
+   [mk-vector^∷ : (-V -?t ℓ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
+   [adjust-names∷ : (-Γ -?t Boolean -⟦k⟧ → -⟦k⟧)]
+   [invalidate-$∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
+   [restore-$∷ : (-δ$ -⟦k⟧ → -⟦k⟧)]
+   [restore-ctx∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
    ))
@@ -89,5 +92,5 @@
    [memoize-⟦k⟧ : (-⟦k⟧ → -⟦k⟧)]))
 
 (define-signature havoc^
-  ([havoc : (-$ -⟪ℋ⟫ -Σ → (℘ -ς))]
+  ([havoc : (-$ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
    [gen-havoc-expr : ((Listof -module) → -e)]))

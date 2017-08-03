@@ -51,11 +51,13 @@
             (printf "* ~a: ~a~n" iter (set-count front)))
 
           #;(when (> (hash-count (-Σ-σₖ Σ)) 200)
-            (define caches : (HashTable -⟦e⟧ (℘ -$)) (make-hash))
+            (define caches : (HashTable (Pairof -⟦e⟧ -ρ) (℘ -$)) (make-hash))
             (for ([αₖ (in-hash-keys (-Σ-σₖ Σ))])
               (when (-ℬ? αₖ)
-                (hash-update! caches (-ℬ-exp αₖ) (λ ([$s : (℘ -$)]) (set-add $s (-αₖ-cache αₖ))) mk-∅)))
-            (for ([(e $s) (in-hash caches)] #:when (> (set-count $s) 10))
+                (define k (cons (-ℬ-exp αₖ) (-ℬ-env αₖ)))
+                (hash-update! caches k (λ ([$s : (℘ -$)]) (set-add $s (-αₖ-cache αₖ))) mk-∅)))
+            (for ([(eρ $s) (in-hash caches)] #:when (> (set-count $s) 10))
+              (match-define (cons e ρ) eρ)
               (define bindings : (HashTable -loc (℘ (Option -W¹))) (make-hash))
               (define locs (for/union : (℘ -loc) ([$ (in-set $s)]) (dom $)))
               (for ([$ (in-set $s)])
@@ -63,7 +65,7 @@
                   (hash-update! bindings l (λ ([Ws : (℘ (Option -W¹))]) (set-add Ws #f)) mk-∅))
                 (for ([(l W) (in-hash $)])
                   (hash-update! bindings l (λ ([Ws : (℘ (Option -W¹))]) (set-add Ws W)) mk-∅)))
-              (printf "~a bindings, ~a caches for ~a: ~n" (set-count locs) (set-count $s) (show-⟦e⟧ e))
+              (printf "~a bindings, ~a caches for ~a at ~a: ~n" (set-count locs) (set-count $s) (show-⟦e⟧ e) (show-ρ ρ))
               (for ([(l Ws) (in-hash bindings)] #:when (> (set-count Ws) 2))
                 (printf "* ~a ↦ (~a)~n" (show-loc l) (set-count Ws))
                 (for ([W (in-set Ws)])
@@ -108,9 +110,9 @@
                 [(hash-ref seen ς #f) =>
                  (λ ([ctx₀ : Ctx])
                    (match-define (list σ₀ mσₖ₀) ctx₀)
-                   (define (κ->αₖs [κ : -κ])
-                     {set (⟦k⟧->αₖ (-κ-cont κ))})
-                   (and (map-equal?/spanning-root mσₖ₀ mσₖ {set (-ς-block ς)} κ->αₖs)
+                   (define (⟦k⟧->αₖs [⟦k⟧ : -⟦k⟧])
+                     {set (⟦k⟧->αₖ ⟦k⟧)})
+                   (and (map-equal?/spanning-root mσₖ₀ mσₖ {set (-ς-block ς)} ⟦k⟧->αₖs)
                         (let ([⟪α⟫s (ς->⟪α⟫s ς mσₖ₀)])
                           (σ-equal?/spanning-root σ₀ σ ⟪α⟫s))))]
                 [else #f]))
@@ -135,6 +137,13 @@
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
+      #;(begin
+        (printf "Value store:~n")
+        (for ([(α Vs) (in-hash σ)])
+          (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
+        (printf "Stack store:~n")
+        (for ([(αₖ ks) (in-hash σₖ)])
+          (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))))
       (values (M@ Σ αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
@@ -173,7 +182,7 @@
                   (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℱ $ ⟪ℋ⟫ l ℓ W-C W-V Γ)
                   (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                 [(-ℋ𝒱 $ ⟪ℋ⟫) (havoc $ ⟪ℋ⟫ Σ)]
+                 [(-ℋ𝒱 $ ⟪ℋ⟫) (havoc $ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [_ (error '↝↑ "~a" αₖ)])))
 
   ;; Quick-step on "pop" state
@@ -183,17 +192,8 @@
     
     (for/union : (℘ -ς) ([ς ςs])
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
-      (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (match-define (-κ ⟦k⟧ Γₑᵣ tᵣₑₛ restores invalidates looped?) κ)
-        (define $* ($-restore ($-del* $ₑₑ invalidates) restores))
-        (match A
-          [(-W Vs tₐ)
-           (define-values (tₐ* Γₑᵣ*) (if looped? (values tᵣₑₛ Γₑᵣ) (values tₐ (copy-Γ $* Γₑᵣ Γₑₑ))))
-           (⟦k⟧ (-W Vs tₐ*) $* Γₑᵣ* (-αₖ-ctx αₖₑₑ) Σ)]
-          [(? -blm? blm)
-           (match-define (-blm l+ lo _ _ _) blm)
-           (cond [(symbol? l+) ∅]
-                 [else (⟦k⟧ blm $* Γₑᵣ (-αₖ-ctx αₖₑₑ) Σ)])]))))
+      (for/union : (℘ -ς) ([⟦k⟧ (in-set (σₖ@ σₖ αₖₑₑ))])
+        (⟦k⟧ A $ₑₑ Γₑₑ (-αₖ-ctx αₖₑₑ) Σ))))
   )
 
 (define-compound-unit/infer reduction@

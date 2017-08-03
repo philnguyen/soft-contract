@@ -43,12 +43,12 @@
 
   (def-ext (call-with-input-file ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
     #:domain ([W-p path-string?] [W-cb (input-port? . -> . any/c)])
-    (define arg (-W¹ (-● {set 'input-port?}) (-x (+x!/memo 'cwif))))
+    (define arg (-W¹ (-● {set 'input-port?}) (loc->ℓ (loc 'call-with-input-file 0 0 '()))))
     (app ℓ W-cb (list arg) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (def-ext (call-with-output-file ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
     #:domain ([W-p path-string?] [W-cb (output-port? . -> . any/c)])
-    (define arg (-W¹ (-● {set 'output-port?}) (-x (+x!/memo 'cwof))))
+    (define arg (-W¹ (-● {set 'output-port?}) (loc->ℓ (loc 'call-with-output-file 0 0 '()))))
     (app ℓ W-cb (list arg) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (def-ext with-input-from-file (path-string? (-> any/c) . -> . any/c))

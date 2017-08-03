@@ -89,7 +89,7 @@
 (-require-spec . ::= . -l #|TODO|#)
 
 (-e . ::= . -v
-            (-x Symbol) ; lexical variables 
+            (-x Symbol ℓ) ; lexical variables 
             -𝒾 ; module references
             (-@ -e (Listof -e) ℓ)
             (-if -e -e -e)
@@ -103,7 +103,7 @@
             (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))]
                             [body : -e]
                             [loc : ℓ])
-            (-set! (U -𝒾 -x) -e)
+            (-set! (U Symbol -𝒾) -e)
             (-error String ℓ)
             
             ;; contract stuff
@@ -183,13 +183,13 @@
 (define (show-e [e : -e]) : Sexp
   (match e
     ; syntactic sugar
-    [(-λ (list x) (-@ 'not (list (-@ f (list (-x x)) _)) _)) `(not/c ,(show-e f))]
-    [(-λ (list x) (-@ '= (list (-x x) e*) _)) `(=/c ,(show-e e*))]
-    [(-λ (list x) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x) e*) _)) `(≡/c ,(show-e e*))]
-    [(-λ (list x) (-@ '> (list (-x x) e*) _)) `(>/c ,(show-e e*))]
-    [(-λ (list x) (-@ '< (list (-x x) e*) _)) `(</c ,(show-e e*))]
-    [(-λ (list x) (-@ '>= (list (-x x) e*) _)) `(≥/c ,(show-e e*))]
-    [(-λ (list x) (-@ '<= (list (-x x) e*) _)) `(≤/c ,(show-e e*))]
+    [(-λ (list x) (-@ 'not (list (-@ f (list (-x x _)) _)) _)) `(not/c ,(show-e f))]
+    [(-λ (list x) (-@ '= (list (-x x _) e*) _)) `(=/c ,(show-e e*))]
+    [(-λ (list x) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x _) e*) _)) `(≡/c ,(show-e e*))]
+    [(-λ (list x) (-@ '> (list (-x x _) e*) _)) `(>/c ,(show-e e*))]
+    [(-λ (list x) (-@ '< (list (-x x _) e*) _)) `(</c ,(show-e e*))]
+    [(-λ (list x) (-@ '>= (list (-x x _) e*) _)) `(≥/c ,(show-e e*))]
+    [(-λ (list x) (-@ '<= (list (-x x _) e*) _)) `(≤/c ,(show-e e*))]
        
     [(-if a b (-b #f))
      (match* ((show-e a) (show-e b))
@@ -208,24 +208,38 @@
     [(-•) '•]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
-    [(-x x) x]
+    [(-x x _) x]
     [(-𝒾 x p)
      (case p ;; hack
        [(Λ) (format-symbol "_~a" x)]
        [else x])]
     [(-let-values bnds body _)
-     `(let-values
-          ,(for/list : (Listof Sexp) ([bnd bnds])
-             (match-define (cons xs ex) bnd)
-             `(,xs ,(show-e ex)))
-        ,(show-e body))]
+     (match bnds
+       [(list (cons (list lhs) rhs) ...)
+        `(let ,(for/list : (Listof Sexp) ([x (in-list lhs)]
+                                          [e (in-list rhs)])
+                 `(,(assert x symbol?) ,(show-e (assert e -e?))))
+           ,(show-e body))]
+       [_
+        `(let-values
+             ,(for/list : (Listof Sexp) ([bnd bnds])
+                (match-define (cons xs ex) bnd)
+                `(,xs ,(show-e ex)))
+           ,(show-e body))])]
     [(-letrec-values bnds body _)
-     `(letrec-values
-          ,(for/list : (Listof Sexp) ([bnd bnds])
-             (match-define (cons xs ex) bnd)
-             `(,xs ,(show-e ex)))
-        ,(show-e body))]
-    [(-set! x e) `(set! ,(show-e x) ,(show-e e))]
+     (match bnds
+       [(list (cons (list lhs) rhs) ...)
+        `(letrec ,(for/list : (Listof Sexp) ([x (in-list lhs)]
+                                             [e (in-list rhs)])
+                    `(,(assert x symbol?) ,(show-e (assert e -e?))))
+           ,(show-e body))]
+       [_
+        `(letrec-values
+             ,(for/list : (Listof Sexp) ([bnd bnds])
+                (match-define (cons xs ex) bnd)
+                `(,xs ,(show-e ex)))
+           ,(show-e body))])]
+    [(-set! x e) `(set! ,(if (symbol? x) x (-𝒾-name x)) ,(show-e e))]
     [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
     [(-begin es) `(begin ,@(show-es es))]
     [(-begin0 e es) `(begin0 ,(show-e e) ,@(show-es es))]
