@@ -71,7 +71,10 @@
   ; [HO] build-list
 
   ;; 4.9.2 List Operations
-  (def-prim length (list? . -> . exact-nonnegative-integer?))
+  (def-prim length (list? . -> . exact-nonnegative-integer?)
+    #:refinements
+    (pair? . -> . exact-positive-integer?)
+    (null? . -> . zero?))
   (def-prim/todo list-ref
     (pair? exact-nonnegative-integer? . -> . any/c))
   (def-prim/custom (list-tail ⟪ℋ⟫ ℓ Σ $ Γ Ws)

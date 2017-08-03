@@ -278,7 +278,9 @@
           [(~literal any/c) #'#t]
           [(~literal none/c) #'#f]
           [x:lit #'(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) 'equal? #,W (-W¹ (-b x) (-b x)))]
-          [c:id #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) 'c #,W)])))
+          [c:id
+           (define/with-syntax p (hack:resolve-alias #'c))
+           #`(⊢?/quick R (-Σ-σ #,(-Σ)) #,(-Γ) p #,W)])))
 
     (define/syntax-parse ctc:ff (-sig))
 
