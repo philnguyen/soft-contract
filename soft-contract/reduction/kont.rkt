@@ -733,6 +733,13 @@
          (define blm (blm-arity ℓ₀ 'mk-listof 1 Vs))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
+  (define-frame (mk-vector^∷ [Vₙ : -V] [tₐ : -?t] [ℓ : ℓ] [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (match-define (-W (list Vₑ) tₑ) A)
+      (define α (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
+      (σ⊕! Σ Γ α (-W¹ Vₑ tₑ))
+      (⟦k⟧ (-W (list (-Vector^ α Vₙ)) tₐ) $ Γ ⟪ℋ⟫ Σ)))
+
   (define-frame (adjust-names∷ [Γ : -Γ] [t : -?t] [looped? : Boolean] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W Vs tₐ) A)
