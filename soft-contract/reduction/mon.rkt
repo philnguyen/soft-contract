@@ -118,7 +118,7 @@
           (for/list ([α (in-list αs)]
                      [i (in-naturals)] #:when (index? i))
             (define ac (-st-ac 𝒾 i))
-            (mk-app ℓₘ (mk-rt (-W¹ ac #f)) (list (mk-rt Wᵥ*))))))
+            (mk-app ℓₘ (mk-rt (-W¹ ac #|TODO make sure doesn't explode|# ac)) (list (mk-rt Wᵥ*))))))
 
       (cond
         [(null? ⟦field⟧s)

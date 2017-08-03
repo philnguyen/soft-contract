@@ -506,11 +506,11 @@
 
   (define (app-opq [sₕ : -?t]) : -⟦f⟧
     (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (define tₐ #f #|TODO make sure ok|#)
+      (define tₐ ℓ #|TODO make sure ok|#)
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define ⟦k⟧* (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ (adjust-names∷ Γ #f #t ⟦k⟧)))
+      (define ⟦k⟧* (adjust-names∷ Γ #f #t (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧)))
       (σₖ⊕! Σ αₖ ⟦k⟧*)
       {set (-ς↑ αₖ)}))
 
