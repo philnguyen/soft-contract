@@ -200,9 +200,17 @@
     (exact-integer? . -> . exact-nonnegative-integer?))
 
   ;; 4.2.2.7 Random Numbers
-  (def-prim random ; FIXME range, all uses
-    (integer? . -> . exact-nonnegative-integer?)
-    #;(-> (and/c real? inexact? (>/c 0) (</c 1))))
+  (def-prim/custom (random ⟪ℋ⟫ ℓ Σ $ Γ Ws) ; FIXME all uses
+    (match Ws
+      ['()
+       (define Vₐ (+● 'real? 'inexact? (->/c 0) (-</c 1)))
+       {set (-ΓA Γ (-W (list Vₐ) (-t.@ 'random '())))}]
+      [(list W) ; FIXME check W
+       (define Vₐ (+● 'exact-nonnegative-integer?))
+       {set (-ΓA Γ (-W (list Vₐ) (?t@ 'random (-W¹-t W))))}]
+      [_
+       (define blm (blm-arity ℓ 'random (list 0 1) (map -W¹-V Ws)))
+       {set (-ΓA Γ blm)}]))
   (def-prim/todo random-seed
     ((and/c exact-integer? positive?) . -> . void?))
   (def-prim/todo make-pseudo-random-generator (-> pseudo-random-generator?))
