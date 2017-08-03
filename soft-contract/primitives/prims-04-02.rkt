@@ -204,10 +204,10 @@
     (match Ws
       ['()
        (define Vₐ (+● 'real? 'inexact? (->/c 0) (-</c 1)))
-       {set (-ΓA Γ (-W (list Vₐ) (-t.@ 'random '())))}]
+       {set (-ΓA Γ (-W (list Vₐ) ℓ))}]
       [(list W) ; FIXME check W
        (define Vₐ (+● 'exact-nonnegative-integer?))
-       {set (-ΓA Γ (-W (list Vₐ) (?t@ 'random (-W¹-t W))))}]
+       {set (-ΓA Γ (-W (list Vₐ) ℓ))}]
       [_
        (define blm (blm-arity ℓ 'random (list 0 1) (map -W¹-V Ws)))
        {set (-ΓA Γ blm)}]))
