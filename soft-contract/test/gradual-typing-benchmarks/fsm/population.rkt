@@ -3,15 +3,18 @@
 ;; Populations of Automata
 
 (provide
-  build-random-population
-  population-payoffs
-  match-up*
-  death-birth
+ (contract-out
+  [build-random-population (exact-nonnegative-integer? . -> . population/c)]
+  [population-payoffs (population/c . -> . (listof payoff/c))]
+  [match-up* (population/c exact-nonnegative-integer? . -> . population/c)]
+  [death-birth (population/c exact-nonnegative-integer? (or/c not real?) . -> . population/c)])
+  
+  
   ;; == 
 )
 
 ;; =============================================================================
-(require require-typed-check
+(require #;require-typed-check
  "automata.rkt"
  "utilities.rkt"
 )
@@ -54,12 +57,13 @@
 
 ;; -----------------------------------------------------------------------------
 
-(define (death-birth population0 rate #:random (q #false))
+;; PN: tmp. disable keyword
+(define (death-birth population0 rate #;#:random (q #false))
   (match-define (cons a* b*) population0)
   (define payoffs
     (for/list  ([x  (in-vector a*)])
       (automaton-payoff x)))
-  [define substitutes (choose-randomly payoffs rate #:random q)]
+  [define substitutes (choose-randomly payoffs rate #;#:random q)]
   (for ([i (in-range rate)][p (in-list substitutes)])
     (vector-set! a* i (clone (vector-ref b* p))))
   (shuffle-vector a* b*))
@@ -78,3 +82,6 @@
     (unless (= j i) (vector-set! a i (vector-ref a j)))
     (vector-set! a j x))
   (cons a b))
+
+(define automaton*/c (vectorof automaton/c))
+(define population/c (cons/c automaton*/c automaton*/c))

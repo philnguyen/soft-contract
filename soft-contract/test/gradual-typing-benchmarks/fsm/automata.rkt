@@ -3,17 +3,21 @@
 ;; An N-states, N-inputs Automaton
 
 (provide
- defects
- cooperates
- tit-for-tat
- grim-trigger
- make-random-automaton
- match-pair
- automaton-reset
- clone
- automaton-payoff
+ (contract-out
+  [payoff/c contract?]
+  [automaton/c contract?]
+  [defects (payoff/c . -> . automaton/c)]
+  [cooperates (payoff/c . -> . automaton/c)]
+  [tit-for-tat (payoff/c . -> . automaton/c)]
+  [grim-trigger (payoff/c . -> . automaton/c)]
+  [make-random-automaton (exact-nonnegative-integer? . -> . automaton/c)]
+  [match-pair (automaton/c automaton/c exact-nonnegative-integer? . -> . (values automaton/c automaton/c))]
+  [automaton-reset (automaton/c . -> . automaton/c)]
+  [clone (automaton/c . -> . automaton/c)]
+  [automaton-payoff (automaton/c . -> . payoff/c)]
+  #;automaton?)
  ;; --
- automaton?
+ 
 )
 
 ;; -----------------------------------------------------------------------------
@@ -34,10 +38,11 @@
 (define (make-automaton current table)
   (automaton current current 0 table))
 
-(define (transitions #:i-cooperate/it-cooperates cc
-                     #:i-cooperate/it-defects    cd
-                     #:i-defect/it-cooperates    dc
-                     #:i-defect/it-defects       dd)
+;; PN: This was `define` but we didn't have suppport for keywords
+(define-syntax-rule (transitions #:i-cooperate/it-cooperates cc
+                                 #:i-cooperate/it-defects    cd
+                                 #:i-defect/it-cooperates    dc
+                                 #:i-defect/it-defects       dd)
   (vector (vector cc cd)
           (vector dc dd)))
 
@@ -127,3 +132,14 @@
 
 (define (payoff current1 current2)
   (vector-ref (vector-ref PAYOFF-TABLE current1) current2))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Manual contract stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define payoff/c (>=/c 0))
+(define state/c exact-nonnegative-integer?)
+(define transition/c (vectorof state/c))
+(define transition*/c (vectorof transition/c))
+(define automaton/c (struct/c automaton state/c state/c payoff/c transition*/c))

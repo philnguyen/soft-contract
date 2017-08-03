@@ -29,7 +29,11 @@
 
 (: check : Any (Option Natural) (Option Natural) → (℘ -ΓA) → Any)
 (define ((check msg lo hi) ΓEs)
-  (define n (set-count ΓEs))
+  (define errors
+    (for/set: : (℘ -blm) ([ΓA (in-set ΓEs)])
+      (match-define (-ΓA _ (? -blm? blm)) ΓA)
+      blm))
+  (define n (set-count errors))
   (cond
     [(and (implies lo (<= lo n)) (implies hi (<= n hi)))
      (printf "  ✓ ~a~n" msg)]
@@ -151,9 +155,6 @@
   (test   "safe/real/protected-ring-buffer.rkt" check-safe)
   (test "unsafe/real/protected-ring-buffer.rkt" check-fail)
   
-  (test   "safe/games" check-safe)
-  (test "unsafe/games" check-fail)
-
   ;; Multple files
   (test '("programs/safe/multiple/main.rkt"
           "programs/safe/multiple/helper-1.rkt"
@@ -173,5 +174,12 @@
           "gradual-typing-benchmarks/morsecode/levenshtein.rkt"
           "gradual-typing-benchmarks/morsecode/main.rkt")
         check-safe)
+  (test '("gradual-typing-benchmarks/fsm/utilities.rkt"
+          "gradual-typing-benchmarks/fsm/automata.rkt"
+          "gradual-typing-benchmarks/fsm/population.rkt")
+        (check 'Ok-pos 2 3))
+
+  (test   "safe/games" check-safe)
+  (test "unsafe/games" check-fail)
   
   )
