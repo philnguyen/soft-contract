@@ -224,10 +224,8 @@
   (def-alias empty null)
   (def-alias pair? cons?)
   (def-alias empty? null?)
-  (def-prim first
-    ((cons/c any/c list?) . -> . any/c))
-  (def-prim rest
-    ((cons/c any/c list?) . -> . any/c))
+  (def-alias-internal first -car) ; FIXME precond
+  (def-alias-internal rest -cdr) ; FIXME precond
   (def-prim second
     ((cons/c any/c (cons/c any/c list?)) . -> . any/c))
   (def-prim third
