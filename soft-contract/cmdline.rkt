@@ -27,7 +27,7 @@
 (define fnames
   (cast
    (command-line
-    #:program "raco soft-contract"
+    #:program "raco scv"
     
     #:once-each
     [("-l" "--last-only")
