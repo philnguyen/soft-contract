@@ -67,7 +67,12 @@
 
   (define (show-δ$ [δ$ : -δ$]) : (Listof Sexp)
     (for/list : (Listof Sexp) ([(l W) (in-hash δ$)])
-      `(,(show-loc l) ↦ ,(if W (show-W¹ W) '⊘))))
+      `(,(show-loc l) ↦ ,(if W (show-F W) '⊘))))
+
+  (define show-F : (-F → Sexp)
+    (match-lambda
+      [(? -W¹? W) (show-W¹ W)]
+      [(cons ⟦e⟧ _) (show-⟦e⟧ ⟦e⟧)]))
 
   (define show-$ : (-$ → (Listof Sexp)) show-δ$)
 
@@ -92,7 +97,7 @@
          ""
          #:before-first "●"))]
       [(? -o? o) (show-o o)]
-      [(-Clo xs ⟦e⟧ ρ _) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧))]
+      [(-Clo xs ⟦e⟧ ρ Γ) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ‖ ,(show-ρ ρ) ‖ ,@(show-Γ Γ))]
       [(-Case-Clo clauses ρ Γ)
        `(case-lambda
           ,@(for/list : (Listof Sexp) ([clause clauses])

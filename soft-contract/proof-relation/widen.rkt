@@ -378,7 +378,11 @@
       (define tₓ* (if looped? (-t.x x) (or tₓ (-t.x x))))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕V! Σ α Vₓ*)
-      (define $* ($-set $ x (-W¹ Vₓ* tₓ*)))
+      (define Fₓ
+        (match Vₓ
+          [(-Clo _ ⟦e⟧ _ _) (cons ⟦e⟧ tₓ*)]
+          [_ (-W¹ Vₓ* tₓ*)]))
+      (define $* ($-set $ x Fₓ #;(-W¹ Vₓ* tₓ*)))
       (values (ρ+ ρ x α) $*)))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
@@ -520,7 +524,7 @@
   (define (copy-Γ $ₜ Γₜ Γₛ)
     (define dom
       (for/unioneq : (℘ Symbol) ([W (in-hash-values $ₜ)])
-        (fvₜ (-W¹-t W))))
+        (fvₜ (if (-W¹? W) (-W¹-t W) (cdr W)))))
     (define Γₛ* (Γ↓ Γₛ dom))
     (∪ Γₜ Γₛ*))
   )

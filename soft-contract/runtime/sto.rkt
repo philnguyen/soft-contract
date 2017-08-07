@@ -91,15 +91,15 @@
   (define ⊤$ : -$ (hash))
   (define ⊤$* : -δ$ (hash))
 
-  (: $-set : -$ -loc -W¹ → -$)
+  (: $-set : -$ -loc -F → -$)
   (define $-set hash-set)
   
-  (: $-set! : -Σ -$ ⟪α⟫ -loc -W¹ → -$)
+  (: $-set! : -Σ -$ ⟪α⟫ -loc -F → -$)
   (define ($-set! Σ $ α l W)
     (set-alias! Σ α l)
     (hash-set ($-del* $ (get-aliases Σ α)) l W))
 
-  (: $-set* : -$ (Listof -loc) (Listof -W¹) → -$)
+  (: $-set* : -$ (Listof -loc) (Listof -F) → -$)
   (define ($-set* $ ls Ws)
     (for/fold ([$ : -$ $])
               ([l (in-list ls)]
@@ -111,8 +111,15 @@
 
   (: $@! : -Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))
   (define ($@! Σ α $ l)
-    (cond [(hash-ref $ l #f) =>
-           (λ ([W : -W¹]) {set (cons W $)})]
+    (cond [(hash-ref $ l #f)
+           =>
+           (λ ([W : (U -W¹ (Pairof -⟦e⟧ -?t))])
+             (match W
+               [(? -W¹? W) {set (cons W $)}]
+               [(cons ⟦e⟧ t)
+                (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))]
+                                                 #:when (match? V (-Clo _ (== ⟦e⟧) _ _)))
+                  (cons (-W¹ V t) $))]))]
           [else #;(> (set-count (σ@ Σ α)) 1)
            (set-alias! Σ α l)
            #;(when (equal? l 'l)
@@ -122,7 +129,11 @@
                  (printf "- ~a~n" (show-V V)))))
            (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
              (define W (-W¹ V #f))
-             (cons W ($-set $ l W)))]
+             (define F
+               (match V
+                 [(-Clo _ ⟦e⟧ _ _) (cons ⟦e⟧ #f)]
+                 [_ (-W¹ V #f)]))
+             (cons W ($-set $ l F #;W)))]
           #;[else
            (when (equal? l 'l)
              (let ([Vs (σ@ Σ α)])
