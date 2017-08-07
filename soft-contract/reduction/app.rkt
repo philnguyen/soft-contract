@@ -203,7 +203,7 @@
            (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ Wsᵣ))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ Vᵣ)
-           (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-W¹ Vᵣ z)))]))
+           (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z z))]))
 
       (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
       (define $** ($-cleanup (gc-$ $* Σ ρ* ⟦k⟧)))
@@ -388,7 +388,7 @@
              (define α (-α->⟪α⟫ (-α.fld 𝒾 ℓ ⟪ℋ⟫ i)))
              (σ⊕V! Σ α V*)
              (define l (-loc.offset 𝒾 i tₐ))
-             (values ($-set! Σ $ α l (-W¹ V* t)) (cons α αs.rev))))
+             (values ($-set! Σ $ α l t) (cons α αs.rev))))
          (define V (-St 𝒾 (reverse αs.rev)))
          (⟦k⟧ (-W (list V) tₐ) $* Γ ⟪ℋ⟫ Σ)]
         [else
@@ -412,9 +412,8 @@
             (cond
               [s
                (define l (-loc.offset 𝒾 i s))
-               (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ l))])
-                 (match-define (cons W $*) W/$)
-                 (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
+               (for/union : (℘ -ς) ([W (in-set ($@! Σ Γ α $ l))])
+                 (⟦k⟧ (W¹->W W) $ Γ ⟪ℋ⟫ Σ))]
               [else
                (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                  (⟦k⟧ (-W (list V) #f) $ Γ ⟪ℋ⟫ Σ))])]
@@ -460,7 +459,7 @@
       (match Ws
         [(list Wₛ Wᵥ)
          (match-define (-W¹ Vₛ sₛ) Wₛ)
-         (match-define (-W¹ Vᵥ _ ) Wᵥ)
+         (match-define (-W¹ Vᵥ tᵥ) Wᵥ)
          (define l (ℓ-src ℓ))
          (define (blm) (-blm l (show-o mut) (list p) (list Vₛ) ℓ))
          
@@ -469,7 +468,7 @@
             (define α (list-ref αs i))
             (σ⊕! Σ Γ α Wᵥ)
             (define $* (if sₛ
-                           ($-set! Σ $ α (-loc.offset 𝒾 i sₛ) Wᵥ)
+                           ($-set! Σ $ α (-loc.offset 𝒾 i sₛ) tᵥ)
                            ($-del* $ (get-aliases Σ α))))
             (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
            [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
@@ -556,7 +555,7 @@
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
-           (define $* ($-set $₁ z W-rest))
+           (define $* ($-set $₁ z (-W¹-t W-rest)))
            (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
            (define $** ($-cleanup (gc-$ $* Σ ρₕ* ⟦k⟧)))
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))

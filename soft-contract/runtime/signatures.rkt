@@ -113,9 +113,8 @@
               (-loc.offset (U -𝒾 Symbol) Index -t)
               )
 
-(define-type -F (U -W¹ (Pairof -⟦e⟧ -?t)))
-(define-type -$ (Immutable-HashTable -loc -F))
-(define-type -δ$ (Immutable-HashTable -loc (Option -F)))
+(define-type -$ (Immutable-HashTable -loc -t))
+(define-type -δ$ (Immutable-HashTable -loc -?t))
 
 ;; Path condition is set of terms known to have evaluated to non-#f
 ;; It also maintains a "canonicalized" symbolic name for each variable
@@ -342,12 +341,12 @@
    [⟪α⟫ₒₚ : ⟪α⟫]
    [⊤$ : -$]
    [⊤$* : -δ$]
-   [$-set : (-$ -loc -F → -$)]
-   [$-set* : (-$ (Listof -loc) (Listof -F) → -$)]
-   [$-set! : (-Σ -$ ⟪α⟫ -loc -F → -$)]
+   [$-set : (-$ -loc -?t → -$)]
+   [$-set* : (-$ (Listof -loc) (Listof -?t) → -$)]
+   [$-set! : (-Σ -$ ⟪α⟫ -loc -?t → -$)]
    [$-del : (-$ -loc → -$)]
    [$-del* : (-$ (Sequenceof -loc) → -$)]
-   [$@! : (-Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))]
+   [$@! : (-Σ -Γ ⟪α⟫ -$ -loc → (℘ -W¹))]
    [$-extract : (-$ (Sequenceof -loc) → -δ$)]
    [$-restore : (-$ -δ$ → -$)]
    [$↓ : (-$ (℘ -loc) → -$)]
@@ -431,7 +430,6 @@
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
    [show-loc : (-loc → Sexp)]
-   [show-F : (-F → Sexp)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    [recall-e : (-⟦e⟧ → (Option -e))]
    [verbose? : (Parameterof Boolean)]

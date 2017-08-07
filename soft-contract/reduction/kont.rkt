@@ -274,9 +274,8 @@
       (match-define (-W Vs sᵥ) A)
       (match Vs
         [(list V)
-         (define Wᵥ (-W¹ V sᵥ))
-         (σ⊕! Σ Γ α Wᵥ)
-         (define $* (if ?loc ($-set $ ?loc Wᵥ) $))
+         (σ⊕! Σ Γ α (-W¹ V sᵥ))
+         (define $* (if ?loc ($-set $ ?loc sᵥ) $))
          (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
         [_
          (define blm
@@ -516,7 +515,7 @@
                       [t (in-list (split-values s n))])
              (σ⊕V! Σ α V)
              (define ?l (hack:α->loc α))
-             (if ?l ($-set $ ?l (-W¹ V t)) $)))
+             (if ?l ($-set $ ?l t) $)))
          (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
         [else
          (define blm

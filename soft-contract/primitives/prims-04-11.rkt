@@ -86,7 +86,7 @@
         (define α (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
         (σ⊕V! Σ α V*)
         (define l (-loc.offset 'vector (assert i index?) tₐ))
-        (values ($-set! Σ $ α l (-W¹ V* t)) (cons α αs.rev))))
+        (values ($-set! Σ $ α l t) (cons α αs.rev))))
     {set (-ΓA Γ (-W (list (-Vector (reverse αs.rev))) tₐ))})
   (def-prim/todo vector-immutable
     (() #:rest list? . ->* . (and/c vector? immutable?)))
@@ -122,9 +122,8 @@
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (cond [sᵥ (define l (-loc.offset 'vector (assert i index?) sᵥ))
-                            (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ ⟪α⟫ $ l))])
-                              (match-define (cons W $*) W/$)
-                              (⟦k⟧ (W¹->W W) $* Γ* ⟪ℋ⟫ Σ))]
+                            (for/union : (℘ -ς) ([W (in-set ($@! Σ Γ ⟪α⟫ $ l))])
+                              (⟦k⟧ (W¹->W W) $ Γ* ⟪ℋ⟫ Σ))]
                         [else
                          (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
                            (⟦k⟧ (-W (list V) #f) $ Γ* ⟪ℋ⟫ Σ))]))]
@@ -171,7 +170,7 @@
                   (σ⊕! Σ Γ ⟪α⟫ Wᵤ)
                   (define $*
                     (if sᵥ
-                        ($-set! Σ $ ⟪α⟫ (-loc.offset 'vector (assert i index?) sᵥ) Wᵤ)
+                        ($-set! Σ $ ⟪α⟫ (-loc.offset 'vector (assert i index?) sᵥ) sᵤ)
                         ($-del* $ (get-aliases Σ ⟪α⟫))))
                   (⟦k⟧ (+W (list -void)) $* Γ* ⟪ℋ⟫ Σ))]
       [(-Vector^ α n)

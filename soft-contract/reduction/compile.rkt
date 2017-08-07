@@ -141,9 +141,8 @@
             (σ⊕V! Σ ⟪α⟫ₒₚ (+●)))
           (cond
             [?loc
-             (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ ⟪α⟫ $ ?loc))])
-               (match-define (cons W $*) W/$)
-               (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
+             (for/union : (℘ -ς) ([W (in-set ($@! Σ Γ ⟪α⟫ $ ?loc))])
+               (⟦k⟧ (W¹->W W) $ Γ ⟪ℋ⟫ Σ))]
             [else
              (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
                (define V* (modify-V V))
@@ -295,13 +294,12 @@
       (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) ℓₓ))
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define α (ρ@ ρ x))
-      (for/union : (℘ -ς) ([W/$ (in-set ($@! Σ α $ x #|TODO|#))])
-        (match-define (cons W $*) W/$)
+      (for/union : (℘ -ς) ([W (in-set ($@! Σ Γ α $ x #|TODO|#))])
         (define A
           (match W
             [(-W¹ (-b (== undefined)) _) -blm.undefined]
             [(-W¹ V                   t) (-W (list V) t)]))
-        (⟦k⟧ A $* Γ ⟪ℋ⟫ Σ))))
+        (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))))
 
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))
 

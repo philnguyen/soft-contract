@@ -8,10 +8,11 @@
          set-extras
          "../utils/main.rkt"
          "../ast/definition.rkt"
+         "../proof-relation/signatures.rkt"
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^)
+  (import pretty-print^ local-prover^)
   (export sto^)
 
   (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
@@ -91,57 +92,39 @@
   (define ⊤$ : -$ (hash))
   (define ⊤$* : -δ$ (hash))
 
-  (: $-set : -$ -loc -F → -$)
-  (define $-set hash-set)
+  (: $-set : -$ -loc -?t → -$)
+  (define ($-set $ l t)
+    (if t (hash-set $ l t) $))
   
-  (: $-set! : -Σ -$ ⟪α⟫ -loc -F → -$)
-  (define ($-set! Σ $ α l W)
-    (set-alias! Σ α l)
-    (hash-set ($-del* $ (get-aliases Σ α)) l W))
+  (: $-set! : -Σ -$ ⟪α⟫ -loc -?t → -$)
+  (define ($-set! Σ $ α l t)
+    (cond [t
+           (set-alias! Σ α l)
+           (hash-set ($-del* $ (get-aliases Σ α)) l t)]
+          [else $]))
 
-  (: $-set* : -$ (Listof -loc) (Listof -F) → -$)
-  (define ($-set* $ ls Ws)
+  (: $-set* : -$ (Listof -loc) (Listof -?t) → -$)
+  (define ($-set* $ ls ts)
     (for/fold ([$ : -$ $])
               ([l (in-list ls)]
-               [W (in-list Ws)])
-      ($-set $ l W)))
+               [t (in-list ts)])
+      ($-set $ l t)))
 
   (: $-del : -$ -loc → -$)
   (define ($-del $ l) (hash-remove $ l))
 
-  (: $@! : -Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))
-  (define ($@! Σ α $ l)
+  (: $@! : -Σ -Γ ⟪α⟫ -$ -loc → (℘ -W¹))
+  (define ($@! Σ Γ α $ l)
+    (define Vs (σ@ Σ α))
     (cond [(hash-ref $ l #f)
            =>
-           (λ ([W : (U -W¹ (Pairof -⟦e⟧ -?t))])
-             (match W
-               [(? -W¹? W) {set (cons W $)}]
-               [(cons ⟦e⟧ t)
-                (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))]
-                                                 #:when (match? V (-Clo _ (== ⟦e⟧) _ _)))
-                  (cons (-W¹ V t) $))]))]
-          [else #;(> (set-count (σ@ Σ α)) 1)
-           (set-alias! Σ α l)
-           #;(when (equal? l 'l)
-             (let ([Vs (σ@ Σ α)])
-               (printf "find ~a bindings at l, cache each to ⊘:~n" (set-count Vs))
-               (for ([V (in-set Vs)])
-                 (printf "- ~a~n" (show-V V)))))
-           (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
-             (define W (-W¹ V #f))
-             (define F
-               (match V
-                 [(-Clo _ ⟦e⟧ _ _) (cons ⟦e⟧ #f)]
-                 [_ (-W¹ V #f)]))
-             (cons W ($-set $ l F #;W)))]
-          #;[else
-           (when (equal? l 'l)
-             (let ([Vs (σ@ Σ α)])
-               (printf "find ~a bindings at l, cache each to ⊘:~n" (set-count Vs))
-               (for ([V (in-set Vs)])
-                 (printf "- ~a~n" (show-V V)))))
-           (define V (set-first (σ@ Σ α)))
-           {set (cons (-W¹ V #f) $)}]))
+           (λ ([t : -t])
+             (for/set: : (℘ -W¹) ([V (in-set Vs)]
+                                  #:when (plausible-V-t? Γ V t))
+               (-W¹ V t)))]
+          [else
+           (for/set: : (℘ -W¹) ([V (in-set Vs)])
+             (-W¹ V #f))]))
 
   (: $-extract : -$ (Sequenceof -loc) → -δ$)
   (define ($-extract $ ls)

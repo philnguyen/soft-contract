@@ -66,13 +66,8 @@
     (set-map Γ show-t))
 
   (define (show-δ$ [δ$ : -δ$]) : (Listof Sexp)
-    (for/list : (Listof Sexp) ([(l W) (in-hash δ$)])
-      `(,(show-loc l) ↦ ,(if W (show-F W) '⊘))))
-
-  (define show-F : (-F → Sexp)
-    (match-lambda
-      [(? -W¹? W) (show-W¹ W)]
-      [(cons ⟦e⟧ _) (show-⟦e⟧ ⟦e⟧)]))
+    (for/list : (Listof Sexp) ([(l t) (in-hash δ$)])
+      `(,(show-loc l) ↦ ,(show-t t))))
 
   (define show-$ : (-$ → (Listof Sexp)) show-δ$)
 

@@ -435,7 +435,7 @@
     (cond
       [?x
        (define W-V* (-W¹ V ?x))
-       (define $* ($-set $ ?x W-V*))
+       (define $* ($-set $ ?x ?x))
        (define Γ* #|TODO|# ⊤Γ)
        (define ⟦k⟧**
          (let ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
@@ -455,7 +455,7 @@
     (cond
       [?x
        (define W-V* (-W¹ V ?x))
-       (define $* ($-set $ ?x W-V*))
+       (define $* ($-set $ ?x ?x))
        (define Γ* #|TODO|# ⊤Γ)
        (define ⟦k⟧**
          (let ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
