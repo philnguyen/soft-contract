@@ -72,7 +72,7 @@
       ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
       ;; This is a problem with precision rather than soundness, but I want
       ;; (obviously) inconsistent path-conditions to not exist in the first place.
-      (error 'Γ⊢t "Attempt to prove/refute with inconsistent path-condition"))
+      (error 'Γ⊢t "Attempt to prove/refute with inconsistent path-condition: ~a" (show-Γ φs)))
 
     (: t⊢t : -t -t → -R)
     ;; Check if `t₂` returns truth when `t₁` does
@@ -277,43 +277,69 @@
   (define (plausible-φs-t? [φs : -Γ] [t : -?t]) : Boolean
     (with-debugging/off
       ((a) (not (eq? '✗ (Γ⊢t φs t))))
-      (printf "~a ⊢ ~a : ~a~n"
-              (set-map φs show-t)
-              (show-t t)
-              (if a 'plausible 'implausible))))
+      (when a
+        (printf "~a ⊢ ~a : ~a~n"
+                (set-map φs show-t)
+                (show-t t)
+                (if a 'plausible 'implausible)))))
+
+  (: plausible₁-V-t? : -V -t → Boolean)
+  (define (plausible₁-V-t? V t)
+    (define label : (Any → (U Symbol -𝒾 #f))
+      (match-lambda
+        [(-b b)
+         (cond [(number? b) 'number]
+               [(string? b) 'string]
+               [(not b) 'false]
+               [(boolean? b) 'true]
+               [(symbol? b) 'symbol]
+               [else 'base])]
+        [(or (? -λ?) (? -Fn?) (? -Ar?) (? -o?)) 'procedure]
+        [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?)) 'vector]
+        [(or (? -Hash^?) (? -Hash/guard?)
+             (-t.@ (or 'make-hash 'make-hasheq 'hash 'hasheq) _)) 'hash]
+        [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _) (-t.@ (-st-mk 𝒾) _)) 𝒾]
+        [_ #f]))
+    (define V.lab (label V))
+    (define t.lab (label t))
+    (or (not V.lab)
+        (not t.lab)
+        (equal? V.lab t.lab)))
 
   (define (plausible-V-t? [φs : -Γ] [V : -V] [t : -?t]) : Boolean
     (define-syntax-rule (with-prim-checks p? ...)
       (cond
         [t
-         (match V
-           [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
-            (plausible-φs-t? φs (?t@ (-st-p 𝒾) t))]
-           [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?))
-            (plausible-φs-t? φs (?t@ 'vector? t))]
-           [(or (? -Hash^?) (? -Hash/guard?))
-            (plausible-φs-t? φs (?t@ 'hash? t))]
-           [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
-            (plausible-φs-t? φs (?t@ 'procedure? t))]
-           [(-b (? p?))
-            (and (plausible-φs-t? φs (?t@ 'p? t))
-                 (plausible-φs-t? φs (?t@ 'equal? t V))
-                 (implies (-b? t) (equal? V t)))] ...
-           [(or (? -=>_?) (? -St/C?) (? -x/C?))
-            (for/and : Boolean ([p : -o '(procedure? p? ...)])
-              (case (Γ⊢t φs (?t@ p t))
-                [(✓)   #f]
-                [(✗ ?) #t]))]
-           [(-b (list))
-            (plausible-φs-t? φs (?t@ 'null? t))]
-           [(? -v? v)
-            (plausible-φs-t? φs (?t@ 'equal? t v))]
-           [(-● ps)
-            (not (for/or : Boolean ([p ps])
-                   (match p
-                     [(? -o? o) (equal? '✗ (Γ⊢t φs (-t.@ o (list t))))]
-                     [_ #f])))]
-           [_ #t])]
+         (and (plausible₁-V-t? V t)
+              (match V
+                [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _))
+                 #:when 𝒾
+                 (plausible-φs-t? φs (?t@ (-st-p 𝒾) t))]
+                [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?))
+                 (plausible-φs-t? φs (?t@ 'vector? t))]
+                [(or (? -Hash^?) (? -Hash/guard?))
+                 (plausible-φs-t? φs (?t@ 'hash? t))]
+                [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
+                 (plausible-φs-t? φs (?t@ 'procedure? t))]
+                [(-b (? p?))
+                 (and (plausible-φs-t? φs (?t@ 'p? t))
+                      (plausible-φs-t? φs (?t@ 'equal? t V))
+                      (implies (-b? t) (equal? V t)))] ...
+                [(or (? -=>_?) (? -St/C?) (? -x/C?))
+                 (for/and : Boolean ([p : -o '(procedure? p? ...)])
+                   (case (Γ⊢t φs (?t@ p t))
+                     [(✓)   #f]
+                     [(✗ ?) #t]))]
+                [(-b (list))
+                 (plausible-φs-t? φs (?t@ 'null? t))]
+                [(? -v? v)
+                 (plausible-φs-t? φs (?t@ 'equal? t v))]
+                [(-● ps)
+                 (not (for/or : Boolean ([p ps])
+                        (match p
+                          [(? -o? o) (equal? '✗ (Γ⊢t φs (-t.@ o (list t))))]
+                          [_ #f])))]
+                [_ #t]))]
         [else #t]))
     
     ;; order matters for precision, in the presence of subtypes
@@ -336,8 +362,9 @@
                                  pregexp?
                                  byte-regexp?
                                  byte-pregexp?))
-      (printf "plausible-V-t: ~a ⊢ ~a @ ~a : ~a~n"
-              (set-map φs show-t) (show-V V) (show-t t) (if ans 'plausible 'implausible))))
+      (when ans
+        (printf "plausible-V-t: ~a ⊢ ~a @ ~a : ~a~n"
+                (set-map φs show-t) (show-V V) (show-t t) ans))))
 
   
   (: plausible-W? : -Γ (Listof -V) -?t → Boolean)
