@@ -348,13 +348,14 @@
       [(#%require spec ...)
        (-require (map parse-require-spec (syntax->list #'(spec ...))))]
       [(define-syntaxes (k:id) ; constructor alias
-         (#%plain-app
-          (~literal make-self-ctor-checked-struct-info)
-          _ _
-          (#%plain-lambda () (quote-syntax k1:id))))
+         (~and rhs
+               (#%plain-app
+                (~literal make-self-ctor-checked-struct-info)
+                _ _
+                (#%plain-lambda () (quote-syntax k1:id)))))
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-mod)))
-       (-define-values (list lhs) (-𝒾 (syntax-e #'k) (cur-mod)))]
+       (-define-values (list lhs) (-ref (-𝒾 (syntax-e #'k) (cur-mod)) (syntax-ℓ #'rhs)))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 
@@ -445,9 +446,10 @@
           (-𝒾 (syntax-e #'f) f.src)
           (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src)))))
        (set-module-before! f.src (cur-mod))
+       (define f-ref (-ref f-resolved (syntax-ℓ #'f)))
        (cond
-         [wrap? (-@ f-resolved (parse-es #'(args ...)) (syntax-ℓ stx))]
-         [(and (not wrap?) (null? (syntax->list #'(args ...)))) (-ref f-resolved (syntax-ℓ stx))]
+         [wrap? (-@ f-ref (parse-es #'(args ...)) (syntax-ℓ stx))]
+         [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-ref]
          [else (error 'parser "my understanding is wrong")])]
       
 

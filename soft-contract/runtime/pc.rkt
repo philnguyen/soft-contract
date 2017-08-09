@@ -80,8 +80,8 @@
     (match t
       [(-t.@ h ts) (apply set-union ∅eq (map fvₜ ts))]
       [(-t.x x) {seteq x}]
-      [(? -e? e) (fv e)]
-      [(or (? integer?) #f) ∅eq]))
+      [(or (? -𝒾?) (? integer?) #f) ∅eq]
+      [(? -e? e) (fv e)]))
 
   (define (?t↓ [?t : -?t] [xs : (℘ Symbol)]) (and ?t (t↓ ?t xs)))
 
