@@ -605,7 +605,7 @@
       (λ (h)
         (hash-ref! m h
                    (λ ()
-                     (printf "warning: existentialize result for unmapped `~a`~n" (show-h h)))))))
+                     (log-warning "warning: existentialize result for unmapped `~a`~n" (show-h h)))))))
 
   (: and/s/simp : (Listof Z3-Ast) → Z3-Ast)
   (define (and/s/simp clauses)
