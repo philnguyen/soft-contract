@@ -121,13 +121,12 @@
 
   (define (gen-havoc-expr [ms : (Listof -module)]) : -e
     (define refs
-      ;; collect as list to enforce some order to reduce confusion when debugging
-      (for*/list : (Listof -𝒾) ([m (in-list ms)]
-                                [path (in-value (-module-path m))]
-                                [form (in-list (-module-body m))] #:when (-provide? form)
-                                [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
+      (for*/list : (Listof -ref) ([m (in-list ms)]
+                                  [path (in-value (-module-path m))]
+                                  [form (in-list (-module-body m))] #:when (-provide? form)
+                                  [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
         (match-define (-p/c-item x _ _) spec)
-        (-𝒾 x path)))
+        (-ref (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
 
     (with-debugging/off
       ((ans) (-@ (-•) refs +ℓ₀))

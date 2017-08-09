@@ -90,7 +90,7 @@
 
 (-e . ::= . -v
             (-x Symbol ℓ) ; lexical variables 
-            -𝒾 ; module references
+            (-ref -𝒾 ℓ) ; module references
             (-@ -e (Listof -e) ℓ)
             (-if -e -e -e)
             (-wcm [key : -e] [val : -e] [body : -e])
@@ -209,7 +209,7 @@
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
     [(-x x _) x]
-    [(-𝒾 x p)
+    [(-ref (-𝒾 x p) _)
      (case p ;; hack
        [(Λ) (format-symbol "_~a" x)]
        [else x])]

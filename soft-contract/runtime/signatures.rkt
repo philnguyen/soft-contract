@@ -150,7 +150,8 @@
             (-</c Base)
             (-≡/c Base)
             (-≢/c Base)
-            (-not/c -o))
+            (-not/c -o)
+            (-clo -⟦e⟧))
 (-?t . ::= . -t #f)
 
 (-special-bin-o . ::= . '> '< '>= '<= '= 'equal? 'eqv? 'eq? #|made up|# '≢)
@@ -346,7 +347,7 @@
    [$-set! : (-Σ -$ ⟪α⟫ -loc -?t → -$)]
    [$-del : (-$ -loc → -$)]
    [$-del* : (-$ (Sequenceof -loc) → -$)]
-   [$@! : (-Σ -Γ ⟪α⟫ -$ -loc → (℘ -W¹))]
+   [$@! : (-Σ -Γ ⟪α⟫ -$ -loc ℓ → (Values (℘ -W¹) -$))]
    [$-extract : (-$ (Sequenceof -loc) → -δ$)]
    [$-restore : (-$ -δ$ → -$)]
    [$↓ : (-$ (℘ -loc) → -$)]
@@ -369,6 +370,7 @@
    [guard-arity : (-=>_ → Arity)]
    [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]
    [strip-C : (-V → -edge.tgt)]
+   [predicates-of-V : (-V → (℘ -h))]
    ))
 
 (define-signature pc^

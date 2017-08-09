@@ -447,7 +447,7 @@
        (set-module-before! f.src (cur-mod))
        (cond
          [wrap? (-@ f-resolved (parse-es #'(args ...)) (syntax-ℓ stx))]
-         [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-resolved]
+         [(and (not wrap?) (null? (syntax->list #'(args ...)))) (-ref f-resolved (syntax-ℓ stx))]
          [else (error 'parser "my understanding is wrong")])]
       
 
@@ -561,7 +561,7 @@
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
           (set-module-before! src (cur-mod))
-          (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src))))]
+          (-ref (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src)))) (syntax-ℓ stx))]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
@@ -659,7 +659,7 @@
                       src)
                  _ _ _ _ _ _)
            #:when (not (equal? src 'Λ))
-           (-𝒾 (syntax-e #'i) src)]
+           (-ref (-𝒾 (syntax-e #'i) src) (syntax-ℓ #'i))]
           [_
            (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." #'i)]))]))
 
@@ -733,7 +733,7 @@
        src]
       [else (error 'id-defining-module "export module-level id, given ~a" (syntax-e id))]))
 
-  (define/contract (id->𝒾 id)
+  #;(define/contract (id->𝒾 id)
     (identifier? . -> . -𝒾?)
     (-𝒾 (syntax-e id) (id-defining-module id)))
   )

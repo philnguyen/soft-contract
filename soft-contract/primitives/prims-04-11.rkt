@@ -122,8 +122,9 @@
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (cond [sᵥ (define l (-loc.offset 'vector (assert i index?) sᵥ))
-                            (for/union : (℘ -ς) ([W (in-set ($@! Σ Γ ⟪α⟫ $ l))])
-                              (⟦k⟧ (W¹->W W) $ Γ* ⟪ℋ⟫ Σ))]
+                            (define-values (Ws $*) ($@! Σ Γ ⟪α⟫ $ l ℓ))
+                            (for/union : (℘ -ς) ([W (in-set Ws)])
+                              (⟦k⟧ (W¹->W W) $* Γ* ⟪ℋ⟫ Σ))]
                         [else
                          (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
                            (⟦k⟧ (-W (list V) #f) $ Γ* ⟪ℋ⟫ Σ))]))]

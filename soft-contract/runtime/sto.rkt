@@ -113,18 +113,20 @@
   (: $-del : -$ -loc → -$)
   (define ($-del $ l) (hash-remove $ l))
 
-  (: $@! : -Σ -Γ ⟪α⟫ -$ -loc → (℘ -W¹))
-  (define ($@! Σ Γ α $ l)
+  (: $@! : -Σ -Γ ⟪α⟫ -$ -loc ℓ → (Values (℘ -W¹) -$))
+  (define ($@! Σ Γ α $ l ℓ)
     (define Vs (σ@ Σ α))
     (cond [(hash-ref $ l #f)
            =>
            (λ ([t : -t])
-             (for/set: : (℘ -W¹) ([V (in-set Vs)]
-                                  #:when (plausible-V-t? Γ V t))
-               (-W¹ V t)))]
+             (values (for/set: : (℘ -W¹) ([V (in-set Vs)]
+                                          #:when (plausible-V-t? Γ V t))
+                       (-W¹ V t))
+                     $))]
           [else
-           (for/set: : (℘ -W¹) ([V (in-set Vs)])
-             (-W¹ V #f))]))
+           (values (for/set: : (℘ -W¹) ([V (in-set Vs)])
+                     (-W¹ V ℓ))
+                   ($-set $ l ℓ))]))
 
   (: $-extract : -$ (Sequenceof -loc) → -δ$)
   (define ($-extract $ ls)
