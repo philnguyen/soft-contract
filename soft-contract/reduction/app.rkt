@@ -205,8 +205,21 @@
            (σ⊕V! Σ αᵣ Vᵣ)
            (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z z))]))
 
-      (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
       (define $** ($-cleanup (gc-$ $* Σ ρ* ⟦k⟧)))
+      (define Γₕ*
+        (if looped? Γₕ (copy-Γ $* Γₕ Γ))
+        #;(for/fold ([Γ : -Γ (if looped? Γₕ (copy-Γ $* Γₕ Γ))])
+                  ([x (if (list? xs) xs (-var-init xs))]
+                   [Wₓ (in-list Wₓs)])
+          (match-define (-W¹ Vₓ tₓ) Wₓ)
+          (for*/fold ([Γ : -Γ Γ])
+                     ([tₓ* (in-value (hash-ref $** x #f))]
+                      #:when tₓ*
+                      [h (in-set (∪ (predicates-of-V Vₓ) (predicates-of Γ tₓ)))]
+                      [t (in-value (-t.@ h (list tₓ*)))]
+                      #:when t
+                      #:unless (equal? '✓ (Γ⊢t Γ t)))
+            (Γ+ Γ t))))
       (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define ⟦k⟧*
         (let ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))])
@@ -412,8 +425,9 @@
             (cond
               [s
                (define l (-loc.offset 𝒾 i s))
-               (for/union : (℘ -ς) ([W (in-set ($@! Σ Γ α $ l))])
-                 (⟦k⟧ (W¹->W W) $ Γ ⟪ℋ⟫ Σ))]
+               (define-values (Ws $*) ($@! Σ Γ α $ l ℓ))
+               (for/union : (℘ -ς) ([W (in-set Ws)])
+                 (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
               [else
                (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                  (⟦k⟧ (-W (list V) #f) $ Γ ⟪ℋ⟫ Σ))])]
