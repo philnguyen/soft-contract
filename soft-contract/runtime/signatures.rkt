@@ -19,9 +19,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-type -σ (Immutable-HashTable ⟪α⟫ (℘ -V)))
-(define-type -σₖ (Immutable-HashTable -αₖ (℘ -⟦k⟧)))
+(define-type -σₖ (Immutable-HashTable -αₖ (℘ -κ)))
 (define-type -M (Immutable-HashTable -αₖ (℘ -ΓA)))
 (define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
+
+(struct -κ ([rest : -⟦k⟧]) #:transparent)
+(struct -κ.rt -κ ([dom : (℘ Symbol)] [pc : -Γ] [ans : -?t] [looped? : Boolean]) #:transparent)
 
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
@@ -335,7 +338,7 @@
    [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
-   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
+   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
    [⊥M : -M]
    [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
    [⟪α⟫ₕᵥ : ⟪α⟫]
@@ -352,6 +355,7 @@
    [$-restore : (-$ -δ$ → -$)]
    [$↓ : (-$ (℘ -loc) → -$)]
    [$-cleanup : (-$ → -$)]
+   [$-symbolic-names : (-$ → (℘ Symbol))]
    [⊥𝒜 : -𝒜]
    [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
    [hack:α->loc : (⟪α⟫ → (Option -loc))]
@@ -430,6 +434,7 @@
    [show-edge : (-edge → Sexp)]
    [show-⟪ℋ⟫ : (-⟪ℋ⟫ → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
+   [show-κ : (-κ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
    [show-loc : (-loc → Sexp)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]

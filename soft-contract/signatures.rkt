@@ -54,7 +54,7 @@
    [σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
    [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
    [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
-   [σₖ⊕! : (-Σ -αₖ -⟦k⟧ → Void)]
+   [σₖ⊕! : (-Σ -αₖ -κ → Void)]
    [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
    [M⊕! : (-Σ -αₖ -ΓA → Void)]
@@ -68,7 +68,7 @@
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
    [collect-hash-pairs : (-σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))]
-   [copy-Γ : (-$ -Γ -Γ → -Γ)]))
+   [copy-Γ : ((℘ Symbol) -Γ -Γ → -Γ)]))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]

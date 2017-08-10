@@ -69,7 +69,7 @@
    [or∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [mk-listof∷ : (-?t ℓ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    [mk-vector^∷ : (-V -?t ℓ -⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
-   [adjust-names∷ : (-Γ -?t Boolean -⟦k⟧ → -⟦k⟧)]
+   #;[adjust-names∷ : ((℘ Symbol) -Γ -?t Boolean -⟦k⟧ → -⟦k⟧)]
    [invalidate-$∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
    [restore-$∷ : (-δ$ -⟦k⟧ → -⟦k⟧)]
    [restore-ctx∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]

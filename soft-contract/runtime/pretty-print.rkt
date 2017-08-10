@@ -73,8 +73,8 @@
   (define show-$ : (-$ → (Listof Sexp)) show-δ$)
 
   (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
-    (for/list ([(αₖ ⟦k⟧s) σₖ])
-      `(,(show-αₖ αₖ) ↦ ,(set-count ⟦k⟧s))))
+    (for/list ([(αₖ κs) σₖ])
+      `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
 
   (define show-blm-reason : ((U -V -v -h) → Sexp)
     (match-lambda
@@ -287,4 +287,12 @@
   (define (show-M M)
     (for/list ([(α As) (in-hash M)])
       `(,(show-αₖ α) ↦ ,(set-map As show-ΓA))))
+
+  (: show-κ : -κ → Sexp)
+  (define (show-κ κ)
+    (match κ
+      [(-κ.rt _ dom Γ t looped?)
+       `(,(show-t t) ,(set->list dom) ,(show-Γ Γ) ,looped?)]
+      [(-κ _)
+       `κ]))
   )

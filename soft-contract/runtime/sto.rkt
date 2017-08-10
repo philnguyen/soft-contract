@@ -12,7 +12,7 @@
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^ local-prover^)
+  (import pretty-print^ local-prover^ pc^)
   (export sto^)
 
   (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
@@ -70,9 +70,9 @@
 
   (define ⊥σₖ : -σₖ (hash))
 
-  (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))
+  (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -κ))
   (define (σₖ@ m αₖ)
-    (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅eq))
+    (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -156,6 +156,11 @@
               ([l (in-hash-keys $)]
                #:when (-loc.offset? l))
       (hash-remove $ l)))
+
+  (: $-symbolic-names : -$ → (℘ Symbol))
+  (define ($-symbolic-names $)
+    (for/unioneq : (℘ Symbol) ([t (in-hash-values $)])
+      (fvₜ t)))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -437,11 +437,12 @@
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x ?x))
        (define Γ* #|TODO|# ⊤Γ)
-       (define ⟦k⟧**
-         (let ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
-           (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
+       (define κ
+         (let* ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))]
+               [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
+           (-κ.rt ⟦k⟧** ($-symbolic-names $) Γ tᵥ (and ?x #t))))
        (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
-       (σₖ⊕! Σ αₖ ⟦k⟧**)
+       (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
       [else
        (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
@@ -457,11 +458,12 @@
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x ?x))
        (define Γ* #|TODO|# ⊤Γ)
-       (define ⟦k⟧**
-         (let ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))])
-           (restore-$∷ δ$ (adjust-names∷ Γ tᵥ (and ?x #t) ⟦k⟧*))))
+       (define κ
+         (let* ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))]
+                [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
+           (-κ.rt ⟦k⟧** ($-symbolic-names $) Γ tᵥ (and ?x #t))))
        (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
-       (σₖ⊕! Σ αₖ ⟦k⟧**)
+       (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
       [else
        (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))

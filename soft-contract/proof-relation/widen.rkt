@@ -8,6 +8,7 @@
                      syntax/parse)
          racket/match
          racket/set
+         racket/bool
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
@@ -353,11 +354,43 @@
            (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
            (and ?Γ (-ΓA ?Γ A₂))]))
 
-  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : Void
-    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ ⟦k⟧)))
+  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
+    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
 
-  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : -σₖ
-    (hash-update σₖ αₖ (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧)) mk-∅eq))
+  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
+    (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
+
+  (: ?κ⊔ : -κ -κ → (Option -κ))
+  (define (?κ⊔ κ₁ κ₂)
+
+    (: t⊑ : -?t -?t → Boolean)
+    (define (t⊑ t₁ t₂)
+      (implies t₂ (equal? t₁ t₂)))
+
+    (: κ⊑ : -κ.rt -κ.rt → Boolean)
+    (define (κ⊑ κ₁ κ₂)
+      (match-define (-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁) κ₁)
+      (match-define (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂) κ₂)
+      (and (⟦k⟧₁ . equal? . ⟦k⟧₂)
+           (dom₂ . ⊆  . dom₁)
+           (Γ₂   . ⊆  . Γ₁)
+           (t₁   . t⊑ . t₂)
+           (looped?₁ . implies . looped?₂)))
+
+    (match* (κ₁ κ₂)
+      [((-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁)
+        (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂))
+       (cond [(κ⊑ κ₁ κ₂) κ₂]
+             [(κ⊑ κ₂ κ₁) κ₂]
+             [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
+                   (t₁ . t⊑ . t₂)
+                   (dom₂ . ⊆ . dom₁)
+                   (looped?₁ . implies . looped?₂))
+              (define ?Γ (?Γ⊔ Γ₁ Γ₂))
+              (and ?Γ (-κ.rt ⟦k⟧₂ dom₂ ?Γ t₂ looped?₂))]
+             [else #f])]
+      [(κ κ) κ]
+      [(_ _) #f]))
 
   (define (add-leak! [Σ : -Σ] [V : -V]) : Void
     (when (behavioral? (-Σ-σ Σ) V)
@@ -516,13 +549,9 @@
   (define (M⊕! Σ αₖ ΓA)
     (set--Σ-M! Σ (hash-update (-Σ-M Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
 
-  (: copy-Γ : -$ -Γ -Γ → -Γ)
-  (define (copy-Γ $ₜ Γₜ Γₛ)
-    (define dom
-      (for/unioneq : (℘ Symbol) ([t (in-hash-values $ₜ)])
-        (fvₜ t)))
-    (define Γₛ* (Γ↓ Γₛ dom))
-    (∪ Γₜ Γₛ*))
+  (: copy-Γ : (℘ Symbol) -Γ -Γ → -Γ)
+  (define (copy-Γ dom Γₜ Γₛ)
+    (∪ Γₜ (Γ↓ Γₛ dom)))
   )
 
 

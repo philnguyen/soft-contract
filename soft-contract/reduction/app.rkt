@@ -207,7 +207,7 @@
 
       (define $** ($-cleanup (gc-$ $* Σ ρ* ⟦k⟧)))
       (define Γₕ*
-        (if looped? Γₕ (copy-Γ $* Γₕ Γ))
+        (if looped? Γₕ (copy-Γ ($-symbolic-names $*) Γₕ Γ))
         #;(for/fold ([Γ : -Γ (if looped? Γₕ (copy-Γ $* Γₕ Γ))])
                   ([x (if (list? xs) xs (-var-init xs))]
                    [Wₓ (in-list Wₓs)])
@@ -221,10 +221,11 @@
                       #:unless (equal? '✓ (Γ⊢t Γ t)))
             (Γ+ Γ t))))
       (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
-      (define ⟦k⟧*
-        (let ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))])
-          (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ (apply ?t@ sₕ sₓs) looped? ⟦k⟧)))))))
-      (σₖ⊕! Σ αₖ ⟦k⟧*)
+      (define κ
+        (let* ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))]
+               [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
+          (-κ.rt (memoize-⟦k⟧ ⟦k⟧*) ($-symbolic-names $) Γ (apply ?t@ sₕ sₓs) looped?)))
+      (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
   (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)
@@ -523,8 +524,8 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (define ⟦k⟧* (adjust-names∷ Γ #f #t (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧)))
-      (σₖ⊕! Σ αₖ ⟦k⟧*)
+      (define κ (-κ.rt (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t))
+      (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
   (: app/rest/unsafe : ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -570,13 +571,14 @@
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₁ z (-W¹-t W-rest)))
-           (define Γₕ* (if looped? Γₕ (copy-Γ $* Γₕ Γ)))
+           (define Γₕ* (if looped? Γₕ (copy-Γ ($-symbolic-names $*) Γₕ Γ)))
            (define $** ($-cleanup (gc-$ $* Σ ρₕ* ⟦k⟧)))
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
-           (define ⟦k⟧*
-             (let ([δ$ ($-extract $ (cons z zs))])
-               (memoize-⟦k⟧ (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ (adjust-names∷ Γ #f looped? ⟦k⟧)))))))
-           (σₖ⊕! Σ αₖ ⟦k⟧*)
+           (define κ
+             (let* ([δ$ ($-extract $ (cons z zs))]
+                    [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
+               (-κ.rt (memoize-⟦k⟧ ⟦k⟧*) ($-symbolic-names $) Γ #f looped?)))
+           (σₖ⊕! Σ αₖ κ)
            (-ς↑ αₖ))
          
          (cond

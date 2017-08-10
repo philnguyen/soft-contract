@@ -545,7 +545,7 @@
       (for ([V (in-list Vs)])
         (add-leak! Σ V))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (σₖ⊕! Σ αₖ ⟦k⟧)
+      (σₖ⊕! Σ αₖ (-κ ⟦k⟧))
       {set (-ς↑ αₖ)}))
 
 
@@ -738,13 +738,6 @@
       (define α (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
       (σ⊕! Σ Γ α (-W¹ Vₑ tₑ))
       (⟦k⟧ (-W (list (-Vector^ α Vₙ)) tₐ) $ Γ ⟪ℋ⟫ Σ)))
-
-  (define-frame (adjust-names∷ [Γ : -Γ] [t : -?t] [looped? : Boolean] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ) #:roots ()
-      (match-define (-W Vs tₐ) A)
-      (define-values (tₐ* Γ*)
-        (if looped? (values t Γ) (values tₐ (copy-Γ $ Γ Γₐ))))
-      (⟦k⟧ (-W Vs tₐ*) $ Γ* ⟪ℋ⟫ Σ)))
 
   (define-frame (invalidate-$∷ [ls : (℘ -loc)] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
