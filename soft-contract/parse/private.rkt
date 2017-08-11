@@ -52,6 +52,16 @@
            #:when (attribute fun-name)
            #:attr args #'(x ...)))
 
+(define-syntax-class scv-provide
+  #:description "hacked scv provide form"
+  #:literals (#%plain-app call-with-values #%plain-lambda)
+  (pattern (#%plain-app
+            call-with-values
+            (#%plain-lambda ()
+                            (#%plain-app (~literal fake:dynamic-provide/contract) prov ...))
+            _)
+           #:attr provide-list #'(prov ...)))
+
 (define-unit parser-helper@
   (import prims^)
   (export parser-helper^)
@@ -82,10 +92,6 @@
       ;; Re-order the modules for an appropriate initilization order,
       ;; learned from side-effects of `parse-module`
       (sort ms module-before? #:key -module-path)))
-
-  (define (parse-module stx)
-    (match-define (-module l body) (parse-top-level-form stx))
-    (-module l (move-provides-to-end body)))
 
   (define/contract cur-mod (parameter/c string? #|TODO|#)
     (make-parameter "top-level"))
@@ -174,13 +180,22 @@
        (-module
         mod-name
         (parameterize ([cur-mod mod-name])
-          (for*/list ([formᵢ (in-syntax-list #'(forms ...))] #:when (care-about? formᵢ)
+          (define form-list ; Move "provide" clauses to the end
+            (let-values ([(body provides)
+                          (partition (syntax-parser
+                                       [_:scv-provide #f]
+                                       [_ #t])
+                                     (syntax->list #'(forms ...)))])
+              (append body provides)))
+          (for*/list ([formᵢ (in-list form-list)] #:when (care-about? formᵢ)
                       [?res (in-value (parse-module-level-form formᵢ))] #:when ?res)
             ?res)))]
       [((~literal begin) form ...)
        (-begin/simp (map parse-top-level-form (syntax->list #'(form ...))))]
       [((~literal #%expression) e) (parse-e #'e)]
       [form (parse-general-top-level-form #'form)]))
+
+  (define parse-module parse-top-level-form)
 
   ;; Convert syntax to `module-level-form`. May fail for unsupported forms.
   (define/contract parse-module-level-form
@@ -198,12 +213,8 @@
       [(begin-for-syntax _ ...) #f]
       
       ;; Hack for reading our fake-contracts:
-      [(#%plain-app
-        call-with-values
-        (#%plain-lambda ()
-                        (#%plain-app (~literal fake:dynamic-provide/contract) prov ...))
-        _)
-       (-provide (append-map parse-provide-spec (syntax->list #'(prov ...))))]
+      [prov:scv-provide
+       (-provide (append-map parse-provide-spec (syntax->list #'prov.provide-list)))]
       
       [form (or (parse-general-top-level-form #'form)
                 (parse-submodule-form #'form))]))
@@ -233,13 +244,14 @@
                       (--> (list 'any/c) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
-         (for/list ([ac (in-syntax-list #'(ac ...))]
-                    [st-dom st-doms]
-                    [i (in-naturals)])
-           (define ℓᵢ (ℓ-with-id ℓ i))
-           (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
-           (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
-           (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ)))
+         (let ([offset (field-offset 𝒾)])
+           (for/list ([ac (in-syntax-list #'(ac ...))]
+                      [st-dom st-doms]
+                      [i (in-naturals)] #:when (>= i offset))
+             (define ℓᵢ (ℓ-with-id ℓ i))
+             (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
+             (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
+             (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ))))
        (list* dec-constr dec-pred dec-acs)]
       [(#%plain-app (~literal list) x:id c:expr)
        (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ #'x)))]
@@ -714,16 +726,6 @@
       [i:identifier (syntax-e #'i)]
       [spec (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum #'spec))
             'dummy-require]))
-
-  (define/contract (move-provides-to-end forms)
-    ((listof -module-level-form?) . -> . (listof -module-level-form?))
-    (define-values (provides others)
-      (for/fold ([provides '()] [others '()])
-                ([form forms])
-        (cond
-          [(-provide? form) (values (cons form provides) others)]
-          [else (values provides (cons form others))])))
-    (append (reverse others) (reverse provides)))
 
   ;; For debugging only. Return scv-relevant s-expressions
   #;(define/contract (scv-relevant path)
