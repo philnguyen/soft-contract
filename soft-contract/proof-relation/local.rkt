@@ -187,9 +187,8 @@
          [(not) '✗]
          [(any/c) '?]
          [else '✓])]
-      [((-st-p si) (-st-p sj))
-       ;; TODO: no sub-struct for now. Probably changes later
-       (boolean->R (equal? si sj))]
+      [((-st-p 𝒾₁) (-st-p 𝒾₂))
+       (boolean->R (𝒾₁ . substruct? . 𝒾₂))]
 
       ;; Negate
       [((-not/c (? -h? p)) (-not/c (? -h? q)))
@@ -298,7 +297,8 @@
         [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?)) 'vector]
         [(or (? -Hash^?) (? -Hash/guard?)
              (-t.@ (or 'make-hash 'make-hasheq 'hash 'hasheq) _)) 'hash]
-        [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _) (-t.@ (-st-mk 𝒾) _)) 𝒾]
+        ;; could be wrapped by superstruct's contract, so no
+        [(or (-St 𝒾 _) #;(-St* (-St/C _ 𝒾 _) _ _) (-t.@ (-st-mk 𝒾) _)) 𝒾]
         [_ #f]))
     (define V.lab (label V))
     (define t.lab (label t))
@@ -413,9 +413,8 @@
                      [(? -st-ac?) '✓]
                      [(-st-p 𝒾)
                       (match Vs
-                        [(list (or (-St 𝒿 _) (-St* (-St/C _ 𝒿 _) _ _)))
-                         ;; TODO: no sub-struct for now. May change later.
-                         (boolean->R (equal? 𝒾 (assert 𝒿)))]
+                        [(list (or (-St 𝒾* _) (-St* (-St/C _ 𝒾* _) _ _)))
+                         (boolean->R (𝒾* . substruct? . 𝒾))]
                         [(list (-● ps))
                          (or (for/or : (U '✓ '✗ #f) ([p ps] #:when (-st-p? p))
                                (match-define (-st-p 𝒾*) p)

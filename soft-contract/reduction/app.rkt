@@ -421,7 +421,7 @@
          (define l (ℓ-src ℓ))
          (define (blm) (-blm l (show-o ac) (list p) (list V) ℓ))
          (match V
-           [(-St (== 𝒾) αs)
+           [(-St 𝒾* αs) #:when (𝒾* . substruct? . 𝒾)
             (define α (list-ref αs i))
             (cond
               [s
@@ -432,7 +432,7 @@
               [else
                (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                  (⟦k⟧ (-W (list V) #f) $ Γ ⟪ℋ⟫ Σ))])]
-           [(-St* (-St/C _ (== 𝒾) αℓs) α l³)
+           [(-St* (-St/C _ 𝒾* αℓs) α l³) #:when (𝒾* . substruct? . 𝒾)
             (define ℓ/ignore (ℓ-with-src ℓ 'st-ac))
             (match-define (-l³ _ _ lₒ) l³)
             (define Ac (-W¹ ac ac))
