@@ -46,6 +46,7 @@
       [(? -One-Of/C?) #t]
       [(-St/C flat? _ _) flat?]
       [(or (? -Vectorof?) (? -Vector/C?)) #f]
+      [(-Hash/C _ _) #f]
       [(? -=>_?) #f]
       [(or (? -Clo?) (? -Ar?) (? -prim?)) #t]
       [(? -x/C?) #t]
