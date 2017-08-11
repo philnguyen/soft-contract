@@ -386,7 +386,7 @@
 
   (define (app-st-mk [𝒾 : -𝒾]) : -⟦f⟧
     (define st-mk (-st-mk 𝒾))
-    (define n (get-struct-arity 𝒾))
+    (define n (count-struct-fields 𝒾))
     (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (cond
         [(= n (length Ws))
@@ -412,7 +412,7 @@
   (define (app-st-ac [𝒾 : -𝒾] [i : Index]) : -⟦f⟧
     (define ac (-st-ac 𝒾 i))
     (define p  (-st-p 𝒾))
-    (define n (get-struct-arity 𝒾))
+    (define n (count-struct-fields 𝒾))
     
     (: ⟦ac⟧ : -⟦f⟧)
     (define (⟦ac⟧ ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)

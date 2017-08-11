@@ -63,10 +63,13 @@
         [(_ x:id c e) #'(define x e)]
         [(_ lhs c rhs ...) #'(define lhs rhs ...)]))
 
+  (define/contract struct-map (parameter/c (hash/c -𝒾? -𝒾?)) (make-parameter #f))
+
   (define (parse-files fns)
     ;((listof path-string?) . -> . (listof -module?))
 
-    (parameterize ([port-count-lines-enabled #t])
+    (parameterize ([port-count-lines-enabled #t]
+                   [struct-map (make-hash)])
       (define stxs (map do-expand-file fns))
       (for-each figure-out-aliases! stxs)
 
@@ -274,19 +277,31 @@
        #:when (equal? 'print-values (syntax->datum #'print-values))
        (parse-e #'e)]
 
-      [(define-values (_ _ pred acc+muts ...)
+      [(~and stx (define-values (type:id _ pred acc+muts ...)
          (let-values ([(_ ...)
                        (let-values ()
                          (let-values ()
                            (#%plain-app (~literal make-struct-type)
                                         (quote ctor-name)
-                                        _
+                                        parent
                                         (quote n:exact-integer)
                                         _ ...)))])
-           (#%plain-app values _ _ _ mk-acc+muts ...)))
+           (#%plain-app values _ _ _ mk-acc+muts ...))))
+       
        (define ctor (syntax-e #'ctor-name))
-
        (define 𝒾 (-𝒾 ctor (cur-mod)))
+       (hash-set! (struct-map) (id->𝒾 #'type) 𝒾)
+
+       ;; Figure out parent struct
+       (define ?parent
+         (syntax-parse #'parent
+           ['#f #f]
+           [prnt:id (hash-ref (struct-map) (id->𝒾 #'prnt))]))
+       (when ?parent
+         (set-parent-struct! 𝒾 ?parent))
+       (define offset (field-offset 𝒾))
+
+       ;; Parse for direct field accessors/mutators
        (define-values (accs muts)
          (let ([accs (make-hasheq)]
                [muts (make-hasheq)])
@@ -313,9 +328,9 @@
               `(,(-st-mk 𝒾)
                 ,(-st-p 𝒾)
                 ,@(for/list ([i (in-list (map car acc-list))])
-                    (-st-ac 𝒾 i))
+                    (-st-ac 𝒾 (+ offset i)))
                 ,@(for/list ([i (in-list (map car mut-list))])
-                    (-st-mut 𝒾 i)))
+                    (-st-mut 𝒾 (+ offset i))))
               (syntax-ℓ #'pred))))]
       [;; Hack ignoring generated garbage by `struct`
        (define-values (_:identifier) (#%plain-app f:id _:id))
@@ -735,7 +750,7 @@
        src]
       [else (error 'id-defining-module "export module-level id, given ~a" (syntax-e id))]))
 
-  #;(define/contract (id->𝒾 id)
+  (define/contract (id->𝒾 id)
     (identifier? . -> . -𝒾?)
     (-𝒾 (syntax-e id) (id-defining-module id)))
   )

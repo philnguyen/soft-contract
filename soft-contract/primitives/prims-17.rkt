@@ -63,7 +63,7 @@
       (printf "unsafe-struct-ref: ~a ~a -> ⊘~n" (show-t sᵥ) (show-t sᵢ)))
     (match Vᵥ
       [(-St 𝒾 ⟪α⟫s)
-       (define n (get-struct-arity 𝒾))
+       (define n (count-struct-fields 𝒾))
        (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
@@ -71,7 +71,7 @@
                   (for/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
                              (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
       [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ l³)
-       (define n (get-struct-arity 𝒾))
+       (define n (count-struct-fields 𝒾))
        (match-define (-l³ l+ l- lo) l³)
        (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
                             [i : Natural (in-naturals)]

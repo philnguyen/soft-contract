@@ -358,7 +358,7 @@
       [else
        (match o
          [(-st-p 𝒾)
-          (define n (get-struct-arity 𝒾))
+          (define n (count-struct-fields 𝒾))
           (define is-St (format-symbol "is-St_~a" n))
           (define st-tag (format-symbol "tag_~a" n))
           (match-define (list t) ⦃t⦄s)
@@ -367,11 +367,11 @@
             (@/s 'B (and/s (@/s is-St tₐ)
                            (=/s (@/s st-tag tₐ) (-𝒾->⦃𝒾⦄ 𝒾)))))]
          [(-st-mk 𝒾)
-          (define St (format-symbol "St_~a" (get-struct-arity 𝒾)))
+          (define St (format-symbol "St_~a" (count-struct-fields 𝒾)))
           (λ ()
             (apply @/s St (-𝒾->⦃𝒾⦄ 𝒾) ((list-M ⦃t⦄s))))]
          [(-st-ac 𝒾 i)
-          (define field (format-symbol "field_~a_~a" (get-struct-arity 𝒾) i))
+          (define field (format-symbol "field_~a_~a" (count-struct-fields 𝒾) i))
           (λ () (@/s field ((car ⦃t⦄s))))]
          [_
           (warn-unsupported o)
@@ -530,10 +530,10 @@
          (prims-add! o)
          (match o
            [(or (-st-mk 𝒾) (-st-p 𝒾) (-st-ac 𝒾 _) (-st-mut 𝒾 _)) #:when 𝒾
-            (arities-add! (get-struct-arity 𝒾))]
+            (arities-add! (count-struct-fields 𝒾))]
            [_ (void)])]
         [(or (-st/c.mk 𝒾) (-st/c.ac 𝒾 _)) #:when 𝒾
-         (arities-add! (get-struct-arity 𝒾))]
+         (arities-add! (count-struct-fields 𝒾))]
         [_ (void)]))
 
     (for ([x (in-list xs)])

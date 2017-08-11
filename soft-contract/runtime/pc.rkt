@@ -168,7 +168,7 @@
       ;; If given term list of the form `(car t); (cdr t)`, return `t`.
       ;; Otherwise just `#f`
       (define (access-same-value? 𝒾 ts)
-        (define n (get-struct-arity 𝒾))
+        (define n (count-struct-fields 𝒾))
         (match ts
           [(cons (-t.@ (-st-ac 𝒾₀ 0) (list t₀)) ts*)
            (and (equal? 𝒾 𝒾₀)
@@ -279,7 +279,7 @@
   (define (-struct/c-split t 𝒾)
     (with-debugging/off
       ((ans)
-       (define n (get-struct-arity 𝒾))
+       (define n (count-struct-fields 𝒾))
        (match t
          [(-t.@ (-st/c.mk (== 𝒾)) cs) cs]
          [(? values t)
@@ -293,9 +293,9 @@
     (match t
       [(-t.@ (-st-mk (== 𝒾)) ts) ts]
       [(? values t)
-       (for/list : (Listof -t) ([i (get-struct-arity 𝒾)])
+       (for/list : (Listof -t) ([i (count-struct-fields 𝒾)])
          (-t.@ (-st-ac 𝒾 i) (list t)))]
-      [#f (make-list (get-struct-arity 𝒾) #f)]))
+      [#f (make-list (count-struct-fields 𝒾) #f)]))
 
   (: -ar-split : -?t → (Values -?t -?t))
   (define (-ar-split t)

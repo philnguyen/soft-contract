@@ -3,7 +3,7 @@
 ;; This module provides static information about the program available from parsing
 
 (provide with-initialized-static-info
-         get-struct-arity
+         count-direct-struct-fields
          struct-all-immutable?
          struct-mutable?
          add-struct-info!
@@ -24,6 +24,10 @@
          set-module-before!
          assignable?
          set-assignable!
+         set-parent-struct!
+         substruct?
+         field-offset
+         count-struct-fields
          )
 
 (require racket/match
@@ -41,7 +45,8 @@
                       [dependencies : (HashTable -l (℘ -l))]
                       [alternate-aliases : (HashTable -𝒾 (Pairof -𝒾 Boolean))]
                       [alternate-alias-ids : (HashTable -l Symbol)]
-                      [assignables : (HashTable (U Symbol -𝒾) #t)])
+                      [assignables : (HashTable (U Symbol -𝒾) #t)]
+                      [parentstruct : (HashTable -𝒾 -𝒾)])
   #:transparent)
 
 (define (new-static-info)
@@ -56,6 +61,7 @@
                                  (cons -𝒾-box (set -unbox))))
                 (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                  (cons -𝒾-box (set -set-box!))))
+                (make-hash)
                 (make-hash)
                 (make-hash)
                 (make-hash)
@@ -79,7 +85,7 @@
   (define structs (-static-info-structs (current-static-info)))
   (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
 
-(define (get-struct-arity [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
+(define (count-direct-struct-fields [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
 (define (struct-mutable? [𝒾 : -𝒾] [i : Index]) (vector-ref (get-struct-info 𝒾) i))
 (define (struct-all-immutable? [𝒾 : -𝒾])
   (not (for/or : Boolean ([mut? (in-vector (get-struct-info 𝒾))])
@@ -222,3 +228,43 @@
 (: set-assignable! : (U Symbol -𝒾) → Void)
 (define (set-assignable! x)
   (hash-set! (-static-info-assignables (current-static-info)) x #t))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Superstructs
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(: set-parent-struct! : -𝒾 -𝒾 → Void)
+(define (set-parent-struct! 𝒾-sub 𝒾-sup)
+  (define parentstruct (-static-info-parentstruct (current-static-info)))
+  (cond [(hash-ref parentstruct 𝒾-sub #f)
+         =>
+         (λ ([𝒾₀ : -𝒾])
+           (unless (equal? 𝒾₀ 𝒾-sup)
+             (error 'add-parent-struct! "already have ~a as ~a's parent, adding ~a"
+                    (-𝒾-name 𝒾₀) (-𝒾-name 𝒾-sub) (-𝒾-name 𝒾-sup))))]
+        [else
+         (hash-set! parentstruct 𝒾-sub 𝒾-sup)]))
+
+(: substruct? : -𝒾 -𝒾 → Boolean)
+(define (substruct? 𝒾-sub 𝒾-sup)
+  (define parentstruct (-static-info-parentstruct (current-static-info)))
+  (let loop ([𝒾 : -𝒾 𝒾-sub])
+    (cond [(equal? 𝒾 𝒾-sup) #t]
+          [(hash-ref parentstruct 𝒾 #f) => loop]
+          [else #f])))
+
+(: field-offset : -𝒾 → Index)
+(define (field-offset 𝒾)
+  ;; NOTE: maybe unsafe to memoize this function because it depends on parameter
+  (define parentstruct (-static-info-parentstruct (current-static-info)))
+  (let loop ([𝒾 : -𝒾 𝒾] [n : Index 0])
+    (cond [(hash-ref parentstruct 𝒾 #f)
+           =>
+           (λ ([𝒾* : -𝒾])
+             (loop 𝒾* (assert (+ n (count-direct-struct-fields 𝒾*)) index?)))]
+          [else n])))
+
+(: count-struct-fields : -𝒾 → Index)
+(define (count-struct-fields 𝒾)
+  (assert (+ (field-offset 𝒾) (count-direct-struct-fields 𝒾)) index?))
