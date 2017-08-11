@@ -23,10 +23,12 @@
   
   (: search : HashTableTop → Any)
   (define (search m)
-    (for/or ([(k* v*) (in-hash m)] #:when (equal? k* k)) v*))
+    (for/or ([(k* v*) (in-hash m)] #:when (equal? v* v)) k*))
 
   (cond [k (search (hash-ref memo-data k))]
-        [else (for/or ([(k* m*) (in-hash memo-data)]) (search m*))]))
+        [else (for/or ([(k* m*) (in-hash memo-data)])
+                (cond [(search m*) => (λ (k**) (cons k k**))]
+                      [else #f]))]))
 
 (define-syntax-parser define/memo
   [(_ (f [x:id (~literal :) X]) (~literal :) Y e ...)
