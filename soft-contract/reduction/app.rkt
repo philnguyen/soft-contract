@@ -205,7 +205,9 @@
            (σ⊕V! Σ αᵣ Vᵣ)
            (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z z))]))
 
-      (define $** ($-cleanup (gc-$ $* Σ ρ* ⟦k⟧)))
+      (define $**
+        (let ([root (∪ (ρ->⟪α⟫s ρ*) (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ)))])
+          ($-cleanup (gc-$ $* (-Σ-σ Σ) root))))
       (define Γₕ*
         (if looped? Γₕ (copy-Γ ($-symbolic-names $*) Γₕ Γ))
         #;(for/fold ([Γ : -Γ (if looped? Γₕ (copy-Γ $* Γₕ Γ))])
@@ -572,7 +574,9 @@
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
            (define $* ($-set $₁ z (-W¹-t W-rest)))
            (define Γₕ* (if looped? Γₕ (copy-Γ ($-symbolic-names $*) Γₕ Γ)))
-           (define $** ($-cleanup (gc-$ $* Σ ρₕ* ⟦k⟧)))
+           (define $**
+             (let ([root (∪ (ρ->⟪α⟫s ρₕ*) (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ)))])
+               ($-cleanup (gc-$ $* σ root))))
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ
              (let* ([δ$ ($-extract $ (cons z zs))]
@@ -637,21 +641,6 @@
          l)]
       [fv-same? ∅]
       [else ls]))
-
-  (: gc-$ : -$ -Σ -ρ -⟦k⟧ → -$)
-  (define (gc-$ $ Σ ρ ⟦k⟧)
-    (define σ (-Σ-σ Σ))
-    (define σₖ (-Σ-σₖ Σ))
-    (define αs (span* σ (∪ (ρ->⟪α⟫s ρ) (⟦k⟧->⟪α⟫s ⟦k⟧ σₖ)) V->⟪α⟫s))
-    (define locs
-      (for*/set: : (℘ -loc) ([α : ⟪α⟫ (in-set αs)]
-                             [?l (in-value (hack:α->loc α))]
-                             #:when ?l)
-        ?l))
-    (for/fold ([$ : -$ $])
-              ([l (in-hash-keys $)]
-               #:unless (or (-loc.offset? l) (∋ locs l)))
-      (hash-remove $ l)))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)

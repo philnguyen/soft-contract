@@ -82,4 +82,5 @@
    [->⟪α⟫s : ((Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))]
    [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]
    [bound-vars : (-⟦e⟧ → (℘ Symbol))]
-   [set-bound-vars! : (-⟦e⟧ (℘ Symbol) → Void)]))
+   [set-bound-vars! : (-⟦e⟧ (℘ Symbol) → Void)]
+   [gc-$ : (-$ -σ (℘ ⟪α⟫) → -$)]))

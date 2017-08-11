@@ -16,7 +16,7 @@
 
 (define-unit mon@
   (import compile^ app^ kont^ proof-system^ local-prover^ widening^ prims^
-          env^ sto^ val^ instr^ pc^ pretty-print^)
+          env^ sto^ val^ instr^ pc^ pretty-print^ for-gc^)
   (export mon^)
 
   (: mon : -l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -437,11 +437,14 @@
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x ?x))
        (define Γ* #|TODO|# ⊤Γ)
+       (define $**
+         (let ([root (∪ (V->⟪α⟫s V) (V->⟪α⟫s C) (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ)))])
+           ($-cleanup (gc-$ $* (-Σ-σ Σ) root))))
+       (define αₖ (-ℳ $** ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
        (define κ
          (let* ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))]
-               [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
+                [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
            (-κ.rt ⟦k⟧** ($-symbolic-names $) Γ tᵥ (and ?x #t))))
-       (define αₖ (-ℳ $* ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
        (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
       [else
@@ -457,12 +460,15 @@
       [?x
        (define W-V* (-W¹ V ?x))
        (define $* ($-set $ ?x ?x))
+       (define $**
+         (let ([root (∪ (V->⟪α⟫s V) (V->⟪α⟫s C) (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ)))])
+           ($-cleanup (gc-$ $* (-Σ-σ Σ) root))))
        (define Γ* #|TODO|# ⊤Γ)
        (define κ
          (let* ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))]
                 [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
            (-κ.rt ⟦k⟧** ($-symbolic-names $) Γ tᵥ (and ?x #t))))
-       (define αₖ (-ℱ $* ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
+       (define αₖ (-ℱ $** ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
        (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
       [else

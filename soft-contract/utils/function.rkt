@@ -27,7 +27,7 @@
 
   (cond [k (search (hash-ref memo-data k))]
         [else (for/or ([(k* m*) (in-hash memo-data)])
-                (cond [(search m*) => (λ (k**) (cons k k**))]
+                (cond [(search m*) => (λ (k**) (list k* k**))]
                       [else #f]))]))
 
 (define-syntax-parser define/memo

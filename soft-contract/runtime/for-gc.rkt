@@ -131,6 +131,19 @@
                 (for/and : Boolean ([V (in-set Vs₁)])
                   (go (V->⟪α⟫s V))))]))))
 
+  (: gc-$ : -$ -σ (℘ ⟪α⟫) → -$)
+  (define (gc-$ $ σ root)
+    (define αs (span* σ root V->⟪α⟫s))
+    (define locs
+      (for*/set: : (℘ -loc) ([α : ⟪α⟫ (in-set αs)]
+                             [?l (in-value (hack:α->loc α))]
+                             #:when ?l)
+        ?l))
+    (for/fold ([$ : -$ $])
+              ([l (in-hash-keys $)]
+               #:unless (or (-loc.offset? l) (∋ locs l)))
+      (hash-remove $ l)))
+
   (splicing-local
       ((define bvs : (HashTable -⟦e⟧ (℘ Symbol)) (make-hasheq)))
     
