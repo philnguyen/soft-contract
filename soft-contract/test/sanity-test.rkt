@@ -132,6 +132,7 @@
           check-safe)
   (test "safe/issues/issue-91.rkt" check-safe)
   (test "safe/issues/build-vector.rkt" check-safe)
+  (test "safe/issues/substruct.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
@@ -146,6 +147,7 @@
   (test "unsafe/issues/utilities.rkt" check-fail)
   (test "unsafe/issues/undefined.rkt" check-fail)
   (test "unsafe/issues/build-vector.rkt" check-fail)
+  (test "unsafe/issues/substruct.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
