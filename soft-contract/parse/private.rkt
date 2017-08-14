@@ -12,6 +12,7 @@
          syntax/parse
          syntax/parse/define
          syntax/modresolve
+         syntax/id-table
          "expand.rkt"
          (prefix-in fake: "../fake-contract.rkt")
          "../signatures.rkt"
@@ -76,13 +77,30 @@
 
   (define/contract struct-map (parameter/c (hash/c -𝒾? -𝒾?)) (make-parameter #f))
   (define/contract modules-to-parse (parameter/c (set/c (or/c symbol? string?))) (make-parameter #f))
+  (define/contract id-occurence-count (parameter/c (hash/c symbol? integer?)) (make-parameter (make-hash)))
+  (define/contract env (parameter/c immutable-free-id-table?) (make-parameter (make-immutable-free-id-table)))
+
+  (define-syntax-rule (with-env ρ e ...) (parameterize ([env ρ]) e ...))
+
+  (define/contract (inc-id! id)
+    (identifier? . -> . symbol?)
+    (define m (id-occurence-count))
+    (define s (syntax-e id))
+    (define old-count (hash-ref m s 0))
+    (define name
+      (case old-count
+        [(0) s]
+        [else (format-symbol "~a~a" s (n-sub old-count))]))
+    (hash-set! m s (+ 1 old-count))
+    name)
 
   (define (parse-files fns)
     ;((listof path-string?) . -> . (listof -module?))
 
     (parameterize ([port-count-lines-enabled #t]
                    [struct-map (make-hash)]
-                   [modules-to-parse (list->set fns)])
+                   [modules-to-parse (list->set fns)]
+                   [id-occurence-count (make-hasheq)])
       (define stxs (map do-expand-file fns))
       (for-each figure-out-aliases! stxs)
 
@@ -510,7 +528,9 @@
              (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
              (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
        (define cs (parse-es #'(cₓ ...)))
-       (define mk-d (-λ (syntax->datum #'(z ...)) (parse-e #'d)))
+       (define mk-d
+         (let-values ([(xs ρ) (parse-formals #'(z ...))])
+           (-λ xs (with-env ρ (parse-e #'d)))))
        (-->i cs mk-d (syntax-ℓ stx))]
       ;; independent varargs
       [(let-values ([(_) (~literal fake:dynamic->*)]
@@ -605,46 +625,49 @@
          [c (-if c (parse-e #'t) (parse-e #'e))])]
       [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(let-values (bindings ...) b ...)
+       (define-values (bindings-rev ρ)
+         (for/fold ([bindings-rev '()] [ρ (env)])
+                   ([bnd (in-syntax-list #'(bindings ...))])
+           (syntax-parse bnd
+             [((x ...) e)
+              (define-values (xs ρ*) (parse-formals #'(x ...) #:base ρ))
+              (values (cons (cons xs (parse-e #'e)) bindings-rev) ρ*)])))
        (-let-values
-        (for/list ([binding (in-syntax-list #'(bindings ...))])
-          (syntax-parse binding
-            [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
-        (-begin/simp (parse-es #'(b ...)))
+        (reverse bindings-rev)
+        (with-env ρ (-begin/simp (parse-es #'(b ...))))
         (syntax-ℓ stx))]
       [(set! i:identifier e)
-       (define x
-         (match (identifier-binding #'i)
-           ['lexical (syntax-e #'i)]
-           [#f (syntax-e #'i)]
-           [(list (app (λ (x)
-                         (parameterize ([current-directory (directory-part (cur-mod))])
-                           ;(printf "part: ~a~n" (directory-part (cur-mod)))
-                           ;(printf "id: ~a~n" #'i)
-                           (mod-path->mod-name
-                            (resolved-module-path-name (module-path-index-resolve x)))))
-                       src)
-                  _ _ _ _ _ _)
-            (-𝒾 (syntax-e #'i) src)]))
-       (match x
-         [(? symbol? x) (set-assignable! x)]
-         [(? -𝒾? 𝒾) (set-assignable! 𝒾)])
-       (-set! x (parse-e #'e))]
+       (define lhs
+         (match (parse-ref #'i)
+           [(-x x _) (set-assignable! x) x]
+           [(-ref 𝒾 _) (set-assignable! 𝒾) 𝒾]))
+       (-set! lhs (parse-e #'e))]
       [(#%plain-lambda fmls b ...+)
-       (-λ (parse-formals #'fmls) (-begin/simp (parse-es #'(b ...))))]
+       (define-values (xs ρ) (parse-formals #'fmls))
+       (-λ xs (with-env ρ (-begin/simp (parse-es #'(b ...)))))]
       
       [(case-lambda [fml bodies ...+] ...)
        (-case-λ
         (for/list ([fmlᵢ (in-syntax-list #'(fml ...))]
                    [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
           ;; Compute case arity and extended context for RHS
-          (cons (parse-formals fmlᵢ) (-begin/simp (parse-es bodiesᵢ)))))]
+          (define-values (xsᵢ ρᵢ) (parse-formals fmlᵢ))
+          (cons xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))))))]
       [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(letrec-values (bindings ...) b ...)
+       (define-values (lhss-rev ρ)
+         (for/fold ([lhss-rev '()] [ρ (env)])
+                   ([bnd (in-syntax-list #'(bindings ...))])
+           (syntax-parse bnd
+             [((x ...) _)
+              (define-values (lhs ρ*) (parse-formals #'(x ...) #:base ρ))
+              (values (cons lhs lhss-rev) ρ*)])))
        (-letrec-values
-        (for/list ([bnd (in-syntax-list #'(bindings ...))])
+        (for/list ([lhs (in-list (reverse lhss-rev))]
+                   [bnd (in-syntax-list #'(bindings ...))])
           (syntax-parse bnd
-            [((x ...) eₓ) (cons (syntax->datum #'(x ...)) (parse-e #'eₓ))]))
-        (-begin/simp (parse-es #'(b ...)))
+            [(_ eₓ) (cons lhs (with-env ρ (parse-e #'eₓ)))]))
+        (with-env ρ (-begin/simp (parse-es #'(b ...))))
         (syntax-ℓ stx))]
       [(quote e) (parse-quote #'e)]
       [(quote-syntax e)
@@ -685,23 +708,31 @@
       [i:identifier
        (or
         (parse-prim #'i)
-        (match (identifier-binding #'i)
-          ['lexical (-x (syntax-e #'i) (syntax-ℓ #'i))]
-          [#f (-x (syntax-e #'i) (syntax-ℓ #'i))]
-          [(list (app (λ (x)
-                        (parameterize ([current-directory (directory-part (cur-mod))])
-                          ;(printf "part: ~a~n" (directory-part (cur-mod)))
-                          ;(printf "id: ~a~n" #'i)
-                          (mod-path->mod-name
-                           (resolved-module-path-name (module-path-index-resolve x)))))
-                      src)
-                 _ _ _ _ _ _)
-           #:when (not (equal? src 'Λ))
-           (unless (∋ (modules-to-parse) src)
-             (raise (exn:missing "missing" (current-continuation-marks) src)))
-           (-ref (-𝒾 (syntax-e #'i) src) (syntax-ℓ #'i))]
-          [_
-           (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." #'i)]))]))
+        (parse-ref #'i))]))
+
+  (define/contract (parse-ref id)
+    (identifier? . -> . (or/c -x? -ref?))
+
+    (define (lookup)
+      (free-id-table-ref (env) id (λ () (raise-syntax-error 'parser "not in scope" id))))
+    
+    (match (identifier-binding id)
+      ['lexical (-x (lookup) (syntax-ℓ id))]
+      [#f (-x (lookup) (syntax-ℓ id))]
+      [(list (app (λ (x)
+                    (parameterize ([current-directory (directory-part (cur-mod))])
+                      ;(printf "part: ~a~n" (directory-part (cur-mod)))
+                      ;(printf "id: ~a~n" id)
+                      (mod-path->mod-name
+                       (resolved-module-path-name (module-path-index-resolve x)))))
+                  src)
+             _ _ _ _ _ _)
+       #:when (not (equal? src 'Λ))
+       (unless (∋ (modules-to-parse) src)
+         (raise (exn:missing "missing" (current-continuation-marks) src)))
+       (-ref (-𝒾 (syntax-e id) src) (syntax-ℓ id))]
+      [_
+       (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)
@@ -724,12 +755,32 @@
       [e (raise-syntax-error 'parse-quote "unsupported" #'e)]))
 
   ;; Parse given `formals` to extend environment
-  (define/contract parse-formals
-    (scv-syntax? . -> . -formals?)
-    (syntax-parser
-      [(x:id ...) (syntax->datum #'(x ...))]
-      [rest:id (-var '() (syntax-e #'rest))]
-      [(x:id ... . rest:id) (-var (syntax->datum #'(x ...)) (syntax-e #'rest))]))
+  (define/contract (parse-formals fml #:base [ρ₀ (env)])
+    ([scv-syntax?] [#:base immutable-free-id-table?] . ->* . (values -formals? immutable-free-id-table?))
+
+    (define (parse-binder id ρ)
+      (define x (inc-id! id))
+      (values x (free-id-table-set ρ id x)))
+
+    (define (parse-binders ids ρ)
+      (define-values (xs-rev ρ*)
+        (for/fold ([xs-rev '()] [ρ ρ])
+                  ([id (in-list ids)])
+          (define-values (x ρ*) (parse-binder id ρ))
+          (values (cons x xs-rev) ρ*)))
+      (values (reverse xs-rev) ρ*))
+    
+    (syntax-parse fml
+      [(x:id ...)
+       (parse-binders (syntax->list #'(x ...)) ρ₀)]
+      [rest:id
+       (define-values (rest-name ρ) (parse-binder #'rest ρ₀))
+       (values (-var '() rest-name) ρ)]
+      [(x:id ... . rest:id)
+       (define-values (inits ρ₁) (parse-binders #'(x ...) ρ₀))
+       (define-values (rest  ρ₂) (parse-binder #'rest ρ₁))
+       (values (-var inits rest) ρ₂)])
+    )
 
   (define/contract parse-require-spec
     (scv-syntax? . -> . -require-spec?)
