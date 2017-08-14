@@ -21,19 +21,18 @@
         (if (absolute-path? p)
             (path->string (simplify-path p))
             (path->string (simplify-path (path->complete-path p))))))
-    (define ms (map α-rename (pre:parse-files ps)))
-    (for ([m (in-list ms)])
-      (collect-public-accs! m))
+    (define ms (pre:parse-files ps))
+    (for-each collect-public-accs! ms)
     ms)
 
   (: parse-module : Syntax → -module)
   (define (parse-module stx)
-    (define m (α-rename (pre:parse-module stx)))
+    (define m (pre:parse-module stx))
     (collect-public-accs! m)
     m)
 
   (: parse-expr : Syntax → -e)
-  (define (parse-expr stx) (α-rename (pre:parse-e stx)))
+  (define parse-expr pre:parse-e)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
