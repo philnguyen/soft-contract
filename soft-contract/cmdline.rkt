@@ -79,9 +79,9 @@
   (define (go fnames)
     (with-handlers ([exn:missing?
                      (match-lambda
-                       [(exn:missing _ _ src)
+                       [(exn:missing _ _ src id)
                         (assert (not (member src fnames)))
-                        (printf " - dependency: ~a~n" src)
+                        (printf " - dependency: ~a for `~a`~n" src id)
                         (go (cons src fnames))])])
       (case mode
         [(expand)

@@ -492,7 +492,7 @@
        (match-define (cons f-resolved wrap?)
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) f.src)
-          (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src)))))
+          (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src (syntax-e #'f))))))
        (set-module-before! f.src (cur-mod))
        (define f-ref (-ref f-resolved (syntax-ℓ #'f)))
        (cond
@@ -614,7 +614,7 @@
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
           (set-module-before! src (cur-mod))
-          (-ref (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src)))) (syntax-ℓ stx))]
+          (-ref (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e #'id0))))) (syntax-ℓ stx))]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
@@ -704,6 +704,7 @@
       ;; FIXME Hacks for private identifiers
       [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]
       [x:id #:when (equal? 'in-list (syntax-e #'x)) 'in-list]
+      [x:id #:when (equal? 'in-range (syntax-e #'x)) 'in-range]
       
       [i:identifier
        (or
@@ -729,7 +730,7 @@
              _ _ _ _ _ _)
        #:when (not (equal? src 'Λ))
        (unless (∋ (modules-to-parse) src)
-         (raise (exn:missing "missing" (current-continuation-marks) src)))
+         (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e id))))
        (-ref (-𝒾 (syntax-e id) src) (syntax-ℓ id))]
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
@@ -777,9 +778,9 @@
        (define-values (rest-name ρ) (parse-binder #'rest ρ₀))
        (values (-var '() rest-name) ρ)]
       [(x:id ... . rest:id)
-       (define-values (inits ρ₁) (parse-binders #'(x ...) ρ₀))
-       (define-values (rest  ρ₂) (parse-binder #'rest ρ₁))
-       (values (-var inits rest) ρ₂)])
+       (define-values (inits ρ₁) (parse-binders (syntax->list #'(x ...)) ρ₀))
+       (define-values (restid  ρ₂) (parse-binder #'rest ρ₁))
+       (values (-var inits restid) ρ₂)])
     )
 
   (define/contract parse-require-spec

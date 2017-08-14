@@ -46,7 +46,7 @@
   ;; 4.14.1.1 Predicate and Constructors
   (def-pred sequence?)
   (def-prim/todo in-range ; FIXME uses
-    (real? . -> . stream?))
+    (real? real? real? . -> . stream?))
   (def-prim/todo in-naturals ; FIXME uses
     (exact-nonnegative-integer? . -> . stream?))
   (def-prim/todo in-list

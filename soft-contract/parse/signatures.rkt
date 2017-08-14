@@ -10,4 +10,4 @@
    [parse-module : (Syntax → -module)]
    [parse-e : (Syntax → -e)]))
 
-(struct exn:missing exn:fail ([path : Path-String]) #:transparent)
+(struct exn:missing exn:fail ([path : Path-String] [id : Symbol]) #:transparent)
