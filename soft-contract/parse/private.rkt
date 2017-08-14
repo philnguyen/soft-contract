@@ -2,6 +2,7 @@
 
 (provide parser-helper@)
 (require (prefix-in c: racket/contract/base)
+         set-extras
          racket/unit
          racket/unsafe/ops
          web-server/private/util
@@ -74,12 +75,14 @@
         [(_ lhs c rhs ...) #'(define lhs rhs ...)]))
 
   (define/contract struct-map (parameter/c (hash/c -𝒾? -𝒾?)) (make-parameter #f))
+  (define/contract modules-to-parse (parameter/c (set/c (or/c symbol? string?))) (make-parameter #f))
 
   (define (parse-files fns)
     ;((listof path-string?) . -> . (listof -module?))
 
     (parameterize ([port-count-lines-enabled #t]
-                   [struct-map (make-hash)])
+                   [struct-map (make-hash)]
+                   [modules-to-parse (list->set fns)])
       (define stxs (map do-expand-file fns))
       (for-each figure-out-aliases! stxs)
 
@@ -569,9 +572,10 @@
        #:when (prefab-struct-key (syntax-e #'v))
        (raise-syntax-error 'parse-e "TODO: non-top-level struct" #'stx)]
       [(#%plain-app f x ...)
-       (-@ (parse-e #'f)
-           (parse-es #'(x ...))
-           (syntax-ℓ stx))]
+       (match* ((parse-e #'f) (parse-es #'(x ...)))
+         [('values (list arg)) arg]
+         [('not (list (-b b))) (-b (not b))]
+         [(fun args) (-@ fun args (syntax-ℓ stx))])]
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
       [(begin e ...)
@@ -594,7 +598,11 @@
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
-      [(if i t e) (-if (parse-e #'i) (parse-e #'t) (parse-e #'e))]
+      [(if i t e)
+       (match (parse-e #'i)
+         [(-b #f) (parse-e #'e)]
+         [(-b _ ) (parse-e #'t)]
+         [c (-if c (parse-e #'t) (parse-e #'e))])]
       [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(let-values (bindings ...) b ...)
        (-let-values
@@ -665,13 +673,14 @@
       [(~literal fake:false/c) 'not]
       [(~literal fake:listof) 'listof]
       [(~literal fake:list/c) 'list/c]
-      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
+      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work      
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")
             'hash/c]
       
-      ;; Hack for private identifiers
+      ;; FIXME Hacks for private identifiers
       [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]
+      [x:id #:when (equal? 'in-list (syntax-e #'x)) 'in-list]
       
       [i:identifier
        (or
@@ -688,6 +697,8 @@
                       src)
                  _ _ _ _ _ _)
            #:when (not (equal? src 'Λ))
+           (unless (∋ (modules-to-parse) src)
+             (raise (exn:missing "missing" (current-continuation-marks) src)))
            (-ref (-𝒾 (syntax-e #'i) src) (syntax-ℓ #'i))]
           [_
            (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." #'i)]))]))
