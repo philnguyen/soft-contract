@@ -592,10 +592,7 @@
        #:when (prefab-struct-key (syntax-e #'v))
        (raise-syntax-error 'parse-e "TODO: non-top-level struct" #'stx)]
       [(#%plain-app f x ...)
-       (match* ((parse-e #'f) (parse-es #'(x ...)))
-         [('values (list arg)) arg]
-         [('not (list (-b b))) (-b (not b))]
-         [(fun args) (-@ fun args (syntax-ℓ stx))])]
+       (-@/opt (parse-e #'f) (parse-es #'(x ...)) (syntax-ℓ stx))]
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
       [(begin e ...)
@@ -619,10 +616,7 @@
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
       [(if i t e)
-       (match (parse-e #'i)
-         [(-b #f) (parse-e #'e)]
-         [(-b _ ) (parse-e #'t)]
-         [c (-if c (parse-e #'t) (parse-e #'e))])]
+       (-if/opt (parse-e #'i) (parse-e #'t) (parse-e #'e))]
       [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(let-values (bindings ...) b ...)
        (define-values (bindings-rev ρ)
@@ -632,7 +626,7 @@
              [((x ...) e)
               (define-values (xs ρ*) (parse-formals #'(x ...) #:base ρ))
               (values (cons (cons xs (parse-e #'e)) bindings-rev) ρ*)])))
-       (-let-values
+       (-let-values/opt
         (reverse bindings-rev)
         (with-env ρ (-begin/simp (parse-es #'(b ...))))
         (syntax-ℓ stx))]

@@ -274,3 +274,33 @@
 
 (define (show-subst [m : Subst]) : (Listof Sexp)
   (for/list ([(k v) m]) `(,(show-e k) ↦ ,(show-e v))))
+
+(: -@/opt : -e (Listof -e) ℓ → -e)
+(define -@/opt
+  (match-lambda**
+   [('values (list x) _) x]
+   [('not (list (-b b)) _) (-b (not b))]
+   [('apply (cons (and fun (or (? -λ?) (? -o?))) args) ℓ)
+    (-@/opt fun args ℓ)]
+   [((-λ (? list? xs) e) es ℓ)
+    #:when (= (length xs) (length es))
+    (-let-values/opt
+     (for/list : (Listof (Pairof (Listof Symbol) -e)) ([x (in-list xs)]
+                                                       [e (in-list es)])
+       (cons (list x) e))
+     e
+     ℓ)]
+   [(f xs ℓ) (-@ f xs ℓ)]))
+
+(: -let-values/opt : (Listof (Pairof (Listof Symbol) -e)) -e ℓ → -e)
+(define -let-values/opt
+  (match-lambda**
+   [((list (cons x eₓ)) (-x x _) _) eₓ]
+   [(bindings body ℓ) (printf "lvo: ~a~n" (show-e body)) (-let-values bindings body ℓ)]))
+
+(: -if/opt : -e -e -e → -e)
+(define -if/opt
+  (match-lambda**
+   [((-b #f) _ e) e]
+   [((-b _ ) e _) e]
+   [(i t e) (-if i t e)]))
