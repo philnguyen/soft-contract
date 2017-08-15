@@ -295,8 +295,8 @@
 (: -let-values/opt : (Listof (Pairof (Listof Symbol) -e)) -e ℓ → -e)
 (define -let-values/opt
   (match-lambda**
-   [((list (cons x eₓ)) (-x x _) _) eₓ]
-   [(bindings body ℓ) (printf "lvo: ~a~n" (show-e body)) (-let-values bindings body ℓ)]))
+   [((list (cons (list x) eₓ)) (-x x _) _) eₓ]
+   [(bindings body ℓ) (-let-values bindings body ℓ)]))
 
 (: -if/opt : -e -e -e → -e)
 (define -if/opt

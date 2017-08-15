@@ -378,7 +378,7 @@
           (add-top-level! (-𝒾 lhs (cur-mod)))
           (-define-values (list lhs) rhs)]
          [(set-empty? (set-remove frees lhs))
-          (define x (+x! 'rec))
+          (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
           (add-top-level! (-𝒾 lhs (cur-mod)))
           (-define-values (list lhs)
                           (-μ/c x (e/ (-x/c.tmp lhs) (-x/c x) rhs)))]
@@ -626,10 +626,9 @@
              [((x ...) e)
               (define-values (xs ρ*) (parse-formals #'(x ...) #:base ρ))
               (values (cons (cons xs (parse-e #'e)) bindings-rev) ρ*)])))
-       (-let-values/opt
-        (reverse bindings-rev)
-        (with-env ρ (-begin/simp (parse-es #'(b ...))))
-        (syntax-ℓ stx))]
+       (-let-values/opt (reverse bindings-rev)
+                        (with-env ρ (-begin/simp (parse-es #'(b ...))))
+                        (syntax-ℓ stx))]
       [(set! i:identifier e)
        (define lhs
          (match (parse-ref #'i)
