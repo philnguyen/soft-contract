@@ -380,8 +380,7 @@
          [(set-empty? (set-remove frees lhs))
           (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
           (add-top-level! (-𝒾 lhs (cur-mod)))
-          (-define-values (list lhs)
-                          (-μ/c x (e/ (-x/c.tmp lhs) (-x/c x) rhs)))]
+          (-define-values (list lhs) (-μ/c x (e/ lhs (-x/c x) rhs)))]
          [else
           (raise-syntax-error
            'recursive-contract
@@ -617,7 +616,6 @@
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
       [(if i t e)
        (-if/opt (parse-e #'i) (parse-e #'t) (parse-e #'e))]
-      [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(let-values (bindings ...) b ...)
        (define-values (bindings-rev ρ)
          (for/fold ([bindings-rev '()] [ρ (env)])

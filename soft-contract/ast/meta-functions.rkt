@@ -10,6 +10,7 @@
          set-extras
          "../utils/main.rkt"
          "definition.rkt"
+         "static-info.rkt"
          "shorthands.rkt")
 
 (: fv : (U -e (Listof -e)) → (℘ Symbol))
@@ -168,17 +169,15 @@
 ;;;;; Substitution
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type Subst (HashTable -e -e))
+(define-type Subst (Immutable-HashTable Symbol -e))
 
-(define m∅ : Subst (hash))
+(define m∅ : Subst (hasheq))
 
 (define (e/map [m : Subst] [e : -e])
 
   (: go-list : Subst (Listof -e) → (Listof -e))
   (define (go-list m es)
-    (with-debugging/off
-      ((ans) (for/list : (Listof -e) ([e es]) (go m e)))
-      (printf "go-list: ~a ~a -> ~a~n" (show-subst m) (map show-e es) (map show-e ans))))
+    (for/list : (Listof -e) ([e es]) (go m e)))
 
   (: go : Subst -e → -e)
   (define (go m e)
@@ -186,16 +185,18 @@
       ((ans)
        (cond
          [(hash-empty? m) e]
-         [(hash-ref m e #f) => values]
          [else
           (match e
+            [(or (-x x _) (-x/c.tmp x))
+             #:when x
+             (hash-ref m x (λ () e))]
             [(-λ xs e*)
-             (-λ xs (go (shrink m (formals->names xs)) e*))]
+             (-λ xs (go (remove-keys m (formals->names xs)) e*))]
             [(-case-λ clauses)
              (define clauses*
                (for/list : (Listof (Pairof (Listof Symbol) -e)) ([clause clauses])
                  (match-define (cons xs eₓ) clause)
-                 (cons xs (go (shrink m (formals->names xs)) eₓ))))
+                 (cons xs (go (remove-keys m (formals->names xs)) eₓ))))
              (-case-λ clauses*)]
             [(-@ f xs ℓ)
              (-@ (go m f) (go-list m xs) ℓ)]
@@ -215,7 +216,7 @@
                  (match-define (cons xs eₓ) bnd)
                  (values (cons (cons xs (go m eₓ)) bnds*-rev)
                          (set-add* locals xs))))
-             (define body* (go (shrink m locals) body))
+             (define body* (go (remove-keys m locals) body))
              (-let-values (reverse bnds*-rev) body* ℓ)]
             [(-letrec-values bnds body ℓ)
              (define locals
@@ -223,7 +224,7 @@
                          ([bnd bnds])
                  (match-define (cons xs _) bnd)
                  (set-add* locals xs)))
-             (define m* (shrink m locals))
+             (define m* (remove-keys m locals))
              (define bnds* : (Listof (Pairof (Listof Symbol) -e))
                (for/list ([bnd bnds])
                  (match-define (cons xs eₓ) bnd)
@@ -231,9 +232,10 @@
              (define body* (go m* body))
              (-letrec-values bnds* body* ℓ)]
             [(-set! x e*)
+             (assert (not (hash-has-key? m x)))
              (-set! x (go m e*))]
             [(-μ/c z c)
-             (-μ/c z (go (shrink m {seteq z}) c))]
+             (-μ/c z (go (remove-keys m {seteq z}) c))]
             [(--> cs d ℓ)
              (match cs
                [(-var cs c) (--> (-var (go-list m cs) (go m c)) (go m d) ℓ)]
@@ -255,16 +257,13 @@
 
   (go m e))
 
-(: e/ : (U -x -x/c.tmp) -e -e → -e)
-;; Substitution, where `x` can be an (open) term rather than just a free variable.
-(define (e/ x eₓ e) (e/map ((inst hash -e -e) x eₓ) e))
+(: e/ : Symbol -e -e → -e)
+(define (e/ x eₓ e) (e/map (hash-set m∅ x eₓ) e))
 
-(: shrink : Subst (℘ Symbol) → Subst)
-(define (shrink m xs)
-  (for/fold ([m* : Subst m])
-            ([eₓ (in-hash-keys m)]
-             #:unless (set-empty? (∩ xs (fv eₓ))))
-    (hash-remove m* eₓ)))
+(: remove-keys : Subst (℘ Symbol) → Subst)
+(define (remove-keys m xs)
+  (for/fold ([m : Subst m]) ([x (in-set xs)])
+    (hash-remove m x)))
 
 (: formals->names : -formals → (℘ Symbol))
 (define (formals->names xs)
@@ -273,7 +272,7 @@
     [else (list->seteq xs)]))
 
 (define (show-subst [m : Subst]) : (Listof Sexp)
-  (for/list ([(k v) m]) `(,(show-e k) ↦ ,(show-e v))))
+  (for/list ([(k v) m]) `(,k ↦ ,(show-e v))))
 
 (: -@/opt : -e (Listof -e) ℓ → -e)
 (define -@/opt
@@ -295,7 +294,24 @@
 (: -let-values/opt : (Listof (Pairof (Listof Symbol) -e)) -e ℓ → -e)
 (define -let-values/opt
   (match-lambda**
+   [('() e _) e]
    [((list (cons (list x) eₓ)) (-x x _) _) eₓ]
+   [((and bindings (list (cons (list lhss) rhss) ...)) body ℓ)
+    (define-values (bindings-rev inlines)
+      (for/fold ([bindings-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+                 [inlines : Subst m∅])
+                ([lhs (in-list lhss)]
+                 [rhs (in-list rhss)]
+                 #:when (and (symbol? lhs) (-e? rhs)))
+        (if (inlinable? lhs rhs)
+            (values bindings-rev (hash-set inlines lhs rhs))
+            (values (cons (cons (list lhs) rhs) bindings-rev) inlines))))
+    (cond [(hash-empty? inlines)
+           (-let-values bindings body ℓ)]
+          [(null? bindings-rev)
+           (e/map inlines body)]
+          [else
+           (-let-values (reverse bindings-rev) (e/map inlines body) ℓ)])]
    [(bindings body ℓ) (-let-values bindings body ℓ)]))
 
 (: -if/opt : -e -e -e → -e)
@@ -304,3 +320,12 @@
    [((-b #f) _ e) e]
    [((-b _ ) e _) e]
    [(i t e) (-if i t e)]))
+
+(: inlinable? : Symbol -e → Boolean)
+(define (inlinable? x e)
+  (and (not (assignable? x))
+       (match e
+         [(? -b?) #t]
+         [(? -x?) #t]
+         [(-ref (-𝒾 _ src) ℓ) (equal? src (ℓ-src ℓ))]
+         [_ #f])))
