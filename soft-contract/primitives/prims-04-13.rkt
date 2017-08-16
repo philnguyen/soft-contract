@@ -110,10 +110,23 @@
        
        (define-syntax-parser define-make-hash
          [(_ make-hash:id eq:id #:immutable? immut?:boolean)
-          #'(def-prim/custom (make-hash ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-              #:domain ([Wₗ (listof pair?)])
-              (define V (make-hash-helper ⟪ℋ⟫ ℓ Σ (-W¹-V Wₗ) immut?))
-              {set (-ΓA Γ (-W (list V) (?t@ 'make-hash (-W¹-t Wₗ))))})])
+          (define/with-syntax make-hash-1 (format-id #'make-hash "~a-1" (syntax-e #'make-hash)))
+          #'(begin
+              (def-prim/custom (make-hash-1 ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+                #:domain ([Wₗ (listof pair?)])
+                (define V (make-hash-helper ⟪ℋ⟫ ℓ Σ (-W¹-V Wₗ) immut?))
+                {set (-ΓA Γ (-W (list V) (?t@ 'make-hash (-W¹-t Wₗ))))})
+              (def-prim/custom (make-hash ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+                (match Ws
+                  [(list W) (.make-hash-1 ⟪ℋ⟫ ℓ Σ $ Γ Ws)]
+                  ['() (.make-hash-1 ⟪ℋ⟫ ℓ Σ $ Γ (list (-W¹ -null -null)))]
+                  [_
+                   (define blm (-blm (ℓ-src ℓ)
+                                     'make-hash
+                                     (list (string->symbol "0 or 1 argument"))
+                                     (map -W¹-V Ws)
+                                     ℓ))
+                   {set (-ΓA Γ blm)}])))])
        )
     (define-make-hash make-hash hash-equal? #:immutable? #f)
     (define-make-hash make-hasheqv hash-eqv? #:immutable? #f)
