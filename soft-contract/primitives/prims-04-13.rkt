@@ -86,6 +86,7 @@
          (define αᵥ (-α->⟪α⟫ (-α.hash.val ℓ ⟪ℋ⟫)))
          (σ⊕Vs! Σ αₖ ∅)
          (σ⊕Vs! Σ αᵥ ∅)
+         (define-set seen-args : -V #:as-mutable-hash? #t)
 
          (: go-pair! : -V → Void)
          (define go-pair!
@@ -98,14 +99,16 @@
               (σ⊕V! Σ αᵥ (+●))]))
          
          (let go-args! : Void ([Vₗ : -V Vₗ])
-           (match Vₗ
-             [(or (-b (? null?)) (-● (== (set 'null?)))) (void)]
-             [(-Cons αₕ αₜ)
-              (set-for-each (σ@ Σ αₕ) go-pair!)
-              (set-for-each (σ@ Σ αₜ) go-args!)]
-             [_
-              (σ⊕V! Σ αₖ (+●))
-              (σ⊕V! Σ αₖ (+●))]))
+           (unless (seen-args-has? Vₗ)
+             (seen-args-add! Vₗ)
+             (match Vₗ
+               [(or (-b (? null?)) (-● (== (set 'null?)))) (void)]
+               [(-Cons αₕ αₜ)
+                (set-for-each (σ@ Σ αₕ) go-pair!)
+                (set-for-each (σ@ Σ αₜ) go-args!)]
+               [_
+                (σ⊕V! Σ αₖ (+●))
+                (σ⊕V! Σ αₖ (+●))])))
          (-Hash^ αₖ αᵥ immut?))
        
        (define-syntax-parser define-make-hash
