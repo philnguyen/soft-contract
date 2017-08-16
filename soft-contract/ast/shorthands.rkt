@@ -83,7 +83,7 @@
   (match args
     ['() -null]
     [(cons (cons ℓ e) args*)
-     (-@ -cons (list e (-list args*)) ℓ)]))
+     (-@ -cons (list e (-list args*)) (ℓ-with-id ℓ 'list))]))
 
 (: -and : -e * → -e)
 ;; Return ast representing conjuction of 2 expressions
