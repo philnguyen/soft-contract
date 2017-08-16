@@ -299,9 +299,7 @@
       (define (chk-key-vals Vsₖ Vsᵥ)
         (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
            (define mon-vals (mk-mon l³ ℓᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
-           (define wrap
-             (let ([αᵤ (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ l+))])
-               (mk-rt (-W¹ (-Hash/guard Vₚ αᵤ l³) tᵤ))))
+           (define wrap (mk-wrapped-hash Vₚ l³ (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ l+)) Wᵤ))
            (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
           (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
             (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
@@ -312,10 +310,9 @@
          (chk-key-vals Vsₖ Vsᵥ)]
         [(-Hash^ α₁ α₂ _)
          (chk-key-vals (σ@ Σ α₁) (σ@ Σ α₂))]
-        [_
-         (∪ (⟦k⟧ (W¹->W Wᵤ) $ Γ ⟪ℋ⟫ Σ)
-            (for/union : (℘ -ς) ([C (in-set (∪ doms rngs))])
-              (⟦k⟧ (-blm l+ lo (list C) (list (+●)) ℓ) $ Γ ⟪ℋ⟫ Σ)))]))
+        {_
+         (define ●s {set (+●)})
+         (chk-key-vals ●s ●s)}))
 
     (with-Γ⊢oW (σ Γ 'hash? Wᵤ)
       #:on-t chk-content

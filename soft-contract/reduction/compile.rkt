@@ -327,5 +327,11 @@
   (define/memo (mk-fc [l : -l] [ℓ : ℓ] [⟦c⟧ : -⟦e⟧] [⟦v⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℓ ⟦v⟧ ρ ⟦k⟧))))
+
+  (define/memo (mk-wrapped-hash [C : -Hash/C] [l³ : -l³] [α : ⟪α⟫] [W : -W¹]) : -⟦e⟧
+    (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      (match-define (-W¹ V t) W)
+      (σ⊕V! Σ α V)
+      (⟦k⟧ (-W (list (-Hash/guard C α l³)) t) $ Γ ⟪ℋ⟫ Σ)))
   )
 

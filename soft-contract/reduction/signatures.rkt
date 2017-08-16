@@ -16,7 +16,8 @@
    [mk-app : (ℓ -⟦e⟧ (Listof -⟦e⟧) → -⟦e⟧)]
    [mk-mon : (-l³ ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
    [mk-rt : ((U -A -W¹) → -⟦e⟧)]
-   [mk-fc : (-l ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]))
+   [mk-fc : (-l ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
+   [mk-wrapped-hash : (-Hash/C -l³ ⟪α⟫ -W¹ → -⟦e⟧)]))
 
 (define-signature kont^
   ([rt : (-αₖ → -⟦k⟧)]
