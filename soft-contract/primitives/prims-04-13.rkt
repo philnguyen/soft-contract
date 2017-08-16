@@ -21,6 +21,7 @@
          syntax/parse/define
          set-extras
          "../utils/debug.rkt"
+         "../utils/function.rkt"
          (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
          "../ast/shorthands.rkt"
          "../runtime/signatures.rkt"
@@ -79,22 +80,40 @@
 
   (splicing-local
       ;; FIXME the only reason for this hack is because the DSL doesn't have case-> yet
-      ((define-syntax-parser define-make-hash
+      ((: make-hash-helper : -⟪ℋ⟫ ℓ -Σ -V Boolean → -V)
+       (define (make-hash-helper ⟪ℋ⟫ ℓ Σ Vₗ immut?)
+         (define αₖ (-α->⟪α⟫ (-α.hash.key ℓ ⟪ℋ⟫)))
+         (define αᵥ (-α->⟪α⟫ (-α.hash.val ℓ ⟪ℋ⟫)))
+         (σ⊕Vs! Σ αₖ ∅)
+         (σ⊕Vs! Σ αᵥ ∅)
+
+         (: go-pair! : -V → Void)
+         (define go-pair!
+           (match-lambda
+             [(-Cons α₁ α₂)
+              (σ-copy! Σ α₁ αₖ)
+              (σ-copy! Σ α₂ αᵥ)]
+             [_
+              (σ⊕V! Σ αₖ (+●))
+              (σ⊕V! Σ αᵥ (+●))]))
+         
+         (let go-args! : Void ([Vₗ : -V Vₗ])
+           (match Vₗ
+             [(or (-b (? null?)) (-● (== (set 'null?)))) (void)]
+             [(-Cons αₕ αₜ)
+              (set-for-each (σ@ Σ αₕ) go-pair!)
+              (set-for-each (σ@ Σ αₜ) go-args!)]
+             [_
+              (σ⊕V! Σ αₖ (+●))
+              (σ⊕V! Σ αₖ (+●))]))
+         (-Hash^ αₖ αᵥ immut?))
+       
+       (define-syntax-parser define-make-hash
          [(_ make-hash:id eq:id #:immutable? immut?:boolean)
-          (define/with-syntax make-hash-1 (format-id #'make-hash "~a-1" (syntax-e #'make-hash)))
-          (define/with-syntax .make-hash-1 (format-id #'make-hash ".~a-1" (syntax-e #'make-hash)))
-          (define/with-syntax ctc-immut?
-            (if (syntax-e #'immut?) #'immutable? #'(not/c immutable?)))
-          (define/with-syntax refine-immut?
-            (if (syntax-e #'immut?) #''immutable? #'(-not/c 'immutable?)))
-          #'(begin
-              (def-prim make-hash-1
-                ((listof pair?) . -> . (and/c hash? ctc-immut? eq)))
-              (def-prim/custom (make-hash ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-                (match Ws
-                  ['() {set (-ΓA Γ (-W (list (-● {set 'hash? 'eq refine-immut?}))
-                                                  (apply ?t@ 'make-hash (map -W¹-t Ws))))}]
-                  [_ (.make-hash-1 ⟪ℋ⟫ ℓ Σ $ Γ Ws)])))])
+          #'(def-prim/custom (make-hash ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+              #:domain ([Wₗ (listof pair?)])
+              (define V (make-hash-helper ⟪ℋ⟫ ℓ Σ (-W¹-V Wₗ) immut?))
+              {set (-ΓA Γ (-W (list V) (?t@ 'make-hash (-W¹-t Wₗ))))})])
        )
     (define-make-hash make-hash hash-equal? #:immutable? #f)
     (define-make-hash make-hasheqv hash-eqv? #:immutable? #f)
