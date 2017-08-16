@@ -236,7 +236,7 @@
       ['() ⟦k⟧]
       [(cons ⟦e⟧ ⟦e⟧s*)
        (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-         (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (memoize-⟦k⟧ (bgn∷ ⟦e⟧s* ρ ⟦k⟧))))]))
+         (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
 
   ;; begin0, waiting on first value
   (define-frame (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧])
@@ -531,11 +531,13 @@
                       [⟦k⟧ : -⟦k⟧])
     (define l (-𝒾-ctx 𝒾))
     (define l³ (-l³ l 'dummy- l))
-    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+    (define α (-α->⟪α⟫ 𝒾))
+    (define α* (-α->⟪α⟫ (-α.wrp 𝒾)))
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (α)
       (match-define (-W (list C) c) A)
       (define W-C (-W¹ C c))
-      (define Vs (σ@ Σ (-α->⟪α⟫ 𝒾)))
-      (define ⟦k⟧* (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧))
+      (define Vs (σ@ Σ α))
+      (define ⟦k⟧* (def∷ l (list α*) ⟦k⟧))
       (for/union : (℘ -ς) ([V Vs])
         (push-mon l³ ℓ W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
 

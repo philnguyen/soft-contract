@@ -88,8 +88,7 @@
    [push-fc : ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς))]))
 
 (define-signature memoize^
-  ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]
-   [memoize-⟦k⟧ : (-⟦k⟧ → -⟦k⟧)]))
+  ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]))
 
 (define-signature havoc^
   ([havoc : (-$ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
