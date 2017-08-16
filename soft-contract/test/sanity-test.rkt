@@ -133,6 +133,7 @@
   (test "safe/issues/issue-91.rkt" check-safe)
   (test "safe/issues/build-vector.rkt" check-safe)
   (test "safe/issues/substruct.rkt" check-safe)
+  (test "safe/issues/issue-96.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)

@@ -54,6 +54,8 @@
              [(even? (length Ws))
               (define αₖ (-α->⟪α⟫ (-α.hash.key ℓ ⟪ℋ⟫)))
               (define αᵥ (-α->⟪α⟫ (-α.hash.val ℓ ⟪ℋ⟫)))
+              (σ⊕Vs! Σ αₖ ∅)
+              (σ⊕Vs! Σ αᵥ ∅)
               (let go! ([Ws : (Listof -W¹) Ws])
                 (match Ws
                   [(list* Wₖ Wᵥ Ws*)
