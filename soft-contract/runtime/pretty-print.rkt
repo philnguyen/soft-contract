@@ -211,8 +211,8 @@
       [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
   (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ _ _ l³ ℓ C V _) ℳ)
-    `(ℳ ,(show-W¹ C) ,(show-W¹ V)))
+    (match-define (-ℳ $ ⟪ℋ⟫ l³ ℓ C V Γ) ℳ)
+    `(ℳ ,(show-⟪ℋ⟫ ⟪ℋ⟫) ,(show-W¹ C) ,(show-W¹ V) ‖ ,@(show-Γ Γ) ‖ ,@(show-$ $)))
 
   (define (show-ℱ [ℱ : -ℱ]) : Sexp
     (match-define (-ℱ _ _ l ℓ C V _) ℱ)
@@ -270,6 +270,8 @@
       [(-α.rst (? -t? t) _ _) (show-t t)]
       [(-α.rng (? -t? t) _ _ _) (show-t t)]
       [(-α.fn (? -t? t) _ _ _ _) (show-t t)]
+      [(-𝒾 x _) x]
+      [(-α.wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
       [(? -e? e) (show-e e)]
       [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
