@@ -1,12 +1,11 @@
-#lang racket/base
+#lang racket
 
 ;; Denotable values and stores to hold them.
 ;; A denotable is a set of values
 ;; (A value is a closure)
 
 (require
-  require-typed-check
-  racket/set
+  #;require-typed-check
   "structs.rkt"
   "benv.rkt"
   "time.rkt"
@@ -15,14 +14,17 @@
 ;; -----------------------------------------------------------------------------
 
 (provide
-  (struct-out State)
-  d-bot
-  d-join
-  empty-store
-  store-lookup
-  store-update
-  store-update*
-  store-join
+ Denotable/c
+ Store/c
+ (contract-out
+  [d-bot Denotable/c]
+  [d-join (Denotable/c Denotable/c . -> . Denotable/c)]
+  [empty-store Store/c]
+  [store-lookup (Store/c Addr/c . -> . Denotable/c)]
+  [store-update (Store/c Addr/c Denotable/c . -> . Store/c)] ; fixed once implement hash-update
+  [store-update* (Store/c (listof Addr/c) (listof Denotable/c) . -> . Store/c)] ; fixed once implement hash-update
+  [store-join (Store/c Store/c . -> . Store/c)] ; fixed once implement hash-update
+  [struct State ([call exp/c] [benv BEnv/c] [store Store/c] [time Time/c])])
 )
 
 ;; =============================================================================
@@ -69,7 +71,13 @@
 
 ;(: store-join (-> Store Store Store))
 (define (store-join s1 s2)
-  (for/fold ([new-store s1])
-    ([(k v) (in-hash s2)])
+  (for*/fold ([new-store s1])
+             ;; FIXME this should be fixed once the primitives DSL is generalized
+             ([k (in-hash-keys s2)]
+              [v (in-value (hash-ref s2 k))])
+             #;([(k v) (in-hash s2)])
+    
     (store-update new-store k v)))
 
+(define Denotable/c set?) ; FIXME
+(define Store/c (and/c immutable? (hash/c Addr/c Denotable/c)))

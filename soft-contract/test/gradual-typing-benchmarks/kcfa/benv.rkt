@@ -11,6 +11,7 @@
  Time/c
  Var/c
  Addr/c
+ BEnv/c
  (contract-out
   [struct Closure ([lam Lam/c] [benv BEnv/c])]
   [struct Binding ([var Var/c] [time Time/c])]
