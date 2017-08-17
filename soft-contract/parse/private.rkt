@@ -699,6 +699,7 @@
       [x:id #:when (equal? 'in-range (syntax-e #'x)) 'in-range]
       [x:id #:when (member (syntax-e #'x) '(in-hash default-in-hash)) 'in-hash]
       [x:id #:when (member (syntax-e #'x) '(in-hash-keys default-in-hash-keys)) 'in-hash-keys]
+      [x:id #:when (equal? 'in-set (syntax-e #'x)) 'in-set]
       
       [i:identifier
        (or

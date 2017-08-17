@@ -144,7 +144,7 @@
      (generic-set? (any/c . -> . any/c) . -> . (listof any/c))]
   (def-prim/todo set-for-each
     (generic-set? (any/c . -> . any) . -> . void?))
-  (def-prim/todo in-set
+  (def-prim in-set
     (generic-set? . -> . sequence?))
 
 ;;;;; 4.16.4 Custom Hash Sets
