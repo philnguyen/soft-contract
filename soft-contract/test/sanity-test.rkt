@@ -182,6 +182,8 @@
           "gradual-typing-benchmarks/fsm/automata.rkt"
           "gradual-typing-benchmarks/fsm/population.rkt")
         (check 'Ok-pos 2 3))
+  (test '("gradual-typing-benchmarks/fsm/structs.rkt"
+          "gradual-typing-benchmarks/fsm/benv.rkt"))
 
   (test   "safe/games" check-safe)
   (test "unsafe/games" check-fail)
