@@ -298,16 +298,18 @@
       
       (: chk-key-vals : (℘ -V) (℘ -V) → (℘ -ς))
       (define (chk-key-vals Vsₖ Vsᵥ)
-        (define doms (σ@ Σ αₖ))
-        (define rngs (σ@ Σ αᵥ))
-        (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
-           (define mon-vals (mk-mon l³ ℓᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
-           (define wrap
-             (let ([Vᵤ* (V+ σ Vᵤ 'hash?)])
-               (mk-wrapped-hash Vₚ l³ αₕ (-W¹ Vᵤ* tᵤ))))
-           (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
-          (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
-            (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
+        (define wrap (mk-wrapped-hash Vₚ l³ αₕ (-W¹ (V+ σ Vᵤ 'hash?) tᵤ)))
+        (cond ;; FIXME hacks for now
+          [(or (set-empty? Vsₖ) (set-empty? Vsᵥ))
+           (wrap ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+          [else
+           (define doms (σ@ Σ αₖ))
+           (define rngs (σ@ Σ αᵥ))
+           (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
+             (define mon-vals (mk-mon l³ ℓᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
+             (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
+             (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
+               (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))]))
       
       (match Vᵤ
         [(? -Hash/guard?)
