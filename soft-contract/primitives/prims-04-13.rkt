@@ -114,6 +114,7 @@
        (define-syntax-parser define-make-hash
          [(_ make-hash:id eq:id #:immutable? immut?:boolean)
           (define/with-syntax make-hash-1 (format-id #'make-hash "~a-1" (syntax-e #'make-hash)))
+          (define/with-syntax .make-hash-1 (format-id #'make-hash ".~a-1" (syntax-e #'make-hash)))
           #'(begin
               (def-prim/custom (make-hash-1 ⟪ℋ⟫ ℓ Σ $ Γ Ws)
                 #:domain ([Wₗ (listof pair?)])
