@@ -53,6 +53,7 @@
    [set-eq? ⇒ set?]
    [set-mutable? ⇒ set?]
    [set-weak? ⇒ set?]
+   [set? ⇒ generic-set?]
    ;; arity
    [exact-nonnegative-integer? ⇒ procedure-arity?]
    ;; contracts
@@ -67,7 +68,7 @@
   (dec-exclusions
    [exact-nonnegative-integer? negative?]
    [number? string? boolean? keyword? symbol? void? char? eof-object? null? procedure?
-            vector? port? regexp? pregexp? byte-regexp? byte-pregexp? set? hash? exn?]
+            vector? port? regexp? pregexp? byte-regexp? byte-pregexp? generic-set? hash? exn?]
    [positive? negative? zero?])
 
   (dec-partitions
