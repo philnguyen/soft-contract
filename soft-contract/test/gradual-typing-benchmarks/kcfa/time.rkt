@@ -11,7 +11,7 @@
 (provide
  (contract-out
   [time-zero Time/c]
-  [k (-> exact-nonnegative-integer?)]
+  #;[k (-> exact-nonnegative-integer?)]
   [tick (Stx/c Time/c . -> . Time/c)]
   [alloc (Time/c . -> . (Var/c . -> . Addr/c))])
 )
@@ -33,7 +33,7 @@
 (define time-zero '())
 
 ;(: k (Parameterof Natural))
-(define k (make-parameter 1))
+(define k (λ () 1) #;(make-parameter 1))
 
 ;(: tick (-> Stx Time Time))
 (define (tick call time)
