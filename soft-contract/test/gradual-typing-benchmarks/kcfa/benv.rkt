@@ -60,5 +60,5 @@
 (define Time/c (listof Label/c))
 (define Var/c symbol?)
 (define Addr/c (struct/c Binding Var/c Time/c))
-(define BEnv/c (hash/c Var/c Addr/c))
+(define BEnv/c (and/c immutable? (hash/c Var/c Addr/c)))
 
