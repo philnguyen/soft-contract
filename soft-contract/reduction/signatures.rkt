@@ -74,6 +74,8 @@
    [invalidate-$∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
    [restore-$∷ : (-δ$ -⟦k⟧ → -⟦k⟧)]
    [restore-ctx∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
+   [hash-set-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
+   [wrap-hash∷ : (ℓ -Hash/C -l³ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
    ))

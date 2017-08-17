@@ -292,22 +292,25 @@
 
     (: chk-content : → (℘ -ς))
     (define (chk-content)
-      (define doms (σ@ Σ αₖ))
-      (define rngs (σ@ Σ αᵥ))
-
+      (define αₕ (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ l+)))
+      
       (: chk-key-vals : (℘ -V) (℘ -V) → (℘ -ς))
       (define (chk-key-vals Vsₖ Vsᵥ)
+        (define doms (σ@ Σ αₖ))
+        (define rngs (σ@ Σ αᵥ))
         (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
            (define mon-vals (mk-mon l³ ℓᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
-           (define wrap (mk-wrapped-hash Vₚ l³ (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ l+)) Wᵤ))
+           (define wrap (mk-wrapped-hash Vₚ l³ αₕ Wᵤ))
            (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
           (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
             (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
       
       (match Vᵤ
-        [(-Hash/guard _ αᵤ _)
-         (define-values (Vsₖ Vsᵥ) (collect-hash-pairs σ αᵤ))
-         (chk-key-vals Vsₖ Vsᵥ)]
+        [(? -Hash/guard?)
+         ;; havoc would be expensive. Just wrap it for now
+         (σ⊕V! Σ αₕ Vᵤ)
+         (define V (-Hash/guard Vₚ αₕ l³))
+         (⟦k⟧ (-W (list V) tᵤ) $ Γ ⟪ℋ⟫ Σ)]
         [(-Hash^ α₁ α₂ _)
          (chk-key-vals (σ@ Σ α₁) (σ@ Σ α₂))]
         {_

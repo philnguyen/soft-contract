@@ -67,7 +67,6 @@
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
-   [collect-hash-pairs : (-σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))]
    [copy-Γ : ((℘ Symbol) -Γ -Γ → -Γ)]))
 
 (define-signature for-gc^

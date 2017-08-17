@@ -174,7 +174,7 @@
             (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))]))
 
   (define-frame (mon*∷ [l³ : -l³]
-                       [ℓ : ℓ]
+                       [ℓ : ℓ] ; FIXME redundant
                        [W-Cs : (Listof -W¹)]
                        [W-Vs : (Listof -W¹)]
                        [ℓs : (Listof ℓ)]
@@ -752,4 +752,24 @@
   (define-frame (restore-ctx∷ [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ _ Σ) #:roots ()
       (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (hash-set-inner∷ [ℓ : ℓ] [αₕ : ⟪α⟫] [tₕ : -?t] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (αₕ)
+      (match-define (-W (list Vₖ Vᵥ) tₐ) A)
+      (match-define (list tₖ tᵥ) (split-values tₐ 2))
+      (define Wₖ (-W¹ Vₖ tₖ))
+      (define Wᵥ (-W¹ Vᵥ tᵥ))
+      (for/union : (℘ -ς) ([Vₕ (in-set (σ@ Σ αₕ))])
+        (app (ℓ-with-src ℓ 'hash-set-inner∷)
+             (-W¹ 'hash-set 'hash-set)
+             (list (-W¹ Vₕ tₕ) Wₖ Wᵥ)
+             $ Γ ⟪ℋ⟫ Σ ⟦k⟧))))
+
+  (define-frame (wrap-hash∷ [ℓ : ℓ] [C : -Hash/C] [l³ : -l³] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C)
+      (match-define (-W (list Vₕ) tₕ) A)
+      (define α (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ (-l³-pos l³))))
+      (σ⊕V! Σ α Vₕ)
+      (define Vₐ (-Hash/guard C α l³))
+      (⟦k⟧ (-W (list Vₐ) tₕ) $ Γ ⟪ℋ⟫ Σ)))
   )

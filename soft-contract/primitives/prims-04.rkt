@@ -30,7 +30,7 @@
          )
 
 (define-compound-unit/infer prims-04@
-  (import prim-runtime^ proof-system^ local-prover^ widening^ kont^ app^ compile^ for-gc^
+  (import prim-runtime^ proof-system^ local-prover^ widening^ kont^ app^ compile^ for-gc^ mon^
           val^ pc^ sto^ instr^ env^)
   (export)
   (link prims-04-01@

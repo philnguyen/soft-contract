@@ -40,7 +40,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ instr^ kont^)
+  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ instr^ kont^ mon^)
   (export)
 
   (def-pred hash?)
@@ -167,15 +167,20 @@
        (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
        (define Wₕ* (-W (list Vₕ*) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
-      [(-Hash/guard C αₕ l³)
-       (define-values (Vsₖ Vsᵥ) (collect-hash-pairs (-Σ-σ Σ) αₕ))
-       (σ⊕Vs! Σ αₖ* Vsₖ)
-       (σ⊕Vs! Σ αᵥ* Vsᵥ)
-       (σ⊕! Σ Γ αₖ* Wₖ)
-       (σ⊕! Σ Γ αᵥ* Wᵥ)
-       (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
-       (define Wₕ* (-W (list Vₕ*) tₐ))
-       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
+      [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ _) (-⟪α⟫ℓ αᵥ _)))
+                    αₕ
+                    (and l³ (-l³ l+ l- lo)))
+       (define l³* (-l³ l- l+ lo))
+       (define ⟦k⟧* (hash-set-inner∷ ℓ αₕ tₕ (wrap-hash∷ ℓ C l³ ⟦k⟧)))
+       (for*/union : (℘ -ς) ([Cₖ (in-set (σ@ Σ αₖ))]
+                             [Cᵥ (in-set (σ@ Σ αᵥ))])
+          (mon l³* (ℓ-with-id ℓ 'hash-set-key) (-W¹ Cₖ #f) Wₖ $ Γ ⟪ℋ⟫ Σ
+               (mon*∷ l³* ℓ
+                      (list (-W¹ Cᵥ #f))
+                      (list Wᵥ)
+                      (list (ℓ-with-id ℓ 'hash-set-val))
+                      '()
+                      ⟦k⟧*)))]
       [_
        (define Wₕ* (-W (list (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))

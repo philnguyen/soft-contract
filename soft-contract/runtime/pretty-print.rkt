@@ -60,6 +60,7 @@
       [#f '∅]
       [(? integer? i) (show-ℓ (cast i ℓ))]
       [(-t.x x) x]
+      [(-𝒾 x _) x]
       [(? -e? e) (show-e e)]
       [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
 
