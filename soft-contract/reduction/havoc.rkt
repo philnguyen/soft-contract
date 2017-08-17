@@ -112,6 +112,10 @@
        (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                   (⟦k⟧ (-W (list V) #f) $ ⊤Γ ⟪ℋ⟫ Σ))]
 
+      [(or (? -Hash/guard?) (? -Hash^?))
+       (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hash-ref))))
+       (app ℓ (-W¹ 'hash-ref 'hash-ref) (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+
       ;; Apply contract to unknown values
       [(? -C?)
        (log-warning "TODO: havoc contract combinators")
