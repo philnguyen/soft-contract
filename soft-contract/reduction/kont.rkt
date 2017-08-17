@@ -380,7 +380,7 @@
                 ([W (in-list doms.rev)]
                  [i : Natural (in-naturals)])
         (match-define (-W¹ C c) W)
-        (define α (-α->⟪α⟫ (-α.dom c ℓ ⟪ℋ⟫ i)))
+        (define α (-α->⟪α⟫ (-α.dom ℓ ⟪ℋ⟫ i)))
         (σ⊕V! Σ α C)
         (values (cons α αs) (cons c cs))))
     (define αℓs : (Listof -⟪α⟫ℓ)
@@ -394,13 +394,13 @@
          (for/list : (Listof -⟪α⟫ℓ) ([D (in-list Ds)]
                                      [d (in-list (split-values ds (length Ds)))]
                                      [i : Natural (in-naturals)])
-           (define β (-α->⟪α⟫ (-α.rng d ℓ ⟪ℋ⟫ i)))
+           (define β (-α->⟪α⟫ (-α.rng ℓ ⟪ℋ⟫ i)))
            (σ⊕V! Σ β D)
            (-⟪α⟫ℓ β (ℓ-with-id ℓ (cons 'rng i))))]))
     (define-values (Dom t-dom)
       (match rst
         [(-W¹ Vᵣ cᵣ)
-         (define αᵣ (-α->⟪α⟫ (-α.rst cᵣ ℓ ⟪ℋ⟫)))
+         (define αᵣ (-α->⟪α⟫ (-α.rst ℓ ⟪ℋ⟫)))
          (define ℓᵣ (ℓ-with-id ℓ 'rest))
          (σ⊕V! Σ αᵣ Vᵣ)
          (values (-var αℓs (-⟪α⟫ℓ αᵣ ℓᵣ)) (-var cs cᵣ))]
@@ -416,10 +416,10 @@
                 ([(W i) (in-indexed Ws)])
         (match-define (-W¹ C c) W)
         (define α
-          (-α->⟪α⟫ (-α.dom c ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
+          (-α->⟪α⟫ (-α.dom ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
         (σ⊕V! Σ α C)
         (values (cons α αs) (cons c cs))))
-    (define β (-α->⟪α⟫ (-α.rng mk-d ℓₐ ⟪ℋ⟫ #|TODO|# 0)))
+    (define β (-α->⟪α⟫ (-α.rng ℓₐ ⟪ℋ⟫ #|TODO|# 0)))
     (define αℓs : (Listof -⟪α⟫ℓ)
       (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
         (-⟪α⟫ℓ α (ℓ-with-id ℓₐ i))))
@@ -485,7 +485,7 @@
                      ([(W i) (in-indexed Cs*)])
              (match-define (-W¹ C c) W)
              (define α
-               (-α->⟪α⟫ (-α.struct/c c 𝒾 ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
+               (-α->⟪α⟫ (-α.struct/c 𝒾 ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
              (σ⊕V! Σ α C)
              (values (cons α αs)
                      (cons c cs)

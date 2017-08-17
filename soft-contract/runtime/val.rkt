@@ -75,14 +75,14 @@
        (-Vector/guard grd ⟪α⟫ (-l³ l l- lo))]
       [_ V]))
 
-  (: approximate-under-contract : -V → -V)
-  (define (approximate-under-contract V)
+  (: approximate-under-contract : -σ -V → -V)
+  (define (approximate-under-contract σ V)
     (match V
       [(-Ar C _ l³)
        (match C
-         [(-=> (list (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.dom 'any/c    _ _ _)) _))
-               (list (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.rng 'boolean? _ _ _)) _))
-               _)
+         [(-=> (list (-⟪α⟫ℓ α₁ _)) (list (-⟪α⟫ℓ α₂ _)) _)
+          #:when (and (equal? (σ@ σ α₁) {set 'any/c})
+                      (equal? (σ@ σ α₂) {set 'boolean?}))
           ;; cheat
           V]
          [_
@@ -185,8 +185,8 @@
        (match-define (-α.x/c x) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
       [(? -o? o) o]
-      [(-Ar _ (app ⟪α⟫->-α (-α.fn t _ _ _ _)) _) (list 'flat t)]
-      [V (error 'strip-C "~a not expected" (show-V V))]))
+      [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ℓ _ _ _)) _) (list 'flat ℓ)]
+      [V (error 'strip-C "~a not expected" V)]))
 
   (: predicates-of-V : -V → (℘ -h))
   (define predicates-of-V

@@ -233,21 +233,21 @@
             (-α.unhsh [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
             ;; for contract components
-            (-α.and/c-l [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.and/c-r [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.or/c-l [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.or/c-r [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.not/c [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.vector/c [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.vectorof [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash/c-key [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash/c-val [val : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.struct/c [sym : -?t] [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.and/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.and/c-r [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.or/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.or/c-r [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.not/c [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.vector/c [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.vectorof [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.hash/c-key [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.hash/c-val [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.x/c Symbol)
-            (-α.dom [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.rst [sym : -?t] [loc : ℓ] [ctd : -⟪ℋ⟫])
-            (-α.rng [sym : -?t] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.fn [sym : (U -?t -⟦e⟧)] [mon-loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : -Γ])
+            (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
+            (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.fn [sym : (Option -⟦e⟧)] [mon-loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : -Γ])
 
             ;; HACK
             (-α.hv)
@@ -369,7 +369,7 @@
    [C-flat? : (-V → Boolean)]
    [with-negative-party : (-l -V → -V)]
    [with-positive-party : (-l -V → -V)]
-   [approximate-under-contract : (-V → -V)]
+   [approximate-under-contract : (-σ -V → -V)]
    [behavioral? : (-σ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
    [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]

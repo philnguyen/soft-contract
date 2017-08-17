@@ -117,20 +117,20 @@
             (cond
               ;; same-module referencing returns unwrapped version
               [(equal? l₀ l)
-               (values 𝒾 (inst values -V))]
+               (values 𝒾 (λ ([σ : -σ] [V : -V]) V))]
               ;; cross-module referencing returns wrapped version
               ;; when the caller is symbolic (HACK)
               ;; and supplies the negative monitoring context (HACK)
               [(symbol? l)
-               (values (-α.wrp 𝒾) (λ ([V : -V]) (with-negative-party l V)))]
+               (values (-α.wrp 𝒾) (λ ([σ : -σ] [V : -V]) (with-negative-party l V)))]
               ;; cross-mldule referencing returns abstracted wrapped version
               ;; when the caller is concrete (HACK)
               ;; and supplies the negative monitoring context (HACK)
               [else
-               (values (-α.wrp 𝒾) (λ ([V : -V])
+               (values (-α.wrp 𝒾) (λ ([σ : -σ] [V : -V])
                                     (with-positive-party 'dummy+
                                       (with-negative-party l
-                                        (approximate-under-contract V)))))]))
+                                        (approximate-under-contract σ V)))))]))
           
           (define ⟪α⟫ (-α->⟪α⟫ α))
           (define ?loc (hack:α->loc ⟪α⟫))
@@ -145,7 +145,7 @@
                           (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
               [else
                (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
-                          (define V* (modify-V V))
+                          (define V* (modify-V (-Σ-σ Σ) V))
                           (⟦k⟧ (-W (list V*) ℓᵣ) $ Γ ⟪ℋ⟫ Σ))]))]
          
          [(-@ f xs ℓ)

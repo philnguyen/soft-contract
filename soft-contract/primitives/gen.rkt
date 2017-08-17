@@ -102,25 +102,25 @@
       [_ (error 'gen-alloc "unhandled: ~a" (syntax->datum c))]))
 
   ;; Generate expression wrapping function contract `c` around `V`
-  (define/contract (gen-func-wrap c V s)
-    (syntax? syntax? syntax? . -> . syntax?)
+  (define/contract (gen-func-wrap c V)
+    (syntax? syntax? . -> . syntax?)
     (hack:make-available (-o) σ⊕V!)
     ;; be careful not to use `V` twice
     ;; FIXME ℓ maybe wrong here
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
              [l³ (-l³ (ℓ-src ℓ) '#,(-o) '#,(-o))]
              [grd #,(gen-alloc #'ℓ c)]
-             [⟪α⟫ (-α->⟪α⟫ (-α.fn #,s #,(-ℓ) #,(-⟪ℋ⟫) (ℓ-src ℓ) #,(-Γ)))])
+             [⟪α⟫ (-α->⟪α⟫ (-α.fn #f #,(-ℓ) #,(-⟪ℋ⟫) (ℓ-src ℓ) #,(-Γ)))])
         (σ⊕V! #,(-Σ) ⟪α⟫ #,V)
         (-Ar grd ⟪α⟫ l³)))
 
   ;; Generate expression wrapping contract `c` around `V`
-  (define/contract (gen-wrap c V s)
-    (syntax? syntax? syntax? . -> . syntax?)
+  (define/contract (gen-wrap c V)
+    (syntax? syntax? . -> . syntax?)
     (hack:make-available (-o) V+)
     ;; be careful not to use `V` twice
     (syntax-parse c
-      [((~literal ->) _ ...) (gen-func-wrap c V s)]
+      [((~literal ->) _ ...) (gen-func-wrap c V)]
       [((~literal and/c) c*:id ...) #`(V+ (-Σ-σ #,(-Σ)) #,V (seteq 'c* ...))]
       ;[((~literal and/c) c*    ...) (foldr gen-wrap V (syntax->list #'(c* ...)))]
       [c:id #`(V+ (-Σ-σ #,(-Σ)) #,V 'c)]
@@ -133,7 +133,7 @@
     (define eᵢs
       (for/list ([W (in-list (-Wₙ))]
                  [c (in-list (attribute sig.init))])
-        (gen-wrap c #`(-W¹-V #,W) #`(-W¹-t #,W))))
+        (gen-wrap c #`(-W¹-V #,W))))
     (define/with-syntax (clauses-rest ...) #|TODO|# '())
     (list
      #`(let (#,@(for/list ([Wᵢ (in-list (-Wₙ))]

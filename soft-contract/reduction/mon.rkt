@@ -86,7 +86,7 @@
                 (define v*
                   (match V
                     [(-Clo fml ⟦e⟧ _ _) ⟦e⟧]
-                    [_ v]))
+                    [_ #f]))
                 (-α.fn v* ℓ ⟪ℋ⟫ l+ φs)])))
       (define Ar (-Ar grd ⟪α⟫ l³))
 
