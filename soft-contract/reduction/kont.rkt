@@ -161,7 +161,7 @@
               (match* (Ctcs Vals ℓs)
                 [((cons Ctc₁ Ctcs*) (cons Val₁ Vals*) (cons ℓ₁ ℓs*))
                  (push-mon l³ ℓ₁ Ctc₁ Val₁ $ Γ ⟪ℋ⟫ Σ
-                           (mon*∷ l³ ℓ Ctcs* Vals* ℓs* '() ⟦k⟧))]
+                           (mon*∷ l³ Ctcs* Vals* ℓs* '() ⟦k⟧))]
                 [('() '() '())
                  (⟦k⟧ (+W '()) $ Γ ⟪ℋ⟫ Σ)]))]
            [else
@@ -174,7 +174,6 @@
             (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))]))
 
   (define-frame (mon*∷ [l³ : -l³]
-                       [ℓ : ℓ] ; FIXME redundant
                        [W-Cs : (Listof -W¹)]
                        [W-Vs : (Listof -W¹)]
                        [ℓs : (Listof ℓ)]
@@ -186,7 +185,7 @@
       (match* (W-Cs W-Vs ℓs)
         [((cons W-C₁ W-Cs*) (cons W-V₁ W-Vs*) (cons ℓ₁ ℓs*))
          (push-mon l³ ℓ₁ W-C₁ W-V₁ $ Γ ⟪ℋ⟫ Σ
-                   (mon*∷ l³ ℓ W-Cs* W-Vs* ℓs* res.rev* ⟦k⟧))]
+                   (mon*∷ l³ W-Cs* W-Vs* ℓs* res.rev* ⟦k⟧))]
         [('() '() '())
          (define-values (Vsₐ tsₐ) (unzip-by -W¹-V -W¹-t (reverse res.rev*)))
          (define Wₐ (-W Vsₐ (apply ?t@ 'values tsₐ)))

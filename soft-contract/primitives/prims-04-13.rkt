@@ -175,7 +175,7 @@
        (for*/union : (℘ -ς) ([Cₖ (in-set (σ@ Σ αₖ))]
                              [Cᵥ (in-set (σ@ Σ αᵥ))])
           (mon l³* (ℓ-with-id ℓ 'hash-set-key) (-W¹ Cₖ #f) Wₖ $ Γ ⟪ℋ⟫ Σ
-               (mon*∷ l³* ℓ
+               (mon*∷ l³*
                       (list (-W¹ Cᵥ #f))
                       (list Wᵥ)
                       (list (ℓ-with-id ℓ 'hash-set-val))
