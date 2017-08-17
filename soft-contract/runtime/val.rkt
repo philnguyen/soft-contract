@@ -75,24 +75,6 @@
        (-Vector/guard grd ⟪α⟫ (-l³ l l- lo))]
       [_ V]))
 
-  (: approximate-under-contract : -σ -V → -V)
-  (define (approximate-under-contract σ V)
-    (match V
-      [(-Ar C _ l³)
-       (match C
-         [(-=> (list (-⟪α⟫ℓ α₁ _)) (list (-⟪α⟫ℓ α₂ _)) _)
-          #:when (and (equal? (σ@ σ α₁) {set 'any/c})
-                      (equal? (σ@ σ α₂) {set 'boolean?}))
-          ;; cheat
-          V]
-         [_
-          (-Ar C ⟪α⟫ₒₚ l³)])]
-      [(-St* C _ l³)
-       (-St* C ⟪α⟫ₒₚ l³)]
-      [(-Vector/guard C _ l³)
-       (-Vector/guard C ⟪α⟫ₒₚ l³)]
-      [_ V]))
-
   (: behavioral? : -σ -V → Boolean)
   ;; Check if value maybe behavioral.
   ;; `#t` is a conservative answer "maybe yes"

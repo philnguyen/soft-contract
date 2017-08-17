@@ -60,7 +60,7 @@
     (set-first Vs))
 
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
-  (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
+  (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.●)))
   (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
 
 

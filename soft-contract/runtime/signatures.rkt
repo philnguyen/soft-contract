@@ -53,7 +53,8 @@
             -C)
 
 (-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
-             (-Case-Clo (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ))
+             (-Case-Clo (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ)
+             (-Fn● [arity : Arity]))
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
@@ -253,7 +254,8 @@
             (-α.hv)
             (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
             (-α.fc-x/c Symbol -⟪ℋ⟫)
-            (-α.fn.●)
+            (-α.●)
+            (-α.fn● Arity)
             -o
             -𝒾
             )
@@ -369,7 +371,6 @@
    [C-flat? : (-V → Boolean)]
    [with-negative-party : (-l -V → -V)]
    [with-positive-party : (-l -V → -V)]
-   [approximate-under-contract : (-σ -V → -V)]
    [behavioral? : (-σ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
    [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]

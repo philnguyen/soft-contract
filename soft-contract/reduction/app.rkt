@@ -133,7 +133,7 @@
          (define cs (-struct/c-split sₕ s))
          (for/union : (℘ -ς) ([Cs (σ@/list σ αs)])
                     (app-St/C s (map -W¹ Cs cs))))]
-      [(-● _) ;; TODO clean this mess up
+      [(or (? -●?) (? -Fn●?)) ;; TODO clean this mess up
 
        (define l (ℓ-src ℓ))
 
@@ -262,7 +262,7 @@
     (define-values (cs d) (-->-split c (shape αℓs)))
     (define l³* (-l³ l- l+ lo))
     (define ⟦k⟧/mon-rng (mon*.c∷ l³ ℓₐ Rng d ⟦k⟧))
-    (define ℓₐ* (ℓ-with-src ℓₐ 'app-Ar))
+    (define ℓₐ* (ℓ-with-src ℓₐ lo))
     (match* (αℓs cs)
       [('() '()) ; no arg
        (app ℓₐ* Wᵤ '() $ Γ ⟪ℋ⟫ Σ ⟦k⟧/mon-rng)]
@@ -336,8 +336,7 @@
     (define W-rng (-W¹ Mk-D mk-d))
     (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
     (define-values (cs _) (-->i-split c (length αℓs)))
-    (define ℓₐ* (ℓ-with-src ℓₐ 'app-Indy))
-
+    (define ℓₐ* (ℓ-with-src ℓₐ lo))
     (match xs
       [(? list?)
        (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x (in-list xs)]) (↓ₓ lo x (loc->ℓ (loc 'indy 0 0 (list x))))))

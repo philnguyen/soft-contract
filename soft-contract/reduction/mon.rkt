@@ -74,23 +74,25 @@
 
     (: wrap : -Γ → (℘ -ς))
     (define (wrap Γ)
-      (define ⟪α⟫
-        (-α->⟪α⟫
-             (cond
-               [(-●? V) (-α.fn.●)] ; hack to reduce unneccessary splits
-               [else
-                (define φs ; hack for functional OO programs...
-                  (for/set: : -Γ ([φ (in-set Γ)]
-                                  #:when (match? φ (-t.@ (? op-≡?) (list (? -x?) (? -b?)))))
-                    φ))
-                (define v*
-                  (match V
-                    [(-Clo fml ⟦e⟧ _ _) ⟦e⟧]
-                    [_ #f]))
-                (-α.fn v* ℓ ⟪ℋ⟫ l+ φs)])))
+      (define-values (V* ⟪α⟫)
+        (match V
+          [(? -●?)
+           (define n (guard-arity grd))
+           (values (-Fn● n) (-α->⟪α⟫ (-α.fn● n)))]
+          [_
+           (define α
+             (let ([φs ; hack for functional OO programs...
+                    (for/set: : -Γ ([φ (in-set Γ)]
+                                    #:when (match? φ (-t.@ (? op-≡?) (list (? -x?) (? -b?)))))
+                      φ)]
+                   [⟦e⟧
+                    (match V
+                      [(-Clo fml ⟦e⟧ _ _) ⟦e⟧]
+                      [_ #f])])
+               (-α->⟪α⟫ (-α.fn ⟦e⟧ ℓ ⟪ℋ⟫ l+ φs))))
+           (values V α)]))
       (define Ar (-Ar grd ⟪α⟫ l³))
-
-      (σ⊕! Σ Γ ⟪α⟫ W-V)
+      (σ⊕! Σ Γ ⟪α⟫ (-W¹ V* v)) ;; TODO??
       (define v* ; hack
         (match v
           [(-t.@ (-ar.mk) (== c)) v]

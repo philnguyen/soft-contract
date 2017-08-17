@@ -100,6 +100,8 @@
           ,@(for/list : (Listof Sexp) ([clause clauses])
               (match-define (cons xs _) clause)
               `(,xs …)))]
+      [(-Fn● arity)
+       (string->symbol (format "Fn●_~a" arity))]
       [(-Ar guard α _)
        (match α
          [(? -𝒾? 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]

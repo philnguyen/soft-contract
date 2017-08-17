@@ -319,7 +319,7 @@
                  (plausible-φs-t? φs (?t@ 'vector? t))]
                 [(or (? -Hash^?) (? -Hash/guard?))
                  (plausible-φs-t? φs (?t@ 'hash? t))]
-                [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
+                [(or (? -Fn?) (? -Ar?) (? -o?))
                  (plausible-φs-t? φs (?t@ 'procedure? t))]
                 [(-b (? p?))
                  (and (plausible-φs-t? φs (?t@ 'p? t))
@@ -469,7 +469,7 @@
                            [_ '✗])]
                         [(procedure?)
                          (match Vs
-                           [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?) (? -One-Of/C?))) '✓]
+                           [(list (or (? -o?) (? -Fn?) (? -Ar?) (? -Not/C?) (? -One-Of/C?))) '✓]
                            [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (boolean->R flat?)]
                            [_ '✗])]
                         [(vector?)
@@ -508,8 +508,9 @@
                             (cond [(or (∋ Rs '?) (> (set-count Rs) 1)) '?]
                                   [(∋ Rs '✗) '✗]
                                   [else '✓])]
-                           ;; always false for now because no support for immutable vectors
-                           [_ '✗])]
+                           ;; vectors always false for now because no support for immutable vectors
+                           [(list (or (? -Vector?) (? -Vector^?) (? -Vector/guard?))) '✗]
+                           [_ '?])]
                         [(<)
                          (match Vs
                            [(list (-b (? real? b₁)) (-b (? real? b₂)))
@@ -719,6 +720,7 @@
         (for/list : (Listof Natural) ([clause clauses])
           (match-define (cons xs _) clause)
           (length xs)))]
+      [(-Fn● arity) arity]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _) (? -One-Of/C?)) 1]
       [(-Ar guard _ _) (guard-arity guard)]
       [(? -st-p?) 1]
