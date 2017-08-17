@@ -183,7 +183,8 @@
           "gradual-typing-benchmarks/fsm/population.rkt")
         (check 'Ok-pos 2 3))
   (test '("gradual-typing-benchmarks/fsm/structs.rkt"
-          "gradual-typing-benchmarks/fsm/benv.rkt")
+          "gradual-typing-benchmarks/fsm/benv.rkt"
+          "gradual-typing-benchmarks/fsm/time.rkt")
         check-safe)
 
   (test   "safe/games" check-safe)
