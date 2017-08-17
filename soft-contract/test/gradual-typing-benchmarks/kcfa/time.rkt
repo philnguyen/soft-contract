@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require
+ racket/contract
   "structs.rkt"
   "benv.rkt"
 )
@@ -8,10 +9,11 @@
 ;; ---
 
 (provide
-  time-zero
-  k
-  tick
-  alloc
+ (contract-out
+  [time-zero Time/c]
+  [k (-> exact-nonnegative-integer?)]
+  [tick (Stx/c Time/c . -> . Time/c)]
+  [alloc (Time/c . -> . (Var/c . -> . Addr/c))])
 )
 
 ;; =============================================================================

@@ -1,4 +1,4 @@
-#lang racket/base
+#lang racket
 
 ;; Binding environment,
 ;; helper functions
@@ -8,12 +8,16 @@
 )
 
 (provide
-  (struct-out Closure)
-  (struct-out Binding)
-  empty-benv
-  benv-lookup
-  benv-extend
-  benv-extend*
+ Time/c
+ Var/c
+ Addr/c
+ (contract-out
+  [struct Closure ([lam Lam/c] [benv BEnv/c])]
+  [struct Binding ([var Var/c] [time Time/c])]
+  [empty-benv BEnv/c]
+  [benv-lookup (BEnv/c Var/c . -> . Addr/c)]
+  [benv-extend (BEnv/c Var/c Addr/c . -> . BEnv/c)]
+  [benv-extend* (BEnv/c (listof Var/c) (listof Addr/c) . -> . BEnv/c)])
 )
 
 ;; =============================================================================
@@ -51,4 +55,10 @@
     ([v (in-list vars)]
      [a (in-list addrs)])
     (benv-extend benv v a)))
+
+(define Label/c symbol?)
+(define Time/c (listof Label/c))
+(define Var/c symbol?)
+(define Addr/c (struct/c Binding Var/c Time/c))
+(define BEnv/c (hash/c Var/c Addr/c))
 
