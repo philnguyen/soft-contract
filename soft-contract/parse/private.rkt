@@ -722,6 +722,8 @@
        #:when (not (equal? src 'Λ))
        (unless (∋ (modules-to-parse) src)
          (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e id))))
+       (unless (equal? src (cur-mod))
+         (set-module-before! src (cur-mod)))
        (-ref (-𝒾 (syntax-e id) src) (syntax-ℓ id))]
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
