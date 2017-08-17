@@ -132,7 +132,8 @@
 
     (define on-module-level-form!
       (syntax-parser
-        [(define-values (ex:id _) (#%plain-app do-partial-app _ in:id _ ...))
+        #:literals (define-values #%plain-app quote)
+        [(define-values (ex:id _) (#%plain-app do-partial-app _ _ (quote in:id) _ ...))
          #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
          (define m (cur-mod))
          (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) m))
@@ -156,9 +157,9 @@
 
     (define on-module-level-form!
       (syntax-parser
-        #:literals (define-values #%plain-app)
-        [(define-values (wrapper:id _:id)
-           (#%plain-app f _ name:id _ _ _))
+        #:literals (define-values #%plain-app quote)
+        [(~and stx (define-values (wrapper:id _:id)
+           (#%plain-app f _ _ (quote name:id) _ _)))
          #:when (eq? (syntax-e #'f) 'do-partial-app)
          (define m (cur-mod))
          (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) m) (-𝒾 (syntax-e #'name) m))]
