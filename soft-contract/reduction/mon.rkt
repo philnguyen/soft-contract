@@ -302,7 +302,9 @@
         (define rngs (σ@ Σ αᵥ))
         (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
            (define mon-vals (mk-mon l³ ℓᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
-           (define wrap (mk-wrapped-hash Vₚ l³ αₕ Wᵤ))
+           (define wrap
+             (let ([Vᵤ* (V+ σ Vᵤ 'hash?)])
+               (mk-wrapped-hash Vₚ l³ αₕ (-W¹ Vᵤ* tᵤ))))
            (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
           (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
             (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
