@@ -42,8 +42,8 @@
   (export)
 
   ;;;;; Hash Sets
-  (def-preds (set-equal? set-eqv? set-eq? #:todo set-mutable? set-weak?))
-  (def-prim/todo set
+  (def-preds (set-equal? set-eqv? set-eq? set? set-mutable? set-weak?))
+  (def-prim set
     (() #:rest list? . ->* . (and/c generic-set? set-equal? set?)))
   (def-prim/todo seteqv
     (() #:rest list? . ->* . (and/c generic-set? set-eqv? set?)))
@@ -115,9 +115,13 @@
   (def-prim/todo set-clear!
     ((and/c generic-set? set-mutable?) . -> . void?))
   ;; FIXME listof
+
+  (def-prim set-union
+    ; FIXME enforce sets of the same type
+    ; FIXME uses
+    #;((generic-set?) #:rest (listof generic-set?) . ->* . generic-set?)
+    (set? set? . -> . set?))
   #|
-  (def-prim/todo set-union ; FIXME enforce sets of the same type
-  ((generic-set?) #:rest (listof generic-set?) . ->* . generic-set?))
   (def-prim/todo set-union! ; FIXME enforce sets of the same type
   ((generic-set?) #:rest (listof generic-set?) . ->* . void?))
   (def-prim/todo set-intersect

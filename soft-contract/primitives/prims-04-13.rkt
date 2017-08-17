@@ -40,7 +40,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ instr^ kont^ mon^)
+  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ instr^ kont^ mon^ app^)
   (export)
 
   (def-pred hash?)
@@ -187,7 +187,8 @@
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim/todo hash-set* ; FIXME refine with `eq?` and `eqv?`
     ((and/c hash? immutable?) any/c any/c . -> . (and/c hash? immutable?)))
-  (def-ext (hash-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+
+  (def-ext (hash-ref-1 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME once DSL generalized
     #:domain ([Wₕ hash?] [Wₖ any/c]) ; FIXME uses
     (match-define (-W¹ Vₕ tₕ) Wₕ)
     (match-define (-W¹ _  tₖ) Wₖ)
@@ -199,10 +200,21 @@
       [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) αₕ l³)
        (for*/union : (℘ -ς) ([Cᵥ (in-set (σ@ Σ αᵥ))]
                              [Vₕ* (in-set (σ@ Σ αₕ))])
-          (define ⟦k⟧* (mon.c∷ l³ ℓᵥ (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
-          (define Wₕ* (-W¹ Vₕ* tₕ))
-          (.hash-ref ℓ (list Wₕ* Wₖ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+                   (define ⟦k⟧* (mon.c∷ l³ ℓᵥ (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
+                   (define Wₕ* (-W¹ Vₕ* tₕ))
+                   (.hash-ref-1 ℓ (list Wₕ* Wₖ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
+  (def-ext (hash-ref-2 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME once DSL generalized
+    #:domain ([Wₕ hash?] [Wₖ any/c] [Wₜ (-> any/c)])
+    (∪ (.hash-ref-1 ℓ (list Wₕ Wₖ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       (app ℓ Wₜ '() $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+  (def-ext (hash-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match Ws
+      [(list _ _  ) (.hash-ref-1 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(list _ _ _) (.hash-ref-2 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [_ (define blm (-blm (ℓ-src ℓ) 'hash-ref (list (string->symbol "2 or 3 args")) (map -W¹-V Ws) ℓ))
+         (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
+  
   (def-prim hash-ref! ; FIXME precision
     (hash? any/c any/c . -> . any/c))
   (def-prim hash-has-key?
@@ -242,6 +254,8 @@
     (hash? exact-nonnegative-integer? . -> . (or/c exact-nonnegative-integer? not)))
   (def-prims (hash-iterate-key hash-iterate-value)
     (hash? exact-nonnegative-integer? . -> . any/c))
+  #;(def-prim hash-iterate-key+value
+    (hash? exact-nonnegative-integer? . -> . (values any/c any/c)))
   (def-prim hash-copy
     (hash? . -> . (and/c hash? (not/c immutable?))))
   (def-prims (eq-hash-code eqv-hash-code equal-hash-code equal-secondary-hash-code)

@@ -697,6 +697,8 @@
       [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]
       [x:id #:when (equal? 'in-list (syntax-e #'x)) 'in-list]
       [x:id #:when (equal? 'in-range (syntax-e #'x)) 'in-range]
+      [x:id #:when (member (syntax-e #'x) '(in-hash default-in-hash)) 'in-hash]
+      [x:id #:when (member (syntax-e #'x) '(in-hash-keys default-in-hash-keys)) 'in-hash-keys]
       
       [i:identifier
        (or

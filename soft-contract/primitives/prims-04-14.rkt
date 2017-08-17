@@ -71,7 +71,7 @@
   (def-prim/todo in-bytes-lines ; FIXME uses
     (input-port? (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one)
                  . -> . sequence?))
-  (def-prim/todo in-hash
+  (def-prim in-hash
     (hash? . -> . sequence?))
   (def-prims (in-hash-keys in-hash-values)
     (hash? . -> . sequence?))
