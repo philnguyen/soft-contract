@@ -75,11 +75,6 @@
 (: main : (Listof Path-String) → Void)
 (define (main fnames)
 
-  (: canonicalize-path : Path-String → Path-String)
-  (define (canonicalize-path p)
-    (define p* (if (absolute-path? p) p (path->complete-path p)))
-    (path->string (simplify-path p*)))
-
   (: go : (Listof Path-String) → Void)
   (define (go fnames)
     (with-handlers ([exn:missing?

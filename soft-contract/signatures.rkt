@@ -26,7 +26,8 @@
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]
    [parse-module : (Syntax → -module)]
-   [parse-expr : (Syntax → -e)]))
+   [parse-expr : (Syntax → -e)]
+   [canonicalize-path : (Path-String → Path-String)]))
 
 (define-signature prims^ ; TODO
   ([get-prim : (Symbol → (Option -Prim))]

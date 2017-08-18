@@ -16,7 +16,7 @@
   (: parse-files : (Listof Path-String) → (Listof -module))
   ;; Alpha renaming on top of the old parser (hack)
   (define (parse-files ps)
-    (define ms (pre:parse-files ps))
+    (define ms (pre:parse-files (map pre:canonicalize-path ps)))
     (for-each collect-public-accs! ms)
     ms)
 
@@ -63,6 +63,8 @@
     (for ([(x mut) (in-hash mut-defs)] #:when (hash-has-key? decs x))
       (match-define (-st-mut 𝒾 _) mut)
       (add-public-mut! 𝒾 mut)))
+
+  (define canonicalize-path pre:canonicalize-path)
   )
 
 (define-compound-unit/infer parser@

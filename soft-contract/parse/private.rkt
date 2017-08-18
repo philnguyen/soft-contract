@@ -815,4 +815,8 @@
   (define/contract (id->𝒾 id)
     (identifier? . -> . -𝒾?)
     (-𝒾 (syntax-e id) (id-defining-module id)))
+
+  (define (canonicalize-path p)
+    (define p* (if (absolute-path? p) p (path->complete-path p)))
+    (path->string (simplify-path p*)))
   )
