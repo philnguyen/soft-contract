@@ -2,7 +2,7 @@
 
 (require racket/match
          typed/racket/unit
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "private.rkt")
@@ -10,7 +10,7 @@
 (provide parser@)
 
 (define-unit pre-parser@
-  (import prims^ (prefix pre: parser-helper^))
+  (import static-info^ prims^ (prefix pre: parser-helper^))
   (export parser^)
 
   (: parse-files : (Listof Path-String) → (Listof -module))
@@ -68,7 +68,7 @@
   )
 
 (define-compound-unit/infer parser@
-  (import prims^)
+  (import static-info^ meta-functions^ ast-macros^ prims^)
   (export parser^)
   (link parser-helper@ pre-parser@))
 

@@ -8,7 +8,7 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../signatures.rkt"
@@ -16,7 +16,9 @@
          )
 
 (define-unit havoc@
-  (import widening^ kont^ app^ proof-system^ local-prover^ for-gc^ sto^ pc^ val^ pretty-print^)
+  (import static-info^
+          widening^ kont^ app^ proof-system^ local-prover^
+          for-gc^ sto^ pc^ val^ pretty-print^)
   (export havoc^)
 
   (splicing-local

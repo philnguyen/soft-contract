@@ -7,8 +7,7 @@
          racket/set
          set-extras
          "../utils/main.rkt"
-         "../ast/definition.rkt"
-         "../ast/shorthands.rkt"
+         "../ast/signatures.rkt"
          "signatures.rkt")
 
 (define-unit val@

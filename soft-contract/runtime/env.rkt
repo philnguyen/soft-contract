@@ -2,7 +2,7 @@
 
 (require typed/racket/unit
          "signatures.rkt"
-         "../ast/definition.rkt")
+         "../ast/signatures.rkt")
 
 (provide env@)
 

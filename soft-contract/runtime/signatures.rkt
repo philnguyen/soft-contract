@@ -9,7 +9,7 @@
          bnf
          intern
          set-extras
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          )
 
 (define-type -ρ (Immutable-HashTable Symbol ⟪α⟫))

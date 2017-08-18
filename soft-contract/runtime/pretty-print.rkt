@@ -7,13 +7,13 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          "signatures.rkt"
          )
 
 (provide pretty-print@)
 (define-unit pretty-print@
-  (import env^)
+  (import ast-pretty-print^ env^)
   (export pretty-print^)
 
   (define (show-ς [ς : -ς]) : Sexp
@@ -272,7 +272,7 @@
     (match-lambda
       [(? symbol? s) s]
       [(-𝒾 x _) x]
-      [(-loc.offset 𝒾 i t) `(,(show-t t) ↪ ,(show-ac 𝒾 i))]))
+      [(-loc.offset 𝒾 i t) `(,(show-t t) ↪ ,(show-ac (if (-𝒾? 𝒾) 𝒾 (-𝒾 𝒾 'Λ)) i))]))
 
   (: show-M : -M → (Listof Sexp))
   (define (show-M M)

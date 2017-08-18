@@ -59,7 +59,8 @@
   )
 
 (define-compound-unit/infer prims@
-  (import proof-system^ local-prover^ widening^ app^ kont^ compile^ for-gc^
+  (import ast-pretty-print^ static-info^
+          proof-system^ local-prover^ widening^ app^ kont^ compile^ for-gc^
           val^ pc^ sto^ instr^ pretty-print^ env^ mon^)
   (export prims^ prim-runtime^)
   (link prim-runtime@

@@ -14,7 +14,7 @@
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import proof-system^ local-prover^ widening^ pc^ val^ sto^)
+  (import ast-pretty-print^ proof-system^ local-prover^ widening^ pc^ val^ sto^)
   (export prim-runtime^)
 
   (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))

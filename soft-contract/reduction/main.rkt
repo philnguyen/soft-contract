@@ -8,7 +8,7 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../signatures.rkt"
@@ -23,7 +23,7 @@
          )
 
 (define-unit pre-reduction@
-  (import kont^ havoc^ mon^ local-prover^ widening^ verifier^
+  (import static-info^ kont^ havoc^ mon^ local-prover^ widening^ verifier^
           for-gc^ env^ sto^ pretty-print^ pc^ instr^)
   (export reduction^)
 
@@ -243,7 +243,8 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import prims^ proof-system^ local-prover^ widening^ verifier^
+  (import ast-pretty-print^ static-info^ meta-functions^
+          prims^ proof-system^ local-prover^ widening^ verifier^
           for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

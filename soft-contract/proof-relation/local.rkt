@@ -14,14 +14,14 @@
          (only-in racket/list first second)
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit local-prover@
-  (import prims^ pc^ sto^ val^ pretty-print^)
+  (import static-info^ prims^ pc^ sto^ val^ pretty-print^)
   (export local-prover^)
   (init-depend prims^)
 

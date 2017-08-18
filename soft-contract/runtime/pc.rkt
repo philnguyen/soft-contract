@@ -7,13 +7,13 @@
          (except-in racket/function normalize-arity arity-includes?)
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "signatures.rkt")
 
 (provide pc@)
 
 (define-unit pc@
-  (import env^)
+  (import meta-functions^ static-info^ env^)
   (export pc^)
 
   (define ⊤Γ ∅)

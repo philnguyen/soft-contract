@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require typed/racket/unit
-         "../ast/definition.rkt")
+         "../ast/signatures.rkt")
 
 (define-signature parser-helper^
   ([parse-files : ((Listof Path-String) → (Listof -module))]

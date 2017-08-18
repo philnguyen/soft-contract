@@ -6,7 +6,7 @@
          racket/set
          racket/contract
          typed/racket/unit
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "def-prim.rkt"
          "../reduction/signatures.rkt"

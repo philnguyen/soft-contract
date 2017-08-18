@@ -18,7 +18,7 @@
                        racket/contract
                        racket/syntax
                        syntax/parse
-                       "../ast/definition.rkt"
+                       "../ast/signatures.rkt"
                        "../runtime/signatures.rkt"))
 
 (define-syntax-class hf

@@ -8,7 +8,7 @@
          bnf
          set-extras
          "utils/main.rkt"
-         "ast/main.rkt"
+         "ast/signatures.rkt"
          "runtime/signatures.rkt"
          "parse/signatures.rkt"
          "main.rkt")

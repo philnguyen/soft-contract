@@ -9,7 +9,7 @@
          racket/unsafe/ops
          web-server/private/util
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          ;; For extra constants
          syntax/parse
          syntax/parse/define
@@ -31,7 +31,7 @@
                      ))
 
 (define-unit parser-helper@
-  (import prims^)
+  (import static-info^ ast-macros^ meta-functions^ prims^)
   (export parser-helper^)
   (init-depend prims^)
 
@@ -558,7 +558,7 @@
        #:when (prefab-struct-key (syntax-e #'v))
        (raise-syntax-error 'parse-e "TODO: non-top-level struct" #'stx)]
       [(#%plain-app f x ...)
-       (-@/opt (parse-e #'f) (parse-es #'(x ...)) (syntax-ℓ stx))]
+       (-@/simp (parse-e #'f) (parse-es #'(x ...)) (syntax-ℓ stx))]
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
       [(begin e ...)
@@ -582,7 +582,7 @@
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
       [(if i t e)
-       (-if/opt (parse-e #'i) (parse-e #'t) (parse-e #'e))]
+       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e))]
       [(let-values (bindings ...) b ...)
        (define-values (bindings-rev ρ)
          (for/fold ([bindings-rev '()] [ρ (env)])
@@ -591,9 +591,9 @@
              [((x ...) e)
               (define-values (xs ρ*) (parse-formals #'(x ...) #:base ρ))
               (values (cons (cons xs (parse-e #'e)) bindings-rev) ρ*)])))
-       (-let-values/opt (reverse bindings-rev)
-                        (with-env ρ (-begin/simp (parse-es #'(b ...))))
-                        (syntax-ℓ stx))]
+       (-let-values/simp (reverse bindings-rev)
+                         (with-env ρ (-begin/simp (parse-es #'(b ...))))
+                         (syntax-ℓ stx))]
       [(set! i:identifier e)
        (match-define (-x x _) (parse-ref #'i))
        (set-assignable! x)

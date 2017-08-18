@@ -8,7 +8,7 @@
          racket/set
          set-extras
          "../signatures.rkt"
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          "../utils/main.rkt"
          "signatures.rkt"
          )

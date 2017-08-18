@@ -8,14 +8,15 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit mon@
-  (import compile^ app^ kont^ proof-system^ local-prover^ widening^ prims^
+  (import static-info^
+          compile^ app^ kont^ proof-system^ local-prover^ widening^ prims^
           env^ sto^ val^ instr^ pc^ pretty-print^ for-gc^)
   (export mon^)
 

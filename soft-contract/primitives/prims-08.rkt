@@ -8,7 +8,7 @@
          racket/splicing
          typed/racket/unit
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "def-prim.rkt"
          "../signatures.rkt"

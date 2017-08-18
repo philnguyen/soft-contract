@@ -6,7 +6,7 @@
          racket/set
          typed/racket/unit
          "../utils/list.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"

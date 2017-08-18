@@ -8,7 +8,7 @@
          typed/racket/unit
          racket/unsafe/ops
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "def-prim.rkt"
          "../reduction/signatures.rkt"
@@ -16,7 +16,7 @@
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
+  (import static-info^ prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

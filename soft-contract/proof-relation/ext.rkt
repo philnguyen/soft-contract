@@ -13,7 +13,7 @@
          intern
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "signatures.rkt"
          "../signatures.rkt")
@@ -32,7 +32,7 @@
 (struct Ctx ([bound : (℘ Symbol)] [cache : (HashTable -t (M Z3-Ast))]) #:transparent)
 
 (define-unit external-prover@
-  (import for-gc^ pretty-print^ pc^ sto^)
+  (import static-info^ for-gc^ pretty-print^ pc^ sto^)
   (export external-prover^)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

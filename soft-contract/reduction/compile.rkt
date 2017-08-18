@@ -8,7 +8,7 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../signatures.rkt"
@@ -16,7 +16,8 @@
          )
 
 (define-unit compile@
-  (import kont^ widening^ memoize^ proof-system^ local-prover^
+  (import meta-functions^ ast-pretty-print^
+          kont^ widening^ memoize^ proof-system^ local-prover^
           env^ sto^ pc^ val^ pretty-print^ for-gc^)
   (export compile^)
 

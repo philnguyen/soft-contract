@@ -21,8 +21,7 @@
          syntax/parse/define
          set-extras
          "../utils/map.rkt"
-         "../ast/definition.rkt"
-         "../ast/shorthands.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
 (begin-for-syntax

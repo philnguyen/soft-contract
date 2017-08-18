@@ -28,7 +28,7 @@
          syntax/parse/define
          set-extras
          "../utils/map.rkt"
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "gen.rkt")
 

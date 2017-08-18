@@ -22,8 +22,7 @@
          set-extras
          "../utils/debug.rkt"
          "../utils/pretty.rkt"
-         (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
-         "../ast/shorthands.rkt"
+         (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
          "../reduction/signatures.rkt"
          "../proof-relation/signatures.rkt"

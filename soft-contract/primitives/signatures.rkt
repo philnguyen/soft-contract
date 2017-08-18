@@ -5,7 +5,7 @@
 (require typed/racket/unit
          typed/racket/unsafe
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
 (unsafe-require/typed syntax/id-table

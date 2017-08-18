@@ -12,13 +12,13 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit widening@
-  (import local-prover^ pc^ sto^ pretty-print^ env^ val^)
+  (import static-info^ local-prover^ pc^ sto^ pretty-print^ env^ val^)
   (export widening^)
 
   (: Γ+ : -Γ -?t * → -Γ)

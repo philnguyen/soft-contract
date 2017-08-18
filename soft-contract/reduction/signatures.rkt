@@ -4,7 +4,7 @@
 
 (require typed/racket/unit
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
 (define-signature compile^

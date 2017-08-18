@@ -7,15 +7,19 @@
          typed/racket/unit
          set-extras
          "utils/main.rkt"
-         "ast/main.rkt"
+         "ast/signatures.rkt"
          "runtime/signatures.rkt"
          "signatures.rkt"
          "reduction/signatures.rkt"
          )
 
 (define-unit verifier@
-  (import reduction^ compile^ parser^ havoc^)
+  (import static-info^ reduction^ compile^ parser^ havoc^)
   (export verifier^)
+
+  (define-syntax-rule (with-initialized-static-info e ...)
+    (parameterize ([current-static-info (new-static-info)])
+      e ...))
   
   (define (run-files [ps : (Listof Path-String)]) : (Values (℘ -ΓA) -Σ)
     (with-initialized-static-info
