@@ -81,6 +81,7 @@
                      (match-lambda
                        [(exn:missing _ _ src id)
                         (define src* (canonicalize-path src))
+                        (printf "- dependency: ~a for `~a`~n" src* id)
                         (assert (not (member src* fnames)))
                         (go (cons src* fnames))])])
       (case mode
