@@ -75,14 +75,19 @@
 (: main : (Listof Path-String) → Void)
 (define (main fnames)
 
+  (: canonicalize-path : Path-String → Path-String)
+  (define (canonicalize-path p)
+    (define p* (if (absolute-path? p) p (path->complete-path p)))
+    (path->string (simplify-path p*)))
+
   (: go : (Listof Path-String) → Void)
   (define (go fnames)
     (with-handlers ([exn:missing?
                      (match-lambda
                        [(exn:missing _ _ src id)
-                        (assert (not (member src fnames)))
-                        (printf " - dependency: ~a for `~a`~n" src id)
-                        (go (cons src fnames))])])
+                        (define src* (canonicalize-path src))
+                        (assert (not (member src* fnames)))
+                        (go (cons src* fnames))])])
       (case mode
         [(expand)
          (for ([m (in-list (parse-files fnames))])
@@ -103,6 +108,6 @@
          (define-values (ans _) (havoc-last-file fnames))
          (print-result ans)])))
 
-  (go (map path->string (map path->complete-path fnames))))
+  (go (map canonicalize-path fnames)))
 
 (main fnames)
