@@ -17,7 +17,7 @@
 ;; Compute free variables for expression. Return set of variable names.
 (define (fv e)
   (match e
-    [(-x x _) {seteq x}]
+    [(-x x _) (if (symbol? x) {seteq x} ∅eq)]
     [(-λ xs e)
      (define bound
        (match xs
@@ -326,6 +326,7 @@
   (and (not (assignable? x))
        (match e
          [(? -b?) #t]
-         [(? -x?) #t]
-         [(-ref (-𝒾 _ src) ℓ) (equal? src (ℓ-src ℓ))]
+         [(-x x ℓ)
+          (or (symbol? x)
+              (equal? (-𝒾-src x) (ℓ-src ℓ)))]
          [_ #f])))

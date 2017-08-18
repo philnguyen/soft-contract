@@ -110,65 +110,66 @@
          [(-•)
           (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
             (⟦k⟧ (-W (list (+●)) #f) $ Γ ⟪ℋ⟫ Σ))]
-         [(-x x ℓₓ) (↓ₓ l x ℓₓ)]
-         [(-ref (and 𝒾 (-𝒾 x l₀)) ℓᵣ)
+         [(-x x ℓₓ)
+          (match x
+            [(? symbol? x)
+             (↓ₓ l x ℓₓ)]
+            [(and 𝒾 (-𝒾 x l₀))
+             (: approximate-under-contract! : -Σ -V → -V)
+             (define (approximate-under-contract! Σ V)
+               (match V
+                 [(-Ar C _ l³)
+                  (match C
+                    [(-=> (list (-⟪α⟫ℓ α₁ _)) (list (-⟪α⟫ℓ α₂ _)) _)
+                     #:when (and (equal? (σ@ Σ α₁) {set 'any/c})
+                                 (equal? (σ@ Σ α₂) {set 'boolean?}))
+                     ;; cheat
+                     V]
+                    [_
+                     (define n (guard-arity C))
+                     (define α (-α->⟪α⟫ (-α.fn● n)))
+                     (σ⊕V! Σ α (-Fn● n))
+                     (-Ar C α l³)])]
+                 [(-St* C _ l³)
+                  (-St* C ⟪α⟫ₒₚ l³)]
+                 [(-Vector/guard C _ l³)
+                  (-Vector/guard C ⟪α⟫ₒₚ l³)]
+                 [_ V]))
+             
+             (define-values (α modify-V)
+               (cond
+                 ;; same-module referencing returns unwrapped version
+                 [(equal? l₀ l)
+                  (values 𝒾 (λ ([Σ : -Σ] [V : -V]) V))]
+                 ;; cross-module referencing returns wrapped version
+                 ;; when the caller is symbolic (HACK)
+                 ;; and supplies the negative monitoring context (HACK)
+                 [(symbol? l)
+                  (values (-α.wrp 𝒾) (λ ([Σ : -Σ] [V : -V]) (with-negative-party l V)))]
+                 ;; cross-mldule referencing returns abstracted wrapped version
+                 ;; when the caller is concrete (HACK)
+                 ;; and supplies the negative monitoring context (HACK)
+                 [else
+                  (values (-α.wrp 𝒾) (λ ([Σ : -Σ] [V : -V])
+                                       (with-positive-party 'dummy+
+                                         (with-negative-party l
+                                           (approximate-under-contract! Σ V)))))]))
+             
+             (define ⟪α⟫ (-α->⟪α⟫ α))
+             (define ?loc (hack:α->loc ⟪α⟫))
 
-          (: approximate-under-contract! : -Σ -V → -V)
-          (define (approximate-under-contract! Σ V)
-            (match V
-              [(-Ar C _ l³)
-               (match C
-                 [(-=> (list (-⟪α⟫ℓ α₁ _)) (list (-⟪α⟫ℓ α₂ _)) _)
-                  #:when (and (equal? (σ@ Σ α₁) {set 'any/c})
-                              (equal? (σ@ Σ α₂) {set 'boolean?}))
-                  ;; cheat
-                  V]
-                 [_
-                  (define n (guard-arity C))
-                  (define α (-α->⟪α⟫ (-α.fn● n)))
-                  (σ⊕V! Σ α (-Fn● n))
-                  (-Ar C α l³)])]
-              [(-St* C _ l³)
-               (-St* C ⟪α⟫ₒₚ l³)]
-              [(-Vector/guard C _ l³)
-               (-Vector/guard C ⟪α⟫ₒₚ l³)]
-              [_ V]))
-          
-          (define-values (α modify-V)
-            (cond
-              ;; same-module referencing returns unwrapped version
-              [(equal? l₀ l)
-               (values 𝒾 (λ ([Σ : -Σ] [V : -V]) V))]
-              ;; cross-module referencing returns wrapped version
-              ;; when the caller is symbolic (HACK)
-              ;; and supplies the negative monitoring context (HACK)
-              [(symbol? l)
-               (values (-α.wrp 𝒾) (λ ([Σ : -Σ] [V : -V]) (with-negative-party l V)))]
-              ;; cross-mldule referencing returns abstracted wrapped version
-              ;; when the caller is concrete (HACK)
-              ;; and supplies the negative monitoring context (HACK)
-              [else
-               (values (-α.wrp 𝒾) (λ ([Σ : -Σ] [V : -V])
-                                    (with-positive-party 'dummy+
-                                      (with-negative-party l
-                                        (approximate-under-contract! Σ V)))))]))
-          
-          (define ⟪α⟫ (-α->⟪α⟫ α))
-          (define ?loc (hack:α->loc ⟪α⟫))
-
-          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-            (unless (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ) ; HACK
-              (σ⊕V! Σ ⟪α⟫ₒₚ (+●)))
-            (cond
-              [?loc
-               (define-values (Ws $*) ($@! Σ Γ ⟪α⟫ $ ?loc ℓᵣ))
-               (for/union : (℘ -ς) ([W (in-set Ws)])
-                          (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
-              [else
-               (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
-                          (define V* (modify-V Σ V))
-                          (⟦k⟧ (-W (list V*) ℓᵣ) $ Γ ⟪ℋ⟫ Σ))]))]
-         
+             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+               (unless (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ) ; HACK
+                 (σ⊕V! Σ ⟪α⟫ₒₚ (+●)))
+               (cond
+                 [?loc
+                  (define-values (Ws $*) ($@! Σ Γ ⟪α⟫ $ ?loc ℓₓ))
+                  (for/union : (℘ -ς) ([W (in-set Ws)])
+                             (⟦k⟧ (W¹->W W) $* Γ ⟪ℋ⟫ Σ))]
+                 [else
+                  (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
+                             (define V* (modify-V Σ V))
+                             (⟦k⟧ (-W (list V*) ℓₓ) $ Γ ⟪ℋ⟫ Σ))]))])]
          [(-@ f xs ℓ)
           (define ⟦f⟧  (↓ f))
           (define ⟦x⟧s (map ↓ xs))

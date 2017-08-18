@@ -528,7 +528,7 @@
   (define-frame (dec∷ [ℓ : ℓ]
                       [𝒾 : -𝒾]
                       [⟦k⟧ : -⟦k⟧])
-    (define l (-𝒾-ctx 𝒾))
+    (define l (-𝒾-src 𝒾))
     (define l³ (-l³ l 'dummy- l))
     (define α (-α->⟪α⟫ 𝒾))
     (define α* (-α->⟪α⟫ (-α.wrp 𝒾)))

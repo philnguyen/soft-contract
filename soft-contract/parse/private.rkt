@@ -369,7 +369,7 @@
                 (#%plain-lambda () (quote-syntax k1:id)))))
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-mod)))
-       (-define-values (list lhs) (-ref (-𝒾 (syntax-e #'k) (cur-mod)) (syntax-ℓ #'rhs)))]
+       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (syntax-ℓ #'rhs)))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 
@@ -460,7 +460,7 @@
           (-𝒾 (syntax-e #'f) f.src)
           (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src (syntax-e #'f))))))
        (set-module-before! f.src (cur-mod))
-       (define f-ref (-ref f-resolved (syntax-ℓ #'f)))
+       (define f-ref (-x f-resolved (syntax-ℓ #'f)))
        (cond
          [wrap? (-@ f-ref (parse-es #'(args ...)) (syntax-ℓ stx))]
          [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-ref]
@@ -577,7 +577,7 @@
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
           (set-module-before! src (cur-mod))
-          (-ref (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e #'id0))))) (syntax-ℓ stx))]
+          (-x (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e #'id0))))) (syntax-ℓ stx))]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
@@ -595,11 +595,9 @@
                         (with-env ρ (-begin/simp (parse-es #'(b ...))))
                         (syntax-ℓ stx))]
       [(set! i:identifier e)
-       (define lhs
-         (match (parse-ref #'i)
-           [(-x x _) (set-assignable! x) x]
-           [(-ref 𝒾 _) (set-assignable! 𝒾) 𝒾]))
-       (-set! lhs (parse-e #'e))]
+       (match-define (-x x _) (parse-ref #'i))
+       (set-assignable! x)
+       (-set! x (parse-e #'e))]
       [(#%plain-lambda fmls b ...+)
        (define-values (xs ρ) (parse-formals #'fmls))
        (-λ xs (with-env ρ (-begin/simp (parse-es #'(b ...)))))]
@@ -667,7 +665,7 @@
         (parse-ref #'i))]))
 
   (define/contract (parse-ref id)
-    (identifier? . -> . (or/c -x? -ref?))
+    (identifier? . -> . -x?)
 
     (define (lookup)
       (free-id-table-ref (env) id (λ () (raise-syntax-error 'parser "not in scope" id))))
@@ -688,7 +686,7 @@
          (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e id))))
        (unless (equal? src (cur-mod))
          (set-module-before! src (cur-mod)))
-       (-ref (-𝒾 (syntax-e id) src) (syntax-ℓ id))]
+       (-x (-𝒾 (syntax-e id) src) (syntax-ℓ id))]
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
 

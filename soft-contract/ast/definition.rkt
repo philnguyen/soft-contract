@@ -55,7 +55,7 @@
       (hash-ref! m xs (λ () (apply +x! xs))))))
 
 ;; Identifier as a name and its source
-(struct -𝒾 ([name : Symbol] [ctx : -l]) #:transparent)
+(struct -𝒾 ([name : Symbol] [src : -l]) #:transparent)
 
 ;; Formal parameters
 (define-type -formals (-maybe-var Symbol))
@@ -89,8 +89,7 @@
 (-require-spec . ::= . -l #|TODO|#)
 
 (-e . ::= . -v
-            (-x Symbol ℓ) ; lexical variables 
-            (-ref -𝒾 ℓ) ; module references
+            (-x (U Symbol -𝒾) ℓ) ; lexical/module ref
             (-@ -e (Listof -e) ℓ)
             (-if -e -e -e)
             (-wcm [key : -e] [val : -e] [body : -e])
@@ -208,11 +207,7 @@
     [(-•) '•]
     [(-b b) (show-b b)]
     [(? -o? o) (show-o o)]
-    [(-x x _) x]
-    [(-ref (-𝒾 x p) _)
-     (case p ;; hack
-       [(Λ) (format-symbol "_~a" x)]
-       [else x])]
+    [(-x x _) (if (symbol? x) x (-𝒾-name x))]
     [(-let-values bnds body _)
      (match bnds
        [(list (cons (list lhs) rhs) ...)
