@@ -186,7 +186,7 @@
           "gradual-typing-benchmarks/fsm/benv.rkt"
           "gradual-typing-benchmarks/fsm/time.rkt"
           "gradual-typing-benchmarks/fsm/denotable.rkt")
-        check-safe)
+        (check 'Ok-pos 3 3))
 
   (test   "safe/games" check-safe)
   (test "unsafe/games" check-fail)
