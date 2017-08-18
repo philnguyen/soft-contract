@@ -1,7 +1,9 @@
 #lang racket
 
 (provide parser-helper@)
+
 (require (prefix-in c: racket/contract/base)
+         racket/splicing
          set-extras
          racket/unit
          racket/unsafe/ops
@@ -13,6 +15,7 @@
          syntax/parse/define
          syntax/modresolve
          syntax/id-table
+         "hacks.rkt"
          "expand.rkt"
          (prefix-in fake: "../fake-contract.rkt")
          "../signatures.rkt"
@@ -26,43 +29,6 @@
                      syntax/parse
                      racket/contract
                      ))
-
-(define ?recognized-name
-  (let ([names '(call-with-input-file
-                 call-with-output-file
-                 open-input-file
-                 open-output-file
-                 file->list
-                 file->value
-                 with-input-from-file
-                 with-output-to-file)])
-    (λ (name)
-      (define name-str (symbol->string name))
-      (for/first ([s (in-list names)]
-                  #:when (string-prefix? name-str (symbol->string s)))
-        s))))
-
-(define-syntax-class indirect-app
-  #:description "hack pattern for some `variable-reference-constant?` usages"
-  #:literals (if #%plain-app #%variable-reference)
-  (pattern (if (#%plain-app (~literal variable-reference-constant?)
-                            (#%variable-reference f:id))
-               (#%plain-app g*:id _ ...)
-               (#%plain-app g:id x ...))
-           #:attr fun-name (?recognized-name (syntax-e #'g))
-           #:when (free-identifier=? #'f #'g)
-           #:when (attribute fun-name)
-           #:attr args #'(x ...)))
-
-(define-syntax-class scv-provide
-  #:description "hacked scv provide form"
-  #:literals (#%plain-app call-with-values #%plain-lambda)
-  (pattern (#%plain-app
-            call-with-values
-            (#%plain-lambda ()
-                            (#%plain-app (~literal fake:dynamic-provide/contract) prov ...))
-            _)
-           #:attr provide-list #'(prov ...)))
 
 (define-unit parser-helper@
   (import prims^)
@@ -689,17 +655,11 @@
       [(~literal fake:listof) 'listof]
       [(~literal fake:list/c) 'list/c]
       #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work      
+
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")
             'hash/c]
-      
-      ;; FIXME Hacks for private identifiers
-      [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]
-      [x:id #:when (equal? 'in-list (syntax-e #'x)) 'in-list]
-      [x:id #:when (equal? 'in-range (syntax-e #'x)) 'in-range]
-      [x:id #:when (member (syntax-e #'x) '(in-hash default-in-hash)) 'in-hash]
-      [x:id #:when (member (syntax-e #'x) '(in-hash-keys default-in-hash-keys)) 'in-hash-keys]
-      [x:id #:when (equal? 'in-set (syntax-e #'x)) 'in-set]
+      [x:private-id (attribute x.name)]
       
       [i:identifier
        (or

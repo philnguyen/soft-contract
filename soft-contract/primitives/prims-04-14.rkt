@@ -53,7 +53,7 @@
     (list? . -> . stream?))
   #;[in-mlist ; FIXME don't know about `mlist?`
      (mlist? . -> . stream?)]
-  (def-prim/todo in-vector ; FIXME uses
+  (def-prim in-vector ; FIXME uses
     (vector? . -> . sequence?))
   (def-prim/todo in-string ; FIXME uses
     (string? . -> . sequence?))
