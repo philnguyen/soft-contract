@@ -178,7 +178,7 @@
     (define/syntax-parse sig:ff (-sig))
     (define dom-init (attribute sig.init))
     (define dom-rest (attribute sig.rest))
-    (define rng (attribute sig.rng))
+    (define ranges (attribute sig.ranges))
     (define/with-syntax (W ...) (-Wₙ))
     (define/with-syntax (s ...) (-sₙ))
     (define/with-syntax (b ...) (-bₙ))
@@ -190,13 +190,13 @@
 
     (cond
       ;; Generate predicates differently
-      [(and (identifier? rng) (free-identifier=? #'boolean? rng))
+      [(and (= 1 (length ranges)) (identifier? (car ranges)) (free-identifier=? #'boolean? (car ranges)))
        (hack:make-available (-o) implement-predicate)
        (list #`(implement-predicate (-Σ-σ #,(-Σ)) #,(-Γ) '#,(-o) #,(-Ws)))]
       [dom-rest
        (define/with-syntax (concrete-case-clauses ...)
          (cond
-           [(and base-guard-init (range-is-base? rng))
+           [(and base-guard-init (= 1 (length ranges)) (range-is-base? (car ranges)))
             (define/with-syntax mk-bₐ #`(-b (apply #,(-o) #,@(-bₙ) #,(-b*))))
             (define base-guard
               (syntax-parse dom-rest
@@ -225,7 +225,7 @@
       [else
        (define/with-syntax (concrete-case-clauses ...)
          (cond
-           [(and base-guard-init (range-is-base? rng))
+           [(and base-guard-init (= 1 (length ranges)) (range-is-base? (car ranges)))
             (define/with-syntax mk-bₐ
               (syntax-parse (-o)
                 [(~literal any/c) #'-tt]
@@ -243,8 +243,8 @@
             symbolic-case-clauses ...))]))
 
   ;; Generate function that refines results when more is known about arguments
-  (define/contract (gen-refine-body V)
-    (identifier? . -> . (listof syntax?))
+  (define/contract (gen-refine-body Vs)
+    ((listof identifier?) . -> . (listof syntax?))
 
     (define/contract (gen-check-definitely W c)
       (identifier? syntax? . -> . syntax?)
@@ -287,7 +287,7 @@
           (define/syntax-parse ref:ff refinement)
           (define ref-init (attribute ref.init))
           (define ref-rest (attribute ref.rest))
-          (define ref-rng  (attribute ref.rng))
+          (define ref-ranges  (attribute ref.ranges))
           (define precond-init (map gen-check-definitely (-Wₙ) ref-init))
           (define precond-rest
             (syntax-parse ref-rest
@@ -299,69 +299,86 @@
           (define precond (and* (append precond-init precond-rest)))
           (hack:make-available (-o) V+)
           #`(when #,precond
-              #,@(for/list ([cᵣ (in-list (rng->refinement ref-rng))])
-                   #`(set! #,V (V+ (-Σ-σ #,(-Σ)) #,V #,cᵣ)))))
-      ,V))
+              #,@(append-map
+                  (λ (ref-range V)
+                    (for/list ([cᵣ (in-list (range->refinement ref-range))])
+                      #`(set! #,V (V+ (-Σ-σ #,(-Σ)) #,V #,cᵣ))))
+                  ref-ranges
+                  Vs)))
+      ,(match Vs [(list V) V] [_ #`(values #,@Vs)])))
 
   ;; Generate primitive body for the case where 1+ argument is symbolic
   ;; Free variable `Γ` available as "the" path condition
   (define/contract (gen-sym-case) (-> (listof syntax?))
 
     (define/syntax-parse sig:ff (-sig))
-    (define/syntax-parse rng:rngc (attribute sig.rng))
     (define dom-rest (attribute sig.rest))
 
     ;; List of possible refinement sets to result according to contract range
-    (define/contract refinement-sets (listof (listof syntax?))
-      (match (attribute rng.values)
-        [(list d)
-         (let go ([c d])
-           (syntax-parse c
-             [((~literal and/c) c* ...)
-              (let go/and/c ([cs (syntax->list #'(c* ...))])
-                (match cs
-                  ['() (list (list))]
-                  [(cons c cs*)
-                   (remove-duplicates
-                    (for/list ([ref-set₁ (in-list (go c))]
-                               [ref-set₂ (in-list (go/and/c cs*))])
-                      (remove-duplicates (append ref-set₁ ref-set₂))))]))]
-             [((~literal or/c) cᵢ ...)
-              (append-map go (syntax->list #'(cᵢ ...)))]
-             [((~literal not/c) d)
-              (cond [(identifier? #'d) (list (list #'(-not/c 'd)))]
-                    [else (raise-syntax-error
-                           'def-prim
-                           (format "~a: only identifier can follow not/c in range" (-o))
-                           c)])]
-             [((~literal cons/c) _ _)
-              (raise-syntax-error
-               'def-prim
-               (format "~a: `cons/c` in range not supported for now" (syntax-e (-o)))
-               c)]
-             [((~literal listof) _)
-              (raise-syntax-error
-               'def-prim
-               (format "~a: `listof` in range not supported for now" (syntax-e (-o)))
-               c)]
-             [((~literal list/c) c* ...)
-              (go (desugar-list/c (syntax->list #'(c* ...))))]
-             [((~literal =/c) x) (list (list #''real? #'(-≡/c x)))]
-             [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
-             [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
-             [((~literal </c) x) (list (list #''real? #'(-</c x)))]
-             [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
-             [x:lit (list (list #'(-≡/c x)))]
-             [(~literal any/c) (list (list))]
-             [(~literal none/c) (list)]
-             [c:id {list (list #''c)}]))]
-        [rngs
-         (raise-syntax-error
-          'def-prim
-          "TODO: multiple returns"
-          rngs)]))
+    (define/contract refinement-sets
+      ; possibilities of multiple returns of refinements
+      (listof (listof (listof syntax?)))
 
-    (define (refs->V refs)
+      (let ()
+        (define/contract (go c)
+          ;; possibilities of refinements
+          (syntax? . -> . (listof (listof syntax?)))
+          (syntax-parse c
+            [((~literal and/c) c* ...)
+             (let go/and/c ([cs (syntax->list #'(c* ...))])
+               (match cs
+                 ['() (list (list))]
+                 [(cons c cs*)
+                  (remove-duplicates
+                   (for/list ([ref-set₁ (in-list (go c))]
+                              [ref-set₂ (in-list (go/and/c cs*))])
+                     (remove-duplicates (append ref-set₁ ref-set₂))))]))]
+            [((~literal or/c) cᵢ ...)
+             (append-map go (syntax->list #'(cᵢ ...)))]
+            [((~literal not/c) d)
+             (cond [(identifier? #'d) (list (list #'(-not/c 'd)))]
+                   [else (raise-syntax-error
+                          'def-prim
+                          (format "~a: only identifier can follow not/c in range" (-o))
+                          c)])]
+            [((~literal cons/c) _ _)
+             (raise-syntax-error
+              'def-prim
+              (format "~a: `cons/c` in range not supported for now" (syntax-e (-o)))
+              c)]
+            [((~literal listof) _)
+             (raise-syntax-error
+              'def-prim
+              (format "~a: `listof` in range not supported for now" (syntax-e (-o)))
+              c)]
+            [((~literal list/c) c* ...)
+             (go (desugar-list/c (syntax->list #'(c* ...))))]
+            [((~literal =/c) x) (list (list #''real? #'(-≡/c x)))]
+            [((~literal >/c) x) (list (list #''real? #'(->/c x)))]
+            [((~literal >=/c) x) (list (list #''real? #'(-≥/c x)))]
+            [((~literal </c) x) (list (list #''real? #'(-</c x)))]
+            [((~literal <=/c) x) (list (list #''real? #'(-≤/c x)))]
+            [x:lit (list (list #'(-≡/c x)))]
+            [(~literal any/c) (list (list))]
+            [(~literal none/c) (list)]
+            [c:id {list (list #''c)}]))
+
+        (define/contract (go/list cs)
+          ((listof syntax?) . -> . (listof (listof (listof syntax?))))
+
+          (match cs
+            ['() (list (list))]
+            [(cons c₁ cs*)
+             (define ref-sets₁ (go c₁))
+             (define range-rest (go/list cs*))
+             (for*/list ([ref-set₁ (in-list ref-sets₁)]
+                         [ref-set* (in-list range-rest)])
+               (cons ref-set₁ ref-set*))]))
+
+        (go/list (attribute sig.ranges))))
+
+    (define/contract (ref-set->val ref-set)
+      ((listof syntax?) . -> . syntax?)
       (foldr (λ (ref V)
                (define/with-syntax p
                  (syntax-parse ref
@@ -371,7 +388,7 @@
                #`(V+ (-Σ-σ #,(-Σ)) #,V p))
              (with-hack:make-available ((-o) +●)
                #'(+●))
-             refs))
+             ref-set))
 
     (define/with-syntax mk-sₐ
       (cond [(-volatile?) #'#f]
@@ -385,14 +402,23 @@
     (cond
       [(null? (-refs))
        (list #`(define sₐ mk-sₐ)
-             #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                         #`(-ΓA #,(-Γ) (-W (list #,(refs->V refs)) sₐ)))))]
+             #`(set #,@(for/list ([ref-sets (in-list refinement-sets)])
+                         #`(-ΓA #,(-Γ) (-W (list #,@(map ref-set->val ref-sets)) sₐ)))))]
       [else
+       (define count-ranges (attribute sig.count-ranges))
        (define/with-syntax o.refine (format-id #f "~a.refine" (syntax-e (-o))))
+       (define/with-syntax (V ...)
+         (for/list ([i (in-range count-ranges)])
+           (format-id #f "V~a" (n-sub i))))
        (list #`(define sₐ mk-sₐ)
-             #`(define (o.refine [V : -V]) #,@(gen-refine-body #'V))
-             #`(set #,@(for/list ([refs (in-list refinement-sets)])
-                         #`(-ΓA #,(-Γ) (-W (list (o.refine #,(refs->V refs))) sₐ)))))]))
+             #`(define (o.refine [V : -V] ...) #,@(gen-refine-body (syntax->list #'(V ...))))
+             #`(set #,@(for/list ([ref-sets (in-list refinement-sets)])
+                         (case count-ranges
+                           [(1)
+                            #`(-ΓA #,(-Γ) (-W (list (o.refine #,@(map ref-set->val ref-sets))) sₐ))]
+                           [else
+                            #`(let-values ([(V ...) (o.refine #,@(map ref-set->val ref-sets))])
+                             (-ΓA #,(-Γ) (-W (list V ...) sₐ)))]))))]))
 
   ;; Generate full precondition check
   (define/contract (gen-precond-checks body)

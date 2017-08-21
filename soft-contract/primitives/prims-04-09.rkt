@@ -257,8 +257,8 @@
     (list? exact-nonnegative-integer? . -> . list?))
   (def-prim/todo drop
     (any/c exact-nonnegative-integer? . -> . any/c))
-  #;[split-at ; FIXME
-     (any/c exact-nonnegative-integer? . -> . (values list? any/c))]
+  (def-prim split-at ; FIXME
+    (any/c exact-nonnegative-integer? . -> . (values list? any/c)))
   (def-prim/todo takef
     (any/c procedure? . -> . list?))
   (def-prim/todo dropf
@@ -269,8 +269,8 @@
     (any/c exact-nonnegative-integer? . -> . any/c))
   (def-prim/todo drop-right
     (any/c exact-nonnegative-integer? . -> . list?))
-  #;[split-at-right ; FIXME
-     (any/c exact-nonnegative-integer? . -> . (values list? any/c))]
+  (def-prim split-at-right
+    (any/c exact-nonnegative-integer? . -> . (values list? any/c)))
   (def-prim/todo takef-right
     (any/c procedure? . -> . list?))
   (def-prim/todo dropf-right
@@ -281,10 +281,10 @@
     (list? list? . -> . boolean?))
   (def-prim/todo take-common-prefix ; FIXME uses
     (list? list? . -> . list?))
-  #;[drop-common-prefix ; FIXME uses
-     (list? list? . -> . (values list? list?))]
-  #;[split-common-prefix ; FIXME uses
-     (list? list? . -> . (values list? list? list?))]
+  (def-prim drop-common-prefix ; FIXME uses
+     (list? list? . -> . (values list? list?)))
+  (def-prim split-common-prefix ; FIXME uses
+     (list? list? . -> . (values list? list? list?)))
   (def-prim/todo add-between ; FIXME uses
     (list? any/c . -> . list?))
   #;[append* ; FIXME uses ; FIXME listof

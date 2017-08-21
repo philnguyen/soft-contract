@@ -72,11 +72,7 @@
 ;(: store-join (-> Store Store Store))
 (define (store-join s1 s2)
   (for*/fold ([new-store s1])
-             ;; FIXME this should be fixed once the primitives DSL is generalized
-             ([k (in-hash-keys s2)]
-              [v (in-value (hash-ref s2 k))])
-             #;([(k v) (in-hash s2)])
-    
+             ([(k v) (in-hash s2)])
     (store-update new-store k v)))
 
 (define Denotable/c set?) ; FIXME

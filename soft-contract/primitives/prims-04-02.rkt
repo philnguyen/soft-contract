@@ -114,8 +114,8 @@
     (((not/c zero?)) #:rest list? . ->* . (not/c zero?)))
   (def-prims (quotient remainder modulo) ; FIXME: only error on exact 0
     (integer? (and/c integer? (not/c zero?)) . -> . integer?))
-  #;(def-prims quotient/remainder ; TODO
-      (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?)))
+  (def-prim quotient/remainder
+    (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?)))
   (def-prim add1
     (number? . -> . number?)
     #:refinements

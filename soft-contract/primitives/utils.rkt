@@ -37,16 +37,18 @@
 
 (define-syntax-class ff
   #:description "restricted first-order function contract"
-  #:attributes (init rest rng arity)
+  #:attributes (init rest ranges count-ranges arity)
   (pattern ((~literal ->) c:fc ... d:rngc)
            #:attr init (syntax->list #'(c ...))
            #:attr rest #f
-           #:attr rng #'d
+           #:attr ranges (attribute d.values)
+           #:attr count-ranges (length (attribute ranges))
            #:attr arity (length (syntax->list #'(c ...))))
   (pattern ((~literal ->*) (c:fc ...) #:rest cᵣ:rstc d:rngc)
            #:attr init (syntax->list #'(c ...))
            #:attr rest #'cᵣ
-           #:attr rng #'d
+           #:attr ranges (attribute d.values)
+           #:attr count-ranges (length (attribute ranges))
            #:attr arity (arity-at-least (length (syntax->list #'(c ...))))))
 
 (define-syntax-class fc
@@ -65,6 +67,7 @@
 
 (define-syntax-class rngc
   #:description "restricted function range"
+  #:attributes (values)
   (pattern c:fc
            #:attr values (list #'c))
   (pattern ((~literal values) c₁:fc c₂:fc cᵣ:fc ...)
@@ -119,11 +122,11 @@
 (define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))
 
 ;; Convert contract range into list of refinement syntax
-(define/contract (rng->refinement rng)
+(define/contract (range->refinement rng)
   (syntax? . -> . (listof syntax?))
   (syntax-parse rng
     [((~literal and/c) cᵢ ...)
-     (append-map rng->refinement (syntax->list #'(cᵢ ...)))]
+     (append-map range->refinement (syntax->list #'(cᵢ ...)))]
     [((~literal or/c) _ ...)
      (raise-syntax-error 'def-prim "or/c in #:refinement clause not supported" rng)]
     [((~literal not/c) d)

@@ -235,10 +235,10 @@
     (hash? . -> . hash?))
   #;[hash-map ; FIXME uses ; FIXME listof
      (hash? (any/c any/c . -> . any/c) . -> . (listof any/c))]
-  #;[hash-keys ; FIXME listof
-     (hash? . -> . (listof any/c))]
-  #;[hash-values ; FIXME listof
-     (hash? . -> . (listof any/c))]
+  (def-prim hash-keys
+    (hash? . -> . list?))
+  (def-prim hash-values
+    (hash? . -> . list?))
   #;[hash->list ; simplified from doc's `(cons/c any/c any/c)` ; FIXME listof
      (hash? . -> . (listof pair?))]
   (def-prim hash-for-each ; FIXME uses
@@ -253,7 +253,7 @@
     (hash? exact-nonnegative-integer? . -> . (or/c exact-nonnegative-integer? not)))
   (def-prims (hash-iterate-key hash-iterate-value)
     (hash? exact-nonnegative-integer? . -> . any/c))
-  #;(def-prim hash-iterate-key+value
+  (def-prim hash-iterate-key+value
     (hash? exact-nonnegative-integer? . -> . (values any/c any/c)))
   (def-prim hash-copy
     (hash? . -> . (and/c hash? (not/c immutable?))))

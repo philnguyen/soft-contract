@@ -233,7 +233,7 @@
 
 (define-syntax-parser def-opq
   [(_ x:id c:fc)
-   (define/with-syntax (r ...) (datum->syntax #f (rng->refinement #'c)))
+   (define/with-syntax (r ...) (datum->syntax #f (range->refinement #'c)))
    (hack:make-available #'x opq-table)
    #'(hash-set-once! opq-table 'x (-● (set r ...)))])
 
