@@ -39,7 +39,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^ instr^ kont^ mon^ app^)
+  (import prim-runtime^ proof-system^ widening^ val^ env^ pc^ sto^ instr^
+          kont^ mon^ app^ compile^)
   (export)
 
   (def-pred hash?)
@@ -167,20 +168,15 @@
        (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
        (define Wₕ* (-W (list Vₕ*) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
-      [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ _) (-⟪α⟫ℓ αᵥ _)))
+      [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ)))
                     αₕ
                     (and l³ (-l³ l+ l- lo)))
        (define l³* (-l³ l- l+ lo))
        (define ⟦k⟧* (hash-set-inner∷ ℓ αₕ tₕ (wrap-hash∷ ℓ C l³ ⟦k⟧)))
        (for*/union : (℘ -ς) ([Cₖ (in-set (σ@ Σ αₖ))]
                              [Cᵥ (in-set (σ@ Σ αᵥ))])
-          (mon l³* (ℓ-with-id ℓ 'hash-set-key) (-W¹ Cₖ #f) Wₖ $ Γ ⟪ℋ⟫ Σ
-               (mon*∷ l³*
-                      (list (-W¹ Cᵥ #f))
-                      (list Wᵥ)
-                      (list (ℓ-with-id ℓ 'hash-set-val))
-                      '()
-                      ⟦k⟧*)))]
+          (mon l³* ℓₖ (-W¹ Cₖ #f) Wₖ $ Γ ⟪ℋ⟫ Σ
+               (mon*∷ l³* (list (-W¹ Cᵥ #f)) (list Wᵥ) (list ℓᵥ) '() ⟦k⟧*)))]
       [_
        (define Wₕ* (-W (list (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
@@ -220,8 +216,39 @@
     (hash? any/c . -> . boolean?))
   (def-prim hash-update! ; FIXME uses
     ((and/c hash? (not/c immutable?)) any/c #|FIXME ext|# procedure? . -> . void?))
-  (def-prim hash-update
-    ((and/c hash? immutable?) any/c #|FIXME ext|# procedure? . -> . (and/c hash? immutable?)))
+
+  ;; FIXME once DSL genealized
+  (splicing-local
+      ((: hash-update-helper : ℓ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+       (define (hash-update-helper ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+         (match-define (list* Wₕ Wₖ Wᵤ ?W₀*) Ws)
+         (define ℓ₁ (ℓ-with-id ℓ 'hash-set))
+         (define ℓ₂ (ℓ-with-id ℓ 'hash-app))
+         (define ℓ₃ (ℓ-with-id ℓ 'hash-ref))
+         (define ⟦k⟧*
+           (ap∷ (list Wᵤ) '() ⊥ρ ℓ₂
+                (ap∷ (list Wₖ Wₕ (-W¹ 'hash-set 'hash-set)) '() ⊥ρ ℓ₁ ⟦k⟧)))
+         (.hash-ref ℓ₃ (list* Wₕ Wₖ ?W₀*) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
+    (def-ext (hash-update-1 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      #:domain ([Wₕ (and/c immutable? hash?)]
+                [Wₖ any/c]
+                [Wᵤ (any/c . -> . any/c)])
+      (hash-update-helper ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
+    (def-ext (hash-update-2 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      #:domain ([Wₕ (and/c immutable? hash?)]
+                [Wₖ any/c]
+                [Wᵤ (any/c . -> . any/c)]
+                [W₀ any/c])
+      (hash-update-helper ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+  (def-ext (hash-update ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match Ws
+      [(list Wₕ Wₖ Wᵤ)
+       (.hash-update-1 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(list Wₕ Wₖ Wᵤ W₀)
+       (.hash-update-2 ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [_
+       (define blm (-blm (ℓ-src ℓ) 'hash-update (list (string->symbol "arity 3 or 4")) (map -W¹-V Ws) ℓ))
+       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
   (def-prim hash-remove!
     ((and/c hash? (not/c immutable?)) any/c . -> . void?))
   (def-prim/custom (hash-remove ⟪ℋ⟫ ℓ Σ $ Γ Ws)
@@ -251,11 +278,57 @@
     (hash? . -> . (or/c exact-nonnegative-integer? not)))
   (def-prim hash-iterate-next
     (hash? exact-nonnegative-integer? . -> . (or/c exact-nonnegative-integer? not)))
-  (def-prims (hash-iterate-key hash-iterate-value)
-    (hash? exact-nonnegative-integer? . -> . any/c))
-  (def-prim hash-iterate-key+value
-    (hash? exact-nonnegative-integer? . -> . (values any/c any/c)))
-  (def-prim hash-copy
+  (def-ext (hash-iterate-key ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wₕ hash?]
+              [Wᵢ exact-nonnegative-integer?])
+    (match-define (-W¹ Vₕ tₕ) Wₕ)
+    (match-define (-W¹ _  tᵢ) Wᵢ)
+    (define tₐ (?t@ 'hash-iterate-key tₕ tᵢ))
+    (match Vₕ
+      [(-Hash^ αₖ _ _)
+       (for/union : (℘ -ς) ([Vₖ (in-set (σ@ Σ αₖ))])
+         (⟦k⟧ (-W (list Vₖ) tₐ) $ Γ ⟪ℋ⟫ Σ))]
+      [(-Hash/guard (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) _) α l³)
+       (for*/union : (℘ -ς) ([Vₕ* (in-set (σ@ Σ α))]
+                             [C (in-set (σ@ Σ αₖ))])
+         (.hash-iterate-key ℓ (list (-W¹ Vₕ* tₕ) Wᵢ) $ Γ ⟪ℋ⟫ Σ
+                           (mon.c∷ l³ ℓₖ (-W¹ C #f) ⟦k⟧)))]
+      [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
+  (def-ext (hash-iterate-value ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wₕ hash?]
+              [Wᵢ exact-nonnegative-integer?])
+    (match-define (-W¹ Vₕ tₕ) Wₕ)
+    (match-define (-W¹ _  tᵢ) Wᵢ)
+    (define tₐ (?t@ 'hash-iterate-value tₕ tᵢ))
+    (match Vₕ
+      [(-Hash^ _ αᵥ _)
+       (for/union : (℘ -ς) ([Vᵥ (in-set (σ@ Σ αᵥ))])
+         (⟦k⟧ (-W (list Vᵥ) tₐ) $ Γ ⟪ℋ⟫ Σ))]
+      [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) α l³)
+       (for*/union : (℘ -ς) ([Vₕ* (in-set (σ@ Σ α))]
+                             [C (in-set (σ@ Σ αᵥ))])
+         (.hash-iterate-value ℓ (list (-W¹ Vₕ* tₕ) Wᵢ) $ Γ ⟪ℋ⟫ Σ
+                             (mon.c∷ l³ ℓᵥ (-W¹ C #f) ⟦k⟧)))]
+      [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
+  
+  (def-ext (hash-iterate-key+value ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:domain ([Wₕ hash?]
+              [Wᵢ exact-nonnegative-integer?])
+    (match-define (-W¹ Vₕ tₕ) Wₕ)
+    (match-define (-W¹ _  tᵢ) Wᵢ)
+    (define tₐ (?t@ 'hash-iterate-key+value tₕ tᵢ))
+    (define ℓ₁ (ℓ-with-id ℓ 'iterate-key))
+    (define ℓ₂ (ℓ-with-id ℓ 'iterate-val))
+    (define ⟦k⟧*
+      (ap∷ (list (-W¹ 'values 'values))
+           (list (mk-app ℓ₂
+                         (mk-rt (-W¹ 'hash-iterate-value 'hash-iterate-value))
+                         (list (mk-rt Wₕ) (mk-rt Wᵢ))))
+           ⊥ρ
+           ℓ
+           ⟦k⟧))
+    (.hash-iterate-key ℓ₁ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))
+  (def-prim hash-copy1
     (hash? . -> . (and/c hash? (not/c immutable?))))
   (def-prims (eq-hash-code eqv-hash-code equal-hash-code equal-secondary-hash-code)
     (any/c . -> . fixnum?))
