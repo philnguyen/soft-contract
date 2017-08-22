@@ -44,8 +44,12 @@
 
   ;;;;; Hash Sets
   (def-preds (set-equal? set-eqv? set-eq? set? set-mutable? set-weak?))
-  (def-prim set
-    (() #:rest list? . ->* . (and/c generic-set? set-equal? set?)))
+  (def-prim/custom (set ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+    (define α (-α->⟪α⟫ (-α.set.elem ℓ ⟪ℋ⟫)))
+    (σ⊕Vs! Σ α ∅)
+    (for ([W (in-list Ws)])
+      (σ⊕! Σ Γ α W))
+    {set (-ΓA Γ (-W (list (-Set^ α #t)) (apply ?t@ 'set (map -W¹-t Ws))))})
   (def-prim/todo seteqv
     (() #:rest list? . ->* . (and/c generic-set? set-eqv? set?)))
   (def-prim/todo seteq
