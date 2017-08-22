@@ -50,7 +50,7 @@
          [(-Ar V α _) (set-add (V->⟪α⟫s V) α)]
          [(-St* grd α _) (set-add (V->⟪α⟫s grd) α)]
          [(-Hash^ αₖ αᵥ _) {seteq αₖ αᵥ}]
-         [(-Set^ α _) {set α}]
+         [(-Set^ α _) {seteq α}]
          [(or (-Vector/guard grd α _)
               (-Hash/guard grd α _)
               (-Set/guard grd α _))

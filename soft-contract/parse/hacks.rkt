@@ -50,7 +50,8 @@
                           })
      (define aliases (hasheq 'default-in-hash 'in-hash
                              'default-in-hash-keys 'in-hash-keys
-                             'default-in-hash-values 'in-hash-values))
+                             'default-in-hash-values 'in-hash-values
+                             'real-set/c-name 'set/c))
      (define (?private-id-name id)
        (if (set-member? names id)
            id
