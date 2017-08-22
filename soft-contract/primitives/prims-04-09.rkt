@@ -148,7 +148,7 @@
     (match Vₗ
       [(-b '()) (⟦k⟧ (-W (list -null) tₐ) $ Γ ⟪ℋ⟫ Σ)]
       [(-Cons _ _)
-       (define ⟦k⟧* (mk-listof∷ tₐ ℓ ⟪ℋ⟫ ⟦k⟧))
+       (define ⟦k⟧* (mk-listof∷ tₐ ℓ ⟦k⟧))
        (for/union : (℘ -ς) ([V (extract-list-content (-Σ-σ Σ) Vₗ)])
                   (app ℓ Wₚ (list (-W¹ V #f)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))

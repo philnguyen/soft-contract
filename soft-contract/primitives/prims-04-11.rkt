@@ -246,7 +246,7 @@
       [(-b 0)
        (⟦k⟧ (-W (list (-Vector '())) tₐ) $ Γ ⟪ℋ⟫ Σ)]
       [_
-       (define ⟦k⟧* (mk-vector^∷ Vₙ tₐ ℓ ⟪ℋ⟫ ⟦k⟧))
+       (define ⟦k⟧* (mk-vector^∷ Vₙ tₐ ℓ ⟦k⟧))
        (app ℓ Wₕ (list (-W¹ (+● 'exact-nonnegative-integer?) #f)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)]))
 
   ;; 4.11.1 Additional Vector Functions

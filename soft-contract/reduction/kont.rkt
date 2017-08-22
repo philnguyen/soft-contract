@@ -717,13 +717,13 @@
       [(cons ⟦e⟧ ⟦e⟧s*) ; TODO propagate value instead
        (if∷ l (↓ₚᵣₘ -tt) ⟦e⟧ ρ (or∷ l ⟦e⟧s* ρ ⟦k⟧))]))
 
-  (define-frame (mk-listof∷ [tₐ : -?t] [ℓ₀ : ℓ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
+  (define-frame (mk-listof∷ [tₐ : -?t] [ℓ₀ : ℓ] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W Vs s) A)
       (match Vs
         [(list V)
-         (define ⟪α⟫ₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ₀ ⟪ℋ⟫₀ 0)))
-         (define ⟪α⟫ₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ₀ ⟪ℋ⟫₀ 1)))
+         (define ⟪α⟫ₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ₀ ⟪ℋ⟫ 0)))
+         (define ⟪α⟫ₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ₀ ⟪ℋ⟫ 1)))
          (define Vₚ (-Cons ⟪α⟫ₕ ⟪α⟫ₜ))
          (σ⊕V! Σ ⟪α⟫ₕ V)
          (σ⊕V! Σ ⟪α⟫ₜ -null)
@@ -733,7 +733,7 @@
          (define blm (blm-arity ℓ₀ 'mk-listof 1 Vs))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
-  (define-frame (mk-vector^∷ [Vₙ : -V] [tₐ : -?t] [ℓ : ℓ] [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
+  (define-frame (mk-vector^∷ [Vₙ : -V] [tₐ : -?t] [ℓ : ℓ] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W (list Vₑ) tₑ) A)
       (define α (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
