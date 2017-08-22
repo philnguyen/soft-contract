@@ -165,8 +165,7 @@
        (σ-copy! Σ αᵥ αᵥ*)
        (σ⊕! Σ Γ αₖ* Wₖ)
        (σ⊕! Σ Γ αᵥ* Wᵥ)
-       (define Vₕ* (-Hash^ αₖ* αᵥ* #t))
-       (define Wₕ* (-W (list Vₕ*) tₐ))
+       (define Wₕ* (-W (list (-Hash^ αₖ* αᵥ* #t)) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
       [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ)))
                     αₕ

@@ -356,5 +356,11 @@
       (match-define (-W¹ V t) W)
       (σ⊕V! Σ α V)
       (⟦k⟧ (-W (list (-Hash/guard C α l³)) t) $ Γ ⟪ℋ⟫ Σ)))
+
+  (define/memo (mk-wrapped-set [C : -Set/C] [l³ : -l³] [α : ⟪α⟫] [W : -W¹]) : -⟦e⟧
+    (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      (match-define (-W¹ V t) W)
+      (σ⊕V! Σ α V)
+      (⟦k⟧ (-W (list (-Set/guard C α l³)) t) $ Γ ⟪ℋ⟫ Σ)))
   )
 

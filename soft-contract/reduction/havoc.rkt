@@ -117,6 +117,9 @@
       [(or (? -Hash/guard?) (? -Hash^?))
        (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hash-ref))))
        (app ℓ (-W¹ 'hash-ref 'hash-ref) (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(or (? -Set/guard?) (? -Set^?))
+       (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'set-ref))))
+       (app ℓ (-W¹ 'set-first 'set-first) (list W) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
 
       ;; Apply contract to unknown values
       [(? -C?)

@@ -45,7 +45,8 @@
       [(? -One-Of/C?) #t]
       [(-St/C flat? _ _) flat?]
       [(or (? -Vectorof?) (? -Vector/C?)) #f]
-      [(-Hash/C _ _) #f]
+      [(-Hash/C _ _) #f] ; TODO
+      [(-Set/C _) #f] ; TODO
       [(? -=>_?) #f]
       [(or (? -Clo?) (? -Ar?) (? -prim?)) #t]
       [(? -x/C?) #t]
@@ -159,6 +160,7 @@
       [(-Vectorof (-⟪α⟫ℓ _ ℓ)) (list 'vectorof ℓ)]
       [(-Vector/C ⟪α⟫ℓs) (cons 'vector/c (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
       [(-Hash/C (-⟪α⟫ℓ _ ℓₖ) (-⟪α⟫ℓ _ ℓᵥ)) (list 'hash/c ℓₖ ℓᵥ)]
+      [(-Set/C (-⟪α⟫ℓ _ ℓ)) (list 'set/c ℓ)]
       [(-=> _ _ ℓ) (list '-> ℓ)]
       [(-=>i _ _ ℓ) (list '->i ℓ)]
       [(-Case-> _ ℓ) (list 'case-> ℓ)]

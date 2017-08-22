@@ -40,6 +40,7 @@
             (-Vector (Listof ⟪α⟫))
             (-Vector^ [content : ⟪α⟫] [length : #|restricted|# -V])
             (-Hash^ [key : ⟪α⟫] [val : ⟪α⟫] [immutable? : Boolean])
+            (-Set^ [elems : ⟪α⟫] [immutable? : Boolean])
             -Fn
             
             ;; Proxied higher-order values
@@ -49,6 +50,7 @@
             (-St* [guard : -St/C] [val : ⟪α⟫] [ctx : -l³])
             (-Vector/guard [guard : (U -Vector/C -Vectorof)] [val : ⟪α⟫] [ctx : -l³])
             (-Hash/guard [guard : -Hash/C] [val : ⟪α⟫] [ctx : -l³])
+            (-Set/guard [guard : -Set/C] [val : ⟪α⟫] [ctx : -l³])
             
             -C)
 
@@ -73,7 +75,8 @@
                    [fields : (Listof -⟪α⟫ℓ)])
             (-Vectorof -⟪α⟫ℓ)
             (-Vector/C (Listof -⟪α⟫ℓ))
-            (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ]))
+            (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
+            (-Set/C [elems : -⟪α⟫ℓ]))
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
@@ -227,11 +230,17 @@
             (-α.hash.key [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.hash.val [loc : ℓ] [ctx : -⟪ℋ⟫])
 
+            ;; for set^ content
+            (-α.set.elem [loc : ℓ] [ctx : -⟪ℋ⟫])
+
             ;; for wrapped vector
             (-α.unvct [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
             ;; for wrapped hash
             (-α.unhsh [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
+
+            ;; for wrapped set
+            (-α.unset [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
 
             ;; for contract components
             (-α.and/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
@@ -243,6 +252,7 @@
             (-α.vectorof [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.hash/c-key [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.hash/c-val [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.set/c-elem [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.x/c Symbol)
             (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])

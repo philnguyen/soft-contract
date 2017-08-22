@@ -17,10 +17,11 @@
    [mk-mon : (-l³ ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
    [mk-rt : ((U -A -W¹) → -⟦e⟧)]
    [mk-fc : (-l ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
-   [mk-wrapped-hash : (-Hash/C -l³ ⟪α⟫ -W¹ → -⟦e⟧)]))
+   [mk-wrapped-hash : (-Hash/C -l³ ⟪α⟫ -W¹ → -⟦e⟧)]
+   [mk-wrapped-set : (-Set/C -l³ ⟪α⟫ -W¹ → -⟦e⟧)]))
 
 (define-signature kont^
-  ([rt : (-αₖ → -⟦k⟧)]
+  [[rt : (-αₖ → -⟦k⟧)]
    [ap∷ : ((Listof -W¹) (Listof -⟦e⟧) -ρ ℓ -⟦k⟧ → -⟦k⟧)]
    [set!∷ : (⟪α⟫ -⟦k⟧ → -⟦k⟧)]
    [let∷ : (ℓ
@@ -76,9 +77,11 @@
    [restore-ctx∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
    [hash-set-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
    [wrap-hash∷ : (ℓ -Hash/C -l³ -⟦k⟧ → -⟦k⟧)]
+   [set-add-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
+   [wrap-set∷ : (ℓ -Set/C -l³ -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
-   ))
+   ])
 
 (define-signature app^
   ([app : (ℓ -W¹ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]

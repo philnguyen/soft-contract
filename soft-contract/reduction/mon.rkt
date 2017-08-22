@@ -36,11 +36,12 @@
         [(-Vectorof? C) mon-vectorof]
         [(-Vector/C? C) mon-vector/c]
         [(-Hash/C? C) mon-hash/c]
+        [(-Set/C? C) mon-set/c]
         [else mon-flat/c]))
     (mon₁ l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (:* mon-=>_ mon-struct/c mon-x/c mon-and/c mon-or/c mon-not/c mon-one-of/c
-      mon-vectorof mon-vector/c mon-hash/c mon-flat/c
+      mon-vectorof mon-vector/c mon-hash/c mon-set/c mon-flat/c
       : -l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 
   (define (mon-=>_ l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -328,6 +329,41 @@
       #:on-t chk-content
       #:on-f (λ ()
                (define blm (-blm l+ lo '(hash?) (list Vᵤ) ℓ))
+               (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
+
+  (define (mon-set/c l³ ℓ Wₚ Wᵤ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-l³ l+ _ lo) l³)
+    (match-define (-W¹ (and Vₚ (-Set/C (-⟪α⟫ℓ αₑ ℓₑ))) sₚ) Wₚ)
+    (match-define (-W¹ Vᵤ tᵤ) Wᵤ)
+    (define σ (-Σ-σ Σ))
+
+    (: chk-content : → (℘ -ς))
+    (define (chk-content)
+      (define αₛ (-α->⟪α⟫ (-α.unset ℓ ⟪ℋ⟫ l+)))
+
+      (: chk-elems : (℘ -V) → (℘ -ς))
+      (define (chk-elems Vs)
+        (define wrap (mk-wrapped-set Vₚ l³ αₛ (-W¹ (V+ σ Vᵤ 'set?) tᵤ)))
+        (cond
+          [(set-empty? Vs)
+           (wrap ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+          [else
+           (define ⟦k⟧* (bgn∷ (list wrap) ⊥ρ ⟦k⟧))
+           (for*/union : (℘ -ς) ([C (in-set (σ@ σ αₑ))] [V (in-set Vs)])
+             (push-mon l³ ℓₑ (-W¹ C #|TODO|# #f) (-W¹ V #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]))
+
+      (match Vᵤ
+        [(? -Set/guard?)
+         (σ⊕V! Σ αₛ Vᵤ)
+         (define V (-Set/guard Vₚ αₛ l³))
+         (⟦k⟧ (-W (list V) tᵤ) $ Γ ⟪ℋ⟫ Σ)]
+        [(-Set^ α _) (chk-elems (σ@ σ α))]
+        [_ (chk-elems {set (+●)})]))
+
+    (with-Γ⊢oW (σ Γ 'set? Wᵤ)
+      #:on-t chk-content
+      #:on-f (λ ()
+               (define blm (-blm l+ lo '(set?) (list Vᵤ) ℓ))
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
   (define (mon-flat/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)

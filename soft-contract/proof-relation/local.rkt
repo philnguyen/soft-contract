@@ -297,6 +297,8 @@
         [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?)) 'vector]
         [(or (? -Hash^?) (? -Hash/guard?)
              (-t.@ (or 'make-hash 'make-hasheq 'hash 'hasheq) _)) 'hash]
+        [(or (? -Set^?) (? -Set/guard?)
+             (-t.@ (or 'set 'make-set 'seteq) _)) 'set]
         ;; could be wrapped by superstruct's contract, so no
         [(or (-St 𝒾 _) #;(-St* (-St/C _ 𝒾 _) _ _) (-t.@ (-st-mk 𝒾) _)) 𝒾]
         [_ #f]))
@@ -319,6 +321,8 @@
                  (plausible-φs-t? φs (?t@ 'vector? t))]
                 [(or (? -Hash^?) (? -Hash/guard?))
                  (plausible-φs-t? φs (?t@ 'hash? t))]
+                [(or (? -Set^?) (? -Set/guard?))
+                 (plausible-φs-t? φs (?t@ 'set? t))]
                 [(or (? -Fn?) (? -Ar?) (? -o?))
                  (plausible-φs-t? φs (?t@ 'procedure? t))]
                 [(-b (? p?))
@@ -480,10 +484,14 @@
                          (match Vs
                            [(list (or (? -Hash^?) (? -Hash/guard?))) '✓]
                            [_ '✗])]
+                        [(set? generic-set?)
+                         (match Vs
+                           [(list (or (? -Set^?) (? -Set/guard?))) '✓]
+                           [_ '✗])]
                         [(contract?)
                          (match Vs
                            [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?) (? -Not/C?)
-                                      (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?) (? -Hash/C?))) '✓]
+                                      (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?) (? -Hash/C?) (? -Set/C?))) '✓]
                            [(list V) (check-proc-arity-1 V)]
                            [_ '?])]
                         [(flat-contract?)
@@ -498,16 +506,22 @@
                             (boolean->R (arity-includes? a b))]
                            [_ '?])]
                         [(immutable?)
+
+                         (: check-all-immutable : ⟪α⟫ → -R)
+                         (define (check-all-immutable α)
+                           (define Rs
+                             (for/seteq: : (℘ -R) ([V (in-set (σ@ σ α))])
+                               (p∋Vs σ 'immutable? V)))
+                           (cond [(or (∋ Rs '?) (> (set-count Rs) 1)) '?]
+                                 [(∋ Rs '✗) '✗]
+                                 [else '✓]))
+                         
                          (match Vs
                            [(list (-b b)) (boolean->R (immutable? b))]
                            [(list (-Hash^ _ _ im?)) (if im? '✓ '✗)]
-                           [(list (-Hash/guard _ α _))
-                            (define Rs
-                              (for/seteq: : (℘ -R) ([V (in-set (σ@ σ α))])
-                                (p∋Vs σ 'immutable? V)))
-                            (cond [(or (∋ Rs '?) (> (set-count Rs) 1)) '?]
-                                  [(∋ Rs '✗) '✗]
-                                  [else '✓])]
+                           [(list (-Hash/guard _ α _)) (check-all-immutable α)]
+                           [(list (-Set^ _ im?)) (if im? '✓ '✗)]
+                           [(list (-Set/guard _ α _)) (check-all-immutable α)]
                            ;; vectors always false for now because no support for immutable vectors
                            [(list (or (? -Vector?) (? -Vector^?) (? -Vector/guard?))) '✗]
                            [_ '?])]

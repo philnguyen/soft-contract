@@ -49,13 +49,21 @@
          [(-Vector^ α _) {seteq α}]
          [(-Ar V α _) (set-add (V->⟪α⟫s V) α)]
          [(-St* grd α _) (set-add (V->⟪α⟫s grd) α)]
-         [(-Vector/guard grd ⟪α⟫ _) (set-add (V->⟪α⟫s grd) ⟪α⟫)]
+         [(-Hash^ αₖ αᵥ _) {seteq αₖ αᵥ}]
+         [(-Set^ α _) {set α}]
+         [(or (-Vector/guard grd α _)
+              (-Hash/guard grd α _)
+              (-Set/guard grd α _))
+          #:when (and grd α)
+          (set-add (V->⟪α⟫s grd) α)]
          [(-Clo _ _ ρ _) (ρ->⟪α⟫s ρ)]
          [(-Case-Clo _ ρ _) (ρ->⟪α⟫s ρ)]
          [(-And/C _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
          [(-Or/C  _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
          [(-Not/C α) {seteq (-⟪α⟫ℓ-addr α)}]
          [(-One-Of/C _) ∅eq]
+         [(-Hash/C α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
+         [(-Set/C α) {seteq (-⟪α⟫ℓ-addr α)}]
          [(-x/C α) {seteq α}]
          [(-St/C _ _ αs) {list->seteq (map -⟪α⟫ℓ-addr αs)}]
          [(-Vectorof α) {seteq (-⟪α⟫ℓ-addr α)}]
