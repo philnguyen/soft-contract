@@ -182,7 +182,8 @@
            (match-define (-ΓA Γₐ A) ΓA)
            (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ))]
         [(-⟦f⟧.boxed ⟦f⟧)
-         (⟦f⟧ ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])))
+         (⟦f⟧ ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+        [(-V.boxed V) (app ℓ (-W¹ V o) Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])))
 
   (: app-clo : -formals -⟦e⟧ -ρ -Γ -?t → -⟦f⟧)
   (define (app-clo xs ⟦e⟧ ρₕ Γₕ sₕ)
