@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require
+ racket/contract
   "data.rkt")
 ;; Label implementation.  Labels are like strings, but also allow for
 ;; efficient shared slicing.
@@ -24,27 +25,47 @@
 
 
 (provide
-         (rename-out [ext:make-label make-label])
-         label-element?
-         label-element-equal?
-         string->label
-         string->label/with-sentinel
-         vector->label
-         vector->label/with-sentinel
-         label->string
-         label->string/removing-sentinel
-         label->vector
-         label-length
-         label-ref
-         sublabel
-         sublabel!
-         label-prefix?
-         label-equal?
-         label-empty?
-         label-copy
-         label-ref-at-end?
-         label-source-id
-         label-same-source?)
+ (contract-out
+  [ext:make-label ((or/c string? (vectorof (or/c symbol? char?))) . -> . label/c)] ; FIXME (rename-out [ext:make-label make-label])
+  [label-element? (any/c . -> . boolean?)]
+  [label-element-equal? (any/c any/c . -> . boolean?)]
+  [string->label (string? . -> . label/c)]
+  [string->label/with-sentinel (string? . -> . label/c)]
+  [vector->label (vector? . -> . label/c)]
+  [vector->label/with-sentinel (vector? . -> . label/c)]
+  [label->string (label/c . -> . string?)]
+  [label->string/removing-sentinel (label/c . -> . string?)]
+  [label->vector (label/c . -> . (vectorof (or/c symbol? char?)))]
+  [label-length (label/c . -> . exact-nonnegative-integer?)]
+  [label-ref (label/c exact-nonnegative-integer? . -> . (or/c symbol? char?))]
+  [sublabel [label/c exact-nonnegative-integer? exact-nonnegative-integer? . -> . label/c]
+            #;(case-> ; FIXME
+             [label/c exact-nonnegative-integer? . -> . label/c]
+             [label/c exact-nonnegative-integer? exact-nonnegative-integer? . -> . label/c])]
+  [sublabel! [label/c exact-nonnegative-integer? exact-nonnegative-integer? . -> . void?]
+             #;(case-> ; FIXME
+              [label/c exact-nonnegative-integer? . -> . void?]
+              [label/c exact-nonnegative-integer? exact-nonnegative-integer? . -> . void?])]
+  [label-prefix? (label/c label/c . -> . boolean?)]
+  [label-equal? (label/c label/c . -> . boolean?)]
+  [label-empty? (label/c . -> . boolean?)]
+  [label-copy (label/c . -> . label/c)]
+  [label-ref-at-end? (label/c exact-nonnegative-integer? . -> . boolean?)]
+  [label-source-id (label/c . -> . integer?)]
+  [label-same-source? (label/c label/c . -> . boolean?)]
+  ))
+
+;;;;; Cheat
+
+(define (compose . fs)
+  (if (null? fs)
+      (λ (x) x)
+      (let (#;[f (car fs)]
+            #;[g (apply compose (cdr fs))])
+        (λ (x) x #;(f (f x))))))
+
+
+;;;;; Original program starts below
 
 
 ;; make-label: label-element -> label
@@ -221,3 +242,4 @@
 ;; --- from suffixtree.rkt
 (provide label-source-eq?)
 (define label-source-eq? label-same-source?)
+

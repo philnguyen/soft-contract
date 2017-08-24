@@ -1,22 +1,31 @@
 #lang racket/base
-(require
+(require racket/contract
          racket/list)
 
 (require "label.rkt"
   (except-in "data.rkt" make-label))
 
 (provide
- tree?
- make-tree
- tree-root
- new-suffix-tree
- node-find-child
- node-root?
- node-position-at-end?
- node-add-leaf!
- node-up-splice-leaf!
- node-follow/k)
+ tree/c
+ (contract-out
+  [tree? (any/c . -> . boolean?)]
+  [make-tree (-> tree/c)]
+  [tree-root (tree/c . -> . node/c)]
+  [new-suffix-tree (-> tree/c)]
+  [node-find-child (node/c any/c . -> . (or/c not node/c))]
+  [node-root? (node/c . -> . boolean?)]
+  [node-position-at-end? (node/c exact-nonnegative-integer? . -> . boolean?)]
+  [node-add-leaf! (node/c label/c . -> . node/c)]
+  [node-up-splice-leaf! (node/c exact-nonnegative-integer? label/c . -> . (values node/c node/c))]
+  [node-follow/k (node/c label/c
+                         ; TODO parametric contract?
+                         (node/c . -> . any/c)
+                         (node/c exact-nonnegative-integer? . -> . any/c)
+                         (node/c label/c exact-nonnegative-integer? . -> . any/c)
+                         (node/c exact-nonnegative-integer? label/c exact-nonnegative-integer? . -> . any/c)
+                         . -> . any/c)]))
 
+#|FIXME|# (define make-label ext:make-label)
 
 ;; new-suffix-tree: void -> suffix-tree
 ;; Builds a new empty suffix-tree.
@@ -172,4 +181,6 @@
 (define make-tree new-suffix-tree)
 
 (define tree-root suffix-tree-root)
+
+(define tree/c suffix-tree/c)
 
