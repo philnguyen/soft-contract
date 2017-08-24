@@ -205,7 +205,7 @@
            (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ Wsᵣ))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ)))
            (σ⊕V! Σ αᵣ Vᵣ)
-           (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z z))]))
+           (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-t.x z)))]))
 
       (define $**
         (let ([root (∪ (ρ->⟪α⟫s ρ*) (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ)))])
