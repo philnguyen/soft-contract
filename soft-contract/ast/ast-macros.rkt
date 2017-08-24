@@ -91,8 +91,6 @@
     (match-lambda**
      [('values (list x) _) x]
      [('not (list (-b b)) _) (-b (not b))]
-     [('apply (cons (and fun (or (? -λ?) (? -o?))) args) ℓ)
-      (-@/simp fun args ℓ)]
      [((-λ (? list? xs) e) es ℓ)
       #:when (= (length xs) (length es))
       (-let-values/simp
