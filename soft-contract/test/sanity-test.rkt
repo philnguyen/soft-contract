@@ -135,6 +135,7 @@
   (test "safe/issues/substruct.rkt" check-safe)
   (test "safe/issues/issue-96.rkt" check-safe)
   (test "safe/issues/hash-basics.rkt" check-safe)
+  (test "safe/issues/set-basics.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
