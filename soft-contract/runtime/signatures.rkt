@@ -46,11 +46,12 @@
             ;; Proxied higher-order values
             ;; Inlining the contract in the data definition is ok
             ;; because there's no recursion
-            (-Ar [guard : -=>_] [v : ⟪α⟫] [ctx : -l³])
-            (-St* [guard : -St/C] [val : ⟪α⟫] [ctx : -l³])
-            (-Vector/guard [guard : (U -Vector/C -Vectorof)] [val : ⟪α⟫] [ctx : -l³])
-            (-Hash/guard [guard : -Hash/C] [val : ⟪α⟫] [ctx : -l³])
-            (-Set/guard [guard : -Set/C] [val : ⟪α⟫] [ctx : -l³])
+            (-Ar [guard : -=>_] [v : ⟪α⟫] [ctx : -ctx])
+            (-St* [guard : -St/C] [val : ⟪α⟫] [ctx : -ctx])
+            (-Vector/guard [guard : (U -Vector/C -Vectorof)] [val : ⟪α⟫] [ctx : -ctx])
+            (-Hash/guard [guard : -Hash/C] [val : ⟪α⟫] [ctx : -ctx])
+            (-Set/guard [guard : -Set/C] [val : ⟪α⟫] [ctx : -ctx])
+            (-Sealed/C ⟪α⟫)
             
             -C)
 
@@ -76,13 +77,16 @@
             (-Vectorof -⟪α⟫ℓ)
             (-Vector/C (Listof -⟪α⟫ℓ))
             (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
-            (-Set/C [elems : -⟪α⟫ℓ]))
+            (-Set/C [elems : -⟪α⟫ℓ])
+            ;; Seal
+            (-Seal/C Symbol -⟪ℋ⟫))
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
               (-=>i [doms : (Listof -⟪α⟫ℓ)]
                     [mk-rng : (List -Clo -λ ℓ)]
                     [pos : ℓ])
+              (-∀/C (Listof Symbol) -⟦e⟧ -ρ)
               (-Case-> (Listof (Pairof (Listof ⟪α⟫) ⟪α⟫)) [pos : ℓ]))
 
 (struct -blm ([violator : -l]
@@ -108,6 +112,20 @@
   (syntax-rules () [(_ α) (-St -𝒾-box      (list α))]))
 (define-match-expander -Box*
   (syntax-rules () [(_ α) (-St* (-St/C _ (== -𝒾-box) _) α _)]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Monitoring contexts
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(struct -ctx ([pos : -l] [neg : -l] [src : -l] [assume-seal? : Boolean] [loc : ℓ]) #:transparent)
+
+(define ctx-neg : (-ctx → -ctx)
+  (match-lambda
+    [(-ctx l+ l- lo assume? ℓ) (-ctx l- l+ lo (not assume?) ℓ)]))
+(define ctx-with-ℓ : (-ctx ℓ → -ctx)
+  (match-lambda**
+   [((-ctx l+ l- lo assume? _) ℓ) (-ctx l+ l- lo assume? ℓ)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -218,7 +236,7 @@
             (-α.var-cdr [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
 
             ;; for wrapped mutable struct
-            (-α.st [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
+            (-α.st [id : -𝒾] [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
 
             ;; for vector indices
             (-α.idx [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
@@ -234,13 +252,13 @@
             (-α.set.elem [loc : ℓ] [ctx : -⟪ℋ⟫])
 
             ;; for wrapped vector
-            (-α.unvct [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
+            (-α.unvct [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
 
             ;; for wrapped hash
-            (-α.unhsh [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
+            (-α.unhsh [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
 
             ;; for wrapped set
-            (-α.unset [loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l])
+            (-α.unset [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
 
             ;; for contract components
             (-α.and/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
@@ -258,7 +276,13 @@
             (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
             (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.fn [sym : (Option -⟦e⟧)] [mon-loc : ℓ] [ctx : -⟪ℋ⟫] [l+ : -l] [pc : -Γ])
+
+            ;; for wrapped function
+            (-α.fn [sym : (Option -⟦e⟧)] [mon-ctx : -ctx] [ctx : -⟪ℋ⟫] [pc : -Γ])
+
+            ;; For parametric contracts
+            (-α.seal Symbol -⟪ℋ⟫)   ; points to seals
+            (-α.sealed Symbol -⟪ℋ⟫) ; points to wrapped objects
 
             ;; HACK
             (-α.hv)
@@ -305,7 +329,7 @@
 ;; Stack-address / Evaluation "check-point"
 (struct -αₖ ([cache : -$] [ctx : -⟪ℋ⟫]) #:transparent)
 (struct -ℬ -αₖ ([var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
-(struct -ℳ -αₖ ([l³ : -l³] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
+(struct -ℳ -αₖ ([ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
 (struct -ℱ -αₖ ([l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
 (struct -ℋ𝒱 -αₖ () #:transparent) ; Havoc
 

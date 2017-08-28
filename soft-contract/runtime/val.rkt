@@ -5,6 +5,7 @@
 (require typed/racket/unit
          racket/match
          racket/set
+         racket/splicing
          set-extras
          "../utils/main.rkt"
          "../ast/signatures.rkt"
@@ -50,30 +51,36 @@
       [(? -=>_?) #f]
       [(or (? -Clo?) (? -Ar?) (? -prim?)) #t]
       [(? -x/C?) #t]
+      [(? -∀/C?) #f]
+      [(? -Seal/C?) #f]
       [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
-  (: with-negative-party : -l -V → -V)
-  ;; Supply the negative party for blaming
-  (define (with-negative-party l V)
-    (match V
-      [(-Ar C α (-l³ l+ _ lo))
-       (-Ar C α (-l³ l+ l lo))]
-      [(-St* grd α (-l³ l+ _ lo))
-       (-St* grd α (-l³ l+ l lo))]
-      [(-Vector/guard grd ⟪α⟫ (-l³ l+ _ lo))
-       (-Vector/guard grd ⟪α⟫ (-l³ l+ l lo))]
-      [_ V]))
 
-  (: with-positive-party : -l -V → -V)
-  (define (with-positive-party l V)
-    (match V
-      [(-Ar C α (-l³ _ l- lo))
-       (-Ar C α (-l³ l l- lo))]
-      [(-St* grd α (-l³ _ l- lo))
-       (-St* grd α (-l³ l l- lo))]
-      [(-Vector/guard grd ⟪α⟫ (-l³ _ l- lo))
-       (-Vector/guard grd ⟪α⟫ (-l³ l l- lo))]
-      [_ V]))
+  (splicing-local
+      ((: with-swapper : (-l -ctx → -ctx) → -l -V → -V)
+       (define ((with-swapper swap) l V)
+         (match V
+           [(-Ar C α ctx)
+            (-Ar C α (swap l ctx))]
+           [(-St* grd α ctx)
+            (-St* grd α (swap l ctx))]
+           [(-Vector/guard grd α ctx)
+            (-Vector/guard grd α (swap l ctx))]
+           [(-Hash/guard C α ctx)
+            (-Hash/guard C α (swap l ctx))]
+           [(-Set/guard C α ctx)
+            (-Set/guard C α (swap l ctx))]
+           [_ V])))
+    (define with-negative-party
+      (with-swapper
+        (match-lambda**
+          [(l (-ctx l+ _ lo assume? ℓ))
+           (-ctx l+ l lo assume? ℓ)])))
+    (define with-positive-party
+      (with-swapper
+        (match-lambda**
+          [(l (-ctx _ l- lo assume? ℓ))
+           (-ctx l l- lo assume? ℓ)]))))
 
   (: behavioral? : -σ -V → Boolean)
   ;; Check if value maybe behavioral.
@@ -132,7 +139,10 @@
          [(-Clo xs _ _ _) (shape xs)]
          [_
           ;; FIXME: may be wrong for var-args. Need to have saved more
-          (length αs)])]))
+          (length αs)])]
+      [(? -∀/C?)
+       ;; TODO From observing behavior in Racket. But this maybe unsound for proof system
+       (arity-at-least 0)]))
 
   (: blm-arity : ℓ -l Arity (Listof -V) → -blm)
   (define blm-arity
@@ -168,7 +178,9 @@
        (match-define (-α.x/c x) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
       [(? -o? o) o]
-      [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ℓ _ _ _)) _) (list 'flat ℓ)]
+      [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
+      [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
+      [(-Seal/C x _) (list 'seal/c x)]
       [V (error 'strip-C "~a not expected" V)]))
 
   (: predicates-of-V : -V → (℘ -h))

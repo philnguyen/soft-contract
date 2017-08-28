@@ -42,7 +42,7 @@
   (match-lambda [(? list? l) (length l)]
                 [(-var xs _) (arity-at-least (length xs))]))
 
-(struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
+;;(struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
 
 (: +x! : (U Symbol Integer) * → Symbol)
 (define (+x! . prefixes)
@@ -115,7 +115,7 @@
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
             (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
-
+            (-∀/c (Listof Symbol) -e)
             )
 
 (-v . ::= . -prim

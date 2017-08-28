@@ -70,9 +70,9 @@
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (for/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
                              (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
-      [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ l³)
+      [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ ctx)
        (define n (count-struct-fields 𝒾))
-       (match-define (-l³ l+ l- lo) l³)
+       (match-define (-ctx l+ l- lo _ _) ctx)
        (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
@@ -83,7 +83,7 @@
                      (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
                         (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ
-                             (mon.c∷ l³ (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ)) (-W¹ C c) ⟦k⟧)))]
+                             (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                     [else
                      (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])

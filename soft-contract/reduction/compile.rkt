@@ -334,9 +334,9 @@
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (⟦k⟧ W $ Γ ⟪ℋ⟫ Σ)))
 
-  (define/memo (mk-mon [l³ : -l³] [ℓ : ℓ] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
+  (define/memo (mk-mon [ctx : -ctx] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℓ (cons ⟦e⟧ ρ) ⟦k⟧))))
+      (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ ctx (cons ⟦e⟧ ρ) ⟦k⟧))))
 
   (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : -⟦e⟧] [⟦x⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -351,16 +351,16 @@
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (fc.v∷ l ℓ ⟦v⟧ ρ ⟦k⟧))))
 
-  (define/memo (mk-wrapped-hash [C : -Hash/C] [l³ : -l³] [α : ⟪α⟫] [W : -W¹]) : -⟦e⟧
+  (define/memo (mk-wrapped-hash [C : -Hash/C] [ctx : -ctx] [α : ⟪α⟫] [W : -W¹]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-W¹ V t) W)
       (σ⊕V! Σ α V)
-      (⟦k⟧ (-W (list (-Hash/guard C α l³)) t) $ Γ ⟪ℋ⟫ Σ)))
+      (⟦k⟧ (-W (list (-Hash/guard C α ctx)) t) $ Γ ⟪ℋ⟫ Σ)))
 
-  (define/memo (mk-wrapped-set [C : -Set/C] [l³ : -l³] [α : ⟪α⟫] [W : -W¹]) : -⟦e⟧
+  (define/memo (mk-wrapped-set [C : -Set/C] [ctx : -ctx] [α : ⟪α⟫] [W : -W¹]) : -⟦e⟧
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (match-define (-W¹ V t) W)
       (σ⊕V! Σ α V)
-      (⟦k⟧ (-W (list (-Set/guard C α l³)) t) $ Γ ⟪ℋ⟫ Σ)))
+      (⟦k⟧ (-W (list (-Set/guard C α ctx)) t) $ Γ ⟪ℋ⟫ Σ)))
   )
 

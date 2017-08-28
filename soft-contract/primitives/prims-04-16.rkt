@@ -116,11 +116,11 @@
        (σ⊕! Σ Γ αₑ* Wₑ)
        (define Wₕ* (-W (list (-Set^ αₑ* #t)) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
-      [(-Set/guard (and C (-Set/C (-⟪α⟫ℓ αₚ ℓₚ))) αₛ* (and l³ (-l³ l+ l- lo)))
-       (define l³* (-l³ l- l+ lo))
-       (define ⟦k⟧* (set-add-inner∷ ℓ αₛ* tₛ (wrap-set∷ ℓ C l³ ⟦k⟧)))
+      [(-Set/guard (and C (-Set/C (-⟪α⟫ℓ αₚ ℓₚ))) αₛ* ctx)
+       (define ctx* (ctx-neg ctx))
+       (define ⟦k⟧* (set-add-inner∷ ℓ αₛ* tₛ (wrap-set∷ C ctx ⟦k⟧)))
        (for*/union : (℘ -ς) ([C (in-set (σ@ Σ αₚ))])
-         (mon l³* ℓₚ (-W¹ C #f) Wₑ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+         (mon (ctx-with-ℓ ctx* ℓₚ) (-W¹ C #f) Wₑ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_
        (define Wₕ* (-W (list (-Set^ ⟪α⟫ₒₚ #t)) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
@@ -140,10 +140,10 @@
       [(-Set^ α _)
        (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
          (⟦k⟧ (-W (list V) tₐ) $ Γ ⟪ℋ⟫ Σ))]
-      [(-Set/guard (-Set/C (-⟪α⟫ℓ αₑ ℓₑ)) αₛ* l³)
+      [(-Set/guard (-Set/C (-⟪α⟫ℓ αₑ ℓₑ)) αₛ* ctx)
        (for*/union : (℘ -ς) ([C (in-set (σ@ Σ αₑ))]
                              [Vₛ* (in-set (σ@ Σ αₛ*))])
-         (define ⟦k⟧* (mon.c∷ l³ ℓₑ (-W¹ C #f) ⟦k⟧))
+         (define ⟦k⟧* (mon.c∷ (ctx-with-ℓ ctx ℓₑ) (-W¹ C #f) ⟦k⟧))
          (define Wₛ* (-W¹ Vₛ* tₛ))
          (.set-first ℓ (list Wₛ*) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))

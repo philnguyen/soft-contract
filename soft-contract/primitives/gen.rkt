@@ -107,11 +107,11 @@
     ;; be careful not to use `V` twice
     ;; FIXME ℓ maybe wrong here
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
-             [l³ (-l³ (ℓ-src ℓ) '#,(-o) '#,(-o))]
+             [ctx (-ctx (ℓ-src ℓ) '#,(-o) '#,(-o) #f ℓ)]
              [grd #,(gen-alloc #'ℓ c)]
-             [⟪α⟫ (-α->⟪α⟫ (-α.fn #f #,(-ℓ) #,(-⟪ℋ⟫) (ℓ-src ℓ) #,(-Γ)))])
+             [⟪α⟫ (-α->⟪α⟫ (-α.fn #f ctx #,(-⟪ℋ⟫) #,(-Γ)))])
         (σ⊕V! #,(-Σ) ⟪α⟫ #,V)
-        (-Ar grd ⟪α⟫ l³)))
+        (-Ar grd ⟪α⟫ ctx)))
 
   ;; Generate expression wrapping contract `c` around `V`
   (define/contract (gen-wrap c V)

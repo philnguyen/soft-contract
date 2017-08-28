@@ -137,7 +137,8 @@
       [(-x/c.tmp x) x]
       [(-x/c x) x]
       [(-struct/c 𝒾 cs _)
-       `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]))
+       `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]
+      [(-∀/c xs c) `(parametric->/c ,xs ,(show-e c))]))
 
   (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
     (for/list ([e es]) (show-e e)))

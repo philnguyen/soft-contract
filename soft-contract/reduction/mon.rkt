@@ -20,9 +20,9 @@
           env^ sto^ val^ instr^ pc^ pretty-print^ for-gc^)
   (export mon^)
 
-  (: mon : -l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #;(printf "mon: ~a on ~a~n - l+: ~a~n" (show-W¹ W-C) (show-W¹ W-V) (-l³-pos l³))
+  (: mon : -ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+  (define (mon ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #;(printf "mon: ~a on ~a~n - l+: ~a~n" (show-W¹ W-C) (show-W¹ W-V) (-ctx-pos ctx))
     (match-define (-W¹ C _) W-C)
     (define mon₁
       (cond
@@ -38,16 +38,16 @@
         [(-Hash/C? C) mon-hash/c]
         [(-Set/C? C) mon-set/c]
         [else mon-flat/c]))
-    (mon₁ l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
+    (mon₁ ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (:* mon-=>_ mon-struct/c mon-x/c mon-and/c mon-or/c mon-not/c mon-one-of/c
       mon-vectorof mon-vector/c mon-hash/c mon-set/c mon-flat/c
-      : -l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
+      : -ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 
-  (define (mon-=>_ l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define (mon-=>_ ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (? -=>_? grd) c) W-C)
     (match-define (-W¹ V v) W-V)
-    (match-define (-l³ l+ _ lo) l³)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (define σ (-Σ-σ Σ))
 
     (: blm : -V → -Γ → (℘ -ς))
@@ -91,9 +91,9 @@
                     (match V
                       [(-Clo fml ⟦e⟧ _ _) ⟦e⟧]
                       [_ #f])])
-               (-α->⟪α⟫ (-α.fn ⟦e⟧ ℓ ⟪ℋ⟫ l+ φs))))
+               (-α->⟪α⟫ (-α.fn ⟦e⟧ ctx ⟪ℋ⟫ φs))))
            (values V α)]))
-      (define Ar (-Ar grd ⟪α⟫ l³))
+      (define Ar (-Ar grd ⟪α⟫ ctx))
       (σ⊕! Σ Γ ⟪α⟫ (-W¹ V* v)) ;; TODO??
       (define v* ; hack
         (match v
@@ -105,10 +105,10 @@
       #:on-t chk-arity
       #:on-f (blm 'procedure?)))
 
-  (define (mon-struct/c l³ ℓₘ Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define (mon-struct/c ctx Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓₘ) ctx)
     (match-define (-W¹ (and Vₚ (-St/C flat? 𝒾 αℓs)) sₚ) Wₚ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-    (match-define (-l³ l+ _ lo) l³)
     (define σ (-Σ-σ Σ))
     (define p (-st-p 𝒾))
 
@@ -133,12 +133,12 @@
          (define ⟦k⟧* ; maybe wrap the monitored struct
            (cond [all-immutable? ⟦k⟧]
                  [else
-                  (define α (-α->⟪α⟫ (-α.st 𝒾 ℓₘ ⟪ℋ⟫ l+)))
-                  (wrap-st∷ 𝒾 sᵥ Vₚ ℓₘ l³ ⟦k⟧)]))
+                  (define α (-α->⟪α⟫ (-α.st 𝒾 ctx ⟪ℋ⟫)))
+                  (wrap-st∷ 𝒾 sᵥ Vₚ ctx ⟦k⟧)]))
          (for/union : (℘ -ς) ([Cs (σ@/list Σ αs)])
                     (define ⟦mon⟧s : (Listof -⟦e⟧)
                       (for/list ([Cᵢ Cs] [cᵢ cs] [⟦field⟧ ⟦field⟧s] [ℓᵢ : ℓ ℓs])
-                        (mk-mon l³ ℓᵢ (mk-rt (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
+                        (mk-mon (ctx-with-ℓ ctx ℓᵢ) (mk-rt (-W¹ Cᵢ cᵢ)) ⟦field⟧)))
                     (define ⟦reconstr⟧ (mk-app ℓₘ (mk-rt K) ⟦mon⟧s))
                     (⟦reconstr⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]))
 
@@ -148,39 +148,40 @@
                (define blm (-blm l+ lo (list p) (list Vᵥ) ℓₘ))
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
-  (define (mon-x/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define (mon-x/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (-x/C ⟪α⟫) _) W-C)
     (match-define (-α.x/c x) (⟪α⟫->-α ⟪α⟫))
     (for/union : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
-      (push-mon l³ ℓ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped x)))
+      (push-mon ctx (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped x)))
 
-  (define (mon-and/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define (mon-and/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-W¹ (-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'and/c c 2))
     (for*/union : (℘ -ς) ([C₂ (in-set (σ@ Σ α₂))]
-                         [⟦k⟧* (in-value (mon.c∷ l³ ℓ₂ (-W¹ C₂ c₂) ⟦k⟧))]
+                         [⟦k⟧* (in-value (mon.c∷ (ctx-with-ℓ ctx ℓ₂) (-W¹ C₂ c₂) ⟦k⟧))]
                          [C₁ (in-set (σ@ Σ α₁))])
-      (push-mon l³ ℓ₁ (-W¹ C₁ c₁) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
+      (push-mon (ctx-with-ℓ ctx ℓ₁) (-W¹ C₁ c₁) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
 
-  (define (mon-or/c l³ _ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-or/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ _) ctx)
     (match-define (-W¹ (-Or/C flat? (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'or/c c 2))
     
-    (: chk-or/c : -W¹ ℓ -W¹ ℓ → (℘ -ς))
-    (define (chk-or/c W-fl ℓ-fl W-ho ℓ-ho)
-      (push-fc lo ℓ-fl W-fl W-V $ Γ ⟪ℋ⟫ Σ
-               (mon-or/c∷ l³ ℓ-ho W-fl W-ho W-V ⟦k⟧)))
+    (: chk-or/c : -W¹ -ctx -W¹ -ctx → (℘ -ς))
+    (define (chk-or/c W-fl ctx-fl W-ho ctx-ho)
+      (match-define (-ctx _ _ lo-fl _ ℓ-fl) ctx-fl)
+      (push-fc lo-fl ℓ-fl W-fl W-V $ Γ ⟪ℋ⟫ Σ
+               (mon-or/c∷ ctx-ho W-fl W-ho W-V ⟦k⟧)))
 
     (for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
       (define W-C₁ (-W¹ C₁ c₁))
       (define W-C₂ (-W¹ C₂ c₂))
-      (cond [(C-flat? C₁) (chk-or/c W-C₁ ℓ₁ W-C₂ ℓ₂)]
-            [(C-flat? C₂) (chk-or/c W-C₂ ℓ₂ W-C₁ ℓ₁)]
+      (cond [(C-flat? C₁) (chk-or/c W-C₁ (ctx-with-ℓ ctx ℓ₁) W-C₂ (ctx-with-ℓ ctx ℓ₂))]
+            [(C-flat? C₂) (chk-or/c W-C₂ (ctx-with-ℓ ctx ℓ₂) W-C₁ (ctx-with-ℓ ctx ℓ₁))]
             [else (error 'or/c "No more than 1 higher-order disjunct for now")])))
 
-  (define (mon-not/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-not/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ (and C (-Not/C (-⟪α⟫ℓ α ℓ*))) c) W-C)
     (match-define (-W¹ V _) W-V)
     (match-define (list c*) (-app-split 'not/c c 1))
@@ -189,12 +190,12 @@
             [⟦er⟧ (mk-rt (-blm l+ lo (list C) (list V) ℓ))])
         (if∷ lo ⟦er⟧ ⟦ok⟧ ⊥ρ ⟦k⟧)))
     (for/union : (℘ -ς) ([C* (σ@ (-Σ-σ Σ) α)])
-               (assert C* C-flat?)
-               (define W-C* (-W¹ C* c*))
-               (app ℓ* W-C* (list W-V) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
+      (assert C* C-flat?)
+      (define W-C* (-W¹ C* c*))
+      (app ℓ* W-C* (list W-V) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))
 
-  (define (mon-one-of/c l³ ℓ Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-one-of/c ctx Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ (and C (-One-Of/C bs)) _) Wₚ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (define (blm)
@@ -206,8 +207,8 @@
                 (⟦k⟧ (-W (list (-b b)) sᵥ) $ (Γ+ Γ (?t@ 'equal? sᵥ (-b b))) ⟪ℋ⟫ Σ))
               (blm))]))
 
-  (define (mon-vectorof l³ ℓ Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-vectorof ctx Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ (and Vₚ (-Vectorof (-⟪α⟫ℓ α* ℓ*))) _) Wₚ)
     (define σ (-Σ-σ Σ))
@@ -225,20 +226,20 @@
                 (mk-rt (-W¹ 'vector-ref #f))
                 (list (mk-rt Wᵥ*)
                       (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (loc->ℓ (loc 'vof-idx 0 0 '())))))))
-      (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℓ l³ ⟦k⟧))
+      (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ctx ⟦k⟧))
       (define c* #f #;(⟪α⟫->s α*))
       (define Wₗ (vec-len σ Γ Wᵥ*))
       (for/union : (℘ -ς) ([C* (in-set (σ@ Σ α*))])
-                 (define ⟦mon⟧ (mk-mon l³ ℓ* (mk-rt (-W¹ C* c*)) ⟦ref⟧))
-                 (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ (+W¹ 'make-vector)) '() ⊥ρ ℓ
-                                          ⟦k⟧*))))
+        (define ⟦mon⟧ (mk-mon (ctx-with-ℓ ctx ℓ*) (mk-rt (-W¹ C* c*)) ⟦ref⟧))
+        (⟦mon⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (ap∷ (list Wₗ (+W¹ 'make-vector)) '() ⊥ρ ℓ
+                                 ⟦k⟧*))))
 
     (with-Γ⊢oW (σ Γ 'vector? Wᵥ)
       #:on-t chk-elems
       #:on-f (blm 'vector?)))
 
-  (define (mon-vector/c l³ ℓ Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-vector/c ctx Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ (and Vₚ (-Vector/C ⟪α⟫ℓs)) sₚ) Wₚ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (define σ (-Σ-σ Σ))
@@ -275,12 +276,12 @@
                        (mk-app ℓ
                                (mk-rt (-W¹ 'vector-ref #f))
                                (list (mk-rt Wᵥ*) (mk-rt Wᵢ))))
-                     (mk-mon l³ ℓᵢ (mk-rt Wₚᵢ) ⟦ref⟧)))
+                     (mk-mon (ctx-with-ℓ ctx ℓᵢ) (mk-rt Wₚᵢ) ⟦ref⟧)))
                  
                  (match ⟦mon-fld⟧s
                    ['() (⟦k⟧ (-W (list (-Vector '())) sᵥ) $ Γ ⟪ℋ⟫ Σ)] ; no need to wrap
                    [(cons ⟦fld⟧₀ ⟦fld⟧s)
-                    (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ℓ l³ ⟦k⟧))
+                    (define ⟦k⟧* (mk-wrap-vect∷ sᵥ Vₚ ctx ⟦k⟧))
                     (⟦fld⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
                      (ap∷ (list (+W¹ 'vector)) ⟦fld⟧s ⊥ρ ℓ ⟦k⟧*))])))
 
@@ -288,19 +289,19 @@
       #:on-t chk-len
       #:on-f (blm 'vector?)))
 
-  (define (mon-hash/c l³ ℓ Wₚ Wᵤ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-hash/c ctx Wₚ Wᵤ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ (and Vₚ (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ))) sₚ) Wₚ)
     (match-define (-W¹ Vᵤ tᵤ) Wᵤ)
     (define σ (-Σ-σ Σ))
 
     (: chk-content : → (℘ -ς))
     (define (chk-content)
-      (define αₕ (-α->⟪α⟫ (-α.unhsh ℓ ⟪ℋ⟫ l+)))
+      (define αₕ (-α->⟪α⟫ (-α.unhsh ctx ⟪ℋ⟫)))
       
       (: chk-key-vals : (℘ -V) (℘ -V) → (℘ -ς))
       (define (chk-key-vals Vsₖ Vsᵥ)
-        (define wrap (mk-wrapped-hash Vₚ l³ αₕ (-W¹ (V+ σ Vᵤ 'hash?) tᵤ)))
+        (define wrap (mk-wrapped-hash Vₚ ctx αₕ (-W¹ (V+ σ Vᵤ 'hash?) tᵤ)))
         (cond ;; FIXME hacks for now
           [(or (set-empty? Vsₖ) (set-empty? Vsᵥ))
            (wrap ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
@@ -308,16 +309,16 @@
            (define doms (σ@ Σ αₖ))
            (define rngs (σ@ Σ αᵥ))
            (for*/union : (℘ -ς) ([Cᵥ (in-set rngs)] [Vᵥ (in-set Vsᵥ)])
-             (define mon-vals (mk-mon l³ ℓᵥ (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
+             (define mon-vals (mk-mon (ctx-with-ℓ ctx ℓᵥ) (mk-rt (-W¹ Cᵥ #|TODO|# #f)) (mk-rt (-W¹ Vᵥ #|TODO|# #f))))
              (define ⟦k⟧* (bgn∷ (list mon-vals wrap) ⊥ρ ⟦k⟧))
              (for*/union : (℘ -ς) ([Cₖ (in-set doms)] [Vₖ (in-set Vsₖ)])
-               (push-mon l³ ℓₖ (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))]))
+               (push-mon (ctx-with-ℓ ctx ℓₖ) (-W¹ Cₖ #|TODO|# #f) (-W¹ Vₖ #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)))]))
       
       (match Vᵤ
         [(? -Hash/guard?)
          ;; havoc would be expensive. Just wrap it for now
          (σ⊕V! Σ αₕ Vᵤ)
-         (define V (-Hash/guard Vₚ αₕ l³))
+         (define V (-Hash/guard Vₚ αₕ ctx))
          (⟦k⟧ (-W (list V) tᵤ) $ Γ ⟪ℋ⟫ Σ)]
         [(-Hash^ α₁ α₂ _)
          (chk-key-vals (σ@ Σ α₁) (σ@ Σ α₂))]
@@ -331,31 +332,31 @@
                (define blm (-blm l+ lo '(hash?) (list Vᵤ) ℓ))
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
-  (define (mon-set/c l³ ℓ Wₚ Wᵤ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-set/c ctx Wₚ Wᵤ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ (and Vₚ (-Set/C (-⟪α⟫ℓ αₑ ℓₑ))) sₚ) Wₚ)
     (match-define (-W¹ Vᵤ tᵤ) Wᵤ)
     (define σ (-Σ-σ Σ))
 
     (: chk-content : → (℘ -ς))
     (define (chk-content)
-      (define αₛ (-α->⟪α⟫ (-α.unset ℓ ⟪ℋ⟫ l+)))
+      (define αₛ (-α->⟪α⟫ (-α.unset ctx ⟪ℋ⟫)))
 
       (: chk-elems : (℘ -V) → (℘ -ς))
       (define (chk-elems Vs)
-        (define wrap (mk-wrapped-set Vₚ l³ αₛ (-W¹ (V+ σ Vᵤ 'set?) tᵤ)))
+        (define wrap (mk-wrapped-set Vₚ ctx αₛ (-W¹ (V+ σ Vᵤ 'set?) tᵤ)))
         (cond
           [(set-empty? Vs)
            (wrap ⊥ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
           [else
            (define ⟦k⟧* (bgn∷ (list wrap) ⊥ρ ⟦k⟧))
            (for*/union : (℘ -ς) ([C (in-set (σ@ σ αₑ))] [V (in-set Vs)])
-             (push-mon l³ ℓₑ (-W¹ C #|TODO|# #f) (-W¹ V #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]))
+             (push-mon (ctx-with-ℓ ctx ℓₑ) (-W¹ C #|TODO|# #f) (-W¹ V #|TODO|# #f) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]))
 
       (match Vᵤ
         [(? -Set/guard?)
          (σ⊕V! Σ αₛ Vᵤ)
-         (define V (-Set/guard Vₚ αₛ l³))
+         (define V (-Set/guard Vₚ αₛ ctx))
          (⟦k⟧ (-W (list V) tᵤ) $ Γ ⟪ℋ⟫ Σ)]
         [(-Set^ α _) (chk-elems (σ@ σ α))]
         [_ (chk-elems {set (+●)})]))
@@ -366,8 +367,8 @@
                (define blm (-blm l+ lo '(set?) (list Vᵤ) ℓ))
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
-  (define (mon-flat/c l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ _ lo) l³)
+  (define (mon-flat/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ C c) W-C)
     (match-define (-W¹ V v) W-V)
     (define cv (and (-h? c) (?t@ c v)))
@@ -469,8 +470,9 @@
     (define Vₙ (if ?n (-b ?n) (+● 'exact-nonnegative-integer?)))
     (-W¹ Vₙ (?t@ 'vector-length s)))
 
-  (: push-mon ((-l³ ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς)))
-  (define (push-mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])
+  (: push-mon ((-ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς)))
+  (define (push-mon ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])
+    (match-define (-ctx _ _ _ _ ℓ) ctx)
     (match-define (-W¹ C _ ) W-C)
     (match-define (-W¹ V tᵥ) W-V)
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
@@ -483,7 +485,7 @@
        (define $**
          (let ([root (∪ (V->⟪α⟫s V) (V->⟪α⟫s C) (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ)))])
            ($-cleanup (gc-$ $* (-Σ-σ Σ) root))))
-       (define αₖ (-ℳ $** ⟪ℋ⟫ₑₑ l³ ℓ W-C W-V* Γ*))
+       (define αₖ (-ℳ $** ⟪ℋ⟫ₑₑ ctx W-C W-V* Γ*))
        (define κ
          (let* ([δ$ : -δ$ (hash ?x (cond [(hash-ref $ ?x #f) => values] [else #f]))]
                 [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
@@ -491,7 +493,7 @@
        (σₖ⊕! Σ αₖ κ)
        {set (-ς↑ αₖ)}]
       [else
-       (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
+       (mon ctx W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
 
   (: push-fc ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς)))
   (define (push-fc l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped [?x #f])

@@ -97,19 +97,22 @@
          ((app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
       [(-Case-Clo clauses ρₕ Γₕ)
        ((app-Case-Clo clauses ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-      [(-Ar C α l³)
+      [(-Ar C α ctx)
        (with-guarded-arity (guard-arity C)
          (define-values (c _) (-ar-split sₕ))
          (cond
            [(-=>? C)
             (for/union : (℘ -ς) ([Vᵤ (σ@ Σ α)] #:unless (equal? Vₕ Vᵤ))
-                       ((app-Ar C c Vᵤ sₕ l³) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+              ((app-Ar C c Vᵤ sₕ ctx) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
            [(-=>i? C)
             (for/union : (℘ -ς) ([Vᵤ (σ@ Σ α)] #:unless (equal? Vₕ Vᵤ))
-                       ((app-Indy C c Vᵤ sₕ l³) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+                       ((app-Indy C c Vᵤ sₕ ctx) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+           [(-∀/C? C)
+            (for/union : (℘ -ς) ([Vᵤ (σ@ σ α)] #:unless (equal? Vₕ Vᵤ))
+                       ((app-∀/C C c Vᵤ sₕ ctx) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
            [else
             (for/union : (℘ -ς) ([Vᵤ (σ@ Σ α)] #:unless (equal? Vₕ Vᵤ))
-                       ((app-guarded-Case C c Vᵤ sₕ l³) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]))]
+              ((app-guarded-Case C c Vᵤ sₕ ctx) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]))]
       [(-And/C #t (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (with-guarded-arity 1
          (match-define (list c₁ c₂) (-app-split 'and/c sₕ 2))
@@ -251,20 +254,19 @@
                          (map -W¹-V Wₓs) ℓ))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
-  (: app-guarded-Case : -V -?t -V -?t -l³ → -⟦f⟧)
-  (define ((app-guarded-Case C c Vᵤ sₕ l³) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (: app-guarded-Case : -V -?t -V -?t -ctx → -⟦f⟧)
+  (define ((app-guarded-Case C c Vᵤ sₕ ctx) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (error 'app-guarded-Case "TODO"))
 
-  (: app-Ar : -=> -?t -V -?t -l³ → -⟦f⟧)
-  (define ((app-Ar C c Vᵤ sₕ l³) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (: app-Ar : -=> -?t -V -?t -ctx → -⟦f⟧)
+  (define ((app-Ar C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (define σ (-Σ-σ Σ))
-    (match-define (-l³ l+ l- lo) l³)
+    (define ctx* (ctx-neg ctx))
     (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
     (match-define (-=> αℓs Rng _) C)
     (define-values (cs d) (-->-split c (shape αℓs)))
-    (define l³* (-l³ l- l+ lo))
-    (define ⟦k⟧/mon-rng (mon*.c∷ l³ ℓₐ Rng d ⟦k⟧))
-    (define ℓₐ* (ℓ-with-src ℓₐ lo))
+    (define ⟦k⟧/mon-rng (mon*.c∷ (ctx-with-ℓ ctx ℓₐ) Rng d ⟦k⟧))
+    (define ℓₐ* (ℓ-with-src ℓₐ (-ctx-src ctx)))
     (match* (αℓs cs)
       [('() '()) ; no arg
        (app ℓₐ* Wᵤ '() $ Γ ⟪ℋ⟫ Σ ⟦k⟧/mon-rng)]
@@ -276,7 +278,7 @@
                                       [c cs]
                                       [Wₓ Wₓs]
                                       [ℓₓ : ℓ ℓs])
-             (mk-mon l³* ℓₓ (mk-rt (-W¹ C c)) (mk-rt Wₓ))))
+             (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-rt (-W¹ C c)) (mk-rt Wₓ))))
          (⟦mon-x⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
           (ap∷ (list Wᵤ) ⟦mon-x⟧s ⊥ρ ℓₐ* ⟦k⟧/mon-rng)))]
       [((-var αℓs₀ αℓᵣ) (-var cs₀ cᵣ))
@@ -289,9 +291,9 @@
                              [Cᵣ (in-set (σ@ Σ αᵣ))])
          (define ⟦mon-x⟧s : (Listof -⟦e⟧)
            (for/list ([Cₓ Cs₀] [cₓ cs₀] [Wₓ Ws₀] [ℓₓ : ℓ ℓs₀])
-             (mk-mon l³* ℓₓ (mk-rt (-W¹ Cₓ cₓ)) (mk-rt Wₓ))))
+             (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-rt (-W¹ Cₓ cₓ)) (mk-rt Wₓ))))
          (define ⟦mon-x⟧ᵣ : -⟦e⟧
-           (mk-mon l³* ℓᵣ (mk-rt (-W¹ Cᵣ cᵣ)) (mk-rt Wᵣ)))
+           (mk-mon (ctx-with-ℓ ctx* ℓᵣ) (mk-rt (-W¹ Cᵣ cᵣ)) (mk-rt Wᵣ)))
          (match ⟦mon-x⟧s
            ['()
             (⟦mon-x⟧ᵣ ⊥ρ $ Γ ⟪ℋ⟫ Σ
@@ -300,38 +302,36 @@
             (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
              (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓₐ* ⟦k⟧/mon-rng))]))]))
 
-  (: apply-app-Ar : (-=> -?t -V -?t -l³ → ℓ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-  (define ((apply-app-Ar C c Vᵤ sₕ l³) ℓ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (: apply-app-Ar : (-=> -?t -V -?t -ctx → ℓ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+  (define ((apply-app-Ar C c Vᵤ sₕ ctx) ℓ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ) _) C)
     (match-define-values ((-var cs₀ cᵣ) d) (-->-split c (arity-at-least (length αℓs₀))))
     ;; FIXME copied n pasted from app-Ar
     (define-values (αs₀ ℓs₀) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs₀))
     (match-define (-W¹ Vᵣ sᵣ) Wᵣ)
-    (match-define (-l³ l+ l- lo) l³)
-    (define l³* (-l³ l- l+ lo))
+    (define ctx* (ctx-neg ctx))
     (define Wᵤ (-W¹ Vᵤ sₕ))
     (for*/union : (℘ -ς) ([Cs₀ (in-set (σ@/list Σ αs₀))]
                           [Cᵣ (in-set (σ@ Σ αᵣ))]
                           [D (in-set (σ@ Σ β))])
       (define ⟦mon-x⟧s : (Listof -⟦e⟧)
         (for/list ([Cₓ Cs₀] [cₓ cs₀] [Wₓ Ws₀] [ℓₓ : ℓ ℓs₀])
-          (mk-mon l³* ℓₓ (mk-rt (-W¹ Cₓ cₓ)) (mk-rt Wₓ))))
+          (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-rt (-W¹ Cₓ cₓ)) (mk-rt Wₓ))))
       (define ⟦mon-x⟧ᵣ : -⟦e⟧
-        (mk-mon l³* ℓᵣ (mk-rt (-W¹ Cᵣ cᵣ)) (mk-rt Wᵣ)))
+        (mk-mon (ctx-with-ℓ ctx* ℓᵣ) (mk-rt (-W¹ Cᵣ cᵣ)) (mk-rt Wᵣ)))
       (match ⟦mon-x⟧s
         ['()
          (⟦mon-x⟧ᵣ ⊥ρ Γ ⟪ℋ⟫ Σ
           (ap∷ (list Wᵤ (+W¹ 'apply)) '() ⊥ρ ℓ
-               (mon.c∷ l³ ℓₐ (-W¹ D d) ⟦k⟧)))]
+               (mon.c∷ (ctx-with-ℓ ctx ℓₐ) (-W¹ D d) ⟦k⟧)))]
         [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
          (⟦mon-x⟧₀ ⊥ρ Γ ⟪ℋ⟫ Σ
           (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓ
-               (mon.c∷ l³ ℓₐ (-W¹ D d) ⟦k⟧)))])))
+               (mon.c∷ (ctx-with-ℓ ctx ℓₐ) (-W¹ D d) ⟦k⟧)))])))
 
-  (: app-Indy : -=>i -?t -V -?t -l³ → -⟦f⟧)
-  (define ((app-Indy C c Vᵤ sₕ l³) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-l³ l+ l- lo) l³)
-    (define l³* (-l³ l- l+ lo))
+  (: app-Indy : -=>i -?t -V -?t -ctx → -⟦f⟧)
+  (define ((app-Indy C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (define lo (-ctx-src ctx))
     (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
     (match-define (-=>i αℓs (list Mk-D mk-d ℓᵣ) _) C)
     (match-define (-Clo xs ⟦d⟧ ρᵣ _) Mk-D)
@@ -346,15 +346,16 @@
        (define ⟦rng⟧
          (cond [(-λ? mk-d) (assert (equal? xs (-λ-_0 mk-d))) ⟦d⟧]
                [else (mk-app ℓₐ (mk-rt W-rng) ⟦x⟧s)]))
-       (define ⟦mon-app⟧ (mk-mon l³ ℓᵣ ⟦rng⟧ ⟦app⟧))
+       (define ⟦mon-app⟧ (mk-mon (ctx-with-ℓ ctx ℓᵣ) ⟦rng⟧ ⟦app⟧))
        (define ρᵣ* : -ρ (if (-λ? mk-d) ρᵣ ⊥ρ))
+       (define ctx* (ctx-neg ctx))
        (for/union : (℘ -ς) ([Cs (in-set (σ@/list Σ αs))])
          (define ⟦mon-x⟧s : (Listof -⟦e⟧)
            (for/list ([C (in-list Cs)]
                       [c (in-list cs)]
                       [Wₓ (in-list Wₓs)]
                       [ℓₓ : ℓ (in-list ℓs)])
-             (mk-mon l³* ℓₓ (mk-rt (-W¹ C c)) (mk-rt Wₓ))))
+             (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-rt (-W¹ C c)) (mk-rt Wₓ))))
          (match* (xs ⟦x⟧s ⟦mon-x⟧s)
            [('() '() '())
             (⟦mon-app⟧ ρᵣ* $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
@@ -370,6 +371,10 @@
                     ⟦k⟧))]))]
       [(-var zs z)
        (error 'app-Indy "TODO: varargs in ->i: ~a" (cons zs z))]))
+
+  (: app-∀/C : -∀/C -?t -V -?t -ctx → -⟦f⟧)
+  (define ((app-∀/C C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (error 'app-∀/C "TODO"))
 
   (define (app-st-p [𝒾 : -𝒾]) : -⟦f⟧
     (define st-p (-st-p 𝒾))
@@ -435,9 +440,8 @@
               [else
                (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                  (⟦k⟧ (-W (list V) #f) $ Γ ⟪ℋ⟫ Σ))])]
-           [(-St* (-St/C _ 𝒾* αℓs) α l³) #:when (𝒾* . substruct? . 𝒾)
+           [(-St* (-St/C _ 𝒾* αℓs) α ctx) #:when (𝒾* . substruct? . 𝒾)
             (define ℓ/ignore (ℓ-with-src ℓ 'st-ac))
-            (match-define (-l³ _ _ lₒ) l³)
             (define Ac (-W¹ ac ac))
             (cond
               ;; mutable field should be wrapped
@@ -448,7 +452,7 @@
                (define cᵢ #f #;(⟪α⟫->s αᵢ))
                (for*/union : (℘ -ς) ([Cᵢ (in-set Cᵢs)] [V* (in-set Vs)])
                  (⟦ac⟧ ℓ/ignore (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ
-                  (mon.c∷ l³ ℓᵢ (-W¹ Cᵢ cᵢ) ⟦k⟧)))]
+                  (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧)))]
               ;; no need to check immutable field
               [else
                ;; TODO: could this loop forever due to cycle?
@@ -489,17 +493,16 @@
                            ($-set! Σ $ α (-loc.offset 𝒾 i sₛ) tᵥ)
                            ($-del* $ (get-aliases Σ α))))
             (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
-           [(-St* (-St/C _ (== 𝒾) γℓs) α l³)
+           [(-St* (-St/C _ (== 𝒾) γℓs) α ctx)
             (define ℓ/ignore (ℓ-with-src ℓ 'st-mut))
-            (match-define (-l³ l+ l- lo) l³)
-            (define l³* (-l³ l- l+ lo))
+            (define ctx* (ctx-neg ctx))
             (match-define (-⟪α⟫ℓ γ ℓᵢ) (list-ref γℓs i))
             (define c #f #;(⟪α⟫->s γ))
             (define Mut (-W¹ mut mut))
             (for*/union : (℘ -ς) ([Vₛ* (in-set (σ@ Σ α))]
                                   [⟦k⟧* (in-value (ap∷ (list (-W¹ Vₛ* sₛ) Mut) '() ⊥ρ ℓ/ignore ⟦k⟧))]
                                   [C (in-set (σ@ Σ γ))])
-              (push-mon l³* ℓᵢ (-W¹ C c) Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
+              (push-mon (ctx-with-ℓ ctx* ℓᵢ) (-W¹ C c) Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
            [(-● _)
             (with-Γ+/-oW ((-Σ-σ Σ) Γ p Wₛ)
               #:on-t (λ ([Γ : -Γ])
@@ -599,8 +602,8 @@
             (define V-rest* (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ W-inits.rest #:end (-W¹-V W-rest)))
             {set (app/adjusted-args! W-inits* (-W¹ V-rest* #f))}])]))
 
-    (: app-Ar/rest : -=>_ ⟪α⟫ -l³ → (℘ -ς))
-    (define (app-Ar/rest C α l³)
+    (: app-Ar/rest : -=>_ ⟪α⟫ -ctx → (℘ -ς))
+    (define (app-Ar/rest C α ctx)
       (match C
         [(-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ) _)
          (define n (length αℓs₀))
@@ -613,7 +616,7 @@
               (match-define (cons V-inits-more V-rest*) unalloced)
               (define W-inits* (append W-inits (map V->W¹ V-inits-more)))
               (define W-rest* (-W¹ V-rest* #f))
-              ((apply-app-Ar C #f Vᵤ t-func l³) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+              ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))]
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (W-inits* W-inits.rest) (split-at W-inits n))
@@ -621,14 +624,14 @@
             (define V-rest* (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ W-inits.rest #:end (-W¹-V W-rest)))
             (define W-rest* (-W¹ V-rest* #f))
             (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))])
-                       ((apply-app-Ar C #f Vᵤ t-func l³) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+                       ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
         [_
          (error 'app-Ar/rest "TODO: `apply` for function wrapped in ~a" (show-V C))]))
     
     (match V-func
       [(-Clo xs ⟦e⟧ ρₕ Γₕ) (app-clo/rest xs ⟦e⟧ ρₕ Γₕ)]
       [(-Case-Clo clauses _ _) (error 'app/rest "TODO: case-lambda")]
-      [(-Ar C α l³) (app-Ar/rest C α l³)]
+      [(-Ar C α ctx) (app-Ar/rest C α ctx)]
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
 

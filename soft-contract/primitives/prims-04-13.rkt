@@ -167,15 +167,13 @@
        (σ⊕! Σ Γ αᵥ* Wᵥ)
        (define Wₕ* (-W (list (-Hash^ αₖ* αᵥ* #t)) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
-      [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ)))
-                    αₕ
-                    (and l³ (-l³ l+ l- lo)))
-       (define l³* (-l³ l- l+ lo))
-       (define ⟦k⟧* (hash-set-inner∷ ℓ αₕ tₕ (wrap-hash∷ ℓ C l³ ⟦k⟧)))
+      [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ))) αₕ ctx)
+       (define ctx* (ctx-neg ctx))
+       (define ⟦k⟧* (hash-set-inner∷ ℓ αₕ tₕ (wrap-hash∷ C ctx ⟦k⟧)))
        (for*/union : (℘ -ς) ([Cₖ (in-set (σ@ Σ αₖ))]
                              [Cᵥ (in-set (σ@ Σ αᵥ))])
-          (mon l³* ℓₖ (-W¹ Cₖ #f) Wₖ $ Γ ⟪ℋ⟫ Σ
-               (mon*∷ l³* (list (-W¹ Cᵥ #f)) (list Wᵥ) (list ℓᵥ) '() ⟦k⟧*)))]
+          (mon (ctx-with-ℓ ctx* ℓₖ) (-W¹ Cₖ #f) Wₖ $ Γ ⟪ℋ⟫ Σ
+               (mon*∷ ctx* (list (-W¹ Cᵥ #f)) (list Wᵥ) (list ℓᵥ) '() ⟦k⟧*)))]
       [_
        (define Wₕ* (-W (list (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)) tₐ))
        (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
@@ -191,10 +189,10 @@
       [(-Hash^ _ αᵥ _)
        (for/union : (℘ -ς) ([V (in-set (σ@ Σ αᵥ))])
                   (⟦k⟧ (-W (list V) tₐ) $ Γ ⟪ℋ⟫ Σ))]
-      [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) αₕ l³)
+      [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) αₕ ctx)
        (for*/union : (℘ -ς) ([Cᵥ (in-set (σ@ Σ αᵥ))]
                              [Vₕ* (in-set (σ@ Σ αₕ))])
-                   (define ⟦k⟧* (mon.c∷ l³ ℓᵥ (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
+                   (define ⟦k⟧* (mon.c∷ (ctx-with-ℓ ctx ℓᵥ) (-W¹ Cᵥ #|TODO|# #f) ⟦k⟧))
                    (define Wₕ* (-W¹ Vₕ* tₕ))
                    (.hash-ref-1 ℓ (list Wₕ* Wₖ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
@@ -287,11 +285,11 @@
       [(-Hash^ αₖ _ _)
        (for/union : (℘ -ς) ([Vₖ (in-set (σ@ Σ αₖ))])
          (⟦k⟧ (-W (list Vₖ) tₐ) $ Γ ⟪ℋ⟫ Σ))]
-      [(-Hash/guard (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) _) α l³)
+      [(-Hash/guard (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) _) α ctx)
        (for*/union : (℘ -ς) ([Vₕ* (in-set (σ@ Σ α))]
                              [C (in-set (σ@ Σ αₖ))])
          (.hash-iterate-key ℓ (list (-W¹ Vₕ* tₕ) Wᵢ) $ Γ ⟪ℋ⟫ Σ
-                           (mon.c∷ l³ ℓₖ (-W¹ C #f) ⟦k⟧)))]
+                           (mon.c∷ (ctx-with-ℓ ctx ℓₖ) (-W¹ C #f) ⟦k⟧)))]
       [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   (def-ext (hash-iterate-value ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:domain ([Wₕ hash?]
@@ -303,11 +301,11 @@
       [(-Hash^ _ αᵥ _)
        (for/union : (℘ -ς) ([Vᵥ (in-set (σ@ Σ αᵥ))])
          (⟦k⟧ (-W (list Vᵥ) tₐ) $ Γ ⟪ℋ⟫ Σ))]
-      [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) α l³)
+      [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) α ctx)
        (for*/union : (℘ -ς) ([Vₕ* (in-set (σ@ Σ α))]
                              [C (in-set (σ@ Σ αᵥ))])
          (.hash-iterate-value ℓ (list (-W¹ Vₕ* tₕ) Wᵢ) $ Γ ⟪ℋ⟫ Σ
-                             (mon.c∷ l³ ℓᵥ (-W¹ C #f) ⟦k⟧)))]
+                             (mon.c∷ (ctx-with-ℓ ctx ℓᵥ) (-W¹ C #f) ⟦k⟧)))]
       [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
   
   (def-ext (hash-iterate-key+value ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)

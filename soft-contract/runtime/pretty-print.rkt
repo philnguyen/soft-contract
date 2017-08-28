@@ -149,7 +149,8 @@
              `(,@(map show-⟪α⟫ αs) . -> . ,(show-⟪α⟫ β))))]
       [(-St/C _ 𝒾 αs)
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
-      [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]))
+      [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
+      [(-∀/C xs ⟦c⟧ ρ) `(∀/C ,xs ,(show-⟦e⟧ ⟦c⟧))]))
 
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
     (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)
@@ -217,7 +218,7 @@
       [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
 
   (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ $ ⟪ℋ⟫ l³ ℓ C V Γ) ℳ)
+    (match-define (-ℳ $ ⟪ℋ⟫ ctx C V Γ) ℳ)
     `(ℳ ,(show-⟪ℋ⟫ ⟪ℋ⟫) ,(show-W¹ C) ,(show-W¹ V) ‖ ,@(show-Γ Γ) ‖ ,@(show-$ $)))
 
   (define (show-ℱ [ℱ : -ℱ]) : Sexp
