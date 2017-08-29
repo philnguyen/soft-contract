@@ -151,8 +151,7 @@
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
       [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
       [(-∀/C xs ⟦c⟧ ρ) `(∀/C ,xs ,(show-⟦e⟧ ⟦c⟧))]
-      [(-Seal/C x ⟪ℋ⟫) (format-symbol "(seal/c ~a~a)" x (n-sub ⟪ℋ⟫))]
-      [(-Unseal/C x ⟪ℋ⟫) (format-symbol "(unseal/c ~a~a)" x (n-sub ⟪ℋ⟫))]
+      [(-Seal/C α _) (format-symbol "(seal/c ~a)" (assert (show-⟪α⟫ α) symbol?))]
       [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))]))
 
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
@@ -268,8 +267,6 @@
       [(-α.fv ⟪ℋ⟫) (show-α.x 'dummy ⟪ℋ⟫)]
       [(-𝒾 x _) x]
       [(-α.wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
-      [(-α.seal x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
-      [(-α.unseal x ⟪ℋ⟫) (format-symbol "~a!" (show-α.x x ⟪ℋ⟫))]
       [(-α.sealed x ⟪ℋ⟫) (format-symbol "~a*" (show-α.x x ⟪ℋ⟫))]
       [(? -e? e) (show-e e)]
       [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))

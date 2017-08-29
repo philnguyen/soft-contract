@@ -238,7 +238,7 @@
           (cond
             [(symbol? x)
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-               (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ (ρ@ ρ x) ⟦k⟧)))]
+               (⟦e*⟧ ρ $ Γ ⟪ℋ⟫ Σ (set!∷ (cast (ρ@ ρ x) ⟪α⟫) ⟦k⟧)))]
             [else
              (define α (-α->⟪α⟫ x))
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -258,15 +258,15 @@
                (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ '() #f ℓ ⟦k⟧)))]
             [(cons ⟦c⟧ ⟦c⟧s)
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-               (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦d⟧ ρ ℓ ⟦k⟧)))]
+               (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦d⟧ ρ ℓ ⟦k⟧)))]
             [(-var ⟦c⟧s ⟦c⟧ᵣ)
              (match ⟦c⟧s
                ['()
                 (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-                  (⟦c⟧ᵣ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.rst∷ '() ⟦d⟧ ρ ℓ ⟦k⟧)))]
+                  (⟦c⟧ᵣ ρ $ Γ ⟪ℋ⟫ Σ (-->.rst∷ '() ⟦d⟧ ρ ℓ ⟦k⟧)))]
                [(cons ⟦c⟧ ⟦c⟧s*)
                 (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-                  (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧)))])])]
+                  (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧)))])])]
          [(-->i cs (and mk-d (-λ xs d)) ℓ)
           (define ⟦d⟧ (↓ d))
           (match (map ↓ cs)
@@ -279,7 +279,7 @@
             [(cons ⟦c⟧ ⟦c⟧s)
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
                (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
-               (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->i∷ '() ⟦c⟧s ρ Mk-D mk-d ℓ ⟦k⟧)))])]
+               (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ '() ⟦c⟧s ρ Mk-D mk-d ℓ ⟦k⟧)))])]
          [(-case-> clauses ℓ)
           (define ⟦clause⟧s : (Listof (Listof -⟦e⟧))
             (for/list ([clause clauses])
@@ -325,13 +325,17 @@
       (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) ℓₓ))
     (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define α (ρ@ ρ x))
-      (define-values (Ws $*) ($@! Σ Γ α $ x ℓₓ))
-      (for/union : (℘ -ς) ([W (in-set Ws)])
-        (define A
-          (match W
-            [(-W¹ (-b (== undefined)) _) -blm.undefined]
-            [(-W¹ V                   t) (-W (list V) t)]))
-        (⟦k⟧ A $* Γ ⟪ℋ⟫ Σ))))
+      (cond
+        [(-V? α)
+         (⟦k⟧ (-W (list α) x) $ Γ ⟪ℋ⟫ Σ)]
+        [else
+         (define-values (Ws $*) ($@! Σ Γ α $ x ℓₓ))
+         (for/union : (℘ -ς) ([W (in-set Ws)])
+           (define A
+             (match W
+               [(-W¹ (-b (== undefined)) _) -blm.undefined]
+               [(-W¹ V                   t) (-W (list V) t)]))
+           (⟦k⟧ A $* Γ ⟪ℋ⟫ Σ))])))
 
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))
 

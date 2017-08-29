@@ -38,12 +38,11 @@
         [(-Hash/C? C) mon-hash/c]
         [(-Set/C? C) mon-set/c]
         [(-Seal/C? C) mon-seal/c]
-        [(-Unseal/C? C) mon-unseal/c]
         [else mon-flat/c]))
     (mon₁ ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (:* mon-=>_ mon-struct/c mon-x/c mon-and/c mon-or/c mon-not/c mon-one-of/c
-      mon-vectorof mon-vector/c mon-hash/c mon-set/c mon-seal/c mon-unseal/c mon-flat/c
+      mon-vectorof mon-vector/c mon-hash/c mon-set/c mon-seal/c mon-flat/c
       : -ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 
   (define (mon-=>_ ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -369,26 +368,25 @@
                (define blm (-blm l+ lo '(set?) (list Vᵤ) ℓ))
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
-  (define (mon-unseal/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-ctx l+ _ lo ℓ) ctx)
-    (match-define (-W¹ (and C (-Unseal/C x ⟪ℋ⟫ₛ)) _) W-C)
-    (match-define (-W¹ V tᵥ) W-V)
-    (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₛ)))
-    (define (blm) (⟦k⟧ (-blm l+ lo (list C) (list V) ℓ) $ Γ ⟪ℋ⟫ Σ))
-    (define (ok)
-      (for/union : (℘ -ς) ([V* (in-set (σ@ Σ α))])
-        (⟦k⟧ (-W (list V*) tᵥ) $ Γ ⟪ℋ⟫ Σ)))
-    (match V
-      [(-Sealed (== α)) (ok)] ; TODO possible false negs from finite seals
-      [(-● _) (∪ (blm) (ok))]
-      [_ (blm)]))
-
   (define (mon-seal/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-W¹ (and C (-Seal/C x ⟪ℋ⟫ₛ)) _) W-C)
+    (match-define (-W¹ (and C (-Seal/C α l)) _) W-C)
     (match-define (-W¹ V tᵥ) W-V)
-    (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₛ)))
-    (σ⊕! Σ Γ α W-V)
-    (⟦k⟧ (-W (list (-Sealed α)) tᵥ) $ Γ ⟪ℋ⟫ Σ))
+    (match-define (-ctx l+ l- lo ℓ) ctx)
+    (cond
+      [(equal? l l+) ; seal
+       (σ⊕! Σ Γ α W-V)
+       (⟦k⟧ (-W (list (-Sealed α)) tᵥ) $ Γ ⟪ℋ⟫ Σ)]
+      [(equal? l l-) ; unseal
+       (define (blm) (⟦k⟧ (-blm l+ lo (list C) (list V) ℓ) $ Γ ⟪ℋ⟫ Σ))
+       (define (ok)
+         (for/union : (℘ -ς) ([V* (in-set (σ@ Σ α))])
+           (⟦k⟧ (-W (list V*) tᵥ) $ Γ ⟪ℋ⟫ Σ)))
+       (match V
+         [(-Sealed (== α)) (ok)] ; TODO possible false negs from finite seals
+         [(-● _) (∪ (blm) (ok))]
+         [_ (blm)])]
+      [else
+       (error 'mon-seal/c "seal labeled ~a in context ~a, ~a, ~a" l l+ l- lo)]))
   
   (define (mon-flat/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-ctx l+ _ lo ℓ) ctx)

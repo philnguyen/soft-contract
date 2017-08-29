@@ -305,7 +305,9 @@
         [((-Clo _ ⟦e⟧ ρ₁ _)
           (-Clo _ ⟦e⟧ ρ₂ _)) ; TODO : ignore `Γ` ok?
          (for/and : Boolean ([(x α₁) (in-hash ρ₁)])
-           (go/⟪α⟫ α₁ (ρ@ ρ₂ x)))]
+           (define α₂ (ρ@ ρ₂ x))
+           (or (and (-V? α₁) (-V? α₂) (go α₁ α₂))
+               (and (not (-V? α₁)) (not (-V? α₂)) (go/⟪α⟫ α₁ α₂))))]
         [(_ _) #f]))
 
     (go V₁ V₂))

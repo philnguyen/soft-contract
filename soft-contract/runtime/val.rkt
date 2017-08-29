@@ -53,7 +53,6 @@
       [(? -x/C?) #t]
       [(? -∀/C?) #f]
       [(? -Seal/C?) #f]
-      [(? -Unseal/C?) #t]
       [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
 
@@ -181,8 +180,7 @@
       [(? -o? o) o]
       [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
-      [(-Seal/C x _) (list 'seal/c x)]
-      [(-Unseal/C x _) (list 'unseal/c x)]
+      [(-Seal/C α _) (list 'seal/c (match-let ([(-α.sealed x _) (⟪α⟫->-α α)]) x))]
       [V (error 'strip-C "~a not expected" V)]))
 
   (: predicates-of-V : -V → (℘ -h))

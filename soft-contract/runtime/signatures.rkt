@@ -12,7 +12,7 @@
          "../ast/signatures.rkt"
          )
 
-(define-type -ρ (Immutable-HashTable Symbol ⟪α⟫))
+(define-type -ρ (Immutable-HashTable Symbol (U ⟪α⟫ -Seal/C)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stores
@@ -79,8 +79,7 @@
             (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
             (-Set/C [elems : -⟪α⟫ℓ])
             ;; Seal
-            (-Seal/C Symbol -⟪ℋ⟫)
-            (-Unseal/C Symbol -⟪ℋ⟫))
+            (-Seal/C ⟪α⟫ -l))
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
@@ -123,7 +122,8 @@
 
 (define ctx-neg : (-ctx → -ctx)
   (match-lambda
-    [(-ctx l+ l- lo ℓ) (-ctx l- l+ lo ℓ)]))
+    [(-ctx l+ l- lo ℓ)
+     (-ctx l- l+ lo ℓ)]))
 (define ctx-with-ℓ : (-ctx ℓ → -ctx)
   (match-lambda**
    [((-ctx l+ l- lo _) ℓ) (-ctx l+ l- lo ℓ)]))
@@ -281,9 +281,7 @@
             ;; for wrapped function
             (-α.fn [sym : (Option -⟦e⟧)] [mon-ctx : -ctx] [ctx : -⟪ℋ⟫] [pc : -Γ])
 
-            ;; For parametric contracts
-            (-α.seal Symbol -⟪ℋ⟫)   ; points to seals
-            (-α.unseal Symbol -⟪ℋ⟫) ; points to seal checks
+            ;; For values wrapped in seals
             (-α.sealed Symbol -⟪ℋ⟫) ; points to wrapped objects
 
             ;; HACK
@@ -364,10 +362,9 @@
 
 (define-signature env^
   ([⊥ρ : -ρ]
-   [ρ@ : (-ρ Symbol → ⟪α⟫)]
-   [ρ+ : (-ρ Symbol ⟪α⟫ → -ρ)]
-   [-x-dummy : Symbol]
-   [flip-seals : (-ρ → -ρ)]))
+   [ρ@ : (-ρ Symbol → (U ⟪α⟫ -Seal/C))]
+   [ρ+ : (-ρ Symbol (U ⟪α⟫ -Seal/C) → -ρ)]
+   [-x-dummy : Symbol]))
 
 (define-signature sto^
   ([⊥σ : -σ]

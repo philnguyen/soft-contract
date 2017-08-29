@@ -306,14 +306,12 @@
   (define ((app-∀/C C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-∀/C xs ⟦c⟧ ρ) C)
     (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓₐ)))
+    (define l-seal (-ctx-neg ctx))
     (define ρ* ; with side-effect widening store
       (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
-        (define α (-α->⟪α⟫ (-α.unseal x ⟪ℋ⟫ₑₑ)))
-        (define α* (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
-        (σ⊕V! Σ α (-Unseal/C x ⟪ℋ⟫ₑₑ))
-        (σ⊕V! Σ α* (-Seal/C x ⟪ℋ⟫ₑₑ))
-        (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)) ∅)
-        (hash-set ρ x α)))
+        (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)))
+        (σ⊕Vs! Σ α ∅)
+        (hash-set ρ x (-Seal/C α l-seal))))
     (define ⟦k⟧*
       (restore-ctx∷ ⟪ℋ⟫
         (mon.v∷ ctx (-W¹ Vᵤ sₕ)
@@ -653,14 +651,12 @@
             (error 'app/rest "expect ~a arguments, given ~a: ~a" n num-inits (map show-W¹ W-inits))])]
         [(-∀/C xs ⟦c⟧ ρ)
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓ)))
+         (define l-seal (-ctx-neg ctx))
          (define ρ* ; with side-effects widening store
            (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
-             (define α (-α->⟪α⟫ (-α.unseal x ⟪ℋ⟫ₑₑ)))
-             (define α* (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
-             (σ⊕V! Σ α (-Unseal/C x ⟪ℋ⟫ₑₑ))
-             (σ⊕V! Σ α* (-Seal/C x ⟪ℋ⟫ₑₑ))
-             (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)) ∅)
-             (hash-set ρ x α)))
+             (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)))
+             (σ⊕Vs! Σ α ∅)
+             (hash-set ρ x (-Seal/C α l-seal))))
          (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ σ α))])
            (define ⟦k⟧*
            (restore-ctx∷ ⟪ℋ⟫
