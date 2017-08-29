@@ -101,7 +101,7 @@
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
   (define-frame (mon.c∷ [ctx : -ctx] [C : (U (Pairof -⟦e⟧ -ρ) -W¹)] [⟦k⟧ : -⟦k⟧])
-    (match-define (-ctx _ _ lo _ ℓ) ctx)
+    (match-define (-ctx _ _ lo ℓ) ctx)
     (define root (if (pair? C) (cdr C) C))
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (root)
       (match-define (-W Vs s) A)
@@ -117,7 +117,7 @@
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
   (define-frame (mon.v∷ [ctx : -ctx] [V : (U (Pairof -⟦e⟧ -ρ) -W¹)] [⟦k⟧ : -⟦k⟧])
-    (match-define (-ctx _ _ lo _ ℓ) ctx)
+    (match-define (-ctx _ _ lo ℓ) ctx)
     (define root (if (pair? V) (cdr V) V))
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (root)
       (match-define (-W Vs s) A)
@@ -138,7 +138,7 @@
       [else
        (define-values (βs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc rngs))
        (define n (length rngs))
-       (match-define (-ctx l+ _ lo _ ℓ) ctx)
+       (match-define (-ctx l+ _ lo ℓ) ctx)
        (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (βs)
          (match-define (-W Vs v) A)
          (cond
@@ -323,9 +323,9 @@
       (define Ws* (cons (-W¹ V s) Ws))
       (match ⟦c⟧s
         ['()
-         (cond [⟦c⟧ᵣ  (⟦c⟧ᵣ ρ $ Γ ⟪ℋ⟫ Σ (-->.rst∷ Ws* ⟦d⟧ ρ ℓ ⟦k⟧))]
+         (cond [⟦c⟧ᵣ  (⟦c⟧ᵣ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.rst∷ Ws* ⟦d⟧ ρ ℓ ⟦k⟧))]
                [else (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ Ws* #f ℓ ⟦k⟧))])]
-        [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ Ws* ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧))])))
+        [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.dom∷ Ws* ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧))])))
 
   ;; Non-depenent contract rest
   (define-frame (-->.rst∷ [Ws : (Listof -W¹)]
@@ -434,7 +434,7 @@
          (define-values (G g) (mk-=>i! Σ Γ ⟪ℋ⟫ Ws* Mk-D mk-d ℓ))
          (⟦k⟧ (-W (list G) g) $ Γ ⟪ℋ⟫ Σ)]
         [(cons ⟦c⟧ ⟦c⟧s*)
-         (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
+         (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->i∷ Ws* ⟦c⟧s* ρ Mk-D mk-d ℓ ⟦k⟧))])))
 
   ;; case-> contract
   (define-frame (case->∷ [ℓ : ℓ]
@@ -519,7 +519,7 @@
                       [𝒾 : -𝒾]
                       [⟦k⟧ : -⟦k⟧])
     (define l (-𝒾-src 𝒾))
-    (define ctx (-ctx l 'dummy- l #f ℓ))
+    (define ctx (-ctx l 'dummy- l ℓ))
     (define α (-α->⟪α⟫ 𝒾))
     (define α* (-α->⟪α⟫ (-α.wrp 𝒾)))
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (α)

@@ -308,8 +308,11 @@
     (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓₐ)))
     (define ρ* ; with side-effect widening store
       (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
-        (define α (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
-        (σ⊕V! Σ α (-Seal/C x ⟪ℋ⟫ₑₑ))
+        (define α (-α->⟪α⟫ (-α.unseal x ⟪ℋ⟫ₑₑ)))
+        (define α* (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
+        (σ⊕V! Σ α (-Unseal/C x ⟪ℋ⟫ₑₑ))
+        (σ⊕V! Σ α* (-Seal/C x ⟪ℋ⟫ₑₑ))
+        (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)) ∅)
         (hash-set ρ x α)))
     (define ⟦k⟧*
       (restore-ctx∷ ⟪ℋ⟫
@@ -652,8 +655,11 @@
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓ)))
          (define ρ* ; with side-effects widening store
            (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
-             (define α (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
-             (σ⊕V! Σ α (-Seal/C x ⟪ℋ⟫ₑₑ))
+             (define α (-α->⟪α⟫ (-α.unseal x ⟪ℋ⟫ₑₑ)))
+             (define α* (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
+             (σ⊕V! Σ α (-Unseal/C x ⟪ℋ⟫ₑₑ))
+             (σ⊕V! Σ α* (-Seal/C x ⟪ℋ⟫ₑₑ))
+             (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)) ∅)
              (hash-set ρ x α)))
          (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ σ α))])
            (define ⟦k⟧*

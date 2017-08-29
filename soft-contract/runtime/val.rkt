@@ -53,6 +53,7 @@
       [(? -x/C?) #t]
       [(? -∀/C?) #f]
       [(? -Seal/C?) #f]
+      [(? -Unseal/C?) #t]
       [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
 
@@ -74,13 +75,13 @@
     (define with-negative-party
       (with-swapper
         (match-lambda**
-          [(l (-ctx l+ _ lo assume? ℓ))
-           (-ctx l+ l lo assume? ℓ)])))
+          [(l (-ctx l+ _ lo ℓ))
+           (-ctx l+ l lo ℓ)])))
     (define with-positive-party
       (with-swapper
         (match-lambda**
-          [(l (-ctx _ l- lo assume? ℓ))
-           (-ctx l l- lo assume? ℓ)]))))
+          [(l (-ctx _ l- lo ℓ))
+           (-ctx l l- lo ℓ)]))))
 
   (: behavioral? : -σ -V → Boolean)
   ;; Check if value maybe behavioral.
@@ -181,6 +182,7 @@
       [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
       [(-Seal/C x _) (list 'seal/c x)]
+      [(-Unseal/C x _) (list 'unseal/c x)]
       [V (error 'strip-C "~a not expected" V)]))
 
   (: predicates-of-V : -V → (℘ -h))

@@ -80,6 +80,10 @@
           (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
                        (match-define (cons αs α) clause)
                        (set-add (list->seteq αs) α))]
+         [(-∀/C _ _ ρ) (list->seteq (hash-values ρ))]
+         [(-Unseal/C x ⟪ℋ⟫)
+          {seteq (-α->⟪α⟫ (-α.unseal x ⟪ℋ⟫))
+                 (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫))}]
          [_ ∅eq]))
       (printf "V->⟪α⟫s ~a: (~a)~n" (show-V V) (set-count αs))
       (for ([α αs])

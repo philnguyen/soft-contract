@@ -79,7 +79,8 @@
             (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
             (-Set/C [elems : -⟪α⟫ℓ])
             ;; Seal
-            (-Seal/C Symbol -⟪ℋ⟫))
+            (-Seal/C Symbol -⟪ℋ⟫)
+            (-Unseal/C Symbol -⟪ℋ⟫))
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
@@ -118,14 +119,14 @@
 ;;;;; Monitoring contexts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(struct -ctx ([pos : -l] [neg : -l] [src : -l] [assume-seal? : Boolean] [loc : ℓ]) #:transparent)
+(struct -ctx ([pos : -l] [neg : -l] [src : -l] [loc : ℓ]) #:transparent)
 
 (define ctx-neg : (-ctx → -ctx)
   (match-lambda
-    [(-ctx l+ l- lo assume? ℓ) (-ctx l- l+ lo (not assume?) ℓ)]))
+    [(-ctx l+ l- lo ℓ) (-ctx l- l+ lo ℓ)]))
 (define ctx-with-ℓ : (-ctx ℓ → -ctx)
   (match-lambda**
-   [((-ctx l+ l- lo assume? _) ℓ) (-ctx l+ l- lo assume? ℓ)]))
+   [((-ctx l+ l- lo _) ℓ) (-ctx l+ l- lo ℓ)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -282,6 +283,7 @@
 
             ;; For parametric contracts
             (-α.seal Symbol -⟪ℋ⟫)   ; points to seals
+            (-α.unseal Symbol -⟪ℋ⟫) ; points to seal checks
             (-α.sealed Symbol -⟪ℋ⟫) ; points to wrapped objects
 
             ;; HACK
@@ -364,7 +366,8 @@
   ([⊥ρ : -ρ]
    [ρ@ : (-ρ Symbol → ⟪α⟫)]
    [ρ+ : (-ρ Symbol ⟪α⟫ → -ρ)]
-   [-x-dummy : Symbol]))
+   [-x-dummy : Symbol]
+   [flip-seals : (-ρ → -ρ)]))
 
 (define-signature sto^
   ([⊥σ : -σ]

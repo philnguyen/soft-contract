@@ -72,7 +72,7 @@
                              (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
       [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ ctx)
        (define n (count-struct-fields 𝒾))
-       (match-define (-ctx l+ l- lo _ _) ctx)
+       (match-define (-ctx l+ l- lo _) ctx)
        (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))

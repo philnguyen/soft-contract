@@ -258,15 +258,15 @@
                (⟦d⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.rng∷ '() #f ℓ ⟦k⟧)))]
             [(cons ⟦c⟧ ⟦c⟧s)
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-               (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦d⟧ ρ ℓ ⟦k⟧)))]
+               (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦d⟧ ρ ℓ ⟦k⟧)))]
             [(-var ⟦c⟧s ⟦c⟧ᵣ)
              (match ⟦c⟧s
                ['()
                 (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-                  (⟦c⟧ᵣ ρ $ Γ ⟪ℋ⟫ Σ (-->.rst∷ '() ⟦d⟧ ρ ℓ ⟦k⟧)))]
+                  (⟦c⟧ᵣ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.rst∷ '() ⟦d⟧ ρ ℓ ⟦k⟧)))]
                [(cons ⟦c⟧ ⟦c⟧s*)
                 (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-                  (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧)))])])]
+                  (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->.dom∷ '() ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧)))])])]
          [(-->i cs (and mk-d (-λ xs d)) ℓ)
           (define ⟦d⟧ (↓ d))
           (match (map ↓ cs)
@@ -279,7 +279,7 @@
             [(cons ⟦c⟧ ⟦c⟧s)
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
                (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
-               (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ '() ⟦c⟧s ρ Mk-D mk-d ℓ ⟦k⟧)))])]
+               (⟦c⟧ (flip-seals ρ) $ Γ ⟪ℋ⟫ Σ (-->i∷ '() ⟦c⟧s ρ Mk-D mk-d ℓ ⟦k⟧)))])]
          [(-case-> clauses ℓ)
           (define ⟦clause⟧s : (Listof (Listof -⟦e⟧))
             (for/list ([clause clauses])

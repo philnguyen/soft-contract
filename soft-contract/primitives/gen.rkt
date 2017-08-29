@@ -107,7 +107,7 @@
     ;; be careful not to use `V` twice
     ;; FIXME ℓ maybe wrong here
     #`(let* ([ℓ (loc->ℓ (loc '#,(-o) 0 0 '()))]
-             [ctx (-ctx (ℓ-src ℓ) '#,(-o) '#,(-o) #f ℓ)]
+             [ctx (-ctx (ℓ-src ℓ) '#,(-o) '#,(-o) ℓ)]
              [grd #,(gen-alloc #'ℓ c)]
              [⟪α⟫ (-α->⟪α⟫ (-α.fn #f ctx #,(-⟪ℋ⟫) #,(-Γ)))])
         (σ⊕V! #,(-Σ) ⟪α⟫ #,V)
