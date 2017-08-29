@@ -292,6 +292,12 @@
             [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
                (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (case->∷ ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
+         [(-∀/c xs e*)
+          (define ⟦e*⟧ (↓ e*))
+          (define fvs (fv e*))
+          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+            (define ρ* (m↓ ρ fvs))
+            (⟦k⟧ (-W (list (-∀/C xs ⟦e*⟧ ρ*)) #f) $ Γ ⟪ℋ⟫ Σ))]
          [(-x/c x)
           (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
             (⟦k⟧ (-W (list (-x/C (-α->⟪α⟫ (-α.x/c x)))) #f) $ Γ ⟪ℋ⟫ Σ))]

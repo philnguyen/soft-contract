@@ -468,6 +468,7 @@
                      (for/union : (℘ Arity) ([Vₜ (in-set (σ@ σ αₜ))])
                         (map/set arity-inc (go! Vₜ)))])]
         [(-b '()) {set 0}]
+        [(-● ps) #:when (∋ ps 'list?) {set (arity-at-least 0)}]
         [_ (set! maybe-non-proper-list? #t)
            ∅]))
     (define res

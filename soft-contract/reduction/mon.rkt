@@ -37,11 +37,12 @@
         [(-Vector/C? C) mon-vector/c]
         [(-Hash/C? C) mon-hash/c]
         [(-Set/C? C) mon-set/c]
+        [(-Seal/C? C) mon-seal/c]
         [else mon-flat/c]))
     (mon₁ ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
 
   (:* mon-=>_ mon-struct/c mon-x/c mon-and/c mon-or/c mon-not/c mon-one-of/c
-      mon-vectorof mon-vector/c mon-hash/c mon-set/c mon-flat/c
+      mon-vectorof mon-vector/c mon-hash/c mon-set/c mon-seal/c mon-flat/c
       : -ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
 
   (define (mon-=>_ ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -102,7 +103,7 @@
       (⟦k⟧ (-W (list Ar) v*) $ Γ ⟪ℋ⟫ Σ))
 
     (with-Γ+/-oW (σ Γ 'procedure? W-V)
-      #:on-t chk-arity
+      #:on-t (if (-∀/C? grd) wrap chk-arity)
       #:on-f (blm 'procedure?)))
 
   (define (mon-struct/c ctx Wₚ Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -367,6 +368,28 @@
                (define blm (-blm l+ lo '(set?) (list Vᵤ) ℓ))
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
+  (define (mon-seal/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-ctx l+ _ lo wrap? ℓ) ctx)
+    (match-define (-W¹ (and C (-Seal/C x ⟪ℋ⟫ₛ)) _) W-C)
+    (match-define (-W¹ V tᵥ) W-V)
+    (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₛ)))
+    (define Sealed (-Sealed α))
+    (cond
+      ;; seal "assume" position
+      [wrap?
+       (σ⊕! Σ Γ α W-V)
+       (⟦k⟧ (-W (list Sealed) tᵥ) $ Γ ⟪ℋ⟫ Σ)]
+      ;; seal "assert" position
+      [else
+       (define (blm) (⟦k⟧ (-blm l+ lo (list C) (list V) ℓ) $ Γ ⟪ℋ⟫ Σ))
+       (define (ok)
+         (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
+            (⟦k⟧ (-W (list V) tᵥ) $ Γ ⟪ℋ⟫ Σ)))
+       (match V
+         [(== Sealed) (ok)] ; TODO possible false negs from finite seals
+         [(-● _) (∪ (blm) (ok))]
+         [_ (blm)])]))
+  
   (define (mon-flat/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-ctx l+ _ lo _ ℓ) ctx)
     (match-define (-W¹ C c) W-C)

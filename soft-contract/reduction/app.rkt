@@ -302,6 +302,21 @@
             (⟦mon-x⟧₀ ⊥ρ $ Γ ⟪ℋ⟫ Σ
              (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓₐ* ⟦k⟧/mon-rng))]))]))
 
+  (: app-∀/C : -∀/C -?t -V -?t -ctx → -⟦f⟧)
+  (define ((app-∀/C C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (match-define (-∀/C xs ⟦c⟧ ρ) C)
+    (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓₐ)))
+    (define ρ* ; with side-effect widening store
+      (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
+        (define α (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
+        (σ⊕V! Σ α (-Seal/C x ⟪ℋ⟫ₑₑ))
+        (hash-set ρ x α)))
+    (define ⟦k⟧*
+      (restore-ctx∷ ⟪ℋ⟫
+        (mon.v∷ ctx (-W¹ Vᵤ sₕ)
+          (ap∷ '() (map mk-rt Wₓs) ⊥ρ ℓₐ ⟦k⟧))))
+    (⟦c⟧ ρ* $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*))
+
   (: apply-app-Ar : (-=> -?t -V -?t -ctx → ℓ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
   (define ((apply-app-Ar C c Vᵤ sₕ ctx) ℓ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ) _) C)
@@ -371,10 +386,6 @@
                     ⟦k⟧))]))]
       [(-var zs z)
        (error 'app-Indy "TODO: varargs in ->i: ~a" (cons zs z))]))
-
-  (: app-∀/C : -∀/C -?t -V -?t -ctx → -⟦f⟧)
-  (define ((app-∀/C C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (error 'app-∀/C "TODO"))
 
   (define (app-st-p [𝒾 : -𝒾]) : -⟦f⟧
     (define st-p (-st-p 𝒾))
@@ -625,6 +636,20 @@
             (define W-rest* (-W¹ V-rest* #f))
             (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))])
                        ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+        [(-∀/C xs ⟦c⟧ ρ)
+         (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓ)))
+         (define ρ* ; with side-effects widening store
+           (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
+             (define α (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
+             (σ⊕V! Σ α (-Seal/C x ⟪ℋ⟫ₑₑ))
+             (printf "allocated ~a ↦ ~a~n" (show-⟪α⟫ α) (show-V (-Seal/C x ⟪ℋ⟫ₑₑ)))
+             (hash-set ρ x α)))
+         (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ σ α))])
+           (define ⟦k⟧*
+           (restore-ctx∷ ⟪ℋ⟫
+            (mon.v∷ ctx (-W¹ Vᵤ t-func)
+              (ap∷ (list (-W¹ 'apply 'apply)) `(,@(map mk-rt W-inits) ,(mk-rt W-rest)) ⊥ρ ℓ ⟦k⟧))))
+           (⟦c⟧ ρ* $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*))]
         [_
          (error 'app-Ar/rest "TODO: `apply` for function wrapped in ~a" (show-V C))]))
     

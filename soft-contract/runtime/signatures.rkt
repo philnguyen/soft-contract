@@ -51,7 +51,7 @@
             (-Vector/guard [guard : (U -Vector/C -Vectorof)] [val : ⟪α⟫] [ctx : -ctx])
             (-Hash/guard [guard : -Hash/C] [val : ⟪α⟫] [ctx : -ctx])
             (-Set/guard [guard : -Set/C] [val : ⟪α⟫] [ctx : -ctx])
-            (-Sealed/C ⟪α⟫)
+            (-Sealed ⟪α⟫)
             
             -C)
 

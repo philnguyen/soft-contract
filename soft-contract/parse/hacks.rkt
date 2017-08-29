@@ -72,3 +72,18 @@
                             (#%plain-app (~literal fake:dynamic-provide/contract) prov ...))
             _)
            #:attr provide-list #'(prov ...)))
+
+(define-syntax-class scv-parametric->/c
+  #:description "hacked parametric contract"
+  #:literals (#%plain-app list #%plain-lambda)
+  #:attributes (params body)
+  (pattern (#%plain-app
+            make-polymorphic-contract:id
+            opaque/c:id
+            _
+            (#%plain-lambda (x:id ...) c)
+            _)
+           #:when (equal? (syntax-e #'make-polymorphic-contract) 'make-polymorphic-contract)
+           #:when (equal? (syntax-e #'opaque/c) 'opaque/c)
+           #:attr params #'(x ...)
+           #:attr body #'c))

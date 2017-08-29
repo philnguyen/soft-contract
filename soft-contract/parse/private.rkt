@@ -467,7 +467,11 @@
          [else (error 'parser "my understanding is wrong")])]
       
 
-    ;;; Contracts
+      ;;; Contracts
+      ;; Parametric contract
+      [ctc:scv-parametric->/c
+       (define-values (xs ρ) (parse-formals (attribute ctc.params)))
+       (-∀/c xs (with-env ρ (parse-e (attribute ctc.body))))]
       ;; Non-dependent function contract
       [(let-values ([(_) (~literal fake:dynamic->*)]
                     [(_) (#%plain-app list c ...)]
