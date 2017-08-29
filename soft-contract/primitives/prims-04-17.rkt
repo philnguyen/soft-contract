@@ -40,7 +40,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import prim-runtime^ proof-system^ local-prover^ widening^ app^ val^ pc^ sto^ instr^)
+  (import prim-runtime^ proof-system^ local-prover^ widening^ app^ val^ pc^ sto^ instr^ pretty-print^)
   (export)
 
   (def-pred procedure?)
@@ -55,7 +55,6 @@
     (: check-func-arity : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
     ;; Make sure init arguments and rest args are compatible with the function's arity
     (define ((check-func-arity W-func W-inits W-rest) Γ)
-      
       (: blm-arity : Arity → (℘ -ς))
       (define (blm-arity a)
         (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
@@ -69,6 +68,8 @@
                                 ([len (in-set (estimate-list-lengths (-Σ-σ Σ) (-W¹-V W-rest)))])
                         (if (pred len) (values #t er?) (values ok? #t)))])
           (∪ (if ok? e₁ ∅) (if er? e₂ ∅))))
+
+      ;; turn estinate-list-lengths into 
       
       (define num-inits (length W-inits))
       (match-define (-W¹ V-func t-func) W-func)
@@ -79,7 +80,9 @@
          (cond
            ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
            [(<= 0 num-remaining-args)
-            (with-num-rest-args-check (λ (len) (equal? len num-remaining-args))
+            (with-num-rest-args-check (match-lambda
+                                        [(? index? len) (equal? len num-remaining-args)]
+                                        [(arity-at-least len) #|TODO|# #t])
               #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity fixed-arity))]
            ;; More init arguments than required

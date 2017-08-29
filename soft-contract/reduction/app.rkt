@@ -616,7 +616,7 @@
     (: app-Ar/rest : -=>_ ⟪α⟫ -ctx → (℘ -ς))
     (define (app-Ar/rest C α ctx)
       (match C
-        [(-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ) _)
+        [(-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) _ _)
          (define n (length αℓs₀))
          (define num-remaining-inits (- n num-inits))
          (cond
@@ -631,18 +631,29 @@
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (W-inits* W-inits.rest) (split-at W-inits n))
-            (define ⟪ℋ⟫ₑₑ (⟪ℋ⟫+ ⟪ℋ⟫ (-edge #|HACK|# (mk-rt (-W¹ C #f)) ℓ)))
+            (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge #|HACK|# (mk-rt (-W¹ C #f)) ℓ)))
             (define V-rest* (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ W-inits.rest #:end (-W¹-V W-rest)))
             (define W-rest* (-W¹ V-rest* #f))
             (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))])
-                       ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+              ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+        [(-=> (? list? αℓₓs) _ _)
+         (define n (length αℓₓs))
+         (define num-remaining-args (- n num-inits))
+         (cond
+           [(>= num-remaining-args 0)
+            (for*/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))]
+                                  [unalloced (in-set (unalloc-prefix σ (-W¹-V W-rest) num-remaining-args))])
+              (match-define (cons V-inits-more _) unalloced)
+              (define W-inits* (append W-inits (map V->W¹ V-inits-more)))
+              ((app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
+           [else
+            (error 'app/rest "expect ~a arguments, given ~a: ~a" n num-inits (map show-W¹ W-inits))])]
         [(-∀/C xs ⟦c⟧ ρ)
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓ)))
          (define ρ* ; with side-effects widening store
            (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
              (define α (-α->⟪α⟫ (-α.seal x ⟪ℋ⟫ₑₑ)))
              (σ⊕V! Σ α (-Seal/C x ⟪ℋ⟫ₑₑ))
-             (printf "allocated ~a ↦ ~a~n" (show-⟪α⟫ α) (show-V (-Seal/C x ⟪ℋ⟫ₑₑ)))
              (hash-set ρ x α)))
          (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ σ α))])
            (define ⟦k⟧*

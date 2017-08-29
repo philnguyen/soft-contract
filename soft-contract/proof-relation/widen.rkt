@@ -7,6 +7,7 @@
                      racket/syntax
                      syntax/parse)
          racket/match
+         racket/list
          racket/set
          racket/bool
          typed/racket/unit
@@ -519,6 +520,8 @@
                                                       [pair (in-set pairs)])
               (match-define (cons Vₜs Vᵣ) pair)
               (cons (cons Vₕ Vₜs) Vᵣ))]
+           [(-● ps) #:when (∋ ps 'list?)
+            {set (cons (make-list n (+●)) (+● 'list?))}]
            [_ ∅])])))
 
   (: M⊕! : -Σ -αₖ -ΓA → Void)
