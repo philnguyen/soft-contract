@@ -306,7 +306,7 @@
   (define-frame (μ/c∷ [x : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W (list V) s) A)
-      (define α (-α->⟪α⟫ (-α.x/c x)))
+      (define α (-α->⟪α⟫ (-α.x/c x ⟪ℋ⟫)))
       (σ⊕V! Σ α V)
       (⟦k⟧ (-W (list (-x/C α)) s) $ Γ ⟪ℋ⟫ Σ)))
 

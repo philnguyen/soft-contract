@@ -140,13 +140,15 @@
       #;(begin
         (printf "Value store:~n")
         (for ([(α Vs) (in-hash σ)]
-              #:when (> (set-count Vs) 2)
+              ;#:when (> (set-count Vs) 2)
               #:unless (equal? α ⟪α⟫ₕᵥ))
           (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
         (printf "Stack store:~n")
         (for ([(αₖ ks) (in-hash σₖ)]
-              #:when (> (set-count ks) 300))
+              ;#:when (> (set-count ks) 1)
+              )
           (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))
+          #|
           (define-set rests : -⟦k⟧)
           (define-set doms : (℘ Symbol))
           (define-set pcs : -Γ)
@@ -177,6 +179,7 @@
           (printf "~a pcs:~n" (set-count pcs))
           (for ([pc (in-set pcs)])
             (printf "- ~a~n" (show-Γ pc)))
+          |#
           ))
       (values (M@ Σ αₖ₀) Σ)))
 

@@ -31,20 +31,18 @@
 
 (define ((compose f g) x) (f (g x)))
 
+(define fold/c (parametric->/c (α β) ((α β . -> . β) β (listof α) . -> . β)))
+(define map/c (parametric->/c (α β) ((α . -> . β) (listof α) . -> . (listof β))))
+
 (provide
  (contract-out
   [id (parametric->/c (α) (α . -> . α))]
-  [use-map
-   ((parametric->/c (α β) ((α . -> . β) (listof α) . -> . (listof β)))
-    . -> .
-    (listof number?))]
+  [use-map (map/c . -> . (listof number?))]
   [use-compose
    ((parametric->/c (α β γ) ((β . -> . γ) (α . -> . β) . -> . (α . -> . γ)))
     . -> .
     exact-positive-integer?)]
-  [map (parametric->/c (α β) ((α . -> . β) (listof α) . -> . (listof β)))]
-  [foldr (parametric->/c (α β) ((α β . -> . β) β (listof α) . -> . β))]
-  [foldl (parametric->/c (α β) ((α β . -> . β) β (listof α) . -> . β))]
-  [map-from-foldr ((parametric->/c (α β) ((α β . -> . β) β (listof α) . -> . β))
-                   . -> .
-                   (parametric->/c (α β) ((α . -> . β) (listof α) . -> . (listof β))))]))
+  [map map/c]
+  [foldr fold/c]
+  [foldl fold/c]
+  [map-from-foldr (fold/c . -> . map/c)]))

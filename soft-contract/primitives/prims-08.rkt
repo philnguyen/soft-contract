@@ -154,7 +154,7 @@
     (define α₁ (-α->⟪α⟫ (-α.or/c-r ℓ ⟪ℋ⟫)))
     (define αₕ (-α->⟪α⟫ (-α.struct/c -𝒾-cons ℓ ⟪ℋ⟫ 0)))
     (define αₜ (-α->⟪α⟫ (-α.struct/c -𝒾-cons ℓ ⟪ℋ⟫ 1)))
-    (define αₗ (-α->⟪α⟫ (-α.x/c (+x!/memo 'listof ℓ))))
+    (define αₗ (-α->⟪α⟫ (-α.x/c (+x!/memo 'listof ℓ) ⟪ℋ⟫)))
     (define ℓ₀ (ℓ-with-id ℓ 'null?))
     (define ℓ₁ (ℓ-with-id ℓ 'pair?))
     (define ℓₕ (ℓ-with-id ℓ 'elem))

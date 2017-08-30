@@ -89,9 +89,9 @@
 
 (define-signature mon^
   ([mon : (-ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [push-mon : ((-ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς))]
+   [push-mon : ((-ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option -α.x/c)) . ->* . (℘ -ς))]
    [flat-chk : (-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [push-fc : ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option Symbol)) . ->* . (℘ -ς))]))
+   [push-fc : ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option -α.x/c)) . ->* . (℘ -ς))]))
 
 (define-signature memoize^
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]))

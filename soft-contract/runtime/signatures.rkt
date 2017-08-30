@@ -273,7 +273,7 @@
             (-α.hash/c-val [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.set/c-elem [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.x/c Symbol)
+            (-α.x/c Symbol -⟪ℋ⟫)
             (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
             (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
