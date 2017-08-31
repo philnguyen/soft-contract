@@ -40,19 +40,10 @@
   ; [HO] call-with-input-file call-with-output-file
   (def-prim open-input-file (path-string? . -> . input-port?) #:volatile? #t #:lift-concrete? #f)
   (def-prim open-output-file (path-string? . -> . output-port?) #:volatile? #t #:lift-concrete? #f)
-
-  (def-ext (call-with-input-file ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
-    #:domain ([W-p path-string?] [W-cb (input-port? . -> . any/c)])
-    (define arg (-W¹ (-● {set 'input-port?}) (loc->ℓ (loc 'call-with-input-file 0 0 '()))))
-    (app ℓ W-cb (list arg) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
-
-  (def-ext (call-with-output-file ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧) ; FIXME uses
-    #:domain ([W-p path-string?] [W-cb (output-port? . -> . any/c)])
-    (define arg (-W¹ (-● {set 'output-port?}) (loc->ℓ (loc 'call-with-output-file 0 0 '()))))
-    (app ℓ W-cb (list arg) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
-
-  (def-ext with-input-from-file (path-string? (-> any/c) . -> . any/c))
-  (def-ext with-output-to-file (path-string? (-> any/c) . -> . any/c))
+  (def-ext call-with-input-file (∀/c (α) (path-string? (input-port? . -> . α) . -> . α)))
+  (def-ext call-with-output-file (∀/c (α) (path-string? (output-port? . -> . α) . -> . α)))
+  (def-ext with-input-from-file (∀/c (α) (path-string? (-> α) . -> . α)))
+  (def-ext with-output-to-file (∀/c (α) (path-string? (-> α) . -> . α)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

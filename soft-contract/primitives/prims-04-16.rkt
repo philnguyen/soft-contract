@@ -103,53 +103,15 @@
 
   ;; 4.16.3.1 Set Methods
   (def-pred set-member? (generic-set? any/c))
-  (def-ext (set-add ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₛ set? #|TODO generic-set?|#]
-              [Wₑ any/c])
-    (match-define (-W¹ Vₛ tₛ) Wₛ)
-    (match-define (-W¹ Vₑ tₑ) Wₑ)
-    (define tₐ (?t@ 'set-add tₛ tₑ))
-    (define αₑ* (-α->⟪α⟫ (-α.set.elem ℓ ⟪ℋ⟫)))
-    (match Vₛ
-      [(-Set^ αₑ _)
-       (σ-copy! Σ αₑ αₑ*)
-       (σ⊕! Σ Γ αₑ* Wₑ)
-       (define Wₕ* (-W (list (-Set^ αₑ* #t)) tₐ))
-       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]
-      [(-Set/guard (and C (-Set/C (-⟪α⟫ℓ αₚ ℓₚ))) αₛ* ctx)
-       (define ctx* (ctx-neg ctx))
-       (define ⟦k⟧* (set-add-inner∷ ℓ αₛ* tₛ (wrap-set∷ C ctx ⟦k⟧)))
-       (for*/union : (℘ -ς) ([C (in-set (σ@ Σ αₚ))])
-         (mon (ctx-with-ℓ ctx* ℓₚ) (-W¹ C #f) Wₑ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
-      [_
-       (define Wₕ* (-W (list (-Set^ ⟪α⟫ₒₚ #t)) tₐ))
-       (⟦k⟧ Wₕ* $ Γ ⟪ℋ⟫ Σ)]))
-  (def-prim/custom (set-remove ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([Wₛ set?] [Wₑ any/c])
-    {set (-ΓA Γ (W¹->W Wₛ))})
-  [def-prims (set-add! set-remove!)
-    ((and/c generic-set? set-mutable?) any/c . -> . void?)]
-  [def-pred set-empty? (generic-set?)]
+  (def-ext set-add (∀/c (α) ((and/c immutable? (set/c α)) α . -> . (set/c α))))
+  (def-ext set-remove (∀/c (α) ((and/c immutable? (set/c α)) any/c . -> . (set/c α))))
+  (def-prims (set-add! set-remove!) ; FIXME no!
+    ((and/c generic-set? set-mutable?) any/c . -> . void?))
+  [def-pred set-empty? {generic-set?}]
   (def-prim/todo set-count
     (generic-set? . -> . exact-nonnegative-integer?))
-  (def-ext (set-first ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₛ set? #|TODO|#])
-    (match-define (-W¹ Vₛ tₛ) Wₛ)
-    (define tₐ (?t@ 'set-first tₛ))
-    (match Vₛ
-      [(-Set^ α _)
-       (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
-         (⟦k⟧ (-W (list V) tₐ) $ Γ ⟪ℋ⟫ Σ))]
-      [(-Set/guard (-Set/C (-⟪α⟫ℓ αₑ ℓₑ)) αₛ* ctx)
-       (for*/union : (℘ -ς) ([C (in-set (σ@ Σ αₑ))]
-                             [Vₛ* (in-set (σ@ Σ αₛ*))])
-         (define ⟦k⟧* (mon.c∷ (ctx-with-ℓ ctx ℓₑ) (-W¹ C #f) ⟦k⟧))
-         (define Wₛ* (-W¹ Vₛ* tₛ))
-         (.set-first ℓ (list Wₛ*) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
-      [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
-  (def-prim/custom (set-rest ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([Wₛ set? #|TODO|#])
-    {set (-ΓA Γ (W¹->W Wₛ))})
+  (def-ext set-first (∀/c ((set/c α) . -> . α)))
+  (def-ext set-rest (∀/c ((set/c α) . -> . (set/c α))))
   (def-prim/todo set->stream
     (generic-set? . -> . stream?))
   (def-prim/todo set-copy

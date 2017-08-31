@@ -296,6 +296,10 @@
     
     ;; Only declare contract, providing crudest approximation
     [(_ o:id c:hf)
+     #:when (pair? (attribute c.type-parameters))
+     (error 'def-ext "TODO: parametric contract for ~a: ~a~n" (syntax-e #'o) (syntax->datum #'c))]
+    [(_ o:id c:hf)
+     #:when (null? (attribute c.type-parameters))
      (define/syntax-parse (cₓ ...) (attribute c.init))
      (define/syntax-parse d (attribute c.rng))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))

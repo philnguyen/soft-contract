@@ -152,18 +152,14 @@
        (for/union : (℘ -ς) ([V (extract-list-content (-Σ-σ Σ) Vₗ)])
                   (app ℓ Wₚ (list (-W¹ V #f)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
       [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
-  #;(def-prims (andmap ormap) ; FIXME uses
-      (procedure? list . -> . any/c))
-  (def-ext (for-each ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₚ (any/c . -> . any/c)]
-              [Wₗ list?])
-    #:result (list -void))
-  #;(def-prims (foldl foldr) ; FIXME uses
-      (procedure? any/c list? . -> . any/c))
+  (def-ext andmap (∀/c (α) ((α . -> . any/c) (listof α) . -> . any/c))) ; FIXME uses
+  (def-ext ormap (∀/c (α) ((α . -> . any/c) (listof α) . -> . any/c))) ; FIXME uses
+  (def-ext for-each (∀/c (α) ((α . -> . any/c) (listof α) . -> . void?))) ; FIXME uses
+  (def-ext foldl (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
+  (def-ext foldr (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
 
   ;; 4.9.4 List Filtering
-  (def-prim/todo filter
-    ((any/c . -> . any/c) list? . -> . list?))
+  (def-ext filter (∀/c (α) ((α . -> . any/c) (listof α) . -> . (listof α))))
   (def-prim/todo remove ; FIXME uses
     (any/c list? . -> . list?))
   (def-prims (remq remv)

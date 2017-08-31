@@ -275,56 +275,10 @@
     (hash? . -> . (or/c exact-nonnegative-integer? not)))
   (def-prim hash-iterate-next
     (hash? exact-nonnegative-integer? . -> . (or/c exact-nonnegative-integer? not)))
-  (def-ext (hash-iterate-key ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₕ hash?]
-              [Wᵢ exact-nonnegative-integer?])
-    (match-define (-W¹ Vₕ tₕ) Wₕ)
-    (match-define (-W¹ _  tᵢ) Wᵢ)
-    (define tₐ (?t@ 'hash-iterate-key tₕ tᵢ))
-    (match Vₕ
-      [(-Hash^ αₖ _ _)
-       (for/union : (℘ -ς) ([Vₖ (in-set (σ@ Σ αₖ))])
-         (⟦k⟧ (-W (list Vₖ) tₐ) $ Γ ⟪ℋ⟫ Σ))]
-      [(-Hash/guard (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) _) α ctx)
-       (for*/union : (℘ -ς) ([Vₕ* (in-set (σ@ Σ α))]
-                             [C (in-set (σ@ Σ αₖ))])
-         (.hash-iterate-key ℓ (list (-W¹ Vₕ* tₕ) Wᵢ) $ Γ ⟪ℋ⟫ Σ
-                           (mon.c∷ (ctx-with-ℓ ctx ℓₖ) (-W¹ C #f) ⟦k⟧)))]
-      [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
-  (def-ext (hash-iterate-value ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₕ hash?]
-              [Wᵢ exact-nonnegative-integer?])
-    (match-define (-W¹ Vₕ tₕ) Wₕ)
-    (match-define (-W¹ _  tᵢ) Wᵢ)
-    (define tₐ (?t@ 'hash-iterate-value tₕ tᵢ))
-    (match Vₕ
-      [(-Hash^ _ αᵥ _)
-       (for/union : (℘ -ς) ([Vᵥ (in-set (σ@ Σ αᵥ))])
-         (⟦k⟧ (-W (list Vᵥ) tₐ) $ Γ ⟪ℋ⟫ Σ))]
-      [(-Hash/guard (-Hash/C _ (-⟪α⟫ℓ αᵥ ℓᵥ)) α ctx)
-       (for*/union : (℘ -ς) ([Vₕ* (in-set (σ@ Σ α))]
-                             [C (in-set (σ@ Σ αᵥ))])
-         (.hash-iterate-value ℓ (list (-W¹ Vₕ* tₕ) Wᵢ) $ Γ ⟪ℋ⟫ Σ
-                             (mon.c∷ (ctx-with-ℓ ctx ℓᵥ) (-W¹ C #f) ⟦k⟧)))]
-      [_ (⟦k⟧ (-W (list (+●)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
+  (def-ext hash-iterate-key (∀/c (α β) ((hash/c α β) exact-nonnegative-integer? . -> . α)))
+  (def-ext hash-iterate-value (∀/c (α β) ((hash/c α β) exact-nonnegative-integer? . -> . β)))
+  (def-ext hash-iterate-key+value (∀/c (α β) ((hash/c α β) exact-nonnegative-integer? . -> . (values α β))))
   
-  (def-ext (hash-iterate-key+value ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₕ hash?]
-              [Wᵢ exact-nonnegative-integer?])
-    (match-define (-W¹ Vₕ tₕ) Wₕ)
-    (match-define (-W¹ _  tᵢ) Wᵢ)
-    (define tₐ (?t@ 'hash-iterate-key+value tₕ tᵢ))
-    (define ℓ₁ (ℓ-with-id ℓ 'iterate-key))
-    (define ℓ₂ (ℓ-with-id ℓ 'iterate-val))
-    (define ⟦k⟧*
-      (ap∷ (list (-W¹ 'values 'values))
-           (list (mk-app ℓ₂
-                         (mk-rt (-W¹ 'hash-iterate-value 'hash-iterate-value))
-                         (list (mk-rt Wₕ) (mk-rt Wᵢ))))
-           ⊥ρ
-           ℓ
-           ⟦k⟧))
-    (.hash-iterate-key ℓ₁ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))
   (def-prim hash-copy1
     (hash? . -> . (and/c hash? (not/c immutable?))))
   (def-prims (eq-hash-code eqv-hash-code equal-hash-code equal-secondary-hash-code)
