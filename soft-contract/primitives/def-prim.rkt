@@ -293,18 +293,15 @@
         (add-const! #'#,o '#,o)))
   
   (syntax-parse stx
-    
-    ;; Only declare contract, providing crudest approximation
-    [(_ o:id c:hf)
-     #:when (pair? (attribute c.type-parameters))
-     (error 'def-ext "TODO: parametric contract for ~a: ~a~n" (syntax-e #'o) (syntax->datum #'c))]
-    [(_ o:id c:hf)
-     #:when (null? (attribute c.type-parameters))
-     (define/syntax-parse (cₓ ...) (attribute c.init))
-     (define/syntax-parse d (attribute c.rng))
+    [(_ o:id (cₓ:hc ... . (~literal ->) . d:hc))
+     #'(def-ext o (∀/c () (cₓ ... . -> . d)))]
+
+    ;; Default crudest implementation havoc-ing all args and returning ●
+    [(_ o:id ((~literal ∀/c) (α:id ...) (~and c (cₓ:hc ... . (~literal ->) . d:hc))))
      (define/with-syntax (W ...) (gen-ids #'o 'W (length (syntax->list #'(cₓ ...)))))
      (hack:make-available #'o add-leak! bgn0.e∷ adjust-names∷ $-symbolic-names σₖ⊕! ?t@ +● ⊥ρ ⊤$*)
      #`(def-ext (o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+         #:∀/c (α ...)
          #:domain ([W cₓ] ...)
          (define tₐ (?t@ 'o (-W¹-t W) ...))
          (define Wₐ (-W (list #,(parameterize ([-o #'o]
@@ -313,7 +310,8 @@
                                                [-ℓ #'ℓ]
                                                [-Γ #'Γ]
                                                [-⟦k⟧ #'⟦k⟧]
-                                               [-⟪ℋ⟫ #'⟪ℋ⟫])
+                                               [-⟪ℋ⟫ #'⟪ℋ⟫]
+                                               [-type-parameters (syntax->list #'(α ...))])
                                   (gen-wrap #'d #'(+●))))
                         tₐ))
          (begin (add-leak! Σ (-W¹-V W)) ...)
@@ -321,18 +319,10 @@
          (σₖ⊕! Σ αₖ (-κ.rt (bgn0.e∷ Wₐ '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t))
          {set (-ς↑ αₖ)})]
 
-    ;; Declaring simple result, skipping havoc-ing of arguments
-    [(_ (o:id ℓ:id Ws:id $:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
-        #:domain ([W:id c:hc] ...)
-        #:result e)
-     (hack:make-available #'o ?t@)
-     #'(def-ext (o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-         #:domain ([W c] ...)
-         (define sₐ (apply ?t@ 'o (map -W¹-t Ws)))
-         (⟦k⟧ (-W e sₐ) $ Γ ⟪ℋ⟫ Σ))]
-
     ;; Custom modes for hacking
     [(_ (o:id ℓ:id Ws:id $:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+        (~optional (~seq #:∀/c (α:id ...))
+                   #:defaults ([(α 1) null]))
         #:domain ([W:id c:hc] ...)
         e:expr ...)
      (define n (length (syntax->list #'(W ...))))

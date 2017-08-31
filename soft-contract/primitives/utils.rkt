@@ -28,13 +28,13 @@
            #:attr init (syntax->list #'(c ...))
            #:attr rest '()
            #:attr rng #'d
-           #:attr arity (length (syntax->list #'(c ...)))
+           #:attr arity (length (attribute init))
            #:attr type-parameters '())
-  (pattern (∀/c (x:id ...) c:hf)
-           #:attr init (attribute c.init)
-           #:attr rest (attribute c.rest)
-           #:attr rng (attribute c.rng)
-           #:attr arity (attribute c.arity)
+  (pattern ((~literal ∀/c) (x:id ...) ((~literal ->) c:hc ... d:hc))
+           #:attr init (syntax->list #'(c ...))
+           #:attr rest '()
+           #:attr rng #'d
+           #:attr arity (length (attribute init))
            #:attr type-parameters (syntax->list #'(x ...))))
 
 (define-syntax-class hc

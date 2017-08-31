@@ -71,6 +71,7 @@
     [-volatile? boolean? #f]
     ;; exts
     [-⟦k⟧ identifier? #f]
+    [-type-parameters (listof identifier?) '()]
     )
 
   (define/contract (gen-ans d)
@@ -123,7 +124,8 @@
       [((~literal and/c) c*:id ...) #`(V+ (-Σ-σ #,(-Σ)) #,V (seteq 'c* ...))]
       ;[((~literal and/c) c*    ...) (foldr gen-wrap V (syntax->list #'(c* ...)))]
       [c:id #`(V+ (-Σ-σ #,(-Σ)) #,V 'c)]
-      [_ (error 'gen-wrap-clause "unhandled: ~a" (syntax->datum #'c))]))
+      [_ (error 'gen-wrap-clause "unhandled: ~a in ~a : ~a"
+                (syntax->datum c) (syntax-e (-o)) (syntax->datum (-sig)))]))
 
   ;; Generate re-definitions of variables that should be wrapped in higher-order contracts
   (define/contract (gen-arg-wraps body)
