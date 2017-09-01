@@ -288,7 +288,7 @@
              (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Wₓs #f)))
          (assert (equal? ρ ρ*)) ; FIXME disable in production
          (for ([x (in-list xs)])
-           (σ-remove! Σ (cast (hash-ref ρ x) ⟪α⟫) -undefined))
+           (σ-remove! Σ (hash-ref ρ x) -undefined))
          (match ⟦bnd⟧s
            ['()
             (⟦e⟧ ρ $* Γ ⟪ℋ⟫ Σ ⟦k⟧)]
