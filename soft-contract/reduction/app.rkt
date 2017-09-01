@@ -309,9 +309,8 @@
     (define l-seal (-ctx-neg ctx))
     (define ρ* ; with side-effect widening store
       (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
-        (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)))
-        (σ⊕Vs! Σ α ∅)
-        (hash-set ρ x (-Seal/C α l-seal))))
+        (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)) ∅)
+        (hash-set ρ x (-α->⟪α⟫ (-α.imm (-Seal/C x ⟪ℋ⟫ₑₑ l-seal))))))
     (define ⟦k⟧*
       (restore-ctx∷ ⟪ℋ⟫
         (mon.v∷ ctx (-W¹ Vᵤ sₕ)
@@ -654,9 +653,8 @@
          (define l-seal (-ctx-neg ctx))
          (define ρ* ; with side-effects widening store
            (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
-             (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)))
-             (σ⊕Vs! Σ α ∅)
-             (hash-set ρ x (-Seal/C α l-seal))))
+             (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫ₑₑ)) ∅)
+             (hash-set ρ x (-α->⟪α⟫ (-α.imm (-Seal/C x ⟪ℋ⟫ₑₑ l-seal))))))
          (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ σ α))])
            (define ⟦k⟧*
            (restore-ctx∷ ⟪ℋ⟫

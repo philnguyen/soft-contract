@@ -369,9 +369,10 @@
                (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))))
 
   (define (mon-seal/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-W¹ (and C (-Seal/C α l)) _) W-C)
+    (match-define (-W¹ (and C (-Seal/C x ⟪ℋ⟫ l)) _) W-C)
     (match-define (-W¹ V tᵥ) W-V)
     (match-define (-ctx l+ l- lo ℓ) ctx)
+    (define α (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)))
     (cond
       [(equal? l l+) ; seal
        (σ⊕! Σ Γ α W-V)

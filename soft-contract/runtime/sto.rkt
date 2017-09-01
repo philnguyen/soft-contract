@@ -12,13 +12,16 @@
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^ local-prover^ pc^)
+  (import pretty-print^ local-prover^ pc^ val^)
   (export sto^)
 
   (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
   (define (σ@ m ⟪α⟫)
-    (define σ (if (-Σ? m) (-Σ-σ m) m))
-    (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
+    (match (⟪α⟫->-α ⟪α⟫)
+      [(-α.imm V) {set V}]
+      [_
+       (define σ (if (-Σ? m) (-Σ-σ m) m))
+       (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))]))
 
   (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
   (define (defined-at? σ α)
@@ -60,7 +63,7 @@
     (set-first Vs))
 
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
-  (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.●)))
+  (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.imm (+●))))
   (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
 
 

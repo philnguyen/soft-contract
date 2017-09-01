@@ -81,7 +81,7 @@
                        (match-define (cons αs α) clause)
                        (set-add (list->seteq αs) α))]
          [(-∀/C _ _ ρ) (ρ->⟪α⟫s ρ)]
-         [(-Seal/C ⟪α⟫ _) {seteq ⟪α⟫}]
+         [(-Seal/C x ⟪ℋ⟫ _) {seteq {-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)}}]
          [_ ∅eq]))
       (printf "V->⟪α⟫s ~a: (~a)~n" (show-V V) (set-count αs))
       (for ([α αs])
@@ -89,9 +89,7 @@
       (printf "~n")))
 
   (: ρ->⟪α⟫s : -ρ → (℘ ⟪α⟫))
-  (define (ρ->⟪α⟫s ρ)
-    (for/seteq: : (℘ ⟪α⟫) ([s (in-hash-values ρ)])
-      (if (-Seal/C? s) (-Seal/C-_0 s) s)))
+  (define (ρ->⟪α⟫s ρ) (list->seteq (hash-values ρ)))
 
   (: αₖ->⟪α⟫s : -αₖ -σₖ → (℘ ⟪α⟫))
   (define (αₖ->⟪α⟫s αₖ σₖ)

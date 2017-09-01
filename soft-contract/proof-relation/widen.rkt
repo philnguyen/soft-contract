@@ -95,7 +95,14 @@
 
   (: σ⊕ : -σ ⟪α⟫ -V → -σ)
   (define (σ⊕ σ α V)
-    (hash-update σ α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅))
+    (match (⟪α⟫->-α α)
+      ; TODO just debugging. Shouldn't happen
+      [(-α.imm V*)
+       (unless (equal? V V*)
+         (error 'σ⊕ "illegal allocation: ~a ↦ ~a~n" (show-V V*) (show-V V)))
+       σ]
+      [_
+       (hash-update σ α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅)]))
 
   ;; Widen value set with new value
   (define (Vs⊕ [σ : -σ] [Vs : (℘ -V)] [V : (U -V (℘ -V))]) : (℘ -V)

@@ -12,7 +12,7 @@
          "../ast/signatures.rkt"
          )
 
-(define-type -ρ (Immutable-HashTable Symbol (U ⟪α⟫ -Seal/C)))
+(define-type -ρ (Immutable-HashTable Symbol ⟪α⟫))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Stores
@@ -79,7 +79,7 @@
             (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
             (-Set/C [elems : -⟪α⟫ℓ])
             ;; Seal
-            (-Seal/C ⟪α⟫ -l))
+            (-Seal/C Symbol ⟪ℋ⟫ -l))
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
@@ -267,13 +267,13 @@
             (-α.or/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.or/c-r [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.not/c [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.x/c Symbol -⟪ℋ⟫)
             (-α.vector/c [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.vectorof [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.hash/c-key [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.hash/c-val [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.set/c-elem [loc : ℓ] [ctx : -⟪ℋ⟫])
             (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.x/c Symbol -⟪ℋ⟫)
             (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
             (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
             (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
@@ -288,10 +288,11 @@
             (-α.hv)
             (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
             (-α.fc-x/c Symbol -⟪ℋ⟫)
-            (-α.●)
-            (-α.fn● Arity)
-            -o
             -𝒾
+            ;; tmp hack.
+            ;; Only use this in the prim DSL where all values are finite
+            ;; with purely syntactic components
+            (-α.imm -V)
             )
 
 (define-interner ⟪α⟫ -α
@@ -362,8 +363,8 @@
 
 (define-signature env^
   ([⊥ρ : -ρ]
-   [ρ@ : (-ρ Symbol → (U ⟪α⟫ -Seal/C))]
-   [ρ+ : (-ρ Symbol (U ⟪α⟫ -Seal/C) → -ρ)]
+   [ρ@ : (-ρ Symbol → ⟪α⟫)]
+   [ρ+ : (-ρ Symbol ⟪α⟫ → -ρ)]
    [-x-dummy : Symbol]))
 
 (define-signature sto^
