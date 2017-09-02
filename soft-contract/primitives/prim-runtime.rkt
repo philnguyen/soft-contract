@@ -205,4 +205,7 @@
              (error 'add-alias! "~a ↦ ~a, attempt to set to ~a"
                     (syntax-e x) (syntax-e y₀) (syntax-e y)))]
           [else (alias-table-set! alias-table x y)]))
+
+  (: +⟪α⟫ℓ₀ : -V → -⟪α⟫ℓ)
+  (define (+⟪α⟫ℓ₀ V) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) +ℓ₀))
   )

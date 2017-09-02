@@ -80,8 +80,8 @@
       (define-values (V* ⟪α⟫)
         (match V
           [(? -●?)
-           (define n (guard-arity grd))
-           (values (-Fn● n) (-α->⟪α⟫ (-α.fn● n)))]
+           (define V (-Fn● (guard-arity grd)))
+           (values V (-α->⟪α⟫ (-α.imm V)))]
           [_
            (define α
              (let ([φs ; hack for functional OO programs...

@@ -180,7 +180,7 @@
       [(? -o? o) o]
       [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
-      [(-Seal/C α _) (list 'seal/c (match-let ([(-α.sealed x _) (⟪α⟫->-α α)]) x))]
+      [(-Seal/C x _ _) (list 'seal/c x)]
       [V (error 'strip-C "~a not expected" V)]))
 
   (: predicates-of-V : -V → (℘ -h))

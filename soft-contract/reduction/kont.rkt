@@ -287,7 +287,7 @@
            (let ([Wₓs (map -W¹ Vs (split-values s n))])
              (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Wₓs #f)))
          (assert (equal? ρ ρ*)) ; FIXME disable in production
-         (for ([x (in-list xs)])
+         (for ([x (in-list xs)])1
            (σ-remove! Σ (hash-ref ρ x) -undefined))
          (match ⟦bnd⟧s
            ['()
@@ -772,4 +772,10 @@
       (σ⊕V! Σ α Vₛ)
       (define Vₐ (-Set/guard C α ctx))
       (⟦k⟧ (-W (list Vₐ) tₛ) $ Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (maybe-refine∷ [cases : (Listof (List (Listof -W¹) (Option -W¹) (Listof -V)))]
+                               [W : -W]
+                               [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (W)
+      (error 'maybe-refine∷ "TODO")))
   )

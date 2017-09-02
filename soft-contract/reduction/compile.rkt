@@ -127,10 +127,7 @@
                      ;; cheat
                      V]
                     [_
-                     (define n (guard-arity C))
-                     (define α (-α->⟪α⟫ (-α.fn● n)))
-                     (σ⊕V! Σ α (-Fn● n))
-                     (-Ar C α l³)])]
+                     (-Ar C (-α->⟪α⟫ (-α.imm (-Fn● (guard-arity C)))) l³)])]
                  [(-St* C _ l³)
                   (-St* C ⟪α⟫ₒₚ l³)]
                  [(-Vector/guard C _ l³)

@@ -151,7 +151,7 @@
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
       [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
       [(-∀/C xs ⟦c⟧ ρ) `(∀/C ,xs ,(show-⟦e⟧ ⟦c⟧))]
-      [(-Seal/C α _) (format-symbol "(seal/c ~a)" (assert (show-⟪α⟫ α) symbol?))]
+      [(-Seal/C x ⟪ℋ⟫ _) (format-symbol "(seal/c ~a~a)" x (n-sub ⟪ℋ⟫))]
       [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))]))
 
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol

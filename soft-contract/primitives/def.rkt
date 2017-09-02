@@ -34,12 +34,15 @@
         (~optional (~seq #:volatile? volatile?:boolean)
                    #:defaults ([volatile? #'#f]))
         (~optional (~seq #:lift-concrete? lift?:boolean)
-                   #:defaults ([lift? #'#t]))
-        (~optional (~seq #:impl (impl ...))
-                   #:defaults ([(impl 1) (list #'(+●))])))
+                   #:defaults ([lift? #'#t])))
 
      (check-shape-ok #'o #'sig (syntax->list #'(ref ...)))
-
+     (define max-inits
+       (let go ([arity (attribute sig.arity)])
+         (match arity
+           [(arity-at-least n) n]
+           [(? number? n) n]
+           [(? list? l) (apply max 0 (map go l))])))
      (define/with-syntax defn-o
        #`(define (.o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            #,@(parameterize ([-o #'o]
@@ -50,11 +53,12 @@
                              [-⟪ℋ⟫ #'⟪ℋ⟫]
                              [-Σ #'Σ]
                              [-⟦k⟧ #'⟦k⟧]
-                             [-sig #'sig])
-                (gen-arity-check
-                 (gen-domain-checks
-                  (gen-range-checks
-                   (syntax->list #'(impl ...))))))))
+                             [-sig #'sig]
+                             [-Wⁿ (gen-ids #'Ws 'W max-inits)]
+                             [-Wᵣ (format-id #'Ws "Wᵣ")]
+                             [-gen-lift? (syntax-e #'lift?)]
+                             [-refinements (syntax->list #'(ref ...))])
+                (gen-cases))))
 
      (pretty-write (syntax->datum #'defn-o))
 
