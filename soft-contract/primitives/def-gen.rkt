@@ -203,6 +203,9 @@
 
     (syntax-parse c
       [o:o #''o]
+      [α:id
+       (define/with-syntax α* (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e #'α)))
+       #`(-Seal/C 'α* #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))]
       [l:lit #'(-≡/c l)]
       [((~literal not/c) c*)
        (define V* (gen-ctc-V #'c*))

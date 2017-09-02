@@ -86,6 +86,7 @@
 
 (define-syntax-class mc
   #:description "restricted ambig-order contract"
+  ;; FIXME not really. Vector and other mutable stuff always higher-order
   (pattern ((~literal and/c) _:c ...))
   (pattern ((~literal or/c) _:c ...))
   (pattern ((~literal cons/c) _:c _:c))
