@@ -229,7 +229,10 @@
       [((~literal case->) clauses ...)
        (error 'gen-ctc "TODO: nested case-> for `~a`" (syntax-e (-o)))]
       [((~literal ∀/c) (x ...) c)
-       (error 'gen-ctc "TODO: nested ∀/c for `~a`" (syntax-e (-o)))]
+       (hack:make-available (-o) make-static-∀/c)
+       (define/with-syntax tag (gensym (format-symbol "~a:∀/c_" (syntax-e (-o)))))
+       (define/with-syntax body (ctc->ast #'c))
+       #`(make-static-∀/c 'tag '#,(-o) (λ () (values '(x ...) body)))]
       [((~literal and/c) c ...)
        (define-values (V _) ((go* #'-And/C #''any/c) (syntax->list #'(c ...))))
        V]
@@ -243,7 +246,7 @@
        (define/with-syntax x (gensym (format-symbol "~a:listof_" (syntax-e (-o)))))
        (define/with-syntax flat? (c-flat? #'c))
        (hack:make-available (-o) make-static-listof)
-       #'(make-static-listof flat? 'x C)]
+       #'(make-static-listof 'x flat? (λ () C))]
       [((~literal list/c) c ...)
        (gen-ctc-V (foldr (λ (c d) #`(cons/c #,c #,d)) #'null? (syntax->list #'(c ...))))]
       [((~literal vectorof) c)
@@ -254,8 +257,7 @@
        (error 'gen-ctc "TODO: set/c for `~a`" (syntax-e (-o)))]
       [((~literal hash/c) c)
        (error 'gen-ctc "TODO: hash/c for `~a`" (syntax-e (-o)))]
-      [_
-       #`(error 'gen-ctc "TODO ~a" '#,c)]))
+      [c (error 'gen-ctc "unhandled contract form: ~a" (syntax->datum #'c))]))
 
   (define/contract gen-rng (syntax? . -> . syntax?)
     (syntax-parser
@@ -268,4 +270,67 @@
       [((~literal values) c ...) #`(list #,@(map gen-ctc-V (syntax->list #'(c ...))))]
       [(~literal any) #''any]
       [c #`(list #,(gen-ctc-V #'c))]))
+
+  (define/contract (ctc->ast c)
+    (syntax? . -> . syntax?)
+    (define/with-syntax ℓ
+      (with-syntax ([src (path->string (syntax-source c))]
+                    [col (syntax-column c)]
+                    [row (syntax-line c)])
+        #'(loc->ℓ (loc src col row '()))))
+    (syntax-parse c
+      [o:o #''o]
+      [x:id #'(-x 'x ℓ)]
+      [l:lit
+       (define/with-syntax x (gensym 'eq))
+       #''(-λ '(x) (-@ 'equal? (list (-x 'x +ℓ₀)) (-b l) ℓ))]
+      [((~literal not/c) c)
+       (define/with-syntax e (ctc->ast #'c))
+       #'(-@ 'not/c (list e) ℓ)]
+      [(cmp:cmp n:number)
+       (define/with-syntax x (gensym 'cmp))
+       (define/with-syntax o
+         (syntax-parse #'cmp
+           [(~literal </c) '<]
+           [(~literal >/c) '>]
+           [(~literal <=/c) '<=]
+           [(~literal >=/c) '>=]
+           [(~literal =/c) '=/c]))
+       #'(-λ '(x) (-@ 'o (list (-x 'x ℓ)) ℓ))]
+      [((~and o (~or (~literal or/c)
+                     (~literal and/c)
+                     (~literal cons/c)
+                     (~literal listof)
+                     (~literal list/c)
+                     (~literal vectorof)
+                     (~literal vector/c)
+                     (~literal set/c)
+                     (~literal hash/c)))
+        c ...)
+       (define/with-syntax (e ...) (map ctc->ast (syntax->list #'(c ...))))
+       #'(-@ 'o (list e ...) ℓ)]
+      [((~literal ->) c ... d)
+       (define/with-syntax (dom ...) (map ctc->ast (syntax->list #'(c ...))))
+       (define/with-syntax rng (ctc->ast #'d))
+       #'(--> (list dom ...) rng ℓ)]
+      [((~literal ->*) (c ...) #:rest r d)
+       (define/with-syntax (dom ...) (map ctc->ast (syntax->list #'(c ...))))
+       (define/with-syntax rst (ctc->ast #'r))
+       (define/with-syntax rng (ctc->ast #'d))
+       #'(--> (-var (list dom ...) rst) rng ℓ)]
+      [((~literal case->) clauses ...)
+       (define/with-syntax (cases ...)
+         (for/list ([clause (in-syntax-list #'(clauses ...))])
+           (syntax-parse clause
+             [((~literal ->) c ... #:rest r d)
+              (error 'ctc->ast "TODO: varargs for case-> in `~a`" (syntax-e (-o)))]
+             [((~literal ->) c ... d)
+              (define/with-syntax (dom ...) (map ctc->ast (syntax->list #'(dom ...))))
+              (define/with-syntax rng (ctc->ast #'d))
+              #'(cons (list dom ...) rng)])))
+       #'(case-> (list cases ...) ℓ)]
+      [((~literal ∀/c) (x ...) c)
+       (define/with-syntax body (ctc->ast #'c))
+       #'(-∀/c '(x ...) body)]
+      [c (error 'ctc->ast "unimplemented: ~a" (syntax->datum #'c))]))
   )

@@ -10,11 +10,12 @@
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import ast-pretty-print^ proof-system^ local-prover^ widening^ pc^ val^ sto^)
+  (import ast-pretty-print^ proof-system^ local-prover^ widening^ pc^ val^ sto^ compile^ env^)
   (export prim-runtime^)
 
   (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
@@ -209,13 +210,27 @@
   (: +⟪α⟫ℓ₀ : -V → -⟪α⟫ℓ)
   (define (+⟪α⟫ℓ₀ V) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) +ℓ₀))
 
-  (: make-static-listof : Boolean Symbol -V → -V)
+  (: make-static-listof : Symbol Boolean (→ -V) → -V)
   (define make-static-listof
-    (let ([⟪null?⟫ (+⟪α⟫ℓ₀ 'null?)])
-      (λ (flat? x C)
-        (define V (-Or/C flat?
-                         ⟪null?⟫
-                         (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-ref x)) +ℓ₀))))))
-        (σ-set-imm-ref! x V)
-        V)))
+    (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
+      (λ (x flat? mk-C)
+        (hash-ref!
+         cache x
+         (λ ()
+           (define C (mk-C))
+           (define V (-Or/C flat?
+                            (+⟪α⟫ℓ₀ 'null?)
+                            (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-ref x)) +ℓ₀))))))
+           (σ-set-imm-ref! x V)
+           V)))))
+
+  (: make-static-∀/c : Symbol Symbol (→ (Values (Listof Symbol) -e)) → -V)
+  (define make-static-∀/c
+    (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
+      (λ (tag src mk)
+        (hash-ref!
+         cache tag
+         (λ ()
+           (define-values (xs e) (mk))
+           (-∀/C xs (↓ₑ src e) ⊥ρ))))))
   )

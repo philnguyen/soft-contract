@@ -47,7 +47,8 @@
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
    [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]
    [+⟪α⟫ℓ₀ : (-V → -⟪α⟫ℓ)]
-   [make-static-listof : (Boolean Symbol -V → -V)]
+   [make-static-listof : (Symbol Boolean (→ -V) → -V)]
+   [make-static-∀/c : (Symbol Symbol (→ (Values (Listof Symbol) -e)) → -V)]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]
