@@ -773,7 +773,7 @@
       (define Vₐ (-Set/guard C α ctx))
       (⟦k⟧ (-W (list Vₐ) tₛ) $ Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (maybe-refine∷ [cases : (Listof (List (Listof -W¹) (Option -W¹) (Listof -V)))]
+  (define-frame (maybe-refine∷ [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
                                [W : -W]
                                [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (W)

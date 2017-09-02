@@ -4,6 +4,7 @@
 
 (require racket/base
          racket/match
+         racket/bool
          racket/list
          racket/syntax
          racket/contract
@@ -30,9 +31,10 @@
 
 (define-syntax-class d
   #:description "restricted contract range"
-  (pattern _:c)
-  (pattern ((~literal values) d₁:c d₂:c d*:c ...))
-  (pattern (~literal any)))
+  #:attributes (values)
+  (pattern c:c                                    #:attr values (list #'c))
+  (pattern ((~literal values) d₁:c d₂:c d*:c ...) #:attr values (list* #'d₁ #'d₂ (syntax->list #'(d* ...))))
+  (pattern (~literal any)                         #:attr values #f))
 
 (define-syntax-class hc
   #:description "restricted higher-order-contract"
@@ -137,7 +139,7 @@
 (define-syntax-class ff
   #:description "restricted first-order function contracts"
   (pattern ((~literal ->) _:fc ... _:fd))
-  (pattern ((~literal ->*) (_fc ...) #:rest _:fc _:fd)))
+  (pattern ((~literal ->*) (_:fc ...) #:rest _:rc _:fd)))
 
 (define-syntax-class fd
   #:description "restricted first-order function range"
@@ -188,24 +190,17 @@
      (andmap c-flat? (syntax->list #'(c ...)))]
     [_ #f]))
 
-(define/contract range-components (syntax? . -> . (listof syntax?))
-  (syntax-parser
-    [((~literal values) c ...) (syntax->list #'(c ...))]
-    [c (list #'c)]))
-
-(define/contract range-arity (syntax? . -> . exact-nonnegative-integer?) (compose length range-components))
-
 (define/contract in-syntax-list (syntax? . -> . sequence?) (compose in-list syntax->list))
 
 (define/contract (check-shape-ok o sig sigs)
   (identifier? syntax? (listof syntax?) . -> . any)
   (define sig-shape
     (syntax-parser
-      [((~literal ->) dom ... rng)
-       (values (length (syntax->list #'(dom ...))) (range-arity #'rng))]
-      [((~literal ->*) (dom ...) #:rest _ rng)
+      [((~literal ->) dom ... rng:d)
+       (values (length (syntax->list #'(dom ...))) (length (attribute rng.values)))]
+      [((~literal ->*) (dom ...) #:rest _ rng:d)
        (values (arity-at-least (length (syntax->list #'(dom ...))))
-               (range-arity #'rng))]
+               (length (attribute rng.values)))]
       [((~literal ∀/c) c) (sig-shape #'c)]
       [_
        ;; TODO generalize checks for case->
@@ -214,8 +209,8 @@
   (when (and num-args num-rng)
     (for ([sigᵢ (in-list sigs)])
       (define-values (num-argsᵢ num-rngᵢ) (sig-shape sigᵢ))
-      (unless (and (arity-includes? num-args num-argsᵢ)
-                   (= num-rng num-rngᵢ))
+      (unless (and (arity-compatible? num-args num-argsᵢ)
+                   (arity-compatible? num-rng num-rngᵢ))
         (raise-syntax-error (syntax-e #'o) "incompatible shape" sig (list sigᵢ))))))
 
 (define-simple-macro (define-parameter/contract [x:id c v] ...)
@@ -227,6 +222,10 @@
     (format-id src "~a~a" prefix (n-sub i))))
 
 (define (syntax-length stx) (length (syntax->list stx)))
+
+(define/contract (arity-compatible? a b)
+  ((or/c #f procedure-arity?) (or/c #f procedure-arity?) . -> . boolean?)
+  ((and a b) . implies . (or (arity-includes? a b) (arity-includes? b a))))
 
 #|
 (def o _:hc)
