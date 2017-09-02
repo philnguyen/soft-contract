@@ -208,4 +208,14 @@
 
   (: +⟪α⟫ℓ₀ : -V → -⟪α⟫ℓ)
   (define (+⟪α⟫ℓ₀ V) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) +ℓ₀))
+
+  (: make-static-listof : Boolean Symbol -V → -V)
+  (define make-static-listof
+    (let ([⟪null?⟫ (+⟪α⟫ℓ₀ 'null?)])
+      (λ (flat? x C)
+        (define V (-Or/C flat?
+                         ⟪null?⟫
+                         (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-ref x)) +ℓ₀))))))
+        (σ-set-imm-ref! x V)
+        V)))
   )

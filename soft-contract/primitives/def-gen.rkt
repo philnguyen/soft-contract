@@ -224,9 +224,9 @@
        (define D (gen-rng #'d))
        #`(-=> (-var (list #,@Cs) #,R) #,D +ℓ₀)]
       [((~literal case->) clauses ...)
-       (error 'gen-ctc "TODO: nested case->")]
+       (error 'gen-ctc "TODO: nested case-> for `~a`" (syntax-e (-o)))]
       [((~literal ∀/c) (x ...) c)
-       (error 'gen-ctc "TODO: nested ∀/c")]
+       (error 'gen-ctc "TODO: nested ∀/c for `~a`" (syntax-e (-o)))]
       [((~literal and/c) c ...)
        (define-values (V _) ((go* #'-And/C #''any/c) (syntax->list #'(c ...))))
        V]
@@ -236,7 +236,11 @@
       [((~literal cons/c) c d)
        #`(-St/C #,(and (c-flat? #'c) (c-flat? #'d)) -𝒾-cons (list #,(gen-ctc #'c) #,(gen-ctc #'d)))]
       [((~literal listof) c)
-       (error 'gen-ctc "TODO: listof")]
+       (define/with-syntax C (gen-ctc-V #'c))
+       (define/with-syntax x (gensym (format-symbol "~a:listof_" (syntax-e (-o)))))
+       (define/with-syntax flat? (c-flat? #'c))
+       (hack:make-available (-o) make-static-listof)
+       #'(make-static-listof flat? 'x C)]
       [((~literal list/c) c ...)
        (gen-ctc-V (foldr (λ (c d) #`(cons/c #,c #,d)) #'null? (syntax->list #'(c ...))))]
       [((~literal vectorof) c)
@@ -244,9 +248,9 @@
       [((~literal vector/c) c ...)
        #`(-Vector/C (list #,@(map gen-ctc (syntax->list #'(c ...)))))]
       [((~literal set/c) c)
-       (error 'gen-ctc "TODO: set/c")]
+       (error 'gen-ctc "TODO: set/c for `~a`" (syntax-e (-o)))]
       [((~literal hash/c) c)
-       (error 'gen-ctc "TODO: hash/c")]
+       (error 'gen-ctc "TODO: hash/c for `~a`" (syntax-e (-o)))]
       [_
        #`(error 'gen-ctc "TODO ~a" '#,c)]))
 

@@ -5,6 +5,7 @@
 (require typed/racket/unit
          racket/match
          racket/set
+         racket/splicing
          set-extras
          "../utils/main.rkt"
          "../ast/signatures.rkt"
@@ -15,13 +16,22 @@
   (import pretty-print^ local-prover^ pc^ val^)
   (export sto^)
 
-  (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
-  (define (σ@ m ⟪α⟫)
-    (match (⟪α⟫->-α ⟪α⟫)
-      [(-α.imm V) {set V}]
-      [_
-       (define σ (if (-Σ? m) (-Σ-σ m) m))
-       (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))]))
+  (splicing-local
+      ((define imm-ref-table : (Mutable-HashTable Symbol -V) (make-hasheq)))
+    
+    (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
+    (define (σ@ m ⟪α⟫)
+      (match (⟪α⟫->-α ⟪α⟫)
+        [(-α.imm V) {set V}]
+        [(-α.imm-ref x) {set (hash-ref imm-ref-table x)}]
+        [_
+         (define σ (if (-Σ? m) (-Σ-σ m) m))
+         (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))]))
+
+    (: σ-set-imm-ref! : Symbol -V → Void)
+    (define (σ-set-imm-ref! x V)
+      (unless (hash-has-key? imm-ref-table x)
+        (hash-set! imm-ref-table x V))))
 
   (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
   (define (defined-at? σ α)

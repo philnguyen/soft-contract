@@ -269,6 +269,7 @@
       [(-α.wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
       [(-α.sealed x ⟪ℋ⟫) (format-symbol "~a*" (show-α.x x ⟪ℋ⟫))]
       [(-α.imm V) (show-V V)]
+      [(-α.imm-ref x) x]
       [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
   (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
