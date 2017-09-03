@@ -293,7 +293,7 @@
             ;; Only use this in the prim DSL where all values are finite
             ;; with purely syntactic components
             (-α.imm -V)
-            (-α.imm-ref Symbol)
+            (-α.imm-listof #|elem, ok with care|# -V)
             )
 
 (define-interner ⟪α⟫ -α
@@ -375,7 +375,6 @@
    [σ@/list : ((U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))]
    [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
-   [σ-set-imm-ref! : (Symbol -V → Void)]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
    [⊥M : -M]

@@ -6,6 +6,7 @@
          racket/match
          racket/bool
          racket/list
+         racket/set
          racket/syntax
          racket/contract
          racket/function

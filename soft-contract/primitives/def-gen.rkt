@@ -50,12 +50,13 @@
     [-Wᵣ (or/c #f identifier?) #f]
     [-gen-lift? boolean? #f]
     [-refinements (listof syntax?) '()]
+    [-ctc-parameters (hash/c symbol? identifier?) (hash)]
     )
 
   (define/contract (gen-cases)
     (-> (listof syntax?))
 
-    (define arity-check-cases
+    (define cases
       (let go ([sig (-sig)])
         (syntax-parse sig
           [((~literal ->) c ... d:d)
@@ -85,11 +86,14 @@
                             #f
                             #f
                             (attribute d.values))]))]
-          [((~literal ∀/c) _ c) (go #'c)])))
+          [((~literal ∀/c) (x ...) c)
+           (parameterize ([-ctc-parameters (for/hash ([x (in-syntax-list #'(x ...))])
+                                             (values (syntax-e x) x))])
+             (go #'c))])))
     
     (list
      #`(match #,(-Ws)
-         #,@arity-check-cases
+         #,@cases
          [_
           (define blm (-blm (ℓ-src #,(-ℓ)) '#,(-o) (list 'error-msg) (map -W¹-V #,(-Ws)) #,(-ℓ)))
           (#,(-⟦k⟧) blm #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ))])))
@@ -112,6 +116,9 @@
          #'(list stx-dom-init-checks ...)]))
 
     #`[stx-pat
+       #,@(for/list ([x (in-hash-values (-ctc-parameters))])
+            (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
+            #`(define #,x (-Seal/C 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
        (define t-args (map -W¹-t #,(-Ws)))
        (define t-ans (apply ?t@ '#,(-o) t-args))
        (define ⟦k⟧:gen-range
@@ -204,8 +211,13 @@
     (syntax-parse c
       [o:o #''o]
       [α:id
-       (define/with-syntax α* (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e #'α)))
-       #`(-Seal/C 'α* #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))]
+       (hash-ref
+        (-ctc-parameters) (syntax-e #'α)
+        (λ () (raise-syntax-error
+               (syntax-e (-o))
+               (format "don't know what `~a` means" (syntax-e #'α))
+               (-sig)
+               #'α)))]
       [l:lit #'(-≡/c l)]
       [((~literal not/c) c*)
        (define V* (gen-ctc-V #'c*))
@@ -229,10 +241,28 @@
       [((~literal case->) clauses ...)
        (error 'gen-ctc "TODO: nested case-> for `~a`" (syntax-e (-o)))]
       [((~literal ∀/c) (x ...) c)
-       (hack:make-available (-o) make-static-∀/c)
+       (hack:make-available (-o) make-static-∀/c make-∀/c)
        (define/with-syntax tag (gensym (format-symbol "~a:∀/c_" (syntax-e (-o)))))
        (define/with-syntax body (ctc->ast #'c))
-       #`(make-static-∀/c 'tag '#,(-o) (λ () (values '(x ...) body)))]
+       (case (hash-count (-ctc-parameters))
+         [(0)
+          (with-syntax ([tag (gensym '∀/c)])
+            #`(make-static-∀/c 'tag '#,(-o) '(x ...) (λ () body)))]
+         [(1 2 3 4)
+          (with-syntax ([ρ
+                         #`((inst hasheq Symbol ⟪α⟫)
+                            #,@(append-map
+                                (match-lambda
+                                  [(cons x V) (list #`'#,x #`(-α->⟪α⟫ (-α.imm #,V)))])
+                                (hash->list (-ctc-parameters))))])
+            #`(make-∀/c '#,(-o) '(x ...) body ρ))]
+         [else
+          (with-syntax ([env
+                         (for/fold ([env #'(hasheq)])
+                                   ([(x a) (in-hash (-ctc-parameters))])
+                           #`(ρ+ #,env '#,x (-α->⟪α⟫ (-α.imm #,a))))])
+            #`(let ([ρ : -ρ env])
+                (make-∀/c '#,(-o) '(x ...) body ρ)))])]
       [((~literal and/c) c ...)
        (define-values (V _) ((go* #'-And/C #''any/c) (syntax->list #'(c ...))))
        V]
@@ -243,10 +273,12 @@
        #`(-St/C #,(and (c-flat? #'c) (c-flat? #'d)) -𝒾-cons (list #,(gen-ctc #'c) #,(gen-ctc #'d)))]
       [((~literal listof) c)
        (define/with-syntax C (gen-ctc-V #'c))
-       (define/with-syntax x (gensym (format-symbol "~a:listof_" (syntax-e (-o)))))
        (define/with-syntax flat? (c-flat? #'c))
-       (hack:make-available (-o) make-static-listof)
-       #'(make-static-listof 'x flat? (λ () C))]
+       (hack:make-available (-o) make-listof make-static-listof)
+       (if (hash-empty? (-ctc-parameters))
+           (with-syntax ([tag (gensym 'listof)])
+             #'(make-static-listof 'tag (λ () (values flat? C))))
+           #'(make-listof flat? C))]
       [((~literal list/c) c ...)
        (gen-ctc-V (foldr (λ (c d) #`(cons/c #,c #,d)) #'null? (syntax->list #'(c ...))))]
       [((~literal vectorof) c)
@@ -254,9 +286,9 @@
       [((~literal vector/c) c ...)
        #`(-Vector/C (list #,@(map gen-ctc (syntax->list #'(c ...)))))]
       [((~literal set/c) c)
-       (error 'gen-ctc "TODO: set/c for `~a`" (syntax-e (-o)))]
-      [((~literal hash/c) c)
-       (error 'gen-ctc "TODO: hash/c for `~a`" (syntax-e (-o)))]
+       #`(-Set/C #,(gen-ctc #'c))]
+      [((~literal hash/c) k v)
+       #`(-Hash/C #,(gen-ctc #'k) #,(gen-ctc #'v))]
       [c (error 'gen-ctc "unhandled contract form: ~a" (syntax->datum #'c))]))
 
   (define/contract gen-rng (syntax? . -> . syntax?)

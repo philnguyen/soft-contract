@@ -210,27 +210,30 @@
   (: +⟪α⟫ℓ₀ : -V → -⟪α⟫ℓ)
   (define (+⟪α⟫ℓ₀ V) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) +ℓ₀))
 
-  (: make-static-listof : Symbol Boolean (→ -V) → -V)
+  (: make-listof : Boolean -V → -V)
+  (define make-listof
+    (let ([⟪null?⟫ (+⟪α⟫ℓ₀ 'null?)])
+      (λ (flat? C)
+        (-Or/C flat?
+               ⟪null?⟫
+               (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-listof C)) +ℓ₀))))))))
+
+  (: make-static-listof : Symbol (→ (Values Boolean -V)) → -V)
   (define make-static-listof
     (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
-      (λ (x flat? mk-C)
-        (hash-ref!
-         cache x
-         (λ ()
-           (define C (mk-C))
-           (define V (-Or/C flat?
-                            (+⟪α⟫ℓ₀ 'null?)
-                            (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-ref x)) +ℓ₀))))))
-           (σ-set-imm-ref! x V)
-           V)))))
+      (λ (tag mk-V)
+        (hash-ref! cache tag (λ () (call-with-values mk-V make-listof))))))
 
-  (: make-static-∀/c : Symbol Symbol (→ (Values (Listof Symbol) -e)) → -V)
+  (: make-∀/c : Symbol (Listof Symbol) -e -ρ → -V)
+  (define make-∀/c
+    (let ([e-cache : (Mutable-HashTable -e -⟦e⟧) (make-hash)])
+      (λ (src xs e ρ)
+        (define ⟦e⟧ (hash-ref! e-cache e (λ () (↓ₑ src e))))
+        (-∀/C xs ⟦e⟧ ρ))))
+
+  (: make-static-∀/c : Symbol Symbol (Listof Symbol) (→ -e) → -V)
   (define make-static-∀/c
     (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
-      (λ (tag src mk)
-        (hash-ref!
-         cache tag
-         (λ ()
-           (define-values (xs e) (mk))
-           (-∀/C xs (↓ₑ src e) ⊥ρ))))))
+      (λ (tag src xs mk-e)
+        (hash-ref! cache tag (λ () (make-∀/c src xs (mk-e) ⊥ρ))))))
   )

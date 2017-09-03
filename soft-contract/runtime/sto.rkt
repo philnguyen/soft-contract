@@ -10,28 +10,24 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../primitives/signatures.rkt"
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^ local-prover^ pc^ val^)
+  (import pretty-print^ local-prover^ pc^ val^ prim-runtime^)
   (export sto^)
 
   (splicing-local
-      ((define imm-ref-table : (Mutable-HashTable Symbol -V) (make-hasheq)))
-    
+      ((define ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm 'null?)) +ℓ₀))
+       (define cache-listof : (Mutable-HashTable ⟪α⟫ (℘ -V)) (make-hasheq)))
     (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
     (define (σ@ m ⟪α⟫)
       (match (⟪α⟫->-α ⟪α⟫)
         [(-α.imm V) {set V}]
-        [(-α.imm-ref x) {set (hash-ref imm-ref-table x)}]
+        [(-α.imm-listof C) (hash-ref! cache-listof ⟪α⟫ (λ () {set (make-listof (C-flat? C) C)}))]
         [_
          (define σ (if (-Σ? m) (-Σ-σ m) m))
-         (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))]))
-
-    (: σ-set-imm-ref! : Symbol -V → Void)
-    (define (σ-set-imm-ref! x V)
-      (unless (hash-has-key? imm-ref-table x)
-        (hash-set! imm-ref-table x V))))
+         (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))])))
 
   (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
   (define (defined-at? σ α)
