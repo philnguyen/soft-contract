@@ -86,6 +86,9 @@
            '()
            ts))
 
+  (: Ws->bs : (Listof -W¹) → (Option (Listof Base)))
+  (define (Ws->bs Ws) (ts->bs (map -W¹-t Ws)))
+
   ;; Return an abstract value approximating all list element in `V`
   (define (extract-list-content [σ : -σ] [V : -St]) : (℘ -V)
     (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)

@@ -38,11 +38,17 @@
 
      (check-shape-ok #'o #'sig (syntax->list #'(ref ...)))
      (define max-inits
-       (let go ([arity (attribute sig.arity)])
-         (match arity
-           [(arity-at-least n) n]
-           [(? number? n) n]
-           [(? list? l) (apply max 0 (map go l))])))
+       (let go ([c #'sig])
+         (syntax-parse c
+           [((~literal ->) c ... _) (syntax-length #'(c ...))]
+           [((~literal ->*) c ... #:rest _ _) (syntax-length #'(c ...))]
+           [((~literal case->) clauses ...)
+            (apply max 0 (map
+                          (syntax-parser
+                            [((~literal ->) c ... #:rest _ _) (syntax-length #'(c ...))]
+                            [((~literal ->) c ... _) (syntax-length #'(c ...))])
+                          (syntax->list #'(clauses ...))))]
+           [((~literal ∀/c) _ c) (go #'c)])))
      (define/with-syntax defn-o
        #`(define (.o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
            #,@(parameterize ([-o #'o]

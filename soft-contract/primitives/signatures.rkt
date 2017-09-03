@@ -42,7 +42,8 @@
   ([⊢?/quick : (-R -σ -Γ -o -W¹ * → Boolean)]
    [make-total-pred : (Index → Symbol → -⟦o⟧)]
    [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))]
-   [ts->bs : ((Listof -?t) → (Option (Listof Base)))]
+   [ts->bs : ((Listof -?t) → (Option (Listof Base)))] ; TODO obsolete
+   [Ws->bs : ((Listof -W¹) → (Option (Listof Base)))]
    [extract-list-content : (-σ -St → (℘ -V))]
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
    [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]

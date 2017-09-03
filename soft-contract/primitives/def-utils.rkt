@@ -110,7 +110,9 @@
 
 (define-syntax-class o
   #:description "restricted base predicates"
-  (pattern (~or (~literal integer?)
+  (pattern (~or (~literal any/c)
+                (~literal none/c)
+                (~literal integer?)
                 (~literal rational?)
                 (~literal real?)
                 (~literal number?)
