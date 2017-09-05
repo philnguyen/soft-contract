@@ -36,6 +36,12 @@
     (match-define (-W¹ V s) W)
     (-W (list V) s))
 
+  (define (W->W¹s [W : -W]) : (Listof -W¹)
+    (match-define (-W Vs t) W)
+    (for/list ([Vᵢ (in-list Vs)]
+               [tᵢ (in-list (split-values t (length Vs)))])
+      (-W¹ Vᵢ tᵢ)))
+
   (: C-flat? : -V → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
   (define (C-flat? V)

@@ -79,7 +79,7 @@
    [wrap-hash∷ : (-Hash/C -ctx -⟦k⟧ → -⟦k⟧)]
    [set-add-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
    [wrap-set∷ : (-Set/C -ctx -⟦k⟧ → -⟦k⟧)]
-   [maybe-refine∷ : ((Listof (List (Listof -V) (Option -V) (Listof -V))) -W -⟦k⟧ → -⟦k⟧)]
+   [on-prim-args-checked∷ : (ℓ (Listof (List (Listof -V) (Option -V) (Listof -V))) -W -⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
    [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
    ])

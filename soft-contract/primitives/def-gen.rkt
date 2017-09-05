@@ -147,7 +147,7 @@
       ,#`(define t-args (map -W¹-t #,(-Ws)))
       ,#`(define t-ans (apply ?t@ '#,(-o) t-args))
       ,#`(define ⟦k⟧:gen-range
-          #,(gen-range-refinements
+          #,(gen-on-args-checked
              (if ?dom-rst (arity-at-least (length dom-inits)) (length dom-inits))
              rngs
              #'t-ans
@@ -166,20 +166,19 @@
         (with-syntax ([ctx #`(-ctx '#,(-o) (ℓ-src #,(-ℓ)) '#,(-o) #,(-ℓ))])
           #`(mon*.c∷ ctx (list #,@(map gen-ctc rngs)) #,tₐ #,k))))
 
-  (define/contract (gen-range-refinements case-arity rngs tₐ k)
+  (define/contract (gen-on-args-checked case-arity rngs tₐ k)
     ((or/c exact-nonnegative-integer? arity-at-least?) (or/c #f (listof syntax?)) identifier? syntax? . -> . syntax?)
-    (hack:make-available (-o) maybe-refine∷ +●)
-    (define compatible-refinements
-      (filter (syntax-parser
-                [r:mono-hc (arity-compatible? case-arity (attribute r.arity))])
-              (-refinements)))
+    (hack:make-available (-o) on-prim-args-checked∷ +●)
+    (define refinement-compatible?
+      (syntax-parser
+        [r:mono-hc (arity-compatible? case-arity (attribute r.arity))]))
     (define/with-syntax (refinement-cases ...)
-      (for/list ([ref (in-list compatible-refinements)])
+      (for/list ([ref (in-list (-refinements))] #:when (refinement-compatible? ref))
         (syntax-parse ref
           [((~literal ->) c ... d)
            (define/with-syntax (C ...) (map gen-ctc-V (syntax->list #'(c ...))))
            (define/with-syntax D (gen-rng-V #'d))
-           #`(list (list C ...) #f D)]
+           #'(list (list C ...) #f D)]
           [((~literal ->*) (c ...) #:rest r d)
            (define/with-syntax (C ...) (map gen-ctc-V (syntax->list #'(c ...))))
            (define/with-syntax R
@@ -198,7 +197,7 @@
          (for/list ([cs (in-list initial-refinements)])
            (define/with-syntax (c ...) cs)
            #'(+● 'c ...))]))
-    #`(maybe-refine∷ (list refinement-cases ...) (-W (list V ...) #,tₐ) #,k))
+    #`(on-prim-args-checked∷ #,(-ℓ) (list refinement-cases ...) (-W (list V ...) #,tₐ) #,k))
 
   ;; See if range needs to go through general contract monitoring
   (define/contract (?flatten-range rngs)

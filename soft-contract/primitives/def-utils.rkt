@@ -230,20 +230,3 @@
 (define/contract (arity-compatible? a b)
   ((or/c #f procedure-arity?) (or/c #f procedure-arity?) . -> . boolean?)
   ((and a b) . implies . (or (arity-includes? a b) (arity-includes? b a))))
-
-#|
-(def o _:hc)
--->
-(: o : -⟦f⟧)
-(define (o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-  
-  (: check-arg : -W¹ -Γ → (℘ -ς))
-  (define (check-arg W Γ)
-    )
-
-  (cond
-    [(arity-ok? _ (length Ws))
-     (check-arg W₁ Γ)]
-    [blm]))
-
-|#

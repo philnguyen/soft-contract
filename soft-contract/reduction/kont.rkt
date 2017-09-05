@@ -12,6 +12,7 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
@@ -20,7 +21,8 @@
 
 (define-unit kont@
   (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^ verifier^
-          val^ env^ sto^ pretty-print^ pc^ instr^)
+          val^ env^ sto^ pretty-print^ pc^ instr^
+          (prefix q: local-prover^))
   (export kont^)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -773,9 +775,59 @@
       (define Vₐ (-Set/guard C α ctx))
       (⟦k⟧ (-W (list Vₐ) tₛ) $ Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (maybe-refine∷ [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
-                               [W : -W]
-                               [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (W)
-      (error 'maybe-refine∷ "TODO")))
+  (define-frame (on-prim-args-checked∷ [ℓ : ℓ]
+                                       [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
+                                       [rng : -W]
+                                       [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (rng)
+      (match-define (-W args _) A)
+      (define σ (-Σ-σ Σ))
+      (define refined-range (maybe-refine rng σ Γ cases (W->W¹s A)))
+      (define behavioral-args
+        (for/list : (Listof -W¹) ([V (in-list args)] #:when (behavioral? σ V))
+          (-W¹ V #f)))
+      (app (ℓ-with-id ℓ 'prim-havoc)
+           (-W¹ (-Fn● (length behavioral-args)) #f)
+           behavioral-args
+           $ Γ ⟪ℋ⟫ Σ
+           (bgn0.e∷ refined-range '() ⊥ρ ⟦k⟧))))
+
+  (: maybe-refine : -W -σ -Γ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -W¹) → -W)
+  (define (maybe-refine rng₀ σ Γ cases args)
+
+    (: ⊢/quick : -V -W¹ → -R)
+    (define (⊢/quick o W)
+      (first-R (q:p∋Vs σ o (-W¹-V W))
+               (if (-h? o) (q:Γ⊢t Γ (?t@ o (-W¹-t W))) '?)))
+    
+    (match-define (-W rngs t-rng) rng₀)
+
+    (define rngs*
+      (for/fold ([rngs : (Listof -V) rngs])
+                ([case (in-list cases)])
+        (match-define (list dom-inits ?dom-rst refinements) case)
+        (define (check-inits [doms : (Listof -V)] [args : (Listof -W¹)]) : (Listof -V)
+          (match* (doms args)
+            [((cons dom doms*) (cons arg args*))
+             (if (equal? '✓ (⊢/quick dom arg))
+                 (check-inits doms* args*)
+                 rngs)]
+            [('() _) (check-rest args)]
+            [((cons _ _) '()) rngs]))
+        (define (check-rest [args : (Listof -W¹)])
+          (cond
+            [?dom-rst
+             (let go : (Listof -V) ([args : (Listof -W¹) args])
+               (match args
+                 ['() (refine-rng)]
+                 [(cons arg args*)
+                  (if (equal? '✓ (⊢/quick ?dom-rst arg)) (go args*) rngs)]))]
+            [else (if (null? args) (refine-rng) rngs)]))
+        (define (refine-rng)
+          (for/list : (Listof -V) ([rng (in-list rngs)]
+                                   [ref (in-list refinements)])
+            (V+ σ rng ref)))
+        (check-inits dom-inits args)))
+    
+    (-W rngs* t-rng))
   )

@@ -404,6 +404,7 @@
    [+W¹ : ([-prim] [-?t] . ->* . -W¹)]
    [+W : ([(Listof -prim)] [-?t] . ->* . -W)]
    [W¹->W : (-W¹ → -W)]
+   [W->W¹s : (-W -> (Listof -W¹))]
    [C-flat? : (-V → Boolean)]
    [with-negative-party : (-l -V → -V)]
    [with-positive-party : (-l -V → -V)]
