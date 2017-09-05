@@ -51,23 +51,23 @@
     (eq? R (first-R (apply p∋Vs σ o Vs)
                     (Γ⊢t Γ (apply ?t@ o ss)))))
 
-  (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
+  (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (Values -V -?t))
   (define (implement-predicate σ Γ o Ws)
-    (define ss (map -W¹-t Ws))
-    (define A
-      (list (case (apply Γ⊢oW σ Γ o Ws)
-              [(✓) -tt]
-              [(✗) -ff]
-              [(?) (+● 'boolean?)])))
-    {set (-ΓA Γ (-W A (apply ?t@ o ss)))})
+    (define V
+      (case (apply Γ⊢oW σ Γ o Ws)
+        [(✓) -tt]
+        [(✗) -ff]
+        [(?) (+● 'boolean?)]))
+    (values V (apply ?t@ o (map -W¹-t Ws))))
 
-  (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦o⟧)
+  (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦f⟧)
     (λ (o)
-      (λ (⟪ℋ⟫ ℓ Σ $ Γ Ws)
+      (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (cond [(equal? n (length Ws))
-               (implement-predicate (-Σ-σ Σ) Γ o Ws)]
+               (define-values (Vₐ tₐ) (implement-predicate (-Σ-σ Σ) Γ o Ws))
+               (⟦k⟧ (-W (list Vₐ) tₐ) $ Γ ⟪ℋ⟫ Σ)]
               [else
-               {set (-ΓA Γ (blm-arity ℓ o n (map -W¹-V Ws)))}]))))
+               (⟦k⟧ (blm-arity ℓ o n (map -W¹-V Ws)) $ Γ ⟪ℋ⟫ Σ)]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))

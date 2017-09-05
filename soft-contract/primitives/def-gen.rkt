@@ -102,8 +102,12 @@
     (define (gen-pat-W c x)
       (syntax-parse (?flatten-ctc c)
         [(~or () (~literal any/c)) #`(-W¹ _ (-b #,x))]
-        [(p) #`(-W¹ _ (-b (? p #,x)))]
-        [(p ...) #`(-W¹ _ (-b (and #,x (? p) ...)))]))
+        [(p)
+         (define/with-syntax p* (for-TR #'p))
+         #`(-W¹ _ (-b (? p* #,x)))]
+        [(p ...)
+         (define/with-syntax (p* ...) (map for-TR (syntax->list #'(p ...))))
+         #`(-W¹ _ (-b (and #,x (? p) ...)))]))
     (define/with-syntax (bᵢ ...) (gen-ids (-Ws) 'b (length dom-inits)))
     (define/with-syntax bᵣ (format-id (-Ws) "bᵣ"))
     (define/with-syntax (a ...) (gen-ids (-Ws) 'a (length rngs)))
@@ -115,8 +119,10 @@
         [((~literal listof) c)
          (define/with-syntax pᵣ
            (syntax-parse (?flatten-ctc #'c)
-             [(o) #'o]
-             [(o ...) #'(λ ([x : Base]) (and (o x) ...))]))
+             [(o) (for-TR #'o)]
+             [(o ...)
+              (define/with-syntax (o* ...) (map for-TR (syntax->list #'(o ...))))
+              #'(λ ([x : Base]) (and (o* x) ...))]))
          #'((list* Wᵢ ... (app Ws->bs bᵣ)) #:when (and bᵣ (andmap pᵣ bᵣ)))]
         [_ #'((list* Wᵢ ... (app Ws->bs bᵣ)) #:when bᵣ)]))
     (define/with-syntax compute-ans
@@ -244,7 +250,7 @@
          [(~literal </c)  #'(-</c r)]
          [(~literal >=/c) #'(-≥/c r)]
          [(~literal <=/c) #'(-≤/c r)]
-         [(~literal =/c)  #'(-=/c r)])]
+         [(~literal =/c)  #'(-≡/c r)])]
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))

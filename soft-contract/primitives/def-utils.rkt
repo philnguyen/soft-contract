@@ -7,6 +7,7 @@
          racket/bool
          racket/list
          racket/set
+         racket/extflonum
          racket/syntax
          racket/contract
          racket/function
@@ -18,9 +19,11 @@
                      racket/syntax
                      syntax/parse)
          (for-template racket/base
+                       racket/extflonum
                        racket/contract
                        racket/syntax
                        syntax/parse
+                       math/base
                        "../ast/signatures.rkt"
                        "../runtime/signatures.rkt"))
 
@@ -100,7 +103,8 @@
 
 (define-syntax-class rc
   #:description "restricted contract on rest args"
-  (pattern ((~literal listof) _:fc)))
+  (pattern ((~literal listof) _:fc))
+  (pattern (~literal list?)))
 
 (define-syntax-class lit
   #:description "restricted literal"
@@ -112,8 +116,11 @@
   #:description "restricted base predicates"
   (pattern (~or (~literal any/c)
                 (~literal none/c)
+                (~literal not)
+                (~literal fixnum?)
                 (~literal integer?)
                 (~literal rational?)
+                (~literal exact?)
                 (~literal real?)
                 (~literal number?)
                 (~literal positive?)
@@ -127,7 +134,6 @@
                 (~literal exact-integer?)
                 (~literal flonum?)
                 (~literal single-flonum?)
-                (~literal extflonum?)
                 (~literal boolean?)
                 (~literal path-string?)
                 (~literal string?)
@@ -138,7 +144,15 @@
                 (~literal void?)
                 (~literal eof-object?)
                 (~literal immutable?)
-                (~literal list?))))
+                (~literal list?)
+                (~literal bytes?)
+                (~literal complex?)
+                (~literal float-complex?)
+                (~literal extflonum?)
+                (~literal extflvector?)
+                (~literal sequence?)
+                (~literal pseudo-random-generator?)
+                (~literal pseudo-random-generator-vector?))))
 
 (define-syntax-class ff
   #:description "restricted first-order function contracts"
@@ -153,13 +167,16 @@
 (define base?
   ;; Ones that fit in implementation's `Base`
   (syntax-parser
-    [(~or (~literal integer?)
+    [(~or (~literal not)
+          (~literal fixnum?)
+          (~literal integer?)
           (~literal rational?)
           (~literal real?)
           (~literal number?)
           (~literal positive?)
           (~literal negative?)
           (~literal zero?)
+          (~literal exact?)
           (~literal inexact?)
           (~literal inexact-real?)
           (~literal exact-integer?)
@@ -168,7 +185,6 @@
           (~literal exact-integer?)
           (~literal flonum?)
           (~literal single-flonum?)
-          (~literal extflonum?)
           (~literal boolean?)
           (~literal path-string?)
           (~literal string?)
@@ -178,9 +194,18 @@
           (~literal null?)
           (~literal void?)
           (~literal eof-object?)
-          (~literal immutable?))
+          (~literal immutable?)
+          (~literal bytes?)
+          (~literal complex?)
+          (~literal float-complex?)
+          (~literal extflonum?))
      #t]
     [_ #f]))
+
+(define for-TR
+  (syntax-parser
+    [(~literal integer?) #'exact-nonnegative-integer?]
+    [o #'o]))
 
 (define c-flat?
   (syntax-parser
@@ -230,3 +255,33 @@
 (define/contract (arity-compatible? a b)
   ((or/c #f procedure-arity?) (or/c #f procedure-arity?) . -> . boolean?)
   ((and a b) . implies . (or (arity-includes? a b) (arity-includes? b a))))
+
+;; Convert contract range into list of refinement syntax
+(define/contract (range->refinement rng)
+  (syntax? . -> . (listof syntax?))
+  (syntax-parse rng
+    [((~literal and/c) cᵢ ...)
+     (append-map range->refinement (syntax->list #'(cᵢ ...)))]
+    [((~literal or/c) _ ...)
+     (raise-syntax-error 'def-prim "or/c in #:refinement clause not supported" rng)]
+    [((~literal not/c) d)
+     (cond [(identifier? #'d) (list #'(-not/c 'd))]
+           [else
+            (raise-syntax-error 'def-prim "only identifier can follow not/c in refinement clause" rng)])]
+    [((~literal cons/c) _ _)
+     (raise-syntax-error
+      'def-prim
+      (format "~a: cons/c in range not suported for now" (syntax-e #'o))
+      rng)]
+    [((~literal =/c) x:number) (list #''real? #'(-≡/c x))]
+    [((~literal >/c) x:number) (list #''real? #'(->/c x))]
+    [((~literal >=/c) x:number) (list #''real? #'(-≥/c x))]
+    [((~literal </c) x:number) (list #''real? #'(-</c x))]
+    [((~literal <=/c) x:number) (list #''real? #'(-≤/c x))]
+    [x:lit (list #'(-≡/c x))]
+    [(~literal any/c) '()]
+    [(~literal none/c)
+     (raise-syntax-error 'def-prim "refinement clause does not accept none/c in range" rng)]
+    [c:id (list #''c)]))
+
+(define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))

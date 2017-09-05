@@ -14,7 +14,6 @@
          racket/set
          racket/flonum
          racket/fixnum
-         racket/extflonum
          racket/generator
          racket/random
          racket/format

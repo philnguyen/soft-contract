@@ -79,7 +79,11 @@
             (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
             (-Set/C [elems : -⟪α⟫ℓ])
             ;; Seal
-            (-Seal/C Symbol -⟪ℋ⟫ -l))
+            (-Seal/C Symbol -⟪ℋ⟫ -l)
+
+            ;;
+            ->/c -≥/c -</c -≤/c -≡/c -≢/c
+            )
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
