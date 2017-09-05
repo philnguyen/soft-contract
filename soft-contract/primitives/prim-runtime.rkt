@@ -271,7 +271,7 @@
     (define ⟦k⟧:refine-range
       (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:refine-range))
-    (⟦k⟧:chk-args (-W V-args (?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 
   (define mk-● +●)
   )
