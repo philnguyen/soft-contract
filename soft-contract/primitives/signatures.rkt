@@ -52,6 +52,16 @@
    [make-listof : (Boolean -V → -V)]
    [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
    [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
+   [mk-● : (-h * → -●)]
+   [exec-prim
+    : (-$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
+          ℓ (Intersection Symbol -o)
+          #:dom (Listof -V)
+          #:rng (Listof -V)
+          #:rng-wrap (Option (Listof -V))
+          #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
+          #:args (Listof -W¹)
+          → (℘ -ς))]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]

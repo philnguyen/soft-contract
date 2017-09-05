@@ -97,7 +97,7 @@
 
   (define/contract (gen-case-lift dom-inits ?dom-rst rngs body)
     ((listof syntax?) (or/c #f syntax?) (or/c #f (listof syntax?)) (listof syntax?) . -> . (listof syntax?))
-    (hack:make-available (-o) ?t@ Ws->bs)
+    (hack:make-available (-o) Ws->bs)
     
     (define (gen-pat-W c x)
       (syntax-parse (?flatten-ctc c)
@@ -126,53 +126,32 @@
          [pat ...
           (define-values (a ...) compute-ans)
           (define-values (bₐ ...) (values (-b a) ...))
-          (#,(-⟦k⟧) (-W (list bₐ ...) (?t@ 'values bₐ ...)) #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ))]
+          (#,(-⟦k⟧) (-W (list bₐ ...)
+                        #,@(case (syntax-length #'(bₐ ...))
+                             [(1) #'(bₐ ...)]
+                             [else #'((-t.@ 'values (list bₐ ...)))]))
+           #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ))]
          [_ #,@body])))
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c #f (listof syntax?)) . -> . (listof syntax?))
-    (hack:make-available (-o) mon*.c∷ ?t@)
-    (define/with-syntax (stx-dom-init-checks ...) (map gen-ctc dom-inits))
-    (define/with-syntax stx-check-list
+    (hack:make-available (-o) exec-prim mk-●)
+    (define/with-syntax (stx-inits ...) (map gen-ctc-V dom-inits))
+    (define/with-syntax doms
       (syntax-parse ?dom-rst
-        [#f #'(list stx-dom-init-checks ...)]
+        [#f #'(list stx-inits ...)]
         [((~literal listof) c)
-         #`(list* stx-dom-init-checks ...
-                  (make-list (length #,(-Wᵣ)) #,(gen-ctc #'c)))]
+         (define/with-syntax num-rests #`(length #,(-Wᵣ)))
+         #`(list* stx-inits ... (make-list num-rests #,(gen-ctc-V #'c)))]
         [_
-         #`(list* stx-dom-init-checks ...
-                  (make-list (length #,(-Wᵣ)) #,(gen-ctc #'any/c)))]))
-    `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
-          (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
-          #`(define #,x (-Seal/C 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
-      ,#`(define t-args (map -W¹-t #,(-Ws)))
-      ,#`(define t-ans (apply ?t@ '#,(-o) t-args))
-      ,#`(define ⟦k⟧:gen-range
-          #,(gen-on-args-checked
-             (if ?dom-rst (arity-at-least (length dom-inits)) (length dom-inits))
-             rngs
-             #'t-ans
-             (gen-range-wrap rngs #'t-ans (-⟦k⟧))))
-      ,#`(define ⟦k⟧:chk-args (mon*.c∷ (-ctx (ℓ-src #,(-ℓ)) '#,(-o) '#,(-o) #,(-ℓ))
-                                      stx-check-list
-                                      t-ans
-                                      ⟦k⟧:gen-range))
-      ,#`(⟦k⟧:chk-args (-W (map -W¹-V #,(-Ws)) (apply ?t@ 'values t-args)) #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ))))
-
-  (define/contract (gen-range-wrap rngs tₐ k)
-    ((or/c #f (listof syntax?)) identifier? identifier? . -> . syntax?)
-    (hack:make-available (-o) mon*.c∷ ⊥ρ +●)
-    (if (?flatten-range rngs)
-        k
-        (with-syntax ([ctx #`(-ctx '#,(-o) (ℓ-src #,(-ℓ)) '#,(-o) #,(-ℓ))])
-          #`(mon*.c∷ ctx (list #,@(map gen-ctc rngs)) #,tₐ #,k))))
-
-  (define/contract (gen-on-args-checked case-arity rngs tₐ k)
-    ((or/c exact-nonnegative-integer? arity-at-least?) (or/c #f (listof syntax?)) identifier? syntax? . -> . syntax?)
-    (hack:make-available (-o) on-prim-args-checked∷ +●)
+         (define/with-syntax num-rests #`(length #,(-Wᵣ)))
+         #`(list* stx-inits ... (make-list num-rests #,(gen-ctc-V #'any/c)))]))
     (define refinement-compatible?
-      (syntax-parser
-        [r:mono-hc (arity-compatible? case-arity (attribute r.arity))]))
+      (let ([case-arity (if ?dom-rst
+                            (arity-at-least (length dom-inits))
+                            (length dom-inits))])
+        (syntax-parser
+          [r:mono-hc (arity-compatible? case-arity (attribute r.arity))])))
     (define/with-syntax (refinement-cases ...)
       (for/list ([ref (in-list (-refinements))] #:when (refinement-compatible? ref))
         (syntax-parse ref
@@ -188,17 +167,28 @@
                [_ #''any/c]))
            (define/with-syntax D (gen-rng-V #'d))
            #`(list (list C ...) R D)])))
-    (define/with-syntax (V ...)
+    (define/with-syntax (V-rng ...)
       (match (?flatten-range rngs)
         ['any
          (printf "warning: arbitrarily generate 1 value for range `any` in `~a`~n" (syntax-e (-o)))
-         (list #'(+●))]
-        [#f (make-list (length rngs) #`(+●))]
+         (list #'(mk-●))]
+        [#f (make-list (length rngs) #`(mk-●))]
         [initial-refinements
          (for/list ([cs (in-list initial-refinements)])
            (define/with-syntax (c ...) cs)
-           #'(+● 'c ...))]))
-    #`(on-prim-args-checked∷ #,(-ℓ) (list refinement-cases ...) (-W (list V ...) #,tₐ) #,k))
+           #'(mk-● 'c ...))]))
+    `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
+          (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
+          #`(define #,x (-Seal/C 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
+      ,#`(exec-prim #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ) #,(-⟦k⟧)
+                    #,(-ℓ) '#,(-o)
+                    #:dom doms
+                    #:rng (list V-rng ...)
+                    #:rng-wrap #,(if (?flatten-range rngs)
+                                     #'#f
+                                     #`(list #,@(map gen-ctc-V rngs)))
+                    #:refinements (list refinement-cases ...)
+                    #:args #,(-Ws))))
 
   ;; See if range needs to go through general contract monitoring
   (define/contract (?flatten-range rngs)

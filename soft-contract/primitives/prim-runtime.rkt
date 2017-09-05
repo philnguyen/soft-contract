@@ -15,7 +15,8 @@
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import ast-pretty-print^ proof-system^ local-prover^ widening^ pc^ val^ sto^ compile^ env^)
+  (import ast-pretty-print^ proof-system^ local-prover^ widening^
+          pc^ val^ sto^ compile^ env^ kont^)
   (export prim-runtime^)
 
   (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
@@ -239,4 +240,38 @@
     (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
       (λ (tag src xs mk-e)
         (hash-ref! cache tag (λ () (make-∀/c src xs (mk-e) ⊥ρ))))))
+
+  (: exec-prim :
+     -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
+     ℓ (Intersection Symbol -o)
+     #:dom (Listof -V)
+     #:rng (Listof -V)
+     #:rng-wrap (Option (Listof -V))
+     #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
+     #:args (Listof -W¹)
+     → (℘ -ς))
+  (define (exec-prim
+           $ Γ ⟪ℋ⟫ Σ ⟦k⟧
+           ℓ o 
+           #:dom doms
+           #:rng ranges
+           #:rng-wrap ?range-wraps
+           #:refinements refinements
+           #:args args
+           )
+    (define-values (V-args t-args) (unzip-by -W¹-V -W¹-t args))
+    (define t-ans (apply ?t@ o t-args))
+    (define l (ℓ-src ℓ))
+    (define ctx* (-ctx l o o ℓ))
+    (define ctx (-ctx o l o ℓ))
+
+    (define ⟦k⟧:wrap-range (if ?range-wraps
+                               (mon*.c∷ ctx (map +⟪α⟫ℓ₀ ?range-wraps) t-ans ⟦k⟧)
+                               ⟦k⟧))
+    (define ⟦k⟧:refine-range
+      (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))
+    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:refine-range))
+    (⟦k⟧:chk-args (-W V-args (?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
+
+  (define mk-● +●)
   )
