@@ -68,7 +68,7 @@
   (def real->single-flonum (real? . -> . single-flonum?))
   (def real->double-flonum (real? . -> . flonum?))
 
-;;;;; 4.2.2 Generic Numerics
+  ;;;;; 4.2.2 Generic Numerics
 
   ;; 4.2.2.1 Arithmetic
   (def +
@@ -81,21 +81,15 @@
     (() #:rest (listof real?) . ->* . real?)
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
     #;(() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
-  (def - (number? number? . -> . number?)
-    ; FIXME var-args and precise refinement for first case
+  (def - ((number?) #:rest (listof number?) . ->* . number?)
     #:refinements
     (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
-    (exact-integer? exact-integer? . -> . exact-integer?)
-    (integer? integer? . -> . integer?)
-    (real? real? . -> . real?)
-    ((<=/c 0) (>=/c 0) . -> . (<=/c 0))
-    ((>=/c 0) (<=/c 0) . -> . (>=/c 0)))
-  #;(def -
-      ((number?) #:rest (listof number?) . ->* . number?)
-      #:refinements
-      ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
-      ((integer?) #:rest (listof integer?) . ->* . integer?)
-      ((real?) #:rest (listof real?) . ->* . real?))
+    ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
+    ((integer?) #:rest (listof integer?) . ->* . integer?)
+    ((real?) #:rest (listof real?) . ->* . real?)
+    (((<=/c 0)) #:rest (listof (>=/c 0)) . ->* . (<=/c 0))
+    (((>=/c 0)) #:rest (listof (<=/c 0)) . ->* . (>=/c 0)))
+
   (def *
     (() #:rest (listof number?) . ->* . number?)
     #:refinements
@@ -106,8 +100,7 @@
     (() #:rest (listof real?) . ->* . real?)
     (() #:rest (listof (>=/c 1)) . ->* . (>=/c 1))
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0)))
-  (def /
-    ((number?) #:rest (listof (and/c number? (or/c inexact? (not/c zero?)))) . ->* . number?)
+  (def / ((number?) #:rest (listof (and/c number? (or/c inexact? (not/c zero?)))) . ->* . number?)
     #:refinements
     ((real?) #:rest (listof real?) . ->* . real?)
     (((not/c zero?)) #:rest list? . ->* . (not/c zero?)))
@@ -198,7 +191,9 @@
     (exact-integer? . -> . exact-nonnegative-integer?))
 
   ;; 4.2.2.7 Random Numbers
-  (def random ; FIXME all uses. Full cases are not 1st-orderly distinguishable
+  (def random
+    ; FIXME all uses. Full cases in docs are not 1st-orderly distinguishable
+    ; need ->i maybe
     (case->
      [-> (and/c inexact-real? (>/c 0) (</c 1))]
      [exact-nonnegative-integer? . -> . exact-nonnegative-integer?]
@@ -221,22 +216,45 @@
       (exact-positive-integer? . -> . bytes?))
 
   ;; 4.2.2.9 Number-String Conversions
-  (def number->string ; FIXME uses
-    (number? . -> . string?))
-  (def string->number ; FIXME uses
-    (string? . -> . (or/c number? not)))
-  (def real->decimal-string ; FIXME uses
-    (real? exact-nonnegative-integer? . -> . string?))
-  (def integer-bytes->integer ; FIXME uses
-    (bytes? any/c . -> . exact-integer?))
-  (def integer->integer-bytes ; FIXME uses
-    (exact-integer? (or/c 2 4 8) any/c . -> . bytes?))
-  (def floating-point-bytes->real ; FIXME uses
-    (bytes? . -> . flonum?))
-  (def real->floating-point-bytes ; FIXME uses
-    (real? (or/c 2 4 8) . -> . bytes?))
-  (def system-big-endian? ; FIXME: opaque or machine dependent? (former probably)
-    (-> boolean?))
+  (def number->string
+    (case->
+     [number? . -> . string?]
+     [number? (or/c 2 8 10 16) . -> . string?]))
+  (def string->number
+    (case->
+     [string? . -> . (or/c number? not)]
+     [string? (and/c integer? (>=/c 2) (<=/c 16)) . -> . (or/c number? not)]
+     [string? (and/c integer? (>=/c 2) (<=/c 16)) (or/c 'number-or-false 'read) . -> . (or/c number? not)]
+     [string? (and/c integer? (>=/c 2) (<=/c 16)) (or/c 'number-or-false 'read) (or/c 'decimal-as-exact 'decimal-as-inexact) . -> . (or/c number? not)]))
+  (def real->decimal-string
+    (case->
+     [real? . -> . string?]
+     [real? exact-nonnegative-integer? . -> . string?]))
+  (def integer-bytes->integer
+    (case->
+     [bytes? boolean? . -> . exact-integer?]
+     [bytes? boolean? boolean? . -> . exact-integer?]
+     [bytes? boolean? boolean? exact-nonnegative-integer? . -> . exact-integer?]
+     [bytes? boolean? boolean? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-integer?]))
+  (def integer->integer-bytes
+    (case->
+     [exact-integer? (or/c 2 4 8) boolean? . -> . bytes?]
+     [exact-integer? (or/c 2 4 8) boolean? boolean? . -> . bytes?]
+     [exact-integer? (or/c 2 4 8) boolean? boolean? (and/c bytes? (not/c immutable?)) . -> . bytes?]
+     [exact-integer? (or/c 2 4 8) boolean? boolean? (and/c bytes? (not/c immutable?)) exact-nonnegative-integer? . -> . bytes?]))
+  (def floating-point-bytes->real
+    (case->
+     [bytes? . -> . flonum?]
+     [bytes? boolean? . -> . flonum?]
+     [bytes? boolean? exact-nonnegative-integer? . -> . flonum?]
+     [bytes? boolean? exact-nonnegative-integer? exact-nonnegative-integer? . -> . flonum?]))
+  (def real->floating-point-bytes
+    (case->
+     [real? (or/c 2 4 8) . -> . bytes?]
+     [real? (or/c 2 4 8) boolean? . -> . bytes?]
+     [real? (or/c 2 4 8) boolean? (and/c bytes? (not/c immutable?)) . -> . bytes?]
+     [real? (or/c 2 4 8) boolean? (and/c bytes? (not/c immutable?)) exact-nonnegative-integer? . -> . bytes?]))
+  (def system-big-endian? (-> boolean?) #:lift-concrete? #f)
 
   ;; 4.2.2.10 Extra Functions
   (def-const pi)
@@ -265,34 +283,40 @@
     (flonum? flonum? . -> . flonum?))
   (def ->fl (exact-integer? . -> . flonum?))
   (def fl->exact-integer (flonum? . -> . exact-integer?))
-  (def make-flrectangular ; FIXME precision
-    (flonum? flonum? . -> . number?))
+  (def make-flrectangular (flonum? flonum? . -> . float-complex?))
   (def* (flreal-part flimag-part) ; FIXME correct domain
     (float-complex? . -> . flonum?))
-  (def flrandom ; FIXME range
-    (pseudo-random-generator? . -> . flonum?))
+  (def flrandom (pseudo-random-generator? . -> . (and/c flonum? (>/c 0) (</c 1))) #:lift-concrete? #f)
 
   ;; 4.2.3.2 Flonum Vectors
-  #|
   (def-pred flvector?)
-  #;(flvector
-     (-> flvector?))
-  (def make-flvector ; FIXME uses
-    (exact-nonnegative-integer? flonum? . -> . flvector?))
+  (def flvector (() #:rest (listof flonum?) . ->* . flvector?))
+  (def make-flvector
+    (case->
+     [exact-nonnegative-integer? . -> . flvector?]
+     [exact-nonnegative-integer? flonum? . -> . flvector?]))
   (def flvector-length (flvector? . -> . exact-nonnegative-integer?))
   (def flvector-ref (flvector? exact-nonnegative-integer? . -> . flonum?))
   (def flvector-set! (flvector? exact-nonnegative-integer? flonum? . -> . flonum?))
-  (def flvector-copy ; FIXME uses
-    (flvector? . -> . flvector?))
-  (def in-flvector ; FIXME uses
-    (flvector? . -> . sequence?))
-  #;(shared-flvector
-     (-> flvector?))
+  (def flvector-copy
+    (case->
+     [flvector? . -> . flvector?]
+     [flvector? exact-nonnegative-integer? . -> . flvector?]
+     [flvector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . flvector?]))
+  (def in-flvector
+    (case->
+     [flvector? . -> . sequence?]
+     [flvector? exact-nonnegative-integer? . -> . sequence?]
+     [flvector? exact-nonnegative-integer? (or/c not exact-integer?) . -> . sequence?]
+     [flvector? exact-nonnegative-integer? (or/c not exact-integer?) (not/c zero?) . -> . sequence?]))
+  (def shared-flvector (() #:rest (listof flonum?) . ->* . flvector?))
   (def make-shared-flvector ; FIXME uses
-    (exact-nonnegative-integer? flonum? . -> . flvector?))
-  |#
+    (case->
+     [exact-nonnegative-integer? . -> . flvector?]
+     [exact-nonnegative-integer? flonum? . -> . flvector?]))
 
-;;;;; 4.2.4 Fixnums
+  
+  ;;;;; 4.2.4 Fixnums
 
   ;; 4.1.4.1 Fixnum Arithmetic
   (def* (fx+ fx- fx*) (fixnum? fixnum? . -> . fixnum?))
@@ -307,24 +331,32 @@
   (def fl->fx (flonum? . -> . fixnum?))
 
   ;; 4.2.4.2 Fixnum Vectors
-  #|
   (def-pred fxvector?)
   #;(fxvector
      (-> fxvector?))
-  (def make-fxvector ; FIXME uses
-    (exact-nonnegative-integer? fixnum? . -> . fxvector?))
+  (def make-fxvector
+    (case->
+     [exact-nonnegative-integer? . -> . fxvector?]
+     [exact-nonnegative-integer? fixnum? . -> . fxvector?]))
   (def fxvector-length (fxvector? . -> . exact-nonnegative-integer?))
   (def fxvector-ref (fxvector? exact-nonnegative-integer? . -> . fixnum?))
   (def fxvector-set! (fxvector? exact-nonnegative-integer? fixnum? . -> . fixnum?))
-  (def fxvector-copy ; FIXME uses
-    (fxvector? . -> . fxvector?))
-  (def in-fxvector ; FIXME uses
-    (fxvector? . -> . sequence?))
-  #;(shared-fxvector
-     (-> fxvector?))
-  (def make-shared-fxvector ; FIXME uses
-    (exact-nonnegative-integer? fixnum? . -> . fxvector?))
-  |#
+  (def fxvector-copy
+    (case->
+     [fxvector? . -> . fxvector?]
+     [fxvector? exact-nonnegative-integer? . -> . fxvector?]
+     [fxvector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . fxvector?]))
+  (def in-fxvector
+    (case->
+     [fxvector? . -> . sequence?]
+     [fxvector? exact-nonnegative-integer? . -> . sequence?]
+     [fxvector? exact-nonnegative-integer? (or/c exact-nonnegative-integer? not) . -> . sequence?]
+     [fxvector? exact-nonnegative-integer? (or/c exact-nonnegative-integer? not) (and/c exact-nonnegative-integer? (not/c zero?)) . -> . sequence?]))
+  (def shared-fxvector (() #:rest (listof fixnum?) . ->* . fxvector?))
+  (def make-shared-fxvector
+    (case->
+     [exact-nonnegative-integer? . -> . fxvector?]
+     [exact-nonnegative-integer? fixnum? . -> . fxvector?]))
 
   ;;;;; 4.2.5 Extflonums
   (def-pred extflonum?)
@@ -353,18 +385,27 @@
   (def-pred extflvector?)
   #;(extflvector
      (-> extflvector?))
-  (def make-extflvector ; FIXME uses
-    (exact-nonnegative-integer? extflonum? . -> . extflvector?))
+  (def make-extflvector
+    (case->
+     [exact-nonnegative-integer? . -> . extflvector?]
+     [exact-nonnegative-integer? extflonum? . -> . extflvector?]))
   (def extflvector-length (extflvector? . -> . exact-nonnegative-integer?))
   (def extflvector-ref (extflvector? exact-nonnegative-integer? . -> . extflonum?))
   (def extflvector-set! (extflvector? exact-nonnegative-integer? extflonum? . -> . extflonum?))
-  (def extflvector-copy ; FIXME uses
-    (extflvector? . -> . extflvector?))
+  (def extflvector-copy
+    (case->
+     [extflvector? . -> . extflvector?]
+     [extflvector? exact-nonnegative-integer? . -> . extflvector?]
+     [extflvector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . extflvector?]))
   (def in-extflvector (extflvector? . -> . sequence?))
   (def make-shared-extflvector (exact-nonnegative-integer? . -> . extflvector?))
 
   ;; 4.2.5.4 Extflonum Byte Strings
-  (def floating-point-bytes->extfl ; FIXME uses
-    (bytes? . -> . extflonum?))
+  (def floating-point-bytes->extfl
+    (case->
+     [bytes? . -> . extflonum?]
+     [bytes? boolean? . -> . extflonum?]
+     [bytes? boolean? exact-nonnegative-integer? . -> . extflonum?]
+     [bytes? boolean? exact-nonnegative-integer? exact-nonnegative-integer? . -> . extflonum?]))
   (def extfl->floating-point-bytes (extflonum? . -> . bytes?))
   )

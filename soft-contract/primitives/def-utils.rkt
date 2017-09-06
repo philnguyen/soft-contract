@@ -19,7 +19,9 @@
                      racket/syntax
                      syntax/parse)
          (for-template racket/base
+                       racket/flonum
                        racket/extflonum
+                       racket/fixnum
                        racket/contract
                        racket/syntax
                        syntax/parse
@@ -145,14 +147,22 @@
                 (~literal eof-object?)
                 (~literal immutable?)
                 (~literal list?)
+                (~literal byte?)
                 (~literal bytes?)
                 (~literal complex?)
                 (~literal float-complex?)
                 (~literal extflonum?)
+                (~literal flvector?)
                 (~literal extflvector?)
+                (~literal fxvector?)
                 (~literal sequence?)
                 (~literal pseudo-random-generator?)
-                (~literal pseudo-random-generator-vector?))))
+                (~literal pseudo-random-generator-vector?)
+                (~literal regexp?)
+                (~literal pregexp?)
+                (~literal byte-regexp?)
+                (~literal byte-pregexp?)
+                (~literal bytes-converter?))))
 
 (define-syntax-class ff
   #:description "restricted first-order function contracts"
@@ -195,10 +205,15 @@
           (~literal void?)
           (~literal eof-object?)
           (~literal immutable?)
+          (~literal byte?)
           (~literal bytes?)
           (~literal complex?)
           (~literal float-complex?)
-          (~literal extflonum?))
+          (~literal extflonum?)
+          (~literal regexp?)
+          (~literal pregexp?)
+          (~literal byte-regexp?)
+          (~literal byte-pregexp?))
      #t]
     [_ #f]))
 
