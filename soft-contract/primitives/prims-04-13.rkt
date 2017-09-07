@@ -133,7 +133,7 @@
   (def hash-set*! ; FIXME uses
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
   (def (hash-set ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:init ([Wₕ hash?]
+    #:init ([Wₕ (and/c hash? immutable?)]
             [Wₖ any/c]
             [Wᵥ any/c])
     (match-define (-W¹ Vₕ tₕ) Wₕ)
