@@ -289,8 +289,7 @@
                #'α)))]
       [l:lit #'(-b l)]
       [((~literal not/c) c*)
-       (define V* (gen-ctc-V #'c*))
-       #`(-Not/C #,(gen-ctc V*))]
+       #`(-Not/C #,(gen-ctc #'c*))]
       [(o:cmp r:number)
        (syntax-parse #'o
          [(~literal >/c)  #'(->/c r)]
