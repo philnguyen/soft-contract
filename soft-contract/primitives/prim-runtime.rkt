@@ -10,12 +10,15 @@
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import proof-system^ local-prover^ widening^ pc^ val^ sto^)
+  (import ast-pretty-print^ proof-system^ local-prover^ widening^
+          pc^ val^ sto^ compile^ env^ kont^)
   (export prim-runtime^)
+  (init-depend val^)
 
   (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
   ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
@@ -42,34 +45,27 @@
         [(? -●?) {set (-W¹ (+●) s*)}]
         [_ ∅])))
 
-  (: ⊢?/quick : -R -σ -Γ -o -W¹ * → Boolean)
-  ;; Perform a relatively cheap check (i.e. no SMT call) if `(o W ...)` returns `R`
-  (define (⊢?/quick R σ Γ o . Ws)
-    (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
-    (eq? R (first-R (apply p∋Vs σ o Vs)
-                    (Γ⊢t Γ (apply ?t@ o ss)))))
-
-  (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))
+  (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (Values -V -?t))
   (define (implement-predicate σ Γ o Ws)
-    (define ss (map -W¹-t Ws))
-    (define A
-      (list (case (apply Γ⊢oW σ Γ o Ws)
-              [(✓) -tt]
-              [(✗) -ff]
-              [(?) (+● 'boolean?)])))
-    {set (-ΓA Γ (-W A (apply ?t@ o ss)))})
+    (define V
+      (case (apply Γ⊢oW σ Γ o Ws)
+        [(✓) -tt]
+        [(✗) -ff]
+        [(?) (+● 'boolean?)]))
+    (values V (apply ?t@ o (map -W¹-t Ws))))
 
-  (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦o⟧)
+  (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦f⟧)
     (λ (o)
-      (λ (⟪ℋ⟫ ℓ Σ $ Γ Ws)
+      (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (cond [(equal? n (length Ws))
-               (implement-predicate (-Σ-σ Σ) Γ o Ws)]
+               (define-values (Vₐ tₐ) (implement-predicate (-Σ-σ Σ) Γ o Ws))
+               (⟦k⟧ (-W (list Vₐ) tₐ) $ Γ ⟪ℋ⟫ Σ)]
               [else
-               {set (-ΓA Γ (blm-arity ℓ o n (map -W¹-V Ws)))}]))))
+               (⟦k⟧ (blm-arity ℓ o n (map -W¹-V Ws)) $ Γ ⟪ℋ⟫ Σ)]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
-  (define prim-table  : (HashTable Symbol -Prim) (make-hasheq))
+  (define prim-table  : (HashTable Symbol -⟦f⟧) (make-hasheq))
   (define opq-table   : (HashTable Symbol -●) (make-hasheq))
   (define debug-table : (HashTable Symbol Any) (make-hasheq))
 
@@ -85,23 +81,8 @@
            '()
            ts))
 
-  ;; Return an abstract value approximating all list element in `V`
-  (define (extract-list-content [σ : -σ] [V : -St]) : (℘ -V)
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    (match-define (-Cons αₕ αₜ) V)
-    (define Vs (σ@ σ αₕ))
-    (let loop! ([αₜ : ⟪α⟫ αₜ])
-      (unless (seen-has? αₜ)
-        (seen-add! αₜ)
-        (for ([Vₜ (σ@ σ αₜ)])
-          (match Vₜ
-            [(-Cons αₕ* αₜ*)
-             (for ([Vₕ (σ@ σ αₕ*)])
-               (set! Vs (Vs⊕ σ Vs Vₕ)))
-             (loop! αₜ*)]
-            [(-b (list)) (void)]
-            [_ (set! Vs (Vs⊕ σ Vs (-● ∅)))]))))
-    Vs)
+  (: Ws->bs : (Listof -W¹) → (Option (Listof Base)))
+  (define (Ws->bs Ws) (ts->bs (map -W¹-t Ws)))
 
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -168,7 +149,8 @@
 
   (define arity-table : (HashTable Symbol Arity)
     (make-hasheq (list (cons 'void (arity-at-least 0))
-                       (cons 'values (arity-at-least 0)))))
+                       (cons 'values (arity-at-least 0))
+                       (cons 'hash-ref (ann (list 2 3) Arity)))))
 
   (: update-arity! : Symbol Arity → Void)
   (define (update-arity! o a)
@@ -204,4 +186,85 @@
              (error 'add-alias! "~a ↦ ~a, attempt to set to ~a"
                     (syntax-e x) (syntax-e y₀) (syntax-e y)))]
           [else (alias-table-set! alias-table x y)]))
+
+  (: +⟪α⟫ℓ₀ : -V → -⟪α⟫ℓ)
+  (define (+⟪α⟫ℓ₀ V) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) +ℓ₀))
+
+  (: make-listof : Boolean -V → -V)
+  (define make-listof
+    (let ([⟪null?⟫ (+⟪α⟫ℓ₀ 'null?)])
+      (λ (flat? C)
+        (-Or/C flat?
+               ⟪null?⟫
+               (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-listof C)) +ℓ₀))))))))
+
+  (: hacked-listof? : -V → (Option -V))
+  (define hacked-listof?
+    (match-lambda
+      [(-Or/C _
+              _
+              (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm (-St/C _ _ (list _ (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm-listof V)) _))))) _))
+       V]
+      [_ #f]))
+
+  (: make-static-listof : Symbol (→ (Values Boolean -V)) → -V)
+  (define make-static-listof
+    (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
+      (λ (tag mk-V)
+        (hash-ref! cache tag (λ () (call-with-values mk-V make-listof))))))
+
+  (: make-∀/c : Symbol (Listof Symbol) -e -ρ → -V)
+  (define make-∀/c
+    (let ([e-cache : (Mutable-HashTable -e -⟦e⟧) (make-hash)])
+      (λ (src xs e ρ)
+        (define ⟦e⟧ (hash-ref! e-cache e (λ () (↓ₑ src e))))
+        (-∀/C xs ⟦e⟧ ρ))))
+
+  (: make-static-∀/c : Symbol Symbol (Listof Symbol) (→ -e) → -V)
+  (define make-static-∀/c
+    (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
+      (λ (tag src xs mk-e)
+        (hash-ref! cache tag (λ () (make-∀/c src xs (mk-e) ⊥ρ))))))
+
+  (: exec-prim :
+     -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
+     ℓ (Intersection Symbol -o)
+     #:dom (Listof -V)
+     #:rng (Listof -V)
+     #:rng-wrap (Option (Listof -V))
+     #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
+     #:args (Listof -W¹)
+     → (℘ -ς))
+  (define (exec-prim
+           $ Γ ⟪ℋ⟫ Σ ⟦k⟧
+           ℓ o 
+           #:dom doms
+           #:rng ranges
+           #:rng-wrap ?range-wraps
+           #:refinements refinements
+           #:args args
+           )
+    (define-values (V-args t-args) (unzip-by -W¹-V -W¹-t args))
+    (define t-ans (apply ?t@ o t-args))
+    (define l (ℓ-src ℓ))
+    (define ctx* (-ctx l o o ℓ))
+    (define ctx (-ctx o l o ℓ))
+
+    (define ⟦k⟧:wrap-range (if ?range-wraps
+                               (mon*.c∷ ctx (map +⟪α⟫ℓ₀ ?range-wraps) t-ans ⟦k⟧)
+                               ⟦k⟧))
+    (define ⟦k⟧:refine-range
+      (if (and (match? ranges (list (-● (== {set 'boolean?}))))
+               (andmap symbol? doms))
+          (implement-predicate∷ o ⟦k⟧:wrap-range)
+          (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range)))
+    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:refine-range))
+    (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
+
+  ;; Eta-expand to prevent messing with init-depend
+  (: mk-● : -h * → -●)
+  (define (mk-● . xs) (apply +● xs))
+  (: r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς)))
+  (define (r:Γ⊢oW/handler on-t on-f σ Γ o . Ws)
+    (apply Γ⊢oW/handler on-t on-f σ Γ o Ws))
   )

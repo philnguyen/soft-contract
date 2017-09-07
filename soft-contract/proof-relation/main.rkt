@@ -9,7 +9,7 @@
          syntax/parse/define
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -19,7 +19,8 @@
          "local.rkt")
 
 (define-unit pre-proof-system@
-  (import (prefix local: local-prover^) external-prover^ widening^ pc^ pretty-print^)
+  (import static-info^
+          (prefix local: local-prover^) external-prover^ widening^ pc^ pretty-print^)
   (export proof-system^)
   
   ;; Check if value satisfies (flat) contract
@@ -161,6 +162,6 @@
   )
 
 (define-compound-unit/infer proof-system@
-  (import prims^ for-gc^ pc^ sto^ val^ pretty-print^ env^)
+  (import static-info^ prims^ for-gc^ pc^ sto^ val^ pretty-print^ env^)
   (export proof-system^ widening^ local-prover^)
   (link local-prover@ external-prover@ widening@ pre-proof-system@))

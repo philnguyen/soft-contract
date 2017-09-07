@@ -8,15 +8,15 @@
          typed/racket/unit
          racket/unsafe/ops
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
+  (import static-info^ prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,8 +48,8 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  (def-ext (unsafe-struct-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wᵥ any/c] [Wᵢ integer?])
+  (def (unsafe-struct-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ([Wᵥ any/c] [Wᵢ integer?])
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (define sₐ
@@ -63,16 +63,16 @@
       (printf "unsafe-struct-ref: ~a ~a -> ⊘~n" (show-t sᵥ) (show-t sᵢ)))
     (match Vᵥ
       [(-St 𝒾 ⟪α⟫s)
-       (define n (get-struct-arity 𝒾))
+       (define n (count-struct-fields 𝒾))
        (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (for/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
                              (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
-      [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ l³)
-       (define n (get-struct-arity 𝒾))
-       (match-define (-l³ l+ l- lo) l³)
+      [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ ctx)
+       (define n (count-struct-fields 𝒾))
+       (match-define (-ctx l+ l- lo _) ctx)
        (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
@@ -83,7 +83,7 @@
                      (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
                         (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ
-                             (mon.c∷ l³ (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ)) (-W¹ C c) ⟦k⟧)))]
+                             (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                     [else
                      (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
@@ -91,5 +91,5 @@
       [_
        (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
-  (def-ext unsafe-struct-set! (any/c integer? . -> . void?)))
+  (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

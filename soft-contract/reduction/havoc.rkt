@@ -8,7 +8,7 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../signatures.rkt"
@@ -16,7 +16,9 @@
          )
 
 (define-unit havoc@
-  (import widening^ kont^ app^ proof-system^ local-prover^ for-gc^ sto^ pc^ val^ pretty-print^)
+  (import static-info^
+          widening^ kont^ app^ proof-system^ local-prover^
+          for-gc^ sto^ pc^ val^ pretty-print^)
   (export havoc^)
 
   (splicing-local
@@ -112,6 +114,13 @@
        (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                   (⟦k⟧ (-W (list V) #f) $ ⊤Γ ⟪ℋ⟫ Σ))]
 
+      [(or (? -Hash/guard?) (? -Hash^?))
+       (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hash-ref))))
+       (app ℓ (-W¹ 'hash-ref 'hash-ref) (list W (-W¹ (+●) #f)) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(or (? -Set/guard?) (? -Set^?))
+       (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'set-ref))))
+       (app ℓ (-W¹ 'set-first 'set-first) (list W) $ ⊤Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+
       ;; Apply contract to unknown values
       [(? -C?)
        (log-warning "TODO: havoc contract combinators")
@@ -121,13 +130,12 @@
 
   (define (gen-havoc-expr [ms : (Listof -module)]) : -e
     (define refs
-      ;; collect as list to enforce some order to reduce confusion when debugging
-      (for*/list : (Listof -𝒾) ([m (in-list ms)]
+      (for*/list : (Listof -x) ([m (in-list ms)]
                                 [path (in-value (-module-path m))]
                                 [form (in-list (-module-body m))] #:when (-provide? form)
                                 [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
         (match-define (-p/c-item x _ _) spec)
-        (-𝒾 x path)))
+        (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
 
     (with-debugging/off
       ((ans) (-@ (-•) refs +ℓ₀))

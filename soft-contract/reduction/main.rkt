@@ -8,9 +8,10 @@
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
 
@@ -23,7 +24,7 @@
          )
 
 (define-unit pre-reduction@
-  (import kont^ havoc^ mon^ local-prover^ widening^ verifier^
+  (import static-info^ kont^ havoc^ mon^ local-prover^ widening^ verifier^
           for-gc^ env^ sto^ pretty-print^ pc^ instr^)
   (export reduction^)
 
@@ -110,9 +111,9 @@
                 [(hash-ref seen ς #f) =>
                  (λ ([ctx₀ : Ctx])
                    (match-define (list σ₀ mσₖ₀) ctx₀)
-                   (define (⟦k⟧->αₖs [⟦k⟧ : -⟦k⟧])
-                     {set (⟦k⟧->αₖ ⟦k⟧)})
-                   (and (map-equal?/spanning-root mσₖ₀ mσₖ {set (-ς-block ς)} ⟦k⟧->αₖs)
+                   (define (κ->αₖs [κ : -κ])
+                     {set (⟦k⟧->αₖ (-κ-rest κ))})
+                   (and (map-equal?/spanning-root mσₖ₀ mσₖ {set (-ς-block ς)} κ->αₖs)
                         (let ([⟪α⟫s (ς->⟪α⟫s ς mσₖ₀)])
                           (σ-equal?/spanning-root σ₀ σ ⟪α⟫s))))]
                 [else #f]))
@@ -139,11 +140,48 @@
         (printf "Execution capped at ~a steps~n" ?max-steps))
       #;(begin
         (printf "Value store:~n")
-        (for ([(α Vs) (in-hash σ)])
+        (for ([(α Vs) (in-hash σ)]
+              ;#:when (> (set-count Vs) 2)
+              #:unless (equal? α ⟪α⟫ₕᵥ))
           (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
         (printf "Stack store:~n")
-        (for ([(αₖ ks) (in-hash σₖ)])
-          (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))))
+        (for ([(αₖ ks) (in-hash σₖ)]
+              #:when (> (set-count ks) 1)
+              )
+          (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))
+          #|
+          (define-set rests : -⟦k⟧)
+          (define-set doms : (℘ Symbol))
+          (define-set pcs : -Γ)
+          (define-set looped?s : Boolean)
+          (define-set anses : -?t)
+          (for ([k (in-set ks)])
+            (match-define (-κ.rt ⟦k⟧ dom Γ t looped?) k)
+            (rests-add! ⟦k⟧)
+            (doms-add! dom)
+            (pcs-add! Γ)
+            (anses-add! t)
+            (looped?s-add! looped?))
+
+          (printf "~a rests~n" (set-count rests))
+          
+          (printf "~a doms~n" (set-count doms))
+          (for ([dom (in-set doms)])
+            (printf "- ~a~n" (set->list dom)))
+          (printf "~n")
+
+          (printf "~a looppeds: ~a~n~n" (set-count looped?s) (set->list looped?s))
+
+          (printf "~a anses:~n" (set-count anses))
+          (for ([ans (in-set anses)])
+            (printf "- ~a~n" (show-t ans)))
+          (printf "~n")
+
+          (printf "~a pcs:~n" (set-count pcs))
+          (for ([pc (in-set pcs)])
+            (printf "- ~a~n" (show-Γ pc)))
+          |#
+          ))
       (values (M@ Σ αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
@@ -153,7 +191,7 @@
        (define αs₀
          (match αₖ
            [(-ℬ _ _ _ _ ρ _) (->⟪α⟫s ρ)]
-           [(-ℳ _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
+           [(-ℳ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
            [(-ℱ _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
            [(-ℋ𝒱 _ _) {seteq ⟪α⟫ₕᵥ}]))
        (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]
@@ -178,8 +216,8 @@
                       (printf "  ~a ↦ ~a~n" (show-loc l) (show-W¹ W)))
                     (printf "~n"))
                   (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                 [(-ℳ $ ⟪ℋ⟫ l³ ℓ W-C W-V Γ)
-                  (mon l³ ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+                 [(-ℳ $ ⟪ℋ⟫ ctx W-C W-V Γ)
+                  (mon ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℱ $ ⟪ℋ⟫ l ℓ W-C W-V Γ)
                   (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℋ𝒱 $ ⟪ℋ⟫) (havoc $ ⟪ℋ⟫ Σ ⟦k⟧)]
@@ -189,15 +227,28 @@
   (define (↝↓! [ςs : (Listof -ς↓)] [Σ : -Σ]) : (℘ -ς)
     (define σₖ (-Σ-σₖ Σ))
     (define σ (-Σ-σ Σ))
+
+    (: continue : -κ -A -$ -Γ -⟪ℋ⟫ -Σ → (℘ -ς))
+    (define (continue κ A $ Γₐ ⟪ℋ⟫ Σ)
+      (match κ
+        [(-κ.rt ⟦k⟧ dom Γ t looped?)
+         (match A
+           [(-W Vs tₐ)
+            (define-values (tₐ* Γ*) (if looped? (values t Γ) (values tₐ (copy-Γ dom Γ Γₐ))))
+            (⟦k⟧ (-W Vs tₐ*) $ Γ* ⟪ℋ⟫ Σ)]
+           [_ (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)])]
+        [(-κ ⟦k⟧)
+         (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ)]))
     
     (for/union : (℘ -ς) ([ς ςs])
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
-      (for/union : (℘ -ς) ([⟦k⟧ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (⟦k⟧ A $ₑₑ Γₑₑ (-αₖ-ctx αₖₑₑ) Σ))))
+      (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
+        (continue κ A $ₑₑ Γₑₑ (-αₖ-ctx αₖₑₑ) Σ))))
   )
 
 (define-compound-unit/infer reduction@
-  (import prims^ proof-system^ local-prover^ widening^ verifier^
-          for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^)
+  (import ast-pretty-print^ static-info^ meta-functions^
+          prims^ proof-system^ local-prover^ widening^ verifier^
+          for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^ prim-runtime^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

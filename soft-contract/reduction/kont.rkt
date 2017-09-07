@@ -10,8 +10,10 @@
          syntax/parse/define
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../proof-relation/signatures.rkt"
+         "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
@@ -20,7 +22,8 @@
 
 (define-unit kont@
   (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^ verifier^
-          val^ env^ sto^ pretty-print^ pc^ instr^)
+          val^ env^ sto^ pretty-print^ pc^ instr^ prim-runtime^
+          (prefix q: local-prover^))
   (export kont^)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,55 +103,45 @@
            (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) ℓ))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
-  (define-frame (mon.c∷ [l³ : -l³]
-                        [ℓ : ℓ]
-                        [C : (U (Pairof -⟦e⟧ -ρ) -W¹)]
-                        [⟦k⟧ : -⟦k⟧])
-    (match-define (-l³ _ _ lo) l³)
+  (define-frame (mon.c∷ [ctx : -ctx] [C : (U (Pairof -⟦e⟧ -ρ) -W¹)] [⟦k⟧ : -⟦k⟧])
+    (match-define (-ctx _ _ lo ℓ) ctx)
     (define root (if (pair? C) (cdr C) C))
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (root)
       (match-define (-W Vs s) A)
       (match Vs
         [(list V)
          (define W-V (-W¹ V s))
-         (cond [(-W¹? C) (push-mon l³ ℓ C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+         (cond [(-W¹? C) (push-mon ctx C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                [else
                 (match-define (cons ⟦c⟧ ρ) C)
-                (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ l³ ℓ W-V ⟦k⟧))])]
+                (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.v∷ ctx W-V ⟦k⟧))])]
         [else
          (define blm (-blm lo 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
-  (define-frame (mon.v∷ [l³ : -l³]
-                        [ℓ : ℓ]
-                        [V : (U (Pairof -⟦e⟧ -ρ) -W¹)]
-                        [⟦k⟧ : -⟦k⟧])
-    (match-define (-l³ _ _ lo) l³)
+  (define-frame (mon.v∷ [ctx : -ctx] [V : (U (Pairof -⟦e⟧ -ρ) -W¹)] [⟦k⟧ : -⟦k⟧])
+    (match-define (-ctx _ _ lo ℓ) ctx)
     (define root (if (pair? V) (cdr V) V))
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (root)
       (match-define (-W Vs s) A)
       (match Vs
         [(list C)
          (define W-C (-W¹ C s))
-         (cond [(-W¹? V) (push-mon l³ ℓ W-C V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+         (cond [(-W¹? V) (push-mon ctx W-C V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                [else
                 (match-define (cons ⟦v⟧ ρ) V)
-                (⟦v⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.c∷ l³ ℓ W-C ⟦k⟧))])]
+                (⟦v⟧ ρ $ Γ ⟪ℋ⟫ Σ (mon.c∷ ctx W-C ⟦k⟧))])]
         [else
          (define blm (-blm lo 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
-  (define-frame (mon*.c∷ [l³ : -l³]
-                         [ℓ : ℓ]
-                         [rngs : (U (Listof -⟪α⟫ℓ) 'any)]
-                         [d : -?t]
-                         [⟦k⟧ : -⟦k⟧])
+  (define-frame (mon*.c∷ [ctx : -ctx] [rngs : (U (Listof -⟪α⟫ℓ) 'any)] [d : -?t] [⟦k⟧ : -⟦k⟧])
     (case rngs
       [(any) ⟦k⟧]
       [else
        (define-values (βs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc rngs))
        (define n (length rngs))
-       (match-define (-l³ l+ _ lo) l³)
+       (match-define (-ctx l+ _ lo ℓ) ctx)
        (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (βs)
          (match-define (-W Vs v) A)
          (cond
@@ -160,8 +153,8 @@
               (define Ctcs (map -W¹ Ds ds))
               (match* (Ctcs Vals ℓs)
                 [((cons Ctc₁ Ctcs*) (cons Val₁ Vals*) (cons ℓ₁ ℓs*))
-                 (push-mon l³ ℓ₁ Ctc₁ Val₁ $ Γ ⟪ℋ⟫ Σ
-                           (mon*∷ l³ ℓ Ctcs* Vals* ℓs* '() ⟦k⟧))]
+                 (push-mon (ctx-with-ℓ ctx ℓ₁) Ctc₁ Val₁ $ Γ ⟪ℋ⟫ Σ
+                           (mon*∷ ctx Ctcs* Vals* ℓs* '() ⟦k⟧))]
                 [('() '() '())
                  (⟦k⟧ (+W '()) $ Γ ⟪ℋ⟫ Σ)]))]
            [else
@@ -173,8 +166,7 @@
             (define blm (-blm l+ lo (list msg) Vs ℓ))
             (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))]))
 
-  (define-frame (mon*∷ [l³ : -l³]
-                       [ℓ : ℓ]
+  (define-frame (mon*∷ [ctx : -ctx]
                        [W-Cs : (Listof -W¹)]
                        [W-Vs : (Listof -W¹)]
                        [ℓs : (Listof ℓ)]
@@ -185,8 +177,8 @@
       (define res.rev* (cons (-W¹ V t) res.rev))
       (match* (W-Cs W-Vs ℓs)
         [((cons W-C₁ W-Cs*) (cons W-V₁ W-Vs*) (cons ℓ₁ ℓs*))
-         (push-mon l³ ℓ₁ W-C₁ W-V₁ $ Γ ⟪ℋ⟫ Σ
-                   (mon*∷ l³ ℓ W-Cs* W-Vs* ℓs* res.rev* ⟦k⟧))]
+         (push-mon (ctx-with-ℓ ctx ℓ₁) W-C₁ W-V₁ $ Γ ⟪ℋ⟫ Σ
+                   (mon*∷ ctx W-Cs* W-Vs* ℓs* res.rev* ⟦k⟧))]
         [('() '() '())
          (define-values (Vsₐ tsₐ) (unzip-by -W¹-V -W¹-t (reverse res.rev*)))
          (define Wₐ (-W Vsₐ (apply ?t@ 'values tsₐ)))
@@ -236,7 +228,7 @@
       ['() ⟦k⟧]
       [(cons ⟦e⟧ ⟦e⟧s*)
        (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (ρ)
-         (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (memoize-⟦k⟧ (bgn∷ ⟦e⟧s* ρ ⟦k⟧))))]))
+         (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ (bgn∷ ⟦e⟧s* ρ ⟦k⟧)))]))
 
   ;; begin0, waiting on first value
   (define-frame (bgn0.v∷ [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧])
@@ -274,9 +266,8 @@
       (match-define (-W Vs sᵥ) A)
       (match Vs
         [(list V)
-         (define Wᵥ (-W¹ V sᵥ))
-         (σ⊕! Σ Γ α Wᵥ)
-         (define $* (if ?loc ($-set $ ?loc Wᵥ) $))
+         (σ⊕! Σ Γ α (-W¹ V sᵥ))
+         (define $* (if ?loc ($-set $ ?loc sᵥ) $))
          (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
         [_
          (define blm
@@ -299,7 +290,7 @@
            (let ([Wₓs (map -W¹ Vs (split-values s n))])
              (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Wₓs #f)))
          (assert (equal? ρ ρ*)) ; FIXME disable in production
-         (for ([x (in-list xs)])
+         (for ([x (in-list xs)])1
            (σ-remove! Σ (hash-ref ρ x) -undefined))
          (match ⟦bnd⟧s
            ['()
@@ -318,7 +309,7 @@
   (define-frame (μ/c∷ [x : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W (list V) s) A)
-      (define α (-α->⟪α⟫ (-α.x/c x)))
+      (define α (-α->⟪α⟫ (-α.x/c x ⟪ℋ⟫)))
       (σ⊕V! Σ α V)
       (⟦k⟧ (-W (list (-x/C α)) s) $ Γ ⟪ℋ⟫ Σ)))
 
@@ -382,7 +373,7 @@
                 ([W (in-list doms.rev)]
                  [i : Natural (in-naturals)])
         (match-define (-W¹ C c) W)
-        (define α (-α->⟪α⟫ (-α.dom c ℓ ⟪ℋ⟫ i)))
+        (define α (-α->⟪α⟫ (-α.dom ℓ ⟪ℋ⟫ i)))
         (σ⊕V! Σ α C)
         (values (cons α αs) (cons c cs))))
     (define αℓs : (Listof -⟪α⟫ℓ)
@@ -396,13 +387,13 @@
          (for/list : (Listof -⟪α⟫ℓ) ([D (in-list Ds)]
                                      [d (in-list (split-values ds (length Ds)))]
                                      [i : Natural (in-naturals)])
-           (define β (-α->⟪α⟫ (-α.rng d ℓ ⟪ℋ⟫ i)))
+           (define β (-α->⟪α⟫ (-α.rng ℓ ⟪ℋ⟫ i)))
            (σ⊕V! Σ β D)
            (-⟪α⟫ℓ β (ℓ-with-id ℓ (cons 'rng i))))]))
     (define-values (Dom t-dom)
       (match rst
         [(-W¹ Vᵣ cᵣ)
-         (define αᵣ (-α->⟪α⟫ (-α.rst cᵣ ℓ ⟪ℋ⟫)))
+         (define αᵣ (-α->⟪α⟫ (-α.rst ℓ ⟪ℋ⟫)))
          (define ℓᵣ (ℓ-with-id ℓ 'rest))
          (σ⊕V! Σ αᵣ Vᵣ)
          (values (-var αℓs (-⟪α⟫ℓ αᵣ ℓᵣ)) (-var cs cᵣ))]
@@ -418,10 +409,10 @@
                 ([(W i) (in-indexed Ws)])
         (match-define (-W¹ C c) W)
         (define α
-          (-α->⟪α⟫ (-α.dom c ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
+          (-α->⟪α⟫ (-α.dom ℓₐ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
         (σ⊕V! Σ α C)
         (values (cons α αs) (cons c cs))))
-    (define β (-α->⟪α⟫ (-α.rng mk-d ℓₐ ⟪ℋ⟫ #|TODO|# 0)))
+    (define β (-α->⟪α⟫ (-α.rng ℓₐ ⟪ℋ⟫ #|TODO|# 0)))
     (define αℓs : (Listof -⟪α⟫ℓ)
       (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
         (-⟪α⟫ℓ α (ℓ-with-id ℓₐ i))))
@@ -487,7 +478,7 @@
                      ([(W i) (in-indexed Cs*)])
              (match-define (-W¹ C c) W)
              (define α
-               (-α->⟪α⟫ (-α.struct/c c 𝒾 ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
+               (-α->⟪α⟫ (-α.struct/c 𝒾 ℓ₁ ⟪ℋ⟫ (assert i exact-nonnegative-integer?))))
              (σ⊕V! Σ α C)
              (values (cons α αs)
                      (cons c cs)
@@ -516,7 +507,7 @@
                       [t (in-list (split-values s n))])
              (σ⊕V! Σ α V)
              (define ?l (hack:α->loc α))
-             (if ?l ($-set $ ?l (-W¹ V t)) $)))
+             (if ?l ($-set $ ?l t) $)))
          (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
         [else
          (define blm
@@ -530,15 +521,17 @@
   (define-frame (dec∷ [ℓ : ℓ]
                       [𝒾 : -𝒾]
                       [⟦k⟧ : -⟦k⟧])
-    (define l (-𝒾-ctx 𝒾))
-    (define l³ (-l³ l 'dummy- l))
-    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+    (define l (-𝒾-src 𝒾))
+    (define ctx (-ctx l 'dummy- l ℓ))
+    (define α (-α->⟪α⟫ 𝒾))
+    (define α* (-α->⟪α⟫ (-α.wrp 𝒾)))
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (α)
       (match-define (-W (list C) c) A)
       (define W-C (-W¹ C c))
-      (define Vs (σ@ Σ (-α->⟪α⟫ 𝒾)))
-      (define ⟦k⟧* (def∷ l (list (-α->⟪α⟫ (-α.wrp 𝒾))) ⟦k⟧))
+      (define Vs (σ@ Σ α))
+      (define ⟦k⟧* (def∷ l (list α*) ⟦k⟧))
       (for/union : (℘ -ς) ([V Vs])
-        (push-mon l³ ℓ W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
+        (push-mon ctx W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
 
   (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
@@ -546,7 +539,7 @@
       (for ([V (in-list Vs)])
         (add-leak! Σ V))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
-      (σₖ⊕! Σ αₖ ⟦k⟧)
+      (σₖ⊕! Σ αₖ (-κ ⟦k⟧))
       {set (-ς↑ αₖ)}))
 
 
@@ -556,32 +549,26 @@
 
   (define-frame (mk-wrap-vect∷ [tᵥ : -?t]
                                [Vₚ : (U -Vector/C -Vectorof)]
-                               [ℓ : ℓ]
-                               [l³ : -l³]
+                               [ctx : -ctx]
                                [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Vₚ)
       (match-define (-W (list Vᵥ) _) A) ; only used internally, shoule be safe
-      (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ℓ ⟪ℋ⟫ (-l³-pos l³))))
+      (define ⟪α⟫ᵥ (-α->⟪α⟫ (-α.unvct ctx ⟪ℋ⟫)))
       (σ⊕V! Σ ⟪α⟫ᵥ Vᵥ)
-      (⟦k⟧ (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ l³)) tᵥ) $ Γ ⟪ℋ⟫ Σ)))
+      (⟦k⟧ (-W (list (-Vector/guard Vₚ ⟪α⟫ᵥ ctx)) tᵥ) $ Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (mon-or/c∷ [l³ : -l³]
-                           [ℓ : ℓ]
-                           [Wₗ : -W¹]
-                           [Wᵣ : -W¹]
-                           [W-V : -W¹]
-                           [⟦k⟧ : -⟦k⟧])
+  (define-frame (mon-or/c∷ [ctx : -ctx] [Wₗ : -W¹] [Wᵣ : -W¹] [W-V : -W¹] [⟦k⟧ : -⟦k⟧])
   (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (Wₗ Wᵣ W-V)
     (match-define (-W Vs s) A)
     (match Vs
       [(list (-b #f))
-       (push-mon l³ ℓ Wᵣ W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+       (push-mon ctx Wᵣ W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(list (-b #t) V)
        (match-define (-W¹ Cₗ _) Wₗ)
        (define v*
          (match s
            [(-t.@ 'values (list _ v)) v]
-           [#f #f]))
+           [(or #f (? integer?)) #f]))
        (⟦k⟧ (-W (list (V+ (-Σ-σ Σ) V Cₗ)) v*) $ Γ ⟪ℋ⟫ Σ)])))
 
   (define-frame (if.flat/c∷ [W-V : -W] [blm : -blm] [⟦k⟧ : -⟦k⟧])
@@ -599,14 +586,13 @@
   (define-frame (wrap-st∷ [𝒾 : -𝒾]
                           [tᵥ : -?t]
                           [C : -St/C]
-                          [ℓ : ℓ]
-                          [l³ : -l³]
+                          [ctx : -ctx]
                           [⟦k⟧ : -⟦k⟧])
   (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C)
     (match-define (-W (list V) _) A)  ; only used internally, should be safe
-    (define ⟪α⟫ᵤ (-α->⟪α⟫ (-α.st 𝒾 ℓ ⟪ℋ⟫ (-l³-pos l³))))
+    (define ⟪α⟫ᵤ (-α->⟪α⟫ (-α.st 𝒾 ctx ⟪ℋ⟫)))
     (σ⊕! Σ Γ ⟪α⟫ᵤ (-W¹ V tᵥ))
-    (⟦k⟧ (-W (list (-St* C ⟪α⟫ᵤ l³)) tᵥ) $ Γ ⟪ℋ⟫ Σ)))
+    (⟦k⟧ (-W (list (-St* C ⟪α⟫ᵤ ctx)) tᵥ) $ Γ ⟪ℋ⟫ Σ)))
 
   (define-frame (fc-and/c∷ [l : -l]
                            [ℓ : ℓ]
@@ -717,36 +703,6 @@
       [(cons ⟦e⟧ ⟦e⟧s*) ; TODO propagate value instead
        (if∷ l (↓ₚᵣₘ -tt) ⟦e⟧ ρ (or∷ l ⟦e⟧s* ρ ⟦k⟧))]))
 
-  (define-frame (mk-listof∷ [tₐ : -?t] [ℓ₀ : ℓ] [⟪ℋ⟫₀ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
-      (match-define (-W Vs s) A)
-      (match Vs
-        [(list V)
-         (define ⟪α⟫ₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ₀ ⟪ℋ⟫₀ 0)))
-         (define ⟪α⟫ₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ₀ ⟪ℋ⟫₀ 1)))
-         (define Vₚ (-Cons ⟪α⟫ₕ ⟪α⟫ₜ))
-         (σ⊕V! Σ ⟪α⟫ₕ V)
-         (σ⊕V! Σ ⟪α⟫ₜ -null)
-         (σ⊕V! Σ ⟪α⟫ₜ Vₚ)
-         (⟦k⟧ (-W (list Vₚ) tₐ) $ Γ ⟪ℋ⟫ Σ)]
-        [_
-         (define blm (blm-arity ℓ₀ 'mk-listof 1 Vs))
-         (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
-
-  (define-frame (mk-vector^∷ [Vₙ : -V] [tₐ : -?t] [ℓ : ℓ] [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
-      (match-define (-W (list Vₑ) tₑ) A)
-      (define α (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
-      (σ⊕! Σ Γ α (-W¹ Vₑ tₑ))
-      (⟦k⟧ (-W (list (-Vector^ α Vₙ)) tₐ) $ Γ ⟪ℋ⟫ Σ)))
-
-  (define-frame (adjust-names∷ [Γ : -Γ] [t : -?t] [looped? : Boolean] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ) #:roots ()
-      (match-define (-W Vs tₐ) A)
-      (define-values (tₐ* Γ*)
-        (if looped? (values t Γ) (values tₐ (copy-Γ $ Γ Γₐ))))
-      (⟦k⟧ (-W Vs tₐ*) $ Γ* ⟪ℋ⟫ Σ)))
-
   (define-frame (invalidate-$∷ [ls : (℘ -loc)] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (⟦k⟧ A ($-del* $ ls) Γ ⟪ℋ⟫ Σ)))
@@ -758,4 +714,105 @@
   (define-frame (restore-ctx∷ [⟪ℋ⟫ : -⟪ℋ⟫] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ _ Σ) #:roots ()
       (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (hash-set-inner∷ [ℓ : ℓ] [αₕ : ⟪α⟫] [tₕ : -?t] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (αₕ)
+      (match-define (-W (list Vₖ Vᵥ) tₐ) A)
+      (match-define (list tₖ tᵥ) (split-values tₐ 2))
+      (define Wₖ (-W¹ Vₖ tₖ))
+      (define Wᵥ (-W¹ Vᵥ tᵥ))
+      (for/union : (℘ -ς) ([Vₕ (in-set (σ@ Σ αₕ))])
+        (app (ℓ-with-src ℓ 'hash-set-inner∷)
+             (-W¹ 'hash-set 'hash-set)
+             (list (-W¹ Vₕ tₕ) Wₖ Wᵥ)
+             $ Γ ⟪ℋ⟫ Σ ⟦k⟧))))
+
+  (define-frame (wrap-hash∷ [C : -Hash/C] [ctx : -ctx] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C)
+      (match-define (-W (list Vₕ) tₕ) A)
+      (define α (-α->⟪α⟫ (-α.unhsh ctx ⟪ℋ⟫)))
+      (σ⊕V! Σ α Vₕ)
+      (define Vₐ (-Hash/guard C α ctx))
+      (⟦k⟧ (-W (list Vₐ) tₕ) $ Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (set-add-inner∷ [ℓ : ℓ] [αₛ : ⟪α⟫] [tₛ : -?t] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (αₛ)
+      (match-define (-W¹ (list Vₑ) tₑ) A)
+      (define Wₑ (-W¹ Vₑ tₑ))
+      (for/union : (℘ -ς) ([Vₛ (in-set (σ@ Σ αₛ))])
+        (app (ℓ-with-src ℓ 'set-add-inner∷)
+             (-W¹ 'set-add 'set-add)
+             (list (-W¹ Vₛ tₛ) Wₑ)
+             $ Γ ⟪ℋ⟫ Σ ⟦k⟧))))
+
+  (define-frame (wrap-set∷ [C : -Set/C] [ctx : -ctx] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (C)
+      (match-define (-W (list Vₛ) tₛ) A)
+      (define α (-α->⟪α⟫ (-α.unset ctx ⟪ℋ⟫)))
+      (σ⊕V! Σ α Vₛ)
+      (define Vₐ (-Set/guard C α ctx))
+      (⟦k⟧ (-W (list Vₐ) tₛ) $ Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (on-prim-args-checked∷ [ℓ : ℓ]
+                                       [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
+                                       [rng : -W]
+                                       [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (rng)
+      (match-define (-W args _) A)
+      (define σ (-Σ-σ Σ))
+      (define refined-range (maybe-refine rng σ Γ cases (W->W¹s A)))
+      (define behavioral-args
+        (for/list : (Listof -W¹) ([V (in-list args)] #:when (behavioral? σ V))
+          (-W¹ V #f)))
+      (app (ℓ-with-id ℓ 'prim-havoc)
+           (-W¹ (-Fn● (length behavioral-args)) #f)
+           behavioral-args
+           $ Γ ⟪ℋ⟫ Σ
+           (bgn0.e∷ refined-range '() ⊥ρ ⟦k⟧))))
+
+  (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (define-values (V t) (implement-predicate (-Σ-σ Σ) Γ o (W->W¹s A)))
+      (⟦k⟧ (-W (list V) t) $ Γ ⟪ℋ⟫ Σ)))
+
+  (: maybe-refine : -W -σ -Γ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -W¹) → -W)
+  (define (maybe-refine rng₀ σ Γ cases args)
+
+    (: ⊢/quick : -V -W¹ → -R)
+    (define (⊢/quick o W)
+      (first-R (q:p∋Vs σ o (-W¹-V W))
+               (if (-h? o) (q:Γ⊢t Γ (?t@ o (-W¹-t W))) '?)))
+    
+    (match-define (-W rngs t-rng) rng₀)
+
+    (define rngs*
+      (for/fold ([rngs : (Listof -V) rngs])
+                ([case (in-list cases)])
+        (match-define (list dom-inits ?dom-rst refinements) case)
+        (define (check-inits [doms : (Listof -V)] [args : (Listof -W¹)]) : (Listof -V)
+          (match* (doms args)
+            [((cons dom doms*) (cons arg args*))
+             (if (equal? '✓ (⊢/quick dom arg))
+                 (check-inits doms* args*)
+                 rngs)]
+            [('() _) (check-rest args)]
+            [((cons _ _) '()) rngs]))
+        (define (check-rest [args : (Listof -W¹)])
+          (cond
+            [?dom-rst
+             (let go : (Listof -V) ([args : (Listof -W¹) args])
+               (match args
+                 ['() (refine-rng)]
+                 [(cons arg args*)
+                  (if (equal? '✓ (⊢/quick ?dom-rst arg))
+                      (go args*)
+                      rngs)]))]
+            [else (if (null? args) (refine-rng) rngs)]))
+        (define (refine-rng)
+          (for/list : (Listof -V) ([rng (in-list rngs)]
+                                   [ref (in-list refinements)])
+            (V+ σ rng ref)))
+        (check-inits dom-inits args)))
+    
+    (-W rngs* t-rng))
   )

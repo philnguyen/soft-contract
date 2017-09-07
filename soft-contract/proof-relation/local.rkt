@@ -14,14 +14,14 @@
          (only-in racket/list first second)
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit local-prover@
-  (import prims^ pc^ sto^ val^ pretty-print^)
+  (import static-info^ prims^ pc^ sto^ val^ pretty-print^)
   (export local-prover^)
   (init-depend prims^)
 
@@ -65,14 +65,28 @@
       [(>)  (⊢@ '<  (reverse xs))]
       [else '?]))
 
-  (define (Γ⊢t [φs : -Γ] [t : -?t]) : -R
+  (define (Γ⊢t [φs : -Γ] [t₀ : -?t]) : -R
+
+    (define t ; FIXME clean up hack
+      (match t₀
+        [(-t.@ (-≥/c b) (list t*))
+         (-t.@ '<= (list (-b b) t*))]
+        [(-t.@ (->/c b) (list t*))
+         (-t.@ '< (list (-b b) t*))]
+        [(-t.@ (-</c b) (list t*))
+         (-t.@ '< (list t* (-b b)))]
+        [(-t.@ (-≤/c b) (list t*))
+         (-t.@ '<= (list t* (-b b)))]
+        [(-t.@ (-≢/c b) (list t*))
+         (-t.@ 'not (list (-t.@ 'equal? (list t* (-b b)))))]
+        [_ t₀]))
 
     (when (∋ φs -ff)
       ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
       ;; sometimes we want `{… #f …} ⊢ (¬ e) : ✓`, which means `{… #f …} ⊢ e : ✗`
       ;; This is a problem with precision rather than soundness, but I want
       ;; (obviously) inconsistent path-conditions to not exist in the first place.
-      (error 'Γ⊢t "Attempt to prove/refute with inconsistent path-condition"))
+      (error 'Γ⊢t "Attempt to prove/refute with inconsistent path-condition: ~a" (show-Γ φs)))
 
     (: t⊢t : -t -t → -R)
     ;; Check if `t₂` returns truth when `t₁` does
@@ -187,9 +201,8 @@
          [(not) '✗]
          [(any/c) '?]
          [else '✓])]
-      [((-st-p si) (-st-p sj))
-       ;; TODO: no sub-struct for now. Probably changes later
-       (boolean->R (equal? si sj))]
+      [((-st-p 𝒾₁) (-st-p 𝒾₂))
+       (boolean->R (𝒾₁ . substruct? . 𝒾₂))]
 
       ;; Negate
       [((-not/c (? -h? p)) (-not/c (? -h? q)))
@@ -277,43 +290,74 @@
   (define (plausible-φs-t? [φs : -Γ] [t : -?t]) : Boolean
     (with-debugging/off
       ((a) (not (eq? '✗ (Γ⊢t φs t))))
-      (printf "~a ⊢ ~a : ~a~n"
-              (set-map φs show-t)
-              (show-t t)
-              (if a 'plausible 'implausible))))
+      (when a
+        (printf "~a ⊢ ~a : ~a~n"
+                (set-map φs show-t)
+                (show-t t)
+                (if a 'plausible 'implausible)))))
+
+  (: plausible₁-V-t? : -V -t → Boolean)
+  (define (plausible₁-V-t? V t)
+    (define label : (Any → (U Symbol -𝒾 #f))
+      (match-lambda
+        [(-b b)
+         (cond [(number? b) 'number]
+               [(string? b) 'string]
+               [(not b) 'false]
+               [(boolean? b) 'true]
+               [(symbol? b) 'symbol]
+               [else 'base])]
+        [(or (? -λ?) (? -Fn?) (? -Ar?) (? -o?)) 'procedure]
+        [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?)) 'vector]
+        [(or (? -Hash^?) (? -Hash/guard?)
+             (-t.@ (or 'make-hash 'make-hasheq 'hash 'hasheq) _)) 'hash]
+        [(or (? -Set^?) (? -Set/guard?)
+             (-t.@ (or 'set 'make-set 'seteq) _)) 'set]
+        ;; could be wrapped by superstruct's contract, so no
+        [(or (-St 𝒾 _) #;(-St* (-St/C _ 𝒾 _) _ _) (-t.@ (-st-mk 𝒾) _)) 𝒾]
+        [_ #f]))
+    (define V.lab (label V))
+    (define t.lab (label t))
+    (or (not V.lab)
+        (not t.lab)
+        (equal? V.lab t.lab)))
 
   (define (plausible-V-t? [φs : -Γ] [V : -V] [t : -?t]) : Boolean
     (define-syntax-rule (with-prim-checks p? ...)
       (cond
         [t
-         (match V
-           [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾
-            (plausible-φs-t? φs (?t@ (-st-p 𝒾) t))]
-           [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?))
-            (plausible-φs-t? φs (?t@ 'vector? t))]
-           [(or (? -Hash^?) (? -Hash/guard?))
-            (plausible-φs-t? φs (?t@ 'hash? t))]
-           [(or (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -o?))
-            (plausible-φs-t? φs (?t@ 'procedure? t))]
-           [(-b (? p?))
-            (and (plausible-φs-t? φs (?t@ 'p? t))
-                 (plausible-φs-t? φs (?t@ 'equal? t V))
-                 (implies (-b? t) (equal? V t)))] ...
-           [(or (? -=>_?) (? -St/C?) (? -x/C?))
-            (for/and : Boolean ([p : -o '(procedure? p? ...)])
-              (case (Γ⊢t φs (?t@ p t))
-                [(✓)   #f]
-                [(✗ ?) #t]))]
-           [(-b (list))
-            (plausible-φs-t? φs (?t@ 'null? t))]
-           [(? -v? v)
-            (plausible-φs-t? φs (?t@ 'equal? t v))]
-           [(-● ps)
-            (not (for/or : Boolean ([p ps])
-                   (match p
-                     [(? -o? o) (equal? '✗ (Γ⊢t φs (-t.@ o (list t))))]
-                     [_ #f])))]
-           [_ #t])]
+         (and (plausible₁-V-t? V t)
+              (match V
+                [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _))
+                 #:when 𝒾
+                 (plausible-φs-t? φs (?t@ (-st-p 𝒾) t))]
+                [(or (? -Vector?) (? -Vector^?) (? -Vector/guard?))
+                 (plausible-φs-t? φs (?t@ 'vector? t))]
+                [(or (? -Hash^?) (? -Hash/guard?))
+                 (plausible-φs-t? φs (?t@ 'hash? t))]
+                [(or (? -Set^?) (? -Set/guard?))
+                 (plausible-φs-t? φs (?t@ 'set? t))]
+                [(or (? -Fn?) (? -Ar?) (? -o?))
+                 (plausible-φs-t? φs (?t@ 'procedure? t))]
+                [(-b (? p?))
+                 (and (plausible-φs-t? φs (?t@ 'p? t))
+                      (plausible-φs-t? φs (?t@ 'equal? t V))
+                      (implies (-b? t) (equal? V t)))] ...
+                [(or (? -=>_?) (? -St/C?) (? -x/C?))
+                 (for/and : Boolean ([p : -o '(procedure? p? ...)])
+                   (case (Γ⊢t φs (?t@ p t))
+                     [(✓)   #f]
+                     [(✗ ?) #t]))]
+                [(-b (list))
+                 (plausible-φs-t? φs (?t@ 'null? t))]
+                [(? -v? v)
+                 (plausible-φs-t? φs (?t@ 'equal? t v))]
+                [(-● ps)
+                 (not (for/or : Boolean ([p ps])
+                        (match p
+                          [(? -o? o) (equal? '✗ (Γ⊢t φs (-t.@ o (list t))))]
+                          [_ #f])))]
+                [_ #t]))]
         [else #t]))
     
     ;; order matters for precision, in the presence of subtypes
@@ -336,8 +380,9 @@
                                  pregexp?
                                  byte-regexp?
                                  byte-pregexp?))
-      (printf "plausible-V-t: ~a ⊢ ~a @ ~a : ~a~n"
-              (set-map φs show-t) (show-V V) (show-t t) (if ans 'plausible 'implausible))))
+      (when ans
+        (printf "plausible-V-t: ~a ⊢ ~a @ ~a : ~a~n"
+                (set-map φs show-t) (show-V V) (show-t t) ans))))
 
   
   (: plausible-W? : -Γ (Listof -V) -?t → Boolean)
@@ -380,15 +425,14 @@
                   [(list (-● ps)) #:when (-h? p)
                    (ps⇒p ps p)]
                   [_
-                   (match p
+                   [match p
                      [(? -st-mk?) '✓]
                      [(? -st-mut?) '✓]
                      [(? -st-ac?) '✓]
                      [(-st-p 𝒾)
                       (match Vs
-                        [(list (or (-St 𝒿 _) (-St* (-St/C _ 𝒿 _) _ _)))
-                         ;; TODO: no sub-struct for now. May change later.
-                         (boolean->R (equal? 𝒾 (assert 𝒿)))]
+                        [(list (or (-St 𝒾* _) (-St* (-St/C _ 𝒾* _) _ _)))
+                         (boolean->R (𝒾* . substruct? . 𝒾))]
                         [(list (-● ps))
                          (or (for/or : (U '✓ '✗ #f) ([p ps] #:when (-st-p? p))
                                (match-define (-st-p 𝒾*) p)
@@ -443,7 +487,7 @@
                            [_ '✗])]
                         [(procedure?)
                          (match Vs
-                           [(list (or (? -o?) (? -Clo?) (? -Case-Clo?) (? -Ar?) (? -Not/C?) (? -One-Of/C?))) '✓]
+                           [(list (or (? -o?) (? -Fn?) (? -Ar?) (? -Not/C?) (? -One-Of/C?))) '✓]
                            [(list (or (-And/C flat? _ _) (-Or/C flat? _ _) (-St/C flat? _ _))) (boolean->R flat?)]
                            [_ '✗])]
                         [(vector?)
@@ -454,14 +498,20 @@
                          (match Vs
                            [(list (or (? -Hash^?) (? -Hash/guard?))) '✓]
                            [_ '✗])]
+                        [(set? generic-set?)
+                         (match Vs
+                           [(list (or (? -Set^?) (? -Set/guard?))) '✓]
+                           [_ '✗])]
                         [(contract?)
                          (match Vs
                            [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?) (? -Not/C?)
-                                      (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?))) '✓]
+                                      (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?) (? -Hash/C?) (? -Set/C?)
+                                      (? -∀/C?) (? -Seal/C?) (? -b?))) '✓]
                            [(list V) (check-proc-arity-1 V)]
                            [_ '?])]
                         [(flat-contract?)
                          (match Vs
+                           [(list (? -b?)) '✓]
                            [(list V) (check-proc-arity-1 V)]
                            [_ '?])]
                         [(any/c) '✓]
@@ -472,18 +522,25 @@
                             (boolean->R (arity-includes? a b))]
                            [_ '?])]
                         [(immutable?)
+
+                         (: check-all-immutable : ⟪α⟫ → -R)
+                         (define (check-all-immutable α)
+                           (define Rs
+                             (for/seteq: : (℘ -R) ([V (in-set (σ@ σ α))])
+                               (p∋Vs σ 'immutable? V)))
+                           (cond [(or (∋ Rs '?) (> (set-count Rs) 1)) '?]
+                                 [(∋ Rs '✗) '✗]
+                                 [else '✓]))
+                         
                          (match Vs
                            [(list (-b b)) (boolean->R (immutable? b))]
                            [(list (-Hash^ _ _ im?)) (if im? '✓ '✗)]
-                           [(list (-Hash/guard _ α _))
-                            (define Rs
-                              (for/seteq: : (℘ -R) ([V (in-set (σ@ σ α))])
-                                (p∋Vs σ 'immutable? V)))
-                            (cond [(or (∋ Rs '?) (> (set-count Rs) 1)) '?]
-                                  [(∋ Rs '✗) '✗]
-                                  [else '✓])]
-                           ;; always false for now because no support for immutable vectors
-                           [_ '✗])]
+                           [(list (-Hash/guard _ α _)) (check-all-immutable α)]
+                           [(list (-Set^ _ im?)) (if im? '✓ '✗)]
+                           [(list (-Set/guard _ α _)) (check-all-immutable α)]
+                           ;; vectors always false for now because no support for immutable vectors
+                           [(list (or (? -Vector?) (? -Vector^?) (? -Vector/guard?))) '✗]
+                           [_ '?])]
                         [(<)
                          (match Vs
                            [(list (-b (? real? b₁)) (-b (? real? b₂)))
@@ -582,12 +639,13 @@
                          (boolean->R (and (real? b) (op b a)))]
                         [(list (-● ps)) #|TODO|# '?]
                         [_ '✗])]
-                     [(-≡/c b₁)
-                      (match-define (list V) Vs)
-                      (p∋Vs σ 'equal? (-b b₁) V)]
-                     [(-≢/c b)
-                      (not-R (p∋Vs σ 'equal? (-b b) (car Vs)))]
-                     [_ '?])]) -R))
+                     [(-≥/c b) (p∋Vs σ '>= (car Vs) (-b b))]
+                     [(->/c b) (p∋Vs σ '> (car Vs) (-b b))]
+                     [(-</c b) (p∋Vs σ '< (car Vs) (-b b))]
+                     [(-≤/c b) (p∋Vs σ '<= (car Vs) (-b b))]
+                     [(or (-≡/c b₁) (-b b₁)) (p∋Vs σ 'equal? (-b b₁) (car Vs))]
+                     [(-≢/c b) (not-R (p∋Vs σ 'equal? (-b b) (car Vs)))]
+                     [_ '?]]]) -R))
       (printf "~a ~a : ~a~n" p (map show-V Vs) R)))
 
   (define (ps⇒p [ps : (℘ -h)] [p : -h]) : -R
@@ -693,10 +751,11 @@
         (for/list : (Listof Natural) ([clause clauses])
           (match-define (cons xs _) clause)
           (length xs)))]
+      [(-Fn● arity) arity]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _) (? -One-Of/C?)) 1]
       [(-Ar guard _ _) (guard-arity guard)]
       [(? -st-p?) 1]
-      [(-st-mk 𝒾) (get-struct-arity 𝒾)]
+      [(-st-mk 𝒾) (count-struct-fields 𝒾)]
       [(? -st-ac?) 1]
       [(? -st-mut?) 2]
       [(? symbol? o) (prim-arity o)]

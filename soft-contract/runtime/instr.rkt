@@ -5,7 +5,7 @@
          racket/set
          set-extras
          "../utils/debug.rkt"
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"

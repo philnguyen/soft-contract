@@ -4,7 +4,7 @@
 
 (require typed/racket/unit
          set-extras
-         "ast/main.rkt"
+         "ast/signatures.rkt"
          "runtime/signatures.rkt")
 
 (define-signature verifier^
@@ -26,15 +26,15 @@
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]
    [parse-module : (Syntax → -module)]
-   [parse-expr : (Syntax → -e)]))
+   [parse-expr : (Syntax → -e)]
+   [canonicalize-path : (Path-String → Path-String)]))
 
 (define-signature prims^ ; TODO
-  ([get-prim : (Symbol → (Option -Prim))]
+  ([get-prim : (Symbol → -⟦f⟧)]
    [o⇒o : (Symbol Symbol → -R)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
    [prim-arity : (Symbol → Arity)]
-   [extract-list-content : (-σ -St → (℘ -V))]
    [parse-prim : (Identifier → (Option -prim))]))
 
 (define-signature proof-system^
@@ -54,7 +54,7 @@
    [σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
    [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
    [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
-   [σₖ⊕! : (-Σ -αₖ -⟦k⟧ → Void)]
+   [σₖ⊕! : (-Σ -αₖ -κ → Void)]
    [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
    [M⊕! : (-Σ -αₖ -ΓA → Void)]
@@ -67,8 +67,7 @@
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
-   [collect-hash-pairs : (-σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))]
-   [copy-Γ : (-$ -Γ -Γ → -Γ)]))
+   [copy-Γ : ((℘ Symbol) -Γ -Γ → -Γ)]))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]
@@ -82,4 +81,5 @@
    [->⟪α⟫s : ((Rec X (U ⟪α⟫ -V -W¹ -W -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))]
    [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]
    [bound-vars : (-⟦e⟧ → (℘ Symbol))]
-   [set-bound-vars! : (-⟦e⟧ (℘ Symbol) → Void)]))
+   [set-bound-vars! : (-⟦e⟧ (℘ Symbol) → Void)]
+   [gc-$ : (-$ -σ (℘ ⟪α⟫) → -$)]))

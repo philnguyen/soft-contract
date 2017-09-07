@@ -8,21 +8,17 @@
          racket/splicing
          typed/racket/unit
          set-extras
-         "../ast/main.rkt"
-         "../runtime/signatures.rkt"
-         "def-prim.rkt"
-         "../reduction/signatures.rkt"
-         "../signatures.rkt"
+         "def.rkt"
          "signatures.rkt")
 
 (define-unit prims-09@
-  (import prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^)
+  (import prim-runtime^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; 9.2 Extending match
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def-ext match-equality-test (-> (any/c any/c . -> . any/c))) ; FIXME parameter
+  (def match-equality-test (-> (any/c any/c . -> . any/c))) ; FIXME parameter
 
   )

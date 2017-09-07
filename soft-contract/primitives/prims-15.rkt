@@ -4,13 +4,11 @@
 
 (require racket/contract
          typed/racket/unit
-         "def-prim.rkt"
-         "../signatures.rkt"
-         "../runtime/signatures.rkt"
+         "def.rkt"
          "signatures.rkt")
 
 (define-unit prims-15@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
   
@@ -20,7 +18,7 @@
 
   ;; 15.1.1 Manipulating Paths
   (def-pred path-string?)
-  (def-prim string->path (string? . -> . path?))
+  (def string->path (string? . -> . path?))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -29,19 +27,19 @@
 
 
   ;; 15.2.2 Files
-  (def-prim file-exists? (path-string? . -> . boolean?) #:lift-concrete? #f)
-  (def-prim delete-file (path-string? . -> . void?) #:lift-concrete? #f)
+  (def file-exists? (path-string? . -> . boolean?) #:lift-concrete? #f)
+  (def delete-file (path-string? . -> . void?) #:lift-concrete? #f)
 
   ;; 15.2.6 More File and Directory Utilities
-  (def-prim file->list (path-string? . -> . list?) #:volatile? #t #:lift-concrete? #f)
-  (def-prim file->value (path-string? . -> . any/c) #:volatile? #t #:lift-concrete? #f)
+  (def file->list (path-string? . -> . list?) #:volatile? #t #:lift-concrete? #f)
+  (def file->value (path-string? . -> . any/c) #:volatile? #t #:lift-concrete? #f)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 15.7
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  {def-prim getenv (string? . -> . (or/c string? not)) #:lift-concrete? #f}
-  {def-prim putenv (string? string? . -> . boolean?) #:lift-concrete? #f}
+  {def getenv (string? . -> . (or/c string? not)) #:lift-concrete? #f}
+  {def putenv (string? string? . -> . boolean?) #:lift-concrete? #f}
   )
 

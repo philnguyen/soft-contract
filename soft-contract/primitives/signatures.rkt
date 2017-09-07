@@ -5,7 +5,7 @@
 (require typed/racket/unit
          typed/racket/unsafe
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
 (unsafe-require/typed syntax/id-table
@@ -39,13 +39,29 @@
 
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
-  ([⊢?/quick : (-R -σ -Γ -o -W¹ * → Boolean)]
-   [make-total-pred : (Index → Symbol → -⟦o⟧)]
-   [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (℘ -ΓA))]
-   [ts->bs : ((Listof -?t) → (Option (Listof Base)))]
-   [extract-list-content : (-σ -St → (℘ -V))]
+  ([r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
+   [make-total-pred : (Index → Symbol → -⟦f⟧)]
+   [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (Values -V -?t))]
+   [ts->bs : ((Listof -?t) → (Option (Listof Base)))] ; TODO obsolete
+   [Ws->bs : ((Listof -W¹) → (Option (Listof Base)))]
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
    [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]
+   [+⟪α⟫ℓ₀ : (-V → -⟪α⟫ℓ)]
+   [make-static-listof : (Symbol (→ (Values Boolean -V)) → -V)]
+   [make-listof : (Boolean -V → -V)]
+   [hacked-listof? : (-V → (Option -V))]
+   [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
+   [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
+   [mk-● : (-h * → -●)]
+   [exec-prim
+    : (-$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
+          ℓ (Intersection Symbol -o)
+          #:dom (Listof -V)
+          #:rng (Listof -V)
+          #:rng-wrap (Option (Listof -V))
+          #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
+          #:args (Listof -W¹)
+          → (℘ -ς))]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]
@@ -57,7 +73,7 @@
    [update-arity! : (Symbol Arity → Void)]
    [set-partial! : (Symbol Natural → Void)]
 
-   [prim-table : (HashTable Symbol -Prim)]
+   [prim-table : (HashTable Symbol -⟦f⟧)]
    [const-table : Parse-Prim-Table]
    [alias-table : Alias-Table]
    [debug-table : (HashTable Symbol Any)]

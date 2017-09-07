@@ -29,7 +29,7 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → -Prim)
+  (: get-prim : Symbol → -⟦f⟧)
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
@@ -49,8 +49,6 @@
   (define (prim-arity o)
     (hash-ref rt:arity-table o (λ () (error 'prim-arity "don't know `~a`'s arity~n" o))))
 
-  (define extract-list-content rt:extract-list-content)
-
   (: parse-prim : Identifier → (Option -prim))
   (define (parse-prim id)
     (cond [(parse-prim-table-ref rt:const-table id (λ () #f)) => values]
@@ -59,8 +57,9 @@
   )
 
 (define-compound-unit/infer prims@
-  (import proof-system^ local-prover^ widening^ app^ kont^ compile^ for-gc^
-          val^ pc^ sto^ instr^ pretty-print^ env^)
+  (import ast-pretty-print^ static-info^
+          proof-system^ local-prover^ widening^ app^ kont^ compile^ for-gc^
+          val^ pc^ sto^ instr^ pretty-print^ env^ mon^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@

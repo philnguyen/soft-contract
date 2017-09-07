@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/match
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          "../main.rkt")
 
 (define-type Count (HashTable Symbol Natural))

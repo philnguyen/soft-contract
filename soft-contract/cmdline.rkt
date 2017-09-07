@@ -8,7 +8,7 @@
          bnf
          set-extras
          "utils/main.rkt"
-         "ast/main.rkt"
+         "ast/signatures.rkt"
          "runtime/signatures.rkt"
          "parse/signatures.rkt"
          "main.rkt")
@@ -27,7 +27,7 @@
 (define fnames
   (cast
    (command-line
-    #:program "raco soft-contract"
+    #:program "raco scv"
     
     #:once-each
     [("-l" "--last-only")
@@ -79,10 +79,11 @@
   (define (go fnames)
     (with-handlers ([exn:missing?
                      (match-lambda
-                       [(exn:missing _ _ src)
-                        (assert (not (member src fnames)))
-                        (printf " - dependency: ~a~n" src)
-                        (go (cons src fnames))])])
+                       [(exn:missing _ _ src id)
+                        (define src* (canonicalize-path src))
+                        (printf "- dependency: ~a for `~a`~n" src* id)
+                        (assert (not (member src* fnames)))
+                        (go (cons src* fnames))])])
       (case mode
         [(expand)
          (for ([m (in-list (parse-files fnames))])
@@ -103,6 +104,6 @@
          (define-values (ans _) (havoc-last-file fnames))
          (print-result ans)])))
 
-  (go (map path->string (map path->complete-path fnames))))
+  (go (map canonicalize-path fnames)))
 
 (main fnames)

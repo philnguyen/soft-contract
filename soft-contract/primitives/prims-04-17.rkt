@@ -12,7 +12,6 @@
          racket/set
          racket/flonum
          racket/fixnum
-         racket/extflonum
          racket/generator
          racket/random
          racket/format
@@ -22,14 +21,13 @@
          set-extras
          "../utils/debug.rkt"
          "../utils/pretty.rkt"
-         (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
-         "../ast/shorthands.rkt"
+         (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -41,12 +39,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import prim-runtime^ proof-system^ local-prover^ widening^ app^ val^ pc^ sto^ instr^)
+  (import prim-runtime^ proof-system^ local-prover^ widening^ app^ val^ pc^)
   (export)
 
   (def-pred procedure?)
 
-  (def-ext (apply ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (apply ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ()
+    #:rest [Ws (listof any/c)] ; manual arity check instead
     (define l (ℓ-src ℓ))
 
     (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
@@ -56,7 +56,6 @@
     (: check-func-arity : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
     ;; Make sure init arguments and rest args are compatible with the function's arity
     (define ((check-func-arity W-func W-inits W-rest) Γ)
-      
       (: blm-arity : Arity → (℘ -ς))
       (define (blm-arity a)
         (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
@@ -70,6 +69,8 @@
                                 ([len (in-set (estimate-list-lengths (-Σ-σ Σ) (-W¹-V W-rest)))])
                         (if (pred len) (values #t er?) (values ok? #t)))])
           (∪ (if ok? e₁ ∅) (if er? e₂ ∅))))
+
+      ;; turn estinate-list-lengths into 
       
       (define num-inits (length W-inits))
       (match-define (-W¹ V-func t-func) W-func)
@@ -80,7 +81,9 @@
          (cond
            ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
            [(<= 0 num-remaining-args)
-            (with-num-rest-args-check (λ (len) (equal? len num-remaining-args))
+            (with-num-rest-args-check (match-lambda
+                                        [(? index? len) (equal? len num-remaining-args)]
+                                        [(arity-at-least len) #|TODO|# #t])
               #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
               #:on-f (blm-arity fixed-arity))]
            ;; More init arguments than required
@@ -112,65 +115,65 @@
        (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
   
-  (def-prim/todo compose ; FIXME uses
-    ((any/c . -> . any) (any/c . -> . any/c) . -> . (any/c . -> . any)))
-  (def-prim/todo compose1 ; FIXME uses
-    ((any/c . -> . any) (any/c . -> . any/c) . -> . (any/c . -> . any)))
-  (def-prim/todo procedure-rename
-    (procedure? symbol? . -> . procedure?))
-  (def-prim/todo procedure->method
-    (procedure? . -> . procedure?))
+  (def compose ; FIXME uses
+    (∀/c (α β γ)
+         (case->
+          [(β . -> . γ) (α . -> . β) . -> . (α . -> . γ)])))
+  (def compose1 ; FIXME uses
+    (∀/c (α β γ)
+         (case->
+          [(β . -> . γ) (α . -> . β) . -> . (α . -> . β)])))
+  (def procedure-rename (∀/c (α) ((and/c procedure? α) symbol? . -> . α)))
+  (def procedure->method (∀/c (α) ((and/c procedure? α) . -> . α)))
   (def-pred procedure-closure-contents-eq? (procedure? procedure?))
 
   ;; 4.17.1 Keywords and Arity
   ;[keyword-apply #|FIXME uses|#]
-  (def-prim/custom (procedure-arity ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([W procedure?])
+  (def (procedure-arity ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ([W procedure?])
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'procedure-arity s))
-    (cond [(V-arity V) => (λ ([a : Arity]) {set (-ΓA Γ (-W (list (-b a)) sₐ))})]
-          [else {set (-ΓA Γ (-W (list (+●)) sₐ))}]))
+    (cond [(V-arity V)
+           =>
+           (λ ([a : Arity])
+             (⟦k⟧ (-W (list (-b a)) sₐ) $ Γ ⟪ℋ⟫ Σ))]
+          [else (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
   (def-pred procedure-arity?)
   {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses
-  (def-prim/todo procedure-reduce-arity
+  (def procedure-reduce-arity
     (procedure? procedure-arity? . -> . procedure?))
-  #;[procedure-keywords ; FIXME listof
-     (procedure? . -> . (values (listof keyword?) (or/c (listof keyword?) not)))]
+  (def procedure-keywords ; FIXME
+     (procedure? . -> . (values (listof keyword?) (or/c (listof keyword?) not))))
   #;[make-keyword-procedure ; FIXME uses
      ((((listof keyword?) list?) () #:rest list? . ->* . any) . -> . procedure?)]
-  #;[procedure-reduce-keyword-arity ; FIXME listof
+  #;[procedure-reduce-keyword-arity ; FIXME
      (procedure? procedure-arity? (listof keyword?) (or/c (listof keyword?) not)
                  . -> . procedure?)]
   (def-pred arity-at-least?)
-  (def-prim/todo arity-at-least (exact-nonnegative-integer? . -> . arity-at-least?))
-  (def-prim/todo arity-at-least-value (arity-at-least? . -> . exact-nonnegative-integer?))
+  (def arity-at-least (exact-nonnegative-integer? . -> . arity-at-least?))
+  (def arity-at-least-value (arity-at-least? . -> . exact-nonnegative-integer?))
   (def-alias make-arity-at-least arity-at-least)
   (def-opq prop:procedure struct-type-property?)
   [def-pred procedure-struct-type? (struct-type?)]
-  (def-prim/todo procedure-extract-target
-    (procedure? . -> . (or/c procedure? not)))
+  (def procedure-extract-target (procedure? . -> . (or/c procedure? not)))
   (def-opq prop:arity-string struct-type-property?)
   (def-opq prop:checked-procedure struct-type-property?)
-  (def-prim/todo checked-procedure-check-and-extract
+  (def checked-procedure-check-and-extract
     (struct-type? any/c (any/c any/c any/c . -> . any/c) any/c any/c . -> . any/c))
 
   ;; 4.17.2 Reflecting on Primitives
   (def-pred primitive?)
   (def-pred primitive-closure?)
-  (def-prim/todo primitive-result-arity
-    (primitive? . -> . procedure-arity?))
+  (def primitive-result-arity (primitive? . -> . procedure-arity?))
 
   ;; 4.17.3 Additional Higher-Order Functions
-  (def-prim/custom (identity ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([W any/c])
-    (match-define (-W¹ V s) W)
-    {set (-ΓA Γ (-W (list V) s))})
-  (def-prim/todo const (any . -> . procedure?))
-  (def-prim/todo negate (procedure? . -> . procedure?))
+  (def identity (∀/c (α) (α . -> . α)))
+  (def const (∀/c (α) (α . -> . (() #:rest list? . ->* . α))))
+  (def negate (procedure? . -> . procedure?))
   ;[curry ] FIXME
   ;[curryr] FIXME
-  (def-pred/todo normalized-arity?)
-  (def-prim/todo normalize-arity ; FIXME dependency
+  (def-pred normalized-arity?)
+  (def normalize-arity ; FIXME dependency
     (procedure-arity? . -> . normalized-arity?))
   (def-pred arity=? (procedure-arity? procedure-arity?))
   (def-pred arity-includes? (procedure-arity? procedure-arity?))

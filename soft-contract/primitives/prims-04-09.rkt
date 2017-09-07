@@ -12,7 +12,6 @@
          racket/set
          racket/flonum
          racket/fixnum
-         racket/extflonum
          racket/generator
          racket/random
          racket/format
@@ -21,13 +20,9 @@
          syntax/parse/define
          set-extras
          "../utils/debug.rkt"
-         (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
-         "../ast/shorthands.rkt"
-         "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
-         "../signatures.rkt"
+         (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -39,7 +34,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-09@
-  (import prim-runtime^ proof-system^ widening^ kont^ app^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
 
@@ -52,171 +47,86 @@
   (def-alias-internal cdr -cdr)
   (def-alias-internal set-mcdr! -set-cdr!) ;; HACK for running some Scheme programs
   (def-const null)
-  (def-prim list? (any/c . -> . boolean?))
-  (def-prim/custom (list ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    (match Ws
-      ['() {set (-ΓA Γ (+W (list -null)))}]
-      [_
-       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
-       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
-       (for ([Wᵢ (in-list Ws)])
-         (σ⊕! Σ Γ αₕ Wᵢ))
-       (define Vₚ (-Cons αₕ αₜ))
-       (σ⊕V! Σ αₜ -null)
-       (σ⊕V! Σ αₜ Vₚ)
-       (define tₚ (foldr (λ ([Wₗ : -W¹] [tᵣ : -?t]) (?t@ -cons (-W¹-t Wₗ) tᵣ)) -null Ws))
-       {set (-ΓA Γ (-W (list Vₚ) tₚ))}]))
-  (def-prim/todo list* ; FIXME
-    (-> list?))
-  ; [HO] build-list
+  (def list? (any/c . -> . boolean?))
+  (def list (∀/c (α) (() #:rest (listof α) . ->* . (listof α))))
+  (def list* (() #:rest list? . ->* . list?)) ; FIXME
+  (def build-list (∀/c (α) (exact-nonnegative-integer?
+                            (exact-nonnegative-integer? . -> . α)
+                            . -> . (listof α))))
 
   ;; 4.9.2 List Operations
-  (def-prim length (list? . -> . exact-nonnegative-integer?)
+  (def length (list? . -> . exact-nonnegative-integer?)
     #:refinements
     (pair? . -> . exact-positive-integer?)
     (null? . -> . zero?))
-  (def-prim/todo list-ref
-    (pair? exact-nonnegative-integer? . -> . any/c))
-  (def-prim/custom (list-tail ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([Wₗ any/c] [Wₙ exact-nonnegative-integer?])
-    (define σ (-Σ-σ Σ))
-    (match-define (-W¹ Vₗ sₗ) Wₗ)
-    (match-define (-W¹ _  sₙ) Wₙ)
-    (define sₐ (?t@ 'list-tail sₗ sₙ))
-    (match Vₗ
-      [(? -St? Vₗ)
-       (define Vₕs (extract-list-content σ Vₗ))
-       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
-       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
-       (define Vₜ (-Cons αₕ αₜ))
-       (for ([Vₕ Vₕs]) (σ⊕V! Σ αₕ Vₕ))
-       (σ⊕V! Σ αₜ Vₜ)
-       (σ⊕V! Σ αₜ -null)
-       {set (-ΓA Γ (-W (list -null) sₐ))
-            (-ΓA Γ (-W (list Vₜ) sₐ))}]
-      [(-b (list))
-       {set (-ΓA Γ (-W (list -null) sₐ))}]
-      [_
-       {set (-ΓA Γ (-W (list (+● 'list?)) sₐ))}]))
-  (def-prim append (() #:rest (listof list?) . ->* . list?))
-  #;(def-prim/custom (append ⟪ℋ⟫ ℓ Σ $ Γ Ws) ; FIXME uses
-      #:domain ([W₁ list?] [W₂ list?])
-      (define σ (-Σ-σ Σ))
-      (match-define (-W¹ V₁ s₁) W₁)
-      (match-define (-W¹ V₂ s₂) W₂)
-      (define sₐ (?t@ 'append s₁ s₂))
-      (define Vₐ
-        (match* (V₁ V₂)
-          [((-b null) V₂) V₂]
-          [((-Cons αₕ αₜ) V₂)
-           (define ℓ (-ℓ ∅eq ℓ))
-           (define αₕ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
-           (define αₜ* (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
-           (for ([Vₕ (σ@ Σ αₕ)]) (σ⊕! Σ αₕ* Vₕ))
-           (define Vₜs (set-add (σ@ Σ αₜ) V₂))
-           (for ([Vₜ* Vₜs]) (σ⊕! Σ αₜ* Vₜ*))
-           (-Cons αₕ* αₜ*)]
-          [(_ _) (-● {set 'list?})]))
-      {set (-ΓA Γ (-W (list Vₐ) sₐ))})
-  (def-prim/custom (reverse ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([Wₗ list?])
-    (define σ (-Σ-σ Σ))
-    (match-define (-W¹ Vₗ sₗ) Wₗ)
-    (define sₐ (?t@ 'reverse sₗ))
-    (match Vₗ
-      [(-b (list)) {set (-ΓA Γ (-W (list -null) sₐ))}]
-      [(-Cons _ _)
-       (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
-       (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
-       (define Vₜ (-Cons αₕ αₜ))
-       (for ([Vₕ (extract-list-content σ Vₗ)]) (σ⊕V! Σ αₕ Vₕ))
-       (σ⊕V! Σ αₜ Vₜ)
-       (σ⊕V! Σ αₜ -null)
-       {set (-ΓA Γ (-W (list Vₜ) sₐ))}]
-      [(-● ps)
-       (cond [(∋ ps -cons?) {set (-ΓA Γ (-W (list (+● -cons?)) sₐ))}]
-             [else          {set (-ΓA Γ (-W (list (+● 'list?)) sₐ))}])]
-      [_ {set (-ΓA Γ (-W (list (+● 'list?)) sₐ))}]))
+  (def list-ref (∀/c (α) ((and/c (listof α) pair?) exact-nonnegative-integer? . -> . α))) ; FIXME mismatch
+  (def list-tail (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
+  (def append (∀/c (α) (() #:rest (listof (listof α)) . ->* . (listof α))))
+  (def reverse (∀/c (α) ((listof α) . -> . (listof α))))
 
   ;; 4.9.3 List Iteration
-  (def-ext (map ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    ; FIXME uses 
-    #:domain ([Wₚ (any/c . -> . any/c)]
-              [Wₗ list?])
-    (match-define (-W¹ Vₚ sₚ) Wₚ)
-    (match-define (-W¹ Vₗ sₗ) Wₗ)
-    (define tₐ (?t@ 'map sₚ sₗ))
-    (match Vₗ
-      [(-b '()) (⟦k⟧ (-W (list -null) tₐ) $ Γ ⟪ℋ⟫ Σ)]
-      [(-Cons _ _)
-       (define ⟦k⟧* (mk-listof∷ tₐ ℓ ⟪ℋ⟫ ⟦k⟧))
-       (for/union : (℘ -ς) ([V (extract-list-content (-Σ-σ Σ) Vₗ)])
-                  (app ℓ Wₚ (list (-W¹ V #f)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
-      [_ (⟦k⟧ (-W (list (+● 'list?)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
-  #;(def-prims (andmap ormap) ; FIXME uses
-      (procedure? list . -> . any/c))
-  (def-ext (for-each ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₚ (any/c . -> . any/c)]
-              [Wₗ list?])
-    #:result (list -void))
-  #;(def-prims (foldl foldr) ; FIXME uses
-      (procedure? any/c list? . -> . any/c))
+  (def map (∀/c (α β) ((α . -> . β) (listof α) . -> . (listof β)))) ; FIXME uses
+  (def andmap (∀/c (α) ((α . -> . any/c) (listof α) . -> . any/c))) ; FIXME uses
+  (def ormap (∀/c (α) ((α . -> . any/c) (listof α) . -> . any/c))) ; FIXME uses
+  (def for-each (∀/c (α) ((α . -> . any/c) (listof α) . -> . void?))) ; FIXME uses
+  (def foldl (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
+  (def foldr (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
 
   ;; 4.9.4 List Filtering
-  (def-prim/todo filter
-    ((any/c . -> . any/c) list? . -> . list?))
-  (def-prim/todo remove ; FIXME uses
-    (any/c list? . -> . list?))
-  (def-prims (remq remv)
-    (any/c list? . -> . list?))
-  (def-prim/todo remove* ; FIXME uses
-    (list? list? . -> . list?))
-  (def-prims (remq* remv*)
-    (list? list? . -> . list?))
-  (def-prim/todo sort ; FIXME uses
-    (list? (any/c any/c . -> . any/c) . -> . list?))
+  (def filter (∀/c (α) ((α . -> . any/c) (listof α) . -> . (listof α))))
+  (def remove
+    (∀/c (α β)
+         (case->
+          [β (listof α) . -> . (listof α)]
+          [β (listof α) (α β . -> . any/c) . -> . (listof α)])))
+  (def* (remq remv) (∀/c (α) (any/c (listof α) . -> . (listof α))))
+  (def remove*
+    (∀/c (α β)
+      (case->
+       ((listof β) (listof α) . -> . (listof α))
+       ((listof β) (listof α) (α β . -> . any/c) . -> . (listof α)))))
+  (def* (remq* remv*) (∀/c (α) (list? (listof α) . -> . (listof α))))
+  (def sort ; FIXME uses
+    (∀/c (α) ((listof α) (α α . -> . any/c) . -> . (listof α))))
 
   ;; 4.9.5 List Searching
-  (def-prim/custom (member ⟪ℋ⟫ ℓ Σ $ Γ Ws) ; FIXME uses
-    #:domain ([Wₓ any/c] [Wₗ list?])
-    (implement-mem 'member ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ))
-  (def-prim/custom (memv ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([Wₓ any/c] [Wₗ list?])
-    (implement-mem 'memv ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ))
-  (def-prim/custom (memq ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([Wₓ any/c] [Wₗ list?])
-    (implement-mem 'memq ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ))
-  (def-prim/todo memf ; TODO why doc only requires `procedure?` and not `arity-includes 1`
-    (procedure? list? . -> . (or/c list? not)))
-  (def-prim/todo findf
-    (procedure? list? . -> . any/c))
-  (def-prim assoc (any/c (listof pair?) . -> . (or/c pair? not))) ; FIXME uses ; FIXME listof
-  (def-prims (assv assq) ; FIXME listof
-    (any/c (listof pair?) . -> . (or/c pair? not)))
-  (def-prim/todo assf ; TODO why doc only requires `procedure?`
-    (procedure? list? . -> . (or/c pair? not)))
+  (def member
+    (∀/c (α β)
+         (case->
+          [β (listof α) . -> . (or/c (and/c (listof α) pair?) not)]
+          [β (listof α) (α β . -> . any/c) . -> . (or/c (and/c (listof α) pair?) not)])))
+  (def* (memv memq) (∀/c (α) (any/c (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
+  (def memf (∀/c (α) ((α . -> . any/c) (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
+  (def findf (∀/c (α) ((α . -> . any/c) (listof α) . -> . (or/c α not))))
+  (def assoc
+    (∀/c (α β)
+         (case->
+          [α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not)]
+          [α (listof (cons/c α β)) (α α . -> . any/c) . -> . (or/c (cons/c α β) not)])))
+  (def* (assv assq) (∀/c (α β) (α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
+  (def assf (∀/c (α β) ((α . -> . any/c) (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
 
   ;; 4.9.6 Pair Acesssor Shorthands
-  ; FIXME these are *opaque* for now. Make them composition of accessors
-  (def-prims (caar cdar)
+  ; FIXME parametric
+  (def* (caar cdar)
     ((cons/c pair? any/c) . -> . any/c))
-  (def-prims (cadr cddr)
+  (def* (cadr cddr)
     ((cons/c any/c pair?) . -> . any/c))
-  (def-prim caaar
+  (def caaar
     ((cons/c (cons/c pair? any/c) any/c) . -> . any/c))
-  (def-prim caadr
+  (def caadr
     ((cons/c any/c (cons/c pair? any/c)) . -> . any/c))
-  (def-prim cadar
+  (def cadar
     ((cons/c (cons/c any/c pair?) any/c) . -> . any/c))
-  (def-prim caddr
+  (def caddr
     ((cons/c any/c (cons/c any/c pair?)) . -> . any/c))
-  (def-prim cdaar
+  (def cdaar
     ((cons/c (cons/c pair? any/c) any/c) . -> . any/c))
-  (def-prim cdadr
+  (def cdadr
     ((cons/c any/c (cons/c pair? any/c)) . -> . any/c))
-  (def-prim cddar
+  (def cddar
     ((cons/c (cons/c any/c pair?) any/c) . -> . any/c))
-  (def-prim cdddr
+  (def cdddr
     ((cons/c any/c (cons/c any/c pair?)) . -> . any/c))
   ; TODO rest of them
 
@@ -226,207 +136,100 @@
   (def-alias empty? null?)
   (def-alias-internal first -car) ; FIXME precond
   (def-alias-internal rest -cdr) ; FIXME precond
-  (def-prim second
+  ;; FIXME parametric
+  (def second
     ((cons/c any/c (cons/c any/c list?)) . -> . any/c))
-  (def-prim third
+  (def third
     ((cons/c any/c (cons/c any/c (cons/c any/c list?))) . -> . any/c))
-  (def-prim fourth
+  (def fourth
     ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))) . -> . any/c))
-  (def-prim fifth
+  (def fifth
     ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))) . -> . any/c))
-  (def-prim sixth
+  (def sixth
     ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))) . -> . any/c))
-  (def-prim seventh
+  (def seventh
     ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))) . -> . any/c))
-  (def-prim eighth
+  (def eighth
     ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))) . -> . any/c))
-  (def-prim ninth
+  (def ninth
     ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))))) . -> . any/c))
-  (def-prim tenth
+  (def tenth
     ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))))) . -> . any/c))
-  (def-prim/todo last
-    ((and/c list? (not/c empty?)) . -> . any/c))
-  (def-prim/todo last-pair
+  (def last (∀/c (α) ((and/c (listof α) pair?) . -> . α)))
+  (def last-pair
+    ; FIXME allowing recursive contract in DSL
+    ; (∀/c (α β) ((μ (X) (or/c (cons/c α β) (cons/c α X))) . -> . (cons/c α β)))
     (pair? . -> . pair?))
-  (def-prim/todo make-list
-    (exact-nonnegative-integer? any/c . -> . list?))
-  (def-prim/todo list-update ; FIXME range
-    (list? exact-nonnegative-integer? (any/c . -> . any/c) . -> . list?))
-  (def-prim/todo list-set ; FIXME range
-    (list? exact-nonnegative-integer? any/c . -> . list?))
-  (def-prim/todo take ; FIXME range
-    (list? exact-nonnegative-integer? . -> . list?))
-  (def-prim/todo drop
-    (any/c exact-nonnegative-integer? . -> . any/c))
-  #;[split-at ; FIXME
-     (any/c exact-nonnegative-integer? . -> . (values list? any/c))]
-  (def-prim/todo takef
-    (any/c procedure? . -> . list?))
-  (def-prim/todo dropf
-    (any/c procedure? . -> . any/c))
-  (def-prim/todo splitf-at ; FIXME
-    (any/c procedure? . -> . (values list? any/c)))
-  (def-prim/todo take-right
-    (any/c exact-nonnegative-integer? . -> . any/c))
-  (def-prim/todo drop-right
-    (any/c exact-nonnegative-integer? . -> . list?))
-  #;[split-at-right ; FIXME
-     (any/c exact-nonnegative-integer? . -> . (values list? any/c))]
-  (def-prim/todo takef-right
-    (any/c procedure? . -> . list?))
-  (def-prim/todo dropf-right
-    (any/c procedure? . -> . any/c))
-  #;[splitf-at-right ; FIXME uses
-     (any/c procedure? . -> . (values list? any/c))]
-  (def-prim list-prefix? ; FIXME uses
-    (list? list? . -> . boolean?))
-  (def-prim/todo take-common-prefix ; FIXME uses
-    (list? list? . -> . list?))
-  #;[drop-common-prefix ; FIXME uses
-     (list? list? . -> . (values list? list?))]
-  #;[split-common-prefix ; FIXME uses
-     (list? list? . -> . (values list? list? list?))]
-  (def-prim/todo add-between ; FIXME uses
-    (list? any/c . -> . list?))
+  (def make-list (∀/c (α) (exact-nonnegative-integer? α . -> . (listof α))))
+  (def list-update (∀/c (α) ((listof α) exact-nonnegative-integer? (α . -> . α) . -> . (listof α))))
+  (def list-set (∀/c (α) ((listof α) exact-nonnegative-integer? α . -> . (listof α))))
+  (def take (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
+  (def drop (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
+  (def split-at (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (values (listof α) (listof α))))) ; FIXME mismatch
+  (def* (takef dropf) (∀/c (α) ((listof α) (α . -> . any/c) . -> . (listof α)))) ; FIXME mismatch
+  (def splitf-at (∀/c (α) ((listof α) (α . -> . any/c) . -> . (values (listof α) (listof α))))) ; FIXME mismatch
+  (def* (take-right drop-right) (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
+  (def split-at-right (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (values (listof α) (listof α))))) ; FIXME mismatch
+  (def* (takef-right dropf-right) (∀/c (α) ((listof α) (α . -> . any/c) . -> . (listof α)))) ; FIXME mismatch
+  (def splitf-at-right (∀/c (α) ((listof α) (α . -> . any/c) . -> . (values (listof α) (listof α))))) ; FIXME mismatch
+  (def list-prefix?
+    (∀/c (α)
+         (case->
+          [(listof α) (listof α) . -> . boolean?]
+          [(listof α) (listof α) (α α . -> . any/c) . -> . boolean?])))
+  (def* (take-common-prefix drop-common-prefix)
+    (∀/c (α)
+         (case->
+          [(listof α) (listof α) . -> . (listof α)]
+          [(listof α) (listof α) (α α . -> . any/c) . -> . (listof α)])))
+  (def split-common-prefix
+    (∀/c (α)
+         (case->
+          [(listof α) (listof α) . -> . (values (listof α) (listof α) (listof α))]
+          [(listof α) (listof α) (α α . -> . any/c) . -> . (values (listof α) (listof α) (listof α))])))
+  (def add-between (∀/c (α) ((listof α) α . -> . (listof α))))
   #;[append* ; FIXME uses ; FIXME listof
      ((listof list?) . -> . list?)]
-  (def-prim/todo flatten
-    (any/c . -> . list?))
-  (def-prim/todo check-duplicates ; FIXME uses
-    (list? . -> . any/c)) ; simplified from doc's `(or/c any/c #f)`
-  (def-prim/todo remove-duplicates ; FIXME uses
-    (list? . -> . list?))
-  (def-prim/todo filter-map ; FIXME uses
-    (procedure? list? . -> . list?))
-  (def-prim/todo count ; FIXME varargs
-    (procedure? list? . -> . exact-nonnegative-integer?))
-  #;[partition
-     (procedure? list? . -> . (values list? list?))]
-  (def-prim/todo range ; FIXME uses
-    (real? . -> . list?))
-  (def-prim/todo append-map ; FIXME varargs
-    (procedure? list? . -> . list?))
-  (def-prim/todo filter-not
-    ((any/c . -> . any/c) list? . -> . list?))
-  (def-prim/todo shuffle
-    (list? . -> . list?))
-  (def-prim/todo permutations
-    (list? . -> . list?))
-  (def-prim/todo in-permutations
-    (list? . -> . sequence?))
-  ; [HO] argmin argmax
-  #;[group-by ; FIXME uses ; FIXME listof
-     ((any/c . -> . any/c) list? . -> . (listof list?))]
-  #;[cartesian-product ; FIXME varargs ; FIXME listof
-     (() #:rest (listof list?) . ->* . (listof list?))]
-  (def-prim/todo remf
-    (procedure? list? . -> . list?))
-  (def-prim/todo remf*
-    (procedure? list? . -> . list?))
+  (def flatten (any/c . -> . list?))
+  (def check-duplicates ; FIXME uses
+    (∀/c (α)
+         (case->
+          [(listof α) . -> . (or/c α not)]
+          [(listof α) (α α . -> . any/c) . -> . (or/c α not)])))
+  (def remove-duplicates ; FIXME uses
+    (∀/c (α)
+         (case->
+          [(listof α) . -> . (listof α)]
+          [(listof α) (α α . -> . any/c) . -> . (listof α)])))
+  (def filter-map (∀/c (α β) ((α . -> . β) (listof α) . -> . (listof (and/c β (not/c not))))))  ; FIXME uses
+  (def count (∀/c (α) ((α . -> . any/c) (listof α) . -> . exact-nonnegative-integer?)))  ; FIXME varargs
+  (def partition (∀/c (α) ((α . -> . any/c) (listof α) . -> . (values (listof α) (listof α)))))
+  (def range
+    (case->
+     [real? . -> . (listof real?)]
+     [real? real? . -> . (listof real?)]
+     [real? real? real? . -> . (listof real?)]))
+  (def append-map (∀/c (α β) ((α . -> . (listof β)) (listof α) . -> . (listof β)))) ; FIXME varargs
+  (def filter-not (∀/c (α) ((α . -> . any/c) (listof α) . -> . (listof α))))
+  (def shuffle (∀/c (α) ((listof α) . -> . (listof α))))
+  (def permutations (∀/c (α) ((listof α) . -> . (listof (listof α)))))
+  (def in-permutations (list? . -> . sequence?))
+  (def* (argmin argmax) (∀/c (α) ((α . -> . real?) (and/c (listof α) pair?) . -> . α)))
+  (def group-by
+    (∀/c (α β)
+         (case->
+          [(α . -> . β) (listof α) . -> . (listof (listof α))]
+          [(α . -> . β) (listof α) (β β . -> . any/c) . -> . (listof (listof α))])))
+  (def cartesian-product (∀/c (α β) ((listof α) (listof β) . -> . (listof (list/c α β))))) ; FIXME varargs
+  (def* (remf remf*) (∀/c (α) ((α . -> . any/c) (listof α) . -> . (listof α))))
 
   ;; 4.9.8 Immutable Cyclic Data
-  (def-prim/todo make-reader-graph
-    (any/c . -> . any/c))
-  (def-pred/todo placeholder?)
-  (def-prim/todo make-placeholder
-    (any/c . -> . placeholder?))
-  (def-prim/todo placeholder-set!
-    (placeholder? any/c . -> . void?))
-  (def-prim/todo placeholder-get
-    (placeholder? . -> . any/c))
-  (def-pred/todo hash-placeholder?)
-  #;[def-prims (make-hash-placeholder make-hasheq-placeholder make-hasheqv-placeholder) ; FIXME listof
-      ((listof pair?) . -> . hash-placeholder?)]
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;; HELPERS
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (: implement-mem : Symbol -⟪ℋ⟫ ℓ -Σ -$ -Γ -W¹ -W¹ → (℘ -ΓA))
-  (define (implement-mem o ⟪ℋ⟫ ℓ Σ $ Γ Wₓ Wₗ)
-
-    (: definitely-equal? : -σ -V -V → Boolean)
-    (define (definitely-equal? σ V₁ V₂)
-      (let loop ([V₁ : -V V₁] [V₂ : -V V₂] [seen : (℘ (Pairof -V -V)) ∅])
-        (cond
-          [(∋ seen (cons V₁ V₂)) #t]
-          [else
-           (match* (V₁ V₂)
-             [((-b b₁) (-b b₂)) (equal? b₁ b₂)]
-             [((-St 𝒾 αs₁) (-St 𝒾 αs₂))
-              (for/and : Boolean ([α₁ : ⟪α⟫ αs₁] [α₂ : ⟪α⟫ αs₂])
-                (define Vs₁ (σ@ Σ α₁))
-                (define Vs₂ (σ@ Σ α₂))
-                (for/and : Boolean ([V₁* Vs₁]) ; can't use for*/and :(
-                  (for/and : Boolean ([V₂* Vs₂])
-                    (loop V₁* V₂* (set-add seen (cons V₁ V₂))))))]
-             [(_ _) #f])])))
-
-    (: definitely-not-equal? : -σ -V -V → Boolean)
-    (define (definitely-not-equal? σ V₁ V₂)
-      (let loop ([V₁ : -V V₁] [V₂ : -V V₂] [seen : (℘ (Pairof -V -V)) ∅])
-        (cond
-          [(∋ seen (cons V₁ V₂)) #t]
-          [else
-           (match* (V₁ V₂)
-             [((-b b₁) (-b b₂)) (not (equal? b₁ b₂))]
-             [((-St 𝒾₁ αs₁) (-St 𝒾₂ αs₂))
-              (or (not (equal? 𝒾₁ 𝒾₂))
-                  (for/or : Boolean ([α₁ : ⟪α⟫ αs₁] [α₂ : ⟪α⟫ αs₂])
-                    (define Vs₁ (σ@ Σ α₁))
-                    (define Vs₂ (σ@ Σ α₂))
-                    (for/and : Boolean ([V₁ Vs₁])
-                      (for/and : Boolean ([V₂ Vs₂])
-                        (loop V₁ V₂ (set-add seen (cons V₁ V₂)))))))]
-             [(_ _) #f])])))
-
-    (: definitely-member? : -σ -V -St → Boolean)
-    (define (definitely-member? σ V Vₗ)
-      (let loop ([Vₗ : -V Vₗ] [seen : (℘ -V) ∅])
-        (cond
-          [(∋ seen Vₗ) #f]
-          [else
-           (match Vₗ
-             [(-Cons αₕ αₜ)
-              (or (for/and : Boolean ([Vₕ (σ@ Σ αₕ)]) (definitely-equal? σ V Vₕ))
-                  (for/and : Boolean ([Vₜ (σ@ Σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
-             [_ #f])])))
-
-    (: definitely-not-member? : -σ -V -St → Boolean)
-    (define (definitely-not-member? σ V Vₗ)
-      (let loop ([Vₗ : -V Vₗ] [seen : (℘ -V) ∅])
-        (cond
-          [(∋ seen Vₗ) #t]
-          [else
-           (match Vₗ
-             [(-Cons αₕ αₜ)
-              (and (for/and : Boolean ([Vₕ (σ@ Σ αₕ)]) (definitely-not-equal? σ V Vₕ))
-                   (for/and : Boolean ([Vₜ (σ@ Σ αₜ)]) (loop Vₜ (set-add seen Vₗ))))]
-             [(-b (list)) #t]
-             [_ #f])])))
-    
-    (match-define (-W¹ Vₓ sₓ) Wₓ)
-    (match-define (-W¹ Vₗ sₗ) Wₗ)
-    (define sₐ (?t@ o sₓ sₗ))
-    (define σ (-Σ-σ Σ))
-    (match Vₗ
-      [(-Cons _ _)
-       (cond
-         [(definitely-not-member? σ Vₓ Vₗ)
-          {set (-ΓA Γ (-W (list -ff) sₐ))}]
-         [else
-          (define αₕ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 0)))
-          (define αₜ (-α->⟪α⟫ (-α.fld -𝒾-cons ℓ ⟪ℋ⟫ 1)))
-          (define Vₜ (-Cons αₕ αₜ))
-          (for ([Vₕ (extract-list-content σ Vₗ)])
-            (σ⊕V! Σ αₕ Vₕ))
-          (σ⊕V! Σ αₜ Vₜ)
-          (σ⊕V! Σ αₜ -null)
-          (define Ans {set (-ΓA Γ (-W (list Vₜ) sₐ))})
-          (cond [(definitely-member? σ Vₓ Vₗ) Ans]
-                [else (set-add Ans (-ΓA Γ (-W (list -ff) sₐ)))])])]
-      [(-b '()) {set (-ΓA Γ (-W (list -ff) sₐ))}]
-      [_ {set (-ΓA Γ (-W (list (+● 'list? -cons?)) sₐ))
-              (-ΓA Γ (-W (list -ff) sₐ))}]))
+  (def make-reader-graph (any/c . -> . any/c))
+  (def-pred placeholder?)
+  (def make-placeholder (any/c . -> . placeholder?))
+  (def placeholder-set! (placeholder? any/c . -> . void?) #:lift-concrete? #f)
+  (def placeholder-get (placeholder? . -> . any/c))
+  (def-pred hash-placeholder?)
+  (def* (make-hash-placeholder make-hasheq-placeholder make-hasheqv-placeholder)
+      ((listof pair?) . -> . hash-placeholder?))
   )

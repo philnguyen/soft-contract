@@ -7,17 +7,19 @@
                      racket/syntax
                      syntax/parse)
          racket/match
+         racket/list
          racket/set
+         racket/bool
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit widening@
-  (import local-prover^ pc^ sto^ pretty-print^ env^ val^)
+  (import static-info^ local-prover^ pc^ sto^ pretty-print^ env^ val^)
   (export widening^)
 
   (: Γ+ : -Γ -?t * → -Γ)
@@ -93,7 +95,14 @@
 
   (: σ⊕ : -σ ⟪α⟫ -V → -σ)
   (define (σ⊕ σ α V)
-    (hash-update σ α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅))
+    (match (⟪α⟫->-α α)
+      ; TODO just debugging. Shouldn't happen
+      [(-α.imm V*)
+       (unless (equal? V V*)
+         (error 'σ⊕ "illegal allocation: ~a ↦ ~a~n" (show-V V*) (show-V V)))
+       σ]
+      [_
+       (hash-update σ α (λ ([Vs : (℘ -V)]) (Vs⊕ σ Vs V)) mk-∅)]))
 
   ;; Widen value set with new value
   (define (Vs⊕ [σ : -σ] [Vs : (℘ -V)] [V : (U -V (℘ -V))]) : (℘ -V)
@@ -143,7 +152,7 @@
                                     (match V
                                       [(-● ps)
                                        (match P
-                                         [(-≡/c b) (-b b)]
+                                         [(or (-≡/c b) (-b b)) (-b b)]
                                          ['not -ff]
                                          ['null? -null]
                                          ['void? -void]
@@ -303,7 +312,9 @@
         [((-Clo _ ⟦e⟧ ρ₁ _)
           (-Clo _ ⟦e⟧ ρ₂ _)) ; TODO : ignore `Γ` ok?
          (for/and : Boolean ([(x α₁) (in-hash ρ₁)])
-           (go/⟪α⟫ α₁ (ρ@ ρ₂ x)))]
+           (define α₂ (ρ@ ρ₂ x))
+           (or (and (-V? α₁) (-V? α₂) (go α₁ α₂))
+               (and (not (-V? α₁)) (not (-V? α₂)) (go/⟪α⟫ α₁ α₂))))]
         [(_ _) #f]))
 
     (go V₁ V₂))
@@ -353,11 +364,43 @@
            (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
            (and ?Γ (-ΓA ?Γ A₂))]))
 
-  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : Void
-    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ ⟦k⟧)))
+  (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
+    (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
 
-  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [⟦k⟧ : -⟦k⟧]) : -σₖ
-    (hash-update σₖ αₖ (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧)) mk-∅eq))
+  (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
+    (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
+
+  (: ?κ⊔ : -κ -κ → (Option -κ))
+  (define (?κ⊔ κ₁ κ₂)
+
+    (: t⊑ : -?t -?t → Boolean)
+    (define (t⊑ t₁ t₂)
+      (implies t₂ (equal? t₁ t₂)))
+
+    (: κ⊑ : -κ.rt -κ.rt → Boolean)
+    (define (κ⊑ κ₁ κ₂)
+      (match-define (-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁) κ₁)
+      (match-define (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂) κ₂)
+      (and (⟦k⟧₁ . equal? . ⟦k⟧₂)
+           (dom₂ . ⊆  . dom₁)
+           (Γ₂   . ⊆  . Γ₁)
+           (t₁   . t⊑ . t₂)
+           (looped?₁ . implies . looped?₂)))
+
+    (match* (κ₁ κ₂)
+      [((-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁)
+        (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂))
+       (cond [(κ⊑ κ₁ κ₂) κ₂]
+             [(κ⊑ κ₂ κ₁) κ₂]
+             [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
+                   (t₁ . t⊑ . t₂)
+                   (dom₂ . ⊆ . dom₁)
+                   (looped?₁ . implies . looped?₂))
+              (define ?Γ (?Γ⊔ Γ₁ Γ₂))
+              (and ?Γ (-κ.rt ⟦k⟧₂ dom₂ ?Γ t₂ looped?₂))]
+             [else #f])]
+      [(κ κ) κ]
+      [(_ _) #f]))
 
   (define (add-leak! [Σ : -Σ] [V : -V]) : Void
     (when (behavioral? (-Σ-σ Σ) V)
@@ -378,7 +421,7 @@
       (define tₓ* (if looped? (-t.x x) (or tₓ (-t.x x))))
       (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
       (σ⊕V! Σ α Vₓ*)
-      (define $* ($-set $ x (-W¹ Vₓ* tₓ*)))
+      (define $* (if tₓ* ($-set $ x tₓ*) $))
       (values (ρ+ ρ x α) $*)))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
@@ -435,6 +478,7 @@
                      (for/union : (℘ Arity) ([Vₜ (in-set (σ@ σ αₜ))])
                         (map/set arity-inc (go! Vₜ)))])]
         [(-b '()) {set 0}]
+        [(-● ps) #:when (∋ ps 'list?) {set (arity-at-least 0)}]
         [_ (set! maybe-non-proper-list? #t)
            ∅]))
     (define res
@@ -485,44 +529,17 @@
                                                       [pair (in-set pairs)])
               (match-define (cons Vₜs Vᵣ) pair)
               (cons (cons Vₕ Vₜs) Vᵣ))]
+           [(-● ps) #:when (∋ ps 'list?)
+            {set (cons (make-list n (+●)) (+● 'list?))}]
            [_ ∅])])))
-
-  (: collect-hash-pairs : -σ ⟪α⟫ → (Values (℘ -V) (℘ -V)))
-  ;; Collect conservative sets of keys and values of hash-table
-  (define (collect-hash-pairs σ αₕ)
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    
-    (: go-V : -V (℘ -V) (℘ -V) → (Values (℘ -V) (℘ -V)))
-    (define (go-V Vₕ Vsₖ Vsᵥ)
-      (match Vₕ
-        [(-Hash^ αₖ αᵥ _)
-         (values (Vs⊕ σ Vsₖ (σ@ σ αₖ)) (Vs⊕ σ Vsᵥ (σ@ σ αᵥ)))]
-        [(-Hash/guard _ αₕ _)
-         (go-α αₕ Vsₖ Vsᵥ)]
-        [_ (values (Vs⊕ σ Vsₖ (+●)) (Vs⊕ σ Vsᵥ (+●)))]))
-    
-    (: go-α : ⟪α⟫ (℘ -V) (℘ -V) → (Values (℘ -V) (℘ -V)))
-    (define (go-α α Vsₖ Vsᵥ)
-      (cond [(seen-has? α) (values Vsₖ Vsᵥ)]
-            [else
-             (seen-add! α)
-             (for/fold ([Vsₖ : (℘ -V) Vsₖ] [Vsᵥ : (℘ -V) Vsᵥ])
-                       ([V (in-set (σ@ σ α))])
-               (go-V V Vsₖ Vsᵥ))]))
-
-    (go-α αₕ ∅ ∅))
 
   (: M⊕! : -Σ -αₖ -ΓA → Void)
   (define (M⊕! Σ αₖ ΓA)
     (set--Σ-M! Σ (hash-update (-Σ-M Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
 
-  (: copy-Γ : -$ -Γ -Γ → -Γ)
-  (define (copy-Γ $ₜ Γₜ Γₛ)
-    (define dom
-      (for/unioneq : (℘ Symbol) ([W (in-hash-values $ₜ)])
-        (fvₜ (-W¹-t W))))
-    (define Γₛ* (Γ↓ Γₛ dom))
-    (∪ Γₜ Γₛ*))
+  (: copy-Γ : (℘ Symbol) -Γ -Γ → -Γ)
+  (define (copy-Γ dom Γₜ Γₛ)
+    (∪ Γₜ (Γ↓ Γₛ dom)))
   )
 
 

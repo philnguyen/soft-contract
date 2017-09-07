@@ -14,7 +14,6 @@
          racket/set
          racket/flonum
          racket/fixnum
-         racket/extflonum
          racket/generator
          racket/random
          racket/format
@@ -23,18 +22,15 @@
          syntax/parse/define
          set-extras
          "../utils/debug.rkt"
-         (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
-         "../ast/shorthands.rkt"
-         "../runtime/signatures.rkt"
-         "../signatures.rkt"
+         (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
 
 (define-unit prims-04-04@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,70 +39,84 @@
 
   ;; 4.4.1 Constructors, Selectors, Mutators
   (def-pred bytes?)
-  (def-prim/todo make-bytes ; FIXME uses
+  (def make-bytes ; FIXME uses
     (exact-nonnegative-integer? byte? . -> . bytes?))
-  #;[bytes
-     (-> bytes)]
-  (def-prim/todo bytes->immutable-bytes
+  (def bytes (() #:rest (listof byte?) . ->* . bytes?))
+  (def bytes->immutable-bytes
     (bytes? . -> . (and/c bytes? immutable?)))
   (def-pred byte?)
-  (def-prim/todo bytes-length
-    (bytes? . -> . exact-nonnegative-integer?))
-  (def-prim/todo bytes-ref
-    (bytes exact-nonnegative-integer? . -> . byte?))
-  (def-prim/todo bytes-set!
-    ((and/c bytes? (not/c immutable?)) exact-nonnegative-integer? byte? . -> . void?))
-  (def-prim/todo subbytes ; FIXME uses
-    (bytes? exact-nonnegative-integer? . -> . bytes?))
-  (def-prim/todo bytes-copy
+  (def bytes-length (bytes? . -> . exact-nonnegative-integer?))
+  (def bytes-ref (bytes? exact-nonnegative-integer? . -> . byte?))
+  (def bytes-set! ((and/c bytes? (not/c immutable?)) exact-nonnegative-integer? byte? . -> . void?))
+  (def subbytes
+    (case->
+     [bytes? exact-nonnegative-integer? . -> . bytes?]
+     [bytes? exact-nonnegative-integer? exact-nonnegative-integer? . -> . bytes?]))
+  (def bytes-copy
     (bytes? . -> . bytes?))
-  (def-prim/todo bytes-copy! ; FIXME uses
-    ((and/c bytes? (not/c immutable?)) exact-nonnegative-integer? bytes? . -> . void?))
-  (def-prim/todo bytes-fill!
+  (def bytes-copy!
+    (case->
+     [(and/c bytes? (not/c immutable?)) exact-nonnegative-integer? bytes? . -> . void?]
+     [(and/c bytes? (not/c immutable?)) exact-nonnegative-integer? bytes? exact-nonnegative-integer? . -> . void?]
+     [(and/c bytes? (not/c immutable?)) exact-nonnegative-integer? bytes? exact-nonnegative-integer? exact-nonnegative-integer? . -> . void?]))
+  (def bytes-fill!
     ((and/c bytes? (not/c immutable?)) byte? . -> . void?))
-  #;[bytes-append ; FIXME listof
-     (() #:rest (listof bytes?) . ->* . bytes?)]
-  #;[bytes->list ; FIXME listof
-     (bytes? . -> . (listof byte?))]
-  #;[list->bytes ; FIXME listof
-     ((listof byte?) . -> . bytes?)]
-  (def-prim/todo make-shared-bytes ; FIXME uses
-    (exact-nonnegative-integer? byte? . -> . bytes?))
-  #;[shared-bytes
-     (-> bytes)]
+  (def bytes-append (() #:rest (listof bytes?) . ->* . bytes?))
+  (def bytes->list (bytes? . -> . (listof byte?)))
+  (def list->bytes ((listof byte?) . -> . bytes?))
+  (def make-shared-bytes
+    (case->
+     [exact-nonnegative-integer? . -> . bytes?]
+     [exact-nonnegative-integer? byte? . -> . bytes?]))
+  (def shared-bytes (() #:rest (listof byte?) . ->* . bytes?))
 
   ;; 4.4.2 Byte String Comparisons
   ; FIXME varargs
   (def-preds (bytes=? bytes<? bytes>?) (bytes? bytes?))
 
   ;; 4.4.3 Bytes to/from Characers, Decoding and Encoding
-  ; FIXME uses
-  (def-prims (bytes->string/utf-8 bytes->string/locale bytes->string/latin-1)
-    (bytes? . -> . string?))
-  (def-prims (string->bytes/utf-8 string->bytes/locale string->bytes/latin-1)
-    (string? . -> . bytes?))
-  (def-prim/todo string-utf-8-length ; FIXME uses
-    (string? . -> . exact-nonnegative-integer?))
-  (def-prim/todo bytes-utf-8-length ; FIXME uses
-    (bytes? . -> . exact-nonnegative-integer?))
-  (def-prims (bytes-utf-8-ref bytes-utf-8-index) ; FIXME uses
-    (bytes? exact-nonnegative-integer? . -> . char?))
+  (def* (bytes->string/utf-8 bytes->string/locale bytes->string/latin-1)
+    (case->
+     [bytes? . -> . string?]
+     [bytes? (or/c not char?) . -> . string?]
+     [bytes? (or/c not char?) exact-nonnegative-integer? . -> . string?]
+     [bytes? (or/c not char?) exact-nonnegative-integer? exact-nonnegative-integer? . -> . string?]))
+  (def* (string->bytes/utf-8 string->bytes/locale string->bytes/latin-1)
+    (case->
+     [string? . -> . bytes?]
+     [string? (or/c not byte?) . -> . bytes?]
+     [string? (or/c not byte?) exact-nonnegative-integer? . -> . bytes?]
+     [string? (or/c not byte?) exact-nonnegative-integer? exact-nonnegative-integer? . -> . bytes?]))
+  (def string-utf-8-length
+    (case->
+     [string? . -> . exact-nonnegative-integer?]
+     [string? exact-nonnegative-integer? . -> . exact-nonnegative-integer?]
+     [string? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?]))
+  (def bytes-utf-8-length
+    (case->
+     [bytes? . -> . exact-nonnegative-integer?]
+     [bytes? (or/c not char?) . -> . exact-nonnegative-integer?]
+     [bytes? (or/c not char?) exact-nonnegative-integer? . -> . exact-nonnegative-integer?]
+     [bytes? (or/c not char?) exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?]))
+  (def* (bytes-utf-8-ref bytes-utf-8-index)
+    (case->
+     [bytes? . -> . (or/c not char?)]
+     [bytes? exact-nonnegative-integer?  . -> . (or/c not char?)]
+     [bytes? exact-nonnegative-integer? (or/c not char?) . -> . (or/c not char?)]
+     [bytes? exact-nonnegative-integer? (or/c not char?) exact-nonnegative-integer? . -> . (or/c not char?)]
+     [bytes? exact-nonnegative-integer? (or/c not char?) exact-nonnegative-integer? exact-nonnegative-integer? . -> . (or/c not char?)]))
 
   ;; 4.4.4 Bytes to Bytes Encoding Conversion
-  (def-prim/todo bytes-open-converter
-    (string? string? . -> . (or/c bytes-converter? not)))
-  (def-prim/todo bytes-close-converter
-    (bytes-converter? . -> . void?))
+  (def bytes-open-converter (string? string? . -> . (or/c bytes-converter? not)))
+  (def bytes-close-converter (bytes-converter? . -> . void?))
   #;[bytes-convert FIXME
                    (bytes-converter? bytes? . -> . any/c)]
   #;[bytes-convert-end]
   (def-pred bytes-converter?)
-  (def-prim/todo locale-string-encoding
-    (-> any/c))
+  (def locale-string-encoding (-> any/c))
 
   ;; 4.4.5 Additional Byte String Functions
   #;[bytes-append*]
-  #;[bytes-join ; FIXME listof
-     ((listof bytes?) bytes? . -> . bytes?)]
+  (def bytes-join ((listof bytes?) bytes? . -> . bytes?))
   
   )

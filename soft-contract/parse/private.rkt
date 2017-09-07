@@ -1,16 +1,21 @@
 #lang racket
 
 (provide parser-helper@)
+
 (require (prefix-in c: racket/contract/base)
+         racket/splicing
+         set-extras
          racket/unit
          racket/unsafe/ops
          web-server/private/util
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          ;; For extra constants
          syntax/parse
          syntax/parse/define
          syntax/modresolve
+         syntax/id-table
+         "hacks.rkt"
          "expand.rkt"
          (prefix-in fake: "../fake-contract.rkt")
          "../signatures.rkt"
@@ -25,35 +30,8 @@
                      racket/contract
                      ))
 
-(define ?recognized-name
-  (let ([names '(call-with-input-file
-                 call-with-output-file
-                 open-input-file
-                 open-output-file
-                 file->list
-                 file->value
-                 with-input-from-file
-                 with-output-to-file)])
-    (λ (name)
-      (define name-str (symbol->string name))
-      (for/first ([s (in-list names)]
-                  #:when (string-prefix? name-str (symbol->string s)))
-        s))))
-
-(define-syntax-class indirect-app
-  #:description "hack pattern for some `variable-reference-constant?` usages"
-  #:literals (if #%plain-app #%variable-reference)
-  (pattern (if (#%plain-app (~literal variable-reference-constant?)
-                            (#%variable-reference f:id))
-               (#%plain-app g*:id _ ...)
-               (#%plain-app g:id x ...))
-           #:attr fun-name (?recognized-name (syntax-e #'g))
-           #:when (free-identifier=? #'f #'g)
-           #:when (attribute fun-name)
-           #:attr args #'(x ...)))
-
 (define-unit parser-helper@
-  (import prims^)
+  (import static-info^ ast-macros^ meta-functions^ prims^)
   (export parser-helper^)
   (init-depend prims^)
 
@@ -63,10 +41,32 @@
         [(_ x:id c e) #'(define x e)]
         [(_ lhs c rhs ...) #'(define lhs rhs ...)]))
 
+  (define/contract struct-map (parameter/c (hash/c -𝒾? -𝒾?)) (make-parameter #f))
+  (define/contract modules-to-parse (parameter/c (set/c (or/c symbol? string?))) (make-parameter #f))
+  (define/contract id-occurence-count (parameter/c (hash/c symbol? integer?)) (make-parameter (make-hash)))
+  (define/contract env (parameter/c immutable-free-id-table?) (make-parameter (make-immutable-free-id-table)))
+
+  (define-syntax-rule (with-env ρ e ...) (parameterize ([env ρ]) e ...))
+
+  (define/contract (inc-id! id)
+    (identifier? . -> . symbol?)
+    (define m (id-occurence-count))
+    (define s (syntax-e id))
+    (define old-count (hash-ref m s 0))
+    (define name
+      (case old-count
+        [(0) s]
+        [else (format-symbol "~a~a" s (n-sub old-count))]))
+    (hash-set! m s (+ 1 old-count))
+    name)
+
   (define (parse-files fns)
     ;((listof path-string?) . -> . (listof -module?))
 
-    (parameterize ([port-count-lines-enabled #t])
+    (parameterize ([port-count-lines-enabled #t]
+                   [struct-map (make-hash)]
+                   [modules-to-parse (list->set fns)]
+                   [id-occurence-count (make-hasheq)])
       (define stxs (map do-expand-file fns))
       (for-each figure-out-aliases! stxs)
 
@@ -79,10 +79,6 @@
       ;; Re-order the modules for an appropriate initilization order,
       ;; learned from side-effects of `parse-module`
       (sort ms module-before? #:key -module-path)))
-
-  (define (parse-module stx)
-    (match-define (-module l body) (parse-top-level-form stx))
-    (-module l (move-provides-to-end body)))
 
   (define/contract cur-mod (parameter/c string? #|TODO|#)
     (make-parameter "top-level"))
@@ -102,7 +98,8 @@
 
     (define on-module-level-form!
       (syntax-parser
-        [(define-values (ex:id _) (#%plain-app do-partial-app _ in:id _ ...))
+        #:literals (define-values #%plain-app quote)
+        [(define-values (ex:id _) (#%plain-app do-partial-app _ _ (quote in:id) _ ...))
          #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
          (define m (cur-mod))
          (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) m))
@@ -126,9 +123,9 @@
 
     (define on-module-level-form!
       (syntax-parser
-        #:literals (define-values #%plain-app)
-        [(define-values (wrapper:id _:id)
-           (#%plain-app f _ name:id _ _ _))
+        #:literals (define-values #%plain-app quote)
+        [(~and stx (define-values (wrapper:id _:id)
+           (#%plain-app f _ _ (quote name:id) _ _)))
          #:when (eq? (syntax-e #'f) 'do-partial-app)
          (define m (cur-mod))
          (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) m) (-𝒾 (syntax-e #'name) m))]
@@ -171,13 +168,22 @@
        (-module
         mod-name
         (parameterize ([cur-mod mod-name])
-          (for*/list ([formᵢ (in-syntax-list #'(forms ...))] #:when (care-about? formᵢ)
+          (define form-list ; Move "provide" clauses to the end
+            (let-values ([(body provides)
+                          (partition (syntax-parser
+                                       [_:scv-provide #f]
+                                       [_ #t])
+                                     (syntax->list #'(forms ...)))])
+              (append body provides)))
+          (for*/list ([formᵢ (in-list form-list)] #:when (care-about? formᵢ)
                       [?res (in-value (parse-module-level-form formᵢ))] #:when ?res)
             ?res)))]
       [((~literal begin) form ...)
        (-begin/simp (map parse-top-level-form (syntax->list #'(form ...))))]
       [((~literal #%expression) e) (parse-e #'e)]
       [form (parse-general-top-level-form #'form)]))
+
+  (define parse-module parse-top-level-form)
 
   ;; Convert syntax to `module-level-form`. May fail for unsupported forms.
   (define/contract parse-module-level-form
@@ -195,12 +201,8 @@
       [(begin-for-syntax _ ...) #f]
       
       ;; Hack for reading our fake-contracts:
-      [(#%plain-app
-        call-with-values
-        (#%plain-lambda ()
-                        (#%plain-app (~literal fake:dynamic-provide/contract) prov ...))
-        _)
-       (-provide (append-map parse-provide-spec (syntax->list #'(prov ...))))]
+      [prov:scv-provide
+       (-provide (append-map parse-provide-spec (syntax->list #'prov.provide-list)))]
       
       [form (or (parse-general-top-level-form #'form)
                 (parse-submodule-form #'form))]))
@@ -230,13 +232,14 @@
                       (--> (list 'any/c) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
-         (for/list ([ac (in-syntax-list #'(ac ...))]
-                    [st-dom st-doms]
-                    [i (in-naturals)])
-           (define ℓᵢ (ℓ-with-id ℓ i))
-           (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
-           (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
-           (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ)))
+         (let ([offset (field-offset 𝒾)])
+           (for/list ([ac (in-syntax-list #'(ac ...))]
+                      [st-dom st-doms]
+                      [i (in-naturals)] #:when (>= i offset))
+             (define ℓᵢ (ℓ-with-id ℓ i))
+             (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
+             (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
+             (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ))))
        (list* dec-constr dec-pred dec-acs)]
       [(#%plain-app (~literal list) x:id c:expr)
        (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ #'x)))]
@@ -274,19 +277,31 @@
        #:when (equal? 'print-values (syntax->datum #'print-values))
        (parse-e #'e)]
 
-      [(define-values (_ _ pred acc+muts ...)
+      [(~and stx (define-values (type:id _ pred acc+muts ...)
          (let-values ([(_ ...)
                        (let-values ()
                          (let-values ()
                            (#%plain-app (~literal make-struct-type)
                                         (quote ctor-name)
-                                        _
+                                        parent
                                         (quote n:exact-integer)
                                         _ ...)))])
-           (#%plain-app values _ _ _ mk-acc+muts ...)))
+           (#%plain-app values _ _ _ mk-acc+muts ...))))
+       
        (define ctor (syntax-e #'ctor-name))
-
        (define 𝒾 (-𝒾 ctor (cur-mod)))
+       (hash-set! (struct-map) (id->𝒾 #'type) 𝒾)
+
+       ;; Figure out parent struct
+       (define ?parent
+         (syntax-parse #'parent
+           ['#f #f]
+           [prnt:id (hash-ref (struct-map) (id->𝒾 #'prnt))]))
+       (when ?parent
+         (set-parent-struct! 𝒾 ?parent))
+       (define offset (field-offset 𝒾))
+
+       ;; Parse for direct field accessors/mutators
        (define-values (accs muts)
          (let ([accs (make-hasheq)]
                [muts (make-hasheq)])
@@ -313,9 +328,9 @@
               `(,(-st-mk 𝒾)
                 ,(-st-p 𝒾)
                 ,@(for/list ([i (in-list (map car acc-list))])
-                    (-st-ac 𝒾 i))
+                    (-st-ac 𝒾 (+ offset i)))
                 ,@(for/list ([i (in-list (map car mut-list))])
-                    (-st-mut 𝒾 i)))
+                    (-st-mut 𝒾 (+ offset i))))
               (syntax-ℓ #'pred))))]
       [;; Hack ignoring generated garbage by `struct`
        (define-values (_:identifier) (#%plain-app f:id _:id))
@@ -330,10 +345,9 @@
           (add-top-level! (-𝒾 lhs (cur-mod)))
           (-define-values (list lhs) rhs)]
          [(set-empty? (set-remove frees lhs))
-          (define x (+x! 'rec))
+          (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
           (add-top-level! (-𝒾 lhs (cur-mod)))
-          (-define-values (list lhs)
-                          (-μ/c x (e/ (-x/c.tmp lhs) (-x/c x) rhs)))]
+          (-define-values (list lhs) (-μ/c x (e/ lhs (-x/c x) rhs)))]
          [else
           (raise-syntax-error
            'recursive-contract
@@ -348,13 +362,14 @@
       [(#%require spec ...)
        (-require (map parse-require-spec (syntax->list #'(spec ...))))]
       [(define-syntaxes (k:id) ; constructor alias
-         (#%plain-app
-          (~literal make-self-ctor-checked-struct-info)
-          _ _
-          (#%plain-lambda () (quote-syntax k1:id))))
+         (~and rhs
+               (#%plain-app
+                (~literal make-self-ctor-checked-struct-info)
+                _ _
+                (#%plain-lambda () (quote-syntax k1:id)))))
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-mod)))
-       (-define-values (list lhs) (-𝒾 (syntax-e #'k) (cur-mod)))]
+       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (syntax-ℓ #'rhs)))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 
@@ -443,15 +458,20 @@
        (match-define (cons f-resolved wrap?)
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) f.src)
-          (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src)))))
+          (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src (syntax-e #'f))))))
        (set-module-before! f.src (cur-mod))
+       (define f-ref (-x f-resolved (syntax-ℓ #'f)))
        (cond
-         [wrap? (-@ f-resolved (parse-es #'(args ...)) (syntax-ℓ stx))]
-         [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-resolved]
+         [wrap? (-@ f-ref (parse-es #'(args ...)) (syntax-ℓ stx))]
+         [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-ref]
          [else (error 'parser "my understanding is wrong")])]
       
 
-    ;;; Contracts
+      ;;; Contracts
+      ;; Parametric contract
+      [ctc:scv-parametric->/c
+       (define-values (xs ρ) (parse-formals (attribute ctc.params)))
+       (-∀/c xs (with-env ρ (parse-e (attribute ctc.body))))]
       ;; Non-dependent function contract
       [(let-values ([(_) (~literal fake:dynamic->*)]
                     [(_) (#%plain-app list c ...)]
@@ -478,7 +498,9 @@
              (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
              (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
        (define cs (parse-es #'(cₓ ...)))
-       (define mk-d (-λ (syntax->datum #'(z ...)) (parse-e #'d)))
+       (define mk-d
+         (let-values ([(xs ρ) (parse-formals #'(z ...))])
+           (-λ xs (with-env ρ (parse-e #'d)))))
        (-->i cs mk-d (syntax-ℓ stx))]
       ;; independent varargs
       [(let-values ([(_) (~literal fake:dynamic->*)]
@@ -540,9 +562,7 @@
        #:when (prefab-struct-key (syntax-e #'v))
        (raise-syntax-error 'parse-e "TODO: non-top-level struct" #'stx)]
       [(#%plain-app f x ...)
-       (-@ (parse-e #'f)
-           (parse-es #'(x ...))
-           (syntax-ℓ stx))]
+       (-@/simp (parse-e #'f) (parse-es #'(x ...)) (syntax-ℓ stx))]
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
       [(begin e ...)
@@ -561,53 +581,53 @@
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
           (set-module-before! src (cur-mod))
-          (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src))))]
+          (-x (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e #'id0))))) (syntax-ℓ stx))]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
-      [(if i t e) (-if (parse-e #'i) (parse-e #'t) (parse-e #'e))]
-      [(let-values () b ...) (-begin/simp (parse-es #'(b ...)))]
+      [(if i t e)
+       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e))]
       [(let-values (bindings ...) b ...)
-       (-let-values
-        (for/list ([binding (in-syntax-list #'(bindings ...))])
-          (syntax-parse binding
-            [((x ...) e) (cons (syntax->datum #'(x ...)) (parse-e #'e))]))
-        (-begin/simp (parse-es #'(b ...)))
-        (syntax-ℓ stx))]
+       (define-values (bindings-rev ρ)
+         (for/fold ([bindings-rev '()] [ρ (env)])
+                   ([bnd (in-syntax-list #'(bindings ...))])
+           (syntax-parse bnd
+             [((x ...) e)
+              (define-values (xs ρ*) (parse-formals #'(x ...) #:base ρ))
+              (values (cons (cons xs (parse-e #'e)) bindings-rev) ρ*)])))
+       (-let-values/simp (reverse bindings-rev)
+                         (with-env ρ (-begin/simp (parse-es #'(b ...))))
+                         (syntax-ℓ stx))]
       [(set! i:identifier e)
-       (define x
-         (match (identifier-binding #'i)
-           ['lexical (syntax-e #'i)]
-           [#f (syntax-e #'i)]
-           [(list (app (λ (x)
-                         (parameterize ([current-directory (directory-part (cur-mod))])
-                           ;(printf "part: ~a~n" (directory-part (cur-mod)))
-                           ;(printf "id: ~a~n" #'i)
-                           (mod-path->mod-name
-                            (resolved-module-path-name (module-path-index-resolve x)))))
-                       src)
-                  _ _ _ _ _ _)
-            (-𝒾 (syntax-e #'i) src)]))
-       (match x
-         [(? symbol? x) (set-assignable! x)]
-         [(? -𝒾? 𝒾) (set-assignable! 𝒾)])
+       (match-define (-x x _) (parse-ref #'i))
+       (set-assignable! x)
        (-set! x (parse-e #'e))]
       [(#%plain-lambda fmls b ...+)
-       (-λ (parse-formals #'fmls) (-begin/simp (parse-es #'(b ...))))]
+       (define-values (xs ρ) (parse-formals #'fmls))
+       (-λ xs (with-env ρ (-begin/simp (parse-es #'(b ...)))))]
       
       [(case-lambda [fml bodies ...+] ...)
        (-case-λ
         (for/list ([fmlᵢ (in-syntax-list #'(fml ...))]
                    [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
           ;; Compute case arity and extended context for RHS
-          (cons (parse-formals fmlᵢ) (-begin/simp (parse-es bodiesᵢ)))))]
+          (define-values (xsᵢ ρᵢ) (parse-formals fmlᵢ))
+          (cons xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))))))]
       [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(letrec-values (bindings ...) b ...)
+       (define-values (lhss-rev ρ)
+         (for/fold ([lhss-rev '()] [ρ (env)])
+                   ([bnd (in-syntax-list #'(bindings ...))])
+           (syntax-parse bnd
+             [((x ...) _)
+              (define-values (lhs ρ*) (parse-formals #'(x ...) #:base ρ))
+              (values (cons lhs lhss-rev) ρ*)])))
        (-letrec-values
-        (for/list ([bnd (in-syntax-list #'(bindings ...))])
+        (for/list ([lhs (in-list (reverse lhss-rev))]
+                   [bnd (in-syntax-list #'(bindings ...))])
           (syntax-parse bnd
-            [((x ...) eₓ) (cons (syntax->datum #'(x ...)) (parse-e #'eₓ))]))
-        (-begin/simp (parse-es #'(b ...)))
+            [(_ eₓ) (cons lhs (with-env ρ (parse-e #'eₓ)))]))
+        (with-env ρ (-begin/simp (parse-es #'(b ...))))
         (syntax-ℓ stx))]
       [(quote e) (parse-quote #'e)]
       [(quote-syntax e)
@@ -636,32 +656,43 @@
       [(~literal fake:false/c) 'not]
       [(~literal fake:listof) 'listof]
       [(~literal fake:list/c) 'list/c]
-      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
+      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work      
+
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")
             'hash/c]
-      
-      ;; Hack for private identifiers
-      [x:id #:when (equal? 'make-sequence (syntax-e #'x)) 'make-sequence]
+      [x:private-id (attribute x.name)]
       
       [i:identifier
        (or
         (parse-prim #'i)
-        (match (identifier-binding #'i)
-          ['lexical (-x (syntax-e #'i) (syntax-ℓ #'i))]
-          [#f (-x (syntax-e #'i) (syntax-ℓ #'i))]
-          [(list (app (λ (x)
-                        (parameterize ([current-directory (directory-part (cur-mod))])
-                          ;(printf "part: ~a~n" (directory-part (cur-mod)))
-                          ;(printf "id: ~a~n" #'i)
-                          (mod-path->mod-name
-                           (resolved-module-path-name (module-path-index-resolve x)))))
-                      src)
-                 _ _ _ _ _ _)
-           #:when (not (equal? src 'Λ))
-           (-𝒾 (syntax-e #'i) src)]
-          [_
-           (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." #'i)]))]))
+        (parse-ref #'i))]))
+
+  (define/contract (parse-ref id)
+    (identifier? . -> . -x?)
+
+    (define (lookup)
+      (free-id-table-ref (env) id (λ () (raise-syntax-error 'parser "not in scope" id))))
+    
+    (match (identifier-binding id)
+      ['lexical (-x (lookup) (syntax-ℓ id))]
+      [#f (-x (lookup) (syntax-ℓ id))]
+      [(list (app (λ (x)
+                    (parameterize ([current-directory (directory-part (cur-mod))])
+                      ;(printf "part: ~a~n" (directory-part (cur-mod)))
+                      ;(printf "id: ~a~n" id)
+                      (mod-path->mod-name
+                       (resolved-module-path-name (module-path-index-resolve x)))))
+                  src)
+             _ _ _ _ _ _)
+       #:when (not (equal? src 'Λ))
+       (unless (∋ (modules-to-parse) src)
+         (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e id))))
+       (unless (equal? src (cur-mod))
+         (set-module-before! src (cur-mod)))
+       (-x (-𝒾 (syntax-e id) src) (syntax-ℓ id))]
+      [_
+       (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)
@@ -684,12 +715,32 @@
       [e (raise-syntax-error 'parse-quote "unsupported" #'e)]))
 
   ;; Parse given `formals` to extend environment
-  (define/contract parse-formals
-    (scv-syntax? . -> . -formals?)
-    (syntax-parser
-      [(x:id ...) (syntax->datum #'(x ...))]
-      [rest:id (-var '() (syntax-e #'rest))]
-      [(x:id ... . rest:id) (-var (syntax->datum #'(x ...)) (syntax-e #'rest))]))
+  (define/contract (parse-formals fml #:base [ρ₀ (env)])
+    ([scv-syntax?] [#:base immutable-free-id-table?] . ->* . (values -formals? immutable-free-id-table?))
+
+    (define (parse-binder id ρ)
+      (define x (inc-id! id))
+      (values x (free-id-table-set ρ id x)))
+
+    (define (parse-binders ids ρ)
+      (define-values (xs-rev ρ*)
+        (for/fold ([xs-rev '()] [ρ ρ])
+                  ([id (in-list ids)])
+          (define-values (x ρ*) (parse-binder id ρ))
+          (values (cons x xs-rev) ρ*)))
+      (values (reverse xs-rev) ρ*))
+    
+    (syntax-parse fml
+      [(x:id ...)
+       (parse-binders (syntax->list #'(x ...)) ρ₀)]
+      [rest:id
+       (define-values (rest-name ρ) (parse-binder #'rest ρ₀))
+       (values (-var '() rest-name) ρ)]
+      [(x:id ... . rest:id)
+       (define-values (inits ρ₁) (parse-binders (syntax->list #'(x ...)) ρ₀))
+       (define-values (restid  ρ₂) (parse-binder #'rest ρ₁))
+       (values (-var inits restid) ρ₂)])
+    )
 
   (define/contract parse-require-spec
     (scv-syntax? . -> . -require-spec?)
@@ -697,16 +748,6 @@
       [i:identifier (syntax-e #'i)]
       [spec (log-debug "parse-require-spec: ignore ~a~n" (syntax->datum #'spec))
             'dummy-require]))
-
-  (define/contract (move-provides-to-end forms)
-    ((listof -module-level-form?) . -> . (listof -module-level-form?))
-    (define-values (provides others)
-      (for/fold ([provides '()] [others '()])
-                ([form forms])
-        (cond
-          [(-provide? form) (values (cons form provides) others)]
-          [else (values provides (cons form others))])))
-    (append (reverse others) (reverse provides)))
 
   ;; For debugging only. Return scv-relevant s-expressions
   #;(define/contract (scv-relevant path)
@@ -736,4 +777,8 @@
   (define/contract (id->𝒾 id)
     (identifier? . -> . -𝒾?)
     (-𝒾 (syntax-e id) (id-defining-module id)))
+
+  (define (canonicalize-path p)
+    (define p* (if (absolute-path? p) p (path->complete-path p)))
+    (path->string (simplify-path p*)))
   )

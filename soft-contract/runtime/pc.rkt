@@ -7,13 +7,13 @@
          (except-in racket/function normalize-arity arity-includes?)
          set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "signatures.rkt")
 
 (provide pc@)
 
 (define-unit pc@
-  (import env^)
+  (import meta-functions^ static-info^ env^)
   (export pc^)
 
   (define ⊤Γ ∅)
@@ -80,8 +80,8 @@
     (match t
       [(-t.@ h ts) (apply set-union ∅eq (map fvₜ ts))]
       [(-t.x x) {seteq x}]
-      [(? -e? e) (fv e)]
-      [(or (? integer?) #f) ∅eq]))
+      [(or (? -𝒾?) (? integer?) #f) ∅eq]
+      [(? -e? e) (fv e)]))
 
   (define (?t↓ [?t : -?t] [xs : (℘ Symbol)]) (and ?t (t↓ ?t xs)))
 
@@ -168,7 +168,7 @@
       ;; If given term list of the form `(car t); (cdr t)`, return `t`.
       ;; Otherwise just `#f`
       (define (access-same-value? 𝒾 ts)
-        (define n (get-struct-arity 𝒾))
+        (define n (count-struct-fields 𝒾))
         (match ts
           [(cons (-t.@ (-st-ac 𝒾₀ 0) (list t₀)) ts*)
            (and (equal? 𝒾 𝒾₀)
@@ -241,6 +241,16 @@
          (t@ '< (second xs) (first xs))]
         ['>=
          (t@ '<= (second xs) (first xs))]
+        [(->/c b)
+         (t@ '< (-b b) (first xs))]
+        [(-≥/c b)
+         (t@ '<= (-b b) (first xs))]
+        [(-</c b)
+         (t@ '< (first xs) (-b b))]
+        [(-≤/c b)
+         (t@ '<= (first xs) (-b b))]
+        [(-≢/c b)
+         (t@ 'not (t@ 'equal? (first xs) (-b b)))]
 
         ; (car (cons e _)) = e
         [(-st-ac 𝒾 i)
@@ -279,7 +289,7 @@
   (define (-struct/c-split t 𝒾)
     (with-debugging/off
       ((ans)
-       (define n (get-struct-arity 𝒾))
+       (define n (count-struct-fields 𝒾))
        (match t
          [(-t.@ (-st/c.mk (== 𝒾)) cs) cs]
          [(? values t)
@@ -293,9 +303,9 @@
     (match t
       [(-t.@ (-st-mk (== 𝒾)) ts) ts]
       [(? values t)
-       (for/list : (Listof -t) ([i (get-struct-arity 𝒾)])
+       (for/list : (Listof -t) ([i (count-struct-fields 𝒾)])
          (-t.@ (-st-ac 𝒾 i) (list t)))]
-      [#f (make-list (get-struct-arity 𝒾) #f)]))
+      [#f (make-list (count-struct-fields 𝒾) #f)]))
 
   (: -ar-split : -?t → (Values -?t -?t))
   (define (-ar-split t)

@@ -2,7 +2,7 @@
 
 (require set-extras
          "../utils/main.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../main.rkt"
          "count-checks.rkt")
@@ -97,10 +97,10 @@
 ;; Run each file and print along the way
 (define (run-dir dir)
   (print-header)
-  (define rows : (Listof Row) ; with side effect printing row
-    (for*/list ([fp (in-list (directory-list dir))]
-                [fn (in-value (path->string fp))]
-                #:when (regexp-match-exact? #rx".*rkt" fn))
+  (define rows ; with side effect printing row
+    (for*/list : (Listof Row) ([fp (in-list (directory-list dir))]
+                               [fn (in-value (path->string fp))]
+                               #:when (regexp-match-exact? #rx".*rkt" fn))
       (print-then-return-row (run-file (build-path dir fn)))))
   (define sum-row (print-then-return-row (Row+ "TOTAL" COLUMNS rows)))
   (values rows sum-row))

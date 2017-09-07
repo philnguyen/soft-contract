@@ -5,19 +5,29 @@
 (require typed/racket/unit
          racket/match
          racket/set
+         racket/splicing
          set-extras
          "../utils/main.rkt"
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
+         "../proof-relation/signatures.rkt"
+         "../primitives/signatures.rkt"
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^)
+  (import pretty-print^ local-prover^ pc^ val^ prim-runtime^)
   (export sto^)
 
-  (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
-  (define (σ@ m ⟪α⟫)
-    (define σ (if (-Σ? m) (-Σ-σ m) m))
-    (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫)))))
+  (splicing-local
+      ((define ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm 'null?)) +ℓ₀))
+       (define cache-listof : (Mutable-HashTable ⟪α⟫ (℘ -V)) (make-hasheq)))
+    (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
+    (define (σ@ m ⟪α⟫)
+      (match (⟪α⟫->-α ⟪α⟫)
+        [(-α.imm V) {set V}]
+        [(-α.imm-listof C) (hash-ref! cache-listof ⟪α⟫ (λ () {set (make-listof (C-flat? C) C)}))]
+        [_
+         (define σ (if (-Σ? m) (-Σ-σ m) m))
+         (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))])))
 
   (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
   (define (defined-at? σ α)
@@ -59,7 +69,7 @@
     (set-first Vs))
 
   (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
-  (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.fn.●)))
+  (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.imm (-● ∅))))
   (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
 
 
@@ -69,9 +79,9 @@
 
   (define ⊥σₖ : -σₖ (hash))
 
-  (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))
+  (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -κ))
   (define (σₖ@ m αₖ)
-    (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅eq))
+    (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -91,46 +101,41 @@
   (define ⊤$ : -$ (hash))
   (define ⊤$* : -δ$ (hash))
 
-  (: $-set : -$ -loc -W¹ → -$)
-  (define $-set hash-set)
+  (: $-set : -$ -loc -?t → -$)
+  (define ($-set $ l t)
+    (if t (hash-set $ l t) $))
   
-  (: $-set! : -Σ -$ ⟪α⟫ -loc -W¹ → -$)
-  (define ($-set! Σ $ α l W)
-    (set-alias! Σ α l)
-    (hash-set ($-del* $ (get-aliases Σ α)) l W))
+  (: $-set! : -Σ -$ ⟪α⟫ -loc -?t → -$)
+  (define ($-set! Σ $ α l t)
+    (cond [t
+           (set-alias! Σ α l)
+           (hash-set ($-del* $ (get-aliases Σ α)) l t)]
+          [else $]))
 
-  (: $-set* : -$ (Listof -loc) (Listof -W¹) → -$)
-  (define ($-set* $ ls Ws)
+  (: $-set* : -$ (Listof -loc) (Listof -?t) → -$)
+  (define ($-set* $ ls ts)
     (for/fold ([$ : -$ $])
               ([l (in-list ls)]
-               [W (in-list Ws)])
-      ($-set $ l W)))
+               [t (in-list ts)])
+      ($-set $ l t)))
 
   (: $-del : -$ -loc → -$)
   (define ($-del $ l) (hash-remove $ l))
 
-  (: $@! : -Σ ⟪α⟫ -$ -loc → (℘ (Pairof -W¹ -$)))
-  (define ($@! Σ α $ l)
-    (cond [(hash-ref $ l #f) =>
-           (λ ([W : -W¹]) {set (cons W $)})]
-          [else #;(> (set-count (σ@ Σ α)) 1)
-           (set-alias! Σ α l)
-           #;(when (equal? l 'l)
-             (let ([Vs (σ@ Σ α)])
-               (printf "find ~a bindings at l, cache each to ⊘:~n" (set-count Vs))
-               (for ([V (in-set Vs)])
-                 (printf "- ~a~n" (show-V V)))))
-           (for/set: : (℘ (Pairof -W¹ -$)) ([V (in-set (σ@ Σ α))])
-             (define W (-W¹ V #f))
-             (cons W ($-set $ l W)))]
-          #;[else
-           (when (equal? l 'l)
-             (let ([Vs (σ@ Σ α)])
-               (printf "find ~a bindings at l, cache each to ⊘:~n" (set-count Vs))
-               (for ([V (in-set Vs)])
-                 (printf "- ~a~n" (show-V V)))))
-           (define V (set-first (σ@ Σ α)))
-           {set (cons (-W¹ V #f) $)}]))
+  (: $@! : -Σ -Γ ⟪α⟫ -$ -loc ℓ → (Values (℘ -W¹) -$))
+  (define ($@! Σ Γ α $ l ℓ)
+    (define Vs (σ@ Σ α))
+    (cond [(hash-ref $ l #f)
+           =>
+           (λ ([t : -t])
+             (values (for/set: : (℘ -W¹) ([V (in-set Vs)]
+                                          #:when (plausible-V-t? Γ V t))
+                       (-W¹ V t))
+                     $))]
+          [else
+           (values (for/set: : (℘ -W¹) ([V (in-set Vs)])
+                     (-W¹ V ℓ))
+                   ($-set $ l ℓ))]))
 
   (: $-extract : -$ (Sequenceof -loc) → -δ$)
   (define ($-extract $ ls)
@@ -160,6 +165,11 @@
               ([l (in-hash-keys $)]
                #:when (-loc.offset? l))
       (hash-remove $ l)))
+
+  (: $-symbolic-names : -$ → (℘ Symbol))
+  (define ($-symbolic-names $)
+    (for/unioneq : (℘ Symbol) ([t (in-hash-values $)])
+      (fvₜ t)))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

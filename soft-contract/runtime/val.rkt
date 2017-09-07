@@ -5,10 +5,10 @@
 (require typed/racket/unit
          racket/match
          racket/set
+         racket/splicing
          set-extras
          "../utils/main.rkt"
-         "../ast/definition.rkt"
-         "../ast/shorthands.rkt"
+         "../ast/signatures.rkt"
          "signatures.rkt")
 
 (define-unit val@
@@ -36,6 +36,12 @@
     (match-define (-W¹ V s) W)
     (-W (list V) s))
 
+  (define (W->W¹s [W : -W]) : (Listof -W¹)
+    (match-define (-W Vs t) W)
+    (for/list ([Vᵢ (in-list Vs)]
+               [tᵢ (in-list (split-values t (length Vs)))])
+      (-W¹ Vᵢ tᵢ)))
+
   (: C-flat? : -V → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
   (define (C-flat? V)
@@ -46,51 +52,41 @@
       [(? -One-Of/C?) #t]
       [(-St/C flat? _ _) flat?]
       [(or (? -Vectorof?) (? -Vector/C?)) #f]
+      [(-Hash/C _ _) #f] ; TODO
+      [(-Set/C _) #f] ; TODO
       [(? -=>_?) #f]
       [(or (? -Clo?) (? -Ar?) (? -prim?)) #t]
       [(? -x/C?) #t]
+      [(? -∀/C?) #f]
+      [(? -Seal/C?) #f]
       [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
-  (: with-negative-party : -l -V → -V)
-  ;; Supply the negative party for blaming
-  (define (with-negative-party l V)
-    (match V
-      [(-Ar C α (-l³ l+ _ lo))
-       (-Ar C α (-l³ l+ l lo))]
-      [(-St* grd α (-l³ l+ _ lo))
-       (-St* grd α (-l³ l+ l lo))]
-      [(-Vector/guard grd ⟪α⟫ (-l³ l+ _ lo))
-       (-Vector/guard grd ⟪α⟫ (-l³ l+ l lo))]
-      [_ V]))
 
-  (: with-positive-party : -l -V → -V)
-  (define (with-positive-party l V)
-    (match V
-      [(-Ar C α (-l³ _ l- lo))
-       (-Ar C α (-l³ l l- lo))]
-      [(-St* grd α (-l³ _ l- lo))
-       (-St* grd α (-l³ l l- lo))]
-      [(-Vector/guard grd ⟪α⟫ (-l³ _ l- lo))
-       (-Vector/guard grd ⟪α⟫ (-l³ l l- lo))]
-      [_ V]))
-
-  (: approximate-under-contract : -V → -V)
-  (define (approximate-under-contract V)
-    (match V
-      [(-Ar C _ l³)
-       (match C
-         [(-=> (list (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.dom 'any/c    _ _ _)) _))
-               (list (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.rng 'boolean? _ _ _)) _))
-               _)
-          ;; cheat
-          V]
-         [_
-          (-Ar C ⟪α⟫ₒₚ l³)])]
-      [(-St* C _ l³)
-       (-St* C ⟪α⟫ₒₚ l³)]
-      [(-Vector/guard C _ l³)
-       (-Vector/guard C ⟪α⟫ₒₚ l³)]
-      [_ V]))
+  (splicing-local
+      ((: with-swapper : (-l -ctx → -ctx) → -l -V → -V)
+       (define ((with-swapper swap) l V)
+         (match V
+           [(-Ar C α ctx)
+            (-Ar C α (swap l ctx))]
+           [(-St* grd α ctx)
+            (-St* grd α (swap l ctx))]
+           [(-Vector/guard grd α ctx)
+            (-Vector/guard grd α (swap l ctx))]
+           [(-Hash/guard C α ctx)
+            (-Hash/guard C α (swap l ctx))]
+           [(-Set/guard C α ctx)
+            (-Set/guard C α (swap l ctx))]
+           [_ V])))
+    (define with-negative-party
+      (with-swapper
+        (match-lambda**
+          [(l (-ctx l+ _ lo ℓ))
+           (-ctx l+ l lo ℓ)])))
+    (define with-positive-party
+      (with-swapper
+        (match-lambda**
+          [(l (-ctx _ l- lo ℓ))
+           (-ctx l l- lo ℓ)]))))
 
   (: behavioral? : -σ -V → Boolean)
   ;; Check if value maybe behavioral.
@@ -149,7 +145,10 @@
          [(-Clo xs _ _ _) (shape xs)]
          [_
           ;; FIXME: may be wrong for var-args. Need to have saved more
-          (length αs)])]))
+          (length αs)])]
+      [(? -∀/C?)
+       ;; TODO From observing behavior in Racket. But this maybe unsound for proof system
+       (arity-at-least 0)]))
 
   (: blm-arity : ℓ -l Arity (Listof -V) → -blm)
   (define blm-arity
@@ -177,14 +176,28 @@
       [(-Vectorof (-⟪α⟫ℓ _ ℓ)) (list 'vectorof ℓ)]
       [(-Vector/C ⟪α⟫ℓs) (cons 'vector/c (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
       [(-Hash/C (-⟪α⟫ℓ _ ℓₖ) (-⟪α⟫ℓ _ ℓᵥ)) (list 'hash/c ℓₖ ℓᵥ)]
+      [(-Set/C (-⟪α⟫ℓ _ ℓ)) (list 'set/c ℓ)]
       [(-=> _ _ ℓ) (list '-> ℓ)]
       [(-=>i _ _ ℓ) (list '->i ℓ)]
       [(-Case-> _ ℓ) (list 'case-> ℓ)]
       [(-x/C α)
-       (match-define (-α.x/c x) (⟪α⟫->-α α))
+       (match-define (-α.x/c x _) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
       [(? -o? o) o]
-      [(-Ar _ (app ⟪α⟫->-α (-α.fn t _ _ _ _)) _) (list 'flat t)]
-      [V (error 'strip-C "~a not expected" (show-V V))]))
+      [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
+      [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
+      [(-Seal/C x _ _) (list 'seal/c x)]
+      [(-b b) (list 'flat (-b b))]
+      [V (error 'strip-C "~a not expected" V)]))
+
+  (: predicates-of-V : -V → (℘ -h))
+  (define predicates-of-V
+    (match-lambda
+      [(-b (? number?)) {set 'number?}]
+      [(-b (? null?)) {set 'null?}]
+      [(-Clo _ ⟦e⟧ _ _) {set (-clo ⟦e⟧)}]
+      [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾 {set (-st-p 𝒾)}]
+      [(or (? -Ar?) (? -o?)) {set 'procedure?}]
+      [_ ∅]))
 
   )

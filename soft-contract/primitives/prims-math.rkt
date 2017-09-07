@@ -4,12 +4,12 @@
 
 (require racket/contract
          typed/racket/unit
-         "def-prim.rkt"
+         "def.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-math@
-  (import prim-runtime^ proof-system^ widening^)
+  (import prim-runtime^)
   (export)
 
   

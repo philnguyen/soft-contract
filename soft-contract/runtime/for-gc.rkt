@@ -8,7 +8,7 @@
          racket/set
          set-extras
          "../signatures.rkt"
-         "../ast/definition.rkt"
+         "../ast/signatures.rkt"
          "../utils/main.rkt"
          "signatures.rkt"
          )
@@ -49,13 +49,21 @@
          [(-Vector^ α _) {seteq α}]
          [(-Ar V α _) (set-add (V->⟪α⟫s V) α)]
          [(-St* grd α _) (set-add (V->⟪α⟫s grd) α)]
-         [(-Vector/guard grd ⟪α⟫ _) (set-add (V->⟪α⟫s grd) ⟪α⟫)]
+         [(-Hash^ αₖ αᵥ _) {seteq αₖ αᵥ}]
+         [(-Set^ α _) {seteq α}]
+         [(or (-Vector/guard grd α _)
+              (-Hash/guard grd α _)
+              (-Set/guard grd α _))
+          #:when (and grd α)
+          (set-add (V->⟪α⟫s grd) α)]
          [(-Clo _ _ ρ _) (ρ->⟪α⟫s ρ)]
          [(-Case-Clo _ ρ _) (ρ->⟪α⟫s ρ)]
          [(-And/C _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
          [(-Or/C  _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
          [(-Not/C α) {seteq (-⟪α⟫ℓ-addr α)}]
          [(-One-Of/C _) ∅eq]
+         [(-Hash/C α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
+         [(-Set/C α) {seteq (-⟪α⟫ℓ-addr α)}]
          [(-x/C α) {seteq α}]
          [(-St/C _ _ αs) {list->seteq (map -⟪α⟫ℓ-addr αs)}]
          [(-Vectorof α) {seteq (-⟪α⟫ℓ-addr α)}]
@@ -72,6 +80,8 @@
           (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
                        (match-define (cons αs α) clause)
                        (set-add (list->seteq αs) α))]
+         [(-∀/C _ _ ρ) (ρ->⟪α⟫s ρ)]
+         [(-Seal/C x ⟪ℋ⟫ _) {seteq {-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)}}]
          [_ ∅eq]))
       (printf "V->⟪α⟫s ~a: (~a)~n" (show-V V) (set-count αs))
       (for ([α αs])
@@ -79,8 +89,7 @@
       (printf "~n")))
 
   (: ρ->⟪α⟫s : -ρ → (℘ ⟪α⟫))
-  (define (ρ->⟪α⟫s ρ)
-    (for/seteq: : (℘ ⟪α⟫) ([⟪α⟫ : ⟪α⟫ (in-hash-values ρ)]) ⟪α⟫))
+  (define (ρ->⟪α⟫s ρ) (list->seteq (hash-values ρ)))
 
   (: αₖ->⟪α⟫s : -αₖ -σₖ → (℘ ⟪α⟫))
   (define (αₖ->⟪α⟫s αₖ σₖ)
@@ -91,7 +100,8 @@
         [else
          (seen-add! αₖ)
          (for/fold ([acc : (℘ ⟪α⟫) (if (-ℋ𝒱? αₖ) (set-add acc ⟪α⟫ₕᵥ) acc)])
-                   ([⟦k⟧ (in-set (hash-ref σₖ αₖ mk-∅))])
+                   ([κ (in-set (hash-ref σₖ αₖ mk-∅))])
+           (define ⟦k⟧ (-κ-rest κ))
            (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))
 
   (: ⟦k⟧->⟪α⟫s : -⟦k⟧ -σₖ → (℘ ⟪α⟫))
@@ -129,6 +139,19 @@
            (and (equal? Vs₁ Vs₂)
                 (for/and : Boolean ([V (in-set Vs₁)])
                   (go (V->⟪α⟫s V))))]))))
+
+  (: gc-$ : -$ -σ (℘ ⟪α⟫) → -$)
+  (define (gc-$ $ σ root)
+    (define αs (span* σ root V->⟪α⟫s))
+    (define locs
+      (for*/set: : (℘ -loc) ([α : ⟪α⟫ (in-set αs)]
+                             [?l (in-value (hack:α->loc α))]
+                             #:when ?l)
+        ?l))
+    (for/fold ([$ : -$ $])
+              ([l (in-hash-keys $)]
+               #:unless (or (-loc.offset? l) (∋ locs l)))
+      (hash-remove $ l)))
 
   (splicing-local
       ((define bvs : (HashTable -⟦e⟧ (℘ Symbol)) (make-hasheq)))

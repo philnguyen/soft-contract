@@ -12,7 +12,6 @@
          racket/set
          racket/flonum
          racket/fixnum
-         racket/extflonum
          racket/generator
          racket/random
          racket/format
@@ -21,12 +20,9 @@
          syntax/parse/define
          set-extras
          "../utils/debug.rkt"
-         (except-in "../ast/definition.rkt" normalize-arity arity-includes?)
-         "../ast/shorthands.rkt"
-         "../runtime/signatures.rkt"
-         "../signatures.rkt"
+         (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -38,7 +34,7 @@
 (provide prims-04-12@)
 
 (define-unit prims-04-12@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
   
   (def-alias-internal box? -box?)

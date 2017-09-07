@@ -5,26 +5,23 @@
 (require racket/contract
          racket/set
          typed/racket/unit
-         "../runtime/signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          "signatures.rkt")
 
 (define-unit prims-05@
-  (import prim-runtime^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 5.3 Structure Type Properties
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def-prim/custom (make-struct-type-property ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    (define tₐ (apply ?t@ 'make-struct-type-property (map -W¹-t Ws)))
-    (define ans
-      (-W (list (-● {set 'struct-type-property?})
-                (-● {set 'procedure?})
-                (-● {set 'procedure?}))
-          tₐ))
-    {set (-ΓA Γ ans)})
+  (def make-struct-type-property
+    (case->
+     [symbol? . -> . (values struct-type-property? procedure? procedure?)]
+     [symbol? (or/c procedure? not 'can-impersonate) . -> . (values struct-type-property? procedure? procedure?)]
+     [symbol? (or/c procedure? not 'can-impersonate) (listof (cons/c struct-type-property? (any/c . -> . any/c))) . -> . (values struct-type-property? procedure? procedure?)]
+     [symbol? (or/c procedure? not 'can-impersonate) (listof (cons/c struct-type-property? (any/c . -> . any/c))) boolean? . -> . (values struct-type-property? procedure? procedure?)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -4,75 +4,39 @@
 
 (require racket/match
          racket/set
+         racket/contract
          typed/racket/unit
          "../utils/list.rkt"
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
-         "def-prim.rkt")
+         "def.rkt")
 
 (define-unit prims-10@
-  (import proof-system^ widening^ prim-runtime^ val^ pc^ sto^)
+  (import prim-runtime^ pc^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.1 Multiple Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def-prim/custom (values ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+  (def (values ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ()
+    #:rest (Ws (listof any/c))
     (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
-    {set (-ΓA Γ (-W Vs (apply ?t@ 'values ss)))})
+    (⟦k⟧ (-W Vs (apply ?t@ 'values ss)) $ Γ ⟪ℋ⟫ Σ))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.2 Exception
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def-ext (raise ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-blm 'Λ 'raise '(raise) (map -W¹-V Ws) ℓ) $ Γ ⟪ℋ⟫ Σ))
+  (def raise (case->
+              [any/c . -> . none/c]
+              [any/c any/c . -> . none/c]))
 
-  (def-ext (error ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-blm 'Λ 'error '(error) (map -W¹-V Ws) ℓ) $ Γ ⟪ℋ⟫ Σ))
-
-  (def-ext (raise-user-error ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (define blm (-blm 'raise-user-error #|TODO|#
-                      'raise-user-error
-                      '()
-                      (map -W¹-V Ws)
-                      ℓ))
-    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
-
-  (def-ext (raise-argument-error ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₙ symbol?]
-              [Wₑ string?]
-              [Wᵥ any/c])
-    (define blm (-blm 'raise-argument-error #|TODO|#
-                      'raise-argument-error
-                      (list (-W¹-V Wₙ) (-W¹-V Wₑ))
-                      (list (-W¹-V Wᵥ))
-                      ℓ))
-    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
-
-  (def-ext (raise-arguments-error ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (list* Wₙ Wₘ Wᵣ) Ws)
-    (define blm (-blm 'raise-arguments-error #|TODO|#
-                      'raise-arguments-error
-                      (list (-W¹-V Wₙ) (-W¹-V Wₘ))
-                      (map -W¹-V Wᵣ)
-                      ℓ))
-    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
-
-  (def-ext (raise-result-error ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wₙ symbol?]
-              [Wₑ string?]
-              [Wᵥ any/c])
-    (define blm (-blm 'raise-result-error #|TODO|#
-                      'raise-result-error
-                      (list (-W¹-V Wₙ) (-W¹-V Wₑ))
-                      (list (-W¹-V Wᵥ))
-                      ℓ))
-    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+  (def* (error raise-user-error raise-argument-error raise-arguments-error raise-result-error)
+    (() #:rest list . ->* . none/c))
 
   (def-pred exn?)
   (def-pred exn:fail?)
@@ -82,24 +46,30 @@
 ;;;;; 10.4 Continuations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-  (def-prim/todo call-with-current-continuation ((any/c . -> . any/c) . -> . any/c)) ; FIXME
+  (def* (call-with-current-continuation call-with-escape-continuation)
+    ; FIXME uses
+    (∀/c (α) (((α . -> . none/c) . -> . α) . -> . α))
+    #;(∀/c (α β)
+         (case-> ; not first-orderly distinguishable
+          [((-> none/c) . -> . (values)) . -> . (values)]
+          [((α . -> . none/c) . -> . α) . -> . α]
+          [((α β . -> . none/c) . -> . (values α β)) . -> . (values α β)]))) 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.5 Continuation Marks
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def-ext (continuation-mark-set-first ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (⟦k⟧ (-W (list (+●)) #f) $ Γ ⟪ℋ⟫ Σ))
+  (def continuation-mark-set-first (() #:rest list? . ->* . any/c)) ; FIXME
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.7 Exiting
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def-ext (exit ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    ;; HACK
-    (define blm (-blm 'Λ 'exit '() '() ℓ))
-    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+  (def exit
+    (case->
+     (-> none/c)
+     (any/c . -> . none/c)))
 
   )

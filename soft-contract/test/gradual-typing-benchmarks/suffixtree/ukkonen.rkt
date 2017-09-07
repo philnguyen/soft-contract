@@ -4,14 +4,16 @@
 ;; strings, trees, and sequences: computer science and computational
 ;; biology.
 
-(require "structs.rkt"
+(require racket/contract
+         "structs.rkt"
   (except-in "data.rkt" make-label)
   "label.rkt")
 
+#|FIXME|# (define make-label ext:make-label)
 (define dummy-node (node (make-label "dummy") #f '() #f))
 
 
-(provide skip-count)
+(provide/contract [skip-count (node/c label/c . -> . (values node/c exact-nonnegative-integer?))])
 ;; skip-count: node label -> (values node number)
 ;;
 ;; Follows down the node using the skip-count rule until we exhaust
@@ -42,7 +44,7 @@
 
 
 
-(provide jump-to-suffix)
+(provide/contract [jump-to-suffix (node/c . -> . (values node/c (or/c boolean? integer?)))])
 ;; jump-to-suffix: node -> (values node (union boolean number))
 ;;
 ;; Given an internal node, jumps to the suffix from that node.
@@ -72,7 +74,7 @@
            (values sl
                    (label-length (node-up-label node)))))))
 
-(provide try-to-set-suffix-edge!)
+(provide/contract [try-to-set-suffix-edge! (node/c node/c . -> . void?)])
 ;; try-to-set-suffix-edge!: node node -> void
 ;;
 ;; Sets the suffix edge of from-node directed to to-node if it
@@ -84,7 +86,11 @@
 
 
 
-(provide find-next-extension-point/add-suffix-link!)
+(provide/contract [find-next-extension-point/add-suffix-link!
+                   (node/c label/c exact-nonnegative-integer? exact-nonnegative-integer? . -> .
+                           (values (or/c not exact-nonnegative-integer?)
+                                   (or/c not exact-nonnegative-integer?)
+                                   (or/c not exact-nonnegative-integer?)))])
 ;; find-next-extension-point/add-suffix-link!: node label number number ->
 ;;     (values node number number)
 ;;
@@ -153,7 +159,7 @@
       (loop-first initial-i))))
 
 
-(provide extend-at-point!)
+(provide/contract [extend-at-point! (node/c exact-nonnegative-integer? label? exact-nonnegative-integer? . -> . node/c)])
 ;; extend-at-point!: node number label number -> node
 (define extend-at-point!
   (letrec [
@@ -187,7 +193,7 @@
 
 
 
-(provide suffix-tree-add!)
+(provide/contract [suffix-tree-add! (tree/c label/c . -> . void?)])
 ;; suffix-tree-add!: tree label -> void
 ;; Adds a new label and its suffixes to the suffix tree.
 ;; Precondition: label is nonempty.
@@ -271,7 +277,7 @@
 
 ;; -- from suffixtree.rkt
 
-(provide tree-add!)
+(provide/contract [tree-add! (tree/c label/c . -> . void?)])
 (define tree-add! suffix-tree-add!)
 
 
