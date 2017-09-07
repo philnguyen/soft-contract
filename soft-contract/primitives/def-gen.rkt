@@ -176,7 +176,7 @@
     (define/with-syntax (V-rng ...)
       (match (?flatten-range rngs)
         ['any
-         (printf "warning: arbitrarily generate 1 value for range `any` in `~a`~n" (syntax-e (-o)))
+         (log-warning "arbitrarily generate 1 value for range `any` in `~a`~n" (syntax-e (-o)))
          (list #'(mk-●))]
         [#f (make-list (length rngs) #`(mk-●))]
         [initial-refinements
