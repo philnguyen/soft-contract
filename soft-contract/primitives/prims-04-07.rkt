@@ -21,10 +21,8 @@
          set-extras
          "../utils/debug.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
-         "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -36,7 +34,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-07@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
   ;; 4.7.3 Constructors
@@ -44,87 +42,87 @@
   (def-pred pregexp?)
   (def-pred byte-regexp?)
   (def-pred byte-pregexp?)
-  (def-prim regexp (string? . -> . regexp?))
-  (def-prim pregexp (string? . -> . pregexp?))
-  (def-prim byte-regexp (bytes? . -> . regexp?))
-  (def-prim byte-pregexp (bytes? . -> . pregexp?))
-  (def-prim regexp-quote ; FIXME uses
+  (def regexp (string? . -> . regexp?))
+  (def pregexp (string? . -> . pregexp?))
+  (def byte-regexp (bytes? . -> . regexp?))
+  (def byte-pregexp (bytes? . -> . pregexp?))
+  (def regexp-quote ; FIXME uses
     ((or/c string? bytes?) . -> . (or/c string? bytes?))
     #:refinements
     (string? . -> . string?)
     (bytes? . -> . bytes?))
-  (def-prim regexp-max-lookbehind
+  (def regexp-max-lookbehind
     ((or/c regexp? byte-regexp?) . -> . exact-nonnegative-integer?))
 
   ;; 4.7.4 Regexp Matching
-  (def-prim regexp-match ; FIXME uses, precision
+  (def regexp-match ; FIXME uses, precision
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      any/c))
-  (def-prim regexp-match* ; FIXME uses, precision
+  (def regexp-match* ; FIXME uses, precision
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      any/c))
-  (def-prim regexp-try-match ; FIXME uses, precision
+  (def regexp-try-match ; FIXME uses, precision
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      any/c))
-  (def-prim regexp-match-positions ; FIXME uses, precision
+  (def regexp-match-positions ; FIXME uses, precision
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      any/c))
-  (def-prim regexp-match-positions* ; FIXME uses, precision
+  (def regexp-match-positions* ; FIXME uses, precision
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      any/c))
-  (def-prim regexp-match? ; FIXME uses
+  (def regexp-match? ; FIXME uses
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      boolean?))
-  (def-prim regexp-match-exact? ; FIXME uses
+  (def regexp-match-exact? ; FIXME uses
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path?)
      . -> .
      boolean?))
-  (def-prim regexp-match-peek ; FIXME uses ; FIXME listof
+  (def regexp-match-peek ; FIXME uses ; FIXME listof
     ((or/c string? bytes? regexp? byte-regexp?)
      input-port?
      . -> .
-     (or/c cons? #;(cons/c bytes? (listof (or/c bytes? not)))
+     (or/c pair? #;(cons/c bytes? (listof (or/c bytes? not)))
            not)))
-  (def-prim regexp-match-peek-positions ; FIXME uses ; FIXME listof
+  (def regexp-match-peek-positions ; FIXME uses ; FIXME listof
     ((or/c string? bytes? regexp? byte-regexp?)
      input-port?
      . -> .
-     (or/c cons? #;(cons/c (cons/c exact-nonnegative-integer?
+     (or/c pair? #;(cons/c (cons/c exact-nonnegative-integer?
                                    exact-nonnegative-integer?)
                            (listof (or/c (cons/c exact-nonnegative-integer?
                                                  exact-nonnegative-integer?)
                                          not)))
            not)))
-  (def-prim regexp-match-peek-immediate ; FIXME uses ; FIXME listof
+  (def regexp-match-peek-immediate ; FIXME uses ; FIXME listof
     ((or/c string? bytes? regexp? byte-regexp?)
      input-port?
      . -> .
-     (or/c cons? #;(cons/c bytes? (listof (or/c bytes? not)))
+     (or/c pair? #;(cons/c bytes? (listof (or/c bytes? not)))
            not)))
-  (def-prim regexp-match-peek-positions-immediate ; FIXME uses ; FIXME listof
+  (def regexp-match-peek-positions-immediate ; FIXME uses ; FIXME listof
     ((or/c string? bytes? regexp? byte-regexp?)
      input-port?
      . -> .
-     (or/c cons? #;(cons/c (cons/c exact-nonnegative-integer?
+     (or/c pair? #;(cons/c (cons/c exact-nonnegative-integer?
                                    exact-nonnegative-integer?)
                            (listof (or/c (cons/c exact-nonnegative-integer?
                                                  exact-nonnegative-integer?)
                                          not)))
            not)))
-  (def-prim regexp-match-peek-positions* ; FIXME uses, precision ; FIXME listof
+  (def regexp-match-peek-positions* ; FIXME uses, precision ; FIXME listof
     ((or/c string? bytes? regexp? byte-regexp?)
      input-port?
      . -> .
@@ -132,55 +130,55 @@
                                    exact-nonnegative-integer?))
                    (listof (listof (or/c not (cons/c exact-nonnegative-integer?
                                                      exact-nonnegative-integer?)))))))
-  (def-prim regexp-match/end
+  (def regexp-match/end
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      any/c))
-  (def-prim regexp-match-positions/end ; FIXME uses
+  (def regexp-match-positions/end ; FIXME uses
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? path? input-port?)
      . -> .
      any/c))
-  (def-prim regexp-match-peek-positions/end
+  (def regexp-match-peek-positions/end
     ((or/c string? bytes? regexp? byte-regexp?)
      input-port?
      . -> .
      any/c))
-  (def-prim regexp-match-peek-positions-immediate/end
+  (def regexp-match-peek-positions-immediate/end
     ((or/c string? bytes? regexp? byte-regexp?)
      input-port?
      . -> .
      any/c))
 
   ;; 4.7.5 Regexp Splitting
-  (def-prim regexp-split ; FIXME uses, precision
+  (def regexp-split ; FIXME uses, precision
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes? input-port?)
      . -> .
      any/c))
 
   ;; 4.7.6 Regexp Substitution
-  (def-prim regexp-replace ; FIXME uses, precision
+  (def regexp-replace ; FIXME uses, precision
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes?)
      (or/c string? bytes? #|TODO more|#)
      . -> .
      any/c))
-  (def-prim regexp-replace* ; FIXME uses
+  (def regexp-replace* ; FIXME uses
     ((or/c string? bytes? regexp? byte-regexp?)
      (or/c string? bytes?)
      (or/c string? bytes? #|TODO more|#)
      . -> .
      (or/c string? bytes?)))
-  (def-prim regexp-replaces ; FIXME listof
+  (def regexp-replaces ; FIXME listof
     ((or/c string? bytes?)
      (listof
       list? #;(list/c (or/c string? bytes regexp? byte-regexp?)
                       (or/c string bytes? #|TODO more|#)))
      . -> .
      (or/c string? bytes?)))
-  (def-prim regexp-replace-quote
+  (def regexp-replace-quote
     ((or/c string? bytes?) . -> . (or/c string? bytes?))
     #:refinements
     (string? . -> . string?)

@@ -10,7 +10,7 @@
          set-extras
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
@@ -48,8 +48,8 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  (def-ext (unsafe-struct-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wᵥ any/c] [Wᵢ integer?])
+  (def (unsafe-struct-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ([Wᵥ any/c] [Wᵢ integer?])
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (define sₐ
@@ -91,5 +91,5 @@
       [_
        (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
 
-  (def-ext unsafe-struct-set! (any/c integer? . -> . void?)))
+  (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

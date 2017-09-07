@@ -39,7 +39,8 @@
 
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
-  ([⊢?/quick : (-R -σ -Γ -o -W¹ * → Boolean)]
+  ([r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
+   [⊢?/quick : (-R -σ -Γ -o -W¹ * → Boolean)]
    [make-total-pred : (Index → Symbol → -⟦f⟧)]
    [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (Values -V -?t))]
    [ts->bs : ((Listof -?t) → (Option (Listof Base)))] ; TODO obsolete

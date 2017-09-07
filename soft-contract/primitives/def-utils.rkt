@@ -22,6 +22,12 @@
                        racket/flonum
                        racket/extflonum
                        racket/fixnum
+                       racket/stream
+                       racket/contract
+                       racket/generator
+                       racket/dict
+                       racket/set
+                       (only-in racket/function normalized-arity?)
                        racket/contract
                        racket/syntax
                        syntax/parse
@@ -40,7 +46,7 @@
   #:attributes (values)
   (pattern c:c                                    #:attr values (list #'c))
   (pattern ((~literal values) d₁:c d₂:c d*:c ...) #:attr values (list* #'d₁ #'d₂ (syntax->list #'(d* ...))))
-  (pattern (~literal any)                         #:attr values #f))
+  (pattern (~literal any)                         #:attr values 'any))
 
 (define-syntax-class hc
   #:description "restricted higher-order-contract"
@@ -162,7 +168,52 @@
                 (~literal pregexp?)
                 (~literal byte-regexp?)
                 (~literal byte-pregexp?)
-                (~literal bytes-converter?))))
+                (~literal bytes-converter?)
+                (~literal input-port?)
+                (~literal output-port?)
+                (~literal port?)
+                (~literal path?)
+                (~literal pair?)
+                (~literal list?)
+                (~literal placeholder?)
+                (~literal hash-placeholder?)
+                (~literal stream?)
+                (~literal vector?)
+                (~literal hash?)
+                (~literal hash-equal?)
+                (~literal hash-eqv?)
+                (~literal hash-eq?)
+                (~literal hash-weak?)
+                (~literal hash-empty?)
+                (~literal set?)
+                (~literal generic-set?)
+                (~literal set-eq?)
+                (~literal set-eqv?)
+                (~literal set-equal?)
+                (~literal set-mutable?)
+                (~literal set-weak?)
+                (~literal set-empty?)
+                (~literal arity-at-least?)
+                (~literal normalized-arity?)
+                (~literal procedure-arity?)
+                (~literal procedure?)
+                (~literal primitive?)
+                (~literal stream-empty?)
+                (~literal contract?)
+                (~literal flat-contract?)
+                (~literal list-contract?)
+                (~literal has-contract?)
+                (~literal has-blame?)
+                (~literal blame?)
+                (~literal generator?)
+                (~literal dict?)
+                (~literal struct-type?)
+                (~literal struct-type-property?)
+                (~literal unsupplied-arg?)
+                (~literal continuation-mark-key?)
+                (~literal weak-box?)
+                (~literal box?)
+                )))
 
 (define-syntax-class ff
   #:description "restricted first-order function contracts"
@@ -213,7 +264,8 @@
           (~literal regexp?)
           (~literal pregexp?)
           (~literal byte-regexp?)
-          (~literal byte-pregexp?))
+          (~literal byte-pregexp?)
+          (~literal path?))
      #t]
     [_ #f]))
 
@@ -238,13 +290,18 @@
 
 (define/contract (check-shape-ok o sig sigs)
   (identifier? syntax? (listof syntax?) . -> . any)
+  (define rng-len
+    (match-lambda
+      ['any #f]
+      [l (length l)]))
   (define sig-shape
     (syntax-parser
       [((~literal ->) dom ... rng:d)
-       (values (length (syntax->list #'(dom ...))) (length (attribute rng.values)))]
+       (values (length (syntax->list #'(dom ...)))
+               (rng-len (attribute rng.values)))]
       [((~literal ->*) (dom ...) #:rest _ rng:d)
        (values (arity-at-least (length (syntax->list #'(dom ...))))
-               (length (attribute rng.values)))]
+               (rng-len (attribute rng.values)))]
       [((~literal ∀/c) c) (sig-shape #'c)]
       [_
        ;; TODO generalize checks for case->
@@ -253,7 +310,9 @@
   (when (and num-args num-rng)
     (for ([sigᵢ (in-list sigs)])
       (define-values (num-argsᵢ num-rngᵢ) (sig-shape sigᵢ))
-      (unless (and (arity-compatible? num-args num-argsᵢ)
+      (unless (and num-argsᵢ
+                   num-rngᵢ
+                   (arity-compatible? num-args num-argsᵢ)
                    (arity-compatible? num-rng num-rngᵢ))
         (raise-syntax-error (syntax-e #'o) "incompatible shape" sig (list sigᵢ))))))
 
@@ -278,14 +337,14 @@
     [((~literal and/c) cᵢ ...)
      (append-map range->refinement (syntax->list #'(cᵢ ...)))]
     [((~literal or/c) _ ...)
-     (raise-syntax-error 'def-prim "or/c in #:refinement clause not supported" rng)]
+     (raise-syntax-error 'def "or/c in #:refinement clause not supported" rng)]
     [((~literal not/c) d)
      (cond [(identifier? #'d) (list #'(-not/c 'd))]
            [else
-            (raise-syntax-error 'def-prim "only identifier can follow not/c in refinement clause" rng)])]
+            (raise-syntax-error 'def "only identifier can follow not/c in refinement clause" rng)])]
     [((~literal cons/c) _ _)
      (raise-syntax-error
-      'def-prim
+      'def
       (format "~a: cons/c in range not suported for now" (syntax-e #'o))
       rng)]
     [((~literal =/c) x:number) (list #''real? #'(-≡/c x))]
@@ -296,7 +355,7 @@
     [x:lit (list #'(-≡/c x))]
     [(~literal any/c) '()]
     [(~literal none/c)
-     (raise-syntax-error 'def-prim "refinement clause does not accept none/c in range" rng)]
+     (raise-syntax-error 'def "refinement clause does not accept none/c in range" rng)]
     [c:id (list #''c)]))
 
 (define (prefix-id id [src id]) (format-id src ".~a" (syntax-e id)))

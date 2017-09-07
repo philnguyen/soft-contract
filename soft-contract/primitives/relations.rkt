@@ -4,7 +4,7 @@
 
 
 (require typed/racket/unit
-         "def-prim.rkt"
+         "def.rkt"
          "signatures.rkt")
 
 (define-unit relations@
@@ -53,16 +53,28 @@
    [set-eq? ⇒ set?]
    [set-mutable? ⇒ set?]
    [set-weak? ⇒ set?]
+   [set-empty? ⇒ set?]
    [set? ⇒ generic-set?]
+   ;; hash
+   [hash-empty? ⇒ hash?]
+   [hash-eq? ⇒ hash?]
+   [hash-eqv? ⇒ hash?]
+   [hash-equal? ⇒ hash?]
+   [hash-weak? ⇒ hash?]
    ;; arity
-   [exact-nonnegative-integer? ⇒ procedure-arity?]
+   [normalized-arity? ⇒ procedure-arity?]
+   [exact-nonnegative-integer? ⇒ normalized-arity?]
+   [arity-at-least? ⇒ normalized-arity?]
    ;; contracts
+   [list-contract? ⇒ contract?]
    [flat-contract? ⇒ contract?]
    ;; ports
    [input-port? ⇒ port?]
    [output-port? ⇒ port?]
    ;; exceptions
    [exn:fail? ⇒ exn?]
+   ;; procedures
+   [primitive? ⇒ procedure?]
    )
 
   (dec-exclusions

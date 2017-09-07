@@ -21,10 +21,8 @@
          set-extras
          "../utils/debug.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
-         "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -36,7 +34,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-19@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
   (def-const undefined)

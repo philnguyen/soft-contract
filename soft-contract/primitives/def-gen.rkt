@@ -85,7 +85,7 @@
           (#,(-⟦k⟧) blm #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ))])))
 
   (define/contract (gen-case dom-inits ?dom-rst rngs)
-    ((listof syntax?) (or/c #f syntax?) (or/c #f (listof syntax?)) . -> . syntax?)
+    ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . syntax?)
     (define body-general (gen-case-general dom-inits ?dom-rst rngs))
     (define/with-syntax (body ...)
       (if (and (should-lift? dom-inits ?dom-rst rngs) (-gen-lift?))
@@ -96,9 +96,9 @@
        body ...])
 
   (define/contract (gen-case-lift dom-inits ?dom-rst rngs body)
-    ((listof syntax?) (or/c #f syntax?) (or/c #f (listof syntax?)) (listof syntax?) . -> . (listof syntax?))
+    ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) (listof syntax?) . -> . (listof syntax?))
     (hack:make-available (-o) Ws->bs)
-    
+
     (define (gen-pat-W c x)
       (syntax-parse (?flatten-ctc c)
         [(~or () (~literal any/c)) #`(-W¹ _ (-b #,x))]
@@ -140,7 +140,7 @@
          [_ #,@body])))
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
-    ((listof syntax?) (or/c #f syntax?) (or/c #f (listof syntax?)) . -> . (listof syntax?))
+    ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . (listof syntax?))
     (hack:make-available (-o) exec-prim mk-●)
     (define/with-syntax (stx-inits ...) (map gen-ctc-V dom-inits))
     (define/with-syntax doms
@@ -196,11 +196,58 @@
                     #:refinements (list refinement-cases ...)
                     #:args #,(-Ws))))
 
+  (define/contract (gen-flat-checks doms ?rst body)
+    ((listof syntax?) (or/c #f identifier?) (listof syntax?) . -> . (listof syntax?))
+
+    (define/contract (gen-init-1 c x body)
+      (identifier? identifier? (listof syntax?) . -> . (listof syntax?))
+      (hack:make-available (-o) r:Γ⊢oW/handler)
+      (list
+       #`(r:Γ⊢oW/handler
+              (λ () #,@body)
+              (λ () (blm '#,c #,x))
+              (-Σ-σ #,(-Σ)) #,(-Γ) '#,c #,x)))
+
+    (define/contract gen-inits
+      ((listof syntax?) (listof identifier?) . -> . (listof syntax?))
+      (match-lambda**
+       [((cons dom doms) (cons arg args))
+        
+        (syntax-parse dom
+          [c:id (gen-init-1 #'c arg (gen-inits doms args))]
+          [((~literal and/c) c:id ...)
+           (syntax-parse #'(c ...)
+             [() (gen-inits doms args)]
+             [(c) (gen-init-1 #'c arg (gen-inits doms args))]
+             [(c c* ...)
+              (gen-init-1 #'c arg (gen-inits (cons #'(and/c c* ...) doms) (cons arg args)))])])]
+       [('() '()) (gen-rest)]))
+
+    (define/contract (gen-rest) (-> (listof syntax?))
+      (hack:make-available (-o) r:Γ⊢oW/handler)
+      (if ?rst
+          (list
+           #`(define (run-body) : (℘ -ς) #,@body)
+           #`(let go ([rests : (Listof -W¹) #,(-Wᵣ)])
+               (match rests
+                 [(cons W rests*)
+                  (r:Γ⊢oW/handler
+                       (λ () (go rests*))
+                       (λ () (blm '#,?rst W))
+                       (-Σ-σ #,(-Σ)) #,(-Γ) '#,?rst W)]
+                 ['() (run-body)])))
+          body))
+    (list*
+     #`(define (blm [ctc : -V] [val : -W¹]) : (℘ -ς)
+         (define bl (-blm (ℓ-src #,(-ℓ)) '#,(-o) (list ctc) (list (-W¹-V val)) #,(-ℓ)))
+         (#,(-⟦k⟧) bl #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ)))
+     (gen-inits doms (-Wⁿ))))
+
   ;; See if range needs to go through general contract monitoring
   (define/contract (?flatten-range rngs)
-    ((or/c #f (listof syntax?)) . -> . (or/c #f 'any (listof (listof syntax?))))
+    ((or/c 'any (listof syntax?)) . -> . (or/c #f 'any (listof (listof syntax?))))
     (case rngs
-      [(#f) 'any]
+      [(any) 'any]
       [else (define flattens (map ?flatten-ctc rngs))
             (and (andmap values flattens) flattens)]))
 
@@ -389,11 +436,11 @@
       [c (error 'ctc->ast "unimplemented: ~a" (syntax->datum #'c))]))
 
   (define/contract (should-lift? doms ?rst rngs)
-    ((listof syntax?) (or/c #f syntax?) (listof syntax?) . -> . boolean?)
+    ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . boolean?)
     (and (andmap base? doms)
          (?rst . implies . (syntax-parse ?rst
                              [((~literal listof) c) (base? #'c)]
                              [(~or (~literal list?) (~literal null?)) #t]
                              [_ #f]))
-         (andmap base? rngs)))
+         (and (list? rngs) (andmap base? rngs))))
   )

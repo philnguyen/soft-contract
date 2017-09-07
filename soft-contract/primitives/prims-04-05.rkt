@@ -23,10 +23,8 @@
          set-extras
          "../utils/debug.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
-         "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -36,21 +34,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-05@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
   ;; 4.5.1 Characters and Scalar Values
 
   (def-pred char?)
-  (def-prim char->integer
-    (char? . -> . exact-integer?))
-  (def-prim integer->char ; FIXME range
-    (exact-integer? . -> . char?))
-  (def-prim char-utf-8-length ; FIXME range
-    (char? . -> . exact-integer?))
+  (def char->integer (char? . -> . exact-integer?))
+  (def integer->char
+    ((and/c exact-integer?
+            (or/c (and/c (>=/c 0) (<=/c 55295))
+                  (and/c (>=/c 57344) (<=/c 1114111)))) . -> . char?))
+  (def char-utf-8-length (char? . -> . (and/c exact-integer? (>=/c 1) (<=/c 6))))
 
   ;; 4.5.2 Comparisons
-  (def-prims (char=? char<? char<=? char>? char>=?
+  (def* (char=? char<? char<=? char>? char>=?
                      char-ci=? char-ci<? char-ci<=? char-ci>? char-ci>=?) ; FIXME varargs
     (char? char? . -> . boolean?))
 
@@ -65,7 +63,7 @@
                          boolean?)))]
 
   ;; 4.5.4 Character Conversions
-  [def-prims (char-upcase char-downcase char-titlecase char-foldcase)
-    (char? . -> . char?)]
+  (def* (char-upcase char-downcase char-titlecase char-foldcase)
+    (char? . -> . char?))
   
   )

@@ -30,6 +30,7 @@
       [(arity-at-least? x) `(arity-at-least ,(arity-at-least-value x))]
       [(list? x) `(list ,@(map show-b x))]
       [(eof-object? x) '⟪eof⟫]
+      [(path? x) (path->string x)]
       [(defined? x) x]
       [else 'undefined]))
 

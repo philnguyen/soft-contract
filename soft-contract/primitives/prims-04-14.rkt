@@ -21,10 +21,8 @@
          set-extras
          "../utils/debug.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
-         "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -36,52 +34,52 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-14@
-  (import prim-runtime^ proof-system^ widening^ val^ pc^ sto^)
+  (import prim-runtime^)
   (export)
 
   ;;;;; 4.14.1 Sequences
 
   ;; 4.14.1.1 Predicate and Constructors
   (def-pred sequence?)
-  (def-prim/todo in-range ; FIXME uses
+  (def in-range ; FIXME uses
     (real? real? real? . -> . stream?))
-  (def-prim/todo in-naturals ; FIXME uses
+  (def in-naturals ; FIXME uses
     (exact-nonnegative-integer? . -> . stream?))
-  (def-prim/todo in-list
+  (def in-list
     (list? . -> . stream?))
   #;[in-mlist ; FIXME don't know about `mlist?`
      (mlist? . -> . stream?)]
-  (def-prim in-vector ; FIXME uses
+  (def in-vector ; FIXME uses
     (vector? . -> . sequence?))
-  (def-prim/todo in-string ; FIXME uses
+  (def in-string ; FIXME uses
     (string? . -> . sequence?))
-  (def-prim/todo in-bytes ; FIXME uses
+  (def in-bytes ; FIXME uses
     (bytes? . -> . sequence?))
-  (def-prim/todo in-port ; FIXME uses
+  (def in-port ; FIXME uses
     ((input-port? . -> . any/c) input-port? . -> . sequence?))
-  (def-prim/todo in-input-port-bytes
+  (def in-input-port-bytes
     (input-port? . -> . sequence?))
-  (def-prim/todo in-input-port-chars
+  (def in-input-port-chars
     (input-port? . -> . sequence?))
-  (def-prim/todo in-lines ; FIXME uses
-    (input-port? (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one)
+  (def in-lines ; FIXME uses
+    (input-port? (or/c 'linefeed 'return 'return-linefeed 'any 'any-one)
                  . -> . sequence?))
-  (def-prim/todo in-bytes-lines ; FIXME uses
-    (input-port? (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one)
+  (def in-bytes-lines ; FIXME uses
+    (input-port? (or/c 'linefeed 'return 'return-linefeed 'any 'any-one)
                  . -> . sequence?))
-  (def-prim in-hash
+  (def in-hash
     (hash? . -> . sequence?))
-  (def-prims (in-hash-keys in-hash-values)
+  (def* (in-hash-keys in-hash-values)
     (hash? . -> . sequence?))
-  (def-prim/todo in-hash-pairs
+  (def in-hash-pairs
     (hash? . -> . sequence?))
-  (def-prim/todo in-directory ; FIXME uses
+  (def in-directory ; FIXME uses
     ((or/c path-string? not) . -> . sequence?))
-  (def-prim/todo in-producer ; FIXME uses
+  (def in-producer ; FIXME uses
     (procedure? . -> . sequence?))
-  (def-prim/todo in-value
+  (def in-value
     (any/c . -> . sequence?))
-  (def-prim/todo in-indexed
+  (def in-indexed
     (sequence? . -> . sequence?))
   #;[in-sequences ; FIXME listof
      (() #:rest (listof sequence?) . ->* . sequence?)]
@@ -89,48 +87,48 @@
      (() #:rest (listof sequence?) . ->* . sequence?)]
   #;[in-parallel ; FIXME listof
      (() #:rest (listof sequence?) . ->* . sequence?)]
-  (def-prim/todo in-values-sequence
+  (def in-values-sequence
     (sequence? . -> . sequence?))
-  (def-prim/todo in-values*-sequence
+  (def in-values*-sequence
     (sequence? . -> . sequence?))
   ; [HO] stop-before stop-after
-  (def-prim make-do-sequence ; FIXME
+  (def make-do-sequence ; FIXME
     (any/c . -> . sequence?))
   (def-opq prop:sequence struct-type-property?)
 
   ;; 4.14.1.2 Sequence Conversion
-  (def-prim/todo sequence->stream
+  (def sequence->stream
     (sequence? . -> . stream?))
-  (def-prim/todo sequence-generate
+  (def sequence-generate
     (sequence? . -> . (values (-> boolean?) (-> any))))
-  (def-prim/todo sequence-generate*
+  (def sequence-generate*
     (sequence? . -> . (values (or/c list? not)
                               (-> (values (or/c list? not) procedure?)))))
 
   ;; 4.14.1.3 Additional Sequence Operations
-  (def-prim/todo empty-sequence sequence?)
-  (def-prim/todo sequence->list
+  (def-opq empty-sequence sequence?)
+  (def sequence->list
     (sequence? . -> . list?))
-  (def-prim/todo sequence-length
+  (def sequence-lengthx
     (sequence? . -> . exact-nonnegative-integer?))
-  (def-prim/todo sequence-ref
+  (def sequence-ref
     (sequence? exact-nonnegative-integer? . -> . any))
-  (def-prim/todo sequence-tail
+  (def sequence-tail
     (sequence? exact-nonnegative-integer? . -> . sequence?))
   #;[sequence-append ; FIXME listof
      (() #:rest (listof sequence?) . ->* . sequence?)]
-  (def-prim/todo sequence-map
+  (def sequence-map
     ((any/c . -> . any/c) sequence? . -> . sequence?))
   ; [HO] sequence-andmap sequence-ormap
-  (def-prim/todo sequence-for-each ; FIXME generalize 1st arg to multi args
+  (def sequence-for-each ; FIXME generalize 1st arg to multi args
     ((any/c . -> . any) sequence? . -> . void?))
-  (def-prim/todo sequence-fold ; FIXME generalize 1st arg
+  (def sequence-fold ; FIXME generalize 1st arg
     ((any/c any/c . -> . any/c) any/c sequence? . -> . any/c))
-  (def-prim/todo sequence-count ; FIXME precise arity for 1st arg
+  (def sequence-count ; FIXME precise arity for 1st arg
     (procedure? sequence? . -> . exact-nonnegative-integer?))
-  (def-prim/todo sequence-filter ; FIXME generalize 1st arg to multi args
+  (def sequence-filter ; FIXME generalize 1st arg to multi args
     ((any/c . -> . boolean?) sequence? . -> . sequence?))
-  (def-prim/todo sequence-add-between
+  (def sequence-add-between
     (sequence? any/c . -> . sequence?))
   #;[sequence/c ; FIXME uses, `contract?`
      (any/c . -> . any/c)]
@@ -138,55 +136,55 @@
   ; 4.14.1.3.1 Additional Sequence Constructors
   #;[in-syntax
      (syntax? . -> . sequence?)]
-  (def-prim/todo in-slice
+  (def in-slice
     (exact-positive-integer? sequence? . -> . sequence?))
 
      ;;;;; 4.14.2 Streams
-  (def-pred/todo stream?)
+  (def-pred stream?)
   (def-pred stream-empty? (stream?))
-  (def-prim/todo stream-first
+  (def stream-first
     ((and/c stream? (not/c stream-empty?)) . -> . any))
-  (def-prim/todo stream-rest
+  (def stream-rest
     ((and/c stream? (not/c stream-empty?)) . -> . stream?))
-  (def-prim/todo in-stream
+  (def in-stream
     (stream? . -> . sequence?))
-  (def-prim/todo empty-stream stream?)
-  (def-prim/todo stream->list
+  (def-opq empty-stream stream?)
+  (def stream->list
     (stream? . -> . list?))
-  (def-prim/todo stream-length
+  (def stream-length
     (stream? . -> . exact-nonnegative-integer?))
-  (def-prim/todo stream-ref
+  (def stream-ref
     (stream? exact-nonnegative-integer? . -> . any))
-  (def-prim/todo stream-tail
+  (def stream-tail
     (stream? exact-nonnegative-integer? . -> . stream?))
   #;[stream-append ; FIXME listof
      (() #:rest (listof stream?) . ->* . stream?)]
-  (def-prim/todo stream-map
+  (def stream-map
     (procedure? stream? . -> . stream?))
   ; [HO] stream-andmap stream-ormap
-  (def-prim/todo stream-for-each ; FIXME varargs on 1st
+  (def stream-for-each ; FIXME varargs on 1st
     ((any/c . -> . any) stream? . -> . void?))
-  (def-prim/todo stream-fold ; FIXME varargs on 1st
+  (def stream-fold ; FIXME varargs on 1st
     ((any/c any/c . -> . any) any/c stream? . -> . any/c))
-  (def-prim/todo stream-count ; FIXME varargs on 1st
+  (def stream-count ; FIXME varargs on 1st
     (procedure? stream? . -> . exact-nonnegative-integer?))
-  (def-prim/todo stream-filter ; FIXME varargs on 1st
+  (def stream-filter ; FIXME varargs on 1st
     ((any/c . -> . boolean?) stream? . -> . stream?))
-  (def-prim/todo stream-add-between
+  (def stream-add-between
     (stream? any/c . -> . stream?))
   (def-opq prop:stream struct-type-property?)
-  (def-prim/todo stream/c
+  (def stream/c
     (contract? . -> . contract?))
 
      ;;;;; 4.14.3 Generators
-  (def-pred/todo generator?)
+  (def-pred generator?)
   #;[yield ; FIXME uses
      (-> any)]
-  (def-prim/todo generator-state
+  (def generator-state
     (generator? . -> . symbol?))
-  (def-prim/todo sequence->generator
+  (def sequence->generator
     (sequence? . -> . (-> any)))
-  (def-prim/todo sequence->repeated-generator
+  (def sequence->repeated-generator
     (sequence? . -> . (-> any)))
   
   )

@@ -25,7 +25,7 @@
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
-         "def-prim.rkt"
+         "def.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -37,15 +37,17 @@
 (provide prims-04-11@)
 
 (define-unit prims-04-11@
-  (import prim-runtime^ proof-system^ widening^ kont^ app^ compile^ val^ pc^ sto^ instr^ env^)
+  (import prim-runtime^ widening^ val^ pc^ compile^ proof-system^
+          env^ sto^ kont^)
   (export)
 
   (def-pred vector?)
   (splicing-let
       ([.internal-make-vector
         (let ()
-          (def-prim/custom (internal-make-vector ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-            #:domain ([Wₙ exact-nonnegative-integer?] [Wᵥ any/c])
+          (def (internal-make-vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+            #:init ([Wₙ exact-nonnegative-integer?]
+                    [Wᵥ any/c])
             (define σ (-Σ-σ Σ))
             (match-define (-W¹ Vₙ sₙ) Wₙ)
             (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
@@ -58,20 +60,24 @@
                    (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
                    (σ⊕! Σ Γ ⟪α⟫ Wᵥ)
                    ⟪α⟫))
-               {set (-ΓA Γ (-W (list (-Vector ⟪α⟫s)) tₐ))}]
+               (⟦k⟧ (-W (list (-Vector ⟪α⟫s)) tₐ) $ Γ ⟪ℋ⟫ Σ)]
               [_
                (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
                (σ⊕! Σ Γ ⟪α⟫ Wᵥ) ; initializing, not mutating
-               {set (-ΓA Γ (-W (list (-Vector^ ⟪α⟫ Vₙ)) tₐ))}]))
+               (⟦k⟧ (-W (list (-Vector^ ⟪α⟫ Vₙ)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
           .internal-make-vector)])
-    (def-prim/custom (make-vector ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+    (def (make-vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      #:init ()
+      #:rest [Ws (listof any/c)]
       (define Ws*
         (match Ws
           [(list Wₙ) (list Wₙ (+W¹ -zero))]
           [_ Ws]))
-      (.internal-make-vector ⟪ℋ⟫ ℓ Σ $ Γ Ws*)))
+      (.internal-make-vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
   
-  (def-prim/custom (vector ⟪ℋ⟫ ℓ Σ $ Γ Ws)
+  (def (vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ()
+    #:rest [Ws (listof any/c)]
     (define σ (-Σ-σ Σ))
     (define tₐ ℓ)
     (define-values ($* αs.rev) ; with side effect widening store
@@ -85,11 +91,11 @@
         (σ⊕V! Σ α V*)
         (define l (-loc.offset 'vector (assert i index?) tₐ))
         (values ($-set! Σ $ α l t) (cons α αs.rev))))
-    {set (-ΓA Γ (-W (list (-Vector (reverse αs.rev))) tₐ))})
-  (def-prim/todo vector-immutable
-    (() #:rest list? . ->* . (and/c vector? immutable?)))
-  (def-prim/custom (vector-length ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([W vector?])
+    (⟦k⟧ (-W (list (-Vector (reverse αs.rev))) tₐ) $ Γ ⟪ℋ⟫ Σ))
+  (def vector-immutable
+    (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
+  (def (vector-length ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ([W vector?])
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'vector-length s))
     (define A
@@ -98,10 +104,10 @@
         [(-Vector^ _ n) (list n)]
         [(-Vector/guard (-Vector/C ⟪α⟫s) _ _) (list (-b (length ⟪α⟫s)))]
         [_ (list (+● 'exact-nonnegative-integer?))]))
-    {set (-ΓA Γ (-W A sₐ))})
+    (⟦k⟧ (-W A sₐ) $ Γ ⟪ℋ⟫ Σ))
 
-  (def-ext (vector-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wᵥ vector?] [Wᵢ integer?])
+  (def (vector-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ([Wᵥ vector?] [Wᵢ integer?])
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (define sₐ (?t@ 'vector-ref sᵥ sᵢ))
@@ -154,8 +160,8 @@
       [_
        (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
   
-  (def-ext (vector-set! ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:domain ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
+  (def (vector-set! ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    #:init ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
     (match-define (-W¹ Vᵤ sᵤ) Wᵤ)
@@ -206,63 +212,46 @@
       [_
        (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]))
   
-  (def-prim vector->list (vector? . -> . list?)) ; FIXME retain content
-  (def-prim/custom (list->vector ⟪ℋ⟫ ℓ Σ $ Γ Ws)
-    #:domain ([W list?])
-    (match-define (-W¹ Vₗ sₗ) W)
-    (define Vₐ
-      (match Vₗ
-        ;; Collect content of non-empty list
-        [(? -St? Vₗ)
-         (define α (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
-         (for ([V (in-set (extract-list-content (-Σ-σ Σ) Vₗ))])
-           (σ⊕V! Σ α V))
-         (-Vector^ α (+● 'exact-positive-integer?))]
-        ;; Empty list -> Empty vector
-        [(-b (list))
-         (-Vector '())]
-        ;; Default
-        [_ (+● 'vector?)]))
-    {set (-ΓA Γ (-W (list Vₐ) (?t@ 'vector->list sₗ)))})
+  (def vector->list (∀/c (α) ((vectorof α) . -> . (listof α))))
+  (def list->vector (∀/c (α) ((listof α) . -> . (vectorof α))))
   
-  (def-prim/todo vector->immutable-vector
-    (vector? . -> . (and/c vector? immutable?)))
-  (def-prim/todo vector-fill!
-    ((and/c vector? (not/c immutable?)) any/c . -> . void?))
-  (def-prim/todo vector-copy! ; FIXME uses
-    ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? . -> . void?))
+  (def vector->immutable-vector (∀/c (α) ((vectorof α) . -> . (and/c (vectorof α) immutable?))))
+  (def vector-fill! ((and/c vector? (not/c immutable?)) any/c . -> . void?))
+  (def vector-copy!
+    (case->
+     [(and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? . -> . void?]
+     [(and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? exact-nonnegative-integer? . -> . void?]
+     [(and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . void?]))
   #;[vector->values ; FIXME uses, var-values, `any` instead of `any/c`
      (vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . any)]
 
-  (def-ext build-vector (∀/c (α) (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . α) . -> . (vectorof α))))
+  (def build-vector (∀/c (α) (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . α) . -> . (vectorof α))))
 
   ;; 4.11.1 Additional Vector Functions
-  (def-prim/todo vector-set*! ; FIXME uses
+  #;(def vector-set*! ; FIXME uses
     ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?))
-  (def-prim/todo vector-map ; FIXME uses
-    (procedure? vector? . -> . vector?))
-  (def-prim/todo vector-map! ; FIXME uses
-    (procedure? (and/c vector? (not/c immutable?)) . -> . vector?))
-  #;[vector-append ; FIXME listof
-     (() #:rest (listof vector?) . ->* . vector?)]
-  (def-prim/todo vector-take
-    (vector? exact-nonnegative-integer? . -> . vector?))
-  (def-prim/todo vector-take-right
-    (vector? exact-nonnegative-integer? . -> . vector?))
-  (def-prim/todo vector-drop
-    (vector? exact-nonnegative-integer? . -> . vector?))
-  (def-prim/todo vector-drop-right
-    (vector? exact-nonnegative-integer? . -> . vector?))
-  (def-prim/todo vector-split-at
-    (vector? exact-nonnegative-integer? . -> . (values vector? vector?)))
-  (def-prim/todo vector-split-at-right
-    (vector? exact-nonnegative-integer? . -> . (values vector? vector?)))
-  (def-prim/todo vector-copy ; FIXME uses
-    (vector? . -> . vector?))
-  ; [HO] vector-filter vector-filter-not
-  (def-prim/todo vector-count ; FIXME varargs
-    (procedure? vector? . -> . exact-nonnegative-integer?))
-  ; [HO] vector-argmin vector-argmax
-  (def-prims (vector-member vector-memv vector-memq)
-    (any/c vector? . -> . (or/c exact-nonnegative-integer? not)))
+  (def vector-map (∀/c (α β) ((α . -> . β) (vectorof α) . -> . (vectorof β)))) ; FIXME varargs
+  (def vector-map! ; FIXME uses
+    (∀/c (α β)
+         ((α . -> . β)
+          (and/c (not/c immutable?) (vectorof α)) . -> . (vectorof β))))
+  (def vector-append
+     (∀/c (α) (() #:rest (listof (vectorof α)) . ->* . (vectorof α))))
+  (def* (vector-take vector-take-right vector-drop vector-drop-right)
+    (∀/c (α) ((vectorof α) exact-nonnegative-integer? . -> . (vectorof α))))
+  (def* (vector-split-at vector-split-at-right)
+    (∀/c (α) ((vectorof α) exact-nonnegative-integer? . -> .
+                           (values (vectorof α) (vectorof α)))))
+  (def vector-copy
+    (∀/c (α)
+         (case->
+          [(vectorof α) . -> . (vectorof α)]
+          [(vectorof α) exact-nonnegative-integer? . -> . (vectorof α)]
+          [(vectorof α) exact-nonnegative-integer? exact-nonnegative-integer? . -> . (vectorof α)])))
+  (def* (vector-filter vector-filter-not)
+    (∀/c (α) ((α . -> . any/c) (vectorof α) . -> . (vectorof α))))
+  (def vector-count ; FIXME varargs
+    (∀/c (α) ((α . -> . any/c) (vectorof α) . -> . exact-nonnegative-integer?)))
+  (def* (vector-argmin vector-argmax) (∀/c (α) ((α . -> . real?) (vectorof α) . -> . α)))
+  (def* (vector-member vector-memv vector-memq) (any/c vector? . -> . (or/c exact-nonnegative-integer? not)))
   )

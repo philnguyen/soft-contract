@@ -18,6 +18,7 @@
   (import ast-pretty-print^ proof-system^ local-prover^ widening^
           pc^ val^ sto^ compile^ env^ kont^)
   (export prim-runtime^)
+  (init-depend val^)
 
   (: unchecked-ac : -σ -Γ -st-ac -W¹ → (℘ -W¹))
   ;; unchecked struct accessor, assuming the value is already checked to be the right struct.
@@ -50,6 +51,8 @@
     (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
     (eq? R (first-R (apply p∋Vs σ o Vs)
                     (Γ⊢t Γ (apply ?t@ o ss)))))
+
+  
 
   (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (Values -V -?t))
   (define (implement-predicate σ Γ o Ws)
@@ -273,5 +276,10 @@
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:refine-range))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 
-  (define mk-● +●)
+  ;; Eta-expand to prevent messing with init-depend
+  (: mk-● : -h * → -●)
+  (define (mk-● . xs) (apply +● xs))
+  (: r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς)))
+  (define (r:Γ⊢oW/handler on-t on-f σ Γ o . Ws)
+    (apply Γ⊢oW/handler on-t on-f σ Γ o Ws))
   )
