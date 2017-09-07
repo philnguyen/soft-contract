@@ -347,12 +347,12 @@
       'def
       (format "~a: cons/c in range not suported for now" (syntax-e #'o))
       rng)]
-    [((~literal =/c) x:number) (list #''real? #'(-≡/c x))]
+    [((~literal =/c) x:number) (list #''real? #'(-b x))]
     [((~literal >/c) x:number) (list #''real? #'(->/c x))]
     [((~literal >=/c) x:number) (list #''real? #'(-≥/c x))]
     [((~literal </c) x:number) (list #''real? #'(-</c x))]
     [((~literal <=/c) x:number) (list #''real? #'(-≤/c x))]
-    [x:lit (list #'(-≡/c x))]
+    [x:lit (list #'(-b x))]
     [(~literal any/c) '()]
     [(~literal none/c)
      (raise-syntax-error 'def "refinement clause does not accept none/c in range" rng)]

@@ -52,8 +52,6 @@
     (eq? R (first-R (apply p∋Vs σ o Vs)
                     (Γ⊢t Γ (apply ?t@ o ss)))))
 
-  
-
   (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (Values -V -?t))
   (define (implement-predicate σ Γ o Ws)
     (define V

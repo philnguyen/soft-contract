@@ -186,7 +186,7 @@
   (def continuation-mark-key/c (contract? . -> . contract?))
   ;;[evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]
   (def promise/c (contract? . -> . contract?))
-  (def flat-contract ((any/c . -> . any/c) . -> . flat-contract?))
+  (def flat-contract (flat-contract? . -> . flat-contract?))
   (def flat-contract-predicate (flat-contract? . -> . (any/c . -> . any/c)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

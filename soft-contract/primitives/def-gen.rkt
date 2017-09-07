@@ -287,7 +287,7 @@
                (format "don't know what `~a` means" (syntax-e #'α))
                (-sig)
                #'α)))]
-      [l:lit #'(-≡/c l)]
+      [l:lit #'(-b l)]
       [((~literal not/c) c*)
        (define V* (gen-ctc-V #'c*))
        #`(-Not/C #,(gen-ctc V*))]
@@ -297,7 +297,7 @@
          [(~literal </c)  #'(-</c r)]
          [(~literal >=/c) #'(-≥/c r)]
          [(~literal <=/c) #'(-≤/c r)]
-         [(~literal =/c)  #'(-≡/c r)])]
+         [(~literal =/c)  #'(-b r)])]
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))
@@ -382,9 +382,7 @@
     (syntax-parse c
       [o:o #''o]
       [x:id #'(-x 'x ℓ)]
-      [l:lit
-       (define/with-syntax x (gensym 'eq))
-       #''(-λ '(x) (-@ 'equal? (list (-x 'x +ℓ₀)) (-b l) ℓ))]
+      [l:lit #'(-b l)]
       [((~literal not/c) c)
        (define/with-syntax e (ctc->ast #'c))
        #'(-@ 'not/c (list e) ℓ)]
