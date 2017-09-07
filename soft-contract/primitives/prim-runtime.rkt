@@ -45,13 +45,6 @@
         [(? -●?) {set (-W¹ (+●) s*)}]
         [_ ∅])))
 
-  (: ⊢?/quick : -R -σ -Γ -o -W¹ * → Boolean)
-  ;; Perform a relatively cheap check (i.e. no SMT call) if `(o W ...)` returns `R`
-  (define (⊢?/quick R σ Γ o . Ws)
-    (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
-    (eq? R (first-R (apply p∋Vs σ o Vs)
-                    (Γ⊢t Γ (apply ?t@ o ss)))))
-
   (: implement-predicate : -σ -Γ Symbol (Listof -W¹) → (Values -V -?t))
   (define (implement-predicate σ Γ o Ws)
     (define V
@@ -72,7 +65,7 @@
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
-  (define prim-table  : (HashTable Symbol -Prim) (make-hasheq))
+  (define prim-table  : (HashTable Symbol -⟦f⟧) (make-hasheq))
   (define opq-table   : (HashTable Symbol -●) (make-hasheq))
   (define debug-table : (HashTable Symbol Any) (make-hasheq))
 
@@ -90,24 +83,6 @@
 
   (: Ws->bs : (Listof -W¹) → (Option (Listof Base)))
   (define (Ws->bs Ws) (ts->bs (map -W¹-t Ws)))
-
-  ;; Return an abstract value approximating all list element in `V`
-  (define (extract-list-content [σ : -σ] [V : -St]) : (℘ -V)
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    (match-define (-Cons αₕ αₜ) V)
-    (define Vs (σ@ σ αₕ))
-    (let loop! ([αₜ : ⟪α⟫ αₜ])
-      (unless (seen-has? αₜ)
-        (seen-add! αₜ)
-        (for ([Vₜ (σ@ σ αₜ)])
-          (match Vₜ
-            [(-Cons αₕ* αₜ*)
-             (for ([Vₕ (σ@ σ αₕ*)])
-               (set! Vs (Vs⊕ σ Vs Vₕ)))
-             (loop! αₜ*)]
-            [(-b (list)) (void)]
-            [_ (set! Vs (Vs⊕ σ Vs (-● ∅)))]))))
-    Vs)
 
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

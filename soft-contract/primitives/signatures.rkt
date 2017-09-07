@@ -40,12 +40,10 @@
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
   ([r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
-   [⊢?/quick : (-R -σ -Γ -o -W¹ * → Boolean)]
    [make-total-pred : (Index → Symbol → -⟦f⟧)]
    [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (Values -V -?t))]
    [ts->bs : ((Listof -?t) → (Option (Listof Base)))] ; TODO obsolete
    [Ws->bs : ((Listof -W¹) → (Option (Listof Base)))]
-   [extract-list-content : (-σ -St → (℘ -V))]
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
    [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]
    [+⟪α⟫ℓ₀ : (-V → -⟪α⟫ℓ)]
@@ -74,7 +72,7 @@
    [update-arity! : (Symbol Arity → Void)]
    [set-partial! : (Symbol Natural → Void)]
 
-   [prim-table : (HashTable Symbol -Prim)]
+   [prim-table : (HashTable Symbol -⟦f⟧)]
    [const-table : Parse-Prim-Table]
    [alias-table : Alias-Table]
    [debug-table : (HashTable Symbol Any)]

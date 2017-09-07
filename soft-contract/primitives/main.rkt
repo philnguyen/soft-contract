@@ -29,7 +29,7 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → -Prim)
+  (: get-prim : Symbol → -⟦f⟧)
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
@@ -48,8 +48,6 @@
   (: prim-arity : Symbol → Arity)
   (define (prim-arity o)
     (hash-ref rt:arity-table o (λ () (error 'prim-arity "don't know `~a`'s arity~n" o))))
-
-  (define extract-list-content rt:extract-list-content)
 
   (: parse-prim : Identifier → (Option -prim))
   (define (parse-prim id)

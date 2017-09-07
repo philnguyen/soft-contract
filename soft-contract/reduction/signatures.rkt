@@ -69,8 +69,6 @@
    [fc.v∷ : (-l ℓ -⟦e⟧ -ρ -⟦k⟧ → -⟦k⟧)]
    [and∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [or∷ : (-l (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
-   [mk-listof∷ : (-?t ℓ -⟦k⟧ → -⟦k⟧)]
-   [mk-vector^∷ : (-V -?t ℓ -⟦k⟧ → -⟦k⟧)]
    #;[adjust-names∷ : ((℘ Symbol) -Γ -?t Boolean -⟦k⟧ → -⟦k⟧)]
    [invalidate-$∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
    [restore-$∷ : (-δ$ -⟦k⟧ → -⟦k⟧)]

@@ -91,7 +91,7 @@
       ['make-sequence (app-make-sequence ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
 
       ;; Regular stuff
-      [(? symbol? o) ((app-prim o) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(? symbol? o) ((get-prim o) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-Clo xs ⟦e⟧ ρₕ Γₕ)
        (with-guarded-arity (shape xs)
          ((app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
@@ -182,24 +182,6 @@
       [_
        (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ) ℓ))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
-
-  (: app-prim : Symbol → -⟦f⟧)
-  (define (app-prim o)
-    (λ (ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-      (match (get-prim o)
-        [(-⟦o⟧.boxed ⟦o⟧)
-         #;(begin
-           (printf "~a ~a~n" (show-o o) (map show-W¹ Wₓs))
-           (printf "  - knowing: ~a~n" (show-Γ Γ))
-           (for ([ans (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ $ Γ Wₓs))])
-             (printf "  - ~a~n" (show-ΓA ans)))
-           (printf "~n"))
-         (for/union : (℘ -ς) ([ΓA (in-set (⟦o⟧ ⟪ℋ⟫ ℓ Σ $ Γ Wₓs))])
-           (match-define (-ΓA Γₐ A) ΓA)
-           (⟦k⟧ A $ Γₐ ⟪ℋ⟫ Σ))]
-        [(-⟦f⟧.boxed ⟦f⟧)
-         (⟦f⟧ ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-        [(-V.boxed V) (app ℓ (-W¹ V o) Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])))
 
   (: app-clo : -formals -⟦e⟧ -ρ -Γ -?t → -⟦f⟧)
   (define (app-clo xs ⟦e⟧ ρₕ Γₕ sₕ)

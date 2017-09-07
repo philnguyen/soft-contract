@@ -45,7 +45,7 @@
      (hack:make-available #'o make-total-pred prim-table set-range! update-arity! add-const!)
      #'(begin
          (define .o ((make-total-pred n) 'o))
-         (hash-set! prim-table 'o (-⟦f⟧.boxed .o))
+         (hash-set! prim-table 'o .o)
          (set-range! 'o 'boolean?)
          (update-arity! 'o n)
          (add-const! #'o 'o))]
@@ -124,7 +124,7 @@
          (: .o : -⟦f⟧)
          defn-o
          (add-const! #'o 'o)
-         (hash-set! prim-table 'o (-⟦f⟧.boxed .o))
+         (hash-set! prim-table 'o .o)
          (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))
          (update-arity! 'o stx-arity)
          #,@maybe-set-partial
@@ -206,7 +206,7 @@
          (: .o : -⟦f⟧)
          defn-o
          (add-const! #'o 'o)
-         (hash-set! prim-table 'o (-⟦f⟧.boxed .o))
+         (hash-set! prim-table 'o .o)
          (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))
          (update-arity! 'o stx-arity)
          #,@maybe-set-partial)]
