@@ -13,6 +13,7 @@
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
@@ -21,7 +22,7 @@
 
 (define-unit kont@
   (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^ verifier^
-          val^ env^ sto^ pretty-print^ pc^ instr^
+          val^ env^ sto^ pretty-print^ pc^ instr^ prim-runtime^
           (prefix q: local-prover^))
   (export kont^)
 
@@ -792,6 +793,11 @@
            $ Γ ⟪ℋ⟫ Σ
            (bgn0.e∷ refined-range '() ⊥ρ ⟦k⟧))))
 
+  (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (define-values (V t) (implement-predicate (-Σ-σ Σ) Γ o (W->W¹s A)))
+      (⟦k⟧ (-W (list V) t) $ Γ ⟪ℋ⟫ Σ)))
+
   (: maybe-refine : -W -σ -Γ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -W¹) → -W)
   (define (maybe-refine rng₀ σ Γ cases args)
 
@@ -821,7 +827,9 @@
                (match args
                  ['() (refine-rng)]
                  [(cons arg args*)
-                  (if (equal? '✓ (⊢/quick ?dom-rst arg)) (go args*) rngs)]))]
+                  (if (equal? '✓ (⊢/quick ?dom-rst arg))
+                      (go args*)
+                      rngs)]))]
             [else (if (null? args) (refine-rng) rngs)]))
         (define (refine-rng)
           (for/list : (Listof -V) ([rng (in-list rngs)]

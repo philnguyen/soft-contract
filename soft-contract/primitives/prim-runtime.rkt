@@ -270,7 +270,10 @@
                                (mon*.c∷ ctx (map +⟪α⟫ℓ₀ ?range-wraps) t-ans ⟦k⟧)
                                ⟦k⟧))
     (define ⟦k⟧:refine-range
-      (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))
+      (if (and (match? ranges (list (-● (== {set 'boolean?}))))
+               (andmap symbol? doms))
+          (implement-predicate∷ o ⟦k⟧:wrap-range)
+          (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range)))
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:refine-range))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 

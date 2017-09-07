@@ -65,7 +65,21 @@
       [(>)  (⊢@ '<  (reverse xs))]
       [else '?]))
 
-  (define (Γ⊢t [φs : -Γ] [t : -?t]) : -R
+  (define (Γ⊢t [φs : -Γ] [t₀ : -?t]) : -R
+
+    (define t ; FIXME clean up hack
+      (match t₀
+        [(-t.@ (-≥/c b) (list t*))
+         (-t.@ '<= (list (-b b) t*))]
+        [(-t.@ (->/c b) (list t*))
+         (-t.@ '< (list (-b b) t*))]
+        [(-t.@ (-</c b) (list t*))
+         (-t.@ '< (list t* (-b b)))]
+        [(-t.@ (-≤/c b) (list t*))
+         (-t.@ '<= (list t* (-b b)))]
+        [(-t.@ (-≢/c b) (list t*))
+         (-t.@ 'not (list (-t.@ 'equal? (list t* (-b b)))))]
+        [_ t₀]))
 
     (when (∋ φs -ff)
       ;; Rule `{… #f …} ⊢ e : ✓` is not always desirable, because
@@ -411,7 +425,7 @@
                   [(list (-● ps)) #:when (-h? p)
                    (ps⇒p ps p)]
                   [_
-                   (match p
+                   [match p
                      [(? -st-mk?) '✓]
                      [(? -st-mut?) '✓]
                      [(? -st-ac?) '✓]
@@ -625,12 +639,13 @@
                          (boolean->R (and (real? b) (op b a)))]
                         [(list (-● ps)) #|TODO|# '?]
                         [_ '✗])]
-                     [(-≡/c b₁)
-                      (match-define (list V) Vs)
-                      (p∋Vs σ 'equal? (-b b₁) V)]
-                     [(-≢/c b)
-                      (not-R (p∋Vs σ 'equal? (-b b) (car Vs)))]
-                     [_ '?])]) -R))
+                     [(-≥/c b) (p∋Vs σ '>= (car Vs) (-b b))]
+                     [(->/c b) (p∋Vs σ '> (car Vs) (-b b))]
+                     [(-</c b) (p∋Vs σ '< (car Vs) (-b b))]
+                     [(-≤/c b) (p∋Vs σ '<= (car Vs) (-b b))]
+                     [(or (-≡/c b₁) (-b b₁)) (p∋Vs σ 'equal? (-b b₁) (car Vs))]
+                     [(-≢/c b) (not-R (p∋Vs σ 'equal? (-b b) (car Vs)))]
+                     [_ '?]]]) -R))
       (printf "~a ~a : ~a~n" p (map show-V Vs) R)))
 
   (define (ps⇒p [ps : (℘ -h)] [p : -h]) : -R

@@ -152,7 +152,12 @@
       [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
       [(-∀/C xs ⟦c⟧ ρ) `(∀/C ,xs ,(show-⟦e⟧ ⟦c⟧))]
       [(-Seal/C x ⟪ℋ⟫ _) (format-symbol "(seal/c ~a~a)" x (n-sub ⟪ℋ⟫))]
-      [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))]))
+      [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))]
+      [(->/c b) `(>/c ,(show-b b))]
+      [(-≥/c b) `(>=/c ,(show-b b))]
+      [(-</c b) `(</c ,(show-b b))]
+      [(-≤/c b) `(<=/c ,(show-b b))]
+      [(-≢/c b) `(not/c ,(show-b b))]))
 
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
     (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)

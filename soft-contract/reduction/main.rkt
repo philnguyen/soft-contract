@@ -11,6 +11,7 @@
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
 
@@ -248,6 +249,6 @@
 (define-compound-unit/infer reduction@
   (import ast-pretty-print^ static-info^ meta-functions^
           prims^ proof-system^ local-prover^ widening^ verifier^
-          for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^)
+          for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^ prim-runtime^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))

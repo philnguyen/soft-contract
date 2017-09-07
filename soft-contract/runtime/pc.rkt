@@ -241,6 +241,16 @@
          (t@ '< (second xs) (first xs))]
         ['>=
          (t@ '<= (second xs) (first xs))]
+        [(->/c b)
+         (t@ '< (-b b) (first xs))]
+        [(-≥/c b)
+         (t@ '<= (-b b) (first xs))]
+        [(-</c b)
+         (t@ '< (first xs) (-b b))]
+        [(-≤/c b)
+         (t@ '<= (first xs) (-b b))]
+        [(-≢/c b)
+         (t@ 'not (t@ 'equal? (first xs) (-b b)))]
 
         ; (car (cons e _)) = e
         [(-st-ac 𝒾 i)

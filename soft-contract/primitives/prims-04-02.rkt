@@ -151,8 +151,8 @@
 
   ;; 4.2.2.2 Number Comparison
   ; FIXME varargs
-  (def-pred = (number? number?)) 
-  (def-preds (< <= > >=) (real? real?))
+  (def-pred = (number? number?))
+  (def-preds (< <= >= >) (real? real?))
 
   ;; 4.2.2.3 Powers and Roots
   (def sqrt (number? . -> . number?)
