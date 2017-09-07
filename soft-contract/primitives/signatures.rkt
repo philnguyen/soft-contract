@@ -49,6 +49,7 @@
    [+⟪α⟫ℓ₀ : (-V → -⟪α⟫ℓ)]
    [make-static-listof : (Symbol (→ (Values Boolean -V)) → -V)]
    [make-listof : (Boolean -V → -V)]
+   [hacked-listof? : (-V → (Option -V))]
    [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
    [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
    [mk-● : (-h * → -●)]

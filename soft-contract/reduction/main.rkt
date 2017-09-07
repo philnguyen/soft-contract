@@ -146,7 +146,7 @@
           (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
         (printf "Stack store:~n")
         (for ([(αₖ ks) (in-hash σₖ)]
-              ;#:when (> (set-count ks) 1)
+              #:when (> (set-count ks) 1)
               )
           (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))
           #|

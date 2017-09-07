@@ -11,13 +11,14 @@
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../proof-relation/signatures.rkt"
+         "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit mon@
   (import static-info^
           compile^ app^ kont^ proof-system^ local-prover^ widening^ prims^
-          env^ sto^ val^ instr^ pc^ pretty-print^ for-gc^)
+          env^ sto^ val^ instr^ pc^ pretty-print^ for-gc^ (prefix r: prim-runtime^))
   (export mon^)
 
   (: mon : -ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -165,14 +166,18 @@
 
   (define (mon-or/c ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-ctx l+ _ lo _) ctx)
-    (match-define (-W¹ (-Or/C flat? (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) c) W-C)
+    (match-define (-W¹ (and C (-Or/C flat? (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))) c) W-C)
     (match-define (list c₁ c₂) (-app-split 'or/c c 2))
+
+    ;; HACK
+    (define ?rec (r:hacked-listof? C))
     
     (: chk-or/c : -W¹ -ctx -W¹ -ctx → (℘ -ς))
     (define (chk-or/c W-fl ctx-fl W-ho ctx-ho)
       (match-define (-ctx _ _ lo-fl ℓ-fl) ctx-fl)
       (push-fc lo-fl ℓ-fl W-fl W-V $ Γ ⟪ℋ⟫ Σ
-               (mon-or/c∷ ctx-ho W-fl W-ho W-V ⟦k⟧)))
+               (mon-or/c∷ ctx-ho W-fl W-ho W-V ⟦k⟧)
+               #:looped (and ?rec (-α.x/c (string->symbol (format "~a" ?rec)) ⟪ℋ⟫∅))))
 
     (for*/union : (℘ -ς) ([C₁ (σ@ Σ α₁)] [C₂ (σ@ Σ α₂)])
       (define W-C₁ (-W¹ C₁ c₁))

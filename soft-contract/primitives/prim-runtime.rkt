@@ -198,6 +198,15 @@
                ⟪null?⟫
                (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-listof C)) +ℓ₀))))))))
 
+  (: hacked-listof? : -V → (Option -V))
+  (define hacked-listof?
+    (match-lambda
+      [(-Or/C _
+              _
+              (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm (-St/C _ _ (list _ (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm-listof V)) _))))) _))
+       V]
+      [_ #f]))
+
   (: make-static-listof : Symbol (→ (Values Boolean -V)) → -V)
   (define make-static-listof
     (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])

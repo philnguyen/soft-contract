@@ -568,7 +568,7 @@
        (define v*
          (match s
            [(-t.@ 'values (list _ v)) v]
-           [#f #f]))
+           [(or #f (? integer?)) #f]))
        (⟦k⟧ (-W (list (V+ (-Σ-σ Σ) V Cₗ)) v*) $ Γ ⟪ℋ⟫ Σ)])))
 
   (define-frame (if.flat/c∷ [W-V : -W] [blm : -blm] [⟦k⟧ : -⟦k⟧])
