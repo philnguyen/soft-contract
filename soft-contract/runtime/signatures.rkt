@@ -82,7 +82,7 @@
             (-Seal/C Symbol -⟪ℋ⟫ -l)
 
             ;;
-            ->/c -≥/c -</c -≤/c -≡/c -≢/c
+            ->/c -≥/c -</c -≤/c -≢/c
             )
 
 ;; Function contracts

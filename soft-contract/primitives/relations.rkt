@@ -66,6 +66,14 @@
    [exact-nonnegative-integer? ⇒ normalized-arity?]
    [arity-at-least? ⇒ normalized-arity?]
    ;; contracts
+   [char? ⇒ flat-contract?]
+   [keyword? ⇒ flat-contract]
+   [void? ⇒ flat-contract?]
+   [number? ⇒ flat-contract?]
+   [boolean? ⇒ flat-contract?]
+   [symbol? ⇒ flat-contract?]
+   [string? ⇒ flat-contract?]
+   [null? ⇒ flat-contract?]
    [list-contract? ⇒ contract?]
    [flat-contract? ⇒ contract?]
    ;; ports

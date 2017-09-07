@@ -137,6 +137,7 @@
   (test "safe/issues/hash-basics.rkt" check-safe)
   (test "safe/issues/set-basics.rkt" check-safe)
   (test "safe/issues/parametric-basics.rkt" check-safe)
+  (test "safe/issues/issue-97.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
@@ -153,6 +154,7 @@
   (test "unsafe/issues/build-vector.rkt" check-fail)
   (test "unsafe/issues/substruct.rkt" check-fail)
   (test "unsafe/issues/parametric-basics.rkt" (check 'Failed 2 2))
+  (test "unsafe/issues/issue-97.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 

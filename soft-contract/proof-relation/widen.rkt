@@ -152,7 +152,7 @@
                                     (match V
                                       [(-● ps)
                                        (match P
-                                         [(-≡/c b) (-b b)]
+                                         [(or (-≡/c b) (-b b)) (-b b)]
                                          ['not -ff]
                                          ['null? -null]
                                          ['void? -void]

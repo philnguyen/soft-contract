@@ -492,11 +492,12 @@
                          (match Vs
                            [(list (or (? -=>_?) (? -And/C?) (? -Or/C?) (? -Not/C?) (? -Not/C?)
                                       (? -Vectorof?) (? -Vector/C?) (? -St/C?) (? -x/C?) (? -Hash/C?) (? -Set/C?)
-                                      (? -∀/C?) (? -Seal/C?))) '✓]
+                                      (? -∀/C?) (? -Seal/C?) (? -b?))) '✓]
                            [(list V) (check-proc-arity-1 V)]
                            [_ '?])]
                         [(flat-contract?)
                          (match Vs
+                           [(list (? -b?)) '✓]
                            [(list V) (check-proc-arity-1 V)]
                            [_ '?])]
                         [(any/c) '✓]

@@ -399,8 +399,12 @@
       [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V) ℓ) $ Γ ⟪ℋ⟫ Σ)]
       [(?)
        (define V* (V+ (-Σ-σ Σ) V C))
-       (app ℓ W-C (list W-V) $ Γ ⟪ℋ⟫ Σ
-            (if.flat/c∷ (-W (list V*) v) (-blm l+ lo (list C) (list V) ℓ) ⟦k⟧))]))
+       (define ⟦k⟧* (if.flat/c∷ (-W (list V*) v) (-blm l+ lo (list C) (list V) ℓ) ⟦k⟧))
+       (match C
+         [(? -b? b)
+          (app ℓ (-W¹ 'equal? 'equal?) (list W-V (-W¹ b b)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)]
+         [_
+          (app ℓ W-C (list W-V) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*)])]))
 
   (: flat-chk : -l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
   (define (flat-chk l ℓₐ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -436,7 +440,7 @@
           (∪
            (for/union : (℘ -ς) ([b bs])
                       (define v (-b b))
-                      (⟦k⟧ (-W (list -ff v) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ))
+                      (⟦k⟧ (-W (list -tt v) (?t@ 'values -tt v)) $ Γ ⟪ℋ⟫ Σ))
            (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ))])]
       [(-St/C _ s αℓs)
 
@@ -469,7 +473,11 @@
       [(-x/C ⟪α⟫)
        (define αₓ (assert (⟪α⟫->-α ⟪α⟫) -α.x/c?))
        (for/union : (℘ -ς) ([C* (σ@ Σ ⟪α⟫)])
-         (push-fc l ℓₐ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped αₓ))]
+                  (push-fc l ℓₐ (-W¹ C* #f) W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧ #:looped αₓ))]
+      [(? -b? b)
+       (define ⟦ap⟧ (mk-app ℓₐ (mk-rt (-W¹ 'equal? 'equal?)) (list (mk-rt W-V) (mk-rt (-W¹ b b)))))
+       (define ⟦rt⟧ (mk-rt (-W (list -tt b) (?t@ 'values -tt b))))
+       (⟦ap⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ (if∷ l ⟦rt⟧ (↓ₚᵣₘ -ff) ⊥ρ ⟦k⟧))]
       [_
        (define ⟦ap⟧ (mk-app ℓₐ (mk-rt W-C) (list (mk-rt W-V))))
        (define ⟦rt⟧ (mk-rt (-W (list -tt (V+ σ V C)) (?t@ 'values -tt v))))
