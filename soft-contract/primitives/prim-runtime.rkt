@@ -259,6 +259,6 @@
   (: add-seal! : -Σ Symbol -⟪ℋ⟫ -l → -Seal/C)
   (define (add-seal! Σ x ⟪ℋ⟫ l)
     (define C (-Seal/C x ⟪ℋ⟫ l))
-    (σ⊕Vs! Σ (-α->⟪α⟫ (-α.imm C)) ∅)
+    (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)) ∅)
     C)
   )
