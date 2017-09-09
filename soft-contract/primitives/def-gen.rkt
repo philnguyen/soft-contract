@@ -141,7 +141,7 @@
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . (listof syntax?))
-    (hack:make-available (-o) exec-prim mk-●)
+    (hack:make-available (-o) exec-prim mk-● add-seal!)
     (define/with-syntax (stx-inits ...) (map gen-ctc-V dom-inits))
     (define/with-syntax doms
       (syntax-parse ?dom-rst
@@ -185,7 +185,7 @@
            #'(mk-● 'c ...))]))
     `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
-          #`(define #,x (-Seal/C 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
+          #`(define #,x (add-seal! #,(-Σ) 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
       ,#`(exec-prim #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ) #,(-⟦k⟧)
                     #,(-ℓ) '#,(-o)
                     #:dom doms

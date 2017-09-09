@@ -267,4 +267,10 @@
   (: r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς)))
   (define (r:Γ⊢oW/handler on-t on-f σ Γ o . Ws)
     (apply Γ⊢oW/handler on-t on-f σ Γ o Ws))
+
+  (: add-seal! : -Σ Symbol -⟪ℋ⟫ -l → -Seal/C)
+  (define (add-seal! Σ x ⟪ℋ⟫ l)
+    (define C (-Seal/C x ⟪ℋ⟫ l))
+    (σ⊕Vs! Σ (-α->⟪α⟫ (-α.imm C)) ∅)
+    C)
   )

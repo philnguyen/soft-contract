@@ -39,8 +39,7 @@
 
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
-  ([r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
-   [make-total-pred : (Index → Symbol → -⟦f⟧)]
+  ([make-total-pred : (Index → Symbol → -⟦f⟧)]
    [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (Values -V -?t))]
    [ts->bs : ((Listof -?t) → (Option (Listof Base)))] ; TODO obsolete
    [Ws->bs : ((Listof -W¹) → (Option (Listof Base)))]
@@ -52,7 +51,6 @@
    [hacked-listof? : (-V → (Option -V))]
    [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
    [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
-   [mk-● : (-h * → -●)]
    [exec-prim
     : (-$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
           ℓ (Intersection Symbol -o)
@@ -83,4 +81,10 @@
    [partial-prims : (HashTable Symbol Natural)]
 
    [add-alias! : (Identifier Identifier → Void)]
-   [add-const! : (Identifier -prim → Void)]))
+   [add-const! : (Identifier -prim → Void)]
+
+   ;; re-exported stuff to avoid confusing dependency in `def`
+   [r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
+   [mk-● : (-h * → -●)]
+   [add-seal! : (-Σ Symbol -⟪ℋ⟫ -l → -Seal/C)]
+   ))
