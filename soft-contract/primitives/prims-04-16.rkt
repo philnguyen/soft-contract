@@ -41,7 +41,7 @@
 
   ;;;;; Hash Sets
   (def-preds (set-equal? set-eqv? set-eq? set? set-mutable? set-weak?))
-  (def set (∀/c (α) (() #:rest (listof α) . ->* . (set/c α))))
+  (def set (∀/c (α) (() #:rest (listof α) . ->* . (and/c immutable? (set/c α)))))
   (def seteqv (∀/c (α) (() #:rest list? . ->* . (and/c generic-set? set-eqv? (set/c α)))))
   (def seteq (∀/c (α) (() #:rest list? . ->* . (and/c generic-set? set-eq? (set/c α)))))
   (def mutable-set (∀/c (α) (() #:rest list? . ->* . (and/c generic-set? set-equal? set-mutable? (set/c α)))))
