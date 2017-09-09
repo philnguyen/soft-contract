@@ -405,8 +405,10 @@
        (parse-e #'u)]
 
       ;; HACK for `raise`-ing exception
-      [(#%plain-app (~literal raise) _ ...)
-       (-@ 'raise #|TODO|# '() (syntax-ℓ stx))]
+      [(#%plain-app (~literal raise) args ...)
+       (-@ 'raise (list (-b (string-join (for/list ([arg (in-list (syntax->list #'(args ...)))])
+                                           (format "~a" (syntax->datum arg))))))
+           (syntax-ℓ stx))]
 
       ;; HACK for immediate uses of `list`
       [(#%plain-app (~literal list) e ...)

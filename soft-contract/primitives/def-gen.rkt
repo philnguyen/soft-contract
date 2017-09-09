@@ -76,6 +76,9 @@
            (parameterize ([-ctc-parameters (for/hash ([x (in-syntax-list #'(x ...))])
                                              (values (syntax-e x) x))])
              (go #'c))])))
+    (define/with-syntax error-msg
+      (string->symbol (format "arity ~v" (syntax-parse (-sig)
+                                           [sig:hc (attribute sig.arity)]))))
     
     (list
      #`(match #,(-Ws)
@@ -181,8 +184,8 @@
         [#f (make-list (length rngs) #`(mk-●))]
         [initial-refinements
          (for/list ([cs (in-list initial-refinements)])
-           (define/with-syntax (c ...) cs)
-           #'(mk-● 'c ...))]))
+           (define/with-syntax (c ...) (map o->v cs))
+           #'(mk-● c ...))]))
     `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
           #`(define #,x (add-seal! #,(-Σ) 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
@@ -278,7 +281,7 @@
          (values #`(#,Comb/C #,flat? (+⟪α⟫ℓ₀ #,Cₗ) (+⟪α⟫ℓ₀ #,Cᵣ)) flat?)]))
 
     (syntax-parse c
-      [o:o #''o]
+      [o:o (o->v #'o)]
       [α:id
        (hash-ref
         (-ctc-parameters) (syntax-e #'α)
@@ -379,7 +382,7 @@
                     [row (syntax-line c)])
         #'(loc->ℓ (loc src col row '()))))
     (syntax-parse c
-      [o:o #''o]
+      [o:o (o->v #'o)]
       [x:id #'(-x 'x ℓ)]
       [l:lit #'(-b l)]
       [((~literal not/c) c)
@@ -440,4 +443,10 @@
                              [(~or (~literal list?) (~literal null?)) #t]
                              [_ #f]))
          (and (list? rngs) (andmap base? rngs))))
+
+  (define/contract o->v (identifier? . -> . syntax?)
+    (syntax-parser
+      [(~or (~literal pair?) (~literal cons?)) #'-cons]
+      [(~literal box?) #'-box]
+      [o #''o]))
   )
