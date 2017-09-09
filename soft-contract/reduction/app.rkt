@@ -91,7 +91,7 @@
       ['make-sequence (app-make-sequence ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
 
       ;; Regular stuff
-      [(? symbol? o) ((get-prim o) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(? symbol? o) ((app-prim o) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-Clo xs ⟦e⟧ ρₕ Γₕ)
        (with-guarded-arity (shape xs)
          ((app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
@@ -539,6 +539,13 @@
       (define κ (-κ.rt (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
+
+  (: app-prim : Symbol → -⟦f⟧)
+  (define ((app-prim o) ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (define ⟦f⟧ (get-prim o))
+    (define-values (⟪ℋ⟫* looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge 'o ℓ)))
+    (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
+    (⟦f⟧ ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))
 
   (: app/rest/unsafe : ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
   ;; Apply function with (in general, part of) rest arguments already allocated,
