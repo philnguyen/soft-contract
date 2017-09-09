@@ -274,7 +274,8 @@
       [(-α.wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
       [(-α.sealed x ⟪ℋ⟫) (format-symbol "~a*" (show-α.x x ⟪ℋ⟫))]
       [(-α.imm V) (show-V V)]
-      [(-α.imm-listof C) (string->symbol (format "(listof ~a)" (show-V C)))]
+      [(-α.imm-listof x C) (string->symbol (format "(listof ~a)" (show-V C)))]
+      [(-α.imm-ref-listof x C) (string->symbol (format "(ref ~a)" x))]
       [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
 
   (define (show-ρ [ρ : -ρ]) : (Listof Sexp)

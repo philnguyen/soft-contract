@@ -146,41 +146,23 @@
           (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
         (printf "Stack store:~n")
         (for ([(αₖ ks) (in-hash σₖ)]
-              #:when (> (set-count ks) 1)
+              #:when (> (set-count ks) 100)
               )
           (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))
-          #|
-          (define-set rests : -⟦k⟧)
-          (define-set doms : (℘ Symbol))
-          (define-set pcs : -Γ)
-          (define-set looped?s : Boolean)
-          (define-set anses : -?t)
-          (for ([k (in-set ks)])
-            (match-define (-κ.rt ⟦k⟧ dom Γ t looped?) k)
-            (rests-add! ⟦k⟧)
-            (doms-add! dom)
-            (pcs-add! Γ)
-            (anses-add! t)
-            (looped?s-add! looped?))
-
-          (printf "~a rests~n" (set-count rests))
-          
-          (printf "~a doms~n" (set-count doms))
-          (for ([dom (in-set doms)])
-            (printf "- ~a~n" (set->list dom)))
-          (printf "~n")
-
-          (printf "~a looppeds: ~a~n~n" (set-count looped?s) (set->list looped?s))
-
-          (printf "~a anses:~n" (set-count anses))
-          (for ([ans (in-set anses)])
-            (printf "- ~a~n" (show-t ans)))
-          (printf "~n")
-
-          (printf "~a pcs:~n" (set-count pcs))
-          (for ([pc (in-set pcs)])
-            (printf "- ~a~n" (show-Γ pc)))
-          |#
+          #;(let ([comp : (Mutable-HashTable (Pairof Any Integer) (℘ Any)) (make-hash)])
+            (for ([k (in-set ks)])
+              (match-define (-κ.rt ⟦k⟧ _ _ _ _) k)
+              (match-let* ([(list _ ⟦k⟧) (find-memo-key ⟦k⟧ 'restore-$∷)]
+                           [(list _ ⟦k⟧) (find-memo-key ⟦k⟧ 'restore-ctx∷)]
+                           [(list _ _ _ _ ⟦k⟧) (find-memo-key ⟦k⟧ 'mon-or/c∷)]
+                           [(list _ ⟦k⟧) (find-memo-key ⟦k⟧ 'restore-ctx∷)]
+                           [ans (find-memo-key ⟦k⟧)])
+                (for ([e (in-list elems)] [i (in-naturals)])
+                  (hash-update! comp (cons tag i)
+                                (λ ([s : (℘ Any)]) (set-add s e))
+                                mk-∅))))
+            (for ([(k vs) (in-hash comp)])
+              (printf "    - ~a : ~a~n" k (set-count vs))))
           ))
       (values (M@ Σ αₖ₀) Σ)))
 

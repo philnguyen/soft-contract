@@ -181,7 +181,7 @@
       [(-=>i _ _ ℓ) (list '->i ℓ)]
       [(-Case-> _ ℓ) (list 'case-> ℓ)]
       [(-x/C α)
-       (match-define (-α.x/c x _) (⟪α⟫->-α α))
+       (match-define (or (-α.x/c x _) (-α.imm-listof x _)) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
       [(? -o? o) o]
       [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]

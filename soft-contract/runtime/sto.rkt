@@ -24,7 +24,17 @@
     (define (σ@ m ⟪α⟫)
       (match (⟪α⟫->-α ⟪α⟫)
         [(-α.imm V) {set V}]
-        [(-α.imm-listof C) (hash-ref! cache-listof ⟪α⟫ (λ () {set (make-listof (C-flat? C) C)}))]
+        [(-α.imm-listof x Cₑ)
+         (hash-ref!
+          cache-listof ⟪α⟫
+          (λ ()
+            (define flat? (C-flat? Cₑ))
+            (define Cₚ (-St/C flat? -𝒾-cons
+                              (list (+⟪α⟫ℓ₀ Cₑ)
+                                    (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-ref-listof x Cₑ)) +ℓ₀))))
+            {set (-Or/C flat? (+⟪α⟫ℓ₀ 'null?) (+⟪α⟫ℓ₀ Cₚ))}))]
+        [(-α.imm-ref-listof x Cₑ)
+         (hash-ref! cache-listof ⟪α⟫ (λ () {set (-x/C (-α->⟪α⟫ (-α.imm-listof x Cₑ)))}))]
         [_
          (define σ (if (-Σ? m) (-Σ-σ m) m))
          (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))])))

@@ -297,8 +297,12 @@
             ;; Only use this in the prim DSL where all values are finite
             ;; with purely syntactic components
             (-α.imm -V)
-            (-α.imm-listof #|elem, ok with care|# -V)
+            ;; indirection for `listof` to keep in-sync with regular listof contracts
+            (-α.imm-listof Symbol #|elem, ok with care|# -V)
+            (-α.imm-ref-listof Symbol #|elem, ok with care|# -V)
             )
+
+(-α.rec-ref . ::= . -α.x/c -α.imm-listof)
 
 (define-interner ⟪α⟫ -α
   #:intern-function-name -α->⟪α⟫

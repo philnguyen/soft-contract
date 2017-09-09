@@ -191,21 +191,9 @@
   (define (+⟪α⟫ℓ₀ V) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) +ℓ₀))
 
   (: make-listof : Boolean -V → -V)
-  (define make-listof
-    (let ([⟪null?⟫ (+⟪α⟫ℓ₀ 'null?)])
-      (λ (flat? C)
-        (-Or/C flat?
-               ⟪null?⟫
-               (+⟪α⟫ℓ₀ (-St/C flat? -𝒾-cons (list (+⟪α⟫ℓ₀ C) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-listof C)) +ℓ₀))))))))
-
-  (: hacked-listof? : -V → (Option -V))
-  (define hacked-listof?
-    (match-lambda
-      [(-Or/C _
-              _
-              (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm (-St/C _ _ (list _ (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm-listof V)) _))))) _))
-       V]
-      [_ #f]))
+  (define (make-listof flat? Cₕ)
+    (define x (format-symbol "gen-listof-~a" (-α->⟪α⟫ (-α.imm Cₕ))))
+    (-x/C (-α->⟪α⟫ (-α.imm-listof x Cₕ))))
 
   (: make-static-listof : Symbol (→ (Values Boolean -V)) → -V)
   (define make-static-listof
