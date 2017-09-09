@@ -534,7 +534,7 @@
               (#%plain-app _ _ _ _ (quote k) _ ...)
               _ ...)
        (define 𝒾 (-𝒾 (syntax-e #'k) (cur-mod)))
-       (-struct/c 𝒾 (parse-es #'(c ...)) (syntax-ℓ stx))]
+       (-struct/c 𝒾 (parse-es #'(c ...)) (syntax-ℓ #'k))]
       [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (syntax-ℓ stx))]
