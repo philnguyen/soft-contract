@@ -73,7 +73,7 @@
         (match Ws
           [(list Wₙ) (list Wₙ (+W¹ -zero))]
           [_ Ws]))
-      (.internal-make-vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+      (.internal-make-vector ℓ Ws* $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
   
   (def (vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     #:init ()
