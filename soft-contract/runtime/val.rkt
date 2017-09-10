@@ -187,7 +187,7 @@
       [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
       [(-Seal/C x _ _) (list 'seal/c x)]
-      [(-b b) (list 'flat (-b b))]
+      [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -≢/c?) (? -b?))) (list 'flat c)]
       [V (error 'strip-C "~a not expected" V)]))
 
   (: predicates-of-V : -V → (℘ -h))

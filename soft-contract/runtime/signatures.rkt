@@ -213,7 +213,7 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -edge.tgt (U -⟦e⟧ -o (Listof (U Symbol ℓ -⟦e⟧ -?t)) (℘ Base)))
+(define-type -edge.tgt (U -⟦e⟧ -o (Listof (U Symbol ℓ -⟦e⟧ -?t -h)) (℘ Base)))
 (struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
 (define-type -ℋ (Listof -edge))
 (define-interner -⟪ℋ⟫ -ℋ

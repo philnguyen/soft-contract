@@ -255,6 +255,7 @@
                            [(ℓ? x) (show-ℓ x)]
                            [(-t? x) (show-t x)]
                            [(not x) '⊘]
+                           [(-h? x) (show-h x)]
                            [else (show-⟦e⟧ x)]))]
       [else (show-⟦e⟧ tgt)]))
 
