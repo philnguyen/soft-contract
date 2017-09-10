@@ -107,58 +107,41 @@
   (def assf (∀/c (α β) ((α . -> . any/c) (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
 
   ;; 4.9.6 Pair Acesssor Shorthands
-  ; FIXME parametric
-  (def* (caar cdar)
-    ((cons/c pair? any/c) . -> . any/c))
-  (def* (cadr cddr)
-    ((cons/c any/c pair?) . -> . any/c))
-  (def caaar
-    ((cons/c (cons/c pair? any/c) any/c) . -> . any/c))
-  (def caadr
-    ((cons/c any/c (cons/c pair? any/c)) . -> . any/c))
-  (def cadar
-    ((cons/c (cons/c any/c pair?) any/c) . -> . any/c))
-  (def caddr
-    ((cons/c any/c (cons/c any/c pair?)) . -> . any/c))
-  (def cdaar
-    ((cons/c (cons/c pair? any/c) any/c) . -> . any/c))
-  (def cdadr
-    ((cons/c any/c (cons/c pair? any/c)) . -> . any/c))
-  (def cddar
-    ((cons/c (cons/c any/c pair?) any/c) . -> . any/c))
-  (def cdddr
-    ((cons/c any/c (cons/c any/c pair?)) . -> . any/c))
+  ;; Seals instead of `any/c` prevent havocing.
+  ;; Only the result needs a distinct seal from the rest.
+  (def caar (∀/c (α _) ((cons/c (cons/c α _) _) . -> . α)))
+  (def cdar (∀/c (α _) ((cons/c (cons/c _ α) _) . -> . α)))
+  (def cadr (∀/c (α _) ((cons/c _ (cons/c α _)) . -> . α)))
+  (def cddr (∀/c (α _) ((cons/c _ (cons/c _ α)) . -> . α)))
+  (def caaar (∀/c (α _) ((cons/c (cons/c (cons/c α _) _) _) . -> . α)))
+  (def caadr (∀/c (α _) ((cons/c _ (cons/c (cons/c α _) _)) . -> . α)))
+  (def cadar (∀/c (α _) ((cons/c (cons/c _ (cons/c α _)) _) . -> . α)))
+  (def caddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c α _))) . -> . α)))
+  (def cdaar (∀/c (α _) ((cons/c (cons/c (cons/c _ α) _) _) . -> . α)))
+  (def cdadr (∀/c (α _) ((cons/c _ (cons/c (cons/c _ α) _)) . -> . α)))
+  (def cddar (∀/c (α _) ((cons/c (cons/c _ (cons/c _ α)) _) . -> . α)))
+  (def cdddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ α))) . -> . α)))
   ; TODO rest of them
 
   ;; 4.9.7 Additional List Functions and Synonyms
   (def-alias empty null)
   (def-alias pair? cons?)
   (def-alias empty? null?)
-  (def-alias-internal first -car) ; FIXME precond
-  (def-alias-internal rest -cdr) ; FIXME precond
-  ;; FIXME parametric
-  (def second
-    ((cons/c any/c (cons/c any/c list?)) . -> . any/c))
-  (def third
-    ((cons/c any/c (cons/c any/c (cons/c any/c list?))) . -> . any/c))
-  (def fourth
-    ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))) . -> . any/c))
-  (def fifth
-    ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))) . -> . any/c))
-  (def sixth
-    ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))) . -> . any/c))
-  (def seventh
-    ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))) . -> . any/c))
-  (def eighth
-    ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))) . -> . any/c))
-  (def ninth
-    ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?))))))))) . -> . any/c))
-  (def tenth
-    ((cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c (cons/c any/c list?)))))))))) . -> . any/c))
+  (def first (∀/c (α) ((cons/c α list?) . -> . α)))
+  (def rest (∀/c (α _) ((cons/c _ (and/c list? α)) . -> . α)))
+  (def second (∀/c (α _) ((cons/c _ (cons/c α list?)) . -> . α)))
+  (def third (∀/c (α _) ((cons/c _ (cons/c _ (cons/c α list?))) . -> . α)))
+  (def fourth (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c α list?)))) . -> . α)))
+  (def fifth (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c α list?))))) . -> . α)))
+  (def sixth (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c α list?)))))) . -> . α)))
+  (def seventh (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c α list?))))))) . -> . α)))
+  (def eighth (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c α list?)))))))) . -> . α)))
+  (def ninth (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c α list?))))))))) . -> . α)))
+  (def tenth (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c _ (cons/c α list?)))))))))) . -> . α)))
   (def last (∀/c (α) ((and/c (listof α) pair?) . -> . α)))
   (def last-pair
     ; FIXME allowing recursive contract in DSL
-    ; (∀/c (α β) ((μ (X) (or/c (cons/c α β) (cons/c α X))) . -> . (cons/c α β)))
+    ; (∀/c (α β _) ((μ (X) (or/c (cons/c α β) (cons/c _ X))) . -> . (cons/c α β)))
     (pair? . -> . pair?))
   (def make-list (∀/c (α) (exact-nonnegative-integer? α . -> . (listof α))))
   (def list-update (∀/c (α) ((listof α) exact-nonnegative-integer? (α . -> . α) . -> . (listof α))))
