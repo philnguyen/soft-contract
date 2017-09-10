@@ -56,7 +56,7 @@
   (def in-bytes ; FIXME uses
     (bytes? . -> . sequence?))
   (def in-port ; FIXME uses
-    ((input-port? . -> . any/c) input-port? . -> . sequence?))
+    (∀/c (_) ((input-port? . -> . _) input-port? . -> . sequence?)))
   (def in-input-port-bytes
     (input-port? . -> . sequence?))
   (def in-input-port-chars
@@ -77,10 +77,8 @@
     ((or/c path-string? not) . -> . sequence?))
   (def in-producer ; FIXME uses
     (procedure? . -> . sequence?))
-  (def in-value
-    (any/c . -> . sequence?))
-  (def in-indexed
-    (sequence? . -> . sequence?))
+  (def in-value (∀/c (_) (_ . -> . sequence?)))
+  (def in-indexed (sequence? . -> . sequence?))
   #;[in-sequences ; FIXME listof
      (() #:rest (listof sequence?) . ->* . sequence?)]
   #;[in-cycle ; FIXME listof
@@ -93,7 +91,7 @@
     (sequence? . -> . sequence?))
   ; [HO] stop-before stop-after
   (def make-do-sequence ; FIXME
-    (any/c . -> . sequence?))
+    (∀/c (_) (_ . -> . sequence?)))
   (def-opq prop:sequence struct-type-property?)
 
   ;; 4.14.1.2 Sequence Conversion
@@ -118,18 +116,18 @@
   #;[sequence-append ; FIXME listof
      (() #:rest (listof sequence?) . ->* . sequence?)]
   (def sequence-map
-    ((any/c . -> . any/c) sequence? . -> . sequence?))
+    (∀/c (_) ((any/c . -> . _) sequence? . -> . sequence?)))
   ; [HO] sequence-andmap sequence-ormap
   (def sequence-for-each ; FIXME generalize 1st arg to multi args
-    ((any/c . -> . any) sequence? . -> . void?))
+    (∀/c (_) ((any/c . -> . _) sequence? . -> . void?)))
   (def sequence-fold ; FIXME generalize 1st arg
-    ((any/c any/c . -> . any/c) any/c sequence? . -> . any/c))
+    (∀/c (α β) ((α β . -> . β) β sequence? . -> . β)))
   (def sequence-count ; FIXME precise arity for 1st arg
     (procedure? sequence? . -> . exact-nonnegative-integer?))
   (def sequence-filter ; FIXME generalize 1st arg to multi args
     ((any/c . -> . boolean?) sequence? . -> . sequence?))
   (def sequence-add-between
-    (sequence? any/c . -> . sequence?))
+    (∀/c (_) (sequence? _ . -> . sequence?)))
   #;[sequence/c ; FIXME uses, `contract?`
      (any/c . -> . any/c)]
 
@@ -163,7 +161,7 @@
     (procedure? stream? . -> . stream?))
   ; [HO] stream-andmap stream-ormap
   (def stream-for-each ; FIXME varargs on 1st
-    ((any/c . -> . any) stream? . -> . void?))
+    (∀/c (_) ((any/c . -> . _) stream? . -> . void?)))
   (def stream-fold ; FIXME varargs on 1st
     ((any/c any/c . -> . any) any/c stream? . -> . any/c))
   (def stream-count ; FIXME varargs on 1st

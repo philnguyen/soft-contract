@@ -249,9 +249,10 @@
           [(vectorof α) exact-nonnegative-integer? . -> . (vectorof α)]
           [(vectorof α) exact-nonnegative-integer? exact-nonnegative-integer? . -> . (vectorof α)])))
   (def* (vector-filter vector-filter-not)
-    (∀/c (α) ((α . -> . any/c) (vectorof α) . -> . (vectorof α))))
+    (∀/c (α _) ((α . -> . _) (vectorof α) . -> . (vectorof α))))
   (def vector-count ; FIXME varargs
-    (∀/c (α) ((α . -> . any/c) (vectorof α) . -> . exact-nonnegative-integer?)))
+    (∀/c (α _) ((α . -> . _) (vectorof α) . -> . exact-nonnegative-integer?)))
   (def* (vector-argmin vector-argmax) (∀/c (α) ((α . -> . real?) (vectorof α) . -> . α)))
-  (def* (vector-member vector-memv vector-memq) (any/c vector? . -> . (or/c exact-nonnegative-integer? not)))
+  (def* (vector-member vector-memv vector-memq)
+    (∀/c (_) (_ vector? . -> . (or/c exact-nonnegative-integer? not))))
   )

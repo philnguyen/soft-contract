@@ -50,5 +50,5 @@
   (def-pred symbol=? (symbol? symbol?))
   (def-pred boolean=? (boolean? boolean?))
   (def-alias false? not)
-  (def xor (any/c any/c . -> . any/c))
+  (def xor (∀/c (α) (α α . -> . (or/c not α))))
   )

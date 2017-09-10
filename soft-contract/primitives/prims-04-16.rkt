@@ -79,9 +79,9 @@
   ;; 4.16.3.1 Set Methods
   (def-pred set-member? (generic-set? any/c))
   (def set-add (∀/c (α) ((and/c immutable? (set/c α)) α . -> . (set/c α))))
-  (def set-remove (∀/c (α) ((and/c immutable? (set/c α)) any/c . -> . (set/c α))))
+  (def set-remove (∀/c (α _) ((and/c immutable? (set/c α)) _ . -> . (set/c α))))
   (def* (set-add! set-remove!) ; FIXME no!
-    ((and/c generic-set? set-mutable?) any/c . -> . void?))
+    (∀/c (_) ((and/c generic-set? set-mutable?) _ . -> . void?)))
   (def-pred set-empty? {generic-set?})
   (def set-count (generic-set? . -> . exact-nonnegative-integer?))
   (def set-first (∀/c (α) ((set/c α) . -> . α)))

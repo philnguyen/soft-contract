@@ -52,40 +52,35 @@
 
   ;; 4.15.2.1 Primitive Dictionary Methods
   (def dict-ref ; FIXME use
-    (dict? any/c . -> . any))
+    (∀/c (_) (dict? _ . -> . any)))
   (def dict-set!
-    ((and/c dict? (not/c immutable?)) any/c any/c . -> . void?))
+    (∀/c (_) ((and/c dict? (not/c immutable?)) _ _ . -> . void?)))
   (def dict-set
-    ((and/c dict? immutable?) any/c any/c . -> . (and/c dict? immutable?)))
+    (∀/c (_) ((and/c dict? immutable?) _ _ . -> . (and/c dict? immutable?))))
   (def dict-remove!
-    ((and/c dict? (not/c immutable?)) any/c . -> . void?))
+    (∀/c (_) ((and/c dict? (not/c immutable?)) _ . -> . void?)))
   (def dict-remove
-    ((and/c dict? immutable?) any/c . -> . (and/c dict? immutable?)))
-  (def dict-iterate-first
-    (dict? . -> . any/c))
-  (def dict-iterate-next
-    (dict? any/c . -> . any/c))
-  (def dict-iterate-key
-    (dict? any/c . -> . any))
-  (def dict-iterate-value
-    (dict? any/c . -> . any))
+    (∀/c (_) ((and/c dict? immutable?) _ . -> . (and/c dict? immutable?))))
+  (def dict-iterate-first (dict? . -> . any/c))
+  (def dict-iterate-next (∀/c (_) (dict? _ . -> . any/c)))
+  (def dict-iterate-key (∀/c (_) (dict? _ . -> . any)))
+  (def dict-iterate-value (∀/c (_) (dict? _ . -> . any)))
 
   ;; 4.15.2.2 Derived Dictionary Methods
   (def-pred dict-has-key? (dict? any/c))
   (def dict-set*! ; FIXME use
-    ((and/c dict? (not/c immutable?)) any/c any/c . -> . void?))
+    (∀/c (_) ((and/c dict? (not/c immutable?)) _ _ . -> . void?)))
   (def dict-set* ; FIXME use
-    ((and/c dict? immutable?) any/c any/c . -> . (and/c dict? immutable?)))
-  (def dict-ref!
-    (dict? any/c any/c . -> . any))
+    (∀/c (_) ((and/c dict? immutable?) _ _ . -> . (and/c dict? immutable?))))
+  (def dict-ref! (∀/c (_) (dict? _ _ . -> . any)))
   (def dict-update! ; FIXME use
-    ((and/c dict? (not/c immutable?)) any/c (any/c . -> . any/c) . -> . void?))
+    (∀/c (_) ((and/c dict? (not/c immutable?)) _ (any/c . -> . _) . -> . void?)))
   (def dict-update
-    ((and/c dict? immutable?) any/c (any/c . -> . any/c) . -> . (and/c dict? immutable?)))
+    (∀/c (_) ((and/c dict? immutable?) _ (any/c . -> . _) . -> . (and/c dict? immutable?))))
   #;[dict-map ; FIXME listof
      (dict? (any/c any/c . -> . any/c) . -> . (listof any/c))]
   (def dict-for-each
-    (dict? (any/c any/c . -> . any) . -> . void?))
+    (∀/c (_) (dict? (any/c any/c . -> . _) . -> . void?)))
   (def-pred dict-empty? (dict?))
   (def dict-count
     (dict? . -> . exact-nonnegative-integer?))
@@ -125,8 +120,8 @@
   ;                 (->* [] [dict?] dict?)
   ;                 (->* [] [dict?] dict?)))]
   (def* (make-custom-hash make-weak-custom-hash make-immutable-custom-hash) ; FIXME uses
-    ((or/c (any/c any/c . -> . any/c)
-           (any/c any/c (any/c any/c . -> . any/c) . -> . any/c))
-     . -> . dict?))
+    (∀/c (_) ((or/c (any/c any/c . -> . _)
+                    (any/c any/c (_ _ . -> . any/c) . -> . _))
+              . -> . dict?)))
 
   )

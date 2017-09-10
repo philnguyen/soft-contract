@@ -66,45 +66,45 @@
 
   ;; 4.9.3 List Iteration
   (def map (∀/c (α β) ((α . -> . β) (listof α) . -> . (listof β)))) ; FIXME uses
-  (def andmap (∀/c (α) ((α . -> . any/c) (listof α) . -> . any/c))) ; FIXME uses
-  (def ormap (∀/c (α) ((α . -> . any/c) (listof α) . -> . any/c))) ; FIXME uses
-  (def for-each (∀/c (α) ((α . -> . any/c) (listof α) . -> . void?))) ; FIXME uses
+  (def andmap (∀/c (α β) ((α . -> . β) (listof α) . -> . (or/c #t β)))) ; FIXME uses
+  (def ormap (∀/c (α β) ((α . -> . β) (listof α) . -> . (or/c #f β)))) ; FIXME uses
+  (def for-each (∀/c (α _) ((α . -> . _) (listof α) . -> . void?))) ; FIXME uses
   (def foldl (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
   (def foldr (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
 
   ;; 4.9.4 List Filtering
-  (def filter (∀/c (α) ((α . -> . any/c) (listof α) . -> . (listof α))))
+  (def filter (∀/c (α _) ((α . -> . _) (listof α) . -> . (listof α))))
   (def remove
-    (∀/c (α β)
+    (∀/c (α β _)
          (case->
           [β (listof α) . -> . (listof α)]
-          [β (listof α) (α β . -> . any/c) . -> . (listof α)])))
-  (def* (remq remv) (∀/c (α) (any/c (listof α) . -> . (listof α))))
+          [β (listof α) (α β . -> . _) . -> . (listof α)])))
+  (def* (remq remv) (∀/c (α _) (_ (listof α) . -> . (listof α))))
   (def remove*
-    (∀/c (α β)
+    (∀/c (α β _)
       (case->
        ((listof β) (listof α) . -> . (listof α))
-       ((listof β) (listof α) (α β . -> . any/c) . -> . (listof α)))))
+       ((listof β) (listof α) (α β . -> . _) . -> . (listof α)))))
   (def* (remq* remv*) (∀/c (α) (list? (listof α) . -> . (listof α))))
   (def sort ; FIXME uses
-    (∀/c (α) ((listof α) (α α . -> . any/c) . -> . (listof α))))
+    (∀/c (α _) ((listof α) (α α . -> . _) . -> . (listof α))))
 
   ;; 4.9.5 List Searching
   (def member
-    (∀/c (α β)
+    (∀/c (α β _)
          (case->
           [β (listof α) . -> . (or/c (and/c (listof α) pair?) not)]
-          [β (listof α) (α β . -> . any/c) . -> . (or/c (and/c (listof α) pair?) not)])))
-  (def* (memv memq) (∀/c (α) (any/c (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
-  (def memf (∀/c (α) ((α . -> . any/c) (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
-  (def findf (∀/c (α) ((α . -> . any/c) (listof α) . -> . (or/c α not))))
+          [β (listof α) (α β . -> . _) . -> . (or/c (and/c (listof α) pair?) not)])))
+  (def* (memv memq) (∀/c (α _) (_ (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
+  (def memf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
+  (def findf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c α not))))
   (def assoc
-    (∀/c (α β)
+    (∀/c (α β _)
          (case->
           [α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not)]
-          [α (listof (cons/c α β)) (α α . -> . any/c) . -> . (or/c (cons/c α β) not)])))
+          [α (listof (cons/c α β)) (α α . -> . _) . -> . (or/c (cons/c α β) not)])))
   (def* (assv assq) (∀/c (α β) (α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
-  (def assf (∀/c (α β) ((α . -> . any/c) (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
+  (def assf (∀/c (α β _) ((α . -> . _) (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
 
   ;; 4.9.6 Pair Acesssor Shorthands
   ;; Seals instead of `any/c` prevent havocing.
@@ -149,68 +149,68 @@
   (def take (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
   (def drop (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
   (def split-at (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (values (listof α) (listof α))))) ; FIXME mismatch
-  (def* (takef dropf) (∀/c (α) ((listof α) (α . -> . any/c) . -> . (listof α)))) ; FIXME mismatch
-  (def splitf-at (∀/c (α) ((listof α) (α . -> . any/c) . -> . (values (listof α) (listof α))))) ; FIXME mismatch
+  (def* (takef dropf) (∀/c (α _) ((listof α) (α . -> . _) . -> . (listof α)))) ; FIXME mismatch
+  (def splitf-at (∀/c (α _) ((listof α) (α . -> . _) . -> . (values (listof α) (listof α))))) ; FIXME mismatch
   (def* (take-right drop-right) (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
   (def split-at-right (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (values (listof α) (listof α))))) ; FIXME mismatch
-  (def* (takef-right dropf-right) (∀/c (α) ((listof α) (α . -> . any/c) . -> . (listof α)))) ; FIXME mismatch
-  (def splitf-at-right (∀/c (α) ((listof α) (α . -> . any/c) . -> . (values (listof α) (listof α))))) ; FIXME mismatch
+  (def* (takef-right dropf-right) (∀/c (α _) ((listof α) (α . -> . _) . -> . (listof α)))) ; FIXME mismatch
+  (def splitf-at-right (∀/c (α _) ((listof α) (α . -> . _) . -> . (values (listof α) (listof α))))) ; FIXME mismatch
   (def list-prefix?
-    (∀/c (α)
+    (∀/c (α _)
          (case->
           [(listof α) (listof α) . -> . boolean?]
-          [(listof α) (listof α) (α α . -> . any/c) . -> . boolean?])))
+          [(listof α) (listof α) (α α . -> . _) . -> . boolean?])))
   (def* (take-common-prefix drop-common-prefix)
-    (∀/c (α)
+    (∀/c (α _)
          (case->
           [(listof α) (listof α) . -> . (listof α)]
-          [(listof α) (listof α) (α α . -> . any/c) . -> . (listof α)])))
+          [(listof α) (listof α) (α α . -> . _) . -> . (listof α)])))
   (def split-common-prefix
-    (∀/c (α)
+    (∀/c (α _)
          (case->
           [(listof α) (listof α) . -> . (values (listof α) (listof α) (listof α))]
-          [(listof α) (listof α) (α α . -> . any/c) . -> . (values (listof α) (listof α) (listof α))])))
+          [(listof α) (listof α) (α α . -> . _) . -> . (values (listof α) (listof α) (listof α))])))
   (def add-between (∀/c (α) ((listof α) α . -> . (listof α))))
   #;[append* ; FIXME uses ; FIXME listof
      ((listof list?) . -> . list?)]
-  (def flatten (any/c . -> . list?))
+  (def flatten (∀/c (_) (_ . -> . list?)))
   (def check-duplicates ; FIXME uses
-    (∀/c (α)
+    (∀/c (α _)
          (case->
           [(listof α) . -> . (or/c α not)]
-          [(listof α) (α α . -> . any/c) . -> . (or/c α not)])))
+          [(listof α) (α α . -> . _) . -> . (or/c α not)])))
   (def remove-duplicates ; FIXME uses
-    (∀/c (α)
+    (∀/c (α _)
          (case->
           [(listof α) . -> . (listof α)]
-          [(listof α) (α α . -> . any/c) . -> . (listof α)])))
+          [(listof α) (α α . -> . _) . -> . (listof α)])))
   (def filter-map (∀/c (α β) ((α . -> . β) (listof α) . -> . (listof (and/c β (not/c not))))))  ; FIXME uses
-  (def count (∀/c (α) ((α . -> . any/c) (listof α) . -> . exact-nonnegative-integer?)))  ; FIXME varargs
-  (def partition (∀/c (α) ((α . -> . any/c) (listof α) . -> . (values (listof α) (listof α)))))
+  (def count (∀/c (α _) ((α . -> . _) (listof α) . -> . exact-nonnegative-integer?)))  ; FIXME varargs
+  (def partition (∀/c (α _) ((α . -> . _) (listof α) . -> . (values (listof α) (listof α)))))
   (def range
     (case->
      [real? . -> . (listof real?)]
      [real? real? . -> . (listof real?)]
      [real? real? real? . -> . (listof real?)]))
   (def append-map (∀/c (α β) ((α . -> . (listof β)) (listof α) . -> . (listof β)))) ; FIXME varargs
-  (def filter-not (∀/c (α) ((α . -> . any/c) (listof α) . -> . (listof α))))
+  (def filter-not (∀/c (α _) ((α . -> . _) (listof α) . -> . (listof α))))
   (def shuffle (∀/c (α) ((listof α) . -> . (listof α))))
   (def permutations (∀/c (α) ((listof α) . -> . (listof (listof α)))))
   (def in-permutations (list? . -> . sequence?))
   (def* (argmin argmax) (∀/c (α) ((α . -> . real?) (and/c (listof α) pair?) . -> . α)))
   (def group-by
-    (∀/c (α β)
+    (∀/c (α β _)
          (case->
           [(α . -> . β) (listof α) . -> . (listof (listof α))]
-          [(α . -> . β) (listof α) (β β . -> . any/c) . -> . (listof (listof α))])))
+          [(α . -> . β) (listof α) (β β . -> . _) . -> . (listof (listof α))])))
   (def cartesian-product (∀/c (α β) ((listof α) (listof β) . -> . (listof (list/c α β))))) ; FIXME varargs
-  (def* (remf remf*) (∀/c (α) ((α . -> . any/c) (listof α) . -> . (listof α))))
+  (def* (remf remf*) (∀/c (α _) ((α . -> . _) (listof α) . -> . (listof α))))
 
   ;; 4.9.8 Immutable Cyclic Data
-  (def make-reader-graph (any/c . -> . any/c))
+  (def make-reader-graph (∀/c (_) (_ . -> . any/c)))
   (def-pred placeholder?)
-  (def make-placeholder (any/c . -> . placeholder?))
-  (def placeholder-set! (placeholder? any/c . -> . void?) #:lift-concrete? #f)
+  (def make-placeholder (∀/c (_) (_ . -> . placeholder?)))
+  (def placeholder-set! (∀/c (_) (placeholder? _ . -> . void?)) #:lift-concrete? #f)
   (def placeholder-get (placeholder? . -> . any/c))
   (def-pred hash-placeholder?)
   (def* (make-hash-placeholder make-hasheq-placeholder make-hasheqv-placeholder)

@@ -201,10 +201,10 @@
   (def hash-values (∀/c (α β) ((hash/c α β) . -> . (listof β))))
   (def hash->list (∀/c (α β) ((hash/c α β) . -> . (listof (cons/c α β)))))
   (def hash-for-each
-    (∀/c (α β)
+    (∀/c (α β _)
          (case->
-          [(hash/c α β) (α . -> . any) . -> . void?]
-          [(hash/c α β) (α . -> . any) boolean? . -> . void?])))
+          [(hash/c α β) (α . -> . _) . -> . void?]
+          [(hash/c α β) (α . -> . _) boolean? . -> . void?])))
   (def hash-count
     (∀/c (α β)
          (case->

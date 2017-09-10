@@ -159,7 +159,7 @@
   (def-opq prop:arity-string struct-type-property?)
   (def-opq prop:checked-procedure struct-type-property?)
   (def checked-procedure-check-and-extract
-    (struct-type? any/c (any/c any/c any/c . -> . any/c) any/c any/c . -> . any/c))
+    (∀/c (_) (struct-type? _ (any/c any/c any/c . -> . _) _ _ . -> . any/c)))
 
   ;; 4.17.2 Reflecting on Primitives
   (def-pred primitive?)

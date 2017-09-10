@@ -111,6 +111,6 @@
   (def-preds (string-contains? string-prefix? string-suffix?) (string? string?))
 
   ;; 4.3.6 Converting Values to Strings.
-  (def* (~a ~v ~s ~e ~.a ~.v ~.s) (any/c . -> . string?)) ; FIXME keywords
+  (def* (~a ~v ~s ~e ~.a ~.v ~.s) (∀/c (_) (_ . -> . string?))) ; FIXME keywords
   (def ~r (rational? . -> . string?)) ; FIXME keywords
   )
