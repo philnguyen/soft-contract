@@ -775,6 +775,10 @@
       (define-values (V t) (implement-predicate (-Σ-σ Σ) Γ o (W->W¹s A)))
       (⟦k⟧ (-W (list V) t) $ Γ ⟪ℋ⟫ Σ)))
 
+  (define-frame (absurd∷ [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+       ∅))
+
   (: maybe-refine : -W -σ -Γ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -W¹) → -W)
   (define (maybe-refine rng₀ σ Γ cases args)
 

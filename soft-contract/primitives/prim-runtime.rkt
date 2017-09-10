@@ -238,15 +238,23 @@
     (define ctx* (-ctx l o o ℓ))
     (define ctx (-ctx o l o ℓ))
 
-    (define ⟦k⟧:wrap-range (if ?range-wraps
-                               (mon*.c∷ ctx (map +⟪α⟫ℓ₀ ?range-wraps) t-ans ⟦k⟧)
-                               ⟦k⟧))
-    (define ⟦k⟧:refine-range
-      (if (and (match? ranges (list (-● (== {set 'boolean?}))))
-               (andmap symbol? doms))
-          (implement-predicate∷ o ⟦k⟧:wrap-range)
-          (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range)))
-    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:refine-range))
+    (define ⟦k⟧:chk-args-done
+      (let ([no-return?
+             (for/or : Boolean ([rng (in-list ranges)])
+               (match rng
+                 [(-● ps) (∋ ps 'none/c)]
+                 [_ #f]))])
+        (if no-return?
+            (absurd∷ ⟦k⟧)
+            (let ([⟦k⟧:wrap-range
+                      (if ?range-wraps
+                          (mon*.c∷ ctx (map +⟪α⟫ℓ₀ ?range-wraps) t-ans ⟦k⟧)
+                          ⟦k⟧)])
+              (if (and (match? ranges (list (-● (== {set 'boolean?}))))
+                       (andmap symbol? doms))
+                  (implement-predicate∷ o ⟦k⟧:wrap-range)
+                  (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))))))
+    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 
   ;; Eta-expand to prevent messing with init-depend
