@@ -84,3 +84,7 @@
   (for/fold ([m* : (HashTable X (℘ Y)) m])
             ([(k vs) (in-hash m)] #:unless (>= (set-count vs) n))
     (hash-remove m* k)))
+
+(: count-max : (∀ (X Y) ((HashTable X (℘ Y)) → Index)))
+(define (count-max m)
+  (apply max 0 ((inst map Index (℘ Any)) set-count (hash-values m))))
