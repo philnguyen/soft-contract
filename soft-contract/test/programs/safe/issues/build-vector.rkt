@@ -3,7 +3,7 @@
 (provide
  (contract-out
   [v1 (vectorof integer?)]
-  [v2 (vectorof integer?)]))
+  [v2 (vectorof string?)]))
 
 (define v1
   (build-vector 42 values))
