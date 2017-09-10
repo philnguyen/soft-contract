@@ -258,6 +258,10 @@
       [('exact-positive-integer? (-≥/c (? real? r))) (if (<= r 1) '✓ '?)]
       [((-</c (? real? r)) 'exact-positive-integer?) (if (<= r 1) '✗ '?)]
       [((-≤/c (? real? r)) 'exact-positive-integer?) (if (<  r 1) '✗ '?)]
+      ; _ -> real?
+      [((or (? -</c?) (? ->/c?) (? -≤/c?) (? -≥/c?)) (or 'real? 'number?)) '✓]
+      [((? -b? b) o) (p∋Vs ⊥σ o b)]
+      
       
       ; equal?
       [((-≡/c b₁) (-≡/c b₂)) (boolean->R (equal? b₁ b₂))]
