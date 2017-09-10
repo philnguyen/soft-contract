@@ -183,7 +183,7 @@
       [(-x/C α)
        (match-define (or (-α.x/c x _) (-α.imm-listof x _)) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
-      [(? -o? o) o]
+      [(? -o? o) (list 'flat o)]
       [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
       [(-Seal/C x _ _) (list 'seal/c x)]

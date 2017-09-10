@@ -543,9 +543,9 @@
   (: app-prim : Symbol → -⟦f⟧)
   (define ((app-prim o) ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (define ⟦f⟧ (get-prim o))
-    (define-values (⟪ℋ⟫* looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge 'o ℓ)))
+    (define-values (⟪ℋ⟫* looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge o ℓ)))
     (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
-    (⟦f⟧ ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))
+    (⟦f⟧ ℓ Ws $ Γ ⟪ℋ⟫* Σ ⟦k⟧*))
 
   (: app/rest/unsafe : ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
   ;; Apply function with (in general, part of) rest arguments already allocated,
