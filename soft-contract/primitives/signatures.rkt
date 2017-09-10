@@ -45,17 +45,16 @@
    [Ws->bs : ((Listof -W¹) → (Option (Listof Base)))]
    [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
    [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]
-   [+⟪α⟫ℓ₀ : (-V → -⟪α⟫ℓ)]
-   [make-static-listof : (Symbol (→ (Values Boolean -V)) → -V)]
-   [make-listof : (Boolean -V → -V)]
+   [make-static-listof : (Symbol (→ (Values Boolean -V ℓ)) → -V)]
+   [make-listof : (Boolean -V ℓ → -V)]
    [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
    [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
    [exec-prim
     : (-$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
           ℓ (Intersection Symbol -o)
-          #:dom (Listof -V)
+          #:dom (Listof (Pairof -V ℓ))
           #:rng (Listof -V)
-          #:rng-wrap (Option (Listof -V))
+          #:rng-wrap (Option (Listof (Pairof -V ℓ)))
           #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
           #:args (Listof -W¹)
           → (℘ -ς))]

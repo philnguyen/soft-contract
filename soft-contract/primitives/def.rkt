@@ -93,7 +93,6 @@
                              [-gen-lift? (syntax-e #'lift?)]
                              [-refinements (syntax->list #'(ref ...))])
                 (gen-cases))))
-
      (define/contract maybe-set-partial (listof syntax?)
        (let go ([sig #'sig])
          (hack:make-available #'o set-partial!)

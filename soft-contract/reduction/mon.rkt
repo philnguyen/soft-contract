@@ -509,7 +509,7 @@
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
     (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
     (match ?αₓ
-      [(or (-α.x/c x _) (-α.imm-listof x _))
+      [(or (-α.x/c x _) (-α.imm-listof x _ _))
        #:when x
        (define W-V* (-W¹ V (-t.x x)))
        (define $* ($-set $ x (-t.x x)))
@@ -534,7 +534,7 @@
     (define-values (⟪ℋ⟫ₑₑ _) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (strip-C C) ℓ)))
     (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
     (match ?αₓ
-      [(or (-α.x/c x _) (-α.imm-listof x _))
+      [(or (-α.x/c x _) (-α.imm-listof x _ _))
        #:when x
        (define W-V* (-W¹ V (-t.x x)))
        (define $* ($-set $ x (-t.x x)))

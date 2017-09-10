@@ -298,8 +298,8 @@
             ;; with purely syntactic components
             (-α.imm -V)
             ;; indirection for `listof` to keep in-sync with regular listof contracts
-            (-α.imm-listof Symbol #|elem, ok with care|# -V)
-            (-α.imm-ref-listof Symbol #|elem, ok with care|# -V)
+            (-α.imm-listof Symbol #|elem, ok with care|# -V ℓ)
+            (-α.imm-ref-listof Symbol #|elem, ok with care|# -V ℓ)
             )
 
 (-α.rec-ref . ::= . -α.x/c -α.imm-listof)

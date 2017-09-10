@@ -187,15 +187,12 @@
                     (syntax-e x) (syntax-e y₀) (syntax-e y)))]
           [else (alias-table-set! alias-table x y)]))
 
-  (: +⟪α⟫ℓ₀ : -V → -⟪α⟫ℓ)
-  (define (+⟪α⟫ℓ₀ V) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) +ℓ₀))
-
-  (: make-listof : Boolean -V → -V)
-  (define (make-listof flat? Cₕ)
+  (: make-listof : Boolean -V ℓ → -V)
+  (define (make-listof flat? Cₕ ℓ)
     (define x (format-symbol "gen-listof-~a" (-α->⟪α⟫ (-α.imm Cₕ))))
-    (-x/C (-α->⟪α⟫ (-α.imm-listof x Cₕ))))
+    (-x/C (-α->⟪α⟫ (-α.imm-listof x Cₕ ℓ))))
 
-  (: make-static-listof : Symbol (→ (Values Boolean -V)) → -V)
+  (: make-static-listof : Symbol (→ (Values Boolean -V ℓ)) → -V)
   (define make-static-listof
     (let ([cache : (Mutable-HashTable Symbol -V) (make-hasheq)])
       (λ (tag mk-V)
@@ -217,9 +214,9 @@
   (: exec-prim :
      -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
      ℓ (Intersection Symbol -o)
-     #:dom (Listof -V)
+     #:dom (Listof (Pairof -V ℓ))
      #:rng (Listof -V)
-     #:rng-wrap (Option (Listof -V))
+     #:rng-wrap (Option (Listof (Pairof -V ℓ)))
      #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
      #:args (Listof -W¹)
      → (℘ -ς))
@@ -248,13 +245,14 @@
             (absurd∷ ⟦k⟧)
             (let ([⟦k⟧:wrap-range
                       (if ?range-wraps
-                          (mon*.c∷ ctx (map +⟪α⟫ℓ₀ ?range-wraps) t-ans ⟦k⟧)
+                          (mon*.c∷ ctx (map alloc ?range-wraps) t-ans ⟦k⟧)
                           ⟦k⟧)])
               (if (and (match? ranges (list (-● (== {set 'boolean?}))))
-                       (andmap symbol? doms))
+                       (andmap symbol? (map (inst car -V Any) doms)))
                   (implement-predicate∷ o ⟦k⟧:wrap-range)
                   (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))))))
-    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map +⟪α⟫ℓ₀ doms) (apply ?t@ 'values t-args) ⟦k⟧:chk-args-done))
+    (define ⟦k⟧:chk-args
+      (mon*.c∷ ctx* (map alloc doms) (apply ?t@ 'values t-args) ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 
   ;; Eta-expand to prevent messing with init-depend
@@ -269,4 +267,7 @@
     (define C (-Seal/C x ⟪ℋ⟫ l))
     (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)) ∅)
     C)
+
+  (define alloc : ((Pairof -V ℓ) → -⟪α⟫ℓ)
+    (match-lambda [(cons V ℓ) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) ℓ)]))
   )

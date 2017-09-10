@@ -145,16 +145,20 @@
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . (listof syntax?))
     (hack:make-available (-o) exec-prim mk-● add-seal!)
-    (define/with-syntax (stx-inits ...) (map gen-ctc-V dom-inits))
+    (define/with-syntax (stx-init-V ...) (map gen-ctc-V dom-inits))
+    (define/with-syntax (stx-init-ℓ ...) (map gen-stx-ℓ dom-inits))
+    (define/with-syntax (stx-inits ...) #'((cons stx-init-V stx-init-ℓ) ...))
     (define/with-syntax doms
       (syntax-parse ?dom-rst
         [#f #'(list stx-inits ...)]
         [((~literal listof) c)
          (define/with-syntax num-rests #`(length #,(-Wᵣ)))
-         #`(list* stx-inits ... (make-list num-rests #,(gen-ctc-V #'c)))]
+         #`(list* stx-inits ...
+                  (make-list num-rests (cons #,(gen-ctc-V #'c) #,(gen-stx-ℓ #'c))))]
         [_
          (define/with-syntax num-rests #`(length #,(-Wᵣ)))
-         #`(list* stx-inits ... (make-list num-rests #,(gen-ctc-V #'any/c)))]))
+         #`(list* stx-inits ...
+                  (make-list num-rests (cons #,(gen-ctc-V #'any/c) +ℓ₀)))]))
     (define refinement-compatible?
       (let ([case-arity (if ?dom-rst
                             (arity-at-least (length dom-inits))
@@ -195,7 +199,8 @@
                     #:rng (list V-rng ...)
                     #:rng-wrap #,(if (?flatten-range rngs)
                                      #'#f
-                                     #`(list #,@(map gen-ctc-V rngs)))
+                                     #`(list #,@(for/list ([d (in-list rngs)])
+                                                  #`(cons #,(gen-ctc-V d) #,(gen-stx-ℓ d)))))
                     #:refinements (list refinement-cases ...)
                     #:args #,(-Ws))))
 
@@ -263,12 +268,12 @@
 
   (define/contract (gen-ctc c)
     (syntax? . -> . syntax?)
-    (hack:make-available (-o) +⟪α⟫ℓ₀)
-    #`(+⟪α⟫ℓ₀ #,(gen-ctc-V c)))
+    (with-syntax ([ℓ (gen-stx-ℓ c)]
+                  [V (gen-ctc-V c)])
+      #'(-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) ℓ)))
 
-  (define/contract (gen-ctc-V c)
+  (define/contract (gen-ctc-V stx)
     (syntax? . -> . syntax?)
-    (hack:make-available (-o) +⟪α⟫ℓ₀)
     (define/contract ((go* Comb/C base/c) cs)
       (identifier? syntax? . -> . ((listof syntax?) . -> . (values syntax? boolean?)))
       (match cs
@@ -278,9 +283,13 @@
          (define-values (Cᵣ r-flat?) ((go* Comb/C base/c) cs*))
          (define Cₗ (gen-ctc-V c))
          (define flat? (and (c-flat? c) r-flat?))
-         (values #`(#,Comb/C #,flat? (+⟪α⟫ℓ₀ #,Cₗ) (+⟪α⟫ℓ₀ #,Cᵣ)) flat?)]))
+         (define ℓₗ (gen-stx-ℓ c 'left))
+         (define ℓᵣ (gen-stx-ℓ c 'right))
+         (values #`(#,Comb/C #,flat?
+                    (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm #,Cₗ)) #,ℓₗ)
+                    (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm #,Cᵣ)) #,ℓᵣ)) flat?)]))
 
-    (syntax-parse c
+    (syntax-parse stx
       [o:o (o->v #'o)]
       [α:id
        (hash-ref
@@ -303,12 +312,12 @@
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))
-       #`(-=> (list #,@Cs) #,D +ℓ₀)]
+       #`(-=> (list #,@Cs) #,D #,(gen-stx-ℓ stx))]
       [((~literal ->*) (c ...) #:rest r d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define R (gen-ctc #'r))
        (define D (gen-rng #'d))
-       #`(-=> (-var (list #,@Cs) #,R) #,D +ℓ₀)]
+       #`(-=> (-var (list #,@Cs) #,R) #,D #,(gen-stx-ℓ stx))]
       [((~literal case->) clauses ...)
        (error 'gen-ctc "TODO: nested case-> for `~a`" (syntax-e (-o)))]
       [((~literal ∀/c) (x ...) c)
@@ -345,11 +354,12 @@
       [((~literal listof) c)
        (define/with-syntax C (gen-ctc-V #'c))
        (define/with-syntax flat? (c-flat? #'c))
+       (define/with-syntax ℓ (gen-stx-ℓ #'c))
        (hack:make-available (-o) make-listof make-static-listof)
        (if (hash-empty? (-ctc-parameters))
            (with-syntax ([tag (gensym 'listof)])
-             #'(make-static-listof 'tag (λ () (values flat? C))))
-           #'(make-listof flat? C))]
+             #'(make-static-listof 'tag (λ () (values flat? C ℓ))))
+           #'(make-listof flat? C ℓ))]
       [((~literal list/c) c ...)
        (gen-ctc-V (foldr (λ (c d) #`(cons/c #,c #,d)) #'null? (syntax->list #'(c ...))))]
       [((~literal vectorof) c)
@@ -376,11 +386,7 @@
 
   (define/contract (ctc->ast c)
     (syntax? . -> . syntax?)
-    (define/with-syntax ℓ
-      (with-syntax ([src (path->string (syntax-source c))]
-                    [col (syntax-column c)]
-                    [row (syntax-line c)])
-        #'(loc->ℓ (loc src col row '()))))
+    (define/with-syntax ℓ (gen-stx-ℓ c))
     (syntax-parse c
       [o:o (o->v #'o)]
       [x:id #'(-x 'x ℓ)]
@@ -449,4 +455,12 @@
       [(~or (~literal pair?) (~literal cons?)) #'-cons]
       [(~literal box?) #'-box]
       [o #''o]))
+
+  (define/contract (gen-stx-ℓ s . tags)
+    ((syntax?) #:rest (listof symbol?) . ->* . syntax?)
+    (with-syntax ([src (path->string (syntax-source s))]
+                  [line (syntax-line s)]
+                  [col (syntax-column s)]
+                  [(t ...) tags])
+      #'(loc->ℓ (loc src line col (list 't ...)))))
   )
