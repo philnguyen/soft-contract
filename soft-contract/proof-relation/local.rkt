@@ -481,6 +481,14 @@
                          (match Vs
                            [(list (-b (? number? n))) (boolean->R (zero? n))]
                            [_ '✗])]
+                        [(even?)
+                         (match Vs
+                           [(list (-b (? exact-integer? n))) (boolean->R (even? n))]
+                           [_ '✗])]
+                        [(odd?)
+                         (match Vs
+                           [(list (-b (? exact-integer? n))) (boolean->R (odd? n))]
+                           [_ '✗])]
                         [(exact?)
                          (match Vs
                            [(list (-b b)) (boolean->R (and (number? b) (exact? b)))]

@@ -127,6 +127,8 @@
                 (~literal not)
                 (~literal fixnum?)
                 (~literal integer?)
+                (~literal even?)
+                (~literal odd?)
                 (~literal rational?)
                 (~literal exact?)
                 (~literal real?)
