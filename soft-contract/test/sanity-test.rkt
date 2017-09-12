@@ -141,6 +141,7 @@
   (test "safe/issues/issue-99.rkt" check-safe)
   (test "safe/issues/issue-98.rkt" check-safe)
   (test "safe/issues/issue-101.rkt" check-safe)
+  (test "safe/issues/issue-101b.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)

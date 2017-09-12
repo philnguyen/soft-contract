@@ -286,3 +286,31 @@
    #`(begin
        (dec-exclusions (q ...) ...)
        #,@impl-clauses)])
+
+(define-syntax-parser def-struct
+  [(_ s:id ([f:id c:c] ...)
+      (~optional (~seq #:extra-constructor-name mk-s:id ...)
+                 #:defaults ([(mk-s 1) '()]))
+      (~optional (~seq #:substructs (_ s*:id s*-args ...) ...)
+                 #:defaults ([(s* 1) '()]
+                             [(s*-args 2) '()]))
+      (~optional (~seq #:parent-fields (c₀:id ...))
+                 #:defaults ([(c₀ 1) '()])))
+   (define/with-syntax s? (format-id #'s "~a?" (syntax-e #'s) #:source #'s))
+   (define/with-syntax (s-f ...) (for/list ([f (in-list (syntax->list #'(f ...)))])
+                                   (format-id #'s "~a-~a" (syntax-e #'s) (syntax-e f))))
+   (define/with-syntax (impl-dec ...)
+     (with-syntax ([(s*? ...)
+                    (map
+                     (syntax-parser
+                       [s (format-id #'s "~a?" (syntax-e #'s) #:source #'s)])
+                     (syntax->list #'(s* ...)))])
+       (cond [(null? (syntax->list #'(s*? ...))) '()]
+             [else (list #`(dec-implications [s*? ⇒ s?] ...))])))
+   #`(begin
+       (def-pred s?)
+       (def s (c₀ ... c ... . -> . s?))
+       (def-alias mk-s s) ...
+       (def s-f (s? . -> . c)) ...
+       impl-dec ...
+       (def-struct s* s*-args ... #:parent-fields (c₀ ... c ...)) ...)])
