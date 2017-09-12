@@ -540,6 +540,13 @@
       [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c) (syntax-ℓ stx))]
+      [(#%plain-app (~literal fake:between/c) l h)
+       (define ℓ (syntax-ℓ stx))
+       (-@ 'and/c (list 'real?
+                        (-comp/c '>= (parse-e #'l) (ℓ-with-id ℓ 'lo))
+                        (-comp/c '<= (parse-e #'h) (ℓ-with-id ℓ 'hi)))
+           ℓ)]
+      [(#%plain-app (~literal fake:flat-contract) c) (parse-e #'c)]
       [(#%plain-app (~literal fake:cons/c) c d)
        (-cons/c (parse-e #'c) (parse-e #'d) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:one-of/c) c ...)
@@ -658,6 +665,8 @@
       [(~literal fake:false/c) 'not]
       [(~literal fake:listof) 'listof]
       [(~literal fake:list/c) 'list/c]
+      [(~literal fake:between/c) 'between/c]
+      [(~literal fake:flat-contract) 'values]
       #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work      
 
       ;; FIXME hack

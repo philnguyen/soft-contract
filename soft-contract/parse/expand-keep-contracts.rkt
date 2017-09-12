@@ -49,7 +49,10 @@
   (add! #'>=/c #'f:>=/c)
   (add! #'</c #'f:</c)
   (add! #'<=/c #'f:<=/c)
-  (add! #'recursive-contract #'f:recursive-contract))
+  (add! #'recursive-contract #'f:recursive-contract)
+  (add! #'between/c #'f:between/c)
+  (add! #'flat-contract #'f:flat-contract)
+  )
 
 (define (expand/high-level-contracts stx)
   (define stop-list (list* #'#%require (free-id-table-keys swap-table)))

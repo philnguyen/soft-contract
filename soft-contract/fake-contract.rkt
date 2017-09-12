@@ -1,8 +1,9 @@
 #lang racket/base
 
-(require (except-in racket/contract/base
+(require (except-in racket/contract
+                    flat-contract
                     -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
-                    one-of/c =/c >/c >=/c </c <=/c not/c cons/c box/c vector/c vectorof hash/c
+                    one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
                     recursive-contract)
          (except-in racket/set set/c)
          (for-syntax racket/base racket/string)
@@ -12,6 +13,7 @@
          (prefix-in r: racket/base))
 
 (provide (all-from-out racket/contract/base) provide
+         flat-contract
          -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c hash/c set/c
          recursive-contract
          dynamic-provide/contract
@@ -19,7 +21,7 @@
          dynamic-struct/c
          dynamic-recursive-contract
          dynamic-struct-out
-         =/c >/c >=/c </c <=/c
+         =/c >/c >=/c </c <=/c between/c
          not/c cons/c
          one-of/c box/c vector/c vectorof)
 
@@ -27,6 +29,7 @@
   (syntax-case stx ()
     [(_ s) (syntax-property #'s 'scv:ignore #t)]))
 
+(define flat-contract c:flat-contract)
 (define any/c c:any/c)
 (define none/c c:none/c)
 (define listof c:listof)
@@ -39,6 +42,7 @@
 (define <=/c c:<=/c)
 (define >/c c:>/c)
 (define >=/c c:>=/c)
+(define between/c c:between/c)
 (define not/c c:not/c)
 (define cons/c c:cons/c)
 (define box/c c:box/c)
