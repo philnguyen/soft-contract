@@ -41,6 +41,13 @@
   (def-pred exn?)
   (def-pred exn:fail?)
 
+  (def-struct srcloc ([source any/c]
+                      [line (or/c #f exact-positive-integer?)]
+                      [column (or/c #f exact-nonnegative-integer?)]
+                      [position (or/c #f exact-positive-integer?)]
+                      [span (or/c #f exact-nonnegative-integer?)])
+    #:extra-constructor-name make-srcloc)
+
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.4 Continuations
