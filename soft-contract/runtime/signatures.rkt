@@ -86,12 +86,11 @@
             )
 
 ;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)] [pos : ℓ])
+(-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)])
               (-=>i [doms : (Listof -⟪α⟫ℓ)]
-                    [mk-rng : (List -Clo -λ ℓ)]
-                    [pos : ℓ])
+                    [mk-rng : (List -Clo -λ ℓ)])
               (-∀/C (Listof Symbol) -⟦e⟧ -ρ)
-              (-Case-> (Listof (Pairof (Listof ⟪α⟫) ⟪α⟫)) [pos : ℓ]))
+              (-Case-> (Listof (Pairof (Listof ⟪α⟫) ⟪α⟫)) ℓ))
 
 (struct -blm ([violator : -l]
               [origin : -l]
@@ -213,7 +212,7 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -edge.tgt (U -⟦e⟧ -o (Listof (U Symbol ℓ -⟦e⟧ -?t -h)) (℘ Base)))
+(define-type -edge.tgt (U -⟦e⟧ -o (Listof (U Symbol ℓ -⟦e⟧ -?t -h (-maybe-var ℓ))) (℘ Base)))
 (struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
 (define-type -ℋ (Listof -edge))
 (define-interner -⟪ℋ⟫ -ℋ

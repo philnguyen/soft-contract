@@ -121,7 +121,7 @@
                (match V
                  [(-Ar C _ l³)
                   (match C
-                    [(-=> (list (-⟪α⟫ℓ α₁ _)) (list (-⟪α⟫ℓ α₂ _)) _)
+                    [(-=> (list (-⟪α⟫ℓ α₁ _)) (list (-⟪α⟫ℓ α₂ _)))
                      #:when (and (equal? (σ@ Σ α₁) {set 'any/c})
                                  (equal? (σ@ Σ α₂) {set 'boolean?}))
                      ;; cheat

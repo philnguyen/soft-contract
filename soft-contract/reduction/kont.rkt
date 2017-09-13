@@ -398,7 +398,7 @@
          (σ⊕V! Σ αᵣ Vᵣ)
          (values (-var αℓs (-⟪α⟫ℓ αᵣ ℓᵣ)) (-var cs cᵣ))]
         [_ (values αℓs cs)]))
-    (values (-=> Dom Rng ℓ) (-?-> t-dom ds)))
+    (values (-=> Dom Rng) (-?-> t-dom ds)))
 
   ;; Given *reversed* list of contract domains and range-maker, create dependent contract
   (: mk-=>i! : -Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))
@@ -416,7 +416,7 @@
     (define αℓs : (Listof -⟪α⟫ℓ)
       (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
         (-⟪α⟫ℓ α (ℓ-with-id ℓₐ i))))
-    (define G (-=>i αℓs (list Mk-D mk-d (ℓ-with-id ℓₐ (length αs))) ℓₐ))
+    (define G (-=>i αℓs (list Mk-D mk-d (ℓ-with-id ℓₐ (length αs)))))
     (define g (-?->i cs mk-d))
     (σ⊕V! Σ β Mk-D)
     (values G g))

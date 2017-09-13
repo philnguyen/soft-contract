@@ -130,14 +130,14 @@
       [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr γs)))]
       [(-Hash/C k v) `(hash/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr k)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr v)))]
       [(-Set/C elems) `(set/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr elems)))]
-      [(-=> αs βs _)
+      [(-=> αs βs)
        (define show-rng
          (cond [(list? βs) (show-⟪α⟫ℓs βs)]
                [else 'any]))
        (match αs
          [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,show-rng)]
          [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,show-rng)])]
-      [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _) _)
+      [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _))
        `(->i ,@(map show-⟪α⟫ℓ γs)
              ,(match xs
                 [(? list? xs) `(res ,xs ,(show-e d))]
@@ -253,6 +253,9 @@
       [(list? tgt) (for/list : (Listof Sexp) ([x (in-list tgt)])
                      (cond [(symbol? x) x]
                            [(ℓ? x) (show-ℓ x)]
+                           [(list? x) (map show-ℓ x)]
+                           [(-var? x) (cons (map show-ℓ (cast (-var-init x) (Listof ℓ)))
+                                            (show-ℓ (cast (-var-rest x) ℓ)))]
                            [(-t? x) (show-t x)]
                            [(not x) '⊘]
                            [(-h? x) (show-h x)]

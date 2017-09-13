@@ -111,7 +111,7 @@
         [(-Vector αs) (ormap check-⟪α⟫! αs)]
         [(-Vector^ α _) (check-⟪α⟫! α)]
         [(-Ar grd α _) #t]
-        [(-=> doms rngs _)
+        [(-=> doms rngs)
          (match doms
            [(? list? doms)
             (or (for/or : Boolean ([dom (in-list doms)])
@@ -139,8 +139,8 @@
 
   (define guard-arity : (-=>_ → Arity)
     (match-lambda
-      [(-=> αs _ _) (shape αs)]
-      [(and grd (-=>i αs (list mk-D mk-d _) _))
+      [(-=> αs _) (shape αs)]
+      [(and grd (-=>i αs (list mk-D mk-d _)))
        (match mk-D
          [(-Clo xs _ _ _) (shape xs)]
          [_
@@ -165,8 +165,13 @@
         (-blm (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
 
   (: strip-C : -V → -edge.tgt)
-  (define strip-C
-    (match-lambda
+  (define (strip-C C)
+    (define get-ℓ : ((-maybe-var -⟪α⟫ℓ) → (-maybe-var ℓ))
+      (match-lambda
+        [(? list? l) (map -⟪α⟫ℓ-loc l)]
+        [(-var l x) (-var (map -⟪α⟫ℓ-loc l) (-⟪α⟫ℓ-loc x))]))
+    
+    (match C
       [(-Clo xs ⟦e⟧ _ _) (list 'flat ⟦e⟧)] ; distinct from just ⟦e⟧
       [(-And/C _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list 'and/c ℓ₁ ℓ₂)]
       [(-Or/C  _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list  'or/c ℓ₁ ℓ₂)]
@@ -177,8 +182,8 @@
       [(-Vector/C ⟪α⟫ℓs) (cons 'vector/c (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
       [(-Hash/C (-⟪α⟫ℓ _ ℓₖ) (-⟪α⟫ℓ _ ℓᵥ)) (list 'hash/c ℓₖ ℓᵥ)]
       [(-Set/C (-⟪α⟫ℓ _ ℓ)) (list 'set/c ℓ)]
-      [(-=> _ _ ℓ) (list '-> ℓ)]
-      [(-=>i _ _ ℓ) (list '->i ℓ)]
+      [(-=> αs βs) (list '-> (get-ℓ αs) (if (list? βs) (get-ℓ βs) 'any))]
+      [(-=>i αs (list _ _ ℓ)) (list '->i ℓ)]
       [(-Case-> _ ℓ) (list 'case-> ℓ)]
       [(-x/C α)
        (match-define (or (-α.x/c x _) (-α.imm-listof x _ _)) (⟪α⟫->-α α))

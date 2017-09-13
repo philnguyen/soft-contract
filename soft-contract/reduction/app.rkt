@@ -258,7 +258,7 @@
     (define σ (-Σ-σ Σ))
     (define ctx* (ctx-neg ctx))
     (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
-    (match-define (-=> αℓs Rng _) C)
+    (match-define (-=> αℓs Rng) C)
     (define-values (cs d) (-->-split c (shape αℓs)))
     (define ⟦k⟧/mon-rng (mon*.c∷ (ctx-with-ℓ ctx ℓₐ) Rng d ⟦k⟧))
     (define ℓₐ* (ℓ-with-src ℓₐ (-ctx-src ctx)))
@@ -314,7 +314,7 @@
 
   (: apply-app-Ar : (-=> -?t -V -?t -ctx → ℓ (Listof -W¹) -W¹ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
   (define ((apply-app-Ar C c Vᵤ sₕ ctx) ℓ Ws₀ Wᵣ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (match-define (-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ) _) C)
+    (match-define (-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ)) C)
     (match-define-values ((-var cs₀ cᵣ) d) (-->-split c (arity-at-least (length αℓs₀))))
     ;; FIXME copied n pasted from app-Ar
     (define-values (αs₀ ℓs₀) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs₀))
@@ -343,7 +343,7 @@
   (define ((app-Indy C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (define lo (-ctx-src ctx))
     (define Wᵤ (-W¹ Vᵤ sₕ)) ; inner function
-    (match-define (-=>i αℓs (list Mk-D mk-d ℓᵣ) _) C)
+    (match-define (-=>i αℓs (list Mk-D mk-d ℓᵣ)) C)
     (match-define (-Clo xs ⟦d⟧ ρᵣ _) Mk-D)
     (define W-rng (-W¹ Mk-D mk-d))
     (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
@@ -618,7 +618,7 @@
     (: app-Ar/rest : -=>_ ⟪α⟫ -ctx → (℘ -ς))
     (define (app-Ar/rest C α ctx)
       (match C
-        [(-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) _ _)
+        [(-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) _)
          (define n (length αℓs₀))
          (define num-remaining-inits (- n num-inits))
          (cond
@@ -638,7 +638,7 @@
             (define W-rest* (-W¹ V-rest* #f))
             (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))])
               ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
-        [(-=> (? list? αℓₓs) _ _)
+        [(-=> (? list? αℓₓs) _)
          (define n (length αℓₓs))
          (define num-remaining-args (- n num-inits))
          (cond

@@ -68,14 +68,14 @@
          [(-St/C _ _ αs) {list->seteq (map -⟪α⟫ℓ-addr αs)}]
          [(-Vectorof α) {seteq (-⟪α⟫ℓ-addr α)}]
          [(-Vector/C αs) (list->seteq (map -⟪α⟫ℓ-addr αs))]
-         [(-=> αs βs _)
+         [(-=> αs βs)
           (match αs
             [(? list? αs) (set-add* (list->seteq (map -⟪α⟫ℓ-addr αs))
                                     (if (pair? βs) (map -⟪α⟫ℓ-addr βs) '()))]
             [(-var αs αᵣ)
              (set-add* (set-add (list->seteq (map -⟪α⟫ℓ-addr αs)) (-⟪α⟫ℓ-addr αᵣ))
                        (if (pair? βs) (map -⟪α⟫ℓ-addr βs) '()))])]
-         [(-=>i αs (list D _ _) _) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
+         [(-=>i αs (list D _ _)) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
          [(-Case-> clauses _)
           (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
                        (match-define (cons αs α) clause)
