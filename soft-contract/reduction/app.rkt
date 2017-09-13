@@ -95,8 +95,8 @@
       [(-Clo xs ⟦e⟧ ρₕ Γₕ)
        (with-guarded-arity (shape xs)
          ((app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))]
-      [(-Case-Clo clauses ρₕ Γₕ)
-       ((app-Case-Clo clauses ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [(? -Case-Clo?)
+       ((app-Case-Clo Vₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-Ar C α ctx)
        (with-guarded-arity (guard-arity C)
          (define-values (c _) (-ar-split sₕ))
@@ -230,22 +230,21 @@
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
-  (: app-Case-Clo : (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ -?t → -⟦f⟧)
-  (define ((app-Case-Clo clauses ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (: app-Case-Clo : -Case-Clo -?t → -⟦f⟧)
+  (define ((app-Case-Clo cases tₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (define n (length Wₓs))
-    (define clause
-      (for/or : (Option (Pairof (Listof Symbol) -⟦e⟧)) ([clause clauses])
-        (match-define (cons xs _) clause)
-        (and (equal? n (length xs)) clause)))
-    (cond
-      [clause
-       (match-define (cons xs ⟦e⟧) clause)
-       ((app-clo xs ⟦e⟧ ρₕ Γₕ sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-      [else
-       (define a : (Listof Index) (for/list ([clause clauses]) (length (car clause))))
+    (define ?case
+      (for/or : (Option -Clo) ([clo : -Clo (-Case-Clo-cases cases)]
+                               #:when (arity-includes? (assert (V-arity clo)) n))
+        clo))
+    (match ?case
+      [(-Clo xs ⟦e⟧ ρₕ Γₕ)
+       ((app-clo xs ⟦e⟧ ρₕ Γₕ tₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [#f
+       (define required (V-arity cases))
        (define l (ℓ-src ℓ))
        (define blm (-blm l 'Λ
-                         (list (format-symbol "arity in ~a" (string->symbol (format "~a" a))))
+                         (list (format-symbol "arity ~a" (string->symbol (format "~a" required))))
                          (map -W¹-V Wₓs) ℓ))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
@@ -668,7 +667,7 @@
     
     (match V-func
       [(-Clo xs ⟦e⟧ ρₕ Γₕ) (app-clo/rest xs ⟦e⟧ ρₕ Γₕ)]
-      [(-Case-Clo clauses _ _) (error 'app/rest "TODO: case-lambda")]
+      [(-Case-Clo cases) (error 'app/rest "TODO: case-lambda")]
       [(-Ar C α ctx) (app-Ar/rest C α ctx)]
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))

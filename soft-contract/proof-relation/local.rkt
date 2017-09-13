@@ -755,14 +755,13 @@
      [((-b x₁) (-b x₂)) (boolean->R (equal? x₁ x₂))]
      [(_ _) '?]))
 
-  (define V-arity : (-V → (Option Arity))
+  (define V-arity : (case->
+                     [-Clo → Arity]
+                     [-Case-Clo → Arity]
+                     [-V → (Option Arity)])
     (match-lambda
       [(-Clo xs _ _ _) (shape xs)]
-      [(-Case-Clo clauses _ _)
-       (remove-duplicates
-        (for/list : (Listof Natural) ([clause clauses])
-          (match-define (cons xs _) clause)
-          (length xs)))]
+      [(-Case-Clo cases) (normalize-arity (map V-arity cases))]
       [(-Fn● arity) arity]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _) (? -One-Of/C?)) 1]
       [(-Ar guard _ _) (guard-arity guard)]
@@ -773,5 +772,6 @@
       [(? symbol? o) (prim-arity o)]
       [(-● _) #f]
       [V
+       #:when (not (or (-Clo? V) (-Case-Clo? V))) ; to convince TR
        (printf "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
        #f])))

@@ -127,8 +127,7 @@
     (define (go e)
       (match e
         [(-λ xs e) (go e)]
-        [(-case-λ body)
-         (for/unioneq : (℘ Symbol) ([p body]) (go (cdr p)))]
+        [(-case-λ cases) (for/unioneq : (℘ Symbol) ([case cases]) (go case))]
         [(-@ f xs ctx) (∪ (go f) (go* xs))]
         [(-if i t e) (∪ (go i) (go t) (go e))]
         [(-wcm k v b) (∪ (go k) (go v) (go b))]
@@ -192,12 +191,7 @@
                (hash-ref m x (λ () e))]
               [(-λ xs e*)
                (-λ xs (go (remove-keys m (formals->names xs)) e*))]
-              [(-case-λ clauses)
-               (define clauses*
-                 (for/list : (Listof (Pairof (Listof Symbol) -e)) ([clause clauses])
-                   (match-define (cons xs eₓ) clause)
-                   (cons xs (go (remove-keys m (formals->names xs)) eₓ))))
-               (-case-λ clauses*)]
+              [(-case-λ cases) (-case-λ (cast (go-list m cases) (Listof -λ)))]
               [(-@ f xs ℓ)
                (-@ (go m f) (go-list m xs) ℓ)]
               [(-if e₀ e₁ e₂)

@@ -56,7 +56,7 @@
             -C)
 
 (-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
-             (-Case-Clo (Listof (Pairof (Listof Symbol) -⟦e⟧)) -ρ -Γ)
+             (-Case-Clo [cases : (Listof -Clo)])
              (-Fn● [arity : Arity]))
 
 ;; Contract combinators

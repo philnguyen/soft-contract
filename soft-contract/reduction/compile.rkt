@@ -79,7 +79,7 @@
 
   ;; Compile expression to computation
   (define (↓ₑ [l : -l] [e : -e]) : -⟦e⟧
-    (let ↓ ([e : -e e])
+    (let ↓ : -⟦e⟧ ([e : -e e])
       (remember-e!
        e
        (match e
@@ -98,15 +98,15 @@
                                #:when (⊆ fv⟦φ⟧ fvs))
                 φ))
             (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) t) $ Γ ⟪ℋ⟫ Σ))]
-         [(-case-λ clauses)
-          (define ⟦clause⟧s : (Listof (Pairof (Listof Symbol) -⟦e⟧))
-            (for/list ([clause clauses])
-              (match-define (cons xs e) clause)
-              (cons xs (↓ e))))
-          (define t (-case-λ clauses))
-          #;(printf "Warning: no longer canonicalize λ-term~n")
-          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-            (⟦k⟧ (-W (list (-Case-Clo ⟦clause⟧s ρ Γ)) t) $ Γ ⟪ℋ⟫ Σ))]
+         [(-case-λ cases)
+          (define mk (list (-W¹ 'scv:make-case-> 'scv:make-case->)))
+          (match (map ↓ cases)
+            [(cons ⟦case⟧ ⟦case⟧s)
+             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+               (⟦case⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ mk ⟦case⟧s ρ #|dummy|# +ℓ₀ ⟦k⟧)))]
+            ['()
+             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+               (⟦k⟧ (-W (list (-Case-Clo '())) #f) $ Γ ⟪ℋ⟫ Σ))])]
          [(? -prim? p) (↓ₚᵣₘ p)]
          [(-•)
           (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)

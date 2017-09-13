@@ -95,11 +95,7 @@
          #:before-first "●"))]
       [(? -o? o) (show-o o)]
       [(-Clo xs ⟦e⟧ ρ Γ) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ‖ ,(show-ρ ρ) ‖ ,@(show-Γ Γ))]
-      [(-Case-Clo clauses ρ Γ)
-       `(case-lambda
-          ,@(for/list : (Listof Sexp) ([clause clauses])
-              (match-define (cons xs _) clause)
-              `(,xs …)))]
+      [(-Case-Clo cases) `(case-lambda ,@(map show-V cases))]
       [(-Fn● arity)
        (string->symbol (format "Fn●_~a" arity))]
       [(-Ar guard α _)

@@ -120,7 +120,7 @@
 
 (-v . ::= . -prim
             (-λ -formals -e)
-            (-case-λ (Listof (Pairof (Listof Symbol) -e)))
+            (-case-λ (Listof -λ))
             (-•))
 
 (-prim . ::= . -o

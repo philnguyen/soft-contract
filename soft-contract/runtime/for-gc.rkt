@@ -57,7 +57,7 @@
           #:when (and grd α)
           (set-add (V->⟪α⟫s grd) α)]
          [(-Clo _ _ ρ _) (ρ->⟪α⟫s ρ)]
-         [(-Case-Clo _ ρ _) (ρ->⟪α⟫s ρ)]
+         [(-Case-Clo cases) (for/unioneq : (℘ ⟪α⟫) ([clo cases]) (V->⟪α⟫s clo))]
          [(-And/C _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
          [(-Or/C  _ α β) {seteq (-⟪α⟫ℓ-addr α) (-⟪α⟫ℓ-addr β)}]
          [(-Not/C α) {seteq (-⟪α⟫ℓ-addr α)}]

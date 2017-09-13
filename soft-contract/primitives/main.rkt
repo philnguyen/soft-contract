@@ -23,6 +23,7 @@
          "prims-17.rkt"
          "prims-math.rkt"
          "prims-zo.rkt"
+         "prims-scv.rkt"
          )
 
 (define-unit pre-prims@
@@ -75,4 +76,5 @@
         prims-16@
         prims-17@
         prims-math@
-        prims-zo@))
+        prims-zo@
+        prims-scv@))
