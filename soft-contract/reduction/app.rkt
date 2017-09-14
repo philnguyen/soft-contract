@@ -244,13 +244,29 @@
        (define required (V-arity cases))
        (define l (ℓ-src ℓ))
        (define blm (-blm l 'Λ
-                         (list (format-symbol "arity ~a" (string->symbol (format "~a" required))))
+                         (list (string->symbol (format "arity ~v" required)))
                          (map -W¹-V Wₓs) ℓ))
        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
-  (: app-guarded-Case : -V -?t -V -?t -ctx → -⟦f⟧)
+  (: app-guarded-Case : -Case-> -?t -V -?t -ctx → -⟦f⟧)
   (define ((app-guarded-Case C c Vᵤ sₕ ctx) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    (error 'app-guarded-Case "TODO"))
+    (match-define (-Case-> cases) C)
+    (define ?case
+      (for/or : (Option (Pairof -=> Integer))
+          ([(Cᵢ i) (in-indexed cases)]
+           #:when (arity-includes? (guard-arity Cᵢ) (length Wₓs)))
+        (cons Cᵢ i)))
+    (match ?case
+      [(cons Cᵢ i)
+       (define tᵢ (list-ref (-app-split 'case-> c (length cases)) i))
+       ((app-Ar Cᵢ tᵢ Vᵤ sₕ ctx) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
+      [else
+       (define required (guard-arity C))
+       (define blm (-blm (ℓ-src ℓ) 'Λ
+                         (list (string->symbol (format "arity ~v" required)))
+                         (map -W¹-V Wₓs)
+                         ℓ))
+       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
 
   (: app-Ar : -=> -?t -V -?t -ctx → -⟦f⟧)
   (define ((app-Ar C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
