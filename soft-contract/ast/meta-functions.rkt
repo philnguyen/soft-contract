@@ -56,10 +56,8 @@
          [(-var cs c) (∪ (fv c) (fv d) (fv cs))]
          [(? list? cs) (∪ (fv d) (fv cs))])]
       [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
-      [(-case-> clauses _)
-       (for/unioneq : (℘ Symbol) ([clause clauses])
-                    (match-define (cons cs d) clause)
-                    (apply ∪ (fv d) (map fv cs)))]
+      [(-case-> cases)
+       (apply ∪ ∅eq (map fv cases))]
       [(-struct/c _ cs _)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
          (∪ xs (fv c)))]
@@ -100,10 +98,8 @@
          [(-var cs c) (∪ (bv c) (bv d) (bv cs))]
          [(? list? cs) (∪ (bv d) (bv cs))])]
       [(-->i cs mk-d _) (apply ∪ (bv mk-d) (map bv cs))]
-      [(-case-> clauses _)
-       (for/unioneq : (℘ Symbol) ([clause clauses])
-                    (match-define (cons cs d) clause)
-                    (apply ∪ (bv d) (map bv cs)))]
+      [(-case-> cases)
+       (apply ∪ ∅eq (map bv cases))]
       [(-struct/c _ cs _)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
          (∪ xs (bv c)))]
@@ -142,10 +138,7 @@
            [(-var cs c) (∪ (go* cs) (go c) (go d))]
            [(? list? cs) (∪ (go* cs) (go d))])]
         [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
-        [(-case-> clauses _)
-         (for/unioneq : (℘ Symbol) ([clause clauses])
-                      (match-define (cons cs d) clause)
-                      (∪ (go d) (go* cs)))]
+        [(-case-> cases) (go* cases)]
         [(-struct/c t cs _) (go* cs)]
         [(-x/c.tmp x) (seteq x)]
         [_ ∅eq]))
@@ -236,12 +229,7 @@
                  [(? list? cs) (--> (go-list m cs) (go m d) ℓ)])]
               [(-->i cs mk-d ℓ)
                (-->i (go-list m cs) (assert (go m mk-d) -λ?) ℓ)]
-              [(-case-> clauses ℓ)
-               (define clauses*
-                 (for/list : (Listof (Pairof (Listof -e) -e)) ([clause clauses])
-                   (match-define (cons cs d) clause)
-                   (cons (go-list m cs) (go m d))))
-               (-case-> clauses* ℓ)]
+              [(-case-> cases) (-case-> (cast (go-list m cases) (Listof -->)))]
               [(-struct/c t cs ℓ)
                (-struct/c t (go-list m cs) ℓ)]
               [_

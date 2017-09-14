@@ -76,10 +76,8 @@
              (set-add* (set-add (list->seteq (map -⟪α⟫ℓ-addr αs)) (-⟪α⟫ℓ-addr αᵣ))
                        (if (pair? βs) (map -⟪α⟫ℓ-addr βs) '()))])]
          [(-=>i αs (list D _ _)) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
-         [(-Case-> clauses _)
-          (for/unioneq : (℘ ⟪α⟫) ([clause clauses])
-                       (match-define (cons αs α) clause)
-                       (set-add (list->seteq αs) α))]
+         [(-Case-> cases)
+          (for/unioneq : (℘ ⟪α⟫) ([C cases]) (V->⟪α⟫s C))]
          [(-∀/C _ _ ρ) (ρ->⟪α⟫s ρ)]
          [(-Seal/C x ⟪ℋ⟫ _) {seteq {-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)}}]
          [_ ∅eq]))

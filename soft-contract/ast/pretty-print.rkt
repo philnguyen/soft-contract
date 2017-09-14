@@ -131,10 +131,7 @@
          [(-var xs₀ x)
           (define-values (cs₀ c) (split-at cs (length xs₀)))
           `(,@(map show-e cs₀) #:rest ,@(map show-e c) ↦ ,(show-e d))])]
-      [(-case-> clauses _)
-       (for/list : (Listof Sexp) ([clause clauses])
-         (match-define (cons cs d) clause)
-         `(,@(map show-e cs) . -> . ,(show-e d)))]
+      [(-case-> cases) `(case-> ,@(map show-e cases))]
       [(-x/c.tmp x) x]
       [(-x/c x) x]
       [(-struct/c 𝒾 cs _)

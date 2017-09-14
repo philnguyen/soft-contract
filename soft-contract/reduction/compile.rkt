@@ -99,14 +99,10 @@
                 φ))
             (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) t) $ Γ ⟪ℋ⟫ Σ))]
          [(-case-λ cases)
-          (define mk (list (-W¹ 'scv:make-case-> 'scv:make-case->)))
-          (match (map ↓ cases)
-            [(cons ⟦case⟧ ⟦case⟧s)
-             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-               (⟦case⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ mk ⟦case⟧s ρ #|dummy|# +ℓ₀ ⟦k⟧)))]
-            ['()
-             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-               (⟦k⟧ (-W (list (-Case-Clo '())) #f) $ Γ ⟪ℋ⟫ Σ))])]
+          (define ⟦mk⟧ (↓ₚᵣₘ 'scv:make-case-lambda))
+          (define ⟦case⟧s (map ↓ cases))
+          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+            (⟦mk⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦case⟧s ρ +ℓ₀ ⟦k⟧)))]
          [(? -prim? p) (↓ₚᵣₘ p)]
          [(-•)
           (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -278,18 +274,11 @@
              (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
                (define Mk-D (-Clo xs ⟦d⟧ ρ Γ))
                (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (-->i∷ '() ⟦c⟧s ρ Mk-D mk-d ℓ ⟦k⟧)))])]
-         [(-case-> clauses ℓ)
-          (define ⟦clause⟧s : (Listof (Listof -⟦e⟧))
-            (for/list ([clause clauses])
-              (match-define (cons cs d) clause)
-              `(,@(map ↓ cs) ,(↓ d))))
-          (match ⟦clause⟧s
-            ['()
-             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-               (⟦k⟧ (-W (list (-Case-> '() ℓ)) #f) $ Γ ⟪ℋ⟫ Σ))]
-            [(cons (cons ⟦c⟧ ⟦c⟧s) ⟦clause⟧s*)
-             (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-               (⟦c⟧ ρ $ Γ ⟪ℋ⟫ Σ (case->∷ ℓ '() '() ⟦c⟧s ⟦clause⟧s* ρ ⟦k⟧)))])]
+         [(-case-> cases)
+          (define ⟦case⟧s (map ↓ cases))
+          (define ⟦mk⟧ (↓ₚᵣₘ 'scv:make-case->))
+          (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+            (⟦mk⟧ ρ $ Γ ⟪ℋ⟫ Σ (ap∷ '() ⟦case⟧s ρ #|dummy|# +ℓ₀ ⟦k⟧)))]
          [(-∀/c xs e*)
           (define ⟦e*⟧ (↓ e*))
           (define fvs (fv e*))

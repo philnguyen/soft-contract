@@ -111,7 +111,7 @@
             (-μ/c Symbol -e)
             (--> [doms : (-maybe-var -e)] [rng : -e] [loc : ℓ])
             (-->i [doms : (Listof -e)] [rng : -λ] [loc : ℓ])
-            (-case-> [clauses : (Listof (Pairof (Listof -e) -e))] ℓ)
+            (-case-> [cases : (Listof -->)])
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
             (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])

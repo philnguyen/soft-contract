@@ -90,7 +90,7 @@
               (-=>i [doms : (Listof -⟪α⟫ℓ)]
                     [mk-rng : (List -Clo -λ ℓ)])
               (-∀/C (Listof Symbol) -⟦e⟧ -ρ)
-              (-Case-> (Listof (Pairof (Listof ⟪α⟫) ⟪α⟫)) ℓ))
+              (-Case-> (Listof -=>)))
 
 (struct -blm ([violator : -l]
               [origin : -l]
@@ -212,7 +212,7 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -edge.tgt (U -⟦e⟧ -o (Listof (U Symbol ℓ -⟦e⟧ -?t -h (-maybe-var ℓ))) (℘ Base)))
+(define-type -edge.tgt (U -⟦e⟧ -o -?t -h ℓ (-maybe-var ℓ) (Listof -edge.tgt) (℘ Base)))
 (struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
 (define-type -ℋ (Listof -edge))
 (define-interner -⟪ℋ⟫ -ℋ

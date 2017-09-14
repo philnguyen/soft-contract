@@ -138,11 +138,7 @@
              ,(match xs
                 [(? list? xs) `(res ,xs ,(show-e d))]
                 [_ (show-e d)]))]
-      [(-Case-> cases _)
-       `(case->
-         ,@(for/list : (Listof Sexp) ([kase cases])
-             (match-define (cons αs β) kase)
-             `(,@(map show-⟪α⟫ αs) . -> . ,(show-⟪α⟫ β))))]
+      [(-Case-> cases) `(case-> ,@(map show-V cases))]
       [(-St/C _ 𝒾 αs)
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
       [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
@@ -245,17 +241,14 @@
   (define (show-tgt tgt)
     (cond
       [(-o? tgt) (show-o tgt)]
-      [(set? tgt) `(one-of/c ,@(set-map tgt show-b))]
-      [(list? tgt) (for/list : (Listof Sexp) ([x (in-list tgt)])
-                     (cond [(symbol? x) x]
-                           [(ℓ? x) (show-ℓ x)]
-                           [(list? x) (map show-ℓ x)]
-                           [(-var? x) (cons (map show-ℓ (cast (-var-init x) (Listof ℓ)))
-                                            (show-ℓ (cast (-var-rest x) ℓ)))]
-                           [(-t? x) (show-t x)]
-                           [(not x) '⊘]
-                           [(-h? x) (show-h x)]
-                           [else (show-⟦e⟧ x)]))]
+      [(-t? tgt) (show-t tgt)]
+      [(-h? tgt) (show-h tgt)]
+      [(list? tgt) (map show-tgt tgt)]
+      [(set? tgt) (set-map tgt show-b)]
+      [(integer? tgt) (show-ℓ (cast tgt ℓ))]
+      [(not tgt) '⊘]
+      [(-var? tgt)
+       `(,(map show-ℓ (cast (-var-init tgt) (Listof ℓ))) ,(show-ℓ (cast (-var-rest tgt) ℓ)))]
       [else (show-⟦e⟧ tgt)]))
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp

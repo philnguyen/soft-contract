@@ -160,7 +160,7 @@
   (test "unsafe/issues/parametric-basics.rkt" (check 'Failed 2 2))
   (test "unsafe/issues/issue-97.rkt" check-fail)
 
-  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
+  #;(test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 
   (test   "safe/real/protected-leftist-tree.rkt" check-safe)
   (test "unsafe/real/protected-leftist-tree.rkt" check-fail)
@@ -197,7 +197,7 @@
           "gradual-typing-benchmarks/kcfa/denotable.rkt")
         check-safe)
 
-  (test   "safe/games" check-safe)
-  (test "unsafe/games" check-fail)
+  #;(test   "safe/games" check-safe)
+  #;(test "unsafe/games" check-fail)
   
   )

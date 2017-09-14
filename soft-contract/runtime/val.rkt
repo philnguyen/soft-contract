@@ -127,11 +127,7 @@
                      (for/or : Boolean ([rng (in-list rngs)])
                        (check-⟪α⟫! (-⟪α⟫ℓ-addr rng)))))])]
         [(? -=>i?) #t]
-        [(-Case-> cases _)
-         (for*/or : Boolean ([kase : (Pairof (Listof ⟪α⟫) ⟪α⟫) cases])
-           (match-define (cons doms rng) kase)
-           (or (check-⟪α⟫! rng)
-               (ormap check-⟪α⟫! doms)))]
+        [(-Case-> cases) (ormap check! cases)]
         [(or (? -Clo?) (? -Case-Clo?)) #t]
         [_ #f]))
 
@@ -184,7 +180,7 @@
       [(-Set/C (-⟪α⟫ℓ _ ℓ)) (list 'set/c ℓ)]
       [(-=> αs βs) (list '-> (get-ℓ αs) (if (list? βs) (get-ℓ βs) 'any))]
       [(-=>i αs (list _ _ ℓ)) (list '->i ℓ)]
-      [(-Case-> _ ℓ) (list 'case-> ℓ)]
+      [(-Case-> cases) (list 'case-> (map strip-C cases))]
       [(-x/C α)
        (match-define (or (-α.x/c x _) (-α.imm-listof x _ _)) (⟪α⟫->-α α))
        (list 'recursive-contract/c x)]
