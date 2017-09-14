@@ -142,6 +142,7 @@
          [_
           ;; FIXME: may be wrong for var-args. Need to have saved more
           (length αs)])]
+      [(-Case-> cases) (normalize-arity (map guard-arity cases))]
       [(? -∀/C?)
        ;; TODO From observing behavior in Racket. But this maybe unsound for proof system
        (arity-at-least 0)]))

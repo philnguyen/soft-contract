@@ -504,6 +504,32 @@
          (let-values ([(xs ρ) (parse-formals #'(z ...))])
            (-λ xs (with-env ρ (parse-e #'d)))))
        (-->i cs mk-d (syntax-ℓ stx))]
+      [(~or (begin
+              (#%plain-app
+               (~literal fake:dynamic-case->)
+               (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
+            (let-values ()
+              (#%plain-app
+               (~literal fake:dynamic-case->)
+               (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
+            (#%plain-app
+               (~literal fake:dynamic-case->)
+               (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
+       (define cases
+         (for/list ([init-list (in-list (syntax->list #'((inits ...) ...)))]
+                    [rest      (in-list (syntax->list #'(rests ...)))]
+                    [rng       (in-list (syntax->list #'(rng ...)))]
+                    [kase      (in-list (syntax->list #'(kase ...)))])
+           (define doms
+             (syntax-parse rest
+               ['#f (parse-es init-list)]
+               [_ (-var (parse-es init-list) (parse-e rest))]))
+           (define range
+             (syntax-parse rng
+               [(#%plain-app list d) (parse-e #'d)]
+               [_ 'any]))
+           (--> doms range (syntax-ℓ kase))))
+       (-case-> cases)]
       ;; independent varargs
       [(let-values ([(_) (~literal fake:dynamic->*)]
                     [(_) (#%plain-app list inits ...)]
@@ -621,7 +647,7 @@
                    [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
           ;; Compute case arity and extended context for RHS
           (define-values (xsᵢ ρᵢ) (parse-formals fmlᵢ))
-          (cons xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))))))]
+          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))))))]
       [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(letrec-values (bindings ...) b ...)
        (define-values (lhss-rev ρ)

@@ -2,7 +2,7 @@
 
 (require (except-in racket/contract
                     flat-contract
-                    -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
+                    -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
                     one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
                     recursive-contract)
          (except-in racket/set set/c)
@@ -14,10 +14,10 @@
 
 (provide (all-from-out racket/contract/base) provide
          flat-contract
-         -> ->i and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c hash/c set/c
+         -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c hash/c set/c
          recursive-contract
          dynamic-provide/contract
-         dynamic->i dynamic->* 
+         dynamic->i dynamic->* dynamic-case-> 
          dynamic-struct/c
          dynamic-recursive-contract
          dynamic-struct-out
@@ -85,6 +85,32 @@
      (dynamic->* #:mandatory-domain-contracts (list cs ...)
                  #:rest-contract rest-c
                  #:range-contracts (list result-c))]))
+(define-syntax case->
+  (syntax-rules ()
+    [(_ clauses ...)
+     (begin
+       (case->/acc () (clauses ...))
+       ;; TODO can't enable below yet, because hacky expansion replaces `->` and `->*`
+       #;(scv:ignore (c:case-> clauses ...)))]))
+
+(define-syntax case->/acc
+  (syntax-rules (c:any)
+    [(_ (ctcs ...) ())
+     (dynamic-case-> ctcs ...)]
+    [(_ (ctcs ...) ((_ init ... #:rest rest c:any) clauses ...))
+     (case->/acc (ctcs ... (list (list init ...) rest #f))
+                 (clauses ...))]
+    [(_ (ctcs ...) ((_ init ... #:rest rest range) clauses ...))
+     (case->/acc (ctcs ... (list (list init ...) rest (list range)))
+                 (clauses ...))]
+    [(_ (ctcs ...) ((_ init ... c:any) clauses ...))
+     (case->/acc (ctcs ... (list (list init ...) #f #f))
+                 (clauses ...))]
+    [(_ (ctcs ...) ((_ init ... range) clauses ...))
+     (case->/acc (ctcs ... (list (list init ...) #f (list range)))
+                 (clauses ...))]))
+
+(define (dynamic-case-> . _) (void))
 
 (define (dynamic-provide/contract . _) (void))
 

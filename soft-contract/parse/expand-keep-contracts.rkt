@@ -29,6 +29,7 @@
   (add! #'-> #'f:->)
   (add! #'->i #'f:->i)
   (add! #'->* #'f:->*)
+  (add! #'case-> #'f:case->)
   (add! #'any/c #'f:any/c)
   (add! #'any #'f:any)
   (add! #'none/c #'f:none/c)

@@ -569,6 +569,11 @@
     (define σ (-Σ-σ Σ))
     (match-define (-W¹ V-func t-func) W-func)
     (define num-inits (length W-inits))
+    (define arg-counts
+      (for/set: : (℘ Arity) ([a (estimate-list-lengths σ (-W¹-V W-rest))] #:when a)
+        (match a
+          [(? exact-nonnegative-integer? n) (+ num-inits n)]
+          [(arity-at-least n) (arity-at-least (+ num-inits n))])))
 
     ;; Attach trivial symbol to value
     (define (V->W¹ [V : -V]) (-W¹ V #f))
@@ -678,12 +683,40 @@
             (mon.v∷ ctx (-W¹ Vᵤ t-func)
               (ap∷ (list (-W¹ 'apply 'apply)) `(,@(map mk-rt W-inits) ,(mk-rt W-rest)) ⊥ρ ℓ ⟦k⟧))))
            (⟦c⟧ ρ* $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*))]
-        [_
-         (error 'app-Ar/rest "TODO: `apply` for function wrapped in ~a" (show-V C))]))
+        [(-Case-> cases)
+         (cond
+           [(and (= 1 (set-count arg-counts)) (integer? (set-first arg-counts)))
+            (define n (set-first arg-counts))
+            (assert
+             (for/or : (Option (℘ -ς)) ([C cases] #:when (arity-includes? (guard-arity C) n))
+               (app-Ar/rest C α ctx)))]
+           [else
+            (for*/union : (℘ -ς) ([C cases]
+                                  [a (in-value (guard-arity C))]
+                                  #:when (for/or : Boolean ([argc (in-set arg-counts)])
+                                           (arity-includes? a argc)))
+              (app-Ar/rest C α ctx))])]))
     
     (match V-func
       [(-Clo xs ⟦e⟧ ρₕ Γₕ) (app-clo/rest xs ⟦e⟧ ρₕ Γₕ)]
-      [(-Case-Clo cases) (error 'app/rest "TODO: case-lambda")]
+      [(-Case-Clo cases)
+       (define (go-case [clo : -Clo]) : (℘ -ς)
+         (match-define (-Clo xs ⟦e⟧ ρₕ Γₕ) clo)
+         (app-clo/rest xs ⟦e⟧ ρₕ Γₕ))
+       (cond
+         [(and (= 1 (set-count arg-counts)) (integer? (set-first arg-counts)))
+          (define n (set-first arg-counts))
+          ;; already handled arity mismatch
+          (assert
+           (for/or : (Option (℘ -ς)) ([clo (in-list cases)]
+                                      #:when (arity-includes? (assert (V-arity clo)) n))
+             (go-case clo)))]
+         [else
+          (for*/union : (℘ -ς) ([clo (in-list cases)]
+                                [a (in-value (assert (V-arity clo)))]
+                                #:when (for/or : Boolean ([argc (in-set arg-counts)])
+                                         (arity-includes? a argc)))
+            (go-case clo))])]
       [(-Ar C α ctx) (app-Ar/rest C α ctx)]
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))

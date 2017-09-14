@@ -19,7 +19,8 @@
                       file->list
                       file->value
                       with-input-from-file
-                      with-output-to-file))
+                      with-output-to-file
+                      string-join))
      (define (?recognized-name name)
        (define name-str (symbol->string name))
        (for/first ([s (in-list names)]

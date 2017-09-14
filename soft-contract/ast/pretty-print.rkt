@@ -75,11 +75,7 @@
       [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
 
       [(-λ xs e) `(λ ,(show-formals xs) ,(show-e e))]
-      [(-case-λ clauses)
-       `(case-lambda
-          ,@(for/list : (Listof Sexp) ([clause clauses])
-              (match-define (cons xs e) clause)
-              `(,(show-formals xs) ,(show-e e))))]
+      [(-case-λ cases) `(case-lambda ,@(map show-e cases))]
       [(-•) '•]
       [(-b b) (show-b b)]
       [(? -o? o) (show-o o)]
