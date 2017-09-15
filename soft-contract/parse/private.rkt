@@ -211,20 +211,17 @@
     (syntax? . -> . (listof -provide-spec?))
     (syntax-parser
       #:literals (quote #%plain-app)
-      [(#%plain-app (~literal fake:dynamic-struct-out)
-                    (quote s:id)
-                    (#%plain-app (~literal list) (quote ac:id) c) ...)
-       (define cs (syntax->list #'(c ...)))
-       (define n (length cs))
-       (define s-name (syntax-e #'s))
+      [d:scv-struct-out
+       (define ℓ (syntax-ℓ #'d))
+       (define s-name (attribute d.name))
        (define 𝒾 (-𝒾 s-name (cur-mod)))
-       (define st-doms (map parse-e cs))
-       (define ℓ (syntax-ℓ #'s))
+       (define st-doms (map parse-e (attribute d.field-contracts)))
+       (define n (length st-doms))
        (define st-p (-struct/c 𝒾 st-doms ℓ))
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
-           (-p/c-item (syntax-e #'s) (--> st-doms st-p ℓₖ) ℓₑ)))
+           (-p/c-item s-name (--> st-doms st-p ℓₖ) ℓₑ)))
        (define dec-pred
          (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
                 [ℓₑ (ℓ-with-id ℓₚ 'provide)])
@@ -233,12 +230,12 @@
                       ℓₑ)))
        (define dec-acs
          (let ([offset (field-offset 𝒾)])
-           (for/list ([ac (in-syntax-list #'(ac ...))]
+           (for/list ([ac (in-list (attribute d.field-names))]
                       [st-dom st-doms]
                       [i (in-naturals)] #:when (>= i offset))
              (define ℓᵢ (ℓ-with-id ℓ i))
              (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
-             (define ac-name (format-symbol "~a-~a" s-name (syntax-e ac)))
+             (define ac-name (format-symbol "~a-~a" s-name ac))
              (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ))))
        (list* dec-constr dec-pred dec-acs)]
       [(#%plain-app (~literal list) x:id c:expr)
@@ -277,53 +274,30 @@
        #:when (equal? 'print-values (syntax->datum #'print-values))
        (parse-e #'e)]
 
-      [(~and stx (define-values (type:id _ pred acc+muts ...)
-         (let-values ([(_ ...)
-                       (let-values ()
-                         (let-values ()
-                           (#%plain-app (~literal make-struct-type)
-                                        (quote ctor-name)
-                                        parent
-                                        (quote n:exact-integer)
-                                        _ ...)))])
-           (#%plain-app values _ _ _ mk-acc+muts ...))))
-       
-       (define ctor (syntax-e #'ctor-name))
+      [d:scv-struct-decl
+       (define ctor (attribute d.constructor-name))
        (define 𝒾 (-𝒾 ctor (cur-mod)))
-       (hash-set! (struct-map) (id->𝒾 #'type) 𝒾)
+       (hash-set! (struct-map) (id->𝒾 (attribute d.extra-constructor-name)) 𝒾)
 
        ;; Figure out parent struct
-       (define ?parent
-         (syntax-parse #'parent
-           ['#f #f]
-           [prnt:id (hash-ref (struct-map) (id->𝒾 #'prnt))]))
-       (when ?parent
-         (set-parent-struct! 𝒾 ?parent))
+       (cond
+         [(attribute d.?parent) =>
+          (λ (p)
+            (set-parent-struct! 𝒾 (hash-ref (struct-map) (id->𝒾 p))))])
        (define offset (field-offset 𝒾))
 
        ;; Parse for direct field accessors/mutators
-       (define-values (accs muts)
-         (let ([accs (make-hasheq)]
-               [muts (make-hasheq)])
-           (for ([name   (in-syntax-list #'(acc+muts ...))]
-                 [clause (in-syntax-list #'(mk-acc+muts ...))])
-             (define/syntax-parse (#%plain-app mk _ (quote i:exact-integer) _) clause)
-             (define m
-               (syntax-parse #'mk
-                 [(~literal make-struct-field-accessor) accs]
-                 [(~literal make-struct-field-mutator ) muts]))
-             (hash-set! m (syntax-e #'i) (syntax-e name)))
-           (values accs muts)))
+       (match-define (cons accs muts) (attribute d.accessors+mutators))
        
-       (add-struct-info! 𝒾 (syntax-e #'n) (list->seteq (hash-keys muts)))
-       (for ([name (in-sequences (list ctor (syntax-e #'pred))
+       (add-struct-info! 𝒾 (attribute d.field-count) (list->seteq (hash-keys muts)))
+       (for ([name (in-sequences (list ctor (attribute d.predicate-name))
                                  (hash-values accs)
                                  (hash-values muts))])
          (add-top-level! (-𝒾 name (cur-mod))))
        (let ([acc-list (hash->list accs)]
              [mut-list (hash->list muts)])
          (-define-values
-          `(,ctor ,(syntax-e #'pred) ,@(map cdr acc-list) ,@(map cdr mut-list))
+          `(,ctor ,(attribute d.predicate-name) ,@(map cdr acc-list) ,@(map cdr mut-list))
           (-@ 'values
               `(,(-st-mk 𝒾)
                 ,(-st-p 𝒾)
@@ -331,7 +305,7 @@
                     (-st-ac 𝒾 (+ offset i)))
                 ,@(for/list ([i (in-list (map car mut-list))])
                     (-st-mut 𝒾 (+ offset i))))
-              (syntax-ℓ #'pred))))]
+              (syntax-ℓ #'d))))]
       [;; Hack ignoring generated garbage by `struct`
        (define-values (_:identifier) (#%plain-app f:id _:id))
        #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
@@ -475,76 +449,31 @@
        (define-values (xs ρ) (parse-formals (attribute ctc.params)))
        (-∀/c xs (with-env ρ (parse-e (attribute ctc.body))))]
       ;; Non-dependent function contract
-      [(let-values ([(_) (~literal fake:dynamic->*)]
-                    [(_) (#%plain-app list c ...)]
-                    [(_) rng])
-         _ ...)
-       (syntax-parse #'rng
-         [(#%plain-app list d) (--> (parse-es #'(c ...)) (parse-e #'d) (syntax-ℓ stx))]
-         [_                    (--> (parse-es #'(c ...)) 'any (syntax-ℓ stx))])]
+      [c:scv-->
+       (define dom
+         (match (attribute c.?rest)
+           [#f (map parse-e (attribute c.inits))]
+           [rst (-var (map parse-e (attribute c.inits)) (parse-e rst))]))
+       (define rng
+         (match (attribute c.range)
+           ['any 'any]
+           [d (parse-e d)]))
+       (--> dom rng (syntax-ℓ #'c))]
       ;; Dependent contract
-      [(~or (begin
-              (#%plain-app
-               (~literal fake:dynamic->i)
-               (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-               (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
-              _ ...)
-            (let-values ()
-              (#%plain-app
-               (~literal fake:dynamic->i)
-               (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-               (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
-              _ ...)
-            (#%plain-app
-             (~literal fake:dynamic->i)
-             (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-             (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
-       (define cs (parse-es #'(cₓ ...)))
-       (define mk-d
-         (let-values ([(xs ρ) (parse-formals #'(z ...))])
-           (-λ xs (with-env ρ (parse-e #'d)))))
-       (-->i cs mk-d (syntax-ℓ stx))]
-      [(~or (begin
-              (#%plain-app
-               (~literal fake:dynamic-case->)
-               (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
-            (let-values ()
-              (#%plain-app
-               (~literal fake:dynamic-case->)
-               (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
-            (#%plain-app
-               (~literal fake:dynamic-case->)
-               (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
+      [e:scv-->i
+       (define cs (map parse-e (attribute e.domain)))
+       (define mk-d (parse-e (attribute e.range-maker)))
+       (-->i cs mk-d (syntax-ℓ #'e))]
+      [e:scv-case->
        (define cases
-         (for/list ([init-list (in-list (syntax->list #'((inits ...) ...)))]
-                    [rest      (in-list (syntax->list #'(rests ...)))]
-                    [rng       (in-list (syntax->list #'(rng ...)))]
-                    [kase      (in-list (syntax->list #'(kase ...)))])
-           (define doms
-             (syntax-parse rest
-               ['#f (parse-es init-list)]
-               [_ (-var (parse-es init-list) (parse-e rest))]))
-           (define range
-             (syntax-parse rng
-               [(#%plain-app list d) (parse-e #'d)]
-               [_ 'any]))
-           (--> doms range (syntax-ℓ kase))))
+         (map
+          (match-lambda
+            [(list inits ?rest rng stx)
+             (define dom (cond [?rest (-var (map parse-e inits) (parse-e ?rest))]
+                               [else (map parse-e inits)]))
+             (--> dom (parse-e rng) (syntax-ℓ stx))])
+          (attribute e.cases)))
        (-case-> cases)]
-      ;; independent varargs
-      [(let-values ([(_) (~literal fake:dynamic->*)]
-                    [(_) (#%plain-app list inits ...)]
-                    [(_) rst]
-                    [(_) rng])
-         _ ...)
-       (syntax-parse #'rng
-         [(#%plain-app list d)
-          (--> (-var (parse-es #'(inits ...)) (parse-e #'rst))
-               (parse-e #'d)
-               (syntax-ℓ stx))]
-         [_
-          (--> (-var (parse-es #'(inits ...)) (parse-e #'rst))
-               'any
-               (syntax-ℓ stx))])]
       [(#%plain-app (~literal fake:list/c) c ...)
        (define args
          (for/list ([cᵢ (in-syntax-list #'(c ...))])
@@ -556,11 +485,9 @@
        (-@ 'vector/c (parse-es #'(c ...)) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:vectorof) c)
        (-@ 'vectorof (list (parse-e #'c)) (syntax-ℓ stx))]
-      [(begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
-              (#%plain-app _ _ _ _ (quote k) _ ...)
-              _ ...)
-       (define 𝒾 (-𝒾 (syntax-e #'k) (cur-mod)))
-       (-struct/c 𝒾 (parse-es #'(c ...)) (syntax-ℓ #'k))]
+      [c:scv-struct/c
+       (define 𝒾 (-𝒾 (attribute c.name) (cur-mod)))
+       (-struct/c 𝒾 (map parse-e (attribute c.fields)) (syntax-ℓ #'c))]
       [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (syntax-ℓ stx))]
@@ -577,15 +504,7 @@
        (-cons/c (parse-e #'c) (parse-e #'d) (syntax-ℓ stx))]
       [(#%plain-app (~literal fake:one-of/c) c ...)
        (-@ 'one-of/c (parse-es #'(c ...)) (syntax-ℓ stx))]
-      [(~or (let-values ()
-              (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)) _ ...)
-            (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)) _ ...)
-            (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)))
-       (syntax-parse #'t
-         [((~or #:chaperone #:flat))
-          (-x/c.tmp (syntax-e #'x))]
-         [_
-          (raise-syntax-error 'recursive-contract "must be #:chaperone or #:flat" #'t)])]
+      [c:scv-x/c (-x/c.tmp (attribute c.ref))]
 
       ;; Literals
       [(~or v:str v:number v:boolean) (-b (syntax->datum #'v))]

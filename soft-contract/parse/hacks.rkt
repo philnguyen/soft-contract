@@ -11,6 +11,9 @@
          syntax/parse
          (prefix-in fake: "../fake-contract.rkt"))
 
+(define-literal-set lits
+  (let-values #%plain-lambda #%plain-app begin quote if #%variable-reference values list call-with-values))
+
 (splicing-local
     ((define names '(call-with-input-file
                       call-with-output-file
@@ -28,7 +31,7 @@
          s)))
   (define-syntax-class indirect-app
     #:description "hack pattern for some `variable-reference-constant?` usages"
-    #:literals (if #%plain-app #%variable-reference)
+    #:literal-sets (lits)
     (pattern (if (#%plain-app (~literal variable-reference-constant?)
                               (#%variable-reference f:id))
                  (#%plain-app g*:id _ ...)
@@ -66,7 +69,7 @@
 
 (define-syntax-class scv-provide
   #:description "hacked scv provide form"
-  #:literals (#%plain-app call-with-values #%plain-lambda)
+  #:literal-sets (lits)
   (pattern (#%plain-app
             call-with-values
             (#%plain-lambda ()
@@ -76,7 +79,7 @@
 
 (define-syntax-class scv-parametric->/c
   #:description "hacked parametric contract"
-  #:literals (#%plain-app list #%plain-lambda)
+  #:literal-sets (lits)
   #:attributes (params body)
   (pattern (#%plain-app
             make-polymorphic-contract:id
@@ -88,3 +91,153 @@
            #:when (equal? (syntax-e #'opaque/c) 'opaque/c)
            #:attr params #'(x ...)
            #:attr body #'c))
+
+(define-syntax-class scv-->i
+  #:description "hacked dependent contract"
+  #:literal-sets (lits)
+  #:attributes (domain range-maker)
+  (pattern (~or (begin
+                  (#%plain-app
+                   (~literal fake:dynamic->i)
+                   (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+                   (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+                  _ ...)
+                (let-values ()
+                  (#%plain-app
+                   (~literal fake:dynamic->i)
+                   (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+                   (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+                  _ ...)
+                (#%plain-app
+                 (~literal fake:dynamic->i)
+                 (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
+                 (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
+           #:attr domain (syntax->list #'(cₓ ...))
+           #:attr range-maker #'(#%plain-lambda (z ...) d)))
+
+(define-syntax-class scv-case->
+  #:description "hacked case contract"
+  #:literal-sets (lits)
+  #:attributes (cases)
+  (pattern (~or (begin
+                  (#%plain-app
+                   (~literal fake:dynamic-case->)
+                   (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
+                (let-values ()
+                  (#%plain-app
+                   (~literal fake:dynamic-case->)
+                   (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
+                (#%plain-app
+                 (~literal fake:dynamic-case->)
+                 (~and kase (#%plain-app list (#%plain-app list inits ...) rests rng)) ...))
+           #:attr cases (map
+                         (syntax-parser
+                           #:literal-sets (lits)
+                           [(~and stx (#%plain-app list (#%plain-app list inits ...) rest rng))
+                            (list (syntax->list #'(inits ...))
+                                  (syntax-parse #'rest
+                                    ['#f #f]
+                                    [_ #'rest])
+                                  (range-expr #'rng)
+                                  #'stx)])
+                         (syntax->list #'(kase ...)))))
+
+(define-syntax-class scv-->
+  #:description "hacked non-dependent function contract"
+  #:literal-sets (lits)
+  #:attributes (inits ?rest range)
+  (pattern (let-values ([(_) (~literal fake:dynamic->*)]
+                        [(_) (#%plain-app list cs ...)]
+                        [(_) rst]
+                        [(_) rng])
+             _ ...)
+           #:attr inits (syntax->list #'(cs ...))
+           #:attr ?rest #'rst
+           #:attr range (range-expr #'rng))
+  (pattern (let-values ([(_) (~literal fake:dynamic->*)]
+                        [(_) (#%plain-app list cs ...)]
+                        [(_) rng])
+             _ ...)
+           #:attr inits (syntax->list #'(cs ...))
+           #:attr ?rest #f
+           #:attr range (range-expr #'rng)))
+
+(define-syntax-class scv-struct-decl
+  #:description "struct declaration"
+  #:literal-sets (lits)
+  #:attributes (constructor-name extra-constructor-name ?parent predicate-name
+                field-count accessors+mutators
+                )
+  (pattern (define-values (type:id _ pred acc+muts ...)
+             (let-values ([(_ ...)
+                           (let-values ()
+                             (let-values ()
+                               (#%plain-app (~literal make-struct-type)
+                                            (quote ctor-name)
+                                            parent
+                                            (quote n:exact-integer)
+                                            _ ...)))])
+               (#%plain-app values _ _ _ mk-acc+muts ...)))
+           #:attr constructor-name (syntax-e #'ctor-name)
+           #:attr predicate-name (syntax-e #'pred)
+           #:attr field-count (syntax-e #'n)
+           #:attr extra-constructor-name #'type
+           #:attr ?parent (syntax-parse #'parent
+                            ['#f #f]
+                            [p:id #'p])
+           #:attr
+           accessors+mutators
+           (call-with-values
+            (λ ()
+              (for/fold ([accs (hasheq)]
+                         [muts (hasheq)])
+                        ([name (in-list (syntax->list #'(acc+muts ...)))]
+                         [expr (in-list (syntax->list #'(mk-acc+muts ...)))])
+                (define/syntax-parse (#%plain-app mk _ (quote i:exact-integer) _) expr)
+                (syntax-parse #'mk
+                  [(~literal make-struct-field-accessor)
+                   (values (hash-set accs (syntax-e #'i) (syntax-e name)) muts)]
+                  [(~literal make-struct-field-mutator)
+                   (values accs (hash-set muts (syntax-e #'i) (syntax-e name)))])))
+            cons)))
+
+(define-syntax-class scv-x/c
+  #:description "scv restricted recursive contract reference"
+  #:attributes (ref)
+  #:literal-sets (lits)
+  (pattern (~or (let-values ()
+                  (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)) _ ...)
+                (begin (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)) _ ...)
+                (#%plain-app (~literal fake:dynamic-recursive-contract) x:id (quote t)))
+           #:when (syntax-parse #'t
+                    [((~or #:chaperone #:flat)) #t]
+                    [_
+                     (raise-syntax-error 'recursive-contract "must be #:chaperone or #:flat" #'t)])
+           #:attr ref (syntax-e #'x)))
+
+(define-syntax-class scv-struct/c
+  #:description "scv hacked struct/c"
+  #:literal-sets (lits)
+  #:attributes (name fields)
+  (pattern (begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
+                  (#%plain-app _ _ _ _ (quote k) _ ...)
+                  _ ...)
+           #:attr name (syntax-e #'k)
+           #:attr fields (syntax->list #'(c ...))))
+
+(define-syntax-class scv-struct-out
+  #:description "hacked scv struct-out"
+  #:literal-sets (lits)
+  #:attributes (name field-names field-contracts)
+  (pattern (#%plain-app (~literal fake:dynamic-struct-out)
+                        (quote s:id)
+                        (#%plain-app list (quote ac:id) c) ...)
+           #:attr name (syntax-e #'s)
+           #:attr field-names (map syntax-e (syntax->list #'(ac ...)))
+           #:attr field-contracts (syntax->list #'(c ...))))
+
+(define range-expr
+  (syntax-parser
+    #:literal-sets (lits)
+    [(#%plain-app list d) #'d]
+    [_ 'any]))
