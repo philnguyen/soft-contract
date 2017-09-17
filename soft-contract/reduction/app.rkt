@@ -226,7 +226,7 @@
       (define κ
         (let* ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))]
                [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
-          (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ (apply ?t@ sₕ sₓs) looped?)))
+          (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ ℓ looped?)))
       (σₖ⊕! Σ αₖ κ)
       {set (-ς↑ αₖ)}))
 
