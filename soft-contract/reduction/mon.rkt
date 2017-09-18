@@ -522,8 +522,7 @@
          (let* ([δ$ : -δ$ (hash x (cond [(hash-ref $ x #f) => values] [else #f]))]
                 [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
            (-κ.rt ⟦k⟧** ($-symbolic-names $) Γ tᵥ #t)))
-       (σₖ⊕! Σ αₖ κ)
-       {set (-ς↑ αₖ)}]
+       {set (-ς↑ (σₖ+! Σ αₖ κ))}]
       [_
        (mon ctx W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
 
@@ -547,8 +546,7 @@
                 [⟦k⟧** (restore-$∷ δ$ ⟦k⟧*)])
            (-κ.rt ⟦k⟧** ($-symbolic-names $) Γ tᵥ #t)))
        (define αₖ (-ℱ $** ⟪ℋ⟫ₑₑ l ℓ W-C W-V* Γ*))
-       (σₖ⊕! Σ αₖ κ)
-       {set (-ς↑ αₖ)}]
+       {set (-ς↑ (σₖ+! Σ αₖ κ))}]
       [_
        (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ₑₑ Σ ⟦k⟧*)]))
 

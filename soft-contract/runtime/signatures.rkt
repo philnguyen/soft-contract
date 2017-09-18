@@ -22,12 +22,13 @@
 (define-type -σₖ (Immutable-HashTable -αₖ (℘ -κ)))
 (define-type -M (Immutable-HashTable -αₖ (℘ -ΓA)))
 (define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
+(define-type -Ξ (Immutable-HashTable -αₖ:ctx (℘ -αₖ:pth)))
 
 (struct -κ ([rest : -⟦k⟧]) #:transparent)
 (struct -κ.rt -κ ([dom : (℘ Symbol)] [pc : -Γ] [ans : -?t] [looped? : Boolean]) #:transparent)
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜] [Ξ : -Ξ]) #:mutable #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -340,6 +341,14 @@
 (struct -ℱ -αₖ ([l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
 (struct -ℋ𝒱 -αₖ () #:transparent) ; Havoc
 
+(-αₖ:ctx . ::= . (-ℬ:ctx -⟪ℋ⟫ -formals -⟦e⟧ -ρ)
+                 (-ℳ:ctx -⟪ℋ⟫ -ctx -W¹ -W¹)
+                 (-ℱ:ctx -⟪ℋ⟫ -l ℓ -W¹ -W¹)
+                 (-ℋ𝒱:ctx -⟪ℋ⟫))
+(struct -αₖ:pth ([cache : -$] [pc : -Γ]) #:transparent)
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Verification Result
@@ -449,6 +458,11 @@
    [predicates-of : (-Γ -?t → (℘ -h))]
    [fvₜ : (-?t → (℘ Symbol))]
    ))
+
+(define-signature summ^
+  ([⊥Ξ : -Ξ]
+   [αₖ->ctx+pth : (-αₖ → (Values -αₖ:ctx -αₖ:pth))]
+   [ctx+pth->αₖ : (-αₖ:ctx -αₖ:pth → -αₖ)]))
 
 (define-signature instr^
   ([⟪ℋ⟫∅ : -⟪ℋ⟫]

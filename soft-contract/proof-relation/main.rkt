@@ -162,6 +162,6 @@
   )
 
 (define-compound-unit/infer proof-system@
-  (import static-info^ prims^ for-gc^ pc^ sto^ val^ pretty-print^ env^)
+  (import static-info^ prims^ for-gc^ pc^ sto^ val^ pretty-print^ env^ summ^)
   (export proof-system^ widening^ local-prover^)
   (link local-prover@ external-prover@ widening@ pre-proof-system@))

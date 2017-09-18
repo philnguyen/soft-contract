@@ -7,6 +7,7 @@
                "instr.rkt"
                "for-gc.rkt"
                "pretty-print.rkt"
+               "summ.rkt"
                "signatures.rkt"))
 (require "env.rkt"
          "sto.rkt"
@@ -15,4 +16,5 @@
          "instr.rkt"
          "for-gc.rkt"
          "pretty-print.rkt"
+         "summ.rkt"
          "signatures.rkt")

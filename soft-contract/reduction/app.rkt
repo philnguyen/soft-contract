@@ -18,7 +18,7 @@
 (define-unit app@
   (import ast-pretty-print^ static-info^
           mon^ compile^ kont^ proof-system^ local-prover^ prims^ memoize^ widening^
-          env^ val^ pc^ instr^ sto^ pretty-print^ for-gc^)
+          env^ val^ pc^ instr^ sto^ pretty-print^ for-gc^ summ^)
   (export app^)
 
   (: app : ℓ -W¹ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -227,8 +227,7 @@
         (let* ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))]
                [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
           (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ ℓ looped?)))
-      (σₖ⊕! Σ αₖ κ)
-      {set (-ς↑ αₖ)}))
+      {set (-ς↑ (σₖ+! Σ αₖ κ))}))
 
   (: app-Case-Clo : -Case-Clo -?t → -⟦f⟧)
   (define ((app-Case-Clo cases tₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -552,8 +551,7 @@
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
       (define κ (-κ.rt (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t))
-      (σₖ⊕! Σ αₖ κ)
-      {set (-ς↑ αₖ)}))
+      {set (-ς↑ (σₖ+! Σ αₖ κ))}))
 
   (: app-prim : Symbol → -⟦f⟧)
   (define ((app-prim o) ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
@@ -619,8 +617,7 @@
              (let* ([δ$ ($-extract $ (cons z zs))]
                     [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
                (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ #f looped?)))
-           (σₖ⊕! Σ αₖ κ)
-           (-ς↑ αₖ))
+           (-ς↑ (σₖ+! Σ αₖ κ)))
          
          (cond
            ;; Need to retrieve some more arguments from `W-rest` as part of inits

@@ -19,7 +19,7 @@
          "signatures.rkt")
 
 (define-unit widening@
-  (import static-info^ local-prover^ pc^ sto^ pretty-print^ env^ val^)
+  (import static-info^ local-prover^ pc^ sto^ pretty-print^ env^ val^ summ^)
   (export widening^)
 
   (: Γ+ : -Γ -?t * → -Γ)
@@ -369,6 +369,40 @@
 
   (define (σₖ⊕ [σₖ : -σₖ] [αₖ : -αₖ] [κ : -κ]) : -σₖ
     (hash-update σₖ αₖ (set-add/compact κ ?κ⊔) mk-∅))
+
+  (: σₖ+! : -Σ -αₖ -κ → -αₖ)
+  (define (σₖ+! Σ αₖ κ)
+    (define Ξ (-Σ-Ξ Σ))
+    (define-values (ctx pth) (αₖ->ctx+pth αₖ))
+    (define pths₀ (hash-ref Ξ ctx mk-∅))
+    (define ?pth
+      (for/or : (U #f -αₖ:pth (℘ -αₖ:pth)) ([pth₀ (in-set pths₀)])
+        (cond [(αₖ:pth⊑ pth pth₀) pth₀]
+              [(αₖ:pth⊑ pth₀ pth)
+               (for/set: : (℘ -αₖ:pth) ([pth₀* (in-set pths₀)]
+                                        #:when (or (eq? pth₀* pth₀) (αₖ:pth⊑ pth₀* pth)))
+                 pth₀*)]
+              [else #f])))
+    (define-values (pth* pths*)
+      (cond
+        [(set? ?pth) (values pth (set-add (set-subtract pths₀ ?pth) pth))]
+        [(-αₖ:pth? ?pth) (values ?pth pths₀)]
+        [else (values pth (set-add pths₀ pth))]))
+    (define αₖ* (ctx+pth->αₖ ctx pth*))
+    (set--Σ-Ξ! Σ (hash-set Ξ ctx pths*))
+    (σₖ⊕! Σ αₖ* κ)
+    αₖ*)
+
+  (: αₖ:pth⊑ : -αₖ:pth -αₖ:pth → Boolean)
+  (define αₖ:pth⊑
+    (match-lambda**
+     [((-αₖ:pth $₀ Γ₀) (-αₖ:pth $₁ Γ₁))
+      (and ($⊑ $₀ $₁) (Γ⊑ Γ₀ Γ₁))]))
+
+  (: $⊑ : -$ -$ → Boolean)
+  (define ($⊑ $₀ $₁)
+    (for/and : Boolean ([(l t) (in-hash $₁)])
+      (equal? t (hash-ref $₀ l #f))))
 
   (: ?κ⊔ : -κ -κ → (Option -κ))
   (define (?κ⊔ κ₁ κ₂)
