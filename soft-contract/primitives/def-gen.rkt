@@ -458,9 +458,9 @@
 
   (define/contract (gen-stx-ℓ s . tags)
     ((syntax?) #:rest (listof symbol?) . ->* . syntax?)
-    (with-syntax ([src (path->string (syntax-source s))]
+    (with-syntax ([src (string->symbol (path->string (syntax-source s)))]
                   [line (syntax-line s)]
                   [col (syntax-column s)]
                   [(t ...) tags])
-      #'(loc->ℓ (loc src line col (list 't ...)))))
+      #'(loc->ℓ (loc 'src line col (list 't ...)))))
   )

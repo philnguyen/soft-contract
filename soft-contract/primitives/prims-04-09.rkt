@@ -99,11 +99,11 @@
   (def memf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
   (def findf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c α not))))
   (def assoc
-    (∀/c (α β _)
+    (∀/c (α β _ _₁)
          (case->
-          [α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not)]
-          [α (listof (cons/c α β)) (α α . -> . _) . -> . (or/c (cons/c α β) not)])))
-  (def* (assv assq) (∀/c (α β) (α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
+          [α (listof (cons/c _ β)) . -> . (or/c (cons/c α β) not)]
+          [α (listof (cons/c _ β)) (α _ . -> . _₁) . -> . (or/c (cons/c α β) not)])))
+  (def* (assv assq) (∀/c (α β _) (α (listof (cons/c _ β)) . -> . (or/c (cons/c α β) not))))
   (def assf (∀/c (α β _) ((α . -> . _) (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
 
   ;; 4.9.6 Pair Acesssor Shorthands
