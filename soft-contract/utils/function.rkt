@@ -18,17 +18,17 @@
 
 (define memo-data : (HashTable Symbol HashTableTop) (make-hasheq))
 
-(: find-memo-key ([Any] [(Option Symbol)] . ->* . Any))
+(: find-memo-key ([Any] [(Option Symbol)] . ->* . (Listof Any)))
 (define (find-memo-key v [k #f])
   
-  (: search : HashTableTop → Any)
+  (: search : HashTableTop → (Listof Any))
   (define (search m)
-    (for/or ([(k* v*) (in-hash m)] #:when (equal? v* v)) k*))
+    (for/list ([(k* v*) (in-hash m)] #:when (equal? v* v)) k*))
 
   (cond [k (search (hash-ref memo-data k))]
-        [else (for/or ([(k* m*) (in-hash memo-data)])
-                (cond [(search m*) => (λ (k**) (list k* k**))]
-                      [else #f]))]))
+        [else (for*/list : (Listof Any) ([(k* m*) (in-hash memo-data)]
+                                         [ans (in-list (search m*))])
+                (list k* ans))]))
 
 (define-syntax-parser define/memo
   [(_ (f [x:id (~literal :) X]) (~literal :) Y e ...)
