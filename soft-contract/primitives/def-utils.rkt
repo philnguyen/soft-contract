@@ -299,7 +299,7 @@
   (pattern _:fc)
   (pattern ((~literal values) _:fc _:fc _:fc ...)))
 
-(define base?
+(define liftable-base?
   ;; Ones that fit in implementation's `Base`
   (syntax-parser
     [(~or (~literal not)
@@ -327,7 +327,7 @@
           (~literal keyword?)
           (~literal char?)
           (~literal null?)
-          (~literal void?)
+          ;(~literal void?) ; shouldn't 
           (~literal eof-object?)
           (~literal immutable?)
           (~literal byte?)

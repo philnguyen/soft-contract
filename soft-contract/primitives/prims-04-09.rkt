@@ -210,7 +210,7 @@
   (def make-reader-graph (∀/c (_) (_ . -> . any/c)))
   (def-pred placeholder?)
   (def make-placeholder (∀/c (_) (_ . -> . placeholder?)))
-  (def placeholder-set! (∀/c (_) (placeholder? _ . -> . void?)) #:lift-concrete? #f)
+  (def placeholder-set! (∀/c (_) (placeholder? _ . -> . void?)))
   (def placeholder-get (placeholder? . -> . any/c))
   (def-pred hash-placeholder?)
   (def* (make-hash-placeholder make-hasheq-placeholder make-hasheqv-placeholder)

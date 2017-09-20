@@ -21,20 +21,20 @@
   (def input-port? (any/c . -> . boolean?))
   (def output-port? (any/c . -> . boolean?))
   (def port? (any/c . -> . boolean?))
-  (def close-input-port (input-port? . -> . void?) #:lift-concrete? #f)
-  (def close-output-port (output-port? . -> . void?) #:lift-concrete? #f)
-  (def current-input-port  (-> input-port?) #:volatile? #t #:lift-concrete? #f)
-  (def current-output-port (-> output-port?) #:volatile? #t #:lift-concrete? #f)
-  (def current-error-port (-> output-port?) #:volatile? #t #:lift-concrete? #f)
+  (def close-input-port (input-port? . -> . void?))
+  (def close-output-port (output-port? . -> . void?))
+  (def current-input-port  (-> input-port?) #:volatile? #t)
+  (def current-output-port (-> output-port?) #:volatile? #t)
+  (def current-error-port (-> output-port?) #:volatile? #t)
   (def-const eof)
   (def eof-object? (any/c . -> . boolean?))
 
   ;; 13.1.3 Port Buffers and Positions
-  (def flush-output (-> void?) #:lift-concrete? #f) ; FIXME uses
+  (def flush-output (-> void?)) ; FIXME uses
 
   ;; 13.1.5 File Ports
-  (def open-input-file (path-string? . -> . input-port?) #:volatile? #t #:lift-concrete? #f)
-  (def open-output-file (path-string? . -> . output-port?) #:volatile? #t #:lift-concrete? #f)
+  (def open-input-file (path-string? . -> . input-port?) #:volatile? #t)
+  (def open-output-file (path-string? . -> . output-port?) #:volatile? #t)
   (def call-with-input-file (∀/c (α) (path-string? (input-port? . -> . α) . -> . α)))
   (def call-with-output-file (∀/c (α) (path-string? (output-port? . -> . α) . -> . α)))
   (def with-input-from-file (∀/c (α) (path-string? (-> α) . -> . α)))
@@ -62,13 +62,11 @@
   (def write-char
     (case->
      [char? . -> . void?]
-     [char? output-port? . -> . void?])
-    #:lift-concrete? #f)
+     [char? output-port? . -> . void?]))
   (def newline
     (case->
      [-> void?]
-     [output-port? . -> . void?])
-    #:lift-concrete? #f)
+     [output-port? . -> . void?]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -79,7 +77,7 @@
     (case->
      [-> any/c]
      [input-port? . -> . any/c])
-    #:volatile? #t #:lift-concrete? #f)
+    #:volatile? #t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 13.5 Writing
@@ -87,20 +85,17 @@
   (def write
     (case->
      [any/c . -> . void?]
-     [any/c output-port? . -> . void?])
-    #:lift-concrete? #f)
+     [any/c output-port? . -> . void?]))
   (def display
     (case->
      [any/c . -> . void?]
-     [any/c output-port? . -> . void?])
-    #:lift-concrete? #f)
+     [any/c output-port? . -> . void?]))
   (def displayln
     (case->
      [any/c . -> . void?]
-     (any/c output-port? . -> . void?))
-    #:lift-concrete? #f)
-  (def fprintf (->* (output-port? string?) #:rest list? void?) #:lift-concrete? #f)
-  (def printf (->* (string?) #:rest list? void?) #:lift-concrete? #f)
+     (any/c output-port? . -> . void?)))
+  (def fprintf (->* (output-port? string?) #:rest list? void?))
+  (def printf (->* (string?) #:rest list? void?))
   (def format ((string?) #:rest list? . ->* . string?))
   )
 

@@ -28,18 +28,18 @@
 
   ;; 15.2.2 Files
   (def file-exists? (path-string? . -> . boolean?) #:lift-concrete? #f)
-  (def delete-file (path-string? . -> . void?) #:lift-concrete? #f)
+  (def delete-file (path-string? . -> . void?))
 
   ;; 15.2.6 More File and Directory Utilities
-  (def file->list (path-string? . -> . list?) #:volatile? #t #:lift-concrete? #f)
-  (def file->value (path-string? . -> . any/c) #:volatile? #t #:lift-concrete? #f)
+  (def file->list (path-string? . -> . list?) #:volatile? #t)
+  (def file->value (path-string? . -> . any/c) #:volatile? #t)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 15.7
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  {def getenv (string? . -> . (or/c string? not)) #:lift-concrete? #f}
-  {def putenv (string? string? . -> . boolean?) #:lift-concrete? #f}
+  (def getenv (string? . -> . (or/c string? not)) #:lift-concrete? #f)
+  (def putenv (string? string? . -> . boolean?) #:lift-concrete? #f)
   )
 

@@ -443,12 +443,12 @@
 
   (define/contract (should-lift? doms ?rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . boolean?)
-    (and (andmap base? doms)
+    (and (andmap liftable-base? doms)
          (?rst . implies . (syntax-parse ?rst
-                             [((~literal listof) c) (base? #'c)]
+                             [((~literal listof) c) (liftable-base? #'c)]
                              [(~or (~literal list?) (~literal null?)) #t]
                              [_ #f]))
-         (and (list? rngs) (andmap base? rngs))))
+         (and (list? rngs) (andmap liftable-base? rngs))))
 
   (define/contract o->v (identifier? . -> . syntax?)
     (syntax-parser
