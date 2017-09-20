@@ -52,6 +52,7 @@
     [-gen-lift? boolean? #f]
     [-refinements (listof syntax?) '()]
     [-ctc-parameters (hash/c symbol? identifier?) (hash)]
+    [-volatile? boolean? #t]
     )
 
   (define/contract (gen-cases) (-> (listof syntax?))
@@ -195,6 +196,7 @@
           #`(define #,x (add-seal! #,(-Σ) 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
       ,#`(exec-prim #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ) #,(-⟦k⟧)
                     #,(-ℓ) '#,(-o)
+                    #:volatile? #,(-volatile?)
                     #:dom doms
                     #:rng (list V-rng ...)
                     #:rng-wrap #,(if (?flatten-range rngs)

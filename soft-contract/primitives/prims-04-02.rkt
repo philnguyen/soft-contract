@@ -80,7 +80,8 @@
     (() #:rest (listof integer?) . ->* . integer?)
     (() #:rest (listof real?) . ->* . real?)
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
-    #;(() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
+    #;(() #:rest (listof (not/c positive?)) . ->* . (not/c positive?))
+    #:volatile? #f)
   (def - ((number?) #:rest (listof number?) . ->* . number?)
     #:refinements
     (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
@@ -88,7 +89,8 @@
     ((integer?) #:rest (listof integer?) . ->* . integer?)
     ((real?) #:rest (listof real?) . ->* . real?)
     (((<=/c 0)) #:rest (listof (>=/c 0)) . ->* . (<=/c 0))
-    (((>=/c 0)) #:rest (listof (<=/c 0)) . ->* . (>=/c 0)))
+    (((>=/c 0)) #:rest (listof (<=/c 0)) . ->* . (>=/c 0))
+    #:volatile? #f)
 
   (def *
     (() #:rest (listof number?) . ->* . number?)
@@ -99,11 +101,13 @@
     (() #:rest (listof integer?) . ->* . integer?)
     (() #:rest (listof real?) . ->* . real?)
     (() #:rest (listof (>=/c 1)) . ->* . (>=/c 1))
-    (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0)))
+    (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
+    #:volatile? #f)
   (def / ((number?) #:rest (listof (and/c number? (or/c inexact? (not/c zero?)))) . ->* . number?)
     #:refinements
     ((real?) #:rest (listof real?) . ->* . real?)
-    (((not/c zero?)) #:rest list? . ->* . (not/c zero?)))
+    (((not/c zero?)) #:rest list? . ->* . (not/c zero?))
+    #:volatile? #f)
   (def* (quotient remainder modulo) ; FIXME: only error on exact 0
     (integer? (and/c integer? (not/c zero?)) . -> . integer?))
   (def quotient/remainder
@@ -119,7 +123,8 @@
     (exact-positive-integer? . -> . exact-positive-integer?)
     (exact-integer? . -> . exact-integer?)
     ((not/c negative?) . -> . positive?)
-    (positive? . -> . positive?))
+    (positive? . -> . positive?)
+    #:volatile? #f)
   (def sub1
     (number? . -> . number?)
     #:refinements
@@ -127,7 +132,8 @@
     (exact-nonnegative-integer? . -> . exact-integer?)
     (exact-integer? . -> . exact-integer?)
     (integer? . -> . integer?)
-    (real? . -> . real?))
+    (real? . -> . real?)
+    #:volatile? #f)
   (def abs
     (real? . -> . real?)
     #:refinements

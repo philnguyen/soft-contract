@@ -31,8 +31,8 @@
   (def delete-file (path-string? . -> . void?))
 
   ;; 15.2.6 More File and Directory Utilities
-  (def file->list (path-string? . -> . list?) #:volatile? #t)
-  (def file->value (path-string? . -> . any/c) #:volatile? #t)
+  (def file->list (path-string? . -> . list?))
+  (def file->value (path-string? . -> . any/c))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

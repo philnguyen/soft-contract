@@ -214,6 +214,7 @@
   (: exec-prim :
      -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
      ℓ (Intersection Symbol -o)
+     #:volatile? Boolean
      #:dom (Listof (Pairof -V ℓ))
      #:rng (Listof -V)
      #:rng-wrap (Option (Listof (Pairof -V ℓ)))
@@ -222,7 +223,8 @@
      → (℘ -ς))
   (define (exec-prim
            $ Γ ⟪ℋ⟫ Σ ⟦k⟧
-           ℓ o 
+           ℓ o
+           #:volatile? volatile?
            #:dom doms
            #:rng ranges
            #:rng-wrap ?range-wraps
@@ -230,7 +232,7 @@
            #:args args
            )
     (define-values (V-args t-args) (unzip-by -W¹-V -W¹-t args))
-    (define t-ans (apply ?t@ o t-args))
+    (define t-ans (if volatile? ℓ (apply ?t@ o t-args)))
     (define l (ℓ-src ℓ))
     (define ctx* (-ctx l o o ℓ))
     (define ctx (-ctx o l o ℓ))

@@ -52,6 +52,7 @@
    [exec-prim
     : (-$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
           ℓ (Intersection Symbol -o)
+          #:volatile? Boolean
           #:dom (Listof (Pairof -V ℓ))
           #:rng (Listof -V)
           #:rng-wrap (Option (Listof (Pairof -V ℓ)))

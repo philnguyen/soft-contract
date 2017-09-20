@@ -53,7 +53,7 @@
         (~optional (~seq #:refinements ref:ff ...)
                    #:defaults ([(ref 1) null]))
         (~optional (~seq #:volatile? volatile?:boolean)
-                   #:defaults ([volatile? #'#f]))
+                   #:defaults ([volatile? #'#t]))
         (~optional (~seq #:lift-concrete? lift?:boolean)
                    #:defaults ([lift? #'#t])))
 
@@ -91,7 +91,8 @@
                              [-Wⁿ (gen-ids #'Ws 'W max-inits)]
                              [-Wᵣ (format-id #'Ws "Wᵣ")]
                              [-gen-lift? (syntax-e #'lift?)]
-                             [-refinements (syntax->list #'(ref ...))])
+                             [-refinements (syntax->list #'(ref ...))]
+                             [-volatile? (syntax-e #'volatile?)])
                 (gen-cases))))
      (define/contract maybe-set-partial (listof syntax?)
        (let go ([sig #'sig])

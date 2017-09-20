@@ -23,9 +23,9 @@
   (def port? (any/c . -> . boolean?))
   (def close-input-port (input-port? . -> . void?))
   (def close-output-port (output-port? . -> . void?))
-  (def current-input-port  (-> input-port?) #:volatile? #t)
-  (def current-output-port (-> output-port?) #:volatile? #t)
-  (def current-error-port (-> output-port?) #:volatile? #t)
+  (def current-input-port  (-> input-port?))
+  (def current-output-port (-> output-port?))
+  (def current-error-port (-> output-port?))
   (def-const eof)
   (def eof-object? (any/c . -> . boolean?))
 
@@ -33,8 +33,8 @@
   (def flush-output (-> void?)) ; FIXME uses
 
   ;; 13.1.5 File Ports
-  (def open-input-file (path-string? . -> . input-port?) #:volatile? #t)
-  (def open-output-file (path-string? . -> . output-port?) #:volatile? #t)
+  (def open-input-file (path-string? . -> . input-port?))
+  (def open-output-file (path-string? . -> . output-port?))
   (def call-with-input-file (∀/c (α) (path-string? (input-port? . -> . α) . -> . α)))
   (def call-with-output-file (∀/c (α) (path-string? (output-port? . -> . α) . -> . α)))
   (def with-input-from-file (∀/c (α) (path-string? (-> α) . -> . α)))
@@ -48,12 +48,12 @@
     (case->
      [-> (or/c char? eof-object?)]
      [input-port? . -> . (or/c char? eof-object?)])
-    #:volatile? #t #:lift-concrete? #f)
+    #:lift-concrete? #f)
   (def peek-char
     (case->
      [-> (or/c char? eof-object?)]
      [input-port? . -> . (or/c char? eof-object?)])
-    #:volatile? #t #:lift-concrete? #f)
+    #:lift-concrete? #f)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -76,8 +76,7 @@
   (def read
     (case->
      [-> any/c]
-     [input-port? . -> . any/c])
-    #:volatile? #t)
+     [input-port? . -> . any/c]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 13.5 Writing
