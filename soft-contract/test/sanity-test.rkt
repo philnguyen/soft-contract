@@ -160,6 +160,7 @@
   (test "unsafe/issues/substruct.rkt" check-fail)
   (test "unsafe/issues/parametric-basics.rkt" (check 'Failed 2 2))
   (test "unsafe/issues/issue-97.rkt" check-fail)
+  (test "unsafe/issues/strict-parametricity.rkt" check-fail)
 
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
 

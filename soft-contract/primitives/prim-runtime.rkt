@@ -58,8 +58,20 @@
     (λ (o)
       (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
         (cond [(equal? n (length Ws))
-               (define-values (Vₐ tₐ) (implement-predicate (-Σ-σ Σ) Γ o Ws))
-               (⟦k⟧ (-W (list Vₐ) tₐ) $ Γ ⟪ℋ⟫ Σ)]
+               (define ok
+                 (let-values ([(Vₐ tₐ) (implement-predicate (-Σ-σ Σ) Γ o Ws)])
+                   (⟦k⟧ (-W (list Vₐ) tₐ) $ Γ ⟪ℋ⟫ Σ)))
+               (define er
+                 (match (ormap
+                         (match-lambda
+                           [(-W¹ (? -Sealed? V) _) V]
+                           [_ #f])
+                         Ws)
+                   [(? -Sealed? V*)
+                    (define blm (-blm (ℓ-src ℓ) o '(any/c) (list V*) ℓ))
+                    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]
+                   [_ ∅]))
+               (∪ ok er)]
               [else
                (⟦k⟧ (blm-arity ℓ o n (map -W¹-V Ws)) $ Γ ⟪ℋ⟫ Σ)]))))
 

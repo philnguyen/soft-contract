@@ -526,7 +526,10 @@
                            [(list (? -b?)) '✓]
                            [(list V) (check-proc-arity-1 V)]
                            [_ '?])]
-                        [(any/c) '✓]
+                        [(any/c)
+                         (match Vs
+                           [(list (? -Sealed?)) '?] ; pretend we don't know `any/c` is the only top type
+                           [_ '✓])]
                         [(none/c) '✗]
                         [(arity-includes?)
                          (match Vs
