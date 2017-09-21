@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^ for-gc^ lib^)
+(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^ for-gc^ lib^ debugging^)
 
 (require typed/racket/unit
          set-extras
@@ -83,3 +83,7 @@
    [bound-vars : (-⟦e⟧ → (℘ Symbol))]
    [set-bound-vars! : (-⟦e⟧ (℘ Symbol) → Void)]
    [gc-$ : (-$ -σ (℘ ⟪α⟫) → -$)]))
+
+(define-signature debugging^
+  ([print-Σ-stat : (-Σ → Void)]
+   [print-large-sets : (-Σ → Void)]))

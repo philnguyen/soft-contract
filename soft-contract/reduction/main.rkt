@@ -21,11 +21,13 @@
          "kont.rkt"
          "havoc.rkt"
          "memoize.rkt"
+         "debugging.rkt"
          )
 
 (define-unit pre-reduction@
   (import static-info^ kont^ havoc^ mon^ compile^ local-prover^ widening^ verifier^
-          for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ pc^ instr^ summ^)
+          for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ pc^ instr^ summ^
+          debugging^)
   (export reduction^)
 
   (define-type Ctx (List -σ -σₖ))
@@ -50,10 +52,6 @@
         (begin
           (when (debug-iter?)
             (printf "* ~a: ~a~n" iter (set-count front)))
-
-          #;(match-let ([(-Σ σ σₖ _ _ _) Σ])
-            (printf "  |σ| = ~a, max-rng(σ) = ~a, |σₖ| = ~a, max-rng(σₖ) = ~a~n"
-                    (hash-count σ) (count-max σ) (hash-count σₖ) (count-max σₖ)))
 
           (when (debug-trace?)
 
@@ -118,86 +116,7 @@
       (when (debug-iter?)
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
-        (printf "Execution capped at ~a steps~n" ?max-steps))
-      #;(let ()
-        (define ℬ-stats : (HashTable (List -formals -⟦e⟧ -ρ) (℘ -$)) (make-hash))
-        (define ℋ-stats : (HashTable -⟪ℋ⟫ (℘ -$)) (make-hash))
-        (for ([αₖ (in-hash-keys σₖ)])
-          (match αₖ
-            [(-ℬ $ _ xs e ρ _)
-             (hash-update! ℬ-stats (list xs e ρ)
-                           (λ ([$s : (℘ -$)])
-                             (set-add $s $))
-                           mk-∅)]
-            [(-ℋ𝒱 $ ⟪ℋ⟫)
-             (hash-update! ℋ-stats ⟪ℋ⟫
-                           (λ ([$s : (℘ -$)])
-                             (set-add $s $))
-                           mk-∅)]
-            [_ (void)]))
-        (printf "ℬ-stats: (~a --> ~a) ~n" (hash-count ℬ-stats) (length (filter -ℬ? (hash-keys σₖ))))
-
-        (define (show-$-stats [vs : (℘ -$)])
-          (define m : (HashTable -loc (℘ -?t)) (make-hash))
-          (for ([$ : -$ (in-set vs)])
-            (for ([(l t) (in-hash $)])
-              (hash-update! m l (λ ([ts : (℘ -?t)]) (set-add ts t)) mk-∅)))
-          (for ([l (in-hash-keys m)])
-            (for ([$ (in-set vs)] #:unless (hash-has-key? $ l))
-              (hash-update! m l (λ ([ts : (℘ -?t)]) (set-add ts #f)))))
-          (for ([(l ts) (in-hash m)] #:when (> (set-count ts) 1))
-            (printf "  + ~a -> ~a~n" (show-loc l) (set-count ts))
-            (for ([t (in-set ts)])
-              (printf "    * ~a~n" (show-t t)))))
-        
-        (for ([(k vs) (in-hash ℬ-stats)] #:when (> (set-count vs) 10))
-          (match-define (list xs e ρ) k)
-          (printf "- ~a ~a --> ~a~n" (show-formals xs) (show-ρ ρ) (set-count vs))
-          (show-$-stats vs))
-        (printf "ℋ-stats: (~a --> ~a) ~n" (hash-count ℋ-stats) (length (filter -ℋ𝒱? (hash-keys σₖ))))
-        (for ([(k vs) (in-hash ℋ-stats)] #:when (> (set-count vs) 10))
-          (printf "- ~a --> ~a~n" (show-⟪ℋ⟫ k) (set-count vs))
-          (show-$-stats vs))
-        
-        #;(printf "Value store:~n")
-        #;(for ([(α Vs) (in-hash σ)]
-              ;#:when (> (set-count Vs) 1)
-              ;#:unless (equal? α ⟪α⟫ₕᵥ)
-              )
-          (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
-        (printf "Stack store:~n")
-        (for ([(αₖ ks) (in-hash σₖ)]
-              #:when (> (set-count ks) 15)
-              #:unless (-ℋ𝒱? αₖ)
-              )
-          (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))
-          #;(let ([comp : (Mutable-HashTable (Pairof Any Integer) (℘ Any)) (make-hash)])
-            (define-set explodes : Any)
-            (for ([k (in-set ks)])
-              (match-define (-κ.rt ⟦k⟧ _ _ _ _) k)
-              (match-let* ([(list _ ⟦k⟧) (find-memo-key ⟦k⟧ 'invalidate-$∷)]
-                           [(list _ ⟦k⟧) (find-memo-key ⟦k⟧ 'restore-$∷)]
-                           [(list _ ⟦k⟧) (find-memo-key ⟦k⟧ 'restore-ctx∷)]
-                           [(list _ _ _ _ ⟦k⟧) (find-memo-key ⟦k⟧ 'ap∷)]
-                           [(list Ws es _ ℓ₀ _) (find-memo-key ⟦k⟧ 'ap∷)]
-                           [(list tag (list elems ...)) (find-memo-key ⟦k⟧)])
-                (explodes-add! (list Ws es ℓ₀))
-                (for ([e (in-list elems)] [i (in-naturals)])
-                  (hash-update! comp (cons tag i)
-                                (λ ([s : (℘ Any)]) (set-add s e))
-                                mk-∅))))
-            (for ([(k vs) (in-hash comp)])
-              (printf "    - ~a : ~a~n" k (set-count vs)))
-            (begin
-              (printf "explodes:~n")
-              (for ([e (in-set explodes)])
-                (match-define (list Ws es ℓ₀) e)
-                (printf "- ~a [ ] ~a at ~a~n"
-                        (map show-W¹ (reverse (cast Ws (Listof -W¹))))
-                        (map show-⟦e⟧ (cast es (Listof -⟦e⟧)))
-                        (show-ℓ (cast ℓ₀ ℓ)))))
-            )
-          ))
+        (printf "Execution capped at ~a steps~n" ?max-steps)) 
       (values (M@ Σ αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
@@ -275,4 +194,4 @@
           prims^ proof-system^ local-prover^ widening^ verifier^
           for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^ prim-runtime^ summ^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
-  (link memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))
+  (link debugging@ memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))
