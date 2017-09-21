@@ -63,8 +63,8 @@
     (printf "|σ| = ~a, max-rng(σ) = ~a, |σₖ| = ~a, max-rng(σₖ) = ~a~n"
             (hash-count σ) (count-max σ) (hash-count σₖ) (count-max σₖ)))
 
-  (: print-large-sets : -Σ → Void)
-  (define (print-large-sets Σ)
+  (: print-large-sets ([-Σ] [#:val-min Index #:kont-min Index] . ->* . Void))
+  (define (print-large-sets Σ #:val-min [val-min 4] #:kont-min [kont-min 4])
     (define σ (-Σ-σ Σ))
     (define σₖ (-Σ-σₖ Σ))
     (define ℬ-stats : (HashTable (List -formals -⟦e⟧ -ρ) (℘ -$)) (make-hash))
@@ -93,15 +93,19 @@
       (printf "- ~a --> ~a~n" (show-⟪ℋ⟫ k) (set-count vs))
       (print-$-grid #;show-$-stats vs))
     
-    #;(printf "Value store:~n")
-    #;(for ([(α Vs) (in-hash σ)]
-            ;#:when (> (set-count Vs) 1)
-            ;#:unless (equal? α ⟪α⟫ₕᵥ)
-            )
-        (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
+    (printf "Value store:~n")
+    (for ([(α Vs) (in-hash σ)]
+          #:when (>= (set-count Vs) val-min)
+          #:unless (equal? α ⟪α⟫ₕᵥ)
+          )
+      (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
+    (printf "Addresses:~n")
+    (for ([α (in-hash-keys σ)])
+      (printf "~a ≡ ~a~n" (show-⟪α⟫ α) (⟪α⟫->-α α)))
+    
     (printf "Stack store:~n")
     (for ([(αₖ ks) (in-hash σₖ)]
-          #:when (> (set-count ks) 15)
+          #:when (>= (set-count ks) kont-min)
           #:unless (-ℋ𝒱? αₖ)
           )
       (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))

@@ -86,4 +86,4 @@
 
 (define-signature debugging^
   ([print-Σ-stat : (-Σ → Void)]
-   [print-large-sets : (-Σ → Void)]))
+   [print-large-sets : ([-Σ] [#:val-min Index #:kont-min Index] . ->* . Void)]))
