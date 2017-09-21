@@ -145,6 +145,35 @@
     
     (go e))
 
+  (: locs : -e → (℘ ℓ))
+  ;; Grab all source locations used in function body
+  (define locs
+    (match-lambda
+      [(-@ f xs ℓ) (apply ∪ {seteq ℓ} (locs f) (map locs xs))]
+      [(-if e e₁ e₂) (∪ (locs e) (locs e₁) (locs e₂))]
+      [(-wcm k v b) (∪ (locs k) (locs v) (locs b))]
+      [(-begin es) (apply ∪ ∅eq (map locs es))]
+      [(-begin0 e es) (apply ∪ (locs e) (map locs es))]
+      [(or (-let-values bnds e ℓ₀) (-letrec-values bnds e ℓ₀))
+       #:when (and bnds e ℓ₀)
+       (for/fold ([acc : (℘ ℓ) {set-add (locs e) ℓ₀}])
+                 ([bnd (in-list bnds)])
+         (match-define (cons _ e) bnd)
+         (∪ acc (locs e)))]
+      [(-set! _ e) (locs e)]
+      [(-μ/c _ e) (locs e)]
+      [(--> dom rng ℓ)
+       (apply ∪ {seteq ℓ} (locs rng)
+              (match dom
+                [(-var inits rest) (cons (locs rest) (map locs inits))]
+                [(? list? inits) (map locs inits)]))]
+      [(-->i doms _ ℓ)
+       (apply ∪ {seteq ℓ} (map locs doms))]
+      [(-case-> cases) (apply ∪ ∅eq (map locs cases))]
+      [(-struct/c 𝒾 cs ℓ) (apply ∪ {seteq ℓ} (map locs cs))]
+      [(-∀/c _ e) (locs e)]
+      [_ ∅eq]))
+
   #;(: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
   ;; Search for all invocations of `f-id` in `e`
   #;(define (find-calls e f-id)

@@ -219,7 +219,8 @@
    [free-x/c : (-e → (℘ Symbol))]
    [e/map : (Subst -e → -e)]
    [e/ : (Symbol -e -e → -e)]
-   [formals->names : (-formals → (℘ Symbol))]))
+   [formals->names : (-formals → (℘ Symbol))]
+   [locs : (-e → (℘ ℓ))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

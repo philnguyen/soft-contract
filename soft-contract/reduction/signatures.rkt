@@ -18,7 +18,8 @@
    [mk-rt : ((U -A -W¹) → -⟦e⟧)]
    [mk-fc : (-l ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
    [mk-wrapped-hash : (-Hash/C -ctx ⟪α⟫ -W¹ → -⟦e⟧)]
-   [mk-wrapped-set : (-Set/C -ctx ⟪α⟫ -W¹ → -⟦e⟧)]))
+   [mk-wrapped-set : (-Set/C -ctx ⟪α⟫ -W¹ → -⟦e⟧)]
+   [loc-from-expr? : (ℓ -⟦e⟧ → Boolean)]))
 
 (define-signature kont^
   [[rt : (-αₖ → -⟦k⟧)]

@@ -24,7 +24,7 @@
          )
 
 (define-unit pre-reduction@
-  (import static-info^ kont^ havoc^ mon^ local-prover^ widening^ verifier^
+  (import static-info^ kont^ havoc^ mon^ compile^ local-prover^ widening^ verifier^
           for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ pc^ instr^ summ^)
   (export reduction^)
 
@@ -165,13 +165,13 @@
               ;#:unless (equal? α ⟪α⟫ₕᵥ)
               )
           (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (set-map Vs show-V)))
-        #;(printf "Stack store:~n")
-        #;(for ([(αₖ ks) (in-hash σₖ)]
+        (printf "Stack store:~n")
+        (for ([(αₖ ks) (in-hash σₖ)]
               #:when (> (set-count ks) 15)
               #:unless (-ℋ𝒱? αₖ)
               )
           (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))
-          (let ([comp : (Mutable-HashTable (Pairof Any Integer) (℘ Any)) (make-hash)])
+          #;(let ([comp : (Mutable-HashTable (Pairof Any Integer) (℘ Any)) (make-hash)])
             (define-set explodes : Any)
             (for ([k (in-set ks)])
               (match-define (-κ.rt ⟦k⟧ _ _ _ _) k)
@@ -244,13 +244,21 @@
     (define σₖ (-Σ-σₖ Σ))
     (define σ (-Σ-σ Σ))
 
-    (: continue : -κ -A -$ -Γ -⟪ℋ⟫ → (℘ -ς))
-    (define (continue κ A $ Γₐ ⟪ℋ⟫)
+    (: continue : -κ -A -$ -Γ -αₖ → (℘ -ς))
+    (define (continue κ A $ Γₐ αₖₑₑ)
+      (define ⟪ℋ⟫ (-αₖ-ctx αₖₑₑ))
       (match κ
         [(-κ.rt ⟦k⟧ dom Γ t looped?)
          (match A
            [(-W Vs tₐ)
-            (define-values (tₐ* Γ*) (if looped? (values t Γ) (values tₐ (copy-Γ dom Γ Γₐ))))
+            (define name-from-callee?
+              (match* (tₐ αₖₑₑ)
+                [((? integer? ℓ) (-ℬ _ _ _ ⟦e⟧ _ _)) (loc-from-expr? ℓ ⟦e⟧)]
+                [(_ _) #f]))
+            (define-values (tₐ* Γ*)
+              (cond [looped? (values t Γ)]
+                    [name-from-callee? (values t Γ)]
+                    [else (values tₐ (copy-Γ dom Γ Γₐ))]))
             (⟦k⟧ (-W Vs tₐ*) $ Γ* ⟪ℋ⟫ Σ)]
            [_ (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)])]
         [(-κ ⟦k⟧)
@@ -259,7 +267,7 @@
     (for/union : (℘ -ς) ([ς ςs])
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
       (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (continue κ A $ₑₑ Γₑₑ (-αₖ-ctx αₖₑₑ)))))
+        (continue κ A $ₑₑ Γₑₑ αₖₑₑ))))
   )
 
 (define-compound-unit/infer reduction@

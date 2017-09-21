@@ -21,6 +21,9 @@
           env^ sto^ pc^ val^ pretty-print^ for-gc^)
   (export compile^)
 
+  (define ⟦e⟧-locs : (Mutable-HashTable -⟦e⟧ (℘ ℓ)) (make-hasheq))
+  (define (loc-from-expr? [ℓ : ℓ] [⟦e⟧ : -⟦e⟧]) (map-has? ⟦e⟧-locs ⟦e⟧ ℓ))
+
   ;; Compile program
   (define (↓ₚ [ms : (Listof -module)] [e : -e]) : -⟦e⟧
     (define ⟦e⟧ (↓ₑ '† e))
@@ -85,6 +88,7 @@
        (match e
          [(-λ xs e*)
           (define ⟦e*⟧ (memoize-⟦e⟧ (↓ e*)))
+          (hash-set! ⟦e⟧-locs ⟦e*⟧ (locs e*))
           (set-bound-vars! ⟦e*⟧ (bv e*))
           (define fvs (fv e*))
           #;(printf "Warning: no longer canonicalize λ-term~n")
