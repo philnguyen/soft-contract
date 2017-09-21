@@ -763,11 +763,14 @@
       (define behavioral-args
         (for/list : (Listof -W¹) ([V (in-list args)] #:when (behavioral? σ V))
           (-W¹ V #f)))
-      (app (ℓ-with-id ℓ 'prim-havoc)
+      ;; FIXME: this is still more work than neccessary
+      (if (null? behavioral-args)
+          (⟦k⟧ refined-range $ Γ ⟪ℋ⟫ Σ)
+          (app (ℓ-with-id ℓ 'prim-havoc)
            (-W¹ (-Fn● (length behavioral-args)) #f)
            behavioral-args
            $ Γ ⟪ℋ⟫ Σ
-           (bgn0.e∷ refined-range '() ⊥ρ ⟦k⟧))))
+           (bgn0.e∷ refined-range '() ⊥ρ ⟦k⟧)))))
 
   (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
