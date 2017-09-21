@@ -27,7 +27,7 @@
     (define match?
       (match-let ([(-edge tgt src) x])
         (match-lambda
-          [(-edge tgt* _) (equal? tgt tgt*)])))
+          [(-edge tgt* _) (and (not (symbol? tgt*)) (equal? tgt tgt*))])))
 
     (define ?ℋ (memf match? ℋ))
     (if ?ℋ (values ?ℋ #t) (values (cons x ℋ) #f)))
