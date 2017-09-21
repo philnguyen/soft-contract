@@ -212,7 +212,7 @@
     (syntax-parser
       #:literals (quote #%plain-app)
       [d:scv-struct-out
-       (define ℓ (syntax-ℓ #'d))
+       (define ℓ (attribute d.loc))
        (define s-name (attribute d.name))
        (define 𝒾 (-𝒾 s-name (cur-mod)))
        (define st-doms (map parse-e (attribute d.field-contracts)))
@@ -278,7 +278,6 @@
        (define ctor (attribute d.constructor-name))
        (define 𝒾 (-𝒾 ctor (cur-mod)))
        (hash-set! (struct-map) (id->𝒾 (attribute d.extra-constructor-name)) 𝒾)
-
        ;; Figure out parent struct
        (cond
          [(attribute d.?parent) =>
