@@ -121,7 +121,7 @@
        (λ ()
          (match t
            [(? integer? ℓ₀)
-            (define t (⦃ℓ⦄ (cast ℓ₀ ℓ)))
+            (define t (⦃ℓ⦄ ℓ₀))
             (free-vars-add! t)
             (λ () (val-of t))]
            [(-t.x x)

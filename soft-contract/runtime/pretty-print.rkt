@@ -23,8 +23,8 @@
 
   (define (show-σ [σ : -σ])
     (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ Vs) (in-hash σ)]
-                                [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
-      `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V))))
+                                [α (in-value (⟪α⟫->-α ⟪α⟫ᵢ))])
+      `(,(show-⟪α⟫ ⟪α⟫ᵢ) ↦ ,@(set-map Vs show-V))))
 
   (define (show-h [h : -h]) : Sexp
     (match h
@@ -58,7 +58,7 @@
   (define (show-t [?t : -?t]) : Sexp
     (match ?t
       [#f '∅]
-      [(? integer? i) (show-ℓ (cast i ℓ))]
+      [(? integer? i) (show-ℓ i)]
       [(-t.x x) x]
       [(-𝒾 x _) x]
       [(? -e? e) (show-e e)]
@@ -245,7 +245,7 @@
       [(-h? tgt) (show-h tgt)]
       [(list? tgt) (map show-tgt tgt)]
       [(set? tgt) (set-map tgt show-b)]
-      [(integer? tgt) (show-ℓ (cast tgt ℓ))]
+      [(integer? tgt) (show-ℓ tgt)]
       [(not tgt) '⊘]
       [(-var? tgt)
        `(,(map show-ℓ (cast (-var-init tgt) (Listof ℓ))) ,(show-ℓ (cast (-var-rest tgt) ℓ)))]

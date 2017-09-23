@@ -68,7 +68,7 @@
                             [i : Natural (in-naturals)]
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (for/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
+                  (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵢ))])
                              (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
       [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ ctx)
        (define n (count-struct-fields 𝒾))
@@ -80,12 +80,12 @@
                   (cond
                     [(struct-mutable? 𝒾 (assert i index?))
                      (define c #f #;(⟪α⟫->s (car ⟪γ⟫ℓ)))
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
+                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵥ))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
                         (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ
                              (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                     [else
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
+                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵥ))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
                        (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
       [_
