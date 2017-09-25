@@ -136,7 +136,6 @@
        (for/union : (℘ -ς) ([V (σ@ Σ α)])
                   (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
       [(-Vector/guard grd ⟪α⟫ᵥ ctx)
-       (define ℓ/ignore (ℓ-with-src ℓ 'vector-ref))
        (define lo (-ctx-src ctx))
        (match grd
          [(-Vector/C ⟪α⟫ℓs)
@@ -149,14 +148,14 @@
                      (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ Σ ⟪α⟫ᵢ))]
                                            [⟦k⟧* (in-value (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))]
                                            [Vᵥ* (in-set (σ@ Σ ⟪α⟫ᵥ))])
-                        (.vector-ref ℓ/ignore (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ ⟦k⟧*)))]
+                        (.vector-ref ℓ (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ ⟦k⟧*)))]
          [(-Vectorof ⟪α⟫ℓ)
           (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
           (for*/union : (℘ -ς) ([C* (in-set (σ@ Σ ⟪α⟫*))]
                                 [⟦k⟧* (in-value (mon.c∷ (ctx-with-ℓ ctx ℓ*) (-W¹ C* c*) ⟦k⟧))]
                                 [Vᵥ* (in-set (σ@ Σ ⟪α⟫ᵥ))])
-            (.vector-ref ℓ/ignore (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))])]
+            (.vector-ref ℓ (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))])]
       [_
        (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
   
@@ -183,7 +182,6 @@
        (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
       [(-Vector/guard grd ⟪α⟫ᵥ ctx)
        (define ctx* (ctx-neg ctx))
-       (define ℓ/ignore (ℓ-with-src ℓ 'vector-set!))
        (match grd
          [(-Vector/C ⟪α⟫ℓs)
           (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
@@ -198,7 +196,7 @@
                                  (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                                  (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓᵢ) (mk-rt W-c) (mk-rt Wᵤ)))
                                  (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ
-                                  (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℓ/ignore ⟦k⟧))))]
+                                  (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℓ ⟦k⟧))))]
          [(-Vectorof ⟪α⟫ℓ)
           (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
@@ -208,7 +206,7 @@
                       (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                       (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓ*) (mk-rt W-c) (mk-rt Wᵤ)))
                       (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
-                       (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℓ/ignore ⟦k⟧)))])]
+                       (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℓ ⟦k⟧)))])]
       [_
        (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]))
   

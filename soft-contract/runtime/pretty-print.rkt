@@ -249,7 +249,20 @@
       [(not tgt) '⊘]
       [(-var? tgt)
        `(,(map show-ℓ (cast (-var-init tgt) (Listof ℓ))) ,(show-ℓ (cast (-var-rest tgt) ℓ)))]
-      [else (show-⟦e⟧ tgt)]))
+      [(pair? tgt) `(,(show-⟦e⟧ (car tgt)) @ ,@(show-⌊ρ⌋ (cdr tgt)))]))
+
+  (: show-⌊ρ⌋ : -⌊ρ⌋ → (Listof Sexp))
+  (define (show-⌊ρ⌋ ⌊ρ⌋)
+    (for/list : (Listof Sexp) ([(x ⌊ℋ⌋) ⌊ρ⌋])
+      `(,x ↦ ,@(map show-⌊edge⌋ ⌊ℋ⌋))))
+
+  (: show-⌊edge⌋ : -⌊edge⌋ → Sexp)
+  (define (show-⌊edge⌋ ⌊edge⌋)
+    (match-define (-⌊edge⌋ ⌊tgt⌋ src) ⌊edge⌋)
+    `(,(show-ℓ src) ↝ ,(show-⌊tgt⌋ ⌊tgt⌋)))
+
+  (: show-⌊tgt⌋ : -⌊edge.tgt⌋ → Sexp)
+  (define (show-⌊tgt⌋ ⌊tgt⌋) '…)
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 

@@ -187,7 +187,7 @@
   (define (app-clo xs ⟦e⟧ ρₕ Γₕ sₕ)
     (λ (ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
-      (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
+      (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (cons ⟦e⟧ (⌊ρ⌋ ρₕ)) ℓ)))
       (define ρₕ.dom (dom ρₕ))
       (define unsure-locs (unsure-locations ρₕ.dom (-λ? sₕ) looped?))
       (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
@@ -314,7 +314,7 @@
   (: app-∀/C : -∀/C -?t -V -?t -ctx → -⟦f⟧)
   (define ((app-∀/C C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
     (match-define (-∀/C xs ⟦c⟧ ρ) C)
-    (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓₐ)))
+    (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (cons ⟦c⟧ (⌊ρ⌋ ρ)) ℓₐ)))
     (define l-seal (-ctx-neg ctx))
     (define ρ* ; with side-effect widening store
       (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])
@@ -461,7 +461,6 @@
                (for/union : (℘ -ς) ([V (in-set (σ@ Σ α))])
                  (⟦k⟧ (-W (list V) #f) $ Γ ⟪ℋ⟫ Σ))])]
            [(-St* (-St/C _ 𝒾* αℓs) α ctx) #:when (𝒾* . substruct? . 𝒾)
-            (define ℓ/ignore (ℓ-with-src ℓ 'st-ac))
             (define Ac (-W¹ ac ac))
             (cond
               ;; mutable field should be wrapped
@@ -471,13 +470,13 @@
                (define Vs  (σ@ Σ α))
                (define cᵢ #f #;(⟪α⟫->s αᵢ))
                (for*/union : (℘ -ς) ([Cᵢ (in-set Cᵢs)] [V* (in-set Vs)])
-                 (⟦ac⟧ ℓ/ignore (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ
+                 (⟦ac⟧ ℓ (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ
                   (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧)))]
               ;; no need to check immutable field
               [else
                ;; TODO: could this loop forever due to cycle?
                (for/union : (℘ -ς) ([V* (in-set (σ@ Σ α))])
-                 (⟦ac⟧ ℓ/ignore (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
+                 (⟦ac⟧ ℓ (list (-W¹ V* s)) $ Γ ⟪ℋ⟫ Σ ⟦k⟧))])]
            [(-● ps)
             (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-oW (-Σ-σ Σ) Γ p W)])
               #:true  (⟦k⟧ (-W (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
@@ -514,13 +513,12 @@
                            ($-del* $ (get-aliases Σ α))))
             (⟦k⟧ (+W (list -void)) $* Γ ⟪ℋ⟫ Σ)]
            [(-St* (-St/C _ (== 𝒾) γℓs) α ctx)
-            (define ℓ/ignore (ℓ-with-src ℓ 'st-mut))
             (define ctx* (ctx-neg ctx))
             (match-define (-⟪α⟫ℓ γ ℓᵢ) (list-ref γℓs i))
             (define c #f #;(⟪α⟫->s γ))
             (define Mut (-W¹ mut mut))
             (for*/union : (℘ -ς) ([Vₛ* (in-set (σ@ Σ α))]
-                                  [⟦k⟧* (in-value (ap∷ (list (-W¹ Vₛ* sₛ) Mut) '() ⊥ρ ℓ/ignore ⟦k⟧))]
+                                  [⟦k⟧* (in-value (ap∷ (list (-W¹ Vₛ* sₛ) Mut) '() ⊥ρ ℓ ⟦k⟧))]
                                   [C (in-set (σ@ Σ γ))])
               (push-mon (ctx-with-ℓ ctx* ℓᵢ) (-W¹ C c) Wᵥ $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))]
            [(-● _)
@@ -596,7 +594,7 @@
         [(-var zs z)
          (define n (length zs))
          (define num-remaining-inits (- n num-inits))
-         (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦e⟧ ℓ)))
+         (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (cons ⟦e⟧ (⌊ρ⌋ ρₕ)) ℓ)))
          (define ρₕ.dom (dom ρₕ))
          (define unsure-locs (unsure-locations ρₕ.dom (-λ? t-func) looped?))
          (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
@@ -650,7 +648,7 @@
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (W-inits* W-inits.rest) (split-at W-inits n))
-            (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge #|HACK|# (mk-rt (-W¹ C #f)) ℓ)))
+            (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge #|HACK|# (cons (mk-rt (-W¹ C #f)) (⌊ρ⌋ ⊥ρ)) ℓ)))
             (define V-rest* (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ W-inits.rest #:end (-W¹-V W-rest)))
             (define W-rest* (-W¹ V-rest* #f))
             (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))])
@@ -668,7 +666,7 @@
            [else
             (error 'app/rest "expect ~a arguments, given ~a: ~a" n num-inits (map show-W¹ W-inits))])]
         [(-∀/C xs ⟦c⟧ ρ)
-         (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge ⟦c⟧ ℓ)))
+         (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (cons ⟦c⟧ (⌊ρ⌋ ρ)) ℓ)))
          (define l-seal (-ctx-neg ctx))
          (define ρ* ; with side-effects widening store
            (for/fold ([ρ : -ρ ρ]) ([x (in-list xs)])

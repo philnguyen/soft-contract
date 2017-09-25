@@ -213,7 +213,11 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -edge.tgt (U -⟦e⟧ -o -?t -h ℓ (-maybe-var ℓ) (Listof -edge.tgt) (℘ Base)))
+(define-type -⌊edge.tgt⌋ (U -⟦e⟧ -o -?t -h ℓ (-maybe-var ℓ) (Listof -⌊edge.tgt⌋) (℘ Base)))
+(struct -⌊edge⌋ ([tgt : -⌊edge.tgt⌋] [src : ℓ]) #:transparent)
+(define-type -⌊ℋ⌋ (Listof -⌊edge⌋))
+(define-type -⌊ρ⌋ (Immutable-HashTable Symbol -⌊ℋ⌋))
+(define-type -edge.tgt (U (Pairof -⟦e⟧ -⌊ρ⌋) -o -?t -h ℓ (-maybe-var ℓ) (Listof -edge.tgt) (℘ Base)))
 (struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
 (define-type -ℋ (Listof -edge))
 (define-interner -⟪ℋ⟫ -ℋ
@@ -424,8 +428,7 @@
    [with-positive-party : (-l -V → -V)]
    [behavioral? : (-σ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
-   [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]
-   [strip-C : (-V → -edge.tgt)]
+   [blm-arity : (ℓ -l Arity (Listof -V) → -blm)] 
    [predicates-of-V : (-V → (℘ -h))]
    ))
 
@@ -467,6 +470,8 @@
 (define-signature instr^
   ([⟪ℋ⟫∅ : -⟪ℋ⟫]
    [⟪ℋ⟫+ : (-⟪ℋ⟫ -edge → (Values -⟪ℋ⟫ Boolean))]
+   [strip-C : (-V → -edge.tgt)]
+   [⌊ρ⌋ : (-ρ → -⌊ρ⌋)]
    ))
 
 (define-signature pretty-print^
