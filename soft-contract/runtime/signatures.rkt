@@ -213,10 +213,7 @@
 ;;;;; Call history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-type -⌊edge.tgt⌋ (U -⟦e⟧ -o -?t -h ℓ (-maybe-var ℓ) (Listof -⌊edge.tgt⌋) (℘ Base)))
-(struct -⌊edge⌋ ([tgt : -⌊edge.tgt⌋] [src : ℓ]) #:transparent)
-(define-type -⌊ℋ⌋ (Listof -⌊edge⌋))
-(define-type -⌊ρ⌋ (Immutable-HashTable Symbol -⌊ℋ⌋))
+(define-type -⌊ρ⌋ (Immutable-HashTable Symbol (Listof ℓ)))
 (define-type -edge.tgt (U (Pairof -⟦e⟧ -⌊ρ⌋) -o -?t -h ℓ (-maybe-var ℓ) (Listof -edge.tgt) (℘ Base)))
 (struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
 (define-type -ℋ (Listof -edge))

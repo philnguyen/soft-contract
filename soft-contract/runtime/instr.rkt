@@ -45,18 +45,7 @@
   (define (⌊ρ⌋ ρ)
     (for/hasheq : -⌊ρ⌋ ([(x α) ρ])
       (match (⟪α⟫->-α (cast α ⟪α⟫))
-        [(-α.x x ⟪ℋ⟫) (values x (map ⌊edge⌋ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫)))])))
-
-  (: ⌊edge⌋ : -edge → -⌊edge⌋)
-  (define (⌊edge⌋ e)
-    (match-define (-edge tgt src) e)
-    (-⌊edge⌋ (⌊edge.tgt⌋ tgt) src))
-
-  (: ⌊edge.tgt⌋ : -edge.tgt → -⌊edge.tgt⌋)
-  (define (⌊edge.tgt⌋ tgt)
-    (cond [(list? tgt) (map ⌊edge.tgt⌋ tgt)]
-          [(pair? tgt) (car tgt)]
-          [else tgt]))
+        [(-α.x x ⟪ℋ⟫) (values x (map -edge-src (-⟪ℋ⟫->-ℋ ⟪ℋ⟫)))])))
 
   (: strip-C : -V → -edge.tgt)
   (define (strip-C C)

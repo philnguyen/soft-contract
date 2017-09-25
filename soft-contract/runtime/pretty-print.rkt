@@ -253,16 +253,8 @@
 
   (: show-⌊ρ⌋ : -⌊ρ⌋ → (Listof Sexp))
   (define (show-⌊ρ⌋ ⌊ρ⌋)
-    (for/list : (Listof Sexp) ([(x ⌊ℋ⌋) ⌊ρ⌋])
-      `(,x ↦ ,@(map show-⌊edge⌋ ⌊ℋ⌋))))
-
-  (: show-⌊edge⌋ : -⌊edge⌋ → Sexp)
-  (define (show-⌊edge⌋ ⌊edge⌋)
-    (match-define (-⌊edge⌋ ⌊tgt⌋ src) ⌊edge⌋)
-    `(,(show-ℓ src) ↝ ,(show-⌊tgt⌋ ⌊tgt⌋)))
-
-  (: show-⌊tgt⌋ : -⌊edge.tgt⌋ → Sexp)
-  (define (show-⌊tgt⌋ ⌊tgt⌋) '…)
+    (for/list : (Listof Sexp) ([(x ℓs) ⌊ρ⌋])
+      `(,x ↦ ,@(map show-ℓ ℓs))))
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 

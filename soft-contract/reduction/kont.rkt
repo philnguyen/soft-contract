@@ -721,7 +721,7 @@
       (define Wₖ (-W¹ Vₖ tₖ))
       (define Wᵥ (-W¹ Vᵥ tᵥ))
       (for/union : (℘ -ς) ([Vₕ (in-set (σ@ Σ αₕ))])
-        (app (ℓ-with-src ℓ 'hash-set-inner∷)
+        (app ℓ
              (-W¹ 'hash-set 'hash-set)
              (list (-W¹ Vₕ tₕ) Wₖ Wᵥ)
              $ Γ ⟪ℋ⟫ Σ ⟦k⟧))))
@@ -739,7 +739,7 @@
       (match-define (-W¹ (list Vₑ) tₑ) A)
       (define Wₑ (-W¹ Vₑ tₑ))
       (for/union : (℘ -ς) ([Vₛ (in-set (σ@ Σ αₛ))])
-        (app (ℓ-with-src ℓ 'set-add-inner∷)
+        (app ℓ
              (-W¹ 'set-add 'set-add)
              (list (-W¹ Vₛ tₛ) Wₑ)
              $ Γ ⟪ℋ⟫ Σ ⟦k⟧))))
