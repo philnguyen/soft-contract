@@ -228,12 +228,12 @@
       [((-</c (? real? a)) (-</c (? real? b))) (if (<= a b) '✓ '?)]
       [((-≤/c (? real? a)) (-≤/c (? real? b))) (if (<= a b) '✓ '?)]
       [((-</c (? real? a)) (-≤/c (? real? b))) (if (<= a b) '✓ '?)]
-      [((-≤/c (? real? a)) (-</c (? real? b))) (if (<= a b) '✓ '?)]
+      [((-≤/c (? real? a)) (-</c (? real? b))) (if (<  a b) '✓ '?)]
       ; > and >
       [((->/c (? real? a)) (->/c (? real? b))) (if (>= a b) '✓ '?)]
       [((-≥/c (? real? a)) (-≥/c (? real? b))) (if (>= a b) '✓ '?)]
       [((->/c (? real? a)) (-≥/c (? real? b))) (if (>= a b) '✓ '?)]
-      [((-≥/c (? real? a)) (->/c (? real? b))) (if (>= a b) '✓ '?)]
+      [((-≥/c (? real? a)) (->/c (? real? b))) (if (>  a b) '✓ '?)]
       ; < and >
       [((-</c (? real? a)) (->/c (? real? b))) (if (<= a b) '✗ '?)]
       [((-≤/c (? real? a)) (-≥/c (? real? b))) (if (<  a b) '✗ '?)]
@@ -568,6 +568,11 @@
                                   (-● (app set->list (list _ ... (->/c (? real? b₂)) _ ...))))
                             #:when (<= b₁ b₂)
                             '✓]
+                           [(list (-b (? real? b₁))
+                                  (-● (app set->list (list _ ... (or (-≤/c (? real? b₂))
+                                                                     (-</c (? real? b₂))) _ ...))))
+                            #:when (and b₂ (<= b₁ b₂))
+                            '✗]
                            [(list (-● ps) (-b (? real? b)))
                             (match (set->list ps)
                               [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
@@ -594,6 +599,10 @@
                                                                      (->/c (? real? b₂))) _ ...))))
                             #:when (and b₂ (>= b₂ b₁))
                             '✓]
+                           [(list (-b (? real? b₁))
+                                  (-● (app set->list (list _ ... (-</c (? real? b₂)) _ ...))))
+                            #:when (and b₂ (<= b₂ b₁))
+                            '✗]
                            [(list (-● ps) (-b (? real? b)))
                             (match (set->list ps)
                               [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
