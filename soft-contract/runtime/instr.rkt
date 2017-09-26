@@ -43,9 +43,12 @@
 
   (: ⌊ρ⌋ : -ρ → -⌊ρ⌋)
   (define (⌊ρ⌋ ρ)
-    (for/hasheq : -⌊ρ⌋ ([(x α) ρ])
+    ⌊ρ⌋₀
+    #;(for/hasheq : -⌊ρ⌋ ([(x α) ρ])
       (match (⟪α⟫->-α (cast α ⟪α⟫))
         [(-α.x x ⟪ℋ⟫) (values x (map -edge-src (-⟪ℋ⟫->-ℋ ⟪ℋ⟫)))])))
+
+  (define ⌊ρ⌋₀ : -⌊ρ⌋ (hasheq))
 
   (: strip-C : -V → -edge.tgt)
   (define (strip-C C)

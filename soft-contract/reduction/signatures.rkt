@@ -99,5 +99,5 @@
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]))
 
 (define-signature havoc^
-  ([havoc : (-$ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
+  ([havoc : (-$ -Σ -⟦k⟧ → (℘ -ς))]
    [gen-havoc-expr : ((Listof -module) → -e)]))

@@ -336,16 +336,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Stack-address / Evaluation "check-point"
-(struct -αₖ ([cache : -$] [ctx : -⟪ℋ⟫]) #:transparent)
-(struct -ℬ -αₖ ([var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
-(struct -ℳ -αₖ ([ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
-(struct -ℱ -αₖ ([l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
+(struct -αₖ ([cache : -$]) #:transparent)
+(struct -ℬ -αₖ ([ctx : -⟪ℋ⟫] [var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
+(struct -ℳ -αₖ ([ctx : -⟪ℋ⟫] [blm-ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
+(struct -ℱ -αₖ ([ctx : -⟪ℋ⟫] [l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
 (struct -ℋ𝒱 -αₖ () #:transparent) ; Havoc
 
 (-αₖ:ctx . ::= . (-ℬ:ctx -⟪ℋ⟫ -formals -⟦e⟧ -ρ)
                  (-ℳ:ctx -⟪ℋ⟫ -ctx -W¹ -W¹)
                  (-ℱ:ctx -⟪ℋ⟫ -l ℓ -W¹ -W¹)
-                 (-ℋ𝒱:ctx -⟪ℋ⟫))
+                 (-ℋ𝒱:ctx))
 (struct -αₖ:pth ([cache : -$] [pc : -Γ]) #:transparent)
 
 

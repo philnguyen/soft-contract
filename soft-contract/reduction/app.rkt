@@ -547,7 +547,7 @@
       (define tₐ ℓ #|TODO make sure ok|#)
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
-      (define αₖ (-ℋ𝒱 $ ⟪ℋ⟫))
+      (define αₖ (-ℋ𝒱 $))
       (define κ (-κ.rt (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t))
       {set (-ς↑ (σₖ+! Σ αₖ κ))}))
 
