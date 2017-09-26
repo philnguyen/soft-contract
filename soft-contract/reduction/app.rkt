@@ -188,9 +188,9 @@
     (λ (ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
       (define-values (Vₓs sₓs) (unzip-by -W¹-V -W¹-t Wₓs))
       (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (cons ⟦e⟧ (⌊ρ⌋ ρₕ)) ℓ)))
-      (define ρₕ.dom (dom ρₕ))
-      (define unsure-locs (unsure-locations ρₕ.dom (-λ? sₕ) looped?))
-      (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
+      (define-values ($₀ unsure-locs) (common-$ $ ⟦e⟧ ρₕ sₕ looped?))
+      #;(when (match? xs '(index₁))
+        (printf "jumping to '(index₁), unsure locations are: ~a~n" (set-map unsure-locs show-loc)))
 
       ;; Target's environment
       (define-values (ρ* $*)
@@ -595,9 +595,7 @@
          (define n (length zs))
          (define num-remaining-inits (- n num-inits))
          (define-values (⟪ℋ⟫ₑₑ looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge (cons ⟦e⟧ (⌊ρ⌋ ρₕ)) ℓ)))
-         (define ρₕ.dom (dom ρₕ))
-         (define unsure-locs (unsure-locations ρₕ.dom (-λ? t-func) looped?))
-         (define $₀ (if looped? ($-del* ($-del* $ unsure-locs) (bound-vars ⟦e⟧)) ($-del* $ unsure-locs))) ; FIXME do it properly
+         (define-values ($₀ unsure-locs) (common-$ $ ⟦e⟧ ρₕ t-func looped?))
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
@@ -716,8 +714,8 @@
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
 
-  (: unsure-locations : (℘ -loc) Boolean Boolean → (℘ -loc))
-  (define (unsure-locations ls fv-same? looped?)
+  #;(: unsure-locations : (℘ -loc) Boolean Boolean → (℘ -loc))
+  #;(define (unsure-locations ls fv-same? looped?)
     (cond
       [(and fv-same? looped?)
        (for/set: : (℘ -loc) ([l (in-set ls)]
@@ -726,6 +724,23 @@
          l)]
       [fv-same? ∅]
       [else ls]))
+
+  (: common-$ : -$ -⟦e⟧ -ρ -?t Boolean → (Values -$ (℘ -loc)))
+  (define (common-$ $ₑᵣ ⟦e⟧ₑₑ ρₑₑ tₑₑ looped?)
+    (define fv-same? (-λ? tₑₑ))
+    (define ls (dom ρₑₑ))
+    (define unsure-locs
+      (cond
+        [(and fv-same? looped?)
+         (for/set: : (℘ -loc) ([l (in-set ls)]
+                               #:when (or (symbol? l) (-𝒾? l))
+                               #:when (assignable? l))
+           l)]
+        [fv-same? ∅]
+        [else ls]))
+    (define $* ($-del* $ₑᵣ unsure-locs))
+    (values #;$* (if looped? ($-del* $* (bound-vars ⟦e⟧ₑₑ)) $*)
+            unsure-locs))
 
   ;; FIXME Duplicate macros
   (define-simple-macro (with-Γ+/-oW (σ:expr Γ:expr o:expr W:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
