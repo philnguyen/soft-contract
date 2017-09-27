@@ -223,37 +223,38 @@
       [else "unknown message"])))
 
 (define (new-posn x y)
-  (λ (msg)
-    (let ([this (new-posn x y)]) ; FIXME
-      (cond
-        [(equal? msg 'x) (λ () x)]
-        [(equal? msg 'y) (λ () y)]
-        [(equal? msg 'posn) (λ () this)]
-        [(equal? msg 'move-toward/speed)
-         (λ (p speed)
-           (let* ([δx (- ((p 'x)) x)]
-                  [δy (- ((p 'y)) y)]
-                  [move-distance (min speed (max (abs δx) (abs δy)))])
-             (cond
-               [(< (abs δx) (abs δy))
-                ((this 'move)
-                 0
-                 (if (positive? δy) move-distance (- 0 move-distance)))]
-               [else
-                ((this 'move)
-                 (if (positive? δx) move-distance (- 0 move-distance))
-                 0)])))]
-        [(equal? msg 'move)
-         (λ (δx δy)
-           (new-posn (+ x δx) (+ y δy)))]
-        [(equal? msg 'draw-on/image)
-         (λ (img scn)
-           (place-image img x y scn))]
-        [(equal? msg 'dist)
-         (λ (p)
-           (sqrt (+ (sqr (- ((p 'y)) y))
-                    (sqr (- ((p 'x)) x)))))]
-        [else "unknown message"]))))
+  (letrec ([this
+            (λ (msg)
+              (cond
+                [(equal? msg 'x) (λ () x)]
+                [(equal? msg 'y) (λ () y)]
+                [(equal? msg 'posn) (λ () this)]
+                [(equal? msg 'move-toward/speed)
+                 (λ (p speed)
+                   (let* ([δx (- ((p 'x)) x)]
+                          [δy (- ((p 'y)) y)]
+                          [move-distance (min speed (max (abs δx) (abs δy)))])
+                     (cond
+                       [(< (abs δx) (abs δy))
+                        ((this 'move)
+                         0
+                         (if (positive? δy) move-distance (- 0 move-distance)))]
+                       [else
+                        ((this 'move)
+                         (if (positive? δx) move-distance (- 0 move-distance))
+                         0)])))]
+                [(equal? msg 'move)
+                 (λ (δx δy)
+                   (new-posn (+ x δx) (+ y δy)))]
+                [(equal? msg 'draw-on/image)
+                 (λ (img scn)
+                   (place-image img x y scn))]
+                [(equal? msg 'dist)
+                 (λ (p)
+                   (sqrt (+ (sqr (- ((p 'y)) y))
+                            (sqr (- ((p 'x)) x)))))]
+                [else "unknown message"]))])
+    this))
 
 (define w0
   (new-world
