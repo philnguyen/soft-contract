@@ -122,8 +122,7 @@
     (exact-nonnegative-integer? . -> . exact-positive-integer?)
     (exact-positive-integer? . -> . exact-positive-integer?)
     (exact-integer? . -> . exact-integer?)
-    ((not/c negative?) . -> . positive?)
-    (positive? . -> . positive?)
+    ((>=/c 0) . -> . (>/c 0))
     #:volatile? #f)
   (def sub1
     (number? . -> . number?)
