@@ -14,7 +14,7 @@
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^ local-prover^ pc^ val^ prim-runtime^)
+  (import pretty-print^ local-prover^ pc^ val^ prim-runtime^ static-info^)
   (export sto^)
 
   (splicing-local
@@ -143,9 +143,10 @@
                        (-W¹ V t))
                      $))]
           [else
+           (define ℓ* (if (and (symbol? l) (not (assignable? l))) (-t.x l) ℓ))
            (values (for/set: : (℘ -W¹) ([V (in-set Vs)])
-                     (-W¹ V ℓ))
-                   ($-set $ l ℓ))]))
+                     (-W¹ V ℓ*))
+                   ($-set $ l ℓ*))]))
 
   (: $-extract : -$ (Sequenceof -loc) → -δ$)
   (define ($-extract $ ls)

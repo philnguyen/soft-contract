@@ -96,11 +96,21 @@
           (λ (ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
             (define ρ* (m↓ ρ fvs))
             (define Γ*
-              (for*/set: : -Γ ([φ (in-set Γ)]
-                               [fv⟦φ⟧ (in-value (fvₜ φ))]
-                               #:unless (set-empty? fv⟦φ⟧)
-                               #:when (⊆ fv⟦φ⟧ fvs))
-                φ))
+              (∪ (for*/set: : -Γ ([φ (in-set Γ)]
+                                  [fv⟦φ⟧ (in-value (fvₜ φ))]
+                                  #:unless (set-empty? fv⟦φ⟧)
+                                  #:when (⊆ fv⟦φ⟧ fvs))
+                   φ)
+                 ;; FIXME generalize HACK
+                 (for*/union : -Γ ([x (in-hash-keys ρ)]
+                                   [t (in-value (hash-ref $ x #f))]
+                                   #:when t)
+                   (for*/union : -Γ ([φ (in-set Γ)])
+                      (match φ
+                        [(-t.@ p (list (== t))) {set (-t.@ p (list (-t.x x)))}]
+                        [(-t.@ p (list (? -b? b) (== t))) {set (-t.@ p (list b (-t.x x)))}]
+                        [(-t.@ p (list (== t) (? -b? b))) {set (-t.@ p (list (-t.x x) b))}]
+                        [_ ∅])))))
             (⟦k⟧ (-W (list (-Clo xs ⟦e*⟧ ρ* Γ*)) t) $ Γ ⟪ℋ⟫ Σ))]
          [(-case-λ cases)
           (define ⟦mk⟧ (↓ₚᵣₘ 'scv:make-case-lambda))
