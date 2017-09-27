@@ -714,17 +714,6 @@
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-W¹ W-func))]))
 
-  #;(: unsure-locations : (℘ -loc) Boolean Boolean → (℘ -loc))
-  #;(define (unsure-locations ls fv-same? looped?)
-    (cond
-      [(and fv-same? looped?)
-       (for/set: : (℘ -loc) ([l (in-set ls)]
-                             #:when (or (symbol? l) (-𝒾? l))
-                             #:when (assignable? l))
-         l)]
-      [fv-same? ∅]
-      [else ls]))
-
   (: common-$ : -$ -⟦e⟧ -ρ -?t Boolean → (Values -$ (℘ -loc)))
   (define (common-$ $ₑᵣ ⟦e⟧ₑₑ ρₑₑ tₑₑ looped?)
     (define fv-same? (-λ? tₑₑ))
