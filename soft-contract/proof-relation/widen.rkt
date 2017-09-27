@@ -27,7 +27,7 @@
   (define (Γ+ Γ . ts)
 
     (: φs+ : -Γ -t → -Γ)
-    (define (φs+ φs φ)
+    (define (φs+ φs φ)      
       
       (: iter : -Γ -t → (U -Γ (Pairof -Γ -Γ)))
       (define (iter φs φ)
@@ -142,42 +142,33 @@
         [(or (? -Vectorof?) (? -Vector/C?)) 'vector?]
         [_ P]))
     
-    (with-debugging/off ((V*) (cond
-                                [(set? P)
-                                 (for/fold ([V : -V V]) ([Pᵢ (in-set P)])
-                                   (V+ σ V Pᵢ))]
-                                [else
-                                 (with-debugging/off
-                                   ((V*)
-                                    (match V
-                                      [(-● ps)
-                                       (match P
-                                         [(or (-≡/c b) (-b b)) (-b b)]
-                                         ['not -ff]
-                                         ['null? -null]
-                                         ['void? -void]
-                                         [(? -h? h) (-● (ps+ ps h))]
-                                         [(? -V? P)
-                                          (match (simplify P)
-                                            [(? -o? o) (-● (ps+ ps o))]
-                                            [_ V])])]
-                                      [_ V]))
-                                   
-                                   (hash-ref! printing (list V P)
-                                              (λ ()
-                                                (printf "~a + ~a -> ~a~n"
-                                                        (show-V V)
-                                                        (if (-v? P) (show-e P) (show-V P))
-                                                        (show-V V*)))))]))
-
-      (when (-●? V)
-        (: show-P : (U -v -V (℘ -v) (℘ -V)) → Sexp)
-        (define (show-P P)
-          (cond [(set? P) (set-map P show-P)]
-                [(-V? P) (show-V P)]
-                [else (show-e P)]))
-        
-        (printf "V+ ~a ~a -> ~a~n~n" (show-V V) (show-P P) (show-V V*)))))
+    (cond
+      [(set? P)
+       (for/fold ([V : -V V]) ([Pᵢ (in-set P)])
+         (V+ σ V Pᵢ))]
+      [else
+       (with-debugging/off
+         ((V*)
+          (match V
+            [(-● ps)
+             (match P
+               [(or (-≡/c b) (-b b)) (-b b)]
+               ['not -ff]
+               ['null? -null]
+               ['void? -void]
+               [(? -h? h) (-● (ps+ ps h))]
+               [(? -V? P)
+                (match (simplify P)
+                  [(? -o? o) (-● (ps+ ps o))]
+                  [_ V])])]
+            [_ V]))
+         
+         (hash-ref! printing (list V P)
+                    (λ ()
+                      (printf "~a + ~a -> ~a~n"
+                              (show-V V)
+                              (if (-v? P) (show-e P) (show-V P))
+                              (show-V V*)))))]))
 
   ;; Combine 2 predicates for a more precise one.
   ;; Return `#f` if there's no single predicate that refines both
@@ -453,7 +444,7 @@
       (match-define (-W¹ Vₓ tₓ) Wₓ)
       (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
       (define tₓ* (if looped? (-t.x x) (or tₓ (-t.x x))))
-      (define α (-α->⟪α⟫ (-α.x x ⟪ℋ⟫)))
+      (define α (hash-ref ρ x #|in case of letrec|# (λ () (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-V Vₓ*))))))
       (σ⊕V! Σ α Vₓ*)
       (define $* (if tₓ* ($-set $ x tₓ*) $))
       (values (ρ+ ρ x α) $*)))

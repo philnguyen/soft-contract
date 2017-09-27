@@ -199,7 +199,7 @@
   (: hack:α->loc : ⟪α⟫ → (Option -loc))
   (define (hack:α->loc α)
     (match (⟪α⟫->-α α)
-      [(-α.x x _) x]
+      [(-α.x x _ _) x]
       [(? -𝒾? 𝒾) 𝒾]
       [α₀ #f]))
   

@@ -232,7 +232,7 @@
 (-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Symbol -⟪ℋ⟫)
+            (-α.x Symbol -⟪ℋ⟫ (℘ -h))
             (-α.fv -⟪ℋ⟫)
             ; for struct field
             (-α.fld [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
