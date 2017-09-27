@@ -66,7 +66,6 @@
       [else '?]))
 
   (define (Γ⊢t [φs : -Γ] [t₀ : -?t]) : -R
-
     (define t ; FIXME clean up hack
       (match t₀
         [(-t.@ (-≥/c b) (list t*))
@@ -91,6 +90,14 @@
     (: t⊢t : -t -t → -R)
     ;; Check if `t₂` returns truth when `t₁` does
     (define (t⊢t t₁ t₂)
+      (define (mk-p [o : -special-bin-o] [b : Real])
+        (case o
+          [(< ) (-</c b)]
+          [(<=) (-≤/c b)]
+          [(> ) (->/c b)]
+          [(>=) (-≥/c b)]
+          [else (-≡/c b)]))
+      
       (with-debugging/off
         ((ans)
          ;; (⊢t t₂) is not redundant, because this may be just a sub-exp of the original goal
@@ -128,20 +135,19 @@
                  [((-t.@ (? op-≡?) (list (-b b₁) t))
                    (-t.@ (? op-≡?) (list (-b b₂) t)))
                   (boolean->R (equal? b₁ b₂))]
-                 ;; Ariths
-                 [((or (-t.@ (? op-≡?) (list t (-b b₁)))
-                       (-t.@ (? op-≡?) (list (-b b₁) t)))
-                   (-t.@ (? -special-bin-o? o) (list t (-b b₂))))
-                  (p⇒p (-≡/c b₁) ((bin-o->h o) b₂))]
-                 [((or (-t.@ (? op-≡?) (list t (-b b₁)))
-                       (-t.@ (? op-≡?) (list (-b b₁) t)))
-                   (-t.@ (? -special-bin-o? o) (list (-b b₂) t)))
-                  (p⇒p (-≡/c b₁) ((bin-o->h (flip-bin-o o)) b₂))]
                  ;; Ariths special cases (TODO generalize)
-                 [((-t.@ '<          (list (-b (? real? b₁)) t))
-                   (-t.@ (or '<= '<) (list (-b (? real? b₂)) t)))
-                  #:when (<= b₂ b₁)
-                  '✓]
+                 [((-t.@ (? -special-bin-o? o₁) (list t (-b (? real? b₁))))
+                   (-t.@ (? -special-bin-o? o₂) (list t (-b (? real? b₂)))))
+                  (p⇒p (mk-p o₁ b₁) (mk-p o₂ b₂))]
+                 [((-t.@ (? -special-bin-o? o₁) (list (-b (? real? b₁)) t))
+                   (-t.@ (? -special-bin-o? o₂) (list t (-b (? real? b₂)))))
+                  (p⇒p (mk-p (flip-bin-o o₁) b₁) (mk-p o₂ b₂))]
+                 [((-t.@ (? -special-bin-o? o₁) (list t (-b (? real? b₁))))
+                   (-t.@ (? -special-bin-o? o₂) (list (-b (? real? b₂)) t)))
+                  (p⇒p (mk-p o₁ b₁) (mk-p (flip-bin-o o₂) b₂))]
+                 [((-t.@ (? -special-bin-o? o₁) (list (-b (? real? b₁)) t))
+                   (-t.@ (? -special-bin-o? o₂) (list (-b (? real? b₂)) t)))
+                  (p⇒p (mk-p (flip-bin-o o₁) b₁) (mk-p (flip-bin-o o₂) b₂))]
                  ;; List
                  [((-t.@ (? op-≡?) (or (list (-t.@ 'length (list t)) (-b (? integer? n)))
                                        (list (-b (? integer? n)) (-t.@ 'length (list t)))))
@@ -358,9 +364,7 @@
                  (plausible-φs-t? φs (?t@ 'equal? t v))]
                 [(-● ps)
                  (not (for/or : Boolean ([p ps])
-                        (match p
-                          [(? -o? o) (equal? '✗ (Γ⊢t φs (-t.@ o (list t))))]
-                          [_ #f])))]
+                        (equal? '✗ (Γ⊢t φs (-t.@ p (list t))))))]
                 [_ #t]))]
         [else #t]))
     
