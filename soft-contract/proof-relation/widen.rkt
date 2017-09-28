@@ -404,25 +404,27 @@
 
     (: κ⊑ : -κ.rt -κ.rt → Boolean)
     (define (κ⊑ κ₁ κ₂)
-      (match-define (-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁) κ₁)
-      (match-define (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂) κ₂)
+      (match-define (-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁ bnds₁) κ₁)
+      (match-define (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂ bnds₂) κ₂)
       (and (⟦k⟧₁ . equal? . ⟦k⟧₂)
            (dom₂ . ⊆  . dom₁)
            (Γ₂   . ⊆  . Γ₁)
            (t₁   . t⊑ . t₂)
+           (bnds₁ . equal? . bnds₂)
            (looped?₁ . implies . looped?₂)))
 
     (match* (κ₁ κ₂)
-      [((-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁)
-        (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂))
+      [((-κ.rt ⟦k⟧₁ dom₁ Γ₁ t₁ looped?₁ bnds₁)
+        (-κ.rt ⟦k⟧₂ dom₂ Γ₂ t₂ looped?₂ bnds₂))
        (cond [(κ⊑ κ₁ κ₂) κ₂]
              [(κ⊑ κ₂ κ₁) κ₂]
              [(and (equal? ⟦k⟧₁ ⟦k⟧₂)
                    (t₁ . t⊑ . t₂)
                    (dom₂ . ⊆ . dom₁)
-                   (looped?₁ . implies . looped?₂))
+                   (looped?₁ . implies . looped?₂)
+                   (bnds₁ . equal? . bnds₂))
               (define ?Γ (?Γ⊔ Γ₁ Γ₂))
-              (and ?Γ (-κ.rt ⟦k⟧₂ dom₂ ?Γ t₂ looped?₂))]
+              (and ?Γ (-κ.rt ⟦k⟧₂ dom₂ ?Γ t₂ looped?₂ bnds₂))]
              [else #f])]
       [(κ κ) κ]
       [(_ _) #f]))
@@ -432,16 +434,21 @@
       (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
 
   (: alloc-init-args! :
-     -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
+     -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
+     → (Values -ρ -$ (Immutable-HashTable Symbol -t)))
   (define (alloc-init-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
     (define ρ* (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
     (bind-args! Σ $ Γ ρ* ⟪ℋ⟫ xs Ws looped?))
 
-  (: bind-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
+  (: bind-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
+     → (Values -ρ -$ (Immutable-HashTable Symbol -t)))
   (define (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
     (define σ (-Σ-σ Σ))
-    (define-values (ρ* $* canon)
-      (for/fold ([ρ : -ρ ρ] [$ : -$ $] [canon : (Immutable-HashTable -t Symbol) (hash)])
+    (define-values (ρ* $* canon bnds)
+      (for/fold ([ρ : -ρ ρ]
+                 [$ : -$ $]
+                 [canon : (Immutable-HashTable -t Symbol) (hash)]
+                 [bnds : (Immutable-HashTable Symbol -t) (hasheq)])
                 ([x xs] [Wₓ Ws])
         (match-define (-W¹ Vₓ tₓ) Wₓ)
         (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
@@ -454,8 +461,8 @@
                             (λ () (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-V Vₓ*))))))
         (σ⊕V! Σ α Vₓ*)
         (define $* (if tₓ* ($-set $ x tₓ*) $))
-        (values (ρ+ ρ x α) $* canon*)))
-    (values ρ* $*))
+        (values (ρ+ ρ x α) $* canon* (if tₓ (hash-set bnds x tₓ) bnds))))
+    (values ρ* $* bnds))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
   (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℓ Ws #:end [Vₙ -null])

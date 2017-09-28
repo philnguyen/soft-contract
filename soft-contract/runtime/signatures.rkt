@@ -25,7 +25,7 @@
 (define-type -Ξ (Immutable-HashTable -αₖ:ctx (℘ -αₖ:pth)))
 
 (struct -κ ([rest : -⟦k⟧]) #:transparent)
-(struct -κ.rt -κ ([dom : (℘ Symbol)] [pc : -Γ] [ans : -?t] [looped? : Boolean]) #:transparent)
+(struct -κ.rt -κ ([dom : (℘ Symbol)] [pc : -Γ] [ans : -?t] [looped? : Boolean] [bnds : (Immutable-HashTable Symbol -t)]) #:transparent)
 
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜] [Ξ : -Ξ]) #:mutable #:transparent)

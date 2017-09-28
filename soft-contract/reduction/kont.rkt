@@ -204,7 +204,7 @@
              (cons (cons x (-W¹ V tₓ)) acc)))
          (match ⟦bnd⟧s
            ['()
-            (define-values (ρ* $*)
+            (define-values (ρ* $* _)
               (let-values ([(xs Ws) (unzip bnd-Ws*)])
                 (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws #f)))
             #;(when (and (hash-has-key? ρ* 'l) (not (hash-has-key? $* 'l)))
@@ -286,7 +286,7 @@
       (define n (length xs))
       (cond
         [(= n (length Vs))
-         (define-values (ρ* $*)
+         (define-values (ρ* $* _)
            (let ([Wₓs (map -W¹ Vs (split-values s n))])
              (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Wₓs #f)))
          (assert (equal? ρ ρ*)) ; FIXME disable in production

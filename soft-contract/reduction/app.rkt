@@ -193,17 +193,17 @@
         (printf "jumping to '(index₁), unsure locations are: ~a~n" (set-map unsure-locs show-loc)))
 
       ;; Target's environment
-      (define-values (ρ* $*)
+      (define-values (ρ* $* bnds)
         (match xs
           [(? list? xs)
            (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ xs Wₓs looped?)]
           [(-var zs z)
            (define-values (Ws₀ Wsᵣ) (split-at Wₓs (length zs)))
-           (define-values (ρ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ zs Ws₀ looped?))
+           (define-values (ρ₀ $₁ bnds) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ zs Ws₀ looped?))
            (define Vᵣ (alloc-rest-args! Σ Γ ⟪ℋ⟫ₑₑ ℓ Wsᵣ))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ ∅)))
            (σ⊕V! Σ αᵣ Vᵣ)
-           (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-t.x z)))]))
+           (values (ρ+ ρ₀ z αᵣ) ($-set $₁ z (-t.x z)) bnds)]))
 
       (define $**
         (let ([root (∪ (ρ->⟪α⟫s ρ*) (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ)))])
@@ -226,7 +226,7 @@
       (define κ
         (let* ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))]
                [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
-          (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ ℓ looped?)))
+          (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ ℓ looped? bnds)))
       {set (-ς↑ (σₖ+! Σ αₖ κ))}))
 
   (: app-Case-Clo : -Case-Clo -?t → -⟦f⟧)
@@ -548,7 +548,7 @@
       (for ([W (in-list Ws)])
         (add-leak! Σ (-W¹-V W)))
       (define αₖ (-ℋ𝒱 $))
-      (define κ (-κ.rt (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t))
+      (define κ (-κ.rt (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t (hasheq)))
       {set (-ς↑ (σₖ+! Σ αₖ κ))}))
 
   (: app-prim : Symbol → -⟦f⟧)
@@ -599,7 +599,7 @@
 
          (: app/adjusted-args! : (Listof -W¹) -W¹ → -ς)
          (define (app/adjusted-args! W-inits W-rest)
-           (define-values (ρₕ₀ $₁) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ zs W-inits looped?))
+           (define-values (ρₕ₀ $₁ bnds) (alloc-init-args! Σ $₀ Γ ρₕ ⟪ℋ⟫ₑₑ zs W-inits looped?))
            (define αᵣ (-α->⟪α⟫ (-α.x z ⟪ℋ⟫ₑₑ ∅)))
            (σ⊕V! Σ αᵣ (-W¹-V W-rest))
            (define ρₕ* (ρ+ ρₕ₀ z αᵣ))
@@ -612,7 +612,7 @@
            (define κ
              (let* ([δ$ ($-extract $ (cons z zs))]
                     [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
-               (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ #f looped?)))
+               (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ #f looped? bnds)))
            (-ς↑ (σₖ+! Σ αₖ κ)))
          
          (cond

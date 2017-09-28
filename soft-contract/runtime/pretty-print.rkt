@@ -294,7 +294,7 @@
   (: show-κ : -κ → Sexp)
   (define (show-κ κ)
     (match κ
-      [(-κ.rt _ dom Γ t looped?)
+      [(-κ.rt _ dom Γ t looped? _)
        `(,(show-t t) ,(set->list dom) ,(show-Γ Γ) ,looped?)]
       [(-κ _)
        `κ]))
