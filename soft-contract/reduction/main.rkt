@@ -26,7 +26,7 @@
 
 (define-unit pre-reduction@
   (import static-info^ kont^ havoc^ mon^ compile^ local-prover^ widening^ verifier^
-          for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ pc^ instr^ summ^
+          val^ for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ pc^ instr^ summ^
           debugging^)
   (export reduction^)
 
@@ -116,7 +116,7 @@
       (when (debug-iter?)
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
-        (printf "Execution capped at ~a steps~n" ?max-steps)) 
+        (printf "Execution capped at ~a steps~n" ?max-steps))
       (values (M@ Σ αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
@@ -128,7 +128,7 @@
            [(-ℬ _ _ _ _ ρ _) (->⟪α⟫s ρ)]
            [(-ℳ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
            [(-ℱ _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
-           [(-ℋ𝒱 _ _) {seteq ⟪α⟫ₕᵥ}]))
+           [(? -ℋ𝒱?) {seteq ⟪α⟫ₕᵥ}]))
        (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]
       [(-ς↓ αₖ _ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
        (define αs₀ (if (-W? A) (->⟪α⟫s A) ∅eq))
@@ -147,15 +147,24 @@
                     (for ([(x α) (in-hash ρ)])
                       (printf "  ~a ↦ ~a~n" x (show-⟪α⟫ α)))
                     (printf "cache:~n")
-                    (for ([(l W) (in-hash $)])
-                      (printf "  ~a ↦ ~a~n" (show-loc l) (show-W¹ W)))
+                    (for ([(l t) (in-hash $)])
+                      (printf "  ~a ↦ ~a~n" (show-loc l) (show-t t)))
+                    (printf "pc: ~a~n" (show-Γ Γ))
                     (printf "~n"))
+                  #;(cond
+                    [(hash-ref ρ 'x₁ #f)
+                     =>
+                     (λ ([α : ⟪α⟫])
+                       (match-define (-α.x _ ⟪ℋ⟫) (⟪α⟫->-α α))
+                       (printf "ctx for x₁ at ~a: (~a) ~n" (show-⟪α⟫ α) (show-⟪ℋ⟫ ⟪ℋ⟫))
+                       (for ([e (in-list (-⟪ℋ⟫->-ℋ ⟪ℋ⟫))])
+                         (printf "- ~a~n" (show-edge e))))])
                   (⟦e⟧ ρ $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℳ $ ⟪ℋ⟫ ctx W-C W-V Γ)
                   (mon ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℱ $ ⟪ℋ⟫ l ℓ W-C W-V Γ)
                   (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                 [(-ℋ𝒱 $ ⟪ℋ⟫) (havoc $ ⟪ℋ⟫ Σ ⟦k⟧)]
+                 [(-ℋ𝒱 $) (havoc $ Σ ⟦k⟧)]
                  [_ (error '↝↑ "~a" αₖ)])))
 
   ;; Quick-step on "pop" state
@@ -167,17 +176,36 @@
     (define (continue κ A $ Γₐ αₖₑₑ)
       (define ⟪ℋ⟫ (-αₖ-ctx αₖₑₑ))
       (match κ
-        [(-κ.rt ⟦k⟧ dom Γ t looped?)
+        [(-κ.rt ⟦k⟧ dom Γ t looped? bnds)
          (match A
            [(-W Vs tₐ)
             (define name-from-callee?
               (match* (tₐ αₖₑₑ)
                 [((? integer? ℓ) (-ℬ _ _ _ ⟦e⟧ _ _)) (loc-from-expr? ℓ ⟦e⟧)]
                 [(_ _) #f]))
-            (define-values (tₐ* Γ*)
-              (cond [looped? (values t Γ)]
-                    [name-from-callee? (values t Γ)]
-                    [else (values tₐ (copy-Γ dom Γ Γₐ))]))
+            (define tₐ*
+              (match tₐ
+                ;; FIXME generalize hack
+                [(-b 0) tₐ]
+                [(-t.x x)
+                 #:when (and (hash-has-key? bnds x)
+                             (match? αₖₑₑ (-ℬ _ _ (or (list _) (list _ _)) _ _ _)))
+                 (hash-ref bnds x)]
+                [(-t.@ '- (list (-t.x x) (? -b? b)))
+                 #:when (and (hash-has-key? bnds x)
+                             (match? αₖₑₑ (-ℬ _ _ (or (list _) (list _ _)) _ _ _)))
+                 (-t.@ '- (list (hash-ref bnds x) b))]
+                [_
+                 (cond [looped? t]
+                       [name-from-callee? t]
+                       [else tₐ])]))
+            (define Γ* : -Γ
+              (let ([Γ₀ : -Γ (if looped? Γ (copy-Γ dom Γ Γₐ))])
+                (define δΓ
+                  (for/union : (℘ -?t) ([V (in-list Vs)] [t (in-list (split-values tₐ* (length Vs)))])
+                             (for/set: : (℘ -?t) ([p (in-set (predicates-of-V V))])
+                       (?t@ p t))))
+                (apply Γ+ Γ₀ (filter values (set->list δΓ)))))
             (⟦k⟧ (-W Vs tₐ*) $ Γ* ⟪ℋ⟫ Σ)]
            [_ (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)])]
         [(-κ ⟦k⟧)
@@ -187,6 +215,13 @@
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
       (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
         (continue κ A $ₑₑ Γₑₑ αₖₑₑ))))
+
+  (: -αₖ-ctx : -αₖ → -⟪ℋ⟫)
+  (define (-αₖ-ctx α)
+    (cond [(-ℬ? α) (-ℬ-ctx α)]
+          [(-ℳ? α) (-ℳ-ctx α)]
+          [(-ℱ? α) (-ℱ-ctx α)]
+          [else ⟪ℋ⟫∅]))
   )
 
 (define-compound-unit/infer reduction@
