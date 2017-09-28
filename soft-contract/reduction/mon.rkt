@@ -73,7 +73,9 @@
                           [(-W¹ (-b (? integer? n)) _)
                            (format-symbol "(arity-includes/c ~a)" n)]
                           [(-W¹ (-b (arity-at-least n)) _)
-                           (format-symbol "(arity-at-least/c ~a)" n)])])
+                           (format-symbol "(arity-at-least/c ~a)" n)]
+                          [(-W¹ (-b (list n ...)) _)
+                           (string->symbol (format "(arity in ~a)" n))])])
                  (blm C))))
 
     (: wrap : -Γ → (℘ -ς))
