@@ -68,7 +68,7 @@
     (define σ (-Σ-σ Σ))
     (define σₖ (-Σ-σₖ Σ))
     (define ℬ-stats : (HashTable (List -formals -⟦e⟧ -ρ) (℘ -$)) (make-hash))
-    (define ℋ-stats : (HashTable -⟪ℋ⟫ (℘ -$)) (make-hash))
+    (define-set ℋ-stats : -$)
     (for ([αₖ (in-hash-keys σₖ)])
       (match αₖ
         [(-ℬ $ _ xs e ρ _)
@@ -76,11 +76,8 @@
                        (λ ([$s : (℘ -$)])
                          (set-add $s $))
                        mk-∅)]
-        [(-ℋ𝒱 $ ⟪ℋ⟫)
-         (hash-update! ℋ-stats ⟪ℋ⟫
-                       (λ ([$s : (℘ -$)])
-                         (set-add $s $))
-                       mk-∅)]
+        [(-ℋ𝒱 $)
+         (ℋ-stats-add! $)]
         [_ (void)]))
     (printf "ℬ-stats: (~a --> ~a) ~n" (hash-count ℬ-stats) (length (filter -ℬ? (hash-keys σₖ))))
     
@@ -88,10 +85,9 @@
       (match-define (list xs e ρ) k)
       (printf "- ~a ~a --> ~a~n" (show-formals xs) (show-ρ ρ) (set-count vs))
       (print-$-grid #;show-$-stats vs))
-    (printf "ℋ-stats: (~a --> ~a) ~n" (hash-count ℋ-stats) (length (filter -ℋ𝒱? (hash-keys σₖ))))
-    (for ([(k vs) (in-hash ℋ-stats)] #:when (> (set-count vs) 15))
-      (printf "- ~a --> ~a~n" (show-⟪ℋ⟫ k) (set-count vs))
-      (print-$-grid #;show-$-stats vs))
+    (printf "ℋ-stats: --> ~a ~n" (set-count ℋ-stats))
+    (when (> (set-count ℋ-stats) 15)
+      (print-$-grid ℋ-stats))
 
     (begin
       (printf "Value store:~n")
@@ -108,7 +104,7 @@
     (let ([ctxs : (Mutable-HashTable Symbol (℘ -⟪ℋ⟫)) (make-hasheq)])
       (for ([α (in-hash-keys σ)])
         (match (⟪α⟫->-α α)
-          [(-α.x x ⟪ℋ⟫) (map-add! ctxs x ⟪ℋ⟫ #:eq? #t)]
+          [(-α.x x ⟪ℋ⟫ _) (map-add! ctxs x ⟪ℋ⟫ #:eq? #t)]
           [_ (void)]))
       (for ([(x Hs) (in-hash ctxs)] #:when (>= (set-count Hs) ctx-min))
         (printf "~a ↦ ~a~n" x (set-count Hs))
