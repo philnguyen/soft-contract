@@ -7,8 +7,16 @@
          "../main.rkt"
          "count-checks.rkt")
 
+(require/typed srfi/13
+  [string-pad-right (String Index → String)])
+
 (define TIMEOUT (* 60 20))
 (define COLUMNS '(Lines Checks Time Pos))
+(define sep "\t|" #;"&")
+(define end "" #;"\\\\")
+(define header-end "" #;"\\hline ")
+
+(define (pad s [width : Index 15]) (string-pad-right (format "~a" s) width))
 
 (define-type Real/Rng (U Real (List Real)))
 (define-type Record (HashTable Symbol Real/Rng))
@@ -81,17 +89,19 @@
 
 (define (print-then-return-row [row : Row]) : Row
   (match-define (Row name fields) row)
-  (printf "\\textrm{~a} " name)
+  (display (pad name))
   (for ([col (in-list COLUMNS)])
-    (printf "& ~a " (show-Real/Rng (hash-ref fields col))))
-  (printf "\\\\~n")
+    (printf "~a " sep)
+    (display (pad (show-Real/Rng (hash-ref fields col)) 8)))
+  (printf "~a~n" end)
   row)
 
 (define (print-header)
-  (printf "Program ")
+  (display (pad "Program"))
   (for ([col (in-list COLUMNS)])
-    (printf "& ~a " col))
-  (printf "\\\\ \\hline~n"))
+    (printf "~a " sep)
+    (display (pad col 8)))
+  (printf "~a ~a~n" end header-end))
 
 (: run-dir : Path-String → (Values (Listof Row) Row))
 ;; Run each file and print along the way
@@ -106,13 +116,13 @@
   (values rows sum-row))
 
 (command-line
-   #:args paths
-   (for ([path (in-list paths)])
-     (assert path path-string?)
-     (cond [(directory-exists?              path)
-            (run-dir path)]
-           [(regexp-match-exact? #rx".*rkt" path)
-            (print-then-return-row (run-file path))]
-           [else (printf "Don't know what path ~a means" path)])
-     (printf "~n")))
+ #:args paths
+ (for ([path (in-list paths)])
+   (assert path path-string?)
+   (cond [(directory-exists?              path)
+          (run-dir path)]
+         [(regexp-match-exact? #rx".*rkt" path)
+          (print-then-return-row (run-file path))]
+         [else (printf "Don't know what path ~a means" path)])
+   (printf "~n")))
 
