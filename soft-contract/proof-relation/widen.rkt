@@ -440,14 +440,22 @@
   (: bind-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean → (Values -ρ -$))
   (define (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
     (define σ (-Σ-σ Σ))
-    (for/fold ([ρ : -ρ ρ] [$ : -$ $]) ([x xs] [Wₓ Ws])
-      (match-define (-W¹ Vₓ tₓ) Wₓ)
-      (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
-      (define tₓ* (if looped? (-t.x x) (or tₓ (-t.x x))))
-      (define α (hash-ref ρ x #|in case of letrec|# (λ () (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-V Vₓ*))))))
-      (σ⊕V! Σ α Vₓ*)
-      (define $* (if tₓ* ($-set $ x tₓ*) $))
-      (values (ρ+ ρ x α) $*)))
+    (define-values (ρ* $* canon)
+      (for/fold ([ρ : -ρ ρ] [$ : -$ $] [canon : (Immutable-HashTable -t Symbol) (hash)])
+                ([x xs] [Wₓ Ws])
+        (match-define (-W¹ Vₓ tₓ) Wₓ)
+        (define Vₓ* (V+ σ Vₓ (predicates-of Γ tₓ)))
+        (define-values (tₓ* canon*)
+          (cond [(not tₓ) (values (-t.x x) canon)]
+                [(not looped?) (values tₓ canon)]
+                [(hash-ref canon tₓ #f) => (λ ([y : Symbol]) (values (-t.x y) canon))]
+                [else (values (-t.x x) (hash-set canon tₓ x))]))
+        (define α (hash-ref ρ x #|in case of letrec|#
+                            (λ () (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-V Vₓ*))))))
+        (σ⊕V! Σ α Vₓ*)
+        (define $* (if tₓ* ($-set $ x tₓ*) $))
+        (values (ρ+ ρ x α) $* canon*)))
+    (values ρ* $*))
 
   (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
   (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℓ Ws #:end [Vₙ -null])
