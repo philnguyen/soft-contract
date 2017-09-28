@@ -169,6 +169,7 @@
       [(-Clo _ ⟦e⟧ _ _) {set (-clo ⟦e⟧)}]
       [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾 {set (-st-p 𝒾)}]
       [(or (? -Ar?) (? -o?)) {set 'procedure?}]
+      [(-● ps) ps]
       [_ ∅]))
 
   )

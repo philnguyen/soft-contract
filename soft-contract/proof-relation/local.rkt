@@ -136,6 +136,10 @@
                    (-t.@ (? op-≡?) (list (-b b₂) t)))
                   (boolean->R (equal? b₁ b₂))]
                  ;; Ariths special cases (TODO generalize)
+                 [((-t.@ (or '<= '<) (list (-b (? real? lo)) t))
+                   (-t.@ '<= (list t* (-t.@ '+ (list t* t)))))
+                  #:when (>= lo 0)
+                  '✓] ; FIXME generalize
                  [((-t.@ (? -special-bin-o? o₁) (list t (-b (? real? b₁))))
                    (-t.@ (? -special-bin-o? o₂) (list t (-b (? real? b₂)))))
                   (p⇒p (mk-p o₁ b₁) (mk-p o₂ b₂))]
@@ -193,7 +197,8 @@
              (t⊢t φ t))
            '?)]
          [else '?]))
-      (printf "~a ⊢ˡ ~a : ~a~n" (show-Γ φs) (show-t t) ans)))
+      (when (match? t (-t.@ '<= (list t (-t.@ '+ (list t _)))))
+        (printf "~a ⊢ˡ ~a : ~a~n" (show-Γ φs) (show-t t) ans))))
 
   ;; Return whether predicate `p` definitely implies or excludes `q`.
   (define (p⇒p [p : -h] [q : -h]) : -R
