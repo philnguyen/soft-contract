@@ -128,7 +128,6 @@
     (number? . -> . number?)
     #:refinements
     (exact-positive-integer? . -> . exact-nonnegative-integer?)
-    (exact-nonnegative-integer? . -> . exact-integer?)
     (exact-integer? . -> . exact-integer?)
     (integer? . -> . integer?)
     (real? . -> . real?)
