@@ -44,8 +44,7 @@
       [(-define-values _ e) (up! 'values) (go! e)]
       
       [(-λ _ e) (go! e)] ; don't count arity check here
-      [(-case-λ clauses)
-       (for ([clause clauses]) (go! (cdr clause)))]
+      [(-case-λ clauses) (for-each go! clauses)]
 
       [(-x _ _) (up! #;'undefined)]
       [(-@ f xs _)
@@ -93,7 +92,7 @@
       [(-->i dom rng _)
        (for-each c.go! dom) (c.go! rng)
        (up! 'procedure? 'arity)]
-      [(-case-> clauses _)
+      [(-case-> clauses)
        (for ([clause clauses])
          (match-define (cons cs d) clause)
          (for-each c.go! cs) (c.go! d))
