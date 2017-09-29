@@ -145,8 +145,6 @@
        (app ℓ (-W¹ '< '<) (list (car Wₓs) (-W¹ (-b r) (-b r))) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-≤/c (? real? r))
        (app ℓ (-W¹ '<= '<=) (list (car Wₓs) (-W¹ (-b r) (-b r))) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-      [(-≡/c b)
-       (app ℓ (-W¹ 'equal? 'equal?) (list (car Wₓs) (-W¹ (-b b) (-b b))) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
       [(-≢/c b)
        (error 'app "TODO: eliminate ≢/c")
        #;(app ℓ 'equal? (list (car Wₓs) (-W¹ (-b b) (-b b))) $ Γ ⟪ℋ⟫ ⟦k⟧)]

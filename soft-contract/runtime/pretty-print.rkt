@@ -50,7 +50,7 @@
       [(-≤/c b) `(≤/c ,(show-b b))]
       [(->/c b) `(>/c ,(show-b b))]
       [(-</c b) `(</c ,(show-b b))]
-      [(-≡/c b) `(≡/c ,(show-b b))]
+      [(-b   b) `(≡/c ,(show-b b))]
       [(-≢/c b) `(≢/c ,(show-b b))]
       [(-not/c o) `(not/c ,(show-o o))]
       [(-clo ⟦e⟧) `(λ∈ ,(show-⟦e⟧ ⟦e⟧))]))

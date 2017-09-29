@@ -178,7 +178,6 @@
             (-≤/c Base)
             (->/c Base)
             (-</c Base)
-            (-≡/c Base)
             (-≢/c Base)
             (-not/c -o)
             (-clo -⟦e⟧))

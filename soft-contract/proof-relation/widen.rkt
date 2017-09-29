@@ -152,7 +152,6 @@
           (match V
             [(-● ps)
              (match P
-               [(or (-≡/c b) (-b b)) (-b b)]
                ['not -ff]
                ['null? -null]
                ['void? -void]
@@ -185,7 +184,7 @@
       {set 'exact-nonnegative-integer?}]
      [('exact-integer? (->/c (and (? (between/c -1 0)) (not  0))))
       {set 'exact-nonnegative-integer?}]
-     [('exact-nonnegative-integer? (-not/c (-≡/c 0)))
+     [('exact-nonnegative-integer? (-not/c (-b 0)))
       {set 'exact-positive-integer?}]
      [('exact-nonnegative-integer? (-≢/c 0))
       {set 'exact-positive-integer?}]

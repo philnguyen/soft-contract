@@ -41,7 +41,7 @@
       [(<) -</c]
       [(>=) -≥/c]
       [(<=) -≤/c]
-      [(= equal? eqv? eq?) -≡/c]
+      [(= equal? eqv? eq?) -b]
       [(≢) -≢/c]))
 
   (: flip-bin-o : -special-bin-o → -special-bin-o)
