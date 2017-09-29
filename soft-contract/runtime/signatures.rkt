@@ -234,7 +234,7 @@
             (-α.x Symbol -⟪ℋ⟫ (℘ -h))
             (-α.fv -⟪ℋ⟫)
             ; for struct field
-            (-α.fld [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.fld [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Index])
             ; for Cons/varargs
             ; idx prevents infinite list
             (-α.var-car [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
@@ -411,6 +411,7 @@
    [⊥𝒜 : -𝒜]
    [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
    [hack:α->loc : (⟪α⟫ → (Option -loc))]
+   [mutable? : (⟪α⟫ → Boolean)]
    ))
 
 (define-signature val^

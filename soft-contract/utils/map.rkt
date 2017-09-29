@@ -2,7 +2,10 @@
 
 (provide (all-defined-out))
 
-(require racket/match racket/set set-extras)
+(require racket/match
+         racket/set
+         racket/bool
+         set-extras)
 
 ;; Return the domain of a finite function represented as a hashtable
 (: dom : (∀ (X Y) (HashTable X Y) → (℘ X)))
@@ -58,9 +61,9 @@
   (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk))
 
 (: map-equal?/spanning-root
-   (∀ (X Y) (HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → Boolean))
+   (∀ (X Y) ([(HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X))] [(X → Boolean)] . ->* . Boolean)))
 ;; CHeck if 2 multimaps are equal up to the domain spanned by given set
-(define (map-equal?/spanning-root m₁ m₂ xs span)
+(define (map-equal?/spanning-root m₁ m₂ xs span [check? (λ _ #t)])
   (define-set seen : X #:eq? (hash-eq? m₁) #:as-mutable-hash? #t)
   (let loop : Boolean ([xs : (℘ X) xs])
        (for/and : Boolean ([x (in-set xs)])
@@ -69,7 +72,7 @@
                 (seen-add! x)
                 (define ys₁ (hash-ref m₁ x mk-∅))
                 (define ys₂ (hash-ref m₂ x mk-∅))
-                (and (equal? ys₁ ys₂)
+                (and ((check? x) . implies . (equal? ys₁ ys₂))
                      (for/and : Boolean ([y (in-set ys₁)])
                        (loop (span y))))]))))
 

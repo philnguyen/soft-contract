@@ -28,7 +28,7 @@
          (cond [(hash-ref cache V #f) =>
                 (λ ([mσ₀ : (HashTable ⟪α⟫ (℘ -V))])
                   (define mσ (-Σ-σ Σ))
-                  (map-equal?/spanning-root mσ₀ mσ (V->⟪α⟫s V) V->⟪α⟫s))]
+                  (map-equal?/spanning-root mσ₀ mσ (V->⟪α⟫s V) V->⟪α⟫s mutable?))]
                [else #f]))
 
        (define (update-cache! [V : -V] [Σ : -Σ]) : Void

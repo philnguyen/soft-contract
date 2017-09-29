@@ -203,5 +203,13 @@
       [(-α.x x _ _) x]
       [(? -𝒾? 𝒾) 𝒾]
       [α₀ #f]))
+
+  (: mutable? : ⟪α⟫ → Boolean)
+  (define (mutable? ⟪α⟫)
+    (match (⟪α⟫->-α ⟪α⟫)
+      [(-α.x x _ _) (assignable? x)]
+      [(-α.fld 𝒾 _ _ i) (struct-mutable? 𝒾 i)]
+      [(? -α.idx?) #t]
+      [_ #f]))
   
   )
