@@ -143,7 +143,10 @@
                        (-W¹ V t))
                      $))]
           [else
-           (define ℓ* (if (and (symbol? l) (not (assignable? l))) (-t.x l) ℓ))
+           (define ℓ*
+             (cond [(symbol? l) (if (assignable? l) ℓ (-t.x l))]
+                   [(-𝒾? l) (if (assignable? l) ℓ l)]
+                   [else ℓ]))
            (values (for/set: : (℘ -W¹) ([V (in-set Vs)])
                      (-W¹ V ℓ*))
                    ($-set $ l ℓ*))]))
