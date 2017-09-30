@@ -52,10 +52,7 @@
       (repeat-compact φs φ iter))
     
     (for/fold ([Γ : -Γ Γ])
-              ([t ts]
-               #:when t
-               ;#:unless (set-empty? (fvₜ t))
-               )
+              ([t ts] #:when t)
       (define t*
         (match t
           [(-t.@ 'not (list (-t.@ 'not (list t*)))) t*]
@@ -576,7 +573,7 @@
   (define (M⊕! Σ αₖ ΓA)
     (set--Σ-M! Σ (hash-update (-Σ-M Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
 
-  (: copy-Γ : (℘ Symbol) -Γ -Γ → -Γ)
+  (: copy-Γ : (℘ (U Symbol ℓ)) -Γ -Γ → -Γ)
   (define (copy-Γ dom Γₜ Γₛ)
     (∪ Γₜ (Γ↓ Γₛ dom)))
   )

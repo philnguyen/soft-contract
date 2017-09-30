@@ -69,7 +69,7 @@
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
-   [copy-Γ : ((℘ Symbol) -Γ -Γ → -Γ)]))
+   [copy-Γ : ((℘ (U Symbol ℓ)) -Γ -Γ → -Γ)]))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]

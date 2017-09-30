@@ -220,11 +220,13 @@
                       #:when t
                       #:unless (equal? '✓ (Γ⊢t Γ t)))
             (Γ+ Γ t))))
+
       (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρ* Γₕ*))
       (define κ
         (let* ([δ$ ($-extract $ (match xs [(-var zs z) (cons z zs)] [(? list?) xs]))]
-               [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
-          (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ ℓ looped? bnds)))
+               [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))]
+               [Γ.dom ($-symbolic-names $)])
+          (-κ.rt ⟦k⟧* Γ.dom (Γ↓ Γ Γ.dom) ℓ looped? bnds)))
       {set (-ς↑ (σₖ+! Σ αₖ κ))}))
 
   (: app-Case-Clo : -Case-Clo -?t → -⟦f⟧)
@@ -554,6 +556,8 @@
     (define ⟦f⟧ (get-prim o))
     (define-values (⟪ℋ⟫* looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge o ℓ)))
     (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
+    #;(when (member o '(+ -))
+      (printf "~a ~a~n- knowing: ~a~n" o (map show-W¹ Ws) (show-Γ Γ)))
     (⟦f⟧ ℓ Ws $ Γ ⟪ℋ⟫* Σ ⟦k⟧*))
 
   (: app/rest/unsafe : ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
@@ -609,8 +613,9 @@
            (define αₖ (-ℬ $** ⟪ℋ⟫ₑₑ xs ⟦e⟧ ρₕ* Γₕ))
            (define κ
              (let* ([δ$ ($-extract $ (cons z zs))]
-                    [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))])
-               (-κ.rt ⟦k⟧* ($-symbolic-names $) Γ #f looped? bnds)))
+                    [⟦k⟧* (invalidate-$∷ unsure-locs (restore-$∷ δ$ (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧)))]
+                    [Γ.dom ($-symbolic-names $)])
+               (-κ.rt ⟦k⟧* Γ.dom (Γ↓ Γ Γ.dom) #f looped? bnds)))
            (-ς↑ (σₖ+! Σ αₖ κ)))
          
          (cond

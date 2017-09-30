@@ -180,9 +180,9 @@
                #:when (-loc.offset? l))
       (hash-remove $ l)))
 
-  (: $-symbolic-names : -$ → (℘ Symbol))
+  (: $-symbolic-names : -$ → (℘ (U Symbol ℓ)))
   (define ($-symbolic-names $)
-    (for/unioneq : (℘ Symbol) ([t (in-hash-values $)])
+    (for/unioneq : (℘ (U Symbol ℓ)) ([t (in-hash-values $)])
       (fvₜ t)))
 
 

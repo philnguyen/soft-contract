@@ -295,7 +295,11 @@
   (define (show-κ κ)
     (match κ
       [(-κ.rt _ dom Γ t looped? _)
-       `(,(show-t t) ,(set->list dom) ,(show-Γ Γ) ,looped?)]
+       `(,(show-t t)
+         ,(for/list : (Listof Sexp) ([x dom])
+            (if (integer? x) (show-ℓ x) x))
+         ,(show-Γ Γ)
+         ,looped?)]
       [(-κ _)
        `κ]))
   )

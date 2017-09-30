@@ -200,7 +200,7 @@
                        [name-from-callee? t]
                        [else tₐ])]))
             (define Γ* : -Γ
-              (let ([Γ₀ : -Γ (if looped? Γ (copy-Γ dom Γ Γₐ))])
+              (let ([Γ₀ (if looped? Γ (copy-Γ (∪ dom (fvₜ tₐ)) Γ Γₐ))])
                 (define δΓ
                   (for/union : (℘ -?t) ([V (in-list Vs)] [t (in-list (split-values tₐ* (length Vs)))])
                              (for/set: : (℘ -?t) ([p (in-set (predicates-of-V V))])

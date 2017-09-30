@@ -70,28 +70,21 @@
   ;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (: fv-as : (HashTable Symbol -t) → (℘ Symbol))
-  (define (fv-as as)
-    (for/unioneq : (℘ Symbol) ([(x t) (in-hash as)])
-      (set-add (fvₜ t) x)))
-
-  (: fvₜ : -?t → (℘ Symbol))
+  (: fvₜ : -?t → (℘ (U Symbol ℓ)))
   (define (fvₜ t)
     (match t
       [(-t.@ h ts) (apply set-union ∅eq (map fvₜ ts))]
       [(-t.x x) {seteq x}]
-      [(or (? -𝒾?) (? integer?) #f) ∅eq]
-      [(? -e? e) (fv e)]))
+      [(? integer? ℓ) {seteq ℓ}]
+      [(? -e? e) (fv e)]
+      [_ ∅eq]))
 
-  (define (?t↓ [?t : -?t] [xs : (℘ Symbol)]) (and ?t (t↓ ?t xs)))
+  (: t↓ : -t (℘ (U Symbol ℓ)) → -?t)
+  (define (t↓ t xs) (and (⊆ (fvₜ t) xs) t))
 
-  (: t↓ : -t (℘ Symbol) → -?t)
-  (define (t↓ t xs)
-    (and #;(not (set-empty? (∩ (fvₜ t) xs))) (⊆ (fvₜ t) xs) t))
-
-  (: Γ↓ : -Γ (℘ Symbol) → -Γ)
+  (: Γ↓ : -Γ (℘ (U Symbol ℓ)) → -Γ)
   (define (Γ↓ ts xs)
-    (for*/set: : -Γ ([t ts]
+    (for*/set: : -Γ ([t (in-set ts)]
                      [t* (in-value (t↓ t xs))] #:when t*)
       t*))
 

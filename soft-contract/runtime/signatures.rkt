@@ -25,7 +25,7 @@
 (define-type -Ξ (Immutable-HashTable -αₖ:ctx (℘ -αₖ:pth)))
 
 (struct -κ ([rest : -⟦k⟧]) #:transparent)
-(struct -κ.rt -κ ([dom : (℘ Symbol)] [pc : -Γ] [ans : -?t] [looped? : Boolean] [bnds : (Immutable-HashTable Symbol -t)]) #:transparent)
+(struct -κ.rt -κ ([dom : (℘ (U Symbol ℓ))] [pc : -Γ] [ans : -?t] [looped? : Boolean] [bnds : (Immutable-HashTable Symbol -t)]) #:transparent)
 
 ;; Grouped mutable references to stores
 (struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜] [Ξ : -Ξ]) #:mutable #:transparent)
@@ -407,7 +407,7 @@
    [$-restore : (-$ -δ$ → -$)]
    [$↓ : (-$ (℘ -loc) → -$)]
    [$-cleanup : (-$ → -$)]
-   [$-symbolic-names : (-$ → (℘ Symbol))]
+   [$-symbolic-names : (-$ → (℘ (U Symbol ℓ)))]
    [⊥𝒜 : -𝒜]
    [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
    [hack:α->loc : (⟪α⟫ → (Option -loc))]
@@ -431,7 +431,7 @@
 
 (define-signature pc^
   ([⊤Γ : -Γ]
-   [Γ↓ : (-Γ (℘ Symbol) → -Γ)]
+   [Γ↓ : (-Γ (℘ (U Symbol ℓ)) → -Γ)]
    [t-contains? : (-t -t → Boolean)]
    [t-contains-any? : (-t (℘ -t) → Boolean)]
    [bin-o->h : (-special-bin-o → Base → -h)]
@@ -456,7 +456,7 @@
    [-?->i : ((Listof -?t) (Option -λ) → -?t)]
    ;; path-cond
    [predicates-of : (-Γ -?t → (℘ -h))]
-   [fvₜ : (-?t → (℘ Symbol))]
+   [fvₜ : (-?t → (℘ (U Symbol ℓ)))]
    ))
 
 (define-signature summ^
