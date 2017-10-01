@@ -120,6 +120,8 @@
   (test "safe/mochi/reverse.rkt" check-safe)
   (test "safe/mochi/sum.rkt" check-safe)
   (test "safe/mochi/zip.rkt" check-safe)
+  (test "safe/mochi/mem.rkt" (check 'Ok-pos 1 1))
+  (test "safe/mochi/mc91.rkt" (check 'Ok-pos 1 1))
 
   (test "safe/issues/cons-of-list.rkt" check-safe)
   (test "safe/issues/list2vector.rkt" check-safe)
