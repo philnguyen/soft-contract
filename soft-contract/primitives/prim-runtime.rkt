@@ -265,8 +265,7 @@
                        (andmap symbol? (map (inst car -V Any) doms)))
                   (implement-predicate∷ o ⟦k⟧:wrap-range)
                   (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))))))
-    (define ⟦k⟧:chk-args
-      (mon*.c∷ ctx* (map alloc doms) (apply ?t@ 'values t-args) ⟦k⟧:chk-args-done))
+    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) #f ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 
   ;; Eta-expand to prevent messing with init-depend
