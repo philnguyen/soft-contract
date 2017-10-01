@@ -47,7 +47,16 @@
   (define/contract env (parameter/c immutable-free-id-table?) (make-parameter (make-immutable-free-id-table)))
 
   (define-syntax-rule (with-env ρ e ...) (parameterize ([env ρ]) e ...))
-
+  (define next-ℓ!
+    (let ([count (make-hash)])
+      (λ (stx)
+        (define loc (ℓ->loc (syntax-ℓ stx)))
+        (define loc-count (hash-ref count loc (λ () 0)))
+        (hash-set! count loc (add1 loc-count))
+        (case loc-count
+          [(0) (loc->ℓ loc)]
+          [else (ℓ-with-id (loc->ℓ loc) (list 'unique loc-count))]))))
+  
   (define/contract (inc-id! id)
     (identifier? . -> . symbol?)
     (define m (id-occurence-count))
@@ -239,7 +248,7 @@
              (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ))))
        (list* dec-constr dec-pred dec-acs)]
       [(#%plain-app (~literal list) x:id c:expr)
-       (list (-p/c-item (syntax-e #'x) (parse-e #'c) (syntax-ℓ #'x)))]
+       (list (-p/c-item (syntax-e #'x) (parse-e #'c) (next-ℓ! #'x)))]
       [x:id
        (list (syntax-e #'x))]))
 
@@ -304,7 +313,7 @@
                     (-st-ac 𝒾 (+ offset i)))
                 ,@(for/list ([i (in-list (map car mut-list))])
                     (-st-mut 𝒾 (+ offset i))))
-              (syntax-ℓ #'d))))]
+              (next-ℓ! #'d))))]
       [;; Hack ignoring generated garbage by `struct`
        (define-values (_:identifier) (#%plain-app f:id _:id))
        #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
@@ -342,7 +351,7 @@
                 (#%plain-lambda () (quote-syntax k1:id)))))
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-mod)))
-       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (syntax-ℓ #'rhs)))]
+       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (next-ℓ! #'rhs)))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 
@@ -364,7 +373,7 @@
       ;; HACK for incomplete pattern matching error
       [(#%plain-app f _ ...)
        #:when (equal? 'match:error (syntax->datum #'f))
-       (-error "incomplete pattern matching" (syntax-ℓ stx))]
+       (-error "incomplete pattern matching" (next-ℓ! stx))]
 
       ;; HACK for time-apply in nucleic2
       [(let-values ([_ (#%plain-app (~literal time-apply) (#%plain-lambda () e) (~literal null))]) _ ...)
@@ -381,33 +390,33 @@
       [(#%plain-app (~literal raise) args ...)
        (-@ 'raise (list (-b (string-join (for/list ([arg (in-list (syntax->list #'(args ...)))])
                                            (format "~a" (syntax->datum arg))))))
-           (syntax-ℓ stx))]
+           (next-ℓ! stx))]
 
       ;; HACK for immediate uses of `list`
       [(#%plain-app (~literal list) e ...)
        (-list
         (for/list ([e (in-syntax-list #'(e ...))])
-          (cons (syntax-ℓ e) (parse-e e))))]
+          (cons (next-ℓ! e) (parse-e e))))]
 
       ;; HACK for immediate uses of accessors
       [(#%plain-app (~literal cadr) e)
-       (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids (syntax-ℓ stx) 2))
+       (match-define (list ℓ₁ ℓ₂) (ℓ-with-ids (next-ℓ! stx) 2))
        (-@ -car (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)]
       [(#%plain-app (~literal caddr) e)
-       (match-define (list ℓ₁ ℓ₂ ℓ₃) (ℓ-with-ids (syntax-ℓ stx) 3))
+       (match-define (list ℓ₁ ℓ₂ ℓ₃) (ℓ-with-ids (next-ℓ! stx) 3))
        (-@ -car (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)) ℓ₃)]
       [(#%plain-app (~literal cadddr) e)
-       (match-define (list ℓ₁ ℓ₂ ℓ₃ ℓ₄) (ℓ-with-ids (syntax-ℓ stx) 4))
+       (match-define (list ℓ₁ ℓ₂ ℓ₃ ℓ₄) (ℓ-with-ids (next-ℓ! stx) 4))
        (-@ -car (list (-@ -cdr (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)) ℓ₃)) ℓ₄)]
       [(#%plain-app (~literal cddddr) e)
-       (match-define (list ℓ₁ ℓ₂ ℓ₃ ℓ₄) (ℓ-with-ids (syntax-ℓ stx) 4))
+       (match-define (list ℓ₁ ℓ₂ ℓ₃ ℓ₄) (ℓ-with-ids (next-ℓ! stx) 4))
        (-@ -cdr (list (-@ -cdr (list (-@ -cdr (list (-@ -cdr (list (parse-e #'e)) ℓ₁)) ℓ₂)) ℓ₃)) ℓ₄)]
 
       ;; HACK for treating `apply` specially for precision.
       ;; This simply bypasses reading `apply` as wrapped reference to primitive
       [(#%plain-app f:id x ...)
        #:when #|HACK can't use ~literal for some reason|# (equal? 'apply (syntax-e #'f))
-       (-@ 'apply (parse-es #'(x ...)) (syntax-ℓ stx))]
+       (-@ 'apply (parse-es #'(x ...)) (next-ℓ! stx))]
 
       ;; tmp HACK for varargs
       [(#%plain-app o e ...)
@@ -415,7 +424,7 @@
                 [(~or (~literal +) (~literal -) (~literal *) (~literal /)) #t]
                 [_ #f])
        (define o.name (syntax-e #'o))
-       (define ℓ (syntax-ℓ stx))
+       (define ℓ (next-ℓ! stx))
        (match (parse-es #'(e ...))
          [(list e) e]
          [(list e₁ e* ...)
@@ -424,7 +433,7 @@
 
       ;; HACKs for `variable-refererence-constant?`
       [app:indirect-app
-       (-@ (attribute app.fun-name) (parse-es #'app.args) (syntax-ℓ #'app))]
+       (-@ (attribute app.fun-name) (parse-es #'app.args) (next-ℓ! #'app))]
 
       ;; HACK for figuring out exports from non-faked files
       [(#%plain-app f:id lifted.0 args ...)
@@ -435,9 +444,9 @@
           (-𝒾 (syntax-e #'f) f.src)
           (λ () (raise (exn:missing "missing" (current-continuation-marks) f.src (syntax-e #'f))))))
        (set-module-before! f.src (cur-mod))
-       (define f-ref (-x f-resolved (syntax-ℓ #'f)))
+       (define f-ref (-x f-resolved (next-ℓ! #'f)))
        (cond
-         [wrap? (-@ f-ref (parse-es #'(args ...)) (syntax-ℓ stx))]
+         [wrap? (-@ f-ref (parse-es #'(args ...)) (next-ℓ! stx))]
          [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-ref]
          [else (error 'parser "my understanding is wrong")])]
       
@@ -457,12 +466,12 @@
          (match (attribute c.range)
            ['any 'any]
            [d (parse-e d)]))
-       (--> dom rng (syntax-ℓ #'c))]
+       (--> dom rng (next-ℓ! #'c))]
       ;; Dependent contract
       [e:scv-->i
        (define cs (map parse-e (attribute e.domain)))
        (define mk-d (parse-e (attribute e.range-maker)))
-       (-->i cs mk-d (syntax-ℓ #'e))]
+       (-->i cs mk-d (next-ℓ! #'e))]
       [e:scv-case->
        (define cases
          (map
@@ -470,39 +479,39 @@
             [(list inits ?rest rng stx)
              (define dom (cond [?rest (-var (map parse-e inits) (parse-e ?rest))]
                                [else (map parse-e inits)]))
-             (--> dom (parse-e rng) (syntax-ℓ stx))])
+             (--> dom (parse-e rng) (next-ℓ! stx))])
           (attribute e.cases)))
        (-case-> cases)]
       [(#%plain-app (~literal fake:list/c) c ...)
        (define args
          (for/list ([cᵢ (in-syntax-list #'(c ...))])
-           (cons (syntax-ℓ cᵢ) (parse-e cᵢ))))
+           (cons (next-ℓ! cᵢ) (parse-e cᵢ))))
        (-list/c args)]
       [(#%plain-app (~literal fake:box/c) c)
-       (-box/c (parse-e #'c) (syntax-ℓ stx))]
+       (-box/c (parse-e #'c) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:vector/c) c ...)
-       (-@ 'vector/c (parse-es #'(c ...)) (syntax-ℓ stx))]
+       (-@ 'vector/c (parse-es #'(c ...)) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:vectorof) c)
-       (-@ 'vectorof (list (parse-e #'c)) (syntax-ℓ stx))]
+       (-@ 'vectorof (list (parse-e #'c)) (next-ℓ! stx))]
       [c:scv-struct/c
        (define 𝒾 (-𝒾 (attribute c.name) (cur-mod)))
-       (-struct/c 𝒾 (map parse-e (attribute c.fields)) (syntax-ℓ #'c))]
-      [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (syntax-ℓ stx))]
-      [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (syntax-ℓ stx))]
-      [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (syntax-ℓ stx))]
-      [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c) (syntax-ℓ stx))]
-      [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c) (syntax-ℓ stx))]
+       (-struct/c 𝒾 (map parse-e (attribute c.fields)) (next-ℓ! #'c))]
+      [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (next-ℓ! stx))]
+      [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (next-ℓ! stx))]
+      [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (next-ℓ! stx))]
+      [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c) (next-ℓ! stx))]
+      [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:between/c) l h)
-       (define ℓ (syntax-ℓ stx))
+       (define ℓ (next-ℓ! stx))
        (-@ 'and/c (list 'real?
                         (-comp/c '>= (parse-e #'l) (ℓ-with-id ℓ 'lo))
                         (-comp/c '<= (parse-e #'h) (ℓ-with-id ℓ 'hi)))
            ℓ)]
       [(#%plain-app (~literal fake:flat-contract) c) (parse-e #'c)]
       [(#%plain-app (~literal fake:cons/c) c d)
-       (-cons/c (parse-e #'c) (parse-e #'d) (syntax-ℓ stx))]
+       (-cons/c (parse-e #'c) (parse-e #'d) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:one-of/c) c ...)
-       (-@ 'one-of/c (parse-es #'(c ...)) (syntax-ℓ stx))]
+       (-@ 'one-of/c (parse-es #'(c ...)) (next-ℓ! stx))]
       [c:scv-x/c (-x/c.tmp (attribute c.ref))]
 
       ;; Literals
@@ -515,7 +524,7 @@
        #:when (prefab-struct-key (syntax-e #'v))
        (raise-syntax-error 'parse-e "TODO: non-top-level struct" #'stx)]
       [(#%plain-app f x ...)
-       (-@/simp (parse-e #'f) (parse-es #'(x ...)) (syntax-ℓ stx))]
+       (-@/simp (parse-e #'f) (parse-es #'(x ...)) (next-ℓ! stx))]
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
       [(begin e ...)
@@ -534,7 +543,7 @@
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) src))
           (set-module-before! src (cur-mod))
-          (-x (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e #'id0))))) (syntax-ℓ stx))]
+          (-x (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e #'id0))))) (next-ℓ! stx))]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
@@ -550,7 +559,7 @@
               (values (cons (cons xs (parse-e #'e)) bindings-rev) ρ*)])))
        (-let-values/simp (reverse bindings-rev)
                          (with-env ρ (-begin/simp (parse-es #'(b ...))))
-                         (syntax-ℓ stx))]
+                         (next-ℓ! stx))]
       [(set! i:identifier e)
        (match-define (-x x _) (parse-ref #'i))
        (set-assignable! x)
@@ -581,7 +590,7 @@
           (syntax-parse bnd
             [(_ eₓ) (cons lhs (with-env ρ (parse-e #'eₓ)))]))
         (with-env ρ (-begin/simp (parse-es #'(b ...))))
-        (syntax-ℓ stx))]
+        (next-ℓ! stx))]
       [(quote e) (parse-quote #'e)]
       [(quote-syntax e)
        (raise-syntax-error 'parse-e "TODO: ~a" stx)]
@@ -630,8 +639,8 @@
       (free-id-table-ref (env) id (λ () (raise-syntax-error 'parser "not in scope" id))))
     
     (match (identifier-binding id)
-      ['lexical (-x (lookup) (syntax-ℓ id))]
-      [#f (-x (lookup) (syntax-ℓ id))]
+      ['lexical (-x (lookup) (next-ℓ! id))]
+      [#f (-x (lookup) (next-ℓ! id))]
       [(list (app (λ (x)
                     (parameterize ([current-directory (directory-part (cur-mod))])
                       ;(printf "part: ~a~n" (directory-part (cur-mod)))
@@ -645,7 +654,7 @@
          (raise (exn:missing "missing" (current-continuation-marks) src (syntax-e id))))
        (unless (equal? src (cur-mod))
          (set-module-before! src (cur-mod)))
-       (-x (-𝒾 (syntax-e id) src) (syntax-ℓ id))]
+       (-x (-𝒾 (syntax-e id) src) (next-ℓ! id))]
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
 
@@ -656,10 +665,10 @@
       [(l . r)
        (-@ -cons
            (list (parse-quote #'l) (parse-quote #'r))
-           (ℓ-with-id (syntax-ℓ #'(l . r)) (syntax-e #'r)))]
+           (ℓ-with-id (next-ℓ! #'(l . r)) (syntax-e #'r)))]
       [() -null]
       [h #:when (hash? (syntax->datum #'h)) (-•)] ; FIXME
-      [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (syntax-ℓ #'(x ...)))]
+      [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (next-ℓ! #'(x ...)))]
       [r
        #:when (let ([re (syntax-e #'r)])
                 (or (regexp? re)
