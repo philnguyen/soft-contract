@@ -41,6 +41,7 @@
 
 (define-syntax-class c
   #:description "restricted contract"
+  (pattern (~and _:id (~not (~literal any)))) ; only used for seals
   (pattern _:fc)
   (pattern _:hc)
   (pattern _:mc))
@@ -86,7 +87,6 @@
 
 (define-syntax-class fc
   #:description "restricted first-order contract"
-  (pattern (~and x:id (~not (~literal any)))) ; only used for seals
   (pattern _:o)
   (pattern _:lit)
   (pattern ((~literal not/c) _:fc))
