@@ -603,7 +603,10 @@
       (match Vs
         [(list (-b #f)) (⟦k⟧ (+W (list -ff)) $ Γ ⟪ℋ⟫ Σ)]
         [(list (-b #t) V)
-         (match-define (-t.@ 'values (list _ sᵥ)) s)
+         (define sᵥ
+           (match s
+             [(-t.@ 'values (list _ sᵥ)) sᵥ]
+             [(or #f (? integer?)) #f]))
          (match-define (-W¹ C₁ _) W-C₁)
          (push-fc l ℓ W-C₂ (-W¹ (V+ (-Σ-σ Σ) V C₁) sᵥ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])))
 
