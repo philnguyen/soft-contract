@@ -126,7 +126,7 @@
           (for/list ([α (in-list αs)]
                      [i (in-naturals)] #:when (index? i))
             (define ac (-st-ac 𝒾 i))
-            (mk-app ℓₘ (mk-rt (-W¹ ac #|TODO make sure doesn't explode|# ac)) (list (mk-rt Wᵥ*))))))
+            (mk-app (ℓ-with-id ℓₘ (list 'mon-struct/c 𝒾 i)) (mk-rt (-W¹ ac #|TODO make sure doesn't explode|# ac)) (list (mk-rt Wᵥ*))))))
 
       (cond
         [(null? ⟦field⟧s)
@@ -226,7 +226,7 @@
     (define (chk-elems)
       (define Wᵥ* (-W¹ (V+ σ Vᵥ Vₚ) sᵥ))
       (define ⟦ref⟧
-        (mk-app ℓ
+        (mk-app (ℓ-with-id ℓ (list 'mon-vectorof))
                 (mk-rt (-W¹ 'vector-ref #f))
                 (list (mk-rt Wᵥ*)
                       (mk-rt (-W¹ (+● 'exact-nonnegative-integer?) (loc->ℓ (loc 'vof-idx 0 0 '())))))))
@@ -277,7 +277,7 @@
                      (define Wᵢ (let ([bᵢ (-b i)]) (-W¹ bᵢ #f)))
                      (define Wₚᵢ (-W¹ Cᵢ cᵢ))
                      (define ⟦ref⟧
-                       (mk-app ℓ
+                       (mk-app (ℓ-with-id ℓ (list 'mon-vector/c i))
                                (mk-rt (-W¹ 'vector-ref #f))
                                (list (mk-rt Wᵥ*) (mk-rt Wᵢ))))
                      (mk-mon (ctx-with-ℓ ctx ℓᵢ) (mk-rt Wₚᵢ) ⟦ref⟧)))
