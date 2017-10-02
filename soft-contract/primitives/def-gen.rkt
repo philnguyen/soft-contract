@@ -464,5 +464,6 @@
                   [line (syntax-line s)]
                   [col (syntax-column s)]
                   [(t ...) tags])
-      #'(loc->ℓ (loc 'src line col (list 't ...)))))
+      #`(ℓ-with-id #,(-ℓ) (list 'src line col 't ...))
+      #;(loc->ℓ (loc 'src line col (list 't ...)))))
   )
