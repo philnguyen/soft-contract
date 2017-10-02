@@ -693,13 +693,13 @@
          (define blm (-blm l 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])))
 
-  (define-frame (and∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧])
+  (define (and∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (match ⟦e⟧s
       ['() ⟦k⟧]
       [(cons ⟦e⟧ ⟦e⟧s*)
        (if∷ l ⟦e⟧ (↓ₚᵣₘ -ff) ρ (and∷ l ⟦e⟧s* ρ ⟦k⟧))]))
 
-  (define-frame (or∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧])
+  (define (or∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (match ⟦e⟧s
       ['() ⟦k⟧]
       [(cons ⟦e⟧ ⟦e⟧s*) ; TODO propagate value instead
