@@ -533,12 +533,12 @@
       (for/union : (℘ -ς) ([V Vs])
         (push-mon ctx W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
 
-  (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (define/memo (hv∷ [tag : -l] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W Vs _) A)
       (for ([V (in-list Vs)])
-        (add-leak! Σ V))
-      (define αₖ (-ℋ𝒱 $))
+        (add-leak! tag Σ V))
+      (define αₖ (-ℋ𝒱 $ tag))
       {set (-ς↑ (σₖ+! Σ αₖ (-κ ⟦k⟧)))}))
 
 
@@ -756,6 +756,7 @@
       (⟦k⟧ (-W (list Vₐ) tₛ) $ Γ ⟪ℋ⟫ Σ)))
 
   (define-frame (on-prim-args-checked∷ [ℓ : ℓ]
+                                       [o : Symbol]
                                        [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
                                        [rng : -W]
                                        [⟦k⟧ : -⟦k⟧])
@@ -766,11 +767,10 @@
       (define behavioral-args
         (for/list : (Listof -W¹) ([V (in-list args)] #:when (behavioral? σ V))
           (-W¹ V #f)))
-      ;; FIXME: this is still more work than neccessary
       (if (null? behavioral-args)
           (⟦k⟧ refined-range $ Γ ⟪ℋ⟫ Σ)
           (app (ℓ-with-id ℓ 'prim-havoc)
-           (-W¹ (-Fn● (length behavioral-args)) #f)
+           (-W¹ (-Fn● (length behavioral-args) o) #f)
            behavioral-args
            $ Γ ⟪ℋ⟫ Σ
            (bgn0.e∷ refined-range '() ⊥ρ ⟦k⟧)))))

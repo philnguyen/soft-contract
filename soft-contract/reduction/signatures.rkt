@@ -57,7 +57,7 @@
    [struct/c∷ : (ℓ -𝒾 (Listof -W¹) (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [def∷ : (-l (Listof ⟪α⟫) -⟦k⟧ → -⟦k⟧)]
    [dec∷ : (ℓ -𝒾 -⟦k⟧ → -⟦k⟧)]
-   [hv∷ : (-⟦k⟧ → -⟦k⟧)]
+   [hv∷ : (-l -⟦k⟧ → -⟦k⟧)]
    ;; Specific helpers
    [wrap-st∷ : (-𝒾 -?t -St/C -ctx -⟦k⟧ → -⟦k⟧)]
    [mon-or/c∷ : (-ctx -W¹ -W¹ -W¹ -⟦k⟧ → -⟦k⟧)]
@@ -78,7 +78,7 @@
    [wrap-hash∷ : (-Hash/C -ctx -⟦k⟧ → -⟦k⟧)]
    [set-add-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
    [wrap-set∷ : (-Set/C -ctx -⟦k⟧ → -⟦k⟧)]
-   [on-prim-args-checked∷ : (ℓ (Listof (List (Listof -V) (Option -V) (Listof -V))) -W -⟦k⟧ → -⟦k⟧)]
+   [on-prim-args-checked∷ : (ℓ Symbol (Listof (List (Listof -V) (Option -V) (Listof -V))) -W -⟦k⟧ → -⟦k⟧)]
    [implement-predicate∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [absurd∷ : (-⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
@@ -99,5 +99,5 @@
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]))
 
 (define-signature havoc^
-  ([havoc : (-$ -Σ -⟦k⟧ → (℘ -ς))]
+  ([havoc : (-l -$ -Σ -⟦k⟧ → (℘ -ς))]
    [gen-havoc-expr : ((Listof -module) → -e)]))

@@ -264,7 +264,7 @@
               (if (and (match? ranges (list (-● (== {set 'boolean?}))))
                        (andmap symbol? (map (inst car -V Any) doms)))
                   (implement-predicate∷ o ⟦k⟧:wrap-range)
-                  (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))))))
+                  (on-prim-args-checked∷ ℓ o refinements (-W ranges t-ans) ⟦k⟧:wrap-range))))))
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) #f ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 

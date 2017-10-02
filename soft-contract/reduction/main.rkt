@@ -117,6 +117,7 @@
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
+      #;(print-large-sets Σ #:val-min 1 #:kont-min 1)
       (values (M@ Σ αₖ₀) Σ)))
 
   ;; Compute the root set for value addresses of this state
@@ -128,7 +129,7 @@
            [(-ℬ _ _ _ _ ρ _) (->⟪α⟫s ρ)]
            [(-ℳ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
            [(-ℱ _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
-           [(? -ℋ𝒱?) {seteq ⟪α⟫ₕᵥ}]))
+           [(-ℋ𝒱 $ tag) {seteq (-α->⟪α⟫ (-α.hv tag))}]))
        (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]
       [(-ς↓ αₖ _ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
        (define αs₀ (if (-W? A) (->⟪α⟫s A) ∅eq))
@@ -164,7 +165,7 @@
                   (mon ctx W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
                  [(-ℱ $ ⟪ℋ⟫ l ℓ W-C W-V Γ)
                   (flat-chk l ℓ W-C W-V $ Γ ⟪ℋ⟫ Σ ⟦k⟧)]
-                 [(-ℋ𝒱 $) (havoc $ Σ ⟦k⟧)]
+                 [(-ℋ𝒱 $ tag) (havoc tag $ Σ ⟦k⟧)]
                  [_ (error '↝↑ "~a" αₖ)])))
 
   ;; Quick-step on "pop" state

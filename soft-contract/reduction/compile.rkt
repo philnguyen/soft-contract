@@ -137,7 +137,7 @@
                      ;; cheat
                      V]
                     [_
-                     (-Ar C (-α->⟪α⟫ (-α.imm (-Fn● (guard-arity C)))) l³)])]
+                     (-Ar C (-α->⟪α⟫ (-α.imm (-Fn● (guard-arity C) (-ctx-pos l³)))) l³)])]
                  [(-St* C _ l³)
                   (-St* C ⟪α⟫ₒₚ l³)]
                  [(-Vector/guard C _ l³)

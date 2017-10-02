@@ -172,7 +172,7 @@
 
        (: do-app : -Γ → (℘ -ς))
        (define (do-app Γ)
-         ((app-opq sₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
+         ((app-opq Wₕ) ℓ Wₓs $ Γ ⟪ℋ⟫ Σ ⟦k⟧))
        
        (with-Γ+/-oW (σ Γ 'procedure? Wₕ)
          #:on-t chk-arity
@@ -524,7 +524,7 @@
            [(-● _)
             (with-Γ+/-oW ((-Σ-σ Σ) Γ p Wₛ)
               #:on-t (λ ([Γ : -Γ])
-                       (add-leak! Σ (-W¹-V Wᵥ))
+                       (add-leak! '† Σ (-W¹-V Wᵥ))
                        (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ))
               #:on-f (λ ([Γ : -Γ])
                        (⟦k⟧ (blm) $ Γ ⟪ℋ⟫ Σ)))]
@@ -542,12 +542,17 @@
     (define A (-W Vs t))
     (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ))
 
-  (define (app-opq [sₕ : -?t]) : -⟦f⟧
+  (define (app-opq [Wₕ : -W¹]) : -⟦f⟧
     (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      (match-define (-W¹ Vₕ tₕ) Wₕ)
+      (define tag
+        (match Vₕ
+          [(-Fn● _ t) t]
+          [_ '†]))
       (define tₐ ℓ #|TODO make sure ok|#)
       (for ([W (in-list Ws)])
-        (add-leak! Σ (-W¹-V W)))
-      (define αₖ (-ℋ𝒱 $))
+        (add-leak! tag Σ (-W¹-V W)))
+      (define αₖ (-ℋ𝒱 $ tag))
       (define κ (-κ.rt (bgn0.e∷ (-W (list (+●)) tₐ) '() ⊥ρ ⟦k⟧) ($-symbolic-names $) Γ #f #t (hasheq)))
       {set (-ς↑ (σₖ+! Σ αₖ κ))}))
 

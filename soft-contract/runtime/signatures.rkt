@@ -58,7 +58,7 @@
 
 (-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
              (-Case-Clo [cases : (Listof -Clo)])
-             (-Fn● [arity : Arity]))
+             (-Fn● [arity : Arity] [tag : -l]))
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
@@ -289,7 +289,7 @@
             (-α.sealed Symbol -⟪ℋ⟫) ; points to wrapped objects
 
             ;; HACK
-            (-α.hv)
+            (-α.hv [tag : -l])
             (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
             (-α.fc-x/c Symbol -⟪ℋ⟫)
             -𝒾
@@ -339,12 +339,12 @@
 (struct -ℬ -αₖ ([ctx : -⟪ℋ⟫] [var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
 (struct -ℳ -αₖ ([ctx : -⟪ℋ⟫] [blm-ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
 (struct -ℱ -αₖ ([ctx : -⟪ℋ⟫] [l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
-(struct -ℋ𝒱 -αₖ () #:transparent) ; Havoc
+(struct -ℋ𝒱 -αₖ ([tag : -l]) #:transparent) ; Havoc
 
 (-αₖ:ctx . ::= . (-ℬ:ctx -⟪ℋ⟫ -formals -⟦e⟧ -ρ)
                  (-ℳ:ctx -⟪ℋ⟫ -ctx -W¹ -W¹)
                  (-ℱ:ctx -⟪ℋ⟫ -l ℓ -W¹ -W¹)
-                 (-ℋ𝒱:ctx))
+                 (-ℋ𝒱:ctx -l))
 (struct -αₖ:pth ([cache : -$] [pc : -Γ]) #:transparent)
 
 
@@ -393,7 +393,6 @@
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
    [⊥M : -M]
    [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
-   [⟪α⟫ₕᵥ : ⟪α⟫]
    [⟪α⟫ₒₚ : ⟪α⟫]
    [⊤$ : -$]
    [⊤$* : -δ$]
