@@ -67,7 +67,8 @@
     (() #:rest (listof path-string?) . ->* . path-string?))
   (def string->list (string? . -> . (listof char?))
     #:refinements
-    (non-empty-string? . -> . pair?))
+    (non-empty-string? . -> . pair?)
+    ((not/c non-empty-string?) . -> . null?))
   (def list->string ((listof char?) . -> . string?))
   (def build-string
     (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . char?) . -> . string?))
