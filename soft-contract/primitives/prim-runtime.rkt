@@ -255,16 +255,17 @@
                (match rng
                  [(-● ps) (∋ ps 'none/c)]
                  [_ #f]))])
-        (if no-return?
-            (absurd∷ ⟦k⟧)
-            (let ([⟦k⟧:wrap-range
-                      (if ?range-wraps
-                          (mon*.c∷ ctx (map alloc ?range-wraps) t-ans ⟦k⟧)
-                          ⟦k⟧)])
-              (if (and (match? ranges (list (-● (== {set 'boolean?}))))
-                       (andmap symbol? (map (inst car -V Any) doms)))
-                  (implement-predicate∷ o ⟦k⟧:wrap-range)
-                  (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range))))))
+        (cond
+          [no-return? (absurd∷ ⟦k⟧)]
+          [(and (match? ranges (list (-● (== {set 'boolean?}))))
+                (andmap symbol? (map (inst car -V Any) doms)))
+           (implement-predicate∷ o ⟦k⟧)]
+          [else
+           (define ⟦k⟧:wrap-range
+             (if ?range-wraps
+                 (mon*.c∷ ctx (map alloc ?range-wraps) t-ans ⟦k⟧)
+                 ⟦k⟧))
+           (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range)])))
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) #f ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 
