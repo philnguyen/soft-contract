@@ -556,8 +556,6 @@
     (define ⟦f⟧ (get-prim o))
     (define-values (⟪ℋ⟫* looped?) (⟪ℋ⟫+ ⟪ℋ⟫ (-edge o ℓ)))
     (define ⟦k⟧* (restore-ctx∷ ⟪ℋ⟫ ⟦k⟧))
-    #;(when (member o '(+ -))
-      (printf "~a ~a~n- knowing: ~a~n" o (map show-W¹ Ws) (show-Γ Γ)))
     (⟦f⟧ ℓ Ws $ Γ ⟪ℋ⟫* Σ ⟦k⟧*))
 
   (: app/rest/unsafe : ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))
