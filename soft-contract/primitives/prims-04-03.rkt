@@ -41,9 +41,9 @@
   (def-pred string?)
   (def make-string
     (case->
-     (exact-nonnegative-integer? . -> . string?) ; TODO: "stringof..."?
+     (exact-nonnegative-integer? . -> . (and/c string? (not/c immutable?))) ; TODO: "stringof..."?
      (exact-nonnegative-integer? char? . -> . (and/c string? (not/c immutable?)))))
-  (def string (() #:rest (listof char?) . ->* . string?))
+  (def string (() #:rest (listof char?) . ->* . (and/c string? (not/c immutable?))))
   (def string->immutable-string
     (string? . -> . (and/c string? immutable?)))
   (def string-length
@@ -53,8 +53,8 @@
     ((and/c string? (not/c immutable?)) exact-nonnegative-integer? char? . -> . void?))
   (def substring
     (case->
-     [string? exact-nonnegative-integer? . -> . string?]
-     [string? exact-nonnegative-integer? exact-nonnegative-integer? . -> . string?]))
+     [string? exact-nonnegative-integer? . -> . (and/c string? (not/c immutable?))]
+     [string? exact-nonnegative-integer? exact-nonnegative-integer? . -> . (and/c string? (not/c immutable?))]))
   (def string-copy (string? . -> . string?))
   (def string-copy!
     (case->
@@ -62,14 +62,14 @@
      [(and/c string? (not/c immutable?)) exact-nonnegative-integer? string? exact-nonnegative-integer? . -> . void?]
      [(and/c string? (not/c immutable?)) exact-nonnegative-integer? string? exact-nonnegative-integer? exact-nonnegative-integer? . -> . void?]))
   (def string-fill! ((and/c string? (not/c immutable?)) char? . -> . void?))
-  (def string-append (() #:rest (listof string?) . ->* . string?)
+  (def string-append (() #:rest (listof string?) . ->* . (and/c string? (not/c immutable?)))
     #:refinements
     (() #:rest (listof path-string?) . ->* . path-string?))
   (def string->list (string? . -> . (listof char?))
     #:refinements
     (non-empty-string? . -> . pair?)
     ((not/c non-empty-string?) . -> . null?))
-  (def list->string ((listof char?) . -> . string?))
+  (def list->string ((listof char?) . -> . (and/c string? (not/c immutable?))))
   (def build-string
     (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . char?) . -> . string?))
 
