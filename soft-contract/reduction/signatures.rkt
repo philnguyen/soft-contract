@@ -78,7 +78,8 @@
    [wrap-hash∷ : (-Hash/C -ctx -⟦k⟧ → -⟦k⟧)]
    [set-add-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
    [wrap-set∷ : (-Set/C -ctx -⟦k⟧ → -⟦k⟧)]
-   [on-prim-args-checked∷ : (ℓ (Listof (List (Listof -V) (Option -V) (Listof -V))) -W -⟦k⟧ → -⟦k⟧)]
+   [maybe-havoc-prim-args∷ : (ℓ -⟦k⟧ → -⟦k⟧)]
+   [make-prim-range∷ : (-ctx (Option (Listof -⟪α⟫ℓ)) (Listof -V) -?t (Listof (List (Listof -V) (Option -V) (Listof -V))) -⟦k⟧ → -⟦k⟧)]
    [implement-predicate∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [absurd∷ : (-⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers

@@ -261,11 +261,9 @@
                 (andmap symbol? (map (inst car -V Any) doms)))
            (implement-predicate∷ o ⟦k⟧)]
           [else
-           (define ⟦k⟧:wrap-range
-             (if ?range-wraps
-                 (mon*.c∷ ctx (map alloc ?range-wraps) t-ans ⟦k⟧)
-                 ⟦k⟧))
-           (on-prim-args-checked∷ ℓ refinements (-W ranges t-ans) ⟦k⟧:wrap-range)])))
+           (define ⟦k⟧:mk-rng
+             (make-prim-range∷ ctx (and ?range-wraps (map alloc ?range-wraps)) ranges t-ans refinements ⟦k⟧))
+           (maybe-havoc-prim-args∷ ℓ ⟦k⟧:mk-rng)])))
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) #f ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 

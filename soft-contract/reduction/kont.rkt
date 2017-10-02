@@ -5,6 +5,7 @@
                      syntax/parse)
          racket/set
          racket/match
+         racket/list
          typed/racket/unit
          racket/splicing
          syntax/parse/define
@@ -755,25 +756,39 @@
       (define Vₐ (-Set/guard C α ctx))
       (⟦k⟧ (-W (list Vₐ) tₛ) $ Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (on-prim-args-checked∷ [ℓ : ℓ]
-                                       [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
-                                       [rng : -W]
-                                       [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (rng)
+  (define-frame (maybe-havoc-prim-args∷ [ℓ : ℓ] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W args _) A)
       (define σ (-Σ-σ Σ))
-      (define refined-range (maybe-refine rng σ Γ cases (W->W¹s A)))
       (define behavioral-args
         (for/list : (Listof -W¹) ([V (in-list args)] #:when (behavioral? σ V))
           (-W¹ V #f)))
-      ;; FIXME: this is still more work than neccessary
       (if (null? behavioral-args)
-          (⟦k⟧ refined-range $ Γ ⟪ℋ⟫ Σ)
+          (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)
           (app (ℓ-with-id ℓ 'prim-havoc)
-           (-W¹ (-Fn● (length behavioral-args)) #f)
-           behavioral-args
-           $ Γ ⟪ℋ⟫ Σ
-           (bgn0.e∷ refined-range '() ⊥ρ ⟦k⟧)))))
+               (-W¹ (-Fn● (length behavioral-args)) #f)
+               behavioral-args
+               $ Γ ⟪ℋ⟫ Σ
+               (bgn0.e∷ A '() ⊥ρ ⟦k⟧)))))
+
+  (define-frame (make-prim-range∷ [ctx : -ctx]
+                                  [?rng-wrap : (Option (Listof -⟪α⟫ℓ))]
+                                  [ranges : (Listof -V)]
+                                  [tₐ : -?t]
+                                  [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
+                                  [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
+      (define ⟦k⟧* (maybe-refine∷ (W->W¹s A) cases ⟦k⟧))
+      (define ⟦k⟧** (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap tₐ ⟦k⟧*) ⟦k⟧*))
+      (⟦k⟧** (-W ranges tₐ) $ Γ ⟪ℋ⟫ Σ)))
+
+  (define-frame (maybe-refine∷ [args : (Listof -W¹)]
+                               [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
+                               [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (args)
+      (match-define (-W rng t-rng) A)
+      (define refined-rng (maybe-refine A (-Σ-σ Σ) Γ cases args))
+      (⟦k⟧ refined-rng $ Γ ⟪ℋ⟫ Σ)))
 
   (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
@@ -822,6 +837,5 @@
                                    [ref (in-list refinements)])
             (V+ σ rng ref)))
         (check-inits dom-inits args)))
-    
     (-W rngs* t-rng))
   )
