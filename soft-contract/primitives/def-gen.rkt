@@ -454,8 +454,8 @@
 
   (define/contract o->v (identifier? . -> . syntax?)
     (syntax-parser
-      [(~or (~literal pair?) (~literal cons?)) #'-cons]
-      [(~literal box?) #'-box]
+      [(~or (~literal pair?) (~literal cons?)) #'-cons?]
+      [(~literal box?) #'-box?]
       [o #''o]))
 
   (define/contract (gen-stx-ℓ s . tags)

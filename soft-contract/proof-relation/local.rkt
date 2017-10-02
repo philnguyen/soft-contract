@@ -8,6 +8,7 @@
          typed/racket/unit
          racket/match
          racket/set
+         racket/string
          racket/bool
          racket/list
          syntax/parse/define
@@ -475,6 +476,7 @@
                                              number?
                                              null?
                                              boolean?
+                                             non-empty-string?
                                              path-string?
                                              string?
                                              char?

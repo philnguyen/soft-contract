@@ -19,6 +19,7 @@
                      racket/syntax
                      syntax/parse)
          (for-template racket/base
+                       racket/string
                        racket/flonum
                        racket/extflonum
                        racket/fixnum
@@ -151,6 +152,7 @@
                 (~literal single-flonum?)
                 (~literal boolean?)
                 (~literal path-string?)
+                (~literal non-empty-string?)
                 (~literal string?)
                 (~literal symbol?)
                 (~literal keyword?)

@@ -65,7 +65,9 @@
   (def string-append (() #:rest (listof string?) . ->* . string?)
     #:refinements
     (() #:rest (listof path-string?) . ->* . path-string?))
-  (def string->list (string? . -> . (listof char?)))
+  (def string->list (string? . -> . (listof char?))
+    #:refinements
+    (non-empty-string? . -> . pair?))
   (def list->string ((listof char?) . -> . string?))
   (def build-string
     (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . char?) . -> . string?))

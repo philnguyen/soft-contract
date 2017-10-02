@@ -4,6 +4,7 @@
 
 
 (require typed/racket/unit
+         racket/string
          "def.rkt"
          "signatures.rkt")
 
@@ -32,6 +33,7 @@
    [single-flonum? ⇒ flonum?]
    [double-flonum? ⇒ flonum?]
    ;; strings
+   [non-empty-string? ⇒ string?]
    [path-string? ⇒ string?]
    [string? ⇒ path-string?] ; TODO tmp. cheat
    ;; sequence

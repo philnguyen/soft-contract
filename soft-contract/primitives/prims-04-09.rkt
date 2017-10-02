@@ -62,7 +62,10 @@
   (def list-ref (∀/c (α) ((and/c (listof α) pair?) exact-nonnegative-integer? . -> . α))) ; FIXME mismatch
   (def list-tail (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
   (def append (∀/c (α) (() #:rest (listof (listof α)) . ->* . (listof α))))
-  (def reverse (∀/c (α) ((listof α) . -> . (listof α))))
+  (def reverse (∀/c (α) ((listof α) . -> . (listof α)))
+    #:refinements
+    (pair? . -> . pair?)
+    (null? . -> . null?))
 
   ;; 4.9.3 List Iteration
   (def map (∀/c (α β) ((α . -> . β) (listof α) . -> . (listof β)))) ; FIXME uses
