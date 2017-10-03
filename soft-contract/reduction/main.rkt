@@ -47,7 +47,7 @@
     (define-set errs : -blm)
 
     (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀)}])
-      (when (iter-maxed? iter)
+      #;(when (iter-maxed? iter)
         (print-stat front))
       (unless (or (set-empty? front) (iter-maxed? iter))
         (define-values (ς↑s ς↓s ς!s) (partition-states front))
@@ -55,7 +55,7 @@
         (begin
           (when (debug-iter?)
             (printf "* ~a: ~a~n" iter (set-count front))
-            (printf " -- ~a are rt, ~a are ev~n" (length ς↓s) (length ς↑s)))
+            #;(printf " -- ~a are rt, ~a are ev~n" (length ς↓s) (length ς↑s)))
 
           (when (debug-trace?)
 
@@ -115,7 +115,8 @@
                 (↝↓! ς↓s* Σ)))
             (∪ next-from-ς↑s next-from-ς↓s)))
         (for ([ς (in-list ς!s)])
-          (errs-add! (-ς!-blm ς)))
+          (match-define (-blm l+ lo C V ℓ) (-ς!-blm ς))
+          (errs-add! (-blm l+ lo C V (strip-ℓ ℓ))))
         (loop! next)))
 
     (match-let ([(-Σ σ σₖ _ _) Σ])

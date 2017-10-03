@@ -56,6 +56,11 @@
   (match-define (loc _ line col ids) (ℓ->loc ℓ))
   (loc->ℓ (loc src line col ids)))
 
+(: strip-ℓ : ℓ → ℓ)
+(define (strip-ℓ ℓ)
+  (match-define (loc src l c _) (ℓ->loc ℓ))
+  (loc->ℓ (loc src l c '())))
+
 (define ℓ-src (on-ℓ loc-src))
 (define ℓ-line (on-ℓ loc-line))
 (define ℓ-col  (on-ℓ loc-col))
