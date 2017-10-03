@@ -193,7 +193,7 @@
             (define tₐ*
               (match tₐ
                 ;; FIXME generalize hack
-                [(-b 0) tₐ]
+                [(-b (or 0 #t #f)) tₐ]
                 [(-t.x x)
                  #:when (and (hash-has-key? bnds x)
                              (match? αₖₑₑ (-B _ _ (or (list _) (list _ _)) _ _ _)))
