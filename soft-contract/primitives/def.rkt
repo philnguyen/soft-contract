@@ -78,13 +78,13 @@
                           (syntax->list #'(clauses ...))))]
            [((~literal ∀/c) _ c) (go #'c)])))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       #`(define (.o ℓ Ws $ Γ H Σ ⟦k⟧)
            #,@(parameterize ([-o #'o]
                              [-ℓ #'ℓ]
                              [-Ws #'Ws]
                              [-$ #'$]
                              [-Γ #'Γ]
-                             [-⟪ℋ⟫ #'⟪ℋ⟫]
+                             [-H #'H]
                              [-Σ #'Σ]
                              [-⟦k⟧ #'⟦k⟧]
                              [-sig #'sig]
@@ -136,7 +136,7 @@
               [_ '()]))]
 
     ;; Hack mode
-    [(_ (o:id ℓ:id Ws:id $:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
+    [(_ (o:id ℓ:id Ws:id $:id Γ:id H:id Σ:id ⟦k⟧:id)
         #:init ([W:id (~and c (~or _:id ((~literal and/c) _:id ...)))] ...)
         (~optional (~seq #:rest [Wᵣ:id cᵣ])
                    #:defaults ([cᵣ #'null?]
@@ -163,13 +163,13 @@
          [((~literal listof) c) #'c]
          [_ #f]))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       #`(define (.o ℓ Ws $ Γ H Σ ⟦k⟧)
            #,(parameterize ([-o #'o]
                             [-ℓ #'ℓ]
                             [-Ws #'Ws]
                             [-$ #'$]
                             [-Γ #'Γ]
-                            [-⟪ℋ⟫ #'⟪ℋ⟫]
+                            [-H #'H]
                             [-Σ #'Σ]
                             [-⟦k⟧ #'⟦k⟧]
                             [-Wⁿ (syntax->list #'(W ...))]
@@ -193,7 +193,7 @@
                                '(#,(string->symbol (format "~v" arity)))
                                (map -W¹-V Ws)
                                ℓ))
-                       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])]))))
+                       (⟦k⟧ blm $ Γ H Σ)])]))))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
      (define/contract maybe-set-partial (listof syntax?)
        (let ([n

@@ -67,22 +67,22 @@
   (define (print-large-sets Σ #:val-min [val-min 4] #:kont-min [kont-min 4] #:ctx-min [ctx-min 4])
     (define σ (-Σ-σ Σ))
     (define σₖ (-Σ-σₖ Σ))
-    (define ℬ-stats : (HashTable (List -formals -⟦e⟧ -ρ) (℘ -$)) (make-hash))
+    (define B-stats : (HashTable (List -formals -⟦e⟧ -ρ) (℘ -$)) (make-hash))
     (define ℋ-stats : (HashTable -l (℘ -$)) (make-hash))
     (for ([αₖ (in-hash-keys σₖ)])
       (match αₖ
-        [(-ℬ $ _ xs e ρ _)
-         (hash-update! ℬ-stats (list xs e ρ)
+        [(-B $ _ xs e ρ _)
+         (hash-update! B-stats (list xs e ρ)
                        (λ ([$s : (℘ -$)]) (set-add $s $))
                        mk-∅)]
-        [(-ℋ𝒱 $ t)
+        [(-HV $ t)
          (hash-update! ℋ-stats t
                        (λ ([$s : (℘ -$)]) (set-add $s $))
                        mk-∅)]
         [_ (void)]))
-    (printf "ℬ-stats: (~a --> ~a) ~n" (hash-count ℬ-stats) (length (filter -ℬ? (hash-keys σₖ))))
+    (printf "B-stats: (~a --> ~a) ~n" (hash-count B-stats) (length (filter -B? (hash-keys σₖ))))
     
-    (for ([(k vs) (in-hash ℬ-stats)] #:when (> (set-count vs) 15))
+    (for ([(k vs) (in-hash B-stats)] #:when (> (set-count vs) 15))
       (match-define (list xs e ρ) k)
       (printf "- ~a ~a --> ~a~n" (show-formals xs) (show-ρ ρ) (set-count vs))
       (print-$-grid #;show-$-stats vs))
@@ -103,15 +103,15 @@
         (printf "~a ≡ ~a~n" (show-⟪α⟫ α) (⟪α⟫->-α α)))
       )
 
-    (let ([ctxs : (Mutable-HashTable Symbol (℘ -⟪ℋ⟫)) (make-hasheq)])
+    (let ([ctxs : (Mutable-HashTable Symbol (℘ -H)) (make-hasheq)])
       (for ([α (in-hash-keys σ)])
         (match (⟪α⟫->-α α)
-          [(-α.x x ⟪ℋ⟫ _) (map-add! ctxs x ⟪ℋ⟫ #:eq? #t)]
+          [(-α.x x H _) (map-add! ctxs x H #:eq? #t)]
           [_ (void)]))
       (for ([(x Hs) (in-hash ctxs)] #:when (>= (set-count Hs) ctx-min))
         (printf "~a ↦ ~a~n" x (set-count Hs))
-        (for ([H : -⟪ℋ⟫ (in-set Hs)])
-          (match (-⟪ℋ⟫->-ℋ H)
+        (for ([H : -H (in-set Hs)])
+          (match (-H->-ℋ H)
             ['() (printf "  - ()~n")]
             [(cons e es)
              (printf "  - ~a~n" (show-edge e))
@@ -123,7 +123,7 @@
       (printf "Stack store:~n")
       (for ([(αₖ ks) (in-hash σₖ)]
             #:when (>= (set-count ks) kont-min)
-            #:unless (-ℋ𝒱? αₖ)
+            #:unless (-HV? αₖ)
             )
         (printf "- ~a ↦ ~a~n" (show-αₖ αₖ) (set-count ks))
         #;(let ([comp : (Mutable-HashTable (Pairof Any Integer) (℘ Any)) (make-hash)])

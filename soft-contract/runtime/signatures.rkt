@@ -20,7 +20,7 @@
 
 (define-type -σ (Immutable-HashTable ⟪α⟫ (℘ -V)))
 (define-type -σₖ (Immutable-HashTable -αₖ (℘ -κ)))
-(define-type -M (Immutable-HashTable -αₖ (℘ -ΓA)))
+(define-type -σₐ (Immutable-HashTable -αₖ (℘ -ΓA)))
 (define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
 (define-type -Ξ (Immutable-HashTable -αₖ:ctx (℘ -αₖ:pth)))
 
@@ -28,7 +28,7 @@
 (struct -κ.rt -κ ([dom : (℘ (U Symbol ℓ))] [pc : -Γ] [ans : -?t] [looped? : Boolean] [bnds : (Immutable-HashTable Symbol -t)]) #:transparent)
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜] [Ξ : -Ξ]) #:mutable #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [σₐ : -σₐ] [𝒜 : -𝒜] [Ξ : -Ξ]) #:mutable #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -80,7 +80,7 @@
             (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
             (-Set/C [elems : -⟪α⟫ℓ])
             ;; Seal
-            (-Seal/C Symbol -⟪ℋ⟫ -l)
+            (-Seal/C Symbol -H -l)
 
             ;;
             ->/c -≥/c -</c -≤/c -≢/c
@@ -216,9 +216,9 @@
 (define-type -edge.tgt (U (Pairof -⟦e⟧ -⌊ρ⌋) -o -?t -h ℓ (-maybe-var ℓ) (Listof -edge.tgt) (℘ Base)))
 (struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
 (define-type -ℋ (Listof -edge))
-(define-interner -⟪ℋ⟫ -ℋ
-  #:intern-function-name -ℋ->-⟪ℋ⟫
-  #:unintern-function-name -⟪ℋ⟫->-ℋ)
+(define-interner -H -ℋ
+  #:intern-function-name -ℋ->-H
+  #:unintern-function-name -H->-ℋ)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -231,67 +231,67 @@
 (-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
-            (-α.x Symbol -⟪ℋ⟫ (℘ -h))
-            (-α.fv -⟪ℋ⟫)
+            (-α.x Symbol -H (℘ -h))
+            (-α.fv -H)
             ; for struct field
-            (-α.fld [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Index])
+            (-α.fld [id : -𝒾] [loc : ℓ] [ctx : -H] [idx : Index])
             ; for Cons/varargs
             ; idx prevents infinite list
-            (-α.var-car [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
-            (-α.var-cdr [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
+            (-α.var-car [loc : ℓ] [ctx : -H] [idx : (Option Natural)])
+            (-α.var-cdr [loc : ℓ] [ctx : -H] [idx : (Option Natural)])
 
             ;; for wrapped mutable struct
-            (-α.st [id : -𝒾] [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
+            (-α.st [id : -𝒾] [mon-ctx : -ctx] [ctx : -H])
 
             ;; for vector indices
-            (-α.idx [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.idx [loc : ℓ] [ctx : -H] [idx : Natural])
             
             ;; for vector^ content
-            (-α.vct [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.vct [loc : ℓ] [ctx : -H])
 
             ;; for hash^ content
-            (-α.hash.key [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash.val [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.hash.key [loc : ℓ] [ctx : -H])
+            (-α.hash.val [loc : ℓ] [ctx : -H])
 
             ;; for set^ content
-            (-α.set.elem [loc : ℓ] [ctx : -⟪ℋ⟫])
+            (-α.set.elem [loc : ℓ] [ctx : -H])
 
             ;; for wrapped vector
-            (-α.unvct [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
+            (-α.unvct [mon-ctx : -ctx] [ctx : -H])
 
             ;; for wrapped hash
-            (-α.unhsh [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
+            (-α.unhsh [mon-ctx : -ctx] [ctx : -H])
 
             ;; for wrapped set
-            (-α.unset [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
+            (-α.unset [mon-ctx : -ctx] [ctx : -H])
 
             ;; for contract components
-            (-α.and/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.and/c-r [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.or/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.or/c-r [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.not/c [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.x/c Symbol -⟪ℋ⟫)
-            (-α.vector/c [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.vectorof [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash/c-key [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash/c-val [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.set/c-elem [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
-            (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
+            (-α.and/c-l [loc : ℓ] [ctx : -H])
+            (-α.and/c-r [loc : ℓ] [ctx : -H])
+            (-α.or/c-l [loc : ℓ] [ctx : -H])
+            (-α.or/c-r [loc : ℓ] [ctx : -H])
+            (-α.not/c [loc : ℓ] [ctx : -H])
+            (-α.x/c Symbol -H)
+            (-α.vector/c [loc : ℓ] [ctx : -H] [idx : Natural])
+            (-α.vectorof [loc : ℓ] [ctx : -H])
+            (-α.hash/c-key [loc : ℓ] [ctx : -H])
+            (-α.hash/c-val [loc : ℓ] [ctx : -H])
+            (-α.set/c-elem [loc : ℓ] [ctx : -H])
+            (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -H] [idx : Natural])
+            (-α.dom [loc : ℓ] [ctx : -H] [idx : Natural])
+            (-α.rst [loc : ℓ] [ctd : -H])
+            (-α.rng [loc : ℓ] [ctx : -H] [idx : Natural])
 
             ;; for wrapped function
-            (-α.fn [sym : (Option -⟦e⟧)] [mon-ctx : -ctx] [ctx : -⟪ℋ⟫] [pc : -Γ])
+            (-α.fn [sym : (Option -⟦e⟧)] [mon-ctx : -ctx] [ctx : -H] [pc : -Γ])
 
             ;; For values wrapped in seals
-            (-α.sealed Symbol -⟪ℋ⟫) ; points to wrapped objects
+            (-α.sealed Symbol -H) ; points to wrapped objects
 
             ;; HACK
             (-α.hv [tag : -l])
-            (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
-            (-α.fc-x/c Symbol -⟪ℋ⟫)
+            (-α.mon-x/c Symbol -H -l)
+            (-α.fc-x/c Symbol -H)
             -𝒾
             ;; tmp hack.
             ;; Only use this in the prim DSL where all values are finite
@@ -315,9 +315,9 @@
 
 ;; A computation returns set of next states
 ;; and may perform side effects widening mutable store(s)
-(define-type -⟦e⟧ (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-(define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
-(define-type -⟦f⟧ (ℓ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦e⟧ (-ρ -$ -Γ -H -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦k⟧ (-A -$ -Γ -H -Σ     → (℘ -ς)))
+(define-type -⟦f⟧ (ℓ (Listof -W¹) -$ -Γ -H -Σ -⟦k⟧ → (℘ -ς)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -336,15 +336,15 @@
 
 ;; Stack-address / Evaluation "check-point"
 (struct -αₖ ([cache : -$]) #:transparent)
-(struct -ℬ -αₖ ([ctx : -⟪ℋ⟫] [var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
-(struct -ℳ -αₖ ([ctx : -⟪ℋ⟫] [blm-ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
-(struct -ℱ -αₖ ([ctx : -⟪ℋ⟫] [l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
-(struct -ℋ𝒱 -αₖ ([tag : -l]) #:transparent) ; Havoc
+(struct -B -αₖ ([ctx : -H] [var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
+(struct -M -αₖ ([ctx : -H] [blm-ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
+(struct -F -αₖ ([ctx : -H] [l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
+(struct -HV -αₖ ([tag : -l]) #:transparent) ; Havoc
 
-(-αₖ:ctx . ::= . (-ℬ:ctx -⟪ℋ⟫ -formals -⟦e⟧ -ρ)
-                 (-ℳ:ctx -⟪ℋ⟫ -ctx -W¹ -W¹)
-                 (-ℱ:ctx -⟪ℋ⟫ -l ℓ -W¹ -W¹)
-                 (-ℋ𝒱:ctx -l))
+(-αₖ:ctx . ::= . (-B:ctx -H -formals -⟦e⟧ -ρ)
+                 (-M:ctx -H -ctx -W¹ -W¹)
+                 (-F:ctx -H -l ℓ -W¹ -W¹)
+                 (-HV:ctx -l))
 (struct -αₖ:pth ([cache : -$] [pc : -Γ]) #:transparent)
 
 
@@ -391,8 +391,8 @@
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
-   [⊥M : -M]
-   [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
+   [⊥σₐ : -σₐ]
+   [σₐ@ : ((U -Σ -σₐ) -αₖ → (℘ -ΓA))]
    [⟪α⟫ₒₚ : ⟪α⟫]
    [⊤$ : -$]
    [⊤$* : -δ$]
@@ -464,8 +464,8 @@
    [ctx+pth->αₖ : (-αₖ:ctx -αₖ:pth → -αₖ)]))
 
 (define-signature instr^
-  ([⟪ℋ⟫∅ : -⟪ℋ⟫]
-   [⟪ℋ⟫+ : (-⟪ℋ⟫ -edge → (Values -⟪ℋ⟫ Boolean))]
+  ([H∅ : -H]
+   [H+ : (-H -edge → (Values -H Boolean))]
    [strip-C : (-V → -edge.tgt)]
    [⌊ρ⌋ : (-ρ → -⌊ρ⌋)]
    ))
@@ -473,7 +473,7 @@
 (define-signature pretty-print^
   ([show-ς : (-ς → Sexp)]
    [show-σ : (-σ → (Listof Sexp))]
-   [show-M : (-M → (Listof Sexp))]
+   [show-σₐ : (-σₐ → (Listof Sexp))]
    [show-h : (-h → Sexp)]
    [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]
@@ -490,7 +490,7 @@
    [show-⟦e⟧ : (-⟦e⟧ → Sexp)]
    [show-αₖ : (-αₖ → Sexp)]
    [show-edge : (-edge → Sexp)]
-   [show-⟪ℋ⟫ : (-⟪ℋ⟫ → Sexp)]
+   [show-H : (-H → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-κ : (-κ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]

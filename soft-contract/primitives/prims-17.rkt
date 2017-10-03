@@ -48,7 +48,7 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  (def (unsafe-struct-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (unsafe-struct-ref ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ([Wᵥ any/c] [Wᵢ integer?])
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
@@ -69,7 +69,7 @@
                             #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
                   (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
                   (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵢ))])
-                             (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
+                             (⟦k⟧ (-W (list V) sₐ) $ Γ* H Σ)))]
       [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ ctx)
        (define n (count-struct-fields 𝒾))
        (match-define (-ctx l+ l- lo _) ctx)
@@ -82,14 +82,14 @@
                      (define c #f #;(⟪α⟫->s (car ⟪γ⟫ℓ)))
                      (for*/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵥ))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                        (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ
+                        (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* H Σ
                              (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
                     [else
                      (for*/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵥ))]
                                            [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                       (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
+                       (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* H Σ ⟦k⟧))]))]
       [_
-       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ H Σ)]))
 
   (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

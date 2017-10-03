@@ -20,11 +20,11 @@
 ;;;;; 10.1 Multiple Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def (values ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (values ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ()
     #:rest (Ws (listof any/c))
     (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
-    (⟦k⟧ (-W Vs (apply ?t@ 'values ss)) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧ (-W Vs (apply ?t@ 'values ss)) $ Γ H Σ))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

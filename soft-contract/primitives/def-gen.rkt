@@ -41,7 +41,7 @@
     [-o identifier? #f]
     [-ℓ identifier? #f]
     [-Ws identifier? #f]
-    [-⟪ℋ⟫ identifier? #f]
+    [-H identifier? #f]
     [-$ identifier? #f]
     [-Γ identifier? #f]
     [-Σ identifier? #f]
@@ -86,7 +86,7 @@
          #,@cases
          [_
           (define blm (-blm (ℓ-src #,(-ℓ)) '#,(-o) (list 'error-msg) (map -W¹-V #,(-Ws)) #,(-ℓ)))
-          (#,(-⟦k⟧) blm #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ))])))
+          (#,(-⟦k⟧) blm #,(-$) #,(-Γ) #,(-H) #,(-Σ))])))
 
   (define/contract (gen-case dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . syntax?)
@@ -140,7 +140,7 @@
                         #,@(case (syntax-length #'(bₐ ...))
                              [(1) #'(bₐ ...)]
                              [else #'((-t.@ 'values (list bₐ ...)))]))
-           #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ))]
+           #,(-$) #,(-Γ) #,(-H) #,(-Σ))]
          [_ #,@body])))
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
@@ -193,8 +193,8 @@
            #'(mk-● c ...))]))
     `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
-          #`(define #,x (add-seal! #,(-Σ) 'x.name #,(-⟪ℋ⟫) (ℓ-src #,(-ℓ)))))
-      ,#`(exec-prim #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ) #,(-⟦k⟧)
+          #`(define #,x (add-seal! #,(-Σ) 'x.name #,(-H) (ℓ-src #,(-ℓ)))))
+      ,#`(exec-prim #,(-$) #,(-Γ) #,(-H) #,(-Σ) #,(-⟦k⟧)
                     #,(-ℓ) '#,(-o)
                     #:volatile? #,(-volatile?)
                     #:dom doms
@@ -250,7 +250,7 @@
     (list*
      #`(define (blm [ctc : -V] [val : -W¹]) : (℘ -ς)
          (define bl (-blm (ℓ-src #,(-ℓ)) '#,(-o) (list ctc) (list (-W¹-V val)) #,(-ℓ)))
-         (#,(-⟦k⟧) bl #,(-$) #,(-Γ) #,(-⟪ℋ⟫) #,(-Σ)))
+         (#,(-⟦k⟧) bl #,(-$) #,(-Γ) #,(-H) #,(-Σ)))
      (gen-inits doms (-Wⁿ))))
 
   ;; See if range needs to go through general contract monitoring

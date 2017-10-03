@@ -79,7 +79,7 @@
          [(-Case-> cases)
           (for/unioneq : (℘ ⟪α⟫) ([C cases]) (V->⟪α⟫s C))]
          [(-∀/C _ _ ρ) (ρ->⟪α⟫s ρ)]
-         [(-Seal/C x ⟪ℋ⟫ _) {seteq {-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)}}]
+         [(-Seal/C x H _) {seteq {-α->⟪α⟫ (-α.sealed x H)}}]
          [_ ∅eq]))
       (printf "V->⟪α⟫s ~a: (~a)~n" (show-V V) (set-count αs))
       (for ([α αs])
@@ -97,7 +97,7 @@
         [(seen-has? αₖ) acc]
         [else
          (seen-add! αₖ)
-         (for/fold ([acc : (℘ ⟪α⟫) (if (-ℋ𝒱? αₖ) (set-add acc (-α->⟪α⟫ (-α.hv (-ℋ𝒱-tag αₖ)))) acc)])
+         (for/fold ([acc : (℘ ⟪α⟫) (if (-HV? αₖ) (set-add acc (-α->⟪α⟫ (-α.hv (-HV-tag αₖ)))) acc)])
                    ([κ (in-set (hash-ref σₖ αₖ mk-∅))])
            (define ⟦k⟧ (-κ-rest κ))
            (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))

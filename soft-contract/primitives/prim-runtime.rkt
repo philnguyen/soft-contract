@@ -56,11 +56,11 @@
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦f⟧)
     (λ (o)
-      (λ (ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+      (λ (ℓ Ws $ Γ H Σ ⟦k⟧)
         (cond [(equal? n (length Ws))
                (define ok
                  (let-values ([(Vₐ tₐ) (implement-predicate (-Σ-σ Σ) Γ o Ws)])
-                   (⟦k⟧ (-W (list Vₐ) tₐ) $ Γ ⟪ℋ⟫ Σ)))
+                   (⟦k⟧ (-W (list Vₐ) tₐ) $ Γ H Σ)))
                (define er
                  (match (ormap
                          (match-lambda
@@ -69,11 +69,11 @@
                          Ws)
                    [(? -Sealed? V*)
                     (define blm (-blm (ℓ-src ℓ) o '(any/c) (list V*) ℓ))
-                    (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]
+                    (⟦k⟧ blm $ Γ H Σ)]
                    [_ ∅]))
                (∪ ok er)]
               [else
-               (⟦k⟧ (blm-arity ℓ o n (map -W¹-V Ws)) $ Γ ⟪ℋ⟫ Σ)]))))
+               (⟦k⟧ (blm-arity ℓ o n (map -W¹-V Ws)) $ Γ H Σ)]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
@@ -224,7 +224,7 @@
         (hash-ref! cache tag (λ () (make-∀/c src xs (mk-e) ⊥ρ))))))
 
   (: exec-prim :
-     -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
+     -$ -Γ -H -Σ -⟦k⟧
      ℓ (Intersection Symbol -o)
      #:volatile? Boolean
      #:dom (Listof (Pairof -V ℓ))
@@ -234,7 +234,7 @@
      #:args (Listof -W¹)
      → (℘ -ς))
   (define (exec-prim
-           $ Γ ⟪ℋ⟫ Σ ⟦k⟧
+           $ Γ H Σ ⟦k⟧
            ℓ o
            #:volatile? volatile?
            #:dom doms
@@ -265,7 +265,7 @@
              (make-prim-range∷ ctx (and ?range-wraps (map alloc ?range-wraps)) ranges t-ans refinements ⟦k⟧))
            (maybe-havoc-prim-args∷ ℓ o ⟦k⟧:mk-rng)])))
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) #f ⟦k⟧:chk-args-done))
-    (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ H Σ))
 
   ;; Eta-expand to prevent messing with init-depend
   (: mk-● : -h * → -●)
@@ -274,10 +274,10 @@
   (define (r:Γ⊢oW/handler on-t on-f σ Γ o . Ws)
     (apply Γ⊢oW/handler on-t on-f σ Γ o Ws))
 
-  (: add-seal! : -Σ Symbol -⟪ℋ⟫ -l → -Seal/C)
-  (define (add-seal! Σ x ⟪ℋ⟫ l)
-    (define C (-Seal/C x ⟪ℋ⟫ l))
-    (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)) ∅)
+  (: add-seal! : -Σ Symbol -H -l → -Seal/C)
+  (define (add-seal! Σ x H l)
+    (define C (-Seal/C x H l))
+    (σ⊕Vs! Σ (-α->⟪α⟫ (-α.sealed x H)) ∅)
     C)
 
   (define alloc : ((Pairof -V ℓ) → -⟪α⟫ℓ)

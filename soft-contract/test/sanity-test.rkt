@@ -217,7 +217,7 @@
           "gradual-typing-benchmarks/morsecode/levenshtein.rkt"
           "gradual-typing-benchmarks/morsecode/main.rkt")
         check-safe)
-  (test '("gradual-typing-benchmarks/fsm/utilities.rkt"
+  #;(test '("gradual-typing-benchmarks/fsm/utilities.rkt"
           "gradual-typing-benchmarks/fsm/automata.rkt"
           "gradual-typing-benchmarks/fsm/population.rkt")
         (check 'Ok-pos 2 3))

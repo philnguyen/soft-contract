@@ -20,16 +20,16 @@
   (import prim-runtime^)
   (export)
 
-  (def (scv:make-case-lambda ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (scv:make-case-lambda ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ()
     #:rest [Ws (listof any/c)]
     (define-values (cases ts) (unzip-by -W¹-V -W¹-t Ws))
     (define t (-t.@ 'case-lambda (cast ts (Listof -t))))
-    (⟦k⟧ (-W (list (-Case-Clo (cast cases (Listof -Clo)))) t) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧ (-W (list (-Case-Clo (cast cases (Listof -Clo)))) t) $ Γ H Σ))
 
-  (def (scv:make-case-> ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (scv:make-case-> ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ()
     #:rest [Ws (listof any/c)]
     (define-values (cases ts) (unzip-by -W¹-V -W¹-t Ws))
     (define t (-t.@ 'case-> (cast ts (Listof -t))))
-    (⟦k⟧ (-W (list (-Case-> (cast cases (Listof -=>)))) t) $ Γ ⟪ℋ⟫ Σ)))
+    (⟦k⟧ (-W (list (-Case-> (cast cases (Listof -=>)))) t) $ Γ H Σ)))

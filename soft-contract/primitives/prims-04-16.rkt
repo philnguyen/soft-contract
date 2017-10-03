@@ -66,13 +66,13 @@
      ((generic-set?) #:rest (listof symbol?) . ->* . boolean?)]
   #;[set-implements/c ; FIXME varargs, contract?
      (symbol? . -> . flat-contract?)]
-  (def (set/c ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (set/c ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ([W contract? #|TODO chaperone-contract?|#])
     (match-define (-W¹ _ t) W)
-    (define α (-α->⟪α⟫ (-α.set/c-elem ℓ ⟪ℋ⟫)))
+    (define α (-α->⟪α⟫ (-α.set/c-elem ℓ H)))
     (σ⊕! Σ Γ α W)
     (define C (-Set/C (-⟪α⟫ℓ α (ℓ-with-id ℓ 'set/c))))
-    (⟦k⟧ (-W (list C) (?t@ 'set/c t)) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧ (-W (list C) (?t@ 'set/c t)) $ Γ H Σ))
 
 ;;;;; 4.16.3 Generic Set Interface
 
