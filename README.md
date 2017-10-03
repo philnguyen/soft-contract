@@ -1,5 +1,5 @@
 This repository contains the artifact for the research done in the paper
-[*Soft-contract Verification for Higher-order Stateful Progarms*](FIXME link).
+[*Soft-contract Verification for Higher-order Stateful Progarms*](https://github.com/philnguyen/soft-contract/blob/popl18-ae/paper/main.pdf).
 
 There are three components to this artifact:
 
@@ -10,8 +10,8 @@ There are three components to this artifact:
   
 There are two options to evaluate the artifact.
 
-* By [obtaining the self-contained Virtualbox image](#option-1)
-* By [cloning and building the repositories](#option-2)
+* By [obtaining the self-contained Virtualbox image](#option-1-obtain-the-self-contained-virtualbox-image)
+* By [cloning and building the repositories](#option-2-build-packages-from-source)
 
 ## Option 1: Obtain the self-contained Virtualbox image
 
@@ -35,7 +35,7 @@ can be found on the official site.
     * Username: `reviewer`
     * Password: `reviewer`
     
-### Testing the implementation:
+### Testing the implementation
 
 1. To run the benchmarks and generate tables listing positives
    and verification time for each module,
@@ -57,7 +57,7 @@ can be found on the official site.
 
    * [soft-contract/test/programs/safe/softy](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/softy):
      benchmarks collected from work on soft-typing.
-   * [soft-contract/test/programs/safe/octy](https://github.com/philnguyen/soft-contract/tree/popl18-ar/soft-contract/test/programs/safe/octy):
+   * [soft-contract/test/programs/safe/octy](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/octy):
      benchmarks collected from work on occurence typing.
    * [soft-contact/test/programs/safe/mochi](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/mochi):
      benchmarks collected from work on model-checking higher-order recursion schemes.
@@ -70,21 +70,21 @@ can be found on the official site.
 
    * [soft-contract/parse](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/parse):
      defines the parser that converts Racket syntax into an internal AST representation.
-   * [soft-contract/ast](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/parse):
+   * [soft-contract/ast](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/ast):
      defines the internal representation of the AST.
      The [main AST definition](https://github.com/philnguyen/soft-contract/blob/popl18-ae/soft-contract/ast/signatures.rkt#L73)
      closely matches the documented
      [fully expanded program](https://docs.racket-lang.org/reference/syntax-model.html?q=fully%20expanded#%28part._fully-expanded%29).
-   * [soft-contract/runtime](https://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/runtime):
+   * [soft-contract/runtime](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/runtime):
      defines internal runtime constructs for symbolic execution.
-   * [soft-contract/primitives](https://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/primitives):
+   * [soft-contract/primitives](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/primitives):
      declares contracts (along with refinements) for primitives operations.
-   * [soft-contract/proof-relation](https://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/proof-relation):
+   * [soft-contract/proof-relation](runtimehttps://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/proof-relation):
      defines the proof relation between path-conditions, values, and first-order contracts.
-   * [soft-contract/reduction](https://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/reduction):
+   * [soft-contract/reduction](runtimehttps://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/reduction):
      defines the symbolic execution.
    
-### Checking the proof:
+### Checking the proof
 
 To run all the proof, at the prompt, execute:
 
@@ -95,16 +95,17 @@ Otherwise, Lean will complain with some unproven theorem.
 
 The content of the proof script is as follow:
 
-* [proof/definitions.lean](FIXME link): definition of lambda-calculus
+* [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/definitions.lean): definition of lambda-calculus
   with integers, symbolic values, and mutable variables,
   along with run-time constructs.
       
-* [proof/instantiaions.lean](FIXME link): definition of the approximation
+* [proof/instantiaions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/instantiations.lean): definition of the approximation
   relation between different components.
   
-* [proof/theorems.lean](FIXME link): proof of soundness of higher-order
+* [proof/theorems.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/theorems.lean): proof of soundness of higher-order
   symbolic execution, with supporting lemmas proven in
-  [proof/lemmas.lean](FIXME link) and [proof/helper_lemmas.lean](FIXME link).
+  [proof/lemmas.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/lemmas.lean) and
+  [proof/helper_lemmas.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/helper_lemmas.lean).
   
 
 ## Option 2: Build packages from source
