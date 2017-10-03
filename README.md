@@ -1,5 +1,8 @@
+Artifact for "Soft-contract Soft-contract Verification for Higher-order Stateful Programs"
+=============================================================
+
 This repository contains the artifact for the research done in the paper
-[*Soft-contract Verification for Higher-order Stateful Progarms*](https://github.com/philnguyen/soft-contract/blob/popl18-ae/paper/main.pdf).
+[*Soft-contract Verification for Higher-order Stateful Programs*](https://github.com/philnguyen/soft-contract/blob/dev/paper/main.pdf).
 
 There are three components to this artifact:
 
@@ -55,29 +58,29 @@ can be found on the official site.
    
    You can start by modifying existing programs used in the benchmarks above:
 
-   * [soft-contract/test/programs/safe/softy](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/softy):
+   * [soft-contract/test/programs/safe/softy](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/softy):
      benchmarks collected from work on soft-typing.
-   * [soft-contract/test/programs/safe/octy](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/octy):
+   * [soft-contract/test/programs/safe/octy](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/octy):
      benchmarks collected from work on occurence typing.
-   * [soft-contact/test/programs/safe/mochi](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/mochi):
+   * [soft-contact/test/programs/safe/mochi](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/mochi):
      benchmarks collected from work on model-checking higher-order recursion schemes.
-   * [soft-contract/test/programs/safe/games](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/games):
+   * [soft-contract/test/programs/safe/games](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/games):
      video games using extensive contracts.
-   * [soft-contract/test/programs/safe/real](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/real):
+   * [soft-contract/test/programs/safe/real](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/real):
      larger, stateful programs collected from different sources.
    
 3. An overview of the source code:
 
-   * [soft-contract/parse](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/parse):
+   * [soft-contract/parse](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/parse):
      defines the parser that converts Racket syntax into an internal AST representation.
-   * [soft-contract/ast](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/ast):
+   * [soft-contract/ast](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/ast):
      defines the internal representation of the AST.
-     The [main AST definition](https://github.com/philnguyen/soft-contract/blob/popl18-ae/soft-contract/ast/signatures.rkt#L73)
+     The [main AST definition](https://github.com/philnguyen/soft-contract/blob/dev/soft-contract/ast/signatures.rkt#L73)
      closely matches the documented
      [fully expanded program](https://docs.racket-lang.org/reference/syntax-model.html?q=fully%20expanded#%28part._fully-expanded%29).
-   * [soft-contract/runtime](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/runtime):
+   * [soft-contract/runtime](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/runtime):
      defines internal runtime constructs for symbolic execution.
-   * [soft-contract/primitives](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/primitives):
+   * [soft-contract/primitives](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/primitives):
      declares contracts (along with refinements) for primitives operations.
    * [soft-contract/proof-relation](runtimehttps://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/proof-relation):
      defines the proof relation between path-conditions, values, and first-order contracts.
@@ -95,17 +98,17 @@ Otherwise, Lean will complain with some unproven theorem.
 
 The content of the proof script is as follow:
 
-* [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/definitions.lean): definition of lambda-calculus
+* [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/definitions.lean): definition of lambda-calculus
   with integers, symbolic values, and mutable variables,
   along with run-time constructs.
       
-* [proof/instantiaions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/instantiations.lean): definition of the approximation
+* [proof/instantiaions.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/instantiations.lean): definition of the approximation
   relation between different components.
   
-* [proof/theorems.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/theorems.lean): proof of soundness of higher-order
+* [proof/theorems.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/theorems.lean): proof of soundness of higher-order
   symbolic execution, with supporting lemmas proven in
-  [proof/lemmas.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/lemmas.lean) and
-  [proof/helper_lemmas.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/helper_lemmas.lean).
+  [proof/lemmas.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/lemmas.lean) and
+  [proof/helper_lemmas.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/helper_lemmas.lean).
   
 
 ## Option 2: Build packages from source
