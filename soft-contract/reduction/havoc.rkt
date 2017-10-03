@@ -35,15 +35,15 @@
          (hash-set! cache V (-Σ-σ Σ)))
        )
 
-    (define (havoc [$ : -$] [Σ : -Σ] [⟦k⟧₀ : -⟦k⟧]) : (℘ -ς)
+    (define (havoc [tag : -l] [$ : -$] [Σ : -Σ] [⟦k⟧₀ : -⟦k⟧]) : (℘ -ς)
       #;(let ([Vs (σ@ Σ ⟪α⟫ₕᵥ)])
         (printf "~a havoc values:~n" (set-count Vs))
         (for ([V (in-set Vs)])
           (printf "  - ~a~n" (show-V V))))
       (for/fold ([res : (℘ -ς) (⟦k⟧₀ -Void.W∅ $ ⊤Γ ⟪ℋ⟫∅ Σ)])
-                ([V (in-set (σ@ Σ ⟪α⟫ₕᵥ))] #:unless (seen? V Σ))
+                ([V (in-set (σ@ Σ (-α->⟪α⟫ (-α.hv tag))))] #:unless (seen? V Σ))
         (update-cache! V Σ)
-        (∪ res (havoc-V V $ Σ (hv∷ ⟦k⟧₀))))))
+        (∪ res (havoc-V V $ Σ (hv∷ tag ⟦k⟧₀))))))
 
   (define (havoc-V [V : -V] [$ : -$] [Σ : -Σ] [⟦k⟧ : -⟦k⟧]) : (℘ -ς)
     (define (done) ∅ #;(⟦k⟧ -Void/W∅ ⊤Γ ⟪ℋ⟫ Σ))

@@ -785,7 +785,7 @@
     (match-lambda
       [(-Clo xs _ _ _) (shape xs)]
       [(-Case-Clo cases) (normalize-arity (map V-arity cases))]
-      [(-Fn● arity) arity]
+      [(-Fn● arity _) arity]
       [(or (-And/C #t _ _) (-Or/C #t _ _) (? -Not/C?) (-St/C #t _ _) (? -One-Of/C?)) 1]
       [(-Ar guard _ _) (guard-arity guard)]
       [(? -st-p?) 1]

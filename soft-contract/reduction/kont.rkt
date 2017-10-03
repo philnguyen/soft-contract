@@ -534,12 +534,12 @@
       (for/union : (℘ -ς) ([V Vs])
         (push-mon ctx W-C (-W¹ V 𝒾) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))))
 
-  (define/memoeq (hv∷ [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (define/memo (hv∷ [tag : -l] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W Vs _) A)
       (for ([V (in-list Vs)])
-        (add-leak! Σ V))
-      (define αₖ (-ℋ𝒱 $))
+        (add-leak! tag Σ V))
+      (define αₖ (-ℋ𝒱 $ tag))
       {set (-ς↑ (σₖ+! Σ αₖ (-κ ⟦k⟧)))}))
 
 
@@ -756,7 +756,7 @@
       (define Vₐ (-Set/guard C α ctx))
       (⟦k⟧ (-W (list Vₐ) tₛ) $ Γ ⟪ℋ⟫ Σ)))
 
-  (define-frame (maybe-havoc-prim-args∷ [ℓ : ℓ] [⟦k⟧ : -⟦k⟧])
+  (define-frame (maybe-havoc-prim-args∷ [ℓ : ℓ] [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
       (match-define (-W args _) A)
       (define σ (-Σ-σ Σ))
@@ -766,7 +766,7 @@
       (if (null? behavioral-args)
           (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ)
           (app (ℓ-with-id ℓ 'prim-havoc)
-               (-W¹ (-Fn● (length behavioral-args)) #f)
+               (-W¹ (-Fn● (length behavioral-args) o) #f)
                behavioral-args
                $ Γ ⟪ℋ⟫ Σ
                (bgn0.e∷ A '() ⊥ρ ⟦k⟧)))))

@@ -263,7 +263,7 @@
           [else
            (define ⟦k⟧:mk-rng
              (make-prim-range∷ ctx (and ?range-wraps (map alloc ?range-wraps)) ranges t-ans refinements ⟦k⟧))
-           (maybe-havoc-prim-args∷ ℓ ⟦k⟧:mk-rng)])))
+           (maybe-havoc-prim-args∷ ℓ o ⟦k⟧:mk-rng)])))
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) #f ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args (-W V-args (apply ?t@ 'values t-args)) $ Γ ⟪ℋ⟫ Σ))
 

@@ -35,9 +35,13 @@
             {set (-Or/C flat? ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm Cₚ)) (ℓ-with-id ℓ 'pair)))}))]
         [(-α.imm-ref-listof x Cₑ ℓ)
          (hash-ref! cache-listof ⟪α⟫ (λ () {set (-x/C (-α->⟪α⟫ (-α.imm-listof x Cₑ ℓ)))}))]
-        [_
+        [α
          (define σ (if (-Σ? m) (-Σ-σ m) m))
-         (hash-ref σ ⟪α⟫ (λ () (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))))])))
+         (hash-ref σ ⟪α⟫ (λ () (match α
+                                 ; ok for hv addresses to not exist
+                                 ; TODO clean up
+                                 [(-α.hv _) ∅]
+                                 [_ (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))])))])))
 
   (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
   (define (defined-at? σ α)
@@ -78,9 +82,8 @@
     (assert (= 1 (set-count Vs)))
     (set-first Vs))
 
-  (define ⟪α⟫ₕᵥ (-α->⟪α⟫ (-α.hv)))
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.imm (-● ∅))))
-  (define ⊥σ : -σ (hasheq ⟪α⟫ₕᵥ ∅))
+  (define ⊥σ : -σ (hasheq))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

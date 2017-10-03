@@ -425,9 +425,10 @@
       [(κ κ) κ]
       [(_ _) #f]))
 
-  (define (add-leak! [Σ : -Σ] [V : -V]) : Void
+  (define (add-leak! [tag : -l] [Σ : -Σ] [V : -V]) : Void
+    (define α (-α->⟪α⟫ (-α.hv tag)))
     (when (behavioral? (-Σ-σ Σ) V)
-      (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
+      (σ⊕V! Σ α V)))
 
   (: alloc-init-args! :
      -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean

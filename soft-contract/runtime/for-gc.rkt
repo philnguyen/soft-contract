@@ -97,7 +97,7 @@
         [(seen-has? αₖ) acc]
         [else
          (seen-add! αₖ)
-         (for/fold ([acc : (℘ ⟪α⟫) (if (-ℋ𝒱? αₖ) (set-add acc ⟪α⟫ₕᵥ) acc)])
+         (for/fold ([acc : (℘ ⟪α⟫) (if (-ℋ𝒱? αₖ) (set-add acc (-α->⟪α⟫ (-α.hv (-ℋ𝒱-tag αₖ)))) acc)])
                    ([κ (in-set (hash-ref σₖ αₖ mk-∅))])
            (define ⟦k⟧ (-κ-rest κ))
            (go (∪ acc (⟦k⟧->roots ⟦k⟧)) (⟦k⟧->αₖ ⟦k⟧)))])))

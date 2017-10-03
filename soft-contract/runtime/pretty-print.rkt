@@ -96,7 +96,7 @@
       [(? -o? o) (show-o o)]
       [(-Clo xs ⟦e⟧ ρ Γ) `(λ ,(show-formals xs) ,(if (null? xs) (show-⟦e⟧ ⟦e⟧) '…) ‖ ,(show-ρ ρ) ‖ ,@(show-Γ Γ))]
       [(-Case-Clo cases) `(case-lambda ,@(map show-V cases))]
-      [(-Fn● arity)
+      [(-Fn● arity _)
        (string->symbol (format "Fn●_~a" arity))]
       [(-Ar guard α _)
        (match α
@@ -207,7 +207,7 @@
     (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
           [(-ℳ? αₖ) (show-ℳ αₖ)]
           [(-ℱ? αₖ) (show-ℱ αₖ)]
-          [(-ℋ𝒱? αₖ) (format-symbol "ℋ𝒱")]
+          [(-ℋ𝒱? αₖ) `(ℋ𝒱 ,(-ℋ𝒱-tag αₖ))]
           [else     (error 'show-αₖ "~a" αₖ)]))
 
   (define (show-ℬ [ℬ : -ℬ]) : Sexp
@@ -264,7 +264,7 @@
     (define α (⟪α⟫->-α ⟪α⟫))
     (match (⟪α⟫->-α ⟪α⟫)
       [(-α.x x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫)]
-      [(-α.hv) 'αₕᵥ]
+      [(-α.hv l) (format-symbol "αₕᵥ_~a" l)]
       [(-α.mon-x/c x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫)]
       [(-α.fc-x/c x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
       [(-α.fv ⟪ℋ⟫) (show-α.x 'dummy ⟪ℋ⟫)]

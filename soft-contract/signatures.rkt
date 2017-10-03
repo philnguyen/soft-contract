@@ -60,7 +60,7 @@
    [M⊕! : (-Σ -αₖ -ΓA → Void)]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
-   [add-leak! : (-Σ -V → Void)]
+   [add-leak! : (-l -Σ -V → Void)]
    [bind-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
                      → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
    [alloc-init-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
