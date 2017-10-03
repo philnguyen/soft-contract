@@ -139,13 +139,13 @@ The content of the proof script is as follow:
         
 6. Information for generating the tables, verifying your own programs,
    and browsing the source code is the same as in the
-   [previous section](#testing-the-implementation)
+   [previous section](#testing-the-implementation).
         
 
 ### Building `Lean` and checking the proof
 
 1. Download Lean commit
-   [`a9821f6437`](https://github.com/leanprover/lean/archive/a9821f643735de59efaf6eeabd0bfa8e9ae914fe.zip)
+   [`a9821f6437`](https://github.com/leanprover/lean/archive/a9821f643735de59efaf6eeabd0bfa8e9ae914fe.zip).
    Because Lean is in rapid development, our proof script is not compatible
    with recent releases.
    
