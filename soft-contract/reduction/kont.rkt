@@ -778,17 +778,9 @@
                                   [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
                                   [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
-      (define ⟦k⟧* (maybe-refine∷ (W->W¹s A) cases ⟦k⟧))
-      (define ⟦k⟧** (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap tₐ ⟦k⟧*) ⟦k⟧*))
-      (⟦k⟧** (-W ranges tₐ) $ Γ ⟪ℋ⟫ Σ)))
-
-  (define-frame (maybe-refine∷ [args : (Listof -W¹)]
-                               [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
-                               [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots (args)
-      (match-define (-W rng t-rng) A)
-      (define refined-rng (maybe-refine A (-Σ-σ Σ) Γ cases args))
-      (⟦k⟧ refined-rng $ Γ ⟪ℋ⟫ Σ)))
+      (define refined-ranges (maybe-refine (-W ranges tₐ) (-Σ-σ Σ) Γ cases (W->W¹s A)))
+      (define ⟦k⟧* (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap tₐ ⟦k⟧) ⟦k⟧))
+      (⟦k⟧* refined-ranges $ Γ ⟪ℋ⟫ Σ)))
 
   (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A $ Γ ⟪ℋ⟫ Σ) #:roots ()
