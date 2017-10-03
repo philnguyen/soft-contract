@@ -1,4 +1,4 @@
-Artifact for "Soft-contract Soft-contract Verification for Higher-order Stateful Programs"
+Artifact for "Soft-contract Verification for Higher-order Stateful Programs"
 =============================================================
 
 This repository contains the artifact for the research done in the paper
