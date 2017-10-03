@@ -113,6 +113,9 @@ The content of the proof script is as follow:
 
 ## Option 2: Build packages from source
 
+The more involved way to test the artifact is to clone and build `soft-contract`
+and Lean yourself.
+
 ### Building and installing `soft-contract`
 
 1. Download [Racket 6.10](https://download.racket-lang.org/).
