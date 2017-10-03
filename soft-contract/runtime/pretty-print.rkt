@@ -260,7 +260,10 @@
     (define α (⟪α⟫->-α ⟪α⟫))
     (match (⟪α⟫->-α ⟪α⟫)
       [(-α.x x H _) (show-α.x x H)]
-      [(-α.hv l) (format-symbol "αₕᵥ_~a" l)]
+      [(-α.hv l)
+       (case l
+         [(†) 'αₕᵥ]
+         [else (format-symbol "αₕᵥ_~a_~a" (car l) (cdr l))])]
       [(-α.mon-x/c x H _) (show-α.x x H)]
       [(-α.fc-x/c x H) (show-α.x x H)]
       [(-α.fv H) (show-α.x 'dummy H)]

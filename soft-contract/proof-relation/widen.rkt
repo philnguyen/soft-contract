@@ -397,7 +397,7 @@
       [(κ κ) κ]
       [(_ _) #f]))
 
-  (define (add-leak! [tag : -l] [Σ : -Σ] [V : -V]) : Void
+  (define (add-leak! [tag : HV-Tag] [Σ : -Σ] [V : -V]) : Void
     (define α (-α->⟪α⟫ (-α.hv tag)))
     (when (behavioral? (-Σ-σ Σ) V)
       (σ⊕V! Σ α V)))

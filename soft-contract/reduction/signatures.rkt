@@ -57,7 +57,7 @@
    [struct/c∷ : (ℓ -𝒾 (Listof -W¹) (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [def∷ : (-l (Listof ⟪α⟫) -⟦k⟧ → -⟦k⟧)]
    [dec∷ : (ℓ -𝒾 -⟦k⟧ → -⟦k⟧)]
-   [hv∷ : (-l -⟦k⟧ → -⟦k⟧)]
+   [hv∷ : (HV-Tag -⟦k⟧ → -⟦k⟧)]
    ;; Specific helpers
    [wrap-st∷ : (-𝒾 -?t -St/C -ctx -⟦k⟧ → -⟦k⟧)]
    [mon-or/c∷ : (-ctx -W¹ -W¹ -W¹ -⟦k⟧ → -⟦k⟧)]
@@ -100,5 +100,5 @@
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]))
 
 (define-signature havoc^
-  ([havoc : (-l -$ -Σ -⟦k⟧ → (℘ -ς))]
+  ([havoc : (HV-Tag -$ -Σ -⟦k⟧ → (℘ -ς))]
    [gen-havoc-expr : ((Listof -module) → -e)]))

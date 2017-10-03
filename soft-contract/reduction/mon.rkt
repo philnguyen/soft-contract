@@ -83,7 +83,7 @@
       (define-values (V* ⟪α⟫)
         (match V
           [(? -●?)
-           (define V (-Fn● (guard-arity grd) (-ctx-pos ctx)))
+           (define V (-Fn● (guard-arity grd) '†))
            (values V (-α->⟪α⟫ (-α.imm V)))]
           [_
            (define α

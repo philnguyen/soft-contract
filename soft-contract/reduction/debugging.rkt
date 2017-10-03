@@ -68,7 +68,7 @@
     (define σ (-Σ-σ Σ))
     (define σₖ (-Σ-σₖ Σ))
     (define B-stats : (HashTable (List -formals -⟦e⟧ -ρ) (℘ -$)) (make-hash))
-    (define ℋ-stats : (HashTable -l (℘ -$)) (make-hash))
+    (define H-stats : (HashTable HV-Tag (℘ -$)) (make-hash))
     (for ([αₖ (in-hash-keys σₖ)])
       (match αₖ
         [(-B $ _ xs e ρ _)
@@ -76,7 +76,7 @@
                        (λ ([$s : (℘ -$)]) (set-add $s $))
                        mk-∅)]
         [(-HV $ t)
-         (hash-update! ℋ-stats t
+         (hash-update! H-stats t
                        (λ ([$s : (℘ -$)]) (set-add $s $))
                        mk-∅)]
         [_ (void)]))
@@ -86,7 +86,7 @@
       (match-define (list xs e ρ) k)
       (printf "- ~a ~a --> ~a~n" (show-formals xs) (show-ρ ρ) (set-count vs))
       (print-$-grid #;show-$-stats vs))
-    (for ([(k vs) (in-hash ℋ-stats)] #:when (> (set-count vs) 15))
+    (for ([(k vs) (in-hash H-stats)] #:when (> (set-count vs) 15))
       (match-define l k)
       (printf "- ~a --> ~a~n" l (set-count vs))
       (print-$-grid #;show-$-stats vs))

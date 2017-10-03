@@ -59,7 +59,7 @@
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
-   [add-leak! : (-l -Σ -V → Void)]
+   [add-leak! : (HV-Tag -Σ -V → Void)]
    [bind-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
                      → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
    [alloc-init-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean

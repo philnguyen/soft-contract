@@ -35,7 +35,7 @@
          (hash-set! cache V (-Σ-σ Σ)))
        )
 
-    (define (havoc [tag : -l] [$ : -$] [Σ : -Σ] [⟦k⟧₀ : -⟦k⟧]) : (℘ -ς)
+    (define (havoc [tag : HV-Tag] [$ : -$] [Σ : -Σ] [⟦k⟧₀ : -⟦k⟧]) : (℘ -ς)
       #;(let ([Vs (σ@ Σ ⟪α⟫ₕᵥ)])
         (printf "~a havoc values:~n" (set-count Vs))
         (for ([V (in-set Vs)])

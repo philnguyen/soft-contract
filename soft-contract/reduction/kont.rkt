@@ -533,7 +533,7 @@
       (for/union : (℘ -ς) ([V Vs])
         (push-mon ctx W-C (-W¹ V 𝒾) $ Γ H Σ ⟦k⟧*))))
 
-  (define/memo (hv∷ [tag : -l] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
+  (define/memo (hv∷ [tag : HV-Tag] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A $ Γ H Σ) #:roots ()
       (match-define (-W Vs _) A)
       (for ([V (in-list Vs)])
@@ -765,7 +765,7 @@
       (if (null? behavioral-args)
           (⟦k⟧ A $ Γ H Σ)
           (app (ℓ-with-id ℓ 'prim-havoc)
-               (-W¹ (-Fn● (length behavioral-args) o) #f)
+               (-W¹ (-Fn● (length behavioral-args) (cons o H)) #f)
                behavioral-args
                $ Γ H Σ
                (bgn0.e∷ A '() ⊥ρ ⟦k⟧)))))

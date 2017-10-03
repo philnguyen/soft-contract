@@ -57,7 +57,7 @@
 
 (-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
              (-Case-Clo [cases : (Listof -Clo)])
-             (-Fn● [arity : Arity] [tag : -l]))
+             (-Fn● [arity : Arity] [tag : HV-Tag]))
 
 ;; Contract combinators
 (-C . ::= . (-And/C [flat? : Boolean]
@@ -102,6 +102,7 @@
 (-A . ::= . -W -blm)
 
 (struct -⟪α⟫ℓ ([addr : ⟪α⟫] [loc : ℓ]) #:transparent)
+(HV-Tag . ::= . '† [#:old (Pairof -l -H)])
 
 ;; Convenient patterns
 (define-match-expander -Cons
@@ -287,7 +288,7 @@
             (-α.sealed Symbol -H) ; points to wrapped objects
 
             ;; HACK
-            (-α.hv [tag : -l])
+            (-α.hv [tag : HV-Tag])
             (-α.mon-x/c Symbol -H -l)
             (-α.fc-x/c Symbol -H)
             -𝒾
@@ -339,12 +340,12 @@
 (struct -B -αₖ ([ctx : -H] [var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
 (struct -M -αₖ ([ctx : -H] [blm-ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
 (struct -F -αₖ ([ctx : -H] [l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
-(struct -HV -αₖ ([tag : -l]) #:transparent) ; Havoc
+(struct -HV -αₖ ([tag : HV-Tag]) #:transparent) ; Havoc
 
 (-αₖ:ctx . ::= . (-B:ctx -H -formals -⟦e⟧ -ρ)
                  (-M:ctx -H -ctx -W¹ -W¹)
                  (-F:ctx -H -l ℓ -W¹ -W¹)
-                 (-HV:ctx -l))
+                 (-HV:ctx HV-Tag))
 (struct -αₖ:pth ([cache : -$] [pc : -Γ]) #:transparent)
 
 
