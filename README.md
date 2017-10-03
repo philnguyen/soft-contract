@@ -82,9 +82,9 @@ can be found on the official site.
      defines internal runtime constructs for symbolic execution.
    * [soft-contract/primitives](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/primitives):
      declares contracts (along with refinements) for primitives operations.
-   * [soft-contract/proof-relation](runtimehttps://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/proof-relation):
+   * [soft-contract/proof-relation](https://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/proof-relation):
      defines the proof relation between path-conditions, values, and first-order contracts.
-   * [soft-contract/reduction](runtimehttps://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/reduction):
+   * [soft-contract/reduction](https://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/reduction):
      defines the symbolic execution.
    
 ### Checking the proof
