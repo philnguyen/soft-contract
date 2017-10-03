@@ -68,16 +68,15 @@
               (hash-ref! print-cache A (λ () (printf "~a~n" (show-A A))))))
           (match A
             [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
-             ∅]
+                               ∅]
             [_
              (define A*
                (match A
                  [(-W (list V) s) (-W (list (V+ (-Σ-σ Σ) V (predicates-of Γ s))) s)]
                  [_ A]))
-             ;; TODO only need to save results for top-most block in "production" mode
-             (σₐ⊕! Σ αₖ (-ΓA Γ A*))
-             (maybe-print-blame)
-             {set (-ς↓ αₖ ($-cleanup $) Γ A*)}])))
+             (if (-blm? A*)
+                 {set (-ς! αₖ A*)}
+                 {set (-ς↓ αₖ ($-cleanup $) Γ A*)})])))
       (set-⟦k⟧->αₖ! ⟦k⟧ αₖ)
       (add-⟦k⟧-roots! ⟦k⟧ ∅eq)
       ⟦k⟧))

@@ -72,8 +72,8 @@
              (set-count
               ;; Same location means same contract,
               ;; But include contract due to inaccurate location from `fake-contract`
-              (for/seteq: : (℘ ℓ) ([ΓA (in-set As)] #:when (-blm? (-ΓA-ans ΓA)))
-                (match-define (-blm l+ lo Cs Vs ℓ) (-ΓA-ans ΓA))
+              (for/seteq: : (℘ ℓ) ([A (in-set As)] #:when (-blm? A))
+                (match-define (-blm l+ lo Cs Vs ℓ) A)
                 ℓ)))
       [(list n) n]
       [#f (list checks)]))

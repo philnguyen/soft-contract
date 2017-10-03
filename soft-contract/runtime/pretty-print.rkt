@@ -160,10 +160,6 @@
   (: show-⟪α⟫ℓs : (Listof -⟪α⟫ℓ) → Sexp)
   (define show-⟪α⟫ℓs (show-values-lift show-⟪α⟫ℓ))
 
-  (define (show-ΓA [ΓA : -ΓA]) : Sexp
-    (match-define (-ΓA Γ A) ΓA)
-    `(,(show-A A) ‖ ,@(set-map Γ show-t)))
-
   (define (show-A [A : -A])
     (cond [(-W? A) (show-W A)]
           [else (show-blm A)]))
@@ -285,11 +281,6 @@
       [(? symbol? s) s]
       [(-𝒾 x _) x]
       [(-loc.offset 𝒾 i t) `(,(show-t t) ↪ ,(show-ac (if (-𝒾? 𝒾) 𝒾 (-𝒾 𝒾 'Λ)) i))]))
-
-  (: show-σₐ : -σₐ → (Listof Sexp))
-  (define (show-σₐ M)
-    (for/list ([(α As) (in-hash M)])
-      `(,(show-αₖ α) ↦ ,(set-map As show-ΓA))))
 
   (: show-κ : -κ → Sexp)
   (define (show-κ κ)

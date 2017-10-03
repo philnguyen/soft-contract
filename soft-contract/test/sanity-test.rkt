@@ -13,7 +13,7 @@
 
 (define TIMEOUT 1200)
 
-(: run-handler (∀ (α) ((℘ -ΓA) → α) (Listof Path-String) → α))
+(: run-handler (∀ (α) ((℘ -A) → α) (Listof Path-String) → α))
 (define (run-handler f ps)
   ;; Can't use time-apply
   (define t₀ (current-milliseconds))
@@ -24,14 +24,14 @@
          (printf "  - ~a~n" p))])
   (define-values (As Σ) (havoc-files ps))
   (printf "  ~ams~n" (- (current-milliseconds) t₀))
-  (define-values (_ ΓEs) (set-partition (λ ([ΓA : -ΓA]) (-W? (-ΓA-ans ΓA))) As))
+  (define-values (_ ΓEs) (set-partition -W? As))
   (f ΓEs))
 
-(: check : Any (Option Natural) (Option Natural) → (℘ -ΓA) → Any)
+(: check : Any (Option Natural) (Option Natural) → (℘ -A) → Any)
 (define ((check msg lo hi) ΓEs)
   (define errors
     (for/set: : (℘ -blm) ([ΓA (in-set ΓEs)])
-      (match-define (-ΓA _ (? -blm? blm)) ΓA)
+      (match-define (? -blm? blm) ΓA)
       blm))
   (define n (set-count errors))
   (cond
@@ -44,7 +44,7 @@
 (define check-safe (check 'Safe 0 0))
 (define check-fail (check 'Failed 1 #f))
 
-(: test : (U Path-String (Listof Path-String)) ((℘ -ΓA) → Any) → Any)
+(: test : (U Path-String (Listof Path-String)) ((℘ -A) → Any) → Any)
 (define (test path f)
 
   (define (run-on-files [fns : (Listof Path-String)])

@@ -16,9 +16,9 @@
 (Mode . ::= . 'light 'havoc 'expand 'havoc-last)
 (define mode : Mode 'havoc)
 
-(define (print-result [ans : (℘ -ΓA)])
+(define (print-result [ans : (℘ -A)])
   (define safe? : Boolean #t)
-  (for ([A ans] #:when (-blm? (-ΓA-ans A)))
+  (for ([A ans] #:when (-blm? A))
     (set! safe? #f)
     (pretty-write (show-a A)))
   (when safe?
@@ -60,11 +60,11 @@
     [(list V) (show-blm-reason V)]
     [_ `(values ,@(map show-blm-reason Vs))]))
 
-(: show-a : -ΓA → Sexp)
+(: show-a : -A → Sexp)
 (define (show-a a)
   (match a
-    [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
-    [(-ΓA _ (-blm l+ lo Cs Vs ℓ))
+    [(-W Vs _) (show-Vs Vs)]
+    [(-blm l+ lo Cs Vs ℓ)
      `(blame
        [line ,(ℓ-line ℓ) col ,(ℓ-col ℓ)]
        [violator : ,l+]

@@ -20,7 +20,6 @@
 
 (define-type -σ (Immutable-HashTable ⟪α⟫ (℘ -V)))
 (define-type -σₖ (Immutable-HashTable -αₖ (℘ -κ)))
-(define-type -σₐ (Immutable-HashTable -αₖ (℘ -ΓA)))
 (define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
 (define-type -Ξ (Immutable-HashTable -αₖ:ctx (℘ -αₖ:pth)))
 
@@ -28,7 +27,7 @@
 (struct -κ.rt -κ ([dom : (℘ (U Symbol ℓ))] [pc : -Γ] [ans : -?t] [looped? : Boolean] [bnds : (Immutable-HashTable Symbol -t)]) #:transparent)
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [σₐ : -σₐ] [𝒜 : -𝒜] [Ξ : -Ξ]) #:mutable #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [𝒜 : -𝒜] [Ξ : -Ξ]) #:mutable #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -101,7 +100,6 @@
 (struct -W¹ ([V : -V] [t : -?t]) #:transparent)
 (struct -W ([Vs : (Listof -V)] [t : -?t]) #:transparent)
 (-A . ::= . -W -blm)
-(struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
 
 (struct -⟪α⟫ℓ ([addr : ⟪α⟫] [loc : ℓ]) #:transparent)
 
@@ -327,7 +325,9 @@
 ;; Configuration
 (struct -ς ([block : -αₖ]) #:transparent)
 #|block start |# (struct -ς↑ -ς () #:transparent)
-#|block return|# (struct -ς↓ -ς ([cache : -$] [pc : -Γ] [ans : -A]) #:transparent)
+#|block return|# (struct -ς↓ -ς ([cache : -$] [pc : -Γ] [ans : -W]) #:transparent)
+#|block raise |# (struct -ς! -ς ([blm : -blm]))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -391,8 +391,6 @@
    [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
-   [⊥σₐ : -σₐ]
-   [σₐ@ : ((U -Σ -σₐ) -αₖ → (℘ -ΓA))]
    [⟪α⟫ₒₚ : ⟪α⟫]
    [⊤$ : -$]
    [⊤$* : -δ$]
@@ -473,7 +471,6 @@
 (define-signature pretty-print^
   ([show-ς : (-ς → Sexp)]
    [show-σ : (-σ → (Listof Sexp))]
-   [show-σₐ : (-σₐ → (Listof Sexp))]
    [show-h : (-h → Sexp)]
    [show-t : (-?t → Sexp)]
    [show-Γ : (-Γ → (Listof Sexp))]
@@ -484,7 +481,6 @@
    [show-V : (-V → Sexp)]
    [show-⟪α⟫ℓ : (-⟪α⟫ℓ → Symbol)]
    [show-⟪α⟫ℓs : ((Listof -⟪α⟫ℓ) → Sexp)]
-   [show-ΓA : (-ΓA → Sexp)]
    [show-A : (-A → Sexp)]
    [show-W¹ : (-W¹ → Sexp)]
    [show-⟦e⟧ : (-⟦e⟧ → Sexp)]

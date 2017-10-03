@@ -8,11 +8,11 @@
          "runtime/signatures.rkt")
 
 (define-signature verifier^
-  ([run-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
-   [havoc-files : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
-   [havoc-files/profile : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -ΓA) -Σ))]
-   [havoc-last-file : ((Listof Path-String) → (Values (℘ -ΓA) -Σ))]
-   [run-e : (-e → (Values (℘ -ΓA) -Σ))]
+  ([run-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
+   [havoc-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
+   [havoc-files/profile : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -A) -Σ))]
+   [havoc-last-file : ((Listof Path-String) → (Values (℘ -A) -Σ))]
+   [run-e : (-e → (Values (℘ -A) -Σ))]
    [debug-iter? : (Parameterof Boolean)]
    [debug-trace? : (Parameterof Boolean)]
    [max-steps : (Parameterof (Option Natural))]))
@@ -21,7 +21,7 @@
   ([verify : (Syntax (HashTable Symbol Syntax) → Any)]))
 
 (define-signature reduction^
-  ([run : (-⟦e⟧ → (Values (℘ -ΓA) -Σ))]))
+  ([run : (-⟦e⟧ → (Values (℘ -A) -Σ))]))
 
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]
@@ -57,7 +57,6 @@
    [σₖ+! : (-Σ -αₖ -κ → -αₖ)]
    [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
-   [σₐ⊕! : (-Σ -αₖ -ΓA → Void)]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
    [add-leak! : (-l -Σ -V → Void)]
@@ -88,4 +87,5 @@
 
 (define-signature debugging^
   ([print-Σ-stat : (-Σ → Void)]
-   [print-large-sets : ([-Σ] [#:val-min Index #:kont-min Index #:ctx-min Index] . ->* . Void)]))
+   [print-large-sets : ([-Σ] [#:val-min Index #:kont-min Index #:ctx-min Index] . ->* . Void)]
+   [print-stat : ((℘ -ς) → Void)]))

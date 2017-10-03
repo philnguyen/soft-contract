@@ -32,10 +32,10 @@
 
   (define-type Ctx (List -σ -σₖ))
 
-  (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -ΓA) -Σ)
+  (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -A) -Σ)
     (define seen : (HashTable -ς Ctx) (make-hash))
     (define αₖ₀ : -αₖ (-B ⊤$ H∅ '() ⟦e⟧ ⊥ρ ⊤Γ))
-    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥σₐ ⊥𝒜 ⊥Ξ))
+    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥𝒜 ⊥Ξ))
     (define root₀ ; all addresses to top-level definitions are conservatively active
       (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
         (set-add (set-add root₀ (-α->⟪α⟫ 𝒾)) (-α->⟪α⟫ (-α.wrp 𝒾)))))
@@ -44,14 +44,18 @@
     (define ?max-steps (max-steps))
     (define iter-maxed? : (Natural → Boolean)
       (if ?max-steps (λ ([i : Natural]) (> i ?max-steps)) (λ _ #f)))
+    (define-set errs : -blm)
 
     (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀)}])
+      (when (iter-maxed? iter)
+        (print-stat front))
       (unless (or (set-empty? front) (iter-maxed? iter))
-        (define-values (ς↑s ς↓s) (set-partition-to-lists -ς↑? front))
+        (define-values (ς↑s ς↓s ς!s) (partition-states front))
 
         (begin
           (when (debug-iter?)
-            (printf "* ~a: ~a~n" iter (set-count front)))
+            (printf "* ~a: ~a~n" iter (set-count front))
+            (printf " -- ~a are rt, ~a are ev~n" (length ς↓s) (length ς↑s)))
 
           (when (debug-trace?)
 
@@ -80,7 +84,7 @@
           (set! iter (+ 1 iter)))
 
         (define next
-          (match-let ([(-Σ σ mσₖ _ _ _) Σ])
+          (match-let ([(-Σ σ mσₖ _ _) Σ])
 
             (define vsn : Ctx (list σ mσₖ))
 
@@ -110,15 +114,17 @@
                          (assert ς -ς↓?))])
                 (↝↓! ς↓s* Σ)))
             (∪ next-from-ς↑s next-from-ς↓s)))
+        (for ([ς (in-list ς!s)])
+          (errs-add! (-ς!-blm ς)))
         (loop! next)))
 
-    (match-let ([(-Σ σ σₖ _ _ _) Σ])
+    (match-let ([(-Σ σ σₖ _ _) Σ])
       (when (debug-iter?)
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
       (when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
       #;(print-large-sets Σ #:val-min 1 #:kont-min 1)
-      (values (σₐ@ Σ αₖ₀) Σ)))
+      (values errs Σ)))
 
   ;; Compute the root set for value addresses of this state
   (define (ς->⟪α⟫s [ς : -ς] [σₖ : -σₖ]) : (℘ ⟪α⟫)
@@ -223,6 +229,16 @@
           [(-M? α) (-M-ctx α)]
           [(-F? α) (-F-ctx α)]
           [else H∅]))
+
+  (: partition-states : (℘ -ς) → (Values (Listof -ς↑) (Listof -ς↓) (Listof -ς!)))
+  (define (partition-states ςs)
+    (for/fold ([ς↑s : (Listof -ς↑) '()]
+               [ς↓s : (Listof -ς↓) '()]
+               [ς!s : (Listof -ς!) '()])
+              ([ς (in-set ςs)])
+      (cond [(-ς↑? ς) (values (cons ς ς↑s) ς↓s ς!s)]
+            [(-ς↓? ς) (values ς↑s (cons ς ς↓s) ς!s)]
+            [else     (values ς↑s ς↓s (cons (assert ς -ς!?) ς!s))])))
   )
 
 (define-compound-unit/infer reduction@

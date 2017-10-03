@@ -323,34 +323,6 @@
                  [else #f])]
           [else #f]))
 
-  (define ((?ΓA⊔ [σ : -σ]) [ΓA₁ : -ΓA] [ΓA₂ : -ΓA]) : (Option -ΓA)
-
-    (: A⊑ : -σ -A -A → Boolean)
-    (define (A⊑ σ A₁ A₂)
-      (match* (A₁ A₂)
-        [((-W Vs₁ s₁) (-W Vs₂ s₂))
-         (and (equal? s₁ s₂)
-              (= (length Vs₁) (length Vs₂))
-              (for/and : Boolean ([V₁ Vs₁] [V₂ Vs₂])
-                (V⊑ σ V₁ V₂)))]
-        [((? -blm? blm₁) (? -blm? blm₂))
-         (equal? blm₁ blm₂)]
-        [(_ _) #f]))
-
-    (: ΓA⊑ : -ΓA -ΓA → Boolean)
-    (define (ΓA⊑ ΓA₁ ΓA₂)
-      (match-define (-ΓA Γ₁ A₁) ΓA₁)
-      (match-define (-ΓA Γ₂ A₂) ΓA₂)
-      (and (φs⊑ Γ₁ Γ₂) (A⊑ σ A₁ A₂)))
-    
-    (cond [(ΓA⊑ ΓA₁ ΓA₂) ΓA₂]
-          [(ΓA⊑ ΓA₂ ΓA₁) ΓA₁]
-          [else
-           (match-define (-ΓA Γ₁ A₁) ΓA₁)
-           (match-define (-ΓA Γ₂ A₂) ΓA₂)
-           (define ?Γ (and (equal? A₁ A₂) (?Γ⊔ Γ₁ Γ₂)))
-           (and ?Γ (-ΓA ?Γ A₂))]))
-
   (define (σₖ⊕! [Σ : -Σ] [αₖ : -αₖ] [κ : -κ]) : Void
     (set--Σ-σₖ! Σ (σₖ⊕ (-Σ-σₖ Σ) αₖ κ)))
 
@@ -569,10 +541,6 @@
            [(-● ps) #:when (∋ ps 'list?)
             {set (cons (make-list n (+●)) (+● 'list?))}]
            [_ ∅])])))
-
-  (: σₐ⊕! : -Σ -αₖ -ΓA → Void)
-  (define (σₐ⊕! Σ αₖ ΓA)
-    (set--Σ-σₐ! Σ (hash-update (-Σ-σₐ Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
 
   (: copy-Γ : (℘ (U Symbol ℓ)) -Γ -Γ → -Γ)
   (define (copy-Γ dom Γₜ Γₛ)
