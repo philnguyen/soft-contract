@@ -79,7 +79,7 @@
          [(-Case-> cases)
           (for/unioneq : (℘ ⟪α⟫) ([C cases]) (V->⟪α⟫s C))]
          [(-∀/C _ _ ρ) (ρ->⟪α⟫s ρ)]
-         [(-Seal/C x ⟪ℋ⟫ _) {seteq {-α->⟪α⟫ (-α.sealed x ⟪ℋ⟫)}}]
+         [(-Seal/C x H _) {seteq {-α->⟪α⟫ (-α.sealed x H)}}]
          [_ ∅eq]))
       (printf "V->⟪α⟫s ~a: (~a)~n" (show-V V) (set-count αs))
       (for ([α αs])

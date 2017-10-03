@@ -32,20 +32,20 @@
     (define ?ℋ (memf match? ℋ))
     (if ?ℋ (values ?ℋ #t) (values (cons x ℋ) #f)))
   
-  (define ⟪ℋ⟫∅
+  (define H∅
     (let ([ℋ∅ : -ℋ '()])
-      (-ℋ->-⟪ℋ⟫ ℋ∅)))
+      (-ℋ->-H ℋ∅)))
 
-  (: ⟪ℋ⟫+ : -⟪ℋ⟫ -edge → (Values -⟪ℋ⟫ Boolean))
-  (define (⟪ℋ⟫+ ⟪ℋ⟫ e)
-    (define-values (ℋ* looped?) (ℋ+ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫) e))
-    (values (-ℋ->-⟪ℋ⟫ ℋ*) looped?))
+  (: H+ : -H -edge → (Values -H Boolean))
+  (define (H+ H e)
+    (define-values (ℋ* looped?) (ℋ+ (-H->-ℋ H) e))
+    (values (-ℋ->-H ℋ*) looped?))
 
   (: ⌊ρ⌋ : -ρ → -⌊ρ⌋)
   (define (⌊ρ⌋ ρ)
     (for/hasheq : -⌊ρ⌋ ([(x α) ρ])
       (match (⟪α⟫->-α (cast α ⟪α⟫))
-        [(-α.x x ⟪ℋ⟫ _) (values x (map -edge-src (-⟪ℋ⟫->-ℋ ⟪ℋ⟫)))])))
+        [(-α.x x H _) (values x (map -edge-src (-H->-ℋ H)))])))
 
   (define ⌊ρ⌋₀ : -⌊ρ⌋ (hasheq))
 

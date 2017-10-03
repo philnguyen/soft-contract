@@ -143,7 +143,7 @@
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
       [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
       [(-∀/C xs ⟦c⟧ ρ) `(∀/C ,xs ,(show-⟦e⟧ ⟦c⟧))]
-      [(-Seal/C x ⟪ℋ⟫ _) (format-symbol "(seal/c ~a_~a)" x (n-sub ⟪ℋ⟫))]
+      [(-Seal/C x H _) (format-symbol "(seal/c ~a_~a)" x (n-sub H))]
       [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))]
       [(->/c b) `(>/c ,(show-b b))]
       [(-≥/c b) `(>=/c ,(show-b b))]
@@ -204,32 +204,32 @@
                 [else (⟦e⟧->symbol ⟦e⟧)])))))
 
   (define (show-αₖ [αₖ : -αₖ]) : Sexp
-    (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
-          [(-ℳ? αₖ) (show-ℳ αₖ)]
-          [(-ℱ? αₖ) (show-ℱ αₖ)]
+    (cond [(-B? αₖ) (show-B αₖ)]
+          [(-M? αₖ) (show-M αₖ)]
+          [(-F? αₖ) (show-F αₖ)]
           [(-ℋ𝒱? αₖ) (format-symbol "ℋ𝒱")]
           [else     (error 'show-αₖ "~a" αₖ)]))
 
-  (define (show-ℬ [ℬ : -ℬ]) : Sexp
-    (match-define (-ℬ _ _ xs ⟦e⟧ ρ _) ℬ)
+  (define (show-B [B : -B]) : Sexp
+    (match-define (-B _ _ xs ⟦e⟧ ρ _) B)
     (match xs
-      ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
-      [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
+      ['() `(B ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
+      [_   `(B ,(show-formals xs) …               ,(show-ρ ρ))]))
 
-  (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ $ ⟪ℋ⟫ ctx C V Γ) ℳ)
-    `(ℳ ,(show-⟪ℋ⟫ ⟪ℋ⟫) ,(show-W¹ C) ,(show-W¹ V) ‖ ,@(show-Γ Γ) ‖ ,@(show-$ $)))
+  (define (show-M [M : -M]) : Sexp
+    (match-define (-M $ H ctx C V Γ) M)
+    `(M ,(show-H H) ,(show-W¹ C) ,(show-W¹ V) ‖ ,@(show-Γ Γ) ‖ ,@(show-$ $)))
 
-  (define (show-ℱ [ℱ : -ℱ]) : Sexp
-    (match-define (-ℱ _ _ l ℓ C V _) ℱ)
-    `(ℱ ,(show-W¹ C) ,(show-W¹ V)))
+  (define (show-F [F : -F]) : Sexp
+    (match-define (-F _ _ l ℓ C V _) F)
+    `(F ,(show-W¹ C) ,(show-W¹ V)))
 
   (define-parameter verbose? : Boolean #f)
 
-  (define (show-⟪ℋ⟫ [⟪ℋ⟫ : -⟪ℋ⟫]) : Sexp
+  (define (show-H [H : -H]) : Sexp
     (if (verbose?)
-        (show-ℋ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫))
-        ⟪ℋ⟫))
+        (show-ℋ (-H->-ℋ H))
+        H))
   (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp) (map show-edge ℋ))
 
   (: show-edge : -edge → Sexp)
@@ -258,19 +258,19 @@
 
   (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
 
-    (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫])
-      (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫)))
+    (define (show-α.x [x : Symbol] [H : -H])
+      (format-symbol "~a_~a" x (n-sub H)))
 
     (define α (⟪α⟫->-α ⟪α⟫))
     (match (⟪α⟫->-α ⟪α⟫)
-      [(-α.x x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫)]
+      [(-α.x x H _) (show-α.x x H)]
       [(-α.hv) 'αₕᵥ]
-      [(-α.mon-x/c x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫)]
-      [(-α.fc-x/c x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
-      [(-α.fv ⟪ℋ⟫) (show-α.x 'dummy ⟪ℋ⟫)]
+      [(-α.mon-x/c x H _) (show-α.x x H)]
+      [(-α.fc-x/c x H) (show-α.x x H)]
+      [(-α.fv H) (show-α.x 'dummy H)]
       [(-𝒾 x _) x]
       [(-α.wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
-      [(-α.sealed x ⟪ℋ⟫) (format-symbol "~a*" (show-α.x x ⟪ℋ⟫))]
+      [(-α.sealed x H) (format-symbol "~a*" (show-α.x x H))]
       [(-α.imm V) (show-V V)]
       [(-α.imm-listof x C _) (string->symbol (format "(listof ~a)" (show-V C)))]
       [(-α.imm-ref-listof x C _) (string->symbol (format "(ref ~a)" x))]
@@ -286,8 +286,8 @@
       [(-𝒾 x _) x]
       [(-loc.offset 𝒾 i t) `(,(show-t t) ↪ ,(show-ac (if (-𝒾? 𝒾) 𝒾 (-𝒾 𝒾 'Λ)) i))]))
 
-  (: show-M : -M → (Listof Sexp))
-  (define (show-M M)
+  (: show-σₐ : -σₐ → (Listof Sexp))
+  (define (show-σₐ M)
     (for/list ([(α As) (in-hash M)])
       `(,(show-αₖ α) ↦ ,(set-map As show-ΓA))))
 

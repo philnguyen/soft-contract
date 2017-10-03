@@ -73,7 +73,7 @@
    #;[adjust-names∷ : ((℘ Symbol) -Γ -?t Boolean -⟦k⟧ → -⟦k⟧)]
    [invalidate-$∷ : ((℘ -loc) -⟦k⟧ → -⟦k⟧)]
    [restore-$∷ : (-δ$ -⟦k⟧ → -⟦k⟧)]
-   [restore-ctx∷ : (-⟪ℋ⟫ -⟦k⟧ → -⟦k⟧)]
+   [restore-ctx∷ : (-H -⟦k⟧ → -⟦k⟧)]
    [hash-set-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
    [wrap-hash∷ : (-Hash/C -ctx -⟦k⟧ → -⟦k⟧)]
    [set-add-inner∷ : (ℓ ⟪α⟫ -?t -⟦k⟧ → -⟦k⟧)]
@@ -82,18 +82,18 @@
    [implement-predicate∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [absurd∷ : (-⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
-   [mk-=>i! : (-Σ -Γ -⟪ℋ⟫ (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
+   [mk-=>i! : (-Σ -Γ -H (Listof -W¹) -Clo -λ ℓ → (Values -V -?t))]
    ])
 
 (define-signature app^
-  ([app : (ℓ -W¹ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [app/rest/unsafe : (ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]))
+  ([app : (ℓ -W¹ (Listof -W¹) -$ -Γ -H -Σ -⟦k⟧ → (℘ -ς))]
+   [app/rest/unsafe : (ℓ -W¹ (Listof -W¹) -W¹ -$ -Γ -H -Σ -⟦k⟧ → (℘ -ς))]))
 
 (define-signature mon^
-  ([mon : (-ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [push-mon : ((-ctx -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option -α.rec-ref)) . ->* . (℘ -ς))]
-   [flat-chk : (-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς))]
-   [push-fc : ((-l ℓ -W¹ -W¹ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧) (#:looped (Option -α.rec-ref)) . ->* . (℘ -ς))]))
+  ([mon : (-ctx -W¹ -W¹ -$ -Γ -H -Σ -⟦k⟧ → (℘ -ς))]
+   [push-mon : ((-ctx -W¹ -W¹ -$ -Γ -H -Σ -⟦k⟧) (#:looped (Option -α.rec-ref)) . ->* . (℘ -ς))]
+   [flat-chk : (-l ℓ -W¹ -W¹ -$ -Γ -H -Σ -⟦k⟧ → (℘ -ς))]
+   [push-fc : ((-l ℓ -W¹ -W¹ -$ -Γ -H -Σ -⟦k⟧) (#:looped (Option -α.rec-ref)) . ->* . (℘ -ς))]))
 
 (define-signature memoize^
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]))

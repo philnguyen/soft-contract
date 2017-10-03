@@ -57,15 +57,15 @@
    [σₖ+! : (-Σ -αₖ -κ → -αₖ)]
    [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
    [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
-   [M⊕! : (-Σ -αₖ -ΓA → Void)]
+   [σₐ⊕! : (-Σ -αₖ -ΓA → Void)]
    [Γ+ : (-Γ -?t * → -Γ)]
    [V+ : (-σ -V (U -V -h (℘ -h)) → -V)]
    [add-leak! : (-Σ -V → Void)]
-   [bind-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
+   [bind-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
                      → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
-   [alloc-init-args! : (-Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
+   [alloc-init-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
                            → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
-   [alloc-rest-args! : ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V)]
+   [alloc-rest-args! : ([-Σ -Γ -H ℓ (Listof -W¹)] [#:end -V] . ->* . -V)]
    [estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
    [unalloc : (-σ -V → (℘ (Option (Listof -V))))]
    [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]

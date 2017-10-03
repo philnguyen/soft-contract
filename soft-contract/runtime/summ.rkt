@@ -20,16 +20,16 @@
   (: αₖ->ctx+pth : -αₖ → (Values -αₖ:ctx -αₖ:pth))
   (define αₖ->ctx+pth
     (match-lambda
-      [(-ℬ $ ⟪ℋ⟫ xs e ρ Γ) (values (-ℬ:ctx ⟪ℋ⟫ xs e ρ) (-αₖ:pth $ Γ))]
-      [(-ℳ $ ⟪ℋ⟫ ctx C V Γ) (values (-ℳ:ctx ⟪ℋ⟫ ctx C V) (-αₖ:pth $ Γ))]
-      [(-ℱ $ ⟪ℋ⟫ l ℓ C V Γ) (values (-ℱ:ctx ⟪ℋ⟫ l ℓ C V) (-αₖ:pth $ Γ))]
+      [(-B $ H xs e ρ Γ) (values (-B:ctx H xs e ρ) (-αₖ:pth $ Γ))]
+      [(-M $ H ctx C V Γ) (values (-M:ctx H ctx C V) (-αₖ:pth $ Γ))]
+      [(-F $ H l ℓ C V Γ) (values (-F:ctx H l ℓ C V) (-αₖ:pth $ Γ))]
       [(-ℋ𝒱 $) (values (-ℋ𝒱:ctx) (-αₖ:pth $ ⊤Γ))]))
 
   (: ctx+pth->αₖ : -αₖ:ctx -αₖ:pth → -αₖ)
   (define (ctx+pth->αₖ ctx pth)
     (match-define (-αₖ:pth $ Γ) pth)
     (match ctx
-      [(-ℬ:ctx ⟪ℋ⟫ xs e ρ) (-ℬ $ ⟪ℋ⟫ xs e ρ Γ)]
-      [(-ℳ:ctx ⟪ℋ⟫ ctx C V) (-ℳ $ ⟪ℋ⟫ ctx C V Γ)]
-      [(-ℱ:ctx ⟪ℋ⟫ l ℓ C V) (-ℱ $ ⟪ℋ⟫ l ℓ C V Γ)]
+      [(-B:ctx H xs e ρ) (-B $ H xs e ρ Γ)]
+      [(-M:ctx H ctx C V) (-M $ H ctx C V Γ)]
+      [(-F:ctx H l ℓ C V) (-F $ H l ℓ C V Γ)]
       [(-ℋ𝒱:ctx) (-ℋ𝒱 $)])))

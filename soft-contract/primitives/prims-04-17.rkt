@@ -44,14 +44,14 @@
 
   (def-pred procedure?)
 
-  (def (apply ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (apply ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ()
     #:rest [Ws (listof any/c)] ; manual arity check instead
     (define l (ℓ-src ℓ))
 
     (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
     (define ((blm-for C Vs) Γ)
-      (⟦k⟧ (-blm l 'apply (list C) Vs ℓ) $ Γ ⟪ℋ⟫ Σ))
+      (⟦k⟧ (-blm l 'apply (list C) Vs ℓ) $ Γ H Σ))
 
     (: check-func-arity : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
     ;; Make sure init arguments and rest args are compatible with the function's arity
@@ -61,7 +61,7 @@
         (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
         (define msg (string->symbol (format "~a argument(s)" a)))
         (define blm (-blm l 'apply (list msg) blm-args ℓ))
-        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
+        (⟦k⟧ blm $ Γ H Σ))
 
       (define-simple-macro (with-num-rest-args-check pred #:on-t e₁ #:on-f e₂)
         (let-values ([(ok? er?)
@@ -84,7 +84,7 @@
             (with-num-rest-args-check (match-lambda
                                         [(? index? len) (equal? len num-remaining-args)]
                                         [(arity-at-least len) #|TODO|# #t])
-              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ H Σ ⟦k⟧)
               #:on-f (blm-arity fixed-arity))]
            ;; More init arguments than required
            [else (blm-arity fixed-arity)])]
@@ -96,11 +96,11 @@
             (with-num-rest-args-check (match-lambda
                                         [(? index? len) (>= len remaining-inits)]
                                         [(arity-at-least len) (>= len remaining-inits)])
-              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ H Σ ⟦k⟧)
               #:on-f (blm-arity arity.min))]
            ;; init args more than enough
            [else
-            (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
+            (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ H Σ ⟦k⟧)])]
         [a
          (error 'apply "TODO: handle arity ~a" a)]))
 
@@ -113,7 +113,7 @@
         (-Σ-σ Σ) Γ 'procedure? W-func)]
       [_
        (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
-       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ blm $ Γ H Σ)]))
   
   (def compose ; FIXME uses
     (∀/c (α β γ)
@@ -129,15 +129,15 @@
 
   ;; 4.17.1 Keywords and Arity
   ;[keyword-apply #|FIXME uses|#]
-  (def (procedure-arity ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (procedure-arity ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ([W procedure?])
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'procedure-arity s))
     (cond [(V-arity V)
            =>
            (λ ([a : Arity])
-             (⟦k⟧ (-W (list (-b a)) sₐ) $ Γ ⟪ℋ⟫ Σ))]
-          [else (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+             (⟦k⟧ (-W (list (-b a)) sₐ) $ Γ H Σ))]
+          [else (⟦k⟧ (-W (list (+●)) sₐ) $ Γ H Σ)]))
   (def-pred procedure-arity?)
   {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses
   (def procedure-reduce-arity

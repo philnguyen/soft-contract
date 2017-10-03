@@ -430,15 +430,15 @@
       (σ⊕V! Σ ⟪α⟫ₕᵥ V)))
 
   (: alloc-init-args! :
-     -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
+     -Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
      → (Values -ρ -$ (Immutable-HashTable Symbol -t)))
-  (define (alloc-init-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
-    (define ρ* (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.fv ⟪ℋ⟫))))
-    (bind-args! Σ $ Γ ρ* ⟪ℋ⟫ xs Ws looped?))
+  (define (alloc-init-args! Σ $ Γ ρ H xs Ws looped?)
+    (define ρ* (ρ+ ρ -x-dummy (-α->⟪α⟫ (-α.fv H))))
+    (bind-args! Σ $ Γ ρ* H xs Ws looped?))
 
-  (: bind-args! : -Σ -$ -Γ -ρ -⟪ℋ⟫ (Listof Symbol) (Listof -W¹) Boolean
+  (: bind-args! : -Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
      → (Values -ρ -$ (Immutable-HashTable Symbol -t)))
-  (define (bind-args! Σ $ Γ ρ ⟪ℋ⟫ xs Ws looped?)
+  (define (bind-args! Σ $ Γ ρ H xs Ws looped?)
     (define σ (-Σ-σ Σ))
     (define-values (ρ* $* canon bnds)
       (for/fold ([ρ : -ρ ρ]
@@ -454,14 +454,14 @@
                 [(hash-ref canon tₓ #f) => (λ ([y : Symbol]) (values (-t.x y) canon))]
                 [else (values (-t.x x) (hash-set canon tₓ x))]))
         (define α (hash-ref ρ x #|in case of letrec|#
-                            (λ () (-α->⟪α⟫ (-α.x x ⟪ℋ⟫ (predicates-of-V Vₓ*))))))
+                            (λ () (-α->⟪α⟫ (-α.x x H (predicates-of-V Vₓ*))))))
         (σ⊕V! Σ α Vₓ*)
         (define $* (if tₓ* ($-set $ x tₓ*) $))
         (values (ρ+ ρ x α) $* canon* (if tₓ (hash-set bnds x tₓ) bnds))))
     (values ρ* $* bnds))
 
-  (: alloc-rest-args! ([-Σ -Γ -⟪ℋ⟫ ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
-  (define (alloc-rest-args! Σ Γ ⟪ℋ⟫ ℓ Ws #:end [Vₙ -null])
+  (: alloc-rest-args! ([-Σ -Γ -H ℓ (Listof -W¹)] [#:end -V] . ->* . -V))
+  (define (alloc-rest-args! Σ Γ H ℓ Ws #:end [Vₙ -null])
 
     (: precise-alloc! ([(Listof -W¹)] [Natural] . ->* . -V))
     ;; Allocate vararg list precisely, preserving length
@@ -469,8 +469,8 @@
       (match Ws
         [(list) Vₙ]
         [(cons Wₕ Ws*)
-         (define αₕ (-α->⟪α⟫ (-α.var-car ℓ ⟪ℋ⟫ i)))
-         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ ⟪ℋ⟫ i)))
+         (define αₕ (-α->⟪α⟫ (-α.var-car ℓ H i)))
+         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ H i)))
          (σ⊕! Σ Γ αₕ Wₕ)
          (σ⊕V! Σ αₜ (precise-alloc! Ws* (+ 1 i)))
          (-Cons αₕ αₜ)]))
@@ -482,8 +482,8 @@
       [(or (list) (list _) (list _ _) (list _ _ _))
        (precise-alloc! Ws)]
       [(? pair?)
-       (define αₕ (-α->⟪α⟫ (-α.var-car ℓ ⟪ℋ⟫ #f)))
-       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ ⟪ℋ⟫ #f)))
+       (define αₕ (-α->⟪α⟫ (-α.var-car ℓ H #f)))
+       (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ H #f)))
        (define Vₜ (-Cons αₕ αₜ))
        ;; Allocate spine for var-arg lists
        (σ⊕V! Σ αₜ Vₜ)
@@ -569,9 +569,9 @@
             {set (cons (make-list n (+●)) (+● 'list?))}]
            [_ ∅])])))
 
-  (: M⊕! : -Σ -αₖ -ΓA → Void)
-  (define (M⊕! Σ αₖ ΓA)
-    (set--Σ-M! Σ (hash-update (-Σ-M Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
+  (: σₐ⊕! : -Σ -αₖ -ΓA → Void)
+  (define (σₐ⊕! Σ αₖ ΓA)
+    (set--Σ-σₐ! Σ (hash-update (-Σ-σₐ Σ) αₖ (λ ([ans : (℘ -ΓA)]) (set-add ans ΓA)) mk-∅)))
 
   (: copy-Γ : (℘ (U Symbol ℓ)) -Γ -Γ → -Γ)
   (define (copy-Γ dom Γₜ Γₛ)

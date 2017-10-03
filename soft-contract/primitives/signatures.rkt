@@ -50,7 +50,7 @@
    [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
    [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
    [exec-prim
-    : (-$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
+    : (-$ -Γ -H -Σ -⟦k⟧
           ℓ (Intersection Symbol -o)
           #:volatile? Boolean
           #:dom (Listof (Pairof -V ℓ))
@@ -85,5 +85,5 @@
    ;; re-exported stuff to avoid confusing dependency in `def`
    [r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
    [mk-● : (-h * → -●)]
-   [add-seal! : (-Σ Symbol -⟪ℋ⟫ -l → -Seal/C)]
+   [add-seal! : (-Σ Symbol -H -l → -Seal/C)]
    ))

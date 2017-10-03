@@ -45,7 +45,7 @@
   (splicing-let
       ([.internal-make-vector
         (let ()
-          (def (internal-make-vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+          (def (internal-make-vector ℓ Ws $ Γ H Σ ⟦k⟧)
             #:init ([Wₙ exact-nonnegative-integer?]
                     [Wᵥ any/c])
             (define σ (-Σ-σ Σ))
@@ -57,25 +57,25 @@
               [(-b (? exact-nonnegative-integer? n))
                (define ⟪α⟫s ; with side effect widening store
                  (for/list : (Listof ⟪α⟫) ([i (in-range n)])
-                   (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
+                   (define ⟪α⟫ (-α->⟪α⟫ (-α.idx ℓ H (assert i index?))))
                    (σ⊕! Σ Γ ⟪α⟫ Wᵥ)
                    ⟪α⟫))
-               (⟦k⟧ (-W (list (-Vector ⟪α⟫s)) tₐ) $ Γ ⟪ℋ⟫ Σ)]
+               (⟦k⟧ (-W (list (-Vector ⟪α⟫s)) tₐ) $ Γ H Σ)]
               [_
-               (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℓ ⟪ℋ⟫)))
+               (define ⟪α⟫ (-α->⟪α⟫ (-α.vct ℓ H)))
                (σ⊕! Σ Γ ⟪α⟫ Wᵥ) ; initializing, not mutating
-               (⟦k⟧ (-W (list (-Vector^ ⟪α⟫ Vₙ)) tₐ) $ Γ ⟪ℋ⟫ Σ)]))
+               (⟦k⟧ (-W (list (-Vector^ ⟪α⟫ Vₙ)) tₐ) $ Γ H Σ)]))
           .internal-make-vector)])
-    (def (make-vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+    (def (make-vector ℓ Ws $ Γ H Σ ⟦k⟧)
       #:init ()
       #:rest [Ws (listof any/c)]
       (define Ws*
         (match Ws
           [(list Wₙ) (list Wₙ (+W¹ -zero))]
           [_ Ws]))
-      (.internal-make-vector ℓ Ws* $ Γ ⟪ℋ⟫ Σ ⟦k⟧)))
+      (.internal-make-vector ℓ Ws* $ Γ H Σ ⟦k⟧)))
   
-  (def (vector ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (vector ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ()
     #:rest [Ws (listof any/c)]
     (define σ (-Σ-σ Σ))
@@ -87,14 +87,14 @@
                  [i (in-naturals)])
         (match-define (-W¹ V t) W)
         (define V* (V+ σ V (predicates-of Γ t)))
-        (define α (-α->⟪α⟫ (-α.idx ℓ ⟪ℋ⟫ (assert i index?))))
+        (define α (-α->⟪α⟫ (-α.idx ℓ H (assert i index?))))
         (σ⊕V! Σ α V*)
         (define l (-loc.offset 'vector (assert i index?) tₐ))
         (values ($-set! Σ $ α l t) (cons α αs.rev))))
-    (⟦k⟧ (-W (list (-Vector (reverse αs.rev))) tₐ) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧ (-W (list (-Vector (reverse αs.rev))) tₐ) $ Γ H Σ))
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
-  (def (vector-length ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (vector-length ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ([W vector?])
     (match-define (-W¹ V s) W)
     (define sₐ (?t@ 'vector-length s))
@@ -104,9 +104,9 @@
         [(-Vector^ _ n) (list n)]
         [(-Vector/guard (-Vector/C ⟪α⟫s) _ _) (list (-b (length ⟪α⟫s)))]
         [_ (list (+● 'exact-nonnegative-integer?))]))
-    (⟦k⟧ (-W A sₐ) $ Γ ⟪ℋ⟫ Σ))
+    (⟦k⟧ (-W A sₐ) $ Γ H Σ))
 
-  (def (vector-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (vector-ref ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ([Wᵥ vector?] [Wᵢ integer?])
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
@@ -128,13 +128,13 @@
                   (cond [sᵥ (define l (-loc.offset 'vector (assert i index?) sᵥ))
                             (define-values (Ws $*) ($@! Σ Γ ⟪α⟫ $ l ℓ))
                             (for/union : (℘ -ς) ([W (in-set Ws)])
-                              (⟦k⟧ (W¹->W W) $* Γ* ⟪ℋ⟫ Σ))]
+                              (⟦k⟧ (W¹->W W) $* Γ* H Σ))]
                         [else
                          (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫))])
-                           (⟦k⟧ (-W (list V) #f) $ Γ* ⟪ℋ⟫ Σ))]))]
+                           (⟦k⟧ (-W (list V) #f) $ Γ* H Σ))]))]
       [(-Vector^ α n)
        (for/union : (℘ -ς) ([V (σ@ Σ α)])
-                  (⟦k⟧ (-W (list V) sₐ) $ Γ ⟪ℋ⟫ Σ))]
+                  (⟦k⟧ (-W (list V) sₐ) $ Γ H Σ))]
       [(-Vector/guard grd ⟪α⟫ᵥ ctx)
        (define lo (-ctx-src ctx))
        (match grd
@@ -148,18 +148,18 @@
                      (for*/union : (℘ -ς) ([Cᵢ (in-set (σ@ Σ ⟪α⟫ᵢ))]
                                            [⟦k⟧* (in-value (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) (-W¹ Cᵢ cᵢ) ⟦k⟧))]
                                            [Vᵥ* (in-set (σ@ Σ ⟪α⟫ᵥ))])
-                        (.vector-ref ℓ (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ ⟦k⟧*)))]
+                        (.vector-ref ℓ (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ* H Σ ⟦k⟧*)))]
          [(-Vectorof ⟪α⟫ℓ)
           (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
           (define c* #f #;(⟪α⟫->s ⟪α⟫*))
           (for*/union : (℘ -ς) ([C* (in-set (σ@ Σ ⟪α⟫*))]
                                 [⟦k⟧* (in-value (mon.c∷ (ctx-with-ℓ ctx ℓ*) (-W¹ C* c*) ⟦k⟧))]
                                 [Vᵥ* (in-set (σ@ Σ ⟪α⟫ᵥ))])
-            (.vector-ref ℓ (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ ⟪ℋ⟫ Σ ⟦k⟧*))])]
+            (.vector-ref ℓ (list (-W¹ Vᵥ* sᵥ) Wᵢ) $ Γ H Σ ⟦k⟧*))])]
       [_
-       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ H Σ)]))
   
-  (def (vector-set! ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (vector-set! ℓ Ws $ Γ H Σ ⟦k⟧)
     #:init ([Wᵥ vector?] [Wᵢ integer?] [Wᵤ any/c])
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
@@ -176,10 +176,10 @@
                     (if sᵥ
                         ($-set! Σ $ ⟪α⟫ (-loc.offset 'vector (assert i index?) sᵥ) sᵤ)
                         ($-del* $ (get-aliases Σ ⟪α⟫))))
-                  (⟦k⟧ (+W (list -void)) $* Γ* ⟪ℋ⟫ Σ))]
+                  (⟦k⟧ (+W (list -void)) $* Γ* H Σ))]
       [(-Vector^ α n)
        (σ⊕! Σ Γ α Wᵤ)
-       (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]
+       (⟦k⟧ (+W (list -void)) $ Γ H Σ)]
       [(-Vector/guard grd ⟪α⟫ᵥ ctx)
        (define ctx* (ctx-neg ctx))
        (match grd
@@ -195,7 +195,7 @@
                                  (define W-c (-W¹ Cᵢ cᵢ))
                                  (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                                  (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓᵢ) (mk-rt W-c) (mk-rt Wᵤ)))
-                                 (⟦chk⟧ ⊥ρ $ Γ* ⟪ℋ⟫ Σ
+                                 (⟦chk⟧ ⊥ρ $ Γ* H Σ
                                   (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℓ ⟦k⟧))))]
          [(-Vectorof ⟪α⟫ℓ)
           (match-define (-⟪α⟫ℓ ⟪α⟫* ℓ*) ⟪α⟫ℓ)
@@ -205,10 +205,10 @@
                       (define W-c (-W¹ C* c*))
                       (define Wᵥ* (-W¹ Vᵥ* sᵥ))
                       (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓ*) (mk-rt W-c) (mk-rt Wᵤ)))
-                      (⟦chk⟧ ⊥ρ $ Γ ⟪ℋ⟫ Σ
+                      (⟦chk⟧ ⊥ρ $ Γ H Σ
                        (ap∷ (list Wᵢ Wᵥ* (+W¹ 'vector-set!)) '() ⊥ρ ℓ ⟦k⟧)))])]
       [_
-       (⟦k⟧ (+W (list -void)) $ Γ ⟪ℋ⟫ Σ)]))
+       (⟦k⟧ (+W (list -void)) $ Γ H Σ)]))
   
   (def vector->list (∀/c (α) ((vectorof α) . -> . (listof α))))
   (def list->vector (∀/c (α) ((listof α) . -> . (vectorof α))))
