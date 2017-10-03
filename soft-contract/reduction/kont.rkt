@@ -796,8 +796,12 @@
 
     (: ⊢/quick : -V -W¹ → -R)
     (define (⊢/quick o W)
-      (first-R (q:p∋Vs σ o (-W¹-V W))
-               (if (-h? o) (q:Γ⊢t Γ (?t@ o (-W¹-t W))) '?)))
+      (match o
+        [(-Not/C (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm C)) _))
+         (not-R (⊢/quick C W))]
+        [_
+         (first-R (q:p∋Vs σ o (-W¹-V W))
+                  (if (-h? o) (q:Γ⊢t Γ (?t@ o (-W¹-t W))) '?))]))
     
     (match-define (-W rngs t-rng) rng₀)
 
