@@ -159,7 +159,7 @@
                         [(arity-at-least n)
                          (format-symbol "~a+ values" n)])])
       (λ (ℓ lo arity Vs)
-        (-blm (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
+        (blm/simp (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
 
   (: predicates-of-V : -V → (℘ -h))
   (define predicates-of-V

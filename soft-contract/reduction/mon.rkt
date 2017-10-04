@@ -54,7 +54,7 @@
 
     (: blm : -V → -Γ → (℘ -ς))
     (define ((blm C) Γ)
-      (define blm (-blm l+ lo (list C) (list V) ℓ))
+      (define blm (blm/simp l+ lo (list C) (list V) ℓ))
       (⟦k⟧ blm $ Γ H Σ))
 
     (: chk-arity : -Γ → (℘ -ς))
@@ -149,7 +149,7 @@
     (with-Γ⊢oW (σ Γ p Wᵥ)
       #:on-t chk-fields
       #:on-f (λ ()
-               (define blm (-blm l+ lo (list p) (list Vᵥ) ℓₘ))
+               (define blm (blm/simp l+ lo (list p) (list Vᵥ) ℓₘ))
                (⟦k⟧ blm $ Γ H Σ))))
 
   (define (mon-x/c ctx W-C W-V $ Γ H Σ ⟦k⟧)
@@ -191,7 +191,7 @@
     (match-define (list c*) (-app-split 'not/c c 1))
     (define ⟦k⟧*
       (let ([⟦ok⟧ (mk-rt W-V)]
-            [⟦er⟧ (mk-rt (-blm l+ lo (list C) (list V) ℓ))])
+            [⟦er⟧ (mk-rt (blm/simp l+ lo (list C) (list V) ℓ))])
         (if∷ lo ⟦er⟧ ⟦ok⟧ ⊥ρ ⟦k⟧)))
     (for/union : (℘ -ς) ([C* (σ@ (-Σ-σ Σ) α)])
       (assert C* C-flat?)
@@ -203,7 +203,7 @@
     (match-define (-W¹ (and C (-One-Of/C bs)) _) Wₚ)
     (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
     (define (blm)
-      (⟦k⟧ (-blm l+ lo (list C) (list Vᵥ) ℓ) $ Γ H Σ))
+      (⟦k⟧ (blm/simp l+ lo (list C) (list Vᵥ) ℓ) $ Γ H Σ))
     (case (sat-one-of Vᵥ bs)
       [(✓) (⟦k⟧ (-W (list Vᵥ) sᵥ) $ Γ H Σ)]
       [(✗) (blm)]
@@ -219,7 +219,7 @@
 
     (: blm : -V → → (℘ -ς))
     (define ((blm C))
-      (define blm (-blm l+ lo (list C) (list Vᵥ) ℓ))
+      (define blm (blm/simp l+ lo (list C) (list Vᵥ) ℓ))
       (⟦k⟧ blm $ Γ H Σ))
 
     (: chk-elems : → (℘ -ς))
@@ -251,7 +251,7 @@
     
     (: blm : -V → → (℘ -ς))
     (define ((blm C))
-      (define blm (-blm l+ lo (list C) (list Vᵥ) ℓ))
+      (define blm (blm/simp l+ lo (list C) (list Vᵥ) ℓ))
       (⟦k⟧ blm $ Γ H Σ))
 
     (: chk-len : → (℘ -ς))
@@ -333,7 +333,7 @@
     (with-Γ⊢oW (σ Γ 'hash? Wᵤ)
       #:on-t chk-content
       #:on-f (λ ()
-               (define blm (-blm l+ lo '(hash?) (list Vᵤ) ℓ))
+               (define blm (blm/simp l+ lo '(hash?) (list Vᵤ) ℓ))
                (⟦k⟧ blm $ Γ H Σ))))
 
   (define (mon-set/c ctx Wₚ Wᵤ $ Γ H Σ ⟦k⟧)
@@ -368,7 +368,7 @@
     (with-Γ⊢oW (σ Γ 'set? Wᵤ)
       #:on-t chk-content
       #:on-f (λ ()
-               (define blm (-blm l+ lo '(set?) (list Vᵤ) ℓ))
+               (define blm (blm/simp l+ lo '(set?) (list Vᵤ) ℓ))
                (⟦k⟧ blm $ Γ H Σ))))
 
   (define (mon-seal/c ctx W-C W-V $ Γ H Σ ⟦k⟧)
@@ -381,7 +381,7 @@
        (σ⊕! Σ Γ α W-V)
        (⟦k⟧ (-W (list (-Sealed α)) tᵥ) $ Γ H Σ)]
       [(equal? l l-) ; unseal
-       (define (blm) (⟦k⟧ (-blm l+ lo (list C) (list V) ℓ) $ Γ H Σ))
+       (define (blm) (⟦k⟧ (blm/simp l+ lo (list C) (list V) ℓ) $ Γ H Σ))
        (define (ok)
          (for/union : (℘ -ς) ([V* (in-set (σ@ Σ α))])
            (⟦k⟧ (-W (list V*) tᵥ) $ Γ H Σ)))
@@ -399,10 +399,10 @@
     (define cv (and (-h? c) (?t@ c v)))
     (case (Γ⊢V∈C (-Σ-σ Σ) Γ W-V W-C)
       [(✓) (⟦k⟧ (-W (list V) v) $ Γ H Σ)]
-      [(✗) (⟦k⟧ (-blm l+ lo (list C) (list V) ℓ) $ Γ H Σ)]
+      [(✗) (⟦k⟧ (blm/simp l+ lo (list C) (list V) ℓ) $ Γ H Σ)]
       [(?)
        (define V* (V+ (-Σ-σ Σ) V C))
-       (define ⟦k⟧* (if.flat/c∷ (-W (list V*) v) (-blm l+ lo (list C) (list V) ℓ) ⟦k⟧))
+       (define ⟦k⟧* (if.flat/c∷ (-W (list V*) v) (blm/simp l+ lo (list C) (list V) ℓ) ⟦k⟧))
        (match C
          [(? -b? b)
           (app ℓ (-W¹ 'equal? 'equal?) (list W-V (-W¹ b b)) $ Γ H Σ ⟦k⟧*)]

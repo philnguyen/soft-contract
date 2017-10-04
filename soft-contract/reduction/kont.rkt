@@ -98,7 +98,7 @@
         [_
          (define l (ℓ-src ℓ))
          (define blm
-           (-blm l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) ℓ))
+           (blm/simp l 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) ℓ))
          (⟦k⟧ blm $ Γ H Σ)])))
 
   (define-frame (mon.c∷ [ctx : -ctx] [C : (U (Pairof -⟦e⟧ -ρ) -W¹)] [⟦k⟧ : -⟦k⟧])
@@ -114,7 +114,7 @@
                 (match-define (cons ⟦c⟧ ρ) C)
                 (⟦c⟧ ρ $ Γ H Σ (mon.v∷ ctx W-V ⟦k⟧))])]
         [else
-         (define blm (-blm lo 'Λ '(|1 value|) Vs ℓ))
+         (define blm (blm/simp lo 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ H Σ)])))
 
   (define-frame (mon.v∷ [ctx : -ctx] [V : (U (Pairof -⟦e⟧ -ρ) -W¹)] [⟦k⟧ : -⟦k⟧])
@@ -130,7 +130,7 @@
                 (match-define (cons ⟦v⟧ ρ) V)
                 (⟦v⟧ ρ $ Γ H Σ (mon.c∷ ctx W-C ⟦k⟧))])]
         [else
-         (define blm (-blm lo 'Λ '(|1 value|) Vs ℓ))
+         (define blm (blm/simp lo 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ H Σ)])))
 
   (define-frame (mon*.c∷ [ctx : -ctx] [rngs : (U (Listof -⟪α⟫ℓ) 'any)] [d : -?t] [⟦k⟧ : -⟦k⟧])
@@ -161,7 +161,7 @@
                                [(0 1) "~a value"]
                                [else "~a values"])
                              n))
-            (define blm (-blm l+ lo (list msg) Vs ℓ))
+            (define blm (blm/simp l+ lo (list msg) Vs ℓ))
             (⟦k⟧ blm $ Γ H Σ)]))]))
 
   (define-frame (mon*∷ [ctx : -ctx]
@@ -214,10 +214,10 @@
             (⟦e⟧* ρ $ Γ H Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Ws* ⟦e⟧ ρ ⟦k⟧))])]
         [else
          (define blm
-           (-blm (ℓ-src ℓ) 'let-values
-                 (list (format-symbol "requires ~a values" (length xs)))
-                 (list (format-symbol "provided ~a values" (length Vs)))
-                 +ℓ₀))
+           (blm/simp (ℓ-src ℓ) 'let-values
+                     (list (format-symbol "requires ~a values" (length xs)))
+                     (list (format-symbol "provided ~a values" (length Vs)))
+                     +ℓ₀))
          (⟦k⟧ blm $ Γ H Σ)])))
 
   ;; begin
@@ -255,7 +255,7 @@
          (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V Γ V s)])
            #:true  (⟦e⟧₁ ρ $ Γ₁ H Σ ⟦k⟧)
            #:false (⟦e⟧₂ ρ $ Γ₂ H Σ ⟦k⟧))]
-        [_ (⟦k⟧ (-blm l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀) $ Γ H Σ)])))
+        [_ (⟦k⟧ (blm/simp l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀) $ Γ H Σ)])))
 
   ;; set!
   (define-frame (set!∷ [α : ⟪α⟫] [⟦k⟧ : -⟦k⟧])
@@ -269,7 +269,7 @@
          (⟦k⟧ (+W (list -void)) $* Γ H Σ)]
         [_
          (define blm
-           (-blm 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))
+           (blm/simp 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))
          (⟦k⟧ blm $ Γ H Σ)])))
 
   ;; letrec-values
@@ -297,7 +297,7 @@
             (⟦e⟧* ρ $* Γ H Σ (letrec∷ ℓ xs* ⟦bnd⟧s* ⟦e⟧ ρ ⟦k⟧))])]
         [else
          (define blm
-           (-blm (ℓ-src ℓ) 'letrec-values
+           (blm/simp (ℓ-src ℓ) 'letrec-values
                  (list (format-symbol "~a values" (length xs)))
                  (list (format-symbol "~a values" (length Vs)))
                  +ℓ₀))
@@ -509,7 +509,7 @@
          (⟦k⟧ (+W (list -void)) $* Γ H Σ)]
         [else
          (define blm
-           (-blm l 'define-values
+           (blm/simp l 'define-values
                  (list (format-symbol "~a values" n))
                  (list (format-symbol "~a values" (length Vs)))
                  +ℓ₀))
@@ -578,7 +578,7 @@
            #:false (⟦k⟧ blm $ Γ₂ H Σ))]
         [_
          (match-define (-blm _ lo _ _ ℓ) blm)
-         (⟦k⟧ (-blm lo 'Λ '(|1 value|) Vs ℓ) $ Γ H Σ)])))
+         (⟦k⟧ (blm/simp lo 'Λ '(|1 value|) Vs ℓ) $ Γ H Σ)])))
 
   (define-frame (wrap-st∷ [𝒾 : -𝒾]
                           [tᵥ : -?t]
@@ -675,7 +675,7 @@
         [(list C)
          (⟦v⟧ ρ $ Γ H Σ (fc.c∷ l ℓ (-W¹ C s) ⟦k⟧))]
         [_
-         (define blm (-blm l 'Λ '(|1 value|) Vs ℓ))
+         (define blm (blm/simp l 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ H Σ)])))
 
   (define-frame (fc.c∷ [l : -l]
@@ -688,7 +688,7 @@
         [(list V)
          (push-fc l ℓ W-C (-W¹ V s) $ Γ H Σ ⟦k⟧)]
         [_
-         (define blm (-blm l 'Λ '(|1 value|) Vs ℓ))
+         (define blm (blm/simp l 'Λ '(|1 value|) Vs ℓ))
          (⟦k⟧ blm $ Γ H Σ)])))
 
   (define (and∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧

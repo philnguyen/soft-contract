@@ -67,7 +67,7 @@
              [else
               (define Cs (list (string->symbol "even number of arg(s)")))
               (define Vs (map -W¹-V Ws))
-              (-blm (ℓ-src ℓ) name Cs Vs ℓ)]))
+              (blm/simp (ℓ-src ℓ) name Cs Vs ℓ)]))
          (⟦k⟧ A $ Γ H Σ)))
     (def (hash ℓ Ws $ Γ H Σ ⟦k⟧)
       #:init ()

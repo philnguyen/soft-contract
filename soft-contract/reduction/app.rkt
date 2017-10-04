@@ -33,7 +33,7 @@
       ;; HACK for error message. Probably no need to fix
       (define msg (format-symbol "require ~a arguments"
                                  (string->symbol (format "~a" required))))
-      (-blm l 'Λ (list msg) (map -W¹-V Wₓs) ℓ))
+      (blm/simp l 'Λ (list msg) (map -W¹-V Wₓs) ℓ))
 
     (define-syntax-rule (with-guarded-arity a* e ...)
       (let ([n (length Wₓs)]
@@ -154,7 +154,7 @@
 
        (: blm : -V → -Γ → (℘ -ς))
        (define ((blm C) Γ)
-         (define blm (-blm l 'Λ (list C) (list Vₕ) ℓ))
+         (define blm (blm/simp l 'Λ (list C) (list Vₕ) ℓ))
          (⟦k⟧ blm $ Γ H Σ))
 
        (: chk-arity : -Γ → (℘ -ς))
@@ -178,7 +178,7 @@
          #:on-t chk-arity
          #:on-f (blm 'procedure?))]
       [_
-       (define blm (-blm l 'Λ (list 'procedure?) (list Vₕ) ℓ))
+       (define blm (blm/simp l 'Λ (list 'procedure?) (list Vₕ) ℓ))
        (⟦k⟧ blm $ Γ H Σ)]))
 
   (: app-clo : -formals -⟦e⟧ -ρ -Γ -?t → -⟦f⟧)
@@ -242,9 +242,9 @@
       [#f
        (define required (V-arity cases))
        (define l (ℓ-src ℓ))
-       (define blm (-blm l 'Λ
-                         (list (string->symbol (format "arity ~v" required)))
-                         (map -W¹-V Wₓs) ℓ))
+       (define blm (blm/simp l 'Λ
+                             (list (string->symbol (format "arity ~v" required)))
+                             (map -W¹-V Wₓs) ℓ))
        (⟦k⟧ blm $ Γ H Σ)]))
 
   (: app-guarded-Case : -Case-> -?t -V -?t -ctx → -⟦f⟧)
@@ -261,10 +261,10 @@
        ((app-Ar Cᵢ tᵢ Vᵤ sₕ ctx) ℓ Wₓs $ Γ H Σ ⟦k⟧)]
       [else
        (define required (guard-arity C))
-       (define blm (-blm (ℓ-src ℓ) 'Λ
-                         (list (string->symbol (format "arity ~v" required)))
-                         (map -W¹-V Wₓs)
-                         ℓ))
+       (define blm (blm/simp (ℓ-src ℓ) 'Λ
+                             (list (string->symbol (format "arity ~v" required)))
+                             (map -W¹-V Wₓs)
+                             ℓ))
        (⟦k⟧ blm $ Γ H Σ)]))
 
   (: app-Ar : -=> -?t -V -?t -ctx → -⟦f⟧)
@@ -447,7 +447,7 @@
       (match Ws
         [(list (and W (-W¹ V s)))
          (define l (ℓ-src ℓ))
-         (define (blm) (-blm l (show-o ac) (list p) (list V) ℓ))
+         (define (blm) (blm/simp l (show-o ac) (list p) (list V) ℓ))
          (match V
            [(-St 𝒾* αs) #:when (𝒾* . substruct? . 𝒾)
             (define α (list-ref αs i))
@@ -502,7 +502,7 @@
          (match-define (-W¹ Vₛ sₛ) Wₛ)
          (match-define (-W¹ Vᵥ tᵥ) Wᵥ)
          (define l (ℓ-src ℓ))
-         (define (blm) (-blm l (show-o mut) (list p) (list Vₛ) ℓ))
+         (define (blm) (blm/simp l (show-o mut) (list p) (list Vₛ) ℓ))
          
          (match Vₛ
            [(-St (== 𝒾) αs)

@@ -116,6 +116,8 @@
 (define-match-expander -Box*
   (syntax-rules () [(_ α) (-St* (-St/C _ (== -𝒾-box) _) α _)]))
 
+(define-syntax-rule (blm/simp l+ lo C V ℓ) (-blm l+ lo C V (strip-ℓ ℓ)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Monitoring contexts
@@ -183,16 +185,6 @@
 (-?t . ::= . -t #f)
 
 (-special-bin-o . ::= . '> '< '>= '<= '= 'equal? 'eqv? 'eq? #|made up|# '≢)
-
-(define-match-expander -not/c/simp
-  (syntax-rules ()
-    [(_ p) (-not/c p)])
-  (syntax-rules ()
-    [(_ p) (case p
-             [(negative?) (-≥/c 0)]
-             [(    zero?) (-≢/c 0)]
-             [(positive?) (-≤/c 0)]
-             [else (-not/c p)])]))
 
 ;; convenient syntax
 (define-match-expander -t.not
@@ -327,7 +319,7 @@
 (struct -ς ([block : -αₖ]) #:transparent)
 #|block start |# (struct -ς↑ -ς () #:transparent)
 #|block return|# (struct -ς↓ -ς ([cache : -$] [pc : -Γ] [ans : -W]) #:transparent)
-#|block raise |# (struct -ς! -ς ([blm : -blm]))
+#|block raise |# (struct -ς! -ς ([blm : -blm]) #:transparent)
 
 
 
@@ -347,8 +339,6 @@
                  (-F:ctx -H -l ℓ -W¹ -W¹)
                  (-HV:ctx HV-Tag))
 (struct -αₖ:pth ([cache : -$] [pc : -Γ]) #:transparent)
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -423,7 +413,7 @@
    [with-positive-party : (-l -V → -V)]
    [behavioral? : (-σ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
-   [blm-arity : (ℓ -l Arity (Listof -V) → -blm)] 
+   [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]
    [predicates-of-V : (-V → (℘ -h))]
    ))
 

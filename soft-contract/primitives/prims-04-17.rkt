@@ -51,7 +51,7 @@
 
     (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
     (define ((blm-for C Vs) Γ)
-      (⟦k⟧ (-blm l 'apply (list C) Vs ℓ) $ Γ H Σ))
+      (⟦k⟧ (blm/simp l 'apply (list C) Vs ℓ) $ Γ H Σ))
 
     (: check-func-arity : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
     ;; Make sure init arguments and rest args are compatible with the function's arity
@@ -60,7 +60,7 @@
       (define (blm-arity a)
         (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
         (define msg (string->symbol (format "~a argument(s)" a)))
-        (define blm (-blm l 'apply (list msg) blm-args ℓ))
+        (define blm (blm/simp l 'apply (list msg) blm-args ℓ))
         (⟦k⟧ blm $ Γ H Σ))
 
       (define-simple-macro (with-num-rest-args-check pred #:on-t e₁ #:on-f e₂)

@@ -189,10 +189,10 @@
                                            (syntax->list #'(e ...)))]
                       [_
                        (define blm
-                         (-blm (ℓ-src ℓ) 'o
-                               '(#,(string->symbol (format "~v" arity)))
-                               (map -W¹-V Ws)
-                               ℓ))
+                         (blm/simp (ℓ-src ℓ) 'o
+                                   '(#,(string->symbol (format "~v" arity)))
+                                   (map -W¹-V Ws)
+                                   ℓ))
                        (⟦k⟧ blm $ Γ H Σ)])]))))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
      (define/contract maybe-set-partial (listof syntax?)

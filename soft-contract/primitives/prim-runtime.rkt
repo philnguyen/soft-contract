@@ -68,7 +68,7 @@
                            [_ #f])
                          Ws)
                    [(? -Sealed? V*)
-                    (define blm (-blm (ℓ-src ℓ) o '(any/c) (list V*) ℓ))
+                    (define blm (blm/simp (ℓ-src ℓ) o '(any/c) (list V*) ℓ))
                     (⟦k⟧ blm $ Γ H Σ)]
                    [_ ∅]))
                (∪ ok er)]

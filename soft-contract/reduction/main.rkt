@@ -55,7 +55,7 @@
         (begin
           (when (debug-iter?)
             (printf "* ~a: ~a~n" iter (set-count front))
-            #;(printf " -- ~a are rt, ~a are ev~n" (length ς↓s) (length ς↑s)))
+            #;(printf " -- ~a are rt, ~a are ev, ~a are blm~n" (length ς↓s) (length ς↑s) (length ς!s)))
 
           (when (debug-trace?)
 
@@ -115,8 +115,7 @@
                 (↝↓! ς↓s* Σ)))
             (∪ next-from-ς↑s next-from-ς↓s)))
         (for ([ς (in-list ς!s)])
-          (match-define (-blm l+ lo C V ℓ) (-ς!-blm ς))
-          (errs-add! (-blm l+ lo C V (strip-ℓ ℓ))))
+          (errs-add! (-ς!-blm ς)))
         (loop! next)))
 
     (match-let ([(-Σ σ σₖ _ _) Σ])

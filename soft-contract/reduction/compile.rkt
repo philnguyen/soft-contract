@@ -252,7 +252,7 @@
                (⟦e*⟧ ρ $ Γ H Σ (set!∷ α ⟦k⟧)))])]
          [(-error msg ℓ)
           (λ (ρ $ Γ H Σ ⟦k⟧)
-            (⟦k⟧ (-blm (ℓ-src ℓ) 'Λ '() (list (-b msg)) ℓ) $ Γ H Σ))]
+            (⟦k⟧ (blm/simp (ℓ-src ℓ) 'Λ '() (list (-b msg)) ℓ) $ Γ H Σ))]
          [(-μ/c x c)
           (define ⟦c⟧ (↓ c))
           (λ (ρ $ Γ H Σ ⟦k⟧)
@@ -304,7 +304,7 @@
             (⟦k⟧ (-W (list (-x/C (ρ@ ρ x))) #f) $ Γ H Σ))]
          [(-struct/c 𝒾 cs ℓ)
           (define α (-α->⟪α⟫ 𝒾))
-          (define blm (-blm l 'Λ '(struct-defined?) (list (-𝒾-name 𝒾)) ℓ))
+          (define blm (blm/simp l 'Λ '(struct-defined?) (list (-𝒾-name 𝒾)) ℓ))
           (define builtin-struct-tag? (match? 𝒾 (== -𝒾-cons) (== -𝒾-box)))
           (match (map ↓ cs)
             ['()
@@ -323,7 +323,7 @@
 
   (define/memo (↓ₓ [l : -l] [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
     (define -blm.undefined
-      (-blm l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) ℓₓ))
+      (blm/simp l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) ℓₓ))
     (λ (ρ $ Γ H Σ ⟦k⟧)
       (define α (ρ@ ρ x))
       (cond

@@ -85,7 +85,7 @@
      #`(match #,(-Ws)
          #,@cases
          [_
-          (define blm (-blm (ℓ-src #,(-ℓ)) '#,(-o) (list 'error-msg) (map -W¹-V #,(-Ws)) #,(-ℓ)))
+          (define blm (blm/simp (ℓ-src #,(-ℓ)) '#,(-o) (list 'error-msg) (map -W¹-V #,(-Ws)) #,(-ℓ)))
           (#,(-⟦k⟧) blm #,(-$) #,(-Γ) #,(-H) #,(-Σ))])))
 
   (define/contract (gen-case dom-inits ?dom-rst rngs)
@@ -249,7 +249,7 @@
           body))
     (list*
      #`(define (blm [ctc : -V] [val : -W¹]) : (℘ -ς)
-         (define bl (-blm (ℓ-src #,(-ℓ)) '#,(-o) (list ctc) (list (-W¹-V val)) #,(-ℓ)))
+         (define bl (blm/simp (ℓ-src #,(-ℓ)) '#,(-o) (list ctc) (list (-W¹-V val)) #,(-ℓ)))
          (#,(-⟦k⟧) bl #,(-$) #,(-Γ) #,(-H) #,(-Σ)))
      (gen-inits doms (-Wⁿ))))
 
