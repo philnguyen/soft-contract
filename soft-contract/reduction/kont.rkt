@@ -252,9 +252,12 @@
       (match-define (-W Vs s) A)
       (match Vs
         [(list V)
-         (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V Γ V s)])
-           #:true  (⟦e⟧₁ ρ $ Γ₁ H Σ ⟦k⟧)
-           #:false (⟦e⟧₂ ρ $ Γ₂ H Σ ⟦k⟧))]
+         (match* (V s)
+           [((or (-b (? values)) (and (not (? -b?)) (not (? -●?)))) (-b #f)) ∅]
+           [(_ _)
+            (with-Γ+/- ([(Γ₁ Γ₂) (Γ+/-V Γ V s)])
+              #:true  (⟦e⟧₁ ρ $ Γ₁ H Σ ⟦k⟧)
+              #:false (⟦e⟧₂ ρ $ Γ₂ H Σ ⟦k⟧))])]
         [_ (⟦k⟧ (blm/simp l 'Λ '(1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀) $ Γ H Σ)])))
 
   ;; set!
