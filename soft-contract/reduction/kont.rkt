@@ -72,6 +72,7 @@
                (match A
                  [(-W (list V) s) (-W (list (V+ (-Σ-σ Σ) V (predicates-of Γ s))) s)]
                  [_ A]))
+             (maybe-print-blame)
              (if (-blm? A*)
                  {set (-ς! αₖ A*)}
                  {set (-ς↓ αₖ ($-cleanup $) Γ A*)})])))
