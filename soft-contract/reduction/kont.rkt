@@ -62,9 +62,7 @@
       (define ⟦k⟧ : -⟦k⟧
         (λ (A $ Γ H Σ)
           (define (maybe-print-blame)
-            (when (and (debug-iter?)
-                       (-blm? A)
-                       (= 0 (set-count (σₖ@ (-Σ-σₖ Σ) αₖ))))
+            (when (and (debug-iter?) (-blm? A))
               (hash-ref! print-cache A (λ () (printf "~a~n" (show-A A))))))
           (match A
             [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
