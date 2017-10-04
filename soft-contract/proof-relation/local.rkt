@@ -64,7 +64,9 @@
          [_ '?])]
       [(>=) (⊢@ '<= (reverse xs))]
       [(>)  (⊢@ '<  (reverse xs))]
-      [else '?]))
+      [else
+       (cond [(andmap -b? xs) (apply p∋Vs ⊥σ p xs)]
+             [else '?])]))
 
   (define (Γ⊢t [φs : -Γ] [t₀ : -?t]) : -R
     (define t ; FIXME clean up hack
