@@ -641,9 +641,8 @@
                            [(list (? symbol? o₁) (? symbol? o₂)) (boolean->R (equal? o₁ o₂))]
                            [_ '?])]
                         [(list?) (check-proper-list σ (car Vs))]
-                        ;; Default rules for operations on base values rely on simplification from `-?@`
-                        [(boolean-excludes? (get-conservative-range p)) '✓]
-                        [else '?])]
+                        [(port? input-port? output-port?) '✗]
+                        [else (if (boolean-excludes? (get-conservative-range p)) '✓ '?)])]
                      [(-not/c (? -h? p))
                       (not-R (apply p∋Vs σ p Vs))]
                      [(-λ (list x) (-@ 'not (list e) _))
