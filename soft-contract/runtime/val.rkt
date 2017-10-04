@@ -166,7 +166,7 @@
     (match-lambda
       [(-b (? number?)) {set 'number?}]
       [(-b (? null?)) {set 'null?}]
-      [(-b #f) {set 'false?}]
+      [(-b #f) {set 'not}]
       [(and b (-b (? symbol? s))) {set b}]
       [(-Clo _ ⟦e⟧ _ _) {set (-clo ⟦e⟧)}]
       [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾 {set (-st-p 𝒾)}]
