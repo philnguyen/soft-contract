@@ -27,7 +27,7 @@
   (define (Γ+ Γ . ts)
 
     (: φs+ : -Γ -t → -Γ)
-    (define (φs+ φs φ)      
+    (define (φs+ φs φ)
       
       (: iter : -Γ -t → (U -Γ (Pairof -Γ -Γ)))
       (define (iter φs φ)
@@ -223,36 +223,35 @@
   ;; Widen 2 values to one approximating both.
   ;; Return `#f` if no approximation preferred
   (define (V⊕ [σ : -σ] [V₁ : -V] [V₂ : -V]) : (Option -V)
-    (with-debugging ((V*) (match* (V₁ V₂)
-                            [(_ _) #:when (V⊑ σ V₂ V₁) V₁]
-                            [(_ _) #:when (V⊑ σ V₁ V₂) V₂]
-                            ; TODO more heuristics
-                            [((-b b₁) (-b b₂)) #:when (not (equal? b₁ b₂))
-                             (define-syntax-rule (check-for-base-types p? ...)
-                               (cond
-                                 [(and (p? b₁) (p? b₂)) (-● {set 'p?})] ...
-                                 [else #f]))
+    (match* (V₁ V₂)
+      [(_ _) #:when (V⊑ σ V₂ V₁) V₁]
+      [(_ _) #:when (V⊑ σ V₁ V₂) V₂]
+      ; TODO more heuristics
+      [((-b b₁) (-b b₂)) #:when (not (equal? b₁ b₂))
+                         (define-syntax-rule (check-for-base-types p? ...)
+                           (cond
+                             [(and (p? b₁) (p? b₂)) (-● {set 'p?})] ...
+                             [else #f]))
 
-                             (check-for-base-types
-                              exact-positive-integer? exact-nonnegative-integer? exact-integer?
-                              integer? real? number?
-                              path-string? string?
-                              char? boolean?
-                              regexp? pregexp? byte-regexp? byte-pregexp?)]
-                            [((? -b? b) (-● ps))
-                             (define ps*
-                               (for/set: : (℘ -h) ([p (in-set ps)]
-                                                   #:when (equal? '✓ (p∋Vs σ p b)))
-                                 p))
-                             ;; guard non-empty set means heuristic, that they're "compatible"
-                             (and (not (set-empty? ps*)) (-● ps*))]
-                            [((-● ps) (-● qs))
-                             (define ps* (ps⊕ ps qs))
-                             (if (set-empty? ps*) #|just a heuristic|# #f (-● ps*))]
-                            [(_ _) #f]))
-      (when (or (let ([●? (λ (V) (and (-V? V) (equal? V (-● ∅))))])
-                  (and (●? V*) (not (●? V₁)) (not (●? V₂)))))
-        (printf "Warning: ~a ⊕ ~a = ~a~n~n" (show-V V₁) (show-V V₂) (show-V V*)))))
+                         (check-for-base-types
+                          exact-positive-integer? exact-nonnegative-integer? exact-integer?
+                          integer? real? number?
+                          path-string? string?
+                          char? boolean?
+                          regexp? pregexp? byte-regexp? byte-pregexp?)]
+      [((? -b? b) (-● ps))
+       (define ps*
+         (for/set: : (℘ -h) ([p (in-set ps)]
+                             ;; TODO generalize
+                             #:unless (member p (list 'immutable? (-not/c 'immutable?)))
+                             #:when (equal? '✓ (p∋Vs σ p b)))
+           p))
+       ;; guard non-empty set means heuristic, that they're "compatible"
+       (and (not (set-empty? ps*)) (-● ps*))]
+      [((-● ps) (-● qs))
+       (define ps* (ps⊕ ps qs))
+       (if (set-empty? ps*) #|just a heuristic|# #f (-● ps*))]
+      [(_ _) #f]))
 
   ;; Return refinement set that's an over-approximation of both sets
   (define (ps⊕ [ps₁ : (℘ -h)] [ps₂ : (℘ -h)]) : (℘ -h)

@@ -71,7 +71,7 @@
       #:rest [Ws (listof any/c)]
       (define Ws*
         (match Ws
-          [(list Wₙ) (list Wₙ (+W¹ -zero))]
+          [(list Wₙ) (list Wₙ (-W¹ (-● {set 'none/c}) #f))]
           [_ Ws]))
       (.internal-make-vector ℓ Ws* $ Γ H Σ ⟦k⟧)))
   
