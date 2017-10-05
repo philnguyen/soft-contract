@@ -1,0 +1,70 @@
+Soft typing benchmarks:
+Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
+append          | 7      | 54         | 3               | 0.234  | 0         
+cpstak          | 22     | 86         | 4               | 0.266  | 0         
+last-pair       | 5      | 30         | 2               | 0.203  | 0         
+last            | 15     | 122        | 9               | 0.219  | 0         
+length-acc      | 9      | 60         | 2               | 0.203  | 0         
+length          | 7      | 53         | 2               | 0.203  | 0         
+member          | 7      | 50         | 3               | 0.203  | 0         
+recursive-div2  | 8      | 46         | 2               | 0.187  | 0         
+subst           | 9      | 55         | 4               | 0.172  | 0         
+tak             | 9      | 70         | 4               | 0.172  | 0         
+taut            | 10     | 30         | 2               | 0.204  | 0         
+TOTAL           | 108    | 656        | 37              | 2.26600| 0         
+
+Occurence typing benchmarks:
+Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
+ex-01           | 4      | 21         | 2               | 0.235  | 0         
+ex-02           | 4      | 31         | 3               | 0.188  | 0         
+ex-03           | 9      | 70         | 8               | 0.203  | 0         
+ex-04           | 8      | 57         | 5               | 0.187  | 0         
+ex-05           | 4      | 35         | 3               | 0.187  | 0         
+ex-06           | 6      | 45         | 4               | 0.187  | 0         
+ex-07           | 6      | 35         | 3               | 0.188  | 0         
+ex-08           | 5      | 42         | 2               | 0.188  | 0         
+ex-09           | 11     | 57         | 5               | 0.187  | 0         
+ex-10           | 4      | 31         | 2               | 0.172  | 0         
+ex-11           | 5      | 51         | 5               | 0.172  | 0         
+ex-12           | 4      | 40         | 2               | 0.187  | 0         
+ex-13           | 7      | 61         | 3               | 0.187  | 0         
+ex-14           | 10     | 71         | 4               | 0.204  | 0         
+TOTAL           | 87     | 647        | 51              | 2.67199| 0         
+
+Higher-order model checking benchmarks:
+Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
+ack             | 7      | 67         | 3               | 0.266  | 0         
+fhnhn           | 12     | 68         | 8               | 0.219  | 0         
+fold-div        | 11     | 103        | 4               | 0.187  | 0         
+fold-fun-list   | 19     | 184        | 15              | 0.297  | 0         
+hors            | 10     | 73         | 2               | 0.219  | 0         
+hrec            | 8      | 78         | 7               | 0.219  | 0         
+intro1          | 7      | 60         | 5               | 0.187  | 0         
+intro2          | 7      | 60         | 5               | 0.172  | 0         
+intro3          | 9      | 48         | 4               | 0.218  | 0         
+isnil           | 9      | 55         | 2               | 0.203  | 0         
+l-zipmap        | 11     | 126        | 2               | 0.218  | 0         
+l-zipunzip      | 16     | 137        | 8               | 0.219  | 0         
+map-foldr       | 10     | 104        | 10              | 0.219  | 0         
+mappend         | 11     | 119        | 7               | 0.203  | 0         
+mc91            | 7      | 57         | 2               | 0.218  | 1         
+mem             | 11     | 106        | 6               | 0.219  | 1         
+mult            | 8      | 95         | 6               | 0.25   | 0         
+neg             | 10     | 69         | 3               | 0.204  | 0         
+nth0            | 12     | 78         | 2               | 0.188  | 0         
+r-file          | 25     | 139        | 3               | 0.219  | 0         
+r-lock          | 8      | 52         | 2               | 0.187  | 0         
+repeat          | 7      | 59         | 5               | 0.219  | 0         
+reverse         | 10     | 86         | 2               | 0.203  | 0         
+sum             | 7      | 51         | 2               | 0.203  | 0         
+zip             | 14     | 120        | 4               | 0.203  | 0         
+TOTAL           | 266    | 2194       | 119             | 5.35900| 2         
+
+Higher-order symbolic execution benchmarks:
+Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
+snake           | 142    | 1232       | 96              | 1.437  | 0         
+tetris          | 259    | 2390       | 200             | 7.516  | 0         
+zombie          | 236    | 1049       | 39              | 3.594  | 0         
+TOTAL           | 637    | 4671       | 335             | 12.5469| 0         
+
+Higher-order stateful benchmarks from different sources:
