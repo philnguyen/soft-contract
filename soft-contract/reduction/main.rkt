@@ -30,16 +30,12 @@
           debugging^)
   (export reduction^)
 
-  (define-type Ctx (List -σ -σₖ))
+  (define-type Ctx (Pairof -σ -σₖ))
 
   (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -A) -Σ)
     (define seen : (HashTable -ς Ctx) (make-hash))
     (define αₖ₀ : -αₖ (-B ⊤$ H∅ '() ⟦e⟧ ⊥ρ ⊤Γ))
     (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥𝒜 ⊥Ξ))
-    (define root₀ ; all addresses to top-level definitions are conservatively active
-      (for/fold ([root₀ : (℘ ⟪α⟫) ∅eq]) ([𝒾 (top-levels)])
-        (set-add (set-add root₀ (-α->⟪α⟫ 𝒾)) (-α->⟪α⟫ (-α.wrp 𝒾)))))
-
     (define iter : Natural 0)
     (define ?max-steps (max-steps))
     (define iter-maxed? : (Natural → Boolean)
@@ -84,35 +80,44 @@
           (set! iter (+ 1 iter)))
 
         (define next
-          (match-let ([(-Σ σ mσₖ _ _) Σ])
+          (match-let ([(-Σ σ σₖ _ _) Σ])
 
-            (define vsn : Ctx (list σ mσₖ))
+            (define vsn : Ctx (cons σ σₖ))
 
-            (: ς-seen? : -ς → Boolean)
-            (define (ς-seen? ς)
-              (cond
-                [(hash-ref seen ς #f) =>
-                 (λ ([ctx₀ : Ctx])
-                   (match-define (list σ₀ mσₖ₀) ctx₀)
-                   (define (κ->αₖs [κ : -κ])
-                     {set (⟦k⟧->αₖ (-κ-rest κ))})
-                   (and (map-equal?/spanning-root mσₖ₀ mσₖ {set (-ς-block ς)} κ->αₖs)
-                        (let ([⟪α⟫s (ς->⟪α⟫s ς mσₖ₀)])
-                          (σ-equal?/spanning-root σ₀ σ ⟪α⟫s))))]
-                [else #f]))
+            (: ς↑-seen? : -ς↑ → Boolean)
+            (define (ς↑-seen? ς)
+              (cond [(hash-ref seen ς #f) =>
+                     (match-lambda
+                       [(cons σ₀ σₖ₀)
+                        (define root
+                          (match (-ς-block ς)
+                            [(-B _ _ _ _ ρ _) (->⟪α⟫s ρ)]
+                            [(-M _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
+                            [(-F _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
+                            [(-HV $ tag) {seteq (-α->⟪α⟫ (-α.hv tag))}]))
+                        (σ-equal?/spanning-root σ₀ σ root)])]
+                    [else #f]))
+
+            (: ς↓-seen? : -ς↓ → Boolean)
+            (define (ς↓-seen? ς)
+              (define (κ->αₖs [κ : -κ])
+                {set (⟦k⟧->αₖ (-κ-rest κ))})
+              (cond [(hash-ref seen ς #f) =>
+                     (match-lambda
+                       [(cons σ₀ σₖ₀)
+                        (map-equal?/spanning-root σₖ₀ σₖ {set (-ς-block ς)} κ->αₖs)])]
+                    [else #f]))
 
             (define next-from-ς↑s
-              (let ([ς↑s* ; filter out seen states
-                       (for*/list : (Listof -ς↑) ([ς ς↑s] #:unless (ς-seen? ς))
-                         (hash-set! seen ς vsn)
-                         (assert ς -ς↑?))])
-                (↝↑! ς↑s* Σ)))
+              (↝↑! (for/list : (Listof -ς↑) ([ς ς↑s] #:unless (ς↑-seen? ς))
+                     (hash-set! seen ς vsn)
+                     ς)
+                   Σ))
             (define next-from-ς↓s
-              (let ([ς↓s* ; filter out seen states
-                       (for*/list : (Listof -ς↓) ([ς ς↓s] #:unless (ς-seen? ς))
-                         (hash-set! seen ς vsn)
-                         (assert ς -ς↓?))])
-                (↝↓! ς↓s* Σ)))
+              (↝↓! (for/list : (Listof -ς↓) ([ς ς↓s] #:unless (ς↓-seen? ς))
+                     (hash-set! seen ς vsn)
+                     ς)
+                   Σ))
             (∪ next-from-ς↑s next-from-ς↓s)))
         (for ([ς (in-list ς!s)])
           (errs-add! (-ς!-blm ς)))
@@ -126,53 +131,17 @@
       #;(print-large-sets Σ #:val-min 1 #:kont-min 1)
       (values errs Σ)))
 
-  ;; Compute the root set for value addresses of this state
-  (define (ς->⟪α⟫s [ς : -ς] [σₖ : -σₖ]) : (℘ ⟪α⟫)
-    (match ς
-      [(-ς↑ αₖ)
-       (define αs₀
-         (match αₖ
-           [(-B _ _ _ _ ρ _) (->⟪α⟫s ρ)]
-           [(-M _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
-           [(-F _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
-           [(-HV $ tag) {seteq (-α->⟪α⟫ (-α.hv tag))}]))
-       (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]
-      [(-ς↓ αₖ _ _ A) ; if it's a "return" state, don't care about block content (e.g. `ρ`)
-       (define αs₀ (if (-W? A) (->⟪α⟫s A) ∅eq))
-       (∪ αs₀ (αₖ->⟪α⟫s αₖ σₖ))]))
-
   ;; Quick-step on "push" state
   (define (↝↑! [ςs : (Listof -ς↑)] [Σ : -Σ]) : (℘ -ς)
     (for/union : (℘ -ς) ([ς ςs])
-               (match-define (-ς↑ αₖ ) ς)
-               (define ⟦k⟧ (rt αₖ))
-               (match αₖ
-                 [(-B $ H fmls ⟦e⟧ ρ Γ)
-                  #;(begin
-                    (printf "executing ~a:~n" (show-⟦e⟧ ⟦e⟧))
-                    (printf "env:~n")
-                    (for ([(x α) (in-hash ρ)])
-                      (printf "  ~a ↦ ~a~n" x (show-⟪α⟫ α)))
-                    (printf "cache:~n")
-                    (for ([(l t) (in-hash $)])
-                      (printf "  ~a ↦ ~a~n" (show-loc l) (show-t t)))
-                    (printf "pc: ~a~n" (show-Γ Γ))
-                    (printf "~n"))
-                  #;(cond
-                    [(hash-ref ρ 'x₁ #f)
-                     =>
-                     (λ ([α : ⟪α⟫])
-                       (match-define (-α.x _ H) (⟪α⟫->-α α))
-                       (printf "ctx for x₁ at ~a: (~a) ~n" (show-⟪α⟫ α) (show-H H))
-                       (for ([e (in-list (-H->-ℋ H))])
-                         (printf "- ~a~n" (show-edge e))))])
-                  (⟦e⟧ ρ $ Γ H Σ ⟦k⟧)]
-                 [(-M $ H ctx W-C W-V Γ)
-                  (mon ctx W-C W-V $ Γ H Σ ⟦k⟧)]
-                 [(-F $ H l ℓ W-C W-V Γ)
-                  (flat-chk l ℓ W-C W-V $ Γ H Σ ⟦k⟧)]
-                 [(-HV $ tag) (havoc tag $ Σ ⟦k⟧)]
-                 [_ (error '↝↑ "~a" αₖ)])))
+      (match-define (-ς↑ αₖ) ς)
+      (define ⟦k⟧ (rt αₖ))
+      (match αₖ
+        [(-B $ H fmls ⟦e⟧ ρ Γ) (⟦e⟧ ρ $ Γ H Σ ⟦k⟧)]
+        [(-M $ H ctx W-C W-V Γ) (mon ctx W-C W-V $ Γ H Σ ⟦k⟧)]
+        [(-F $ H l ℓ W-C W-V Γ) (flat-chk l ℓ W-C W-V $ Γ H Σ ⟦k⟧)]
+        [(-HV $ tag) (havoc tag $ Σ ⟦k⟧)]
+        [_ (error '↝↑ "~a" αₖ)])))
 
   ;; Quick-step on "pop" state
   (define (↝↓! [ςs : (Listof -ς↓)] [Σ : -Σ]) : (℘ -ς)
