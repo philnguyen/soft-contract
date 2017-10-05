@@ -157,6 +157,9 @@ and Lean yourself.
    [`a9821f6437`](https://github.com/leanprover/lean/archive/a9821f643735de59efaf6eeabd0bfa8e9ae914fe.zip).
    Because Lean is in rapid development, our proof script is not compatible
    with recent releases.
+   (Language-wise, our script is compatible with Lean 3.0.0,
+   but the release seg-faults on the script,
+   which the Lean authors quickly fixed in this commit.)
    
 2. Instructions for building Lean on different systems can be found on their
    [Github page](https://github.com/leanprover/lean#build-instructions).
