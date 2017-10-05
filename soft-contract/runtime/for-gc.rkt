@@ -14,7 +14,7 @@
          )
 
 (define-unit for-gc@
-  (import sto^ pretty-print^)
+  (import sto^ pretty-print^ static-info^)
   (export for-gc^)
 
   ;; TMP hack for part of root set from stack frames
@@ -148,7 +148,8 @@
         ?l))
     (for/fold ([$ : -$ $])
               ([l (in-hash-keys $)]
-               #:unless (or (-loc.offset? l) (∋ locs l)))
+               #:unless (or (-loc.offset? l) (∋ locs l)
+                            (and (-𝒾? l) (assignable? l))))
       (hash-remove $ l)))
 
   (splicing-local
