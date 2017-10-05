@@ -63,7 +63,18 @@
         (λ (A $ Γ H Σ)
           (define (maybe-print-blame)
             (when (and (debug-iter?) (-blm? A))
-              (hash-ref! print-cache A (λ () (printf "~a~n" (show-A A))))))
+              (hash-ref! print-cache A
+                         (λ ()
+                           (printf "~a~n" (show-A A))
+                           #;(begin
+                             (printf "context:~n")
+                             (for ([e (-H->-ℋ H)])
+                               (printf "- ~a~n" (show-edge e)))
+                             (printf "cache: ~n")
+                             (for ([(l t) $])
+                               (printf "- ~a ↦ ~a~n" (show-loc l) (show-t t)))
+                             (printf "pc: ~a~n" (show-Γ Γ))
+                             (error 'first-blame))))))
           (match A
             [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
                                ∅]
