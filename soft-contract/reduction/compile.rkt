@@ -326,17 +326,13 @@
       (blm/simp l 'Λ (list 'defined?) (list (format-symbol "~a_(~a)" 'undefined x)) ℓₓ))
     (λ (ρ $ Γ H Σ ⟦k⟧)
       (define α (ρ@ ρ x))
-      (cond
-        [(-V? α)
-         (⟦k⟧ (-W (list α) x) $ Γ H Σ)]
-        [else
-         (define-values (Ws $*) ($@! Σ Γ α $ x ℓₓ))
-         (for/union : (℘ -ς) ([W (in-set Ws)])
-           (define A
-             (match W
-               [(-W¹ (-b (== undefined)) _) -blm.undefined]
-               [(-W¹ V                   t) (-W (list V) t)]))
-           (⟦k⟧ A $* Γ H Σ))])))
+      (define-values (Ws $*) ($@! Σ Γ α $ x ℓₓ))
+      (for/union : (℘ -ς) ([W (in-set Ws)])
+        (define A
+          (match W
+            [(-W¹ (-b (== undefined)) _) -blm.undefined]
+            [(-W¹ V                   t) (-W (list V) t)]))
+        (⟦k⟧ A $* Γ H Σ))))
 
   (define (↓ₚᵣₘ [p : -prim]) (ret-W¹ p p))
 
