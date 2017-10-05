@@ -40,7 +40,9 @@ can be found on the official site.
     
 ### Testing the implementation
 
-1. To run the benchmarks and generate tables listing positives
+#### Reproducing benchmark tables
+
+To run the benchmarks and generate tables listing positives
    and verification time for each module,
    type the following at the prompt:
 
@@ -49,7 +51,16 @@ can be found on the official site.
         
    An example of the expected output can be found at [log.txt](https://github.com/philnguyen/soft-contract/tree/dev/log.txt).
    
-2. To try the verifier on your own program, use command `raco scv` on a regular
+While the paper collapse several old benchmarks together
+(e.g. `soft-typing`, `hors`, `occurence-typing`),
+the script outputs each benchmark suite in details.
+In addition, the number of checks have slightly fluctuated because
+we changed the treatment of some language constructs.
+In all cases, the estimated number of checks is always under-approximating.
+   
+#### Trying your own programs
+
+To try the verifier on your own program, use command `raco scv` on a regular
    Racket file:
 
         raco scv path/to/rkt/file
@@ -75,7 +86,9 @@ can be found on the official site.
    by the current tool (e.g. control operators, optional keyword arguments,
    gradually typed programs, etc.)
    
-3. An overview of the source code:
+#### Browsing the implementation
+
+An overview of the source code:
 
    * [soft-contract/parse](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/parse):
      defines the parser that converts Racket syntax into an internal AST representation.
@@ -95,12 +108,16 @@ can be found on the official site.
    
 ### Checking the proof
 
+#### Checking the proof with Lean
+
 To run all the proof, at the prompt, execute:
 
     lean proof/*.lean
     
 The command should finish with no output if the proof goes through.
 Otherwise, Lean will complain with some unproven theorem.
+
+#### Browsing the proof
 
 The content of the proof script is as follow:
 
