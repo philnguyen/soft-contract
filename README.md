@@ -145,7 +145,7 @@ and Lean yourself.
    This project is known to *not* work with previous releases of Racket.
 
 2. Download and install [Z3](https://github.com/Z3Prover/z3/releases).
-   This project has been tested to work with Z3 `4.5.0` and `4.4.1`.
+   This project has been tested to work with Z3 `4.5.0`.
    
 3. Set the environment variable `$Z3_LIB` to `libz3.dll`, `libz3.so`,
    or `libz3.dylib`, depending on your system being Windows, Linux, or Mac,
@@ -161,7 +161,7 @@ and Lean yourself.
         git clone git@github.com:philnguyen/soft-contract.git
         cd soft-contract/soft-contract
         git checkout popl18-ae
-        raco pkg install
+        raco pkg install --deps search-auto
         
 6. Information for generating the tables, verifying your own programs,
    and browsing the source code is the same as in the
