@@ -8,15 +8,18 @@
          "count-checks.rkt")
 
 (require/typed srfi/13
-  [string-pad-right (String Index → String)])
+  [string-pad-right (String Natural → String)])
 
 (define TIMEOUT (* 60 20))
-(define COLUMNS '(Lines Checks Time Pos))
-(define sep "\t|" #;"&")
+(define COLUMNS '(Lines All-checks Explicit-checks Time Positives))
+(define COL-PROGRAM-WIDTH 16)
+(define sep "|" #;"&")
 (define end "" #;"\\\\")
 (define header-end "" #;"\\hline ")
 
-(define (pad s [width : Index 15]) (string-pad-right (format "~a" s) width))
+(define (col-width [c : Symbol]) (max 7 (add1 (string-length (symbol->string c)))))
+
+(define (pad s [w : Natural]) (string-pad-right (format "~a" s) w))
 
 (define-type Real/Rng (U Real (List Real)))
 (define-type Record (HashTable Symbol Real/Rng))
@@ -60,10 +63,11 @@
     (match-let ([(? path-for-some-system? p) (last (explode-path p))]) 
       (some-system-path->string (path-replace-extension p ""))))
   (define lines (count-lines p))
-  (define checks
+  (define-values (all-checks explicit-checks)
     (match-let ([stats (count-checks (parse-files (list p)))])
       ;(printf "~a~n" stats)
-      (hash-ref stats 'total)))
+      (values (hash-ref stats 'total)
+              (hash-ref stats 'leaf (λ () 0)))))
 
   (: count-poses : → Real/Rng)
   (define (count-poses)
@@ -76,31 +80,33 @@
                 (match-define (-blm l+ lo Cs Vs ℓ) A)
                 ℓ)))
       [(list n) n]
-      [#f (list checks)]))
+      [#f (list all-checks)]))
 
   (collect-garbage) (collect-garbage) (collect-garbage)
   (match-define-values ((list poses) t t-real t-gc) (time-apply count-poses '()))
   
-  (Row name ((inst hasheq Symbol Real/Rng)
-             'Lines lines
-             'Checks checks
-             'Time (exact->inexact (/ t 1000))
-             'Pos poses)))
+  (Row name (hash-set
+             ((inst hash Symbol Real/Rng)
+              'Lines lines
+              'All-checks all-checks 
+              'Time (exact->inexact (/ t 1000))
+              'Positives poses)
+             'Explicit-checks explicit-checks)))
 
 (define (print-then-return-row [row : Row]) : Row
   (match-define (Row name fields) row)
-  (display (pad name))
+  (display (pad name COL-PROGRAM-WIDTH))
   (for ([col (in-list COLUMNS)])
     (printf "~a " sep)
-    (display (pad (show-Real/Rng (hash-ref fields col)) 8)))
+    (display (pad (show-Real/Rng (hash-ref fields col)) (col-width col))))
   (printf "~a~n" end)
   row)
 
 (define (print-header)
-  (display (pad "Program"))
+  (display (pad "Program" COL-PROGRAM-WIDTH))
   (for ([col (in-list COLUMNS)])
     (printf "~a " sep)
-    (display (pad col 8)))
+    (display (pad col (col-width col))))
   (printf "~a ~a~n" end header-end))
 
 (: run-dir : Path-String → (Values (Listof Row) Row))

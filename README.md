@@ -44,9 +44,10 @@ can be found on the official site.
    and verification time for each module,
    type the following at the prompt:
 
-        raco popl18-gen-table
+        cd soft-contract
+        ./gen-all-tables
         
-   An example of the expected output can be found at [log.txt](FIXME link).
+   An example of the expected output can be found at [log.txt](https://github.com/philnguyen/soft-contract/tree/dev/log.txt).
    
 2. To try the verifier on your own program, use command `raco scv` on a regular
    Racket file:
@@ -68,6 +69,11 @@ can be found on the official site.
      video games using extensive contracts.
    * [soft-contract/test/programs/safe/real](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/real):
      larger, stateful programs collected from different sources.
+     
+   Other benchmarks in the repository are either small program fragments
+   subsumed by mentioned benchmarks or programs with features not yet handled
+   by the current tool (e.g. control operators, optional keyword arguments,
+   gradually typed programs, etc.)
    
 3. An overview of the source code:
 
