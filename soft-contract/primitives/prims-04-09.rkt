@@ -96,9 +96,9 @@
   (def member
     (∀/c (α β _)
          (case->
-          [β (listof α) . -> . (or/c (and/c (listof α) pair?) not)]
-          [β (listof α) (α β . -> . _) . -> . (or/c (and/c (listof α) pair?) not)])))
-  (def* (memv memq) (∀/c (α _) (_ (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
+          [β (listof α) . -> . (or/c (cons/c β (listof α)) #f)]
+          [β (listof α) (α β . -> . _) . -> . (or/c (cons/c β (listof α)) #f)])))
+  (def* (memv memq) (∀/c (α β) (β (listof α) . -> . (or/c (cons/c β (listof α)) #f))))
   (def memf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
   (def findf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c α not))))
   (def assoc
