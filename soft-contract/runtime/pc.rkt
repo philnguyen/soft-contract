@@ -214,6 +214,9 @@
            [(or (list t (-b #f)) (list (-b #f) t)) #:when t
             (-t.@ 'not (list t))]
            [(list x x) -tt]
+           [(or (list t (-b 0.0))
+                (list (-b 0.0) t)) #:when t
+            (-t.@ 'zero? (list t))]
            [_ (default-case)])]
 
         ['defined?
