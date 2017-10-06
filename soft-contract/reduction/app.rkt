@@ -326,9 +326,9 @@
           (ap∷ '() (map mk-rt Wₓs) ⊥ρ ℓₐ ⟦k⟧))))
     (⟦c⟧ ρ* $ Γ Hₑₑ Σ ⟦k⟧*))
 
-  (: apply-app-Ar : (-=> -?t -V -?t -ctx → ℓ (Listof -W¹) -W¹ -Γ -H -Σ -⟦k⟧ → (℘ -ς)))
-  (define ((apply-app-Ar C c Vᵤ sₕ ctx) ℓ Ws₀ Wᵣ Γ H Σ ⟦k⟧)
-    (match-define (-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) (-⟪α⟫ℓ β ℓₐ)) C)
+  (: apply-app-Ar : (-=> -?t -V -?t -ctx → ℓ (Listof -W¹) -W¹ -$ -Γ -H -Σ -⟦k⟧ → (℘ -ς)))
+  (define ((apply-app-Ar C c Vᵤ sₕ ctx) ℓ₀ Ws₀ Wᵣ $ Γ H Σ ⟦k⟧)
+    (match-define (-=> (-var αℓs₀ (-⟪α⟫ℓ αᵣ ℓᵣ)) Rng) C)
     (match-define-values ((-var cs₀ cᵣ) d) (-->-split c (arity-at-least (length αℓs₀))))
     ;; FIXME copied n pasted from app-Ar
     (define-values (αs₀ ℓs₀) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs₀))
@@ -336,8 +336,7 @@
     (define ctx* (ctx-neg ctx))
     (define Wᵤ (-W¹ Vᵤ sₕ))
     (for*/union : (℘ -ς) ([Cs₀ (in-set (σ@/list Σ αs₀))]
-                          [Cᵣ (in-set (σ@ Σ αᵣ))]
-                          [D (in-set (σ@ Σ β))])
+                          [Cᵣ (in-set (σ@ Σ αᵣ))])
       (define ⟦mon-x⟧s : (Listof -⟦e⟧)
         (for/list ([Cₓ Cs₀] [cₓ cs₀] [Wₓ Ws₀] [ℓₓ : ℓ ℓs₀])
           (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-rt (-W¹ Cₓ cₓ)) (mk-rt Wₓ))))
@@ -345,13 +344,13 @@
         (mk-mon (ctx-with-ℓ ctx* ℓᵣ) (mk-rt (-W¹ Cᵣ cᵣ)) (mk-rt Wᵣ)))
       (match ⟦mon-x⟧s
         ['()
-         (⟦mon-x⟧ᵣ ⊥ρ Γ H Σ
-          (ap∷ (list Wᵤ (+W¹ 'apply)) '() ⊥ρ ℓ
-               (mon.c∷ (ctx-with-ℓ ctx ℓₐ) (-W¹ D d) ⟦k⟧)))]
+         (⟦mon-x⟧ᵣ ⊥ρ $ Γ H Σ
+          (ap∷ (list Wᵤ (+W¹ 'apply)) '() ⊥ρ ℓ₀
+               (mon*.c∷ (ctx-with-ℓ ctx ℓ₀) Rng d ⟦k⟧)))]
         [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
-         (⟦mon-x⟧₀ ⊥ρ Γ H Σ
-          (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓ
-               (mon.c∷ (ctx-with-ℓ ctx ℓₐ) (-W¹ D d) ⟦k⟧)))])))
+         (⟦mon-x⟧₀ ⊥ρ $ Γ H Σ
+          (ap∷ (list Wᵤ (+W¹ 'apply)) `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓ₀
+               (mon*.c∷ (ctx-with-ℓ ctx ℓ₀) Rng d ⟦k⟧)))])))
 
   (: app-Indy : -=>i -?t -V -?t -ctx → -⟦f⟧)
   (define ((app-Indy C c Vᵤ sₕ ctx) ℓₐ Wₓs $ Γ H Σ ⟦k⟧)
@@ -648,7 +647,7 @@
               (match-define (cons V-inits-more V-rest*) unalloced)
               (define W-inits* (append W-inits (map V->W¹ V-inits-more)))
               (define W-rest* (-W¹ V-rest* #f))
-              ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ H Σ ⟦k⟧))]
+              ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* $ Γ H Σ ⟦k⟧))]
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (W-inits* W-inits.rest) (split-at W-inits n))
@@ -656,7 +655,7 @@
             (define V-rest* (alloc-rest-args! Σ Γ Hₑₑ ℓ W-inits.rest #:end (-W¹-V W-rest)))
             (define W-rest* (-W¹ V-rest* #f))
             (for/union : (℘ -ς) ([Vᵤ (in-set (σ@ Σ α))])
-              ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* Γ H Σ ⟦k⟧))])]
+              ((apply-app-Ar C #f Vᵤ t-func ctx) ℓ W-inits* W-rest* $ Γ H Σ ⟦k⟧))])]
         [(-=> (? list? αℓₓs) _)
          (define n (length αℓₓs))
          (define num-remaining-args (- n num-inits))
