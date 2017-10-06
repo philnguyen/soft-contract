@@ -95,10 +95,15 @@
           (define t (-λ xs e*))
           (λ (ρ $ Γ H Σ ⟦k⟧)
             (define ρ* (m↓ ρ fvs))
+            (define names
+              (for/seteq: : (℘ (U Symbol ℓ)) ([x ($-symbolic-names $)]
+                                              #:unless (and (integer? x)
+                                                            (match? (ℓ->loc x) (loc (? symbol?) _ _ _))))
+                x))
             (define Γ*
-              (∪ (for*/set: : -Γ ([φ (in-set Γ)]
+              (∪ (Γ↓ Γ names) #;(for*/set: : -Γ ([φ (in-set Γ)]
                                   [fv⟦φ⟧ (in-value (fvₜ φ))]
-                                  #:unless (set-empty? fv⟦φ⟧)
+                                  ;#:unless (set-empty? fv⟦φ⟧)
                                   #:when (⊆ fv⟦φ⟧ fvs))
                    φ)
                  ;; FIXME generalize HACK
