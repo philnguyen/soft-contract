@@ -68,7 +68,7 @@
             (or/c vector?
                   (list/c exact-nonnegative-integer?
                           any/c
-                          (recursive-contract fector/c)))))
+                          (recursive-contract fector/c #:chaperone)))))
 
 (define (make-fector n x)
   (box (make-vector n x)))
