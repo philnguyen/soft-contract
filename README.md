@@ -47,7 +47,7 @@ To run the benchmarks and generate tables listing positives
    type the following at the prompt:
 
         cd soft-contract
-        ./gen-all-tables
+        make tables
         
    An example of the expected output can be found at [log.txt](https://github.com/philnguyen/soft-contract/tree/dev/log.txt).
    
@@ -112,7 +112,7 @@ An overview of the source code:
 
 To run all the proof, at the prompt, execute:
 
-    lean proof/*.lean
+    make proof
     
 The command should finish with no output if the proof goes through.
 Otherwise, Lean will complain with some unproven theorem.
