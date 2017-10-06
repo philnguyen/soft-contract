@@ -28,6 +28,7 @@
    [exact-positive-integer? ⇒ positive?]
    [exact-positive-integer? ⇒ exact-nonnegative-integer?]
    [inexact-real? ⇒ real?]
+   [inexact-real? ⇒ inexact?]
    [rational? ⇒ real?]
    [flonum? ⇒ inexact-real?]
    [single-flonum? ⇒ flonum?]
