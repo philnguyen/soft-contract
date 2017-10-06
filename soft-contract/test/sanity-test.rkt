@@ -120,8 +120,8 @@
   (test "safe/mochi/reverse.rkt" check-safe)
   (test "safe/mochi/sum.rkt" check-safe)
   (test "safe/mochi/zip.rkt" check-safe)
-  (test "safe/mochi/mem.rkt" (check 'Ok-pos 1 1))
-  (test "safe/mochi/mc91.rkt" (check 'Ok-pos 1 1))
+  (test "safe/mochi/mem.rkt" (check 'Ok-pos 0 1))
+  (test "safe/mochi/mc91.rkt" (check 'Ok-pos 0 1))
 
   (test "safe/issues/cons-of-list.rkt" check-safe)
   (test "safe/issues/list2vector.rkt" check-safe)
@@ -190,8 +190,8 @@
   (test "unsafe/issues/issue-97.rkt" check-fail)
   (test "unsafe/issues/strict-parametricity.rkt" check-fail)
 
-  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 1 1))
-  (test "safe/real/fector.rkt" (check 'Ok-pos 4 6)) ; depends count how
+  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 1))
+  (test "safe/real/fector.rkt" (check 'Ok-pos 0 6)) ; depends count how
   #;(test "safe/real/nucleic2-modular-fixed.rkt" check-safe)
   #;(test "safe/real/nucleic2-modular.rkt" check-fail)
 
