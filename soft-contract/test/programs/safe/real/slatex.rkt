@@ -104,7 +104,7 @@
         (let ((name (cadr so-d)) (fields (cddr so-d)))
           (let loop ((fields fields) (i 0) (r '()))
             (if (null? fields)
-              `(begin (define ,name (lambda () (make-vector ,i 0))) ,@r)
+              `(begin (define ,name (lambda () (make-vector ,i))) ,@r)
               (loop
                (cdr fields)
                (+ i 1)
@@ -231,12 +231,12 @@
 
 (define slatex::slatex-error
   (lambda (where . what)
-    (display "Error: " (current-output-port))
-    (display where (current-output-port))
-    (newline (current-output-port))
+    (display "Error: ")
+    (display where)
+    (newline)
     (for-each (lambda (v)
-                (write v (current-output-port))
-                (newline (current-output-port)))
+                (write v)
+                (newline))
               what)
     (error "slatex-error")))
 
@@ -1936,9 +1936,9 @@
 
 (define slatex::process-main-tex-file
   (lambda (filename)
-    (display "SLaTeX v. " (current-output-port))
-    (display slatex::*slatex-version* (current-output-port))
-    (newline (current-output-port))
+    (display "SLaTeX v. ")
+    (display slatex::*slatex-version*)
+    (newline)
     (set! slatex::primary-aux-file-count -1)
     (set! slatex::*slatex-separate-includes?* #f)
     (if (or (not slatex::*texinputs-list*) (null? slatex::*texinputs-list*))
@@ -1952,14 +1952,14 @@
         (call-with-output-file
           file-hide-file
           (lambda (out) (display "\\def\\filehider{x}" out) (newline out)))))
-    (display "typesetting code" (current-output-port))
+    (display "typesetting code")
     (set! slatex::*tex-calling-directory*
       (slatex::directory-namestring filename))
     (set! slatex::subjobname (slatex::basename filename))
     (set! slatex::seen-first-command? #f)
     (slatex::process-tex-file filename)
-    (display "done" (current-output-port))
-    (newline (current-output-port))))
+    (display "done")
+    (newline)))
 
 (define slatex::dump-intext
   (lambda (in out)
@@ -2007,15 +2007,15 @@
 (define slatex::process-tex-file
   (lambda (raw-filename)
     (if slatex::debug?
-      (begin (display "begin " (current-output-port))
-             (display raw-filename (current-output-port))
-             (newline (current-output-port))))
+      (begin (display "begin ")
+             (display raw-filename)
+             (newline)))
     (let ((filename (slatex::full-texfile-name raw-filename)))
       (if (not filename)
         (begin
-          (display "[" (current-output-port))
-          (display raw-filename (current-output-port))
-          (display "]" (current-output-port))
+          (display "[")
+          (display raw-filename)
+          (display "]")
           (flush-output))
         (call-with-input-file
           filename
@@ -2259,21 +2259,21 @@
                               'unsetspecialsymbol)))))))
                     (loop)))))))))
     (if slatex::debug?
-      (begin (display "end " (current-output-port))
-             (display raw-filename (current-output-port))
-             (newline (current-output-port))))))
+      (begin (display "end ")
+             (display raw-filename)
+             (newline)))))
 
 (define slatex::process-scheme-file
   (lambda (raw-filename)
     (let ((filename (slatex::full-scmfile-name raw-filename)))
       (if (not filename)
         (begin
-          (display "process-scheme-file: " (current-output-port))
-          (display raw-filename (current-output-port))
-          (display " doesn't exist" (current-output-port))
-          (newline (current-output-port)))
+          (display "process-scheme-file: ")
+          (display raw-filename)
+          (display " doesn't exist")
+          (newline))
         (let ((aux.tex (slatex::new-aux-file ".tex")))
-          (display "." (current-output-port))
+          (display ".")
           (flush-output)
           (if (file-exists? aux.tex) (delete-file aux.tex))
           (call-with-input-file
@@ -2298,7 +2298,7 @@
            (aux.tex (string-append aux ".tex")))
       (if (file-exists? aux.scm) (delete-file aux.scm))
       (if (file-exists? aux.tex) (delete-file aux.tex))
-      (display "." (current-output-port))
+      (display ".")
       (flush-output)
       (call-with-output-file
         aux.scm
@@ -2354,7 +2354,7 @@
           (aux2.tex (slatex::new-secondary-aux-file ".tex")))
       (if (file-exists? aux2.tex) (delete-file aux2.tex))
       (if (file-exists? aux.tex) (delete-file aux.tex))
-      (display "." (current-output-port))
+      (display ".")
       (flush-output)
       (fluid-let
         ((slatex::*slatex-in-protected-region?* #t)
