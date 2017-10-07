@@ -21,3 +21,4 @@ tables:
 proof:
 	@echo "Checking the Lean proof"
 	@cd mechanized; lean *.lean
+	@echo "Lean proof checked"
