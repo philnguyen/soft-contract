@@ -12,7 +12,7 @@
 
 (define TIMEOUT (* 60 20))
 (define COLUMNS '(Lines All-checks Explicit-checks Time Positives))
-(define COL-PROGRAM-WIDTH 16)
+(define COL-PROGRAM-WIDTH 20)
 (define sep "|" #;"&")
 (define end "" #;"\\\\")
 (define header-end "" #;"\\hline ")
