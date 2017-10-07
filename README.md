@@ -79,7 +79,8 @@ we changed the expansion of some language constructs.
 In all cases, the estimated number of checks is always under-approximating.
 
 Because the tool is still in development, some numbers have differed
-since the paper's submission. We will update the paper's final version
+since the paper's submission (some fewer positives, some faster programs,
+some slower ones). We will update the paper's final version
 to be consistent with the latest status.
    
 #### Trying your own programs
