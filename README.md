@@ -145,7 +145,7 @@ Otherwise, Lean will complain with some unproven theorem
 
 The content of the proof script is as follow:
 
-* [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/definitions.lean): definition of ¦Ë-calculus
+* [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/definitions.lean): definition of lambda-calculus
   with integers, symbolic values, and mutable variables,
   along with run-time constructs.
 * [proof/instantiaions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/instantiations.lean): definition of the approximation
