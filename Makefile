@@ -20,4 +20,4 @@ tables:
 
 proof:
 	@echo "Checking the Lean proof"
-	lean mechanized/*.lean
+	@cd mechanized; lean *.lean
