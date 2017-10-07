@@ -19,4 +19,5 @@ tables:
 	@racket soft-contract/test/gen-table.rkt soft-contract/test/programs/safe/real
 
 proof:
+	@echo "Checking the Lean proof"
 	lean mechanized/*.lean
