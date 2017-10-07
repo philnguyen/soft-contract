@@ -2488,4 +2488,4 @@
 
 (provide
  (contract-out
-  [slatex::process-main-tex-file (path-string? . -> . #;void? any/c)]))
+  [slatex::process-main-tex-file (path-string? . -> . void?)]))
