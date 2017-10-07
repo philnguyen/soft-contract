@@ -10,7 +10,7 @@
 (require/typed srfi/13
   [string-pad-right (String Natural → String)])
 
-(define TIMEOUT (* 60 20))
+(define TIMEOUT (* 60 60))
 (define COLUMNS '(Lines All-checks Explicit-checks Time Positives))
 (define COL-PROGRAM-WIDTH 20)
 (define sep "|" #;"&")
