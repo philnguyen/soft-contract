@@ -140,7 +140,7 @@ To just check the proof, at the prompt, execute:
     make proof
     
 The command should finish with no output if the proof goes through.
-Otherwise, Lean will complain with some unproven theorem
+Otherwise, Lean will complain about some unproven theorem
 (or those admited without proof using `sorry`).
 
 #### Browsing the proof
