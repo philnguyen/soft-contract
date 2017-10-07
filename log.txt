@@ -1,70 +1,270 @@
+Running sanity test suite
+raco test: (submod "soft-contract/test/sanity-test.rkt" test)
+programs/safe/octy/ex-01.rkt
+programs/safe/octy/ex-02.rkt
+programs/safe/octy/ex-03.rkt
+programs/safe/octy/ex-04.rkt
+programs/safe/octy/ex-05.rkt
+programs/safe/octy/ex-06.rkt
+programs/safe/octy/ex-07.rkt
+programs/safe/octy/ex-08.rkt
+programs/safe/octy/ex-09.rkt
+programs/safe/octy/ex-10.rkt
+programs/safe/octy/ex-11.rkt
+programs/safe/octy/ex-12.rkt
+programs/safe/octy/ex-13.rkt
+programs/safe/octy/ex-14.rkt
+programs/unsafe/octy/ex-01.rkt
+programs/unsafe/octy/ex-02.rkt
+programs/unsafe/octy/ex-03.rkt
+programs/unsafe/octy/ex-04.rkt
+programs/unsafe/octy/ex-05.rkt
+programs/unsafe/octy/ex-06.rkt
+programs/unsafe/octy/ex-07.rkt
+programs/unsafe/octy/ex-08.rkt
+programs/unsafe/octy/ex-09.rkt
+programs/unsafe/octy/ex-10.rkt
+programs/unsafe/octy/ex-11.rkt
+programs/unsafe/octy/ex-12.rkt
+programs/unsafe/octy/ex-13.rkt
+programs/unsafe/octy/ex-14.rkt
+programs/safe/softy/append.rkt
+programs/safe/softy/cpstak.rkt
+programs/safe/softy/last-pair.rkt
+programs/safe/softy/last.rkt
+programs/safe/softy/length-acc.rkt
+programs/safe/softy/length.rkt
+programs/safe/softy/member.rkt
+programs/safe/softy/recursive-div2.rkt
+programs/safe/softy/subst.rkt
+programs/safe/softy/tak.rkt
+programs/safe/softy/taut.rkt
+programs/unsafe/softy/append.rkt
+programs/unsafe/softy/cpstak.rkt
+programs/unsafe/softy/last-pair.rkt
+programs/unsafe/softy/last.rkt
+programs/unsafe/softy/length-acc.rkt
+programs/unsafe/softy/length.rkt
+programs/unsafe/softy/member.rkt
+programs/unsafe/softy/recursive-div2.rkt
+programs/unsafe/softy/subst.rkt
+programs/unsafe/softy/tak.rkt
+programs/unsafe/softy/taut.rkt
+programs/safe/misc/match.rkt
+programs/unsafe/misc/div-by-zero.rkt
+programs/unsafe/misc/match.rkt
+programs/paper/match.rkt
+programs/paper/match-no-check.rkt
+programs/paper/match-unsafe.rkt
+programs/paper/escape.rkt
+programs/paper/escape-conservative.rkt
+programs/paper/factorial.rkt
+programs/paper/havoc-1.rkt
+programs/paper/havoc-2.rkt
+programs/paper/mutable-box-as-closure.rkt
+programs/paper/succ.rkt
+programs/paper/succ-incorrect.rkt
+programs/safe/mochi/ack.rkt
+programs/safe/mochi/fhnhn.rkt
+programs/safe/mochi/fold-div.rkt
+programs/safe/mochi/fold-fun-list.rkt
+programs/safe/mochi/hors.rkt
+programs/safe/mochi/hrec.rkt
+programs/safe/mochi/intro1.rkt
+programs/safe/mochi/intro2.rkt
+programs/safe/mochi/intro3.rkt
+programs/safe/mochi/isnil.rkt
+programs/safe/mochi/l-zipmap.rkt
+programs/safe/mochi/l-zipunzip.rkt
+programs/safe/mochi/map-foldr.rkt
+programs/safe/mochi/mappend.rkt
+programs/safe/mochi/mult.rkt
+programs/safe/mochi/neg.rkt
+programs/safe/mochi/nth0.rkt
+programs/safe/mochi/r-file.rkt
+programs/safe/mochi/r-lock.rkt
+programs/safe/mochi/repeat.rkt
+programs/safe/mochi/reverse.rkt
+programs/safe/mochi/sum.rkt
+programs/safe/mochi/zip.rkt
+programs/safe/mochi/mem.rkt
+programs/safe/mochi/mc91.rkt
+programs/safe/issues/cons-of-list.rkt
+programs/safe/issues/list2vector.rkt
+programs/safe/issues/issue-62.rkt
+programs/safe/issues/issue-63.rkt
+programs/safe/issues/issue-64.rkt
+programs/safe/issues/issue-66.rkt
+programs/safe/issues/issue-67.rkt
+programs/safe/issues/issue-72.rkt
+programs/safe/issues/issue-73.rkt
+programs/safe/issues/issue-76.rkt
+programs/safe/issues/make-vector.rkt
+programs/safe/issues/ctc-var.rkt
+programs/safe/issues/issue-79.rkt
+programs/safe/issues/issue-61.rkt
+programs/safe/issues/issue-74.rkt
+programs/safe/issues/issue-80.rkt
+programs/safe/issues/issue-81.rkt
+2 files:
+- programs/safe/issues/issue-65/main.rkt
+- programs/safe/issues/issue-65/example.rkt
+programs/safe/issues/issue-82.rkt
+2 files:
+- programs/safe/issues/issue-84/module1.rkt
+- programs/safe/issues/issue-84/module2.rkt
+programs/safe/issues/issue-85.rkt
+2 files:
+- programs/safe/issues/issue-87/foo.rkt
+- programs/safe/issues/issue-87/main.rkt
+programs/safe/issues/issue-88.rkt
+programs/safe/issues/issue-89.rkt
+programs/safe/issues/issue-91.rkt
+programs/safe/issues/build-vector.rkt
+programs/safe/issues/substruct.rkt
+programs/safe/issues/issue-96.rkt
+programs/safe/issues/hash-basics.rkt
+programs/safe/issues/set-basics.rkt
+programs/safe/issues/parametric-basics.rkt
+programs/safe/issues/issue-97.rkt
+programs/safe/issues/issue-99.rkt
+programs/safe/issues/issue-98.rkt
+programs/safe/issues/issue-101.rkt
+programs/safe/issues/issue-101b.rkt
+programs/safe/issues/case-lambdas.rkt
+programs/safe/issues/refined-string2list.rkt
+programs/unsafe/issues/list2vector.rkt
+programs/unsafe/issues/make-vector.rkt
+programs/unsafe/issues/issue-79.rkt
+programs/unsafe/issues/issue-61.rkt
+programs/unsafe/issues/issue-74a.rkt
+programs/unsafe/issues/issue-74b.rkt
+programs/unsafe/issues/issue-74c.rkt
+programs/unsafe/issues/issue-82.rkt
+programs/unsafe/issues/issue-89.rkt
+programs/unsafe/issues/utilities.rkt
+programs/unsafe/issues/undefined.rkt
+programs/unsafe/issues/build-vector.rkt
+programs/unsafe/issues/substruct.rkt
+programs/unsafe/issues/parametric-basics.rkt
+programs/unsafe/issues/issue-97.rkt
+programs/unsafe/issues/strict-parametricity.rkt
+programs/safe/real/hash-srfi-69.rkt
+programs/safe/real/fector.rkt
+programs/safe/real/protected-leftist-tree.rkt
+programs/unsafe/real/protected-leftist-tree.rkt
+programs/safe/real/protected-ring-buffer.rkt
+programs/unsafe/real/protected-ring-buffer.rkt
+3 files:
+- programs/safe/multiple/main.rkt
+- programs/safe/multiple/helper-1.rkt
+- programs/safe/multiple/helper-2.rkt
+3 files:
+- programs/unsafe/multiple/main.rkt
+- programs/unsafe/multiple/helper-1.rkt
+- programs/unsafe/multiple/helper-2.rkt
+2 files:
+- gradual-typing-benchmarks/sieve/streams.rkt
+- gradual-typing-benchmarks/sieve/main.rkt
+4 files:
+- gradual-typing-benchmarks/morsecode/morse-code-table.rkt
+- gradual-typing-benchmarks/morsecode/morse-code-strings.rkt
+- gradual-typing-benchmarks/morsecode/levenshtein.rkt
+- gradual-typing-benchmarks/morsecode/main.rkt
+4 files:
+- gradual-typing-benchmarks/kcfa/structs.rkt
+- gradual-typing-benchmarks/kcfa/benv.rkt
+- gradual-typing-benchmarks/kcfa/time.rkt
+- gradual-typing-benchmarks/kcfa/denotable.rkt
+programs/safe/games/snake.rkt
+programs/safe/games/tetris.rkt
+programs/safe/games/zombie.rkt
+programs/unsafe/games/snake.rkt
+programs/unsafe/games/tetris.rkt
+programs/unsafe/games/zombie.rkt
+Generating benchmark tables
+
 Soft typing benchmarks:
-Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
-append          | 7      | 54         | 3               | 0.234  | 0         
-cpstak          | 22     | 86         | 4               | 0.266  | 0         
-last-pair       | 5      | 30         | 2               | 0.203  | 0         
-last            | 15     | 122        | 9               | 0.219  | 0         
-length-acc      | 9      | 60         | 2               | 0.203  | 0         
-length          | 7      | 53         | 2               | 0.203  | 0         
-member          | 7      | 50         | 3               | 0.203  | 0         
-recursive-div2  | 8      | 46         | 2               | 0.187  | 0         
-subst           | 9      | 55         | 4               | 0.172  | 0         
-tak             | 9      | 70         | 4               | 0.172  | 0         
-taut            | 10     | 30         | 2               | 0.204  | 0         
-TOTAL           | 108    | 656        | 37              | 2.26600| 0         
+Program             | Lines  | All-checks | Explicit-checks | Time   | Positives
+append              | 7      | 54         | 3               | 0.192  | 0
+cpstak              | 22     | 86         | 4               | 0.188  | 0
+last-pair           | 5      | 30         | 2               | 0.124  | 0
+last                | 15     | 122        | 9               | 0.156  | 0
+length-acc          | 9      | 60         | 2               | 0.152  | 0
+length              | 7      | 53         | 2               | 0.14   | 0
+member              | 7      | 50         | 3               | 0.132  | 0
+recursive-div2      | 8      | 46         | 2               | 0.12   | 0
+subst               | 9      | 55         | 4               | 0.12   | 0
+tak                 | 9      | 70         | 4               | 0.124  | 0
+taut                | 10     | 30         | 2               | 0.128  | 0
+TOTAL               | 108    | 656        | 37              | 1.57600| 0
 
 Occurence typing benchmarks:
-Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
-ex-01           | 4      | 21         | 2               | 0.235  | 0         
-ex-02           | 4      | 31         | 3               | 0.188  | 0         
-ex-03           | 9      | 70         | 8               | 0.203  | 0         
-ex-04           | 8      | 57         | 5               | 0.187  | 0         
-ex-05           | 4      | 35         | 3               | 0.187  | 0         
-ex-06           | 6      | 45         | 4               | 0.187  | 0         
-ex-07           | 6      | 35         | 3               | 0.188  | 0         
-ex-08           | 5      | 42         | 2               | 0.188  | 0         
-ex-09           | 11     | 57         | 5               | 0.187  | 0         
-ex-10           | 4      | 31         | 2               | 0.172  | 0         
-ex-11           | 5      | 51         | 5               | 0.172  | 0         
-ex-12           | 4      | 40         | 2               | 0.187  | 0         
-ex-13           | 7      | 61         | 3               | 0.187  | 0         
-ex-14           | 10     | 71         | 4               | 0.204  | 0         
-TOTAL           | 87     | 647        | 51              | 2.67199| 0         
+Program             | Lines  | All-checks | Explicit-checks | Time   | Positives
+ex-01               | 4      | 21         | 2               | 0.148  | 0
+ex-02               | 4      | 31         | 3               | 0.136  | 0
+ex-03               | 9      | 70         | 8               | 0.152  | 0
+ex-04               | 8      | 57         | 5               | 0.128  | 0
+ex-05               | 4      | 35         | 3               | 0.12   | 0
+ex-06               | 6      | 45         | 4               | 0.12   | 0
+ex-07               | 6      | 35         | 3               | 0.12   | 0
+ex-08               | 5      | 42         | 2               | 0.136  | 0
+ex-09               | 11     | 57         | 5               | 0.124  | 0
+ex-10               | 4      | 31         | 2               | 0.12   | 0
+ex-11               | 5      | 51         | 5               | 0.136  | 0
+ex-12               | 4      | 40         | 2               | 0.128  | 0
+ex-13               | 7      | 61         | 3               | 0.124  | 0
+ex-14               | 10     | 71         | 4               | 0.128  | 0
+TOTAL               | 87     | 647        | 51              | 1.82000| 0
 
 Higher-order model checking benchmarks:
-Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
-ack             | 7      | 67         | 3               | 0.266  | 0         
-fhnhn           | 12     | 68         | 8               | 0.219  | 0         
-fold-div        | 11     | 103        | 4               | 0.187  | 0         
-fold-fun-list   | 19     | 184        | 15              | 0.297  | 0         
-hors            | 10     | 73         | 2               | 0.219  | 0         
-hrec            | 8      | 78         | 7               | 0.219  | 0         
-intro1          | 7      | 60         | 5               | 0.187  | 0         
-intro2          | 7      | 60         | 5               | 0.172  | 0         
-intro3          | 9      | 48         | 4               | 0.218  | 0         
-isnil           | 9      | 55         | 2               | 0.203  | 0         
-l-zipmap        | 11     | 126        | 2               | 0.218  | 0         
-l-zipunzip      | 16     | 137        | 8               | 0.219  | 0         
-map-foldr       | 10     | 104        | 10              | 0.219  | 0         
-mappend         | 11     | 119        | 7               | 0.203  | 0         
-mc91            | 7      | 57         | 2               | 0.218  | 1         
-mem             | 11     | 106        | 6               | 0.219  | 1         
-mult            | 8      | 95         | 6               | 0.25   | 0         
-neg             | 10     | 69         | 3               | 0.204  | 0         
-nth0            | 12     | 78         | 2               | 0.188  | 0         
-r-file          | 25     | 139        | 3               | 0.219  | 0         
-r-lock          | 8      | 52         | 2               | 0.187  | 0         
-repeat          | 7      | 59         | 5               | 0.219  | 0         
-reverse         | 10     | 86         | 2               | 0.203  | 0         
-sum             | 7      | 51         | 2               | 0.203  | 0         
-zip             | 14     | 120        | 4               | 0.203  | 0         
-TOTAL           | 266    | 2194       | 119             | 5.35900| 2         
+Program             | Lines  | All-checks | Explicit-checks | Time   | Positives
+ack                 | 7      | 67         | 3               | 0.192  | 0
+fhnhn               | 12     | 68         | 8               | 0.156  | 0
+fold-div            | 11     | 103        | 4               | 0.148  | 0
+fold-fun-list       | 19     | 184        | 15              | 0.22   | 0
+hors                | 10     | 73         | 2               | 0.14   | 0
+hrec                | 8      | 78         | 7               | 0.152  | 0
+intro1              | 7      | 60         | 5               | 0.136  | 0
+intro2              | 7      | 60         | 5               | 0.12   | 0
+intro3              | 9      | 48         | 4               | 0.16   | 0
+isnil               | 9      | 55         | 2               | 0.148  | 0
+l-zipmap            | 11     | 126        | 2               | 0.152  | 0
+l-zipunzip          | 16     | 137        | 8               | 0.148  | 0
+map-foldr           | 10     | 104        | 10              | 0.136  | 0
+mappend             | 11     | 119        | 7               | 0.156  | 0
+mc91                | 7      | 57         | 2               | 0.16   | 1
+mem                 | 11     | 106        | 6               | 0.16   | 1
+mult                | 8      | 95         | 6               | 0.18   | 0
+neg                 | 10     | 69         | 3               | 0.128  | 0
+nth0                | 12     | 78         | 2               | 0.132  | 0
+r-file              | 25     | 139        | 3               | 0.172  | 0
+r-lock              | 8      | 52         | 2               | 0.128  | 0
+repeat              | 7      | 59         | 5               | 0.152  | 0
+reverse             | 10     | 86         | 2               | 0.132  | 0
+sum                 | 7      | 51         | 2               | 0.144  | 0
+zip                 | 14     | 120        | 4               | 0.144  | 0
+TOTAL               | 266    | 2194       | 119             | 3.79600| 2
 
 Higher-order symbolic execution benchmarks:
-Program         | Lines  | All-checks | Explicit-checks | Time   | Positives  
-snake           | 142    | 1232       | 96              | 1.437  | 0         
-tetris          | 259    | 2390       | 200             | 7.516  | 0         
-zombie          | 236    | 1049       | 39              | 3.594  | 0         
-TOTAL           | 637    | 4671       | 335             | 12.5469| 0         
+Program             | Lines  | All-checks | Explicit-checks | Time   | Positives
+snake               | 142    | 1232       | 96              | 2.344  | 0
+tetris              | 259    | 2390       | 200             | 6.588  | 0
+zombie              | 236    | 1049       | 39              | 3.336  | 0
+TOTAL               | 637    | 4671       | 335             | 12.268 | 0
 
 Higher-order stateful benchmarks from different sources:
+Program             | Lines  | All-checks | Explicit-checks | Time   | Positives
+fector              | 110    | 388        | 20              | 4.576  | 4
+hash-srfi-69        | 290    | 1920       | 97              | 8.016  | 1
+leftist-tree        | 102    | 916        | 25              | 0.6    | 8
+nucleic2-modular-fix| 889    | 6644       | 11              | 85.412 | 0
+nucleic2-modular    | 884    | 6621       | 11              | 85.592 | 1
+protected-leftist-tr| 110    | 918        | 25              | 0.552  | 0
+protected-ring-buffe| 58     | 354        | 19              | 0.42   | 0
+ring-buffer         | 51     | 353        | 19              | 0.472  | 8
+slatex              | 2305   | 11693      | 2               | 1064.61| 2
+TOTAL               | 4799   | 29807      | 229             | 1250.25| 24
+
+Checking the Lean proof
+Lean proof checked
