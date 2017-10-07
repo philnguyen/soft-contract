@@ -27,6 +27,7 @@ Instructions for
 can be found on the official site.
 
 1. Download the [OVA image](https://www.dropbox.com/s/86qkojng6zzvhhk/popl18-scv.ova?dl=0)
+   (If you don't have a Dropbox account, no need to sign up: just dismiss the sign-up dialog.)
 
 2. Launch the image:
    on most Linux or Windows desktops, double-clicking the file will do.
