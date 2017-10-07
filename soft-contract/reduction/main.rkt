@@ -51,6 +51,7 @@
         (begin
           (when (debug-iter?)
             (printf "* ~a: ~a~n" iter (set-count front))
+            #;(print-Σ-stat Σ)
             #;(printf " -- ~a are rt, ~a are ev, ~a are blm~n" (length ς↓s) (length ς↑s) (length ς!s)))
 
           (when (debug-trace?)
@@ -124,9 +125,9 @@
         (loop! next)))
 
     (match-let ([(-Σ σ σₖ _ _) Σ])
-      (when (debug-iter?)
+      #;(when (debug-iter?)
         (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
-      (when (and ?max-steps (> iter ?max-steps))
+      #;(when (and ?max-steps (> iter ?max-steps))
         (printf "Execution capped at ~a steps~n" ?max-steps))
       #;(print-large-sets Σ #:val-min 1 #:kont-min 1)
       (values errs Σ)))
@@ -187,11 +188,35 @@
         [(-κ ⟦k⟧)
          (⟦k⟧ A $ Γₐ H Σ)]))
 
-    (for/union : (℘ -ς) ([ς ςs])
+    (for/union : (℘ -ς) ([ς #;ςs (with-debugging/off ((x) (collapse ςs))
+                                   (printf "collapse ~a -> ~a~n" (length ςs) (length x)))])
       (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
       (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
         (continue κ A $ₑₑ Γₑₑ αₖₑₑ))))
 
+  (: collapse : (Listof -ς↓) → (Listof -ς↓))
+  (define (collapse ςs)
+    (define m : (HashTable (List -αₖ -Γ -W) (℘ -$)) (make-hash))
+    (for ([ς (in-list ςs)])
+      (match-define (-ς↓ αₖ $ Γ A) ς)
+      (hash-update! m (list αₖ Γ A) (λ ([$s : (℘ -$)]) (set-add $s $)) mk-∅))
+    (for/list : (Listof -ς↓) ([(k $s) (in-hash m)])
+      (match-define (list αₖ Γ A) k)
+      (-ς↓ αₖ (collapse-$ $s) Γ A)))
+
+  (: collapse-$ : (℘ -$) → -$)
+  (define (collapse-$ $s)
+    (for/fold ([$₀ : -$ (set-first $s)])
+              ([$ : -$ (in-set (set-rest $s))])
+      ($⊕ $₀ $)))
+
+  (: $⊕ : -$ -$ → -$)
+  (define ($⊕ $₁ $₂)
+    (for/fold ([$ : -$ $₁])
+              ([(l t) (in-hash $₁)]
+               #:unless (equal? t (hash-ref $₂ l #f)))
+      (hash-remove $ l)))
+  
   (: -αₖ-ctx : -αₖ → -H)
   (define (-αₖ-ctx α)
     (cond [(-B? α) (-B-ctx α)]

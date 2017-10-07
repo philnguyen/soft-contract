@@ -52,5 +52,5 @@
 
   (define-parameter debug-iter? : Boolean #f)
   (define-parameter debug-trace? : Boolean #f)
-  (define-parameter max-steps : (Option Natural) (expt 2 31)))
+  (define-parameter max-steps : (Option Natural) #|TODO reenable|# 216))
 

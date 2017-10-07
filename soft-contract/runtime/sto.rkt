@@ -4,6 +4,7 @@
 
 (require typed/racket/unit
          racket/match
+         racket/bool
          racket/set
          racket/splicing
          set-extras
@@ -126,7 +127,12 @@
 
   (: $@! : -Σ -Γ ⟪α⟫ -$ -loc ℓ → (Values (℘ -W¹) -$))
   (define ($@! Σ Γ α $ l ℓ)
-    (define Vs (σ@ Σ α))
+    (define Vs
+      (for*/set: : (℘ -V) ([V (in-set (σ@ Σ α))]
+                           #:when (implies
+                                   (and (-𝒾? l) (assignable? l))
+                                   (plausible-V-t? Γ V l)))
+        V))
     (cond [(hash-ref $ l #f)
            =>
            (λ ([t : -t])
@@ -139,7 +145,7 @@
              (cond [(symbol? l) (if (assignable? l) ℓ (-t.x l))]
                    [(-𝒾? l) (if (assignable? l) ℓ l)]
                    [else ℓ]))
-           (values (for/set: : (℘ -W¹) ([V (in-set Vs)])
+           (values (for/set: : (℘ -W¹) ([V (in-set Vs)]) 
                      (-W¹ V ℓ*))
                    ($-set $ l ℓ*))]))
 
@@ -167,7 +173,8 @@
 
   (: $-cleanup : -$ → -$)
   (define ($-cleanup $)
-    (for/fold ([$ : -$ $])
+    $
+    #;(for/fold ([$ : -$ $])
               ([l (in-hash-keys $)]
                #:when (-loc.offset? l))
       (hash-remove $ l)))

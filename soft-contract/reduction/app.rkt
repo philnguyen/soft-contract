@@ -727,7 +727,7 @@
       (cond
         [(and fv-same? looped?)
          (for/set: : (℘ -loc) ([l (in-set ls)]
-                               #:when (or (symbol? l) (-𝒾? l))
+                               #:when (or (symbol? l) #;(-𝒾? l))
                                #:when (assignable? l))
            l)]
         [fv-same? ∅]

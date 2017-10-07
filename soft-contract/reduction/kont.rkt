@@ -282,7 +282,7 @@
          (σ⊕! Σ Γ α (-W¹ V sᵥ))
          (define $* (if ?loc ($-set $ ?loc sᵥ) $))
          (define Γ*
-           Γ #;(if (and (-𝒾? ?loc) (assignable? ?loc))
+           (if (and (-𝒾? ?loc) (assignable? ?loc))
                (for/fold ([Γ : -Γ Γ])
                          ([p (in-set (predicates-of-V V))])
                  (Γ+ Γ (-t.@ p (list ?loc))))
