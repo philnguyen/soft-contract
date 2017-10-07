@@ -2,7 +2,7 @@ Artifact for "Soft Contract Verification for Higher-order Stateful Programs"
 =============================================================
 
 This repository contains the artifact for the research done in the paper
-[*Soft-contract Verification for Higher-order Stateful Programs*](https://github.com/philnguyen/soft-contract/blob/dev/paper/main.pdf).
+[*Soft-contract Verification for Higher-order Stateful Programs*](https://github.com/philnguyen/soft-contract/blob/popl18-ae/paper/main.pdf).
 
 There are three components to this artifact:
 
@@ -11,10 +11,10 @@ There are three components to this artifact:
 * The mechanization in Lean of soundness of symbolic execution
   in a minimal higher-order imperative language.
   
-There are two options to evaluate the artifact.
+There are two options to evaluate the artifact:
 
-* By [obtaining the self-contained Virtualbox image](#option-1-obtain-the-self-contained-virtualbox-image)
-* By [cloning and building the repositories](#option-2-build-packages-from-source)
+* Option 1: by [obtaining the self-contained Virtualbox image](#option-1-obtain-the-self-contained-virtualbox-image)
+* Option 2: by [cloning and building the repositories](#option-2-build-packages-from-source)
 
 ## Option 1: Obtain the self-contained Virtualbox image
 
@@ -38,29 +38,29 @@ can be found on the official site.
     * Username: `reviewer`
     * Password: `reviewer`
     
-4. After the desktop loads, launch the terminal using the icon on the desktop
+4. After the desktop loads, launch the terminal using the icon on the desktop.
     
-5. To automate *all* the steps described below, execute:
+5. To automate *all* the steps described in the next sections, execute:
 
         cd soft-contract
         make
         
-An example of the expected output can be found at [log.txt](https://github.com/philnguyen/soft-contract/tree/dev/log.txt).
+An example of the expected output can be found at [log.txt](https://github.com/philnguyen/soft-contract/tree/popl18-ae/log.txt).
 
-Below, we describe each step, along with the `make` target to just run the specific step.
+Below, we describe each step, along with the specific `make` target to just run that step.
 We assume the working directory is `/home/reviewer/soft-contract`.
     
 ### Testing the implementation
 
 #### Running the sanity test suite
 
-The test suite containing many programs collected from other works
+The test suite contains many programs collected from other works
 (and their incorrect variants that the tool should detect errors)
 and bug reports. To just run the the test suite, run:
 
     make test
 
-#### Reproducing benchmark tables
+#### Reproducing benchmark tables from the paper
 
 To run the benchmarks and generate tables listing positives
 and verification time for each module,
@@ -70,15 +70,15 @@ type the following at the prompt:
    
 The tables should take around 1 hour to generate.
 
-While the paper collapse several old benchmarks together
+While the paper collapses several old benchmarks together
 (e.g. `soft-typing`, `hors`, `occurence-typing`),
 the script outputs each benchmark suite in details.
 In addition, the number of checks have slightly fluctuated because
-we changed the treatment of some language constructs.
+we changed the expansion of some language constructs.
 In all cases, the estimated number of checks is always under-approximating.
 
 Because the tool is still in development, some numbers have differed
-since the paper's submission. We will update the paper in the revision
+since the paper's submission. We will update the paper's final version
 to be consistent with the latest status.
    
 #### Trying your own programs
@@ -89,19 +89,19 @@ Racket file:
     raco scv path/to/rkt/file
         
 The verifier will output `safe` if the program is verified, or
-reports possible violation with some contracts with source locations.
+report possible contract violation(s) with source locations.
    
 You can start by modifying existing programs from the benchmarks above:
 
-* [soft-contract/test/programs/safe/softy](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/softy):
+* [soft-contract/test/programs/safe/softy](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/softy):
   benchmarks collected from work on soft-typing.
-* [soft-contract/test/programs/safe/octy](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/octy):
+* [soft-contract/test/programs/safe/octy](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/octy):
   benchmarks collected from work on occurence typing.
-* [soft-contact/test/programs/safe/mochi](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/mochi):
+* [soft-contact/test/programs/safe/mochi](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/mochi):
   benchmarks collected from work on model-checking higher-order recursion schemes.
-* [soft-contract/test/programs/safe/games](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/games):
+* [soft-contract/test/programs/safe/games](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/games):
   video games using extensive contracts.
-* [soft-contract/test/programs/safe/real](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/test/programs/safe/real):
+* [soft-contract/test/programs/safe/real](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/test/programs/safe/real):
   larger, stateful programs collected from different sources.
      
 Other benchmarks in the repository are either small program fragments
@@ -113,16 +113,16 @@ gradually typed programs, etc.)
 
 An overview of the source code is as follow:
 
-* [soft-contract/parse](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/parse):
+* [soft-contract/parse](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/parse):
   defines the parser that converts Racket syntax into an internal AST representation.
-* [soft-contract/ast](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/ast):
+* [soft-contract/ast](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/ast):
   defines the internal representation of the AST.
-  The [main AST definition](https://github.com/philnguyen/soft-contract/blob/dev/soft-contract/ast/signatures.rkt#L73)
+  The [main AST definition](https://github.com/philnguyen/soft-contract/blob/popl18-ae/soft-contract/ast/signatures.rkt#L73)
   closely matches the documented
   [fully expanded program](https://docs.racket-lang.org/reference/syntax-model.html?q=fully%20expanded#%28part._fully-expanded%29).
-* [soft-contract/runtime](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/runtime):
+* [soft-contract/runtime](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/runtime):
   defines internal runtime constructs for symbolic execution.
-* [soft-contract/primitives](https://github.com/philnguyen/soft-contract/tree/dev/soft-contract/primitives):
+* [soft-contract/primitives](https://github.com/philnguyen/soft-contract/tree/popl18-ae/soft-contract/primitives):
   declares contracts (along with refinements) for primitives operations.
 * [soft-contract/proof-relation](https://github.com/philnguyen/soft-contract/tree/popl-18/soft-contract/proof-relation):
   defines the proof relation between path-conditions, values, and first-order contracts.
@@ -139,21 +139,21 @@ To just check the proof, at the prompt, execute:
     
 The command should finish with no output if the proof goes through.
 Otherwise, Lean will complain with some unproven theorem
-(or admited without proof using `sorry`).
+(or those admited without proof using `sorry`).
 
 #### Browsing the proof
 
 The content of the proof script is as follow:
 
-* [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/definitions.lean): definition of lambda-calculus
+* [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/definitions.lean): definition of ¦Ë-calculus
   with integers, symbolic values, and mutable variables,
   along with run-time constructs.
-* [proof/instantiaions.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/instantiations.lean): definition of the approximation
+* [proof/instantiaions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/instantiations.lean): definition of the approximation
   relation between different components.
-* [proof/theorems.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/theorems.lean): proof of soundness of higher-order
+* [proof/theorems.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/theorems.lean): proof of soundness of higher-order
   symbolic execution, with supporting lemmas proven in
-  [proof/lemmas.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/lemmas.lean) and
-  [proof/helper_lemmas.lean](https://github.com/philnguyen/soft-contract/blob/dev/mechanized/helper_lemmas.lean).
+  [proof/lemmas.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/lemmas.lean) and
+  [proof/helper_lemmas.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/helper_lemmas.lean).
   
 
 ## Option 2: Build packages from source
