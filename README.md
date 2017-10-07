@@ -148,7 +148,7 @@ The content of the proof script is as follow:
 * [proof/definitions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/definitions.lean): definition of lambda-calculus
   with integers, symbolic values, and mutable variables,
   along with run-time constructs.
-* [proof/instantiaions.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/instantiations.lean): definition of the approximation
+* [proof/instantiation.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/instantiation.lean): definition of the approximation
   relation between different components.
 * [proof/theorems.lean](https://github.com/philnguyen/soft-contract/blob/popl18-ae/mechanized/theorems.lean): proof of soundness of higher-order
   symbolic execution, with supporting lemmas proven in
