@@ -4,6 +4,7 @@
                      racket/syntax
                      syntax/parse)
          racket/set
+         racket/bool
          racket/match
          racket/list
          typed/racket/unit
@@ -23,7 +24,7 @@
 
 (define-unit kont@
   (import compile^ app^ mon^ proof-system^ widening^ memoize^ for-gc^ verifier^
-          val^ env^ sto^ pretty-print^ pc^ instr^ prim-runtime^
+          val^ env^ sto^ pretty-print^ pc^ instr^ prim-runtime^ static-info^
           (prefix q: local-prover^))
   (export kont^)
 
@@ -76,8 +77,7 @@
                              (printf "pc: ~a~n" (show-Γ Γ))
                              (error 'first-blame))))))
           (match A
-            [(-blm l+ _ _ _ _) #:when (symbol? l+) ; ignore blames on system
-                               ∅]
+            [(-blm l+ _ _ _ _) #:when (not (transparent-module? l+)) ∅]
             [_
              (define A*
                (match A
@@ -281,7 +281,13 @@
         [(list V)
          (σ⊕! Σ Γ α (-W¹ V sᵥ))
          (define $* (if ?loc ($-set $ ?loc sᵥ) $))
-         (⟦k⟧ (+W (list -void)) $* Γ H Σ)]
+         (define Γ*
+           Γ #;(if (and (-𝒾? ?loc) (assignable? ?loc))
+               (for/fold ([Γ : -Γ Γ])
+                         ([p (in-set (predicates-of-V V))])
+                 (Γ+ Γ (-t.@ p (list ?loc))))
+               Γ))
+         (⟦k⟧ (+W (list -void)) $* Γ* H Σ)]
         [_
          (define blm
            (blm/simp 'TODO 'Λ (list '1-value) (list (format-symbol "~a values" (length Vs))) +ℓ₀))
@@ -520,7 +526,9 @@
                       [t (in-list (split-values s n))])
              (σ⊕V! Σ α V)
              (define ?l (hack:α->loc α))
-             (if ?l ($-set $ ?l t) $)))
+             (if (and ?l #;(implies (-𝒾? ?l) (assignable? ?l)))
+                 ($-set $ ?l t)
+                 $)))
          (⟦k⟧ (+W (list -void)) $* Γ H Σ)]
         [else
          (define blm

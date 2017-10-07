@@ -18,6 +18,8 @@
   (define (parse-files ps)
     (define ms (pre:parse-files (map pre:canonicalize-path ps)))
     (for-each collect-public-accs! ms)
+    (for ([m ms])
+      (add-transparent-module! (-module-path m)))
     ms)
 
   (: parse-module : Syntax → -module)

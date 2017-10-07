@@ -30,6 +30,7 @@
                   (make-hash)
                   (make-hash)
                   (make-hash)
+                  (make-hash)
                   (make-hash)))
 
   (define current-static-info : (Parameterof -static-info) (make-parameter (new-static-info)))
@@ -231,4 +232,12 @@
   (: count-struct-fields : -𝒾 → Index)
   (define (count-struct-fields 𝒾)
     (assert (+ (field-offset 𝒾) (count-direct-struct-fields 𝒾)) index?))
+
+  (: add-transparent-module! : -l → Void)
+  (define (add-transparent-module! l)
+    (hash-set! (-static-info-transparent-modules (current-static-info)) l #t))
+
+  (: transparent-module? : -l → Boolean)
+  (define (transparent-module? l)
+    (hash-has-key? (-static-info-transparent-modules (current-static-info)) l))
   )

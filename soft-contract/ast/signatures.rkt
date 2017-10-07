@@ -237,7 +237,8 @@
                       [alternate-aliases : (HashTable -𝒾 (Pairof -𝒾 Boolean))]
                       [alternate-alias-ids : (HashTable -l Symbol)]
                       [assignables : (HashTable (U Symbol -𝒾) #t)]
-                      [parentstruct : (HashTable -𝒾 -𝒾)])
+                      [parentstruct : (HashTable -𝒾 -𝒾)]
+                      [transparent-modules : (HashTable -l #t)])
   #:transparent)
 
 (define-signature static-info^
@@ -266,4 +267,6 @@
    [set-parent-struct! : (-𝒾 -𝒾 → Void)]
    [substruct? : (-𝒾 -𝒾 → Boolean)]
    [field-offset : (-𝒾 → Index)]
-   [count-struct-fields : (-𝒾 → Index)]))
+   [count-struct-fields : (-𝒾 → Index)]
+   [add-transparent-module! : (-l → Void)]
+   [transparent-module? : (-l → Boolean)]))
