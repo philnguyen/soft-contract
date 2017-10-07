@@ -129,9 +129,9 @@
         ...)
      (define (ids->str ids)
        (string-join (map symbol->string (map syntax-e (syntax->list ids)))))
-     (unless (null? (syntax->list #'(i ...)))
+     #;(unless (null? (syntax->list #'(i ...)))
        (printf "Warning: ignore verifying: ~a~n" (ids->str #'(i ...))))
-     (unless (null? (syntax->list #'(so ...)))
+     #;(unless (null? (syntax->list #'(so ...)))
        (printf "Warning: ignore verifying `struct-out` form(s) for: ~a~n" (ids->str #'(so ...))))
      #'(begin
          ;; Real stuff to preserve the program's meaning when run
