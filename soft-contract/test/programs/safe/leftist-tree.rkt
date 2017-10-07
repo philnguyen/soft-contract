@@ -1,8 +1,8 @@
 #lang racket/base
 
 (require racket/match
-         racket/function)
-(require soft-contract/fake-contract)
+         racket/function
+         racket/contract)
 
 ;; adapted from http://typeocaml.com/2015/03/12/heap-leftist-tree/
 
