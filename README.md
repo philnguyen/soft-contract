@@ -26,7 +26,7 @@ Instructions for
 [downloading and installing Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 can be found on the official site.
 
-1. Download the [OVA image](FIXME link)
+1. Download the [OVA image](https://www.dropbox.com/s/86qkojng6zzvhhk/popl18-scv.ova?dl=0)
 
 2. Launch the image:
    on most Linux or Windows desktops, double-clicking the file will do.
