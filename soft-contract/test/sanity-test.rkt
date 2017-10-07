@@ -16,14 +16,14 @@
 (: run-handler (∀ (α) ((℘ -A) → α) (Listof Path-String) → α))
 (define (run-handler f ps)
   ;; Can't use time-apply
-  (define t₀ (current-milliseconds))
+  #;(define t₀ (current-milliseconds))
   (match (length ps)
     [1 (printf "~a~n" (car ps))]
     [n (printf "~a files:~n" n)
        (for ([p (in-list ps)])
          (printf "  - ~a~n" p))])
   (define-values (As Σ) (havoc-files ps))
-  (printf "  ~ams~n" (- (current-milliseconds) t₀))
+  #;(printf "  ~ams~n" (- (current-milliseconds) t₀))
   (define-values (_ ΓEs) (set-partition -W? As))
   (f ΓEs))
 
@@ -36,7 +36,7 @@
   (define n (set-count errors))
   (cond
     [(and (implies lo (<= lo n)) (implies hi (<= n hi)))
-     (printf "  ✓ ~a~n" msg)]
+     #;(printf "  ✓ ~a~n" msg)]
     [else
      (fail
      (format "Expect numberof blames in range ⟨~a,~a⟩, got ~a" (or lo '-∞) (or hi '+∞) n))]))
