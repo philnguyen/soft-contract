@@ -75,7 +75,6 @@
       [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
 
       [(-λ xs e) `(λ ,(show-formals xs) ,(show-e e))]
-      [(-case-λ cases) `(case-lambda ,@(map show-e cases))]
       [(-•) '•]
       [(-b b) (show-b b)]
       [(? -o? o) (show-o o)]
@@ -127,7 +126,6 @@
          [(-var xs₀ x)
           (define-values (cs₀ c) (split-at cs (length xs₀)))
           `(,@(map show-e cs₀) #:rest ,@(map show-e c) ↦ ,(show-e d))])]
-      [(-case-> cases) `(case-> ,@(map show-e cases))]
       [(-x/c.tmp x) x]
       [(-x/c x) x]
       [(-struct/c 𝒾 cs _)

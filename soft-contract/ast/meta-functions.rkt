@@ -56,8 +56,6 @@
          [(-var cs c) (∪ (fv c) (fv d) (fv cs))]
          [(? list? cs) (∪ (fv d) (fv cs))])]
       [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
-      [(-case-> cases)
-       (apply ∪ ∅eq (map fv cases))]
       [(-struct/c _ cs _)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
          (∪ xs (fv c)))]
@@ -98,8 +96,6 @@
          [(-var cs c) (∪ (bv c) (bv d) (bv cs))]
          [(? list? cs) (∪ (bv d) (bv cs))])]
       [(-->i cs mk-d _) (apply ∪ (bv mk-d) (map bv cs))]
-      [(-case-> cases)
-       (apply ∪ ∅eq (map bv cases))]
       [(-struct/c _ cs _)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
          (∪ xs (bv c)))]
@@ -123,7 +119,6 @@
     (define (go e)
       (match e
         [(-λ xs e) (go e)]
-        [(-case-λ cases) (for/unioneq : (℘ Symbol) ([case cases]) (go case))]
         [(-@ f xs ctx) (∪ (go f) (go* xs))]
         [(-if i t e) (∪ (go i) (go t) (go e))]
         [(-wcm k v b) (∪ (go k) (go v) (go b))]
@@ -138,7 +133,6 @@
            [(-var cs c) (∪ (go* cs) (go c) (go d))]
            [(? list? cs) (∪ (go* cs) (go d))])]
         [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
-        [(-case-> cases) (go* cases)]
         [(-struct/c t cs _) (go* cs)]
         [(-x/c.tmp x) (seteq x)]
         [_ ∅eq]))
@@ -169,7 +163,6 @@
                 [(? list? inits) (map locs inits)]))]
       [(-->i doms _ ℓ)
        (apply ∪ {seteq ℓ} (map locs doms))]
-      [(-case-> cases) (apply ∪ ∅eq (map locs cases))]
       [(-struct/c 𝒾 cs ℓ) (apply ∪ {seteq ℓ} (map locs cs))]
       [(-∀/c _ e) (locs e)]
       [_ ∅eq]))
@@ -213,7 +206,6 @@
                (hash-ref m x (λ () e))]
               [(-λ xs e*)
                (-λ xs (go (remove-keys m (formals->names xs)) e*))]
-              [(-case-λ cases) (-case-λ (cast (go-list m cases) (Listof -λ)))]
               [(-@ f xs ℓ)
                (-@ (go m f) (go-list m xs) ℓ)]
               [(-if e₀ e₁ e₂)
@@ -258,7 +250,6 @@
                  [(? list? cs) (--> (go-list m cs) (go m d) ℓ)])]
               [(-->i cs mk-d ℓ)
                (-->i (go-list m cs) (assert (go m mk-d) -λ?) ℓ)]
-              [(-case-> cases) (-case-> (cast (go-list m cases) (Listof -->)))]
               [(-struct/c t cs ℓ)
                (-struct/c t (go-list m cs) ℓ)]
               [_

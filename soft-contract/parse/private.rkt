@@ -481,7 +481,7 @@
                                [else (map parse-e inits)]))
              (--> dom (parse-e rng) (next-ℓ! stx))])
           (attribute e.cases)))
-       (-case-> cases)]
+       (-@ 'scv:make-case-> cases (next-ℓ! stx))]
       [(#%plain-app (~literal fake:list/c) c ...)
        (define args
          (for/list ([cᵢ (in-syntax-list #'(c ...))])
@@ -569,12 +569,13 @@
        (-λ xs (with-env ρ (-begin/simp (parse-es #'(b ...)))))]
       
       [(case-lambda [fml bodies ...+] ...)
-       (-case-λ
+       (-@ 'scv:make-case-lambda
         (for/list ([fmlᵢ (in-syntax-list #'(fml ...))]
                    [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
           ;; Compute case arity and extended context for RHS
           (define-values (xsᵢ ρᵢ) (parse-formals fmlᵢ))
-          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))))))]
+          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ)))))
+        (next-ℓ! stx))]
       [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(letrec-values (bindings ...) b ...)
        (define-values (lhss-rev ρ)
