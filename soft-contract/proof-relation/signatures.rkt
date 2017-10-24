@@ -8,15 +8,13 @@
          "../runtime/signatures.rkt")
 
 (define-signature local-prover^
-  ([Γ⊢t : (-Γ -?t → -R)]
-   [⊢V : (-V → -R)]
-   [p∋Vs : (-σ (U -h -v -V) -V * → -R)]
+  ([lift-p∋V : ((-σ -φ -h -V * → -R) → -σ -φ -h -V^ * → -R)]
+   [p∋V : (-σ -φ -h -V * → -R)]
+   [p∋V^ : (-σ -φ -h -V^ * → -R)]
    [p⇒p : (-h -h → -R)]
    [ps⇒p : ((℘ -h) -h → -R)]
-   [plausible-V-t? : (-Γ -V -?t → Boolean)]
-   [plausible-W? : (-Γ (Listof -V) -?t → Boolean)]
    [sat-one-of : (-V (℘ Base) → -R)]
    [V-arity : (-V → (Option Arity))]))
 
 (define-signature external-prover^
-  ([ext-prove : (-Γ -t → -R)]))
+  ([ext-prove : (-φ -h (Listof -V) → -R)]))

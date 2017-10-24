@@ -40,24 +40,21 @@
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
   ([make-total-pred : (Index → Symbol → -⟦f⟧)]
-   [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (Values -V -?t))]
-   [ts->bs : ((Listof -?t) → (Option (Listof Base)))] ; TODO obsolete
-   [Ws->bs : ((Listof -W¹) → (Option (Listof Base)))]
-   [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
-   [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]
+   [implement-predicate : (-σ -φ Symbol (Listof -V^) → -V^)]
+   [Vs->bs : ((Listof -V) → (Option (Listof Base)))]
    [make-static-listof : (Symbol (→ (Values Boolean -V ℓ)) → -V)]
    [make-listof : (Boolean -V ℓ → -V)]
    [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
    [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
    [exec-prim
-    : (-$ -Γ -H -Σ -⟦k⟧
+    : (-H -φ -Σ -⟦k⟧
           ℓ (Intersection Symbol -o)
           #:volatile? Boolean
           #:dom (Listof (Pairof -V ℓ))
           #:rng (Listof -V)
           #:rng-wrap (Option (Listof (Pairof -V ℓ)))
           #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
-          #:args (Listof -W¹)
+          #:args (Listof -V)
           → (℘ -ς))]
 
    [get-weakers : (Symbol → (℘ Symbol))]
@@ -83,7 +80,7 @@
    [add-const! : (Identifier -prim → Void)]
 
    ;; re-exported stuff to avoid confusing dependency in `def`
-   [r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
+   [r:Γ⊢oV/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -V * → (℘ -ς))]
    [mk-● : (-h * → -●)]
    [add-seal! : (-Σ Symbol -H -l → -Seal/C)]
    ))
