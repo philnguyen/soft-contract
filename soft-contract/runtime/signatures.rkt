@@ -232,7 +232,7 @@
             (-α.rng [loc : ℓ] [ctx : -H] [idx : Natural])
 
             ;; for wrapped function
-            (-α.fn [sym : (Option -⟦e⟧)] [mon-ctx : -ctx] [ctx : -H])
+            (-α.fn [mon-ctx : -ctx] [ctx : -H])
 
             ;; For values wrapped in seals
             (-α.sealed Symbol -H) ; points to wrapped objects
@@ -266,7 +266,7 @@
 ;; and may perform side effects widening mutable store(s)
 (define-type -⟦e⟧ (-ρ -H -φ -Σ -⟦k⟧ → (℘ -ς)))
 (define-type -⟦k⟧ (-A -H -φ -Σ     → (℘ -ς)))
-(define-type -⟦f⟧ (ℓ (Listof -V) -φ -H -Σ -⟦k⟧ → (℘ -ς)))
+(define-type -⟦f⟧ (ℓ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -287,8 +287,8 @@
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-αₖ [instr : -H] [block : -Block] [path : -φ]))
 (-Block . ::= . (-B [var : -formals] [exp : -⟦e⟧] [env : -ρ])
-                (-M [blm-ctx : -ctx] [ctc : -V] [val : -V])
-                (-F [l : -l] [loc : ℓ] [ctc : -V] [val : -V])
+                (-M [blm-ctx : -ctx] [ctc : -V^] [val : -V^])
+                (-F [l : -l] [loc : ℓ] [ctc : -V^] [val : -V^])
                 (-HV [tag : HV-Tag]))
 
 
@@ -320,6 +320,8 @@
    [⟪α⟫ₒₚ : ⟪α⟫]
    [mutable? : (⟪α⟫ → Boolean)]
    [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
+   [unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
+   [unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
    ))
 
 (define-signature path^
@@ -328,17 +330,20 @@
    [φ⊔* : (-φ (Listof ⟪α⟫) (Listof (U -V -V^)) → -φ)]
    [φ+ : (-φ -t → -φ)]
    [φ-with-condition : (-φ -Γ → -φ)]
-   [bind-args : (-ρ -H -φ (Listof Symbol) (Listof -V^) → (Values -ρ -φ))]))
+   [bind-args : (-ρ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
+   [alloc-rest-args : ([-H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]))
 
 (define-signature val^
   ([fresh-sym! : (→ Integer)]
    [C-flat? : (-V → Boolean)]
+   [C^-flat? : (-V^ → Boolean)]
    [with-negative-party : (-l -V → -V)]
    [with-positive-party : (-l -V → -V)]
    [behavioral? : (-σ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
    [blm-arity : (ℓ -l Arity (Listof -V^) → -blm)]
    [predicates-of-V : (-V → (℘ -h))]
+   [estimate-list-lengths : (-σ -δσ -V → (℘ (U #f Arity)))]
    ))
 
 (define-signature instr^

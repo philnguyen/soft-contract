@@ -35,18 +35,24 @@
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
    [prim-arity : (Symbol → Arity)]
-   [parse-prim : (Identifier → (Option -prim))]))
+   [parse-prim : (Identifier → (Option -prim))]
+   [implement-predicate : (-σ -φ -o (Listof -V^) → -V^)]))
 
 (define-signature proof-system^
-  ([V∈C : (-σ -φ -V -V → -R)]
+  ([V∈C : (-σ -φ -V^ -V → -R)]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
    [φ+/-V : (-σ -φ -V^ → (Values (℘ -φ) (℘ -φ)))]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
-   #;[Γ+/-oV : (-σ -φ -o -V * → (Values (Option -Γ) (Option -Γ)))]
+   [φ+/-oV : (-σ -φ -o -V^ * → (Values (℘ -φ) (℘ -φ)))]
    ; TODO #;[plausible-index? : (-σ -Γ -V Natural → Boolean)]
-   #;[Γ+/-oV/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -σ -Γ -o -V * → (℘ X))]
+   [φ+/-oV/handler : (∀ (X) (-φ → (℘ X)) (-φ → (℘ X)) -σ -φ -o -V^ * → (℘ X))]
    #;[Γ⊢oV/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -Γ -o -V * → (℘ X))]
-   #;[p∋Vs/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X))]))
+   #;[p∋Vs/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X))]
+   [sat-one-of : (-V^ (℘ Base) → -R)]
+   [V-arity : (case->
+               [-Clo → Arity]
+               [-Case-Clo → Arity]
+               [-V → (Option Arity)])]))
 
 ;; FIXME: least coherent signature ever.
 ;; Could have named it "misc"...
