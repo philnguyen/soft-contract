@@ -136,6 +136,7 @@
 
 ;; Symbolic names
 (-t . ::= . Integer
+            -b 
             (-t.@ -h (Listof -t)))
 
 (-h . ::= . -o
@@ -286,7 +287,7 @@
 
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-αₖ [instr : -H] [block : -Block] [path : -φ]))
-(-Block . ::= . (-B [var : -formals] [exp : -⟦e⟧] [env : -ρ])
+(-Block . ::= . (-B [fun : -V] [args : (Listof -V^)]) #;(-B [var : -formals] [exp : -⟦e⟧] [env : -ρ])
                 (-M [blm-ctx : -ctx] [ctc : -V^] [val : -V^])
                 (-F [l : -l] [loc : ℓ] [ctc : -V^] [val : -V^])
                 (-HV [tag : HV-Tag]))
@@ -301,7 +302,8 @@
 (define-signature sat-result^
   ([not-R : (-R → -R)]
    [R⊔ : (-R -R * → -R)]
-   [boolean->R : (Boolean → -R)]))
+   [boolean->R : (Boolean → -R)]
+   [R⊔* : (∀ (X) (X → -R) (Sequenceof X) → -R)]))
 
 (define-signature env^
   ([⊥ρ : -ρ]
@@ -328,7 +330,8 @@
   ([φ₀ : -φ]
    [φ⊔ : (-φ ⟪α⟫ (U -V -V^) → -φ)]
    [φ⊔* : (-φ (Listof ⟪α⟫) (Listof (U -V -V^)) → -φ)]
-   [φ+ : (-φ -t → -φ)]
+   [φ+ : (-φ -V → -φ)]
+   [φ+neg : (-φ -V → -φ)]
    [φ-with-condition : (-φ -Γ → -φ)]
    [bind-args : (-ρ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
    [alloc-rest-args : ([-H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]))
@@ -349,7 +352,8 @@
 (define-signature instr^
   ([H∅ : -H]
    [H+ : (-H -edge → (Values -H Boolean))]
-   [strip-C : (-V → -edge.tgt)]
+   [strip-fn : (-V → -edge.tgt)]
+   [strip-ct : (-V → -edge.tgt)]
    [⌊ρ⌋ : (-ρ → -⌊ρ⌋)]
    ))
 

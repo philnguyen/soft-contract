@@ -25,7 +25,12 @@
   (: app : ℓ -V^ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (app ℓ Vₕ^ Vₓ^s H φ Σ ⟦k⟧)
     (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
-      (app₁ ℓ Vₕ Vₓ^s H φ Σ ⟦k⟧)))
+      (define-values (H* looped?) (H+ H (-edge (strip-fn Vₕ) ℓ)))
+      (if looped?
+          (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s) φ)]
+                [⟦k⟧* (restore-ctx∷ H ⟦k⟧)])
+            {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))})
+          (app₁ ℓ Vₕ Vₓ^s H φ Σ ⟦k⟧))))
 
   (: app₁ : ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧)
@@ -98,11 +103,11 @@
       [(-Ar C α ctx)
        (with-guarded-arity (guard-arity C)
          (define Vᵤ^ (set-remove (σ@ Σ (-φ-cache φ) α) Vₕ))
-         (cond
-           [(-=>? C) ((app-Ar C Vᵤ^ ctx) ℓ Vₓs H φ Σ ⟦k⟧)]
-           [(-=>i? C) ((app-Indy C Vᵤ^ ctx) ℓ Vₓs H φ Σ ⟦k⟧)]
-           [(-∀/C? C) ((app-∀/C C Vᵤ^ ctx) ℓ Vₓs H φ Σ ⟦k⟧)]
-           [else ((app-guarded-Case C Vᵤ^ ctx) ℓ Vₓs H φ Σ ⟦k⟧)]))]
+         (define f (cond [(-=>? C) (app-Ar C Vᵤ^ ctx)]
+                         [(-=>i? C) (app-Indy C Vᵤ^ ctx)]
+                         [(-∀/C? C) (app-∀/C C Vᵤ^ ctx)]
+                         [else (app-guarded-Case C Vᵤ^ ctx)]))
+         (f ℓ Vₓs H φ Σ ⟦k⟧))]
       [(-And/C #t (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
        (with-guarded-arity 1
          (app-And/C (σ@ Σ (-φ-cache φ) α₁) (σ@ Σ (-φ-cache φ) α₂)))]
@@ -127,33 +132,23 @@
        (app₁ ℓ '< (list (car Vₓs) (-b r)) H φ Σ ⟦k⟧)]
       [(-≤/c (? real? r))
        (app₁ ℓ '<= (list (car Vₓs) (-b r)) H φ Σ ⟦k⟧)]
-      #;[(or (? -●?) (? -Fn●?)) ;; TODO clean this mess up
-
+      [(or (? -●?) (? -Fn●?))
        (define l (ℓ-src ℓ))
 
-       (: blm : -V → -Γ → (℘ -ς))
-       (define ((blm C) Γ)
-         (define blm (blm/simp l 'Λ (list C) (list Vₕ) ℓ))
+       (: blm : -h → -φ → (℘ -ς))
+       (define ((blm C) φ)
+         (define blm (blm/simp l 'Λ (list C) (list {set Vₕ}) ℓ))
          (⟦k⟧ blm H φ Σ))
 
-       (: chk-arity : -Γ → (℘ -ς))
-       (define (chk-arity Γ)
-         (define required-arity
-           (let ([b (-b (length Wₓs))])
-             (-W¹ b b)))
-         (define Wₕ-arity
-           (let ([Vₐ (V-arity Vₕ)]
-                 [sₐ (?t@ 'procedure-arity sₕ)])
-             (-W¹ (if Vₐ (-b Vₐ) (+●)) sₐ)))
-         (with-Γ+/-oW (σ Γ 'arity-includes? Wₕ-arity required-arity)
-           #:on-t do-app
-           #:on-f (blm (format-symbol "(arity-includes/c ~a)" (length Wₓs)))))
-
-       (: do-app : -Γ → (℘ -ς))
-       (define (do-app Γ)
-         ((app-opq Wₕ) ℓ Wₓs H φ Σ ⟦k⟧))
+       (: chk-arity : -φ → (℘ -ς))
+       (define (chk-arity φ)
+         (define num-args (length Vₓs))
+         (define Vₕ-arity (cond [(V-arity Vₕ) => -b] [else (-● ∅)]))
+         (with-φ+/-oV (σ φ 'arity-includes? {set Vₕ-arity} {set (-b num-args)})
+           #:on-t (λ ([φ : -φ]) ((app-opq Vₕ) ℓ Vₓs H φ Σ ⟦k⟧))
+           #:on-f (blm (format-symbol "(arity-includes/c ~a)" num-args))))
        
-       (with-Γ+/-oW (σ Γ 'procedure? Wₕ)
+       (with-φ+/-oV (σ φ 'procedure? {set Vₕ})
          #:on-t chk-arity
          #:on-f (blm 'procedure?))]
       [_
@@ -352,12 +347,13 @@
                ;; TODO: could this loop forever due to cycle?
                (⟦ac⟧ ℓ (list V^) H φ Σ ⟦k⟧)])]
            [(-● ps)
-            (with-φ+/- ([(φₒₖ φₑᵣ) : -ς (φ+/-oV (-Σ-σ Σ) φ p Vₓ)])
-              #:true  (⟦k⟧ (list (-● (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
-                                         {set 'list?}
-                                         ∅))) 
-                           H φₒₖ Σ)
-              #:false (⟦k⟧ (blm) H φₑᵣ Σ))]
+            (with-φ+/-oV ((-Σ-σ Σ) φ p Vₓ)
+              #:on-t (λ ([φ : -φ])
+                       (⟦k⟧ (list (-● (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
+                                          {set 'list?}
+                                          ∅))) 
+                            H φ Σ))
+              #:on-f (λ ([φ : -φ]) (⟦k⟧ (blm) H φ Σ)))]
            [_ (⟦k⟧ (blm) H φ Σ)])]
         [_
          (define blm (blm-arity ℓ (show-o ac) 1 Vₓs))
@@ -403,9 +399,10 @@
 
   ;; FIXME tmp hack for `make-sequence` use internallyr
   (: app-make-sequence : -⟦f⟧)
-  (define (app-make-sequence ℓ Vₓs H φ Σ ⟦k⟧)
-    (define Vs (list {set -car} {set -cdr} {set 'values} {set -one} {set -cons?} {set -ff} {set -ff}))
-    (⟦k⟧ Vs H φ Σ))
+  (define app-make-sequence
+    (let ([A (map (inst set -V) (list -car -cdr 'values -one -cons? -ff -ff))])
+      (λ (ℓ Vₓs H φ Σ ⟦k⟧)
+        (⟦k⟧ A H φ Σ))))
 
   (: app-opq : -V → -⟦f⟧)
   (define (app-opq Vₕ)
