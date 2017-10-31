@@ -41,20 +41,20 @@
 (define-signature prim-runtime^
   ([make-total-pred : (Index → Symbol → -⟦f⟧)]
    [implement-predicate : (-σ -φ -o (Listof -V^) → -V^)]
-   [Vs->bs : ((Listof -V) → (Option (Listof Base)))]
-   [make-static-listof : (Symbol (→ (Values Boolean -V ℓ)) → -V)]
-   [make-listof : (Boolean -V ℓ → -V)]
-   [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
-   [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
+   [Vs->bs : ((Listof -V^) → (Option (Listof Base)))]
+   [make-static-listof : (Symbol (→ (Values Boolean -U ℓ)) → -U)]
+   [make-listof : (Boolean -U ℓ → -U)]
+   [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -U)]
+   [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -U)]
    [exec-prim
     : (-H -φ -Σ -⟦k⟧
           ℓ (Intersection Symbol -o)
           #:volatile? Boolean
-          #:dom (Listof (Pairof -V ℓ))
-          #:rng (Listof -V)
-          #:rng-wrap (Option (Listof (Pairof -V ℓ)))
-          #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
-          #:args (Listof -V)
+          #:dom (Listof (Pairof -U ℓ))
+          #:rng (Listof -V^)
+          #:rng-wrap (Option (Listof (Pairof -U ℓ)))
+          #:refinements (Listof (List (Listof -U) (Option -U) (Listof -U)))
+          #:args (Listof -V^)
           → (℘ -ς))]
 
    [get-weakers : (Symbol → (℘ Symbol))]
@@ -80,7 +80,7 @@
    [add-const! : (Identifier -prim → Void)]
 
    ;; re-exported stuff to avoid confusing dependency in `def`
-   [r:Γ⊢oV/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -V * → (℘ -ς))]
+   #;[r:φ+/-oV/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -φ -h -V^ * → (℘ -ς))]
    [mk-● : (-h * → -●)]
-   [add-seal! : (-Σ Symbol -H -l → -Seal/C)]
+   [add-seal : (-φ Symbol -H -l → (Values -Seal/C -φ))]
    ))
