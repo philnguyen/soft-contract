@@ -170,7 +170,7 @@
            (if (symbol? x)
                (λ ([ρ : -ρ]) (ρ@ ρ x))
                (const (-α->⟪α⟫ x)))]]
-         [(-error msg ℓ) #:reduce (mk-rt (blm/simp (ℓ-src ℓ) 'Λ '() (list {set (-b msg)}) ℓ))]
+         [(-error msg ℓ) #:reduce (mk-A (blm/simp (ℓ-src ℓ) 'Λ '() (list {set (-b msg)}) ℓ))]
          [(-μ/c x (:↓ ⟦c⟧))
           (⟦c⟧ (ρ+ ρ x (-α->⟪α⟫ (-α.x/c x H))) H φ Σ (μ/c∷ x ⟦k⟧))]
          [(--> dom (:↓ ⟦d⟧) ℓ)
@@ -223,7 +223,7 @@
          [_ (error '↓ₑ "unhandled: ~a" (show-e e))]
          ))))
 
-  (define (mk-V [V : -V]) (mk-rt (list {set V})))
+  (define (mk-V [V : -V]) (mk-A (list {set V})))
 
   (define/memo (↓ₓ [l : -l] [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
     (define -blm.undefined
@@ -244,7 +244,7 @@
     (λ (ρ H φ Σ ⟦k⟧)
       (⟦f⟧ ρ H φ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧))))
 
-  (define/memo (mk-rt [A : -A]) : -⟦e⟧
+  (define/memo (mk-A [A : -A]) : -⟦e⟧
     (λ (_ H φ Σ ⟦k⟧)
       (⟦k⟧ A H φ Σ)))
 
@@ -252,11 +252,11 @@
     (λ (ρ H φ Σ ⟦k⟧)
       (⟦c⟧ ρ H φ Σ (fc.v∷ l ℓ ⟦v⟧ ρ ⟦k⟧))))
 
-  (define/memo (mk-wrapped-hash [C : -Hash/C] [ctx : -ctx] [α : ⟪α⟫] [V : -V]) : -⟦e⟧
+  (define/memo (mk-wrapped-hash [C : -Hash/C] [ctx : -ctx] [α : ⟪α⟫] [V : -V^]) : -⟦e⟧
     (λ (ρ H φ Σ ⟦k⟧)
       (⟦k⟧ (list {set (-Hash/guard C α ctx)}) H (φ⊔ φ α V) Σ)))
 
-  (define/memo (mk-wrapped-set [C : -Set/C] [ctx : -ctx] [α : ⟪α⟫] [V : -V]) : -⟦e⟧
+  (define/memo (mk-wrapped-set [C : -Set/C] [ctx : -ctx] [α : ⟪α⟫] [V : -V^]) : -⟦e⟧
     (λ (ρ H φ Σ ⟦k⟧)
       (⟦k⟧ (list {set (-Set/guard C α ctx)}) H (φ⊔ φ α V) Σ)))
 

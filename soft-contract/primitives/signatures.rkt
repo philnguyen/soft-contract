@@ -40,7 +40,7 @@
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
   ([make-total-pred : (Index → Symbol → -⟦f⟧)]
-   [implement-predicate : (-σ -φ Symbol (Listof -V^) → -V^)]
+   [implement-predicate : (-σ -φ -o (Listof -V^) → -V^)]
    [Vs->bs : ((Listof -V) → (Option (Listof Base)))]
    [make-static-listof : (Symbol (→ (Values Boolean -V ℓ)) → -V)]
    [make-listof : (Boolean -V ℓ → -V)]

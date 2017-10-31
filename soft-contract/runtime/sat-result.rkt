@@ -20,13 +20,13 @@
 
   (: R⊔ : -R -R * → -R)
   (define (R⊔ R₁ . Rs)
-    (define ⊔ : (-R -R → -R)
-      (match-lambda**
-       [('? _) '?]
-       [(_ '?) '?]
-       [(R₁ R₂) (if (eq? R₁ R₂) R₁ '?)]))
     (for/fold ([R : -R R₁]) ([Rᵢ (in-list Rs)])
       (⊔ R Rᵢ)))
+
+  (: R⊔* (∀ (X) (X → -R) (Sequenceof X) → -R))
+  (define (R⊔* f xs)
+    (for/fold ([R : -R '✓]) ([x xs] #:break (eq? R '?))
+      (⊔ R (f x))))
 
   (: not-R : -R → -R)
   ;; Negate provability result
@@ -34,4 +34,11 @@
     (case R [(✓) '✗] [(✗) '✓] [else '?]))
 
   (: boolean->R : Boolean → (U '✓ '✗))
-  (define (boolean->R x) (if x '✓ '✗)))
+  (define (boolean->R x) (if x '✓ '✗))
+
+  (define ⊔ : (-R -R → -R)
+    (match-lambda**
+     [('? _) '?]
+     [(_ '?) '?]
+     [(R₁ R₂) (if (eq? R₁ R₂) R₁ '?)]))
+  )

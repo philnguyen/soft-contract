@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide verifier^ reduction^ parser^ prims^ proof-system^ #;widening^ for-gc^ lib^ debugging^)
+(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^ for-gc^ lib^ debugging^)
 
 (require typed/racket/unit
          set-extras
@@ -39,15 +39,11 @@
    [implement-predicate : (-σ -φ -o (Listof -V^) → -V^)]))
 
 (define-signature proof-system^
-  ([V∈C : (-σ -φ -V^ -V → -R)]
-   [p∋V^ : (-σ -φ -h -V^ * → -R)]
+  ([V∈C : (-σ -φ -V^ (U -h -V) → -R)]
    [φ+/-V : (-σ -φ -V^ → (Values (℘ -φ) (℘ -φ)))]
+   [φ+/-oV/handler : (∀ (X) (-φ → (℘ X)) (-φ → (℘ X)) -σ -φ -h -V^ * → (℘ X))]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
-   [φ+/-oV : (-σ -φ -o -V^ * → (Values (℘ -φ) (℘ -φ)))]
    ; TODO #;[plausible-index? : (-σ -Γ -V Natural → Boolean)]
-   [φ+/-oV/handler : (∀ (X) (-φ → (℘ X)) (-φ → (℘ X)) -σ -φ -o -V^ * → (℘ X))]
-   #;[Γ⊢oV/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -Γ -o -V * → (℘ X))]
-   #;[p∋Vs/handler : (∀ (X) (→ (℘ X)) (→ (℘ X)) -σ -o -V * → (℘ X))]
    [sat-one-of : (-V^ (℘ Base) → -R)]
    [V-arity : (case->
                [-Clo → Arity]
@@ -57,23 +53,27 @@
 ;; FIXME: least coherent signature ever.
 ;; Could have named it "misc"...
 (define-signature widening^
-  (#;[σ⊕! : (-Σ -Γ ⟪α⟫ -W¹ → Void)]
-   #;[σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
-   #;[σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
-   #;[σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
-   #;[σₖ+! : (-Σ -αₖ -κ → -αₖ)]
-   #;[Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
-   #;[ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
-   #;[Γ+ : (-Γ -?t * → -Γ)]
-   #;[bind-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
+  ([V⊕ : (-V^ -V^ → -V^)]
+   #|
+   [σ⊕! : (-Σ -Γ ⟪α⟫ -W¹ → Void)]
+   [σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
+   [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
+   [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
+   [σₖ+! : (-Σ -αₖ -κ → -αₖ)]
+   [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
+   [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
+   [Γ+ : (-Γ -?t * → -Γ)]
+   [bind-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
                      → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
-   #;[alloc-init-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
+   [alloc-init-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
                            → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
-   #;[alloc-rest-args! : ([-Σ -Γ -H ℓ (Listof -W¹)] [#:end -V] . ->* . -V)]
-   #;[estimate-list-lengths : (-σ -V → (℘ (U #f Arity)))]
-   #;[unalloc : (-σ -V → (℘ (Option (Listof -V))))]
-   #;[unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
-   #;[copy-Γ : ((℘ (U Symbol ℓ)) -Γ -Γ → -Γ)]))
+   [alloc-rest-args! : ([-Σ -Γ -H ℓ (Listof -W¹)] [#:end -V] . ->* . -V)]
+   
+   
+   [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
+   [copy-Γ : ((℘ (U Symbol ℓ)) -Γ -Γ → -Γ)]
+   |#
+   ))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]
@@ -90,6 +90,4 @@
    [set-bound-vars! : (-⟦e⟧ (℘ Symbol) → Void)]))
 
 (define-signature debugging^
-  ([print-Σ-stat : (-Σ → Void)]
-   [print-large-sets : ([-Σ] [#:val-min Index #:kont-min Index #:ctx-min Index] . ->* . Void)]
-   [print-stat : ((℘ -ς) → Void)]))
+  ())

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide reduction@)
+(provide #;reduction@)
 
 (require racket/set
          racket/match
@@ -18,6 +18,7 @@
          "compile.rkt"
          "app.rkt"
          "mon.rkt"
+         "fc.rkt"
          "kont.rkt"
          "havoc.rkt"
          "memoize.rkt"
@@ -25,204 +26,134 @@
          )
 
 (define-unit pre-reduction@
-  (import static-info^ kont^ havoc^ mon^ compile^ local-prover^ widening^ verifier^
-          val^ for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ pc^ instr^ summ^
+  (import static-info^ path^ kont^ havoc^ app^ mon^ fc^ compile^ local-prover^ verifier^
+          val^ for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ instr^ summ^
           debugging^)
   (export reduction^)
 
   (define-type Ctx (Pairof -σ -σₖ))
 
-  (define (run [⟦e⟧ : -⟦e⟧]) : (Values (℘ -A) -Σ)
+  (: run : -⟦e⟧ → (Values (℘ -A) -Σ))
+  (define (run ⟦e⟧)
     (define seen : (HashTable -ς Ctx) (make-hash))
-    (define αₖ₀ : -αₖ (-B ⊤$ H∅ '() ⟦e⟧ ⊥ρ ⊤Γ))
-    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥𝒜 ⊥Ξ))
+    (define ℓ₀ (loc->ℓ (loc 'start 0 0 '())))
+    (define αₖ₀ (-αₖ H∅ (-B (-Clo '() ⟦e⟧ ⊥ρ) '() ℓ₀) φ₀))
+    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥Ξ))
     (define iter : Natural 0)
     (define ?max-steps (max-steps))
-    (define iter-maxed? : (Natural → Boolean)
-      (if ?max-steps (λ ([i : Natural]) (> i ?max-steps)) (λ _ #f)))
-    (define-set errs : -blm)
+    (define iter-maxed? : (Natural → Boolean) (if ?max-steps (λ (i) (> i ?max-steps)) (λ _ #f)))
 
-    (let loop! ([front : (℘ -ς) {set (-ς↑ αₖ₀)}])
-      #;(when (iter-maxed? iter)
-        (print-stat front))
-      (unless (or (set-empty? front) (iter-maxed? iter))
-        (define-values (ς↑s ς↓s ς!s) (partition-states front))
+    ;; With side-effect adding to error set
+    (let loop ([front : (℘ -ς) {set (-ς↑ αₖ₀)}] [ans : (℘ -A) ∅])
+      (cond
+        [(and (not (set-empty? front)) (not (iter-maxed? iter)))
+         (define-values (ς↑s ς↓s ς!s) (partition-states front))
 
-        (begin
-          (when (debug-iter?)
-            (printf "* ~a: ~a~n" iter (set-count front))
-            #;(print-Σ-stat Σ)
-            #;(printf " -- ~a are rt, ~a are ev, ~a are blm~n" (length ς↓s) (length ς↑s) (length ς!s)))
+         (begin
+           (when (debug-iter?)
+             (printf "* ~a: ~a~n" iter (set-count front)))
 
-          (when (debug-trace?)
+           (when (debug-trace?)
 
-            (begin ; interactive
-              (define ςs-list
-                (append ς↑s ς↓s))
-              (define ς->i
-                (for/hash : (HashTable -ς Integer) ([(ς i) (in-indexed ςs-list)])
-                  (values ς i))))
-            
-            (printf " * evs:~n")
-            (for ([ς ς↑s])
-              (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
-            (printf " * rts:~n")
-            (for ([ς ς↓s])
-              (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
+             (begin ; interactive
+               (define ςs-list
+                 (append ς↑s ς↓s))
+               (define ς->i
+                 (for/hash : (HashTable -ς Integer) ([(ς i) (in-indexed ςs-list)])
+                   (values ς i))))
+             
+             (printf " * evs:~n")
+             (for ([ς ς↑s])
+               (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
+             (printf " * rts:~n")
+             (for ([ς ς↓s])
+               (printf "  -[~a]. ~a~n" (hash-ref ς->i ς) (show-ς ς)))
 
-            #;(begin ; interactive
-                (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
-                (match (read)
-                  [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
-                  ['done (error "DONE")]
-                  [_ (void)]))
-            (printf "~n"))
-          
-          (set! iter (+ 1 iter)))
+             #;(begin ; interactive
+                 (printf "~nchoose [0-~a|ok|done]: " (sub1 (hash-count ς->i)))
+                 (match (read)
+                   [(? exact-integer? i) (set! front (set (list-ref ςs-list i)))]
+                   ['done (error "DONE")]
+                   [_ (void)]))
+             (printf "~n"))
+           
+           (set! iter (+ 1 iter)))
 
-        (define next
-          (match-let ([(-Σ σ σₖ _ _) Σ])
+         (define next
+           (match-let ([(-Σ σ σₖ _) Σ])
+             (define vsn : Ctx (cons σ σₖ))
 
-            (define vsn : Ctx (cons σ σₖ))
+             (: ς↑-seen? : -ς↑ → Boolean)
+             (define (ς↑-seen? ς)
+               (cond [(hash-ref seen ς #f) =>
+                      (match-lambda
+                        [(cons σ₀ σₖ₀)
+                         (define root
+                           (match (-αₖ-block (-ς-ctx ς))
+                             [(-B Vₕ Vₓs _) (∪ (->⟪α⟫s Vₕ) (->⟪α⟫s Vₓs))]
+                             [(-M _ C V) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
+                             [(-F _ _ C V) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
+                             [(-HV tag) {seteq (-α->⟪α⟫ (-α.hv tag))}]))
+                         (σ-equal?/spanning-root σ₀ σ root)])]
+                     [else #f]))
 
-            (: ς↑-seen? : -ς↑ → Boolean)
-            (define (ς↑-seen? ς)
-              (cond [(hash-ref seen ς #f) =>
-                     (match-lambda
-                       [(cons σ₀ σₖ₀)
-                        (define root
-                          (match (-ς-block ς)
-                            [(-B _ _ _ _ ρ _) (->⟪α⟫s ρ)]
-                            [(-M _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
-                            [(-F _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
-                            [(-HV $ tag) {seteq (-α->⟪α⟫ (-α.hv tag))}]))
-                        (σ-equal?/spanning-root σ₀ σ root)])]
-                    [else #f]))
+             (: ς↓-seen? : -ς↓ → Boolean)
+             (define (ς↓-seen? ς)
+               (define (⟦k⟧->αₖs [⟦k⟧ : -⟦k⟧]) {set (⟦k⟧->αₖ ⟦k⟧)})
+               (cond [(hash-ref seen ς #f) =>
+                      (match-lambda
+                        [(cons σ₀ σₖ₀)
+                         (map-equal?/spanning-root σₖ₀ σₖ {set (-αₖ-block (-ς-ctx ς))} ⟦k⟧->αₖs)])]
+                     [else #f]))
 
-            (: ς↓-seen? : -ς↓ → Boolean)
-            (define (ς↓-seen? ς)
-              (define (κ->αₖs [κ : -κ])
-                {set (⟦k⟧->αₖ (-κ-rest κ))})
-              (cond [(hash-ref seen ς #f) =>
-                     (match-lambda
-                       [(cons σ₀ σₖ₀)
-                        (map-equal?/spanning-root σₖ₀ σₖ {set (-ς-block ς)} κ->αₖs)])]
-                    [else #f]))
+             (define next-from-ς↑s
+               (↝↑! (for/list : (Listof -ς↑) ([ς ς↑s] #:unless (ς↑-seen? ς))
+                      (hash-set! seen ς vsn)
+                      ς)
+                    Σ))
+             (define next-from-ς↓s
+               (↝↓! (for/list : (Listof -ς↓) ([ς ς↓s] #:unless (ς↓-seen? ς))
+                      (hash-set! seen ς vsn)
+                      ς)
+                    Σ))
+             (∪ next-from-ς↑s next-from-ς↓s)))
+         (define ans*
+           (for/fold ([ans : (℘ -A) ans]) ([ς (in-list ς!s)])
+             (set-add ans (-ς!-blm ς))))
+         (loop next ans*)]
+        [else
+         (match-define (-Σ σ σₖ _) Σ)
+         (when (debug-iter?)
+           (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
+         (when (and ?max-steps (> iter ?max-steps))
+           (printf "Execution capped at ~a steps~n" ?max-steps))
+         #;(print-large-sets Σ #:val-min 1 #:kont-min 1)
+         (values ans Σ)])))
 
-            (define next-from-ς↑s
-              (↝↑! (for/list : (Listof -ς↑) ([ς ς↑s] #:unless (ς↑-seen? ς))
-                     (hash-set! seen ς vsn)
-                     ς)
-                   Σ))
-            (define next-from-ς↓s
-              (↝↓! (for/list : (Listof -ς↓) ([ς ς↓s] #:unless (ς↓-seen? ς))
-                     (hash-set! seen ς vsn)
-                     ς)
-                   Σ))
-            (∪ next-from-ς↑s next-from-ς↓s)))
-        (for ([ς (in-list ς!s)])
-          (errs-add! (-ς!-blm ς)))
-        (loop! next)))
-
-    (match-let ([(-Σ σ σₖ _ _) Σ])
-      #;(when (debug-iter?)
-        (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
-      #;(when (and ?max-steps (> iter ?max-steps))
-        (printf "Execution capped at ~a steps~n" ?max-steps))
-      #;(print-large-sets Σ #:val-min 1 #:kont-min 1)
-      (values errs Σ)))
-
+  (: ↝↑! : (Listof -ς↑) -Σ → (℘ -ς))
   ;; Quick-step on "push" state
-  (define (↝↑! [ςs : (Listof -ς↑)] [Σ : -Σ]) : (℘ -ς)
-    (for/union : (℘ -ς) ([ς ςs])
+  (define (↝↑! ςs Σ)
+    (for/union : (℘ -ς) ([ς (in-list ςs)])
       (match-define (-ς↑ αₖ) ς)
       (define ⟦k⟧ (rt αₖ))
-      (match αₖ
-        [(-B $ H fmls ⟦e⟧ ρ Γ) (⟦e⟧ ρ $ Γ H Σ ⟦k⟧)]
-        [(-M $ H ctx W-C W-V Γ) (mon ctx W-C W-V $ Γ H Σ ⟦k⟧)]
-        [(-F $ H l ℓ W-C W-V Γ) (flat-chk l ℓ W-C W-V $ Γ H Σ ⟦k⟧)]
-        [(-HV $ tag) (havoc tag $ Σ ⟦k⟧)]
-        [_ (error '↝↑ "~a" αₖ)])))
+      (match-define (-αₖ H bl φ) αₖ)
+      (match bl
+        [(-B Vₕ Vₓs ℓ) (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧)]
+        [(-M ctx C V) (mon ctx C V H φ Σ ⟦k⟧)]
+        [(-F l ℓ C V) (flat-chk l ℓ C V H φ Σ ⟦k⟧)]
+        [(-HV tag) (havoc tag φ Σ ⟦k⟧)]
+        [_ (error '↝↑ "~a" bl)])))
 
+  (: ↝↓! : (Listof -ς↓) -Σ → (℘ -ς))
   ;; Quick-step on "pop" state
-  (define (↝↓! [ςs : (Listof -ς↓)] [Σ : -Σ]) : (℘ -ς)
+  (define (↝↓! ςs Σ)
     (define σₖ (-Σ-σₖ Σ))
     (define σ (-Σ-σ Σ))
-
-    (: continue : -κ -A -$ -Γ -αₖ → (℘ -ς))
-    (define (continue κ A $ Γₐ αₖₑₑ)
-      (define H (-αₖ-ctx αₖₑₑ))
-      (match κ
-        [(-κ.rt ⟦k⟧ dom Γ t looped? bnds)
-         (match A
-           [(-W Vs tₐ)
-            (define name-from-callee?
-              (match* (tₐ αₖₑₑ)
-                [((? integer? ℓ) (-B _ _ _ ⟦e⟧ _ _)) (loc-from-expr? ℓ ⟦e⟧)]
-                [(_ _) #f]))
-            (define tₐ*
-              (match tₐ
-                ;; FIXME generalize hack
-                [(-b (or 0 #t #f)) tₐ]
-                [(-t.x x)
-                 #:when (and (hash-has-key? bnds x)
-                             (match? αₖₑₑ (-B _ _ (or (list _) (list _ _)) _ _ _)))
-                 (hash-ref bnds x)]
-                [(-t.@ '- (list (-t.x x) (? -b? b)))
-                 #:when (and (hash-has-key? bnds x)
-                             (match? αₖₑₑ (-B _ _ (or (list _) (list _ _)) _ _ _)))
-                 (-t.@ '- (list (hash-ref bnds x) b))]
-                [_
-                 (cond [looped? t]
-                       [name-from-callee? t]
-                       [else tₐ])]))
-            (define Γ* : -Γ
-              (let ([Γ₀ (if looped? Γ (copy-Γ (∪ dom (fvₜ tₐ)) Γ Γₐ))])
-                (define δΓ
-                  (for/union : (℘ -?t) ([V (in-list Vs)] [t (in-list (split-values tₐ* (length Vs)))])
-                             (for/set: : (℘ -?t) ([p (in-set (predicates-of-V V))])
-                       (?t@ p t))))
-                (apply Γ+ Γ₀ (filter values (set->list δΓ)))))
-            (⟦k⟧ (-W Vs tₐ*) $ Γ* H Σ)]
-           [_ (⟦k⟧ A $ Γ H Σ)])]
-        [(-κ ⟦k⟧)
-         (⟦k⟧ A $ Γₐ H Σ)]))
-
-    (for/union : (℘ -ς) ([ς #;ςs (with-debugging/off ((x) (collapse ςs))
-                                   (printf "collapse ~a -> ~a~n" (length ςs) (length x)))])
-      (match-define (-ς↓ αₖₑₑ $ₑₑ Γₑₑ A) ς)
-      (for/union : (℘ -ς) ([κ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (continue κ A $ₑₑ Γₑₑ αₖₑₑ))))
-
-  (: collapse : (Listof -ς↓) → (Listof -ς↓))
-  (define (collapse ςs)
-    (define m : (HashTable (List -αₖ -Γ -W) (℘ -$)) (make-hash))
-    (for ([ς (in-list ςs)])
-      (match-define (-ς↓ αₖ $ Γ A) ς)
-      (hash-update! m (list αₖ Γ A) (λ ([$s : (℘ -$)]) (set-add $s $)) mk-∅))
-    (for/list : (Listof -ς↓) ([(k $s) (in-hash m)])
-      (match-define (list αₖ Γ A) k)
-      (-ς↓ αₖ (collapse-$ $s) Γ A)))
-
-  (: collapse-$ : (℘ -$) → -$)
-  (define (collapse-$ $s)
-    (for/fold ([$₀ : -$ (set-first $s)])
-              ([$ : -$ (in-set (set-rest $s))])
-      ($⊕ $₀ $)))
-
-  (: $⊕ : -$ -$ → -$)
-  (define ($⊕ $₁ $₂)
-    (for/fold ([$ : -$ $₁])
-              ([(l t) (in-hash $₁)]
-               #:unless (equal? t (hash-ref $₂ l #f)))
-      (hash-remove $ l)))
-  
-  (: -αₖ-ctx : -αₖ → -H)
-  (define (-αₖ-ctx α)
-    (cond [(-B? α) (-B-ctx α)]
-          [(-M? α) (-M-ctx α)]
-          [(-F? α) (-F-ctx α)]
-          [else H∅]))
+    (for/union : (℘ -ς) ([ς (in-list ςs)])
+      (match-define (-ς↓ αₖₑₑ A φ) ς)
+      (define H (-αₖ-instr αₖₑₑ))         
+      (for/union : (℘ -ς) ([⟦k⟧ (in-set (σₖ@ σₖ αₖₑₑ))])
+        (⟦k⟧ A H φ Σ))))
 
   (: partition-states : (℘ -ς) → (Values (Listof -ς↑) (Listof -ς↓) (Listof -ς!)))
   (define (partition-states ςs)
@@ -236,8 +167,8 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import ast-pretty-print^ static-info^ meta-functions^
+  (import ast-pretty-print^ static-info^ meta-functions^ sat-result^
           prims^ proof-system^ local-prover^ widening^ verifier^
-          for-gc^ val^ env^ sto^ pc^ instr^ pretty-print^ prim-runtime^ summ^)
+          for-gc^ val^ env^ sto^ path^ instr^ pretty-print^ prim-runtime^ summ^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
-  (link debugging@ memoize@ kont@ compile@ havoc@ mon@ app@ pre-reduction@))
+  (link debugging@ memoize@ kont@ compile@ havoc@ mon@ fc@ app@ pre-reduction@))

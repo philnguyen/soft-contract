@@ -17,17 +17,17 @@
   (export memoize^)
   
   (define/memoeq (memoize-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
-    (define-type Key (List -$ -H -ρ -Γ))
-    (define-type Rec (List (HashTable ⟪α⟫ (℘ -V)) (℘ -ς)))
+    (define-type Key (List -H -ρ -φ))
+    (define-type Rec (List (HashTable ⟪α⟫ -V^) (℘ -ς)))
     (let ([m : (HashTable Key Rec) (make-hash)])
       (remember-e! (assert (recall-e ⟦e⟧))
-                   (λ (ρ $ Γ H Σ ⟦k⟧)
-                     (define key : Key (list $ H ρ Γ))
+                   (λ (ρ H φ Σ ⟦k⟧)
+                     (define key : Key (list H ρ φ))
                      (define σ (-Σ-σ Σ))
 
                      (: recompute! : → (℘ -ς))
                      (define (recompute!)
-                       (define ans (⟦e⟧ ρ $ Γ H Σ ⟦k⟧))
+                       (define ans (⟦e⟧ ρ H φ Σ ⟦k⟧))
                        (hash-set! m key (list σ ans))
                        ans)
 

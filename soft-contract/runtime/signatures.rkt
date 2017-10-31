@@ -287,7 +287,7 @@
 
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-αₖ [instr : -H] [block : -Block] [path : -φ]))
-(-Block . ::= . (-B [fun : -V] [args : (Listof -V^)]) #;(-B [var : -formals] [exp : -⟦e⟧] [env : -ρ])
+(-Block . ::= . (-B [fun : -V] [args : (Listof -V^)] [loc : ℓ]) #;(-B [var : -formals] [exp : -⟦e⟧] [env : -ρ])
                 (-M [blm-ctx : -ctx] [ctc : -V^] [val : -V^])
                 (-F [l : -l] [loc : ℓ] [ctc : -V^] [val : -V^])
                 (-HV [tag : HV-Tag]))
@@ -313,6 +313,7 @@
 
 (define-signature sto^
   ([⊥σ : -σ]
+   [σ⊔! : (-Σ ⟪α⟫ -V^ → Void)]
    [σ@ : ((U -Σ -σ) -δσ ⟪α⟫ → -V^)]
    [σ@¹ : ((U -Σ -σ) -δσ ⟪α⟫ → -V)]
    [σ@/list : ((U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))]
@@ -335,6 +336,9 @@
    [φ-with-condition : (-φ -Γ → -φ)]
    [bind-args : (-ρ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
    [alloc-rest-args : ([-H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]))
+
+(define-signature summ^
+  ([⊥Ξ : -Ξ]))
 
 (define-signature val^
   ([fresh-sym! : (→ Integer)]

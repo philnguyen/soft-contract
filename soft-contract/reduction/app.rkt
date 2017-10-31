@@ -27,7 +27,7 @@
     (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
       (define-values (H* looped?) (H+ H (-edge (strip-fn Vₕ) ℓ)))
       (if looped?
-          (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s) φ)]
+          (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s ℓ) φ)]
                 [⟦k⟧* (restore-ctx∷ H ⟦k⟧)])
             {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))})
           (app₁ ℓ Vₕ Vₓ^s H φ Σ ⟦k⟧))))

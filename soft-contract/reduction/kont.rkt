@@ -4,7 +4,6 @@
                      racket/syntax
                      syntax/parse)
          (only-in racket/function curry)
-         racket/sequence
          racket/set
          racket/bool
          racket/match
@@ -25,7 +24,7 @@
 (provide kont@)
 
 (define-unit kont@
-  (import compile^ app^ mon^ proof-system^ memoize^ for-gc^ verifier^ havoc^
+  (import compile^ app^ mon^ fc^ proof-system^ memoize^ for-gc^ verifier^ havoc^
           val^ env^ sto^ pretty-print^ instr^ prim-runtime^ static-info^ path^
           sat-result^
           (prefix q: local-prover^))
@@ -381,7 +380,7 @@
       (match ⟦c⟧s
         ['()
          (define-values (Fields φ*) (alloc* (-𝒾-name 𝒾) (curry -α.struct/c 𝒾) H ℓ₁ φ (reverse Cs*)))
-         (define flat? (andmap (λ ([C^ : -V^]) (sequence-andmap C-flat? C^)) Cs*))
+         (define flat? (andmap C^-flat? Cs*))
          (define StC (-St/C flat? 𝒾 Fields))
          (⟦k⟧ (list {set StC}) H φ* Σ)]
         [(cons ⟦c⟧ ⟦c⟧s*)
@@ -452,13 +451,10 @@
          (match-define (-blm _ lo _ _ ℓ) blm)
          (⟦k⟧ (blm/simp lo 'Λ '(|1 value|) A ℓ) H φ Σ)])))
 
-  (define-frame (wrap-st∷ [𝒾 : -𝒾]
-                          [C : -St/C]
-                          [ctx : -ctx]
-                          [⟦k⟧ : -⟦k⟧])
+  (define-frame (wrap-st∷ [C : -St/C] [ctx : -ctx] [⟦k⟧ : -⟦k⟧])
   (make-frame (⟦k⟧ A H φ Σ) #:roots (C)
     (match-define (list V) A)  ; only used internally, should be safe
-    (define αᵤ (-α->⟪α⟫ (-α.st 𝒾 ctx H)))
+    (define αᵤ (-α->⟪α⟫ (-α.st (-St/C-id C) ctx H)))
     (⟦k⟧ (list {set (-St* C αᵤ ctx)}) H (φ⊔ φ αᵤ V) Σ)))
 
   (define-frame (fc-and/c∷ [l : -l]

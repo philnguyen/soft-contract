@@ -98,6 +98,6 @@
   ([memoize-⟦e⟧ : (-⟦e⟧ → -⟦e⟧)]))
 
 (define-signature havoc^
-  ([havoc : (HV-Tag -Σ -⟦k⟧ → (℘ -ς))]
+  ([havoc : (HV-Tag -φ -Σ -⟦k⟧ → (℘ -ς))]
    [gen-havoc-expr : ((Listof -module) → -e)]
    [add-leak! : (HV-Tag -Σ (U -V^ (Listof -V^)) → Void)]))
