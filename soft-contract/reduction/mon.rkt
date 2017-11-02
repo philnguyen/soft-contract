@@ -184,7 +184,7 @@
                 (mk-V 'vector-ref)
                 (list (mk-A (list V^*)) (mk-V (-● {set 'exact-nonnegative-integer?})))))
       (define ⟦k⟧* (mk-wrap-vect∷ C ctx ⟦k⟧))
-      (define Vₗ^ (vec-len σ φ V^*))
+      (define Vₗ^ (r:vec-len σ φ V^*))
       (define C*^ (σ@ Σ (-φ-cache φ) α*))
       (define ⟦mon⟧ (mk-mon (ctx-with-ℓ ctx ℓ*) (mk-A (list C*^)) ⟦ref⟧))
       (⟦mon⟧ ⊥ρ H φ Σ (ap∷ (list Vₗ^ {set 'make-vector}) '() ⊥ρ ℓ ⟦k⟧*)))
@@ -207,7 +207,7 @@
 
     (: chk-len : -φ → (℘ -ς))
     (define (chk-len φ)
-      (define Vₙ^ (vec-len σ φ V^))
+      (define Vₙ^ (r:vec-len σ φ V^))
       (with-φ+/-oV (σ φ '= Vₙ^ {set (-b n)})
         #:on-t chk-flds
         #:on-f (blm (format-symbol "vector-length/c ~a" n))))
@@ -351,16 +351,6 @@
         (let ([αₖ (-αₖ H (-M ctx C^ V^) φ)])
           {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧))})
         (mon ctx C^ V^ H φ Σ ⟦k⟧))) 
-
-  (: vec-len : -σ -φ -V^ → -V^)
-  (define (vec-len σ φ V^)
-    (for/set: : -V^ ([V (in-set V^)])
-      (match V
-        [(-Vector αs) (-b (length αs))]
-        [(-Vector^ _ (? -b? b)) b]
-        [(-Vector/guard (-Vector/C αs) _ _) (-b (length αs))]
-        [(? -t? V) (-t.@ 'vector-length (list V))]
-        [_ (-● {set 'exact-nonnegative-integer?})])))
   
   ;; FIXME Duplicate macros
   (define-simple-macro (with-φ+/-oV (σ:expr φ:expr o:expr V:expr ...) #:on-t on-t:expr #:on-f on-f:expr)

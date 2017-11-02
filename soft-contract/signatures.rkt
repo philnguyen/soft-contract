@@ -41,9 +41,10 @@
 (define-signature proof-system^
   ([V∈C : (-σ -φ -V^ (U -h -V) → -R)]
    [φ+/-V : (-σ -φ -V^ → (Values (℘ -φ) (℘ -φ)))]
+   [p∋V^ : (-σ -φ -h -V^ * → -R)]
    [φ+/-oV/handler : (∀ (X) (-φ → (℘ X)) (-φ → (℘ X)) -σ -φ -h -V^ * → (℘ X))]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
-   ; TODO #;[plausible-index? : (-σ -Γ -V Natural → Boolean)]
+   [plausible-index? : (-σ -φ -V^ Natural → Boolean)]
    [sat-one-of : (-V^ (℘ Base) → -R)]
    [V-arity : (case->
                [-Clo → Arity]

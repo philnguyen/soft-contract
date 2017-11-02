@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide singleton)
+(provide singleton-set)
 (require racket/match
          racket/set)
 

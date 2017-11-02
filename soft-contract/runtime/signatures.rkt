@@ -36,10 +36,11 @@
             (-● (℘ -h))
             (-St -𝒾 (Listof ⟪α⟫))
             (-Vector (Listof ⟪α⟫))
-            (-Vector^ [content : ⟪α⟫] [length : #|restricted|# -V])
+            (-Vector^ [content : ⟪α⟫] [length : #|restricted|# -V^])
             (-Hash^ [key : ⟪α⟫] [val : ⟪α⟫] [immutable? : Boolean])
             (-Set^ [elems : ⟪α⟫] [immutable? : Boolean])
             -Fn
+            -h
             
             ;; Proxied higher-order values
             ;; Inlining the contract in the data definition is ok

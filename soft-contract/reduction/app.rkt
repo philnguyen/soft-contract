@@ -125,13 +125,13 @@
          (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
          (app-St/C s (σ@/list σ (-φ-cache φ) αs)))]
       [(->/c (? real? r))
-       (app₁ ℓ '> (list (car Vₓs) (-b r)) H φ Σ ⟦k⟧)]
+       (app₁ ℓ '>  (list (car Vₓs) {set (-b r)}) H φ Σ ⟦k⟧)]
       [(-≥/c (? real? r))
-       (app₁ ℓ '>= (list (car Vₓs) (-b r)) H φ Σ ⟦k⟧)]
+       (app₁ ℓ '>= (list (car Vₓs) {set (-b r)}) H φ Σ ⟦k⟧)]
       [(-</c (? real? r))
-       (app₁ ℓ '< (list (car Vₓs) (-b r)) H φ Σ ⟦k⟧)]
+       (app₁ ℓ '<  (list (car Vₓs) {set (-b r)}) H φ Σ ⟦k⟧)]
       [(-≤/c (? real? r))
-       (app₁ ℓ '<= (list (car Vₓs) (-b r)) H φ Σ ⟦k⟧)]
+       (app₁ ℓ '<= (list (car Vₓs) {set (-b r)}) H φ Σ ⟦k⟧)]
       [(or (? -●?) (? -Fn●?))
        (define l (ℓ-src ℓ))
 
