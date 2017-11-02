@@ -38,7 +38,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import prim-runtime^ widening^ pc^ val^ sto^ kont^ mon^)
+  (import prim-runtime^ widening^ path^ val^ sto^ kont^ mon^)
   (export)
 
   (def-pred hash?)
@@ -46,41 +46,33 @@
     (hash? . -> . boolean?))
 
   (splicing-local
-      ((: hash-helper : ℓ (Listof -W¹) -$ -Γ -H -Σ -⟦k⟧ Symbol -h → (℘ -ς))
-       (define (hash-helper ℓ Ws $ Γ H Σ ⟦k⟧ name eq)
-         (define A
+      ((: hash-helper : ℓ (Listof -V^) -H -φ -Σ -⟦k⟧ Symbol -h → (℘ -ς))
+       (define (hash-helper ℓ Vs H φ Σ ⟦k⟧ name eq)
+         (define-values (A φ*)
            (cond
-             [(even? (length Ws))
+             [(even? (length Vs))
               (define αₖ (-α->⟪α⟫ (-α.hash.key ℓ H)))
               (define αᵥ (-α->⟪α⟫ (-α.hash.val ℓ H)))
-              (σ⊕Vs! Σ αₖ ∅)
-              (σ⊕Vs! Σ αᵥ ∅)
-              (let go! ([Ws : (Listof -W¹) Ws])
-                (match Ws
-                  [(list* Wₖ Wᵥ Ws*)
-                   (σ⊕! Σ Γ αₖ Wₖ)
-                   (σ⊕! Σ Γ αᵥ Wᵥ)
-                   (go! Ws*)]
-                  ['() (void)]))
-              (define V (-Hash^ αₖ αᵥ #t))
-              (-W (list V) (apply ?t@ name (map -W¹-t Ws)))]
+              (let go : (Values -A -φ) ([φ : -φ (φ⊔ (φ⊔ φ αₖ ∅) αᵥ ∅)] [Vs : (Listof -V^) Vs])
+                (match Vs
+                  [(list* Vₖ Vᵥ Vs*) (go (φ⊔ (φ⊔ φ αₖ Vₖ) αᵥ Vᵥ) Vs*)]
+                  [_ (values (list {set (-Hash^ αₖ αᵥ #t)}) φ)]))]
              [else
               (define Cs (list (string->symbol "even number of arg(s)")))
-              (define Vs (map -W¹-V Ws))
-              (blm/simp (ℓ-src ℓ) name Cs Vs ℓ)]))
-         (⟦k⟧ A $ Γ H Σ)))
-    (def (hash ℓ Ws $ Γ H Σ ⟦k⟧)
+              (values (blm/simp (ℓ-src ℓ) name Cs Vs ℓ) φ)]))
+         (⟦k⟧ A H φ* Σ)))
+    (def (hash ℓ Vs H φ Σ ⟦k⟧)
       #:init ()
-      #:rest [Ws (listof any/c)]
-      (hash-helper ℓ Ws $ Γ H Σ ⟦k⟧ 'hash 'hash-equal?))
-    (def (hasheq ℓ Ws $ Γ H Σ ⟦k⟧)
+      #:rest [Vs (listof any/c)]
+      (hash-helper ℓ Vs H φ Σ ⟦k⟧ 'hash 'hash-equal?))
+    (def (hasheq ℓ Vs H φ Σ ⟦k⟧)
       #:init ()
-      #:rest [Ws (listof any/c)]
-      (hash-helper ℓ Ws $ Γ H Σ ⟦k⟧ 'hasheq 'hash-eq?))
-    (def (hasheqv ℓ Ws $ Γ H Σ ⟦k⟧)
+      #:rest [Vs (listof any/c)]
+      (hash-helper ℓ Vs H φ Σ ⟦k⟧ 'hasheq 'hash-eq?))
+    (def (hasheqv ℓ Vs H φ Σ ⟦k⟧)
       #:init ()
-      #:rest [Ws (listof any/c)]
-      (hash-helper ℓ Ws $ Γ H Σ ⟦k⟧ 'hasheqv 'hash-eqv?)))
+      #:rest [Vs (listof any/c)]
+      (hash-helper ℓ Vs H φ Σ ⟦k⟧ 'hasheqv 'hash-eqv?)))
 
   (def make-hash
     (∀/c (α β)
@@ -132,34 +124,28 @@
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
   (def hash-set*! ; FIXME uses
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
-  (def (hash-set ℓ Ws $ Γ H Σ ⟦k⟧)
-    #:init ([Wₕ (and/c hash? immutable?)]
-            [Wₖ any/c]
-            [Wᵥ any/c])
-    (match-define (-W¹ Vₕ tₕ) Wₕ)
-    (match-define (-W¹ _  tₖ) Wₖ)
-    (match-define (-W¹ _  tᵥ) Wᵥ)
-    (define tₐ (?t@ 'hash-set tₕ tₖ tᵥ))
+  (def (hash-set ℓ Vs H φ Σ ⟦k⟧)
+    #:init ([Vₕ^ (and/c hash? immutable?)]
+            [Vₖ any/c]
+            [Vᵥ any/c])
     (define αₖ* (-α->⟪α⟫ (-α.hash.key ℓ H)))
     (define αᵥ* (-α->⟪α⟫ (-α.hash.val ℓ H)))
-    (match Vₕ
-      [(-Hash^ αₖ αᵥ _)
-       (σ-copy! Σ αₖ αₖ*)
-       (σ-copy! Σ αᵥ αᵥ*)
-       (σ⊕! Σ Γ αₖ* Wₖ)
-       (σ⊕! Σ Γ αᵥ* Wᵥ)
-       (define Wₕ* (-W (list (-Hash^ αₖ* αᵥ* #t)) tₐ))
-       (⟦k⟧ Wₕ* $ Γ H Σ)]
-      [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ))) αₕ ctx)
-       (define ctx* (ctx-neg ctx))
-       (define ⟦k⟧* (hash-set-inner∷ ℓ αₕ tₕ (wrap-hash∷ C ctx ⟦k⟧)))
-       (for*/union : (℘ -ς) ([Cₖ (in-set (σ@ Σ αₖ))]
-                             [Cᵥ (in-set (σ@ Σ αᵥ))])
-          (mon (ctx-with-ℓ ctx* ℓₖ) (-W¹ Cₖ #f) Wₖ $ Γ H Σ
-               (mon*∷ ctx* (list (-W¹ Cᵥ #f)) (list Wᵥ) (list ℓᵥ) '() ⟦k⟧*)))]
-      [_
-       (define Wₕ* (-W (list (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)) tₐ))
-       (⟦k⟧ Wₕ* $ Γ H Σ)]))
+    (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
+      (match Vₕ
+        [(-Hash^ αₖ αᵥ _)
+         (define φ*
+           (φ⊔* φ (list αₖ*                    αₖ* αᵥ*                    αᵥ*)
+                  (list (σ@ Σ (-φ-cache φ) αₖ) Vₖ  (σ@ Σ (-φ-cache φ) αᵥ) Vᵥ)))
+         (⟦k⟧ (list {set (-Hash^ αₖ* αᵥ* #t)}) H φ* Σ)]
+        [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ))) αₕ ctx)
+         (define ctx* (ctx-neg ctx))
+         (define Cₖ^ (σ@ Σ (-φ-cache φ) αₖ))
+         (define Cᵥ^ (σ@ Σ (-φ-cache φ) αᵥ))
+         (define ⟦k⟧* (mon*∷ ctx* (list Cᵥ^) (list Vᵥ) (list ℓᵥ) '()
+                             (hash-set-inner∷ ℓ αₕ (wrap-hash∷ C ctx ⟦k⟧))))
+         (mon (ctx-with-ℓ ctx* ℓₖ) Cₖ^ Vₖ H φ Σ ⟦k⟧*)]
+        [_
+         (⟦k⟧ (list {set (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)}) H φ Σ)])))
   (def hash-set* ; FIXME uses
     (∀/c (α β)
       [(and/c immutable? (hash/c α β)) α β . -> . (and/c (hash/c α β) immutable?)]))

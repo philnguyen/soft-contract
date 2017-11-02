@@ -36,7 +36,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-16@
-  (import prim-runtime^ widening^ pc^)
+  (import prim-runtime^ widening^ path^)
   (export)
 
   ;;;;; Hash Sets
@@ -66,13 +66,11 @@
      ((generic-set?) #:rest (listof symbol?) . ->* . boolean?)]
   #;[set-implements/c ; FIXME varargs, contract?
      (symbol? . -> . flat-contract?)]
-  (def (set/c ℓ Ws $ Γ H Σ ⟦k⟧)
-    #:init ([W contract? #|TODO chaperone-contract?|#])
-    (match-define (-W¹ _ t) W)
+  (def (set/c ℓ Vs H φ Σ ⟦k⟧)
+    #:init ([V contract? #|TODO chaperone-contract?|#])
     (define α (-α->⟪α⟫ (-α.set/c-elem ℓ H)))
-    (σ⊕! Σ Γ α W)
     (define C (-Set/C (-⟪α⟫ℓ α (ℓ-with-id ℓ 'set/c))))
-    (⟦k⟧ (-W (list C) (?t@ 'set/c t)) $ Γ H Σ))
+    (⟦k⟧ (list {set C}) H (φ⊔ φ α V) Σ))
 
 ;;;;; 4.16.3 Generic Set Interface
 

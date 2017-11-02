@@ -56,12 +56,14 @@
     (cond [(parse-prim-table-ref rt:const-table id (λ () #f)) => values]
           [(alias-table-ref rt:alias-table id (λ () #f)) => parse-prim]
           [else #f]))
+
+  (define implement-predicate rt:implement-predicate)
   )
 
 (define-compound-unit/infer prims@
   (import ast-pretty-print^ static-info^
           proof-system^ local-prover^ widening^ app^ kont^ compile^ for-gc^
-          val^ pc^ sto^ instr^ pretty-print^ env^ mon^)
+          val^ path^ sto^ instr^ pretty-print^ env^ mon^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@

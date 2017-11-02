@@ -211,7 +211,7 @@
       (let ([no-return?
              (for/or : Boolean ([rng (in-list ranges)])
                (match rng
-                 [(-● ps) (∋ ps 'none/c)]
+                 [(singleton-set (-● (singleton-set 'none/c))) #t]
                  [_ #f]))])
         (cond
           [no-return? (absurd∷ ⟦k⟧)]
@@ -225,10 +225,20 @@
     (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args args H φ Σ))
 
+  (: vec-len : -σ -φ -V^ → -V^)
+  (define (vec-len σ φ V^)
+    (for/union : -V^ ([V (in-set V^)])
+      (match V
+        [(-Vector αs) {set (-b (length αs))}]
+        [(-Vector^ _ Vₙ) Vₙ]
+        [(-Vector/guard (-Vector/C αs) _ _) {set (-b (length αs))}]
+        [(? -t? V) {set (-t.@ 'vector-length (list V))}]
+        [_ {set (-● {set 'exact-nonnegative-integer?})}])))
+
   (: mk-● : -h * → -●)
   (define (mk-● . xs) (-● (list->set xs)))
-  #;(: r:φ+/-oV/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -φ -h -V^ * → (℘ -ς)))
-  #;(define (r:φ+/-oV/handler on-t on-f σ φ o . Vs)
+  (: r:φ+/-oV/handler : ((-φ → (℘ -ς)) (-φ → (℘ -ς)) -σ -φ -h -V^ * → (℘ -ς)))
+  (define (r:φ+/-oV/handler on-t on-f σ φ o . Vs)
     (apply φ+/-oV/handler on-t on-f σ φ o Vs))
 
   (: add-seal : -φ Symbol -H -l → (Values -Seal/C -φ))

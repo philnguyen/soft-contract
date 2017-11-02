@@ -5,9 +5,10 @@
 (require racket/match
          racket/contract
          typed/racket/unit
-         set-extras
+         racket/set
          "../utils/debug.rkt"
          "../utils/list.rkt"
+         "../utils/patterns.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
          "signatures.rkt"
@@ -20,16 +21,22 @@
   (import prim-runtime^)
   (export)
 
-  (def (scv:make-case-lambda ℓ Ws $ Γ H Σ ⟦k⟧)
+  (def (scv:make-case-lambda ℓ Vs H φ Σ ⟦k⟧)
     #:init ()
-    #:rest [Ws (listof any/c)]
-    (define-values (cases ts) (unzip-by -W¹-V -W¹-t Ws))
-    (define t (-t.@ 'case-lambda (cast ts (Listof -t))))
-    (⟦k⟧ (-W (list (-Case-Clo (cast cases (Listof -Clo)))) t) $ Γ H Σ))
+    #:rest [Vs (listof any/c)]
+    (define clos
+      (for/list : (Listof -Clo) ([V^ (in-list Vs)])
+        (match V^
+          [(singleton-set (? -Clo? V)) V]
+          [_ (error 'scv:make-case-lambda "Internal invariant violated")])))
+    (⟦k⟧ (list {set (-Case-Clo clos)}) H φ Σ))
 
-  (def (scv:make-case-> ℓ Ws $ Γ H Σ ⟦k⟧)
+  (def (scv:make-case-> ℓ Vs H φ Σ ⟦k⟧)
     #:init ()
-    #:rest [Ws (listof any/c)]
-    (define-values (cases ts) (unzip-by -W¹-V -W¹-t Ws))
-    (define t (-t.@ 'case-> (cast ts (Listof -t))))
-    (⟦k⟧ (-W (list (-Case-> (cast cases (Listof -=>)))) t) $ Γ H Σ)))
+    #:rest [Vs (listof any/c)]
+    (define cases
+      (for/list : (Listof -=>) ([V^ (in-list Vs)])
+        (match V^
+          [(singleton-set (? -=>? C)) C]
+          [_ (error 'scv:make-case-> "Internal invariant violated")])))
+    (⟦k⟧ (list {set (-Case-> cases)}) H φ Σ)))

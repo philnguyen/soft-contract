@@ -24,6 +24,7 @@
          syntax/parse/define
          set-extras
          "../utils/map.rkt"
+         "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
@@ -40,15 +41,14 @@
     ; identifiers available to function body
     [-o identifier? #f]
     [-ℓ identifier? #f]
-    [-Ws identifier? #f]
+    [-Vs identifier? #f]
     [-H identifier? #f]
-    [-$ identifier? #f]
-    [-Γ identifier? #f]
+    [-φ identifier? #f]
     [-Σ identifier? #f]
     [-⟦k⟧ identifier? #f]
     [-sig syntax? #f]
-    [-Wⁿ (listof identifier?) #f]
-    [-Wᵣ (or/c #f identifier?) #f]
+    [-Vⁿ (listof identifier?) #f]
+    [-Vᵣ (or/c #f identifier?) #f]
     [-gen-lift? boolean? #f]
     [-refinements (listof syntax?) '()]
     [-ctc-parameters (hash/c symbol? identifier?) (hash)]
@@ -82,11 +82,11 @@
                                            [sig:hc (attribute sig.arity)]))))
     
     (list
-     #`(match #,(-Ws)
+     #`(match #,(-Vs)
          #,@cases
          [_
-          (define blm (blm/simp (ℓ-src #,(-ℓ)) '#,(-o) (list 'error-msg) (map -W¹-V #,(-Ws)) #,(-ℓ)))
-          (#,(-⟦k⟧) blm #,(-$) #,(-Γ) #,(-H) #,(-Σ))])))
+          (define blm (blm/simp (ℓ-src #,(-ℓ)) '#,(-o) (list 'error-msg) #,(-Vs) #,(-ℓ)))
+          (#,(-⟦k⟧) blm #,(-H) #,(-φ) #,(-Σ))])))
 
   (define/contract (gen-case dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . syntax?)
@@ -95,31 +95,31 @@
       (if (and (should-lift? dom-inits ?dom-rst rngs) (-gen-lift?))
           (gen-case-lift dom-inits ?dom-rst rngs body-general)
           body-general))
-    (define arg-inits (take (-Wⁿ) (length dom-inits)))
-    #`[#,(if ?dom-rst #`(list* #,@arg-inits #,(-Wᵣ)) #`(list #,@arg-inits))
+    (define arg-inits (take (-Vⁿ) (length dom-inits)))
+    #`[#,(if ?dom-rst #`(list* #,@arg-inits #,(-Vᵣ)) #`(list #,@arg-inits))
        body ...])
 
   (define/contract (gen-case-lift dom-inits ?dom-rst rngs body)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) (listof syntax?) . -> . (listof syntax?))
-    (hack:make-available (-o) Ws->bs)
+    (hack:make-available (-o) Vs->bs)
 
-    (define (gen-pat-W c x)
+    (define (gen-pat c x)
       (syntax-parse (?flatten-ctc c)
-        [(~or () (~literal any/c)) #`(-W¹ _ (-b #,x))]
+        [(~or () (~literal any/c)) #`(singleton-set (-b #,x))]
         [(p)
          (define/with-syntax p* (for-TR #'p))
-         #`(-W¹ _ (-b (? p* #,x)))]
+         #`(singleton-set (-b (? p* #,x)))]
         [(p ...)
          (define/with-syntax (p* ...) (map for-TR (syntax->list #'(p ...))))
-         #`(-W¹ _ (-b (and #,x (? p) ...)))]))
-    (define/with-syntax (bᵢ ...) (gen-ids (-Ws) 'b (length dom-inits)))
-    (define/with-syntax bᵣ (format-id (-Ws) "bᵣ"))
-    (define/with-syntax (a ...) (gen-ids (-Ws) 'a (length rngs)))
-    (define/with-syntax (bₐ ...) (gen-ids (-Ws) 'bₐ (length rngs)))
-    (define/with-syntax (Wᵢ ...) (map gen-pat-W dom-inits (syntax->list #'(bᵢ ...))))
+         #`(singleton-set (-b (and #,x (? p) ...)))]))
+    (define/with-syntax (bᵢ ...) (gen-ids (-Vs) 'b (length dom-inits)))
+    (define/with-syntax bᵣ (format-id (-Vs) "bᵣ"))
+    (define/with-syntax (a ...) (gen-ids (-Vs) 'a (length rngs)))
+    (define/with-syntax (bₐ ...) (gen-ids (-Vs) 'bₐ (length rngs)))
+    (define/with-syntax (Vᵢ ...) (map gen-pat dom-inits (syntax->list #'(bᵢ ...))))
     (define/with-syntax (pat ...)
       (syntax-parse ?dom-rst
-        [#f #'((list Wᵢ ...))]
+        [#f #'((list Vᵢ ...))]
         [((~literal listof) c)
          (define/with-syntax pᵣ
            (syntax-parse (?flatten-ctc #'c)
@@ -127,25 +127,21 @@
              [(o ...)
               (define/with-syntax (o* ...) (map for-TR (syntax->list #'(o ...))))
               #'(λ ([x : Base]) (and (o* x) ...))]))
-         #'((list* Wᵢ ... (app Ws->bs bᵣ)) #:when (and bᵣ (andmap pᵣ bᵣ)))]
-        [_ #'((list* Wᵢ ... (app Ws->bs bᵣ)) #:when bᵣ)]))
+         #'((list* Vᵢ ... (app Vs->bs bᵣ)) #:when (and bᵣ (andmap pᵣ bᵣ)))]
+        [_ #'((list* Vᵢ ... (app Vs->bs bᵣ)) #:when bᵣ)]))
     (define/with-syntax compute-ans
       (if ?dom-rst #`(apply #,(-o) bᵢ ... bᵣ) #`(#,(-o) bᵢ ...)))
     (list
-     #`(match #,(-Ws)
+     #`(match #,(-Vs)
          [pat ...
           (define-values (a ...) compute-ans)
-          (define-values (bₐ ...) (values (-b a) ...))
-          (#,(-⟦k⟧) (-W (list bₐ ...)
-                        #,@(case (syntax-length #'(bₐ ...))
-                             [(1) #'(bₐ ...)]
-                             [else #'((-t.@ 'values (list bₐ ...)))]))
-           #,(-$) #,(-Γ) #,(-H) #,(-Σ))]
+          (define-values (bₐ ...) (values {set (-b a)} ...))
+          (#,(-⟦k⟧) (list bₐ ...) #,(-H) #,(-φ) #,(-Σ))]
          [_ #,@body])))
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . (listof syntax?))
-    (hack:make-available (-o) exec-prim mk-● add-seal!)
+    (hack:make-available (-o) exec-prim mk-● add-seal)
     (define/with-syntax (stx-init-V ...) (map gen-ctc-V dom-inits))
     (define/with-syntax (stx-init-ℓ ...) (map gen-stx-ℓ dom-inits))
     (define/with-syntax (stx-inits ...) #'((cons stx-init-V stx-init-ℓ) ...))
@@ -153,11 +149,11 @@
       (syntax-parse ?dom-rst
         [#f #'(list stx-inits ...)]
         [((~literal listof) c)
-         (define/with-syntax num-rests #`(length #,(-Wᵣ)))
+         (define/with-syntax num-rests #`(length #,(-Vᵣ)))
          #`(list* stx-inits ...
                   (make-list num-rests (cons #,(gen-ctc-V #'c) #,(gen-stx-ℓ #'c))))]
         [_
-         (define/with-syntax num-rests #`(length #,(-Wᵣ)))
+         (define/with-syntax num-rests #`(length #,(-Vᵣ)))
          #`(list* stx-inits ...
                   (make-list num-rests (cons #,(gen-ctc-V #'any/c) +ℓ₀)))]))
     (define refinement-compatible?
@@ -185,16 +181,19 @@
       (match (?flatten-range rngs)
         ['any
          (log-warning "arbitrarily generate 1 value for range `any` in `~a`~n" (syntax-e (-o)))
-         (list #'(mk-●))]
-        [#f (make-list (length rngs) #`(mk-●))]
+         (list #'{set (mk-●)})]
+        [#f (make-list (length rngs) #`{set (mk-●)})]
         [initial-refinements
          (for/list ([cs (in-list initial-refinements)])
            (define/with-syntax (c ...) (map o->v cs))
-           #'(mk-● c ...))]))
+           #'{set (mk-● c ...)})]))
     `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
-          #`(define #,x (add-seal! #,(-Σ) 'x.name #,(-H) (ℓ-src #,(-ℓ)))))
-      ,#`(exec-prim #,(-$) #,(-Γ) #,(-H) #,(-Σ) #,(-⟦k⟧)
+          (define/with-syntax φ* (gensym 'φ*))
+          #`(begin
+              (define-values (#,x φ*) (add-seal #,(-φ) 'x.name #,(-H) (ℓ-src #,(-ℓ))))
+              (set! #,(-φ) φ*)))
+      ,#`(exec-prim #,(-H) #,(-φ) #,(-Σ) #,(-⟦k⟧)
                     #,(-ℓ) '#,(-o)
                     #:volatile? #,(-volatile?)
                     #:dom doms
@@ -204,19 +203,19 @@
                                      #`(list #,@(for/list ([d (in-list rngs)])
                                                   #`(cons #,(gen-ctc-V d) #,(gen-stx-ℓ d)))))
                     #:refinements (list refinement-cases ...)
-                    #:args #,(-Ws))))
+                    #:args #,(-Vs))))
 
   (define/contract (gen-flat-checks doms ?rst body)
     ((listof syntax?) (or/c #f identifier?) (listof syntax?) . -> . (listof syntax?))
 
     (define/contract (gen-init-1 c x body)
       (identifier? identifier? (listof syntax?) . -> . (listof syntax?))
-      (hack:make-available (-o) r:Γ⊢oW/handler)
+      (hack:make-available (-o) r:φ+/-oV/handler)
       (list
-       #`(r:Γ⊢oW/handler
-              (λ () #,@body)
-              (λ () (blm '#,c #,x))
-              (-Σ-σ #,(-Σ)) #,(-Γ) '#,c #,x)))
+       #`(r:φ+/-oV/handler
+              (λ (φ) #,@(parameterize ([-φ #'φ]) body))
+              (λ (φ) #,(parameterize ([-φ #'φ]) #`(blm '#,c #,x)))
+              (-Σ-σ #,(-Σ)) #,(-φ) '#,c #,x)))
 
     (define/contract gen-inits
       ((listof syntax?) (listof identifier?) . -> . (listof syntax?))
@@ -234,24 +233,24 @@
        [('() '()) (gen-rest)]))
 
     (define/contract (gen-rest) (-> (listof syntax?))
-      (hack:make-available (-o) r:Γ⊢oW/handler)
+      (hack:make-available (-o) r:φ+/-oV/handler)
       (if ?rst
           (list
            #`(define (run-body) : (℘ -ς) #,@body)
-           #`(let go ([rests : (Listof -W¹) #,(-Wᵣ)])
+           #`(let go ([rests : (Listof -V^) #,(-Vᵣ)])
                (match rests
-                 [(cons W rests*)
-                  (r:Γ⊢oW/handler
-                       (λ () (go rests*))
-                       (λ () (blm '#,?rst W))
-                       (-Σ-σ #,(-Σ)) #,(-Γ) '#,?rst W)]
+                 [(cons V^ rests*)
+                  (r:φ+/-oV/handler
+                       (λ (φ) #,(parameterize ([-φ #'φ]) #`(go rests*)))
+                       (λ (φ) #,(parameterize ([-φ #'φ]) #`(blm '#,?rst V^)))
+                       (-Σ-σ #,(-Σ)) #,(-φ) '#,?rst V^)]
                  ['() (run-body)])))
           body))
     (list*
-     #`(define (blm [ctc : -V] [val : -W¹]) : (℘ -ς)
-         (define bl (blm/simp (ℓ-src #,(-ℓ)) '#,(-o) (list ctc) (list (-W¹-V val)) #,(-ℓ)))
-         (#,(-⟦k⟧) bl #,(-$) #,(-Γ) #,(-H) #,(-Σ)))
-     (gen-inits doms (-Wⁿ))))
+     #`(define (blm [ctc : -V] [val : -V^]) : (℘ -ς)
+         (define bl (blm/simp (ℓ-src #,(-ℓ)) '#,(-o) (list {set ctc}) (list val) #,(-ℓ)))
+         (#,(-⟦k⟧) bl #,(-H) #,(-φ) #,(-Σ)))
+     (gen-inits doms (-Vⁿ))))
 
   ;; See if range needs to go through general contract monitoring
   (define/contract (?flatten-range rngs)

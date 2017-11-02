@@ -13,18 +13,17 @@
          "def.rkt")
 
 (define-unit prims-10@
-  (import prim-runtime^ pc^)
+  (import prim-runtime^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.1 Multiple Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def (values ℓ Ws $ Γ H Σ ⟦k⟧)
+  (def (values ℓ Vs H φ Σ ⟦k⟧)
     #:init ()
-    #:rest (Ws (listof any/c))
-    (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
-    (⟦k⟧ (-W Vs (apply ?t@ 'values ss)) $ Γ H Σ))
+    #:rest [Vs (listof any/c)]
+    (⟦k⟧ Vs H φ Σ))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

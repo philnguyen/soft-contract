@@ -78,18 +78,17 @@
                           (syntax->list #'(clauses ...))))]
            [((~literal ∀/c) _ c) (go #'c)])))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Ws $ Γ H Σ ⟦k⟧)
+       #`(define (.o ℓ Vs H φ Σ ⟦k⟧)
            #,@(parameterize ([-o #'o]
                              [-ℓ #'ℓ]
-                             [-Ws #'Ws]
-                             [-$ #'$]
-                             [-Γ #'Γ]
+                             [-Vs #'Vs]
                              [-H #'H]
+                             [-φ #'φ]
                              [-Σ #'Σ]
                              [-⟦k⟧ #'⟦k⟧]
                              [-sig #'sig]
-                             [-Wⁿ (gen-ids #'Ws 'W max-inits)]
-                             [-Wᵣ (format-id #'Ws "Wᵣ")]
+                             [-Vⁿ (gen-ids #'Vs 'V max-inits)]
+                             [-Vᵣ (format-id #'Vs "Vᵣ")]
                              [-gen-lift? (syntax-e #'lift?)]
                              [-refinements (syntax->list #'(ref ...))]
                              [-volatile? (syntax-e #'volatile?)])
@@ -136,16 +135,16 @@
               [_ '()]))]
 
     ;; Hack mode
-    [(_ (o:id ℓ:id Ws:id $:id Γ:id H:id Σ:id ⟦k⟧:id)
-        #:init ([W:id (~and c (~or _:id ((~literal and/c) _:id ...)))] ...)
-        (~optional (~seq #:rest [Wᵣ:id cᵣ])
+    [(_ (o:id ℓ:id Vs:id H:id φ:id Σ:id ⟦k⟧:id)
+        #:init ([V:id (~and c (~or _:id ((~literal and/c) _:id ...)))] ...)
+        (~optional (~seq #:rest [Vᵣ:id cᵣ])
                    #:defaults ([cᵣ #'null?]
-                               [Wᵣ #'dummy]))
+                               [Vᵣ #'dummy]))
         e ...)
      (define/with-syntax ok-pat
        (syntax-parse #'cᵣ
-         [(~literal null?) #'(list W ...)]
-         [((~literal listof) _:id) #'(list* W ... Wᵣ)]
+         [(~literal null?) #'(list V ...)]
+         [((~literal listof) _:id) #'(list* V ... Vᵣ)]
          [_
           (raise-syntax-error
            (syntax-e #'o) "unsupported rest contract in hack mode" #'cᵣ)]))
@@ -163,26 +162,25 @@
          [((~literal listof) c) #'c]
          [_ #f]))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Ws $ Γ H Σ ⟦k⟧)
+       #`(define (.o ℓ Vs H φ Σ ⟦k⟧)
            #,(parameterize ([-o #'o]
                             [-ℓ #'ℓ]
-                            [-Ws #'Ws]
-                            [-$ #'$]
-                            [-Γ #'Γ]
+                            [-Vs #'Vs]
                             [-H #'H]
+                            [-φ #'φ]
                             [-Σ #'Σ]
                             [-⟦k⟧ #'⟦k⟧]
-                            [-Wⁿ (syntax->list #'(W ...))]
-                            [-Wᵣ #'Wᵣ])
-               (syntax-parse #'(W ...)
+                            [-Vⁿ (syntax->list #'(V ...))]
+                            [-Vᵣ #'Vᵣ])
+               (syntax-parse #'(V ...)
                  [()
                   (list*
-                   #`(let ([Wᵣ Ws])
+                   #`(let ([Vᵣ Vs])
                        #,@(gen-flat-checks '()
                                            ?c-elem
                                            (syntax->list #'(e ...)))))]
                  [_
-                  #`(match Ws
+                  #`(match Vs
                       [ok-pat
                        #,@(gen-flat-checks (syntax->list #'(c ...))
                                            ?c-elem
@@ -191,9 +189,9 @@
                        (define blm
                          (blm/simp (ℓ-src ℓ) 'o
                                    '(#,(string->symbol (format "~v" arity)))
-                                   (map -W¹-V Ws)
+                                   Vs
                                    ℓ))
-                       (⟦k⟧ blm $ Γ H Σ)])]))))
+                       (⟦k⟧ blm H φ Σ)])]))))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
      (define/contract maybe-set-partial (listof syntax?)
        (let ([n

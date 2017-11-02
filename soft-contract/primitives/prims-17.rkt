@@ -16,7 +16,8 @@
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import static-info^ prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
+  (import static-info^ prim-runtime^ proof-system^ widening^ app^ kont^
+          val^ path^ sto^ instr^ env^ pretty-print^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,48 +49,32 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  (def (unsafe-struct-ref ℓ Ws $ Γ H Σ ⟦k⟧)
-    #:init ([Wᵥ any/c] [Wᵢ integer?])
-    (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-    (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
-    (define sₐ
-      (match* (Vᵥ Vᵢ)
-        [((or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _))
-          (-b (? index? i)))
-         #:when 𝒾
-         (?t@ (-st-ac 𝒾 i) sᵥ)]
-        [(_ _) (?t@ 'unsafe-struct-ref sᵥ sᵢ)]))
-    (unless sₐ
-      (printf "unsafe-struct-ref: ~a ~a -> ⊘~n" (show-t sᵥ) (show-t sᵢ)))
-    (match Vᵥ
-      [(-St 𝒾 ⟪α⟫s)
-       (define n (count-struct-fields 𝒾))
-       (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
-                            [i : Natural (in-naturals)]
-                            #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
-                  (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (for/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵢ))])
-                             (⟦k⟧ (-W (list V) sₐ) $ Γ* H Σ)))]
-      [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ ctx)
-       (define n (count-struct-fields 𝒾))
-       (match-define (-ctx l+ l- lo _) ctx)
-       (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
-                            [i : Natural (in-naturals)]
-                            #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
-                  (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (cond
-                    [(struct-mutable? 𝒾 (assert i index?))
-                     (define c #f #;(⟪α⟫->s (car ⟪γ⟫ℓ)))
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵥ))]
-                                           [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                        (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* H Σ
-                             (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
-                    [else
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ ⟪α⟫ᵥ))]
-                                           [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                       (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* H Σ ⟦k⟧))]))]
-      [_
-       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ H Σ)]))
+  (def (unsafe-struct-ref ℓ Vs H φ Σ ⟦k⟧)
+    #:init ([Vᵥ^ any/c] [Vᵢ integer?])
+    (for/union : (℘ -ς) ([Vᵥ (in-set Vᵥ^)])
+      (match Vᵥ
+        [(-St 𝒾 ⟪α⟫s)
+         (define Vₐ^
+           (for/fold ([Vₐ^ : -V^ ∅])
+                     ([αᵢ (in-list ⟪α⟫s)]
+                      [i : Natural (in-naturals)]
+                      #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
+             (V⊕ Vₐ^ (σ@ Σ (-φ-cache φ) αᵢ))))
+         (⟦k⟧ (list Vₐ^) H φ Σ)]
+        [(-St* (-St/C _ 𝒾 γℓs) αᵥ ctx)
+         (define n (count-struct-fields 𝒾))
+         (match-define (-ctx l+ l- lo _) ctx)
+         (define Vᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
+         (for/union : (℘ -ς) ([γℓᵢ (in-list γℓs)]
+                              [i : Natural (in-naturals)]
+                              #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
+            (define Cᵢ^ (σ@ Σ (-φ-cache φ) (-⟪α⟫ℓ-addr γℓᵢ)))
+            (define ⟦k⟧* (if (struct-mutable? 𝒾 (assert i index?))
+                             (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert γℓᵢ))) Cᵢ^ ⟦k⟧)
+                             ⟦k⟧))
+            (app₁ ℓ 'unsafe-struct-ref (list Vᵥ*^ Vᵢ) H φ Σ ⟦k⟧*))]
+        [_
+         (⟦k⟧ (list {set (-● ∅)}) H φ Σ)])))
 
   (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

@@ -56,6 +56,7 @@
           #:refinements (Listof (List (Listof -U) (Option -U) (Listof -U)))
           #:args (Listof -V^)
           → (℘ -ς))]
+   [vec-len : (-σ -φ -V^ → -V^)]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]
@@ -80,7 +81,7 @@
    [add-const! : (Identifier -prim → Void)]
 
    ;; re-exported stuff to avoid confusing dependency in `def`
-   #;[r:φ+/-oV/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -φ -h -V^ * → (℘ -ς))]
+   [r:φ+/-oV/handler : ((-φ → (℘ -ς)) (-φ → (℘ -ς)) -σ -φ -h -V^ * → (℘ -ς))]
    [mk-● : (-h * → -●)]
    [add-seal : (-φ Symbol -H -l → (Values -Seal/C -φ))]
    ))
