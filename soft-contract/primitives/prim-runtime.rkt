@@ -237,9 +237,9 @@
 
   (: mk-● : -h * → -●)
   (define (mk-● . xs) (-● (list->set xs)))
-  (: r:φ+/-oV/handler : ((-φ → (℘ -ς)) (-φ → (℘ -ς)) -σ -φ -h -V^ * → (℘ -ς)))
-  (define (r:φ+/-oV/handler on-t on-f σ φ o . Vs)
-    (apply φ+/-oV/handler on-t on-f σ φ o Vs))
+  (: r:φ+/-pV^ : -σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))
+  (define (r:φ+/-pV^ σ φ o . Vs)
+    (apply φ+/-pV^ σ φ o Vs))
 
   (: add-seal : -φ Symbol -H -l → (Values -Seal/C -φ))
   (define (add-seal φ x H l)

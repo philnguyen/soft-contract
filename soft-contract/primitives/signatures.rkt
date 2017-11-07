@@ -81,7 +81,7 @@
    [add-const! : (Identifier -prim → Void)]
 
    ;; re-exported stuff to avoid confusing dependency in `def`
-   [r:φ+/-oV/handler : ((-φ → (℘ -ς)) (-φ → (℘ -ς)) -σ -φ -h -V^ * → (℘ -ς))]
+   [r:φ+/-pV^ : (-σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    [mk-● : (-h * → -●)]
    [add-seal : (-φ Symbol -H -l → (Values -Seal/C -φ))]
    ))

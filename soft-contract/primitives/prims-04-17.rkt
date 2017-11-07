@@ -49,13 +49,13 @@
     #:rest [Ws (listof any/c)] ; manual arity check instead
     (define l (ℓ-src ℓ))
 
-    (: blm-for : -h (Listof -V^) → -φ → (℘ -ς))
-    (define ((blm-for C Vs) φ)
+    (: blm-for : -h (Listof -V^) -φ → (℘ -ς))
+    (define (blm-for C Vs φ)
       (⟦k⟧ (blm/simp l 'apply (list C) Vs ℓ) H φ Σ))
 
-    (: check-func-arity : -V (Listof -V^) -V^ → -φ → (℘ -ς))
+    (: check-func-arity : -V (Listof -V^) -V^ -φ → (℘ -ς))
     ;; Make sure init arguments and rest args are compatible with the function's arity
-    (define ((check-func-arity V-func V-inits^ V-rest^) φ)
+    (define (check-func-arity V-func V-inits^ V-rest^ φ)
       (: blm-arity : Arity → (℘ -ς))
       (define (blm-arity a)
         (define blm-args (append V-inits^ (list V-rest^)))
@@ -113,10 +113,9 @@
       [(list V-func^ V-inits^s ... V-rest^)
        (define V-inits^ (cast V-inits^s (Listof -V^)))
        (for/union : (℘ -ς) ([V-func (in-set V-func^)])
-         (φ+/-oV/handler
-          (check-func-arity V-func V-inits^ V-rest^)
-          (blm-for 'procedure? (list V-func^))
-          (-Σ-σ Σ) φ 'procedure? {set V-func}))]
+          (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ 'procedure? {set V-func})]) : -ς
+            #:true  (check-func-arity V-func V-inits^ V-rest^ φ₁)
+            #:false (blm-for 'procedure? (list V-func^) φ₂)))]
       [_
        (define blm (blm-arity ℓ l (arity-at-least 2) Vs))
        (⟦k⟧ blm H φ Σ)]))

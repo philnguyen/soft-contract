@@ -11,8 +11,9 @@
   ([lift-p∋V : ((-σ -φ -h -V * → -R) → -σ -φ -h -V^ * → -R)]
    [p∋V : (-σ -φ -h -V * → -R)]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
+   [⊢U : (-U → -R)]
    #;[p⇒p : (-h -h → -R)]
-   #;[ps⇒p : ((℘ -h) -h → -R)]
+   [ps⇒p : ((℘ -h) -h → -R)]
    [sat-one-of : (-V^ (℘ Base) → -R)]
    [V-arity : (case->
                [-Clo → Arity]
@@ -20,4 +21,4 @@
                [-V → (Option Arity)])]))
 
 (define-signature external-prover^
-  ([ext-prove : (-φ -h (Listof -V) → -R)]))
+  ([p∋V : (-φ -h (Listof -V) → -R)]))

@@ -210,12 +210,11 @@
 
     (define/contract (gen-init-1 c x body)
       (identifier? identifier? (listof syntax?) . -> . (listof syntax?))
-      (hack:make-available (-o) r:φ+/-oV/handler)
+      (hack:make-available (-o) r:φ+/-pV^)
       (list
-       #`(r:φ+/-oV/handler
-              (λ (φ) #,@(parameterize ([-φ #'φ]) body))
-              (λ (φ) #,(parameterize ([-φ #'φ]) #`(blm '#,c #,x)))
-              (-Σ-σ #,(-Σ)) #,(-φ) '#,c #,x)))
+       #`(with-φ+/- ([(#,(-φ) #,(-φ)) (r:φ+/-pV^ (-Σ-σ #,(-Σ)) #,(-φ) '#,c #,x)]) : -ς
+           #:true  #,(match body [(list e) e] [_ #`(begin #,@body)])
+           #:false (blm '#,c #,x))))
 
     (define/contract gen-inits
       ((listof syntax?) (listof identifier?) . -> . (listof syntax?))
@@ -233,17 +232,16 @@
        [('() '()) (gen-rest)]))
 
     (define/contract (gen-rest) (-> (listof syntax?))
-      (hack:make-available (-o) r:φ+/-oV/handler)
+      (hack:make-available (-o) r:φ+/-pV^)
       (if ?rst
           (list
            #`(define (run-body) : (℘ -ς) #,@body)
            #`(let go ([rests : (Listof -V^) #,(-Vᵣ)])
                (match rests
                  [(cons V^ rests*)
-                  (r:φ+/-oV/handler
-                       (λ (φ) #,(parameterize ([-φ #'φ]) #`(go rests*)))
-                       (λ (φ) #,(parameterize ([-φ #'φ]) #`(blm '#,?rst V^)))
-                       (-Σ-σ #,(-Σ)) #,(-φ) '#,?rst V^)]
+                  (with-φ+/- ([(#,(-φ) #,(-φ)) (r:φ+/-pV^ (-Σ-σ #,(-Σ)) #,(-φ) '#,?rst V^)]) : -ς
+                    #:true  (go rests*)
+                    #:false (blm '#,?rst V^))]
                  ['() (run-body)])))
           body))
     (list*

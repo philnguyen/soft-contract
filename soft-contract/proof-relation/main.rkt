@@ -49,12 +49,6 @@
               (ext:p∋V φ h Vs)
               '?)]
       [R R]))
-
-  (: φ+/-oV/handler (∀ (X) (-φ → (℘ X)) (-φ → (℘ X)) -σ -φ -h -V^ * → (℘ X)))
-  (define (φ+/-oV/handler on-t on-f σ φ p . Vs)
-    (define-values (ts fs) (apply φ+/-pV σ φ p Vs))
-    (∪ (for/union : (℘ X) ([φ (in-set ts)]) (on-t φ))
-       (for/union : (℘ X) ([φ (in-set fs)]) (on-f φ))))
   
   (: V+ : -σ -φ -V^ (U -h -V) → -V^)
   (define (V+ σ φ V^ C)
