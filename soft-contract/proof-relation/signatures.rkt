@@ -21,4 +21,4 @@
                [-V → (Option Arity)])]))
 
 (define-signature external-prover^
-  ([p∋V : (-φ -h (Listof -V) → -R)]))
+  ([p∋V : (-Γ -h (Listof -V) → -R)]))

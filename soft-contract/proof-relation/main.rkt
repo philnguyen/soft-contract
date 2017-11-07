@@ -30,8 +30,8 @@
   (define (V∈C σ φ V C)
     (if (-h? C) (p∋V^ σ φ C V) '?))
 
-  (: φ+/-pV : -σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))
-  (define (φ+/-pV σ φ h . V^s)
+  (: φ+/-pV^ : -σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))
+  (define (φ+/-pV^ σ φ h . V^s)
     (for/fold ([ts : (℘ -φ) ∅] [fs : (℘ -φ) ∅])
               ([Vs (in-set (cartesian V^s))])
       (case (apply p∋V σ φ h Vs)
@@ -46,7 +46,7 @@
   (define (p∋V σ φ h . Vs)
     (match (apply local:p∋V σ φ h Vs)
       ['? (if (should-call-smt? (-φ-condition φ) h Vs)
-              (ext:p∋V φ h Vs)
+              (ext:p∋V (-φ-condition φ) h Vs)
               '?)]
       [R R]))
   
