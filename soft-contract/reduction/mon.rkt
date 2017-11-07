@@ -44,8 +44,8 @@
     (match-define (-ctx l+ _ lo ℓ) ctx)
     (define σ (-Σ-σ Σ))
 
-    (: blm : -V → -φ → (℘ -ς))
-    (define ((blm C) φ)
+    (: blm : -V -φ → (℘ -ς))
+    (define (blm C φ)
       (define blm (blm/simp l+ lo (list {set C}) (list V^) ℓ))
       (⟦k⟧ blm H φ Σ))
 
@@ -57,15 +57,16 @@
           (cond [(V-arity V) => -b]
                 [(-t? V) (-t.@ 'procedure-arity (list V))]
                 [else (-● {set 'procedure-arity?})])))
-      (with-φ+/-oV (σ φ 'arity-includes? val-arity {set grd-arity})
-        #:on-t wrap
-        #:on-f (blm (match grd-arity
-                      [(-b (? integer? n))
-                       (format-symbol "(arity-includes/c ~a)" n)]
-                      [(-b (arity-at-least n))
-                       (format-symbol "(arity-at-least/c ~a)" n)]
-                      [(-b (list n ...))
-                       (string->symbol (format "(arity in ~a)" n))]))))
+      (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'arity-includes? val-arity {set grd-arity})]) : -ς
+        #:true  (wrap φ₁)
+        #:false (blm (match grd-arity
+                       [(-b (? integer? n))
+                        (format-symbol "(arity-includes/c ~a)" n)]
+                       [(-b (arity-at-least n))
+                        (format-symbol "(arity-at-least/c ~a)" n)]
+                       [(-b (list n ...))
+                        (string->symbol (format "(arity in ~a)" n))])
+                     φ₂)))
 
     (: wrap : -φ → (℘ -ς))
     (define (wrap φ)
@@ -80,9 +81,9 @@
       (define Ar (-Ar C α ctx))
       (⟦k⟧ (list {set Ar}) H φ* Σ))
 
-    (with-φ+/-oV (σ φ 'procedure? V^)
-      #:on-t (if (-∀/C? C) wrap chk-arity)
-      #:on-f (blm 'procedure?)))
+    (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'procedure? V^)]) : -ς
+      #:true  (if (-∀/C? C) (wrap φ₁) (chk-arity φ₁))
+      #:false (blm 'procedure? φ₂)))
 
   (: mon-struct/c : -ctx -St/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-struct/c ctx C V^ H φ Σ ⟦k⟧)
@@ -107,11 +108,10 @@
       (define ⟦k⟧* (if all-immutable? ⟦k⟧ (wrap-st∷ C ctx ⟦k⟧)))
       (⟦reconstr⟧ ⊥ρ H φ Σ ⟦k⟧*))
 
-    (with-φ+/-oV (σ φ p V^)
-      #:on-t chk-fields
-      #:on-f (λ ([φ : -φ])
-               (define blm (blm/simp l+ lo (list p) (list V^) ℓₘ))
-               (⟦k⟧ blm H φ Σ))))
+    (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ p V^)]) : -ς
+      #:true (chk-fields φ₁)
+      #:false (let ([blm (blm/simp l+ lo (list p) (list V^) ℓₘ)])
+                (⟦k⟧ blm H φ₂ Σ))))
 
   (: mon-x/c : -ctx -x/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-x/c ctx C V^ H φ Σ ⟦k⟧)
@@ -171,8 +171,8 @@
     (match-define (-Vectorof (-⟪α⟫ℓ α* ℓ*)) C)
     (define σ (-Σ-σ Σ))
 
-    (: blm : -h → -φ → (℘ -ς))
-    (define ((blm C) φ)
+    (: blm : -h -φ → (℘ -ς))
+    (define (blm C φ)
       (define blm (blm/simp l+ lo (list C) (list V^) ℓ))
       (⟦k⟧ blm H φ Σ))
 
@@ -189,9 +189,9 @@
       (define ⟦mon⟧ (mk-mon (ctx-with-ℓ ctx ℓ*) (mk-A (list C*^)) ⟦ref⟧))
       (⟦mon⟧ ⊥ρ H φ Σ (ap∷ (list Vₗ^ {set 'make-vector}) '() ⊥ρ ℓ ⟦k⟧*)))
 
-    (with-φ+/-oV (σ φ 'vector? V^)
-      #:on-t chk-elems
-      #:on-f (blm 'vector?)))
+    (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'vector? V^)]) : -ς
+      #:true  (chk-elems φ₁)
+      #:false (blm 'vector? φ₂)))
 
   (: mon-vector/c : -ctx -Vector/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-vector/c ctx C V^ H φ Σ ⟦k⟧)
@@ -200,17 +200,17 @@
     (define σ (-Σ-σ Σ))
     (define n (length ⟪α⟫ℓs))
     
-    (: blm : -h → -φ → (℘ -ς))
-    (define ((blm C) φ)
+    (: blm : -h -φ → (℘ -ς))
+    (define (blm C φ)
       (define blm (blm/simp l+ lo (list C) (list V^) ℓ))
       (⟦k⟧ blm H φ Σ))
 
     (: chk-len : -φ → (℘ -ς))
     (define (chk-len φ)
       (define Vₙ^ (r:vec-len σ φ V^))
-      (with-φ+/-oV (σ φ '= Vₙ^ {set (-b n)})
-        #:on-t chk-flds
-        #:on-f (blm (format-symbol "vector-length/c ~a" n))))
+      (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ '= Vₙ^ {set (-b n)})]) : -ς
+        #:true  (chk-flds φ₁)
+        #:false (blm (format-symbol "vector-length/c ~a" n) φ₂)))
 
     (: chk-flds : -φ → (℘ -ς))
     (define (chk-flds φ)
@@ -232,9 +232,9 @@
          (⟦fld⟧₀ ⊥ρ H φ Σ
                  (ap∷ (list {set 'vector}) ⟦fld⟧s ⊥ρ ℓ ⟦k⟧*))]))
 
-    (with-φ+/-oV (σ φ 'vector? V^)
-      #:on-t chk-len
-      #:on-f (blm 'vector?)))
+    (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'vector? V^)]) : -ς
+      #:true  (chk-len φ₁)
+      #:false (blm 'vector? φ₂)))
 
   (: mon-hash/c : -ctx -Hash/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-hash/c ctx C Vᵤ^ H φ Σ ⟦k⟧)
@@ -271,11 +271,10 @@
            (define ●s {set (-● ∅)})
            (chk-key-vals ●s ●s)])))
 
-    (with-φ+/-oV (σ φ 'hash? Vᵤ^)
-      #:on-t chk-content
-      #:on-f (λ ([φ : -φ])
-               (define blm (blm/simp l+ lo '(hash?) (list Vᵤ^) ℓ))
-               (⟦k⟧ blm H φ Σ))))
+    (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'hash? Vᵤ^)]) : -ς
+      #:true (chk-content φ₁)
+      #:false (let ([blm (blm/simp l+ lo '(hash?) (list Vᵤ^) ℓ)])
+                (⟦k⟧ blm H φ₂ Σ))))
 
   (: mon-set/c : -ctx -Set/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-set/c ctx C Vᵤ^ H φ Σ ⟦k⟧)
@@ -305,11 +304,10 @@
           [(-Set^ α _) (chk-elems (σ@ σ (-φ-cache φ) α))]
           [_ (chk-elems {set (-● ∅)})])))
 
-    (with-φ+/-oV (σ φ 'set? Vᵤ^)
-      #:on-t chk-content
-      #:on-f (λ ([φ : -φ])
-               (define blm (blm/simp l+ lo '(set?) (list Vᵤ^) ℓ))
-               (⟦k⟧ blm H φ Σ))))
+    (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'set? Vᵤ^)]) : -ς
+      #:true (chk-content φ₁)
+      #:false (let ([blm (blm/simp l+ lo '(set?) (list Vᵤ^) ℓ)])
+                (⟦k⟧ blm H φ₂ Σ))))
 
   (: mon-seal/c : -ctx -Seal/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-seal/c ctx C V^ H φ Σ ⟦k⟧)
@@ -350,9 +348,5 @@
     (if looped?
         (let ([αₖ (-αₖ H (-M ctx C^ V^) φ)])
           {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧))})
-        (mon ctx C^ V^ H φ Σ ⟦k⟧))) 
-  
-  ;; FIXME Duplicate macros
-  (define-simple-macro (with-φ+/-oV (σ:expr φ:expr o:expr V:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
-    (φ+/-oV/handler on-t on-f σ φ o V ...))
+        (mon ctx C^ V^ H φ Σ ⟦k⟧)))
   )

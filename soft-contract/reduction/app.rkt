@@ -135,8 +135,8 @@
       [(or (? -●?) (? -Fn●?))
        (define l (ℓ-src ℓ))
 
-       (: blm : -h → -φ → (℘ -ς))
-       (define ((blm C) φ)
+       (: blm : -h -φ → (℘ -ς))
+       (define (blm C φ)
          (define blm (blm/simp l 'Λ (list C) (list {set Vₕ}) ℓ))
          (⟦k⟧ blm H φ Σ))
 
@@ -144,13 +144,14 @@
        (define (chk-arity φ)
          (define num-args (length Vₓs))
          (define Vₕ-arity (cond [(V-arity Vₕ) => -b] [else (-● ∅)]))
-         (with-φ+/-oV (σ φ 'arity-includes? {set Vₕ-arity} {set (-b num-args)})
-           #:on-t (λ ([φ : -φ]) ((app-opq Vₕ) ℓ Vₓs H φ Σ ⟦k⟧))
-           #:on-f (blm (format-symbol "(arity-includes/c ~a)" num-args))))
-       
-       (with-φ+/-oV (σ φ 'procedure? {set Vₕ})
-         #:on-t chk-arity
-         #:on-f (blm 'procedure?))]
+         (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'arity-includes? {set Vₕ-arity} {set (-b num-args)})])
+           : -ς
+           #:true  ((app-opq Vₕ) ℓ Vₓs H φ₁ Σ ⟦k⟧)
+           #:false (blm (format-symbol "(arity-includes/c ~a)" num-args) φ₂)))
+
+       (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'procedure? {set Vₕ})]) : -ς
+         #:true  (chk-arity φ₁)
+         #:false (blm 'procedure? φ₂))]
       [_
        (define blm (blm/simp l 'Λ (list 'procedure?) (list {set Vₕ}) ℓ))
        (⟦k⟧ blm H φ Σ)]))
@@ -347,13 +348,12 @@
                ;; TODO: could this loop forever due to cycle?
                (⟦ac⟧ ℓ (list V^) H φ Σ ⟦k⟧)])]
            [(-● ps)
-            (with-φ+/-oV ((-Σ-σ Σ) φ p Vₓ)
-              #:on-t (λ ([φ : -φ])
-                       (⟦k⟧ (list (-● (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
-                                          {set 'list?}
-                                          ∅))) 
-                            H φ Σ))
-              #:on-f (λ ([φ : -φ]) (⟦k⟧ (blm) H φ Σ)))]
+            (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₓ})]) : -ς
+              #:true (⟦k⟧ (list (-● (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
+                                        {set 'list?}
+                                        ∅))) 
+                          H φ₁ Σ)
+              #:false (⟦k⟧ (blm) H φ₂ Σ))]
            [_ (⟦k⟧ (blm) H φ Σ)])]
         [_
          (define blm (blm-arity ℓ (show-o ac) 1 Vₓs))
@@ -386,11 +386,10 @@
             (define Cᵢ^ (σ@ Σ (-φ-cache φ) γᵢ))
             (push-mon (ctx-with-ℓ ctx* ℓᵢ) Cᵢ^ H φ Σ ⟦k⟧*)]
            [(-● _)
-            (with-φ+/-oV ((-Σ-σ Σ) φ p Vₛ)
-              #:on-t (λ ([φ : -φ])
-                       (add-leak! '† Σ Vᵥ)
-                       (⟦k⟧ (list {set -void}) H φ Σ))
-              #:on-f (λ ([φ : -φ]) (⟦k⟧ (blm) H φ Σ)))]
+            (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₛ})]) : -ς
+              #:true  (begin (add-leak! '† Σ Vᵥ)
+                             (⟦k⟧ (list {set -void}) H φ₁ Σ))
+              #:false (⟦k⟧ (blm) H φ₂ Σ))]
            [_ (⟦k⟧ (blm) H φ Σ)])]
         [_
          (define blm (blm-arity ℓ (show-o mut) 2 Vₓs))
@@ -567,8 +566,4 @@
       [(-Ar C α ctx) (app-Ar/rest C α ctx)]
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-V V-func))]))
-
-  ;; FIXME Duplicate macros
-  (define-simple-macro (with-φ+/-oV (σ:expr φ:expr o:expr V:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
-    (φ+/-oV/handler on-t on-f σ φ o V ...))
   )

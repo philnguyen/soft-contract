@@ -64,9 +64,9 @@
              [(cons ⟦chk-field⟧ ⟦chk-field⟧s*)
               (⟦chk-field⟧ ⊥ρ H φ Σ (fc-struct/c∷ l ℓₐ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))
 
-         (with-φ+/-oV (σ φ (-st-p s) V^)
-           #:on-t chk-fields
-           #:on-f (λ ([φ : -φ]) ((mk-V -ff) ⊥ρ H φ Σ ⟦k⟧)))]
+         (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ (-st-p s) V^)]) : -ς
+           #:true (chk-fields φ₁)
+           #:false ((mk-V -ff) ⊥ρ H φ₂ Σ ⟦k⟧))]
         [(-x/C α)
          (define C*^ (σ@ Σ (-φ-cache φ) α))
          (push-fc l ℓₐ C*^ V^ H φ Σ ⟦k⟧ #:looped #t)]
@@ -85,8 +85,4 @@
         (let ([αₖ (-αₖ H (-F l ℓ C^ V^) φ)])
           {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧))})
         (flat-chk l ℓ C^ V^ H φ Σ ⟦k⟧)))
-
-  ;; FIXME Duplicate macros
-  (define-simple-macro (with-φ+/-oV (σ:expr φ:expr o:expr V:expr ...) #:on-t on-t:expr #:on-f on-f:expr)
-    (φ+/-oV/handler on-t on-f σ φ o V ...))
   )

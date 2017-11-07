@@ -1,8 +1,9 @@
 #lang typed/racket/base
 
-(provide NeListof unzip-by unzip)
+(provide NeListof unzip-by unzip cartesian)
 (require racket/match
-         racket/list)
+         racket/list
+         racket/set)
 
 (define-type (NeListof X) (Pairof X (Listof X)))
 
@@ -32,3 +33,12 @@
          (match-define-values (xs (list x)) (split-at l (sub1 (length l))))
          (values xs x)]
         [else (error 'init/last "empty list")]))
+
+(: cartesian (∀ (X) (Listof (Setof X)) → (Setof (Listof X))))
+(define cartesian
+  (match-lambda
+    ['() {set '()}]
+    [(cons x xs)
+     (for*/set: : (Setof (Listof X)) ([pᵢ (cartesian xs)]
+                                      [xⱼ (in-set x)])
+       (cons xⱼ pᵢ))]))

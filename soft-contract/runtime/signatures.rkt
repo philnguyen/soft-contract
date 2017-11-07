@@ -154,7 +154,7 @@
   (syntax-rules () [(_ t) (-t.@ 'not (list t))])
   (syntax-rules () [(_ t) (and t (-t.@ 'not (list t)))]))
 
-(define-simple-macro (with-φ+/- ([(φ₁:id φ₂:id) (~literal :) τ e])
+(define-simple-macro (with-φ+/- ([(φ₁:id φ₂:id) e]) (~literal :) τ
                        #:true e₁
                        #:false e₂)
   (let-values ([(φs₁ φs₂) e])

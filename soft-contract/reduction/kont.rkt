@@ -240,7 +240,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots (ρ)
       (match A
         [(list V^)
-         (with-φ+/- ([(φ₁ φ₂) : -ς (φ+/-V (-Σ-σ Σ) φ V^)])
+         (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ 'values V^)]) : -ς
            #:true  (⟦e⟧₁ ρ H φ₁ Σ ⟦k⟧)
            #:false (⟦e⟧₂ ρ H φ₂ Σ ⟦k⟧))]
         [_
@@ -444,7 +444,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots (V*)
       (match A
         [(list V^)
-         (with-φ+/- ([(φ₁ φ₂) : -ς (φ+/-V (-Σ-σ Σ) φ V^)])
+         (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ 'values V^)]) : -ς
            #:true  (⟦k⟧ (list V*) H φ₁ Σ)
            #:false (⟦k⟧ blm       H φ₂ Σ))]
         [_

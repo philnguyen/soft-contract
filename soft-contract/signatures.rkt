@@ -40,9 +40,8 @@
 
 (define-signature proof-system^
   ([V∈C : (-σ -φ -V^ (U -h -V) → -R)]
-   [φ+/-V : (-σ -φ -V^ → (Values (℘ -φ) (℘ -φ)))]
+   [φ+/-pV^ : (-σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
-   [φ+/-oV/handler : (∀ (X) (-φ → (℘ X)) (-φ → (℘ X)) -σ -φ -h -V^ * → (℘ X))]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
    [plausible-index? : (-σ -φ -V^ Natural → Boolean)]
    [sat-one-of : (-V^ (℘ Base) → -R)]
