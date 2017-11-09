@@ -130,12 +130,12 @@
       ((ans) (-@ (-•) refs ℓ))
       (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
-  (: add-leak! : HV-Tag -Σ (U -V^ (Listof -V^)) → Void)
-  (define (add-leak! tag Σ V)
+  (: add-leak! : HV-Tag -Σ -φ (U -V^ (Listof -V^)) → Void)
+  (define (add-leak! tag Σ φ V)
     (define α (-α->⟪α⟫ (-α.hv tag)))
     (define (keep-behavioral [V : -V^]) : -V^
       (for/fold ([V : -V^ V])
-                ([Vᵢ (in-set V)] #:unless (behavioral? (-Σ-σ Σ) Vᵢ))
+                ([Vᵢ (in-set V)] #:unless (behavioral? (-Σ-σ Σ) (-φ-cache φ) Vᵢ))
         (set-remove V Vᵢ)))
     (define V^
       (cond

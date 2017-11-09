@@ -100,4 +100,4 @@
 (define-signature havoc^
   ([havoc : (HV-Tag -φ -Σ -⟦k⟧ → (℘ -ς))]
    [gen-havoc-expr : ((Listof -module) → -e)]
-   [add-leak! : (HV-Tag -Σ (U -V^ (Listof -V^)) → Void)]))
+   [add-leak! : (HV-Tag -Σ -φ (U -V^ (Listof -V^)) → Void)]))

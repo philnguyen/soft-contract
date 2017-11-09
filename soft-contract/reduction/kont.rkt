@@ -197,7 +197,7 @@
            ['()
             (define-values (ρ* φ*)
               (let-values ([(xs Vs) (unzip bnd-Vs*)])
-                (bind-args ρ H φ xs Vs)))
+                (bind-args ρ ℓ H φ xs Vs)))
             (⟦e⟧ ρ* H φ* Σ ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
             (⟦e⟧* ρ H φ Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Vs* ⟦e⟧ ρ ⟦k⟧))])]
@@ -269,7 +269,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots (ρ)
       (cond
         [(= n (length A))
-         (define-values (ρ* φ*) (bind-args ρ H φ xs A))
+         (define-values (ρ* φ*) (bind-args ρ ℓ H φ xs A))
          (assert (equal? ρ ρ*)) ; FIXME disable in production
          (match ⟦bnd⟧s
            ['()
@@ -416,7 +416,7 @@
 
   (define/memo (hv∷ [tag : HV-Tag] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-      (add-leak! tag Σ A)
+      (add-leak! tag Σ φ A)
       {set (-ς↑ (σₖ+! Σ (-αₖ H (-HV tag) φ) ⟦k⟧))}))
 
 
@@ -580,7 +580,9 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
       (define σ (-Σ-σ Σ))
       (define behavioral-args
-        (for*/set: : -V^ ([V^ (in-list A)] [V (in-set V^)] #:when (behavioral? σ V))
+        (for*/set: : -V^ ([V^ (in-list A)]
+                          [V (in-set V^)]
+                          #:when (behavioral? σ (-φ-cache φ) V))
           V))
       (if (null? behavioral-args)
           (⟦k⟧ A H φ Σ)

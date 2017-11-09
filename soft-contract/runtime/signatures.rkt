@@ -346,7 +346,7 @@
    [C^-flat? : (-V^ → Boolean)]
    [with-negative-party : (-l -V → -V)]
    [with-positive-party : (-l -V → -V)]
-   [behavioral? : (-σ -V → Boolean)]
+   [behavioral? : (-σ -δσ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
    [blm-arity : (ℓ -l Arity (Listof -V^) → -blm)]
    [predicates-of-V : (-V → (℘ -h))]

@@ -411,7 +411,7 @@
           [(-Fn● _ t) t]
           [_ '†]))
       (for ([V (in-list Vs)])
-        (add-leak! tag Σ V))
+        (add-leak! tag Σ φ V))
       (define αₖ (-αₖ H (-HV tag) φ))
       (define ⟦k⟧* (bgn0.e∷ (list {set (-● ∅)}) '() ⊥ρ ⟦k⟧))
       {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))}))
