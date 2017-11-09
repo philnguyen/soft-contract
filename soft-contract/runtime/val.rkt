@@ -12,35 +12,14 @@
          "signatures.rkt")
 
 (define-unit val@
-  (import pc^ pretty-print^ sto^)
+  (import path^ pretty-print^ sto^)
   (export val^)
 
-  (define +● : (-h * → -●)
-    (let ([m : (HashTable (Listof -h) -●) (make-hash)])
-      (λ hs
-        (hash-ref! m hs (λ () (-● (list->set hs)))))))
-
-  (define +W¹ : ([-prim] [-?t] . ->* . -W¹)
-    (let ([m : (HashTable -W¹ -W¹) (make-hash)])
-      (λ ([b : -prim] [t : -?t b])
-        (define W (-W¹ b t))
-        (hash-ref! m W (λ () W)))))
-
-  (define +W : ([(Listof -prim)] [-?t] . ->* . -W)
-    (let ([m : (HashTable -W -W) (make-hash)])
-      (λ ([bs : (Listof -prim)] [t : -?t (apply ?t@ 'values bs)])
-        (define W (-W bs t))
-        (hash-ref! m W (λ () W)))))
-
-  (define (W¹->W [W : -W¹])
-    (match-define (-W¹ V s) W)
-    (-W (list V) s))
-
-  (define (W->W¹s [W : -W]) : (Listof -W¹)
-    (match-define (-W Vs t) W)
-    (for/list ([Vᵢ (in-list Vs)]
-               [tᵢ (in-list (split-values t (length Vs)))])
-      (-W¹ Vᵢ tᵢ)))
+  (: fresh-sym! : → Integer)
+  (define fresh-sym!
+    (let ([n : Integer 0])
+      (λ ()
+        (begin0 n (set! n (+ 1 n))))))
 
   (: C-flat? : -V → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
@@ -61,6 +40,10 @@
       [(? -Seal/C?) #f]
       [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
 
+  (: C^-flat? : -V^ → Boolean)
+  (define (C^-flat? C^)
+    (for/and : Boolean ([C (in-set C^)])
+      (C-flat? C)))
 
   (splicing-local
       ((: with-swapper : (-l -ctx → -ctx) → -l -V → -V)
@@ -88,11 +71,11 @@
           [(l (-ctx _ l- lo ℓ))
            (-ctx l l- lo ℓ)]))))
 
-  (: behavioral? : -σ -V → Boolean)
+  (: behavioral? : -σ -δσ -V → Boolean)
   ;; Check if value maybe behavioral.
   ;; `#t` is a conservative answer "maybe yes"
   ;; `#f` is a strong answer "definitely no"
-  (define (behavioral? σ V)
+  (define (behavioral? σ δσ V)
     (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
 
     (: check-⟪α⟫! : ⟪α⟫ → Boolean)
@@ -100,7 +83,7 @@
       (cond [(seen-has? ⟪α⟫) #f]
             [else
              (seen-add! ⟪α⟫)
-             (for/or ([V (σ@ σ ⟪α⟫)])
+             (for/or ([V (in-set (σ@ σ δσ ⟪α⟫))])
                (check! V))]))
 
     (: check! : -V → Boolean)
@@ -136,9 +119,9 @@
   (define guard-arity : (-=>_ → Arity)
     (match-lambda
       [(-=> αs _) (shape αs)]
-      [(and grd (-=>i αs (list mk-D mk-d _)))
+      [(and grd (-=>i αs (list mk-D _)))
        (match mk-D
-         [(-Clo xs _ _ _) (shape xs)]
+         [(-Clo xs _ _) (shape xs)]
          [_
           ;; FIXME: may be wrong for var-args. Need to have saved more
           (length αs)])]
@@ -147,7 +130,7 @@
        ;; TODO From observing behavior in Racket. But this maybe unsound for proof system
        (arity-at-least 0)]))
 
-  (: blm-arity : ℓ -l Arity (Listof -V) → -blm)
+  (: blm-arity : ℓ -l Arity (Listof -V^) → -blm)
   (define blm-arity
     (let ([arity->msg : (Arity → Symbol)
                       (match-lambda
@@ -168,10 +151,46 @@
       [(-b (? null?)) {set 'null?}]
       [(-b #f) {set 'not}]
       [(and b (-b (? symbol? s))) {set b}]
-      [(-Clo _ ⟦e⟧ _ _) {set (-clo ⟦e⟧)}]
+      #;[(-Clo _ ⟦e⟧ _) {set (-clo ⟦e⟧)}]
       [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾 {set (-st-p 𝒾)}]
       [(or (? -Ar?) (? -o?)) {set 'procedure?}]
       [(-● ps) ps]
       [_ ∅]))
+
+  (: V+ : -V^ (U -h -V) → -V^)
+  (define V+
+    (match-lambda**
+     [((-● ps) (? -h? C)) (-● (set-add ps C))]
+     [(V _) V]))
+
+  (: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))
+  ;; Estimate possible list lengths from the object language's abstract list
+  (define (estimate-list-lengths σ δσ V)
+    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+    (define maybe-non-proper-list? : Boolean #f)
+
+    (: arity-inc : Arity → Arity)
+    (define arity-inc
+      (match-lambda
+        [(? exact-integer? n) (+ 1 n)]
+        [(arity-at-least n) (arity-at-least (+ 1 n))]))
+    
+    (: go! : -V → (℘ Arity))
+    (define go!
+      (match-lambda
+        [(-Cons _ αₜ)
+         (cond [(seen-has? αₜ) {set (arity-at-least 0)}]
+               [else (seen-add! αₜ)
+                     (for/union : (℘ Arity) ([V* (in-set (σ@ σ δσ αₜ))])
+                       (map/set arity-inc (go! V*)))])]
+        [(-b '()) {set 0}]
+        [(-● ps) #:when (∋ ps 'list?) {set (arity-at-least 0)}]
+        [_ (set! maybe-non-proper-list? #t)
+           ∅]))
+    (define res
+      (match (normalize-arity (set->list (go! V)))
+        [(? list? l) (list->set l)]
+        [a {set a}]))
+    (if maybe-non-proper-list? (set-add res #f) res))
 
   )
