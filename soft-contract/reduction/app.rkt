@@ -159,7 +159,7 @@
   (: app-clo : -formals -⟦e⟧ -ρ → -⟦f⟧)
   (define ((app-clo xs ⟦e⟧ ρ) ℓ Vₓs H φ Σ ⟦k⟧)
     (define-values (Hₑₑ looped?) (H+ H (-edge (cons ⟦e⟧ (⌊ρ⌋ ρ)) ℓ)))
-    (define-values (ρ* φ*) (bind-args ρ H φ xs Vₓs))
+    (define-values (ρ* φ*) (bind-args ρ ℓ H φ xs Vₓs))
     (⟦e⟧ ρ* Hₑₑ φ* Σ (restore-ctx∷ H ⟦k⟧)))
 
   (: app-Case-Clo : -Case-Clo → -⟦f⟧)
@@ -198,7 +198,7 @@
        (define-values (αs₀ ℓs₀) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs₀))
        (match-define (-⟪α⟫ℓ αᵣ ℓᵣ) αℓᵣ)
        (define-values (Vᵢs Vᵣs) (split-at Vₓs (length αs₀)))
-       (define-values (Vᵣ φ*) (alloc-rest-args H φ Vᵣs))
+       (define-values (Vᵣ φ*) (alloc-rest-args ℓₐ H φ Vᵣs))
        (define ⟦mon-x⟧s : (Listof -⟦e⟧)
          (for/list ([Cₓ (σ@/list σ (-φ-cache φ*) αs₀)] [Vₓ Vᵢs] [ℓₓ : ℓ ℓs₀])
            (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-A (list Cₓ)) (mk-A (list Vₓ)))))
@@ -461,7 +461,7 @@
 
          (: app/adjusted-args : -φ (Listof -V^) -V → (℘ -ς))
          (define (app/adjusted-args φ V-inits V-rest)
-           (define-values (ρ₁ φ₁) (bind-args ρ Hₑₑ φ zs V-inits))
+           (define-values (ρ₁ φ₁) (bind-args ρ ℓ Hₑₑ φ zs V-inits))
            (define αᵣ (-α->⟪α⟫ (-α.x z Hₑₑ)))
            (define ρ₂ (ρ+ ρ₁ z αᵣ))
            (define φ₂ (φ⊔ φ₁ αᵣ V-rest))
@@ -478,7 +478,7 @@
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (V-inits* V-inits.rest) (split-at V-inits n))
-            (define-values (V-rest* φ*) (alloc-rest-args Hₑₑ φ V-inits.rest #:end V-rest))
+            (define-values (V-rest* φ*) (alloc-rest-args ℓ Hₑₑ φ V-inits.rest #:end V-rest))
             (app/adjusted-args φ* V-inits* V-rest*)])]))
 
     (: app-Ar/rest : -=>_ ⟪α⟫ -ctx → (℘ -ς))
@@ -500,7 +500,7 @@
            [else
             (define-values (V-inits* V-inits.rest) (split-at V-inits n))
             (define-values (Hₑₑ looped?) (H+ H (-edge #|HACK|# (cons (mk-V C) (⌊ρ⌋ ⊥ρ)) ℓ)))
-            (define-values (Vᵣ* φ*) (alloc-rest-args Hₑₑ φ V-inits.rest #:end V-rest))
+            (define-values (Vᵣ* φ*) (alloc-rest-args ℓ Hₑₑ φ V-inits.rest #:end V-rest))
             ((apply-app-Ar C Vᵤ^ ctx) ℓ V-inits* Vᵣ* Hₑₑ φ Σ ⟦k⟧)])]
         [(-=> (? list? αℓₓs) _)
          (define n (length αℓₓs))

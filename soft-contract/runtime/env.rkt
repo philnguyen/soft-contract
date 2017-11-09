@@ -12,7 +12,9 @@
   (export env^)
 
   (define ⊥ρ : -ρ (hasheq))
-  (define (ρ@ [ρ : -ρ] [x : Symbol]) : ⟪α⟫
+
+  (: ρ@ : -ρ Symbol → ⟪α⟫)
+  (define (ρ@ ρ x)
     (hash-ref ρ x (λ () (error 'ρ@ "~a not in environment ~a" x (hash-keys ρ)))))
   (define ρ+ : (-ρ Symbol ⟪α⟫ → -ρ) hash-set)
 

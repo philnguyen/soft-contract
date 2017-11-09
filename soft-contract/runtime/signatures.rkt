@@ -332,11 +332,9 @@
   ([φ₀ : -φ]
    [φ⊔ : (-φ ⟪α⟫ (U -V -V^) → -φ)]
    [φ⊔* : (-φ (Listof ⟪α⟫) (Listof (U -V -V^)) → -φ)]
-   [φ+ : (-φ -V → -φ)]
-   [φ+neg : (-φ -V → -φ)]
    [φ-with-condition : (-φ -Γ → -φ)]
-   [bind-args : (-ρ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
-   [alloc-rest-args : ([-H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
+   [bind-args : (-ρ ℓ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
+   [alloc-rest-args : ([ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    [t-names : (-t → (℘ Integer))]))
 
 (define-signature summ^
