@@ -119,7 +119,7 @@
   (define guard-arity : (-=>_ → Arity)
     (match-lambda
       [(-=> αs _) (shape αs)]
-      [(and grd (-=>i αs (list mk-D _)))
+      [(and grd (-=>i αs (cons mk-D _)))
        (match mk-D
          [(-Clo xs _ _) (shape xs)]
          [_

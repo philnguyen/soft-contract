@@ -53,27 +53,7 @@
 ;; FIXME: least coherent signature ever.
 ;; Could have named it "misc"...
 (define-signature widening^
-  ([V⊕ : (-V^ -V^ → -V^)]
-   #|
-   [σ⊕! : (-Σ -Γ ⟪α⟫ -W¹ → Void)]
-   [σ⊕V! : (-Σ ⟪α⟫ -V → Void)]
-   [σ⊕Vs! : (-Σ ⟪α⟫ (℘ -V) → Void)]
-   [σ-copy! : (-Σ ⟪α⟫ ⟪α⟫ → Void)]
-   [σₖ+! : (-Σ -αₖ -κ → -αₖ)]
-   [Vs⊕ : (-σ (℘ -V) (U -V (℘ -V)) → (℘ -V))]
-   [ps⊕ : ((℘ -h) (℘ -h) → (℘ -h))]
-   [Γ+ : (-Γ -?t * → -Γ)]
-   [bind-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
-                     → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
-   [alloc-init-args! : (-Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean
-                           → (Values -ρ -$ (Immutable-HashTable Symbol -t)))]
-   [alloc-rest-args! : ([-Σ -Γ -H ℓ (Listof -W¹)] [#:end -V] . ->* . -V)]
-   
-   
-   [unalloc-prefix : (-σ -V Natural → (℘ (Pairof (Listof -V) -V)))]
-   [copy-Γ : ((℘ (U Symbol ℓ)) -Γ -Γ → -Γ)]
-   |#
-   ))
+  ([V⊕ : (-V^ -V^ → -V^)]))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]
