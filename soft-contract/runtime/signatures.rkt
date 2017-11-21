@@ -24,7 +24,7 @@
 (define-type -Ξ (Immutable-HashTable -Block (Listof -φ)))
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [Ξ : -Ξ]) #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [Ξ : -Ξ]) #:mutable #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -316,16 +316,15 @@
   ([⊥σ : -σ]
    [σ⊔! : (-Σ ⟪α⟫ -V^ → Void)]
    [σ@ : ((U -Σ -σ) -δσ ⟪α⟫ → -V^)]
-   [σ@¹ : ((U -Σ -σ) -δσ ⟪α⟫ → -V)]
    [σ@/list : ((U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))]
    [defined-at? : ((U -Σ -σ) -δσ ⟪α⟫ → Boolean)]
-   [⊥σₖ : -σₖ]
-   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
    [⟪α⟫ₒₚ : ⟪α⟫]
    [mutable? : (⟪α⟫ → Boolean)]
-   [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
    [unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
    [unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
+   [⊥σₖ : -σₖ]
+   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
+   [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
    ))
 
 (define-signature path^

@@ -6,23 +6,31 @@
          racket/match
          racket/bool
          racket/set
+         racket/list
          racket/splicing
          set-extras
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../primitives/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^ local-prover^ pc^ val^ prim-runtime^ static-info^)
+  (import pretty-print^ local-prover^ path^ val^ prim-runtime^ static-info^ widening^)
   (export sto^)
+
+  (define ⊥σ : -σ (hasheq))
+
+  (: σ⊔! : -Σ ⟪α⟫ -V^ → Void)
+  (define (σ⊔! Σ α V)
+    (set--Σ-σ! Σ (hash-update (-Σ-σ Σ) α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅)))
 
   (splicing-local
       ((define ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm 'null?)) +ℓ₀))
        (define cache-listof : (Mutable-HashTable ⟪α⟫ (℘ -V)) (make-hasheq)))
-    (: σ@ : (U -Σ -σ) ⟪α⟫ → (℘ -V))
-    (define (σ@ m ⟪α⟫)
+    (: σ@ : (U -Σ -σ) -δσ ⟪α⟫ → -V^)
+    (define (σ@ m δσ ⟪α⟫)
       (match (⟪α⟫->-α ⟪α⟫)
         [(-α.imm V) {set V}]
         [(-α.imm-listof x Cₑ ℓ)
@@ -44,174 +52,91 @@
                                  [(-α.hv _) ∅]
                                  [_ (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))])))])))
 
-  (: defined-at? : (U -Σ -σ) ⟪α⟫ → Boolean)
-  (define (defined-at? σ α)
-    (cond [(-Σ? σ) (defined-at? (-Σ-σ σ) α)]
-          [else (and (hash-has-key? σ α)
-                     (not (∋ (hash-ref σ α) 'undefined)))]))
+  
 
-  (: σ-remove : -σ ⟪α⟫ -V → -σ)
-  (define (σ-remove σ ⟪α⟫ V)
-    (hash-update σ ⟪α⟫ (λ ([Vs : (℘ -V)]) (set-remove Vs V))))
+  (: σ@/list : (U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))
+  ;; Look up store at address list
+  (define (σ@/list Σ δσ ⟪α⟫s)
+    (for/list ([α (in-list ⟪α⟫s)])
+      (σ@ Σ δσ α)))
 
-  (: σ-remove! : -Σ ⟪α⟫ -V → Void)
-  (define (σ-remove! Σ ⟪α⟫ V)
-    (define σ (-Σ-σ Σ))
-    (set--Σ-σ! Σ (σ-remove σ ⟪α⟫ V)))
-
-  (: σ@/list : (U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))
-  ;; Look up store at addresses. Return all possible combinations
-  (define (σ@/list m ⟪α⟫s)
-    (define σ (if (-Σ? m) (-Σ-σ m) m))
-    (with-debugging/off
-      ((ans)
-       (let loop : (℘ (Listof -V)) ([⟪α⟫s : (Listof ⟪α⟫) ⟪α⟫s])
-            (match ⟪α⟫s
-              [(cons ⟪α⟫ ⟪α⟫s*)
-               (define Vs (σ@ σ ⟪α⟫))
-               (define Vss (loop ⟪α⟫s*))
-               (for*/set: : (℘ (Listof -V)) ([V Vs] [Vs Vss])
-                 (cons V Vs))]
-              ['() {set '()}])))
-      (when (> (set-count ans) 1)
-        (printf "σ@/list: ~a -> ~a~n" (map show-⟪α⟫ ⟪α⟫s) (set-count ans)))))
-
-  (: σ@¹ : (U -Σ -σ) ⟪α⟫ → -V)
-  ;; Look up store, asserting that exactly 1 value resides there
-  (define (σ@¹ m ⟪α⟫)
-    (define Vs (σ@ m ⟪α⟫))
-    (assert (= 1 (set-count Vs)))
-    (set-first Vs))
+  (: defined-at? : (U -Σ -σ) -δσ ⟪α⟫ → Boolean)
+  (define (defined-at? σ δσ α)
+    (define (in? [m : (HashTable ⟪α⟫ -V^)])
+      (match (hash-ref m α #f)
+        [(? values V^) (not (∋ V^ -undefined))]
+        [_ #f]))
+    (or (in? δσ)
+        (in? (if (-Σ? σ) (-Σ-σ σ) σ))))
 
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.imm (-● ∅))))
-  (define ⊥σ : -σ (hasheq))
 
+  (: mutable? : ⟪α⟫ → Boolean)
+  (define (mutable? ⟪α⟫)
+    (match (⟪α⟫->-α ⟪α⟫)
+      [(-α.x x _) (assignable? x)]
+      [(-α.fld 𝒾 _ _ i) (struct-mutable? 𝒾 i)]
+      [(? -α.idx?) #t]
+      [_ #f]))
 
+  (: unalloc : -σ -δσ -V → (℘ (Listof -V^)))
+  ;; Convert a list in the object language into list(s) in the meta language
+  (define (unalloc σ δσ V)
+    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+    (define Tail {set '()})
+
+    (let go : (℘ (Listof -V^)) ([Vₗ : -V V])
+      (match Vₗ
+        [(-Cons αₕ αₜ)
+         (cond
+           [(seen-has? αₜ)
+            ;; FIXME this list is incomplete and can result in unsound analysis
+            ;; if the consumer is effectful
+            ;; Need to come up with a nice way to represent an infinite family of lists
+            Tail]
+           [else
+            (seen-add! αₜ)
+            (define tails
+              (for/union : (℘ (Listof -V^)) ([Vₜ (in-set (σ@ σ δσ αₜ))])
+                 (go Vₜ)))
+            (define head (σ@ σ δσ αₕ))
+            (for/set: : (℘ (Listof -V^)) ([tail (in-set tails)])
+                (cons head tail))])]
+        [(-b (list)) Tail]
+        [_ ∅])))
+
+  (: unalloc-prefix : -σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))
+  ;; Extract `n` elements in a list `V` in the object language
+  ;; Return the list of values and residual "rest" value
+  (define (unalloc-prefix σ δσ V n)
+    (let go ([V : -V V] [n : Natural n])
+      (cond
+        [(<= n 0) {set (cons '() V)}]
+        [else
+         (match V
+           [(-Cons αₕ αₜ)
+            (define Vₕs (σ@ σ δσ αₕ))
+            (define pairs
+              (for/union : (℘ (Pairof (Listof -V^) -V)) ([Vₜ (in-set (σ@ σ δσ αₜ))])
+                (go Vₜ (- n 1))))
+            (for*/set: : (℘ (Pairof (Listof -V^) -V)) ([pair (in-set pairs)])
+              (match-define (cons Vₜs Vᵣ) pair)
+              (cons (cons Vₕs Vₜs) Vᵣ))]
+           [(-● ps) #:when (∋ ps 'list?) {set (cons (make-list n {set (-● ∅)}) (-● {set 'list?}))}]
+           [_ ∅])])))
+
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Kontinuation store
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (define ⊥σₖ : -σₖ (hash))
 
-  (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -κ))
+  (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))
   (define (σₖ@ m αₖ)
     (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅))
 
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;; Cache
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define ⊤$ : -$ (hash))
-  (define ⊤$* : -δ$ (hash))
-
-  (: $-set : -$ -loc -?t → -$)
-  (define ($-set $ l t)
-    (if t (hash-set $ l t) $))
-  
-  (: $-set! : -Σ -$ ⟪α⟫ -loc -?t → -$)
-  (define ($-set! Σ $ α l t)
-    (cond [t
-           (set-alias! Σ α l)
-           (hash-set ($-del* $ (get-aliases Σ α)) l t)]
-          [else $]))
-
-  (: $-set* : -$ (Listof -loc) (Listof -?t) → -$)
-  (define ($-set* $ ls ts)
-    (for/fold ([$ : -$ $])
-              ([l (in-list ls)]
-               [t (in-list ts)])
-      ($-set $ l t)))
-
-  (: $-del : -$ -loc → -$)
-  (define ($-del $ l) (hash-remove $ l))
-
-  (: $@! : -Σ -Γ ⟪α⟫ -$ -loc ℓ → (Values (℘ -W¹) -$))
-  (define ($@! Σ Γ α $ l ℓ)
-    (define Vs
-      (for*/set: : (℘ -V) ([V (in-set (σ@ Σ α))]
-                           #:when (implies
-                                   (and (-𝒾? l) (assignable? l))
-                                   (plausible-V-t? Γ V l)))
-        V))
-    (cond [(hash-ref $ l #f)
-           =>
-           (λ ([t : -t])
-             (values (for/set: : (℘ -W¹) ([V (in-set Vs)]
-                                          #:when (plausible-V-t? Γ V t))
-                       (-W¹ V t))
-                     $))]
-          [else
-           (define ℓ*
-             (cond [(symbol? l) (if (assignable? l) ℓ (-t.x l))]
-                   [(-𝒾? l) (if (assignable? l) ℓ l)]
-                   [else ℓ]))
-           (values (for/set: : (℘ -W¹) ([V (in-set Vs)]) 
-                     (-W¹ V ℓ*))
-                   ($-set $ l ℓ*))]))
-
-  (: $-extract : -$ (Sequenceof -loc) → -δ$)
-  (define ($-extract $ ls)
-    (for/hash : -δ$ ([l ls])
-      (values l (hash-ref $ l #f))))
-
-  (: $-restore : -$ -δ$ → -$)
-  (define ($-restore $ $*)
-    (for/fold ([$ : -$ $])
-              ([(l ?W) (in-hash $*)])
-      (if ?W ($-set $ l ?W) ($-del $ l))))
-
-  (: $-del* : -$ (Sequenceof -loc) → -$)
-  (define ($-del* $ ls)
-    (for/fold ([$ : -$ $]) ([l ls])
-      ($-del $ l)))
-
-  (: $↓ : -$ (℘ -loc) → -$)
-  (define ($↓ $ ls)
-    (for/fold ([$ : -$ $])
-              ([(l W) (in-hash $)] #:unless (∋ ls l))
-      (hash-remove $ l)))
-
-  (: $-cleanup : -$ → -$)
-  (define ($-cleanup $)
-    $
-    #;(for/fold ([$ : -$ $])
-              ([l (in-hash-keys $)]
-               #:when (-loc.offset? l))
-      (hash-remove $ l)))
-
-  (: $-symbolic-names : -$ → (℘ (U Symbol ℓ)))
-  (define ($-symbolic-names $)
-    (for/unioneq : (℘ (U Symbol ℓ)) ([t (in-hash-values $)])
-      (fvₜ t)))
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;; Aliases
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define ⊥𝒜 : -𝒜 (hasheq))
-
-  (: set-alias! : -Σ ⟪α⟫ -loc → Void)
-  (define (set-alias! Σ α l)
-    (set--Σ-𝒜! Σ (hash-update (-Σ-𝒜 Σ) α (λ ([ls : (℘ -loc)]) (set-add ls l)) mk-∅)))
-
-  (: get-aliases : (U -Σ -𝒜) ⟪α⟫ → (℘ -loc))
-  (define (get-aliases aliases α)
-    (define 𝒜 (if (-Σ? aliases) (-Σ-𝒜 aliases) aliases))
-    (hash-ref 𝒜 α mk-∅))
-
-  (: hack:α->loc : ⟪α⟫ → (Option -loc))
-  (define (hack:α->loc α)
-    (match (⟪α⟫->-α α)
-      [(-α.x x _ _) x]
-      [(? -𝒾? 𝒾) 𝒾]
-      [α₀ #f]))
-
-  (: mutable? : ⟪α⟫ → Boolean)
-  (define (mutable? ⟪α⟫)
-    (match (⟪α⟫->-α ⟪α⟫)
-      [(-α.x x _ _) (assignable? x)]
-      [(-α.fld 𝒾 _ _ i) (struct-mutable? 𝒾 i)]
-      [(? -α.idx?) #t]
-      [_ #f]))
-  
+  (: σₖ+! : -Σ -αₖ -⟦k⟧ → -αₖ)
+  (define (σₖ+! Σ αₖ ⟦k⟧)
+    (error 'TODO))
   )
