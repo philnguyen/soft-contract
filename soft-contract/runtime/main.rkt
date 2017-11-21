@@ -2,7 +2,6 @@
 (provide
  (all-from-out "env.rkt"
                "sto.rkt"
-               "pc.rkt"
                "val.rkt"
                "instr.rkt"
                "for-gc.rkt"
@@ -11,7 +10,6 @@
                "signatures.rkt"))
 (require "env.rkt"
          "sto.rkt"
-         "pc.rkt"
          "val.rkt"
          "instr.rkt"
          "for-gc.rkt"
