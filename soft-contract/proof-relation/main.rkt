@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide #;proof-system@)
+(provide proof-system@)
 
 (require racket/match
          racket/set
@@ -14,9 +14,9 @@
          "../signatures.rkt"
          "signatures.rkt"
 
-         #;"widen.rkt"
-         #;"ext.rkt"
-         #;"local.rkt"
+         "widen.rkt"
+         "ext.rkt"
+         "local.rkt"
          )
 
 (define-unit pre-proof-system@
@@ -101,7 +101,7 @@
              (∋ difficult-hs h)))))))
   )
 
-#;(define-compound-unit/infer proof-system@
-  (import static-info^ prims^ for-gc^ pc^ sto^ val^ pretty-print^ env^ summ^)
+(define-compound-unit/infer proof-system@
+  (import sat-result^ static-info^ prims^ for-gc^ path^ sto^ val^ pretty-print^ env^ summ^)
   (export proof-system^ widening^ local-prover^)
   (link local-prover@ external-prover@ widening@ pre-proof-system@))

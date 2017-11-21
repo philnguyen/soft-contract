@@ -54,23 +54,18 @@
     (cons first-module other-modules))
    (Listof Path-String)))
 
-(: show-Vs : (Listof (U -V -v)) → Sexp)
-(define (show-Vs Vs)
-  (match Vs
-    [(list V) (show-blm-reason V)]
-    [_ `(values ,@(map show-blm-reason Vs))]))
-
 (: show-a : -A → Sexp)
 (define (show-a a)
   (match a
-    [(-W Vs _) (show-Vs Vs)]
+    [(list V) (show-V^ V)]
+    [(? list? Vs) `(values ,@(map show-V^ Vs))]
     [(-blm l+ lo Cs Vs ℓ)
      `(blame
        [line ,(ℓ-line ℓ) col ,(ℓ-col ℓ)]
        [violator : ,l+]
        [contract from : ,lo]
        [contracts : ,@(map show-blm-reason Cs)]
-       [values : ,@(map show-V Vs)])]))
+       [values : ,@(map show-V^ Vs)])]))
 
 (: main : (Listof Path-String) → Void)
 (define (main fnames)

@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide #;reduction@)
+(provide reduction@)
 
 (require racket/set
          racket/match
