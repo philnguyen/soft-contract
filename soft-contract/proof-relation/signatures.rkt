@@ -12,7 +12,7 @@
    [p∋V : (-σ -φ -h -V * → -R)]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
    [⊢U : (-U → -R)]
-   #;[p⇒p : (-h -h → -R)]
+   [p⇒p : (-h -h → -R)]
    [ps⇒p : ((℘ -h) -h → -R)]
    [sat-one-of : (-V^ (℘ Base) → -R)]
    [V-arity : (case->

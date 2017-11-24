@@ -25,6 +25,8 @@
           (prefix ext: external-prover^))
   (export proof-system^)
 
+  (define p⇒p local:p⇒p)
+
   (: V∈C : -σ -φ -V^ (U -h -V) → -R)
   ;; Check if value satisfies (flat) contract
   (define (V∈C σ φ V C)

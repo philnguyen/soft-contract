@@ -39,7 +39,8 @@
    [implement-predicate : (-σ -φ -o (Listof -V^) → -V^)]))
 
 (define-signature proof-system^
-  ([V∈C : (-σ -φ -V^ (U -h -V) → -R)]
+  ([p⇒p : (-h -h → -R)]
+   [V∈C : (-σ -φ -V^ (U -h -V) → -R)]
    [φ+/-pV^ : (-σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
