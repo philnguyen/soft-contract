@@ -24,6 +24,7 @@
           (prefix local: local-prover^)
           (prefix ext: external-prover^))
   (export proof-system^)
+  (init-depend local-prover^ external-prover^)
 
   (define p⇒p local:p⇒p)
 
@@ -40,9 +41,7 @@
         [(✓) (values (set-add ts φ) fs)]
         [(✗) (values ts (set-add fs φ))]
         [(?) (values (set-add ts (φ+pV  φ h Vs))
-                     (set-add fs (φ+¬pV φ h Vs)))])))
-
-  (define p∋V^ (local:lift-p∋V p∋V))
+                     (set-add fs (φ+¬pV φ h Vs)))]))) 
 
   (: p∋V : -σ -φ -h -V * → -R)
   (define (p∋V σ φ h . Vs)
@@ -51,6 +50,8 @@
               (ext:p∋V (-φ-condition φ) h Vs)
               '?)]
       [R R]))
+
+  (define p∋V^ (local:lift-p∋V p∋V))
   
   (: V+ : -σ -φ -V^ (U -h -V) → -V^)
   (define (V+ σ φ V^ C)

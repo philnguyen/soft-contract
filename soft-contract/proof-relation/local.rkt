@@ -135,9 +135,7 @@
       (match V^s
         ['() (apply p∋V₁ σ φ p (reverse Vs-rev))]
         [(cons V^₁ V^s*)
-         ((inst R⊔* -V) (λ (V) (go V^s* (cons V Vs-rev))) V^₁)])))
-
-  (define p∋V^ (lift-p∋V p∋V))
+         ((inst R⊔* -V) (λ (V) (go V^s* (cons V Vs-rev))) V^₁)]))) 
 
   (: p∋V : -σ -φ -h -V * → -R)
   (define (p∋V σ φ p . Vs)
@@ -319,6 +317,8 @@
          [(-≤/c b) (p∋V σ φ '<= (car Vs) (-b b))]
          [(-b   b) (p∋V σ φ 'equal? (-b b) (car Vs))]
          [_ '?])]))
+
+  (define p∋V^ (lift-p∋V p∋V))
 
   (: ps⇒p : (℘ -h) -h → -R)
   (define (ps⇒p ps p)
