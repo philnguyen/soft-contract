@@ -81,11 +81,29 @@
 
   (: φ+pV : -φ -h (Listof -V) → -φ)
   (define (φ+pV φ h Vs)
-    (error 'TODO))
+    (match-define (-φ Γ δσ) φ)
+    (cond
+      [(andmap -t? Vs)
+       (define Γ* (hash-update Γ Vs (λ ([ps : (℘ -h)]) (set-add ps h)) mk-∅))
+       (-φ Γ* δσ)]
+      [else φ]))
 
   (: φ+¬pV : -φ -h (Listof -V) → -φ)
   (define (φ+¬pV φ h Vs)
-    (error 'TODO))
+    (match-define (-φ Γ δσ) φ)
+    (cond
+      [(andmap -t? Vs)
+       (define h*
+         (match h
+           [(-</c r) (-≥/c r)]
+           [(-≤/c r) (->/c r)]
+           [(->/c r) (-≤/c r)]
+           [(-≥/c r) (-</c r)]
+           [(-not/c p) p]
+           [(or (? -o?) (? -b?)) (-not/c h)]))
+       (define Γ* (hash-update Γ Vs (λ ([ps : (℘ -h)]) (set-add ps h*)) mk-∅))
+       (-φ Γ* δσ)]
+      [else φ]))
 
   (: should-call-smt? : -Γ -h (Listof -V) → Boolean)
   ;; Heuristic avoiding calling out to solvers
