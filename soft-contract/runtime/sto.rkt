@@ -138,5 +138,7 @@
 
   (: σₖ+! : -Σ -αₖ -⟦k⟧ → -αₖ)
   (define (σₖ+! Σ αₖ ⟦k⟧)
-    (error 'TODO))
+    ;; FIXME approximate
+    (begin0 αₖ
+      (set--Σ-σₖ! Σ (hash-update (-Σ-σₖ Σ) αₖ (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧)) mk-∅))))
   )
