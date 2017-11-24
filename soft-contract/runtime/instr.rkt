@@ -6,6 +6,7 @@
          set-extras
          "../utils/debug.rkt"
          "../utils/def.rkt"
+         "../utils/pretty.rkt"
          "../ast/signatures.rkt"
          "../proof-relation/signatures.rkt"
          "../signatures.rkt"
@@ -78,6 +79,7 @@
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c (cons ⟦c⟧ (⌊ρ⌋ ρ)))]
       [(-Seal/C x _ _) (list 'seal/c x)]
       [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -b?))) (list 'flat c)]
+      [(? integer? t) (format-symbol "•~a" (n-sub t))]
       [V (error 'strip-V "~a not expected" V)]))
 
   (define get-ℓ : ((-maybe-var -⟪α⟫ℓ) → (-maybe-var ℓ))

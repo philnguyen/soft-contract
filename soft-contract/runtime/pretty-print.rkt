@@ -126,7 +126,8 @@
       [(->/c b) `(>/c ,(show-b b))]
       [(-≥/c b) `(>=/c ,(show-b b))]
       [(-</c b) `(</c ,(show-b b))]
-      [(-≤/c b) `(<=/c ,(show-b b))]))
+      [(-≤/c b) `(<=/c ,(show-b b))]
+      [(? integer? t) (format-symbol "•~a" (n-sub t))]))
 
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
     (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)
