@@ -36,7 +36,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-16@
-  (import prim-runtime^ widening^ path^)
+  (import prim-runtime^ widening^ sto^)
   (export)
 
   ;;;;; Hash Sets
@@ -70,7 +70,7 @@
     #:init ([V contract? #|TODO chaperone-contract?|#])
     (define α (-α->⟪α⟫ (-α.set/c-elem ℓ H)))
     (define C (-Set/C (-⟪α⟫ℓ α (ℓ-with-id ℓ 'set/c))))
-    (⟦k⟧ (list {set C}) H (φ⊔ φ α V) Σ))
+    (⟦k⟧ (list {set C}) H (alloc Σ φ α V) Σ))
 
 ;;;;; 4.16.3 Generic Set Interface
 

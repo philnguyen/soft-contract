@@ -78,7 +78,7 @@
    [implement-predicate∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [absurd∷ : (-⟦k⟧ → -⟦k⟧)]
    ;; Non-frame helpers
-   [mk-=>i : (-H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))]
+   [mk-=>i : (-Σ -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))]
    ])
 
 (define-signature app^
@@ -100,4 +100,4 @@
 (define-signature havoc^
   ([havoc : (HV-Tag -φ -Σ -⟦k⟧ → (℘ -ς))]
    [gen-havoc-expr : ((Listof -module) → -e)]
-   [add-leak! : (HV-Tag -Σ -φ (U -V^ (Listof -V^)) → Void)]))
+   [add-leak! : (HV-Tag -Σ -φ (U -V^ (Listof -V^)) → -φ)]))

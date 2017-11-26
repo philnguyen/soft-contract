@@ -77,7 +77,7 @@
                (values {set V} (-α->⟪α⟫ (-α.imm V)))]
               [else
                (values V^ (-α->⟪α⟫ (-α.fn ctx H)))]))
-      (define φ* (φ⊔ φ α V^*))
+      (define φ* (alloc Σ φ α V^*))
       (define Ar (-Ar C α ctx))
       (⟦k⟧ (list {set Ar}) H φ* Σ))
 
@@ -263,7 +263,7 @@
         (match Vᵤ^
           [(? -Hash/guard?)
            ;; havoc would be expensive. Just wrap it for now
-           (define φ* (φ⊔ φ αₕ Vᵤ^))
+           (define φ* (alloc Σ φ αₕ Vᵤ^))
            (⟦k⟧ (list {set (-Hash/guard C αₕ ctx)}) H φ* Σ)]
           [(-Hash^ α₁ α₂ _)
            (chk-key-vals (σ@ Σ (-φ-cache φ) α₁) (σ@ Σ (-φ-cache φ) α₂))]
@@ -299,7 +299,7 @@
       (for/union : (℘ -ς) ([Vᵤ (in-set Vᵤ^)])
         (match Vᵤ
           [(? -Set/guard?)
-           (define φ* (φ⊔ φ αₛ Vᵤ))
+           (define φ* (alloc Σ φ αₛ {set Vᵤ}))
            (⟦k⟧ (list {set (-Set/guard C αₛ ctx)}) H φ* Σ)]
           [(-Set^ α _) (chk-elems (σ@ σ (-φ-cache φ) α))]
           [_ (chk-elems {set (-● ∅)})])))
@@ -316,7 +316,7 @@
     (define α (-α->⟪α⟫ (-α.sealed x H)))
     (cond
       [(equal? l l+) ; seal
-       (define φ* (φ⊔ φ α V^))
+       (define φ* (alloc Σ φ α V^))
        (⟦k⟧ (list {set (-Sealed α)}) H φ* Σ)]
       [(equal? l l-) ; unseal
        (define (blm) (⟦k⟧ (blm/simp l+ lo (list {set C}) (list V^) ℓ) H φ Σ))

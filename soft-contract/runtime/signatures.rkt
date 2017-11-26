@@ -314,7 +314,12 @@
 
 (define-signature sto^
   ([⊥σ : -σ]
-   [σ⊔! : (-Σ ⟪α⟫ -V^ → Void)]
+   [alloc  : (-Σ -φ ⟪α⟫ -V^ → -φ)]
+   [alloc* : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
+   [mut!   : (-Σ -φ ⟪α⟫ -V^ → -φ)]
+   [mut*!  : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
+   [bind-args : (-Σ -ρ ℓ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
+   [alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    [σ@ : ((U -Σ -σ) -δσ ⟪α⟫ → -V^)]
    [σ@/list : ((U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))]
    [defined-at? : ((U -Σ -σ) -δσ ⟪α⟫ → Boolean)]
@@ -329,11 +334,7 @@
 
 (define-signature path^
   ([φ₀ : -φ]
-   [φ⊔ : (-φ ⟪α⟫ (U -V -V^) → -φ)]
-   [φ⊔* : (-φ (Listof ⟪α⟫) (Listof (U -V -V^)) → -φ)]
-   [φ-with-condition : (-φ -Γ → -φ)]
-   [bind-args : (-ρ ℓ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
-   [alloc-rest-args : ([ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
+   [φ-with-condition : (-φ -Γ → -φ)] 
    [t-names : (-t → (℘ Integer))]))
 
 (define-signature summ^

@@ -220,9 +220,9 @@
            (implement-predicate∷ o ⟦k⟧)]
           [else
            (define ⟦k⟧:mk-rng
-             (make-prim-range∷ ctx (and ?range-wraps (map alloc ?range-wraps)) ranges refinements ⟦k⟧))
+             (make-prim-range∷ ctx (and ?range-wraps (map mk-⟪α⟫ℓ ?range-wraps)) ranges refinements ⟦k⟧))
            (maybe-havoc-prim-args∷ ℓ o ⟦k⟧:mk-rng)])))
-    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map alloc doms) ⟦k⟧:chk-args-done))
+    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map mk-⟪α⟫ℓ doms) ⟦k⟧:chk-args-done))
     (⟦k⟧:chk-args args H φ Σ))
 
   (: vec-len : -σ -φ -V^ → -V^)
@@ -241,11 +241,11 @@
   (define (r:φ+/-pV^ σ φ o . Vs)
     (apply φ+/-pV^ σ φ o Vs))
 
-  (: add-seal : -φ Symbol -H -l → (Values -Seal/C -φ))
-  (define (add-seal φ x H l)
+  (: add-seal : -Σ -φ Symbol -H -l → (Values -Seal/C -φ))
+  (define (add-seal Σ φ x H l)
     (define C (-Seal/C x H l))
-    (values C (φ⊔ φ (-α->⟪α⟫ (-α.sealed x H)) ∅)))
+    (values C (alloc Σ φ (-α->⟪α⟫ (-α.sealed x H)) ∅)))
 
-  (define alloc : ((Pairof -U ℓ) → -⟪α⟫ℓ)
+  (define mk-⟪α⟫ℓ : ((Pairof -U ℓ) → -⟪α⟫ℓ)
     (match-lambda [(cons V ℓ) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) ℓ)]))
   )

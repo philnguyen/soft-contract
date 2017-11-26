@@ -94,15 +94,15 @@
       [(-Vector αs)
        ;; Widen each field first. No need to go through `vector-set!` b/c there's no
        ;; contract protecting it
-       (for ([α (in-list αs)])
-         (σ⊔! Σ α {set (-● ∅)}))
+       (define φ*
+         (for/fold ([φ : -φ φ]) ([α (in-list αs)])
+           (mut! Σ φ α {set (-● ∅)})))
        ;; Access vector at opaque field
-       (for/union : (℘ -ς) ([α : ⟪α⟫ αs])
-         (⟦k⟧ (list (σ@ Σ (-φ-cache φ) α)) H∅ φ Σ))]
+       (define V^ (for/union : -V^ ([α (in-list αs)]) (σ@ Σ (-φ-cache φ) α)))
+       (⟦k⟧ (list V^) H∅ φ* Σ)]
       
       [(-Vector^ α _)
-       (σ⊔! Σ α {set (-● ∅)})
-       (⟦k⟧ (list (σ@ Σ (-φ-cache φ) α)) H∅ φ Σ)]
+       (⟦k⟧ (list (σ@ Σ (-φ-cache φ) α)) H∅ (mut! Σ φ α {set (-● ∅)}) Σ)]
 
       [(or (? -Hash/guard?) (? -Hash^?))
        (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'hash-ref))))
@@ -130,7 +130,7 @@
       ((ans) (-@ (-•) refs ℓ))
       (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
-  (: add-leak! : HV-Tag -Σ -φ (U -V^ (Listof -V^)) → Void)
+  (: add-leak! : HV-Tag -Σ -φ (U -V^ (Listof -V^)) → -φ)
   (define (add-leak! tag Σ φ V)
     (define α (-α->⟪α⟫ (-α.hv tag)))
     (define (keep-behavioral [V : -V^]) : -V^
@@ -143,7 +143,7 @@
         [else
          (for/fold ([V^ : -V^ ∅]) ([Vᵢ (in-list V)])
            (V⊕ V^ (keep-behavioral Vᵢ)))]))
-    (σ⊔! Σ α V^))
+    (mut! Σ φ α V^))
   )
 
 

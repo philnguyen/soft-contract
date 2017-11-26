@@ -17,14 +17,73 @@
          "signatures.rkt")
 
 (define-unit sto@
-  (import pretty-print^ local-prover^ path^ val^ prim-runtime^ static-info^ widening^)
+  (import pretty-print^ local-prover^ env^ path^ val^ prim-runtime^ static-info^ widening^)
   (export sto^)
 
   (define ⊥σ : -σ (hasheq))
 
-  (: σ⊔! : -Σ ⟪α⟫ -V^ → Void)
-  (define (σ⊔! Σ α V)
-    (set--Σ-σ! Σ (hash-update (-Σ-σ Σ) α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅)))
+  (: alloc : -Σ -φ ⟪α⟫ -V^ → -φ)
+  (define (alloc Σ φ α V)
+    (define σ (-Σ-σ Σ))
+    (define δσ (-φ-cache φ))
+    (define V*
+      (case (cardinality σ δσ α)
+        [(0) V]
+        [(1) (V⊕ (hash-ref δσ α mk-∅) V)]
+        [(N) (V⊕ (hash-ref  σ α mk-∅) V)]))
+    (-φ (-φ-condition φ) (hash-set δσ α V*)))
+
+  (: alloc* : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
+  (define (alloc* Σ φ αs Vs)
+    (for/fold ([φ : -φ φ]) ([α (in-list αs)] [V (in-list Vs)])
+      (alloc Σ φ α V)))
+
+  (: mut! : -Σ -φ ⟪α⟫ -V^ → -φ)
+  (define (mut! Σ φ α V)
+    (define σ (-Σ-σ Σ))
+    (define δσ (-φ-cache φ))
+    (define (φ*) (-φ (-φ-condition φ) (hash-set δσ α V)))
+    (case (cardinality σ δσ α)
+      [(0) (error 'mut! "non-existent address ~a" (show-⟪α⟫ α))]
+      [(1) (φ*)]
+      [(N) (set--Σ-σ! Σ (hash-update σ α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅))
+           (φ*)]))
+
+  (: mut*! : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
+  (define (mut*! Σ φ αs Vs)
+    (for/fold ([φ : -φ φ]) ([α (in-list αs)] [V (in-list Vs)])
+      (mut! Σ φ α V)))
+
+  (: bind-args : -Σ -ρ ℓ -H -φ -formals (Listof -V^) → (Values -ρ -φ))
+  (define (bind-args Σ ρ ℓ H φ fml Vs)
+
+    (: bind-init : -ρ -φ (Listof Symbol) (Listof -V^) → (Values -ρ -φ))
+    (define (bind-init ρ φ xs Vs)
+      (for/fold ([ρ : -ρ ρ] [φ : -φ φ])
+                ([x (in-list xs)] [V (in-list Vs)])
+        (define α (-α->⟪α⟫ (-α.x x H)))
+        (values (hash-set ρ x α) (alloc Σ φ α V))))
+    
+    (match fml
+      [(? list? xs) (bind-init ρ φ xs Vs)]
+      [(-var xs xᵣ)
+       (define-values (Vs-init Vs-rest) (split-at Vs (length xs)))
+       (define-values (ρ₁ φ₁) (bind-init ρ φ xs Vs-init))
+       (define-values (Vᵣ φ₂) (alloc-rest-args Σ ℓ H φ₁ Vs-rest))
+       (define αᵣ (-α->⟪α⟫ (-α.x xᵣ H)))
+       (values (ρ+ ρ₁ xᵣ αᵣ) (alloc Σ φ₂ αᵣ {set Vᵣ}))]))
+
+  (: alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ)))
+  (define (alloc-rest-args Σ ℓ H φ V^s #:end [tail -null])
+    (let go ([V^s : (Listof -V^) V^s] [φ : -φ φ] [i : Natural 0])
+      (match V^s
+        ['() (values tail φ)]
+        [(cons V^ V^s*)
+         (define αₕ (-α->⟪α⟫ (-α.var-car ℓ H i)))
+         (define αₜ (-α->⟪α⟫ (-α.var-cdr ℓ H i)))
+         (define-values (Vₜ φₜ) (go V^s* φ (+ 1 i)))
+         (define φ* (alloc Σ (alloc Σ φₜ αₕ V^) αₜ {set Vₜ}))
+         (values (-Cons αₕ αₜ) φ*)])))
 
   (splicing-local
       ((define ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm 'null?)) +ℓ₀))
@@ -139,4 +198,15 @@
     ;; FIXME approximate
     (begin0 αₖ
       (set--Σ-σₖ! Σ (hash-update (-Σ-σₖ Σ) αₖ (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧)) mk-∅))))
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; Helpers
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define-type Cardinality (U 0 1 'N))
+  (: cardinality : -σ -δσ ⟪α⟫ → Cardinality)
+  (define (cardinality σ δσ α)
+    (if (hash-has-key? σ α)
+        (if (-𝒾? α) 1 'N)
+        (if (hash-has-key? δσ α) 1 0)))
   )

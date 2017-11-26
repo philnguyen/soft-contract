@@ -56,11 +56,11 @@
                  (for/fold ([αs-rev : (Listof ⟪α⟫) '()] [φ : -φ φ])
                            ([i (in-range n)])
                    (define α (-α->⟪α⟫ (-α.idx ℓ H (assert i index?))))
-                   (values (cons α αs-rev) (φ⊔ φ α Vᵥ))))
+                   (values (cons α αs-rev) (alloc Σ φ α Vᵥ))))
                (⟦k⟧ (list {set (-Vector (reverse αs-rev))}) H φ* Σ)]
               [_
                (define α (-α->⟪α⟫ (-α.vct ℓ H)))
-               (define φ* (φ⊔ φ α Vᵥ))
+               (define φ* (alloc Σ φ α Vᵥ))
                (⟦k⟧ (list {set (-Vector^ α Vₙ)}) H φ* Σ)]))
           .internal-make-vector)])
     (def (make-vector ℓ Vs H φ Σ ⟦k⟧)
@@ -80,7 +80,7 @@
       (for/fold ([αs-rev : (Listof ⟪α⟫) '()] [φ : -φ φ])
                 ([V (in-list Vs)] [i (in-naturals)])
         (define α (-α->⟪α⟫ (-α.idx ℓ H (assert i index?))))
-        (values (cons α αs-rev) (φ⊔ φ α V))))
+        (values (cons α αs-rev) (alloc Σ φ α V))))
     (⟦k⟧ (list {set (-Vector (reverse αs-rev))}) H φ* Σ))
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
@@ -133,10 +133,10 @@
                      ([α (in-list αs)]
                       [i : Natural (in-naturals)]
                       #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
-             (φ⊔ φ α Vᵤ)))
+             (mut! Σ φ α Vᵤ)))
          (⟦k⟧ (list {set -void}) H φ* Σ)]
         [(-Vector^ α n)
-         (⟦k⟧ (list {set -void}) H (φ⊔ φ α Vᵤ) Σ)]
+         (⟦k⟧ (list {set -void}) H (mut! Σ φ α Vᵤ) Σ)]
         [(-Vector/guard grd αᵥ ctx)
          (define ctx* (ctx-neg ctx))
          (define Vᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))

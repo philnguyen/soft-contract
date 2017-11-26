@@ -55,7 +55,7 @@
         ;; Export same as internal
         [(? symbol? x)
          (begin (assert (defined-at? Σ (-φ-cache φ) α))
-                (⟦k⟧ A H (φ⊔ φ α* (σ@ Σ (-φ-cache φ) α)) Σ))
+                (⟦k⟧ A H (alloc Σ φ α* (σ@ Σ (-φ-cache φ) α)) Σ))
          #:where
          [α  (-α->⟪α⟫ (-𝒾 x l))]
          [α* (-α->⟪α⟫ (-α.wrp (-𝒾 x l)))]
@@ -112,7 +112,7 @@
          [(-x (? symbol? x) ℓₓ) #:reduce (↓ₓ l x ℓₓ)]
          [(-x (and 𝒾 (-𝒾 x l₀)) ℓₓ)
           (let* ([φ* (if (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ)
-                         (φ⊔ φ ⟪α⟫ₒₚ (-● ∅))
+                         (alloc Σ φ ⟪α⟫ₒₚ {set (-● ∅)})
                          φ)]
                  [V^ (map/set modify-V (σ@ Σ (-φ-cache φ*) α))])
             (⟦k⟧ (list V^) H φ* Σ))
@@ -153,16 +153,16 @@
           #:where [(cons (cons x ⟦e⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]]
          [(-letrec-values '() e* ℓ) #:reduce (↓ e*)]
          [(-letrec-values bnds (:↓ ⟦e*⟧) ℓ)
-          (let-values ([(ρ* φ*) (init-undefined H ρ φ)])
+          (let-values ([(ρ* φ*) (init-undefined Σ H ρ φ)])
             (⟦e⟧ₓ ρ* H φ* Σ (letrec∷ ℓ x ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))
           #:where
           [(cons (cons x ⟦e⟧ₓ) ⟦bnd⟧s*) (map ↓-bnd bnds)]
           [init-undefined
-           (λ ([H : -H] [ρ : -ρ] [φ : -φ])
+           (λ ([Σ : -Σ] [H : -H] [ρ : -ρ] [φ : -φ])
              (for*/fold ([ρ : -ρ ρ] [φ : -φ φ])
                         ([bnd (in-list bnds)] [x (in-list (car bnd))])
                (define α (-α->⟪α⟫ (-α.x x H)))
-               (values (ρ+ ρ x α) (φ⊔ φ α -undefined))))]]
+               (values (ρ+ ρ x α) (alloc Σ φ α {set -undefined}))))]]
          [(-set! x (:↓ ⟦e*⟧))
           (⟦e*⟧ ρ H φ Σ (set!∷ (get-addr ρ) ⟦k⟧))
           #:where
@@ -191,7 +191,7 @@
           #:reduce
           (with-cases-on dom (ρ H φ Σ ⟦k⟧)
             ['()
-             (let-values ([(C φ*) (mk-=>i H φ '() (-Clo xs ⟦d⟧ (m↓ ρ fvs)) ℓ)])
+             (let-values ([(C φ*) (mk-=>i Σ H φ '() (-Clo xs ⟦d⟧ (m↓ ρ fvs)) ℓ)])
                (⟦k⟧ (list {set C}) H φ* Σ))]
             [(cons (:↓ ⟦c⟧) (:↓* ⟦c⟧s))
              (⟦c⟧ ρ H φ Σ (-->i∷ '() ⟦c⟧s ρ (-Clo xs ⟦d⟧ (m↓ ρ fvs)) ℓ ⟦k⟧))])
@@ -254,11 +254,11 @@
 
   (define/memo (mk-wrapped-hash [C : -Hash/C] [ctx : -ctx] [α : ⟪α⟫] [V : -V^]) : -⟦e⟧
     (λ (ρ H φ Σ ⟦k⟧)
-      (⟦k⟧ (list {set (-Hash/guard C α ctx)}) H (φ⊔ φ α V) Σ)))
+      (⟦k⟧ (list {set (-Hash/guard C α ctx)}) H (alloc Σ φ α V) Σ)))
 
   (define/memo (mk-wrapped-set [C : -Set/C] [ctx : -ctx] [α : ⟪α⟫] [V : -V^]) : -⟦e⟧
     (λ (ρ H φ Σ ⟦k⟧)
-      (⟦k⟧ (list {set (-Set/guard C α ctx)}) H (φ⊔ φ α V) Σ)))
+      (⟦k⟧ (list {set (-Set/guard C α ctx)}) H (alloc Σ φ α V) Σ)))
 
   (define-syntax-parser with-cases-on
     [(_ e:expr (ρ:id H:id φ:id Σ:id ⟦k⟧:id) clauses ...)

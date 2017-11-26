@@ -53,9 +53,9 @@
              [(even? (length Vs))
               (define αₖ (-α->⟪α⟫ (-α.hash.key ℓ H)))
               (define αᵥ (-α->⟪α⟫ (-α.hash.val ℓ H)))
-              (let go : (Values -A -φ) ([φ : -φ (φ⊔ (φ⊔ φ αₖ ∅) αᵥ ∅)] [Vs : (Listof -V^) Vs])
+              (let go : (Values -A -φ) ([φ : -φ (alloc* Σ φ (list αₖ αᵥ) (list ∅ ∅))] [Vs : (Listof -V^) Vs])
                 (match Vs
-                  [(list* Vₖ Vᵥ Vs*) (go (φ⊔ (φ⊔ φ αₖ Vₖ) αᵥ Vᵥ) Vs*)]
+                  [(list* Vₖ Vᵥ Vs*) (go (alloc Σ (alloc Σ φ αₖ Vₖ) αᵥ Vᵥ) Vs*)]
                   [_ (values (list {set (-Hash^ αₖ αᵥ #t)}) φ)]))]
              [else
               (define Cs (list (string->symbol "even number of arg(s)")))
@@ -134,8 +134,9 @@
       (match Vₕ
         [(-Hash^ αₖ αᵥ _)
          (define φ*
-           (φ⊔* φ (list αₖ*                    αₖ* αᵥ*                    αᵥ*)
-                  (list (σ@ Σ (-φ-cache φ) αₖ) Vₖ  (σ@ Σ (-φ-cache φ) αᵥ) Vᵥ)))
+           (alloc* Σ φ
+                   (list αₖ*                    αₖ* αᵥ*                    αᵥ*)
+                   (list (σ@ Σ (-φ-cache φ) αₖ) Vₖ  (σ@ Σ (-φ-cache φ) αᵥ) Vᵥ)))
          (⟦k⟧ (list {set (-Hash^ αₖ* αᵥ* #t)}) H φ* Σ)]
         [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ))) αₕ ctx)
          (define ctx* (ctx-neg ctx))

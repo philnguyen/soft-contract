@@ -159,7 +159,7 @@
   (: app-clo : -formals -⟦e⟧ -ρ → -⟦f⟧)
   (define ((app-clo xs ⟦e⟧ ρ) ℓ Vₓs H φ Σ ⟦k⟧)
     (define-values (Hₑₑ looped?) (H+ H (-edge (cons ⟦e⟧ (⌊ρ⌋ ρ)) ℓ)))
-    (define-values (ρ* φ*) (bind-args ρ ℓ H φ xs Vₓs))
+    (define-values (ρ* φ*) (bind-args Σ ρ ℓ H φ xs Vₓs))
     (⟦e⟧ ρ* Hₑₑ φ* Σ (restore-ctx∷ H ⟦k⟧)))
 
   (: app-Case-Clo : -Case-Clo → -⟦f⟧)
@@ -198,7 +198,7 @@
        (define-values (αs₀ ℓs₀) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs₀))
        (match-define (-⟪α⟫ℓ αᵣ ℓᵣ) αℓᵣ)
        (define-values (Vᵢs Vᵣs) (split-at Vₓs (length αs₀)))
-       (define-values (Vᵣ φ*) (alloc-rest-args ℓₐ H φ Vᵣs))
+       (define-values (Vᵣ φ*) (alloc-rest-args Σ ℓₐ H φ Vᵣs))
        (define ⟦mon-x⟧s : (Listof -⟦e⟧)
          (for/list ([Cₓ (σ@/list σ (-φ-cache φ*) αs₀)] [Vₓ Vᵢs] [ℓₓ : ℓ ℓs₀])
            (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-A (list Cₓ)) (mk-A (list Vₓ)))))
@@ -236,7 +236,7 @@
       (for/fold ([ρ : -ρ ρ] [φ : -φ φ]) ([x (in-list xs)])
         (define αₛ (-α->⟪α⟫ (-α.imm (-Seal/C x Hₑₑ l-seal))))
         (define αᵥ (-α->⟪α⟫ (-α.sealed x Hₑₑ)))
-        (values (ρ+ ρ x αₛ) (φ⊔ φ αᵥ ∅))))
+        (values (ρ+ ρ x αₛ) (alloc Σ φ αᵥ ∅))))
     (define ⟦arg⟧s : (Listof -⟦e⟧) (for/list ([Vₓ (in-list Vₓs)]) (mk-A (list Vₓ))))
     (define ⟦k⟧* (restore-ctx∷ H (mon.v∷ ctx Vᵤ^ (ap∷ '() ⟦arg⟧s ⊥ρ ℓₐ ⟦k⟧))))
     (⟦c⟧ ρ* Hₑₑ φ* Σ ⟦k⟧*))
@@ -312,7 +312,7 @@
       (cond
         [(= n (length Vₓs))
          (define αs (build-list n (λ ([i : Index]) (-α->⟪α⟫ (-α.fld 𝒾 ℓ H i)))))
-         (define φ* (φ⊔* φ αs Vₓs))
+         (define φ* (alloc* Σ φ αs Vₓs))
          (⟦k⟧ (list {set (-St 𝒾 αs)}) H φ* Σ)]
         [else
          (define blm (blm-arity ℓ (show-o st-mk) n Vₓs))
@@ -375,7 +375,7 @@
          (match Vₛ
            [(-St 𝒾* αs)
             #:when (𝒾* . substruct? . 𝒾)
-            (define φ* (φ⊔ φ (list-ref αs i) Vᵥ))
+            (define φ* (mut! Σ φ (list-ref αs i) Vᵥ))
             (⟦k⟧ (list {set -void}) H φ* Σ)]
            [(-St* (-St/C _ 𝒾* γℓs) α ctx)
             #:when (𝒾* . substruct? . 𝒾)
@@ -387,8 +387,8 @@
             (push-mon (ctx-with-ℓ ctx* ℓᵢ) Cᵢ^ H φ Σ ⟦k⟧*)]
            [(-● _)
             (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₛ})]) : -ς
-              #:true  (begin (add-leak! '† Σ Vᵥ)
-                             (⟦k⟧ (list {set -void}) H φ₁ Σ))
+              #:true  (let ([φ* (add-leak! '† Σ Vᵥ)])
+                        (⟦k⟧ (list {set -void}) H φ₁ Σ))
               #:false (⟦k⟧ (blm) H φ₂ Σ))]
            [_ (⟦k⟧ (blm) H φ Σ)])]
         [_
@@ -410,9 +410,10 @@
         (match Vₕ
           [(-Fn● _ t) t]
           [_ '†]))
-      (for ([V (in-list Vs)])
-        (add-leak! tag Σ φ V))
-      (define αₖ (-αₖ H (-HV tag) φ))
+      (define φ*
+        (for/fold ([φ : -φ φ]) ([V (in-list Vs)])
+          (add-leak! tag Σ φ V)))
+      (define αₖ (-αₖ H (-HV tag) φ*))
       (define ⟦k⟧* (bgn0.e∷ (list {set (-● ∅)}) '() ⊥ρ ⟦k⟧))
       {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))}))
 
@@ -461,10 +462,10 @@
 
          (: app/adjusted-args : -φ (Listof -V^) -V → (℘ -ς))
          (define (app/adjusted-args φ V-inits V-rest)
-           (define-values (ρ₁ φ₁) (bind-args ρ ℓ Hₑₑ φ zs V-inits))
+           (define-values (ρ₁ φ₁) (bind-args Σ ρ ℓ Hₑₑ φ zs V-inits))
            (define αᵣ (-α->⟪α⟫ (-α.x z Hₑₑ)))
            (define ρ₂ (ρ+ ρ₁ z αᵣ))
-           (define φ₂ (φ⊔ φ₁ αᵣ V-rest))
+           (define φ₂ (alloc Σ φ₁ αᵣ {set V-rest}))
            (⟦e⟧ ρ₂ Hₑₑ φ₂ Σ (restore-ctx∷ H ⟦k⟧)))
          
          (cond
@@ -478,7 +479,7 @@
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (V-inits* V-inits.rest) (split-at V-inits n))
-            (define-values (V-rest* φ*) (alloc-rest-args ℓ Hₑₑ φ V-inits.rest #:end V-rest))
+            (define-values (V-rest* φ*) (alloc-rest-args Σ ℓ Hₑₑ φ V-inits.rest #:end V-rest))
             (app/adjusted-args φ* V-inits* V-rest*)])]))
 
     (: app-Ar/rest : -=>_ ⟪α⟫ -ctx → (℘ -ς))
@@ -500,7 +501,7 @@
            [else
             (define-values (V-inits* V-inits.rest) (split-at V-inits n))
             (define-values (Hₑₑ looped?) (H+ H (-edge #|HACK|# (cons (mk-V C) (⌊ρ⌋ ⊥ρ)) ℓ)))
-            (define-values (Vᵣ* φ*) (alloc-rest-args ℓ Hₑₑ φ V-inits.rest #:end V-rest))
+            (define-values (Vᵣ* φ*) (alloc-rest-args Σ ℓ Hₑₑ φ V-inits.rest #:end V-rest))
             ((apply-app-Ar C Vᵤ^ ctx) ℓ V-inits* Vᵣ* Hₑₑ φ Σ ⟦k⟧)])]
         [(-=> (? list? αℓₓs) _)
          (define n (length αℓₓs))
@@ -522,7 +523,7 @@
                      ([x (in-list xs)])
              (define αₛ (-α->⟪α⟫ (-α.imm (-Seal/C x Hₑₑ l-seal))))
              (define αᵥ (-α->⟪α⟫ (-α.sealed x Hₑₑ)))
-             (values (ρ+ ρ x αₛ) (φ⊔ φ αᵥ ∅))))
+             (values (ρ+ ρ x αₛ) (alloc Σ φ αᵥ ∅))))
          (define ⟦init⟧s : (Listof -⟦e⟧) (for/list ([V^ (in-list V-inits)]) (mk-A (list V^))))
          (define ⟦k⟧*
            (restore-ctx∷ H

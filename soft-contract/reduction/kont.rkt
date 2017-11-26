@@ -197,7 +197,7 @@
            ['()
             (define-values (ρ* φ*)
               (let-values ([(xs Vs) (unzip bnd-Vs*)])
-                (bind-args ρ ℓ H φ xs Vs)))
+                (bind-args Σ ρ ℓ H φ xs Vs)))
             (⟦e⟧ ρ* H φ* Σ ⟦k⟧)]
            [(cons (cons xs* ⟦e⟧*) ⟦bnd⟧s*)
             (⟦e⟧* ρ H φ Σ (let∷ ℓ xs* ⟦bnd⟧s* bnd-Vs* ⟦e⟧ ρ ⟦k⟧))])]
@@ -252,7 +252,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
       (match A
         [(list V)
-         (⟦k⟧ (list {set -void}) H (φ⊔ φ α V) Σ)]
+         (⟦k⟧ (list {set -void}) H (mut! Σ φ α V) Σ)]
         [_
          (define msg (format-symbol "~a values" (length A)))
          (define blm (blm/simp 'TODO 'Λ (list '1-value) (list {set msg}) +ℓ₀))
@@ -269,8 +269,8 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots (ρ)
       (cond
         [(= n (length A))
-         (define-values (ρ* φ*) (bind-args ρ ℓ H φ xs A))
-         (assert (equal? ρ ρ*)) ; FIXME disable in production
+         (define αs : (Listof ⟪α⟫) (for/list ([x (in-list xs)]) (ρ@ ρ x)))
+         (define φ* (mut*! Σ φ αs A))
          (match ⟦bnd⟧s
            ['()
             (⟦e⟧ ρ H φ* Σ ⟦k⟧)]
@@ -289,7 +289,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
       (match-define (list V) A)
       (define α (-α->⟪α⟫ (-α.x/c x H)))
-      (⟦k⟧ (list {set (-x/C α)}) H (φ⊔ φ α V) Σ)))
+      (⟦k⟧ (list {set (-x/C α)}) H (alloc Σ φ α V) Σ)))
 
   ;; Non-dependent contract domain
   (define-frame (-->.dom∷ [Vs  : (Listof -V^)]
@@ -324,30 +324,30 @@
                           [ℓ : ℓ]
                           [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (Vs)
-      (define-values (C φ*) (mk-=> H φ Vs Vᵣ A ℓ))
+      (define-values (C φ*) (mk-=> Σ H φ Vs Vᵣ A ℓ))
       (⟦k⟧ (list {set C}) H φ* Σ)))
 
   (splicing-local
       ()
 
-    (: mk-=> : -H -φ (Listof -V^) (Option -V^) (Listof -V^) ℓ → (Values -V -φ))
-    (define (mk-=> H φ doms.rev rst rngs ℓ) 
+    (: mk-=> : -Σ -H -φ (Listof -V^) (Option -V^) (Listof -V^) ℓ → (Values -V -φ))
+    (define (mk-=> Σ H φ doms.rev rst rngs ℓ) 
       (define-values (Dom φ₁)
-        (let-values ([(Init φ*) (alloc* 'dom -α.dom H ℓ φ (reverse doms.rev))])
+        (let-values ([(Init φ*) (mk-⟪α⟫ℓ* Σ 'dom -α.dom H ℓ φ (reverse doms.rev))])
           (cond [rst (define αᵣ (-α->⟪α⟫ (-α.rst ℓ H)))
                      (define ℓᵣ (ℓ-with-id ℓ 'rest))
-                     (values (-var Init (-⟪α⟫ℓ αᵣ ℓᵣ)) (φ⊔ φ* αᵣ rst))]
+                     (values (-var Init (-⟪α⟫ℓ αᵣ ℓᵣ)) (alloc Σ φ* αᵣ rst))]
                 [else (values Init φ*)])))
       (define-values (Rng φ₂)
         (match rngs
           ['(any) (values 'any φ₁)]
-          [_ (alloc* 'rng -α.rng H ℓ φ₁ rngs)]))
+          [_ (mk-⟪α⟫ℓ* Σ 'rng -α.rng H ℓ φ₁ rngs)]))
       (values (-=> Dom Rng) φ₂))
 
     ;; Given *reversed* list of contract domains and range-maker, create dependent contract
-    (: mk-=>i : -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))
-    (define (mk-=>i H φ Vs-rev Mk-D ℓₐ)
-      (define-values (Dom φ*) (alloc* 'dom -α.dom H ℓₐ φ (reverse Vs-rev)))
+    (: mk-=>i : -Σ -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))
+    (define (mk-=>i Σ H φ Vs-rev Mk-D ℓₐ)
+      (define-values (Dom φ*) (mk-⟪α⟫ℓ* Σ 'dom -α.dom H ℓₐ φ (reverse Vs-rev)))
       (values (-=>i Dom (cons Mk-D (ℓ-with-id ℓₐ '->i-rng))) φ*))) 
 
   ;; Dependent contract
@@ -362,7 +362,7 @@
       (define Cs* (cons C Cs))
       (match ⟦c⟧s
         ['()
-         (define-values (G φ*) (mk-=>i H φ Cs* Mk-D ℓ))
+         (define-values (G φ*) (mk-=>i Σ H φ Cs* Mk-D ℓ))
          (⟦k⟧ (list {set G}) H φ* Σ)]
         [(cons ⟦c⟧ ⟦c⟧s*)
          (⟦c⟧ ρ H φ Σ (-->i∷ Cs* ⟦c⟧s* ρ Mk-D ℓ ⟦k⟧))])))
@@ -379,7 +379,7 @@
       (define Cs* (cons C Cs))
       (match ⟦c⟧s
         ['()
-         (define-values (Fields φ*) (alloc* (-𝒾-name 𝒾) (curry -α.struct/c 𝒾) H ℓ₁ φ (reverse Cs*)))
+         (define-values (Fields φ*) (mk-⟪α⟫ℓ* Σ (-𝒾-name 𝒾) (curry -α.struct/c 𝒾) H ℓ₁ φ (reverse Cs*)))
          (define flat? (andmap C^-flat? Cs*))
          (define StC (-St/C flat? 𝒾 Fields))
          (⟦k⟧ (list {set StC}) H φ* Σ)]
@@ -394,7 +394,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
       (cond
         [(= n (length A))
-         (⟦k⟧ (list {set -void}) H (φ⊔* φ αs A) Σ)]
+         (⟦k⟧ (list {set -void}) H (alloc* Σ φ αs A) Σ)]
         [else
          (define blm
            (blm/simp l 'define-values
@@ -416,8 +416,8 @@
 
   (define/memo (hv∷ [tag : HV-Tag] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-      (add-leak! tag Σ φ A)
-      {set (-ς↑ (σₖ+! Σ (-αₖ H (-HV tag) φ) ⟦k⟧))}))
+      (define φ* (add-leak! tag Σ φ A))
+      {set (-ς↑ (σₖ+! Σ (-αₖ H (-HV tag) φ*) ⟦k⟧))}))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -430,7 +430,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots (Vₚ)
       (match-define (list Vᵥ) A) ; only used internally, shoule be safe
       (define αᵥ (-α->⟪α⟫ (-α.unvct ctx H)))
-      (⟦k⟧ (list {set (-Vector/guard Vₚ αᵥ ctx)}) H (φ⊔ φ αᵥ Vᵥ) Σ)))
+      (⟦k⟧ (list {set (-Vector/guard Vₚ αᵥ ctx)}) H (alloc Σ φ αᵥ Vᵥ) Σ)))
 
   (define-frame (mon-or/c∷ [ctx : -ctx] [Cₗ : -V^] [Cᵣ : -V^] [V : -V^] [⟦k⟧ : -⟦k⟧])
   (make-frame (⟦k⟧ A H φ Σ) #:roots (Cₗ Cᵣ V)
@@ -455,7 +455,7 @@
   (make-frame (⟦k⟧ A H φ Σ) #:roots (C)
     (match-define (list V) A)  ; only used internally, should be safe
     (define αᵤ (-α->⟪α⟫ (-α.st (-St/C-id C) ctx H)))
-    (⟦k⟧ (list {set (-St* C αᵤ ctx)}) H (φ⊔ φ αᵤ V) Σ)))
+    (⟦k⟧ (list {set (-St* C αᵤ ctx)}) H (alloc Σ φ αᵤ V) Σ)))
 
   (define-frame (fc-and/c∷ [l : -l]
                            [ℓ : ℓ]
@@ -561,7 +561,7 @@
       (match-define (list Vₕ) A)
       (define α (-α->⟪α⟫ (-α.unhsh ctx H)))
       (define Vₐ (-Hash/guard C α ctx))
-      (⟦k⟧ (list {set Vₐ}) H (φ⊔ φ α Vₕ) Σ)))
+      (⟦k⟧ (list {set Vₐ}) H (alloc Σ φ α Vₕ) Σ)))
 
   (define-frame (set-add-inner∷ [ℓ : ℓ] [αₛ : ⟪α⟫] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (αₛ)
@@ -574,7 +574,7 @@
       (match-define (list Vₛ) A)
       (define α (-α->⟪α⟫ (-α.unset ctx H)))
       (define Vₐ (-Set/guard C α ctx))
-      (⟦k⟧ (list {set Vₐ}) H (φ⊔ φ α Vₛ) Σ)))
+      (⟦k⟧ (list {set Vₐ}) H (alloc Σ φ α Vₛ) Σ)))
 
   (define-frame (maybe-havoc-prim-args∷ [ℓ : ℓ] [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
@@ -650,13 +650,13 @@
           (V+ σ φ rngᵢ refᵢ)))
       (check-inits dom-inits args)))
 
-  (: alloc* : Symbol (ℓ -H Index → -α) -H ℓ -φ (Listof -V^) → (Values (Listof -⟪α⟫ℓ) -φ))
-  (define (alloc* tag mk-α H ℓ φ Vs)
+  (: mk-⟪α⟫ℓ* : -Σ Symbol (ℓ -H Index → -α) -H ℓ -φ (Listof -V^) → (Values (Listof -⟪α⟫ℓ) -φ))
+  (define (mk-⟪α⟫ℓ* Σ tag mk-α H ℓ φ Vs)
     (define-values (αℓs φ*)
       (for/fold ([αℓs-rev : (Listof -⟪α⟫ℓ) '()] [φ : -φ φ])
                 ([V (in-list Vs)] [i (in-naturals)] #:when (index? i))
         (define α (-α->⟪α⟫ (mk-α ℓ H i)))
         (define αℓ (-⟪α⟫ℓ α (ℓ-with-id ℓ (cons tag i))))
-        (values (cons αℓ αℓs-rev) (φ⊔ φ α V))))
+        (values (cons αℓ αℓs-rev) (alloc Σ φ α V))))
     (values (reverse αℓs) φ*))
   )

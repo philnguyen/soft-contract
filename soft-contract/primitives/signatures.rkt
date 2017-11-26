@@ -83,5 +83,5 @@
    ;; re-exported stuff to avoid confusing dependency in `def`
    [r:φ+/-pV^ : (-σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    [mk-● : (-h * → -●)]
-   [add-seal : (-φ Symbol -H -l → (Values -Seal/C -φ))]
+   [add-seal : (-Σ -φ Symbol -H -l → (Values -Seal/C -φ))]
    ))

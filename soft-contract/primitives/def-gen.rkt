@@ -191,7 +191,7 @@
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
           (define/with-syntax φ* (gensym 'φ*))
           #`(begin
-              (define-values (#,x φ*) (add-seal #,(-φ) 'x.name #,(-H) (ℓ-src #,(-ℓ))))
+              (define-values (#,x φ*) (add-seal #,(-Σ) #,(-φ) 'x.name #,(-H) (ℓ-src #,(-ℓ))))
               (set! #,(-φ) φ*)))
       ,#`(exec-prim #,(-H) #,(-φ) #,(-Σ) #,(-⟦k⟧)
                     #,(-ℓ) '#,(-o)
