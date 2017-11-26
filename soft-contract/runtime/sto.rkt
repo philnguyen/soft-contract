@@ -45,12 +45,10 @@
         [(-α.imm-ref-listof x Cₑ ℓ)
          (hash-ref! cache-listof ⟪α⟫ (λ () {set (-x/C (-α->⟪α⟫ (-α.imm-listof x Cₑ ℓ)))}))]
         [α
-         (define σ (if (-Σ? m) (-Σ-σ m) m))
-         (hash-ref σ ⟪α⟫ (λ () (match α
-                                 ; ok for hv addresses to not exist
-                                 ; TODO clean up
-                                 [(-α.hv _) ∅]
-                                 [_ (error 'σ@ "no address ~a" (⟪α⟫->-α ⟪α⟫))])))])))
+         (hash-ref δσ ⟪α⟫
+                   (λ ()
+                     (define σ (if (-Σ? m) (-Σ-σ m) m))
+                     (hash-ref σ ⟪α⟫ mk-∅)))])))
 
   
 
