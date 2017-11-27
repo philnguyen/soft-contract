@@ -41,7 +41,7 @@
 
   (define show-t : (-t → Sexp)
     (match-lambda
-      [(? integer? i) (format-symbol "ℓ~a" (n-sub i))]
+      [(? integer? i) (format-symbol "•~a" (n-sub i))]
       [(-b b) (show-b b)]
       [(-t.@ h ts) `(,(show-h h) ,@(map show-t ts))]))
 
@@ -127,7 +127,7 @@
       [(-≥/c b) `(>=/c ,(show-b b))]
       [(-</c b) `(</c ,(show-b b))]
       [(-≤/c b) `(<=/c ,(show-b b))]
-      [(? integer? t) (format-symbol "•~a" (n-sub t))]))
+      [(? -t? t) (show-t t)]))
 
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
     (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)
