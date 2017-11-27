@@ -80,6 +80,10 @@
       [(-Seal/C x _ _) (list 'seal/c x)]
       [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -b?))) (list 'flat c)]
       [(? integer? t) (format-symbol "•~a" (n-sub t))]
+      [(-Fn● _ tag)
+       (match tag
+         [(cons o _) (list 'Fn● (if (string? o) (string->symbol o) o))]
+         ['† (list 'Fn● '†)])]
       [V (error 'strip-V "~a not expected" V)]))
 
   (define get-ℓ : ((-maybe-var -⟪α⟫ℓ) → (-maybe-var ℓ))

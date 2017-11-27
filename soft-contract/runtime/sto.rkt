@@ -44,8 +44,7 @@
     (define δσ (-φ-cache φ))
     (define (φ*) (-φ (-φ-condition φ) (hash-set δσ α V)))
     (case (cardinality σ δσ α)
-      [(0) (error 'mut! "non-existent address ~a" (show-⟪α⟫ α))]
-      [(1) (φ*)]
+      [(0 1) (φ*)]
       [(N) (set--Σ-σ! Σ (hash-update σ α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅))
            (φ*)]))
 
@@ -109,9 +108,7 @@
                      (define σ (if (-Σ? m) (-Σ-σ m) m))
                      (hash-ref σ ⟪α⟫ mk-∅)))])))
 
-  
-
-  (: σ@/list : (U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))
+    (: σ@/list : (U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))
   ;; Look up store at address list
   (define (σ@/list Σ δσ ⟪α⟫s)
     (for/list ([α (in-list ⟪α⟫s)])

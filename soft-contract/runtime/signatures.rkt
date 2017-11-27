@@ -366,6 +366,7 @@
    [show-σ : (-σ → (Listof Sexp))]
    [show-h : (-h → Sexp)]
    [show-t : (-t → Sexp)]
+   [show-Γ : (-Γ → (Listof Sexp))]
    [show-σₖ : (-σₖ → (Listof Sexp))]
    [show-blm-reason : ((U -U -v -h -V^) → Sexp)]
    [show-V : (-V → Sexp)]

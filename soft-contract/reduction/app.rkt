@@ -132,7 +132,7 @@
        (app₁ ℓ '<  (list (car Vₓs) {set (-b r)}) H φ Σ ⟦k⟧)]
       [(-≤/c (? real? r))
        (app₁ ℓ '<= (list (car Vₓs) {set (-b r)}) H φ Σ ⟦k⟧)]
-      [(or (? -●?) (? -Fn●?))
+      [(or (? integer?) (? -●?) (? -Fn●?))
        (define l (ℓ-src ℓ))
 
        (: blm : -h -φ → (℘ -ς))

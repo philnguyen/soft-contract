@@ -144,9 +144,11 @@
       (case (p∋V σ φ 'procedure? V)
         [(✓) (arity-includes? (assert (V-arity V)) 1)]
         [else #f]))
-    
+
     (match Vs
       [(list (-● ps)) (ps⇒p ps p)]
+      [_ #:when (and (andmap -t? Vs) (not (andmap -b? Vs)))
+         (ps⇒p (hash-ref (-φ-condition φ) Vs mk-∅) p)]
       [_
        (match p
          [(? -st-mk?) '✓]
@@ -237,7 +239,7 @@
                [(list (or (? -Vector?) (? -Vector^?) (? -Vector/guard?))) '✗]
                [_ '?])]
             [(<)
-             (match Vs
+             (ann (match Vs
                [(list (-b (? real? b₁)) (-b (? real? b₂)))
                 (boolean->R (< b₁ b₂))]
                [(list (-b (? real? b₁))
@@ -269,9 +271,9 @@
                 #:when (and (<= b 0)
                             (∋ ps 'exact-positive-integer?))
                 '✓]
-               [_ '?])]
+               [_ '?]) -R)]
             [(<=)
-             (match Vs
+             (ann (match Vs
                [(list (-b (? real? b₁)) (-b (? real? b₂)))
                 (boolean->R (<= b₁ b₂))]
                [(list (-b (? real? b₁))
@@ -297,7 +299,7 @@
                [(list (-b (? real? b)) (-● ps))
                 #:when (and (<= b 1) (∋ ps 'exact-positive-integer?))
                 '✓]
-               [_ '?])]
+               [_ '?]) -R)]
             [(>) (p∋V σ φ '< (second Vs) (first Vs))]
             [(>=) (p∋V σ φ '<= (second Vs) (first Vs))]
             [(= equal? eq? char=? string=?)
@@ -439,6 +441,7 @@
       [(? -st-mut?) 2]
       [(? symbol? o) (prim-arity o)]
       [(-● _) #f]
+      [(? integer?) #f]
       [V
        #:when (not (or (-Clo? V) (-Case-Clo? V))) ; to convince TR
        (printf "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
