@@ -26,7 +26,20 @@
     (case (apply p∋V^ σ φ o Vs)
       [(✓) {set -tt}]
       [(✗) {set -ff}]
-      [(?) {set #|TODO sym|# (-● {set 'boolean?})}]))
+      [(?)
+       (cond
+         [(andmap (λ ([V^ : -V^]) (for/and : Boolean ([V (in-set V^)]) (-t? V))) Vs)
+          (define args : (℘ (Listof -t))
+            (let go ([Vs : (Listof -V^) Vs])
+              (match Vs
+                ['() {set '()}]
+                [(cons V Vs)
+                 (define rst (go Vs))
+                 (for*/set: : (℘ (Listof -t)) ([t₁ (in-set V)] [tᵣ (in-set rst)])
+                   (cons (assert t₁ -t?) tᵣ))])))
+          (for/set: : -V^ ([arg (in-set args)])
+            (-t.@ o arg))]
+         [{set (-● {set 'boolean?})}])]))
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦f⟧)
     (λ (o)

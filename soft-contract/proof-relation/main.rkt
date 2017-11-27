@@ -85,8 +85,12 @@
     (match-define (-φ Γ δσ) φ)
     (cond
       [(andmap -t? Vs)
-       (define Γ* (hash-update Γ Vs (λ ([ps : (℘ -h)]) (set-add ps h)) mk-∅))
-       (-φ Γ* δσ)]
+       (match* (h Vs)
+         [('values (list (-t.@ p xs))) ( φ+pV φ p xs)]
+         [('not    (list (-t.@ p xs))) (φ+¬pV φ p xs)]
+         [(_ _)
+          (define Γ* (hash-update Γ Vs (λ ([ps : (℘ -h)]) (set-add ps h)) mk-∅))
+          (-φ Γ* δσ)])]
       [else φ]))
 
   (: φ+¬pV : -φ -h (Listof -V) → -φ)
@@ -94,16 +98,15 @@
     (match-define (-φ Γ δσ) φ)
     (cond
       [(andmap -t? Vs)
-       (define h*
-         (match h
-           [(-</c r) (-≥/c r)]
-           [(-≤/c r) (->/c r)]
-           [(->/c r) (-≤/c r)]
-           [(-≥/c r) (-</c r)]
-           [(-not/c p) p]
-           [(or (? -o?) (? -b?)) (-not/c h)]))
-       (define Γ* (hash-update Γ Vs (λ ([ps : (℘ -h)]) (set-add ps h*)) mk-∅))
-       (-φ Γ* δσ)]
+       (match* (h Vs)
+         [('values (list (-t.@ p xs))) (φ+¬pV φ p xs)]
+         [('not    (list (-t.@ p xs))) ( φ+pV φ p xs)]
+         [((-</c r) Vs) (φ+pV φ (-≥/c r) Vs)]
+         [((-≤/c r) Vs) (φ+pV φ (->/c r) Vs)]
+         [((->/c r) Vs) (φ+pV φ (-≤/c r) Vs)]
+         [((-≥/c r) Vs) (φ+pV φ (-</c r) Vs)]
+         [((-not/c p) Vs) (φ+pV φ p Vs)]
+         [((or (? -o?) (? -b?)) Vs) (φ+pV φ (-not/c h) Vs)])]
       [else φ]))
 
   (: should-call-smt? : -Γ -h (Listof -V) → Boolean)

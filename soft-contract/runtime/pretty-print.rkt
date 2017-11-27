@@ -31,7 +31,6 @@
       [(? -t?) (show-t h)]
       [(? -o?) (show-o h)]
       [(? -αₖ?) (show-αₖ h)]
-      [(? -V? V) (show-V V)]
       [(-≥/c b) `(≥/c ,(show-b b))]
       [(-≤/c b) `(≤/c ,(show-b b))]
       [(->/c b) `(>/c ,(show-b b))]
@@ -127,7 +126,8 @@
       [(-≥/c b) `(>=/c ,(show-b b))]
       [(-</c b) `(</c ,(show-b b))]
       [(-≤/c b) `(<=/c ,(show-b b))]
-      [(? -t? t) (show-t t)]))
+      [(? -t? t) (show-t t)]
+      [(? -h? h) (show-h h)]))
 
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
     (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)

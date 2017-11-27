@@ -49,7 +49,7 @@
 
     (match V
       ;; Ignore first-order and opaque value
-      [(or (-● _) (? -prim?)) (done)]
+      [(or (? integer?) (-● _) (? -prim?)) (done)]
 
       ;; Apply function with appropriate number of arguments
       [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
@@ -58,12 +58,12 @@
        (define do-hv
          (match-lambda
            [(? exact-nonnegative-integer? k)
-            (define args #|TODO|# (make-list k {set (-● ∅)}))
+            (define args (build-list k (λ _ {set (fresh-sym!)})))
             (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-ap k))))
             (app₁ ℓ V args H∅ φ Σ ⟦k⟧)]
            [(arity-at-least n)
-            (define args-init #|TODO|# (make-list n {set (-● ∅)}))
-            (define args-rest #|TODO|# {set (-● ∅)})
+            (define args-init (build-list n (λ _ {set (fresh-sym!)})))
+            (define args-rest {set (fresh-sym!)})
             (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'opq-app n 'vararg))))
             (app₁ ℓ 'apply (append args-init (list args-rest)) H∅ φ Σ ⟦k⟧)]))
        
