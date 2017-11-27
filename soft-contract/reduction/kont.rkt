@@ -584,7 +584,7 @@
                           [V (in-set V^)]
                           #:when (behavioral? σ (-φ-cache φ) V))
           V))
-      (if (null? behavioral-args)
+      (if (set-empty? behavioral-args)
           (⟦k⟧ A H φ Σ)
           (app (ℓ-with-id ℓ 'prim-havoc)
                {set (-Fn● 1 (cons o H))}
