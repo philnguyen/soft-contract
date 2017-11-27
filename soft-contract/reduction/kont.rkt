@@ -435,10 +435,12 @@
   (define-frame (mon-or/c∷ [ctx : -ctx] [Cₗ : -V^] [Cᵣ : -V^] [V : -V^] [⟦k⟧ : -⟦k⟧])
   (make-frame (⟦k⟧ A H φ Σ) #:roots (Cₗ Cᵣ V)
     (match A
-      [(list (-b #f))
+      [(list _)
        (push-mon ctx Cᵣ V H φ Σ ⟦k⟧)]
-      [(list (-b #t) V)
-       (⟦k⟧ (list (V+ (-Σ-σ Σ) φ V Cₗ)) H φ Σ)])))
+      [(list _ V)
+       (define Vₐ (for/union : -V^ ([C (in-set Cₗ)])
+                     (V+ (-Σ-σ Σ) φ V C)))
+       (⟦k⟧ (list Vₐ) H φ Σ)])))
 
   (define-frame (if.flat/c∷ [V* : -V^] [blm : -blm] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (V*)
@@ -464,9 +466,11 @@
                            [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (C₁ C₂)
       (match A
-        [(list (-b #f)) (⟦k⟧ (list {set -ff}) H φ Σ)]
-        [(list (-b #t) V)
-         (push-fc l ℓ C₂ (V+ (-Σ-σ Σ) V C₁) H φ Σ ⟦k⟧)])))
+        [(list _) (⟦k⟧ (list {set -ff}) H φ Σ)]
+        [(list _ V)
+         (define Vₐ (for/union : -V^ ([C (in-set C₁)])
+                       (V+ (-Σ-σ Σ) φ V C)))
+         (push-fc l ℓ C₂ Vₐ H φ Σ ⟦k⟧)])))
 
   (define-frame (fc-or/c∷ [l : -l]
                           [ℓ : ℓ]
@@ -476,17 +480,18 @@
                           [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (C₁ C₂)
       (match A
-        [(list (-b #f))
+        [(list _)
          (push-fc l ℓ C₂ V H φ Σ ⟦k⟧)]
-        [(list (-b #t) V)
-         (⟦k⟧ (list {set -tt} {set (V+ Σ (-φ-cache φ) V C₁)}) H φ Σ)])))
+        [(list _ V)
+         (define Vₐ (for/union : -V^ ([C (in-set C₁)]) (V+ (-Σ-σ Σ) φ V C)))
+         (⟦k⟧ (list {set -tt} Vₐ) H φ Σ)])))
 
   (define-frame (fc-not/c∷ [V^ : -V^] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (V^)
       (match A
-        [(list (-b #f))
+        [(list _)
          (⟦k⟧ (list {set -tt} V^) H φ Σ)]
-        [(list (-b #t) _)
+        [(list _ _)
          (⟦k⟧ (list {set -ff}) H φ Σ)])))
 
   (define-frame (fc-struct/c∷ [l : -l]
@@ -498,15 +503,15 @@
                               [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (Vs-rev ρ)
       (match A
-        [(list (-b #f))
+        [(list _)
          (⟦k⟧ (list {set -ff}) H φ Σ)]
-        [(list (-b #t) V*)
+        [(list _ V*)
          (match ⟦e⟧s
            ['()
             (define ⟦k⟧*
               (let ([k (-st-mk 𝒾)])
-                (ap∷ (append Vs-rev (list k)) '() ⊥ρ ℓ
-                     (ap∷ (list -tt 'values) '() ⊥ρ ℓ ⟦k⟧))))
+                (ap∷ (append Vs-rev (list {set k})) '() ⊥ρ ℓ
+                     (ap∷ (list {set -tt} {set 'values}) '() ⊥ρ ℓ ⟦k⟧))))
             (⟦k⟧* (list V*) H φ Σ)]
            [(cons ⟦e⟧ ⟦e⟧s*)
             (⟦e⟧ ρ H φ Σ (fc-struct/c∷ l ℓ 𝒾 (cons V* Vs-rev) ⟦e⟧s* ρ ⟦k⟧))])])))
