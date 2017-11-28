@@ -146,11 +146,16 @@
         [else #f]))
 
     (match Vs
-      [(list (-● ps)) (ps⇒p ps p)]
       [(list (-t.@ o xs)) #:when (equal? p 'values) (apply p∋V σ φ o xs)]
       [(list (-t.@ o xs)) #:when (equal? p 'not) (not-R (apply p∋V σ φ o xs))]
-      [_ #:when (and (andmap -t? Vs) (not (andmap -b? Vs)))
-         (ps⇒p (hash-ref (-φ-condition φ) Vs mk-∅) p)]
+      [(list (-● ps)) (ps⇒p ps p)]
+      [(and (list (-t.@ k _))
+            (app (match-lambda [(list (-t.@ k _)) (p∋k p k)])
+                 (and R (or '✓ '✗))))
+       R]
+      [(and (list (? -t?) ...)
+            (not (list (? -b?) ...)))
+       (ps⇒p (hash-ref (-φ-condition φ) Vs mk-∅) p)]
       [_
        (match p
          [(? -st-mk?) '✓]
@@ -325,6 +330,15 @@
          [(-≤/c b) (p∋V σ φ '<= (car Vs) (-b b))]
          [(-b   b) (p∋V σ φ 'equal? (-b b) (car Vs))]
          [_ '?])]))
+
+  (: p∋k : -h -h → -R)
+  (define (p∋k p k)
+    (match k
+      [(? symbol? o) (p⇒p (get-conservative-range k) p)]
+      [(-st-mk 𝒾) (p⇒p (-st-p 𝒾) p)]
+      [(? -st-ac?) '?]
+      [(? -st-mut?) (p⇒p 'void? p)]
+      [_ (p⇒p 'boolean? p)]))
 
   (define p∋V^ (lift-p∋V p∋V))
 
