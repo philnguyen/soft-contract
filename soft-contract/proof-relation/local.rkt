@@ -147,6 +147,8 @@
 
     (match Vs
       [(list (-● ps)) (ps⇒p ps p)]
+      [(list (-t.@ o xs)) #:when (equal? p 'values) (apply p∋V σ φ o xs)]
+      [(list (-t.@ o xs)) #:when (equal? p 'not) (not-R (apply p∋V σ φ o xs))]
       [_ #:when (and (andmap -t? Vs) (not (andmap -b? Vs)))
          (ps⇒p (hash-ref (-φ-condition φ) Vs mk-∅) p)]
       [_
@@ -205,6 +207,10 @@
                                  [byte-regexp?]
                                  [byte-pregexp?])
             ;; Insert manual rules here
+            [(values)
+             (match Vs
+               [(list (-b b)) (if b '✓ '✗)]
+               [_ '✓])]
             [(procedure?) (check-one-of -o? -Fn? -Ar? -Not/C? -One-Of/C?
                                         (λ (V) (match? V (-And/C #t _ _) (-Or/C #t _ _) (-St/C #t _ _))))]
             [(vector?) (check-one-of -Vector? -Vector^? -Vector/guard?)]
