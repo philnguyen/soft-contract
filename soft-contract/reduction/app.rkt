@@ -327,34 +327,38 @@
     (: ⟦ac⟧ : -⟦f⟧)
     (define (⟦ac⟧ ℓ Vₓs H φ Σ ⟦k⟧)
       (match Vₓs
-        [(list Vₓ)
+        [(list Vₓ^) 
          (define l (ℓ-src ℓ))
          (define (blm) (blm/simp l (show-o ac) (list p) Vₓs ℓ))
-         (match Vₓ
-           [(-St 𝒾* αs)
-            #:when (𝒾* . substruct? . 𝒾)
-            (⟦k⟧ (list (σ@ Σ (-φ-cache φ) (list-ref αs i))) H φ Σ)]
-           [(-St* (-St/C _ 𝒾* αℓs) α ctx)
-            #:when (𝒾* . substruct? . 𝒾)
-            (define V^  (σ@ Σ (-φ-cache φ) α))
-            (cond
-              ;; mutable field should be wrapped
-              [(struct-mutable? 𝒾 i)
-               (match-define (-⟪α⟫ℓ αᵢ ℓᵢ) (list-ref αℓs i))
-               (define Cᵢ^ (σ@ Σ (-φ-cache φ) αᵢ))
-               (⟦ac⟧ ℓ (list V^) H φ Σ (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) Cᵢ^ ⟦k⟧))]
-              ;; no need to check immutable field
-              [else
-               ;; TODO: could this loop forever due to cycle?
-               (⟦ac⟧ ℓ (list V^) H φ Σ ⟦k⟧)])]
-           [(-● ps)
-            (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₓ})]) : -ς
-              #:true (⟦k⟧ (list (-● (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
-                                        {set 'list?}
-                                        ∅))) 
-                          H φ₁ Σ)
-              #:false (⟦k⟧ (blm) H φ₂ Σ))]
-           [_ (⟦k⟧ (blm) H φ Σ)])]
+         (for/union : (℘ -ς) ([Vₓ (in-set Vₓ^)])
+           (match Vₓ
+             [(-St 𝒾* αs)
+              #:when (𝒾* . substruct? . 𝒾)
+              (⟦k⟧ (list (σ@ Σ (-φ-cache φ) (list-ref αs i))) H φ Σ)]
+             [(-St* (-St/C _ 𝒾* αℓs) α ctx)
+              #:when (𝒾* . substruct? . 𝒾)
+              (define V^  (σ@ Σ (-φ-cache φ) α))
+              (cond
+                ;; mutable field should be wrapped
+                [(struct-mutable? 𝒾 i)
+                 (match-define (-⟪α⟫ℓ αᵢ ℓᵢ) (list-ref αℓs i))
+                 (define Cᵢ^ (σ@ Σ (-φ-cache φ) αᵢ))
+                 (⟦ac⟧ ℓ (list V^) H φ Σ (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) Cᵢ^ ⟦k⟧))]
+                ;; no need to check immutable field
+                [else
+                 ;; TODO: could this loop forever due to cycle?
+                 (⟦ac⟧ ℓ (list V^) H φ Σ ⟦k⟧)])]
+             [(or (-● ps)
+                  (and (? -t?)
+                       (app (λ ([t : -t]) (hash-ref (-φ-condition φ) (list t) mk-∅)) ps)))
+              #:when ps
+              (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₓ})]) : -ς
+                #:true (let ([psₐ (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
+                                      {set 'list?}
+                                      ∅)])
+                         (⟦k⟧ (list {set (-● psₐ)}) H φ₁ Σ)) 
+                #:false (⟦k⟧ (blm) H φ₂ Σ))]
+             [_ (⟦k⟧ (blm) H φ Σ)]))]
         [_
          (define blm (blm-arity ℓ (show-o ac) 1 Vₓs))
          (⟦k⟧ blm H φ Σ)]))
@@ -368,29 +372,29 @@
     (: ⟦mut⟧ : -⟦f⟧)
     (define (⟦mut⟧ ℓ Vₓs H φ Σ ⟦k⟧)
       (match Vₓs
-        [(list Vₛ Vᵥ)
+        [(list Vₛ^ Vᵥ^)
          (define l (ℓ-src ℓ))
-         (define (blm) (blm/simp l (show-o mut) (list p) (list Vₛ) ℓ))
-         
-         (match Vₛ
-           [(-St 𝒾* αs)
-            #:when (𝒾* . substruct? . 𝒾)
-            (define φ* (mut! Σ φ (list-ref αs i) Vᵥ))
-            (⟦k⟧ (list {set -void}) H φ* Σ)]
-           [(-St* (-St/C _ 𝒾* γℓs) α ctx)
-            #:when (𝒾* . substruct? . 𝒾)
-            (define ctx* (ctx-neg ctx))
-            (match-define (-⟪α⟫ℓ γᵢ ℓᵢ) (list-ref γℓs i))
-            (define Vₛ* (σ@ Σ (-φ-cache φ) α))
-            (define ⟦k⟧* (ap∷ (list Vₛ* {set mut}) '() ⊥ρ ℓ ⟦k⟧))
-            (define Cᵢ^ (σ@ Σ (-φ-cache φ) γᵢ))
-            (push-mon (ctx-with-ℓ ctx* ℓᵢ) Cᵢ^ H φ Σ ⟦k⟧*)]
-           [(-● _)
-            (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₛ})]) : -ς
-              #:true  (let ([φ* (add-leak! '† Σ Vᵥ)])
-                        (⟦k⟧ (list {set -void}) H φ₁ Σ))
-              #:false (⟦k⟧ (blm) H φ₂ Σ))]
-           [_ (⟦k⟧ (blm) H φ Σ)])]
+         (define (blm) (blm/simp l (show-o mut) (list p) (list Vₛ^) ℓ))
+         (for/union : (℘ -ς) ([Vₛ (in-set Vₛ^)])
+           (match Vₛ
+             [(-St 𝒾* αs)
+              #:when (𝒾* . substruct? . 𝒾)
+              (define φ* (mut! Σ φ (list-ref αs i) Vᵥ^))
+              (⟦k⟧ (list {set -void}) H φ* Σ)]
+             [(-St* (-St/C _ 𝒾* γℓs) α ctx)
+              #:when (𝒾* . substruct? . 𝒾)
+              (define ctx* (ctx-neg ctx))
+              (match-define (-⟪α⟫ℓ γᵢ ℓᵢ) (list-ref γℓs i))
+              (define Vₛ* (σ@ Σ (-φ-cache φ) α))
+              (define ⟦k⟧* (ap∷ (list Vₛ* {set mut}) '() ⊥ρ ℓ ⟦k⟧))
+              (define Cᵢ^ (σ@ Σ (-φ-cache φ) γᵢ))
+              (push-mon (ctx-with-ℓ ctx* ℓᵢ) Cᵢ^ Vᵥ^ H φ Σ ⟦k⟧*)]
+             [(or (? integer?) (? -●?))
+              (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₛ})]) : -ς
+                #:true  (let ([φ* (add-leak! '† Σ φ₁ Vᵥ^)])
+                          (⟦k⟧ (list {set -void}) H φ* Σ))
+                #:false (⟦k⟧ (blm) H φ₂ Σ))]
+             [_ (⟦k⟧ (blm) H φ Σ)]))]
         [_
          (define blm (blm-arity ℓ (show-o mut) 2 Vₓs))
          (⟦k⟧ blm H φ Σ)]))
