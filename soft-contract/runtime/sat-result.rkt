@@ -3,6 +3,7 @@
 (provide sat-result@)
 
 (require typed/racket/unit
+         racket/sequence
          racket/match
          racket/bool
          racket/set
@@ -25,7 +26,8 @@
 
   (: R⊔* (∀ (X) (X → -R) (Sequenceof X) → -R))
   (define (R⊔* f xs)
-    (for/fold ([R : -R '✓]) ([x xs] #:break (eq? R '?))
+    (for/fold ([R : -R (f (sequence-ref xs 0))])
+              ([x (sequence-tail xs 0)] #:break (eq? R '?))
       (⊔ R (f x))))
 
   (: not-R : -R → -R)

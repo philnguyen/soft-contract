@@ -148,6 +148,17 @@
     (match Vs
       [(list (-t.@ o xs)) #:when (equal? p 'values) (apply p∋V σ φ o xs)]
       [(list (-t.@ o xs)) #:when (equal? p 'not) (not-R (apply p∋V σ φ o xs))]
+      [(or (list (? -t? t) (-b (? boolean? b)))
+           (list (-b (? boolean? b)) (? -t? t)))
+       #:when (and (equal? p 'equal?) t)
+       (case (p∋V σ φ 'boolean? t)
+         [(✓) (p∋V σ φ (if b 'values 'not) t)]
+         [(✗) '✗]
+         [(?) '?])]
+      [(list (? -t? t) (? -t? t))
+       #:when (equal? p 'equal?)
+       '✓]
+      
       [(list (-● ps)) (ps⇒p ps p)]
       [(and (list (-t.@ k _))
             (app (match-lambda [(list (-t.@ k _)) (p∋k p k)])
@@ -318,7 +329,7 @@
                [(list (-b b₁) (-b b₂)) (boolean->R (equal? b₁ b₂))]
                [(list (-● ps) (? -b? b)) (ps⇒p ps b)]
                [(list (? -b? b) (-● ps)) (ps⇒p ps b)]
-               [(list (? symbol? o₁) (? symbol? o₂)) (boolean->R (equal? o₁ o₂))]
+               [(list (? -o? o₁) (? -o? o₂)) (boolean->R (equal? o₁ o₂))] 
                [_ '?])]
             [(list?) (check-proper-list σ φ (car Vs))]
             [(port? input-port? output-port?) '✗]
