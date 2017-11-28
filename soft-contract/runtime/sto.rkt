@@ -42,11 +42,11 @@
   (define (mut! Σ φ α V)
     (define σ (-Σ-σ Σ))
     (define δσ (-φ-cache φ))
-    (define (φ*) (-φ (-φ-condition φ) (hash-set δσ α V)))
     (case (cardinality σ δσ α)
-      [(0 1) (φ*)]
-      [(N) (set--Σ-σ! Σ (hash-update σ α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅))
-           (φ*)]))
+      [(0 1) (-φ (-φ-condition φ) (hash-set δσ α V))]
+      [(N) (define (upd [m : -σ]) (hash-update m α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅))
+           (set--Σ-σ! Σ (upd σ))
+           (-φ (-φ-condition φ) (upd δσ))]))
 
   (: mut*! : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
   (define (mut*! Σ φ αs Vs)
@@ -202,8 +202,12 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define-type Cardinality (U 0 1 'N))
   (: cardinality : -σ -δσ ⟪α⟫ → Cardinality)
-  (define (cardinality σ δσ α)
-    (if (hash-has-key? σ α)
-        (if (-𝒾? α) 1 'N)
-        (if (hash-has-key? δσ α) 1 0)))
+  (define (cardinality σ δσ ⟪α⟫)
+    (define α (⟪α⟫->-α ⟪α⟫))
+    (cond
+      [(-𝒾? α) 1]
+      [(-α.hv? α) 'N]
+      [(hash-has-key? σ ⟪α⟫) 'N]
+      [(hash-has-key? δσ ⟪α⟫) 1]
+      [else 0]))
   )
