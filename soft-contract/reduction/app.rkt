@@ -143,7 +143,9 @@
        (: chk-arity : -φ → (℘ -ς))
        (define (chk-arity φ)
          (define num-args (length Vₓs))
-         (define Vₕ-arity (cond [(V-arity Vₕ) => -b] [else (-● ∅)]))
+         (define Vₕ-arity (cond [(V-arity Vₕ) => -b]
+                                [(-t? Vₕ) (-t.@ 'procedure-arity (list Vₕ))]
+                                [else (-● ∅)]))
          (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'arity-includes? {set Vₕ-arity} {set (-b num-args)})])
            : -ς
            #:true  ((app-opq Vₕ) ℓ Vₓs H φ₁ Σ ⟦k⟧)
@@ -353,10 +355,14 @@
                        (app (λ ([t : -t]) (hash-ref (-φ-condition φ) (list t) mk-∅)) ps)))
               #:when ps
               (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₓ})]) : -ς
-                #:true (let ([psₐ (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
-                                      {set 'list?}
-                                      ∅)])
-                         (⟦k⟧ (list {set (-● psₐ)}) H φ₁ Σ)) 
+                #:true (let ([Vₐ
+                              (if (-t? Vₓ)
+                                  (-t.@ ac (list Vₓ))
+                                  (let ([psₐ (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
+                                                 {set 'list?}
+                                                 ∅)])
+                                    (-● psₐ)))])
+                         (⟦k⟧ (list {set Vₐ}) H φ₁ Σ)) 
                 #:false (⟦k⟧ (blm) H φ₂ Σ))]
              [_ (⟦k⟧ (blm) H φ Σ)]))]
         [_
