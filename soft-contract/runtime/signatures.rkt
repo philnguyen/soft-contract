@@ -9,6 +9,7 @@
          bnf
          intern
          set-extras
+         "../utils/bijection.rkt"
          "../ast/signatures.rkt"
          )
 
@@ -352,6 +353,9 @@
    [predicates-of-V : (-V → (℘ -h))]
    [estimate-list-lengths : (-σ -δσ -V → (℘ (U #f Arity)))]
    ))
+
+(define-signature unify^
+  ([unify : (-σ -δσ -V -V → (Option Bij))]))
 
 (define-signature instr^
   ([H∅ : -H]

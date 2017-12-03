@@ -8,7 +8,8 @@
          "contracts.rkt"
          "syntax.rkt"
          "match-for.rkt"
-         "patterns.rkt")
+         "patterns.rkt"
+         "bijection.rkt")
 (provide
  (all-from-out "debug.rkt" "def.rkt" "eval.rkt" "function.rkt" "list.rkt"
                "map.rkt" "pretty.rkt"
@@ -19,4 +20,5 @@
                "contracts.rkt"
                "syntax.rkt"
                "match-for.rkt"
-               "patterns.rkt"))
+               "patterns.rkt"
+               "bijection.rkt"))

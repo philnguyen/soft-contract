@@ -9,6 +9,7 @@
                "pretty-print.rkt"
                "summ.rkt"
                "sat-result.rkt"
+               "unify.rkt"
                "signatures.rkt"))
 (require "env.rkt"
          "sto.rkt"
@@ -19,4 +20,5 @@
          "pretty-print.rkt"
          "summ.rkt"
          "sat-result.rkt"
+         "unify.rkt"
          "signatures.rkt")
