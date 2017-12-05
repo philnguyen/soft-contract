@@ -355,7 +355,8 @@
    ))
 
 (define-signature unify^
-  ([unify : (-σ -δσ -V -V → (Option Bij))]))
+  ([unify : (-σ -δσ -V -V → (Option Bij))]
+   [rename-V : ((HashTable Integer Integer) -V → -V)]))
 
 (define-signature instr^
   ([H∅ : -H]

@@ -143,4 +143,10 @@
     (define go-αℓs : (Bij (Listof -⟪α⟫ℓ) (Listof -⟪α⟫ℓ) → (Option Bij)) (lift go-αℓ))
     
     (go-V Bij-empty V₁ V₂))
+
+  (: rename-V : (HashTable Integer Integer) -V → -V)
+  (define (rename-V m V)
+    (match V
+      [(? integer? s) (hash-ref m s (λ () s))]
+      [V V]))
   )
