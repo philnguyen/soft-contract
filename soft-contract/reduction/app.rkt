@@ -26,11 +26,11 @@
   (define (app ℓ Vₕ^ Vₓ^s H φ Σ ⟦k⟧)
     (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
       (define-values (H* looped?) (H+ H (-edge (strip-fn Vₕ) ℓ)))
+      (define ⟦k⟧* (restore-ctx∷ H ⟦k⟧))
       (if looped?
-          (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s ℓ) φ)]
-                [⟦k⟧* (restore-ctx∷ H ⟦k⟧)])
+          (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s ℓ) φ)])
             {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))})
-          (app₁ ℓ Vₕ Vₓ^s H φ Σ ⟦k⟧))))
+          (app₁ ℓ Vₕ Vₓ^s H* φ Σ ⟦k⟧*))))
 
   (: app₁ : ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧)
@@ -94,7 +94,7 @@
       ['make-sequence (app-make-sequence ℓ Vₓs H φ Σ ⟦k⟧)]
 
       ;; Regular stuff
-      [(? symbol? o) ((app-prim o) ℓ Vₓs H φ Σ ⟦k⟧)]
+      [(? symbol? o) ((get-prim o) ℓ Vₓs H φ Σ ⟦k⟧)]
       [(-Clo xs ⟦e⟧ ρ)
        (with-guarded-arity (shape xs)
          ((app-clo xs ⟦e⟧ ρ) ℓ Vₓs H φ Σ ⟦k⟧))]
@@ -160,9 +160,8 @@
 
   (: app-clo : -formals -⟦e⟧ -ρ → -⟦f⟧)
   (define ((app-clo xs ⟦e⟧ ρ) ℓ Vₓs H φ Σ ⟦k⟧)
-    (define-values (Hₑₑ looped?) (H+ H (-edge (cons ⟦e⟧ (⌊ρ⌋ ρ)) ℓ)))
     (define-values (ρ* φ*) (bind-args Σ ρ ℓ H φ xs Vₓs))
-    (⟦e⟧ ρ* Hₑₑ φ* Σ (restore-ctx∷ H ⟦k⟧)))
+    (⟦e⟧ ρ* H φ* Σ ⟦k⟧))
 
   (: app-Case-Clo : -Case-Clo → -⟦f⟧)
   (define ((app-Case-Clo cases) ℓ Vₓs H φ Σ ⟦k⟧)
@@ -231,17 +230,16 @@
 
   (: app-∀/C : -∀/C -V^ -ctx → -⟦f⟧)
   (define ((app-∀/C C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)
-    (match-define (-∀/C xs ⟦c⟧ ρ) C)
-    (define-values (Hₑₑ looped?) (H+ H (-edge (cons ⟦c⟧ (⌊ρ⌋ ρ)) ℓₐ)))
     (define l-seal (-ctx-neg ctx))
-    (define-values (ρ* φ*) ; with side-effect widening store
+    (match-define (-∀/C xs ⟦c⟧ ρ) C)
+    (define-values (ρ* φ*)
       (for/fold ([ρ : -ρ ρ] [φ : -φ φ]) ([x (in-list xs)])
-        (define αₛ (-α->⟪α⟫ (-α.imm (-Seal/C x Hₑₑ l-seal))))
-        (define αᵥ (-α->⟪α⟫ (-α.sealed x Hₑₑ)))
+        (define αₛ (-α->⟪α⟫ (-α.imm (-Seal/C x H l-seal))))
+        (define αᵥ (-α->⟪α⟫ (-α.sealed x H)))
         (values (ρ+ ρ x αₛ) (alloc Σ φ αᵥ ∅))))
     (define ⟦arg⟧s : (Listof -⟦e⟧) (for/list ([Vₓ (in-list Vₓs)]) (mk-A (list Vₓ))))
-    (define ⟦k⟧* (restore-ctx∷ H (mon.v∷ ctx Vᵤ^ (ap∷ '() ⟦arg⟧s ⊥ρ ℓₐ ⟦k⟧))))
-    (⟦c⟧ ρ* Hₑₑ φ* Σ ⟦k⟧*))
+    (define ⟦k⟧* (mon.v∷ ctx Vᵤ^ (ap∷ '() ⟦arg⟧s ⊥ρ ℓₐ ⟦k⟧)))
+    (⟦c⟧ ρ* H φ* Σ ⟦k⟧*))
 
   (: apply-app-Ar : (-=> -V^ -ctx → ℓ (Listof -V^) -V -H -φ -Σ -⟦k⟧ → (℘ -ς)))
   (define ((apply-app-Ar C Vᵤ^ ctx) ℓ₀ Vᵢs Vᵣ H φ Σ ⟦k⟧)
@@ -427,13 +425,6 @@
       (define ⟦k⟧* (bgn0.e∷ (list {set (-● ∅)}) '() ⊥ρ ⟦k⟧))
       {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))}))
 
-  (: app-prim : Symbol → -⟦f⟧)
-  (define ((app-prim o) ℓ Vs H φ Σ ⟦k⟧)
-    (define ⟦f⟧ (get-prim o))
-    (define-values (H* looped?) (H+ H (-edge o ℓ)))
-    (define ⟦k⟧* (restore-ctx∷ H ⟦k⟧))
-    (⟦f⟧ ℓ Vs H* φ Σ ⟦k⟧*))
-
   (: app/rest/unsafe : ℓ -V (Listof -V^) -V -H -φ -Σ -⟦k⟧ → (℘ -ς))
   ;; Apply function with (in general, part of) rest arguments already allocated,
   ;; assuming that init/rest args are already checked to be compatible.
@@ -445,7 +436,7 @@
         (match a
           [(? exact-nonnegative-integer? n) (+ num-inits n)]
           [(arity-at-least n) (arity-at-least (+ num-inits n))])))
-
+    
     (: app-prim/rest : -o → (℘ -ς))
     (define (app-prim/rest o)
       (define V-rests (unalloc σ (-φ-cache φ) V-rest))
@@ -468,15 +459,14 @@
         [(-var zs z)
          (define n (length zs))
          (define num-remaining-inits (- n num-inits))
-         (define-values (Hₑₑ looped?) (H+ H (-edge (cons ⟦e⟧ (⌊ρ⌋ ρ)) ℓ)))
 
          (: app/adjusted-args : -φ (Listof -V^) -V → (℘ -ς))
          (define (app/adjusted-args φ V-inits V-rest)
-           (define-values (ρ₁ φ₁) (bind-args Σ ρ ℓ Hₑₑ φ zs V-inits))
-           (define αᵣ (-α->⟪α⟫ (-α.x z Hₑₑ)))
+           (define-values (ρ₁ φ₁) (bind-args Σ ρ ℓ H φ zs V-inits))
+           (define αᵣ (-α->⟪α⟫ (-α.x z H)))
            (define ρ₂ (ρ+ ρ₁ z αᵣ))
            (define φ₂ (alloc Σ φ₁ αᵣ {set V-rest}))
-           (⟦e⟧ ρ₂ Hₑₑ φ₂ Σ (restore-ctx∷ H ⟦k⟧)))
+           (⟦e⟧ ρ₂ H φ₂ Σ ⟦k⟧))
          
          (cond
            ;; Need to retrieve some more arguments from `V-rest` as part of inits
@@ -489,7 +479,7 @@
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (V-inits* V-inits.rest) (split-at V-inits n))
-            (define-values (V-rest* φ*) (alloc-rest-args Σ ℓ Hₑₑ φ V-inits.rest #:end V-rest))
+            (define-values (V-rest* φ*) (alloc-rest-args Σ ℓ H φ V-inits.rest #:end V-rest))
             (app/adjusted-args φ* V-inits* V-rest*)])]))
 
     (: app-Ar/rest : -=>_ ⟪α⟫ -ctx → (℘ -ς))
@@ -510,9 +500,8 @@
            ;; Need to allocate some init arguments as part of rest-args
            [else
             (define-values (V-inits* V-inits.rest) (split-at V-inits n))
-            (define-values (Hₑₑ looped?) (H+ H (-edge #|HACK|# (cons (mk-V C) (⌊ρ⌋ ⊥ρ)) ℓ)))
-            (define-values (Vᵣ* φ*) (alloc-rest-args Σ ℓ Hₑₑ φ V-inits.rest #:end V-rest))
-            ((apply-app-Ar C Vᵤ^ ctx) ℓ V-inits* Vᵣ* Hₑₑ φ Σ ⟦k⟧)])]
+            (define-values (Vᵣ* φ*) (alloc-rest-args Σ ℓ H φ V-inits.rest #:end V-rest))
+            ((apply-app-Ar C Vᵤ^ ctx) ℓ V-inits* Vᵣ* H φ Σ ⟦k⟧)])]
         [(-=> (? list? αℓₓs) _)
          (define n (length αℓₓs))
          (define num-remaining-args (- n num-inits))
@@ -526,20 +515,15 @@
            [else
             (error 'app/rest "expect ~a arguments, given ~a: ~a" n num-inits V-inits)])]
         [(-∀/C xs ⟦c⟧ ρ)
-         (define-values (Hₑₑ looped?) (H+ H (-edge (cons ⟦c⟧ (⌊ρ⌋ ρ)) ℓ)))
          (define l-seal (-ctx-neg ctx))
          (define-values (ρ* φ*)
-           (for/fold ([ρ : -ρ ρ] [φ : -φ φ])
-                     ([x (in-list xs)])
-             (define αₛ (-α->⟪α⟫ (-α.imm (-Seal/C x Hₑₑ l-seal))))
-             (define αᵥ (-α->⟪α⟫ (-α.sealed x Hₑₑ)))
+           (for/fold ([ρ : -ρ ρ] [φ : -φ φ]) ([x (in-list xs)])
+             (define αₛ (-α->⟪α⟫ (-α.imm (-Seal/C x H l-seal))))
+             (define αᵥ (-α->⟪α⟫ (-α.sealed x H)))
              (values (ρ+ ρ x αₛ) (alloc Σ φ αᵥ ∅))))
          (define ⟦init⟧s : (Listof -⟦e⟧) (for/list ([V^ (in-list V-inits)]) (mk-A (list V^))))
-         (define ⟦k⟧*
-           (restore-ctx∷ H
-             (mon.v∷ ctx Vᵤ^
-               (ap∷ (list {set 'apply}) `(,@⟦init⟧s ,(mk-V V-rest)) ⊥ρ ℓ ⟦k⟧))))
-         (⟦c⟧ ρ* Hₑₑ φ* Σ ⟦k⟧*)]
+         (define ⟦k⟧* (mon.v∷ ctx Vᵤ^ (ap∷ (list {set 'apply}) `(,@⟦init⟧s ,(mk-V V-rest)) ⊥ρ ℓ ⟦k⟧)))
+         (⟦c⟧ ρ* H φ* Σ ⟦k⟧*)]
         [(-Case-> cases)
          (cond
            [(and (= 1 (set-count arg-counts)) (integer? (set-first arg-counts)))
