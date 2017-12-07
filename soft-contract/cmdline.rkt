@@ -17,12 +17,28 @@
 (define mode : Mode 'havoc)
 
 (define (print-result [ans : (℘ -A)])
-  (define safe? : Boolean #t)
-  (for ([A ans] #:when (-blm? A))
-    (set! safe? #f)
-    (pretty-write (show-a A)))
-  (when safe?
-    (printf "Safe~n")))
+  (define blames
+    (for/set: : (℘ -blm) ([A (in-set ans)] #:when (-blm? A))
+      A))
+  (match (set-count blames)
+    [0 (printf "Safe~n")]
+    [n
+     (printf "Found ~a possible contract violations~n" n)
+     (for ([blm (in-set blames)]
+           [i (in-naturals)])
+       (match-define (-blm l+ lo Cs Vs ℓ) blm)
+       (printf "(~a) Line ~a column ~a in ~a:~n" (+ 1 i) (ℓ-line ℓ) (ℓ-col ℓ) (ℓ-src ℓ))
+       (printf "    - Contract from: ~a~n" lo)
+       (printf "    - Expected: ~a~n"
+               (match Cs
+                 [(list C) (show-blm-reason C)]
+                 ['() "no value"]
+                 [_ (format "~a values: ~a" (length Cs) (map show-blm-reason Cs))]))
+       (printf "    - Given: ~a~n"
+               (match Vs
+                 [(list V) (show-V^ V)]
+                 ['() "(values)"]
+                 [_ (format "~a values: ~a" (length Vs) (map show-V^ Vs))])))]))
 
 (define fnames
   (cast
