@@ -18,5 +18,5 @@
   (export verifier^ parser^ prim-runtime^
           ast-pretty-print^ pretty-print^)
   (link ast-pretty-print@ static-info@ meta-functions@ ast-macros@
-        env@ sto@ val@ instr@ path@ pretty-print@ summ@ sat-result@
+        env@ sto@ val@ instr@ path@ pretty-print@ summ@ sat-result@ unify@
         prims@ proof-system@ reduction@ verifier@ parser@ for-gc@))

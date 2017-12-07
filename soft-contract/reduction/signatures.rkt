@@ -4,6 +4,7 @@
 
 (require typed/racket/unit
          set-extras
+         "../utils/bijection.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
@@ -21,7 +22,7 @@
    [mk-wrapped-set : (-Set/C -ctx ⟪α⟫ -V^ → -⟦e⟧)]))
 
 (define-signature kont^
-  [[rt : (-αₖ → -⟦k⟧)]
+  ([rt : (-αₖ → -⟦k⟧)]
    [ap∷ : ((Listof -V^) (Listof -⟦e⟧) -ρ ℓ -⟦k⟧ → -⟦k⟧)]
    [set!∷ : (⟪α⟫ -⟦k⟧ → -⟦k⟧)]
    [let∷ : (ℓ
@@ -77,9 +78,11 @@
    [make-prim-range∷ : (-ctx (Option (Listof -⟪α⟫ℓ)) (Listof -V^) (Listof (List (Listof -V) (Option -V) (Listof -V))) -⟦k⟧ → -⟦k⟧)]
    [implement-predicate∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [absurd∷ : (-⟦k⟧ → -⟦k⟧)]
+   [rename∷ : ((HashTable Integer Integer) -⟦k⟧ → -⟦k⟧)]
+   [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
    ;; Non-frame helpers
    [mk-=>i : (-Σ -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))]
-   ])
+   ))
 
 (define-signature app^
   ([app : (ℓ -V^ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))]

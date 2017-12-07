@@ -167,7 +167,7 @@
   )
 
 (define-compound-unit/infer reduction@
-  (import ast-pretty-print^ static-info^ meta-functions^ sat-result^
+  (import ast-pretty-print^ static-info^ meta-functions^ sat-result^ unify^
           prims^ proof-system^ local-prover^ widening^ verifier^
           for-gc^ val^ env^ sto^ path^ instr^ pretty-print^ prim-runtime^ summ^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)

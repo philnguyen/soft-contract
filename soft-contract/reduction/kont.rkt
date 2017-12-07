@@ -26,7 +26,7 @@
 (define-unit kont@
   (import compile^ app^ mon^ fc^ proof-system^ memoize^ for-gc^ verifier^ havoc^
           val^ env^ sto^ pretty-print^ instr^ prim-runtime^ static-info^ path^
-          sat-result^
+          sat-result^ unify^
           (prefix q: local-prover^))
   (export kont^)
 
@@ -615,6 +615,31 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
        ∅))
 
+  (define-frame (rename∷ [m : (HashTable Integer Integer)] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A H φ Σ) #:roots ()
+       (define Vs : (Listof -V^)
+         (for/list ([V^ (in-list A)])
+           (rename-V^ m V^)))
+       (⟦k⟧ Vs H φ Σ)))
+
+  (: σₖ+! : -Σ -αₖ -⟦k⟧ → -αₖ)
+  (define (σₖ+! Σ αₖ ⟦k⟧)
+    (define Ξ  (-Σ-Ξ Σ))
+    (define σₖ (-Σ-σₖ Σ))
+    (match-define (-αₖ H Bl φ) αₖ)
+    (define-values (Ξ* ⟦k⟧* αₖ*)
+      (match (recall Ξ αₖ)
+        [(cons αₖ₀ m)
+         (values Ξ (rename∷ (Bij-bw m) ⟦k⟧) αₖ₀)]
+        [#f
+         (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ ctxs)) (λ () '()))
+                 ⟦k⟧
+                 αₖ)]))
+    (define σₖ* (hash-update σₖ αₖ* (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧*)) mk-∅))
+    (set--Σ-σₖ! Σ σₖ*)
+    (set--Σ-Ξ!  Σ Ξ* )
+    αₖ*)
+  
   (: maybe-refine : (Listof -V^) -σ -φ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -V^) → (Listof -V^))
   (define (maybe-refine rng₀ σ φ cases args)
 
@@ -664,4 +689,22 @@
         (define αℓ (-⟪α⟫ℓ α (ℓ-with-id ℓ (cons tag i))))
         (values (cons αℓ αℓs-rev) (alloc Σ φ α V))))
     (values (reverse αℓs) φ*))
+
+  (: recall : -Ξ -αₖ → (Option (Pairof -αₖ Bij)))
+  (define (recall Ξ αₖ)
+    (match-define (-αₖ H Bl φ) αₖ)
+
+    (: search : (Listof -αₖ) → (Option (Pairof -αₖ Bij)))
+    (define (search ctxs)
+      (match ctxs
+        [(cons (and αₖ₀ (-αₖ (== H) Bl₀ φ₀)) ctxs*)
+         (match (unify-Bl Bl Bl₀)
+           [(? values m)
+            (if (φ⊑/m? m φ φ₀) (cons αₖ₀ m) (search ctxs*))]
+           [#f (search ctxs*)])]
+        ['() #f]))
+    
+    (cond
+      [(hash-ref Ξ H #f) => search]
+      [else #f]))
   )
