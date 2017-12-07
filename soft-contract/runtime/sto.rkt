@@ -188,7 +188,30 @@
 
   (: σₖ@ : (U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))
   (define (σₖ@ m αₖ)
-    (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅)) 
+    (hash-ref (if (-Σ? m) (-Σ-σₖ m) m) αₖ mk-∅))
+
+  (define ⊥σₐ : -σₐ (hasheq))
+
+  (: σₐ⊕! : -Σ -αₖ (Listof -V^) → (Listof -V^))
+  (define (σₐ⊕! Σ αₖ Vs)
+    (define σₐ (-Σ-σₐ Σ))
+    (define-values (σₐ* Vs*) (σₐ⊕ σₐ αₖ Vs))
+    (set--Σ-σₐ! Σ σₐ*)
+    Vs*)
+
+  (: σₐ⊕ : -σₐ -αₖ (Listof -V^) → (Values -σₐ (Listof -V^)))
+  (define (σₐ⊕ σₐ αₖ Vs)
+    (define n (length Vs))
+    (define As (hash-ref σₐ αₖ mk-∅))
+    (define ?Vs₀
+      (for/or : (Option (Listof -V^)) ([Vs₀ (in-set As)]
+                                       #:when (= n (length Vs₀)))
+        Vs₀))
+    (define Vs* (if ?Vs₀ (map V⊕ ?Vs₀ Vs) Vs))
+    (define σₐ* (hash-update σₐ αₖ
+                             (λ ([As : (℘ (Listof -V^))]) (set-add As Vs*))
+                             mk-∅))
+    (values σₐ* Vs*))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

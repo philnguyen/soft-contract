@@ -38,7 +38,7 @@
     (define seen : (HashTable -ς Ctx) (make-hash))
     (define ℓ₀ (loc->ℓ (loc 'start 0 0 '())))
     (define αₖ₀ (-αₖ H∅ (-B (-Clo '() ⟦e⟧ ⊥ρ) '() ℓ₀) φ₀))
-    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥Ξ))
+    (define Σ (-Σ ⊥σ (hash-set ⊥σₖ αₖ₀ ∅) ⊥σₐ ⊥Ξ))
     (define iter : Natural 0)
     (define ?max-steps (max-steps))
     (define iter-maxed? : (Natural → Boolean) (if ?max-steps (λ (i) (> i ?max-steps)) (λ _ #f)))
@@ -80,7 +80,7 @@
            (set! iter (+ 1 iter)))
 
          (define next
-           (match-let ([(-Σ σ σₖ _) Σ])
+           (match-let ([(-Σ σ σₖ _ _) Σ])
              (define vsn : Ctx (cons σ σₖ))
 
              (: ς↑-seen? : -ς↑ → Boolean)
@@ -122,7 +122,7 @@
              (set-add ans (-ς!-blm ς))))
          (loop next ans*)]
         [else
-         (match-define (-Σ σ σₖ _) Σ)
+         (match-define (-Σ σ σₖ _ _) Σ)
          (when (debug-iter?)
            (printf "|σ| = ~a, |σₖ| = ~a~n" (hash-count σ) (hash-count σₖ)))
          (when (and ?max-steps (> iter ?max-steps))
@@ -151,9 +151,10 @@
     (define σ (-Σ-σ Σ))
     (for/union : (℘ -ς) ([ς (in-list ςs)])
       (match-define (-ς↓ αₖₑₑ A φ) ς)
-      (define H (-αₖ-instr αₖₑₑ))         
+      (define H (-αₖ-instr αₖₑₑ))
+      (define A* (σₐ⊕! Σ αₖₑₑ A))
       (for/union : (℘ -ς) ([⟦k⟧ (in-set (σₖ@ σₖ αₖₑₑ))])
-        (⟦k⟧ A H φ Σ))))
+        (⟦k⟧ A* H φ Σ))))
 
   (: partition-states : (℘ -ς) → (Values (Listof -ς↑) (Listof -ς↓) (Listof -ς!)))
   (define (partition-states ςs)

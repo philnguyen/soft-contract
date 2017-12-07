@@ -22,10 +22,11 @@
 
 (define-type -σ (Immutable-HashTable ⟪α⟫ -V^))
 (define-type -σₖ (Immutable-HashTable -αₖ (℘ -⟦k⟧)))
+(define-type -σₐ (Immutable-HashTable -αₖ (℘ (Listof -V^))))
 (define-type -Ξ (Immutable-HashTable -H (Listof -αₖ)))
 
 ;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [Ξ : -Ξ]) #:mutable #:transparent)
+(struct -Σ ([σ : -σ] [σₖ : -σₖ] [σₐ : -σₐ] [Ξ : -Ξ]) #:mutable #:transparent)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -279,7 +280,7 @@
 ;; Configuration
 (struct -ς ([ctx : -αₖ]) #:transparent)
 #|block start |# (struct -ς↑ -ς () #:transparent)
-#|block return|# (struct -ς↓ -ς ([ans : -A] [path : -φ]) #:transparent)
+#|block return|# (struct -ς↓ -ς ([ans : (Listof -V^)] [path : -φ]) #:transparent)
 #|block raise |# (struct -ς! -ς ([blm : -blm]) #:transparent)
 
 
@@ -314,7 +315,7 @@
    [-x-dummy : Symbol]))
 
 (define-signature sto^
-  ([⊥σ : -σ]
+  ([⊥σ : -σ] 
    [alloc  : (-Σ -φ ⟪α⟫ -V^ → -φ)]
    [alloc* : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
    [mut!   : (-Σ -φ ⟪α⟫ -V^ → -φ)]
@@ -330,6 +331,8 @@
    [unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
+   [⊥σₐ : -σₐ]
+   [σₐ⊕! : (-Σ -αₖ (Listof -V^) → (Listof -V^))]
    ))
 
 (define-signature path^
