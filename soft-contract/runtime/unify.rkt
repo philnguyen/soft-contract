@@ -15,15 +15,15 @@
   (import sto^)
   (export unify^) 
 
-  (: unify-V^ : Bij -V^ -V^ → (Option Bij))
+  (: unify-V^ : Uni -V^ -V^ → (Option Uni))
   (define (unify-V^ m V^₁ V^₂)
-    (for/or : (Option Bij) ([V₁ (in-set V^₁)])
-      (for/or : (Option Bij) ([V₂ (in-set V^₂)])
+    (for/or : (Option Uni) ([V₁ (in-set V^₁)])
+      (for/or : (Option Uni) ([V₂ (in-set V^₂)])
         (match* (V₁ V₂)
-          [((? integer? s₁) (? integer? s₂)) (Bij-ext m s₁ s₂)]
+          [((? -t? t₁) (? -t? t₂)) (Bij-ext m t₁ t₂)]
           [(_ _) (and (equal? V₁ V₂) m)]))))
 
-  (: unify-V^s : Bij (Listof -V^) (Listof -V^) → (Option Bij))
+  (: unify-V^s : Uni (Listof -V^) (Listof -V^) → (Option Uni))
   (define (unify-V^s m Vs₁ Vs₂)
     (match* (Vs₁ Vs₂)
       [('() '()) m]
@@ -33,7 +33,7 @@
          [#f #f])]
       [(_ _) #f]))
 
-  (: unify-Bl : -Block -Block → (Option Bij))
+  (: unify-Bl : -Block -Block → (Option Uni))
   (define unify-Bl
     (match-lambda**
      [((-B Vₕ₁ Vₓs₁ ℓ) (-B Vₕ₂ Vₓs₂ ℓ))
@@ -45,11 +45,11 @@
      [((-HV t) (-HV t)) Bij-empty]
      [(_ _) #f]))
 
-  (: φ⊑/m? : Bij -φ -φ → Boolean)
+  (: φ⊑/m? : Uni -φ -φ → Boolean)
   (define (φ⊑/m? m φ₁ φ₂)
     (and
      #;(same-δσ? m (-φ-cache φ₁) (-φ-cache φ₂))
-     (let go ([maps : (Listof (Pairof Integer Integer)) (hash->list (Bij-fw m))]
+     (let go ([maps : (Listof (Pairof -t -t)) (hash->list (Bij-fw m))]
               [Γ₁ : -Γ (-φ-condition φ₁)]
               [Γ₂ : -Γ (-φ-condition φ₂)])
        (match maps
@@ -60,10 +60,8 @@
           (for/and : Boolean ([(ts ps) (in-hash Γ₂)])
             (equal? ps (hash-ref Γ₁ ts #f)))]))))
 
-  (: rename-V^ : (HashTable Integer Integer) -V^ → -V^)
+  (: rename-V^ : (HashTable -t -t) -V^ → -V^)
   (define (rename-V^ m V^)
     (for/set: : -V^ ([V (in-set V^)])
-      (match V
-        [(? integer? s) (hash-ref m s (λ () s))]
-        [V V])))
+      (if (-t? V) (hash-ref m V (λ () V)) V)))
   )

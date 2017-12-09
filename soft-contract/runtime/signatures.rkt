@@ -150,6 +150,7 @@
             (->/c Real)
             (-≥/c Real))
 (-special-bin-o . ::= . '> '< '>= '<= '= 'equal? 'eqv? 'eq? #|made up|# '≢)
+(define-type Uni (Bij -t -t))
 
 ;; convenient syntax
 (define-match-expander -t.not
@@ -357,9 +358,9 @@
    ))
 
 (define-signature unify^
-  ([unify-Bl : (-Block -Block → (Option Bij))]
-   [φ⊑/m? : (Bij -φ -φ → Boolean)]
-   [rename-V^ : ((HashTable Integer Integer) -V^ → -V^)]))
+  ([unify-Bl : (-Block -Block → (Option Uni))]
+   [φ⊑/m? : (Uni -φ -φ → Boolean)]
+   [rename-V^ : ((HashTable -t -t) -V^ → -V^)]))
 
 (define-signature instr^
   ([H∅ : -H]

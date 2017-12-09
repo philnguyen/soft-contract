@@ -616,7 +616,7 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
        ∅))
 
-  (define-frame (rename∷ [m : (HashTable Integer Integer)] [⟦k⟧ : -⟦k⟧])
+  (define-frame (rename∷ [m : (HashTable -t -t)] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
        (define Vs : (Listof -V^)
          (for/list ([V^ (in-list A)])
@@ -692,11 +692,11 @@
         (values (cons αℓ αℓs-rev) (alloc Σ φ α V))))
     (values (reverse αℓs) φ*))
 
-  (: recall : -Ξ -αₖ → (Option (Pairof -αₖ Bij)))
+  (: recall : -Ξ -αₖ → (Option (Pairof -αₖ Uni)))
   (define (recall Ξ αₖ)
     (match-define (-αₖ H Bl φ) αₖ)
 
-    (: search : (Listof -αₖ) → (Option (Pairof -αₖ Bij)))
+    (: search : (Listof -αₖ) → (Option (Pairof -αₖ Uni)))
     (define (search ctxs)
       (match ctxs
         [(cons (and αₖ₀ (-αₖ (== H) Bl₀ φ₀)) ctxs*)
