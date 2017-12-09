@@ -22,8 +22,8 @@
       [(-ς↓ αₖ A φ) `(rt: ,(show-αₖ αₖ) ,(show-A A))]
       [(-ς! αₖ blm) `(er: ,(show-blm blm))]))
 
-  (define (show-σ [σ : -σ])
-    (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ V^) (in-hash σ)])
+  (define (show-σ [σ : -σ]) : (Listof Sexp)
+    (for/list ([(⟪α⟫ᵢ V^) (in-hash σ)])
       `(,(show-⟪α⟫ ⟪α⟫ᵢ) ↦ ,@(show-V^ V^))))
 
   (define (show-h [h : -h]) : Sexp

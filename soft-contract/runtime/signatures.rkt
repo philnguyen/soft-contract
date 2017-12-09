@@ -290,7 +290,7 @@
 
 ;; Stack-address / Evaluation "check-point"
 (-αₖ . ::= . (-αₖ [instr : -H] [block : -Block] [path : -φ]))
-(-Block . ::= . (-B [fun : -V] [args : (Listof -V^)] [loc : ℓ]) #;(-B [var : -formals] [exp : -⟦e⟧] [env : -ρ])
+(-Block . ::= . (-B [fun : -V] [args : (Listof -V^)] [loc : ℓ])
                 (-M [blm-ctx : -ctx] [ctc : -V^] [val : -V^])
                 (-F [l : -l] [loc : ℓ] [ctc : -V^] [val : -V^])
                 (-HV [tag : HV-Tag]))
@@ -384,6 +384,7 @@
    [show-A : (-A → Sexp)]
    [show-⟦e⟧ : (-⟦e⟧ → Sexp)]
    [show-αₖ : (-αₖ → Sexp)]
+   [show-B : (-B → Sexp)]
    [show-edge : (-edge → Sexp)]
    [show-H : (-H → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]

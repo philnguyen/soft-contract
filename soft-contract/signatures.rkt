@@ -66,7 +66,8 @@
    [αₖ->⟪α⟫s : (-αₖ -σₖ → (℘ ⟪α⟫))]
    [⟦k⟧->⟪α⟫s : (-⟦k⟧ -σₖ → (℘ ⟪α⟫))]
    [->⟪α⟫s : ((Rec X (U ⟪α⟫ -V -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))]
-   [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]))
+   [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]
+   [gc-αₖ : (-Σ -αₖ -⟦k⟧ → -αₖ)]))
 
 (define-signature debugging^
   ())

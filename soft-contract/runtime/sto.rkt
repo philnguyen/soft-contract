@@ -106,7 +106,10 @@
          (hash-ref δσ ⟪α⟫
                    (λ ()
                      (define σ (if (-Σ? m) (-Σ-σ m) m))
-                     (hash-ref σ ⟪α⟫ mk-∅)))])))
+                     (hash-ref σ ⟪α⟫
+                               (λ ()
+                                 (cond [(-α.hv? α) ∅]
+                                       [else (error 'σ@ "nothing at ~a" α)])))))])))
 
     (: σ@/list : (U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))
   ;; Look up store at address list

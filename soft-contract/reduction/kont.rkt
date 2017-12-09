@@ -24,7 +24,7 @@
 (provide kont@)
 
 (define-unit kont@
-  (import compile^ app^ mon^ fc^ proof-system^ memoize^ for-gc^ verifier^ havoc^
+  (import compile^ app^ mon^ fc^ proof-system^ memoize^ for-gc^ verifier^ havoc^ meta-functions^
           val^ env^ sto^ pretty-print^ instr^ prim-runtime^ static-info^ path^
           sat-result^ unify^
           (prefix q: local-prover^))
@@ -91,9 +91,10 @@
 
   (define-frame (ap∷ [Vs : (Listof -V^)]
                      [⟦e⟧s : (Listof -⟦e⟧)]
-                     [ρ : -ρ]
+                     [ρ₀ : -ρ]
                      [ℓ : ℓ]
                      [⟦k⟧ : -⟦k⟧])
+    (define ρ (m↓ ρ₀ (apply ∪ ∅eq (map fv-⟦e⟧ ⟦e⟧s))))
     (make-frame (⟦k⟧ A H φ Σ) #:roots (Vs ρ)
       (match A
         [(list V)
@@ -632,9 +633,10 @@
         [(cons αₖ₀ m)
          (values Ξ (rename∷ (Bij-bw m) ⟦k⟧) αₖ₀)]
         [#f
-         (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ ctxs)) (λ () '()))
+         (define αₖ* (gc-αₖ Σ αₖ ⟦k⟧))
+         (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ* ctxs)) (λ () '()))
                  ⟦k⟧
-                 αₖ)]))
+                 αₖ*)]))
     (define σₖ* (hash-update σₖ αₖ* (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧*)) mk-∅))
     (set--Σ-σₖ! Σ σₖ*)
     (set--Σ-Ξ!  Σ Ξ* )
@@ -707,4 +709,8 @@
     (cond
       [(hash-ref Ξ H #f) => search]
       [else #f]))
+
+  (define/memoeq (fv-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : (℘ Symbol)
+    (cond [(recall-e ⟦e⟧) => fv]
+          [else (error 'fv-⟦e⟧ "nothing")]))
   )

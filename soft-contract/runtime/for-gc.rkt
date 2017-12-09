@@ -138,5 +138,54 @@
            (and (equal? Vs₁ Vs₂)
                 (for/and : Boolean ([V (in-set Vs₁)])
                   (go (V->⟪α⟫s V))))]))))
-  
+
+  (: span-δσ : -Σ -δσ (℘ ⟪α⟫) → -σ)
+  (define (span-δσ Σ δσ root)
+    (define-set live : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+    (: touch! : ⟪α⟫ → Void)
+    (define (touch! α)
+      (unless (live-has? α)
+        (live-add! α)
+        (for* ([V (in-set (σ@ Σ δσ α))]
+               [α* : ⟪α⟫ (in-set (V->⟪α⟫s V))])
+          (touch! α*))))
+    (set-for-each root touch!)
+
+    (cond
+      [(<= (hash-count δσ) (hash-count live))
+       (for/fold ([δσ : -δσ δσ])
+                 ([(α V) (in-hash δσ)] #:unless (live-has? α))
+         (hash-remove δσ α))]
+      [else
+       (for*/hasheq : -δσ ([α : ⟪α⟫ (in-live)]
+                           [V^ (in-value (hash-ref δσ α #f))]
+                           #:when V^)
+         (values α V^))]))
+
+  (: Bl->⟪α⟫s : -Block → (℘ ⟪α⟫))
+  (define Bl->⟪α⟫s
+    (match-lambda
+      [(-B V Vs _) (∪ (V->⟪α⟫s V) (->⟪α⟫s Vs))]
+      [(-M _ C V) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
+      [(-F _ _ C V) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
+      [(-HV tag) {seteq (-α->⟪α⟫ (-α.hv tag))}]))
+
+  (: gc-αₖ : -Σ -αₖ -⟦k⟧ → -αₖ)
+  (define (gc-αₖ Σ αₖ ⟦k⟧)
+    (match-define (-αₖ H Bl (-φ Γ δσ)) αₖ)
+    (define root (∪ (⟦k⟧->⟪α⟫s ⟦k⟧ (-Σ-σₖ Σ))
+                    (Bl->⟪α⟫s Bl)
+                    (for*/seteq: : (℘ ⟪α⟫) ([⟪α⟫ (in-hash-keys δσ)]
+                                            [α (in-value (⟪α⟫->-α ⟪α⟫))]
+                                            #:when (or (-𝒾? α) (-α.wrp? α)))
+                      ⟪α⟫)))
+    (define δσ* (span-δσ Σ δσ root))
+    #;(begin
+      (printf "Clearning with root ~a:~n" (set-map root show-⟪α⟫))
+      (for ([(α V) (in-hash δσ)])
+        (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (show-V^ V)))
+      (printf "To:~n")
+      (for ([(α V) (in-hash δσ*)])
+        (printf "- ~a ↦ ~a~n" (show-⟪α⟫ α) (show-V^ V))))
+    (-αₖ H Bl (-φ Γ δσ*)))
   )
