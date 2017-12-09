@@ -24,7 +24,7 @@
          (printf "  - ~a~n" p))])
   (define-values (As Σ) (havoc-files ps))
   #;(printf "  ~ams~n" (- (current-milliseconds) t₀))
-  (define-values (_ ΓEs) (set-partition -W? As))
+  (define-values (_ ΓEs) (set-partition list? As))
   (f ΓEs))
 
 (: check : Any (Option Natural) (Option Natural) → (℘ -A) → Any)
