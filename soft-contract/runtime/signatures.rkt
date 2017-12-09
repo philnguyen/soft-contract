@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (except-out (all-defined-out) -not/c)
+         (rename-out [+not/c -not/c]))
 
 (require racket/match
          racket/set
@@ -153,9 +154,12 @@
 (define-type Uni (Bij -t -t))
 
 ;; convenient syntax
-(define-match-expander -t.not
-  (syntax-rules () [(_ t) (-t.@ 'not (list t))])
-  (syntax-rules () [(_ t) (and t (-t.@ 'not (list t)))]))
+(define-match-expander +not/c
+  (syntax-rules () [(_ h) (-not/c h)])
+  (syntax-rules () [(_ h) (match h
+                            ['values 'not]
+                            ['not 'values]
+                            [p (-not/c p)])]))
 
 (define-simple-macro (with-φ+/- ([(φ₁:id φ₂:id) e]) (~literal :) τ
                        #:true e₁

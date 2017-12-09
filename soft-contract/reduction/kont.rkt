@@ -712,5 +712,5 @@
 
   (define/memoeq (fv-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : (℘ Symbol)
     (cond [(recall-e ⟦e⟧) => fv]
-          [else (error 'fv-⟦e⟧ "nothing")]))
+          [else ∅eq]))
   )
