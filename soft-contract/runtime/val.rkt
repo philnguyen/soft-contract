@@ -157,12 +157,6 @@
       [(-● ps) ps]
       [_ ∅]))
 
-  (: V+ : -V^ (U -h -V) → -V^)
-  (define V+
-    (match-lambda**
-     [((-● ps) (? -h? C)) (-● (set-add ps C))]
-     [(V _) V]))
-
   (: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))
   ;; Estimate possible list lengths from the object language's abstract list
   (define (estimate-list-lengths σ δσ V)

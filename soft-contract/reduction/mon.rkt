@@ -97,7 +97,7 @@
       (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
       (define all-immutable? (struct-all-immutable? 𝒾))
       (define ⟦field⟧s : (Listof -⟦e⟧)
-        (let ([V^* (V+ σ φ V^ C)])
+        (let ([V^* (V+ σ φ V^ p)])
           (for/list ([α (in-list αs)]
                      [i (in-naturals)] #:when (index? i))
             (mk-app (ℓ-with-id ℓₘ (list 'mon-struct/c 𝒾 i)) (mk-V (-st-ac 𝒾 i)) (list (mk-A (list V^*)))))))

@@ -57,6 +57,7 @@
   (define (V+ σ φ V^ C)
     (define V₁+ : (-V (U -h -V) → -V)
       (match-lambda**
+       [(V (-St/C _ 𝒾 _)) (V₁+ V (-st-p 𝒾))]
        [((-● ps) (? -h? h)) (-● (set-add ps h))]
        [(V _) V]))
     (for/fold ([acc : -V^ ∅]) ([V (in-set V^)])
