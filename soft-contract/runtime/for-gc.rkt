@@ -79,7 +79,7 @@
             [(-var αs αᵣ)
              (set-add* (set-add (list->seteq (map -⟪α⟫ℓ-addr αs)) (-⟪α⟫ℓ-addr αᵣ))
                        (if (pair? βs) (map -⟪α⟫ℓ-addr βs) '()))])]
-         [(-=>i αs (list D _ _)) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
+         [(-=>i αs (cons D _)) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
          [(-Case-> cases)
           (for/unioneq : (℘ ⟪α⟫) ([C cases]) (V->⟪α⟫s C))]
          [(-∀/C _ _ ρ) (ρ->⟪α⟫s ρ)]

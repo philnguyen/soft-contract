@@ -22,7 +22,7 @@
 
 (define-unit compile@
   (import meta-functions^ ast-pretty-print^
-          kont^ memoize^ proof-system^
+          kont^ proof-system^
           env^ sto^ path^ val^ pretty-print^ for-gc^)
   (export compile^)
 
@@ -228,13 +228,15 @@
   (define/memo (↓ₓ [l : -l] [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
     (define -blm.undefined
       (blm/simp l 'Λ (list 'defined?) (list {set (format-symbol "~a_(~a)" 'undefined x)}) ℓₓ))
-    (λ (ρ H φ Σ ⟦k⟧)
-      (define V^ (σ@ Σ (-φ-cache φ) (ρ@ ρ x)))
-      (define (on-ok) (⟦k⟧ {list (set-remove V^ -undefined)} H φ Σ))
-      (define (on-er) (⟦k⟧ -blm.undefined H φ Σ))
-      (if (∋ V^ -undefined)
-          (∪ (on-ok) (on-er))
-          (on-ok))))
+    (remember-e!
+     (-x x ℓₓ)
+     (λ (ρ H φ Σ ⟦k⟧)
+       (define V^ (σ@ Σ (-φ-cache φ) (ρ@ ρ x)))
+       (define (on-ok) (⟦k⟧ {list (set-remove V^ -undefined)} H φ Σ))
+       (define (on-er) (⟦k⟧ -blm.undefined H φ Σ))
+       (if (∋ V^ -undefined)
+           (∪ (on-ok) (on-er))
+           (on-ok)))))
 
   (define/memo (mk-mon [ctx : -ctx] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ H φ Σ ⟦k⟧)
