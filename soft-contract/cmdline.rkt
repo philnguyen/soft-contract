@@ -5,6 +5,7 @@
          racket/cmdline
          racket/list
          racket/pretty
+         racket/string
          bnf
          set-extras
          "utils/main.rkt"
@@ -20,6 +21,18 @@
   (define blames
     (for/set: : (℘ -blm) ([A (in-set ans)] #:when (-blm? A))
       A))
+
+  (: show-set (∀ (X) (X → Sexp) X → String))
+  (define (show-set f x)
+    (define s (f x))
+    (cond [(and (set? x) (list? s))
+           (if (= 1 (set-count x))
+               (format "~a" (car s))
+               (string-join (map (λ (x) (format "~a" x)) s)
+                            #:before-first "{"
+                            #:after-last "}"))]
+          [else (format "~a" s)]))
+  
   (match (set-count blames)
     [0 (printf "Safe~n")]
     [n
@@ -31,12 +44,12 @@
        (printf "    - Contract from: ~a~n" lo)
        (printf "    - Expected: ~a~n"
                (match Cs
-                 [(list C) (show-blm-reason C)]
+                 [(list C) (show-set show-blm-reason C)]
                  ['() "no value"]
                  [_ (format "~a values: ~a" (length Cs) (map show-blm-reason Cs))]))
        (printf "    - Given: ~a~n"
                (match Vs
-                 [(list V) (show-V^ V)]
+                 [(list V) (show-set show-V^ V)]
                  ['() "(values)"]
                  [_ (format "~a values: ~a" (length Vs) (map show-V^ Vs))])))]))
 
