@@ -68,16 +68,7 @@
             (when (and (debug-iter?) (-blm? A))
               (hash-ref! print-cache A
                          (λ ()
-                           (printf "~a~n" (show-A A))
-                           #;(begin
-                             (printf "context:~n")
-                             (for ([e (-H->-ℋ H)])
-                               (printf "- ~a~n" (show-edge e)))
-                             (printf "cache: ~n")
-                             (for ([(l t) $])
-                               (printf "- ~a ↦ ~a~n" (show-loc l) (show-t t)))
-                             (printf "pc: ~a~n" (show-Γ Γ))
-                             (error 'first-blame))))))
+                           (printf "~a~n" (show-A A))))))
           (match A
             [(-blm l+ _ _ _ _) #:when (not (transparent-module? l+)) ∅]
             [_
@@ -616,12 +607,15 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
        ∅))
 
-  (define-frame (rename∷ [m : (HashTable -t -t)] [⟦k⟧ : -⟦k⟧])
+  (define-frame (rename∷ [m : (HashTable -t -t)] [Γₑᵣ : -Γ] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
        (define Vs : (Listof -V^)
          (for/list ([V^ (in-list A)])
            (rename-V^ m V^)))
-       (⟦k⟧ Vs H φ Σ)))
+       (define φ*
+         (match-let ([(-φ Γₑₑ δσ) φ])
+           (-φ (Γ+ Γₑᵣ m Γₑₑ) δσ)))
+       (⟦k⟧ Vs H φ* Σ)))
 
   (: σₖ+! : -Σ -αₖ -⟦k⟧ → -αₖ)
   (define (σₖ+! Σ αₖ ⟦k⟧)
@@ -631,7 +625,7 @@
     (define-values (Ξ* ⟦k⟧* αₖ*)
       (match (recall Ξ αₖ)
         [(cons αₖ₀ m)
-         (values Ξ (rename∷ (Bij-bw m) ⟦k⟧) αₖ₀)]
+         (values Ξ (rename∷ (Bij-bw m) (-φ-condition (-αₖ-path αₖ)) ⟦k⟧) αₖ₀)]
         [#f
          (define αₖ* (gc-αₖ Σ αₖ ⟦k⟧))
          (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ* ctxs)) (λ () '()))

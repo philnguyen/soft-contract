@@ -64,4 +64,12 @@
   (define (rename-V^ m V^)
     (for/set: : -V^ ([V (in-set V^)])
       (if (-t? V) (hash-ref m V (λ () V)) V)))
+
+  (: Γ+ : -Γ (HashTable -t -t) -Γ → -Γ)
+  (define (Γ+ Γₑᵣ m Γₑₑ)
+    (for*/fold ([Γ* : -Γ Γₑᵣ])
+               ([(tₑₑ tₑᵣ) (in-hash m)]
+                [ps (in-value (hash-ref Γₑₑ (list tₑₑ) #f))]
+                #:when ps)
+      (hash-update Γ* (list tₑᵣ) (λ ([ps₀ : (℘ -h)]) (∪ ps₀ ps)) mk-∅)))
   )

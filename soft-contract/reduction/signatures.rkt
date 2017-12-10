@@ -78,7 +78,7 @@
    [make-prim-range∷ : (-ctx (Option (Listof -⟪α⟫ℓ)) (Listof -V^) (Listof (List (Listof -V) (Option -V) (Listof -V))) -⟦k⟧ → -⟦k⟧)]
    [implement-predicate∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [absurd∷ : (-⟦k⟧ → -⟦k⟧)]
-   [rename∷ : ((HashTable -t -t) -⟦k⟧ → -⟦k⟧)]
+   [rename∷ : ((HashTable -t -t) -Γ -⟦k⟧ → -⟦k⟧)]
    [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
    ;; Non-frame helpers
    [mk-=>i : (-Σ -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))]

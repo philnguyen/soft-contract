@@ -364,7 +364,8 @@
 (define-signature unify^
   ([unify-Bl : (-Block -Block → (Option Uni))]
    [φ⊑/m? : (Uni -φ -φ → Boolean)]
-   [rename-V^ : ((HashTable -t -t) -V^ → -V^)]))
+   [rename-V^ : ((HashTable -t -t) -V^ → -V^)]
+   [Γ+ : (-Γ (HashTable -t -t) -Γ → -Γ)]))
 
 (define-signature instr^
   ([H∅ : -H]
@@ -394,6 +395,7 @@
    [show-H : (-H → Sexp)]
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
+   [show-renaming : ((U Uni (HashTable -t -t)) → (Listof Sexp))]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    [recall-e : (-⟦e⟧ → (Option -e))]
    [verbose? : (Parameterof Boolean)]

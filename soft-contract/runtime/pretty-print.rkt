@@ -249,4 +249,10 @@
   (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
     (for/list ([(x ⟪α⟫ₓ) ρ] #:unless (equal? x -x-dummy))
       `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
+
+  (: show-renaming : (U Uni (HashTable -t -t)) → (Listof Sexp))
+  (define (show-renaming uni)
+    (define m (if (Bij? uni) (Bij-fw uni) uni))
+    (for/list ([(t₁ t₂) (in-hash m)])
+      `(,(show-t t₁) ↔ ,(show-t t₂))))
   )
