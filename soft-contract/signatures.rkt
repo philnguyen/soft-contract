@@ -44,6 +44,7 @@
    [φ+/-pV^ : (-σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
+   [V- : (-σ -φ -V^ (U -h -V) → -V^)]
    [plausible-index? : (-σ -φ -V^ Natural → Boolean)]
    [sat-one-of : (-V^ (℘ Base) → -R)]
    [V-arity : (case->
@@ -54,7 +55,8 @@
 ;; FIXME: least coherent signature ever.
 ;; Could have named it "misc"...
 (define-signature widening^
-  ([V⊕ : (-V^ -V^ → -V^)]))
+  ([V⊕ : (-V^ -V^ → -V^)]
+   [compat? : (-V -V → (Option (℘ -h)))]))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]

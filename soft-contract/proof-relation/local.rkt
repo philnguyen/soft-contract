@@ -166,7 +166,9 @@
        R]
       [(and (list (? -t?) ...)
             (not (list (? -b?) ...)))
-       (ps⇒p (hash-ref (-φ-condition φ) Vs mk-∅) p)]
+       (case p
+         [(list?) (check-proper-list σ φ (car Vs))] ; `list?` is the only deep predicate
+         [else (ps⇒p (hash-ref (-φ-condition φ) Vs mk-∅) p)])]
       [_
        (match p
          [(? -st-mk?) '✓]
@@ -406,7 +408,7 @@
 
   (: check-proper-list : -σ -φ -V → -R)
   (define (check-proper-list σ φ V)
-    (define δσ (-φ-cache φ))
+    (match-define (-φ Γ δσ) φ)
     (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
     
     (define (combine [Rs : (℘ -R)]) : -R
@@ -436,6 +438,15 @@
                         'string? 'symbol?}))
             '?]
            [else '✗])]
+        [(? -t? t)
+         (case (ps⇒p (hash-ref Γ (list t) mk-∅) 'list?)
+           [(✓) '✓]
+           [(✗) '✗]
+           [(?) (case (ps⇒p (hash-ref Γ (list t) mk-∅) -cons?)
+                  [(✓) (define t.cdr (-t.@ -cdr (list t)))
+                       (if (hash-has-key? Γ (list t.cdr)) (check t.cdr) '?)]
+                  [(✗) '✗]
+                  [(?) '?])])]
         [_ '✗]))
     (check V))
 

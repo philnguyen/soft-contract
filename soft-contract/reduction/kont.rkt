@@ -425,14 +425,15 @@
       (⟦k⟧ (list {set (-Vector/guard Vₚ αᵥ ctx)}) H (alloc Σ φ αᵥ Vᵥ) Σ)))
 
   (define-frame (mon-or/c∷ [ctx : -ctx] [Cₗ : -V^] [Cᵣ : -V^] [V : -V^] [⟦k⟧ : -⟦k⟧])
-  (make-frame (⟦k⟧ A H φ Σ) #:roots (Cₗ Cᵣ V)
-    (match A
-      [(list _)
-       (push-mon ctx Cᵣ V H φ Σ ⟦k⟧)]
-      [(list _ V)
-       (define Vₐ (for/union : -V^ ([C (in-set Cₗ)])
-                     (V+ (-Σ-σ Σ) φ V C)))
-       (⟦k⟧ (list Vₐ) H φ Σ)])))
+    (make-frame (⟦k⟧ A H φ Σ) #:roots (Cₗ Cᵣ V)
+      (match A
+        [(list _)
+         (for/union : (℘ -ς) ([C (in-set Cₗ)])
+            (push-mon ctx Cᵣ (V- (-Σ-σ Σ) φ V C) H φ Σ ⟦k⟧))]
+        [(list _ V)
+         (define Vₐ (for/union : -V^ ([C (in-set Cₗ)])
+                      (V+ (-Σ-σ Σ) φ V C)))
+         (⟦k⟧ (list Vₐ) H φ Σ)])))
 
   (define-frame (if.flat/c∷ [V* : -V^] [blm : -blm] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (V*)

@@ -208,7 +208,12 @@
     (define As (hash-ref σₐ αₖ mk-∅))
     (define ?Vs₀
       (for/or : (Option (Listof -V^)) ([Vs₀ (in-set As)]
-                                       #:when (= n (length Vs₀)))
+                                       #:when (= n (length Vs₀))
+                                       #:when (andmap (λ ([V₁^ : -V^] [V₂^ : -V^])
+                                                        (and (= 1 (set-count V₁^))
+                                                             (= 1 (set-count V₂^))
+                                                             (compat? (set-first V₁^) (set-first V₂^))))
+                                                      Vs₀ Vs))
         Vs₀))
     (define Vs* (if ?Vs₀ (map V⊕ ?Vs₀ Vs) Vs))
     (define σₐ* (hash-update σₐ αₖ

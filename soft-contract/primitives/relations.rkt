@@ -38,6 +38,7 @@
    [path-string? ⇒ string?]
    [string? ⇒ path-string?] ; TODO tmp. cheat
    ;; sequence
+   [null? ⇒ list?]
    [exact-nonnegative-integer? ⇒ sequence?]
    [string? ⇒ sequence?]
    [bytes ⇒ sequence?]

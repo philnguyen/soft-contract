@@ -63,10 +63,24 @@
        [(_ 'not) -ff]
        [(V _) V]))
     (for/fold ([acc : -V^ ∅]) ([V (in-set V^)])
-      (case (V∈C σ φ V^ C)
+      (case (V∈C σ φ {set V} C)
         [(✓) (set-add acc V)]
         [(✗) acc]
         [(?) (set-add acc (V₁+ V C))])))
+
+  (: V- : -σ -φ -V^ (U -h -V) → -V^)
+  (define (V- σ φ V^ C)
+    (define V₁- : (-V (U -h -V) → -V)
+      (match-lambda**
+       [((-● ps) (? -h? h)) (-● (∪ (set-remove ps h)
+                                   (if (-prim? h) {set (-not/c h)} ∅)))]
+       [(V _) V]))
+    (for/fold ([acc : -V^ V^])
+              ([V (in-set V^)])
+      (case (V∈C σ φ {set V} C)
+        [(✓) (set-remove acc V)]
+        [(✗) acc]
+        [(?) (set-add (set-remove acc V) (V₁- V C))])))
 
   (: φ⊢t : -σ -φ -t → -R)
   (define (φ⊢t σ φ t)
