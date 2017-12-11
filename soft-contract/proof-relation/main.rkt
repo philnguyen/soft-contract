@@ -59,6 +59,8 @@
       (match-lambda**
        [(V (-St/C _ 𝒾 _)) (V₁+ V (-st-p 𝒾))]
        [((-● ps) (? -h? h)) (-● (set-add ps h))]
+       [(_ 'null?) -null]
+       [(_ 'not) -ff]
        [(V _) V]))
     (for/fold ([acc : -V^ ∅]) ([V (in-set V^)])
       (case (V∈C σ φ V^ C)
