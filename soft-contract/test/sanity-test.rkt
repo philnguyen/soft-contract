@@ -76,7 +76,11 @@
   ;; Order doesn't matter. I just run shorter ones first
   (test   "safe/octy" check-safe)
   (test "unsafe/octy" check-fail)
-  
+
+  (test "safe/issues/issue-103.rkt" check-safe)
+  (test "unsafe/issues/issue-103.rkt" check-fail)
+
+  #|
   (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
   
@@ -232,5 +236,6 @@
 
   (test   "safe/games" check-safe)
   (test "unsafe/games" check-fail)
+  |#
   
   )
