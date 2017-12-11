@@ -141,7 +141,7 @@
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . (listof syntax?))
-    (hack:make-available (-o) exec-prim mk-● add-seal)
+    (hack:make-available (-o) mk-res exec-prim add-seal)
     (define/with-syntax (stx-init-V ...) (map gen-ctc-V dom-inits))
     (define/with-syntax (stx-init-ℓ ...) (map gen-stx-ℓ dom-inits))
     (define/with-syntax (stx-inits ...) #'((cons stx-init-V stx-init-ℓ) ...))
@@ -181,12 +181,12 @@
       (match (?flatten-range rngs)
         ['any
          (log-warning "arbitrarily generate 1 value for range `any` in `~a`~n" (syntax-e (-o)))
-         (list #'{set (mk-●)})]
-        [#f (make-list (length rngs) #`{set (mk-●)})]
+         (list #`(mk-res ∅ '#,(-o) #,(-Vs)))]
+        [#f (list #`(mk-res ∅ '#,(-o) #,(-Vs)))]
         [initial-refinements
          (for/list ([cs (in-list initial-refinements)])
            (define/with-syntax (c ...) (map o->v cs))
-           #'{set (mk-● c ...)})]))
+           #`(mk-res (set c ...) '#,(-o) #,(-Vs)))]))
     `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
           (define/with-syntax φ* (gensym 'φ*))

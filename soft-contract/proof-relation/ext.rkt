@@ -101,7 +101,7 @@
     (for*/fold ([assertions : (Listof (M Z3-Ast)) '()] [env : Env env])
                ([(ts ps) (in-hash Γ)]
                 [p (in-set ps)])
-      (define T #|TODO|# 'Real)
+      (define T #|TODO|# 'Bool)
       (define-values (asst env*) (⦃t@⦄ p ts T env))
       (values (cons asst assertions) env*)))
 
@@ -152,13 +152,13 @@
           [else
            (define all* (∪ front all))
            (define front*
-             (for*/union : (℘ Integer) ([ts (in-hash-keys Γ)]
-                                        [t (in-list ts)])
-                         (set-subtract (t-names t) all*)))
+             (for*/unioneq : (℘ Integer) ([ts (in-hash-keys Γ)]
+                                          [t (in-list ts)])
+               (set-subtract (t-names t) all*)))
            (loop front* all*)])))
     (for/fold ([Γ : -Γ Γ])
               ([ts (in-hash-keys Γ)]
-               #:unless (set-empty? (set-intersect (t-names (-t.@ 'values ts)) dom*)))
+               #:when (set-empty? (set-intersect (t-names (-t.@ 'values ts)) dom*)))
       (hash-remove Γ ts)))
 
   

@@ -45,11 +45,15 @@
 
   (: p∋V : -σ -φ -h -V * → -R)
   (define (p∋V σ φ h . Vs)
-    (match (apply local:p∋V σ φ h Vs)
-      ['? (if (should-call-smt? (-φ-condition φ) h Vs)
-              (ext:p∋V (-φ-condition φ) h Vs)
-              '?)]
-      [R R]))
+    (match* (h Vs)
+      [('values (list (-t.@ p xs))) (apply p∋V σ φ p xs)]
+      [('not    (list (-t.@ p xs))) (not-R (apply p∋V σ φ p xs))]
+      [(_ _)
+       (match (apply local:p∋V σ φ h Vs)
+         ['? (if (should-call-smt? (-φ-condition φ) h Vs)
+                 (ext:p∋V (-φ-condition φ) h Vs)
+                 '?)]
+         [R R])]))
 
   (define p∋V^ (local:lift-p∋V p∋V))
   

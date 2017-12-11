@@ -26,20 +26,7 @@
     (case (apply p∋V^ σ φ o Vs)
       [(✓) {set -tt}]
       [(✗) {set -ff}]
-      [(?)
-       (cond
-         [(andmap (λ ([V^ : -V^]) (for/and : Boolean ([V (in-set V^)]) (-t? V))) Vs)
-          (define args : (℘ (Listof -t))
-            (let go ([Vs : (Listof -V^) Vs])
-              (match Vs
-                ['() {set '()}]
-                [(cons V Vs)
-                 (define rst (go Vs))
-                 (for*/set: : (℘ (Listof -t)) ([t₁ (in-set V)] [tᵣ (in-set rst)])
-                   (cons (assert t₁ -t?) tᵣ))])))
-          (for/set: : -V^ ([arg (in-set args)])
-            (-t.@ o arg))]
-         [{set (-● {set 'boolean?})}])]))
+      [(?) (mk-res {set 'boolean?} o Vs)]))
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → -⟦f⟧)
     (λ (o)
@@ -248,11 +235,26 @@
         [(? -t? V) {set (-t.@ 'vector-length (list V))}]
         [_ {set (-● {set 'exact-nonnegative-integer?})}])))
 
-  (: mk-● : -h * → -●)
-  (define (mk-● . xs) (-● (list->set xs)))
   (: r:φ+/-pV^ : -σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))
   (define (r:φ+/-pV^ σ φ o . Vs)
     (apply φ+/-pV^ σ φ o Vs))
+
+  (: mk-res : (℘ -h) -o (Listof -V^) → -V^)
+  (define (mk-res ps o Vs)
+    (cond
+      [(andmap (λ ([V^ : -V^]) (for/and : Boolean ([V (in-set V^)]) (-t? V))) Vs)
+       (define args : (℘ (Listof -t))
+         (let go ([Vs : (Listof -V^) Vs])
+           (match Vs
+             ['() {set '()}]
+             [(cons V Vs*)
+              (define rst (go Vs*))
+              (for*/set: : (℘ (Listof -t)) ([t₁ (in-set V)] [tᵣ (in-set rst)])
+                (cons (assert t₁ -t?) tᵣ))])))
+       (for/set: : (℘ -t) ([arg (in-set args)])
+         (-t.@ o arg))]
+      [else
+       {set (-● ps)}]))
 
   (: add-seal : -Σ -φ Symbol -H -l → (Values -Seal/C -φ))
   (define (add-seal Σ φ x H l)

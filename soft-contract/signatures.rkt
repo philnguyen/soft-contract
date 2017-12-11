@@ -45,6 +45,7 @@
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
    [V- : (-σ -φ -V^ (U -h -V) → -V^)]
+   [φ+pV : (-φ -h (Listof -V) → -φ)]
    [plausible-index? : (-σ -φ -V^ Natural → Boolean)]
    [sat-one-of : (-V^ (℘ Base) → -R)]
    [V-arity : (case->

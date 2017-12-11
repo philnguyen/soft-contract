@@ -596,9 +596,9 @@
                                   [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
                                   [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-      (define refined-ranges (maybe-refine ranges (-Σ-σ Σ) φ cases A))
+      (define-values (refined-ranges φ*) (maybe-refine ranges (-Σ-σ Σ) φ cases A))
       (define ⟦k⟧* (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap ⟦k⟧) ⟦k⟧))
-      (⟦k⟧* refined-ranges H φ Σ)))
+      (⟦k⟧* refined-ranges H φ* Σ)))
 
   (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
@@ -637,7 +637,7 @@
     (set--Σ-Ξ!  Σ Ξ* )
     αₖ*)
   
-  (: maybe-refine : (Listof -V^) -σ -φ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -V^) → (Listof -V^))
+  (: maybe-refine : (Listof -V^) -σ -φ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -V^) → (Values (Listof -V^) -φ))
   (define (maybe-refine rng₀ σ φ cases args)
 
     (: ⊢/quick : -V -V^ → -R)
@@ -647,34 +647,42 @@
         [(? -h? p)                                   (q:p∋V^ σ φ p V^)]
         [_ '?]))
 
-    (for/fold ([rng : (Listof -V^) rng₀])
+    (for/fold ([rng : (Listof -V^) rng₀] [φ : -φ φ])
               ([kase (in-list cases)])
       (match-define (list dom-inits ?dom-rst refinements) kase)
-      (: check-inits : (Listof -V) (Listof -V^) → (Listof -V^))
+      (: check-inits : (Listof -V) (Listof -V^) → (Values (Listof -V^) -φ))
       (define (check-inits doms args)
         (match* (doms args)
           [((cons dom doms*) (cons arg args*))
            (case (⊢/quick dom arg)
              [(✓) (check-inits doms* args*)]
-             [else rng])]
+             [else (values rng φ)])]
           [('() _) (check-rest args)]
-          [((cons _ _) '()) rng]))
-      (: check-rest : (Listof -V^) → (Listof -V^))
+          [((cons _ _) '()) (values rng φ)]))
+      (: check-rest : (Listof -V^) → (Values (Listof -V^) -φ))
       (define (check-rest args)
         (cond
           [?dom-rst
-           (let go : (Listof -V^) ([args : (Listof -V^) args])
+           (let go : (Values (Listof -V^) -φ) ([args : (Listof -V^) args])
             (match args
               ['() (refine-rng)]
               [(cons arg args*)
                (case (⊢/quick ?dom-rst arg)
                  [(✓) (go args*)]
-                 [else rng])]))]
-          [else (if (null? args) (refine-rng) rng)]))
+                 [else (values rng φ)])]))]
+          [else (if (null? args) (refine-rng) (values rng φ))]))
       (define (refine-rng)
-        (for/list : (Listof -V^) ([rngᵢ (in-list rng)]
-                                  [refᵢ (in-list refinements)])
-          (V+ σ φ rngᵢ refᵢ)))
+        (let-values ([(Vs-rev φ*)
+                      (for/fold ([Vs-rev : (Listof -V^) '()] [φ : -φ φ])
+                                ([rngᵢ (in-list rng)]
+                                 [refᵢ (in-list refinements)])
+                        (values (cons (V+ σ φ rngᵢ refᵢ) Vs-rev)
+                                (if (-h? refᵢ)
+                                    (match rngᵢ
+                                      [(singleton-set Vᵢ) (φ+pV φ refᵢ (list Vᵢ))]
+                                      [_ φ])
+                                    φ)))])
+          (values (reverse Vs-rev) φ*)))
       (check-inits dom-inits args)))
 
   (: mk-⟪α⟫ℓ* : -Σ Symbol (ℓ -H Index → -α) -H ℓ -φ (Listof -V^) → (Values (Listof -⟪α⟫ℓ) -φ))
