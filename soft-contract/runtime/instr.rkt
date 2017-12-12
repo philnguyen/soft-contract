@@ -74,17 +74,23 @@
       [(-x/C α)
        (match-define (or (-α.x/c x _) (-α.imm-listof x _ _)) (⟪α⟫->-α α))
        (list 'recursive-contract/c (assert x))]
-      [(? -o? o) (list 'flat o)]
-      [(-Ar _ (app ⟪α⟫->-α (-α.fn ctx _)) _) (list 'flat (-ctx-loc ctx))]
+      [(? -o? o) (list 'prim o)]
+      [(-Ar _ α _)
+       (match (⟪α⟫->-α α)
+         [(-α.fn ctx _) (list 'arr (-ctx-loc ctx))]
+         [(-α.imm (-Fn● _ tag)) (list 'arr● (strip-tag tag))])]
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c (cons ⟦c⟧ (⌊ρ⌋ ρ)))]
       [(-Seal/C x _ _) (list 'seal/c x)]
       [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -b?))) (list 'flat c)]
       [(? integer? t) (format-symbol "•~a" (n-sub t))]
-      [(-Fn● _ tag)
-       (match tag
-         [(cons o _) (list 'Fn● (if (string? o) (string->symbol o) o))]
-         ['† (list 'Fn● '†)])]
+      [(-Fn● _ tag) (list 'Fn● (strip-tag tag))]
       [V (error 'strip-V "~a not expected" V)]))
+
+  (: strip-tag : HV-Tag → Symbol)
+  (define (strip-tag tag)
+    (match tag
+      [(cons o _) (if (string? o) (string->symbol o) o)]
+      ['† '†]))
 
   (define get-ℓ : ((-maybe-var -⟪α⟫ℓ) → (-maybe-var ℓ))
     (match-lambda
