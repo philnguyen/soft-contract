@@ -111,7 +111,18 @@
                                  (cond [(-α.hv? α) ∅]
                                        [else (error 'σ@ "nothing at ~a" α)])))))])))
 
-    (: σ@/list : (U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))
+  (: σ@/cache : (U -Σ -σ) -φ ⟪α⟫ → (Listof (Pairof -V^ -φ)))
+  (define (σ@/cache Σ φ α)
+    (match-define (-φ Γ δσ) φ)
+    (define V^ (σ@ Σ δσ α))
+    (if (and (> (set-count V^) 1)
+             (cachable? (if (-Σ? Σ) (-Σ-σ Σ) Σ) δσ α))
+        (for/list : (Listof (Pairof -V^ -φ)) ([V (in-set V^)])
+          (define Vᵢ {set V})
+          (cons Vᵢ (-φ Γ (hash-set δσ α Vᵢ))))
+        (list (cons V^ φ))))
+  
+  (: σ@/list : (U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))
   ;; Look up store at address list
   (define (σ@/list Σ δσ ⟪α⟫s)
     (for/list ([α (in-list ⟪α⟫s)])
@@ -234,5 +245,9 @@
       [(-α.hv? α) 'N]
       [(hash-has-key? σ ⟪α⟫) 'N]
       [(hash-has-key? δσ ⟪α⟫) 1]
-      [else 0])) 
+      [else 0]))
+
+  (: cachable? : -σ -δσ ⟪α⟫ → Boolean)
+  (define (cachable? σ δσ α)
+    (equal? 1 (cardinality σ δσ α)))
   )

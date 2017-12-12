@@ -334,7 +334,9 @@
            (match Vₓ
              [(-St 𝒾* αs)
               #:when (𝒾* . substruct? . 𝒾)
-              (⟦k⟧ (list (σ@ Σ (-φ-cache φ) (list-ref αs i))) H φ Σ)]
+              (for/union : (℘ -ς) ([V-φ (in-list (σ@/cache Σ φ (list-ref αs i)))])
+                (match-define (cons V^ φ*) V-φ)
+                (⟦k⟧ (list V^) H φ* Σ))]
              [(-St* (-St/C _ 𝒾* αℓs) α ctx)
               #:when (𝒾* . substruct? . 𝒾)
               (define V^  (σ@ Σ (-φ-cache φ) α))

@@ -328,6 +328,7 @@
    [bind-args : (-Σ -ρ ℓ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
    [alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    [σ@ : ((U -Σ -σ) -δσ ⟪α⟫ → -V^)]
+   [σ@/cache : ((U -Σ -σ) -φ ⟪α⟫ → (Listof (Pairof -V^ -φ)))]
    [σ@/list : ((U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))]
    [defined-at? : ((U -Σ -σ) -δσ ⟪α⟫ → Boolean)]
    [⟪α⟫ₒₚ : ⟪α⟫]
@@ -359,7 +360,6 @@
    [blm-arity : (ℓ -l Arity (Listof -V^) → -blm)]
    [predicates-of-V : (-V → (℘ -h))]
    [estimate-list-lengths : (-σ -δσ -V → (℘ (U #f Arity)))]
-   [decompose : ((Listof -V^) → (Listof (Listof -V^)))]
    ))
 
 (define-signature unify^

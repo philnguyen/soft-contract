@@ -231,12 +231,13 @@
     (remember-e!
      (-x x ℓₓ)
      (λ (ρ H φ Σ ⟦k⟧)
-       (define V^ (σ@ Σ (-φ-cache φ) (ρ@ ρ x)))
-       (define (on-ok) (⟦k⟧ {list (set-remove V^ -undefined)} H φ Σ))
-       (define (on-er) (⟦k⟧ -blm.undefined H φ Σ))
-       (if (∋ V^ -undefined)
-           (∪ (on-ok) (on-er))
-           (on-ok)))))
+       (for/union : (℘ -ς) ([V-φ (in-list (σ@/cache Σ φ (ρ@ ρ x)))])
+          (match-define (cons V^ φ*) V-φ)
+          (define (on-ok) (⟦k⟧ {list (set-remove V^ -undefined)} H φ* Σ))
+          (define (on-er) (⟦k⟧ -blm.undefined H φ* Σ))
+          (if (∋ V^ -undefined)
+              (∪ (on-ok) (on-er))
+              (on-ok))))))
 
   (define/memo (mk-mon [ctx : -ctx] [⟦c⟧ : -⟦e⟧] [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
     (λ (ρ H φ Σ ⟦k⟧)
