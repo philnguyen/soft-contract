@@ -215,7 +215,8 @@
                  [_ #f]))])
         (cond
           [no-return? (absurd∷ ⟦k⟧)]
-          [(and (match? ranges (list (-● (== {set 'boolean?}))))
+          [(and (null? refinements)
+                (equal? 'boolean? (hash-ref range-table o #f))
                 (andmap symbol? (map (inst car -V Any) doms)))
            (implement-predicate∷ o ⟦k⟧)]
           [else
