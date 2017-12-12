@@ -187,4 +187,13 @@
         [a {set a}]))
     (if maybe-non-proper-list? (set-add res #f) res))
 
+  (: decompose : (Listof -V^) → (Listof (Listof -V^)))
+  (define (decompose V^s)
+    (match V^s
+      ['() '(())]
+      [(cons V^ V^s*)
+       (define rests (decompose V^s*))
+       (for*/list : (Listof (Listof -V^)) ([V₁ (in-set V^)] [Vᵣs (in-list rests)])
+         (cons {set V₁} Vᵣs))]))
+
   )

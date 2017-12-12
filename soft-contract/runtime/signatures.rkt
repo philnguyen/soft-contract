@@ -359,6 +359,7 @@
    [blm-arity : (ℓ -l Arity (Listof -V^) → -blm)]
    [predicates-of-V : (-V → (℘ -h))]
    [estimate-list-lengths : (-σ -δσ -V → (℘ (U #f Arity)))]
+   [decompose : ((Listof -V^) → (Listof (Listof -V^)))]
    ))
 
 (define-signature unify^
