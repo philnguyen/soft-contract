@@ -170,7 +170,7 @@
            (if (symbol? x)
                (λ ([ρ : -ρ]) (ρ@ ρ x))
                (const (-α->⟪α⟫ x)))]]
-         [(-error msg ℓ) #:reduce (mk-A (blm/simp (ℓ-src ℓ) 'Λ '() (list {set (-b msg)}) ℓ))]
+         [(-error msg ℓ) #:reduce (mk-A (blm/simp (ℓ-src ℓ) 'Λ '(not-reached) (list {set (-b msg)}) ℓ))]
          [(-μ/c x (:↓ ⟦c⟧))
           (⟦c⟧ (ρ+ ρ x (-α->⟪α⟫ (-α.x/c x H))) H φ Σ (μ/c∷ x ⟦k⟧))]
          [(--> dom (:↓ ⟦d⟧) ℓ)
