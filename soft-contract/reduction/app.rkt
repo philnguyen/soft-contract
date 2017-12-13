@@ -27,9 +27,11 @@
     (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
       (define-values (H* looped?) (H+ H (-edge (strip-fn Vₕ) ℓ)))
       (define ⟦k⟧* (restore-ctx∷ H ⟦k⟧))
+      (define αₖ
+        (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s ℓ) φ)])
+          (if (-o? Vₕ) αₖ (σₖ+! Σ αₖ ⟦k⟧*))))
       (if looped?
-          (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s ℓ) φ)])
-            {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))})
+          {set (-ς↑ αₖ)}
           (app₁ ℓ Vₕ Vₓ^s H* φ Σ ⟦k⟧*))))
 
   (: app₁ : ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
