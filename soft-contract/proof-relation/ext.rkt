@@ -93,7 +93,7 @@
        (match-define-values (do-args env*) (⦃ts⦄ ts Ts env))
        (values (λ () (apply o ((list-M do-args)))) env*)]
       [else
-       (define x (gensym 'exi-))
+       (define x (gen-name/memo (-t.@ h ts) #:tag 'exi))
        (values (λ () (val-of x)) (hash-set env x (⦃T⦄ T)))]))
 
   (: ⦃Γ⦄ : -Γ Env → (Values (Listof (M Z3-Ast)) Env))
@@ -160,6 +160,12 @@
               ([ts (in-hash-keys Γ)]
                #:when (set-empty? (set-intersect (t-names (-t.@ 'values ts)) dom*)))
       (hash-remove Γ ts)))
+
+  (: gen-name/memo ([-t] [#:tag Symbol] . ->* . Symbol))
+  (define gen-name/memo
+    (let ([m : (HashTable (Pairof Symbol -t) Symbol) (make-hash)])
+      (λ ([t : -t] #:tag [tag 'exi])
+        (hash-ref! m (cons tag t) (λ () (gensym (format-symbol "~a-" tag)))))))
 
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
