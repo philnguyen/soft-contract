@@ -138,7 +138,7 @@
       (define ⟦k⟧ (rt αₖ))
       (match-define (-αₖ H bl φ) αₖ)
       (match bl
-        [(-B Vₕ Vₓs ℓ) (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧)]
+        [(-B Vₕ Vₓs ℓ) (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧ #:switched? #t)]
         [(-M ctx C V) (mon ctx C V H φ Σ ⟦k⟧)]
         [(-F l ℓ C V) (flat-chk l ℓ C V H φ Σ ⟦k⟧)]
         [(-HV tag) (havoc tag φ Σ ⟦k⟧)]

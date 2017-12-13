@@ -34,10 +34,10 @@
           {set (-ς↑ αₖ)}
           (app₁ ℓ Vₕ Vₓ^s H* φ Σ ⟦k⟧*))))
 
-  (: app₁ : ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧)
+  (: app₁ ([ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧] [#:switched? Boolean] . ->* . (℘ -ς)))
+  (define (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧ #:switched? [switched? #f])
     (define l (ℓ-src ℓ))
-    (define σ (-Σ-σ Σ))
+    (define σ (-Σ-σ Σ)) 
 
     (: blm-arity : Arity Natural → -blm)
     (define (blm-arity required provided)
@@ -99,7 +99,7 @@
       [(? symbol? o) ((get-prim o) ℓ Vₓs H φ Σ ⟦k⟧)]
       [(-Clo xs ⟦e⟧ ρ)
        (with-guarded-arity (shape xs)
-         ((app-clo xs ⟦e⟧ ρ) ℓ Vₓs H φ Σ ⟦k⟧))]
+         ((app-clo xs ⟦e⟧ ρ #:switched? switched?) ℓ Vₓs H φ Σ ⟦k⟧))]
       [(? -Case-Clo?)
        ((app-Case-Clo Vₕ) ℓ Vₓs H φ Σ ⟦k⟧)]
       [(-Ar C α ctx)
@@ -160,10 +160,25 @@
        (define blm (blm/simp l 'Λ (list 'procedure?) (list {set Vₕ}) ℓ))
        (⟦k⟧ blm H φ Σ)]))
 
-  (: app-clo : -formals -⟦e⟧ -ρ → -⟦f⟧)
-  (define ((app-clo xs ⟦e⟧ ρ) ℓ Vₓs H φ Σ ⟦k⟧)
+  (: app-clo ([-formals -⟦e⟧ -ρ] [#:switched? Boolean] . ->* . -⟦f⟧))
+  (define ((app-clo xs ⟦e⟧ ρ #:switched? [switched? #f]) ℓ Vₓs H φ Σ ⟦k⟧)
     (define-values (ρ* φ*) (bind-args Σ ρ ℓ H φ xs Vₓs))
-    (⟦e⟧ ρ* H φ* Σ ⟦k⟧))
+    (define ⟦k⟧*
+      (if switched?
+          (let* ([overlap
+                  (for/seteq: : (℘ ⟪α⟫) ([α (in-hash-values ρ*)]
+                                         #:when (hash-has-key? (-φ-cache φ) α))
+                    α)]
+                 [δσ
+                  (for*/hasheq : -δσ ([α : ⟪α⟫ (in-set overlap)])
+                    (values α (hash-ref (-φ-cache φ) α)))]
+                 [deps
+                  (for/fold ([deps : -δσ (span-δσ Σ (-φ-cache φ) overlap)])
+                            ([α (in-set overlap)])
+                    (hash-remove deps α))])
+            (maybe-unshadow∷ δσ deps ⟦k⟧))
+          ⟦k⟧))
+    (⟦e⟧ ρ* H φ* Σ ⟦k⟧*))
 
   (: app-Case-Clo : -Case-Clo → -⟦f⟧)
   (define ((app-Case-Clo cases) ℓ Vₓs H φ Σ ⟦k⟧)

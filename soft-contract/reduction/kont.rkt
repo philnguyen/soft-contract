@@ -25,7 +25,7 @@
 
 (define-unit kont@
   (import compile^ app^ mon^ fc^ proof-system^ memoize^ for-gc^ verifier^ havoc^ meta-functions^
-          val^ env^ sto^ pretty-print^ instr^ prim-runtime^ static-info^ path^
+          val^ env^ sto^ pretty-print^ instr^ prim-runtime^ static-info^ path^ widening^
           sat-result^ unify^
           (prefix q: local-prover^))
   (export kont^)
@@ -618,6 +618,22 @@
            (-φ (Γ+ Γₑᵣ m Γₑₑ) δσ)))
        (⟦k⟧ Vs H φ* Σ)))
 
+  (define-frame (maybe-unshadow∷ [δσ : -δσ] [dependencies : -δσ] [⟦k⟧ : -⟦k⟧])
+    (make-frame (⟦k⟧ A H φ Σ) #:roots ()
+      (define φ*
+        (match-let ([(-φ Γ δσ₀) φ])
+          (define δσ₁
+            (for/fold ([δσ* : -δσ δσ₀])
+                      ([(α V) (in-hash δσ)]
+                       #:unless (equal? 'N (cardinality (-Σ-σ Σ) δσ₀ α)))
+              (hash-set δσ* α V)))
+          (define δσ₂
+            (for/fold ([δσ* : -δσ δσ₁])
+                      ([(α V) (in-hash dependencies)])
+              (hash-update δσ* α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅)))
+          (-φ Γ δσ₂)))
+      (⟦k⟧ A H φ* Σ)))
+
   (: σₖ+! : -Σ -αₖ -⟦k⟧ → -αₖ)
   (define (σₖ+! Σ αₖ ⟦k⟧)
     (define Ξ  (-Σ-Ξ Σ))
@@ -625,7 +641,7 @@
     (match-define (-αₖ H Bl φ) αₖ)
     (define-values (Ξ* ⟦k⟧* αₖ*)
       (match (recall Ξ αₖ)
-        [(cons αₖ₀ m)
+        [(cons αₖ₀ m) 
          (values Ξ (rename∷ (Bij-bw m) (-φ-condition (-αₖ-path αₖ)) ⟦k⟧) αₖ₀)]
         [#f
          (define αₖ* (gc-αₖ Σ αₖ ⟦k⟧))

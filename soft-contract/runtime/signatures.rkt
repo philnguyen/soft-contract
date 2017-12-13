@@ -186,6 +186,8 @@
 ;;;;; Value address
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define-type Cardinality (U 0 1 'N))
+
 (-α . ::= . ; For wrapped top-level definition
             (-α.wrp -𝒾)
             ; for binding
@@ -338,7 +340,8 @@
    [⊥σₖ : -σₖ]
    [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
    [⊥σₐ : -σₐ]
-   [σₐ⊕! : (-Σ -αₖ (Listof -V^) → (Listof -V^))]
+   [σₐ⊕! : (-Σ -αₖ (Listof -V^) → (Listof -V^))] 
+   [cardinality : (-σ -δσ ⟪α⟫ → Cardinality)]
    ))
 
 (define-signature path^

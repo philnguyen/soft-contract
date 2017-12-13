@@ -236,7 +236,6 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Helpers
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define-type Cardinality (U 0 1 'N))
   (: cardinality : -σ -δσ ⟪α⟫ → Cardinality)
   (define (cardinality σ δσ ⟪α⟫)
     (define α (⟪α⟫->-α ⟪α⟫))

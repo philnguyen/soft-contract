@@ -79,6 +79,7 @@
    [implement-predicate∷ : (Symbol -⟦k⟧ → -⟦k⟧)]
    [absurd∷ : (-⟦k⟧ → -⟦k⟧)]
    [rename∷ : ((HashTable -t -t) -Γ -⟦k⟧ → -⟦k⟧)]
+   [maybe-unshadow∷ : (-δσ -δσ -⟦k⟧ → -⟦k⟧)]
    [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
    ;; Non-frame helpers
    [mk-=>i : (-Σ -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))]
@@ -86,7 +87,7 @@
 
 (define-signature app^
   ([app : (ℓ -V^ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))]
-   [app₁ : (ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))]
+   [app₁ : ([ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧] [#:switched? Boolean] . ->* . (℘ -ς))]
    [app/rest/unsafe : (ℓ -V (Listof -V^) -V -H -φ -Σ -⟦k⟧ → (℘ -ς))]))
 
 (define-signature mon^
