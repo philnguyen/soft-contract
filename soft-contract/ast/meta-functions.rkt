@@ -21,6 +21,7 @@
   (define (fv e)
     (match e
       [(-x x _) (if (symbol? x) {seteq x} ∅eq)]
+      [(-x/c x) {seteq x}]
       [(-λ xs e)
        (define bound
          (match xs
