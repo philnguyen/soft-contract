@@ -400,6 +400,7 @@
    [show-⟪α⟫ : (⟪α⟫ → Sexp)]
    [show-ρ : (-ρ → (Listof Sexp))]
    [show-renaming : ((U Uni (HashTable -t -t)) → (Listof Sexp))]
+   [dump-σ : ([-σ] [#:tag Any #:appendix? Boolean] . ->* . Void)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    [recall-e : (-⟦e⟧ → (Option -e))]
    [verbose? : (Parameterof Boolean)]

@@ -255,4 +255,14 @@
     (define m (if (Bij? uni) (Bij-fw uni) uni))
     (for/list ([(t₁ t₂) (in-hash m)])
       `(,(show-t t₁) ↔ ,(show-t t₂))))
+
+  (: dump-σ ([-σ] [#:tag Any #:appendix? Boolean] . ->* . Void))
+  (define (dump-σ σ #:tag [tag 'store] #:appendix? [appendix? #f])
+    (printf "~a:~n" tag)
+    (for ([(α V) (in-hash σ)])
+      (printf "* ~a ↦ ~a~n" (show-⟪α⟫ α) (show-V^ V)))
+    (when appendix?
+      (printf "where:~n")
+      (for ([α (in-hash-keys σ)])
+        (printf "* ~a ≡ ~a~n" (show-⟪α⟫ α) (⟪α⟫->-α α)))))
   )
