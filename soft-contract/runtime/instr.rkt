@@ -84,7 +84,14 @@
       [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -b?))) (list 'flat c)]
       [(? integer? t) (format-symbol "•~a" (n-sub t))]
       [(-Fn● _ tag) (list 'Fn● (strip-tag tag))]
+      [(-● ps) (list '● (show-ps ps))]
       [V (error 'strip-V "~a not expected" V)]))
+
+  (define show-ps : ((℘ -h) → (Listof Symbol))
+    ;; Cache to fix order
+    (let ([m : (HashTable (℘ -h) (Listof Symbol)) (make-hash)])
+      (λ (ps)
+        (hash-ref! m ps (λ () (set-map ps (λ ([h : -h]) (string->symbol (format "~a" (show-h h))))))))))
 
   (: strip-tag : HV-Tag → Symbol)
   (define (strip-tag tag)
