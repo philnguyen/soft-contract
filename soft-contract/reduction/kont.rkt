@@ -137,7 +137,7 @@
        (define-values (βs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc rngs))
        (define n (length rngs))
        (match-define (-ctx l+ _ lo ℓ) ctx)
-       (make-frame (⟦k⟧ A H φ Σ) #:roots (βs)
+       (make-frame (⟦k⟧ A H φ Σ) #:roots (rngs)
          (cond
            [(= n (length A))
             (match* ((σ@/list Σ (-φ-cache φ) βs) A ℓs)

@@ -109,19 +109,14 @@
   (define (⟦k⟧->⟪α⟫s ⟦k⟧ σₖ)
     (∪ (⟦k⟧->roots ⟦k⟧) (αₖ->⟪α⟫s (⟦k⟧->αₖ ⟦k⟧) σₖ)))
 
-  (: ->⟪α⟫s : (Rec X (U ⟪α⟫ -V -ρ (-var X) (Listof X) (℘ X))) → (℘ ⟪α⟫))
+  (: ->⟪α⟫s : (Rec X (U -⟪α⟫ℓ -V -ρ (Listof X) (℘ X))) → (℘ ⟪α⟫))
   (define (->⟪α⟫s x)
     (cond
-      [(-var? x)
-       (∪ (->⟪α⟫s (-var-rest x))
-          (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-list (-var-init x))]) (->⟪α⟫s xᵢ)))]
-      [(list? x)
-       (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-list x)]) (->⟪α⟫s xᵢ))]
-      [(set? x)
-       (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-set x)]) (->⟪α⟫s xᵢ))]
+      [(list? x) (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-list x)]) (->⟪α⟫s xᵢ))]
+      [(set? x) (for/unioneq : (℘ ⟪α⟫) ([xᵢ (in-set x)]) (->⟪α⟫s xᵢ))]
       [(-V? x) (V->⟪α⟫s x)]
       [(hash? x) (ρ->⟪α⟫s x)]
-      [else {seteq x}]))
+      [else {seteq (-⟪α⟫ℓ-addr x)}]))
 
   (: σ-equal?/spanning-root : -σ -σ (℘ ⟪α⟫) → Boolean)
   (define (σ-equal?/spanning-root σ₁ σ₂ root)
