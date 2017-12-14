@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=unstable)](https://travis-ci.org/philnguyen/soft-contract)
+
 Artifact for "Soft Contract Verification for Higher-order Stateful Programs"
 =============================================================
 
