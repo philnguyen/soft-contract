@@ -159,6 +159,12 @@
   (syntax-rules () [(_ h) (match h
                             ['values 'not]
                             ['not 'values]
+                            ['<= '>]
+                            ['< '>=]
+                            ['>= '<]
+                            ['> '<=]
+                            ['inexact? 'exact?]
+                            ['exact? 'inexact?]
                             [p (-not/c p)])]))
 
 (define-simple-macro (with-φ+/- ([(φ₁:id φ₂:id) e]) (~literal :) τ

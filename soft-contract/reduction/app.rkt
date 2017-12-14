@@ -444,7 +444,7 @@
         (for/fold ([φ : -φ φ]) ([V (in-list Vs)])
           (add-leak! tag Σ φ V)))
       (define αₖ (-αₖ H (-HV tag) φ*))
-      (define ⟦k⟧* (bgn0.e∷ (list {set (-● ∅)}) '() ⊥ρ ⟦k⟧))
+      (define ⟦k⟧* (bgn0.e∷ (list {set (fresh-sym!)}) '() ⊥ρ ⟦k⟧))
       {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧*))}))
 
   (: app/rest/unsafe : ℓ -V (Listof -V^) -V -H -φ -Σ -⟦k⟧ → (℘ -ς))

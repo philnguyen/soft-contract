@@ -83,6 +83,10 @@
        (define Ts #|TODO|# (make-list (length ts) 'Real))
        (match-define-values ((list ⦃t₁⦄ ⦃t₂⦄) env*) (⦃ts⦄ ts Ts env))
        (values (λ () (o (⦃t₁⦄) (⦃t₂⦄))) env*)]
+      [(zero?)
+       (match-define (list t) ts)
+       (match-define-values (⦃t⦄₁ env*) (⦃t⦄ t 'Real env))
+       (values (λ () (=/s (⦃t⦄₁) 0)) env*)]
       [(+ - *)
        (define o
          (case h

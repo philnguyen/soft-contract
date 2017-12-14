@@ -137,7 +137,7 @@
   ;; Calling out to solver when there's no need only hurts performance.
   ;; TODO: re-inspect this after recent rewrite
   (define should-call-smt?
-    (let ([difficult-hs {seteq '< '> '<= '>= '= 'equal? 'eq? 'eqv?}])
+    (let ([difficult-hs {seteq '< '> '<= '>= '= 'equal? 'eq? 'eqv? 'zero?}])
       (λ (Γ h Vs)
         (and
          (∋ difficult-hs h)
