@@ -486,6 +486,6 @@
       [(? integer?) #f]
       [V
        #:when (not (or (-Clo? V) (-Case-Clo? V))) ; to convince TR
-       (printf "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
+       (log-warning "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
        #f])) 
   )
