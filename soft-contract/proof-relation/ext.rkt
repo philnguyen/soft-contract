@@ -84,8 +84,7 @@
        (match-define-values ((list ⦃t₁⦄ ⦃t₂⦄) env*) (⦃ts⦄ ts Ts env))
        (values (λ () (o (⦃t₁⦄) (⦃t₂⦄))) env*)]
       [(zero?)
-       (match-define (list t) ts)
-       (match-define-values (⦃t⦄₁ env*) (⦃t⦄ t 'Real env))
+       (define-values (⦃t⦄₁ env*) (⦃t⦄ (car ts) 'Real env))
        (values (λ () (=/s (⦃t⦄₁) 0)) env*)]
       [(+ - *)
        (define o
@@ -96,6 +95,12 @@
        (define Ts #|TODO|# (make-list (length ts) 'Real))
        (match-define-values (do-args env*) (⦃ts⦄ ts Ts env))
        (values (λ () (apply o ((list-M do-args)))) env*)]
+      [(add1)
+       (define-values (⦃t⦄₁ env*) (⦃t⦄ (car ts) 'Real env))
+       (values (λ () (+/s (⦃t⦄₁) 1)) env*)]
+      [(sub1)
+       (define-values (⦃t⦄₁ env*) (⦃t⦄ (car ts) 'Real env))
+       (values (λ () (-/s (⦃t⦄₁) 1)) env*)]
       [else
        (define x (gen-name/memo (-t.@ h ts) #:tag 'exi))
        (values (λ () (val-of x)) (hash-set env x (⦃T⦄ T)))]))
