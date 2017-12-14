@@ -32,6 +32,7 @@ before_script:
 
 script:
  # Set up Z3 path
+ - ls /opt/python/
  - ls /opt/python/2.7.13/lib
  - export Z3_LIB="/opt/python/2.7.13/lib"
  # Install soft-contract
