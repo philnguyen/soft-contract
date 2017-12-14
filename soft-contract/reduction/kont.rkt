@@ -635,19 +635,19 @@
       (⟦k⟧ A H φ* Σ)))
 
   (: σₖ+! : -Σ -αₖ -⟦k⟧ → -αₖ)
-  (define (σₖ+! Σ αₖ ⟦k⟧)
+  (define (σₖ+! Σ αₖ₁ ⟦k⟧)
     (define Ξ  (-Σ-Ξ Σ))
     (define σₖ (-Σ-σₖ Σ))
-    (match-define (-αₖ H Bl φ) αₖ)
+    (define αₖ (gc-αₖ Σ αₖ₁ ⟦k⟧))
+    (match-define (-αₖ H _ φ) αₖ)
     (define-values (Ξ* ⟦k⟧* αₖ*)
       (match (recall Ξ αₖ)
         [(cons αₖ₀ m) 
-         (values Ξ (rename∷ (Bij-bw m) (-φ-condition (-αₖ-path αₖ)) ⟦k⟧) αₖ₀)]
+         (values Ξ (rename∷ (Bij-bw m) (-φ-condition φ) ⟦k⟧) αₖ₀)]
         [#f
-         (define αₖ* (gc-αₖ Σ αₖ ⟦k⟧))
-         (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ* ctxs)) (λ () '()))
+         (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ ctxs)) (λ () '()))
                  ⟦k⟧
-                 αₖ*)]))
+                 αₖ)]))
     (define σₖ* (hash-update σₖ αₖ* (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧*)) mk-∅))
     (set--Σ-σₖ! Σ σₖ*)
     (set--Σ-Ξ!  Σ Ξ* )
