@@ -107,12 +107,12 @@
   #;(test "safe/mochi/mem.rkt" (check 'Ok-pos 0 1))
   #;(test "safe/mochi/mc91.rkt" (check 'Ok-pos 0 1))
 
+  (test   "safe/misc" check-safe)
+  (test "unsafe/misc" check-fail)
+
   #|
   (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
-  
-  (test   "safe/misc" check-safe)
-  (test "unsafe/misc" check-fail)
 
   (test "paper/match.rkt" check-safe)
   (test "paper/match-no-check.rkt" check-safe)
