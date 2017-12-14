@@ -47,18 +47,27 @@
 
   (: φ⊑/m? : Uni -φ -φ → Boolean)
   (define (φ⊑/m? m φ₁ φ₂)
-    (and
-     #;(same-δσ? m (-φ-cache φ₁) (-φ-cache φ₂))
-     (let go ([maps : (Listof (Pairof -t -t)) (hash->list (Bij-fw m))]
-              [Γ₁ : -Γ (-φ-condition φ₁)]
-              [Γ₂ : -Γ (-φ-condition φ₂)])
-       (match maps
-         [(cons (cons s₁ s₂) maps*)
-          (and (equal? (hash-ref Γ₁ (list s₁) #f) (hash-ref Γ₂ (list s₂) #f))
-               (go maps* (hash-remove Γ₁ (list s₁)) (hash-remove Γ₂ (list s₂))))]
-         ['()
-          (for/and : Boolean ([(ts ps) (in-hash Γ₂)])
-            (equal? ps (hash-ref Γ₁ ts #f)))]))))
+    (match-define (-φ Γ₁ δσ₁) φ₁)
+    (match-define (-φ Γ₂ δσ₂) φ₂)
+    (and (σ⊑/m? m δσ₁ δσ₂) (Γ⊑/m? m Γ₁ Γ₂)))
+
+  (: Γ⊑/m? : Uni -Γ -Γ → Boolean)
+  (define (Γ⊑/m? m Γ₁ Γ₂)
+    (let go ([maps : (Listof (Pairof -t -t)) (hash->list (Bij-fw m))]
+             [Γ₁ : -Γ Γ₁]
+             [Γ₂ : -Γ Γ₂])
+      (match maps
+        [(cons (cons s₁ s₂) maps*)
+         (and (equal? (hash-ref Γ₁ (list s₁) #f) (hash-ref Γ₂ (list s₂) #f))
+              (go maps* (hash-remove Γ₁ (list s₁)) (hash-remove Γ₂ (list s₂))))]
+        ['()
+         (for/and : Boolean ([(ts ps) (in-hash Γ₂)])
+           (equal? ps (hash-ref Γ₁ ts #f)))])))
+
+  (: σ⊑/m? : Uni -σ -σ → Boolean)
+  (define (σ⊑/m? m σ₁ σ₂)
+    (for/and : Boolean ([(α V) (in-hash σ₁)])
+      (and (unify-V^ m V (hash-ref σ₂ α mk-∅)) #t)))
 
   (: rename-V^ : (HashTable -t -t) -V^ → -V^)
   (define (rename-V^ m V^)
