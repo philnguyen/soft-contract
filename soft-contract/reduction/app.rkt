@@ -25,7 +25,10 @@
   (: app : ℓ -V^ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (app ℓ Vₕ^ Vₓ^s H φ Σ ⟦k⟧)
     (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
-      (define-values (H* looped?) (H+ H (-edge (strip-fn Vₕ) ℓ)))
+      (define-values (H* looped?)
+        (if (or (-Clo? Vₕ) (-Ar? Vₕ))
+            (H+ H (-edge (strip-fn Vₕ) ℓ))
+            (values H #f)))
       (define ⟦k⟧* (restore-ctx∷ H ⟦k⟧))
       (define αₖ
         (let ([αₖ (-αₖ H* (-B Vₕ Vₓ^s ℓ) φ)])
@@ -37,7 +40,7 @@
   (: app₁ ([ℓ -V (Listof -V^) -H -φ -Σ -⟦k⟧] [#:switched? Boolean] . ->* . (℘ -ς)))
   (define (app₁ ℓ Vₕ Vₓs H φ Σ ⟦k⟧ #:switched? [switched? #f])
     (define l (ℓ-src ℓ))
-    (define σ (-Σ-σ Σ)) 
+    (define σ (-Σ-σ Σ))
 
     (: blm-arity : Arity Natural → -blm)
     (define (blm-arity required provided)
