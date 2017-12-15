@@ -159,6 +159,8 @@
              (match t
                [(-t.@ (or 'add1 'sub1 '+ '- '*) ts) (or (ormap go ts) 'Real)]
                [(-t.@ '/ _) 'Real]
+               [(-t.@ (? -st-p?) _) 'Bool]
+               [(-t.@ (-not/c _) _) 'Bool]
                [(-t.@ (? symbol? o) _)
                 (case (get-conservative-range o)
                   [(boolean?) 'Bool]
