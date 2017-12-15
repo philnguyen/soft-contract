@@ -21,7 +21,7 @@
 (define-type (M T) (→ T))
 
 (define-unit external-prover@
-  (import static-info^ for-gc^ pretty-print^ path^ sto^)
+  (import static-info^ for-gc^ pretty-print^ path^ sto^ prims^)
   (export external-prover^)
 
   (: p∋V : -Γ -h (Listof -V) → -R)
@@ -37,12 +37,12 @@
        (define-values (do-base do-target) (translate Γ p Vs))
        (case (run (do do-base
                       (λ () (assert! (do-target)))
-                      check-sat))
+                    check-sat))
          [(unsat) '✗]
          [(sat unknown)
           (case (run (do do-base
                          (λ () (assert-not! (do-target)))
-                         check-sat))
+                       check-sat))
             [(unsat) '✓]
             [(sat unknown) '?])])]
       [else '?]))
@@ -59,7 +59,7 @@
 
   (: translate : -Γ Handled-Pred (Listof -t) → (Values (M Void) (M Z3-Ast)))
   (define (translate Γ p ts)
-    (define-values (tgt    env₁) (⦃t@⦄ p ts 'Bool (hasheq)))
+    (define-values (tgt    env₁) (⦃t@⦄ Γ p ts (hasheq)))
     (define-values (do-bse env₂) (⦃Γ⦄ (span Γ (t-names (-t.@ p ts))) env₁))
     (define do-decl
       (λ ()
@@ -69,8 +69,8 @@
           (assert! (ast)))))
     (values do-decl tgt))
 
-  (: ⦃t@⦄ : -h (Listof -t) Type Env → (Values (M Z3-Ast) Env))
-  (define (⦃t@⦄ h ts T env)
+  (: ⦃t@⦄ : -Γ -h (Listof -t) Env → (Values (M Z3-Ast) Env))
+  (define (⦃t@⦄ Γ h ts env)
     (case h
       [(< <= > >= =)
        (define o
@@ -80,11 +80,10 @@
            [(>) >/s]
            [(>=) >=/s]
            [(=) =/s]))
-       (define Ts #|TODO|# (make-list (length ts) 'Real))
-       (match-define-values ((list ⦃t₁⦄ ⦃t₂⦄) env*) (⦃ts⦄ ts Ts env))
+       (match-define-values ((list ⦃t₁⦄ ⦃t₂⦄) env*) (⦃ts⦄ Γ ts env))
        (values (λ () (o (⦃t₁⦄) (⦃t₂⦄))) env*)]
       [(zero?)
-       (define-values (⦃t⦄₁ env*) (⦃t⦄ (car ts) 'Real env))
+       (define-values (⦃t⦄₁ env*) (⦃t⦄ Γ (car ts) env))
        (values (λ () (=/s (⦃t⦄₁) 0)) env*)]
       [(+ - *)
        (define o
@@ -92,17 +91,17 @@
            [(+) +/s]
            [(-) -/s]
            [(*) */s]))
-       (define Ts #|TODO|# (make-list (length ts) 'Real))
-       (match-define-values (do-args env*) (⦃ts⦄ ts Ts env))
+       (match-define-values (do-args env*) (⦃ts⦄ Γ ts env))
        (values (λ () (apply o ((list-M do-args)))) env*)]
       [(add1)
-       (define-values (⦃t⦄₁ env*) (⦃t⦄ (car ts) 'Real env))
+       (define-values (⦃t⦄₁ env*) (⦃t⦄ Γ (car ts) env))
        (values (λ () (+/s (⦃t⦄₁) 1)) env*)]
       [(sub1)
-       (define-values (⦃t⦄₁ env*) (⦃t⦄ (car ts) 'Real env))
+       (define-values (⦃t⦄₁ env*) (⦃t⦄ Γ (car ts) env))
        (values (λ () (-/s (⦃t⦄₁) 1)) env*)]
       [else
        (define x (gen-name/memo (-t.@ h ts) #:tag 'exi))
+       (define T (get-type Γ (-t.@ h ts)))
        (values (λ () (val-of x)) (hash-set env x (⦃T⦄ T)))]))
 
   (: ⦃Γ⦄ : -Γ Env → (Values (Listof (M Z3-Ast)) Env))
@@ -110,40 +109,64 @@
     (for*/fold ([assertions : (Listof (M Z3-Ast)) '()] [env : Env env])
                ([(ts ps) (in-hash Γ)]
                 [p (in-set ps)])
-      (define T #|TODO|# 'Bool)
-      (define-values (asst env*) (⦃t@⦄ p ts T env))
+      (define-values (asst env*) (⦃t@⦄ Γ p ts env))
       (values (cons asst assertions) env*)))
 
-  (: ⦃t⦄ : -t Type Env → (Values (M Z3-Ast) Env))
-  (define (⦃t⦄ t T env)
+  (: ⦃t⦄ : -Γ -t Env → (Values (M Z3-Ast) Env))
+  (define (⦃t⦄ Γ t env)
     (match t
       [(? exact-integer? x)
        (define z (⦃x⦄ x))
-       (values (λ () (val-of z)) (hash-set env z (⦃T⦄ T)))]
-      [(-b b) (values (⦃b⦄ b T) env)]
-      [(-t.@ o ts) (⦃t@⦄ o ts #|TODO|# 'Real env)]))
+       (values (λ () (val-of z)) (hash-set env z (⦃T⦄ (get-type Γ x))))]
+      [(-b b) (values (⦃b⦄ b) env)]
+      [(-t.@ o ts) (⦃t@⦄ Γ o ts env)]))
 
-  (: ⦃ts⦄ : (Listof -t) (Listof Type) Env → (Values (Listof (M Z3-Ast)) Env))
-  (define (⦃ts⦄ ts Ts env)
+  (: ⦃ts⦄ : -Γ (Listof -t) Env → (Values (Listof (M Z3-Ast)) Env))
+  (define (⦃ts⦄ Γ ts env)
     (define-values (⦃ts⦄-rev env*)
       (for/fold ([⦃ts⦄-rev : (Listof (M Z3-Ast)) '()] [env : Env env])
-                ([tᵢ (in-list ts)] [Tᵢ (in-list Ts)])
-        (define-values (⦃t⦄ᵢ env*) (⦃t⦄ tᵢ Tᵢ env))
+                ([tᵢ (in-list ts)])
+        (define-values (⦃t⦄ᵢ env*) (⦃t⦄ Γ tᵢ env))
         (values (cons ⦃t⦄ᵢ ⦃ts⦄-rev) env*)))
     (values (reverse ⦃ts⦄-rev) env*))
 
-  (: ⦃b⦄ : Base Type → (M Z3-Ast))
-  (define (⦃b⦄ b t)
-    (match* (t b)
-      [('Int (? exact-integer? b))
+  (: ⦃b⦄ : Base → (M Z3-Ast))
+  (define ⦃b⦄
+    (match-lambda
+      [(? exact-integer? b)
        (λ () (mk-numeral (get-context) (number->string b) Int/s))]
-      [('Real (? real? b))
+      [(? real? b)
        (λ () (mk-numeral (get-context) (number->string b) Real/s))]
-      [(_ _)
-       (error '⦃b⦄ "unsupported base value: ~a of ~a" b t)]))
+      [b (error '⦃b⦄ "unsupported base value: ~a of ~a" b)]))
 
   (: ⦃x⦄ : Integer → Symbol)
   (define (⦃x⦄ x) (format-symbol "x-~a" x))
+
+  (: get-type : -Γ -t → Type)
+  (define (get-type Γ t)
+    (or (let go : (Option Type) ([t : -t t])
+          (match (hash-ref Γ (list t) #f)
+            [(? set? ps)
+             (cond
+               [(not (set-empty? (∩ ps {set 'integer? 'exact-integer? 'exact-nonnegative-integer? 'exact-positive-integer?})))
+                'Int]
+               [(not (set-empty? (∩ ps {set 'real? 'inexact-real? 'float?})))
+                'Real]
+               [(not (set-empty? (∩ ps {set 'not 'boolean?})))
+                'Bool]
+               [else #f])]
+            [#f
+             (match t
+               [(-t.@ (or 'add1 'sub1 '+ '- '*) ts) (or (ormap go ts) 'Real)]
+               [(-t.@ '/ _) 'Real]
+               [(-t.@ (? symbol? o) _)
+                (case (get-conservative-range o)
+                  [(boolean?) 'Bool]
+                  [(integer? exact-integer? exact-nonnegative-integer? exact-positive-integer?) 'Int]
+                  [(real? inexact-real?) 'Real]
+                  [else #f])]
+               [_ #f])]))
+        (error 'get-type "cannot determine ~a's type in ~a" (show-t t) (show-Γ Γ))))
 
   (define/memoeq (⦃T⦄ [T : Type]) : (M Smt-Sort-Expr)
     (case T
