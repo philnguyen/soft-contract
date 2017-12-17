@@ -104,7 +104,7 @@
   (test "safe/mochi/reverse.rkt" check-safe)
   #;(test "safe/mochi/sum.rkt" check-safe)
   (test "safe/mochi/zip.rkt" check-safe)
-  #;(test "safe/mochi/mem.rkt" (check 'Ok-pos 0 1))
+  (test "safe/mochi/mem.rkt" check-safe)
   #;(test "safe/mochi/mc91.rkt" (check 'Ok-pos 0 1))
 
   (test   "safe/misc" check-safe)
