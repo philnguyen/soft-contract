@@ -253,7 +253,7 @@
               (for*/set: : (℘ (Listof -t)) ([t₁ (in-set V)] [tᵣ (in-set rst)])
                 (cons (assert t₁ -t?) tᵣ))])))
        (for/set: : (℘ -t) ([arg (in-set args)])
-         (-t.@ o arg))]
+         (t.@/simp o arg))]
       [else
        {set (-● ps)}]))
 
@@ -264,4 +264,11 @@
 
   (define mk-⟪α⟫ℓ : ((Pairof -U ℓ) → -⟪α⟫ℓ)
     (match-lambda [(cons V ℓ) (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm V)) ℓ)]))
+
+  (: t.@/simp : -o (Listof -t) → -t)
+  (define t.@/simp
+    (match-lambda**
+     [('+ (list (? -b? b) (-t.@ '- (list t b)))) t]
+     [('= (list t t)) -tt]
+     [(o ts) (-t.@ o ts)]))
   )
