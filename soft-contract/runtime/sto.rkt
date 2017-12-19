@@ -29,8 +29,8 @@
     (define V*
       (case (cardinality σ δσ α)
         [(0) V]
-        [(1) (V⊕ (hash-ref δσ α mk-∅) V)]
-        [(N) (V⊕ (hash-ref  σ α mk-∅) V)]))
+        [(1) (V⊕ (-Σ-σ Σ) φ (hash-ref δσ α mk-∅) V)]
+        [(N) (V⊕ (-Σ-σ Σ) φ (hash-ref  σ α mk-∅) V)]))
     (-φ (-φ-condition φ) (hash-set δσ α V*)))
 
   (: alloc* : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
@@ -44,7 +44,7 @@
     (define δσ (-φ-cache φ))
     (case (cardinality σ δσ α)
       [(0 1) (-φ (-φ-condition φ) (hash-set δσ α V))]
-      [(N) (define (upd [m : -σ]) (hash-update m α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅))
+      [(N) (define (upd [m : -σ]) (hash-update m α (λ ([V₀ : -V^]) (V⊕ σ φ V₀ V)) mk-∅))
            (set--Σ-σ! Σ (upd σ))
            (-φ (-φ-condition φ) (upd δσ))]))
 
@@ -206,16 +206,17 @@
 
   (define ⊥σₐ : -σₐ (hasheq))
 
-  (: σₐ⊕! : -Σ -αₖ (Listof -V^) → (Listof -V^))
-  (define (σₐ⊕! Σ αₖ Vs)
+  (: σₐ⊕! : -Σ -φ -αₖ (Listof -V^) → (Listof -V^))
+  (define (σₐ⊕! Σ φ αₖ Vs)
     (define σₐ (-Σ-σₐ Σ))
-    (define-values (σₐ* Vs*) (σₐ⊕ σₐ αₖ Vs))
+    (define-values (σₐ* Vs*) (σₐ⊕ Σ φ αₖ Vs))
     (set--Σ-σₐ! Σ σₐ*)
     Vs*)
 
-  (: σₐ⊕ : -σₐ -αₖ (Listof -V^) → (Values -σₐ (Listof -V^)))
-  (define (σₐ⊕ σₐ αₖ Vs)
+  (: σₐ⊕ : -Σ -φ -αₖ (Listof -V^) → (Values -σₐ (Listof -V^)))
+  (define (σₐ⊕ Σ φ αₖ Vs)
     (define n (length Vs))
+    (match-define (-Σ σ _ σₐ _) Σ)
     (define As (hash-ref σₐ αₖ mk-∅))
     (define ?Vs₀
       (for/or : (Option (Listof -V^)) ([Vs₀ (in-set As)]
@@ -223,10 +224,14 @@
                                        #:when (andmap (λ ([V₁^ : -V^] [V₂^ : -V^])
                                                         (and (= 1 (set-count V₁^))
                                                              (= 1 (set-count V₂^))
-                                                             (compat? (set-first V₁^) (set-first V₂^))))
+                                                             (compat? σ φ (set-first V₁^) (set-first V₂^))))
                                                       Vs₀ Vs))
         Vs₀))
-    (define Vs* (if ?Vs₀ (map V⊕ ?Vs₀ Vs) Vs))
+    (define Vs*
+      (if ?Vs₀
+          (for/list : (Listof -V^) ([V₀ (in-list ?Vs₀)] [V (in-list Vs)])
+            (V⊕ σ φ V₀ V))
+          Vs))
     (define σₐ* (hash-update σₐ αₖ
                              (λ ([As : (℘ (Listof -V^))]) (set-add As Vs*))
                              mk-∅))

@@ -152,7 +152,7 @@
     (for/union : (℘ -ς) ([ς (in-list ςs)])
       (match-define (-ς↓ αₖₑₑ A φ) ς)
       (define H (-αₖ-instr αₖₑₑ))
-      (define A* (σₐ⊕! Σ αₖₑₑ A))
+      (define A* (σₐ⊕! Σ φ αₖₑₑ A))
       (for/union : (℘ -ς) ([⟦k⟧ (in-set (σₖ@ σₖ αₖₑₑ))])
         (⟦k⟧ A* H φ Σ))))
 

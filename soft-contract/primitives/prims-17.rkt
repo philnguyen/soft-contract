@@ -59,7 +59,7 @@
                      ([αᵢ (in-list ⟪α⟫s)]
                       [i : Natural (in-naturals)]
                       #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
-             (V⊕ Vₐ^ (σ@ Σ (-φ-cache φ) αᵢ))))
+             (V⊕ (-Σ-σ Σ) φ Vₐ^ (σ@ Σ (-φ-cache φ) αᵢ))))
          (⟦k⟧ (list Vₐ^) H φ Σ)]
         [(-St* (-St/C _ 𝒾 γℓs) αᵥ ctx)
          (define n (count-struct-fields 𝒾))

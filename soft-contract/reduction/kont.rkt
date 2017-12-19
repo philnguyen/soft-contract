@@ -596,7 +596,7 @@
                                   [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
                                   [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-      (define-values (refined-ranges φ*) (maybe-refine ranges (-Σ-σ Σ) φ cases A))
+                (define-values (refined-ranges φ*) (maybe-refine ranges (-Σ-σ Σ) φ cases A))
       (define ⟦k⟧* (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap ⟦k⟧) ⟦k⟧))
       (⟦k⟧* refined-ranges H φ* Σ)))
 
@@ -615,7 +615,19 @@
            (rename-V^ m V^)))
        (define φ*
          (match-let ([(-φ Γₑₑ δσ) φ])
-           (-φ (Γ+ Γₑᵣ m Γₑₑ) δσ)))
+           ;; "translate" callee's proposition into caller's
+           (define Γ₁ (Γ+ Γₑᵣ m Γₑₑ))
+           ;; result may share the same symbolic name, thus absent in `m`
+           (define Γ₂
+             (for*/fold ([Γ : -Γ Γ₁])
+                        ([V^ (in-list A)]
+                         [V (in-set V^)]
+                         #:when (-t? V)
+                         #:unless (hash-has-key? m (list V))
+                         [ps (in-value (hash-ref Γₑₑ (list V) #f))]
+                         #:when ps)
+               (hash-update Γ (list V) (λ ([ps₀ : (℘ -h)]) (∪ ps₀ ps)) mk-∅)))
+           (-φ Γ₂ δσ)))
        (⟦k⟧ Vs H φ* Σ)))
 
   (define-frame (maybe-unshadow∷ [δσ : -δσ] [dependencies : -δσ] [⟦k⟧ : -⟦k⟧])
@@ -630,7 +642,7 @@
           (define δσ₂
             (for/fold ([δσ* : -δσ δσ₁])
                       ([(α V) (in-hash dependencies)])
-              (hash-update δσ* α (λ ([V₀ : -V^]) (V⊕ V₀ V)) mk-∅)))
+              (hash-update δσ* α (λ ([V₀ : -V^]) (V⊕ (-Σ-σ Σ) φ V₀ V)) mk-∅)))
           (-φ Γ δσ₂)))
       (⟦k⟧ A H φ* Σ)))
 

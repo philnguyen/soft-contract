@@ -142,7 +142,7 @@
         [(set? V) (keep-behavioral V)]
         [else
          (for/fold ([V^ : -V^ ∅]) ([Vᵢ (in-list V)])
-           (V⊕ V^ (keep-behavioral Vᵢ)))]))
+           (V⊕ (-Σ-σ Σ) φ V^ (keep-behavioral Vᵢ)))]))
     (mut! Σ φ α V^))
   )
 
