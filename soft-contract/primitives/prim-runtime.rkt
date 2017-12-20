@@ -269,6 +269,11 @@
   (define t.@/simp
     (match-lambda**
      [('+ (list (? -b? b) (-t.@ '- (list t b)))) t]
+     [('+ (list (-b 0) t)) t]
+     [('+ (list t (-b 0))) t]
+     [('- (list t (-b 0))) t]
+     [('* (list t (-b 1))) t]
+     [('* (list (-b 1) t)) t]
      [('= (list t t)) -tt]
      [(o ts) (-t.@ o ts)]))
   )
