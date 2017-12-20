@@ -44,9 +44,9 @@
       [(-b b) (show-b b)]
       [(-t.@ h ts) `(,(show-h h) ,@(map show-t ts))]))
 
-  (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
-    (for/list ([(ts ps) (in-hash Γ)])
-      `(,(map show-t ts) ∈ ,(set-map ps show-h))))
+  (define (show-Γ [Γ : -Γ])
+    (for*/list : (Listof Sexp) ([(ts ps) (in-hash Γ)] [p (in-set ps)])
+      `(,(show-h p) ,@(map show-t ts))))
 
   (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
     (for/list ([(αₖ ⟦k⟧s) σₖ])
