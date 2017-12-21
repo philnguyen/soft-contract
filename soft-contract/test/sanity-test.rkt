@@ -38,6 +38,11 @@
     [(and (implies lo (<= lo n)) (implies hi (<= n hi)))
      #;(printf "  ✓ ~a~n" msg)]
     [else
+     (begin
+       (printf "fail on ~a~n" msg)
+       (printf "got ~a errors:~n" n)
+       (for ([blm (in-set errors)])
+         (printf "- ~a~n" blm)))
      (fail
      (format "Expect numberof blames in range ⟨~a,~a⟩, got ~a" (or lo '-∞) (or hi '+∞) n))]))
 
@@ -102,7 +107,7 @@
   (test "safe/mochi/r-lock.rkt" check-safe)
   (test "safe/mochi/repeat.rkt" check-safe)
   (test "safe/mochi/reverse.rkt" check-safe)
-  #;(test "safe/mochi/sum.rkt" check-safe)
+  (test "safe/mochi/sum.rkt" check-safe)
   (test "safe/mochi/zip.rkt" check-safe)
   (test "safe/mochi/mem.rkt" check-safe)
   (test "safe/mochi/mc91.rkt" (check 'Ok-pos 0 1))

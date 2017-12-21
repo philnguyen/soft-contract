@@ -59,11 +59,8 @@
        char? boolean?
        regexp? pregexp? byte-regexp? byte-pregexp?)]
      [((? -b? b) (-● ps))
-      (define ps*
-        (let ([ps₀ (for/set: : (℘ -h) ([p (in-set ps)] #:when (equal? '✓ (p∋V^ ⊥σ φ₀ p {set b})))
-                     p)])
-          ps₀ #;(ps⊕ σ φ ps₀ {set (-≡/c b)})))
-      (and (not (set-empty? ps)) ps*)]
+      (define ps* (ps⊕ σ φ ps {set (-≡/c b)}))
+      (and (not (set-empty? ps*)) ps*)]
      [((and V₁ (? -●?)) (and V₂ (? -b?))) (compat? σ φ V₂ V₁)]
      [((-● ps₁) (-● ps₂))
       (define ps (ps⊕ σ φ ps₁ ps₂))
