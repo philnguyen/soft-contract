@@ -64,8 +64,8 @@
       [(_ 'negative?) (p⇒p p (-</c 0))]
       [('positive? _) (p⇒p (->/c 0) q)]
       [('negative? _) (p⇒p (-</c 0) q)]
-      [(_ 'zero?) (p⇒p p (-b 0))]
-      [('zero? _) (p⇒p (-b 0) q)]
+      [(_ 'zero?) (p⇒p p (-≡/c (-b 0)))]
+      [('zero? _) (p⇒p (-≡/c (-b 0)) q)]
       ; < and <
       [((-</c (? real? a)) (-</c (? real? b))) (if (<= a b) '✓ '?)]
       [((-≤/c (? real? a)) (-≤/c (? real? b))) (if (<= a b) '✓ '?)]
@@ -111,10 +111,10 @@
       [((->/c (? real? b₁)) (-b (? real? b₂))) #:when (>= b₁ b₂) '✗]
       [((-≥/c (? real? b₁)) (-b (? real? b₂))) #:when (>  b₁ b₂) '✗]
       ; 
-      [((-b (? real? b₁)) (-</c (? real? b₂))) (boolean->R (<  b₁ b₂))]
-      [((-b (? real? b₁)) (-≤/c (? real? b₂))) (boolean->R (<= b₁ b₂))]
-      [((-b (? real? b₁)) (->/c (? real? b₂))) (boolean->R (>  b₁ b₂))]
-      [((-b (? real? b₁)) (-≥/c (? real? b₂))) (boolean->R (>= b₁ b₂))]
+      [((-≡/c (-b (? real? b₁))) (-</c (? real? b₂))) (boolean->R (<  b₁ b₂))]
+      [((-≡/c (-b (? real? b₁))) (-≤/c (? real? b₂))) (boolean->R (<= b₁ b₂))]
+      [((-≡/c (-b (? real? b₁))) (->/c (? real? b₂))) (boolean->R (>  b₁ b₂))]
+      [((-≡/c (-b (? real? b₁))) (-≥/c (? real? b₂))) (boolean->R (>= b₁ b₂))]
 
       ;; default
       [(p p) '✓]
@@ -164,11 +164,23 @@
             (app (match-lambda [(list (-t.@ k _)) (p∋k p k)])
                  (and R (or '✓ '✗))))
        R]
-      [(and (list (? -t?) ...)
-            (not (list (? -b?) ...)))
+      [Vs
+       #:when (and (andmap -t? Vs) (not (andmap -b? Vs)))
        (case p
          [(list?) (check-proper-list σ φ (car Vs))] ; `list?` is the only deep predicate
-         [else (ps⇒p (hash-ref (-φ-condition φ) Vs mk-∅) p)])]
+         [else
+          (define-values (h t)
+            (match* (p Vs)
+              [('>  (list t₁ t₂)) (if (-b? t₁) (values (-</c t₁) t₂) (values (->/c t₂) t₁))]
+              [('>= (list t₁ t₂)) (if (-b? t₁) (values (-≤/c t₁) t₂) (values (-≥/c t₂) t₁))]
+              [('<  (list t₁ t₂)) (if (-b? t₁) (values (->/c t₁) t₂) (values (-</c t₂) t₁))]
+              [('<= (list t₁ t₂)) (if (-b? t₁) (values (-≥/c t₁) t₂) (values (-≤/c t₂) t₁))]
+              [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?) (list t₁ t₂))
+               (if (-b? t₁) (values (-≡/c t₁) t₂) (values (-≡/c t₂) t₁))]
+              [('arity-includes? (list t (-b (? Arity? a)))) (values (-arity-includes/c a) t)]
+              [(p (list t)) (values p t)]
+              [(_ _) (error 'p∋V^ "missing conversion for ~a ~a" (show-h p) (map show-t Vs))]))
+          (ps⇒p (hash-ref (-φ-condition φ) t mk-∅) h)])]
       [_
        (match p
          [(? -st-mk?) '✓]
@@ -329,18 +341,18 @@
             [(= equal? eq? char=? string=?)
              (match Vs
                [(list (-b b₁) (-b b₂)) (boolean->R (equal? b₁ b₂))]
-               [(list (-● ps) (? -b? b)) (ps⇒p ps b)]
-               [(list (? -b? b) (-● ps)) (ps⇒p ps b)]
+               [(list (-● ps) (? -b? b)) (ps⇒p ps (-≡/c b))]
+               [(list (? -b? b) (-● ps)) (ps⇒p ps (-≡/c b))]
                [(list (? -o? o₁) (? -o? o₂)) (boolean->R (equal? o₁ o₂))] 
                [_ '?])]
             [(list?) (check-proper-list σ φ (car Vs))]
             [(port? input-port? output-port?) '✗]
             [else (if (boolean-excludes? (get-conservative-range p)) '✓ '?)])]
          [(-not/c (? -h? p)) (not-R (apply p∋V σ φ p Vs))]
-         [(-≥/c b) (p∋V σ φ '>= (car Vs) (-b b))]
-         [(->/c b) (p∋V σ φ '> (car Vs) (-b b))]
-         [(-</c b) (p∋V σ φ '< (car Vs) (-b b))]
-         [(-≤/c b) (p∋V σ φ '<= (car Vs) (-b b))]
+         [(-≥/c b) (p∋V σ φ '>= (car Vs) b)]
+         [(->/c b) (p∋V σ φ '> (car Vs) b)]
+         [(-</c b) (p∋V σ φ '< (car Vs) b)]
+         [(-≤/c b) (p∋V σ φ '<= (car Vs) b)]
          [(-b   b) (p∋V σ φ 'equal? (-b b) (car Vs))]
          [_ '?])]))
 
@@ -439,12 +451,12 @@
             '?]
            [else '✗])]
         [(? -t? t)
-         (case (ps⇒p (hash-ref Γ (list t) mk-∅) 'list?)
+         (case (ps⇒p (hash-ref Γ t mk-∅) 'list?)
            [(✓) '✓]
            [(✗) '✗]
-           [(?) (case (ps⇒p (hash-ref Γ (list t) mk-∅) -cons?)
+           [(?) (case (ps⇒p (hash-ref Γ t mk-∅) -cons?)
                   [(✓) (define t.cdr (-t.@ -cdr (list t)))
-                       (if (hash-has-key? Γ (list t.cdr)) (check t.cdr) '?)]
+                       (if (hash-has-key? Γ t.cdr) (check t.cdr) '?)]
                   [(✗) '✗]
                   [(?) '?])])]
         [_ '✗]))

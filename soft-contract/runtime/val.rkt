@@ -144,19 +144,6 @@
       (λ (ℓ lo arity Vs)
         (blm/simp (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
 
-  (: predicates-of-V : -V → (℘ -h))
-  (define predicates-of-V
-    (match-lambda
-      [(-b (? number?)) {set 'number?}]
-      [(-b (? null?)) {set 'null?}]
-      [(-b #f) {set 'not}]
-      [(and b (-b (? symbol? s))) {set b}]
-      #;[(-Clo _ ⟦e⟧ _) {set (-clo ⟦e⟧)}]
-      [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾 {set (-st-p 𝒾)}]
-      [(or (? -Ar?) (? -o?)) {set 'procedure?}]
-      [(-● ps) ps]
-      [_ ∅]))
-
   (: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))
   ;; Estimate possible list lengths from the object language's abstract list
   (define (estimate-list-lengths σ δσ V)

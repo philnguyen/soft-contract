@@ -81,7 +81,7 @@
          [(-α.imm (-Fn● _ tag)) (list 'arr● (strip-tag tag))])]
       [(-∀/C xs ⟦c⟧ ρ) (list '∀/c (cons ⟦c⟧ (⌊ρ⌋ ρ)))]
       [(-Seal/C x _ _) (list 'seal/c x)]
-      [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -b?))) (list 'flat c)]
+      [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -≡/c?))) (list 'flat c)]
       [(? integer? t) (format-symbol "•~a" (n-sub t))]
       [(-Fn● _ tag) (list 'Fn● (strip-tag tag))]
       [(-● ps) (list '● (show-ps ps))]

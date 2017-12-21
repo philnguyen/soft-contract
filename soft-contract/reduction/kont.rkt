@@ -623,10 +623,10 @@
                         ([V^ (in-list A)]
                          [V (in-set V^)]
                          #:when (-t? V)
-                         #:unless (hash-has-key? m (list V))
-                         [ps (in-value (hash-ref Γₑₑ (list V) #f))]
+                         #:unless (hash-has-key? m V)
+                         [ps (in-value (hash-ref Γₑₑ V #f))]
                          #:when ps)
-               (hash-update Γ (list V) (λ ([ps₀ : (℘ -h)]) (∪ ps₀ ps)) mk-∅)))
+               (hash-update Γ V (λ ([ps₀ : (℘ -h)]) (∪ ps₀ ps)) mk-∅)))
            (-φ Γ₂ δσ)))
        (⟦k⟧ Vs H φ* Σ)))
 

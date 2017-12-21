@@ -69,7 +69,7 @@
           (assert! (ast)))))
     (values do-decl tgt))
 
-  (: ⦃t@⦄ : -Γ -h (Listof -t) Env → (Values (M Z3-Ast) Env))
+  (: ⦃t@⦄ : -Γ -o (Listof -t) Env → (Values (M Z3-Ast) Env))
   (define (⦃t@⦄ Γ h ts env)
     (case h
       [(< <= > >= =)
@@ -91,7 +91,7 @@
            [(+) +/s]
            [(-) -/s]
            [(*) */s]))
-       (match-define-values (do-args env*) (⦃ts⦄ Γ ts env))
+       (define-values (do-args env*) (⦃ts⦄ Γ ts env))
        (values (λ () (apply o ((list-M do-args)))) env*)]
       [(add1)
        (define-values (⦃t⦄₁ env*) (⦃t⦄ Γ (car ts) env))
@@ -99,17 +99,34 @@
       [(sub1)
        (define-values (⦃t⦄₁ env*) (⦃t⦄ Γ (car ts) env))
        (values (λ () (-/s (⦃t⦄₁) 1)) env*)]
+      [(not)
+       (define-values (⦃t⦄₁ env*) (⦃t⦄ Γ (car ts) env))
+       (values (λ () (not/s (⦃t⦄₁))) env*)]
       [else
        (define x (gen-name/memo (-t.@ h ts) #:tag 'exi))
        (define T (get-type Γ (-t.@ h ts)))
        (values (λ () (val-of x)) (hash-set env x (⦃T⦄ T)))]))
 
+  (: ⦃prop⦄ : -Γ -h -t Env → (Values (M Z3-Ast) Env))
+  (define (⦃prop⦄ Γ h t env)
+    (match h
+      [(-not/c o)
+       (define-values (⦃t⦄* env*) (⦃prop⦄ Γ o t env))
+       (values (λ () (not/s (⦃t⦄*))) env*)]
+      [(-</c t*) (⦃t@⦄ Γ '<  (list t t*) env)]
+      [(-≤/c t*) (⦃t@⦄ Γ '<= (list t t*) env)]
+      [(->/c t*) (⦃t@⦄ Γ '>  (list t t*) env)]
+      [(-≥/c t*) (⦃t@⦄ Γ '>= (list t t*) env)]
+      [(-≡/c t*) (⦃t@⦄ Γ '=  (list t t*) env)]
+      [(? -arity-includes/c?) (values (λ () true/s) env)]
+      [(? -o? o) (⦃t@⦄ Γ o (list t) env)]))
+
   (: ⦃Γ⦄ : -Γ Env → (Values (Listof (M Z3-Ast)) Env))
   (define (⦃Γ⦄ Γ env)
     (for*/fold ([assertions : (Listof (M Z3-Ast)) '()] [env : Env env])
-               ([(ts ps) (in-hash Γ)]
+               ([(t ps) (in-hash Γ)]
                 [p (in-set ps)])
-      (define-values (asst env*) (⦃t@⦄ Γ p ts env))
+      (define-values (asst env*) (⦃prop⦄ Γ p t env))
       (values (cons asst assertions) env*)))
 
   (: ⦃t⦄ : -Γ -t Env → (Values (M Z3-Ast) Env))
@@ -145,7 +162,7 @@
   (: get-type : -Γ -t → Type)
   (define (get-type Γ t)
     (or (let go : (Option Type) ([t : -t t])
-          (match (hash-ref Γ (list t) #f)
+          (match (hash-ref Γ t #f)
             [(? set? ps)
              (cond
                [(not (set-empty? (∩ ps {set 'integer? 'exact-integer? 'exact-nonnegative-integer? 'exact-positive-integer?})))
@@ -186,14 +203,13 @@
           [else
            (define all* (∪ front all))
            (define front*
-             (for*/unioneq : (℘ Integer) ([ts (in-hash-keys Γ)]
-                                          [t (in-list ts)])
+             (for*/unioneq : (℘ Integer) ([t (in-hash-keys Γ)])
                (set-subtract (t-names t) all*)))
            (loop front* all*)])))
     (for/fold ([Γ : -Γ Γ])
-              ([ts (in-hash-keys Γ)]
-               #:when (set-empty? (set-intersect (t-names (-t.@ 'values ts)) dom*)))
-      (hash-remove Γ ts)))
+              ([t (in-hash-keys Γ)]
+               #:when (set-empty? (set-intersect (t-names t) dom*)))
+      (hash-remove Γ t)))
 
   (: gen-name/memo ([-t] [#:tag Symbol] . ->* . Symbol))
   (define gen-name/memo

@@ -59,8 +59,8 @@
              [Γ₂ : -Γ Γ₂])
       (match maps
         [(cons (cons s₁ s₂) maps*)
-         (and (equal? (hash-ref Γ₁ (list s₁) #f) (hash-ref Γ₂ (list s₂) #f))
-              (go maps* (hash-remove Γ₁ (list s₁)) (hash-remove Γ₂ (list s₂))))]
+         (and (equal? (hash-ref Γ₁ s₁ #f) (hash-ref Γ₂ s₂ #f))
+              (go maps* (hash-remove Γ₁ s₁) (hash-remove Γ₂ s₂)))]
         ['()
          (for/and : Boolean ([(ts ps) (in-hash Γ₂)])
            (equal? ps (hash-ref Γ₁ ts #f)))])))
@@ -77,9 +77,31 @@
 
   (: Γ+ : -Γ (HashTable -t -t) -Γ → -Γ)
   (define (Γ+ Γₑᵣ m Γₑₑ)
+    
+    (: translate : (℘ -h) → (℘ -h))
+    (define (translate ps)
+      (: translate-h : -h → (Option -h))
+      (define translate-h
+        (match-lambda
+          [(-</c t) (cond [(translate-t t) => -</c] [else #f])]
+          [(-≤/c t) (cond [(translate-t t) => -≤/c] [else #f])]
+          [(->/c t) (cond [(translate-t t) => ->/c] [else #f])]
+          [(-≥/c t) (cond [(translate-t t) => -≥/c] [else #f])]
+          [h h]))
+
+      (: translate-t : -t → (Option -t))
+      (define (translate-t t)
+        (if (-b? t) t (hash-ref m t #f)))
+
+      (for*/set: : (℘ -h) ([p (in-set ps)]
+                           [p* (in-value (translate-h p))]
+                           #:when p*)
+        p*))
+    
     (for*/fold ([Γ* : -Γ Γₑᵣ])
                ([(tₑₑ tₑᵣ) (in-hash m)]
-                [ps (in-value (hash-ref Γₑₑ (list tₑₑ) #f))]
-                #:when ps)
-      (hash-update Γ* (list tₑᵣ) (λ ([ps₀ : (℘ -h)]) (∪ ps₀ ps)) mk-∅)))
+                [ps (in-value (hash-ref Γₑₑ tₑₑ mk-∅))]
+                [ps* (in-value (translate ps))]
+                #:unless (set-empty? ps*))
+      (hash-update Γ* tₑᵣ (λ ([ps₀ : (℘ -h)]) (∪ ps₀ ps*)) mk-∅)))
   )

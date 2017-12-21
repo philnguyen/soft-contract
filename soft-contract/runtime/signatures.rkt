@@ -136,21 +136,22 @@
 
 (-φ . ::= . (-φ [condition : -Γ] [cache : -δσ]))
 (define-type -δσ -σ)
-(define-type -Γ (Immutable-HashTable (Listof -t) (℘ -h)))
+(define-type -Γ (Immutable-HashTable -t (℘ -h)))
 
 ;; Symbolic names
 (-t . ::= . Integer
             -b 
-            (-t.@ -h (Listof -t)))
+            (-t.@ -o (Listof -t)))
 
 (-h . ::= . -o
-            -b
-            (-not/c (U -o -b))
-            (-</c Real)
-            (-≤/c Real)
-            (->/c Real)
-            (-≥/c Real))
-(-special-bin-o . ::= . '> '< '>= '<= '= 'equal? 'eqv? 'eq? #|made up|# '≢)
+            (-not/c (U -o -≡/c))
+            (-</c -t)
+            (-≤/c -t)
+            (->/c -t)
+            (-≥/c -t)
+            (-≡/c -t)
+            (-arity-includes/c Arity))
+(-special-bin-o . ::= . '> '< '>= '<= '= 'equal? 'eqv? 'eq?)
 (define-type Uni (Bij -t -t))
 
 ;; convenient syntax
@@ -163,6 +164,10 @@
                             ['< '>=]
                             ['>= '<]
                             ['> '<=]
+                            [(-</c t) (-≥/c t)]
+                            [(-≤/c t) (->/c t)]
+                            [(->/c t) (-≤/c t)]
+                            [(-≥/c t) (-</c t)]
                             ['inexact? 'exact?]
                             ['exact? 'inexact?]
                             [p (-not/c p)])]))
@@ -367,7 +372,6 @@
    [behavioral? : (-σ -δσ -V → Boolean)]
    [guard-arity : (-=>_ → Arity)]
    [blm-arity : (ℓ -l Arity (Listof -V^) → -blm)]
-   [predicates-of-V : (-V → (℘ -h))]
    [estimate-list-lengths : (-σ -δσ -V → (℘ (U #f Arity)))]
    ))
 

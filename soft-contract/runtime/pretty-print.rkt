@@ -31,22 +31,23 @@
       [(? -t?) (show-t h)]
       [(? -o?) (show-o h)]
       [(? -αₖ?) (show-αₖ h)]
-      [(-≥/c b) `(≥/c ,(show-b b))]
-      [(-≤/c b) `(≤/c ,(show-b b))]
-      [(->/c b) `(>/c ,(show-b b))]
-      [(-</c b) `(</c ,(show-b b))]
-      [(-b   b) `(≡/c ,(show-b b))]
-      [(-not/c o) `(not/c ,(show-e o))]))
+      [(-≥/c b) `(≥/c ,(show-t b))]
+      [(-≤/c b) `(≤/c ,(show-t b))]
+      [(->/c b) `(>/c ,(show-t b))]
+      [(-</c b) `(</c ,(show-t b))]
+      [(-≡/c b) `(≡/c ,(show-t b))]
+      [(-not/c h) `(not/c ,(show-h h))]
+      [(-arity-includes/c a) `(arity-includes/c ,(show-b a))]))
 
   (define show-t : (-t → Sexp)
     (match-lambda
       [(? integer? i) (format-symbol "•~a" (n-sub i))]
       [(-b b) (show-b b)]
-      [(-t.@ h ts) `(,(show-h h) ,@(map show-t ts))]))
+      [(-t.@ h ts) `(,(show-o h) ,@(map show-t ts))]))
 
   (define (show-Γ [Γ : -Γ])
-    (for*/list : (Listof Sexp) ([(ts ps) (in-hash Γ)] [p (in-set ps)])
-      `(,(show-h p) ,@(map show-t ts))))
+    (for*/list : (Listof Sexp) ([(t ps) (in-hash Γ)] [p (in-set ps)])
+      `(,(show-t t) ∈ ,@(set-map ps show-h))))
 
   (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
     (for/list ([(αₖ ⟦k⟧s) σₖ])
@@ -121,11 +122,7 @@
       [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
       [(-∀/C xs ⟦c⟧ ρ) `(∀/C ,xs ,(show-⟦e⟧ ⟦c⟧))]
       [(-Seal/C x H _) (format-symbol "(seal/c ~a_~a)" x (n-sub H))]
-      [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))]
-      [(->/c b) `(>/c ,(show-b b))]
-      [(-≥/c b) `(>=/c ,(show-b b))]
-      [(-</c b) `(</c ,(show-b b))]
-      [(-≤/c b) `(<=/c ,(show-b b))]
+      [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))] 
       [(? -t? t) (show-t t)]
       [(? -h? h) (show-h h)]))
 

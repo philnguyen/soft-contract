@@ -275,5 +275,7 @@
      [('* (list t (-b 1))) t]
      [('* (list (-b 1) t)) t]
      [('= (list t t)) -tt]
+     [('any/c _) -tt]
+     [('none/c _) -ff]
      [(o ts) (-t.@ o ts)]))
   )

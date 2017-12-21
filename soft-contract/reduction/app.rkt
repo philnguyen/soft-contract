@@ -372,7 +372,7 @@
                  (⟦ac⟧ ℓ (list V^) H φ Σ ⟦k⟧)])]
              [(or (-● ps)
                   (and (? -t?)
-                       (app (λ ([t : -t]) (hash-ref (-φ-condition φ) (list t) mk-∅)) ps)))
+                       (app (λ ([t : -t]) (hash-ref (-φ-condition φ) t mk-∅)) ps)))
               #:when ps
               (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ (-Σ-σ Σ) φ p {set Vₓ})]) : -ς
                 #:true (let ([Vₐ

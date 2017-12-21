@@ -69,8 +69,8 @@
       (and (not (set-empty? ps)) ps)]
      [((? -t? t₁) (? -t? t₂))
       #:when (and (not (-b? t₁)) (not (-b? t₂)) (not (equal? t₁ t₂)))
-      (define ps₁ (hash-ref (-φ-condition φ) (list t₁) mk-∅))
-      (define ps₂ (hash-ref (-φ-condition φ) (list t₂) mk-∅))
+      (define ps₁ (hash-ref (-φ-condition φ) t₁ mk-∅))
+      (define ps₂ (hash-ref (-φ-condition φ) t₂ mk-∅))
       (if (and (set-empty? ps₁) (set-empty? ps₂)) ∅ (ps⊕ ps₁ ps₂))]
      [(_ _) #f]))
 

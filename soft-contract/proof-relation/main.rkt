@@ -88,7 +88,7 @@
 
   (: φ⊢t : -σ -φ -t → -R)
   (define (φ⊢t σ φ t)
-    (cond [(hash-ref (-φ-condition φ) (list t) #f) =>
+    (cond [(hash-ref (-φ-condition φ) t #f) =>
            (λ ([ps : (℘ -h)]) (not-R (local:ps⇒p ps 'not)))]
           [else '?])) 
 
@@ -109,9 +109,8 @@
        (match* (h Vs)
          [('values (list (-t.@ p xs))) ( φ+pV φ p xs)]
          [('not    (list (-t.@ p xs))) (φ+¬pV φ p xs)]
-         [(_ _)
-          (define Γ* (hash-update Γ Vs (λ ([ps : (℘ -h)]) (set-add ps h)) mk-∅))
-          (-φ Γ* δσ)])]
+         [(_ _) 
+          (-φ (Γ+pV Γ h Vs) δσ)])]
       [else φ]))
 
   (: φ+¬pV : -φ -h (Listof -V) → -φ)
@@ -130,6 +129,22 @@
          [((or (? -o?) (? -b?)) Vs) (φ+pV φ (-not/c h) Vs)])]
       [else φ]))
 
+  (: Γ+pV : -Γ -h (Listof -t) → -Γ)
+  (define (Γ+pV Γ p Vs)
+    (: upd : -Γ -h -t → -Γ)
+    (define (upd Γ h t)
+      (cond [(-b? t) Γ]
+            [else (hash-update Γ t (λ ([ps : (℘ -h)]) (set-add ps h)) mk-∅)]))
+    (match* (p Vs)
+      [('>  (list t₁ t₂)) (upd (upd Γ (->/c t₂) t₁) (-</c t₁) t₂)]
+      [('>= (list t₁ t₂)) (upd (upd Γ (-≥/c t₂) t₁) (-≤/c t₁) t₂)]
+      [('<  (list t₁ t₂)) (upd (upd Γ (-</c t₂) t₁) (->/c t₁) t₂)]
+      [('<= (list t₁ t₂)) (upd (upd Γ (-≤/c t₂) t₁) (-≥/c t₁) t₂)]
+      [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?) (list t₁ t₂)) (upd (upd Γ (-≡/c t₂) t₁) (-≡/c t₁) t₂)]
+      [('arity-includes? (list t (-b (? Arity? a)))) (upd Γ (-arity-includes/c a) t)]
+      [(p (list t)) (upd Γ p t)]
+      [(_ _) Γ]))
+
   (: should-call-smt? : -Γ -h (Listof -V) → Boolean)
   ;; Heuristic avoiding calling out to solvers
   ;; However this heuristic is implemented should be safe in terms of soundness.
@@ -137,13 +152,16 @@
   ;; Calling out to solver when there's no need only hurts performance.
   ;; TODO: re-inspect this after recent rewrite
   (define should-call-smt?
-    (let ([difficult-hs {seteq '< '> '<= '>= '= 'equal? 'eq? 'eqv? 'zero?}])
+    (let ([difficult?
+           (match-λ?
+            '< '> '<= '>= '= 'equal? 'eq? 'eqv? 'zero?
+            (? -</c?) (? ->/c?) (? -≤/c?) (? -≥/c?) (? -≡/c?))])
       (λ (Γ h Vs)
         (and
-         (∋ difficult-hs h)
+         (difficult? h)
          (for/or : Boolean ([hs (in-hash-values Γ)]) ; TODO TR can't for*/or
            (for/or : Boolean ([h (in-set hs)])
-             (∋ difficult-hs h)))))))
+             (difficult? h)))))))
   )
 
 (define-compound-unit/infer proof-system@
