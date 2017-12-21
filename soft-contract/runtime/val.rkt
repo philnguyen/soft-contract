@@ -15,11 +15,11 @@
   (import path^ pretty-print^ sto^)
   (export val^)
 
-  (: fresh-sym! : → Integer)
+  (: fresh-sym! : → -s)
   (define fresh-sym!
     (let ([n : Integer 0])
       (λ ()
-        (begin0 n (set! n (+ 1 n))))))
+        (begin0 (Integer->s n) (set! n (+ 1 n))))))
 
   (: C-flat? : -V → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract

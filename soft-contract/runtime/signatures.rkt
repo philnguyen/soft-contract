@@ -139,7 +139,8 @@
 (define-type -Γ (Immutable-HashTable -t (℘ -h)))
 
 ;; Symbolic names
-(-t . ::= . Integer
+(define-new-subtype -s (Integer->s Integer))
+(-t . ::= . -s
             -b 
             (-t.@ -o (Listof -t)))
 
@@ -364,7 +365,7 @@
   ([⊥Ξ : -Ξ]))
 
 (define-signature val^
-  ([fresh-sym! : (→ Integer)]
+  ([fresh-sym! : (→ -s)]
    [C-flat? : (-V → Boolean)]
    [C^-flat? : (-V^ → Boolean)]
    [with-negative-party : (-l -V → -V)]

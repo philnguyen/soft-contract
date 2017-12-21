@@ -35,10 +35,10 @@
   (splicing-let-syntax ([compute-frame-roots
                          (syntax-parser
                            [(_) #'∅eq]
-                           [(_ root:id) #'(->⟪α⟫s root)]
-                           [(_ root:id ...) #'(∪ (->⟪α⟫s root) ...)])])
+                           [(_ root) #'(->⟪α⟫s root)]
+                           [(_ root ...) #'(∪ (->⟪α⟫s root) ...)])])
     (define-simple-macro (make-frame (⟦k⟧:id A:id H:id φ:id Σ:id)
-                           #:roots (root:id ...)
+                           #:roots (root:expr ...)
                            e ...)
       (let ([αₖ (⟦k⟧->αₖ ⟦k⟧)]
             [frame-roots (compute-frame-roots root ...)]
@@ -399,7 +399,7 @@
     (define ctx (-ctx l 'dummy- l ℓ))
     (define α (-α->⟪α⟫ 𝒾))
     (define α* (-α->⟪α⟫ (-α.wrp 𝒾)))
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (α)
+    (make-frame (⟦k⟧ A H φ Σ) #:roots ((box α))
       (match-define (list C) A)
       (define Vs (σ@ Σ (-φ-cache φ) α))
       (push-mon ctx C Vs H φ Σ (def∷ l (list α*) ⟦k⟧))))
@@ -548,7 +548,7 @@
       (⟦k⟧ A H φ Σ)))
 
   (define-frame (hash-set-inner∷ [ℓ : ℓ] [αₕ : ⟪α⟫] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (αₕ)
+    (make-frame (⟦k⟧ A H φ Σ) #:roots ((box αₕ))
       (match-define (list Vₖ Vᵥ) A)
       (app ℓ {set 'hash-set} (list (σ@ Σ (-φ-cache φ) αₕ) Vₖ Vᵥ) H φ Σ ⟦k⟧)))
 
@@ -560,7 +560,7 @@
       (⟦k⟧ (list {set Vₐ}) H (alloc Σ φ α Vₕ) Σ)))
 
   (define-frame (set-add-inner∷ [ℓ : ℓ] [αₛ : ⟪α⟫] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (αₛ)
+    (make-frame (⟦k⟧ A H φ Σ) #:roots ((box αₛ))
       (match-define (list Vₑ) A)
       (define Vₛ (σ@ Σ (-φ-cache φ) αₛ))
       (app ℓ {set 'set-add} (list Vₛ Vₑ) H φ Σ ⟦k⟧)))
