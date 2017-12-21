@@ -140,7 +140,10 @@
       [('>= (list t₁ t₂)) (upd (upd Γ (-≥/c t₂) t₁) (-≤/c t₁) t₂)]
       [('<  (list t₁ t₂)) (upd (upd Γ (-</c t₂) t₁) (->/c t₁) t₂)]
       [('<= (list t₁ t₂)) (upd (upd Γ (-≤/c t₂) t₁) (-≥/c t₁) t₂)]
-      [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?) (list t₁ t₂)) (upd (upd Γ (-≡/c t₂) t₁) (-≡/c t₁) t₂)]
+      [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?) (list t₁ t₂))
+       (upd (upd Γ (-≡/c t₂) t₁) (-≡/c t₁) t₂)]
+      [((-not/c (or '= 'equal? 'eq? 'eqv? 'string=? 'char=?)) (list t₁ t₂))
+       (upd (upd Γ (-not/c (-≡/c t₂)) t₁) (-not/c (-≡/c t₁)) t₂)]
       [('arity-includes? (list t (-b (? Arity? a)))) (upd Γ (-arity-includes/c a) t)]
       [(p (list t)) (upd Γ p t)]
       [(_ _) Γ]))

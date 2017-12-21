@@ -102,14 +102,14 @@
       [((-≤/c (? real? r)) 'exact-positive-integer?) (if (<  r 1) '✗ '?)]
       ; _ -> real?
       [((or (? -</c?) (? ->/c?) (? -≤/c?) (? -≥/c?)) (or 'real? 'number?)) '✓]
-      [((? -b? b) o) (p∋V ⊥σ φ₀ o b)]
+      [((-≡/c t) o) (p∋V ⊥σ φ₀ o t)]
       
       ; equal?
-      [((-b   b₁) (-b   b₂)) (boolean->R (equal? b₁ b₂))]
-      [((-</c (? real? b₁)) (-b (? real? b₂))) #:when (<= b₁ b₂) '✗]
-      [((-≤/c (? real? b₁)) (-b (? real? b₂))) #:when (<  b₁ b₂) '✗]
-      [((->/c (? real? b₁)) (-b (? real? b₂))) #:when (>= b₁ b₂) '✗]
-      [((-≥/c (? real? b₁)) (-b (? real? b₂))) #:when (>  b₁ b₂) '✗]
+      [((-≡/c b₁) (-≡/c b₂)) (boolean->R (equal? b₁ b₂))]
+      [((-</c (? real? b₁)) (-≡/c (-b (? real? b₂)))) #:when (<= b₁ b₂) '✗]
+      [((-≤/c (? real? b₁)) (-≡/c (-b (? real? b₂)))) #:when (<  b₁ b₂) '✗]
+      [((->/c (? real? b₁)) (-≡/c (-b (? real? b₂)))) #:when (>= b₁ b₂) '✗]
+      [((-≥/c (? real? b₁)) (-≡/c (-b (? real? b₂)))) #:when (>  b₁ b₂) '✗]
       ; 
       [((-≡/c (-b (? real? b₁))) (-</c (? real? b₂))) (boolean->R (<  b₁ b₂))]
       [((-≡/c (-b (? real? b₁))) (-≤/c (? real? b₂))) (boolean->R (<= b₁ b₂))]
@@ -164,6 +164,7 @@
             (app (match-lambda [(list (-t.@ k _)) (p∋k p k)])
                  (and R (or '✓ '✗))))
        R]
+      [(list t t) #:when (equal? p '=) '✓]
       [Vs
        #:when (and (andmap -t? Vs) (not (andmap -b? Vs)))
        (case p
@@ -175,7 +176,7 @@
               [('>= (list t₁ t₂)) (if (-b? t₁) (values (-≤/c t₁) t₂) (values (-≥/c t₂) t₁))]
               [('<  (list t₁ t₂)) (if (-b? t₁) (values (->/c t₁) t₂) (values (-</c t₂) t₁))]
               [('<= (list t₁ t₂)) (if (-b? t₁) (values (-≥/c t₁) t₂) (values (-≤/c t₂) t₁))]
-              [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?) (list t₁ t₂))
+              [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?) (list t₁ t₂)) 
                (if (-b? t₁) (values (-≡/c t₁) t₂) (values (-≡/c t₂) t₁))]
               [('arity-includes? (list t (-b (? Arity? a)))) (values (-arity-includes/c a) t)]
               [(p (list t)) (values p t)]
@@ -353,7 +354,7 @@
          [(->/c b) (p∋V σ φ '> (car Vs) b)]
          [(-</c b) (p∋V σ φ '< (car Vs) b)]
          [(-≤/c b) (p∋V σ φ '<= (car Vs) b)]
-         [(-b   b) (p∋V σ φ 'equal? (-b b) (car Vs))]
+         [(-≡/c b) (p∋V σ φ 'equal? b (car Vs))]
          [_ '?])]))
 
   (: p∋k : -h -h → -R)
