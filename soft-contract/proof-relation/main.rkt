@@ -56,6 +56,7 @@
          [R R])]))
 
   (define p∋V^ (local:lift-p∋V p∋V))
+  (define quick-p∋V^ local:p∋V^)
   
   (: V+ : -σ -φ -V^ (U -h -V) → -V^)
   (define (V+ σ φ V^ C)
