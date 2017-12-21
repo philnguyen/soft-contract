@@ -608,22 +608,24 @@
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
        ∅))
 
-  (define-frame (rename∷ [m : (HashTable -t -t)] [Γₑᵣ : -Γ] [⟦k⟧ : -⟦k⟧])
+  (define-frame (rename∷ [uni : Uni] [Γₑᵣ : -Γ] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
+       (match-define (Bij er->ee ee->er) uni)
        (define Vs : (Listof -V^)
          (for/list ([V^ (in-list A)])
-           (rename-V^ m V^)))
+           (rename-V^ ee->er (discard-conflicting-names er->ee (-φ-condition φ) V^))))
        (define φ*
          (match-let ([(-φ Γₑₑ δσ) φ])
            ;; "translate" callee's proposition into caller's
-           (define Γ₁ (Γ+ Γₑᵣ m Γₑₑ))
+           (define Γ₁ (Γ+ Γₑᵣ ee->er Γₑₑ))
            ;; result may share the same symbolic name, thus absent in `m`
            (define Γ₂
              (for*/fold ([Γ : -Γ Γ₁])
                         ([V^ (in-list A)]
                          [V (in-set V^)]
                          #:when (-t? V)
-                         #:unless (hash-has-key? m V)
+                         #:unless (hash-has-key? ee->er V)
+                         #:unless (hash-has-key? er->ee V)
                          [ps (in-value (hash-ref Γₑₑ V #f))]
                          #:when ps)
                (hash-update Γ V (λ ([ps₀ : (℘ -h)]) (∪ ps₀ ps)) mk-∅)))
@@ -655,7 +657,7 @@
     (define-values (Ξ* ⟦k⟧* αₖ*)
       (match (recall Ξ αₖ)
         [(cons αₖ₀ m) 
-         (values Ξ (rename∷ (Bij-bw m) (-φ-condition φ) ⟦k⟧) αₖ₀)]
+         (values Ξ (rename∷ m (-φ-condition φ) ⟦k⟧) αₖ₀)]
         [#f
          (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ ctxs)) (λ () '()))
                  ⟦k⟧
@@ -776,4 +778,13 @@
   (define/memoeq (fv-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : (℘ Symbol)
     (cond [(recall-e ⟦e⟧) => fv]
           [else ∅eq]))
+
+  (: discard-conflicting-names : (HashTable -t -t) -Γ -V^ → -V^)
+  (define (discard-conflicting-names m Γ V^)
+    (: go : -V → -V)
+    (define (go V)
+      (if (and (-t? V) (hash-has-key? m V))
+          (-● (hash-ref Γ V mk-∅))
+          V))
+    (map/set go V^))
   )
