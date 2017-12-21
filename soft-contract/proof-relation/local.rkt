@@ -310,7 +310,6 @@
                 '✓]
                [_ '?]) -R)]
             [(<=)
-             (printf "got <= ~a~n" (map show-V Vs))
              (ann (match Vs
                [(list (-b (? real? b₁)) (-b (? real? b₂)))
                 (boolean->R (<= b₁ b₂))]

@@ -15,7 +15,6 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
          "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -26,8 +25,7 @@
 (define-unit kont@
   (import compile^ app^ mon^ fc^ proof-system^ memoize^ for-gc^ verifier^ havoc^ meta-functions^
           val^ env^ sto^ pretty-print^ instr^ prim-runtime^ static-info^ path^ widening^
-          sat-result^ unify^
-          (prefix q: local-prover^))
+          sat-result^ unify^)
   (export kont^)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -596,7 +594,9 @@
                                   [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
                                   [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-                (define-values (refined-ranges φ*) (maybe-refine ranges (-Σ-σ Σ) φ cases A))
+      (define-values (refined-ranges φ*)
+        (let-values ([(ranges₀ φ₀) (maybe-refine ranges (-Σ-σ Σ) φ cases A)])
+          (hack:maybe-refine-more (assert (-ctx-src ctx) -o?) ranges₀ (-Σ-σ Σ) φ₀ A)))
       (define ⟦k⟧* (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap ⟦k⟧) ⟦k⟧))
       (⟦k⟧* refined-ranges H φ* Σ)))
 
@@ -672,7 +672,7 @@
     (define (⊢/quick o V^)
       (match o
         [(-Not/C (-⟪α⟫ℓ (app ⟪α⟫->-α (-α.imm C)) _)) (not-R (⊢/quick C V^))]
-        [(? -h? p)                                   (q:p∋V^ σ φ p V^)]
+        [(? -h? p)                                   (quick-p∋V^ σ φ p V^)]
         [_ '?]))
 
     (for/fold ([rng : (Listof -V^) rng₀] [φ : -φ φ])
@@ -712,6 +712,38 @@
                                     φ)))])
           (values (reverse Vs-rev) φ*)))
       (check-inits dom-inits args)))
+
+  (: hack:maybe-refine-more : -o (Listof -V^) -σ -φ (Listof -V^) → (Values (Listof -V^) -φ))
+  ;; This hack should be removed once the primitives DSL is generalized to be able
+  ;; to express these properties
+  (define (hack:maybe-refine-more o rngs σ φ args)
+    (: obvious? : -o -V^ * → Boolean)
+    (define (obvious? o . Vs)
+      (equal? '✓ (apply quick-p∋V^ σ φ o Vs)))
+    
+    (match* (o args)
+      ;; ord(V₁+V₂, V₁) if ord(V₂, 0)
+      [('+ (list (singleton-set (? -t? t)) (singleton-set (and V (not (? -t?))))))
+       (define 0^ {set -zero})
+       (define-set res : -h)
+       (define V^ {set V})
+       (cond [(obvious? '>  V^ 0^) (res-add! (->/c t))]
+             [(obvious? '>= V^ 0^) (res-add! (-≥/c t))]
+             [(obvious? '<  V^ 0^) (res-add! (-</c t))]
+             [(obvious? '<= V^ 0^) (res-add! (-≤/c t))]
+             [else (void)])
+       (match-define (list rng) rngs)
+       (values (list (for/fold ([rng : -V^ rng]) ([ref (in-set res)])
+                       (V+ σ φ rng ref)))
+               (match rng
+                 [(singleton-set V)
+                  (for/fold ([φ : -φ φ]) ([ref (in-set res)] #:when (-h? ref))
+                    (φ+pV φ ref (list V)))]
+                 [_ φ]))]
+      [('+ (list (and V₁^ (singleton-set (not (? -t?)))) (and V₂^ (singleton-set (? -t?)))))
+       (hack:maybe-refine-more o rngs σ φ (list V₂^ V₁^))]
+      [(_ _)
+       (values rngs φ)]))
 
   (: mk-⟪α⟫ℓ* : -Σ Symbol (ℓ -H Index → -α) -H ℓ -φ (Listof -V^) → (Values (Listof -⟪α⟫ℓ) -φ))
   (define (mk-⟪α⟫ℓ* Σ tag mk-α H ℓ φ Vs)

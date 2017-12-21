@@ -69,8 +69,8 @@
       (and (not (set-empty? ps)) ps)]
      [((? -t? t₁) (? -t? t₂))
       #:when (and (not (-b? t₁)) (not (-b? t₂)) (not (equal? t₁ t₂)))
-      (define ps₁ (hash-ref (-φ-condition φ) t₁ mk-∅))
-      (define ps₂ (hash-ref (-φ-condition φ) t₂ mk-∅))
+      (define ps₁ (∪ (hash-ref (-φ-condition φ) t₁ mk-∅) (retain σ φ t₁)))
+      (define ps₂ (∪ (hash-ref (-φ-condition φ) t₂ mk-∅) (retain σ φ t₂)))
       (if (and (set-empty? ps₁) (set-empty? ps₂)) ∅ (ps⊕ ps₁ ps₂))]
      [(_ _) #f]))
 
@@ -80,9 +80,41 @@
 
   (: p⊕ : -h -h → (℘ -h))
   (define (p⊕ p q)
+    (define-syntax-rule (symmetric-match* (x y) [(l r) e ...] ... [#:default e-d ...])
+      (match* (x y)
+        [(l r) e ...] ...
+        [(r l) e ...] ...
+        [(_ _) e-d ...]))
     (cond [(equal? '✓ (p⇒p q p)) {set p}]
           [(equal? '✓ (p⇒p p q)) {set q}]
-          [else ∅]))
+          [else
+           (symmetric-match* (p q)
+             [((-≡/c t) (->/c t)) {set (-≥/c t)}]
+             [((-≡/c t) (-</c t)) {set (-≤/c t)}]
+             [#:default ∅])]))
 
+  (: retain : -σ -φ -t → (℘ -h))
+  (define (retain σ φ t)
+    (: obvious? : -o -V^ * → Boolean)
+    (define (obvious? o . ts)
+      (equal? '✓ (apply quick-p∋V^ σ φ o ts)))
+    
+    (define-set res : -h)
+    (res-add! (-≡/c t))
+    (define 0^ {set -zero})
+    (match t
+      [(-t.@ '+ (list t₁ t₂))
+       (: focus : -t -t → Void)
+       (define (focus t₁ t₂)
+         (define t₁^ {set t₁})
+         (cond [(obvious? '>  t₁^ 0^) (res-add! (->/c t₂))]
+               [(obvious? '>= t₁^ 0^) (res-add! (-≥/c t₂))]
+               [(obvious? '<  t₁^ 0^) (res-add! (-</c t₂))]
+               [(obvious? '<= t₁^ 0^) (res-add! (-≤/c t₂))]
+               [else (void)]))
+       (focus t₁ t₂)
+       (focus t₂ t₁)]
+      [_ (void)])
+    res)
   )
 
