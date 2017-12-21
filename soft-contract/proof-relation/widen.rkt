@@ -60,26 +60,27 @@
        regexp? pregexp? byte-regexp? byte-pregexp?)]
      [((? -b? b) (-● ps))
       (define ps*
-        (for/set: : (℘ -h) ([p (in-set ps)] #:when (equal? '✓ (p∋V^ ⊥σ φ₀ p {set b})))
-          p))
+        (let ([ps₀ (for/set: : (℘ -h) ([p (in-set ps)] #:when (equal? '✓ (p∋V^ ⊥σ φ₀ p {set b})))
+                     p)])
+          ps₀ #;(ps⊕ σ φ ps₀ {set (-≡/c b)})))
       (and (not (set-empty? ps)) ps*)]
      [((and V₁ (? -●?)) (and V₂ (? -b?))) (compat? σ φ V₂ V₁)]
      [((-● ps₁) (-● ps₂))
-      (define ps (ps⊕ ps₁ ps₂))
+      (define ps (ps⊕ σ φ ps₁ ps₂))
       (and (not (set-empty? ps)) ps)]
      [((? -t? t₁) (? -t? t₂))
       #:when (and (not (-b? t₁)) (not (-b? t₂)) (not (equal? t₁ t₂)))
       (define ps₁ (∪ (hash-ref (-φ-condition φ) t₁ mk-∅) (retain σ φ t₁)))
       (define ps₂ (∪ (hash-ref (-φ-condition φ) t₂ mk-∅) (retain σ φ t₂)))
-      (if (and (set-empty? ps₁) (set-empty? ps₂)) ∅ (ps⊕ ps₁ ps₂))]
+      (if (and (set-empty? ps₁) (set-empty? ps₂)) ∅ (ps⊕ σ φ ps₁ ps₂))]
      [(_ _) #f]))
 
-  (: ps⊕ : (℘ -h) (℘ -h) → (℘ -h))
-  (define (ps⊕ ps₁ ps₂)
-    (for*/union : (℘ -h) ([p₁ (in-set ps₁)] [p₂ (in-set ps₂)]) (p⊕ p₁ p₂)))
+  (: ps⊕ : -σ -φ (℘ -h) (℘ -h) → (℘ -h))
+  (define (ps⊕ σ φ ps₁ ps₂)
+    (for*/union : (℘ -h) ([p₁ (in-set ps₁)] [p₂ (in-set ps₂)]) (p⊕ σ φ p₁ p₂)))
 
-  (: p⊕ : -h -h → (℘ -h))
-  (define (p⊕ p q)
+  (: p⊕ : -σ -φ -h -h → (℘ -h))
+  (define (p⊕ σ φ p q)
     (define-syntax-rule (symmetric-match* (x y) [(l r) e ...] ... [#:default e-d ...])
       (match* (x y)
         [(l r) e ...] ...
@@ -91,6 +92,12 @@
            (symmetric-match* (p q)
              [((-≡/c t) (->/c t)) {set (-≥/c t)}]
              [((-≡/c t) (-</c t)) {set (-≤/c t)}]
+             [((-≡/c t₁) (or (->/c t₂) (-≥/c t₂)))
+              #:when (and t₂ (equal? '✓ (quick-p∋V^ σ φ '>= {set t₂} {set t₁})))
+              {set (-≥/c t₁)}]
+             [((-≡/c t₁) (or (-</c t₂) (-≤/c t₂)))
+              #:when (and t₂ (equal? '✓ (quick-p∋V^ σ φ '<= {set t₂} {set t₁})))
+              {set (-≤/c t₁)}]
              [#:default ∅])]))
 
   (: retain : -σ -φ -t → (℘ -h))
