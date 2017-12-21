@@ -303,11 +303,11 @@
        #`(-Not/C #,(gen-ctc #'c*))]
       [(o:cmp r:number)
        (syntax-parse #'o
-         [(~literal >/c)  #'(->/c r)]
-         [(~literal </c)  #'(-</c r)]
-         [(~literal >=/c) #'(-≥/c r)]
-         [(~literal <=/c) #'(-≤/c r)]
-         [(~literal =/c)  #'(-b r)])]
+         [(~literal >/c)  #'(->/c (-b r))]
+         [(~literal </c)  #'(-</c (-b r))]
+         [(~literal >=/c) #'(-≥/c (-b r))]
+         [(~literal <=/c) #'(-≤/c (-b r))]
+         [(~literal =/c)  #'(-≡/c (-b r))])]
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))

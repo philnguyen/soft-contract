@@ -60,12 +60,12 @@
 
       ;; Special rules for reals
       ; 
-      [(_ 'positive?) (p⇒p p (->/c 0))]
-      [(_ 'negative?) (p⇒p p (-</c 0))]
-      [('positive? _) (p⇒p (->/c 0) q)]
-      [('negative? _) (p⇒p (-</c 0) q)]
-      [(_ 'zero?) (p⇒p p (-≡/c (-b 0)))]
-      [('zero? _) (p⇒p (-≡/c (-b 0)) q)]
+      [(_          'positive?) (p⇒p p (->/c (-b 0)))]
+      [(_          'negative?) (p⇒p p (-</c (-b 0)))]
+      [('positive? _         ) (p⇒p (->/c (-b 0)) q)]
+      [('negative? _         ) (p⇒p (-</c (-b 0)) q)]
+      [(_          'zero?    ) (p⇒p p (-≡/c (-b 0)))]
+      [('zero?     _         ) (p⇒p (-≡/c (-b 0)) q)]
       ; < and <
       [((-</c (? real? a)) (-</c (? real? b))) (if (<= a b) '✓ '?)]
       [((-≤/c (? real? a)) (-≤/c (? real? b))) (if (<= a b) '✓ '?)]
@@ -310,25 +310,26 @@
                 '✓]
                [_ '?]) -R)]
             [(<=)
+             (printf "got <= ~a~n" (map show-V Vs))
              (ann (match Vs
                [(list (-b (? real? b₁)) (-b (? real? b₂)))
                 (boolean->R (<= b₁ b₂))]
                [(list (-b (? real? b₁))
-                      (-● (app set->list (list _ ... (or (-≥/c (? real? b₂))
-                                                         (->/c (? real? b₂))) _ ...))))
+                      (-● (app set->list (list _ ... (or (-≥/c (-b (? real? b₂)))
+                                                         (->/c (-b (? real? b₂)))) _ ...))))
                 #:when (and b₂ (>= b₂ b₁))
                 '✓]
                [(list (-b (? real? b₁))
-                      (-● (app set->list (list _ ... (-</c (? real? b₂)) _ ...))))
+                      (-● (app set->list (list _ ... (-</c (-b (? real? b₂))) _ ...))))
                 #:when (and b₂ (<= b₂ b₁))
                 '✗]
                [(list (-● ps) (-b (? real? b)))
                 (match (set->list ps)
-                  [(list _ ... (-</c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
-                  [(list _ ... (-≤/c (? real? a)) _ ...) (if (<= a b) '✓ '?)]
-                  [(list _ ... (->/c (? real? a)) _ ...) (if (>  a b) '✗ '?)]
-                  [(list _ ... (-≥/c (? real? a)) _ ...) (if (>  a b) '✗ '?)]
-                  [(list _ ... (-b   (? real? a)) _ ...) #:when a (if (<= a b) '✓ '✗)]
+                  [(list _ ... (-</c (-b (? real? a))) _ ...) (if (<= a b) '✓ '?)]
+                  [(list _ ... (-≤/c (-b (? real? a))) _ ...) (if (<= a b) '✓ '?)]
+                  [(list _ ... (->/c (-b (? real? a))) _ ...) (if (>  a b) '✗ '?)]
+                  [(list _ ... (-≥/c (-b (? real? a))) _ ...) (if (>  a b) '✗ '?)]
+                  [(list _ ... (-≡/c (-b (? real? a))) _ ...) #:when a (if (<= a b) '✓ '✗)]
                   [_ '?])]
                [(list (-b (? real? b)) (-● ps))
                 #:when (and (<= b 0) (∋ ps 'exact-nonnegative-integer?))
