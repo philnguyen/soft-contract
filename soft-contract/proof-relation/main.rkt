@@ -158,8 +158,8 @@
   (define should-call-smt?
     (let ([difficult?
            (match-λ?
-            '< '> '<= '>= '= 'equal? 'eq? 'eqv? 'zero?
-            (? -</c?) (? ->/c?) (? -≤/c?) (? -≥/c?) (? -≡/c?))])
+            '< '> '<= '>= '= 'zero?
+            (? -</c?) (? ->/c?) (? -≤/c?) (? -≥/c?))])
       (λ (Γ h Vs)
         (and
          (difficult? h)
