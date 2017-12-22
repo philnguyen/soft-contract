@@ -10,7 +10,8 @@
                "z3"
                "bnf"
                "intern"
-               "set-extras"))
+               "set-extras"
+               "unreachable"))
 
 (define compile-omit-paths '("test"))
 

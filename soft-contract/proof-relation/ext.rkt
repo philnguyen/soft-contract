@@ -12,6 +12,7 @@
          bnf
          intern
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
