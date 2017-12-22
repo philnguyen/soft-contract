@@ -69,7 +69,8 @@
       #:when (and (not (-b? t₁)) (not (-b? t₂)) (not (equal? t₁ t₂)))
       (define ps₁ (∪ (hash-ref (-φ-condition φ) t₁ mk-∅) (retain σ φ t₁)))
       (define ps₂ (∪ (hash-ref (-φ-condition φ) t₂ mk-∅) (retain σ φ t₂)))
-      (if (and (set-empty? ps₁) (set-empty? ps₂)) ∅ (ps⊕ σ φ ps₁ ps₂))]
+      (define ps* (ps⊕ σ φ ps₁ ps₂))
+      (and (not (set-empty? ps*)) ps*)]
      [(_ _) #f]))
 
   (: ps⊕ : -σ -φ (℘ -h) (℘ -h) → (℘ -h))
