@@ -95,7 +95,7 @@
   (test "safe/mochi/l-zipunzip.rkt" check-safe)
   (test "safe/mochi/map-foldr.rkt" check-safe)
   (test "safe/mochi/mappend.rkt" check-safe)
-  #;(test "safe/mochi/mult.rkt" check-safe)
+  (test "safe/mochi/mult.rkt" check-safe)
   (test "safe/mochi/neg.rkt" check-safe)
   (test "safe/mochi/nth0.rkt" check-safe)
   (test "safe/mochi/r-file.rkt" check-safe)
