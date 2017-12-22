@@ -613,7 +613,7 @@
        (match-define (Bij er->ee ee->er) uni)
        (define Vs : (Listof -V^)
          (for/list ([V^ (in-list A)])
-           (rename-V^ ee->er (discard-conflicting-names er->ee (-φ-condition φ) V^))))
+           (rename-V^ ee->er (discard-conflicting-names uni (-φ-condition φ) V^))))
        (define φ*
          (match-let ([(-φ Γₑₑ δσ) φ])
            ;; "translate" callee's proposition into caller's
@@ -779,11 +779,12 @@
     (cond [(recall-e ⟦e⟧) => fv]
           [else ∅eq]))
 
-  (: discard-conflicting-names : (HashTable -t -t) -Γ -V^ → -V^)
-  (define (discard-conflicting-names m Γ V^)
+  (: discard-conflicting-names : Uni -Γ -V^ → -V^)
+  (define (discard-conflicting-names uni Γ V^)
+    (match-define (Bij er->ee ee->er) uni)
     (: go : -V → -V)
     (define (go V)
-      (if (and (-t? V) (hash-has-key? m V))
+      (if (and (-t? V) (hash-has-key? er->ee V) (not (hash-has-key? ee->er V)))
           (-● (hash-ref Γ V mk-∅))
           V))
     (map/set go V^))
