@@ -110,22 +110,22 @@
   (test   "safe/misc" check-safe)
   (test "unsafe/misc" check-fail)
 
-  #|
-  (test   "safe/softy" check-safe)
-  (test "unsafe/softy" check-fail)
-
   (test "paper/match.rkt" check-safe)
   (test "paper/match-no-check.rkt" check-safe)
   (test "paper/match-unsafe.rkt" check-fail)
-  (test "paper/escape.rkt" check-safe)
-  ;(test "paper/escape-safe.rkt" check-safe)
-  (test "paper/escape-conservative.rkt" check-fail)
+  ;(test "paper/escape.rkt" check-safe)
+  (test "paper/escape-safe.rkt" check-safe)
+  ;(test "paper/escape-conservative.rkt" check-fail)
   (test "paper/factorial.rkt" check-safe)
   (test "paper/havoc-1.rkt" check-fail)
-  (test "paper/havoc-2.rkt" check-fail)
+  ;(test "paper/havoc-2.rkt" check-fail)
   (test "paper/mutable-box-as-closure.rkt" check-safe)
   (test "paper/succ.rkt" check-safe)
-  (test "paper/succ-incorrect.rkt" check-fail) 
+  (test "paper/succ-incorrect.rkt" check-fail)
+
+  #|
+  (test   "safe/softy" check-safe)
+  (test "unsafe/softy" check-fail)
 
   (test "safe/issues/cons-of-list.rkt" check-safe)
   (test "safe/issues/list2vector.rkt" check-safe)
