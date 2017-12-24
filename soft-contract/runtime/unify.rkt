@@ -21,7 +21,9 @@
           [else (for/or : (Option Uni) ([V₁ (in-set V^₁)])
                   (for/or : (Option Uni) ([V₂ (in-set V^₂)])
                     (match* (V₁ V₂)
-                      [((? -t? t₁) (? -t? t₂)) (Bij-ext m t₁ t₂)]
+                      [((? -t? t₁) (? -t? t₂))
+                       #:when (not (and (-b? t₁) (-b? t₂)))
+                       (Bij-ext m t₁ t₂)]
                       [(_ _) (and (equal? V₁ V₂) m)])))]))
 
   (: unify-V^s : Uni (Listof -V^) (Listof -V^) → (Option Uni))

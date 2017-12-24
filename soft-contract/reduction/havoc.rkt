@@ -7,6 +7,7 @@
          racket/list
          racket/sequence
          racket/splicing
+         racket/bool
          typed/racket/unit
          set-extras
          "../utils/main.rkt"
@@ -23,24 +24,41 @@
   (export havoc^)
 
   (splicing-local
-      ((define cache : (HashTable -V (HashTable ⟪α⟫ (℘ -V))) (make-hash))
+      ((define cache : (HashTable -V (Pairof -σ -δσ)) (make-hash))
 
-       (: seen? : -V -Σ → Boolean)
-       (define (seen? V Σ)
+       (: same-store? : (Pairof -σ -δσ) (Pairof -σ -δσ) (℘ ⟪α⟫) → Boolean)
+       (define (same-store? memo₀ memo root)
+         (match-define (cons σ₀ δσ₀) memo₀)
+         (match-define (cons σ  δσ ) memo )
+         (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
+         (let loop ([αs : (℘ ⟪α⟫) root])
+           (for/and : Boolean ([α : ⟪α⟫ (in-set αs)])
+             (cond
+               [(seen-has? α) #t]
+               [else
+                (seen-add! α)
+                (define V₀ (σ@ σ₀ δσ₀ α))
+                (define V₁ (σ@ σ  δσ  α))
+                (and ((mutable? α) . implies . (equal? V₀ V₁))
+                     (for/and : Boolean ([V (in-set V₁)])
+                       (loop (V->⟪α⟫s V))))]))))
+
+       (: seen? : -V -Σ -φ → Boolean)
+       (define (seen? V Σ φ)
          (cond [(hash-ref cache V #f) =>
-                (λ ([mσ₀ : (HashTable ⟪α⟫ (℘ -V))])
-                  (define mσ (-Σ-σ Σ))
-                  (map-equal?/spanning-root mσ₀ mσ (V->⟪α⟫s V) V->⟪α⟫s mutable?))]
+                (λ ([memo₀ : (Pairof -σ -δσ)])
+                  (same-store? memo₀ (cons (-Σ-σ Σ) (-φ-cache φ)) (V->⟪α⟫s V)))]
                [else #f]))
-       (: update-cache! : -V -Σ → Void)
-       (define (update-cache! V Σ) (hash-set! cache V (-Σ-σ Σ)))
+       (: update-cache! : -V -Σ -φ → Void)
+       (define (update-cache! V Σ φ) (hash-set! cache V (cons (-Σ-σ Σ) (-φ-cache φ))))
        )
 
     (: havoc : HV-Tag -φ -Σ -⟦k⟧ → (℘ -ς))
     (define (havoc tag φ Σ ⟦k⟧)
       (for/fold ([res : (℘ -ς) (⟦k⟧ (list {set -void}) H∅ φ Σ)])
-                ([V (in-set (σ@ Σ (-φ-cache φ) (-α->⟪α⟫ (-α.hv tag))))] #:unless (seen? V Σ))
-        (update-cache! V Σ)
+                ([V (in-set (σ@ Σ (-φ-cache φ) (-α->⟪α⟫ (-α.hv tag))))]
+                 #:unless (seen? V Σ φ))
+        (update-cache! V Σ φ)
         (∪ res (havoc-V V φ Σ (hv∷ tag ⟦k⟧))))))
 
   (: havoc-V : -V -φ -Σ -⟦k⟧ → (℘ -ς))
