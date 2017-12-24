@@ -37,8 +37,8 @@
                [(seen-has? α) #t]
                [else
                 (seen-add! α)
-                (define V₀ (σ@ σ₀ δσ₀ α))
-                (define V₁ (σ@ σ  δσ  α))
+                (define V₀ (σ@ σ₀ δσ₀ α mk-∅))
+                (define V₁ (σ@ σ  δσ  α mk-∅))
                 (and ((mutable? α) . implies . (equal? V₀ V₁))
                      (for/and : Boolean ([V (in-set V₁)])
                        (loop (V->⟪α⟫s V))))]))))
@@ -56,7 +56,7 @@
     (: havoc : HV-Tag -φ -Σ -⟦k⟧ → (℘ -ς))
     (define (havoc tag φ Σ ⟦k⟧)
       (for/fold ([res : (℘ -ς) (⟦k⟧ (list {set -void}) H∅ φ Σ)])
-                ([V (in-set (σ@ Σ (-φ-cache φ) (-α->⟪α⟫ (-α.hv tag))))]
+                ([V (in-set (σ@ Σ (-φ-cache φ) (-α->⟪α⟫ (-α.hv tag)) mk-∅))]
                  #:unless (seen? V Σ φ))
         (update-cache! V Σ φ)
         (∪ res (havoc-V V φ Σ (hv∷ tag ⟦k⟧))))))

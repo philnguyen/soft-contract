@@ -87,8 +87,8 @@
   (splicing-local
       ((define ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm 'null?)) +ℓ₀))
        (define cache-listof : (Mutable-HashTable ⟪α⟫ (℘ -V)) (make-hasheq)))
-    (: σ@ : (U -Σ -σ) -δσ ⟪α⟫ → -V^)
-    (define (σ@ m δσ ⟪α⟫)
+    (: σ@ ([(U -Σ -σ) -δσ ⟪α⟫] [(→ -V^)] . ->* . -V^))
+    (define (σ@ m δσ ⟪α⟫ [def (λ () (error 'σ@ "nothing at ~a" (show-⟪α⟫ ⟪α⟫)))])
       (match (⟪α⟫->-α ⟪α⟫)
         [(-α.imm V) {set V}]
         [(-α.imm-listof x Cₑ ℓ)
@@ -106,10 +106,7 @@
          (hash-ref δσ ⟪α⟫
                    (λ ()
                      (define σ (if (-Σ? m) (-Σ-σ m) m))
-                     (hash-ref σ ⟪α⟫
-                               (λ ()
-                                 (cond [(-α.hv? α) ∅]
-                                       [else (error 'σ@ "nothing at ~a" α)])))))])))
+                     (hash-ref σ ⟪α⟫ def)))])))
 
   (: σ@/cache : (U -Σ -σ) -φ ⟪α⟫ → (Listof (Pairof -V^ -φ)))
   (define (σ@/cache Σ φ α)
