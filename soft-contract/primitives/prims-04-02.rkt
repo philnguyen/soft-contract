@@ -79,9 +79,9 @@
     (() #:rest (listof exact-integer?) . ->* . exact-integer?)
     (() #:rest (listof integer?) . ->* . integer?)
     (() #:rest (listof real?) . ->* . real?)
-    (((>/c 0)) #:rest (listof (>/c 0)) . ->* . (>/c 0))
+    (() #:rest (listof (>/c 0)) . ->* . (>/c 0))
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
-    #;(() #:rest (listof (not/c positive?)) . ->* . (not/c positive?))
+    (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?))
     #:volatile? #f)
   (def - ((number?) #:rest (listof number?) . ->* . number?)
     #:refinements
