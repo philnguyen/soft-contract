@@ -644,7 +644,7 @@
           (define δσ₂
             (for/fold ([δσ* : -δσ δσ₁])
                       ([(α V) (in-hash dependencies)])
-              (hash-update δσ* α (λ ([V₀ : -V^]) (V⊕ (-Σ-σ Σ) φ V₀ V)) mk-∅)))
+              (hash-update δσ* α (λ ([V₀ : -V^]) (V⊕ φ V₀ V)) mk-∅)))
           (-φ Γ δσ₂)))
       (⟦k⟧ A H φ* Σ)))
 
@@ -767,7 +767,11 @@
         [(cons (and αₖ₀ (-αₖ (== H) Bl₀ φ₀)) ctxs*)
          (match (unify-Bl Bl Bl₀)
            [(? values m)
-            (if (φ⊑/m? m φ φ₀) (cons αₖ₀ m) (search ctxs*))]
+            (if (and (Γ⊑/m? m (-φ-condition φ) (-φ-condition φ₀))
+                     (σ-compat/m? m (-φ-cache φ) (-φ-cache φ₀)))
+                (let ([φ* (-φ (-φ-condition φ₀) (σ⊕ (-φ-cache φ₀) (-φ-cache φ)))])
+                  (cons (-αₖ H Bl₀ φ*) m))
+                (search ctxs*))]
            [#f (search ctxs*)])]
         ['() #f]))
     

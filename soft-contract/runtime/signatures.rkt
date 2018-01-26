@@ -381,6 +381,7 @@
    [φ⊑/m? : (Uni -φ -φ → Boolean)]
    [Γ⊑/m? : (Uni -Γ -Γ → Boolean)]
    [σ⊑/m? : (Uni -σ -σ → Boolean)]
+   [σ-compat/m? : (Uni -σ -σ → Boolean)]
    [rename-V^ : ((HashTable -t -t) -V^ → -V^)]
    [Γ+ : (-Γ (HashTable -t -t) -Γ → -Γ)]))
 

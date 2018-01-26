@@ -57,8 +57,9 @@
 ;; FIXME: least coherent signature ever.
 ;; Could have named it "misc"...
 (define-signature widening^
-  ([V⊕ : (-σ -φ -V^ -V^ → -V^)]
-   [compat? : (-σ -φ -V -V → (Option (℘ -h)))]))
+  ([V⊕ : (-φ -V^ -V^ → -V^)]
+   [σ⊕ : (-σ -σ → -σ)]
+   [compat? : (-φ -V -V → (Option (℘ -h)))]))
 
 (define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]

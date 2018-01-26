@@ -29,8 +29,8 @@
     (define V*
       (case (cardinality σ δσ α)
         [(0) V]
-        [(1) (V⊕ (-Σ-σ Σ) φ (hash-ref δσ α mk-∅) V)]
-        [(N) (V⊕ (-Σ-σ Σ) φ (hash-ref  σ α mk-∅) V)]))
+        [(1) (V⊕ φ (hash-ref δσ α mk-∅) V)]
+        [(N) (V⊕ φ (hash-ref  σ α mk-∅) V)]))
     (-φ (-φ-condition φ) (hash-set δσ α V*)))
 
   (: alloc* : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
@@ -44,9 +44,9 @@
     (define δσ (-φ-cache φ))
     (case (cardinality σ δσ α)
       [(0 1) (-φ (-φ-condition φ) (hash-set δσ α V))]
-      [(N) (define (upd [m : -σ]) (hash-update m α (λ ([V₀ : -V^]) (V⊕ σ φ V₀ V)) mk-∅))
+      [(N) (define (upd [m : -σ]) (hash-update m α (λ ([V₀ : -V^]) (V⊕ φ V₀ V)) mk-∅))
            (set--Σ-σ! Σ (upd σ))
-           (-φ (-φ-condition φ) (upd δσ))]))
+           (-φ (-φ-condition φ) (upd δσ))])) 
 
   (: mut*! : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
   (define (mut*! Σ φ αs Vs)
@@ -221,13 +221,13 @@
                                        #:when (andmap (λ ([V₁^ : -V^] [V₂^ : -V^])
                                                         (and (= 1 (set-count V₁^))
                                                              (= 1 (set-count V₂^))
-                                                             (compat? σ φ (set-first V₁^) (set-first V₂^))))
+                                                             (compat? φ (set-first V₁^) (set-first V₂^))))
                                                       Vs₀ Vs))
         Vs₀))
     (define Vs*
       (if ?Vs₀
           (for/list : (Listof -V^) ([V₀ (in-list ?Vs₀)] [V (in-list Vs)])
-            (V⊕ σ φ V₀ V))
+            (V⊕ φ V₀ V))
           Vs))
     (define σₐ* (hash-update σₐ αₖ
                              (λ ([As : (℘ (Listof -V^))]) (set-add As Vs*))

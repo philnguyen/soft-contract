@@ -9,22 +9,27 @@
          set-extras
          "../utils/main.rkt"
          "../ast/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit unify@
-  (import sto^)
-  (export unify^) 
+  (import sto^ path^ widening^)
+  (export unify^)
+
+  (: unify-V : Uni -V -V → (Option Uni))
+  (define (unify-V m V₁ V₂)
+    (match* (V₁ V₂)
+      [((? -t? t₁) (? -t? t₂))
+       #:when (not (and (-b? t₁) (-b? t₂)))
+       (Bij-ext m t₁ t₂)]
+      [(_ _) (and (equal? V₁ V₂) m)]))
 
   (: unify-V^ : Uni -V^ -V^ → (Option Uni))
   (define (unify-V^ m V^₁ V^₂)
     (cond [(and (set-empty? V^₁) (set-empty? V^₂)) Bij-empty]
           [else (for/or : (Option Uni) ([V₁ (in-set V^₁)])
                   (for/or : (Option Uni) ([V₂ (in-set V^₂)])
-                    (match* (V₁ V₂)
-                      [((? -t? t₁) (? -t? t₂))
-                       #:when (not (and (-b? t₁) (-b? t₂)))
-                       (Bij-ext m t₁ t₂)]
-                      [(_ _) (and (equal? V₁ V₂) m)])))]))
+                    (unify-V m V₁ V₂)))]))
 
   (: unify-V^s : Uni (Listof -V^) (Listof -V^) → (Option Uni))
   (define (unify-V^s m Vs₁ Vs₂)
@@ -71,6 +76,22 @@
   (define (σ⊑/m? m σ₁ σ₂)
     (for/and : Boolean ([(α V) (in-hash σ₁)])
       (and (unify-V^ m V (hash-ref σ₂ α mk-∅)) #t)))
+
+  (: σ-compat/m? : Uni -σ -σ → Boolean)
+  (define (σ-compat/m? m σ₁ σ₂)
+    (: compat-V? : -V -V → Boolean)
+    (define (compat-V? V₁ V₂)
+      (cond [(and (-t? V₁) (not (-b? V₁)) (-t? V₂) (not (-b? V₂)))
+             (and (Bij-ext m V₁ V₂) #t)]
+            [(or (-t? V₁) (-t? V₂)) #f]
+            [else (and (compat? φ₀ V₁ V₂) #t)]))
+    (: compat-V^? : -V^ -V^ → Boolean)
+    (define (compat-V^? V₁^ V₂^)
+      (for/or : Boolean ([V₁ (in-set V₁^)])
+        (for/or : Boolean ([V₂ (in-set V₂^)])
+          (compat-V? V₁ V₂))))
+    (for/and : Boolean ([(α V^) (in-hash σ₁)])
+      (compat-V^? V^ (hash-ref σ₂ α mk-∅))))
 
   (: rename-V^ : (HashTable -t -t) -V^ → -V^)
   (define (rename-V^ m V^)

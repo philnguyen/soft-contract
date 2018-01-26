@@ -22,21 +22,21 @@
   (import proof-system^ sto^ path^)
   (export widening^)
 
-  (: V⊕ : -σ -φ -V^ -V^ → -V^)
-  (define (V⊕ σ φ V₁ V₂)
+  (: V⊕ : -φ -V^ -V^ → -V^)
+  (define (V⊕ φ V₁ V₂)
     (define-values (Vs δV)
       (if (>= (set-count V₁) (set-count V₂))
           (values V₁ V₂)
           (values V₂ V₁)))
     (for/fold ([V^ : -V^ Vs]) ([Vᵢ (in-set δV)])
-      (V^⊕ σ φ V^ Vᵢ)))
+      (V^⊕ φ V^ Vᵢ)))
 
-  (: V^⊕ : -σ -φ -V^ -V → -V^)
-  (define (V^⊕ σ φ V^ V)
+  (: V^⊕ : -φ -V^ -V → -V^)
+  (define (V^⊕ φ V^ V)
     (cond
       [(∋ V^ V) V^]
       [(for/or : (Option (Pairof (℘ -h) -V)) ([V₀ (in-set V^)])
-         (match (compat? σ φ V₀ V)
+         (match (compat? φ V₀ V)
            [(? set? ps) (cons ps V₀)]
            [_ #f]))
        =>
@@ -44,8 +44,13 @@
          [(cons ps V₀) (set-add (set-remove V^ V₀) (-● ps))])]
       [else (set-add V^ V)]))
 
-  (: compat? : -σ -φ -V -V → (Option (℘ -h)))
-  (define (compat? σ φ V₁ V₂)
+  (: σ⊕ : -σ -σ → -σ)
+  (define (σ⊕ σ₁ σ₂)
+    (for/fold ([σ : -σ σ₁]) ([(α V^) (in-hash σ₁)])
+      (hash-set σ α (V⊕ φ₀ V^ (hash-ref σ₂ α mk-∅)))))
+
+  (: compat? : -φ -V -V → (Option (℘ -h)))
+  (define (compat? φ V₁ V₂)
     (match* (V₁ V₂)
      [((-b b₁) (-b b₂))
       #:when (not (equal? b₁ b₂))
@@ -59,26 +64,26 @@
        char? boolean?
        regexp? pregexp? byte-regexp? byte-pregexp?)]
      [((? -b? b) (-● ps))
-      (define ps* (ps⊕ σ φ ps {set (-≡/c b)}))
+      (define ps* (ps⊕ φ ps {set (-≡/c b)}))
       (and (not (set-empty? ps*)) ps*)]
-     [((and V₁ (? -●?)) (and V₂ (? -b?))) (compat? σ φ V₂ V₁)]
+     [((and V₁ (? -●?)) (and V₂ (? -b?))) (compat? φ V₂ V₁)]
      [((-● ps₁) (-● ps₂))
-      (define ps (ps⊕ σ φ ps₁ ps₂))
+      (define ps (ps⊕ φ ps₁ ps₂))
       (and (not (set-empty? ps)) ps)]
      [((? -t? t₁) (? -t? t₂))
       #:when (and (not (-b? t₁)) (not (-b? t₂)) (not (equal? t₁ t₂)))
-      (define ps₁ (∪ (hash-ref (-φ-condition φ) t₁ mk-∅) (retain σ φ t₁)))
-      (define ps₂ (∪ (hash-ref (-φ-condition φ) t₂ mk-∅) (retain σ φ t₂)))
-      (define ps* (ps⊕ σ φ ps₁ ps₂))
+      (define ps₁ (∪ (hash-ref (-φ-condition φ) t₁ mk-∅) (retain φ t₁)))
+      (define ps₂ (∪ (hash-ref (-φ-condition φ) t₂ mk-∅) (retain φ t₂)))
+      (define ps* (ps⊕ φ ps₁ ps₂))
       (and (not (set-empty? ps*)) ps*)]
      [(_ _) #f]))
 
-  (: ps⊕ : -σ -φ (℘ -h) (℘ -h) → (℘ -h))
-  (define (ps⊕ σ φ ps₁ ps₂)
-    (for*/union : (℘ -h) ([p₁ (in-set ps₁)] [p₂ (in-set ps₂)]) (p⊕ σ φ p₁ p₂)))
+  (: ps⊕ : -φ (℘ -h) (℘ -h) → (℘ -h))
+  (define (ps⊕ φ ps₁ ps₂)
+    (for*/union : (℘ -h) ([p₁ (in-set ps₁)] [p₂ (in-set ps₂)]) (p⊕ φ p₁ p₂)))
 
-  (: p⊕ : -σ -φ -h -h → (℘ -h))
-  (define (p⊕ σ φ p q)
+  (: p⊕ : -φ -h -h → (℘ -h))
+  (define (p⊕ φ p q)
     (define-syntax-rule (symmetric-match* (x y) [(l r) e ...] ... [#:default e-d ...])
       (match* (x y)
         [(l r) e ...] ...
@@ -91,18 +96,18 @@
              [((-≡/c t) (->/c t)) {set (-≥/c t)}]
              [((-≡/c t) (-</c t)) {set (-≤/c t)}]
              [((-≡/c t₁) (or (->/c t₂) (-≥/c t₂)))
-              #:when (and t₂ (equal? '✓ (quick-p∋V^ σ φ '>= {set t₂} {set t₁})))
+              #:when (and t₂ (equal? '✓ (quick-p∋V^ ⊥σ φ '>= {set t₂} {set t₁})))
               {set (-≥/c t₁)}]
              [((-≡/c t₁) (or (-</c t₂) (-≤/c t₂)))
-              #:when (and t₂ (equal? '✓ (quick-p∋V^ σ φ '<= {set t₂} {set t₁})))
+              #:when (and t₂ (equal? '✓ (quick-p∋V^ ⊥σ φ '<= {set t₂} {set t₁})))
               {set (-≤/c t₁)}]
              [#:default ∅])]))
 
-  (: retain : -σ -φ -t → (℘ -h))
-  (define (retain σ φ t)
+  (: retain : -φ -t → (℘ -h))
+  (define (retain φ t)
     (: obvious? : -o -V^ * → Boolean)
     (define (obvious? o . ts)
-      (equal? '✓ (apply quick-p∋V^ σ φ o ts)))
+      (equal? '✓ (apply quick-p∋V^ ⊥σ φ o ts)))
     
     (define-set res : -h)
     (res-add! (-≡/c t))
