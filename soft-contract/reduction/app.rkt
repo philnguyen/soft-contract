@@ -287,7 +287,6 @@
   (define ((app-Indy C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)
     (define lₒ (-ctx-src ctx))
     (define ctx* (ctx-neg ctx))
-    (define ℓₐ* (ℓ-with-src ℓₐ lₒ))
     (match-define (-=>i Doms Rng) C)
     (define x->⟦x⟧
       (for/hasheq : (Immutable-HashTable Symbol -⟦e⟧) ([D (in-list Doms)])
@@ -308,12 +307,13 @@
                 (hash-ref x->⟦x⟧ x)
                 (mk-mon (ctx-with-ℓ ctx* ℓₓ) (C->⟦e⟧ Cₓ) (mk-A (list Vₓ))))))
     (define ⟦mon-app⟧
-      (match-let* ([(-Dom _ D ℓᵣ) Rng]
-                   [⟦inner-app⟧ (mk-app ℓₐ* (mk-A (list Vᵤ^)) ⟦x⟧s)]
-                   [⟦D⟧ (C->⟦e⟧ D)])
+      (match-let ([(-Dom _ D ℓᵣ) Rng])
+        (define ℓₐ* (ℓ-with-src ℓₐ lₒ))
+        (define ⟦inner-app⟧ (mk-app ℓₐ* (mk-A (list Vᵤ^)) ⟦x⟧s))
+        (define ⟦D⟧ (C->⟦e⟧ D))
         (mk-mon (ctx-with-ℓ ctx ℓᵣ) ⟦D⟧ ⟦inner-app⟧)))
     (define ⟦comp⟧ (mk-let* ℓₐ (map (inst cons Symbol -⟦e⟧) xs ⟦mon-x⟧s) ⟦mon-app⟧))
-    (⟦comp⟧ ⊥ρ  H φ Σ ⟦k⟧))
+    (⟦comp⟧ ⊥ρ H φ Σ ⟦k⟧))
 
   (: app-st-p : -𝒾 → -⟦f⟧)
   (define (app-st-p 𝒾)
