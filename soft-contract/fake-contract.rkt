@@ -6,7 +6,10 @@
                     one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
                     recursive-contract)
          (except-in racket/set set/c)
-         (for-syntax racket/base racket/string)
+         (for-syntax racket/base
+                     racket/string
+                     racket/syntax
+                     syntax/parse)
          racket/list)
 (require (prefix-in c: racket/contract/base)
          (prefix-in c: (only-in racket/set set/c))
@@ -57,14 +60,27 @@
      #`(begin (dynamic-struct/c name cs ...)
               (scv:ignore (c:struct/c name cs ...)))]))
 (define dynamic->* c:dynamic->*)
-(define-syntax-rule (->i ([id ctc] ...) (_res (id* ...) result))
-  (begin (dynamic->i (list (list 'id ctc) ...) (λ (id* ...) result))
-         (scv:ignore (c:->i ([id ctc] ...) (_res (id* ...) result)))))
 
-(define (dynamic->i doms result-f) (void))
+(begin-for-syntax
+  (define-syntax-class dom
+    #:description "restricted contract domain"
+    (pattern (_:id (_:id ...) _:expr))
+    (pattern (_:id            _:expr))))
 
+(define-syntax dom-quote
+  (syntax-parser
+    [(_ (name:id (dep:id ...) ctc:expr)) #'(list #t 'name (λ (dep ...) ctc))]
+    [(_ (name:id              ctc:expr)) #'(list #f 'name              ctc )]))
+
+(define-syntax ->i
+  (syntax-parser
+    [(_ (c:dom ...) d:dom)
+     #'(begin
+         (dynamic->i (list (dom-quote c) ...) (dom-quote d))
+         (scv:ignore (c:->i (c ...) d)))]))
+
+(define (dynamic->i . _) (void))
 (define (dynamic-struct/c . _) (void))
-
 (define (dynamic-struct-out . _) (void))
 
 (define-syntax ->

@@ -9,6 +9,7 @@
          typed/racket/unit
          syntax/parse/define
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -284,34 +285,35 @@
 
   (: app-Indy : -=>i -V^ -ctx → -⟦f⟧)
   (define ((app-Indy C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)
-    (define lo (-ctx-src ctx))
-    (match-define (-=>i αℓs (cons Mk-D ℓᵣ)) C)
-    (match-define (-Clo xs ⟦d⟧ ρᵣ) Mk-D)
-    (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
-    (define ℓₐ* (ℓ-with-src ℓₐ lo))
-    (match xs
-      [(? list?)
-       (define ⟦x⟧s : (Listof -⟦e⟧) (for/list ([x (in-list xs)]) (↓ₓ lo x (loc->ℓ (loc 'indy 0 0 (list x))))))
-       (define ⟦mon-app⟧
-         (let* ([⟦app⟧ (mk-app ℓₐ* (mk-A (list Vᵤ^)) ⟦x⟧s)]
-                [⟦rng⟧ (mk-app ℓₐ (mk-V Mk-D) ⟦x⟧s)])
-           (mk-mon (ctx-with-ℓ ctx ℓᵣ) ⟦rng⟧ ⟦app⟧)))
-       (define ctx* (ctx-neg ctx))
-       (define Cₓs (σ@/list Σ (-φ-cache φ) αs))
-       (define ⟦mon-x⟧s : (Listof -⟦e⟧)
-         (for/list ([Cₓ (in-list Cₓs)] [Vₓ (in-list Vₓs)] [ℓₓ : ℓ (in-list ℓs)])
-           (mk-mon (ctx-with-ℓ ctx* ℓₓ) (mk-A (list Cₓ)) (mk-A (list Vₓ)))))
-       (match* (xs ⟦x⟧s ⟦mon-x⟧s)
-         [('() '() '())
-          (⟦mon-app⟧ ρᵣ H φ Σ ⟦k⟧)]
-         [((cons x xs*) (cons ⟦x⟧ ⟦x⟧s*) (cons ⟦mon-x⟧ ⟦mon-x⟧s*))
-          (define rst : (Listof (Pairof (Listof Symbol) -⟦e⟧))
-            (for/list ([xᵢ (in-list xs*)] [⟦mon⟧ᵢ (in-list ⟦mon-x⟧s*)])
-              (cons (list xᵢ) ⟦mon⟧ᵢ)))
-          (define ⟦k⟧* (let∷ ℓₐ (list x) rst '() ⟦mon-app⟧ ρᵣ ⟦k⟧))
-          (⟦mon-x⟧ ρᵣ H φ Σ ⟦k⟧*)])]
-      [(-var zs z)
-       (error 'app-Indy "TODO: varargs in ->i: ~a" (cons zs z))]))
+    (define lₒ (-ctx-src ctx))
+    (define ctx* (ctx-neg ctx))
+    (define ℓₐ* (ℓ-with-src ℓₐ lₒ))
+    (match-define (-=>i Doms Rng) C)
+    (define x->⟦x⟧
+      (for/hasheq : (Immutable-HashTable Symbol -⟦e⟧) ([D (in-list Doms)])
+        (match-define (-Dom x _ ℓₓ) D)
+        (values x (↓ₓ lₒ x ℓₓ))))
+    (define C->⟦e⟧ : ((U -Clo ⟪α⟫) → -⟦e⟧)
+      (match-lambda
+        [(and Cₓ (-Clo (? list? zs) _ _))
+         (define ⟦z⟧s : (Listof -⟦e⟧)
+           (for/list ([z (in-list zs)]) (hash-ref x->⟦x⟧ z)))
+         (mk-app ℓₐ (mk-V Cₓ) ⟦z⟧s)]
+        [(? integer? α) (mk-A (list (σ@ Σ (-φ-cache φ) α)))]))
+    (define-values (xs ⟦x⟧s ⟦mon-x⟧s)
+      (for/lists ([xs : (Listof Symbol)] [⟦x⟧s : (Listof -⟦e⟧)] [⟦mon-x⟧ : (Listof -⟦e⟧)])
+                 ([D (in-list Doms)] [Vₓ (in-list Vₓs)])
+        (match-define (-Dom x Cₓ ℓₓ) D)
+        (values x
+                (hash-ref x->⟦x⟧ x)
+                (mk-mon (ctx-with-ℓ ctx* ℓₓ) (C->⟦e⟧ Cₓ) (mk-A (list Vₓ))))))
+    (define ⟦mon-app⟧
+      (match-let* ([(-Dom _ D ℓᵣ) Rng]
+                   [⟦inner-app⟧ (mk-app ℓₐ* (mk-A (list Vᵤ^)) ⟦x⟧s)]
+                   [⟦D⟧ (C->⟦e⟧ D)])
+        (mk-mon (ctx-with-ℓ ctx ℓᵣ) ⟦D⟧ ⟦inner-app⟧)))
+    (define ⟦comp⟧ (mk-let* ℓₐ (map (inst cons Symbol -⟦e⟧) xs ⟦mon-x⟧s) ⟦mon-app⟧))
+    (⟦comp⟧ ⊥ρ  H φ Σ ⟦k⟧))
 
   (: app-st-p : -𝒾 → -⟦f⟧)
   (define (app-st-p 𝒾)

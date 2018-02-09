@@ -111,11 +111,7 @@
        (match αs
          [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,show-rng)]
          [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,show-rng)])]
-      [(-=>i γs (cons (-Clo xs ⟦e⟧ _) _))
-       `(->i ,@(map show-⟪α⟫ℓ γs)
-             ,(match xs
-                [(? list? xs) `(res ,xs ,(show-⟦e⟧ ⟦e⟧))]
-                [(-var xs z) `(res (,xs ,z) (show-⟦e⟧ ⟦e⟧))]))]
+      [(-=>i Doms Rng) `(->i ,(map -Dom-name Doms) ,(-Dom-name Rng))]
       [(-Case-> cases) `(case-> ,@(map show-V cases))]
       [(-St/C _ 𝒾 αs)
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]

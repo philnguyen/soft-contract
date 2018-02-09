@@ -65,6 +65,8 @@
 
 (Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Byte-Regexp Byte-PRegexp Char Null Void Arity EOF Undefined Path)
 
+(-dom . ::= . (-dom [name : Symbol] [dependency : (Option (Listof Symbol))] [body : -e] [loc : ℓ]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; AST subset definition as in Racket reference 1.2.3.1
@@ -110,7 +112,7 @@
             ;; contract stuff
             (-μ/c Symbol -e)
             (--> [doms : (-maybe-var -e)] [rng : -e] [loc : ℓ])
-            (-->i [doms : (Listof -e)] [rng : -λ] [loc : ℓ])
+            (-->i [doms : (Listof -dom)] [rng : -dom])
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
             (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
@@ -212,13 +214,12 @@
 
 (define-signature meta-functions^
   ([fv : (-e → (℘ Symbol))]
-   [bv : (-e → (℘ Symbol))]
    [closed? : (-e → Boolean)]
    [free-x/c : (-e → (℘ Symbol))]
    [e/map : (Subst -e → -e)]
    [e/ : (Symbol -e -e → -e)]
    [formals->names : (-formals → (℘ Symbol))]
-   [locs : (-e → (℘ ℓ))]))
+   [first-forward-ref : ((Listof -dom) → (Option Symbol))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

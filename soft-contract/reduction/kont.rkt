@@ -334,28 +334,30 @@
           [_ (mk-⟪α⟫ℓ* Σ 'rng -α.rng H ℓ φ₁ rngs)]))
       (values (-=> Dom Rng) φ₂))
 
-    ;; Given *reversed* list of contract domains and range-maker, create dependent contract
-    (: mk-=>i : -Σ -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))
-    (define (mk-=>i Σ H φ Vs-rev Mk-D ℓₐ)
-      (define-values (Dom φ*) (mk-⟪α⟫ℓ* Σ 'dom -α.dom H ℓₐ φ (reverse Vs-rev)))
-      (values (-=>i Dom (cons Mk-D (ℓ-with-id ℓₐ '->i-rng))) φ*))) 
+    ;; Given *reversed* list of contract domains, create dependent contract
+    (: mk-=>i : -Σ -H -φ (Listof -Dom) → -=>i)
+    (define (mk-=>i Σ H φ Doms)
+      (match-define (cons D Cs) Doms)
+      (-=>i (reverse Cs) D))) 
 
   ;; Dependent contract
-  (define-frame (-->i∷ [Cs  : (Listof -V^)]
-                       [⟦c⟧s : (Listof -⟦e⟧)]
-                       [ρ   : -ρ]
-                       [Mk-D : -Clo]
-                       [ℓ    : ℓ]
+  (define-frame (-->i∷ [ρ : -ρ]
+                       [Doms-rev  : (Listof -Dom)]
+                       [ctx : (Pairof Symbol ℓ)]
+                       [⟦dom⟧s : (Listof -⟦dom⟧)]
                        [⟦k⟧  : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (Cs ρ Mk-D)
-      (match-define (list C) A)
-      (define Cs* (cons C Cs))
-      (match ⟦c⟧s
+    (match-define (cons x ℓ) ctx)
+    (make-frame (⟦k⟧ A H φ Σ) #:roots () ;; FIXME roots!!
+      (match-define (list C^) A)
+      (define α (-α->⟪α⟫ (if (null? ⟦dom⟧s) (-α.rng ℓ H 0) (-α.dom ℓ H (length Doms-rev)))))
+      (define φ* (alloc Σ φ α C^))
+      (define-values (Doms-rev₁ ⟦dom⟧s₁) (split-⟦dom⟧s ρ ⟦dom⟧s))
+      (define Doms-rev* (append Doms-rev₁ (cons (-Dom x α ℓ) Doms-rev)))
+      (match ⟦dom⟧s₁
         ['()
-         (define-values (G φ*) (mk-=>i Σ H φ Cs* Mk-D ℓ))
-         (⟦k⟧ (list {set G}) H φ* Σ)]
-        [(cons ⟦c⟧ ⟦c⟧s*)
-         (⟦c⟧ ρ H φ Σ (-->i∷ Cs* ⟦c⟧s* ρ Mk-D ℓ ⟦k⟧))])))
+         (⟦k⟧ (list {set (mk-=>i Σ H φ* Doms-rev*)}) H φ* Σ)]
+        [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s*)
+         (⟦c⟧ ρ H φ* Σ (-->i∷ ρ Doms-rev* (cons x ℓ) ⟦dom⟧s* ⟦k⟧))])))
 
   ;; struct/c contract
   (define-frame (struct/c∷ [ℓ₁ : ℓ]

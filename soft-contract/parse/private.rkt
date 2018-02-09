@@ -469,9 +469,11 @@
        (--> dom rng (next-ℓ! #'c))]
       ;; Dependent contract
       [e:scv-->i
-       (define cs (map parse-e (attribute e.domain)))
-       (define mk-d (parse-e (attribute e.range-maker)))
-       (-->i cs mk-d (next-ℓ! #'e))]
+       (define cs (map parse-named-domain (attribute e.domains)))
+       (define d (parse-named-domain (attribute e.range)))
+       (cond [(first-forward-ref `(,@cs ,d)) =>
+              (λ (x) (error 'scv "forward reference to `~a` in `->i` not yet supported" x))])
+       (-->i cs d)]
       [e:scv-case->
        (define cases
          (map
@@ -633,11 +635,31 @@
         (parse-prim #'i)
         (parse-ref #'i))]))
 
+  (define/contract (parse-named-domain stx)
+    (scv-syntax? . -> . -dom?)
+    (syntax-parse stx
+      [dom:named-dom
+       (define body (attribute dom.body))
+       (define-values (?dep c)
+         (match (attribute dom.dependency)
+           [#f (values #f (parse-e body))]
+           [zs
+            ;; FIXME this hack bypasses current α-renaming
+            (define-values (xs-rev ρ)
+              (for/fold ([xs-rev '()] [ρ (env)]) ([z (in-list (syntax->list zs))])
+                (values (cons (syntax-e z) xs-rev)
+                        (free-id-table-set ρ z (syntax-e z)))))
+            (values (reverse xs-rev)
+                    (with-env ρ (parse-e body)))]))
+       (-dom (attribute dom.name) ?dep c (syntax-ℓ #'dom))]))
+
   (define/contract (parse-ref id)
     (identifier? . -> . -x?)
 
     (define (lookup)
-      (free-id-table-ref (env) id (λ () (raise-syntax-error 'parser "not in scope" id))))
+      (free-id-table-ref (env) id (λ ()
+                                    (define scope (free-id-table-keys (env)))
+                                    (raise-syntax-error 'parser (format "`~a` not in scope (~a)" id scope)))))
     
     (match (identifier-binding id)
       ['lexical (-x (lookup) (next-ℓ! id))]

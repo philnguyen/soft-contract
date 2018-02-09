@@ -93,28 +93,32 @@
            #:attr params #'(x ...)
            #:attr body #'c))
 
+(define-syntax-class named-dom
+  #:description "restricted fake-contract named domain"
+  #:literal-sets (lits)
+  #:attributes (name dependency body)
+  (pattern (#%plain-app list (quote #f) (quote x:id) c:expr)
+           #:attr name (syntax-e #'x)
+           #:attr dependency #f
+           #:attr body #'c)
+  (pattern (#%plain-app list (quote #t) (quote x:id) (#%plain-lambda (z:id ...) c:expr))
+           #:attr name (syntax-e #'x)
+           #:attr dependency #'(z ...)
+           #:attr body #'c))
+
 (define-syntax-class scv-->i
   #:description "hacked dependent contract"
   #:literal-sets (lits)
-  #:attributes (domain range-maker)
+  #:attributes (domains range)
   (pattern (~or (begin
-                  (#%plain-app
-                   (~literal fake:dynamic->i)
-                   (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-                   (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+                  (#%plain-app (~literal fake:dynamic->i) (#%plain-app list c:named-dom ...) d:named-dom)
                   _ ...)
                 (let-values ()
-                  (#%plain-app
-                   (~literal fake:dynamic->i)
-                   (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-                   (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...))
+                  (#%plain-app (~literal fake:dynamic->i) (#%plain-app list c:named-dom ...) d:named-dom)
                   _ ...)
-                (#%plain-app
-                 (~literal fake:dynamic->i)
-                 (#%plain-app list [#%plain-app list (quote x:id) cₓ:expr] ...)
-                 (#%plain-lambda (z:id ...) d:expr #|FIXME temp hack|# _ ...)))
-           #:attr domain (syntax->list #'(cₓ ...))
-           #:attr range-maker #'(#%plain-lambda (z ...) d)))
+                (#%plain-app (~literal fake:dynamic->i) (#%plain-app list c:named-dom ...) d:named-dom))
+           #:attr domains (syntax->list #'(c ...))
+           #:attr range #'d))
 
 (define-syntax-class scv-case->
   #:description "hacked case contract"

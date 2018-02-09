@@ -79,7 +79,11 @@
             [(-var αs αᵣ)
              (set-add* (set-add (list->seteq (map -⟪α⟫ℓ-addr αs)) (-⟪α⟫ℓ-addr αᵣ))
                        (if (pair? βs) (map -⟪α⟫ℓ-addr βs) '()))])]
-         [(-=>i αs (cons D _)) (∪ (list->seteq (map -⟪α⟫ℓ-addr αs)) (V->⟪α⟫s D))]
+         [(-=>i Doms Rng)
+          (for/unioneq : (℘ ⟪α⟫) ([D (in-list (cons Rng Doms))])
+            (match (-Dom-ctc D)
+              [(? -Clo? V) (V->⟪α⟫s V)]
+              [(? integer? α) {seteq α}]))]
          [(-Case-> cases)
           (for/unioneq : (℘ ⟪α⟫) ([C cases]) (V->⟪α⟫s C))]
          [(-∀/C _ _ ρ) (ρ->⟪α⟫s ρ)]
@@ -142,7 +146,7 @@
     (define (touch! α)
       (unless (live-has? α)
         (live-add! α)
-        (for* ([V (in-set (σ@ Σ δσ α))]
+        (for* ([V (in-set (σ@ Σ δσ α mk-∅))]
                [α* : ⟪α⟫ (in-set (V->⟪α⟫s V))])
           (touch! α*))))
     (set-for-each root touch!)

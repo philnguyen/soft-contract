@@ -56,7 +56,11 @@
        (match cs
          [(-var cs c) (∪ (fv c) (fv d) (fv cs))]
          [(? list? cs) (∪ (fv d) (fv cs))])]
-      [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
+      [(-->i cs d)
+       (define dom-fv : (-dom → (℘ Symbol))
+         (match-lambda
+           [(-dom _ ?xs d _) (fv (if ?xs (-λ ?xs d) d))]))
+       (apply ∪ (dom-fv d) (map dom-fv cs))]
       [(-struct/c _ cs _)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
          (∪ xs (fv c)))]
@@ -64,46 +68,6 @@
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
          (∪ xs (fv e)))]
       [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
-
-  (: bv : (U -e (Listof -e)) → (℘ Symbol))
-  (define (bv e)
-    (match e
-      [(-x x _) ∅eq]
-      [(-λ xs e)
-       (define bound
-         (match xs
-           [(-var zs z) (set-add (list->seteq zs) z)]
-           [(? list? xs) (list->seteq xs)]))
-       (∪ (bv e) bound)]
-      [(-@ f xs _) (∪ (bv f) (bv xs))]
-      [(-begin es) (bv es)]
-      [(-begin0 e₀ es) (∪ (bv e₀) (bv es))]
-      [(-let-values bnds e _)
-       (∪ (for/unioneq : (℘ Symbol) ([bnd (in-list bnds)])
-                       (match-define (cons xs rhs) bnd)
-                       (∪ (list->seteq xs) (bv rhs)))
-          (bv e))]
-      [(-letrec-values bnds e _)
-       (∪ (for/unioneq : (℘ Symbol) ([bnd (in-list bnds)])
-                       (match-define (cons xs rhs) bnd)
-                       (∪ (list->seteq xs) (bv rhs)))
-          (bv e))]
-      [(-set! x e) (bv e)]
-      #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
-      [(-if e e₁ e₂) (∪ (bv e) (bv e₁) (bv e₂))]
-      [(-μ/c _ e) (bv e)]
-      [(--> cs d _)
-       (match cs
-         [(-var cs c) (∪ (bv c) (bv d) (bv cs))]
-         [(? list? cs) (∪ (bv d) (bv cs))])]
-      [(-->i cs mk-d _) (apply ∪ (bv mk-d) (map bv cs))]
-      [(-struct/c _ cs _)
-       (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
-         (∪ xs (bv c)))]
-      [(? list? l)
-       (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
-         (∪ xs (bv e)))]
-      [_ (log-debug "BV⟦~a⟧ = ∅~n" e) ∅eq]))
 
   (: closed? : -e → Boolean)
   ;; Check whether expression is closed
@@ -115,6 +79,11 @@
 
     (: go* : (Listof -e) → (℘ Symbol))
     (define (go* xs) (for/unioneq : (℘ Symbol) ([x xs]) (go x)))
+
+    (: go/dom : -dom → (℘ Symbol))
+    (define go/dom
+      (match-lambda
+        [(-dom _ ?xs d _) (if ?xs (go (-λ ?xs d)) (go d))]))
 
     (: go : -e → (℘ Symbol))
     (define (go e)
@@ -133,40 +102,12 @@
          (match cs
            [(-var cs c) (∪ (go* cs) (go c) (go d))]
            [(? list? cs) (∪ (go* cs) (go d))])]
-        [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
+        [(-->i cs d) (apply ∪ (go/dom d) (map go/dom cs))]
         [(-struct/c t cs _) (go* cs)]
         [(-x/c.tmp x) (seteq x)]
         [_ ∅eq]))
     
     (go e))
-
-  (: locs : -e → (℘ ℓ))
-  ;; Grab all source locations used in function body
-  (define locs
-    (match-lambda
-      [(-@ f xs ℓ) (apply ∪ {seteq ℓ} (locs f) (map locs xs))]
-      [(-if e e₁ e₂) (∪ (locs e) (locs e₁) (locs e₂))]
-      [(-wcm k v b) (∪ (locs k) (locs v) (locs b))]
-      [(-begin es) (apply ∪ ∅eq (map locs es))]
-      [(-begin0 e es) (apply ∪ (locs e) (map locs es))]
-      [(or (-let-values bnds e ℓ₀) (-letrec-values bnds e ℓ₀))
-       #:when (and bnds e ℓ₀)
-       (for/fold ([acc : (℘ ℓ) {set-add (locs e) ℓ₀}])
-                 ([bnd (in-list bnds)])
-         (match-define (cons _ e) bnd)
-         (∪ acc (locs e)))]
-      [(-set! _ e) (locs e)]
-      [(-μ/c _ e) (locs e)]
-      [(--> dom rng ℓ)
-       (apply ∪ {seteq ℓ} (locs rng)
-              (match dom
-                [(-var inits rest) (cons (locs rest) (map locs inits))]
-                [(? list? inits) (map locs inits)]))]
-      [(-->i doms _ ℓ)
-       (apply ∪ {seteq ℓ} (map locs doms))]
-      [(-struct/c 𝒾 cs ℓ) (apply ∪ {seteq ℓ} (map locs cs))]
-      [(-∀/c _ e) (locs e)]
-      [_ ∅eq]))
 
   #;(: find-calls : -e (U -𝒾 -•) → (℘ (Listof -e)))
   ;; Search for all invocations of `f-id` in `e`
@@ -198,6 +139,11 @@
     (define (go m e)
       (with-debugging/off
         ((ans)
+         (define go/dom : (-dom → -dom)
+           (match-lambda
+             [(-dom x ?xs d ℓ)
+              (define d* (if ?xs (go (remove-keys m (list->seteq ?xs)) d) (go m d)))
+              (-dom x ?xs d* ℓ)]))
          (cond
            [(hash-empty? m) e]
            [else
@@ -249,8 +195,8 @@
                (match cs
                  [(-var cs c) (--> (-var (go-list m cs) (go m c)) (go m d) ℓ)]
                  [(? list? cs) (--> (go-list m cs) (go m d) ℓ)])]
-              [(-->i cs mk-d ℓ)
-               (-->i (go-list m cs) (assert (go m mk-d) -λ?) ℓ)]
+              [(-->i cs d)
+               (-->i (map go/dom cs) (go/dom d))]
               [(-struct/c t cs ℓ)
                (-struct/c t (go-list m cs) ℓ)]
               [_
@@ -273,4 +219,14 @@
     (cond
       [(-var? xs) (set-add (list->seteq (-var-init xs)) (-var-rest xs))]
       [else (list->seteq xs)]))
+
+  (: first-forward-ref : (Listof -dom) → (Option Symbol))
+  (define (first-forward-ref doms)
+    (define-set seen : Symbol #:eq? #t #:as-mutable-hash? #t)
+    (for/or : (Option Symbol) ([dom (in-list doms)])
+      (match-define (-dom x ?xs _ _) dom)
+      (seen-add! x)
+      (and ?xs
+           (for/or : (Option Symbol) ([x (in-list ?xs)] #:unless (seen-has? x))
+             x))))
   )

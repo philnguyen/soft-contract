@@ -119,12 +119,7 @@
   (define guard-arity : (-=>_ → Arity)
     (match-lambda
       [(-=> αs _) (shape αs)]
-      [(and grd (-=>i αs (cons mk-D _)))
-       (match mk-D
-         [(-Clo xs _ _) (shape xs)]
-         [_
-          ;; FIXME: may be wrong for var-args. Need to have saved more
-          (length αs)])]
+      [(and grd (-=>i Doms _)) (length Doms)]
       [(-Case-> cases) (normalize-arity (map guard-arity cases))]
       [(? -∀/C?)
        ;; TODO From observing behavior in Racket. But this maybe unsound for proof system

@@ -119,18 +119,18 @@
           `(,(map show-e es) #:rest ,(show-e e) . ->* . ,(show-e rng))]
          [(? list? es)
           `(,@(map show-e es) . -> . ,(show-e rng))])]
-      [(-->i cs (and d (-λ xs _)) _)
-       (match xs
-         [(? list? xs)
-          `(,@(map show-e cs) ↦ ,(show-e d))]
-         [(-var xs₀ x)
-          (define-values (cs₀ c) (split-at cs (length xs₀)))
-          `(,@(map show-e cs₀) #:rest ,@(map show-e c) ↦ ,(show-e d))])]
+      [(-->i cs d) `(->i (,@(map show-dom cs)) ,(show-dom d))]
       [(-x/c.tmp x) x]
       [(-x/c x) x]
       [(-struct/c 𝒾 cs _)
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]
       [(-∀/c xs c) `(parametric->/c ,xs ,(show-e c))]))
+
+  (: show-dom : -dom → Sexp)
+  (define show-dom
+    (match-lambda
+      [(-dom x ?xs d _)
+       (if ?xs `(,x ,?xs ,(show-e d)) `(,x ,(show-e d)))]))
 
   (define (show-es [es : (Sequenceof -e)]) : (Listof Sexp)
     (for/list ([e es]) (show-e e)))

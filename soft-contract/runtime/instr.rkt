@@ -69,7 +69,7 @@
       [(-Hash/C (-⟪α⟫ℓ _ ℓₖ) (-⟪α⟫ℓ _ ℓᵥ)) (list 'hash/c ℓₖ ℓᵥ)]
       [(-Set/C (-⟪α⟫ℓ _ ℓ)) (list 'set/c ℓ)]
       [(-=> αs βs) (list '-> (get-ℓ αs) (if (list? βs) (get-ℓ βs) 'any))]
-      [(-=>i αs (list _ _ ℓ)) (list '->i ℓ)]
+      [(-=>i Doms Rng) (list '->i (map -Dom-loc Doms) (-Dom-loc Rng))]
       [(-Case-> cases) (list 'case-> (map strip-V cases))]
       [(-x/C α)
        (match-define (or (-α.x/c x _) (-α.imm-listof x _ _)) (⟪α⟫->-α α))

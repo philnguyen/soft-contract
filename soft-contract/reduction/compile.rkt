@@ -187,15 +187,14 @@
                 (⟦c⟧ᵣ ρ H φ Σ (-->.rst∷ '() ⟦d⟧ ρ ℓ ⟦k⟧))]
                [(cons (:↓ ⟦c⟧) (:↓* ⟦c⟧s))
                 (⟦c⟧ ρ H φ Σ (-->.dom∷ '() ⟦c⟧s ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧))])])]
-         [(-->i dom (and mk-d (-λ xs (:↓ ⟦d⟧))) ℓ)
-          #:reduce
-          (with-cases-on dom (ρ H φ Σ ⟦k⟧)
-            ['()
-             (let-values ([(C φ*) (mk-=>i Σ H φ '() (-Clo xs ⟦d⟧ (m↓ ρ fvs)) ℓ)])
-               (⟦k⟧ (list {set C}) H φ* Σ))]
-            [(cons (:↓ ⟦c⟧) (:↓* ⟦c⟧s))
-             (⟦c⟧ ρ H φ Σ (-->i∷ '() ⟦c⟧s ρ (-Clo xs ⟦d⟧ (m↓ ρ fvs)) ℓ ⟦k⟧))])
-          #:where [fvs (fv mk-d)]]
+         [(-->i cs d)
+          (let-values ([(Doms doms) (split-⟦dom⟧s ρ ⟦dom⟧s)])
+            (match doms
+              ['() (⟦k⟧ (list {set (mk-=>i Σ H φ Doms)}) H φ Σ)]
+              [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s)
+               (⟦c⟧ ρ H φ Σ (-->i∷ ρ Doms (cons x ℓ) ⟦dom⟧s ⟦k⟧))]))
+          #:where
+          [⟦dom⟧s (map (↓dom l) `(,@cs ,d))]]
          [(-∀/c xs (and e* (:↓ ⟦e*⟧)))
           (⟦k⟧ (list {set (-∀/C xs ⟦e*⟧ (m↓ ρ fvs))}) H φ Σ)
           #:where
@@ -223,7 +222,24 @@
          [_ (error '↓ₑ "unhandled: ~a" (show-e e))]
          ))))
 
+  (: ↓dom : -l → -dom → -⟦dom⟧)
+  (define ((↓dom l) dom)
+    (match-define (-dom xs ?dep e ℓ) dom)
+    (-⟦dom⟧ xs ?dep (↓ₑ l e) ℓ))
+  
+
   (define (mk-V [V : -V]) (mk-A (list {set V})))
+
+  (define/memo (mk-let* [ℓ : ℓ]
+                        [⟦bind⟧s : (Listof (Pairof Symbol -⟦e⟧))]
+                        [⟦body⟧ : -⟦e⟧]) : -⟦e⟧
+    (foldr
+     (λ ([⟦bind⟧ : (Pairof Symbol -⟦e⟧)] [⟦body⟧ : -⟦e⟧]) : -⟦e⟧
+       (match-define (cons (app list x) ⟦e⟧ₓ) ⟦bind⟧)
+       (λ (ρ H φ Σ ⟦k⟧)
+         (⟦e⟧ₓ ρ H φ Σ (let∷ ℓ x '() '() ⟦body⟧ ρ ⟦k⟧))))
+     ⟦body⟧
+     ⟦bind⟧s))
 
   (define/memo (↓ₓ [l : -l] [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
     (define -blm.undefined
@@ -262,6 +278,17 @@
   (define/memo (mk-wrapped-set [C : -Set/C] [ctx : -ctx] [α : ⟪α⟫] [V : -V^]) : -⟦e⟧
     (λ (ρ H φ Σ ⟦k⟧)
       (⟦k⟧ (list {set (-Set/guard C α ctx)}) H (alloc Σ φ α V) Σ)))
+
+  (: split-⟦dom⟧s : -ρ (Listof -⟦dom⟧) → (Values (Listof -Dom) (Listof -⟦dom⟧)))
+  (define (split-⟦dom⟧s ρ ⟦dom⟧s)
+    (let go ([Doms↓ : (Listof -Dom) '()] [⟦dom⟧s : (Listof -⟦dom⟧) ⟦dom⟧s])
+      (match ⟦dom⟧s
+        ['() (values Doms↓ '())]
+        [(cons ⟦dom⟧ ⟦dom⟧s*)
+         (match-define (-⟦dom⟧ x ?dep ⟦e⟧ ℓ) ⟦dom⟧)
+         (match ?dep
+           [(? values) (go (cons (-Dom x (-Clo ?dep ⟦e⟧ ρ) ℓ) Doms↓) ⟦dom⟧s*)]
+           [#f (values Doms↓ ⟦dom⟧s)])])))
 
   (define-syntax-parser with-cases-on
     [(_ e:expr (ρ:id H:id φ:id Σ:id ⟦k⟧:id) clauses ...)

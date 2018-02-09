@@ -85,8 +85,7 @@
 
 ;; Function contracts
 (-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)])
-              (-=>i [doms : (Listof -⟪α⟫ℓ)]
-                    [mk-rng : (Pairof -Clo ℓ)])
+              (-=>i [doms : (Listof -Dom)] [mk-rng : -Dom])
               (-∀/C (Listof Symbol) -⟦e⟧ -ρ)
               (-Case-> (Listof -=>)))
 
@@ -113,6 +112,8 @@
   (syntax-rules () [(_ α) (-St* (-St/C _ (== -𝒾-box) _) α _)]))
 
 (define-syntax-rule (blm/simp l+ lo C V ℓ) (-blm l+ lo C V (strip-ℓ ℓ)))
+(-Dom . ::= . (-Dom [name : Symbol] [ctc : (U -Clo ⟪α⟫)] [loc : ℓ]))
+(-⟦dom⟧ . ::= . (-⟦dom⟧ [name : Symbol] [dependency : (Option (Listof Symbol))] [ctc : -⟦e⟧] [loc : ℓ]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

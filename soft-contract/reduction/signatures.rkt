@@ -19,7 +19,9 @@
    [mk-mon : (-ctx -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
    [mk-fc : (-l ℓ -⟦e⟧ -⟦e⟧ → -⟦e⟧)]
    [mk-wrapped-hash : (-Hash/C -ctx ⟪α⟫ -V^ → -⟦e⟧)]
-   [mk-wrapped-set : (-Set/C -ctx ⟪α⟫ -V^ → -⟦e⟧)]))
+   [mk-wrapped-set : (-Set/C -ctx ⟪α⟫ -V^ → -⟦e⟧)]
+   [mk-let* : (ℓ (Listof (Pairof Symbol -⟦e⟧)) -⟦e⟧ → -⟦e⟧)]
+   [split-⟦dom⟧s : (-ρ (Listof -⟦dom⟧) → (Values (Listof -Dom) (Listof -⟦dom⟧)))]))
 
 (define-signature kont^
   ([rt : (-αₖ → -⟦k⟧)]
@@ -52,7 +54,7 @@
    [-->.dom∷ : ((Listof -V^) (Listof -⟦e⟧) (Option -⟦e⟧) -⟦e⟧ -ρ ℓ -⟦k⟧ → -⟦k⟧)]
    [-->.rst∷ : ((Listof -V^) -⟦e⟧ -ρ ℓ -⟦k⟧ → -⟦k⟧)]
    [-->.rng∷ : ((Listof -V^) (Option -V^) ℓ -⟦k⟧ → -⟦k⟧)]
-   [-->i∷ : ((Listof -V^) (Listof -⟦e⟧) -ρ -Clo ℓ -⟦k⟧ → -⟦k⟧)]
+   [-->i∷ : (-ρ (Listof -Dom) (Pairof Symbol ℓ) (Listof -⟦dom⟧) -⟦k⟧ → -⟦k⟧)]
    [struct/c∷ : (ℓ -𝒾 (Listof -V^) (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [def∷ : (-l (Listof ⟪α⟫) -⟦k⟧ → -⟦k⟧)]
    [dec∷ : (ℓ -𝒾 -⟦k⟧ → -⟦k⟧)]
@@ -82,7 +84,7 @@
    [maybe-unshadow∷ : (-δσ -δσ -⟦k⟧ → -⟦k⟧)]
    [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
    ;; Non-frame helpers
-   [mk-=>i : (-Σ -H -φ (Listof -V^) -Clo ℓ → (Values -V -φ))]
+   [mk-=>i : (-Σ -H -φ (Listof -Dom) → -=>i)]
    ))
 
 (define-signature app^
