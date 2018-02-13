@@ -111,7 +111,7 @@
        (match αs
          [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,show-rng)]
          [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,show-rng)])]
-      [(-=>i Doms Rng) `(->i ,(map -Dom-name Doms) ,(-Dom-name Rng))]
+      [(-=>i Doms Rng) `(->i ,(map show-Dom Doms) ,(show-Dom Rng))]
       [(-Case-> cases) `(case-> ,@(map show-V cases))]
       [(-St/C _ 𝒾 αs)
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
@@ -122,6 +122,13 @@
       [(? -t? t) (show-t t)]
       [(? -h? h) (show-h h)]))
 
+  (define show-Dom : (-Dom → (Listof Sexp))
+    (match-lambda
+      [(-Dom x (-Clo (? list? xs) ⟦e⟧ _) _)
+       `(,x ,xs ,(show-⟦e⟧ ⟦e⟧))]
+      [(-Dom x (? integer? α) _)
+       `(,x ,(show-⟪α⟫ (cast α ⟪α⟫)))]))
+  
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
     (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)
     (define α (⟪α⟫->-α ⟪α⟫))
