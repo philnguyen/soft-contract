@@ -18,6 +18,7 @@
          "hacks.rkt"
          "expand.rkt"
          (prefix-in fake: "../fake-contract.rkt")
+         (prefix-in rt: "../induction.rkt")
          "../signatures.rkt"
          "signatures.rkt"
          (for-syntax racket/base
@@ -623,13 +624,13 @@
       [(~literal fake:list/c) 'list/c]
       [(~literal fake:between/c) 'between/c]
       [(~literal fake:flat-contract) 'values]
-      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work      
+      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
+      [(~literal rt:induct-on) 'induct-on]
 
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")
             'hash/c]
       [x:private-id (attribute x.name)]
-      
       [i:identifier
        (or
         (parse-prim #'i)
