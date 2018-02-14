@@ -173,28 +173,8 @@
          [(-error msg ℓ) #:reduce (mk-A (blm/simp (ℓ-src ℓ) 'Λ '(not-reached) (list {set (-b msg)}) ℓ))]
          [(-μ/c x (:↓ ⟦c⟧))
           (⟦c⟧ (ρ+ ρ x (-α->⟪α⟫ (-α.x/c x H))) H φ Σ (μ/c∷ x ⟦k⟧))]
-         [(--> dom (:↓ ⟦d⟧) ℓ)
-          #:reduce
-          (with-cases-on dom (ρ H φ Σ ⟦k⟧)
-            ['()
-             (⟦d⟧ ρ H φ Σ (-->.rng∷ '() #f ℓ ⟦k⟧))]
-            [(cons (:↓ ⟦c⟧) (:↓* ⟦c⟧s))
-             (⟦c⟧ ρ H φ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦d⟧ ρ ℓ ⟦k⟧))]
-            [(-var init (:↓ ⟦c⟧ᵣ))
-             #:reduce
-             (with-cases-on init (ρ H φ Σ ⟦k⟧)
-               ['()
-                (⟦c⟧ᵣ ρ H φ Σ (-->.rst∷ '() ⟦d⟧ ρ ℓ ⟦k⟧))]
-               [(cons (:↓ ⟦c⟧) (:↓* ⟦c⟧s))
-                (⟦c⟧ ρ H φ Σ (-->.dom∷ '() ⟦c⟧s ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧))])])]
-         [(-->i cs d)
-          (let-values ([(Doms doms) (split-⟦dom⟧s ρ ⟦dom⟧s)])
-            (match doms
-              ['() (⟦k⟧ (list {set (mk-=>i Σ H φ Doms)}) H φ Σ)]
-              [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s)
-               (⟦c⟧ ρ H φ Σ (-->i∷ ρ Doms (cons x ℓ) ⟦dom⟧s ⟦k⟧))]))
-          #:where
-          [⟦dom⟧s (map (↓dom l) `(,@cs ,d))]]
+         [(--> cs d ℓ) #:reduce (mk--> ℓ (-var-map ↓ cs) (↓ d))]
+         [(-->i cs d) #:reduce (mk-->i (map (↓dom l) cs) ((↓dom l) d))]
          [(-∀/c xs (and e* (:↓ ⟦e*⟧)))
           (⟦k⟧ (list {set (-∀/C xs ⟦e*⟧ (m↓ ρ fvs))}) H φ Σ)
           #:where
@@ -226,9 +206,34 @@
   (define ((↓dom l) dom)
     (match-define (-dom xs ?dep e ℓ) dom)
     (-⟦dom⟧ xs ?dep (↓ₑ l e) ℓ))
-  
 
-  (define (mk-V [V : -V]) (mk-A (list {set V})))
+  (define/memo (mk-->i [⟦dom⟧s : (Listof -⟦dom⟧)] [⟦rng⟧ : -⟦dom⟧]) : -⟦e⟧
+    (remember-e!
+     (string->symbol (format "~a" `(->i ,(map show-⟦dom⟧ ⟦dom⟧s) ,(show-⟦dom⟧ ⟦rng⟧))))
+     (λ (ρ H φ Σ ⟦k⟧)
+      (define-values (Doms doms) (split-⟦dom⟧s ρ (append ⟦dom⟧s (list ⟦rng⟧))))
+      (match doms
+        ['()
+         (⟦k⟧ (list {set (mk-=>i Σ H φ Doms)}) H φ Σ)]
+        [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s)
+         (⟦c⟧ ρ H φ Σ (-->i∷ ρ Doms (cons x ℓ) ⟦dom⟧s ⟦k⟧))])))
+    )
+
+  (define/memo (mk--> [ℓ : ℓ] [⟦dom⟧s : (-maybe-var -⟦e⟧)] [⟦rng⟧ : -⟦e⟧]) : -⟦e⟧
+    (remember-e!
+     (string->symbol (format "~a" `(-> … ,(show-⟦e⟧ ⟦rng⟧))))
+     (with-cases-on ⟦dom⟧s (ρ H φ Σ ⟦k⟧)
+      ['()            (⟦rng⟧ ρ H φ Σ (-->.rng∷ '() #f ℓ ⟦k⟧))]
+      [(cons ⟦c⟧ ⟦c⟧s) (⟦c⟧   ρ H φ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦rng⟧ ρ ℓ ⟦k⟧))]
+      [(-var ⟦c⟧s ⟦cᵣ⟧)
+       #:reduce
+       (with-cases-on ⟦c⟧s (ρ H φ Σ ⟦k⟧)
+         ['()            (⟦cᵣ⟧ ρ H φ Σ (-->.rst∷ '() ⟦rng⟧ ρ ℓ ⟦k⟧))]
+         [(cons ⟦c⟧ ⟦c⟧s) (⟦c⟧  ρ H φ Σ (-->.dom∷ '() ⟦c⟧s ⟦cᵣ⟧ ⟦rng⟧ ρ ℓ ⟦k⟧))])])))
+
+  (define (mk-V [V : -V])
+    (define ans (mk-A (list {set V})))
+    (if (-e? V) (remember-e! V ans) ans))
 
   (define/memo (mk-let* [ℓ : ℓ]
                         [⟦bind⟧s : (Listof (Pairof Symbol -⟦e⟧))]
@@ -260,8 +265,10 @@
       (⟦c⟧ ρ H φ Σ (mon.v∷ ctx (cons ⟦e⟧ ρ) ⟦k⟧))))
 
   (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : -⟦e⟧] [⟦x⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
-    (λ (ρ H φ Σ ⟦k⟧)
-      (⟦f⟧ ρ H φ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧))))
+    (remember-e!
+     (string->symbol (format "~a" (cons (show-⟦e⟧ ⟦f⟧) (map show-⟦e⟧ ⟦x⟧s))))
+     (λ (ρ H φ Σ ⟦k⟧)
+      (⟦f⟧ ρ H φ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧)))))
 
   (define/memo (mk-A [A : -A]) : -⟦e⟧
     (λ (_ H φ Σ ⟦k⟧)

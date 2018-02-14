@@ -128,6 +128,13 @@
        `(,x ,xs ,(show-⟦e⟧ ⟦e⟧))]
       [(-Dom x (? integer? α) _)
        `(,x ,(show-⟪α⟫ (cast α ⟪α⟫)))]))
+
+  (define show-⟦dom⟧ : (-⟦dom⟧ → (Listof Sexp))
+    (match-lambda
+      [(-⟦dom⟧ x ?xs ⟦c⟧ _)
+       (if ?xs
+           `(,x ,?xs ,(show-⟦e⟧ ⟦c⟧))
+           `(,x ,(show-⟦e⟧ ⟦c⟧)))]))
   
   (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
     (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)

@@ -13,6 +13,8 @@
    [↓ₘ : (-module → -⟦e⟧)]
    [↓ₑ : (-l -e → -⟦e⟧)]
    [↓ₓ : (-l Symbol ℓ → -⟦e⟧)]
+   [mk--> : (ℓ (-maybe-var -⟦e⟧) -⟦e⟧ → -⟦e⟧)]
+   [mk-->i : ((Listof -⟦dom⟧) -⟦dom⟧ → -⟦e⟧)]
    [mk-V : (-V → -⟦e⟧)]
    [mk-A : (-A → -⟦e⟧)]
    [mk-app : (ℓ -⟦e⟧ (Listof -⟦e⟧) → -⟦e⟧)]
