@@ -110,7 +110,7 @@
          [(? -prim? p) #:reduce (mk-V p)]
          [(-•) #:reduce (mk-V (fresh-sym!))]
          [(-x (? symbol? x) ℓₓ) #:reduce (↓ₓ l x ℓₓ)]
-         [(-x (and 𝒾 (-𝒾 x l₀)) ℓₓ)
+         [(-x (and 𝒾 (-𝒾 x l₀)) _)
           (let* ([φ* (if (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ)
                          (alloc Σ φ ⟪α⟫ₒₚ {set (-● ∅)})
                          φ)]
