@@ -404,6 +404,7 @@
    [show-blm-reason : ((U -U -v -h -V^) → Sexp)]
    [show-V : (-V → Sexp)]
    [show-V^ : (-V^ → Sexp)]
+   [show-⟦dom⟧ : (-⟦dom⟧ → (Listof Sexp))]
    [show-⟪α⟫ℓ : (-⟪α⟫ℓ → Symbol)]
    [show-⟪α⟫ℓs : ((Listof -⟪α⟫ℓ) → Sexp)]
    [show-A : (-A → Sexp)]
