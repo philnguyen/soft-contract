@@ -30,7 +30,7 @@
   ;; Compile program
   (define (↓ₚ ms e)
     (with-cases-on ms (ρ H φ Σ ⟦k⟧)
-      ['() #:reduce (↓ₑ '† e)]
+      ['() #:same-as (↓ₑ '† e)]
       [(cons m ms)
        (⟦m⟧ ρ H φ Σ (bgn∷ `(,@⟦m⟧s ,⟦e⟧) ρ ⟦k⟧))
        #:where
@@ -69,18 +69,18 @@
          #:where
          [αs (for/list : (Listof ⟪α⟫) ([x xs]) (-α->⟪α⟫ (-𝒾 x l)))]
          [⟦e⟧ (↓ₑ l e)]]
-        [(-provide '()) #:reduce (mk-V -void)]
+        [(-provide '()) #:same-as (mk-V -void)]
         [(-provide (cons spec specs))
          (⟦spec⟧ ρ H φ Σ (bgn∷ ⟦spec⟧s ρ ⟦k⟧))
          #:where
          [⟦spec⟧ (↓pc spec)]
          [⟦spec⟧s (map ↓pc specs)]]
-        [(? -e? e) #:reduce (↓ₑ l e)]
-        [_ #:reduce (begin0 (mk-V -void)
+        [(? -e? e) #:same-as (↓ₑ l e)]
+        [_ #:same-as (begin0 (mk-V -void)
                       (log-warning "↓d: ignore ~a~n" (show-module-level-form d)))]))
 
     (with-cases-on ds (ρ H φ Σ ⟦k⟧)
-      ['() #:reduce (mk-V -void)]
+      ['() #:same-as (mk-V -void)]
       [(cons d ds)
        (⟦d⟧ ρ H φ Σ (bgn∷ ⟦d⟧s ρ ⟦k⟧))
        #:where
@@ -107,9 +107,9 @@
          [(and lam (-λ xs (:↓ ⟦e*⟧)))
           (⟦k⟧ (list {set (-Clo xs ⟦e*⟧ (m↓ ρ fvs))}) H φ Σ)
           #:where [fvs (fv lam)]]
-         [(? -prim? p) #:reduce (mk-V p)]
-         [(-•) #:reduce (mk-V (fresh-sym!))]
-         [(-x (? symbol? x) ℓₓ) #:reduce (↓ₓ l x ℓₓ)]
+         [(? -prim? p) #:same-as (mk-V p)]
+         [(-•) #:same-as (mk-V (fresh-sym!))]
+         [(-x (? symbol? x) ℓₓ) #:same-as (↓ₓ l x ℓₓ)]
          [(-x (and 𝒾 (-𝒾 x l₀)) _)
           (let* ([φ* (if (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ)
                          (alloc Σ φ ⟪α⟫ₒₚ {set (-● ∅)})
@@ -139,19 +139,19 @@
           (⟦f⟧ ρ H φ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧))]
          [(-if (:↓ ⟦e₀⟧) (:↓ ⟦e₁⟧) (:↓ ⟦e₂⟧))
           (⟦e₀⟧ ρ H φ Σ (if∷ l ⟦e₁⟧ ⟦e₂⟧ ρ ⟦k⟧))]
-         [(-wcm k v b) #:reduce (error '↓ₑ "TODO: wcm")]
-         [(-begin '()) #:reduce (mk-V -void)]
+         [(-wcm k v b) #:same-as (error '↓ₑ "TODO: wcm")]
+         [(-begin '()) #:same-as (mk-V -void)]
          [(-begin (cons (:↓ ⟦e⟧) (:↓* ⟦e⟧s)))
           (⟦e⟧ ρ H φ Σ (bgn∷ ⟦e⟧s ρ ⟦k⟧))]
          [(-begin0 (:↓ ⟦e₀⟧) (:↓* ⟦e⟧s))
           (⟦e₀⟧ ρ H φ Σ (bgn0.v∷ ⟦e⟧s ρ ⟦k⟧))]
-         [(-quote (? Base? q)) #:reduce (mk-V (-b q))]
+         [(-quote (? Base? q)) #:same-as (mk-V (-b q))]
          [(-quote q) (error '↓ₑ "TODO: (quote ~a)" q)]
-         [(-let-values '() e* ℓ) #:reduce (↓ e*)]
+         [(-let-values '() e* ℓ) #:same-as (↓ e*)]
          [(-let-values bnds (:↓ ⟦e*⟧) ℓ)
           (⟦e⟧ₓ ρ H φ Σ (let∷ ℓ x ⟦bnd⟧s '() ⟦e*⟧ ρ ⟦k⟧))
           #:where [(cons (cons x ⟦e⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]]
-         [(-letrec-values '() e* ℓ) #:reduce (↓ e*)]
+         [(-letrec-values '() e* ℓ) #:same-as (↓ e*)]
          [(-letrec-values bnds (:↓ ⟦e*⟧) ℓ)
           (let-values ([(ρ* φ*) (init-undefined Σ H ρ φ)])
             (⟦e⟧ₓ ρ* H φ* Σ (letrec∷ ℓ x ⟦bnd⟧s* ⟦e*⟧ ρ* ⟦k⟧)))
@@ -170,11 +170,11 @@
            (if (symbol? x)
                (λ ([ρ : -ρ]) (ρ@ ρ x))
                (const (-α->⟪α⟫ x)))]]
-         [(-error msg ℓ) #:reduce (mk-A (blm/simp (ℓ-src ℓ) 'Λ '(not-reached) (list {set (-b msg)}) ℓ))]
+         [(-error msg ℓ) #:same-as (mk-A (blm/simp (ℓ-src ℓ) 'Λ '(not-reached) (list {set (-b msg)}) ℓ))]
          [(-μ/c x (:↓ ⟦c⟧))
           (⟦c⟧ (ρ+ ρ x (-α->⟪α⟫ (-α.x/c x H))) H φ Σ (μ/c∷ x ⟦k⟧))]
-         [(--> cs d ℓ) #:reduce (mk--> ℓ (-var-map ↓ cs) (↓ d))]
-         [(-->i cs d) #:reduce (mk-->i (map (↓dom l) cs) ((↓dom l) d))]
+         [(--> cs d ℓ) #:same-as (mk--> ℓ (-var-map ↓ cs) (↓ d))]
+         [(-->i cs d) #:same-as (mk-->i (map (↓dom l) cs) ((↓dom l) d))]
          [(-∀/c xs (and e* (:↓ ⟦e*⟧)))
           (⟦k⟧ (list {set (-∀/C xs ⟦e*⟧ (m↓ ρ fvs))}) H φ Σ)
           #:where
@@ -182,7 +182,7 @@
          [(-x/c x)
           (⟦k⟧ (list {set (-x/C (ρ@ ρ x))}) H φ Σ)]
          [(-struct/c 𝒾 cs ℓ)
-          #:reduce
+          #:same-as
           (with-cases-on cs (ρ H φ Σ ⟦k⟧)
             ['()
              (⟦k⟧ (if (struct-defined? Σ φ) C blm) H φ Σ)
@@ -226,7 +226,7 @@
       ['()            (⟦rng⟧ ρ H φ Σ (-->.rng∷ '() #f ℓ ⟦k⟧))]
       [(cons ⟦c⟧ ⟦c⟧s) (⟦c⟧   ρ H φ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦rng⟧ ρ ℓ ⟦k⟧))]
       [(-var ⟦c⟧s ⟦cᵣ⟧)
-       #:reduce
+       #:same-as
        (with-cases-on ⟦c⟧s (ρ H φ Σ ⟦k⟧)
          ['()            (⟦cᵣ⟧ ρ H φ Σ (-->.rst∷ '() ⟦rng⟧ ρ ℓ ⟦k⟧))]
          [(cons ⟦c⟧ ⟦c⟧s) (⟦c⟧  ρ H φ Σ (-->.dom∷ '() ⟦c⟧s ⟦cᵣ⟧ ⟦rng⟧ ρ ℓ ⟦k⟧))])])))
@@ -301,7 +301,7 @@
     [(_ e:expr (ρ:id H:id φ:id Σ:id ⟦k⟧:id) clauses ...)
      (define parse-clause
        (syntax-parser
-         [[e-pat #:reduce expr
+         [[e-pat #:same-as expr
                  (~optional (~seq #:where [x d] ...)
                             #:defaults ([(x 1) null]
                                         [(d 1) null]))]
