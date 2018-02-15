@@ -163,9 +163,8 @@
     (: remember-e! : -e -⟦e⟧ → -⟦e⟧)
     (define (remember-e! e ⟦e⟧)
       (define ?e₀ (recall-e ⟦e⟧))
-      (when (and ?e₀ (not (equal? ?e₀ e)))
-        (error 'remember-e! "already mapped to ~a, given ~a" (show-e ?e₀) (show-e e)))
-      (hash-set! ⟦e⟧->e ⟦e⟧ e)
+      (unless ?e₀
+        (hash-set! ⟦e⟧->e ⟦e⟧ e))      
       ⟦e⟧)
 
     (: recall-e : -⟦e⟧ → (Option -e))

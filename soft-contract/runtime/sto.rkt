@@ -88,7 +88,7 @@
       ((define ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm 'null?)) +ℓ₀))
        (define cache-listof : (Mutable-HashTable ⟪α⟫ (℘ -V)) (make-hasheq)))
     (: σ@ ([(U -Σ -σ) -δσ ⟪α⟫] [(→ -V^)] . ->* . -V^))
-    (define (σ@ m δσ ⟪α⟫ [def (λ () (error 'σ@ "nothing at ~a" (show-⟪α⟫ ⟪α⟫)))])
+    (define (σ@ m δσ ⟪α⟫ [def (λ () (error 'σ@ "nothing at ~a (aka ~a)" (show-⟪α⟫ ⟪α⟫) (⟪α⟫->-α ⟪α⟫)))])
       (match (⟪α⟫->-α ⟪α⟫)
         [(-α.imm V) {set V}]
         [(-α.imm-listof x Cₑ ℓ)
