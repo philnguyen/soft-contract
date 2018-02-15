@@ -21,7 +21,7 @@
          )
 
 (define-unit compile@
-  (import meta-functions^ ast-pretty-print^
+  (import meta-functions^ ast-pretty-print^ static-info^
           kont^ proof-system^
           env^ sto^ path^ val^ pretty-print^ for-gc^)
   (export compile^)
@@ -135,8 +135,17 @@
                             (-Vector/guard C ⟪α⟫ₒₚ l³)]
                            [_ V]))))])
                 (-V → -V))]]
-         [(-@ (:↓ ⟦f⟧) (:↓* ⟦x⟧s) ℓ)
-          (⟦f⟧ ρ H φ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧))]
+         [(-@ f xs ℓ)
+          (⟦f⟧ ρ H φ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧))
+          #:where
+          [⟦f⟧ (↓ f)]
+          [⟦x⟧s (map ↓ xs)]
+          ;; HACK
+          [_ (match* (f xs)
+               [('scv:mon (cons (-b (? symbol? l)) _))
+                (add-transparent-module! (symbol->string l))
+                (add-transparent-module! (format "user-of-~a" l))]
+               [(_ _) 'ignore])]]
          [(-if (:↓ ⟦e₀⟧) (:↓ ⟦e₁⟧) (:↓ ⟦e₂⟧))
           (⟦e₀⟧ ρ H φ Σ (if∷ l ⟦e₁⟧ ⟦e₂⟧ ρ ⟦k⟧))]
          [(-wcm k v b) #:same-as (error '↓ₑ "TODO: wcm")]

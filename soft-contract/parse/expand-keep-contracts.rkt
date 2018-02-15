@@ -53,6 +53,7 @@
   (add! #'recursive-contract #'f:recursive-contract)
   (add! #'between/c #'f:between/c)
   (add! #'flat-contract #'f:flat-contract)
+  (add! #'define/contract #'f:define/contract)
   )
 
 (define (expand/high-level-contracts stx)

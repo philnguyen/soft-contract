@@ -11,6 +11,7 @@
          "../utils/patterns.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
+         "../reduction/signatures.rkt"
          "signatures.rkt"
          "def.rkt"
          (for-syntax racket/base
@@ -18,7 +19,7 @@
                      syntax/parse))
 
 (define-unit prims-scv@
-  (import prim-runtime^)
+  (import prim-runtime^ mon^)
   (export)
 
   (def (scv:make-case-lambda ℓ Vs H φ Σ ⟦k⟧)
@@ -39,4 +40,9 @@
         (match V^
           [(singleton-set (? -=>? C)) C]
           [_ (error 'scv:make-case-> "Internal invariant violated")])))
-    (⟦k⟧ (list {set (-Case-> cases)}) H φ Σ)))
+    (⟦k⟧ (list {set (-Case-> cases)}) H φ Σ))
+
+  (def (scv:mon ℓ Vs H φ Σ ⟦k⟧)
+    #:init ([src symbol?] [C contract?] [V any/c])
+    (match-define {singleton-set (-b (and (? symbol?) (app symbol->string l)))} src)
+    (mon (-ctx l (format "user-of-~a" l) l ℓ) C V H φ Σ ⟦k⟧)))

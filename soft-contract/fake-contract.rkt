@@ -4,7 +4,8 @@
                     flat-contract
                     -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
                     one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
-                    recursive-contract)
+                    recursive-contract
+                    define/contract)
          (except-in racket/set set/c)
          (for-syntax racket/base
                      racket/string
@@ -26,7 +27,8 @@
          dynamic-struct-out
          =/c >/c >=/c </c <=/c between/c
          not/c cons/c
-         one-of/c box/c vector/c vectorof)
+         one-of/c box/c vector/c vectorof
+         define/contract dynamic-mon)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
@@ -164,6 +166,13 @@
           i ...
           (list p/i ctc) ... ...
           (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
+
+(define-syntax define/contract
+  (syntax-rules ()
+    [(_ (f x ...) c e ...) (define f (dynamic-mon 'f c (λ (x ...) e ...)))]
+    [(_ x         c e    ) (define x (dynamic-mon 'x c e))]))
+
+(define (dynamic-mon x c e) e)
 
 ;; Phil's clueless hack for `recursive-contract`
 (define-syntax-rule (recursive-contract x type ...)

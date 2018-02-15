@@ -626,6 +626,7 @@
       [(~literal fake:flat-contract) 'values]
       #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
       [(~literal rt:induct-on) 'induct-on]
+      [(~literal fake:dynamic-mon) 'scv:mon]
 
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")
