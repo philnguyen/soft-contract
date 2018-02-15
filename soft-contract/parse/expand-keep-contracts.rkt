@@ -29,6 +29,7 @@
   (add! #'-> #'f:->)
   (add! #'->i #'f:->i)
   (add! #'->* #'f:->*)
+  (add! #'parametric->/c #'f:parametric->/c)
   (add! #'case-> #'f:case->)
   (add! #'any/c #'f:any/c)
   (add! #'any #'f:any)
@@ -54,6 +55,7 @@
   (add! #'between/c #'f:between/c)
   (add! #'flat-contract #'f:flat-contract)
   (add! #'define/contract #'f:define/contract)
+  (add! #'contract? #'f:contract?)
   )
 
 (define (expand/high-level-contracts stx)

@@ -4,8 +4,10 @@
                     flat-contract
                     -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
                     one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
+                    parametric->/c
                     recursive-contract
-                    define/contract)
+                    define/contract
+                    contract?)
          (except-in racket/set set/c)
          (for-syntax racket/base
                      racket/string
@@ -19,21 +21,24 @@
 (provide (all-from-out racket/contract/base) provide
          flat-contract
          -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c hash/c set/c
+         parametric->/c
          recursive-contract
          dynamic-provide/contract
-         dynamic->i dynamic->* dynamic-case-> 
+         dynamic->i dynamic->* dynamic-case-> dynamic-parametric->/c
          dynamic-struct/c
          dynamic-recursive-contract
          dynamic-struct-out
          =/c >/c >=/c </c <=/c between/c
          not/c cons/c
          one-of/c box/c vector/c vectorof
-         define/contract dynamic-mon)
+         define/contract dynamic-mon
+         contract?)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
     [(_ s) (syntax-property #'s 'scv:ignore #t)]))
 
+(define contract? c:contract?)
 (define flat-contract c:flat-contract)
 (define any/c c:any/c)
 (define none/c c:none/c)
@@ -62,6 +67,7 @@
      #`(begin (dynamic-struct/c name cs ...)
               (scv:ignore (c:struct/c name cs ...)))]))
 (define dynamic->* c:dynamic->*)
+(define-syntax-rule (parametric->/c (x ...) c) (dynamic-parametric->/c (λ (x ...) c)))
 
 (begin-for-syntax
   (define-syntax-class dom
@@ -84,6 +90,7 @@
 (define (dynamic->i . _) (void))
 (define (dynamic-struct/c . _) (void))
 (define (dynamic-struct-out . _) (void))
+(define (dynamic-parametric->/c v) v)
 
 (define-syntax ->
   (syntax-rules (c:any)

@@ -627,6 +627,7 @@
       #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
       [(~literal rt:induct-on) 'induct-on]
       [(~literal fake:dynamic-mon) 'scv:mon]
+      [(~literal fake:contract?) 'contract?]
 
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")

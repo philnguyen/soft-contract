@@ -91,6 +91,9 @@
            #:when (equal? (syntax-e #'make-polymorphic-contract) 'make-polymorphic-contract)
            #:when (equal? (syntax-e #'opaque/c) 'opaque/c)
            #:attr params #'(x ...)
+           #:attr body #'c)
+  (pattern (#%plain-app (~literal fake:dynamic-parametric->/c) (#%plain-lambda (x:id ...) c:expr))
+           #:attr params #'(x ...)
            #:attr body #'c))
 
 (define-syntax-class named-dom
