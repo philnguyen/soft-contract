@@ -101,10 +101,10 @@
            #:attr name (syntax-e #'x)
            #:attr dependency #f
            #:attr body #'c)
-  (pattern (#%plain-app list (quote #t) (quote x:id) (#%plain-lambda (z:id ...) c:expr))
+  (pattern (#%plain-app list (quote #t) (quote x:id) (#%plain-lambda (z:id ...) c:expr ...))
            #:attr name (syntax-e #'x)
            #:attr dependency #'(z ...)
-           #:attr body #'c))
+           #:attr body #'(begin c ...)))
 
 (define-syntax-class scv-->i
   #:description "hacked dependent contract"
