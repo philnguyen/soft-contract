@@ -4,6 +4,9 @@
          racket/contract
          soft-contract/induction)
 
+(define nat-induct (induct-on exact-nonnegative-integer?))
+(define (trivial-nat-induct n P) (nat-induct n P trivial trivial))
+
 ;; Source:
 ;; https://github.com/ucsd-progsys/liquidhaskell/blob/develop/benchmarks/popl18/ple/pos/Ackermann.hs
 

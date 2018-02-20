@@ -4,6 +4,9 @@
          racket/contract
          soft-contract/induction)
 
+(define list-induct (induct-on list?))
+(define (trivial-list-induct l P) (list-induct l P trivial trivial))
+
 ;; Source
 ;; https://github.com/ucsd-progsys/liquidhaskell/blob/develop/benchmarks/popl18/ple/pos/Append.hs
 

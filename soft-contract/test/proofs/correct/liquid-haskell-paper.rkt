@@ -6,6 +6,9 @@
          (only-in typed/racket/base assert)
          soft-contract/induction)
 
+(define nat-induct (induct-on exact-nonnegative-integer?))
+(define list-induct (induct-on list?))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; fib (nat induction)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

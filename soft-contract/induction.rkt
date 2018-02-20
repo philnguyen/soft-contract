@@ -12,14 +12,12 @@
 (provide ;; Run-time
          trivial
          induct-on
-         list-induct trivial-list-induct
-         nat-induct trivial-nat-induct
+         assert
          ;; DSL
          forall (rename-out [forall ∀])
          (rename-out [parametric->/c ∀/c])
          define-theorem
-         ↑
-         assert)
+         ↑)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Run-time library
@@ -27,45 +25,42 @@
 
 (define trivial (λ _ 'trivally-automated))
 
-(define (induct-on c) (error 'induct-on "no implementation"))
-
 ;; Assume primitive `induct-on` that can inspect contracts
 ;; and produce induction principles for *some* contracts
 ;; deemed to specify inductive data
 ;; (e.g. naturals, and many ad-hoc recursive contracts
 ;; whose recursive references follow immutable struct fields)
+(define induct-on
+  (let ()
 
-;; (define nat-induct (induct-on exact-nonnegative-integer?))
-(define/contract nat-induct
-  (->i ([x exact-nonnegative-integer?]
-        [P (exact-nonnegative-integer? . -> . contract?)]
-        [on-0 {P} (->i ([x 0]) (_ {x} (P x)))]
-        [on-n {P} (->i ([n exact-nonnegative-integer?] [ih {n} (P n)])
-                       (_ {n} (P (+ 1 n))))])
-       (_ {x P} (P x)))
-  ;; Assume `induct-on` generates something like this
-  (λ (n P on-0 on-n)
-    (case n
-      [(0)  (on-0 0)]
-      [else (on-n (- n 1) (nat-induct (- n 1) P on-0 on-n))])))
+    (define/contract nat-induct
+      (->i ([x exact-nonnegative-integer?]
+            [P (exact-nonnegative-integer? . -> . contract?)]
+            [on-0 {P} (->i ([x 0]) (_ {x} (P x)))]
+            [on-n {P} (->i ([n exact-nonnegative-integer?] [ih {n} (P n)])
+                           (_ {n} (P (+ 1 n))))])
+           (_ {x P} (P x)))
+      (λ (n P on-0 on-n)
+        (case n
+          [(0)  (on-0 0)]
+          [else (on-n (- n 1) (nat-induct (- n 1) P on-0 on-n))])))
 
-(define (trivial-nat-induct n P) (nat-induct n P trivial trivial))
-
-;; (define list-induct (induct-on list?))
-(define/contract list-induct
-  (->i ([xs list?]
-        [P (list? . -> . contract?)]
-        [on-null {P} (->i ([x null?]) (_ {x} (P x)))]
-        [on-cons {P} (->i ([x.car any/c] [x.cdr list?] [ih {x.cdr} (P x.cdr)])
-                          (_ {x.car x.cdr} (P (cons x.car x.cdr))))])
-       (_ {xs P} (P xs)))
-  ;; Assume `induct-on` generates something like this
-  (λ (l P on-null on-cons)
-    (match l
-      ['() (on-null '())]
-      [(cons x l*) (on-cons x l* (list-induct l* P on-null on-cons))])))
-
-(define (trivial-list-induct l P) (list-induct l P trivial trivial))
+    (define/contract list-induct
+      (->i ([xs list?]
+            [P (list? . -> . contract?)]
+            [on-null {P} (->i ([x null?]) (_ {x} (P x)))]
+            [on-cons {P} (->i ([x.car any/c] [x.cdr list?] [ih {x.cdr} (P x.cdr)])
+                              (_ {x.car x.cdr} (P (cons x.car x.cdr))))])
+           (_ {xs P} (P xs)))
+      (λ (l P on-null on-cons)
+        (match l
+          ['() (on-null '())]
+          [(cons x l*) (on-cons x l* (list-induct l* P on-null on-cons))])))
+    
+    (match-lambda
+      [(== exact-nonnegative-integer?) nat-induct]
+      [(== list?) list-induct]
+      [c (error 'induct-on "no implementation for ~a" c)])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
