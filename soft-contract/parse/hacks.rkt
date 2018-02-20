@@ -97,7 +97,7 @@
            #:attr body #'c))
 
 (define-syntax-class named-dom
-  #:description "restricted fake-contract named domain"
+  #:description "restricted dependent contract's named domain"
   #:literal-sets (lits)
   #:attributes (name dependency body)
   (pattern (#%plain-app list (quote #f) (quote x:id) c:expr)
