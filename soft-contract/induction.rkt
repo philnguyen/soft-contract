@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/contract
+(require "fake-contract.rkt" ; instead of `racket/contract` to help parser
+         (rename-in racket/base [provide real:provide])
          racket/match
          syntax/parse/define
          (only-in typed/racket assert)
@@ -9,7 +10,7 @@
                      racket/syntax
                      syntax/parse))
 
-(provide ;; Run-time
+(real:provide ;; Run-time
          trivial
          induct-on
          assert
@@ -112,6 +113,7 @@
 (define-syntax-rule (↑ e) (λ _ e))
 
 (module+ test
+  (require (only-in racket/contract contract-exercise))
   (define-theorem add1-mono
     (forall ([m integer?] [n (and/c integer? (>=/c m))]) (>= (add1 n) (add1 m))))
   (define-theorem rev-id

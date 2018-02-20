@@ -83,7 +83,7 @@
       (for-each figure-out-alternate-aliases!
                 (parameterize ([expander expand])
                   (map do-expand-file fns)))
-      
+
       (define ms (map parse-module stxs))
 
       ;; Re-order the modules for an appropriate initilization order,
@@ -569,7 +569,8 @@
        (-set! x (parse-e #'e))]
       [(#%plain-lambda fmls b ...+)
        (define-values (xs ρ) (parse-formals #'fmls))
-       (-λ xs (with-env ρ (-begin/simp (parse-es #'(b ...)))))]
+       ;; put sequence back to `(begin ...)` to special cases of fake-contracts
+       (-λ xs (with-env ρ (parse-e #'(begin b ...))))]
       
       [(case-lambda [fml bodies ...+] ...)
        (-@ 'scv:make-case-lambda
@@ -626,6 +627,7 @@
       [(~literal fake:flat-contract) 'values]
       #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
       [(~literal rt:induct-on) 'induct-on]
+      [(~literal rt:trivial) 'trivial]
       [(~literal fake:dynamic-mon) 'scv:mon]
       [(~literal fake:contract?) 'contract?]
 

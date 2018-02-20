@@ -131,7 +131,9 @@
          (⟦c⟧ ⊥ρ H φ Σ ⟦k⟧)]
         [C (err "inductive contract" C)]))
     
-    (for/union : (℘ -ς) ([C (in-set C^)]) (induct C))))
+    (for/union : (℘ -ς) ([C (in-set C^)]) (induct C)))
+
+  (def trivial (->* () #:rest list? any/c)))
 
 (struct Shape ([order : (Listof Symbol)]
                [maps : (Immutable-HashTable Symbol -⟦dom⟧)]
