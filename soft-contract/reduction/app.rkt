@@ -312,13 +312,12 @@
 
   (: app-Indy : -=>i -V^ -ctx → -⟦f⟧)
   (define ((app-Indy C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)
-    (define lₒ (-ctx-src ctx))
     (define ctx* (ctx-neg ctx))
     (match-define (-=>i Doms Rng) C)
     (define x->⟦x⟧
       (for/hasheq : (Immutable-HashTable Symbol -⟦e⟧) ([D (in-list Doms)])
         (match-define (-Dom x _ ℓₓ) D)
-        (values x (↓ₓ lₒ x ℓₓ))))
+        (values x (↓ₓ x ℓₓ))))
     (define C->⟦e⟧ : ((U -Clo ⟪α⟫) → -⟦e⟧)
       (match-lambda
         [(and Cₓ (-Clo (? list? zs) _ _))
@@ -334,7 +333,7 @@
                 (hash-ref x->⟦x⟧ x)
                 (mk-mon (ctx-with-ℓ ctx* ℓₓ) (C->⟦e⟧ Cₓ) (mk-A (list Vₓ))))))
     (define ⟦inner-app⟧
-      (let ([ℓₐ* (ℓ-with-src ℓₐ lₒ)])
+      (let ([ℓₐ* (ℓ-with-src ℓₐ (-ctx-src ctx))])
         (mk-app ℓₐ* (mk-A (list Vᵤ^)) ⟦x⟧s)))
     (define ⟦mon-app⟧
       (match-let ([(-Dom _ D ℓᵣ) Rng])

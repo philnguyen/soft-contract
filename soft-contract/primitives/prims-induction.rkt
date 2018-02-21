@@ -79,7 +79,7 @@
       (let go ([path : (Listof -st-ac) '()] [C : -V C])
         (define (gen)
           (define x (gen-name 'x path))
-          (define ⟦x⟧ (↓ₓ 'induct-on x ℓ))
+          (define ⟦x⟧ (↓ₓ x ℓ))
           (values x ⟦x⟧ (-⟦dom⟧ x #f (mk-V C) (ℓ-with-id ℓ x))))
         (match C
           [(== C-ind)
@@ -122,8 +122,8 @@
          (match-define {singleton-set C*} (σ@ Σ (-φ-cache φ) α))
          (define ⟦c⟧
            (let* ([⟦C⟧ (mk-V C)]
-                  [⟦P⟧ (↓ₓ 'induct-on 'P ℓ)]
-                  [⟦x⟧ (list (↓ₓ 'induct-on 'x ℓ))])
+                  [⟦P⟧ (↓ₓ 'P ℓ)]
+                  [⟦x⟧ (list (↓ₓ 'x ℓ))])
              (mk-->i (list* (-⟦dom⟧ 'x #f ⟦C⟧ ℓ)
                             (-⟦dom⟧ 'P #f (mk--> (ℓ-with-id ℓ 'P) (list ⟦C⟧) (mk-V 'contract?)) (ℓ-with-id ℓ 'mk-P))
                             (gen-cases C ⟦P⟧ C*))

@@ -110,7 +110,7 @@
           #:where [fvs (fv lam)]]
          [(? -prim? p) #:same-as (mk-V p)]
          [(-•) #:same-as (mk-V (fresh-sym!))]
-         [(-x (? symbol? x) ℓₓ) #:same-as (↓ₓ l x ℓₓ)]
+         [(-x (? symbol? x) ℓₓ) #:same-as (↓ₓ x ℓₓ)]
          [(-x (and 𝒾 (-𝒾 x l₀)) _)
           (let* ([φ* (if (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ)
                          (alloc Σ φ ⟪α⟫ₒₚ {set (-● ∅)})
@@ -255,9 +255,9 @@
      ⟦body⟧
      ⟦bind⟧s))
 
-  (define/memo (↓ₓ [l : -l] [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
+  (define/memo (↓ₓ [x : Symbol] [ℓₓ : ℓ]) : -⟦e⟧
     (define -blm.undefined
-      (blm/simp l 'Λ (list 'defined?) (list {set (format-symbol "~a_(~a)" 'undefined x)}) ℓₓ))
+      (blm/simp (ℓ-src ℓₓ) 'Λ (list 'defined?) (list {set (format-symbol "~a_(~a)" 'undefined x)}) ℓₓ))
     (remember-e!
      (-x x ℓₓ)
      (λ (ρ H φ Σ ⟦k⟧)

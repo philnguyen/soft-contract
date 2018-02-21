@@ -12,7 +12,7 @@
   ([↓ₚ : ((Listof -module) -e → -⟦e⟧)]
    [↓ₘ : (-module → -⟦e⟧)]
    [↓ₑ : (-l -e → -⟦e⟧)]
-   [↓ₓ : (-l Symbol ℓ → -⟦e⟧)]
+   [↓ₓ : (Symbol ℓ → -⟦e⟧)]
    [mk--> : (ℓ (-maybe-var -⟦e⟧) -⟦e⟧ → -⟦e⟧)]
    [mk-->i : ((Listof -⟦dom⟧) -⟦dom⟧ Boolean → -⟦e⟧)]
    [mk-V : (-V → -⟦e⟧)]
