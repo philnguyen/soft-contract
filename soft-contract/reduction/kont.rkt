@@ -335,16 +335,17 @@
       (values (-=> Dom Rng) φ₂))
 
     ;; Given *reversed* list of contract domains, create dependent contract
-    (: mk-=>i : -Σ -H -φ (Listof -Dom) → -=>i)
-    (define (mk-=>i Σ H φ Doms)
+    (: mk-=>i : -Σ -H -φ (Listof -Dom) Boolean → -=>i)
+    (define (mk-=>i Σ H φ Doms lax?)
       (match-define (cons D Cs) Doms)
-      (-=>i (reverse Cs) D))) 
+      ((if lax? -=>i/lax -=>i) (reverse Cs) D))) 
 
   ;; Dependent contract
   (define-frame (-->i∷ [ρ : -ρ]
                        [Doms-rev  : (Listof -Dom)]
                        [ctx : (Pairof Symbol ℓ)]
                        [⟦dom⟧s : (Listof -⟦dom⟧)]
+                       [lax? : Boolean]
                        [⟦k⟧  : -⟦k⟧])
     (match-define (cons x ℓ) ctx)
     (make-frame (⟦k⟧ A H φ Σ) #:roots () ;; FIXME roots!!
@@ -355,9 +356,9 @@
       (define Doms-rev* (append Doms-rev₁ (cons (-Dom x α ℓ) Doms-rev)))
       (match ⟦dom⟧s₁
         ['()
-         (⟦k⟧ (list {set (mk-=>i Σ H φ* Doms-rev*)}) H φ* Σ)]
+         (⟦k⟧ (list {set (mk-=>i Σ H φ* Doms-rev* lax?)}) H φ* Σ)]
         [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s*)
-         (⟦c⟧ ρ H φ* Σ (-->i∷ ρ Doms-rev* (cons x ℓ) ⟦dom⟧s* ⟦k⟧))])))
+         (⟦c⟧ ρ H φ* Σ (-->i∷ ρ Doms-rev* (cons x ℓ) ⟦dom⟧s* lax? ⟦k⟧))])))
 
   ;; struct/c contract
   (define-frame (struct/c∷ [ℓ₁ : ℓ]

@@ -56,7 +56,8 @@
                 (hash-ref m x))
               (let* ([ℓᵣ (ℓ-with-id ℓ case-name)]
                     [ℓₐ (ℓ-with-id ℓᵣ 'app)])
-                (-⟦dom⟧ '_ xs (mk-app ℓₐ ⟦P⟧ (list ⟦e⟧)) ℓᵣ))))
+                (-⟦dom⟧ '_ xs (mk-app ℓₐ ⟦P⟧ (list ⟦e⟧)) ℓᵣ))
+              #t))
 
     (: recombine-shape : -𝒾 (Listof -st-ac) (Listof Shape) → Shape)
     (define (recombine-shape 𝒾 path shapes)
@@ -126,7 +127,8 @@
              (mk-->i (list* (-⟦dom⟧ 'x #f ⟦C⟧ ℓ)
                             (-⟦dom⟧ 'P #f (mk--> (ℓ-with-id ℓ 'P) (list ⟦C⟧) (mk-V 'contract?)) (ℓ-with-id ℓ 'mk-P))
                             (gen-cases C ⟦P⟧ C*))
-                     (-⟦dom⟧ '_ '{x P} (mk-app ℓ ⟦P⟧ ⟦x⟧) (ℓ-with-id ℓ 'concl)))))
+                     (-⟦dom⟧ '_ '{x P} (mk-app ℓ ⟦P⟧ ⟦x⟧) (ℓ-with-id ℓ 'concl))
+                     #f)))
          (printf "generated induction principle: ~a~n" (show-⟦e⟧ ⟦c⟧))
          (⟦c⟧ ⊥ρ H φ Σ ⟦k⟧)]
         [C (err "inductive contract" C)]))
