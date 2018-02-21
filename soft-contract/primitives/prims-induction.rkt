@@ -36,11 +36,6 @@
   (def (induct-on ℓ Vs H φ Σ ⟦k⟧)
     #:init ([C^ contract?])
 
-    (: err : String -V → (℘ -ς))
-    (define (err msg V)
-      (define blm (-blm (ℓ-src ℓ) 'induct-on (list (string->symbol msg)) (list {set V}) ℓ))
-      (⟦k⟧ blm H φ Σ))
-
     (: gen-name : Symbol (Listof -st-ac) → Symbol)
     (define (gen-name x path)
       (foldr
@@ -85,7 +80,7 @@
           [(== C-ind)
            (define-values (x ⟦x⟧ ⟦dom-x⟧) (gen))
            (define ⟦P-x⟧ (mk-app ℓ ⟦P⟧ (list ⟦x⟧)))
-           (define xᵢₕ (format-symbol "ih_~a" x))
+           (define xᵢₕ (format-symbol "IH_~a" x))
            (define ⟦dom-ih⟧ (-⟦dom⟧ xᵢₕ (list x) ⟦P-x⟧ (ℓ-with-id ℓ xᵢₕ)))
            (Shape (list x xᵢₕ) (hasheq x ⟦dom-x⟧ xᵢₕ ⟦dom-ih⟧) ⟦x⟧)]
           [(-St/C _ 𝒾 αℓs)
@@ -116,22 +111,55 @@
            (list dom)])))
 
     (: induct : -V → (℘ -ς))
-    (define induct
-      (match-lambda
-        [(and C (-x/C α))
-         (match-define {singleton-set C*} (σ@ Σ (-φ-cache φ) α))
-         (define ⟦c⟧
-           (let* ([⟦C⟧ (mk-V C)]
-                  [⟦P⟧ (↓ₓ 'P ℓ)]
-                  [⟦x⟧ (list (↓ₓ 'x ℓ))])
-             (mk-->i (list* (-⟦dom⟧ 'x #f ⟦C⟧ ℓ)
-                            (-⟦dom⟧ 'P #f (mk--> (ℓ-with-id ℓ 'P) (list ⟦C⟧) (mk-V 'contract?)) (ℓ-with-id ℓ 'mk-P))
-                            (gen-cases C ⟦P⟧ C*))
-                     (-⟦dom⟧ '_ '{x P} (mk-app ℓ ⟦P⟧ ⟦x⟧) (ℓ-with-id ℓ 'concl))
-                     #f)))
-         (printf "generated induction principle: ~a~n" (show-⟦e⟧ ⟦c⟧))
-         (⟦c⟧ ⊥ρ H φ Σ ⟦k⟧)]
-        [C (err "inductive contract" C)]))
+    (define (induct C)
+      (define ⟦C⟧ (mk-V C))
+      (define ⟦P⟧ (↓ₓ 'P ℓ))
+      (define ⟦x⟧ (list (↓ₓ 'x ℓ)))
+      (define major-premise (-⟦dom⟧ 'x #f ⟦C⟧ ℓ))
+      (define motive (-⟦dom⟧ 'P #f (mk--> (ℓ-with-id ℓ 'P) (list ⟦C⟧) (mk-V 'contract?)) (ℓ-with-id ℓ 'mk-P)))
+      (define conclusion (-⟦dom⟧ '_ '{x P} (mk-app ℓ ⟦P⟧ ⟦x⟧) (ℓ-with-id ℓ 'concl)))
+      (define (mk-case [x : Symbol] [⟦s⟧ : -⟦e⟧]) (-⟦dom⟧ x '{P} ⟦s⟧ (ℓ-with-id ℓ x)))
+      (define (mk-base-case [name : Symbol] [b : -b])
+        (define ⟦b⟧ (list (mk-V b)))
+        (mk-case name (mk--> (ℓ-with-id ℓ name) ⟦b⟧ (mk-app ℓ ⟦P⟧ ⟦b⟧))))
+      (define (mk-simp-dom [x : Symbol] [C : -V]) (-⟦dom⟧ x #f (mk-V C) (ℓ-with-id ℓ x)))
+      (define (mk-ih-dom [ihx : Symbol] [x : Symbol])
+        (define ⟦x⟧ (↓ₓ x ℓ))
+        (-⟦dom⟧ ihx (list x) (mk-app ℓ ⟦P⟧ (list ⟦x⟧)) (ℓ-with-id ℓ ihx))) 
+      (define (mk-ind-case [name : Symbol] [doms : (Listof -⟦dom⟧)] [tgt : -⟦e⟧])
+        (define m (for/hasheq : (Immutable-HashTable Symbol -⟦dom⟧) ([d (in-list doms)])
+                    (values (-⟦dom⟧-name d) d)))
+        (define s (Shape (map -⟦dom⟧-name doms) m tgt))
+        (mk-case name (⟦shape⟧ ⟦P⟧ name s)))
+      (define (mk-ind [minor-premises : (Listof -⟦dom⟧)])
+        (mk-->i (list* major-premise motive minor-premises) conclusion #f))
+      (define ⟦c⟧
+        (match C
+          [(-x/C α)
+           (match-define {singleton-set C*} (σ@ Σ (-φ-cache φ) α))
+           (mk-ind (gen-cases C ⟦P⟧ C*))]
+          ['exact-nonnegative-integer?
+           (define case-0 (mk-base-case 'case-0 -zero))
+           (define case-n
+             (mk-ind-case 'case-n
+                          (list (mk-simp-dom 'n 'exact-nonnegative-integer?)
+                                (mk-ih-dom 'IH_n 'n))
+                          (mk-app ℓ (mk-V 'add1) (list (↓ₓ 'n ℓ)))))
+           (mk-ind (list case-0 case-n))]
+          ['list?
+           (define case-null (mk-base-case 'case-null -null))
+           (define case-cons
+             (mk-ind-case 'case-cons
+                          (list (mk-simp-dom 'x.car 'any/c)
+                                (mk-simp-dom 'x.cdr 'list?)
+                                (mk-ih-dom 'IH_x.cdr 'x.cdr))
+                          (mk-app ℓ (mk-V -cons) (list (↓ₓ 'x.car ℓ) (↓ₓ 'x.cdr ℓ)))))
+           (mk-ind (list case-null case-cons))]
+          [C
+           (define blm (-blm (ℓ-src ℓ) 'induct-on '(inductive-contract) (list {set C}) ℓ))
+           (mk-A blm)]))
+      (printf "generated induction principle for ~a:~n~a~n" (show-V C) (show-⟦e⟧ ⟦c⟧))
+      (⟦c⟧ ⊥ρ H φ Σ ⟦k⟧))
     
     (for/union : (℘ -ς) ([C (in-set C^)]) (induct C)))
 

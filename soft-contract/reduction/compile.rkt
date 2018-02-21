@@ -230,7 +230,7 @@
 
   (define/memo (mk--> [ℓ : ℓ] [⟦dom⟧s : (-maybe-var -⟦e⟧)] [⟦rng⟧ : -⟦e⟧]) : -⟦e⟧
     (remember-e!
-     (string->symbol (format "~a" `(-> … ,(show-⟦e⟧ ⟦rng⟧))))
+     (string->symbol (format "~a" `(-> ,@(if (list? ⟦dom⟧s) (map show-⟦e⟧ ⟦dom⟧s) '(…)) ,(show-⟦e⟧ ⟦rng⟧))))
      (with-cases-on ⟦dom⟧s (ρ H φ Σ ⟦k⟧)
       ['()            (⟦rng⟧ ρ H φ Σ (-->.rng∷ '() #f ℓ ⟦k⟧))]
       [(cons ⟦c⟧ ⟦c⟧s) (⟦c⟧   ρ H φ Σ (-->.dom∷ '() ⟦c⟧s #f ⟦rng⟧ ρ ℓ ⟦k⟧))]
