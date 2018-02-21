@@ -219,7 +219,8 @@
 
   (define/memo (mk-->i [⟦dom⟧s : (Listof -⟦dom⟧)] [⟦rng⟧ : -⟦dom⟧] [lax? : Boolean]) : -⟦e⟧
     (remember-e!
-     (string->symbol (format "~a" `(->i ,(map show-⟦dom⟧ ⟦dom⟧s) ,(show-⟦dom⟧ ⟦rng⟧))))
+     (let ([-> (if lax? '->d '->i)])
+       (string->symbol (format "~a" `(,-> ,(map show-⟦dom⟧ ⟦dom⟧s) ,(show-⟦dom⟧ ⟦rng⟧)))))
      (λ (ρ H φ Σ ⟦k⟧)
       (define-values (Doms doms) (split-⟦dom⟧s ρ (append ⟦dom⟧s (list ⟦rng⟧))))
       (match doms
