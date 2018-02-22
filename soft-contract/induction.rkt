@@ -114,7 +114,7 @@
 (define-syntax oops!
   (syntax-parser
     [oops!:id
-     (with-syntax ([src (syntax-source #'oops)]
+     (with-syntax ([src (path->string (syntax-source #'oops))]
                    [row (syntax-line #'oops)]
                    [col (syntax-column #'oops)])
        #'(error 'scv "proof aborted at ~a:~a:~a" src row col))]))
