@@ -420,5 +420,6 @@
    [dump-σ : ([-σ] [#:tag Any #:appendix? Boolean] . ->* . Void)]
    [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
    [recall-e : (-⟦e⟧ → (Option -e))]
+   [recall/show : (-⟦e⟧ → -e)]
    [verbose? : (Parameterof Boolean)]
    ))

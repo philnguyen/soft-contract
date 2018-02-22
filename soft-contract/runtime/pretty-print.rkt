@@ -176,7 +176,11 @@
       (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
         (λ (⟦e⟧)
           (cond [(recall-e ⟦e⟧) => show-e]
-                [else (⟦e⟧->symbol ⟦e⟧)])))))
+                [else (⟦e⟧->symbol ⟦e⟧)]))))
+
+    (: recall/show : -⟦e⟧ → -e)
+    (define (recall/show ⟦e⟧)
+      (or (recall-e ⟦e⟧) (string->symbol (format "~a" (show-⟦e⟧ ⟦e⟧))))))
 
   (define (show-αₖ [αₖ : -αₖ]) : Sexp
     (match-define (-αₖ H bl φ) αₖ)

@@ -276,7 +276,7 @@
 
   (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : -⟦e⟧] [⟦x⟧s : (Listof -⟦e⟧)]) : -⟦e⟧
     (remember-e!
-     (string->symbol (format "~a" (cons (show-⟦e⟧ ⟦f⟧) (map show-⟦e⟧ ⟦x⟧s))))
+     (-@ (recall/show ⟦f⟧) (map recall/show ⟦x⟧s) ℓ) 
      (λ (ρ H φ Σ ⟦k⟧)
       (⟦f⟧ ρ H φ Σ (ap∷ '() ⟦x⟧s ρ ℓ ⟦k⟧)))))
 
