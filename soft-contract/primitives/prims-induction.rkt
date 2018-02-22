@@ -159,7 +159,9 @@
            (define blm (-blm (ℓ-src ℓ) 'induct-on '(inductive-contract) (list {set C}) ℓ))
            (mk-A blm)]))
       (printf "generated induction principle for ~a:~n~a~n" (show-V C) (show-⟦e⟧ ⟦c⟧))
-      (⟦c⟧ ⊥ρ H φ Σ ⟦k⟧))
+      (define ⟦ind⟧ (let ([ctx (-ctx 'induct-on (ℓ-src ℓ) 'induct-on ℓ)])
+                      (mk-mon ctx ⟦c⟧ (mk-V (-● ∅)))))
+      (⟦ind⟧ ⊥ρ H φ Σ ⟦k⟧))
     
     (for/union : (℘ -ς) ([C (in-set C^)]) (induct C)))
 
