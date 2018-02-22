@@ -145,6 +145,21 @@
         [(✓) (arity-includes? (assert (V-arity V)) 1)]
         [else #f]))
 
+    (: check-equal : (Listof ⟪α⟫) (Listof ⟪α⟫) → -R)
+    (define (check-equal αs₁ αs₂)
+      (for/fold ([R : -R '✓])
+                ([α₁ (in-list αs₁)]
+                 [α₂ (in-list αs₂)]
+                 #:when (equal? R '✓))
+        (for*/fold ([R : -R R])
+                   ([V₁ (in-set (σ@ σ (-φ-cache φ) α₁))]
+                    [V₂ (in-set (σ@ σ (-φ-cache φ) α₂))]
+                    #:when (equal? R '✓))
+          (case (p∋V σ φ 'equal? V₁ V₂)
+            [(✓) R]
+            [(✗) '✗]
+            [(?) '?]))))
+
     (match Vs
       [(list (-t.@ o xs)) #:when (equal? p 'values) (apply p∋V σ φ o xs)]
       [(list (-t.@ o xs)) #:when (equal? p 'not) (not-R (apply p∋V σ φ o xs))]
@@ -158,6 +173,9 @@
       [(list (? -t? t) (? -t? t))
        #:when (equal? p 'equal?)
        '✓]
+      [(list (-St 𝒾 αs₁) (-St 𝒾 αs₂))
+       #:when (equal? p 'equal?)
+       (check-equal αs₁ αs₂)]
       
       [(list (-● ps)) (ps⇒p ps p)]
       [(and (list (-t.@ k _))
