@@ -94,7 +94,7 @@
                              doms*
                              (syntax->list #'(x ...)))
                       deps**))])))
-     #`(->i #,doms (_ #,@(if (null? deps) '() (list deps)) (λ (_) e)))]))
+     #`(->i #,doms (_ #,@(if (null? deps) '() (list deps)) (λ _ e)))]))
 
 (define-syntax define-theorem
   (syntax-parser
