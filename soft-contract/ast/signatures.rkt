@@ -214,6 +214,7 @@
 
 (define-signature meta-functions^
   ([fv : (-e → (℘ Symbol))]
+   [fv-count : (-e Symbol → Natural)]
    [closed? : (-e → Boolean)]
    [free-x/c : (-e → (℘ Symbol))]
    [e/map : (Subst -e → -e)]

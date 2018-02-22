@@ -13,7 +13,7 @@
          "signatures.rkt")
 
 (define-unit meta-functions@
-  (import static-info^)
+  (import static-info^ ast-macros^)
   (export meta-functions^)
 
   (: fv : (U -e (Listof -e)) → (℘ Symbol))
@@ -49,7 +49,6 @@
        (match x
          [(? symbol? x) (set-add (fv e) x)]
          [_ (fv e)])]
-      #;[(.apply f xs _) (set-union (fv f d) (fv xs d))]
       [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
       [(-μ/c _ e) (fv e)]
       [(--> cs d _)
@@ -68,6 +67,53 @@
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
          (∪ xs (fv e)))]
       [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
+
+  (: fv-count : -e Symbol → Natural)
+  (define (fv-count e z)
+    (let go ([e : -e e])
+      (match e
+        [(-x x _) (if (equal? x z) 1 0)]
+        [(-x/c x) (if (equal? x z) 1 0)]
+        [(-λ xs e)
+         (define bound?
+           (match xs
+             [(? list?)   (memq z xs)]
+             [(-var xs x) (or (equal? x z) (memq z xs))]))
+         (if bound? 0 (go e))]
+        [(-@ f xs _) (apply + (go f) (map go xs))]
+        [(-begin es) (apply + (map go es))]
+        [(-begin0 e₀ es) (apply + (go e₀) (map go es))]
+        [(-let-values bnds e _)
+         (define-values (sum₀ bound?)
+           (for/fold ([sum : Natural 0] [bound? : Any #f])
+                     ([bnd : (Pairof (Listof Symbol) -e) (in-list bnds)])
+             (match-define (cons xs eₓ) bnd)
+             (values (+ sum (go eₓ)) (or bound? (memq z xs)))))
+         (+ sum₀ (if bound? 0 (go e)))]
+        [(-letrec-values bnds e _)
+         (define bound? (for/or : Any ([bnd (in-list bnds)]) (memq z (car bnd))))
+         (if bound?
+             0
+             (apply + (go e) (map (λ ([bnd : (Pairof Any -e)]) (go (cdr bnd))) bnds)))]
+        [(-set! x e) (go e)]
+        [(-if e e₁ e₂) (+ (go e) (go e₁) (go e₂))]
+        [(-μ/c x e) (if (equal? x z) 0 (go e))]
+        [(--> cs d _)
+         (+ (go d)
+            (match cs
+              [(? list?) (apply + (map go cs))]
+              [(-var cs c) (apply + (go c) (map go cs))]))]
+        [(-->i cs d)
+         (define-values (sum _)
+           (for/fold ([sum : Natural 0] [bound? : Boolean #f])
+                     ([dom (in-list (append cs (list d)))]
+                      #:break bound?
+                      #:unless bound?)
+             (match-define (-dom x _ eₓ _) dom)
+             (values (+ sum (go eₓ)) (equal? x z))))
+         sum]
+        [(-struct/c _ cs _) (apply + (map go cs))]
+        [_ 0])))
 
   (: closed? : -e → Boolean)
   ;; Check whether expression is closed
@@ -154,7 +200,7 @@
               [(-λ xs e*)
                (-λ xs (go (remove-keys m (formals->names xs)) e*))]
               [(-@ f xs ℓ)
-               (-@ (go m f) (go-list m xs) ℓ)]
+               (-@/simp (go m f) (go-list m xs) ℓ)]
               [(-if e₀ e₁ e₂)
                (-if (go m e₀) (go m e₁) (go m e₂))]
               [(-wcm k v b)

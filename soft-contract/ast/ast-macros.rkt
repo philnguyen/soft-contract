@@ -94,8 +94,7 @@
      [((-λ (? list? xs) e) es ℓ)
       #:when (= (length xs) (length es))
       (-let-values/simp
-       (for/list : (Listof (Pairof (Listof Symbol) -e)) ([x (in-list xs)]
-                                                         [e (in-list es)])
+       (for/list ([x (in-list xs)] [e (in-list es)])
          (cons (list x) e))
        e
        ℓ)]
@@ -113,7 +112,7 @@
                   ([lhs (in-list lhss)]
                    [rhs (in-list rhss)]
                    #:when (and (symbol? lhs) (-e? rhs)))
-          (if (inlinable? lhs rhs)
+          (if (inlinable? lhs rhs body)
               (values bindings-rev (hash-set inlines lhs rhs))
               (values (cons (cons (list lhs) rhs) bindings-rev) inlines))))
       (cond [(hash-empty? inlines)
@@ -131,13 +130,36 @@
      [((-b _ ) e _) e]
      [(i t e) (-if i t e)]))
 
-  (: inlinable? : Symbol -e → Boolean)
-  (define (inlinable? x e)
+  (: inlinable? : Symbol -e -e → Boolean)
+  (define (inlinable? x eₓ body)
     (and (not (assignable? x))
-         (match e
+         (match eₓ
            [(? -b?) #t]
            [(-x x ℓ)
             (or (symbol? x)
                 (equal? (-𝒾-src x) (ℓ-src ℓ)))]
-           [_ #f])))
+           [_ (and (effect-free? eₓ) (<= (fv-count body x) 1))])))
+
+  (define effect-free? : (-e → Boolean)
+    (match-lambda
+      [(or (? -v?) (? -x?)) #t]
+      [(-@ (and (? -o?) (not (? -st-mut?))) xs _) (andmap effect-free? xs)]
+      [(-begin es) (andmap effect-free? es)]
+      [(-begin0 e₀ es) (and (effect-free? e₀) (andmap effect-free? es))]
+      [(or (-let-values bnds e _)
+           (-letrec-values bnds e _))
+       #:when (and bnds e)
+       (and (effect-free? e)
+            (andmap (compose1 effect-free? (inst cdr Any -e)) bnds))]
+      [(-set! x e) #f]
+      [(-if e e₁ e₂) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
+      [(-μ/c _ e) (effect-free? e)]
+      [(--> cs d _)
+       (and (effect-free? d)
+            (match cs
+              [(-var cs c) (and (effect-free? c) (andmap effect-free? cs))]
+              [(? list? cs) (andmap effect-free? cs)]))]
+      [(-->i cs d) (andmap (compose1 effect-free? -dom-body) (cons d cs))]
+      [(-struct/c _ cs _) (andmap effect-free? cs)]
+      [_ #f]))
   )
