@@ -94,7 +94,7 @@
                              doms*
                              (syntax->list #'(x ...)))
                       deps**))])))
-     #`(->i #,doms (_ #,deps (λ _ e)))]))
+     #`(->i #,doms (_ #,@(if (null? deps) '() (list deps)) (λ (_) e)))]))
 
 (define-syntax define-theorem
   (syntax-parser
@@ -110,7 +110,7 @@
                    #:defaults ([e #'trivial])))
      #'(define/contract f c e)]))
 
-(define-syntax-rule (↑ e) (λ _ e))
+(define-syntax-rule (↑ e) (λ (_) e))
 
 (module+ test
   (require (only-in racket/contract contract-exercise))
