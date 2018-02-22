@@ -18,7 +18,8 @@
          forall (rename-out [forall ∀])
          (rename-out [parametric->/c ∀/c])
          define-theorem
-         ↑)
+         ↑
+         oops!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Run-time library
@@ -109,6 +110,14 @@
         (~optional (~seq #:proof e:expr)
                    #:defaults ([e #'trivial])))
      #'(define/contract f c e)]))
+
+(define-syntax oops!
+  (syntax-parser
+    [oops!:id
+     (with-syntax ([src (syntax-source #'oops)]
+                   [row (syntax-line #'oops)]
+                   [col (syntax-column #'oops)])
+       #'(error 'scv "proof aborted at ~a:~a:~a" src row col))]))
 
 (define-syntax-rule (↑ e) (λ (_) e))
 
