@@ -184,7 +184,7 @@
          [(-μ/c x (:↓ ⟦c⟧))
           (⟦c⟧ (ρ+ ρ x (-α->⟪α⟫ (-α.x/c x H))) H φ Σ (μ/c∷ x ⟦k⟧))]
          [(--> cs d ℓ) #:same-as (mk--> ℓ (-var-map ↓ cs) (↓ d))]
-         [(-->i cs d) #:same-as (mk-->i (map (↓dom l) cs) ((↓dom l) d) #f)]
+         [(-->i cs d) #:same-as (mk-->i (map (↓dom l) cs) ((↓dom l) d))]
          [(-∀/c xs (and e* (:↓ ⟦e*⟧)))
           (⟦k⟧ (list {set (-∀/C xs ⟦e*⟧ (m↓ ρ fvs))}) H φ Σ)
           #:where
@@ -217,17 +217,16 @@
     (match-define (-dom xs ?dep e ℓ) dom)
     (-⟦dom⟧ xs ?dep (↓ₑ l e) ℓ))
 
-  (define/memo (mk-->i [⟦dom⟧s : (Listof -⟦dom⟧)] [⟦rng⟧ : -⟦dom⟧] [lax? : Boolean]) : -⟦e⟧
+  (define/memo (mk-->i [⟦dom⟧s : (Listof -⟦dom⟧)] [⟦rng⟧ : -⟦dom⟧]) : -⟦e⟧
     (remember-e!
-     (let ([-> (if lax? '->d '->i)])
-       (string->symbol (format "~a" `(,-> ,(map show-⟦dom⟧ ⟦dom⟧s) ,(show-⟦dom⟧ ⟦rng⟧)))))
+     (string->symbol (format "~a" `(->i ,(map show-⟦dom⟧ ⟦dom⟧s) ,(show-⟦dom⟧ ⟦rng⟧))))
      (λ (ρ H φ Σ ⟦k⟧)
       (define-values (Doms doms) (split-⟦dom⟧s ρ (append ⟦dom⟧s (list ⟦rng⟧))))
       (match doms
         ['()
-         (⟦k⟧ (list {set (mk-=>i Σ H φ Doms lax?)}) H φ Σ)]
+         (⟦k⟧ (list {set (mk-=>i Σ H φ Doms)}) H φ Σ)]
         [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s)
-         (⟦c⟧ ρ H φ Σ (-->i∷ ρ Doms (cons x ℓ) ⟦dom⟧s lax? ⟦k⟧))]))))
+         (⟦c⟧ ρ H φ Σ (-->i∷ ρ Doms (cons x ℓ) ⟦dom⟧s ⟦k⟧))]))))
 
   (define/memo (mk--> [ℓ : ℓ] [⟦dom⟧s : (-maybe-var -⟦e⟧)] [⟦rng⟧ : -⟦e⟧]) : -⟦e⟧
     (remember-e!

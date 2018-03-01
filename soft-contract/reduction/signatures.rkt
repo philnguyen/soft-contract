@@ -14,7 +14,7 @@
    [↓ₑ : (-l -e → -⟦e⟧)]
    [↓ₓ : (Symbol ℓ → -⟦e⟧)]
    [mk--> : (ℓ (-maybe-var -⟦e⟧) -⟦e⟧ → -⟦e⟧)]
-   [mk-->i : ((Listof -⟦dom⟧) -⟦dom⟧ Boolean → -⟦e⟧)]
+   [mk-->i : ((Listof -⟦dom⟧) -⟦dom⟧ → -⟦e⟧)]
    [mk-V : (-V → -⟦e⟧)]
    [mk-A : (-A → -⟦e⟧)]
    [mk-app : (ℓ -⟦e⟧ (Listof -⟦e⟧) → -⟦e⟧)]
@@ -56,7 +56,7 @@
    [-->.dom∷ : ((Listof -V^) (Listof -⟦e⟧) (Option -⟦e⟧) -⟦e⟧ -ρ ℓ -⟦k⟧ → -⟦k⟧)]
    [-->.rst∷ : ((Listof -V^) -⟦e⟧ -ρ ℓ -⟦k⟧ → -⟦k⟧)]
    [-->.rng∷ : ((Listof -V^) (Option -V^) ℓ -⟦k⟧ → -⟦k⟧)]
-   [-->i∷ : (-ρ (Listof -Dom) (Pairof Symbol ℓ) (Listof -⟦dom⟧) Boolean -⟦k⟧ → -⟦k⟧)]
+   [-->i∷ : (-ρ (Listof -Dom) (Pairof Symbol ℓ) (Listof -⟦dom⟧) -⟦k⟧ → -⟦k⟧)]
    [struct/c∷ : (ℓ -𝒾 (Listof -V^) (Listof -⟦e⟧) -ρ -⟦k⟧ → -⟦k⟧)]
    [def∷ : (-l (Listof ⟪α⟫) -⟦k⟧ → -⟦k⟧)]
    [dec∷ : (ℓ -𝒾 -⟦k⟧ → -⟦k⟧)]
@@ -86,7 +86,7 @@
    [maybe-unshadow∷ : (-δσ -δσ -⟦k⟧ → -⟦k⟧)]
    [σₖ+! : (-Σ -αₖ -⟦k⟧ → -αₖ)]
    ;; Non-frame helpers
-   [mk-=>i : (-Σ -H -φ (Listof -Dom) Boolean → -=>i)]
+   [mk-=>i : (-Σ -H -φ (Listof -Dom) → -=>i)]
    ))
 
 (define-signature app^

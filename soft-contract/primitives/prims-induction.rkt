@@ -51,8 +51,7 @@
                 (hash-ref m x))
               (let* ([ℓᵣ (ℓ-with-id ℓ case-name)]
                     [ℓₐ (ℓ-with-id ℓᵣ 'app)])
-                (-⟦dom⟧ '_ xs (mk-app ℓₐ ⟦P⟧ (list ⟦e⟧)) ℓᵣ))
-              #t))
+                (-⟦dom⟧ '_ xs (mk-app ℓₐ ⟦P⟧ (list ⟦e⟧)) ℓᵣ))))
 
     (: recombine-shape : -𝒾 (Listof -st-ac) (Listof Shape) → Shape)
     (define (recombine-shape 𝒾 path shapes)
@@ -132,7 +131,7 @@
         (define s (Shape (map -⟦dom⟧-name doms) m tgt))
         (mk-case name (⟦shape⟧ ⟦P⟧ name s)))
       (define (mk-ind [minor-premises : (Listof -⟦dom⟧)])
-        (mk-->i (list* major-premise motive minor-premises) conclusion #f))
+        (mk-->i (list* major-premise motive minor-premises) conclusion))
       (define ⟦c⟧
         (match C
           [(-x/C α)

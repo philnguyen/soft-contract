@@ -110,7 +110,6 @@
        (with-guarded-arity (guard-arity C)
          (define Vᵤ^ (set-remove (σ@ Σ (-φ-cache φ) α) Vₕ))
          (define f (cond [(-=>? C)      (app-Ar C Vᵤ^ ctx)]
-                         [(-=>i/lax? C) (app-Lax C Vᵤ^ ctx)]
                          [(-=>i? C)     (app-Indy C Vᵤ^ ctx)]
                          [(-∀/C? C)     (app-∀/C C Vᵤ^ ctx)]
                          [else          (app-guarded-Case C Vᵤ^ ctx)]))
@@ -283,32 +282,6 @@
        (⟦mon-x⟧ᵣ ⊥ρ H φ Σ (ap∷ fn '() ⊥ρ ℓ₀ ⟦k⟧*))]
       [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
        (⟦mon-x⟧₀ ⊥ρ H φ Σ (ap∷ fn `(,@ ⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓ₀ ⟦k⟧*))]))
-
-  (: app-Lax : -=>i/lax -V^ -ctx → -⟦f⟧)
-  (define ((app-Lax C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)
-    (match-define (-=>i/lax Doms Rng) C)
-    (define ctx* (ctx-neg ctx))
-    (define C->⟦e⟧ : ((U -Clo ⟪α⟫) → -⟦e⟧)
-      (let ([x->⟦e⟧
-             (for/hasheq : (Immutable-HashTable Symbol -⟦e⟧) ([D (in-list Doms)] [Vₓ (in-list Vₓs)])
-               (values (-Dom-name D) (mk-A (list Vₓ))))])
-        (match-lambda
-          [(and Cₓ (-Clo (? list? zs) _ _))
-           (define ⟦z⟧s : (Listof -⟦e⟧)
-             (for/list ([z (in-list zs)]) (hash-ref x->⟦e⟧ z)))
-           (mk-app ℓₐ (mk-V Cₓ) ⟦z⟧s)]
-          [(? integer? α) (mk-A (list (σ@ Σ (-φ-cache φ) α)))])))
-    (define ⟦mon-arg⟧s : (Listof -⟦e⟧)
-      (for/list ([Vₓ (in-list Vₓs)] [D (in-list Doms)])
-        (match-define (-Dom _ Cₓ ℓₓ) D)
-        (mk-mon (ctx-with-ℓ ctx* ℓₓ) (C->⟦e⟧ Cₓ) (mk-A (list Vₓ)))))
-    (define ⟦inner-app⟧
-      (let ([ℓₐ* (ℓ-with-src ℓₐ (-ctx-src ctx))])
-        (mk-app ℓₐ* (mk-A (list Vᵤ^)) ⟦mon-arg⟧s)))
-    (define ⟦mon-app⟧
-      (match-let ([(-Dom _ D ℓᵣ) Rng])
-        (mk-mon (ctx-with-ℓ ctx ℓᵣ) (C->⟦e⟧ D) ⟦inner-app⟧)))
-    (⟦mon-app⟧ ⊥ρ H φ Σ ⟦k⟧))
 
   (: app-Indy : -=>i -V^ -ctx → -⟦f⟧)
   (define ((app-Indy C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)

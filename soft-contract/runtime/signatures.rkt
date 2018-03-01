@@ -88,7 +88,6 @@
               (-=>i [doms : (Listof -Dom)] [mk-rng : -Dom])
               (-∀/C (Listof Symbol) -⟦e⟧ -ρ)
               (-Case-> (Listof -=>)))
-(struct -=>i/lax -=>i () #:transparent)
 
 (struct -blm ([violator : -l]
               [origin : -l]
