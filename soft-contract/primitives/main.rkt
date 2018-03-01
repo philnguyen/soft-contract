@@ -24,7 +24,6 @@
          "prims-math.rkt"
          "prims-zo.rkt"
          "prims-scv.rkt"
-         "prims-induction.rkt"
          )
 
 (define-unit pre-prims@
@@ -80,5 +79,4 @@
         prims-17@
         prims-math@
         prims-zo@
-        prims-scv@
-        prims-induction@))
+        prims-scv@))
