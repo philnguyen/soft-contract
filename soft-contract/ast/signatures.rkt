@@ -42,8 +42,6 @@
   (match-lambda [(? list? l) (length l)]
                 [(-var xs _) (arity-at-least (length xs))]))
 
-;;(struct -l³ ([pos : -l] [neg : -l] [src : -l]) #:transparent)
-
 (: +x! : (U Symbol Integer) * → Symbol)
 (define (+x! . prefixes)
   (define (stuff->string x) (format "~a" x))
