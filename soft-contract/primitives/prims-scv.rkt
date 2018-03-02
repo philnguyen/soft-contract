@@ -6,6 +6,8 @@
          racket/contract
          typed/racket/unit
          racket/set
+         unreachable
+         set-extras
          "../utils/debug.rkt"
          "../utils/list.rkt"
          "../utils/patterns.rkt"
@@ -45,4 +47,5 @@
   (def (scv:mon ℓ Vs H φ Σ ⟦k⟧)
     #:init ([src symbol?] [C contract?] [V any/c])
     (match-define {singleton-set (-b (and (? symbol?) (app symbol->string l)))} src)
-    (mon (-ctx l (format "user-of-~a" l) l ℓ) C V H φ Σ ⟦k⟧)))
+    (mon (-ctx l (format "user-of-~a" l) l ℓ) C V H φ Σ ⟦k⟧))
+  )

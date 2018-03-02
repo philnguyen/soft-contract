@@ -116,6 +116,8 @@
             (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
             (-∀/c (Listof Symbol) -e)
             )
+(struct -->/⇓ --> () #:transparent)
+(struct -->i/⇓ -->i () #:transparent)
 
 (-v . ::= . -prim
             (-λ -formals -e)

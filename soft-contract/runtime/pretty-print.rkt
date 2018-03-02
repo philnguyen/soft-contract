@@ -109,9 +109,15 @@
          (cond [(list? βs) (show-⟪α⟫ℓs βs)]
                [else 'any]))
        (match αs
-         [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,show-rng)]
-         [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,show-rng)])]
-      [(-=>i Doms Rng) `(->i ,(map show-Dom Doms) ,(show-Dom Rng))]
+         [(-var αs α)
+          (define -> (if (-=>/⇓? V) '->*/⇓ '->*))
+          `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ,-> . ,show-rng)]
+         [(? list? αs)
+          (define -> (if (-=>/⇓? V) '->/⇓ '->))
+          `(,@(map show-⟪α⟫ℓ αs) . ,-> . ,show-rng)])]
+      [(-=>i Doms Rng)
+       (define -> (if (-=>i/⇓? V) '->i/⇓ '->i))
+       `(,-> ,(map show-Dom Doms) ,(show-Dom Rng))]
       [(-Case-> cases) `(case-> ,@(map show-V cases))]
       [(-St/C _ 𝒾 αs)
        `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]

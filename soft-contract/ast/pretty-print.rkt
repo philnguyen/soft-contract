@@ -116,10 +116,14 @@
       [(--> dom rng _)
        (match dom
          [(-var es e)
-          `(,(map show-e es) #:rest ,(show-e e) . ->* . ,(show-e rng))]
+          (define -> (if (-->/⇓? e) '->*/⇓ '->*))
+          `(,(map show-e es) #:rest ,(show-e e) . ,-> . ,(show-e rng))]
          [(? list? es)
-          `(,@(map show-e es) . -> . ,(show-e rng))])]
-      [(-->i cs d) `(->i (,@(map show-dom cs)) ,(show-dom d))]
+          (define -> (if (-->/⇓? e) '->/⇓ '->))
+          `(,@(map show-e es) . ,-> . ,(show-e rng))])]
+      [(-->i cs d)
+       (define -> (if (-->i/⇓? e) '->i/⇓ '->i))
+       `(,-> (,@(map show-dom cs)) ,(show-dom d))]
       [(-x/c.tmp x) x]
       [(-x/c x) x]
       [(-struct/c 𝒾 cs _)

@@ -458,6 +458,16 @@
        (define-values (xs ρ) (parse-formals (attribute ctc.params)))
        (-∀/c xs (with-env ρ (parse-e (attribute ctc.body))))]
       ;; Non-dependent function contract
+      [c:scv-->!
+       (define dom
+         (match (attribute c.?rest)
+           [#f (map parse-e (attribute c.inits))]
+           [rst (-var (map parse-e (attribute c.inits)) (parse-e rst))]))
+       (define rng
+         (match (attribute c.range)
+           ['any 'any]
+           [d (parse-e d)]))
+       (-->/⇓ dom rng (next-ℓ! #'c))]
       [c:scv-->
        (define dom
          (match (attribute c.?rest)
@@ -467,8 +477,14 @@
          (match (attribute c.range)
            ['any 'any]
            [d (parse-e d)]))
-       (--> dom rng (next-ℓ! #'c))]
+       (--> dom rng (next-ℓ! #'c))] 
       ;; Dependent contract
+      [e:scv-->i!
+       (define cs (map parse-named-domain (attribute e.domains)))
+       (define d (parse-named-domain (attribute e.range)))
+       (cond [(first-forward-ref `(,@cs ,d)) =>
+              (λ (x) (error 'scv "forward reference to `~a` in `->i` not yet supported" x))])
+       (-->i/⇓ cs d)]
       [e:scv-->i
        (define cs (map parse-named-domain (attribute e.domains)))
        (define d (parse-named-domain (attribute e.range)))

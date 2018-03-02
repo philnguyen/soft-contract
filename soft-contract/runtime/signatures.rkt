@@ -88,16 +88,18 @@
               (-=>i [doms : (Listof -Dom)] [mk-rng : -Dom])
               (-∀/C (Listof Symbol) -⟦e⟧ -ρ)
               (-Case-> (Listof -=>)))
+(struct -=>/⇓ -=> () #:transparent)
+(struct -=>i/⇓ -=>i () #:transparent)
 
 (struct -blm ([violator : -l]
               [origin : -l]
               [c : (Listof (U -U -v -h -V^))]
               [v : (Listof -V^)]
               [loc : ℓ]) #:transparent)
-(-A . ::= . [#:old (Listof -V^)] -blm)
+(-A . ::= . [#:reuse (Listof -V^)] -blm)
 
 (struct -⟪α⟫ℓ ([addr : ⟪α⟫] [loc : ℓ]) #:transparent)
-(HV-Tag . ::= . '† [#:old (Pairof -l -H)])
+(HV-Tag . ::= . '† [#:reuse (Pairof -l -H)])
 
 ;; Convenient patterns
 (define-match-expander -Cons
