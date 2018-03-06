@@ -211,7 +211,7 @@
                (-begin0 (go m e₀) (go-list m es))]
               [(-let-values bnds body ℓ)
                (define-values (bnds*-rev locals)
-                 (for/fold ([bnds*-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+                 (for/fold ([bnds*-rev : (Assoc (Listof Symbol) -e) '()]
                             [locals : (℘ Symbol) ∅eq])
                            ([bnd bnds])
                    (match-define (cons xs eₓ) bnd)
@@ -226,7 +226,7 @@
                    (match-define (cons xs _) bnd)
                    (set-add* locals xs)))
                (define m* (remove-keys m locals))
-               (define bnds* : (Listof (Pairof (Listof Symbol) -e))
+               (define bnds* : (Assoc (Listof Symbol) -e)
                  (for/list ([bnd bnds])
                    (match-define (cons xs eₓ) bnd)
                    (cons xs (go m* eₓ))))

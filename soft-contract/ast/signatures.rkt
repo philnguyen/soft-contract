@@ -13,6 +13,7 @@
          bnf
          set-extras
          "../utils/pretty.rkt"
+         "../utils/list.rkt"
          "arity.rkt"
          "srcloc.rkt")
 
@@ -98,10 +99,10 @@
             -begin/e
             (-begin0 -e (Listof -e))
             (-quote Any)
-            (-let-values [bnds : (Listof (Pairof (Listof Symbol) -e))]
+            (-let-values [bnds : (Assoc (Listof Symbol) -e)]
                          [body : -e]
                          [loc : ℓ])
-            (-letrec-values [bnds : (Listof (Pairof (Listof Symbol) -e))]
+            (-letrec-values [bnds : (Assoc (Listof Symbol) -e)]
                             [body : -e]
                             [loc : ℓ])
             (-set! (U Symbol -𝒾) -e)
@@ -199,17 +200,17 @@
 
 (define-signature ast-macros^
   ([-define : (Symbol -e → -define-values)]
-   [-cond : ((Listof (Pairof -e -e)) -e → -e)]
+   [-cond : ((Assoc -e -e) -e → -e)]
    [-cons/c : (-e -e ℓ → -e)]
    [-box/c : (-e ℓ → -e)]
-   [-list/c : ((Listof (Pairof ℓ -e)) → -e)]
-   [-list : ((Listof (Pairof ℓ -e)) → -e)]
+   [-list/c : ((Assoc ℓ -e) → -e)]
+   [-list : ((Assoc ℓ -e) → -e)]
    [-and : (-e * → -e)]
    [-comp/c : (Symbol -e ℓ → -e)]
    [-begin/simp : (∀ (X) (Listof X) → (U X (-begin X)))]
    [-begin0/simp : (-e (Listof -e) → -e)]
    [-@/simp : (-e (Listof -e) ℓ → -e)]
-   [-let-values/simp : ((Listof (Pairof (Listof Symbol) -e)) -e ℓ → -e)]
+   [-let-values/simp : ((Assoc (Listof Symbol) -e) -e ℓ → -e)]
    [-if/simp : (-e -e -e → -e)]))
 
 (define-signature meta-functions^

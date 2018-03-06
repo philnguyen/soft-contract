@@ -1,11 +1,12 @@
 #lang typed/racket/base
 
-(provide NeListof unzip-by unzip cartesian)
+(provide NeListof Assoc unzip-by unzip cartesian)
 (require racket/match
          racket/list
          racket/set)
 
 (define-type (NeListof X) (Pairof X (Listof X)))
+(define-type (Assoc X Y) (Listof (Pairof X Y)))
 
 (: unzip-by (∀ (A X Y) (A → X) (A → Y) (Listof A) → (Values (Listof X) (Listof Y))))
 ;; Given a pair of functions, split list into 2

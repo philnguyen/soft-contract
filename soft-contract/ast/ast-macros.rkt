@@ -15,7 +15,7 @@
   (: -define : Symbol -e → -define-values)
   (define (-define x e) (-define-values (list x) e))
 
-  (: -cond : (Listof (Pairof -e -e)) -e → -e)
+  (: -cond : (Assoc -e -e) -e → -e)
   (define (-cond cases default)
     (foldr (λ ([alt : (Pairof -e -e)] [els : -e])
              (match-define (cons cnd thn) alt)
@@ -25,9 +25,9 @@
 
   ;; Make conjunctive and disjunctive contracts
   (splicing-local
-      ((: -app/c : Symbol → (Listof (Pairof ℓ -e)) → -e)
+      ((: -app/c : Symbol → (Assoc ℓ -e) → -e)
        (define ((-app/c o) args)
-         (let go ([args : (Listof (Pairof ℓ -e)) args])
+         (let go ([args : (Assoc ℓ -e) args])
            (match args
              ['() 'any/c]
              [(list (cons ℓ e)) e]
@@ -43,7 +43,7 @@
   (define (-box/c c ℓ)
     (-struct/c -𝒾-box (list c) ℓ))
 
-  (: -list/c : (Listof (Pairof ℓ -e)) → -e)
+  (: -list/c : (Assoc ℓ -e) → -e)
   (define (-list/c args)
     (foldr (λ ([arg : (Pairof ℓ -e)] [acc : -e])
              (match-define (cons ℓ e) arg)
@@ -51,7 +51,7 @@
            'null?
            args))
 
-  (: -list : (Listof (Pairof ℓ -e)) → -e)
+  (: -list : (Assoc ℓ -e) → -e)
   (define (-list args)
     (match args
       ['() -null]
@@ -100,14 +100,14 @@
        ℓ)]
      [(f xs ℓ) (-@ f xs ℓ)]))
 
-  (: -let-values/simp : (Listof (Pairof (Listof Symbol) -e)) -e ℓ → -e)
+  (: -let-values/simp : (Assoc (Listof Symbol) -e) -e ℓ → -e)
   (define -let-values/simp
     (match-lambda**
      [('() e _) e]
      [((list (cons (list x) eₓ)) (-x x _) _) eₓ]
      [((and bindings (list (cons (list lhss) rhss) ...)) body ℓ)
       (define-values (bindings-rev inlines)
-        (for/fold ([bindings-rev : (Listof (Pairof (Listof Symbol) -e)) '()]
+        (for/fold ([bindings-rev : (Assoc (Listof Symbol) -e) '()]
                    [inlines : Subst (hasheq)])
                   ([lhs (in-list lhss)]
                    [rhs (in-list rhss)]
