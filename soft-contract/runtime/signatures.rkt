@@ -144,6 +144,7 @@
    [Σₐ@ : ((U Σ Σₐ) K → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → (Listof V^))]
    [α• : α]
+   [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    ;; Old
    #;[alloc  : (-Σ -φ ⟪α⟫ -V^ → -φ)]
    #;[alloc* : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
@@ -154,7 +155,7 @@
    #;[σ@ : ([(U -Σ -σ) -δσ ⟪α⟫] [(→ -V^)] . ->* . -V^)]
    #;[σ@/cache : ((U -Σ -σ) -φ ⟪α⟫ → (Listof (Pairof -V^ -φ)))]
    #;[σ@/list : ((U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))]
-   #;[defined-at? : ((U -Σ -σ) -δσ ⟪α⟫ → Boolean)]
+   
    #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
    #;[unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
    #;[⊥σₖ : -σₖ]

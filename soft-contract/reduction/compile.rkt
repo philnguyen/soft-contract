@@ -26,6 +26,66 @@
           kont^ widen^)
   (export compile^)
 
+  (: ↓ₚ : (Listof -module) -e → ⟦E⟧)
+  ;; Compile program
+  (define (↓ₚ ms E)
+    (match ms
+      ['() (↓ₑ '† E)]
+      [(cons m ms)
+       (define ⟦m⟧ (↓ₘ m))
+       (define ⟦m⟧s (map ↓ₘ ms))
+       (define ⟦E⟧ (↓ₑ '† E))
+       (λ (Ρ Φ^ K H Σ) (⟦m⟧ Ρ Φ^ (K:Bgn `(,@⟦m⟧s ,⟦E⟧) Ρ K) H Σ))]))
+
+  (: ↓ₘ : -module → ⟦E⟧)
+  ;; Compile module
+  (define (↓ₘ m)
+    (match-define (-module l ds) m)
+
+    (: ↓pc : -provide-spec → ⟦E⟧)
+    (define-compiler ((↓pc spec) Ρ Φ^ K H Σ)
+      ;; Wrap contract
+      [=> (-p/c-item x C ℓ)
+          (⟦C⟧ Ρ Φ^ (K:Dec ℓ 𝒾 K) H Σ)
+          #:where
+          [𝒾 (-𝒾 x l)]
+          [⟦C⟧ (↓ₑ l C)]]
+      ;; Export same as internal
+      [=> (? symbol? x)
+          (begin0 (Ξ K H)
+            (assert (defined-at? Σ α))
+            (⊔ₐ! Σ K (R↓ A Φ^))
+            (⊔ᵥ! Σ α* (Σᵥ@ Σ α)))
+       #:where
+       [α  (mk-α (-α:top (-𝒾 x l)))]
+       [α* (mk-α (-α:wrp (-𝒾 x l)))]
+       [A  (list {set -void})]])
+    
+    (: ↓d : -module-level-form → ⟦E⟧)
+    (define-compiler ((↓d d) Ρ Φ^ K H Σ)
+      [=> (-define-values xs E)
+          (⟦E⟧ Ρ Φ^ (K:Def l αs K) H Σ)
+          #:where
+          [αs (for/list : (Listof α) ([x (in-list xs)]) (mk-α (-α:top (-𝒾 x l))))]
+          [⟦E⟧ (↓ₑ l E)]]
+      [(-provide '()) (mk-V -void)]
+      [=> (-provide (cons spec specs))
+          (⟦spec⟧ Ρ Φ^ (K:Bgn ⟦spec⟧s Ρ K) H Σ)
+          #:where
+          [⟦spec⟧ (↓pc spec)]
+          [⟦spec⟧s (map ↓pc specs)]]
+      [(? -e? E) (↓ₑ l E)]
+      [_ (begin0 (mk-V -void)
+           (log-warning "↓d: ignore ~a~n" d))])
+
+    (match ds
+      ['() (mk-V -void)]
+      [(cons D Ds)
+       (define ⟦D⟧ (↓d D))
+       (define ⟦D⟧s (map ↓d Ds))
+       (λ (Ρ Φ^ K H Σ)
+         (⟦D⟧ Ρ Φ^ (K:Bgn ⟦D⟧s Ρ K) H Σ))]))
+
   (: ↓ₑ : -l -e → ⟦E⟧)
   (define (↓ₑ l e)
     (: ↓-bnd : (Pairof (Listof Symbol) -e) → (Pairof (Listof Symbol) ⟦E⟧))
@@ -199,67 +259,7 @@
          [(cons ⟦C⟧ ⟦C⟧s)
           (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K:==>:Dom '() ⟦C⟧s ⟦Cᵣ⟧ ⟦rng⟧ Ρ ℓ K) H Σ))])]))
 
-  #|
-  (: ↓ₚ : (Listof -module) -e → -⟦e⟧)
-  ;; Compile program
-  (define (↓ₚ ms e)
-    (with-cases-on ms (ρ H φ Σ ⟦k⟧)
-      ['() #:same-as (↓ₑ '† e)]
-      [(cons m ms)
-       (⟦m⟧ ρ H φ Σ (bgn∷ `(,@⟦m⟧s ,⟦e⟧) ρ ⟦k⟧))
-       #:where
-       [⟦m⟧ (↓ₘ m)]
-       [⟦m⟧s (map ↓ₘ ms)]
-       [⟦e⟧ (↓ₑ '† e)]]))
-
-  (: ↓ₘ : -module → -⟦e⟧)
-  ;; Compile module
-  (define (↓ₘ m)
-    (match-define (-module l ds) m)
-
-    (: ↓pc : -provide-spec → -⟦e⟧)
-    (define (↓pc spec)
-      (with-cases-on spec (ρ H φ Σ ⟦k⟧)
-        ;; Wrap contract
-        [(-p/c-item x c ℓ)
-         (⟦c⟧ ρ H φ Σ (dec∷ ℓ 𝒾 ⟦k⟧))
-         #:where
-         [⟦c⟧ (↓ₑ l c)]
-         [𝒾 (-𝒾 x l)]]
-        ;; Export same as internal
-        [(? symbol? x)
-         (begin (assert (defined-at? Σ (-φ-cache φ) α))
-                (⟦k⟧ A H (alloc Σ φ α* (σ@ Σ (-φ-cache φ) α)) Σ))
-         #:where
-         [α  (-α->⟪α⟫ (-𝒾 x l))]
-         [α* (-α->⟪α⟫ (-α.wrp (-𝒾 x l)))]
-         [A  (list {set -void})]]))
-    
-    (: ↓d : -module-level-form → -⟦e⟧)
-    (define (↓d d)
-      (with-cases-on d (ρ H φ Σ ⟦k⟧)
-        [(-define-values xs e)
-         (⟦e⟧ ρ H φ Σ (def∷ l αs ⟦k⟧))
-         #:where
-         [αs (for/list : (Listof ⟪α⟫) ([x xs]) (-α->⟪α⟫ (-𝒾 x l)))]
-         [⟦e⟧ (↓ₑ l e)]]
-        [(-provide '()) #:same-as (mk-V -void)]
-        [(-provide (cons spec specs))
-         (⟦spec⟧ ρ H φ Σ (bgn∷ ⟦spec⟧s ρ ⟦k⟧))
-         #:where
-         [⟦spec⟧ (↓pc spec)]
-         [⟦spec⟧s (map ↓pc specs)]]
-        [(? -e? e) #:same-as (↓ₑ l e)]
-        [_ #:same-as (begin0 (mk-V -void)
-                      (log-warning "↓d: ignore ~a~n" (show-module-level-form d)))]))
-
-    (with-cases-on ds (ρ H φ Σ ⟦k⟧)
-      ['() #:same-as (mk-V -void)]
-      [(cons d ds)
-       (⟦d⟧ ρ H φ Σ (bgn∷ ⟦d⟧s ρ ⟦k⟧))
-       #:where
-       [⟦d⟧ (↓d d)]
-       [⟦d⟧s (map ↓d ds)]]))
+  #| 
 
   (: ↓ₑ : -l -e → -⟦e⟧)
   ;; Compile expression to computation

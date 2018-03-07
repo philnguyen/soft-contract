@@ -120,26 +120,24 @@
 
 (define-signature compile^
   (#|
-   [↓ₚ : ((Listof -module) -e → ⟦E⟧)]
-   [↓ₘ : (-module → ⟦E⟧)]
-   [↓ₑ : (-l -e → ⟦E⟧)]
    
    
-   
-   [mk-A : (A → ⟦E⟧)]
    [mk-app : (ℓ ⟦E⟧ (Listof ⟦E⟧) → ⟦E⟧)]
    [mk-mon : (Ctx ⟦E⟧ ⟦E⟧ → ⟦E⟧)]
    [mk-fc : (-l ℓ ⟦E⟧ ⟦E⟧ → ⟦E⟧)]
    [mk-wrapped-hash : (Hash/C Ctx α V^ → ⟦E⟧)]
    [mk-wrapped-set : (Set/C Ctx α V^ → ⟦E⟧)]
    [mk-let* : (ℓ (Listof (Pairof Symbol ⟦E⟧)) ⟦E⟧ → ⟦E⟧)]
-   [split-⟦dom⟧s : (Ρ (Listof ⟦dom⟧) → (Values (Listof Dom) (Listof ⟦dom⟧)))]
    |#
+   [↓ₚ : ((Listof -module) -e → ⟦E⟧)]
+   [↓ₘ : (-module → ⟦E⟧)]
    [↓ₑ : (-l -e → ⟦E⟧)]
    [↓ₓ : (Symbol ℓ → ⟦E⟧)]
    [mk-V : (V → ⟦E⟧)]
+   [mk-A : (A → ⟦E⟧)]
    [mk--> : (ℓ (-maybe-var ⟦E⟧) ⟦E⟧ → ⟦E⟧)]
    [mk-->i : ((Listof ⟦dom⟧) ⟦dom⟧ → ⟦E⟧)]
+   [split-⟦dom⟧s : (Ρ (Listof ⟦dom⟧) → (Values (Listof Dom) (Listof ⟦dom⟧)))]
    ))
 
 (define-signature alloc^

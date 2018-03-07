@@ -57,6 +57,12 @@
 
   (define α• (mk-α (-α:opq)))
 
+  (: defined-at? : (U Σ Σᵥ) α → Boolean)
+  (define (defined-at? Σ α)
+    (match (hash-ref (->Σᵥ Σ) α #f)
+      [(? values V^) (not (∋ V^ -undefined))]
+      [_ #f]))
+
   #|
 
   (: alloc : -Σ -φ ⟪α⟫ -V^ → -φ)
@@ -123,14 +129,7 @@
 
   
 
-  (: defined-at? : (U -Σ -σ) -δσ ⟪α⟫ → Boolean)
-  (define (defined-at? σ δσ α)
-    (define (in? [m : (HashTable ⟪α⟫ -V^)])
-      (match (hash-ref m α #f)
-        [(? values V^) (not (∋ V^ -undefined))]
-        [_ #f]))
-    (or (in? δσ)
-        (in? (if (-Σ? σ) (-Σ-σ σ) σ))))
+  
 
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.imm (-● ∅))))
 
