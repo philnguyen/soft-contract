@@ -23,11 +23,11 @@
   (define ⊥Σᵥ : Σᵥ (hasheq))
   (define ⊥Σₐ : Σₐ (hash))
 
-  (: Σᵥ@ ([(U Σ Σᵥ) α] [(→ V^)] . ->* . V^))
+  (: Σᵥ@ : (U Σ Σᵥ) α → V^)
   (splicing-local
       ((define ⟪null?⟫ (αℓ (mk-α (-α:imm 'null?)) +ℓ₀))
        (define cache-listof : (Mutable-HashTable α V^) (make-hasheq)))
-    (define (Σᵥ@ Σ α [def (λ () (error 'Σᵥ@ "nothing at ~a" (inspect-α α)))])
+    (define (Σᵥ@ Σ α)
       (match (inspect-α α)
         [(-α:imm V) {set V}]
         [(-α:imm:listof x Cₑ ℓ)
@@ -41,19 +41,17 @@
             {set (Or/C flat? ⟪null?⟫ (αℓ (mk-α (-α:imm Cₚ)) (ℓ-with-id ℓ 'pair)))}))]
         [(-α:imm:ref-listof x Cₑ ℓ)
          (hash-ref! cache-listof α (λ () {set (X/C (mk-α (-α:imm:listof x Cₑ ℓ)))}))]
-        [_ (hash-ref (->Σᵥ Σ) α def)])))
+        [_ (hash-ref (->Σᵥ Σ) α mk-∅)])))
 
   (: Σᵥ@* : (U Σ Σᵥ) (Listof α) → (Listof V^))
   (define (Σᵥ@* Σ αs)
     (for/list ([α (in-list αs)]) (Σᵥ@ Σ α)))
 
-  (: Σₖ@ : (U Σ Σₖ) αₖ → K^)
-  (define (Σₖ@ Σ αₖ)
-    (hash-ref (->Σₖ Σ) αₖ (λ () (error 'Σₖ@ "nothing at ~a" αₖ))))
+  (: Σₖ@ : (U Σ Σₖ) αₖ → Rt^)
+  (define (Σₖ@ Σ αₖ) (hash-ref (->Σₖ Σ) αₖ mk-∅))
 
   (: Σₐ@ : (U Σ Σₐ) K → R^)
-  (define (Σₐ@ Σ K)
-    (hash-ref (->Σₐ Σ) K (λ () (error 'Σₐ@ "nothing at ~a" K))))
+  (define (Σₐ@ Σ K) (hash-ref (->Σₐ Σ) K mk-∅))
 
   (define α• (mk-α (-α:opq)))
 

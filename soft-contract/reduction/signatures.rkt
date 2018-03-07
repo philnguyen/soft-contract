@@ -18,37 +18,33 @@
   [K:If -l ⟦E⟧ ⟦E⟧ Ρ K]
   [K:Bgn (Listof ⟦E⟧) Ρ K]
   [K:Bgn0:V (Listof ⟦E⟧) Ρ K]
-  [K:Bgn0:E (Listof V^) (Listof ⟦E⟧) Ρ K]
+  [K:Bgn0:E W^ (Listof ⟦E⟧) Ρ K]
   [K:Mon:C Ctx (U (Pairof ⟦E⟧ Ρ) V^) K]
   [K:Mon:V Ctx (U (Pairof ⟦E⟧ Ρ) V^) K]
   [K:Mon*:C Ctx (U (Listof αℓ) 'any) K]
-  [K:Mon* Ctx (Listof V^) (Listof V^) (Listof ℓ) (Listof V^) K]
+  [K:Mon* Ctx W W (Listof ℓ) W K]
   [K:Μ/C Symbol K]
-  [K:==>:Dom (Listof V^) (Listof ⟦E⟧) (Option ⟦E⟧) ⟦E⟧ Ρ ℓ K]
-  [K:==>:Rst (Listof V^) ⟦E⟧ Ρ ℓ K]
-  [K:==>:Rng (Listof V^) (Option V^) ℓ K]
+  [K:==>:Dom W (Listof ⟦E⟧) (Option ⟦E⟧) ⟦E⟧ Ρ ℓ K]
+  [K:==>:Rst W ⟦E⟧ Ρ ℓ K]
+  [K:==>:Rng W (Option V^) ℓ K]
   [K:==>i Ρ (Listof Dom) (Pairof Symbol ℓ) (Listof ⟦dom⟧) K]
-  [K:Struct/C ℓ -𝒾 (Listof V^) (Listof ⟦E⟧) Ρ K]
+  [K:St/C ℓ -𝒾 W (Listof ⟦E⟧) Ρ K]
   [K:Def -l (Listof α) K]
   [K:Dec ℓ -𝒾 K]
   [K.Hv HV-Tag K]
   ;; Specific helpers
-  [K:Wrap-St St/C Ctx K]
+  [K:Wrap Prox/C Ctx K]
   [K:Mon-Or/C Ctx V^ V^ V^ K]
-  [K:Mk-Wrap-Vect (U Vect/C Vectof) Ctx K]
   [K:If:Flat/C V^ Blm K]
   [K:Fc-And/C -l ℓ V^ V^ K]
   [K:Fc-Or/C -l ℓ V^ V^ V^ K]
   [K:Fc-Not/C V^ K]
-  [K:Fc-Struct/C -l ℓ -𝒾 (Listof V^) (Listof ⟦E⟧) Ρ K]
-  [K:Fc:V -l ℓ ⟦E⟧ Ρ K]
-  [K:RestoreCtx H K]
+  [K:Fc-Struct/C -l ℓ -𝒾 W (Listof ⟦E⟧) Ρ K]
+  [K:Fc:V -l ℓ ⟦E⟧ Ρ K] 
   [K:Hash-Set-Inner ℓ α K]
-  [K:Wrap-Hash Hash/C Ctx K]
   [K:Set-Add-Inner ℓ α K]
-  [K:Wrap-Set Set/C Ctx K]
   [K:Maybe-Havoc-Prim-Args ℓ Symbol K]
-  [K:Make-Prim-Range Ctx (Option (Listof αℓ)) (Listof V^) (Listof (List (Listof V) (Option V) (Listof V))) K]
+  [K:Make-Prim-Range Ctx (Option (Listof αℓ)) W (Listof (List (Listof V) (Option V) (Listof V))) K]
   [K:Implement-Predicate Symbol K]
   [K:Absurd K])
 
@@ -136,24 +132,24 @@
    ))
 
 (define-signature alloc^
-  ([mutable? : (α → Boolean)]))
+  ([mutable? : (α → Boolean)]
+   [bind-args! : (Σ Ρ ℓ H Φ^ -formals W → Ρ)]
+   [⊔ₐ! : (Σ K (U R R^) → Void)]
+   [⊔ᵥ! : (Σ α (U V V^) → Void)]
+   [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
+   [⊔ₖ! : (Σ αₖ Rt → Void)]))
 
-(define-signature widen^
-  ([⊔ₐ! : (Σ K R^ → Void)]
-   [⊔ᵥ! : (Σ α (U V V^) → Void)]))
+(define-signature step^
+  ([↝! : (Ξ Σ → (℘ Ξ))]
+   [ret! : ((U R R^) K H Σ → Ξ:co)]))
 
-(define-signature kont^
-  ([mk-=>i : (Σ H (Listof Dom) → ==>i)]
-   ))
+(define-signature app^
+  ([app  : (ℓ V^ W H Φ^ Σ K → (℘ Ξ))]
+   [app₁ : (ℓ V  W H Φ^ Σ K → (℘ Ξ))]
+   [app/rest/unsafe : (ℓ V W V H Φ^ Σ K → (℘ Ξ))]))
 
-#;(define-signature app^
-  ([app : (ℓ V^ (Listof V^) -H -φ -Σ K → (℘ -ς))]
-   [app₁ : ([ℓ -V (Listof V^) -H -φ -Σ K] [#:switched? Boolean] . ->* . (℘ -ς))]
-   [app/rest/unsafe : (ℓ -V (Listof V^) -V -H -φ -Σ K → (℘ -ς))]))
-
-#;(define-signature mon^
-  ([mon : (Ctx V^ V^ -H -φ -Σ K → (℘ -ς))]
-   [push-mon : ((Ctx V^ V^ -H -φ -Σ K) (#:looped Boolean) . ->* . (℘ -ς))]))
+(define-signature mon^
+  ([mon : (Ctx V^ V^ H Φ^ Σ K → (℘ Ξ))]))
 
 #;(define-signature fc^
   ([flat-chk : (-l ℓ V^ V^ -H -φ -Σ K → (℘ -ς))]

@@ -7,6 +7,7 @@
          racket/set
          racket/splicing
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "signatures.rkt")
@@ -60,7 +61,7 @@
       (cond [(seen-has? α) #f]
             [else
              (seen-add! α)
-             (for/or ([V (in-set (Σᵥ@ Σᵥ α mk-∅))])
+             (for/or ([V (in-set (Σᵥ@ Σᵥ α))])
                (check V))]))
 
     (define check-αℓ : (αℓ → Boolean) (compose1 check-α αℓ-_0))
@@ -111,6 +112,19 @@
       (λ (ℓ lo arity Vs)
         (Blm/simp ℓ lo (list (arity->msg arity)) Vs))))
 
+  (: collapse-value-lists : W^ Natural → W)
+  (define (collapse-value-lists W^ n)
+    (define W-vec : (Vectorof V^) (make-vector n ⊥V))
+    (for ([W (in-set W^)])
+      (for ([V^ (in-list W)] [i (in-naturals)])
+        (vector-set! W-vec i (V⊔ (vector-ref W-vec i) V^))))
+    (vector->list W-vec))
+
+  (: V⊔ : V^ V^ → V^)
+  (define (V⊔ V^₁ V^₂) ???)
+
+  (define ⊥V : V^ ∅)
+
   #;(: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))
   ;; Estimate possible list lengths from the object language's abstract list
   #;(define (estimate-list-lengths σ δσ V)
@@ -139,6 +153,5 @@
       (match (normalize-arity (set->list (go! V)))
         [(? list? l) (list->set l)]
         [a {set a}]))
-    (if maybe-non-proper-list? (set-add res #f) res))
-
+    (if maybe-non-proper-list? (set-add res #f) res)) 
   )

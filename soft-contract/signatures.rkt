@@ -1,13 +1,13 @@
 #lang typed/racket/base
 
-(provide verifier^ reduction^ parser^ prims^ proof-system^ widening^ for-gc^ lib^ debugging^)
+(provide (all-defined-out))
 
 (require typed/racket/unit
          set-extras
          "ast/signatures.rkt"
          "runtime/signatures.rkt")
 
-(define-signature verifier^
+#;(define-signature verifier^
   ([run-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
    [havoc-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
    [havoc-files/profile : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -A) -Σ))]
@@ -17,10 +17,10 @@
    [debug-trace? : (Parameterof Boolean)]
    [max-steps : (Parameterof (Option Natural))]))
 
-(define-signature lib^
+#;(define-signature lib^
   ([verify : (Syntax (HashTable Symbol Syntax) → Any)]))
 
-(define-signature reduction^
+#;(define-signature reduction^
   ([run : (-⟦e⟧ → (Values (℘ -A) -Σ))]))
 
 (define-signature parser^ ; TODO
@@ -29,7 +29,7 @@
    [parse-expr : (Syntax → -e)]
    [canonicalize-path : (Path-String → Path-String)]))
 
-(define-signature prims^ ; TODO
+#;(define-signature prims^ ; TODO
   ([get-prim : (Symbol → -⟦f⟧)]
    [o⇒o : (Symbol Symbol → -R)]
    [get-conservative-range : (Symbol → Symbol)]
@@ -39,7 +39,9 @@
    [implement-predicate : (-σ -φ -o (Listof -V^) → -V^)]))
 
 (define-signature proof-system^
-  ([p⇒p : (-h -h → -R)]
+  ([plausible-splits : (Σ R^ → (Values R^ R^))]
+   #|
+   [p⇒p : (-h -h → -R)]
    [V∈C : (-σ -φ -V^ (U -h -V) → -R)]
    [φ+/-pV^ : (-σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
@@ -50,18 +52,19 @@
    [plausible-index? : (-σ -φ -V^ Natural → Boolean)]
    [sat-one-of : (-V^ (℘ Base) → -R)]
    [V-arity : (case->
-               [-Clo → Arity]
-               [-Case-Clo → Arity]
-               [-V → (Option Arity)])]))
+   [-Clo → Arity]
+   [-Case-Clo → Arity]
+   [-V → (Option Arity)])]
+   |#))
 
 ;; FIXME: least coherent signature ever.
 ;; Could have named it "misc"...
-(define-signature widening^
+#;(define-signature widening^
   ([V⊕ : (-φ -V^ -V^ → -V^)]
    [σ⊕ : (-σ -σ → -σ)]
    [compat? : (-φ -V -V → (Option (℘ -h)))]))
 
-(define-signature for-gc^
+#;(define-signature for-gc^
   ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]
    [⟦k⟧->roots : (-⟦k⟧ → (℘ ⟪α⟫))]
    [set-⟦k⟧->αₖ! : (-⟦k⟧ -αₖ → Void)]

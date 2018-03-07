@@ -14,25 +14,29 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ K H))
+(#|State sans store|# Ξ . ::= . (Ξ:co K H) Blm)
 (#|Continuation    |# K . ::= . #:TBD)
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
 (#|Value address   |# -α . ::= . #:TBD)
 (#|Compiled expr   |# ⟦E⟧ . ≜ . (Ρ Φ^ K H Σ → Ξ))
-(#|Result          |# R . ::= . (R A Φ))
-(#|Answer          |# A . ::= . Blm [#:reuse (Listof V^)]) 
+(#|Result          |# R . ::= . (R W^ Φ^))
+(#|Answer          |# A . ::= . Blm W)
 (#|Path-condition  |# Φ . ::= . [#:reuse (℘ S)])
 (#|Environment     |# Ρ  . ≜ . (Immutable-HashTable Symbol α))
 (#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]))
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
-(#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ K^))
+(#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Rt^))
 (#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable K R^))
+(#|Return kont.    |# Rt . ::= . (Rt H K))
+(#|Value list      |# W  . ::= . [#:reuse (Listof V^)])
 ;; Approximated versions of things
-(#|Path-condition^ |# Φ^ . ::= . [#:reuse (℘ Φ)])
-(#|Value^          |# V^ . ::= . [#:reuse (℘ V)])
-(#|Result^         |# R^ . ::= . [#:reuse (℘ R)])
-(#|Kontinuation^   |# K^ . ::= . [#:reuse (℘ K)])
+(Φ^ . ::= . [#:reuse (℘ Φ)])
+(V^ . ::= . [#:reuse (℘ V)])
+(R^ . ::= . [#:reuse (℘ R)])
+(K^ . ::= . [#:reuse (℘ K)])
+(Rt^ . ::= . [#:reuse (℘ Rt)])
+(W^ . ::= . [#:reuse (℘ W)])
 
 (#|Value|# V . ::= . (-● (℘ P))
                      -prim
@@ -77,7 +81,7 @@
 (#|Blame|# Blm . ::= . (Blm [violator : ℓ]
                             [origin : -l]
                             [ctc : (Listof (U V P V^))]
-                            [val : (Listof V^)]))
+                            [val : W]))
 (#|Contract field access|# αℓ . ::= . (αℓ α ℓ))
 (#|Named domain|# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [src : ℓ]))
 (#|Compiled domain|# ⟦dom⟧ . ::= . (⟦dom⟧ [name : Symbol]
@@ -88,15 +92,6 @@
 (#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
 (Cardinality . ::= . 0 1 'N)
 (Valid . ::= . '✓ '✗ '?)
-
-(define-substructs -α
-  ;; tmp hack.
-  ;; Only use this in the prim DSL where all values are finite
-  ;; with purely syntactic components
-  (-α:imm #|restricted|# V)
-  ;; indirection for `listof` to keep in-sync with regular listof contracts
-  (-α:imm:listof     Symbol #|elem, ok with care|# V ℓ)
-  (-α:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
 
 (define-interner α -α
   #:intern-function-name mk-α
@@ -121,6 +116,19 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Some instantiations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-substructs -α
+  ;; tmp hack.
+  ;; Only use this in the prim DSL where all values are finite
+  ;; with purely syntactic components
+  (-α:imm #|restricted|# V)
+  ;; indirection for `listof` to keep in-sync with regular listof contracts
+  (-α:imm:listof     Symbol #|elem, ok with care|# V ℓ)
+  (-α:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Simple helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -139,10 +147,10 @@
 (define-signature sto^
   ([⊥Σᵥ : Σᵥ]
    [⊥Σₐ : Σₐ]
-   [Σᵥ@ : ([(U Σ Σᵥ) α] [(→ V^)] . ->* . V^)]
-   [Σₖ@ : ((U Σ Σₖ) αₖ → K^)]
-   [Σₐ@ : ((U Σ Σₐ) K → R^)]
-   [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → (Listof V^))]
+   [Σᵥ@ : ((U Σ Σᵥ) α  → V^)]
+   [Σₖ@ : ((U Σ Σₖ) αₖ → Rt^)]
+   [Σₐ@ : ((U Σ Σₐ) K  → R^)]
+   [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
    [α• : α]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    ;; Old
@@ -168,6 +176,7 @@
 (define-signature env^
   ([⊥Ρ : Ρ]
    [Ρ@ : (Ρ Symbol → α)]
+   [Ρ@* : (Ρ (Listof Symbol) → (Listof α))]
    [Ρ+ : (Ρ Symbol α → Ρ)]
    [-x-dummy : Symbol]))
 
@@ -180,9 +189,16 @@
    [with-positive-party : (-l V → V)]
    [behavioral? : (Σᵥ V → Boolean)]
    [guard-arity : (Fn/C → Arity)]
-   [blm-arity : (ℓ -l Arity (Listof V^) → Blm)]
+   [blm-arity : (ℓ -l Arity W → Blm)]
+   [V⊔ : (V^ V^ → V^)]
+   [⊥V : V^]
+   [collapse-value-lists : (W^ Natural → W)]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 
 (define-signature evl^
-  ([R↓ : ((U V V^ A) Φ^ → R^)]))
+  ([V->R : ((U V V^) Φ^ → R)]
+   [W->R : ((U W W^) Φ^ → R)]
+   [filter/arity : (R^ Natural → (Values R^ W^))]
+   [collapse-R^ : (R^ → (Values W^ Φ^))]
+   [collapse-R^/Φ^ : (R^ → Φ^)]))
