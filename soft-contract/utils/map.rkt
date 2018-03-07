@@ -3,16 +3,17 @@
 (provide (all-defined-out))
 
 (require racket/match
-         racket/set
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/bool
-         set-extras)
+         set-extras
+         typed-racket-hacks)
 
 ;; Return the domain of a finite function represented as a hashtable
 (: dom : (∀ (X Y) (HashTable X Y) → (℘ X)))
 (define (dom f)
   (if (hash-eq? f)
-      (for/seteq: : (℘ X) ([x (in-hash-keys f)]) x)
-      (for/set:   : (℘ X) ([x (in-hash-keys f)]) x)))
+      (for/seteq : (℘ X) ([x (in-hash-keys f)]) x)
+      (for/set   : (℘ X) ([x (in-hash-keys f)]) x)))
 
 (: m↓ : (∀ (X Y) (Immutable-HashTable X Y) (℘ X) → (Immutable-HashTable X Y)))
 ;; Restrict map to given domain

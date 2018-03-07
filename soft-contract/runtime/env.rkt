@@ -11,12 +11,12 @@
   (import)
   (export env^)
 
-  (define ⊥ρ : -ρ (hasheq))
+  (define ⊥Ρ : Ρ (hasheq))
 
-  (: ρ@ : -ρ Symbol → ⟪α⟫)
-  (define (ρ@ ρ x)
-    (hash-ref ρ x (λ () (error 'ρ@ "~a not in environment ~a" x (hash-keys ρ)))))
-  (define ρ+ : (-ρ Symbol ⟪α⟫ → -ρ) hash-set)
+  (: Ρ@ : Ρ Symbol → α)
+  (define (Ρ@ Ρ x)
+    (hash-ref Ρ x (λ () (error 'Ρ@ "~a not in env. ~a" x (hash-keys Ρ)))))
+  (define Ρ+ : (Ρ Symbol α → Ρ) hash-set)
 
   ;; HACK for distinguishing allocation contexts between 0-arg thunks,
   ;; which is important if the thunk returns different values (e.g. vector)

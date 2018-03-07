@@ -4,7 +4,8 @@
 
 (define pkg-desc "Contract verifier")
 
-(define deps '("base"
+(define deps '("abstract-compilation"
+               "base"
                "bnf"
                "compiler-lib"
                "htdp-lib"
@@ -14,6 +15,7 @@
                "profile-lib"
                "rackunit-typed"
                "set-extras"
+               "typed-racket-hacks"
                "typed-racket-lib"
                "unreachable"
                "web-server-lib"

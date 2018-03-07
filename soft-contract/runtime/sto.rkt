@@ -8,19 +8,56 @@
          racket/set
          racket/list
          racket/splicing
+         bnf
          set-extras
          "../utils/main.rkt"
          "../ast/signatures.rkt"
-         "../proof-relation/signatures.rkt"
-         "../primitives/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt")
 
+(define-substructs -α (-α:opq))
+
 (define-unit sto@
-  (import pretty-print^ local-prover^ env^ path^ val^ prim-runtime^ static-info^ widening^)
+  (import val^)
   (export sto^)
 
-  (define ⊥σ : -σ (hasheq))
+  (define ⊥Σᵥ : Σᵥ (hasheq))
+  (define ⊥Σₐ : Σₐ (hash))
+
+  (: Σᵥ@ ([(U Σ Σᵥ) α] [(→ V^)] . ->* . V^))
+  (splicing-local
+      ((define ⟪null?⟫ (αℓ (mk-α (-α:imm 'null?)) +ℓ₀))
+       (define cache-listof : (Mutable-HashTable α V^) (make-hasheq)))
+    (define (Σᵥ@ Σ α [def (λ () (error 'Σᵥ@ "nothing at ~a" (inspect-α α)))])
+      (match (inspect-α α)
+        [(-α:imm V) {set V}]
+        [(-α:imm:listof x Cₑ ℓ)
+         (hash-ref!
+          cache-listof α
+          (λ ()
+            (define flat? (C-flat? Cₑ))
+            (define Cₚ (St/C flat? -𝒾-cons
+                             (list (αℓ (mk-α (-α:imm Cₑ)) (ℓ-with-id ℓ 'elem))
+                                   (αℓ (mk-α (-α:imm:ref-listof x Cₑ ℓ)) (ℓ-with-id ℓ 'rec)))))
+            {set (Or/C flat? ⟪null?⟫ (αℓ (mk-α (-α:imm Cₚ)) (ℓ-with-id ℓ 'pair)))}))]
+        [(-α:imm:ref-listof x Cₑ ℓ)
+         (hash-ref! cache-listof α (λ () {set (X/C (mk-α (-α:imm:listof x Cₑ ℓ)))}))]
+        [_ (hash-ref (->Σᵥ Σ) α def)])))
+
+  (: Σᵥ@* : (U Σ Σᵥ) (Listof α) → (Listof V^))
+  (define (Σᵥ@* Σ αs)
+    (for/list ([α (in-list αs)]) (Σᵥ@ Σ α)))
+
+  (: Σₖ@ : (U Σ Σₖ) αₖ → K^)
+  (define (Σₖ@ Σ αₖ)
+    (hash-ref (->Σₖ Σ) αₖ (λ () (error 'Σₖ@ "nothing at ~a" αₖ))))
+
+  (: Σₐ@ : (U Σ Σₐ) K → R^)
+  (define (Σₐ@ Σ K)
+    (hash-ref (->Σₐ Σ) K (λ () (error 'Σₐ@ "nothing at ~a" K))))
+
+  (define α• (mk-α (-α:opq)))
+
+  #|
 
   (: alloc : -Σ -φ ⟪α⟫ -V^ → -φ)
   (define (alloc Σ φ α V)
@@ -84,46 +121,7 @@
          (define φ* (alloc Σ (alloc Σ φₜ αₕ V^) αₜ {set Vₜ}))
          (values (-Cons αₕ αₜ) φ*)])))
 
-  (splicing-local
-      ((define ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm 'null?)) +ℓ₀))
-       (define cache-listof : (Mutable-HashTable ⟪α⟫ (℘ -V)) (make-hasheq)))
-    (: σ@ ([(U -Σ -σ) -δσ ⟪α⟫] [(→ -V^)] . ->* . -V^))
-    (define (σ@ m δσ ⟪α⟫ [def (λ () (error 'σ@ "nothing at ~a (aka ~a)" (show-⟪α⟫ ⟪α⟫) (⟪α⟫->-α ⟪α⟫)))])
-      (match (⟪α⟫->-α ⟪α⟫)
-        [(-α.imm V) {set V}]
-        [(-α.imm-listof x Cₑ ℓ)
-         (hash-ref!
-          cache-listof ⟪α⟫
-          (λ ()
-            (define flat? (C-flat? Cₑ))
-            (define Cₚ (-St/C flat? -𝒾-cons
-                              (list (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm Cₑ)) (ℓ-with-id ℓ 'elem))
-                                    (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm-ref-listof x Cₑ ℓ)) (ℓ-with-id ℓ 'rec)))))
-            {set (-Or/C flat? ⟪null?⟫ (-⟪α⟫ℓ (-α->⟪α⟫ (-α.imm Cₚ)) (ℓ-with-id ℓ 'pair)))}))]
-        [(-α.imm-ref-listof x Cₑ ℓ)
-         (hash-ref! cache-listof ⟪α⟫ (λ () {set (-x/C (-α->⟪α⟫ (-α.imm-listof x Cₑ ℓ)))}))]
-        [α
-         (hash-ref δσ ⟪α⟫
-                   (λ ()
-                     (define σ (if (-Σ? m) (-Σ-σ m) m))
-                     (hash-ref σ ⟪α⟫ def)))])))
-
-  (: σ@/cache : (U -Σ -σ) -φ ⟪α⟫ → (Listof (Pairof -V^ -φ)))
-  (define (σ@/cache Σ φ α)
-    (match-define (-φ Γ δσ) φ)
-    (define V^ (σ@ Σ δσ α))
-    (if (and (> (set-count V^) 1)
-             (cachable? (if (-Σ? Σ) (-Σ-σ Σ) Σ) δσ α))
-        (for/list : (Listof (Pairof -V^ -φ)) ([V (in-set V^)])
-          (define Vᵢ {set V})
-          (cons Vᵢ (-φ Γ (hash-set δσ α Vᵢ))))
-        (list (cons V^ φ))))
   
-  (: σ@/list : (U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))
-  ;; Look up store at address list
-  (define (σ@/list Σ δσ ⟪α⟫s)
-    (for/list ([α (in-list ⟪α⟫s)])
-      (σ@ Σ δσ α)))
 
   (: defined-at? : (U -Σ -σ) -δσ ⟪α⟫ → Boolean)
   (define (defined-at? σ δσ α)
@@ -136,13 +134,7 @@
 
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.imm (-● ∅))))
 
-  (: mutable? : ⟪α⟫ → Boolean)
-  (define (mutable? ⟪α⟫)
-    (match (⟪α⟫->-α ⟪α⟫)
-      [(-α.x x _) (assignable? x)]
-      [(-α.fld 𝒾 _ _ i) (struct-mutable? 𝒾 i)]
-      [(? -α.idx?) #t]
-      [_ #f]))
+  
 
   (: unalloc : -σ -δσ -V → (℘ (Listof -V^)))
   ;; Convert a list in the object language into list(s) in the meta language
@@ -251,4 +243,11 @@
   (: cachable? : -σ -δσ ⟪α⟫ → Boolean)
   (define (cachable? σ δσ α)
     (equal? 1 (cardinality σ δσ α)))
+  |#
+
+  (: ->Σ (∀ (X) (Σ → X) → (U Σ X) → X))
+  (define ((->Σ f) m) (if (Σ? m) (f m) m))
+  (define ->Σᵥ (->Σ Σ-val))
+  (define ->Σₖ (->Σ Σ-kon))
+  (define ->Σₐ (->Σ Σ-evl))
   )

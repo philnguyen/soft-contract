@@ -19,7 +19,7 @@
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
 (#|Value address   |# -α . ::= . #:TBD)
-(#|Compiled expr   |# ⟦E⟧ . ≜ . (Ρ Φ^ K H → Ξ))
+(#|Compiled expr   |# ⟦E⟧ . ≜ . (Ρ Φ^ K H Σ → Ξ))
 (#|Result          |# R . ::= . (R A Φ))
 (#|Answer          |# A . ::= . Blm [#:reuse (Listof V^)]) 
 (#|Path-condition  |# Φ . ::= . [#:reuse (℘ S)])
@@ -40,11 +40,12 @@
                      (Vect (Listof α))
                      (Vect^ [content : α] [length : V^])
                      (Hash^ [key : α] [val : α] [immut? : Boolean])
-                     (Set^ [elems : α] [immut? : Boolean])
+                     (Set^ [elems : α] [bimmut? : Boolean])
                      Fn
                      X/G
-                     (Sealed α))
-(#|Guarded value|# struct X/G ([ctx : Ctx] [guard : Prox/C] [val : α]) #:transparent)
+                     (Sealed α)
+                     C)
+(#|Guarded value|# X/G . ::= . (X/G [ctx : Ctx] [guard : Prox/C] [val : α]))
 (#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
 (#|Symbolic value|# S . ::= . (S:α α) (S:@ -o (Listof S)))
 (#|Predicates|# P . ::= . #:TBD)
@@ -69,7 +70,7 @@
 (#|Func. contract|# Fn/C . ::= . (==> [doms : (-maybe-var αℓ)] [rng : (Option (Listof αℓ))])
                                  (==>i [doms : (Listof Dom)] [mk-rng : Dom])
                                  (∀/C (Listof Symbol) ⟦E⟧ Ρ)
-                                 (Case=> (Listof Fn/C)))
+                                 (Case-=> (Listof Fn/C)))
 
 (#|Strict -> |# struct ==>/⇓  ==> () #:transparent)
 (#|Strict ->i|# struct ==>i/⇓ ==> () #:transparent)
@@ -87,6 +88,15 @@
 (#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
 (Cardinality . ::= . 0 1 'N)
 (Valid . ::= . '✓ '✗ '?)
+
+(define-substructs -α
+  ;; tmp hack.
+  ;; Only use this in the prim DSL where all values are finite
+  ;; with purely syntactic components
+  (-α:imm #|restricted|# V)
+  ;; indirection for `listof` to keep in-sync with regular listof contracts
+  (-α:imm:listof     Symbol #|elem, ok with care|# V ℓ)
+  (-α:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
 
 (define-interner α -α
   #:intern-function-name mk-α
@@ -107,7 +117,7 @@
 (define-St/G-matcher Cons/G -𝒾-cons)
 (define-St-matcher (Box α) -𝒾-box)
 (define-St/G-matcher Box/G -𝒾-box)
-(define-syntax-rule (Blm/simp ℓ+ lo C V) (Blm (strip-ℓ ℓ) lo C V))
+(define-syntax-rule (Blm/simp ℓ+ lo C V) (Blm (strip-ℓ ℓ+) lo C V))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,3 +131,57 @@
   (match-lambda**
     [((Ctx l+ l- lo _) ℓ) (Ctx l+ l- lo ℓ)]))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Signatures
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-signature sto^
+  ([⊥Σᵥ : Σᵥ]
+   [⊥Σₐ : Σₐ]
+   [Σᵥ@ : ([(U Σ Σᵥ) α] [(→ V^)] . ->* . V^)]
+   [Σₖ@ : ((U Σ Σₖ) αₖ → K^)]
+   [Σₐ@ : ((U Σ Σₐ) K → R^)]
+   [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → (Listof V^))]
+   [α• : α]
+   ;; Old
+   #;[alloc  : (-Σ -φ ⟪α⟫ -V^ → -φ)]
+   #;[alloc* : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
+   #;[mut!   : (-Σ -φ ⟪α⟫ -V^ → -φ)]
+   #;[mut*!  : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
+   #;[bind-args : (-Σ -ρ ℓ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
+   #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
+   #;[σ@ : ([(U -Σ -σ) -δσ ⟪α⟫] [(→ -V^)] . ->* . -V^)]
+   #;[σ@/cache : ((U -Σ -σ) -φ ⟪α⟫ → (Listof (Pairof -V^ -φ)))]
+   #;[σ@/list : ((U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))]
+   #;[defined-at? : ((U -Σ -σ) -δσ ⟪α⟫ → Boolean)]
+   #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
+   #;[unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
+   #;[⊥σₖ : -σₖ]
+   #;[σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
+   #;[⊥σₐ : -σₐ]
+   #;[σₐ⊕! : (-Σ -φ -αₖ (Listof -V^) → (Listof -V^))] 
+   #;[cardinality : (-σ -δσ ⟪α⟫ → Cardinality)]
+   ))
+
+(define-signature env^
+  ([⊥Ρ : Ρ]
+   [Ρ@ : (Ρ Symbol → α)]
+   [Ρ+ : (Ρ Symbol α → Ρ)]
+   [-x-dummy : Symbol]))
+
+
+(define-signature val^
+  (#;[fresh-sym! : (→ -s)]
+   [C-flat? : (V → Boolean)]
+   [C^-flat? : (V^ → Boolean)]
+   [with-negative-party : (-l V → V)]
+   [with-positive-party : (-l V → V)]
+   [behavioral? : (Σᵥ V → Boolean)]
+   [guard-arity : (Fn/C → Arity)]
+   [blm-arity : (ℓ -l Arity (Listof V^) → Blm)]
+   #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
+   ))
+
+(define-signature evl^
+  ([R↓ : ((U V V^ A) Φ^ → R^)]))

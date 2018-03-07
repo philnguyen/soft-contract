@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide #|compile^ kont^ app^ fc^ mon^ memoize^ havoc^|#)
+(provide (all-defined-out))
 
 (require typed/racket/unit
          bnf
@@ -19,14 +19,14 @@
   [K:Bgn (Listof ⟦E⟧) Ρ K]
   [K:Bgn0:V (Listof ⟦E⟧) Ρ K]
   [K:Bgn0:E (Listof V^) (Listof ⟦E⟧) Ρ K]
-  [K:Mon:c Ctx (U (Pairof ⟦E⟧ Ρ) V^) K]
+  [K:Mon:C Ctx (U (Pairof ⟦E⟧ Ρ) V^) K]
   [K:Mon:V Ctx (U (Pairof ⟦E⟧ Ρ) V^) K]
-  [K:Mon*:c Ctx (U (Listof αℓ) 'any) K]
+  [K:Mon*:C Ctx (U (Listof αℓ) 'any) K]
   [K:Mon* Ctx (Listof V^) (Listof V^) (Listof ℓ) (Listof V^) K]
   [K:Μ/C Symbol K]
-  [K:==>.Dom (Listof V^) (Listof ⟦E⟧) (Option ⟦E⟧) ⟦E⟧ Ρ ℓ K]
-  [K:==>.Rst (Listof V^) ⟦E⟧ Ρ ℓ K]
-  [K:==>.Rng (Listof V^) (Option V^) ℓ K]
+  [K:==>:Dom (Listof V^) (Listof ⟦E⟧) (Option ⟦E⟧) ⟦E⟧ Ρ ℓ K]
+  [K:==>:Rst (Listof V^) ⟦E⟧ Ρ ℓ K]
+  [K:==>:Rng (Listof V^) (Option V^) ℓ K]
   [K:==>i Ρ (Listof Dom) (Pairof Symbol ℓ) (Listof ⟦dom⟧) K]
   [K:Struct/C ℓ -𝒾 (Listof V^) (Listof ⟦E⟧) Ρ K]
   [K:Def -l (Listof α) K]
@@ -52,85 +52,105 @@
   [K:Implement-Predicate Symbol K]
   [K:Absurd K])
 
-#;(define-signature compile^
-  ([↓ₚ : ((Listof -module) -e → ⟦E⟧)]
+(define-substructs -α
+  (-α:top -𝒾)
+  (-α:wrp -𝒾)
+  
+  ; for binding
+  (-α:x Symbol H)
+  ; for struct field
+  (-α:fld -𝒾 ℓ H Index)
+  ; for Cons/varargs
+  ; idx prevents infinite list
+  (-α:var-car ℓ H (Option Natural))
+  (-α:var-cdr ℓ H (Option Natural))
+
+  ;; for wrapped mutable struct
+  (-α:st -𝒾 Ctx H)
+
+  ;; for vector indices
+  (-α:idx ℓ H Natural)
+  
+  ;; for vector^ content
+  (-α:vct ℓ H)
+
+  ;; for hash^ content
+  (-α:hash:key ℓ H)
+  (-α:hash:val ℓ H)
+
+  ;; for set^ content
+  (-α:set:elem ℓ H)
+
+  ;; for wrapped vector
+  (-α:unvct Ctx H)
+
+  ;; for wrapped hash
+  (-α:unhsh Ctx H)
+
+  ;; for wrapped set
+  (-α:unset Ctx H)
+
+  ;; for contract components
+  (-α:and/c:l ℓ H)
+  (-α:and/c:r ℓ H)
+  (-α:or/c:l ℓ H)
+  (-α:or/c:r ℓ H)
+  (-α:not/c ℓ H)
+  (-α:x/c Symbol H)
+  (-α:vect/c ℓ H Natural)
+  (-α:vectof ℓ H)
+  (-α:hash/c:key ℓ H)
+  (-α:hash/c:val ℓ H)
+  (-α:set/c:elem ℓ H)
+  (-α:struct/c -𝒾 ℓ H Natural)
+  (-α:dom ℓ H Natural)
+  (-α:rst ℓ H)
+  (-α:rng ℓ H Natural)
+
+  ;; for wrapped function
+  (-α:fn Ctx H)
+
+  ;; For values wrapped in seals
+  (-α:sealed Symbol H) ; points to wrapped objects
+
+  ;; HACK
+  (-α:hv HV-Tag)
+  (-α:mon-x/c Symbol H -l)
+  (-α:fc-x/c Symbol H))
+
+(define-signature compile^
+  (#|
+   [↓ₚ : ((Listof -module) -e → ⟦E⟧)]
    [↓ₘ : (-module → ⟦E⟧)]
    [↓ₑ : (-l -e → ⟦E⟧)]
-   [↓ₓ : (Symbol ℓ → ⟦E⟧)]
-   [mk--> : (ℓ (-maybe-var ⟦E⟧) ⟦E⟧ → ⟦E⟧)]
-   [mk-->i : ((Listof -⟦dom⟧) -⟦dom⟧ → ⟦E⟧)]
-   [mk-V : (-V → ⟦E⟧)]
-   [mk-A : (-A → ⟦E⟧)]
+   
+   
+   
+   [mk-A : (A → ⟦E⟧)]
    [mk-app : (ℓ ⟦E⟧ (Listof ⟦E⟧) → ⟦E⟧)]
    [mk-mon : (Ctx ⟦E⟧ ⟦E⟧ → ⟦E⟧)]
    [mk-fc : (-l ℓ ⟦E⟧ ⟦E⟧ → ⟦E⟧)]
-   [mk-wrapped-hash : (-Hash/C Ctx α V^ → ⟦E⟧)]
+   [mk-wrapped-hash : (Hash/C Ctx α V^ → ⟦E⟧)]
    [mk-wrapped-set : (Set/C Ctx α V^ → ⟦E⟧)]
    [mk-let* : (ℓ (Listof (Pairof Symbol ⟦E⟧)) ⟦E⟧ → ⟦E⟧)]
-   [split-⟦dom⟧s : (Ρ (Listof -⟦dom⟧) → (Values (Listof Dom) (Listof -⟦dom⟧)))]))
+   [split-⟦dom⟧s : (Ρ (Listof ⟦dom⟧) → (Values (Listof Dom) (Listof ⟦dom⟧)))]
+   |#
+   [↓ₑ : (-l -e → ⟦E⟧)]
+   [↓ₓ : (Symbol ℓ → ⟦E⟧)]
+   [mk-V : (V → ⟦E⟧)]
+   [mk--> : (ℓ (-maybe-var ⟦E⟧) ⟦E⟧ → ⟦E⟧)]
+   [mk-->i : ((Listof ⟦dom⟧) ⟦dom⟧ → ⟦E⟧)]
+   ))
 
-#;(define-signature kont^
-  ([rt : (-αₖ → K)]
-   [ap : ((Listof V^) (Listof ⟦E⟧) Ρ ℓ K → K)]
-   [set! : (α K → K)]
-   [let : (ℓ
-            (Listof Symbol)
-            (Listof (Pairof (Listof Symbol) ⟦E⟧))
-            (Listof (Pairof Symbol V^))
-            ⟦E⟧
-            Ρ
-            K →
-            K)]
-   [letrec : (ℓ
-               (Listof Symbol)
-               (Listof (Pairof (Listof Symbol) ⟦E⟧))
-               ⟦E⟧
-               Ρ
-               K →
-               K)]
-   [if : (-l ⟦E⟧ ⟦E⟧ Ρ K → K)]
-   [bgn : ((Listof ⟦E⟧) Ρ K → K)]
-   [bgn0.v : ((Listof ⟦E⟧) Ρ K → K)]
-   [bgn0.e : ((Listof V^) (Listof ⟦E⟧) Ρ K → K)]
-   [mon.c : (Ctx (U (Pairof ⟦E⟧ Ρ) V^) K → K)]
-   [mon.v : (Ctx (U (Pairof ⟦E⟧ Ρ) V^) K → K)]
-   [mon*.c : (Ctx (U (Listof -αℓ) 'any) K → K)]
-   [mon* : (Ctx (Listof V^) (Listof V^) (Listof ℓ) (Listof V^) K → K)]
-   [μ/c : (Symbol K → K)]
-   [-->.dom : ((Listof V^) (Listof ⟦E⟧) (Option ⟦E⟧) ⟦E⟧ Ρ ℓ K → K)]
-   [-->.rst : ((Listof V^) ⟦E⟧ Ρ ℓ K → K)]
-   [-->.rng : ((Listof V^) (Option V^) ℓ K → K)]
-   [-->i : (Ρ (Listof Dom) (Pairof Symbol ℓ) (Listof -⟦dom⟧) K → K)]
-   [struct/c : (ℓ -𝒾 (Listof V^) (Listof ⟦E⟧) Ρ K → K)]
-   [def : (-l (Listof α) K → K)]
-   [dec : (ℓ -𝒾 K → K)]
-   [hv : (HV-Tag K → K)]
-   ;; Specific helpers
-   [wrap-st : (St/C Ctx K → K)]
-   [mon-or/c : (Ctx V^ V^ V^ K → K)]
-   [mk-wrap-vect : ((U -Vect/C -Vectof) Ctx K → K)]
-   [if.flat/c : (V^ -blm K → K)]
-   [fc-and/c : (-l ℓ V^ V^ K → K)]
-   [fc-or/c : (-l ℓ V^ V^ V^ K → K)]
-   [fc-not/c : (V^ K → K)]
-   [fc-struct/c : (-l ℓ -𝒾 (Listof V^) (Listof ⟦E⟧) Ρ K → K)]
-   [fc.v : (-l ℓ ⟦E⟧ Ρ K → K)]
-   [and : (-l (Listof ⟦E⟧) Ρ K → K)]
-   [or : (-l (Listof ⟦E⟧) Ρ K → K)]
-   [restoreCtx : (-H K → K)]
-   [hash-set-inner : (ℓ α K → K)]
-   [wrap-hash : (-Hash/C Ctx K → K)]
-   [set-add-inner : (ℓ α K → K)]
-   [wrap-set : (Set/C Ctx K → K)]
-   [maybe-havoc-prim-args : (ℓ Symbol K → K)]
-   [make-prim-range : (Ctx (Option (Listof -αℓ)) (Listof V^) (Listof (List (Listof -V) (Option -V) (Listof -V))) K → K)]
-   [implement-predicate : (Symbol K → K)]
-   [absurd : (K → K)]
-   [rename : (Uni -Γ K → K)]
-   [maybe-unshadow : (-δσ -δσ K → K)]
-   [σₖ+! : (-Σ -αₖ K → -αₖ)]
-   ;; Non-frame helpers
-   [mk-=>i : (-Σ -H -φ (Listof Dom) → -=>i)]
+(define-signature alloc^
+  ([mutable? : (α → Boolean)]))
+
+(define-signature widen^
+  ([⊔ₐ! : (Σ K R^ → Void)]
+   [⊔ᵥ! : (Σ α (U V V^) → Void)]))
+
+(define-signature kont^
+  ([mk-=>i : (Σ H (Listof Dom) → ==>i)]
    ))
 
 #;(define-signature app^
