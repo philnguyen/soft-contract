@@ -26,9 +26,10 @@
           step^ alloc^)
   (export compile^)
 
-  (: ↓ₚ : (Listof -module) -e → ⟦E⟧)
+  (: ↓ₚ : -prog → ⟦E⟧)
   ;; Compile program
-  (define (↓ₚ ms E)
+  (define (↓ₚ p)
+    (match-define (-prog ms E) p)
     (match ms
       ['() (↓ₑ '† E)]
       [(cons m ms)

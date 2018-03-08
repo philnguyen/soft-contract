@@ -1,41 +1,4 @@
-  
-  ;; Non-dependent contract domain
-  (define-frame (-->.dom∷ [Vs  : (Listof -V^)]
-                          [⟦c⟧s : (Listof -⟦e⟧)]
-                          [⟦c⟧ᵣ : (Option -⟦e⟧)]
-                          [⟦d⟧  : -⟦e⟧]
-                          [ρ   : -ρ]
-                          [ℓ   : ℓ]
-                          [⟦k⟧  : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (Vs ρ)
-      (match-define (list V) A)
-      (define Vs* (cons V Vs))
-      (match ⟦c⟧s
-        ['()
-         (cond [⟦c⟧ᵣ  (⟦c⟧ᵣ ρ H φ Σ (-->.rst∷ Vs* ⟦d⟧ ρ ℓ ⟦k⟧))]
-               [else (⟦d⟧ ρ H φ Σ (-->.rng∷ Vs* #f ℓ ⟦k⟧))])]
-        [(cons ⟦c⟧ ⟦c⟧s*) (⟦c⟧ ρ H φ Σ (-->.dom∷ Vs* ⟦c⟧s* ⟦c⟧ᵣ ⟦d⟧ ρ ℓ ⟦k⟧))])))
-
-  ;; Non-depenent contract rest
-  (define-frame (-->.rst∷ [Vs : (Listof -V^)]
-                          [⟦d⟧ : -⟦e⟧]
-                          [ρ : -ρ]
-                          [ℓ : ℓ]
-                          [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (Vs ρ)
-      (match-define (list Vᵣ) A)
-      (⟦d⟧ ρ H φ Σ (-->.rng∷ Vs Vᵣ ℓ ⟦k⟧))))
-
-  ;; Non-dependent contract range
-  (define-frame (-->.rng∷ [Vs : (Listof -V^)]
-                          [Vᵣ : (Option -V^)]
-                          [ℓ : ℓ]
-                          [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (Vs)
-      (define-values (C φ*) (mk-=> Σ H φ Vs Vᵣ A ℓ))
-      (⟦k⟧ (list {set C}) H φ* Σ)))
-
-  (splicing-local
+(splicing-local
       ()
 
     (: mk-=> : -Σ -H -φ (Listof -V^) (Option -V^) (Listof -V^) ℓ → (Values -V -φ))
@@ -73,53 +36,6 @@
         [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s*)
          (⟦c⟧ ρ H φ* Σ (-->i∷ ρ Doms-rev* (cons x ℓ) ⟦dom⟧s* ⟦k⟧))])))
 
-  ;; struct/c contract
-  (define-frame (struct/c∷ [ℓ₁ : ℓ]
-                           [𝒾 : -𝒾]
-                           [Cs : (Listof -V^)]
-                           [⟦c⟧s : (Listof -⟦e⟧)]
-                           [ρ : -ρ]
-                           [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (#;Cs ρ)
-      (match-define (list C) A)
-      (define Cs* (cons C Cs))
-      (match ⟦c⟧s
-        ['()
-         (define-values (Fields φ*) (mk-⟪α⟫ℓ* Σ (-𝒾-name 𝒾) (curry -α.struct/c 𝒾) H ℓ₁ φ (reverse Cs*)))
-         (define flat? (andmap C^-flat? Cs*))
-         (define StC (-St/C flat? 𝒾 Fields))
-         (⟦k⟧ (list {set StC}) H φ* Σ)]
-        [(cons ⟦c⟧ ⟦c⟧s*)
-         (⟦c⟧ ρ H φ Σ (struct/c∷ ℓ₁ 𝒾 Cs* ⟦c⟧s* ρ ⟦k⟧))])))
-
-  ;; define
-  (define-frame (def∷ [l : -l]
-                  [αs : (Listof ⟪α⟫)]
-                  [⟦k⟧ : -⟦k⟧])
-    (define n (length αs))
-    (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-      (cond
-        [(= n (length A))
-         (⟦k⟧ (list {set -void}) H (alloc* Σ φ αs A) Σ)]
-        [else
-         (define blm
-           (blm/simp l 'define-values
-                 (list (format-symbol "~a values" n))
-                 (list {set (format-symbol "~a values" (length A))})
-                 +ℓ₀))
-         (⟦k⟧ blm H φ Σ)])))
-
-  ;; provide with contract
-  (define-frame (dec∷ [ℓ : ℓ] [𝒾 : -𝒾] [⟦k⟧ : -⟦k⟧])
-    (define l (-𝒾-src 𝒾))
-    (define ctx (-ctx l 'dummy- l ℓ))
-    (define α (-α->⟪α⟫ 𝒾))
-    (define α* (-α->⟪α⟫ (-α.wrp 𝒾)))
-    (make-frame (⟦k⟧ A H φ Σ) #:roots ((box α))
-      (match-define (list C) A)
-      (define Vs (σ@ Σ (-φ-cache φ) α))
-      (push-mon ctx C Vs H φ Σ (def∷ l (list α*) ⟦k⟧))))
-
   (define/memo (hv∷ [tag : HV-Tag] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
       (define φ* (add-leak! tag Σ φ A))
@@ -129,14 +45,6 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Helper frames
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (define-frame (mk-wrap-vect∷ [Vₚ : (U -Vector/C -Vectorof)]
-                               [ctx : -ctx]
-                               [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (Vₚ)
-      (match-define (list Vᵥ) A) ; only used internally, shoule be safe
-      (define αᵥ (-α->⟪α⟫ (-α.unvct ctx H)))
-      (⟦k⟧ (list {set (-Vector/guard Vₚ αᵥ ctx)}) H (alloc Σ φ αᵥ Vᵥ) Σ)))
 
   (define-frame (mon-or/c∷ [ctx : -ctx] [Cₗ : -V^] [Cᵣ : -V^] [V : -V^] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (Cₗ Cᵣ V)
@@ -159,12 +67,6 @@
         [_
          (match-define (-blm _ lo _ _ ℓ) blm)
          (⟦k⟧ (blm/simp lo 'Λ '(|1 value|) A ℓ) H φ Σ)])))
-
-  (define-frame (wrap-st∷ [C : -St/C] [ctx : -ctx] [⟦k⟧ : -⟦k⟧])
-  (make-frame (⟦k⟧ A H φ Σ) #:roots (C)
-    (match-define (list V) A)  ; only used internally, should be safe
-    (define αᵤ (-α->⟪α⟫ (-α.st (-St/C-id C) ctx H)))
-    (⟦k⟧ (list {set (-St* C αᵤ ctx)}) H (alloc Σ φ αᵤ V) Σ)))
 
   (define-frame (fc-and/c∷ [l : -l]
                            [ℓ : ℓ]
@@ -268,25 +170,11 @@
       (match-define (list Vₖ Vᵥ) A)
       (app ℓ {set 'hash-set} (list (σ@ Σ (-φ-cache φ) αₕ) Vₖ Vᵥ) H φ Σ ⟦k⟧)))
 
-  (define-frame (wrap-hash∷ [C : -Hash/C] [ctx : -ctx] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (C)
-      (match-define (list Vₕ) A)
-      (define α (-α->⟪α⟫ (-α.unhsh ctx H)))
-      (define Vₐ (-Hash/guard C α ctx))
-      (⟦k⟧ (list {set Vₐ}) H (alloc Σ φ α Vₕ) Σ)))
-
   (define-frame (set-add-inner∷ [ℓ : ℓ] [αₛ : ⟪α⟫] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ((box αₛ))
       (match-define (list Vₑ) A)
       (define Vₛ (σ@ Σ (-φ-cache φ) αₛ))
       (app ℓ {set 'set-add} (list Vₛ Vₑ) H φ Σ ⟦k⟧)))
-
-  (define-frame (wrap-set∷ [C : -Set/C] [ctx : -ctx] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots (C)
-      (match-define (list Vₛ) A)
-      (define α (-α->⟪α⟫ (-α.unset ctx H)))
-      (define Vₐ (-Set/guard C α ctx))
-      (⟦k⟧ (list {set Vₐ}) H (alloc Σ φ α Vₛ) Σ)))
 
   (define-frame (maybe-havoc-prim-args∷ [ℓ : ℓ] [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
@@ -463,7 +351,7 @@
       [(_ _)
        (values rngs φ)]))
 
-  (: mk-⟪α⟫ℓ* : -Σ Symbol (ℓ -H Index → -α) -H ℓ -φ (Listof -V^) → (Values (Listof -⟪α⟫ℓ) -φ))
+(: mk-⟪α⟫ℓ* : -Σ Symbol (ℓ -H Index → -α) -H ℓ -φ (Listof -V^) → (Values (Listof -⟪α⟫ℓ) -φ))
   (define (mk-⟪α⟫ℓ* Σ tag mk-α H ℓ φ Vs)
     (define-values (αℓs φ*)
       (for/fold ([αℓs-rev : (Listof -⟪α⟫ℓ) '()] [φ : -φ φ])

@@ -66,6 +66,8 @@
 
 (-dom . ::= . (-dom [name : Symbol] [dependency : (Option (Listof Symbol))] [body : -e] [loc : ℓ]))
 
+(-prog . ::= . (-prog (Listof -module) -e))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; AST subset definition as in Racket reference 1.2.3.1

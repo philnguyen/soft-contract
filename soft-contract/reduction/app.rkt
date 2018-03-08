@@ -2,7 +2,7 @@
 
 (provide app@)
 
-(require racket/set
+(require (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/match
          racket/list
          (only-in racket/list split-at)
@@ -10,19 +10,83 @@
          syntax/parse/define
          set-extras
          unreachable
+         typed-racket-hacks
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit app@
-  (import ast-pretty-print^ static-info^
-          mon^ compile^ kont^ proof-system^ prims^ memoize^ havoc^
-          env^ val^ path^ instr^ sto^ pretty-print^ for-gc^)
+  (import static-info^ ast-pretty-print^
+          sto^ evl^
+          step^ alloc^ reflection^)
   (export app^)
 
+  (: app : V^ W ℓ Φ^ K H Σ → (℘ Ξ))
+  (define (app Vₕ^ Wₓ ℓ Φ^ K H Σ)
+    (for/set : (℘ Ξ) ([Vₕ (in-set Vₕ^)])
+      ((app₁ Vₕ) Wₓ ℓ Φ^ K H Σ)))
+
+  (: app₁ : V → ⟦F⟧)
+  (define app₁
+    (match-lambda
+      [(Clo xs ⟦E⟧ Ρ) (app-clo xs ⟦E⟧ Ρ)]
+      [(Case-Clo cases) (app-case-clo cases)]
+      [(-st-mk 𝒾) (app-st-mk 𝒾)]
+      [(-st-p 𝒾) ???]
+      [(-st-ac 𝒾 i) ???]
+      [(-st-mut 𝒾 i) ???]
+      [(? -o? o) ???]
+      [(X/G ctx G α) ???]
+      [(And/C #t αℓ₁ αℓ₂) ???]
+      [(Or/C #t αℓ₁ αℓ₂) ???]
+      [(Not/C αℓ) ???]
+      [(-● ps) ???]
+      [(? S? S) ???]
+      [Vₕ (λ (W ℓ Φ^ K H Σ) (Blm ℓ 'Λ '(procedure?) (list {set Vₕ})))]))
+
+  (: app/rest/unsafe : V W V ℓ Φ^ K H Σ → (℘ Ξ))
+  (define (app/rest/unsafe Vₕ Wₓ Vᵣ ℓ Φ^ K H Σ)
+    ???)
+
+  (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧)
+  (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ K H Σ)
+    ;; FIXME guard arity
+    (define Ρ* (bind-args! Ρ xs Wₓ ℓ Φ^ H Σ))
+    (define α (αₖ ⟦E⟧ Ρ*))
+    (⊔ₖ! Σ α (Rt H K))
+    (⟦E⟧ Ρ* Φ^ (K:Rt α) (H+ H ℓ ⟦E⟧ 'app) Σ))
+
+  (: app-case-clo : (Listof Clo) → ⟦F⟧)
+  (define ((app-case-clo clos) Wₓ ℓ Φ^ K H Σ)
+    (define n (length Wₓ))
+    (define ?case
+      (for/or : (Option Clo) ([clo (in-list clos)]
+                              #:when (arity-includes? (V-arity clo) n))
+        clo))
+    (match ?case
+      [(Clo x ⟦E⟧ Ρ) ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ K H Σ)]
+      [#f
+       (define msg (string->symbol (format "arity ~v" (V-arity (Case-Clo clos)))))
+       (Blm ℓ 'Λ (list msg) Wₓ)]))
+
+  (: app-st-mk : -𝒾 → ⟦F⟧)
+  (define ((app-st-mk 𝒾) Wₓ ℓ Φ^ K H Σ)
+    (define n (count-struct-fields 𝒾))
+    (if (= n (length Wₓ))
+        (let ([αs (build-list n (λ ([i : Index]) (mk-α (-α:fld 𝒾 ℓ H i))))])
+          (⊔ᵥ*! Σ αs Wₓ)
+          (ret! (V->R (St 𝒾 αs) Φ^) K H Σ))
+        (Blm ℓ (-𝒾-name 𝒾) (list (-b n) 'values) Wₓ)))
+
+  (: app-st-p : -𝒾 → ⟦F⟧)
+  (define ((app-st-p 𝒾) Wₓ ℓ Φ^ K H Σ)
+    (match Wₓ
+      [(list _) ???]
+      [_ (Blm ℓ (show-o (-st-p 𝒾)) (list (-b 1) 'values) Wₓ)]))
+
+  #|
   (: app : ℓ -V^ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (app ℓ Vₕ^ Vₓ^s H φ Σ ⟦k⟧)
     (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
@@ -164,41 +228,6 @@
        (define blm (blm/simp l 'Λ (list 'procedure?) (list {set Vₕ}) ℓ))
        (⟦k⟧ blm H φ Σ)]))
 
-  (: app-clo ([-formals -⟦e⟧ -ρ] [#:switched? Boolean] . ->* . -⟦f⟧))
-  (define ((app-clo xs ⟦e⟧ ρ #:switched? [switched? #f]) ℓ Vₓs H φ Σ ⟦k⟧)
-    (define-values (ρ* φ*) (bind-args Σ ρ ℓ H φ xs Vₓs))
-    (define ⟦k⟧*
-      (if switched?
-          (let* ([overlap
-                  (for/seteq: : (℘ ⟪α⟫) ([α (in-hash-values ρ*)]
-                                         #:when (hash-has-key? (-φ-cache φ) α))
-                    α)]
-                 [δσ
-                  (for*/hasheq : -δσ ([α : ⟪α⟫ (in-set overlap)])
-                    (values α (hash-ref (-φ-cache φ) α)))]
-                 [deps
-                  (for/fold ([deps : -δσ (span-δσ Σ (-φ-cache φ) overlap)])
-                            ([α (in-set overlap)])
-                    (hash-remove deps α))])
-            (maybe-unshadow∷ δσ deps ⟦k⟧))
-          ⟦k⟧))
-    (⟦e⟧ ρ* H φ* Σ ⟦k⟧*))
-
-  (: app-Case-Clo : -Case-Clo → -⟦f⟧)
-  (define ((app-Case-Clo cases) ℓ Vₓs H φ Σ ⟦k⟧)
-    (define n (length Vₓs))
-    (define ?case
-      (for/or : (Option -Clo) ([clo : -Clo (-Case-Clo-cases cases)]
-                               #:when (arity-includes? (assert (V-arity clo)) n))
-        clo))
-    (match ?case
-      [(-Clo xs ⟦e⟧ ρ)
-       ((app-clo xs ⟦e⟧ ρ) ℓ Vₓs H φ Σ ⟦k⟧)]
-      [#f
-       (define msg (string->symbol (format "arity ~v" (V-arity cases))))
-       (define blm (blm/simp (ℓ-src ℓ) 'Λ (list msg) Vₓs ℓ))
-       (⟦k⟧ blm H φ Σ)]))
-
   (: app-Ar : -=> -V^ -ctx → -⟦f⟧)
   (define ((app-Ar C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)
     (define σ (-Σ-σ Σ))
@@ -323,20 +352,6 @@
          (⟦k⟧ (list (implement-predicate (-Σ-σ Σ) φ st-p Vₓs)) H φ Σ)]
         [_
          (define blm (blm-arity ℓ (show-o st-p) '(1) Vₓs))
-         (⟦k⟧ blm H φ Σ)])))
-
-  (: app-st-mk : -𝒾 → -⟦f⟧)
-  (define (app-st-mk 𝒾)
-    (define st-mk (-st-mk 𝒾))
-    (define n (count-struct-fields 𝒾))
-    (λ (ℓ Vₓs H φ Σ ⟦k⟧)
-      (cond
-        [(= n (length Vₓs))
-         (define αs (build-list n (λ ([i : Index]) (-α->⟪α⟫ (-α.fld 𝒾 ℓ H i)))))
-         (define φ* (alloc* Σ φ αs Vₓs))
-         (⟦k⟧ (list {set (-St 𝒾 αs)}) H φ* Σ)]
-        [else
-         (define blm (blm-arity ℓ (show-o st-mk) n Vₓs))
          (⟦k⟧ blm H φ Σ)])))
 
   (: app-st-ac : -𝒾 Index → -⟦f⟧)
@@ -567,7 +582,7 @@
        (define (go-case [clo : -Clo]) : (℘ -ς)
          (match-define (-Clo xs ⟦e⟧ ρ) clo)
          (app-clo/rest xs ⟦e⟧ ρ))
-       (cond
+       (Cond
          [(and (= 1 (set-count arg-counts)) (integer? (set-first arg-counts)))
           (define n (set-first arg-counts))
           ;; already handled arity mismatch
@@ -584,4 +599,5 @@
       [(-Ar C α ctx) (app-Ar/rest C α ctx)]
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-V V-func))]))
+  |#
   )

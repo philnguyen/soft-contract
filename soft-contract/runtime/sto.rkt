@@ -21,6 +21,7 @@
   (export sto^)
 
   (define ⊥Σᵥ : Σᵥ (hasheq))
+  (define ⊥Σₖ : Σₖ (hash))
   (define ⊥Σₐ : Σₐ (hash))
 
   (: Σᵥ@ : (U Σ Σᵥ) α → V^)

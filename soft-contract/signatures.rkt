@@ -21,7 +21,7 @@
   ([verify : (Syntax (HashTable Symbol Syntax) → Any)]))
 
 #;(define-signature reduction^
-  ([run : (-⟦e⟧ → (Values (℘ -A) -Σ))]))
+    ([run : (-⟦e⟧ → (Values (℘ -A) -Σ))])) 
 
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]

@@ -10,7 +10,6 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
          "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -25,7 +24,23 @@
          "debugging.rkt"
          )
 
+(define-unit reduction@
+  (import)
+  (export reduction^)
+
+  (: inj : (U -e ⟦E⟧) → (Values Ξ:co Σ))
+  (define (inj x)
+    (define ⟦E⟧ (->⟦E⟧ x))
+    (define αₖ₀ (αₖ ⟦E⟧ ⊥Ρ))
+    (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
+    (values (⟦E⟧ ⊥Ρ {set ∅} (Rt αₖ₀) Σ₀) Σ₀))
+
+  (: ↝ : Ξ Σ → ))
+
+#|
 (define-unit pre-reduction@
+
+
   (import static-info^ path^ kont^ havoc^ app^ mon^ fc^ compile^ local-prover^ verifier^
           val^ for-gc^ env^ sto^ ast-pretty-print^ pretty-print^ instr^ summ^
           debugging^)
@@ -165,11 +180,14 @@
       (cond [(-ς↑? ς) (values (cons ς ς↑s) ς↓s ς!s)]
             [(-ς↓? ς) (values ς↑s (cons ς ς↓s) ς!s)]
             [else     (values ς↑s ς↓s (cons (assert ς -ς!?) ς!s))])))
+  |#
   )
 
+#|
 (define-compound-unit/infer reduction@
   (import ast-pretty-print^ static-info^ meta-functions^ sat-result^ unify^
           prims^ proof-system^ local-prover^ widening^ verifier^
           for-gc^ val^ env^ sto^ path^ instr^ pretty-print^ prim-runtime^ summ^)
   (export reduction^ app^ mon^ kont^ compile^ havoc^)
   (link debugging@ memoize@ kont@ compile@ havoc@ mon@ fc@ app@ pre-reduction@))
+|#

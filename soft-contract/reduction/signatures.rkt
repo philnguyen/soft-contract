@@ -33,7 +33,7 @@
   [K:Dec ℓ -𝒾 K]
   [K.Hv HV-Tag K]
   ;; Specific helpers
-  [K:Wrap Prox/C Ctx K]
+  [K:Wrap Prox/C Ctx α K]
   [K:Mon-Or/C Ctx V^ V^ V^ K]
   [K:If:Flat/C V^ Blm K]
   [K:Fc-And/C -l ℓ V^ V^ K]
@@ -46,7 +46,7 @@
   [K:Maybe-Havoc-Prim-Args ℓ Symbol K]
   [K:Make-Prim-Range Ctx (Option (Listof αℓ)) W (Listof (List (Listof V) (Option V) (Listof V))) K]
   [K:Implement-Predicate Symbol K]
-  [K:Absurd K])
+  [K:Absurd])
 
 (define-substructs -α
   (-α:top -𝒾)
@@ -115,7 +115,7 @@
   (-α:fc-x/c Symbol H))
 
 (define-signature compile^
-  ([↓ₚ : ((Listof -module) -e → ⟦E⟧)]
+  ([↓ₚ : (-prog → ⟦E⟧)]
    [↓ₘ : (-module → ⟦E⟧)]
    [↓ₑ : (-l -e → ⟦E⟧)]
    [↓ₓ : (Symbol ℓ → ⟦E⟧)]
@@ -133,23 +133,39 @@
 
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
-   [bind-args! : (Σ Ρ ℓ H Φ^ -formals W → Ρ)]
+   [bind-args! : (Ρ -formals W ℓ Φ^ H Σ → Ρ)]
+   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)]
    [⊔ₐ! : (Σ K (U R R^) → Void)]
    [⊔ᵥ! : (Σ α (U V V^) → Void)]
    [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
-   [⊔ₖ! : (Σ αₖ Rt → Void)]))
+   [⊔ₖ! : (Σ αₖ Rt → Void)]
+   [H₀ : H]))
+
+(define-signature run^
+  ([inj : ((U -prog ⟦E⟧) → (Values Ξ Σ))]
+   [run : ((U -prog ⟦E⟧) → (Values (℘ Blm) Σ))]
+   [viz : ((U -prog ⟦E⟧) → Σ)]))
 
 (define-signature step^
   ([↝! : (Ξ Σ → (℘ Ξ))]
-   [ret! : ((U R R^) K H Σ → Ξ:co)]))
+   [ret! : ((U R R^) K H Σ → Ξ:co)]
+   [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
+   [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
+   [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]))
 
 (define-signature app^
-  ([app  : (ℓ V^ W H Φ^ Σ K → (℘ Ξ))]
-   [app₁ : (ℓ V  W H Φ^ Σ K → (℘ Ξ))]
-   [app/rest/unsafe : (ℓ V W V H Φ^ Σ K → (℘ Ξ))]))
+  ([app  : (V^ W ℓ Φ^ K H Σ → (℘ Ξ))]
+   #;[app₁ : V → ⟦F⟧]
+   [app/rest/unsafe : (V W V ℓ Φ^ K H Σ → (℘ Ξ))]))
 
 (define-signature mon^
   ([mon : (Ctx V^ V^ H Φ^ Σ K → (℘ Ξ))]))
+
+(define-signature reflection^
+  ([V-arity : (case->
+               [Clo → Arity]
+               [Case-Clo → Arity]
+               [V → (Option Arity)])]))
 
 #;(define-signature fc^
   ([flat-chk : (-l ℓ V^ V^ -H -φ -Σ K → (℘ -ς))]

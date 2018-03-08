@@ -201,11 +201,10 @@
            #:rng ranges
            #:rng-wrap ?range-wraps
            #:refinements refinements
-           #:args args
-           )
+           #:args args)
     (define l (ℓ-src ℓ))
     (define ctx* (-ctx l o o ℓ))
-    (define ctx (-ctx o l o ℓ))
+    (define ctx  (-ctx o l o ℓ))
 
     (define ⟦k⟧:chk-args-done
       (let ([no-return?

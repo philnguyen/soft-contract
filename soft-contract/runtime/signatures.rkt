@@ -18,8 +18,7 @@
 (#|Continuation    |# K . ::= . #:TBD)
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
-(#|Value address   |# -α . ::= . #:TBD)
-(#|Compiled expr   |# ⟦E⟧ . ≜ . (Ρ Φ^ K H Σ → Ξ))
+(#|Value address   |# -α . ::= . #:TBD) 
 (#|Result          |# R . ::= . (R W^ Φ^))
 (#|Answer          |# A . ::= . Blm W)
 (#|Path-condition  |# Φ . ::= . [#:reuse (℘ S)])
@@ -30,6 +29,8 @@
 (#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable K R^))
 (#|Return kont.    |# Rt . ::= . (Rt H K))
 (#|Value list      |# W  . ::= . [#:reuse (Listof V^)])
+(#|Compiled expr   |# ⟦E⟧ . ≜ . (  Ρ Φ^ K H Σ → Ξ))
+(#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ K H Σ → Ξ))
 ;; Approximated versions of things
 (Φ^ . ::= . [#:reuse (℘ Φ)])
 (V^ . ::= . [#:reuse (℘ V)])
@@ -46,10 +47,10 @@
                      (Hash^ [key : α] [val : α] [immut? : Boolean])
                      (Set^ [elems : α] [bimmut? : Boolean])
                      Fn
-                     X/G
+                     (X/G [ctx : Ctx] [guard : Prox/C] [val : α])
                      (Sealed α)
-                     C)
-(#|Guarded value|# X/G . ::= . (X/G [ctx : Ctx] [guard : Prox/C] [val : α]))
+                     C
+                     S)
 (#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
 (#|Symbolic value|# S . ::= . (S:α α) (S:@ -o (Listof S)))
 (#|Predicates|# P . ::= . #:TBD)
@@ -146,6 +147,7 @@
 
 (define-signature sto^
   ([⊥Σᵥ : Σᵥ]
+   [⊥Σₖ : Σₖ]
    [⊥Σₐ : Σₐ]
    [Σᵥ@ : ((U Σ Σᵥ) α  → V^)]
    [Σₖ@ : ((U Σ Σₖ) αₖ → Rt^)]
