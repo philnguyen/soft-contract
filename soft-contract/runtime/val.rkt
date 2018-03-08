@@ -153,5 +153,10 @@
       (match (normalize-arity (set->list (go! V)))
         [(? list? l) (list->set l)]
         [a {set a}]))
-    (if maybe-non-proper-list? (set-add res #f) res)) 
+      (if maybe-non-proper-list? (set-add res #f) res))
+
+  (: K+ : F K → K)
+  (define (K+ F K)
+    (match-define (K Fs α) K)
+    (K (cons F Fs) α))
   )

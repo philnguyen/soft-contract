@@ -51,12 +51,12 @@
     ???)
 
   (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧)
-  (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ K H Σ)
+  (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ K₀ H₀ Σ)
     ;; FIXME guard arity
-    (define Ρ* (bind-args! Ρ xs Wₓ ℓ Φ^ H Σ))
+    (define Ρ* (bind-args! Ρ xs Wₓ ℓ Φ^ H₀ Σ))
     (define α (αₖ ⟦E⟧ Ρ*))
-    (⊔ₖ! Σ α (Rt H K))
-    (⟦E⟧ Ρ* Φ^ (K:Rt α) (H+ H ℓ ⟦E⟧ 'app) Σ))
+    (⊔ₖ! Σ α (Ξ:co K₀ H₀))
+    (⟦E⟧ Ρ* Φ^ (K '() α) (H+ H₀ ℓ ⟦E⟧ 'app) Σ))
 
   (: app-case-clo : (Listof Clo) → ⟦F⟧)
   (define ((app-case-clo clos) Wₓ ℓ Φ^ K H Σ)

@@ -10,6 +10,7 @@
          racket/splicing
          bnf
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "signatures.rkt")
@@ -23,6 +24,7 @@
   (define ⊥Σᵥ : Σᵥ (hasheq))
   (define ⊥Σₖ : Σₖ (hash))
   (define ⊥Σₐ : Σₐ (hash))
+  (define (⊥Σ) (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
 
   (: Σᵥ@ : (U Σ Σᵥ) α → V^)
   (splicing-local
@@ -48,7 +50,7 @@
   (define (Σᵥ@* Σ αs)
     (for/list ([α (in-list αs)]) (Σᵥ@ Σ α)))
 
-  (: Σₖ@ : (U Σ Σₖ) αₖ → Rt^)
+  (: Σₖ@ : (U Σ Σₖ) αₖ → Ξ:co^)
   (define (Σₖ@ Σ αₖ) (hash-ref (->Σₖ Σ) αₖ mk-∅))
 
   (: Σₐ@ : (U Σ Σₐ) K → R^)
@@ -61,6 +63,13 @@
     (match (hash-ref (->Σᵥ Σ) α #f)
       [(? values V^) (not (∋ V^ -undefined))]
       [_ #f]))
+
+  (: construct-call-graph : (U Σ Σₖ) → CG)
+  (define (construct-call-graph Σₖ)
+    (for*/fold ([CG : CG (hash)])
+               ([(α Ξₛs) (in-hash (->Σₖ Σₖ))] [Ξₛ (in-set Ξₛs)])
+      (define αₛ (K-_1 (Ξ:co-_0 Ξₛ)))
+      (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)))))
 
   #|
 

@@ -32,7 +32,7 @@
     (define ⟦E⟧ (->⟦E⟧ x))
     (define αₖ₀ (αₖ ⟦E⟧ ⊥Ρ))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
-    (values (⟦E⟧ ⊥Ρ {set ∅} (K:Rt αₖ₀) H₀ Σ₀) Σ₀))
+    (values (⟦E⟧ ⊥Ρ {set ∅} (K '() αₖ₀) H₀ Σ₀) Σ₀))
 
   (: run : (U -prog ⟦E⟧) → (Values (℘ Blm) Σ))
   (define (run p)
@@ -44,18 +44,17 @@
     (define-set blms : Blm)
 
     (let loop ([front : (℘ Ξ) {set Ξ₀}])
-      (cond
-        [(set-empty? front) (values blms Σ)]
-        [else
-         (define front*
-           (for*/set : (℘ Ξ) ([Ξ₀ (in-set front)]
-                              [Ξ₁ (in-set (↝! Ξ₀ Σ))]
-                              #:unless (and (Blm? Ξ₁) (blms-add! Ξ₁))
-                              [v₁ (in-value (ver))]
-                              #:unless (equal? v₁ (hash-ref seen Ξ₁ #f)))
-             (hash-set! seen Ξ₁ v₁)
-             Ξ₁))
-         (loop front*)])))
+      (if (set-empty? front)
+          (values blms Σ)
+          (let ([front* 
+                 (for*/set : (℘ Ξ) ([Ξ₀ (in-set front)]
+                                    [Ξ₁ (in-set (↝! Ξ₀ Σ))]
+                                    #:unless (and (Blm? Ξ₁) (blms-add! Ξ₁))
+                                    [v₁ (in-value (ver))]
+                                    #:unless (equal? v₁ (hash-ref seen Ξ₁ #f)))
+                   (hash-set! seen Ξ₁ v₁)
+                   Ξ₁)])
+            (loop front*)))))
 
   (: viz : (U -prog ⟦E⟧) → Σ)
   (define (viz p) 

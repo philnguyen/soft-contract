@@ -36,7 +36,7 @@
        (define ⟦m⟧ (↓ₘ m))
        (define ⟦m⟧s (map ↓ₘ ms))
        (define ⟦E⟧ (↓ₑ '† E))
-       (λ (Ρ Φ^ K H Σ) (⟦m⟧ Ρ Φ^ (K:Bgn `(,@⟦m⟧s ,⟦E⟧) Ρ K) H Σ))]))
+       (λ (Ρ Φ^ K H Σ) (⟦m⟧ Ρ Φ^ (K+ (F:Bgn `(,@⟦m⟧s ,⟦E⟧) Ρ) K) H Σ))]))
 
   (: ↓ₘ : -module → ⟦E⟧)
   ;; Compile module
@@ -47,7 +47,7 @@
     (define-compiler ((↓pc spec) Ρ Φ^ K H Σ)
       ;; Wrap contract
       [=> (-p/c-item x C ℓ)
-          (⟦C⟧ Ρ Φ^ (K:Dec ℓ 𝒾 K) H Σ)
+          (⟦C⟧ Ρ Φ^ (K+ (F:Dec ℓ 𝒾) K) H Σ)
           #:where
           [𝒾 (-𝒾 x l)]
           [⟦C⟧ (↓ₑ l C)]]
@@ -64,13 +64,13 @@
     (: ↓d : -module-level-form → ⟦E⟧)
     (define-compiler ((↓d d) Ρ Φ^ K H Σ)
       [=> (-define-values xs E)
-          (⟦E⟧ Ρ Φ^ (K:Def l αs K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Def l αs) K) H Σ)
           #:where
           [αs (for/list : (Listof α) ([x (in-list xs)]) (mk-α (-α:top (-𝒾 x l))))]
           [⟦E⟧ (↓ₑ l E)]]
       [(-provide '()) (mk-V -void)]
       [=> (-provide (cons spec specs))
-          (⟦spec⟧ Ρ Φ^ (K:Bgn ⟦spec⟧s Ρ K) H Σ)
+          (⟦spec⟧ Ρ Φ^ (K+ (F:Bgn ⟦spec⟧s Ρ) K) H Σ)
           #:where
           [⟦spec⟧ (↓pc spec)]
           [⟦spec⟧s (map ↓pc specs)]]
@@ -84,7 +84,7 @@
        (define ⟦D⟧ (↓d D))
        (define ⟦D⟧s (map ↓d Ds))
        (λ (Ρ Φ^ K H Σ)
-         (⟦D⟧ Ρ Φ^ (K:Bgn ⟦D⟧s Ρ K) H Σ))]))
+         (⟦D⟧ Ρ Φ^ (K+ (F:Bgn ⟦D⟧s Ρ) K) H Σ))]))
 
   (: ↓ₑ : -l -e → ⟦E⟧)
   (define (↓ₑ l e)
@@ -139,7 +139,7 @@
                            [_ V]))))])
                 (V → V))]]
       [=> (-@ E Es ℓ)
-          (⟦E⟧ Ρ Φ^ (K:Ap '() ⟦Es⟧ Ρ ℓ K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Ap '() ⟦Es⟧ Ρ ℓ) K) H Σ)
           #:where ; HACK
           [_ (match* (E Es)
                [('scv:mon (cons (-b (? symbol? l)) _))
@@ -148,31 +148,31 @@
                [(_ _) 'ignore])]
           #:recur E (Es ...)]
       [=> (-if E E₁ E₂)
-          (⟦E⟧ Ρ Φ^ (K:If l ⟦E₁⟧ ⟦E₂⟧ Ρ K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:If l ⟦E₁⟧ ⟦E₂⟧ Ρ) K) H Σ)
           #:recur E E₁ E₂]
       [(-wcm Eₖ Eᵥ E) (error '↓ₑ "TODO: wcm")]
       [(-begin '()) (mk-V -void)]
       [=> (-begin (cons E Es))
-          (⟦E⟧ Ρ Φ^ (K:Bgn ⟦Es⟧ Ρ K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦Es⟧ Ρ) K) H Σ)
           #:recur E (Es ...)]
       [=> (-begin0 E₀ Es)
-          (⟦E₀⟧ Ρ Φ^ (K:Bgn0:V ⟦Es⟧ Ρ K) H Σ)
+          (⟦E₀⟧ Ρ Φ^ (K+ (F:Bgn0:V ⟦Es⟧ Ρ) K) H Σ)
           #:recur E₀ (Es ...)]
       [(-quote (? Base? b)) (mk-V (-b b))]
       [(-quote q) (error '↓ₑ "TODO: (quote ~a)" q)]
       [(-let-values '() E _) (↓ E)]
       [=> (-let-values bnds E ℓ)
-          (⟦E⟧ₓ Ρ Φ^ (K:Let ℓ x ⟦bnd⟧s '() ⟦E⟧ Ρ K) H Σ)
+          (⟦E⟧ₓ Ρ Φ^ (K+ (F:Let ℓ x ⟦bnd⟧s '() ⟦E⟧ Ρ) K) H Σ)
           #:where [(cons (cons x ⟦E⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]
           #:recur E]
       [(-letrec-values '() E _) (↓ E)]
       [=> (-letrec-values bnds E ℓ)
           (let ([Ρ* (init-undefined! Σ bnds H Ρ)])
-            (⟦E⟧ₓ Ρ* Φ^ (K:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ* K) H Σ))
+            (⟦E⟧ₓ Ρ* Φ^ (K+ (F:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ*) K) H Σ))
           #:where [(cons (cons x ⟦E⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]
           #:recur E]
       [=> (-set! x E)
-          (⟦E⟧ Ρ Φ^ (K:Set! (get-addr Ρ) K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Set! (get-addr Ρ)) K) H Σ)
           #:where [get-addr
                    (if (symbol? x)
                        (λ ([Ρ : Ρ]) (Ρ@ Ρ x))
@@ -181,7 +181,7 @@
       [(-error msg ℓ)
        (mk-A (Blm/simp ℓ 'Λ '(not-reached) (list (set (-b msg)))))]
       [=> (-μ/c x C)
-          (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x H))) Φ^ (K:Μ/C x K) H Σ)
+          (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x H))) Φ^ (K+ (F:Μ/C x) K) H Σ)
           #:recur C]
       [(--> Cs D ℓ) (mk--> ℓ (-var-map ↓ Cs) (↓ D))]
       [(-->i Cs D) (mk-->i (map ↓-dom Cs) (↓-dom D))]
@@ -198,7 +198,7 @@
           [𝒾-defined? (struct-defined? 𝒾)]
           [C (list {set (St/C #t 𝒾 '())})]]
       [=> (-struct/c 𝒾 (cons C Cs) ℓ)
-          (cond [(𝒾-defined? Σ) (⟦C⟧ Ρ Φ^ (K:St/C ℓ 𝒾 '() ⟦Cs⟧ Ρ K) H Σ)]
+          (cond [(𝒾-defined? Σ) (⟦C⟧ Ρ Φ^ (K+ (F:St/C ℓ 𝒾 '() ⟦Cs⟧ Ρ) K) H Σ)]
                 [else (blm:undefined-struct 𝒾 ℓ)])
           #:where [𝒾-defined? (struct-defined? 𝒾)]
           #:recur C (Cs ...)]
@@ -228,38 +228,40 @@
         ['() (let ([G (==>i (reverse (cdr Doms)) (car Doms))])
                (ret! (V->R G Φ^) K H Σ))]
         [(cons (⟦dom⟧ x #f ⟦C⟧ ℓ) ⟦dom⟧s)
-         (⟦C⟧ Ρ Φ^ (K:==>i Ρ Doms (cons x ℓ) ⟦dom⟧s K) H Σ)])))
+         (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ Doms (cons x ℓ) ⟦dom⟧s) K) H Σ)])))
 
   (define/memo (mk--> [ℓ : ℓ] [⟦dom⟧s : (-maybe-var ⟦E⟧)] [⟦rng⟧ : ⟦E⟧]) : ⟦E⟧
     (match ⟦dom⟧s
       ['()
-       (λ (Ρ Φ^ K H Σ) (⟦rng⟧ Ρ Φ^ (K:==>:Rng '() #f ℓ K) H Σ))]
+       (λ (Ρ Φ^ K H Σ) (⟦rng⟧ Ρ Φ^ (K+ (F:==>:Rng '() #f ℓ) K) H Σ))]
       [(cons ⟦C⟧ ⟦C⟧s)
-       (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K:==>:Dom '() ⟦C⟧s #f ⟦rng⟧ Ρ ℓ K) H Σ))]
+       (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom '() ⟦C⟧s #f ⟦rng⟧ Ρ ℓ) K) H Σ))]
       [(-var ⟦C⟧s ⟦Cᵣ⟧)
        (match ⟦C⟧s
          ['()
-          (λ (Ρ Φ^ K H Σ) (⟦Cᵣ⟧ Ρ Φ^ (K:==>:Rst '() ⟦rng⟧ Ρ ℓ K) H Σ))]
+          (λ (Ρ Φ^ K H Σ) (⟦Cᵣ⟧ Ρ Φ^ (K+ (F:==>:Rst '() ⟦rng⟧ Ρ ℓ) K) H Σ))]
          [(cons ⟦C⟧ ⟦C⟧s)
-          (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K:==>:Dom '() ⟦C⟧s ⟦Cᵣ⟧ ⟦rng⟧ Ρ ℓ K) H Σ))])]))
+          (λ (Ρ Φ^ K H Σ)
+            (define K* (K+ (F:==>:Dom '() ⟦C⟧s ⟦Cᵣ⟧ ⟦rng⟧ Ρ ℓ) K))
+            (⟦C⟧ Ρ Φ^ K* H Σ))])]))
 
   (define/memo (mk-let* [ℓ : ℓ] [⟦bnd⟧s : (Assoc Symbol ⟦E⟧)] [⟦body⟧ : ⟦E⟧]) : ⟦E⟧
     (foldr
      (λ ([⟦bnd⟧ : (Pairof Symbol ⟦E⟧)] [⟦body⟧ : ⟦E⟧]) : ⟦E⟧
         (match-define (cons (app list x) ⟦E⟧ₓ) ⟦bnd⟧)
         (λ (Ρ Φ^ K H Σ)
-          (⟦E⟧ₓ Ρ Φ^ (K:Let ℓ x '() '() ⟦body⟧ Ρ K) H Σ)))
+          (⟦E⟧ₓ Ρ Φ^ (K+ (F:Let ℓ x '() '() ⟦body⟧ Ρ) K) H Σ)))
      ⟦body⟧
      ⟦bnd⟧s)) 
 
   (define/memo (mk-mon [ctx : Ctx] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K:Mon:V ctx (cons ⟦V⟧ Ρ) K) H Σ)))
+    (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V ctx (cons ⟦V⟧ Ρ)) K) H Σ)))
 
   (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : ⟦E⟧] [⟦x⟧s : (Listof ⟦E⟧)]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ) (⟦f⟧ Ρ Φ^ (K:Ap '() ⟦x⟧s Ρ ℓ K) H Σ))) 
+    (λ (Ρ Φ^ K H Σ) (⟦f⟧ Ρ Φ^ (K+ (F:Ap '() ⟦x⟧s Ρ ℓ) K) H Σ))) 
 
   (define/memo (mk-fc [l : -l] [ℓ : ℓ] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K:Fc:V l ℓ ⟦V⟧ Ρ K) H Σ)))
+    (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Fc:V l ℓ ⟦V⟧ Ρ) K) H Σ)))
 
   (define/memo (mk-wrapped [C : Prox/C] [ctx : Ctx] [α : α] [V : V^]) : ⟦E⟧
     (λ (ρ Φ^ K H Σ)

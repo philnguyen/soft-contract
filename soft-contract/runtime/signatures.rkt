@@ -15,7 +15,7 @@
          )
 
 (#|State sans store|# Ξ . ::= . (Ξ:co K H) Blm)
-(#|Continuation    |# K . ::= . #:TBD)
+(#|Continuation    |# K . ::= . (K (Listof F) αₖ))
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
 (#|Value address   |# -α . ::= . #:TBD) 
@@ -25,18 +25,19 @@
 (#|Environment     |# Ρ  . ≜ . (Immutable-HashTable Symbol α))
 (#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]))
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
-(#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Rt^))
+(#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Ξ:co^))
 (#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable K R^))
-(#|Return kont.    |# Rt . ::= . (Rt H K))
 (#|Value list      |# W  . ::= . [#:reuse (Listof V^)])
 (#|Compiled expr   |# ⟦E⟧ . ≜ . (  Ρ Φ^ K H Σ → Ξ))
 (#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ K H Σ → Ξ))
+(#|Call graph      |# CG . ≜ . (Immutable-HashTable αₖ (℘ αₖ)))
+(#|Kont. frame     |# F . ::= . #:TBD)
 ;; Approximated versions of things
 (Φ^ . ::= . [#:reuse (℘ Φ)])
 (V^ . ::= . [#:reuse (℘ V)])
 (R^ . ::= . [#:reuse (℘ R)])
 (K^ . ::= . [#:reuse (℘ K)])
-(Rt^ . ::= . [#:reuse (℘ Rt)])
+(Ξ:co^ . ::= . [#:reuse (℘ Ξ:co)])
 (W^ . ::= . [#:reuse (℘ W)])
 
 (#|Value|# V . ::= . (-● (℘ P))
@@ -146,15 +147,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-signature sto^
-  ([⊥Σᵥ : Σᵥ]
+  ([⊥Σ : (→ Σ)]
+   [⊥Σᵥ : Σᵥ]
    [⊥Σₖ : Σₖ]
    [⊥Σₐ : Σₐ]
    [Σᵥ@ : ((U Σ Σᵥ) α  → V^)]
-   [Σₖ@ : ((U Σ Σₖ) αₖ → Rt^)]
+   [Σₖ@ : ((U Σ Σₖ) αₖ → Ξ:co^)]
    [Σₐ@ : ((U Σ Σₐ) K  → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
    [α• : α]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
+   [construct-call-graph : ((U Σ Σₖ) → CG)]
    ;; Old
    #;[alloc  : (-Σ -φ ⟪α⟫ -V^ → -φ)]
    #;[alloc* : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
@@ -195,6 +198,7 @@
    [V⊔ : (V^ V^ → V^)]
    [⊥V : V^]
    [collapse-value-lists : (W^ Natural → W)]
+   [K+ : (F K → K)]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 
