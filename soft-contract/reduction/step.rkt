@@ -39,8 +39,7 @@
          [(match Fs
             [(cons F Fs*) (co R^₀ F (K Fs* α) H Σ)]
             [_ (for/set : (℘ Ξ) ([Ξ₁ (in-set (Σₖ@ Σ α))])
-                 (match-define (Ξ:co K₁ H₁) Ξ₁)
-                 (ret! R^₀ K₁ H₁ Σ))])])]
+                 (ret! R^₀ Ξ₁ Σ))])])]
       [_ ∅])) 
 
   (: co : R^ F K H Σ → (℘ Ξ))
@@ -219,10 +218,13 @@
     #;(match K₀
       ))
 
-  (: ret! : (U R R^) K H Σ → Ξ:co)
-  (define (ret! R K H Σ)
-    (⊔ₐ! Σ K R)
-    (Ξ:co K H))
+  (: ret! : (case->
+             [(U R R^) Ξ:co Σ → Ξ:co]
+             [(U R R^) K H Σ → Ξ:co]))
+  (define ret!
+    (case-lambda
+      [(R Ξ Σ) (⊔ₐ! Σ (Ξ:co-_0 Ξ) R) Ξ]
+      [(R K H Σ) (ret! R (Ξ:co K H) Σ)]))
 
   (: with-guarded-arity : R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))
   (define (with-guarded-arity R^ n ℓ exec)

@@ -147,7 +147,9 @@
 
 (define-signature step^
   ([↝! : (Ξ Σ → (℘ Ξ))]
-   [ret! : ((U R R^) K H Σ → Ξ:co)]
+   [ret! : (case->
+            [(U R R^) Ξ:co Σ → Ξ:co]
+            [(U R R^) K H Σ → Ξ:co])]
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]))

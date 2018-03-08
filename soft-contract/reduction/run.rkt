@@ -57,7 +57,7 @@
             (loop front*)))))
 
   (: viz : (U -prog ⟦E⟧) → Σ)
-  (define (viz p) 
+  (define (viz p)
     ;; Versioning
     (Ξ* . ≜ . (List Ξ Index Index Index)) 
     (define-values (Σᵥ->v v->Σᵥ) ((inst mk-versioning Σᵥ)))
