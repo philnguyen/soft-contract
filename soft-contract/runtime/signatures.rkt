@@ -20,7 +20,6 @@
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
 (#|Value address   |# -α . ::= . #:TBD) 
 (#|Result          |# R . ::= . (R W^ Φ^))
-(#|Answer          |# A . ::= . Blm W)
 (#|Path-condition  |# Φ . ::= . [#:reuse (℘ S)])
 (#|Environment     |# Ρ  . ≜ . (Immutable-HashTable Symbol α))
 (#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]))
@@ -39,6 +38,7 @@
 (K^ . ::= . [#:reuse (℘ K)])
 (Ξ:co^ . ::= . [#:reuse (℘ Ξ:co)])
 (W^ . ::= . [#:reuse (℘ W)])
+(⟦F⟧^ . ≜ . (W ℓ Φ^ K H Σ → (℘ Ξ)))
 
 (#|Value|# V . ::= . (-● (℘ P))
                      -prim

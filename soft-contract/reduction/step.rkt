@@ -25,7 +25,7 @@
 
 (define-unit step@
   (import val^ env^ sto^ evl^
-          alloc^ app^ mon^
+          alloc^ app^ mon^ compile^
           proof-system^)
   (export step^)
 
@@ -218,9 +218,8 @@
     #;(match K₀
       ))
 
-  (: ret! : (case->
-             [(U R R^) Ξ:co Σ → Ξ:co]
-             [(U R R^) K H Σ → Ξ:co]))
+  (: ret! : (case-> [(U R R^) Ξ:co Σ → Ξ:co]
+                    [(U R R^) K H Σ → Ξ:co]))
   (define ret!
     (case-lambda
       [(R Ξ Σ) (⊔ₐ! Σ (Ξ:co-_0 Ξ) R) Ξ]
@@ -274,6 +273,18 @@
         [_ (mk-⟪α⟫ℓ* Σ 'rng -α.rng H ℓ φ₁ rngs)]))
     (values (-=> Dom Rng) φ₂)
     |#)
+
+  (: K+/And : -l (Listof ⟦E⟧) Ρ K → K)
+  (define (K+/And l ⟦E⟧s Ρ K)
+    (match ⟦E⟧s
+      [(cons ⟦E⟧ ⟦E⟧s) (K+ (F:If l ⟦E⟧ (mk-V -ff) Ρ) (K+/And l ⟦E⟧s Ρ K))]
+      [_ K]))
+
+  (: K+/Or : -l (Listof ⟦E⟧) Ρ K → K)
+  (define (K+/Or l ⟦E⟧s Ρ K)
+    (match ⟦E⟧s
+      [(cons ⟦E⟧ ⟦E⟧s) (K+ (F:If l (mk-V -tt) ⟦E⟧ Ρ) (K+/Or l ⟦E⟧s Ρ K))]
+      [_ K]))
 
   (: mk-αℓ*! : Σ Symbol (ℓ H Index → -α) H ℓ (Listof V^) → (Listof αℓ))
   (define (mk-αℓ*! Σ tag mk H ℓ Vs)

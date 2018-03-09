@@ -149,18 +149,6 @@
          (define blm (blm/simp l 'Λ '(|1 value|) A ℓ))
          (⟦k⟧ blm H φ Σ)])))
 
-  (define (and∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-    (match ⟦e⟧s
-      ['() ⟦k⟧]
-      [(cons ⟦e⟧ ⟦e⟧s*)
-       (if∷ l ⟦e⟧ (mk-V -ff) ρ (and∷ l ⟦e⟧s* ρ ⟦k⟧))]))
-
-  (define (or∷ [l : -l] [⟦e⟧s : (Listof -⟦e⟧)] [ρ : -ρ] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
-    (match ⟦e⟧s
-      ['() ⟦k⟧]
-      [(cons ⟦e⟧ ⟦e⟧s*) ; TODO propagate value instead
-       (if∷ l (mk-V -tt) ⟦e⟧ ρ (or∷ l ⟦e⟧s* ρ ⟦k⟧))]))
-
   (define-frame (restore-ctx∷ [H : -H] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A _ φ Σ) #:roots ()
       (⟦k⟧ A H φ Σ)))

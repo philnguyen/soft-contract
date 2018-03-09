@@ -178,8 +178,7 @@
                        (λ ([Ρ : Ρ]) (Ρ@ Ρ x))
                        (λ _ (mk-α (-α:top x))))]
           #:recur E]
-      [(-error msg ℓ)
-       (mk-A (Blm/simp ℓ 'Λ '(not-reached) (list (set (-b msg)))))]
+      [(-error msg ℓ) (mk-Blm (Blm/simp ℓ 'Λ '(not-reached) (list (set (-b msg)))))]
       [=> (-μ/c x C)
           (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x H))) Φ^ (K+ (F:Μ/C x) K) H Σ)
           #:recur C]
@@ -214,12 +213,13 @@
           blm:undefined
           (ret! (V->R V^ Φ^) K H Σ))))
 
-  (define (mk-V [V : V]) (mk-A (list {set V})))
+  (define (mk-V [V : (U V V^)]) : ⟦E⟧
+    (mk-W (if (set? V) (list V) (list {set V}))))
 
-  (define/memo (mk-A [A : A]) : ⟦E⟧
-    (if (Blm? A)
-        (λ _ A)
-        (λ (Ρ Φ^ K H Σ) (ret! (W->R A Φ^) K H Σ))))
+  (define/memo (mk-W [W : W]) : ⟦E⟧
+    (λ (Ρ Φ^ K H Σ) (ret! (W->R W Φ^) K H Σ)))
+
+  (define/memo (mk-Blm [blm : Blm]) : ⟦E⟧ (λ _ blm))
 
   (define/memo (mk-->i [⟦dom⟧s : (Listof ⟦dom⟧)] [⟦rng⟧ : ⟦dom⟧]) : ⟦E⟧
     (λ (Ρ Φ^ K H Σ)

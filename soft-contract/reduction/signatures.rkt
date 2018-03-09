@@ -118,8 +118,9 @@
    [↓ₘ : (-module → ⟦E⟧)]
    [↓ₑ : (-l -e → ⟦E⟧)]
    [↓ₓ : (Symbol ℓ → ⟦E⟧)]
-   [mk-V : (V → ⟦E⟧)]
-   [mk-A : (A → ⟦E⟧)]
+   [mk-V : ((U V V^) → ⟦E⟧)]
+   [mk-W : (W → ⟦E⟧)]
+   [mk-Blm : (Blm → ⟦E⟧)]
    [mk--> : (ℓ (-maybe-var ⟦E⟧) ⟦E⟧ → ⟦E⟧)]
    [mk-->i : ((Listof ⟦dom⟧) ⟦dom⟧ → ⟦E⟧)]
    [mk-app : (ℓ ⟦E⟧ (Listof ⟦E⟧) → ⟦E⟧)]
@@ -147,15 +148,16 @@
 
 (define-signature step^
   ([↝! : (Ξ Σ → (℘ Ξ))]
-   [ret! : (case->
-            [(U R R^) Ξ:co Σ → Ξ:co]
-            [(U R R^) K H Σ → Ξ:co])]
+   [ret! : (case-> [(U R R^) Ξ:co Σ → Ξ:co]
+                   [(U R R^) K H Σ → Ξ:co])]
+   [K+/And : (-l (Listof ⟦E⟧) Ρ K → K)]
+   [K+/Or  : (-l (Listof ⟦E⟧) Ρ K → K)]
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]))
 
 (define-signature app^
-  ([app  : (V^ W ℓ Φ^ K H Σ → (℘ Ξ))]
+  ([app : (V^ W ℓ Φ^ K H Σ → (℘ Ξ))]
    #;[app₁ : V → ⟦F⟧]
    [app/rest/unsafe : (V W V ℓ Φ^ K H Σ → (℘ Ξ))]))
 

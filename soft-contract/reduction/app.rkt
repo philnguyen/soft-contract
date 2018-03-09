@@ -4,8 +4,8 @@
 
 (require (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/match
-         racket/list
          (only-in racket/list split-at)
+         racket/splicing
          typed/racket/unit
          syntax/parse/define
          set-extras
@@ -19,16 +19,16 @@
 
 (define-unit app@
   (import static-info^ ast-pretty-print^
-          sto^ evl^
-          step^ alloc^ reflection^)
+          env^ sto^ val^ evl^
+          compile^ step^ alloc^ reflection^)
   (export app^)
 
   (: app : V^ W ℓ Φ^ K H Σ → (℘ Ξ))
   (define (app Vₕ^ Wₓ ℓ Φ^ K H Σ)
-    (for/set : (℘ Ξ) ([Vₕ (in-set Vₕ^)])
+    (for/union : (℘ Ξ) ([Vₕ (in-set Vₕ^)])
       ((app₁ Vₕ) Wₓ ℓ Φ^ K H Σ)))
 
-  (: app₁ : V → ⟦F⟧)
+  (: app₁ : V → ⟦F⟧^)
   (define app₁
     (match-lambda
       [(Clo xs ⟦E⟧ Ρ) (app-clo xs ⟦E⟧ Ρ)]
@@ -38,27 +38,28 @@
       [(-st-ac 𝒾 i) ???]
       [(-st-mut 𝒾 i) ???]
       [(? -o? o) ???]
-      [(X/G ctx G α) ???]
-      [(And/C #t αℓ₁ αℓ₂) ???]
-      [(Or/C #t αℓ₁ αℓ₂) ???]
-      [(Not/C αℓ) ???]
+      [(X/G ctx (? Fn/C? G) α) ???]
+      [(And/C #t (αℓ α₁ _) (αℓ α₂ _)) (app-And/C α₁ α₂)]
+      [(Or/C  #t (αℓ α₁ _) (αℓ α₂ _)) (app-Or/C α₁ α₂)]
+      [(Not/C (αℓ α _)) (app-Not/C α)]
+      [(St/C #t 𝒾 αℓs) (app-St/C 𝒾 (map αℓ-_0 αℓs))]
       [(-● ps) ???]
       [(? S? S) ???]
-      [Vₕ (λ (W ℓ Φ^ K H Σ) (Blm ℓ 'Λ '(procedure?) (list {set Vₕ})))]))
+      [Vₕ (λ (W ℓ Φ^ K H Σ) {set (Blm ℓ 'Λ '(procedure?) (list {set Vₕ}))})]))
 
   (: app/rest/unsafe : V W V ℓ Φ^ K H Σ → (℘ Ξ))
   (define (app/rest/unsafe Vₕ Wₓ Vᵣ ℓ Φ^ K H Σ)
     ???)
 
-  (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧)
+  (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
   (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ K₀ H₀ Σ)
     ;; FIXME guard arity
     (define Ρ* (bind-args! Ρ xs Wₓ ℓ Φ^ H₀ Σ))
     (define α (αₖ ⟦E⟧ Ρ*))
     (⊔ₖ! Σ α (Ξ:co K₀ H₀))
-    (⟦E⟧ Ρ* Φ^ (K '() α) (H+ H₀ ℓ ⟦E⟧ 'app) Σ))
+    {set (⟦E⟧ Ρ* Φ^ (K '() α) (H+ H₀ ℓ ⟦E⟧ 'app) Σ)})
 
-  (: app-case-clo : (Listof Clo) → ⟦F⟧)
+  (: app-case-clo : (Listof Clo) → ⟦F⟧^)
   (define ((app-case-clo clos) Wₓ ℓ Φ^ K H Σ)
     (define n (length Wₓ))
     (define ?case
@@ -69,22 +70,55 @@
       [(Clo x ⟦E⟧ Ρ) ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ K H Σ)]
       [#f
        (define msg (string->symbol (format "arity ~v" (V-arity (Case-Clo clos)))))
-       (Blm ℓ 'Λ (list msg) Wₓ)]))
+       {set (Blm ℓ 'Λ (list msg) Wₓ)}]))
 
-  (: app-st-mk : -𝒾 → ⟦F⟧)
+  (: app-st-mk : -𝒾 → ⟦F⟧^)
   (define ((app-st-mk 𝒾) Wₓ ℓ Φ^ K H Σ)
     (define n (count-struct-fields 𝒾))
-    (if (= n (length Wₓ))
-        (let ([αs (build-list n (λ ([i : Index]) (mk-α (-α:fld 𝒾 ℓ H i))))])
-          (⊔ᵥ*! Σ αs Wₓ)
-          (ret! (V->R (St 𝒾 αs) Φ^) K H Σ))
-        (Blm ℓ (-𝒾-name 𝒾) (list (-b n) 'values) Wₓ)))
+    {set (if (= n (length Wₓ))
+             (let ([αs (build-list n (λ ([i : Index]) (mk-α (-α:fld 𝒾 ℓ H i))))])
+               (⊔ᵥ*! Σ αs Wₓ)
+               (ret! (V->R (St 𝒾 αs) Φ^) K H Σ))
+             (Blm ℓ (-𝒾-name 𝒾) (list (-b n) 'values) Wₓ))})
 
-  (: app-st-p : -𝒾 → ⟦F⟧)
+  (: app-st-p : -𝒾 → ⟦F⟧^)
   (define ((app-st-p 𝒾) Wₓ ℓ Φ^ K H Σ)
     (match Wₓ
       [(list _) ???]
-      [_ (Blm ℓ (show-o (-st-p 𝒾)) (list (-b 1) 'values) Wₓ)]))
+      [_ {set (Blm ℓ (show-o (-st-p 𝒾)) (list (-b 1) 'values) Wₓ)}]))
+
+  (:* app-And/C app-Or/C : α α → ⟦F⟧^)
+  (define-values (app-And/C app-Or/C)
+    (let ()
+      (: app-Comb/C : (-l (Listof ⟦E⟧) Ρ K → K) → α α → ⟦F⟧^)
+      (define (((app-Comb/C K+) α₁ α₂) Wₓ ℓ Φ^ K H Σ)
+        (match Wₓ
+          [(list Vₓ)
+           (define V₁ (Σᵥ@ Σ α₁))
+           (define V₂ (Σᵥ@ Σ α₂))
+           (define ⟦rhs⟧ (mk-app ℓ (mk-V V₂) (list (mk-V Vₓ))))
+           (app V₁ Wₓ ℓ Φ^ (K+ (ℓ-src ℓ) (list ⟦rhs⟧) ⊥Ρ K) H Σ)]
+          [_ {set (Blm ℓ 'And/C (list (-b 1) 'values) Wₓ)}]))
+      (values (app-Comb/C K+/And) (app-Comb/C K+/Or))))
+
+  (: app-Not/C : α → ⟦F⟧^)
+  (define ((app-Not/C α) Wₓ ℓ Φ^ K H Σ)
+    (define Vₕ (Σᵥ@ Σ α))
+    (app Vₕ Wₓ ℓ Φ^ (K+ (F:Ap (list {set 'not}) '() ⊥Ρ ℓ) K) H Σ))
+
+  (: app-St/C : -𝒾 (Listof α) → ⟦F⟧^)
+  (define ((app-St/C 𝒾 αs) Wₓ ℓ Φ^ K H Σ)
+    ;; TODO fix ℓᵢ for each contract component
+    (match Wₓ
+      [(list (or (St 𝒾* _) (X/G _ (St/C _ 𝒾* _) _)))
+       #:when (𝒾* . substruct? . 𝒾)
+       (define ⟦chk-field⟧s : (Listof ⟦E⟧)
+         (for/list ([α (in-list αs)] [i (in-naturals)] #:when (index? i))
+           (define Cᵢ (Σᵥ@ Σ α))
+           (define ac (-st-ac 𝒾 i))
+           (mk-app ℓ (mk-V Cᵢ) (list (mk-app ℓ (mk-V ac) (list (mk-W Wₓ)))))))
+       (app₁ (-st-p 𝒾) Wₓ ℓ Φ^ (K+/And (ℓ-src ℓ) ⟦chk-field⟧s ⊥Ρ K) H Σ)]
+      [_ {set (ret! (V->R -ff Φ^) K H Σ)}]))
 
   #|
   (: app : ℓ -V^ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))
@@ -120,37 +154,14 @@
           [(arity-includes? a n) e ...]
           [else (⟦k⟧ (blm-arity a n) H φ Σ)])))
 
-    (define (app-And/C [V₁ : -V^] [V₂ : -V^])
-      (define ⟦rhs⟧ (mk-app ℓ (mk-A (list V₂)) (list (mk-A Vₓs))))
-      (app ℓ V₁ Vₓs H φ Σ (and∷ l (list ⟦rhs⟧) ⊥ρ ⟦k⟧)))
-
-    (define (app-Or/C [V₁ : -V^] [V₂ : -V^])
-      (define ⟦rhs⟧ (mk-app ℓ (mk-A (list V₂)) (list (mk-A Vₓs))))
-      (app ℓ V₁ Vₓs H φ Σ (or∷ l (list ⟦rhs⟧) ⊥ρ ⟦k⟧)))
-    
-    (define (app-Not/C [Vᵤ : -V^])
-      (app ℓ Vᵤ Vₓs H φ Σ (ap∷ (list {set 'not}) '() ⊥ρ ℓ ⟦k⟧)))
-
     (define (app-One-Of/C [bs : (℘ Base)])
-      (define Vₐ
+      (define Vₐb
         (case (sat-one-of (car Vₓs) bs)
           [(✓) -tt]
           [(✗) -ff]
           [(?) (-● {set 'boolean?})]))
       (⟦k⟧ (list {set Vₐ}) H φ Σ))
 
-    (define (app-St/C [𝒾 : -𝒾] [Cs : (Listof -V^)])
-      ;; TODO fix ℓ
-      (match Vₓs
-        [(list (or (-St 𝒾* _) (-St* (-St/C _ 𝒾* _) _ _)))
-         #:when (𝒾* . substruct? . 𝒾)
-         (define ⟦chk-field⟧s : (Listof -⟦e⟧)
-           (for/list ([Cᵢ^ (in-list Cs)] [i (in-naturals)] #:when (index? i))
-             (define ac (-st-ac 𝒾 i))
-             (mk-app ℓ (mk-A (list Cᵢ^)) (list (mk-app ℓ (mk-V ac) (list (mk-A Vₓs)))))))
-         (app₁ ℓ (-st-p 𝒾) Vₓs H φ Σ (and∷ l ⟦chk-field⟧s ⊥ρ ⟦k⟧))]
-        [_
-         (⟦k⟧ (list {set -ff}) H φ Σ)]))
 
     (match Vₕ
       ;; In the presence of struct contracts, field accessing is not an atomic operation

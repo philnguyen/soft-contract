@@ -156,7 +156,7 @@
       (if maybe-non-proper-list? (set-add res #f) res))
 
   (: K+ : F K → K)
-  (define (K+ F K)
-    (match-define (K Fs α) K)
+  (define (K+ F K₀)
+    (match-define (K Fs α) K₀)
     (K (cons F Fs) α))
   )

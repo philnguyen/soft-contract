@@ -11,6 +11,8 @@
          unreachable
          bnf
          traces/typed
+         intern
+         set-extras
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -38,7 +40,7 @@
   (define (run p)
     (define-values (Ξ₀ Σ) (inj p))
     ;; TODO real versioning
-    (Ver . ≜ . (List Σᵥ Σₖ Σₐ))
+    (Ver . ≜ . (List Σᵥ Σₖ Σₐ)) 
     (define seen : (Mutable-HashTable Ξ Ver) (make-hash))
     (define (ver) : Ver (list (Σ-val Σ) (Σ-kon Σ) (Σ-evl Σ)))
     (define-set blms : Blm)
@@ -58,40 +60,26 @@
 
   (: viz : (U -prog ⟦E⟧) → Σ)
   (define (viz p)
-    ;; Versioning
-    (Ξ* . ≜ . (List Ξ Index Index Index)) 
-    (define-values (Σᵥ->v v->Σᵥ) ((inst mk-versioning Σᵥ)))
-    (define-values (Σₖ->v v->Σₖ) ((inst mk-versioning Σₖ)))
-    (define-values (Σₐ->v v->Σₐ) ((inst mk-versioning Σₐ)))
-    (define (Σ->v [Σ₀ : Σ])
-      (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
-      (values (Σᵥ->v Σᵥ) (Σₖ->v Σₖ) (Σₐ->v Σₐ)))
-    ;; Wrapping
+    ;; Compacting each store to its version to display
+    (Ξ* . ≜ . (List Ξ Iᵥ Iₖ Iₐ))
+    
     (define-values (Ξ₀ Σ₀) (inj p))
-    (define Ξ₀* : Ξ*
-      (let-values ([(v₀ k₀ a₀) (Σ->v Σ₀)])
-        (list Ξ₀ v₀ k₀ a₀)))
+
+    (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
+      ;; depending on mutable state Σ₀
+      (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
+      (list Ξ (Iᵥ-of Σᵥ) (Iₖ-of Σₖ) (Iₐ-of Σₐ)))
+    
     (define ↝₁ : (Ξ* → (℘ Ξ*))
       (match-lambda
-        [(list Ξ _ _ _)
-         (for/set : (℘ Ξ*) ([Ξ₁ (in-set (↝! Ξ Σ₀))])
-           (define-values (v k a) (Σ->v Σ₀))
-           (list Ξ₁ v k a))]))
-    (function-traces ↝₁ Ξ₀*)
+        [(list Ξ _ _ _) (map/set Ξ->Ξ* (↝! Ξ Σ₀))]))
+    (function-traces ↝₁ (Ξ->Ξ* Ξ₀))
     Σ₀)
 
   (: ->⟦E⟧ : (U -prog ⟦E⟧) → ⟦E⟧)
   (define (->⟦E⟧ x) (if (-prog? x) (↓ₚ x) x))
-
-  (: mk-versioning (∀ (X) → (Values (X → Index) (Index → X))))
-  (define (mk-versioning)
-    (define x->i : (Mutable-HashTable X Index) (make-hash))
-    (define i->x : (Mutable-HashTable Index X) (make-hasheq))
-    (values
-     (λ (x)
-       (hash-ref! x->i x (λ ()
-                           (define i (hash-count x->i))
-                           (hash-set! i->x i x)
-                           i)))
-     (λ (i) (hash-ref i->x i))))
   )
+
+(define-interner Iᵥ Σᵥ)
+(define-interner Iₖ Σₖ)
+(define-interner Iₐ Σₐ)
