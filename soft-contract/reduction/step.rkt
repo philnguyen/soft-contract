@@ -30,34 +30,34 @@
   (export step^)
 
   (: ↝! : Ξ Σ → (℘ Ξ))
-  (define (↝! Ξ₀ Σ)
-    (match Ξ₀
-      [(Ξ:co (and K₀ (K Fs α)) H)
-       (define R^₀ (Σₐ@ Σ K₀))
+  (define (↝! Ξ Σ)
+    (match Ξ
+      [(Ξ:co K α H)
+       (define R^₀ (Σₐ@ Σ Ξ))
        (cond
          [(set-empty? R^₀) ∅]
-         [(match Fs
-            [(cons F Fs*) (co R^₀ F (K Fs* α) H Σ)]
-            [_ (for/set : (℘ Ξ) ([Ξ₁ (in-set (Σₖ@ Σ α))])
+         [(match K
+            [(cons F K*) (co R^₀ F (Ξ:co K* α H) Σ)]
+            [_ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
                  (ret! R^₀ Ξ₁ Σ))])])]
       [_ ∅])) 
 
-  (: co : R^ F K H Σ → (℘ Ξ))
-  (define (co R^₀ F K H Σ)
+  (: co : R^ F Ξ:co Σ → (℘ Ξ))
+  (define (co R^₀ F Ξ Σ)
     (match F
       [(F:Ap Vs ⟦E⟧s Ρ ℓ)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (V^ Φ^)
            (define Vs* (cons V^ Vs))
            (match ⟦E⟧s
-             [(cons ⟦E⟧ ⟦E⟧s*) {set (⟦E⟧ Ρ Φ^ (K+ (F:Ap Vs* ⟦E⟧s* Ρ ℓ) K) H₀ Σ)}]
+             [(cons ⟦E⟧ ⟦E⟧s*) {set (⟦E⟧ Ρ Φ^ (K+ (F:Ap Vs* ⟦E⟧s* Ρ ℓ) Ξ) Σ)}]
              [_ (match-define (cons fun args) (reverse Vs*))
-                (app fun args ℓ Φ^ K H₀ Σ)])))]
+                (app fun args ℓ Φ^ Ξ Σ)])))]
       [(F:Set! α)
        (with-guarded-single-arity/collapse R^₀ +ℓ₀ ; TODO
          (λ (V^ Φ^)
            (⊔ᵥ! Σ α V^)
-           {set (ret! (V->R -void Φ^) K H₀ Σ)}))]
+           {set (ret! (V->R -void Φ^) Ξ Σ)}))]
       [(F:Let ℓ xs binds bounds ⟦body⟧ Ρ)
        (with-guarded-arity/collapse R^₀ (length xs) ℓ
          (λ (W Φ^)
@@ -67,25 +67,25 @@
                (cons (cons x V) acc)))
            (match binds
              [(cons (cons xs* ⟦E⟧) binds*)
-              {set (⟦E⟧ Ρ Φ^ (K+ (F:Let ℓ xs* binds* bounds* ⟦body⟧ Ρ) K) H₀ Σ)}]
+              {set (⟦E⟧ Ρ Φ^ (K+ (F:Let ℓ xs* binds* bounds* ⟦body⟧ Ρ) Ξ) Σ)}]
              ['()
               (define-values (xs Vs) (unzip bounds*))
               (define Ρ* (bind-args! Ρ xs Vs ℓ Φ^ H₀ Σ))
-              {set (⟦body⟧ Ρ* Φ^ K H₀ Σ)}])))]
+              {set (⟦body⟧ Ρ* Φ^ Ξ Σ)}])))]
       [(F:Letrec ℓ xs binds ⟦body⟧ Ρ)
        (with-guarded-arity/collapse R^₀ (length xs) ℓ
          (λ (W Φ^)
            (⊔ᵥ*! Σ (Ρ@* Ρ xs) W)
            {set (match binds
                   [(cons (cons xs* ⟦E⟧) binds*)
-                   (⟦E⟧ Ρ Φ^ (K+ (F:Letrec ℓ xs* binds* ⟦body⟧ Ρ) K) H₀ Σ)]
-                  [_ (⟦body⟧ Ρ Φ^ K H₀ Σ)])}))]
+                   (⟦E⟧ Ρ Φ^ (K+ (F:Letrec ℓ xs* binds* ⟦body⟧ Ρ) Ξ) Σ)]
+                  [_ (⟦body⟧ Ρ Φ^ Ξ Σ)])}))]
       [(F:If l ⟦E⟧₁ ⟦E⟧₂ Ρ)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
            (define-values (R^₁ R^₂) (plausible-splits Σ R^₀))
-           (define (t) (⟦E⟧₁ Ρ (collapse-R^/Φ^ R^₁) K H₀ Σ))
-           (define (f) (⟦E⟧₂ Ρ (collapse-R^/Φ^ R^₂) K H₀ Σ))
+           (define (t) (⟦E⟧₁ Ρ (collapse-R^/Φ^ R^₁) Ξ Σ))
+           (define (f) (⟦E⟧₂ Ρ (collapse-R^/Φ^ R^₂) Ξ Σ))
            (cond [(set-empty? R^₁) {set (f)}]
                  [(set-empty? R^₂) {set (t)}]
                  [else {set (t) (f)}])))]
@@ -93,78 +93,78 @@
        {set (match ⟦E⟧s
               [(cons ⟦E⟧ ⟦E⟧s*)
                (define-values (_ Φ^) (collapse-R^ R^₀))
-               (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦E⟧s* Ρ) K) H₀ Σ)]
-              [_ (ret! R^₀ K H₀ Σ)])}]
+               (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦E⟧s* Ρ) Ξ) Σ)]
+              [_ (ret! R^₀ Ξ Σ)])}]
       [(F:Bgn0:V ⟦E⟧s Ρ)
        {set (match ⟦E⟧s
               [(cons ⟦E⟧ ⟦E⟧s*)
                (define-values (W^ Φ^) (collapse-R^ R^₀))
-               (⟦E⟧ Ρ Φ^ (K+ (F:Bgn0:E W^ ⟦E⟧s Ρ) K) H₀ Σ)]
-              [_ (ret! R^₀ K H₀ Σ)])}]
+               (⟦E⟧ Ρ Φ^ (K+ (F:Bgn0:E W^ ⟦E⟧s Ρ) Ξ) Σ)]
+              [_ (ret! R^₀ Ξ Σ)])}]
       [(F:Bgn0:E W^ ⟦E⟧s Ρ)
        (define-values (_ Φ^) (collapse-R^ R^₀))
        {set (match ⟦E⟧s
-              [(cons ⟦E⟧ ⟦E⟧s*) (⟦E⟧ Ρ Φ^ (K+ (F:Bgn0:E W^ ⟦E⟧s* Ρ) K) H₀ Σ)]
-              [_ (ret! (R W^ Φ^) K H₀ Σ)])}]
+              [(cons ⟦E⟧ ⟦E⟧s*) (⟦E⟧ Ρ Φ^ (K+ (F:Bgn0:E W^ ⟦E⟧s* Ρ) Ξ) Σ)]
+              [_ (ret! (R W^ Φ^) Ξ Σ)])}]
       [(F:Mon:C Ctx Ctc)
        (with-guarded-single-arity/collapse R^₀ (Ctx-loc Ctx)
          (λ (Val Φ^)
            (match Ctc
-             [(cons ⟦C⟧ Ρ) {set (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V Ctx Val) K) H₀ Σ)}]
-             [(? set?) (mon Ctx Ctc Val H₀ Φ^ Σ K)])))]
+             [(cons ⟦C⟧ Ρ) {set (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V Ctx Val) Ξ) Σ)}]
+             [(? set?) (mon Ctx Ctc Val Φ^ Ξ Σ)])))]
       [(F:Mon:V Ctx Val)
        (with-guarded-single-arity/collapse R^₀ (Ctx-loc Ctx)
          (λ (Ctc Φ^)
            (match Val
-             [(cons ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) K) H₀ Σ)}]
-             [(? set?) (mon Ctx Ctc Val H₀ Φ^ Σ K)])))]
+             [(cons ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) Ξ) Σ)}]
+             [(? set?) (mon Ctx Ctc Val Φ^ Ξ Σ)])))]
       [(F:Mon*:C Ctx rngs)
        (case rngs
-         [(any) {set (ret! R^₀ K H₀ Σ)}]
+         [(any) {set (ret! R^₀ Ξ Σ)}]
          [else
           (with-guarded-arity/collapse R^₀ (length rngs) (Ctx-loc Ctx)
             (λ (W Φ^)
               (define-values (βs ℓs) (unzip-by αℓ-_0 αℓ-_1 rngs))
               (match* ((Σᵥ@* Σ βs) W ℓs)
                 [((cons C₁ Cs) (cons V₁ Vs) (cons ℓ₁ ℓs))
-                 (define K* (K+ (F:Mon* Ctx Cs Vs ℓs '()) K))
-                 (mon (Ctx-with-ℓ Ctx ℓ₁) C₁ V₁ H₀ Φ^ Σ K*)]
+                 (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs '()) Ξ))
+                 (mon (Ctx-with-ℓ Ctx ℓ₁) C₁ V₁ Φ^ Ξ* Σ)]
                 [('() '() '())
-                 {set (ret! (W->R '() Φ^) K H₀ Σ)}])))])]
+                 {set (ret! (W->R '() Φ^) Ξ Σ)}])))])]
       [(F:Mon* Ctx Cs Vs ℓs Res-rev)
        (define-values (W^ Φ^) (collapse-R^ R^₀))
        (match-define (list V^) (collapse-value-lists W^ 1))
        (define Res-rev* (cons V^ Res-rev))
        (match* (Cs Vs ℓs)
          [((cons C Cs) (cons V Vs) (cons ℓ ℓs))
-          (define K* (K+ (F:Mon* Ctx Cs Vs ℓs Res-rev*) K))
-          (mon (Ctx-with-ℓ Ctx ℓ) C V H₀ Φ^ Σ K*)]
+          (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs Res-rev*) Ξ))
+          (mon (Ctx-with-ℓ Ctx ℓ) C V Φ^ Ξ* Σ)]
          [('() '() '())
-          {set (ret! (W->R (reverse Res-rev*) Φ^) K H₀ Σ)}])]
+          {set (ret! (W->R (reverse Res-rev*) Φ^) Ξ Σ)}])]
       [(F:Μ/C x)
        (with-guarded-single-arity/collapse R^₀ +ℓ₀ ; TODO
          (λ (C-body Φ^)
            (define α (mk-α (-α:x/c x H₀)))
            (⊔ᵥ! Σ α C-body)
-           {set (ret! (V->R (X/C α) Φ^) K H₀ Σ)}))]
+           {set (ret! (V->R (X/C α) Φ^) Ξ Σ)}))]
       [(F:==>:Dom inits↓ inits↑ ?rst rng Ρ ℓ)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (V Φ^)
            (define inits↓* (cons V inits↓))
            {set (match inits↑
                   [(cons ⟦C⟧ ⟦C⟧s)
-                   (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom inits↓* ⟦C⟧s ?rst rng Ρ ℓ) K) H₀ Σ)]
+                   (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom inits↓* ⟦C⟧s ?rst rng Ρ ℓ) Ξ) Σ)]
                   [_ (if ?rst
-                         (?rst Ρ Φ^ (K+ (F:==>:Rst inits↓* rng Ρ ℓ) K) H₀ Σ)
-                         (rng Ρ Φ^ (K+ (F:==>:Rng inits↓* #f ℓ) K) H₀ Σ))])}))]
+                         (?rst Ρ Φ^ (K+ (F:==>:Rst inits↓* rng Ρ ℓ) Ξ) Σ)
+                         (rng Ρ Φ^ (K+ (F:==>:Rng inits↓* #f ℓ) Ξ) Σ))])}))]
       [(F:==>:Rst inits rng Ρ ℓ)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (Vᵣ Φ^)
-           {set (rng Ρ Φ^ (K+ (F:==>:Rng inits Vᵣ ℓ) K) H₀ Σ)}))]
+           {set (rng Ρ Φ^ (K+ (F:==>:Rng inits Vᵣ ℓ) Ξ) Σ)}))]
       [(F:==>:Rng inits ?rst ℓ)
        (define-values (D^ Φ^) (collapse-R^ R^₀))
        (define V (mk-==>! Σ H₀ inits ?rst D^ ℓ))
-       {set (ret! (V->R V Φ^) K H₀ Σ)}]
+       {set (ret! (V->R V Φ^) Ξ Σ)}]
       [(F:==>i Ρ doms↓ dom-ctx doms↑) ???]
       [(F:St/C ℓ 𝒾 Cs ⟦C⟧s Ρ)
        (with-guarded-single-arity/collapse R^₀ ℓ
@@ -172,16 +172,16 @@
            (define Cs* (cons C^ Cs))
            {set (match ⟦C⟧s
                   [(cons ⟦C⟧ ⟦C⟧s*)
-                   (⟦C⟧ Ρ Φ^ (K+ (F:St/C ℓ 𝒾 Cs* ⟦C⟧s* Ρ) K) H₀ Σ)]
+                   (⟦C⟧ Ρ Φ^ (K+ (F:St/C ℓ 𝒾 Cs* ⟦C⟧s* Ρ) Ξ) Σ)]
                   [_
                    (define flds (mk-αℓ*! Σ (-𝒾-name 𝒾) (curry -α:struct/c 𝒾) H₀ ℓ (reverse Cs*)))
                    (define flat? (andmap C^-flat? Cs*))
-                   (ret! (V->R (St/C flat? 𝒾 flds) Φ^) K H₀ Σ)])}))]
+                   (ret! (V->R (St/C flat? 𝒾 flds) Φ^) Ξ Σ)])}))]
       [(F:Def l lhs)
        (with-guarded-arity/collapse R^₀ (length lhs) +ℓ₀ ; TODO
          (λ (W Φ^)
            (⊔ᵥ*! Σ lhs W)
-           {set (ret! (V->R -void Φ^) K H₀ Σ)}))]
+           {set (ret! (V->R -void Φ^) Ξ Σ)}))]
       [(F:Dec ℓ 𝒾)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (C^ Φ^)
@@ -189,7 +189,7 @@
            (define α  (mk-α (-α:top 𝒾)))
            (define α* (mk-α (-α:wrp 𝒾)))
            (define V^ (Σᵥ@ Σ α))
-           (mon (Ctx l 'dummy- l ℓ) C^ V^ H₀ Φ^ Σ (K+ (F:Def l (list α*)) K))))]
+           (mon (Ctx l 'dummy- l ℓ) C^ V^ Φ^ (K+ (F:Def l (list α*)) Ξ) Σ)))]
       [(K.Hv HV-Tag) ???]
       
       ;; Specific helpers
@@ -197,7 +197,7 @@
        (with-guarded-single-arity/collapse R^₀ +ℓ₀ ; TODO
          (λ (V^ Φ^)
            (⊔ᵥ! Σ α V^)
-           {set (ret! (V->R (X/G Ctx G α) Φ^) K H₀ Σ)}))]
+           {set (ret! (V->R (X/G Ctx G α) Φ^) Ξ Σ)}))]
       [(F:Mon-Or/C Ctx Cₗ Cᵣ V) ???]
       [(F:If:Flat/C V^ Blm)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
@@ -218,12 +218,8 @@
     #;(match K₀
       ))
 
-  (: ret! : (case-> [(U R R^) Ξ:co Σ → Ξ:co]
-                    [(U R R^) K H Σ → Ξ:co]))
-  (define ret!
-    (case-lambda
-      [(R Ξ Σ) (⊔ₐ! Σ (Ξ:co-_0 Ξ) R) Ξ]
-      [(R K H Σ) (ret! R (Ξ:co K H) Σ)]))
+  (: ret! : (U R R^) Ξ:co Σ → Ξ:co)
+  (define (ret! R Ξ Σ) (⊔ₐ! Σ Ξ R) Ξ)
 
   (: with-guarded-arity : R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))
   (define (with-guarded-arity R^ n ℓ exec)
@@ -274,17 +270,17 @@
     (values (-=> Dom Rng) φ₂)
     |#)
 
-  (: K+/And : -l (Listof ⟦E⟧) Ρ K → K)
-  (define (K+/And l ⟦E⟧s Ρ K)
+  (: K+/And : -l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)
+  (define (K+/And l ⟦E⟧s Ρ Ξ)
     (match ⟦E⟧s
-      [(cons ⟦E⟧ ⟦E⟧s) (K+ (F:If l ⟦E⟧ (mk-V -ff) Ρ) (K+/And l ⟦E⟧s Ρ K))]
-      [_ K]))
+      [(cons ⟦E⟧ ⟦E⟧s) (K+ (F:If l ⟦E⟧ (mk-V -ff) Ρ) (K+/And l ⟦E⟧s Ρ Ξ))]
+      [_ Ξ]))
 
-  (: K+/Or : -l (Listof ⟦E⟧) Ρ K → K)
-  (define (K+/Or l ⟦E⟧s Ρ K)
+  (: K+/Or : -l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)
+  (define (K+/Or l ⟦E⟧s Ρ Ξ)
     (match ⟦E⟧s
-      [(cons ⟦E⟧ ⟦E⟧s) (K+ (F:If l (mk-V -tt) ⟦E⟧ Ρ) (K+/Or l ⟦E⟧s Ρ K))]
-      [_ K]))
+      [(cons ⟦E⟧ ⟦E⟧s) (K+ (F:If l (mk-V -tt) ⟦E⟧ Ρ) (K+/Or l ⟦E⟧s Ρ Ξ))]
+      [_ Ξ]))
 
   (: mk-αℓ*! : Σ Symbol (ℓ H Index → -α) H ℓ (Listof V^) → (Listof αℓ))
   (define (mk-αℓ*! Σ tag mk H ℓ Vs)

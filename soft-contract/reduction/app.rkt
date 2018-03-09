@@ -23,10 +23,10 @@
           compile^ step^ alloc^ reflection^)
   (export app^)
 
-  (: app : V^ W ℓ Φ^ K H Σ → (℘ Ξ))
-  (define (app Vₕ^ Wₓ ℓ Φ^ K H Σ)
+  (: app : V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))
+  (define (app Vₕ^ Wₓ ℓ Φ^ Ξ₀ Σ)
     (for/union : (℘ Ξ) ([Vₕ (in-set Vₕ^)])
-      ((app₁ Vₕ) Wₓ ℓ Φ^ K H Σ)))
+      ((app₁ Vₕ) Wₓ ℓ Φ^ Ξ₀ Σ)))
 
   (: app₁ : V → ⟦F⟧^)
   (define app₁
@@ -45,44 +45,47 @@
       [(St/C #t 𝒾 αℓs) (app-St/C 𝒾 (map αℓ-_0 αℓs))]
       [(-● ps) ???]
       [(? S? S) ???]
-      [Vₕ (λ (W ℓ Φ^ K H Σ) {set (Blm ℓ 'Λ '(procedure?) (list {set Vₕ}))})]))
+      [Vₕ (λ (W ℓ Φ^ Ξ Σ) {set (Blm ℓ 'Λ '(procedure?) (list {set Vₕ}))})]))
 
-  (: app/rest/unsafe : V W V ℓ Φ^ K H Σ → (℘ Ξ))
-  (define (app/rest/unsafe Vₕ Wₓ Vᵣ ℓ Φ^ K H Σ)
+  (: app/rest/unsafe : V W V ℓ Φ^ Ξ:co Σ → (℘ Ξ))
+  (define (app/rest/unsafe Vₕ Wₓ Vᵣ ℓ Φ^ Ξ Σ)
     ???)
 
   (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
-  (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ K₀ H₀ Σ)
+  (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)
+    (match-define (Ξ:co _ _ H) Ξ)
+    (define H* (H+ H ℓ ⟦E⟧ 'app))
     ;; FIXME guard arity
-    (define Ρ* (bind-args! Ρ xs Wₓ ℓ Φ^ H₀ Σ))
-    (define α (αₖ ⟦E⟧ Ρ*))
-    (⊔ₖ! Σ α (Ξ:co K₀ H₀))
-    {set (⟦E⟧ Ρ* Φ^ (K '() α) (H+ H₀ ℓ ⟦E⟧ 'app) Σ)})
+    (define Ρ* (bind-args! Ρ xs Wₓ ℓ Φ^ H* Σ))
+    (define α* (αₖ ⟦E⟧ Ρ*))
+    (⊔ₖ! Σ α* Ξ)
+    {set (⟦E⟧ Ρ* Φ^ (Ξ:co '() α* H*) Σ)})
 
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
-  (define ((app-case-clo clos) Wₓ ℓ Φ^ K H Σ)
+  (define ((app-case-clo clos) Wₓ ℓ Φ^ Ξ Σ)
     (define n (length Wₓ))
     (define ?case
       (for/or : (Option Clo) ([clo (in-list clos)]
                               #:when (arity-includes? (V-arity clo) n))
         clo))
     (match ?case
-      [(Clo x ⟦E⟧ Ρ) ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ K H Σ)]
+      [(Clo x ⟦E⟧ Ρ) ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)]
       [#f
        (define msg (string->symbol (format "arity ~v" (V-arity (Case-Clo clos)))))
        {set (Blm ℓ 'Λ (list msg) Wₓ)}]))
 
   (: app-st-mk : -𝒾 → ⟦F⟧^)
-  (define ((app-st-mk 𝒾) Wₓ ℓ Φ^ K H Σ)
+  (define ((app-st-mk 𝒾) Wₓ ℓ Φ^ Ξ Σ)
     (define n (count-struct-fields 𝒾))
     {set (if (= n (length Wₓ))
-             (let ([αs (build-list n (λ ([i : Index]) (mk-α (-α:fld 𝒾 ℓ H i))))])
+             (let* ([H (Ξ:co-ctx Ξ)]
+                    [αs (build-list n (λ ([i : Index]) (mk-α (-α:fld 𝒾 ℓ H i))))])
                (⊔ᵥ*! Σ αs Wₓ)
-               (ret! (V->R (St 𝒾 αs) Φ^) K H Σ))
+               (ret! (V->R (St 𝒾 αs) Φ^) Ξ Σ))
              (Blm ℓ (-𝒾-name 𝒾) (list (-b n) 'values) Wₓ))})
 
   (: app-st-p : -𝒾 → ⟦F⟧^)
-  (define ((app-st-p 𝒾) Wₓ ℓ Φ^ K H Σ)
+  (define ((app-st-p 𝒾) Wₓ ℓ Φ^ Ξ Σ)
     (match Wₓ
       [(list _) ???]
       [_ {set (Blm ℓ (show-o (-st-p 𝒾)) (list (-b 1) 'values) Wₓ)}]))
@@ -90,24 +93,24 @@
   (:* app-And/C app-Or/C : α α → ⟦F⟧^)
   (define-values (app-And/C app-Or/C)
     (let ()
-      (: app-Comb/C : (-l (Listof ⟦E⟧) Ρ K → K) → α α → ⟦F⟧^)
-      (define (((app-Comb/C K+) α₁ α₂) Wₓ ℓ Φ^ K H Σ)
+      (: app-Comb/C : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co) → α α → ⟦F⟧^)
+      (define (((app-Comb/C K+) α₁ α₂) Wₓ ℓ Φ^ Ξ Σ)
         (match Wₓ
           [(list Vₓ)
            (define V₁ (Σᵥ@ Σ α₁))
            (define V₂ (Σᵥ@ Σ α₂))
            (define ⟦rhs⟧ (mk-app ℓ (mk-V V₂) (list (mk-V Vₓ))))
-           (app V₁ Wₓ ℓ Φ^ (K+ (ℓ-src ℓ) (list ⟦rhs⟧) ⊥Ρ K) H Σ)]
+           (app V₁ Wₓ ℓ Φ^ (K+ (ℓ-src ℓ) (list ⟦rhs⟧) ⊥Ρ Ξ) Σ)]
           [_ {set (Blm ℓ 'And/C (list (-b 1) 'values) Wₓ)}]))
       (values (app-Comb/C K+/And) (app-Comb/C K+/Or))))
 
   (: app-Not/C : α → ⟦F⟧^)
-  (define ((app-Not/C α) Wₓ ℓ Φ^ K H Σ)
+  (define ((app-Not/C α) Wₓ ℓ Φ^ Ξ Σ)
     (define Vₕ (Σᵥ@ Σ α))
-    (app Vₕ Wₓ ℓ Φ^ (K+ (F:Ap (list {set 'not}) '() ⊥Ρ ℓ) K) H Σ))
+    (app Vₕ Wₓ ℓ Φ^ (K+ (F:Ap (list {set 'not}) '() ⊥Ρ ℓ) Ξ) Σ))
 
   (: app-St/C : -𝒾 (Listof α) → ⟦F⟧^)
-  (define ((app-St/C 𝒾 αs) Wₓ ℓ Φ^ K H Σ)
+  (define ((app-St/C 𝒾 αs) Wₓ ℓ Φ^ Ξ Σ)
     ;; TODO fix ℓᵢ for each contract component
     (match Wₓ
       [(list (or (St 𝒾* _) (X/G _ (St/C _ 𝒾* _) _)))
@@ -117,8 +120,8 @@
            (define Cᵢ (Σᵥ@ Σ α))
            (define ac (-st-ac 𝒾 i))
            (mk-app ℓ (mk-V Cᵢ) (list (mk-app ℓ (mk-V ac) (list (mk-W Wₓ)))))))
-       (app₁ (-st-p 𝒾) Wₓ ℓ Φ^ (K+/And (ℓ-src ℓ) ⟦chk-field⟧s ⊥Ρ K) H Σ)]
-      [_ {set (ret! (V->R -ff Φ^) K H Σ)}]))
+       (app₁ (-st-p 𝒾) Wₓ ℓ Φ^ (K+/And (ℓ-src ℓ) ⟦chk-field⟧s ⊥Ρ Ξ) Σ)]
+      [_ {set (ret! (V->R -ff Φ^) Ξ Σ)}]))
 
   #|
   (: app : ℓ -V^ (Listof -V^) -H -φ -Σ -⟦k⟧ → (℘ -ς))

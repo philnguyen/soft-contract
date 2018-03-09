@@ -135,7 +135,7 @@
   ([mutable? : (α → Boolean)]
    [bind-args! : (Ρ -formals W ℓ Φ^ H Σ → Ρ)]
    [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)]
-   [⊔ₐ! : (Σ K (U R R^) → Void)]
+   [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
    [⊔ᵥ! : (Σ α (U V V^) → Void)]
    [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
    [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
@@ -148,21 +148,20 @@
 
 (define-signature step^
   ([↝! : (Ξ Σ → (℘ Ξ))]
-   [ret! : (case-> [(U R R^) Ξ:co Σ → Ξ:co]
-                   [(U R R^) K H Σ → Ξ:co])]
-   [K+/And : (-l (Listof ⟦E⟧) Ρ K → K)]
-   [K+/Or  : (-l (Listof ⟦E⟧) Ρ K → K)]
+   [ret! : [(U R R^) Ξ:co Σ → Ξ:co]]
+   [K+/And : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
+   [K+/Or  : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]))
 
 (define-signature app^
-  ([app : (V^ W ℓ Φ^ K H Σ → (℘ Ξ))]
+  ([app : (V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))]
    #;[app₁ : V → ⟦F⟧]
-   [app/rest/unsafe : (V W V ℓ Φ^ K H Σ → (℘ Ξ))]))
+   [app/rest/unsafe : (V W V ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature mon^
-  ([mon : (Ctx V^ V^ H Φ^ Σ K → (℘ Ξ))]))
+  ([mon : (Ctx V^ V^ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature reflection^
   ([V-arity : (case->

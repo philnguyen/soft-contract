@@ -34,14 +34,14 @@
     (define ⟦E⟧ (->⟦E⟧ x))
     (define αₖ₀ (αₖ ⟦E⟧ ⊥Ρ))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
-    (values (⟦E⟧ ⊥Ρ {set ∅} (K '() αₖ₀) H₀ Σ₀) Σ₀))
+    (values (⟦E⟧ ⊥Ρ {set ∅} (Ξ:co '() αₖ₀ H₀) Σ₀) Σ₀))
 
   (: run : (U -prog ⟦E⟧) → (Values (℘ Blm) Σ))
   (define (run p)
     (define-values (Ξ₀ Σ) (inj p))
     ;; TODO real versioning
     (Ver . ≜ . (List Σᵥ Σₖ Σₐ)) 
-    (define seen : (Mutable-HashTable Ξ Ver) (make-hash))
+    (define seen : (Mutable-HashTable Ξ:co Ver) (make-hash))
     (define (ver) : Ver (list (Σ-val Σ) (Σ-kon Σ) (Σ-evl Σ)))
     (define-set blms : Blm)
 

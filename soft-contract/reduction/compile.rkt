@@ -36,7 +36,7 @@
        (define ⟦m⟧ (↓ₘ m))
        (define ⟦m⟧s (map ↓ₘ ms))
        (define ⟦E⟧ (↓ₑ '† E))
-       (λ (Ρ Φ^ K H Σ) (⟦m⟧ Ρ Φ^ (K+ (F:Bgn `(,@⟦m⟧s ,⟦E⟧) Ρ) K) H Σ))]))
+       (λ (Ρ Φ^ Ξ Σ) (⟦m⟧ Ρ Φ^ (K+ (F:Bgn `(,@⟦m⟧s ,⟦E⟧) Ρ) Ξ) Σ))]))
 
   (: ↓ₘ : -module → ⟦E⟧)
   ;; Compile module
@@ -44,10 +44,10 @@
     (match-define (-module l ds) m)
 
     (: ↓pc : -provide-spec → ⟦E⟧)
-    (define-compiler ((↓pc spec) Ρ Φ^ K H Σ)
+    (define-compiler ((↓pc spec) Ρ Φ^ Ξ Σ)
       ;; Wrap contract
       [=> (-p/c-item x C ℓ)
-          (⟦C⟧ Ρ Φ^ (K+ (F:Dec ℓ 𝒾) K) H Σ)
+          (⟦C⟧ Ρ Φ^ (K+ (F:Dec ℓ 𝒾) Ξ) Σ)
           #:where
           [𝒾 (-𝒾 x l)]
           [⟦C⟧ (↓ₑ l C)]]
@@ -55,22 +55,22 @@
       [=> (? symbol? x)
           (begin (assert (defined-at? Σ α))
                  (⊔ᵥ! Σ α* (Σᵥ@ Σ α))
-                 (ret! (R A Φ^) K H Σ))
+                 (ret! (R A Φ^) Ξ Σ))
        #:where
        [α  (mk-α (-α:top (-𝒾 x l)))]
        [α* (mk-α (-α:wrp (-𝒾 x l)))]
        [A  {set (list {set -void})}]])
     
     (: ↓d : -module-level-form → ⟦E⟧)
-    (define-compiler ((↓d d) Ρ Φ^ K H Σ)
+    (define-compiler ((↓d d) Ρ Φ^ Ξ Σ)
       [=> (-define-values xs E)
-          (⟦E⟧ Ρ Φ^ (K+ (F:Def l αs) K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Def l αs) Ξ) Σ)
           #:where
           [αs (for/list : (Listof α) ([x (in-list xs)]) (mk-α (-α:top (-𝒾 x l))))]
           [⟦E⟧ (↓ₑ l E)]]
       [(-provide '()) (mk-V -void)]
       [=> (-provide (cons spec specs))
-          (⟦spec⟧ Ρ Φ^ (K+ (F:Bgn ⟦spec⟧s Ρ) K) H Σ)
+          (⟦spec⟧ Ρ Φ^ (K+ (F:Bgn ⟦spec⟧s Ρ) Ξ) Σ)
           #:where
           [⟦spec⟧ (↓pc spec)]
           [⟦spec⟧s (map ↓pc specs)]]
@@ -83,8 +83,8 @@
       [(cons D Ds)
        (define ⟦D⟧ (↓d D))
        (define ⟦D⟧s (map ↓d Ds))
-       (λ (Ρ Φ^ K H Σ)
-         (⟦D⟧ Ρ Φ^ (K+ (F:Bgn ⟦D⟧s Ρ) K) H Σ))]))
+       (λ (Ρ Φ^ Ξ Σ)
+         (⟦D⟧ Ρ Φ^ (K+ (F:Bgn ⟦D⟧s Ρ) Ξ) Σ))]))
 
   (: ↓ₑ : -l -e → ⟦E⟧)
   (define (↓ₑ l e)
@@ -114,17 +114,17 @@
       (Blm/simp ℓ 'Λ '(struct-defined?) (list {set (-𝒾-name 𝒾)})))
     
     (: ↓ : -e → ⟦E⟧)
-    (define-compiler ((↓ E) Ρ Φ^ K H Σ)
+    (define-compiler ((↓ E) Ρ Φ^ Ξ Σ)
       [(? -prim? p) (mk-V p)]
       [(-•) (mk-V (-● ∅))]
       [(-x (? symbol? x) ℓₓ) (↓ₓ x ℓₓ)]
       [=> (-λ xs E*)
-          (ret! (V->R (Clo xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) K H Σ)
+          (ret! (V->R (Clo xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) Ξ Σ)
           #:where [fvs (fv E)]
           #:recur E*]
       [=> (-x (and 𝒾 (-𝒾 x lₒ)) _)
           (let ([V^ (map/set modify-V (Σᵥ@ Σ α))])
-            (ret! (V->R V^ Φ^) K H Σ))
+            (ret! (V->R V^ Φ^) Ξ Σ))
           #:where
           [α (mk-α ((if (equal? lₒ l) -α:top -α:wrp) 𝒾))]
           [modify-V
@@ -139,7 +139,7 @@
                            [_ V]))))])
                 (V → V))]]
       [=> (-@ E Es ℓ)
-          (⟦E⟧ Ρ Φ^ (K+ (F:Ap '() ⟦Es⟧ Ρ ℓ) K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Ap '() ⟦Es⟧ Ρ ℓ) Ξ) Σ)
           #:where ; HACK
           [_ (match* (E Es)
                [('scv:mon (cons (-b (? symbol? l)) _))
@@ -148,31 +148,31 @@
                [(_ _) 'ignore])]
           #:recur E (Es ...)]
       [=> (-if E E₁ E₂)
-          (⟦E⟧ Ρ Φ^ (K+ (F:If l ⟦E₁⟧ ⟦E₂⟧ Ρ) K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:If l ⟦E₁⟧ ⟦E₂⟧ Ρ) Ξ) Σ)
           #:recur E E₁ E₂]
       [(-wcm Eₖ Eᵥ E) (error '↓ₑ "TODO: wcm")]
       [(-begin '()) (mk-V -void)]
       [=> (-begin (cons E Es))
-          (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦Es⟧ Ρ) K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦Es⟧ Ρ) Ξ) Σ)
           #:recur E (Es ...)]
       [=> (-begin0 E₀ Es)
-          (⟦E₀⟧ Ρ Φ^ (K+ (F:Bgn0:V ⟦Es⟧ Ρ) K) H Σ)
+          (⟦E₀⟧ Ρ Φ^ (K+ (F:Bgn0:V ⟦Es⟧ Ρ) Ξ) Σ)
           #:recur E₀ (Es ...)]
       [(-quote (? Base? b)) (mk-V (-b b))]
       [(-quote q) (error '↓ₑ "TODO: (quote ~a)" q)]
       [(-let-values '() E _) (↓ E)]
       [=> (-let-values bnds E ℓ)
-          (⟦E⟧ₓ Ρ Φ^ (K+ (F:Let ℓ x ⟦bnd⟧s '() ⟦E⟧ Ρ) K) H Σ)
+          (⟦E⟧ₓ Ρ Φ^ (K+ (F:Let ℓ x ⟦bnd⟧s '() ⟦E⟧ Ρ) Ξ) Σ)
           #:where [(cons (cons x ⟦E⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]
           #:recur E]
       [(-letrec-values '() E _) (↓ E)]
       [=> (-letrec-values bnds E ℓ)
-          (let ([Ρ* (init-undefined! Σ bnds H Ρ)])
-            (⟦E⟧ₓ Ρ* Φ^ (K+ (F:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ*) K) H Σ))
+          (let ([Ρ* (init-undefined! Σ bnds (Ξ:co-ctx Ξ) Ρ)])
+            (⟦E⟧ₓ Ρ* Φ^ (K+ (F:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ*) Ξ) Σ))
           #:where [(cons (cons x ⟦E⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]
           #:recur E]
       [=> (-set! x E)
-          (⟦E⟧ Ρ Φ^ (K+ (F:Set! (get-addr Ρ)) K) H Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Set! (get-addr Ρ)) Ξ) Σ)
           #:where [get-addr
                    (if (symbol? x)
                        (λ ([Ρ : Ρ]) (Ρ@ Ρ x))
@@ -180,24 +180,24 @@
           #:recur E]
       [(-error msg ℓ) (mk-Blm (Blm/simp ℓ 'Λ '(not-reached) (list (set (-b msg)))))]
       [=> (-μ/c x C)
-          (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x H))) Φ^ (K+ (F:Μ/C x) K) H Σ)
+          (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x (Ξ:co-ctx Ξ)))) Φ^ (K+ (F:Μ/C x) Ξ) Σ)
           #:recur C]
       [(--> Cs D ℓ) (mk--> ℓ (-var-map ↓ Cs) (↓ D))]
       [(-->i Cs D) (mk-->i (map ↓-dom Cs) (↓-dom D))]
       [=> (-∀/c xs E*)
-          (ret! (V->R (∀/C xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) K H Σ)
+          (ret! (V->R (∀/C xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) Ξ Σ)
           #:where [fvs (fv E)]
           #:recur E*]
       [=> (-x/c x)
-          (ret! (V->R (X/C (Ρ@ Ρ x)) Φ^) K H Σ)]
+          (ret! (V->R (X/C (Ρ@ Ρ x)) Φ^) Ξ Σ)]
       [=> (-struct/c 𝒾 '() ℓ)
-          (cond [(𝒾-defined? Σ) (ret! (W->R C Φ^) K H Σ)]
+          (cond [(𝒾-defined? Σ) (ret! (W->R C Φ^) Ξ Σ)]
                 [else (blm:undefined-struct 𝒾 ℓ)])
           #:where
           [𝒾-defined? (struct-defined? 𝒾)]
           [C (list {set (St/C #t 𝒾 '())})]]
       [=> (-struct/c 𝒾 (cons C Cs) ℓ)
-          (cond [(𝒾-defined? Σ) (⟦C⟧ Ρ Φ^ (K+ (F:St/C ℓ 𝒾 '() ⟦Cs⟧ Ρ) K) H Σ)]
+          (cond [(𝒾-defined? Σ) (⟦C⟧ Ρ Φ^ (K+ (F:St/C ℓ 𝒾 '() ⟦Cs⟧ Ρ) Ξ) Σ)]
                 [else (blm:undefined-struct 𝒾 ℓ)])
           #:where [𝒾-defined? (struct-defined? 𝒾)]
           #:recur C (Cs ...)]
@@ -207,66 +207,65 @@
 
   (define/memo (↓ₓ [x : Symbol] [ℓₓ : ℓ]) : ⟦E⟧
     (define blm:undefined (Blm/simp ℓₓ 'Λ '(defined?) (list {set -undefined})))
-    (λ (Ρ Φ^ K H Σ)
+    (λ (Ρ Φ^ Ξ Σ)
       (define V^ (Σᵥ@ Σ (Ρ@ Ρ x)))
       (if (set-empty? V^)
           blm:undefined
-          (ret! (V->R V^ Φ^) K H Σ))))
+          (ret! (V->R V^ Φ^) Ξ Σ))))
 
   (define (mk-V [V : (U V V^)]) : ⟦E⟧
     (mk-W (if (set? V) (list V) (list {set V}))))
 
   (define/memo (mk-W [W : W]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ) (ret! (W->R W Φ^) K H Σ)))
+    (λ (Ρ Φ^ Ξ Σ) (ret! (W->R W Φ^) Ξ Σ)))
 
   (define/memo (mk-Blm [blm : Blm]) : ⟦E⟧ (λ _ blm))
 
   (define/memo (mk-->i [⟦dom⟧s : (Listof ⟦dom⟧)] [⟦rng⟧ : ⟦dom⟧]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ)
+    (λ (Ρ Φ^ Ξ Σ)
       (define-values (Doms doms) (split-⟦dom⟧s Ρ (append ⟦dom⟧s (list ⟦rng⟧))))
       (match doms
         ['() (let ([G (==>i (reverse (cdr Doms)) (car Doms))])
-               (ret! (V->R G Φ^) K H Σ))]
+               (ret! (V->R G Φ^) Ξ Σ))]
         [(cons (⟦dom⟧ x #f ⟦C⟧ ℓ) ⟦dom⟧s)
-         (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ Doms (cons x ℓ) ⟦dom⟧s) K) H Σ)])))
+         (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ Doms (cons x ℓ) ⟦dom⟧s) Ξ) Σ)])))
 
   (define/memo (mk--> [ℓ : ℓ] [⟦dom⟧s : (-maybe-var ⟦E⟧)] [⟦rng⟧ : ⟦E⟧]) : ⟦E⟧
     (match ⟦dom⟧s
       ['()
-       (λ (Ρ Φ^ K H Σ) (⟦rng⟧ Ρ Φ^ (K+ (F:==>:Rng '() #f ℓ) K) H Σ))]
+       (λ (Ρ Φ^ Ξ Σ) (⟦rng⟧ Ρ Φ^ (K+ (F:==>:Rng '() #f ℓ) Ξ) Σ))]
       [(cons ⟦C⟧ ⟦C⟧s)
-       (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom '() ⟦C⟧s #f ⟦rng⟧ Ρ ℓ) K) H Σ))]
+       (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom '() ⟦C⟧s #f ⟦rng⟧ Ρ ℓ) Ξ) Σ))]
       [(-var ⟦C⟧s ⟦Cᵣ⟧)
        (match ⟦C⟧s
          ['()
-          (λ (Ρ Φ^ K H Σ) (⟦Cᵣ⟧ Ρ Φ^ (K+ (F:==>:Rst '() ⟦rng⟧ Ρ ℓ) K) H Σ))]
+          (λ (Ρ Φ^ Ξ Σ) (⟦Cᵣ⟧ Ρ Φ^ (K+ (F:==>:Rst '() ⟦rng⟧ Ρ ℓ) Ξ) Σ))]
          [(cons ⟦C⟧ ⟦C⟧s)
-          (λ (Ρ Φ^ K H Σ)
-            (define K* (K+ (F:==>:Dom '() ⟦C⟧s ⟦Cᵣ⟧ ⟦rng⟧ Ρ ℓ) K))
-            (⟦C⟧ Ρ Φ^ K* H Σ))])]))
+          (λ (Ρ Φ^ Ξ Σ)
+            (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom '() ⟦C⟧s ⟦Cᵣ⟧ ⟦rng⟧ Ρ ℓ) Ξ) Σ))])]))
 
   (define/memo (mk-let* [ℓ : ℓ] [⟦bnd⟧s : (Assoc Symbol ⟦E⟧)] [⟦body⟧ : ⟦E⟧]) : ⟦E⟧
     (foldr
      (λ ([⟦bnd⟧ : (Pairof Symbol ⟦E⟧)] [⟦body⟧ : ⟦E⟧]) : ⟦E⟧
         (match-define (cons (app list x) ⟦E⟧ₓ) ⟦bnd⟧)
-        (λ (Ρ Φ^ K H Σ)
-          (⟦E⟧ₓ Ρ Φ^ (K+ (F:Let ℓ x '() '() ⟦body⟧ Ρ) K) H Σ)))
+        (λ (Ρ Φ^ Ξ Σ)
+          (⟦E⟧ₓ Ρ Φ^ (K+ (F:Let ℓ x '() '() ⟦body⟧ Ρ) Ξ) Σ)))
      ⟦body⟧
      ⟦bnd⟧s)) 
 
   (define/memo (mk-mon [ctx : Ctx] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V ctx (cons ⟦V⟧ Ρ)) K) H Σ)))
+    (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V ctx (cons ⟦V⟧ Ρ)) Ξ) Σ)))
 
   (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : ⟦E⟧] [⟦x⟧s : (Listof ⟦E⟧)]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ) (⟦f⟧ Ρ Φ^ (K+ (F:Ap '() ⟦x⟧s Ρ ℓ) K) H Σ))) 
+    (λ (Ρ Φ^ Ξ Σ) (⟦f⟧ Ρ Φ^ (K+ (F:Ap '() ⟦x⟧s Ρ ℓ) Ξ) Σ))) 
 
   (define/memo (mk-fc [l : -l] [ℓ : ℓ] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
-    (λ (Ρ Φ^ K H Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Fc:V l ℓ ⟦V⟧ Ρ) K) H Σ)))
+    (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Fc:V l ℓ ⟦V⟧ Ρ) Ξ) Σ)))
 
   (define/memo (mk-wrapped [C : Prox/C] [ctx : Ctx] [α : α] [V : V^]) : ⟦E⟧
-    (λ (ρ Φ^ K H Σ)
+    (λ (ρ Φ^ Ξ Σ)
       (⊔ᵥ! Σ α V)
-      (ret! (V->R (X/G ctx C α) Φ^) K H Σ)))
+      (ret! (V->R (X/G ctx C α) Φ^) Ξ Σ)))
 
   (: split-⟦dom⟧s : Ρ (Listof ⟦dom⟧) → (Values (Listof Dom) (Listof ⟦dom⟧)))
   (define (split-⟦dom⟧s Ρ ⟦dom⟧s)

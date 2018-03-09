@@ -53,8 +53,8 @@
   (: Σₖ@ : (U Σ Σₖ) αₖ → Ξ:co^)
   (define (Σₖ@ Σ αₖ) (hash-ref (->Σₖ Σ) αₖ mk-∅))
 
-  (: Σₐ@ : (U Σ Σₐ) K → R^)
-  (define (Σₐ@ Σ K) (hash-ref (->Σₐ Σ) K mk-∅))
+  (: Σₐ@ : (U Σ Σₐ) Ξ:co → R^)
+  (define (Σₐ@ Σ Ξ:co) (hash-ref (->Σₐ Σ) Ξ:co mk-∅))
 
   (define α• (mk-α (-α:opq)))
 
@@ -68,7 +68,7 @@
   (define (construct-call-graph Σₖ)
     (for*/fold ([CG : CG (hash)])
                ([(α Ξₛs) (in-hash (->Σₖ Σₖ))] [Ξₛ (in-set Ξₛs)])
-      (define αₛ (K-_1 (Ξ:co-_0 Ξₛ)))
+      (match-define (Ξ:co _ αₛ _) Ξₛ)
       (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)))))
 
   #|

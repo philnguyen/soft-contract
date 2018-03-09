@@ -14,31 +14,31 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ:co K H) Blm)
-(#|Continuation    |# K . ::= . (K (Listof F) αₖ))
+(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K] [ret : αₖ] [ctx : H])
+                                Blm)
+(#|Local kont.     |# K . ≜ . (Listof F))
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
 (#|Value address   |# -α . ::= . #:TBD) 
 (#|Result          |# R . ::= . (R W^ Φ^))
-(#|Path-condition  |# Φ . ::= . [#:reuse (℘ S)])
+(#|Path-condition  |# Φ . ≜ . (℘ S))
 (#|Environment     |# Ρ  . ≜ . (Immutable-HashTable Symbol α))
 (#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]))
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
 (#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Ξ:co^))
-(#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable K R^))
-(#|Value list      |# W  . ::= . [#:reuse (Listof V^)])
-(#|Compiled expr   |# ⟦E⟧ . ≜ . (  Ρ Φ^ K H Σ → Ξ))
-(#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ K H Σ → Ξ))
+(#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable Ξ:co R^))
+(#|Value list      |# W  . ≜ . (Listof V^))
+(#|Compiled expr   |# ⟦E⟧ . ≜ . (  Ρ Φ^ Ξ:co Σ → Ξ))
+(#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ Ξ:co Σ → Ξ))
 (#|Call graph      |# CG . ≜ . (Immutable-HashTable αₖ (℘ αₖ)))
 (#|Kont. frame     |# F . ::= . #:TBD)
 ;; Approximated versions of things
-(Φ^ . ::= . [#:reuse (℘ Φ)])
-(V^ . ::= . [#:reuse (℘ V)])
-(R^ . ::= . [#:reuse (℘ R)])
-(K^ . ::= . [#:reuse (℘ K)])
-(Ξ:co^ . ::= . [#:reuse (℘ Ξ:co)])
-(W^ . ::= . [#:reuse (℘ W)])
-(⟦F⟧^ . ≜ . (W ℓ Φ^ K H Σ → (℘ Ξ)))
+(Φ^ . ≜ . (℘ Φ))
+(V^ . ≜ . (℘ V))
+(R^ . ≜ . (℘ R))
+(Ξ:co^ . ≜ . (℘ Ξ:co))
+(W^ . ≜ . (℘ W))
+(⟦F⟧^ . ≜ . (W ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 
 (#|Value|# V . ::= . (-● (℘ P))
                      -prim
@@ -153,7 +153,7 @@
    [⊥Σₐ : Σₐ]
    [Σᵥ@ : ((U Σ Σᵥ) α  → V^)]
    [Σₖ@ : ((U Σ Σₖ) αₖ → Ξ:co^)]
-   [Σₐ@ : ((U Σ Σₐ) K  → R^)]
+   [Σₐ@ : ((U Σ Σₐ) Ξ:co → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
    [α• : α]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
@@ -198,7 +198,7 @@
    [V⊔ : (V^ V^ → V^)]
    [⊥V : V^]
    [collapse-value-lists : (W^ Natural → W)]
-   [K+ : (F K → K)]
+   [K+ : (F Ξ:co → Ξ:co)]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 
