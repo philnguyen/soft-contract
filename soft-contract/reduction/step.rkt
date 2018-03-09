@@ -1,11 +1,7 @@
 #lang typed/racket/base
 
-(require (for-syntax racket/base
-                     racket/syntax
-                     syntax/parse)
-         (only-in racket/function curry)
+(require (only-in racket/function curry)
          (except-in racket/set for/set for*/set for/seteq for*/seteq)
-         racket/bool
          racket/match
          racket/list
          typed/racket/unit

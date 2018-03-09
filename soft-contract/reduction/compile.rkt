@@ -2,15 +2,11 @@
 
 (provide compile@)
 
-(require (for-syntax racket/base
-                     racket/syntax
-                     syntax/parse)
-         (only-in racket/function const)
+(require (only-in racket/function const)
          racket/set
          racket/list
          racket/match
          typed/racket/unit
-         syntax/parse/define
          set-extras
          unreachable
          abstract-compilation
@@ -150,7 +146,7 @@
       [=> (-if E E₁ E₂)
           (⟦E⟧ Ρ Φ^ (K+ (F:If l ⟦E₁⟧ ⟦E₂⟧ Ρ) Ξ) Σ)
           #:recur E E₁ E₂]
-      [(-wcm Eₖ Eᵥ E) (error '↓ₑ "TODO: wcm")]
+      [(-wcm Eₖ Eᵥ E) ???]
       [(-begin '()) (mk-V -void)]
       [=> (-begin (cons E Es))
           (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦Es⟧ Ρ) Ξ) Σ)
@@ -159,7 +155,7 @@
           (⟦E₀⟧ Ρ Φ^ (K+ (F:Bgn0:V ⟦Es⟧ Ρ) Ξ) Σ)
           #:recur E₀ (Es ...)]
       [(-quote (? Base? b)) (mk-V (-b b))]
-      [(-quote q) (error '↓ₑ "TODO: (quote ~a)" q)]
+      [(-quote q) ???]
       [(-let-values '() E _) (↓ E)]
       [=> (-let-values bnds E ℓ)
           (⟦E⟧ₓ Ρ Φ^ (K+ (F:Let ℓ x ⟦bnd⟧s '() ⟦E⟧ Ρ) Ξ) Σ)
