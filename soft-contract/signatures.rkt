@@ -21,9 +21,6 @@
 #;(define-signature lib^
   ([verify : (Syntax (HashTable Symbol Syntax) → Any)]))
 
-#;(define-signature reduction^
-    ([run : (-⟦e⟧ → (Values (℘ -A) -Σ))])) 
-
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]
    [parse-module : (Syntax → -module)]
@@ -58,26 +55,3 @@
    [-V → (Option Arity)])]
    |#))
 
-;; FIXME: least coherent signature ever.
-;; Could have named it "misc"...
-#;(define-signature widening^
-  ([V⊕ : (-φ -V^ -V^ → -V^)]
-   [σ⊕ : (-σ -σ → -σ)]
-   [compat? : (-φ -V -V → (Option (℘ -h)))]))
-
-#;(define-signature for-gc^
-  ([add-⟦k⟧-roots! : (-⟦k⟧ (℘ ⟪α⟫) → Void)]
-   [⟦k⟧->roots : (-⟦k⟧ → (℘ ⟪α⟫))]
-   [set-⟦k⟧->αₖ! : (-⟦k⟧ -αₖ → Void)]
-   [⟦k⟧->αₖ : (-⟦k⟧ → -αₖ)]
-   [V->⟪α⟫s : (-V → (℘ ⟪α⟫))]
-   [ρ->⟪α⟫s : (-ρ → (℘ ⟪α⟫))]
-   [αₖ->⟪α⟫s : (-αₖ -σₖ → (℘ ⟪α⟫))]
-   [⟦k⟧->⟪α⟫s : (-⟦k⟧ -σₖ → (℘ ⟪α⟫))]
-   [->⟪α⟫s : ((Rec X (U -⟪α⟫ℓ -V -ρ (Listof X) (℘ X) (Boxof ⟪α⟫))) → (℘ ⟪α⟫))]
-   [σ-equal?/spanning-root : (-σ -σ (℘ ⟪α⟫) → Boolean)]
-   [gc-αₖ : (-Σ -αₖ -⟦k⟧ → -αₖ)]
-   [span-δσ : (-Σ -δσ (℘ ⟪α⟫) → -σ)]))
-
-(define-signature debugging^
-  ())
