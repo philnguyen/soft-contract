@@ -6,6 +6,10 @@
          racket/list
          typed/racket/unit
          set-extras
+         intern
+         bnf
+         traces/typed
+         unreachable
          "utils/main.rkt"
          "ast/signatures.rkt"
          "runtime/signatures.rkt"
@@ -13,41 +17,75 @@
          "reduction/signatures.rkt"
          )
 
+(define-interner Iᵥ Σᵥ)
+(define-interner Iₖ Σₖ)
+(define-interner Iₐ Σₐ)
+
 (define-unit verifier@
-  (import static-info^ run^ compile^ parser^)
+  (import static-info^ step^ compile^ parser^)
   (export verifier^)
 
   (define-syntax-rule (with-initialized-static-info e ...)
     (parameterize ([current-static-info (new-static-info)])
       e ...))
-  
-  (define (run-files [ps : (Listof Path-String)]) : (Values (℘ Blm) Σ)
-    (with-initialized-static-info
-      (run (↓ₚ (-prog (parse-files ps) -void)))))
 
-  #;(define (havoc-files [ps : (Listof Path-String)]) : (Values (℘ Blm) -Σ)
+  (: run : Runnable → (Values (℘ Blm) Σ))
+  (define (run x)
     (with-initialized-static-info
+      (↝* (comp x))))
+
+  (: havoc : (Listof Path-String) → (Values (℘ Blm) Σ))
+  (define (havoc ps) ???
+    #;(with-initialized-static-info
       (define ms (parse-files ps))
-      (run (↓ₚ (-prog ms (gen-havoc-expr ms))))))
+      (↝* (↓ₚ (-prog ms (gen-havoc-expr ms))))))
 
-  #;(: havoc-files/profile
-     ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -A) -Σ)))
-  #;(define (havoc-files/profile ps #:delay [delay 0.05])
-    (define ans : (℘ -A) ∅)
-    (define Σ : (Option -Σ) #f)
-    ((inst profile-thunk Void)
-     (λ ()
-       (set!-values (ans Σ) (havoc-files ps)))
-     #:delay delay)
-    (values ans (assert Σ)))
+  (: havoc/profile ([(Listof Path-String)]
+                    [#:delay Positive-Real]
+                    . ->* . (Values (℘ Blm) Σ)))
+  (define (havoc/profile ps #:delay [delay 0.05])
+    (let ([ans : (℘ Blm) ∅]
+          [Σ : (Option Σ) #f])
+      ((inst profile-thunk Void)
+       (λ () (set!-values (ans Σ) (havoc ps))) #:delay delay)
+      (values ans (assert Σ))))
 
-  #;(define (havoc-last-file [ps : (Listof Path-String)]) : (Values (℘ -A) -Σ)
-    (with-initialized-static-info
+  (: havoc-last : (Listof Path-String) → (Values (℘ Blm) Σ))
+  (define (havoc-last ps) ???
+    #;(with-initialized-static-info
       (define ms (parse-files ps))
       (run (↓ₚ ms (gen-havoc-expr (list (last ms)))))))
 
-  (define (run-e [e : -e]) : (Values (℘ Blm) -Σ)
-    (with-initialized-static-info
-      (run (↓ₑ 'top e))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; Visualization
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Compacting each store to its version to display
+  (Ξ* . ≜ . (List Ξ Iᵥ Iₖ Iₐ))
+
+  (: viz : Runnable → Σ)
+  (define (viz x)
+    (define-values (Ξ₀ Σ₀) (inj (comp x)))
+
+    (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
+      ;; depending on mutable state Σ₀
+      (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
+      (list Ξ (Iᵥ-of Σᵥ) (Iₖ-of Σₖ) (Iₐ-of Σₐ)))
+
+    (define Ξ*->Ξ : (Ξ* → Ξ)
+      (match-lambda [(list Ξ _ _ _) Ξ]))
+    
+    (define ↝₁ : (Ξ* → (℘ Ξ*))
+      (λ (Ξ*) (map/set Ξ->Ξ* (↝ (Ξ*->Ξ Ξ*) Σ₀))))
+    
+    (function-traces ↝₁ (Ξ->Ξ* Ξ₀))
+    Σ₀)
+
+  (: comp : Runnable → ⟦E⟧)
+  (define (comp x)
+    (cond [(-prog? x) (↓ₚ x)]
+          [(list? x) (↓ₚ (-prog (parse-files x) -void))]
+          [else (↓ₑ 'top-level x)]))
   )
 

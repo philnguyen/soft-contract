@@ -4,22 +4,19 @@
 
 (require typed/racket/unit
          set-extras
+         bnf
          "ast/signatures.rkt"
          "runtime/signatures.rkt")
 
+(Runnable . ::= . -prog -e [#:reuse (Listof Path-String)])
+
 (define-signature verifier^
-  ([run-files : ((Listof Path-String) → (Values (℘ Blm) Σ))]
-   #;[havoc-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
-   #;[havoc-files/profile
-    : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -A) -Σ))]
-   #;[havoc-last-file : ((Listof Path-String) → (Values (℘ -A) -Σ))]
-   [run-e : (-e → (Values (℘ Blm) Σ))]))
-
-(define-signature debug^
-  ([viz : ((U -prog ⟦E⟧) → Σ)]))
-
-#;(define-signature lib^
-  ([verify : (Syntax (HashTable Symbol Syntax) → Any)]))
+  ([run : (Runnable → (Values (℘ Blm) Σ))]
+   [viz : (Runnable → Σ)]
+   [havoc : ((Listof Path-String) → (Values (℘ Blm) Σ))]
+   [havoc/profile
+    : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Blm) Σ))]
+   [havoc-last : ((Listof Path-String) → (Values (℘ Blm) Σ))]))
 
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]
