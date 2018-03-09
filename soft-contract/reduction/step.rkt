@@ -13,6 +13,7 @@
          syntax/parse/define
          set-extras
          unreachable
+         bnf
          typed-racket-hacks
          "../utils/main.rkt"
          "../ast/signatures.rkt"
@@ -29,8 +30,40 @@
           proof-system^)
   (export step^)
 
-  (: ↝! : Ξ Σ → (℘ Ξ))
-  (define (↝! Ξ Σ)
+  (: inj : (U -prog ⟦E⟧) → (Values Ξ Σ))
+  (define (inj x)
+    (define ⟦E⟧ (->⟦E⟧ x))
+    (define αₖ₀ (αₖ ⟦E⟧ ⊥Ρ))
+    (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
+    (values (⟦E⟧ ⊥Ρ {set ∅} (Ξ:co '() αₖ₀ H₀) Σ₀) Σ₀))
+
+  (: ↝* : (U -prog ⟦E⟧) → (Values (℘ Blm) Σ))
+  (define (↝* p)
+    (define-values (Ξ₀ Σ) (inj p))
+    ;; TODO real versioning
+    (Ver . ≜ . (List Σᵥ Σₖ Σₐ))
+    (define seen : (Mutable-HashTable Ξ:co Ver) (make-hash))
+    (define (ver) : Ver (list (Σ-val Σ) (Σ-kon Σ) (Σ-evl Σ)))
+    (define-set blms : Blm)
+
+    (let loop ([front : (℘ Ξ) {set Ξ₀}])
+      (if (set-empty? front)
+          (values blms Σ)
+          (let ([front* 
+                 (for*/set : (℘ Ξ) ([Ξ₀ (in-set front)]
+                                    [Ξ₁ (in-set (↝ Ξ₀ Σ))]
+                                    #:unless (and (Blm? Ξ₁) (blms-add! Ξ₁))
+                                    [v₁ (in-value (ver))]
+                                    #:unless (equal? v₁ (hash-ref seen Ξ₁ #f)))
+                   (hash-set! seen Ξ₁ v₁)
+                   Ξ₁)])
+            (loop front*))))) 
+
+  (: ->⟦E⟧ : (U -prog ⟦E⟧) → ⟦E⟧)
+  (define (->⟦E⟧ x) (if (-prog? x) (↓ₚ x) x))
+
+  (: ↝ : Ξ Σ → (℘ Ξ))
+  (define (↝ Ξ Σ)
     (match Ξ
       [(Ξ:co K α H)
        (define R^₀ (Σₐ@ Σ Ξ))

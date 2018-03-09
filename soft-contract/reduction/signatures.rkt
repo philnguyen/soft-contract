@@ -141,13 +141,10 @@
    [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
    [H₀ : H]))
 
-(define-signature run^
-  ([inj : ((U -prog ⟦E⟧) → (Values Ξ Σ))]
-   [run : ((U -prog ⟦E⟧) → (Values (℘ Blm) Σ))]
-   [viz : ((U -prog ⟦E⟧) → Σ)]))
-
 (define-signature step^
-  ([↝! : (Ξ Σ → (℘ Ξ))]
+  ([inj : ((U -prog ⟦E⟧) → (Values Ξ Σ))]
+   [↝* : ((U -prog ⟦E⟧) → (Values (℘ Blm) Σ))]
+   [↝  : (Ξ Σ → (℘ Ξ))]
    [ret! : [(U R R^) Ξ:co Σ → Ξ:co]]
    [K+/And : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
    [K+/Or  : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]

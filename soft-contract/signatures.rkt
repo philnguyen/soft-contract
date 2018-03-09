@@ -7,15 +7,16 @@
          "ast/signatures.rkt"
          "runtime/signatures.rkt")
 
-#;(define-signature verifier^
-  ([run-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
-   [havoc-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
-   [havoc-files/profile : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -A) -Σ))]
-   [havoc-last-file : ((Listof Path-String) → (Values (℘ -A) -Σ))]
-   [run-e : (-e → (Values (℘ -A) -Σ))]
-   [debug-iter? : (Parameterof Boolean)]
-   [debug-trace? : (Parameterof Boolean)]
-   [max-steps : (Parameterof (Option Natural))]))
+(define-signature verifier^
+  ([run-files : ((Listof Path-String) → (Values (℘ Blm) Σ))]
+   #;[havoc-files : ((Listof Path-String) → (Values (℘ -A) -Σ))]
+   #;[havoc-files/profile
+    : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -A) -Σ))]
+   #;[havoc-last-file : ((Listof Path-String) → (Values (℘ -A) -Σ))]
+   [run-e : (-e → (Values (℘ Blm) Σ))]))
+
+(define-signature debug^
+  ([viz : ((U -prog ⟦E⟧) → Σ)]))
 
 #;(define-signature lib^
   ([verify : (Syntax (HashTable Symbol Syntax) → Any)]))
