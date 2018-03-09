@@ -6,6 +6,7 @@
          racket/splicing
          racket/set
          typed/racket/unit
+         "../utils/list.rkt"
          "signatures.rkt")
 
 (define-unit ast-macros@
