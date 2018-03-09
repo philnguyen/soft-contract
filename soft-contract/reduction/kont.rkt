@@ -307,7 +307,7 @@
           (values (reverse Vs-rev) φ*)))
       (check-inits dom-inits args)))
 
-  (: hack:maybe-refine-more : -o (Listof -V^) -σ -φ (Listof -V^) → (Values (Listof -V^) -φ))
+(: hack:maybe-refine-more : -o (Listof -V^) -σ -φ (Listof -V^) → (Values (Listof -V^) -φ))
   ;; This hack should be removed once the primitives DSL is generalized to be able
   ;; to express these properties
   (define (hack:maybe-refine-more o rngs σ φ args)
@@ -349,39 +349,7 @@
         (values (cons αℓ αℓs-rev) (alloc Σ φ α V))))
     (values (reverse αℓs) φ*))
 
-  (: recall : -Ξ -αₖ → (Option (Pairof -αₖ Uni)))
-  (define (recall Ξ αₖ)
-    (match-define (-αₖ H Bl φ) αₖ)
+  
 
-    (: search : (Listof -αₖ) → (Option (Pairof -αₖ Uni)))
-    (define (search ctxs)
-      (match ctxs
-        [(cons (and αₖ₀ (-αₖ (== H) Bl₀ φ₀)) ctxs*)
-         (match (unify-Bl Bl Bl₀)
-           [(? values m)
-            (if (and (Γ⊑/m? m (-φ-condition φ) (-φ-condition φ₀))
-                     (σ-compat/m? m (-φ-cache φ) (-φ-cache φ₀)))
-                (let ([φ* (-φ (-φ-condition φ₀) (σ⊕ (-φ-cache φ₀) (-φ-cache φ)))])
-                  (cons (-αₖ H Bl₀ φ*) m))
-                (search ctxs*))]
-           [#f (search ctxs*)])]
-        ['() #f]))
-    
-    (cond
-      [(hash-ref Ξ H #f) => search]
-      [else #f]))
 
-  (define/memoeq (fv-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : (℘ Symbol)
-    (cond [(recall-e ⟦e⟧) => fv]
-          [else ∅eq]))
-
-  (: discard-conflicting-names : Uni -Γ -V^ → -V^)
-  (define (discard-conflicting-names uni Γ V^)
-    (match-define (Bij er->ee ee->er) uni)
-    (: go : -V → -V)
-    (define (go V)
-      (if (and (-t? V) (hash-has-key? er->ee V) (not (hash-has-key? ee->er V)))
-          (-● (hash-ref Γ V mk-∅))
-          V))
-    (map/set go V^))
   )

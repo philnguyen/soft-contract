@@ -13,6 +13,7 @@
          syntax/parse/define
          set-extras
          unreachable
+         bnf
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -32,8 +33,8 @@
       [(? -α:idx?) #t]
       [_ #f]))
 
-  (: bind-args! : Σ Ρ ℓ H Φ^ -formals W → Ρ)
-  (define (bind-args! Σ Ρ₀ ℓ H Φ^ xs Vs)
+  (: bind-args! : Ρ -formals W ℓ Φ^ H Σ → Ρ)
+  (define (bind-args! Ρ₀ xs W ℓ Φ^ H Σ)
     ???)
 
   (: ⊔ᵥ! : Σ α (U V V^) → Void)
@@ -44,11 +45,20 @@
     (for ([α (in-list αs)] [V (in-list Vs)])
       (⊔ᵥ! Σ α V)))
 
-  (: ⊔ₐ! : Σ K (U R R^) → Void)
-  (define (⊔ₐ! Σ K R) ???)
+  (: ⊔ₐ! : Σ Ξ:co (U R R^) → Void)
+  (define (⊔ₐ! Σ Ξ R) ???)
   
-  (: ⊔ₖ! : Σ αₖ Rt → Void)
-  (define (⊔ₖ! Σ αₖ K) ???)
+  (: ⊔ₖ! : Σ αₖ Ξ:co → Void)
+  (define (⊔ₖ! Σ αₖ Ξ) ???)
+
+  (: H+ : H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)
+  (define (H+ H src tgt type) ???)
+
+  (define H₀ (mk-H (-H:edges '())))
 
   )
 
+(define-substructs -H
+  [-H:edges (Listof Edge)])
+
+(Edge . ::= . (Edge [src : ℓ] [tgt : (U ⟦E⟧ V)]))

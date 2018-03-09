@@ -158,7 +158,7 @@
    [app/rest/unsafe : (V W V ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature mon^
-  ([mon : (Ctx V^ V^ Φ^ Ξ:co Σ → (℘ Ξ))]))
+  ([mon : (V^ V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature reflection^
   ([V-arity : (case->

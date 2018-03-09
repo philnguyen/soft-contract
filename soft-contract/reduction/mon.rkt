@@ -2,26 +2,24 @@
 
 (provide mon@)
 
-(require racket/sequence
-         racket/match
+(require racket/match
          racket/set
-         syntax/parse/define
          typed/racket/unit
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
-         "../primitives/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit mon@
-  (import static-info^
-          compile^ app^ kont^ proof-system^ path^ prims^ fc^
-          env^ sto^ val^ instr^ pretty-print^ for-gc^ (prefix r: prim-runtime^))
+  (import)
   (export mon^)
 
+  (: mon : V^ V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ))
+  (define (mon C V Ctx Φ Ξ Σ) ???)
+
+  #|
   (: mon : -ctx -V^ -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon ctx C^ V^ H φ Σ ⟦k⟧)
     (for/union : (℘ -ς) ([C (in-set C^)])
@@ -349,4 +347,5 @@
         (let ([αₖ (-αₖ H (-M ctx C^ V^) φ)])
           {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧))})
         (mon ctx C^ V^ H φ Σ ⟦k⟧)))
+|#
   )

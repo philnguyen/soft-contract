@@ -140,13 +140,13 @@
          (λ (Val Φ^)
            (match Ctc
              [(cons ⟦C⟧ Ρ) {set (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V Ctx Val) Ξ) Σ)}]
-             [(? set?) (mon Ctx Ctc Val Φ^ Ξ Σ)])))]
+             [(? set?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon:V Ctx Val)
        (with-guarded-single-arity/collapse R^₀ (Ctx-loc Ctx)
          (λ (Ctc Φ^)
            (match Val
              [(cons ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) Ξ) Σ)}]
-             [(? set?) (mon Ctx Ctc Val Φ^ Ξ Σ)])))]
+             [(? set?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon*:C Ctx rngs)
        (case rngs
          [(any) {set (ret! R^₀ Ξ Σ)}]
@@ -157,7 +157,7 @@
               (match* ((Σᵥ@* Σ βs) W ℓs)
                 [((cons C₁ Cs) (cons V₁ Vs) (cons ℓ₁ ℓs))
                  (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs '()) Ξ))
-                 (mon (Ctx-with-ℓ Ctx ℓ₁) C₁ V₁ Φ^ Ξ* Σ)]
+                 (mon C₁ V₁ (Ctx-with-ℓ Ctx ℓ₁) Φ^ Ξ* Σ)]
                 [('() '() '())
                  {set (ret! (W->R '() Φ^) Ξ Σ)}])))])]
       [(F:Mon* Ctx Cs Vs ℓs Res-rev)
@@ -167,7 +167,7 @@
        (match* (Cs Vs ℓs)
          [((cons C Cs) (cons V Vs) (cons ℓ ℓs))
           (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs Res-rev*) Ξ))
-          (mon (Ctx-with-ℓ Ctx ℓ) C V Φ^ Ξ* Σ)]
+          (mon C V (Ctx-with-ℓ Ctx ℓ) Φ^ Ξ* Σ)]
          [('() '() '())
           {set (ret! (W->R (reverse Res-rev*) Φ^) Ξ Σ)}])]
       [(F:Μ/C x)
@@ -218,7 +218,7 @@
            (define α  (mk-α (-α:top 𝒾)))
            (define α* (mk-α (-α:wrp 𝒾)))
            (define V^ (Σᵥ@ Σ α))
-           (mon (Ctx l 'dummy- l ℓ) C^ V^ Φ^ (K+ (F:Def l (list α*)) Ξ) Σ)))]
+           (mon C^ V^ (Ctx l 'dummy- l ℓ) Φ^ (K+ (F:Def l (list α*)) Ξ) Σ)))]
       [(K.Hv HV-Tag) ???]
       
       ;; Specific helpers

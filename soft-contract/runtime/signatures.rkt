@@ -163,18 +163,9 @@
    #;[alloc* : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
    #;[mut!   : (-Σ -φ ⟪α⟫ -V^ → -φ)]
    #;[mut*!  : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
-   #;[bind-args : (-Σ -ρ ℓ -H -φ -formals (Listof -V^) → (Values -ρ -φ))]
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
-   #;[σ@ : ([(U -Σ -σ) -δσ ⟪α⟫] [(→ -V^)] . ->* . -V^)]
-   #;[σ@/cache : ((U -Σ -σ) -φ ⟪α⟫ → (Listof (Pairof -V^ -φ)))]
-   #;[σ@/list : ((U -Σ -σ) -δσ (Listof ⟪α⟫) → (Listof -V^))]
-   
    #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
    #;[unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
-   #;[⊥σₖ : -σₖ]
-   #;[σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -⟦k⟧))]
-   #;[⊥σₐ : -σₐ]
-   #;[σₐ⊕! : (-Σ -φ -αₖ (Listof -V^) → (Listof -V^))] 
    #;[cardinality : (-σ -δσ ⟪α⟫ → Cardinality)]
    ))
 
