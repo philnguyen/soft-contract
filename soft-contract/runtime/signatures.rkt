@@ -195,3 +195,7 @@
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]
    [collapse-R^/Φ^ : (R^ → Φ^)]))
+
+(define-signature pretty-print^
+  ([show-blm-reason : ((U V P V^) → Sexp)]
+   [show-V^ : (V^ → Sexp)]))

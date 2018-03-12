@@ -4,6 +4,7 @@
                "sto.rkt"
                "val.rkt"
                "evl.rkt"
+               "pretty-print.rkt"
                #|
                "instr.rkt"
                "path.rkt"
@@ -17,6 +18,7 @@
          "sto.rkt"
          "val.rkt"
          "evl.rkt"
+         "pretty-print.rkt"
          #|
          "instr.rkt"
          "path.rkt"

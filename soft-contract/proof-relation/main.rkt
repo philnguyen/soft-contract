@@ -12,13 +12,19 @@
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
-         "signatures.rkt"
-
-         "widen.rkt"
-         "ext.rkt"
-         "local.rkt"
+         #;"signatures.rkt"
          )
 
+(define-unit proof-system@
+  (import)
+  (export proof-system^)
+
+  (: plausible-splits : (Σ R^ → (Values R^ R^)))
+  (define (plausible-splits Σ R^)
+    (printf "TODO: implement `plausible-splits`~n")
+    (values R^ R^)))
+
+#|
 (define-unit pre-proof-system@
   (import static-info^ sat-result^ path^ pretty-print^
           (prefix local: local-prover^)
@@ -172,3 +178,4 @@
   (import sat-result^ static-info^ prims^ for-gc^ path^ sto^ val^ pretty-print^ env^ summ^)
   (export proof-system^ widening^ local-prover^)
   (link local-prover@ external-prover@ widening@ pre-proof-system@))
+|#

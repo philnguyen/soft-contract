@@ -12,11 +12,11 @@
 
 (define-signature verifier^
   ([run : (Runnable → (Values (℘ Blm) Σ))]
-   [viz : (Runnable → Σ)]
    [havoc : ((Listof Path-String) → (Values (℘ Blm) Σ))]
+   [havoc-last : ((Listof Path-String) → (Values (℘ Blm) Σ))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Blm) Σ))]
-   [havoc-last : ((Listof Path-String) → (Values (℘ Blm) Σ))]))
+   [viz : (Runnable → Σ)]))
 
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]

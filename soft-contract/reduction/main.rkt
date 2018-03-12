@@ -20,6 +20,5 @@
   (import ast-pretty-print^ static-info^ meta-functions^
           env^ val^ sto^ evl^
           prims^ proof-system^)
-  (export compile^ step^)
-  (link reflection@ alloc@ app@ mon@ compile@ step@))
-
+  (export reflection^ alloc^ app^ mon^ compile^ step^)
+  (link reflection@ alloc@ mon@ compile@ step@ app@))

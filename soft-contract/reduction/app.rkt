@@ -23,6 +23,7 @@
           prims^
           compile^ step^ alloc^ reflection^)
   (export app^)
+  (init-depend step^)
 
   (: app : V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))
   (define (app Vₕ^ Wₓ ℓ Φ^ Ξ₀ Σ)

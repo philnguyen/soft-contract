@@ -151,7 +151,9 @@
    [K+/Or  : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
-   [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]))
+   [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]
+   [db:iter? : (Parameterof Boolean)]
+   [db:max-steps : (Parameterof (Option Integer))]))
 
 (define-signature app^
   ([app : (V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))]
