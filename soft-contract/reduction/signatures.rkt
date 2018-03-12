@@ -170,10 +170,7 @@
   ([flat-chk : (-l ℓ V^ V^ -H -φ -Σ K → (℘ -ς))]
    [push-fc : ((-l ℓ V^ V^ -H -φ -Σ K) (#:looped Boolean) . ->* . (℘ -ς))]))
 
-#;(define-signature memoize^
-  ([memoize⟦E⟧ : (⟦E⟧ → ⟦E⟧)]))
-
-#;(define-signature havoc^
-  ([havoc : (HV-Tag -φ -Σ K → (℘ -ς))]
+(define-signature havoc^
+  ([havoc : (HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]
-   [add-leak! : (HV-Tag -Σ -φ (U V^ (Listof V^)) → -φ)]))
+   [add-leak! : (HV-Tag Φ^ Σ (U V^ W) → Void)]))

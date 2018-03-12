@@ -10,24 +10,23 @@
          racket/bool
          typed/racket/unit
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit havoc@
-  (import static-info^ widening^ kont^ app^ proof-system^ instr^
-          for-gc^ sto^ path^ val^ pretty-print^)
+  (import val^ alloc^)
   (export havoc^)
 
   (splicing-local
-      ((define cache : (HashTable -V (Pairof -σ -δσ)) (make-hash))
+      (#;(define cache : (HashTable -V (Pairof -σ -δσ)) (make-hash))
 
-       (: same-store? : (Pairof -σ -δσ) (Pairof -σ -δσ) (℘ ⟪α⟫) → Boolean)
-       (define (same-store? memo₀ memo root)
+       #;(: same-store? : (Pairof -σ -δσ) (Pairof -σ -δσ) (℘ ⟪α⟫) → Boolean)
+       #;(define (same-store? memo₀ memo root)
          (match-define (cons σ₀ δσ₀) memo₀)
          (match-define (cons σ  δσ ) memo )
          (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
@@ -43,36 +42,37 @@
                      (for/and : Boolean ([V (in-set V₁)])
                        (loop (V->⟪α⟫s V))))]))))
 
-       (: seen? : -V -Σ -φ → Boolean)
-       (define (seen? V Σ φ)
+       #;(: seen? : -V -Σ -φ → Boolean)
+       #;(define (seen? V Σ φ)
          (cond [(hash-ref cache V #f) =>
                 (λ ([memo₀ : (Pairof -σ -δσ)])
                   (same-store? memo₀ (cons (-Σ-σ Σ) (-φ-cache φ)) (V->⟪α⟫s V)))]
                [else #f]))
-       (: update-cache! : -V -Σ -φ → Void)
-       (define (update-cache! V Σ φ) (hash-set! cache V (cons (-Σ-σ Σ) (-φ-cache φ))))
+       #;(: update-cache! : -V -Σ -φ → Void)
+       #;(define (update-cache! V Σ φ) (hash-set! cache V (cons (-Σ-σ Σ) (-φ-cache φ))))
        )
 
-    (: havoc : HV-Tag -φ -Σ -⟦k⟧ → (℘ -ς))
-    (define (havoc tag φ Σ ⟦k⟧)
-      (for/fold ([res : (℘ -ς) (⟦k⟧ (list {set -void}) H∅ φ Σ)])
+    (: havoc : HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))
+    (define (havoc tag Φ^ Ξ Σ)
+      ???
+      #;(for/fold ([res : (℘ -ς) (⟦k⟧ (list {set -void}) H∅ φ Σ)])
                 ([V (in-set (σ@ Σ (-φ-cache φ) (-α->⟪α⟫ (-α.hv tag)) mk-∅))]
                  #:unless (seen? V Σ φ))
         (update-cache! V Σ φ)
         (∪ res (havoc-V V φ Σ (hv∷ tag ⟦k⟧))))))
 
-  (: havoc-V : -V -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (havoc-V V φ Σ ⟦k⟧)
+  (: havoc-V : V Φ^ Ξ:co Σ → (℘ Ξ))
+  (define (havoc-V V Φ^ Ξ Σ)
     (define (done) ∅ #;(⟦k⟧ -Void/W∅ ⊤Γ H Σ))
-
-    (match V
+    ???
+    #;(match V
       ;; Ignore first-order and opaque value
       [(or (? integer?) (-● _) (? -prim?)) (done)]
 
       ;; Apply function with appropriate number of arguments
       [(or (? -Clo?) (? -Case-Clo?) (? -Ar?))
 
-       (: do-hv : (U Natural arity-at-least) → (℘ -ς))
+       (: do-hv : (U Natural arity-at-least) → Ξ)
        (define do-hv
          (match-lambda
            [(? exact-nonnegative-integer? k)
@@ -148,20 +148,20 @@
       ((ans) (-@ (-•) refs ℓ))
       (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
-  (: add-leak! : HV-Tag -Σ -φ (U -V^ (Listof -V^)) → -φ)
-  (define (add-leak! tag Σ φ V)
-    (define α (-α->⟪α⟫ (-α.hv tag)))
-    (define (keep-behavioral [V : -V^]) : -V^
-      (for/fold ([V : -V^ V])
-                ([Vᵢ (in-set V)] #:unless (behavioral? (-Σ-σ Σ) (-φ-cache φ) Vᵢ))
+  (: add-leak! : HV-Tag Φ^ Σ (U V^ W) → Void)
+  (define (add-leak! tag Φ^ Σ V)
+    (define α (mk-α (-α:hv tag)))
+    (define (keep-behavioral [V : V^]) : V^
+      (for/fold ([V : V^ V])
+                ([Vᵢ (in-set V)] #:unless (behavioral? (Σ-val Σ) Vᵢ))
         (set-remove V Vᵢ)))
-    (define V^
+    (define leaks
       (cond
         [(set? V) (keep-behavioral V)]
         [else
-         (for/fold ([V^ : -V^ ∅]) ([Vᵢ (in-list V)])
-           (V⊕ φ V^ (keep-behavioral Vᵢ)))]))
-    (mut! Σ φ α V^))
+         (for/fold ([V^ : V^ ∅]) ([Vᵢ (in-list V)])
+           (∪ V^ (keep-behavioral Vᵢ)))]))
+    (⊔ᵥ! Σ α leaks))
   )
 
 

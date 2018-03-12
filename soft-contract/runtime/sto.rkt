@@ -73,33 +73,6 @@
 
   #|
 
-  (: alloc : -Σ -φ ⟪α⟫ -V^ → -φ)
-  (define (alloc Σ φ α V)
-    (define σ (-Σ-σ Σ))
-    (define δσ (-φ-cache φ))
-    (define V*
-      (case (cardinality σ δσ α)
-        [(0) V]
-        [(1) (V⊕ φ (hash-ref δσ α mk-∅) V)]
-        [(N) (V⊕ φ (hash-ref  σ α mk-∅) V)]))
-    (-φ (-φ-condition φ) (hash-set δσ α V*)))
-
-  (: alloc* : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
-  (define (alloc* Σ φ αs Vs)
-    (for/fold ([φ : -φ φ]) ([α (in-list αs)] [V (in-list Vs)])
-      (alloc Σ φ α V)))
-
-  (: mut! : -Σ -φ ⟪α⟫ -V^ → -φ)
-  (define (mut! Σ φ α V)
-    (define σ (-Σ-σ Σ))
-    (define δσ (-φ-cache φ))
-    (case (cardinality σ δσ α)
-      [(0 1) (-φ (-φ-condition φ) (hash-set δσ α V))]
-      [(N) (define (upd [m : -σ]) (hash-update m α (λ ([V₀ : -V^]) (V⊕ φ V₀ V)) mk-∅))
-           (set--Σ-σ! Σ (upd σ))
-           (-φ (-φ-condition φ) (upd δσ))])) 
-
-  (: mut*! : -Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)
   (define (mut*! Σ φ αs Vs)
     (for/fold ([φ : -φ φ]) ([α (in-list αs)] [V (in-list Vs)])
       (mut! Σ φ α V)))

@@ -159,10 +159,6 @@
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
    ;; Old
-   #;[alloc  : (-Σ -φ ⟪α⟫ -V^ → -φ)]
-   #;[alloc* : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
-   #;[mut!   : (-Σ -φ ⟪α⟫ -V^ → -φ)]
-   #;[mut*!  : (-Σ -φ (Listof ⟪α⟫) (Listof -V^) → -φ)]
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
    #;[unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
