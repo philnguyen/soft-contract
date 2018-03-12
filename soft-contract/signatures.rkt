@@ -24,14 +24,14 @@
    [parse-expr : (Syntax → -e)]
    [canonicalize-path : (Path-String → Path-String)]))
 
-#;(define-signature prims^ ; TODO
-  ([get-prim : (Symbol → -⟦f⟧)]
-   [o⇒o : (Symbol Symbol → -R)]
+(define-signature prims^ ; TODO
+  ([get-prim : (Symbol → ⟦F⟧)]
+   [o⇒o : (Symbol Symbol → Valid)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
    [prim-arity : (Symbol → Arity)]
    [parse-prim : (Identifier → (Option -prim))]
-   [implement-predicate : (-σ -φ -o (Listof -V^) → -V^)]))
+   [implement-predicate : (Σ Φ^ -o W → R^)]))
 
 (define-signature proof-system^
   ([plausible-splits : (Σ R^ → (Values R^ R^))]

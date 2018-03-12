@@ -10,6 +10,7 @@
          web-server/private/util
          "../utils/main.rkt"
          "../ast/signatures.rkt"
+         "../primitives/signatures.rkt"
          ;; For extra constants
          syntax/parse
          syntax/parse/define

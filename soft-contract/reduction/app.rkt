@@ -20,6 +20,7 @@
 (define-unit app@
   (import static-info^ ast-pretty-print^
           env^ sto^ val^ evl^
+          prims^
           compile^ step^ alloc^ reflection^)
   (export app^)
 
@@ -37,7 +38,7 @@
       [(-st-p 𝒾) ???]
       [(-st-ac 𝒾 i) ???]
       [(-st-mut 𝒾 i) ???]
-      [(? -o? o) ???]
+      [(? symbol? o) (⟦F⟧->⟦F⟧^ (get-prim o))]
       [(X/G ctx (? Fn/C? G) α) ???]
       [(And/C #t (αℓ α₁ _) (αℓ α₂ _)) (app-And/C α₁ α₂)]
       [(Or/C  #t (αℓ α₁ _) (αℓ α₂ _)) (app-Or/C α₁ α₂)]
@@ -614,4 +615,7 @@
       [(? -o? o) (app-prim/rest o)]
       [_ (error 'app/rest "unhandled: ~a" (show-V V-func))]))
   |#
+
+  (: ⟦F⟧->⟦F⟧^ : ⟦F⟧ → ⟦F⟧^)
+  (define ((⟦F⟧->⟦F⟧^ ⟦F⟧) W ℓ Φ^ Ξ Σ) {set (⟦F⟧ W ℓ Φ^ Ξ Σ)})
   )

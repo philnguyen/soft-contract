@@ -7,17 +7,17 @@
          "runtime/main.rkt"
          "verifier.rkt"
          ;"proof-relation/main.rkt"
-         ;"reduction/main.rkt"
-         ;"primitives/main.rkt"
+         "reduction/main.rkt"
+         "primitives/main.rkt"
          "parse/main.rkt"
          ;"primitives/signatures.rkt"
          "signatures.rkt"
          )
 
 (define-values/invoke-unit/infer
-  (export verifier^ debug^ parser^ ast-pretty-print^)
+  (export verifier^ parser^ ast-pretty-print^)
   (link ast-pretty-print@ static-info@ meta-functions@ ast-macros@
-        parser@
+        prims@ parser@
         env@ sto@ val@ evl@
         reduction@
         verifier@))

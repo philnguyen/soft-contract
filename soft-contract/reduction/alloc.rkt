@@ -17,7 +17,6 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
          )
 

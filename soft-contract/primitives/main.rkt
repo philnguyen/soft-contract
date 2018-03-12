@@ -6,11 +6,12 @@
          set-extras
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
+         ;"../proof-relation/signatures.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "prim-runtime.rkt"
+         #|
          "relations.rkt"
          "prims-04.rkt"
          "prims-05.rkt"
@@ -24,6 +25,7 @@
          "prims-math.rkt"
          "prims-zo.rkt"
          "prims-scv.rkt"
+         |#
          )
 
 (define-unit pre-prims@
@@ -31,11 +33,11 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → -⟦f⟧)
+  (: get-prim : Symbol → ⟦F⟧)
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
-  (: o⇒o : Symbol Symbol → -R)
+  (: o⇒o : Symbol Symbol → Valid)
   (define (o⇒o p q)
     (cond [(eq? p q) '✓]
           [(∋ (rt:get-weakers p) q) '✓]
@@ -62,11 +64,12 @@
 
 (define-compound-unit/infer prims@
   (import ast-pretty-print^ static-info^
-          proof-system^ local-prover^ widening^ app^ kont^ compile^ for-gc^
-          val^ path^ sto^ instr^ pretty-print^ env^ mon^)
+          val^ sto^ env^
+          alloc^ compile^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@
+        #|
         relations@
         prims-04@
         prims-05@
@@ -79,4 +82,6 @@
         prims-17@
         prims-math@
         prims-zo@
-        prims-scv@))
+        prims-scv@
+        |#
+        ))

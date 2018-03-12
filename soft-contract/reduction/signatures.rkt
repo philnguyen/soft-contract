@@ -113,6 +113,16 @@
   (-α:mon-x/c Symbol H -l)
   (-α:fc-x/c Symbol H))
 
+(define-signature alloc^
+  ([mutable? : (α → Boolean)]
+   [bind-args! : (Ρ -formals W ℓ Φ^ H Σ → Ρ)]
+   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)]
+   [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
+   [⊔ᵥ! : (Σ α (U V V^) → Void)]
+   [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
+   [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
+   [H₀ : H]))
+
 (define-signature compile^
   ([↓ₚ : (-prog → ⟦E⟧)]
    [↓ₘ : (-module → ⟦E⟧)]
@@ -131,15 +141,6 @@
    [split-⟦dom⟧s : (Ρ (Listof ⟦dom⟧) → (Values (Listof Dom) (Listof ⟦dom⟧)))]
    ))
 
-(define-signature alloc^
-  ([mutable? : (α → Boolean)]
-   [bind-args! : (Ρ -formals W ℓ Φ^ H Σ → Ρ)]
-   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)]
-   [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
-   [⊔ᵥ! : (Σ α (U V V^) → Void)]
-   [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
-   [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
-   [H₀ : H]))
 
 (define-signature step^
   ([inj : ((U -prog ⟦E⟧) → (Values Ξ Σ))]
@@ -161,10 +162,9 @@
   ([mon : (V^ V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature reflection^
-  ([V-arity : (case->
-               [Clo → Arity]
-               [Case-Clo → Arity]
-               [V → (Option Arity)])]))
+  ([V-arity : (case-> [Clo → Arity]
+                      [Case-Clo → Arity]
+                      [V → (Option Arity)])]))
 
 #;(define-signature fc^
   ([flat-chk : (-l ℓ V^ V^ -H -φ -Σ K → (℘ -ς))]

@@ -53,8 +53,8 @@
                      C
                      S)
 (#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
-(#|Symbolic value|# S . ::= . (S:α α) (S:@ -o (Listof S)))
-(#|Predicates|# P . ::= . #:TBD)
+(#|Symbolic value|# S . ::= . -b (S:α α) (S:@ -o (Listof S)))
+(#|Predicates|# P . ::= . -o (P:Le S) (P:Lt S) (P:Ge S) (P:Gt S) (P:Neg P))
 
 (#|Non-primitive function|# Fn . ::= . (Clo -formals ⟦E⟧ Ρ)
                                        (Case-Clo (Listof Clo))
