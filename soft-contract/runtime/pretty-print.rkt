@@ -23,7 +23,9 @@
         [(Ξ:co K α H) `(,(show-K) ,(show-αₖ α) ,H)]
         [(? Blm? b) (show-Blm b)]))
 
-  (define show-Σ (show-map show-α show-V^))
+  (: show-map (∀ (X Y X* Y*) (X → X*) (Y → Y*) → (HashTable X Y) → (Listof (List X* '↦ Y*))))
+  (define ((show-map show-k show-v) m)
+    (for/list ([(k v) (in-hash m)]) `(,(show-k k) ↦ ,(show-v v)))) 
 
   #;(define (show-h [h : -h]) : Sexp
       (match h
@@ -48,7 +50,7 @@
       (for*/list : (Listof Sexp) ([(t ps) (in-hash Γ)])
         `(,(show-t t) ∈ ,@(set-map ps show-h))))
 
-  (define show-Σₖ ((inst show-map αₖ (℘ Ξ:co) Sexp Index) show-αₖ (λ (Ξs) (set-count Ξs))))
+  
 
   (define show-blm-reason : ((U V P V^) → Sexp)
     (match-lambda
@@ -157,7 +159,7 @@
       [(-α:imm:ref-listof x C _) (string->symbol (format "(ref ~a)" x))]
       [_ (format-symbol "α~a" (n-sub α))]))
 
-  (define show-Ρ ((inst show-map Symbol α Symbol Sexp) values show-α))
+  
 
   (: dump-Σᵥ ([Σᵥ] [#:tag Any #:appendix? Boolean] . ->* . Void))
   (define (dump-Σᵥ Σᵥ #:tag [tag 'store] #:appendix? [appendix? #f])
@@ -172,7 +174,7 @@
   (: show-P : P → Sexp)
   (define (show-P P) ???)
 
-  (: show-map (∀ (X Y X* Y*) (X → X*) (Y → Y*) → (HashTable X Y) → (Listof (List X* '↦ Y*))))
-  (define ((show-map show-k show-v) m)
-    (for/list ([(k v) (in-hash m)]) `(,(show-k k) ↦ ,(show-v v))))
+  (define show-Σ (show-map show-α show-V^))
+  (define show-Σₖ ((inst show-map αₖ (℘ Ξ:co) Sexp Index) show-αₖ (λ (Ξs) (set-count Ξs))))
+  (define show-Ρ ((inst show-map Symbol α Symbol Sexp) values show-α))
   )
