@@ -78,17 +78,15 @@
                           (syntax->list #'(clauses ...))))]
            [((~literal ∀/c) _ c) (go #'c)])))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Vs H φ Σ ⟦k⟧)
+       #`(define (.o W ℓ Φ^ Ξ Σ)
            #,@(parameterize ([-o #'o]
                              [-ℓ #'ℓ]
-                             [-Vs #'Vs]
-                             [-H #'H]
-                             [-φ #'φ]
+                             [-W #'W]
+                             [-Φ #'Φ^]
                              [-Σ #'Σ]
-                             [-⟦k⟧ #'⟦k⟧]
                              [-sig #'sig]
-                             [-Vⁿ (gen-ids #'Vs 'V max-inits)]
-                             [-Vᵣ (format-id #'Vs "Vᵣ")]
+                             [-Vⁿ (gen-ids #'W 'V max-inits)]
+                             [-Vᵣ (format-id #'W "Vᵣ")]
                              [-gen-lift? (syntax-e #'lift?)]
                              [-refinements (syntax->list #'(ref ...))]
                              [-volatile? (syntax-e #'volatile?)])
@@ -120,7 +118,7 @@
            [_ '()])))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const!)
      #`(begin
-         (: .o : -⟦f⟧)
+         (: .o : ⟦F⟧)
          defn-o
          (add-const! #'o 'o)
          (hash-set! prim-table 'o .o)
@@ -135,7 +133,7 @@
               [_ '()]))]
 
     ;; Hack mode
-    [(_ (o:id ℓ:id Vs:id H:id φ:id Σ:id ⟦k⟧:id)
+    [(_ (o:id W:id ℓ:id Φ^:id Ξ:id Σ:id)
         #:init ([V:id (~and c (~or _:id ((~literal and/c) _:id ...)))] ...)
         (~optional (~seq #:rest [Vᵣ:id cᵣ])
                    #:defaults ([cᵣ #'null?]
@@ -162,14 +160,12 @@
          [((~literal listof) c) #'c]
          [_ #f]))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Vs H φ Σ ⟦k⟧)
+       #`(define (.o W ℓ Φ^ Ξ Σ)
            #,(parameterize ([-o #'o]
                             [-ℓ #'ℓ]
-                            [-Vs #'Vs]
-                            [-H #'H]
-                            [-φ #'φ]
+                            [-W #'W]
+                            [-Φ^ #'Φ^]
                             [-Σ #'Σ]
-                            [-⟦k⟧ #'⟦k⟧]
                             [-Vⁿ (syntax->list #'(V ...))]
                             [-Vᵣ #'Vᵣ])
                (syntax-parse #'(V ...)
@@ -186,12 +182,8 @@
                                            ?c-elem
                                            (syntax->list #'(e ...)))]
                       [_
-                       (define blm
-                         (blm/simp (ℓ-src ℓ) 'o
-                                   '(#,(string->symbol (format "~v" arity)))
-                                   Vs
-                                   ℓ))
-                       (⟦k⟧ blm H φ Σ)])]))))
+                       (define msg '(#,(string->symbol (format "~v" arity))))
+                       (Blm/simp ℓ 'o msg W)])]))))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
      (define/contract maybe-set-partial (listof syntax?)
        (let ([n
@@ -201,7 +193,7 @@
                    [((~literal listof) c) (+ 1 (count-leaves #'c))]))])
          (list #`(set-partial! 'o #,n))))
      #`(begin
-         (: .o : -⟦f⟧)
+         (: .o : ⟦F⟧)
          defn-o
          (add-const! #'o 'o)
          (hash-set! prim-table 'o .o)
