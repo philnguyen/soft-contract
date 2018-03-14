@@ -116,11 +116,7 @@
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
    [bind-args! : (Ρ -formals W ℓ Φ^ H Σ → Ρ)]
-   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)]
-   [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
-   [⊔ᵥ! : (Σ α (U V V^) → Void)]
-   [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
-   [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
+   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)] 
    [H₀ : H]))
 
 (define-signature compile^

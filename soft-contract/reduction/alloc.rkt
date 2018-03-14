@@ -21,7 +21,7 @@
          )
 
 (define-unit alloc@
-  (import static-info^)
+  (import static-info^ sto^)
   (export alloc^)
 
   (: mutable? : α → Boolean)
@@ -34,21 +34,7 @@
 
   (: bind-args! : Ρ -formals W ℓ Φ^ H Σ → Ρ)
   (define (bind-args! Ρ₀ xs W ℓ Φ^ H Σ)
-    ???)
-
-  (: ⊔ᵥ! : Σ α (U V V^) → Void)
-  (define (⊔ᵥ! Σ α V) ???)
-
-  (: ⊔ᵥ*! : Σ (Listof α) (Listof V^) → Void)
-  (define (⊔ᵥ*! Σ αs Vs)
-    (for ([α (in-list αs)] [V (in-list Vs)])
-      (⊔ᵥ! Σ α V)))
-
-  (: ⊔ₐ! : Σ Ξ:co (U R R^) → Void)
-  (define (⊔ₐ! Σ Ξ R) ???)
-  
-  (: ⊔ₖ! : Σ αₖ Ξ:co → Void)
-  (define (⊔ₖ! Σ αₖ Ξ) ???)
+    ???) 
 
   (: H+ : H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)
   (define (H+ H src tgt type) ???)

@@ -123,6 +123,9 @@
   (: V⊔ : V^ V^ → V^)
   (define (V⊔ V^₁ V^₂) ???)
 
+  (: V⊔₁ : V^ V → V^)
+  (define (V⊔₁ V^ V) ???)
+
   (define ⊥V : V^ ∅)
 
   #;(: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))

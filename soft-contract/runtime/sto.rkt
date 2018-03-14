@@ -71,6 +71,32 @@
       (match-define (Ξ:co _ αₛ _) Ξₛ)
       (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)))))
 
+  (: ⊔ᵥ : Σᵥ α (U V V^) → Σᵥ)
+  (define (⊔ᵥ Σ α V)
+    (hash-update Σ α (λ ([V₀ : V^]) (if (set? V) (V⊔ V₀ V) (V⊔₁ V₀ V)))))
+
+  (: ⊔ₖ : Σₖ αₖ Ξ:co → Σₖ)
+  (define (⊔ₖ Σ α Ξ)
+    (hash-update Σ α (λ ([Ξs : (℘ Ξ:co)]) (set-add Ξs Ξ)) mk-∅))
+
+  (: ⊔ₐ : Σₐ Ξ:co (U R R^) → Σₐ)
+  (define (⊔ₐ Σ Ξ R)
+    (hash-update Σ Ξ (λ ([R₀ : R^]) (if (set? R) (∪ R₀ R) (set-add R₀ R))) mk-∅))
+
+  (: ⊔ᵥ! : Σ α (U V V^) → Void)
+  (define (⊔ᵥ! Σ α V) (set-Σ-val! Σ (⊔ᵥ (Σ-val Σ) α V)))
+
+  (: ⊔ᵥ*! : Σ (Listof α) (Listof V^) → Void)
+  (define (⊔ᵥ*! Σ αs Vs)
+    (for ([α (in-list αs)] [V (in-list Vs)])
+      (⊔ᵥ! Σ α V)))
+
+  (: ⊔ₐ! : Σ Ξ:co (U R R^) → Void)
+  (define (⊔ₐ! Σ Ξ R) (set-Σ-evl! Σ (⊔ₐ (Σ-evl Σ) Ξ R)))
+  
+  (: ⊔ₖ! : Σ αₖ Ξ:co → Void)
+  (define (⊔ₖ! Σ αₖ Ξ) (set-Σ-kon! Σ (⊔ₖ (Σ-kon Σ) αₖ Ξ)))
+
   #|
 
   (define (mut*! Σ φ αs Vs)

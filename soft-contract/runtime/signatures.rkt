@@ -23,7 +23,8 @@
 (#|Result          |# R . ::= . (R W^ Φ^))
 (#|Path-condition  |# Φ . ≜ . (℘ S))
 (#|Environment     |# Ρ  . ≜ . (Immutable-HashTable Symbol α))
-(#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]))
+(struct Σ ([val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:transparent #:mutable)
+#;(#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:mutable)
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
 (#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Ξ:co^))
 (#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable Ξ:co R^))
@@ -158,6 +159,13 @@
    [α• : α]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
+   [⊔ᵥ : (Σᵥ α (U V V^) → Σᵥ)]
+   [⊔ₖ : (Σₖ αₖ Ξ:co → Σₖ)]
+   [⊔ₐ : (Σₐ Ξ:co (U R R^) → Σₐ)]
+   [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
+   [⊔ᵥ! : (Σ α (U V V^) → Void)]
+   [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
+   [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
    ;; Old
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
@@ -183,6 +191,7 @@
    [guard-arity : (Fn/C → Arity)]
    [blm-arity : (ℓ -l Arity W → Blm)]
    [V⊔ : (V^ V^ → V^)]
+   [V⊔₁ : (V^ V → V^)]
    [⊥V : V^]
    [collapse-value-lists : (W^ Natural → W)]
    [K+ : (F Ξ:co → Ξ:co)]
