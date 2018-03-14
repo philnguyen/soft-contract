@@ -66,7 +66,7 @@
       [(-provide '()) (mk-W '())]
       [(-provide (list spec)) (↓pc spec)]
       [=> (-provide (cons spec specs))
-          (⟦spec⟧ Ρ Φ^ (K+ (F:Bgn ⟦spec⟧s Ρ) Ξ) Σ)
+          (⟦spec⟧ Ρ Φ^ (K+ (F:Bgn (assert ⟦spec⟧s pair?) Ρ) Ξ) Σ)
           #:where
           [⟦spec⟧ (↓pc spec)]
           [⟦spec⟧s (map ↓pc specs)]]
@@ -149,11 +149,13 @@
           #:recur E E₁ E₂]
       [(-wcm Eₖ Eᵥ E) ???]
       [(-begin '()) (mk-V -void)]
+      [(-begin (list E)) (↓ E)]
       [=> (-begin (cons E Es))
-          (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦Es⟧ Ρ) Ξ) Σ)
+          (⟦E⟧ Ρ Φ^ (K+ (F:Bgn (assert ⟦Es⟧ pair?) Ρ) Ξ) Σ)
           #:recur E (Es ...)]
+      [(-begin0 E₀ '()) (↓ E₀)]
       [=> (-begin0 E₀ Es)
-          (⟦E₀⟧ Ρ Φ^ (K+ (F:Bgn0:V ⟦Es⟧ Ρ) Ξ) Σ)
+          (⟦E₀⟧ Ρ Φ^ (K+ (F:Bgn0:V (assert ⟦Es⟧ pair?) Ρ) Ξ) Σ)
           #:recur E₀ (Es ...)]
       [(-quote (? Base? b)) (mk-V (-b b))]
       [(-quote q) ???]

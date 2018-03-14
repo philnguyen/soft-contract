@@ -127,18 +127,14 @@
            (cond [(set-empty? R^₁) {set (f)}]
                  [(set-empty? R^₂) {set (t)}]
                  [else {set (t) (f)}])))]
-      [(F:Bgn ⟦E⟧s Ρ)
-       {set (match ⟦E⟧s
-              [(cons ⟦E⟧ ⟦E⟧s*)
-               (define-values (_ Φ^) (collapse-R^ R^₀))
-               (⟦E⟧ Ρ Φ^ (K+ (F:Bgn ⟦E⟧s* Ρ) Ξ) Σ)]
-              [_ (ret! R^₀ Ξ Σ)])}]
-      [(F:Bgn0:V ⟦E⟧s Ρ)
-       {set (match ⟦E⟧s
-              [(cons ⟦E⟧ ⟦E⟧s*)
-               (define-values (W^ Φ^) (collapse-R^ R^₀))
-               (⟦E⟧ Ρ Φ^ (K+ (F:Bgn0:E W^ ⟦E⟧s Ρ) Ξ) Σ)]
-              [_ (ret! R^₀ Ξ Σ)])}]
+      [(F:Bgn (cons ⟦E⟧ ⟦E⟧s) Ρ)
+       (define-values (_ Φ^) (collapse-R^ R^₀))
+       (define Ξ* (if (pair? ⟦E⟧s) (K+ (F:Bgn ⟦E⟧s Ρ) Ξ) Ξ))
+       {set (⟦E⟧ Ρ Φ^ Ξ* Σ)}]
+      [(F:Bgn0:V (cons ⟦E⟧ ⟦E⟧s) Ρ)
+       (define-values (W^ Φ^) (collapse-R^ R^₀))
+       (define Ξ* (if (pair? ⟦E⟧s) (K+ (F:Bgn0:E W^ ⟦E⟧s Ρ) Ξ) Ξ))
+       {set (⟦E⟧ Ρ Φ^ Ξ* Σ)}]
       [(F:Bgn0:E W^ ⟦E⟧s Ρ)
        (define-values (_ Φ^) (collapse-R^ R^₀))
        {set (match ⟦E⟧s
