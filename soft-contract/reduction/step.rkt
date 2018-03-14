@@ -108,7 +108,7 @@
               {set (⟦E⟧ Ρ Φ^ (K+ (F:Let ℓ xs* binds* bounds* ⟦body⟧ Ρ) Ξ) Σ)}]
              ['()
               (define-values (xs Vs) (unzip bounds*))
-              (define Ρ* (bind-args! Ρ xs Vs ℓ Φ^ H₀ Σ))
+              (define Ρ* (bind-args! Ρ xs Vs Φ^ H₀ Σ))
               {set (⟦body⟧ Ρ* Φ^ Ξ Σ)}])))]
       [(F:Letrec ℓ xs binds ⟦body⟧ Ρ)
        (with-guarded-arity/collapse R^₀ (length xs) ℓ

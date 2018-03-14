@@ -56,9 +56,9 @@
   (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
   (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)
     (match-define (Ξ:co _ _ H) Ξ)
-    (define H* (H+ H ℓ ⟦E⟧ 'app))
+    (define-values (H* _) (H+ H ℓ ⟦E⟧ 'app))
     ;; FIXME guard arity
-    (define Ρ* (bind-args! Ρ xs Wₓ ℓ Φ^ H* Σ))
+    (define Ρ* (bind-args! Ρ xs Wₓ Φ^ H* Σ))
     (define α* (αₖ ⟦E⟧ Ρ*))
     (⊔ₖ! Σ α* Ξ)
     {set (⟦E⟧ Ρ* Φ^ (Ξ:co '() α* H*) Σ)})

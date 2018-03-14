@@ -73,7 +73,7 @@
 
   (: ⊔ᵥ : Σᵥ α (U V V^) → Σᵥ)
   (define (⊔ᵥ Σ α V)
-    (hash-update Σ α (λ ([V₀ : V^]) (if (set? V) (V⊔ V₀ V) (V⊔₁ V₀ V)))))
+    (hash-update Σ α (λ ([V₀ : V^]) (if (set? V) (V⊔ V₀ V) (V⊔₁ V₀ V))) mk-∅))
 
   (: ⊔ₖ : Σₖ αₖ Ξ:co → Σₖ)
   (define (⊔ₖ Σ α Ξ)

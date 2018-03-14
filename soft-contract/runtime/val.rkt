@@ -121,10 +121,12 @@
     (vector->list W-vec))
 
   (: V⊔ : V^ V^ → V^)
-  (define (V⊔ V^₁ V^₂) ???)
+  (define (V⊔ V^₁ V^₂)
+    (for/fold ([V^ : V^ V^₁]) ([V (in-set V^₂)])
+      (V⊔₁ V^ V)))
 
   (: V⊔₁ : V^ V → V^)
-  (define (V⊔₁ V^ V) ???)
+  (define (V⊔₁ V^ V) (set-add V^ V))
 
   (define ⊥V : V^ ∅)
 

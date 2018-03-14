@@ -115,8 +115,8 @@
 
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
-   [bind-args! : (Ρ -formals W ℓ Φ^ H Σ → Ρ)]
-   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)] 
+   [bind-args! : (Ρ -formals W Φ^ H Σ → Ρ)]
+   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values H Boolean))] 
    [H₀ : H]))
 
 (define-signature compile^

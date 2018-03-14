@@ -21,7 +21,7 @@
          )
 
 (define-unit alloc@
-  (import static-info^ sto^)
+  (import static-info^ env^ sto^)
   (export alloc^)
 
   (: mutable? : α → Boolean)
@@ -32,12 +32,36 @@
       [(? -α:idx?) #t]
       [_ #f]))
 
-  (: bind-args! : Ρ -formals W ℓ Φ^ H Σ → Ρ)
-  (define (bind-args! Ρ₀ xs W ℓ Φ^ H Σ)
-    ???) 
+  (: bind-args! : Ρ -formals W Φ^ H Σ → Ρ)
+  (define (bind-args! Ρ₀ xs W Φ^ H Σ)
+    (match xs
+      [(? list? xs) (bind-inits! Ρ₀ xs W Φ^ H Σ)]
+      [(-var xs z) ???]))
 
-  (: H+ : H ℓ (U ⟦E⟧ V) (U 'app 'mon) → H)
-  (define (H+ H src tgt type) ???)
+  (: bind-inits! : Ρ (Listof Symbol) W Φ^ H Σ → Ρ)
+  (define (bind-inits! Ρ₀ xs W Φ^ H Σ)
+    (for/fold ([Ρ : Ρ Ρ₀]) ([x (in-list xs)] [V (in-list W)])
+      (define α (mk-α (-α:x x H)))
+      (⊔ᵥ! Σ α V)
+      (Ρ+ Ρ x α)))
+
+  (: H+ : H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values H Boolean))
+  (define (H+ H src tgt type)
+    (define-values (H* looped?) (-H+ (inspect-H H) src tgt type))
+    (values (mk-H H*) looped?))
+
+  (: -H+ : -H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values -H Boolean))
+  (define (-H+ H src tgt type)
+    (match-define (-H:edges edges) H)
+    (case type
+      [(app)
+       (define match? : (Edge → Boolean)
+         (match-lambda
+           [(Edge _ tgt*) (equal? tgt* tgt)]))
+       (define ?edges* (memf match? edges))
+       (cond [?edges* (values (-H:edges ?edges*) #t)]
+             [else (values (-H:edges (cons (Edge src tgt) edges)) #f)])]
+      [(mon) ???]))
 
   (define H₀ (mk-H (-H:edges '())))
 
