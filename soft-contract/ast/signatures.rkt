@@ -66,7 +66,7 @@
 
 (-dom . ::= . (-dom [name : Symbol] [dependency : (Option (Listof Symbol))] [body : -e] [loc : ℓ]))
 
-(-prog . ::= . (-prog (Listof -module) -e))
+(-prog . ::= . (-prog (Listof -module)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

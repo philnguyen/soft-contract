@@ -25,14 +25,13 @@
   (: ↓ₚ : -prog → ⟦E⟧)
   ;; Compile program
   (define (↓ₚ p)
-    (match-define (-prog ms E) p)
-    (match ms
-      ['() (↓ₑ '† E)]
+    (match (-prog-_0 p)
+      ['() (mk-W '())]
       [(cons m ms)
        (define ⟦m⟧ (↓ₘ m))
        (define ⟦m⟧s (map ↓ₘ ms))
-       (define ⟦E⟧ (↓ₑ '† E))
-       (λ (Ρ Φ^ Ξ Σ) (⟦m⟧ Ρ Φ^ (K+ (F:Bgn `(,@⟦m⟧s ,⟦E⟧) Ρ) Ξ) Σ))]))
+       (cond [(null? ⟦m⟧s) ⟦m⟧]
+             [else (λ (Ρ Φ^ Ξ Σ) (⟦m⟧ Ρ Φ^ (K+ (F:Bgn ⟦m⟧s Ρ) Ξ) Σ))])]))
 
   (: ↓ₘ : -module → ⟦E⟧)
   ;; Compile module
@@ -55,7 +54,7 @@
        #:where
        [α  (mk-α (-α:top (-𝒾 x l)))]
        [α* (mk-α (-α:wrp (-𝒾 x l)))]
-       [A  {set (list {set -void})}]])
+       [A  {set '()}]])
     
     (: ↓d : -module-level-form → ⟦E⟧)
     (define-compiler ((↓d d) Ρ Φ^ Ξ Σ)
@@ -64,23 +63,24 @@
           #:where
           [αs (for/list : (Listof α) ([x (in-list xs)]) (mk-α (-α:top (-𝒾 x l))))]
           [⟦E⟧ (↓ₑ l E)]]
-      [(-provide '()) (mk-V -void)]
+      [(-provide '()) (mk-W '())]
       [=> (-provide (cons spec specs))
           (⟦spec⟧ Ρ Φ^ (K+ (F:Bgn ⟦spec⟧s Ρ) Ξ) Σ)
           #:where
           [⟦spec⟧ (↓pc spec)]
           [⟦spec⟧s (map ↓pc specs)]]
       [(? -e? E) (↓ₑ l E)]
-      [_ (begin0 (mk-V -void)
+      [_ (begin0 (mk-W '())
            (log-warning "↓d: ignore ~a~n" d))])
 
     (match ds
-      ['() (mk-V -void)]
+      ['() (mk-W '())]
       [(cons D Ds)
        (define ⟦D⟧ (↓d D))
        (define ⟦D⟧s (map ↓d Ds))
-       (λ (Ρ Φ^ Ξ Σ)
-         (⟦D⟧ Ρ Φ^ (K+ (F:Bgn ⟦D⟧s Ρ) Ξ) Σ))]))
+       (cond [(null? ⟦D⟧s) ⟦D⟧]
+             [else (λ (Ρ Φ^ Ξ Σ)
+                     (⟦D⟧ Ρ Φ^ (K+ (F:Bgn ⟦D⟧s Ρ) Ξ) Σ))])]))
 
   (: ↓ₑ : -l -e → ⟦E⟧)
   (define (↓ₑ l e)

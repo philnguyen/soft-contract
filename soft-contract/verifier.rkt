@@ -17,9 +17,8 @@
          "reduction/signatures.rkt"
          )
 
-(define-interner Iᵥ Σᵥ)
-(define-interner Iₖ Σₖ)
-(define-interner Iₐ Σₐ)
+;; Compacting each store to its version to display
+(Ξ* . ::= . (Ξ* Ξ Σᵥ Σₖ Σₐ))
 
 (define-unit verifier@
   (import static-info^ step^ compile^ parser^)
@@ -59,10 +58,7 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Visualization
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ;; Compacting each store to its version to display
-  (Ξ* . ≜ . (List Ξ Iᵥ Iₖ Iₐ))
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 
   (: viz : Runnable → Σ)
   (define (viz x)
@@ -71,10 +67,10 @@
     (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
       ;; depending on mutable state Σ₀
       (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
-      (list Ξ (Iᵥ-of Σᵥ) (Iₖ-of Σₖ) (Iₐ-of Σₐ)))
+      (Ξ* Ξ Σᵥ Σₖ Σₐ))
 
     (define Ξ*->Ξ : (Ξ* → Ξ)
-      (match-lambda [(list Ξ _ _ _) Ξ]))
+      (match-lambda [(Ξ* Ξ _ _ _) Ξ]))
     
     (define ↝₁ : (Ξ* → (℘ Ξ*))
       (λ (Ξ*) (map/set Ξ->Ξ* (↝ (Ξ*->Ξ Ξ*) Σ₀))))
@@ -85,7 +81,7 @@
   (: comp : Runnable → ⟦E⟧)
   (define (comp x)
     (cond [(-prog? x) (↓ₚ x)]
-          [(list? x) (↓ₚ (-prog (parse-files x) -void))]
+          [(list? x) (↓ₚ (-prog (parse-files x)))]
           [else (↓ₑ 'top-level x)]))
   )
 

@@ -343,8 +343,7 @@
        (for ([i lhs])
          (add-top-level! (-𝒾 i (cur-mod))))
        (-define-values lhs (parse-e #'e))]
-      [(#%require spec ...)
-       (-require (map parse-require-spec (syntax->list #'(spec ...))))]
+      [(#%require spec ...) #f]
       [(define-syntaxes (k:id) ; constructor alias
          (~and rhs
                (#%plain-app
