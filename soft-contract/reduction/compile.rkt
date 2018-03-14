@@ -64,6 +64,7 @@
           [αs (for/list : (Listof α) ([x (in-list xs)]) (mk-α (-α:top (-𝒾 x l))))]
           [⟦E⟧ (↓ₑ l E)]]
       [(-provide '()) (mk-W '())]
+      [(-provide (list spec)) (↓pc spec)]
       [=> (-provide (cons spec specs))
           (⟦spec⟧ Ρ Φ^ (K+ (F:Bgn ⟦spec⟧s Ρ) Ξ) Σ)
           #:where
