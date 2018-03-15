@@ -31,7 +31,7 @@
 (begin-for-syntax
 
   (define-syntax-rule (with-hack:make-available (src id ...) e ...)
-    (with-syntax ([id (forma\t-id src "~a" 'id)] ...) e ...))
+    (with-syntax ([id (format-id src "~a" 'id)] ...) e ...))
 
   (define-syntax-rule (hack:make-available src id ...)
     (begin (define/with-syntax id (format-id src "~a" 'id)) ...))
@@ -43,6 +43,7 @@
     [-ℓ identifier? #f]
     [-W identifier? #f]
     [-Φ^ identifier? #f]
+    [-Ξ identifier? #f]
     [-Σ identifier? #f]
     [-sig syntax? #f]
     [-Vⁿ (listof identifier?) #f]
@@ -80,9 +81,9 @@
                                            [sig:hc (attribute sig.arity)]))))
     
     (list
-     #`(match #,(-Vs)
+     #`(match #,(-W)
          #,@cases
-         [_ (Blm/simp #,(-ℓ) '#,(-o) (list 'error-msg) #,(-W))])))
+         [_ {set (Blm/simp #,(-ℓ) '#,(-o) (list 'error-msg) #,(-W))}])))
 
   (define/contract (gen-case dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . syntax?)
@@ -97,7 +98,7 @@
 
   (define/contract (gen-case-lift dom-inits ?dom-rst rngs body)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) (listof syntax?) . -> . (listof syntax?))
-    (hack:make-available (-o) Vs->bs)
+    (hack:make-available (-o) W->bs r:W->R r:ret!)
 
     (define (gen-pat c x)
       (syntax-parse (?flatten-ctc c)
@@ -108,10 +109,10 @@
         [(p ...)
          (define/with-syntax (p* ...) (map for-TR (syntax->list #'(p ...))))
          #`(singleton-set (-b (and #,x (? p) ...)))]))
-    (define/with-syntax (bᵢ ...) (gen-ids (-Vs) 'b (length dom-inits)))
-    (define/with-syntax bᵣ (format-id (-Vs) "bᵣ"))
-    (define/with-syntax (a ...) (gen-ids (-Vs) 'a (length rngs)))
-    (define/with-syntax (bₐ ...) (gen-ids (-Vs) 'bₐ (length rngs)))
+    (define/with-syntax (bᵢ ...) (gen-ids (-W) 'b (length dom-inits)))
+    (define/with-syntax bᵣ (format-id (-W) "bᵣ"))
+    (define/with-syntax (a ...) (gen-ids (-W) 'a (length rngs)))
+    (define/with-syntax (bₐ ...) (gen-ids (-W) 'bₐ (length rngs)))
     (define/with-syntax (Vᵢ ...) (map gen-pat dom-inits (syntax->list #'(bᵢ ...))))
     (define/with-syntax (pat ...)
       (syntax-parse ?dom-rst
@@ -128,11 +129,11 @@
     (define/with-syntax compute-ans
       (if ?dom-rst #`(apply #,(-o) bᵢ ... bᵣ) #`(#,(-o) bᵢ ...)))
     (list
-     #`(match #,(-Vs)
+     #`(match #,(-W)
          [pat ...
           (define-values (a ...) compute-ans)
           (define-values (bₐ ...) (values {set (-b a)} ...))
-          (ret! (W->R (list bₐ ...) #,(-Φ^)) Ξ #,(-Σ))]
+          {set (r:ret! (r:W->R (list bₐ ...) #,(-Φ^)) #,(-Ξ) #,(-Σ))}]
          [_ #,@body])))
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
@@ -203,11 +204,12 @@
 
     (define/contract (gen-init-1 c x body)
       (identifier? identifier? (listof syntax?) . -> . (listof syntax?))
-      (hack:make-available (-o) r:φ+/-pV^)
+      (hack:make-available (-o) r:plausible-sats r:with-plausible-paths)
       (list
-       #`(with-φ+/- ([(#,(-φ) #,(-φ)) (r:φ+/-pV^ (-Σ-σ #,(-Σ)) #,(-φ) '#,c #,x)]) : -ς
-           #:true  #,(match body [(list e) e] [_ #`(begin #,@body)])
-           #:false (blm '#,c #,x))))
+       #`((inst r:with-plaus\ible-paths Ξ)
+          (λ () (r:plausible-sats #,(-Σ) #,(-Φ^) '#,c (list #,x)))
+          (λ (#,(-Φ^)) #,(match body [(list e) e] [_ #`(begin #,@body)]))
+          (λ (#,(-Φ^)) (blm '#,c #,x)))))
 
     (define/contract gen-inits
       ((listof syntax?) (listof identifier?) . -> . (listof syntax?))
@@ -224,21 +226,22 @@
        [('() '()) (gen-rest)]))
 
     (define/contract (gen-rest) (-> (listof syntax?))
-      (hack:make-available (-o) r:φ+/-pV^)
+      (hack:make-available (-o) r:plausible-sats r:with-plausible-paths)
       (if ?rst
           (list
-           #`(define (run-body) : (℘ -ς) #,@body)
-           #`(let go ([rests : (Listof -V^) #,(-Vᵣ)])
+           #`(define (run-body) : (℘ Ξ) #,@body)
+           #`(let go ([rests : (Listof V^) #,(-Vᵣ)])
                (match rests
                  [(cons V^ rests*)
-                  (with-φ+/- ([(#,(-φ) #,(-φ)) (r:φ+/-pV^ (-Σ-σ #,(-Σ)) #,(-φ) '#,?rst V^)]) : -ς
-                    #:true  (go rests*)
-                    #:false (blm '#,?rst V^))]
+                  ((inst r:with-plausible-paths Ξ)
+                   (λ () (r:plausible-sats #,(-Σ) #,(-Φ^) '#,?rst (list V^)))
+                   (λ (#,(-Φ^)) (go rests*))
+                   (λ (#,(-Φ^)) (blm '#,?rst V^)))]
                  ['() (run-body)])))
           body))
-    (list*
+    (cons
      #`(define (blm [ctc : V] [val : V^])
-         (Blm/simp #,(-ℓ) '#,(-o) (list {set ctc}) (list val)))
+         {set (Blm/simp #,(-ℓ) '#,(-o) (list {set ctc}) (list val))})
      (gen-inits doms (-Vⁿ))))
 
   ;; See if range needs to go through general contract monitoring
@@ -294,11 +297,11 @@
        #`(Not/C #,(gen-ctc #'c*))]
       [(o:cmp r:number)
        (syntax-parse #'o
-         [(~literal >/c)  #'(->/c (-b r))]
-         [(~literal </c)  #'(-</c (-b r))]
-         [(~literal >=/c) #'(-≥/c (-b r))]
-         [(~literal <=/c) #'(-≤/c (-b r))]
-         [(~literal =/c)  #'(-≡/c (-b r))])]
+         [(~literal >/c)  #'(P:> (-b r))]
+         [(~literal </c)  #'(P:< (-b r))]
+         [(~literal >=/c) #'(P:≥ (-b r))]
+         [(~literal <=/c) #'(P:≤ (-b r))]
+         [(~literal =/c)  #'(P:≡ (-b r))])]
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))
@@ -365,13 +368,13 @@
   (define/contract gen-rng (syntax? . -> . syntax?)
     (syntax-parser
       [((~literal values) c ...) #`(list #,@(map gen-ctc (syntax->list #'(c ...))))]
-      [(~literal any) #''any]
+      [(~literal any) #''#f]
       [c #`(list #,(gen-ctc #'c))]))
 
   (define/contract gen-rng-V (syntax? . -> . syntax?)
     (syntax-parser
       [((~literal values) c ...) #`(list #,@(map gen-ctc-V (syntax->list #'(c ...))))]
-      [(~literal any) #''any]
+      [(~literal any) #''#f]
       [c #`(list #,(gen-ctc-V #'c))]))
 
   (define/contract (ctc->ast c)

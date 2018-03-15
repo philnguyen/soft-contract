@@ -36,7 +36,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-16@
-  (import prim-runtime^ widening^ sto^)
+  (import prim-runtime^)
   (export)
 
   ;;;;; Hash Sets
@@ -66,7 +66,7 @@
      ((generic-set?) #:rest (listof symbol?) . ->* . boolean?)]
   #;[set-implements/c ; FIXME varargs, contract?
      (symbol? . -> . flat-contract?)]
-  (def (set/c ℓ Vs H φ Σ ⟦k⟧)
+  #;(def (set/c ℓ Vs H φ Σ ⟦k⟧)
     #:init ([V contract? #|TODO chaperone-contract?|#])
     (define α (-α->⟪α⟫ (-α.set/c-elem ℓ H)))
     (define C (-Set/C (-⟪α⟫ℓ α (ℓ-with-id ℓ 'set/c))))

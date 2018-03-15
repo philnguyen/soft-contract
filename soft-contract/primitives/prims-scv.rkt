@@ -21,31 +21,32 @@
                      syntax/parse))
 
 (define-unit prims-scv@
-  (import prim-runtime^ mon^)
+  (import prim-runtime^ evl^
+          mon^ step^)
   (export)
 
-  (def (scv:make-case-lambda ℓ Vs H φ Σ ⟦k⟧)
+  (def (scv:make-case-lambda W ℓ Φ^ Ξ Σ)
     #:init ()
-    #:rest [Vs (listof any/c)]
+    #:rest [W (listof any/c)]
     (define clos
-      (for/list : (Listof -Clo) ([V^ (in-list Vs)])
+      (for/list : (Listof Clo) ([V^ (in-list W)])
         (match V^
-          [(singleton-set (? -Clo? V)) V]
+          [(singleton-set (? Clo? V)) V]
           [_ (error 'scv:make-case-lambda "Internal invariant violated")])))
-    (⟦k⟧ (list {set (-Case-Clo clos)}) H φ Σ))
+    {set (ret! (V->R (Case-Clo clos) Φ^) Ξ Σ)})
 
-  (def (scv:make-case-> ℓ Vs H φ Σ ⟦k⟧)
+  (def (scv:make-case-> W ℓ Φ^ Ξ Σ)
     #:init ()
-    #:rest [Vs (listof any/c)]
+    #:rest [W (listof any/c)]
     (define cases
-      (for/list : (Listof -=>) ([V^ (in-list Vs)])
+      (for/list : (Listof ==>) ([V^ (in-list W)])
         (match V^
-          [(singleton-set (? -=>? C)) C]
+          [(singleton-set (? ==>? C)) C]
           [_ (error 'scv:make-case-> "Internal invariant violated")])))
-    (⟦k⟧ (list {set (-Case-> cases)}) H φ Σ))
+    {set (ret! (V->R (Case-=> cases) Φ^) Ξ Σ)})
 
-  (def (scv:mon ℓ Vs H φ Σ ⟦k⟧)
+  (def (scv:mon W ℓ Φ^ Ξ Σ)
     #:init ([src symbol?] [C contract?] [V any/c])
     (match-define {singleton-set (-b (and (? symbol?) (app symbol->string l)))} src)
-    (mon (-ctx l (format "user-of-~a" l) l ℓ) C V H φ Σ ⟦k⟧))
+    (mon C V (Ctx l (format "user-of-~a" l) l ℓ) Φ^ Ξ Σ))
   )

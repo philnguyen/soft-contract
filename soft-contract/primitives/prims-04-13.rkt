@@ -38,14 +38,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import prim-runtime^ widening^ path^ val^ sto^ kont^ mon^)
+  (import prim-runtime^)
   (export)
 
   (def-pred hash?)
   (def* (hash-equal? hash-eqv? hash-eq? hash-weak?)
     (hash? . -> . boolean?))
 
-  (splicing-local
+  #;(splicing-local
       ((: hash-helper : ℓ (Listof -V^) -H -φ -Σ -⟦k⟧ Symbol -h → (℘ -ς))
        (define (hash-helper ℓ Vs H φ Σ ⟦k⟧ name eq)
          (define-values (A φ*)
@@ -124,7 +124,7 @@
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
   (def hash-set*! ; FIXME uses
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
-  (def (hash-set ℓ Vs H φ Σ ⟦k⟧)
+  #;(def (hash-set ℓ Vs H φ Σ ⟦k⟧)
     #:init ([Vₕ^ (and/c hash? immutable?)]
             [Vₖ any/c]
             [Vᵥ any/c])

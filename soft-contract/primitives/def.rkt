@@ -82,7 +82,8 @@
            #,@(parameterize ([-o #'o]
                              [-ℓ #'ℓ]
                              [-W #'W]
-                             [-Φ #'Φ^]
+                             [-Φ^ #'Φ^]
+                             [-Ξ #'Ξ]
                              [-Σ #'Σ]
                              [-sig #'sig]
                              [-Vⁿ (gen-ids #'W 'V max-inits)]
@@ -118,7 +119,7 @@
            [_ '()])))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const!)
      #`(begin
-         (: .o : ⟦F⟧)
+         (: .o : ⟦F⟧^)
          defn-o
          (add-const! #'o 'o)
          (hash-set! prim-table 'o .o)
@@ -165,35 +166,36 @@
                             [-ℓ #'ℓ]
                             [-W #'W]
                             [-Φ^ #'Φ^]
+                            [-Ξ #'Ξ]
                             [-Σ #'Σ]
                             [-Vⁿ (syntax->list #'(V ...))]
                             [-Vᵣ #'Vᵣ])
                (syntax-parse #'(V ...)
                  [()
                   (list*
-                   #`(let ([Vᵣ Vs])
+                   #`(let ([Vᵣ W])
                        #,@(gen-flat-checks '()
                                            ?c-elem
                                            (syntax->list #'(e ...)))))]
                  [_
-                  #`(match Vs
+                  #`(match W
                       [ok-pat
                        #,@(gen-flat-checks (syntax->list #'(c ...))
                                            ?c-elem
                                            (syntax->list #'(e ...)))]
                       [_
                        (define msg '(#,(string->symbol (format "~v" arity))))
-                       (Blm/simp ℓ 'o msg W)])]))))
+                       {set (Blm/simp ℓ 'o msg W)}])]))))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
      (define/contract maybe-set-partial (listof syntax?)
        (let ([n
-              (+ (apply + 0 (map count-leaves (syntax->list #'(c ...))))
+              (+ (apply + (map count-leaves (syntax->list #'(c ...))))
                  (syntax-parse #'cᵣ
                    [(~literal null?) 0]
                    [((~literal listof) c) (+ 1 (count-leaves #'c))]))])
          (list #`(set-partial! 'o #,n))))
      #`(begin
-         (: .o : ⟦F⟧)
+         (: .o : ⟦F⟧^)
          defn-o
          (add-const! #'o 'o)
          (hash-set! prim-table 'o .o)

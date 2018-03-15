@@ -23,7 +23,6 @@
          "../utils/pretty.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
@@ -39,12 +38,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import prim-runtime^ proof-system^ widening^ app^ val^ path^)
+  (import prim-runtime^)
   (export)
 
   (def-pred procedure?)
 
-  (def (apply ℓ Vs H φ Σ ⟦k⟧)
+  #;(def (apply ℓ Vs H φ Σ ⟦k⟧)
     #:init ()
     #:rest [Ws (listof any/c)] ; manual arity check instead
     (define l (ℓ-src ℓ))
@@ -134,7 +133,7 @@
 
   ;; 4.17.1 Keywords and Arity
   ;[keyword-apply #|FIXME uses|#]
-  (def (procedure-arity ℓ Vs H φ Σ ⟦k⟧)
+  #;(def (procedure-arity ℓ Vs H φ Σ ⟦k⟧)
     #:init ([V^ procedure?])
     (define Vₐ^ (for/set: : -V^ ([V (in-set V^)])
                   (match (V-arity V)

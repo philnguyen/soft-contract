@@ -46,4 +46,10 @@
   (: collapse-R^/Φ^ : R^ → Φ^)
   (define (collapse-R^/Φ^ R^)
     (for/union : Φ^ ([R (in-set R^)]) (R-_1 R)))
+
+  (: with-plausible-paths (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
+  (define (with-plausible-paths mk on-t on-f)
+    (define-values (Φ^₁ Φ^₂) (mk))
+    (∪ (if (set-empty? Φ^₁) ∅ (on-t Φ^₁))
+       (if (set-empty? Φ^₂) ∅ (on-f Φ^₂))))
   )

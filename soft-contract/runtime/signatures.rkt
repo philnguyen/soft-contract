@@ -52,10 +52,11 @@
                      (X/G [ctx : Ctx] [guard : Prox/C] [val : α])
                      (Sealed α)
                      C
-                     S)
+                     S
+                     P #|hack in prim DSL|#)
 (#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
 (#|Symbolic value|# S . ::= . -b (S:α α) (S:@ -o (Listof S)))
-(#|Predicates|# P . ::= . -o (P:Le S) (P:Lt S) (P:Ge S) (P:Gt S) (P:Neg P))
+(#|Predicates|# P . ::= . -o (P:≤ S) (P:< S) (P:≥ S) (P:> S) (P:≡ S) (P:¬ P))
 
 (#|Non-primitive function|# Fn . ::= . (Clo -formals ⟦E⟧ Ρ)
                                        (Case-Clo (Listof Clo))
@@ -140,7 +141,7 @@
     [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
 (define Ctx-with-ℓ : (Ctx ℓ → Ctx)
   (match-lambda**
-    [((Ctx l+ l- lo _) ℓ) (Ctx l+ l- lo ℓ)]))
+   [((Ctx l+ l- lo _) ℓ) (Ctx l+ l- lo ℓ)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -203,7 +204,8 @@
    [W->R : ((U W W^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]
-   [collapse-R^/Φ^ : (R^ → Φ^)]))
+   [collapse-R^/Φ^ : (R^ → Φ^)]
+   [with-plausible-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]))
 
 (define-signature pretty-print^
   ([show-blm-reason : ((U V P V^) → Sexp)]

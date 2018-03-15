@@ -2,12 +2,13 @@
 
 (provide prim-runtime@)
 (require racket/match
-         racket/set
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/sequence
          syntax/parse/define
          typed/racket/unit
          set-extras
          unreachable
+         typed-racket-hacks
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
@@ -16,8 +17,10 @@
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import val^ sto^ env^
-          alloc^ compile^)
+  (import val^ sto^ env^ evl^
+          alloc^ compile^
+          proof-system^
+          step^)
   (export prim-runtime^)
 
   (: implement-predicate : Σ Φ^ -o W → R^)
@@ -28,7 +31,7 @@
       [(✗) {set -ff}]
       [(?) (mk-res {set 'boolean?} o Vs)]))
 
-  (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧)
+  (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
     (λ (o)
       (λ (W ℓ Φ^ Ξ Σ)
         ???
@@ -48,7 +51,7 @@
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
-  (define prim-table  : (HashTable Symbol ⟦F⟧) (make-hasheq))
+  (define prim-table  : (HashTable Symbol ⟦F⟧^) (make-hasheq))
   (define opq-table   : (HashTable Symbol -●) (make-hasheq))
   (define debug-table : (HashTable Symbol Any) (make-hasheq))
 
@@ -237,28 +240,29 @@
         [(? S? V) {set (S:@ 'vector-length (list V))}]
         [_ {set (-● {set 'exact-nonnegative-integer?})}])))
 
+  (: mk-res : (℘ P) -o W → V^)
+  (define (mk-res Ps o Wₓ)
+    (cond
+      [(andmap (λ ([V^ : V^]) (for/and : Boolean ([V (in-set V^)]) (S? V))) Wₓ)
+       (define args : (℘ (Listof S))
+         (let go ([Wₓ : W Wₓ])
+           (match Wₓ
+             ['() {set '()}]
+             [(cons V Wₓ*)
+              (define rst (go Wₓ*))
+              (for*/set : (℘ (Listof S)) ([S₁ (in-set V)] [Sᵣ (in-set rst)])
+                (cons (assert S₁ S?) Sᵣ))])))
+       (for/set : (℘ S) ([arg (in-set args)])
+         (S:@ o arg))]
+      [else {set (-● Ps)}]))
+
   
   #|
   (: r:φ+/-pV^ : -σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))
   (define (r:φ+/-pV^ σ φ o . Vs)
     (apply φ+/-pV^ σ φ o Vs))
 
-  (: mk-res : (℘ -h) -o (Listof -V^) → -V^)
-  (define (mk-res ps o Vs)
-    (cond
-      [(andmap (λ ([V^ : -V^]) (for/and : Boolean ([V (in-set V^)]) (-t? V))) Vs)
-       (define args : (℘ (Listof -t))
-         (let go ([Vs : (Listof -V^) Vs])
-           (match Vs
-             ['() {set '()}]
-             [(cons V Vs*)
-              (define rst (go Vs*))
-              (for*/set: : (℘ (Listof -t)) ([t₁ (in-set V)] [tᵣ (in-set rst)])
-                (cons (assert t₁ -t?) tᵣ))])))
-       (for/set: : (℘ -t) ([arg (in-set args)])
-         (t.@/simp o arg))]
-      [else
-       {set (-● ps)}]))
+  
   |#
 
   (: add-seal : Σ Symbol H -l → Seal/C)
@@ -269,6 +273,17 @@
 
   (define mk-αℓ : ((Pairof V ℓ) → αℓ)
     (match-lambda [(cons V ℓ) (αℓ (mk-α (-α:imm V)) ℓ)]))
+
+  ;; Eta-expand to get aroudn undefined and init-depend
+  (: r:ret! : (U R R^) Ξ:co Σ → Ξ:co)
+  (: r:W->R : (U W W^) Φ^ → R)
+  (: r:plausible-sats : Σ Φ^ P W → (Values Φ^ Φ^))
+  (: r:with-plausible-paths
+     (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
+  (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
+  (define (r:W->R W Φ^) (W->R W Φ^))
+  (define (r:with-plausible-paths e t f) (with-plausible-paths e t f))
+  (define (r:plausible-sats Σ Φ^ P W) (plausible-sats Σ Φ^ P W))
 
   #|
   (: t.@/simp : -o (Listof -t) → -t)

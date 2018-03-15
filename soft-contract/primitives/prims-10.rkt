@@ -20,10 +20,10 @@
 ;;;;; 10.1 Multiple Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def (values ℓ Vs H φ Σ ⟦k⟧)
+  (def (values W ℓ Φ^ Ξ Σ)
     #:init ()
-    #:rest [Vs (listof any/c)]
-    (⟦k⟧ Vs H φ Σ))
+    #:rest [W (listof any/c)]
+    {set (r:ret! (r:W->R W Φ^) Ξ Σ)})
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

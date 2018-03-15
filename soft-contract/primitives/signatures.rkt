@@ -39,7 +39,7 @@
 
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
-  ([make-total-pred : (Index → Symbol → ⟦F⟧)]
+  ([make-total-pred : (Index → Symbol → ⟦F⟧^)]
    [implement-predicate : (Σ Φ^ -o W → R^)]
    [W->bs : (W → (Option (Listof Base)))]
    [make-static-listof : (Symbol (→ (Values Boolean V ℓ)) → V)]
@@ -67,7 +67,7 @@
    [update-arity! : (Symbol Arity → Void)]
    [set-partial! : (Symbol Natural → Void)]
 
-   [prim-table : (HashTable Symbol ⟦F⟧)]
+   [prim-table : (HashTable Symbol ⟦F⟧^)]
    [const-table : Parse-Prim-Table]
    [alias-table : Alias-Table]
    [debug-table : (HashTable Symbol Any)]
@@ -78,9 +78,16 @@
 
    [add-alias! : (Identifier Identifier → Void)]
    [add-const! : (Identifier -prim → Void)]
+   
+   [add-seal : (Σ Symbol H -l → Seal/C)]
+   [mk-res : ((℘ P) -o W → V^)]
 
-   ;; re-exported stuff to avoid confusing dependency in `def`
+   ;; HACK re-exported stuff to avoid confusing dependency in `def`
+   [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]
+   [r:W->R : ((U W W^) Φ^ → R)]
+   [r:plausible-sats : (Σ Φ^ P W → (Values Φ^ Φ^))]
+   [r:with-plausible-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
+   
    #;[r:φ+/-pV^ : (Σ Φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
-   #;[mk-res : ((℘ -h) -o (Listof -V^) → -V^)]
-   #;[add-seal : (-Σ -φ Symbol -H -l → (Values -Seal/C -φ))]
+   
    ))

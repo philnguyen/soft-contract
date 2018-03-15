@@ -6,12 +6,10 @@
          set-extras
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
-         ;"../proof-relation/signatures.rkt"
          "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "prim-runtime.rkt"
-         #|
          "relations.rkt"
          "prims-04.rkt"
          "prims-05.rkt"
@@ -25,7 +23,6 @@
          "prims-math.rkt"
          "prims-zo.rkt"
          "prims-scv.rkt"
-         |#
          )
 
 (define-unit pre-prims@
@@ -33,7 +30,7 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → ⟦F⟧)
+  (: get-prim : Symbol → ⟦F⟧^)
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
@@ -64,12 +61,12 @@
 
 (define-compound-unit/infer prims@
   (import ast-pretty-print^ static-info^
-          val^ sto^ env^
-          alloc^ compile^)
+          val^ sto^ env^ evl^
+          proof-system^
+          alloc^ compile^ step^ mon^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@
-        #|
         relations@
         prims-04@
         prims-05@
@@ -83,5 +80,4 @@
         prims-math@
         prims-zo@
         prims-scv@
-        |#
         ))

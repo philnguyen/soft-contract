@@ -25,7 +25,7 @@
    [canonicalize-path : (Path-String → Path-String)]))
 
 (define-signature prims^ ; TODO
-  ([get-prim : (Symbol → ⟦F⟧)]
+  ([get-prim : (Symbol → ⟦F⟧^)]
    [o⇒o : (Symbol Symbol → Valid)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
@@ -34,7 +34,8 @@
    [implement-predicate : (Σ Φ^ -o W → R^)]))
 
 (define-signature proof-system^
-  ([plausible-splits : (Σ R^ → (Values R^ R^))]
+  ([plausible-splits : (Σ R^ → (Values Φ^ Φ^))]
+   [plausible-sats : (Σ Φ^ P W → (Values Φ^ Φ^))]
    #|
    [p⇒p : (-h -h → -R)]
    [V∈C : (-σ -φ -V^ (U -h -V) → -R)]

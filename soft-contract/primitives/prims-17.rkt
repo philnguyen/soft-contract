@@ -16,8 +16,7 @@
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import static-info^ prim-runtime^ proof-system^ widening^ app^ kont^
-          val^ path^ sto^ instr^ env^ pretty-print^)
+  (import prim-runtime^ evl^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,7 +48,7 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  (def (unsafe-struct-ref ℓ Vs H φ Σ ⟦k⟧)
+  #;(def (unsafe-struct-ref W ℓ Φ^ Ξ Σ)
     #:init ([Vᵥ^ any/c] [Vᵢ integer?])
     (for/union : (℘ -ς) ([Vᵥ (in-set Vᵥ^)])
       (match Vᵥ

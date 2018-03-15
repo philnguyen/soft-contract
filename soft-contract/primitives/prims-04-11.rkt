@@ -38,12 +38,13 @@
 (provide prims-04-11@)
 
 (define-unit prims-04-11@
-  (import prim-runtime^ widening^ val^ path^ compile^ proof-system^
-          env^ sto^ kont^)
+  (import prim-runtime^
+          evl^ sto^
+          step^)
   (export)
-
+  
   (def-pred vector?)
-  (splicing-let
+  #;(splicing-let
       ([.internal-make-vector
         (let ()
           (def (internal-make-vector ℓ Vs H φ Σ ⟦k⟧)
@@ -72,27 +73,27 @@
           [_ Vs]))
       (.internal-make-vector ℓ Vs* H φ Σ ⟦k⟧)))
   
-  (def (vector ℓ Vs H φ Σ ⟦k⟧)
+  (def (vector W ℓ Φ^ Ξ Σ)
     #:init ()
-    #:rest [Vs (listof any/c)]
-    (define σ (-Σ-σ Σ))
-    (define-values (αs-rev φ*)
-      (for/fold ([αs-rev : (Listof ⟪α⟫) '()] [φ : -φ φ])
-                ([V (in-list Vs)] [i (in-naturals)])
-        (define α (-α->⟪α⟫ (-α.idx ℓ H (assert i index?))))
-        (values (cons α αs-rev) (alloc Σ φ α V))))
-    (⟦k⟧ (list {set (-Vector (reverse αs-rev))}) H φ* Σ))
+    #:rest [W (listof any/c)]
+    (define H (Ξ:co-ctx Ξ))
+    (define αs : (Listof α) ; with side-effect allocating
+      (for/list ([V (in-list W)] [i (in-naturals)])
+        (define α (mk-α (-α:idx ℓ H (assert i index?))))
+        (⊔ᵥ! Σ α V)
+        α))
+    {set (ret! (V->R (Vect αs) Φ^) Ξ Σ)})
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
-  (def (vector-length ℓ Vs H φ Σ ⟦k⟧)
+  (def (vector-length W ℓ Φ^ Ξ Σ)
     #:init ([V vector?])
-    (⟦k⟧ (list (vec-len (-Σ-σ Σ) φ V)) H φ Σ))
+    {set (ret! (V->R (vec-len V) Φ^) Ξ Σ)})
 
-  (def (vector-ref ℓ Vs H φ Σ ⟦k⟧)
+  #;(def (vector-ref W ℓ Φ^ Ξ Σ)
     #:init ([Vᵥ^ vector?] [Vᵢ integer?])
-    (for/union : (℘ -ς) ([Vᵥ (in-set Vᵥ^)])
+    (for/union : (℘ Ξ) ([Vᵥ (in-set Vᵥ^)])
       (match Vᵥ
-        [(-Vector ⟪α⟫s)
+        [(Vect αs)
          (define Vₐ^
            (for/fold ([Vₐ^ : -V^ ∅])
                      ([α : ⟪α⟫ (in-list ⟪α⟫s)]
@@ -123,7 +124,7 @@
         [_
          (⟦k⟧ (list {set (-● ∅)}) H φ Σ)])))
   
-  (def (vector-set! ℓ Vs H φ Σ ⟦k⟧)
+  #;(def (vector-set! ℓ Vs H φ Σ ⟦k⟧)
     #:init ([Vᵥ^ vector?] [Vᵢ integer?] [Vᵤ any/c])
     (for/union : (℘ -ς) ([Vᵥ (in-set Vᵥ^)])
       (match Vᵥ

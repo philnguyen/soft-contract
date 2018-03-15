@@ -7,7 +7,7 @@
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
-(define-signature local-prover^
+#;(define-signature local-prover^
   ([lift-p∋V : ((-σ -φ -h -V * → -R) → -σ -φ -h -V^ * → -R)]
    [p∋V : (-σ -φ -h -V * → -R)]
    [p∋V^ : (-σ -φ -h -V^ * → -R)]
@@ -20,5 +20,5 @@
                [-Case-Clo → Arity]
                [-V → (Option Arity)])]))
 
-(define-signature external-prover^
+#;(define-signature external-prover^
   ([p∋V : (-Γ -h (Listof -V) → -R)]))

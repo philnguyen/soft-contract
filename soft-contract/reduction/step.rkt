@@ -121,12 +121,9 @@
       [(F:If l ⟦E⟧₁ ⟦E⟧₂ Ρ)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
-           (define-values (R^₁ R^₂) (plausible-splits Σ R^₀))
-           (define (t) (⟦E⟧₁ Ρ (collapse-R^/Φ^ R^₁) Ξ Σ))
-           (define (f) (⟦E⟧₂ Ρ (collapse-R^/Φ^ R^₂) Ξ Σ))
-           (cond [(set-empty? R^₁) {set (f)}]
-                 [(set-empty? R^₂) {set (t)}]
-                 [else {set (t) (f)}])))]
+           (define-values (Φ^₁ Φ^₂) (plausible-splits Σ R^₀))
+           (∪ (if (set-empty? Φ^₁) ∅ {set (⟦E⟧₁ Ρ Φ^₁ Ξ Σ)})
+              (if (set-empty? Φ^₂) ∅ {set (⟦E⟧₂ Ρ Φ^₂ Ξ Σ)}))))]
       [(F:Bgn (cons ⟦E⟧ ⟦E⟧s) Ρ)
        (define-values (_ Φ^) (collapse-R^ R^₀))
        (define Ξ* (if (pair? ⟦E⟧s) (K+ (F:Bgn ⟦E⟧s Ρ) Ξ) Ξ))
@@ -236,7 +233,7 @@
       [(F:If:Flat/C V^ Blm)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
-           (define-values (R^₁ R^₂) (plausible-splits Σ R^₀))
+           (define-values (Φ^₁ Φ^₂) (plausible-splits Σ R^₀))
            ???))]
       #;[(F:Fc-And/C -l ℓ V^ V^) ???]
       #;[(F:Fc-Or/C -l ℓ V^ V^ V^) ???]

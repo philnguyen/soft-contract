@@ -8,6 +8,7 @@
          typed/racket/unit
          syntax/parse/define
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -16,13 +17,18 @@
          )
 
 (define-unit proof-system@
-  (import)
+  (import evl^)
   (export proof-system^)
 
-  (: plausible-splits : (Σ R^ → (Values R^ R^)))
+  (: plausible-splits : Σ R^ → (Values Φ^ Φ^))
   (define (plausible-splits Σ R^)
     (printf "TODO: implement `plausible-splits`~n")
-    (values R^ R^)))
+    (let ([Φ^ (collapse-R^/Φ^ R^)])
+      (values Φ^ Φ^)))
+
+  (: plausible-sats : Σ Φ^ P W → (Values Φ^ Φ^))
+  (define (plausible-sats Σ Φ^ P W) ???))
+
 
 #|
 (define-unit pre-proof-system@
