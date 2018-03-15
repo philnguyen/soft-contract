@@ -278,11 +278,11 @@
   (: r:ret! : (U R R^) Ξ:co Σ → Ξ:co)
   (: r:W->R : (U W W^) Φ^ → R)
   (: r:plausible-sats : Σ Φ^ P W → (Values Φ^ Φ^))
-  (: r:with-plausible-paths
+  (: r:with-2-paths
      (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
   (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
   (define (r:W->R W Φ^) (W->R W Φ^))
-  (define (r:with-plausible-paths e t f) (with-plausible-paths e t f))
+  (define (r:with-2-paths e t f) (with-2-paths e t f))
   (define (r:plausible-sats Σ Φ^ P W) (plausible-sats Σ Φ^ P W))
 
   #|

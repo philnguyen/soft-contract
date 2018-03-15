@@ -204,9 +204,9 @@
 
     (define/contract (gen-init-1 c x body)
       (identifier? identifier? (listof syntax?) . -> . (listof syntax?))
-      (hack:make-available (-o) r:plausible-sats r:with-plausible-paths)
+      (hack:make-available (-o) r:plausible-sats r:with-2-paths)
       (list
-       #`((inst r:with-plaus\ible-paths Ξ)
+       #`((inst r:with-2-paths Ξ)
           (λ () (r:plausible-sats #,(-Σ) #,(-Φ^) '#,c (list #,x)))
           (λ (#,(-Φ^)) #,(match body [(list e) e] [_ #`(begin #,@body)]))
           (λ (#,(-Φ^)) (blm '#,c #,x)))))
@@ -226,14 +226,14 @@
        [('() '()) (gen-rest)]))
 
     (define/contract (gen-rest) (-> (listof syntax?))
-      (hack:make-available (-o) r:plausible-sats r:with-plausible-paths)
+      (hack:make-available (-o) r:plausible-sats r:with-2-paths)
       (if ?rst
           (list
            #`(define (run-body) : (℘ Ξ) #,@body)
            #`(let go ([rests : (Listof V^) #,(-Vᵣ)])
                (match rests
                  [(cons V^ rests*)
-                  ((inst r:with-plausible-paths Ξ)
+                  ((inst r:with-2-paths Ξ)
                    (λ () (r:plausible-sats #,(-Σ) #,(-Φ^) '#,?rst (list V^)))
                    (λ (#,(-Φ^)) (go rests*))
                    (λ (#,(-Φ^)) (blm '#,?rst V^)))]

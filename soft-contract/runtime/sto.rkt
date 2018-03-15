@@ -69,7 +69,7 @@
     (for*/fold ([CG : CG (hash)])
                ([(α Ξₛs) (in-hash (->Σₖ Σₖ))] [Ξₛ (in-set Ξₛs)])
       (match-define (Ξ:co _ αₛ _) Ξₛ)
-      (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)))))
+      (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)) mk-∅)))
 
   (: ⊔ᵥ : Σᵥ α (U V V^) → Σᵥ)
   (define (⊔ᵥ Σ α V)
@@ -96,6 +96,11 @@
   
   (: ⊔ₖ! : Σ αₖ Ξ:co → Void)
   (define (⊔ₖ! Σ αₖ Ξ) (set-Σ-kon! Σ (⊔ₖ (Σ-kon Σ) αₖ Ξ)))
+
+  (: Σᵥ@/ctx : Σ Ctx αℓ → (Values V^ Ctx))
+  (define Σᵥ@/ctx
+    (match-lambda**
+      [(Σ ctx (αℓ α ℓ)) (values (Σᵥ@ Σ α) (Ctx-with-ℓ ctx ℓ))]))
 
   #|
 

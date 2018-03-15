@@ -16,7 +16,8 @@
    [havoc-last : ((Listof Path-String) → (Values (℘ Blm) Σ))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Blm) Σ))]
-   [viz : (Runnable → Σ)]))
+   [viz : (Runnable → Σ)]
+   [viz-call-graph : (Runnable → Void)]))
 
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]
@@ -36,6 +37,7 @@
 (define-signature proof-system^
   ([plausible-splits : (Σ R^ → (Values Φ^ Φ^))]
    [plausible-sats : (Σ Φ^ P W → (Values Φ^ Φ^))]
+   [partition-sats : (Σ Φ^ V V^ → (Values Φ^ Φ^ Φ^))]
    #|
    [p⇒p : (-h -h → -R)]
    [V∈C : (-σ -φ -V^ (U -h -V) → -R)]

@@ -3,85 +3,200 @@
 (provide mon@)
 
 (require racket/match
-         racket/set
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
          typed/racket/unit
          set-extras
+         bnf
          unreachable
+         typed-racket-hacks
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit mon@
-  (import)
+  (import static-info^
+          val^ env^ evl^ sto^
+          proof-system^
+          reflection^ step^ app^ compile^ fc^)
   (export mon^)
 
+  (⟦C⟧ . ≜ . (V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ)))
+
   (: mon : V^ V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ))
-  (define (mon C V Ctx Φ Ξ Σ) ???)
+  (define (mon C^ V^ ctx Φ^ Ξ₀ Σ)
+    (for/union : (℘ Ξ) ([C (in-set C^)]) ((mon₁ C) V^ ctx Φ^ Ξ₀ Σ)))
+
+  (: mon₁ : V → ⟦C⟧)
+  (define (mon₁ C)
+    (cond [(Fn/C? C) (mon-Fn/C C)]
+          [(St/C? C) (mon-St/C C)]
+          [(X/C? C) (mon-X/C C)]
+          [(And/C? C) (mon-And/C C)]
+          [(Or/C? C) (mon-Or/C C)]
+          [(Not/C? C) (mon-Not/C C)]
+          [(One-Of/C? C) (mon-One-Of/C C)]
+          [(Vectof? C) (mon-Vectof C)]
+          [(Vect/C? C) (mon-Vect/C C)]
+          [(Hash/C? C) (mon-Hash/C C)]
+          [(Set/C? C) (mon-Set/C C)]
+          [(Seal/C? C) (mon-Seal/C C)]
+          [else (mon-Flat/C C)]))
+
+  (: mon-Fn/C : Fn/C → ⟦C⟧)
+  (define ((mon-Fn/C C) V^₀ ctx Φ^₀ Ξ₀ Σ)
+    (match-define (Ctx l+ _ lₒ ℓ) ctx)
+    
+    (: blm : V → Any → (℘ Ξ))
+    (define ((blm C) _)
+      {set (Blm/simp (ℓ-with-src ℓ l+) lₒ (list {set C}) (list V^₀))})
+
+    (: chk-arity : Φ^ → (℘ Ξ))
+    (define (chk-arity Φ^)
+      (define grd-arity {set (-b (guard-arity C))})
+      (define val-arity
+        (for/set : V^ ([Vᵢ (in-set V^₀)])
+          (cond [(V-arity Vᵢ) => -b]
+                [(S? Vᵢ) (S:@ 'procedure-arity (list Vᵢ))]
+                [else (-● {set 'procedure-arity?})])))
+      (with-2-paths
+        (λ () (plausible-sats Σ Φ^ 'arity-includes? (list val-arity grd-arity)))
+        wrap
+        (blm (match (set-first grd-arity)
+               [(-b (? integer? n))
+                (format-symbol "(arity-includes/c ~a)" n)]
+               [(-b (arity-at-least n))
+                (format-symbol "(arity-at-leastc ~a)" n)]
+               [(-b (list n ...))
+                (string->symbol (format "(arity in ~a)" n))]))))
+
+    (: wrap : Φ^ → (℘ Ξ))
+    (define (wrap Φ^)
+      (define α (mk-α (-α:fn ctx (Ξ:co-ctx Ξ₀))))
+      (⊔ᵥ! Σ α V^₀)
+      {set (ret! (V->R (X/G ctx C α) Φ^) Ξ₀ Σ)})
+    
+    (with-2-paths (λ () (plausible-sats Σ Φ^₀ 'procedure? (list V^₀)))
+      (if (∀/C? C) wrap chk-arity)
+      (blm 'procedure?)))
+
+  (: mon-St/C : St/C → ⟦C⟧)
+  (define ((mon-St/C C) V^₀ ctx Φ^₀ Ξ₀ Σ)
+    (match-define (Ctx l+ _ lₒ ℓ) ctx)
+    (match-define (St/C _ 𝒾 αℓs) C)
+
+    (: chk-fields : Φ^ → (℘ Ξ))
+    (define (chk-fields Φ^)
+      (define-values (αs ℓs) (unzip-by αℓ-_0 αℓ-_1 αℓs))
+      (define all-immut? (struct-all-immutable? 𝒾))
+      ???)
+
+    (with-2-paths (λ () (plausible-sats Σ Φ^₀ (-st-p 𝒾) (list V^₀)))
+      chk-fields
+      (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lₒ (list (-st-p 𝒾)) (list V^₀))})))
+
+  (: mon-X/C : X/C → ⟦C⟧)
+  (define ((mon-X/C C) V ctx Φ^ Ξ Σ)
+    (match-define (X/C α) C)
+    (define C* (Σᵥ@ Σ α))
+    {set (ret! (V->R V Φ^) (K+ (F:Mon:C ctx C*) Ξ) Σ)})
+
+  (: mon-And/C : And/C → ⟦C⟧)
+  (define ((mon-And/C C) V ctx Φ^ Ξ Σ)
+    (match-define (And/C _ αℓ₁ αℓ₂) C)
+    (define-values (C₁ ctx₁) (Σᵥ@/ctx Σ ctx αℓ₁))
+    (define-values (C₂ ctx₂) (Σᵥ@/ctx Σ ctx αℓ₂))
+    (define Ξ* (K+ (F:Mon:C ctx₁ C₁) (K+ (F:Mon:C ctx₂ C₂) Ξ)))
+    {set (ret! (V->R V Φ^) Ξ* Σ)})
+
+  (: mon-Or/C : Or/C → ⟦C⟧)
+  (define ((mon-Or/C C) V ctx Φ^ Ξ₀ Σ)
+    (match-define (Or/C flat? αℓ₁ αℓ₂) C)
+
+    (: chk : V^ Ctx V^ Ctx → (℘ Ξ))
+    (define (chk C-fl ctx-fl C-ho ctx-ho)
+      (match-define (Ctx _ _ lₒ-fl ℓ-fl) ctx-fl)
+      (define Ξ* (K+ (F:Mon-Or/C ctx-ho C-fl C-ho V) Ξ₀))
+      (fc C-fl V (ℓ-with-src ℓ-fl lₒ-fl) Φ^ Ξ* Σ))
+
+    (define-values (C₁ ctx₁) (Σᵥ@/ctx Σ ctx αℓ₁))
+    (define-values (C₂ ctx₂) (Σᵥ@/ctx Σ ctx αℓ₂))
+    (cond [(C^-flat? C₁) (chk C₁ ctx₁ C₂ ctx₂)]
+          [(C^-flat? C₂) (chk C₂ ctx₂ C₁ ctx₁)]
+          [else (error 'or/c "No more than 1 higher-order disjunct for now")]))
+
+  (: mon-Not/C : Not/C → ⟦C⟧)
+  (define ((mon-Not/C C) V ctx Φ^ Ξ Σ)
+    (match-define (Ctx l+ _ lₒ ℓₘ) ctx)
+    (match-define (Not/C (αℓ α ℓ)) C)
+    (define C* (Σᵥ@ Σ α))
+    (define Ξ*
+      (let ([⟦ok⟧ (mk-W (list V))]
+            [⟦er⟧ (mk-Blm (Blm (ℓ-with-src ℓₘ l+) lₒ (list {set C}) (list V)))])
+        (K+ (F:If lₒ ⟦er⟧ ⟦ok⟧ ⊥Ρ) Ξ)))
+    (app C* (list V) ℓ Φ^ Ξ* Σ))
+
+  (: mon-One-Of/C : One-Of/C → ⟦C⟧)
+  (define (mon-One-Of/C C)
+    (match-define (One-Of/C bs) C)
+    ???)
+
+  (: mon-Vectof : Vectof → ⟦C⟧)
+  (define ((mon-Vectof C) V ctx Φ^₀ Ξ₀ Σ)
+    (match-define (Ctx l+ _ lₒ ℓₘ) ctx)
+    (match-define (Vectof αℓs) C)
+
+    (: blm : P → Φ^ → (℘ Ξ))
+    (define ((blm P) _)
+      {set (Blm/simp (ℓ-with-src ℓₘ l+) lₒ (list P) (list V))})
+
+    (: chk-elems : Φ^ → (℘ Ξ))
+    (define (chk-elems Φ^)
+      ???)
+    
+    (with-2-paths (λ () (plausible-sats Σ Φ^₀ 'vector? (list V)))
+      chk-elems
+      (blm 'vector?)))
+
+  (: mon-Vect/C : Vect/C → ⟦C⟧)
+  (define (mon-Vect/C C) ???)
+
+  (: mon-Hash/C : Hash/C → ⟦C⟧)
+  (define (mon-Hash/C C) ???)
+
+  (: mon-Set/C : Set/C → ⟦C⟧)
+  (define (mon-Set/C C) ???)
+
+  (: mon-Seal/C : Seal/C → ⟦C⟧)
+  (define ((mon-Seal/C C) V ctx Φ^ Ξ₀ Σ)
+    (match-define (Seal/C x H l) C)
+    (match-define (Ctx l+ l- lo ℓ) ctx)
+    (define α (mk-α (-α:sealed x H)))
+    (cond
+      [(equal? l l+) ; seal
+       (⊔ᵥ! Σ α V)
+       {set (ret! (V->R (Sealed α) Φ^) Ξ₀ Σ)}]
+      [(equal? l l-) ; unseal
+       (define (er) {set (Blm/simp (ℓ-with-src ℓ l+) lo (list {set C}) (list V))})
+       (define (ok) {set (ret! (V->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)})
+       (for/union : (℘ Ξ) ([Vᵢ (in-set V)])
+         (match Vᵢ
+           [(Sealed (== α)) (ok)]
+           [(-● _) {∪ (ok) (er)}]
+           [_ (er)]))]
+      [else (error 'mon-seal/c "seal label ~a in context ~a, ~a, ~a" l l+ l- lo)]))
+
+  (: mon-Flat/C : V → ⟦C⟧)
+  (define ((mon-Flat/C C) V ctx Φ^₀ Ξ Σ)
+    (match-define (Ctx l+ _ lo ℓ) ctx)
+    (with-3-paths (λ () (partition-sats Σ Φ^₀ C V))
+      (λ ([Φ^ : Φ^]) {set (ret! (V->R V Φ^) Ξ Σ)})
+      (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lo (list {set C}) (list V))})
+      (λ ([Φ^ : Φ^])
+        ???)))
 
   #|
-  (: mon : -ctx -V^ -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon ctx C^ V^ H φ Σ ⟦k⟧)
-    (for/union : (℘ -ς) ([C (in-set C^)])
-      (cond [(-=>_? C) (mon-=>_ ctx C V^ H φ Σ ⟦k⟧)]
-            [(-St/C? C) (mon-struct/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-x/C? C) (mon-x/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-And/C? C) (mon-and/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-Or/C? C) (mon-or/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-Not/C? C) (mon-not/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-One-Of/C? C) (mon-one-of/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-Vectorof? C) (mon-vectorof ctx C V^ H φ Σ ⟦k⟧)]
-            [(-Vector/C? C) (mon-vector/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-Hash/C? C) (mon-hash/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-Set/C? C) (mon-set/c ctx C V^ H φ Σ ⟦k⟧)]
-            [(-Seal/C? C) (mon-seal/c ctx C V^ H φ Σ ⟦k⟧)]
-            [else (mon-flat/c ctx C V^ H φ Σ ⟦k⟧)])))
-
-  (: mon-=>_ : -ctx -=>_ -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon-=>_ ctx C V^ H φ Σ ⟦k⟧)
-    (match-define (-ctx l+ _ lo ℓ) ctx)
-    (define σ (-Σ-σ Σ))
-
-    (: blm : -V -φ → (℘ -ς))
-    (define (blm C φ)
-      (define blm (blm/simp l+ lo (list {set C}) (list V^) ℓ))
-      (⟦k⟧ blm H φ Σ))
-
-    (: chk-arity : -φ → (℘ -ς))
-    (define (chk-arity φ)
-      (define grd-arity (-b (guard-arity C)))
-      (define val-arity
-        (for/set: : (℘ -V) ([V (in-set V^)])
-          (cond [(V-arity V) => -b]
-                [(-t? V) (-t.@ 'procedure-arity (list V))]
-                [else (-● {set 'procedure-arity?})])))
-      (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'arity-includes? val-arity {set grd-arity})]) : -ς
-        #:true  (wrap φ₁)
-        #:false (blm (match grd-arity
-                       [(-b (? integer? n))
-                        (format-symbol "(arity-includes/c ~a)" n)]
-                       [(-b (arity-at-least n))
-                        (format-symbol "(arity-at-least/c ~a)" n)]
-                       [(-b (list n ...))
-                        (string->symbol (format "(arity in ~a)" n))])
-                     φ₂)))
-
-    (: wrap : -φ → (℘ -ς))
-    (define (wrap φ)
-      (define-values (V^* α)
-        (cond [(sequence-andmap -●? V^)
-               ;; TODO see if this helps or worsens zombie's state space
-               (define V (-Fn● (guard-arity C) '†))
-               (values {set V} (-α->⟪α⟫ (-α.imm V)))]
-              [else
-               (values V^ (-α->⟪α⟫ (-α.fn ctx H)))]))
-      (define φ* (alloc Σ φ α V^*))
-      (define Ar (-Ar C α ctx))
-      (⟦k⟧ (list {set Ar}) H φ* Σ))
-
-    (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ 'procedure? V^)]) : -ς
-      #:true  (if (-∀/C? C) (wrap φ₁) (chk-arity φ₁))
-      #:false (blm 'procedure? φ₂)))
 
   (: mon-struct/c : -ctx -St/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-struct/c ctx C V^ H φ Σ ⟦k⟧)
@@ -110,48 +225,6 @@
       #:true (chk-fields φ₁)
       #:false (let ([blm (blm/simp l+ lo (list p) (list V^) ℓₘ)])
                 (⟦k⟧ blm H φ₂ Σ))))
-
-  (: mon-x/c : -ctx -x/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon-x/c ctx C V^ H φ Σ ⟦k⟧)
-    (match-define (-x/C α) C)
-    (define C^* (σ@ Σ (-φ-cache φ) α))
-    (push-mon ctx C^* V^ H φ Σ ⟦k⟧ #:looped #t))
-
-  (: mon-and/c : -ctx -And/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon-and/c ctx C V^ H φ Σ ⟦k⟧)
-    (match-define (-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) C)
-    (define C₁ (σ@ Σ (-φ-cache φ) α₁))
-    (define C₂ (σ@ Σ (-φ-cache φ) α₂))
-    (define ⟦k⟧* (mon.c∷ (ctx-with-ℓ ctx ℓ₂) C₂ ⟦k⟧))
-    (push-mon (ctx-with-ℓ ctx ℓ₁) C₁ V^ H φ Σ ⟦k⟧*))
-
-  (: mon-or/c : -ctx -Or/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon-or/c ctx C V^ H φ Σ ⟦k⟧)
-    (match-define (-ctx l+ _ lo _) ctx)
-    (match-define (-Or/C flat? (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂)) C)
-
-    (: chk-or/c : -V^ -ctx -V^ -ctx → (℘ -ς))
-    (define (chk-or/c C-fl ctx-fl C-ho ctx-ho)
-      (match-define (-ctx _ _ lo-fl ℓ-fl) ctx-fl)
-      (push-fc lo-fl ℓ-fl C-fl V^ H φ Σ
-               (mon-or/c∷ ctx-ho C-fl C-ho V^ ⟦k⟧)))
-
-    (define C₁ (σ@ Σ (-φ-cache φ) α₁))
-    (define C₂ (σ@ Σ (-φ-cache φ) α₂))
-    (cond [(C^-flat? C₁) (chk-or/c C₁ (ctx-with-ℓ ctx ℓ₁) C₂ (ctx-with-ℓ ctx ℓ₂))]
-          [(C^-flat? C₂) (chk-or/c C₂ (ctx-with-ℓ ctx ℓ₂) C₁ (ctx-with-ℓ ctx ℓ₁))]
-          [else (error 'or/c "No more than 1 higher-order disjunct for now")]))
-
-  (: mon-not/c : -ctx -Not/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon-not/c ctx C V^ H φ Σ ⟦k⟧)
-    (match-define (-ctx l+ _ lo ℓ) ctx)
-    (match-define (-Not/C (-⟪α⟫ℓ α ℓ*)) C)
-    (define ⟦k⟧*
-      (let ([⟦ok⟧ (mk-A (list V^))]
-            [⟦er⟧ (mk-A (blm/simp l+ lo (list {set C}) (list V^) ℓ))])
-        (if∷ lo ⟦er⟧ ⟦ok⟧ ⊥ρ ⟦k⟧)))
-    (define C*^ (σ@ (-Σ-σ Σ) (-φ-cache φ) α))
-    (app ℓ* C*^ (list V^) H φ Σ ⟦k⟧*))
 
   (: mon-one-of/c : -ctx -One-Of/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-one-of/c ctx C V^ H φ Σ ⟦k⟧)
@@ -307,26 +380,6 @@
       #:false (let ([blm (blm/simp l+ lo '(set?) (list Vᵤ^) ℓ)])
                 (⟦k⟧ blm H φ₂ Σ))))
 
-  (: mon-seal/c : -ctx -Seal/C -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (mon-seal/c ctx C V^ H φ Σ ⟦k⟧)
-    (match-define (-Seal/C x H l) C)
-    (match-define (-ctx l+ l- lo ℓ) ctx)
-    (define α (-α->⟪α⟫ (-α.sealed x H)))
-    (cond
-      [(equal? l l+) ; seal
-       (define φ* (alloc Σ φ α V^))
-       (⟦k⟧ (list {set (-Sealed α)}) H φ* Σ)]
-      [(equal? l l-) ; unseal
-       (define (blm) (⟦k⟧ (blm/simp l+ lo (list {set C}) (list V^) ℓ) H φ Σ))
-       (define (ok) (⟦k⟧ (list (σ@ Σ (-φ-cache φ) α)) H φ Σ))
-       (for/union : (℘ -ς) ([V (in-set V^)])
-         (match V
-           [(-Sealed (== α)) (ok)] ; TODO possible false negs from finite seals
-           [(-● _) (∪ (blm) (ok))]
-           [_ (blm)]))]
-      [else
-       (error 'mon-seal/c "seal labeled ~a in context ~a, ~a, ~a" l l+ l- lo)]))
-
   (: mon-flat/c : -ctx -V -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (mon-flat/c ctx C V^ H φ Σ ⟦k⟧)
     (match-define (-ctx l+ _ lo ℓ) ctx)
@@ -341,11 +394,5 @@
          [(? -b? b) (app ℓ {set 'equal?} (list V^ {set b}) H φ Σ ⟦k⟧*)]
          [_         (app ℓ {set C      } (list V^        ) H φ Σ ⟦k⟧*)])]))
 
-  (: push-mon ((-ctx -V^ -V^ -H -φ -Σ -⟦k⟧) (#:looped Boolean) . ->* . (℘ -ς)))
-  (define (push-mon ctx C^ V^ H φ Σ ⟦k⟧ #:looped [looped? #f])
-    (if looped?
-        (let ([αₖ (-αₖ H (-M ctx C^ V^) φ)])
-          {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧))})
-        (mon ctx C^ V^ H φ Σ ⟦k⟧)))
 |#
   )

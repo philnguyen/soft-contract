@@ -27,7 +27,14 @@
       (values Φ^ Φ^)))
 
   (: plausible-sats : Σ Φ^ P W → (Values Φ^ Φ^))
-  (define (plausible-sats Σ Φ^ P W) ???))
+  (define (plausible-sats Σ Φ^ P W) ???)
+
+  (: partition-sats : Σ Φ^ V V^ → (Values Φ^ Φ^ Φ^))
+  (define (partition-sats Σ Φ^ P V) ???)
+  
+  )
+
+
 
 
 #|

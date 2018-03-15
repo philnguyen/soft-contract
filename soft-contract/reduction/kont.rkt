@@ -17,25 +17,6 @@
 
     ) 
 
-  ;; Dependent contract
-  (define-frame (-->i∷ [ρ : -ρ]
-                       [Doms-rev  : (Listof -Dom)]
-                       [ctx : (Pairof Symbol ℓ)]
-                       [⟦dom⟧s : (Listof -⟦dom⟧)]
-                       [⟦k⟧  : -⟦k⟧])
-    (match-define (cons x ℓ) ctx)
-    (make-frame (⟦k⟧ A H φ Σ) #:roots () ;; FIXME roots!!
-      (match-define (list C^) A)
-      (define α (-α->⟪α⟫ (if (null? ⟦dom⟧s) (-α.rng ℓ H 0) (-α.dom ℓ H (length Doms-rev)))))
-      (define φ* (alloc Σ φ α C^))
-      (define-values (Doms-rev₁ ⟦dom⟧s₁) (split-⟦dom⟧s ρ ⟦dom⟧s))
-      (define Doms-rev* (append Doms-rev₁ (cons (-Dom x α ℓ) Doms-rev)))
-      (match ⟦dom⟧s₁
-        ['()
-         (⟦k⟧ (list {set (mk-=>i Σ H φ* Doms-rev*)}) H φ* Σ)]
-        [(cons (-⟦dom⟧ x #f ⟦c⟧ ℓ) ⟦dom⟧s*)
-         (⟦c⟧ ρ H φ* Σ (-->i∷ ρ Doms-rev* (cons x ℓ) ⟦dom⟧s* ⟦k⟧))])))
-
   (define/memo (hv∷ [tag : HV-Tag] [⟦k⟧ : -⟦k⟧]) : -⟦k⟧
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
       (define φ* (add-leak! tag Σ φ A))
@@ -57,7 +38,7 @@
                       (V+ (-Σ-σ Σ) φ V C)))
          (⟦k⟧ (list Vₐ) H φ Σ)])))
 
-  (define-frame (if.flat/c∷ [V* : -V^] [blm : -blm] [⟦k⟧ : -⟦k⟧])
+(define-frame (if.flat/c∷ [V* : -V^] [blm : -blm] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots (V*)
       (match A
         [(list V^)
@@ -192,7 +173,7 @@
       (define ⟦k⟧* (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap ⟦k⟧) ⟦k⟧))
       (⟦k⟧* refined-ranges H φ* Σ)))
 
-  (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
+(define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()
       (⟦k⟧ (list (implement-predicate (-Σ-σ Σ) φ o A)) H φ Σ)))
 
@@ -240,25 +221,6 @@
           (-φ Γ δσ₂)))
       (⟦k⟧ A H φ* Σ)))
 
-  (: σₖ+! : -Σ -αₖ -⟦k⟧ → -αₖ)
-  (define (σₖ+! Σ αₖ₁ ⟦k⟧)
-    (define Ξ  (-Σ-Ξ Σ))
-    (define σₖ (-Σ-σₖ Σ))
-    (define αₖ (gc-αₖ Σ αₖ₁ ⟦k⟧))
-    (match-define (-αₖ H _ φ) αₖ)
-    (define-values (Ξ* ⟦k⟧* αₖ*)
-      (match (recall Ξ αₖ)
-        [(cons αₖ₀ m) 
-         (values Ξ (rename∷ m (-φ-condition φ) ⟦k⟧) αₖ₀)]
-        [#f
-         (values (hash-update Ξ H (λ ([ctxs : (Listof -αₖ)]) (cons αₖ ctxs)) (λ () '()))
-                 ⟦k⟧
-                 αₖ)]))
-    (define σₖ* (hash-update σₖ αₖ* (λ ([⟦k⟧s : (℘ -⟦k⟧)]) (set-add ⟦k⟧s ⟦k⟧*)) mk-∅))
-    (set--Σ-σₖ! Σ σₖ*)
-    (set--Σ-Ξ!  Σ Ξ* )
-    αₖ*)
-  
   (: maybe-refine : (Listof -V^) -σ -φ (Listof (List (Listof -V) (Option -V) (Listof -V))) (Listof -V^) → (Values (Listof -V^) -φ))
   (define (maybe-refine rng₀ σ φ cases args)
 

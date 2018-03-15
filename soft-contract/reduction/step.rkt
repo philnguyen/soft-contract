@@ -23,7 +23,8 @@
 (define-unit step@
   (import val^ env^ sto^ evl^
           alloc^ app^ mon^ compile^
-          proof-system^)
+          proof-system^
+          prims^)
   (export step^)
 
   (: inj : (U -prog ⟦E⟧) → (Values Ξ Σ))
@@ -121,9 +122,9 @@
       [(F:If l ⟦E⟧₁ ⟦E⟧₂ Ρ)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
-           (define-values (Φ^₁ Φ^₂) (plausible-splits Σ R^₀))
-           (∪ (if (set-empty? Φ^₁) ∅ {set (⟦E⟧₁ Ρ Φ^₁ Ξ Σ)})
-              (if (set-empty? Φ^₂) ∅ {set (⟦E⟧₂ Ρ Φ^₂ Ξ Σ)}))))]
+           (with-2-paths (λ () (plausible-splits Σ R^₀))
+             (λ ([Φ^ : Φ^]) {set (⟦E⟧₁ Ρ Φ^ Ξ Σ)})
+             (λ ([Φ^ : Φ^]) {set (⟦E⟧₂ Ρ Φ^ Ξ Σ)}))))]
       [(F:Bgn (cons ⟦E⟧ ⟦E⟧s) Ρ)
        (define-values (_ Φ^) (collapse-R^ R^₀))
        (define Ξ* (if (pair? ⟦E⟧s) (K+ (F:Bgn ⟦E⟧s Ρ) Ξ) Ξ))
@@ -196,7 +197,20 @@
        (define-values (D^ Φ^) (collapse-R^ R^₀))
        (define V (mk-==>! Σ H₀ inits ?rst D^ ℓ))
        {set (ret! (V->R V Φ^) Ξ Σ)}]
-      [(F:==>i Ρ doms↓ dom-ctx doms↑) ???]
+      [(F:==>i Ρ doms↓ (cons x ℓ) doms↑)
+       (with-guarded-single-arity/collapse R^₀ ℓ
+         (λ (C^ Φ^)
+           (define H (Ξ:co-ctx Ξ))
+           (define α (mk-α (if (null? doms↑) (-α:rng ℓ H 0) (-α:dom ℓ H (length doms↓)))))
+           (⊔ᵥ! Σ α C^)
+           (define-values (doms↓₁ doms↑₁) (split-⟦dom⟧s Ρ doms↑))
+           (define doms↓* (append doms↓₁ (cons (Dom x α ℓ) doms↓)))
+           {set (match doms↑₁
+                  [(cons (⟦dom⟧ x #f ⟦C⟧ ℓ) doms↑*)
+                   (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ doms↓* (cons x ℓ) doms↑*) Ξ) Σ)]
+                  ['()
+                   (match-define (cons Rng Doms-rev) doms↓*)
+                   (ret! (V->R (==>i (reverse Doms-rev) Rng) Φ^) Ξ Σ)])}))]
       [(F:St/C ℓ 𝒾 Cs ⟦C⟧s Ρ)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (C^ Φ^)
@@ -233,21 +247,28 @@
       [(F:If:Flat/C V^ Blm)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
-           (define-values (Φ^₁ Φ^₂) (plausible-splits Σ R^₀))
-           ???))]
-      #;[(F:Fc-And/C -l ℓ V^ V^) ???]
-      #;[(F:Fc-Or/C -l ℓ V^ V^ V^) ???]
-      #;[(F:Fc-Not/C V^) ???]
-      #;[(F:Fc-Struct/C l ℓ 𝒾 (Listof V^) (Listof ⟦E⟧) Ρ) ???]
-      #;[(F:Fc:V -l ℓ ⟦E⟧ Ρ) ???]
+           (with-2-paths (λ () (plausible-splits Σ R^₀))
+             (λ ([Φ^ : Φ^]) {set (ret! (V->R V^ Φ^) Ξ Σ)})
+             (λ ([Φ^ : Φ^]) {set Blm}))))]
+      [(F:Fc-And/C l ℓ C₁ C₂) ???]
+      [(F:Fc-Or/C l ℓ C₁ C₂ V) ???]
+      [(F:Fc-Not/C V) ???]
+      [(F:Fc-Struct/C l ℓ 𝒾 W-rev ⟦E⟧s Ρ) ???]
+      [(F:Fc:V l ℓ ⟦V⟧ Ρ) ???]
       [(F:Hash-Set-Inner ℓ α) ???]
       [(F:Set-Add-Inner ℓ α) ???]
       [(F:Maybe-Havoc-Prim-Args ℓ Symbol) ???]
-      #;[(F:Make-Prim-Range Ctx (Option (Listof αℓ)) (Listof V^) (Listof (List (Listof V) (Option V) (Listof V)))) ???]
-      [(F:Implement-Predicate p) ???]
-      [(F:Absurd) ∅])
-    #;(match K₀
-      ))
+      [(F:Make-Prim-Range ctx ?rng-wrap ranges cases) ???]
+      [(F:Implement-Predicate P)
+       (with-guarded-arity R^₀ 1 +ℓ₀
+         (λ (R^₀)
+           (define Rₐ
+             (for*/union : R^ ([Rᵢ (in-set R^₀)]
+                               [Φ^ᵢ (in-value (R-_1 Rᵢ))]
+                               [Wᵢ (in-set (R-_0 Rᵢ))])
+               (implement-predicate Σ Φ^ᵢ P Wᵢ)))
+           {set (ret! Rₐ Ξ Σ)}))]
+      [(F:Absurd) ∅]))
 
   (: ret! : (U R R^) Ξ:co Σ → Ξ:co)
   (define (ret! R Ξ Σ) (⊔ₐ! Σ Ξ R) Ξ)

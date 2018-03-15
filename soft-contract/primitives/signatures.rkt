@@ -86,7 +86,7 @@
    [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]
    [r:W->R : ((U W W^) Φ^ → R)]
    [r:plausible-sats : (Σ Φ^ P W → (Values Φ^ Φ^))]
-   [r:with-plausible-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
+   [r:with-2-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
    
    #;[r:φ+/-pV^ : (Σ Φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    

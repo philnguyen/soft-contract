@@ -11,6 +11,7 @@
          "alloc.rkt"
          "reflection.rkt"
          "mon.rkt"
+         "fc.rkt"
          "app.rkt"
          "compile.rkt"
          "step.rkt"
@@ -21,4 +22,4 @@
           env^ val^ sto^ evl^
           prims^ proof-system^)
   (export reflection^ alloc^ app^ mon^ compile^ step^)
-  (link reflection@ alloc@ mon@ compile@ step@ app@))
+  (link reflection@ alloc@ fc@ mon@ compile@ step@ app@))

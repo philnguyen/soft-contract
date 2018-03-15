@@ -159,6 +159,9 @@
 (define-signature mon^
   ([mon : (V^ V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ))]))
 
+(define-signature fc^
+  ([fc : (V^ V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
+
 (define-signature reflection^
   ([V-arity : (case-> [Clo → Arity]
                       [Case-Clo → Arity]

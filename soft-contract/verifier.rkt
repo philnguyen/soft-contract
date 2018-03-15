@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/list
+         racket/set
          typed/racket/unit
          set-extras
          intern
@@ -21,7 +22,9 @@
 (Ξ* . ::= . (Ξ* Ξ Σᵥ Σₖ Σₐ))
 
 (define-unit verifier@
-  (import static-info^ step^ compile^ parser^)
+  (import static-info^
+          sto^
+          step^ compile^ parser^)
   (export verifier^)
 
   (define-syntax-rule (with-initialized-static-info e ...)
@@ -77,6 +80,19 @@
     
     (function-traces ↝₁ (Ξ->Ξ* Ξ₀))
     Σ₀)
+
+  (: viz-call-graph : Runnable → Void)
+  (define (viz-call-graph x)
+    (match-define-values (_ (Σ _ Σₖ _)) (run x))
+    (cond
+      [(hash-empty? Σₖ) (printf "Empty call graph~n")]
+      [else
+       (define CG (construct-call-graph Σₖ))
+       (define entry
+         (assert (for/or : (Option αₖ) ([αₖ (in-hash-keys CG)]
+                                        #:when (set-empty? (Σₖ@ Σₖ αₖ)))
+                   αₖ)))
+       (hash-traces CG entry)]))
 
   (: comp : Runnable → ⟦E⟧)
   (define (comp x)

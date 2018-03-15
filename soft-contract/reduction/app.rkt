@@ -37,7 +37,7 @@
       [(Case-Clo cases) (app-case-clo cases)]
       [(-st-mk 𝒾) (app-st-mk 𝒾)]
       [(-st-p 𝒾) ???]
-      [(-st-ac 𝒾 i) ???]
+      [(-st-ac 𝒾 i) (app-st-ac 𝒾 i)]
       [(-st-mut 𝒾 i) ???]
       [(? symbol? o) (get-prim o)]
       [(X/G ctx (? Fn/C? G) α) ???]
@@ -56,11 +56,15 @@
   (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
   (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)
     (match-define (Ξ:co _ _ H) Ξ)
-    (define-values (H* _) (H+ H ℓ ⟦E⟧ 'app))
+    (define-values (H* looped?) (H+ H ℓ ⟦E⟧ 'app))
     ;; FIXME guard arity
     (define Ρ* (bind-args! Ρ xs Wₓ Φ^ H* Σ))
     (define α* (αₖ ⟦E⟧ Ρ*))
     (⊔ₖ! Σ α* Ξ)
+    (when looped?
+      (for ([x (in-list (assert xs list?))] [Vₓ (in-list Wₓ)])
+        (define α (Ρ@ Ρ* x))
+        (printf "compare: ~a vs ~a~n" (Σᵥ@ Σ α) Vₓ)))
     {set (⟦E⟧ Ρ* Φ^ (Ξ:co '() α* H*) Σ)})
 
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
@@ -88,9 +92,34 @@
 
   (: app-st-p : -𝒾 → ⟦F⟧^)
   (define ((app-st-p 𝒾) Wₓ ℓ Φ^ Ξ Σ)
+    {set (match Wₓ
+           [(list Vₓ)
+            (ret! (implement-predicate Σ Φ^ (-st-p 𝒾) Wₓ) Ξ Σ)]
+           [_ (Blm ℓ (show-o (-st-p 𝒾)) (list (-b 1) 'values) Wₓ)])})
+
+  (: app-st-ac : -𝒾 Index → ⟦F⟧^)
+  (define ((app-st-ac 𝒾 i) Wₓ ℓ Φ^ Ξ₀ Σ)
     (match Wₓ
-      [(list _) ???]
-      [_ {set (Blm ℓ (show-o (-st-p 𝒾)) (list (-b 1) 'values) Wₓ)}]))
+      [(list Vₓ^)
+       (for/union : (℘ Ξ) ([Vₓ (in-set Vₓ^)])
+        (match Vₓ
+          [(St 𝒾* αs) ; TODO prevent excessive splitting
+           #:when (𝒾* . substruct? . 𝒾)
+           {set (ret! (V->R (Σᵥ@ Σ (list-ref αs i)) Φ^) Ξ₀ Σ)}]
+          [(X/G ctx (St/C _ 𝒾* αℓs) α)
+           #:when (𝒾* . substruct? . 𝒾)
+           (define V^* (Σᵥ@ Σ α))
+           (cond
+             ;; Mutable field should be wrapped
+             [(struct-mutable? 𝒾 i)
+              (match-define (αℓ αᵢ ℓᵢ) (list-ref αℓs i))
+              (define Cᵢ^ (Σᵥ@ Σ αᵢ))
+              (define Ξ* (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) Cᵢ^) Ξ₀))
+              ((app-st-ac 𝒾 i) (list V^*) ℓ Φ^ Ξ* Σ)]
+             ;; TODO beware of loops
+             [else ((app-st-ac 𝒾 i) (list V^*) ℓ Φ^ Ξ₀ Σ)])]
+          [_ #|FIXME|# ∅]))]
+      [_ {set (Blm ℓ (show-o (-st-ac 𝒾 i)) (list (-b 1) 'values) Wₓ)}]))
 
   (:* app-And/C app-Or/C : α α → ⟦F⟧^)
   (define-values (app-And/C app-Or/C)
@@ -359,17 +388,6 @@
     (define ⟦comp⟧ (mk-let* ℓₐ (map (inst cons Symbol -⟦e⟧) xs ⟦mon-x⟧s) ⟦mon-app⟧))
     (⟦comp⟧ ⊥ρ H φ Σ ⟦k⟧))
 
-  (: app-st-p : -𝒾 → -⟦f⟧)
-  (define (app-st-p 𝒾)
-    (define st-p (-st-p 𝒾))
-    (λ (ℓ Vₓs H φ Σ ⟦k⟧)
-      (match Vₓs
-        [(list _)
-         (⟦k⟧ (list (implement-predicate (-Σ-σ Σ) φ st-p Vₓs)) H φ Σ)]
-        [_
-         (define blm (blm-arity ℓ (show-o st-p) '(1) Vₓs))
-         (⟦k⟧ blm H φ Σ)])))
-
   (: app-st-ac : -𝒾 Index → -⟦f⟧)
   (define (app-st-ac 𝒾 i)
     (define ac (-st-ac 𝒾 i))
@@ -457,13 +475,6 @@
          (define blm (blm-arity ℓ (show-o mut) 2 Vₓs))
          (⟦k⟧ blm H φ Σ)]))
     ⟦mut⟧)
-
-  ;; FIXME tmp hack for `make-sequence` use internallyr
-  (: app-make-sequence : -⟦f⟧)
-  (define app-make-sequence
-    (let ([A (map (inst set -V) (list -car -cdr 'values -one -cons? -ff -ff))])
-      (λ (ℓ Vₓs H φ Σ ⟦k⟧)
-        (⟦k⟧ A H φ Σ))))
 
   (: app-opq : -V → -⟦f⟧)
   (define (app-opq Vₕ)

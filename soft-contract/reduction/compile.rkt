@@ -207,10 +207,11 @@
   (define/memo (↓ₓ [x : Symbol] [ℓₓ : ℓ]) : ⟦E⟧
     (define blm:undefined (Blm/simp ℓₓ 'Λ '(defined?) (list {set -undefined})))
     (λ (Ρ Φ^ Ξ Σ)
-      (define V^ (Σᵥ@ Σ (Ρ@ Ρ x)))
+      (define α (Ρ@ Ρ x))
+      (define V^ (Σᵥ@ Σ α))
       (if (set-empty? V^)
           blm:undefined
-          (ret! (V->R V^ Φ^) Ξ Σ))))
+          (ret! (V->R (S:α α) Φ^) Ξ Σ))))
 
   (define (mk-V [V : (U V V^)]) : ⟦E⟧
     (mk-W (if (set? V) (list V) (list {set V}))))

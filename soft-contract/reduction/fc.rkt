@@ -4,24 +4,26 @@
 
 (require racket/sequence
          racket/match
-         racket/set
+         (except-in racket/set for/set for/seteq for*/set for*/seteq)
          syntax/parse/define
          typed/racket/unit
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
          "../primitives/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit fc@
-  (import static-info^
-          compile^ app^ kont^ proof-system^ path^ prims^
-          env^ sto^ val^ instr^ pretty-print^ for-gc^ (prefix r: prim-runtime^))
+  (import )
   (export fc^)
 
+  (: fc : V^ V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))
+  (define (fc C V ℓ Φ^ Ξ Σ) ???)
+
+  #|
   (: flat-chk : -l ℓ -V^ -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
   (define (flat-chk l ℓₐ C^ V^ H φ Σ ⟦k⟧)
     (define σ (-Σ-σ Σ))
@@ -85,4 +87,5 @@
         (let ([αₖ (-αₖ H (-F l ℓ C^ V^) φ)])
           {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧))})
         (flat-chk l ℓ C^ V^ H φ Σ ⟦k⟧)))
+  |#
   )

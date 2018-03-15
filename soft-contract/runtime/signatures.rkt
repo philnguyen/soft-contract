@@ -167,6 +167,7 @@
    [⊔ᵥ! : (Σ α (U V V^) → Void)]
    [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
    [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
+   [Σᵥ@/ctx : (Σ Ctx αℓ → (Values V^ Ctx))]
    ;; Old
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
@@ -205,7 +206,8 @@
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]
    [collapse-R^/Φ^ : (R^ → Φ^)]
-   [with-plausible-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]))
+   [with-2-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
+   [with-3-paths : (∀ (X) (→ (Values Φ^ Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]))
 
 (define-signature pretty-print^
   ([show-blm-reason : ((U V P V^) → Sexp)]
