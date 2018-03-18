@@ -167,10 +167,6 @@
                       [Case-Clo → Arity]
                       [V → (Option Arity)])]))
 
-#;(define-signature fc^
-  ([flat-chk : (-l ℓ V^ V^ -H -φ -Σ K → (℘ -ς))]
-   [push-fc : ((-l ℓ V^ V^ -H -φ -Σ K) (#:looped Boolean) . ->* . (℘ -ς))]))
-
 (define-signature havoc^
   ([havoc : (HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]
