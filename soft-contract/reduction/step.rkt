@@ -341,6 +341,12 @@
       (⊔ᵥ! Σ α V)
       (αℓ α (ℓ-with-id ℓ (cons tag i)))))
 
+  (: ↠ : ⟦E⟧ Ρ Φ^ Ξ:co Σ → (℘ Ξ))
+  ;; Skip boring states. Use this for production. Not great for debugging.
+  (define (↠ ⟦E⟧ Ρ Φ^ Ξ Σ)
+    (define Ξ* (⟦E⟧ Ρ Φ^ Ξ Σ))
+    (if (eq? Ξ* Ξ) (↝ Ξ* Σ) {set Ξ*}))
+
   (define db:iter? : (Parameterof Boolean) (make-parameter #f))
   (define db:max-steps : (Parameterof (Option Integer)) (make-parameter #f))
   )
