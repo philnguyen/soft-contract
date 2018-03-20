@@ -42,10 +42,6 @@
    [partition-sats : ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^))]
    #|
    [p⇒p : (-h -h → -R)]
-   [V∈C : (-σ -φ -V^ (U -h -V) → -R)]
-   [φ+/-pV^ : (-σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
-   [p∋V^ : (-σ -φ -h -V^ * → -R)]
-   [quick-p∋V^ : (-σ -φ -h -V^ * → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
    [V- : (-σ -φ -V^ (U -h -V) → -V^)]
    [φ+pV : (-φ -h (Listof -V) → -φ)]

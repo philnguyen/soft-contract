@@ -18,8 +18,9 @@
   (import)
   (export local-prover-core^)
 
-  (: partition-sats : Σ Φ^ V W → (Values Φ^ Φ^ Φ^))
-  (define (partition-sats Σ Φ^ P W) ???))
+  (: check : Σ Φ V (Listof V) → Valid)
+  (define (check Σ Φ P Vs)
+    ???))
 
 #|
 

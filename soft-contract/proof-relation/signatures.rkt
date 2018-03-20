@@ -3,11 +3,16 @@
 (provide (all-defined-out))
 
 (require typed/racket/unit
-         "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
 (define-signature local-prover-core^
-  ([partition-sats : (Σ Φ^ V W → (Values Φ^ Φ^ Φ^))]))
+  ([check : (Σ Φ V (Listof V) → Valid)]))
 
 (define-signature ext-prover-core^
-  ([partition-sats : (Σ Φ^ V W → (Values Φ^ Φ^ Φ^))]))
+  ([check : (Σ Φ V (Listof V) → Valid)]))
+
+(define-signature sat-result^
+  ([⊔ : (Valid Valid * → Valid)]
+   [⊔* : (∀ (X) (X → Valid) (Setof X) → Valid)]
+   [neg : (Valid → Valid)]
+   [bool->sat : (Boolean → (U '✓ '✗))]))

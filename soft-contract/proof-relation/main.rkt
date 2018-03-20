@@ -15,19 +15,20 @@
          "../signatures.rkt"
          "signatures.rkt"
 
+         "sat-result.rkt"
          "local-prover-core.rkt"
          "ext-prover-core.rkt")
 
 (define-unit prover-core@
-  (import evl^ (prefix l: local-prover-core^) (prefix x: ext-prover-core^))
+  (import evl^ sat-result^ (prefix l: local-prover-core^) (prefix x: ext-prover-core^))
   (export prover^)
 
   (: partition-sats ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^)))
   (define (partition-sats Σ Φ^ P W #:fast? [fast? #f])
-    (define-values (Φ^-✓ Φ^-✗ Φ^-?) (l:partition-sats Σ Φ^ P W))
+    (define-values (Φ^-✓ Φ^-✗ Φ^-?) (with-checker l:check Σ Φ^ P W))
     (if (or fast? (set-empty? Φ^-?))
         (values Φ^-✓ Φ^-✗ ∅)
-        (let-values ([(Φ^-✓* Φ^-✗* Φ^-?*) (x:partition-sats Σ Φ^-? P W)])
+        (let-values ([(Φ^-✓* Φ^-✗* Φ^-?*) (with-checker x:check Σ Φ^-? P W)])
           (values (∪ Φ^-✓ Φ^-✓*) (∪ Φ^-✗ Φ^-✗*) Φ^-?*))))
 
   (: plausible-splits (case-> [Σ R^ → (Values Φ^ Φ^)]
@@ -53,12 +54,21 @@
   (:* Φ^+ Φ^- : Φ^ V W → Φ^)
   (define (Φ^+ Φ^ P W) ???)
   (define (Φ^- Φ^ P W) ???)
+
+  (: with-checker : (Σ Φ V (Listof V) → Valid) Σ Φ^ V W → (Values Φ^ Φ^ Φ^))
+  (define (with-checker check Σ Φ^₀ P W)
+    (for/fold ([Φ^-✓ : Φ^ ∅] [Φ^-✗ : Φ^ ∅] [Φ^-? : Φ^ ∅])
+              ([Φ (in-set Φ^₀)])
+      (case (⊔* (λ ([Vs : (Listof V)]) (check Σ Φ P Vs)) (cartesian W))
+        [(✓) (values (set-add Φ^-✓ Φ) Φ^-✗ Φ^-?)]
+        [(✗) (values Φ^-✓ (set-add Φ^-✗ Φ) Φ^-?)]
+        [(?) (values Φ^-✓ Φ^-✗ (set-add Φ^-? Φ))])))
   )
 
 (define-compound-unit/infer prover@
   (import evl^)
   (export prover^)
-  (link local-prover-core@ ext-prover-core@ prover-core@))
+  (link sat-result@ local-prover-core@ ext-prover-core@ prover-core@))
 
 #|
 (define-unit pre-proof-system@
