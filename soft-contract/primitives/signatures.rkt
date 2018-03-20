@@ -48,13 +48,13 @@
    [make-∀/c : (Symbol (Listof Symbol) -e Ρ → V)]
    [exec-prim
     : (ℓ (Intersection Symbol -o) Φ^ Ξ:co Σ
-          #:volatile? Boolean
-          #:dom (Listof (Pairof V ℓ))
-          #:rng W
-          #:rng-wrap (Option (Listof (Pairof V ℓ)))
-          #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
-          #:args W
-          → (℘ Ξ))]
+         #:volatile? Boolean
+         #:dom (Listof (Pairof V ℓ))
+         #:rng W
+         #:rng-wrap (Option (Listof (Pairof V ℓ)))
+         #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
+         #:args W
+         → Ξ)]
    [vec-len : (V^ → V^)]
 
    [get-weakers : (Symbol → (℘ Symbol))]
@@ -85,7 +85,7 @@
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
    [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]
    [r:W->R : ((U W W^) Φ^ → R)]
-   [r:plausible-sats : (Σ Φ^ P W → (Values Φ^ Φ^))]
+   [r:plausible-splits : (Σ Φ^ P W → (Values Φ^ Φ^))]
    [r:with-2-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
    
    #;[r:φ+/-pV^ : (Σ Φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]

@@ -18,7 +18,7 @@
 (define-unit mon@
   (import static-info^
           val^ env^ evl^ sto^
-          proof-system^
+          prover^
           reflection^ step^ app^ compile^ fc^)
   (export mon^)
 
@@ -61,7 +61,7 @@
                 [(S? Vᵢ) (S:@ 'procedure-arity (list Vᵢ))]
                 [else (-● {set 'procedure-arity?})])))
       (with-2-paths
-        (λ () (plausible-sats Σ Φ^ 'arity-includes? (list val-arity grd-arity)))
+        (λ () (plausible-splits Σ Φ^ 'arity-includes? (list val-arity grd-arity)))
         wrap
         (blm (match (set-first grd-arity)
                [(-b (? integer? n))
@@ -77,7 +77,7 @@
       (⊔ᵥ! Σ α V^₀)
       {set (ret! (V->R (X/G ctx C α) Φ^) Ξ₀ Σ)})
     
-    (with-2-paths (λ () (plausible-sats Σ Φ^₀ 'procedure? (list V^₀)))
+    (with-2-paths (λ () (plausible-splits Σ Φ^₀ 'procedure? (list V^₀)))
       (if (∀/C? C) wrap chk-arity)
       (blm 'procedure?)))
 
@@ -92,7 +92,7 @@
       (define all-immut? (struct-all-immutable? 𝒾))
       ???)
 
-    (with-2-paths (λ () (plausible-sats Σ Φ^₀ (-st-p 𝒾) (list V^₀)))
+    (with-2-paths (λ () (plausible-splits Σ Φ^₀ (-st-p 𝒾) (list V^₀)))
       chk-fields
       (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lₒ (list (-st-p 𝒾)) (list V^₀))})))
 
@@ -155,7 +155,7 @@
     (define (chk-elems Φ^)
       ???)
     
-    (with-2-paths (λ () (plausible-sats Σ Φ^₀ 'vector? (list V)))
+    (with-2-paths (λ () (plausible-splits Σ Φ^₀ 'vector? (list V)))
       chk-elems
       (blm 'vector?)))
 
@@ -190,7 +190,7 @@
   (: mon-Flat/C : V → ⟦C⟧)
   (define ((mon-Flat/C C) V ctx Φ^₀ Ξ Σ)
     (match-define (Ctx l+ _ lo ℓ) ctx)
-    (with-3-paths (λ () (partition-sats Σ Φ^₀ C V))
+    (with-3-paths (λ () (partition-sats Σ Φ^₀ C (list V)))
       (λ ([Φ^ : Φ^]) {set (ret! (V->R V Φ^) Ξ Σ)})
       (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lo (list {set C}) (list V))})
       (λ ([Φ^ : Φ^])

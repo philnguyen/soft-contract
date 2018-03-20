@@ -1,24 +1,27 @@
 #lang typed/racket/base
 
-(provide external-prover@)
+(provide (all-defined-out))
 
 (require racket/match
          racket/set
-         racket/list
-         racket/splicing
          (only-in z3/ffi toggle-warning-messages!)
          typed/racket/unit
          z3/smt
-         bnf
-         intern
          set-extras
          unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "signatures.rkt"
-         "../signatures.rkt")
+         "signatures.rkt")
 
+(define-unit ext-prover-core@
+  (import)
+  (export ext-prover-core^)
+
+  (: partition-sats : Σ Φ^ V W → (Values Φ^ Φ^ Φ^))
+  (define (partition-sats Σ Φ^ P W) ???))
+
+#|
 (define-type (M T) (→ T))
 
 (define-unit external-prover@
@@ -31,7 +34,7 @@
         (set-options! #:timeout 1000
                       #:mbqi? #t
                       #:macro-finder? #t
-                      #:rlimit 4000000))
+                      #:rlimit 400mv 0000))
 
     (cond
       [(and (handled-pred? p) (andmap -t? Vs))
@@ -249,3 +252,4 @@
   (define (assert-not! [ψ : Z3-Ast]) (assert! (not/s ψ)))
 
   (toggle-warning-messages! #f))
+|#

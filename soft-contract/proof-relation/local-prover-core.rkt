@@ -1,25 +1,27 @@
 #lang typed/racket/base
 
-(provide local-prover@)
+(provide (all-defined-out))
 
-(require (for-syntax racket/base
-                     racket/contract
-                     "../utils/pretty.rkt")
-         typed/racket/unit
+(require typed/racket/unit
          racket/match
          racket/set
-         racket/string
-         racket/bool
          racket/list
-         syntax/parse/define
-         (only-in racket/list first second)
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
          )
+
+(define-unit local-prover-core@
+  (import)
+  (export local-prover-core^)
+
+  (: partition-sats : Σ Φ^ V W → (Values Φ^ Φ^ Φ^))
+  (define (partition-sats Σ Φ^ P W) ???))
+
+#|
 
 (define-unit local-prover@
   (import static-info^ prims^ path^ sto^ val^ pretty-print^ sat-result^)
@@ -530,3 +532,4 @@
        (log-warning "Warning: call `V-arity` on an obviously non-procedure ~a" (show-V V))
        #f])) 
   )
+|#

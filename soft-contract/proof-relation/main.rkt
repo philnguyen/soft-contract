@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide proof-system@)
+(provide prover@)
 
 (require racket/match
          racket/set
@@ -13,29 +13,52 @@
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
-         #;"signatures.rkt"
-         )
+         "signatures.rkt"
 
-(define-unit proof-system@
-  (import evl^)
-  (export proof-system^)
+         "local-prover-core.rkt"
+         "ext-prover-core.rkt")
 
-  (: plausible-splits : Σ R^ → (Values Φ^ Φ^))
-  (define (plausible-splits Σ R^)
-    (printf "TODO: implement `plausible-splits`~n")
-    (let ([Φ^ (collapse-R^/Φ^ R^)])
-      (values Φ^ Φ^)))
+(define-unit prover-core@
+  (import evl^ (prefix l: local-prover-core^) (prefix x: ext-prover-core^))
+  (export prover^)
 
-  (: plausible-sats : Σ Φ^ P W → (Values Φ^ Φ^))
-  (define (plausible-sats Σ Φ^ P W) ???)
+  (: partition-sats ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^)))
+  (define (partition-sats Σ Φ^ P W #:fast? [fast? #f])
+    (define-values (Φ^-✓ Φ^-✗ Φ^-?) (l:partition-sats Σ Φ^ P W))
+    (if (or fast? (set-empty? Φ^-?))
+        (values Φ^-✓ Φ^-✗ ∅)
+        (let-values ([(Φ^-✓* Φ^-✗* Φ^-?*) (x:partition-sats Σ Φ^-? P W)])
+          (values (∪ Φ^-✓ Φ^-✓*) (∪ Φ^-✗ Φ^-✗*) Φ^-?*))))
 
-  (: partition-sats : Σ Φ^ V V^ → (Values Φ^ Φ^ Φ^))
-  (define (partition-sats Σ Φ^ P V) ???)
-  
+  (: plausible-splits (case-> [Σ R^ → (Values Φ^ Φ^)]
+                              [Σ R^ Boolean → (Values Φ^ Φ^)]
+                              [Σ Φ^ V W → (Values Φ^ Φ^)]
+                              [Σ Φ^ V W Boolean → (Values Φ^ Φ^)]))
+  (define plausible-splits
+    (case-lambda
+      [(Σ R^) (plausible-splits Σ R^ #f)]
+      [(Σ R^ fast?)
+       (for*/fold ([truish : Φ^ ∅] [falsish : Φ^ ∅])
+                  ([R (in-set R^)]
+                   [Φ^* (in-value (R-_1 R))]
+                   [W (in-set (R-_0 R))])
+         (define-values (Φ^₁ Φ^₂) (plausible-splits Σ Φ^* 'values W fast?))
+         (values (∪ truish Φ^₁) (∪ falsish Φ^₂)))]
+      [(Σ Φ^ P W) (plausible-splits Σ Φ^ P W #f)]
+      [(Σ Φ^ P W fast?)
+       (define-values (Φ^-✓ Φ^-✗ Φ^-?) (partition-sats Σ Φ^ P W #:fast? fast?))
+       (values (∪ Φ^-✓ (Φ^+ Φ^-? P W))
+               (∪ Φ^-✗ (Φ^- Φ^-? P W)))]))
+
+  (:* Φ^+ Φ^- : Φ^ V W → Φ^)
+  (define (Φ^+ Φ^ P W) ???)
+  (define (Φ^- Φ^ P W) ???)
   )
 
-
-
+(define-compound-unit/infer prover@
+  (import evl^)
+  (export prover^)
+  (link local-prover-core@ ext-prover-core@ prover-core@))
 
 #|
 (define-unit pre-proof-system@
@@ -187,8 +210,5 @@
              (difficult? h)))))))
   )
 
-(define-compound-unit/infer proof-system@
-  (import sat-result^ static-info^ prims^ for-gc^ path^ sto^ val^ pretty-print^ env^ summ^)
-  (export proof-system^ widening^ local-prover^)
-  (link local-prover@ external-prover@ widening@ pre-proof-system@))
+
 |#

@@ -188,26 +188,26 @@
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
           (define/with-syntax φ* (gensym 'φ*))
           #`(define #,x (add-seal #,(-Σ) 'x.name (Ξ:co-ctx #,(-Ξ)) (ℓ-src #,(-ℓ)))))
-      ,#`(exec-prim #,(-ℓ) '#,(-o) #,(-Φ^) #,(-Ξ) #,(-Σ)
-                    #:volatile? #,(-volatile?)
-                    #:dom doms
-                    #:rng (list V-rng ...)
-                    #:rng-wrap #,(if (?flatten-range rngs)
-                                     #'#f
-                                     #`(list #,@(for/list ([d (in-list rngs)])
-                                                  #`(cons #,(gen-ctc-V d) #,(gen-stx-ℓ d)))))
-                    #:refinements (list refinement-cases ...)
-                    #:args #,(-W))))
+      ,#`{set (exec-prim #,(-ℓ) '#,(-o) #,(-Φ^) #,(-Ξ) #,(-Σ)
+                         #:volatile? #,(-volatile?)
+                         #:dom doms
+                         #:rng (list V-rng ...)
+                         #:rng-wrap #,(if (?flatten-range rngs)
+                                          #'#f
+                                          #`(list #,@(for/list ([d (in-list rngs)])
+                                                       #`(cons #,(gen-ctc-V d) #,(gen-stx-ℓ d)))))
+                         #:refinements (list refinement-cases ...)
+                         #:args #,(-W))}))
 
   (define/contract (gen-flat-checks doms ?rst body)
     ((listof syntax?) (or/c #f identifier?) (listof syntax?) . -> . (listof syntax?))
 
     (define/contract (gen-init-1 c x body)
       (identifier? identifier? (listof syntax?) . -> . (listof syntax?))
-      (hack:make-available (-o) r:plausible-sats r:with-2-paths)
+      (hack:make-available (-o) r:plausible-splits r:with-2-paths)
       (list
        #`((inst r:with-2-paths Ξ)
-          (λ () (r:plausible-sats #,(-Σ) #,(-Φ^) '#,c (list #,x)))
+          (λ () (r:plausible-splits #,(-Σ) #,(-Φ^) '#,c (list #,x)))
           (λ (#,(-Φ^)) #,(match body [(list e) e] [_ #`(begin #,@body)]))
           (λ (#,(-Φ^)) (blm '#,c #,x)))))
 
@@ -226,7 +226,7 @@
        [('() '()) (gen-rest)]))
 
     (define/contract (gen-rest) (-> (listof syntax?))
-      (hack:make-available (-o) r:plausible-sats r:with-2-paths)
+      (hack:make-available (-o) r:plausible-splits r:with-2-paths)
       (if ?rst
           (list
            #`(define (run-body) : (℘ Ξ) #,@body)
@@ -234,7 +234,7 @@
                (match rests
                  [(cons V^ rests*)
                   ((inst r:with-2-paths Ξ)
-                   (λ () (r:plausible-sats #,(-Σ) #,(-Φ^) '#,?rst (list V^)))
+                   (λ () (r:plausible-splits #,(-Σ) #,(-Φ^) '#,?rst (list V^)))
                    (λ (#,(-Φ^)) (go rests*))
                    (λ (#,(-Φ^)) (blm '#,?rst V^)))]
                  ['() (run-body)])))

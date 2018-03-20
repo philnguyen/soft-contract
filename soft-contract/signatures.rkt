@@ -34,10 +34,12 @@
    [parse-prim : (Identifier → (Option -prim))]
    [implement-predicate : (Σ Φ^ -o W → R^)]))
 
-(define-signature proof-system^
-  ([plausible-splits : (Σ R^ → (Values Φ^ Φ^))]
-   [plausible-sats : (Σ Φ^ P W → (Values Φ^ Φ^))]
-   [partition-sats : (Σ Φ^ V V^ → (Values Φ^ Φ^ Φ^))]
+(define-signature prover^
+  ([plausible-splits : (case-> [Σ R^ → (Values Φ^ Φ^)]
+                               [Σ R^ Boolean → (Values Φ^ Φ^)]
+                               [Σ Φ^ V W → (Values Φ^ Φ^)]
+                               [Σ Φ^ V W Boolean → (Values Φ^ Φ^)])]
+   [partition-sats : ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^))]
    #|
    [p⇒p : (-h -h → -R)]
    [V∈C : (-σ -φ -V^ (U -h -V) → -R)]

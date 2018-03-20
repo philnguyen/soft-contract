@@ -19,7 +19,7 @@
 (define-unit prim-runtime@
   (import val^ sto^ env^ evl^
           alloc^ compile^
-          proof-system^
+          prover^
           step^)
   (export prim-runtime^)
 
@@ -195,7 +195,7 @@
      #:rng-wrap (Option (Listof (Pairof V ℓ)))
      #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
      #:args W
-     → (℘ Ξ))
+     → Ξ)
   (define (exec-prim
            ℓ o Φ^ Ξ Σ
            #:volatile? volatile?
@@ -204,7 +204,21 @@
            #:rng-wrap ?range-wraps
            #:refinements refinements
            #:args args)
-    ???
+    (define l (ℓ-src ℓ))
+    (define ctx* (Ctx l o o ℓ))
+    (define ctx (Ctx o l o ℓ))
+    (define Ξ:chk-args-done
+      (cond
+        [(and (null? refinements)
+              (equal? 'boolean? (hash-ref range-table o #f))
+              (andmap symbol? (map (inst car V Any) doms)))
+         (K+ (F:Implement-Predicate o) Ξ)]
+        [else
+         (define Ξ:mk-rng
+           (K+ (F:Make-Prim-Range ctx (and ?range-wraps (map mk-αℓ ?range-wraps)) ranges refinements) Ξ))
+         (K+ (F:Maybe-Havoc-Prim-Args ℓ o) Ξ:mk-rng)]))
+    (define Ξ:chk-args (K+ (F:Mon*:C ctx* (map mk-αℓ doms)) Ξ:chk-args-done))
+    (ret! (W->R args Φ^) Ξ:chk-args Σ)
     #|
     (define l (ℓ-src ℓ))
     (define ctx* (Ctx l o o ℓ))
@@ -277,13 +291,13 @@
   ;; Eta-expand to get aroudn undefined and init-depend
   (: r:ret! : (U R R^) Ξ:co Σ → Ξ:co)
   (: r:W->R : (U W W^) Φ^ → R)
-  (: r:plausible-sats : Σ Φ^ P W → (Values Φ^ Φ^))
+  (: r:plausible-splits : Σ Φ^ P W → (Values Φ^ Φ^))
   (: r:with-2-paths
      (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
   (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
   (define (r:W->R W Φ^) (W->R W Φ^))
   (define (r:with-2-paths e t f) (with-2-paths e t f))
-  (define (r:plausible-sats Σ Φ^ P W) (plausible-sats Σ Φ^ P W))
+  (define (r:plausible-splits Σ Φ^ P W) (plausible-splits Σ Φ^ P W))
 
   #|
   (: t.@/simp : -o (Listof -t) → -t)

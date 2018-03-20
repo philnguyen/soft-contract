@@ -23,7 +23,7 @@
 (define-unit step@
   (import val^ env^ sto^ evl^
           alloc^ app^ mon^ compile^
-          proof-system^
+          prover^
           prims^)
   (export step^)
 

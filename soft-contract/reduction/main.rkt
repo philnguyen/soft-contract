@@ -20,6 +20,6 @@
 (define-compound-unit/infer reduction@
   (import ast-pretty-print^ static-info^ meta-functions^
           env^ val^ sto^ evl^
-          prims^ proof-system^)
+          prims^ prover^)
   (export reflection^ alloc^ app^ mon^ compile^ step^)
   (link reflection@ alloc@ fc@ mon@ compile@ step@ app@))
