@@ -7,6 +7,7 @@
          (only-in z3/ffi toggle-warning-messages!)
          typed/racket/unit
          z3/smt
+         bnf
          set-extras
          unreachable
          "../utils/main.rkt"
@@ -19,30 +20,41 @@
   (export ext-prover-core^)
 
   (: check : Σ Φ V (Listof V) → ?Dec)
-  (define (check Σ Φ^ P Vs) ???))
+  (define (check Σ Φ^ P Vs)
+    (cond
+      [(and (Handled-Pred? P) (andmap S? Vs))
+       ;; TODO
+       #f]
+      [else #f]))
 
-#|
-(: should-call-smt? : -Γ -h (Listof -V) → Boolean)
+  (: should-try? : Φ P (Listof V) → Boolean)
   ;; Heuristic avoiding calling out to solvers
   ;; However this heuristic is implemented should be safe in terms of soundness.
   ;; Not calling out to solver when should only hurts precision.
   ;; Calling out to solver when there's no need only hurts performance.
   ;; TODO: re-inspect this after recent rewrite
-  (define should-call-smt?
+  (define should-try?
     (let ([difficult?
-           (match-λ?
-            '< '> '<= '>= '= 'zero?
-            (? -</c?) (? ->/c?) (? -≤/c?) (? -≥/c?))])
-      (λ (Γ h Vs)
-        (and
-         (difficult? h)
-         (for/or : Boolean ([hs (in-hash-values Γ)]) ; TODO TR can't for*/or
-           (for/or : Boolean ([h (in-set hs)])
-             (difficult? h)))))))
-|#
+           (match-λ? '< '> '<= '>= '= 'zero?
+                     (? P:<?) (? P:>?) (? P:≤?) (? P:≥?))])
+      (λ (Φ P Vs)
+        (and (difficult? P)
+             (for/or : Boolean ([Ps (in-hash-values Φ)]) ; TODO TR can't for*/or
+               (for/or : Boolean ([P (in-set Ps)])
+                 (difficult? P)))))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; Translate
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ((M T) . ≜ . (→ T))
+  (Handled-Pred . ::= . '< '<= '> '>= '= 'equal? 'zero?)
+  (Env . ≜ . (Immutable-HashTable Symbol (M Smt-Sort-Expr)))
+  (Type . ::= . 'Int 'Real 'Bool)
+
+  )
 
 #|
-(define-type (M T) (→ T))
+
 
 (define-unit external-prover@
   (import static-info^ for-gc^ pretty-print^ path^ sto^ prims^)
@@ -70,16 +82,6 @@
             [(unsat) '✓]
             [(sat unknown) '?])])]
       [else '?]))
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;; Translate
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (define-type Handled-Pred (U '< '<= '> '>= '= 'equal? 'zero?))
-  (define-predicate handled-pred? Handled-Pred)
-  (define-type Env (HashTable Symbol (M Smt-Sort-Expr)))
-  (define-type Type (U 'Int 'Real 'Bool))
 
   (: translate : -Γ Handled-Pred (Listof -t) → (Values (M Void) (M Z3-Ast)))
   (define (translate Γ p ts)
