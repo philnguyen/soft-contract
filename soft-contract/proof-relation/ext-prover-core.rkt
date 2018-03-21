@@ -22,6 +22,26 @@
   (define (check Σ Φ^ P Vs) ???))
 
 #|
+(: should-call-smt? : -Γ -h (Listof -V) → Boolean)
+  ;; Heuristic avoiding calling out to solvers
+  ;; However this heuristic is implemented should be safe in terms of soundness.
+  ;; Not calling out to solver when should only hurts precision.
+  ;; Calling out to solver when there's no need only hurts performance.
+  ;; TODO: re-inspect this after recent rewrite
+  (define should-call-smt?
+    (let ([difficult?
+           (match-λ?
+            '< '> '<= '>= '= 'zero?
+            (? -</c?) (? ->/c?) (? -≤/c?) (? -≥/c?))])
+      (λ (Γ h Vs)
+        (and
+         (difficult? h)
+         (for/or : Boolean ([hs (in-hash-values Γ)]) ; TODO TR can't for*/or
+           (for/or : Boolean ([h (in-set hs)])
+             (difficult? h)))))))
+|#
+
+#|
 (define-type (M T) (→ T))
 
 (define-unit external-prover@

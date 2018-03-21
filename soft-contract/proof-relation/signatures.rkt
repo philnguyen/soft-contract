@@ -6,13 +6,15 @@
          "../runtime/signatures.rkt")
 
 (define-signature local-prover-core^
-  ([check : (Σ Φ V (Listof V) → Valid)]))
+  ([check : (Σ Φ V (Listof V) → Valid)]
+   [∧  : (Φ^ V W → Φ^)]
+   [∧¬ : (Φ^ V W → Φ^)]))
 
 (define-signature ext-prover-core^
   ([check : (Σ Φ V (Listof V) → Valid)]))
 
 (define-signature sat-result^
   ([⊔ : (Valid Valid * → Valid)]
-   [⊔* : (∀ (X) (X → Valid) (Setof X) → Valid)]
+   [⊔* : (∀ (X) (X → Valid) (Listof X) → Valid)]
    [neg : (Valid → Valid)]
    [bool->sat : (Boolean → (U '✓ '✗))]))

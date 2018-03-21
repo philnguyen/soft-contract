@@ -35,11 +35,11 @@
          (values xs x)]
         [else (error 'init/last "empty list")]))
 
-(: cartesian (∀ (X) (Listof (Setof X)) → (Setof (Listof X))))
+(: cartesian (∀ (X) (Listof (Setof X)) → (Listof (Listof X))))
 (define cartesian
   (match-lambda
-    ['() {set '()}]
     [(cons x xs)
-     (for*/set: : (Setof (Listof X)) ([pᵢ (cartesian xs)]
-                                      [xⱼ (in-set x)])
-       (cons xⱼ pᵢ))]))
+     (define ps (cartesian xs))
+     (for*/list : (Listof (Listof X)) ([xⱼ (in-set x)] [pᵢ (in-list ps)])
+       (cons xⱼ pᵢ))]
+    [_ '{()}]))

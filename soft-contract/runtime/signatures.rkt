@@ -21,7 +21,7 @@
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
 (#|Value address   |# -α . ::= . #:TBD) 
 (#|Result          |# R . ::= . (R W^ Φ^))
-(#|Path-condition  |# Φ . ≜ . (℘ S))
+(#|Path-condition  |# Φ . ≜ . (Immutable-HashTable (Listof S) (℘ P)))
 (#|Environment     |# Ρ  . ≜ . (Immutable-HashTable Symbol α))
 (struct Σ ([val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:transparent #:mutable)
 #;(#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:mutable)
@@ -56,7 +56,7 @@
                      P #|hack in prim DSL|#)
 (#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
 (#|Symbolic value|# S . ::= . -b (S:α α) (S:@ -o (Listof S)))
-(#|Predicates|# P . ::= . -o (P:≤ S) (P:< S) (P:≥ S) (P:> S) (P:≡ S) (P:¬ P))
+(#|Predicates|# P . ::= . -o (P:≤ S) (P:< S) (P:≥ S) (P:> S) (P:≡ S) (P:¬ P) (P:arity-includes Arity))
 
 (#|Non-primitive function|# Fn . ::= . (Clo -formals ⟦E⟧ Ρ)
                                        (Case-Clo (Listof Clo))
@@ -201,7 +201,8 @@
    ))
 
 (define-signature evl^
-  ([V->R : ((U V V^) Φ^ → R)]
+  ([⊥Φ^ : Φ^]
+   [V->R : ((U V V^) Φ^ → R)]
    [W->R : ((U W W^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]

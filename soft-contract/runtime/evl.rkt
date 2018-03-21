@@ -7,11 +7,14 @@
          typed/racket/unit
          typed-racket-hacks
          set-extras
+         unreachable
          "signatures.rkt")
 
 (define-unit evl@
   (import)
   (export evl^)
+
+  (define ⊥Φ^ {set (ann (hash) Φ)}) 
 
   (: V->R : (U V V^) Φ^ → R)
   (define (V->R x Φ^)

@@ -4,10 +4,12 @@
 
 (require typed/racket/unit
          racket/match
-         racket/set
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/list
+         racket/splicing
          set-extras
          unreachable
+         typed-racket-hacks
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -20,7 +22,42 @@
 
   (: check : Σ Φ V (Listof V) → Valid)
   (define (check Σ Φ P Vs)
-    ???))
+    ???)
+
+  (splicing-local
+      ((: with-conj : (Φ P (Listof S) → Φ) → Φ^ V W → Φ^)
+       (define ((with-conj conj) Φ^₀ P W)
+         (if (P? P)
+             (let ([arg-lists (filter (λ ([Vs : (Listof V)]) (andmap S? Vs)) (cartesian W))])
+               (for/set : Φ^ ([Φᵢ : Φ (in-set Φ^₀)])
+                 (for/fold ([Φᵢ* : Φ Φᵢ]) ([Vs (in-list arg-lists)])
+                   (conj Φᵢ* P Vs))))
+             Φ^₀))
+       (:* conj conj¬ : Φ P (Listof S) → Φ)
+       (define (conj Φ P Vs)
+         (match* (P Vs)
+           [('values (list (S:@ P* Vs*))) (conj  Φ P* Vs*)]
+           [('not    (list (S:@ P* Vs*))) (conj¬ Φ P* Vs*)]
+           [(_       _                  ) (Φ+ Φ P Vs)]))
+       (define (conj¬ Φ P Vs)
+         (match* (P Vs)
+           [('values (list (S:@ P* Vs*))) (conj¬ Φ P* Vs*)]
+           [('not    (list (S:@ P* Vs*))) (conj  Φ P* Vs*)]
+           [((P:< X) _                  ) (conj  Φ (P:≥ X) Vs)]
+           [((P:≤ X) _                  ) (conj  Φ (P:> X) Vs)]
+           [((P:> X) _                  ) (conj  Φ (P:≤ X) Vs)]
+           [((P:≥ X) _                  ) (conj  Φ (P:< X) Vs)]
+           [((P:¬ Q) _                  ) (conj  Φ Q Vs)]
+           [(_       _                  ) (Φ+ Φ (P:¬ P) Vs)])))
+    (define ∧ (with-conj conj))
+    (define ∧¬ (with-conj conj¬)))
+
+  (: Φ+ : Φ P (Listof S) → Φ)
+  (define (Φ+ Φ Q Vs) (hash-update Φ Vs (λ ([Ps : (℘ P)]) (P+ Ps Q)) mk-∅))
+
+  (: P+ : (℘ P) P → (℘ P))
+  (define P+ #|TODO|# set-add)
+  )
 
 #|
 

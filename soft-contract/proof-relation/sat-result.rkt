@@ -4,7 +4,6 @@
 
 (require typed/racket/unit
          racket/match
-         racket/set
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "signatures.rkt")
@@ -16,10 +15,10 @@
   (: ⊔ : Valid Valid * → Valid)
   (define (⊔ r₁ . rs) (foldl ⊔₁ r₁ rs))
 
-  (: ⊔* (∀ (X) (X → Valid) (Setof X) → Valid))
+  (: ⊔* (∀ (X) (X → Valid) (Listof X) → Valid))
   (define (⊔* f xs)
-    (for/fold ([r : Valid (f (set-first xs))])
-              ([x (in-set (set-rest xs))] #:break (eq? r '?))
+    (for/fold ([r : Valid (f (car xs))])
+              ([x (in-list (cdr xs))] #:break (eq? r '?))
       (⊔₁ r (f x))))
 
   (: neg : Valid → Valid)

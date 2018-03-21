@@ -40,6 +40,7 @@
                                [Σ Φ^ V W → (Values Φ^ Φ^)]
                                [Σ Φ^ V W Boolean → (Values Φ^ Φ^)])]
    [partition-sats : ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^))]
+   [check-plausible-index : ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^))]
    #|
    [p⇒p : (-h -h → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]
