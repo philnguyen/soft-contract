@@ -95,7 +95,8 @@
 (#|Context tag for havoc|# HV-Tag . ::= . '† [#:reuse (Pairof -l H)])
 (#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
 (Cardinality . ::= . 0 1 'N)
-(Valid . ::= . '✓ '✗ '?)
+(Dec . ::= . '✓ '✗)
+(?Dec . ≜ . (Option Dec))
 
 (define-interner α -α
   #:intern-function-name mk-α

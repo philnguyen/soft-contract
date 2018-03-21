@@ -56,14 +56,14 @@
   (define (check-plausible-index Σ Φ^ V^ i [fast? #f])
     (plausible-splits Σ Φ^ '= (list V^ {set (-b i)})))
 
-  (: with-checker : (Σ Φ V (Listof V) → Valid) Σ Φ^ V W → (Values Φ^ Φ^ Φ^))
+  (: with-checker : (Σ Φ V (Listof V) → ?Dec) Σ Φ^ V W → (Values Φ^ Φ^ Φ^))
   (define (with-checker check Σ Φ^₀ P W)
     (for/fold ([Φ^-✓ : Φ^ ∅] [Φ^-✗ : Φ^ ∅] [Φ^-? : Φ^ ∅])
               ([Φ : Φ (in-set Φ^₀)])
       (case (⊔* (λ ([Vs : (Listof V)]) (check Σ Φ P Vs)) (cartesian W))
         [(✓) (values (set-add Φ^-✓ Φ) Φ^-✗ Φ^-?)]
         [(✗) (values Φ^-✓ (set-add Φ^-✗ Φ) Φ^-?)]
-        [(?) (values Φ^-✓ Φ^-✗ (set-add Φ^-? Φ))])))
+        [else (values Φ^-✓ Φ^-✗ (set-add Φ^-? Φ))])))
   )
 
 (define-compound-unit/infer prover@

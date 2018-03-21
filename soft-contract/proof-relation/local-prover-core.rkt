@@ -20,7 +20,7 @@
   (import evl^)
   (export local-prover-core^)
 
-  (: check : Σ Φ V (Listof V) → Valid)
+  (: check : Σ Φ V (Listof V) → ?Dec)
   (define (check Σ Φ P Vs)
     ???)
 

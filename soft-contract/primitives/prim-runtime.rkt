@@ -4,6 +4,7 @@
 (require racket/match
          (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/sequence
+         racket/splicing
          syntax/parse/define
          typed/racket/unit
          set-extras
@@ -23,13 +24,16 @@
           step^)
   (export prim-runtime^)
 
-  (: implement-predicate : Σ Φ^ -o W → R^)
-  (define (implement-predicate Σ Φ^ o W)
-    ???
-    #;(case (apply p∋V^ σ φ o Vs)
-      [(✓) {set -tt}]
-      [(✗) {set -ff}]
-      [(?) (mk-res {set 'boolean?} o Vs)]))
+  (splicing-let ([TT {set (list {set -tt})}]
+                 [FF {set (list {set -ff})}]
+                 [?? {set (list {set (-● {set 'boolean?})})}])
+    (: implement-predicate : Σ Φ^ -o W → R^)
+    (define (implement-predicate Σ Φ^₀ o W)
+      ((inst with-3-paths R) (λ () (partition-sats Σ Φ^₀ o W))
+        (λ (Φ^) {set (R TT Φ^)})
+        (λ (Φ^) {set (R FF Φ^)})
+        (λ (Φ^) {set (R ?? Φ^)}))))
+  
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
     (λ (o)

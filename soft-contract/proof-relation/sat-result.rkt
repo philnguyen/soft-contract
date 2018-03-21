@@ -12,29 +12,26 @@
   (import)
   (export sat-result^) 
 
-  (: ⊔ : Valid Valid * → Valid)
+  (: ⊔ : ?Dec ?Dec * → ?Dec)
   (define (⊔ r₁ . rs) (foldl ⊔₁ r₁ rs))
 
-  (: ⊔* (∀ (X) (X → Valid) (Listof X) → Valid))
+  (: ⊔* (∀ (X) (X → ?Dec) (Listof X) → ?Dec))
   (define (⊔* f xs)
-    (for/fold ([r : Valid (f (car xs))])
-              ([x (in-list (cdr xs))] #:break (eq? r '?))
+    (for/fold ([r : ?Dec (f (car xs))])
+              ([x (in-list (cdr xs))] #:break (not r))
       (⊔₁ r (f x))))
 
-  (: neg : Valid → Valid)
+  (: neg : ?Dec → ?Dec)
   ;; Negate provability result
   (define (neg r)
     (case r
       [(✓) '✗]
       [(✗) '✓]
-      [else '?]))
+      [else #f]))
 
-  (: bool->sat : Boolean → (U '✓ '✗))
-  (define (bool->sat x) (if x '✓ '✗))
+  (: bool->Dec : Boolean → Dec)
+  (define (bool->Dec x) (if x '✓ '✗))
 
-  (define ⊔₁ : (Valid Valid → Valid)
-    (match-lambda**
-     [('? _) '?]
-     [(_ '?) '?]
-     [(r₁ r₂) (if (eq? r₁ r₂) r₁ '?)]))
+  (: ⊔₁ : ?Dec ?Dec → ?Dec)
+  (define (⊔₁ r₁ r₂) (and r₁ r₂ (eq? r₁ r₂) r₁))
   )

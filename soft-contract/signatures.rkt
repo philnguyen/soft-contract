@@ -27,7 +27,7 @@
 
 (define-signature prims^ ; TODO
   ([get-prim : (Symbol → ⟦F⟧^)]
-   [o⇒o : (Symbol Symbol → Valid)]
+   [o⇒o : (Symbol Symbol → ?Dec)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]
    [prim-arity : (Symbol → Arity)]
