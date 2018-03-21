@@ -202,6 +202,7 @@
 
 (define-signature evl^
   ([⊥Φ^ : Φ^]
+   [Φ@ : (Φ (Listof V) → (℘ P))]
    [V->R : ((U V V^) Φ^ → R)]
    [W->R : ((U W W^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]

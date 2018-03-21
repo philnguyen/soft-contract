@@ -17,7 +17,7 @@
          )
 
 (define-unit local-prover-core@
-  (import)
+  (import evl^)
   (export local-prover-core^)
 
   (: check : Σ Φ V (Listof V) → Valid)
