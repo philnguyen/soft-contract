@@ -23,6 +23,7 @@
 (define-unit prover-core@
   (import evl^ sat-result^ (prefix l: local-prover-core^) (prefix x: ext-prover-core^))
   (export prover^)
+  (init-depend local-prover-core^)
 
   (: partition-sats ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^)))
   (define (partition-sats Σ Φ^ P W #:fast? [fast? #f])
@@ -64,10 +65,12 @@
         [(✓) (values (set-add Φ^-✓ Φ) Φ^-✗ Φ^-?)]
         [(✗) (values Φ^-✓ (set-add Φ^-✗ Φ) Φ^-?)]
         [else (values Φ^-✓ Φ^-✗ (set-add Φ^-? Φ))])))
+
+  (define V-arity l:V-arity)
   )
 
 (define-compound-unit/infer prover@
-  (import static-info^ sto^ evl^ prims^)
+  (import static-info^ sto^ val^ evl^ prims^)
   (export prover^)
   (link sat-result@ local-prover-core@ ext-prover-core@ prover-core@))
 

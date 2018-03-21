@@ -162,11 +162,6 @@
 (define-signature fc^
   ([fc : (V^ V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
-(define-signature reflection^
-  ([V-arity : (case-> [Clo → Arity]
-                      [Case-Clo → Arity]
-                      [V → (Option Arity)])]))
-
 (define-signature havoc^
   ([havoc : (HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]

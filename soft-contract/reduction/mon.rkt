@@ -19,7 +19,7 @@
   (import static-info^
           val^ env^ evl^ sto^
           prover^
-          reflection^ step^ app^ compile^ fc^)
+          step^ app^ compile^ fc^)
   (export mon^)
 
   (⟦C⟧ . ≜ . (V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ)))

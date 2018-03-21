@@ -21,7 +21,8 @@
   (import static-info^ ast-pretty-print^
           env^ sto^ val^ evl^
           prims^
-          compile^ step^ alloc^ reflection^)
+          prover^
+          compile^ step^ alloc^)
   (export app^)
   (init-depend step^)
 

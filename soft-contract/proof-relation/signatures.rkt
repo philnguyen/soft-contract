@@ -3,12 +3,15 @@
 (provide (all-defined-out))
 
 (require typed/racket/unit
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
 (define-signature local-prover-core^
   ([check : (Σ Φ V (Listof V) → ?Dec)]
    [∧  : (Φ^ V W → Φ^)]
-   [∧¬ : (Φ^ V W → Φ^)]))
+   [∧¬ : (Φ^ V W → Φ^)]
+   [V-arity : (case-> [(U Clo Case-Clo) → Arity]
+                      [V → (Option Arity)])]))
 
 (define-signature ext-prover-core^
   ([check : (Σ Φ V (Listof V) → ?Dec)]))

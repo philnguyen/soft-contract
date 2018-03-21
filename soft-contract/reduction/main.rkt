@@ -9,7 +9,6 @@
          "signatures.rkt"
 
          "alloc.rkt"
-         "reflection.rkt"
          "mon.rkt"
          "fc.rkt"
          "app.rkt"
@@ -21,5 +20,5 @@
   (import ast-pretty-print^ static-info^ meta-functions^
           env^ val^ sto^ evl^
           prims^ prover^)
-  (export reflection^ alloc^ app^ mon^ compile^ step^)
-  (link reflection@ alloc@ fc@ mon@ compile@ step@ app@))
+  (export alloc^ app^ mon^ compile^ step^)
+  (link alloc@ fc@ mon@ compile@ step@ app@))

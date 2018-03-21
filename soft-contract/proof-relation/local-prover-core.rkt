@@ -8,6 +8,8 @@
          racket/sequence
          racket/list
          racket/splicing
+         racket/string
+         syntax/parse/define
          set-extras
          unreachable
          typed-racket-hacks
@@ -20,7 +22,7 @@
 
 (define-unit local-prover-core@
   (import static-info^
-          sto^ evl^ prims^
+          sto^ evl^ val^ prims^
           sat-result^)
   (export local-prover-core^)
   (init-depend prims^)
@@ -28,13 +30,171 @@
   (: check : Σ Φ V (Listof V) → ?Dec)
   (define (check Σ Φ P₀ Vs₀)
 
-    (let go ([P : V P₀] [Vs : (Listof V) Vs₀])
+    (: check-equal* : (Listof α) (Listof α) → ?Dec)
+    (define (check-equal* αs₁ αs₂)
+      (for/fold ([d : ?Dec '✓])
+                ([α₁ (in-list αs₁)]
+                 [α₂ (in-list αs₂)]
+                 #:break (not (equal? d '✓)))
+        (define Vs₁ (Σᵥ@ Σ α₁))
+        (define Vs₂ (Σᵥ@ Σ α₂))
+        (define ⊔* (inst ⊔*/set V))
+        (⊔* (λ (V₁) (⊔* (λ (V₂) (go 'equal? (list V₁ V₂))) Vs₂)) Vs₂)))
+
+    (: go : V (Listof V) → ?Dec)
+    (define (go P Vs)
       (cond
         [(and (P? P)
               (andmap S? Vs)
               (or (Ps⊢P (Φ@ Φ Vs) P)
                   (neg (Ps⊢P (Φ@ Φ Vs) (P:¬ P)))))]
-        [else #f])))
+        [else
+         (match* (P Vs)
+           [('values (list (S:@ Q Vs*))) (go Q Vs*)]
+           [('not    (list (S:@ Q Vs*))) (neg (go Q Vs*))]
+           [('equal? (or (list (? S? S) (? -b? b)) (list (? -b? b) (? S? S))))
+            #:when (and S b)
+            (match (go 'boolean? (list S))
+              [✓ (go (if b 'values 'not) (list S))]
+              [d d])]
+           [('equal? (list (? S? S) (? S? S))) '✓]
+           [('equal? (list (St 𝒾 αs₁) (St 𝒾 αs₂))) (check-equal* αs₁ αs₂)]
+           [((? P?) (list (-● Ps))) (Ps⊢P Ps P)]
+           [(_ (and (list (S:@ k _)
+                          (app (match-lambda
+                                 [(list (S:@ k _)) (k . check-range-in . P)])
+                               (and d (? values))))))
+            d]
+           [('= (list V V)) '✓]
+           [((? P?) _)
+            #:when (and (andmap S? Vs) (not (andmap -b? Vs)))
+            (case P
+              [(list?) (check-proper-list Σ Φ (car Vs))]
+              [else
+               (define-values (P* V*)
+                 (match* (P Vs)
+                   [('>  (list (-b (? real? r)) S)) (values (P:< r) S)]
+                   [('>  (list S (-b (? real? r)))) (values (P:> r) S)]
+                   [('>= (list (-b (? real? r)) S)) (values (P:≤ r) S)]
+                   [('>= (list S (-b (? real? r)))) (values (P:≥ r) S)]
+                   [('<  (list (-b (? real? r)) S)) (values (P:> r) S)]
+                   [('<  (list S (-b (? real? r)))) (values (P:< r) S)]
+                   [('<= (list (-b (? real? r)) S)) (values (P:≥ r) S)]
+                   [('<= (list S (-b (? real? r)))) (values (P:≤ r) S)]
+                   [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?)
+                     (or (list (-b b) S) (list S (-b b))))
+                    #:when (and S b)
+                    (values (P:≡ b) S)]
+                   [(Q (list S)) (values Q S)]
+                   [(_ _) (error 'check "missing conversion for ~a ~a" P Vs)]))
+               (Ps⊢P (Φ@ Φ (list V*)) P*)])]
+           [((or (? -st-mk?) (? -st-mut?)) _) '✓]
+           [((-st-p 𝒾) Vs)
+            (match Vs
+              [(list (or (St 𝒾* _) (X/G _ (St/C _ 𝒾* _) _)))
+               (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
+              [_ '✗])]
+           [((One-Of/C bs) _) (check-one-of (car Vs) bs)]
+           [((? symbol?) _)
+            (define-simple-macro (with-base-predicates ([g:id ... o?:id] ...)
+                                   c ...)
+              (case P
+                [(o?)
+                 (match Vs
+                   [(list (-b (and b (? g) ...))) (bool->Dec (o? b))]
+                   [_ '✗])] ...
+                c ...))
+            (define (proc-arity-1? [V : V])
+              (and (equal? '✓ (go 'procedure? (list V)))
+                   (arity-includes? (assert (V-arity V)) 1)))
+            (: check-among : (V → Boolean) * → ?Dec)
+            (define (check-among . ps)
+              (match Vs
+                [(list V)
+                 (or (for/or : (Option '✓) ([p (in-list ps)])
+                       (and (p V) '✓))
+                     '✗)]
+                [_ '✗]))
+            (with-base-predicates ([not]
+                                   [exact-positive-integer?]
+                                   [exact-nonnegative-integer?]
+                                   [exact-integer?]
+                                   [number? zero?]
+                                   [exact-integer? even?]
+                                   [exact-integer? odd?]
+                                   [number? exact?]
+                                   [number? inexact?]
+                                   [integer?]
+                                   [inexact-real?]
+                                   [real?]
+                                   [number?]
+                                   [null?]
+                                   [boolean?]
+                                   [non-empty-string?]
+                                   [path-string?]
+                                   [string?]
+                                   [char?]
+                                   [symbol?]
+                                   [void?]
+                                   [eof-object?]
+                                   [regexp?]
+                                   [pregexp?]
+                                   [byte-regexp?]
+                                   [byte-pregexp?])
+              ;; Manual cases
+              [(values)
+               (match Vs
+                 [(list (-b b)) (if b '✓ '✗)]
+                 [_ '✗])]
+              [(procedure?)
+               (check-among -o? Fn? Not/C? One-Of/C?
+                            (match-λ? (X/G _ (? Fn/C?) _)
+                                      (And/C #t _ _)
+                                      (Or/C #t _ _)
+                                      (St/C #t _ _)))]
+              [(vector?)
+               (check-among Vect? Vect^?
+                            (match-λ? (X/G _ (or (? Vect/C?) (? Vectof?)) _)))]
+              [(hash?) (check-among Hash^? (match-λ? (X/G _ (? Hash/C?) _)))]
+              [(set? generic-set?) (check-among Set^? (match-λ? (X/G _ (? Set/C?) _)))]
+              [(contract?) (check-among Fn/C? And/C? Or/C? Not/C?
+                                        Vectof? Vect/C? St/C? X/C? Hash/C? Set/C?
+                                        ∀/C? Seal/C? -b?
+                                        proc-arity-1?)]
+              [(flat-contract?) (check-among -b? proc-arity-1?)]
+              [(any/c)
+               (match Vs
+                 [(list (? Sealed?)) #f] ; know absolutely nothing about sealed
+                 [_ '✓])]
+              [(none/c) '✗]
+              [(arity-includes?)
+               (match Vs
+                 [(list (-b (? Arity? a)) (-b (? Arity? b)))
+                  (bool->Dec (arity-includes? a b))]
+                 [_ #f])]
+              [(immutable?)
+               (define (check-at [α : α])
+                 ((inst ⊔*/set V) (λ (V) (go 'immutable? (list V))) (Σᵥ@ Σ α)))
+               (match (car Vs)
+                 [(-b b) (bool->Dec (immutable? b))]
+                 [(Hash^ _ _ im?) (bool->Dec im?)]
+                 [(Set^ _ im?) (bool->Dec im?)]
+                 [(X/G _ (or (? Hash/C?) (? Set/C?)) α) (check-at α)]
+                 ;; No support for immutable vectors for now
+                 [(or (? Vect?) (? Vect^?) (X/G _ (or (? Vect/C?) (? Vectof?)) _))
+                  '✗]
+                 [_ #f])])]
+           [((P:¬ Q) _) (neg (go Q Vs))]
+           [((P:≥ r) _) (go '>= (list (car Vs) (-b r)))]
+           [((P:> r) _) (go '>  (list (car Vs) (-b r)))]
+           [((P:≤ r) _) (go '<= (list (car Vs) (-b r)))]
+           [((P:< r) _) (go '<  (list (car Vs) (-b r)))]
+           [((P:≡ b) _) (go 'equal? (cons (-b b) Vs))]
+           [(_ _) #f])]))
+    (go P₀ Vs₀))
+
+  (: ⊢@ : P (Listof S) → ?Dec)
+  (define (⊢@ P Vs) ???)
 
   (: Ps⊢P : (℘ P) P → ?Dec)
   (define (Ps⊢P Ps P)
@@ -144,10 +304,7 @@
        [((P:≡ (? real? a)) (P:> b)) (bool->Dec (>  a b))]
        [((P:≡ (? real? a)) (P:≥ b)) (bool->Dec (>= a b))]
        ;; Default
-       [(_ _) #f])))
-
-  (: ⊢@ : P (Listof S) → ?Dec)
-  (define (⊢@ P Vs) ???)
+       [(_ _) #f]))) 
 
   (splicing-local
       ((: with-conj : (Φ P (Listof S) → Φ) → Φ^ V W → Φ^)
@@ -214,13 +371,12 @@
                  [d d]))]))
       (go V₀)))
 
-  (: check-one-of : V^ (Listof Base) → ?Dec)
-  (define (check-one-of V^ bs)
-    (⊔*/set (match-lambda
-              [(-b b) (if (member b bs) '✓ '✗)]
-              [(? -●?) #f]
-              [_ '✗])
-            V^))
+  (: check-one-of : V (Listof Base) → ?Dec)
+  (define (check-one-of V bs)
+    (match V
+      [(-b b) (if (member b bs) '✓ '✗)]
+      [(? -●?) #f]
+      [_ '✗]))
 
   (define ⊢V : (V → ?Dec)
     (match-lambda
@@ -228,7 +384,34 @@
       [(-● Ps) (neg (Ps⊢P Ps 'not))]
       [(? S?) #f]
       [_ '✓]))
-  )
+
+  (: check-range-in : -o P → ?Dec)
+  (define (o . check-range-in . P)
+    (match o
+      [(? symbol? o) (P⊢P (get-conservative-range o) P)]
+      [(-st-mk 𝒾) (P⊢P (-st-p 𝒾) P)]
+      [(? -st-mut?) (P⊢P 'void? P)]
+      [_ #f]))
+
+  (: V-arity (case-> [(U Clo Case-Clo) → Arity]
+                     [V → (Option Arity)]))
+  (define V-arity
+    (match-lambda
+      [(Clo xs _ _) (shape xs)]
+      [(Case-Clo cases) (normalize-arity (map V-arity cases))]
+      [(Fn:● arity _) arity]
+      [(or (And/C #t _ _) (Or/C #t _ _) (? Not/C?) (St/C #t _ _) (? One-Of/C?)) 1]
+      [(X/G (? Fn/C? G) _ _) (guard-arity G)]
+      [(? -st-p?) 1]
+      [(-st-mk 𝒾) (count-struct-fields 𝒾)]
+      [(? -st-ac?) 1]
+      [(? -st-mut?) 2]
+      [(? symbol? o) (prim-arity o)]
+      [V
+       #:when (not (or (Clo? V) (Case-Clo? V))) ; to convince TR
+       (log-warning "Warning: call `V-arity` on an obviously non-procedure ~a" V)
+       #f]))
+  ) 
 
 #|
 
@@ -249,27 +432,6 @@
 
   (: p∋V : -σ -φ -h -V * → -R)
   (define (p∋V σ φ p . Vs)
-
-    (define (check-proc-arity-1 [V : -V])
-      (case (p∋V σ φ 'procedure? V)
-        [(✓) (arity-includes? (assert (V-arity V)) 1)]
-        [else #f]))
-
-    (: check-equal : (Listof ⟪α⟫) (Listof ⟪α⟫) → -R)
-    (define (check-equal αs₁ αs₂)
-      (for/fold ([R : -R '✓])
-                ([α₁ (in-list αs₁)]
-                 [α₂ (in-list αs₂)]
-                 #:when (equal? R '✓))
-        (for*/fold ([R : -R R])
-                   ([V₁ (in-set (σ@ σ (-φ-cache φ) α₁))]
-                    [V₂ (in-set (σ@ σ (-φ-cache φ) α₂))]
-                    #:when (equal? R '✓))
-          (case (p∋V σ φ 'equal? V₁ V₂)
-            [(✓) R]
-            [(✗) '✗]
-            [(?) '?]))))
-
     (match Vs
       [(list (-t.@ o xs)) #:when (equal? p 'values) (apply p∋V σ φ o xs)]
       [(list (-t.@ o xs)) #:when (equal? p 'not) (not-R (apply p∋V σ φ o xs))]
@@ -329,15 +491,6 @@
                  [(list (-b (and b (? guard) ...))) (boolean->R (o? b))]
                  [_ '✗])] ...
               clauses ...))
-
-          (: check-one-of : (-V → Boolean) * → -R)
-          (define (check-one-of . ps)
-            (match Vs
-              [(list V)
-               (or (for/or : (Option '✓) ([p (in-list ps)])
-                     (and (p V) '✓))
-                   '✗)]
-              [_ '✗]))
 
           (with-base-predicates ([not]
                                  [exact-positive-integer?]
