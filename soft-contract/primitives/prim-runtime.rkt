@@ -38,20 +38,17 @@
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
     (λ (o)
       (λ (W ℓ Φ^ Ξ Σ)
-        ???
-        #;(cond [(equal? n (length Vs))
-               (define ok (⟦k⟧ (list (implement-predicate (-Σ-σ Σ) φ o Vs)) H φ Σ))
-               (define er
-                 (match (for/or : (Option -V^) ([V (in-list Vs)]
-                                                #:when (sequence-ormap -Sealed? V))
-                          V)
-                   [(? set? V^)
-                    (define blm (blm/simp (ℓ-src ℓ) o '(any/c) (list V^) ℓ))
-                    (⟦k⟧ blm H φ Σ)]
-                   [_ ∅]))
-               (∪ ok er)]
-              [else
-               (⟦k⟧ (blm-arity ℓ o n Vs) H φ Σ)]))))
+        (cond
+          [(equal? n (length W))
+           (define ok (ret! (implement-predicate Σ Φ^ o W) Ξ Σ))
+           ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
+           (define ?er
+             (match (for/or : (Option V^) ([V (in-list W)] #:when (sequence-ormap Sealed? V))
+                      V)
+               [(? set? V) {set (Blm/simp ℓ o '(any/c) (list V))}]
+               [#f ∅]))
+           {set-add ?er ok}]
+          [else {set (Blm/simp ℓ o (list (-b n) 'values) W)}]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
