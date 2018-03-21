@@ -67,7 +67,7 @@
   )
 
 (define-compound-unit/infer prover@
-  (import evl^)
+  (import static-info^ sto^ evl^ prims^)
   (export prover^)
   (link sat-result@ local-prover-core@ ext-prover-core@ prover-core@))
 

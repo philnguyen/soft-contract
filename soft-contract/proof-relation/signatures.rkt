@@ -16,5 +16,6 @@
 (define-signature sat-result^
   ([⊔ : (?Dec ?Dec * → ?Dec)]
    [⊔* : (∀ (X) (X → ?Dec) (Listof X) → ?Dec)]
+   [⊔*/set : (∀ (X) (X → ?Dec) (Setof X) → ?Dec)]
    [neg : (?Dec → ?Dec)]
    [bool->Dec : (Boolean → Dec)]))

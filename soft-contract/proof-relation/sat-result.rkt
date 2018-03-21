@@ -3,6 +3,7 @@
 (provide sat-result@)
 
 (require typed/racket/unit
+         racket/set
          racket/match
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -19,6 +20,12 @@
   (define (⊔* f xs)
     (for/fold ([r : ?Dec (f (car xs))])
               ([x (in-list (cdr xs))] #:break (not r))
+      (⊔₁ r (f x))))
+
+  (: ⊔*/set (∀ (X) (X → ?Dec) (Setof X) → ?Dec))
+  (define (⊔*/set f xs)
+    (for/fold ([r : ?Dec (f (set-first xs))])
+              ([x (in-set (set-rest xs))] #:break (not r))
       (⊔₁ r (f x))))
 
   (: neg : ?Dec → ?Dec)

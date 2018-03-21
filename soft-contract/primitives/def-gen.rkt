@@ -297,11 +297,11 @@
        #`(Not/C #,(gen-ctc #'c*))]
       [(o:cmp r:number)
        (syntax-parse #'o
-         [(~literal >/c)  #'(P:> (-b r))]
-         [(~literal </c)  #'(P:< (-b r))]
-         [(~literal >=/c) #'(P:≥ (-b r))]
-         [(~literal <=/c) #'(P:≤ (-b r))]
-         [(~literal =/c)  #'(P:≡ (-b r))])]
+         [(~literal >/c)  #'(P:> r)]
+         [(~literal </c)  #'(P:< r)]
+         [(~literal >=/c) #'(P:≥ r)]
+         [(~literal <=/c) #'(P:≤ r)]
+         [(~literal =/c)  #'(P:≡ r)])]
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))

@@ -56,7 +56,7 @@
                      P #|hack in prim DSL|#)
 (#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
 (#|Symbolic value|# S . ::= . -b (S:α α) (S:@ -o (Listof S)))
-(#|Predicates|# P . ::= . -o (P:≤ S) (P:< S) (P:≥ S) (P:> S) (P:≡ S) (P:¬ P) (P:arity-includes Arity))
+(#|Predicates|# P . ::= . -o (P:≤ Real) (P:< Real) (P:≥ Real) (P:> Real) (P:≡ Base) (P:¬ P) (P:arity-includes Arity))
 
 (#|Non-primitive function|# Fn . ::= . (Clo -formals ⟦E⟧ Ρ)
                                        (Case-Clo (Listof Clo))
@@ -112,7 +112,7 @@
     (syntax-rules () [(_ α ...) (St St-id (list α ...))])))
 (define-syntax-rule (define-St/G-matcher P St-id)
   (define-match-expander P
-    (syntax-rules () [(_ α) (St/G (St/C _ (== St-id) _) α _)])))
+    (syntax-rules () [(_ α) (X/G _ (St/C _ (== St-id) _) α)])))
 (define-St-matcher (Cons αₕ αₜ) -𝒾-cons)
 (define-St/G-matcher Cons/G -𝒾-cons)
 (define-St-matcher (Box α) -𝒾-box)

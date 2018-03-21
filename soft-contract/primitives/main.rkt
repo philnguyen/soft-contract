@@ -34,8 +34,8 @@
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
-  (: o⇒o : Symbol Symbol → ?Dec)
-  (define (o⇒o p q)
+  (: o⊢o : Symbol Symbol → ?Dec)
+  (define (o⊢o p q)
     (cond [(eq? p q) '✓]
           [(∋ (rt:get-weakers p) q) '✓]
           [(∋ (rt:get-exclusions p) q) '✗]
