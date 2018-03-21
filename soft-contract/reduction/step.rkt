@@ -137,7 +137,8 @@
        (define-values (_ Φ^) (collapse-R^ R^₀))
        {set (match ⟦E⟧s
               [(cons ⟦E⟧ ⟦E⟧s*) (⟦E⟧ Ρ Φ^ (K+ (F:Bgn0:E W^ ⟦E⟧s* Ρ) Ξ) Σ)]
-              [_ (ret! (R W^ Φ^) Ξ Σ)])}]
+              [_ (let ([R^ (for/set : R^ ([W (in-set W^)]) (R W Φ^))])
+                   (ret! R^ Ξ Σ))])}]
       [(F:Mon:C Ctx Ctc)
        (with-guarded-single-arity/collapse R^₀ (Ctx-loc Ctx)
          (λ (Val Φ^)
@@ -162,7 +163,7 @@
                  (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs '()) Ξ))
                  (mon C₁ V₁ (Ctx-with-ℓ Ctx ℓ₁) Φ^ Ξ* Σ)]
                 [('() '() '())
-                 {set (ret! (W->R '() Φ^) Ξ Σ)}])))])]
+                 {set (ret! (R '() Φ^) Ξ Σ)}])))])]
       [(F:Mon* Ctx Cs Vs ℓs Res-rev)
        (define-values (W^ Φ^) (collapse-R^ R^₀))
        (match-define (list V^) (collapse-value-lists W^ 1))
@@ -172,7 +173,7 @@
           (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs Res-rev*) Ξ))
           (mon C V (Ctx-with-ℓ Ctx ℓ) Φ^ Ξ* Σ)]
          [('() '() '())
-          {set (ret! (W->R (reverse Res-rev*) Φ^) Ξ Σ)}])]
+          {set (ret! (R (reverse Res-rev*) Φ^) Ξ Σ)}])]
       [(F:Μ/C x)
        (with-guarded-single-arity/collapse R^₀ +ℓ₀ ; TODO
          (λ (C-body Φ^)
@@ -263,9 +264,8 @@
        (with-guarded-arity R^₀ 1 +ℓ₀
          (λ (R^₀)
            (define Rₐ
-             (for*/union : R^ ([Rᵢ (in-set R^₀)]
-                               [Φ^ᵢ (in-value (R-_1 Rᵢ))]
-                               [Wᵢ (in-set (R-_0 Rᵢ))])
+             (for*/union : R^ ([Rᵢ (in-set R^₀)])
+               (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
                (implement-predicate Σ Φ^ᵢ P Wᵢ)))
            {set (ret! Rₐ Ξ Σ)}))]
       [(F:Absurd) ∅]))

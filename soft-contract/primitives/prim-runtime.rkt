@@ -24,9 +24,9 @@
           step^)
   (export prim-runtime^)
 
-  (splicing-let ([TT {set (list {set -tt})}]
-                 [FF {set (list {set -ff})}]
-                 [?? {set (list {set (-● {set 'boolean?})})}])
+  (splicing-let ([TT (list {set -tt})]
+                 [FF (list {set -ff})]
+                 [?? (list {set (-● {set 'boolean?})})])
     (: implement-predicate : Σ Φ^ -o W → R^)
     (define (implement-predicate Σ Φ^₀ o W)
       ((inst with-3-paths R) (λ () (partition-sats Σ Φ^₀ o W))
@@ -219,7 +219,7 @@
            (K+ (F:Make-Prim-Range ctx (and ?range-wraps (map mk-αℓ ?range-wraps)) ranges refinements) Ξ))
          (K+ (F:Maybe-Havoc-Prim-Args ℓ o) Ξ:mk-rng)]))
     (define Ξ:chk-args (K+ (F:Mon*:C ctx* (map mk-αℓ doms)) Ξ:chk-args-done))
-    (ret! (W->R args Φ^) Ξ:chk-args Σ)
+    (ret! (R args Φ^) Ξ:chk-args Σ)
     #|
     (define l (ℓ-src ℓ))
     (define ctx* (Ctx l o o ℓ))
@@ -291,12 +291,10 @@
 
   ;; Eta-expand to get aroudn undefined and init-depend
   (: r:ret! : (U R R^) Ξ:co Σ → Ξ:co)
-  (: r:W->R : (U W W^) Φ^ → R)
   (: r:plausible-splits : Σ Φ^ P W → (Values Φ^ Φ^))
   (: r:with-2-paths
      (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
   (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
-  (define (r:W->R W Φ^) (W->R W Φ^))
   (define (r:with-2-paths e t f) (with-2-paths e t f))
   (define (r:plausible-splits Σ Φ^ P W) (plausible-splits Σ Φ^ P W))
 

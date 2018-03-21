@@ -98,7 +98,7 @@
 
   (define/contract (gen-case-lift dom-inits ?dom-rst rngs body)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) (listof syntax?) . -> . (listof syntax?))
-    (hack:make-available (-o) W->bs r:W->R r:ret!)
+    (hack:make-available (-o) W->bs r:ret!)
 
     (define (gen-pat c x)
       (syntax-parse (?flatten-ctc c)
@@ -133,7 +133,7 @@
          [pat ...
           (define-values (a ...) compute-ans)
           (define-values (bₐ ...) (values {set (-b a)} ...))
-          {set (r:ret! (r:W->R (list bₐ ...) #,(-Φ^)) #,(-Ξ) #,(-Σ))}]
+          {set (r:ret! (R (list bₐ ...) #,(-Φ^)) #,(-Ξ) #,(-Σ))}]
          [_ #,@body])))
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)

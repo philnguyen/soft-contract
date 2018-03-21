@@ -50,11 +50,10 @@
       [=> (? symbol? x)
           (begin (assert (defined-at? Σ α))
                  (⊔ᵥ! Σ α* (Σᵥ@ Σ α))
-                 (ret! (R A Φ^) Ξ Σ))
+                 (ret! (R '() Φ^) Ξ Σ))
        #:where
        [α  (mk-α (-α:top (-𝒾 x l)))]
-       [α* (mk-α (-α:wrp (-𝒾 x l)))]
-       [A  {set '()}]])
+       [α* (mk-α (-α:wrp (-𝒾 x l)))]])
     
     (: ↓d : -module-level-form → ⟦E⟧)
     (define-compiler ((↓d d) Ρ Φ^ Ξ Σ)
@@ -190,7 +189,7 @@
       [=> (-x/c x)
           (ret! (V->R (X/C (Ρ@ Ρ x)) Φ^) Ξ Σ)]
       [=> (-struct/c 𝒾 '() ℓ)
-          (cond [(𝒾-defined? Σ) (ret! (W->R C Φ^) Ξ Σ)]
+          (cond [(𝒾-defined? Σ) (ret! (R C Φ^) Ξ Σ)]
                 [else (blm:undefined-struct 𝒾 ℓ)])
           #:where
           [𝒾-defined? (struct-defined? 𝒾)]
@@ -217,7 +216,7 @@
     (mk-W (if (set? V) (list V) (list {set V}))))
 
   (define/memo (mk-W [W : W]) : ⟦E⟧
-    (λ (Ρ Φ^ Ξ Σ) (ret! (W->R W Φ^) Ξ Σ)))
+    (λ (Ρ Φ^ Ξ Σ) (ret! (R W Φ^) Ξ Σ)))
 
   (define/memo (mk-Blm [blm : Blm]) : ⟦E⟧ (λ _ blm))
 

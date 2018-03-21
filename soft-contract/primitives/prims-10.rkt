@@ -23,7 +23,7 @@
   (def (values W ℓ Φ^ Ξ Σ)
     #:init ()
     #:rest [W (listof any/c)]
-    {set (r:ret! (r:W->R W Φ^) Ξ Σ)})
+    {set (r:ret! (R W Φ^) Ξ Σ)})
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

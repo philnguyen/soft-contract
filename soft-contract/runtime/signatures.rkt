@@ -20,7 +20,7 @@
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
 (#|Value address   |# -α . ::= . #:TBD) 
-(#|Result          |# R . ::= . (R W^ Φ^))
+(#|Result          |# R . ::= . (R W Φ^))
 (#|Path-condition  |# Φ . ≜ . (Immutable-HashTable (Listof S) (℘ P)))
 (#|Environment     |# Ρ  . ≜ . (Immutable-HashTable Symbol α))
 (struct Σ ([val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:transparent #:mutable)
@@ -110,7 +110,7 @@
   (define-match-expander P
     (syntax-rules () [(_ α ...) (St (== St-id) (list α ...))])
     (syntax-rules () [(_ α ...) (St St-id (list α ...))])))
-(define-syntax-rule (define-St/G-matcher P St-id)
+loc(define-syntax-rule (define-St/G-matcher P St-id)
   (define-match-expander P
     (syntax-rules () [(_ α) (X/G _ (St/C _ (== St-id) _) α)])))
 (define-St-matcher (Cons αₕ αₜ) -𝒾-cons)
@@ -205,7 +205,6 @@
   ([⊥Φ^ : Φ^]
    [Φ@ : (Φ (Listof V) → (℘ P))]
    [V->R : ((U V V^) Φ^ → R)]
-   [W->R : ((U W W^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]
    [collapse-R^/Φ^ : (R^ → Φ^)]

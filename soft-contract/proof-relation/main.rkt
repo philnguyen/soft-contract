@@ -42,10 +42,9 @@
       [(Σ R^) (plausible-splits Σ R^ #f)]
       [(Σ R^ fast?)
        (for*/fold ([truish : Φ^ ∅] [falsish : Φ^ ∅])
-                  ([R (in-set R^)]
-                   [Φ^* (in-value (R-_1 R))]
-                   [W (in-set (R-_0 R))])
-         (define-values (Φ^₁ Φ^₂) (plausible-splits Σ Φ^* 'values W fast?))
+                  ([Rᵢ (in-set R^)])
+         (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
+         (define-values (Φ^₁ Φ^₂) (plausible-splits Σ Φ^ᵢ 'values Wᵢ fast?))
          (values (∪ truish Φ^₁) (∪ falsish Φ^₂)))]
       [(Σ Φ^ P W) (plausible-splits Σ Φ^ P W #f)]
       [(Σ Φ^ P W fast?)
