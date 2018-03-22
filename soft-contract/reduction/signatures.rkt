@@ -145,6 +145,7 @@
    [ret! : [(U R R^) Ξ:co Σ → Ξ:co]]
    [K+/And : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
    [K+/Or  : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
+   [with-guarded-arity/W : (W Natural ℓ (W → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]
@@ -165,4 +166,4 @@
 (define-signature havoc^
   ([havoc : (HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]
-   [add-leak! : (HV-Tag Φ^ Σ (U V^ W) → Void)]))
+   [add-leak! : (HV-Tag Σ (U V^ W) → Void)]))

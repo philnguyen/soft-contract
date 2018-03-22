@@ -148,8 +148,8 @@
       ((ans) (-@ (-•) refs ℓ))
       (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
-  (: add-leak! : HV-Tag Φ^ Σ (U V^ W) → Void)
-  (define (add-leak! tag Φ^ Σ V)
+  (: add-leak! : HV-Tag Σ (U V^ W) → Void)
+  (define (add-leak! tag Σ V)
     (define α (mk-α (-α:hv tag)))
     (define (keep-behavioral [V : V^]) : V^
       (for/fold ([V : V^ V])

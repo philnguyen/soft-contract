@@ -213,6 +213,7 @@ loc(define-syntax-rule (define-St/G-matcher P St-id)
    [collapse-R^ : (R^ → (Values W^ Φ^))]
    [collapse-R^-1 : (R^ → (Values V^ Φ^))]
    [collapse-R^/Φ^ : (R^ → Φ^)]
+   [collapse-R^/W^ : (R^ → W^)]
    [with-2-paths : (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
    [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
    [with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]

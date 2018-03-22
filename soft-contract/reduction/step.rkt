@@ -273,6 +273,12 @@
   (: ret! : (U R R^) Ξ:co Σ → Ξ:co)
   (define (ret! R Ξ Σ) (⊔ₐ! Σ Ξ R) Ξ)
 
+  (: with-guarded-arity/W : W Natural ℓ (W → (℘ Ξ)) → (℘ Ξ))
+  (define (with-guarded-arity/W W n ℓ exec)
+    (if (= n (length W))
+        (exec W)
+        {set (Blm ℓ 'Λ (list 'arity (-b n)) W)}))
+
   (: with-guarded-arity : R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))
   (define (with-guarded-arity R^ n ℓ exec)
     (define-values (R^-goods W-bads) (filter/arity R^ n))

@@ -51,6 +51,10 @@
   (define (collapse-R^/Φ^ R^)
     (for/union : Φ^ ([R (in-set R^)]) (R-_1 R)))
 
+  (: collapse-R^/W^ : R^ → W^)
+  (define (collapse-R^/W^ R^)
+    (for/set : W^ ([R (in-set R^)]) (R-_0 R)))
+
   (define R⊔ : (R R → R)
     (match-lambda**
      [((R W₁ Φ^₁) (R W₂ Φ^₂)) (R (map V⊔ W₁ W₂) (∪ Φ^₁ Φ^₂))]))
