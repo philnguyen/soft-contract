@@ -52,16 +52,17 @@
     (define ((blm C) _)
       {set (Blm/simp (ℓ-with-src ℓ l+) lₒ (list {set C}) (list V^₀))})
 
-    (: chk-arity : Φ^ → (℘ Ξ))
-    (define (chk-arity Φ^)
+    (: chk-arity : R^ → (℘ Ξ))
+    (define (chk-arity R^)
       (define grd-arity {set (-b (guard-arity C))})
+      (define-values (V^₀ Φ^) (collapse-R^-1 R^))
       (define val-arity
-        (for/set : V^ ([Vᵢ (in-set V^₀)])
+        (for*/set : V^ ([Vᵢ (in-set V^₀)])
           (cond [(V-arity Vᵢ) => -b]
                 [(S? Vᵢ) (S:@ 'procedure-arity (list Vᵢ))]
                 [else (-● {set 'procedure-arity?})])))
       (with-2-paths
-        (λ () (plausible-splits Σ Φ^ 'arity-includes? (list val-arity grd-arity)))
+        (λ () (split-results Σ (R (list val-arity grd-arity) Φ^) 'arity-includes?))
         wrap
         (blm (match (set-first grd-arity)
                [(-b (? integer? n))
@@ -71,13 +72,14 @@
                [(-b (list n ...))
                 (string->symbol (format "(arity in ~a)" n))]))))
 
-    (: wrap : Φ^ → (℘ Ξ))
-    (define (wrap Φ^)
+    (: wrap : R^ → (℘ Ξ))
+    (define (wrap R^)
       (define α (mk-α (-α:fn ctx (Ξ:co-ctx Ξ₀))))
-      (⊔ᵥ! Σ α V^₀)
+      (define-values (V^ Φ^) (collapse-R^-1 R^))
+      (⊔ᵥ! Σ α V^)
       {set (ret! (V->R (X/G ctx C α) Φ^) Ξ₀ Σ)})
     
-    (with-2-paths (λ () (plausible-splits Σ Φ^₀ 'procedure? (list V^₀)))
+    (with-2-paths (λ () (split-results Σ (R (list V^₀) Φ^₀) 'procedure?))
       (if (∀/C? C) wrap chk-arity)
       (blm 'procedure?)))
 
@@ -86,13 +88,13 @@
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
     (match-define (St/C _ 𝒾 αℓs) C)
 
-    (: chk-fields : Φ^ → (℘ Ξ))
-    (define (chk-fields Φ^)
+    (: chk-fields : R^ → (℘ Ξ))
+    (define (chk-fields R^)
       (define-values (αs ℓs) (unzip-by αℓ-_0 αℓ-_1 αℓs))
       (define all-immut? (struct-all-immutable? 𝒾))
       ???)
 
-    (with-2-paths (λ () (plausible-splits Σ Φ^₀ (-st-p 𝒾) (list V^₀)))
+    (with-2-paths (λ () (split-results Σ (R (list V^₀) Φ^₀) (-st-p 𝒾)))
       chk-fields
       (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lₒ (list (-st-p 𝒾)) (list V^₀))})))
 
@@ -147,15 +149,15 @@
     (match-define (Ctx l+ _ lₒ ℓₘ) ctx)
     (match-define (Vectof αℓs) C)
 
-    (: blm : P → Φ^ → (℘ Ξ))
+    (: blm : P → Any → (℘ Ξ))
     (define ((blm P) _)
       {set (Blm/simp (ℓ-with-src ℓₘ l+) lₒ (list P) (list V))})
 
-    (: chk-elems : Φ^ → (℘ Ξ))
-    (define (chk-elems Φ^)
+    (: chk-elems : R^ → (℘ Ξ))
+    (define (chk-elems R^)
       ???)
     
-    (with-2-paths (λ () (plausible-splits Σ Φ^₀ 'vector? (list V)))
+    (with-2-paths (λ () (split-results Σ (R (list V) Φ^₀) 'vector?))
       chk-elems
       (blm 'vector?)))
 
@@ -190,11 +192,10 @@
   (: mon-Flat/C : V → ⟦C⟧)
   (define ((mon-Flat/C C) V ctx Φ^₀ Ξ Σ)
     (match-define (Ctx l+ _ lo ℓ) ctx)
-    (with-3-paths (λ () (partition-sats Σ Φ^₀ C (list V)))
-      (λ ([Φ^ : Φ^]) {set (ret! (V->R V Φ^) Ξ Σ)})
+    (with-3-paths (λ () (partition-results Σ (R (list V) Φ^₀) C))
+      (λ ([R^ : R^]) {set (ret! R^ Ξ Σ)})
       (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lo (list {set C}) (list V))})
-      (λ ([Φ^ : Φ^])
-        ???)))
+      (λ ([R^ : R^]) ???)))
 
   #|
 

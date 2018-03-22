@@ -35,11 +35,22 @@
          (values xs x)]
         [else (error 'init/last "empty list")]))
 
-(: cartesian (∀ (X) (Listof (Setof X)) → (Listof (Listof X))))
+(: cartesian (∀ (X Y)
+                (case->
+                 [(Listof (Setof X)) → (Listof (Listof X))]
+                 [(Listof (Setof X)) (X → Boolean : Y) → (Listof (Listof Y))])))
 (define cartesian
-  (match-lambda
-    [(cons x xs)
-     (define ps (cartesian xs))
-     (for*/list : (Listof (Listof X)) ([xⱼ (in-set x)] [pᵢ (in-list ps)])
-       (cons xⱼ pᵢ))]
-    [_ '{()}]))
+  (case-lambda
+    [(xs) (apply cartesian-product (map (inst set->list X) xs))]
+    [(xs ok?)
+     (let go ([xs : (Listof (Setof X)) xs])
+       (match xs
+         [(cons x xs)
+          (define y (for/list : (Listof Y) ([xᵢ (in-set x)] #:when (ok? xᵢ)) xᵢ))
+          (cond
+            [(null? y) '()]
+            [else
+             (define ps (go xs))
+             (for*/list : (Listof (Listof Y)) ([yⱼ (in-list y)] [pᵢ (in-list ps)])
+               (cons yⱼ pᵢ))])]
+         [_ '{()}]))]))

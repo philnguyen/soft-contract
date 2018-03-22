@@ -4,6 +4,7 @@
 
 (require racket/match
          (except-in racket/set for/set for*/set for/seteq for*/seteq)
+         racket/list
          racket/bool
          typed/racket/unit
          syntax/parse/define
@@ -21,51 +22,65 @@
          "ext-prover-core.rkt")
 
 (define-unit prover-core@
-  (import evl^ sat-result^ (prefix l: local-prover-core^) (prefix x: ext-prover-core^))
+  (import val^ evl^
+          sat-result^ (prefix l: local-prover-core^) (prefix x: ext-prover-core^))
   (export prover^)
   (init-depend local-prover-core^)
 
-  (: partition-sats ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^)))
-  (define (partition-sats Σ Φ^ P W #:fast? [fast? #f])
-    (define-values (Φ^-✓ Φ^-✗ Φ^-?) (with-checker l:check Σ Φ^ P W))
-    (if (or fast? (set-empty? Φ^-?))
-        (values Φ^-✓ Φ^-✗ ∅)
-        (let-values ([(Φ^-✓* Φ^-✗* Φ^-?*) (with-checker x:check Σ Φ^-? P W)])
-          (values (∪ Φ^-✓ Φ^-✓*) (∪ Φ^-✗ Φ^-✗*) Φ^-?*))))
+  (: split-results ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^)))
+  (define (split-results Σ R₀ [P 'values] #:fast? [fast? #f])
+    (define-values (R✓ R✗ R?) (partition-results Σ R₀ P #:fast? fast?))
+    (for/fold ([R✓* : R^ R✓] [R✗* : R^ R✗]) ([R (in-set R?)])
+      (values (set-add R✓* (l:∧  R P))
+              (set-add R✗* (l:∧¬ R P)))))
 
-  (: plausible-splits (case-> [Σ R^ → (Values Φ^ Φ^)]
-                              [Σ R^ Boolean → (Values Φ^ Φ^)]
-                              [Σ Φ^ V W → (Values Φ^ Φ^)]
-                              [Σ Φ^ V W Boolean → (Values Φ^ Φ^)]))
-  (define plausible-splits
-    (case-lambda
-      [(Σ R^) (plausible-splits Σ R^ #f)]
-      [(Σ R^ fast?)
-       (for*/fold ([truish : Φ^ ∅] [falsish : Φ^ ∅])
-                  ([Rᵢ (in-set R^)])
-         (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
-         (define-values (Φ^₁ Φ^₂) (plausible-splits Σ Φ^ᵢ 'values Wᵢ fast?))
-         (values (∪ truish Φ^₁) (∪ falsish Φ^₂)))]
-      [(Σ Φ^ P W) (plausible-splits Σ Φ^ P W #f)]
-      [(Σ Φ^ P W fast?)
-       (define-values (Φ^-✓ Φ^-✗ Φ^-?) (partition-sats Σ Φ^ P W #:fast? fast?))
-       (values (∪ Φ^-✓ (l:∧  Φ^-? P W))
-               (∪ Φ^-✗ (l:∧¬ Φ^-? P W)))]))
+  (: partition-results ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^ R^)))
+  (define (partition-results Σ R₀ [P 'values] #:fast? [fast? #f])
+    (: go (case-> [R  → (Values ?R ?R ?R)]
+                  [R^ → (Values R^ R^ R^)]))
+    (define (go R)
+      (cond
+        [(R? R)
+         (define-values (R✓ R✗ R?) (with-checker l:check Σ P R))
+         (define ?R* (validate-R R?))
+         (define-values (R✓* R✗* R?*)
+           (if (and (not fast?) ?R*)
+               (let-values ([(R✓* R✗* R?*) (with-checker x:check Σ P ?R*)])
+                 (values (R⊔ R✓ R✓*) (R⊔ R✗ R✗*) R?*))
+               (values R✓ R✗ ?R*)))
+         (values (validate-R R✓*) (validate-R R✗*) (validate-R R?*))]
+        [else
+         (define (⊕ [R^ : R^] [?R : ?R]) (if ?R (set-add R^ ?R) R^))
+         (for/fold ([R✓ : R^ ∅] [R✗ : R^ ∅] [R? : R^ ∅])
+                   ([Rᵢ (in-set R)])
+           (define-values (R✓* R✗* R?*) (go Rᵢ))
+           (values (⊕ R✓ R✓*) (⊕ R✗ R✗*) (⊕ R? R?*)))]))
+    (if (set? R₀)
+        (go R₀)
+        (let-values ([(R✓ R✗ R?) (go R₀)])
+          (values (inj-R R✓) (inj-R R✗) (inj-R R?)))))
 
-  (: check-plausible-index ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^)))
-  (define (check-plausible-index Σ Φ^ V^ i [fast? #f])
-    (plausible-splits Σ Φ^ '= (list V^ {set (-b i)})))
+  #;(: check-plausible-index ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^)))
+  #;(define (check-plausible-index Σ Φ^ V^ i [fast? #f])
+    (plausible-splits Σ Φ^ '= (list V^ {set (-b i)}))) 
 
-  (: with-checker : (Σ Φ V (Listof V) → ?Dec) Σ Φ^ V W → (Values Φ^ Φ^ Φ^))
-  (define (with-checker check Σ Φ^₀ P W)
-    (for/fold ([Φ^-✓ : Φ^ ∅] [Φ^-✗ : Φ^ ∅] [Φ^-? : Φ^ ∅])
-              ([Φ : Φ (in-set Φ^₀)])
-      (case (⊔* (λ ([Vs : (Listof V)]) (check Σ Φ P Vs)) (cartesian W))
-        [(✓) (values (set-add Φ^-✓ Φ) Φ^-✗ Φ^-?)]
-        [(✗) (values Φ^-✓ (set-add Φ^-✗ Φ) Φ^-?)]
-        [else (values Φ^-✓ Φ^-✗ (set-add Φ^-? Φ))])))
+  (define V-arity l:V-arity) 
 
-  (define V-arity l:V-arity)
+  (: inj-R : ?R → R^)
+  (define (inj-R R)
+    (cond [(and R (validate-R R)) => set]
+          [else ∅]))
+
+  (: with-checker : (Σ Φ V (Listof V) → ?Dec) Σ V R → (Values R R R))
+  (define (with-checker check Σ P R₀)
+    (match-define (R W₀ Φ^₀) R₀)
+    (define ⊥R (R (make-list (length W₀) ∅) ∅))
+    (for*/fold ([R✓ : R ⊥R] [R✗ : R ⊥R] [R? : R ⊥R])
+               ([Vs (in-list (cartesian W₀))] [Φ : Φ (in-set Φ^₀)])
+      (case (check Σ Φ P Vs)
+        [(✓)  (values (R⊔₁ R✓ Vs Φ) R✗ R?)]
+        [(✗)  (values R✓ (R⊔₁ R✗ Vs Φ) R?)]
+        [else (values R✓ R✗ (R⊔₁ R? Vs Φ))])))
   )
 
 (define-compound-unit/infer prover@
@@ -80,18 +95,6 @@
           (prefix ext: external-prover^))
   (export proof-system^)
   (init-depend local-prover^ external-prover^)
-
-  (: p∋V : -σ -φ -h -V * → -R)
-  (define (p∋V σ φ h . Vs)
-    (match* (h Vs)
-      [('values (list (-t.@ p xs))) (apply p∋V σ φ p xs)]
-      [('not    (list (-t.@ p xs))) (not-R (apply p∋V σ φ p xs))]
-      [(_ _)
-       (match (apply local:p∋V σ φ h Vs)
-         ['? (if (should-call-smt? (-φ-condition φ) h Vs)
-                 (ext:p∋V (-φ-condition φ) h Vs)
-                 '?)]
-         [R R])]))
 
   (: V+ : -σ -φ -V^ (U -h -V) → -V^)
   (define (V+ σ φ V^ C)
@@ -121,13 +124,5 @@
         [(✓) (set-remove acc V)]
         [(✗) acc]
         [(?) (set-add (set-remove acc V) (V₁- V C))])))
-
-  (: φ⊢t : -σ -φ -t → -R)
-  (define (φ⊢t σ φ t)
-    (cond [(hash-ref (-φ-condition φ) t #f) =>
-           (λ ([ps : (℘ -h)]) (not-R (local:ps⇒p ps 'not)))]
-          [else '?])) 
-
-  
   )
 |#

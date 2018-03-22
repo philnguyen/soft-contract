@@ -4,6 +4,7 @@
 
 (require (except-in racket/set for/set for/seteq for*/set for*/seteq)
          racket/match
+         racket/splicing
          typed/racket/unit
          typed-racket-hacks
          set-extras
@@ -11,7 +12,7 @@
          "signatures.rkt")
 
 (define-unit evl@
-  (import)
+  (import val^)
   (export evl^)
 
   (define ⊥Φ^ {set (ann (hash) Φ)})
@@ -40,20 +41,52 @@
       (match-define (R W* Φ^*) R*)
       (values (set-add W^ W*) (∪ Φ^ Φ^*))))
 
+  (: collapse-R^-1 : R^ → (Values V^ Φ^))
+  (define (collapse-R^-1 R^)
+    (for/fold ([V^ : V^ ∅] [Φ^ : Φ^ ∅]) ([R* (in-set R^)])
+      (match-define (R (list V^*) Φ^*) R*)
+      (values (V⊔ V^ V^*) (∪ Φ^ Φ^*))))
+
   (: collapse-R^/Φ^ : R^ → Φ^)
   (define (collapse-R^/Φ^ R^)
     (for/union : Φ^ ([R (in-set R^)]) (R-_1 R)))
 
-  (: with-2-paths (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
-  (define (with-2-paths mk on-t on-f)
-    (define-values (Φ^₁ Φ^₂) (mk))
-    (∪ (if (set-empty? Φ^₁) ∅ (on-t Φ^₁))
-       (if (set-empty? Φ^₂) ∅ (on-f Φ^₂))))
+  (define R⊔ : (R R → R)
+    (match-lambda**
+     [((R W₁ Φ^₁) (R W₂ Φ^₂)) (R (map V⊔ W₁ W₂) (∪ Φ^₁ Φ^₂))]))
 
-  (: with-3-paths (∀ (X) (→ (Values Φ^ Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
+  (define R⊔₁ : (R (Listof V) Φ → R)
+    (match-lambda**
+     [((R W Φ^) Vs Φ) (R (map V⊔₁ W Vs) (set-add Φ^ Φ))]))
+
+  (: validate-R : ?R → ?R)
+  (define (validate-R R)
+    (and R
+         (not (set-empty? (R-_1 R)))
+         (not (ormap (inst set-empty? V) (R-_0 R)))
+         R))
+
+  (: with-2-paths (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X)))
+  (define (with-2-paths mk on-t on-f)
+    (define-values (R^₁ R^₂) (mk))
+    (∪ (if (set-empty? R^₁) ∅ (on-t R^₁))
+       (if (set-empty? R^₂) ∅ (on-f R^₂))))
+
+  (: with-3-paths (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X)))
   (define (with-3-paths mk f₁ f₂ f₃)
-    (define-values (Φ^₁ Φ^₂ Φ^₃) (mk))
-    (∪ (if (set-empty? Φ^₁) ∅ (f₁ Φ^₁))
-       (if (set-empty? Φ^₂) ∅ (f₂ Φ^₂))
-       (if (set-empty? Φ^₃) ∅ (f₃ Φ^₃))))
+    (define-values (R^₁ R^₂ R^₃) (mk))
+    (∪ (if (set-empty? R^₁) ∅ (f₁ R^₁))
+       (if (set-empty? R^₂) ∅ (f₂ R^₂))
+       (if (set-empty? R^₃) ∅ (f₃ R^₃))))
+
+  (splicing-local
+      ((: with-collapse (∀ (X) (Φ^ → (℘ X)) → R^ → (℘ X)))
+       (define ((with-collapse on-Φ^) R^) (on-Φ^ (collapse-R^/Φ^ R^))))
+    (: with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
+    (define (with-2-paths/collapse mk on-t on-f)
+      (with-2-paths mk (with-collapse on-t) (with-collapse on-f)))
+    (: with-3-paths/collapse : (∀ (X) (→ (Values R^ R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
+    (define (with-3-paths/collapse mk f₁ f₂ f₃)
+      (with-3-paths mk (with-collapse f₁) (with-collapse f₂) (with-collapse f₃))))
+  
   )

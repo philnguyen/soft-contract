@@ -40,6 +40,7 @@
 (Ξ:co^ . ≜ . (℘ Ξ:co))
 (W^ . ≜ . (℘ W))
 (⟦F⟧^ . ≜ . (W ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
+(?R . ≜ . (Option R))
 
 (#|Value|# V . ::= . (-● (℘ P))
                      -prim
@@ -204,12 +205,18 @@ loc(define-syntax-rule (define-St/G-matcher P St-id)
 (define-signature evl^
   ([⊥Φ^ : Φ^]
    [Φ@ : (Φ (Listof V) → (℘ P))]
+   [R⊔ : (R R → R)]
+   [R⊔₁ : (R (Listof V) Φ → R)]
+   [validate-R : (?R → ?R)]
    [V->R : ((U V V^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]
+   [collapse-R^-1 : (R^ → (Values V^ Φ^))]
    [collapse-R^/Φ^ : (R^ → Φ^)]
-   [with-2-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
-   [with-3-paths : (∀ (X) (→ (Values Φ^ Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]))
+   [with-2-paths : (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
+   [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
+   [with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
+   [with-3-paths/collapse : (∀ (X) (→ (Values R^ R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]))
 
 (define-signature pretty-print^
   ([show-blm-reason : ((U V P V^) → Sexp)]

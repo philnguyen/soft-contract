@@ -340,14 +340,16 @@
        [(_ _) #f]))) 
 
   (splicing-local
-      ((: with-conj : (Φ P (Listof S) → Φ) → Φ^ V W → Φ^)
-       (define ((with-conj conj) Φ^₀ P W)
-         (if (P? P)
-             (let ([arg-lists (filter (λ ([Vs : (Listof V)]) (andmap S? Vs)) (cartesian W))])
-               (for/set : Φ^ ([Φᵢ : Φ (in-set Φ^₀)])
-                 (for/fold ([Φᵢ* : Φ Φᵢ]) ([Vs (in-list arg-lists)])
-                   (conj Φᵢ* P Vs))))
-             Φ^₀))
+      ((: with-conj : (Φ P (Listof S) → Φ) → R V → R)
+       (define ((with-conj conj) R₀ P)
+         (cond
+           [(P? P)
+            (match-define (R W Φ^₀) R₀)
+            (define Φ^₁ (for*/set : Φ^ ([Vs (in-list (cartesian W S?))]
+                                        [Φ : Φ (in-set Φ^₀)])
+                          (conj Φ P Vs)))
+            (R W Φ^₁)]
+           [else R₀]))
        (:* conj conj¬ : Φ P (Listof S) → Φ)
        (define (conj Φ P Vs)
          (match* (P Vs)

@@ -29,7 +29,7 @@
                  [?? (list {set (-● {set 'boolean?})})])
     (: implement-predicate : Σ Φ^ -o W → R^)
     (define (implement-predicate Σ Φ^₀ o W)
-      ((inst with-3-paths R) (λ () (partition-sats Σ Φ^₀ o W))
+      ((inst with-3-paths/collapse R) (λ () (partition-results Σ (R W Φ^₀) o))
         (λ (Φ^) {set (R TT Φ^)})
         (λ (Φ^) {set (R FF Φ^)})
         (λ (Φ^) {set (R ?? Φ^)}))))
@@ -290,12 +290,12 @@
 
   ;; Eta-expand to get aroudn undefined and init-depend
   (: r:ret! : (U R R^) Ξ:co Σ → Ξ:co)
-  (: r:plausible-splits : Σ Φ^ P W → (Values Φ^ Φ^))
-  (: r:with-2-paths
-     (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
+  (: r:split-results : Σ R P → (Values R^ R^))
+  (: r:with-2-paths/collapse
+     (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
   (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
-  (define (r:with-2-paths e t f) (with-2-paths e t f))
-  (define (r:plausible-splits Σ Φ^ P W) (plausible-splits Σ Φ^ P W))
+  (define (r:with-2-paths/collapse e t f) (with-2-paths/collapse e t f))
+  (define (r:split-results Σ R P) (split-results Σ R P))
 
   #|
   (: t.@/simp : -o (Listof -t) → -t)

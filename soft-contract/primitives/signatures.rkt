@@ -84,8 +84,8 @@
 
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
    [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]
-   [r:plausible-splits : (Σ Φ^ P W → (Values Φ^ Φ^))]
-   [r:with-2-paths : (∀ (X) (→ (Values Φ^ Φ^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
+   [r:split-results : (Σ R P → (Values R^ R^))]
+   [r:with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
    
    #;[r:φ+/-pV^ : (Σ Φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
    

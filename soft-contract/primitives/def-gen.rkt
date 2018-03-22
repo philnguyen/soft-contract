@@ -204,10 +204,10 @@
 
     (define/contract (gen-init-1 c x body)
       (identifier? identifier? (listof syntax?) . -> . (listof syntax?))
-      (hack:make-available (-o) r:plausible-splits r:with-2-paths)
+      (hack:make-available (-o) r:split-results r:with-2-paths/collapse)
       (list
-       #`((inst r:with-2-paths Ξ)
-          (λ () (r:plausible-splits #,(-Σ) #,(-Φ^) '#,c (list #,x)))
+       #`((inst r:with-2-paths/collapse Ξ)
+          (λ () (r:split-results #,(-Σ) (R (list #,x) #,(-Φ^)) '#,c))
           (λ (#,(-Φ^)) #,(match body [(list e) e] [_ #`(begin #,@body)]))
           (λ (#,(-Φ^)) (blm '#,c #,x)))))
 
@@ -226,17 +226,17 @@
        [('() '()) (gen-rest)]))
 
     (define/contract (gen-rest) (-> (listof syntax?))
-      (hack:make-available (-o) r:plausible-splits r:with-2-paths)
+      (hack:make-available (-o) r:split-results r:with-2-paths/collapse)
       (if ?rst
           (list
            #`(define (run-body) : (℘ Ξ) #,@body)
            #`(let go ([rests : (Listof V^) #,(-Vᵣ)])
                (match rests
                  [(cons V^ rests*)
-                  ((inst r:with-2-paths Ξ)
-                   (λ () (r:plausible-splits #,(-Σ) #,(-Φ^) '#,?rst (list V^)))
+                  ((inst r:with-2-paths/collapse Ξ)
+                   (λ () (r:split-results #,(-Σ) (R (list V^) #,(-Φ^)) '#,?rst))
                    (λ (#,(-Φ^)) (go rests*))
-                   (λ (#,(-Φ^)) (blm '#,?rst V^)))]
+                   (λ _ (blm '#,?rst V^)))]
                  ['() (run-body)])))
           body))
     (cons

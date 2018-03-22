@@ -35,12 +35,9 @@
    [implement-predicate : (Σ Φ^ -o W → R^)]))
 
 (define-signature prover^
-  ([plausible-splits : (case-> [Σ R^ → (Values Φ^ Φ^)]
-                               [Σ R^ Boolean → (Values Φ^ Φ^)]
-                               [Σ Φ^ V W → (Values Φ^ Φ^)]
-                               [Σ Φ^ V W Boolean → (Values Φ^ Φ^)])]
-   [partition-sats : ([Σ Φ^ V W] [#:fast? Boolean] . ->* . (Values Φ^ Φ^ Φ^))]
-   [check-plausible-index : ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^))]
+  ([split-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^))]
+   [partition-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^ R^))]
+   #;[check-plausible-index : ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^))]
    [V-arity : (case-> [(U Clo Case-Clo) → Arity]
                       [V → (Option Arity)])]
    #|

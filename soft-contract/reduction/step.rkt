@@ -122,7 +122,7 @@
       [(F:If l ⟦E⟧₁ ⟦E⟧₂ Ρ)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
-           (with-2-paths (λ () (plausible-splits Σ R^₀))
+           (with-2-paths/collapse (λ () (split-results Σ R^₀))
              (λ ([Φ^ : Φ^]) {set (⟦E⟧₁ Ρ Φ^ Ξ Σ)})
              (λ ([Φ^ : Φ^]) {set (⟦E⟧₂ Ρ Φ^ Ξ Σ)}))))]
       [(F:Bgn (cons ⟦E⟧ ⟦E⟧s) Ρ)
@@ -248,9 +248,9 @@
       [(F:If:Flat/C V^ Blm)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
-           (with-2-paths (λ () (plausible-splits Σ R^₀))
+           (with-2-paths/collapse (λ () (split-results Σ R^₀))
              (λ ([Φ^ : Φ^]) {set (ret! (V->R V^ Φ^) Ξ Σ)})
-             (λ ([Φ^ : Φ^]) {set Blm}))))]
+             (λ _ {set Blm}))))]
       [(F:Fc-And/C l ℓ C₁ C₂) ???]
       [(F:Fc-Or/C l ℓ C₁ C₂ V) ???]
       [(F:Fc-Not/C V) ???]
