@@ -172,7 +172,16 @@
         (printf "* ~a ≡ ~a~n" (show-α α) (inspect-α α)))))
 
   (: show-P : P → Sexp)
-  (define (show-P P) ???)
+  (define show-P
+    (match-lambda
+      [(? -o? o) (show-o o)]
+      [(P:≤ r) `(<=/c ,r)]
+      [(P:< r) `(</c ,r)]
+      [(P:> r) `(>/c ,r)]
+      [(P:≥ r) `(>=/c ,r)]
+      [(P:≡ b) (show-b b)]
+      [(P:¬ P) `(not/c ,(show-P P))]
+      [(P:arity-includes a) `(arity-includes/c ,a)]))
 
   (define show-Σ (show-map show-α show-V^))
   (define show-Σₖ ((inst show-map αₖ (℘ Ξ:co) Sexp Index) show-αₖ (λ (Ξs) (set-count Ξs))))

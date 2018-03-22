@@ -56,7 +56,7 @@
                      P #|hack in prim DSL|#)
 (#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
 (#|Symbolic value|# S . ::= . -b (S:α α) (S:@ -o (Listof S)))
-(#|Predicates|# P . ::= . -o (P:≤ Real) (P:< Real) (P:≥ Real) (P:> Real) (P:≡ Base) (P:¬ P) (P:arity-includes Arity))
+(#|Predicates|# P . ::= . -o (P:≤ Real) (P:< Real) (P:≥ Real) (P:> Real) (P:≡ Base) (P:¬ P) (P:arity-includes Index))
 
 (#|Non-primitive function|# Fn . ::= . (Clo -formals ⟦E⟧ Ρ)
                                        (Case-Clo (Listof Clo))

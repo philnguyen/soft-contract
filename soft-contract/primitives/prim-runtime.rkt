@@ -33,7 +33,6 @@
         (λ (Φ^) {set (R TT Φ^)})
         (λ (Φ^) {set (R FF Φ^)})
         (λ (Φ^) {set (R ?? Φ^)}))))
-  
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
     (λ (o)
