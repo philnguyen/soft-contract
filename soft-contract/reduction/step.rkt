@@ -84,12 +84,15 @@
   (: co : R^ F Ξ:co Σ → (℘ Ξ))
   (define (co R^₀ F Ξ Σ)
     (match F
-      [(F:Ap Vs ⟦E⟧s Ρ ℓ)
+      [(F:Ap Vs args ℓ)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (V^ Φ^)
            (define Vs* (cons V^ Vs))
-           (match ⟦E⟧s
-             [(cons ⟦E⟧ ⟦E⟧s*) {set (⟦E⟧ Ρ Φ^ (K+ (F:Ap Vs* ⟦E⟧s* Ρ ℓ) Ξ) Σ)}]
+           (match args
+             [(cons arg args*)
+              (match arg
+                [(EΡ ⟦E⟧ Ρ) {set (⟦E⟧ Ρ Φ^ (K+ (F:Ap Vs* args* ℓ) Ξ) Σ)}]
+                [(? set? V^*) (↝ (K+ (F:Ap (cons V^* Vs*) args* ℓ) Ξ) Σ)])]
              [_ (match-define (cons fun args) (reverse Vs*))
                 (app fun args ℓ Φ^ Ξ Σ)])))]
       [(F:Set! α)
@@ -143,13 +146,13 @@
        (with-guarded-single-arity/collapse R^₀ (Ctx-loc Ctx)
          (λ (Val Φ^)
            (match Ctc
-             [(cons ⟦C⟧ Ρ) {set (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V Ctx Val) Ξ) Σ)}]
+             [(EΡ ⟦C⟧ Ρ) {set (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V Ctx Val) Ξ) Σ)}]
              [(? set?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon:V Ctx Val)
        (with-guarded-single-arity/collapse R^₀ (Ctx-loc Ctx)
          (λ (Ctc Φ^)
            (match Val
-             [(cons ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) Ξ) Σ)}]
+             [(EΡ ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) Ξ) Σ)}]
              [(? set?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon*:C Ctx rngs)
        (case rngs

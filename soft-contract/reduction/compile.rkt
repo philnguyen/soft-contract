@@ -135,13 +135,18 @@
                            [_ V]))))])
                 (V → V))]]
       [=> (-@ E Es ℓ)
-          (⟦E⟧ Ρ Φ^ (K+ (F:Ap '() ⟦Es⟧ Ρ ℓ) Ξ) Σ)
+          (let ([Ρ₀ (m↓ Ρ fv₀)]
+                [EΡs (for/list : (Listof EΡ) ([⟦E⟧ (in-list ⟦Es⟧)] [fv (in-list fvs)])
+                       (EΡ ⟦E⟧ (m↓ Ρ fv)))])
+            (⟦E⟧ (m↓ Ρ fv₀) Φ^ (K+ (F:Ap '() EΡs ℓ) Ξ) Σ))
           #:where ; HACK
           [_ (match* (E Es)
                [('scv:mon (cons (-b (? symbol? l)) _))
                 (add-transparent-module! (symbol->string l))
                 (add-transparent-module! (format "user-of-~a" l))]
                [(_ _) 'ignore])]
+          [fv₀ (fv E)]
+          [fvs (map fv Es)]
           #:recur E (Es ...)]
       [=> (-if E E₁ E₂)
           (⟦E⟧ Ρ Φ^ (K+ (F:If l ⟦E₁⟧ ⟦E₂⟧ Ρ) Ξ) Σ)
@@ -253,10 +258,12 @@
      ⟦bnd⟧s)) 
 
   (define/memo (mk-mon [ctx : Ctx] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
-    (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V ctx (cons ⟦V⟧ Ρ)) Ξ) Σ)))
+    (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V ctx (EΡ ⟦V⟧ Ρ)) Ξ) Σ)))
 
   (define/memo (mk-app [ℓ : ℓ] [⟦f⟧ : ⟦E⟧] [⟦x⟧s : (Listof ⟦E⟧)]) : ⟦E⟧
-    (λ (Ρ Φ^ Ξ Σ) (⟦f⟧ Ρ Φ^ (K+ (F:Ap '() ⟦x⟧s Ρ ℓ) Ξ) Σ))) 
+    (λ (Ρ Φ^ Ξ Σ)
+      (define EΡs : (Listof EΡ) (for/list ([⟦x⟧ (in-list ⟦x⟧s)]) (EΡ ⟦x⟧ Ρ)))
+      (⟦f⟧ Ρ Φ^ (K+ (F:Ap '() EΡs ℓ) Ξ) Σ))) 
 
   (define/memo (mk-fc [l : -l] [ℓ : ℓ] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
     (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Fc:V l ℓ ⟦V⟧ Ρ) Ξ) Σ)))

@@ -9,8 +9,10 @@
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
+(EΡ . ::= . (EΡ [code : ⟦E⟧] [env : Ρ]))
+
 (define-substructs F
-  [F:Ap (Listof V^) (Listof ⟦E⟧) Ρ ℓ]
+  [F:Ap (Listof V^) (Listof (U EΡ V^)) ℓ]
   [F:Set! α]
   [F:Let ℓ (Listof Symbol) (Assoc (Listof Symbol) ⟦E⟧) (Assoc Symbol V^) ⟦E⟧ Ρ]
   [F:Letrec ℓ (Listof Symbol) (Assoc (Listof Symbol) ⟦E⟧) ⟦E⟧ Ρ]
@@ -18,8 +20,8 @@
   [F:Bgn (NeListof ⟦E⟧) Ρ]
   [F:Bgn0:V (NeListof ⟦E⟧) Ρ]
   [F:Bgn0:E W^ (Listof ⟦E⟧) Ρ]
-  [F:Mon:C Ctx (U (Pairof ⟦E⟧ Ρ) V^)]
-  [F:Mon:V Ctx (U (Pairof ⟦E⟧ Ρ) V^)]
+  [F:Mon:C Ctx (U EΡ V^)]
+  [F:Mon:V Ctx (U EΡ V^)]
   [F:Mon*:C Ctx (U (Listof αℓ) 'any)]
   [F:Mon* Ctx W W (Listof ℓ) W]
   [F:Μ/C Symbol]

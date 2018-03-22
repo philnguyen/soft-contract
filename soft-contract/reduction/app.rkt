@@ -121,7 +121,7 @@
                        (match-let ([(αℓ αᵢ ℓᵢ) (list-ref αℓs i)])
                          (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
                        Ξ₀))
-                 (define F:Ac (F:Ap (list {set Ac}) '() ⊥Ρ (ℓ-with-id ℓ 'unwrap)))
+                 (define F:Ac (F:Ap (list {set Ac}) '() (ℓ-with-id ℓ 'unwrap)))
                  (ret! (V->R V^* Φ^ᵢ) (K+ F:Ac Ξ*) Σ)]
                 [(? S? S) (ret! (V->R (S:@ Ac (list S)) Φ^ᵢ) Ξ₀ Σ)]
                 [_ (ret! (V->R (-● ∅) Φ^ᵢ) Ξ₀ Σ)])))
@@ -150,7 +150,7 @@
                   (match-define (αℓ αᵢ ℓᵢ) (list-ref αℓs i))
                   (define Vₛ* (Σᵥ@ Σ α))
                   (define Ξ*
-                    (let ([F:Set (F:Ap (list Vₛ* {set Mut}) '() ⊥Ρ (ℓ-with-id ℓ 'unwrap))]
+                    (let ([F:Set (F:Ap (list Vₛ* {set Mut}) '() (ℓ-with-id ℓ 'unwrap))]
                           [F:Mon (F:Mon:C (Ctx-with-ℓ (Ctx-flip ctx) ℓᵢ) (Σᵥ@ Σ αᵢ))])
                       (K+ F:Mon (K+ F:Set Ξ₀))))
                   (ret! (V->R Vᵥ Φ^ᵢ) Ξ* Σ)]
@@ -178,7 +178,7 @@
   (: app-Not/C : α → ⟦F⟧^)
   (define ((app-Not/C α) Wₓ ℓ Φ^ Ξ Σ)
     (define Vₕ (Σᵥ@ Σ α))
-    (app Vₕ Wₓ ℓ Φ^ (K+ (F:Ap (list {set 'not}) '() ⊥Ρ ℓ) Ξ) Σ))
+    (app Vₕ Wₓ ℓ Φ^ (K+ (F:Ap (list {set 'not}) '() ℓ) Ξ) Σ))
 
   (: app-St/C : -𝒾 (Listof α) → ⟦F⟧^)
   (define ((app-St/C 𝒾 αs) Wₓ ℓ Φ^ Ξ Σ)

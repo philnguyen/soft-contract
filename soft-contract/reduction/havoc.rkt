@@ -14,13 +14,23 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit havoc@
-  (import val^ alloc^)
+  (import)
   (export havoc^)
+
+  (: havoc : HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))
+  (define (havoc tag Φ^ Ξ Σ) ???)
+  
+  (: gen-havoc-expr : ((Listof -module) → -e))
+  (define (gen-havoc-expr ms) ???)
+  
+  (: add-leak! : (HV-Tag Σ (U V^ W) → Void))
+  (define (add-leak! tag Σ V) ???)
+
+  #|
 
   (splicing-local
       (#;(define cache : (HashTable -V (Pairof -σ -δσ)) (make-hash))
@@ -162,6 +172,7 @@
          (for/fold ([V^ : V^ ∅]) ([Vᵢ (in-list V)])
            (∪ V^ (keep-behavioral Vᵢ)))]))
     (⊔ᵥ! Σ α leaks))
+  |#
   )
 
 

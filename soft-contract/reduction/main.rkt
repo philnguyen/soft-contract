@@ -14,6 +14,7 @@
          "app.rkt"
          "compile.rkt"
          "step.rkt"
+         "havoc.rkt"
          )
 
 (define-compound-unit/infer reduction@
@@ -21,4 +22,4 @@
           env^ val^ sto^ evl^
           prims^ prover^)
   (export alloc^ app^ mon^ compile^ step^)
-  (link alloc@ fc@ mon@ compile@ step@ app@))
+  (link alloc@ fc@ mon@ compile@ step@ app@ havoc@))
