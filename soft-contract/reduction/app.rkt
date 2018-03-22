@@ -41,7 +41,11 @@
       [(-st-ac 𝒾 i) (app-st-ac 𝒾 i)]
       [(-st-mut 𝒾 i) (app-st-mut 𝒾 i)]
       [(? symbol? o) (get-prim o)]
-      [(X/G ctx (? Fn/C? G) α) ???]
+      [(X/G ctx (? Fn/C? G) α)
+       (cond [(==>? G) (app-==> ctx G α)]
+             [(==>i? G) (app-==>i ctx G α)]
+             [(∀/C? G) (app-∀/C ctx G α)]
+             [else (app-Case-=> ctx G α)])]
       [(And/C #t (αℓ α₁ _) (αℓ α₂ _)) (app-And/C α₁ α₂)]
       [(Or/C  #t (αℓ α₁ _) (αℓ α₂ _)) (app-Or/C α₁ α₂)]
       [(Not/C (αℓ α _)) (app-Not/C α)]
@@ -189,6 +193,29 @@
            (mk-app ℓ (mk-V Cᵢ) (list (mk-app ℓ (mk-V ac) (list (mk-W Wₓ)))))))
        (app₁ (-st-p 𝒾) Wₓ ℓ Φ^ (K+/And (ℓ-src ℓ) ⟦chk-field⟧s ⊥Ρ Ξ) Σ)]
       [_ {set (ret! (V->R -ff Φ^) Ξ Σ)}]))
+
+  (: app-==> : Ctx ==> α → ⟦F⟧^)
+  (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)
+
+  (: app-==>i : Ctx ==>i α → ⟦F⟧^)
+  (define ((app-==>i ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)
+
+  (: app-∀/C : Ctx ∀/C α → ⟦F⟧^)
+  (define ((app-∀/C ctx G α) Wₓ ℓ Φ^ Ξ Σ)
+    (define l-seal (Ctx-neg ctx))
+    (match-define (∀/C xs ⟦C⟧ Ρ₀) G)
+    (define H (Ξ:co-ctx Ξ))
+    (define Ρ*
+      (for/fold ([Ρ : Ρ Ρ₀]) ([x (in-list xs)])
+        (define αₛ (mk-α (-α:imm (Seal/C x H l-seal))))
+        (define αᵥ (mk-α (-α:sealed x H)))
+        (Ρ+ Ρ x αₛ)))
+    (define Vₕ^ (Σᵥ@ Σ α))
+    ???)
+
+  (: app-Case-=> : Ctx Case-=> α → ⟦F⟧^)
+  (define ((app-Case-=> ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)
+
 
   #| 
 
