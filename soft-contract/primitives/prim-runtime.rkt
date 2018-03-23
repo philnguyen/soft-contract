@@ -42,9 +42,8 @@
            (define ok (ret! (implement-predicate Σ Φ^ o W) Ξ Σ))
            ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
            (define ?er
-             (match (for/or : (Option V^) ([V (in-list W)] #:when (sequence-ormap Sealed? V))
-                      V)
-               [(? set? V) {set (Blm/simp ℓ o '(any/c) (list V))}]
+             (match ((inst findf V^) (λ (V^) (sequence-ormap Sealed? V^)) W)
+               [(? set? V^) {set (Blm/simp ℓ o '(any/c) (list V^))}]
                [#f ∅]))
            {set-add ?er ok}]
           [else {set (Blm/simp ℓ o (list (-b n) 'values) W)}]))))

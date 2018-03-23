@@ -75,11 +75,7 @@
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
   (define ((app-case-clo clos) Wₓ ℓ Φ^ Ξ Σ)
     (define n (length Wₓ))
-    (define ?case
-      (for/or : (Option Clo) ([clo (in-list clos)]
-                              #:when (arity-includes? (V-arity clo) n))
-        clo))
-    (match ?case
+    (match ((inst findf Clo) (λ (clo) (arity-includes? (V-arity clo) n)) clos)
       [(Clo x ⟦E⟧ Ρ) ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)]
       [#f
        (define msg (string->symbol (format "arity ~v" (V-arity (Case-Clo clos)))))
