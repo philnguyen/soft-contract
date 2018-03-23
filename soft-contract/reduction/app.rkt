@@ -210,11 +210,19 @@
         (define αₛ (mk-α (-α:imm (Seal/C x H l-seal))))
         (define αᵥ (mk-α (-α:sealed x H)))
         (Ρ+ Ρ x αₛ)))
-    (define Vₕ^ (Σᵥ@ Σ α))
-    ???)
+    (define Ξ* (let ([F:Mon (F:Mon:V ctx (Σᵥ@ Σ α))]
+                     [F:Ap (F:Ap '() Wₓ ℓ)])
+                 (K+ F:Mon (K+ F:Ap Ξ))))
+    {set (⟦C⟧ Ρ* Φ^ Ξ* Σ)})
 
   (: app-Case-=> : Ctx Case-=> α → ⟦F⟧^)
-  (define ((app-Case-=> ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)
+  (define ((app-Case-=> ctx G α) Wₓ ℓ Φ^ Ξ Σ)
+    (define n (length Wₓ))
+    (match ((inst findf ==>) (λ (C) (arity-includes? (guard-arity C) n))
+                             (Case-=>-_0 G))
+      [(? values C) ((app-==> ctx C α) Wₓ ℓ Φ^ Ξ Σ)]
+      [#f (let ([msg (string->symbol (format "arity ~v" (guard-arity G)))])
+            {set (Blm ℓ 'Λ (list msg) Wₓ)})]))
 
 
   #| 
@@ -254,33 +262,6 @@
          [(cons ⟦mon-x⟧₀ ⟦mon-x⟧s*)
           (define ⟦k⟧* (ap∷ fn `(,@⟦mon-x⟧s* ,⟦mon-x⟧ᵣ) ⊥ρ ℓₐ* ⟦k⟧/mon-rng))
           (⟦mon-x⟧₀ ⊥ρ H φ Σ ⟦k⟧*)])]))
-
-  (: app-guarded-Case : -Case-> -V^ -ctx → -⟦f⟧)
-  (define ((app-guarded-Case C Vᵤ^ ctx) ℓ Vₓs H φ Σ ⟦k⟧)
-    (define n (length Vₓs))
-    (define ?Cᵢ
-      (for/or : (Option -=>) ([Cᵢ (in-list (-Case->-_0 C))]
-                              #:when (arity-includes? (guard-arity Cᵢ) n))
-        Cᵢ))
-    (cond
-      [?Cᵢ ((app-Ar ?Cᵢ Vᵤ^ ctx) ℓ Vₓs H φ Σ ⟦k⟧)]
-      [else
-       (define msg (string->symbol (format "arity ~v" (guard-arity C))))
-       (define blm (blm/simp (ℓ-src ℓ) 'Λ (list msg) Vₓs ℓ))
-       (⟦k⟧ blm H φ Σ)])) 
-
-  (: app-∀/C : -∀/C -V^ -ctx → -⟦f⟧)
-  (define ((app-∀/C C Vᵤ^ ctx) ℓₐ Vₓs H φ Σ ⟦k⟧)
-    (define l-seal (-ctx-neg ctx))
-    (match-define (-∀/C xs ⟦c⟧ ρ) C)
-    (define-values (ρ* φ*)
-      (for/fold ([ρ : -ρ ρ] [φ : -φ φ]) ([x (in-list xs)])
-        (define αₛ (-α->⟪α⟫ (-α.imm (-Seal/C x H l-seal))))
-        (define αᵥ (-α->⟪α⟫ (-α.sealed x H)))
-        (values (ρ+ ρ x αₛ) (alloc Σ φ αᵥ ∅))))
-    (define ⟦arg⟧s : (Listof -⟦e⟧) (for/list ([Vₓ (in-list Vₓs)]) (mk-A (list Vₓ))))
-    (define ⟦k⟧* (mon.v∷ ctx Vᵤ^ (ap∷ '() ⟦arg⟧s ⊥ρ ℓₐ ⟦k⟧)))
-    (⟦c⟧ ρ* H φ* Σ ⟦k⟧*))
 
   (: apply-app-Ar : (-=> -V^ -ctx → ℓ (Listof -V^) -V -H -φ -Σ -⟦k⟧ → (℘ -ς)))
   (define ((apply-app-Ar C Vᵤ^ ctx) ℓ₀ Vᵢs Vᵣ H φ Σ ⟦k⟧)

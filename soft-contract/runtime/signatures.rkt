@@ -79,7 +79,7 @@
 (#|Func. contract|# Fn/C . ::= . (==> [doms : (-maybe-var αℓ)] [rng : (Option (Listof αℓ))])
                                  (==>i [doms : (Listof Dom)] [mk-rng : Dom])
                                  (∀/C (Listof Symbol) ⟦E⟧ Ρ)
-                                 (Case-=> (Listof Fn/C)))
+                                 (Case-=> (Listof ==>)))
 
 (#|Strict -> |# struct ==>/⇓  ==> () #:transparent)
 (#|Strict ->i|# struct ==>i/⇓ ==> () #:transparent)
