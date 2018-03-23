@@ -155,18 +155,17 @@
              [(EΡ ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) Ξ) Σ)}]
              [(? set?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon*:C Ctx rngs)
-       (case rngs
-         [(any) {set (ret! R^₀ Ξ Σ)}]
-         [else
-          (with-guarded-arity/collapse R^₀ (length rngs) (Ctx-loc Ctx)
-            (λ (W Φ^)
-              (define-values (βs ℓs) (unzip-by αℓ-_0 αℓ-_1 rngs))
-              (match* ((Σᵥ@* Σ βs) W ℓs)
-                [((cons C₁ Cs) (cons V₁ Vs) (cons ℓ₁ ℓs))
-                 (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs '()) Ξ))
-                 (mon C₁ V₁ (Ctx-with-ℓ Ctx ℓ₁) Φ^ Ξ* Σ)]
-                [('() '() '())
-                 {set (ret! (R '() Φ^) Ξ Σ)}])))])]
+       (if rngs
+           (with-guarded-arity/collapse R^₀ (length rngs) (Ctx-loc Ctx)
+             (λ (W Φ^)
+               (define-values (βs ℓs) (unzip-by αℓ-_0 αℓ-_1 rngs))
+               (match* ((Σᵥ@* Σ βs) W ℓs)
+                 [((cons C₁ Cs) (cons V₁ Vs) (cons ℓ₁ ℓs))
+                  (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs '()) Ξ))
+                  (mon C₁ V₁ (Ctx-with-ℓ Ctx ℓ₁) Φ^ Ξ* Σ)]
+                 [('() '() '())
+                  {set (ret! (R '() Φ^) Ξ Σ)}])))
+           {set (ret! R^₀ Ξ Σ)})]
       [(F:Mon* Ctx Cs Vs ℓs Res-rev)
        (define-values (W^ Φ^) (collapse-R^ R^₀))
        (match-define (list V^) (collapse-value-lists W^ 1))

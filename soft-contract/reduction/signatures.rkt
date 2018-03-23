@@ -22,7 +22,7 @@
   [F:Bgn0:E W^ (Listof ⟦E⟧) Ρ]
   [F:Mon:C Ctx (U EΡ V^)]
   [F:Mon:V Ctx (U EΡ V^)]
-  [F:Mon*:C Ctx (U (Listof αℓ) 'any)]
+  [F:Mon*:C Ctx (Option (Listof αℓ))]
   [F:Mon* Ctx W W (Listof ℓ) W]
   [F:Μ/C Symbol]
   [F:==>:Dom W (Listof ⟦E⟧) (Option ⟦E⟧) ⟦E⟧ Ρ ℓ]

@@ -173,8 +173,7 @@
 
   (: app-Not/C : α → ⟦F⟧^)
   (define ((app-Not/C α) Wₓ ℓ Φ^ Ξ Σ)
-    (define Vₕ (Σᵥ@ Σ α))
-    (app Vₕ Wₓ ℓ Φ^ (K+ (F:Ap (list {set 'not}) '() ℓ) Ξ) Σ))
+    (app (Σᵥ@ Σ α) Wₓ ℓ Φ^ (K+ (F:Ap (list {set 'not}) '() ℓ) Ξ) Σ))
 
   (: app-St/C : -𝒾 (Listof α) → ⟦F⟧^)
   (define ((app-St/C 𝒾 αs) Wₓ ℓ Φ^ Ξ Σ)
@@ -191,7 +190,27 @@
       [_ {set (ret! (V->R -ff Φ^) Ξ Σ)}]))
 
   (: app-==> : Ctx ==> α → ⟦F⟧^)
-  (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)
+  (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ₀ Σ)
+    (define ctx* (Ctx-flip ctx))
+    (match-define (==> Doms Rng) G)
+    (define Ξ₁ (K+ (F:Mon*:C (Ctx-with-ℓ ctx ℓ) Rng) Ξ₀))
+    (define ℓ* (ℓ-with-src ℓ (Ctx-src ctx)))
+    (define Vₕ^ (Σᵥ@ Σ α))
+    (match Doms
+      ['() (app Vₕ^ '() ℓ* Φ^ Ξ₁ Σ)]
+      [(? pair?)
+       (define-values (αs ℓs) (unzip-by αℓ-_0 αℓ-_1 Doms))
+       (match-define (cons (EΡ ⟦X⟧ _) ⟦X⟧s)
+         (for/list : (Listof EΡ) ([C^ (in-list (Σᵥ@* Σ αs))]
+                                  [Vₓ^ (in-list Wₓ)]
+                                  [ℓₓ (in-list ℓs)])
+           (EΡ (mk-mon (Ctx-with-ℓ ctx* ℓₓ) (mk-V C^) (mk-V Vₓ^)) ⊥Ρ)))
+       {set (⟦X⟧ ⊥Ρ Φ^ (K+ (F:Ap (list Vₕ^) ⟦X⟧s ℓ*) Ξ₁) Σ)}]
+      [(-var Doms₀ Rst)
+       (define-values (αs₀ ℓs₀) (unzip-by αℓ-_0 αℓ-_1 Doms₀))
+       (match-define (αℓ αᵣ ℓᵣ) Rst)
+       (define-values (Wᵢ Wᵣ) (split-at Wₓ (length Doms₀)))
+       ???]))
 
   (: app-==>i : Ctx ==>i α → ⟦F⟧^)
   (define ((app-==>i ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)
