@@ -28,10 +28,27 @@
 
   (: app : V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))
   (define (app Vₕ^ Wₓ ℓ Φ^ Ξ₀ Σ)
-    (for/union : (℘ Ξ) ([Vₕ (in-set Vₕ^)])
-      ((app₁ Vₕ) Wₓ ℓ Φ^ Ξ₀ Σ)))
+    (define with (inst with-2-paths Ξ))
+    (with (λ () (split-results Σ (R (list Vₕ^) Φ^) 'procedure? #:fast? #t))
+      (λ (R^)
+        (define n {set (-b (length Wₓ))})
+        (for/union : (℘ Ξ) ([Rᵢ (in-set R^)])
+          (match-define (R (list Vₕ) Φ^) Rᵢ)
+          (with (λ () (split-results Σ (R (list Vₕ n) Φ^) 'arity-includes? #:fast? #t))
+            (λ (Rs)
+              (for/union : (℘ Ξ) ([Rᵢ (in-set Rs)]
+                                  [Φ^ (in-value (R-_1 Rᵢ))]
+                                  [Vₕ (in-set (car (R-_0 Rᵢ)))])
+                ((app₁ Vₕ) Wₓ ℓ Φ^ Ξ₀ Σ)))
+            (λ (Rs)
+              (for/set : (℘ Blm) ([Rᵢ (in-set Rs)])
+                (Blm ℓ 'Λ (list 'arity-includes (set-first n)) (R-_0 Rᵢ)))))))
+      (λ (R^)
+        (for/set : (℘ Blm) ([Rᵢ (in-set R^)])
+          (Blm ℓ 'Λ '(procedure?) (R-_0 Rᵢ))))))
 
   (: app₁ : V → ⟦F⟧^)
+  ;; Apply single function, assuming function-ness and arity has been checked
   (define app₁
     (match-lambda
       [(Clo xs ⟦E⟧ Ρ) (app-clo xs ⟦E⟧ Ρ)]
@@ -50,9 +67,8 @@
       [(Or/C  #t (αℓ α₁ _) (αℓ α₂ _)) (app-Or/C α₁ α₂)]
       [(Not/C (αℓ α _)) (app-Not/C α)]
       [(St/C #t 𝒾 αℓs) (app-St/C 𝒾 (map αℓ-_0 αℓs))]
-      [(-● ps) ???]
-      [(? S? S) ???]
-      [Vₕ (λ (W ℓ Φ^ Ξ Σ) {set (Blm ℓ 'Λ '(procedure?) (list {set Vₕ}))})]))
+      [(-● ps) (app-opq ps)]
+      [(? S? S) (app-sym S)]))
 
   (: app/rest/unsafe : V W V ℓ Φ^ Ξ:co Σ → (℘ Ξ))
   (define (app/rest/unsafe Vₕ Wₓ Vᵣ ℓ Φ^ Ξ Σ)
@@ -80,91 +96,82 @@
   (: app-st-mk : -𝒾 → ⟦F⟧^)
   (define ((app-st-mk 𝒾) Wₓ ℓ Φ^ Ξ Σ)
     (define n (count-struct-fields 𝒾))
-    (with-guarded-arity/W Wₓ n ℓ
-      (λ (Wₓ)
-        (define H (Ξ:co-ctx Ξ))
-        (define αs (build-list n (λ ([i : Index]) (mk-α (-α:fld 𝒾 ℓ H i)))))
-        (⊔ᵥ*! Σ αs Wₓ)
-        {set (ret! (V->R (St 𝒾 αs) Φ^) Ξ Σ)})))
+    (define H (Ξ:co-ctx Ξ))
+    (define αs (build-list n (λ ([i : Index]) (mk-α (-α:fld 𝒾 ℓ H i)))))
+    (⊔ᵥ*! Σ αs Wₓ)
+    {set (ret! (V->R (St 𝒾 αs) Φ^) Ξ Σ)})
 
   (: app-st-p : -𝒾 → ⟦F⟧^)
   (define ((app-st-p 𝒾) Wₓ ℓ Φ^ Ξ Σ)
-    (with-guarded-arity/W Wₓ 1 ℓ
-      (λ (Wₓ) {set (ret! (implement-predicate Σ Φ^ (-st-p 𝒾) Wₓ) Ξ Σ)})))
+    {set (ret! (implement-predicate Σ Φ^ (-st-p 𝒾) Wₓ) Ξ Σ)})
 
   (: app-st-ac : -𝒾 Index → ⟦F⟧^)
   (define ((app-st-ac 𝒾 i) Wₓ ℓ Φ^ Ξ₀ Σ)
-    (with-guarded-arity/W Wₓ 1 ℓ
-      (λ (Wₓ)
-        (define P (-st-p 𝒾))
-        (define Ac (-st-ac 𝒾 i))
-        (with-2-paths (λ () (split-results Σ (R Wₓ Φ^) P))
-          (λ ([R^ : R^])
-            (for*/set : (℘ Ξ) ([Rᵢ (in-set R^)]
-                               [Φ^ᵢ (in-value (R-_1 Rᵢ))]
-                               [V^ᵢ (in-list (R-_0 Rᵢ))]
-                               [Vᵢ (in-set V^ᵢ)])
-              (match Vᵢ
-                [(St 𝒾* αs) (ret! (V->R (Σᵥ@ Σ (list-ref αs i)) Φ^ᵢ) Ξ₀ Σ)]
-                [(X/G ctx (St/C _ 𝒾* αℓs) α)
-                 (define V^* (Σᵥ@ Σ α))
-                 (define Ξ* ; mutable field should be wrapped
-                   (if (struct-mutable? 𝒾 i)
-                       (match-let ([(αℓ αᵢ ℓᵢ) (list-ref αℓs i)])
-                         (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
-                       Ξ₀))
-                 (define F:Ac (F:Ap (list {set Ac}) '() (ℓ-with-id ℓ 'unwrap)))
-                 (ret! (V->R V^* Φ^ᵢ) (K+ F:Ac Ξ*) Σ)]
-                [(? S? S) (ret! (V->R (S:@ Ac (list S)) Φ^ᵢ) Ξ₀ Σ)]
-                [_ (ret! (V->R (-● ∅) Φ^ᵢ) Ξ₀ Σ)])))
-          (λ ([R^ : R^])
-            (define-values (V^ _) (collapse-R^-1 R^))
-            {set (Blm ℓ (-𝒾-name 𝒾) (list P) (list V^))})))))
+    (define P (-st-p 𝒾))
+    (define Ac (-st-ac 𝒾 i))
+    (with-2-paths (λ () (split-results Σ (R Wₓ Φ^) P))
+      (λ ([R^ : R^])
+        (for*/set : (℘ Ξ) ([Rᵢ (in-set R^)]
+                           [Φ^ᵢ (in-value (R-_1 Rᵢ))]
+                           [V^ᵢ (in-list (R-_0 Rᵢ))]
+                           [Vᵢ (in-set V^ᵢ)])
+          (match Vᵢ
+            [(St 𝒾* αs) (ret! (V->R (Σᵥ@ Σ (list-ref αs i)) Φ^ᵢ) Ξ₀ Σ)]
+            [(X/G ctx (St/C _ 𝒾* αℓs) α)
+             (define V^* (Σᵥ@ Σ α))
+             (define Ξ* ; mutable field should be wrapped
+               (if (struct-mutable? 𝒾 i)
+                   (match-let ([(αℓ αᵢ ℓᵢ) (list-ref αℓs i)])
+                     (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
+                   Ξ₀))
+             (define F:Ac (F:Ap (list {set Ac}) '() (ℓ-with-id ℓ 'unwrap)))
+             (ret! (V->R V^* Φ^ᵢ) (K+ F:Ac Ξ*) Σ)]
+            [(? S? S) (ret! (V->R (S:@ Ac (list S)) Φ^ᵢ) Ξ₀ Σ)]
+            [_ (ret! (V->R (-● ∅) Φ^ᵢ) Ξ₀ Σ)])))
+      (λ ([R^ : R^])
+        (define-values (V^ _) (collapse-R^-1 R^))
+        {set (Blm ℓ (-𝒾-name 𝒾) (list P) (list V^))})))
 
   (: app-st-mut : -𝒾 Index → ⟦F⟧^)
   (define ((app-st-mut 𝒾 i) Wₓ ℓ Φ^ Ξ₀ Σ)
-    (with-guarded-arity/W Wₓ 2 ℓ
-      (match-lambda
-        [(list Vₛ Vᵥ)
-         (define P (-st-p 𝒾))
-         (define Mut (-st-mut 𝒾 i))
-         (with-2-paths (λ () (split-results Σ (R (list Vₛ) Φ^) P))
-           (λ ([R^ : R^])
-             (for*/set : (℘ Ξ) ([Rᵢ (in-set R^)]
-                                [Φ^ᵢ (in-value (R-_1 Rᵢ))]
-                                [V^ᵢ (in-list (R-_0 Rᵢ))]
-                                [Vᵢ (in-set V^ᵢ)])
-               (match Vᵢ
-                 [(St 𝒾* αs)
-                  (⊔ᵥ! Σ (list-ref αs i) Vᵥ)
-                  (ret! (V->R -void Φ^ᵢ) Ξ₀ Σ)]
-                 [(X/G ctx (St/C _ 𝒾* αℓs) α)
-                  (match-define (αℓ αᵢ ℓᵢ) (list-ref αℓs i))
-                  (define Vₛ* (Σᵥ@ Σ α))
-                  (define Ξ*
-                    (let ([F:Set (F:Ap (list Vₛ* {set Mut}) '() (ℓ-with-id ℓ 'unwrap))]
-                          [F:Mon (F:Mon:C (Ctx-with-ℓ (Ctx-flip ctx) ℓᵢ) (Σᵥ@ Σ αᵢ))])
-                      (K+ F:Mon (K+ F:Set Ξ₀))))
-                  (ret! (V->R Vᵥ Φ^ᵢ) Ξ* Σ)]
-                 [_
-                  (add-leak! '† Σ Vᵥ)
-                  (ret! (V->R -void Φ^ᵢ) Ξ₀ Σ)])))
-           (λ ([R^ : R^])
-             (define-values (V^ _) (collapse-R^-1 R^))
-             {set (Blm ℓ (-𝒾-name 𝒾) (list P) (list V^))}))])))
+    (match-define (list Vₛ Vᵥ) Wₓ)
+    (define P (-st-p 𝒾))
+    (define Mut (-st-mut 𝒾 i))
+    (with-2-paths (λ () (split-results Σ (R (list Vₛ) Φ^) P))
+      (λ ([R^ : R^])
+        (for*/set : (℘ Ξ) ([Rᵢ (in-set R^)]
+                           [Φ^ᵢ (in-value (R-_1 Rᵢ))]
+                           [V^ᵢ (in-list (R-_0 Rᵢ))]
+                           [Vᵢ (in-set V^ᵢ)])
+          (match Vᵢ
+            [(St 𝒾* αs)
+             (⊔ᵥ! Σ (list-ref αs i) Vᵥ)
+             (ret! (V->R -void Φ^ᵢ) Ξ₀ Σ)]
+            [(X/G ctx (St/C _ 𝒾* αℓs) α)
+             (match-define (αℓ αᵢ ℓᵢ) (list-ref αℓs i))
+             (define Vₛ* (Σᵥ@ Σ α))
+             (define Ξ*
+               (let ([F:Set (F:Ap (list Vₛ* {set Mut}) '() (ℓ-with-id ℓ 'unwrap))]
+                     [F:Mon (F:Mon:C (Ctx-with-ℓ (Ctx-flip ctx) ℓᵢ) (Σᵥ@ Σ αᵢ))])
+                 (K+ F:Mon (K+ F:Set Ξ₀))))
+             (ret! (V->R Vᵥ Φ^ᵢ) Ξ* Σ)]
+            [_
+             (add-leak! '† Σ Vᵥ)
+             (ret! (V->R -void Φ^ᵢ) Ξ₀ Σ)])))
+      (λ ([R^ : R^])
+        (define-values (V^ _) (collapse-R^-1 R^))
+        {set (Blm ℓ (-𝒾-name 𝒾) (list P) (list V^))})))
 
   (:* app-And/C app-Or/C : α α → ⟦F⟧^)
   (define-values (app-And/C app-Or/C)
     (let ()
       (: app-Comb/C : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co) → α α → ⟦F⟧^)
       (define (((app-Comb/C K+) α₁ α₂) Wₓ ℓ Φ^ Ξ Σ)
-        (with-guarded-arity/W Wₓ 1 ℓ
-          (match-lambda
-            [(list Vₓ)
-             (define V₁ (Σᵥ@ Σ α₁))
-             (define V₂ (Σᵥ@ Σ α₂))
-             (define ⟦rhs⟧ (mk-app ℓ (mk-V V₂) (list (mk-V Vₓ))))
-             (app V₁ Wₓ ℓ Φ^ (K+ (ℓ-src ℓ) (list ⟦rhs⟧) ⊥Ρ Ξ) Σ)])))
+        (match-define (list Vₓ) Wₓ)
+        (define V₁ (Σᵥ@ Σ α₁))
+        (define V₂ (Σᵥ@ Σ α₂))
+        (define ⟦rhs⟧ (mk-app ℓ (mk-V V₂) (list (mk-V Vₓ))))
+        (app V₁ Wₓ ℓ Φ^ (K+ (ℓ-src ℓ) (list ⟦rhs⟧) ⊥Ρ Ξ) Σ))
       (values (app-Comb/C K+/And) (app-Comb/C K+/Or))))
 
   (: app-Not/C : α → ⟦F⟧^)
@@ -267,6 +274,15 @@
       [(? values C) ((app-==> ctx C α) Wₓ ℓ Φ^ Ξ Σ)]
       [#f (let ([msg (string->symbol (format "arity ~v" (guard-arity G)))])
             {set (Blm ℓ 'Λ (list msg) Wₓ)})]))
+
+  (: app-opq : (℘ P) → ⟦F⟧^)
+  (define ((app-opq Ps) Wₓ ℓ Φ^ Ξ Σ)
+    (add-leak! '† Σ Wₓ)
+    ???)
+
+  (: app-sym : S → ⟦F⟧^)
+  (define ((app-sym S) Wₓ ℓ Φ^ Ξ Σ)
+    ???)
 
 
   #| 
