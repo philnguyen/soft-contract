@@ -25,23 +25,17 @@
 (define-type -begin/e (-begin -e))
 (define-type -begin/top (-begin -top-level-form))
 
-(struct (X) -var ([init : (Listof X)] [rest : X]) #:transparent)
-(define-type (-maybe-var X) (U (Listof X) (-var X)))
+(struct (X) -var ([init : (Listof X)] [rest : (Option X)]) #:transparent)
 
-(: -var-map (∀ (X Y)
-               (case->
-                [(X → Y) (Listof X) → (Listof Y)]
-                [(X → Y) (-var X) → (-var Y)]
-                [(X → Y) (-maybe-var X) → (-maybe-var Y)])))
-(define (-var-map f xs)
-  (match xs
-    [(? list? xs) (map f xs)]
-    [(-var xs x) (-var (map f xs) (f x))]))
+(: -var-map (∀ (X Y) (X → Y) (-var X) → (-var Y)))
+(define (-var-map f v)
+  (match-define (-var xs x) v)
+  (-var (map f xs) (and x (f x))))
 
-(: shape (∀ (X) (-maybe-var X) → (U Index arity-at-least)))
+(: shape (∀ (X) (-var X) → (U Index arity-at-least)))
 (define shape
-  (match-lambda [(? list? l) (length l)]
-                [(-var xs _) (arity-at-least (length xs))]))
+  (match-lambda
+    [(-var (app length n) x) (if x (arity-at-least n) n)]))
 
 (: +x! : (U Symbol Integer) * → Symbol)
 (define (+x! . prefixes)
@@ -59,8 +53,7 @@
 (struct -𝒾 ([name : Symbol] [src : -l]) #:transparent)
 
 ;; Formal parameters
-(define-type -formals (-maybe-var Symbol))
-(define-predicate -formals? -formals)
+(-formals . ::= . [#:reuse (-var Symbol)])
 
 (Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Byte-Regexp Byte-PRegexp Char Null Void Arity EOF Undefined Path)
 
@@ -112,7 +105,7 @@
             
             ;; contract stuff
             (-μ/c Symbol -e)
-            (--> [doms : (-maybe-var -e)] [rng : -e] [loc : ℓ])
+            (--> [doms : (-var -e)] [rng : -e] [loc : ℓ])
             (-->i [doms : (Listof -dom)] [rng : -dom])
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)

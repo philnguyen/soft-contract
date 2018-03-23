@@ -76,7 +76,7 @@
                         (Set/C [elems : αℓ])
                         (Seal/C Symbol H -l))
 
-(#|Func. contract|# Fn/C . ::= . (==> [doms : (-maybe-var αℓ)] [rng : (Option (Listof αℓ))])
+(#|Func. contract|# Fn/C . ::= . (==> [doms : (-var αℓ)] [rng : (Option (Listof αℓ))])
                                  (==>i [doms : (Listof Dom)] [mk-rng : Dom])
                                  (∀/C (Listof Symbol) ⟦E⟧ Ρ)
                                  (Case-=> (Listof ==>)))

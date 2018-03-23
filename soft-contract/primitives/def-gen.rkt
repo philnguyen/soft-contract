@@ -305,7 +305,7 @@
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))
-       #`(==> (list #,@Cs) #,D)]
+       #`(==> (-var (list #,@Cs) #f) #,D)]
       [((~literal ->*) (c ...) #:rest r d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define R (gen-ctc #'r))
@@ -396,7 +396,7 @@
            [(~literal <=/c) '<=]
            [(~literal >=/c) '>=]
            [(~literal =/c) '=/c]))
-       #'(-λ '(x) (-@ 'o (list (-x 'x ℓ)) ℓ))]
+       #'(-λ (-var '(x) #f) (-@ 'o (list (-x 'x ℓ)) ℓ))]
       [((~and o (~or (~literal or/c)
                      (~literal and/c)
                      (~literal cons/c)
@@ -412,7 +412,7 @@
       [((~literal ->) c ... d)
        (define/with-syntax (dom ...) (map ctc->ast (syntax->list #'(c ...))))
        (define/with-syntax rng (ctc->ast #'d))
-       #'(--> (list dom ...) rng ℓ)]
+       #'(--> (-var (list dom ...) #f) rng ℓ)]
       [((~literal ->*) (c ...) #:rest r d)
        (define/with-syntax (dom ...) (map ctc->ast (syntax->list #'(c ...))))
        (define/with-syntax rst (ctc->ast #'r))

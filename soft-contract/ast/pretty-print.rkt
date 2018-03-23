@@ -58,13 +58,13 @@
   (define (show-e [e : -e]) : Sexp
     (match e
       ; syntactic sugar
-      [(-λ (list x) (-@ 'not (list (-@ f (list (-x x _)) _)) _)) `(not/c ,(show-e f))]
-      [(-λ (list x) (-@ '= (list (-x x _) e*) _)) `(=/c ,(show-e e*))]
-      [(-λ (list x) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x _) e*) _)) `(≡/c ,(show-e e*))]
-      [(-λ (list x) (-@ '> (list (-x x _) e*) _)) `(>/c ,(show-e e*))]
-      [(-λ (list x) (-@ '< (list (-x x _) e*) _)) `(</c ,(show-e e*))]
-      [(-λ (list x) (-@ '>= (list (-x x _) e*) _)) `(≥/c ,(show-e e*))]
-      [(-λ (list x) (-@ '<= (list (-x x _) e*) _)) `(≤/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ 'not (list (-@ f (list (-x x _)) _)) _)) `(not/c ,(show-e f))]
+      [(-λ (-var (list x) #f) (-@ '= (list (-x x _) e*) _)) `(=/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x _) e*) _)) `(≡/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '> (list (-x x _) e*) _)) `(>/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '< (list (-x x _) e*) _)) `(</c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '>= (list (-x x _) e*) _)) `(≥/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '<= (list (-x x _) e*) _)) `(≤/c ,(show-e e*))]
       
       [(-if a b (-b #f))
        (match* ((show-e a) (show-e b))
@@ -113,14 +113,11 @@
       #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
       [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
       [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
-      [(--> dom rng _)
-       (match dom
-         [(-var es e)
-          (define -> (if (-->/⇓? e) '->*/⇓ '->*))
-          `(,(map show-e es) #:rest ,(show-e e) . ,-> . ,(show-e rng))]
-         [(? list? es)
-          (define -> (if (-->/⇓? e) '->/⇓ '->))
-          `(,@(map show-e es) . ,-> . ,(show-e rng))])]
+      [(--> (-var es eᵣ) rng _)
+       (cond [eᵣ   (define -> (if (-->/⇓? e) '->*/⇓ '->*))
+                   `(,(map show-e es) #:rest ,(show-e eᵣ) . ,-> . ,(show-e rng))]
+             [else (define -> (if (-->/⇓? e) '->/⇓ '->))
+                   `(,@(map show-e es) . ,-> . ,(show-e rng))])]
       [(-->i cs d)
        (define -> (if (-->i/⇓? e) '->i/⇓ '->i))
        `(,-> (,@(map show-dom cs)) ,(show-dom d))]
@@ -169,8 +166,8 @@
 
   (define show-formals : (-formals → Sexp)
     (match-lambda
-      [(-var xs rst) (cons xs rst)]
-      [(? list? l) l]))
+      [(-var xs (? values x)) (cons xs x)]
+      [(-var xs _) xs]))
 
   (define show-𝒾 : (-𝒾 → Symbol)
     (match-lambda

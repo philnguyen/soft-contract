@@ -73,15 +73,10 @@
         [(X/G _ G α) (or (Fn/C? G) (check-α α))]
         [(Vect αs) (ormap check-α αs)]
         [(Vect^ α _) (check-α α)]
-        [(==> doms rngs)
-         (match doms
-           [(? list? doms)
-            (or (ormap check-αℓ doms)
-                (and (pair? rngs) (ormap check-αℓ rngs)))]
-           [(-var doms dom)
-            (or (check-αℓ dom)
-                (ormap check-αℓ doms)
-                (and (pair? rngs) (ormap check-αℓ rngs)))])]
+        [(==> (-var doms domᵣ) rngs)
+         (or (and (pair? rngs) (ormap check-αℓ rngs))
+             (and domᵣ (check-αℓ domᵣ))
+             (ormap check-αℓ doms))]
         [(? ==>i?) #t]
         [(Case-=> cases) (ormap check cases)]
         [(or (? Clo?) (? Case-Clo?)) #t]

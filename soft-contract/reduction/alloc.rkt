@@ -33,10 +33,12 @@
       [_ #f]))
 
   (: bind-args! : Ρ -formals W Φ^ H Σ → Ρ)
-  (define (bind-args! Ρ₀ xs W Φ^ H Σ)
-    (match xs
-      [(? list? xs) (bind-inits! Ρ₀ xs W Φ^ H Σ)]
-      [(-var xs z) ???]))
+  (define (bind-args! Ρ₀ fmls W Φ^ H Σ)
+    (match-define (-var xs x) fmls)
+    (define Ρ* (bind-inits! Ρ₀ xs W Φ^ H Σ))
+    (when x
+      ???)
+    Ρ*)
 
   (: bind-inits! : Ρ (Listof Symbol) W Φ^ H Σ → Ρ)
   (define (bind-inits! Ρ₀ xs W Φ^ H Σ)

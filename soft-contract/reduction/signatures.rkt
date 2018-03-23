@@ -129,7 +129,7 @@
    [mk-V : ((U V V^) → ⟦E⟧)]
    [mk-W : (W → ⟦E⟧)]
    [mk-Blm : (Blm → ⟦E⟧)]
-   [mk--> : (ℓ (-maybe-var ⟦E⟧) ⟦E⟧ → ⟦E⟧)]
+   [mk--> : (ℓ (-var ⟦E⟧) ⟦E⟧ → ⟦E⟧)]
    [mk-->i : ((Listof ⟦dom⟧) ⟦dom⟧ → ⟦E⟧)]
    [mk-app : (ℓ ⟦E⟧ (Listof ⟦E⟧) → ⟦E⟧)]
    [mk-mon : (Ctx ⟦E⟧ ⟦E⟧ → ⟦E⟧)]

@@ -22,12 +22,7 @@
     (match e
       [(-x x _) (if (symbol? x) {seteq x} ∅eq)]
       [(-x/c x) {seteq x}]
-      [(-λ xs e)
-       (define bound
-         (match xs
-           [(-var zs z) (set-add (list->seteq zs) z)]
-           [(? list? xs) (list->seteq xs)]))
-       (set-remove (fv e) bound)]
+      [(-λ xs e) (set-remove (fv e) (formals->names xs))]
       [(-@ f xs _)
        (for/fold ([FVs (fv f)]) ([x xs]) (∪ FVs (fv x)))]
       [(-begin es) (fv es)]
@@ -51,14 +46,11 @@
          [_ (fv e)])]
       [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
       [(-μ/c _ e) (fv e)]
-      [(--> cs d _)
-       (match cs
-         [(-var cs c) (∪ (fv c) (fv d) (fv cs))]
-         [(? list? cs) (∪ (fv d) (fv cs))])]
+      [(--> (-var cs c) d _) (∪ (if c (fv c) ∅eq) (fv d) (fv cs))]
       [(-->i cs d)
        (define dom-fv : (-dom → (℘ Symbol))
          (match-lambda
-           [(-dom _ ?xs d _) (fv (if ?xs (-λ ?xs d) d))]))
+           [(-dom _ ?xs d _) (set-subtract (fv d) (if ?xs (list->seteq ?xs) ∅eq))]))
        (apply ∪ (dom-fv d) (map dom-fv cs))]
       [(-struct/c _ cs _)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
@@ -74,11 +66,8 @@
       (match e
         [(-x x _) (if (equal? x z) 1 0)]
         [(-x/c x) (if (equal? x z) 1 0)]
-        [(-λ xs e)
-         (define bound?
-           (match xs
-             [(? list?)   (memq z xs)]
-             [(-var xs x) (or (equal? x z) (memq z xs))]))
+        [(-λ (-var xs x) e)
+         (define bound? (or (and x (eq? x z)) (memq z xs)))
          (if bound? 0 (go e))]
         [(-@ f xs _) (apply + (go f) (map go xs))]
         [(-begin es) (apply + (map go es))]
@@ -98,11 +87,7 @@
         [(-set! x e) (go e)]
         [(-if e e₁ e₂) (+ (go e) (go e₁) (go e₂))]
         [(-μ/c x e) (if (equal? x z) 0 (go e))]
-        [(--> cs d _)
-         (+ (go d)
-            (match cs
-              [(? list?) (apply + (map go cs))]
-              [(-var cs c) (apply + (go c) (map go cs))]))]
+        [(--> (-var cs c) d _) (+ (go d) (if c (go c) 0) (apply + (map go cs)))]
         [(-->i cs d)
          (define-values (sum _)
            (for/fold ([sum : Natural 0] [bound? : Boolean #f])
@@ -129,7 +114,7 @@
     (: go/dom : -dom → (℘ Symbol))
     (define go/dom
       (match-lambda
-        [(-dom _ ?xs d _) (if ?xs (go (-λ ?xs d)) (go d))]))
+        [(-dom _ ?xs d _) (if ?xs (go (-λ (-var ?xs #f) d)) (go d))]))
 
     (: go : -e → (℘ Symbol))
     (define (go e)
@@ -144,10 +129,7 @@
         [(-letrec-values bnds e _)
          (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
         [(-μ/c _ c) (go c)]
-        [(--> cs d _)
-         (match cs
-           [(-var cs c) (∪ (go* cs) (go c) (go d))]
-           [(? list? cs) (∪ (go* cs) (go d))])]
+        [(--> (-var cs c) d _) (∪ (go* cs) (if c (go c) ∅eq) (go d))]
         [(-->i cs d) (apply ∪ (go/dom d) (map go/dom cs))]
         [(-struct/c t cs _) (go* cs)]
         [(-x/c.tmp x) (seteq x)]
@@ -237,10 +219,8 @@
                (-set! x (go m e*))]
               [(-μ/c z c)
                (-μ/c z (go (remove-keys m {seteq z}) c))]
-              [(--> cs d ℓ)
-               (match cs
-                 [(-var cs c) (--> (-var (go-list m cs) (go m c)) (go m d) ℓ)]
-                 [(? list? cs) (--> (go-list m cs) (go m d) ℓ)])]
+              [(--> (-var cs c) d ℓ)
+               (--> (-var (go-list m cs) (and c (go m c))) (go m d) ℓ)]
               [(-->i cs d)
                (-->i (map go/dom cs) (go/dom d))]
               [(-struct/c t cs ℓ)
@@ -261,10 +241,10 @@
       (hash-remove m x)))
 
   (: formals->names : -formals → (℘ Symbol))
-  (define (formals->names xs)
-    (cond
-      [(-var? xs) (set-add (list->seteq (-var-init xs)) (-var-rest xs))]
-      [else (list->seteq xs)]))
+  (define formals->names
+    (match-lambda
+      [(-var xs (? values x)) (set-add (list->seteq xs) x)]
+      [(-var xs _) (list->seteq xs)]))
 
   (: first-forward-ref : (Listof -dom) → (Option Symbol))
   (define (first-forward-ref doms)

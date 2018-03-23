@@ -5,6 +5,7 @@
 (require racket/match
          racket/splicing
          racket/set
+         racket/bool
          typed/racket/unit
          "../utils/list.rkt"
          "signatures.rkt")
@@ -73,7 +74,7 @@
     (define x (+x! 'cmp))
     (define 𝐱 (-x x (ℓ-with-id ℓ 'cmp)))
     (match-define (list ℓ₀ ℓ₁) (ℓ-with-ids ℓ 2))
-    (-λ (list x)
+    (-λ (-var (list x) #f)
         (-and (-@ 'real? (list 𝐱) ℓ₀)
               (-@ op (list 𝐱 e) ℓ₁))))
 
@@ -155,11 +156,10 @@
       [(-set! x e) #f]
       [(-if e e₁ e₂) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
       [(-μ/c _ e) (effect-free? e)]
-      [(--> cs d _)
+      [(--> (-var cs c) d _)
        (and (effect-free? d)
-            (match cs
-              [(-var cs c) (and (effect-free? c) (andmap effect-free? cs))]
-              [(? list? cs) (andmap effect-free? cs)]))]
+            (implies c (effect-free? c))
+            (andmap effect-free? cs))]
       [(-->i cs d) (andmap (compose1 effect-free? -dom-body) (cons d cs))]
       [(-struct/c _ cs _) (andmap effect-free? cs)]
       [_ #f]))

@@ -234,19 +234,15 @@
         [(cons (⟦dom⟧ x #f ⟦C⟧ ℓ) ⟦dom⟧s)
          (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ Doms (cons x ℓ) ⟦dom⟧s) Ξ) Σ)])))
 
-  (define/memo (mk--> [ℓ : ℓ] [⟦dom⟧s : (-maybe-var ⟦E⟧)] [⟦rng⟧ : ⟦E⟧]) : ⟦E⟧
-    (match ⟦dom⟧s
-      ['()
-       (λ (Ρ Φ^ Ξ Σ) (⟦rng⟧ Ρ Φ^ (K+ (F:==>:Rng '() #f ℓ) Ξ) Σ))]
+  (define/memo (mk--> [ℓ : ℓ] [⟦dom⟧s : (-var ⟦E⟧)] [⟦rng⟧ : ⟦E⟧]) : ⟦E⟧
+    (match-define (-var ⟦C⟧s ⟦C⟧ᵣ) ⟦dom⟧s)
+    (match ⟦C⟧s
       [(cons ⟦C⟧ ⟦C⟧s)
-       (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom '() ⟦C⟧s #f ⟦rng⟧ Ρ ℓ) Ξ) Σ))]
-      [(-var ⟦C⟧s ⟦Cᵣ⟧)
-       (match ⟦C⟧s
-         ['()
-          (λ (Ρ Φ^ Ξ Σ) (⟦Cᵣ⟧ Ρ Φ^ (K+ (F:==>:Rst '() ⟦rng⟧ Ρ ℓ) Ξ) Σ))]
-         [(cons ⟦C⟧ ⟦C⟧s)
-          (λ (Ρ Φ^ Ξ Σ)
-            (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom '() ⟦C⟧s ⟦Cᵣ⟧ ⟦rng⟧ Ρ ℓ) Ξ) Σ))])]))
+       (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom '() ⟦C⟧s ⟦C⟧ᵣ ⟦rng⟧ Ρ ℓ) Ξ) Σ))]
+      ['()
+       (if ⟦C⟧ᵣ
+           (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ᵣ  Ρ Φ^ (K+ (F:==>:Rst '() ⟦rng⟧ Ρ ℓ) Ξ) Σ))
+           (λ (Ρ Φ^ Ξ Σ) (⟦rng⟧ Ρ Φ^ (K+ (F:==>:Rng '() #f ℓ) Ξ) Σ)))]))
 
   (define/memo (mk-let* [ℓ : ℓ] [⟦bnd⟧s : (Assoc Symbol ⟦E⟧)] [⟦body⟧ : ⟦E⟧]) : ⟦E⟧
     (foldr
@@ -279,6 +275,6 @@
       (match ⟦dom⟧s
         ['() (values Doms↓ '())]
         [(cons (⟦dom⟧ x (? values xs) ⟦E⟧ ℓ) ⟦dom⟧s*)
-         (go (cons (Dom x (Clo xs ⟦E⟧ Ρ) ℓ) Doms↓) ⟦dom⟧s*)]
+         (go (cons (Dom x (Clo (-var xs #f) ⟦E⟧ Ρ) ℓ) Doms↓) ⟦dom⟧s*)]
         [_ (values Doms↓ ⟦dom⟧s)])))
   )

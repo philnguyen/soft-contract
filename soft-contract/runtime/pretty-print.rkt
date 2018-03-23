@@ -86,15 +86,12 @@
       [(Vect/C γs) `(vector/c ,@(map show-α (map αℓ-_0 γs)))]
       [(Hash/C k v) `(hash/c ,(show-α (αℓ-_0 k)) ,(show-α (αℓ-_0 v)))]
       [(Set/C elems) `(set/c ,(show-α (αℓ-_0 elems)))]
-      [(==> αs βs)
-       (define show-rng (if (list? βs) (show-αℓs βs) 'any))
-       (match αs
-         [(-var αs α)
-          (define -> (if (==>/⇓? V) '->*/⇓ '->*))
-          `(,(map show-αℓ αs) #:rest ,(show-αℓ α) . ,-> . ,show-rng)]
-         [(? list? αs)
-          (define -> (if (==>/⇓? V) '->/⇓ '->))
-          `(,@(map show-αℓ αs) . ,-> . ,show-rng)])]
+      [(==> (-var αℓs αℓᵣ) βs)
+       (define show-rng (if βs (show-αℓs βs) 'any))
+       (cond [αℓᵣ  (define -> (if (==>/⇓? V) '->*/⇓ '->*))
+                   `(,(map show-αℓ αℓs) #:rest ,(show-αℓ αℓᵣ) . ,-> . ,show-rng)]
+             [else (define -> (if (==>/⇓? V) '->/⇓ '->))
+                   `(,@(map show-αℓ αℓs) . ,-> . ,show-rng)])]
       [(==>i Doms Rng)
        (define -> (if (==>i/⇓? V) '->i/⇓ '->i))
        `(,-> ,(map show-Dom Doms) ,(show-Dom Rng))]
@@ -109,7 +106,7 @@
 
   (define show-Dom : (Dom → (Listof Sexp))
     (match-lambda
-      [(Dom x (Clo (? list? xs) ⟦E⟧ _) _) `(,x ,xs …)]
+      [(Dom x (Clo (-var xs #f) ⟦E⟧ _) _) `(,x ,xs …)]
       [(Dom x (? integer? α₀)         _) `(,x ,(show-α (cast α₀ α)))]))
 
   (define show-⟦dom⟧ : (⟦dom⟧ → (Listof Sexp))

@@ -59,17 +59,13 @@
     ???)
 
   (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
-  (define ((app-clo xs ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)
+  (define ((app-clo fmls ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)
     (match-define (Ξ:co _ _ H) Ξ)
     (define-values (H* looped?) (H+ H ℓ ⟦E⟧ 'app))
     ;; FIXME guard arity
-    (define Ρ* (bind-args! Ρ xs Wₓ Φ^ H* Σ))
+    (define Ρ* (bind-args! Ρ fmls Wₓ Φ^ H* Σ))
     (define α* (αₖ ⟦E⟧ Ρ*))
     (⊔ₖ! Σ α* Ξ)
-    (when looped?
-      (for ([x (in-list (assert xs list?))] [Vₓ (in-list Wₓ)])
-        (define α (Ρ@ Ρ* x))
-        (printf "compare: ~a vs ~a~n" (Σᵥ@ Σ α) Vₓ)))
     {set (⟦E⟧ Ρ* Φ^ (Ξ:co '() α* H*) Σ)})
 
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
@@ -192,25 +188,21 @@
   (: app-==> : Ctx ==> α → ⟦F⟧^)
   (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ₀ Σ)
     (define ctx* (Ctx-flip ctx))
-    (match-define (==> Doms Rng) G)
+    (match-define (==> (-var Doms₀ Domᵣ) Rng) G)
     (define Ξ₁ (K+ (F:Mon*:C (Ctx-with-ℓ ctx ℓ) Rng) Ξ₀))
     (define ℓ* (ℓ-with-src ℓ (Ctx-src ctx)))
     (define Vₕ^ (Σᵥ@ Σ α))
-    (match Doms
-      ['() (app Vₕ^ '() ℓ* Φ^ Ξ₁ Σ)]
-      [(? pair?)
-       (define-values (αs ℓs) (unzip-by αℓ-_0 αℓ-_1 Doms))
+    (define-values (αs₀ ℓs₀) (unzip-by αℓ-_0 αℓ-_1 Doms₀))
+    (match* (Doms₀ Domᵣ)
+      [('() #f) (app Vₕ^ '() ℓ* Φ^ Ξ₁ Σ)]
+      [((? pair?) #f)
        (match-define (cons (EΡ ⟦X⟧ _) ⟦X⟧s)
-         (for/list : (Listof EΡ) ([C^ (in-list (Σᵥ@* Σ αs))]
+         (for/list : (Listof EΡ) ([C^ (in-list (Σᵥ@* Σ αs₀))]
                                   [Vₓ^ (in-list Wₓ)]
-                                  [ℓₓ (in-list ℓs)])
+                                  [ℓₓ (in-list ℓs₀)])
            (EΡ (mk-mon (Ctx-with-ℓ ctx* ℓₓ) (mk-V C^) (mk-V Vₓ^)) ⊥Ρ)))
        {set (⟦X⟧ ⊥Ρ Φ^ (K+ (F:Ap (list Vₕ^) ⟦X⟧s ℓ*) Ξ₁) Σ)}]
-      [(-var Doms₀ Rst)
-       (define-values (αs₀ ℓs₀) (unzip-by αℓ-_0 αℓ-_1 Doms₀))
-       (match-define (αℓ αᵣ ℓᵣ) Rst)
-       (define-values (Wᵢ Wᵣ) (split-at Wₓ (length Doms₀)))
-       ???]))
+      [(_ _) ???]))
 
   (: app-==>i : Ctx ==>i α → ⟦F⟧^)
   (define ((app-==>i ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)
