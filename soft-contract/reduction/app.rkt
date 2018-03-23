@@ -63,7 +63,7 @@
     (match-define (Ξ:co _ _ H) Ξ)
     (define-values (H* looped?) (H+ H ℓ ⟦E⟧ 'app))
     ;; FIXME guard arity
-    (define Ρ* (bind-args! Ρ fmls Wₓ Φ^ H* Σ))
+    (define Ρ* (bind-args! Ρ fmls Wₓ H* Σ))
     (define α* (αₖ ⟦E⟧ Ρ*))
     (⊔ₖ! Σ α* Ξ)
     {set (⟦E⟧ Ρ* Φ^ (Ξ:co '() α* H*) Σ)})
@@ -186,23 +186,33 @@
       [_ {set (ret! (V->R -ff Φ^) Ξ Σ)}]))
 
   (: app-==> : Ctx ==> α → ⟦F⟧^)
-  (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ₀ Σ)
+  (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ Σ)
     (define ctx* (Ctx-flip ctx))
     (match-define (==> (-var Doms₀ Domᵣ) Rng) G)
-    (define Ξ₁ (K+ (F:Mon*:C (Ctx-with-ℓ ctx ℓ) Rng) Ξ₀))
+    (define Ξ* (K+ (F:Mon*:C (Ctx-with-ℓ ctx ℓ) Rng) Ξ))
     (define ℓ* (ℓ-with-src ℓ (Ctx-src ctx)))
     (define Vₕ^ (Σᵥ@ Σ α))
     (define-values (αs₀ ℓs₀) (unzip-by αℓ-_0 αℓ-_1 Doms₀))
+    (define-values (W₀ Wᵣ) (split-at Wₓ (length αs₀)))
+    (define ⟦X⟧s : (Listof EΡ)
+      (for/list ([C^ (in-list (Σᵥ@* Σ αs₀))]
+                 [Vₓ^ (in-list W₀)]
+                 [ℓₓ (in-list ℓs₀)])
+        (EΡ (mk-mon (Ctx-with-ℓ ctx* ℓₓ) (mk-V C^) (mk-V Vₓ^)) ⊥Ρ)))
     (match* (Doms₀ Domᵣ)
-      [('() #f) (app Vₕ^ '() ℓ* Φ^ Ξ₁ Σ)]
+      [('() #f) (app Vₕ^ '() ℓ* Φ^ Ξ* Σ)]
       [((? pair?) #f)
-       (match-define (cons (EΡ ⟦X⟧ _) ⟦X⟧s)
-         (for/list : (Listof EΡ) ([C^ (in-list (Σᵥ@* Σ αs₀))]
-                                  [Vₓ^ (in-list Wₓ)]
-                                  [ℓₓ (in-list ℓs₀)])
-           (EΡ (mk-mon (Ctx-with-ℓ ctx* ℓₓ) (mk-V C^) (mk-V Vₓ^)) ⊥Ρ)))
-       {set (⟦X⟧ ⊥Ρ Φ^ (K+ (F:Ap (list Vₕ^) ⟦X⟧s ℓ*) Ξ₁) Σ)}]
-      [(_ _) ???]))
+       (match-let ([(cons (EΡ ⟦X⟧ _) ⟦X⟧s) ⟦X⟧s])
+         {set (⟦X⟧ ⊥Ρ Φ^ (K+ (F:Ap (list Vₕ^) ⟦X⟧s ℓ*) Ξ*) Σ)})]
+      [(_ (αℓ αᵣ ℓᵣ))
+       (define Vᵣ (alloc-rest! ℓ Wᵣ (Ξ:co-ctx Ξ) Σ))
+       (define ⟦X⟧ᵣ (mk-mon (Ctx-with-ℓ ctx* ℓᵣ) (mk-V (Σᵥ@ Σ αᵣ)) (mk-V Vᵣ)))
+       (define Fn (list Vₕ^ {set 'apply}))
+       (match ⟦X⟧s
+         [(cons (cons ⟦X⟧ _) ⟦X⟧s)
+          {set (⟦X⟧ ⊥Ρ Φ^ (K+ (F:Ap Fn `(,@⟦X⟧s ,⟦X⟧ᵣ) ℓ*) Ξ* Σ))}]
+         [_
+          {set (⟦X⟧ᵣ ⊥Ρ Φ^ (K+ (F:Ap Fn '() ℓ*) Ξ*) Σ)}])]))
 
   (: app-==>i : Ctx ==>i α → ⟦F⟧^)
   (define ((app-==>i ctx G α) Wₓ ℓ Φ^ Ξ Σ) ???)

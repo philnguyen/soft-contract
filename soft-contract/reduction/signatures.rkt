@@ -59,8 +59,8 @@
   (-α:fld -𝒾 ℓ H Index)
   ; for Cons/varargs
   ; idx prevents infinite list
-  (-α:var-car ℓ H (Option Natural))
-  (-α:var-cdr ℓ H (Option Natural))
+  (-α:var:car (U ℓ Symbol) H (Option Natural))
+  (-α:var:cdr (U ℓ Symbol) H (Option Natural))
 
   ;; for wrapped mutable struct
   (-α:st -𝒾 Ctx H)
@@ -117,7 +117,9 @@
 
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
-   [bind-args! : (Ρ -formals W Φ^ H Σ → Ρ)]
+   [bind-args! : (Ρ -formals W H Σ → Ρ)]
+   [bind-rest! : ([Ρ Symbol W H Σ] [#:end V] . ->* . Ρ)]
+   [alloc-rest! : ([(U Symbol ℓ) W H Σ] [#:end V] . ->* . V)]
    [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values H Boolean))] 
    [H₀ : H]))
 

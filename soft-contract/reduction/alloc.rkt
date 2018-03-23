@@ -9,6 +9,7 @@
          racket/set
          racket/list
          racket/match
+         racket/splicing
          typed/racket/unit
          syntax/parse/define
          set-extras
@@ -32,20 +33,39 @@
       [(? -α:idx?) #t]
       [_ #f]))
 
-  (: bind-args! : Ρ -formals W Φ^ H Σ → Ρ)
-  (define (bind-args! Ρ₀ fmls W Φ^ H Σ)
+  (: bind-args! : Ρ -formals W H Σ → Ρ)
+  (define (bind-args! Ρ₀ fmls W H Σ)
     (match-define (-var xs x) fmls)
-    (define Ρ* (bind-inits! Ρ₀ xs W Φ^ H Σ))
-    (when x
-      ???)
-    Ρ*)
+    (define Ρ* (bind-inits! Ρ₀ xs W H Σ))
+    (if x (bind-rest! Ρ* x (drop W (length xs)) H Σ) Ρ*))
 
-  (: bind-inits! : Ρ (Listof Symbol) W Φ^ H Σ → Ρ)
-  (define (bind-inits! Ρ₀ xs W Φ^ H Σ)
-    (for/fold ([Ρ : Ρ Ρ₀]) ([x (in-list xs)] [V (in-list W)])
-      (define α (mk-α (-α:x x H)))
-      (⊔ᵥ! Σ α V)
-      (Ρ+ Ρ x α)))
+  (splicing-local
+      ((: bind! : Σ Ρ Symbol H (U V V^) → Ρ)
+       (define (bind! Σ Ρ x H V)
+         (define α (mk-α (-α:x x H)))
+         (⊔ᵥ! Σ α V)
+         (Ρ+ Ρ x α)))
+    
+    (: bind-inits! : Ρ (Listof Symbol) W H Σ → Ρ)
+    (define (bind-inits! Ρ₀ xs W H Σ)
+      (for/fold ([Ρ : Ρ Ρ₀]) ([x (in-list xs)] [V (in-list W)])
+        (bind! Σ Ρ x H V)))
+
+    (: bind-rest! ([Ρ Symbol W H Σ] [#:end V] . ->* . Ρ))
+    (define (bind-rest! Ρ x W H Σ #:end [Vₙ -null])
+      (bind! Σ Ρ x H (alloc-rest! x W H Σ #:end Vₙ))))
+
+  (: alloc-rest! ([(U Symbol ℓ) W H Σ] [#:end V] . ->* . V))
+  (define (alloc-rest! x Wₓ H Σ #:end [Vₙ -null])
+    (let go! ([W : W Wₓ] [i : Natural 0])
+      (match W
+        [(cons Vᵢ W*)
+         (define αₕ (mk-α (-α:var:car x H i)))
+         (define αₜ (mk-α (-α:var:cdr x H i)))
+         (⊔ᵥ! Σ αₕ Vᵢ)
+         (⊔ᵥ! Σ αₜ (go! W* (+ 1 i)))
+         (Cons αₕ αₜ)]
+        [_ Vₙ])))
 
   (: H+ : H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values H Boolean))
   (define (H+ H src tgt type)
